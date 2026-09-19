@@ -41,7 +41,7 @@ checa('proíbe texto legível, logos e rosto de pessoa real; nome famoso vira ce
 checa('sem descrição, usa a query e depois a fala', /rain over old streets/.test(L.buildFastStillPrompt({ query: 'rain over old streets' })) && /the sun rises/.test(L.buildFastStillPrompt({ voiceover: 'the sun rises over the sea' })))
 checa('seed estável por prompt', L.fastStillSeed('abc') === L.fastStillSeed('abc') && L.fastStillSeed('abc') !== L.fastStillSeed('abd'))
 checa('a URL do fal nunca passa (persistFastStill devolve só bucket próprio); falha aberta', /if \(!durable \|\| FAL_URL_RE\.test\(durable\)\) return null/.test(libSrc) && /catch \{\n    return null\n  \}/.test(libSrc))
-checa('o still vem da mesma peça das âncoras (generateCinematicSceneStill) com janela de 10 s e 9:16', libSrc.includes("import { generateCinematicSceneStill } from '@/lib/hollywood/anchors'") && libSrc.includes('FAST_AI_STILL_WINDOW_MS = 10_000') && libSrc.includes("aspect: args.aspect ?? '9:16'"))
+checa('o still vem da mesma peça das âncoras (generateCinematicSceneStill) com janela de 12 s (era 10; KINEO-STILL-NITIDO 18/09: 28 passos) e 9:16', libSrc.includes("import { generateCinematicSceneStill } from '@/lib/hollywood/anchors'") && libSrc.includes('FAST_AI_STILL_WINDOW_MS = 12_000') && libSrc.includes("aspect: args.aspect ?? '9:16'"))
 
 console.log('== (d) rota do Kineo 1 ==')
 const rt = rd('app/api/generate-video-fast/route.ts')
