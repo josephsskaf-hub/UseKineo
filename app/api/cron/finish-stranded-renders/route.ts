@@ -30,6 +30,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { fal } from '@fal-ai/client'
 import { CINEMATIC_CLAIM_EVENT, authorizeCinematicCompletedUrls, loadVerifiedCinematicClaim } from '@/lib/cinematic/claim'
+import { STRANDED_MIN_AGE_MS, CINEMATIC_CLIENT_POLL_EVENT, clientStillAlive } from '@/lib/strandedRescue' // KINEO-RESGATE-RAPIDO-2026-09-19
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { videoReadyFooter, type VideoReadyFooter } from '@/lib/lifecycle/videoReadyFooter'
 import { composerUrl } from '@/lib/lifecycle/composerUrl'
@@ -78,7 +79,12 @@ const COMPOSED_EVENT = 'stranded_composed'
 // existe, e o cliente foi embora achando que não funcionou.
 const FAST_READY_EVENT = 'stranded_fast_ready_sent'
 const MAX_FAST_PER_RUN = 25
-const MIN_AGE_MS = 12 * 60 * 1000
+// KINEO-RESGATE-RAPIDO-2026-09-19 — era 12 min cegos (para não montar em dobro com uma aba viva). Caso Axel (19/09
+// 01:00 BRT): 100 cr cobrados, aba fechada 01:03, cenas prontas ~01:04, montagem só 01:15 — 12 min parado. Agora a
+// idade mínima é STRANDED_MIN_AGE_MS e a proteção contra o dobro é a batida de vida da aba (cinematic_client_poll,
+// gravada por /api/cinematic-clip-status): com batida nos últimos CLIENT_ALIVE_MS, a aba está viva e o cron espera.
+// Cron passa a rodar a cada 5 min (vercel.json). Ver lib/strandedRescue.ts.
+const MIN_AGE_MS = STRANDED_MIN_AGE_MS
 const MAX_AGE_MS = 20 * 60 * 60 * 1000
 const MAX_COMPOSE_PER_RUN = 3
 const MAX_COMPOSE_ATTEMPTS = 2
@@ -533,8 +539,8 @@ export async function GET(req: NextRequest) {
   const genIds = candidates.map((c) => c.session_id).filter((s): s is string => !!s)
   const { data: markerRows, error: markerErr } = await admin
     .from('events')
-    .select('name, session_id, metadata')
-    .in('name', [RESCUE_EVENT, ATTEMPT_EVENT, READY_EVENT, FAST_READY_EVENT, COMPOSED_EVENT, OUTCOME_EVENT])
+    .select('name, session_id, metadata, created_at')
+    .in('name', [RESCUE_EVENT, ATTEMPT_EVENT, READY_EVENT, FAST_READY_EVENT, COMPOSED_EVENT, OUTCOME_EVENT, CINEMATIC_CLIENT_POLL_EVENT])
     .in('session_id', genIds.slice(0, 200))
   // sprint-assinaturas #4 — o erro deste lote era engolido; agora vai pro log e
   // viaja no `stranded_dedupe_miss` quando o lookup direto pega o que o lote perdeu.
@@ -547,9 +553,11 @@ export async function GET(req: NextRequest) {
   // a tentativa extra; qualquer outro desfecho (ou nenhum) mantém o teto de 2.
   const outcomes = new Map<string, { total: number; only4xx: boolean }>()
   const composedRender = new Map<string, string | null>()
+  const lastPoll = new Map<string, number>() // KINEO-RESGATE-RAPIDO — última batida de vida da aba por geração
   for (const m of markerRows ?? []) {
     const sid = m.session_id as string | null
     if (!sid) continue
+    if (m.name === CINEMATIC_CLIENT_POLL_EVENT) { const t = Date.parse(String((m as { created_at?: string }).created_at ?? '')); if (Number.isFinite(t)) lastPoll.set(sid, Math.max(lastPoll.get(sid) ?? 0, t)); continue }
     if (m.name === RESCUE_EVENT) rescued.add(sid)
     // sprint-assinaturas #25 — o aviso da Fase 3 (fast) também conta: 3 filmes
     // em 14d receberam Fase 3 + Fase 2 = dois avisos para o mesmo render.
@@ -582,6 +590,8 @@ export async function GET(req: NextRequest) {
     const md = claim.metadata as Record<string, unknown>
     checked++
     const gen8 = genId.slice(0, 8)
+    // KINEO-RESGATE-RAPIDO-2026-09-19 — aba viva (batida nos últimos CLIENT_ALIVE_MS) monta sozinha; o cron espera.
+    if (clientStillAlive(lastPoll.get(genId), now)) { results.push({ generation: gen8, outcome: 'client_alive' }); continue }
 
     // Perfil (e-mail para os avisos; contas internas ainda GANHAM o finish —
     // só não recebem e-mail).

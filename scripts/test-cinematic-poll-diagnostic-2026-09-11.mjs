@@ -28,6 +28,9 @@ async function run({ stage = 'status', status = 403, detail = 'Forbidden', recov
     authorizedCompletedUrls: (allFailed ? [ids[6]] : ids).map(() => null), response: {} }
   const imports = {
     'next/server': { NextResponse: { json: (body, init = {}) => ({ body, status: init.status ?? 200 }) } },
+    // KINEO-RESGATE-RAPIDO-2026-09-19 — a rota grava a batida de vida da aba (sem efeito no diagnóstico).
+    '@/lib/serverEvents': { writeServerEvent: async () => true },
+    '@/lib/strandedRescue': { CINEMATIC_CLIENT_POLL_EVENT: 'cinematic_client_poll', CLIENT_POLL_DEDUPE_MINUTES: 1 },
     '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: { id: 'owner' } } }) } }) },
     '@supabase/supabase-js': { createClient: () => ({}) },
     '@fal-ai/client': { fal: {

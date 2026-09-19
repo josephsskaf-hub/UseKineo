@@ -2,6 +2,8 @@
 // models and completed URLs are bound to the owner claim before any URL leaves
 // the server; the birth route has already debited the deterministic job key.
 import { NextRequest, NextResponse } from 'next/server'
+import { writeServerEvent } from '@/lib/serverEvents' // KINEO-RESGATE-RAPIDO-2026-09-19
+import { CINEMATIC_CLIENT_POLL_EVENT, CLIENT_POLL_DEDUPE_MINUTES } from '@/lib/strandedRescue'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { fal } from '@fal-ai/client'
@@ -206,6 +208,10 @@ export async function GET(req: NextRequest) {
     if (!validCinematicGenerationId(generationId)) {
       return NextResponse.json({ error: 'generationId is required.' }, { status: 400 })
     }
+    // KINEO-RESGATE-RAPIDO-2026-09-19 — batida de vida da aba: enquanto o navegador consulta as cenas, o resgate
+    // sabe que há alguém para montar e não compõe em dobro. Sem batida por CLIENT_ALIVE_MS, a aba morreu e o cron
+    // monta assim que as cenas estiverem prontas. 1 linha por minuto por geração (dedupe), nunca bloqueia a resposta.
+    void writeServerEvent({ name: CINEMATIC_CLIENT_POLL_EVENT, userId: user.id, path: '/api/cinematic-clip-status', sessionId: generationId, dedupeMinutes: CLIENT_POLL_DEDUPE_MINUTES, metadata: { v: 1 } })
     const idsParam = req.nextUrl.searchParams.get('ids') ?? ''
     const requestedIds = parseIds(idsParam)
     if (!requestedIds) return NextResponse.json({ error: 'Valid ids are required.' }, { status: 400 })

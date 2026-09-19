@@ -256,6 +256,11 @@ export async function GET() {
         admin.from('videos').select('user_id').in('user_id', ids).limit(2000),
         animateDelivPromise,
       ])
+      // KINEO-PAINEL-MONTANDO-2026-09-19 — entregues nas 24 h por pessoa+motor: a linha de gasto passa a dizer
+      // "2 pedidos (1 pronto · 1 montando)" em vez de "2 vídeos", que contradizia o total=1 enquanto o resgate montava.
+      const { data: vids24 } = await admin.from('videos').select('user_id, quality_mode').in('user_id', ids).gte('created_at', new Date(now - 24 * 60 * 60 * 1000).toISOString()).limit(2000)
+      const delivered24 = new Map<string, number>()
+      for (const v of vids24 ?? []) { const k = `${(v as { user_id?: string }).user_id}|${(v as { quality_mode?: string }).quality_mode ?? '?'}`; delivered24.set(k, (delivered24.get(k) ?? 0) + 1) }
       const [imagesRes, audiosRes, grantsRes, purchasesRes, debitsRes, revokesRes, subsRes] = await Promise.all([imagesPromise, audiosPromise, grantsPromise, purchasesPromise, debitsPromise, revokesPromise, subsPromise])
       // Razão por pessoa: bônus, compras, gastos, estornos e expirado — crus.
       const ledgerBy = new Map<string, { bonus: number; bought: number; spent: number; refunded: number; revoked: number }>()
@@ -506,6 +511,9 @@ export async function GET() {
           const terminouNaJanela = names.has('video_generation_completed')
           if (tentouGerar && !falhouNaJanela) { did.push('🎬 gerando vídeo'); heat = Math.max(heat, 2) }
           if (tentouGerar && falhouNaJanela && !terminouNaJanela) { did.push('✋ tentou gerar e falhou'); heat = Math.max(heat, 2) }
+          // KINEO-PAINEL-MONTANDO-2026-09-19 — claim fechado (crédito cobrado) sem filme pronto na janela: o filme está
+          // sendo montado (pela aba ou pelo resgate). Antes aparecia "navegando" (caso Axel, 01:19 BRT).
+          if (names.has('cinematic_submission_claim') && !terminouNaJanela && !falhouNaJanela) { did.push('⏳ montando (crédito cobrado, filme a caminho)'); heat = Math.max(heat, 2) }
           if (names.has('video_generation_completed')) { did.push('✅ vídeo pronto'); heat = Math.max(heat, 2) }
           if (names.has('video_downloaded')) { did.push('⬇ baixou'); heat = Math.max(heat, 2) }
           if (names.has('pricing_view') || names.has('inline_pricing_currency_resolved')) did.push('💰 viu preço')
@@ -587,8 +595,13 @@ export async function GET() {
               // O conserto é falar: o período entra no texto e o crédito ganha
               // "no preço da época" quando os vídeos custaram preços diferentes.
               const mistoDePrecos = v.n > 1 && v.cr % v.n !== 0
+              // KINEO-PAINEL-MONTANDO-2026-09-19 — pedidos (cobranças) × prontos (linhas em videos); o resto está montando.
+              const prontos = Math.min(v.n, delivered24.get(`${p.id as string}|${q}`) ?? 0)
+              const montando = v.n - prontos
+              const entrega = montando === 0 ? (v.n === 1 ? 'pronto' : 'todos prontos') : `${prontos} pronto${prontos === 1 ? '' : 's'} · ${montando} montando`
+              void plural
               parts.push(
-                `🎬 24h: ${v.n} ${plural} no ${ENGINE_SHORT[q] ?? q} · ${v.cr} ${v.cr === 1 ? 'crédito' : 'créditos'}` +
+                `🎬 24h: ${v.n} ${v.n === 1 ? 'pedido' : 'pedidos'} no ${ENGINE_SHORT[q] ?? q} (${entrega}) · ${v.cr} ${v.cr === 1 ? 'crédito' : 'créditos'}` +
                 (mistoDePrecos ? ' (preço da época)' : ''),
               )
             }

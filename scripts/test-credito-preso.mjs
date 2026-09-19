@@ -148,7 +148,7 @@ v('12:00 exatos ja nao sao', classifyHold({ hold: { held: 20, newestAgeMs: min(1
 v('a regua e a MIN_AGE_MS do cron de resgate (12 min)', HOLD_IN_FLIGHT_MAX_AGE_MS === 12 * 60 * 1000)
 const cronFonte = readFileSync(join(raiz, 'app/api/cron/finish-stranded-renders/route.ts'), 'utf8')
 v('e o cron continua com MIN_AGE_MS de 12 min (se mudar la, este teste cai)',
-  /const MIN_AGE_MS = 12 \* 60 \* 1000/.test(cronFonte))
+  /const MIN_AGE_MS = STRANDED_MIN_AGE_MS/.test(cronFonte)) // KINEO-RESGATE-RAPIDO-2026-09-19: o cron age com 4 min + batida de vida; a régua de 12 min do hold preso fica como teto conservador
 
 console.log('\n5) a frase do forno')
 const f = inFlightMessage(3, 19)

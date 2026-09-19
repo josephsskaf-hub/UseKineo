@@ -104,7 +104,7 @@ ok(route.includes("footer: footer.kind, trial_door: footer.trialDoor, has_paid: 
 // ~7% que so recebem e-mail mediria a porta em metade das vezes.
 ok((route.match(/trial_door: footer\.trialDoor/g) ?? []).length === 2, 'as duas fases carimbam trial_door (nenhuma ficou para tras)')
 ok(route.indexOf('const statusMail = await statusRouteAlreadyEmailed') > route.indexOf("const verdict = await alreadySentDirect(admin, { eventName: READY_EVENT"), 'ordem Fase 2: dedupe do proprio cron (#4) primeiro, carimbo da rota de status depois, envio por ultimo')
-ok(route.includes(".in('name', [RESCUE_EVENT, ATTEMPT_EVENT, READY_EVENT, FAST_READY_EVENT, COMPOSED_EVENT, OUTCOME_EVENT])"), 'lote da Fase 2 tambem enxerga o aviso da Fase 3')
+ok(route.includes(".in('name', [RESCUE_EVENT, ATTEMPT_EVENT, READY_EVENT, FAST_READY_EVENT, COMPOSED_EVENT, OUTCOME_EVENT, CINEMATIC_CLIENT_POLL_EVENT])"), 'lote da Fase 2 tambem enxerga o aviso da Fase 3 (KINEO-RESGATE-RAPIDO-2026-09-19: +batida de vida no mesmo lote)')
 ok(route.includes('else if (m.name === READY_EVENT || m.name === FAST_READY_EVENT) readySent.add(sid)'), 'aviso da Fase 3 conta como "ja avisado" na Fase 2 (3 filmes em 14d levaram 2 avisos)')
 ok(route.includes(".in('name', [FAST_READY_EVENT, READY_EVENT]).in('session_id', fastGenIds.slice(0, 200))"), 'lote da Fase 3 tambem enxerga o aviso da Fase 2')
 ok(route.includes('background:#161618;color:#fff;padding:4px 20px 20px;border-radius:12px') && route.indexOf('background:#161618') > route.indexOf('Watch my video'), 'rodape vai num cartao escuro DEPOIS do botao (o #24 usa strong branco — no fundo branco o saldo sumiria)')

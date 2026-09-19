@@ -149,6 +149,9 @@ async function poll({ state = database(), status = 'IN_PROGRESS', mismatched = f
     e.status = http; e.body = { detail: 'User is locked SENTINEL' }; throw e }
   const imports = {
     'next/server': { NextResponse: { json: (body, init = {}) => ({ body, status: init.status ?? 200 }) } },
+    // KINEO-RESGATE-RAPIDO-2026-09-19 — a rota grava a batida de vida da aba (sem efeito no diagnóstico).
+    '@/lib/serverEvents': { writeServerEvent: async () => true },
+    '@/lib/strandedRescue': { CINEMATIC_CLIENT_POLL_EVENT: 'cinematic_client_poll', CLIENT_POLL_DEDUPE_MINUTES: 1 },
     '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: { id: userId } } }) } }) },
     '@supabase/supabase-js': { createClient: () => state.db },
     '@fal-ai/client': { fal: { config() {}, queue: {
