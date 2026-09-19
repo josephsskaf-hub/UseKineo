@@ -85,12 +85,60 @@ function splitByMarkers(text: string): SceneSegment[] {
   return segments.length >= 2 ? segments : splitBySentences(text)
 }
 
-function splitBySentences(text: string): SceneSegment[] {
-  // Split on sentence-ending punctuation followed by whitespace
-  const sentences = text
-    .split(/(?<=[.!?])\s+/)
+// ═══ KINEO1-DIVISOR-POLIGLOTA-2026-09-18 — o divisor de cenas era cego a hindi/urdu/árabe e a texto corrido ═══
+//
+// MEDIDO (18/09, painel de coerência): roteiro em hindi (mrsaadkk, notas 50/55) termina frase com "।" (danda,
+// U+0964) — o texto inteiro virou UMA cena, e a única busca ("jaipur neighborhood, animated characters, colorful
+// houses") foi copiada para as 6 cenas do filme: pardal, vilarejo italiano, Bangladesh. Um pedido em espanhol
+// (rcmh, nota 30) era uma frase só de vírgulas → mesma coisa ("pride flag, hotel room, dress shoes" × 4).
+// A rota alinha plano×cenas por posição: 1 entrada no plano = a mesma busca em todas as cenas.
+// Abrimos 16 línguas em 17/09 (hindi, urdu, árabe entre elas) em cima deste divisor.
+//
+// REGRA: (1) fim de frase inclui "।" (hindi/bengali), "۔" (urdu), "؟" (árabe/urdu), "。！？" (CJK);
+// (2) sem pontuação suficiente, um bloco longo (≥ SCENE_SPLIT_MAX_WORDS) é partido em vírgulas/ponto-e-vírgula
+// e, na falta delas, por contagem de palavras — nunca mais UMA cena de 100 palavras.
+export const SCENE_SPLIT_MAX_WORDS = 24
+const SENTENCE_END = /(?<=[.!?\u0964\u06D4\u061F\u3002\uFF01\uFF1F])\s+/
+const CLAUSE_END = /(?<=[,;:\u060C\u3001])\s+/ // vírgula latina, ponto-e-vírgula, dois-pontos, vírgula árabe "،", vírgula CJK "、"
+
+function wordCountOf(s: string): number {
+  return s.split(/\s+/).filter(Boolean).length
+}
+
+/** Parte um bloco longo em pedaços de até SCENE_SPLIT_MAX_WORDS, primeiro nas vírgulas, depois por contagem. */
+export function splitLongBlock(block: string): string[] {
+  if (wordCountOf(block) <= SCENE_SPLIT_MAX_WORDS) return [block]
+  const out: string[] = []
+  let atual = ''
+  for (const clause of block.split(CLAUSE_END).map((c) => c.trim()).filter(Boolean)) {
+    const junto = atual ? `${atual} ${clause}` : clause
+    if (atual && wordCountOf(junto) > SCENE_SPLIT_MAX_WORDS) { out.push(atual); atual = clause } else { atual = junto }
+  }
+  if (atual) out.push(atual)
+  // Cláusula única gigante (sem vírgula): corta por contagem de palavras.
+  return out.flatMap((piece) => {
+    const words = piece.split(/\s+/).filter(Boolean)
+    if (words.length <= SCENE_SPLIT_MAX_WORDS) return [piece]
+    const chunks: string[] = []
+    const n = Math.ceil(words.length / SCENE_SPLIT_MAX_WORDS)
+    const size = Math.ceil(words.length / n)
+    for (let i = 0; i < words.length; i += size) chunks.push(words.slice(i, i + size).join(' '))
+    return chunks
+  })
+}
+
+/** Frases de um texto em qualquer das 16 línguas da casa; blocos longos são partidos (ver cabeçalho). */
+export function splitSentencesPolyglot(text: string): string[] {
+  return text
+    .split(SENTENCE_END)
     .map((s) => s.trim())
     .filter((s) => s.length > 0)
+    .flatMap(splitLongBlock)
+}
+
+function splitBySentences(text: string): SceneSegment[] {
+  // KINEO1-DIVISOR-POLIGLOTA-2026-09-18 — ver o cabeçalho acima.
+  const sentences = splitSentencesPolyglot(text)
 
   if (sentences.length === 0) return []
 

@@ -25,6 +25,8 @@ import type { Quality } from '@/lib/credits/engineCost'
 // KINEO-MULTIFORMATO-2026-09-02 — os 4 enquadramentos, de uma fonte só.
 import { allAspectSpecs, type Aspect } from '@/lib/aspect'
 import { isOnboardingGoalId, type OnboardingGoalId } from '@/lib/growth/onboardingGoals'
+// KINEO1-AVISO-DESENHO-2026-09-18 — o Kineo 1 não desenha; aviso antes do crédito (fundador: "quero o aviso").
+import { decideKineo1FitNotice, kineo1FitNoticeCopy } from '@/lib/growth/kineo1FitNotice'
 import {
   CHATGPT_QUICKSTART_VARIANT,
   isChatGptQuickstartChoice,
@@ -307,6 +309,15 @@ export default function StudioClient() {
   }, [searchSignature])
 
   const eng = useMemo(() => ENGINES.find((e) => e.key === engine)!, [engine])
+  // KINEO1-AVISO-DESENHO-2026-09-18 — ver lib/growth/kineo1FitNotice.ts. A decisão é pura; a tela só a executa.
+  const kineo1Fit = useMemo(() => decideKineo1FitNotice({ engine, text: prompt }), [engine, prompt])
+  const [kineo1FitKept, setKineo1FitKept] = useState(false)
+  const kineo1FitShownRef = useRef(false)
+  useEffect(() => {
+    if (!kineo1Fit.show || kineo1FitKept || kineo1FitShownRef.current) return
+    kineo1FitShownRef.current = true
+    void trackEvent('kineo1_fit_notice_shown', { version: kineo1Fit.version, reason: kineo1Fit.reason })
+  }, [kineo1Fit.show, kineo1Fit.version, kineo1Fit.reason, kineo1FitKept])
   // Um cálculo só, usado no preço, no botão e no aviso — para os três nunca
   // discordarem entre si (foi assim que a tela e o servidor divergiram ontem).
   const cost = creditCostForDuration(ENGINE_QUALITY[eng.key] ?? 'cinematic_ai', true, duration)
@@ -564,6 +575,25 @@ export default function StudioClient() {
                 ? `${prompt.trim().split(/\s+/).length} ${t('words', 'palabras')}${scriptMode === 'verbatim' ? (t(' · narrated word for word', ' · narradas palabra por palabra')) : ''} · ${formatLimitCounter(limit)}`
                 : <UiLabel>a single line is enough — or paste a full script</UiLabel>}
             </div>
+            {kineo1Fit.show && !kineo1FitKept && (() => {
+              const copy = kineo1FitNoticeCopy(ENGINES.find((e) => e.key === 'seedance')?.credits ?? 'AI-generated scenes')
+              return (
+                <div data-kineo="aviso-desenho" data-version={kineo1Fit.version} style={{ marginTop: 8, padding: '10px 12px', borderRadius: 10, background: 'rgba(251,191,36,.08)', border: '1px solid rgba(251,191,36,.45)' }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.86rem', color: 'var(--text)' }}>{copy.title}</div>
+                  <div className="val" style={{ fontSize: '0.78rem', marginTop: 3, lineHeight: 1.45 }}>{copy.body}</div>
+                  <div className="row" style={{ marginTop: 8, gap: 8 }}>
+                    <button type="button" className="pill on" style={{ fontSize: 12 }}
+                      onClick={() => { void trackEvent('kineo1_fit_notice_switched', { version: kineo1Fit.version, to: 'seedance' }); setEngine('seedance') }}>
+                      {copy.switchLabel}
+                    </button>
+                    <button type="button" className="pill" style={{ fontSize: 12 }}
+                      onClick={() => { void trackEvent('kineo1_fit_notice_kept', { version: kineo1Fit.version }); setKineo1FitKept(true) }}>
+                      {copy.keepLabel}
+                    </button>
+                  </div>
+                </div>
+              )
+            })()}
             {bareStarter && (
               <div className="val" data-kineo="pilula-sozinha" style={{ color: '#67e8f9', fontSize: '0.78rem', marginTop: 6 }}>
                 <UiLabel>{`Finish the sentence — what is it about? e.g. “${prompt.trim()} the Dyatlov Pass”.`}</UiLabel>

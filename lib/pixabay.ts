@@ -156,6 +156,17 @@ const GENERIC_NOUNS = new Set([
   'background', 'texture', 'abstract', 'view', 'shot', 'motion', 'nature', 'landscape', 'travel', 'business',
   'technology', 'tech', 'money', 'food', 'animal', 'animals', 'time', 'world', 'life', 'work', 'design', 'modern',
   'old', 'new', 'big', 'small', 'top', 'inside', 'outside', 'front', 'back', 'side', 'closeup', 'close', 'detail',
+  // KINEO1-SUJEITO-CABECA-2026-09-18 — adjetivo e abstração nunca são o sujeito: "tropical" pôs um pôr do sol no
+  // filme do caramujo, "beach" pôs praia no do caramujo-cone, "bite" pôs uma vespa no do mosquito.
+  'tropical', 'beautiful', 'beauty', 'deadly', 'danger', 'dangerous', 'wildlife', 'wild', 'disease', 'deaths', 'death',
+  'lethal', 'silent', 'tiny', 'bite', 'insect', 'insects', 'creature', 'creatures', 'beach', 'ocean', 'sea', 'river',
+  'lake', 'forest', 'mountain', 'mountains', 'village', 'town', 'colorful', 'magical', 'glowing', 'warm', 'young',
+])
+// KINEO1-SUJEITO-CABECA-2026-09-18 — modificadores que vêm ANTES do sujeito na busca ("freshwater snail",
+// "giant squid"): pulados na hora de achar a cabeça da frase, mas continuam contando como tokens específicos.
+const HEAD_MODIFIERS = new Set([
+  'freshwater', 'saltwater', 'giant', 'baby', 'ancient', 'deep', 'black', 'white', 'red', 'blue', 'green', 'golden',
+  'dark', 'bright', 'little', 'huge', 'massive', 'wild', 'rare', 'famous', 'secret', 'hidden', 'lost', 'first', 'last',
 ])
 const SUBJECT_FAMILIES: ReadonlyArray<ReadonlyArray<string>> = [
   ['boeing', 'airbus', '737', '747', '757', '767', '777', '787', 'a320', 'a330', 'a350', 'a380', 'airplane', 'aeroplane', 'airplanes', 'aircraft', 'airliner', 'plane', 'planes', 'jet', 'jets', 'jetliner', 'aviation', 'airport', 'cockpit', 'runway', 'takeoff', 'landing', 'airline', 'flight', 'turbine', 'wing', 'fuselage'],
@@ -175,6 +186,20 @@ function subjectFamilyOf(token: string): ReadonlyArray<string> | null {
 /** Tokens da busca que carregam o SUJEITO (fora dos genéricos e dos de estilo). */
 export function specificTokens(query: string): string[] { // exportado para o guardião
   return meaningfulTokens(query).filter((t) => !GENERIC_NOUNS.has(t))
+}
+// ═══ KINEO1-SUJEITO-CABECA-2026-09-18 — o sujeito é a CABEÇA da busca, não qualquer palavra específica ═══
+//
+// MEDIDO (18/09, filme "deadliest animals", valos, nota 70, duas vezes): a regra do sujeito da madrugada exige
+// UM token específico em comum — e numa busca de 6 palavras qualquer adjetivo serve. "freshwater snail water
+// schistosomiasis tropical" → "sea, ocean, sunset… tropical"; "cone snail shell beautiful deadly ocean beach" →
+// praia; "mosquito insect close up macro bite" → vespa e mosca (casaram "insect, macro, bite", nunca "mosquito").
+// REGRA: a primeira palavra específica da busca que não é modificador ("freshwater", "giant"…) é a cabeça, e a
+// tag TEM de bater com ela (direto ou pela família de sinônimo). Sem cabeça (busca só de genéricos), vale a
+// regra antiga. Pool vazio → still gerado do sujeito certo (foto do mosquito > vídeo da vespa).
+export function headSubjectToken(query: string): string | null { // exportado para o guardião
+  const specific = specificTokens(query)
+  const head = specific.find((t) => !HEAD_MODIFIERS.has(t)) ?? specific[0] ?? null
+  return head
 }
 function specificTokenHitsTags(token: string, tagWords: string[]): boolean {
   if (tokenHitsTags(token, tagWords)) return true
@@ -290,7 +315,10 @@ export function tagsRelevantToQuery(video: PixabayVideo, query: string): boolean
   // não põe um carro num filme de Boeing; "hands" sozinho não põe covid num filme de amor.
   const specific = specificTokens(query)
   if (specific.length === 0) return true
-  return specific.some((t) => specificTokenHitsTags(t, tagWords))
+  if (!specific.some((t) => specificTokenHitsTags(t, tagWords))) return false
+  // KINEO1-SUJEITO-CABECA-2026-09-18 — e a cabeça da busca tem de estar na tag (ver o cabeçalho de headSubjectToken).
+  const head = headSubjectToken(query)
+  return head === null || specificTokenHitsTags(head, tagWords)
 }
 
 // PUSH #93 — style/framing words are a RANKING bonus, never relevance evidence:
