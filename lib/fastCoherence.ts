@@ -32,7 +32,11 @@ export const FAST_COHERENCE_EVENT = 'fast_coherence'
 // v3 (16/09 noite, fundador: "estou vendo coisas em outras línguas… tem que deixar tudo em português"): o juiz
 // escreve resumo e problemas em PORTUGUÊS e devolve `request_pt` — uma linha, em português, dizendo o que a
 // pessoa pediu, seja qual for a língua do prompt (polonês, espanhol, hindi…). O quadro lê isso.
-export const FAST_COHERENCE_VERSION = 'k1_coerencia_v3'
+// v4 (19/09, KINEO-LIVRO-DE-ESTADO): CONTINUITY RULE — o juiz das meias deu 100 com a cena 4 dizendo "white sock" quando a
+// história já a tinha pintado de azul e a cena 6 "transforming from blue to white" (o filme terminou azul). Agora ele
+// segue o estado de cada personagem/objeto recorrente linha a linha e cobra o estado em vigor em cada plano e o estado
+// final no último; plano de "transformação X→Y" também é problema (o still semeia o primeiro quadro).
+export const FAST_COHERENCE_VERSION = 'k1_coerencia_v4_estado'
 export const TOPIC_TRUNCATION_HINT = 500
 
 export type FastSceneEvidence = {
@@ -111,6 +115,8 @@ export function buildCoherenceMessages(input: { prompt: string; narration: strin
     'Two kinds of request exist. A SHORT IDEA (a title, a topic, a few sentences): the tool is SUPPOSED to develop it — adding accurate facts, scenes, a hook and a payoff on the same subject is correct and scores high (85-100); penalize only when the subject, the angle or the named people/places drift, or when claims contradict the request. A FULL SCRIPT (long, sentence by sentence): the narration must follow it closely; rewording, cuts and additions lower the score. ' +
     (ai
       ? '(2) narration_vs_visuals: the film is AI-generated shot by shot; each scene lists the exact generation prompt. Read the narration in order and judge whether the sequence of prompts depicts its subject, the named people/places/objects and the actions being described, in the right order; a prompt about something the narration never mentions, or a key moment of the narration with no shot, lowers the score; a REJECTED scene is a hole in the film. '
+        // KINEO-LIVRO-DE-ESTADO-2026-09-19 — ver o cabeçalho da versão v4.
+        + 'CONTINUITY RULE: for recurring characters or objects whose visible state changes along the story (color, size, condition, position), track the state line by line and check each prompt shows the state in force AT THAT LINE (carried forward from earlier lines), and that the LAST prompt shows the FINAL state the story ends in. A prompt in the wrong state, a prompt written as "transforming from X to Y" (the generator seeds the shot from a first-frame still and rarely completes a change), or a prompt adding characters, animals, people or props the story does not have is a MISMATCH: one caps narration_vs_visuals at 60, two or more at 40; name the scene and the expected state in problems. '
       : '(2) narration_vs_visuals: per scene, does the footage plan match what is being said? Footage described as "generated from this scene text" matches by construction; ' +
         '"recycled from an earlier scene" or "generic library clip" usually does not; stock clips match when the query and clip tags describe what the line talks about. ' +
         // KINEO1-SUJEITO-2026-09-18 — fundador: "85 é uma nota muito alta, devia ser no máximo 70" (filme do Boeing 737

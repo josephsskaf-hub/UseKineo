@@ -21,12 +21,22 @@
 // (lição do #349), falha aberta (qualquer erro = planos originais), custo ~US$ 0,002, ~3-6 s.
 
 export type AlignScene = { voiceover: string; shot: string }
-export type AlignRewrite = { index: number; before: string; shot: string; why: string }
+// KINEO-LIVRO-DE-ESTADO-2026-09-19 — o estado de cada personagem/objeto recorrente, cena a cena, como o supervisor
+// o leu ("big sock: blue; small sock: red"). Vai para o evento scene_speech_alignment (states) e alimenta o juiz.
+export type AlignRewrite = { index: number; before: string; shot: string; why: string; state?: string }
+export type AlignState = { index: number; state: string }
 export type AlignReport = { scenes: number; rewritten: number; kept: number; examples: Array<{ scene: number; why: string; before: string; after: string }>; ms: number; model: string }
-export type AlignResult = { rewritten: AlignRewrite[]; relato: AlignReport }
+export type AlignResult = { rewritten: AlignRewrite[]; relato: AlignReport; states: AlignState[] }
 
 export const SPEECH_IMAGE_ALIGN_EVENT = 'scene_speech_alignment'
-export const SPEECH_IMAGE_ALIGN_VERSION = 'fala_x_imagem_v1'
+// v2 (19/09, fundador: "vai, sobe o livro de estado"): caso das meias (Axel, Veo, 00:39 BRT) — a cena 4 dizia "large
+// WHITE sock" quando a história já a tinha pintado de azul; a cena 6 dizia "transforming from blue back to white" e o
+// still que semeia o Veo saiu AZUL, o vídeo não completou a mudança e o filme terminou com as meias azuis; o gerador
+// ainda enfeitou a sala com um cachorro. Três regras novas: (1) estado herdado — cada plano mostra o estado que vale
+// NAQUELE momento da história; (2) mudança = resultado — plano de transformação é rendido já no estado final, nunca
+// "de X para Y" (o still é o primeiro quadro; o gerador raramente termina a mudança); (3) sem enfeite — nada de
+// personagem, bicho, gente ou objeto que a história não tem. O supervisor devolve o estado por cena.
+export const SPEECH_IMAGE_ALIGN_VERSION = 'fala_x_imagem_v2_estado'
 
 export const SPEECH_IMAGE_ALIGN_ENABLED = !['0', 'false', 'no', 'off'].includes(
   (process.env.KINEO_SPEECH_IMAGE_ALIGN ?? '').trim().toLowerCase(),
@@ -41,8 +51,15 @@ export function buildAlignMessages(input: { topic: string; scenes: AlignScene[] 
     'Cinematic means camera and light ON the thing being said, never a different thing. ' +
     'REWRITE the shot when it depicts something the line does not talk about (invented props, another era, generic luxury/vintage/office objects, an unrelated place, an "aftermath" instead of the action), or when it misses the line\'s key action or object. ' +
     'KEEP the shot when it already shows the line; do not rewrite for taste. ' +
+    // KINEO-LIVRO-DE-ESTADO-2026-09-19 — ver o cabeçalho da versão v2.
+    'STATE LEDGER: first list every recurring character or object of the story and its visible state (color, size, condition, position) as the lines declare it; carry each state FORWARD until a later line changes it. ' +
+    'Every shot must show the state in force AT THAT LINE (a sock that turned blue two lines ago is still blue now). ' +
+    'When a line CHANGES a state (turns blue, becomes white again, breaks, grows), describe the shot in the RESULT state with the change already complete — never "transforming from X to Y": the generator seeds the shot from a still of the first frame and rarely finishes a change. ' +
+    'The LAST scene must show the FINAL state of every recurring character exactly as the story ends. ' +
+    'NO EXTRAS: when the subjects are objects or characters, the shot must not add other characters, animals, people or props the story does not mention; append "no other characters, no animals, no people, no added props" to such shots. ' +
+    'A shot in the wrong state or with extras counts as a REWRITE. ' +
     'When rewriting: one clear subject doing the action of the line, concrete and literal, in the era and place the line implies, max 55 words, English, no on-screen text, keep any existing "faceless / no real face / silhouette / from behind" constraint and keep it for named real people. Keep the film\'s established look if the current shot states one (e.g. "photorealistic", "3D animated"). ' +
-    'Reply ONLY with JSON: {"scenes":[{"i":<scene number>,"action":"keep"|"rewrite","shot":"<new shot when rewrite, else empty>","why":"<max 12 words>"}]} with exactly one entry per scene.'
+    'Reply ONLY with JSON: {"scenes":[{"i":<scene number>,"action":"keep"|"rewrite","shot":"<new shot when rewrite, else empty>","why":"<max 12 words>","state":"<visible state of each recurring character/object at this line, e.g. big sock: blue; small sock: red — empty when the story has none>"}]} with exactly one entry per scene.'
   const lines = input.scenes
     .map((s, i) => `Scene ${i + 1}\n  spoken: "${s.voiceover.replace(/\s+/g, ' ').trim().slice(0, 400)}"\n  shot: "${s.shot.replace(/\s+/g, ' ').trim().slice(0, 500)}"`)
     .join('\n')
@@ -55,25 +72,32 @@ export function buildAlignMessages(input: { topic: string; scenes: AlignScene[] 
 
 /** Do JSON do modelo para a lista de reescritas aceitas. Exportado para o guardião. */
 export function parseAlignReply(raw: string, scenes: AlignScene[]): AlignRewrite[] {
+  return parseAlignReplyFull(raw, scenes).rewritten
+}
+/** KINEO-LIVRO-DE-ESTADO-2026-09-19 — reescritas + estado por cena (o estado vale para KEEP e REWRITE). */
+export function parseAlignReplyFull(raw: string, scenes: AlignScene[]): { rewritten: AlignRewrite[]; states: AlignState[] } {
   let parsed: { scenes?: unknown }
   try {
     parsed = JSON.parse(raw) as { scenes?: unknown }
   } catch {
-    return []
+    return { rewritten: [], states: [] }
   }
-  if (!Array.isArray(parsed.scenes)) return []
+  if (!Array.isArray(parsed.scenes)) return { rewritten: [], states: [] }
   const out: AlignRewrite[] = []
+  const states: AlignState[] = []
   for (const item of parsed.scenes as Array<Record<string, unknown>>) {
     const i = typeof item?.i === 'number' ? Math.round(item.i) - 1 : -1
     if (i < 0 || i >= scenes.length) continue
+    const state = typeof item.state === 'string' ? item.state.replace(/\s+/g, ' ').trim().slice(0, 200) : ''
+    if (state && !states.some((x) => x.index === i)) states.push({ index: i, state })
     if (item.action !== 'rewrite') continue
     const shot = typeof item.shot === 'string' ? item.shot.replace(/\s+/g, ' ').trim() : ''
     // Reescrita vazia, curta demais ou idêntica não vale; só uma por cena.
     if (shot.length < 15 || shot === scenes[i].shot.trim()) continue
     if (out.some((o) => o.index === i)) continue
-    out.push({ index: i, before: scenes[i].shot, shot: shot.slice(0, 600), why: typeof item.why === 'string' ? item.why.slice(0, 120) : '' })
+    out.push({ index: i, before: scenes[i].shot, shot: shot.slice(0, 600), why: typeof item.why === 'string' ? item.why.slice(0, 120) : '', ...(state ? { state } : {}) })
   }
-  return out
+  return { rewritten: out, states }
 }
 
 /**
@@ -109,10 +133,11 @@ export async function alignShotsToSpeech(
     })
     if (!res.ok) return null
     const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> }
-    const rewritten = parseAlignReply(data.choices?.[0]?.message?.content ?? '', scenes)
+    const { rewritten, states } = parseAlignReplyFull(data.choices?.[0]?.message?.content ?? '', scenes)
     const ms = Date.now() - started
     return {
       rewritten,
+      states,
       relato: {
         scenes: scenes.length,
         rewritten: rewritten.length,
