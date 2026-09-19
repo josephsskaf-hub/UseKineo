@@ -73,3 +73,17 @@ todo Kineo 1 passa por isso, e o juiz dá 100 sem olhar; **(2)** o filme grátis
 visual. O conserto do "carro no filme de avião" de hoje de madrugada ataca a metade de (3) que era do portão;
 a outra metade (a busca em si) está no conserto 3. O juiz precisa de 4 correções para parar de mentir nas duas
 direções (100 para slideshow enevoado, 50 para filme de avião bom). Nada disso muda preço, oferta ou crédito.
+
+---
+
+## EXECUÇÃO (fundador 18/09: "vai pro 1, 2 e 3, sobe o Kling 3 junto")
+
+| # | O que subiu | Arquivos | Como conferir |
+|---|---|---|---|
+| 1 | **Roteiro da cota**: o escritor lê a cota da conta no servidor pelo predicado do cobrador (`getEffectiveEntitlement`, lista `PAID_PLANS` espelhada e guardada) e, no filme grátis, escreve para 15 s (~42-50 palavras) em formato curto (HOOK · MR1 · MR2 · PAYOFF). Só com `engine: 'fast'`; falha aberta. | `app/api/generate-script/route.ts` | `script_written.quota_seconds = 15` e `words ≤ 50` para contas grátis; `compose_submission_claim` com `duration=15` e narração ≤ 50 palavras |
+| 2 | **Still nítido**: `flux/dev` a **28 passos** (env `KINEO_FLUX_DEV_STEPS` 4-50 para ensaio) — vale para o still do Kineo 1 **e** para as âncoras do Kling 3 (retrato + ambiente); prompt do Kineo 1 sem "shallow depth of field/muted", com "sharp focus"; janela do still 10 → 12 s. Prova de que era o passo errado: o próprio `/images` da casa usa dev a 28 e schnell a 4. | `lib/hollywood/anchors.ts`, `lib/fastAiScene.ts` | A olho no próximo Kineo 1 e no próximo Kling 3. Latência: `fast_ai_still.log[].ok` não pode cair (era ~95%) |
+| 3 | **Busca nasce da fala**: regra QUERY FROM THE SPOKEN LINE no diretor visual (1ª palavra = substantivo da fala, ≤ 4 palavras, sem estilo, nunca repetir); a guarda do gancho (query sem token da cena → cai para a busca da própria cena) vale para **toda** cena; query já usada vai para o fim da lista. | `lib/broll/broll-engine.ts`, `app/api/generate-video-fast/route.ts` | H1 (`fast_scene_plan`: % de cenas cuja query compartilha token ≥ 4 com a fala) de 43% → ≥ 80%; H4 (filmes com a mesma query em ≥ 3 cenas) de 9/29 → 0 |
+
+Guardião: `scripts/test-kineo1-diagnostico-consertos-2026-09-18.mjs` (11), falsificado por mutação (passos → 4;
+cota ignorada). Trava 8.2 (generate-script, lib/broll, generate-video-fast) autorizada pelo fundador nesta frase.
+Ainda **não** feitos: conserto 4 (juiz) e 5 (aviso de pedido impossível) — próximos.

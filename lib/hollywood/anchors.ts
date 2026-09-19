@@ -31,6 +31,17 @@ import { aspectSpec } from '@/lib/aspect'
 // rosto artificial flagrado pelo fundador; dev custa centavos a mais e muda o
 // jogo em pele/textura. Motor de 150cr merece a melhor ancora.
 const ANCHOR_IMAGE_MODEL = 'fal-ai/flux/dev'
+// ═══ KINEO-STILL-NITIDO-2026-09-18 — o modelo certo com o passo errado ═══════════════════════════════
+// Diagnóstico de 18/09 (docs/KINEO1-DIAGNOSTICO-2026-09-18.md, 10 filmes assistidos): TODO still do Kineo 1 e
+// toda âncora do Kling 3 saíam enevoados/moles. Causa: `flux/dev` rodando com `num_inference_steps: 4` — a
+// receita do *schnell* (o comentário acima ainda diz schnell; o slug mudou para dev e o passo ficou). O
+// próprio produto /images da casa usa dev a 28 e schnell a 4 (app/api/images/generate/route.ts). A fal cobra
+// o dev por megapixel, não por passo: mesmo preço, ~3-5 s a mais. Fundador 18/09: "sobe o Kling 3 junto".
+// Interruptor: KINEO_FLUX_DEV_STEPS (4-50) para ensaio; padrão 28.
+export const ANCHOR_IMAGE_STEPS: number = (() => {
+  const raw = Number.parseInt((process.env.KINEO_FLUX_DEV_STEPS ?? '').trim(), 10)
+  return Number.isFinite(raw) && raw >= 4 && raw <= 50 ? raw : 28
+})()
 
 // KINEO-HOLLYWOOD-30-2026-07-10 — approximate cost of the 2 anchor images
 // (flux/schnell is ~pennies; logged conservatively as a flat $0.10 so the
@@ -63,7 +74,7 @@ async function generateAnchorImage(
     prompt,
     image_size: aspectSpec(aspect).fluxImageSize,
     num_images: 1,
-    num_inference_steps: 4,
+    num_inference_steps: ANCHOR_IMAGE_STEPS, // KINEO-STILL-NITIDO-2026-09-18 — era 4 (receita do schnell) no dev
     enable_safety_checker: true,
     ...(typeof seed === 'number' ? { seed } : {}),
   }

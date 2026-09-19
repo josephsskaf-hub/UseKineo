@@ -1028,6 +1028,7 @@ export async function POST(req: NextRequest) {
     const cenasComClipeIA = new Set<number>([...(primeiroFilmeComClipes ? [1] : []), ...aiClipsSubmitted.map((c) => c.scene)])
     const filmeDeEntidade = !!personagem
     const usedTagSigs = new Set<string>()
+    const usedQueriesNoFilme = new Set<string>() // KINEO1-BUSCA-DA-FALA-2026-09-18 — a mesma busca não abre duas cenas
     const tagSig = (tags: string | null | undefined) => (tags ?? '').toLowerCase().split(',').map((t) => t.trim()).filter(Boolean).sort().join('|')
     const aiStillLog: Array<{ scene: number; reason: string; entity: string | null; ok: boolean }> = []
     // KINEO-1-COERENCIA-2026-09-16 — evidência por cena (fala · busca · origem · tags) para o juiz de coerência.
@@ -1179,7 +1180,18 @@ export async function POST(req: NextRequest) {
         // content tokens with this scene's own text, it's plan misalignment or
         // a hallucinated location — drop it and fall back to the scene's own
         // stockSearchQuery. Other scenes keep the #486 content alignment as-is.
-        if (idx === 0 && pixQueries.length > 0) {
+        // KINEO1-BUSCA-DA-FALA-2026-09-18 — a guarda do gancho (só cena 1) passa a valer para TODA cena: query planejada
+        // sem NENHUM token do texto da cena é desalinhamento do plano (57% das cenas na amostra de 18/09; −12 de
+        // visual). Cai para a busca da própria cena. E uma query já usada em cena anterior vai para o fim da lista:
+        // o mesmo "stock market graph" 3× no filme do Bezos e "jaipur neighborhood" 6× no filme hindi.
+        if (pixQueries.length > 1 && usedQueriesNoFilme.size > 0) {
+          const ineditas = pixQueries.filter((q) => !usedQueriesNoFilme.has(q.trim().toLowerCase()))
+          if (ineditas.length > 0 && ineditas.length < pixQueries.length) {
+            pixQueries = [...ineditas, ...pixQueries.filter((q) => usedQueriesNoFilme.has(q.trim().toLowerCase()))]
+            console.log(`[busca-da-fala] scene=${sceneNo} moved ${pixQueries.length - ineditas.length} already-used query(ies) to the end`)
+          }
+        }
+        if (pixQueries.length > 0) {
           const HOOK_STOP = new Set(['the', 'a', 'an', 'of', 'in', 'on', 'at', 'and', 'or', 'to', 'for', 'with', 'this', 'that', 'is', 'are', 'was', 'were', 'it', 'its', 'from', 'by', 'into', 'over', 'under', 'aerial', 'view', 'shot', 'footage', 'cinematic'])
           const tokensOf = (s: string) =>
             s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((t) => t.length > 2 && !HOOK_STOP.has(t))
@@ -1189,7 +1201,7 @@ export async function POST(req: NextRequest) {
           const onTopic = pixQueries.filter((q) => tokensOf(q).some((t) => sceneTokens.has(t)))
           if (onTopic.length < pixQueries.length) {
             console.log(
-              `[hook-guard] scene=1 dropped ${pixQueries.length - onTopic.length}/${pixQueries.length} off-topic planned queries`,
+              `[hook-guard] scene=${sceneNo} dropped ${pixQueries.length - onTopic.length}/${pixQueries.length} off-topic planned queries`,
             )
           }
           if (onTopic.length > 0) {
@@ -1197,11 +1209,12 @@ export async function POST(req: NextRequest) {
           } else if (scene.stockSearchQuery || libQuery) {
             // All planned queries off-topic — trust the scene's own text instead.
             pixQueries = [scene.stockSearchQuery || libQuery]
-            console.log(`[hook-guard] scene=1 all planned queries off-topic — using scene's own query`)
+            console.log(`[hook-guard] scene=${sceneNo} all planned queries off-topic — using scene's own query`)
           }
         }
 
         ev.query = pixQueries[0] ?? ev.query // KINEO-1-COERENCIA — a busca que valeu, depois do hook-guard
+        if (pixQueries[0]) usedQueriesNoFilme.add(pixQueries[0].trim().toLowerCase()) // KINEO1-BUSCA-DA-FALA
         // KINEO-1-HIBRIDO — antes de gastar a busca: se o plano, a relevância ou a fala dizem que o banco
         // não tem esta cena (nome próprio, lugar específico), o still entra no lugar do stock. Falha aberta.
         {

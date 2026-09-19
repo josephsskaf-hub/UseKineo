@@ -41,7 +41,7 @@ export function fastAiScenesMax(): number {
 /** Relevância conhecida abaixo disto = o banco não tem a cena (escala 0-100 do plano). */
 export const FAST_AI_LOW_RELEVANCE = 60
 /** Janela de espera por still; a rota tem 120 s e o laço de cenas já gasta com o Pixabay. */
-export const FAST_AI_STILL_WINDOW_MS = 10_000
+export const FAST_AI_STILL_WINDOW_MS = 12_000 // KINEO-STILL-NITIDO-2026-09-18: 28 passos do FLUX dev pedem ~3-5 s; era 10 s
 
 export type FastAiSceneReason = 'plan_ai' | 'low_relevance' | 'named_entity' | 'pixabay_miss' | 'character_story' | 'first_film'
 
@@ -103,7 +103,9 @@ export function buildFastStillPrompt(input: { description?: string | null; voice
   const ctx = desc && voice ? ` Context of the narration: "${voice}".` : ''
   const symbolic = input.entity ? ` If the scene involves a real person (${input.entity}), show the setting, objects and atmosphere that represent them — never a recognizable face or likeness.` : ''
   return (
-    `Photorealistic cinematic still, documentary photography, natural light, shallow depth of field: ${base}.${ctx}${symbolic} ` +
+    // KINEO-STILL-NITIDO-2026-09-18 — "shallow depth of field" + "muted" somavam névoa ao passo errado do FLUX;
+    // agora: foco nítido no sujeito, contraste normal. O sujeito da fala precisa ser LEGÍVEL na tela do celular.
+    `Photorealistic cinematic still, documentary photography, natural light, sharp focus on the subject, crisp detail, natural contrast: ${base}.${ctx}${symbolic} ` +
     `No readable text, no captions, no logos, no watermark, no real person's face.`
   )
 }
@@ -153,7 +155,7 @@ export async function generateFastSceneStill(args: { prompt: string; seed: numbe
   try {
     const falUrl = await generateCinematicSceneStill({
       scenePrompt: args.prompt,
-      styleSuffix: 'documentary realism, muted cinematic grade, 35mm film look',
+      styleSuffix: 'documentary realism, natural color grade, sharp 35mm film look', // KINEO-STILL-NITIDO — sem 'muted'
       seed: args.seed,
       pollWindowMs: args.windowMs ?? FAST_AI_STILL_WINDOW_MS,
       aspect: args.aspect ?? '9:16',

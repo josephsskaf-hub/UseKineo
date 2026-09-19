@@ -17,6 +17,8 @@ import { LANGUAGE_NAMES, narrationLanguage, type NarrationLanguage } from '@/lib
 // KINEO-RECUSA-ANTES-DE-COBRAR-2026-09-18 + KINEO-ROTEIRO-COLADO-NAO-ENGORDA-2026-09-18 (fundador: "Vai no 4 e no não engordar")
 import { decideSexualContentRefusal, sexualContentRefusalMessage } from '@/lib/contentPolicy/sexualContent'
 import { detectPastedScript, pastedScriptMinWords, PASTED_SCRIPT_RULE } from '@/lib/pastedScript'
+// KINEO1-ROTEIRO-DA-COTA-2026-09-18 — a cota de duração do filme grátis, lida pelo predicado do cobrador.
+import { getEffectiveEntitlement, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/reverseTrial'
 
 // KINEO-OPENAI-HANG-2026-08-05 — this route was the ONLY OpenAI-backed route in
 // the whole app with no maxDuration, so it silently inherited Vercel's short
@@ -75,7 +77,10 @@ type Language = NarrationLanguage // KINEO-IDIOMAS-15: 16 códigos do catálogo 
 // A partir daqui o alvo é PARAMÉTRICO, derivado da régua canônica. Sem
 // `targetSeconds` no corpo, TUDO se comporta exatamente como antes (60s), para
 // os outros chamadores não mudarem de comportamento.
-const SUPPORTED_TARGETS = [35, 60, 90] as const
+// KINEO1-ROTEIRO-DA-COTA-2026-09-18 — 15 = a cota do filme grátis (não é opção do seletor; só o servidor a impõe).
+const SUPPORTED_TARGETS = [15, 35, 60, 90] as const
+// Espelho de PAID_PLANS de app/api/compose/route.ts (o cobrador): mesmo predicado, mesma lista.
+const WRITER_PAID_PLANS = new Set(['starter', 'starter_trial', 'basic', 'basic_trial', 'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial'])
 // KINEO-REGUA-DO-ESCRITOR-2026-09-17 — o roteiro nasce na régua da voz que vai falar (lib/scriptWriterRate:
 // a mesma função de régua do portão do Kineo 1). Sem `engine` no corpo, tudo como antes (2,3 pal/s, 0,95).
 function buildSystemPrompt(language: Language, targetSeconds: number = 60, wordsPerSecond: number = WORDS_PER_SECOND, coverage: number = MIN_COVERAGE): string {
@@ -123,7 +128,8 @@ FACT SELECTION RULES (#407 — this is what separates "huh, cool" from "WAIT, WH
 - Never sacrifice accuracy for surprise: every fact must still be real and verifiable. Do not invent or exaggerate.
 
 VOICEOVER RULES:
-- Total script: ${minWordsFor(targetSeconds, wordsPerSecond, coverage)}-${maxWordsFor(targetSeconds, wordsPerSecond, coverage)} spoken words. This is a HARD FLOOR, not a style note:
+${targetSeconds <= 20 ? `- SHORT FILM (${targetSeconds} seconds): use ONLY these sections, in this order: HOOK, MICRO REWARD 1, MICRO REWARD 2, PAYOFF. Skip MICRO REWARD 3, ESCALATION and RHYTHM entirely. Every sentence must be short and the PAYOFF must still deliver the answer — the film ends when the narration ends, so the story must be COMPLETE in ${maxWordsFor(targetSeconds, wordsPerSecond, coverage)} words.
+` : ''}- Total script: ${minWordsFor(targetSeconds, wordsPerSecond, coverage)}-${maxWordsFor(targetSeconds, wordsPerSecond, coverage)} spoken words. This is a HARD FLOOR, not a style note:
   at the measured narration rate of ${wordsPerSecond} words per second, ${minWordsFor(targetSeconds, wordsPerSecond, coverage)} words is about
   ${Math.round(minWordsFor(targetSeconds, wordsPerSecond, coverage) / wordsPerSecond)} seconds of speech, and this video is ${targetSeconds} seconds long.
   Anything shorter leaves the film running on music with no story being told,
@@ -290,8 +296,35 @@ export async function POST(req: NextRequest) {
     // outra coisa (null, 47, "60", 9999) cai no comportamento histórico de 60s,
     // então nenhum chamador antigo muda de comportamento.
     const pedido = Number(body.targetSeconds)
-    const alvoSegundos: number =
+    let alvoSegundos: number =
       (SUPPORTED_TARGETS as readonly number[]).includes(pedido) ? pedido : SCRIPT_TARGET_SECONDS
+    // ═══ KINEO1-ROTEIRO-DA-COTA-2026-09-18 — o filme grátis de 15 s nasce com roteiro de 15 s ═══════════
+    // Diagnóstico de 18/09 (docs/KINEO1-DIAGNOSTICO-2026-09-18.md): 13 de 13 filmes da cota grátis em 14 dias
+    // tinham ~135 palavras (≈50 s de fala) para um filme que o compose corta em 15 s — a pessoa ouvia meia
+    // história ("…he realizes possibilities are" e acaba). A cota é decidida AQUI, no servidor, pelo MESMO
+    // predicado do cobrador (getEffectiveEntitlement; memória: "predicado do cobrador não se redigita"), não
+    // pelo cliente. Só o Kineo 1 (`engine: 'fast'`) tem cota de duração; falha aberta: sem perfil, nada muda.
+    let cotaSegundos: number | null = null
+    if (typeof body.engine === 'string' && body.engine.toLowerCase() === 'fast') {
+      try {
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select(`plan, has_paid, ${TRIAL_ENTITLEMENT_COLUMNS}`)
+          .eq('id', user.id)
+          .maybeSingle()
+        if (prof) {
+          const isFreePlan = !WRITER_PAID_PLANS.has(String((prof as { plan?: string }).plan ?? 'free').toLowerCase())
+          const hasPaid = (prof as { has_paid?: boolean }).has_paid === true
+          const ent = getEffectiveEntitlement(prof as Parameters<typeof getEffectiveEntitlement>[0], { isPaidAccount: !isFreePlan || hasPaid })
+          if (ent.maxDurationSeconds !== null && ent.maxDurationSeconds < alvoSegundos) {
+            cotaSegundos = ent.maxDurationSeconds
+            alvoSegundos = ent.maxDurationSeconds
+          }
+        }
+      } catch (err) {
+        console.warn('[generate-script] cota de duração não lida (falha aberta):', err instanceof Error ? err.message : String(err))
+      }
+    }
     // KINEO-REGUA-DO-ESCRITOR-2026-09-17 — `engine` (fast | cinematic_* ) escolhe a régua: Kineo 1 = voz da
     // persona (~2,8 pal/s), clássicos = 3,1, hollywood = 2,3. Sem engine, régua histórica (2,3 × 0,95).
     // KINEO-RECUSA-ANTES-DE-COBRAR-2026-09-18 — sexo explícito não vira filme; recusa antes de qualquer OpenAI
@@ -308,7 +341,7 @@ export async function POST(req: NextRequest) {
       ? pastedScriptMinWords(colado.words)
       : minWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage)
     if (colado.pasted) console.log(`[generate-script] KINEO-ROTEIRO-COLADO reason=${colado.reason} words=${colado.words} dialogue_lines=${colado.dialogueLines} → min ${alvoPalavras} words (no padding)`)
-    console.log(`[generate-script] KINEO-REGUA-DO-ESCRITOR engine=${typeof body.engine === 'string' ? body.engine : '-'} family=${regua.family} voice=${regua.voice ?? '-'} rate=${regua.wordsPerSecond} target=${alvoSegundos}s → min ${alvoPalavras} words`)
+    console.log(`[generate-script] KINEO-REGUA-DO-ESCRITOR engine=${typeof body.engine === 'string' ? body.engine : '-'} family=${regua.family} voice=${regua.voice ?? '-'} rate=${regua.wordsPerSecond} target=${alvoSegundos}s${cotaSegundos ? ` (cota grátis: ${cotaSegundos}s, pedido ${pedido}s)` : ''} → min ${alvoPalavras} words`)
     /** Só o CTA "Turn this idea into a full script" manda isto. */
     const forceAuthoring = body.forceAuthoring === true
 
@@ -363,7 +396,8 @@ export async function POST(req: NextRequest) {
     // KINEO-351 — o "curto" agora é medido contra a duração PEDIDA, não contra
     // 60s fixos. Sem targetSeconds, alvoPalavras === MIN_SCRIPT_WORDS.
     const curtoParaOAlvo = (t: string) => scriptWordCount(t) < alvoPalavras
-    let missing = missingElements(script)
+    // KINEO1-ROTEIRO-DA-COTA — o formato curto (≤ 20 s) dispensa ESCALATION/RHYTHM/MICRO REWARD 3 de propósito.
+    let missing = alvoSegundos <= 20 ? missingElements(script).filter((m) => m === 'HOOK' || m === 'PAYOFF') : missingElements(script)
     if (missing.length > 0 || payoffIsEmpty(script) || curtoParaOAlvo(script)) {
       const problems: string[] = []
       if (missing.length > 0) problems.push(`missing required section(s): ${missing.join(', ')}`)
@@ -448,7 +482,7 @@ export async function POST(req: NextRequest) {
       name: 'script_written',
       userId: user.id,
       path: '/api/generate-script',
-      metadata: { engine: typeof body.engine === 'string' ? body.engine : null, family: regua.family, voice: regua.voice, words_per_second: regua.wordsPerSecond, target_seconds: alvoSegundos, min_words: alvoPalavras, words: scriptWordCount(script), fits: scriptWordCount(script) >= alvoPalavras, language },
+      metadata: { engine: typeof body.engine === 'string' ? body.engine : null, family: regua.family, voice: regua.voice, words_per_second: regua.wordsPerSecond, target_seconds: alvoSegundos, quota_seconds: cotaSegundos, requested_seconds: Number.isFinite(pedido) ? pedido : null, min_words: alvoPalavras, words: scriptWordCount(script), fits: scriptWordCount(script) >= alvoPalavras, language },
     })
     return NextResponse.json({ script, alreadyStructured: false, wordsPerSecond: regua.wordsPerSecond, family: regua.family, targetSeconds: alvoSegundos, minWords: alvoPalavras, words: scriptWordCount(script), pastedScript: colado.pasted, pastedReason: colado.reason })
   } catch (err) {

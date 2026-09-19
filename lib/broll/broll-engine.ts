@@ -238,6 +238,7 @@ Generate the visual layer for these ${scenesWithMeta.length} scenes. For each sc
 - keywords (array of 3-5 concrete visual nouns, no adjectives)
 - brollPrompt (150-350 chars: specific, concrete visual description — NO generic visuals)
 - pexelsQueries (array of 3-5 search queries for stock footage; each query is 2-4 concrete nouns, lowercase; ORDER from most specific to least specific so a fallback can broaden the search if the first query has no footage; set to [] and set requiresExtension: true if no safe query exists per the HARD NEGATIVE BLACKLIST)
+  QUERY FROM THE SPOKEN LINE (KINEO1-BUSCA-DA-FALA-2026-09-18 — measured: 57% of scenes had a query sharing no word with the narration, and those films scored 12 points lower on visuals; queries over 5 words scored 53 vs 73 for 3-word queries): the FIRST word of the first query is the concrete NOUN the spoken line names (its subject: "mosquito", "boeing 737", "hippopotamus", "bartender"), never an adjective, mood, shot type or the niche's default imagery. Maximum 4 words. Never put "animated", "cartoon", "cinematic", "dramatic" or a shot type inside a query — the search engine indexes objects, not styles. Every scene gets a DIFFERENT first query; if two lines share a subject, vary the object or action ("hippo river", then "hippo teeth open mouth").
 - relevanceScore (int 0-100: how well this visual reinforces the exact narration meaning)
 - requiresExtension (boolean, default false: set to true ONLY when pexelsQueries is empty because the blacklist prevents any safe query)
 
