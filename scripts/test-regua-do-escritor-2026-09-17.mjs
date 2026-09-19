@@ -60,10 +60,10 @@ checa('chamada principal do estruturador leva targetSeconds e engine (fast | qua
 console.log('== (e) a rota usa a régua ==')
 const rt = rd('app/api/generate-script/route.ts')
 checa('rota importa a régua da lib (route.ts não exporta função solta — quebraria o build)', rt.includes("import { minWordsFor, maxWordsFor, writerRateFor } from '@/lib/scriptWriterRate'") && !/^export function (minWordsFor|maxWordsFor|writerRateFor)/m.test(rt))
-checa('alvo de palavras nasce da régua do motor pedido', rt.includes('const regua = writerRateFor(body.engine, topic, language)') && rt.includes('const alvoPalavras = minWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage)'))
+checa('alvo de palavras nasce da régua do motor pedido', rt.includes('const regua = writerRateFor(body.engine, topic, language)') && rt.includes(': minWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage)') /* KINEO-ROTEIRO-COLADO-2026-09-18: ternário — roteiro colado usa a contagem da pessoa */)
 checa('o prompt fala na régua certa (palavras/s e piso) e não mais em 2,3 fixo', rt.includes('const SYSTEM_PROMPT = buildSystemPrompt(language, alvoSegundos, regua.wordsPerSecond, regua.coverage)') && rt.includes('at the measured narration rate of ${wordsPerSecond} words per second') && !rt.includes('at the measured narration rate of ${WORDS_PER_SECOND}'))
 checa('rastro script_written com AWAIT (void antes do return morre na Vercel), com régua, alvo e fits', rt.includes("await writeServerEvent({ // await: `void` antes do return morre na Vercel (memória da casa)\n      name: 'script_written',") && rt.includes('fits: scriptWordCount(script) >= alvoPalavras'))
-checa('resposta devolve wordsPerSecond/family/minWords/words (medição no cliente e no dry-run)', rt.includes("return NextResponse.json({ script, alreadyStructured: false, wordsPerSecond: regua.wordsPerSecond, family: regua.family, targetSeconds: alvoSegundos, minWords: alvoPalavras, words: scriptWordCount(script) })"))
+checa('resposta devolve wordsPerSecond/family/minWords/words (medição no cliente e no dry-run)', rt.includes("return NextResponse.json({ script, alreadyStructured: false, wordsPerSecond: regua.wordsPerSecond, family: regua.family, targetSeconds: alvoSegundos, minWords: alvoPalavras, words: scriptWordCount(script), pastedScript: colado.pasted, pastedReason: colado.reason })")) /* KINEO-ROTEIRO-COLADO-2026-09-18: +pastedScript */
 
 console.log('== (f) o portão do roteiro PRÓPRIO segue (C1: não reescrever o autor em silêncio) ==')
 const fast = rd('app/api/generate-video-fast/route.ts')

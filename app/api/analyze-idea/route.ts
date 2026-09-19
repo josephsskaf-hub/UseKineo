@@ -11,6 +11,7 @@ import {
   analyzeRefusalTelemetry,
 } from '@/lib/analyzeRefusalCopy'
 import { LANGUAGE_NAMES, narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
+import { decideSexualContentRefusal, sexualContentRefusalMessage } from '@/lib/contentPolicy/sexualContent' // KINEO-RECUSA-ANTES-DE-COBRAR-2026-09-18
 
 export const maxDuration = 60
 
@@ -697,6 +698,17 @@ export async function POST(req: NextRequest) {
         { error: PROMPT_PROPRIO_MESSAGE, reason: PROMPT_PROPRIO_REASON },
         user.id,
         { reason: PROMPT_PROPRIO_REASON, prompt_length: prompt.length },
+      )
+    }
+    // KINEO-RECUSA-ANTES-DE-COBRAR-2026-09-18 — segunda porta (todo motor passa por aqui, inclusive quem pula o
+    // escritor): sexo explícito é recusado antes do GPT e antes de qualquer débito. Ver lib/contentPolicy/sexualContent.ts.
+    const sexual = decideSexualContentRefusal(prompt)
+    if (sexual.refuse) {
+      return await recusarAnalise(
+        400,
+        { error: sexualContentRefusalMessage(sexual.namedPerson), reason: sexual.reason },
+        user.id,
+        { reason: sexual.reason, named_person: sexual.namedPerson, version: sexual.version, prompt_length: prompt.length },
       )
     }
     // KINEO-1-COERENCIA-2026-09-16 — a pílula sozinha não é ideia (ver lib/promptGuard.ts).

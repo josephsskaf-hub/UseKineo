@@ -14,6 +14,9 @@ import {
   ENGINE_CAPACITY_MESSAGE,
 } from '@/lib/openaiAlert'
 import { LANGUAGE_NAMES, narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
+// KINEO-RECUSA-ANTES-DE-COBRAR-2026-09-18 + KINEO-ROTEIRO-COLADO-NAO-ENGORDA-2026-09-18 (fundador: "Vai no 4 e no não engordar")
+import { decideSexualContentRefusal, sexualContentRefusalMessage } from '@/lib/contentPolicy/sexualContent'
+import { detectPastedScript, pastedScriptMinWords, PASTED_SCRIPT_RULE } from '@/lib/pastedScript'
 
 // KINEO-OPENAI-HANG-2026-08-05 — this route was the ONLY OpenAI-backed route in
 // the whole app with no maxDuration, so it silently inherited Vercel's short
@@ -291,8 +294,20 @@ export async function POST(req: NextRequest) {
       (SUPPORTED_TARGETS as readonly number[]).includes(pedido) ? pedido : SCRIPT_TARGET_SECONDS
     // KINEO-REGUA-DO-ESCRITOR-2026-09-17 — `engine` (fast | cinematic_* ) escolhe a régua: Kineo 1 = voz da
     // persona (~2,8 pal/s), clássicos = 3,1, hollywood = 2,3. Sem engine, régua histórica (2,3 × 0,95).
+    // KINEO-RECUSA-ANTES-DE-COBRAR-2026-09-18 — sexo explícito não vira filme; recusa antes de qualquer OpenAI
+    // e antes de qualquer débito (esta rota não cobra). Ver lib/contentPolicy/sexualContent.ts.
+    const sexual = decideSexualContentRefusal(topic)
+    if (sexual.refuse) {
+      return await recusar(400, { error: sexualContentRefusalMessage(sexual.namedPerson), reason: sexual.reason }, user.id, { reason: sexual.reason, named_person: sexual.namedPerson, version: sexual.version })
+    }
     const regua = writerRateFor(body.engine, topic, language)
-    const alvoPalavras = minWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage)
+    // KINEO-ROTEIRO-COLADO-NAO-ENGORDA-2026-09-18 — roteiro colado: o piso de palavras é o da própria pessoa,
+    // e o escritor só estrutura. Ver lib/pastedScript.ts.
+    const colado = detectPastedScript(topic)
+    const alvoPalavras = colado.pasted
+      ? pastedScriptMinWords(colado.words)
+      : minWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage)
+    if (colado.pasted) console.log(`[generate-script] KINEO-ROTEIRO-COLADO reason=${colado.reason} words=${colado.words} dialogue_lines=${colado.dialogueLines} → min ${alvoPalavras} words (no padding)`)
     console.log(`[generate-script] KINEO-REGUA-DO-ESCRITOR engine=${typeof body.engine === 'string' ? body.engine : '-'} family=${regua.family} voice=${regua.voice ?? '-'} rate=${regua.wordsPerSecond} target=${alvoSegundos}s → min ${alvoPalavras} words`)
     /** Só o CTA "Turn this idea into a full script" manda isto. */
     const forceAuthoring = body.forceAuthoring === true
@@ -314,6 +329,7 @@ export async function POST(req: NextRequest) {
     }
 
     const SYSTEM_PROMPT = buildSystemPrompt(language, alvoSegundos, regua.wordsPerSecond, regua.coverage) // KINEO-REGUA-DO-ESCRITOR
+      + (colado.pasted ? `\n\n${PASTED_SCRIPT_RULE}` : '') // KINEO-ROTEIRO-COLADO-NAO-ENGORDA
 
     const completion = await openai.chat.completions.create(
       {
@@ -355,9 +371,11 @@ export async function POST(req: NextRequest) {
       // KINEO-ROTEIRO-CURTO-2026-08-22 — o número vai no pedido de correção
       // porque "escreva mais" não é instrução: o GPT precisa do alvo.
       if (curtoParaOAlvo(script)) {
-        problems.push(
-          `the script is only ${scriptWordCount(script)} spoken words — it needs at least ${alvoPalavras} ` +
-          `to fill a ${alvoSegundos}-second video with narration instead of silence`,
+        problems.push(colado.pasted
+          // KINEO-ROTEIRO-COLADO-NAO-ENGORDA — o problema aqui é ter CORTADO o texto da pessoa, nunca faltar enchimento.
+          ? `you dropped part of the user's own script — it has ${colado.words} spoken words and your version has only ${scriptWordCount(script)}; keep every sentence they wrote`
+          : `the script is only ${scriptWordCount(script)} spoken words — it needs at least ${alvoPalavras} ` +
+            `to fill a ${alvoSegundos}-second video with narration instead of silence`,
         )
       }
       console.warn('[generate-script] regenerating once —', problems.join('; '))
@@ -432,7 +450,7 @@ export async function POST(req: NextRequest) {
       path: '/api/generate-script',
       metadata: { engine: typeof body.engine === 'string' ? body.engine : null, family: regua.family, voice: regua.voice, words_per_second: regua.wordsPerSecond, target_seconds: alvoSegundos, min_words: alvoPalavras, words: scriptWordCount(script), fits: scriptWordCount(script) >= alvoPalavras, language },
     })
-    return NextResponse.json({ script, alreadyStructured: false, wordsPerSecond: regua.wordsPerSecond, family: regua.family, targetSeconds: alvoSegundos, minWords: alvoPalavras, words: scriptWordCount(script) })
+    return NextResponse.json({ script, alreadyStructured: false, wordsPerSecond: regua.wordsPerSecond, family: regua.family, targetSeconds: alvoSegundos, minWords: alvoPalavras, words: scriptWordCount(script), pastedScript: colado.pasted, pastedReason: colado.reason })
   } catch (err) {
     console.error('[generate-script] error:', err)
     // KINEO-OPENAI-QUOTA-2026-07-31 — out-of-credits must never be a mute 500:

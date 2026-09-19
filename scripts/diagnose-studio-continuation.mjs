@@ -81,6 +81,8 @@ export function roundTrip(href, initial = {}, edits = {}) {
     ...state, limit: { over: false }, finalPrompt: state.prompt.trim(),
     // KINEO-1-COERENCIA-2026-09-16 — generate() agora barra a pílula sozinha (bareStarter); o simulador entra com a frase completa.
     bareStarter: false,
+    // KINEO-RECUSA-ANTES-DE-COBRAR-2026-09-18 — generate() consulta a decisão de conteúdo; o simulador entra com pedido limpo.
+    sexualRefusal: { refuse: false, namedPerson: false, version: 'sim' }, setSexualRefusalShown: () => {},
     searchSignature: query,
     carryStudioSeriesReview: review.carryStudioSeriesReview,
     campaignRef, onboardingGoalRef,

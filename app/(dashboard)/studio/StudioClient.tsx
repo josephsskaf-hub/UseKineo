@@ -27,6 +27,8 @@ import { allAspectSpecs, type Aspect } from '@/lib/aspect'
 import { isOnboardingGoalId, type OnboardingGoalId } from '@/lib/growth/onboardingGoals'
 // KINEO1-AVISO-DESENHO-2026-09-18 — o Kineo 1 não desenha; aviso antes do crédito (fundador: "quero o aviso").
 import { decideKineo1FitNotice, kineo1FitNoticeCopy } from '@/lib/growth/kineo1FitNotice'
+// KINEO-RECUSA-ANTES-DE-COBRAR-2026-09-18 — sexo explícito é recusado aqui, sem navegar; o servidor repete a porta.
+import { decideSexualContentRefusal, sexualContentRefusalMessage } from '@/lib/contentPolicy/sexualContent'
 import {
   CHATGPT_QUICKSTART_VARIANT,
   isChatGptQuickstartChoice,
@@ -311,6 +313,9 @@ export default function StudioClient() {
   const eng = useMemo(() => ENGINES.find((e) => e.key === engine)!, [engine])
   // KINEO1-AVISO-DESENHO-2026-09-18 — ver lib/growth/kineo1FitNotice.ts. A decisão é pura; a tela só a executa.
   const kineo1Fit = useMemo(() => decideKineo1FitNotice({ engine, text: prompt }), [engine, prompt])
+  // KINEO-RECUSA-ANTES-DE-COBRAR-2026-09-18 — decisão pura (lib/contentPolicy/sexualContent.ts); a tela só a executa.
+  const sexualRefusal = useMemo(() => decideSexualContentRefusal(prompt), [prompt])
+  const [sexualRefusalShown, setSexualRefusalShown] = useState(false)
   const [kineo1FitKept, setKineo1FitKept] = useState(false)
   const kineo1FitShownRef = useRef(false)
   useEffect(() => {
@@ -443,6 +448,13 @@ export default function StudioClient() {
     // KINEO-1-COERENCIA-2026-09-16 — a pílula sozinha não navega: o servidor recusaria (400) e, antes, o roteirista
     // inventaria a história. A dica já está sob a caixa; aqui só devolvemos o foco para a pessoa completar.
     if (bareStarter) { promptRef.current?.focus(); return }
+    // KINEO-RECUSA-ANTES-DE-COBRAR-2026-09-18 — nada de navegar com um pedido que o servidor vai recusar.
+    if (sexualRefusal.refuse) {
+      setSexualRefusalShown(true)
+      void trackEvent('sexual_content_refused_client', { version: sexualRefusal.version, named_person: sexualRefusal.namedPerson, surface: 'studio' })
+      promptRef.current?.focus()
+      return
+    }
     try {
       sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine, prompt: finalPrompt, language }))
     } catch {}
@@ -575,6 +587,11 @@ export default function StudioClient() {
                 ? `${prompt.trim().split(/\s+/).length} ${t('words', 'palabras')}${scriptMode === 'verbatim' ? (t(' · narrated word for word', ' · narradas palabra por palabra')) : ''} · ${formatLimitCounter(limit)}`
                 : <UiLabel>a single line is enough — or paste a full script</UiLabel>}
             </div>
+            {sexualRefusalShown && sexualRefusal.refuse && (
+              <div data-kineo="recusa-sexual" role="alert" style={{ marginTop: 8, padding: '10px 12px', borderRadius: 10, background: 'rgba(255,107,107,.08)', border: '1px solid rgba(255,107,107,.45)', color: '#ffb4b4', fontSize: '0.82rem', lineHeight: 1.45 }}>
+                {sexualContentRefusalMessage(sexualRefusal.namedPerson)}
+              </div>
+            )}
             {kineo1Fit.show && !kineo1FitKept && (() => {
               const copy = kineo1FitNoticeCopy(ENGINES.find((e) => e.key === 'seedance')?.credits ?? 'AI-generated scenes')
               return (
