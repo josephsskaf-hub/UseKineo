@@ -820,7 +820,9 @@ export async function GET(req: NextRequest) {
       voiceover_script: typeof response.voiceover_script === 'string' ? response.voiceover_script : '',
       scene_captions: Array.isArray(response.scene_captions) ? response.scene_captions : [],
       duration,
-      topic: typeof response.topic === 'string' ? response.topic : undefined,
+      // KINEO-RESGATE-COM-PEDIDO-2026-09-19 — o claim cinematográfico guarda o pedido em response.prompt, não em topic; sem
+      // este fallback o vídeo resgatado nascia com topic NULL e o painel de coerência dizia "prompt vazio no banco" (filme 2 do Axel).
+      topic: typeof response.topic === 'string' ? response.topic : typeof response.prompt === 'string' ? response.prompt : undefined,
       quality: vClaim.quality,
       ...(Array.isArray(response.scene_engines) && response.scene_engines.length > 0
         ? {

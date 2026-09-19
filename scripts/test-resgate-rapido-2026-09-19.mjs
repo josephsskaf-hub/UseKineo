@@ -40,6 +40,8 @@ checa('aba viva → outcome client_alive e pula, antes de qualquer compose', cro
 const vj = rd('vercel.json')
 checa('cron a cada 5 min', /"path": "\/api\/cron\/finish-stranded-renders",\s*\n\s*"schedule": "\*\/5 \* \* \* \*"/.test(vj))
 
+checa('compose resgatado carrega o pedido (response.prompt) — o painel de coerência deixa de dizer "prompt vazio no banco"', cron.includes("typeof response.prompt === 'string' ? response.prompt : undefined"))
+
 console.log('4) painel')
 const live = rd('app/api/admin/live/route.ts')
 checa('"montando" quando há claim cobrado sem filme pronto nem falha', live.includes("did.push('⏳ montando (crédito cobrado, filme a caminho)')"))
