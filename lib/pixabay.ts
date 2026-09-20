@@ -199,6 +199,10 @@ const GENERIC_NOUNS = new Set([
   'tropical', 'beautiful', 'beauty', 'deadly', 'danger', 'dangerous', 'wildlife', 'wild', 'disease', 'deaths', 'death',
   'lethal', 'silent', 'tiny', 'bite', 'insect', 'insects', 'creature', 'creatures', 'beach', 'ocean', 'sea', 'river',
   'lake', 'forest', 'mountain', 'mountains', 'village', 'town', 'colorful', 'magical', 'glowing', 'warm', 'young',
+  // KINEO1-SEM-GENERICO-E-HOMONIMO-2026-09-20 — adjetivo de ambiente virava cabeça: "bustling school hallway" → formigas
+  // (tag "bustling"). Adjetivos comuns de cena nunca são o sujeito.
+  'bustling', 'busy', 'quiet', 'empty', 'crowded', 'historical', 'historic', 'vibrant', 'peaceful', 'dramatic', 'epic',
+  'cinematic', 'mysterious', 'interactive', 'traditional', 'famous', 'iconic', 'beautiful', 'stunning', 'amazing',
 ])
 // KINEO1-SUJEITO-CABECA-2026-09-18 — modificadores que vêm ANTES do sujeito na busca ("freshwater snail",
 // "giant squid"): pulados na hora de achar a cabeça da frase, mas continuam contando como tokens específicos.

@@ -45,6 +45,8 @@ checa('concretizeQueries só empurra o mapa de conceitos quando allowGenerics !=
 checa('a fala da cena vira contexto ativo antes das buscas do pool', pixSrc.indexOf('setActiveSubjectContext(hint)') < pixSrc.indexOf('const cands = await collectCandidates('))
 checa('o portão aplica a tabela de homônimos logo depois da relevância', /reason=irrelevant[\s\S]{0,300}const conflito = subjectConflictWithTags\(query, video\.tags\)/.test(pixSrc))
 
+checa('"bustling school hallway": cabeça é school (bustling é adjetivo) → formigas com tag bustling saem', P.headSubjectToken('bustling school hallway') === 'school' && P.tagsRelevantToQuery({ id: 1, pageURL: '', type: 'film', tags: 'ant, wood ant, anthill, bustling, red wood ant', duration: 10, videos: { large: { url: 'u', width: 1920, height: 1080, size: 0, thumbnail: '' }, medium: {}, small: {}, tiny: {} } }, 'bustling school hallway') === false)
+
 console.log('== (3) mutantes ==')
 const mut1 = pixSrc.replace("return !queries.some((q) => specificTokens(q).length > 0)", 'return true')
 checa('mutante 1 (genéricos sempre) é pego', loadSrc(mut1, 'mut1.ts', deps).genericsAllowedFor(['historical soldier']) === true)
