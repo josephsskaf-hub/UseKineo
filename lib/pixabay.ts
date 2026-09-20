@@ -39,6 +39,44 @@ function setActiveFrame(raw?: unknown): AspectSpec {
   ACTIVE_FRAME = aspectSpec(raw)
   return ACTIVE_FRAME
 }
+
+// ═══ KINEO1-SEM-GENERICO-E-HOMONIMO-2026-09-20 — dois vazamentos medidos nos 14 filmes de Kineo 1 de 19-20/09 ═══
+//
+// Fundador (20/09 madrugada): "alguns vídeos não vieram 80, 90… melhorar alguma coisa ainda hoje". Rastro
+// (fast_scene_plan, busca × tags do clipe escolhido):
+//   1. GENÉRICO COM SUJEITO: quando as buscas da cena rendem menos de 2 clipes, o pool completava com as buscas
+//      do CONCEPT_VISUAL_MAP tiradas de palavras soltas da FALA ("city" → "Dubai skyline aerial", "modern" →
+//      "penthouse"): "historical soldier" virou Burj Khalifa, "aerial drone Dyatlov Pass" virou bolsa de valores,
+//      "young scholar streetlight" virou anjo do México. O portão de relevância passa porque a busca genérica
+//      É a busca — o clipe combina com "Dubai skyline", não com a cena.
+//   2. HOMÔNIMO: "mustang car" → cavalos em 4 cenas (a tag "mustang" bate com a cabeça da busca); "bullet
+//      trajectory" → trem-bala; "bullet hitting target" → enfeite de Natal com a tag "bullet".
+// REGRAS: (1) cena com sujeito concreto NUNCA recebe busca genérica — pool vazio vira still gerado do sujeito
+// certo; genéricos só quando TODAS as buscas da cena são abstratas. (2) tabela curta de homônimos: com o
+// contexto (busca + fala) dizendo "carro", tag de cavalo é recusada; "rifle/sniper" recusa trem e Natal; etc.
+let ACTIVE_SUBJECT_CONTEXT = ''
+export function setActiveSubjectContext(hint?: unknown): void {
+  ACTIVE_SUBJECT_CONTEXT = typeof hint === 'string' ? hint.toLowerCase().slice(0, 600) : ''
+}
+const SUBJECT_CONFLICTS: ReadonlyArray<{ subject: RegExp; context: RegExp; rejectTags: RegExp; label: string }> = [
+  { subject: /\b(mustang|jaguar|beetle|bronco|impala|cobra|viper|barracuda|stingray)\b/, context: /\b(car|cars|vehicle|ford|chevy|chevrolet|dodge|engine|drive|driving|model|sedan|coupe|drift|drifting|steering|wheel|horsepower|showroom|garage|road)\b/, rejectTags: /\b(horse|horses|stallion|mare|foal|colt|equine|gallop|galloping|rodeo|bronco|wild horse|animal|wildlife|mammal|leopard|beetle|insect|snake|fish|cat)\b/, label: 'car_not_animal' },
+  { subject: /\bbullets?\b/, context: /\b(rifle|sniper|gun|guns|shot|shooting|shooter|trajectory|ammo|ammunition|target|caliber|firearm)\b/, rejectTags: /\b(train|trains|rail|railway|shinkansen|high speed|christmas|ornament|decoration|bauble)\b/, label: 'bullet_not_train' },
+  { subject: /\b(python|java|ruby|swift|rust|go)\b/, context: /\b(code|coding|programming|software|developer|script|language)\b/, rejectTags: /\b(snake|reptile|coffee|gem|gemstone|bird|corrosion)\b/, label: 'language_not_thing' },
+  { subject: /\bapple\b/, context: /\b(iphone|ipad|mac|macbook|company|tech|jobs|store|device|phone)\b/, rejectTags: /\b(fruit|orchard|tree|juice|harvest|cider|pie)\b/, label: 'apple_not_fruit' },
+  { subject: /\b(mercury|saturn|jupiter|mars)\b/, context: /\b(planet|space|orbit|nasa|astronomy|solar)\b/, rejectTags: /\b(car|cars|vehicle|chocolate|candy|thermometer)\b/, label: 'planet_not_brand' },
+  { subject: /\b(crane|cranes)\b/, context: /\b(construction|building|site|lift|lifting|tower)\b/, rejectTags: /\b(bird|birds|wildlife|marsh|wading)\b/, label: 'crane_not_bird' },
+  { subject: /\bbat\b/, context: /\b(baseball|cricket|bat swing|batter)\b/, rejectTags: /\b(animal|cave|wing|wings|nocturnal|mammal)\b/, label: 'bat_not_animal' },
+]
+/** Recusa por homônimo: o sujeito da busca, no contexto da cena, não pode receber a tag da outra acepção. Exportado para o guardião. */
+export function subjectConflictWithTags(query: string, tagsBlob: string, context: string = ACTIVE_SUBJECT_CONTEXT): string | null {
+  const q = query.toLowerCase()
+  const ctx = `${q} ${context}`
+  const tags = tagsBlob.toLowerCase()
+  for (const c of SUBJECT_CONFLICTS) {
+    if (c.subject.test(q) && c.context.test(ctx) && c.rejectTags.test(tags)) return c.label
+  }
+  return null
+}
 // PUSH #96 — aesthetic re-ranker: scores how good a candidate is likely to LOOK
 // (resolution / framing / duration / style vocabulary / fps / crowd proxy) from
 // metadata Pixabay already returns. Strictly a secondary term — see the score
@@ -734,6 +772,12 @@ async function collectCandidates(
       )
       continue
     }
+    // KINEO1-SEM-GENERICO-E-HOMONIMO-2026-09-20 — "mustang car" não recebe cavalo; "bullet trajectory" não recebe trem.
+    const conflito = subjectConflictWithTags(query, video.tags)
+    if (conflito) {
+      console.log(`[pixabay] ${label} rejected id=${video.id} tags="${video.tags.slice(0, 60)}" reason=homonym:${conflito} query="${query.slice(0, 50)}"`)
+      continue
+    }
     const url = pickBestUrl(video)
     // Dedup (12/06): never hand back a clip another scene already used — this
     // is what made the same Dubai aerial carry 4+ scenes of one video.
@@ -1017,13 +1061,19 @@ const CONCEPT_VISUAL_MAP: ReadonlyArray<{ test: RegExp; queries: string[] }> = [
 // now LAST RESORT: this function reports where the generic queries begin so the
 // callers can (a) only reach for them when the scene's own queries came back
 // thin and (b) never let one outrank a narration-grounded candidate.
+/** KINEO1-SEM-GENERICO-E-HOMONIMO-2026-09-20 — genéricos só quando NENHUMA busca da cena tem sujeito concreto. Exportado para o guardião. */
+export function genericsAllowedFor(queries: string[]): boolean {
+  return !queries.some((q) => specificTokens(q).length > 0)
+}
 function concretizeQueries(
   originalQueries: string[],
   hint?: string,
+  opts?: { allowGenerics?: boolean },
 ): { queries: string[]; genericStart: number } {
   const haystack = `${originalQueries.join(' ')} ${hint ?? ''}`.toLowerCase()
   const boosted: string[] = []
-  for (const entry of CONCEPT_VISUAL_MAP) {
+  // KINEO1-SEM-GENERICO-E-HOMONIMO — cena com sujeito concreto nunca recebe "Dubai skyline" por causa de "city" na fala.
+  if (opts?.allowGenerics !== false) for (const entry of CONCEPT_VISUAL_MAP) {
     if (entry.test.test(haystack)) for (const q of entry.queries) boosted.push(q)
   }
   const seen = new Set<string>()
@@ -1074,7 +1124,7 @@ export async function getPixabayVideoForQueries(
   // purely so the logs say which kind of query produced the clip.
   const { queries: cleaned, genericStart } = opts?.exact
     ? verbatimQueries(rawCleaned)
-    : concretizeQueries(rawCleaned, hint)
+    : concretizeQueries(rawCleaned, hint, { allowGenerics: genericsAllowedFor(rawCleaned) })
 
   if (cleaned.length === 0) return null
 
@@ -1187,8 +1237,9 @@ export async function getPixabayClipsForScene(
     .map((q) => q.trim())
   const { queries: cleaned, genericStart } = opts?.exact
     ? verbatimQueries(rawCleaned)
-    : concretizeQueries(rawCleaned, hint)
+    : concretizeQueries(rawCleaned, hint, { allowGenerics: genericsAllowedFor(rawCleaned) })
   if (cleaned.length === 0) return []
+  setActiveSubjectContext(hint) // KINEO1-SEM-GENERICO-E-HOMONIMO — a fala da cena desambigua o sujeito
 
   const maxClips = Math.max(1, opts?.maxClips ?? 2)
   const hintLabel = (hint ?? '').slice(0, 50)
