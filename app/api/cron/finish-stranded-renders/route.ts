@@ -763,12 +763,24 @@ export async function GET(req: NextRequest) {
         results.push({ generation: gen8, outcome: `too_few_refund_unconfirmed:${collected.done}/${collected.total}` })
         continue
       }
-      const released = await releaseCinematicClaim({ db: admin, secret, userId, generationId: genId, reason: 'provider_too_few_refunded', reference: billingReference })
-      if (!released.ok) console.error(`[stranded] gen=${gen8} too_few refunded but claim release failed: ${released.error}`)
-      await admin.from('events').insert({
-        user_id: userId, name: 'credits_refunded', path: '/api/cron/finish-stranded-renders', session_id: genId,
-        metadata: { render_id: billingReference, amount: refunded, reason: 'provider_too_few_refunded', done: collected.done, total: collected.total, dead: collected.dead, released: released.ok },
-      })
+      // KINEO-LACO-DO-TOO-FEW-2026-09-21 — a versão de ontem liberava com reason 'provider_too_few_refunded', que a
+      // biblioteca do claim NÃO aceita para claim 'settled' (só provider_all_failed|failed|abandoned_refunded): a
+      // liberação falhava em silêncio, o claim seguia 'settled', e o cron voltava a cada 5 min gravando um
+      // credits_refunded de 0 cr (298 em 24 h nos 2 renders do fundador) — e cada um deles acordava "online" no
+      // painel. O motivo agora é o aceito; o rótulo nosso ('too_few') vai no metadata; o evento só é gravado quando
+      // algo aconteceu de verdade (crédito voltou OU claim liberado), e liberação que falha vira desfecho terminal.
+      const released = await releaseCinematicClaim({ db: admin, secret, userId, generationId: genId, reason: 'provider_failed_refunded', reference: billingReference })
+      if (!released.ok) {
+        console.error(`[stranded] gen=${gen8} too_few refunded but claim release failed: ${released.error}`)
+        results.push({ generation: gen8, outcome: `too_few_release_failed:${collected.done}/${collected.total}`, error: String(released.error ?? '').slice(0, 80) })
+        continue
+      }
+      if (refunded > 0 || released.ok) {
+        await admin.from('events').insert({
+          user_id: userId, name: 'credits_refunded', path: '/api/cron/finish-stranded-renders', session_id: genId,
+          metadata: { render_id: billingReference, amount: refunded, reason: 'provider_failed_refunded', why: 'too_few', done: collected.done, total: collected.total, dead: collected.dead, released: released.ok },
+        })
+      }
       console.log(`[stranded] gen=${gen8} too_few ${collected.done}/${collected.total} → refunded ${refunded} cr, claim released=${released.ok}`)
       results.push({ generation: gen8, outcome: `too_few_refunded:${collected.done}/${collected.total}` })
       continue

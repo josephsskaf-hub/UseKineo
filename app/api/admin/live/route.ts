@@ -153,7 +153,7 @@ export async function GET() {
         p_exact_emails: INTERNAL_EXACT_EMAILS,
         p_like_patterns: INTERNAL_LIKE_PATTERNS,
       }),
-      admin.from('events').select('user_id, session_id, name, path, created_at').gte('created_at', iso(ONLINE)).order('created_at', { ascending: false }).limit(3000),
+      admin.from('events').select('user_id, session_id, name, path, created_at, is_bot:metadata->>is_bot').gte('created_at', iso(ONLINE)).order('created_at', { ascending: false }).limit(3000),
     ])
 
     type Counters = {
@@ -170,14 +170,27 @@ export async function GET() {
     const num = (v: unknown) => (typeof v === 'number' ? v : Number(v ?? 0)) || 0
 
     // ── Quem está online: último evento por usuário logado ─────────────────
-    type OnlineRow = { user_id: string | null; session_id: string | null; name: string; path: string | null; created_at: string }
+    type OnlineRow = { user_id: string | null; session_id: string | null; name: string; path: string | null; created_at: string; is_bot?: string | null }
     // KINEO-ONLINE-FANTASMA-2026-09-01 — 'online' e PRESENCA, nao atividade de
     // servidor. Em 01/09 o winback-25 gravou 60 eventos (credito concedido +
     // e-mail enviado) em 1 minuto e o painel mostrou "65 online · navegando"
     // para gente que nem abriu o e-mail. Evento de pessoa REAL vem do
     // rastreador do navegador e sempre carrega session_id; evento gravado pelo
     // servidor (crons, campanhas, grants) nao tem. So o primeiro conta.
-    const onlineRows = ((evOnline.data ?? []) as OnlineRow[]).filter((r) => !!r.user_id && !!r.session_id)
+    // KINEO-ONLINE-E-NAVEGADOR-2026-09-21 — a regra de 01/09 ("evento do servidor não tem session_id") envelheceu:
+    // fast_coherence (juiz/radar), stranded_outcome, credits_refunded, render_job_*, fast_scene_plan… carregam
+    // user_id + session_id (= generation_id). Cada rodada do radar (12 filmes/15 min) fazia 12 pessoas "aparecerem
+    // online" por 5 min e sumirem — fundador (21/09): "do nada aparecem 20 pessoas, depois 2". Medido 24 h: real
+    // (só navegador) média 0,4 / máx 3 por 5 min; o painel mostrava média 2,3 / máx 78. Regra POSITIVA: presença é
+    // evento que o rastreador do navegador emite (metadata.is_bot presente e falso) ou a batida da aba de render
+    // (cinematic_client_poll); nada vindo de /api/cron ou /admin conta.
+    const onlineRows = ((evOnline.data ?? []) as OnlineRow[]).filter((r) => {
+      if (!r.user_id || !r.session_id) return false
+      const p = r.path ?? ''
+      if (p.startsWith('/api/cron') || p.startsWith('/admin')) return false
+      if (r.name === 'cinematic_client_poll') return true
+      return r.is_bot != null && r.is_bot !== 'true'
+    })
     const byUser = new Map<string, { last: OnlineRow; events: string[] }>()
     for (const row of onlineRows) {
       const uid = row.user_id as string

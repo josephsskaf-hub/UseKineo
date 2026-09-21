@@ -45,6 +45,10 @@ const ADMIN_EMAILS = new Set([
 // PLAN_PRICE_USD vêm de app/api/admin/_shared/mrr (uma fonte para todo o admin).
 
 const DAY_MS = 24 * 60 * 60 * 1000
+// KINEO-OVERVIEW-CLEAN-2026-09-21 — fundador: "tira a parte do trial de $1 que não estamos usando, deixar o overview
+// mais clean". A Versão B (porta de $1) morreu na restauração de 09/09; o painel, o card "Trials $1" e as tabelas
+// ficam no código (história e guardiões), mas não na tela. true reabre tudo num flag só.
+const SHOW_VERSAO_B_PANEL = false
 
 // ── formatting helpers ──────────────────────────────────────────────────────
 
@@ -567,6 +571,7 @@ export default async function AdminOverviewPage() {
         </div>
 
         {/* 🚪 Versão B — porta de $1 (KINEO-VERSAO-B-PAINEL-2026-09-08) */}
+        {SHOW_VERSAO_B_PANEL && (
         <Section emoji="🚪" title="Versão B — porta de $1" right={<span style={{ fontSize: 11, color: 'var(--muted2)' }}>por pessoa · desde 08/09 05:00 UTC · hoje (UTC) e 7 dias</span>}>
           {/* KINEO-ADMIN-TRIAL-1-AGORA-2026-09-09 — o número que o fundador pediu, num lugar só. */}
           <div data-testid="trial-1-agora" style={{ marginBottom: 14, borderRadius: 14, border: '1px solid rgba(52,211,153,.45)', background: 'rgba(52,211,153,.08)', padding: '14px 16px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 16 }}>
@@ -654,6 +659,7 @@ export default async function AdminOverviewPage() {
             </table>
           </div>
         </Section>
+        )}
         {/* 💰 Revenue */}
         <Section emoji="💰" title="Revenue">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -681,11 +687,13 @@ export default async function AdminOverviewPage() {
                 ? `${m.revenue.windows.d30.packsCount} compras · ${m.revenue.windows.d30.packsBuyers} compradores · ${m.revenue.windows.d30.packsBuyersSubscribers} já assinam · 90 d ${fmtMoney(m.revenue.windows.d90.packsNetUsd)} (${m.revenue.windows.d90.packsCount})`
                 : 'Stripe indisponível agora'}
             />
+            {SHOW_VERSAO_B_PANEL && (
             <Kpi
               label="Trials $1"
               value={String(m.trialsActive)}
               sub={`viram ${fmtMoney(m.trialPotentialMrrUsd)}/mês no dia 8 · não contam como pagante`}
             />
+            )}
             <Kpi
               label="Paying by plan"
               value={String(m.payingTotal)}
