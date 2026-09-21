@@ -704,7 +704,7 @@ export default function StudioClient() {
                         {filmsLabel(e.key)}
                       </span>
                       {(() => { const st = stepDownFor(e.key); return st ? (
-                        <span role="button" tabIndex={0} className="pill on" style={{ display: 'inline-block', marginTop: 6, fontSize: 11 }}
+                        <span role="button" tabIndex={0} className="pill on"
                           onClick={(ev) => { ev.stopPropagation(); void trackEvent('studio_shorter_step_clicked', { engine: e.key, from: duration, to: st.seconds, cost: st.cost, balance }); setDuration(st.seconds); setEngine(e.key); setPickerOpen(false) }}
                           onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ev.stopPropagation(); void trackEvent('studio_shorter_step_clicked', { engine: e.key, from: duration, to: st.seconds, cost: st.cost, balance }); setDuration(st.seconds); setEngine(e.key); setPickerOpen(false) } }}>
                           <UiLabel>{`${st.seconds}s fits your credits · ${st.cost} cr`}</UiLabel>
@@ -1092,6 +1092,9 @@ export default function StudioClient() {
 .composer-proposal-optional>div{margin:16px 0}.composer-proposal-optional .cams{grid-template-columns:repeat(2,1fr)}
 .composer-proposal .hint{line-height:1.6}.composer-proposal textarea{min-height:230px}
 .composer-proposal-how{margin-top:24px}.composer-proposal-how>summary{min-height:44px;align-content:center;cursor:pointer;color:#a1a1aa;font-size:13px}
+.stu .pk .pk-tx>.pill[role=button]{display:inline-flex;align-items:center;min-height:44px;max-width:100%;margin-top:8px;padding:8px 12px;border-radius:10px;border:1px solid rgba(92,179,255,.5);background:rgba(41,151,255,.12);color:#b8dfff;box-shadow:none;font-size:12px;line-height:1.5;white-space:normal;overflow-wrap:anywhere;text-align:start}
+.stu .pk .pk-tx>.pill[role=button]:hover{background:rgba(41,151,255,.22);border-color:#7cc0ff;transform:none}
+.stu .pk .pk-tx>.pill[role=button]:focus-visible{outline:2px solid #b8dfff;outline-offset:3px;background:rgba(41,151,255,.22)}
 @media(max-width:900px){.composer-proposal .composer-proposal-grid{grid-template-columns:1fr;gap:18px}.composer-proposal-idea{padding:16px}.composer-proposal textarea{min-height:160px}}
 ` }} />
     </div>
