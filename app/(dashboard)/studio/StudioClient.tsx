@@ -771,10 +771,14 @@ export default function StudioClient() {
                 id="studio-narration-language"
                 value={language}
                 onChange={(e) => setLanguage(narrationLanguage(e.target.value) ?? 'en')}
-                style={{ background: 'rgba(255,255,255,.04)', border: '1px solid var(--border2)', color: 'var(--text)', borderRadius: 999, padding: '6px 12px', fontSize: 12, fontFamily: 'inherit' }}
+                // KINEO-SELECT-LEGIVEL-2026-09-21 — fundador (print de 21/09 00:50): a lista abria BRANCA com as 16 línguas
+                // em cinza-claro, parecendo todas desabilitadas (só a que estava sob o mouse era legível). O <select> herdava
+                // color: var(--text) (quase branco) e o Chrome pintava o popup nativo de branco. colorScheme: 'dark' faz o
+                // popup nascer escuro, e cada <option> leva cor e fundo explícitos para qualquer navegador.
+                style={{ background: 'rgba(255,255,255,.04)', border: '1px solid var(--border2)', color: 'var(--text)', colorScheme: 'dark', borderRadius: 999, padding: '6px 12px', fontSize: 12, fontFamily: 'inherit' }}
               >
                 {NARRATION_LANGUAGES.map((l) => (
-                  <option key={l.code} value={l.code}>{l.native}{l.code !== 'en' ? ` · ${l.name.replace(/ \(.*\)$/, '')}` : ''}</option>
+                  <option key={l.code} value={l.code} style={{ color: '#f5f5f7', background: '#131316' }}>{l.native}{l.code !== 'en' ? ` · ${l.name.replace(/ \(.*\)$/, '')}` : ''}</option>
                 ))}
               </select>
               {!isHollywoodLanguage(language) && (

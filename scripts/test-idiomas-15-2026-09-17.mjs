@@ -51,5 +51,15 @@ checa('15 sementes com code do catálogo; japonês/coreano fora; urdu/ucraniano 
 checa('todo code das sementes existe no catálogo', [...ip.matchAll(/\{ name: '[A-Za-z]+', code: '([a-z]{2})', prompt:/g)].every((m) => T.NARRATION_LANGUAGE_CODES.includes(m[1])))
 checa('a página manda ?language= para o Studio', pg.includes("if (language) studio.set('language', language)") && pg.includes('studioHref(p.slug, p.examplePrompt, p.engine, p.language)') && ip.includes('language: l.code,'))
 
+// KINEO-SELECT-LEGIVEL-2026-09-21 — a lista de línguas abria branca com texto quase branco (parecia desabilitada).
+console.log('5) seletor de língua legível')
+{
+  const st = rd('app/(dashboard)/studio/StudioClient.tsx')
+  const ini = st.indexOf('id="studio-narration-language"')
+  const sel = st.slice(ini, st.indexOf('</select>', ini))
+  checa('select de língua com colorScheme dark (popup nativo não nasce branco)', sel.includes("colorScheme: 'dark'"))
+  checa('cada option com cor e fundo explícitos', sel.includes("<option key={l.code} value={l.code} style={{ color: '#f5f5f7', background: '#131316' }}>"))
+}
+
 console.log(`\n═══ ${ok} passaram, ${falhas.length} falharam ═══`)
 process.exit(falhas.length ? 1 : 0)

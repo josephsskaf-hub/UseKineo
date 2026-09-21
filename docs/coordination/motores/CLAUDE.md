@@ -1205,3 +1205,7 @@ Dado que decidiu (30 d): ChatGPT 1.001 sessões → 328 cadastros → 5 pagantes
 Guardião test-portas-16-linguas (59, 2 mutantes). Trava 8.2 não tocada. IndexNow: as 13 URLs submetidas à mão logo após o deploy (Bing = índice do ChatGPT; Google ignora).
 Medir em 14 d: por língua, chegadas × cadastros × 1º filme × pagante (utm/intent_campaign = seo_gerador_<code>); e o `language` nos render_job_opened de quem veio por essas portas (a língua tem que ser a da porta, não 'en').
 Próximo (fundador): fazer as perguntas ao ChatGPT em cada língua ("générateur de shorts IA gratuit", "kostenloser KI shorts generator", "generatore shorts IA gratis", "generador…") e ver se cita usekineo.com; a lista de URLs está na resposta de 20/09 23h.
+
+
+## SELETOR DE LÍNGUA LEGÍVEL — 21/09 ~01:00 BRT (fundador, print: "tá dando problemas nos idiomas")
+A lista de 16 línguas do Studio abria BRANCA com o texto quase branco (color: var(--text) herdado pelo popup nativo do Chrome no Windows): todas pareciam desabilitadas, só a que estava sob o mouse era legível. Não era bug de lógica — o valor era aceito — era contraste. app/(dashboard)/studio/StudioClient.tsx: select ganha colorScheme dark (popup nasce escuro) e cada option leva cor/fundo explícitos. Guardião test-idiomas-15 +2 (27).
