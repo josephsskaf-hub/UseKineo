@@ -1,0 +1,55 @@
+/* Scoped to the 52 localized entry pages; copy and form behavior stay shared. */
+.page {
+  overflow-wrap: anywhere;
+}
+
+.page :is(h1, h2, h3, button, textarea) {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+
+.page button {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* The root interface may be English while this page is Hindi. Reuse the
+   self-hosted Devanagari font already installed by app/layout.tsx. */
+.page:lang(hi) {
+  --font-inter: var(--font-manrope), var(--font-devanagari), "Nirmala UI", sans-serif;
+  --font-display: var(--font-inter);
+}
+
+.page:is(:lang(ar), :lang(ur)) {
+  --font-inter: var(--font-manrope), "Noto Sans Arabic", "Noto Naskh Arabic", "Geeza Pro", "Segoe UI", Tahoma, sans-serif;
+  --font-display: var(--font-inter);
+}
+
+/* Inline typography belongs to the shared components. Override only script
+   spacing here, without changing typography on the other public pages. */
+.page:is(:lang(hi), :lang(ar), :lang(ur)) :is(h1, h2, h3, button, label, span, p) {
+  letter-spacing: normal !important;
+}
+
+.page:is(:lang(hi), :lang(ar), :lang(ur)) :is(h1, h2, h3) {
+  line-height: 1.45 !important;
+}
+
+.page:lang(ur) :is(h1, h2, h3) {
+  line-height: 1.65 !important;
+}
+
+.page:is(:lang(hi), :lang(ar), :lang(ur)) button {
+  line-height: 1.7;
+}
+
+.examples {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.steps {
+  padding-inline-start: 22px;
+  padding-inline-end: 0;
+}

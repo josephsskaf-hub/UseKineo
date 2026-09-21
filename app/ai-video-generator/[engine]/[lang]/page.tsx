@@ -6,6 +6,7 @@
 // renders reais do motor, mesmo formulário com a língua já escolhida, mesmos custos do catálogo), só a língua muda.
 // Conteúdo em lib/seo/enginePageLangs.ts; hreflang cruzado com a inglesa; sitemap em app/sitemap.ts.
 import type { Metadata } from 'next'
+import styles from '@/app/localized-public.module.css'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Footer from '@/components/Footer'
@@ -71,7 +72,7 @@ export default async function EngineLangPage({ params }: { params: { engine: str
   const p: React.CSSProperties = { color: '#86868b', fontSize: '1rem', lineHeight: 1.65, margin: '0 auto 12px', maxWidth: 680 }
 
   return (
-    <main lang={P.locale} dir={P.dir} style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'var(--font-inter), system-ui, -apple-system, sans-serif' }}>
+    <main lang={P.locale} dir={P.dir} className={styles.page} style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'var(--font-inter), system-ui, -apple-system, sans-serif' }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }} />
       <div style={{ maxWidth: 880, margin: '0 auto', padding: '64px 20px 88px' }}>
         <section style={{ textAlign: 'center' }}>
@@ -119,7 +120,7 @@ export default async function EngineLangPage({ params }: { params: { engine: str
 
         <section style={{ marginTop: 44 }}>
           <h2 style={h2}>{L.howTitle}</h2>
-          <ol style={{ ...p, paddingLeft: 22 }}>
+          <ol className={styles.steps} style={{ ...p }}>
             {L.how.map((step) => <li key={step} style={{ marginBottom: 6 }}>{step}</li>)}
           </ol>
         </section>
