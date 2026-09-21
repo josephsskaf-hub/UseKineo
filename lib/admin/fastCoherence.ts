@@ -164,19 +164,45 @@ export async function listFastCoherence(
   // dos filmes cinematic no claim de NASCIMENTO (cinematic_submission_claim.response.voiceover_script, com o prompt
   // completo em response.prompt) e, no Kineo 1 resgatado, em fast_compose_recoverable.payload.voiceover_script.
   // Cadeia: compose → nascimento → recuperável → plano (voiceovers das cenas). O evento grava narration_source.
-  const [plans, dispatches, scores, births, recoverables] = genIds.length
+  const [plans, dispatches, scores, births, recoverables, aiClipsPending, aiClipsResult] = genIds.length
     ? await Promise.all([
         admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', FAST_SCENE_PLAN_EVENT).in('session_id', genIds).limit(1000),
         admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', 'cinematic_dispatch_result').in('metadata->>generation_id', genIds).order('created_at', { ascending: false }).limit(1000),
         admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', FAST_COHERENCE_EVENT).in('session_id', genIds).limit(1000),
         admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', 'cinematic_submission_claim').in('session_id', genIds).limit(1000),
         admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', 'fast_compose_recoverable').in('session_id', genIds).limit(1000),
+        // KINEO-JUIZ-VE-OS-CLIPES-2026-09-21 — o plano do Kineo 1 descreve o STOCK; os clipes Seedance que entraram no
+        // lugar (fast_ai_clips_pending/result) eram invisíveis ao juiz, e "com clipes IA" media visual 46 contra 56 sem
+        // — comparação cega. Agora a cena com clipe pronto é julgada pelo prompt do clipe, com fonte 'aiVideo'.
+        admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', 'fast_ai_clips_pending').in('session_id', genIds).limit(1000),
+        admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', 'fast_ai_clips_result').in('session_id', genIds).limit(1000),
       ])
-    : [{ data: [] as EventRow[] }, { data: [] as EventRow[] }, { data: [] as EventRow[] }, { data: [] as EventRow[] }, { data: [] as EventRow[] }]
+    : [{ data: [] as EventRow[] }, { data: [] as EventRow[] }, { data: [] as EventRow[] }, { data: [] as EventRow[] }, { data: [] as EventRow[] }, { data: [] as EventRow[] }, { data: [] as EventRow[] }]
   const birthByGen = new Map<string, EventRow>()
   for (const b of (births.data ?? []) as EventRow[]) if (b.session_id && !birthByGen.has(b.session_id)) birthByGen.set(b.session_id, b)
   const recoverableByGen = new Map<string, EventRow>()
   for (const r of (recoverables.data ?? []) as EventRow[]) if (r.session_id && !recoverableByGen.has(r.session_id)) recoverableByGen.set(r.session_id, r)
+  const aiClipPromptByGen = new Map<string, Map<number, string>>()
+  for (const p of (aiClipsPending.data ?? []) as EventRow[]) {
+    if (!p.session_id || !Array.isArray(p.metadata?.clips)) continue
+    const m = aiClipPromptByGen.get(p.session_id) ?? new Map<number, string>()
+    for (const c of p.metadata.clips as Array<{ scene?: unknown; prompt?: unknown }>) if (typeof c?.scene === 'number' && typeof c?.prompt === 'string') m.set(c.scene, c.prompt)
+    aiClipPromptByGen.set(p.session_id, m)
+  }
+  const aiClipReadyByGen = new Map<string, Set<number>>()
+  for (const r of (aiClipsResult.data ?? []) as EventRow[]) {
+    if (!r.session_id || !Array.isArray(r.metadata?.scenes)) continue
+    const ready = aiClipReadyByGen.get(r.session_id) ?? new Set<number>()
+    for (const sc of r.metadata.scenes as Array<{ scene?: unknown; ok?: unknown }>) if (sc?.ok === true && typeof sc?.scene === 'number') ready.add(sc.scene)
+    aiClipReadyByGen.set(r.session_id, ready)
+  }
+  /** Cena que recebeu clipe Seedance pronto é julgada pelo prompt do clipe (fonte aiVideo), não pelo stock do plano. */
+  const applyAiClips = (gen: string | null, scenes: FastSceneEvidence[] | null): FastSceneEvidence[] | null => {
+    if (!gen || !scenes) return scenes
+    const prompts = aiClipPromptByGen.get(gen); const ready = aiClipReadyByGen.get(gen)
+    if (!prompts || !ready || ready.size === 0) return scenes
+    return scenes.map((s) => (ready.has(s.scene) && prompts.get(s.scene)) ? { ...s, query: `AI clip: ${prompts.get(s.scene)}`, sources: ['aiVideo', ...s.sources.filter((x) => x !== 'aiVideo')] } : s)
+  }
   const planByGen = new Map<string, EventRow>()
   for (const p of (plans.data ?? []) as EventRow[]) if (p.session_id && !planByGen.has(p.session_id)) planByGen.set(p.session_id, p)
   const dispatchByGen = new Map<string, EventRow>()
@@ -223,7 +249,7 @@ export async function listFastCoherence(
     const narrationSource: FastCoherenceRow['narration_source'] = narrationHit ? narrationHit[0] : null
     const scenes: FastSceneEvidence[] | null =
       engine === 'fast'
-        ? Array.isArray(plan?.metadata?.scenes) ? (plan!.metadata!.scenes as FastSceneEvidence[]) : null
+        ? applyAiClips(gen, Array.isArray(plan?.metadata?.scenes) ? (plan!.metadata!.scenes as FastSceneEvidence[]) : null)
         : evidenceFromDispatch(gen ? dispatchByGen.get(gen)?.metadata : null)
     const scoreEv = gen ? scoreByGen.get(gen) : undefined
     // Só a versão vigente do juiz vale; nota antiga é julgada de novo (custa ~US$ 0,001).

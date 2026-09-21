@@ -21,10 +21,10 @@ const checa = (n, c) => { if (c) ok++; else falhas.push(n) }
 const libSrc = rd('lib/fastAiScene.ts')
 const puro = libSrc.split('\n').filter((l) => !/^import /.test(l)).join('\n')
 const roda = (src, env = {}) => { const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText; const exp = {}; vm.runInNewContext(js, { exports: exp, console, process: { env }, Buffer, fetch: () => { throw new Error('rede') }, AbortSignal }); return exp }
-const L = roda(puro)
+const L = roda(puro, { KINEO_FAST_AI_SCENES: 'on' }) // KINEO-SEM-FOTO-2026-09-21: a decisão pura é exercitada com o interruptor LIGADO; o padrão (desligado) é conferido no check do interruptor
 
 console.log('== (a)(b) decisão e nome próprio ==')
-checa('ligado por padrão; KINEO_FAST_AI_SCENES=off desliga', L.FAST_AI_SCENES_ENABLED === true && roda(puro, { KINEO_FAST_AI_SCENES: 'off' }).decideFastAiScene({ planSource: 'ai' }).ai === false)
+checa('21/09 (fundador: "não existe foto no Kineo"): nasce DESLIGADO; só KINEO_FAST_AI_SCENES=on liga', roda(puro).FAST_AI_SCENES_ENABLED === false && L.FAST_AI_SCENES_ENABLED === true && roda(puro, { KINEO_FAST_AI_SCENES: 'off' }).decideFastAiScene({ planSource: 'ai' }).ai === false)
 checa('teto padrão 4 por filme (R2); env vale; máximo 6', L.fastAiScenesMax() === 4 && roda(puro, { KINEO_FAST_AI_SCENES_MAX: '2' }).fastAiScenesMax() === 2 && roda(puro, { KINEO_FAST_AI_SCENES_MAX: '40' }).fastAiScenesMax() === 6)
 checa('plano diz ai → still (plan_ai)', L.decideFastAiScene({ planSource: 'ai' }).reason === 'plan_ai')
 checa('relevância conhecida < 60 → still; 60+ não; desconhecida não', L.decideFastAiScene({ relevanceScore: 41 }).reason === 'low_relevance' && !L.decideFastAiScene({ relevanceScore: 60, voiceover: 'the sun rises over the sea' }).ai && !L.decideFastAiScene({ relevanceScore: null, voiceover: 'the sun rises over the sea' }).ai)

@@ -909,17 +909,25 @@ export async function POST(req: NextRequest) {
           !AI_HOOK_PAID_PLANS.has(String(hookProfile?.plan ?? 'free').toLowerCase())
         primeiroFilmeDaConta = isFirstVideo && isFreeTier && FIRST_FILM_STILLS_ENABLED
 
-        if (isFirstVideo && isFreeTier) {
+        // ═══ KINEO-CLIPES-PARA-PAGANTE-2026-09-21 — "desliga as fotos e estende os clipes" ═══
+        // Antes: 3 clipes Seedance de 5 s (US$ 0,39) só no PRIMEIRO filme de conta gratuita (17/09). Medido 17-21/09:
+        // 39 filmes, 115/117 clipes prontos (98%), espera média 19 s. Agora: 1º filme de QUALQUER conta (o 1º filme é
+        // o produto) + TODO Kineo 1 de conta paga (5 cr ≈ US$ 0,62-0,83 de receita contra ~US$ 0,39 de clipes).
+        // Filmes seguintes de conta gratuita continuam só com banco — o trial não paga por IA em cada tentativa.
+        const isPaidAccount = !isFreeTier
+        const clipesElegiveis = isFirstVideo || isPaidAccount
+
+        if (clipesElegiveis) {
           // Build the cinematic prompt from scene 1's description (the visual
           // hook), topic = the user's prompt. Faceless/era-safe by construction.
           const hookPrompt = buildHookPrompt(scenes[0]?.description ?? prompt, prompt)
           aiHookHandle = await submitAiHook(hookPrompt)
           console.log(
-            `[ai-hook] eligible first-video free-tier — submit ${aiHookHandle ? 'OK request=' + aiHookHandle.requestId : 'skipped/failed'}`,
+            `[ai-hook] eligible (${isFirstVideo ? 'first-video' : 'paid-account'}) — submit ${aiHookHandle ? 'OK request=' + aiHookHandle.requestId : 'skipped/failed'}`,
           )
         } else {
           console.log(
-            `[ai-hook] not eligible (firstVideo=${isFirstVideo} freeTier=${isFreeTier}) — normal stock hook`,
+            `[ai-hook] not eligible (firstVideo=${isFirstVideo} paid=${isPaidAccount}) — normal stock hook`,
           )
         }
       }

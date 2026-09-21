@@ -26,7 +26,11 @@
 import { generateCinematicSceneStill } from '@/lib/hollywood/anchors'
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 
-export const FAST_AI_SCENES_ENABLED = !['0', 'false', 'no', 'off'].includes(
+// ═══ KINEO-SEM-FOTO-2026-09-21 — fundador: "não existe foto no Kineo… desliga as fotos e estende os clipes" ═══
+// Medido 16-21/09: 99 filmes receberam 237 stills (2,4 por filme). A foto com Ken Burns no meio de clipes em movimento
+// foi o que o fundador viu "na semana passada" e reprovou. O still passa a ser OPT-IN (KINEO_FAST_AI_SCENES=on) —
+// nasce desligado; o lugar dele é ocupado por clipes de VÍDEO (lib/fastAiClips, 1º filme de todos + pagantes).
+export const FAST_AI_SCENES_ENABLED = ['1', 'true', 'yes', 'on'].includes(
   (process.env.KINEO_FAST_AI_SCENES ?? '').trim().toLowerCase(),
 )
 
