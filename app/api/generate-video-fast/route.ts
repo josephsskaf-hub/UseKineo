@@ -26,6 +26,7 @@ import { pickLibraryClips, type LibraryClip } from '@/lib/stockLibrary'
 import { parseUserScript } from '@/lib/scriptParser'
 import { narrationTooShortMessage } from '@/lib/narrationFit'
 import { largestFittingDuration } from '@/lib/expandPolicy'
+import { decideDurationFollowsScript, DURATION_FOLLOWED_SCRIPT_EVENT } from '@/lib/durationFollowsScript'
 import { speechRateFor, narrationFitAt } from '@/lib/speechRate'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { classifyEngineFit } from '@/lib/engineFit'
@@ -813,6 +814,24 @@ export async function POST(req: NextRequest) {
           fit = narrationFitAt(falaDoAutor, duration, narrationRate)
           autofitApplied = true
           if (!dryRunAutorizado) void writeServerEvent({ name: 'narration_autofit_down', userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', requested_seconds: pedida, effective_seconds: duration, speech_seconds: Math.round(fit.speech * 10) / 10, words_per_second: narrationRate.wordsPerSecond, basis: narrationRate.basis } })
+        }
+      }
+      // ═══ KINEO-DURACAO-SEGUE-O-ROTEIRO-KINEO1-2026-09-22 — a parede mudou de endereço ═══
+      // Medido 22/09 (30 d, contas externas): desde que o cinematic passou a descer a duração sozinho (19/09), a
+      // parede "your script is N s, you asked for N s" ZEROU no Seedance — e no Kineo 1 subiu de 0,8/dia para
+      // 3,7/dia (11 em 3 dias, 9 pessoas). O trial de 10 cr é só Kineo 1: esta era a primeira parede que todo
+      // cadastro novo encontrava. Mesma regra do fundador ("roteiro colado: duração segue as palavras"): roteiro
+      // próprio + uma duração do seletor que cabe → desce e renderiza, em vez de recusar e pedir palavras.
+      // `allow_shorter_duration` (bloco acima) nunca é enviado pelo cliente; fica como caminho explícito.
+      if (!fit.ok && !autofitApplied) {
+        const seguiu = decideDurationFollowsScript({ fitOk: fit.ok, ownScript: verbatim, requestedSeconds: duration, speechSeconds: fit.speech, largestFitting: largestFittingDuration(fit.speech), floorSeconds: 35 })
+        if (seguiu && (SUPPORTED_DURATIONS as readonly number[]).includes(seguiu.to)) {
+          const pedida = duration
+          duration = seguiu.to as Duration
+          fit = narrationFitAt(falaDoAutor, duration, narrationRate)
+          autofitApplied = true
+          if (!dryRunAutorizado) void writeServerEvent({ name: DURATION_FOLLOWED_SCRIPT_EVENT, userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', from: pedida, to: duration, speech: seguiu.speechSeconds, fits_now: fit.ok, version: seguiu.version, words_per_second: narrationRate.wordsPerSecond } })
+          console.log(`[generate-fast] duration follows script: ${pedida}s → ${duration}s (speech ${seguiu.speechSeconds}s) user=${user.id.slice(0, 8)}`)
         }
       }
       if (!portao?.blocked) portao = { blocked: !fit.ok, reason: fit.ok ? null : 'narration_too_short', speech_seconds: Math.round(fit.speech * 10) / 10, target_seconds: duration, missing_words: fit.missingWords, shorter_duration: largestFittingDuration(fit.speech), words_per_second: narrationRate.wordsPerSecond, basis: narrationRate.basis, autofit_applied: autofitApplied }

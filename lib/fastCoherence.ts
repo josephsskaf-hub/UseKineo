@@ -128,7 +128,7 @@ export function buildCoherenceMessages(input: { prompt: string; narration: strin
     'ALL of summary, problems and request_pt are written in Brazilian Portuguese even when the customer text and the narration are in Spanish, English or any other language.'
   const user =
     `CUSTOMER WROTE${input.promptMayBeTruncated ? ' (stored text may be CUT (the store keeps 500-1,000 characters) — do not penalize narration that plausibly continues it)' : ''}:\n"""${input.prompt.slice(0, 5000)}"""\n\nNARRATION THE FILM USED:\n"""${input.narration.slice(0, 2600)}"""\n\n` +
-    (scenes.length ? `SCENES (${ai ? 'generation prompt per shot, in order' : 'spoken line → footage plan'}):\n${sceneLines}` : 'SCENES: not recorded for this film (judge only prompt_vs_narration; set narration_vs_visuals to null).')
+    (scenes.length ? `SCENES (${ai ? 'generation prompt per shot, in order' : 'spoken line → footage plan'}):\n${sceneLines}` : 'SCENES: not recorded for this film (judge only prompt_vs_narration; set narration_vs_visuals to null; the ABSENCE of scenes is not a defect of the narration and must not lower prompt_vs_narration or appear in problems).')
   return [
     { role: 'system' as const, content: system },
     { role: 'user' as const, content: user },

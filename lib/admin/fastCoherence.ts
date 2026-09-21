@@ -33,6 +33,8 @@ export type FastCoherenceRow = {
   /** true = só existe o texto cortado (500/1.000) do vídeo/claim (filme anterior ao rastro completo) */
   topic_truncated: boolean
   narration: string | null
+  /** de onde a narração veio (KINEO-JUIZ-COBRE-OS-8): compose_claim | birth_claim | recoverable | scene_plan */
+  narration_source: 'compose_claim' | 'birth_claim' | 'recoverable' | 'scene_plan' | null
   url: string | null
   seconds: number | null
   credits: number | null
@@ -155,13 +157,26 @@ export async function listFastCoherence(
     new Set(Array.from(claimByRender.values()).map((c) => c.metadata?.generation_id).filter((g): g is string => typeof g === 'string' && g.length > 0)),
   )
 
-  const [plans, dispatches, scores] = genIds.length
+  // ═══ KINEO-JUIZ-COBRE-OS-8-2026-09-22 — o juiz só via 4 de 8 motores, e metade do Seedance ═══
+  // Medido 22/09 (30 d, videos completos): a narração que o juiz exige vinha SÓ do claim de compose, que a carrega em
+  // 208/339 filmes do Kineo 1, 110/230 do Seedance, 1/10 do Omni, 1/10 do H3, 4/7 do Kling 3. Sem narração, o filme
+  // nunca entra em 'pending' — e o placar dizia "sem juiz" para a estrada hollywood inteira. A narração existe em 100%
+  // dos filmes cinematic no claim de NASCIMENTO (cinematic_submission_claim.response.voiceover_script, com o prompt
+  // completo em response.prompt) e, no Kineo 1 resgatado, em fast_compose_recoverable.payload.voiceover_script.
+  // Cadeia: compose → nascimento → recuperável → plano (voiceovers das cenas). O evento grava narration_source.
+  const [plans, dispatches, scores, births, recoverables] = genIds.length
     ? await Promise.all([
         admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', FAST_SCENE_PLAN_EVENT).in('session_id', genIds).limit(1000),
         admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', 'cinematic_dispatch_result').in('metadata->>generation_id', genIds).order('created_at', { ascending: false }).limit(1000),
         admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', FAST_COHERENCE_EVENT).in('session_id', genIds).limit(1000),
+        admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', 'cinematic_submission_claim').in('session_id', genIds).limit(1000),
+        admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', 'fast_compose_recoverable').in('session_id', genIds).limit(1000),
       ])
-    : [{ data: [] as EventRow[] }, { data: [] as EventRow[] }, { data: [] as EventRow[] }]
+    : [{ data: [] as EventRow[] }, { data: [] as EventRow[] }, { data: [] as EventRow[] }, { data: [] as EventRow[] }, { data: [] as EventRow[] }]
+  const birthByGen = new Map<string, EventRow>()
+  for (const b of (births.data ?? []) as EventRow[]) if (b.session_id && !birthByGen.has(b.session_id)) birthByGen.set(b.session_id, b)
+  const recoverableByGen = new Map<string, EventRow>()
+  for (const r of (recoverables.data ?? []) as EventRow[]) if (r.session_id && !recoverableByGen.has(r.session_id)) recoverableByGen.set(r.session_id, r)
   const planByGen = new Map<string, EventRow>()
   for (const p of (plans.data ?? []) as EventRow[]) if (p.session_id && !planByGen.has(p.session_id)) planByGen.set(p.session_id, p)
   const dispatchByGen = new Map<string, EventRow>()
@@ -194,8 +209,18 @@ export async function listFastCoherence(
     const engine = v.quality_mode ?? 'unknown'
     const claim = v.render_id ? claimByRender.get(v.render_id) : undefined
     const gen = typeof claim?.metadata?.generation_id === 'string' ? (claim.metadata.generation_id as string) : null
-    const narration = typeof claim?.metadata?.narration === 'string' ? (claim.metadata.narration as string) : null
     const plan = gen ? planByGen.get(gen) : undefined
+    const birthResponse = gen ? (birthByGen.get(gen)?.metadata?.response as Record<string, unknown> | undefined) : undefined
+    const recoverablePayload = gen ? (recoverableByGen.get(gen)?.metadata?.payload as Record<string, unknown> | undefined) : undefined
+    const narrationCandidates: Array<[FastCoherenceRow['narration_source'], unknown]> = [
+      ['compose_claim', claim?.metadata?.narration],
+      ['birth_claim', birthResponse?.voiceover_script],
+      ['recoverable', recoverablePayload?.voiceover_script],
+      ['scene_plan', Array.isArray(plan?.metadata?.scenes) ? (plan!.metadata!.scenes as Array<{ voiceover?: unknown }>).map((s) => (typeof s?.voiceover === 'string' ? s.voiceover : '')).filter(Boolean).join(' ') : ''],
+    ]
+    const narrationHit = narrationCandidates.find(([, t]) => typeof t === 'string' && t.trim().length > 0)
+    const narration = narrationHit ? String(narrationHit[1]).trim() : null
+    const narrationSource: FastCoherenceRow['narration_source'] = narrationHit ? narrationHit[0] : null
     const scenes: FastSceneEvidence[] | null =
       engine === 'fast'
         ? Array.isArray(plan?.metadata?.scenes) ? (plan!.metadata!.scenes as FastSceneEvidence[]) : null
@@ -204,7 +229,7 @@ export async function listFastCoherence(
     // Só a versão vigente do juiz vale; nota antiga é julgada de novo (custa ~US$ 0,001).
     const coherence = scoreEv?.metadata && typeof scoreEv.metadata.score === 'number' && scoreEv.metadata.version === FAST_COHERENCE_VERSION ? (scoreEv.metadata as unknown as FastCoherenceResult) : null
     // O texto mais longo que existir: plano (inteiro, filmes novos) > claim (1.000) > vídeo (500).
-    const candidatos = [typeof plan?.metadata?.topic === 'string' ? (plan!.metadata!.topic as string) : '', typeof claim?.metadata?.topic === 'string' ? (claim.metadata.topic as string) : '', v.topic ?? '']
+    const candidatos = [typeof plan?.metadata?.topic === 'string' ? (plan!.metadata!.topic as string) : '', typeof claim?.metadata?.topic === 'string' ? (claim.metadata.topic as string) : '', typeof birthResponse?.prompt === 'string' ? (birthResponse.prompt as string) : '', typeof recoverablePayload?.topic === 'string' ? (recoverablePayload.topic as string) : '', v.topic ?? '']
     const topic = candidatos.reduce((a, b) => (b.length > a.length ? b : a), '')
     const topicTruncated = !(typeof plan?.metadata?.topic === 'string') && topic.length >= TOPIC_TRUNCATION_HINT
     const sources = histogram(scenes)
@@ -217,6 +242,7 @@ export async function listFastCoherence(
       topic,
       topic_truncated: topicTruncated,
       narration,
+      narration_source: narrationSource,
       url: v.video_url,
       seconds: v.duration,
       credits: v.credits_used,
@@ -247,7 +273,7 @@ export async function listFastCoherence(
           user_id: r.user_id,
           session_id: r.generation_id,
           path: '/admin/coerencia',
-          metadata: { ...result, engine: r.engine, video_id: r.video_id, render_id: r.render_id, generation_id: r.generation_id, topic: r.topic.slice(0, 120), topic_truncated: r.topic_truncated },
+          metadata: { ...result, engine: r.engine, video_id: r.video_id, render_id: r.render_id, generation_id: r.generation_id, topic: r.topic.slice(0, 120), topic_truncated: r.topic_truncated, narration_source: r.narration_source },
         })
       }),
     )
