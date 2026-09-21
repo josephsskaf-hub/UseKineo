@@ -114,7 +114,7 @@ const ENGINES: { paused?: boolean; /* KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 */
   // claim '#1 ranked' tem fonte datada (docs/MOTOR-OMNI-FLASH-2026-08-25.md)
   // e sai do card se o ranking mudar. Sem preview ainda — entra depois do
   // render de validação (vitrine com clipe de outro motor quebraria o selo).
-  { key: 'omni', paused: Boolean(enginePaused('omni')), icon: 'OF', name: 'Omni Flash', tag: '#1 ranked', desc: 'Google’s Gemini Omni Flash — #1 video model, Aug 2026 arena', res: '720p', credits: `${creditCostFor('cinematic_omni', true)} cr`, supportsRef: true },
+  { key: 'omni', paused: Boolean(enginePaused('omni')), icon: 'OF', name: 'Omni Flash', /* KINEO-SELO-POR-NOTA-2026-09-22: '#1 ranked' (arena de agosto) saiu do seletor até o motor ter 3 filmes com nota ≥ 75 no juiz — 0 clientes em 30 d com o selo */ desc: 'Google’s Gemini Omni Flash — cinematic scenes', res: '720p', credits: `${creditCostFor('cinematic_omni', true)} cr`, supportsRef: true },
   // KINEO-S25-CARD-2026-09-01 — Seedance 2.5, visivel SO para contas internas
   // (flag `internal` do /api/me/credits) ate os 4 carimbos do canario. Nunca
   // mostrar botao que o publico nao pode apertar — a licao do Seedance 2.0.
@@ -339,6 +339,22 @@ export default function StudioClient() {
     const c = engineCost(key)
     return c <= 0 ? 'free' : `${c} cr`
   }
+  // ═══ KINEO-DEGRAU-35S-2026-09-22 — o melhor motor não cabia no bolso de quem chega ═══
+  // Medido 21/09 (30 d): Veo 3.1 = nota 90 do juiz e 1 pessoa externa; a 60 s custa 100 cr num Starter de 60 e num
+  // trial de 10. O seletor precifica na duração escolhida (60 s por padrão) e dizia "not enough credits" — sem contar
+  // que a 35 s (59 cr) o filme cabe. Fundador (22/09: "pode ir nas três primeiras"): mostrar o degrau que cabe, em
+  // qualquer motor cujo custo na duração atual passa do saldo mas cabe numa duração menor do seletor.
+  const stepDownFor = (key: EngineKey): { seconds: 35 | 60; cost: number } | null => {
+    if (balance === null) return null
+    const c = engineCost(key)
+    if (c <= 0 || balance >= c) return null
+    for (const d of [60, 35] as const) {
+      if (d >= duration) continue
+      const cost = creditCostForDuration(ENGINE_QUALITY[key] ?? 'cinematic_ai', true, d)
+      if (cost > 0 && cost <= balance) return { seconds: d, cost }
+    }
+    return null
+  }
   /** "12 films with your credits" — vazio enquanto o saldo não chegou. */
   const filmsLabel = (key: EngineKey) => {
     if (balance === null) return ''
@@ -348,6 +364,13 @@ export default function StudioClient() {
     if (n <= 0) return `not enough credits — you have ${balance}`
     return `${n} film${n === 1 ? '' : 's'} with your ${balance} credits`
   }
+
+  // KINEO-DEGRAU-35S: impressão medida no mesmo gatilho do clique (picker aberto), com os degraus oferecidos.
+  useEffect(() => {
+    if (!pickerOpen || balance === null) return
+    const steps = ENGINES.filter((e) => !e.paused).map((e) => ({ engine: e.key, step: stepDownFor(e.key) })).filter((s) => s.step).map((s) => ({ engine: s.engine, to: s.step!.seconds, cost: s.step!.cost }))
+    if (steps.length) void trackEvent('studio_shorter_step_shown', { duration, balance, steps })
+  }, [pickerOpen]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const finalPrompt = useMemo(() => {
     const p = CAMERA_PRESETS.find((c) => c.key === preset)
@@ -680,6 +703,13 @@ export default function StudioClient() {
                       <span className="d" style={{ color: e.key === 'fast' ? '#5cb3ff' : undefined, marginTop: 2 }}>
                         {filmsLabel(e.key)}
                       </span>
+                      {(() => { const st = stepDownFor(e.key); return st ? (
+                        <span role="button" tabIndex={0} className="pill on" style={{ display: 'inline-block', marginTop: 6, fontSize: 11 }}
+                          onClick={(ev) => { ev.stopPropagation(); void trackEvent('studio_shorter_step_clicked', { engine: e.key, from: duration, to: st.seconds, cost: st.cost, balance }); setDuration(st.seconds); setEngine(e.key); setPickerOpen(false) }}
+                          onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ev.stopPropagation(); void trackEvent('studio_shorter_step_clicked', { engine: e.key, from: duration, to: st.seconds, cost: st.cost, balance }); setDuration(st.seconds); setEngine(e.key); setPickerOpen(false) } }}>
+                          <UiLabel>{`${st.seconds}s fits your credits · ${st.cost} cr`}</UiLabel>
+                        </span>
+                      ) : null })()}
                     </span>
                     {e.preview && (
                       <span className="pkv" aria-hidden="true">
@@ -701,6 +731,7 @@ export default function StudioClient() {
                   type="button"
                   className="pk"
                   onClick={() => { setPickerOpen(false); router.push('/avatar') }}
+                  onPointerDown={() => { void trackEvent('studio_avatar_card_clicked', { balance }) /* KINEO-AVATAR-MEDIDO-2026-09-22: 0 débitos na história — medir o gesto, não o débito */ }}
                 >
                   <span className="eng-ic" aria-hidden="true">🧑</span>
                   <span className="pk-tx">

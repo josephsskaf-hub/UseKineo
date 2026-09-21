@@ -58,7 +58,7 @@ const ROWS: Row[] = [
   { key: 'kling', name: 'Kling 2.5', quality: 'cinematic_kling', what: 'Cinematic motion and camera work', path: ENGINE_LANDING_PUBLIC_PATHS.kling },
   { key: 'veo', name: 'Veo 3.1', quality: 'cinematic_veo', what: 'Google’s flagship cinematic engine', path: ENGINE_LANDING_PUBLIC_PATHS.veo },
   { key: 'hollywood', name: 'Kling 3', quality: 'cinematic_hollywood', what: 'Film scenes, native voice and lip sync', path: ENGINE_LANDING_PUBLIC_PATHS.hollywood },
-  { key: 'omni', name: 'Omni Flash', quality: 'cinematic_omni', what: 'Gemini Omni Flash — #1 ranked, Aug 2026 arena', path: ENGINE_LANDING_PUBLIC_PATHS.omni },
+  { key: 'omni', name: 'Omni Flash', quality: 'cinematic_omni', what: 'Gemini Omni Flash — cinematic scenes', path: ENGINE_LANDING_PUBLIC_PATHS.omni },
   // O S25 só aparece quando o interruptor único abrir para o público — mostrar
   // preço de motor que ninguém pode escolher é a lição do Seedance 2.0.
   ...(S25_PUBLIC

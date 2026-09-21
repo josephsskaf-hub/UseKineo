@@ -959,7 +959,7 @@ export default function KineoLanding({
                       #1 do ranking cego de agosto. Preview REAL do primeiro
                       render validado (Flight 19, narrador da praia) — selo
                       honesto cumprido: só entrou aqui DEPOIS da auditoria. */}
-                  {!enginePaused('omni') && <NavEngineItem href="/studio?engine=omni&intent_campaign=nav_mega" name="Omni Flash" desc="Google's #1-ranked video model" chip="#1 RANKED" icon="OF" preview="/previews/41924eb2-d81d-4f2c-a5bb-5477c042af04.mp4" />}
+                  {!enginePaused('omni') && <NavEngineItem href="/studio?engine=omni&intent_campaign=nav_mega" name="Omni Flash" desc="Google's Gemini Omni Flash — cinematic scenes" icon="OF" preview="/previews/41924eb2-d81d-4f2c-a5bb-5477c042af04.mp4" />}
                   {/* KINEO-S25-LAUNCH-2026-09-01 — Seedance 2.5: so a casa ve ate o
                       canario passar (s25Visible); S25_PUBLIC=true abre pra todos.
                       Sem preview de proposito (selo honesto: clipe so deste motor). */}
@@ -1499,7 +1499,7 @@ export default function KineoLanding({
               <div className="pr"><LandingPlanPrice tier="pro" variant="big" /></div>
               <ul>
                 <li><span className="ck">✓</span> <b><UiLabel>{filmsAndScenes('pro')}</UiLabel></b></li>
-                <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('pro', 'cinematic_omni')}<UiLabel> films on Omni Flash</UiLabel></b><UiLabel> — the #1-ranked model</UiLabel></li>
+                <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('pro', 'cinematic_omni')}<UiLabel> films on Omni Flash</UiLabel></b><UiLabel> — Google’s Gemini engine</UiLabel></li>
                 <li><span className="ck">✓</span><UiLabel> Up to </UiLabel><b>{imagesFor('pro')}<UiLabel> AI images</UiLabel></b> — {nanoBananasFor('pro')}<UiLabel> on Nano Banana</UiLabel></li>
                 <li><span className="ck">✓</span> <b>{voiceoversFor('pro')}<UiLabel> AI voiceovers</UiLabel></b><UiLabel> · 2 free HD enhances / month</UiLabel></li>
                 <li><span className="ck">✓</span><UiLabel> Unlimited projects · forever storage</UiLabel></li>

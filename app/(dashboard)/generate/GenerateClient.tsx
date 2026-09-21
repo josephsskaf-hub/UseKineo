@@ -20588,7 +20588,7 @@ function ModeSelector({
               // KINEO-S25-LAUNCH-2026-09-01 — auditoria do fundador: o Omni NUNCA
               // entrou neste seletor (so no /studio) — dois seletores, duas
               // verdades. Entra agora, e o 2.5 junto (gate: s25Ok).
-              { key: 'omni', label: 'Omni Flash', sub: 'Google · #1 ranked, Aug 2026', cr: creditCostForDuration('cinematic_omni', true, duration) },
+              { key: 'omni', label: 'Omni Flash', sub: 'Google · Gemini Omni Flash', cr: creditCostForDuration('cinematic_omni', true, duration) },
               ...(s25Ok ? [{ key: 's25' as const, label: 'Seedance 2.5', sub: 'ByteDance · newest · 480p→HD', cr: creditCostForDuration('cinematic_s25', true, duration) }] : []),
               { key: 'veo', label: 'Veo 3.1', sub: 'Google · best motion', cr: creditCostForDuration('cinematic_veo', true, duration) },
               { key: 'kling', label: 'Kling', sub: 'cinematic motion', cr: creditCostForDuration('cinematic_kling', true, duration) }, // KINEO-PRICING-V3B-2026-07-10
