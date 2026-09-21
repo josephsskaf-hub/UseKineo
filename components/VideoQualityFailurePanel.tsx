@@ -1,6 +1,7 @@
 'use client'
 
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
+import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
 import type { VideoQualityFailure } from '@/lib/cinematic/qualityFailureUi'
 import type { QualityFailureExit } from '@/lib/qualityFailureExit'
 
@@ -52,7 +53,7 @@ const COPY = {
 
 export default function VideoQualityFailurePanel({ failure, exit = null, onEdit }: { failure: VideoQualityFailure; exit?: QualityFailureExit | null; onEdit: () => void }) {
   const language = useInterfaceLanguage()
-  const copy = COPY[language]
+  const copy = pickInterfaceCopy(COPY, language)
   // Same support address as components/Footer.tsx and app/trust/page.tsx.
   // This opens the user's mail client; it never sends a message automatically.
   const supportHref = `mailto:support@usekineo.com?subject=${encodeURIComponent(`Video quality check — ${failure.generationId || 'reference unavailable'}`)}`

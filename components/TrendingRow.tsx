@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useId, useRef, useState } from 'react'
 import type { WallVideo } from '@/lib/engineWall'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
+import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
 import { filterShowcase, showcaseEngines, showcasePoster, showcaseScrollState, shouldPlayShowcase, SHOWCASE_COPY } from '@/lib/ui/showcaseGallery'
 import styles from './TrendingRow.module.css'
 import { decodedPreviewFacts, PREVIEW_FACTS_COPY } from '@/lib/ui/previewFacts'
@@ -17,7 +18,7 @@ function GalleryMedia({ video, paused, limited }: { video: WallVideo; paused: bo
   const [failed, setFailed] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [posterFailed, setPosterFailed] = useState(false)
-  const copy = SHOWCASE_COPY[useInterfaceLanguage()]
+  const copy = pickInterfaceCopy(SHOWCASE_COPY, useInterfaceLanguage())
   const poster = showcasePoster(video)
   const allowed = shouldPlayShowcase(visible, paused, limited, failed)
   useEffect(() => {
@@ -51,8 +52,8 @@ function PreviewDialog({ video, onClose }: { video: WallVideo; onClose: () => vo
   const titleId = useId()
   const [failed, setFailed] = useState(false)
   const language = useInterfaceLanguage()
-  const copy = SHOWCASE_COPY[language]
-  const factsCopy = PREVIEW_FACTS_COPY[language]
+  const copy = pickInterfaceCopy(SHOWCASE_COPY, language)
+  const factsCopy = pickInterfaceCopy(PREVIEW_FACTS_COPY, language)
   const [facts, setFacts] = useState<ReturnType<typeof decodedPreviewFacts>>(null)
   useEffect(() => {
     const element = dialog.current
@@ -108,7 +109,7 @@ function PreviewDialog({ video, onClose }: { video: WallVideo; onClose: () => vo
 
 export default function TrendingRow({ videos }: { videos: WallVideo[] }) {
   const language = useInterfaceLanguage()
-  const copy = SHOWCASE_COPY[language]
+  const copy = pickInterfaceCopy(SHOWCASE_COPY, language)
   const galleryId = useId()
   const row = useRef<HTMLDivElement>(null)
   const opener = useRef<HTMLButtonElement | null>(null)

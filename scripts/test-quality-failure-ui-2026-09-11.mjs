@@ -50,6 +50,8 @@ function renderPanel(language, failure, exit = null) {
   const Panel = evaluate(panelSource, { require: name => {
     if (name === 'react/jsx-runtime') return jsxRuntime
     if (name === '@/components/InterfaceLanguage') return { useInterfaceLanguage: () => language }
+    // KINEO-INTERFACE-16-LINGUAS-2026-09-21: o painel escolhe a tabela pelo seletor puro com fallback para en
+    if (name === '@/lib/ui/interfaceLanguage') return { pickInterfaceCopy: (table, lang) => table[lang] ?? table.en }
     throw Error(`Unexpected panel import: ${name}`)
   } }).default
   return renderToStaticMarkup(React.createElement(Panel, { failure, exit, onEdit() { throw Error('SSR must not execute action') } }))

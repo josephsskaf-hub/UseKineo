@@ -13,7 +13,7 @@ const {INTERFACE_HI:hi,canonicalCopyHindi}=pure('lib/ui/interfaceHindi.ts')
 const {parseInterfaceLanguage}=pure('lib/ui/interfaceLanguage.ts')
 for(const key of Object.keys(pure('lib/ui/interfaceLabels.ts').INTERFACE_ES))ok(hi[key],'Hindi covers existing UiLabel dictionary: '+key)
 for(const l of ['en','es','hi'])eq(parseInterfaceLanguage(l),l,'explicit locale accepted')
-for(const v of ['pt','pt-BR','HI','in',null,'<script>'])eq(parseInterfaceLanguage(v),'en','unknown locale never geoguessed')
+for(const v of ['xx','pt-BR','HI','in',null,'<script>'])/* KINEO-INTERFACE-16-LINGUAS-2026-09-21: 'pt' virou língua da interface */eq(parseInterfaceLanguage(v),'en','unknown locale never geoguessed')
 for(const [en,translated] of Object.entries(hi)){
   ok(translated.trim(),'nonempty Hindi: '+en)
   eq(translated.match(/\d+(?:[.,]\d+)*/g)?.sort(),en.match(/\d+(?:[.,]\d+)*/g)?.sort(),'same numerical claims: '+en)

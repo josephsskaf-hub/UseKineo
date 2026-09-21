@@ -8,7 +8,7 @@ const check=(value,message)=>{assert.ok(value,message);checks++}
 const equal=(a,b,message)=>{assert.deepEqual(a,b,message);checks++}
 function pure(file){const box={exports:{}};vm.runInNewContext(ts.transpileModule(source(file),{compilerOptions:{module:1,target:7}}).outputText,{exports:box.exports});return box.exports}
 const language=pure('lib/ui/interfaceLanguage.ts'),labels=pure('lib/ui/interfaceLabels.ts').INTERFACE_ES
-for(const value of [null,undefined,'pt','ES',{},'<script>','es/en',''])equal(language.parseInterfaceLanguage(value),'en','invalid preference is English')
+for(const value of [null,undefined,'xx','ES',{},'<script>','es/en',''])equal(language.parseInterfaceLanguage(value),'en','invalid preference is English')
 equal(language.parseInterfaceLanguage('es'),'es','explicit Spanish accepted')
 equal(language.parseInterfaceLanguage('en'),'en','English can be restored')
 const canonical=pure('lib/ui/canonicalCopySpanish.ts').canonicalCopySpanish
