@@ -15,7 +15,10 @@ export const ALERTA_PAGANTE = 60
 export const ALERTA_TRIAL = 45
 export const RADAR_ALERT_EVENT = 'quality_radar_alert'
 export const RADAR_DIGEST_EVENT = 'quality_radar_digest'
-export const RADAR_MAX_JUDGE_PER_RUN = 8
+export const RADAR_MAX_JUDGE_PER_RUN = 25 // 19/09→20/09: 25 por rodada até rejulgar os ~210 filmes de 14 d com o juiz v4 (baseline honesto); depois pode voltar a 8
+/** Só filmes mais novos que isto viram alerta — o rejulgamento em massa de filmes velhos não acorda o fundador. */
+export const RADAR_ALERT_MAX_AGE_MS = 6 * 60 * 60 * 1000
+export const RADAR_JUDGE_WINDOW_HOURS = 24 * 14
 
 export type RadarFilm = {
   video_id: string

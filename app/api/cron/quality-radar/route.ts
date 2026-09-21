@@ -6,7 +6,7 @@ import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { listFastCoherence } from '@/lib/admin/fastCoherence'
 import { notifyFounder } from '@/lib/supplier/notify'
 import {
-  QUALITY_RADAR_VERSION, RADAR_ALERT_EVENT, RADAR_DIGEST_EVENT, RADAR_MAX_JUDGE_PER_RUN,
+  QUALITY_RADAR_VERSION, RADAR_ALERT_EVENT, RADAR_DIGEST_EVENT, RADAR_MAX_JUDGE_PER_RUN, RADAR_ALERT_MAX_AGE_MS, RADAR_JUDGE_WINDOW_HOURS,
   decideRadarAlert, radarAlertText, radarDigestText, type RadarFilm,
 } from '@/lib/qualityRadar'
 
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
   const digest = req.nextUrl.searchParams.get('digest') === '1'
 
   // Julga o que ainda não tem nota (janela curta no tique de 15 min; 24 h no resumo).
-  const rows = await listFastCoherence(admin, { hours: digest ? 24 : 6, limit: digest ? 200 : 60, maxCompute: RADAR_MAX_JUDGE_PER_RUN, excludeEmails: INTERNAL })
+  const rows = await listFastCoherence(admin, { hours: digest ? 24 : RADAR_JUDGE_WINDOW_HOURS, limit: digest ? 200 : 300, maxCompute: RADAR_MAX_JUDGE_PER_RUN, excludeEmails: INTERNAL })
   const userIds = [...new Set(rows.map((r) => r.user_id))]
   const { data: profs } = userIds.length ? await admin.from('profiles').select('id, has_paid, plan, video_credits').in('id', userIds) : { data: [] as Array<Record<string, unknown>> }
   const paidBy = new Map<string, { hasPaid: boolean; credits: number | null }>()
@@ -65,6 +65,8 @@ export async function GET(req: NextRequest) {
   const results: Array<{ video: string; reason: string }> = []
   let sentCount = 0
   for (const f of films) {
+    // Alerta só para filme recente: o rejulgamento em massa (janela de 14 d) não pode acordar o fundador por filme velho.
+    if (Date.now() - Date.parse(f.created_at) > RADAR_ALERT_MAX_AGE_MS) { results.push({ video: f.video_id.slice(0, 8), reason: 'too_old_for_alert' }); continue }
     const d = decideRadarAlert({ score: f.score, hasPaid: f.hasPaid, internal: !!f.email && INTERNAL.includes(f.email.toLowerCase()), alreadyAlerted: alerted.has(f.video_id) })
     results.push({ video: f.video_id.slice(0, 8), reason: d.reason })
     if (!d.alert) continue
