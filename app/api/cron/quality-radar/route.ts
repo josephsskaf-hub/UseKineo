@@ -2,6 +2,7 @@
 // fundador quando um pagante recebe filme ruim. Com ?digest=1 (cron diário 08:05 BRT): resumo das 24 h.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { listFastCoherence } from '@/lib/admin/fastCoherence'
 import { notifyFounder } from '@/lib/supplier/notify'
 import {
@@ -10,6 +11,10 @@ import {
 } from '@/lib/qualityRadar'
 
 export const dynamic = 'force-dynamic'
+// KINEO-DATA-CACHE-2026-09-02 (regra da casa, esquecida aqui em 19/09 e paga caro: o cron de pedidos órfãos leu o marcador
+// render_job_taken do Data Cache da Vercel — vazio para sempre — e refez o MESMO filme 35 vezes em 6 h). Rota só-GET nasce
+// com revalidate=false; esta linha zera o cache ANTES do primeiro fetch. Não remover.
+export const fetchCache = 'force-no-store'
 export const runtime = 'nodejs'
 export const maxDuration = 120
 
@@ -27,7 +32,7 @@ export async function GET(req: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return NextResponse.json({ error: 'service unavailable' }, { status: 503 })
-  const admin = createAdminClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
+  const admin = createAdminClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: freshFetch } })
   const digest = req.nextUrl.searchParams.get('digest') === '1'
 
   // Julga o que ainda não tem nota (janela curta no tique de 15 min; 24 h no resumo).

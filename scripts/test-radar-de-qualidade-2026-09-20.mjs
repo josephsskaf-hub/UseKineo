@@ -43,6 +43,7 @@ checa('CRON_SECRET fail-closed', cron.includes("if (!isAuthorized(req)) return N
 checa('julga filmes novos com teto por rodada e sem contas da casa', cron.includes('maxCompute: RADAR_MAX_JUDGE_PER_RUN') && cron.includes('excludeEmails: INTERNAL'))
 checa('alerta 1× por filme (marcador quality_radar_alert por video_id)', cron.includes(".eq('name', RADAR_ALERT_EVENT).in('session_id', ids)") && cron.includes('session_id: f.video_id'))
 checa('pagante = has_paid OU plano pago não-trial', cron.includes("(plan !== 'free' && !plan.endsWith('_trial'))"))
+checa('radar: fetchCache force-no-store + freshFetch (leitura de cron nunca vem de cache)', cron.includes("export const fetchCache = 'force-no-store'") && cron.includes('global: { fetch: freshFetch }'))
 const vj = rd('vercel.json')
 checa('agendado: a cada 15 min + resumo 08:05 BRT (11:05 UTC)', /"path": "\/api\/cron\/quality-radar",\s*\n\s*"schedule": "4,19,34,49 \* \* \* \*"/.test(vj) /* minuto 18 é da carta de afiliados (test-afiliados-acordam) */ && /"path": "\/api\/cron\/quality-radar\?digest=1",\s*\n\s*"schedule": "5 11 \* \* \*"/.test(vj))
 

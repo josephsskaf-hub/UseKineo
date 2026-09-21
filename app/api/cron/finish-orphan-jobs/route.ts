@@ -6,6 +6,7 @@
 // (15 min) monta e manda "Your film is ready". Custo de fornecedor: o de UM filme pedido e pago.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { POST as fastPost } from '@/app/api/generate-video-fast/route'
 import {
   RENDER_JOB_OPENED_EVENT, RENDER_JOB_TAKEN_EVENT, RENDER_JOB_FINISHED_EVENT, RENDER_JOB_VERSION,
@@ -14,6 +15,10 @@ import {
 } from '@/lib/renderJobs'
 
 export const dynamic = 'force-dynamic'
+// KINEO-DATA-CACHE-2026-09-02 (regra da casa, esquecida aqui em 19/09 e paga caro: o cron de pedidos órfãos leu o marcador
+// render_job_taken do Data Cache da Vercel — vazio para sempre — e refez o MESMO filme 35 vezes em 6 h). Rota só-GET nasce
+// com revalidate=false; esta linha zera o cache ANTES do primeiro fetch. Não remover.
+export const fetchCache = 'force-no-store'
 export const runtime = 'nodejs'
 export const maxDuration = 300
 
@@ -48,7 +53,7 @@ export async function GET(req: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return NextResponse.json({ error: 'service unavailable' }, { status: 503 })
-  const admin = createAdminClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
+  const admin = createAdminClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: freshFetch } })
 
   const now = Date.now()
   const minIso = new Date(now - ORPHAN_MAX_AGE_MS).toISOString()
