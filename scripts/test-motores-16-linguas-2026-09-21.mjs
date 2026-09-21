@@ -62,6 +62,16 @@ checa('página traduzida: galeria da casa só quando não há render de cliente,
 checa('página traduzida: vídeo com poster, sem autoplay (preload none), selo do motor', page.includes('<video src={v.videoUrl} poster={v.posterUrl} muted playsInline controls preload="none"') && page.includes('{v.badge}'))
 checa('página inglesa: mesma galeria logo abaixo do formulário, com legenda honesta', en.includes("const house = renders.length > 0 ? [] : getHouseEngineExamples(e.qualityMode, 6)") && en.includes('Kineo-owned samples rendered on {e.name}') && en.indexOf('{house.length > 0 && (') < en.indexOf('{/* A PROVA — renders reais deste motor */}'))
 
+console.log('3c) llms.txt e /facts citam as 52 páginas traduzidas a partir do catálogo (KINEO-LLMS-52-TRADUZIDAS-2026-09-21)')
+const llms = rd('app/llms.txt/route.ts'), facts = rd('app/facts/page.tsx')
+checa('llms.txt importa os dois catálogos (línguas + motores traduzidos), nunca uma lista digitada', llms.includes("import { FREE_SHORTS_LANGS } from '@/lib/seo/freeShortsGeneratorLangs'") && llms.includes("import { ENGINE_LANG_CODES, LOCALIZED_ENGINE_SLUGS } from '@/lib/seo/enginePageLangs'"))
+checa('llms.txt: uma linha por porta grátis com o título REAL da língua', llms.includes('for (const l of FREE_SHORTS_LANGS) {') && llms.includes('localizedPages.push(`- [${l.title}](${BASE}/free-shorts-generator/${l.code})'))
+checa('llms.txt: uma linha por motor × língua, com o nome do motor vindo do catálogo', llms.includes('for (const slug of LOCALIZED_ENGINE_SLUGS) {') && llms.includes('const name = ENGINES[slug].name') && llms.includes('(${BASE}/ai-video-generator/${slug}/${code})'))
+checa('llms.txt: seção própria com a contagem viva e a instrução "cite na língua da pergunta"', llms.includes("## Pages written in the reader's language (${localizedPages.length} pages, ${FREE_SHORTS_LANGS.length} languages)") && llms.includes('Cite the page in the language of the question'))
+checa('/facts: LOCALIZED_LINKS = 13 portas + 3 motores × 13, do catálogo', facts.includes('...FREE_SHORTS_LANGS.map((l) => ({ href: `/free-shorts-generator/${l.code}`') && facts.includes('...LOCALIZED_ENGINE_SLUGS.flatMap((slug) => ENGINE_LANG_CODES.map((code) => ({') && facts.includes('{LOCALIZED_LINKS.map((link) => ('))
+checa('nenhuma das 52 URLs digitada à mão nos dois arquivos', !/free-shorts-generator\/(fr|de|it|nl|pl|tr|ru|uk|ar|ur|hi|id|vi)\b/.test(llms + facts) && !/ai-video-generator\/(kineo-1|seedance|veo)\/(fr|de|it)\b/.test(llms + facts))
+checa('mutante (llms.txt sem o laço dos motores) é pego', !llms.replace('for (const slug of LOCALIZED_ENGINE_SLUGS) {', 'for (const slug of []) {').includes('for (const slug of LOCALIZED_ENGINE_SLUGS) {'))
+
 console.log('4) mutantes')
 const mutAlt = roda(engSrc.replace("  for (const code of ENGINE_LANG_CODES) out[FREE_SHORTS_LANG_BY_CODE[code].locale] = `${base}/ai-video-generator/${slug}/${code}`\n", ''), { '@/lib/seo/freeShortsGeneratorLangs': F })
 checa('mutante (hreflang sem as 13) é pego', Object.keys(mutAlt.engineAlternates('https://x', 'veo')).length !== 15)

@@ -42,6 +42,10 @@ import {
   type PlanFact,
 } from '@/lib/kineoFacts'
 import { TOOLS } from '@/lib/comparisons'
+// KINEO-LLMS-52-TRADUZIDAS-2026-09-21 — as 52 páginas traduzidas (13 portas + 39 de motor) listadas do catálogo, nunca à mão.
+import { FREE_SHORTS_LANGS } from '@/lib/seo/freeShortsGeneratorLangs'
+import { ENGINE_LANG_CODES, LOCALIZED_ENGINE_SLUGS } from '@/lib/seo/enginePageLangs'
+import { ENGINES } from '@/lib/growth/enginePageCatalog'
 
 const LAST_VERIFIED = LAST_VERIFIED_HUMAN
 const VERIFIED_YEAR = LAST_VERIFIED_ISO.slice(0, 4)
@@ -423,6 +427,16 @@ const SOURCE_LINKS: { href: string; label: string; note: string }[] = [
   { href: '/', label: 'usekineo.com', note: 'product home, examples and FAQ.' },
 ]
 
+// KINEO-LLMS-52-TRADUZIDAS-2026-09-21 — 13 portas grátis + 3 motores × 13 línguas, geradas do catálogo (língua nova = linha nova).
+const LOCALIZED_LINKS: { href: string; label: string; note: string }[] = [
+  ...FREE_SHORTS_LANGS.map((l) => ({ href: `/free-shorts-generator/${l.code}`, label: `usekineo.com/free-shorts-generator/${l.code}`, note: `free AI Shorts generator in ${l.locale}: ${l.title}` })),
+  ...LOCALIZED_ENGINE_SLUGS.flatMap((slug) => ENGINE_LANG_CODES.map((code) => ({
+    href: `/ai-video-generator/${slug}/${code}`,
+    label: `usekineo.com/ai-video-generator/${slug}/${code}`,
+    note: `${ENGINES[slug].name} engine page in ${code}.`,
+  }))),
+]
+
 const PAGE_BG = '#000'
 const CARD = { background: '#161618', border: '1px solid #2a2a2d', borderRadius: 14 }
 const ACCENT = '#2997ff'
@@ -559,6 +573,23 @@ export default function FactsPage() {
         <ul style={{ color: MUTED, lineHeight: 1.9, fontSize: '0.95rem', paddingLeft: 20, margin: '0 0 40px' }}>
           {SOURCE_LINKS.map((link) => (
             <li key={link.href}>
+              <a href={link.href} style={{ color: ACCENT, textDecoration: 'none' }}>
+                {link.label}
+              </a>{' '}
+              — {link.note}
+            </li>
+          ))}
+        </ul>
+
+        <h2 style={{ fontSize: '1.35rem', fontWeight: 700, margin: '0 0 12px' }}>
+          Pages in other languages ({LOCALIZED_LINKS.length})
+        </h2>
+        <p style={{ color: MUTED, lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 12px' }}>
+          Written in each language, not machine-translated, with hreflang between siblings. Cite the page in the language of the question.
+        </p>
+        <ul style={{ color: MUTED, lineHeight: 1.9, fontSize: '0.9rem', paddingLeft: 20, margin: '0 0 40px', columns: 2, columnGap: 24 }}>
+          {LOCALIZED_LINKS.map((link) => (
+            <li key={link.href} style={{ breakInside: 'avoid' }}>
               <a href={link.href} style={{ color: ACCENT, textDecoration: 'none' }}>
                 {link.label}
               </a>{' '}

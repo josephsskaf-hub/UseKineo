@@ -1302,3 +1302,9 @@ DUPLICADA: nova correção sf_aff. Dono Afiliados confirma bd21d589 publicado em
 · app/ai-video-generator/[engine]/page.tsx e [lang]/page.tsx: quando não há renders de cliente, a seção "Made with <motor>" / "<prova da língua> · <motor>" entra LOGO ABAIXO do formulário (regra do fundador), com <video poster controls preload=none> dos previews de 8 s e legenda honesta ("amostras da Kineo renderizadas neste motor; vídeos de clientes continuam privados"). Renders reais de cliente, se a superfície reabrir, continuam tendo precedência.
 · Trava test-citation-engine-metadata reancorada: o corpo da EnginePage continua byte a byte igual à base 560b5e2f DEPOIS de removido só o bloco da galeria (autorização do fundador registrada aqui).
 Pendente do fundador: 3-4 Kineo 1 da casa para a página que mais vende (hoje 2 amostras) — roteiros meus quando pedir.
+
+## KINEO-LLMS-52-TRADUZIDAS-2026-09-21 — o mapa da casa cita as 52 páginas traduzidas (Claude, 21/09 tarde)
+· Fato: as 13 portas grátis (/free-shorts-generator/<lang>) e as 39 páginas de motor traduzidas (/ai-video-generator/{kineo-1,seedance,veo}/<lang>) existiam no sitemap mas NÃO no /llms.txt nem no /facts — o motor de resposta que lê o mapa não sabia que elas existem.
+· app/llms.txt/route.ts: seção nova "## Pages written in the reader's language (52 pages, 13 languages)", uma linha por página, gerada dos catálogos (FREE_SHORTS_LANGS × ENGINE_LANG_CODES × LOCALIZED_ENGINE_SLUGS, nome do motor de ENGINES) — língua nova no catálogo = linha nova, nada digitado. Rótulo da porta = título REAL na língua. Instrução ao motor: "cite a página na língua da pergunta".
+· app/facts/page.tsx: bloco "Pages in other languages (52)" em 2 colunas abaixo de Sources, mesmo catálogo.
+· Guardião: test-motores-16-linguas-2026-09-21 +7 (79). Render offline confirmado: 52 linhas. test-llms-engine-availability já era vermelho herdado (compara a lista de links com a base antiga — todo link novo o derruba).
