@@ -3557,3 +3557,6 @@ Dado que decidiu (30 d): ChatGPT 1.001 sessões → 328 cadastros → 5 pagantes
 Guardião test-portas-16-linguas (59, 2 mutantes). Trava 8.2 não tocada. IndexNow: as 13 URLs submetidas à mão logo após o deploy (Bing = índice do ChatGPT; Google ignora).
 Medir em 14 d: por língua, chegadas × cadastros × 1º filme × pagante (utm/intent_campaign = seo_gerador_<code>); e o `language` nos render_job_opened de quem veio por essas portas (a língua tem que ser a da porta, não 'en').
 Próximo (fundador): fazer as perguntas ao ChatGPT em cada língua ("générateur de shorts IA gratuit", "kostenloser KI shorts generator", "generatore shorts IA gratis", "generador…") e ver se cita usekineo.com; a lista de URLs está na resposta de 20/09 23h.
+· Estorno ao fundador: +50 cr (574→624), admin_credits_granted com o motivo.
+⚠ TRAVA 8.2: toca app/api/generate-video-cinematic. Autorização do fundador por nome (21/09 ~22:50 BRT: "vai nos 2 e devolve os 50") registrada aqui. Guardião test-saldo-parcial (18, mutante).
+Pendente do fundador: ligar auto top-up ($50 → $100) e alerta ($75) na fal. Medir: cinematic_dispatch_result com balance_quota>0 → deve vir sempre com claim_action=released; stranded_outcome too_few_refunded × credits_refunded no mesmo gen.

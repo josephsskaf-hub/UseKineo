@@ -5715,6 +5715,40 @@ async function manipularPost(req: NextRequest) {
     const usedModels = submittedScenes.models
     let validIds = falRequestIds.filter((id): id is string => id !== null)
 
+    // ═══ KINEO-SALDO-PARCIAL-2026-09-21 — recusa por SALDO da fal em QUALQUER cena aborta o filme ═══
+    //
+    // Caso do fundador (21/09, 00:28 e 01:07 UTC, Seedance 60 s): a fal aceitou 4/8 e depois 3/8 cenas e recusou o
+    // resto com "403 User is locked. Reason: Exhausted balance". O ramo de ZERO aceitas (abaixo) estorna e avisa;
+    // este caso PARCIAL seguia em frente: publicava o pedido, cobrava 25 cr, a tela esperava "8/8" para sempre,
+    // o resgate girava em too_few a cada 5 min, e o estorno só viria pela varredura de 100 min. Pior: as cenas
+    // "aceitas" rodaram com a conta travada e também morreram (403 no resultado) — filme impossível desde o início.
+    // Saldo esgotado é pane de SUPRIMENTO, não do prompt: a próxima cena também falha. Regra: qualquer 403 de saldo
+    // → estorno imediato + alarme ao fundador + mensagem calma. As cenas já submetidas ficam para a fal (custo
+    // pequeno) — a pessoa não paga por filme que não vai nascer.
+    if (ctxDespacho().balanceExhausted && validIds.length > 0) {
+      const released = await releaseBirthClaim('provider_balance_rejected_partial')
+      {
+        const c = ctxDespacho()
+        c.claimAction = released ? 'released' : 'release_failed'
+        c.refundConfirmed = released
+      }
+      console.error(`[cinematic] FAL BALANCE EXHAUSTED mid-dispatch: ${validIds.length}/${scenes.length} accepted — aborting user=${user.id.slice(0, 8)} gen=${generationId} refunded=${released}`)
+      await alertFalExhausted(`PARTIAL user=${user.id.slice(0, 8)} engine=${usedModel} accepted=${validIds.length}/${scenes.length} refunded=${released}`)
+      if (!released) {
+        return NextResponse.json(
+          { error: 'Our video provider ran out of capacity mid-way and your automatic refund is still being confirmed. Please retry this same generation in a few minutes.' },
+          { status: 503 },
+        )
+      }
+      return NextResponse.json(
+        {
+          queued: true,
+          error: "We're experiencing high demand right now. Nothing was kept from this attempt and your credits were refunded automatically — please try again in a few minutes.",
+        },
+        { status: 503 },
+      )
+    }
+
     // Do not silently downgrade Kling to Seedance after the signed cost/engine
     // claim is born. A rejected premium submit is retriable and never charged.
 

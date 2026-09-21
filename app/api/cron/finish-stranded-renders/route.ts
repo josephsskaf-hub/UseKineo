@@ -29,7 +29,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { fal } from '@fal-ai/client'
-import { CINEMATIC_CLAIM_EVENT, authorizeCinematicCompletedUrls, loadVerifiedCinematicClaim } from '@/lib/cinematic/claim'
+import { CINEMATIC_CLAIM_EVENT, authorizeCinematicCompletedUrls, loadVerifiedCinematicClaim, releaseCinematicClaim } from '@/lib/cinematic/claim'
 import { STRANDED_MIN_AGE_MS, CINEMATIC_CLIENT_POLL_EVENT, clientStillAlive } from '@/lib/strandedRescue' // KINEO-RESGATE-RAPIDO-2026-09-19
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { videoReadyFooter, type VideoReadyFooter } from '@/lib/lifecycle/videoReadyFooter'
@@ -742,6 +742,35 @@ export async function GET(req: NextRequest) {
     if (collected.dead > 0) console.log(`[stranded] gen=${gen8} dead_scenes=${collected.dead} age=${Math.round(claimAgeMin)}min`)
     if (collected.state === 'pending' && claimAgeMin >= PENDING_STALE_MINUTES) {
       results.push({ generation: gen8, outcome: `pending_stale:${collected.done}/${collected.total}`, error: `age=${Math.round(claimAgeMin)}min dead=${collected.dead}` })
+      continue
+    }
+    // ═══ KINEO-SALDO-PARCIAL-2026-09-21 — too_few é TERMINAL: estorna e encerra agora ═══
+    // Antes: 'too_few' (nenhuma cena pendente, sobreviventes abaixo do piso de 60%) só virava linha de log e o cron
+    // voltava a cada 5 min ao mesmo claim, sem estornar nem encerrar — o fundador viu `too_few:1/4` 5 rodadas
+    // seguidas (21/09 01:05→01:25 UTC) enquanto o estorno só viria pela varredura de 100 min e a tela seguia
+    // "gerando". Agora: mesmo estorno idempotente do clip-status (refundRenderCredits + releaseCinematicClaim com
+    // 'provider_too_few_refunded'); o claim vira 'released', o poller da aba recebe 404 e mostra "créditos devolvidos".
+    if (collected.state === 'too_few') {
+      const billingReference = typeof md.resolution_reference === 'string' ? md.resolution_reference : ''
+      const refunded = billingReference ? await refundRenderCredits(billingReference) : 0
+      let refundConfirmed = refunded > 0
+      if (!refundConfirmed && billingReference) {
+        const { data: debit } = await admin.from('credit_debits').select('refunded_at').eq('render_id', billingReference).maybeSingle()
+        refundConfirmed = typeof debit?.refunded_at === 'string' && debit.refunded_at.length > 0
+      }
+      if (!refundConfirmed) {
+        console.error(`[stranded] gen=${gen8} too_few ${collected.done}/${collected.total} but refund NOT confirmed (ref=${billingReference || 'none'}) — leaving for refund-sweep`)
+        results.push({ generation: gen8, outcome: `too_few_refund_unconfirmed:${collected.done}/${collected.total}` })
+        continue
+      }
+      const released = await releaseCinematicClaim({ db: admin, secret, userId, generationId: genId, reason: 'provider_too_few_refunded', reference: billingReference })
+      if (!released.ok) console.error(`[stranded] gen=${gen8} too_few refunded but claim release failed: ${released.error}`)
+      await admin.from('events').insert({
+        user_id: userId, name: 'credits_refunded', path: '/api/cron/finish-stranded-renders', session_id: genId,
+        metadata: { render_id: billingReference, amount: refunded, reason: 'provider_too_few_refunded', done: collected.done, total: collected.total, dead: collected.dead, released: released.ok },
+      })
+      console.log(`[stranded] gen=${gen8} too_few ${collected.done}/${collected.total} → refunded ${refunded} cr, claim released=${released.ok}`)
+      results.push({ generation: gen8, outcome: `too_few_refunded:${collected.done}/${collected.total}` })
       continue
     }
     if (collected.state !== 'ready') {      // KINEO-STRANDED-DIAG-2026-08-19 — antes esta saída era MUDA: o render
