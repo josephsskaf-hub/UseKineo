@@ -12,7 +12,7 @@ import { notFound } from 'next/navigation'
 import Footer from '@/components/Footer'
 import WallMedia from '@/components/WallMedia'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
-import { getEngineRenders } from '@/lib/engineWall'
+import { getEngineRenders, getHouseEngineExamples } from '@/lib/engineWall'
 import { TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
 import { STARTER_MONTH } from '@/lib/marketingPrice'
 import { ENGINES } from '@/lib/growth/enginePageCatalog'
@@ -60,6 +60,7 @@ export default async function EngineLangPage({ params }: { params: { engine: str
   if (!r) notFound()
   const { slug, L, P, e, facts, covers, starter } = r
   const renders = await getEngineRenders(e.qualityMode, 8)
+  const house = renders.length > 0 ? [] : getHouseEngineExamples(e.qualityMode, 6) // KINEO-GALERIA-DA-CASA-2026-09-21
   const campaign = `seo_engine_${slug}_${P.code}` // prefixo seo_ = atribuição orgânica
   const faq = L.faq({ ...facts, covers, starter })
   const faqJsonLd = {
@@ -95,6 +96,24 @@ export default async function EngineLangPage({ params }: { params: { engine: str
           examples={P.examples}
           copy={P.form}
         />
+
+        {house.length > 0 && (
+          <section style={{ marginTop: 40 }}>
+            <p style={{ margin: '0 0 4px', color: '#2997ff', fontSize: 12, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', textAlign: 'center' }}>{P.proof.eyebrow} · {e.name}</p>
+            <p style={{ ...p, textAlign: 'center', fontSize: '0.9rem' }}>{P.proof.line}</p>
+            <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
+              {house.map((v) => (
+                <div key={v.id} style={{ overflow: 'hidden', borderRadius: 14, ...CARD }}>
+                  <div style={{ position: 'relative', aspectRatio: '9 / 16', overflow: 'hidden', background: '#000' }}>
+                    <video src={v.videoUrl} poster={v.posterUrl} muted playsInline controls preload="none" style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <span style={{ position: 'absolute', left: 8, top: 8, zIndex: 10, borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.6)', padding: '2px 6px', fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', color: '#fff', pointerEvents: 'none' }}>{v.badge}</span>
+                  </div>
+                  <p style={{ margin: 0, padding: '9px 10px', fontSize: '11.5px', fontWeight: 700, lineHeight: 1.35, color: 'rgba(255,255,255,0.85)' }}>{v.title}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section style={{ marginTop: 44 }}>
           <p style={{ ...p, fontSize: '1.02rem' }}>{L.about[slug](facts)}</p>

@@ -55,9 +55,17 @@ checa('página inglesa dos 3 motores com languages: engineAlternates(...)', en.i
 const sm = rd('app/sitemap.ts')
 checa('sitemap: 3 × 13 em 0.8', sm.includes('for (const slug of LOCALIZED_ENGINE_SLUGS) for (const lang of ENGINE_LANG_CODES) {') && sm.includes('routes.push({ path: `/ai-video-generator/${slug}/${lang}`, priority: 0.8, freq: \'weekly\' })'))
 
+console.log('3b) galeria da casa (opção B do fundador, 21/09) colada ao formulário')
+const wall = rd('lib/engineWall.ts')
+checa('getHouseEngineExamples filtra por motor e junta FOUNDER_SHOWCASE + PUBLIC_ENGINE_EXAMPLES sem repetir id', wall.includes('export function getHouseEngineExamples(engine: string, limit = 6): WallVideo[] {') && wall.includes("if (v.engine !== engine || seen.has(v.id)) continue") && wall.includes("publicSource: 'founder_owned_engine_example'"))
+checa('página traduzida: galeria da casa só quando não há render de cliente, e ANTES do "o que é"', page.includes("const house = renders.length > 0 ? [] : getHouseEngineExamples(e.qualityMode, 6)") && page.indexOf('{house.length > 0 && (') < page.indexOf('{L.about[slug](facts)}') && page.indexOf('{house.length > 0 && (') > page.indexOf('<TopicGeneratorForm'))
+checa('página traduzida: vídeo com poster, sem autoplay (preload none), selo do motor', page.includes('<video src={v.videoUrl} poster={v.posterUrl} muted playsInline controls preload="none"') && page.includes('{v.badge}'))
+checa('página inglesa: mesma galeria logo abaixo do formulário, com legenda honesta', en.includes("const house = renders.length > 0 ? [] : getHouseEngineExamples(e.qualityMode, 6)") && en.includes('Kineo-owned samples rendered on {e.name}') && en.indexOf('{house.length > 0 && (') < en.indexOf('{/* A PROVA — renders reais deste motor */}'))
+
 console.log('4) mutantes')
 const mutAlt = roda(engSrc.replace("  for (const code of ENGINE_LANG_CODES) out[FREE_SHORTS_LANG_BY_CODE[code].locale] = `${base}/ai-video-generator/${slug}/${code}`\n", ''), { '@/lib/seo/freeShortsGeneratorLangs': F })
 checa('mutante (hreflang sem as 13) é pego', Object.keys(mutAlt.engineAlternates('https://x', 'veo')).length !== 15)
+checa('mutante (galeria sem filtro de motor) é pego', !wall.replace("if (v.engine !== engine || seen.has(v.id)) continue", 'if (seen.has(v.id)) continue').includes('v.engine !== engine || seen.has(v.id)'))
 checa('mutante (cobertura do trial cravada) é pego', !page.replace('const covers = TRIAL_CREDITS_SHOWN >= e.creditCost', 'const covers = true').includes('TRIAL_CREDITS_SHOWN >= e.creditCost'))
 
 console.log(`\n═══ ${ok} passaram, ${falhas.length} falharam ═══`)

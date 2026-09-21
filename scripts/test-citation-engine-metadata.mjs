@@ -61,7 +61,26 @@ const pageBody = source => {
   const tree = ast(source)
   return tree.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'EnginePage').getText(tree).replace(/\r\n/g, '\n')
 }
-assert.equal(pageBody(current), pageBody(previous))
+// KINEO-GALERIA-DA-CASA-2026-09-21 — fundador ("Vamos de B"): a página ganhou a vitrine da casa por motor, colada ao
+// formulário. A trava continua valendo para TODO o resto: tirado esse bloco (as 2 linhas do `house` e a seção
+// `{house.length > 0 && (...)}`), o corpo da página tem de ser byte a byte o da base 560b5e2f.
+const semGaleriaDaCasa = (body) => {
+  const lines = body.split('\n')
+  const out = []
+  let skippingSection = false
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i]
+    // as 2 linhas do `house` (comentário + const)
+    if (/^  \/\/ KINEO-GALERIA-DA-CASA-2026-09-21/.test(l)) { i += 1; continue }
+    // a seção JSX inteira, do comentário de abertura até o `)}` que fecha `{house.length > 0 && (` (+ linha em branco)
+    if (/^        \{\/\* KINEO-GALERIA-DA-CASA-2026-09-21/.test(l)) { skippingSection = true; continue }
+    if (skippingSection) { if (l === '        )}') { skippingSection = false; if (lines[i + 1] === '') i += 1 } continue }
+    out.push(l)
+  }
+  return out.join('\n')
+}
+assert.notEqual(pageBody(current), pageBody(previous), 'a galeria da casa existe na página atual')
+assert.equal(semGaleriaDaCasa(pageBody(current)), pageBody(previous))
 console.log('PASS: actual metadata, canonical URLs, pause policy and credit coverage for ' + ENGINE_SLUGS.length + ' engine pages; visible page unchanged')
 
 // Exercise the hub's actual metadata object, not a copied expected object.

@@ -28,7 +28,7 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
 import WallMedia from '@/components/WallMedia'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
-import { getEngineRenders } from '@/lib/engineWall'
+import { getEngineRenders, getHouseEngineExamples } from '@/lib/engineWall'
 import {
   getFreeTierOffer,
   swapFreeTierCopy as ft,
@@ -94,6 +94,8 @@ export default async function EnginePage({ params }: { params: { engine: string 
   // banco ⇒ lista vazia ⇒ a seção some (buildWall já é try/catch), a página
   // nunca quebra por causa dela.
   const renders = await getEngineRenders(e.qualityMode, 8)
+  // KINEO-GALERIA-DA-CASA-2026-09-21 — sem vídeo de cliente público, a prova é a vitrine da casa daquele motor.
+  const house = renders.length > 0 ? [] : getHouseEngineExamples(e.qualityMode, 6)
 
   const campaign = `seo_engine_${params.engine}`
   const studioUrl = buildEngineLandingDestination({ engine: e.param, campaign })
@@ -198,6 +200,32 @@ export default async function EnginePage({ params }: { params: { engine: string 
               note: 'Your idea stays attached through signup and starts with Kineo 1. Your remaining trial balance stays available for the next test.',
             }}
           />
+        )}
+
+        {/* KINEO-GALERIA-DA-CASA-2026-09-21 — opção B (fundador): filmes da CASA feitos neste motor, colados no
+            formulário ("vídeos perto de onde a pessoa está fazendo o dela"). Selo honesto: são amostras nossas,
+            renderizadas de verdade neste motor; vídeos de clientes continuam privados. */}
+        {house.length > 0 && (
+          <section style={{ marginTop: 40 }}>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 6px' }}>Made with {e.name}</h2>
+            <p style={{ textAlign: 'center', color: '#86868b', fontSize: '0.9rem', margin: '0 auto 18px', maxWidth: 620, lineHeight: 1.6 }}>
+              Kineo-owned samples rendered on {e.name} — the badge is the engine that actually made each one. Customer videos stay private.
+            </p>
+            <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
+              {house.map((v) => (
+                <div key={v.id} style={{ overflow: 'hidden', borderRadius: 14, ...CARD }}>
+                  <div style={{ position: 'relative', aspectRatio: '9 / 16', overflow: 'hidden', background: '#000' }}>
+                    <video src={v.videoUrl} poster={v.posterUrl} muted playsInline controls preload="none" style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <span style={{ position: 'absolute', left: 8, top: 8, zIndex: 10, borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.6)', padding: '2px 6px', fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', color: '#fff', pointerEvents: 'none' }}>{v.badge}</span>
+                  </div>
+                  <p style={{ margin: 0, padding: '9px 10px', fontSize: '11.5px', fontWeight: 700, lineHeight: 1.35, color: 'rgba(255,255,255,0.85)' }}>{v.title}</p>
+                </div>
+              ))}
+            </div>
+            <p style={{ textAlign: 'center', margin: '16px 0 0', fontSize: '0.85rem' }}>
+              <Link href="/examples" style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}>See the 20 best across every engine →</Link>
+            </p>
+          </section>
         )}
 
         {/* A PROVA — renders reais deste motor */}

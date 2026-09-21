@@ -315,6 +315,34 @@ export function getEngineWall(): Promise<WallVideo[]> {
 // EXCLUDED e dedupe de título valendo): zerar o cap dos outros motores faz o
 // laço `for (const engine of ENGINE_ORDER)` sair na primeira comparação
 // (`0 >= 0`), então nenhum motor alheio entra. Nenhum call site existente muda.
+// ═══ KINEO-GALERIA-DA-CASA-2026-09-21 — opção B do fundador: "sempre é bom colocar vídeos perto de onde a pessoa está
+// fazendo o vídeo dela". Com CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED=false, getEngineRenders devolve [] e as 42 páginas
+// de motor (3 inglesas + 39 traduzidas) ficavam sem UM vídeo. Esta função devolve os filmes da CASA daquele motor
+// (FOUNDER_SHOWCASE + PUBLIC_ENGINE_EXAMPLES, ambos com posse do fundador confirmada e já públicos em /examples e
+// na home): selo honesto do motor real, sem vídeo de cliente. Medido 21/09: Seedance 15, Kling 3 14, Omni 14,
+// Kling 2.5 8, Veo 6, Kineo 1 2 amostras.
+export function getHouseEngineExamples(engine: string, limit = 6): WallVideo[] {
+  const seen = new Set<string>()
+  const out: WallVideo[] = []
+  for (const v of founderShowcaseWall()) {
+    if (v.engine !== engine || seen.has(v.id)) continue
+    seen.add(v.id); out.push(v)
+    if (out.length >= limit) return out
+  }
+  for (const e of PUBLIC_ENGINE_EXAMPLES) {
+    if (e.engine !== engine || seen.has(e.id)) continue
+    const x = e as { id: string; title: string; engine: string; videoPath: string; posterPath?: string; arenaPreviewPath?: string; arenaPosterPath?: string }
+    seen.add(x.id)
+    out.push({
+      id: x.id, title: x.title, engine: x.engine, badge: ENGINE_BADGES[x.engine] ?? 'AI',
+      videoUrl: x.arenaPreviewPath ?? x.videoPath, previewUrl: x.arenaPreviewPath ?? undefined,
+      posterUrl: x.arenaPosterPath ?? x.posterPath, href: '/examples', publicSource: 'founder_owned_engine_example',
+    })
+    if (out.length >= limit) break
+  }
+  return out
+}
+
 export function getEngineRenders(engine: string, limit = 8): Promise<WallVideo[]> {
   // A generic Kineo-owned sample cannot honestly be attributed to a selected
   // provider. Keep engine-specific SEO galleries empty until rows carry an
