@@ -21,6 +21,7 @@
 // e gravada uma vez como evento fast_coherence — nunca no caminho da pessoa.
 
 import { isBareStarter, looksLikeOurOwnUi } from '@/lib/promptGuard'
+import { looksLikeModelRefusal } from '@/lib/modelRefusal' // v5
 
 export const FAST_SCENE_PLAN_EVENT = 'fast_scene_plan'
 export const FAST_COHERENCE_EVENT = 'fast_coherence'
@@ -36,7 +37,25 @@ export const FAST_COHERENCE_EVENT = 'fast_coherence'
 // história já a tinha pintado de azul e a cena 6 "transforming from blue to white" (o filme terminou azul). Agora ele
 // segue o estado de cada personagem/objeto recorrente linha a linha e cobra o estado em vigor em cada plano e o estado
 // final no último; plano de "transformação X→Y" também é problema (o still semeia o primeiro quadro).
-export const FAST_COHERENCE_VERSION = 'k1_coerencia_v4_estado'
+// v5 (21/09, KINEO1-JUIZ-HONESTO — diagnóstico de 18/09, fundador: "vai pro conserto 4, o juiz"): o juiz mentia nas duas
+// direções. (a) still/clipe gerado valia 100 "por construção" e o filme "Carros" (7 stills enevoados e repetidos) levou 100 →
+// agora origem gerada = sujeito provável, QUALIDADE não verificada, teto 90 no visual quando o filme é só gerado; (b) ideia
+// curta desenvolvida era punida ("informações adicionais não solicitadas": trem de pouso 50 com narração certa) → exemplo
+// explícito no prompt; (c) a RECUSA do GPT virou narração e levou 100 ("I'm sorry, but I can't assist") → caso conhecido,
+// nota 0 sem GPT (lib/modelRefusal); (d) narração CORTADA (13/13 filmes da cota de 15 s com ~50 s de fala) era invisível →
+// flag por aritmética a partir do claim (segundos do filme × palavras narradas), teto 40 e problema nomeado.
+export const FAST_COHERENCE_VERSION = 'k1_coerencia_v5_honesto'
+/** Régua da fala para a flag de corte (clássico ≈ 2,6 pal/s na média das personas). */
+export const NARRATION_CUT_WORDS_PER_SECOND = 2.6
+/** Palavras narradas cabem no filme? Corte = fala estimada > duração + 5 s quando o filme foi CLAMPADO (≤ 20 s), ou fala > 95 s (teto de 90). */
+export function narrationCutSeconds(input: { words: number; filmSeconds: number | null | undefined }): { cut: boolean; speechSeconds: number; filmSeconds: number | null } {
+  const filmSeconds = typeof input.filmSeconds === 'number' && Number.isFinite(input.filmSeconds) && input.filmSeconds > 0 ? input.filmSeconds : null
+  const speechSeconds = Math.round(input.words / NARRATION_CUT_WORDS_PER_SECOND)
+  if (filmSeconds === null) return { cut: false, speechSeconds, filmSeconds }
+  const clamped = filmSeconds <= 20
+  const cut = (clamped && speechSeconds > filmSeconds + 5) || speechSeconds > 95
+  return { cut, speechSeconds, filmSeconds }
+}
 export const TOPIC_TRUNCATION_HINT = 500
 
 export type FastSceneEvidence = {
@@ -75,7 +94,8 @@ export function verdictFor(score: number): CoherenceVerdict {
 
 const SOURCE_MEANING: Record<string, string> = {
   pixabay: 'stock clip found by the query',
-  aiStill: 'image generated from this scene text (matches the line by construction)',
+  aiStill: 'image generated from this scene text (the SUBJECT probably matches; image QUALITY is NOT verified — never award 100 on this alone)',
+  aiClip: 'short AI video clip generated from this scene text (subject probably matches; quality not verified)',
   aiHook: 'AI-generated opener about the topic',
   fallbackA: 'clip RECYCLED from an earlier scene (probably unrelated to this line)',
   stockLibrary: 'generic library clip (weak match)',
@@ -112,7 +132,7 @@ export function buildCoherenceMessages(input: { prompt: string; narration: strin
   const system =
     'You audit short films made by an AI video tool. The customer typed a request; the tool wrote a narration and picked footage per scene. ' +
     'Judge two things. (1) prompt_vs_narration: does the narration tell the story the customer asked for — same subject, same facts/angle, nothing invented that the customer did not ask for? ' +
-    'Two kinds of request exist. A SHORT IDEA (a title, a topic, a few sentences): the tool is SUPPOSED to develop it — adding accurate facts, scenes, a hook and a payoff on the same subject is correct and scores high (85-100); penalize only when the subject, the angle or the named people/places drift, or when claims contradict the request. A FULL SCRIPT (long, sentence by sentence): the narration must follow it closely; rewording, cuts and additions lower the score. ' +
+    'Two kinds of request exist. A SHORT IDEA (a title, a topic, a few sentences): the tool is SUPPOSED to develop it — adding accurate facts, scenes, a hook and a payoff on the same subject is correct and scores high (85-100) — EXAMPLE: request "Why are the landing-gear wheels of big planes tilted?" and a narration that explains exactly that with accurate facts about landing gear scores 90-100; "adds information the customer did not ask for" is NEVER a problem for a SHORT IDEA; penalize only when the subject, the angle or the named people/places drift, or when claims contradict the request. A FULL SCRIPT (long, sentence by sentence): the narration must follow it closely; rewording, cuts and additions lower the score. ' +
     (ai
       ? '(2) narration_vs_visuals: the film is AI-generated shot by shot; each scene lists the exact generation prompt. Read the narration in order and judge whether the sequence of prompts depicts its subject, the named people/places/objects and the actions being described, in the right order; a prompt about something the narration never mentions, or a key moment of the narration with no shot, lowers the score; a REJECTED scene is a hole in the film. '
         // KINEO-LIVRO-DE-ESTADO-2026-09-19 — ver o cabeçalho da versão v4.
@@ -122,6 +142,7 @@ export function buildCoherenceMessages(input: { prompt: string; narration: strin
         // KINEO1-SUJEITO-2026-09-18 — fundador: "85 é uma nota muito alta, devia ser no máximo 70" (filme do Boeing 737
         // com trânsito de cidade e uma moto; o juiz deu visual 100 porque "engine" aparecia nas tags).
         'SUBJECT RULE: the clip tags must name the SAME subject the line talks about. Tags that share only a generic word (engine, hands, interior, city, water, light, people) do NOT match: cars/traffic/motorbike for an airplane line, hand-washing/covid for lovers, a chess board for intertwined hands are MISMATCHES. One mismatched scene caps narration_vs_visuals at 60; two or more cap it at 40; name each mismatched scene in problems. ') +
+    'GENERATED FOOTAGE RULE: stills and clips "generated from this scene text" match the subject by construction, but nothing verifies how they look; a scene list made ONLY of generated footage can score at most 90 on narration_vs_visuals, never 100. ' +
     'Be strict and concrete. Reply ONLY with JSON: {"prompt_vs_narration": 0-100, "narration_vs_visuals": 0-100 or null when no scenes are given, ' +
     '"problems": [up to 4 short strings IN BRAZILIAN PORTUGUESE naming the specific mismatch, empty when none], "worst_scene": scene number or null, "summary": one sentence IN BRAZILIAN PORTUGUESE (max 160 chars), ' +
     '"request_pt": one line IN BRAZILIAN PORTUGUESE (max 140 chars) saying what the customer asked for, whatever language they wrote in}. ' +
@@ -136,7 +157,24 @@ export function buildCoherenceMessages(input: { prompt: string; narration: strin
 }
 
 /** Casos que não precisam de juiz: a resposta é conhecida. */
-export function knownCoherenceCase(prompt: string): { result: Omit<FastCoherenceResult, 'ms' | 'has_evidence'> } | null {
+export function knownCoherenceCase(prompt: string, narration?: string | null): { result: Omit<FastCoherenceResult, 'ms' | 'has_evidence'> } | null {
+  // v5 — a recusa do modelo virou narração (33c24d46: "I'm sorry, but I can't assist with that request" × 6 cenas, nota 100).
+  if (looksLikeModelRefusal(narration)) {
+    return {
+      result: {
+        version: FAST_COHERENCE_VERSION,
+        score: 0,
+        prompt_vs_narration: 0,
+        narration_vs_visuals: null,
+        verdict: 'off',
+        problems: ['A narração é a RECUSA do roteirista ("I\'m sorry, but I can\'t assist…"), não um roteiro — o filme narra um pedido de desculpas.'],
+        worst_scene: null,
+        summary: 'O roteirista recusou o pedido e a recusa virou a narração do filme.',
+        request_pt: (prompt ?? '').replace(/\s+/g, ' ').trim().slice(0, 140) || 'Pedido não legível.',
+        model: null,
+      },
+    }
+  }
   if (looksLikeOurOwnUi(prompt)) {
     return {
       result: {
@@ -177,12 +215,12 @@ export function knownCoherenceCase(prompt: string): { result: Omit<FastCoherence
  * Custo: uma chamada gpt-4o-mini (~US$ 0,001). Nunca roda no caminho da pessoa.
  */
 export async function scoreFastCoherence(
-  input: { prompt: string; narration: string; scenes?: FastSceneEvidence[] | null; promptMayBeTruncated?: boolean; engine?: string | null },
+  input: { prompt: string; narration: string; scenes?: FastSceneEvidence[] | null; promptMayBeTruncated?: boolean; engine?: string | null; filmSeconds?: number | null },
   opts?: { timeoutMs?: number; fetchImpl?: typeof fetch; model?: string },
 ): Promise<FastCoherenceResult | null> {
   const started = Date.now()
   const hasEvidence = Array.isArray(input.scenes) && input.scenes.length > 0
-  const known = knownCoherenceCase(input.prompt)
+  const known = knownCoherenceCase(input.prompt, input.narration) // v5: a recusa mora na narração
   if (known) return { ...known.result, has_evidence: hasEvidence, ms: Date.now() - started }
   if (!input.prompt.trim() || !input.narration.trim()) return null
   const key = process.env.OPENAI_API_KEY
@@ -213,7 +251,7 @@ export async function scoreFastCoherence(
     } catch {
       return null
     }
-    return normalizeCoherence(parsed, { hasEvidence, model, ms: Date.now() - started })
+    return normalizeCoherence(parsed, { hasEvidence, model, ms: Date.now() - started, scenes: input.scenes ?? null, narration: input.narration, filmSeconds: input.filmSeconds ?? null })
   } catch {
     return null
   } finally {
@@ -222,14 +260,26 @@ export async function scoreFastCoherence(
 }
 
 /** Do JSON do juiz para a nota final. A NOTA e o VEREDITO nascem AQUI (código), nunca da confiança no modelo. */
-export function normalizeCoherence(parsed: Record<string, unknown>, ctx: { hasEvidence: boolean; model: string | null; ms: number }): FastCoherenceResult {
+export function normalizeCoherence(parsed: Record<string, unknown>, ctx: { hasEvidence: boolean; model: string | null; ms: number; scenes?: FastSceneEvidence[] | null; narration?: string | null; filmSeconds?: number | null }): FastCoherenceResult {
   const pvn = clamp(parsed.prompt_vs_narration)
   const nvvRaw = parsed.narration_vs_visuals
-  const nvv = ctx.hasEvidence && nvvRaw != null && Number.isFinite(Number(nvvRaw)) ? clamp(nvvRaw) : null
-  const score = nvv == null ? pvn : Math.round(pvn * 0.5 + nvv * 0.5)
-  const problems = Array.isArray(parsed.problems)
+  let nvv = ctx.hasEvidence && nvvRaw != null && Number.isFinite(Number(nvvRaw)) ? clamp(nvvRaw) : null
+  let problems = Array.isArray(parsed.problems)
     ? (parsed.problems as unknown[]).filter((p): p is string => typeof p === 'string' && p.trim().length > 0).map((p) => p.trim().slice(0, 200)).slice(0, 4)
     : []
+  // v5 (a) — filme SÓ de visual gerado: o sujeito bate por construção, a qualidade ninguém viu → teto 90 (era 100 automático).
+  const GENERATED = new Set(['aiStill', 'aiClip', 'aiHook'])
+  const scenes = ctx.scenes ?? []
+  const soGerado = scenes.length > 0 && scenes.every((s) => s.sources.length > 0 && s.sources.every((src) => GENERATED.has(src)))
+  if (soGerado && nvv !== null && nvv > 90) nvv = 90
+  let score = nvv == null ? pvn : Math.round(pvn * 0.5 + nvv * 0.5)
+  // v5 (d) — narração cortada: fala maior que o filme (cota de 15 s) é o defeito que mais pessoas viram e o juiz não via.
+  const words = (ctx.narration ?? '').trim() ? (ctx.narration as string).trim().split(/\s+/).length : 0
+  const corte = narrationCutSeconds({ words, filmSeconds: ctx.filmSeconds })
+  if (corte.cut) {
+    score = Math.min(score, 40)
+    problems = [`narração cortada: ~${corte.speechSeconds} s de fala para um filme de ${corte.filmSeconds} s — a história termina no meio`, ...problems].slice(0, 4)
+  }
   const ws = parsed.worst_scene
   const worst = typeof ws === 'number' && Number.isFinite(ws) && ws > 0 ? Math.round(ws) : null
   return {

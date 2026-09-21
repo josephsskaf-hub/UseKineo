@@ -87,3 +87,20 @@ direções (100 para slideshow enevoado, 50 para filme de avião bom). Nada diss
 Guardião: `scripts/test-kineo1-diagnostico-consertos-2026-09-18.mjs` (11), falsificado por mutação (passos → 4;
 cota ignorada). Trava 8.2 (generate-script, lib/broll, generate-video-fast) autorizada pelo fundador nesta frase.
 Ainda **não** feitos: conserto 4 (juiz) e 5 (aviso de pedido impossível) — próximos.
+
+---
+
+## CONSERTO 4 — JUIZ HONESTO (21/09; fundador: "vai pro conserto 4, o juiz, tá validado, pode construir")
+
+Versão `k1_coerencia_v5_honesto` (o painel julga de novo todo filme sem nota da versão vigente).
+
+| Mentira do juiz | Prova (18/09) | Correção |
+|---|---|---|
+| Still/clipe gerado = 100 "por construção" | "Carros": 7 stills enevoados e repetidos, visual 100 | Origem gerada = "sujeito provável, qualidade NÃO verificada"; filme só de gerado → teto 90 no visual (código, não confiança no modelo) |
+| Punia ideia curta desenvolvida | "Trem de pouso": narração certa, texto 50 | Exemplo explícito no prompt: desenvolver = 90-100; "acrescenta informação" NUNCA é problema em ideia curta |
+| Recusa do GPT virou filme com 100 | 33c24d46: "I'm sorry, but I can't assist" × 6 cenas | `lib/modelRefusal.ts` (fonte única): juiz → caso conhecido, nota 0 sem GPT; **escritor → 422 `model_refused_topic` antes de qualquer gasto** |
+| Não via narração cortada | 13/13 filmes de 15 s com ~50 s de fala, notas 50-100 | `narrationCutSeconds` (aritmética: palavras ÷ 2,6 vs duração do CLAIM, já clampada) → teto 40 e problema em 1º lugar; o leitor do painel passa `claim_seconds` |
+
+Guardião `scripts/test-kineo1-juiz-honesto-2026-09-21.mjs` (15) executa as funções puras com os números reais
+(Carros → 95; Jovem → 40 "narração cortada: ~68 s para 15 s"; recusa → 0); falsificado por mutação (teto 90 e
+teto 40 desligados → vermelho). Reavaliação dos 57 filmes: abrir `/admin/coerencia` (julga até 12 por abertura).

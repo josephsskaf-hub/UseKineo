@@ -19,6 +19,7 @@ import { decideSexualContentRefusal, sexualContentRefusalMessage } from '@/lib/c
 import { detectPastedScript, pastedScriptMinWords, PASTED_SCRIPT_RULE } from '@/lib/pastedScript'
 // KINEO1-ROTEIRO-DA-COTA-2026-09-18 — a cota de duração do filme grátis, lida pelo predicado do cobrador.
 import { getEffectiveEntitlement, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/reverseTrial'
+import { looksLikeModelRefusal, MODEL_REFUSAL_MESSAGE } from '@/lib/modelRefusal' // KINEO1-JUIZ-HONESTO-2026-09-21
 
 // KINEO-OPENAI-HANG-2026-08-05 — this route was the ONLY OpenAI-backed route in
 // the whole app with no maxDuration, so it silently inherited Vercel's short
@@ -386,6 +387,11 @@ export async function POST(req: NextRequest) {
     let script = completion.choices[0]?.message?.content?.trim() ?? ''
     if (!script) {
       return await recusar(500, { error: 'Script generation failed' }, user.id, { empty_completion: true })
+    }
+    // KINEO1-JUIZ-HONESTO-2026-09-21 — a RECUSA do modelo não é roteiro: antes (33c24d46, 17/09) "I'm sorry, but I can't
+    // assist with that request" virou 6 cenas narradas, 5 créditos cobrados e nota 100 no juiz. Recusa aqui, antes do gasto.
+    if (looksLikeModelRefusal(script)) {
+      return await recusar(422, { error: MODEL_REFUSAL_MESSAGE, reason: 'model_refused_topic', retryable: false }, user.id, { reason: 'model_refused_topic', head: script.slice(0, 120) })
     }
 
     // #383b — QUALITY GUARDRAIL. The script must contain ALL 5 structural

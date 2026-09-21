@@ -37,6 +37,8 @@ export type FastCoherenceRow = {
   narration_source: 'compose_claim' | 'birth_claim' | 'recoverable' | 'scene_plan' | null
   url: string | null
   seconds: number | null
+  /** v5 — duração que o compose GRAVOU no claim (já clampada: 15 s na cota grátis); é o que a flag de corte usa */
+  claim_seconds: number | null
   credits: number | null
   generation_id: string | null
   render_id: string | null
@@ -271,6 +273,7 @@ export async function listFastCoherence(
       narration_source: narrationSource,
       url: v.video_url,
       seconds: v.duration,
+      claim_seconds: Number.isFinite(Number(claim?.metadata?.duration)) && Number(claim?.metadata?.duration) > 0 ? Number(claim?.metadata?.duration) : null,
       credits: v.credits_used,
       generation_id: gen,
       render_id: v.render_id,
@@ -290,7 +293,7 @@ export async function listFastCoherence(
   if (pending.length > 0) {
     await Promise.all(
       pending.map(async (r) => {
-        const result = await scoreFastCoherence({ prompt: r.topic, narration: r.narration ?? '', scenes: r.scenes, promptMayBeTruncated: r.topic_truncated, engine: r.engine })
+        const result = await scoreFastCoherence({ prompt: r.topic, narration: r.narration ?? '', scenes: r.scenes, promptMayBeTruncated: r.topic_truncated, engine: r.engine, filmSeconds: r.claim_seconds ?? r.seconds })
         if (!result) return
         r.coherence = result
         r.coherence_at = new Date().toISOString()

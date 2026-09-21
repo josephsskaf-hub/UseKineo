@@ -57,8 +57,8 @@ checa('caminho hollywood grava states no evento', /engine: family, \.\.\.alinhad
 
 console.log('5) juiz v4: regra de continuidade')
 const judgeSrc = rd('lib/fastCoherence.ts')
-const J = loadSrc(judgeSrc, 'fastCoherence.ts', { '@/lib/promptGuard': { isBareStarter: () => false, looksLikeOurOwnUi: () => false } })
-checa('versão v4', J.FAST_COHERENCE_VERSION === 'k1_coerencia_v4_estado')
+const J = loadSrc(judgeSrc, 'fastCoherence.ts', { '@/lib/promptGuard': { isBareStarter: () => false, looksLikeOurOwnUi: () => false }, '@/lib/modelRefusal': { looksLikeModelRefusal: () => false } /* v5 */ })
+checa('versão v5 (v4 + juiz honesto de 21/09; a CONTINUITY RULE segue)', J.FAST_COHERENCE_VERSION === 'k1_coerencia_v5_honesto')
 const jm = J.buildCoherenceMessages({ prompt: 'meias', narration: 'n', scenes: [{ scene: 1, voiceover: 'v', query: 'p', from: 0, sources: ['aiVideo'], tags: [] }], engine: 'cinematic_veo' })[0].content
 checa('motor de IA: CONTINUITY RULE presente (estado em vigor, estado final, "transforming", extras; 1 → ≤60, 2+ → ≤40)', jm.includes('CONTINUITY RULE') && jm.includes('state in force AT THAT LINE') && jm.includes('FINAL state the story ends in') && jm.includes('"transforming from X to Y"') && jm.includes('one caps narration_vs_visuals at 60, two or more at 40'))
 const jk = J.buildCoherenceMessages({ prompt: 'p', narration: 'n', scenes: [{ scene: 1, voiceover: 'v', query: 'q', from: 0, sources: ['pixabay'], tags: ['a'] }], engine: 'fast' })[0].content
