@@ -10,7 +10,8 @@ import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import WallMedia from '@/components/WallMedia'
 import CitationAnswerLinks from '@/components/CitationAnswerLinks'
-import { getEngineRenders } from '@/lib/engineWall'
+import { getEngineRenders, getHouseEngineExamples } from '@/lib/engineWall'
+import { enginePaused } from '@/lib/engineLaunch'
 import { ENGINES, ENGINE_SLUGS } from '@/lib/growth/enginePageCatalog'
 import { buildProductSurfaceSignupHref } from '@/lib/growth/productSurfaceIntent'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
@@ -42,8 +43,15 @@ export const metadata: Metadata = {
 
 export default async function EngineHubPage() {
   // Um render real por motor — a mesma prova das páginas filhas, em miniatura.
+  // KINEO-HUB-VITRINE-2026-09-21 (auditoria do Cowork): com a superfície pública de vídeo de cliente desligada,
+  // getEngineRenders devolve [] e os 7 cards viravam retângulos pretos numa landing de SEO. Sem render de cliente,
+  // a miniatura vem da vitrine da CASA daquele motor (mesma regra das páginas filhas, opção B do fundador).
   const perEngine = await Promise.all(
-    ENGINE_SLUGS.map(async (slug) => ({ slug, videos: await getEngineRenders(ENGINES[slug].qualityMode, 1) })),
+    ENGINE_SLUGS.map(async (slug) => {
+      const videos = await getEngineRenders(ENGINES[slug].qualityMode, 1)
+      const house = videos.length > 0 ? [] : getHouseEngineExamples(ENGINES[slug].qualityMode, 1)
+      return { slug, videos, house, pause: enginePaused(ENGINES[slug].param) }
+    }),
   )
 
   const breadcrumbJsonLd = {
@@ -79,7 +87,7 @@ export default async function EngineHubPage() {
 
         <section style={{ marginTop: 34, textAlign: 'center' }}>
           <div style={{ display: 'inline-block', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#2997ff', background: 'rgba(41,151,255,0.1)', borderRadius: 999, padding: '6px 14px' }}>
-            5 engines · one pipeline
+            {ENGINE_SLUGS.length} engines · one pipeline
           </div>
           <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 900, lineHeight: 1.15, margin: '16px 0 0' }}>
             Every AI video engine, finishing the whole Short for you
@@ -103,7 +111,7 @@ export default async function EngineHubPage() {
         </section>
 
         <section style={{ marginTop: 48, display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
-          {perEngine.map(({ slug, videos }) => {
+          {perEngine.map(({ slug, videos, house, pause }) => {
             const e = ENGINES[slug]
             return (
               <Link
@@ -112,12 +120,14 @@ export default async function EngineHubPage() {
                 style={{ display: 'flex', gap: 12, padding: 12, borderRadius: 16, ...CARD, textDecoration: 'none', color: 'inherit' }}
               >
                 <div style={{ position: 'relative', flex: '0 0 84px', aspectRatio: '9 / 16', borderRadius: 10, overflow: 'hidden', background: '#000' }}>
-                  {videos[0] ? <WallMedia src={videos[0].videoUrl} /> : null}
+                  {videos[0] ? <WallMedia src={videos[0].videoUrl} /> : house[0] ? (
+                    <video src={house[0].videoUrl} poster={house[0].posterUrl} muted playsInline preload="none" aria-label={`Kineo-owned sample made with ${e.name}`} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : null}
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontWeight: 900, fontSize: '1.02rem' }}>{e.name}</div>
-                  <div style={{ fontSize: '0.78rem', color: e.tier === 'Studio' ? '#86868b' : '#2997ff', fontWeight: 700, margin: '2px 0 6px' }}>
-                    {e.tier === 'Free' ? 'Free · watermarked' : `${e.creditCost} credits / 60s · ${e.tier}`}
+                  <div style={{ fontSize: '0.78rem', color: pause ? '#f0c264' : e.tier === 'Studio' ? '#86868b' : '#2997ff', fontWeight: 700, margin: '2px 0 6px' }}>
+                    {pause ? `Temporarily paused · ${pause.alternative.label} covers it` : e.tier === 'Free' ? 'Free · watermarked' : `${e.creditCost} credits / 60s · ${e.tier}`}
                   </div>
                   <p style={{ margin: 0, fontSize: '0.83rem', color: '#86868b', lineHeight: 1.5 }}>{e.bestFor}</p>
                 </div>

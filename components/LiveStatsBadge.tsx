@@ -135,7 +135,8 @@ export default function LiveStatsBadge({ style }: { style?: React.CSSProperties 
           animation: 'kineoLivePulse 2s ease-out infinite',
         }}
       />
-      {animatedLabel}
+      {/* KINEO-RTL-BIDI-2026-09-21: número + unidade em inglês é uma ilha LTR mesmo em página árabe/urdu */}
+      <span lang="en" className="kineo-ltr-island">{animatedLabel}</span>
       <style
         dangerouslySetInnerHTML={{
           __html:

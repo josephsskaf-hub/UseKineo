@@ -109,5 +109,17 @@ const hubBody = source => {
   const tree = ast(source)
   return tree.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'EngineHubPage').getText(tree).replace(/\r\n/g, '\n')
 }
-assert.equal(hubBody(hubCurrent), hubBody(hubPrevious))
+// KINEO-HUB-VITRINE-2026-09-21 — a página do hub mudou de propósito (auditoria: 7 cards pretos, selo "5 engines" cravado,
+// pausados sem estado). O corpo continua o da base 7bd95b83 EXCETO por esse bloco: o selo vem de ENGINE_SLUGS.length,
+// a miniatura cai na vitrine da casa quando não há render de cliente, e o card diz "Temporarily paused" quando enginePaused().
+{
+  const cur = hubBody(hubCurrent), prev = hubBody(hubPrevious)
+  assert.notEqual(cur, prev)
+  assert.ok(cur.includes('{ENGINE_SLUGS.length} engines · one pipeline') && !cur.includes('5 engines · one pipeline'), 'selo conta os motores do catálogo')
+  assert.ok(cur.includes('const house = videos.length > 0 ? [] : getHouseEngineExamples(ENGINES[slug].qualityMode, 1)'), 'vitrine da casa quando não há render de cliente')
+  assert.ok(cur.includes('pause: enginePaused(ENGINES[slug].param)') && cur.includes('Temporarily paused · ${pause.alternative.label} covers it'), 'card pausado diz que está pausado e quem cobre')
+  assert.ok(cur.includes('house[0] ? (') && cur.includes('poster={house[0].posterUrl} muted playsInline preload="none"'), 'miniatura da casa sem autoplay e com poster')
+  // tudo que a base tinha fora do bloco trocado continua lá (h1, CTA, nav, JSON-LD)
+  for (const linha of prev.split('\n').filter((l) => /Every AI video engine|CARD_ENTRY_COPY.ctaLong|href="\/examples"|BreadcrumbList|CitationAnswerLinks/.test(l))) assert.ok(cur.includes(linha), 'linha da base preservada: ' + linha.trim().slice(0, 60))
+}
 console.log('PASS: hub metadata no longer promises absent videos; canonical links and visible page unchanged')

@@ -691,3 +691,9 @@ html {
   padding-left: 2px;
 }
 /* end PUSH-92-HERO-GALLERY-PLAY-AFFORDANCE */
+
+/* KINEO-RTL-BIDI-2026-09-21 (auditoria do Cowork em árabe): texto autoral que ficou em inglês dentro de uma página
+   RTL virava ".Frase" e "credits 449". Tudo que a interface marca como lang="en" (UiText sem tradução, LiveStatsBadge)
+   vira uma ilha LTR isolada; o resto da página continua espelhado. */
+html[dir="rtl"] [lang="en"] { direction: ltr; unicode-bidi: isolate; }
+html[dir="rtl"] .kineo-ltr-island { direction: ltr; unicode-bidi: isolate; display: inline-block; }
