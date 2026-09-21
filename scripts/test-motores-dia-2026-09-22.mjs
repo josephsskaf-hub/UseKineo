@@ -46,9 +46,16 @@ checa('pending continua exigindo narração + tema + gen (sem inventar nota)', a
 const jz = rd('lib/fastCoherence.ts')
 checa('juiz: ausência de cenas não rebaixa a nota da narração nem vira problema', jz.includes('the ABSENCE of scenes is not a defect of the narration and must not lower prompt_vs_narration or appear in problems'))
 
+console.log('2b) still de um quadro só (C1: navio duplicado no Veo)')
+const an = rd('lib/hollywood/anchors.ts')
+checa('ONE_FRAME_RULE existe e proíbe split/colagem/sujeito repetido', /const ONE_FRAME_RULE = 'one single continuous composition filling the whole frame, no split screen, no collage, no mirrored or repeated subject/.test(an))
+checa('vai nos 3 stills: cena clássica, ambiente hollywood, retrato hollywood', (an.match(/\$\{ONE_FRAME_RULE\}/g) || []).length === 3)
+checa('still da cena clássica também proíbe letras (i2v herda o still)', an.includes("sharp focus, ${ONE_FRAME_RULE}, no text, no letters, no watermark, no logo"))
+
 console.log('3) mutantes')
 const semBloco = rf.replace(/      \/\/ ═══ KINEO-DURACAO-SEGUE-O-ROTEIRO-KINEO1-2026-09-22[\s\S]*?\n      }\n      if \(!portao\?\.blocked\)/, '      if (!portao?.blocked)')
 checa('mutante (bloco do Kineo 1 removido) é pego', !semBloco.includes('DURATION_FOLLOWED_SCRIPT_EVENT, userId') && semBloco.length < rf.length)
+checa('mutante (cláusula fora do still da cena) é pego', (an.replace("sharp focus, ${ONE_FRAME_RULE}, no text, no letters", 'sharp focus, no text, no letters').match(/\$\{ONE_FRAME_RULE\}/g) || []).length === 2)
 checa('mutante (nascimento fora da cadeia) é pego', !adm.replace("['birth_claim', birthResponse?.voiceover_script],\n", '').includes("['birth_claim'"))
 
 console.log(`\n═══ ${ok} passaram, ${falhas.length} falharam ═══`)

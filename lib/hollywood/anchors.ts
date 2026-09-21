@@ -31,6 +31,13 @@ import { aspectSpec } from '@/lib/aspect'
 // rosto artificial flagrado pelo fundador; dev custa centavos a mais e muda o
 // jogo em pele/textura. Motor de 150cr merece a melhor ancora.
 const ANCHOR_IMAGE_MODEL = 'fal-ai/flux/dev'
+// ═══ KINEO-STILL-UM-QUADRO-2026-09-22 — o still não pode virar colagem ═══
+// Fundador (ep. 2 da série, Veo 3.1, 22/09): a cena 1 (navio de pesquisa) saiu com o topo do quadro repetindo o navio
+// noutro zoom. Os 9 clipes eram 1080×1920 (medido no cabeçalho MP4) — o defeito estava DENTRO do clipe: a cena era
+// imagem→vídeo a partir de um still FLUX, e o FLUX, pedindo um sujeito largo (navio) num quadro 9:16, empilha duas
+// composições (colagem/espelho). O Veo animou a colagem com fidelidade. A cláusula abaixo vai em TODO still (cena
+// clássica, ambiente e retrato hollywood): um único quadro contínuo, sem split, sem colagem, sem sujeito repetido.
+const ONE_FRAME_RULE = 'one single continuous composition filling the whole frame, no split screen, no collage, no mirrored or repeated subject, no picture-in-picture, no inner borders'
 // ═══ KINEO-STILL-NITIDO-2026-09-18 — o modelo certo com o passo errado ═══════════════════════════════
 // Diagnóstico de 18/09 (docs/KINEO1-DIAGNOSTICO-2026-09-18.md, 10 filmes assistidos): TODO still do Kineo 1 e
 // toda âncora do Kling 3 saíam enevoados/moles. Causa: `flux/dev` rodando com `num_inference_steps: 4` — a
@@ -163,11 +170,11 @@ export async function generateHollywoodAnchors(args: {
       `Shot on 85mm portrait lens, natural window light, real human skin with visible pores and fine texture, ` +
       `subtle facial asymmetry and imperfections, filmic color, shallow depth of field, ` +
       `photorealistic like a still from an A24 film — NOT smooth CGI skin, no beauty filter, ` +
-      `sharp focus on the face, no text, no watermark, no logo`
+      `sharp focus on the face, ${ONE_FRAME_RULE}, no text, no watermark, no logo`
     const stillPrompt =
       `${environment}. Cinematography: ${style}. ` +
       `vertical 9:16, empty scene, no people, no human figures, photorealistic, ` +
-      `establishing shot, no text, no watermark, no logo`
+      `establishing shot, ${ONE_FRAME_RULE}, no text, no watermark, no logo`
 
     // flux/schnell has no shared-alias concurrency limit (that's the Kling
     // video queue) — the two images can run in parallel.
@@ -233,7 +240,7 @@ export async function generateCinematicSceneStill(args: {
     const prompt =
       `${scene}${style ? `. Consistent look across all scenes: ${style}` : ''}. ` +
       `${aspectSpec(args.aspect).promptFraming}, cinematic frame, ` +
-      `sharp focus, no text, no watermark, no logo`
+      `sharp focus, ${ONE_FRAME_RULE}, no text, no letters, no watermark, no logo`
     return await generateAnchorImage(prompt, args.seed, args.pollWindowMs ?? 12_000, args.aspect)
   } catch (err) {
     console.warn(
