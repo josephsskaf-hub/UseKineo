@@ -124,9 +124,32 @@ export function sanitizeAcquisitionReferrer(
   return parsed.toString().slice(0, 300)
 }
 
+// ═══ KINEO-ORIGEM-SOCIAL-2026-09-21 — TikTok, Instagram e YouTube viram UMA origem cada, com ou sem utm ═══
+// Plano da semana (T4): o link do perfil passa a ser /s/<rede> (utm), mas o TikTok web e o Instagram web não deixam
+// trocar o link (só no app), e o navegador embutido dessas redes chega com referrer l.instagram.com, vm.tiktok.com,
+// m.youtube.com, youtu.be, t.co… Antes cada host virava uma origem diferente (ou sumia); agora a rede é a origem.
+// Limite honesto: o navegador embutido do TikTok/Instagram muitas vezes NÃO manda referrer — esses continuam 'direct'
+// até o link do perfil ser trocado no app.
+const SOCIAL_HOSTS: Array<[RegExp, string]> = [
+  [/(^|.)tiktok.com$|^vm.tiktok.com$|^vt.tiktok.com$/, 'tiktok'],
+  [/(^|.)instagram.com$|^l.instagram.com$/, 'instagram'],
+  [/(^|.)youtube.com$|^youtu.be$/, 'youtube'],
+  [/(^|.)twitter.com$|^x.com$|^t.co$/, 'x'],
+  [/(^|.)facebook.com$|^fb.me$|^l.facebook.com$|^lm.facebook.com$/, 'facebook'],
+  [/(^|.)linkedin.com$|^lnkd.in$/, 'linkedin'],
+  [/(^|.)reddit.com$|^redd.it$|^out.reddit.com$/, 'reddit'],
+]
+export function socialSourceFromHost(hostname: string): string | null {
+  const host = cleanHostname(hostname)
+  for (const [re, name] of SOCIAL_HOSTS) if (re.test(host)) return name
+  return null
+}
+
 function sourceFromHost(hostname: string): string | null {
   const host = cleanHostname(hostname)
   if (!host || isNonAcquisitionHost(host)) return null
+  const social = socialSourceFromHost(host)
+  if (social) return social
 
   if (host === 'theresanaiforthat.com' || host.endsWith('.theresanaiforthat.com')) return 'taaft'
   if (host === 'google.com' || host.endsWith('.google.com') || host === 'com.google.android.googlequicksearchbox') return 'google'
@@ -158,7 +181,7 @@ export function sanitizeAcquisitionUtmSource(value: string | null | undefined): 
   if (token === 'google' || token === 'google.com' || token === 'com.google.android.googlequicksearchbox') return 'google'
   if (token === 'gmail' || token === 'com.google.android.gm') return 'gmail'
   if (token === 'chatgpt' || token === 'chatgpt.com') return 'chatgpt'
-  return token
+  return socialSourceFromHost(token) ?? token
 }
 
 export function acquisitionSource(input: {
