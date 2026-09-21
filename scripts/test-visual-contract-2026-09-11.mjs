@@ -246,7 +246,7 @@ const legacyFixtures = [
 async function planner(fixture, contract) {
   let request, calls = 0
   const api = execute(functionSource(runway, 'shortCaptionFromVoiceover') + '\n' + functionSource(runway, 'generateScenes'), {
-    ...aspect, ...policy, detectVisualCategory: () => undefined,
+    ...aspect, ...policy, ...style, detectVisualCategory: () => undefined, // KINEO-SEM-LETRAS-2026-09-21: contrato visual cita NO_TEXT_OBJECT_DIRECTION
     openai: { chat: { completions: { create: async (input, options) => {
       calls++; request = { input, options }
       return { choices: [{ message: { content: fixture.raw ?? JSON.stringify(fixture.response) } }] }
@@ -370,7 +370,7 @@ async function entryToPayload({ prompt, scriptMode, anchored = false, engine = '
   const classicVisualPolicy = { mode: 'documentary_faceless', style: anchor, character: null, aspect: '9:16' }
   const classicWriterOptions = { wordsPerScene: [24, 30], language: 'en' }
   const plannerApi = execute(functionSource(runway, 'shortCaptionFromVoiceover') + '\n' + functionSource(runway, 'generateScenes'), {
-    ...aspect, ...policy, detectVisualCategory: () => undefined, LANGUAGE_NAMES: { en: 'English' },
+    ...aspect, ...policy, ...style, detectVisualCategory: () => undefined, LANGUAGE_NAMES: { en: 'English' }, // KINEO-SEM-LETRAS-2026-09-21
     openai: { chat: { completions: { create: async (input) => {
       plannerCalls.push(input)
       const n = clipCount
