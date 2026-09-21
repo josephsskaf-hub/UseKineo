@@ -13,6 +13,8 @@ const { ENGINES, ENGINE_SLUGS } = load('lib/growth/enginePageCatalog.ts')
 const { enginePaused } = load('lib/engineLaunch.ts')
 const { TRIAL_CREDITS_SHOWN } = load('lib/freeTierOffer.ts')
 const { creditsPerReferenceVideo } = load('lib/marketingPrice.ts')
+// KINEO-MOTORES-16-LINGUAS-2026-09-21: generateMetadata passou a citar o hreflang das 13 línguas nos 3 motores traduzidos.
+const { LOCALIZED_ENGINE_SLUGS, engineAlternates } = load('lib/seo/enginePageLangs.ts')
 function ast(source) { return ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX) }
 function metadata(source) {
   const tree = ast(source)
@@ -22,7 +24,7 @@ function metadata(source) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText
   const exports = {}
-  vm.runInNewContext(js, { exports, ENGINES, enginePaused, TRIAL_CREDITS_SHOWN, URL, BASE: 'https://www.usekineo.com' }, { timeout: 2000 })
+  vm.runInNewContext(js, { exports, ENGINES, enginePaused, TRIAL_CREDITS_SHOWN, URL, BASE: 'https://www.usekineo.com', LOCALIZED_ENGINE_SLUGS, engineAlternates }, { timeout: 2000 })
   return exports.generateMetadata
 }
 const before = metadata(previous), after = metadata(current)

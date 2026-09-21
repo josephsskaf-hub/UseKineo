@@ -11,6 +11,7 @@ import { ENGINE_SLUGS } from '@/lib/growth/enginePageCatalog'
 import { INTENT_HUB_PATH, INTENT_SLUGS, intentPagePath } from '@/lib/seo/intentPages'
 import { CITATION_ANSWER_LINKS, CITATION_REVIEW_DATE } from '@/lib/growth/citationAnswers'
 import { FREE_SHORTS_LANGS } from '@/lib/seo/freeShortsGeneratorLangs'
+import { LOCALIZED_ENGINE_SLUGS, ENGINE_LANG_CODES } from '@/lib/seo/enginePageLangs'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -232,6 +233,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }
   for (const slug of ENGINE_SLUGS) {
     routes.push({ path: `/ai-video-generator/${slug}`, priority: 0.9, freq: 'weekly' })
+  }
+  // KINEO-MOTORES-16-LINGUAS-2026-09-21 — as 3 páginas de motor que vendem, em 13 línguas (T1 do plano da semana).
+  for (const slug of LOCALIZED_ENGINE_SLUGS) for (const lang of ENGINE_LANG_CODES) {
+    routes.push({ path: `/ai-video-generator/${slug}/${lang}`, priority: 0.8, freq: 'weekly' })
   }
   // PROJETO 1 — GOOGLE: hub 0.9 (cabeça do cluster), páginas 0.8 (mesmo perfil de /free-ai-shorts e /alternatives).
   routes.push({ path: INTENT_HUB_PATH, priority: 0.9, freq: 'weekly' })

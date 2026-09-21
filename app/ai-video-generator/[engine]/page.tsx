@@ -41,6 +41,7 @@ import {
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 import { ENGINES, ENGINE_SLUGS, type Engine } from '@/lib/growth/enginePageCatalog'
 import { enginePaused } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
+import { engineAlternates, LOCALIZED_ENGINE_SLUGS, type LocalizedEngineSlug } from '@/lib/seo/enginePageLangs' // KINEO-MOTORES-16-LINGUAS-2026-09-21
 const OFFER = getFreeTierOffer()
 
 export const dynamic = 'force-static'
@@ -75,7 +76,8 @@ export function generateMetadata({ params }: { params: { engine: string } }): Me
     metadataBase: new URL(BASE),
     title,
     description,
-    alternates: { canonical: url },
+    // KINEO-MOTORES-16-LINGUAS-2026-09-21 — hreflang das 14 versões nas 3 páginas que têm tradução.
+    alternates: { canonical: url, ...((LOCALIZED_ENGINE_SLUGS as readonly string[]).includes(params.engine) ? { languages: engineAlternates(BASE, params.engine as LocalizedEngineSlug) } : {}) },
     openGraph: { title, description, url, type: 'website' },
     twitter: { card: 'summary_large_image', title, description },
   }

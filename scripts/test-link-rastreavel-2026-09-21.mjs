@@ -13,7 +13,9 @@ const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.Co
 const m = { exports: {} }
 new Function('module', 'exports', 'require', js)(m, m.exports, (n) => (n === 'next/server' ? { NextResponse: { redirect: (u, s) => ({ u, s }) } } : {}))
 const R = m.exports
-checa('/s/tiktok → home com utm_source=tiktok, medium social, campanha da série', R.socialLinkDestination('tiktok', 'https://x') === 'https://x/?utm_source=tiktok&utm_medium=social&utm_campaign=serie_submersa')
+checa('/s/tiktok → home com utm_source=tiktok, medium social, campanha bio (link de perfil é permanente)', R.socialLinkDestination('tiktok', 'https://x') === 'https://x/?utm_source=tiktok&utm_medium=social&utm_campaign=bio')
+checa('?c=serie_submersa (link de descrição do vídeo) separa vídeo de bio', R.socialLinkDestination('youtube', 'https://x', 'serie_submersa') === 'https://x/?utm_source=youtube&utm_medium=social&utm_campaign=serie_submersa')
+checa('c inválido (espaço, maiúscula, script) cai em bio', R.socialLinkDestination('tiktok', 'https://x', 'Serie Submersa') .includes('utm_campaign=bio') && R.socialLinkDestination('tiktok', 'https://x', '<script>').includes('utm_campaign=bio'))
 checa('youtube e instagram idem', R.socialLinkDestination('YouTube', 'https://x').includes('utm_source=youtube') && R.socialLinkDestination('instagram', 'https://x').includes('utm_source=instagram'))
 checa('slug desconhecido cai na home limpa (nunca 404 num link de perfil)', R.socialLinkDestination('qualquer', 'https://x') === 'https://x/')
 checa('redirect 302 para o host canônico', src.includes("const origin = 'https://www.usekineo.com'") && src.includes('302'))
