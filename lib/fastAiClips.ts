@@ -25,6 +25,7 @@
 
 import { fal } from '@fal-ai/client'
 import { persistHookClip } from './fastAiHook'
+import type { StyleAnchor } from '@/lib/cinematic/sceneStyle' // KINEO1-FILME-DESENHADO-2026-09-21 (só tipo)
 
 export const FIRST_FILM_BUDGET_USD = 0.5
 export const SEEDANCE_720P_5S_USD = 0.13
@@ -79,7 +80,16 @@ export function pickWeakScenes(scenes: SceneRelevance[], count: number): number[
 }
 
 /** Prompt cinematográfico e sem rosto para a cena (mesma família do hook, com movimento de câmera explícito). */
-export function buildSceneClipPrompt(description: string, voiceover: string, query: string): string {
+export function buildSceneClipPrompt(description: string, voiceover: string, query: string, look?: StyleAnchor | null): string {
+  // KINEO1-FILME-DESENHADO-2026-09-21 — pedido de desenho: o clipe nasce no look pedido (não "photorealistic") e o
+  // personagem desenhado pode aparecer inteiro (a silhueta é regra de pessoa REAL; caso jonathanschwapp 21/09).
+  if (look && look.look !== 'photoreal' && look.look !== 'noir') {
+    const drawn = `${description || query || voiceover}`.replace(/\s+/g, ' ').trim().slice(0, 300)
+    return (
+      `${drawn}, ${look.lookPhrase}, gentle camera movement, soft lighting, high detail, ` +
+      `no text, no captions, no logos, no real person's likeness${look.suffix}`
+    )
+  }
   const base = `${description || query || voiceover}`
     .replace(/\b(man|woman|person|people|guy|girl|boy|kid|child|influencer|model)\b/gi, 'distant silhouetted figure')
     .replace(/\s+/g, ' ')

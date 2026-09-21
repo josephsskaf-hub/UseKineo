@@ -9,29 +9,14 @@
 // um pedido de desenho/animação/anime no texto (nas 16 línguas da casa), a tela mostra o aviso com o caminho
 // certo (Seedance 1.5 = cenas geradas) e um botão para trocar. Quem quiser insistir, insiste — informado.
 // Nada aqui bloqueia o render; nada aqui toca o servidor.
+//
+// KINEO1-FILME-DESENHADO-2026-09-21 — as palavras de desenho moram em UM lugar (lib/cinematic/sceneStyle,
+// DRAWN_LOOK_PATTERNS): o look do Seedance, este aviso e o modo desenhado do Kineo 1 leem a mesma lista. E o aviso
+// passou a dizer a verdade nova: com pedido de desenho, o Kineo 1 troca o banco por stills desenhados + clipes
+// gerados; o Seedance continua sendo o caminho para TODA cena animada.
+import { looksLikeDrawnRequest } from '@/lib/cinematic/sceneStyle'
 
-export const KINEO1_FIT_NOTICE_VERSION = 'kineo1_fit_notice_v1'
-
-// Palavras de desenho/animação. Fronteira de palavra onde o alfabeto permite; nos alfabetos sem espaço fixo
-// (hindi, árabe, urdu) a substring basta.
-const CARTOON_PATTERNS: ReadonlyArray<RegExp> = [
-  /\b(cartoon|cartoons|animated|animation|anime|manga|pixar|disney|dreamworks|claymation|stop[- ]motion|3d animated|2d animated|comic book style)\b/i,
-  /\b(desenho animado|desenhos animados|animação|animacao|estilo anime|estilo cartoon)\b/i, // pt
-  /\b(dibujos animados|dibujo animado|animación|animacion|caricatura|estilo anime)\b/i, // es
-  /\b(dessin animé|dessins animés|animation 3d|style anime)\b/i, // fr
-  /\b(zeichentrick|zeichentrickfilm|animationsfilm|animiert)\b/i, // de
-  /\b(cartone animato|cartoni animati|animazione)\b/i, // it
-  /\b(tekenfilm|animatie)\b/i, // nl
-  /\b(kreskówka|kreskówki|animacja)\b/i, // pl
-  /\b(çizgi film|animasyon)\b/i, // tr
-  /(мультфильм|мультик|анимация|аниме)/i, // ru
-  /(мультфільм|анімація)/i, // uk
-  /(كرتون|كارتون|رسوم متحركة|أنمي)/, // ar
-  /(کارٹون|اینیمیشن)/, // ur
-  /(कार्टून|एनिमेशन|एनीमेशन|एनिमेटेड)/, // hi
-  /\b(kartun|animasi)\b/i, // id
-  /(hoạt hình|phim hoạt hình)/i, // vi
-]
+export const KINEO1_FIT_NOTICE_VERSION = 'kineo1_fit_notice_v2'
 
 export interface Kineo1FitNoticeInput {
   /** Motor escolhido na tela (chave do Studio: 'fast' = Kineo 1). */
@@ -47,15 +32,15 @@ export function decideKineo1FitNotice(input: Kineo1FitNoticeInput): { show: bool
   if (input.engine !== 'fast') return { show: false, reason: 'not_kineo1', version }
   const text = (input.text ?? '').trim()
   if (text.length < 12) return { show: false, reason: 'too_short', version }
-  if (!CARTOON_PATTERNS.some((re) => re.test(text))) return { show: false, reason: 'no_cartoon_words', version }
+  if (!looksLikeDrawnRequest(text)) return { show: false, reason: 'no_cartoon_words', version }
   return { show: true, reason: 'cartoon', version }
 }
 
 export function kineo1FitNoticeCopy(seedanceCredits: string): { title: string; body: string; switchLabel: string; keepLabel: string } {
   return {
-    title: 'Kineo 1 uses real footage — it can’t draw cartoons',
-    body: `Kineo 1 builds your film from real stock clips and photos, so cartoon characters and animated scenes won’t look like what you describe. For an animated look, Seedance 1.5 generates every scene from your text (${seedanceCredits}).`,
+    title: 'Kineo 1 uses real footage — for a cartoon it switches to drawn stills',
+    body: `Kineo 1 builds films from real stock clips. For an animated look it swaps the stock for drawn stills plus a few AI-animated clips, so most scenes won’t move. To animate every scene from your text, use Seedance 1.5 (${seedanceCredits}).`,
     switchLabel: 'Switch to Seedance 1.5 →',
-    keepLabel: 'Keep Kineo 1 (real footage)',
+    keepLabel: 'Keep Kineo 1 (drawn stills)',
   }
 }

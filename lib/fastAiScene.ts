@@ -24,6 +24,7 @@
 // (padrão 3, teto 6) limita por filme.
 
 import { generateCinematicSceneStill } from '@/lib/hollywood/anchors'
+import type { StyleAnchor } from '@/lib/cinematic/sceneStyle' // KINEO1-FILME-DESENHADO-2026-09-21 (só tipo)
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 
 // ═══ KINEO-SEM-FOTO-2026-09-21 — fundador: "não existe foto no Kineo… desliga as fotos e estende os clipes" ═══
@@ -47,7 +48,7 @@ export const FAST_AI_LOW_RELEVANCE = 60
 /** Janela de espera por still; a rota tem 120 s e o laço de cenas já gasta com o Pixabay. */
 export const FAST_AI_STILL_WINDOW_MS = 12_000 // KINEO-STILL-NITIDO-2026-09-18: 28 passos do FLUX dev pedem ~3-5 s; era 10 s
 
-export type FastAiSceneReason = 'plan_ai' | 'low_relevance' | 'named_entity' | 'pixabay_miss' | 'character_story' | 'first_film'
+export type FastAiSceneReason = 'plan_ai' | 'low_relevance' | 'named_entity' | 'pixabay_miss' | 'character_story' | 'first_film' | 'drawn'
 
 const STOP = new Set(['The', 'A', 'An', 'In', 'On', 'At', 'And', 'But', 'Or', 'So', 'Then', 'When', 'While', 'After', 'Before', 'This', 'That', 'These', 'Those', 'It', 'He', 'She', 'They', 'We', 'You', 'I', 'His', 'Her', 'Their', 'Our', 'Its', 'Now', 'Today', 'Here', 'There', 'What', 'Why', 'How', 'Who', 'Where', 'Imagine', 'Every', 'Most', 'Some', 'One', 'Two', 'Three', 'First', 'Second', 'Last', 'Meanwhile', 'Suddenly', 'Finally', 'Yes', 'No', 'Not', 'Even', 'Just', 'Only', 'Still', 'Also', 'For', 'From', 'With', 'Without', 'Inside', 'Outside', 'Under', 'Over', 'Into', 'Through', 'Because', 'If', 'As', 'By', 'To', 'Of', 'Is', 'Are', 'Was', 'Were', 'Be', 'Been', 'Do', 'Does', 'Did', 'Can', 'Could', 'Will', 'Would', 'Should', 'May', 'Might', 'Must', 'Let', 'Picture', 'Think', 'Consider', 'Remember', 'Welcome', 'Ever', 'Once', 'Nobody', 'Everyone', 'Someone', 'People', 'Scientists', 'Experts', 'Doctors', 'Studies', 'Research'])
 
@@ -99,13 +100,21 @@ export function decideFastAiScene(input: {
  * fala como contexto. Regras fixas: sem texto legível (ressalva do Seedance 9,5), sem rosto de
  * pessoa real (nome famoso vira cena simbólica), fotorrealista, cinema.
  */
-export function buildFastStillPrompt(input: { description?: string | null; voiceover?: string | null; query?: string | null; entity?: string | null }): string {
+export function buildFastStillPrompt(input: { description?: string | null; voiceover?: string | null; query?: string | null; entity?: string | null; look?: StyleAnchor | null }): string {
   const desc = (input.description ?? '').replace(/\s+/g, ' ').trim()
   const query = (input.query ?? '').replace(/\s+/g, ' ').trim()
   const voice = (input.voiceover ?? '').replace(/\s+/g, ' ').trim().slice(0, 220)
   const base = desc || query || voice
   const ctx = desc && voice ? ` Context of the narration: "${voice}".` : ''
   const symbolic = input.entity ? ` If the scene involves a real person (${input.entity}), show the setting, objects and atmosphere that represent them — never a recognizable face or likeness.` : ''
+  // KINEO1-FILME-DESENHADO-2026-09-21 — pedido de desenho (lib/cinematic/sceneStyle) troca o still fotorreal pelo look
+  // pedido (3D animado / anime / ilustração). O "sem rosto de pessoa real" continua: personagem desenhado não é pessoa.
+  if (input.look && input.look.look !== 'photoreal' && input.look.look !== 'noir') {
+    return (
+      `${input.look.lookPhrase}, single frame of an animated film, sharp focus on the character, crisp detail, vibrant color: ${base}.${ctx} ` +
+      `No readable text, no captions, no logos, no watermark, no real person's likeness.`
+    )
+  }
   return (
     // KINEO-STILL-NITIDO-2026-09-18 — "shallow depth of field" + "muted" somavam névoa ao passo errado do FLUX;
     // agora: foco nítido no sujeito, contraste normal. O sujeito da fala precisa ser LEGÍVEL na tela do celular.
@@ -155,11 +164,12 @@ export function fastStillSeed(prompt: string): number {
  * Gera + persiste um still para a cena. FALHA ABERTA: null em qualquer erro.
  * Nunca lança; nunca devolve URL do fal.
  */
-export async function generateFastSceneStill(args: { prompt: string; seed: number; aspect?: string | null; windowMs?: number }): Promise<string | null> {
+export async function generateFastSceneStill(args: { prompt: string; seed: number; aspect?: string | null; windowMs?: number; look?: StyleAnchor | null }): Promise<string | null> {
   try {
     const falUrl = await generateCinematicSceneStill({
       scenePrompt: args.prompt,
-      styleSuffix: 'documentary realism, natural color grade, sharp 35mm film look', // KINEO-STILL-NITIDO — sem 'muted'
+      // KINEO1-FILME-DESENHADO-2026-09-21 — o sufixo fotorreal contradizia o prompt desenhado; o look traz a própria trava.
+      styleSuffix: args.look && args.look.look !== 'photoreal' ? args.look.suffix : 'documentary realism, natural color grade, sharp 35mm film look', // KINEO-STILL-NITIDO — sem 'muted'
       seed: args.seed,
       pollWindowMs: args.windowMs ?? FAST_AI_STILL_WINDOW_MS,
       aspect: args.aspect ?? '9:16',

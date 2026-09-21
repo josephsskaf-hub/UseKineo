@@ -16,6 +16,7 @@
 import { fal } from '@fal-ai/client'
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { vaultClipAsync } from './clipVault'
+import type { StyleAnchor } from '@/lib/cinematic/sceneStyle' // KINEO1-FILME-DESENHADO-2026-09-21 (só tipo)
 
 const SEEDANCE_MODEL = 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
 const POLL_INTERVAL_MS = 2500
@@ -33,7 +34,15 @@ export interface AiHookHandle {
 }
 
 /** Build a faceless, era-safe cinematic prompt from the hook scene's text. */
-export function buildHookPrompt(sceneDescription: string, topic: string): string {
+export function buildHookPrompt(sceneDescription: string, topic: string, look?: StyleAnchor | null): string {
+  // KINEO1-FILME-DESENHADO-2026-09-21 — pedido de desenho: o gancho abre no look pedido, não em "photorealistic".
+  if (look && look.look !== 'photoreal' && look.look !== 'noir') {
+    const drawn = `${sceneDescription || topic}`.replace(/\s+/g, ' ').trim().slice(0, 300)
+    return (
+      `${drawn}, ${look.lookPhrase}, establishing shot, gentle camera movement, soft lighting, high detail, ` +
+      `no text, no captions, no logos, no real person's likeness${look.suffix}`
+    )
+  }
   const base = `${sceneDescription || topic}`
     .replace(/\b(man|woman|person|people|guy|girl|influencer|model)\b/gi, 'distant silhouetted figure')
     .slice(0, 300)

@@ -47,9 +47,43 @@ const LOOKS: Record<StyleLook, { phrase: string; lock: string }> = {
   },
 }
 
+// ═══ KINEO1-FILME-DESENHADO-2026-09-21 — o pedido de desenho vale nas 16 línguas da casa ═══
+// Caso (21/09 16:56Z, jonathanschwapp, nota 65): "animation 3D colorée et joyeuse… maison en carton… facteur" em
+// FRANCÊS. O regex do look era só inglês e exigia a ordem "3D animation": "animation 3D" não casava, o filme nasceu
+// photoreal (negativo "cartoon, 3d render") e a narração saiu em espanhol. Lista ÚNICA para o look (aqui), o aviso do
+// Studio (lib/growth/kineo1FitNotice) e o modo desenhado do Kineo 1 (generate-video-fast). Fronteira de palavra onde
+// o alfabeto permite; nos alfabetos sem espaço fixo (hindi, árabe, urdu) a substring basta.
+export const DRAWN_LOOK_PATTERNS: ReadonlyArray<RegExp> = [
+  /\b(3d|3-d)\s*(animated|animation|cartoon)\b|\b(animation|animated)\s*(3d|3-d)\b|\bpixar\b|\bdisney[- ]style\b|\bcartoons?\b|\bnursery rhyme\b|\bkids'? (song|cartoon)\b|\banimated (short|film|story|video|cartoon)\b/i,
+  /\b(animated|animation|anime|manga|dreamworks|claymation|stop[- ]motion|2d animated|comic book style)\b/i,
+  // Línguas com acento: fronteira por \p{L} (com a flag u) — o \b do JS não enxerga "é", "ã", "ç", "ó", "ü".
+  /(?<![\p{L}])(desenho animado|desenhos animados|animação|animacao|estilo anime|estilo cartoon)(?![\p{L}])/iu, // pt
+  /(?<![\p{L}])(dibujos animados|dibujo animado|animación|animacion|caricatura|estilo anime)(?![\p{L}])/iu, // es
+  /(?<![\p{L}])(dessin animé|dessins animés|animation 3d|film d'animation|style anime)(?![\p{L}])/iu, // fr
+  /(?<![\p{L}])(zeichentrick|zeichentrickfilm|animationsfilm|animiert)(?![\p{L}])/iu, // de
+  /(?<![\p{L}])(cartone animato|cartoni animati|animazione)(?![\p{L}])/iu, // it
+  /(?<![\p{L}])(tekenfilm|animatie)(?![\p{L}])/iu, // nl
+  /(?<![\p{L}])(kreskówka|kreskówki|animacja)(?![\p{L}])/iu, // pl
+  /(?<![\p{L}])(çizgi film|animasyon)(?![\p{L}])/iu, // tr
+  /(мультфильм|мультик|анимация|аниме)/i, // ru
+  /(мультфільм|анімація)/i, // uk
+  /(كرتون|كارتون|رسوم متحركة|أنمي)/, // ar
+  /(کارٹون|اینیمیشن)/, // ur
+  /(कार्टून|एनिमेशन|एनीमेशन|एनिमेटेड)/, // hi
+  /(?<![\p{L}])(kartun|animasi)(?![\p{L}])/iu, // id
+  /(hoạt hình|phim hoạt hình)/i, // vi
+]
+/** O texto pede desenho/animação (qualquer língua da casa)? */
+export function looksLikeDrawnRequest(text: string | null | undefined): boolean {
+  const t = (text ?? '').trim()
+  if (!t) return false
+  return DRAWN_LOOK_PATTERNS.some((re) => re.test(t))
+}
+const DRAWN_LOOK_RE = new RegExp(DRAWN_LOOK_PATTERNS.map((re) => re.source).join('|'), 'iu') // 'u': \p{L} nas fronteiras — \b não enxerga 'é', 'ã', 'ç' ("dessin animé" não casava)
+
 const LOOK_RE: Array<[RegExp, StyleLook]> = [
-  [/\banime\b|\bmanga\b|\bstudio ghibli\b/i, 'anime'],
-  [/\b(3d|3-d)\s*(animated|animation|cartoon)\b|\bpixar\b|\bdisney[- ]style\b|\bcartoon\b|\bnursery rhyme\b|\bkids'? (song|cartoon)\b|\banimated (short|film|story|video)\b/i, 'animated3d'],
+  [/\banime\b|\bmanga\b|\bstudio ghibli\b|\bestilo anime\b|\bstyle anime\b|аниме|أنمي/i, 'anime'],
+  [DRAWN_LOOK_RE, 'animated3d'],
   [/\bstorybook\b|\bwatercolou?r\b|\billustrat(ed|ion)\b|\bpainterly\b|\bfairy ?tale\b|\bbedtime story\b/i, 'illustration'],
   [/\bfilm noir\b|\bblack and white\b|\bnoir\b/i, 'noir'],
 ]

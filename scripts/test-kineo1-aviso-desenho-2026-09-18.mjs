@@ -13,7 +13,12 @@ const checa = (nome, cond) => { if (cond) { ok += 1; return } falhas.push(nome);
 function roda(src) {
   const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText
   const m = { exports: {} }
-  new Function('module', 'exports', 'require', js)(m, m.exports, () => { throw new Error('sem imports') })
+  // KINEO1-FILME-DESENHADO-2026-09-21 — as palavras de desenho moram em lib/cinematic/sceneStyle (fonte única);
+  // o único import permitido é esse, carregado cru como o próprio módulo.
+  new Function('module', 'exports', 'require', js)(m, m.exports, (id) => {
+    if (id === '@/lib/cinematic/sceneStyle') return roda(rd('lib/cinematic/sceneStyle.ts'))
+    throw new Error('sem imports: ' + id)
+  })
   return m.exports
 }
 

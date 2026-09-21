@@ -13,6 +13,7 @@ import { isBareStarter, BARE_STARTER_MESSAGE, BARE_STARTER_REASON, looksLikeOurO
 import { FAST_SCENE_PLAN_EVENT, type FastSceneEvidence } from '@/lib/fastCoherence' // KINEO-1-COERENCIA-2026-09-16
 // KINEO-1-HIBRIDO-2026-09-16 — cena que o banco não cobre vira still FLUX (ver lib/fastAiScene.ts).
 import { decideFastAiScene, buildFastStillPrompt, generateFastSceneStill, fastStillSeed, fastAiScenesMax, characterStoryName, CHARACTER_STORY_MAX_STILLS, FIRST_FILM_MAX_STILLS, FIRST_FILM_STILLS_ENABLED } from '@/lib/fastAiScene'
+import { looksLikeDrawnRequest, deriveStyleAnchor } from '@/lib/cinematic/sceneStyle' // KINEO1-FILME-DESENHADO-2026-09-21
 import { normalizeAspect } from '@/lib/aspect'
 // KINEO-FAST-V4 — self-building clip library: search it before any external API.
 import { searchVault } from '@/lib/clipVault'
@@ -883,6 +884,16 @@ export async function POST(req: NextRequest) {
     // KINEO-PRIMEIRO-FILME-COM-STILLS-2026-09-16 — o mesmo sinal do hook (primeiro filme + conta gratuita) decide
     // abaixo se TODA cena ganha um still gerado. Falha fechada: sem sinal, nada muda.
     let primeiroFilmeDaConta = false
+    // ═══ KINEO1-FILME-DESENHADO-2026-09-21 — o Kineo 1 passa a DESENHAR quando pedem desenho ═══
+    // Caso jonathanschwapp (21/09 16:52Z, nota 65): pedido em francês de "animation 3D colorée… maison en carton…
+    // facteur" chegou pelo auto-start (activation_autostart_dispatched, motor 'fast', sem tela de escolha, sem aviso).
+    // Os 3 clipes Seedance eram a casa de papelão e o carteiro; o banco pôs criança na neve, lago, raio-X e vinil.
+    // Regra: pedido de desenho (lib/cinematic/sceneStyle, 16 línguas) → TODA cena nasce de still no look pedido,
+    // os clipes gerados entram sempre (até 3) no mesmo look, e o banco NÃO entra na cena que já tem visual gerado.
+    // Custo ≈ 7 stills × US$ 0,026 + 3 clipes × US$ 0,13 = US$ 0,57 — dentro do teto de 0,5 acima do filme comum.
+    const filmeDesenhado = looksLikeDrawnRequest(prompt)
+    const desenhoLook = filmeDesenhado ? deriveStyleAnchor(prompt) : null
+    if (filmeDesenhado) console.log(`[filme-desenhado] look=${desenhoLook?.look} — banco de stock fora das cenas geradas`)
     try {
       // Toggle + provider gate are also enforced inside submitAiHook; checking
       // here first avoids two DB round-trips when the feature is off.
@@ -915,12 +926,12 @@ export async function POST(req: NextRequest) {
         // o produto) + TODO Kineo 1 de conta paga (5 cr ≈ US$ 0,62-0,83 de receita contra ~US$ 0,39 de clipes).
         // Filmes seguintes de conta gratuita continuam só com banco — o trial não paga por IA em cada tentativa.
         const isPaidAccount = !isFreeTier
-        const clipesElegiveis = isFirstVideo || isPaidAccount
+        const clipesElegiveis = isFirstVideo || isPaidAccount || filmeDesenhado // KINEO1-FILME-DESENHADO: desenho sempre leva clipe gerado
 
         if (clipesElegiveis) {
           // Build the cinematic prompt from scene 1's description (the visual
           // hook), topic = the user's prompt. Faceless/era-safe by construction.
-          const hookPrompt = buildHookPrompt(scenes[0]?.description ?? prompt, prompt)
+          const hookPrompt = buildHookPrompt(scenes[0]?.description ?? prompt, prompt, desenhoLook)
           aiHookHandle = await submitAiHook(hookPrompt)
           console.log(
             `[ai-hook] eligible (${isFirstVideo ? 'first-video' : 'paid-account'}) — submit ${aiHookHandle ? 'OK request=' + aiHookHandle.requestId : 'skipped/failed'}`,
@@ -1043,7 +1054,7 @@ export async function POST(req: NextRequest) {
     // Sem fala nenhuma (roteiro cru), cai no prompt.
     const falas = scenes.map((sc) => sc.voiceover ?? '').join(' ').trim()
     const personagem = characterStoryName(falas || prompt)
-    if (personagem) aiStillsMax = Math.max(aiStillsMax, Math.min(scenes.length, CHARACTER_STORY_MAX_STILLS))
+    if (personagem || filmeDesenhado) aiStillsMax = Math.max(aiStillsMax, Math.min(scenes.length, CHARACTER_STORY_MAX_STILLS)) // KINEO1-FILME-DESENHADO: toda cena desenhada
     // KINEO-PRIMEIRO-FILME-COM-STILLS — desligado por padrão desde 17/09 (fundador: "era VÍDEO que era para ser
     // melhor"); só entra com KINEO_FIRST_FILM_STILLS=on.
     if (primeiroFilmeDaConta) aiStillsMax = Math.max(aiStillsMax, Math.min(scenes.length, FIRST_FILM_MAX_STILLS))
@@ -1056,12 +1067,12 @@ export async function POST(req: NextRequest) {
     const aiClipsSubmitted: Array<{ scene: number; requestId: string; prompt: string }> = []
     const primeiroFilmeComClipes = !!aiHookHandle && FIRST_FILM_AI_CLIPS_ENABLED
     if (primeiroFilmeComClipes) {
-      aiStillsMax = Math.min(aiStillsMax, FIRST_FILM_STILLS_WITH_CLIPS_MAX)
+      if (!filmeDesenhado) aiStillsMax = Math.min(aiStillsMax, FIRST_FILM_STILLS_WITH_CLIPS_MAX) // KINEO1-FILME-DESENHADO: desenho mantém still em toda cena
       const extras = Math.max(0, firstFilmAiClipCount(FIRST_FILM_STILLS_WITH_CLIPS_MAX) - 1)
       const notas = scenes.map((_, i) => ({ scene: i + 1, relevance: typeof alignedMeta[i]?.relevanceScore === 'number' ? (alignedMeta[i]?.relevanceScore as number) : null }))
       for (const sceneNo of pickWeakScenes(notas, extras)) {
         const sc = scenes[sceneNo - 1]
-        const clipPrompt = buildSceneClipPrompt(sc?.description ?? '', sc?.voiceover ?? '', alignedMeta[sceneNo - 1]?.pexelsQuery ?? sc?.stockSearchQuery ?? '')
+        const clipPrompt = buildSceneClipPrompt(sc?.description ?? '', sc?.voiceover ?? '', alignedMeta[sceneNo - 1]?.pexelsQuery ?? sc?.stockSearchQuery ?? '', desenhoLook)
         const requestId = await submitSceneClip(clipPrompt)
         if (requestId) aiClipsSubmitted.push({ scene: sceneNo, requestId, prompt: clipPrompt })
         console.log(`[ai-clips] scene=${sceneNo} relevance=${notas[sceneNo - 1]?.relevance ?? 'n/a'} submit ${requestId ? 'OK request=' + requestId : 'skipped/failed'}`)
@@ -1075,7 +1086,7 @@ export async function POST(req: NextRequest) {
     // entidade nomeada não usa o cofre (clipes de OUTROS vídeos da casa = "os que a gente já realizou"); (3) dedupe
     // por assinatura de tags, não só por URL (o mesmo gráfico com outra URL é o mesmo gráfico para quem vê).
     const cenasComClipeIA = new Set<number>([...(primeiroFilmeComClipes ? [1] : []), ...aiClipsSubmitted.map((c) => c.scene)])
-    const filmeDeEntidade = !!personagem
+    const filmeDeEntidade = !!personagem || filmeDesenhado // KINEO1-FILME-DESENHADO: desenho não puxa do cofre
     const usedTagSigs = new Set<string>()
     const usedQueriesNoFilme = new Set<string>() // KINEO1-BUSCA-DA-FALA-2026-09-18 — a mesma busca não abre duas cenas
     const tagSig = (tags: string | null | undefined) => (tags ?? '').toLowerCase().split(',').map((t) => t.trim()).filter(Boolean).sort().join('|')
@@ -1085,7 +1096,7 @@ export async function POST(req: NextRequest) {
     const tentarStill = async (sceneNo: number, reason: string, entity: string | null, description: string, voiceover: string, query: string): Promise<string | null> => {
       if (aiStillsUsed >= aiStillsMax) return null
       // KINEO-1-HIBRIDO-R2 — seed varia por tentativa (a 2ª imagem da mesma cena não repete a 1ª).
-      const still = await generateFastSceneStill({ prompt: buildFastStillPrompt({ description, voiceover, query, entity }), seed: aiStillSeed + sceneNo * 7 + aiStillsUsed * 101, aspect })
+      const still = await generateFastSceneStill({ prompt: buildFastStillPrompt({ description, voiceover, query, entity, look: desenhoLook }), seed: aiStillSeed + sceneNo * 7 + aiStillsUsed * 101, aspect, look: desenhoLook }) // KINEO1-FILME-DESENHADO
       aiStillLog.push({ scene: sceneNo, reason, entity, ok: !!still })
       if (still) aiStillsUsed++
       console.log(`[clip] scene=${sceneNo} KINEO-1-HIBRIDO reason=${reason}${entity ? ` entity="${entity}"` : ''} still=${still ? 'OK' : 'miss (fail-open)'}`)
@@ -1267,7 +1278,9 @@ export async function POST(req: NextRequest) {
         // KINEO-1-HIBRIDO — antes de gastar a busca: se o plano, a relevância ou a fala dizem que o banco
         // não tem esta cena (nome próprio, lugar específico), o still entra no lugar do stock. Falha aberta.
         {
-          const dec = personagem
+          const dec = filmeDesenhado
+            ? { ai: true, reason: 'drawn' as const, entity: null }
+            : personagem
             ? { ai: true, reason: 'character_story' as const, entity: null }
             : primeiroFilmeDaConta
               ? { ai: true, reason: 'first_film' as const, entity: null }
@@ -1278,6 +1291,10 @@ export async function POST(req: NextRequest) {
               clipUrls.push(still)
               clipSources.push('aiStill')
               cenasComClipeIA.add(sceneNo) // KINEO1-MUNDO-DA-ENTIDADE — a cena já tem visual gerado
+              // KINEO1-FILME-DESENHADO-2026-09-21 — pedido de DESENHO: o banco de filmagem real nunca é a cena certa
+              // (criança na neve, lago, raio-X e vinil no filme do carteiro). Com o still desenhado na mão, a cena
+              // fecha aqui; se o still falhar (fail-open, abaixo), o stock ainda entra — cena vazia é pior.
+              if (filmeDesenhado) continue
               // KINEO-HISTORIA-COM-PERSONAGENS (16/09) excluía o stock da cena com `continue` — e o filme inteiro
               // virava slideshow (bekeecomedytv, 17/09 02:48Z: 7 fotos, 0 clipe). KINEO1-VIDEO-NAO-FOTO-2026-09-17:
               // o still do personagem ABRE a cena e o vídeo de stock segue nos cortes seguintes, como no R2 abaixo.
@@ -1431,7 +1448,7 @@ export async function POST(req: NextRequest) {
 
     // KINEO-1-HIBRIDO — rastro de medição: quantas cenas viraram still e por quê (denominador = cenas).
     if (aiStillLog.length > 0) {
-      void writeServerEvent({ name: 'fast_ai_still', userId: user.id, path: '/api/generate-video-fast', metadata: { scenes: scenes.length, tried: aiStillLog.length, used: aiStillsUsed, max: aiStillsMax, character: personagem, first_film: primeiroFilmeDaConta, log: aiStillLog.slice(0, 12) } })
+      void writeServerEvent({ name: 'fast_ai_still', userId: user.id, path: '/api/generate-video-fast', metadata: { scenes: scenes.length, tried: aiStillLog.length, used: aiStillsUsed, max: aiStillsMax, character: personagem, first_film: primeiroFilmeDaConta, drawn_look: desenhoLook?.look ?? null, log: aiStillLog.slice(0, 12) } })
     }
 
     // KINEO-AI-HOOK — await + PERSIST the opener, then prepend it as clip 0.

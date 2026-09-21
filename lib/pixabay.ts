@@ -203,6 +203,11 @@ const GENERIC_NOUNS = new Set([
   // (tag "bustling"). Adjetivos comuns de cena nunca são o sujeito.
   'bustling', 'busy', 'quiet', 'empty', 'crowded', 'historical', 'historic', 'vibrant', 'peaceful', 'dramatic', 'epic',
   'cinematic', 'mysterious', 'interactive', 'traditional', 'famous', 'iconic', 'beautiful', 'stunning', 'amazing',
+  // KINEO1-FILME-DESENHADO-2026-09-21 — filme do carteiro (jonathanschwapp, nota 65): "joyful animation" trouxe criança
+  // na neve, "friendly mailman" um lago, "vintage animation desk" um vinil. Humor, estilo e "animation" nunca são o
+  // sujeito da busca — e pedido de desenho já nem passa pelo banco (modo desenhado do Kineo 1).
+  'joyful', 'friendly', 'cute', 'vintage', 'golden', 'magic', 'pastel', 'animation', 'animated', 'cartoon', 'happy',
+  'funny', 'lovely', 'sweet', 'cheerful', 'playful', 'colourful', 'whimsical',
 ])
 // KINEO1-SUJEITO-CABECA-2026-09-18 — modificadores que vêm ANTES do sujeito na busca ("freshwater snail",
 // "giant squid"): pulados na hora de achar a cabeça da frase, mas continuam contando como tokens específicos.

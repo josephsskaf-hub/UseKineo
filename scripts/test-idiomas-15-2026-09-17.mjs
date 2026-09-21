@@ -22,7 +22,7 @@ checa('LANGUAGE_NAMES cobre os 16 e mantém os nomes antigos de pt/es', Object.k
 checa('fonte das legendas: devanágari para hindi, árabe para árabe/urdu, Montserrat para o resto', T.captionFontFor('hi') === 'Noto Sans Devanagari' && T.captionFontFor('ar') === 'Noto Sans Arabic' && T.captionFontFor('ur') === 'Noto Sans Arabic' && T.captionFontFor('ru') === 'Montserrat' && T.captionFontFor('xx') === 'Montserrat' && T.captionFontFor(undefined) === 'Montserrat')
 checa('voz própria (hollywood) só en/pt/es', T.isHollywoodLanguage('en') && T.isHollywoodLanguage('pt') && T.isHollywoodLanguage('es') && !T.isHollywoodLanguage('hi') && !T.isHollywoodLanguage(''))
 checa('resolveNarrationLanguage honra a escolha explícita de qualquer língua do catálogo', T.resolveNarrationLanguage('hi', 'The story of a lighthouse keeper who saw the sea rise in 1958 and told no one').language === 'hi' && T.resolveNarrationLanguage('de', 'x').switched === false)
-checa('o detector continua só en/pt/es e cede ao texto quando o pedido é "en"', T.resolveNarrationLanguage('en', 'La historia del tsunami de Lituya Bay en 1958: la ola más alta jamás registrada, con 524 metros, fue causada por un deslizamiento en Alaska').language === 'es')
+checa('o detector (en/pt/es + fr/de/it desde 21/09) cede ao texto quando o pedido é "en"', T.resolveNarrationLanguage('en', 'La historia del tsunami de Lituya Bay en 1958: la ola más alta jamás registrada, con 524 metros, fue causada por un deslizamiento en Alaska').language === 'es')
 checa('código fora do catálogo cai em inglês (e não em erro)', T.resolveNarrationLanguage('ja', 'short').language === 'en')
 
 console.log('2) os roteiristas e as rotas leem o catálogo, não três literais')

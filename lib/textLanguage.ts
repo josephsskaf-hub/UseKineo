@@ -63,28 +63,42 @@ export type HollywoodLanguage = (typeof HOLLYWOOD_LANGUAGES)[number]
 export function isHollywoodLanguage(raw: unknown): raw is HollywoodLanguage {
   return (HOLLYWOOD_LANGUAGES as readonly string[]).includes(String(raw))
 }
-/** As três línguas que o DETECTOR abaixo reconhece pelo vocabulário funcional. */
-export type DetectableLanguage = 'en' | 'pt' | 'es'
+/**
+ * As línguas que o DETECTOR abaixo reconhece pelo vocabulário funcional.
+ * KINEO1-FILME-DESENHADO-2026-09-21 — eram três (en · pt · es). Caso jonathanschwapp (21/09 16:52Z): pedido em
+ * FRANCÊS ("un facteur… avec son sac… tombe sur un coussin"), o detector só conhecia es/pt/en, as marcas "un/son/en/
+ * la" caíram no espanhol (es 0,77) e o filme foi narrado em ESPANHOL para um francês. Entram fr · de · it (FR 14, DE 20,
+ * IT 6 cadastros/30 d). As marcas exclusivas são calculadas por SUBTRAÇÃO das listas das outras línguas — "le", "un",
+ * "son", "la" existem em duas línguas e nunca mais decidem sozinhas.
+ */
+export type DetectableLanguage = 'en' | 'pt' | 'es' | 'fr' | 'de' | 'it'
+export const DETECTABLE_LANGUAGES: readonly DetectableLanguage[] = ['en', 'pt', 'es', 'fr', 'de', 'it']
 
 const STOPWORDS: Record<DetectableLanguage, string[]> = {
+  fr: ['le', 'les', 'des', 'du', 'et', 'est', 'une', 'dans', 'avec', 'pour', 'sur', 'qui', 'il', 'elle', 'ils', 'elles', 'sont', 'pas', 'ne', 'ce', 'cette', 'ces', 'ses', 'leur', 'leurs', 'tout', 'tous', 'très', 'aussi', 'puis', 'être', 'avoir', 'fait', 'faire', 'comme', 'plus', 'nous', 'vous', 'je', 'tu', 'mon', 'ma', 'mes', 'au', 'aux', 'où', 'quand', 'pendant', 'devant', 'chez', 'même', 'alors', 'sans', 'sous', 'entre', 'depuis', 'après', 'avant', 'toujours', 'jamais', 'ici', 'déjà', 'encore', 'bien', 'peu', 'beaucoup', 'trop', 'ainsi', 'donc', 'car', 'petit', 'petite', 'un', 'la', 'de', 'que', 'en', 'son', 'se', 'à', 'y', 'on', 'mais', 'ou', 'si'],
+  de: ['der', 'die', 'das', 'und', 'ist', 'nicht', 'ein', 'eine', 'einen', 'einem', 'einer', 'eines', 'mit', 'auf', 'für', 'von', 'zu', 'den', 'dem', 'des', 'sich', 'auch', 'wird', 'wurde', 'aber', 'oder', 'wenn', 'dass', 'als', 'noch', 'nur', 'sie', 'er', 'wir', 'ich', 'im', 'am', 'aus', 'bei', 'nach', 'über', 'durch', 'sehr', 'mehr', 'wie', 'hat', 'haben', 'sind', 'war', 'kann', 'ihr', 'ihre', 'sein', 'seine', 'diese', 'dieser', 'dieses', 'jetzt', 'dann', 'immer', 'nie', 'hier', 'schon', 'doch', 'vor', 'um', 'bis', 'es', 'in', 'an', 'so', 'also', 'man'],
+  it: ['il', 'di', 'che', 'è', 'non', 'per', 'del', 'della', 'dei', 'delle', 'degli', 'nel', 'nella', 'gli', 'si', 'ma', 'più', 'anche', 'sono', 'ha', 'hanno', 'questo', 'questa', 'dove', 'molto', 'tutto', 'tutti', 'poi', 'suo', 'loro', 'noi', 'io', 'lui', 'lei', 'ci', 'cui', 'essere', 'fatto', 'stato', 'alla', 'dal', 'dalla', 'sul', 'sulla', 'perché', 'così', 'già', 'ora', 'sempre', 'mai', 'quando', 'come', 'una', 'un', 'la', 'le', 'lo', 'e', 'con', 'era', 'al', 'sua', 'se', 'a', 'in'],
   en: ['the', 'and', 'of', 'to', 'in', 'is', 'that', 'was', 'for', 'with', 'his', 'her', 'they', 'this', 'from', 'but', 'not', 'are', 'were', 'have', 'he', 'she', 'it', 'you', 'we', 'on', 'at', 'by', 'an', 'be'],
   pt: ['o', 'e', 'de', 'que', 'não', 'nao', 'uma', 'um', 'para', 'com', 'ele', 'ela', 'era', 'foi', 'mas', 'como', 'seu', 'sua', 'você', 'voce', 'quando', 'onde', 'muito', 'mais', 'isso', 'está', 'esta', 'até', 'ate', 'porque', 'também', 'tambem', 'os', 'as', 'do', 'da', 'dos', 'das', 'no', 'na', 'nos', 'nas', 'ao', 'pelo', 'pela', 'eu', 'nós', 'eles', 'elas', 'meu', 'minha', 'já', 'ja', 'só', 'so', 'então', 'entao', 'depois', 'ainda', 'sempre', 'nunca', 'tinha', 'havia', 'começou', 'ficou', 'em', 'são', 'sao'],
-  es: ['y', 'el', 'en', 'de', 'que', 'no', 'una', 'un', 'para', 'con', 'él', 'ella', 'era', 'fue', 'pero', 'como', 'su', 'sus', 'usted', 'cuando', 'donde', 'muy', 'más', 'mas', 'eso', 'está', 'esta', 'hasta', 'porque', 'también', 'tambien', 'los', 'las', 'del', 'al', 'yo', 'nosotros', 'ellos', 'ellas', 'mi', 'ya', 'sólo', 'solo', 'entonces', 'después', 'despues', 'todavía', 'siempre', 'nunca', 'se', 'lo', 'le', 'es', 'son', 'ser', 'hay', 'tiene', 'tenía', 'busca', 'felicidad', 'hombre', 'mujer', 'vida'],
+  es: ['y', 'el', 'en', 'de', 'que', 'no', 'una', 'un', 'para', 'con', 'él', 'ella', 'era', 'fue', 'pero', 'como', 'su', 'sus', 'usted', 'cuando', 'donde', 'muy', 'más', 'mas', 'eso', 'está', 'esta', 'hasta', 'porque', 'también', 'tambien', 'los', 'las', 'del', 'al', 'yo', 'nosotros', 'ellos', 'ellas', 'mi', 'ya', 'sólo', 'solo', 'entonces', 'después', 'despues', 'todavía', 'siempre', 'nunca', 'se', 'lo', 'le', 'es', 'son', 'ser', 'hay', 'tiene', 'tenía', 'busca', 'felicidad', 'hombre', 'mujer', 'vida', 'historia', 'jamás', 'jamas', 'aquí', 'allí', 'ahora', 'ese', 'esa', 'esos', 'esas', 'estos', 'estas', 'nuestro', 'nuestra', 'algo', 'alguien', 'nadie', 'mientras', 'aunque', 'sin'],
 }
 
-const SETS: Record<DetectableLanguage, Set<string>> = {
-  en: new Set(STOPWORDS.en),
-  pt: new Set(STOPWORDS.pt),
-  es: new Set(STOPWORDS.es),
-}
+const SETS = Object.fromEntries(DETECTABLE_LANGUAGES.map((l) => [l, new Set(STOPWORDS[l])])) as Record<DetectableLanguage, Set<string>>
 
-/** Marcas exclusivas (o resto das listas se cruza: "de", "que", "no"...). */
-const EXCLUSIVE: Record<DetectableLanguage, Set<string>> = {
-  en: new Set(['the', 'and', 'of', 'is', 'that', 'was', 'with', 'they', 'this', 'from', 'are', 'were', 'have', 'you', 'we', 'be']),
+/** Marcas exclusivas (o resto das listas se cruza: "de", "que", "no"...). Candidatas curadas por língua… */
+const EXCLUSIVE_CURATED: Record<DetectableLanguage, string[]> = {
+  en: ['the', 'and', 'of', 'is', 'that', 'was', 'with', 'they', 'this', 'from', 'are', 'were', 'have', 'you', 'we', 'be'],
   // 14/09: 'em', 'um', 'com', 'mais', 'já', 'na', 'seu', 'sua', 'são', 'foi' são só do PT (es: en/un/con/más/ya/su/son/fue) — sem elas, um prompt claramente PT (9 marcas × 3) ficava em null e o filme saía em inglês.
-  pt: new Set(['o', 'e', 'não', 'nao', 'uma', 'você', 'voce', 'também', 'tambem', 'os', 'do', 'da', 'dos', 'das', 'ao', 'pelo', 'pela', 'nós', 'eu', 'meu', 'minha', 'então', 'entao', 'depois', 'está', 'isso', 'muito', 'ele', 'ela', 'até', 'ate', 'quando', 'onde', 'tinha', 'havia', 'começou', 'ficou', 'em', 'um', 'com', 'mais', 'já', 'ja', 'na', 'nas', 'seu', 'sua', 'são', 'sao', 'foi']),
-  es: new Set(['y', 'el', 'en', 'lo', 'le', 'una', 'usted', 'también', 'tambien', 'los', 'las', 'del', 'al', 'yo', 'nosotros', 'ellos', 'mi', 'entonces', 'después', 'despues', 'todavía', 'es', 'son', 'hay', 'tiene', 'pero', 'muy', 'eso', 'hasta', 'cuando', 'donde', 'sólo', 'con', 'un', 'más', 'fue', 'ya', 'sus', 'tenía']),
+  pt: ['o', 'e', 'não', 'nao', 'uma', 'você', 'voce', 'também', 'tambem', 'os', 'do', 'da', 'dos', 'das', 'ao', 'pelo', 'pela', 'nós', 'eu', 'meu', 'minha', 'então', 'entao', 'depois', 'está', 'isso', 'muito', 'ele', 'ela', 'até', 'ate', 'quando', 'onde', 'tinha', 'havia', 'começou', 'ficou', 'em', 'um', 'com', 'mais', 'já', 'ja', 'na', 'nas', 'seu', 'sua', 'são', 'sao', 'foi'],
+  es: ['y', 'el', 'en', 'lo', 'le', 'una', 'usted', 'también', 'tambien', 'los', 'las', 'del', 'al', 'yo', 'nosotros', 'ellos', 'mi', 'entonces', 'después', 'despues', 'todavía', 'es', 'son', 'hay', 'tiene', 'pero', 'muy', 'eso', 'hasta', 'cuando', 'donde', 'sólo', 'con', 'un', 'más', 'fue', 'ya', 'sus', 'tenía', 'busca', 'felicidad', 'hombre', 'mujer', 'vida', 'historia', 'jamás', 'jamas', 'aquí', 'allí', 'ahora', 'ese', 'esa', 'esos', 'esas', 'estos', 'estas', 'nuestro', 'nuestra', 'algo', 'alguien', 'nadie', 'mientras', 'aunque', 'sin'], // 21/09: "del" virou marca partilhada com o italiano; o espanhol ganha marcas que só ele tem
+  fr: ['le', 'les', 'des', 'du', 'et', 'est', 'une', 'dans', 'avec', 'pour', 'sur', 'qui', 'il', 'elle', 'ils', 'elles', 'sont', 'pas', 'ne', 'ce', 'cette', 'ces', 'ses', 'leur', 'leurs', 'tout', 'tous', 'très', 'aussi', 'puis', 'être', 'avoir', 'fait', 'faire', 'comme', 'plus', 'nous', 'vous', 'je', 'tu', 'mon', 'mes', 'aux', 'où', 'quand', 'pendant', 'devant', 'chez', 'même', 'alors', 'sans', 'sous', 'entre', 'depuis', 'après', 'avant', 'toujours', 'jamais', 'ici', 'déjà', 'encore', 'bien', 'peu', 'beaucoup', 'trop', 'ainsi', 'donc', 'car', 'petit', 'petite'],
+  de: ['der', 'die', 'das', 'und', 'ist', 'nicht', 'ein', 'eine', 'einen', 'einem', 'einer', 'eines', 'mit', 'auf', 'für', 'von', 'zu', 'den', 'dem', 'des', 'sich', 'auch', 'wird', 'wurde', 'aber', 'oder', 'wenn', 'dass', 'als', 'noch', 'nur', 'sie', 'er', 'wir', 'ich', 'im', 'am', 'aus', 'bei', 'nach', 'über', 'durch', 'sehr', 'mehr', 'wie', 'hat', 'haben', 'sind', 'war', 'kann', 'ihr', 'ihre', 'sein', 'seine', 'diese', 'dieser', 'dieses', 'jetzt', 'dann', 'immer', 'nie', 'hier', 'schon', 'doch', 'vor', 'um', 'bis', 'man'],
+  it: ['il', 'di', 'che', 'è', 'non', 'per', 'del', 'della', 'dei', 'delle', 'degli', 'nel', 'nella', 'gli', 'si', 'ma', 'più', 'anche', 'sono', 'ha', 'hanno', 'questo', 'questa', 'dove', 'molto', 'tutto', 'tutti', 'poi', 'suo', 'loro', 'noi', 'io', 'lui', 'lei', 'ci', 'cui', 'essere', 'fatto', 'stato', 'alla', 'dal', 'dalla', 'sul', 'sulla', 'perché', 'così', 'già', 'ora', 'mai', 'come'],
 }
+/** …e a marca só é exclusiva de verdade se NENHUMA outra língua a lista ("le" fr/es, "un" es/fr/it, "um" pt/de). */
+const EXCLUSIVE = Object.fromEntries(
+  DETECTABLE_LANGUAGES.map((lang) => [lang, new Set(EXCLUSIVE_CURATED[lang].filter((w) => DETECTABLE_LANGUAGES.every((other) => other === lang || !SETS[other].has(w))))]),
+) as Record<DetectableLanguage, Set<string>>
 
 const tokens = (text: string): string[] =>
   String(text ?? '')
@@ -108,18 +122,18 @@ export interface LanguageGuess {
  */
 export function detectNarrationLanguage(text: string): LanguageGuess {
   const ws = tokens(text)
-  const counts: Record<DetectableLanguage, number> = { en: 0, pt: 0, es: 0 }
-  const exclusive: Record<DetectableLanguage, number> = { en: 0, pt: 0, es: 0 }
+  const counts = Object.fromEntries(DETECTABLE_LANGUAGES.map((l) => [l, 0])) as Record<DetectableLanguage, number>
+  const exclusive = Object.fromEntries(DETECTABLE_LANGUAGES.map((l) => [l, 0])) as Record<DetectableLanguage, number>
   for (const w of ws) {
-    for (const lang of ['en', 'pt', 'es'] as const) {
+    for (const lang of DETECTABLE_LANGUAGES) {
       if (SETS[lang].has(w)) counts[lang]++
       if (EXCLUSIVE[lang].has(w)) exclusive[lang]++
     }
   }
-  const ranked = (['en', 'pt', 'es'] as const).slice().sort((a, b) => counts[b] - counts[a])
+  const ranked = DETECTABLE_LANGUAGES.slice().sort((a, b) => counts[b] - counts[a])
   const top = ranked[0]
   const second = ranked[1]
-  const total = counts.en + counts.pt + counts.es
+  const total = DETECTABLE_LANGUAGES.reduce((acc, l) => acc + counts[l], 0)
   const confidence = total > 0 ? Math.round((counts[top] / total) * 100) / 100 : 0
   if (ws.length < 8 || counts[top] === 0) return { language: null, confidence, counts, words: ws.length }
   const clearWinner = counts[top] >= counts[second] * 1.5 && exclusive[top] >= 3
