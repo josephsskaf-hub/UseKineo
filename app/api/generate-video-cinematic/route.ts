@@ -155,7 +155,7 @@ import {
   historicoDeParedes,
   mensagemComEspiral,
 } from '@/lib/refusalSpiral'
-import { closingSceneVariation, deriveStoryCharacter, deriveExplicitCharacter, deriveStyleAnchor, textSafetySuffix } from '@/lib/cinematic/sceneStyle'
+import { closingSceneVariation, deriveStoryCharacter, deriveExplicitCharacter, deriveStyleAnchor, textSafetySuffix, NO_TEXT_OBJECT_DIRECTION } from '@/lib/cinematic/sceneStyle'
 import { buildClassicVisualPrompt, classicVisualNegativePrompt, isStylizedLook, scrubInventedSetting, visualDescriptionDirection, type VisualPromptPolicy } from '@/lib/cinematic/visualPromptPolicy'
 import { classifyEngineFit } from '@/lib/engineFit'
 import { FalQueueSubmitError, submitFalQueueOnce } from '@/lib/falQueue'
@@ -843,6 +843,7 @@ RULES:
 - Keep the approved look, mood, color palette and lighting across all scenes, as if from the same film.
 - Frame the subject in the upper two-thirds; keep the lower third uncluttered for on-screen captions.
 - ${aspectSpec(visualPolicy.aspect).promptFraming}. No on-screen text, captions, or logos.
+- ${NO_TEXT_OBJECT_DIRECTION}
 - Output ONLY valid JSON: { "descriptions": ["...", "..."] } with EXACTLY ${scenes.length} items, in scene order.`
 
   const userMsg = `Topic: ${topic.slice(0, 200)}\n\nScenes:\n${list}`

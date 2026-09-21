@@ -80,9 +80,25 @@ export function applyStyleAnchor(prompt: string, anchor: StyleAnchor): string {
   return p + anchor.suffix
 }
 
+// ═══ KINEO-SEM-LETRAS-2026-09-21 — fundador (Veo, ep. 2 da série Atlantis/Cuba: "praticamente perfeito… só as letras
+// dentro do vídeo, em latim ou russo"). Os modelos de vídeo não sabem escrever: todo objeto que carrega texto vira
+// pseudo-cirílico. O pedido de texto vinha de NÓS — o livro de estado do filme de Atlantis gravou "digital map",
+// "articles", "newspapers"; o de Cuba pede sonar, coordenadas, National Geographic. Três camadas, todas de prompt:
+// (1) negative prompt clássico igual ao hollywood (visualPromptPolicy.classicVisualNegativePrompt);
+// (2) sufixo INCONDICIONAL em toda cena clássica (o Seedance não tem negative prompt) + léxico maior aqui;
+// (3) o diretor visual e o supervisor fala×imagem param de pedir objeto-com-texto como sujeito (NO_TEXT_OBJECT_DIRECTION).
+/** Proibição curta que vai em TODA cena clássica (Seedance/Veo/Kling 2.5), com ou sem objeto de texto. */
+export const NO_READABLE_TEXT_SUFFIX = ', no readable text, letters, numbers, labels or signage anywhere in the frame'
+/** Regra para quem ESCREVE a cena (diretor visual, supervisor fala×imagem): texto vira textura, nunca sujeito. */
+export const NO_TEXT_OBJECT_DIRECTION =
+  'Never make a text-bearing object the subject of a shot (newspaper, headline, article, document, map with labels, sign, ' +
+  'sonar or radar readout, chart, screen, phone display, coordinates): video models cannot write and produce garbled ' +
+  'foreign letters. Show such things as texture or light instead — aged paper out of focus, glowing seabed terrain without ' +
+  'labels, the glow of a screen on a face, a hand over a blurred page — and never describe words, numbers or captions inside the frame.'
+
 /** Objetos que carregam texto: o motor vai escrever letras, e vai errar. */
 const TEXT_BEARING_RE =
-  /\b(ticket|newspaper|headline|document|letter|note|diary|journal|page|book|manuscript|map|sign|signboard|billboard|poster|label|screen|phone|smartphone|monitor|laptop|tablet|receipt|passport|id card|license|banner|chalkboard|whiteboard|menu|envelope|stamp|logo|text|caption|subtitle|writing|handwriting)\b/i
+  /\b(ticket|newspaper|headline|article|document|letter|note|diary|journal|page|book|manuscript|map|sign|signboard|billboard|poster|label|screen|phone|smartphone|monitor|laptop|tablet|receipt|passport|id card|license|banner|chalkboard|whiteboard|menu|envelope|stamp|logo|text|caption|subtitle|writing|handwriting|sonar|radar|chart|graph|diagram|display|dashboard|readout|coordinates|gauge|dial|keyboard|clock|calendar|scoreboard|ticker|magazine|report|archive|file|folder|photograph|blueprint)\b/i
 
 /** Só quando a cena pede um objeto com texto; senão, string vazia (prompt byte a byte igual). */
 export function textSafetySuffix(scenePrompt: string): string {
@@ -229,7 +245,7 @@ export function buildStoryScenePrompt(visual: string, anchor: StyleAnchor, chara
   return (
     `${anchor.lookPhrase}. ${v}.${who} ` +
     `9:16 vertical, subject framed in the upper two-thirds with the lower third clear for captions, ` +
-    `smooth camera motion, no readable text, no watermark, no logo` +
+    `smooth camera motion, no watermark, no logo` + NO_READABLE_TEXT_SUFFIX +
     anchor.suffix
   )
 }

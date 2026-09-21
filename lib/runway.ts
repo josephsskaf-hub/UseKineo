@@ -3,6 +3,7 @@ import { LANGUAGE_NAMES, type NarrationLanguage } from '@/lib/textLanguage'
 import { detectVisualCategory } from '@/lib/visualAssetCategories'
 import { aspectSpec } from '@/lib/aspect'
 import { classicVisualNegativePrompt, isStylizedLook, visualDescriptionDirection, type VisualPromptPolicy } from '@/lib/cinematic/visualPromptPolicy'
+import { NO_TEXT_OBJECT_DIRECTION } from '@/lib/cinematic/sceneStyle'
 
 const RUNWAY_BASE = 'https://api.dev.runwayml.com/v1'
 const RUNWAY_VERSION = '2024-11-06'
@@ -462,6 +463,7 @@ ${visualDescriptionDirection(visualPolicy)}
 - negativeVisualPrompt excludes only elements incompatible with this approved scene. No blanket people/face prohibition for character or presenter scenes, and no cartoon/anime prohibition for an animated request.
 - Scene 1 is the HOOK: show its subject/event clearly in the first frame, without an unrelated establishing shot or slow fade. Do not invent a new event just to make an opening dramatic.
 - Build each stockSearchQuery from that scene's concrete visual nouns, not from a broader topic.
+- ${NO_TEXT_OBJECT_DIRECTION}
 - Follow HOOK, ESCALATION, DISCOVERY, EXPLANATION, PAYOFF and FINAL_LINE as appropriate. Vary camera distance and motion across scenes, while preserving subject continuity.
 - Return ONLY a valid JSON array of exactly ${safeCount} objects with all 9 fields from the system schema.` : ''
 

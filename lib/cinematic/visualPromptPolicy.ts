@@ -1,7 +1,7 @@
 // One visual contract for the classic clip, its still and its safe fallback.
 // Pure/deterministic: no provider calls, narration rewriting or new model cost.
 import { aspectSpec } from '../aspect'
-import { applyStyleAnchor, buildStoryScenePrompt, textSafetySuffix, type StyleAnchor } from './sceneStyle'
+import { applyStyleAnchor, buildStoryScenePrompt, textSafetySuffix, NO_READABLE_TEXT_SUFFIX, type StyleAnchor } from './sceneStyle'
 import type { VisualMode } from './visualMode'
 
 export interface VisualPromptPolicy {
@@ -29,7 +29,9 @@ export function classicVisualNegativePrompt(mode: VisualMode, stylized: boolean)
     : mode === 'character_story' ? 'talking head, looking directly into the camera, '
       : 'foreground human face, close-up portrait, talking head, presenter, '
   const look = stylized ? '' : 'cartoon, anime, illustration, 3d render, '
-  return format + look + 'blur, distort, low quality, watermark, text, logo, caption'
+  // KINEO-SEM-LETRAS-2026-09-21 — a estrada clássica mandava só 'text, logo, caption'; a hollywood já proibia
+  // placas/legendas/alfabeto estrangeiro. Mesma lista nas duas (Veo, Kling 2.5 t2v e i2v recebem negative_prompt).
+  return format + look + 'blur, distort, low quality, watermark, text, logo, caption, on-screen text, readable signs, subtitles, captions, letters, numbers, labels, foreign text, chinese text, cyrillic text, phone screen with text, newspaper headline, map labels'
 }
 
 /** Remove stale hard-coded orientation instructions, not the scene content. */
@@ -172,7 +174,7 @@ export function buildClassicVisualPrompt(visual: string, policy: VisualPromptPol
       `${subject || 'the described story setting'}, faceless cinematic b-roll, ` +
       'focus on the described subject and its environment, no foreground human faces, ' +
       'photorealistic, ultra-detailed, dramatic cinematic lighting, smooth camera motion, ' +
-      'subject clearly framed with the lower third clear for captions, no text, no watermark, no logo',
+      'subject clearly framed with the lower third clear for captions, no watermark, no logo' + NO_READABLE_TEXT_SUFFIX,
       policy.style,
     )
   }

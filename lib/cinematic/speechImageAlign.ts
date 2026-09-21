@@ -28,6 +28,14 @@ export type AlignState = { index: number; state: string }
 export type AlignReport = { scenes: number; rewritten: number; kept: number; examples: Array<{ scene: number; why: string; before: string; after: string }>; ms: number; model: string }
 export type AlignResult = { rewritten: AlignRewrite[]; relato: AlignReport; states: AlignState[] }
 
+// KINEO-SEM-LETRAS-2026-09-21 — cópia LITERAL de sceneStyle.NO_TEXT_OBJECT_DIRECTION (este módulo é puro, sem imports:
+// o guardião o executa em sandbox). test-sem-letras confere que as duas cópias são idênticas.
+const NO_TEXT_OBJECT_DIRECTION =
+  'Never make a text-bearing object the subject of a shot (newspaper, headline, article, document, map with labels, sign, ' +
+  'sonar or radar readout, chart, screen, phone display, coordinates): video models cannot write and produce garbled ' +
+  'foreign letters. Show such things as texture or light instead — aged paper out of focus, glowing seabed terrain without ' +
+  'labels, the glow of a screen on a face, a hand over a blurred page — and never describe words, numbers or captions inside the frame.'
+
 export const SPEECH_IMAGE_ALIGN_EVENT = 'scene_speech_alignment'
 // v2 (19/09, fundador: "vai, sobe o livro de estado"): caso das meias (Axel, Veo, 00:39 BRT) — a cena 4 dizia "large
 // WHITE sock" quando a história já a tinha pintado de azul; a cena 6 dizia "transforming from blue back to white" e o
@@ -58,6 +66,8 @@ export function buildAlignMessages(input: { topic: string; scenes: AlignScene[] 
     'The LAST scene must show the FINAL state of every recurring character exactly as the story ends. ' +
     'NO EXTRAS: when the subjects are objects or characters, the shot must not add other characters, animals, people or props the story does not mention; append "no other characters, no animals, no people, no added props" to such shots. ' +
     'A shot in the wrong state or with extras counts as a REWRITE. ' +
+    // KINEO-SEM-LETRAS-2026-09-21 — o supervisor reescrevia cenas pedindo mapa/artigo/jornal (Atlantis) → letras inventadas.
+    NO_TEXT_OBJECT_DIRECTION + ' A shot whose subject is a text-bearing object counts as a REWRITE. ' +
     'When rewriting: one clear subject doing the action of the line, concrete and literal, in the era and place the line implies, max 55 words, English, no on-screen text, keep any existing "faceless / no real face / silhouette / from behind" constraint and keep it for named real people. Keep the film\'s established look if the current shot states one (e.g. "photorealistic", "3D animated"). ' +
     'Reply ONLY with JSON: {"scenes":[{"i":<scene number>,"action":"keep"|"rewrite","shot":"<new shot when rewrite, else empty>","why":"<max 12 words>","state":"<visible state of each recurring character/object at this line, e.g. big sock: blue; small sock: red — empty when the story has none>"}]} with exactly one entry per scene.'
   const lines = input.scenes

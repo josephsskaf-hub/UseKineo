@@ -1219,3 +1219,13 @@ Caso: 2 renders do fundador (Seedance 60 s, 00:28 e 01:07 UTC) — a fal aceitou
 · Estorno ao fundador: +50 cr (574→624), admin_credits_granted com o motivo.
 ⚠ TRAVA 8.2: toca app/api/generate-video-cinematic. Autorização do fundador por nome (21/09 ~22:50 BRT: "vai nos 2 e devolve os 50") registrada aqui. Guardião test-saldo-parcial (18, mutante).
 Pendente do fundador: ligar auto top-up ($50 → $100) e alerta ($75) na fal. Medir: cinematic_dispatch_result com balance_quota>0 → deve vir sempre com claim_action=released; stranded_outcome too_few_refunded × credits_refunded no mesmo gen.
+
+
+## SEM LETRAS NA CENA — 21/09 ~23:45 BRT (fundador, veredito do ep. 2 no Veo: "praticamente perfeito… só as letras dentro do vídeo, em latim ou russo" → "vai nas 3")
+Causa: modelos de vídeo não escrevem; todo objeto-com-texto vira pseudo-cirílico, e o pedido vinha de nós (livro de estado de Atlantis: "digital map", "articles", "newspapers"; Cuba: sonar, coordenadas). A estrada clássica (Veo/Kling 2.5) mandava negative só com "text, logo, caption"; a hollywood já proibia placas/legendas/alfabeto estrangeiro; o Seedance não tem negative prompt.
+· Camada 1 — lib/cinematic/visualPromptPolicy.classicVisualNegativePrompt: mesma lista do hollywood (on-screen text, readable signs, subtitles, letters, numbers, labels, foreign/chinese/cyrillic text, phone screen with text, newspaper headline, map labels). Chega ao Veo t2v/i2v e Kling 2.5 t2v/i2v.
+· Camada 2 — lib/cinematic/sceneStyle: NO_READABLE_TEXT_SUFFIX INCONDICIONAL em toda cena clássica (faceless e história; cobre o Seedance); TEXT_BEARING_RE ganha article/sonar/radar/chart/graph/diagram/display/dashboard/readout/coordinates/gauge/dial/keyboard/clock/calendar/scoreboard/ticker/magazine/report/archive/file/folder/photograph/blueprint (o reforço "out of focus and unreadable" dispara nesses).
+· Camada 3 — NO_TEXT_OBJECT_DIRECTION (texto vira textura/luz, nunca sujeito) no diretor visual da rota cinematic (RULES), no contrato visual do planejador (lib/runway.ts) e no supervisor fala×imagem (cópia literal — módulo puro — conferida pelo guardião; objeto-com-texto como sujeito = REWRITE).
+Limite: reduz, não zera (fachadas/placas ainda alucinam letra); o juiz não vê pixel — o sensor é o olho do fundador.
+⚠ TRAVA 8.2: toca app/api/generate-video-cinematic e lib/cinematic. Autorização do fundador por nome (21/09 ~23:40 BRT: "vai nas 3") registrada aqui. Guardião test-sem-letras (21, 2 mutantes).
+Medir: próximos filmes Veo/Seedance com jornal/mapa/tela no roteiro — olho do fundador; e scene_speech_alignment.rewritten com why mencionando texto.

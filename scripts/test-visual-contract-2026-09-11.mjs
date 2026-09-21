@@ -217,7 +217,8 @@ check(volcano.scene.voiceover === volcanoNarration, 'Visual preparation never re
 
 const openaiCalls = []
 const descriptions = execute(functionSource(route, 'generateCinematicDescriptions') + '\nexports.generate = generateCinematicDescriptions;', {
-  ...aspect, ...policy, openai: { chat: { completions: { create: async input => {
+  // KINEO-SEM-LETRAS-2026-09-21: a lista de RULES do diretor passou a citar NO_TEXT_OBJECT_DIRECTION (sceneStyle).
+  ...aspect, ...policy, ...style, openai: { chat: { completions: { create: async input => {
     openaiCalls.push(input); return { choices: [{ message: { content: '{"descriptions":["Mira opens the parcel in Kyoto"]}' } }] }
   } } } },
 })
