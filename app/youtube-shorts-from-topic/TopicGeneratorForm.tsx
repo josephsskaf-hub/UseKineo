@@ -14,7 +14,9 @@ import {
   promptLimitPreservedMessage,
   promptLimitState,
   trimPromptToLimit,
+  type PromptLimitLocale,
 } from '@/lib/studioPromptLimit'
+import type { NarrationLanguage } from '@/lib/textLanguage'
 
 const TOPIC_EXAMPLES = [
   'The island too dangerous to visit',
@@ -30,7 +32,8 @@ type TopicGeneratorFormProps = {
   utmMedium?: string
   examples?: readonly string[]
   formId?: string
-  language?: 'en' | 'pt' | 'es'
+  // KINEO-PORTAS-16-LINGUAS-2026-09-20: qualquer código do catálogo (o Studio lê ?language= com narrationLanguage()).
+  language?: NarrationLanguage
   scriptMode?: 'ai' | 'verbatim'
   duration?: 35 | 45 | 60 | 90
   creationIntent?: Exclude<CreationIntent, null>
@@ -76,7 +79,8 @@ export default function TopicGeneratorForm({
   const [topic, setTopic] = useState('')
   const [trimNotice, setTrimNotice] = useState<string | null>(null)
   const inputId = `${formId}-input`
-  const limitLocale = language ?? 'en'
+  // O contador de caracteres só tem copy em en/pt/es; as outras 13 línguas caem no inglês (só número + 'characters').
+  const limitLocale: PromptLimitLocale = language === 'pt' || language === 'es' ? language : 'en'
   const limit = promptLimitState(topic, CREATION_HANDOFF_PROMPT_MAX_CHARS)
   const canSubmit = limit.length >= 3 && !limit.over
 

@@ -36,7 +36,7 @@ equal(limit.formatPromptLimitTrimNotice(228, 'es'), '228 caracteres eliminados. 
 equal(limit.formatLimitCounter(over), '1,228 / 1,000 characters — 228 over the limit', 'English default stays unchanged')
 
 const form = read('app/youtube-shorts-from-topic/TopicGeneratorForm.tsx')
-ok(form.includes("const limitLocale = language ?? 'en'"), 'form chooses copy from the existing language contract')
+ok(form.includes("const limitLocale: PromptLimitLocale = language === 'pt' || language === 'es' ? language : 'en'"), 'form chooses copy from the existing language contract (KINEO-PORTAS-16-LINGUAS-2026-09-20: 16 códigos entram, só en/pt/es têm copy do contador)')
 ok(form.includes('formatLimitCounter(limit, limitLocale)'), 'counter uses the chosen language')
 ok(form.includes('formatPromptLimitTrimAction(limit.excess, limitLocale)'), 'trim action uses the chosen language')
 ok(form.includes('promptLimitPreservedMessage(limitLocale)'), 'preserved-text alert uses the chosen language')

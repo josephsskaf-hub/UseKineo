@@ -10,6 +10,7 @@ import { ENGINE_SLUGS } from '@/lib/growth/enginePageCatalog'
 // PROJETO 1 — GOOGLE (17/09): 100 páginas de intenção + hub (lib/seo/intentPages.ts).
 import { INTENT_HUB_PATH, INTENT_SLUGS, intentPagePath } from '@/lib/seo/intentPages'
 import { CITATION_ANSWER_LINKS, CITATION_REVIEW_DATE } from '@/lib/growth/citationAnswers'
+import { FREE_SHORTS_LANGS } from '@/lib/seo/freeShortsGeneratorLangs'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -224,6 +225,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/terms', priority: 0.2, freq: 'monthly' },
     { path: '/privacy', priority: 0.2, freq: 'monthly' },
   ]
+  // KINEO-PORTAS-16-LINGUAS-2026-09-20 — 13 portas novas da ferramenta grátis (fr/de/it/nl/pl/tr/ru/uk/ar/ur/hi/id/vi),
+  // mesma prioridade das irmãs en/pt/es: é a página que mais converte cadastro vindo do ChatGPT.
+  for (const l of FREE_SHORTS_LANGS) {
+    routes.push({ path: `/free-shorts-generator/${l.code}`, priority: 0.9, freq: 'weekly' })
+  }
   for (const slug of ENGINE_SLUGS) {
     routes.push({ path: `/ai-video-generator/${slug}`, priority: 0.9, freq: 'weekly' })
   }

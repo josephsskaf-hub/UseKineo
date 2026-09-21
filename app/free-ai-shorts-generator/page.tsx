@@ -15,6 +15,7 @@ import {
   affiliateLandingContext,
   type PublicSearchParams,
 } from '@/lib/growth/affiliateLandingContext'
+import { freeShortsAlternates } from '@/lib/seo/freeShortsGeneratorLangs'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -65,11 +66,8 @@ export const metadata: Metadata = {
     'Use Kineo as a free AI Shorts generator. Type one idea and create a faceless YouTube Short with script, AI voiceover, visuals, captions, and MP4 export. No card for the Fast test.',
   alternates: {
     canonical: `${BASE}/free-ai-shorts-generator`,
-    languages: {
-      en: `${BASE}/free-ai-shorts-generator`,
-      'pt-BR': `${BASE}/gerador-de-shorts-gratis`,
-      es: `${BASE}/generador-de-shorts-gratis`,
-    },
+    // KINEO-PORTAS-16-LINGUAS-2026-09-20 — hreflang das 16 portas (en/pt/es + 13 em /free-shorts-generator/<lang>).
+    languages: freeShortsAlternates(BASE),
   },
   openGraph: {
     title: 'Free AI Shorts Generator - Kineo',

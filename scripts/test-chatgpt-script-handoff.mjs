@@ -294,13 +294,15 @@ try {
   includes(localizedHandoff, 'duration={35}', 'localized launcher uses the visible short target')
   includes(localizedHandoff, 'creationIntent="trial_best"', 'localized launcher requests the best eligible trial engine')
   includes(localizedHandoff, 'preserveHandoffForSignedIn', 'localized launcher keeps work for authenticated visitors')
-  includes(topicForm, "const limitLocale = language ?? 'en'", 'shared form selects Portuguese and Spanish limit feedback from its public language')
+  includes(topicForm, "const limitLocale: PromptLimitLocale = language === 'pt' || language === 'es' ? language : 'en'", 'shared form selects Portuguese and Spanish limit feedback from its public language (KINEO-PORTAS-16-LINGUAS-2026-09-20: 16 códigos entram, só en/pt/es têm copy do contador)')
   ok(!localizedHandoff.includes('utmSource='), 'localized launcher does not overwrite the real referring source')
   ok(!localizedHandoff.includes('utmMedium='), 'localized launcher does not overwrite the real referring medium')
   ok(!localizedHandoff.includes("'de' | 'fr'"), 'unsupported German and French launchers stay fail-closed')
   includes(portuguesePage, 'Seedance se o saldo do teste ativo cobrir; senão, usa Fast', 'Portuguese copy names the bounded trial router')
   includes(spanishPage, 'Seedance si el saldo de la prueba activa alcanza; si no, usa Fast', 'Spanish copy names the bounded trial router')
-  includes(spanishPage, "'pt-BR': `${BASE}/gerador-de-shorts-gratis`", 'Spanish hreflang sends Portuguese visitors to the Portuguese page')
+  // KINEO-PORTAS-16-LINGUAS-2026-09-20: o hreflang das portas vem de uma fonte única (16 línguas + x-default).
+  includes(spanishPage, 'languages: freeShortsAlternates(BASE)', 'Spanish hreflang comes from the shared 16-language map')
+  includes(read('lib/seo/freeShortsGeneratorLangs.ts'), "'pt-BR': `${base}/gerador-de-shorts-gratis`", 'Spanish hreflang sends Portuguese visitors to the Portuguese page')
 
   for (const preview of [
     'docs/previews/CHATGPT-SCRIPT-HANDOFF-2026-08-27.html',

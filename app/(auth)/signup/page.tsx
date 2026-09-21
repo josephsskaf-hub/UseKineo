@@ -23,6 +23,7 @@ import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import AuthReel from '@/components/AuthReel'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { carryCreationHandoff } from '@/lib/creationHandoff'
+import { narrationLanguage } from '@/lib/textLanguage'
 import {
   buildSignupCreationPreviewFromAuthParams,
 } from '@/lib/growth/signupCreationPreview'
@@ -73,10 +74,10 @@ function activationRedirectFromSearch(search: string): string {
     const value = (params.get(key) ?? '').trim()
     if (/^[A-Za-z0-9._~-]{1,100}$/.test(value)) activationParams.set(key, value)
   }
-  const language = params.get('language')
-  if (language === 'en' || language === 'pt' || language === 'es') {
-    activationParams.set('language', language)
-  }
+  // KINEO-PORTAS-16-LINGUAS-2026-09-20: até 20/09 só en/pt/es atravessavam o cadastro — quem vinha da porta
+  // francesa/alemã/hindi… caía no Studio em inglês. Agora qualquer código do catálogo (narrationLanguage) passa.
+  const language = narrationLanguage(params.get('language'))
+  if (language) activationParams.set('language', language)
   // KINEO-POUSO-VITRINE-2026-08-25 b — COM prompt (ideia digitada na home) o
   // destino segue /generate: a ideia tem que virar render, é fluxo de dinheiro.
   // SEM prompt, o cadastro pousa na HOME (os 4 cards — ordem do fundador),

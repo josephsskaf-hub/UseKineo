@@ -1,9 +1,10 @@
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
+import type { NarrationLanguage } from '@/lib/textLanguage'
 
 type LocalizedScriptHandoffProps = {
   campaign: string
   formId: string
-  language: 'pt' | 'es'
+  language: Exclude<NarrationLanguage, 'en'> // KINEO-PORTAS-16-LINGUAS-2026-09-20
   eyebrow: string
   heading: string
   description: string

@@ -15,6 +15,7 @@ import LocalizedScriptHandoff from '@/components/LocalizedScriptHandoff'
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
 // de tabela publicando um valor que o checkout não cobrava mais.
 import { STARTER_USD_AMOUNT } from '@/lib/marketingPrice'
+import { freeShortsAlternates } from '@/lib/seo/freeShortsGeneratorLangs'
 
 const BASE = 'https://www.usekineo.com'
 const CAMPAIGN = 'seo_gerador_pt'
@@ -27,11 +28,8 @@ export const metadata: Metadata = {
     'Digite uma ideia e a IA gera um Short vertical completo: roteiro, narração em português, legendas e vídeo pronto para postar. Grátis, sem cartão.',
   alternates: {
     canonical: `${BASE}/gerador-de-shorts-gratis`,
-    languages: {
-      en: `${BASE}/free-ai-shorts-generator`,
-      'pt-BR': `${BASE}/gerador-de-shorts-gratis`,
-      es: `${BASE}/generador-de-shorts-gratis`,
-    },
+    // KINEO-PORTAS-16-LINGUAS-2026-09-20 — hreflang das 16 portas (en/pt/es + 13 em /free-shorts-generator/<lang>).
+    languages: freeShortsAlternates(BASE),
   },
   openGraph: {
     title: 'Gerador de Shorts com IA Grátis — Kineo',
