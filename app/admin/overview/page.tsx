@@ -25,6 +25,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { isInternalEmail, INTERNAL_ACCOUNTS_LABEL } from '@/lib/internalAccounts'
 import { stripeMrrUsd } from '@/app/api/admin/_shared/mrr'
+import { stripeNetRevenue, type NetRevenue } from '@/app/api/admin/_shared/revenue'
 import { PAID_PLANS, PLAN_PRICE_USD, isTrialPlan } from '@/app/api/admin/_shared/mrr'
 
 import { funilVersaoB, VERSAO_B_SINCE, metaTrue, type EventRow, type FunilB } from '@/lib/admin/versaoBFunnel'
@@ -94,6 +95,8 @@ type Metrics = {
   trialPotentialMrrUsd: number
   mrrStripeUsd: number | null
   mrrStripeCounted: number
+  // KINEO-RECEITA-LIQUIDA-2026-09-21 — dinheiro cobrado (Stripe), assinaturas × avulsos, líquido após taxa.
+  revenue: NetRevenue | null
   arpuUsd: number | null
   oneTimePurchases: number
   versaoB: { today: FunilB; d7: FunilB; since: string }
@@ -225,7 +228,7 @@ async function loadMetrics(): Promise<Metrics | null> {
   // KINEO-PLACAR-TRIAL-2026-09-08 — a tabela usa o preco NOVO ($9/$19/$29); os 12
   // pagantes antigos seguem no preco antigo na Stripe. O MRR real vem da Stripe;
   // a tabela fica como fallback e como "MRR se todos estivessem no preco novo".
-  const stripeMrr = await stripeMrrUsd(payingSubscriptionIds)
+  const [stripeMrr, revenue] = await Promise.all([stripeMrrUsd(payingSubscriptionIds), stripeNetRevenue()])
   const mrrStripeUsd = stripeMrr ? Math.round(stripeMrr.mrr * 100) / 100 : null
   const mrrStripeCounted = stripeMrr?.counted ?? 0
   const arpuUsd = payingTotal > 0 ? (mrrStripeUsd ?? mrrUsd) / payingTotal : null
@@ -390,6 +393,7 @@ async function loadMetrics(): Promise<Metrics | null> {
     trialsActive,
     trialPotentialMrrUsd: Math.round(trialPotentialMrrUsd * 100) / 100,
     mrrStripeUsd,
+    revenue,
     mrrStripeCounted,
     arpuUsd,
     oneTimePurchases,
@@ -658,6 +662,24 @@ export default async function AdminOverviewPage() {
               value={fmtMoney(m.mrrStripeUsd ?? m.mrrUsd)}
               sub={m.mrrStripeUsd != null ? `Stripe · ${m.mrrStripeCounted} subs cobradas · tabela ${fmtMoney(m.mrrUsd)} no preço novo` : `${m.payingTotal} active external subs (tabela)`}
               accent="245,245,247"
+            />
+            {/* KINEO-RECEITA-LIQUIDA-2026-09-21 — fundador: "tem gente que faz top-up e fica comprando; o admin só mostra MRR".
+                Stripe = fonte (cobranças pagas, conta interna fora, líquido = balance_transaction.net − estornos, BRL→USD
+                pela taxa da casa). Assinaturas = cobrança com fatura; avulsos = checkout de pagamento único (pacotes). */}
+            <Kpi
+              label="Receita líquida 30 d"
+              value={m.revenue ? fmtMoney(m.revenue.windows.d30.netUsd) : '—'}
+              sub={m.revenue
+                ? `bruto ${fmtMoney(m.revenue.windows.d30.grossUsd)} · assinaturas ${fmtMoney(m.revenue.windows.d30.subscriptionsNetUsd)} · avulsos ${fmtMoney(m.revenue.windows.d30.packsNetUsd)} · ${m.revenue.windows.d30.charges} cobranças · 7 d ${fmtMoney(m.revenue.windows.d7.netUsd)} · mês ${fmtMoney(m.revenue.windows.mtd.netUsd)}`
+                : 'Stripe indisponível agora — sem número inventado'}
+              accent="245,245,247"
+            />
+            <Kpi
+              label="Avulsos (pacotes) 30 d"
+              value={m.revenue ? fmtMoney(m.revenue.windows.d30.packsNetUsd) : '—'}
+              sub={m.revenue
+                ? `${m.revenue.windows.d30.packsCount} compras · ${m.revenue.windows.d30.packsBuyers} compradores · ${m.revenue.windows.d30.packsBuyersSubscribers} já assinam · 90 d ${fmtMoney(m.revenue.windows.d90.packsNetUsd)} (${m.revenue.windows.d90.packsCount})`
+                : 'Stripe indisponível agora'}
             />
             <Kpi
               label="Trials $1"
