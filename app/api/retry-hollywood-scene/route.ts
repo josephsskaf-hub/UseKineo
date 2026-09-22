@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { FalQueueSubmitError, submitFalQueueOnce } from '@/lib/falQueue'
+import { writeServerEvent } from '@/lib/serverEvents' // KINEO-CENA-PRESA-2026-09-22
+import { HOLLYWOOD_SCENE_RETRIED_EVENT } from '@/lib/stuckScene' // KINEO-CENA-PRESA-2026-09-22
 import { loadVerifiedCinematicClaim, retargetCinematicRequestId, validCinematicGenerationId, type CinematicClaim } from '@/lib/cinematic/claim'
 import { acquireSceneRetryMutex, markSceneRetryHold, readVerifiedSceneRetryHold, releaseSceneRetryMutex } from '@/lib/cinematic/sceneRetry'
 import { HOLLYWOOD_MODELS, KLING3_I2V_MODEL, H3_MODELS, H3_I2V_MODEL, H3_RESOLUTION, OMNI_I2V_MODEL, S25_I2V_MODEL, S25_T2V_MODEL, S25_RESOLUTION } from '@/lib/hollywood/router'
@@ -130,6 +132,9 @@ export async function POST(req: NextRequest) {
     const retargeted = await retargetCinematicRequestId({ ...args, index: slot.index, oldRequestId: slot.oldRequestId, newRequestId: requestId, model: slot.model })
     if (!retargeted.ok) { await markSceneRetryHold(args, mutex, 'retarget_failed', requestId); return support() }
     if (!await releaseSceneRetryMutex(args, mutex)) { await markSceneRetryHold(args, mutex, 'release_unconfirmed', requestId); return support() }
+    // KINEO-CENA-PRESA-2026-09-22 — carimbo da ressubmissão: o relógio da "cena presa" (/api/cinematic-clip-status)
+    // reinicia aqui, senão a cena nova seria declarada presa no poll seguinte. ESPERADO (void antes do return morre na Vercel).
+    await writeServerEvent({ name: HOLLYWOOD_SCENE_RETRIED_EVENT, userId: birth.userId, path: '/api/retry-hollywood-scene', sessionId: args.generationId, metadata: { scene_index: slot.index, old_request_id: slot.oldRequestId, new_request_id: requestId, model: slot.model, sanitize: body.sanitize === true } })
     return NextResponse.json({ requestId, model: slot.model })
   } catch (error) {
     // Generic exceptions after the POST, 408, 5xx, transport failures and a

@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { writeServerEvent } from '@/lib/serverEvents' // KINEO-RESGATE-RAPIDO-2026-09-19
 import { CINEMATIC_CLIENT_POLL_EVENT, CLIENT_POLL_DEDUPE_MINUTES } from '@/lib/strandedRescue'
+import { stuckSceneIndexes, stuckClockStart, lastSceneRetryAt, CINEMATIC_SCENE_STUCK_EVENT } from '@/lib/stuckScene' // KINEO-CENA-PRESA-2026-09-22
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { fal } from '@fal-ai/client'
@@ -264,6 +265,23 @@ export async function GET(req: NextRequest) {
         return checkFalClip(id, claim.falModels[index], generationId, index)
       }),
     )
+    // ═══ KINEO-CENA-PRESA-2026-09-22 — a cena que não volta do fornecedor vira `failed` e entra no retry que já existe ═══
+    // H3 22/09: 4/5 prontas em 4 min, a 5ª IN_PROGRESS por 50 min; o cliente esperava o teto de 50 min e ninguém
+    // ressubmetia. Regra pura em lib/stuckScene: ≥ 12 min com alguma cena pronta (ou ≥ 20 min sem nenhuma) →
+    // pendente/processando vira recusada (stuck); o claim registra a recusa como terminal e o cliente re-submete a
+    // cena (duas rodadas, /api/retry-hollywood-scene), que reinicia o relógio.
+    {
+      const lastRetry = await lastSceneRetryAt(admin, generationId)
+      const clock = stuckClockStart(claim.completedAt, claim.startedAt, lastRetry)
+      const elapsedMin = clock > 0 ? (Date.now() - clock) / 60000 : 0
+      const presas = stuckSceneIndexes(clips.map((c) => c.status), elapsedMin)
+      for (const i of presas) {
+        const antes = clips[i]
+        clips[i] = { id: antes.id, status: 'failed', url: null }
+        console.warn('[cinematic-scene-stuck]', { generation_id: generationId, scene_index: i, elapsed_min: Math.round(elapsedMin), model: claim.falModels[i] })
+        void writeServerEvent({ name: CINEMATIC_SCENE_STUCK_EVENT, userId: user.id, path: '/api/cinematic-clip-status', sessionId: generationId, metadata: { scene_index: i, request_id: antes.id, model: claim.falModels[i], elapsed_min: Math.round(elapsedMin), any_done: clips.some((c) => c.status === 'done'), was: antes.status, since_retry: !!lastRetry } })
+      }
+    }
     let durableClaim = claim
     const completed = clips
       .filter((clip): clip is ClipStatus & { id: string; url: string } => clip.status === 'done' && !!clip.id && !!clip.url)
