@@ -37,6 +37,14 @@ checa('prefixo novo nas famílias sem negative_prompt (h3/omni/s25)', rt.include
 checa('a frase antiga ("Every visible person is silent") morreu', !rt.includes('Every visible person is silent'))
 checa('continua só em cena não-diálogo e fora do Kling 3 (que tem negative_prompt)', rt.includes("const mouthPrefix = hs.type !== 'dialogue' && family !== 'hollywood'"))
 
+console.log('== (3) H3/Omni/S25 não recebem a frase que nomeia o telefone (KINEO-H3-SEM-CELULAR) ==')
+const router = rd('lib/hollywood/router.ts')
+const fraseRouter = (router.match(/const NO_TEXT_SUFFIX =\n\s+'([^\n]+)'/) || [])[1]
+checa('o router ainda tem a frase com "phone" (é ela que o Kling 3 manda ao negative)', typeof fraseRouter === 'string' && /phone/.test(fraseRouter))
+checa('a rota espelha EXATAMENTE a frase do router para trocá-la nas famílias sem negative (mexeu num, mexe no outro)', typeof fraseRouter === 'string' && rt.includes(`'${fraseRouter}',\n              ' No readable text or lettering anywhere in the frame; period-accurate clothing and objects only.',`))
+checa('a troca vale só fora do Kling 3 (family !== hollywood) e acontece antes do silenciamento das falas', /if \(family !== 'hollywood'\) \{\s*hs\.prompt = hs\.prompt\.replace\(/.test(rt) && rt.indexOf("if (family !== 'hollywood') {\n            hs.prompt = hs.prompt.replace(") < rt.indexOf("if (hs.type !== 'dialogue') {\n            hs.prompt = hs.prompt\n              .replace(/\\b(?:he|she|they|the (?:man|woman|person|old man|old woman|boy|girl))?"))
+checa('a frase nova não nomeia telefone, tela nem dispositivo', !/phone|screen|device/i.test(' No readable text or lettering anywhere in the frame; period-accurate clothing and objects only.'))
+
 console.log('== mutante ==')
 checa('mutante (uma gravação volta a hs.index) é pego', (rt.replace('ctxDespacho().submittedPrompts[hs.index - 1] = submittedPrompt.slice(0, 240)', 'ctxDespacho().submittedPrompts[hs.index] = submittedPrompt.slice(0, 240)').match(/submittedPrompts\[hs\.index - 1\]/g) || []).length === 2)
 

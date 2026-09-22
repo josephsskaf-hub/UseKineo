@@ -4933,6 +4933,19 @@ async function manipularPost(req: NextRequest) {
           const mouthPrefix = hs.type !== 'dialogue' && family !== 'hollywood'
             ? 'Nobody addresses the camera and nobody poses for it: show only the action, places and objects the narration describes; anyone visible is part of that action, mouth closed, never facing the lens. ' // KINEO-PREFIXO-SEM-PESSOA-2026-09-22: "every visible person" presumia uma pessoa — o H3 desenhou um homem de celular na cena da floresta arrancada (render 19e317fe)
             : ''
+          // ═══ KINEO-H3-SEM-CELULAR-2026-09-22 — a proibição que NOMEIA o telefone desenha o telefone ═══
+          // Renders H3 19e317fe e 0ebba562 (22/09): em 2 de 3 filmes uma pessoa de CELULAR entrou numa cena de
+          // documentário de 1908/1958 ("first expedition found the trees" → mulher de smartphone). O sufixo do
+          // planejador (NO_TEXT_SUFFIX, lib/hollywood/router) diz "no phone or computer screens… If a phone appears,
+          // its screen is off" — no Kling 3 isso vai ao negative_prompt; H3/Omni/S25 não têm negative e leem "phone"
+          // como conteúdo (o mesmo mecanismo do "menino da bolha", 27/08). Nas famílias sem negative, a frase vira
+          // uma proibição sem substantivo de objeto. O guardião confere que o texto aqui espelha o do router.
+          if (family !== 'hollywood') {
+            hs.prompt = hs.prompt.replace(
+              ' No readable text anywhere in the scene: no phone or computer screens, no signs, no billboards, no labels, no subtitles, no watermarks. If a phone appears, its screen is off or blurred.',
+              ' No readable text or lettering anywhere in the frame; period-accurate clothing and objects only.',
+            )
+          }
           if (hs.type !== 'dialogue') {
             hs.prompt = hs.prompt
               .replace(/\b(?:he|she|they|the (?:man|woman|person|old man|old woman|boy|girl))?\s*(?:begins?|starts?|continues?)\s+(?:speaking|talking|telling|narrating|explaining)\s+(?:about|of|to)\s+[^,.;]+/gi, 'silent, mouth closed, lost in thought')
