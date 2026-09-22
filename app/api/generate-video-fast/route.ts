@@ -29,7 +29,8 @@ import { pickLibraryClips, type LibraryClip } from '@/lib/stockLibrary'
 import { parseUserScript } from '@/lib/scriptParser'
 import { narrationTooShortMessage } from '@/lib/narrationFit'
 import { largestFittingDuration } from '@/lib/expandPolicy'
-import { decideDurationFollowsScript, DURATION_FOLLOWED_SCRIPT_EVENT } from '@/lib/durationFollowsScript'
+import { decideDurationFollowsScript, decideDurationFollowsScriptUp, DURATION_FOLLOWED_SCRIPT_EVENT } from '@/lib/durationFollowsScript'
+import { splitProseIntoBlocks, fallbackStockQuery } from '@/lib/proseBlocks' // KINEO1-VERBATIM-ESTICA-2026-09-22
 import { speechRateFor, narrationFitAt } from '@/lib/speechRate'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { classifyEngineFit } from '@/lib/engineFit'
@@ -387,6 +388,8 @@ export async function POST(req: NextRequest) {
       engineFitOverride?: boolean
       // KINEO-DRYRUN-CLASSICO-2026-09-12 — validador de $0 (só contas do fundador).
       dry_run?: boolean
+      // KINEO1-VERBATIM-ESTICA-2026-09-22 — "Use my script as is" ('verbatim') vale também para prosa sem marcadores.
+      script_mode?: string
     }
     try {
       body = await req.json()
@@ -514,7 +517,7 @@ export async function POST(req: NextRequest) {
     // a geometria do master é decidida no compose.
     const aspect = normalizeAspect((body as { aspect?: unknown }).aspect)
 
-    const clipCount = clipCountForDuration(duration)
+    let clipCount = clipCountForDuration(duration) // KINEO1-VERBATIM-ESTICA: recalculado se o roteiro próprio subir a duração
 
     // v3.0 Phase 1: BrollPlan query map — keyed by 1-based sceneNumber.
     // When provided, these AI-directed queries replace the generic GPT scene
@@ -629,6 +632,33 @@ export async function POST(req: NextRequest) {
     // persona é resolvida como o compose resolve (tier free = quality 'fast'); régua em lib/speechRate.
     const fastPersona = (() => { try { return selectPersonaForScript(prompt, undefined, 'free', narrationLanguage.language) } catch { return null } })()
     const fastRate = speechRateFor({ family: 'classic', speed: parsedScript.speed, language: narrationLanguage.language, voice: fastPersona?.voice, personaSpeed: fastPersona?.defaultSpeed })
+    // ═══ KINEO1-VERBATIM-ESTICA-2026-09-22 — "Use my script as is" vale para PROSA, e o roteiro manda na duração ═══
+    // Caso Emily (22/09 13:16Z, nota 75): script_mode 'verbatim' com prosa sem [Pexels:] caía no modo IA — o escritor
+    // reescreveu 215 palavras em 3ª pessoa e inventou uma cena. Fundador: "Estica então". Agora: (1) prosa própria é
+    // narrada como está (blocos por frase, lib/proseBlocks; as buscas vêm do plano de B-roll alinhado por narração);
+    // (2) se a fala enche uma duração MAIOR do seletor, a duração sobe (até 90 s) — o compose já acaba o filme quando
+    // o texto acaba; (3) acima do teto, recusa honesta sem gasto.
+    const ownScript = verbatim || body.script_mode === 'verbatim'
+    const prosaVerbatim = ownScript && !verbatim
+    const falaPropria = verbatim ? parsedScript.segments.map((seg) => seg.voiceover ?? '').join(' ') : (parsedScript.narration && parsedScript.narration.trim().length > 0 ? parsedScript.narration : prompt)
+    if (ownScript) {
+      const speechSeconds = falaPropria.trim().split(/\s+/).filter(Boolean).length / fastRate.wordsPerSecond
+      const sobe = decideDurationFollowsScriptUp({ ownScript, requestedSeconds: duration, speechSeconds, largestFitting: largestFittingDuration(speechSeconds, SUPPORTED_DURATIONS) })
+      if (sobe?.kind === 'too_long') {
+        if (!(body.dry_run === true && isDryRunAccount(user.email))) {
+          void writeServerEvent({ name: 'narration_guard_blocked', userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', reason: 'script_too_long_for_engine', requested_seconds: duration, speech_seconds: sobe.speechSeconds, max_seconds: sobe.maxSeconds, words_per_second: fastRate.wordsPerSecond, charged: false } })
+          return NextResponse.json({
+            error: `Your script runs about ${sobe.speechSeconds}s of narration, and Kineo 1 films go up to ${sobe.maxSeconds}s. Trim the text, or switch to "Let AI structure it" and we will fit it. Nothing was charged.`,
+            reason: 'script_too_long_for_engine', speech_seconds: sobe.speechSeconds, max_seconds: sobe.maxSeconds, retryable: false, charged: false,
+          }, { status: 422 })
+        }
+      } else if (sobe?.kind === 'up' && (SUPPORTED_DURATIONS as readonly number[]).includes(sobe.to)) {
+        duration = sobe.to as Duration
+        clipCount = clipCountForDuration(duration)
+        if (!(body.dry_run === true && isDryRunAccount(user.email))) void writeServerEvent({ name: DURATION_FOLLOWED_SCRIPT_EVENT, userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', direction: 'up', from: sobe.from, to: sobe.to, speech: sobe.speechSeconds, prose: prosaVerbatim, version: sobe.version, words_per_second: fastRate.wordsPerSecond } })
+        console.log(`[generate-fast] KINEO1-VERBATIM-ESTICA: ${sobe.from}s → ${sobe.to}s (speech ${sobe.speechSeconds}s) user=${user.id.slice(0, 8)}`)
+      }
+    }
     if (fastPersona) console.log(`[generate-fast] KINEO-RITMO-POR-VOZ-KINEO1: persona=${fastPersona.id} voice=${fastPersona.voice} speed=${fastPersona.defaultSpeed} → ${fastRate.wordsPerSecond} pal/s`)
     if (narrationLanguage.switched) {
       void writeServerEvent({ name: 'narration_language_autodetected', userId: user.id, path: '/api/generate-video-fast', metadata: { requested: body.language ?? null, detected: narrationLanguage.detected, confidence: narrationLanguage.confidence, verbatim } })
@@ -675,6 +705,22 @@ export async function POST(req: NextRequest) {
       console.log(
         `[generate-fast] VERBATIM mode: ${scenes.length} user-specified clip(s); speed=${parsedScript.speed ?? 'default'}`,
       )
+    } else if (prosaVerbatim) {
+      // KINEO1-VERBATIM-ESTICA-2026-09-22 — prosa própria: um bloco por cena, palavras da pessoa intocadas; a busca de
+      // reserva é a do bloco, e o plano de B-roll (alinhado por narração, abaixo) traz as buscas de verdade.
+      const blocos = splitProseIntoBlocks(falaPropria, clipCount)
+      scenes = blocos.map((bloco) => ({
+        description: bloco,
+        searchKeywords: fallbackStockQuery(bloco),
+        stockSearchQuery: fallbackStockQuery(bloco),
+        negativeVisualPrompt: '',
+        scenePurpose: 'EXPLANATION',
+        visualIntent: 'User-authored narration',
+        visualCategory: 'general_documentary',
+        voiceover: bloco,
+        caption: shortCaptionFromVoiceover(bloco),
+      }))
+      console.log(`[generate-fast] VERBATIM prose: ${scenes.length} block(s) from ${falaPropria.split(/\s+/).length} words, no rewrite`)
     } else {
       try {
         // KINEO-VIGIA-PALAVRAS-POR-CENA-2026-09-11 — o escritor de cenas nunca
@@ -802,7 +848,7 @@ export async function POST(req: NextRequest) {
     // (família clássica × velocidade lida do roteiro).
     const narrationRate = fastRate // KINEO-RITMO-POR-VOZ-KINEO1-2026-09-15: a mesma régua (voz da persona) da faixa, do portão e do relatório
     let portao: { blocked: boolean; reason: 'narration_too_short' | 'too_many_clips' | null; speech_seconds: number; target_seconds: number; missing_words: number; shorter_duration: number | null; words_per_second: number; basis: 'estimate'; autofit_applied: boolean } | null = null
-    if (verbatim) {
+    if (ownScript) { // KINEO1-VERBATIM-ESTICA: o portão da fala vale para marcadores E prosa própria
       // KINEO-TETO-EXPLICITO-2026-09-14 (Board): o Kineo 1 monta até 12 clipes. Um
       // roteiro com mais blocos [Pexels] NÃO é fundido em silêncio (isso jogava
       // fora a direção visual dos blocos 13+): a pessoa decide antes do gasto.
@@ -817,7 +863,7 @@ export async function POST(req: NextRequest) {
           }, { status: 422 })
         }
       }
-      const falaDoAutor = parsedScript.segments.map((seg) => seg.voiceover ?? '').join(' ')
+      const falaDoAutor = falaPropria // KINEO1-VERBATIM-ESTICA: marcadores → segmentos; prosa → a narração inteira
       let fit = narrationFitAt(falaDoAutor, duration, narrationRate)
       let autofitApplied = false
       if (!fit.ok && body.allow_shorter_duration === true) {
@@ -838,7 +884,7 @@ export async function POST(req: NextRequest) {
       // próprio + uma duração do seletor que cabe → desce e renderiza, em vez de recusar e pedir palavras.
       // `allow_shorter_duration` (bloco acima) nunca é enviado pelo cliente; fica como caminho explícito.
       if (!fit.ok && !autofitApplied) {
-        const seguiu = decideDurationFollowsScript({ fitOk: fit.ok, ownScript: verbatim, requestedSeconds: duration, speechSeconds: fit.speech, largestFitting: largestFittingDuration(fit.speech), floorSeconds: 35 })
+        const seguiu = decideDurationFollowsScript({ fitOk: fit.ok, ownScript, requestedSeconds: duration, speechSeconds: fit.speech, largestFitting: largestFittingDuration(fit.speech), floorSeconds: 35 })
         if (seguiu && (SUPPORTED_DURATIONS as readonly number[]).includes(seguiu.to)) {
           const pedida = duration
           duration = seguiu.to as Duration
@@ -1641,7 +1687,7 @@ export async function POST(req: NextRequest) {
       .filter((v) => typeof v === 'string' && v.trim().length > 0)
       .join(' ')
     const voiceoverScript =
-      verbatim && parsedScript.narration ? parsedScript.narration : sceneJoinedVoiceover
+      ownScript ? falaPropria : sceneJoinedVoiceover // KINEO1-VERBATIM-ESTICA: prosa própria também é narrada como está
 
     console.log(
       '[generate-fast] scenes:',
@@ -1735,11 +1781,11 @@ export async function POST(req: NextRequest) {
       // Push #235 — when the user authored the script verbatim, tell the client
       // so it forwards this narration (not the analyze-idea brief) and the
       // requested TTS speed to /api/compose.
-      verbatim,
+      verbatim: ownScript, // KINEO1-VERBATIM-ESTICA: prosa própria viaja como verbatim (o compose pula o escalador)
       // KINEO-VERBATIM-NAO-REESCREVE-2026-09-12 — "as is" sem `speed:` viajava sem
       // speed e o compose reescrevia o corpo do texto do cliente. Verbatim agora
       // sempre leva um speed (1,0 por padrão) e o compose pula o escalador.
-      speed: verbatim ? (parsedScript.speed ?? 1) : parsedScript.speed,
+      speed: ownScript ? (parsedScript.speed ?? 1) : parsedScript.speed,
       // KINEO-AI-SCENE-VISIBLE-2026-08-03 — POR QUE ISTO EXISTE.
       // Todo PRIMEIRO vídeo de usuário free já recebe uma cena de abertura
       // GERADA POR IA (Seedance 1.5 Pro, ~$0.22 de provider) — e medimos em

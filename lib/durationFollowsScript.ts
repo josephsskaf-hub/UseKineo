@@ -40,3 +40,35 @@ export function decideDurationFollowsScript(args: {
   if (to < args.floorSeconds) return null // abaixo do piso do motor é recusa honesta
   return { from, to, speechSeconds: Math.round(speech), version: DURATION_FOLLOWS_SCRIPT_VERSION }
 }
+
+// ═══ KINEO1-VERBATIM-ESTICA-2026-09-22 — o espelho: o roteiro próprio também SOBE a duração ═══
+// Fundador (22/09): "Estica então" — em "Use my script as is" o filme segue o roteiro (até 90 s), nunca é reescrito.
+// Regra: com a fala maior que o seletor, a duração passa a ser a MAIOR do seletor que a fala enche (a mesma régua
+// `largestFittingDuration` do portão: cobertura ≥ 95 %); o compose já acaba o filme quando o texto acaba. Acima do
+// teto (90 s × tolerância) é recusa honesta: cortar o texto ou deixar a IA estruturar.
+export const DURATION_FOLLOWS_SCRIPT_CEILING_SECONDS = 90
+export const DURATION_FOLLOWS_SCRIPT_CEILING_TOLERANCE = 1.15
+export type DurationFollowsScriptUp =
+  | { kind: 'up'; from: number; to: number; speechSeconds: number; version: typeof DURATION_FOLLOWS_SCRIPT_VERSION }
+  | { kind: 'too_long'; speechSeconds: number; maxSeconds: number; version: typeof DURATION_FOLLOWS_SCRIPT_VERSION }
+
+export function decideDurationFollowsScriptUp(args: {
+  ownScript: boolean
+  requestedSeconds: unknown
+  speechSeconds: unknown
+  /** a maior duração do seletor que a fala enche (largestFittingDuration), ou null */
+  largestFitting: number | null | undefined
+  ceilingSeconds?: number
+}): DurationFollowsScriptUp | null {
+  if (!args.ownScript) return null
+  const from = Number(args.requestedSeconds)
+  const speech = Number(args.speechSeconds)
+  if (!Number.isFinite(from) || from <= 0 || !Number.isFinite(speech) || speech <= 0) return null
+  const ceiling = args.ceilingSeconds ?? DURATION_FOLLOWS_SCRIPT_CEILING_SECONDS
+  if (speech > ceiling * DURATION_FOLLOWS_SCRIPT_CEILING_TOLERANCE) {
+    return { kind: 'too_long', speechSeconds: Math.round(speech), maxSeconds: ceiling, version: DURATION_FOLLOWS_SCRIPT_VERSION }
+  }
+  const to = Number(args.largestFitting)
+  if (!Number.isFinite(to) || to <= from) return null // subir, só quando a fala enche uma duração MAIOR
+  return { kind: 'up', from, to, speechSeconds: Math.round(speech), version: DURATION_FOLLOWS_SCRIPT_VERSION }
+}
