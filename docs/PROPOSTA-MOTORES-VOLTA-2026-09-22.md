@@ -161,3 +161,23 @@ frente do H3, fora deste passo.
 
 **Placar da despausa (meta: 3 filmes ≥ 75)**: 1 de 3 (80). Próximo: render nº 3 depois do deploy destes dois consertos
 (o visual deve subir só pela cena 1 passar a ser lida).
+
+## 8. Render H3 nº 3 e a despausa (22/09, 17:54Z)
+
+**Render nº 3 — "Door to Hell" (Darvaza), 35 s verbatim, 114 palavras, 27 cr, geração do vídeo `794ca7d7`**: 6/6
+aceitas, 6/6 prontas, compose em 3,5 min, filme de **58 s** entregue às 18:03Z. Juiz **80** (texto 100 · visual 60 —
+"falta ação"; o juiz lê prompts, não pixels). Folha de contato: brilho do cratera à noite, torre de perfuração,
+colapso do solo em poeira, chamas, cratera incandescente, coluna de fumaça ao pôr do sol — **sem pessoa de celular,
+sem letras** (os dois consertos da tarde funcionaram no primeiro filme depois deles). Dry-runs a $0 antes: 4 versões
+do roteiro até o portão de silêncio aceitar (o planejador do H3 divide frases com vírgula em cenas curtas; frases
+de 14-17 palavras, uniformes, passam).
+
+**Placar da despausa: 3 de 3 ≥ 75 (80 · 95 · 80).** Critério atingido → `enginePaused('h3')` sai:
+- `lib/engineLaunch.ts`: PausedEngineKey/ENGINE_PAUSE/PAUSED_ENGINE_KEYS/qualityPaused sem `h3`; contagem pública
+  Six → **Seven**; lista pública com "MiniMax H3"; frase de pausa só Omni + S25.
+- `lib/kineoFacts.ts` (llms/FAQ) e `app/pricing/PricingClient.tsx` (lista de motores do Studio) com o H3 de volta.
+- Studio/Generate/mega-menu/páginas de motor/models-pricing/StructuredData leem o interruptor — voltam sozinhos.
+- Guardião `test-motores-pausados` reancorado (omni + s25).
+
+Gasto do dia na fal: 3 renders H3 (~US$ 2,4 cada) + 1 Seedance para o Jonathan (~US$ 1). Regra daqui em diante:
+validação com filme de cliente (juiz + folha de contato, $0); render na conta do fundador só com "vai".

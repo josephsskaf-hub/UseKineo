@@ -234,7 +234,7 @@ const PLAN_INCLUDES: Record<CheckoutTier, string[]> = {
     // benefício de plano é o tipo de arredondamento que o comprador confere.
     `Cinematic Kling 2.5 at 1080p — about ${videosPerMonth('pro', 'cinematic_kling')} premium videos per month`,
     `Or roughly ${videosPerMonth('pro', 'cinematic_ai')} Seedance videos per month with the same credits`,
-    'Every available engine: Kling 2.5, Veo 3.1, Kling 3 and Avatar (MiniMax H3 and Omni Flash are temporarily paused for maintenance since 15 September 2026)', // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
+    'Every available engine: Kling 2.5, Veo 3.1, Kling 3, MiniMax H3 and Avatar (Omni Flash is temporarily paused for maintenance since 15 September 2026)', // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 · KINEO-H3-DE-VOLTA-2026-09-22
   ],
 }
 
@@ -389,7 +389,7 @@ export const ENGINE_FACTS: EngineFact[] = [
     name: 'MiniMax H3',
     url: `${BASE}${engineLandingPublicPath('h3')}`,
     credits: creditsPerReferenceVideo('cinematic_h3'),
-    what: 'TEMPORARILY PAUSED for maintenance since 15 September 2026 — new films cannot be started and nothing is charged for a blocked attempt; Kling 3 covers the same job meanwhile. Lower-credit cinematic multi-scene film. Renders talking-character scenes — a person on screen speaks the exact scripted line with lip sync — alternating with documentary narration. Kineo seeds each scene with one planned anchor image; identity can still drift between shots.',
+    what: 'Back online since 22 September 2026 (768p, own narration voice, 45 credits per 60 s). Lower-credit cinematic multi-scene film. Renders talking-character scenes — a person on screen speaks the exact scripted line with lip sync — alternating with documentary narration. Kineo seeds each scene with one planned anchor image; identity can still drift between shots.',
   },
   {
     // KINEO-OMNI-2026-08-25 — entra APÓS a validação real (render Flight 19,

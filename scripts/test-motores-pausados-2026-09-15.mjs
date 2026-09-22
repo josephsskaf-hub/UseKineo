@@ -20,10 +20,10 @@ const roda = (src, globals = {}) => { const js = ts.transpileModule(src, { compi
 console.log('== (a) interruptor único, executado ==')
 const launchSrc = rd('lib/engineLaunch.ts').replace(/import \{ isInternalEmail \} from '@\/lib\/internalAccounts'\n/, '')
 const L = roda(launchSrc, { isInternalEmail: (e) => /@usekineo\.com$|josephsskaf/.test(String(e ?? '')) })
-checa('h3, omni e s25 pausados; os cinco da oferta ativos', ['h3', 'omni', 's25'].every((k) => L.enginePaused(k)) && ['fast', 'seedance', 'kling', 'veo', 'hollywood', 'avatar', '', undefined, null].every((k) => !L.enginePaused(k)))
-checa('cada pausa tem data, rótulo, mensagem com "paused for maintenance", "Nothing was charged" e alternativa ativa', ['h3', 'omni', 's25'].every((k) => { const p = L.enginePaused(k); return p && p.since === '2026-09-15' && /paused for maintenance/.test(p.message) && /Nothing was charged/.test(p.message) && ['hollywood', 'kling'].includes(p.alternative.key) && !L.enginePaused(p.alternative.key) }))
-checa('qualityPaused espelha pela quality do biller', L.qualityPaused('cinematic_h3') && L.qualityPaused('cinematic_omni') && L.qualityPaused('cinematic_s25') && !L.qualityPaused('cinematic_hollywood') && !L.qualityPaused('cinematic_kling') && !L.qualityPaused('cinematic_veo') && !L.qualityPaused('cinematic_ai') && !L.qualityPaused('fast'))
-checa('contagem e lista públicas só com os disponíveis (Six; sem H3/Omni/S25) e a frase de pausa nomeia os três', L.VIDEO_ENGINE_COUNT_WORD === 'Six' && !/H3|Omni|Seedance 2\.5/.test(L.VIDEO_ENGINE_LIST_COPY) && /Veo 3\.1.*Kling 3.*Kling 2\.5.*Seedance 1\.5.*Kineo 1.*Avatar/.test(L.VIDEO_ENGINE_LIST_COPY) && /MiniMax H3, Omni Flash and Seedance 2\.5 are temporarily paused/.test(L.PAUSED_ENGINES_COPY) && /nothing is charged/i.test(L.PAUSED_ENGINES_COPY))
+checa('omni e s25 pausados; os cinco da oferta + H3 (de volta em 22/09) ativos', ['omni', 's25'].every((k) => L.enginePaused(k)) && ['fast', 'seedance', 'kling', 'veo', 'hollywood', 'avatar', 'h3', '', undefined, null].every((k) => !L.enginePaused(k)))
+checa('cada pausa tem data, rótulo, mensagem com "paused for maintenance", "Nothing was charged" e alternativa ativa', ['omni', 's25'].every((k) => { const p = L.enginePaused(k); return p && p.since === '2026-09-15' && /paused for maintenance/.test(p.message) && /Nothing was charged/.test(p.message) && ['hollywood', 'kling'].includes(p.alternative.key) && !L.enginePaused(p.alternative.key) }))
+checa('qualityPaused espelha pela quality do biller', !L.qualityPaused('cinematic_h3') && L.qualityPaused('cinematic_omni') && L.qualityPaused('cinematic_s25') && !L.qualityPaused('cinematic_hollywood') && !L.qualityPaused('cinematic_kling') && !L.qualityPaused('cinematic_veo') && !L.qualityPaused('cinematic_ai') && !L.qualityPaused('fast'))
+checa('contagem e lista públicas só com os disponíveis (Seven; com H3 de volta, sem Omni/S25) e a frase de pausa nomeia os dois', L.VIDEO_ENGINE_COUNT_WORD === 'Seven' && !/Omni|Seedance 2.5/.test(L.VIDEO_ENGINE_LIST_COPY) && /Veo 3.1.*Kling 3.*Kling 2.5.*MiniMax H3.*Seedance 1.5.*Kineo 1.*Avatar/.test(L.VIDEO_ENGINE_LIST_COPY) && /^Omni Flash and Seedance 2.5 are temporarily paused/.test(L.PAUSED_ENGINES_COPY) && /nothing is charged/i.test(L.PAUSED_ENGINES_COPY)) // KINEO-H3-DE-VOLTA-2026-09-22
 checa('S25 continua interno (S25_PUBLIC=false) — nada foi apagado', L.S25_PUBLIC === false)
 
 console.log('== (b) servidor: recusa antes do débito, ensaio interno passa ==')
@@ -37,7 +37,7 @@ checa('KINEO-MANUTENCAO-INTERNA: conta interna passa também no render real (log
 {
   // executa a decisão do gate com a função real
   const decide = (engine, dryRun, email) => { const pausa = L.enginePaused(engine); return Boolean(pausa && !(dryRun === true && /josephsskaf/.test(email))) }
-  checa('decisão: omni real (qualquer conta) recusa; omni ensaio interno passa; kling real passa; s25 ensaio de cliente recusa', decide('omni', false, 'josephsskaf@gmail.com') && !decide('omni', true, 'josephsskaf@gmail.com') && !decide('kling', false, 'x@y.z') && decide('s25', true, 'cliente@x.z') && decide('h3', false, 'cliente@x.z'))
+  checa('decisão: omni real (qualquer conta) recusa; omni ensaio interno passa; kling real passa; s25 ensaio de cliente recusa', decide('omni', false, 'josephsskaf@gmail.com') && !decide('omni', true, 'josephsskaf@gmail.com') && !decide('kling', false, 'x@y.z') && decide('s25', true, 'cliente@x.z') && !decide('h3', false, 'cliente@x.z')) // KINEO-H3-DE-VOLTA-2026-09-22: h3 real de cliente passa
 }
 checa('recuperação preservada: retry-hollywood-scene, cinematic-clip-status, compose e cron não ganharam gate', !rd('app/api/retry-hollywood-scene/route.ts').includes('enginePaused') && !rd('app/api/cinematic-clip-status/route.ts').includes('enginePaused') && !rd('app/api/compose/route.ts').includes('enginePaused') && !rd('app/api/cron/finish-stranded-renders/route.ts').includes('enginePaused'))
 checa('custos continuam no biller (nada apagado)', /case 'cinematic_h3'/.test(rd('lib/credits/engineCost.ts')) && /case 'cinematic_omni'/.test(rd('lib/credits/engineCost.ts')) && /case 'cinematic_s25'/.test(rd('lib/credits/engineCost.ts')))
@@ -65,7 +65,7 @@ checa('tabela de preços: linhas pausadas filtradas (qualityPaused) e a nota de 
   checa('llms.txt: diz quem está pausado (gerado do interruptor único) e que plano/crédito não destrava', fixo || gerado)
 }
 const pc = rd('app/pricing/PricingClient.tsx')
-checa('pricing: Studio não promete H3/Omni; linha do H3 fora do calculador; flagship = Kling 3', pc.includes("outcome: 'Every available engine — Kling 3, Veo 3.1, Kling 2.5, Seedance 1.5, Kineo 1, Avatar") && !pc.includes("name: 'MiniMax H3 films · lip-sync'") && pc.includes("{ ic: '🏆', name: 'Kling 3 films · native voice & lip sync', cost: costFlag }") && pc.includes('lip sync (Kling 3)</span>'))
+checa('pricing: Studio não promete H3/Omni; linha do H3 fora do calculador; flagship = Kling 3', pc.includes("outcome: 'Every available engine — Kling 3, Veo 3.1, Kling 2.5, MiniMax H3, Seedance 1.5, Kineo 1, Avatar") && !pc.includes("name: 'MiniMax H3 films · lip-sync'") && pc.includes("{ ic: '🏆', name: 'Kling 3 films · native voice & lip sync', cost: costFlag }") && pc.includes('lip sync (Kling 3)</span>'))
 const calc = rd('app/cheapest-ai-shorts-maker/ShortCostCalculator.tsx')
 checa('calculadora: sem H3 e sem Omni', !/cinematic_h3/.test(calc) && !/cinematic_omni/.test(calc))
 const ep = rd('app/ai-video-generator/[engine]/page.tsx')

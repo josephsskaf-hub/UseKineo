@@ -273,7 +273,7 @@ function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
       // do card e vive na tabela comparativa.
       // KINEO-PRICING-V5-2026-08-17 — 320cr: volume + Kling 3 todo mês +
       // 2 Enhance HD grátis (Topaz) + storage ilimitado.
-      outcome: 'Every available engine — Kling 3, Veo 3.1, Kling 2.5, Seedance 1.5, Kineo 1, Avatar — plus 2 free HD enhances and unlimited forever storage.', // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15: H3/Omni pausados não se vendem
+      outcome: 'Every available engine — Kling 3, Veo 3.1, Kling 2.5, MiniMax H3, Seedance 1.5, Kineo 1, Avatar — plus 2 free HD enhances and unlimited forever storage.', // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15: Omni pausado não se vende · KINEO-H3-DE-VOLTA-2026-09-22
       videosPerMonth: filmsAndScenes('pro'),
       storageLine: 'Unlimited projects · forever storage',
       cta: { label: 'Get Started', href: '#checkout' },
