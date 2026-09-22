@@ -1,5 +1,15 @@
 # Afiliados — semana de 18 a 25/09/2026
 
+## P3-017 — exceção nominal aprovada, 22/09 14:28 UTC
+
+**PARCIAL / contrato antes da edição:** coorte = único candidato P3-017 e seus futuros clientes externos; obstáculo = interesse sem aceite e condição nominal ainda sem prontidão comprovada; hipótese = proposta exclusiva pode destravar concordância; mudança mínima reversível = registro documental e proposta privada, sem produto; superfície = DECISIONS/PEDIDOS/diário e handoff privado; evento existente = compra canônica atribuída, após URL/data da publicação real; sucesso imediato = dono financeiro recebe especificação verificável; amostra = um candidato na sprint fixa 22/09 14:18:21–19:18:21 UTC; risco = prometer condição que o cálculo não cumpre; parada = não enviar até capacidade validada, supressões e revisão nominal. Afiliados coordena; Claude implementa a parte financeira.
+
+**DECISÃO APROVADA / LOCAL:** registrada em DECISIONS a exceção exclusiva de 50% nas duas primeiras mensalidades elegíveis efetivamente pagas de CADA cliente externo atribuído ao P3-017, 30% nas seguintes. Pedido AF-P3-017-20260922 especifica proprietário imutável, transação/ordinal idempotentes, concorrência, replay, refund e preservação dos demais contratos. Distinta de AF-R2-05; sem ampliar anuais/packs/trial/piloto/crédito/bônus. Identidade e texto de proposta apenas no privado.
+
+**EVIDÊNCIA DE PRODUÇÃO / leitura da conversa às 14:26:24 UTC:** acesso comercial restabelecido; última mensagem ainda é nossa resposta histórica, sem aceite novo nessa conversa. Não é primeiro afiliado ativado. **FATO CONFIRMADO:** taxa global 0.3 em lib/affiliateCommission.ts:8, base 322e6b75; exceção não comprovada em produção. Nenhum backend, banco, e-mail ou superfície pública alterados. Candidato antigo 1ad28d9b preservado na branch anterior, sem reaplicação.
+
+**QUESTÃO PENDENTE / próximo dono:** prontidão operacional nominal pelo Claude. Proposta privada autorizada para revisão; envio será decidido separadamente após supressões e capacidade. Commit/fila/publicação documental serão conciliados por SHA, sem contar documento como exposição ou receita.
+
 ## R1 — contrato antes de editar (18/09, 05:18 UTC)
 
 **PARCIAL / HIPÓTESE:** pessoas externas indicadas que completam cadastro concorrente → perdedor de corrida de inserção é descrito como nova atribuição → preservar dono canônico e classificar vínculo existente → lib/affiliateAttribution.ts e testes offline já preparados por Parcerias → evento existente affiliate_signup_attribution_result → pagamento não muda nesta correção → reproduzir deterministicamente a corrida 23505 antes/depois → parar se exigir mudança em auth/checkout/webhook ou política → dono Afiliados, handoff Parcerias recebido nesta sessão.

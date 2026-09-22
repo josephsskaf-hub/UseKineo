@@ -4,6 +4,16 @@ Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aq
 
 Formato: data · decisão · motivo · consequência prática.
 
+## 2026-09-22 — Exceção nominal P3-017: duas mensalidades a 50%, seguintes a 30%
+
+**DECISÃO APROVADA pelo fundador no Board, 22/09/2026 14:27 UTC:** exclusivamente para P3-017, comissão de 50% nas duas primeiras mensalidades elegíveis efetivamente pagas de CADA cliente externo atribuído a esse parceiro; 30% nas mensalidades seguintes. O fundador esclareceu “Nos2 primeiros meses” e confirmou exclusividade após a explicitação do Board. Identidade e conversa permanecem no ledger privado de Afiliados.
+
+**Motivo:** viabilizar a proposta ao candidato existente, que ainda não confirmou aceite. Não é prova de primeiro afiliado ativado, publicação ou venda.
+
+**Escopo:** não altera taxa global, não se limita ao primeiro cliente e não concede 50% indefinidamente. Anuais, packs, trial, piloto gratuito, créditos, bônus e novos acúmulos não estão incluídos por inferência. É uma exceção separada do piloto AF-R2-05; não altera contratos históricos de terceiros nem reabre PayPal/50-30 já aprovados.
+
+**Consequência / BLOQUEADO para promessa externa até validação:** Claude responde pela capacidade operacional financeira; Afiliados prepara proposta privada e coordena. Pedido único AF-P3-017-20260922 em PEDIDOS-ENTRE-PISTAS. Aprovação comercial não comprova implementação, configuração nominal, aceite do parceiro ou pagamento. Rascunho privado autorizado; envio depende de revisão separada, supressões atuais e capacidade validada. Não há autorização de escrita direta em banco, migration, render ou pagamento de teste por este registro.
+
 ---
 
 ## 2026-09-01 — Uma moeda comercial: USD em toda a jornada
