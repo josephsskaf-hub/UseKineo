@@ -112,11 +112,16 @@ export const OUR_OWN_REFUSAL_REASONS = new Set([
   'generate_empty_prompt',
   'fast_unauthenticated',
   'analyze_unauthenticated',
+  // KINEO-SAUDE-RECUSA-PROPRIA-2026-09-22 — o guardião de narração do Kineo 1 (roteiro de 25–29 s pedindo 35 s)
+  // barrou 5 tentativas de 4 pessoas em 22/09 ANTES de gastar crédito; as 3 com rastro fizeram o filme em ≤ 20 min.
+  // O alarme leu isso como "PAROU DE ENTREGAR" com 10 filmes entregues na janela. Portão de negócio na tabela de erro
+  // não é sintoma de fornecedor.
+  'narration_too_short',
 ])
 
 // Rede de segurança para motivos que ainda não existem. Deliberadamente NÃO
 // inclui 'limit' solto: `rate_limited` é sintoma de fornecedor e precisa passar.
-const OUR_OWN_REFUSAL_RE = /(^|_)gate(_|$)|blocked|unauthenticated|free_limit|empty_prompt/
+const OUR_OWN_REFUSAL_RE = /(^|_)gate(_|$)|blocked|unauthenticated|free_limit|empty_prompt|narration_too_short|narration_guard/
 
 export function isOurOwnRefusal(reason: string): boolean {
   const r = reason.trim().toLowerCase()
@@ -136,6 +141,8 @@ export interface HealthWindow {
   matureAttempts: number
   completed: number
   failed: number
+  /** `video_generation_failed` que casa com uma recusa NOSSA da mesma pessoa em ≤ 3 min — não é falha de fornecedor. */
+  refused: number
   stageErrors: number
   /** Pessoas distintas, contando visitantes anônimos (ver buildWindow). */
   distinctUsers: number
@@ -199,7 +206,26 @@ function buildWindow(
 
   let completed = 0
   let failed = 0
+  let refused = 0
   let stageErrors = 0
+  // KINEO-SAUDE-RECUSA-PROPRIA-2026-09-22 — 1ª passada: quando cada pessoa foi recusada pela CASA (portão de negócio).
+  // O cliente ainda grava `video_generation_failed` depois de um portão desses; sem este cruzamento a taxa de falha
+  // conta recusa nossa como fornecedor caído.
+  const ownRefusalAt = new Map<string, number[]>()
+  for (const row of rows) {
+    if (row.name !== STAGE_ERROR_EVENT || !row.user_id) continue
+    const raw = row.metadata?.reason
+    const reason = typeof raw === 'string' ? raw.trim().toLowerCase() : ''
+    if (!reason || !isOurOwnRefusal(reason)) continue
+    const t = Date.parse(row.created_at)
+    if (!Number.isFinite(t)) continue
+    const list = ownRefusalAt.get(row.user_id) ?? []
+    list.push(t)
+    ownRefusalAt.set(row.user_id, list)
+  }
+  const OWN_REFUSAL_MATCH_MS = 3 * 60_000
+  const matchesOwnRefusal = (userId: string | null, t: number): boolean =>
+    !!userId && (ownRefusalAt.get(userId) ?? []).some((r) => Math.abs(r - t) <= OWN_REFUSAL_MATCH_MS)
   let started = 0
   let startedMature = 0
   let anonAttempts = 0
@@ -218,7 +244,8 @@ function buildWindow(
     } else if (row.name === COMPLETED_EVENT) {
       completed++
     } else if (row.name === FAILED_EVENT) {
-      failed++
+      if (matchesOwnRefusal(row.user_id, t)) refused++
+      else failed++
       if (row.user_id) users.add(row.user_id)
       else anonAttempts++
     } else if (row.name === STAGE_ERROR_EVENT) {
@@ -235,9 +262,9 @@ function buildWindow(
   // retomada de checkpoint). Usar o MAIOR entre o contador de início e o
   // desfecho observado impede dois erros opostos: subcontar tentativas (alarme
   // que não toca) e produzir taxa > 100% (alarme que parece bug).
-  const attempts = Math.max(started, completed + failed)
+  const attempts = Math.max(started, completed + failed + refused)
   // Tudo que já teve desfecho é, por definição, maduro.
-  const matureAttempts = Math.max(startedMature, completed + failed)
+  const matureAttempts = Math.max(startedMature, completed + failed + refused)
 
   // ⚠️ ANÔNIMO CONTA — DEFEITO PEGO NA REVISÃO ADVERSARIAL.
   //
@@ -292,6 +319,7 @@ function buildWindow(
     matureAttempts,
     completed,
     failed,
+    refused,
     stageErrors,
     distinctUsers,
     failureRatePct,

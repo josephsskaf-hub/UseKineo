@@ -147,6 +147,7 @@ function alarmBody(health: GenerationHealth, burn: SupplierBurnRow[], reminderIn
       `  tentativas ............ ${w.attempts} (de ${w.distinctUsers} pessoa(s) distintas)\n` +
       `  vídeos entregues ...... ${w.completed}\n` +
       `  falhas ................ ${w.failed} (${fmtPct(w.failureRatePct)})\n` +
+      `  recusas nossas ........ ${w.refused} (portão de negócio, ex. roteiro curto — não contam como falha)\n` +
       `  erros de etapa ........ ${w.stageErrors}\n` +
       `  motivo mais repetido .. ${w.topReason ?? '—'}${w.topReasonCount ? ` (${w.topReasonCount}x)` : ''}\n` +
       `  regra(s) que acenderam: ${describeRules(w.triggered)}\n`
