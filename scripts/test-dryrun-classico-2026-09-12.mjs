@@ -56,7 +56,7 @@ const fast = rd('app/api/generate-video-fast/route.ts')
 const fHook = fast.includes("const dryRunAutorizado = body.dry_run === true && isDryRunAccount(user.email)") ? fast.indexOf("    if (dryRunAutorizado) {") : fast.indexOf("if (body.dry_run === true && isDryRunAccount(user.email)) {")
 const fAiHook = fast.indexOf('let aiHookHandle: AiHookHandle | null = null')
 const fScenes = fast.indexOf('scenes = await generateScenes(prompt.slice(0, 1200), clipCount')
-checa('dry_run entra no contrato do body', /dry_run\?: boolean\n\s+\}\n\s+try \{\n\s+body = await req\.json\(\)/.test(fast))
+checa('dry_run entra no contrato do body', /dry_run\?: boolean\n(?:\s*\/\/[^\n]*\n\s*script_mode\?: string\n)?\s+\}\n\s+try \{\n\s+body = await req\.json\(\)/.test(fast)) // KINEO1-VERBATIM-ESTICA-2026-09-22: script_mode entrou logo abaixo no contrato
 checa('gancho depois das cenas planejadas e ANTES do hook pago da IA', fHook > 0 && fScenes > 0 && fScenes < fHook && fHook < fAiHook)
 checa('relatório do Kineo 1 usa a mesma lib, com segundos por clipe = duração/cenas, e devolve a faixa de palavras', /secondsPerClip: duration \/ Math\.max\(1, clipCount\),/.test(fast) && /words_per_scene: verbatim \? null : wordsPerSceneFor\(duration, clipCount\)/.test(fast) && /family: 'fast', engine: 'fast'/.test(fast))
 

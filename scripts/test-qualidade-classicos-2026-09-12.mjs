@@ -65,7 +65,7 @@ const comp = rd('app/api/compose/route.ts')
 checa('claimVerbatim lido da resposta assinada do claim, antes do escalador', /const claimVerbatim = cinematicBirthClaim\?\.response\?\.verbatim === true\n\s+let scaledScript: string/.test(comp))
 checa('escalador pulado com speed OU claim verbatim', /\} else if \(explicitSpeed != null \|\| claimVerbatim\) \{\n\s+scaledScript = voiceoverScript/.test(comp))
 checa('correção de ritmo também respeita o verbatim', /explicitSpeed == null &&\n\s+!claimVerbatim &&/.test(comp))
-checa('fast: verbatim viaja com speed padrão 1 (o cliente só encaminha speed numérico)', /speed: verbatim \? \(parsedScript\.speed \?\? 1\) : parsedScript\.speed,/.test(fast))
+checa('fast: verbatim viaja com speed padrão 1 (o cliente só encaminha speed numérico)', /speed: (?:verbatim|ownScript) \? \(parsedScript\.speed \?\? 1\) : parsedScript\.speed,/.test(fast)) // KINEO1-VERBATIM-ESTICA-2026-09-22: ownScript = marcadores OU script_mode verbatim (prosa)
 
 console.log('== (5) cron enxerga cena morta — função executada com fal falso ==')
 const cron = rd('app/api/cron/finish-stranded-renders/route.ts')
