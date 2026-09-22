@@ -4811,7 +4811,7 @@ async function manipularPost(req: NextRequest) {
                 hModels.push(HOST_PRESENTER_MODEL)
                 hEngines.push('host')
                 hSubmittedPrompts.push(submittedPrompt)
-                ctxDespacho().submittedPrompts[hs.index] = submittedPrompt.slice(0, 240)
+                ctxDespacho().submittedPrompts[hs.index - 1] = submittedPrompt.slice(0, 240) // KINEO-JUIZ-VE-A-CENA-1-2026-09-22: hs.index é 1-based; o juiz lê 0-based (scene_index)
                 break
               }
               throw e
@@ -4931,7 +4931,7 @@ async function manipularPost(req: NextRequest) {
           // imagem só vinha depois; o modelo tem negative_prompt, e é lá que o silêncio vai (buildFalInput). H3/Omni/S25 não
           // têm negative: o prefixo fica. O sufixo curto de boca fechada continua em todas.
           const mouthPrefix = hs.type !== 'dialogue' && family !== 'hollywood'
-            ? 'No one talks on camera. Every visible person is silent, mouth closed, no lip movement, not speaking. '
+            ? 'Nobody addresses the camera and nobody poses for it: show only the action, places and objects the narration describes; anyone visible is part of that action, mouth closed, never facing the lens. ' // KINEO-PREFIXO-SEM-PESSOA-2026-09-22: "every visible person" presumia uma pessoa — o H3 desenhou um homem de celular na cena da floresta arrancada (render 19e317fe)
             : ''
           if (hs.type !== 'dialogue') {
             hs.prompt = hs.prompt
@@ -5033,7 +5033,7 @@ async function manipularPost(req: NextRequest) {
               hModels.push(sceneModel)
               hEngines.push(sceneEngine)
               hSubmittedPrompts.push(submittedPrompt)
-              ctxDespacho().submittedPrompts[hs.index] = submittedPrompt.slice(0, 240)
+              ctxDespacho().submittedPrompts[hs.index - 1] = submittedPrompt.slice(0, 240) // KINEO-JUIZ-VE-A-CENA-1-2026-09-22: hs.index é 1-based; o juiz lê 0-based (scene_index)
               break
             }
             throw e
@@ -5046,7 +5046,7 @@ async function manipularPost(req: NextRequest) {
         hModels.push(sceneModel)
         hEngines.push(sceneEngine)
         hSubmittedPrompts.push(submittedPrompt)
-        ctxDespacho().submittedPrompts[hs.index] = submittedPrompt.slice(0, 240)
+        ctxDespacho().submittedPrompts[hs.index - 1] = submittedPrompt.slice(0, 240) // KINEO-JUIZ-VE-A-CENA-1-2026-09-22: hs.index é 1-based; o juiz lê 0-based (scene_index)
         // KINEO-S25-FALA-SEM-VOZ-R5-2026-09-14 (Board, R4 §2) — uma fala
         // obrigatória retida já condena o filme: nenhuma cena seguinte pode
         // completá-lo. Parar aqui evita POSTs pagos que só virariam custo nosso.
