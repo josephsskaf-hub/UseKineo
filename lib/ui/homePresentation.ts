@@ -52,6 +52,7 @@ export const HOME_PRESENTATION_CSS = `
 
 /* Approved 22 Sep: original blue actions, mint confined to the brand mark. */
 .klp .wrap,.klp .ew-wrap { max-width:1680px; }
+.klp .plan { min-width:0; overflow-wrap:anywhere; }
 .klp .logo .mk { border-color:rgba(171,237,201,.32); box-shadow:0 0 16px rgba(171,237,201,.12); }
 .klp .home-intro { position:relative; z-index:1; margin-bottom:26px; }
 .klp .home-title { max-width:780px; font-size:clamp(28px,3.1vw,46px); line-height:1.17; }

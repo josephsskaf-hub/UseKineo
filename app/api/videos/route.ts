@@ -10,6 +10,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isJwtSkewError, skewFallbackClient } from '@/lib/jwtSkewFallback'
+import { videoListLimit } from '@/lib/ui/libraryListing'
 
 export const maxDuration = 10
 // Reads cookies via supabase auth — mark explicitly dynamic so Next.js
@@ -117,7 +118,8 @@ function toListItem(row: RawRow): VideoListItem {
   }
 }
 
-export async function GET() {
+export async function GET(request?: Request) {
+  const listLimit = videoListLimit(request ? new URL(request.url).searchParams.get('limit') : null)
   try {
     const supabase = createClient()
     const {
@@ -173,7 +175,7 @@ export async function GET() {
         .select(columns)
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
-        .limit(48)
+        .limit(listLimit)
       // KINEO-JWT-SKEW-2026-08-28 — em 28/08 o Supabase recusou todo token
       // fresco (PGRST303 "JWT issued at future") e esta rota devolveu lista
       // VAZIA em silêncio: o fundador abriu My Videos, viu "No videos yet" e
@@ -191,7 +193,7 @@ export async function GET() {
             .select(columns)
             .eq('user_id', userId)
             .order('created_at', { ascending: false })
-            .limit(48)
+            .limit(listLimit)
         }
       }
       return r

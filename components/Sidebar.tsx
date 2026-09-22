@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { WORKSPACE_NAV, GROW_NAV, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -76,6 +77,7 @@ async function recordTopupEventOnce(eventName: string): Promise<boolean> {
 // currentColor so active/hover states tint them automatically. Replaces the
 // emoji tiles, which read playful-but-cheap next to the new theme.
 const NAV_ICONS: Record<string, JSX.Element> = {
+  home: <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/></svg>,
   generate: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="2.5" y="5" width="14" height="14" rx="3" />
@@ -181,12 +183,10 @@ function NavItem({
   const router = useRouter()
   const [hovered, setHovered] = useState(false)
   const hrefPath = href.split('?')[0]
-  const active = exact
-    ? pathname === hrefPath
-    : pathname === hrefPath || pathname.startsWith(hrefPath + '/')
+  const active = workspaceNavActive(pathname, hrefPath)
 
   function handleClick(e: React.MouseEvent) {
-    if (active) {
+    if (pathname === hrefPath) {
       // ONDA2 #24 (13/08) — clicar no item JA ativo nao dispara mais
       // router.refresh(): em /generate isso re-renderizava o server no meio
       // de um formulario preenchido/render em andamento. Um toque acidental
@@ -208,6 +208,7 @@ function NavItem({
   return (
     <Link
       href={href}
+      aria-current={active ? (pathname === hrefPath ? 'page' : 'location') : undefined}
       onClick={handleClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -597,7 +598,7 @@ export default function Sidebar({
             }}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="#2997ff" stroke="#2997ff" strokeWidth="0.5" strokeLinejoin="round" />
+              <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="#ABEDC9" stroke="#ABEDC9" strokeWidth="0.5" strokeLinejoin="round" />
             </svg>
           </div>
           <div className="flex flex-col" style={{ gap: 2 }}>
@@ -624,23 +625,13 @@ export default function Sidebar({
           {/* KINEO-NAV-REDESIGN-2026-07-10 (Joseph) — landing-style hierarchy:
               CREATE (the engines) · GROW (audience tools) · ACCOUNT. */}
           <NavSection label="Create" first />
-          <NavItem href="/studio" icon={NAV_ICONS.generate} label="Studio" exact={false} pathname={pathname} onClick={onClose} />
-          <NavItem href="/images" icon={NAV_ICONS.images} label="Images" exact={false} pathname={pathname} onClick={onClose} badge="NEW" />
-          <NavItem href="/audio" icon={NAV_ICONS.audio} label="Audio" exact={false} pathname={pathname} onClick={onClose} badge="NEW" />
-          <NavItem href="/avatar" icon={NAV_ICONS.avatar} label="AI Presenter" exact={false} pathname={pathname} onClick={onClose} />
-          <NavItem href="/animate" icon={NAV_ICONS.animate} label="Animate a Photo" exact={false} pathname={pathname} onClick={onClose} />
-          <NavItem href="/thumbnail-generator" icon={NAV_ICONS.thumbnails} label="AI Thumbnails" exact={false} pathname={pathname} onClick={onClose} badge="HOT" />
-
-          <NavSection label="Grow" />
-          {/* KINEO-AUTOPILOT-UI-2026-07-26 — o backend do Autopilot (migration
-              021 + cron horário) já existia sem NENHUM link em lugar nenhum:
-              sem esta entrada, /autopilot só é alcançável digitando a URL. */}
-          <NavItem href="/autopilot" icon={NAV_ICONS.autopilot} label="Autopilot" exact={false} pathname={pathname} onClick={onClose} />
-          <NavItem href="/viral-now" icon={NAV_ICONS.viral} label="Viral Now" exact={false} pathname={pathname} onClick={onClose} />
-          <NavItem href="/channel" icon={NAV_ICONS.channel} label="Channel Builder" exact={false} pathname={pathname} onClick={onClose} />
-          <NavItem href="/history" icon={NAV_ICONS.videos} label="My Videos" exact={false} pathname={pathname} onClick={onClose} />
-          {/* KINEO-LIBRARY-2026-08-17 — estante unica: videos+imagens+audios */}
-          <NavItem href="/library" icon={NAV_ICONS.thumbnails} label="Library" exact={false} pathname={pathname} onClick={onClose} badge="NEW" />
+          {WORKSPACE_NAV.map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={item.href === '/'} pathname={pathname} onClick={onClose} />)}
+          <details className="workspace-nav-group" open={GROW_NAV.some(item => workspaceNavActive(pathname, item.href)) || undefined}>
+            <summary><UiLabel>Grow</UiLabel></summary>
+            {GROW_NAV.map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} />)}
+          </details>
+          <details className="workspace-nav-group" open={['/account','/pricing','/affiliate','/referral'].some(path => workspaceNavActive(pathname,path)) || undefined}>
+          <summary><UiLabel>Account</UiLabel></summary>
           {isLoggedIn && (
             <>
               <NavItem href="/referral" icon={NAV_ICONS.referral} label="Invite & Earn" exact={false} pathname={pathname} onClick={onClose} />
@@ -654,8 +645,10 @@ export default function Sidebar({
             </>
           )}
 
-          <NavSection label="Account" />
+
           <NavItem href="/pricing" icon={NAV_ICONS.pricing} label="Pricing" exact={false} pathname={pathname} onClick={onClose} />
+          </details>
+          <style dangerouslySetInnerHTML={{__html: `.workspace-nav-group{margin-top:14px;padding-top:10px;border-top:1px solid #ffffff0c}.workspace-nav-group>summary{min-height:44px;padding:10px 12px;color:#9ca6b5;font-size:12px;font-weight:600;cursor:pointer}.workspace-nav-group>summary:focus-visible{outline:2px solid #2997ff;border-radius:8px}`}} />
 
         </nav>
 

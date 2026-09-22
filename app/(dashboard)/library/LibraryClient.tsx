@@ -11,14 +11,15 @@ import { selectRecentLibraryProject, type RecentLibraryProject } from '@/lib/ui/
 import { useCallback, useEffect, useState } from 'react'
 import { engineLabelFor } from '@/lib/engineLabel'
 import Link from 'next/link'
+import { libraryVideoState } from '@/lib/ui/libraryListing'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { trackEvent } from '@/lib/analytics'
 import { buildStudioSeriesReviewHref } from '@/lib/navigation/studioSeriesReview'
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 
-type Tab = 'videos' | 'images' | 'audio'
+type Tab = 'all' | 'videos' | 'images' | 'audio'
 
-type Vid = { id: string; title: string | null; video_url: string | null; thumbnail_url: string | null; enhanced_url?: string | null; quality_mode?: string | null }
+type Vid = { id: string; status?: string; title: string | null; video_url: string | null; thumbnail_url: string | null; enhanced_url?: string | null; quality_mode?: string | null }
 type Img = { id: string; url: string; upscaled_url?: string | null; model?: string }
 type Aud = { id: string; url: string; model?: string; voice?: string | null; text?: string | null }
 
@@ -27,7 +28,7 @@ export default function LibraryClient() {
   const [recentVideo, setRecentVideo] = useState<RecentLibraryProject | null>(null)
   // sprint-retencao #15 — `library_video_card` tinha clique e zero impressao.
   const { registrarPorta } = useSeriesDoorSeen()
-  const [tab, setTab] = useState<Tab>('videos')
+  const [tab, setTab] = useState<Tab>('all')
   const [vids, setVids] = useState<Vid[]>([])
   const [imgs, setImgs] = useState<Img[]>([])
   const [auds, setAuds] = useState<Aud[]>([])
@@ -64,7 +65,7 @@ export default function LibraryClient() {
     setLoaded(false)
     setLoadFailed(false)
     Promise.all([
-      fetch('/api/videos', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      fetch('/api/videos?limit=300', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
       fetch('/api/images', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
       fetch('/api/audio', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
     ]).then(([v, i, a]) => {
@@ -72,7 +73,7 @@ export default function LibraryClient() {
       // /api/videos can return HTTP 200 with an explicit unreliable-history flag.
       if (v?.historyReliable === false) setLoadFailed(true)
       if (Array.isArray(v?.videos)) {
-        setVids(v.videos.filter((x: Vid) => x.video_url))
+        setVids(v.videos)
         setRecentVideo(selectRecentLibraryProject(v.videos))
       }
       if (Array.isArray(i?.images)) setImgs(i.images)
@@ -82,7 +83,9 @@ export default function LibraryClient() {
   }, [])
   useEffect(() => { loadAll() }, [loadAll])
 
+  const completedCount = vids.filter((video) => libraryVideoState(video) === 'Ready').length
   const TABS: { key: Tab; label: string; count: number }[] = [
+    { key: 'all', label: 'All', count: vids.length + imgs.length + auds.length },
     { key: 'videos', label: 'Videos', count: vids.length },
     { key: 'images', label: 'Images', count: imgs.length },
     { key: 'audio', label: 'Audio', count: auds.length },
@@ -98,7 +101,7 @@ export default function LibraryClient() {
   const fVids = needle ? vids.filter((v) => (v.title ?? '').toLowerCase().includes(needle)) : vids
   const fImgs = needle ? imgs.filter((im) => (im.model ?? '').toLowerCase().includes(needle)) : imgs
   const fAuds = needle ? auds.filter((a) => [a.text, a.voice, a.model].filter(Boolean).join(' ').toLowerCase().includes(needle)) : auds
-  const activeCount = tab === 'videos' ? vids.length : tab === 'images' ? imgs.length : auds.length
+  const activeCount = tab === 'all' ? vids.length + imgs.length + auds.length : tab === 'videos' ? vids.length : tab === 'images' ? imgs.length : auds.length
   const clearBtn = (
     <button type="button" className="pill" onClick={() => setQ('')} style={{ color: '#2997ff', borderColor: 'rgba(41,151,255,.4)' }}><UiLabel>
       Clear search
@@ -119,7 +122,7 @@ export default function LibraryClient() {
         )}
       </p>
 
-      {loaded && !loadFailed && tab === 'videos' && !q.trim() && recentVideo && <LibraryRecentProjectCard video={recentVideo} />}
+      {loaded && !loadFailed && (tab === 'all' || tab === 'videos') && !q.trim() && recentVideo && <LibraryRecentProjectCard video={recentVideo} />}
 
       {/* KINEO-SPRINT-V1V4-2026-08-31 (#1) — CAMINHO DE VOLTA PARA CRIAR.
           A Library e a unica tela do acervo que so oferecia link de criacao
@@ -146,7 +149,7 @@ export default function LibraryClient() {
           ><UiLabel>
             Create new video
           </UiLabel></Link>
-          {vids.length > 0 && (
+          {completedCount > 0 && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
               <span aria-hidden="true" style={{ display: 'inline-flex', gap: 4 }}>
                 {[0, 1, 2, 3].map((i) => (
@@ -156,21 +159,23 @@ export default function LibraryClient() {
                       width: 7,
                       height: 7,
                       borderRadius: 99,
-                      background: i < Math.min(vids.length, 4) ? '#34d399' : 'rgba(255,255,255,.16)',
+                      background: i < Math.min(completedCount, 4) ? '#2997ff' : 'rgba(255,255,255,.16)',
                     }}
                   />
                 ))}
               </span>
               <span style={{ fontSize: 12, color: 'var(--txt2,#9aa0a6)', fontWeight: 700 }}>
-                {vids.length >= 4
-                  ? (t(`${vids.length} Shorts made`, `${vids.length} Shorts creados`))
-                  : (t(`${vids.length} of your first 4 Shorts`, `${vids.length} de tus primeros 4 Shorts`))}
+                {completedCount >= 4
+                  ? (t(`${completedCount} Shorts made`, `${completedCount} Shorts creados`))
+                  : (t(`${completedCount} of your first 4 Shorts`, `${completedCount} de tus primeros 4 Shorts`))}
               </span>
             </span>
           )}
         </div>
       )}
 
+      <div className="library-history-link"><Link href="/history"><UiLabel>Video history and downloads</UiLabel> ↗</Link></div>
+      {loaded && !loadFailed && activeCount === 0 && tab === 'all' && <p className="sub"><UiLabel>No projects yet.</UiLabel> <Link href="/studio"><UiLabel>Create a video</UiLabel> →</Link></p>}
       <div className="library-toolbar">
       <div className="row" role="group" aria-label="Asset type">
         {TABS.map((t) => (
@@ -180,15 +185,15 @@ export default function LibraryClient() {
         ))}
       </div>
 
-      {loaded && activeCount >= 6 && (
+      {loaded && activeCount > 0 && (
         <div className="library-search">
           <span aria-hidden="true" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, opacity: 0.55 }}>🔍</span>
           <input
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder={t((tab === 'videos' ? 'Search your videos…' : tab === 'images' ? 'Search your images…' : 'Search your audio…'), (tab === 'videos' ? 'Busca tus vídeos…' : tab === 'images' ? 'Busca tus imágenes…' : 'Busca tus audios…'))}
-            aria-label={t((tab === 'videos' ? 'Search your videos by title' : tab === 'images' ? 'Search your images by engine' : 'Search your audio by text or voice'), 'Buscar en tu biblioteca')}
+            placeholder={t((tab === 'all' ? 'Search all projects…' : tab === 'videos' ? 'Search your videos…' : tab === 'images' ? 'Search your images…' : 'Search your audio…'), (tab === 'videos' ? 'Busca tus vídeos…' : tab === 'images' ? 'Busca tus imágenes…' : 'Busca tus audios…'))}
+            aria-label={t((tab === 'all' ? 'Search all projects' : tab === 'videos' ? 'Search your videos by title' : tab === 'images' ? 'Search your images by engine' : 'Search your audio by text or voice'), 'Buscar en tu biblioteca')}
             style={{ width: '100%', borderRadius: 12, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)', color: '#f5f5f7', fontSize: 16, padding: '11px 14px 11px 38px', outline: 'none', boxSizing: 'border-box' }}
           />
         </div>
@@ -213,7 +218,7 @@ export default function LibraryClient() {
         </div>
       )}
 
-      {loaded && tab === 'videos' && (
+      {loaded && (tab === 'videos' || (tab === 'all' && vids.length > 0)) && (
         vids.length === 0 ? (
           loadFailed ? null : recentVideo ? <p className="sub">{t('No playable videos in your library yet. Check your latest project above.', 'Todavía no hay vídeos reproducibles en tu biblioteca. Consulta el estado de tu último proyecto arriba.')}</p> : <p className="sub"><UiLabel>No videos yet — </UiLabel><Link href="/studio" style={{ color: '#2997ff' }}><UiLabel>open the Studio</UiLabel></Link><UiLabel> and make your first film.</UiLabel></p>
         ) : fVids.length === 0 ? (
@@ -222,7 +227,7 @@ export default function LibraryClient() {
             {clearBtn}
           </div>
         ) : (
-          <div className="library-collection">
+          <div className="library-asset-section"><h2><UiLabel>Videos</UiLabel></h2><div className="library-collection">
             {fVids.map((v) => (
               <div key={v.id} className="card" style={{ padding: 8 }}>
                 <Link href={`/history#v-${v.id}`} style={{ display: 'block', textDecoration: 'none' }}>
@@ -235,36 +240,38 @@ export default function LibraryClient() {
                   {engineLabelFor(v.quality_mode) && (
                     <span style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', padding: '2px 6px', borderRadius: 99, background: 'rgba(41,151,255,0.2)', border: '1px solid rgba(41,151,255,0.5)', color: '#7cc0ff' }}>{engineLabelFor(v.quality_mode)}</span>
                   )}
-                  <video
+                  {v.video_url ? <video
                     src={v.enhanced_url ?? v.video_url ?? undefined}
                     poster={v.thumbnail_url ?? undefined}
                     muted
                     playsInline
-                    preload="metadata"
+                    preload="none"
                     onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
                     onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0 }}
                     style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                  />
+                  /> : <div className="library-status-placeholder"><span aria-hidden="true">◇</span><UiLabel>{libraryVideoState(v)}</UiLabel></div>}
                 </div>
+                <div className="library-project-state"><UiLabel>{libraryVideoState(v)}</UiLabel></div>
                 {v.title && (
                   <div title={v.title} style={{ marginTop: 10, fontSize: 13, lineHeight: 1.5, color: '#d4ddec', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                     {v.title}
                   </div>
                 )}
                 </Link>
+                <Link className="library-details" href={`/history#v-${v.id}`}><UiLabel>View details</UiLabel> ↗</Link>
                 {/* KINEO-SPRINT-V1V4-2026-08-31 (#1) — cada card era um beco:
                     levava para /history e acabava ali. Agora o card devolve o
                     TEMA para o Studio (mesmo motor do /history e da tela de
                     "video pronto": buildSeriesContinuationHref), para o 2o
                     video nao exigir escrever tudo de novo. */}
-                {v.title && (
+                {v.title && libraryVideoState(v) === 'Ready' && (
                   <Link
                     href={buildStudioSeriesReviewHref(v.title, 'library_video_card')}
                     prefetch={false}
                     ref={registrarPorta({
                       source: 'library_video_card',
                       video_id: v.id,
-                      completed_video_count: vids.length,
+                      completed_video_count: completedCount,
                     })}
                     className="pill"
                     style={{ marginTop: 8, display: 'block', textAlign: 'center', textDecoration: 'none', fontSize: 11.5, fontWeight: 700, color: '#7cc0ff', borderColor: 'rgba(41,151,255,.35)' }}
@@ -272,7 +279,7 @@ export default function LibraryClient() {
                       void trackEvent('series_continue_clicked', {
                         source: 'library_video_card',
                         video_id: v.id,
-                        completed_video_count: vids.length,
+                        completed_video_count: completedCount,
                       })
                     }}
                   ><UiLabel>
@@ -281,11 +288,11 @@ export default function LibraryClient() {
                 )}
               </div>
             ))}
-          </div>
+          </div></div>
         )
       )}
 
-      {loaded && tab === 'images' && (
+      {loaded && (tab === 'images' || (tab === 'all' && imgs.length > 0)) && (
         imgs.length === 0 ? (
           loadFailed ? null : <p className="sub"><UiLabel>No images yet — </UiLabel><Link href="/images" style={{ color: '#2997ff' }}><UiLabel>create your first image</UiLabel></Link>.</p>
         ) : fImgs.length === 0 ? (
@@ -294,7 +301,7 @@ export default function LibraryClient() {
             {clearBtn}
           </div>
         ) : (
-          <div className="library-collection">
+          <div className="library-asset-section"><h2><UiLabel>Images</UiLabel></h2><div className="library-collection">
             {fImgs.map((im) => (
               <div key={im.id} className="card" style={{ padding: 8 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -305,11 +312,11 @@ export default function LibraryClient() {
                 </div>
               </div>
             ))}
-          </div>
+          </div></div>
         )
       )}
 
-      {loaded && tab === 'audio' && (
+      {loaded && (tab === 'audio' || (tab === 'all' && auds.length > 0)) && (
         auds.length === 0 ? (
           loadFailed ? null : <p className="sub"><UiLabel>No audio yet — </UiLabel><Link href="/audio" style={{ color: '#2997ff' }}><UiLabel>generate your first voiceover</UiLabel></Link>.</p>
         ) : fAuds.length === 0 ? (
@@ -318,7 +325,7 @@ export default function LibraryClient() {
             {clearBtn}
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 720 }}>
+          <div className="library-audio-section" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}><h2><UiLabel>Audio</UiLabel></h2>
             {fAuds.map((a) => (
               <div key={a.id} className="card" style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <audio controls preload="none" src={a.url} style={{ flex: '1 1 260px', height: 36 }} />
@@ -330,6 +337,10 @@ export default function LibraryClient() {
           </div>
         )
       )}
+      <style dangerouslySetInnerHTML={{__html: `
+.stu.library-page{max-width:1480px}.library-page .library-collection{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px}.library-page .library-collection>.card{padding:12px!important;min-width:0;background:#121923;border-color:#27303e;border-radius:18px}.library-asset-section,.library-audio-section{margin:24px 0 32px}.library-page h2{font-size:17px;font-weight:600;margin:0 0 16px}.library-project-state{font-size:11px;color:#8fc8ff;margin-top:12px}.library-details{display:inline-flex;min-height:40px;align-items:center;color:#9fb1c7;font-size:12px}.library-status-placeholder{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#9fb1c7;background:linear-gradient(145deg,#172231,#10151c);font-size:13px}.library-status-placeholder>span{font-size:38px;color:#2997ff}.library-history-link{text-align:end;font-size:12px;color:#8fc8ff}.library-recent{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 20px;align-items:center;padding:18px 20px!important}.library-recent h2{font-size:17px!important;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;margin:0!important}.library-recent>p{margin:0!important}.library-recent>div{grid-column:2;grid-row:1 / 4}.library-page .library-search input:focus-visible{outline:2px solid #2997ff!important;outline-offset:2px}.library-page audio{max-width:100%;min-width:0}
+@media(max-width:600px){.library-page .library-collection{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.library-recent{grid-template-columns:1fr}.library-recent>div{grid-column:1;grid-row:auto;margin-top:8px}.library-page .library-collection>.card{padding:8px!important}.library-toolbar>.row{gap:6px}.library-toolbar .pill{padding-inline:12px!important}.library-history-link{text-align:start}.library-page .library-collection .pill{white-space:normal}}
+`}} />
     </div>
   )
 }

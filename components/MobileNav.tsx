@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { GROW_NAV, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef } from 'react'
@@ -10,6 +11,7 @@ import { useEffect, useRef } from 'react'
 // line-icon set the Sidebar uses (17px, 1.7 stroke, currentColor) so mobile
 // matches the professional desktop nav.
 const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolean }[] = [
+  {href:'/', label:'Home', exact:true, icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/></svg>},
   {
     href: '/studio',
     icon: (
@@ -18,7 +20,7 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
         <path d="M16.5 10.5 21.5 7v10l-5-3.5" />
       </svg>
     ),
-    label: 'Studio',
+    label: 'Video',
     exact: false,
   },
   // KINEO-IMAGES-PROD-2026-08-17 — par do Sidebar: Kineo Images no mobile.
@@ -57,14 +59,14 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
     exact: false,
   },
   {
-    href: '/history',
+    href: '/library',
     icon: (
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <rect x="3" y="4" width="18" height="16" rx="3" />
         <path d="M3 9h18M8 4v5M16 4v5" />
       </svg>
     ),
-    label: 'My Videos',
+    label: 'Library',
     exact: false,
   },
   {
@@ -111,22 +113,17 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
 const TOOL_LINKS = [
   { href: '/images', label: 'Images' },
   { href: '/audio', label: 'Audio' },
-  { href: '/avatar', label: 'AI Presenter' },
-  { href: '/animate', label: 'Animate a Photo' },
-  { href: '/thumbnail-generator', label: 'AI Thumbnails' },
 ]
 const MORE_LINKS = [
-  { href: '/library', label: 'Library' },
-  { href: '/viral-now', label: 'Viral Now' },
-  { href: '/channel', label: 'Channel Builder' },
-  { href: '/autopilot', label: 'Autopilot' },
+  ...GROW_NAV.map(item => ({ ...item, signedIn: false })),
+  { href: '/pricing', label: 'Pricing' },
   { href: '/referral', label: 'Invite & Earn', signedIn: true },
   { href: '/affiliate', label: 'Affiliate', signedIn: true },
   { href: '/account', label: 'Account', signedIn: true },
 ]
 
 function isActive(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(href + '/')
+  return workspaceNavActive(pathname, href)
 }
 
 function closeDisclosures(nav: HTMLElement | null) {
@@ -152,7 +149,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
     return () => document.removeEventListener('pointerdown', closeOutside)
   }, [])
 
-  const primary = NAV_ITEMS.filter((item) => ['/studio', '/history', '/pricing'].includes(item.href))
+  const primary = NAV_ITEMS.filter((item) => ['/', '/studio', '/library'].includes(item.href))
   const groups = [
     { label: 'Tools', links: TOOL_LINKS },
     { label: 'More', links: MORE_LINKS.filter((item) => isLoggedIn || !item.signedIn) },
@@ -220,10 +217,10 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
         }
       }}>
       <div className="kineo-mobile-row">
+        {primaryLink('/')}
         {primaryLink('/studio')}
-        {primaryLink('/history')}
+        {primaryLink('/library')}
         {disclosure(groups[0])}
-        {primaryLink('/pricing')}
         {disclosure(groups[1])}
       </div>
       {/* Static CSS, never user input. Preserve raw-text selectors in SSR. */}

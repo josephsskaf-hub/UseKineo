@@ -242,7 +242,7 @@ const ON_COPY: FreeTierCopy = {
     // um estrangeiro lê do produto. O `tsc` não pega isso: gramática não é tipo.
     // É o mesmo gênero de defeito que a trava de compilação acima resolveu para
     // o NÚMERO; aqui a trava é derivar a palavra do número, na mesma expressão.
-    `Start free — every engine unlocked, including Kling 3. Make ${TRIAL_FILMS} AI ${TRIAL_FILMS === 1 ? 'film' : 'films'} free, watermarked. Upgrade any time to download them clean.`,
+    `Start with ${TRIAL_GRANT_CREDITS_COPY} free credits. The cost depends on your engine and duration. Trial videos are watermarked; upgrade for clean downloads.`,
   residual: '1 free Kineo 1 video every week', // KINEO-COTA-SEMANAL
   sentence:
     `Every new account gets ${TRIAL_GRANT_CREDITS_COPY} credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads.`,

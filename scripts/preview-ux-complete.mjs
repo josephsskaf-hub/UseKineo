@@ -35,12 +35,13 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
   const previewState=(name,value)=>{
     if(!names.includes(name))throw Error('Unmapped state in '+entry)
     index++
-    return [Object.hasOwn(fixture,name)?fixture[name]:typeof value==='function'?value():value,()=>{throw Error('State mutation in offline render')}]
+    return [Object.hasOwn(fixture,name)?fixture[name]:typeof value==='function'?value():value,next=>{if(fixture.onStateChange)return fixture.onStateChange(name,next);throw Error('State mutation in offline render')}]
   }
   const react={...React,useContext:context=>fixture.interfaceLanguage ? {language:fixture.interfaceLanguage,choose:()=>{throw Error('Language mutation in offline render')}} : React.useContext(context),useEffect:()=>{},useCallback:fn=>fn,useMemo:fn=>fn(),useRef:current=>({current})}
+  if(fixture.captureControls) react.createElement=(type,props,...children)=>{if(typeof type==='string' && (props?.onClick || props?.onChange))fixture.captureControls.push({type,props,children});return React.createElement(type,props,...children)}
   function load(file) {
     if(cache.has(file))return cache.get(file)
-    const historical=before && [entry,'components/studioKit.tsx',...(comparisonBase!==BASE?['lib/ui/homePresentation.ts']:[])].includes(file)
+    const historical=before && [entry,'components/studioKit.tsx',...(comparisonBase!==BASE?['lib/ui/homePresentation.ts','components/LibraryRecentProject.tsx','lib/freeTierOffer.ts']:[])].includes(file)
     let code=source(file,historical,comparisonBase)
     if(file===entry)for(const [start,end,text] of [...stateCalls].sort((a,b)=>b[0]-a[0]))code=code.slice(0,start)+text+code.slice(end)
     const box={exports:{}}; cache.set(file,box.exports)
@@ -51,6 +52,8 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
       if(id==='next/link')return {__esModule:true,default:({children,prefetch,...p})=>React.createElement('a',p,children)}
       if(id==='next/navigation')return {useSearchParams:()=>new URLSearchParams(),usePathname:()=>fixture.pathname??'/studio',useRouter:()=>({})}
       if(id==='@/lib/analytics')return {trackEvent:()=>{throw Error('Analytics forbidden')}}
+      if(id==='@/components/FreeTierOfferProvider' && fixture.demoOffer){const offer=load('lib/freeTierOffer.ts').buildFreeTierOffer(true);return {useFreeTierOffer:()=>offer,FreeTierCopy:({children})=>children}}
+      if(id==='@/lib/supabase/client' && fixture.demoShell)return {createClient:()=>({auth:{signOut:()=>{throw Error('Auth mutation forbidden')}}})}
       if(id==='@/lib/supabase/client')return {createClient:()=>{throw Error('Database access forbidden in offline preview')}}
       if(id==='@/lib/seriesDoorImpressions')return {useSeriesDoorSeen:()=>({registrarPorta:()=>()=>{}})}
       if(id==='server-only')return {}
@@ -60,6 +63,7 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
       if(id==='@/components/studioKit')return load('components/studioKit.tsx')
       if(id==='@/components/InterfaceLanguage')return load('components/InterfaceLanguage.tsx')
       if(id==='@/components/LibraryRecentProject')return load('components/LibraryRecentProject.tsx')
+      if(id==='./AutopilotBreakEvenCalculator')return load('app/pricing/AutopilotBreakEvenCalculator.tsx')
       // Explicit demo balance only, never a customer balance or a DB request.
       if(id==='@/components/NavCreditsBadge' && fixture.previewCredits!==undefined)return {__esModule:true,default:()=>React.createElement('a',{href:'/pricing',style:{whiteSpace:'nowrap',padding:'8px 14px',fontSize:13}},`⚡ ${fixture.previewCredits} credits`)}
       if(id.startsWith('@/components/') || id==='./RevealOnScroll' || id==='./HomeTopicForm'){

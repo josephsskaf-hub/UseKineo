@@ -30,6 +30,8 @@ jobs:
         run: node scripts/test-five-improvements.mjs
       - name: Idiomas, galeria e CSS SSR
         run: node scripts/test-locale-readiness.mjs
+      - name: Menu, Studio, Biblioteca e planos aprovados
+        run: node scripts/test-app-blue-layout.mjs
       - name: Curadoria aprovada da home — seletores e assets locais
         run: node scripts/test-home-curation.mjs
       - name: Home azul — layout, indicação e entrada no checkout

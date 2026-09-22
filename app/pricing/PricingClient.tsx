@@ -837,7 +837,11 @@ export default function PricingClient({ initialBilling = 'annual' }: {
   }, [])
 
   return (
-    <div className="min-h-screen bg-[#000000] text-[#f5f5f7] font-sans">
+    <div className="pricing-blue min-h-screen bg-[#000000] text-[#f5f5f7] font-sans">
+      <style dangerouslySetInnerHTML={{__html: `
+.pricing-blue{background:#090d13!important}.pricing-blue>section{padding-top:32px!important}.pricing-blue h1{font-size:clamp(28px,4vw,42px);font-weight:650}.pricing-blue #plans{gap:20px}.pricing-blue #plans>div{min-width:0;border-radius:20px!important;box-shadow:none!important}.pricing-blue #plans>div:hover{transform:none!important}.pricing-blue #plans button{min-height:44px}.pricing-blue .plan-credit-summary{font-size:14px;color:#8fc8ff;margin:14px 0 0;font-weight:650}.pricing-blue .plan-detail-breakdown{margin:6px 0 18px;border-top:1px solid #ffffff14;border-bottom:1px solid #ffffff14}.pricing-blue .plan-detail-breakdown>summary{min-height:44px;align-content:center;cursor:pointer;font-size:12px;color:#acb8c8}.pricing-blue .plan-detail-breakdown[open]>summary{margin-bottom:10px}.pricing-blue details summary:focus-visible{outline:2px solid #2997ff;outline-offset:3px}.pricing-blue #plans p,.pricing-blue #plans span{overflow-wrap:anywhere}.pricing-blue .pricing-secondary{margin-top:28px}.pricing-blue .pricing-intro{margin-bottom:24px!important}.pricing-blue .pricing-intro>p{display:none}
+@media(max-width:767px){.pricing-blue>section{padding-top:24px!important}.pricing-blue #plans{gap:28px}.pricing-blue #plans>div{padding:24px!important}.pricing-blue .pricing-intro h1{font-size:29px}}
+`}} />
       {/* Subtle cyber-blue glow */}
       <div
         aria-hidden
@@ -856,7 +860,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
           <Link href="/" className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#161618] border border-[#2997ff]/40 text-lg shadow-[0_0_14px_rgba(41,151,255,.35)]">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="#2997ff" stroke="#2997ff" strokeWidth="0.5" strokeLinejoin="round" />
+                <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="#ABEDC9" stroke="#ABEDC9" strokeWidth="0.5" strokeLinejoin="round" />
               </svg>
             </div>
             <div className="flex flex-col leading-none">
@@ -883,7 +887,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
 
       {/* ───────── Pricing ───────── */}
       <section className="relative z-10 mx-auto max-w-5xl px-4 pt-12 pb-16 sm:px-6 sm:pt-16">
-        <div className="mb-10 text-center">
+        <div className="pricing-intro mb-10 text-center">
           <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[.16em] text-[#2997ff]">
             Pricing
           </div>
@@ -943,7 +947,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
             </p>
           </div>
         )}
-        <PricingJourneyProof signedIn={signedIn} intentCampaign={pricingIntentCampaign} />
+
 
         {/* Push #267 — Free banner removed with Free card */}
 
@@ -977,29 +981,6 @@ export default function PricingClient({ initialBilling = 'annual' }: {
           {CHECKOUT_CURRENCY_DISCLOSURE}
         </p>
 
-        {/* KINEO-MRR-3-FILME-PROPRIO-2026-09-16 — o filme da própria pessoa + a garantia, antes dos cards. */}
-        {latestFilm && (
-          <div
-            data-kineo="latest-film"
-            className="mx-auto mb-7 flex max-w-2xl items-center gap-4 rounded-2xl px-4 py-3"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)' }}
-          >
-            <video
-              src={latestFilm.url}
-              muted
-              playsInline
-              preload="metadata"
-              style={{ width: 54, height: 96, objectFit: 'cover', borderRadius: 10, background: '#000', flex: '0 0 auto' }}
-              aria-hidden="true"
-            />
-            <div className="min-w-0 text-left">
-              <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[#2997ff]">Your latest film</p>
-              <p className="truncate text-[14px] font-bold text-white">{latestFilm.title}</p>
-              <p className="text-[12px] font-semibold text-[#86868b]">Your next films come out clean, without the watermark, in 1080p. 7-day money-back guarantee, cancel anytime.</p>
-            </div>
-          </div>
-        )}
-
         {/* KINEO-SPRINT-OFFER-2026-07-14 — SINGLE OFFER cleanup. Three stacked
             competing offers used to sit here (FOUNDING50 "50% for life" banner,
             the Starter-intro strip, and — pre-13/07 — the $4.90 one-time pack).
@@ -1008,21 +989,6 @@ export default function PricingClient({ initialBilling = 'annual' }: {
             thing above them is the honest free-video nudge. The one-time pack
             endpoint (?pack=starter) still exists for the watermark unlock flow —
             it just has no public CTA here. */}
-        <div
-          className="mx-auto mb-7 max-w-2xl rounded-2xl px-5 py-4 text-center"
-          style={{ background: 'rgba(41,151,255,0.07)', border: '1px solid rgba(41,151,255,0.4)' }}
-        >
-          <p className="text-[12.5px] font-semibold text-[#86868b]">
-            Not sure yet? <Link href="/signup" className="font-bold text-[#2997ff] hover:text-[#2997ff]">{ft(OFFER, 'Create up to 3 Fast videos free every 24h', 'Start free — your first video is on us')}</Link>{ft(OFFER, ' — no card; download and share with a watermark.', `; new accounts get ${TRIAL_GRANT_CREDITS_COPY} credits with every engine unlocked, no card — films are watermarked until you upgrade.`)}
-          </p>
-          <CostCalculatorLink
-            placement="pricing_pre_cards"
-            className="mt-2 inline-block text-[12.5px] font-extrabold text-[#2997ff] hover:underline"
-          >
-            Calculate the exact monthly cost for your output →
-          </CostCalculatorLink>
-        </div>
-
         {/* KINEO-HOME-POLISH-R2-2026-07-27 — so forma. gap 5 -> 7 e um respiro
             de topo (pt-5) para as fitas "Most Popular"/"Best Value", que ficam
             em -top-3 e antes encostavam no bloco de cima. Nenhum numero,
@@ -1151,6 +1117,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                     pertence); o selo do 1º mês vira a linha miúda sob o botão,
                     onde o preço já foi decidido. Nada foi deletado da página —
                     só parou de disputar atenção no instante da decisão. */}
+                {isPaid && <p className="plan-credit-summary">{TIER_CREDITS[p.tier as PaidTier]} credits / month</p>}
                 {'videosPerMonth' in p && p.videosPerMonth ? (
                   <div className="mt-5 text-[17px] font-black tracking-tight text-[#2997ff]">
                     {p.videosPerMonth}
@@ -1195,7 +1162,8 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                     { ic: '🏆', name: 'Kling 3 films · native voice & lip sync', cost: costFlag }, // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
                   ]
                   return (
-                    <div className="mb-3">
+                    <details className="plan-detail-breakdown">
+                      <summary>What can I create with these credits?</summary>
                       <div className="mb-1 text-[10px] font-black uppercase tracking-[.14em] text-[#5a5a60]">
                         Your {cr} credits every month =
                       </div>
@@ -1235,7 +1203,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                         <span>✓ Character Lock — same face in every video</span>
                         <span>✓ Animate a Photo · AI Thumbnails · Viral Now topics</span>
                       </div>
-                    </div>
+                    </details>
                   )
                 })()}
                 {isPaid && (
@@ -1388,6 +1356,47 @@ export default function PricingClient({ initialBilling = 'annual' }: {
             ) : null}
           </div>
         ) : null}
+
+        <div className="pricing-secondary">
+        <div
+          className="mx-auto mb-7 max-w-2xl rounded-2xl px-5 py-4 text-center"
+          style={{ background: 'rgba(41,151,255,0.07)', border: '1px solid rgba(41,151,255,0.4)' }}
+        >
+          <p className="text-[13px] leading-relaxed text-[#a1a1a8]">{OFFER.copy.headline}</p>
+          <Link href="/signup" className="mt-3 inline-block font-semibold text-[#2997ff]">{OFFER.copy.ctaPrimary}</Link>
+          <CostCalculatorLink
+            placement="pricing_pre_cards"
+            className="mt-2 inline-block text-[12.5px] font-extrabold text-[#2997ff] hover:underline"
+          >
+            Calculate the exact monthly cost for your output →
+          </CostCalculatorLink>
+        </div>
+
+        {/* KINEO-MRR-3-FILME-PROPRIO-2026-09-16 — o filme da própria pessoa + a garantia, antes dos cards. */}
+        {latestFilm && (
+          <div
+            data-kineo="latest-film"
+            className="mx-auto mb-7 flex max-w-2xl items-center gap-4 rounded-2xl px-4 py-3"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)' }}
+          >
+            <video
+              src={latestFilm.url}
+              muted
+              playsInline
+              preload="metadata"
+              style={{ width: 54, height: 96, objectFit: 'cover', borderRadius: 10, background: '#000', flex: '0 0 auto' }}
+              aria-hidden="true"
+            />
+            <div className="min-w-0 text-left">
+              <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[#2997ff]">Your latest film</p>
+              <p className="truncate text-[14px] font-bold text-white">{latestFilm.title}</p>
+              <p className="text-[12px] font-semibold text-[#86868b]">Your next films come out clean, without the watermark, in 1080p. 7-day money-back guarantee, cancel anytime.</p>
+            </div>
+          </div>
+        )}
+
+        <PricingJourneyProof signedIn={signedIn} intentCampaign={pricingIntentCampaign} />
+        </div>
 
         {/* KINEO-CEO-HOUR-2026-08-17 (#5) — o tradutor de creditos VISIVEL,
             nao so no FAQ: uma fita de precos por resultado. */}
