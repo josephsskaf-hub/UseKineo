@@ -116,7 +116,7 @@ console.log('== (c) cliente narra o texto para o qual o footage foi escolhido ==
   checa('setFastVoiceover/setFastCaptions incondicionais; velocidade explícita só no verbatim', gc.includes('        setFastVoiceover(responseVoiceover)\n        setFastCaptions(responseCaptions)\n        setTtsSpeed(data.verbatim ? responseSpeed : null)') && !gc.includes('        } else {\n          setFastVoiceover(null)\n          setFastCaptions(null)\n          setTtsSpeed(null)\n        }'))
   checa('o kickCompose continua preferindo fastVoiceover ao brief (mecanismo do Push #235 intacto)', gc.includes('fastVoiceover && fastVoiceover.trim().length > 0\n            ? fastVoiceover\n            : buildVoiceoverScript(prompt, analysis)'))
   const fast = rd('app/api/generate-video-fast/route.ts')
-  checa('a rota fast devolve voiceover_script = falas das cenas (modo IA) — a fonte que o cliente agora usa', fast.includes('verbatim && parsedScript.narration ? parsedScript.narration : sceneJoinedVoiceover') && fast.includes('voiceover_script: voiceoverScript,'))
+  checa('a rota fast devolve voiceover_script = falas das cenas (modo IA) — a fonte que o cliente agora usa', fast.includes('ownScript ? falaPropria : sceneJoinedVoiceover') && fast.includes('voiceover_script: voiceoverScript,')) // KINEO1-VERBATIM-ESTICA-2026-09-22: roteiro próprio (marcadores OU prosa) = falaPropria; modo IA = falas das cenas
 }
 
 // ── (d) âncora real no claim → retomada do Omni possível ─────────────────────────────────────

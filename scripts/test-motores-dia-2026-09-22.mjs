@@ -24,12 +24,12 @@ const fim = rf.indexOf("if (!portao?.blocked) portao = { blocked: !fit.ok, reaso
 const bloco = rf.slice(ini, fim)
 checa('bloco existe, DEPOIS do allow_shorter_duration e ANTES do portão decidir', ini > 0 && fim > ini && rf.indexOf("body.allow_shorter_duration === true") < ini)
 checa('só desce quando a fala não enche e o autofit explícito não rodou', bloco.includes('if (!fit.ok && !autofitApplied) {'))
-checa('decisão pura compartilhada com o cinematic (ownScript = verbatim, piso 35 s)', bloco.includes('decideDurationFollowsScript({ fitOk: fit.ok, ownScript: verbatim, requestedSeconds: duration, speechSeconds: fit.speech, largestFitting: largestFittingDuration(fit.speech), floorSeconds: 35 })'))
+checa('decisão pura compartilhada com o cinematic (ownScript = verbatim, piso 35 s)', bloco.includes('decideDurationFollowsScript({ fitOk: fit.ok, ownScript, requestedSeconds: duration, speechSeconds: fit.speech, largestFitting: largestFittingDuration(fit.speech), floorSeconds: 35 })'))
 checa('a duração nova tem que estar no seletor do Kineo 1', bloco.includes('(SUPPORTED_DURATIONS as readonly number[]).includes(seguiu.to)'))
 checa('remede a fala na duração nova e marca autofit_applied', bloco.includes('fit = narrationFitAt(falaDoAutor, duration, narrationRate)') && bloco.includes('autofitApplied = true'))
 checa('grava duration_followed_script com engine fast, from/to/speech/fits_now', bloco.includes("name: DURATION_FOLLOWED_SCRIPT_EVENT") && bloco.includes("metadata: { engine: 'fast', from: pedida, to: duration, speech: seguiu.speechSeconds, fits_now: fit.ok"))
 checa('ensaio autorizado não grava evento', bloco.includes('if (!dryRunAutorizado) void writeServerEvent({ name: DURATION_FOLLOWED_SCRIPT_EVENT'))
-checa('import do helper compartilhado', rf.includes("import { decideDurationFollowsScript, DURATION_FOLLOWED_SCRIPT_EVENT } from '@/lib/durationFollowsScript'"))
+checa('import do helper compartilhado', /import \{ decideDurationFollowsScript, (?:decideDurationFollowsScriptUp, )?DURATION_FOLLOWED_SCRIPT_EVENT \} from '@\/lib\/durationFollowsScript'/.test(rf)) // KINEO1-VERBATIM-ESTICA-2026-09-22: o espelho "para cima" entrou no mesmo import
 const D = roda(rd('lib/durationFollowsScript.ts'))
 checa('helper: 38,7 s de fala pedindo 60 → 35 (piso 35)', JSON.stringify(D.decideDurationFollowsScript({ fitOk: false, ownScript: true, requestedSeconds: 60, speechSeconds: 38.7, largestFitting: 35, floorSeconds: 35 })).includes('"to":35'))
 checa('helper: texto da IA (não é roteiro próprio) nunca desce', D.decideDurationFollowsScript({ fitOk: false, ownScript: false, requestedSeconds: 60, speechSeconds: 38.7, largestFitting: 35, floorSeconds: 35 }) === null)
@@ -67,7 +67,7 @@ checa('avatar: o card do Studio grava studio_avatar_card_clicked', st.includes("
 
 console.log('3) mutantes')
 const semBloco = rf.replace(/      \/\/ ═══ KINEO-DURACAO-SEGUE-O-ROTEIRO-KINEO1-2026-09-22[\s\S]*?\n      }\n      if \(!portao\?\.blocked\)/, '      if (!portao?.blocked)')
-checa('mutante (bloco do Kineo 1 removido) é pego', !semBloco.includes('DURATION_FOLLOWED_SCRIPT_EVENT, userId') && semBloco.length < rf.length)
+checa('mutante (bloco do Kineo 1 removido) é pego', !semBloco.includes("metadata: { engine: 'fast', from: pedida, to: duration, speech: seguiu.speechSeconds, fits_now: fit.ok") && semBloco.length < rf.length) // KINEO1-VERBATIM-ESTICA-2026-09-22: o bloco "para cima" também grava DURATION_FOLLOWED_SCRIPT_EVENT; a assinatura do bloco de DESCIDA é o metadata com pedida/seguiu
 checa('mutante (cláusula fora do still da cena) é pego', (an.replace("sharp focus, ${ONE_FRAME_RULE}, no text, no letters", 'sharp focus, no text, no letters').match(/\$\{ONE_FRAME_RULE\}/g) || []).length === 2)
 checa('mutante (degrau ignorando o saldo) é pego', !st.replace('if (c <= 0 || balance >= c) return null', 'if (c <= 0) return null').includes('if (c <= 0 || balance >= c) return null'))
 checa('mutante (nascimento fora da cadeia) é pego', !adm.replace("['birth_claim', birthResponse?.voiceover_script],\n", '').includes("['birth_claim'"))
