@@ -874,7 +874,7 @@ export default function KineoLanding({
         <Link href="/" className="logo">
           <div className="mk">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="#2997ff" stroke="#2997ff" strokeWidth="0.5" strokeLinejoin="round" />
+              <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="#ABEDC9" stroke="#ABEDC9" strokeWidth="0.5" strokeLinejoin="round" />
             </svg>
           </div>
           Kineo
@@ -1016,7 +1016,15 @@ export default function KineoLanding({
       <header className="hero">
         <div className="glow" />
         <div className="wrap">
-          <h1 className="hero-title-a11y"><UiText es="Escribe una idea y mira cómo se convierte en un vídeo.">Type an idea — watch it become a film.</UiText></h1>
+          <div className="home-intro">
+            <div className="home-intro-copy">
+              <p className="home-eyebrow">Kineo</p>
+              <h1 className="home-title"><UiText es="Escribe una idea y mira cómo se convierte en un vídeo.">Type an idea — watch it become a film.</UiText></h1>
+            </div>
+            <Link className="btn btn-blue" href={isSignedIn ? '/studio' : referralBridge ? '#try-kineo' : '/signup?utm_source=hero'}>
+              <UiLabel>{isSignedIn ? 'Create a video' : CARD_ENTRY_COPY.ctaShort}</UiLabel><span aria-hidden="true">↗</span>
+            </Link>
+          </div>
           {/* Fileira Higgsfield: cards largos, video NITIDO (sem veu), nome do
               motor em caps abaixo da midia. 3 videos curados por motor passando. */}
           <div
@@ -1050,6 +1058,84 @@ export default function KineoLanding({
               })
             })()}
           </div>
+                  </div>
+      </header>
+
+      {/* The post-signup route intentionally lands on this engine showroom.
+          The router comes AFTER the founder-curated four-video hero, so it
+          connects intent without replacing or rearranging the approved wall. */}
+      {showWelcomeGoalRouter ? <HomeWelcomeGoalRouter /> : null}
+
+      {referralBridge ? (
+        <section
+          aria-labelledby="referral-quick-start-heading"
+          data-acquisition-source={initialAcquisitionSource}
+          style={{ padding: '58px 0 70px', background: 'linear-gradient(180deg, rgba(41,151,255,.055), transparent)' }}
+        >
+          <div className="wrap">
+            <div className="hero-center">
+              <span style={{ display: 'inline-flex', color: '#7cc0ff', background: 'rgba(41,151,255,.10)', border: '1px solid rgba(41,151,255,.28)', borderRadius: 999, padding: '7px 12px', fontSize: 11, fontWeight: 850, letterSpacing: '.08em', textTransform: 'uppercase' }}>
+                {referralBridge.eyebrow}
+              </span>
+              <h2 id="referral-quick-start-heading" style={{ margin: '14px auto 0', maxWidth: 760, color: 'var(--txt)', fontSize: 'clamp(1.75rem, 4vw, 2.65rem)', lineHeight: 1.08, letterSpacing: '-.025em' }}>
+                {referralBridge.headline}
+              </h2>
+              <p className="sub" style={{ marginLeft: 'auto', marginRight: 'auto' }}>
+                {referralBridge.body}
+              </p>
+              <HomeTopicForm
+                isSignedIn={isSignedIn}
+                acquisitionSource={initialAcquisitionSource}
+              />
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+
+      {/* Approved home layout: creation first, proof together, engine catalog retained below. */}
+      <section className="home-create" aria-label="Create with Kineo">
+        <div className="wrap">
+              <div className="home-start">
+                <div className="home-start-copy"><h2><UiLabel>Start with the full toolkit</UiLabel></h2>
+                <p><UiLabel>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h — no card.', OFFER.copy.headline)}</UiLabel></p>
+                </div>
+                {/* KINEO-SEM-PORTEIRO-2026-09-02 — este botão apontava para
+                    /generate?src=engine_bento. O /generate não é mais uma
+                    página: é um porteiro `force-dynamic` que só decide o
+                    destino e redireciona. Ou seja, cada clique fazia DUAS
+                    viagens ao servidor, e o cliente via a URL antiga por
+                    alguns segundos antes do Studio aparecer — parecia que o
+                    site tinha travado no lugar errado. O porteiro continua
+                    existindo, e tem que continuar: todo e-mail já enviado
+                    aponta para /generate e link no inbox de cliente não pode
+                    quebrar nunca. O que muda é que os NOSSOS botões param de
+                    passar por ele e vão direto ao destino final — que é
+                    exatamente o mesmo /studio/create, com a query intacta. */}
+                <Link className="btn btn-blue" href={isSignedIn ? '/studio/create?src=engine_bento' : referralBridge ? '#try-kineo' : '/signup?utm_source=engine_bento'}>{isSignedIn ? 'Open the generator' : CARD_ENTRY_COPY.ctaShort}</Link>
+              </div>
+          <div className="home-create-grid">
+            <Link href="/studio" className="home-create-card">
+              <span className="home-create-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="6" width="12" height="12" rx="3"/><path d="m15 9 6-3v12l-6-3"/></svg></span>
+              <h3><UiLabel>Video</UiLabel></h3><span className="home-create-arrow" aria-hidden="true">↗</span>
+              <p><UiLabel>Create a video</UiLabel></p>
+            </Link>
+            <Link href="/images" className="home-create-card">
+              <span className="home-create-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 5-5 4 4 4-6 5 7"/></svg></span>
+              <h3><UiLabel>Image</UiLabel></h3><span className="home-create-arrow" aria-hidden="true">↗</span>
+              <p><UiLabel>Create image</UiLabel></p>
+            </Link>
+            <Link href="/audio" className="home-create-card">
+              <span className="home-create-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4"/></svg></span>
+              <h3><UiLabel>Audio</UiLabel></h3><span className="home-create-arrow" aria-hidden="true">↗</span>
+              <p><UiLabel>Text to speech</UiLabel></p>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="home-proof" aria-label="Kineo reviews and recognition">
+        <div className="wrap">
           {/* #3 (aprovado 15/08) — a prova real de volta: numeros medidos do
               banco + os dois selos de lancamento, numa linha fina. */}
           {/* KINEO-SORA-BANNER-2026-08-24 (pacote noturno, UI#1) — faixa com
@@ -1088,7 +1174,7 @@ export default function KineoLanding({
               homônimo (nós não temos página no PH), e a fonte real da citação
               é o e-mail do Rick. Rótulo corrigido para a verdade. Quando
               houver 3+ reviews, promover a carrossel — não antes. */}
-          <div style={{ maxWidth: 680, margin: '14px auto 0', textAlign: 'center' }}>
+          <div className="home-review" style={{ maxWidth: 680, margin: '14px auto 0', textAlign: 'center' }}>
             <p style={{ fontSize: 15.5, fontStyle: 'italic', color: '#c7c7cc', lineHeight: 1.5, margin: 0 }}>
               “Too many good ideas die in the mind. This is a product that gives them an escape route.”
             </p>
@@ -1099,46 +1185,16 @@ export default function KineoLanding({
               </UiLabel></a>
             </p>
           </div>
-                  </div>
-      </header>
-
-      {/* The post-signup route intentionally lands on this engine showroom.
-          The router comes AFTER the founder-curated four-video hero, so it
-          connects intent without replacing or rearranging the approved wall. */}
-      {showWelcomeGoalRouter ? <HomeWelcomeGoalRouter /> : null}
-
-      {referralBridge ? (
-        <section
-          aria-labelledby="referral-quick-start-heading"
-          data-acquisition-source={initialAcquisitionSource}
-          style={{ padding: '58px 0 70px', background: 'linear-gradient(180deg, rgba(41,151,255,.055), transparent)' }}
-        >
-          <div className="wrap">
-            <div className="hero-center">
-              <span style={{ display: 'inline-flex', color: '#7cc0ff', background: 'rgba(41,151,255,.10)', border: '1px solid rgba(41,151,255,.28)', borderRadius: 999, padding: '7px 12px', fontSize: 11, fontWeight: 850, letterSpacing: '.08em', textTransform: 'uppercase' }}>
-                {referralBridge.eyebrow}
-              </span>
-              <h2 id="referral-quick-start-heading" style={{ margin: '14px auto 0', maxWidth: 760, color: 'var(--txt)', fontSize: 'clamp(1.75rem, 4vw, 2.65rem)', lineHeight: 1.08, letterSpacing: '-.025em' }}>
-                {referralBridge.headline}
-              </h2>
-              <p className="sub" style={{ marginLeft: 'auto', marginRight: 'auto' }}>
-                {referralBridge.body}
-              </p>
-              <HomeTopicForm
-                isSignedIn={isSignedIn}
-                acquisitionSource={initialAcquisitionSource}
-              />
-            </div>
-          </div>
-        </section>
-      ) : null}
+        </div>
+      </section>
 
       {/* KINEO-ENGINE-WALL-2026-08-15 v2 — o layout do print do fundador:
           featured row (cards largos, titulo caps abaixo da midia) + bento dos
           motores (promo + 6 tiles). Videos e selos 100% reais do banco. */}
       {engineWall.length >= 4 && (
-        <section id="engines" style={{ paddingTop: 0 }}>
+        <section id="engines" className="home-engines">
           <div className="ew-wrap">
+            <div className="home-catalog-heading"><h2><UiLabel>Video</UiLabel></h2><Link href="/studio"><UiLabel>Open the generator</UiLabel> <span aria-hidden="true">↗</span></Link></div>
             {(() => {
               const wallByEngine = (eng: string) => engineWall.find((v) => v.engine === eng)
               const tileVid = (eng: string) => {
@@ -1158,28 +1214,6 @@ export default function KineoLanding({
               }
               return (
             <div className="bento">
-              <div className="promo">
-                <h3><UiLabel>Start with the full toolkit</UiLabel></h3>
-                <p><UiLabel>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h — no card.', OFFER.copy.headline)}</UiLabel></p>
-                {/* KINEO-SEM-PORTEIRO-2026-09-02 — este botão apontava para
-                    /generate?src=engine_bento. O /generate não é mais uma
-                    página: é um porteiro `force-dynamic` que só decide o
-                    destino e redireciona. Ou seja, cada clique fazia DUAS
-                    viagens ao servidor, e o cliente via a URL antiga por
-                    alguns segundos antes do Studio aparecer — parecia que o
-                    site tinha travado no lugar errado. O porteiro continua
-                    existindo, e tem que continuar: todo e-mail já enviado
-                    aponta para /generate e link no inbox de cliente não pode
-                    quebrar nunca. O que muda é que os NOSSOS botões param de
-                    passar por ele e vão direto ao destino final — que é
-                    exatamente o mesmo /studio/create, com a query intacta. */}
-                <Link className="btn btn-w" href={isSignedIn ? '/studio/create?src=engine_bento' : referralBridge ? '#try-kineo' : '/signup?utm_source=engine_bento'}>{isSignedIn ? 'Open the generator' : CARD_ENTRY_COPY.ctaShort}</Link>
-                <span className="pstack" aria-hidden="true">
-                  <img src="/posters/hero-veo31.webp" alt="" loading="lazy" />
-                  <img src="/posters/hero-kling25.webp" alt="" loading="lazy" />
-                  <img src="/posters/hero-kling3.webp" alt="" loading="lazy" />
-                </span>
-              </div>
               <Link href="/studio?engine=fast&intent_campaign=engine_tile" className="tile">
                 {tileVid('fast')}
                 <span className="trow">

@@ -99,10 +99,11 @@ check(landing.indexOf('{referralBridge ? (') > landing.indexOf('</header>'), 'br
 check(landing.indexOf('{referralBridge ? (') < landing.indexOf('{engineWall.length >= 4 && ('), 'bridge appears before the next general engine section')
 
 const referralAnchors = landing.match(/referralBridge \? '#try-kineo' :/g) ?? []
-equal(referralAnchors.length, 5, 'all five generic signed-out Start free CTAs point referral visitors to value first')
+equal(referralAnchors.length, 6, 'all six generic signed-out Start free CTAs, including the visible hero, point referral visitors to value first')
 for (const originalDestination of [
   '/signup?utm_source=nav',
   '/signup?utm_source=nav-mobile',
+  '/signup?utm_source=hero',
   '/signup?utm_source=engine_bento',
   '/signup?utm_source=final_cta',
   '/signup?utm_source=home_sticky_cta',
