@@ -32,9 +32,12 @@ export type AlignResult = { rewritten: AlignRewrite[]; relato: AlignReport; stat
 // o guardião o executa em sandbox). test-sem-letras confere que as duas cópias são idênticas.
 const NO_TEXT_OBJECT_DIRECTION =
   'Never make a text-bearing object the subject of a shot (newspaper, headline, article, document, map with labels, sign, ' +
+  'plaque, historical marker, inscription, engraved stone, placard, nameplate, tombstone, ' +
   'sonar or radar readout, chart, screen, phone display, coordinates): video models cannot write and produce garbled ' +
   'foreign letters. Show such things as texture or light instead — aged paper out of focus, glowing seabed terrain without ' +
-  'labels, the glow of a screen on a face, a hand over a blurred page — and never describe words, numbers or captions inside the frame.'
+  'labels, the glow of a screen on a face, a hand over a blurred page — and never describe words, numbers or captions inside the frame. ' +
+  'When the narration states a name, a date or a fact, show the place, the person or the era it belongs to — never an object that ' +
+  'mentions, reads, displays or commemorates it.'
 
 export const SPEECH_IMAGE_ALIGN_EVENT = 'scene_speech_alignment'
 // v2 (19/09, fundador: "vai, sobe o livro de estado"): caso das meias (Axel, Veo, 00:39 BRT) — a cena 4 dizia "large
