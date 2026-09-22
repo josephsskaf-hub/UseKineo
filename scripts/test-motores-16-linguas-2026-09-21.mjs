@@ -72,6 +72,12 @@ checa('/facts: LOCALIZED_LINKS = 13 portas + 3 motores × 13, do catálogo', fac
 checa('nenhuma das 52 URLs digitada à mão nos dois arquivos', !/free-shorts-generator\/(fr|de|it|nl|pl|tr|ru|uk|ar|ur|hi|id|vi)\b/.test(llms + facts) && !/ai-video-generator\/(kineo-1|seedance|veo)\/(fr|de|it)\b/.test(llms + facts))
 checa('mutante (llms.txt sem o laço dos motores) é pego', !llms.replace('for (const slug of LOCALIZED_ENGINE_SLUGS) {', 'for (const slug of []) {').includes('for (const slug of LOCALIZED_ENGINE_SLUGS) {'))
 
+console.log('3d) ponte Kineo 1 → Seedance (KINEO-PONTE-SEEDANCE-2026-09-22)')
+checa('ponte só na página do Kineo 1 e só com o Seedance fora de manutenção', en.includes("const seedanceBridge = params.engine === 'kineo-1' && !enginePaused(ENGINES.seedance.param) ? getHouseEngineExamples(ENGINES.seedance.qualityMode, 3) : []"))
+checa('ponte fica DEPOIS da galeria da casa e ANTES da prova de clientes', en.indexOf('{seedanceBridge.length > 0 && (') > en.indexOf('{house.length > 0 && (') && en.indexOf('{seedanceBridge.length > 0 && (') < en.indexOf('{/* A PROVA — renders reais deste motor */}'))
+checa('custo e nome do Seedance vêm do catálogo; link medível com ?from=kineo1_bridge', en.includes('{ENGINES.seedance.creditCost} credits per 60-second film') && en.includes('href="/ai-video-generator/seedance?from=kineo1_bridge"') && !/\b25 credits per 60-second film/.test(en))
+checa('mutante (ponte em toda página de motor) é pego', !en.replace("params.engine === 'kineo-1' && ", '').includes("params.engine === 'kineo-1' && !enginePaused(ENGINES.seedance.param)"))
+
 console.log('4) mutantes')
 const mutAlt = roda(engSrc.replace("  for (const code of ENGINE_LANG_CODES) out[FREE_SHORTS_LANG_BY_CODE[code].locale] = `${base}/ai-video-generator/${slug}/${code}`\n", ''), { '@/lib/seo/freeShortsGeneratorLangs': F })
 checa('mutante (hreflang sem as 13) é pego', Object.keys(mutAlt.engineAlternates('https://x', 'veo')).length !== 15)

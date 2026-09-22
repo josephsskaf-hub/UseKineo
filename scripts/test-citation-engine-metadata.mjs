@@ -71,9 +71,9 @@ const semGaleriaDaCasa = (body) => {
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i]
     // as 2 linhas do `house` (comentário + const)
-    if (/^  \/\/ KINEO-GALERIA-DA-CASA-2026-09-21/.test(l)) { i += 1; continue }
+    if (/^  \/\/ KINEO-(GALERIA-DA-CASA-2026-09-21|PONTE-SEEDANCE-2026-09-22)/.test(l)) { i += 1; continue }
     // a seção JSX inteira, do comentário de abertura até o `)}` que fecha `{house.length > 0 && (` (+ linha em branco)
-    if (/^        \{\/\* KINEO-GALERIA-DA-CASA-2026-09-21/.test(l)) { skippingSection = true; continue }
+    if (/^        \{\/\* KINEO-(GALERIA-DA-CASA-2026-09-21|PONTE-SEEDANCE-2026-09-22)/.test(l)) { skippingSection = true; continue }
     if (skippingSection) { if (l === '        )}') { skippingSection = false; if (lines[i + 1] === '') i += 1 } continue }
     out.push(l)
   }
