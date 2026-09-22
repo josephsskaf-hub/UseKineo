@@ -102,6 +102,8 @@ export const LIFECYCLE_EMAIL_EVENT_NAMES = [
   'weekly_quota_sent',
   // KINEO-RENOVACAO-RECUSADA-2026-09-18 — assinante com renovação recusada (admin/send-renewal-declined).
   'renewal_declined_emailed_v1',
+  // KINEO-STUDIO50-2026-09-22 — carta 'Studio a 50%' para quem chegou ao checkout e não pagou (admin/send-studio50).
+  'studio50_sent',
 ] as const
 
 export type LifecycleEmailEventName = (typeof LIFECYCLE_EMAIL_EVENT_NAMES)[number]

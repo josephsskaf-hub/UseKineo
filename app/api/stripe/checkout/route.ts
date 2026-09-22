@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
+import { STUDIO50_CODE, STUDIO50_COUPON_ID, STUDIO50_DURATION, STUDIO50_PERCENT, STUDIO50_REPEATING_MONTHS, STUDIO50_TIER } from '@/lib/offers/studio50'
 import { OFFER_290_ENABLED } from '@/lib/flags'
 import Stripe from 'stripe'
 import { createHash } from 'node:crypto'
@@ -1837,6 +1838,40 @@ async function buildAndRedirect(
         if (resolvedPromo) console.log('[stripe/checkout] CREATOR50 self-provisioned/resolved')
       } catch (e) {
         console.warn('[stripe/checkout] CREATOR50 self-provision falhou (checkout segue a preço cheio):', e)
+      }
+    }
+  }
+  // KINEO-STUDIO50-2026-09-22 — ordem do fundador (22/09): 50% no plano mais caro para quem chegou ao checkout e
+  // não pagou. Gate: SÓ Studio ('pro') MENSAL — nunca Starter/Creator (a oferta é "o plano de cima pela metade"),
+  // nunca anual (já embute 2 meses). Duração vem de lib/offers/studio50 (hoje 'once' = 1ª fatura; ver cabeçalho lá).
+  if (publicPromo === STUDIO50_CODE && !privatePackPromo && (tier !== STUDIO50_TIER || isAnnual)) {
+    console.warn(`[stripe/checkout] ${STUDIO50_CODE} ignorado (tier=${tier}, annual=${isAnnual}) — válido só para Studio mensal`)
+    resolvedPromo = null
+    promoBlocked = true
+  }
+  if (publicPromo === STUDIO50_CODE && !privatePackPromo && !promoBlocked) {
+    if (!resolvedPromo) {
+      try {
+        try {
+          await stripe.coupons.retrieve(STUDIO50_COUPON_ID)
+        } catch {
+          await stripe.coupons.create({
+            id: STUDIO50_COUPON_ID,
+            percent_off: STUDIO50_PERCENT,
+            name: `${STUDIO50_PERCENT}% off Studio (first month)`,
+            ...(STUDIO50_DURATION === 'repeating' ? { duration: 'repeating' as const, duration_in_months: STUDIO50_REPEATING_MONTHS } : { duration: 'once' as const }),
+          })
+        }
+        try {
+          await stripe.promotionCodes.create({ coupon: STUDIO50_COUPON_ID, code: STUDIO50_CODE })
+        } catch {
+          // já existe — o list abaixo resolve
+        }
+        resolvedPromo =
+          (await stripe.promotionCodes.list({ code: STUDIO50_CODE, active: true, limit: 1 })).data[0] ?? null
+        if (resolvedPromo) console.log(`[stripe/checkout] ${STUDIO50_CODE} self-provisioned/resolved`)
+      } catch (e) {
+        console.warn(`[stripe/checkout] ${STUDIO50_CODE} self-provision falhou (checkout segue a preço cheio):`, e)
       }
     }
   }

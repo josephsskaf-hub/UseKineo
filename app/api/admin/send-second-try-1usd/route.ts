@@ -64,7 +64,7 @@ import { isInternalEmail } from '@/lib/internalAccounts'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { trialEntryFeeLabel, trialEntryFullPromise } from '@/lib/lifecycle/trialEntryFee'
 import { trialReachClause } from '@/lib/lifecycle/trialReachLine'
-import { CARD_TRIAL_DAYS, CARD_TRIAL_GRANT_CREDITS } from '@/lib/checkoutPricing'
+import { CARD_TRIAL_DAYS, CARD_TRIAL_GRANT_CREDITS, CARD_TRIAL_LIVE } from '@/lib/checkoutPricing'
 import { PAID_PLANS } from '../_shared/mrr'
 
 export const maxDuration = 300
@@ -215,6 +215,12 @@ usekineo.com`
 
 export async function GET(req: NextRequest) {
   try {
+    // KINEO-PORTA-MORTA-2026-09-22 — a porta de $1 morreu em 09/09 (CARD_TRIAL_LIVE=false) e esta carta continuou
+    // saindo por cron (81 pessoas em setembro, até 20/09) prometendo um trial que o checkout não honra mais.
+    // Flag global tem de calar a carta no mesmo lugar em que cala o cobrador (lição: flag-global-deixa-cron-mentindo).
+    if (!CARD_TRIAL_LIVE) {
+      return NextResponse.json({ mode: 'DISABLED', sent: 0, reason: 'CARD_TRIAL_LIVE=false — a porta de $1 está fechada; esta carta não sai enquanto o cobrador não a honrar' })
+    }
     const porCron = autorizadoPorCron(req)
     if (!porCron) {
       const supabase = createClient()

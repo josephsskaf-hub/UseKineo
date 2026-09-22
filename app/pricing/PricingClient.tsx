@@ -100,6 +100,7 @@ import {
   type CheckoutErrorSignal,
 } from '@/lib/growth/checkoutErrorSignal'
 import { CARD_TRIAL_LIVE, CARD_TRIAL_SECONDARY_LABEL } from '@/lib/checkoutPricing'
+import Studio50OfferBanner from '@/components/Studio50OfferBanner'
 
 // PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's
 // verified working end-to-end (business account still needs verification). All
@@ -1034,6 +1035,8 @@ export default function PricingClient({ initialBilling = 'annual' }: {
             logo abaixo". Ver o cabeçalho de components/RegionalFirstPack.tsx
             para os 40 checkouts sem um pagamento que mandaram fazer isto. */}
         <RegionalFirstPack />
+        {/* KINEO-STUDIO50-2026-09-22 — a oferta mora onde a pessoa volta sozinha; o servidor decide se ela existe. */}
+        <Studio50OfferBanner surface="pricing" />
         <div id="plans" className="scroll-mt-24 grid grid-cols-1 gap-7 md:grid-cols-3 max-w-5xl mx-auto pt-5 items-stretch">
           {buildPricing(resolvedCurrency, resolvedRegion).map((p) => {
             const isPaid = p.tier === 'starter' || p.tier === 'basic' || p.tier === 'pro'

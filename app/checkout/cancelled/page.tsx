@@ -8,6 +8,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { trackEvent } from '@/lib/analytics'
+import Studio50OfferBanner from '@/components/Studio50OfferBanner'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import {
   AUTOPILOT_PILOT_DAYS,
@@ -365,6 +366,8 @@ function CheckoutCancelledContent() {
             {cancelledPrimary === 'first_delivery' ? 'You can try Kineo before deciding.' : 'Payment was not completed.'}
           </h1>
           <p style={{ marginTop: 10, fontSize: '0.95rem', color: 'var(--muted2)', lineHeight: 1.55 }}>Your card was not charged if checkout was not completed.</p>
+          {/* KINEO-STUDIO50-2026-09-22 — quem acabou de desistir do checkout é exatamente a coorte da oferta. */}
+          <Studio50OfferBanner surface="cancelled" />
           <p style={{ marginTop: 10, fontSize: '0.88rem', color: '#2997ff', fontWeight: 700 }}>
             {cancelledPrimary === 'first_delivery'
               ? `Your included ${TRIAL_FIRST_DELIVERY_DURATION}s Seedance episode is still available.`

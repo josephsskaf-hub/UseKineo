@@ -1326,3 +1326,8 @@ Pendente do fundador: 3-4 Kineo 1 da casa para a página que mais vende (hoje 2 
 · NÃO É BUG: <title>/meta não mudam com o seletor de idioma — o seletor é preferência do navegador (localStorage), invisível a rastreador; SEO por língua mora nas 52 páginas nativas (/free-shorts-generator/<lang>, /ai-video-generator/<motor>/<lang>) que TÊM title/description/hreflang próprios.
 · DÍVIDA (já registrada): 122 frases inline (<UiText es=…>: menu, "Generate →", fichas de motor, selos, banner Sora, depoimento) fora do corpus dos 13 dicionários → 1 rotação.
 · DADO: TikTok 28d = MY 44% / SG 22% / BR 16% / US 1,4%, 63% 55+, pico 10–11h BRT. No banco: 0 visitantes atribuídos ao TikTok em 28 dias — o perfil do TikTok está SEM LINK (Cowork). ip_country só existe em 67 visitantes/28d: não serve para medir país. Decisão pendente do fundador: colocar o link no app; horário do ep.4 vai para 10:00 BRT (pico da audiência real), não 23:50.
+
+## KINEO-STUDIO50-2026-09-22 — oferta 50% para quem chegou ao checkout e não pagou (Claude, 22/09 meio-dia)
+· Decisão completa em docs/DECISAO-STUDIO50-2026-09-22.md. Resumo: banner em /pricing e /checkout/cancelled (a coorte volta sozinha; 4 cartas = 196 envios, 0 pagos) + carta só para ≤30 dias; desconto segue o plano em que parou (Starter→CREATOR50, demais→STUDIO50), 1ª fatura.
+· Peças: lib/offers/studio50.ts (fonte única + elegibilidade), app/api/offers/studio50 (GET), components/Studio50OfferBanner.tsx, app/api/admin/send-studio50 (dry-run; ?confirm=SEND&days=30&limit=60), gate STUDIO50 no checkout, carimbo studio50_sent em emailEvents. Guardião test-studio50-2026-09-22 (30).
+· ACHADO: send-second-try-1usd saía por cron até 20/09 prometendo a porta de $1 morta desde 09/09 — travado em CARD_TRIAL_LIVE (DISABLED).
