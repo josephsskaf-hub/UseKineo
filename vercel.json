@@ -81,10 +81,6 @@
       "schedule": "35 7 * * *"
     },
     {
-      "path": "/api/cron/supplier-watch",
-      "schedule": "7 * * * *"
-    },
-    {
       "path": "/api/cron/send-stalled-rescue",
       "schedule": "30 16 * * *"
     },
