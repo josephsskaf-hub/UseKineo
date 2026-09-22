@@ -126,13 +126,16 @@ export const NO_READABLE_TEXT_SUFFIX = ', no readable text, letters, numbers, la
 /** Regra para quem ESCREVE a cena (diretor visual, supervisor fala×imagem): texto vira textura, nunca sujeito. */
 export const NO_TEXT_OBJECT_DIRECTION =
   'Never make a text-bearing object the subject of a shot (newspaper, headline, article, document, map with labels, sign, ' +
+  'plaque, historical marker, inscription, engraved stone, placard, nameplate, tombstone, ' +
   'sonar or radar readout, chart, screen, phone display, coordinates): video models cannot write and produce garbled ' +
   'foreign letters. Show such things as texture or light instead — aged paper out of focus, glowing seabed terrain without ' +
-  'labels, the glow of a screen on a face, a hand over a blurred page — and never describe words, numbers or captions inside the frame.'
+  'labels, the glow of a screen on a face, a hand over a blurred page — and never describe words, numbers or captions inside the frame. ' +
+  'When the narration states a name, a date or a fact, show the place, the person or the era it belongs to — never an object that ' +
+  'mentions, reads, displays or commemorates it.'
 
 /** Objetos que carregam texto: o motor vai escrever letras, e vai errar. */
 const TEXT_BEARING_RE =
-  /\b(ticket|newspaper|headline|article|document|letter|note|diary|journal|page|book|manuscript|map|sign|signboard|billboard|poster|label|screen|phone|smartphone|monitor|laptop|tablet|receipt|passport|id card|license|banner|chalkboard|whiteboard|menu|envelope|stamp|logo|text|caption|subtitle|writing|handwriting|sonar|radar|chart|graph|diagram|display|dashboard|readout|coordinates|gauge|dial|keyboard|clock|calendar|scoreboard|ticker|magazine|report|archive|file|folder|photograph|blueprint)\b/i
+  /\b(ticket|newspaper|headline|article|document|letter|note|diary|journal|page|book|manuscript|map|sign|signboard|billboard|poster|label|screen|phone|smartphone|monitor|laptop|tablet|receipt|passport|id card|license|banner|chalkboard|whiteboard|menu|envelope|stamp|logo|text|caption|subtitle|writing|handwriting|sonar|radar|chart|graph|diagram|display|dashboard|readout|coordinates|gauge|dial|keyboard|clock|calendar|scoreboard|ticker|magazine|report|archive|file|folder|photograph|blueprint|plaque|plaques|marker|inscription|inscribed|engraved|engraving|placard|nameplate|tombstone|gravestone|headstone|epitaph|memorial|scroll|parchment|mentioning|commemorat\w*)\b/i
 
 /** Só quando a cena pede um objeto com texto; senão, string vazia (prompt byte a byte igual). */
 export function textSafetySuffix(scenePrompt: string): string {

@@ -31,7 +31,7 @@ export function classicVisualNegativePrompt(mode: VisualMode, stylized: boolean)
   const look = stylized ? '' : 'cartoon, anime, illustration, 3d render, '
   // KINEO-SEM-LETRAS-2026-09-21 — a estrada clássica mandava só 'text, logo, caption'; a hollywood já proibia
   // placas/legendas/alfabeto estrangeiro. Mesma lista nas duas (Veo, Kling 2.5 t2v e i2v recebem negative_prompt).
-  return format + look + 'blur, distort, low quality, watermark, text, logo, caption, on-screen text, readable signs, subtitles, captions, letters, numbers, labels, foreign text, chinese text, cyrillic text, phone screen with text, newspaper headline, map labels'
+  return format + look + 'blur, distort, low quality, watermark, text, logo, caption, on-screen text, readable signs, subtitles, captions, letters, numbers, labels, foreign text, chinese text, cyrillic text, phone screen with text, newspaper headline, map labels, plaque, inscription, engraved lettering'
 }
 
 /** Remove stale hard-coded orientation instructions, not the scene content. */
