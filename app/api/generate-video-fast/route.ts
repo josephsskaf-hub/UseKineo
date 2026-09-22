@@ -929,7 +929,7 @@ export async function POST(req: NextRequest) {
           ? `FAIL — portão: ${parsedScript.segments.length} blocos [Pexels], o Kineo 1 monta até 12 — o render real seria recusado antes do gasto`
           : `FAIL — portão: ${portao?.speech_seconds ?? 0}s de fala a ${portao?.words_per_second ?? narrationRate.wordsPerSecond} pal/s para ${duration}s — o render real seria recusado antes do gasto`)
         : null
-      return NextResponse.json({ dry_run: true, family: 'fast', engine: 'fast', gate: portao, verbatim, refunded: true, words_per_scene: verbatim ? null : wordsPerSceneFor(duration, clipCount), ...fastReport, ...(vereditoDoPortao ? { verdict: vereditoDoPortao, pass: false, problems: [vereditoDoPortao, ...(fastReport.problems ?? [])] } : {}) })
+      return NextResponse.json({ dry_run: true, family: 'fast', engine: 'fast', gate: portao, verbatim: ownScript /* KINEO1-VERBATIM-ESTICA: o relatório diz a mesma coisa que o render */, refunded: true, words_per_scene: verbatim ? null : wordsPerSceneFor(duration, clipCount), ...fastReport, ...(vereditoDoPortao ? { verdict: vereditoDoPortao, pass: false, problems: [vereditoDoPortao, ...(fastReport.problems ?? [])] } : {}) })
     }
 
     // KINEO-AI-HOOK — FIRST-VIDEO cinematic opener.
