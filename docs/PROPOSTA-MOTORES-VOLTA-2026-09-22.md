@@ -132,3 +132,32 @@ antes (5 cenas, 39 s). Resultado: **o 3º modo de morte, que a proposta não tin
 
 Custo do passo 2: 27 cr (≈ US$ 1,90 de fal pelos 4 clipes + 1 preso). Fal: a fila do `minimax/h3/image-to-video`
 segurou 1 de 5 jobs por > 53 min sem erro — vale abrir ticket com o request id `01a0c71d-e67f-7823-919c-8296954f1a1c`.
+
+## 7. Execução — passo 3 e render H3 nº 2 (22/09, tarde)
+
+**Passo 3 — cena presa (EM PRODUÇÃO `322e6b75`)**: `lib/stuckScene` + `/api/cinematic-clip-status` + carimbo em
+`/api/retry-hollywood-scene`. Doc: docs/CENA-PRESA-2026-09-22.md.
+
+**Render H3 nº 2 (35 s, verbatim Lituya 84 palavras, 27 cr, 14:38Z, geração do vídeo `19e317fe`)**: 5/5 aceitas, 5/5
+prontas em ~6 min (a cena 4 demorou mais mas voltou antes dos 12 min), **compose montou** (o `compose_failed` não foi
+exercitado: não houve falha), filme de 39 s entregue às 14:47Z. **Juiz: 80 (texto 100 · visual 60)** — o primeiro H3
+≥ 75. Folha de contato: fiorde, deslizamento na encosta, os dois pescadores dentro da onda, costa arrancada — e UM
+erro: a cena 5 ("whole forests were stripped from the slopes") virou um homem de celular.
+
+Dois defeitos achados nesse render e consertados (branch `codex/h3-juiz-e-prefixo-0922`, commit `16a3a504`):
+1. **O juiz não via a cena 1 de NENHUM filme hollywood**: `submitted_prompts` era gravado em `hs.index` (1-based) →
+   `[null, p1..pN]`; o leitor (`evidenceFromDispatch`) é 0-based. Todo filme hollywood levava "Cena 1 não tem conteúdo
+   visual" + "Cena N+1 sem visual" — o visual 60 do H3 e os 60 do Kling 3 de 15-17/09 carregam esse rebaixamento.
+   Agora `hs.index - 1`.
+2. **Prefixo de silêncio presumia uma pessoa**: "No one talks on camera. Every visible person is silent, mouth closed…"
+   (H3/Omni/S25, que não têm negative_prompt). O H3 leu "visible person" e desenhou um homem de celular. Novo prefixo:
+   "Nobody addresses the camera and nobody poses for it: show only the action, places and objects the narration
+   describes; anyone visible is part of that action, mouth closed, never facing the lens." (sem substantivo de papel:
+   a cadeia de fidelidade apaga "presenter"/"host" do prompt — provado no guardião de fidelidade, que roda a cadeia real.)
+
+Dry-runs de 60 s do H3 (verbatim 148 e 174 palavras; modo IA) reprovaram no portão de silêncio ("faltam 15-32
+palavras") e o modo IA mutilou a fala ("On 9, 1958… leading to. A deadly") — o planejador hollywood a 60 s é a próxima
+frente do H3, fora deste passo.
+
+**Placar da despausa (meta: 3 filmes ≥ 75)**: 1 de 3 (80). Próximo: render nº 3 depois do deploy destes dois consertos
+(o visual deve subir só pela cena 1 passar a ser lida).
