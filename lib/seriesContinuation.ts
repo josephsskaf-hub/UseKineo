@@ -372,3 +372,48 @@ export function buildSeriesContinuationEmailUrl(
   if (!prompt) return qs ? `${base}/generate?${qs}` : `${base}/generate`
   return `${base}${SERIES_EMAIL_DOOR_PATH}?${qs}`
 }
+
+// ═══ KINEO-EPISODIO-COM-ASSUNTO-2026-09-22 — o episódio 2 recebe o ASSUNTO, não só o gancho ═══
+//
+// Caso balaj.dxb (22/09 11:08Z, Kineo 1, nota 20): o filme 1 era um roteiro de drone sobre Gizé, Burj Khalifa,
+// Eiffel e Estátua da Liberdade (nota 80). O "próximo episódio" mandou ao escritor só a primeira linha — o GANCHO
+// "Witness the ultimate cinematic drone journey... a world of wonders in one frame." — e o escritor inventou
+// "maravilhas" genéricas: Saara, recifes, Amazônia, Tóquio. Medido (14 d): 6 episódios, média 56,7, metade ≤ 50.
+// O gancho de um Short é um teaser, não um assunto. Agora o servidor reconhece o pedido de continuação e cola o
+// pedido ORIGINAL e a narração do episódio anterior como referência de assunto (lib/episodeSubject.ts busca; aqui
+// só a forma). Puro e sem import, como o resto deste módulo.
+const SERIES_CONTINUATION_RE = /next episode in the same short series|keep the topic and format recognizable, but use a completely new hook/i
+export const PREVIOUS_EPISODE_HEADER = 'PREVIOUS EPISODE (same series — keep the SAME subject, places, names and format; a new hook and new facts about THIS subject, never a generic theme):'
+export const PREVIOUS_EPISODE_MAX_CHARS = 600
+
+/** O prompt é um pedido de "próximo episódio" (tela, e-mail ou next-action)? */
+export function isSeriesContinuationPrompt(prompt: string | null | undefined): boolean {
+  const p = (prompt ?? '').trim()
+  return p.length > 0 && SERIES_CONTINUATION_RE.test(p)
+}
+
+function clip(text: string | null | undefined, max: number): string {
+  const t = (text ?? '').replace(/\s+/g, ' ').trim()
+  if (t.length <= max) return t
+  const cut = t.slice(0, max)
+  const lastStop = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('! '), cut.lastIndexOf('? '))
+  return (lastStop > max * 0.5 ? cut.slice(0, lastStop + 1) : cut).trim() + '…'
+}
+
+/**
+ * Cola o episódio anterior ao pedido de continuação. Sem episódio anterior (ou já enriquecido) devolve o prompt
+ * intacto. O bloco vai no FIM: a primeira linha continua sendo o "Topic: …" que a biblioteca usa como título.
+ */
+export function enrichSeriesContinuationPrompt(
+  prompt: string,
+  previous: { topic?: string | null; narration?: string | null } | null | undefined,
+): string {
+  if (!previous || !isSeriesContinuationPrompt(prompt) || prompt.includes(PREVIOUS_EPISODE_HEADER)) return prompt
+  const topic = clip(previous.topic, PREVIOUS_EPISODE_MAX_CHARS)
+  const narration = clip(previous.narration, PREVIOUS_EPISODE_MAX_CHARS)
+  if (!topic && !narration) return prompt
+  const lines = [PREVIOUS_EPISODE_HEADER]
+  if (topic) lines.push(`Original request: ${topic}`)
+  if (narration) lines.push(`What it narrated: ${narration}`)
+  return `${prompt.trim()}\n\n${lines.join('\n')}`
+}

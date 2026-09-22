@@ -10,6 +10,8 @@ import type { Scene } from '@/lib/runway'
 // Fast Mode v2 (02/07) — getPixabayClipsForScene returns a RANKED mini-pool per scene.
 import { getPixabayClipsForScene, notePickedClipTags, pixabayTagsForUrl } from '@/lib/pixabay'
 import { isBareStarter, BARE_STARTER_MESSAGE, BARE_STARTER_REASON, looksLikeOurOwnUi, PROMPT_PROPRIO_MESSAGE, PROMPT_PROPRIO_REASON } from '@/lib/promptGuard'
+import { isSeriesContinuationPrompt, enrichSeriesContinuationPrompt } from '@/lib/seriesContinuation' // KINEO-EPISODIO-COM-ASSUNTO-2026-09-22
+import { findPreviousEpisode } from '@/lib/episodeSubject' // KINEO-EPISODIO-COM-ASSUNTO-2026-09-22
 import { FAST_SCENE_PLAN_EVENT, type FastSceneEvidence } from '@/lib/fastCoherence' // KINEO-1-COERENCIA-2026-09-16
 // KINEO-1-HIBRIDO-2026-09-16 — cena que o banco não cobre vira still FLUX (ver lib/fastAiScene.ts).
 import { decideFastAiScene, buildFastStillPrompt, generateFastSceneStill, fastStillSeed, fastAiScenesMax, characterStoryName, CHARACTER_STORY_MAX_STILLS, FIRST_FILM_MAX_STILLS, FIRST_FILM_STILLS_ENABLED } from '@/lib/fastAiScene'
@@ -406,7 +408,7 @@ export async function POST(req: NextRequest) {
     // ═══ FIM KINEO-DRY-RUN-AUTORIZADO (posição) ═══
     const intake = stripIdeaPrefix((body.prompt ?? '').trim())
     if (intake.strippedIdea) void writeServerEvent({ name: 'idea_prefix_stripped', userId: user.id, path: '/api/generate-video-fast', metadata: { idea: intake.strippedIdea.slice(0, 80), rest_chars: intake.text.length } })
-    const prompt = intake.text
+    let prompt = intake.text // KINEO-EPISODIO-COM-ASSUNTO: `let` — o pedido de continuação ganha o episódio anterior abaixo
     if (!prompt) {
       recordFastFailure('generating', 'prompt_missing', 400, user.id)
       return NextResponse.json({ error: 'Prompt is required.' }, { status: 400 })
@@ -421,6 +423,17 @@ export async function POST(req: NextRequest) {
     if (isBareStarter(prompt)) {
       recordFastFailure('generating', BARE_STARTER_REASON, 400, user.id)
       return NextResponse.json({ error: BARE_STARTER_MESSAGE, reason: BARE_STARTER_REASON, charged: false }, { status: 400 })
+    }
+    // ═══ KINEO-EPISODIO-COM-ASSUNTO-2026-09-22 — "próximo episódio" recebe o ASSUNTO, não só o gancho ═══
+    // Caso balaj.dxb (22/09 11:08Z, nota 20): o pedido de continuação trazia só "Topic: «Witness the ultimate cinematic
+    // drone journey… a world of wonders in one frame»" — o gancho do filme 1 — e o escritor inventou Saara, recifes e
+    // Amazônia no lugar de Gizé, Burj Khalifa e Eiffel. Agora o pedido original e a narração do episódio anterior
+    // viajam junto (lib/seriesContinuation + lib/episodeSubject). Falha aberta: sem episódio anterior, segue como era.
+    if (isSeriesContinuationPrompt(prompt)) {
+      const anterior = await findPreviousEpisode(supabase, user.id, prompt)
+      const enriched = enrichSeriesContinuationPrompt(prompt, anterior)
+      void writeServerEvent({ name: 'series_continuation_enriched', userId: user.id, path: '/api/generate-video-fast', metadata: { found: !!anterior, matched_by: anterior?.matchedBy ?? null, previous_video_id: anterior?.id ?? null, added_chars: enriched.length - prompt.length } })
+      prompt = enriched
     }
     if (prompt.length > 5000) {
       // Only the length is recorded — never the prompt text itself.

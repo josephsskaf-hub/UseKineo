@@ -45,6 +45,8 @@ import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
 import { wordsPerSceneFor } from '@/lib/cinematic/sceneWords'
 import { resolveNarrationLanguage, narrationLanguage as narrationLanguageCode, isHollywoodLanguage, LANGUAGE_NAMES, type HollywoodLanguage } from '@/lib/textLanguage'
+import { isSeriesContinuationPrompt, enrichSeriesContinuationPrompt } from '@/lib/seriesContinuation' // KINEO-EPISODIO-COM-ASSUNTO-2026-09-22
+import { findPreviousEpisode } from '@/lib/episodeSubject' // KINEO-EPISODIO-COM-ASSUNTO-2026-09-22
 import { stripIdeaPrefix } from '@/lib/cinematic/promptIntake'
 import { looksLikeBrief } from '@/lib/scriptParser'
 import { sceneNarrationsForPlan } from '@/lib/cinematic/speechContract'
@@ -1341,7 +1343,14 @@ async function manipularPost(req: NextRequest) {
     // KINEO-IDEIA-COLADA-2026-09-12 — ideia de 1 clique colada na frente do texto da pessoa não é o tema.
     const intake = stripIdeaPrefix(promptRaw.replace(/\[faceless\]/gi, '').trim())
     if (intake.strippedIdea) await writeServerEvent({ name: 'idea_prefix_stripped', userId: user.id, path: '/api/generate-video-cinematic', metadata: { idea: intake.strippedIdea.slice(0, 80), rest_chars: intake.text.length } })
-    const prompt = intake.text
+    let prompt = intake.text // KINEO-EPISODIO-COM-ASSUNTO: `let` — o pedido de continuação ganha o episódio anterior abaixo
+    // ═══ KINEO-EPISODIO-COM-ASSUNTO-2026-09-22 — "próximo episódio" recebe o ASSUNTO, não só o gancho (ver generate-video-fast) ═══
+    if (isSeriesContinuationPrompt(prompt)) {
+      const anterior = await findPreviousEpisode(supabase, user.id, prompt)
+      const enriched = enrichSeriesContinuationPrompt(prompt, anterior)
+      void writeServerEvent({ name: 'series_continuation_enriched', userId: user.id, path: '/api/generate-video-cinematic', metadata: { found: !!anterior, matched_by: anterior?.matchedBy ?? null, previous_video_id: anterior?.id ?? null, added_chars: enriched.length - prompt.length } })
+      prompt = enriched
+    }
     // ═══ DIRETOR DE FORMATO — 2026-08-27 ═════════════════════════════════
     // ANTES: `facelessRequested` so era true com a tag `[faceless]` escrita a
     // mao. Nenhum cliente conhece essa tag, entao o padrao de fabrica era
