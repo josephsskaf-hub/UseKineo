@@ -26,7 +26,15 @@ const POSTER_IDS = new Set([
   "38158db0-f02e-4c6c-a4c8-3c65461413a9",
   "36a04f7b-65f7-42d9-a2ab-198b5a7f115e"
 ])
+// Current approved catalogue additions: posters extracted from each local clip.
+const POSTER_IDS_SEP22 = new Set([
+  '16742e11-a2fc-4e0a-a49a-2862e0ee36b0',
+  '7efd12b8-925b-46d2-b68e-c6095cd3e92e',
+  'fbc5d391-316f-4757-aa54-0565f698cb9f',
+  'c4e4fbab-0978-4daa-9fcf-119096370210',
+])
 export function showcasePoster(video: WallVideo): string | undefined {
+  if (POSTER_IDS_SEP22.has(video.id)) return `/posters/showcase-sep22/${video.id}.webp`
   return POSTER_IDS.has(video.id) ? `/posters/showcase-sep07/${video.id}.webp` : video.posterUrl
 }
 export function showcaseEngines(videos: readonly WallVideo[]) {

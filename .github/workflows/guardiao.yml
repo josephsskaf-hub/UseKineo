@@ -32,6 +32,11 @@ jobs:
         run: node scripts/test-locale-readiness.mjs
       - name: Curadoria aprovada da home — seletores e assets locais
         run: node scripts/test-home-curation.mjs
+      - name: Home azul — layout, indicação e entrada no checkout
+        run: |
+          node scripts/test-home-blue-layout.mjs
+          node scripts/test-home-referral-bridge.mjs
+          node scripts/test-home-pricing-checkout.mjs
       - name: Vitrine premium — filtros, movimento, posters e SSR em três idiomas
         run: node scripts/test-showcase-premium.mjs
       - name: Duração cinematográfica — roteiro, cenas e composição

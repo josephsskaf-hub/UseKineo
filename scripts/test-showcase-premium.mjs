@@ -25,6 +25,7 @@ function load(file) {
     if (id === '@/lib/ui/showcaseGallery') return load('lib/ui/showcaseGallery.ts')
     if (id === '@/lib/ui/previewFacts') return load('lib/ui/previewFacts.ts')
     if (id === '@/lib/ui/heroFrame') return load('lib/ui/heroFrame.ts')
+    if (id === '@/lib/ui/interfaceLanguage' || id === './interfaceLanguage') return load('lib/ui/interfaceLanguage.ts')
     if (id === './showcaseGallery') return load('lib/ui/showcaseGallery.ts')
     if (id === './heroOpening') return load('lib/ui/heroOpening.ts')
     throw Error('Unexpected dependency: ' + id)
@@ -52,13 +53,16 @@ for (const [engine, id] of Object.entries(opening.HERO_OPENING)) {
   const source = hero.filter(v => v.engine === engine)
   const originalOrder = JSON.stringify(source)
   const ordered = opening.orderHeroVideos(source)
-  ok(ordered[0].id === id, 'founder screenshot opens ' + engine)
+  // The September 16 curation replaced some September 7 opening clips.
+  // A still-present opening wins; otherwise the approved input order is kept.
+  const expectedFirst = source.find(v => v.id === id) ?? source[0]
+  ok(ordered[0].id === expectedFirst.id, 'available founder opening or current curated first clip ' + engine)
   ok(JSON.stringify(source) === originalOrder, 'hero order does not mutate catalogue ' + engine)
   // Latest founder constraint: wide hero cannot show portrait fill/cropped faces.
   // Only Omni changes membership; portrait originals remain in trending/catalogue.
   // Founder 08/09: previews -h are now true crops; Omni presenters return to the wide hero.
   const eligible = source
-  ok(JSON.stringify(ordered.slice(1)) === JSON.stringify(eligible.filter(v => v.id !== id)), 'eligible clips retain relative order ' + engine)
+  ok(JSON.stringify(ordered.slice(1)) === JSON.stringify(eligible.filter(v => v.id !== expectedFirst.id)), 'eligible clips retain relative order ' + engine)
   ok(new Set(ordered.map(v => v.id)).size === eligible.length, 'no missing or duplicate eligible clip ' + engine)
   ok(fs.existsSync(path.join('public', framePolicy.heroFrame(ordered[0]).poster)), 'matching opening poster exists ' + engine)
 }
@@ -94,7 +98,7 @@ ok(policy.showcasePoster({ id: 'future', posterUrl: '/fallback.webp' }) === '/fa
 ok(policy.showcasePoster({ id: 'future' }) === undefined, 'unknown poster never fabricates an asset')
 for (const video of trending) {
   const poster = policy.showcasePoster(video)
-  ok(poster.startsWith('/posters/showcase-sep07/'), 'versioned poster for ' + video.id)
+  ok(typeof poster === 'string' && /^\/posters\/showcase-sep(?:07|22)\//.test(poster), 'versioned poster for ' + video.id)
   const file = path.join('public', poster)
   ok(fs.existsSync(file), 'poster exists')
   ok(fs.statSync(file).size > 500 && fs.statSync(file).size < 80000, 'poster byte budget')
