@@ -62,7 +62,7 @@ const st = rd('app/(dashboard)/studio/StudioClient.tsx')
 checa('Studio importa a lista da lib (fonte única)', /import \{ SURPRISE_IDEAS \} from '@\/lib\/surpriseIdeas'/.test(st) && !/const SURPRISE_IDEAS = \[/.test(st))
 const fast = rd('app/api/generate-video-fast/route.ts')
 const cin = rd('app/api/generate-video-cinematic/route.ts')
-checa('as duas rotas passam o prompt pelo intake e gravam idea_prefix_stripped', /const intake = stripIdeaPrefix\(\(body\.prompt \?\? ''\)\.trim\(\)\)/.test(fast) && /const prompt = intake\.text/.test(fast) && /const intake = stripIdeaPrefix\(promptRaw\.replace/.test(cin) && (cin.match(/idea_prefix_stripped/g) || []).length === 1 && (fast.match(/idea_prefix_stripped/g) || []).length === 1)
+checa('as duas rotas passam o prompt pelo intake e gravam idea_prefix_stripped', /const intake = stripIdeaPrefix\(\(body\.prompt \?\? ''\)\.trim\(\)\)/.test(fast) && /(?:const|let) prompt = intake\.text/.test(fast) /* KINEO-EPISODIO-COM-ASSUNTO-2026-09-22: `let` — o pedido de continuação é enriquecido depois do intake */ && /const intake = stripIdeaPrefix\(promptRaw\.replace/.test(cin) && (cin.match(/idea_prefix_stripped/g) || []).length === 1 && (fast.match(/idea_prefix_stripped/g) || []).length === 1)
 checa('cinematic: brief com verbatim vira modo IA (brief_detected_ai_mode)', /const briefDetected = userSaysVerbatim && !parsedScript\.hasMarkers && looksLikeBrief\(prompt\)/.test(cin) && /\(userSaysVerbatim && !briefDetected\)/.test(cin) && /brief_detected_ai_mode/.test(cin))
 
 console.log('== 4-5. cron: clipes órfãos e link do fornecedor ==')
