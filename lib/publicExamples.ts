@@ -243,6 +243,14 @@ export const FOUNDER_SHOWCASE: readonly FounderShowcaseExample[] = [
   { ...SHOWCASE_OWNERSHIP, id: '07208070-f6cc-40e1-8c82-4fb0fe53b583', title: 'The door nobody has opened in 800 years', engine: 'cinematic_ai', previewPath: '/previews/ex-07208070-f6cc-40e1-8c82-4fb0fe53b583.mp4', posterPath: '/posters/ex-07208070-f6cc-40e1-8c82-4fb0fe53b583.webp' },
 ] as const
 
+// KINEO-VITRINE-MOTOR-LIDER-2026-09-22 — fundador ("sim, coloca na vitrine do Seedance"): o filme que ele chamou de
+// "100%" abre a galeria das PÁGINAS DE MOTOR (página do motor em 14 línguas + ponte Kineo 1 → Seedance). Lista separada
+// de propósito: FOUNDER_SHOWCASE alimenta a home e o /ph, cuja ordem é curadoria dele e não muda aqui.
+// Prévia 6 s (6,5–12,5 s do master, sem a placa de letras embaralhadas dos 18 s), 480×854, capa do quadro dos 11 s.
+export const ENGINE_PAGE_LEAD: readonly FounderShowcaseExample[] = [
+  { ownershipEvidence: 'founder_confirmed_owned', ownershipVerifiedAt: '2026-09-07', id: '90bd8367-60c6-4811-8fdd-3a5b0200eec6', title: 'The castle hiding inside a university building', engine: 'cinematic_ai', previewPath: '/previews/ex-90bd8367-60c6-4811-8fdd-3a5b0200eec6.mp4', posterPath: '/posters/ex-90bd8367-60c6-4811-8fdd-3a5b0200eec6.webp' },
+] as const
+
 export function getPublicExample(slug: string): PublicExample | undefined {
   return PUBLIC_EXAMPLES.find((example) => example.slug === slug)
 }
