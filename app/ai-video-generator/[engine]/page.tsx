@@ -96,6 +96,8 @@ export default async function EnginePage({ params }: { params: { engine: string 
   const renders = await getEngineRenders(e.qualityMode, 8)
   // KINEO-GALERIA-DA-CASA-2026-09-21 — sem vídeo de cliente público, a prova é a vitrine da casa daquele motor.
   const house = renders.length > 0 ? [] : getHouseEngineExamples(e.qualityMode, 6)
+  // KINEO-PONTE-SEEDANCE-2026-09-22 — fundador ("vai"): na página do Kineo 1, a ponte para o Seedance (ver bloco abaixo).
+  const seedanceBridge = params.engine === 'kineo-1' && !enginePaused(ENGINES.seedance.param) ? getHouseEngineExamples(ENGINES.seedance.qualityMode, 3) : []
 
   const campaign = `seo_engine_${params.engine}`
   const studioUrl = buildEngineLandingDestination({ engine: e.param, campaign })
@@ -224,6 +226,36 @@ export default async function EnginePage({ params }: { params: { engine: string 
             </div>
             <p style={{ textAlign: 'center', margin: '16px 0 0', fontSize: '0.85rem' }}>
               <Link href="/examples" style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}>See the 20 best across every engine →</Link>
+            </p>
+          </section>
+        )}
+
+        {/* KINEO-PONTE-SEEDANCE-2026-09-22 — medido 22/09: a página do Kineo 1 é a mais citada pelo ChatGPT (175 sessões
+            em 30 dias, 94 contas) e gerou 0 pagantes; a do Seedance (44 sessões) gerou os 3 pagantes vindos de citação.
+            Motor grátis atrai quem fica no grátis. A ponte mostra o Seedance a quem já chegou querendo o Kineo 1, sem
+            tirar nada da página. Medida pelo ?from=kineo1_bridge no pouso da página do Seedance. */}
+        {seedanceBridge.length > 0 && (
+          <section style={{ marginTop: 40, padding: '26px 20px', borderRadius: 18, border: '1px solid rgba(41,151,255,0.35)', background: 'linear-gradient(135deg, rgba(41,151,255,0.10), rgba(191,90,242,0.08))' }}>
+            <p style={{ margin: '0 0 6px', textAlign: 'center', color: '#2997ff', fontSize: 12, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase' }}>One step up · {ENGINES.seedance.name}</p>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 8px' }}>Want every scene generated for your script instead of stock footage?</h2>
+            <p style={{ textAlign: 'center', color: '#a1a1a6', fontSize: '0.92rem', margin: '0 auto 18px', maxWidth: 640, lineHeight: 1.6 }}>
+              {e.name} matches real stock clips to each line. {ENGINES.seedance.name} generates every scene with AI from the words you wrote — same one-box flow, same voice, captions and score. {ENGINES.seedance.creditCost} credits per 60-second film.
+            </p>
+            <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', maxWidth: 560, margin: '0 auto' }}>
+              {seedanceBridge.map((v) => (
+                <div key={v.id} style={{ overflow: 'hidden', borderRadius: 14, ...CARD }}>
+                  <div style={{ position: 'relative', aspectRatio: '9 / 16', overflow: 'hidden', background: '#000' }}>
+                    <video src={v.videoUrl} poster={v.posterUrl} muted playsInline controls preload="none" style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <span style={{ position: 'absolute', left: 8, top: 8, zIndex: 10, borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.6)', padding: '2px 6px', fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', color: '#fff', pointerEvents: 'none' }}>{v.badge}</span>
+                  </div>
+                  <p style={{ margin: 0, padding: '9px 10px', fontSize: '11.5px', fontWeight: 700, lineHeight: 1.35, color: 'rgba(255,255,255,0.85)' }}>{v.title}</p>
+                </div>
+              ))}
+            </div>
+            <p style={{ textAlign: 'center', margin: '20px 0 0' }}>
+              <Link href="/ai-video-generator/seedance?from=kineo1_bridge" style={{ display: 'inline-block', background: '#2997ff', color: '#fff', fontWeight: 900, padding: '12px 26px', borderRadius: 980, textDecoration: 'none', fontSize: '0.95rem' }}>
+                See {ENGINES.seedance.name} →
+              </Link>
             </p>
           </section>
         )}
