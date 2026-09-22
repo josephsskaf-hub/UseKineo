@@ -148,6 +148,8 @@ async function poll({ state = database(), status = 'IN_PROGRESS', mismatched = f
   const fail = () => { const e = new Error('SENTINEL unprocessable entity private-job https://signed.invalid');
     e.status = http; e.body = { detail: 'User is locked SENTINEL' }; throw e }
   const imports = {
+  '@/lib/stuckScene': { stuckSceneIndexes: () => [], stuckClockStart: () => 0, lastSceneRetryAt: async () => null, CINEMATIC_SCENE_STUCK_EVENT: 'cinematic_scene_stuck' }, // KINEO-CENA-PRESA-2026-09-22: cena presa fora do cenário destes guardiões
+
     'next/server': { NextResponse: { json: (body, init = {}) => ({ body, status: init.status ?? 200 }) } },
     // KINEO-RESGATE-RAPIDO-2026-09-19 — a rota grava a batida de vida da aba (sem efeito no diagnóstico).
     '@/lib/serverEvents': { writeServerEvent: async () => true },
