@@ -438,6 +438,13 @@ interface ComposeBody {
 }
 
 export async function POST(req: NextRequest) {
+  // ═══ KINEO-COMPOSE-FALHA-COM-NOME-2026-09-22 — o compose passa a GRAVAR por que morreu ═══
+  // Proposta de 22/09 (docs/PROPOSTA-MOTORES-VOLTA-2026-09-22.md): H3 15/09 (2×) e Omni 16/09 despacharam 7/7 e
+  // 11/11 na fal e morreram ~40 s depois do claim de compose — o cliente viu `stage=failed` sem texto e o ledger
+  // sintetizou `unreported_stage_failure`. Em 30 dias: 637 claims, 137 recusas, ZERO evento de falha do compose.
+  // O catch final devolvia "Something went wrong" e não gravava nada. Agora: o contexto (quem, qual motor, qual
+  // geração, em que estágio) vive fora do try, e a exceção vira `compose_failed` com a mensagem — para os 8 motores.
+  const composeCtx: { userId: string | null; quality: string | null; generationId: string | null; stage: string } = { userId: null, quality: null, generationId: null, stage: 'start' }
   try {
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
@@ -733,6 +740,7 @@ export async function POST(req: NextRequest) {
       )
     }
     const generationId = rawGenerationId
+    composeCtx.userId = authenticatedUserId; composeCtx.generationId = generationId; composeCtx.quality = quality; composeCtx.stage = 'claimed' // KINEO-COMPOSE-FALHA-COM-NOME
     const submissionKey = `${authenticatedUserId}:${generationId}`
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -2050,6 +2058,7 @@ export async function POST(req: NextRequest) {
           // KINEO-DURACAO-REAL-DO-CLIPE-2026-09-14 (Board): a fala só pode crescer
           // até onde o ARQUIVO realmente vai — a duração vem do cabeçalho do MP4,
           // não do timestamp da transcrição.
+          composeCtx.stage = `hollywood_clip_transcription:${sceneIdx + 1}` // KINEO-COMPOSE-FALHA-COM-NOME
           const lido = await transcribeClipWithTimestampsAndDuration(c.url).catch(() => ({ words: [] as WhisperWord[], durationSeconds: null as number | null }))
           const words = lido.words
           const mediaSeconds = lido.durationSeconds
@@ -2112,6 +2121,7 @@ export async function POST(req: NextRequest) {
 
       // Do this before TTS, music, or another provider submission. Keep the
       // existing paid clips; an undersized partial film is not a successful 60s film.
+      composeCtx.stage = 'hollywood_timeline' // KINEO-COMPOSE-FALHA-COM-NOME
       try {
         assertCinematicTimeline(hollywoodClips, duration)
       } catch (error) {
@@ -2135,6 +2145,7 @@ export async function POST(req: NextRequest) {
       // fundador ouviu como "apagao" deixa de existir estruturalmente. Este
       // bloco so coleta o TEXTO por cena; tempos vem depois do ajuste.
       let pendingScenes: Array<{ sceneIdx: number; text: string }>
+      composeCtx.stage = 'hollywood_narrations' // KINEO-COMPOSE-FALHA-COM-NOME
       try {
         pendingScenes = collectSceneNarrations(hollywoodClips, rawNarrations)
       } catch {
@@ -2192,6 +2203,7 @@ export async function POST(req: NextRequest) {
         tentativasCena++
         try {
           if (!hollywoodPinnedVoice) throw new Error('Narration voice unavailable')
+          composeCtx.stage = 'hollywood_host_tts' // KINEO-COMPOSE-FALHA-COM-NOME
           const buf = await synthesizeHostSpeech({
             text: pending.text,
             voice: hollywoodPinnedVoice.voice,
@@ -2260,6 +2272,7 @@ export async function POST(req: NextRequest) {
           continue
         }
         try {
+          composeCtx.stage = 'hollywood_host_tts' // KINEO-COMPOSE-FALHA-COM-NOME
           const buf = await synthesizeHostSpeech({
             text: m.text,
             voice: hollywoodPinnedVoice.voice,
@@ -2881,6 +2894,7 @@ export async function POST(req: NextRequest) {
       voiceoverUrl = cachedVoiceover.voiceoverUrl
       console.log(`[compose] cache hit — voiceover reused from ${voiceoverUrl.slice(0, 80)}`)
     } else {
+      composeCtx.stage = 'voiceover_whisper_and_upload' // KINEO-COMPOSE-FALHA-COM-NOME
       const whisperPromise: Promise<WhisperWord[] | undefined> = audioBuffer
         ? transcribeTTSWithTimestamps(audioBuffer)
             .then((words) => {
@@ -3265,8 +3279,18 @@ export async function POST(req: NextRequest) {
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error)
     console.error('[compose] unexpected error:', msg)
+    // KINEO-COMPOSE-FALHA-COM-NOME-2026-09-22 — a exceção vira evento com nome (quem, motor, geração, estágio,
+    // mensagem) e a resposta carrega `reason` + `detail`, para o ledger do cliente nunca mais sintetizar
+    // `unreported_stage_failure` para uma falha que o servidor conhecia. ESPERADO (void antes do return morre na Vercel).
+    await logComposeEvent('compose_failed', 'compose_unexpected_error', composeCtx.userId, {
+      quality: composeCtx.quality,
+      generation_id: composeCtx.generationId,
+      stage: composeCtx.stage,
+      message: msg.slice(0, 400),
+      stack_head: error instanceof Error && error.stack ? error.stack.split('\n').slice(1, 4).join(' | ').slice(0, 400) : null,
+    })
     return NextResponse.json(
-      { error: 'Something went wrong while preparing the render.' },
+      { error: 'Something went wrong while preparing the render.', reason: 'compose_unexpected_error', stage: composeCtx.stage, detail: msg.slice(0, 200), generationId: composeCtx.generationId },
       { status: 500 }
     )
   }
