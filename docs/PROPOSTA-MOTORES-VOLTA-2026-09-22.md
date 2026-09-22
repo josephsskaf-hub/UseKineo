@@ -100,3 +100,35 @@ passo 5 (2 × 45 cr); e a decisão de despausar quando os 3 números estiverem n
   hollywood e entra no passo 3 se o erro do compose apontar para lá.
 - Kineo 1 e Seedance 1.5 continuam sendo onde o dinheiro está (8 dos 8 pagantes de 30 d): as medições dos consertos
   de 18-21/09 correm em paralelo, com corte no deploy, sem render pago.
+
+## 6. Execução — passos 1 e 2 (22/09, fundador: "vai")
+
+**Passo 1 — compose grava o motivo (EM PRODUÇÃO, `609f5473`, deploy READY 03:10Z).** `app/api/compose/route.ts`:
+`composeCtx` (quem/motor/geração/estágio) fora do try; estágios nomeados na estrada hollywood (transcrição por clipe,
+régua, narrações, TTS do host) e na clássica; o catch final grava `compose_failed` (ESPERADO) com mensagem + stack e
+responde 500 com `reason/stage/detail/generationId`. Guardião `test-compose-falha-com-nome-2026-09-22.mjs` (16, 2
+mutantes); 3 simuladores da rota reancorados. Suíte: 457 verdes, 122 vermelhos = base (3 eram os simuladores).
+
+**Passo 2 — render H3 nº 1 (35 s, verbatim Lituya 84 palavras, 27 cr, geração `d7f73bf6`, 03:16Z).** Dry-run PASS
+antes (5 cenas, 39 s). Resultado: **o 3º modo de morte, que a proposta não tinha**:
+- Despacho 5/5 aceitas em 38 s. Clipes 1, 2, 4, 5 prontos em ~4 min — **768×1344, 6,6-11,6 s, visualmente fortes**
+  (fiorde aéreo, deslizamento/splash na encosta, os dois pescadores DENTRO da onda, costa arrancada). Folha de contato
+  em anexo à conversa de 22/09.
+- **Cena 3 ("splash climbs to 1,720 feet") ficou `IN_PROGRESS` na fal por 50 min e nunca voltou.** O cliente esperou
+  até `FAL_POLL_DEADLINE_MS` (50 min) e encerrou com `fal_poll_deadline_exceeded` (3006 s). O compose nunca rodou; o
+  `compose_failed` novo não foi exercitado (não houve compose).
+- Estorno: a tela diz "credits are being returned automatically", mas `profiles.video_credits` ficou 424 → **397**
+  (−27) na hora; quem devolve é o cron `finish-stranded-renders` (`cinematic_abandoned_no_delivery`, ~2 h). Conferir
+  o saldo do fundador na manhã de 22/09 — se não voltou a 424, é defeito do cron.
+
+**O que isso muda no plano (ordem nova do passo 3):**
+1. **Teto por cena + ressubmissão** (o remédio deste modo): cena `processing` há > 10-12 min com as outras prontas →
+   ressubmeter a MESMA cena (mesmo prompt/âncora/seed novo) uma vez; segunda falha → montar com as cenas prontas se a
+   régua (≥ 95 % da duração) permitir, senão encerrar em 15 min com estorno IMEDIATO — nunca 50 min de spinner. Hoje
+   `retry_safety: 'never'` em todo despacho. Toca `app/api/generate-video-cinematic` + `lib/hollywood` (trava 8.2).
+2. O compose instrumentado continua valendo para o 2º modo (15-16/09); só se exercita quando um filme chega lá.
+3. Visual do H3 (passo 4 original) fica DEPOIS: os 4 clipes de hoje já estão num nível que o Kling 3 de 17/09 não
+   alcançou; o problema do H3 hoje é entrega, não imagem.
+
+Custo do passo 2: 27 cr (≈ US$ 1,90 de fal pelos 4 clipes + 1 preso). Fal: a fila do `minimax/h3/image-to-video`
+segurou 1 de 5 jobs por > 53 min sem erro — vale abrir ticket com o request id `01a0c71d-e67f-7823-919c-8296954f1a1c`.
