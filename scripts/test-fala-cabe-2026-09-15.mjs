@@ -29,7 +29,7 @@ const FIM = "          qualityCheckFailed: true, reason: 'scene_speech_exceeds_f
 const PARAMS = ['pendingScenes', 'hollywoodPinnedVoice', 'synthesizeHostSpeech', 'explicitSpeed', 'estimateMp3DurationSeconds', 'transcribeTTSWithTimestamps', 'verifyObservedSpeech', 'uploadVoiceoverToSupabase', 'user', 'rejectBeforeProviderSubmission', 'NextResponse', 'hollywoodClips', 'quality', 'trimNarratedSupport', 'duration', 'secondsOf', 'originalFootageSeconds', 'generationId', 'console']
 function fatiaDe(src) { const a = src.indexOf(INI); const b = src.indexOf(FIM, a); return a < 0 || b < a ? null : src.slice(a, b + FIM.length) }
 function montar(fatia) {
-  return roda(`export async function rodar(ctx: any) {\n  const { ${PARAMS.join(', ')} } = ctx\n${fatia}\n  return { measured, hollywoodClips, rejeitado: null, status: 200 }\n}`).rodar
+  return roda(`export async function rodar(ctx: any) {\n  const { ${PARAMS.join(', ')} } = ctx\n  const composeCtx = ctx.composeCtx ?? { stage: '' } // KINEO-COMPOSE-FALHA-COM-NOME-2026-09-22\n${fatia}\n  return { measured, hollywoodClips, rejeitado: null, status: 200 }\n}`).rodar
 }
 const wordsOf = (t) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
 const frase = (n, tema) => Array.from({ length: n }, (_, i) => `${tema}${i + 1}`).join(' ') + '.'

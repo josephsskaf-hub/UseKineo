@@ -11,7 +11,7 @@ const load=createOfflineLoader(), timeline=load('@/lib/cinematic/timelineContrac
 let checks=0
 const eq=(a,b)=>{assert.deepEqual(a===undefined?undefined:JSON.parse(JSON.stringify(a)),b);checks++}
 function find(test){let result;function visit(n){if(!result&&test(n))result=n;ts.forEachChild(n,visit)}visit(ast);assert.ok(result);return result}
-function evaluate(code,scope){const box={exports:{}};vm.runInNewContext(ts.transpileModule(code,{compilerOptions:{module:1,target:9}}).outputText,{exports:box.exports,...scope},{timeout:3000});return box.exports}
+function evaluate(code,scope){const box={exports:{}};vm.runInNewContext(ts.transpileModule(code,{compilerOptions:{module:1,target:9}}).outputText,{exports:box.exports,composeCtx:{stage:''}/* KINEO-COMPOSE-FALHA-COM-NOME-2026-09-22 */,...scope},{timeout:3000});return box.exports}
 const json=(body,init={})=>new Response(JSON.stringify(body),{status:init.status??200,headers:{'Content-Type':'application/json'}})
 const next={json}
 const reasonList=['cinematic_timeline_too_short','scene_speech_exceeds_footage','cinematic_scene_metadata_invalid','cinematic_dialogue_unverified','cinematic_speech_missing','cinematic_voice_unavailable','cinematic_narration_unverified','requested_voice_unavailable']

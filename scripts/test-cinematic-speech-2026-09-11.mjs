@@ -81,7 +81,7 @@ function findNode(ast, predicate) {
 function evaluate(source, scope) {
   const exports = {}
   const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
-  vm.runInNewContext(code, { exports, ...scope }, { timeout: 5000 })
+  vm.runInNewContext(code, { exports, composeCtx: { stage: '' } /* KINEO-COMPOSE-FALHA-COM-NOME-2026-09-22: a rota marca o estágio antes de cada passo */, ...scope }, { timeout: 5000 })
   return exports
 }
 const narrationNode = findNode(generationAst, n => ts.isVariableDeclaration(n) && n.name.getText(generationAst) === 'hNarrations')
