@@ -1,6 +1,6 @@
 // KINEO-MOTORES-16-LINGUAS-2026-09-21 — guardião: as 3 páginas de motor que vendem existem em 13 línguas, com hreflang cruzado,
 // sitemap, custo do catálogo (nunca digitado) e a língua atravessando o formulário.
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
@@ -77,6 +77,11 @@ checa('ponte só na página do Kineo 1 e só com o Seedance fora de manutenção
 checa('ponte fica DEPOIS da galeria da casa e ANTES da prova de clientes', en.indexOf('{seedanceBridge.length > 0 && (') > en.indexOf('{house.length > 0 && (') && en.indexOf('{seedanceBridge.length > 0 && (') < en.indexOf('{/* A PROVA — renders reais deste motor */}'))
 checa('custo e nome do Seedance vêm do catálogo; link medível com ?from=kineo1_bridge', en.includes('{ENGINES.seedance.creditCost} credits per 60-second film') && en.includes('href="/ai-video-generator/seedance?from=kineo1_bridge"') && !/\b25 credits per 60-second film/.test(en))
 checa('mutante (ponte em toda página de motor) é pego', !en.replace("params.engine === 'kineo-1' && ", '').includes("params.engine === 'kineo-1' && !enginePaused(ENGINES.seedance.param)"))
+
+console.log('3e) filme líder das páginas de motor (KINEO-VITRINE-MOTOR-LIDER-2026-09-22)')
+const pubEx = rd('lib/publicExamples.ts')
+checa('castelo (90bd8367, Seedance) é o líder das páginas de motor, com prévia e capa no repo', pubEx.includes("export const ENGINE_PAGE_LEAD") && pubEx.includes("id: '90bd8367-60c6-4811-8fdd-3a5b0200eec6'") && pubEx.includes("engine: 'cinematic_ai', previewPath: '/previews/ex-90bd8367-60c6-4811-8fdd-3a5b0200eec6.mp4'") && existsSync(join(root, 'public/previews/ex-90bd8367-60c6-4811-8fdd-3a5b0200eec6.mp4')) && existsSync(join(root, 'public/posters/ex-90bd8367-60c6-4811-8fdd-3a5b0200eec6.webp')))
+checa('o líder vem ANTES da vitrine da casa só nas páginas de motor; FOUNDER_SHOWCASE (home, /ph) não recebe o castelo', wall.includes('for (const v of [...founderShowcaseWall(ENGINE_PAGE_LEAD), ...founderShowcaseWall()]) {') && !pubEx.split('export const ENGINE_PAGE_LEAD')[0].includes('90bd8367'))
 
 console.log('4) mutantes')
 const mutAlt = roda(engSrc.replace("  for (const code of ENGINE_LANG_CODES) out[FREE_SHORTS_LANG_BY_CODE[code].locale] = `${base}/ai-video-generator/${slug}/${code}`\n", ''), { '@/lib/seo/freeShortsGeneratorLangs': F })

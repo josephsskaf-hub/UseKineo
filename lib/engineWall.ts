@@ -13,7 +13,7 @@
 //  · falha de banco ⇒ lista vazia ⇒ a seção não renderiza. Nunca quebra a home.
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { cleanTitleLine } from '@/lib/publicVideos'
-import { FOUNDER_SHOWCASE, PUBLIC_ENGINE_EXAMPLES, PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
+import { ENGINE_PAGE_LEAD, FOUNDER_SHOWCASE, PUBLIC_ENGINE_EXAMPLES, PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
 import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy'
 import { HOME_ENGINE_EXAMPLES } from '@/lib/homeVideoCuration'
 
@@ -48,8 +48,8 @@ function staticExampleWall(): WallVideo[] {
   }))
 }
 
-function founderShowcaseWall(): WallVideo[] {
-  return FOUNDER_SHOWCASE.map((v) => ({
+function founderShowcaseWall(list: readonly (typeof FOUNDER_SHOWCASE)[number][] = FOUNDER_SHOWCASE): WallVideo[] {
+  return list.map((v) => ({
     id: v.id,
     title: v.title,
     videoUrl: v.previewPath,
@@ -324,7 +324,8 @@ export function getEngineWall(): Promise<WallVideo[]> {
 export function getHouseEngineExamples(engine: string, limit = 6): WallVideo[] {
   const seen = new Set<string>()
   const out: WallVideo[] = []
-  for (const v of founderShowcaseWall()) {
+  // KINEO-VITRINE-MOTOR-LIDER-2026-09-22 — o filme líder escolhido pelo fundador vem antes do resto da vitrine.
+  for (const v of [...founderShowcaseWall(ENGINE_PAGE_LEAD), ...founderShowcaseWall()]) {
     if (v.engine !== engine || seen.has(v.id)) continue
     seen.add(v.id); out.push(v)
     if (out.length >= limit) return out
