@@ -22,7 +22,7 @@ import { searchVault } from '@/lib/clipVault'
 // KINEO-AI-HOOK — Seedance cinematic "wow" opener for a free user's FIRST video.
 import { buildHookPrompt, submitAiHook, awaitAiHook, persistHookClip, type AiHookHandle } from '@/lib/fastAiHook'
 // KINEO1-PRIMEIRO-FILME-VIDEO-2026-09-17 — Seedance nas cenas fracas do primeiro filme; quem espera é o compose.
-import { FIRST_FILM_AI_CLIPS_ENABLED, FIRST_FILM_AI_CLIPS_EVENT, FIRST_FILM_BUDGET_USD, FIRST_FILM_STILL_USD, FIRST_FILM_STILLS_WITH_CLIPS_MAX, SEEDANCE_720P_5S_USD, firstFilmAiClipCount, pickWeakScenes, buildSceneClipPrompt, submitSceneClip } from '@/lib/fastAiClips'
+import { FIRST_FILM_AI_CLIPS_ENABLED, FIRST_FILM_AI_CLIPS_EVENT, FIRST_FILM_BUDGET_USD, FIRST_FILM_STILL_USD, FIRST_FILM_STILLS_WITH_CLIPS_MAX, CHARACTER_STORY_STILLS_WITH_CLIPS_MAX, SEEDANCE_720P_5S_USD, firstFilmAiClipCount, pickWeakScenes, buildSceneClipPrompt, submitSceneClip } from '@/lib/fastAiClips'
 import { pickLibraryClips, type LibraryClip } from '@/lib/stockLibrary'
 // Push #351 — ensureAccessibleUrl removed (was only used for Pexels CDN proxying; Pexels now OFF).
 // import { ensureAccessibleUrl } from '@/lib/videoCache'
@@ -1080,7 +1080,9 @@ export async function POST(req: NextRequest) {
     const aiClipsSubmitted: Array<{ scene: number; requestId: string; prompt: string }> = []
     const primeiroFilmeComClipes = !!aiHookHandle && FIRST_FILM_AI_CLIPS_ENABLED
     if (primeiroFilmeComClipes) {
-      if (!filmeDesenhado) aiStillsMax = Math.min(aiStillsMax, FIRST_FILM_STILLS_WITH_CLIPS_MAX) // KINEO1-FILME-DESENHADO: desenho mantém still em toda cena
+      // KINEO1-FILME-DESENHADO: desenho mantém still em toda cena. KINEO1-FICCAO-STOCK-EXATO-2026-09-22: história com
+      // personagem sobe o teto para 6 (a Emily ficou com stills só nas cenas 1-3; as cenas 4-6 eram só banco) — +US$ 0,08.
+      if (!filmeDesenhado) aiStillsMax = Math.min(aiStillsMax, personagem ? CHARACTER_STORY_STILLS_WITH_CLIPS_MAX : FIRST_FILM_STILLS_WITH_CLIPS_MAX)
       const extras = Math.max(0, firstFilmAiClipCount(FIRST_FILM_STILLS_WITH_CLIPS_MAX) - 1)
       const notas = scenes.map((_, i) => ({ scene: i + 1, relevance: typeof alignedMeta[i]?.relevanceScore === 'number' ? (alignedMeta[i]?.relevanceScore as number) : null }))
       for (const sceneNo of pickWeakScenes(notas, extras)) {
@@ -1379,7 +1381,8 @@ export async function POST(req: NextRequest) {
             // scene duration rank higher (kills freeze/loop padding on short clips).
             // KINEO-MULTIFORMATO-2026-09-02 — o ranker precisa saber o quadro:
             // num Short vale +10 para clipe retrato; num 16:9 é o inverso.
-            { exact: verbatim, exclude: usedPexelsUrls, minDurationSec: durationSeconds, maxClips: clipsWanted - vaultTaken, styleCtx, aspect },
+            // KINEO1-FICCAO-STOCK-EXATO-2026-09-22 — história com personagem: o banco só entra se a cabeça da busca for tag exata.
+            { exact: verbatim, exclude: usedPexelsUrls, minDurationSec: durationSeconds, maxClips: clipsWanted - vaultTaken, styleCtx, aspect, strictSubject: !!personagem },
           )
           // KINEO1-MUNDO-DA-ENTIDADE-2026-09-17 — dedupe por assinatura de tags: o mesmo gráfico de bolsa com outra
           // URL é o mesmo gráfico para quem vê (cenas 2 e 3 do filme do Bezos). Se todos repetem, fica o primeiro.

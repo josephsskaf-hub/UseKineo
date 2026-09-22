@@ -342,8 +342,29 @@ function tokenHitsTags(token: string, tagWords: string[]): boolean {
   return false
 }
 
+// ═══ KINEO1-FICCAO-STOCK-EXATO-2026-09-22 — em ficção, a cabeça da busca tem de ser tag EXATA ═══
+// Caso stefanoszantis06 (22/09 13:16Z, história da Emily às 3:00 AM, nota 75 / visual 60): "whispering voice" passou
+// no portão porque 'whispering' CONTÉM a tag 'whisper' (substring ≥ 5) — e o filme ganhou um pássaro; a cena 1 ganhou
+// um homem estressado com contas na cama. Medido (7 d, Kineo 1): 34 histórias com personagem, visual 54,7.
+// A regra vale só quando a rota liga (`strictSubject`), isto é, quando há personagem nomeado: o still já cobre a
+// cena, e o stock só entra se for literalmente da cena.
+let ACTIVE_STRICT_SUBJECT = false
+export function setActiveStrictSubject(strict: boolean): void {
+  ACTIVE_STRICT_SUBJECT = strict
+}
+/** Igualdade de palavra, tolerando só o plural simples ("door"/"doors"). Nada de substring nem família. */
+export function headMatchesTagExactly(head: string, tagWords: string[]): boolean { // exportado para o guardião
+  const h = head.toLowerCase()
+  return tagWords.some((w) => w === h || w === `${h}s` || h === `${w}s`)
+}
+
 export function tagsRelevantToQuery(video: PixabayVideo, query: string): boolean { // exportado para o guardião (KINEO1-SUJEITO)
   const qTokens = meaningfulTokens(query)
+  if (ACTIVE_STRICT_SUBJECT) {
+    // KINEO1-FICCAO-STOCK-EXATO — busca sem cabeça (só genéricos/estilo) não traz stock nenhum para uma ficção.
+    const head = headSubjectToken(query)
+    return head !== null && headMatchesTagExactly(head, tagWordsOf(video))
+  }
   // If the query has no judge-able CONTENT tokens, don't block (can't assess).
   if (qTokens.length === 0) return true
   const tagWords = tagWordsOf(video)
@@ -1239,8 +1260,16 @@ export async function getPixabayClipsForScene(
      * o inverso exato — clipe retrato é que seria destruído pelo corte.
      */
     aspect?: string | null
+    /**
+     * KINEO1-FICCAO-STOCK-EXATO-2026-09-22 — história com personagem (ficção): o banco só entra na cena se a
+     * CABEÇA da busca for uma tag EXATA do clipe (sem substring, sem família). "whispering voice" trouxe um
+     * pássaro (tag "whisper"); "bedroom door" trouxe um homem com contas na cama. Em ficção o still já cobre a
+     * cena; o stock é o segundo corte e precisa provar que é da cena.
+     */
+    strictSubject?: boolean
   },
 ): Promise<string[]> {
+  setActiveStrictSubject(opts?.strictSubject === true) // KINEO1-FICCAO-STOCK-EXATO
   const rawCleaned = (queries ?? [])
     .filter((q): q is string => typeof q === 'string' && q.trim().length > 0)
     .map((q) => q.trim())

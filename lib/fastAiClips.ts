@@ -32,6 +32,8 @@ export const SEEDANCE_720P_5S_USD = 0.13
 export const FIRST_FILM_STILL_USD = 0.03
 /** Stills do híbrido no primeiro filme com clipes de IA: 3 × 0,03 = 0,09. */
 export const FIRST_FILM_STILLS_WITH_CLIPS_MAX = 3
+/** KINEO1-FICCAO-STOCK-EXATO-2026-09-22 — história com personagem: até 6 stills mesmo com os 3 clipes (6 × 0,026 + 3 × 0,13 ≈ US$ 0,55). */
+export const CHARACTER_STORY_STILLS_WITH_CLIPS_MAX = 6
 export const FIRST_FILM_AI_CLIPS_EVENT = 'fast_ai_clips_pending'
 export const FIRST_FILM_AI_CLIPS_RESULT_EVENT = 'fast_ai_clips_result'
 /** Teto de espera no compose (o TTS/Whisper já consumiu 30-60 s; a Seedance costuma fechar em 60-120 s). */
