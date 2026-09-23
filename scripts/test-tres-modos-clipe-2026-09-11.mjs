@@ -59,10 +59,24 @@ checa('cinematic: o guarda vem antes do claim de nascimento', cin.indexOf("reaso
 
 console.log('== o Studio ==')
 const st = rd('app/(dashboard)/studio/StudioClient.tsx')
-checa('terceiro modo no seletor', /data-testid="script-mode-clip"/.test(st) && /Just this clip \(no narration\)/.test(st))
+// e39b20c7: selector copy is now "Clip"; identify the real button and mode,
+// not a retired label elsewhere in the file. Keep the narrated-route guards.
+const clipSelector = (src) => /<button\b[^>]*data-testid="script-mode-clip"[\s\S]*?<\/button>/.exec(src)?.[0] ?? ''
+const hasClipSelector = (src) => {
+  const button = clipSelector(src)
+  return /aria-pressed=\{scriptMode === 'clip'\}/.test(button)
+    && /setScriptMode\('clip'\)/.test(button) && /<UiLabel>Clip<\/UiLabel>/.test(button)
+}
+checa('terceiro modo no seletor: Clip seleciona clip e informa estado', hasClipSelector(st))
+checa('mutante: remover seletor é detectado', !hasClipSelector(st.replace(clipSelector(st), '')))
+checa('mutante: seletor que ativa ai é detectado', !hasClipSelector(st.replace(clipSelector(st), clipSelector(st).replace("setScriptMode('clip')", "setScriptMode('ai')"))))
 checa('modo clip: Generate roda o fluxo do clipe sem navegar para /generate', /if \(scriptMode === 'clip'\) \{ void generateClip\(\); return \}/.test(st))
 checa('fluxo: POST /api/generate-clip → poll /api/clip-status a cada 5 s → vídeo + download', /fetch\('\/api\/generate-clip'/.test(st) && /\/api\/clip-status\?render_id=/.test(st) && /Download MP4/.test(st))
-checa('botão diz o custo: Render clip · 5 cr', /Render clip · 5 cr →/.test(st))
+const showsClipCost = (src) => /import \{ CLIP_CREDITS \} from '@\/lib\/cinematic\/shotSpec'/.test(src)
+  && /Render clip · \$\{CLIP_CREDITS\} cr →/.test(src)
+  && /scriptMode === 'clip' \? CLIP_CREDITS : cost\} cr/.test(src)
+checa('botão e revisão usam CLIP_CREDITS (5, provado acima)', showsClipCost(st))
+checa('mutante: custo arbitrário no botão é detectado', !showsClipCost(st.replace('Render clip · ${CLIP_CREDITS} cr →', 'Render clip · 1 cr →')))
 checa('segundos: 5, 8, 10, 12', /\[5, 8, 10, 12\]\.map/.test(st))
 
 console.log(`\n${ok} ok · ${falhas.length} falhas`)
