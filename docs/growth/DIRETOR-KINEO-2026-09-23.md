@@ -34,6 +34,10 @@
 
 ## Entregas e aceite
 
+**DECISÃO APROVADA / ADENDO23/09:** desenho aceito pelo fundador na sessão UX (“gostei muito aprovado”), registrado em ENTREGA.md. Objeto: `C:/Users/josep/Documents/Codex/2026-09-21/kineo-ux-ui/outputs/diretor-kineo-20260923/DIRETOR-KINEO-PREVIEW.html`, SHA25685DA8B1253335E629865EF6EF892F9F256CE806993C4AA7FA0A6DB6C872CFC0B reconferido pelo Board. Substitui somente a pendência de aprovação do desenho abaixo. HTML ainda LOCAL, não versionado neste pacote. Se o dono técnico não tiver acesso ao arquivo, solicitar esse objeto, não reconstruir por memória ou supor que Git contém o protótipo.
+
+**TESTADO LOCALMENTE / LIMITE:** verification.json registra76 verificações offline PASS de estados, literalidade, consentimento, invalidação, desfazer e sintaxe. Sugestões são predeterminadas/fictícias, zero integração de IA. Nenhuma inspeção de navegador pelo agente; aceite não discrimina dispositivos/estados. Testes do protótipo não certificam fluxo real. Continuam pendentes avaliação técnica, custo/limites, reserva de implementação e gates de produto/publicação.
+
 **DECISÃO APROVADA / Codex UX:** HTML estático autocontido antes/depois desktop e mobile, estados acima, dados fictícios e sem API. Informar caminho e verificação efetiva; não afirmar inspeção visual sem caminho permitido. Aprovação do conceito não substitui aprovação do preview.
 
 **SUGESTÃO / Claude:** responder `DIRETOR-KINEO-20260923` com reaproveitamento possível, lacuna mínima, custo/limites e testes offline planejados. Provar zero render/débito/token de consentimento ao sugerir/aplicar; preservação verbatim/original, falhas, concorrência e resposta tardia. Implementação funcional/publicação dependem de reserva reconciliada, aprovação visual e gates vigentes; sem bypass de CI ou guardas.

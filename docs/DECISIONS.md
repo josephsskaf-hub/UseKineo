@@ -8,6 +8,8 @@ Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aq
 
 **ESCOPO APROVADO:** Codex prepara protótipo local antes/depois desktop/mobile; Claude recebe contrato de reaproveitamento técnico, sem rotina nova ou leitura presumida. Especificação em `docs/growth/DIRETOR-KINEO-2026-09-23.md`. Aprovação conceitual não é aceite visual, ativação em produção, gasto adicional, mudança de oferta/modelo ou garantia de resultado. Reservas, gates, duas variantes comerciais e corte semanal permanecem.
 
+**ADENDO / ACEITE DO DESENHO EM23/09:** a sessão Kineo · Melhorias UX e UI registrou a mensagem direta do fundador “gostei muito aprovado” para DIRETOR-KINEO-PREVIEW.html, SHA25685DA8B1253335E629865EF6EF892F9F256CE806993C4AA7FA0A6DB6C872CFC0B. Board reconferiu arquivo/hash e registro ENTREGA.md. O aceite do desenho está resolvido para esse objeto; a mensagem não discrimina dispositivos/estados e não certifica integração, navegador, gasto ou publicação. Próxima etapa é reconciliação técnica do contrato com Claude, sem presumir leitura ou início.
+
 Formato: data · decisão · motivo · consequência prática.
 
 ## 2026-09-22 — Exceção nominal P3-017: duas mensalidades a 50%, seguintes a 30%
