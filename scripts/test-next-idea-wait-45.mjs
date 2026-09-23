@@ -19,7 +19,7 @@ function v(nome, cond) {
 }
 
 const GC = 'app/(dashboard)/generate/GenerateClient.tsx'
-const src = readFileSync(GC, 'utf8')
+const src = readFileSync(GC, 'utf8').replace(/\r\n/g, '\n')
 const fila = readFileSync('lib/proximoEpisodioFila.ts', 'utf8')
 const diff = execSync(`git diff -- "${GC}"`, { encoding: 'utf8', maxBuffer: 40 * 1024 * 1024 })
 const mais = diff.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))
@@ -68,7 +68,7 @@ v('call site usa analysis?.title ?? prompt', /sugestao=\{analysis\?\.title \?\? 
 v('done_screen usa a MESMA expressao', /handleContinueSeries\(analysis\?\.title \?\? prompt, 'done_screen'/.test(src))
 v('atalho passa pela regua da fila', /normalizarIdeia\(cru\)/.test(src))
 v('atalho recusa texto de varias linhas', /cru\.includes\('\\n'\)/.test(src))
-v('regua da fila e a unica (import, nao copia)', /normalizarIdeia,?/.test(src.slice(0, 12000)) && fila.includes('export function normalizarIdeia'))
+v('regua da fila e a unica (import, nao copia)', /import\s*\{[^}]*\bnormalizarIdeia\b[^}]*\}\s*from ['"]@\/lib\/proximoEpisodioFila['"]/.test(src) && fila.includes('export function normalizarIdeia'))
 
 // ── 5. o evento separa digitado de atalho ─────────────────────────────────
 v("handler aceita origem", /origem: 'typed' \| 'chip' = 'typed'/.test(src))
@@ -97,7 +97,7 @@ v('nenhum arquivo do Codex no diff', !execSync('git diff --name-only', { encodin
 v('vitrine de motores intocada', !execSync('git diff --name-only', { encoding: 'utf8' }).match(/engineWall|EngineCycleCard|previews/i))
 
 // ── 8. o que NAO podia mudar ─────────────────────────────────────────────
-v('WaitingShowcase segue antes do cartao', src.indexOf('<WaitingShowcase />') < src.indexOf('<NextIdeaDuringWait'))
+v('cartao opcional recolhido; vitrine removida pelo pedido visual de 23/09', /<details className="render-workspace-disclosure">\s*<summary>Next video idea<\/summary>\s*<NextIdeaDuringWait/.test(src) && !src.includes('<WaitingShowcase />'))
 v('estado "ja guardado" intacto', src.includes('Video #2 is lined up'))
 v('copy do campo intacta', src.includes("Type it now and it&apos;ll be waiting the second this video is ready."))
 v('botao Line it up intacto', src.includes('Line it up'))

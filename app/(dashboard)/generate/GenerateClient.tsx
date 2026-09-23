@@ -273,7 +273,6 @@ import PlanFitCard, { type PlanFitCheckoutMetadata } from '@/components/growth/P
 import { withPlanFitCheckoutContext } from '@/lib/growth/planFitCheckout'
 // KINEO-ESPERA-VENDE-2026-08-21 — vitrine durante o render. Ver o cabeçalho do
 // componente para a medição (90% da espera é o Creatomate, não o nosso código).
-import WaitingShowcase from '@/components/video/WaitingShowcase'
 // KINEO-SPRINT-V1V4-2026-08-31 (#14) — a fila do proximo episodio.
 import {
   lerIdeiaDaFila,
@@ -13298,7 +13297,7 @@ export default function GenerateClient({
     // (max-w-5xl) + more vertical air, landing-neutral card surfaces (#131316)
     // and ONE accent color — every legacy green/navy token was swapped for the
     // brand blue so the page reads like the homepage.
-    <main className="px-4 sm:px-6 lg:px-10 py-10 max-w-5xl mx-auto relative">
+    <main className={`px-4 sm:px-6 lg:px-10 py-10 mx-auto relative ${showRender && phase !== 'done' && phase !== 'failed' ? 'render-workspace' : 'max-w-5xl'}`}>
       <style jsx>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
@@ -13311,6 +13310,18 @@ export default function GenerateClient({
           proposito: .gv-stage/.gv-status vivem dentro de componentes filhos
           (PipelineStages, RenderHeader) que o style jsx escopado nao alcanca. */}
       <style jsx global>{`
+        main.render-workspace { width: 100%; max-width: none; }
+        .render-workspace-primary { min-height: calc(100svh - 240px); padding: clamp(20px, 3vw, 44px); display: flex; flex-direction: column; justify-content: center; gap: 22px; }
+        .render-workspace-primary .gv-stage { min-height: 72px; padding: 18px; border-radius: 14px; }
+        .render-workspace-details { padding: 26px; margin-bottom: 24px; border: 1px solid var(--border); border-radius: 20px; background: #10151d; }
+        .render-workspace-details h2 { color: #8fc8ff; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+        .render-workspace-topic { margin: 12px 0 18px; max-width: 80ch; font-size: 17px; line-height: 1.6; color: var(--text); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        .render-workspace-facts { display: flex; flex-wrap: wrap; gap: 12px 28px; margin-bottom: 22px; color: var(--muted2); font-size: 12px; }
+        .render-workspace-facts b { color: var(--text); font-weight: 600; margin-inline-start: 8px; }
+        .render-workspace-disclosure { border-top: 1px solid var(--border); padding: 6px 0; }
+        .render-workspace-disclosure > summary { min-height: 48px; align-content: center; cursor: pointer; color: var(--muted2); font-size: 13px; font-weight: 600; }
+        .render-workspace-disclosure > summary:focus-visible { outline: 2px solid #2997ff; outline-offset: 3px; border-radius: 6px; }
+        @media (max-width: 900px) { .render-workspace-primary { min-height: auto; padding: 20px; gap: 14px; } .render-workspace-primary .gv-stage { min-height: 64px; padding: 14px; } .render-workspace-details { padding: 20px; } }
         @keyframes gvFadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes gvShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
         @keyframes gvPop { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
@@ -15418,8 +15429,9 @@ export default function GenerateClient({
           )}
 
           {(phase === 'generating' || phase === 'fal_polling' || phase === 'avatar_polling' || phase === 'clips_ready' || phase === 'composing') && (
+            <>
             <section
-              className="gv-card rounded-2xl p-5 sm:p-6 mb-6"
+              className="gv-card render-workspace-primary rounded-2xl mb-6"
               style={{ background: '#131316', border: '1px solid var(--border)' }}
             >
               {/* PUSH #71 — show the real API phase instead of rotating
@@ -15442,7 +15454,16 @@ export default function GenerateClient({
                   finalReady={!!finalVideoUrl}
                 />
               )}
-
+            </section>
+            <section className="render-workspace-details" aria-label="Current project">
+              <h2>Current project</h2>
+              <p className="render-workspace-topic">{analysis?.title || prompt}</p>
+              <div className="render-workspace-facts">
+                <span>Requested length <b>{duration}s</b></span>
+                <span>Narration <b>{language.toUpperCase()}</b></span>
+              </div>
+              <details className="render-workspace-disclosure">
+                <summary>Rendering &amp; delivery</summary>
               <div
                 className="rounded-xl px-3 py-2 mt-4 text-xs"
                 style={{
@@ -15512,22 +15533,9 @@ export default function GenerateClient({
                 </div>
               </div>
 
-              {/* KINEO-ESPERA-VENDE-2026-08-21 — a vitrine entra AQUI, depois
-                  do estado do render e ANTES dos "Scene prompts".
-                  A ordem não é estética: a primeira coisa que a tela deve
-                  responder é "meu vídeo está vivo?" (barra + fases acima). Só
-                  com isso respondido é que faz sentido mostrar outra coisa.
-                  Inverter isso transformaria a vitrine em ruído em cima de uma
-                  ansiedade não resolvida — o erro que a gente já cometeu em
-                  20/08 pondo o card de recompensa ANTES do botão de download e
-                  medindo 107 pessoas indo embora sem o arquivo. Entrega
-                  primeiro, oferta depois: é a mesma regra. */}
-              <WaitingShowcase />
-
-              {/* KINEO-SPRINT-V1V4-2026-08-31 (#14) — o bloco de notas da espera.
-                  DEPOIS da vitrine de propósito: a vitrine responde "isso fica
-                  bom?" (dúvida de quem ainda não viu o próprio filme); só quem
-                  já se convenceu tem cabeça para pensar no próximo. */}
+              </details>
+              <details className="render-workspace-disclosure">
+                <summary>Next video idea</summary>
               <NextIdeaDuringWait
                 ideia={ideiaNaFila}
                 onSave={handleSalvarIdeiaDaEspera}
@@ -15546,6 +15554,7 @@ export default function GenerateClient({
                   })
                 }
               />
+              </details>
 
               {/* The per-clip tile grid was removed in push #031 — the final
                   output is a single composed MP4, so users only ever see ONE
@@ -15554,7 +15563,7 @@ export default function GenerateClient({
                   spinner + bar above. */}
 
               {scenes.length > 0 && (
-                <details className="mt-5">
+                <details className="render-workspace-disclosure">
                   <summary
                     className="text-xs font-black uppercase tracking-widest cursor-pointer"
                     style={{ color: 'var(--muted2)' }}
@@ -15574,6 +15583,7 @@ export default function GenerateClient({
                 </details>
               )}
             </section>
+            </>
           )}
 
           {/* ═══ KINEO-COMPLETAR-ROTEIRO-2026-08-22 ═══════════════════════

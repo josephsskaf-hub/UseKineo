@@ -98,7 +98,7 @@ checa('importa salvar, ler e limpar', ['salvarIdeiaNaFila', 'lerIdeiaDaFila', 'l
 checa('lê a fila ao montar a tela', /setIdeiaNaFila\(lerIdeiaDaFila\(\)\)/.test(semComentarios))
 checa('o cartão da espera EXISTE', /function NextIdeaDuringWait\(/.test(semComentarios))
 checa('o cartão da espera é RENDERIZADO', /<NextIdeaDuringWait/.test(semComentarios))
-checa('o cartão fica no bloco da espera, colado na vitrine', /<WaitingShowcase \/>[\s\S]{0,900}<NextIdeaDuringWait/.test(tela))
+checa('o cartão fica recolhido nos detalhes da espera, sem vitrine concorrente', /<details className="render-workspace-disclosure">\s*<summary>Next video idea<\/summary>\s*<NextIdeaDuringWait/.test(tela) && !tela.includes('<WaitingShowcase />'))
 checa('salvar está ligado no botão do cartão', /onSave=\{handleSalvarIdeiaDaEspera\}/.test(semComentarios))
 checa('o botão do pico de alegria EXISTE', /handleUsarIdeiaDaFila\(ideiaNaFila\)/.test(semComentarios))
 checa('o botão do pico de alegria só aparece com fila', /\{ideiaNaFila && \(/.test(semComentarios))
