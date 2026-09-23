@@ -46,6 +46,7 @@ import { formatLimitCounter, promptLimitState, trimPromptToLimit } from '@/lib/s
 import { buildStudioSeriesReviewHref, carryStudioSeriesReview, isStudioSeriesReview } from '@/lib/navigation/studioSeriesReview'
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 import { STUDIO_ONLY_ENGINE_KEYS } from '@/lib/enginePlanGate'
+import DiretorKineo from '@/components/DiretorKineo' // DIRETOR-KINEO-20260923
 
 // A chave do card → a Quality que o biller entende. Uma fonte só para os dois
 // (tela e cobrança) evita a classe de bug que este arquivo já teve: custo em
@@ -662,6 +663,7 @@ export default function StudioClient() {
                 </button>
               </div>
             )}
+            <DiretorKineo text={prompt} mode={scriptMode} engine={engine} engineName={eng.name} duration={duration} language={language} aspect={aspect} onApply={setPrompt} />
           </div>
 <div className="cost studio-generation-review" aria-label={t('Review and generate', 'Revisar y generar')}>
             <div className="sum" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className="eng-ic" style={{ width: 24, height: 24, borderRadius: 7, fontSize: 10.5 }} aria-hidden="true">{eng.icon}</span>{scriptMode === 'clip' ? `Seedance 1.5 · ${clipSeconds}s · ${aspect}` : `${eng.name} · ${duration}s · 1080p · ${aspect}`}{preset ? ` · ${CAMERA_PRESETS.find((c) => c.key === preset)?.label}` : ''}</div>
