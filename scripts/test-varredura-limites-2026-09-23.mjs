@@ -1,0 +1,90 @@
+// VARREDURA-LIMITES-2026-09-23 — guardião do 1º lote da varredura de "limites desalinhados" (fundador: "vai na
+// varredura" — prevenir antes de o cliente cair). Cada trava aqui é um lugar onde uma etapa aceitava o que a seguinte
+// recusava ou trocava em silêncio:
+//  (1) "Use my script as is" em prosa no Kineo 1 era reescrito: o navegador nunca mandava script_mode (caso Emily 22/09
+//      só valia no robô de resgate);
+//  (2) a rota do Kineo 1 desce/sobe a duração para caber no roteiro e o cliente cobrava a do seletor (4 pessoas pagaram
+//      60/90 s por filmes de 35 s, reembolsadas em 23/09);
+//  (3) o resgate de aba fechada recebia o texto da tela, não o enviado (acima de 5.000, descartado em silêncio);
+//  (4) motores de IA: Studio aceita 20.000 no modo ideia, a rota recusa acima de 12.000 → condensa antes do envio;
+//  (5) modo clipe: Studio mostrava 20.000 e 4:5; a rota do clipe aceita 6.000 e só 9:16/16:9/1:1.
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
+const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+const require = createRequire(import.meta.url)
+const ts = require(join(root, 'node_modules', 'typescript'))
+const rd = (p) => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n')
+let ok = 0; const falhas = []
+const checa = (nome, cond) => { if (cond) { ok += 1; return } falhas.push(nome); console.error('  ✗ ' + nome) }
+function roda(src, req = {}) {
+  const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText
+  const m = { exports: {} }
+  new Function('module', 'exports', 'require', js)(m, m.exports, (n) => { if (n in req) return req[n]; throw new Error('import inesperado ' + n) })
+  return m.exports
+}
+const G = rd('app/(dashboard)/generate/GenerateClient.tsx')
+const S = rd('app/(dashboard)/studio/StudioClient.tsx')
+const FAST = rd('app/api/generate-video-fast/route.ts')
+const CIN = rd('app/api/generate-video-cinematic/route.ts')
+const CLIP = rd('app/api/generate-clip/route.ts')
+const LIM_SRC = rd('lib/analyzeLimits.ts')
+const DIR_SRC = rd('lib/diretor/suggest.ts')
+
+// (1) script_mode chega ao Kineo 1 — e a rota ainda decide por ele
+const iFastFetch = G.indexOf("fetch('/api/generate-video-fast'")
+const fastBody = G.slice(iFastFetch, G.indexOf('signal:', iFastFetch))
+checa('(1) o envio ao Kineo 1 leva script_mode', /script_mode: scriptMode/.test(fastBody))
+checa('(1) a rota do Kineo 1 ainda lê body.script_mode para narrar prosa como está', FAST.includes("const ownScript = verbatim || body.script_mode === 'verbatim'"))
+
+// (2) a duração decidida pela rota é a do filme e a da cobrança
+checa('(2) a rota do Kineo 1 devolve a duração efetiva', /return NextResponse\.json\(\{\n\s+mode: 'fast',\n\s+generationId,\n\s+prompt,\n\s+duration,/.test(FAST))
+checa('(2) o cliente adota a duração da rota', G.includes("const fastDuration: Duration = ([35, 45, 60, 90] as readonly number[]).includes(Number(data?.duration))") && G.includes('setDuration(fastDuration)'))
+const iAdota = G.indexOf('const fastDuration: Duration')
+const trechoCheckpoint = G.slice(iAdota, G.indexOf('localStorage.setItem(activeRenderStorageKey', iAdota))
+checa('(2) payload de montagem, desbloqueio e checkpoint usam a duração efetiva', (trechoCheckpoint.match(/duration: fastDuration/g) || []).length === 3 && !/\n\s+duration,\n/.test(trechoCheckpoint))
+
+// (3) resgate de aba fechada recebe o texto enviado
+const iJob = G.indexOf("engine: 'fast',\n            prompt: ")
+checa('(3) render_job leva o texto ENVIADO (trimmed), não o da tela', iJob > 0 && G.slice(iJob, iJob + 120).includes('prompt: trimmed,'))
+
+// (4) motores de IA também condensam antes do envio; o teto espelha a rota protegida
+const deps = {
+  '@/lib/speechRate': { SPEECH_RATE_BASE: { classic: 3.1, hollywood: 2.3 }, speechFamilyForQuality: () => 'classic', speechSecondsOfScript: () => ({ seconds: 0 }) },
+  '@/lib/narrationFit': { MIN_COVERAGE: 0.95 },
+  '@/lib/aspect': { ASPECTS: ['9:16', '16:9', '1:1', '4:5'] },
+  '@/lib/analyzeLimits': roda(LIM_SRC),
+}
+const D = roda(DIR_SRC, deps)
+const tetoRota = Number(CIN.match(/if \(prompt\.length > (\d+)\) \{\n\s+return NextResponse\.json\(\{ error: 'Prompt is too long\.' \}/)?.[1])
+checa(`(4) teto cinematográfico do Diretor (${D.CINEMATIC_DISPATCH_MAX_CHARS}) = literal da rota protegida (${tetoRota})`, tetoRota > 0 && D.CINEMATIC_DISPATCH_MAX_CHARS === tetoRota)
+checa('(4) todos os motores de IA do Studio têm teto conhecido', ['seedance', 'kling', 'veo', 'hollywood', 'h3', 'omni', 's25'].every((e) => D.diretorCharLimit(e) === tetoRota) && D.diretorCharLimit('fast') === 5000)
+checa('(4) a condensação no /generate cobre Kineo 1 E motores de IA', G.includes("const motorDoEnvio = mode === 'fast' || mode === 'creator' ? 'fast' : mode === 'cinematic_ai' ? aiEngine : null") && G.includes('if (motorDoEnvio && scriptMode === \'ai\' && trimmed.length > tetoEnvio) {') && G.includes("engine: motorDoEnvio, duration:"))
+checa('(4) alvo do condensado cabe na resposta do modelo (≤ 4.500)', D.diretorCondenseTarget(12000) === 4500 && D.diretorCondenseTarget(5000) === 4500)
+
+// (5) modo clipe: teto e formatos da rota do clipe, pela fonte única
+const L = roda(LIM_SRC)
+checa('(5) teto do clipe = 6.000 e os outros modos intactos', L.analyzePromptMaxChars('clip') === 6000 && L.analyzePromptMaxChars('verbatim') === 5000 && L.analyzePromptMaxChars('ai') === 20000)
+checa('(5) a rota do clipe lê o teto da fonte única e diz o número', CLIP.includes("import { CLIP_PROMPT_MAX_CHARS } from '@/lib/analyzeLimits'") && CLIP.includes('if (prompt.length > CLIP_PROMPT_MAX_CHARS)') && !/prompt\.length > 6000/.test(CLIP))
+const formatosRota = (CLIP.match(/type Aspect = ([^\n]+)/)?.[1] ?? '').match(/'[^']+'/g)?.map((x) => x.slice(1, -1)) ?? []
+checa(`(5) CLIP_ASPECTS = formatos que a rota do clipe renderiza (${formatosRota.join(', ')})`, formatosRota.length === 3 && formatosRota.every((f) => L.CLIP_ASPECTS.includes(f)) && L.CLIP_ASPECTS.length === 3)
+const iClip = S.indexOf("if (scriptMode === 'clip') {")
+checa('(5) o Studio confere o teto ANTES de gastar no clipe', iClip > 0 && S.slice(iClip, iClip + 80).includes('if (limit.over) return; void generateClip()'))
+checa('(5) 4:5 some no modo clipe e o formato volta ao 9:16 visível', S.includes("ASPECT_PILLS.filter((a) => scriptMode !== 'clip' || (CLIP_ASPECTS as readonly string[]).includes(a.value))") && S.includes("if (scriptMode === 'clip' && !(CLIP_ASPECTS as readonly string[]).includes(aspect)) setAspect('9:16')"))
+
+// Mutantes (cada um precisa aplicar e cair)
+function mutante(nome, src, de, para, prova) {
+  if (src.split(de).length !== 2) { checa(`mutante "${nome}" aplicou`, false); return }
+  const m = src.replace(de, para)
+  checa(`mutante "${nome}" aplicou`, m.includes(para))
+  let cai = false
+  try { cai = !prova(m) } catch { cai = true }
+  checa(`mutante "${nome}" é pego`, cai)
+}
+mutante('clipe volta a 20.000', LIM_SRC, "  if (scriptMode === 'clip') return CLIP_PROMPT_MAX_CHARS\n", '', (m) => roda(m).analyzePromptMaxChars('clip') === 6000)
+mutante('Diretor esquece motores de IA', DIR_SRC, '  if ((DIRETOR_CINEMATIC_ENGINES as readonly string[]).includes(engine)) return CINEMATIC_DISPATCH_MAX_CHARS\n', '', (m) => roda(m, deps).diretorCharLimit('seedance') === tetoRota)
+mutante('teto da rota muda sem o Diretor saber', CIN, 'if (prompt.length > 12000) {', 'if (prompt.length > 9000) {', (m) => Number(m.match(/if \(prompt\.length > (\d+)\) \{\n\s+return NextResponse\.json\(\{ error: 'Prompt is too long\.' \}/)?.[1]) === D.CINEMATIC_DISPATCH_MAX_CHARS)
+
+console.log(`test-varredura-limites-2026-09-23: ${ok} ok, ${falhas.length} falha(s)`)
+if (falhas.length) process.exit(1)

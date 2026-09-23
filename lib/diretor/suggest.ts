@@ -31,11 +31,20 @@ export const DIRETOR_SERVED_EVENT = 'diretor_suggest_served'
 // PASSA neste motor. Agora ele sabe o teto de envio do motor, avisa, e quando condensa preserva o briefing.
 /** Teto de caracteres que o motor aceita no envio (/api/generate-video-fast recusa acima). null = sem teto conhecido abaixo do da tela. */
 export function diretorCharLimit(engine: string): number | null {
-  return engine === 'fast' ? ANALYZE_PROMPT_MAX_CHARS : null
+  if (engine === 'fast') return ANALYZE_PROMPT_MAX_CHARS
+  if ((DIRETOR_CINEMATIC_ENGINES as readonly string[]).includes(engine)) return CINEMATIC_DISPATCH_MAX_CHARS
+  return null
 }
-/** Alvo do texto condensado: folga de 10% sob o teto. */
+// VARREDURA-LIMITES-2026-09-23 — os motores de IA recusam acima de 12.000 (app/api/generate-video-cinematic/route.ts,
+// `prompt.length > 12000`, trava 8.2 — o guardião confere que o literal lá continua igual a este). O Studio aceita 20.000
+// no modo ideia; sem isto, 12.001–20.000 caracteres morriam em "Prompt is too long." depois da análise.
+export const CINEMATIC_DISPATCH_MAX_CHARS = 12000
+export const DIRETOR_CINEMATIC_ENGINES = ['seedance', 'kling', 'veo', 'hollywood', 'h3', 'omni', 's25'] as const
+/** Alvo do texto condensado: folga de 10% sob o teto, e nunca acima de 4.500 — a resposta cabe em max_tokens (1.600) sem
+ *  cortar o JSON no meio (motores de IA têm teto de 12.000, que o modelo não conseguiria devolver inteiro). */
+export const DIRETOR_CONDENSE_MAX_CHARS = 4500
 export function diretorCondenseTarget(limit: number): number {
-  return Math.floor(limit * 0.9)
+  return Math.min(Math.floor(limit * 0.9), DIRETOR_CONDENSE_MAX_CHARS)
 }
 /** Briefing detalhado (várias frases): condensar preserva detalhes, nunca vira ideia de uma linha. */
 export const DIRETOR_BRIEF_MIN_CHARS = 600

@@ -42,6 +42,7 @@ import {
 import { trackEvent } from '@/lib/analytics'
 import { SURPRISE_IDEAS } from '@/lib/surpriseIdeas'
 import { analyzePromptMaxChars } from '@/lib/analyzeLimits'
+import { CLIP_ASPECTS } from '@/lib/analyzeLimits' // VARREDURA-LIMITES-2026-09-23
 import { formatLimitCounter, promptLimitState, trimPromptToLimit } from '@/lib/studioPromptLimit'
 import { buildStudioSeriesReviewHref, carryStudioSeriesReview, isStudioSeriesReview } from '@/lib/navigation/studioSeriesReview'
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
@@ -464,9 +465,12 @@ export default function StudioClient() {
     }
   }
   useEffect(() => () => { if (clipPollRef.current) clearTimeout(clipPollRef.current) }, [])
+  // VARREDURA-LIMITES-2026-09-23 — entrou no modo clipe com 4:5 escolhido: volta ao 9:16 VISÍVEL em vez de trocar escondido no servidor.
+  useEffect(() => { if (scriptMode === 'clip' && !(CLIP_ASPECTS as readonly string[]).includes(aspect)) setAspect('9:16') }, [scriptMode, aspect])
 
   const generate = () => {
-    if (scriptMode === 'clip') { void generateClip(); return }
+    // VARREDURA-LIMITES-2026-09-23 — o clipe também respeita o teto (6.000, o da rota do clipe) antes de gastar.
+    if (scriptMode === 'clip') { if (limit.over) return; void generateClip(); return }
     // Nunca navegar com um texto que o /studio/create vai recusar sem rede:
     // a pessoa veria o erro numa caixa que nao deixa editar o excedente.
     if (limit.over) return
@@ -861,7 +865,8 @@ export default function StudioClient() {
                 Custo de render: 16:9 é idêntico a 9:16 (mesmos pixels), 1:1
                 custa 44% MENOS e 4:5, 30% menos. */}
             <div className="row" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
-              {ASPECT_PILLS.map((a) => (
+              {/* VARREDURA-LIMITES-2026-09-23 — o clipe não renderiza 4:5 (saía 9:16 cobrado): some no modo clipe. */}
+              {ASPECT_PILLS.filter((a) => scriptMode !== 'clip' || (CLIP_ASPECTS as readonly string[]).includes(a.value)).map((a) => (
                 <button
                   key={a.value}
                   type="button"

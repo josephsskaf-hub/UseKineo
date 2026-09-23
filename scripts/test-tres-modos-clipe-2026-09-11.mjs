@@ -70,7 +70,7 @@ const hasClipSelector = (src) => {
 checa('terceiro modo no seletor: Clip seleciona clip e informa estado', hasClipSelector(st))
 checa('mutante: remover seletor é detectado', !hasClipSelector(st.replace(clipSelector(st), '')))
 checa('mutante: seletor que ativa ai é detectado', !hasClipSelector(st.replace(clipSelector(st), clipSelector(st).replace("setScriptMode('clip')", "setScriptMode('ai')"))))
-checa('modo clip: Generate roda o fluxo do clipe sem navegar para /generate', /if \(scriptMode === 'clip'\) \{ void generateClip\(\); return \}/.test(st))
+checa('modo clip: Generate roda o fluxo do clipe sem navegar para /generate', /if \(scriptMode === 'clip'\) \{ (?:if \(limit\.over\) return; )?void generateClip\(\); return \}/.test(st)) // VARREDURA-LIMITES-2026-09-23: o clipe confere o teto antes; o fluxo segue sem navegar
 checa('fluxo: POST /api/generate-clip → poll /api/clip-status a cada 5 s → vídeo + download', /fetch\('\/api\/generate-clip'/.test(st) && /\/api\/clip-status\?render_id=/.test(st) && /Download MP4/.test(st))
 const showsClipCost = (src) => /import \{ CLIP_CREDITS \} from '@\/lib\/cinematic\/shotSpec'/.test(src)
   && /Render clip · \$\{CLIP_CREDITS\} cr →/.test(src)

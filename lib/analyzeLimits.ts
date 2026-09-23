@@ -56,5 +56,12 @@ export const ANALYZE_PROMPT_MAX_CHARS_SOURCE = 20000
  *  qualquer outro modo = o texto e materia-prima que o modelo reescreve
  *  (20.000). Fonte unica: quem cobra o teto e quem o MOSTRA leem daqui. */
 export function analyzePromptMaxChars(scriptMode?: string | null): number {
+  if (scriptMode === 'clip') return CLIP_PROMPT_MAX_CHARS
   return scriptMode === 'verbatim' ? ANALYZE_PROMPT_MAX_CHARS : ANALYZE_PROMPT_MAX_CHARS_SOURCE
 }
+
+// VARREDURA-LIMITES-2026-09-23 — modo CLIPE (Seedance, um plano só, sem narração): /api/generate-clip recusa acima de
+// 6.000 caracteres e só renderiza 9:16, 16:9 e 1:1. O Studio mostrava 20.000 e os 4 formatos — clipe com 4:5 saía 9:16
+// cobrado, e texto de 6.001+ morria em "Prompt is too long.". A rota do clipe lê daqui (fonte única).
+export const CLIP_PROMPT_MAX_CHARS = 6000
+export const CLIP_ASPECTS = ['9:16', '16:9', '1:1'] as const

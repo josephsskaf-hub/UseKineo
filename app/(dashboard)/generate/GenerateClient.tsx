@@ -9053,14 +9053,16 @@ export default function GenerateClient({
     // IA reescreve por contrato; então, antes de enviar, o Diretor condensa o briefing PRESERVANDO fatos e
     // estrutura (lib/diretor/suggest). Modo literal nunca passa por aqui. Falha aberta: sem condensado, segue como era.
     // Roda DEPOIS da guarda de repetição inalterada: nenhuma chamada de rede antes dela (quality-failure-ui).
-    const tetoEnvio = diretorCharLimit('fast') ?? Infinity
-    if ((mode === 'fast' || mode === 'creator') && scriptMode === 'ai' && trimmed.length > tetoEnvio) {
+    // VARREDURA-LIMITES-2026-09-23 — vale também para os motores de IA (teto 12.000 no envio).
+    const motorDoEnvio = mode === 'fast' || mode === 'creator' ? 'fast' : mode === 'cinematic_ai' ? aiEngine : null
+    const tetoEnvio = (motorDoEnvio ? diretorCharLimit(motorDoEnvio) : null) ?? Infinity
+    if (motorDoEnvio && scriptMode === 'ai' && trimmed.length > tetoEnvio) {
       const inChars = trimmed.length
       let outChars = 0
       try {
         const cr = await fetch('/api/diretor/suggest', {
           method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ text: trimmed, mode: 'ai', engine: 'fast', duration: duration === 35 || duration === 90 ? duration : 60, language, aspect: aspectRequested, rewriteConsent: false }),
+          body: JSON.stringify({ text: trimmed, mode: 'ai', engine: motorDoEnvio, duration: duration === 35 || duration === 90 ? duration : 60, language, aspect: aspectRequested, rewriteConsent: false }),
         })
         const cd = (await cr.json().catch(() => ({}))) as { suggestion?: { text?: string } }
         const condensado = typeof cd.suggestion?.text === 'string' ? cd.suggestion.text.trim() : ''
@@ -9071,7 +9073,7 @@ export default function GenerateClient({
           setPrompt(condensado)
         }
       } catch { /* falha aberta */ }
-      void trackEvent('long_text_condensed_before_dispatch', { in_chars: inChars, out_chars: outChars, ok: outChars > 0, limit: tetoEnvio })
+      void trackEvent('long_text_condensed_before_dispatch', { in_chars: inChars, out_chars: outChars, ok: outChars > 0, limit: tetoEnvio, engine: motorDoEnvio })
     }
 
     // Bug 12/06 — a face photo was picked but never attached ("Use this face"
@@ -9119,7 +9121,7 @@ export default function GenerateClient({
           body: JSON.stringify({
             attempt_id: generationAttemptRef.current,
             engine: 'fast',
-            prompt: prompt.trim(),
+            prompt: trimmed, // VARREDURA-LIMITES-2026-09-23: o texto ENVIADO (condensado), não o da tela
             duration,
             language,
             aspect: aspectRequested,
@@ -9727,7 +9729,7 @@ export default function GenerateClient({
               headers: { 'Content-Type': 'application/json' },
               // KINEO-MULTIFORMATO-2026-09-02 — `aspect` só viaja quando não é
               // 9:16: link antigo e sessão sem escolha continuam idênticos.
-              body: JSON.stringify({ prompt: trimmed, duration, language, brollQueries, brollScenes, brollDegraded: plan?.degraded, ...(aspectRequested !== '9:16' ? { aspect: aspectRequested } : {}), ...(engineFitOverrideRef.current ? { engineFitOverride: true } : {}) }),
+              body: JSON.stringify({ prompt: trimmed, duration, language, script_mode: scriptMode /* VARREDURA-LIMITES-2026-09-23: sem isto o "Use my script as is" em prosa era reescrito (caso Emily só valia no resgate) */, brollQueries, brollScenes, brollDegraded: plan?.degraded, ...(aspectRequested !== '9:16' ? { aspect: aspectRequested } : {}), ...(engineFitOverrideRef.current ? { engineFitOverride: true } : {}) }),
               signal: dispatchTimeoutSignal(FAST_DISPATCH_TIMEOUT_MS),
             })
             data = await res.json().catch(() => { parseFailed = true; return null }) as Record<string, unknown> | null
@@ -9839,6 +9841,16 @@ export default function GenerateClient({
           return
         }
 
+        // VARREDURA-LIMITES-2026-09-23 — a DURAÇÃO QUE A ROTA DECIDIU é a do filme e a da cobrança. A rota do Kineo 1
+        // desce/sobe a duração para caber no roteiro (duration_followed_script) e devolve `duration`; o cliente seguia
+        // montando e cobrando pela do seletor: medido 21-22/09, 4 pessoas pagaram 60/90 s por filmes de 35 s.
+        const fastDuration: Duration = ([35, 45, 60, 90] as readonly number[]).includes(Number(data?.duration))
+          ? (Number(data.duration) as Duration)
+          : duration
+        if (fastDuration !== duration) {
+          setDuration(fastDuration)
+          void trackEvent('fast_duration_adopted_from_route', { from: duration, to: fastDuration })
+        }
         // KINEO-NARRACAO-DAS-CENAS-2026-09-15 — Kineo 1 (Craco 7e48bfe5, 15/09): a rota escreveu 6 cenas
         // com 190 palavras para 60 s e escolheu 13 clipes para ELAS; no modo IA o cliente jogava esse
         // texto fora e narrava o brief do analyze-idea (105 palavras), que o compose reescrevia para 166
@@ -9865,12 +9877,12 @@ export default function GenerateClient({
           : prompt.trim()
         const checkpointCaptions = responseCaptions && responseCaptions.length > 0
           ? responseCaptions
-          : buildSceneCaptions(analysis, fastScenes, duration)
+          : buildSceneCaptions(analysis, fastScenes, fastDuration)
         const checkpointUnlockInputs: FastRenderInputs = {
           clip_urls: fastClipUrls,
           voiceover_script: checkpointVoiceover,
           scene_captions: checkpointCaptions,
-          duration,
+          duration: fastDuration,
           topic: dispatchedPromptRef.current ?? prompt, // KINEO-TOPICO-DO-DESPACHO
           language,
           vertical: analysis?.niche ?? undefined,
@@ -9881,7 +9893,7 @@ export default function GenerateClient({
           clip_urls: fastClipUrls,
           voiceover_script: checkpointVoiceover,
           scene_captions: checkpointCaptions,
-          duration,
+          duration: fastDuration,
           topic: dispatchedPromptRef.current ?? prompt, // KINEO-TOPICO-DO-DESPACHO
           quality: 'fast',
           language,
@@ -9917,7 +9929,7 @@ export default function GenerateClient({
               userId: currentUserIdRef.current,
               quality: 'fast',
               mode,
-              duration,
+              duration: fastDuration,
               prompt: prompt.slice(0, 1000),
               attemptId: checkpointAttemptId,
               startedAt: Date.now(),

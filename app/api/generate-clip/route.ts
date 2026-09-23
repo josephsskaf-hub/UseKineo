@@ -24,6 +24,7 @@ import { refundRenderCredits } from '@/lib/credits/refund'
 import { submitFalQueueOnce, FalQueueSubmitError } from '@/lib/falQueue'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { buildClipPrompt, CLIP_CREDITS, CLIP_MAX_SECONDS, CLIP_MIN_SECONDS, detectShotSpec } from '@/lib/cinematic/shotSpec'
+import { CLIP_PROMPT_MAX_CHARS } from '@/lib/analyzeLimits'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
 
   const prompt = typeof body.prompt === 'string' ? body.prompt.trim() : ''
   if (prompt.length < 8) return NextResponse.json({ error: 'Describe the shot you want (at least a few words).' }, { status: 400 })
-  if (prompt.length > 6000) return NextResponse.json({ error: 'Prompt is too long.' }, { status: 400 })
+  if (prompt.length > CLIP_PROMPT_MAX_CHARS) return NextResponse.json({ error: `Prompt is too long (${CLIP_PROMPT_MAX_CHARS.toLocaleString('en-US')} chars max).` }, { status: 400 }) // VARREDURA-LIMITES-2026-09-23: fonte única com o Studio
 
   // O plano vira UM prompt em prosa; texto livre também serve (a pessoa pode
   // simplesmente descrever a cena). Segundos: do texto, do body, ou 10.
