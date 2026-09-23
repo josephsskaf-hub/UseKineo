@@ -32,7 +32,7 @@ checa('a rota ainda barra com 422 plan_silence_inside_scenes quando a régua rep
 
 console.log('== a fatia real da rota ==')
 const ini = rota.indexOf("      let duracaoReconciliada: { reconciliado: boolean; aparado_s: number; excedente_s: number; base: 'estimate' } | null = null")
-const fimTxt = "            sceneMax: SILENCE_SCENE_MAX_SECONDS, totalMax: SILENCE_TOTAL_MAX_SECONDS,\n          }, { status: 422 })\n        }\n      }"
+const fimTxt = "            sceneMax: SILENCE_SCENE_MAX_SECONDS, totalMax: silence.totalMax,\n          }, { status: 422 })\n        }\n      }"
 const fim = rota.indexOf(fimTxt, ini)
 checa('fatia enche-silêncio → régua existe na rota', ini > 0 && fim > ini)
 const fatia = rota.slice(ini, fim + fimTxt.length)
@@ -162,7 +162,7 @@ console.log('== (f) KINEO-RITMO-DA-VOZ: a régua anda no passo da voz pinada (re
   const RITMO_REAL = Math.round(2.3 * 0.94 * 100) / 100
   checa('ritmo esperado da persona idosa: 2,3 × 0,94 = 2,16 pal/s', RITMO_REAL === 2.16)
   checa('rota: o ritmo nasce da MESMA resolução que o compose usa (resolveHollywoodVoice com a ficha) e a folga mínima do plano é 0,3 s', fatia.includes('resolveHollywoodVoice(falas || prompt, hollywoodLanguage, hollywoodVertical, plan.characterSheet)') && fatia.includes('return Math.round(2.3 * Math.max(0.85, Math.min(1.1, voz.defaultSpeed)) * 100) / 100') && fatia.includes('const FOLGA_MIN_S = 0.3'))
-  checa('rota: a apara e a régua final também andam no ritmo da voz', fatia.includes("const apara = apararComFolga(plan.scenes, (sc) => wordsOfLine(lineOf(sc)), duration, ritmoVoz)") && fatia.includes('const silence = planSilenceReport(plan.scenes, ritmoVoz)'))
+  checa('rota: a apara e a régua final também andam no ritmo da voz', fatia.includes("const apara = apararComFolga(plan.scenes, (sc) => wordsOfLine(lineOf(sc)), duration, ritmoVoz)") && fatia.includes('const silence = reguaDoFilme(plan.scenes, ritmoVoz)'))
   // reprodução na main: régua fixa em 2,3 e apara com folga ≥ 1,25 s → duas cenas de 20 palavras caem para 9 s (0,3 s de folga a 2,3) e a voz real (2,16) NÃO cabe
   let rotaMain = null, fidMain = null
   try { rotaMain = execFileSync('git', ['show', 'origin/main:app/api/generate-video-cinematic/route.ts'], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024 }).toString().replace(/\r\n/g, '\n'); fidMain = execFileSync('git', ['show', 'origin/main:lib/hollywood/fidelidade.ts'], { cwd: RAIZ, maxBuffer: 16 * 1024 * 1024 }).toString().replace(/\r\n/g, '\n') } catch {}
@@ -200,7 +200,11 @@ console.log('== (f) KINEO-RITMO-DA-VOZ: a régua anda no passo da voz pinada (re
     checa(`persona neutra (2,3): nenhuma cena perde segundos (folga < 2 s), ${pedidos.length} cena(s) ganham palavras em vez disso, e o plano passa (${total}s ≥ 65, sem 422)`, r.status !== 422 && pedidos.length >= 1 && total >= 65 && plan.scenes.every((sc, i) => sc.seconds >= [10, 10, 10, 10, 9, 8, 8][i]) && plan.scenes.reduce((a, sc) => a + wordsOf(sc.voiceover), 0) > 130)
     const semPalavras = plano15()
     const r0 = await executar(ctxBase(semPalavras, { expandVoiceoversToTargets: identidade, appendNarrationToTargets: appendNulo }))
-    checa('persona neutra sem continuação: a régua barra a $0 (422 plan_silence_inside_scenes) — nunca mais se paga clipe para a voz estourar', r0.status === 422 && r0.rejeitado?.reason === 'plan_silence_inside_scenes' && semPalavras.scenes.reduce((a, sc) => a + sc.seconds, 0) === 65)
+    // KINEO-REGUA-PROPORCIONAL-2026-09-23 — 8,45 s em 65 s de filme, nenhuma cena acima de 1,3 s: com o teto total
+    // proporcional (8 s a cada 60 s → 8,7 s aqui) o plano passa SEM gastar continuação. O limite por cena (1,5 s) segue
+    // barrando cena muda — provado em scripts/test-h3-verbatim-corte-2026-09-23.mjs (casos "régua ainda barra").
+    const silSem = TL.planSilenceReport(semPalavras.scenes, 2.3)
+    checa('persona neutra sem continuação: 8,45 s em 65 s, pior cena ≤ 1,5 s → passa pela régua proporcional (nenhuma cena muda)', r0.status !== 422 && r0.rejeitado === null && semPalavras.scenes.reduce((a, sc) => a + sc.seconds, 0) === 65 && silSem.worst <= 1.5 && silSem.total > 8 && silSem.total <= 8 * 65 / 60)
   }
   // resolução da voz quebrada → ritmo 2,3 (fail-open), nunca crash
   {

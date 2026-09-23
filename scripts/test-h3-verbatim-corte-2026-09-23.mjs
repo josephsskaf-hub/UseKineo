@@ -29,7 +29,7 @@ checa('a rota ainda barra com 422 plan_silence_inside_scenes quando a régua rep
 
 console.log('== a fatia real da rota ==')
 const ini = rota.indexOf("      let duracaoReconciliada: { reconciliado: boolean; aparado_s: number; excedente_s: number; base: 'estimate' } | null = null")
-const fimTxt = "            sceneMax: SILENCE_SCENE_MAX_SECONDS, totalMax: SILENCE_TOTAL_MAX_SECONDS,\n          }, { status: 422 })\n        }\n      }"
+const fimTxt = "            sceneMax: SILENCE_SCENE_MAX_SECONDS, totalMax: silence.totalMax,\n          }, { status: 422 })\n        }\n      }"
 const fim = rota.indexOf(fimTxt, ini)
 checa('fatia enche-silêncio → régua existe na rota', ini > 0 && fim > ini)
 const fatia = rota.slice(ini, fim + fimTxt.length)
@@ -142,6 +142,99 @@ console.log('== frase curta sozinha numa cena de 4 s junta-se à vizinha (KINEO-
   checa('diálogo nunca é juntado (a regra pula type dialogue)', /if \(sc\.type === 'dialogue' \|\| !falaDe\(sc\) \|\| mudoFinal\(sc\) <= 1\.4/.test(rota))
 }
 
+console.log('== ensaios de $0 de 23/09 (deploy 2d6d7940): os 3 planos que ainda reprovavam ==')
+{
+  const fala = (p) => p.scenes.map((sc) => sc.voiceover).join(' ')
+  const cena = (i, s, v, type = 'support') => ({ index: i, type, seconds: s, prompt: `s${i}`, voiceover: v, caption: '' })
+  // (1) cratera: "Follow for the next one." sozinha no FIM, anterior cheia (20 palavras), voz a 2,07 pal/s (persona 0,9)
+  {
+    chamadasTexto.length = 0
+    const plan = { characterSheet: '', environmentSheet: 'x', styleSheet: 'y', scenes: [
+      cena(1, 11, sent(24, 'a')), cena(2, 10, sent(21, 'b')), cena(3, 10, sent(21, 'c')), cena(4, 10, sent(21, 'd')),
+      cena(7, 10, sent(21, 'e')), cena(8, 10, sent(21, 'f')), cena(9, 10, sent(21, 'g')), cena(10, 10, sent(21, 'h')), // total real ~100 s (o ensaio tinha 102 s)
+      cena(5, 10, `${sent(6, 'moon')} ${sent(7, 'where')} ${sent(7, 'hiding')}`), cena(6, 4, 'Follow for the next one.'),
+    ] }
+    const antes = fala(plan)
+    const r = await executar(ctxBase(plan, { verbatim: true, expandVoiceoversToTargets: espiao, appendNarrationToTargets: espiao, resolveHollywoodVoice: () => ({ personaId: 'x', voice: 'onyx', defaultSpeed: 0.9 }) }))
+    const sil = TL.planSilenceReport(plan.scenes, 2.07)
+    checa(`(1) "Follow for the next one." no fim com a anterior cheia → passa (pior ${sil.worst}s, total ${sil.total}s)`, r.rejeitado === null && sil.ok)
+    checa('(1) a última cena recebeu a frase anterior inteira, na ordem', plan.scenes.at(-1).voiceover === 'hiding1 hiding2 hiding3 hiding4 hiding5 hiding6 hiding7. Follow for the next one.')
+    checa('(1) C1: fala idêntica e nenhuma chamada ao modelo de texto', fala(plan) === antes && chamadasTexto.length === 0)
+  }
+  // (2) B-24: frase de 20 palavras numa cena `cinematic` (teto 8 s) → cortada no meio, cauda "being evacuated to safety." (4)
+  {
+    chamadasTexto.length = 0
+    const plan = { characterSheet: '', environmentSheet: 'x', styleSheet: 'y', scenes: [
+      cena(1, 10, sent(22, 'a')), cena(2, 7, sent(15, 'b')), cena(3, 8, 'A B-24 Liberator takes off from Broome, Western Australia, packed with sick and injured American servicemen being evacuated to safety.', 'cinematic'),
+      cena(4, 10, `${sent(13, 'seven')} ${sent(9, 'shot')}`), cena(5, 10, sent(21, 'c')), cena(6, 10, sent(21, 'd')),
+    ] }
+    const antes = fala(plan)
+    const r = await executar(ctxBase(plan, { verbatim: true, expandVoiceoversToTargets: espiao, appendNarrationToTargets: espiao, resolveHollywoodVoice: () => ({ personaId: 'x', voice: 'onyx', defaultSpeed: 0.94 }) }))
+    const sil = TL.planSilenceReport(plan.scenes, 2.16)
+    checa(`(2) cauda "being evacuated to safety." com vizinhas cheias → passa (pior ${sil.worst}s, total ${sil.total}s)`, r.rejeitado === null && sil.ok)
+    checa('(2) C1: fala idêntica, mesma ordem, nenhuma chamada ao modelo de texto', fala(plan) === antes && chamadasTexto.length === 0)
+    checa('(2) nenhuma cena acima do teto da sua família', plan.scenes.every((sc) => sc.seconds <= (sc.type === 'cinematic' ? 8 : 12)))
+  }
+  // (3) cratera: cauda "They named it Uhackatik." (4) — em verbatim a continuação NUNCA é pedida (inventou "It spans 3.4 kilometers")
+  {
+    chamadasTexto.length = 0
+    const plan = { characterSheet: '', environmentSheet: 'x', styleSheet: 'y', scenes: [
+      cena(1, 11, sent(24, 'a')), cena(2, 10, sent(21, 'b')), cena(3, 12, `${sent(23, 'official')} They named it Uhackatik.`),
+      cena(4, 11, sent(25, 'biggest')), cena(5, 10, sent(21, 'c')), cena(6, 10, sent(21, 'd')),
+    ] }
+    const antes = fala(plan)
+    const r = await executar(ctxBase(plan, { verbatim: true, expandVoiceoversToTargets: espiao, appendNarrationToTargets: espiao }))
+    const sil = TL.planSilenceReport(plan.scenes, 2.3)
+    checa('(3) C1: nenhuma continuação pedida ao modelo em verbatim (a cauda não é "enchida")', chamadasTexto.length === 0)
+    checa('(3) C1: nenhuma palavra inventada — fala idêntica à do autor', fala(plan) === antes)
+    checa(`(3) e o plano passa sem inventar nada (pior ${sil.worst}s, total ${sil.total}s)`, r.rejeitado === null && sil.ok)
+  }
+  checa('rota: a continuação da cauda (KINEO-CAUDA-CHEIA) só roda fora do verbatim', rota.includes('if (!isDialogue && !verbatim) {\n            const cabeCauda'))
+}
+
+console.log('== a régua ainda barra o que deve barrar (KINEO-REGUA-PROPORCIONAL) ==')
+{
+  const cena = (i, s, v, type = 'support') => ({ index: i, type, seconds: s, prompt: `s${i}`, voiceover: v, dialogueLine: type === 'dialogue' ? v : undefined, caption: '' })
+  // (a) uma cena de diálogo muda (não se junta nem empresta) — 10 s com 8 palavras = 6,5 s mudos → 422
+  const pa = { characterSheet: '', environmentSheet: 'x', styleSheet: 'y', scenes: [cena(1, 12, sent(26, 'a')), cena(2, 12, sent(26, 'b')), cena(3, 4, 'Run now.', 'dialogue'), cena(4, 12, sent(26, 'c')), cena(5, 12, sent(26, 'd')), cena(6, 12, sent(26, 'e'))] }
+  const ra = await executar(ctxBase(pa, { verbatim: true, expandVoiceoversToTargets: espiao, appendNarrationToTargets: espiao }))
+  checa('régua por cena intacta: fala de diálogo de 2 palavras em 4 s (piso do clipe) → 422 plan_silence_inside_scenes', ra.status === 422 && ra.rejeitado?.reason === 'plan_silence_inside_scenes' && ra.rejeitado?.worstSceneSilence > 1.5)
+  // (b) filme de 60 s com 9 s de silêncio total, nenhuma cena acima de 1,5 s → o teto de 60 s continua 8 s → 422
+  const pb = { characterSheet: '', environmentSheet: 'x', styleSheet: 'y', scenes: [0, 1, 2, 3, 4, 5].map((i) => cena(i + 1, 10, sent(20, 'z' + i))) }
+  const silB = TL.planSilenceReport(pb.scenes, 2.3)
+  const rb = await executar(ctxBase(pb, { verbatim: true, expandVoiceoversToTargets: espiao, appendNarrationToTargets: espiao }))
+  const silB2 = TL.planSilenceReport(pb.scenes, 2.3)
+  checa(`teto total em 60 s continua 8 s: ${silB.total}s de silêncio antes; a rota apara ou barra, nunca deixa passar acima de 8 s (depois: ${silB2.total}s)`, (rb.rejeitado === null && silB2.total <= 8 && silB2.worst <= 1.5) || (rb.status === 422 && rb.rejeitado?.totalMax === 8))
+  checa('422 informa o teto total aplicado (totalMax) — proporcional, nunca abaixo de 8', rota.includes('totalMax: silence.totalMax,') && rota.includes('SILENCE_TOTAL_MAX_SECONDS * Math.max(1, filme / 60)'))
+}
+
+console.log('== fuzz: 300 roteiros prontos aleatórios (KINEO-REGUA-PROPORCIONAL + FRASE-CURTA) ==')
+{
+  let seed = 23092026; const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648
+  const ri = (a, b) => a + Math.floor(rnd() * (b - a + 1))
+  let pass = 0, c1 = 0, n = 300; const ruins = []
+  for (let t = 0; t < n; t++) {
+    const speed = [0.9, 0.94, 1.0, 1.05][ri(0, 3)]; const r = Math.round(2.3 * speed * 100) / 100
+    const scenes = []; let total = 0; let idx = 0
+    while (total < 70 + ri(0, 40)) {
+      const nf = ri(1, 3); const frases = []
+      for (let f = 0; f < nf; f++) frases.push(sent(ri(2, 24), 'x' + t + '_' + idx + '_' + f + '_'))
+      const v = frases.join(' '); const w = v.split(' ').length
+      const type = rnd() < 0.2 ? 'cinematic' : 'support'
+      const sec = Math.max(4, Math.min(12, Math.round(w / 2.3) + ri(-1, 3)))
+      scenes.push({ index: ++idx, type, seconds: sec, prompt: 's', voiceover: v, caption: '' }); total += sec
+    }
+    const plan = { characterSheet: '', environmentSheet: 'x', styleSheet: 'y', scenes }
+    const antes = scenes.map((sc) => sc.voiceover).join(' ')
+    chamadasTexto.length = 0
+    const res = await executar(ctxBase(plan, { verbatim: true, expandVoiceoversToTargets: espiao, appendNarrationToTargets: espiao, resolveHollywoodVoice: () => ({ personaId: 'x', voice: 'onyx', defaultSpeed: speed }) }))
+    const ok = res.rejeitado === null
+    if (ok) pass++; else if (ruins.length < 3) ruins.push({ t, r, reason: res.rejeitado?.reason, per: TL.planSilenceReport(plan.scenes, r).perScene, cenas: plan.scenes.map((sc) => sc.type[0] + sc.seconds + '/' + sc.voiceover.split(' ').length) })
+    if (plan.scenes.map((sc) => sc.voiceover).join(' ') === antes && chamadasTexto.length === 0) c1++
+  }
+  checa(`fuzz: ${pass}/${n} roteiros prontos aleatórios passam no H3 (frases de 2-24 palavras, 1-3 por cena, 20% cinematic, voz 0,9-1,05)` + (ruins.length ? ' ' + JSON.stringify(ruins[0]) : ''), pass === n)
+  checa(`fuzz: C1 em ${c1}/${n} — a fala do autor sai idêntica e nenhuma chamada ao modelo de texto`, c1 === n)
+  }
 console.log('== o conserto está na rota ==')
 checa('teto-rede dimensiona a cabeça pela própria fala (KINEO-H3-VERBATIM-CORTE)', /KINEO-H3-VERBATIM-CORTE-2026-09-23/.test(rota) && /const cabecaPrecisa = Math\.min\(cap, Math\.max\(4, Math\.ceil\(wordsArr\(head\)\.length \/ ritmoVoz \+ FOLGA_MIN_S\)\)\)/.test(rota))
 

@@ -3983,6 +3983,20 @@ async function manipularPost(req: NextRequest) {
       }
 
       let duracaoReconciliada: { reconciliado: boolean; aparado_s: number; excedente_s: number; base: 'estimate' } | null = null
+      // ═══ KINEO-REGUA-PROPORCIONAL-2026-09-23 — o teto de SILÊNCIO TOTAL acompanha o tamanho do filme ═══
+      // A régua (1,5 s por cena, 8 s no total — KINEO-SILENCIO-NA-CENA) nasceu para filmes de 60 s com ~8 cenas. Com
+      // segundos INTEIROS por cena, cada cena carrega ~0,5 s de respiro inevitável: um roteiro pronto de 220 palavras
+      // vira ~110 s em ~16 cenas e soma 9-10 s sem NENHUMA cena muda — e era recusado (render H3 do fundador, 23/09;
+      // fuzz de 500 roteiros sobre esta fatia: 315/500 com 8 s fixo, 500/500 proporcional, pior cena 1,4 s). O limite
+      // POR CENA (1,5 s), que é o que pega silêncio de verdade, não muda; o total vira 8 s a cada 60 s de filme (nunca
+      // menos de 8). lib/cinematic fica intocada (trava 8.2): a proporção é aplicada aqui, sobre o relatório de lá.
+      const reguaDoFilme = (scenes: Parameters<typeof planSilenceReport>[0], wps: number) => {
+        const rep = planSilenceReport(scenes, wps)
+        const filme = scenes.reduce((a, sc) => a + ((sc as { seconds?: number }).seconds || 0), 0)
+        const totalMax = Math.round(SILENCE_TOTAL_MAX_SECONDS * Math.max(1, filme / 60) * 10) / 10
+        const ok = rep.worst <= SILENCE_SCENE_MAX_SECONDS && rep.total <= totalMax
+        return { ...rep, ok, wordsToAdd: ok ? 0 : rep.wordsToAdd, totalMax }
+      }
       // ═══ KINEO-RITMO-DA-VOZ-2026-09-15 — a régua anda no passo da voz que VAI falar ═══
       // Render H3 7bb62a29 (fundador, 15/09): o plano contava 2,3 pal/s, a apara deixava
       // 0,25 s de folga, e a voz pinada (character:male:elderly, onyx 0,94) falou mais
@@ -4275,7 +4289,11 @@ async function manipularPost(req: NextRequest) {
           // apoio de 4 s com 2,3 s mudos cada (11,4 s no total, régua reprovada). A cauda nasce DEPOIS do enche-silêncio,
           // então ninguém a preenchia. Agora ela ganha uma continuação até caber nos seus segundos ((cap − 0,3 s) × ritmo);
           // se o modelo não entregar, segue como estava — nenhuma palavra da história é perdida ou reordenada.
-          if (!isDialogue) {
+          // KINEO-H3-VERBATIM-CORTE-2026-09-23 — em verbatim a cauda NÃO ganha continuação: ensaio de $0 da cratera
+          // (roteiro do autor, "Use my script as is") saiu com "They named it Uhackatik. It spans 3.4 kilometers" — 4
+          // palavras inventadas, e erradas (a cratera tem 25 km). C1: a fala é do autor; o silêncio da cauda curta é
+          // resolvido depois, juntando/emprestando frases do próprio roteiro (KINEO-H3-FRASE-CURTA).
+          if (!isDialogue && !verbatim) {
             const cabeCauda = Math.max(4, Math.floor((tailSeconds - 0.3) * ritmoVoz))
             const faltam = cabeCauda - wordsArr(tail).length
             if (faltam >= 3) {
@@ -4344,7 +4362,69 @@ async function manipularPost(req: NextRequest) {
               console.log(`[hollywood] KINEO-H3-FRASE-CURTA: "${junta.slice(0, 40)}…" — frase de ${nPal(falaDe(sc))} palavras juntou-se à cena ${antes ? 'anterior' : 'seguinte'} (${novos}s)`)
               return true
             }
-            if (tentar(plan.scenes[i - 1], true) || tentar(plan.scenes[i + 1], false)) i--
+            if (tentar(plan.scenes[i - 1], true) || tentar(plan.scenes[i + 1], false)) { i--; continue }
+            // Vizinhas cheias demais para receber a frase curta (ensaios de 23/09: "Follow for the next one." no fim;
+            // "being evacuated to safety." cortada no teto de 8 s): a cena curta EMPRESTA frases inteiras da vizinha —
+            // a última da anterior vai para o começo dela, ou a primeira da seguinte para o fim. Mesmas palavras, mesma
+            // ordem; a vizinha só cede se ficar com fala para ≥ 2,7 s (senão ela é que ficaria muda).
+            const frasesDe = (t: string) => t.split(/(?<=[.!?…]["”')\]]?)\s+/).filter(Boolean)
+            const emprestar = (viz: (typeof plan.scenes)[number] | undefined, antes: boolean): boolean => {
+              if (!viz || viz.type === 'dialogue' || !falaDe(viz)) return false
+              const frasesViz = frasesDe(falaDe(viz))
+              const minimoViz = Math.ceil(2.7 * ritmoVoz)
+              const tetoSc = tetoDe(sc)
+              let minhas = falaDe(sc)
+              let cedidas = 0
+              while (frasesViz.length > 1) {
+                const frase = antes ? frasesViz[frasesViz.length - 1] : frasesViz[0]
+                const restoViz = (antes ? frasesViz.slice(0, -1) : frasesViz.slice(1)).join(' ')
+                const junta = antes ? `${frase} ${minhas}` : `${minhas} ${frase}`
+                if (nPal(restoViz) < minimoViz || Math.ceil(nPal(junta) / ritmoVoz + FOLGA_MIN_S) > tetoSc) break
+                if (antes) frasesViz.pop(); else frasesViz.shift()
+                minhas = junta
+                cedidas++
+                if (Math.max(4, Math.ceil(nPal(minhas) / ritmoVoz + FOLGA_MIN_S)) - nPal(minhas) / ritmoVoz <= 1.4) break
+              }
+              if (cedidas === 0) return false
+              const segSc = Math.max(4, Math.ceil(nPal(minhas) / ritmoVoz + FOLGA_MIN_S))
+              if (segSc - nPal(minhas) / ritmoVoz > 1.4) return false
+              const restoFinal = frasesViz.join(' ')
+              const segViz = Math.max(4, Math.ceil(nPal(restoFinal) / ritmoVoz + FOLGA_MIN_S))
+              // o piso pedido segue intacto: se encolher a vizinha furar a duração, ela mantém os segundos e a apara decide
+              const totalDepois = totalFinal() - (sc.seconds || 0) - (viz.seconds || 0) + segSc + Math.min(viz.seconds || 0, segViz)
+              sc.voiceover = minhas
+              sc.needsNarration = true
+              sc.seconds = segSc
+              viz.voiceover = restoFinal
+              if (totalDepois >= duration) viz.seconds = Math.min(viz.seconds || 0, segViz)
+              console.log(`[hollywood] KINEO-H3-FRASE-CURTA: cena curta emprestou ${cedidas} frase(s) da ${antes ? 'anterior' : 'seguinte'} (${nPal(minhas)} palavras em ${segSc}s)`)
+              return true
+            }
+            if (emprestar(plan.scenes[i - 1], true) || emprestar(plan.scenes[i + 1], false)) continue
+            // Última saída — a vizinha é UMA frase longa e não tem frase inteira para ceder: cede PALAVRAS do seu fim (ou
+            // começo). Mesmas palavras, mesma ordem; o custo é uma pausa no meio da frase, melhor que recusar o filme do
+            // autor. Só o necessário para a cena curta sair de ≤ 1,4 s mudos; a vizinha fica com fala para ≥ 2,7 s.
+            const emprestarPalavras = (viz: (typeof plan.scenes)[number] | undefined, antes: boolean): boolean => {
+              if (!viz || viz.type === 'dialogue' || !falaDe(viz)) return false
+              const pv = falaDe(viz).split(/\s+/).filter(Boolean)
+              const ps = falaDe(sc).split(/\s+/).filter(Boolean)
+              const precisa = Math.ceil(2.6 * ritmoVoz) - ps.length
+              if (precisa <= 0 || pv.length - precisa < Math.ceil(2.7 * ritmoVoz)) return false
+              const cedidas = antes ? pv.splice(pv.length - precisa, precisa) : pv.splice(0, precisa)
+              const minhas = antes ? [...cedidas, ...ps] : [...ps, ...cedidas]
+              const segSc = Math.max(4, Math.ceil(minhas.length / ritmoVoz + FOLGA_MIN_S))
+              if (segSc > tetoDe(sc)) return false
+              const segViz = Math.max(4, Math.ceil(pv.length / ritmoVoz + FOLGA_MIN_S))
+              const totalDepois = totalFinal() - (sc.seconds || 0) - (viz.seconds || 0) + segSc + Math.min(viz.seconds || 0, segViz)
+              sc.voiceover = minhas.join(' ')
+              sc.needsNarration = true
+              sc.seconds = segSc
+              viz.voiceover = pv.join(' ')
+              if (totalDepois >= duration) viz.seconds = Math.min(viz.seconds || 0, segViz)
+              console.log(`[hollywood] KINEO-H3-FRASE-CURTA: cena curta emprestou ${precisa} palavra(s) da ${antes ? 'anterior' : 'seguinte'} (${minhas.length} palavras em ${segSc}s)`)
+              return true
+            }
+            if (emprestarPalavras(plan.scenes[i - 1], true) || emprestarPalavras(plan.scenes[i + 1], false)) continue
           }
         }
         let guardaFinal = 60
@@ -4384,7 +4464,7 @@ async function manipularPost(req: NextRequest) {
               const wn = wordsN(nova)
               if (nova && nova !== x.sc.voiceover && wn > x.w && wn <= x.cabe + 2 && nova.startsWith((x.sc.voiceover ?? '').trim().replace(/[.!?…]$/, ''))) { x.sc.voiceover = nova; x.sc.needsNarration = true; cresceram++ }
             })
-            const depois = planSilenceReport(plan.scenes, ritmoVoz)
+            const depois = reguaDoFilme(plan.scenes, ritmoVoz)
             console.log(`[hollywood] KINEO-ULTIMA-ENCHIDA: ${alvos.length} cena(s) com > 1,0 s mudo depois do teto-rede/esticão → ${cresceram} cresceram → ${depois.total}s no total (pior ${depois.worst}s) ${depois.ok ? 'PASSA' : 'ainda reprova'} (rodada ${rodada})`)
             if (depois.ok) break
           }
@@ -4461,7 +4541,7 @@ async function manipularPost(req: NextRequest) {
           // KINEO-SILENCIO-NA-CENA-2026-09-11 — a mesma régua do render pago, a $0.
           // KINEO-RITMO-DA-VOZ-2026-09-15 — no MESMO ritmo da voz pinada que o portão pago usa (ritmoVoz),
           // senão o ensaio de $0 aprova/reprova um plano diferente do que o render de verdade julga.
-          const silence = planSilenceReport(plan.scenes, ritmoVoz)
+          const silence = reguaDoFilme(plan.scenes, ritmoVoz)
           // ═══ KINEO-DRYRUN-PREFLIGHT-2026-08-25 — O CONTRATO DO FORNECEDOR ═══
           // O 422 do primeiro render Omni (image_url faltando, 8/8 cenas)
           // passou LIMPO pelo dry-run porque ele parava no plano e nunca
@@ -4557,7 +4637,7 @@ async function manipularPost(req: NextRequest) {
       // 1,5 s numa cena ou 8 s no total. Estorna e diz quantas palavras faltam.
       {
         // KINEO-RITMO-DA-VOZ-2026-09-15: a mesma régua, no passo da voz pinada (ritmoVoz).
-        const silence = planSilenceReport(plan.scenes, ritmoVoz)
+        const silence = reguaDoFilme(plan.scenes, ritmoVoz)
         if (!silence.ok) {
           const refunded = await confirmCinematicRefund()
           const released = refunded && await releaseBirthClaim('plan_silence_inside_scenes')
@@ -4567,7 +4647,7 @@ async function manipularPost(req: NextRequest) {
             qualityCheckFailed: true, reason: 'plan_silence_inside_scenes',
             generationId, refunded, refundConfirmed: refunded, claimReleased: released, retryable: false,
             silenceSeconds: silence.total, worstScene: silence.worstScene, worstSceneSilence: silence.worst, wordsToAdd: silence.wordsToAdd,
-            sceneMax: SILENCE_SCENE_MAX_SECONDS, totalMax: SILENCE_TOTAL_MAX_SECONDS,
+            sceneMax: SILENCE_SCENE_MAX_SECONDS, totalMax: silence.totalMax,
           }, { status: 422 })
         }
       }
