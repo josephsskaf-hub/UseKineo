@@ -198,7 +198,8 @@ ok(guardIf, 'Real unchanged-repeat guard located inside handleGenerate')
 const guardIndex = handleGenerateFn.body.statements.indexOf(guardIf)
 const guardSlice = handleGenerateFn.body.statements.slice(guardIndex - 1, guardIndex + 2).map(s => s.getText(ast)).join('\n')
 ok(guardSlice.startsWith('const repeticaoInalterada = unchangedRepeatRef.current') && guardSlice.endsWith('unchangedRepeatRef.current = null'), 'Guard reads the memory, blocks, and otherwise clears it')
-ok(handleGenerateFn.body.statements.slice(0, guardIndex).some(s => s.getText(ast).includes('const trimmed =')), 'Guard runs after the sent text is known and before any dispatch')
+// KINEO-TEXTO-LONGO-CONDENSA-2026-09-23 — `trimmed` passou a `let` (o texto longo é condensado DEPOIS desta guarda); a intenção segue: a guarda roda com o texto já conhecido.
+ok(handleGenerateFn.body.statements.slice(0, guardIndex).some(s => /\b(?:const|let) trimmed =/.test(s.getText(ast))), 'Guard runs after the sent text is known and before any dispatch')
 ok(!handleGenerateFn.body.statements.slice(0, guardIndex).some(s => /fetch\(/.test(s.getText(ast))), 'No fetch precedes the guard')
 function runGuard({ memory, mode = 'cinematic_ai', aiEngine = 's25', trimmed = 'The captain speaks to camera' }) {
   const calls = [], qualityFailureRef = { current: null }, generationInFlightRef = { current: true }, unchangedRepeatRef = { current: memory }

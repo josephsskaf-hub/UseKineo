@@ -184,6 +184,7 @@ import {
 import { POST_HANDOFF_ENABLED } from '@/lib/flags'
 import { PRIMEIRO_FILME_VERSION } from '@/lib/primeiroFilme'
 import { analyzePromptMaxChars } from '@/lib/analyzeLimits'
+import { diretorCharLimit } from '@/lib/diretor/suggest' // KINEO-TEXTO-LONGO-CONDENSA-2026-09-23
 // KINEO-FIRST-PAID-MINUTE-2026-08-11 — a chave e o TTL do handshake vivem num
 // módulo único (lib/firstWinHandshake.ts). Enquanto eram literais duplicados
 // aqui e em /checkout/success, renomear um dos lados desligava o recurso em
@@ -9018,7 +9019,7 @@ export default function GenerateClient({
       }
     }
 
-    const trimmed = (structuredScriptRef.current ?? prompt).trim()
+    let trimmed = (structuredScriptRef.current ?? prompt).trim()
     if (!trimmed) {
       setError('Please describe your video idea first.')
       generationInFlightRef.current = false
@@ -9045,6 +9046,33 @@ export default function GenerateClient({
       return
     }
     unchangedRepeatRef.current = null
+    // KINEO-TEXTO-LONGO-CONDENSA-2026-09-23 — o Studio aceita até 20.000 caracteres no modo "IA estrutura"
+    // (KINEO-ROTEIRO-LONGO-NAO-E-ERRO, 08/09), mas /api/generate-video-fast recusa acima de 5.000. Resultado
+    // medido: 4 pessoas em 30 dias batendo em "Prompt is too long (5000 chars max)" no PRIMEIRO filme (caso
+    // mayankkuntal77, 23/09: 5.926 caracteres, duas recusas seguidas). No modo 'ai' o texto é matéria-prima que a
+    // IA reescreve por contrato; então, antes de enviar, o Diretor condensa o briefing PRESERVANDO fatos e
+    // estrutura (lib/diretor/suggest). Modo literal nunca passa por aqui. Falha aberta: sem condensado, segue como era.
+    // Roda DEPOIS da guarda de repetição inalterada: nenhuma chamada de rede antes dela (quality-failure-ui).
+    const tetoEnvio = diretorCharLimit('fast') ?? Infinity
+    if ((mode === 'fast' || mode === 'creator') && scriptMode === 'ai' && trimmed.length > tetoEnvio) {
+      const inChars = trimmed.length
+      let outChars = 0
+      try {
+        const cr = await fetch('/api/diretor/suggest', {
+          method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ text: trimmed, mode: 'ai', engine: 'fast', duration: duration === 35 || duration === 90 ? duration : 60, language, aspect: aspectRequested, rewriteConsent: false }),
+        })
+        const cd = (await cr.json().catch(() => ({}))) as { suggestion?: { text?: string } }
+        const condensado = typeof cd.suggestion?.text === 'string' ? cd.suggestion.text.trim() : ''
+        if (cr.ok && condensado && condensado.length <= tetoEnvio) {
+          trimmed = condensado
+          outChars = condensado.length
+          structuredScriptRef.current = condensado
+          setPrompt(condensado)
+        }
+      } catch { /* falha aberta */ }
+      void trackEvent('long_text_condensed_before_dispatch', { in_chars: inChars, out_chars: outChars, ok: outChars > 0, limit: tetoEnvio })
+    }
 
     // Bug 12/06 — a face photo was picked but never attached ("Use this face"
     // not pressed, usually because the consent box was missed). Generating now

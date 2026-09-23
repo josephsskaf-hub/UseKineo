@@ -39,6 +39,10 @@ const deps = {
   },
   '@/lib/narrationFit': { MIN_COVERAGE },
   '@/lib/aspect': { ASPECTS },
+  '@/lib/analyzeLimits': {
+    ANALYZE_PROMPT_MAX_CHARS: Number(rd('lib/analyzeLimits.ts').match(/export const ANALYZE_PROMPT_MAX_CHARS = (\d+)/)?.[1]),
+    ANALYZE_PROMPT_MAX_CHARS_SOURCE: Number(rd('lib/analyzeLimits.ts').match(/export const ANALYZE_PROMPT_MAX_CHARS_SOURCE = (\d+)/)?.[1]),
+  },
 }
 const SRC = rd('lib/diretor/suggest.ts')
 function logica(src = SRC) { return roda(src, deps) }
@@ -153,6 +157,32 @@ mutante('literal sempre reescreve', "mayRewriteText: input.mode === 'ai' || inpu
 mutante('duração fora da lista vira 45', "if (!isDiretorDuration(b.duration)) return { ok: false, error: 'duration_invalid' }", 'if (!isDiretorDuration(b.duration)) b.duration = 45', (M) => prova(M, ' [m]'))
 mutante('parse ignora o escopo', 'const text = scope.mayRewriteText && proposed', 'const text = proposed', (M) => prova(M, ' [m]'))
 mutante('formato só 16:9/1:1', "(ASPECTS as readonly string[]).includes(String(b.aspect))", "(b.aspect === '16:9' || b.aspect === '1:1')", (M) => prova(M, ' [m]'))
+
+// DIRETOR-LIMITE-DO-MOTOR-2026-09-23 — caso mayankkuntal77: briefing de 5.926 caracteres, sugestão de 385, original recusado 2x.
+const LIM = deps['@/lib/analyzeLimits'].ANALYZE_PROMPT_MAX_CHARS
+checa('teto do envio lido da fonte (5000)', LIM === 5000 && deps['@/lib/analyzeLimits'].ANALYZE_PROMPT_MAX_CHARS_SOURCE === 20000)
+checa('Kineo 1 tem teto de envio; motores sem teto conhecido não', L.diretorCharLimit('fast') === LIM && L.diretorCharLimit('seedance') === null)
+checa('Diretor atende o mesmo teto de entrada do Studio no modo ideia (20.000)', L.DIRETOR_MAX_CHARS === 20000 && L.validateDiretorRequest({ text: 'a'.repeat(5926), mode: 'ai', engine: 'fast', duration: 60 }).ok === true)
+const longo = { text: 'GOAL: educate students. '.repeat(250), mode: 'ai', engine: 'fast', duration: 60, language: 'en', aspect: '9:16', rewriteConsent: false }
+const mLongo = L.buildDiretorMessages(longo, 'English')
+checa('acima do teto: o prompt diz o teto e manda preservar o briefing', mLongo.system.includes(`accepts at most ${LIM}`) && mLongo.system.includes('KEEPS their topic, facts') && mLongo.system.includes('Never reduce it to a one-line idea') && !mLongo.system.includes('in 1-3 sentences'))
+const mBrief = L.buildDiretorMessages({ ...longo, text: 'x '.repeat(400) }, 'English')
+checa('briefing detalhado abaixo do teto: preservado, não vira ideia de uma linha', mBrief.system.includes('detailed BRIEF') && !mBrief.system.includes('in 1-3 sentences'))
+checa('ideia curta segue o formato de 1-3 frases', L.buildDiretorMessages({ ...longo, text: 'Lantana camara in India' }, 'English').system.includes('in 1-3 sentences'))
+checa('condensado que ainda passa do teto não é oferecido', L.parseDiretorOutput(JSON.stringify({ text: 'y'.repeat(LIM + 1), changes: [] }), longo) === null)
+checa('condensado que cabe é oferecido', L.parseDiretorOutput(JSON.stringify({ text: 'y'.repeat(3000), changes: ['shorter'] }), longo)?.text.length === 3000)
+checa('componente: aviso "não vai passar" só fora do literal', Cc.includes('const charLimit = literal ? null : diretorCharLimit(engine)') && Cc.includes('data-kineo="diretor-over-limit"'))
+const G = rd('app/(dashboard)/generate/GenerateClient.tsx')
+const iCond = G.indexOf('// KINEO-TEXTO-LONGO-CONDENSA-2026-09-23 — o Studio aceita')
+checa('Generate: condensa ANTES do envio ao Kineo 1', iCond > 0 && iCond < G.indexOf("fetch('/api/generate-video-fast'"))
+checa('Generate: condensa DEPOIS da guarda de repetição (nenhuma rede antes dela)', iCond > G.indexOf('const repeticaoInalterada = unchangedRepeatRef.current'))
+checa('Generate: teto do envio vem da fonte do Diretor, não cravado', G.includes("const tetoEnvio = diretorCharLimit('fast') ?? Infinity") && !/ANALYZE_PROMPT_MAX_CHARS\b/.test(G))
+checa('Generate: só no modo "IA estrutura" e só acima do teto', G.includes("if ((mode === 'fast' || mode === 'creator') && scriptMode === 'ai' && trimmed.length > tetoEnvio) {"))
+checa('Generate: só usa o condensado se couber', G.includes('condensado.length <= tetoEnvio'))
+checa('Generate: o condensado é o que a tela mostra e o que vai', G.includes('trimmed = condensado') && G.includes('structuredScriptRef.current = condensado') && G.includes('setPrompt(condensado)'))
+checa('Generate: medido sem texto', G.includes("trackEvent('long_text_condensed_before_dispatch', { in_chars: inChars, out_chars: outChars, ok: outChars > 0, limit: tetoEnvio })"))
+mutante('teto do motor esquecido', "return engine === 'fast' ? ANALYZE_PROMPT_MAX_CHARS : null", 'return null', (M) => [['teto', M.diretorCharLimit('fast') === LIM], ['aviso', M.buildDiretorMessages(longo, 'English').system.includes('accepts at most')]])
+mutante('condensado grande demais aceito', 'if (limit !== null && textChanged && text.length > limit) return null', '', (M) => [['grande', M.parseDiretorOutput(JSON.stringify({ text: 'y'.repeat(LIM + 1), changes: [] }), longo) === null]])
 
 console.log(`test-diretor-kineo-2026-09-23: ${ok} ok, ${falhas.length} falha(s)`)
 if (falhas.length) process.exit(1)

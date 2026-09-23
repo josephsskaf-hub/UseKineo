@@ -12,7 +12,7 @@ import { useEffect, useRef, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { UiLabel as SharedUiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import {
-  DIRETOR_CLIENT_EVENTS, type DiretorDuration, type DiretorSuggestion, diretorFit, diretorInputKey, diretorScope,
+  DIRETOR_CLIENT_EVENTS, type DiretorDuration, type DiretorSuggestion, diretorCharLimit, diretorFit, diretorInputKey, diretorScope,
 } from '@/lib/diretor/suggest'
 
 type Props = {
@@ -65,6 +65,14 @@ function UiLabel({ children }: { children: string }) {
     : <span lang={language} style={{ all: 'unset' }}>{children}</span>
 }
 
+// DIRETOR-LIMITE-DO-MOTOR-2026-09-23 — o aviso que faltou ao caso mayankkuntal77: o original NÃO passa neste motor.
+// en/pt/es aqui; as outras línguas caem no inglês até a pista visual completar (ver PEDIDOS).
+const OVER_LIMIT_COPY: Partial<Record<string, string>> = {
+  en: 'Your text has {n} characters and {engine} reads up to {max}. As it is, it will not go through — “Improve for this video” condenses it and keeps your facts.',
+  pt: 'Seu texto tem {n} caracteres e o {engine} lê até {max}. Assim ele não passa — “Melhorar para este vídeo” condensa e mantém os seus fatos.',
+  es: 'Tu texto tiene {n} caracteres y {engine} lee hasta {max}. Así no pasará — “Mejorar para este vídeo” lo condensa y conserva tus datos.',
+}
+
 export default function DiretorKineo({ text, mode, engine, engineName, duration, language, aspect, onApply }: Props) {
   const uiLanguage = useInterfaceLanguage()
   const copy = (id: CopyKey, values: Record<string, string | number> = {}) =>
@@ -94,6 +102,12 @@ export default function DiretorKineo({ text, mode, engine, engineName, duration,
 
   const scope = diretorScope({ mode: literal ? 'verbatim' : 'ai', engine, rewriteConsent: consent })
   const fit = literal ? diretorFit(text, engine, duration) : null
+  const charLimit = literal ? null : diretorCharLimit(engine)
+  const overLimit = charLimit !== null && text.length > charLimit
+  const overLimitText = overLimit
+    ? (OVER_LIMIT_COPY[uiLanguage] ?? OVER_LIMIT_COPY.en ?? '')
+      .replace('{n}', text.length.toLocaleString('en-US')).replace('{engine}', engineName).replace('{max}', (charLimit ?? 0).toLocaleString('en-US'))
+    : ''
   const stale = (phase === 'ready' || phase === 'editing') && requestKey !== key
   if (stale && !staleSent.current) { staleSent.current = true; void trackEvent(DIRETOR_CLIENT_EVENTS.stale, { ...meta, when: 'shown' }) }
 
@@ -183,6 +197,7 @@ export default function DiretorKineo({ text, mode, engine, engineName, duration,
               <span><UiLabel>{copy('consent', { duration })}</UiLabel></span>
             </label>
           )}
+          {overLimit && <div role="alert" data-kineo="diretor-over-limit" className="dk-error">{overLimitText}</div>}
           {phase === 'error' && <div role="alert" className="dk-error"><UiLabel>{copy(error === ERRORS.daily_limit ? 'daily' : error === ERRORS.no_suggestion ? 'noChange' : 'failed')}</UiLabel></div>}
         </>
       ) : null}

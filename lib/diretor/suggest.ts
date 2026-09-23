@@ -12,9 +12,11 @@
 import { SPEECH_RATE_BASE, speechFamilyForQuality, speechSecondsOfScript } from '@/lib/speechRate'
 import { MIN_COVERAGE } from '@/lib/narrationFit'
 import { ASPECTS } from '@/lib/aspect'
+import { ANALYZE_PROMPT_MAX_CHARS, ANALYZE_PROMPT_MAX_CHARS_SOURCE } from '@/lib/analyzeLimits'
 
 export const DIRETOR_DAILY_CAP = 15
-export const DIRETOR_MAX_CHARS = 6000
+// Mesmo teto de entrada do Studio no modo ideia (artigos colados de até 20 mil caracteres): quem o Studio aceita, o Diretor atende.
+export const DIRETOR_MAX_CHARS = ANALYZE_PROMPT_MAX_CHARS_SOURCE
 export const DIRETOR_DURATIONS = [35, 60, 90] as const
 export type DiretorDuration = (typeof DIRETOR_DURATIONS)[number]
 export type DiretorMode = 'ai' | 'verbatim'
@@ -23,6 +25,20 @@ export const DIRETOR_VISUAL_TAG_LIVE = false
 /** Motores em que a orientação visual não comanda a imagem (banco de imagens casado pela fala). */
 export const DIRETOR_TEXT_ONLY_ENGINES: readonly string[] = ['fast']
 export const DIRETOR_SERVED_EVENT = 'diretor_suggest_served'
+// DIRETOR-LIMITE-DO-MOTOR-2026-09-23 — caso mayankkuntal77 (23/09 17:36Z): colou um briefing de 5.926 caracteres
+// no modo ideia, o Diretor devolveu 385 (3 frases, -93%), ele manteve o original — sensato: o trabalho dele virou
+// uma linha — e o Kineo 1 recusou duas vezes ("5000 chars max"). O Diretor não disse o essencial: o original NÃO
+// PASSA neste motor. Agora ele sabe o teto de envio do motor, avisa, e quando condensa preserva o briefing.
+/** Teto de caracteres que o motor aceita no envio (/api/generate-video-fast recusa acima). null = sem teto conhecido abaixo do da tela. */
+export function diretorCharLimit(engine: string): number | null {
+  return engine === 'fast' ? ANALYZE_PROMPT_MAX_CHARS : null
+}
+/** Alvo do texto condensado: folga de 10% sob o teto. */
+export function diretorCondenseTarget(limit: number): number {
+  return Math.floor(limit * 0.9)
+}
+/** Briefing detalhado (várias frases): condensar preserva detalhes, nunca vira ideia de uma linha. */
+export const DIRETOR_BRIEF_MIN_CHARS = 600
 export const DIRETOR_CLIENT_EVENTS = {
   requested: 'diretor_suggest_requested',
   shown: 'diretor_suggestion_shown',
@@ -107,7 +123,15 @@ export function buildDiretorMessages(input: DiretorInput, languageName: string):
   const range = diretorWordRange(input.engine, input.duration)
   const tasks: string[] = []
   if (input.mode === 'ai') {
-    tasks.push(`The user gave an IDEA (not a script). Return a sharper version of the same idea in ${languageName}: one concrete subject, the surprising angle, and the payoff, in 1-3 sentences. Keep the user's topic; do not switch to another story.`)
+    const limit = diretorCharLimit(input.engine)
+    if (limit !== null && input.text.length > limit) {
+      const target = diretorCondenseTarget(limit)
+      tasks.push(`The user's text is ${input.text.length} characters and this engine accepts at most ${limit}. It is the user's BRIEF for the video. Return a condensed version of the SAME brief in ${languageName}, between ${Math.floor(target * 0.5)} and ${target} characters, that KEEPS their topic, facts, names, numbers, structure, tone and instructions. Cut repetition and formatting, not content. Never reduce it to a one-line idea.`)
+    } else if (input.text.trim().length >= DIRETOR_BRIEF_MIN_CHARS) {
+      tasks.push(`The user gave a detailed BRIEF (not a narrated script). Return a sharper version of the same brief in ${languageName}, keeping its facts, structure, tone and instructions and roughly its length. Never reduce it to a one-line idea.`)
+    } else {
+      tasks.push(`The user gave an IDEA (not a script). Return a sharper version of the same idea in ${languageName}: one concrete subject, the surprising angle, and the payoff, in 1-3 sentences. Keep the user's topic; do not switch to another story.`)
+    }
   } else if (scope.mayRewriteText) {
     tasks.push(`The user gave a SCRIPT that is narrated word for word, and explicitly allowed you to rewrite it to fit a ${input.duration}-second video. Return the full script in ${languageName} with ${range.min}-${range.max} spoken words. Keep the user's facts, order, hook and voice; extend or tighten, do not replace the story.`)
   } else {
@@ -145,5 +169,8 @@ export function parseDiretorOutput(raw: string, input: DiretorInput): DiretorSug
   const visual = scope.mayAddVisual && visualRaw ? visualRaw : null
   const textChanged = text !== input.text
   if (!textChanged && !visual) return null
+  // Condensar para caber e devolver algo que ainda não cabe não ajuda ninguém: sem sugestão, original intacto.
+  const limit = diretorCharLimit(input.engine)
+  if (limit !== null && textChanged && text.length > limit) return null
   return { text, changes, visual, textChanged }
 }
