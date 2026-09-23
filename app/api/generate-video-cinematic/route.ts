@@ -4314,6 +4314,39 @@ async function manipularPost(req: NextRequest) {
         const silencioFinal = () => plan.scenes.reduce((a, sc) => a + Math.max(0, mudoFinal(sc)), 0)
         const totalFinal = () => plan.scenes.reduce((a, sc) => a + (sc.seconds || 0), 0)
         const antesFinal = silencioFinal()
+        // KINEO-H3-FRASE-CURTA-2026-09-23 — o clipe tem piso de 4 s: uma cena que o planejador sorteou com UMA frase curta
+        // ("But one man survives." = 4 palavras ≈ 1,8 s de fala) fica com ~2,1 s mudos que nenhuma apara alcança (ensaios
+        // de $0 de 23/09: 2 de 4 reprovados por 2,1 s). A frase curta passa para a cena vizinha — anterior, senão a
+        // seguinte — quando as duas cabem no teto: mesmas palavras, mesma ordem, um clipe a menos. Nunca diálogo, nunca
+        // abaixo da duração pedida.
+        {
+          const falaDe = (sc: (typeof plan.scenes)[number]) => (sc.voiceover ?? '').trim()
+          const nPal = (t: string) => t.split(/\s+/).filter(Boolean).length
+          const tetoDe = (sc: (typeof plan.scenes)[number]) => sc.type === 'cinematic' ? 8 : SCENE_CAP
+          let guardaJunta = 40
+          for (let i = 0; i < plan.scenes.length && guardaJunta-- > 0; i++) {
+            const sc = plan.scenes[i]
+            if (sc.type === 'dialogue' || !falaDe(sc) || mudoFinal(sc) <= 1.4 || (sc.seconds || 0) > 4) continue
+            const tentar = (viz: (typeof plan.scenes)[number] | undefined, antes: boolean): boolean => {
+              if (!viz || viz.type === 'dialogue' || !falaDe(viz)) return false
+              const junta = antes ? `${falaDe(viz)} ${falaDe(sc)}` : `${falaDe(sc)} ${falaDe(viz)}`
+              const teto = tetoDe(viz)
+              if (nPal(junta) > Math.floor((teto - FOLGA_MIN_S) * ritmoVoz)) return false
+              // a vizinha fica com os segundos da fala juntada E com o que o piso pedido exigir — desde que continue sem
+              // silêncio acima de 1,4 s e dentro do teto; senão não junta
+              const pisoPede = duration - (totalFinal() - (sc.seconds || 0) - (viz.seconds || 0))
+              const novos = Math.max(viz.seconds || 0, Math.ceil(nPal(junta) / ritmoVoz + FOLGA_MIN_S), pisoPede)
+              if (novos > teto || novos - nPal(junta) / ritmoVoz > 1.4) return false
+              viz.voiceover = junta
+              viz.needsNarration = true
+              viz.seconds = novos
+              plan.scenes.splice(i, 1)
+              console.log(`[hollywood] KINEO-H3-FRASE-CURTA: "${junta.slice(0, 40)}…" — frase de ${nPal(falaDe(sc))} palavras juntou-se à cena ${antes ? 'anterior' : 'seguinte'} (${novos}s)`)
+              return true
+            }
+            if (tentar(plan.scenes[i - 1], true) || tentar(plan.scenes[i + 1], false)) i--
+          }
+        }
         let guardaFinal = 60
         while (guardaFinal-- > 0 && totalFinal() - 1 >= duration && (silencioFinal() > 7.5 || plan.scenes.some((sc) => mudoFinal(sc) > 1.4))) {
           const alvo = plan.scenes.filter((sc) => (sc.seconds || 0) > 4 && mudoFinal(sc) > 1.0).sort((a, b) => mudoFinal(b) - mudoFinal(a))[0]

@@ -116,6 +116,32 @@ console.log('== o corte nunca derruba o piso de duração ==')
   checa(`piso: ${total}s ≥ 60 depois do corte (nunca plan_duration_below_request por causa dele)`, total >= 60 && r.rejeitado?.reason !== 'plan_duration_below_request')
 }
 
+console.log('== frase curta sozinha numa cena de 4 s junta-se à vizinha (KINEO-H3-FRASE-CURTA) ==')
+{
+  // ensaios de $0 de 23/09 (deploy d5ed1945): 2 de 4 reprovados por UMA cena de 4 s com "But one man survives." (4 palavras)
+  const mk = () => ({ characterSheet: '', environmentSheet: 'x', styleSheet: 'y', scenes: [
+    { index: 1, type: 'support', seconds: 10, prompt: 's1', voiceover: sent(21, 'a'), caption: '' },
+    { index: 2, type: 'support', seconds: 8, prompt: 's2', voiceover: sent(16, 'b'), caption: '' },
+    { index: 3, type: 'support', seconds: 4, prompt: 's3', voiceover: 'But one man survives.', caption: '' },
+    { index: 4, type: 'support', seconds: 10, prompt: 's4', voiceover: sent(21, 'c'), caption: '' },
+    { index: 5, type: 'support', seconds: 10, prompt: 's5', voiceover: sent(21, 'd'), caption: '' },
+    { index: 6, type: 'support', seconds: 10, prompt: 's6', voiceover: sent(21, 'e'), caption: '' },
+    { index: 7, type: 'support', seconds: 10, prompt: 's7', voiceover: sent(21, 'f'), caption: '' },
+  ] })
+  const plan = mk()
+  const falaAntes = plan.scenes.map((sc) => sc.voiceover).join(' ')
+  const semConserto = TL.planSilenceReport(mk().scenes, 2.3)
+  checa(`reprodução: sem juntar, a cena de 4 s com 4 palavras reprova (pior ${semConserto.worst}s > 1,5)`, !semConserto.ok && semConserto.worst > 1.5)
+  const r = await executar(ctxBase(plan, { verbatim: true, expandVoiceoversToTargets: espiao, appendNarrationToTargets: espiao }))
+  const sil = TL.planSilenceReport(plan.scenes, 2.3)
+  const total = plan.scenes.reduce((a, sc) => a + sc.seconds, 0)
+  checa(`passa a régua (silêncio ${sil.total}s, pior ${sil.worst}s)`, r.status !== 422 && r.rejeitado === null && sil.ok)
+  checa('a frase curta entrou na cena anterior, inteira e na ordem', plan.scenes.some((sc) => sc.voiceover.endsWith('b16. But one man survives.')))
+  checa('C1: fala do autor idêntica e na mesma ordem', plan.scenes.map((sc) => sc.voiceover).join(' ') === falaAntes)
+  checa(`piso: ${total}s ≥ 60 e nenhuma cena acima de 12 s`, total >= 60 && plan.scenes.every((sc) => sc.seconds <= 12))
+  checa('diálogo nunca é juntado (a regra pula type dialogue)', /if \(sc\.type === 'dialogue' \|\| !falaDe\(sc\) \|\| mudoFinal\(sc\) <= 1\.4/.test(rota))
+}
+
 console.log('== o conserto está na rota ==')
 checa('teto-rede dimensiona a cabeça pela própria fala (KINEO-H3-VERBATIM-CORTE)', /KINEO-H3-VERBATIM-CORTE-2026-09-23/.test(rota) && /const cabecaPrecisa = Math\.min\(cap, Math\.max\(4, Math\.ceil\(wordsArr\(head\)\.length \/ ritmoVoz \+ FOLGA_MIN_S\)\)\)/.test(rota))
 
