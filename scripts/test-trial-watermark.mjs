@@ -136,8 +136,9 @@ const clampCount = (client.match(/setFreeClampNotice\(\{ from: fc\.from, to: fc\
 eq('par obrigatorio: mesmo numero de call sites do clamp', setCount, clampCount)
 
 // ── 11) O HANDOFF DO UNLOCK CARREGA O MOTOR ────────────────────────────────
-ok('FastRenderInputs tem quality', /interface FastRenderInputs \{[\s\S]{0,700}?\n  quality\?: string\n\}/.test(client))
-ok('o snapshot do render grava a quality real', client.includes('            quality: falUsedRef.current ? falQualityRef.current : quality,\n          }'))
+// LOTE2-EXPORT-LIMPO-FIEL-2026-09-23 — o ingrediente ganhou `aspect` depois de `quality`; a prova segue: quality existe e é opcional string.
+ok('FastRenderInputs tem quality', /interface FastRenderInputs \{[\s\S]{0,900}?\n  quality\?: string\n[\s\S]{0,300}?\n\}/.test(client))
+ok('o snapshot do render grava a quality real', /lastFastRenderRef\.current = \{[\s\S]{0,1200}?\n            quality: falUsedRef\.current \? falQualityRef\.current : quality,\n[\s\S]{0,200}?\n          \}/.test(client))
 ok('normalize preserva fast/cinematic_ai', client.includes("input.quality === 'fast' || input.quality === 'cinematic_ai' ? { quality: input.quality } : {}"))
 
 // ── 12) O QUE NAO PODE TER MUDADO ──────────────────────────────────────────

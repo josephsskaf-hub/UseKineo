@@ -10,6 +10,7 @@ import { loadVerifiedCinematicClaim, retargetCinematicRequestId, validCinematicG
 import { acquireSceneRetryMutex, markSceneRetryHold, readVerifiedSceneRetryHold, releaseSceneRetryMutex } from '@/lib/cinematic/sceneRetry'
 import { HOLLYWOOD_MODELS, KLING3_I2V_MODEL, H3_MODELS, H3_I2V_MODEL, H3_RESOLUTION, OMNI_I2V_MODEL, S25_I2V_MODEL, S25_T2V_MODEL, S25_RESOLUTION } from '@/lib/hollywood/router'
 import { openai } from '@/lib/openai'
+import { normalizeAspect } from '@/lib/aspect' // LOTE2-RESGATE-FIEL-2026-09-23
 
 async function softenPromptForModeration(prompt: string): Promise<string> {
   try {
@@ -52,22 +53,24 @@ function signedScene(claim: CinematicClaim, slot: Slot) {
     typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 3 || seconds > 15) return null
   const requiresAnchor = [KLING3_I2V_MODEL, H3_I2V_MODEL, OMNI_I2V_MODEL, S25_I2V_MODEL].includes(slot.model)
   if (requiresAnchor && (typeof anchor !== 'string' || !anchor.startsWith('https://'))) return null
-  return { prompt: prompt.trim(), seconds: Math.round(seconds), anchor: requiresAnchor ? anchor as string : null }
+  // LOTE2-RESGATE-FIEL-2026-09-23 — o formato do filme vem do claim assinado; a cena refeita usa o MESMO que o render original.
+  return { prompt: prompt.trim(), seconds: Math.round(seconds), anchor: requiresAnchor ? anchor as string : null, aspect: normalizeAspect(response?.aspect) }
 }
 
+const ENQUADRAMENTO: Record<string, string> = { '9:16': 'Vertical 9:16', '16:9': 'Horizontal 16:9', '1:1': 'Square 1:1', '4:5': 'Vertical 4:5' } // LOTE2-RESGATE-FIEL-2026-09-23
 function sceneInput(model: string, scene: NonNullable<ReturnType<typeof signedScene>>, prompt: string): Record<string, unknown> {
-  if (model === OMNI_I2V_MODEL) return { image_url: scene.anchor, prompt, aspect_ratio: '9:16', duration: Math.max(3, Math.min(10, scene.seconds)) }
+  if (model === OMNI_I2V_MODEL) return { image_url: scene.anchor, prompt, aspect_ratio: scene.aspect, duration: Math.max(3, Math.min(10, scene.seconds)) }
   // KINEO-S25-STATUS-2026-09-15 — mesmo schema do buildFalInput (route): duration STRING '4'..'30', 480p, sem áudio nativo.
   if (model === S25_I2V_MODEL) return { image_url: scene.anchor, prompt, duration: String(Math.max(4, Math.min(30, scene.seconds))), resolution: S25_RESOLUTION, generate_audio: false }
-  if (model === S25_T2V_MODEL) return { prompt, duration: String(Math.max(4, Math.min(30, scene.seconds))), resolution: S25_RESOLUTION, aspect_ratio: '9:16', generate_audio: false }
+  if (model === S25_T2V_MODEL) return { prompt, duration: String(Math.max(4, Math.min(30, scene.seconds))), resolution: S25_RESOLUTION, aspect_ratio: scene.aspect, generate_audio: false }
   // H3 does not expose a generate_audio switch. Match its actual schema;
   // compose owns muting support audio when trusted narration is present.
-  if (H3_SET.has(model)) return { ...(scene.anchor ? { image_url: scene.anchor } : { aspect_ratio: '9:16' }),
+  if (H3_SET.has(model)) return { ...(scene.anchor ? { image_url: scene.anchor } : { aspect_ratio: scene.aspect }),
     prompt, duration: Math.max(5, Math.min(15, scene.seconds)), resolution: H3_RESOLUTION }
   if (model === KLING3_I2V_MODEL) return { image_url: scene.anchor, prompt, duration: String(scene.seconds), generate_audio: true }
   return {
-    prompt: prompt.startsWith('Vertical 9:16') ? prompt : `Vertical 9:16 composition, camera upright, horizon perfectly LEVEL and horizontal across the frame. ${prompt}`,
-    duration: String(scene.seconds), aspect_ratio: '9:16', generate_audio: true, cfg_scale: 0.6,
+    prompt: prompt.startsWith(ENQUADRAMENTO[scene.aspect]) ? prompt : `${ENQUADRAMENTO[scene.aspect]} composition, camera upright, horizon perfectly LEVEL and horizontal across the frame. ${prompt}`,
+    duration: String(scene.seconds), aspect_ratio: scene.aspect, generate_audio: true, cfg_scale: 0.6,
     negative_prompt: 'cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text, rotated frame, sideways composition, vertical horizon, tilted horizon, soft focus, out of focus',
   }
 }

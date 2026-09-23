@@ -12,8 +12,11 @@ import {
   targetWordCount,
   transcribeTTSWithTimestamps,
   uploadVoiceoverToSupabase,
+  setActiveCaptionFont,
   type WhisperWord,
 } from '@/lib/compose'
+import { narrationLanguage } from '@/lib/textLanguage' // LOTE2-EXPORT-LIMPO-FIEL-2026-09-23
+import { normalizeAspect } from '@/lib/aspect' // LOTE2-EXPORT-LIMPO-FIEL-2026-09-23
 import { salvageScriptNarration, stripScriptMarkers } from '@/lib/scriptParser'
 import { selectMusicForScript } from '@/lib/musicScore'
 // KINEO-CREDIT-INTENT-2026-07-11 — record the engine + intended cost for the
@@ -105,6 +108,8 @@ interface UnlockBody {
   // KINEO-TRIAL-WATERMARK-2026-09-07 — o motor que MONTOU o filme original.
   // Ver REBUILD_QUALITIES abaixo: este campo governa só o RITMO do rebuild.
   quality?: string
+  // LOTE2-EXPORT-LIMPO-FIEL-2026-09-23 — formato do filme original (ausente = 9:16, como sempre foi).
+  aspect?: string
 }
 
 // Keep the clean re-render identical to the just-created Fast preview.
@@ -486,7 +491,13 @@ export async function POST(req: NextRequest) {
     const duration = (SUPPORTED_DURATIONS as readonly number[]).includes(requestedDuration)
       ? requestedDuration
       : 45
-    const language = body.language === 'pt' ? 'pt' : body.language === 'es' ? 'es' : 'en'
+    // ═══ LOTE2-EXPORT-LIMPO-FIEL-2026-09-23 — o export limpo PAGO é o MESMO filme ═══
+    // Varredura de limites (docs/growth/VARREDURA-LIMITES-2026-09-23.md): esta rota só conhecia en/pt/es (hindi, francês,
+    // árabe… voltavam narrados em inglês), não recebia o formato (16:9/1:1/4:5 voltavam 9:16 com os clipes cortados) e não
+    // ajustava a fonte da legenda (devanágari/árabe podiam sair como caixinhas). Agora espelha o /api/compose: catálogo de
+    // 16 línguas, formato do filme e a fonte da língua.
+    const language = narrationLanguage(body.language) ?? 'en'
+    const aspect = normalizeAspect(body.aspect)
     // KINEO-TRIAL-WATERMARK-2026-09-07 — ver REBUILD_QUALITIES.
     const rebuildQuality = rebuildQualityOf(body.quality)
     const vertical =
@@ -563,12 +574,14 @@ export async function POST(req: NextRequest) {
 
     let source: Record<string, unknown>
     try {
+      setActiveCaptionFont(language) // LOTE2-EXPORT-LIMPO-FIEL-2026-09-23 — a mesma fonte por língua do /api/compose
       source = buildCreatomateSource({
         clipUrls,
         voiceoverUrl,
         voiceoverScript: scaledScript,
         sceneCaptions,
         duration,
+        aspect, // LOTE2-EXPORT-LIMPO-FIEL-2026-09-23
         // KINEO-TRIAL-WATERMARK-2026-09-07 — era 'fast' cravado. Este é o
         // ÚNICO ponto que passa a variar: o claim assinado, o intent de
         // cobrança, o custo 0 e todos os rótulos da resposta continuam 'fast'

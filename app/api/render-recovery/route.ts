@@ -28,6 +28,7 @@
 // agendar, para si mesmo e com o próprio saldo, um compose que ele já podia
 // disparar sozinho chamando /api/compose.
 import { NextRequest, NextResponse } from 'next/server'
+import { normalizeAspect } from '@/lib/aspect' // LOTE2-RESGATE-FIEL-2026-09-23
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 
@@ -128,6 +129,9 @@ export function sanitizeFastComposePayload(
   const vertical = cleanString(p.vertical, 64)
   if (vertical) out.vertical = vertical
   if (typeof p.speed === 'number' && Number.isFinite(p.speed)) out.speed = p.speed
+  // LOTE2-RESGATE-FIEL-2026-09-23 — o formato do filme (16:9/1:1/4:5) era descartado aqui: o filme resgatado voltava 9:16.
+  const aspect = cleanString(p.aspect, 8)
+  if (aspect && aspect !== '9:16' && normalizeAspect(aspect) === aspect) out.aspect = aspect
   return out
 }
 

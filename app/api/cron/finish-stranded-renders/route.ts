@@ -40,6 +40,8 @@ import { RECOVERABLE_EVENT, sanitizeFastComposePayload } from '@/app/api/render-
 import { refundRenderCredits } from '@/lib/credits/refund'
 import { persistRenderAssets } from '@/lib/renderAssets'
 import { CLIP_CREDITS } from '@/lib/cinematic/shotSpec'
+import { normalizeAspect } from '@/lib/aspect' // LOTE2-RESGATE-FIEL-2026-09-23
+import { resolveNarrationLanguage } from '@/lib/textLanguage' // LOTE2-RESGATE-FIEL-2026-09-23
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -865,6 +867,12 @@ export async function GET(req: NextRequest) {
       // este fallback o vídeo resgatado nascia com topic NULL e o painel de coerência dizia "prompt vazio no banco" (filme 2 do Axel).
       topic: typeof response.topic === 'string' ? response.topic : typeof response.prompt === 'string' ? response.prompt : undefined,
       quality: vClaim.quality,
+      // LOTE2-RESGATE-FIEL-2026-09-23 — o resgate não mandava formato nem língua: o /api/compose lê os dois SÓ do corpo, então
+      // um filme 16:9 ou em francês resgatado voltava 9:16 com voz e fonte de legenda inglesas. O formato vem do claim
+      // assinado (response.aspect); a língua não é guardada no claim, então sai da própria narração (detector de 6 línguas —
+      // as outras 10 continuam caindo no padrão; dívida anotada em docs/growth/VARREDURA-LIMITES-2026-09-23.md).
+      ...(normalizeAspect(response.aspect) !== '9:16' ? { aspect: normalizeAspect(response.aspect) } : {}),
+      language: typeof response.language === 'string' && response.language ? response.language : resolveNarrationLanguage('en', typeof response.voiceover_script === 'string' ? response.voiceover_script : '').language,
       ...(Array.isArray(response.scene_engines) && response.scene_engines.length > 0
         ? {
             scene_engines: response.scene_engines,

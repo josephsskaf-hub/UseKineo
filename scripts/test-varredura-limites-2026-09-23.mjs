@@ -124,6 +124,22 @@ checa('(V3) nenhum escritor de cena corta em 1.200', !/generateScenes\(prompt\.s
 checa('(V3) Kineo 1 e motores de IA usam a fonte única (3 chamadas)', (FAST.match(/generateScenes\(prompt\.slice\(0, SCENE_WRITER_INPUT_MAX_CHARS\)/g) || []).length === 1 && (CIN.match(/generateScenes\(prompt\.slice\(0, SCENE_WRITER_INPUT_MAX_CHARS\)/g) || []).length === 2)
 checa('(V3) planejador Hollywood lê ideia e narração pela fonte única', ROUTER.includes("Idea/topic: ${String(idea ?? '').slice(0, SCENE_WRITER_INPUT_MAX_CHARS)}") && ROUTER.includes('${String(voiceoverScript).slice(0, SCENE_WRITER_INPUT_MAX_CHARS)}') && !/slice\(0, 600\)\}/.test(ROUTER))
 
+// (LOTE 2) export limpo PAGO e resgates devolvem o MESMO filme: formato, língua e fonte da legenda.
+const UNLOCK = rd('app/api/compose/unlock/route.ts')
+checa('(L2) export limpo: língua pelo catálogo das 16 (não mais só en/pt/es)', UNLOCK.includes("const language = narrationLanguage(body.language) ?? 'en'") && !/body\.language === 'pt' \? 'pt'/.test(UNLOCK))
+checa('(L2) export limpo: formato do filme original chega ao builder', UNLOCK.includes('const aspect = normalizeAspect(body.aspect)') && /buildCreatomateSource\(\{[\s\S]{0,260}aspect, \/\/ LOTE2/.test(UNLOCK))
+checa('(L2) export limpo: fonte da legenda da língua ANTES de montar', UNLOCK.indexOf('setActiveCaptionFont(language)') > 0 && UNLOCK.indexOf('setActiveCaptionFont(language)') < UNLOCK.indexOf('source = buildCreatomateSource({'))
+checa('(L2) ingrediente do export guarda o formato e o 45 s', G.includes('  aspect?: string\n}') && G.includes('requestedDuration === 45 || requestedDuration === 60 || requestedDuration === 90') && G.includes("normalizeAspect(input.aspect) === input.aspect ? { aspect: input.aspect } : {}), // LOTE2-EXPORT-LIMPO-FIEL"))
+checa('(L2) as 2 cópias do ingrediente (montagem normal e checkpoint do Kineo 1) levam o formato', (G.match(/\.\.\.\(aspectRequested !== '9:16' \? \{ aspect: aspectRequested \} : \{\}\), \/\/ LOTE2-EXPORT-LIMPO-FIEL/g) || []).length === 2)
+checa('(L2) checkpoint de resgate do Kineo 1 leva o formato', G.includes("...(aspectRequested !== '9:16' ? { aspect: aspectRequested } : {}), // LOTE2-RESGATE-FIEL-2026-09-23"))
+const REC = rd('app/api/render-recovery/route.ts')
+checa('(L2) filtro do resgate não descarta mais o formato', REC.includes("if (aspect && aspect !== '9:16' && normalizeAspect(aspect) === aspect) out.aspect = aspect") && REC.includes("import { normalizeAspect } from '@/lib/aspect'"))
+const STR = rd('app/api/cron/finish-stranded-renders/route.ts')
+checa('(L2) resgate de filme de IA manda formato (claim) e língua', STR.includes("...(normalizeAspect(response.aspect) !== '9:16' ? { aspect: normalizeAspect(response.aspect) } : {}),") && STR.includes("resolveNarrationLanguage('en', typeof response.voiceover_script === 'string' ? response.voiceover_script : '').language"))
+const RETRY = rd('app/api/retry-hollywood-scene/route.ts')
+checa('(L2) cena refeita no formato do filme: nenhum 9:16 cravado', !RETRY.includes("aspect_ratio: '9:16'") && (RETRY.match(/aspect_ratio: scene\.aspect/g) || []).length === 4 && RETRY.includes('aspect: normalizeAspect(response?.aspect) }'))
+checa('(L2) enquadramento do texto acompanha o formato', RETRY.includes('`${ENQUADRAMENTO[scene.aspect]} composition, camera upright') && !RETRY.includes('`Vertical 9:16 composition'))
+
 // Mutantes (cada um precisa aplicar e cair)
 function mutante(nome, src, de, para, prova) {
   if (src.split(de).length !== 2) { checa(`mutante "${nome}" aplicou`, false); return }

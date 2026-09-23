@@ -71,6 +71,16 @@ contra HEAD) — esperado, autorizado.
 | V5 | `generate-video-cinematic:1515` | Hindi etc. + Kling 3/H3 morre DEPOIS da análise (Studio só avisa) | a medir |
 | V6 | `lib/compose.ts` | narração clássica cortada em 3.800 caracteres; fonte de legenda "herdada" no desbloqueio | suspeito |
 
+## Lote 2 — FEITO (fundador: "vai no lote 2", 23/09), sem trava 8.2
+
+- Export limpo PAGO (/api/compose/unlock): 16 línguas (era en/pt/es), formato do filme original, fonte da legenda da língua; o
+  "ingrediente" do export guarda o formato e o 45 s.
+- Resgate do Kineo 1 (render-recovery): o filtro não descarta mais o formato; o checkpoint do navegador leva o formato.
+- Resgate de filme de IA (finish-stranded-renders): manda formato (do claim) e língua (detectada da narração, 6 línguas).
+- Refazer cena Kling 3/H3/Omni/S25 (retry-hollywood-scene): formato do filme, não 9:16 cravado.
+- Fica para autorização (trava 8.2): checkpoint de resgate do SERVIDOR na rota do Kineo 1 e cenas geradas do Kineo 1
+  (fastAiHook/fastAiClips chamados pela rota) ainda nascem 9:16; guardar a língua no claim cinematográfico.
+
 ## Próximo lote sem trava (ordem por dinheiro/confiança)
 
 - `compose/unlock` (desbloqueio PAGO da marca d'água) refaz o filme em 9:16, inglês, fonte errada (M1 idioma/formato).

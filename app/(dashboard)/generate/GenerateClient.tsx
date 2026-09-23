@@ -756,6 +756,8 @@ interface FastRenderInputs {
   // /api/compose/unlock remontava TUDO como 'fast' (cortes de 6/9s, clipe
   // reciclado) e o "export limpo" de um Seedance voltava com outra montagem.
   quality?: string
+  // LOTE2-EXPORT-LIMPO-FIEL-2026-09-23 — o formato do filme. Sem ele o export limpo PAGO de um 16:9/1:1/4:5 voltava 9:16.
+  aspect?: string
 }
 
 interface ActiveRenderSnapshot {
@@ -900,7 +902,8 @@ function normalizeFastRenderInputs(value: unknown): FastRenderInputs | undefined
   const voiceover = typeof input.voiceover_script === 'string' ? input.voiceover_script.slice(0, 10000) : ''
   if (clipUrls.length === 0 || !voiceover.trim()) return undefined
   const requestedDuration = Number(input.duration)
-  const safeDuration = requestedDuration === 60 || requestedDuration === 90 ? requestedDuration : 35 // KINEO-PRIMEIRO-VIDEO-2026-09-02 — era 45
+  // LOTE2-EXPORT-LIMPO-FIEL-2026-09-23 — 45 s existe (a rota do Kineo 1 sobe 35→45 para caber no roteiro): virava 35 no export limpo.
+  const safeDuration = requestedDuration === 45 || requestedDuration === 60 || requestedDuration === 90 ? requestedDuration : 35 // KINEO-PRIMEIRO-VIDEO-2026-09-02 — era 45
   const language = narrationLanguage(input.language) ?? 'en' // KINEO-IDIOMAS-15
   return {
     clip_urls: clipUrls,
@@ -917,6 +920,7 @@ function normalizeFastRenderInputs(value: unknown): FastRenderInputs | undefined
     // /api/compose/unlock. Qualquer outra coisa cai fora e o servidor volta
     // ao 'fast' de sempre: o campo só pode melhorar o rebuild, nunca quebrá-lo.
     ...(input.quality === 'fast' || input.quality === 'cinematic_ai' ? { quality: input.quality } : {}),
+    ...(typeof input.aspect === 'string' && input.aspect !== '9:16' && normalizeAspect(input.aspect) === input.aspect ? { aspect: input.aspect } : {}), // LOTE2-EXPORT-LIMPO-FIEL-2026-09-23
   }
 }
 
@@ -6096,6 +6100,7 @@ export default function GenerateClient({
             // composePayload usa logo abaixo. O unlock precisa remontar com o
             // ritmo do motor que fez o filme, não com o do seletor.
             quality: falUsedRef.current ? falQualityRef.current : quality,
+            ...(aspectRequested !== '9:16' ? { aspect: aspectRequested } : {}), // LOTE2-EXPORT-LIMPO-FIEL-2026-09-23
           }
         }
 
@@ -9887,6 +9892,7 @@ export default function GenerateClient({
           language,
           vertical: analysis?.niche ?? undefined,
           speed: responseSpeed ?? undefined,
+          ...(aspectRequested !== '9:16' ? { aspect: aspectRequested } : {}), // LOTE2-EXPORT-LIMPO-FIEL-2026-09-23
         }
         const checkpointComposePayload: Record<string, unknown> = {
           generationId: fastGenerationId,
@@ -9897,6 +9903,7 @@ export default function GenerateClient({
           topic: dispatchedPromptRef.current ?? prompt, // KINEO-TOPICO-DO-DESPACHO
           quality: 'fast',
           language,
+          ...(aspectRequested !== '9:16' ? { aspect: aspectRequested } : {}), // LOTE2-RESGATE-FIEL-2026-09-23: o resgate de aba fechada monta no formato pedido
           vertical: analysis?.niche ?? undefined,
           ...(responseSpeed != null ? { speed: responseSpeed } : {}),
           ...(myVoiceUrl ? { user_voiceover_url: myVoiceUrl } : useClonedVoice ? { use_cloned_voice: true } : {}),
