@@ -8,7 +8,7 @@
 import { UiLabel, useUiCopy } from '@/components/InterfaceLanguage'
 import LibraryRecentProjectCard from '@/components/LibraryRecentProject'
 import { selectRecentLibraryProject, type RecentLibraryProject } from '@/lib/ui/recentLibraryProject'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { engineLabelFor } from '@/lib/engineLabel'
 import Link from 'next/link'
 import { libraryVideoState } from '@/lib/ui/libraryListing'
@@ -23,12 +23,13 @@ type Vid = { id: string; status?: string; title: string | null; video_url: strin
 type Img = { id: string; url: string; upscaled_url?: string | null; model?: string }
 type Aud = { id: string; url: string; model?: string; voice?: string | null; text?: string | null }
 
-export default function LibraryClient() {
+export default function LibraryClient({ videoCollection }: { videoCollection?: ReactNode } = {}) {
+  const unifiedGallery = videoCollection != null
   const t = useUiCopy()
   const [recentVideo, setRecentVideo] = useState<RecentLibraryProject | null>(null)
   // sprint-retencao #15 — `library_video_card` tinha clique e zero impressao.
   const { registrarPorta } = useSeriesDoorSeen()
-  const [tab, setTab] = useState<Tab>('all')
+  const [tab, setTab] = useState<Tab>(unifiedGallery ? 'videos' : 'all')
   const [vids, setVids] = useState<Vid[]>([])
   const [imgs, setImgs] = useState<Img[]>([])
   const [auds, setAuds] = useState<Aud[]>([])
@@ -122,7 +123,7 @@ export default function LibraryClient() {
         )}
       </p>
 
-      {loaded && !loadFailed && (tab === 'all' || tab === 'videos') && !q.trim() && recentVideo && <LibraryRecentProjectCard video={recentVideo} />}
+      {!unifiedGallery && loaded && !loadFailed && (tab === 'all' || tab === 'videos') && !q.trim() && recentVideo && <LibraryRecentProjectCard video={recentVideo} />}
 
       {/* KINEO-SPRINT-V1V4-2026-08-31 (#1) — CAMINHO DE VOLTA PARA CRIAR.
           A Library e a unica tela do acervo que so oferecia link de criacao
@@ -130,7 +131,7 @@ export default function LibraryClient() {
           aparecia quando nao servia para retencao e sumia no instante em que
           passaria a servir — logo depois do 1o video. Agora o botao de criar
           e fixo no topo, e vem com a contagem honesta do proprio acervo. */}
-      {loaded && !loadFailed && (
+      {(unifiedGallery || (loaded && !loadFailed)) && (
         <div
           className="row"
           style={{ marginBottom: 18, alignItems: 'center', gap: 12, flexWrap: 'wrap' }}
@@ -149,7 +150,7 @@ export default function LibraryClient() {
           ><UiLabel>
             Create new video
           </UiLabel></Link>
-          {completedCount > 0 && (
+          {!unifiedGallery && completedCount > 0 && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
               <span aria-hidden="true" style={{ display: 'inline-flex', gap: 4 }}>
                 {[0, 1, 2, 3].map((i) => (
@@ -174,18 +175,18 @@ export default function LibraryClient() {
         </div>
       )}
 
-      <div className="library-history-link"><Link href="/history"><UiLabel>Video history and downloads</UiLabel> ↗</Link></div>
+      {!unifiedGallery && <div className="library-history-link"><Link href="/history"><UiLabel>Video history and downloads</UiLabel> ↗</Link></div>}
       {loaded && !loadFailed && activeCount === 0 && tab === 'all' && <p className="sub"><UiLabel>No projects yet.</UiLabel> <Link href="/studio"><UiLabel>Create a video</UiLabel> →</Link></p>}
       <div className="library-toolbar">
       <div className="row" role="group" aria-label="Asset type">
-        {TABS.map((t) => (
+        {TABS.filter((t) => !unifiedGallery || t.key !== 'all').map((t) => (
           <button key={t.key} type="button" aria-pressed={tab === t.key} className={`pill${tab === t.key ? ' on' : ''}`} onClick={() => { setTab(t.key); setQ('') }}>
-            <UiLabel>{t.label}</UiLabel> · {t.count}
+            <UiLabel>{t.label}</UiLabel>{loaded && !loadFailed ? ` · ${t.count}` : ''}
           </button>
         ))}
       </div>
 
-      {loaded && activeCount > 0 && (
+      {!(unifiedGallery && tab === 'videos') && loaded && activeCount > 0 && (
         <div className="library-search">
           <span aria-hidden="true" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, opacity: 0.55 }}>🔍</span>
           <input
@@ -201,7 +202,9 @@ export default function LibraryClient() {
 
       </div>
 
-      {!loaded && (
+      {unifiedGallery && tab === 'videos' && videoCollection}
+
+      {!(unifiedGallery && tab === 'videos') && !loaded && (
         <div aria-label="Loading your library" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12 }}>
           <style>{'@keyframes libsk{0%{background-position:200% 0}100%{background-position:-200% 0}}'}</style>
           {Array.from({ length: 6 }).map((_, i) => (
@@ -210,7 +213,7 @@ export default function LibraryClient() {
         </div>
       )}
 
-      {loaded && loadFailed && (
+      {!(unifiedGallery && tab === 'videos') && loaded && loadFailed && (
         <div role="alert" className="card" style={{ padding: '14px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', border: '1px solid rgba(251,191,36,.35)', background: 'rgba(251,191,36,.06)' }}>
           <span style={{ fontSize: 13, color: '#fbbf24', fontWeight: 700 }}><UiLabel>We couldn’t load part of your library right now.</UiLabel></span>
           <span style={{ fontSize: 12.5, color: 'var(--txt2,#9aa0a6)' }}><UiLabel>Your videos and credits are safe — this is just a temporary read hiccup.</UiLabel></span>
@@ -218,7 +221,7 @@ export default function LibraryClient() {
         </div>
       )}
 
-      {loaded && (tab === 'videos' || (tab === 'all' && vids.length > 0)) && (
+      {!unifiedGallery && loaded && (tab === 'videos' || (tab === 'all' && vids.length > 0)) && (
         vids.length === 0 ? (
           loadFailed ? null : recentVideo ? <p className="sub">{t('No playable videos in your library yet. Check your latest project above.', 'Todavía no hay vídeos reproducibles en tu biblioteca. Consulta el estado de tu último proyecto arriba.')}</p> : <p className="sub"><UiLabel>No videos yet — </UiLabel><Link href="/studio" style={{ color: '#2997ff' }}><UiLabel>open the Studio</UiLabel></Link><UiLabel> and make your first film.</UiLabel></p>
         ) : fVids.length === 0 ? (
@@ -305,8 +308,9 @@ export default function LibraryClient() {
             {fImgs.map((im) => (
               <div key={im.id} className="card" style={{ padding: 8 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={im.upscaled_url ?? im.url} alt="" style={{ width: '100%', borderRadius: 10, display: 'block' }} />
-                <div className="row" style={{ marginTop: 8 }}>
+                <img src={im.upscaled_url ?? im.url} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'contain', background: '#0b1018', borderRadius: 10, display: 'block' }} />
+                {im.model && <p className="library-asset-model">{im.model}</p>}
+                <div className="row library-asset-actions" style={{ marginTop: 8 }}>
                   <button type="button" className="pill" onClick={() => dl(im.upscaled_url ?? im.url, `kineo-image-${im.id.slice(0, 6)}.png`)}><UiLabel>⬇ Download</UiLabel></button>
                   <a className="pill" style={{ textDecoration: 'none' }} href="/animate"><UiLabel>🎬 Animate</UiLabel></a>
                 </div>
@@ -325,21 +329,24 @@ export default function LibraryClient() {
             {clearBtn}
           </div>
         ) : (
-          <div className="library-audio-section" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}><h2><UiLabel>Audio</UiLabel></h2>
+          <div className="library-audio-section"><h2><UiLabel>Audio</UiLabel></h2><div className="library-collection library-audio-grid">
             {fAuds.map((a) => (
-              <div key={a.id} className="card" style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                <audio controls preload="none" src={a.url} style={{ flex: '1 1 260px', height: 36 }} />
-                <span style={{ fontSize: 11.5, color: 'var(--txt2,#9aa0a6)' }}>{a.model}{a.voice ? ` · ${a.voice}` : ''}</span>
-                <button type="button" aria-label="Download audio" className="pill" onClick={() => dl(a.url, `kineo-audio-${a.id.slice(0, 6)}.mp3`)}>⬇</button>
-                {a.text && <div style={{ flexBasis: '100%', fontSize: 12, color: 'var(--txt2,#9aa0a6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.text}</div>}
+              <div key={a.id} className="card library-audio-card">
+                <div className="library-audio-cover" aria-hidden="true">♫</div>
+                <p className="library-asset-model">{a.model}{a.voice ? ` · ${a.voice}` : ''}</p>
+                {a.text && <p className="library-audio-text">{a.text}</p>}
+                <audio controls preload="none" src={a.url} style={{ width: '100%', height: 36 }} aria-label={a.voice || a.model || 'Audio'} />
+                <button type="button" aria-label="Download audio" className="pill" onClick={() => dl(a.url, `kineo-audio-${a.id.slice(0, 6)}.mp3`)}><UiLabel>⬇ Download</UiLabel></button>
               </div>
             ))}
-          </div>
+          </div></div>
         )
       )}
       <style dangerouslySetInnerHTML={{__html: `
-.stu.library-page{max-width:1480px}.library-page .library-collection{grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px}.library-page .library-collection>.card{padding:12px!important;min-width:0;background:#121923;border-color:#27303e;border-radius:18px}.library-asset-section,.library-audio-section{margin:24px 0 32px}.library-page h2{font-size:17px;font-weight:600;margin:0 0 16px}.library-project-state{font-size:11px;color:#8fc8ff;margin-top:12px}.library-details{display:inline-flex;min-height:40px;align-items:center;color:#9fb1c7;font-size:12px}.library-status-placeholder{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#9fb1c7;background:linear-gradient(145deg,#172231,#10151c);font-size:13px}.library-status-placeholder>span{font-size:38px;color:#2997ff}.library-history-link{text-align:end;font-size:12px;color:#8fc8ff}.library-recent{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 20px;align-items:center;padding:18px 20px!important}.library-recent h2{font-size:17px!important;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;margin:0!important}.library-recent>p{margin:0!important}.library-recent>div{grid-column:2;grid-row:1 / 4}.library-page .library-search input:focus-visible{outline:2px solid #2997ff!important;outline-offset:2px}.library-page audio{max-width:100%;min-width:0}
+.stu.library-page{max-width:none}.library-page .library-collection{max-width:none;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}.library-page .library-collection>.card{padding:12px!important;min-width:0;background:#121923;border-color:#27303e;border-radius:18px}.library-asset-section,.library-audio-section{margin:24px 0 32px}.library-page h2{font-size:17px;font-weight:600;margin:0 0 16px}.library-project-state{font-size:11px;color:#8fc8ff;margin-top:12px}.library-details{display:inline-flex;min-height:40px;align-items:center;color:#9fb1c7;font-size:12px}.library-status-placeholder{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:#9fb1c7;background:linear-gradient(145deg,#172231,#10151c);font-size:13px}.library-status-placeholder>span{font-size:38px;color:#2997ff}.library-history-link{text-align:end;font-size:12px;color:#8fc8ff}.library-recent{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 20px;align-items:center;padding:18px 20px!important}.library-recent h2{font-size:17px!important;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;margin:0!important}.library-recent>p{margin:0!important}.library-recent>div{grid-column:2;grid-row:1 / 4}.library-page .library-search input:focus-visible{outline:2px solid #2997ff!important;outline-offset:2px}.library-page audio{max-width:100%;min-width:0}
+.library-asset-model{font-size:11px;color:#8fc8ff;margin:12px 0;overflow-wrap:anywhere}.library-asset-actions{display:grid!important;grid-template-columns:1fr 1fr;gap:8px!important}.library-asset-actions .pill{justify-content:center;text-align:center}.library-page .library-audio-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,280px),1fr))}.library-audio-card{display:flex;flex-direction:column;gap:12px}.library-audio-cover{display:grid;place-items:center;aspect-ratio:16/9;border-radius:10px;font-size:52px;color:#2997ff;background:radial-gradient(circle at center,rgba(41,151,255,.14),transparent 70%),#0b1018}.library-audio-card .library-asset-model{margin:0}.library-audio-text{font-size:13px;line-height:1.6;color:#a5afc0;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.library-audio-card audio{margin-top:auto}.library-audio-card>.pill{justify-content:center;background:linear-gradient(135deg,#2997ff,#1870d6);color:white;border-color:#438fe2}.library-video-gallery input[type=search]:focus-visible{outline:2px solid #96baff!important;outline-offset:3px}
 @media(max-width:600px){.library-page .library-collection{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.library-recent{grid-template-columns:1fr}.library-recent>div{grid-column:1;grid-row:auto;margin-top:8px}.library-page .library-collection>.card{padding:8px!important}.library-toolbar>.row{gap:6px}.library-toolbar .pill{padding-inline:12px!important}.library-history-link{text-align:start}.library-page .library-collection .pill{white-space:normal}}
+@media(max-width:600px){.library-page .library-collection.library-audio-grid{grid-template-columns:1fr}}
 `}} />
     </div>
   )

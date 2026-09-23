@@ -39,7 +39,7 @@ checa('o remix sem cadastro continua, como secundário, medido à parte', pg.inc
 checa('a página de preview expirado continua com a porta antiga', pg.includes('placement="expired_preview"'))
 
 console.log('5) My Videos: publicar e despublicar pela própria lista (antes: só pelo link do e-mail)')
-const hc = rd('app/(dashboard)/history/HistoryClient.tsx'), hp = rd('app/(dashboard)/history/page.tsx')
+const hc = rd('app/(dashboard)/history/HistoryClient.tsx'), hp = rd('components/library/VideoCollection.tsx')
 checa('a página lê published_at da linha do vídeo', hp.includes("duration, platform, published_at')") && hc.includes('published_at?: string | null'))
 checa('o clique fala com a rota do dono (publish/unpublish, origem my_videos) e só muda estado com res.ok', hc.includes("body: JSON.stringify({ videoId: video.id, action, source: 'my_videos' })") && /if \(!res\.ok\) throw new Error\(String\(res\.status\)\)\n\s*setVisibility/.test(hc))
 checa('publicada: Share link + Unpublish; privada e completa: Publish page; incompleta: Private', hc.includes("(PUBLIC_VIDEO_SHARING_ENABLED || isPublished(video)) && video.status === 'completed' ? (") && hc.includes("handleVisibility(video, 'unpublish')") && hc.includes("handleVisibility(video, 'publish')") && hc.includes('Only finished films can have a public page'))

@@ -15,12 +15,13 @@ check('audio filtra por texto/voz/motor', src.includes('[a.text, a.voice, a.mode
 // campo de busca
 // Approved e39b20c7 exposes search for any nonempty tab, including All.
 // Exercise the source predicates at 0/1/5/6 instead of retaining the old >=6 gate.
-const searchGate = (source) => source.match(/\{(loaded && activeCount[^\n]+) && \(\s*<div className="library-search"/)?.[1]
+const searchGate = (source) => source.match(/\{([^\n]*loaded && activeCount[^\n]+) && \(\s*<div className="library-search"/)?.[1]
 const gate = searchGate(src)
 check('busca usa leitura concluída e contagem da aba ativa', Boolean(gate))
-const allowsSearch = gate ? new Function('loaded', 'activeCount', `return ${gate}`) : () => false
+const allowsSearch = gate ? new Function('loaded', 'activeCount', 'unifiedGallery = false', 'tab = "all"', `return ${gate}`) : () => false
 check('busca visível com 1, 5 e 6 itens; oculta com zero ou leitura pendente', [1, 5, 6].every(n => allowsSearch(true, n)) && !allowsSearch(true, 0) && !allowsSearch(false, 6))
-check('mutante: antiga barreira de 6 itens é detectada', gate && !new Function('loaded', 'activeCount', `return ${gate.replace('> 0', '>= 6')}`)(true, 1))
+check('mutante: antiga barreira de 6 itens é detectada', gate && !new Function('loaded', 'activeCount', 'unifiedGallery = false', 'tab = "all"', `return ${gate.replace('> 0', '>= 6')}`)(true, 1))
+check('galeria de vídeos usa sua própria busca; imagens e áudio mantêm a busca da Library', !allowsSearch(true, 1, true, 'videos') && allowsSearch(true, 1, true, 'images') && allowsSearch(true, 1, true, 'audio'))
 check('Todos soma os três acervos e oferece placeholder próprio', src.includes("tab === 'all' ? vids.length + imgs.length + auds.length") && src.includes('Search all projects…'))
 check('placeholder por aba', src.includes("'Search your videos…'") && src.includes("'Search your images…'") && src.includes("'Search your audio…'"))
 // KINEO-JANELA-DO-INPUT-2026-09-07 — a regra olhava 600 caracteres a frente de

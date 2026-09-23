@@ -7,7 +7,9 @@ const checks = []
 const t = (name, cond) => { checks.push([name, cond]) }
 const read = (p) => readFileSync(p, 'utf8')
 
-const histPage = read('app/(dashboard)/history/page.tsx')
+const histPage = read('components/library/VideoCollection.tsx')
+t('history/page usa a coleção autenticada compartilhada', read('app/(dashboard)/history/page.tsx').includes('<VideoCollection />'))
+t('library/page usa a mesma coleção autenticada', read('app/(dashboard)/library/page.tsx').includes('<VideoCollection embedded />'))
 t('history/page captura o error do select', histPage.includes('error: loadError'))
 t('history/page loga warn na falha', histPage.includes("console.warn('[history] videos read failed"))
 t('history/page passa loadError ao client', histPage.includes('loadError={Boolean(loadError)}'))

@@ -316,6 +316,7 @@ function failedCardCopy(video: Video, state: 'failed' | 'timeout'): string {
 function tryAgainHref(video: Video): string { return reviewVideoRetryHref(video.topic) }
 
 interface Props {
+  embedded?: boolean
   videos: Video[]
   snapshotTime: number
   creatorTrialEligible?: boolean
@@ -331,7 +332,7 @@ interface VideoSummary {
   hashtags: string[]
 }
 
-export default function MyVideosClient({ videos: initialVideos, snapshotTime, loadError = false, creatorTrialEligible = false }: Props) {
+export default function MyVideosClient({ videos: initialVideos, snapshotTime, loadError = false, creatorTrialEligible = false, embedded = false }: Props) {
   // The server and first browser render must use the same clock and calendar.
   // Refresh display-only age after hydration; never change a stored job status.
   const [displayTime, setDisplayTime] = useState(snapshotTime)
@@ -1053,7 +1054,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
   if (videos.length === 0) {
     return (
       <div className="px-4 sm:px-6 py-7">
-        <header className="mb-7">
+        {!embedded && <header className="mb-7">
           <div
             className="font-black uppercase tracking-[.18em] mb-2 flex items-center gap-2"
             style={{ fontSize: '0.65rem', color: '#2997ff' }}
@@ -1071,7 +1072,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
               Videos
             </UiLabel></span>
           </h1>
-        </header>
+        </header>}
         {/* #10 — a tela vazia e onde a promessa do #9 doia mais: quem chega
             aqui com o PRIMEIRO filme ainda no motor lia "No videos yet". */}
         <HistoryActiveRenderCard />
@@ -1130,9 +1131,9 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
 
   /* ── Main ── */
   return (
-    <div className="px-4 md:px-6 py-7 pb-28">
+    <div className={embedded ? 'library-video-gallery' : 'px-4 md:px-6 py-7 pb-28'}>
       {/* Header */}
-      <div className="mb-6 flex items-end justify-between gap-4 flex-wrap">
+      {!embedded && <div className="mb-6 flex items-end justify-between gap-4 flex-wrap">
         <div>
           <div
             className="font-black uppercase tracking-[.18em] mb-2 flex items-center gap-2"
@@ -1159,8 +1160,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
         ><UiLabel>
           ⚡ New Video
         </UiLabel></Link>
-      </div>
-
+      </div>}
       {/* #10 — antes de qualquer oferta: "o meu filme esta vivo?". Mesma
           ordem do KINEO-ESPERA-VENDE-2026-08-21 na tela de espera: entrega
           primeiro, oferta depois. */}
@@ -1170,7 +1170,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
           completed 2+ videos, repeat value is proven: make the honest recurring
           offer primary while preserving episode creation as a secondary path.
           Existing files are never presented as retroactively watermark-free. */}
-      {completedVideos.length >= 1 && (
+      {!embedded && completedVideos.length >= 1 && (
         <section
           aria-label={subscriptionIsPrimary
             ? 'Continue creating with Starter'
@@ -1317,7 +1317,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
 
 
       {/* Stats */}
-      <div
+      {!embedded && <div
         className="inline-flex items-center gap-px mb-6 rounded-2xl overflow-hidden"
         style={{ background: '#161618', border: '1px solid rgba(255,255,255,0.07)' }}
       >
@@ -1339,10 +1339,9 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
             <span style={{ fontSize: '0.67rem', color: 'var(--muted)', marginTop: 2 }}>{s.label}</span>
           </div>
         ))}
-      </div>
-
-      {/* sprint-ui #9 — busca por titulo/tema (so aparece com acervo de verdade) */}
-      {videos.length >= 6 && (
+      </div>}
+      {/* Embedded Library keeps search available for every non-empty collection. */}
+      {(embedded || videos.length >= 6) && (
         <div className="mb-5" style={{ position: 'relative', maxWidth: 420 }}>
           <span aria-hidden="true" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, opacity: 0.55 }}>🔍</span>
           <input

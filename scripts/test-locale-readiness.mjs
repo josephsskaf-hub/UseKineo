@@ -121,7 +121,7 @@ for(const status of ['completed','failed','processing']){
  const video={status,created_at:'2026-09-07T05:30:01Z'}
  eq(server.classifyVideoState(video,clockSnapshot),client.classifyVideoState(video,clockSnapshot),'display state stable across timeout edge '+status)
 }
-ok(source('app/(dashboard)/history/page.tsx').includes('snapshotTime={Date.now()}'),'real server page supplies shared clock')
+ok(source('components/library/VideoCollection.tsx').includes('snapshotTime={Date.now()}'),'real server collection supplies shared clock')
 ok(source('app/(dashboard)/history/HistoryClient.tsx').includes('useState(snapshotTime)'),'first browser render reuses server clock')
 eq(unknown,undefined,'unknown claim not rewritten')
 ok(!source('components/InterfaceLanguage.tsx').includes('navigator.language'),'manual choice only')

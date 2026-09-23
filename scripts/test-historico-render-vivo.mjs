@@ -28,7 +28,7 @@ const soCodigo = (t) => t.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l
 
 const pill = lerArquivo('components/ActiveRenderPill.tsx')
 const cartao = lerArquivo('components/HistoryActiveRenderCard.tsx')
-const historyPage = lerArquivo('app/(dashboard)/history/page.tsx')
+const historyPage = lerArquivo('components/library/VideoCollection.tsx')
 const historyClient = lerArquivo('app/(dashboard)/history/HistoryClient.tsx')
 const alvoFonte = soCodigo(lerArquivo('lib/renderPillTarget.ts'))
 const pillCode = soCodigo(pill)
