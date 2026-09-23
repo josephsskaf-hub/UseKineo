@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src blob:; media-src blob:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Kineo Empresas · protótipo local</title>
+<style>
+:root{color-scheme:dark;font:16px/1.5 system-ui,sans-serif;background:#0a1016;color:#edf4f7}*{box-sizing:border-box}body{margin:0}header,main,footer{max-width:1240px;margin:auto;padding:24px}header{display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:1px solid #283640}.logo{font-size:24px;font-weight:800}.tag{font-size:12px;color:#97e4cf;background:#18372f;padding:7px 12px;border-radius:30px}h1{font-size:clamp(26px,4vw,40px);line-height:1.15;margin:10px 0}h2{font-size:19px;margin:0 0 14px}h3{font-size:15px;margin:0 0 12px}.lead{color:#adbec8;max-width:760px}.grid{display:grid;grid-template-columns:390px minmax(0,1fr);gap:24px;margin-top:28px}.panel{border:1px solid #293944;border-radius:20px;background:#111c24;padding:22px;margin-bottom:18px}label{display:block;font-size:13px;color:#c7d5dd;margin:12px 0 5px}input:not([type=checkbox]),textarea,select{display:block;width:100%;font:inherit;color:inherit;background:#0b141b;border:1px solid #38505f;border-radius:9px;padding:10px}input[type=file]{font-size:12px}textarea{resize:vertical}input[type=checkbox]{accent-color:#79dfbd}.check{display:flex;gap:10px;align-items:flex-start}.check input{margin-top:5px;flex-shrink:0}button{font:inherit;font-size:14px;font-weight:650;color:#e9f1f6;background:#243946;border:1px solid #486170;padding:11px 16px;border-radius:10px;cursor:pointer}button.primary{background:#9cf0ce;border-color:#9cf0ce;color:#10241b}button:disabled{opacity:.45;cursor:not-allowed}button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #f3cf83;outline-offset:3px}.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.hint{font-size:12px;color:#9eb2bf}.warn{border-left:3px solid #e9ba72;padding:10px 14px;background:#282519;color:#f1ddba;font-size:13px}.compare{display:grid;grid-template-columns:1fr 1fr;gap:14px}.stage{position:relative;aspect-ratio:9/16;background:#050b0f;border:1px solid #344550;border-radius:15px;overflow:hidden}.stage video,.stage img{width:100%;height:100%;object-fit:contain;display:block}.placeholder{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:25px;color:#829ba9;pointer-events:none}.overlay{position:absolute;inset:auto 7% 13%;padding:12px;background:#08111eeb;border-radius:9px;font-size:clamp(14px,1.6vw,22px);line-height:1.35;text-align:center;white-space:pre-wrap;overflow-wrap:anywhere;max-height:65%;overflow:auto}.endcard{position:absolute;inset:0;background:#102630;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:8%;overflow:auto}.endcard img{width:48%;height:29%;object-fit:contain;border-radius:12px;background:#09151c}.endcard strong,.endcard p{margin:0;overflow-wrap:anywhere;white-space:pre-wrap;max-width:100%}.endcard p{font-size:13px;color:#c1d1d8}.endcard .contact{border-top:1px solid #466776;padding-top:10px;color:#b6f0d6}.endcard small{color:#93acb9}.endcard[hidden],.overlay[hidden],[hidden]{display:none!important}.preview-title{font-size:12px;font-weight:700;letter-spacing:.09em;color:#abc1ce;margin-bottom:8px}.transport{margin:16px 0}.transport input{padding:0}.scene{border-top:1px solid #30424e;padding-top:12px;margin-top:14px}.scene label{margin-top:5px}.scene small{color:#9cd8c5}.status{min-height:24px;color:#f0ce8a;font-size:13px}footer{color:#849ca9;font-size:12px}details{margin-top:18px}summary{cursor:pointer;color:#add9cc}.milestones{display:flex;gap:8px;flex-wrap:wrap}.milestones span{font-size:12px;padding:6px 10px;background:#182e3b;border-radius:8px}@media(max-width:880px){.grid{grid-template-columns:1fr}.form-column{order:1}.preview-column{order:0}.panel{padding:16px}header,main,footer{padding:16px}.overlay{font-size:16px}.endcard p{font-size:12px}}@media(max-width:430px){.compare{gap:8px}.endcard{padding:6%;gap:5px}.endcard strong{font-size:13px}.endcard p{font-size:10px}.overlay{font-size:12px;padding:8px}}
+</style>
+<header><div class="logo">kineo <span style="font-weight:400;color:#a4bbc8">/ empresas</span></div><span class="tag">Protótipo · só neste dispositivo</span></header>
+<main>
+<p class="hint">BANCADA DO OPERADOR — NÃO É UMA PÁGINA DE VENDA</p>
+<h1>O seu negócio. As suas imagens.<br>Uma história pronta para revisar.</h1>
+<p class="lead">Monte uma prévia com a filmagem da empresa, textos e a apresentação de um profissional. Sem envio de arquivos, análise por IA ou geração de vídeo nesta versão.</p>
+<div class="milestones"><span>01 · Material real</span><span>02 · Mensagem</span><span>03 · Revisão</span><span>04 · Exportação: futura integração</span></div>
+<div class="grid">
+<div class="form-column">
+<section class="panel"><h2>1. Material autorizado</h2>
+<label class="check"><input id="rights" type="checkbox"><span>Tenho autorização para usar os vídeos, as fotos e as informações. Não vou incluir pacientes, documentos ou dados privados sem autorização.</span></label>
+<label for="clip">Vídeo da empresa · até 100 MB / 3 minutos</label><input id="clip" type="file" accept="video/mp4,video/webm,video/quicktime" disabled>
+<label for="portrait">Foto do profissional · JPG/PNG/WebP até 10 MB</label><input id="portrait" type="file" accept="image/jpeg,image/png,image/webp" disabled>
+<p id="mediaInfo" class="hint">Nenhum arquivo selecionado. Um vídeo e uma foto neste protótipo.</p>
+<button id="clear" type="button">Remover mídias</button></section>
+<section class="panel"><h2>2. Briefing do cliente</h2>
+<label for="company">Nome do negócio</label><input id="company" maxlength="70" placeholder="Nome informado pelo cliente">
+<label for="services">Serviços confirmados · um por linha</label><textarea id="services" maxlength="500" rows="4" placeholder="Descreva apenas o que a empresa realmente oferece"></textarea>
+<label for="professional">Nome do profissional</label><input id="professional" maxlength="70" placeholder="Nome autorizado para divulgação">
+<label for="credentials">Qualificação resumida, fornecida pelo cliente</label><textarea id="credentials" maxlength="180" rows="3" placeholder="Função, formação e registro quando aplicável"></textarea>
+<label for="contact">Chamada final / contato</label><input id="contact" maxlength="100" placeholder="Ex.: Conheça nosso espaço · contato autorizado">
+<label for="fit">Enquadramento vertical</label><select id="fit"><option value="contain">Preservar imagem inteira, com bordas</option><option value="cover">Preencher a tela, cortando as bordas</option></select>
+<p class="hint">Nenhuma qualificação será deduzida da foto. Texto na tela não é transcrição nem narração.</p>
+<button class="primary" id="plan" type="button" disabled>Organizar prévia em 4 partes</button>
+<p class="hint">Distribuição por tempo, sem IA. Reorganizar substitui apenas os textos da prévia, após confirmação.</p>
+</section>
+</div>
+<div class="preview-column">
+<section class="panel"><h2>3. Antes e depois</h2>
+<div class="compare"><div><div class="preview-title">ANTES · ORIGINAL</div><div class="stage"><video id="original" muted playsinline preload="metadata"></video><div id="originalEmpty" class="placeholder">Sua filmagem original aparece aqui.</div></div></div>
+<div><div class="preview-title">DEPOIS · PRÉVIA EDITÁVEL</div><div class="stage"><video id="edited" muted playsinline preload="metadata"></video><div id="editedEmpty" class="placeholder">Selecione o vídeo e organize os textos.</div><div id="overlay" class="overlay" hidden></div><div id="endcard" class="endcard" hidden><img id="photo" alt="Foto escolhida pelo operador" hidden><small>APRESENTAÇÃO DO PROFISSIONAL</small><strong id="cardName"></strong><p id="cardCredentials"></p><p id="cardCompany"></p><p id="cardContact" class="contact"></p></div></div></div></div>
+<div class="transport"><div class="row"><button id="play" type="button" disabled>Reproduzir comparação</button><output id="clock">0,0 s</output></div><label for="seek">Posição no vídeo</label><input id="seek" type="range" min="0" max="1" step="0.05" value="0" disabled></div>
+<p class="hint">Prévia silenciosa. A foto final substitui a imagem nos últimos 25% do vídeo; os dois lados seguem o mesmo tempo. Não é um MP4 exportado. Confira se os textos cabem antes da produção final.</p>
+<p class="status" id="status" role="status" aria-live="polite"></p>
+<div id="scenes"></div>
+<details><summary>O que ainda não está integrado?</summary><p class="hint">Análise visual por IA, transcrição, vários clipes/profissionais, narração, salvamento de projetos e renderização MP4. Não há chamada de modelo, servidor, banco ou cobrança escondida nesta prévia.</p></details>
+</section>
+<section class="panel"><h2>4. Revisão e entrega</h2><label class="check"><input id="reviewed" type="checkbox"><span>Revisei os textos e confirmei serviços, nomes e qualificações com o cliente.</span></label><div class="row"><button id="download" type="button" disabled>Baixar briefing JSON</button><button type="button" disabled title="Requer integração técnica e validação">Exportar MP4 · ainda indisponível</button></div><p class="hint">O briefing não inclui as mídias e pode conter dados profissionais. Guarde-o em local privado. Fechar ou recarregar a aba perde o projeto não baixado.</p></section>
+</div></div></main><footer>LOCAL · Nenhuma alteração no site, nas assinaturas ou nos créditos. Use apenas material autorizado. Este protótipo não publica nas redes sociais.</footer>
+<script>
+'use strict';
+// CORE_START — pure helpers exercised by the offline test.
+function buildPlan(duration, company, services) {
+  if (!Number.isFinite(duration) || duration < 4 || duration > 180) throw new Error('Use um vídeo entre 4 e 180 segundos para esta prévia.');
+  const lines = services.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+  const split = Math.ceil(lines.length / 2);
+  return [
+    {start:0,end:duration*.25,kind:'text',text:company.trim()},
+    {start:duration*.25,end:duration*.5,kind:'text',text:lines.slice(0,split).join('\n')},
+    {start:duration*.5,end:duration*.75,kind:'text',text:lines.slice(split).join('\n')},
+    {start:duration*.75,end:duration,kind:'professional',text:''},
+  ];
+}
+function sceneAt(plan,time) { return plan.find((s,i) => time >= s.start && (time < s.end || i === plan.length-1 && time === s.end)) || null; }
+function fileProblem(file,kind) {
+  const allowed = kind === 'video' ? ['video/mp4','video/webm','video/quicktime'] : ['image/jpeg','image/png','image/webp'];
+  if (!allowed.includes(file.type)) return 'Formato não aceito. Use MP4/WebM/MOV ou foto JPG/PNG/WebP.';
+  if (!file.size || file.size > (kind === 'video' ? 100 : 10)*1024*1024) return 'Arquivo vazio ou maior que o limite informado.';
+  return '';
+}
+// CORE_END
+const $ = id => document.getElementById(id);
+let duration=0, plan=[], clipUrl='', photoUrl='', frame=0, photoRevision=0, timer=0;
+const video=$('edited'), original=$('original');
+function tell(message){$('status').textContent=message;}
+function invalidate(){ $('reviewed').checked=false; $('download').disabled=true; }
+function stop(){cancelAnimationFrame(frame);video.pause();original.pause();$('play').textContent='Reproduzir comparação';}
+function revokeMedia(){stop();clearTimeout(timer);photoRevision++;for(const media of [video,original]){media.removeAttribute('src');media.load();}if(clipUrl)URL.revokeObjectURL(clipUrl);if(photoUrl)URL.revokeObjectURL(photoUrl);clipUrl='';photoUrl='';duration=0;plan=[];$('photo').removeAttribute('src');$('photo').hidden=true;$('clip').value='';$('portrait').value='';$('plan').disabled=true;$('play').disabled=true;$('seek').disabled=true;$('seek').value=0;$('scenes').replaceChildren();$('originalEmpty').hidden=false;$('editedEmpty').hidden=false;$('overlay').hidden=true;$('endcard').hidden=true;$('mediaInfo').textContent='Mídias removidas do projeto.';$('clock').textContent='0,0 s';invalidate();}
+function render(){const t=video.currentTime||0;$('clock').textContent=t.toFixed(1).replace('.',',')+' / '+duration.toFixed(1).replace('.',',')+' s';$('seek').value=t;const scene=sceneAt(plan,t);$('overlay').hidden=!scene||scene.kind!=='text'||!scene.text;$('overlay').textContent=scene?.text||'';$('endcard').hidden=!scene||scene.kind!=='professional';$('cardName').textContent=$('professional').value||'Nome a preencher';$('cardCredentials').textContent=$('credentials').value||'Qualificação a confirmar';$('cardCompany').textContent=$('company').value;$('cardContact').textContent=$('contact').value||'Contato a preencher';}
+function tick(){render();if(!video.paused){if(Math.abs(original.currentTime-video.currentTime)>.15)original.currentTime=video.currentTime;frame=requestAnimationFrame(tick);}}
+$('rights').addEventListener('change',()=>{const allowed=$('rights').checked;$('clip').disabled=!allowed;$('portrait').disabled=!allowed;if(!allowed){revokeMedia();tell('Autorização removida; mídias descarregadas da prévia.');}});
+$('clear').addEventListener('click',()=>{revokeMedia();tell('Arquivos originais preservados.');});
+$('clip').addEventListener('change',()=>{const file=$('clip').files[0];if(!file)return;const problem=fileProblem(file,'video');if(problem){tell(problem);return;}revokeMedia();clipUrl=URL.createObjectURL(file);video.src=clipUrl;original.src=clipUrl;$('mediaInfo').textContent='Lendo vídeo local…';timer=setTimeout(()=>{if(!duration){revokeMedia();tell('Leitura demorou demais. Tente outro arquivo.');}},15000);});
+video.addEventListener('loadedmetadata',()=>{try{buildPlan(video.duration,'','');if(video.videoWidth<2||video.videoHeight<2||video.videoWidth>8192||video.videoHeight>8192)throw new Error('Dimensões do vídeo não suportadas.');duration=video.duration;clearTimeout(timer);$('seek').max=duration;$('seek').disabled=false;$('plan').disabled=false;$('play').disabled=false;$('originalEmpty').hidden=true;$('editedEmpty').hidden=true;$('mediaInfo').textContent=duration.toFixed(1)+' segundos · '+video.videoWidth+' × '+video.videoHeight+' · somente no dispositivo';tell('Vídeo pronto. Preencha o briefing e organize os textos.');render();}catch(error){revokeMedia();tell(error.message);}});
+video.addEventListener('error',()=>{if(clipUrl){revokeMedia();tell('Não foi possível decodificar o vídeo. Tente MP4 H.264 ou WebM.');}});
+video.addEventListener('ended',()=>{stop();render();});
+$('portrait').addEventListener('change',()=>{const file=$('portrait').files[0];if(!file)return;const problem=fileProblem(file,'photo');if(problem){tell(problem);return;}const revision=++photoRevision;const url=URL.createObjectURL(file), image=new Image();let settled=false;const timeout=setTimeout(()=>finish(false),10000);function finish(ok){if(settled)return;settled=true;clearTimeout(timeout);if(revision!==photoRevision||!$('rights').checked){URL.revokeObjectURL(url);return;}if(!ok){URL.revokeObjectURL(url);tell('Não foi possível ler essa foto.');return;}if(photoUrl)URL.revokeObjectURL(photoUrl);photoUrl=url;$('photo').src=url;$('photo').hidden=false;invalidate();render();tell('Foto aplicada ao cartão final.');}image.onload=()=>finish(image.naturalWidth>0&&image.naturalHeight>0&&image.naturalWidth<=8192&&image.naturalHeight<=8192);image.onerror=()=>finish(false);image.src=url;});
+$('plan').addEventListener('click',()=>{if(!duration||!$('rights').checked)return;if(plan.length&&!confirm('Substituir os textos da prévia pelo briefing atual?'))return;if(!$('company').value.trim()||!$('services').value.trim()){tell('Preencha o nome da empresa e ao menos um serviço confirmado.');return;}plan=buildPlan(duration,$('company').value,$('services').value);invalidate();$('scenes').replaceChildren();plan.forEach((scene,index)=>{const box=document.createElement('div');box.className='scene';const timing=document.createElement('small');timing.textContent=(index+1)+' · '+scene.start.toFixed(1)+'–'+scene.end.toFixed(1)+' s';box.append(timing);if(scene.kind==='text'){const label=document.createElement('label');label.htmlFor='scene'+index;label.textContent=index===0?'Apresentação':'Serviços — texto na tela';const input=document.createElement('textarea');input.id=label.htmlFor;input.rows=2;input.maxLength=500;input.value=scene.text;input.addEventListener('input',()=>{scene.text=input.value;invalidate();render();});box.append(label,input);}else{const label=document.createElement('p');label.className='hint';label.textContent='Cartão final: foto, nome, qualificação e contato do briefing.';box.append(label);}$('scenes').append(box);});tell('Distribuição manual pronta. Não houve análise por IA. Revise a legibilidade e os fatos.');render();});
+$('play').addEventListener('click',async()=>{if(!video.paused){stop();return;}if(video.ended)video.currentTime=0;original.currentTime=video.currentTime;try{await Promise.all([video.play(),original.play()]);$('play').textContent='Pausar';tick();}catch{stop();tell('O navegador não iniciou a reprodução. Tente novamente.');}});
+$('seek').addEventListener('input',()=>{stop();video.currentTime=Number($('seek').value);original.currentTime=video.currentTime;render();});video.addEventListener('seeked',render);
+for(const id of ['company','services','professional','credentials','contact'])$(id).addEventListener('input',()=>{invalidate();render();if(plan.length&&(id==='company'||id==='services'))tell('Briefing alterado. Clique em Organizar prévia para atualizar os textos das cenas.');});
+$('fit').addEventListener('change',()=>{video.style.objectFit=$('fit').value;invalidate();tell($('fit').value==='cover'?'Enquadramento corta as bordas. Confira pessoas, rostos e textos.':'Imagem inteira preservada.');});
+$('reviewed').addEventListener('change',()=>{$('download').disabled=!$('reviewed').checked||!$('rights').checked||!plan.length;});
+$('download').addEventListener('click',()=>{if(!$('rights').checked||!$('reviewed').checked||!plan.length)return;const payload={version:'kineo-business-preview-v1',status:'briefing_only_not_rendered',aiAnalysisPerformed:false,reviewedAt:new Date().toISOString(),duration,aspect:'9:16',fit:$('fit').value,company:$('company').value,services:$('services').value,professional:{name:$('professional').value,credentials:$('credentials').value},contact:$('contact').value,scenes:plan,mediaIncluded:false,photoSelected:Boolean(photoUrl)};const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='kineo-empresas-briefing.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);tell('Briefing baixado. Não contém vídeos/fotos nem comprova renderização.');});
+window.addEventListener('pagehide',()=>{stop();if(clipUrl)URL.revokeObjectURL(clipUrl);if(photoUrl)URL.revokeObjectURL(photoUrl);});
+</script>
+</html>
