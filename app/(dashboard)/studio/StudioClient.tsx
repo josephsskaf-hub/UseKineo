@@ -598,7 +598,7 @@ export default function StudioClient() {
                 </button>
               ))}
             </div>
-            <textarea ref={promptRef} value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5}
+            <textarea className="studio-prompt" ref={promptRef} value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5}
               placeholder={chatGptQuickstart === 'finished_script'
                 ? (t('Paste the complete script from ChatGPT here…', 'Pega aquí el guion completo de ChatGPT…'))
                 : chatGptQuickstart === 'idea'
@@ -1108,6 +1108,12 @@ export default function StudioClient() {
 .composer-proposal-optional>summary{min-height:48px;display:list-item;align-content:center;cursor:pointer;font-size:13px;color:#c9ccd3}
 .composer-proposal-optional>div{margin:16px 0}.composer-proposal-optional .cams{grid-template-columns:repeat(2,1fr)}
 .composer-proposal .hint{line-height:1.6}.composer-proposal textarea{min-height:180px;resize:vertical}
+/* Keep the current creation in the first viewport; completed Shorts follow on scroll. */
+@media(min-width:901px){
+  .composer-proposal-idea{display:flex;flex-direction:column;min-height:calc(100svh - 96px)}
+  .composer-proposal-idea>div:first-child{display:flex;flex-direction:column;flex:1}
+  .composer-proposal .studio-prompt{flex:1;min-height:clamp(320px,42svh,600px)}
+}
  .studio-modes{display:flex;flex-wrap:wrap;gap:8px;padding:5px;margin:20px 0;max-width:1320px;border-bottom:1px solid #27303e}
 .studio-modes button,.studio-modes a{display:inline-flex;align-items:center;gap:12px;min-height:44px;padding:10px 18px;border:1px solid transparent;border-radius:12px;background:transparent;color:#aeb9c8;font:600 13px inherit;text-decoration:none;cursor:pointer}
 .studio-modes button[aria-pressed=true]{background:#2997ff1f;color:#8fc8ff;border-color:#2997ff55}.studio-modes a:hover,.studio-modes button:hover{background:#ffffff08}.studio-modes :focus-visible{outline:2px solid #2997ff;outline-offset:2px}
@@ -1118,6 +1124,7 @@ export default function StudioClient() {
 .stu .pk .pk-tx>.pill[role=button]:focus-visible{outline:2px solid #b8dfff;outline-offset:3px;background:rgba(41,151,255,.22)}
 @media(max-width:600px){.composer-proposal .studio-generation-review{grid-template-columns:repeat(2,minmax(0,1fr))}.studio-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.studio-modes button,.studio-modes a{padding:10px}}
 @media(max-width:900px){.composer-proposal .composer-proposal-grid{grid-template-columns:1fr;gap:18px}.composer-proposal-idea{padding:16px}.composer-proposal textarea{min-height:160px}}
+@media(max-width:900px){.composer-proposal .studio-prompt{min-height:260px}}
 ` }} />
     </div>
   )
