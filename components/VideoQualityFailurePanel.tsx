@@ -24,6 +24,10 @@ const COPY = {
     engineDetail: 'The presenter voice could not be prepared for this attempt, so we stopped rather than deliver a silent presenter. You can pick another engine for the presenter (Kling 3, MiniMax H3 and Omni Flash are the options) or ask for a narrated film without an on-camera presenter. Your text, length and engine have not been changed.',
     setAside: (n: number) => `${n} scene${n === 1 ? '' : 's'} had already started and ${n === 1 ? 'was' : 'were'} set aside. A new film starts from scratch at its normal price; those scenes are not reused.`,
     changeEngine: 'Change engine or format',
+    // KINEO-SILENCIO-NA-TELA-2026-09-23 — the server's own count, said plainly.
+    wordsTitle: 'Your script is a little short for this length',
+    wordsDetail: (n: number) => `Some scenes would play with no narration, so we stopped before making the film. Add about ${n} more word${n === 1 ? '' : 's'} (one or two sentences) or choose a shorter length, then generate again. Your text is kept.`,
+    addWords: 'Add words to my script',
   },
   es: {
     title: 'Este video necesita una revisión',
@@ -36,6 +40,9 @@ const COPY = {
     engineDetail: 'La voz del presentador no pudo prepararse en este intento, así que nos detuvimos en lugar de entregar un presentador mudo. Puedes elegir otro motor para el presentador (Kling 3, MiniMax H3 y Omni Flash son las opciones) o pedir un video narrado sin presentador en cámara. Tu texto, duración y motor no han cambiado.',
     setAside: (n: number) => `${n} escena${n === 1 ? '' : 's'} ya ${n === 1 ? 'había' : 'habían'} empezado y ${n === 1 ? 'quedó' : 'quedaron'} apartada${n === 1 ? '' : 's'}. Un video nuevo empieza desde cero a su precio normal; esas escenas no se reutilizan.`,
     changeEngine: 'Cambiar motor o formato',
+    wordsTitle: 'Tu guion es un poco corto para esta duración',
+    wordsDetail: (n: number) => `Algunas escenas quedarían sin narración, así que nos detuvimos antes de hacer el video. Agrega unas ${n} palabra${n === 1 ? '' : 's'} más (una o dos frases) o elige una duración más corta y vuelve a generar. Tu texto se conserva.`,
+    addWords: 'Agregar palabras a mi guion',
   },
   hi: {
     title: 'इस वीडियो की समीक्षा ज़रूरी है',
@@ -48,6 +55,9 @@ const COPY = {
     engineDetail: 'इस प्रयास में प्रस्तुतकर्ता की आवाज़ तैयार नहीं हो सकी, इसलिए मूक प्रस्तुतकर्ता देने के बजाय हमने प्रक्रिया रोक दी। आप प्रस्तुतकर्ता के लिए दूसरा इंजन चुन सकते हैं (Kling 3, MiniMax H3 और Omni Flash विकल्प हैं) या बिना कैमरे पर प्रस्तुतकर्ता वाला वर्णित वीडियो माँग सकते हैं। आपका टेक्स्ट, अवधि और इंजन नहीं बदले गए हैं।',
     setAside: (n: number) => `${n} दृश्य पहले ही शुरू हो चुके थे और अलग रख दिए गए। नया वीडियो सामान्य कीमत पर शुरू से बनता है; वे दृश्य दोबारा उपयोग नहीं होते।`,
     changeEngine: 'इंजन या फ़ॉर्मैट बदलें',
+    wordsTitle: 'इस अवधि के लिए आपकी स्क्रिप्ट थोड़ी छोटी है',
+    wordsDetail: (n: number) => `कुछ दृश्य बिना वर्णन के चलते, इसलिए वीडियो बनाने से पहले हमने प्रक्रिया रोक दी। लगभग ${n} शब्द और जोड़ें (एक या दो वाक्य) या छोटी अवधि चुनें, फिर दोबारा बनाएँ। आपका टेक्स्ट सुरक्षित है।`,
+    addWords: 'स्क्रिप्ट में शब्द जोड़ें',
   },
 }
 
@@ -61,13 +71,14 @@ export default function VideoQualityFailurePanel({ failure, exit = null, onEdit 
   // A recusa do motor para o formato nomeia a causa e a saída; qualquer outra
   // razão mantém o cartão byte a byte como era.
   const engineExit = exit?.guidance === 'engine_or_format'
+  const wordsToAdd = exit?.guidance === 'add_words' ? exit.wordsToAdd : null
   const setAside = exit?.acceptedScenes ?? 0
   return (
     <section role="alert" aria-labelledby="video-quality-failure-title" lang={language}
       style={{ background: '#181a20', border: '1px solid #756044', borderRadius: 16, padding: 24, marginBottom: 24, color: '#f5f5f7' }}>
       <p style={{ margin: '0 0 10px', color: '#e9bf79', fontSize: 12, fontWeight: 800, letterSpacing: '0.08em' }}>KINEO · QUALITY</p>
-      <h2 id="video-quality-failure-title" style={{ margin: '0 0 12px', fontSize: 21, lineHeight: 1.3 }}>{engineExit ? copy.engineTitle : copy.title}</h2>
-      <p style={{ margin: '0 0 14px', color: '#c0c4ce', fontSize: 14, lineHeight: 1.6 }}>{engineExit ? copy.engineDetail : copy.detail}</p>
+      <h2 id="video-quality-failure-title" style={{ margin: '0 0 12px', fontSize: 21, lineHeight: 1.3 }}>{engineExit ? copy.engineTitle : wordsToAdd !== null ? copy.wordsTitle : copy.title}</h2>
+      <p style={{ margin: '0 0 14px', color: '#c0c4ce', fontSize: 14, lineHeight: 1.6 }}>{engineExit ? copy.engineDetail : wordsToAdd !== null ? copy.wordsDetail(wordsToAdd) : copy.detail}</p>
       {setAside > 0 ? <p data-quality-set-aside="" style={{ margin: '0 0 14px', color: '#c0c4ce', fontSize: 14, lineHeight: 1.6 }}>{copy.setAside(setAside)}</p> : null}
       <p style={{ margin: '0 0 18px', color: '#f5f5f7', fontSize: 14, lineHeight: 1.6 }}>
         {failure.canEdit ? failure.noDebit ? copy.noDebit : copy.refunded : copy.pending}
@@ -77,7 +88,7 @@ export default function VideoQualityFailurePanel({ failure, exit = null, onEdit 
       </p> : null}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px', alignItems: 'center' }}>
         {failure.canEdit ? <button type="button" onClick={onEdit}
-          style={{ background: '#2997ff', color: '#fff', border: 0, borderRadius: 10, minHeight: 44, padding: '10px 16px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{engineExit ? copy.changeEngine : copy.edit}</button> : null}
+          style={{ background: '#2997ff', color: '#fff', border: 0, borderRadius: 10, minHeight: 44, padding: '10px 16px', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>{engineExit ? copy.changeEngine : wordsToAdd !== null ? copy.addWords : copy.edit}</button> : null}
         <a href={supportHref} style={linkStyle}>{copy.support}</a>
         <a href="/history" style={linkStyle}>{copy.history}</a>
       </div>

@@ -22,11 +22,20 @@ export interface QualityFailureExit {
   // incapacity — the healthy presenter path on S25 exists (Board R2/R4). The
   // person changes engine or format by themselves; the screen never changes
   // either automatically and never retries.
-  guidance: 'engine_or_format' | null
+  // 'add_words' = KINEO-SILENCIO-NA-TELA-2026-09-23: the plan left scenes
+  // without narration (plan_silence_inside_scenes). The server already knows
+  // how many words are missing; the screen says it instead of a generic
+  // "needs a review" (founder's own H3 render, 23/09, words_to_add=19).
+  guidance: 'engine_or_format' | 'add_words' | null
+  // Words the server says are missing for the chosen length. Only set with
+  // guidance 'add_words'; null everywhere else.
+  wordsToAdd: number | null
 }
 
 /** Reasons whose only honest exit is another engine or another format. */
 export const ENGINE_OR_FORMAT_REASONS: ReadonlySet<string> = new Set(['s25_dialogue_without_host'])
+/** Reasons whose exit is "your script is short for this length": add words or pick a shorter length. */
+export const ADD_WORDS_REASONS: ReadonlySet<string> = new Set(['plan_silence_inside_scenes'])
 
 const safeRequestId = (value: unknown): string | null =>
   typeof value === 'string' && /^[A-Za-z0-9_:-]{1,120}$/.test(value) ? value : null
@@ -48,11 +57,14 @@ export function parseQualityFailureExit(value: unknown, failure: VideoQualityFai
     .slice(0, 20)
   const heldScenes = (Array.isArray(data.heldScenes) ? data.heldScenes : [])
     .map(safeSceneIndex).filter((v): v is number => v !== null).slice(0, 50)
+  const wordsToAdd = ADD_WORDS_REASONS.has(failure.reason) && typeof data.wordsToAdd === 'number' &&
+    Number.isInteger(data.wordsToAdd) && data.wordsToAdd > 0 && data.wordsToAdd <= 5000 ? data.wordsToAdd : null
   const scenePosts = typeof data.scenePosts === 'number' && Number.isInteger(data.scenePosts) && data.scenePosts >= 0 ? data.scenePosts : 0
   return {
     reason: failure.reason,
     acceptedScenes: acceptedRequestIds.length,
     acceptedRequestIds, heldScenes, scenePosts,
-    guidance: ENGINE_OR_FORMAT_REASONS.has(failure.reason) ? 'engine_or_format' : null,
+    guidance: ENGINE_OR_FORMAT_REASONS.has(failure.reason) ? 'engine_or_format' : wordsToAdd !== null ? 'add_words' : null,
+    wordsToAdd,
   }
 }

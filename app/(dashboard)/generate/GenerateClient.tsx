@@ -1904,9 +1904,27 @@ export default function GenerateClient({
     composeStartedRef.current = false
     setRenderId(null)
     setClipUrls([])
+    // KINEO-EDITAR-VOLTA-AO-STUDIO-2026-09-23 — quem chegou do /studio
+    // (?studio=1) caía na cortina "Directing your film…" com phase 'idle' e
+    // ficava preso: a cortina espera um auto-disparo que a edição não faz
+    // (fundador, 23/09, render H3 recusado). A caixa de texto dessa pessoa
+    // mora no /studio — volta para lá com texto, motor, duração, modo,
+    // língua e formato preenchidos. Editar continua sem despachar nada.
+    try {
+      const atual = new URLSearchParams(window.location.search)
+      if (atual.get('studio') === '1') {
+        const volta = new URLSearchParams()
+        for (const chave of ['engine', 'prompt', 'duration', 'script_mode', 'language', 'aspect']) {
+          const valor = atual.get(chave)
+          if (valor) volta.set(chave, valor)
+        }
+        router.push(`/studio?${volta.toString()}`)
+        return
+      }
+    } catch {}
     // Preserve prompt, selected duration and mode; editing does not dispatch.
     setPhase('idle')
-  }, [])
+  }, [router])
   const [clipUrls, setClipUrls] = useState<string[]>([])
   // Push #235 — when the user pastes a script with explicit [Pexels:] markers,
   // generate-video-fast returns the verbatim narration, captions, and a parsed
