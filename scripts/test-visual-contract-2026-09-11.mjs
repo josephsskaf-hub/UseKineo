@@ -292,6 +292,7 @@ for (const node of initialPlannerCalls) {
     const writerOptions = Object.freeze({ language: 'en', wordsPerScene: Object.freeze([24, 30]) })
     const caller = execute(`exports.run = async () => ${node.getText(route)};`, {
       prompt: 'Mira in Kyoto', clipCount: 4, hollywoodPath, classicVisualPolicy: contract,
+      SCENE_WRITER_INPUT_MAX_CHARS: Number(read('lib/analyzeLimits.ts').match(/export const SCENE_WRITER_INPUT_MAX_CHARS = (\d+)/)[1]), // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23
       classicWriterOptions: writerOptions,
       generateScenes: async (...values) => { args = values; return [] },
     })
@@ -382,6 +383,7 @@ async function entryToPayload({ prompt, scriptMode, anchored = false, engine = '
   })
   const constructed = execute(`exports.run = async () => { let scenes;\n ${constructorBlock}\n return scenes; }`, {
     prompt, clipCount, hollywoodPath: false, classicVisualPolicy, classicWriterOptions, parsedScript: d.parsedScript, verbatim: d.verbatim,
+    SCENE_WRITER_INPUT_MAX_CHARS: Number(read('lib/analyzeLimits.ts').match(/export const SCENE_WRITER_INPUT_MAX_CHARS = (\d+)/)[1]), // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23
     resolveVerbatimSegments: (...a) => { resolveCalls++; return verbatimBeats.resolveVerbatimSegments(...a) },
     generateScenes: plannerApi.generateScenes, shortCaptionFromVoiceover: plannerApi.shortCaptionFromVoiceover,
     // 15/09 (KINEO-FALA-CLASSICA-FIEL): a varredura de datas/lugares na fala clássica roda dentro do construtor; aqui é identidade (o texto do fixture não tem data inventada)

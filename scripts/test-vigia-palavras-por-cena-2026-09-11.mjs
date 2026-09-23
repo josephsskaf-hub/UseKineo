@@ -1,3 +1,4 @@
+// V3-ESCRITOR-LE-O-BRIEFING-2026-09-23 — âncora reancorada: o escritor de cenas lê até SCENE_WRITER_INPUT_MAX_CHARS (era 1.200); a prova segue sendo a ordem e os argumentos.
 // KINEO-VIGIA-PALAVRAS-POR-CENA-2026-09-11 — guardião: o escritor de cenas do
 // Kineo 1 recebe a duração em palavras, e o texto do prompt sem opção fica
 // byte-idêntico ao de antes.
@@ -67,7 +68,7 @@ checa('piso 6 e teto ≥ piso', piso.includes('one narration line (6-6 words'))
 checa('as três chamadas chegaram ao modelo com a linha do campo 8', semFaixa && comFaixa && piso)
 
 console.log('== 2. o chamador do Kineo 1 passa a faixa da duração ==')
-const chamada = fast.indexOf('scenes = await generateScenes(prompt.slice(0, 1200), clipCount, undefined, {')
+const chamada = fast.indexOf('scenes = await generateScenes(prompt.slice(0, SCENE_WRITER_INPUT_MAX_CHARS), clipCount, undefined, {')
 checa('generateScenes do caminho GPT recebe wordsPerScene', chamada > 0 &&
   fast.slice(chamada, chamada + 200).includes('wordsPerScene: wordsPerSceneFor(duration, clipCount, fastRate.wordsPerSecond)')) // 15/09: régua da voz da persona (KINEO-RITMO-POR-VOZ-KINEO1)
 checa('a chamada fica no ramo NÃO-verbatim (else do `if (verbatim)`)',

@@ -33,6 +33,7 @@ import { decideDurationFollowsScript, decideDurationFollowsScriptUp, DURATION_FO
 import { splitProseIntoBlocks, fallbackStockQuery } from '@/lib/proseBlocks' // KINEO1-VERBATIM-ESTICA-2026-09-22
 import { speechRateFor, narrationFitAt } from '@/lib/speechRate'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { SCENE_WRITER_INPUT_MAX_CHARS } from '@/lib/analyzeLimits' // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23
 import { classifyEngineFit } from '@/lib/engineFit'
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
@@ -746,7 +747,7 @@ export async function POST(req: NextRequest) {
         // originais (render 59e1c0ce, 11/09). Agora cada cena nasce com a
         // fatia de palavras que a duração pede — a mesma régua do escalador,
         // que passa a ser no-op (±15%) e o footage volta a casar com a fala.
-        scenes = await generateScenes(prompt.slice(0, 1200), clipCount, undefined, {
+        scenes = await generateScenes(prompt.slice(0, SCENE_WRITER_INPUT_MAX_CHARS), clipCount, undefined, {
           wordsPerScene: wordsPerSceneFor(duration, clipCount, fastRate.wordsPerSecond), // KINEO-RITMO-POR-VOZ-KINEO1-2026-09-15
           language: narrationLanguage.language,
         })

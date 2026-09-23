@@ -49,6 +49,17 @@ Roteiro literal continua intocado. Medição: evento `ai_script_rewritten_to_fit
 As travas test-memoria-episodio e test-caixa-vazia acusam o toque em `generate-video-` só enquanto não commitado (diff
 contra HEAD) — esperado, autorizado.
 
+## V2 e V3 — AUTORIZADOS E FEITOS (fundador: "vai v2 e v3", 23/09) — trava 8.2
+
+- **V2** (app/api/generate-video-cinematic): o preço assinado no claim continua o da duração pedida (mudar quebra o contrato
+  com o /api/compose). Depois do débito, se o filme encurtou, a diferença volta NA HORA por `add_video_credits`, uma vez por
+  geração (evento `cinematic_duration_price_adjusted` com `billing_reference`; falha vira `cinematic_duration_price_adjust_failed`).
+  Limite aceito: filme encurtado que ainda falhe e seja estornado inteiro deixa a diferença a favor do cliente.
+- **V3** (fast, cinematic, lib/hollywood/router): escritores de cena e planejador Hollywood leem até
+  `SCENE_WRITER_INPUT_MAX_CHARS` = 6.000 (lib/analyzeLimits), não mais 1.200 / 600 / 1.500. Custo ≈ +US$ 0,002/filme.
+  5 guardiões antigos reancorados (provavam ordem/argumentos da chamada, não o número). A trava despacho-vazio acusa
+  lib/hollywood/ só até o merge (diff contra origin/main) — esperado, autorizado.
+
 ## Aguarda "vai" nominal do fundador (trava 8.2)
 
 | # | Onde | Defeito | Medido |

@@ -1,3 +1,4 @@
+// V3-ESCRITOR-LE-O-BRIEFING-2026-09-23 — âncora reancorada: o escritor de cenas lê até SCENE_WRITER_INPUT_MAX_CHARS (era 1.200); a prova segue sendo a ordem e os argumentos.
 // KINEO-QUALIDADE-CLASSICOS-2026-09-12 — guardião da leva "5 ações de qualidade"
 // (fundador, 12/09 00:00): o pente fino de $0 reprovou os 4 clássicos com o
 // roteiro que os 3 caros aprovam. Esta leva: (3) "as is" literal no compose,
@@ -37,7 +38,7 @@ const cin = rd('app/api/generate-video-cinematic/route.ts')
 checa('fast: idioma resolvido depois do verbatim e passado ao escritor', /const narrationLanguage = resolveNarrationLanguage\(body\.language, prompt\)/.test(fast) && /wordsPerScene: wordsPerSceneFor\(duration, clipCount, fastRate\.wordsPerSecond\),[^\n]*\n\s+language: narrationLanguage\.language,/.test(fast) /* 15/09: régua da voz */ && /language: narrationLanguage\.language,\n/.test(fast))
 checa('fast: troca vira evento narration_language_autodetected', /name: 'narration_language_autodetected'/.test(fast))
 checa('cinematic: idioma resolvido logo após wantsS25 e hollywoodLanguage usa o resolvido', cin.indexOf("const wantsS25 = body.engine === 's25'") < cin.indexOf('const narrationLanguage = resolveNarrationLanguage(body.language, prompt)') && /const hollywoodLanguage: HollywoodLanguage = isHollywoodLanguage\(narrationLanguage\.language\) \? narrationLanguage\.language : 'en'/.test(cin)) // KINEO-IDIOMAS-15: continua o resolvido, agora atrás do portão en/pt/es
-checa('cinematic: escritor clássico recebe faixa de palavras + idioma nas DUAS chamadas', (cin.match(/generateScenes\(prompt\.slice\(0, 1200\), clipCount, hollywoodPath \? undefined : classicVisualPolicy, hollywoodPath \? undefined : classicWriterOptions\)/g) || []).length === 2 && /const classicWriterOptions = \{ wordsPerScene: wordsPerSceneFor\(duration, clipCount, narrationRate\.wordsPerSecond\), language: narrationLanguage\.language \}/.test(cin))
+checa('cinematic: escritor clássico recebe faixa de palavras + idioma nas DUAS chamadas', (cin.match(/generateScenes\(prompt\.slice\(0, SCENE_WRITER_INPUT_MAX_CHARS\), clipCount, hollywoodPath \? undefined : classicVisualPolicy, hollywoodPath \? undefined : classicWriterOptions\)/g) || []).length === 2 && /const classicWriterOptions = \{ wordsPerScene: wordsPerSceneFor\(duration, clipCount, narrationRate\.wordsPerSecond\), language: narrationLanguage\.language \}/.test(cin))
 
 console.log('== escritor de cenas: idioma no campo 8 e segunda passada ==')
 const rw = rd('lib/runway.ts')

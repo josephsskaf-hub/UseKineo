@@ -104,6 +104,26 @@ for (const [nome, de, para] of [
   checa(`mutante "${nome}" é pego`, provaV1(m).some(([, c]) => !c))
 }
 
+// (V2) filme cinematográfico encurtado depois do preço: a diferença volta na hora, sem mexer no claim/débito.
+// Autorização nominal do fundador ("vai v2 e v3", 23/09) — trava 8.2.
+const COST = roda(rd('lib/credits/engineCost.ts'))
+checa('(V2) caso real axel.dickburt: Veo 60→35 s devolve 41 (100 − 59)', COST.creditCostForDuration('cinematic_veo', true, 60) - COST.creditCostForDuration('cinematic_veo', true, 35) === 41)
+checa('(V2) o preço assinado continua sendo o da duração pedida (claim intacto)', CIN.includes('    const cost = creditCostForDuration(costQuality, true, duration)\n    const duracaoCobrada = duration') && CIN.includes('const upfrontDebit = await ensureCinematicDebit(cost)') && !/\n\s+cost = /.test(CIN))
+const iV2 = CIN.indexOf('V2-PRECO-DA-DURACAO-ENTREGUE-2026-09-23 — autorização nominal')
+checa('(V2) o ajuste roda DEPOIS do débito e DEPOIS de a duração poder mudar', iV2 > CIN.indexOf('const upfrontDebit = await ensureCinematicDebit(cost)') && iV2 > CIN.indexOf('const seguir = decideDurationFollowsScript({'))
+const blocoV2 = CIN.slice(iV2, CIN.indexOf('// #442 — in verbatim mode', iV2))
+checa('(V2) só quando encurtou, e pela tabela de preço real', blocoV2.includes('if (duration < duracaoCobrada) {') && blocoV2.includes('const precoEntregue = creditCostForDuration(costQuality, true, duration)') && blocoV2.includes('const diferenca = cost - precoEntregue'))
+checa('(V2) crédito pelo RPC atômico, uma vez por geração (referência de cobrança)', blocoV2.includes("rpc('add_video_credits', { p_user: user.id, p_amount: diferenca })") && blocoV2.includes(".eq('metadata->>billing_reference', billingReference)") && blocoV2.indexOf('jaAjustado.length === 0') < blocoV2.indexOf("rpc('add_video_credits'"))
+checa('(V2) falha do ajuste não derruba o render e fica registrada', blocoV2.includes("name: 'cinematic_duration_price_adjust_failed'") && /catch \(e\) \{/.test(blocoV2))
+
+// (V3) os escritores de cena leem o briefing inteiro (até a fonte única), não os 1.200/600/1.500 primeiros caracteres.
+const ROUTER = rd('lib/hollywood/router.ts')
+const L2 = roda(rd('lib/analyzeLimits.ts'))
+checa('(V3) fonte única cobre o teto do Kineo 1 e o condensado do Diretor', L2.SCENE_WRITER_INPUT_MAX_CHARS >= L2.ANALYZE_PROMPT_MAX_CHARS && L2.SCENE_WRITER_INPUT_MAX_CHARS >= D.DIRETOR_CONDENSE_MAX_CHARS)
+checa('(V3) nenhum escritor de cena corta em 1.200', !/generateScenes\(prompt\.slice\(0, 1200\)/.test(FAST) && !/generateScenes\(prompt\.slice\(0, 1200\)/.test(CIN))
+checa('(V3) Kineo 1 e motores de IA usam a fonte única (3 chamadas)', (FAST.match(/generateScenes\(prompt\.slice\(0, SCENE_WRITER_INPUT_MAX_CHARS\)/g) || []).length === 1 && (CIN.match(/generateScenes\(prompt\.slice\(0, SCENE_WRITER_INPUT_MAX_CHARS\)/g) || []).length === 2)
+checa('(V3) planejador Hollywood lê ideia e narração pela fonte única', ROUTER.includes("Idea/topic: ${String(idea ?? '').slice(0, SCENE_WRITER_INPUT_MAX_CHARS)}") && ROUTER.includes('${String(voiceoverScript).slice(0, SCENE_WRITER_INPUT_MAX_CHARS)}') && !/slice\(0, 600\)\}/.test(ROUTER))
+
 // Mutantes (cada um precisa aplicar e cair)
 function mutante(nome, src, de, para, prova) {
   if (src.split(de).length !== 2) { checa(`mutante "${nome}" aplicou`, false); return }

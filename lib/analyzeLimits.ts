@@ -64,4 +64,11 @@ export function analyzePromptMaxChars(scriptMode?: string | null): number {
 // 6.000 caracteres e só renderiza 9:16, 16:9 e 1:1. O Studio mostrava 20.000 e os 4 formatos — clipe com 4:5 saía 9:16
 // cobrado, e texto de 6.001+ morria em "Prompt is too long.". A rota do clipe lê daqui (fonte única).
 export const CLIP_PROMPT_MAX_CHARS = 6000
+
+// V3-ESCRITOR-LE-O-BRIEFING-2026-09-23 — autorização nominal do fundador ("vai v2 e v3", 23/09, trava 8.2). Os escritores de
+// cena (lib/runway generateScenes no Kineo 1 e nos motores de IA) liam só os PRIMEIROS 1.200 caracteres do pedido, e o
+// planejador Hollywood 600 da ideia e 1.500 da narração: o resto do briefing era ignorado em silêncio (caso mayankkuntal77,
+// 23/09: briefing de ~4.900 caracteres, coerência 55). 6.000 cobre o condensado do Diretor (≤ 4.500) e briefings reais;
+// custo a mais ≈ US$ 0,002 por filme no gpt-4o. Fonte única para as 4 chamadas.
+export const SCENE_WRITER_INPUT_MAX_CHARS = 6000
 export const CLIP_ASPECTS = ['9:16', '16:9', '1:1'] as const

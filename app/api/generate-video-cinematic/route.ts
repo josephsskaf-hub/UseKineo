@@ -19,6 +19,7 @@ import { createClient as createAdminClient, type SupabaseClient } from '@supabas
 import { createHash } from 'crypto'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { SCENE_WRITER_INPUT_MAX_CHARS } from '@/lib/analyzeLimits' // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23
 // KINEO-353A — classificacao pura da falha de cena (sem rede, sem banco).
 import {
   classifyProviderFailure,
@@ -1855,6 +1856,7 @@ async function manipularPost(req: NextRequest) {
             ? 'cinematic_veo'
             : 'cinematic_ai'
     const cost = creditCostForDuration(costQuality, true, duration)
+    const duracaoCobrada = duration // V2-PRECO-DA-DURACAO-ENTREGUE-2026-09-23: a duração que o `cost` precifica
     void baseCost // mantido para leitura: é o valor de referência a 60s
 
     // PUSH #20 — every premium AI engine is paid-only. The acquisition offer is
@@ -3000,6 +3002,36 @@ async function manipularPost(req: NextRequest) {
     // confirmado; settleDebitAndRespond() não precisa repetir o mesmo RPC.
     debitConfirmedThisRequest = { ok: true, balance: upfrontDebit.balance, insufficient: false, error: '' }
 
+    // ═══ V2-PRECO-DA-DURACAO-ENTREGUE-2026-09-23 — autorização nominal do fundador ("vai v2 e v3", 23/09, trava 8.2) ═══
+    // O `cost` é assinado no claim com a duração PEDIDA e não pode mudar aqui (KINEO-DEBITO-DEPOIS-DA-TRAVA: mudar o preço
+    // quebra o contrato que o /api/compose confere — "clips do not match", 02/09). Mas "a duração segue o roteiro" e o
+    // resgate de alvo fantasma podem ENCURTAR o filme depois do preço: caso axel.dickburt (19/09), Veo pedido a 60 s, filme de
+    // 35 s, cobrado 100 em vez de 59 (reembolsado à mão em 23/09). Agora a diferença volta NA HORA, pelo mesmo RPC atômico
+    // de crédito, uma vez por geração (evento com a referência de cobrança), sem tocar claim nem débito.
+    // Limite conhecido e aceito: se este render ainda falhar depois e for estornado INTEIRO, a pessoa fica com a diferença
+    // a mais (a favor dela, só no caso raro de filme encurtado + falha).
+    if (duration < duracaoCobrada) {
+      const precoEntregue = creditCostForDuration(costQuality, true, duration)
+      const diferenca = cost - precoEntregue
+      if (diferenca > 0) {
+        try {
+          const { data: jaAjustado } = await cinematicAdmin
+            .from('events').select('id').eq('user_id', user.id).eq('name', 'cinematic_duration_price_adjusted')
+            .eq('metadata->>billing_reference', billingReference).limit(1)
+          if (!jaAjustado || jaAjustado.length === 0) {
+            const { error: ajusteErr } = await cinematicAdmin.rpc('add_video_credits', { p_user: user.id, p_amount: diferenca })
+            if (ajusteErr) throw new Error(ajusteErr.message)
+            void writeServerEvent({ name: 'cinematic_duration_price_adjusted', userId: user.id, path: '/api/generate-video-cinematic', metadata: { billing_reference: billingReference, engine: claimEngine, quality: costQuality, requested_seconds: duracaoCobrada, delivered_seconds: duration, charged: cost, delivered_price: precoEntregue, refunded: diferenca, version: 'v2_preco_da_duracao_entregue_20260923' } })
+            console.log(`[cinematic] V2: filme ${duracaoCobrada}s → ${duration}s; devolvidos ${diferenca} cr (cobrado ${cost}, preço entregue ${precoEntregue})`)
+          }
+        } catch (e) {
+          // Nunca derruba o render por causa do ajuste: fica registrado para conserto à mão.
+          console.error('[cinematic] V2 ajuste de preço falhou:', e instanceof Error ? e.message : String(e))
+          void writeServerEvent({ name: 'cinematic_duration_price_adjust_failed', userId: user.id, path: '/api/generate-video-cinematic', metadata: { billing_reference: billingReference, requested_seconds: duracaoCobrada, delivered_seconds: duration, owed: diferenca } })
+        }
+      }
+    }
+
     // #442 — in verbatim mode the final video follows the SCRIPT length, not the
     // selected duration button (the script is narrated in full). The clip count
     // was still derived from the button, so a long script + a short button
@@ -3065,7 +3097,7 @@ async function manipularPost(req: NextRequest) {
         stockSearchQuery: seg.pexelsQuery,
       }))
     } else {
-      const generated = await generateScenes(prompt.slice(0, 1200), clipCount, hollywoodPath ? undefined : classicVisualPolicy, hollywoodPath ? undefined : classicWriterOptions)
+      const generated = await generateScenes(prompt.slice(0, SCENE_WRITER_INPUT_MAX_CHARS), clipCount, hollywoodPath ? undefined : classicVisualPolicy, hollywoodPath ? undefined : classicWriterOptions)
       scenes = generated.map((s) => ({
         description: s.description,
         voiceover: s.voiceover ?? '',
@@ -3150,7 +3182,7 @@ async function manipularPost(req: NextRequest) {
             }))
             via = 'unbracket'
           } else {
-            const generated = await generateScenes(prompt.slice(0, 1200), clipCount, hollywoodPath ? undefined : classicVisualPolicy, hollywoodPath ? undefined : classicWriterOptions)
+            const generated = await generateScenes(prompt.slice(0, SCENE_WRITER_INPUT_MAX_CHARS), clipCount, hollywoodPath ? undefined : classicVisualPolicy, hollywoodPath ? undefined : classicWriterOptions)
           recuperadas = generated.map((s) => ({
             description: s.description,
             voiceover: s.voiceover ?? '',

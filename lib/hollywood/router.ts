@@ -63,6 +63,7 @@
 import { openai } from '@/lib/openai'
 // KINEO-MULTIFORMATO-2026-09-02 — enquadramento pedido → prompt do planner.
 import { aspectSpec } from '@/lib/aspect'
+import { SCENE_WRITER_INPUT_MAX_CHARS } from '@/lib/analyzeLimits' // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23
 // KINEO-HOLLYWOOD-HOST-2026-07-13 — the host-scene engine (Kling AI Avatar
 // v2, $0.0562/s — ~1/3 of O3's $0.168/s) so logHollywoodCost prices anchored
 // dialogue scenes correctly. lib→lib import, no cycle (veed.ts imports only
@@ -569,9 +570,10 @@ ${args.characterHint ? `- CHARACTER FROM THE INPUT (STRICT — KINEO-FICHA-DO-PE
 Output JSON shape ("demo" is optional, only on demo/showcase support scenes):
 {"genre":"documentary","hostFits":true,"stylized":false,"characterSheet":"...","environmentSheet":"...","styleSheet":"...","scenes":[{"index":1,"type":"dialogue","beat":"HOOK","seconds":10,"prompt":"...","dialogueLine":"...","caption":"..."},{"index":2,"type":"support","beat":"MICRO_REWARD","seconds":10,"prompt":"...","voiceover":"...","caption":"...","demo":true}]}`
 
-  const userMsg = `Idea/topic: ${String(idea ?? '').slice(0, 600)}
+  // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23 — o planejador lia 600 caracteres da ideia e 1.500 da narração (fonte única em lib/analyzeLimits).
+  const userMsg = `Idea/topic: ${String(idea ?? '').slice(0, SCENE_WRITER_INPUT_MAX_CHARS)}
 
-${voiceoverScript ? `Existing narration script (reuse its facts and beats):\n${String(voiceoverScript).slice(0, 1500)}\n` : ''}${sceneCtx ? `Existing scene beats:\n${sceneCtx}\n` : ''}
+${voiceoverScript ? `Existing narration script (reuse its facts and beats):\n${String(voiceoverScript).slice(0, SCENE_WRITER_INPUT_MAX_CHARS)}\n` : ''}${sceneCtx ? `Existing scene beats:\n${sceneCtx}\n` : ''}
 Target total duration: ${Math.max(30, Math.min(100, Math.round(durationSeconds || 60)))} seconds.${args.shortRetryFeedback ? `\n\nIMPORTANT — YOUR PREVIOUS PLAN WAS REJECTED: ${args.shortRetryFeedback}` : ''}`
 
   // KINEO-OMNI-PLANEJADOR-4O-2026-09-15 — 6 ensaios do Omni a $0 (R8…R14): o gpt-4o-mini escreve 86-110 palavras para 144 pedidas
