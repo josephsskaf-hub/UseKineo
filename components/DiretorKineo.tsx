@@ -210,7 +210,7 @@ export default function DiretorKineo({ text, mode, engine, engineName, duration,
               <span><UiLabel>{copy('consent', { duration })}</UiLabel></span>
             </label>
           )}
-          {overLimit && <div role="alert" data-kineo="diretor-over-limit" className="dk-error">{overLimitText}</div>}
+          {overLimit && <div role="alert" data-kineo="diretor-over-limit" className="dk-warning">{overLimitText}</div>}
           {phase === 'error' && <div role="alert" className="dk-error"><UiLabel>{copy(error === ERRORS.daily_limit ? 'daily' : error === ERRORS.no_suggestion ? 'noChange' : 'failed')}</UiLabel></div>}
         </>
       ) : null}
@@ -276,6 +276,7 @@ export default function DiretorKineo({ text, mode, engine, engineName, duration,
 .diretor-kineo textarea{display:block;width:100%;min-width:0;min-height:170px!important;background:#0a1522;border:1px solid #527ca8;border-radius:8px;padding:10px;font-family:inherit;font-size:16px;line-height:1.6;color:#edf6ff;resize:vertical}
 .diretor-kineo .dk-consent{display:flex;gap:8px;align-items:flex-start;margin-top:14px;border-top:1px solid #31445b;padding-top:14px;font-size:12px;line-height:1.7;cursor:pointer}.diretor-kineo .dk-consent input{flex-shrink:0;width:18px;height:18px;margin-top:2px;accent-color:#2997ff}
 .diretor-kineo .dk-footnote{font-size:12px;line-height:1.6;color:#aebfd2;margin-top:10px}.diretor-kineo .dk-notice{font-size:13px;line-height:1.6;color:#d6eaff}.diretor-kineo .dk-error{margin-top:14px;padding:12px;border-radius:10px;background:#2a1921;color:#ffbecb;font-size:13px;line-height:1.6}
+.diretor-kineo .dk-warning{margin-top:14px;padding:12px 14px;border:1px solid #786038;border-inline-start:3px solid #e7b65c;border-radius:10px;background:#282318;color:#f4d79e;font-size:13px;line-height:1.6}
 @media(max-width:600px){.diretor-kineo{padding:15px}.diretor-kineo .dk-compare{grid-template-columns:minmax(0,1fr)}.diretor-kineo .dk-actions button{flex:1 1 auto}.diretor-kineo .dk-heading{font-size:17px}}
 ` }} />
     </div>
