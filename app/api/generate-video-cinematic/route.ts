@@ -4244,7 +4244,13 @@ async function manipularPost(req: NextRequest) {
           const tail = speech.slice(corte).join(' ')
           if (isDialogue) sc.dialogueLine = head
           else sc.voiceover = head
-          sc.seconds = cap
+          // KINEO-H3-VERBATIM-CORTE-2026-09-23 — render H3 do fundador (roteiro pronto, 60 s, recusado 2x): o corte na
+          // frase deixava a cabeça CURTA com os segundos do TETO — "Sergeant…" 15 palavras em 12 s (5,5 s mudos),
+          // "Around twenty…" 11 em 12 s (6,9 s) — e a régua barrava. A cabeça passa a ter os segundos da própria fala;
+          // só devolve segundos que sobram acima do piso pedido (a cauda, logo abaixo, ainda soma).
+          const cabecaPrecisa = Math.min(cap, Math.max(4, Math.ceil(wordsArr(head).length / ritmoVoz + FOLGA_MIN_S)))
+          const sobraNoPiso = plan.scenes.reduce((a, s) => a + (s === sc ? cap : (s.seconds ?? 0)), 0) - duration
+          sc.seconds = Math.max(cabecaPrecisa, cap - Math.max(0, sobraNoPiso))
           // KINEO-CAUDA-NA-PROXIMA-2026-09-15 — ensaio do S25 (deploy b615127b): a cauda "odds of the storm." (4
           // palavras) virou cena PAGA de 4 s com 2,3 s mudos e reprovou a régua de silêncio. Se a próxima cena
           // não é diálogo e tem lugar (fala dela + cauda ≤ (teto − 0,3 s) × ritmo), a cauda entra no COMEÇO
@@ -4297,6 +4303,24 @@ async function manipularPost(req: NextRequest) {
           })
           console.warn(`[teto-rede] cena ${i + 1} (${sc.type}) dividida: ${fits} palavras ficam, ${wordsArr(cauda).length} viram apoio de ${tailSeconds}s`)
         }
+      }
+
+      // ═══ KINEO-H3-VERBATIM-CORTE-2026-09-23 (apara final do verbatim) — a apara no ritmo da voz roda ANTES do teto-rede;
+      // as cabeças e caudas que ele cria depois trazem folga nova (plano do fundador: 8,9 s de silêncio somando 0,3–1,2 s
+      // por cena). Em verbatim não há enche-silêncio (C1): a mesma apara roda de novo aqui — 1 s da cena mais folgada,
+      // nunca abaixo de 4 s, nunca tocando na fala, e NUNCA abaixo da duração pedida. ═══
+      if (verbatim && plan.scenes.length > 0) {
+        const mudoFinal = (sc: (typeof plan.scenes)[number]) => (sc.seconds || 0) - ((sc.type === 'dialogue' ? sc.dialogueLine : sc.voiceover) ?? '').trim().split(/\s+/).filter(Boolean).length / ritmoVoz
+        const silencioFinal = () => plan.scenes.reduce((a, sc) => a + Math.max(0, mudoFinal(sc)), 0)
+        const totalFinal = () => plan.scenes.reduce((a, sc) => a + (sc.seconds || 0), 0)
+        const antesFinal = silencioFinal()
+        let guardaFinal = 60
+        while (guardaFinal-- > 0 && totalFinal() - 1 >= duration && (silencioFinal() > 7.5 || plan.scenes.some((sc) => mudoFinal(sc) > 1.4))) {
+          const alvo = plan.scenes.filter((sc) => (sc.seconds || 0) > 4 && mudoFinal(sc) > 1.0).sort((a, b) => mudoFinal(b) - mudoFinal(a))[0]
+          if (!alvo) break
+          alvo.seconds = (alvo.seconds || 0) - 1
+        }
+        if (Math.abs(antesFinal - silencioFinal()) > 0.05) console.log(`[hollywood] KINEO-H3-VERBATIM-CORTE: apara final ${antesFinal.toFixed(1)}s → ${silencioFinal().toFixed(1)}s (${plan.scenes.length} cenas, ${totalFinal()}s)`)
       }
 
       // ═══ KINEO-ULTIMA-ENCHIDA-2026-09-15 — a última palavra sobre o silêncio é do código, DEPOIS do teto-rede e do
