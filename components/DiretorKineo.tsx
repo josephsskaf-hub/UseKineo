@@ -66,11 +66,24 @@ function UiLabel({ children }: { children: string }) {
 }
 
 // DIRETOR-LIMITE-DO-MOTOR-2026-09-23 — o aviso que faltou ao caso mayankkuntal77: o original NÃO passa neste motor.
-// en/pt/es aqui; as outras línguas caem no inglês até a pista visual completar (ver PEDIDOS).
+// Aviso localizado nas 16 línguas da interface; mantém os limites e a ação do texto aprovado.
 const OVER_LIMIT_COPY: Partial<Record<string, string>> = {
   en: 'Your text has {n} characters and {engine} reads up to {max}. As it is, it will not go through — “Improve for this video” condenses it and keeps your facts.',
   pt: 'Seu texto tem {n} caracteres e o {engine} lê até {max}. Assim ele não passa — “Melhorar para este vídeo” condensa e mantém os seus fatos.',
   es: 'Tu texto tiene {n} caracteres y {engine} lee hasta {max}. Así no pasará — “Mejorar para este vídeo” lo condensa y conserva tus datos.',
+  fr: 'Votre texte contient {n} caractères et {engine} en lit au maximum {max}. En l’état, il ne passera pas — « Améliorer pour cette vidéo » le condense en préservant vos faits.',
+  de: 'Dein Text hat {n} Zeichen und {engine} liest bis zu {max}. So kann er nicht verarbeitet werden — „Für dieses Video verbessern“ kürzt ihn und erhält deine Fakten.',
+  it: 'Il tuo testo contiene {n} caratteri e {engine} ne legge fino a {max}. Così non passerà — “Migliora per questo video” lo sintetizza mantenendo i tuoi fatti.',
+  nl: 'Je tekst bevat {n} tekens en {engine} leest er maximaal {max}. Zo kan de tekst niet worden verwerkt — “Verbeteren voor deze video” kort hem in en behoudt je feiten.',
+  pl: 'Twój tekst ma {n} znaków, a {engine} odczytuje maksymalnie {max}. W tej formie nie zostanie przyjęty — „Ulepsz dla tego filmu” skraca go i zachowuje podane przez Ciebie fakty.',
+  tr: 'Metniniz {n} karakter içeriyor; {engine} en fazla {max} karakter okur. Bu haliyle kabul edilmez — “Bu video için iyileştir” metni kısaltır ve verdiğiniz bilgileri korur.',
+  ru: 'В вашем тексте {n} символов, а {engine} читает не более {max}. В таком виде текст не пройдёт — «Улучшить для этого видео» сокращает его, сохраняя ваши факты.',
+  uk: 'Ваш текст містить {n} символів, а {engine} читає щонайбільше {max}. У такому вигляді текст не пройде — «Покращити для цього відео» скорочує його, зберігаючи ваші факти.',
+  ar: 'يحتوي نصك على {n} حرفًا، ويقرأ {engine} حتى {max} حرفًا. لن يُقبل النص بصيغته الحالية — «تحسين لهذا الفيديو» يختصره ويحافظ على الحقائق التي قدمتها.',
+  ur: 'آپ کے متن میں {n} حروف ہیں اور {engine} زیادہ سے زیادہ {max} حروف پڑھتا ہے۔ اس صورت میں متن قبول نہیں ہوگا — «اس ویڈیو کے لیے بہتر بنائیں» اسے مختصر کرتا ہے اور آپ کے بیان کردہ حقائق برقرار رکھتا ہے۔',
+  hi: 'आपके पाठ में {n} अक्षर हैं और {engine} अधिकतम {max} अक्षर पढ़ता है। इस रूप में पाठ स्वीकार नहीं होगा — “इस वीडियो के लिए सुधारें” इसे संक्षिप्त करता है और आपके दिए हुए तथ्यों को बनाए रखता है।',
+  id: 'Teks Anda berisi {n} karakter dan {engine} membaca hingga {max}. Dalam bentuk ini, teks tidak akan diterima — “Perbaiki untuk video ini” meringkasnya dan mempertahankan fakta yang Anda berikan.',
+  vi: 'Văn bản của bạn có {n} ký tự và {engine} đọc tối đa {max}. Ở dạng hiện tại, văn bản sẽ không được chấp nhận — “Cải thiện cho video này” rút gọn văn bản và giữ nguyên các dữ kiện bạn cung cấp.',
 }
 
 export default function DiretorKineo({ text, mode, engine, engineName, duration, language, aspect, onApply }: Props) {
