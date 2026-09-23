@@ -39,6 +39,16 @@ tem para onde descer e recusa um roteiro de 32 s para 35 s. Conserto na rota do 
 que pagaram a duração pedida por um filme encurtado — axel.dickburt +41 (Veo 60→35 s, pagou 100, real 59),
 deanwiegand2709 +5, drniravkumarrjoshi +4 (2 filmes), pav359236 +2, balaj.dxb +2.
 
+## V1 — AUTORIZADO E FEITO (fundador: "V1", 23/09) — trava 8.2 em app/api/generate-video-fast
+
+Roteiro marcado vindo do modo "IA estrutura" (escrito por NÓS) que não enche a duração pedida deixa de ser lido palavra
+por palavra e vira o TEMA do escritor de cenas da rota, que dimensiona a fala pela duração (`V1-ROTEIRO-NOSSO-CABE`).
+Roteiro literal continua intocado. Medição: evento `ai_script_rewritten_to_fit`; esperado: `narration_too_short` com
+`engine=fast` no modo ai cair a ~0 e o 1º filme sair sem tela de falha. Depende do lote 1 (o cliente passou a mandar
+`script_mode`). Guardião: scripts/test-varredura-limites-2026-09-23.mjs (bloco V1, executa a regra com 5 casos + 3 mutantes).
+As travas test-memoria-episodio e test-caixa-vazia acusam o toque em `generate-video-` só enquanto não commitado (diff
+contra HEAD) — esperado, autorizado.
+
 ## Aguarda "vai" nominal do fundador (trava 8.2)
 
 | # | Onde | Defeito | Medido |

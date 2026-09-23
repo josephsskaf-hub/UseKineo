@@ -620,7 +620,7 @@ export async function POST(req: NextRequest) {
     // We do NOT send the script to GPT in this case — the whole point is that
     // the user already chose the perfect clip and wrote the exact narration.
     const parsedScript = parseUserScript(prompt)
-    const verbatim = parsedScript.hasMarkers && parsedScript.segments.length > 0
+    const marcadoresValidos = parsedScript.hasMarkers && parsedScript.segments.length > 0
     // ═══ KINEO-IDIOMA-DO-TEXTO-2026-09-12 — a voz fala a língua do texto. Render
     // 59e1c0ce (11/09): história em ESPANHOL escrita na home, seletor no padrão
     // "en", escritor de cenas em inglês. Escolha explícita (pt/es) vence; o
@@ -632,6 +632,22 @@ export async function POST(req: NextRequest) {
     // persona é resolvida como o compose resolve (tier free = quality 'fast'); régua em lib/speechRate.
     const fastPersona = (() => { try { return selectPersonaForScript(prompt, undefined, 'free', narrationLanguage.language) } catch { return null } })()
     const fastRate = speechRateFor({ family: 'classic', speed: parsedScript.speed, language: narrationLanguage.language, voice: fastPersona?.voice, personaSpeed: fastPersona?.defaultSpeed })
+    // ═══ V1-ROTEIRO-NOSSO-CABE-2026-09-23 — autorização nominal do fundador ("V1", 23/09, trava 8.2) ═══
+    // Varredura de limites (docs/growth/VARREDURA-LIMITES-2026-09-23.md): 97 pessoas em 30 d bateram em
+    // narration_too_short; desde 20/09 quase só Kineo 1 a 35 s, e o roteiro recusado era NOSSO — escrito pela IA no modo
+    // "IA estrutura" (autoinício do 1º filme, 57 × 8 literais). 26 de 30 só tiveram filme depois de uma tela de falha e
+    // um segundo clique, 4-17 min depois; 4 nunca. Recusar o próprio roteiro não protege ninguém: no modo 'ai' o texto é
+    // matéria-prima por contrato. Então, quando o roteiro marcado veio do modo 'ai' e não enche a duração pedida, ele deixa
+    // de ser lido palavra por palavra e vira o TEMA do escritor de cenas desta rota, que dimensiona a fala pela duração
+    // (wordsPerSceneFor). Roteiro literal ("Use my script as is") continua intocado e continua podendo ser recusado.
+    const falaMarcada = marcadoresValidos ? parsedScript.segments.map((seg) => seg.voiceover ?? '').join(' ') : ''
+    const roteiroIaCurto = marcadoresValidos && body.script_mode === 'ai' && !narrationFitAt(falaMarcada, duration, fastRate).ok
+    const verbatim = marcadoresValidos && !roteiroIaCurto
+    if (roteiroIaCurto && !(body.dry_run === true && isDryRunAccount(user.email))) {
+      const fitIa = narrationFitAt(falaMarcada, duration, fastRate)
+      void writeServerEvent({ name: 'ai_script_rewritten_to_fit', userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', requested_seconds: duration, speech_seconds: Math.round(fitIa.speech * 10) / 10, coverage: Math.round(fitIa.coverage * 100) / 100, words_per_second: fastRate.wordsPerSecond, version: 'v1_roteiro_nosso_cabe_20260923' } })
+      console.log(`[generate-fast] V1-ROTEIRO-NOSSO-CABE: roteiro da IA com ${Math.round(fitIa.speech)}s de fala para ${duration}s → escritor de cenas dimensiona pela duração (user=${user.id.slice(0, 8)})`)
+    }
     // ═══ KINEO1-VERBATIM-ESTICA-2026-09-22 — "Use my script as is" vale para PROSA, e o roteiro manda na duração ═══
     // Caso Emily (22/09 13:16Z, nota 75): script_mode 'verbatim' com prosa sem [Pexels:] caía no modo IA — o escritor
     // reescreveu 215 palavras em 3ª pessoa e inventou uma cena. Fundador: "Estica então". Agora: (1) prosa própria é
