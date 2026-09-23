@@ -14,27 +14,20 @@
 //   · moeda via /api/geo com '—' enquanto resolve (nunca mostrar USD e trocar
 //     o número na cara do comprador)
 //   · checkout via useCheckoutLaunch (telemetria + guard de duplo clique)
+// KINEO-BARRA-DE-CREDITOS-2026-09-23 (fundador: "não quero 4 blocos... uma linha em que a pessoa puxa a bolinha e escolhe
+// quantos créditos quer"): os 4 pacotes fixos viraram UMA barra de 50 a 2.000 créditos. Preço da escada aprovada em
+// lib/credits/creditSlider (a MESMA função que a rota da Stripe usa para cobrar — aqui só se mostra). Os ids antigos
+// (topup40/120/100/300) seguem vendáveis por link direto; só saíram desta vitrine.
 import { useEffect, useState } from 'react'
 import {
-  TOPUP_CREDITS,
-  TOPUP_PRICES,
   formatCheckoutMoney,
   type CheckoutCurrency,
-  type TopupId,
 } from '@/lib/checkoutPricing'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { formatResultCount, videosForCredits } from '@/lib/marketingPrice'
-
-const PACKS: Array<{ id: TopupId; badge?: string }> = [
-  { id: 'topup40' },
-  { id: 'topup120' },
-  { id: 'topup100' },
-  // KINEO-TOPUP300-2026-08-20 — o pacote que compra DOIS Kling 3, o motor da
-  // vitrine. Vira o destacado: é o único que compra um filme inteiro do topo
-  // do catálogo, e "Best value" agora é verdade literal (menor $/crédito dos
-  // quatro). O selo velho estava no topup100, que não compra Kling nenhum.
-  { id: 'topup300', badge: 'Best value' },
-]
+import {
+  CREDIT_SLIDER_DEFAULT, CREDIT_SLIDER_MAX, CREDIT_SLIDER_MIN, CREDIT_SLIDER_PACK_ID, CREDIT_SLIDER_STEP, sliderPriceUsdMinor,
+} from '@/lib/credits/creditSlider'
 
 export default function CreditsTopupModal({
   onClose,
@@ -47,6 +40,7 @@ export default function CreditsTopupModal({
   const checkout = useCheckoutLaunch(`credits_topup_modal_${surface}`)
   const [currency, setCurrency] = useState<CheckoutCurrency | null>(null)
   const [credits, setCredits] = useState<number | null>(null)
+  const [amount, setAmount] = useState<number>(CREDIT_SLIDER_DEFAULT)
 
   // Moeda do comprador — mesma regra do UpgradeModal/PricingCards: rótulo
   // segura no '—' até o /api/geo responder; a COBRANÇA é re-resolvida
@@ -129,110 +123,68 @@ export default function CreditsTopupModal({
           One-time packs, added to your balance instantly after payment. No subscription change.
         </p>
 
-        <div style={{ display: 'flex', gap: 10 }}>
-          {PACKS.map(({ id, badge }) => {
-            const cr = TOPUP_CREDITS[id]
-            const price = currency ? formatCheckoutMoney(currency, TOPUP_PRICES[id][currency]) : '—'
-            // KINEO-PRICING-V6-2026-08-19 — o divisor era o literal 20 (custo
-            // do Seedance). Ele está certo HOJE, e é exatamente esse o
-            // problema: o custo do motor mora em lib/credits/engineCost.ts e
-            // muda em commits que ninguém pensa em cruzar com este arquivo.
-            // Com o topup100 caindo de 100 → 75 créditos nesta mesma rodada,
-            // a linha "≈ N AI films" já mudou de valor sozinha (5 → 3) — que é
-            // exatamente o comportamento que se quer de um número derivado.
-            const films = videosForCredits(cr, 'cinematic_ai')
-            // KINEO-POPUP-AUDIT-2026-08-25 — o rótulo agora vende o OMNI FLASH
-            // (mesmos 150cr do Kling 3, mas é o #1 do ranking de agosto e o
-            // motor da campanha do dia). Derivado, nunca cravado.
-            const kling3 = videosForCredits(cr, 'cinematic_omni')
-            const highlighted = !!badge
-            return (
+        {(() => {
+          const priceMinor = sliderPriceUsdMinor(amount) ?? 0
+          const price = currency ? formatCheckoutMoney(currency, priceMinor) : '—'
+          const perCredit = currency ? formatCheckoutMoney(currency, Math.round(priceMinor / amount * 100) / 100) : '—'
+          const seedance = videosForCredits(amount, 'cinematic_ai')
+          const kling3 = videosForCredits(amount, 'cinematic_hollywood')
+          const pct = ((amount - CREDIT_SLIDER_MIN) / (CREDIT_SLIDER_MAX - CREDIT_SLIDER_MIN)) * 100
+          return (
+            <div data-kineo="credit-slider">
+              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                <div>
+                  <span style={{ fontSize: '2rem', fontWeight: 900, color: '#f5f5f7', letterSpacing: '-0.02em' }}>+{amount.toLocaleString('en-US')}</span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#86868b', marginLeft: 6 }}>credits</span>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ display: 'block', fontSize: '1.6rem', fontWeight: 900, color: '#5cb3ff' }}>{price}</span>
+                  <span style={{ display: 'block', fontSize: '0.7rem', color: '#86868b' }}>{perCredit} per credit · one-time</span>
+                </div>
+              </div>
+              <input
+                id="credit-slider"
+                type="range"
+                min={CREDIT_SLIDER_MIN}
+                max={CREDIT_SLIDER_MAX}
+                step={CREDIT_SLIDER_STEP}
+                value={amount}
+                onChange={(e) => setAmount(Number(e.target.value))}
+                aria-label="Credits to add"
+                aria-valuetext={`${amount} credits for ${price}`}
+                disabled={checkout.pending !== null}
+                style={{
+                  width: '100%', margin: '18px 0 6px', accentColor: '#2997ff', cursor: 'pointer',
+                  background: `linear-gradient(90deg, #2997ff ${pct}%, rgba(255,255,255,.12) ${pct}%)`, height: 6, borderRadius: 999,
+                }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: '#6e6e73' }}>
+                <span>{CREDIT_SLIDER_MIN}</span><span>500</span><span>1,000</span><span>{CREDIT_SLIDER_MAX.toLocaleString('en-US')}</span>
+              </div>
+              <p style={{ fontSize: '0.78rem', color: '#a1a1a6', margin: '12px 0 0', textAlign: 'center' }}>
+                ≈ {formatResultCount(seedance, 'Seedance film')}{kling3 >= 1 ? ` or ${formatResultCount(kling3, 'Kling 3 film')}` : ''} · the more you add, the less each credit costs
+              </p>
               <button
-                key={id}
                 type="button"
                 disabled={checkout.pending !== null}
                 onClick={() => {
-                  checkout.launch(id, `/api/stripe/checkout?pack=${id}`, {
-                    pack: id,
+                  checkout.launch(CREDIT_SLIDER_PACK_ID, `/api/stripe/checkout?pack=${CREDIT_SLIDER_PACK_ID}&credits=${amount}`, {
+                    pack: CREDIT_SLIDER_PACK_ID,
+                    credits: amount,
                     pricing_surface: `credits_topup_modal_${surface}`,
                   })
                 }}
                 style={{
-                  flex: 1,
-                  position: 'relative',
-                  padding: '18px 10px 14px',
-                  borderRadius: 14,
-                  cursor: checkout.pending ? 'not-allowed' : 'pointer',
-                  opacity: checkout.pending && checkout.pending !== id ? 0.55 : 1,
-                  background: highlighted ? 'rgba(41,151,255,0.13)' : 'rgba(255,255,255,0.03)',
-                  border: highlighted ? '1px solid rgba(41,151,255,0.55)' : '1px solid rgba(255,255,255,0.1)',
-                  color: '#f5f5f7',
-                  textAlign: 'center',
-                  transition: 'border-color .15s ease, transform .15s ease, background .15s ease, box-shadow .15s ease',
-                }}
-                // KINEO-TOPUP-UX-2026-09-01 (pedido do fundador): o hover só
-                // mexia na borda — imperceptível. Agora o card sob o mouse
-                // acende COMPLETO no azul da casa (fundo + borda + glow),
-                // igual ao tratamento do BEST VALUE: a pessoa "experimenta"
-                // cada pacote antes de clicar. O clique continua indo direto
-                // ao checkout — hover é vitrine, clique é decisão.
-                onMouseEnter={(e) => {
-                  const el = e.currentTarget as HTMLElement
-                  el.style.transform = 'translateY(-3px)'
-                  el.style.background = 'rgba(41,151,255,0.16)'
-                  el.style.borderColor = 'rgba(120,190,255,0.9)'
-                  el.style.boxShadow = '0 10px 32px rgba(41,151,255,0.35)'
-                }}
-                onMouseLeave={(e) => {
-                  const el = e.currentTarget as HTMLElement
-                  el.style.transform = 'translateY(0)'
-                  el.style.background = highlighted ? 'rgba(41,151,255,0.13)' : 'rgba(255,255,255,0.03)'
-                  el.style.borderColor = highlighted
-                    ? 'rgba(41,151,255,0.55)'
-                    : 'rgba(255,255,255,0.1)'
-                  el.style.boxShadow = 'none'
+                  width: '100%', marginTop: 16, padding: '14px 16px', borderRadius: 14, border: 'none',
+                  background: '#2997ff', color: '#fff', fontSize: '0.95rem', fontWeight: 900,
+                  cursor: checkout.pending ? 'not-allowed' : 'pointer', opacity: checkout.pending ? 0.6 : 1,
                 }}
               >
-                {badge && (
-                  <span
-                    style={{
-                      position: 'absolute',
-                      top: -9,
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      whiteSpace: 'nowrap',
-                      fontSize: '0.6rem',
-                      fontWeight: 900,
-                      letterSpacing: '.08em',
-                      textTransform: 'uppercase',
-                      color: '#0a0a0b',
-                      background: '#2997ff',
-                      borderRadius: 999,
-                      padding: '2px 9px',
-                    }}
-                  >
-                    ⭐ {badge}
-                  </span>
-                )}
-                {checkout.pending === id ? (
-                  <span style={{ display: 'block', fontSize: '0.85rem', fontWeight: 800 }}>Loading…</span>
-                ) : (
-                  <>
-                    <span style={{ display: 'block', fontSize: '1.15rem', fontWeight: 900, color: highlighted ? '#5cb3ff' : '#f5f5f7' }}>
-                      {price}
-                    </span>
-                    <span style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, marginTop: 2 }}>+{cr} credits</span>
-                    <span style={{ display: 'block', fontSize: '0.68rem', color: '#86868b', marginTop: 2 }}>
-                      {kling3 >= 1
-                        ? `${formatResultCount(kling3, 'Omni Flash film')} (#1 model)`
-                        : `≈ ${formatResultCount(films, 'AI film')}`}
-                    </span>
-                  </>
-                )}
+                {checkout.pending === CREDIT_SLIDER_PACK_ID ? 'Loading…' : `Buy ${amount.toLocaleString('en-US')} credits — ${price}`}
               </button>
-            )
-          })}
-        </div>
+            </div>
+          )
+        })()}
 
         {checkout.error && (
           <p role="alert" style={{ fontSize: '0.74rem', fontWeight: 600, color: '#ff6b6b', textAlign: 'center', margin: '10px 0 0' }}>

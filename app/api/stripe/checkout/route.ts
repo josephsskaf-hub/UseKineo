@@ -104,6 +104,7 @@ import {
   type PublicPromoFailureReason,
 } from '@/lib/growth/publicPromoTruth'
 import { canPurchaseCreditTopup } from '@/lib/growth/topupEligibility'
+import { CREDIT_SLIDER_MAX, CREDIT_SLIDER_MIN, CREDIT_SLIDER_PACK_ID, normalizeSliderCredits, sliderPriceUsdMinor } from '@/lib/credits/creditSlider' // KINEO-BARRA-DE-CREDITOS-2026-09-23
 import {
   AUTOPILOT_PILOT_DISMISSED_COOKIE,
   AUTOPILOT_PILOT_RESUME_HINT_COOKIE,
@@ -2776,11 +2777,14 @@ async function buildStarter290AndRedirect(req: NextRequest, isGet: boolean): Pro
 // Gated to Creator+ (basic/pro). Frees a subscriber who ran out of AI credits
 // mid-cycle to buy 1 or 3 more AI videos instead of hitting a wall. Credited by
 // the webhook via metadata.pack_credits.
-async function buildTopupAndRedirect(req: NextRequest, topupId: TopupId, isGet: boolean): Promise<NextResponse> {
+// KINEO-BARRA-DE-CREDITOS-2026-09-23 — a barra (?pack=credits_custom&credits=N) passa pelo MESMO construtor do top-up:
+// mesma regra de quem pode comprar, mesma moeda de liquidação (real pela fórmula da casa), mesmo crédito pelo webhook
+// (metadata.pack_credits). A quantidade vem do cliente; o PREÇO é sempre recalculado aqui (lib/credits/creditSlider).
+async function buildTopupAndRedirect(req: NextRequest, topupId: TopupId | typeof CREDIT_SLIDER_PACK_ID, isGet: boolean, sliderCredits: number | null = null): Promise<NextResponse> {
   const appUrl = req.nextUrl.origin
   const browserSessionId = browserSessionIdFrom(req)
   let failureUserId: string | null = null
-  const skuContext: Record<string, unknown> = { sku: topupId, mode: 'payment' }
+  const skuContext: Record<string, unknown> = { sku: topupId, mode: 'payment', ...(topupId === CREDIT_SLIDER_PACK_ID ? { credits: sliderCredits } : {}) }
 
   async function redirectError(
     msg: string,
@@ -2812,7 +2816,14 @@ async function buildTopupAndRedirect(req: NextRequest, topupId: TopupId, isGet: 
 
   const country = req.headers.get('x-vercel-ip-country') ?? 'US'
   const currency: Currency = resolveCheckoutCurrency(country)
-  const topup = CREDIT_TOPUPS[topupId]
+  const sliderUsd = topupId === CREDIT_SLIDER_PACK_ID ? sliderPriceUsdMinor(sliderCredits) : null
+  if (topupId === CREDIT_SLIDER_PACK_ID && (sliderUsd === null || sliderCredits === null)) {
+    const msg = `Choose between ${CREDIT_SLIDER_MIN} and ${CREDIT_SLIDER_MAX.toLocaleString('en-US')} credits.`
+    return isGet ? redirectError(msg, '/studio', 'slider_credits_invalid') : jsonError(msg, 400, 'slider_credits_invalid')
+  }
+  const topup = topupId === CREDIT_SLIDER_PACK_ID
+    ? { credits: sliderCredits as number, name: `Kineo — +${(sliderCredits as number).toLocaleString('en-US')} credits`, description: `One-time: ${(sliderCredits as number).toLocaleString('en-US')} credits (${describeSeedanceMix(sliderCredits as number)}). No subscription.`, prices: { usd: sliderUsd as number } as Record<Currency, number> }
+    : CREDIT_TOPUPS[topupId]
   const unitAmount = topup.prices[currency]
   skuContext.currency = currency
   skuContext.unit_amount = unitAmount
@@ -3367,6 +3378,10 @@ export async function GET(req: NextRequest) {
       // KINEO-TOPUP-2026-07-06 — AI credit top-ups (Creator+).
       if (packParam === 'topup40' || packParam === 'topup120' || packParam === 'topup100' || packParam === 'topup300') {
         return await buildTopupAndRedirect(req, packParam, true)
+      }
+      // KINEO-BARRA-DE-CREDITOS-2026-09-23 — quantidade escolhida na barra; inválida vira erro visível, nunca outro pacote.
+      if (packParam === CREDIT_SLIDER_PACK_ID) {
+        return await buildTopupAndRedirect(req, CREDIT_SLIDER_PACK_ID, true, normalizeSliderCredits(req.nextUrl.searchParams.get('credits')))
       }
       // KINEO-BULK-2026-07-27 — pacotes de atacado. Precisa vir ANTES do
       // fallback buildPackAndRedirect, que venderia um Starter Pack de $4.90 no
