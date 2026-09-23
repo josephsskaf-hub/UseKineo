@@ -13297,7 +13297,7 @@ export default function GenerateClient({
     // (max-w-5xl) + more vertical air, landing-neutral card surfaces (#131316)
     // and ONE accent color — every legacy green/navy token was swapped for the
     // brand blue so the page reads like the homepage.
-    <main className={`px-4 sm:px-6 lg:px-10 py-10 mx-auto relative ${showRender && phase !== 'done' && phase !== 'failed' ? 'render-workspace' : 'max-w-5xl'}`}>
+    <main className={`px-4 sm:px-6 lg:px-10 py-10 mx-auto relative ${phase === 'done' && finalVideoUrl ? 'done-workspace' : showRender && phase !== 'done' && phase !== 'failed' ? 'render-workspace' : 'max-w-5xl'}`}>
       <style jsx>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
@@ -13311,6 +13311,26 @@ export default function GenerateClient({
           (PipelineStages, RenderHeader) que o style jsx escopado nao alcanca. */}
       <style jsx global>{`
         main.render-workspace { width: 100%; max-width: none; }
+        main.done-workspace { width: 100%; max-width: none; }
+        .done-workspace .done-result { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 460px); grid-template-rows: auto auto 1fr; gap: 0 36px; align-items: start; padding: clamp(20px, 3vw, 40px); background: #121820!important; }
+        .done-result-heading { grid-column: 2; grid-row: 1; text-align: start; margin-bottom: 24px; }
+        .done-result-heading > svg { margin: 0 0 16px!important; }
+        .done-result-heading > p:last-child { margin-inline: 0!important; max-width: none!important; font-size: 20px; }
+        .done-result-preview { grid-column: 1; grid-row: 1 / 4; min-width: 0; min-height: clamp(360px, calc(100svh - 280px), 640px); display: flex; align-items: center; justify-content: center; border: 1px solid #273343; border-radius: 16px; padding: 20px; background: radial-gradient(ellipse at center, rgba(41,151,255,.07), transparent 65%), #090e15; }
+        .done-result-preview .gv-done-frame { margin: 0!important; max-width: 100%; max-height: none!important; width: min(100%, clamp(220px, calc((100svh - 320px) * .5625), 340px))!important; box-shadow: 0 16px 40px rgba(0,0,0,.3)!important; }
+        .done-result-preview .gv-done-frame[data-kineo-frame-ratio="landscape"] { width: min(100%, 780px)!important; }
+        .done-result-preview .gv-done-frame[data-kineo-frame-ratio="square"] { width: min(100%, 600px, calc(100svh - 320px))!important; }
+        .done-result-preview video { object-fit: contain!important; }
+        .done-result-export { grid-column: 2; grid-row: 2; min-width: 0; }
+        .done-result-export:empty { display: none; }
+        .done-result-export > div { margin-top: 0!important; }
+        .done-result-actions { grid-column: 2; grid-row: 3; margin-top: 0!important; max-width: none!important; min-width: 0; }
+        .done-result-options { width: 100%; border-top: 1px solid #293443; margin-top: 12px; }
+        .done-result-options > summary { padding: 18px 0; cursor: pointer; color: #9ecbff; font-size: 13px; font-weight: 600; }
+        .done-result-options > summary:focus-visible { outline: 2px solid #2997ff; outline-offset: 3px; border-radius: 6px; }
+        .done-result-support { grid-column: 1 / -1; width: 100%; margin-top: 28px; border-top: 1px solid #293443; }
+        .done-result-support-body { display: flex; flex-direction: column; align-items: center; padding-bottom: 12px; }
+        @media (max-width: 1100px) { .done-workspace .done-result { display: flex; flex-direction: column; gap: 20px; padding: 18px; } .done-result-heading { order: 0; margin-bottom: 0; } .done-result-preview { order: 1; width: 100%; min-height: 0; padding: 12px; } .done-result-preview .gv-done-frame { width: min(100%, 300px)!important; } .done-result-export { order: 2; width: 100%; } .done-result-actions { order: 3; } .done-result-support { order: 4; margin-top: 0; } }
         .render-workspace-primary { min-height: calc(100svh - 240px); padding: clamp(20px, 3vw, 44px); display: flex; flex-direction: column; justify-content: center; gap: 22px; }
         .render-workspace-primary .gv-stage { min-height: 72px; padding: 18px; border-radius: 14px; }
         .render-workspace-details { padding: 26px; margin-bottom: 24px; border: 1px solid var(--border); border-radius: 20px; background: #10151d; }
@@ -13385,7 +13405,7 @@ export default function GenerateClient({
                   color: '#2997ff',
                 }}
               >
-                {searchParams?.get('studio') === '1' ? 'Studio · Render' : showStep1 ? 'Step 1 · Your idea' : showScriptPreview ? 'Step 2 · Review' : (showBrollPlanning || showVisualDirector) ? 'Step 3 · Visuals' : showStep2 ? 'Step 3 · Brief' : 'Step 4 · Generate'}
+                {phase === 'done' ? 'Studio · Complete' : searchParams?.get('studio') === '1' ? 'Studio · Render' : showStep1 ? 'Step 1 · Your idea' : showScriptPreview ? 'Step 2 · Review' : (showBrollPlanning || showVisualDirector) ? 'Step 3 · Visuals' : showStep2 ? 'Step 3 · Brief' : 'Step 4 · Generate'}
               </span>
               {/* R4 (14/08): stepper — a posicao no fluxo vira 4 segmentos
                   visiveis, nao so um rotulo de texto. */}
@@ -13408,7 +13428,7 @@ export default function GenerateClient({
               </span>
             </div>
             <h1 className="font-black text-2xl sm:text-3xl mb-1" style={{ color: 'var(--text)', fontFamily: "var(--font-display), var(--font-inter), sans-serif", fontWeight: 600, letterSpacing: '-.02em' }}>
-              {searchParams?.get('studio') === '1' && !showStep1 ? 'Studio — rendering your film' : showStep1 ? 'Create your Short' : showScriptPreview ? 'Your script is ready' : showBrollPlanning ? 'Planning visuals…' : showVisualDirector ? 'Visual Director' : 'Generate your Short'}
+              {phase === 'done' ? 'Studio — your finished film' : searchParams?.get('studio') === '1' && !showStep1 ? 'Studio — rendering your film' : showStep1 ? 'Create your Short' : showScriptPreview ? 'Your script is ready' : showBrollPlanning ? 'Planning visuals…' : showVisualDirector ? 'Visual Director' : 'Generate your Short'}
             </h1>
             <p className="text-sm" style={{ color: 'var(--muted2)' }}>
               {showStep1 && 'One idea in. A ready-to-post Short out — usually in 3–7 minutes.'}
@@ -13416,7 +13436,7 @@ export default function GenerateClient({
               {showBrollPlanning && 'AI Visual Director is planning your scenes…'}
               {showVisualDirector && 'Review and direct every scene before rendering.'}
               {showStep2 && 'Pick duration and quality, then generate.'}
-              {showRender && 'Rendering your vertical 9:16 Short.'}
+              {showRender && phase !== 'done' && 'Rendering your vertical 9:16 Short.'}
             </p>
           </div>
           <CreditsChip
@@ -16282,10 +16302,10 @@ export default function GenerateClient({
           )}
           {phase === 'done' && finalVideoUrl && (
             <section
-              className="gv-card rounded-2xl px-5 sm:px-8 py-8 sm:py-10 mb-6 flex flex-col items-center"
+              className="gv-card done-result rounded-2xl px-5 sm:px-8 py-8 sm:py-10 mb-6 flex flex-col items-center"
               style={{ background: '#131316', border: '1px solid var(--border)' }}
             >
-              <div className="text-center">
+              <div className="done-result-heading">
                 {/* Dia 7 (13/08) — cerimonia: check que se desenha + a moldura
                     abaixo entra em pop com um pulso de glow azul, 1x so. */}
                 <svg width="34" height="34" viewBox="0 0 20 20" fill="none" aria-hidden="true" style={{ display: 'block', margin: '0 auto 10px' }}>
@@ -16303,7 +16323,7 @@ export default function GenerateClient({
                   Your video is ready
                 </h2>
                 <p className="text-xs mt-1.5" style={{ color: 'var(--muted)', letterSpacing: '0.04em' }}>
-                  {finalVideoSeconds ?? duration}s · YouTube Shorts / TikTok 9:16
+                  {finalVideoSeconds ?? duration}s · MP4
                 </p>
                 {/* KINEO-CLAMP-FALADO-2026-08-28 — a verdade sobre o corte do
                     free, dita NO momento em que a pessoa perceberia a duração
@@ -16369,6 +16389,7 @@ export default function GenerateClient({
                   vertical — o recurso novo pareceria defeito. `-wide` dá ao
                   filme deitado a largura que ele merece (460px de largura em
                   16:9 renderiam uma tarja de 259px de altura). */}
+              <div className="done-result-preview">
               <div
                 className="gv-done-frame rounded-2xl overflow-hidden mt-6"
                 data-kineo-frame
@@ -16489,6 +16510,8 @@ export default function GenerateClient({
                   free-download button. A real user skipped checkout, downloaded,
                   then cancelled share. One card now presents both honest choices:
                   clean Starter first, free watermarked export second. */}
+              </div>
+              <div className="done-result-export">
               {showPostVideoExportChoice && (
                 <div
                   ref={postVideoOfferRef}
@@ -16931,8 +16954,9 @@ export default function GenerateClient({
               {/* Push #296 — redesigned action section. Download is the primary
                   CTA (big green button, full width). Secondary actions in a
                   compact row below. WhatsApp added for mobile sharing. */}
+              </div>
               <div
-                className="mt-7 w-full flex flex-col items-center gap-3"
+                className="done-result-actions mt-7 w-full flex flex-col items-center gap-3"
                 style={{ maxWidth: 460, marginLeft: 'auto', marginRight: 'auto' }}
               >
                 {!showPostVideoExportChoice && (
@@ -16949,7 +16973,7 @@ export default function GenerateClient({
                         : 'Download clean MP4'}
                     className="flex items-center justify-center gap-2 w-full rounded-2xl py-4 text-base font-black text-white"
                     style={{
-                      background: 'linear-gradient(135deg, #22C55E, #15803D)',
+                      background: 'linear-gradient(135deg, #2997ff, #1870d6)',
                       textDecoration: 'none',
                       boxShadow: '0 8px 28px rgba(41,151,255,.45)',
                       letterSpacing: '-0.01em',
@@ -17058,6 +17082,9 @@ export default function GenerateClient({
                   </button>
                 )}
 
+                <details className="done-result-options">
+                  <summary>Sharing, publishing & more</summary>
+                  <div className="w-full flex flex-col items-center gap-3">
                 {/* ═══════════════════════════════════════════════════════════
                     KINEO-TRIAL-POSTVIDEO-OFFER-2026-08-07 — a única oferta que
                     a coorte em trial vê nesta tela. Ver a nota completa em
@@ -18207,6 +18234,10 @@ export default function GenerateClient({
                 )}
               </div>
 
+              </details>
+              </div>
+              <div className="done-result-support">
+                <div className="done-result-support-body">
               {/* KINEO-POSTED-SHORTS-2026-07-31 — a ponte "postou? cola o link".
                   Logo depois das ações de download/share: o pedido só faz
                   sentido depois que a pessoa levou o vídeo. Upload direto
@@ -18389,10 +18420,8 @@ export default function GenerateClient({
                 videoTitle={analysis?.title}
               />
 
-              {/* Push #156 — Next-steps guide. Open by default (Push #296)
-                  so users always see the 3-step publishing flow. */}
+              {/* Publishing instructions remain available without crowding the result. */}
               <details
-                open
                 className="rounded-2xl mt-6 w-full"
                 style={{
                   maxWidth: 480,
@@ -18677,6 +18706,8 @@ export default function GenerateClient({
               <p className="text-xs mt-2 text-center" style={{ color: 'var(--muted)', maxWidth: 420, lineHeight: 1.55 }}>
                 Voiceover, captions and CTA are baked into the final video. Upload it straight to YouTube Shorts or TikTok.
               </p>
+                </div>
+              </div>
             </section>
           )}
 
