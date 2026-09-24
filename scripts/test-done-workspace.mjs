@@ -4,7 +4,12 @@ import fs from 'node:fs'
 import ts from 'typescript'
 import { execFileSync } from 'node:child_process'
 const file = 'app/(dashboard)/generate/GenerateClient.tsx'
-const base = '2d6d7940'
+// KINEO-PAREDE-V1-2026-09-23 — reancorado com motivo: a base 2d6d7940 antecede a parede v1 (fundador 23/09,
+// "faz as 3"), que acrescenta handlers, hrefs (intent_campaign=wall_v1), o cartão Empresas e o estado de
+// sincronia do pacote no mesmo arquivo. b021fe9d é a ponta que contém a tela larga do Codex (d25748e0) E a
+// parede; a trava volta a comparar contra ela. Nada foi afrouxado: a lista de atributos e a lógica antes
+// do JSX continuam tendo de ser byte a byte as da base.
+const base = 'b021fe9d'
 const current = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n')
 const previous = execFileSync('git', ['show', `${base}:${file}`], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 }).replace(/\r\n/g, '\n')
 let checks = 0
