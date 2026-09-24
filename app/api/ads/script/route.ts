@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { LANGUAGE_NAMES, narrationLanguage } from '@/lib/textLanguage'
-import { loadAdsAccess, isMissingAdsTable } from '@/lib/ads/serverAccess'
+import { adsGate, loadAdsAccess, isMissingAdsTable } from '@/lib/ads/serverAccess'
 import { adsModelById } from '@/lib/ads/models'
 import { sanitizeBrief } from '@/lib/ads/orderContract'
 import { ADS_SCRIPT_DAILY_CAP, ADS_SCRIPT_SERVED_EVENT, buildAdsScriptMessages, parseAdsScriptOutput } from '@/lib/ads/scriptPrompt'
@@ -27,10 +27,13 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'sign_in_required' }, { status: 401 })
     if (!process.env.OPENAI_API_KEY) return NextResponse.json({ error: 'unavailable' }, { status: 503 })
 
-    const { admin, reason } = await loadAdsAccess(user.id)
-    if (reason === 'none') {
-      await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/api/ads/script', metadata: { reason: 'no_access' } })
-      return NextResponse.json({ error: 'Studio Ads needs the Studio Ads pass or a paid plan.', reason: 'no_access' }, { status: 403 })
+    const { admin, reason } = await loadAdsAccess(user.id, user.email)
+    const gate = adsGate(reason)
+    if (gate !== 'ok') {
+      await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/api/ads/script', metadata: { reason: gate } })
+      return gate === 'closed'
+        ? NextResponse.json({ error: 'Studio Ads opens soon.', reason: 'closed' }, { status: 403 })
+        : NextResponse.json({ error: 'Studio Ads needs the Studio Ads pass or a paid plan.', reason: 'no_access' }, { status: 403 })
     }
 
     const body = (await req.json().catch(() => null)) as Record<string, unknown> | null

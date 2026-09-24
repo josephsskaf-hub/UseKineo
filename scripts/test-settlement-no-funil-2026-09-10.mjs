@@ -102,8 +102,9 @@ check(
 // que faltava, não substitui a que já funcionava.
 const packsComSettlement = (checkout.match(/skuContext\.settlement_currency = chargeCurrency/g) || []).length
 check(
-  'checkout: os 5 caminhos de pack seguem carimbando skuContext.settlement_currency',
-  packsComSettlement === 5
+  // KINEO-STUDIO-ADS-2026-09-25 — reancorado com motivo: o passe do Studio Ads é o 6º caminho one-time e também carimba.
+  'checkout: os 6 caminhos de pack (5 + passe do Studio Ads) seguem carimbando skuContext.settlement_currency',
+  packsComSettlement === 6
 )
 
 // ── 5. A parede do checkout: ramo COM DONO ────────────────────────────────

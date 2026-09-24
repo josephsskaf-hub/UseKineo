@@ -72,7 +72,12 @@ export function sanitizeMedia(raw: unknown, userId: string, publicPrefix: string
     if (!item || typeof item !== 'object') return err('media_item_invalid')
     const m = item as Record<string, unknown>
     const url = typeof m.url === 'string' ? m.url.trim() : ''
-    if (!url.startsWith(own) || url.includes('..')) return err('media_not_owned')
+    // KINEO-STUDIO-ADS-REVISAO-2026-09-24 — "%2e%2e" passava no startsWith e o navegador/servidor normaliza para "..":
+    // recusa qualquer ponto/barra codificado ou barra invertida, e confere o caminho JÁ normalizado pelo parser de URL.
+    if (!url.startsWith(own) || url.includes('..') || /%2e|%2f|%5c|\\/i.test(url)) return err('media_not_owned')
+    let normalized = ''
+    try { const u = new URL(url); normalized = u.origin + u.pathname } catch { return err('media_not_owned') }
+    if (!normalized.startsWith(own)) return err('media_not_owned')
     const footageId = typeof m.footageId === 'string' && /^[0-9a-f-]{36}$/i.test(m.footageId) ? m.footageId : null
     if (!footageId) return err('media_id_invalid')
     const kind = m.kind === 'video' ? 'video' : m.kind === 'image' ? 'image' : null
@@ -97,7 +102,8 @@ export interface AdsOrderPatch {
   script?: string
   script_angle?: string
   voice?: string
-  consent_at?: string
+  /** ISO da concessão; null = mídia mudou sem novo consentimento (o anterior não vale para a mídia nova). */
+  consent_at?: string | null
 }
 
 /** PATCH do pedido: só campos conhecidos, cada um validado; a duração sai do modelo escolhido. */
@@ -139,6 +145,9 @@ export function sanitizeOrderPatch(raw: unknown, userId: string, publicPrefix: s
   if ('consent' in p) {
     if (p.consent !== true) return err('consent_must_be_true')
     out.consent_at = now.toISOString()
+  } else if (out.media) {
+    // KINEO-STUDIO-ADS-REVISAO-2026-09-24 — o consentimento atesta AQUELA mídia; trocou a mídia, pede de novo.
+    out.consent_at = null
   }
   if (Object.keys(out).length === 0) return err('patch_empty')
   return ok(out)

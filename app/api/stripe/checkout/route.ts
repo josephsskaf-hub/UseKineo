@@ -69,7 +69,8 @@ import { buildAutopilotPilotCancelUrl } from '@/lib/growth/autopilotCheckoutRetu
 import { buildSubscriptionCheckoutSuccessUrl } from '@/lib/growth/checkoutSuccessFlow'
 import { planSettlementAmountMinor, resolveSettlementCurrency, settlementAmountMinor } from '@/lib/settlementCurrency'
 import { ADS_OFFER_VERSION, ADS_PASS_CREDITS, ADS_PASS_ID, ADS_PASS_USD_MINOR, ADS_PRODUCT_NAME, adsPassLive } from '@/lib/ads/offer' // KINEO-STUDIO-ADS-2026-09-25
-import { isInternalEmail } from '@/lib/internalAccounts' // KINEO-STUDIO-ADS-2026-09-25
+import { isAdsInternalEmail } from '@/lib/ads/access' // KINEO-STUDIO-ADS-2026-09-25 (lista exata; revisão 24/09)
+import { ADS_ACCESS_COLUMN } from '@/lib/ads/offer'
 import {
   attributeAffiliateForUser,
   normalizeAffiliateClickId,
@@ -3419,8 +3420,24 @@ async function buildAdsPassAndRedirect(req: NextRequest, isGet: boolean): Promis
     return NextResponse.redirect(`${appUrl}/login?reason=checkout&redirect=${encodeURIComponent(resume)}`)
   }
   // Interruptor: desligado, só conta interna passa (canário). Recusa visível, com o motivo gravado.
-  if (!adsPassLive() && !isInternalEmail(user.email)) {
+  // KINEO-STUDIO-ADS-REVISAO-2026-09-24 — interna = lista EXATA + apelidos do fundador, pelo e-mail do auth (os
+  // padrões LIKE de métrica casavam com estranhos: 'test%', '%mailinator%').
+  if (!adsPassLive() && !isAdsInternalEmail(user.email)) {
     return isGet ? redirectError('Studio Ads opens soon.') : jsonError('Studio Ads opens soon.', 403)
+  }
+  // Nunca cobrar antes de a coluna do acesso existir: sem ela o webhook falha, a Stripe desiste depois de dias de
+  // reenvio e a pessoa fica cobrada sem acesso. Sonda barata (limit 0) com a chave de serviço.
+  {
+    const svcUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const probe = svcUrl && svcKey
+      ? await createAdminClient(svcUrl, svcKey, { auth: { persistSession: false, autoRefreshToken: false } }).from('profiles').select(ADS_ACCESS_COLUMN).limit(0)
+      : { error: { code: 'no_service_key', message: 'service key missing' } }
+    if (probe.error) {
+      console.error('[stripe/checkout] ads pass blocked: access column not ready', probe.error.code, probe.error.message)
+      skuContext.blocked = 'migration_missing'
+      return isGet ? redirectError('Studio Ads opens soon.') : jsonError('Studio Ads opens soon.', 503)
+    }
   }
 
   const { data: profile } = await supabase

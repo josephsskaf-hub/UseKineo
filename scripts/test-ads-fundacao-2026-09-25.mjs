@@ -68,12 +68,29 @@ check('os eventos do funil existem: viewed → cta → checkout → access_grant
 check('eventos só de servidor incluem grant/deny/render_served/delivered/qa', ['ads_access_granted', 'ads_access_denied', 'ads_render_served', 'ads_delivered', 'ads_qa_decided'].every((n) => ev.ADS_SERVER_ONLY_EVENTS.includes(n)) && ev.ADS_SERVER_ONLY_EVENTS.every((n) => ev.isAdsEvent(n)))
 check('teto de 5 revisões abertas (decisão 5)', ev.ADS_MAX_OPEN_REVIEWS === 5)
 
-// ── 4. access.ts (por regex: importa o predicado do cobrador, não o redigita) ─────────────────
+// ── 4. access.ts — EXECUTADO (revisão adversarial 24/09) ────────────────────────────────────────
+// Reancorado com motivo: a v1 usava isPayingProfile (has_paid OU plano != free) e o e-mail de profiles. A revisão
+// CONFIRMOU que has_paid vira true com qualquer pacote avulso e com o próprio passe (o passe de 365 d nunca expirava)
+// e que profiles.email é editável pelo cliente, com padrões LIKE ('test%', '%mailinator%') que casam com estranhos.
+// Agora roda o predicado de verdade contra os casos que a revisão achou.
 const accessSrc = rd('lib/ads/access.ts')
-check('access.ts importa isPayingProfile de @/lib/reverseTrial (predicado do cobrador não se redigita)', /import \{ isPayingProfile, type PayingProfileFields \} from '@\/lib\/reverseTrial'/.test(accessSrc) && !/has_paid === true/.test(accessSrc) && !/plan !== 'free'/.test(accessSrc))
-check('três portas na ordem passe > pagante > interna; trial/free nunca entram; nada de !isSubscriber', /if \(until && until\.getTime\(\) > now\.getTime\(\)\) return 'pass'/.test(accessSrc) && /if \(isPayingProfile\(row\)\) return 'paying'/.test(accessSrc) && /if \(isInternalEmail\(row\.email\)\) return 'internal'/.test(accessSrc) && /return 'none'/.test(accessSrc) && !/isSubscriber|treatAsPaid|trial_status|isTrial|trialCap/.test(accessSrc.replace(/\/\/.*$/gm, '')))
-check('a coluna vem de ADS_ACCESS_COLUMN (offer.ts) e é lida por nome, não por literal', /import \{ ADS_ACCESS_COLUMN \} from '@\/lib\/ads\/offer'/.test(accessSrc) && /row\[ADS_ACCESS_COLUMN\]/.test(accessSrc) && !/row\.ads_access_until/.test(accessSrc))
-check('perfil ausente = none (falha fechada)', /if \(!row\) return 'none'/.test(accessSrc))
+const internalMod = roda(rd('lib/internalAccounts.ts'))
+const accessMod = (() => {
+  const js = ts.transpileModule(accessSrc, { compilerOptions: { module: 1, target: 9 } }).outputText
+  const exp = {}
+  const req = (spec) => { if (spec === '@/lib/internalAccounts') return internalMod; if (spec === '@/lib/ads/offer') return offer; throw new Error('import inesperado em access.ts: ' + spec) }
+  vm.runInNewContext(js, { exports: exp, require: req, console, Map, Set, Array, Object, String, RegExp, Number, Math, Date })
+  return exp
+})()
+const R = accessMod.adsAccessReason
+const agora = new Date('2026-09-25T12:00:00Z')
+const futuro = '2027-09-25T12:00:00Z', passado = '2026-09-01T00:00:00Z'
+check('passe no futuro = pass; passe VENCIDO com has_paid=true e plano free = none (o passe expira de verdade)', R({ plan: 'free', has_paid: true, ads_access_until: futuro }, 'a@b.com', agora) === 'pass' && R({ plan: 'free', has_paid: true, ads_access_until: passado }, 'a@b.com', agora) === 'none')
+check('assinante de plano mensal/anual entra; trial, piloto avulso, free e comprador de pacote (has_paid) NÃO', ['starter', 'basic', 'creator', 'pro', 'studio', 'autopilot', 'autopilot_lite', ' Creator '].every((p) => R({ plan: p }, 'a@b.com', agora) === 'subscriber') && ['creator_trial', 'starter_trial', 'autopilot_pilot', 'free', '', null].every((p) => R({ plan: p, has_paid: true }, 'a@b.com', agora) === 'none'))
+check('conta interna só pela lista exata + apelidos josephsskaf+…@gmail.com; test%/mailinator/sufixo forjado NÃO', ['josephsskaf@gmail.com', 'JosephSkaf@hotmail.com', 'josephsskaf+ads1@gmail.com'].every((e) => R(null, e, agora) === 'internal') && ['test123@gmail.com', 'qualquer@mailinator.com', 'josephsskaf+x@gmail.com.evil.io', 'xjosephsskaf+x@gmail.com', '', null].every((e) => R(null, e, agora) === 'none'))
+check('o e-mail que decide é o do auth (parâmetro), nunca o da linha de profiles', R({ email: 'josephsskaf@gmail.com', plan: 'free' }, 'estranho@x.com', agora) === 'none' && !/row\.email/.test(accessSrc) && !/email/.test(accessMod.ADS_ACCESS_SELECT))
+check('perfil ausente de estranho = none (falha fechada); data inválida no passe = sem passe', R(null, 'estranho@x.com', agora) === 'none' && R(undefined, undefined, agora) === 'none' && R({ plan: 'free', ads_access_until: 'lixo' }, 'a@b.com', agora) === 'none')
+check('a coluna vem de ADS_ACCESS_COLUMN (offer.ts) e é lida por nome; sem has_paid nem isPayingProfile no código', /import \{ ADS_ACCESS_COLUMN \} from '@\/lib\/ads\/offer'/.test(accessSrc) && /row\[ADS_ACCESS_COLUMN\]/.test(accessSrc) && !/row\.ads_access_until/.test(accessSrc) && !/has_paid|isPayingProfile|isInternalEmail\(/.test(accessSrc.replace(/\/\/.*$/gm, '').replace(/\/\*\*[\s\S]*?\*\//g, '')))
 
 // ── 5. migration ──────────────────────────────────────────────────────────────────────────────
 const migPath = 'migrations_pending/2026-09-25_studio_ads.sql'
@@ -81,7 +98,10 @@ check('migration existe', existsSync(join(RAIZ, migPath)))
 const mig = existsSync(join(RAIZ, migPath)) ? rd(migPath) : ''
 check('coluna profiles.ads_access_until timestamptz, mesmo nome do offer.ts', /add column if not exists ads_access_until timestamptz/.test(mig) && offer.ADS_ACCESS_COLUMN === 'ads_access_until')
 check('tabela ads_orders com os estados do types.ts, seconds em (35, 60), RLS ligado e NENHUMA policy pública', /create table if not exists public\.ads_orders/.test(mig) && /check \(status in \('draft', 'rendering', 'delivered', 'reviewed', 'failed', 'cancelled'\)\)/.test(mig) && /seconds in \(35, 60\)/.test(mig) && /alter table public\.ads_orders enable row level security/.test(mig) && !/create policy/i.test(mig))
-check('migration: a função do updated_at tem o corpo entre um par de $$ (um $ solto quebra o SQL inteiro) e search_path fixo', (mig.split('$$').length - 1) === 2 && mig.includes('as $$\nbegin') && mig.includes('end $$;') && mig.includes('set search_path = public'))
+// Reancorado com motivo (24/09): a migration ganhou a 2ª função (guarda da coluna do passe), então são 2 pares de $$.
+check('migration: as duas funções têm o corpo entre pares de $$ (um $ solto quebra o SQL inteiro) e search_path fixo', (mig.split('$$').length - 1) === 4 && (mig.split('as $$\nbegin').length - 1) === 2 && (mig.split('end $$;').length - 1) === 2 && mig.includes('set search_path = public') && mig.includes("set search_path = ''"))
+check('migration: o cliente (authenticated/anon) NÃO escreve ads_access_until — insert zera, update devolve o valor antigo; service_role passa', /create or replace function public\.ads_access_client_guard\(\)/.test(mig) && /if current_user not in \('authenticated', 'anon'\) then\n\s*return new;/.test(mig) && /if tg_op = 'INSERT' then\n\s*new\.ads_access_until := null;/.test(mig) && /elsif new\.ads_access_until is distinct from old\.ads_access_until then\n\s*new\.ads_access_until := old\.ads_access_until;/.test(mig) && /create trigger ads_access_client_guard\n\s*before insert or update on public\.profiles\n\s*for each row execute function public\.ads_access_client_guard\(\);/.test(mig))
+check('migration: a guarda nasce ANTES de qualquer uso da coluna pelo produto (mesmo arquivo, depois do add column)', mig.indexOf('create trigger ads_access_client_guard') > mig.indexOf('add column if not exists ads_access_until'))
 const typesSrc = rd('lib/ads/types.ts')
 check('types.ts tem os mesmos 6 estados e o storyboard mapeia mídia por ID', ['draft', 'rendering', 'delivered', 'reviewed', 'failed', 'cancelled'].every((s) => typesSrc.includes(`'${s}'`)) && /footageId: string \| null\s+\/\/ por ID, nunca por posição/.test(typesSrc))
 

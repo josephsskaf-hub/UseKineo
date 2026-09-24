@@ -15,6 +15,32 @@ alter table public.profiles
 comment on column public.profiles.ads_access_until is
   'KINEO-STUDIO-ADS-2026-09-25 — fim do acesso ao Studio Ads comprado pelo passe ads_pass (now()+365d no webhook). NULL = nunca comprou; assinante pago entra sem passe (lib/ads/access.ts).';
 
+-- KINEO-STUDIO-ADS-REVISAO-2026-09-24 — a policy "Users own profile" (FOR ALL, auth.uid() = id) e o UPDATE de tabela
+-- para authenticated deixam o dono editar a própria linha; a guarda enforce_profile_client_guard protege créditos,
+-- plano e has_paid, mas não conhece esta coluna. Sem a guarda abaixo, qualquer conta logada se daria o passe com um
+-- PATCH direto no PostgREST (achado CONFIRMADO pela revisão adversarial de 24/09). Guarda SEPARADA de propósito: não
+-- reescreve a função compartilhada. Mesma regra de papel: só authenticated/anon são contidos; service_role passa.
+create or replace function public.ads_access_client_guard()
+returns trigger language plpgsql
+set search_path = ''
+as $$
+begin
+  if current_user not in ('authenticated', 'anon') then
+    return new;
+  end if;
+  if tg_op = 'INSERT' then
+    new.ads_access_until := null;
+  elsif new.ads_access_until is distinct from old.ads_access_until then
+    new.ads_access_until := old.ads_access_until;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists ads_access_client_guard on public.profiles;
+create trigger ads_access_client_guard
+  before insert or update on public.profiles
+  for each row execute function public.ads_access_client_guard();
+
 create index if not exists profiles_ads_access_until_idx
   on public.profiles (ads_access_until)
   where ads_access_until is not null;

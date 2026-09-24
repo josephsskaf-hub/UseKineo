@@ -80,10 +80,11 @@ checa('plano: link privado do pack de $5 fica em USD (o cupom é em dólar)', /f
 checa('Price id do Autopilot (USD) só entra quando a sessão é USD', /tier === 'autopilot' && chargeCurrency === 'usd' \? autopilotPriceIdOverride\(currency\) : null/.test(rt))
 {
   const n = (rt.match(/const chargeAmount = settlementAmountMinor\(unitAmount, chargeCurrency\)/g) || []).length
-  checa('SKUs avulsos (pack, $2,90, top-up, piloto, atacado): 5 builders decidem a moeda', n === 5)
+  // KINEO-STUDIO-ADS-2026-09-25 — reancorado com motivo: o passe do Studio Ads é o 6º builder avulso e decide a moeda igual.
+  checa('SKUs avulsos (pack, $2,90, top-up, piloto, atacado, passe do Studio Ads): 6 builders decidem a moeda', n === 6)
   const nCur = (rt.match(/^\s+currency: chargeCurrency,$/gm) || []).length
   const nAmt = (rt.match(/^\s+unit_amount: chargeAmount,$/gm) || []).length
-  checa('SKUs avulsos: price_data E chave de idempotência usam a moeda/valor cobrados (5×2 + plano)', nCur >= 11 && nAmt >= 11)
+  checa('SKUs avulsos: price_data E chave de idempotência usam a moeda/valor cobrados (6×2 + plano)', nCur >= 13 && nAmt >= 13)
   checa('nenhum `unit_amount: unitAmount,` cru sobrou fora da assinatura de idempotência do plano', (rt.match(/^\s+unit_amount: unitAmount,$/gm) || []).length === 1)
 }
 checa('rede de segurança: lê checkout_payment_failed por user_id + card_country BR + moeda usd, via service role, e falha fechada', /async function priorBrazilianCardFailure\(userId: string\): Promise<boolean>/.test(rt) && /\.eq\('name', 'checkout_payment_failed'\)\n\s+\.eq\('user_id', userId\)\n\s+\.eq\('metadata->>card_country', 'BR'\)\n\s+\.eq\('metadata->>currency', 'usd'\)/.test(rt) && /\} catch \{\n\s+return false\n\s+\}/.test(rt.slice(rt.indexOf('async function priorBrazilianCardFailure'), rt.indexOf('async function priorBrazilianCardFailure') + 1200)))

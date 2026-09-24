@@ -27,7 +27,7 @@ function carrega(rel) {
     if (spec.startsWith('./')) return carrega(`${dir}/${spec.slice(2)}`)
     throw new Error('import não puro em ' + p + ': ' + spec)
   }
-  vm.runInNewContext(js, { exports: exp, require: req, console, Number, String, RegExp, Object, Array, Math, Date, JSON, process: { env: {} } })
+  vm.runInNewContext(js, { exports: exp, require: req, console, Number, String, RegExp, Object, Array, Math, Date, JSON, URL, process: { env: {} } })
   return exp
 }
 const offer = carrega('lib/ads/offer')
@@ -38,12 +38,15 @@ const C = carrega('lib/ads/orderContract')
 const co = rd('app/api/stripe/checkout/route.ts')
 const builder = (co.match(/async function buildAdsPassAndRedirect[\s\S]*?\n\}\n/) || [''])[0]
 checa('1a. o builder do passe existe e lê preço/créditos/nome do módulo único (nada digitado)', builder.length > 1000 && /const unitAmount = ADS_PASS_USD_MINOR/.test(builder) && /pack: ADS_PASS_ID,\n\s*pack_credits: String\(ADS_PASS_CREDITS\)/.test(builder) && !/1990|19\.90/.test(builder))
-const iGate = builder.indexOf('if (!adsPassLive() && !isInternalEmail(user.email))')
+// Reancorado com motivo (24/09): interna = isAdsInternalEmail (lista exata), não o isInternalEmail de métrica com LIKE.
+const iGate = builder.indexOf('if (!adsPassLive() && !isAdsInternalEmail(user.email))')
 const iSession = builder.indexOf('stripe.checkout.sessions.create')
 const iAuth = builder.indexOf('supabase.auth.getUser()')
 checa('1b. interruptor ANTES de qualquer sessão da Stripe e depois do login (interno passa para o canário)', iAuth > 0 && iGate > iAuth && iSession > iGate)
 checa('1c. desligado = recusa visível (redirect com erro / 403), nunca sessão', /return isGet \? redirectError\('Studio Ads opens soon\.'\) : jsonError\('Studio Ads opens soon\.', 403\)/.test(builder))
 checa('1d. moeda da casa: preço de lista em USD, sessão na moeda do país (settlementAmountMinor), idempotência por SKU/usuário/valor', /settlementAmountMinor\(unitAmount, chargeCurrency\)/.test(builder) && /oneTimeIdempotencyKey\(\{\n\s*sku: ADS_PASS_ID,/.test(builder))
+const iProbe = builder.indexOf(".from('profiles').select(ADS_ACCESS_COLUMN).limit(0)")
+checa('1g. sonda da coluna do acesso ANTES da sessão: sem a migration o passe não cobra (503 "opens soon", motivo migration_missing)', iProbe > iGate && iSession > iProbe && /skuContext\.blocked = 'migration_missing'\n\s*return isGet \? redirectError\('Studio Ads opens soon\.'\) : jsonError\('Studio Ads opens soon\.', 503\)/.test(builder) && !/import \{ isInternalEmail \}/.test(co))
 checa('1e. o despacho ?pack=ads_pass chama o builder antes do atacado', /if \(packParam === ADS_PASS_ID\) \{\n\s*return await buildAdsPassAndRedirect\(req, true\)\n\s*\}\n\s*if \(isBulkPackId\(packParam\)\)/.test(co))
 checa('1f. ads_checkout_started é nome aceito pelo logger e só é gravado depois da sessão existir', /\| 'ads_checkout_started'/.test(co) && builder.indexOf("recordCheckoutEvent('ads_checkout_started'") > iSession)
 
@@ -85,17 +88,29 @@ checa('5f. dois logos, logo em vídeo, id sem formato ou lista gigante são recu
 const patch = C.sanitizeOrderPatch({ template: 'historia_fundador', consent: true, seconds: 90, status: 'delivered', user_id: OUTRO }, U, PFX, new Date('2026-09-25T10:00:00Z'))
 checa('5g. PATCH: a duração vem do modelo (60 no fundador), consentimento vira carimbo, campos de fora (status, user_id, seconds) são ignorados', patch.ok === true && patch.value.template === 'historia_fundador' && patch.value.seconds === 60 && patch.value.consent_at === '2026-09-25T10:00:00.000Z' && !('status' in patch.value) && !('user_id' in patch.value))
 checa('5h. PATCH com modelo inexistente, consentimento falso ou vazio é recusado', C.sanitizeOrderPatch({ template: 'viral_hack' }, U, PFX).error === 'template_invalid' && C.sanitizeOrderPatch({ consent: 'yes' }, U, PFX).error === 'consent_must_be_true' && C.sanitizeOrderPatch({}, U, PFX).error === 'patch_empty')
+checa('5j. "%2e%2e", "%2F", "%5c", barra invertida e host parecido são recusados (a revisão passou "%2e%2e" no startsWith)', [`${PFX}/${U}/%2e%2e/${OUTRO}/x.png`, `${PFX}/${U}/%2E%2E/${OUTRO}/x.png`, `${PFX}/${U}/..%2F${OUTRO}/x.png`, `${PFX}/${U}/x%5c..%5cy.png`, `${PFX}/${U}\\..\\${OUTRO}\\x.png`, `${PFX}.evil.com/${U}/x.png`].every((url) => C.sanitizeMedia([{ ...foto(U), url }], U, PFX).error === 'media_not_owned') && C.sanitizeMedia([{ ...foto(U), url: `${PFX}/${U}/foto%20da%20loja.png?t=1` }], U, PFX).ok === true)
+const troca1 = C.sanitizeOrderPatch({ media: [foto(U)] }, U, PFX), troca2 = C.sanitizeOrderPatch({ media: [foto(U)], consent: true }, U, PFX, new Date('2026-09-25T10:00:00Z'))
+checa('5k. trocar a mídia sem consentir de novo zera consent_at (o consentimento atesta AQUELA mídia); com consent vira carimbo', troca1.ok === true && troca1.value.consent_at === null && troca2.ok === true && troca2.value.consent_at === '2026-09-25T10:00:00.000Z' && C.sanitizeOrderPatch({ template: 'oferta_relampago' }, U, PFX).value.consent_at === undefined)
 checa('5i. só rascunho é editável', C.orderIsEditable('draft') === true && C.orderIsEditable('delivered') === false && C.orderIsEditable(undefined) === false)
 
 // ── 6. rota de pedidos ───────────────────────────────────────────────────────────────────────
 const rt = rd('app/api/ads/orders/route.ts')
 const bloco = (nome) => (rt.match(new RegExp(`export async function ${nome}[\\s\\S]*?\\n\\}\\n`)) || [''])[0]
 const post = bloco('POST'), pat = bloco('PATCH'), get = bloco('GET')
-checa('6a. todo método exige login antes de usar a chave de serviço', [get, post, pat].every((b) => b.indexOf('await requireUser()') > -1 && b.indexOf('await requireUser()') < b.indexOf('loadAccess(')))
-checa('6b. POST e PATCH recusam quem não tem acesso ANTES de escrever, gravando ads_access_denied', [post, pat].every((b) => b.indexOf("if (reason === 'none')") > -1 && b.indexOf("if (reason === 'none')") < b.indexOf('.from(\'ads_orders\')') && /name: 'ads_access_denied'/.test(b)))
+// Reancorado com motivo (24/09): a rota usa o leitor compartilhado loadAdsAccess(user.id, user.email) — e-mail do auth.
+checa('6a. todo método exige login antes de usar a chave de serviço, e o acesso é lido com o e-mail do auth', [get, post, pat].every((b) => b.indexOf('await requireUser()') > -1 && b.indexOf('await requireUser()') < b.indexOf('loadAdsAccess(user.id, user.email)')))
+const gateFn = (rt.match(/async function gateOrDeny[\s\S]*?\n\}\n/) || [''])[0]
+checa('6b. POST e PATCH passam pelo portão (acesso + interruptor) ANTES de escrever, gravando ads_access_denied', [post, pat].every((b) => b.indexOf('await gateOrDeny(user.id, reason,') > -1 && b.indexOf('await gateOrDeny(user.id, reason,') < b.indexOf(".from('ads_orders')")) && /const g = adsGate\(reason\)\n\s*if \(g === 'ok'\) return null/.test(gateFn) && /name: 'ads_access_denied'/.test(gateFn) && /g === 'closed'\n\s*\? NextResponse\.json\(\{ error: 'Studio Ads opens soon\.', reason: 'closed' \}, \{ status: 403 \}\)/.test(gateFn))
 checa('6c. leitura e escrita presas ao dono (eq user_id) e PATCH valida tudo no contrato antes do UPDATE', /\.eq\('user_id', user\.id\)/.test(get) && (pat.match(/\.eq\('user_id', user\.id\)/g) || []).length >= 2 && pat.indexOf('sanitizeOrderPatch(body, user.id, FOOTAGE_PUBLIC_PREFIX())') < pat.indexOf('.update(patch.value)'))
-checa('6d. tabela ausente (migration não aplicada) = 503 "not ready", nunca 500 nem sucesso falso', /const isMissingTable = \(code: string \| undefined\) => code === '42P01' \|\| code === 'PGRST205'/.test(rt) && /if \(isMissingTable\([^)]*\)\) return notReady\(\)/.test(post))
-checa('6e. coluna do passe ausente: decide sem o passe (pagante/interna seguem), nunca abre acesso por engano', /if \(withColumn\.error\.code === '42703'\) \{/.test(rt) && /return \{ admin, reason: 'none' as const, error: withColumn\.error \}/.test(rt))
+const sa = rd('lib/ads/serverAccess.ts')
+checa('6d. tabela ausente (migration não aplicada) = 503 "not ready", nunca 500 nem sucesso falso', /export const isMissingAdsTable = \(code: string \| undefined\) => code === '42P01' \|\| code === 'PGRST205'/.test(sa) && /if \(isMissingAdsTable\([^)]*\)\) return notReady\(\)/.test(post) && /if \(isMissingAdsTable\([^)]*\)\) return notReady\(\)/.test(pat))
+checa('6e. coluna do passe ausente: decide sem o passe (assinante/interna seguem); outro erro de leitura = none', /if \(withColumn\.error\.code === '42703'\) \{/.test(sa) && /select\('id, plan'\)/.test(sa) && /return \{ admin, reason: 'none' \}\n\}/.test(sa))
+checa('6f. interruptor nas rotas: desligado (NEXT_PUBLIC_ADS_PASS_LIVE) só a conta interna passa; sem acesso vem antes', /if \(reason === 'none'\) return 'no_access'\n\s*if \(!adsPassLive\(\) && reason !== 'internal'\) return 'closed'\n\s*return 'ok'/.test(sa))
+const iFoot = pat.indexOf(".from('user_footage').select('id, url, kind').eq('user_id', user.id).in('id', ids)")
+checa('6g. mídia conferida no banco: cada id é user_footage DESTA conta, do mesmo tipo, e a URL gravada é a do banco', iFoot > 0 && iFoot < pat.indexOf('.update(patch.value)') && /if \(!row \|\| row\.kind !== m\.kind\) return NextResponse\.json\(\{ error: 'media_not_owned' \}, \{ status: 400 \}\)/.test(pat) && /fixed\.push\(\{ \.\.\.m, url: row\.url \}\)/.test(pat))
+checa('6h. consentimento sem mídia é recusado antes do UPDATE', pat.indexOf("'consent_needs_media'") > 0 && pat.indexOf("'consent_needs_media'") < pat.indexOf('.update(patch.value)'))
+checa('6i. corpo que não é objeto vira 400 e toda exceção vira 500 genérico (nada de 500 cru do Next)', /if \(body !== null && !isObject\(body\)\) return NextResponse\.json\(\{ error: 'body_must_be_object' \}, \{ status: 400 \}\)/.test(post) && /if \(!isObject\(body\)\) return NextResponse\.json\(\{ error: 'body_must_be_object' \}, \{ status: 400 \}\)/.test(pat) && [get, post, pat].every((b) => /^export async function \w+\([^)]*\) \{\n  try \{/.test(b) && /\} catch \(e\) \{/.test(b)))
+checa('6j. UPDATE só pega rascunho (corrida com a entrega vira 409, não sobrescrita)', /\.update\(patch\.value\)\.eq\('id', id\)\.eq\('user_id', user\.id\)\.eq\('status', 'draft'\)/.test(pat) && /if \(!data\) return NextResponse\.json\(\{ error: 'This order can no longer be edited\.' \}, \{ status: 409 \}\)/.test(pat))
 
 // ── 8. roteiro do anúncio: o validador descarta versão que inventa fato ─────────────────────────
 const SP = carrega('lib/ads/scriptPrompt')
@@ -124,7 +139,7 @@ checa('8d. inventedNumbers pega número fora do brief e aceita os do brief (incl
 const msgs = SP.buildAdsScriptMessages(oferta, briefR, 'English')
 checa('8e. o prompt proíbe inventar fato, exige o contato exato e a faixa de palavras do modelo', /Never invent a price, number, rating, deadline/.test(msgs.system) && /must contain the contact exactly as written/.test(msgs.system) && msgs.system.includes('100 to 115 words') && msgs.user.includes('+351 912 345 678'))
 const sr = rd('app/api/ads/script/route.ts')
-checa('8f. rota do roteiro: login, acesso, dono/rascunho, teto diário ANTES do modelo, validador na saída, sem cobrar', sr.indexOf('supabase.auth.getUser()') < sr.indexOf('loadAdsAccess(user.id)') && sr.indexOf("if (reason === 'none')") < sr.indexOf("from('ads_orders')") && /\.eq\('id', orderId\)\.eq\('user_id', user\.id\)/.test(sr) && sr.indexOf('ADS_SCRIPT_DAILY_CAP') < sr.indexOf('openai.chat.completions.create') && /parseAdsScriptOutput\(completion/.test(sr) && !/video_credits|creditCost/.test(sr))
+checa('8f. rota do roteiro: login, acesso, dono/rascunho, teto diário ANTES do modelo, validador na saída, sem cobrar', sr.indexOf('supabase.auth.getUser()') < sr.indexOf('loadAdsAccess(user.id, user.email)') && sr.indexOf('const gate = adsGate(reason)') < sr.indexOf("from('ads_orders')") && /if \(gate !== 'ok'\) \{/.test(sr) && /\.eq\('id', orderId\)\.eq\('user_id', user\.id\)/.test(sr) && sr.indexOf('ADS_SCRIPT_DAILY_CAP') < sr.indexOf('openai.chat.completions.create') && /parseAdsScriptOutput\(completion/.test(sr) && !/video_credits|creditCost/.test(sr))
 
 // ── 7. nada disto toca a trava 8.2 ─────────────────────────────────────────────────────────────
 const novos = [builder, rt, rd('lib/ads/orderContract.ts'), rd('lib/ads/scriptPrompt.ts'), rd('app/api/ads/script/route.ts'), rd('lib/ads/serverAccess.ts')]
