@@ -464,6 +464,9 @@ html{scroll-behavior:smooth}
    o gap original de 18px. 30px deixa a fita respirar. */
 @media(max-width:940px){
 .klp .composer{margin-left:auto;margin-right:auto}.klp .price{grid-template-columns:1fr;max-width:400px;margin:0 auto;gap:30px}
+}
+/* BUSINESS-NAV-20260924: leave room for the translated business destination. */
+@media(max-width:1200px){
 /* KINEO-GROWTH-TOOLS-NAV-2026-08-29 — o oitavo destino público ultrapassava
    o espaço disponível em tablets. A navegação compacta entra antes que os
    links encostem no CTA; as demais regras mobile continuam em 780px. */
@@ -970,6 +973,7 @@ export default function KineoLanding({
               </span>
             </span>
             <Link href="/avatar">Avatar</Link>
+            <Link href="/business-video-ads"><UiLabel>Videos for businesses</UiLabel></Link>
             <a href="#pricing"><UiLabel>Pricing</UiLabel></a>
           </div>
         <div className="nav-right">
@@ -983,6 +987,7 @@ export default function KineoLanding({
             <label htmlFor="nav-toggle" id="mobile-nav-menu" className="nav-mobile-menu">
               <Link href="/examples"><UiLabel>Explore</UiLabel></Link>
               <Link href="/studio"><UiLabel>🎬 Studio — generate video</UiLabel></Link>
+              <Link href="/business-video-ads"><UiLabel>Videos for businesses</UiLabel></Link>
               <Link href="/images"><UiLabel>🎨 Images — create image</UiLabel></Link>
               <Link href="/audio"><UiLabel>🎙 Audio — text to speech</UiLabel></Link>
               <Link href="/viral-now">🔥 Viral Now</Link>

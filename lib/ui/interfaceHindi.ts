@@ -2,6 +2,7 @@
  * Unknown copy explicitly falls back to English; country never selects this locale.
  */
 export const INTERFACE_HI: Record<string, string> = {
+  'Videos for businesses': 'व्यवसायों के लिए वीडियो',
   // KINEO-ENTREGA-NOITE-R6-2026-09-09 — as frases do cartão de falha que
   // pararam de chamar portão e resfriamento de "Generation failed".
   'Generation failed': 'वीडियो नहीं बन पाया',

@@ -2,6 +2,7 @@
 // título, resultado, nome de motor ou erro de API. Frase fora daqui cai em inglês (components/InterfaceLanguage.tsx).
 // Gerado de scratchpad/tr-it.js sobre o corpus vivo de frases (415); números e "Kineo" preservados por construção.
 export const DICT: Record<string, string> = {
+  'Videos for businesses': 'Video per aziende',
   'Generation failed': 'Generazione non riuscita',
   'You can retry safely.': 'Puoi riprovare in tutta sicurezza.',
   'This engine is not available on your account right now': 'Questo motore non è disponibile sul tuo account in questo momento',

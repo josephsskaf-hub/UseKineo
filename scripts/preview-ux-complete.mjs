@@ -37,7 +37,7 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
     index++
     return [Object.hasOwn(fixture,name)?fixture[name]:typeof value==='function'?value():value,next=>{if(fixture.onStateChange)return fixture.onStateChange(name,next);throw Error('State mutation in offline render')}]
   }
-  const react={...React,useContext:context=>fixture.interfaceLanguage ? {language:fixture.interfaceLanguage,choose:()=>{throw Error('Language mutation in offline render')}} : React.useContext(context),useEffect:()=>{},useCallback:fn=>fn,useMemo:fn=>fn(),useRef:current=>({current})}
+  const react={...React,useContext:context=>fixture.interfaceLanguage ? {language:fixture.interfaceLanguage,dict:fixture.interfaceDictionary??null,choose:()=>{throw Error('Language mutation in offline render')}} : React.useContext(context),useEffect:()=>{},useCallback:fn=>fn,useMemo:fn=>fn(),useRef:current=>({current})}
   if(fixture.captureControls) react.createElement=(type,props,...children)=>{if(typeof type==='string' && (props?.onClick || props?.onChange))fixture.captureControls.push({type,props,children});return React.createElement(type,props,...children)}
   function load(file) {
     if(cache.has(file))return cache.get(file)
