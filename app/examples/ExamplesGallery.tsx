@@ -87,7 +87,7 @@ export default function ExamplesGallery({ videos, startPaused = false, separateF
   const choices = showcaseEngines(collection)
   const open = (video: WallVideo, button: HTMLButtonElement) => { opener.current = button; setSelected(video) }
   useEffect(() => { if (!selected) opener.current?.focus({ preventScroll: true }) }, [selected])
-  return <div className={styles.gallery}>
+  return <div className={`${styles.gallery}${heroOnly ? ` ${styles.homeHero}` : ''}`}>
     {videos.length >= 3 && <section className={styles.featuredSection} aria-label="Featured examples">
       <div className={styles.sectionTop}><span className={styles.eyebrow}>The Kineo selection</span>
         <button type="button" className={styles.quietButton} onClick={() => setPaused(!paused)} aria-pressed={paused}>{paused ? 'Play preview' : 'Pause preview'}</button>
