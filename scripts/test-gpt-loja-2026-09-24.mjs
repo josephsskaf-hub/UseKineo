@@ -79,12 +79,7 @@ ok(iGuard > post.indexOf("if (outcome.kind === 'too_short')") && iGuard < post.i
   '3a. a trava roda depois do too_short e ANTES de achar/gravar a linha (recusa não vira link)')
 ok(/return json\(\{ error: describeEngineRefusal\(engineRefusal\), refusal: engineRefusal \}, 400\)/.test(post) && /name: 'gpt_handoff_refused'/.test(post),
   '3b. recusa = 400 com a frase e o motivo, e evento gpt_handoff_refused para medir')
-ok(/const engineRefusal = handoffEngineRefusal([^
-]*)
-s*if (engineRefusal) {
-s*await writeServerEvent({ name: 'gpt_handoff_refused'[^
-]*
-s*return json({ error: describeEngineRefusal(engineRefusal)/.test(post),
+ok(/const engineRefusal = handoffEngineRefusal\([^\n]*\)\n\s*if \(engineRefusal\) \{\n\s*await writeServerEvent\(\{ name: 'gpt_handoff_refused'[^\n]*\n\s*return json\(\{ error: describeEngineRefusal\(engineRefusal\)/.test(post),
   '3d. a recusa depende SÓ do resultado da trava (if (engineRefusal) → evento → 400), sem condição extra')
 ok((post.match(/if \(await refreshHandoffExpiry\(token, fresh(?:Again)?\)\) expiresAt = fresh(?:Again)?/g) || []).length === 2 && /\.update\(\{ expires_at: expiresAt \}\)\.eq\('token', token\)/.test(rd('lib/gptHandoffStore.ts')),
   '3c. link reaproveitado (nos dois ramos) ganha 7 dias novos, e o prazo só muda na resposta se a gravação deu certo')
