@@ -72,16 +72,33 @@ const STEPS = [
 ] as const
 type StepId = (typeof STEPS)[number]['id']
 type View = StepId | 'progress' | 'delivery' | 'failed'
-type CardInfo = { id: string; sig: string }
+/** Cartão final já subido. `sig` = assinatura do texto+logo com que foi desenhado NESTA sessão; `null` = cartão
+ *  recuperado do pedido salvo (rascunho após 402, falha, recarga): o texto é desconhecido, então ele só vale depois
+ *  que a pessoa o vê no passo do storyboard (reachableIndex não deixa pular para o Render com ele). `savedUrl` = o PNG
+ *  salvo que a pessoa viu e aceitou: a prévia mostra ele (e não o canvas) enquanto o texto não for editado. */
+type CardInfo = { id: string; sig: string | null; savedUrl?: string | null }
 type Storyboard = Record<number, string[]>
 type RenderInfo = { renderId: string | null; seconds: number; topic: string }
 
 const MAX_MEDIA = 12
 const REUSABLE_STATUSES: readonly string[] = ['draft', 'rendering', 'failed', 'delivered', 'reviewed']
+/** Estados em que o pedido carrega o storyboard e o cartão gravados pelo render (o claim grava os dois). */
+const SEEDABLE_STATUSES: readonly string[] = ['draft', 'failed', 'rendering']
 const REVIEW_LINE = 'A human editor reviews your first ad within 24 hours and sends a corrected version if anything is off.'
 const BUSINESS_SEP = ' — '
 const POLL_MS = 5000
 const POLL_CAP_MS = 15 * 60_000
+/** 'rendering' sem render_id por mais que isto (maxDuration do POST é 300 s) = o despacho morreu no caminho. */
+const STUCK_NO_RENDER_MS = 6 * 60_000
+const SUPPORT_EMAIL = 'hello@usekineo.com'
+/** O menor número de fotos que algum modelo exige (vídeo não conta): abaixo disso nenhum modelo abre no passo 3. */
+const MIN_PHOTOS_ANY_MODEL = Math.min(...ADS_MODELS.map((m) => m.inputs.minPhotos))
+const PHOTOS_NEEDED_LINE = `Add at least ${MIN_PHOTOS_ANY_MODEL} photos — every ad model uses photos; videos are extra.`
+/** O roteiro salvo carrega o modelo para o qual foi escrito: script_angle = "<ângulo>@<id do modelo>" (≤ 40). */
+const SCRIPT_MODEL_SEP = '@'
+/** WAV mudo de 0,05 s: tocado DENTRO do toque para destravar o <audio> no iPhone antes de qualquer await. */
+const SILENT_AUDIO = 'data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACA' + 'gICA'.repeat(133)
+const VOICE_CACHE_MAX = 8
 const UNLOCK_POLL_MS = 3000
 const UNLOCK_CAP_MS = 90_000
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
@@ -198,12 +215,17 @@ function errorText(r: { status: number; code: string | null; message: string | n
   return 'Something went wrong. Try again in a minute.'
 }
 
+/** Falha do render → frase da casa. A frase crua do compose NUNCA vai para a tela (ela fala de telas e créditos de
+ *  outro produto); código desconhecido vira a mensagem de 'render_failed', que diz que o crédito não foi usado. */
 function failureText(failure: string | null | undefined): string {
   const f = (failure ?? '').trim()
-  if (!f) return 'The ad could not be rendered.'
-  if (Object.prototype.hasOwnProperty.call(ADS_RENDER_ERROR_MESSAGES, f)) return adsRenderErrorMessage(f)
-  if (/\s/.test(f)) return f
-  return 'The ad could not be rendered.'
+  return adsRenderErrorMessage(f && Object.prototype.hasOwnProperty.call(ADS_RENDER_ERROR_MESSAGES, f) ? f : 'render_failed')
+}
+
+/** O código curto da falha (snake_case) para o suporte; frase livre devolve null e não aparece. */
+function failureCode(failure: string | null | undefined): string | null {
+  const f = (failure ?? '').trim()
+  return /^[a-z][a-z0-9_]{1,47}$/.test(f) ? f : null
 }
 
 function goLogin() {
@@ -270,25 +292,130 @@ function extrasMissing(model: AdsModel, brief: AdsBrief | null | undefined): str
   })
 }
 
-function beatsFromScript(script: string | null | undefined, model: AdsModel | null): string[] | null {
-  if (!script || !model) return null
-  const parts = script.split(/\n\s*\n/).map((p) => p.replace(/\s+/g, ' ').trim()).filter(Boolean)
+function scriptAngleFor(angle: string, modelId: string): string {
+  return `${angle}${SCRIPT_MODEL_SEP}${modelId}`
+}
+
+/** O roteiro salvo foi escrito para ESTE modelo? Pedido antigo sem "@modelo" conta como não escrito. */
+function scriptWrittenFor(order: AdsOrder | null, modelId: string | null | undefined): boolean {
+  const a = order?.script_angle ?? ''
+  return Boolean(modelId) && a.endsWith(`${SCRIPT_MODEL_SEP}${modelId}`)
+}
+
+/** "question_edited@oferta_relampago" → "question_edited". */
+function angleOf(scriptAngle: string | null | undefined): string {
+  const a = scriptAngle ?? ''
+  const i = a.lastIndexOf(SCRIPT_MODEL_SEP)
+  return i >= 0 ? a.slice(0, i) : a
+}
+
+/** As batidas do roteiro salvo — só se ele foi escrito para o modelo atual do pedido (troca de modelo + recarga
+ *  não traz o roteiro do modelo anterior como pronto). */
+function beatsFromOrder(order: AdsOrder | null): string[] | null {
+  if (!order?.script) return null
+  const model = adsModelById(order.template)
+  if (!model || !scriptWrittenFor(order, model.id)) return null
+  const parts = order.script.split(/\n\s*\n/).map((p) => p.replace(/\s+/g, ' ').trim()).filter(Boolean)
   return parts.length === model.beats.length ? parts : null
 }
 
 /** Até onde a pessoa pode ir com o que o servidor já guardou (índice em STEPS). */
-function reachableIndex(order: AdsOrder | null, beats: string[] | null, card: CardInfo | null): number {
+function reachableIndex(order: AdsOrder | null, beats: string[] | null, card: CardInfo | null, storyboard: Storyboard): number {
   if (!order || !briefComplete(order.brief)) return 0
   const sum = mediaSummary(orderMedia(order))
-  if (!sum.logo || sum.rest.length < 1 || !order.consent_at) return 1
+  if (!sum.logo || sum.photos < MIN_PHOTOS_ANY_MODEL || !order.consent_at) return 1
   const model = adsModelById(order.template)
   if (!model) return 2
   if (adsModelMissingInputs(model, { photos: sum.photos, videos: sum.videos, logo: Boolean(sum.logo) }).length) return 2
   if (extrasMissing(model, order.brief).length) return 2
-  if (!beats || beats.length !== model.beats.length) return 3
+  if (!beats || beats.length !== model.beats.length || !scriptWrittenFor(order, model.id)) return 3
   if (!isAdsVoice(order.voice)) return 4
-  if (!card) return 5
+  // Cartão desta sessão (o recuperado do pedido só vale depois de visto) E storyboard válido para a mídia atual.
+  if (!card || card.sig === null || !storyboardValid(storyboard, model, sum.rest)) return 5
   return 6
+}
+
+/** Identidade da mídia (ids, logo e tipo) — muda quando a pessoa sobe, remove ou troca o logo. */
+function mediaKey(media: AdsMediaItem[]): string {
+  return media.map((m) => `${m.footageId}:${m.isLogo ? 'logo' : m.kind}`).join('|')
+}
+
+/** Tira do storyboard os ids que não estão mais na mídia (sem o logo); batida que esvazia sai do mapa. */
+function pruneStoryboard(sb: Storyboard, media: AdsMediaItem[]): Storyboard {
+  const ids = new Set(media.filter((m) => !m.isLogo).map((m) => m.footageId))
+  const out: Storyboard = {}
+  for (const [k, list] of Object.entries(sb)) {
+    const kept = (list ?? []).filter((id) => ids.has(id))
+    if (kept.length) out[Number(k)] = kept
+  }
+  return out
+}
+
+/** O storyboard que o render gravou no pedido ([{beatIndex, footageIds}]), só com ids ainda presentes na mídia. */
+function savedStoryboard(src: AdsOrder | null, media: AdsMediaItem[]): Storyboard {
+  const model = adsModelById(src?.template ?? null)
+  const raw: unknown = src?.storyboard
+  if (!model || !Array.isArray(raw)) return {}
+  const ids = new Set(media.filter((m) => !m.isLogo).map((m) => m.footageId))
+  const out: Storyboard = {}
+  for (const s of raw) {
+    if (!s || typeof s !== 'object') continue
+    const e = s as { beatIndex?: unknown; footageIds?: unknown }
+    const bi = typeof e.beatIndex === 'number' && Number.isInteger(e.beatIndex) ? e.beatIndex : -1
+    if (bi < 0 || bi >= model.beats.length - 1 || !Array.isArray(e.footageIds)) continue
+    const kept = Array.from(new Set(e.footageIds.filter((id): id is string => typeof id === 'string' && ids.has(id)))).slice(0, ADS_MAX_MEDIA_PER_BEAT)
+    if (kept.length) out[bi] = kept
+  }
+  return out
+}
+
+/** O cartão que o render gravou no pedido (card_footage_id), marcado como recuperado (sig null). */
+function savedCard(src: AdsOrder | null): CardInfo | null {
+  const id = src && typeof src.card_footage_id === 'string' && /^[0-9a-f-]{36}$/i.test(src.card_footage_id) ? src.card_footage_id : null
+  return id ? { id, sig: null } : null
+}
+
+/** Hash curto e estável (FNV-1a 32 bits) — só para chavear as versões do roteiro pelo brief. */
+function shortHash(s: string): string {
+  let h = 0x811c9dc5
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 0x01000193)
+  }
+  return (h >>> 0).toString(36)
+}
+
+const SCRIPT_ANGLES: readonly string[] = ['question', 'number', 'result']
+
+/** Versões do roteiro guardadas nesta aba (conveniência: recarregar ou voltar não gasta o teto diário de novas). */
+function readVersions(key: string, n: number): AdsScriptVersion[] | null {
+  try {
+    if (typeof window === 'undefined') return null
+    const raw = window.sessionStorage.getItem(key)
+    if (!raw) return null
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return null
+    const list = parsed.filter((v): v is AdsScriptVersion => {
+      if (!v || typeof v !== 'object') return false
+      const x = v as Record<string, unknown>
+      return (
+        typeof x.angle === 'string' && SCRIPT_ANGLES.includes(x.angle) &&
+        Array.isArray(x.beats) && x.beats.length === n && x.beats.every((b) => typeof b === 'string') &&
+        typeof x.script === 'string' && typeof x.words === 'number'
+      )
+    })
+    return list.length ? list : null
+  } catch {
+    return null
+  }
+}
+
+function writeVersions(key: string, list: AdsScriptVersion[]) {
+  try {
+    if (typeof window !== 'undefined') window.sessionStorage.setItem(key, JSON.stringify(list))
+  } catch {
+    /* armazenamento indisponível (aba privada, cota): as versões só não sobrevivem à recarga */
+  }
 }
 
 function storyboardValid(sb: Storyboard, model: AdsModel, rest: AdsMediaItem[]): boolean {
@@ -527,23 +654,43 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
   const settled = useRef(false)
   const localUrlsRef = useRef(localUrls)
   localUrlsRef.current = localUrls
+  const orderRef = useRef<AdsOrder | null>(order)
+  orderRef.current = order
 
   const model = useMemo(() => adsModelById(order?.template ?? null), [order?.template])
 
+  /** Grava o pedido devolvido pelo servidor e derruba o que ficou velho: mídia mudou → cartão sai e o storyboard perde
+   *  os ids que sumiram; brief mudou → cartão sai (o texto dele nasce do brief). Assim a barra de passos não chega ao
+   *  Render com cartão ou storyboard de uma versão anterior. */
+  const applyOrder = useCallback((next: AdsOrder) => {
+    const prev = orderRef.current
+    if (prev && prev.id === next.id) {
+      if (mediaKey(orderMedia(prev)) !== mediaKey(orderMedia(next))) {
+        setCard(null)
+        setStoryboard((sb) => pruneStoryboard(sb, orderMedia(next)))
+      }
+      if (JSON.stringify(prev.brief ?? null) !== JSON.stringify(next.brief ?? null)) setCard(null)
+    }
+    orderRef.current = next
+    setOrder(next)
+  }, [])
+
   const hydrate = useCallback(async (orders: AdsOrder[]) => {
     const pick = orders.find((o) => REUSABLE_STATUSES.includes(o.status)) ?? null
+    orderRef.current = pick
     setOrder(pick)
-    setCard(null)
-    setStoryboard({})
+    const b = beatsFromOrder(pick)
+    setBeats(b)
+    // Rascunho devolvido (402), falha ou render em curso: o pedido guarda o storyboard e o cartão do último render.
+    const seed = pick && SEEDABLE_STATUSES.includes(pick.status)
+    setStoryboard(seed ? savedStoryboard(pick, orderMedia(pick)) : {})
+    setCard(seed ? savedCard(pick) : null)
     if (!pick) {
-      setBeats(null)
       setView('brief')
       return
     }
     if (pick.status === 'draft') {
-      const b = beatsFromScript(pick.script, adsModelById(pick.template))
-      setBeats(b)
-      setView(STEPS[Math.min(reachableIndex(pick, b, null), 5)].id)
+      setView(STEPS[Math.min(reachableIndex(pick, b, null, {}), 5)].id)
       return
     }
     const st = await fetchRenderState(pick.id)
@@ -640,7 +787,7 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
 
   const addLocalUrl = useCallback((id: string, url: string) => setLocalUrls((m) => ({ ...m, [id]: url })), [])
 
-  const reach = reachableIndex(order, beats, card)
+  const reach = reachableIndex(order, beats, card, storyboard)
   const stepIndex = STEPS.findIndex((s) => s.id === view)
 
   async function startNew(src: AdsOrder | null, mode: 'another' | 'retry') {
@@ -679,10 +826,18 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
           if (p.ok) next = p.data.order
         }
       }
+      const nextMedia = orderMedia(next)
+      orderRef.current = next
       setOrder(next)
-      setBeats(mode === 'retry' ? beatsFromScript(next.script, adsModelById(next.template)) : null)
-      setStoryboard({})
-      setCard(null)
+      setBeats(mode === 'retry' ? beatsFromOrder(next) : null)
+      if (mode === 'retry' && src) {
+        // Tentar de novo não pede cartão nem storyboard de novo: o desta sessão, ou o que o render gravou no pedido.
+        setStoryboard((sb) => (Object.keys(sb).length ? pruneStoryboard(sb, nextMedia) : savedStoryboard(src, nextMedia)))
+        setCard((c) => c ?? savedCard(src))
+      } else {
+        setStoryboard({})
+        setCard(null)
+      }
       setRender(null)
       setRenderState(null)
       setView(mode === 'retry' ? 'media' : 'brief')
@@ -749,7 +904,7 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
       </div>
     )
   } else if (view === 'brief' || !order) {
-    content = <BriefStep order={order} onSaved={(o) => { setOrder(o); setView('media') }} />
+    content = <BriefStep order={order} onSaved={(o) => { applyOrder(o); setView('media') }} />
   } else if (view === 'media') {
     content = (
       <MediaStep
@@ -758,9 +913,9 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
         localUrls={localUrls}
         addLocalUrl={addLocalUrl}
         sessionUploads={sessionUploads}
-        onOrder={setOrder}
+        onOrder={applyOrder}
         onBack={() => setView('brief')}
-        onContinue={(o) => { setOrder(o); setView('model') }}
+        onContinue={(o) => { applyOrder(o); setView('model') }}
       />
     )
   } else if (view === 'model') {
@@ -769,10 +924,12 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
         order={order}
         onBack={() => setView('media')}
         onSaved={(o, changed) => {
-          setOrder(o)
+          applyOrder(o)
           if (changed) {
+            // Outro modelo = outras batidas: roteiro, storyboard e cartão da versão anterior não valem mais.
             setBeats(null)
             setStoryboard({})
+            setCard(null)
           }
           setView('script')
         }}
@@ -806,7 +963,7 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
         onContinue={() => setView('render')}
       />
     )
-  } else if (view === 'render' && model && beats && card) {
+  } else if (view === 'render' && model && beats && card && reach >= 6) {
     content = (
       <RenderStep
         order={order}
@@ -836,17 +993,32 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
       <ProgressView
         orderId={order.id}
         render={render}
+        busyNew={busyNew}
+        newError={newError}
+        onStartNew={() => void startNew(order, 'retry')}
         onDone={(st) => { setRenderState(st); setOrder({ ...order, status: 'delivered' }); setView('delivery') }}
         onFailed={(st) => { setRenderState(st); setOrder({ ...order, status: 'failed' }); setView('failed') }}
+        onDraft={(st) => {
+          // O servidor devolveu o pedido a rascunho (ex.: sem crédito no compose): volta ao passo de render.
+          const back: AdsOrder = { ...order, status: 'draft' }
+          orderRef.current = back
+          setRenderState(st)
+          setOrder(back)
+          setRender(null)
+          const r = reachableIndex(back, beats, card, storyboard)
+          setView(r >= 6 ? 'render' : STEPS[Math.min(r, 5)].id)
+        }}
       />
     )
   } else if (view === 'delivery') {
     content = <DeliveryView order={order} state={renderState} busyNew={busyNew} newError={newError} onAnother={() => void startNew(order, 'another')} />
   } else if (view === 'failed') {
+    const code = failureCode(renderState?.failure)
     content = (
       <div className="card adsw-panel">
         <h2 tabIndex={-1} data-step-heading>This ad did not render</h2>
         <p className="adsw-lead" role="alert">{failureText(renderState?.failure)}</p>
+        {code ? <p className="adsw-hint">Details: {code}</p> : null}
         <p className="adsw-hint">Try again with the same brief, photos, script and voice. You only confirm your photos and continue.</p>
         <div className="adsw-actions">
           <button type="button" className="adsw-btn" disabled={busyNew} onClick={() => void startNew(order, 'retry')}>
@@ -885,7 +1057,7 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
                   <button
                     type="button"
                     className={cls}
-                    disabled={i > reach || i === stepIndex || (i === 6 && !card)}
+                    disabled={i > reach || i === stepIndex}
                     aria-current={i === stepIndex ? 'step' : undefined}
                     onClick={() => setView(s.id)}
                   >
@@ -1150,7 +1322,8 @@ function MediaStep({
   async function next() {
     if (saving || busy) return
     if (!logo) return setContError('Upload your logo — it goes on the last frame of the ad.')
-    if (!rest.length) return setContError('Upload at least one photo or video of your business.')
+    // Vídeo não conta: todo modelo pede fotos (o menor mínimo é MIN_PHOTOS_ANY_MODEL). Só vídeo = 8 modelos trancados.
+    if (photos < MIN_PHOTOS_ANY_MODEL) return setContError(PHOTOS_NEEDED_LINE)
     if (!consent) return setContError('Confirm you own these photos and videos, or have permission to use them.')
     setSaving(true)
     const r = await patchOrder(order.id, { media: mediaRef.current.map(stripItem), consent: true })
@@ -1199,6 +1372,9 @@ function MediaStep({
         {rest.length} of {MAX_MEDIA} files · {photos} {photos === 1 ? 'photo' : 'photos'}
         {minPhotos !== null && model ? ` · ${model.name} needs at least ${minPhotos} photos` : ' · most models need 3 to 6 photos'}
       </p>
+      {photos < MIN_PHOTOS_ANY_MODEL ? (
+        <p className={rest.length ? 'adsw-warn' : 'adsw-hint'} style={{ margin: '0 0 10px' }}>{PHOTOS_NEEDED_LINE}</p>
+      ) : null}
       <div className="adsw-media">
         {rest.map((m, i) => (
           <div className="adsw-tile" key={m.footageId}>
@@ -1370,7 +1546,9 @@ function ScriptStep({
   onBack: () => void
   onSaved: (o: AdsOrder, beats: string[]) => void
 }) {
-  const savedAngle = order.script_angle ?? ''
+  // Só o roteiro escrito para ESTE modelo conta ("<ângulo>@<modelo>"); o de outro modelo não pré-seleciona nada.
+  const savedAngle = scriptWrittenFor(order, model.id) ? angleOf(order.script_angle) : ''
+  const versionsKey = `ads_versions:${order.id}:${model.id}:${shortHash(JSON.stringify(order.brief ?? null))}`
   const [versions, setVersions] = useState<AdsScriptVersion[] | null>(null)
   const [loading, setLoading] = useState(false)
   const [genError, setGenError] = useState<string | null>(null)
@@ -1402,14 +1580,21 @@ function ScriptStep({
     const list = Array.isArray(r.data.versions) ? r.data.versions.filter((v) => Array.isArray(v.beats) && v.beats.length === n) : []
     if (!list.length) return setGenError('We could not write a version that uses only your facts. Add the missing facts to your brief and try again.')
     setVersions(list)
-  }, [order.id, n])
+    writeVersions(versionsKey, list)
+  }, [order.id, n, versionsKey])
 
+  // Ao abrir: devolve as versões já escritas nesta aba (mesmo pedido, modelo e brief); só escreve versões novas
+  // sozinho quando nada voltou E não há roteiro salvo para este modelo.
   useEffect(() => {
-    if (!initialBeats && !autoRan.current) {
-      autoRan.current = true
-      void generate()
+    if (autoRan.current) return
+    autoRan.current = true
+    const restored = readVersions(versionsKey, n)
+    if (restored) {
+      setVersions(restored)
+      return
     }
-  }, [initialBeats, generate])
+    if (!initialBeats) void generate()
+  }, [initialBeats, generate, versionsKey, n])
 
   function pick(v: AdsScriptVersion) {
     setDraft([...v.beats])
@@ -1437,7 +1622,7 @@ function ScriptStep({
     const scriptAngle = angle === 'own' ? 'own' : edited ? `${angle}_edited` : angle
     setError(null)
     setSaving(true)
-    const r = await patchOrder(order.id, { script: clean.join('\n\n'), script_angle: scriptAngle })
+    const r = await patchOrder(order.id, { script: clean.join('\n\n'), script_angle: scriptAngleFor(scriptAngle, model.id) })
     setSaving(false)
     if (!r.ok) {
       if (r.status === 401) return goLogin()
@@ -1529,41 +1714,137 @@ function VoiceStep({ order, firstBeat, onBack, onSaved }: { order: AdsOrder; fir
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // UM <audio> para a tela inteira, destravado DENTRO do toque (iPhone só deixa tocar som depois de um await se o
+  // elemento já tocou no gesto). As prévias ficam num cache voz+texto → blob: tocar de novo não gasta o teto diário.
   const audioRef = useRef<HTMLAudioElement | null>(null)
-  const urlRef = useRef<string | null>(null)
+  const cacheRef = useRef<Map<string, string>>(new Map())
+  const reqRef = useRef(0)
+  const aliveRef = useRef(true)
 
   const stop = useCallback(() => {
-    try {
-      audioRef.current?.pause()
-    } catch {
-      /* ignore */
-    }
-    audioRef.current = null
-    if (urlRef.current) {
-      URL.revokeObjectURL(urlRef.current)
-      urlRef.current = null
+    reqRef.current++
+    const a = audioRef.current
+    if (a) {
+      try {
+        a.pause()
+      } catch {
+        /* ignore */
+      }
     }
     setPlaying(null)
+    setLoadingVoice(null)
   }, [])
 
-  useEffect(() => stop, [stop])
+  useEffect(() => {
+    const cache = cacheRef.current
+    aliveRef.current = true
+    return () => {
+      // Saiu do passo (barra de passos, recarga): nenhuma prévia pendente toca depois disto.
+      aliveRef.current = false
+      reqRef.current++
+      const a = audioRef.current
+      if (a) {
+        try {
+          a.pause()
+          a.removeAttribute('src')
+          a.load()
+        } catch {
+          /* ignore */
+        }
+      }
+      audioRef.current = null
+      cache.forEach((u) => {
+        try {
+          URL.revokeObjectURL(u)
+        } catch {
+          /* ignore */
+        }
+      })
+      cache.clear()
+    }
+  }, [])
 
-  async function preview(v: AdsVoiceId) {
-    if (playing === v) return stop()
+  function audioEl(): HTMLAudioElement {
+    if (!audioRef.current) audioRef.current = new Audio()
+    return audioRef.current
+  }
+
+  function remember(key: string, url: string) {
+    const cache = cacheRef.current
+    cache.set(key, url)
+    while (cache.size > VOICE_CACHE_MAX) {
+      const oldest = cache.keys().next().value as string | undefined
+      if (oldest === undefined || oldest === key) break
+      const old = cache.get(oldest)
+      cache.delete(oldest)
+      if (old && audioRef.current?.src !== old) {
+        try {
+          URL.revokeObjectURL(old)
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+  }
+
+  /** Toca uma URL no elemento destravado. Chamado de dentro do toque (cache) roda play() sem await antes. */
+  async function playUrl(a: HTMLAudioElement, url: string, v: AdsVoiceId, token: number) {
+    try {
+      a.onended = () => {
+        if (reqRef.current === token) setPlaying(null)
+      }
+      a.src = url
+      setLoadingVoice(null)
+      setPlaying(v)
+      await a.play()
+    } catch {
+      if (reqRef.current !== token) return
+      setPlaying(null)
+      setPreviewError('The preview could not play. Tap it again.')
+    }
+  }
+
+  function preview(v: AdsVoiceId) {
+    if (playing === v || loadingVoice === v) return stop()
     stop()
+    const token = reqRef.current
     setPreviewError(null)
-    setLoadingVoice(v)
     void trackEvent('ads_voice_previewed', { order_id: order.id, voice: v })
     const text = previewText(firstBeat || order.brief?.business || 'Hello! This is how your ad will sound.', ADS_VOICE_PREVIEW_MAX_CHARS)
+    const key = `${v}\u0000${text}`
+    const a = audioEl()
+    const cached = cacheRef.current.get(key)
+    if (cached) {
+      void playUrl(a, cached, v, token)
+      return
+    }
+    // Destrava o elemento no gesto, antes de qualquer await: toca o silêncio e pausa.
+    try {
+      a.onended = null
+      a.src = SILENT_AUDIO
+      const p = a.play()
+      if (p) {
+        p.then(() => {
+          if (a.src === SILENT_AUDIO) a.pause()
+        }).catch(() => {})
+      }
+    } catch {
+      /* navegador sem áudio: a prévia falha abaixo com mensagem */
+    }
+    setLoadingVoice(v)
+    void fetchAndPlay(a, v, text, key, token)
+  }
+
+  async function fetchAndPlay(a: HTMLAudioElement, v: AdsVoiceId, text: string, key: string, token: number) {
     let res: Response
     try {
       res = await fetch('/api/ads/voice', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ voice: v, text }) })
     } catch {
+      if (reqRef.current !== token) return
       setLoadingVoice(null)
       return setPreviewError(ORDER_ERRORS.network)
     }
     if (!res.ok) {
-      setLoadingVoice(null)
       if (res.status === 401) return goLogin()
       let code: string | null = null
       let message: string | null = null
@@ -1574,23 +1855,26 @@ function VoiceStep({ order, firstBeat, onBack, onSaved }: { order: AdsOrder; fir
       } catch {
         /* ignore */
       }
+      if (reqRef.current !== token) return
+      setLoadingVoice(null)
       return setPreviewError(code && Object.prototype.hasOwnProperty.call(ADS_RENDER_ERROR_MESSAGES, code) ? adsRenderErrorMessage(code) : message || 'The preview is not available right now. You can still pick a voice.')
     }
+    let url: string
     try {
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      urlRef.current = url
-      const audio = new Audio(url)
-      audioRef.current = audio
-      audio.onended = () => stop()
-      setLoadingVoice(null)
-      setPlaying(v)
-      await audio.play()
+      url = URL.createObjectURL(await res.blob())
     } catch {
+      if (reqRef.current !== token) return
       setLoadingVoice(null)
-      stop()
-      setPreviewError('The preview could not play. Tap it again.')
+      return setPreviewError('The preview is not available right now. You can still pick a voice.')
     }
+    if (!aliveRef.current) {
+      URL.revokeObjectURL(url)
+      return
+    }
+    // Guarda mesmo se a pessoa já tocou em outra voz: o próximo toque nesta sai do cache, sem nova síntese.
+    remember(key, url)
+    if (reqRef.current !== token) return
+    await playUrl(a, url, v, token)
   }
 
   async function save() {
@@ -1676,6 +1960,26 @@ function StoryboardStep({
   const rtl = isRtl(brief?.language)
   const srcOf = (m: AdsMediaItem) => localUrls[m.footageId] ?? m.url
 
+  // Cartão recuperado do pedido (sig null): mostra o PNG salvo e o reaproveita sem novo envio, até a pessoa editar o
+  // texto ou tocar em Redraw. Se o arquivo não for achado na conta, desenha um novo como antes.
+  const restoredId = card && (card.sig === null || card.savedUrl) ? card.id : null
+  const [useSaved, setUseSaved] = useState(Boolean(restoredId))
+  const [savedUrl, setSavedUrl] = useState<string | null>(card?.savedUrl ?? null)
+  const needsLookup = Boolean(card && card.sig === null && !card.savedUrl)
+  useEffect(() => {
+    if (!restoredId || !needsLookup) return
+    let alive = true
+    void callJson<{ items?: unknown }>('/api/footage').then((r) => {
+      if (!alive) return
+      const items = r.ok && Array.isArray(r.data.items) ? (r.data.items as { id?: unknown; url?: unknown }[]) : []
+      const hit = items.find((x) => x && x.id === restoredId && typeof x.url === 'string')
+      if (hit && typeof hit.url === 'string') setSavedUrl(hit.url)
+      else setUseSaved(false)
+    })
+    return () => { alive = false }
+  }, [restoredId, needsLookup])
+  const showSaved = useSaved && Boolean(restoredId) && Boolean(savedUrl)
+
   const valid = storyboardValid(storyboard, model, rest)
   useEffect(() => {
     if (!valid && rest.length) setStoryboard(defaultStoryboard(model, media))
@@ -1728,8 +2032,14 @@ function StoryboardStep({
     for (let i = 0; i < n - 1; i++) {
       if (!(storyboard[i] ?? []).length) return setError(`Pick at least one photo or video for part ${i + 1}.`)
     }
+    if (card && showSaved) {
+      // A pessoa viu o cartão salvo e seguiu: ele passa a valer nesta sessão, com a prévia presa ao PNG salvo.
+      onCard({ id: card.id, sig, savedUrl })
+      return onContinue()
+    }
     if (!logoImg) return setError(logoFailed ? 'Your logo could not be loaded. Go back to step 2 and upload it again as PNG or JPG.' : 'The logo is still loading. Wait a second and try again.')
-    if (card && card.sig === sig) return onContinue()
+    // Cartão desenhado nesta sessão e texto igual: reaproveita. Cartão salvo cuja prévia saiu (editou/Redraw): novo.
+    if (card && card.sig !== null && !card.savedUrl && card.sig === sig) return onContinue()
     const c = canvasRef.current
     if (!c) return setError('The end card could not be drawn in this browser.')
     setBusy(true)
@@ -1795,30 +2105,38 @@ function StoryboardStep({
         <h3>Part {n} · end card · {model.beats[n - 1].seconds} s</h3>
         <p className="adsw-say" dir={rtl ? 'rtl' : undefined}>“{beats[n - 1]}”</p>
         <div className="adsw-cardwrap">
-          <canvas ref={canvasRef} className="adsw-canvas" width={1080} height={1920} role="img" aria-label="End card preview with your logo, name, offer and contact" />
+          {showSaved && savedUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="adsw-canvas" src={savedUrl} alt="Your saved end card with your logo, name, offer and contact" />
+          ) : null}
+          <canvas ref={canvasRef} className="adsw-canvas" width={1080} height={1920} role="img" aria-label="End card preview with your logo, name, offer and contact" style={showSaved ? { display: 'none' } : undefined} />
           <div className="adsw-cardside">
-            <p className="adsw-hint" style={{ marginTop: 0 }}>The last frame of your ad. Text stays inside the safe area so captions and zoom never cover it.</p>
+            <p className="adsw-hint" style={{ marginTop: 0 }}>
+              {showSaved
+                ? 'Your saved end card from last time. Edit the text or tap Redraw to make a new one.'
+                : 'The last frame of your ad. Text stays inside the safe area so captions and zoom never cover it.'}
+            </p>
             {logoFailed ? <p className="adsw-warn">Your logo could not be loaded. Go back to step 2 and upload it again.</p> : null}
             <details>
               <summary>Edit the card text</summary>
               <label className="adsw-f">
                 <span>Name</span>
-                <input type="text" value={headline} maxLength={60} dir={rtl ? 'rtl' : undefined} onChange={(e) => setHeadline(e.target.value)} />
+                <input type="text" value={headline} maxLength={60} dir={rtl ? 'rtl' : undefined} onChange={(e) => { setUseSaved(false); setHeadline(e.target.value) }} />
               </label>
               <label className="adsw-f">
                 <span>Offer line</span>
-                <input type="text" value={offerLine} maxLength={120} dir={rtl ? 'rtl' : undefined} onChange={(e) => setOfferLine(e.target.value)} />
+                <input type="text" value={offerLine} maxLength={120} dir={rtl ? 'rtl' : undefined} onChange={(e) => { setUseSaved(false); setOfferLine(e.target.value) }} />
               </label>
               <label className="adsw-f">
                 <span>Button text</span>
-                <input type="text" value={button} maxLength={40} dir={rtl ? 'rtl' : undefined} onChange={(e) => setButton(e.target.value)} />
+                <input type="text" value={button} maxLength={40} dir={rtl ? 'rtl' : undefined} onChange={(e) => { setUseSaved(false); setButton(e.target.value) }} />
               </label>
               <label className="adsw-f">
                 <span>Contact</span>
-                <input type="text" value={contact} maxLength={80} onChange={(e) => setContact(e.target.value)} />
+                <input type="text" value={contact} maxLength={80} onChange={(e) => { setUseSaved(false); setContact(e.target.value) }} />
               </label>
             </details>
-            <button type="button" className="adsw-btn ghost small" onClick={redraw}>Redraw</button>
+            <button type="button" className="adsw-btn ghost small" onClick={() => { setUseSaved(false); redraw() }}>Redraw</button>
           </div>
         </div>
       </section>
@@ -2009,23 +2327,34 @@ function RenderStep({
 function ProgressView({
   orderId,
   render,
+  busyNew,
+  newError,
+  onStartNew,
   onDone,
   onFailed,
+  onDraft,
 }: {
   orderId: string
   render: RenderInfo
+  busyNew: boolean
+  newError: string | null
+  onStartNew: () => void
   onDone: (s: AdsRenderState) => void
   onFailed: (s: AdsRenderState) => void
+  onDraft: (s: AdsRenderState) => void
 }) {
   const [progress, setProgress] = useState(0)
   const [trouble, setTrouble] = useState(false)
   const [timedOut, setTimedOut] = useState(false)
+  const [stuck, setStuck] = useState(false)
   const [round, setRound] = useState(0)
   const renderRef = useRef<RenderInfo>(render)
   const doneRef = useRef(onDone)
   const failRef = useRef(onFailed)
+  const draftRef = useRef(onDraft)
   doneRef.current = onDone
   failRef.current = onFailed
+  draftRef.current = onDraft
 
   useEffect(() => {
     let stopped = false
@@ -2033,6 +2362,8 @@ function ProgressView({
     const deadline = Date.now() + POLL_CAP_MS
     let failures = 0
     let composeDead = false
+    // Desde quando o pedido aparece 'rendering' SEM render_id (o POST morreu antes de gravar o id do compose).
+    let noRenderSince: number | null = null
     setTimedOut(false)
 
     const soft = () => {
@@ -2067,6 +2398,15 @@ function ProgressView({
       setTrouble(false)
       if (st.status === 'delivered' || st.status === 'reviewed' || st.final_video_url) return doneRef.current(st)
       if (st.status === 'failed' || st.status === 'cancelled') return failRef.current(st)
+      // O servidor devolveu o pedido a rascunho (ex.: compose sem saldo): sai do progresso, volta ao passo de render.
+      if (st.status === 'draft') return draftRef.current(st)
+      if (st.status === 'rendering' && !st.render_id) {
+        if (noRenderSince === null) noRenderSince = Date.now()
+        else if (Date.now() - noRenderSince > STUCK_NO_RENDER_MS) setStuck(true)
+      } else {
+        noRenderSince = null
+        setStuck(false)
+      }
       if (st.render_id && !composeDead && !renderRef.current.renderId) {
         renderRef.current = { renderId: st.render_id, seconds: st.seconds ?? renderRef.current.seconds, topic: st.topic ?? renderRef.current.topic }
       }
@@ -2123,8 +2463,13 @@ function ProgressView({
       if (body.phase === 'failed') {
         const st = await fetchRenderState(orderId)
         if (stopped) return
-        const reason = typeof body.error === 'string' ? body.error : typeof body.failure_reason === 'string' ? body.failure_reason : null
-        return failRef.current(st ? { ...st, status: 'failed', failure: st.failure ?? reason } : fallbackState({ status: 'failed', failure: reason }))
+        // Só o CÓDIGO viaja (failure_reason); a frase do compose fala de outro produto e nunca vai para a tela.
+        const code =
+          (typeof body.failure_reason === 'string' && failureCode(body.failure_reason)) ||
+          (typeof body.error === 'string' && failureCode(body.error)) ||
+          'render_failed'
+        const failure = st && failureCode(st.failure) ? st.failure : code
+        return failRef.current(st ? { ...st, status: 'failed', failure } : fallbackState({ status: 'failed', failure }))
       }
       const p = typeof body.progress === 'number' && Number.isFinite(body.progress) ? body.progress : null
       if (p !== null) setProgress((old) => Math.max(old, Math.min(99, Math.round(p))))
@@ -2139,21 +2484,36 @@ function ProgressView({
   }, [orderId, round])
 
   const stage = progress < 20 ? 'Recording the narration' : progress < 60 ? 'Placing your photos and clips' : progress < 90 ? 'Adding captions and music' : 'Finishing'
+  const late = timedOut || stuck
   return (
     <div className="card">
       <h2 tabIndex={-1} data-step-heading>Your ad is being made</h2>
-      <p className="adsw-lead" aria-live="polite">{timedOut ? 'This is taking longer than usual.' : `${stage}…`}</p>
-      <div className={`adsw-bar ${progress === 0 && !timedOut ? 'pulse' : ''}`} role="progressbar" aria-label="Render progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
+      <p className="adsw-lead" aria-live="polite">{late ? 'This is taking longer than usual.' : `${stage}…`}</p>
+      <div className={`adsw-bar ${progress === 0 && !late ? 'pulse' : ''}`} role="progressbar" aria-label="Render progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
         <i style={{ width: `${Math.max(4, progress)}%` }} />
       </div>
       <p className="adsw-hint">{progress > 0 ? `${progress}% · ` : ''}This usually takes 3 to 7 minutes. You can close this page — the ad will also be in your library.</p>
-      {trouble && !timedOut ? <p className="adsw-warn" role="status">Connection trouble — still checking…</p> : null}
+      {trouble && !late ? <p className="adsw-warn" role="status">Connection trouble — still checking…</p> : null}
+      {late ? (
+        <p className="adsw-hint">If it does not finish, start a new ad with the same brief, photos, script and voice.</p>
+      ) : null}
       <div className="adsw-actions">
+        {late ? (
+          <button type="button" className="adsw-btn" disabled={busyNew} onClick={onStartNew}>
+            {busyNew ? 'Preparing…' : 'Start a new ad'}
+          </button>
+        ) : null}
         {timedOut ? (
-          <button type="button" className="adsw-btn" onClick={() => setRound((x) => x + 1)}>Check again</button>
+          <button type="button" className="adsw-btn ghost" onClick={() => setRound((x) => x + 1)}>Check again</button>
         ) : null}
         <Link className="adsw-link" href="/history">Open My Videos</Link>
       </div>
+      {late ? (
+        <p className="adsw-hint">
+          Write to <a className="adsw-link" href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Studio Ads · ${orderId.slice(0, 8)}`)}`}>{SUPPORT_EMAIL}</a> with this code: {orderId.slice(0, 8)}
+        </p>
+      ) : null}
+      {newError ? <p className="adsw-err" role="alert">{newError}</p> : null}
     </div>
   )
 }

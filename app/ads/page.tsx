@@ -12,9 +12,11 @@
 //   2. adsPassLive() OR internal account     → "Get Studio Ads · <price>" as a plain <a> to the checkout GET
 //      (logged-out people are sent to /login by the checkout and brought back); the same rule the checkout applies;
 //   3. otherwise                             → "Opens soon", no button.
-// The buy CTA (and only it) closes when the first-ad review queue is full: ads_orders delivered with qa_at null,
-// counted by distinct user, >= ADS_MAX_OPEN_REVIEWS. A read failure or a missing table counts as 0 — the page never
-// hangs or breaks on it (the server side of the cap belongs to the render/checkout routes, not to this page).
+// The buy CTA (and only it) closes when the first-ad review queue is full: ads_orders delivered IN THE LAST 24 HOURS
+// with qa_at null, counted by distinct user, >= ADS_MAX_OPEN_REVIEWS. The 24-hour window is the promised review window,
+// so a review nobody closed can never lock the door for good and "come back tomorrow" stays true. A read failure or a
+// missing table counts as 0 — the page never hangs or breaks on it (the server side of the cap belongs to the
+// render/checkout routes, not to this page).
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import Footer from '@/components/Footer'
@@ -56,6 +58,8 @@ const WIZARD_HREF = '/ads/new'
 const DFY_HREF = '/business-video-ads'
 /** A slow auth or database read must never hold the public door; past this, the page renders the safe default. */
 const READ_TIMEOUT_MS = 2500
+/** The promised review window: only ads delivered inside it count toward the review cap. */
+const REVIEW_WINDOW_MS = 24 * 3600 * 1000
 
 type Viewer = { signedIn: boolean; gate: 'ok' | 'no_access' | 'closed' | null; internal: boolean }
 const ANONYMOUS: Viewer = { signedIn: false, gate: null, internal: false }
@@ -87,14 +91,16 @@ async function readViewer(): Promise<Viewer> {
   }
 }
 
-/** Businesses waiting for the human review of a delivered ad (distinct users; 0 on any failure). */
+/** Businesses waiting for the human review of an ad delivered in the last 24 hours (distinct users; 0 on any failure). */
 async function countOpenReviews(): Promise<number> {
   try {
+    const since = new Date(Date.now() - REVIEW_WINDOW_MS).toISOString()
     const { data, error } = await footageAdminClient()
       .from('ads_orders')
       .select('user_id')
       .eq('status', 'delivered')
       .is('qa_at', null)
+      .gte('delivered_at', since)
       .limit(1000)
     if (error) {
       if (!isMissingAdsTable(error.code)) console.warn('[ads page] open-review count failed:', error.code)
@@ -210,13 +216,13 @@ export default async function StudioAdsPage() {
 
         <section className="ads-sec" aria-labelledby="ads-models">
           <h2 id="ads-models">{ADS_MODELS.length} ad models</h2>
-          <p className="ads-lede">Each model is a proven structure with a hook, a proof and a last frame with your logo and call to action. {lengthsLabel} seconds.</p>
+          <p className="ads-lede">Each model is a proven structure with a hook, a proof and a last frame with your logo and call to action. Every shot comes from your own photos and clips. {lengthsLabel} seconds.</p>
           <ul className="ads-models">
             {ADS_MODELS.map((m) => (
               <li className="card ads-model" key={m.id}>
                 <div className="ads-model-top"><b>{m.name}</b><span className="ads-secs">{m.seconds} s</span></div>
                 <p className="ads-seg">{m.segment}</p>
-                <p className="hint">Goal: {m.goal}. Needs {mediaNeeds(m)}.{m.beats.some((b) => b.media === 'stock') ? ' Some shots use stock footage.' : ''}</p>
+                <p className="hint">Goal: {m.goal}. Needs {mediaNeeds(m)}.</p>
               </li>
             ))}
           </ul>
