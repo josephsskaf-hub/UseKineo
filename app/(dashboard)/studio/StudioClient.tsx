@@ -48,6 +48,7 @@ import { buildStudioSeriesReviewHref, carryStudioSeriesReview, isStudioSeriesRev
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 import { STUDIO_ONLY_ENGINE_KEYS } from '@/lib/enginePlanGate'
 import DiretorKineo from '@/components/DiretorKineo' // DIRETOR-KINEO-20260923
+import DfyOfferCard from '@/components/DfyOfferCard' // KINEO-EMPRESAS-COCKPIT-2026-09-24
 
 // A chave do card → a Quality que o biller entende. Uma fonte só para os dois
 // (tela e cobrança) evita a classe de bug que este arquivo já teve: custo em
@@ -719,6 +720,15 @@ export default function StudioClient() {
                 )}
               </div>
             )}
+            {/* KINEO-EMPRESAS-COCKPIT-2026-09-24 — "quer que a gente faça?" AQUI, onde o
+                pedido de anúncio de empresa é digitado, ANTES do go. A v2 (23-24/09) só
+                montava o cartão no passo 2 do /studio/create, e este cockpit manda a
+                pessoa para lá com ?studio=1 + disparo automático atrás da cortina: o
+                cartão nunca existia antes do Generate (cético do workflow, 24/09 ~04h).
+                O componente devolve null fora do caso (texto que não parece pedido de
+                anúncio, ou degraus desligados) e nunca esconde o go. Identidade: o
+                cartão resolve sozinho (o cockpit não conhece userId/e-mail). */}
+            <DfyOfferCard prompt={prompt} userId={null} email={null} source="studio_cockpit" />
             <button type="button" onClick={generate} disabled={!prompt.trim() || limit.over} className={`go ${prompt.trim() && !limit.over ? 'ok' : 'no'}`}>
               {/* KINEO-PRECO-VISIVEL-2026-09-02 — o custo entra NO BOTÃO, o
                   padrão da Higgsfield ("the exact cost is shown on the Generate

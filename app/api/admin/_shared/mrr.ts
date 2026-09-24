@@ -259,6 +259,7 @@ export function isNewSubscriberEvent(name: string, metadata: EventMeta): boolean
   if (name === 'subscription_invoice_paid') return metaTrue(metadata, 'trial_conversion')
   if (name !== 'payment_success') return false
   if (metaTrue(metadata, 'card_trial')) return false
+  if (metadata?.kind === 'dfy') return false // KINEO-EMPRESAS-COCKPIT-2026-09-24 — pedido Empresas: dinheiro, não assinante
   const mode = typeof metadata?.checkout_mode === 'string' ? metadata.checkout_mode : null
   const tier = typeof metadata?.tier === 'string' ? metadata.tier : null
   const pack = metadata?.pack

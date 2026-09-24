@@ -4,7 +4,8 @@
 //  S1 pack de US$4,90: grava intent_campaign na sessão (antes: metadata só supabase_user_id/pack/
 //     pack_credits → toda medição de pack dava 0) e `?return=studio` volta ao Studio (antes: /checkout/
 //     success ficava em 'plan_pending' para sempre, lib/growth/checkoutSuccessEntitlement.ts:34-37).
-//  S2 webhook: payment_success ganha kind/payment_link; pedido KINEO EMPRESAS (US$100 por Payment Link)
+//  S2 webhook: payment_success ganha kind/payment_link; pedido KINEO EMPRESAS (Express US$35 / Pro US$75 por Payment Link;
+//     o link legado de US$100 de 23/09 está desativado na Stripe e só é reconhecido)
 //     vira 'dfy_order_paid' ANTES da checagem de userId, sem crédito/plano/has_paid, sem guard, sem throw.
 //  S3 padrão de billing da /pricing = mensal (anual concede 1×/ano, FAQ promete reset mensal; 0 vendas anuais).
 //  S4 fatos que a IA lê: vigência 17/09, Kling 3 calculado, "per week" derivado da janela, llms.txt sem
@@ -37,7 +38,19 @@ try {
   dfy = roda(rd('lib/growth/dfyOffer.ts'))
 }
 checa('DFY_TIERS: Express 3500 e Pro 7500 (fundador 24/09), legado 10000 fora dos SKUs, ACCEPTED = os três', dfy.DFY_TIERS.express.priceMinor === 3500 && dfy.DFY_TIERS.pro.priceMinor === 7500 && dfy.DFY_LEGACY_PRICE_USD_MINOR === 10000 && JSON.stringify([...dfy.DFY_ACCEPTED_AMOUNTS_USD_MINOR]) === '[3500,7500,10000]')
-checa("isDfyLinkUrl('') === false e isDfyOfferLive() === false enquanto nenhum degrau tem URL (cartão pausado)", dfy.isDfyLinkUrl('') === false && (dfy.isDfyOfferLive() === false) === (dfy.liveDfyTiers().length === 0))
+checa("isDfyLinkUrl('') === false; isDfyOfferLive() espelha liveDfyTiers() (vazio = cartão pausado)", dfy.isDfyLinkUrl('') === false && (dfy.isDfyOfferLive() === false) === (dfy.liveDfyTiers().length === 0))
+// ── LIGADO 24/09 ~04h BRT: os dois degraus com os links REAIS que o Cowork criou no painel da Stripe (conta live, nada pago;
+// relatório docs/KINEO-EMPRESAS-STRIPE-2026-09-23.md, seção v2). Se alguém esvaziar uma url/linkId, o cartão some do Studio em
+// SILÊNCIO (o componente devolve null): por isso os valores exatos ficam travados aqui, e não só o formato.
+const EXPRESS_URL = 'https://buy.stripe.com/8x2eVddNbcHRfqH34ygjC0x', EXPRESS_PLINK = 'plink_1UJ4BgIah5dxzSBf8RGTiutr'
+const PRO_URL = 'https://buy.stripe.com/28E14n38x0Z9guL6gKgjC0y', PRO_PLINK = 'plink_1UJ4FXIah5dxzSBf8hU9ggtE'
+checa('LIGADO: Express com a URL e o plink reais (Cowork 24/09)', dfy.DFY_TIERS.express.url === EXPRESS_URL && dfy.DFY_TIERS.express.linkId === EXPRESS_PLINK)
+checa('LIGADO: Pro com a URL e o plink reais (Cowork 24/09)', dfy.DFY_TIERS.pro.url === PRO_URL && dfy.DFY_TIERS.pro.linkId === PRO_PLINK)
+checa('LIGADO: isDfyOfferLive() true nos dois degraus; liveDfyTiers() = [express, pro] nesta ordem', dfy.isDfyOfferLive() === true && dfy.isDfyOfferLive('express') === true && dfy.isDfyOfferLive('pro') === true && dfy.liveDfyTiers().map((t) => t.tier).join(',') === 'express,pro')
+checa('LIGADO: dfyPaymentLinkIds() = [express, pro, legado] e dfyTierForLink resolve os dois plinks reais', JSON.stringify(dfy.dfyPaymentLinkIds()) === JSON.stringify([EXPRESS_PLINK, PRO_PLINK, 'plink_1UJ23XIah5dxzSBfyfKlmOGV']) && dfy.dfyTierForLink(EXPRESS_PLINK) === 'express' && dfy.dfyTierForLink(PRO_PLINK) === 'pro')
+checa('LIGADO: dfyCardCopy() sem argumento pinta os DOIS botões, Express primeiro, com preço e prazo', (() => { const c = dfy.dfyCardCopy(); return c.options.length === 2 && c.options[0].cta === 'Express — US$35, 48 h →' && c.options[1].cta === 'Pro — US$75, 72 h →' && c.options[1].detail.startsWith('Seedance or Kling 3.') })())
+checa('LIGADO: dfyPaymentLink sem url explícita lê o degrau e leva a identidade da conta', (() => { const u = dfy.dfyPaymentLink({ tier: 'pro', userId: '16aa454a-2ef3-4e6d-bc53-0bece84290d7' }); return typeof u === 'string' && u.startsWith(PRO_URL + '?') && u.includes('client_reference_id=16aa454a-2ef3-4e6d-bc53-0bece84290d7') && u.includes('utm_source=studio_dfy_card') })())
+checa('LIGADO: URL e plink reais NÃO aparecem no webhook nem no cartão (fonte única é o módulo puro)', !rd('app/api/stripe/webhook/route.ts').includes(EXPRESS_PLINK) && !rd('app/api/stripe/webhook/route.ts').includes(PRO_PLINK) && !rd('components/DfyOfferCard.tsx').includes(EXPRESS_URL) && !rd('components/DfyOfferCard.tsx').includes(PRO_URL))
 checa('isDfyLinkUrl aceita buy.stripe.com e recusa http/outro host', dfy.isDfyLinkUrl('https://buy.stripe.com/abc_123') === true && dfy.isDfyLinkUrl('http://buy.stripe.com/abc') === false && dfy.isDfyLinkUrl('https://evil.com/buy.stripe.com') === false)
 const POSITIVOS = [
   'Create a high-converting 30-second vertical video ad for Ascend AI, an AI automation agency. Target small business owners',
@@ -96,16 +109,21 @@ checa("pack: a decisão de success_url é o ternário wm → studio → padrão 
 // ── S2: webhook ──────────────────────────────────────────────────────────────
 console.log('== S2: app/api/stripe/webhook/route.ts ==')
 const wh = rd('app/api/stripe/webhook/route.ts')
-checa("importa dfyPaymentLinkIds/dfyTierForLink/DFY_ACCEPTED_AMOUNTS_USD_MINOR de '@/lib/growth/dfyOffer' (mesmos números que o cartão mostra)", wh.includes("import { DFY_ACCEPTED_AMOUNTS_USD_MINOR, dfyPaymentLinkIds, dfyTierForLink } from '@/lib/growth/dfyOffer'"))
+checa("importa dfyPaymentLinkIds/dfyTierForLink/DFY_ACCEPTED_AMOUNTS_USD_MINOR de '@/lib/growth/dfyOffer' (mesmos números que o cartão mostra)", wh.includes("import { DFY_ACCEPTED_AMOUNTS_USD_MINOR, dfyPaymentLinkIds, dfyTierForLink, type DfyTier } from '@/lib/growth/dfyOffer'"))
 const rpsIni = wh.indexOf('async function recordPaymentSuccess(')
 const rps = wh.slice(rpsIni, wh.indexOf('\n}\n', rpsIni))
-checa('payment_success.metadata ganha kind (session.metadata.kind ?? null)', rps.includes('kind: session.metadata?.kind ?? null'))
+checa('payment_success.metadata ganha kind (session.metadata.kind ?? null)', rps.includes("kind: dfyOrder ? 'dfy' : (session.metadata?.kind ?? null)") && rps.includes('dfy_tier: dfyTier,'))
 checa('payment_success.metadata ganha payment_link (string ou id, ou null)', /payment_link: typeof session\.payment_link === 'string'\s*\?\s*session\.payment_link\s*:\s*session\.payment_link\?\.id \?\? null/.test(rps))
 checa('payment_success.metadata segue com amount_total e currency', rps.includes('amount_total: session.amount_total') && rps.includes('currency: session.currency'))
 // KINEO-EMPRESAS-DFY-PLINK-2026-09-24 — o link existe (Cowork, 23/09) e a conta tem Adaptive Pricing: a chave primeira
 // do reconhecimento é o id do Payment Link; kind=dfy e valor exato ficam como segunda e terceira.
 checa('isDfyOrderSession: 1º id do link (degraus + legado), 2º kind===dfy, 3º valor aceito em usd, sem metadata.pack e SÓ em sessão de Payment Link', /function isDfyOrderSession\(session: Stripe\.Checkout\.Session\): boolean \{[\s\S]{0,260}if \(dfyPaymentLinkIds\(\)\.includes\(sessionPaymentLinkId\(session\) \?\? ''\)\) return true\s*if \(session\.metadata\?\.kind === 'dfy'\) return true[\s\S]{0,420}return \(\s*sessionPaymentLinkId\(session\) !== null &&\s*DFY_ACCEPTED_AMOUNTS_USD_MINOR\.includes\(session\.amount_total \?\? -1\) &&\s*\(session\.currency \?\? ''\)\.toLowerCase\(\) === 'usd' &&\s*!\(session\.metadata\?\.pack \?\? ''\)\.trim\(\)\s*\)/.test(wh))
-checa('webhook não redigita plink nenhum (ids vêm do módulo puro) e grava o degrau no pedido', !/plink_[A-Za-z0-9]{10,}/.test(wh) && /tier: \(session\.metadata\?\.tier === 'express' \|\| session\.metadata\?\.tier === 'pro'\) \? session\.metadata\.tier : dfyTierForLink\(paymentLink\)/.test(wh))
+checa('webhook não redigita plink nenhum (ids vêm do módulo puro) e grava o degrau no pedido pelo helper único', !/plink_[A-Za-z0-9]{10,}/.test(wh) && /tier: dfySessionTier\(session\),/.test(wh) && /function dfySessionTier\(session: Pick<Stripe\.Checkout\.Session, 'metadata' \| 'payment_link'>\): DfyTier \| null/.test(wh) && /if \(m === 'express' \|\| m === 'pro'\) return m\n  return dfyTierForLink\(sessionPaymentLinkId\(session\)\)/.test(wh))
+// ── KINEO-EMPRESAS-COCKPIT-2026-09-24 — os 4 furos de servidor que o cético do workflow achou depois de LIGAR ──
+checa('payment_success de pedido Empresas NÃO leva tier (colidia com o tier "pro" da assinatura); leva kind=dfy e dfy_tier', /const dfyOrder = session\.mode === 'payment' && isDfyOrderSession\(session\)/.test(wh) && /const dfyTier = dfyOrder \? dfySessionTier\(session\) : null/.test(wh) && /tier: dfyOrder \? null : \(session\.metadata\?\.tier \?\? null\),/.test(wh) && /kind: dfyOrder \? 'dfy' : \(session\.metadata\?\.kind \?\? null\),\n\s+dfy_tier: dfyTier,/.test(wh))
+checa('funil e isNewSubscriberEvent excluem kind=dfy (pedido Empresas é dinheiro, não assinante)', /typeof metadata\.tier === 'string' && !metadata\.pack && metadata\.kind !== 'dfy'\)/.test(rd('app/api/admin/funnel/route.ts')) && /if \(metadata\?\.kind === 'dfy'\) return false/.test(rd('app/api/admin/_shared/mrr.ts')))
+checa('recordAsyncCheckoutState (sessão unpaid de meio lento) usa sessionOwnerUuid — nunca o client_reference_id cru', /const userId = sessionOwnerUuid\(session\)\n  const sessionRef = stripeCheckoutSessionReference\(session\.id\)/.test(wh) && !/const userId = session\.metadata\?\.supabase_user_id \?\? session\.client_reference_id \?\? null\n  const sessionRef/.test(wh))
+checa('evento duplicado: pedido Empresas retoma em vez de sair como duplicate:true', /duplicateSession\.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession\(duplicateSession\)\)\) \{/.test(wh))
 checa('sessionPaymentLinkId aceita string e objeto expandido', /function sessionPaymentLinkId\([^)]*\): string \| null \{\s*const link = session\.payment_link\s*if \(typeof link === 'string'\) return link\s*return link && typeof link === 'object' && typeof link\.id === 'string' \? link\.id : null/.test(wh))
 checa('ids de link: legado plink_… presente; degrau só entra quando tiver linkId; dfyTierForLink resolve o degrau', (() => { const ids = dfy.dfyPaymentLinkIds(); const T = { express: { ...dfy.DFY_TIERS.express, linkId: 'plink_e1234567890' }, pro: { ...dfy.DFY_TIERS.pro, linkId: 'plink_p1234567890' } }; return ids.every((i) => /^plink_[A-Za-z0-9]{10,}$/.test(i)) && ids.includes('plink_1UJ23XIah5dxzSBfyfKlmOGV') && dfy.dfyPaymentLinkIds(T).length === 3 && dfy.dfyTierForLink('plink_p1234567890', T) === 'pro' && dfy.dfyTierForLink('plink_1UJ23XIah5dxzSBfyfKlmOGV', T) === null })())
 checa('dfyPaymentLink com URL real leva client_reference_id e prefilled_email', (() => { const u = dfy.dfyPaymentLink({ tier: 'pro', userId: '0b1f0b1f-0000-4000-8000-000000000001', email: 'x@y.com', source: 't', url: 'https://buy.stripe.com/real' }); return typeof u === 'string' && u.startsWith('https://buy.stripe.com/real?') && u.includes('client_reference_id=0b1f0b1f-0000-4000-8000-000000000001') && u.includes('prefilled_email=x%40y.com') })())

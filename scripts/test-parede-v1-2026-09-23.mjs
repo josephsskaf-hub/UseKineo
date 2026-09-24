@@ -133,6 +133,13 @@ const iGenBtn = GC.indexOf('ref={optionsGenerateBtnRef}')
 check('(7g) o cartão vem ANTES do botão Generate da fase options e só com prompt >= 20',
   iDfyMount > -1 && iGenBtn > -1 && iDfyMount < iGenBtn && /prompt\.trim\(\)\.length >= 20 && \(\n\s+<DfyOfferCard/.test(GC))
 check('(7h) dois degraus (Express 3500 / Pro 7500, fundador 24/09); URL vazia = degrau PAUSADO; um botão por degrau ligado com o tier no clique', /priceMinor: 3500/.test(norm('lib/growth/dfyOffer.ts')) && /priceMinor: 7500/.test(norm('lib/growth/dfyOffer.ts')) && /options\.map\(\(o\) => \(/.test(DFY) && /dfy_card_clicked', \{ source, version: DFY_OFFER_VERSION, tier: o\.tier, price_minor: o\.priceMinor \}/.test(DFY))
+// ── (7i-7m) KINEO-EMPRESAS-COCKPIT-2026-09-24 — o cético do workflow provou que o passo 2 do /studio/create não é
+// o caminho principal (cockpit → ?studio=1 → cortina → disparo automático). O cartão passou a morar no cockpit.
+check('(7i) o COCKPIT do Studio (StudioClient) importa e monta o cartão ANTES do botão go, com source="studio_cockpit"', (() => { const SC = norm('app/(dashboard)/studio/StudioClient.tsx'); const m = SC.indexOf('<DfyOfferCard prompt={prompt} userId={null} email={null} source="studio_cockpit" />'); const b = SC.indexOf('<button type="button" onClick={generate} disabled={!prompt.trim() || limit.over}'); return /import DfyOfferCard from '@\/components\/DfyOfferCard'/.test(SC) && m > -1 && b > -1 && m < b && b - m < 400 })())
+check('(7j) o cartão resolve a própria identidade (supabase.auth.getUser) quando a tela não passa userId/email; a URL leva client_reference_id + prefilled_email', /import \{ createClient \} from '@\/lib\/supabase\/client'/.test(DFY) && /createClient\(\)\.auth\.getUser\(\)/.test(DFY) && /dfyPaymentLink\(\{ tier: o\.tier, userId: resolvedUserId, email: resolvedEmail \}\)/.test(DFY))
+check('(7k) utm_source é o padrão do módulo (studio_dfy_card): o cartão NÃO repassa source ao link', !/dfyPaymentLink\(\{[^}]*source/.test(DFY))
+check('(7l) uma impressão por SUPERFÍCIE por carregamento (Set de módulo) além do ref por montagem', /const impressionKeys = new Set<string>\(\)/.test(DFY) && /impressionKeys\.has\(source\) \|\| shownRef\.current\) return/.test(DFY) && /impressionKeys\.add\(source\)/.test(DFY))
+check('(7m) cores com fallback (o kit do cockpit não define --text/--muted) e data-source na seção', /var\(--text, #f5f5f7\)/.test(DFY) && /var\(--muted2, #a1a1a6\)/.test(DFY) && /var\(--muted, #86868b\)/.test(DFY) && /data-source=\{source\}/.test(DFY))
 
 // ── (8) /checkout/success oferece resume=wall_v1 ────────────────────────────
 check('(8a) WALL_V1_RESUME_PATH é /studio/create?resume=wall_v1', /export const WALL_V1_RESUME_PATH = '\/studio\/create\?resume=wall_v1'/.test(WALL))

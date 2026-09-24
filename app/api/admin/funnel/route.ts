@@ -939,7 +939,7 @@ export async function GET(req: Request) {
       const metadata = event.metadata ?? {}
       const isSubscription = metadata.checkout_mode === 'subscription' ||
         (typeof metadata.stripe_subscription_id === 'string' && metadata.stripe_subscription_id.length > 0) ||
-        (typeof metadata.tier === 'string' && !metadata.pack)
+        (typeof metadata.tier === 'string' && !metadata.pack && metadata.kind !== 'dfy') // KINEO-EMPRESAS-COCKPIT-2026-09-24: pedido Empresas não é assinatura
       if (!isSubscription) continue
       // KINEO-ADMIN-FONTE-UNICA-2026-09-08 — o $1 do trial é dinheiro, não pagante.
       if (metadata.card_trial === true || metadata.card_trial === 'true') continue

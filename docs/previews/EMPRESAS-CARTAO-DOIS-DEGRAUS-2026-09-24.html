@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cartão Kineo Empresas</title>
+<meta name="description" content="Prévia fiel do cartão 'Want a human editor to make it?' com os dois degraus (Express US$35 e Pro US$75), como aparece no Studio abaixo do pedido e antes do Generate.">
+<style>
+  :root { --bg:#0b0b0d; --panel:#131316; --panel2:#1b1b1f; --text:#f5f5f7; --muted:#86868b; --muted2:#a1a1a6; --blue:#2997ff; --blue-soft:rgba(41,151,255,.12); --blue-line:rgba(41,151,255,.45); --card-line:rgba(41,151,255,.35); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#0b0b0d; } }
+  :root[data-theme="dark"] { --bg:#0b0b0d; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family: -apple-system, "Segoe UI", Inter, Arial, sans-serif; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; }
+  .note { font-size: 12px; color: var(--muted); margin: 0 0 18px; line-height: 1.5; }
+  .note b { color: var(--muted2); }
+  .studio { background: var(--panel2); border: 1px solid #2a2a2d; border-radius: 18px; padding: 16px; }
+  .label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+  .prompt { background: #0f0f11; border: 1px solid #2a2a2d; border-radius: 12px; padding: 12px 14px; font-size: 14px; line-height: 1.55; color: var(--muted2); min-height: 92px; }
+  .engines { display:flex; gap:8px; margin: 14px 0 18px; flex-wrap: wrap; }
+  .chip { font-size: 12px; padding: 6px 10px; border-radius: 980px; border: 1px solid #2a2a2d; color: var(--muted2); }
+  .chip.on { border-color: var(--blue); color: var(--text); }
+  .card { background: var(--panel); border: 1px solid var(--card-line); border-radius: 16px; padding: 20px; margin-bottom: 18px; }
+  .eyebrow { font-size: 11px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; color: #5cb3ff; margin: 0 0 6px; }
+  h3 { margin: 0 0 6px; font-size: 18px; line-height: 1.25; font-weight: 900; }
+  .body { margin: 0 0 12px; font-size: 14px; line-height: 1.55; color: var(--muted2); }
+  .opts { display:flex; flex-direction: column; gap: 10px; }
+  .opt { display:block; text-decoration:none; border-radius: 12px; padding: 12px 16px; border: 1px solid var(--blue-line); }
+  .opt.express { background: var(--blue-soft); color: var(--text); }
+  .opt.pro { background: var(--blue); color: #fff; }
+  .opt .cta { display:block; font-size: 14px; font-weight: 900; }
+  .opt .detail { display:block; font-size: 12px; margin-top: 4px; line-height: 1.45; color: var(--muted2); }
+  .opt.pro .detail { color: rgba(255,255,255,.85); }
+  .fine { margin: 10px 0 0; font-size: 12px; color: var(--muted); }
+  .generate { display:block; width:100%; border:0; border-radius: 12px; padding: 14px; font-size: 15px; font-weight: 900; background: #f5f5f7; color:#111; }
+  .legend { margin-top: 22px; font-size: 13px; color: var(--muted2); line-height: 1.6; }
+  .legend li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="note"><b>Prévia fiel, 24/09/2026.</b> É assim que o cartão aparece no Studio (usekineo.com/studio) quando o texto digitado parece um pedido de anúncio da própria empresa: abaixo do pedido e das opções, ANTES do botão Generate. Hoje ele está pausado; volta sozinho quando os dois links da Stripe existirem.</p>
+
+    <div class="studio">
+      <p class="label">Your idea or script</p>
+      <div class="prompt">Create a professional 60-second advertising video for Help Me Tenerife, a company in Tenerife offering construction and renovations, swimming pools, electricity, plumbing, real estate and marketing services. End with our phone number.</div>
+      <div class="engines"><span class="chip on">Kineo 1</span><span class="chip">Seedance 1.5</span><span class="chip">Kling 3</span><span class="chip">60 s</span><span class="chip">9:16</span></div>
+
+      <section class="card" data-kineo="dfy-offer-card">
+        <p class="eyebrow">Looks like an ad for your business</p>
+        <h3>Want a human editor to make it?</h3>
+        <p class="body">We write the script from your brief, pick the right engine, add narration in your language, captions and music, and use your logo and photos where the format allows.</p>
+        <div class="opts">
+          <a class="opt express" href="#">
+            <span class="cta">Express — US$35, 48 h →</span>
+            <span class="detail">Kineo 1 or Seedance. Script from your brief, narration in your language, captions, music, your logo and photos where the format allows. 1 revision, 48 h.</span>
+          </a>
+          <a class="opt pro" href="#">
+            <span class="cta">Pro — US$75, 72 h →</span>
+            <span class="detail">Seedance or Kling 3. Same characters across scenes, script written for you, narration in your language, captions, music, your logo and photos where the format allows. 2 revisions, 72 h.</span>
+          </a>
+        </div>
+        <p class="fine">Or keep going and render it yourself right now.</p>
+      </section>
+
+      <button class="generate" type="button">Generate</button>
+    </div>
+
+    <ul class="legend">
+      <li>Cada botão abre, em nova aba, o Payment Link do degrau já com o e-mail e a conta da pessoa amarrados (client_reference_id).</li>
+      <li>Na página de pagamento a Stripe pede o e-mail e 3 campos: nome do negócio e o que vende; chamada para o último quadro; língua e o filme que quer.</li>
+      <li>Depois de pagar, a pessoa vê a mensagem de confirmação (responder ao recibo com logo e fotos, ou subir em "My footage"); o pedido cai no banco como dfy_order_paid com o degrau.</li>
+      <li>O cartão nunca esconde o Generate: quem quiser continua fazendo sozinho.</li>
+    </ul>
+  </div>
+</body>
+</html>
