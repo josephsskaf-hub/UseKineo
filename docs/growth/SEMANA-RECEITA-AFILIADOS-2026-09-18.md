@@ -10,6 +10,8 @@
 
 ## Donos e cadência
 
+**ADENDO PREVALENTE — decisão direta do fundador23/09 21:57UTC, consolidada24/09:** a frente independente MMR foi retirada e Afiliados unificada com Parcerias com criadores. MMR e antiga Parcerias foram arquivadas, suas agendas pausadas antes do arquivamento e históricos preservados. Não reativar nem restaurar por referências históricas abaixo. Quatro frentes atuais: Citações, Afiliados e parcerias com criadores (ID01a08825-362a-7020-90ce-fb6d45b3f6c4), Diretórios e Melhorias UX/UI. Board consolida finanças com provas existentes/dono autorizado; não acionar MMR arquivada. A tabela abaixo conserva o mandato original, não a organização vigente. Sem nova sprint ou ampliação do corte25/09 05:10UTC.
+
 | Tarefa existente | Dono/ID | Cadência | Entrega prioritária |
 |---|---|---|---|
 | Kineo · Programa Afiliados | 01a08825-362a-7020-90ce-fb6d45b3f6c4 | 1 hora | Ativar parceiro elegível até primeira publicação rastreável e comprador; atribuição e termos antes de escalar |
@@ -122,3 +124,15 @@ Cada pista mantém diário próprio e ledger privado, publicando apenas agregado
 **PARCIAL / APOIO CITAÇÕES:** nova demanda pública script→faceless localizada pela pista, mas regras do destino exigem permissão escrita prévia da moderação. Sem rascunho/resposta/DM autorizados; decisão mínima registrada uma vez, sem nova varredura por cadência. Diretórios verificou somente regras do destino. Seedance3fb96b1a e seu gate humano permanecem preservados, reteste24/09 09:05BRT intacto. Afiliados segue dono exclusivoP3-017; Parcerias apoia, sem contato concorrente.
 
 **EVIDÊNCIA / BASELINE ANTERIOR À SPRINT:** fonte privadaMMR sprint7h-baseline-20260923-173125.md, corte23/09 17:31:25UTC, intervalo[03UTC,17:31:25):13novos externos,11Studio,7primeiros filmes,1checkoutnovo e0pagamento observado nas famílias consultadas. ChatGPT registrado em7 (3referrerreal e4somenteUTM),7Studio,4filmes,0checkout. Esses números não são ganho da sprint. Total ativo/MRRglobal/custos continuam desconhecidos. Fechamento único após24/09 00:31:25UTC, sem SQL intermediária por cadência; não recontar21/09 nem atribuir conversão ao deploy por correlação.
+
+## Fechamento operacional da sprint7h — 24/09, passagem02:14UTC
+
+**ENCERRADA, NÃO RENOVADA:** janela fixa23/09 17:31:25UTC–24/09 00:31:25UTC vencida; fechamento feito no primeiro checkpoint do Board após o corte, não no horário exato. Retorno ao mandato semanal até25/09 05:10UTC. Não abrir nova distribuição sob a autorização da sprint encerrada.
+
+**ENTREGUE / ESTADOS SEPARADOS:** Diretor publicado e validado por prova de deploy acima. MP4 YouTube preparado e pedido nominal ao Cowork publicado; URL de publicação não comprovada neste checkpoint, sem upload duplicado. Seedance `3fb96b1a` permanece LOCAL e sujeito ao gate humano. Barra visual `bc5f312b` está LOCAL, com testes e comparação antes/depois, sem autorização de publicação inferida. As entregas UX relatadas pela pista e os novos commits TRES-JOGADAS do Claude não são vendas nem podem ser atribuídos financeiramente a esta sprint sem dados datados.
+
+**RESULTADO / DESCONHECIDO:** nenhum fechamento financeiro completo para o intervalo da sprint foi localizado entre os relatórios existentes consultados. Chegadas, filmes, primeiras assinaturas, renovações, avulsos, reembolsos, caixa e variação de MRR desse intervalo permanecem não certificados — não zero. Baseline anterior não é resultado; compras de21/09 não são recontadas. Total ativo e MRRglobal continuam desconhecidos. MMR arquivada não foi acionada; a pendência de fonte canônica fica com Board/dono financeiro autorizado, sem nova consulta proxy ou acesso por inferência.
+
+**PRÓXIMA AÇÃO / NOVA CONTRADIÇÃO:** pedido único `BOARD-PONTE-WATERMARK-20260924` em PEDIDOS para o dono Claude reconciliar o texto da ponte. Produto protegido intocado, reteste80 de24/09 09:05BRT mantido; painel semanal Cowork é corpus separado. Afiliado nominal e reservas continuam com a frente unificada, sem inferir aceite, comissão implementada, divulgação ou compra. Kineo Empresas conserva a prévia com mídia real ainda não certificada; não anunciar prontidão nem exportação MP4.
+
+**DESPESAS / LIMITES:** nenhuma despesa executada pelo Board nesta passagem. Isto não é conciliação global de custos; comissões devidas/pagas não foram confirmadas por este checkpoint. Pedidos de acesso, direitos, preview e publicação já registrados não são reapresentados como decisões novas. Nenhuma tarefa/agenda criada ou renovada.
