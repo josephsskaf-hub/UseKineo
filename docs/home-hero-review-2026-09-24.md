@@ -29,3 +29,5 @@
 **DECISÃO DO USUÁRIO NESTA TAREFA:** não gostou do segundo filme do destaque principal nem de vídeos pequenos com escrita dominante nos laterais.
 
 **IMPLEMENTADO:** avião retirado da playlist principal; robôs e castelo passam a alternar. Oito filmes no total, dois por card. Removida a apresentação que limitava personagens a 38% da largura: todos os vídeos preenchem o card. Títulos laterais reduzidos a 15px no desktop e celular; badge a 8px; removida somente a legenda visual repetida Watch preview dos laterais, mantendo botão inteiro e nome acessível. Hero permanece compacto e os arquivos continuam em 1080×1920. Examples preservado.
+
+**CORREÇÃO ADICIONAL SOLICITADA:** o fundador rejeitou também o recorte horizontal de rostos: precisam aparecer inteiros. Os três cards secundários passam a ser verticais, lado a lado, junto ao principal horizontal. No celular ficam abaixo do principal em três colunas 9:16, com títulos de duas linhas a 11px. Isso preserva o quadro dos filmes verticais e mantém o vídeo preenchendo cada card, sem miniatura lateral nem faixa ampliada sobre olhos/nariz. Desktop conserva a altura compacta de 360px.

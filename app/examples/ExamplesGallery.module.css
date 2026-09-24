@@ -92,19 +92,27 @@
 
 /* Home reuses the approved film player with one lead and three side films. */
 .homeHero .featuredSection { padding:0 }
-.featuredFour { grid-template-columns:1.8fr 1fr; grid-template-rows:repeat(3,minmax(0,1fr)); height:clamp(340px,24vw,360px) }
-.featuredFour .lead { grid-row:span 3 }
+.featuredFour { grid-template-columns:minmax(0,3.5fr) repeat(3,minmax(0,1fr)); grid-template-rows:1fr; height:clamp(340px,24vw,360px) }
+.featuredFour .lead { grid-row:auto }
 .featuredFour .featureCard .featureCopy { inset:auto 16px 12px; gap:4px }
-.featuredFour .featureCard strong { font-size:15px; line-height:1.2; letter-spacing:-.2px; text-wrap:initial }
+.featuredFour .featureCard strong { font-size:15px; line-height:1.2; letter-spacing:-.2px; text-wrap:initial; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden }
 .featuredFour .featureCard .featureBadge { font-size:8px; letter-spacing:.8px }
 .gallery .featuredFour .featureCard .watch { display:none }
 .featuredMedia .preloadVideo { display:none }
 .filmSteps { position:absolute; top:14px; right:16px; display:flex; gap:5px; pointer-events:none }
 .filmSteps span { width:19px; height:3px; border-radius:3px; background:#ffffff50 }
 .filmSteps span[data-active=true] { background:#fff }
+@media(max-width:1100px) {
+  .featuredFour { height:auto; grid-template-columns:repeat(3,minmax(0,1fr)); grid-template-rows:auto auto }
+  .featuredFour .lead { grid-column:1 / -1; grid-row:auto; aspect-ratio:2.4 }
+  .featuredFour .featureCard { aspect-ratio:9 / 16 }
+}
 @media(max-width:700px) {
-  .featuredFour { height:auto; grid-template-columns:1fr; grid-template-rows:auto; gap:12px }
-  .featuredFour .lead { grid-column:auto; grid-row:auto; aspect-ratio:1.35 }
-  .featuredFour .featureCard { aspect-ratio:2.35 }
-  .featuredFour .featureCard .featureCopy { inset:auto 12px 10px }
+  .featuredFour { gap:10px }
+  .featuredFour .lead { aspect-ratio:1.6 }
+  .featuredFour .featureCard .featureCopy { inset:auto 8px 10px }
+  .featuredFour .featureCard strong { font-size:11px; line-height:1.25 }
+  .featuredFour .featureCard .featureBadge { font-size:7px; letter-spacing:.2px }
+  .featuredFour .featureCard .filmSteps { top:8px; right:8px; gap:3px }
+  .featuredFour .featureCard .filmSteps span { width:12px; height:2px }
 }
