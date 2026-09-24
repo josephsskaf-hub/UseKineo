@@ -2,6 +2,8 @@
 
 ## Seleção do fundador — atualização de 24/09
 
+**REVISÃO DE TRECHOS / IMPLEMENTADO EM PRÉVIA:** a pedido do fundador, os dois Omni agora usam cortes dos renders originais: Tunguska `18,0–22,5s` (globo, onda de fogo, aproximação do continente) e robô `20,0–25,0s` (robô de pé e colisão). Capas extraídas aos `18,3s` e `22,0s`. Arquivos novos `tunguska-globe` e `robot-collision` em `public/previews/examples-sep24/` e `public/posters/examples-sep24/`. Os dois primeiros destaques reproduzem previews com os mesmos controles de pausa, visibilidade e economia de dados; Lituya permanece idêntico. Consulta de origens limitada aos dois IDs da conta do fundador, sem alteração em banco.
+
 **REVISÃO SOLICITADA / IMPLEMENTADO EM PRÉVIA:** o fundador substituiu o hero: Tunguska Omni Flash no card principal, robô Omni Flash e Lituya Bay H3 nos laterais. Farol, trem e vulcão passaram para a coleção, ao lado de Tunguska H3, avião de 1942 e castelo. Mesmos nove vídeos, preservando motores e arquivos.
 
 **DECISÃO DO USUÁRIO NESTA TAREFA / IMPLEMENTADO EM PRÉVIA:** nove filmes escolhidos por screenshot, em três destaques (farol, trem, vulcão) e seis cards (Tunguska Omni, robô Omni, Tunguska H3, avião de 1942, Lituya H3, castelo). A seleção substitui o catálogo na página candidata, sem repetição entre hero e coleção. As quatro alternativas continuam disponíveis na rota de revisão.

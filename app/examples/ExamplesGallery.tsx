@@ -93,7 +93,7 @@ export default function ExamplesGallery({ videos, startPaused = false, separateF
       <div className={styles.featured}>
         {videos.slice(0, 3).map((video, index) => <button type="button" className={index === 0 ? styles.lead : styles.featureCard}
           key={video.id} onClick={event => open(video, event.currentTarget)} aria-label={`Watch preview: ${video.title}`}>
-          {index === 0 ? <FeaturedMedia video={video} paused={paused || selected !== null} />
+          {index < 2 ? <FeaturedMedia video={video} paused={paused || selected !== null} />
             : <img src={video.posterUrl} alt="" loading="eager" className={styles.featurePoster} />}
           <span className={styles.featureShade} />
           <span className={styles.featureCopy}><span className={styles.featureBadge}>{video.badge}</span><strong>{video.title}</strong>
