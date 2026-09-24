@@ -854,9 +854,12 @@ async function recordPaymentSuccess(
 //
 // O QUE ESTE RAMO NÃO FAZ: não concede crédito, nem plano, nem has_paid — o
 // filme é entregue por gente. Não aciona o guard de fulfillment (nada de
-// entitlementPending): não há entitlement para reter. Nunca lança: um erro
-// aqui não pode devolver 500 à Stripe, senão ela reenvia um evento que não
-// tem nada a fazer.
+// entitlementPending): não há entitlement para reter. Só lança quando o pedido
+// NÃO foi gravado (RetryableCheckoutAnalyticsError → 500 → a Stripe reenvia):
+// COWORK-RELATORIO-2026-09-24 — a auditoria achou que "nunca lança" transformava
+// um soluço do banco em pedido pago perdido com 200. O reenvio é seguro: o
+// registro é idempotente (dedupe por stripe_session_id + id determinístico) e
+// este ramo não concede nada.
 // KINEO-EMPRESAS-DFY-PLINK-2026-09-24 — o id do Payment Link é a chave PRIMEIRA:
 // a conta Stripe tem "Adaptive Pricing" ligado (relatório do Cowork, 23/09), então
 // um comprador fora dos EUA pode pagar em moeda local (amount_total ≠ 10000,
@@ -950,11 +953,14 @@ async function recordDfyOrderPaid(
         return
       }
       console.error('[stripe webhook] dfy_order_paid fallback insert error:', anonymousError.code, anonymousError.message)
-      return
+      throw new RetryableCheckoutAnalyticsError(`dfy_order_paid not recorded (${anonymousError.code ?? 'unknown'})`)
     }
     console.error('[stripe webhook] dfy_order_paid insert error:', error.code, error.message)
+    throw new RetryableCheckoutAnalyticsError(`dfy_order_paid not recorded (${error.code ?? 'unknown'})`)
   } catch (err) {
+    if (err instanceof RetryableCheckoutAnalyticsError) throw err
     console.error('[stripe webhook] dfy_order_paid threw:', err, session.id)
+    throw new RetryableCheckoutAnalyticsError('dfy_order_paid threw before recording')
   }
 }
 
@@ -970,7 +976,7 @@ async function recordAsyncCheckoutState(
   // apagada derrubava o insert → 500 → a Stripe reenviava por dias. O dono passa pelo mesmo filtro do resto.
   const userId = sessionOwnerUuid(session)
   const sessionRef = stripeCheckoutSessionReference(session.id)
-  const recorded = await writeServerEvent({
+  const input = {
     name: eventName,
     userId,
     path: '/api/stripe/webhook',
@@ -989,7 +995,12 @@ async function recordAsyncCheckoutState(
       checkoutOrigin: session.metadata?.checkout_origin,
       intentCampaign: session.metadata?.intent_campaign,
     }),
-  })
+  }
+  let recorded = await writeServerEvent(input)
+  // COWORK-RELATORIO-2026-09-24 — o filtro de formato não pega a conta APAGADA: uuid válido, FK 23503, writeServerEvent
+  // devolve false e a Stripe reenviava por dias (auditoria de 24/09, confirmada por 2 céticos). A linha vale sem dono,
+  // como em recordPaymentSuccess e recordDfyOrderPaid; só lança se nem assim gravar (aí é o banco, e o reenvio ajuda).
+  if (!recorded && userId) recorded = await writeServerEvent({ ...input, userId: null })
   if (!recorded) {
     throw new RetryableCheckoutAnalyticsError(`Could not persist ${eventName}`)
   }

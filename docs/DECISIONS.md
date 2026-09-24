@@ -2,6 +2,17 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
+## 2026-09-24 — Studio Ads LIGADO para clientes ("pode ligar") + relatório do Cowork conferido
+
+**DECISÃO APROVADA (fundador, 24/09/2026 ~20h BRT: "pode ligar"; publicou PUBLICAR-STUDIO-ADS-LIGADO-2409.bat ~20h28):** o Studio Ads (self-service do Kineo Empresas: a empresa sobe fotos/vídeos, a IA escreve e narra, o Kineo monta) abre para qualquer cliente em /ads a US$19,90 = 60 créditos + 12 meses de acesso (R$ 99,90 no caixa brasileiro, pagamento único). Interruptor em código: `ADS_PASS_LIVE_IN_CODE = true` (lib/ads/offer.ts); desligar de emergência = `NEXT_PUBLIC_ADS_PASS_LIVE=0` na Vercel + redeploy. Assinantes pagos entram sem passe; trial não. Revisão humana prometida em até 24 h.
+
+**PROVA ANTES DE LIGAR:** canário da padaria "Pão Dourado" em produção, conta do fundador: roteiro → voz → 6 fotos + logo → anúncio de 44 s (12 trechos, 9 com mídia da empresa, cartão final no "chame agora no WhatsApp"). Conferido no ar em c3201afc: /ads 200 com botão de compra e sem noindex, bloco "Prefer to make it yourself?" em /business-video-ads, /ads no sitemap, compra anônima → login, Stripe mostra "Kineo — Studio Ads pass R$ 99,90" (não pago). Dívidas conhecidas: 2ª foto entra ~2 s adiantada; a pílula "Rendering…" do Studio aparece no /ads depois de pronto (pedido ao Codex em PEDIDOS); o 1º roteiro ainda falha às vezes e a correção automática resgata.
+
+**RELATÓRIO DO COWORK (24/09 noite) — dois achados, resolvidos sem mexer em grant.ts nem em planos:**
+1. As instruções v3.4 do GPT só existiam no disco do fundador. Agora `docs/GPT-INSTRUCOES-V3-COLAR-2026-09-24.txt` está no repo e o guardião `test-gpt-loja-2026-09-24` (6h/6h2) exige igualdade com a seção C de `docs/GPT-KINEO-VIDEO-MAKER.md`: quem muda um muda o outro no mesmo commit.
+2. O endpoint da Stripe (we_1TTmlFIah5dxzSBfJYlFuEOe) não escuta `checkout.session.async_payment_succeeded/failed`. O código JÁ trata os dois desde 5123e3f3 (01/09): `completed` com `payment_status` unpaid grava `checkout_payment_pending` e não entrega nada; o sucesso tardio cai no mesmo bloco de entrega; a falha tardia só registra. Guardião novo `test-empresas-pagamento-tardio-2026-09-24` (14 verificações, 7 de 7 mutantes vermelhos). Banco: 0 pagamentos pendentes na história contra 24 vendas — ninguém caiu no caminho lento até hoje. **Adicionar os 2 eventos no endpoint é seguro e fica com o fundador** (configuração da Stripe): sem eles, um Boleto em reais pago dias depois nunca seria entregue.
+
+
 ## 2026-09-24 — "Desliga": cartas pós-D2 e os crons do trial de US$1 saem do ar
 
 **DECISÃO APROVADA (fundador, 24/09/2026 ~02h BRT, ao item 3 das pendências: "desliga"; motivo dele: "cartas não estão trazendo pessoas para compra"):** saem do `vercel.json` os crons `send-momentum-nudge` (313 envios/30 d → 0 pagantes), `send-second-try-1usd` e `send-affiliate-wakeup-1usd` (prometiam a porta de US$1 morta em 09/09); e as cartas `expired_offer_d5` e `expired_lastcall_d10` do `trial-lifecycle-emails` (1.527 envios/30 d → 0 pagantes) ficam atrás do interruptor `POST_TRIAL_LETTERS_ENABLED = false`. Continuam: welcome, ending_soon, downgraded_loss (48 h), extensão, video_ready, failure_recovery e todo cron de operação. Motivo de fundo: 10 dos 13 pagantes orgânicos pagaram em menos de 48 h; nenhum nasceu depois do D2. Reversão: `true` no interruptor e as 3 entradas de volta no vercel.json.

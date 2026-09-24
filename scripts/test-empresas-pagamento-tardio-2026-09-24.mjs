@@ -61,6 +61,63 @@ const dedupe = wh.slice(wh.indexOf("if (dedupeErr.code === '23505') {"), iSwitch
 ok(/event\.type === 'checkout\.session\.async_payment_succeeded'/.test(dedupe) && /!isDfyOrderSession\(duplicateSession\)/.test(dedupe),
   '4a. um async_payment_succeeded reentregue de pedido Empresas retoma o registro (idempotente) em vez de sair como duplicado')
 
+// ── 5. comportamento: as funções REAIS da rota contra um banco falso ────────────────────────────────────
+// Auditoria de 24/09 (workflow de 13 agentes, cada achado verificado por cético): (F1) recordDfyOrderPaid engolia o
+// erro de insert e o webhook devolvia 200 — soluço do banco = pedido pago das Empresas perdido sem reenvio da Stripe;
+// (F2) recordAsyncCheckoutState com dono apagado (uuid válido, FK 23503) devolvia 500 em laço por dias.
+// As funções saem do texto da rota (declaração de topo até o "}" da coluna 0) e rodam por transpile + vm.
+function extrai(nome) {
+  const m = wh.match(new RegExp('\\n((?:async )?(?:function|class) ' + nome + '\\b[\\s\\S]*?\\n\\}\\n)'))
+  if (!m) throw new Error('não achei ' + nome + ' na rota')
+  return m[1]
+}
+const constUuid = (wh.match(/\nconst SESSION_OWNER_UUID = [^\n]+\n/) || [''])[0]
+const fontes = [constUuid, ...['RetryableCheckoutAnalyticsError', 'sessionPaymentLinkId', 'dfySessionTier', 'sessionOwnerUuid', 'isOwnerRejection', 'recordDfyOrderPaid', 'recordAsyncCheckoutState'].map(extrai)].join('\n')
+const jsRota = ts.transpileModule(fontes + '\nmodule.exports = { RetryableCheckoutAnalyticsError, recordDfyOrderPaid, recordAsyncCheckoutState }\n', { compilerOptions: { module: 1, target: 9 } }).outputText
+const escritas = []
+let respostasEscrita = []
+const ctx = {
+  module: { exports: {} }, createHash, console: { log() {}, error() {}, warn() {} }, Error, Promise, JSON, Object, Array, String, RegExp, Number,
+  dfyTierForLink: () => null,
+  writeServerEvent: async (input) => { escritas.push(input); return respostasEscrita.length ? respostasEscrita.shift() : true },
+  stripeCheckoutSessionReference: mod.exports.stripeCheckoutSessionReference,
+  buildStripeAsyncCheckoutMetadata: mod.exports.buildStripeAsyncCheckoutMetadata,
+}
+vm.runInNewContext(jsRota, ctx)
+const { RetryableCheckoutAnalyticsError: Retry, recordDfyOrderPaid, recordAsyncCheckoutState } = ctx.module.exports
+const DONO = '11111111-2222-4333-8444-555555555555'
+const sessao = { id: 'cs_test_tardio', mode: 'payment', payment_status: 'paid', client_reference_id: DONO, metadata: {}, payment_link: 'plink_x', amount_total: 3500, currency: 'usd', customer_details: { email: 'a@b.c', name: 'Padaria' }, custom_fields: [] }
+function bancoFalso(existente, respostasInsert) {
+  const inserts = []
+  const consulta = { select: () => consulta, eq: () => consulta, contains: () => consulta, limit: async () => ({ data: existente ? [{ id: 'x' }] : [], error: null }) }
+  return { inserts, from: () => ({ ...consulta, insert: async (row) => { inserts.push(row); return { error: respostasInsert.shift() ?? null } } }) }
+}
+async function resultado(fn) { try { await fn(); return 'ok' } catch (e) { return e instanceof Retry ? 'retry' : 'outro:' + (e && e.message) } }
+
+let b = bancoFalso(false, [{ code: '57014', message: 'statement timeout' }])
+ok((await resultado(() => recordDfyOrderPaid(b, 'evt_1', sessao))) === 'retry' && b.inserts.length === 1, '5a. F1: insert do pedido Empresas falha (timeout) → erro de reenvio (500 → a Stripe tenta de novo), não 200 mudo')
+b = bancoFalso(false, [{ code: '23503', message: 'fk' }, { code: '08006', message: 'conexão caiu' }])
+ok((await resultado(() => recordDfyOrderPaid(b, 'evt_2', sessao))) === 'retry' && b.inserts.length === 2 && b.inserts[1].user_id === null, '5b. F1: dono apagado e a regravação sem dono também falha → reenvio')
+b = bancoFalso(false, [{ code: '23503', message: 'fk' }, null])
+ok((await resultado(() => recordDfyOrderPaid(b, 'evt_3', sessao))) === 'ok' && b.inserts.length === 2 && b.inserts[1].user_id === null, '5c. dono apagado com regravação sem dono gravada → 200 (sem reenvio à toa)')
+b = bancoFalso(false, [{ code: '23505', message: 'dup' }])
+ok((await resultado(() => recordDfyOrderPaid(b, 'evt_4', sessao))) === 'ok', '5d. pedido já gravado (23505) → 200')
+b = bancoFalso(true, [])
+ok((await resultado(() => recordDfyOrderPaid(b, 'evt_5', sessao))) === 'ok' && b.inserts.length === 0, '5e. reentrega com o pedido já no banco → nada a gravar, 200')
+b = bancoFalso(false, [null])
+ok((await resultado(() => recordDfyOrderPaid(b, 'evt_6', sessao))) === 'ok' && b.inserts.length === 1 && b.inserts[0].user_id === DONO && b.inserts[0].metadata.stripe_session_id === sessao.id, '5f. caminho feliz: 1 linha dfy_order_paid com o dono e a sessão')
+
+const pendente = { ...sessao, payment_status: 'unpaid' }
+escritas.length = 0; respostasEscrita = [false, true]
+ok((await resultado(() => recordAsyncCheckoutState(pendente, 'pending'))) === 'ok' && escritas.length === 2 && escritas[0].userId === DONO && escritas[1].userId === null && escritas[1].name === 'checkout_payment_pending',
+  '5g. F2: dono apagado (1ª escrita falha) → a pendência é gravada sem dono, sem 500 em laço')
+escritas.length = 0; respostasEscrita = [false, false]
+ok((await resultado(() => recordAsyncCheckoutState(pendente, 'failed'))) === 'retry' && escritas.length === 2, '5h. F2: banco fora (as duas escritas falham) → reenvio da Stripe')
+escritas.length = 0; respostasEscrita = [false]
+ok((await resultado(() => recordAsyncCheckoutState({ ...pendente, client_reference_id: null }, 'pending'))) === 'retry' && escritas.length === 1, '5i. sem dono e a escrita falha → reenvio, sem segunda tentativa inútil')
+escritas.length = 0; respostasEscrita = [true]
+ok((await resultado(() => recordAsyncCheckoutState(pendente, 'pending'))) === 'ok' && escritas.length === 1, '5j. caminho feliz: uma escrita só')
+
 console.log(`test-empresas-pagamento-tardio-2026-09-24: ${passou} ok · ${falhas.length} falhas`)
 for (const f of falhas) console.log('  FAIL ' + f)
 process.exit(falhas.length ? 1 : 0)
