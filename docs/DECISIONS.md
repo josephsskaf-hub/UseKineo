@@ -2,6 +2,15 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
+## 2026-09-23 — "Faz as 3": parede v1 + consertos, Kineo Empresas por Payment Link, páginas citadas viram portas do motor pago
+
+**DECISÃO APROVADA (fundador, 23/09/2026 ~22h BRT, no chat do Claude Code):** "faz as 3, o que voce precisa de mim criar o link de 100 usd no stripe? se sim, cria um script pro cowork fazer isso pra mim, ele sabe fazer isso, e vamos dar sequencia." Aprova as três jogadas de `docs/ANALISE-CEO-OPORTUNIDADES-2026-09-23.md` como descritas ali, inclusive as mecânicas novas de conversão que o congelamento de 09/09 reservava a ele: (1) parede v1 dentro do modal de crédito (título do roteiro, gap exato, Starter primeiro e sem selo "recommended" no Creator nesse bloco, roteiro guardado 45 min, render só no clique) + copy positiva da caixa de top-up + padrão MENSAL no /pricing + retorno do pack ao Studio + `intent_campaign` no pack; (2) Kineo Empresas vendido antes de construído: Payment Link de US$100 na Stripe (produto novo, fora da tabela de planos; US$500 por 5 fica para depois do 1º pagamento), cartão no Studio quando o texto parece pedido de anúncio de empresa, fundador opera os 3 primeiros; inverte a decisão de 23/09 manhã ("construir a ferramenta antes da prospecção") e congela o protótipo HTML até o 1º pagamento; (3) bloco "cole o roteiro do ChatGPT → Seedance" acima da dobra nas 4 páginas que o ChatGPT já cita, sem trocar título/H1, + correção dos fatos que a IA lê + páginas /for deixam de carimbar `utm_source=google` + página de dados `/seedance-vs-veo-vs-kling` + painel semanal de prompts (Cowork).
+
+**Motivo:** 8 candidatas refutadas 3/3 pelos dados; estas três são o que sobrou com número honesto (+US$60-130 MRR e US$200-500 avulsos em 90 d). A máquina de converter é boa (~10% dos cadastros ChatGPT de países que pagam em minutos); o topo está parado.
+
+**Consequência prática:** preço dos 3 planos INTOCADO (US$9,90/19,90/39,90 até 09/10). O que continua pendente e é dele: anual (recarga mensal ou esconder; hoje o anual concede crédito 1×/ano e o FAQ promete mensal), os 4 rascunhos pessoais aos briefs quentes (consentimento não gravado), crons mortos do `vercel.json`, a porta do formato colado (5.000 caracteres e recusa de "shot plan" em `generate-video-fast`, trava 8.2: exige "vai" nominal), e a ferramenta paga de rastreio de prompts. Leitura: 14 dias com corte no deploy; números de morte em `docs/ANALISE-CEO-OPORTUNIDADES-2026-09-23.md` §3.
+
+
 ## 2026-09-23 — Diretor Kineo: sugestão opcional antes de gerar
 
 **DECISÃO APROVADA:** ao responder “Concordo, vamos seguir”, o fundador aprovou iniciar o protótipo UX de uma sugestão de prompt/ideia no Studio, antes da geração. Original preservado, comparação e aplicação explícita, com opção de editar/manter original. No modo verbatim, não reescrever narração silenciosamente; não iniciar render, cobrar créditos ou trocar configurações ao sugerir/aplicar.

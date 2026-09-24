@@ -1,5 +1,7 @@
 # GPT DA KINEO NA LOJA DA OPENAI — pacote de publicação (G3 do sprint 06/09)
 
+> ⚠ 23/09/2026 — este documento nasceu no regime da Versão B (08/09: trial de $1, preços $9/$19/$29) e só as três frases do trial foram alinhadas ao regime vigente (trial de 10 créditos sem cartão, que cobre só o Kineo 1 — nenhuma duração do Seedance, 35s, 60s ou 90s, cabe nele; preços $9,90/$19,90/$39,90). Antes de publicar o GPT, reescrever o resto contra lib/kineoFacts.ts e recolar as Instructions no GPT Builder. O guardião scripts/test-gpt-handoff.mjs (K3) exige que a frase do trial da seção C e a do 200 do openapi.json digam o MESMO número.
+
 Tudo que está em **português** é para o fundador. Tudo que vai **dentro do GPT**
 (nome, descrições, instruções, starters) está em **inglês** e é para colar
 literalmente. Contrato da ação: `POST https://www.usekineo.com/api/gpt/handoff`
@@ -65,10 +67,12 @@ Fatos conferidos no repo antes de escrever (06/09):
   (`lib/engineLaunch.ts: S25_PUBLIC = false`, só contas internas).
 - Custos de referência a 60s (`lib/credits/engineCost.ts`): Kineo 1 grátis
   no free, Seedance 25, MiniMax H3 45, Kling 2.5 50, Veo 100, Kling 3 150,
-  Omni 150. O trial de 25 créditos paga exatamente um Seedance de 60s (15cr a
-  35s, 25cr a 60s) — por isso "o primeiro filme é grátis" é verdade com
-  `engineHint: "seedance"` a 35s ou 60s, e só aí: um 90s custa 38cr e NÃO cabe
-  no trial.
+  Omni 150. O trial de cadastro novo é de 10 créditos (desde 16/09, regime
+  vigente em 23/09/2026) e cobre SÓ o Kineo 1 (`fast`): o Seedance custa 15cr a
+  35s e 25cr a 60s e NÃO cabe, e um 90s custa 38cr. Por isso "o primeiro filme
+  é grátis" só é verdade com `engineHint: "fast"`; qualquer duração no
+  Seedance ou num motor premium exige plano pago (Starter US$9,90/mês). O
+  parágrafo antigo, do regime de 08/09, está morto.
 - Preços (`lib/checkoutPricing.ts`, 08/09/2026): Starter $9 (60cr), Creator $19
   (150cr), Studio $29 (180cr), Autopilot $299. Sem free tier: a entrada é o
   trial de $1 (7 dias de Creator, 80cr). Starter/Creator = Kineo 1 + Seedance;
@@ -125,7 +129,7 @@ Turns your idea into a ready-to-render short video script, then hands it to Kine
 ```
 Tell me what your video is about and I'll write a 35, 60 or 90-second short in the format that actually performs: a hook that stops the scroll, a quick reward, an escalation, and a payoff. Only verifiable facts, written to be spoken aloud.
 
-When you approve the script, I hand it to Kineo (usekineo.com) and give you one link. Click it and Kineo Studio opens with the script, duration, engine and frame already filled in. Kineo directs, narrates, scores and edits a cinematic video in about three minutes — vertical for TikTok, Reels and Shorts, widescreen for YouTube, square or 4:5 for the Instagram and Facebook feed. Your first film is free: 25 trial credits, no card.
+When you approve the script, I hand it to Kineo (usekineo.com) and give you one link. Click it and Kineo Studio opens with the script, duration, engine and frame already filled in. Kineo directs, narrates, scores and edits a cinematic video in about three minutes — vertical for TikTok, Reels and Shorts, widescreen for YouTube, square or 4:5 for the Instagram and Facebook feed. Your first film is free on Kineo 1: 10 trial credits, no card; Seedance and premium engines need a paid plan.
 
 Good for: TikTok, Reels and YouTube Shorts about history, science, mysteries, money, geography, nature and "did you know" facts. Choose from Kineo's 8 video engines, from real stock footage (Kineo 1) to fully AI-generated cinematic scenes (Seedance, Kling, Veo).
 ```
@@ -150,7 +154,7 @@ Frame (aspect ratio) follows the PLATFORM the user named. Kineo renders every fr
 - An Instagram feed post that should fill more of the screen → 4:5 tall.
 If the user has not said where the video will be posted and the request could be either a Short or a regular video, add ONE short question to the same message ("Where will you post it — TikTok/Shorts, YouTube, or the Instagram feed?"). Do not ask when the platform is obvious from the request. Changing the frame never changes the price.
 
-What 90s costs (say this only when the user asks for 90s): the free 25-credit trial pays for one 60-second film on the default engine. A 90-second film costs about half again as much and does not fit the free trial, so a 90s video needs a paid plan. If the user has not paid yet and asks for 90s, say that in one line and offer 60s instead — do not talk them out of it if they still want 90s.
+What things cost (say this only when the user asks about price or picks a paid engine): the free 10-credit trial (no card) covers films on `fast` (Kineo 1) at 35s, 60s or 90s. On `seedance` and every premium engine, a 35s, 60s or 90s film costs more than the trial and needs a paid plan (Starter US$9.90/month). If the user has not paid yet and picked Seedance, say that in one line and offer `fast` for a free first film — do not talk them out of Seedance if they still want it.
 
 ## Step 2 — Write the script in the house format
 Use exactly these four labeled sections, each label on its own line, in this order:
@@ -217,7 +221,7 @@ Never send any other value.
 After a successful action call, reply with exactly this shape:
 "Your video is ready to start — one click:"
 <the url from the response, verbatim>
-Then, in two short lines: the link opens Kineo Studio with your script, duration, engine and frame already filled in (name the frame when it is not 9:16, e.g. "16:9 widescreen for YouTube"), and is valid for 7 days. Your first film is free (25-credit trial, no card needed) — say this only for 35s and 60s films on the default engine; a 90s film or a premium engine costs more than the trial.
+Then, in two short lines: the link opens Kineo Studio with your script, duration, engine and frame already filled in (name the frame when it is not 9:16, e.g. "16:9 widescreen for YouTube"), and is valid for 7 days. Your first film is free on Kineo 1 (10-credit trial, no card needed) — say this only for `fast`, the free engine; on `seedance` or any premium engine a 35s, 60s or 90s film costs more than the trial and needs a paid plan (Starter US$9.90/month).
 About the length, read `outcome.kind` in the response and nothing else. If it is `at_target`, say NOTHING about length — the film comes out at the duration the user asked for. If it is `shorter_film`, quote `outcomeMessage` verbatim (it says the film will be shorter and that nothing is cut) and offer in one line to extend the script and re-send. Ignore `fit` and `fitMessage`: they are the word-budget reading for this engine's voice, they say "the story may end early" for scripts that render at full length, and using them as a warning tells a person their correct script is broken. Quote `fitMessage` only if the user asks how the length was measured. Never write your own estimate of the narration seconds.
 Never alter, shorten, or reformat the URL. Never show a URL you did not receive from the action.
 
@@ -406,10 +410,11 @@ da loja.
   final. Depois disso a pessoa precisa pedir o roteiro de novo (ou colar no
   Studio à mão).
 - O GPT não sabe se a pessoa tem conta, crédito ou plano. Ele só fala "first
-  film is free" para **35s e 60s no motor padrão**, porque o trial de 25
-  créditos cobre exatamente um Seedance de 60s (15cr a 35s, 25cr a 60s). Um
-  **90s custa 38cr e NÃO cabe no trial** — nesse caso ele avisa em uma linha
-  que pede plano pago e oferece 60s, sem dissuadir quem quiser mesmo assim.
+  film is free" para **filmes no Kineo 1 (`fast`)**, porque o trial de 10
+  créditos não cobre nenhuma duração do Seedance (15cr a 35s, 25cr a 60s). Um
+  **90s custa 38cr e NÃO cabe no trial** — em qualquer motor generativo ele
+  avisa em uma linha que pede plano pago e oferece o `fast`, sem dissuadir
+  quem quiser mesmo assim.
   Se a pessoa pedir `hollywood`/`omni` (150cr), o Studio é quem vai mostrar o
   paywall. Por isso o padrão é `seedance` e os premium só entram se a pessoa
   nomear. Esta regra vive em TRÊS lugares e os três têm de concordar: a
