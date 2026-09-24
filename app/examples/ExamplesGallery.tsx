@@ -43,7 +43,7 @@ function FeaturedMedia({ video, paused, nextVideo, onEnded }: { video: WallVideo
     return () => window.clearTimeout(timer)
   }, [failed, visible, tabVisible, allowed, paused, onEnded])
   const openingFocus = video.previewOpening?.focalPoint ?? video.focalPoint
-  return <span className={styles.featuredMedia} ref={container}>
+  return <span className={`${styles.featuredMedia}${video.previewPortrait ? ` ${styles.portraitMedia}` : ''}`} ref={container}>
     <img src={video.posterUrl} alt="" loading="eager" style={{ objectPosition: openingFocus }} />
     {mounted && !failed && <video ref={player} src={video.previewUrl ?? video.videoUrl} muted loop={!onEnded} playsInline preload="none"
       style={{ opacity: playing ? 1 : 0, objectPosition: openingFocus }} onPlaying={() => setPlaying(true)} onError={() => setFailed(true)}

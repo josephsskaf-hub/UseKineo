@@ -97,6 +97,7 @@
 .featuredFour .featureCard .featureCopy { inset:auto 20px 15px }
 .featuredFour .featureCard strong { font-size:clamp(17px,1.4vw,22px) }
 .featuredMedia .preloadVideo { display:none }
+.featuredFour .featureCard .portraitMedia { left:auto; width:38%; mask-image:linear-gradient(90deg,transparent,#000 25%) }
 .filmSteps { position:absolute; top:14px; right:16px; display:flex; gap:5px; pointer-events:none }
 .filmSteps span { width:19px; height:3px; border-radius:3px; background:#ffffff50 }
 .filmSteps span[data-active=true] { background:#fff }

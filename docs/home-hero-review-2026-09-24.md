@@ -18,8 +18,9 @@
 
 **IMPLEMENTADO:** nove filmes únicos em quatro playlists (3/2/2/2), com título, motor e abertura do player correspondentes ao filme visível. Pausa manual, modal aberto, aba oculta, movimento reduzido e economia de dados interrompem a reprodução automática. Apenas o próximo filme visível é pré-carregado. O hero desktop limita a mídia a 360px e reduz o espaço do título, mostrando mais da seção seguinte.
 
-**FATO CONFIRMADO — mídia:** seis cortes novos, todos 1080×1920 H.264/CRF16, sem geração paga: robôs 12–15s + 22–25s da versão melhorada existente; avião 9–15s; vulcão 45–50s; mulher do trem 42–48s; faroleiro 33–39s; Kling 3 de capuz amarelo 1–7s. Tunguska, Lituya e castelo reaproveitam os cortes HD aprovados. A abertura do robô enquadra a cabeça e depois acompanha a colisão. A titularidade dos vídeos novos foi conferida por leitura restrita à conta do fundador; nenhuma escrita no banco.
+**FATO CONFIRMADO — mídia:** seis cortes novos, todos 1080×1920 H.264/CRF16, sem geração paga: robôs 12–15s + 22–25s da versão melhorada existente; avião 9–15s; vulcão 45–50s; mulher do trem 44–50s; faroleiro 33–39s; Kling 3 de capuz amarelo 1–7s. Tunguska, Lituya e castelo reaproveitam os cortes HD aprovados. A abertura do robô enquadra a cabeça e depois acompanha a colisão. A titularidade dos vídeos novos foi conferida por leitura restrita à conta do fundador; nenhuma escrita no banco.
 
 **TESTADO LOCALMENTE:** 559 verificações de galeria/arquivos, 180 verificações da home azul, typecheck e bateria crítica do Guardião aprovados. Validação interativa e publicação são registradas no handoff externo após o deploy.
 
 **ARTEFATO VISUAL:** `HOME-ROTACAO-ANTES-DEPOIS.html`, no diretório de outputs desta tarefa, compara a versão compacta anterior com a nova composição em desktop e celular, usando SSR e capas reais.
+

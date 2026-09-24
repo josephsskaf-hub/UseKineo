@@ -24,7 +24,7 @@ const robot: WallVideo = { ...selectedFilm(HOME_FILM_IDS[0], 'robot-action', '50
 const hoodie: WallVideo = {
   id: '216cbed2-b95f-47e7-98bc-e4c3fc3010a9', title: 'The face that looks real', engine: 'cinematic_hollywood', badge: 'KLING 3',
   videoUrl: '/previews/home-films-sep24/hoodie-scene.mp4', previewUrl: '/previews/home-films-sep24/hoodie-scene.mp4',
-  posterUrl: '/posters/home-films-sep24/hoodie-scene.webp', focalPoint: '50% 28%', href: '/studio', publicSource: 'founder_owned_engine_example',
+    posterUrl: '/posters/home-films-sep24/hoodie-scene.webp', focalPoint: '50% 48%', previewPortrait: true, href: '/studio', publicSource: 'founder_owned_engine_example',
 }
 
 // Keep the four approved openers. Add strong shots from the previous home and
@@ -32,7 +32,7 @@ const hoodie: WallVideo = {
 export const HOME_FEATURED_PLAYLISTS: WallVideo[][] = [
   [robot, selectedFilm('48f1007c-d9be-4702-91c6-c9f1e0c3db38', 'plane-scene', '50% 35%'), selectedFilm('90bd8367-60c6-4811-8fdd-3a5b0200eec6')],
   [selectedFilm(HOME_FILM_IDS[1]), hoodie],
-  [selectedFilm(HOME_FILM_IDS[2]), selectedFilm('b5434412-62b9-48f5-9a10-c36e2e725c9f', 'lighthouse-scene', '50% 25%')],
-  [selectedFilm(HOME_FILM_IDS[3], 'volcano-scene'), selectedFilm('ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb', 'train-scene', '50% 38%')],
+  [selectedFilm(HOME_FILM_IDS[2]), { ...selectedFilm('b5434412-62b9-48f5-9a10-c36e2e725c9f', 'lighthouse-scene', '50% 25%'), previewPortrait: true }],
+  [selectedFilm(HOME_FILM_IDS[3], 'volcano-scene'), { ...selectedFilm('ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb', 'train-scene', '50% 24%'), previewPortrait: true }],
 ]
 export const HOME_FEATURED_FILMS = HOME_FEATURED_PLAYLISTS.map(playlist => playlist[0])
