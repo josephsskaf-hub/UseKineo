@@ -40,7 +40,7 @@ check('ele ainda repassa a query INTEIRA (não enumera chaves)', porteiro.includ
 check('o destino real existe', existsSync(new URL('../app/(dashboard)/studio/create/page.tsx', import.meta.url)))
 
 console.log('2 · o botão que o fundador viu quebrado')
-check('bento da home vai DIRETO ao destino final', landing.includes("'/studio/create?src=engine_bento'"))
+check('bento da home vai DIRETO ao destino final', landing.includes("'/studio?src=engine_bento'"))
 check('e não passa mais pelo porteiro', !landing.includes("'/generate?src=engine_bento'"))
 check('o caminho de quem NÃO está logado ficou intocado (signup)', landing.includes("'/signup?utm_source=engine_bento'"))
 check('a razão está escrita no código, não só no commit', landing.includes('KINEO-SEM-PORTEIRO-2026-09-02'))
@@ -109,7 +109,7 @@ check('pílula de render ativo aponta para o destino real', pill.includes('`/stu
 check('painel de onboarding reconhece o endereço NOVO da tela de criar', onboarding.includes("pathname?.startsWith('/studio/create')"))
 check('prova social volta a aparecer na tela de criar', src('components/SocialProofToast.tsx').includes("'/studio'"))
 check('banner de indicação volta a ser suprimido na tela de criar', src('components/ReferralPromoBanner.tsx').includes("'/studio'"))
-check('o shell sabe o título da tela nova', src('app/(dashboard)/DashboardShell.tsx').includes("'/studio/create': 'Generate New Short'"))
+check('o shell sabe o título da tela nova', src('app/(dashboard)/DashboardShell.tsx').includes("'/studio/create': 'Studio'"))
 
 console.log('9b · RODADA 3 (03/09) — os 20 que o fio de alarme achou')
 // Não foi a rodada 2 que achou estes: foi a VARREDURA da seção 10, na primeira

@@ -1,6 +1,7 @@
 'use client'
 
 import KineoBolt, { KineoBoltText } from '@/components/KineoBolt'
+import { hasStudioCreateIntent, studioEntryView } from '@/lib/navigation/studioEntry'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { looksLikeInstruction } from '@/lib/momentumTopic'
@@ -1807,6 +1808,13 @@ export default function GenerateClient({
   const currentUserIdRef = useRef<string | null>(initialUserId)
   const resumedRenderRef = useRef(false)
   const [activeRenderRestoreResolved, setActiveRenderRestoreResolved] = useState(false)
+  // Read before the pending-prompt consumer removes the session key. Keep
+  // server and first client paint identical while recovery is unresolved.
+  const [entryHasPendingPrompt, setEntryHasPendingPrompt] = useState<boolean | null>(null)
+  useEffect(() => {
+    try { setEntryHasPendingPrompt(Boolean(sessionStorage.getItem('pendingVideoPrompt')?.trim())) }
+    catch { setEntryHasPendingPrompt(false) }
+  }, [])
   const [activeRenderRestoreRetry, setActiveRenderRestoreRetry] = useState(0)
   // KINEO-GATE-STALE-SNAPSHOT-2026-08-07 — set when the gate blocks a click on
   // a snapshot we could NOT prove stale. That is the one case the automatic
@@ -8894,19 +8902,21 @@ export default function GenerateClient({
   // pro /studio. Com parametros de trabalho ou render restaurado, tudo segue
   // igual (esta pagina vira so a sala de maquinas do Studio).
   const studioRedirectFiredRef = useRef(false)
+  const entryView = studioEntryView({
+    hasIntent: hasStudioCreateIntent(searchParams),
+    pendingPrompt: entryHasPendingPrompt,
+    restoreResolved: activeRenderRestoreResolved,
+    resumed: resumedRenderRef.current,
+    phase,
+    hasBlockingUi: Boolean(error || showUpgradeModal || activeRenderGateBlocked),
+  })
   useEffect(() => {
     if (studioRedirectFiredRef.current) return
-    if (!activeRenderRestoreResolved || resumedRenderRef.current) return
-    if (phase !== 'idle') return
-    const keys = ['prompt', 'topic', 'create_intent', 'studio', 'autoanalyze', 'engine', 'welcome', 'signup', 'return', 'generationId']
-    if (keys.some((k) => (searchParams?.get(k) ?? '').trim() !== '')) return
-    try {
-      if (sessionStorage.getItem('pendingVideoPrompt')) return
-    } catch {}
+    if (entryView !== 'redirect') return
     studioRedirectFiredRef.current = true
-    router.replace('/studio')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeRenderRestoreResolved, phase, searchParams])
+    const query = searchParams.toString()
+    router.replace(query ? `/studio?${query}` : '/studio')
+  }, [entryView, router, searchParams])
 
   // Push #301 — Viral Now cards used to AUTO-GENERATE: the moment analysis
   // finished they fired handleGenerate() on the default engine.
@@ -13423,6 +13433,18 @@ export default function GenerateClient({
           ✨ Let AI write the script from this instead
         </button>
       </>
+    )
+  }
+
+  // Bare/attribution-only legacy entries must not paint the retired form
+  // while the existing recovery check and client navigation settle.
+  if (entryView !== 'render') {
+    return (
+      <div role="status" aria-live="polite" className="stu" style={{ minHeight: '72vh', display: 'grid', placeContent: 'center', textAlign: 'center' }}>
+        <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
+        <h1><UiLabel>Studio</UiLabel></h1>
+        <p className="sub"><UiLabel>Loading…</UiLabel></p>
+      </div>
     )
   }
 
@@ -22655,4 +22677,3 @@ function WelcomeBanner({ onDismiss, trialLive, grantedCredits }: { onDismiss: ()
     </div>
   )
 }
-

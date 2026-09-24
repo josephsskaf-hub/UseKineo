@@ -28,6 +28,8 @@ jobs:
         run: node scripts/test-sharing-safety.mjs
       - name: Navegação, biblioteca e idioma
         run: node scripts/test-five-improvements.mjs
+      - name: Studio — entrada direta e retomada sem formulário antigo
+        run: node scripts/test-studio-entry-transition.mjs
       - name: Idiomas, galeria e CSS SSR
         run: node scripts/test-locale-readiness.mjs
       - name: Menu, Studio, Biblioteca e planos aprovados
