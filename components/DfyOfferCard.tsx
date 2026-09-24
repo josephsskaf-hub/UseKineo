@@ -45,6 +45,9 @@ import {
   isDfyCandidate,
   isDfyOfferLive,
 } from '@/lib/growth/dfyOffer'
+// KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — terceira saída do cartão, FORA de dfyCardCopy() (que segue com 2 opções,
+// guardião test-tres-jogadas): "faça você mesmo no Studio Ads", só com o passe à venda (adsPassLive()).
+import { adsPassLive } from '@/lib/ads/offer'
 
 /** Superfícies (`source`) que já registraram impressão neste carregamento de página. */
 const impressionKeys = new Set<string>()
@@ -160,6 +163,24 @@ export default function DfyOfferCard({
             </span>
           </a>
         ))}
+        {adsPassLive() && (
+          <a
+            href="/ads?from=dfy_card"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-kineo="dfy-studio-ads-link"
+            onClick={() => {
+              try {
+                void trackEvent('ads_dfy_upsell_clicked', { source, target: 'studio_ads', version: DFY_OFFER_VERSION })
+              } catch {
+                /* ignore */
+              }
+            }}
+            style={{ display: 'block', padding: '8px 4px 2px', fontSize: 13, fontWeight: 700, color: '#5cb3ff', textDecoration: 'none', lineHeight: 1.45 }}
+          >
+            Make it yourself in Studio Ads →
+          </a>
+        )}
       </div>
       <p className="text-xs mt-2.5" style={{ color: 'var(--muted, #86868b)', fontSize: 12, margin: '10px 0 0' }}>
         {copy.fine}

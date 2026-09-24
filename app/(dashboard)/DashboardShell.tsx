@@ -48,6 +48,9 @@ const pageTitles: Record<string, string> = {
   '/video': 'Video Studio',
   '/channel': 'Channel Builder',
   '/autopilot': 'Autopilot',
+  // KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — o assistente do Studio Ads (/ads/new) ganha título no shell.
+  '/ads': 'Studio Ads',
+  '/ads/new': 'Studio Ads',
   '/admin/metrics': 'Admin · Metrics',
   '/thumbnail-generator': 'AI Thumbnail Generator',
   '/referral': 'Invite & Earn',

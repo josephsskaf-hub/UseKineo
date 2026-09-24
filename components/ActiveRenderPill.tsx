@@ -97,8 +97,11 @@ export default function ActiveRenderPill() {
   // KINEO-STUDIO-PORTA-UNICA-2026-08-25: o GenerateClient mora agora em
   // /studio/create (o /generate virou porteiro) — a supressão acompanha a
   // mudança, senão o card de resume e a pílula aparecem JUNTOS na mesma tela.
+  // KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — o /ads/new acompanha o próprio render; a pílula mandaria para /studio/create.
   const suppressed =
-    (pathname ?? '').startsWith('/generate') || (pathname ?? '').startsWith('/studio/create')
+    (pathname ?? '').startsWith('/generate') ||
+    (pathname ?? '').startsWith('/studio/create') ||
+    (pathname ?? '').startsWith('/ads')
 
   const [probe, setProbe] = useState<Probe>(null)
   const [tick, setTick] = useState(() => Date.now())

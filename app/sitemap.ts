@@ -12,6 +12,8 @@ import { INTENT_HUB_PATH, INTENT_SLUGS, intentPagePath } from '@/lib/seo/intentP
 import { CITATION_ANSWER_LINKS, CITATION_REVIEW_DATE } from '@/lib/growth/citationAnswers'
 import { FREE_SHORTS_LANGS } from '@/lib/seo/freeShortsGeneratorLangs'
 import { LOCALIZED_ENGINE_SLUGS, ENGINE_LANG_CODES } from '@/lib/seo/enginePageLangs'
+// KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — the self-serve ads door enters the map only while the pass is on sale.
+import { adsPassLive } from '@/lib/ads/offer'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -59,12 +61,18 @@ const BASE = 'https://www.usekineo.com'
 // (/ai-video-generator/for + 100 intent pages). Same test as every bump above:
 // the cluster materially changed, so the old date would be a lie.
 const LAST_MODIFIED = new Date('2026-09-17T05:00:00.000Z')
+// KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — /ads is new; it carries its own date instead of re-dating the cluster.
+const ADS_DOOR_LAST_MODIFIED = new Date('2026-09-24T21:30:00.000Z')
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes: { path: string; priority: number; freq: 'daily' | 'weekly' | 'monthly' }[] = [
     { path: '', priority: 1.0, freq: 'daily' },
     { path: '/pricing', priority: 0.9, freq: 'weekly' },
     { path: '/business-video-ads', priority: 0.9, freq: 'weekly' },
+    // KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — Studio Ads (make your own ad with your photos, clips and logo).
+    // Listed only when NEXT_PUBLIC_ADS_PASS_LIVE=1 (inlined at build): closed, the page says "Opens soon" and is
+    // noindex, and a map entry would point crawlers at a page with nothing to buy.
+    ...(adsPassLive() ? [{ path: '/ads', priority: 0.8, freq: 'weekly' as const }] : []),
     { path: '/viral-now', priority: 0.9, freq: 'daily' },
     // KINEO-WALL-2026-08-03 — public proof board (Shorts users actually
     // published). Daily/0.9 like /viral-now: same profile — a page whose whole
@@ -249,7 +257,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }
   const staticEntries = routes.map((r) => ({
     url: `${BASE}${r.path}`,
-    lastModified: ['/business-video-ads', '/sora-alternative', '/omni-flash-vs-sora'].includes(r.path)
+    lastModified: r.path === '/ads' ? ADS_DOOR_LAST_MODIFIED
+      : ['/business-video-ads', '/sora-alternative', '/omni-flash-vs-sora'].includes(r.path)
       ? new Date('2026-09-24T13:51:19.000Z') : LAST_MODIFIED,
     changeFrequency: r.freq,
     priority: r.priority,

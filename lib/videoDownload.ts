@@ -89,7 +89,7 @@
 import { trackEvent } from '@/lib/analytics'
 import { anunciarVideoEntregue } from '@/lib/postVideoSignal'
 
-export type DownloadSurface = 'done_screen' | 'history' | 'my_videos'
+export type DownloadSurface = 'done_screen' | 'history' | 'my_videos' | 'ads'
 
 /**
  * Desfecho do download. Só `blob` conta como `video_downloaded` — é o único em

@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import KineoBolt from '@/components/KineoBolt'
 import { DFY_SERVICE_FACT } from '@/lib/growth/dfyServiceFacts'
+// KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — the self-serve door under Express/Pro, only while the pass is on sale.
+import { ADS_PASS_CREDITS, adsPassLive, adsPassPriceLabel } from '@/lib/ads/offer'
 import BusinessAdsOffers from './BusinessAdsOffers'
 import styles from './businessAds.module.css'
 
@@ -51,6 +53,10 @@ export default function BusinessVideoAdsPage() {
       <div className={styles.sectionHeading}><p className={styles.eyebrow}>TWO WAYS TO GET IT MADE</p><h2 id="packages-heading">Choose the production that fits.</h2></div>
       <BusinessAdsOffers />
     </section>
+    {adsPassLive() && <section className={styles.selfServe} aria-labelledby="self-serve-heading">
+      <div><p className={styles.eyebrow}>STUDIO ADS · MAKE IT YOURSELF</p><h2 id="self-serve-heading">Prefer to make it yourself?</h2><p className={styles.selfServeText}>Upload your own photos, clips and logo, pick an ad model, approve the script and the voice, and download the finished vertical ad. A human editor still reviews your first one.</p></div>
+      <div className={styles.selfServeBuy}><p className={styles.selfServePrice}>{adsPassPriceLabel()}<span>One-time pass · {ADS_PASS_CREDITS} credits · no subscription</span></p><a className={styles.primary} href="/ads?from=business_ads">See Studio Ads <span aria-hidden="true">→</span></a></div>
+    </section>}
     <section className={styles.split} aria-label="Delivery and materials">
       <div><p className={styles.eyebrow}>THE FINISHED PIECE</p><h2>What you receive</h2><p>{DFY_SERVICE_FACT.delivery}</p><p>A human prepares the script and production. The selected package sets the engines, delivery time and included revisions.</p></div>
       <div><p className={styles.eyebrow}>AFTER PAYMENT</p><h2>Send the ingredients.</h2><ol>{DFY_SERVICE_FACT.requirements.map(item => <li key={item}>{item}</li>)}</ol><p>Follow the instructions in your order confirmation. Include the phone number, website or call to action exactly as it should appear. Only send material you have permission to use.</p></div>

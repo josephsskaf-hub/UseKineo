@@ -129,6 +129,20 @@
 .split>div { padding: 26px; }
 }
 
+/* KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — self-serve block under Express/Pro (rendered only when the pass is live). */
+.selfServe { display: flex; align-items: center; justify-content: space-between; gap: 40px; margin: 0 0 24px; padding: 30px 32px; border: 1px dashed #34506c; border-radius: 16px; background: #0f1823; }
+.selfServe h2 { font-size: clamp(22px,2.4vw,30px); margin: 0 0 10px; }
+.selfServeText { font-size: 13px; color: var(--muted); line-height: 1.8; margin: 0; max-width: 620px; }
+.selfServeBuy { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; flex-shrink: 0; }
+.selfServePrice { margin: 0; font-size: 34px; font-weight: 650; letter-spacing: -1.2px; line-height: 1.1; color: #f6f8fc; }
+.selfServePrice span { display: block; margin-top: 6px; font-size: 11px; font-weight: 500; letter-spacing: 0; color: #95a5ba; }
+
+@media(max-width:700px) {
+.selfServe { display: block; padding: 24px 20px; }
+.selfServeBuy { margin-top: 20px; }
+.selfServePrice { font-size: 30px; }
+}
+
 @media(prefers-reduced-motion:reduce) {
 .primary, .buy { transition: none; }
 .primary:hover, .buy:hover { transform: none; }
