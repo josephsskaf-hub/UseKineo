@@ -216,8 +216,10 @@ check('(C7) TTL = HANDOFF_TTL_MS (o MESMO do POST)', /new Date\(Date\.now\(\) \+
 check('(C8) evento gpt_handoff_created (o MESMO nome do POST) com channel: CHANNEL e reused', /name: 'gpt_handoff_created'/.test(makeCode) && /channel: CHANNEL,/.test(makeCode) && /\n\s*reused,\s*\n/.test(makeCode))
 check('(C8) o evento carrega o mesmo metadata do POST (words/seconds/fit/family/…/bot: false)', ['words: est.words', 'seconds: est.seconds', 'fit: est.fit', 'family: est.family', 'duration_sec: input.durationSec', 'engine_hint: input.engineHint', 'aspect: input.aspect', 'language: input.language', 'has_topic: Boolean(input.topic)', 'script_chars: input.script.length', 'markers_found: est.markersFound', 'bot: false'].every((s) => makeCode.includes(s)))
 check('(C8) o ROTEIRO nunca vai para o evento (metadata sem chave `script:`)', (() => {
-  const m = makeCode.match(/metadata: \{([\s\S]*?)\n\s*\},/)
-  return Boolean(m) && !/\bscript:/.test(m[1]) && !/input\.script[^.]/.test(m[1])
+  // GPT-LOJA: refusal adds a second, inline metadata object. The old newline
+  // regex crossed into insertHandoff and mistook its stored script for an event.
+  const blocks = [...makeCode.matchAll(/metadata: \{([^{}]*)\}/g)].map(m => m[1])
+  return blocks.length === 2 && blocks.every(block => !/\bscript:/.test(block) && !/input\.script[^.]/.test(block))
 })())
 check('(C8) o ROTEIRO nunca vai para uma URL de redirecionamento', !/redirect\([^)]*input\.script/.test(makeCode) && !/\$\{input\.script\}/.test(makeCode))
 check('(C9) sucesso = 302 para /go/<token> (GO_PATH_PREFIX)', /return NextResponse\.redirect\(`\$\{origin\}\$\{GO_PATH_PREFIX\}\$\{token\}`, 302\)/.test(makeCode) && /return go\(origin, token\)/.test(makeCode))
