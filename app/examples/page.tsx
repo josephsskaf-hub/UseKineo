@@ -105,10 +105,9 @@ export default async function ExamplesPage() {
             <h2 className="text-xl font-semibold tracking-[-.02em]">Bring your own topic.</h2>
             <p className="mt-1 text-sm leading-6 text-white/60">{ft(OFFER, 'Try up to three watermarked Fast videos every 24 hours. No card required.', OFFER.copy.headline)}</p>
           </div>
-          {/* KINEO-EXAMPLES-LOGADO-2026-08-24 — logado vai direto ao Studio
-              (a porta única do #301); visitante segue o funil de sempre. */}
+          {/* Open the public editor directly; auth is requested when needed. */}
           <OrganicCtaLink
-            href={isLoggedIn ? '/studio?utm_source=examples&utm_medium=proof&utm_campaign=push31' : '/studio/create?utm_source=examples&utm_medium=proof&utm_campaign=push31'}
+            href="/studio?utm_source=examples&utm_medium=proof&utm_campaign=push31"
             source="examples_index"
             placement="footer_band"
             className="mt-5 inline-flex rounded-full bg-white px-5 py-3 text-sm font-semibold tracking-[-.02em] text-black transition hover:bg-white sm:mt-0"
