@@ -764,7 +764,10 @@ console.log('\n(K) docs/GPT-KINEO-VIDEO-MAKER.md amarrado ao servidor e ao schem
   ok(priceHits.length >= 8 && wrong.length === 0, wrong.length ? `(K6) PREÇO DIVERGENTE no .md: ${wrong.map((h) => `${h.name} $${h.usd} (lib: $${expectedUsd[h.name]})`).join(', ')}` : `(K6) ${priceHits.length} preços citados no .md batem com a lib (${Object.entries(expectedUsd).map(([n, v]) => `${n} $${v}`).join(' · ')})`)
   ok(Object.keys(expectedUsd).every((n) => priceHits.some((h) => h.name === n)), '(K6) os 4 planos aparecem no .md')
   const pricingLine = instructions.split('\n').find((l) => /^- Starter \$/.test(l)) || ''
-  ok(Object.entries(expectedUsd).every(([n, v]) => pricingLine.includes(`${n} $${v}/month`)), `(K6) a linha de preços do Step "Pricing and plans" traz os 4 com "/month": "${pricingLine.slice(0, 90)}"`)
+  // KINEO-GPT-INSTRUCOES-V3-2026-09-24 — reancorado com motivo: a lib dá 9.9 (990/100) e a copy de loja escreve
+  // "$9.90"; a trava exigia o literal "$9.9/month", que nenhuma página da casa usa. Aceita as duas grafias do MESMO
+  // valor; qualquer outro número segue reprovando (o valor continua vindo de TIER_PRICES).
+  ok(Object.entries(expectedUsd).every(([n, v]) => pricingLine.includes(`${n} $${v}/month`) || pricingLine.includes(`${n} $${v.toFixed(2)}/month`)), `(K6) a linha de preços do Step "Pricing and plans" traz os 4 com "/month": "${pricingLine.slice(0, 90)}"`)
 
   // (K7) TRIAL. Todo "25" citado como crédito de trial === TRIAL_CREDIT_CAP.
   const trialHits = [...flat.matchAll(/(\d+)-credit trial|(\d+) trial credits|trial de (\d+) cr[ée]ditos|Free trial: (\d+) credits|trial of (\d+) credits/gi)].map((m) => Number(m.slice(1).find(Boolean)))

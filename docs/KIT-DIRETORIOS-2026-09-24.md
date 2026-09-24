@@ -11,10 +11,11 @@ Por quê: as tarefas 1-3 de 24/09 (diretórios que o ChatGPT lê · GPT Store ·
 ## 2. Copy oficial (inglês; colar como está)
 
 - **Tagline (≤60):** `Type an idea. Get a cinematic vertical film.`
-- **Descrição curta (≤160):** `Turn one idea into a narrated, captioned vertical film in about 3 minutes. Engines: Seedance 1.5, Kling 2.5, Kling 3, Veo 3.1, Omni Flash and Kineo 1. Free trial, no card.`
-- **Descrição longa (≈90 palavras):** `Kineo is an AI video generator for YouTube Shorts, TikTok and Reels. You type an idea or paste your own script; Kineo writes the scenes, directs the shots, narrates in your language, adds captions and original music, and delivers a vertical MP4 in about 3 minutes. Choose the engine per film: Seedance 1.5 and Kling 2.5 for everyday Shorts, Kling 3, Veo 3.1 and Omni Flash for cinematic work, Kineo 1 for stock-footage explainers using your own clips and photos. Free trial with 10 credits, no card required. Plans from $9.90/month.`
+- **Descrição curta (≤160):** `Turn one idea into a narrated, captioned vertical film in about 3 minutes. Engines: Seedance 1.5, Kling 2.5, Kling 3, Veo 3.1, MiniMax H3 and Kineo 1. Free trial, no card.`
+- **Descrição longa (≈90 palavras):** `Kineo is an AI video generator for YouTube Shorts, TikTok and Reels. You type an idea or paste your own script; Kineo writes the scenes, directs the shots, narrates in your language, adds captions and original music, and delivers a vertical MP4 in about 3 minutes. Choose the engine per film: Seedance 1.5 and Kling 2.5 for everyday Shorts, Kling 3, Veo 3.1 and MiniMax H3 for cinematic work, Kineo 1 for stock-footage explainers. Free trial with 10 credits, no card required. Plans from $9.90/month.`
 - **Categorias:** AI video generator · text to video · YouTube Shorts maker · TikTok video maker · faceless video · AI ad maker · Sora alternative.
 - **Alternativa a (marcar onde o diretório permite):** Sora, Runway, Pika, InVideo AI, Pictory, Fliki, Creatify, HeyGen, Synthesia, Canva Video.
+- **Motores ativos (6, conferidos em lib/engineLaunch.ts em 24/09):** Kineo 1, Seedance 1.5, Kling 2.5, MiniMax H3, Veo 3.1, Kling 3. "6 engines" está certo; Omni Flash e Seedance 2.5 pausados.
 - **O que NUNCA escrever:** "hundreds of formats", "unlimited", "12 characters", "priority queue", "1080p Kling", "premium voices", "forever storage", "instant", "no human". Nada de Sora como motor nosso (o Sora 2 foi desligado em 24/09/2026; a página é https://www.usekineo.com/sora-alternative).
 
 ## 3. Preços (vigentes desde 09/09, congelados até 09/10/2026)
@@ -26,7 +27,7 @@ Por quê: as tarefas 1-3 de 24/09 (diretórios que o ChatGPT lê · GPT Store ·
 | Creator | US$19.90 | 150 | US$199 |
 | Studio | US$39.90 | 300 | US$399 |
 
-- Custo por filme de 60 s (para "pricing details"): Kineo 1 = 5 créditos · Seedance 1.5 = 25 · MiniMax H3 = 45 · Kling 2.5 = 50 · Veo 3.1 = 100 · Kling 3 / Omni Flash = 150. Frase segura: `From under one cent per second on Kineo 1 to cinematic engines at a fixed credit price per film.`
+- Custo por filme de 60 s (para "pricing details"): Kineo 1 = 5 créditos · Seedance 1.5 = 25 · MiniMax H3 = 45 · Kling 2.5 = 50 · Veo 3.1 = 100 · Kling 3 = 150. Omni Flash e Seedance 2.5 estão PAUSADOS desde 15/09: não listar como motor. Frase segura: `From under one cent per second on Kineo 1 to cinematic engines at a fixed credit price per film.`
 - **Feito para você (empresas):** `Kineo Business Ads: a human editor makes your vertical ad from your brief. Express US$35 (48 h, 1 revision) or Pro US$75 (72 h, 2 revisions). Offered inside the Studio.` Não prometer self-service de anúncios (Studio Ads é 25/09 e sobe desligado).
 
 ## 4. Links com UTM (um por diretório; nunca link pelado)
@@ -38,14 +39,14 @@ Página de destino por intenção: Sora → https://www.usekineo.com/sora-altern
 ## 5. GPT Store (strings prontas)
 
 - **Nome:** `Kineo — AI Video Maker (Seedance, Kling 3, Veo)`
-- **Descrição (≤300):** `Make a narrated, captioned vertical video from one idea. Pick the engine (Seedance 1.5, Kling 2.5, Kling 3, Veo 3.1, Omni Flash, Kineo 1), get a script and a link to render it at usekineo.com. Free trial, 10 credits, no card. A Sora alternative that ships films, not clips.`
-- **Starters:** `Make a 60-second cinematic Short about the Boiling River` · `Turn this script into a video: …` · `What is the best Sora alternative for vertical videos?` · `Make a 30-second ad for my restaurant`
+- **Descrição (≤300):** `Make a narrated, captioned vertical video from one idea. Pick the engine (Seedance 1.5, Kling 2.5, Kling 3, Veo 3.1, MiniMax H3, Kineo 1), get a script and a link to render it at usekineo.com. Free trial, 10 credits, no card. A Sora alternative that ships films, not clips.`
+- **Starters:** `Make a 60s cinematic Short about the Boiling River` · `Turn this script into a video: [paste your script]` · `What's the best Sora alternative for vertical videos?` · `Make a 35s ad for my restaurant`
 - **Ação:** https://www.usekineo.com/gpt/openapi.json (v1.2.2, trial de 10 créditos). Instruções do GPT: docs/GPT-KINEO-VIDEO-MAKER.md.
 
 ## 6. Imprensa — Sora acabou (assunto + corpo, inglês, rascunho no Gmail; o fundador envia)
 
 - **Assunto:** `Sora 2 shut down today: what small creators are switching to`
-- **Corpo (4 linhas):** `Hi <nome>, Sora 2 went dark on September 24. At Kineo (usekineo.com) most people who arrive looking for a replacement want a finished vertical film, not a raw clip: narration, captions and music included. We run Seedance 1.5, Kling 3, Veo 3.1 and Omni Flash under one director layer, from $9.90/month, with a free trial and no card. If you are covering the shutdown, I will open a free account with credits for you to try in 3 minutes, and I can share what people are asking for. Joseph Skaf, founder.`
+- **Corpo (4 linhas):** `Hi <nome>, Sora 2 went dark on September 24. At Kineo (usekineo.com) most people who arrive looking for a replacement want a finished vertical film, not a raw clip: narration, captions and music included. We run Seedance 1.5, Kling 3, Veo 3.1 and MiniMax H3 under one director layer, from $9.90/month, with a free trial and no card. If you are covering the shutdown, I will open a free account with credits for you to try in 3 minutes, and I can share what people are asking for. Joseph Skaf, founder.`
 - Só citar crescimento com número se o banco confirmar (consulta 7); sem número, a frase acima já está segura.
 
 ## 7. Como medir (SQL, por pessoa, desde 24/09 12:00 UTC)
