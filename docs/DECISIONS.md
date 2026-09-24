@@ -324,3 +324,10 @@ Código: `lib/ads/offer.ts` ADS_PASS_USD_MINOR = 1990 (guardião test-ads-fundac
 **MEDIDO (banco, 24/09):** em 90 dias o GPT gerou 11 links de handoff, 1 clique, 0 cadastros, 0 filmes, 0 pagamentos. Os 341 cadastros/30 d vindos do ChatGPT são de CITAÇÃO orgânica, não do nosso GPT.
 **RECOMENDAÇÃO EXECUTADA (Claude):** instruções v3 (seção C de docs/GPT-KINEO-VIDEO-MAKER.md) com os fatos do código e leitura de getKineoFacts antes de responder preço/motor/trial/Empresas; red-team de 8 conversas simuladas antes de colar. Publicar na loja é aposta barata até 11/12 (e é pré-requisito de migração, se um dia valer). Esforço de crescimento continua nas citações (páginas, llms.txt, diretórios), não no GPT.
 **PENDENTE DO FUNDADOR:** autorizar o Cowork a trocar o acesso para "Loja GPT" depois de colar a v3, reimportar a ação (v1.3.0, agora com getKineoFacts do Codex) e repetir os 3 testes.
+
+## 2026-09-24 — TAAFT: três decisões do fundador (~10h BRT, literal: "1 apaga, 2 ok, 3 ok")
+
+1. **Pergunta de visitante "Rubelansari" (Rubel Bhai):** APAGAR (spam). Destrava o formulário do FAQ; o Cowork então troca os dois "30 credits" pelo trial de 10 créditos.
+2. **Release v3.4.0:** APROVADA com o texto de docs/KIT-DIRETORIOS-2026-09-24.md §8 (Business Ads, MiniMax H3 de volta desde 22/09, Omni/S25 pausados, trial 10 cr, a partir de $9.90, link /sora-alternative com utm taaft).
+3. **USP:** APROVADA: "One idea in, a finished narrated film out. 6 engines, 16 languages." (sai "Same character in every scene", que só vale para Kling 3 e H3).
+Slug do X confirmado: utm_source=x.
