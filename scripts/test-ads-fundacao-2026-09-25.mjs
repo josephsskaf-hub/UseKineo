@@ -82,7 +82,6 @@ const mig = existsSync(join(RAIZ, migPath)) ? rd(migPath) : ''
 check('coluna profiles.ads_access_until timestamptz, mesmo nome do offer.ts', /add column if not exists ads_access_until timestamptz/.test(mig) && offer.ADS_ACCESS_COLUMN === 'ads_access_until')
 check('tabela ads_orders com os estados do types.ts, seconds em (35, 60), RLS ligado e NENHUMA policy pública', /create table if not exists public\.ads_orders/.test(mig) && /check \(status in \('draft', 'rendering', 'delivered', 'reviewed', 'failed', 'cancelled'\)\)/.test(mig) && /seconds in \(35, 60\)/.test(mig) && /alter table public\.ads_orders enable row level security/.test(mig) && !/create policy/i.test(mig))
 check('migration: a função do updated_at tem o corpo entre um par de $$ (um $ solto quebra o SQL inteiro) e search_path fixo', (mig.split('$$').length - 1) === 2 && mig.includes('as $$\nbegin') && mig.includes('end $$;') && mig.includes('set search_path = public'))
-begin[sS]*end $;/.test(mig) && /set search_path = public/.test(mig))
 const typesSrc = rd('lib/ads/types.ts')
 check('types.ts tem os mesmos 6 estados e o storyboard mapeia mídia por ID', ['draft', 'rendering', 'delivered', 'reviewed', 'failed', 'cancelled'].every((s) => typesSrc.includes(`'${s}'`)) && /footageId: string \| null\s+\/\/ por ID, nunca por posição/.test(typesSrc))
 
