@@ -97,8 +97,37 @@ checa('6c. leitura e escrita presas ao dono (eq user_id) e PATCH valida tudo no 
 checa('6d. tabela ausente (migration não aplicada) = 503 "not ready", nunca 500 nem sucesso falso', /const isMissingTable = \(code: string \| undefined\) => code === '42P01' \|\| code === 'PGRST205'/.test(rt) && /if \(isMissingTable\([^)]*\)\) return notReady\(\)/.test(post))
 checa('6e. coluna do passe ausente: decide sem o passe (pagante/interna seguem), nunca abre acesso por engano', /if \(withColumn\.error\.code === '42703'\) \{/.test(rt) && /return \{ admin, reason: 'none' as const, error: withColumn\.error \}/.test(rt))
 
+// ── 8. roteiro do anúncio: o validador descarta versão que inventa fato ─────────────────────────
+const SP = carrega('lib/ads/scriptPrompt')
+const M = carrega('lib/ads/models')
+const oferta = M.adsModelById('oferta_relampago') // 35 s, 4 batidas, 100-115 palavras
+const briefR = { business: 'Casa Lima, Peruvian food in Lisbon', offer: 'Lunch menu 12 euros this week', cta: 'whatsapp', contact: '+351 912 345 678', language: 'en', tone: 'warm', audience: 'office workers nearby', extra: {} }
+const enche = (n) => Array.from({ length: n }, (_, i) => ['fresh', 'bright', 'warm', 'real', 'simple', 'honest', 'good', 'slow'][i % 8]).join(' ')
+const versao = (angle, beats) => ({ angle, beats })
+const limpa = (angle) => versao(angle, [
+  'Hungry at lunch and tired of the same sandwich? ' + enche(18) + '.',
+  'Casa Lima brings Peruvian food to Lisbon, cooked the way it is at home. ' + enche(22) + '.',
+  'This week the lunch menu is 12 euros, for office workers nearby. ' + enche(22) + '.',
+  'Message us on WhatsApp at +351 912 345 678 and book your table. ' + enche(12) + '.',
+])
+const resposta = (versions) => JSON.stringify({ versions })
+const tres = SP.parseAdsScriptOutput(resposta([limpa('question'), limpa('number'), limpa('result')]), oferta, briefR)
+checa('8a. três versões limpas (números só do brief, contato exato no fim, faixa de palavras) passam', Array.isArray(tres) && tres.length === 3 && tres.every((v) => v.beats.length === 4 && v.words >= 90 && v.words <= 144))
+const inventa = limpa('number'); inventa.beats[1] = 'More than 2,000 people already came to Casa Lima. ' + enche(22) + '.'
+const semContato = limpa('result'); semContato.beats[3] = 'Come by and book your table today. ' + enche(15) + '.'
+const colchete = limpa('question'); colchete.beats[0] = '[Hook] Hungry at lunch? ' + enche(20) + '.'
+const curta = versao('number', limpa('number').beats.slice(0, 3))
+const r = SP.parseAdsScriptOutput(resposta([limpa('question'), inventa, semContato]), oferta, briefR)
+checa('8b. versão que inventa "2,000" e versão sem o contato são descartadas; a limpa fica', Array.isArray(r) && r.length === 1 && r[0].angle === 'question')
+checa('8c. colchete, número de batidas errado ou ângulo repetido não passam; nada válido = null', SP.parseAdsScriptOutput(resposta([colchete, curta, limpa('question'), limpa('question')]), oferta, briefR).length === 1 && SP.parseAdsScriptOutput(resposta([colchete, curta]), oferta, briefR) === null && SP.parseAdsScriptOutput('not json', oferta, briefR) === null)
+checa('8d. inventedNumbers pega número fora do brief e aceita os do brief (inclui telefone e preço)', SP.inventedNumbers('Only 12 euros, call +351 912 345 678', briefR).length === 0 && SP.inventedNumbers('Rated 4.9 by 300 people', briefR).length === 3)
+const msgs = SP.buildAdsScriptMessages(oferta, briefR, 'English')
+checa('8e. o prompt proíbe inventar fato, exige o contato exato e a faixa de palavras do modelo', /Never invent a price, number, rating, deadline/.test(msgs.system) && /must contain the contact exactly as written/.test(msgs.system) && msgs.system.includes('100 to 115 words') && msgs.user.includes('+351 912 345 678'))
+const sr = rd('app/api/ads/script/route.ts')
+checa('8f. rota do roteiro: login, acesso, dono/rascunho, teto diário ANTES do modelo, validador na saída, sem cobrar', sr.indexOf('supabase.auth.getUser()') < sr.indexOf('loadAdsAccess(user.id)') && sr.indexOf("if (reason === 'none')") < sr.indexOf("from('ads_orders')") && /\.eq\('id', orderId\)\.eq\('user_id', user\.id\)/.test(sr) && sr.indexOf('ADS_SCRIPT_DAILY_CAP') < sr.indexOf('openai.chat.completions.create') && /parseAdsScriptOutput\(completion/.test(sr) && !/video_credits|creditCost/.test(sr))
+
 // ── 7. nada disto toca a trava 8.2 ─────────────────────────────────────────────────────────────
-const novos = [builder, rt, rd('lib/ads/orderContract.ts')]
+const novos = [builder, rt, rd('lib/ads/orderContract.ts'), rd('lib/ads/scriptPrompt.ts'), rd('app/api/ads/script/route.ts'), rd('lib/ads/serverAccess.ts')]
 checa('7. nenhuma peça nova importa lib/compose, lib/hollywood, lib/cinematic, lib/broll, generate-video-*, analyze-idea ou generate-script', !novos.some((s) => /from '@\/lib\/(compose|hollywood|cinematic|broll|lyriaMusic|narrationFit)|api\/(analyze-idea|generate-script|generate-video-)/.test(s)))
 
 console.log(`test-ads-servidor-2026-09-25: ${ok} ok · ${falhas.length} falhas`)
