@@ -3781,3 +3781,7 @@ Pendente do fundador: 3-4 Kineo 1 da casa para a página que mais vende (hoje 2 
 - **Para o Codex (hoje, roteiro GPT-5H):** as páginas novas usam os mesmos números do kit; se kit e código divergirem, o código manda e o kit é corrigido no mesmo commit.
 - **Para o Claude (depois de 1-3):** 4 afiliados (atribuição sf_aff fora do dashboard) e 5 "apertou e não saiu" (29 pessoas/7 d), nesta ordem salvo palavra do fundador; 6 winback com filme pronto em lote de 30 medido.
 - **Medir:** consultas da seção 7 do kit, por pessoa, desde 24/09 12:00 UTC; releitura 27/09 e 30/09.
+
+## TRAVA-82-VAI-II-IV-20260924 — autorização nominal do fundador ("Vai pra ii e iv", 24/09 ~07h50 BRT)
+- Escopo: `lib/compose*` somente para (ii) legendas na zona segura do Reels e (iv) logo persistente no canto, ambas atrás de `ads_brand_layer` (só render de Studio Ads). Fora: piso de 20 s e áudio original do cliente.
+- Registro em docs/DECISIONS.md (24/09) + esta entrada = motivo para reancorar os guardiões de escopo da 8.2 quando o commit do dia 25 tocar lib/compose. Canário obrigatório antes de enfileirar.

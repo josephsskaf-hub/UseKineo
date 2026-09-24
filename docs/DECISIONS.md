@@ -303,3 +303,9 @@ O fundador também pediu cinco recomendações e sugestão de uma terceira líng
 5. **Revisão humana: entrega imediata + revisão humana do primeiro anúncio de cada empresa em até 24 h**, teto de 5 pedidos abertos (a página fecha a venda sozinha acima disso). Operador da fila: Claude pelo /admin/ads, com o fundador avisado a cada pedido; o fundador pode assumir a qualquer momento.
 
 **PENDENTE:** decisão 7 (trava 8.2) reformulada para o fundador em 24/09 ~07h40; decisões 4, 6, 8-11 até o meio do dia 25/09.
+
+## 2026-09-24 — Trava 8.2: "vai" nominal para ii (legendas fora da faixa do Reels) e iv (logo persistente), só nos anúncios
+
+**AUTORIZAÇÃO (fundador, ~07h50 BRT, literal: "Vai pra ii e iv"):** liberado tocar `lib/compose*` para DUAS mudanças, ambas atrás de um interruptor que só o render de Studio Ads liga (`ads_brand_layer` no payload do compose; filme comum sai idêntico ao de hoje): (ii) legendas do anúncio posicionadas na zona segura do Reels (fora da faixa inferior de ~35% e da superior de ~14% que a interface cobre); (iv) logo do cliente como elemento `image` pequeno num canto durante o filme inteiro (a receita comentada em lib/compose.ts ~:2750 usava y:'6%', que cai DENTRO da faixa superior; a versão real fica em y≥17%, largura ~26%, opacidade ~85%). NÃO liberado: (i) piso de 20 s no roteiro próprio (generate-video-fast segue em 35 s) e (iii) áudio original do vídeo do cliente sob a narração (segue mudo) — semana 2, com novo "vai".
+
+**CONDIÇÕES:** render de validação (canário na conta do fundador, Kineo 1, 3-5 cr) com o cartão e o logo conferidos em 1080×1920 ANTES de enfileirar; guardião próprio (`test-ads-brand-layer`) que prova que com o interruptor desligado o JSON do Creatomate é byte a byte o de hoje; os guardiões de escopo (test-despacho-vazio etc.) reancorados com este registro como motivo, nunca afrouxados.
