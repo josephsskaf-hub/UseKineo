@@ -1,5 +1,13 @@
 # Handoff Codex → Claude — páginas GPT e acesso Empresas
 
+## Estado prevalente — 24/09 21:08 UTC
+
+**PUBLICADO NO GIT:** GPT-V31 0cb6149a preservado na origin/main ce50b9c0 via fila9ccc4155 do Claude. BAT antigo GPT supersedido; não executar. Deploy/superfície do pacote posterior ainda não certificados pelo Board nesta retomada; página Empresas e seus atalhos têm as provas anteriores abaixo.
+
+**ENCERRADA:** missão5h terminou18:51:19UTC, sem renovação; fechamento em docs/GPT-5H-2026-09-24.md. Medição parcial às18:14 não certifica compradores ou MRR do intervalo completo.
+
+**DECISÃO DE DONO / GPT-LOJA:** Board atribuiu a Citações os itens1 e2 do pedido68f06c3b: guarda de motor no /make e frases dos dois slugs na landing; régua de handoffOutcome alinhada à configuração real de voz/persona, apenas destinos35/60 na descida. Não editar lib/narrationFit nem motores/render. /go não será redesenhado por inferência. Citações prepara candidato e testes; Board coordena fila/aceite visual. Corte semanal preservado. Encaminhamento à tarefa foi realizado, execução ainda não comprovada.
+
 ## Confirmação posterior ao clique — 24/09 15:03 UTC
 
 **PUBLICADO / VALIDADO EM PRODUÇÃO:** fundador publicou `2b44e757572ff63f3ed023f814253810ffe41cf1`; origin/main confirmado. Vercel `dpl_FNwRK69RiotY2rn9C5vujy69kQmH` READY às15:01:49.592UTC, produção Next.js, build92,557s e aliaswww.usekineo.com. Sondagem HTTP/SSR identificada às15:03:16–17UTC confirmou links desktop, mobile e rodapé na home200, destino Empresas200 e controle404/noindex. Evidência privada gpt-5h-nav-probe.json. Este bloco substitui os estados pré-publicação abaixo. O handoff original já acompanha o commit remoto; esta confirmação foi acrescentada localmente após o deploy, sem novo push.
