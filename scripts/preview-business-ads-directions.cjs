@@ -2,6 +2,9 @@
 // Uses an existing dependency runtime; never auth, analytics, checkout or generation.
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const {createRequire} = require('module');
+const {execFileSync} = require('child_process');
+const baseline='209fae503f615eed3d2f9c90accb9fe4f8abcf12';
+const readBaseline=file=>execFileSync('git',['show',baseline+':'+file],{encoding:'utf8'});
 const req = createRequire(process.env.KINEO_PREVIEW_RUNTIME || path.join(process.cwd(),'package.json'));
 const React = req('react'), ts = req('typescript'), {renderToStaticMarkup} = req('react-dom/server');
 const root = process.cwd(), out = path.join(root,'public/design/business-ads-20260924');
@@ -10,7 +13,7 @@ const cache = new Map();
 function load(file) {
   if(cache.has(file))return cache.get(file);
   const exports={};cache.set(file,exports);
-  const source=fs.readFileSync(path.join(root,file),'utf8');
+  const source=file==='app/business-video-ads/page.tsx'?readBaseline(file):fs.readFileSync(path.join(root,file),'utf8');
   const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true,target:ts.ScriptTarget.ES2022}}).outputText;
   vm.runInNewContext(code,{exports,URL,URLSearchParams,process:{env:{}},require:id=>{
     if(id==='react')return React;if(id==='react/jsx-runtime')return req(id);
@@ -23,7 +26,7 @@ function load(file) {
   }},{filename:file});return exports;
 }
 const original=renderToStaticMarkup(React.createElement(load('app/business-video-ads/page.tsx').default));
-const originalCSS=fs.readFileSync(path.join(root,'app/business-video-ads/businessAds.module.css'),'utf8');
+const originalCSS=readBaseline('app/business-video-ads/businessAds.module.css');
 const esc=s=>s.replaceAll('&','&amp;').replaceAll('"','&quot;');
 const fontCSS = `@font-face{font-family:Manrope;font-style:normal;font-weight:200 800;font-display:swap;src:url(data:font/woff2;base64,${fs.readFileSync(path.join(out,"manrope-latin.woff2")).toString("base64")}) format("woff2")}@font-face{font-family:Manrope;font-style:normal;font-weight:200 800;font-display:swap;src:url(data:font/woff2;base64,${fs.readFileSync(path.join(out,"manrope-greek.woff2")).toString("base64")}) format("woff2");unicode-range:U+370-3FF}`;
 const common=fontCSS+`
