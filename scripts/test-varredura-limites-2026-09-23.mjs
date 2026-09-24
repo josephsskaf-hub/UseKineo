@@ -140,6 +140,12 @@ const RETRY = rd('app/api/retry-hollywood-scene/route.ts')
 checa('(L2) cena refeita no formato do filme: nenhum 9:16 cravado', !RETRY.includes("aspect_ratio: '9:16'") && (RETRY.match(/aspect_ratio: scene\.aspect/g) || []).length === 4 && RETRY.includes('aspect: normalizeAspect(response?.aspect) }'))
 checa('(L2) enquadramento do texto acompanha o formato', RETRY.includes('`${ENQUADRAMENTO[scene.aspect]} composition, camera upright') && !RETRY.includes('`Vertical 9:16 composition'))
 
+// (RESGATE-SEM-DUPLICATA-2026-09-24) um pedido, um filme: pedidos repetidos pela rede não viram N filmes cobrados.
+const iDup = STR.indexOf('const recoveryKeysSeen = new Set<string>()')
+checa('(dup) resgate deduplica por pessoa + tema, mantendo o mais novo', iDup > 0 && STR.includes("const chaveResgate = `${userId}|${temaResgate}`") && STR.includes("if (recoveryKeysSeen.has(chaveResgate)) { results.push({ generation: gen8, outcome: 'recovery_superseded_duplicate' }); continue }"))
+checa('(dup) a lista do resgate vem do mais novo para o mais velho', /\.eq\('name', RECOVERABLE_EVENT\)[\s\S]{0,200}\.order\('created_at', \{ ascending: false \}\)/.test(STR))
+checa('(dup) a deduplicação roda ANTES de gravar tentativa ou compor', iDup > 0 && STR.indexOf("if (recoveryKeysSeen.has(chaveResgate))") < STR.indexOf('name: RECOVERY_ATTEMPT_EVENT, session_id: genId'))
+
 // Mutantes (cada um precisa aplicar e cair)
 function mutante(nome, src, de, para, prova) {
   if (src.split(de).length !== 2) { checa(`mutante "${nome}" aplicou`, false); return }
