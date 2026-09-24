@@ -80,7 +80,7 @@ ok((page.match(/const goHref =/g) || []).length === 1, '(4) goHref é definido U
 const iCatch = bloco.indexOf('o contador nunca segura a pessoa na porta')
 const iRedirect = bloco.indexOf('redirect(goHref)')
 ok(iCatch !== -1 && iRedirect !== -1 && iRedirect > iCatch, '(5) redirect() está FORA do try/catch (senão o catch o engole)')
-ok(/import \{ redirect \} from 'next\/navigation'/.test(page), '(5) redirect vem de next/navigation')
+ok(/import \{[^}]*\bredirect\b[^}]*\} from 'next\/navigation'/.test(page), '(5) redirect vem de next/navigation') // GPT-LOJA-2026-09-24: a página passou a importar { notFound, redirect }
 
 // (6) Sonda própria: sem evento, a próxima sessão não tem como saber quantas
 // pessoas o desvio economizou (lição "entrega só de cliente não tem sonda").

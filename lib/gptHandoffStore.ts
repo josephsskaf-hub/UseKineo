@@ -152,6 +152,18 @@ export async function findHandoffByPayloadHash(hash: string): Promise<{ token: s
   }
 }
 
+/** GPT-LOJA-2026-09-24 — renova o prazo de um link reaproveitado (mesmo roteiro reenviado). true só se gravou. */
+export async function refreshHandoffExpiry(token: string, expiresAt: string): Promise<boolean> {
+  const db = serviceClient()
+  if (!db) return false
+  try {
+    const { error } = await db.from(GPT_HANDOFFS_TABLE).update({ expires_at: expiresAt }).eq('token', token)
+    return !error
+  } catch {
+    return false
+  }
+}
+
 export type HandoffLookup =
   | { status: 'ok'; row: GptHandoffRow; expired: boolean }
   | { status: 'missing' }

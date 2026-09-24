@@ -22,6 +22,9 @@ import { findHandoff, isLikelyBot, markHandoffViewed, type GptHandoffRow } from 
 import { BUTTON, Expired, MUTED, SOFT, Shell, Wordmark } from './HandoffNotice'
 import PostFilmCreatorOffer from '@/components/PostFilmCreatorOffer'
 import { CREATOR_OFFER_PROFILE_COLUMNS, isPostFilmCreatorEligible } from '@/lib/growth/postFilmCreatorOffer'
+import { CARD_TRIAL_LIVE } from '@/lib/checkoutPricing' // GPT-LOJA-2026-09-24
+import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
+import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 
 // ═══ KINEO-GPT-HANDOFF-2026-09-06 — a página que o link do GPT abre ═════════
 //
@@ -89,7 +92,9 @@ export default async function GoPage({
       creatorTrialEligible = !profile.error && isPostFilmCreatorEligible(profile.data)
     } else {
       // Public explanation is explicitly limited to a first purchase.
-      creatorTrialEligible = true
+      // GPT-LOJA-2026-09-24 — só quando a oferta de US$1 está LIGADA. Desligada (09/09), a caixa mostrava a quem
+      // chega do ChatGPT um trial com cartão que o cobrador não honra, logo depois de o GPT dizer "sem cartão".
+      creatorTrialEligible = CARD_TRIAL_LIVE
     }
   } catch {
     signedIn = false
@@ -227,7 +232,9 @@ export default async function GoPage({
         <p style={{ color: MUTED, fontSize: '0.88rem', lineHeight: 1.5, margin: '10px 0 0' }}>
           {signedIn
             ? 'Opens your Studio with this script loaded, exactly as written.'
-            : 'Create your account to open this script in Studio. The Creator trial requires a payment method.'}
+            : CARD_ENTRY_ONLY
+              ? 'Create your account to open this script in Studio. The Creator trial requires a payment method.'
+              : `Sign up free (${TRIAL_GRANT_CREDITS_COPY} credits, no card) to open this script in Studio.`}
         </p>
       </div>
 

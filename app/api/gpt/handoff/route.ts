@@ -22,7 +22,9 @@ import {
   handoffPublicOrigin,
   hashIp,
   insertHandoff,
+  refreshHandoffExpiry,
 } from '@/lib/gptHandoffStore'
+import { describeEngineRefusal, handoffEngineRefusal } from '@/lib/gptHandoffEngineGuard' // GPT-LOJA-2026-09-24
 
 /** Este é o canal da LOJA (a Action). O irmão por GET é app/make/route.ts,
  *  canal 'assistant_link' — mesma linha, mesma página, mesmos eventos. */
@@ -115,6 +117,12 @@ export async function POST(req: NextRequest) {
       // duração, e a pessoa descobriria só depois do cadastro.
       return json({ error: describeOutcome(outcome), outcome }, 400)
     }
+    // GPT-LOJA-2026-09-24 — os outros dois roteiros que o Studio recusaria depois do cadastro (lib/gptHandoffEngineGuard).
+    const engineRefusal = handoffEngineRefusal({ script: input.script, engineHint: input.engineHint, language: input.language })
+    if (engineRefusal) {
+      await writeServerEvent({ name: 'gpt_handoff_refused', path: '/api/gpt/handoff', metadata: { channel: CHANNEL, ...engineRefusal, engine_hint: input.engineHint, duration_sec: input.durationSec } })
+      return json({ error: describeEngineRefusal(engineRefusal), refusal: engineRefusal }, 400)
+    }
 
     // ── 4. A linha — ou a linha que JÁ EXISTE para este payload.
     // KINEO-ASSISTANT-LINK-2026-09-06: o mesmo roteiro reenviado pela Action
@@ -130,6 +138,9 @@ export async function POST(req: NextRequest) {
       token = existing.token
       expiresAt = existing.expires_at
       reused = true
+      // GPT-LOJA-2026-09-24 — reenviar o mesmo roteiro renova o prazo; só anuncia o prazo novo se ele foi gravado.
+      const fresh = new Date(Date.now() + HANDOFF_TTL_MS).toISOString()
+      if (await refreshHandoffExpiry(token, fresh)) expiresAt = fresh
     } else {
       token = newToken()
       expiresAt = new Date(Date.now() + HANDOFF_TTL_MS).toISOString()
@@ -161,6 +172,8 @@ export async function POST(req: NextRequest) {
         token = again.token
         expiresAt = again.expires_at
         reused = true
+        const freshAgain = new Date(Date.now() + HANDOFF_TTL_MS).toISOString()
+        if (await refreshHandoffExpiry(token, freshAgain)) expiresAt = freshAgain
       }
     }
 

@@ -46,6 +46,7 @@ import {
   narrationFit,
 } from '@/lib/narrationFit'
 import { createHash } from 'node:crypto'
+import { narrationLanguage } from '@/lib/textLanguage' // GPT-LOJA-2026-09-24
 
 /** Reexportados para quem já importava daqui (página /go, rotas): os nomes
  *  continuam, a fonte mudou. */
@@ -534,6 +535,8 @@ export function buildStudioDestination(row: {
   duration_sec: number
   engine_hint: string
   channel?: string | null
+  /** GPT-LOJA-2026-09-24 — idioma do roteiro; antes era gravado e nunca chegava ao Studio (10 das 16 línguas abriam em inglês). */
+  language?: string | null
   aspect: string
 }): string {
   const q = new URLSearchParams()
@@ -543,6 +546,8 @@ export function buildStudioDestination(row: {
   q.set('engine', isHandoffEngine(row.engine_hint) ? row.engine_hint : DEFAULT_ENGINE)
   const aspect = normalizeAspect(row.aspect)
   if (aspect !== DEFAULT_ASPECT) q.set('aspect', aspect)
+  const lang = narrationLanguage(String(row.language ?? '').slice(0, 2).toLowerCase())
+  if (lang && lang !== 'en') q.set('language', lang)
   const tags = CHANNEL_TAGS[isHandoffChannel(row.channel) ? row.channel : DEFAULT_CHANNEL]
   q.set('utm_source', tags.utmSource)
   q.set('intent_campaign', tags.intentCampaign)

@@ -170,7 +170,8 @@ check('(B4) handoffPayloadHash usa createHash(sha256) de node:crypto', /import \
 check('(B4) o hash serializa as chaves em ORDEM FIXA (array de pares, não o objeto)', /JSON\.stringify\(\[\s*\['channel', channel\],\s*\['script', input\.script\]/.test(libCode))
 check("(B5) ASSISTANT_LINK_PATH = '/make' na lib (única fonte)", /export const ASSISTANT_LINK_PATH = '\/make'/.test(libCode))
 // KINEO-GPT-VERDADE-2026-09-07: @/lib/narrationFit entrou (o cobrador; puro, zero import).
-check('(B5) a lib importa só @/lib/aspect, @/lib/narrationFit e node:crypto (continua sem banco/rede)', [...lib.matchAll(/^import (?:\{[^}]*\}|[^\n{]*) from '([^']+)'/gm)].map((m) => m[1]).every((s) => s === '@/lib/aspect' || s === '@/lib/narrationFit' || s === 'node:crypto'))
+// GPT-LOJA-2026-09-24 — reancorado com motivo: @/lib/textLanguage entrou (idioma do roteiro vai ao Studio); é folha pura, zero import.
+check('(B5) a lib importa só @/lib/aspect, @/lib/narrationFit, @/lib/textLanguage e node:crypto (continua sem banco/rede)', [...lib.matchAll(/^import (?:\{[^}]*\}|[^\n{]*) from '([^']+)'/gm)].map((m) => m[1]).every((s) => s === '@/lib/aspect' || s === '@/lib/narrationFit' || s === '@/lib/textLanguage' || s === 'node:crypto'))
 
 // ═══ (C) app/make/route.ts ══════════════════════════════════════════════════
 const makePath = path.join(ROOT, MAKE)

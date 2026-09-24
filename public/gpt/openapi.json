@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Kineo Video Handoff",
-    "version": "1.3.1",
+    "version": "1.3.2",
     "description": "Turns an approved Short script into a one-click Kineo Studio link. Call createKineoHandoff ONLY after the user has explicitly approved the final script. The response contains a URL (https://www.usekineo.com/go/<token>) that opens Kineo Studio pre-filled with the script, duration and engine. Kineo renders the film after the user clicks; this API never renders anything itself. Public, no authentication, rate-limited per IP."
   },
   "servers": [
@@ -82,7 +82,7 @@
             }
           },
           "400": {
-            "description": "The request was rejected: missing or empty script, script over 5000 characters, HTML tags in the script or topic, invalid durationSec (must be 35, 60 or 90), invalid aspect (must be 9:16, 16:9, 1:1 or 4:5), unknown engineHint, malformed language code, topic over 200 characters, a body that is not JSON, or a script too short to fill durationSec (Kineo Studio would refuse it after sign-up, so it is refused here, where you can fix it in one turn — no link is created). Read `error` (it states the exact reason and, for length, the exact limit or the number of words to add; `outcome.missingWords` carries that number when present), fix the payload, and try again once. For a too-short script, either extend it with real beats to the words asked for, or re-send with a shorter durationSec the user agrees to. If the script is too long, trim the script — never truncate silently without telling the user. Never show a made-up link.",
+            "description": "The request was rejected: missing or empty script, script over 5000 characters, HTML tags in the script or topic, invalid durationSec (must be 35, 60 or 90), invalid aspect (must be 9:16, 16:9, 1:1 or 4:5), unknown engineHint, malformed language code, topic over 200 characters, a body that is not JSON, a script too long for Kineo 1 (engineHint `fast` narrates at most about 90 seconds — the error gives the word limit), a `hollywood`/`h3` script not in English, Spanish or Portuguese (re-send with `seedance`), or a script too short to fill durationSec (Kineo Studio would refuse it after sign-up, so it is refused here, where you can fix it in one turn — no link is created). Read `error` (it states the exact reason and, for length, the exact limit or the number of words to add; `outcome.missingWords` carries that number when present), fix the payload, and try again once. For a too-short script, either extend it with real beats to the words asked for, or re-send with a shorter durationSec the user agrees to. If the script is too long, trim the script — never truncate silently without telling the user. Never show a made-up link.",
             "content": {
               "application/json": {
                 "schema": {
@@ -128,7 +128,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 5000,
-            "description": "The complete, user-approved narration script, plain text only (no HTML, no markdown headings), at most 5000 characters — the same limit Kineo Studio enforces; a 90s script is well under it. Keep the house structure on its own lines: `HOOK:`, `MICRO REWARD:`, `ESCALATION:`, `PAYOFF:`. Every sentence is spoken aloud by the narrator, so write only what should be heard: no stage directions, no camera notes, no visual descriptions, no [brackets]. Word budget depends on the engine, because the two families narrate at different speeds — never average them. Standard engines (`seedance`, `fast`, `kling`, `veo`): 105-115 words for 35s, 180-195 for 60s, 270-290 for 90s. Premium engines (`hollywood`, `h3`, `omni`) speak slower in their own native voice: 80-90 words for 35s, 150-165 for 60s, 205-230 for 90s. Slightly over the budget is good; under it is a defect (the story gets cut short). Only verifiable facts."
+            "description": "The complete, user-approved narration script, plain text only (no HTML, no markdown headings), at most 5000 characters — the same limit Kineo Studio enforces; a 90s script is well under it. Keep the house structure on its own lines: `HOOK:`, `MICRO REWARD:`, `ESCALATION:`, `PAYOFF:`. Every sentence is spoken aloud by the narrator, so write only what should be heard: no stage directions, no camera notes, no visual descriptions, no [brackets]. Word budget depends on the engine, because the two families narrate at different speeds — never average them. Standard engines (`seedance`, `fast`, `kling`, `veo`): 105-115 words for 35s, 180-195 for 60s, 270-290 for 90s — except `fast` (Kineo 1) at 90s: 245-255 words, never more, because Kineo 1 refuses narration longer than its 90s ceiling. Premium engines (`hollywood`, `h3`, `omni`) speak slower in their own native voice: 80-90 words for 35s, 150-165 for 60s, 205-230 for 90s. Slightly over the budget is good; under it is a defect (the story gets cut short). Only verifiable facts."
           },
           "durationSec": {
             "type": "integer",
@@ -163,7 +163,7 @@
               "omni"
             ],
             "default": "seedance",
-            "description": "Which Kineo video engine Studio should pre-select. Send `seedance` (Seedance 1.5, AI-generated cinematic scenes; paid plans — the 10-credit trial does not cover it at any duration) unless the user asks for something specific. `fast` = Kineo 1, real stock footage with narration, fastest and cheapest, the only engine the no-card trial covers, good for news/facts/money topics. `kling` = Kling 2.5, more detailed AI scenes. `veo` = Veo 3.1, premium realism (paid plans). `hollywood` = Kling 3, top-tier cinematic (150 credits at 60s, paid plans). `h3` = MiniMax H3, stylized motion (paid plans). `omni` = Omni Flash, temporarily paused for maintenance; retained as a schema value for compatibility, not a recommendation to start a new film. When in doubt, send `seedance`. Never send a value outside this list."
+            "description": "Which Kineo video engine Studio should pre-select. Send `seedance` (Seedance 1.5, AI-generated cinematic scenes; paid plans — the 10-credit trial does not cover it at any duration) unless the user asks for something specific. `fast` = Kineo 1, real stock footage with narration, fastest and cheapest, the only engine the no-card trial covers, good for news/facts/money topics. `kling` = Kling 2.5, more detailed AI scenes. `veo` = Veo 3.1, premium realism (paid plans). `hollywood` = Kling 3, top-tier cinematic (150 credits at 60s, paid plans). `h3` = MiniMax H3, stylized motion (paid plans). `hollywood` and `h3` narrate only English, Spanish or Portuguese; for any other language send `seedance`. `omni` = Omni Flash, temporarily paused for maintenance; retained as a schema value for compatibility, not a recommendation to start a new film. When in doubt, send `seedance`. Never send a value outside this list."
           },
           "language": {
             "type": "string",

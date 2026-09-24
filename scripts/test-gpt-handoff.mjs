@@ -80,10 +80,11 @@ console.log('\n(A) lib/gptHandoff.ts executada')
   // (builtin — zero banco, zero rede). KINEO-GPT-VERDADE-2026-09-07: o veredito
   // passou a vir de @/lib/narrationFit (o cobrador, puro — zero import). A
   // lista de módulos do PROJETO que a lib pode importar é FECHADA: esses dois.
-  const PURE_ALLOWED = ['@/lib/aspect', '@/lib/narrationFit']
+  // GPT-LOJA-2026-09-24 — reancorado com motivo: @/lib/textLanguage entrou (idioma do roteiro vai ao Studio); folha pura, zero import.
+  const PURE_ALLOWED = ['@/lib/aspect', '@/lib/narrationFit', '@/lib/textLanguage']
   const libImports = [...lib.matchAll(/^import (?:\{[^}]*\}|[^\n{]*) from '([^']+)'/gm)].map((m) => m[1])
   const projectImports = libImports.filter((s) => !s.startsWith('node:'))
-  ok(sameSetTop(projectImports, PURE_ALLOWED) && libImports.every((s) => PURE_ALLOWED.includes(s) || s === 'node:crypto'), `(A0) a lib importa SÓ @/lib/aspect e @/lib/narrationFit do projeto, e no máximo o builtin node:crypto (achados: ${libImports.join(', ') || 'nenhum'}) — o resto continua puro`)
+  ok(sameSetTop(projectImports, PURE_ALLOWED) && libImports.every((s) => PURE_ALLOWED.includes(s) || s === 'node:crypto'), `(A0) a lib importa SÓ @/lib/aspect, @/lib/narrationFit e @/lib/textLanguage do projeto, e no máximo o builtin node:crypto (achados: ${libImports.join(', ') || 'nenhum'}) — o resto continua puro`)
   ok(!/^\s*import\s/m.test(aspectLib), '(A0) lib/aspect.ts é pura: zero import (é o que permite executar as duas aqui)')
   ok(!/^\s*import\s/m.test(read('lib/narrationFit.ts')), '(A0) lib/narrationFit.ts é pura: zero import (o cobrador não traz banco nem rede para a lib)')
 }
@@ -230,7 +231,7 @@ ok(/if \(counts && counts\.global >= RATE_LIMIT_GLOBAL_PER_HOUR\) \{\s*\n\s*retu
 ok(/export const RATE_LIMIT_PER_IP_PER_HOUR = 60/.test(lib) && /export const RATE_LIMIT_GLOBAL_PER_HOUR = 600/.test(lib) && /RATE_LIMIT_WINDOW_MS = 60 \* 60 \* 1000/.test(lib), '(B5) tetos: 60/h por IP · 600/h global · janela 1h')
 ok(/const since = new Date\(Date\.now\(\) - RATE_LIMIT_WINDOW_MS\)\.toISOString\(\)/.test(store) && /\.gte\('created_at', since\)\.eq\('ip_hash', ipHash\)/.test(store), '(B5) contagem no BANCO: created_at >= agora-1h e ip_hash = hash')
 ok(/if \(g\.error\) return null/.test(store) && /const counts = await countRecentHandoffs\(ipHash\)/.test(postRoute), '(B5) contador quebrado devolve null → o `counts &&` deixa passar (falha aberta)')
-ok(/createHash\('sha256'\)\.update\(`\$\{salt\}\|\$\{ip\}`\)/.test(store) && /ip_hash: ipHash/.test(postRoute) && !/ip_address|raw_ip|ip: ip\b/.test(postRoute), '(B5) grava sha256(salt|ip), nunca IP cru')
+ok(/createHash\('sha256'\)\.update\(`\$\{salt\}\|\$\{ip\}`\)/.test(read('lib/requestIdentity.ts')) && /export \{ clientIp, hashIp, isLikelyBot \} from '@\/lib\/requestIdentity'/.test(store) && /ip_hash: ipHash/.test(postRoute) && !/ip_address|raw_ip|ip: ip\b/.test(postRoute), '(B5) grava sha256(salt|ip), nunca IP cru')
 ok(/name: 'gpt_handoff_created'/.test(postRoute), '(B6) evento gpt_handoff_created')
 for (const k of ['words: est.words', 'seconds: est.seconds', 'fit: est.fit', 'duration_sec: input.durationSec', 'engine_hint: input.engineHint', 'language: input.language', 'has_topic: Boolean(input.topic)', 'script_chars: input.script.length', 'markers_found: est.markersFound']) {
   ok(postRoute.includes(k), `(B6) metadata carrega ${k.split(':')[0]}`)
@@ -253,7 +254,8 @@ ok(/export const dynamic = 'force-dynamic'/.test(goRoute) && /export const fetch
 ok(/name: 'gpt_landing_clicked'/.test(goRoute), '(C2) evento gpt_landing_clicked')
 ok(/if \(!bot\) await markHandoffClicked\(row, userId\)/.test(goRoute) && /click_count: \(row\.click_count \?\? 0\) \+ 1/.test(store) && /clicked_at: new Date\(\)\.toISOString\(\)/.test(store), '(C2) clique humano incrementa click_count e carimba clicked_at')
 ok(/signed_in: Boolean\(userId\)/.test(goRoute) && /bot,/.test(goRoute), '(C2) metadata: signed_in + etiqueta de robô')
-ok(/const ROBO = \/\(bot\|crawler\|spider/.test(store) && /if \(!ua\) return true/.test(store), '(C2) etiqueta de robô (mesma lista do episode-link; sem UA = robô)')
+// GPT-LOJA-2026-09-24: a lista mudou para lib/requestIdentity (a94a3cef, 07/09) e o store reexporta
+ok(/const ROBO = \/\(bot\|crawler\|spider/.test(read('lib/requestIdentity.ts')) && /if \(!ua\) return true/.test(read('lib/requestIdentity.ts')) && /isLikelyBot \} from '@\/lib\/requestIdentity'/.test(store), '(C2) etiqueta de robô (mesma lista do episode-link; sem UA = robô)')
 // A decisão sessão/sem-sessão, amarrada ao userId e aos dois destinos.
 ok(/const url = userId\s*\n\s*\? `\$\{origem\}\$\{destino\}`\s*\n\s*: `\$\{origem\}\$\{authPath\}\?redirect=\$\{encodeURIComponent\(`\$\{GO_PATH_PREFIX\}\$\{token\}`\)\}`/.test(goRoute), '(C3) userId ? Studio preenchido : conta com redirect=/go/<token>')
 ok(/userId = user\?\.id \?\? null/.test(goRoute), '(C3) userId vem de supabase.auth.getUser()')
@@ -597,7 +599,7 @@ console.log('\n(K) docs/GPT-KINEO-VIDEO-MAKER.md amarrado ao servidor e ao schem
   const freeDur = DUR.filter((d) => seedanceCost(d) <= TRIAL_CAP)
   const paidDur = DUR.filter((d) => seedanceCost(d) > TRIAL_CAP)
   ok(
-    [SCRIPT_MAX, TTL_DAYS, DEF_DUR, REF_SEC, SEEDANCE_60, TRIAL_CAP].every(Number.isFinite) && DUR.length >= 3 && ENG.length >= 7 && Object.keys(LABELS).length === ENG.length && Boolean(DEF_ENG && DEF_ASP && DEF_LANG && GO_PREFIX) && freeDur.length >= 1 && paidDur.length >= 1,
+    [SCRIPT_MAX, TTL_DAYS, DEF_DUR, REF_SEC, SEEDANCE_60, TRIAL_CAP].every(Number.isFinite) && DUR.length >= 3 && ENG.length >= 7 && Object.keys(LABELS).length === ENG.length && Boolean(DEF_ENG && DEF_ASP && DEF_LANG && GO_PREFIX) && paidDur.length >= 1, // GPT-LOJA-2026-09-24: com o trial de 10 (16/09) nenhum Seedance cabe; freeDur vazio é o regime vigente (J8/K3 já cobrem os dois ramos)
     `(K0) constantes lidas: SCRIPT_MAX=${SCRIPT_MAX} TTL=${TTL_DAYS}d DUR=[${DUR}] ENG=[${ENG}] defaults=${DEF_DUR}/${DEF_ENG}/${DEF_ASP}/${DEF_LANG} trial=${TRIAL_CAP} · cabem no trial [${freeDur}] · não cabem [${paidDur}]`,
   )
 
