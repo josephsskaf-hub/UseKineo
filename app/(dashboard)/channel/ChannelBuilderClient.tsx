@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt from '@/components/KineoBolt'
+
 import { useState } from 'react'
 import Link from 'next/link'
 
@@ -115,7 +117,7 @@ export default function ChannelBuilderClient() {
             className="flex items-center gap-2 rounded-[980px] px-4 py-2 text-xs font-bold flex-shrink-0 transition-all"
             style={{ background: '#f5f5f7', color: '#000', textDecoration: 'none' }}
           >
-            ⚡ Generate Videos
+            <KineoBolt /> Generate Videos
           </Link>
         </div>
       </div>
@@ -286,7 +288,7 @@ export default function ChannelBuilderClient() {
               </div>
 
               <div className="rounded-2xl p-5" style={{ background: '#161618', border: '1px solid #2a2a2d' }}>
-                <h3 className="font-black text-sm mb-1" style={{ color: '#f5f5f7' }}>⚡ Weekly Content Plan</h3>
+                <h3 className="font-black text-sm mb-1" style={{ color: '#f5f5f7' }}><KineoBolt /> Weekly Content Plan</h3>
                 <p className="text-xs mb-4" style={{ color: '#86868b' }}>Use Kineo to batch-create your week in one session.</p>
                 <div className="flex flex-col gap-2">
                   {[
@@ -305,7 +307,7 @@ export default function ChannelBuilderClient() {
                   className="mt-4 block w-full text-center rounded-[980px] py-2.5 text-xs font-black transition-all"
                   style={{ background: '#f5f5f7', color: '#000', textDecoration: 'none' }}
                 >
-                  ⚡ Generate This Week&apos;s Batch →
+                  <KineoBolt /> Generate This Week&apos;s Batch →
                 </Link>
               </div>
             </div>

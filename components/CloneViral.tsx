@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt from '@/components/KineoBolt'
+
 import Link from 'next/link'
 
 const RESULTS = [
@@ -195,7 +197,7 @@ export default function CloneViral() {
                 marginBottom: 2,
               }}
             >
-              ⚡ Sample analysis
+              <KineoBolt /> Sample analysis
             </div>
             {RESULTS.map((r) => (
               <div

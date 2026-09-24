@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt from '@/components/KineoBolt'
+
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -164,9 +166,7 @@ export default function ResetPasswordPage() {
 
       <div className="w-full max-w-md relative z-10">
         <Link href="/" className="flex items-center justify-center gap-3 mb-8" style={{ textDecoration: 'none' }}>
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: '#2997ff', boxShadow: '0 0 24px rgba(41,151,255,.45)' }}>
-            ⚡
-          </div>
+          <KineoBolt size={32} />
           <div className="font-black text-sm tracking-tight" style={{ color: '#f5f5f7' }}>
             Kineo
           </div>

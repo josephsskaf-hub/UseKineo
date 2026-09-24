@@ -1,3 +1,5 @@
+
+import KineoBolt from '@/components/KineoBolt'
 // #482 — Comparison / "X alternative" SEO pages. Targets high-intent searches
 // like "OpusClip alternative", "InVideo alternative for faceless creators", etc.
 // Comparison pages convert ~15x a normal blog post because they catch buyers at
@@ -1054,7 +1056,7 @@ export default function AlternativePage({ params }: { params: { competitor: stri
           </nav>
         ) : (
           <Link href="/" style={{ color: '#2997ff', fontWeight: 800, textDecoration: 'none', fontSize: '1.05rem' }}>
-            ⚡ Kineo
+            <KineoBolt /> Kineo
           </Link>
         )}
 

@@ -1,3 +1,5 @@
+
+import KineoBolt from '@/components/KineoBolt'
 // Push #116 — global footer for public marketing surfaces (/, /start,
 // /pricing, /login, /signup, /terms, /privacy, /not-found). Stays out
 // of (dashboard)/* so signed-in surfaces don't pick up duplicated
@@ -134,7 +136,6 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
   {
     title: 'Free tools',
     links: [
-      { href: '/tools', label: 'All free tools' },
       { href: '/free-ai-shorts-generator', label: 'Free AI Shorts generator' },
       { href: '/free-ai-shorts', label: 'Free AI Shorts by niche' },
       // KINEO-SCRIPT-LIBRARY-2026-08-03 — the single most valuable link added in
@@ -203,7 +204,7 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
           href="/"
           style={{ ...linkStyle, color: '#FAFAFA', fontWeight: 800, fontSize: 15 }}
         >
-          ⚡ Kineo
+          <KineoBolt /> Kineo
         </Link>
         <p style={{ margin: '6px auto 0', maxWidth: 460, color: '#86868b' }}><UiLabel>
           Turn one idea into a ready-to-post faceless YouTube Short — script,

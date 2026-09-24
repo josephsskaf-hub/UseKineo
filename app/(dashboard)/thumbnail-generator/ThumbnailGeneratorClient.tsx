@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt from '@/components/KineoBolt'
+
 // Push #080 — ThumbnailGenerator v2: homepage-quality header, glow style cards, blue gradient CTA
 
 import { useState, useRef, useCallback, useEffect } from 'react'
@@ -852,7 +854,7 @@ export default function ThumbnailGeneratorClient({
                   boxShadow: '0 0 20px rgba(16, 185, 129,0.3)',
                 }}
               >
-                ⚡ Upgrade to Pro →
+                <KineoBolt /> Upgrade to Pro →
               </a>
             </div>
           )}
@@ -1064,7 +1066,7 @@ export default function ThumbnailGeneratorClient({
             }}
           >
             <p style={{ fontSize: '0.8rem', fontWeight: 900, color: '#2997ff', marginBottom: 10 }}>
-              ⚡ Pro Features
+              <KineoBolt /> Pro Features
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
               {[

@@ -105,7 +105,7 @@ export default function AiImageGeneratorPage() {
             ['🎬 Image → film', 'Any image becomes a reference frame for the video engines. One studio, one credit balance.'],
           ].map(([t, d]) => (
             <div key={t} style={{ background: '#131316', border: '1px solid rgba(255,255,255,.07)', borderRadius: 14, padding: '18px 16px' }}>
-              <div style={{ fontWeight: 800, marginBottom: 6 }}>{t}</div>
+              <div style={{ fontWeight: 800, marginBottom: 6 }}><KineoBoltText>{t}</KineoBoltText></div>
               <div style={{ color: '#a1a1a8', fontSize: 13.5, lineHeight: 1.55 }}>{d}</div>
             </div>
           ))}
@@ -132,3 +132,4 @@ export default function AiImageGeneratorPage() {
     </div>
   )
 }
+import { KineoBoltText } from '@/components/KineoBolt'

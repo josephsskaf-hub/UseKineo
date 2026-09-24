@@ -1,5 +1,7 @@
 'use client'
 
+import { KineoBoltText } from '@/components/KineoBolt'
+
 // KINEO-STUDIO-V4-2026-08-16 — [STAGE] Generation numa tela só (spec do fundador).
 // KINEO-STUDIO-POLISH-2026-08-17 — passe de design pedido pelo fundador
 // ("intuitividade + harmonia, mais gostoso de mexer, melhorar as fontes"):
@@ -671,7 +673,7 @@ export default function StudioClient() {
             <DiretorKineo text={prompt} mode={scriptMode} engine={engine} engineName={eng.name} duration={duration} language={language} aspect={aspect} onApply={setPrompt} />
           </div>
 <div className="cost studio-generation-review" aria-label={t('Review and generate', 'Revisar y generar')}>
-            <div className="sum" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className="eng-ic" style={{ width: 24, height: 24, borderRadius: 7, fontSize: 10.5 }} aria-hidden="true">{eng.icon}</span>{scriptMode === 'clip' ? `Seedance 1.5 · ${clipSeconds}s · ${aspect}` : `${eng.name} · ${duration}s · 1080p · ${aspect}`}{preset ? ` · ${CAMERA_PRESETS.find((c) => c.key === preset)?.label}` : ''}</div>
+            <div className="sum" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className="eng-ic" style={{ width: 24, height: 24, borderRadius: 7, fontSize: 10.5 }} aria-hidden="true"><KineoBoltText>{eng.icon}</KineoBoltText></span>{scriptMode === 'clip' ? `Seedance 1.5 · ${clipSeconds}s · ${aspect}` : `${eng.name} · ${duration}s · 1080p · ${aspect}`}{preset ? ` · ${CAMERA_PRESETS.find((c) => c.key === preset)?.label}` : ''}</div>
             {/* O número tem de mudar junto com o seletor: preço que só
                 aparece DEPOIS do clique é cobrança-surpresa. O servidor cobra
                 por esta mesma função (creditCostForDuration), então tela e
@@ -760,7 +762,7 @@ export default function StudioClient() {
             <button type="button" className="mdlbtn" onClick={() => setPickerOpen((o) => !o)}>
               <span className="lab" style={{ marginBottom: 0 }}><span className="n">2</span><UiLabel>Engine</UiLabel></span>
               <span className="mdlname" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span className="eng-ic" aria-hidden="true">{eng.icon}</span>
+                <span className="eng-ic" aria-hidden="true"><KineoBoltText>{eng.icon}</KineoBoltText></span>
                 <b>{eng.name}</b>
                 {/* KINEO-RES-1080-2026-08-24 — o fundador leu "720p ▾" ao lado
                     do Kling 3 e "1080×1920 master" logo abaixo como CONTRADIÇÃO
@@ -778,7 +780,7 @@ export default function StudioClient() {
                 {ENGINES.filter((e) => e.key !== 's25' || internal).map((e) => { const pausa = e.paused ? enginePaused(e.key) : null; return (
                   <button key={e.key} type="button" className={`pk${e.key === engine ? ' on' : ''}`} disabled={Boolean(pausa)} aria-disabled={Boolean(pausa)} title={pausa ? pausa.message : undefined} style={pausa ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}
                     onClick={() => { setEngine(e.key); setPickerOpen(false) }}>
-                    <span className="eng-ic" aria-hidden="true">{e.icon}</span>
+                    <span className="eng-ic" aria-hidden="true"><KineoBoltText>{e.icon}</KineoBoltText></span>
                     <span className="pk-tx">
                       {/* ═══ KINEO-PRECO-VISIVEL-2026-09-02 — REVERTE O #2026-08-18 ═══
                           A nota antiga aqui dizia "preço não mora no seletor — só no
@@ -948,7 +950,7 @@ export default function StudioClient() {
               {CAMERA_PRESETS.map((c) => (
                 <button key={c.key} type="button" className={`cam${preset === c.key ? ' on' : ''}`}
                   onClick={() => setPreset(preset === c.key ? null : c.key)}>
-                  <div className="e">{c.emoji}</div>
+                  <div className="e"><KineoBoltText inheritColor>{c.emoji}</KineoBoltText></div>
                   <div className="l"><UiLabel>{c.label}</UiLabel></div>
                 </button>
               ))}

@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt from '@/components/KineoBolt'
+
 import Link from 'next/link'
 
 const HOOKS = [
@@ -58,7 +60,7 @@ export default function ViralHookEngine() {
           }}
         >
           <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#2997ff', letterSpacing: '0.04em' }}>
-            ⚡ HOOK ENGINE
+            <KineoBolt /> HOOK ENGINE
           </span>
         </div>
         <h2
@@ -73,7 +75,7 @@ export default function ViralHookEngine() {
             margin: 0,
           }}
         >
-          ⚡ Viral{' '}
+          <KineoBolt /> Viral{' '}
           <span style={{ color: '#2997ff', WebkitTextFillColor: '#2997ff' }}>
             Hook Engine
           </span>

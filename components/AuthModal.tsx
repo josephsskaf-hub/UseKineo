@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt, { KineoBoltText } from '@/components/KineoBolt'
+
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
@@ -235,13 +237,7 @@ export default function AuthModal({ onClose, defaultTab = 'signup', redirectTo }
 
           {/* Logo */}
           <div className="flex items-center gap-3 mb-6">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, var(--indigo), var(--purple))', boxShadow: '0 0 24px rgba(16, 185, 129,.45)' }}
-              aria-hidden="true"
-            >
-              ⚡
-            </div>
+            <KineoBolt size={32} />
             <div>
               <div className="font-black text-sm tracking-tight" style={{ background: 'linear-gradient(135deg, #2997ff, #2997ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 Kineo
@@ -299,7 +295,7 @@ export default function AuthModal({ onClose, defaultTab = 'signup', redirectTo }
                       cursor: 'pointer',
                     }}
                   >
-                    <span aria-hidden="true">{t === 'signup' ? '⚡' : '🔑'} </span>{t === 'signup' ? 'Create Account' : 'Sign In'}
+                    <span aria-hidden="true"><KineoBoltText inheritColor>{t === 'signup' ? '⚡' : '🔑'}</KineoBoltText> </span>{t === 'signup' ? 'Create Account' : 'Sign In'}
                   </button>
                 ))}
               </div>
@@ -440,7 +436,7 @@ export default function AuthModal({ onClose, defaultTab = 'signup', redirectTo }
                       {tab === 'signup' ? 'Creating account...' : 'Signing in...'}
                     </>
                   ) : (
-                    <><span aria-hidden="true">{tab === 'signup' ? '⚡' : '🔑'} </span>{tab === 'signup' ? 'Create Free Account' : 'Sign In'}</>
+                    <><span aria-hidden="true"><KineoBoltText inheritColor>{tab === 'signup' ? '⚡' : '🔑'}</KineoBoltText> </span>{tab === 'signup' ? 'Create Free Account' : 'Sign In'}</>
                   )}
                 </button>
               </form>

@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt, { KineoBoltText } from '@/components/KineoBolt'
+
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
@@ -564,15 +566,7 @@ export default function SignupPage() {
               className="flex items-center gap-3 mb-6"
               style={{ textDecoration: 'none' }}
             >
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-                style={{
-                  background: '#2997ff',
-                  boxShadow: '0 0 24px rgba(41,151,255,.45)',
-                }}
-              >
-                ⚡
-              </div>
+              <KineoBolt size={32} />
               <div
                 className="font-black text-sm tracking-tight"
                 style={{ color: '#f5f5f7' }}
@@ -994,13 +988,13 @@ export default function SignupPage() {
                   >
                     {/* ONDA1 #13 (13/08) — quem chegou aqui escolhendo um plano
                         PAGO nao pode ler "Free Account" no botao. */}
-                    {loading
+                    <KineoBoltText inheritColor>{loading
                       ? 'Creating account...'
                       : isCheckoutResume
                         ? bulkCheckoutContext
                           ? `Continue to ${bulkCheckoutContext.videos}-video checkout →`
                           : trialPromise?.cta ?? checkoutChoice?.button ?? 'Continue to secure checkout →'
-                        : '⚡ Create Free Account'}
+                        : '⚡ Create Free Account'}</KineoBoltText>
                   </button>
                 </form>
 

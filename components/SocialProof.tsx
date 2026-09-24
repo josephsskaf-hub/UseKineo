@@ -1,5 +1,7 @@
 'use client'
 
+import { KineoBoltText } from '@/components/KineoBolt'
+
 // ROBO1-HONEST-2026-06-28 — Replaced invented "300+ Active Creators" /
 // "300+ Videos Generated" / "94% Retention" / "#1 Tool" counters (none of
 // which were verifiable) with HONEST trust signals: indie-founder
@@ -87,7 +89,7 @@ function SignalCard({ signal, visible, index }: { signal: TrustSignal; visible: 
           }}
           aria-hidden
         >
-          {signal.icon}
+          <KineoBoltText>{signal.icon}</KineoBoltText>
         </div>
         <div
           style={{

@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt, { KineoBoltText } from '@/components/KineoBolt'
+
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 
@@ -423,7 +425,7 @@ export default function VideoClient() {
               cursor: 'pointer',
             }}
           >
-            ⚡ Go to Creator Hub
+            <KineoBolt style={{ color: 'currentColor' }} /> Go to Creator Hub
           </button>
         </div>
       </main>
@@ -1260,7 +1262,7 @@ function Step5Export({
         </div>
         <div className="w-full max-w-md flex flex-col gap-3">
           <div className="font-black text-lg" style={{ color: '#f5f5f7' }}>
-            {currentStage.label}
+            <KineoBoltText>{currentStage.label}</KineoBoltText>
           </div>
           <ProgressBar progress={progress} />
           <div className="text-xs font-bold" style={{ color: '#86868b' }}>

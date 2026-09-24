@@ -1,5 +1,7 @@
 'use client'
 
+import { KineoBoltText } from '@/components/KineoBolt'
+
 // Animate (13/06) — the focused image-to-video page (/animate).
 // Upload ANY photo (person, pet, product, old family picture), describe the
 // motion, get a living 5-10s clip. Kling 2.5 Turbo Pro via the fal queue;
@@ -738,7 +740,7 @@ function AnimateOutOfCredits({
         </div>
       )}
       <button type="button" onClick={onCta} className="go ok" style={{ width: '100%' }}>
-        {destination === 'topup' ? '⚡ Add credits' : '⚡ See plans'}
+        <KineoBoltText inheritColor>{destination === 'topup' ? '⚡ Add credits' : '⚡ See plans'}</KineoBoltText>
       </button>
     </section>
   )

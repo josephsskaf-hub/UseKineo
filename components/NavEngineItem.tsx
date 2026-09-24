@@ -1,5 +1,7 @@
 'use client'
 
+import { KineoBoltText } from '@/components/KineoBolt'
+
 // KINEO-NAV-MEGA-PREVIEW-2026-08-17 — item de motor do mega-menu Video com
 // MINI-PREVIEW no hover (aprovacao do fundador: "o Higgsfield mostra um
 // clipezinho — e nos JA temos os previews de 8s prontos").
@@ -43,7 +45,7 @@ export default function NavEngineItem({
       }}
       onMouseLeave={() => ref.current?.pause()}
     >
-      {icon ? <span className="nm-ic" aria-hidden="true">{icon}</span> : null}
+      {icon ? <span className="nm-ic" aria-hidden="true"><KineoBoltText>{icon}</KineoBoltText></span> : null}
       <span className="nm-tx">
         <b>
           {name}

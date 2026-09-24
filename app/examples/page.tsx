@@ -1,3 +1,5 @@
+
+import KineoBolt from '@/components/KineoBolt'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import ExamplesGallery from './ExamplesGallery'
@@ -42,7 +44,7 @@ export default async function ExamplesPage() {
     <main className={styles.page}>
       <header className={styles.pageHeader}>
         <div className={styles.headerInner}>
-          <Link href="/" className={styles.brand}><span className={styles.brandIcon} aria-hidden="true">ϟ</span>Kineo</Link>
+          <Link href="/" className={styles.brand}><KineoBolt size={26} />Kineo</Link>
           <nav className={styles.nav} aria-label="Main navigation">
             <Link href="/examples" aria-current="page" className={styles.exploreLink}>Explore</Link>
             <Link href="/pricing" className="transition hover:text-white">Pricing</Link>

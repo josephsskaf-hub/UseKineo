@@ -1,3 +1,5 @@
+
+import KineoBolt from '@/components/KineoBolt'
 import type { CSSProperties } from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -113,7 +115,7 @@ export default function AiShortsForAgenciesPage() {
       <header style={{ borderBottom: '1px solid rgba(255,255,255,.07)', background: 'rgba(5,6,8,.9)' }}>
         <div style={{ maxWidth: 1160, margin: '0 auto', padding: '17px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18 }}>
           <Link href="/" style={{ color: '#fff', textDecoration: 'none', fontSize: 18, fontWeight: 900 }}>
-            ⚡ Kineo
+            <KineoBolt /> Kineo
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <Link href="/examples" style={{ color: '#a5a5ac', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>Examples</Link>

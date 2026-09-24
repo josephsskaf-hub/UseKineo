@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt from '@/components/KineoBolt'
+
 import { useEffect } from 'react'
 
 // Static preview data keyed by niche id
@@ -132,7 +134,7 @@ export default function PreviewModal({ niche, onConfirm, onClose }: PreviewModal
                 color: '#f5f5f7',
               }}
             >
-              <span aria-hidden="true">⚡</span> Videos in a few minutes
+              <span aria-hidden="true"><KineoBolt /></span> Videos in a few minutes
             </div>
             <div
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
@@ -248,7 +250,7 @@ export default function PreviewModal({ niche, onConfirm, onClose }: PreviewModal
               cursor: 'pointer',
             }}
           >
-            <span aria-hidden="true">⚡</span> Generate 5 Shorts Now
+            <span aria-hidden="true"><KineoBolt style={{ color: 'currentColor' }} /></span> Generate 5 Shorts Now
           </button>
           <button
             onClick={onClose}

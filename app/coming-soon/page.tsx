@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt from '@/components/KineoBolt'
+
 import Link from 'next/link'
 import { useState } from 'react'
 
@@ -87,21 +89,7 @@ export default function ComingSoonPage() {
             marginBottom: 36,
           }}
         >
-          <span
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 12,
-              background: 'linear-gradient(135deg, #2997ff, #2997ff)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '1.3rem',
-              boxShadow: '0 0 28px rgba(41,151,255,.55)',
-            }}
-          >
-            ⚡
-          </span>
+          <KineoBolt size={32} />
           <span
             style={{
               fontWeight: 900,

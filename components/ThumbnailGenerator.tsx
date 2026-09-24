@@ -1,5 +1,7 @@
 'use client'
 
+import { KineoBoltText } from '@/components/KineoBolt'
+
 import Link from 'next/link'
 
 const THUMBNAILS = [
@@ -149,7 +151,7 @@ export default function ThumbnailGenerator() {
                     flexShrink: 0,
                   }}
                 >
-                  {t.icon}
+                  <KineoBoltText>{t.icon}</KineoBoltText>
                 </div>
                 <span
                   style={{

@@ -1,3 +1,5 @@
+
+import KineoBolt from '@/components/KineoBolt'
 // #486 — Public affiliate-recruiting landing. The page every outreach links to.
 // Explains the verified 30% recurring model, first-touch window and how to
 // apply through the built-in affiliate dashboard. Static, in sitemap for SEO.
@@ -115,7 +117,7 @@ export default function PartnersPage() {
     <main style={{ minHeight: '100vh', background: '#000', color: '#F1F5F9', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
       <div style={{ maxWidth: 780, margin: '0 auto', padding: '28px 18px 64px' }}>
-        <Link href="/" style={{ color: '#2997ff', fontWeight: 800, textDecoration: 'none', fontSize: '1.05rem' }}>⚡ Kineo</Link>
+        <Link href="/" style={{ color: '#2997ff', fontWeight: 800, textDecoration: 'none', fontSize: '1.05rem' }}><KineoBolt /> Kineo</Link>
 
         <section style={{ marginTop: 36, textAlign: 'center' }}>
           <div style={{ display: 'inline-block', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#2997ff', background: 'rgba(41,151,255,0.1)', borderRadius: 999, padding: '6px 14px' }}>Affiliate program</div>

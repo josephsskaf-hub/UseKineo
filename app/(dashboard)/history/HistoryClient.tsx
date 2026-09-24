@@ -1,4 +1,6 @@
 'use client'
+
+import { KineoBoltText } from '@/components/KineoBolt'
 import { UiLabel } from '@/components/InterfaceLanguage'
 import PostFilmCreatorOffer from '@/components/PostFilmCreatorOffer'
 
@@ -1663,7 +1665,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                       {/* KINEO-CARD-COM-MOTOR-2026-09-16 — pedido do fundador (16/09): "sempre tem que falar qual motor a pessoa usou".
                           O /library e o /my-videos já usavam engineLabelFor; o card do /history (o "My Videos" do menu) mostrava
                           só "✨ AI"/"⚡". Fonte única do selo: lib/engineLabel.ts. */}
-                      {engineLabelFor(video.quality_mode) ?? (video.quality_mode === 'cinematic' ? '✨ AI' : '⚡')}
+                      <KineoBoltText>{engineLabelFor(video.quality_mode) ?? (video.quality_mode === 'cinematic' ? '✨ AI' : '⚡')}</KineoBoltText>
                     </span>
                   )}
                 </div>

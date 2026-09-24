@@ -62,6 +62,7 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
       if(id==='node:crypto'||id==='crypto')return require(id)
       if(id==='@/components/studioKit')return load('components/studioKit.tsx')
       if(id==='@/components/InterfaceLanguage')return load('components/InterfaceLanguage.tsx')
+      if(id==='@/components/KineoBolt')return load('components/KineoBolt.tsx')
       if(id==='@/components/LibraryRecentProject')return load('components/LibraryRecentProject.tsx')
       if(id==='./AutopilotBreakEvenCalculator')return load('app/pricing/AutopilotBreakEvenCalculator.tsx')
       // Explicit demo balance only, never a customer balance or a DB request.

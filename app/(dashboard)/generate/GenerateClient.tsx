@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt, { KineoBoltText } from '@/components/KineoBolt'
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { looksLikeInstruction } from '@/lib/momentumTopic'
 import { normalizeAspect } from '@/lib/aspect'
@@ -13884,7 +13886,7 @@ export default function GenerateClient({
                 className="font-bold text-sm px-4 py-2 rounded-lg"
                 style={{ background: '#22c55e', color: '#04130d', border: 'none', cursor: 'pointer' }}
               >
-                ⚡ Build episode 2 →
+                <KineoBolt style={{ color: 'currentColor' }} /> Build episode 2 →
               </button>
             )}
             {serverActiveRender.videoUrl && (
@@ -15053,13 +15055,13 @@ export default function GenerateClient({
           <div className="flex items-center justify-between mt-5 gap-3 flex-wrap">
             <div>
               <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                {mode === 'creator'
+                <KineoBoltText>{mode === 'creator'
                   ? `🎬 Creator Mode • review scenes first, then ${selectedCost === 0 ? 'Free' : `${selectedCost} credits`} • usually 3–7 min.`
                   : mode === 'fast'
                   ? `⚡ ${selectedCost === 0 ? 'Free' : `${selectedCost} credit`} • Fast Mode • usually ready in 3–7 min.`
                   : mode === 'cinematic_ai'
                   ? `🤖 ${selectedCost} credits • AI Generated • ~3-5 min render.`
-                  : `🎬 1 Cinematic token • Runway AI • 5-10 min render (Pro plan).`}
+                  : `🎬 1 Cinematic token • Runway AI • 5-10 min render (Pro plan).`}</KineoBoltText>
               </p>
               {mode === 'fast' && !isPaidAccount ? (
                 <p className="text-xs mt-1" style={{ color: '#5cb3ff', fontWeight: 700 }}>
@@ -15551,9 +15553,9 @@ export default function GenerateClient({
           >
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="text-xs" style={{ color: 'var(--muted2)' }}>
-                {mode === 'fast'
+                <KineoBoltText>{mode === 'fast'
                   ? `⚡ Fast Mode · ${duration}s · YouTube Shorts / TikTok (9:16)`
-                  : `🎬 Cinematic Mode · ${duration}s · ${QUALITY_OPTIONS.find((q) => q.key === quality)?.title ?? 'Cinematic'} · YouTube Shorts / TikTok (9:16)`} {/* KINEO-SEM-UNDEFINED-2026-09-16: qualidade sem título no catálogo (Omni) mostrava "undefined" */}
+                  : `🎬 Cinematic Mode · ${duration}s · ${QUALITY_OPTIONS.find((q) => q.key === quality)?.title ?? 'Cinematic'} · YouTube Shorts / TikTok (9:16)`}</KineoBoltText> {/* KINEO-SEM-UNDEFINED-2026-09-16: qualidade sem título no catálogo (Omni) mostrava "undefined" */}
               </div>
               <button
                 ref={optionsGenerateBtnRef}
@@ -15716,7 +15718,7 @@ export default function GenerateClient({
                 }}
               >
                 <div className="flex items-center gap-2 mb-1.5">
-                  <span aria-hidden="true">⚡</span>
+                  <span aria-hidden="true"><KineoBolt /></span>
                   <span className="font-bold" style={{ color: '#5cb3ff' }}>
                     Kineo rendering engine
                   </span>
@@ -18917,7 +18919,7 @@ export default function GenerateClient({
                 </span>
                 <span>·</span>
                 <span style={{ color: mode === 'fast' ? '#5cb3ff' : mode === 'cinematic_ai' ? '#2997ff' : '#2997ff', fontWeight: 700 }}>
-                  {mode === 'fast' ? 'Fast Mode ⚡' : mode === 'cinematic_ai' ? 'AI Video 🤖' : 'Cinematic 🎬'}
+                  <KineoBoltText>{mode === 'fast' ? 'Fast Mode ⚡' : mode === 'cinematic_ai' ? 'AI Video 🤖' : 'Cinematic 🎬'}</KineoBoltText>
                 </span>
               </div>
 
@@ -20187,7 +20189,7 @@ function UpsellSection({
             marginBottom: 14,
           }}
         >
-          ⚡ You have {creditsLeft} credit{creditsLeft === 1 ? '' : 's'} left. Don&apos;t lose your momentum.
+          <KineoBolt /> You have {creditsLeft} credit{creditsLeft === 1 ? '' : 's'} left. Don&apos;t lose your momentum.
         </div>
       )}
 
@@ -20353,7 +20355,7 @@ function NextActionSection({
             boxShadow: '0 6px 22px rgba(41,151,255,.4)',
           }}
         >
-          ⚡ Generate Another Short
+          <KineoBolt style={{ color: 'currentColor' }} /> Generate Another Short
         </button>
         <button
           type="button"
@@ -20609,7 +20611,7 @@ function EngineCard({
             filter: unlocked ? 'none' : 'grayscale(0.4)',
           }}
         >
-          {icon}
+          <KineoBoltText inheritColor>{icon}</KineoBoltText>
         </span>
         <div className="min-w-0">
           <div className="text-sm font-black leading-tight" style={{ color: selected ? accentText : 'var(--text)' }}>
@@ -22498,7 +22500,7 @@ function UrgencyModal({
             marginBottom: 16,
           }}
         >
-          {'⚡ Upgrade and keep creating'}
+          <KineoBoltText>{'⚡ Upgrade and keep creating'}</KineoBoltText>
         </h2>
         {!expired && (
           <div

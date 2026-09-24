@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt, { KineoBoltText } from '@/components/KineoBolt'
+
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney, getTierPrice, coercePriceRegion, type CheckoutCurrency, type PriceRegion } from '@/lib/checkoutPricing'
@@ -85,7 +87,7 @@ export default function UpgradeModal({ onClose }: UpgradeModalProps) {
           }}
           aria-hidden="true"
         >
-          ⚡
+          <KineoBolt />
         </div>
 
         <div
@@ -141,7 +143,7 @@ export default function UpgradeModal({ onClose }: UpgradeModalProps) {
                 style={{ color: '#f5f5f7' }}
               >
                 <span style={{ color: '#2997ff', fontSize: '0.8rem' }} aria-hidden="true">✓</span>
-                <span aria-hidden="true">{emoji}</span> {text}
+                <span aria-hidden="true"><KineoBoltText>{emoji}</KineoBoltText></span> {text}
               </div>
             )
           })}

@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt from '@/components/KineoBolt'
+
 // AI Avatar — "Add a face" control on /generate (feature/ai-avatar, Nível 2).
 // Collapsed: a premium entry card with the live mini-demo so users SEE the
 // feature. Expanded: drag-and-drop / paste / choose / take-a-selfie picker +
@@ -261,7 +263,7 @@ export default function AvatarUpload({ value, onChange, disabled, credits = null
           cursor: disabled ? 'not-allowed' : 'pointer',
         }}
       >
-        ⚡ Hook intro — face opens, b-roll tells the story <span className="font-black" style={{ fontSize: 9, opacity: 0.9 }}>RECOMMENDED</span>
+        <KineoBolt style={{ color: 'currentColor' }} /> Hook intro — face opens, b-roll tells the story <span className="font-black" style={{ fontSize: 9, opacity: 0.9 }}>RECOMMENDED</span>
       </button>
       <button
         type="button"
@@ -440,7 +442,7 @@ export default function AvatarUpload({ value, onChange, disabled, credits = null
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={savedFaceUrl} alt="Your saved face" className="h-10 w-10 rounded-full object-cover" style={{ border: '2px solid rgba(139,92,246,0.6)' }} />
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-bold" style={{ color: '#a7f3d0' }}>⚡ Use my saved face</div>
+            <div className="text-xs font-bold" style={{ color: '#a7f3d0' }}><KineoBolt style={{ color: 'currentColor' }} /> Use my saved face</div>
             <div className="text-[11px]" style={{ color: 'var(--muted2)' }}>Your last approved photo — one click, no re-upload.</div>
           </div>
           <span className="text-sm font-bold" style={{ color: '#c4b5fd' }}>→</span>

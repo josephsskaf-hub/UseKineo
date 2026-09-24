@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt from '@/components/KineoBolt'
+
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 
@@ -431,7 +433,7 @@ export default function LiveScriptPreview() {
             boxShadow: '0 6px 30px rgba(255,255,255,0.18)',
           }}
         >
-          ⚡ Generate yours →
+          <KineoBolt /> Generate yours →
         </Link>
         <p style={{ fontSize: '0.76rem', color: '#86868b', marginTop: 10 }}>
           Free to start · No credit card required

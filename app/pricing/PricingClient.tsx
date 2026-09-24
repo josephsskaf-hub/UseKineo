@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt, { KineoBoltText } from '@/components/KineoBolt'
+
 // Push #076 — Standalone /pricing page (real route, not just an anchor).
 // Mirrors the Cyber Blue theme used by HomePageClient.
 //
@@ -858,11 +860,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
       <nav className="sticky top-0 z-50 border-b border-white/[0.08] bg-[#161618]/90 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#161618] border border-[#2997ff]/40 text-lg shadow-[0_0_14px_rgba(41,151,255,.35)]">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="#ABEDC9" stroke="#ABEDC9" strokeWidth="0.5" strokeLinejoin="round" />
-              </svg>
-            </div>
+            <KineoBolt size={32} />
             <div className="flex flex-col leading-none">
               <span className="text-[15px] font-extrabold tracking-tight text-white">
                 Kineo
@@ -1177,7 +1175,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                               className="flex items-baseline justify-between text-[11.5px] font-semibold"
                               style={{ color: locked ? '#5a5a60' : '#c7c7cc' }}
                             >
-                              <span>{r.ic} {r.name}</span>
+                              <span><KineoBoltText>{r.ic}</KineoBoltText> {r.name}</span>
                               {locked ? (
                                 <span className="text-[9.5px] font-black uppercase" style={{ color: '#fb923c' }}>{tierFor(r.cost)} plan</span>
                               ) : (
@@ -1789,7 +1787,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
               }}
             >
               <div className="text-[18px] mb-2" aria-hidden>
-                {c.icon}
+                <KineoBoltText>{c.icon}</KineoBoltText>
               </div>
               <p className="text-[13.5px] font-bold text-[#f5f5f7] leading-snug mb-1.5">
                 {c.title}
@@ -2242,9 +2240,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 sm:flex-row sm:px-6">
           <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#161618] border border-[#2997ff]/40 text-sm">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="#2997ff" />
-              </svg>
+              <KineoBolt size={13} />
             </div>
             <span className="text-[13px] font-bold text-[#f5f5f7]">
               Kineo

@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt from '@/components/KineoBolt'
+
 // Nav credits badge for the public Kineo landing (app/KineoLanding.tsx).
 // Mirrors the dashboard TopBar's CreditsBadge (components/TopBar.tsx) so
 // logged-in visitors see their real balance next to "Open app" instead of
@@ -106,7 +108,7 @@ export default function NavCreditsBadge() {
         whiteSpace: 'nowrap',
       }}
     >
-      ⚡ {credits} credit{credits === 1 ? '' : 's'}
+      <KineoBolt /> {credits} credit{credits === 1 ? '' : 's'}
     </Link>
   )
 }

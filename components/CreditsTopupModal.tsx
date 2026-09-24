@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt from '@/components/KineoBolt'
+
 // KINEO-TOPUP-POPUP-2026-08-18 — tarefa do dia (fundador): "adicionar o pop
 // de crédito caso a pessoa que gaste seus créditos queira mais SEM trocar de
 // plano". Até hoje os packs one-time (topup40/120/100) só existiam enterrados
@@ -112,7 +114,7 @@ export default function CreditsTopupModal({
           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-3"
           style={{ background: 'rgba(41,151,255,.12)', border: '1px solid rgba(41,151,255,.25)', color: '#2997ff' }}
         >
-          <span aria-hidden="true">⚡</span>
+          <span aria-hidden="true"><KineoBolt /></span>
           {credits !== null ? `${credits} ${credits === 1 ? 'credit' : 'credits'} left` : 'Credits'}
         </div>
 

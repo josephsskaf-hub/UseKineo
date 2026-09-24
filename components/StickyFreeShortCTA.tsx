@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt from '@/components/KineoBolt'
+
 // ROBO1-CONV-2026-06-29b — Public Fast-preview CTA.
 // Persistent bottom bar shown on high-intent SEO/marketing pages (alternatives,
 // cheapest-ai-shorts-maker, youtube-shorts-from-topic) so a scrolling buyer always
@@ -128,7 +130,7 @@ export default function StickyFreeShortCTA({
           }}
         >
           <span style={{ fontSize: '1.15rem', flexShrink: 0 }} aria-hidden>
-            ⚡
+            <KineoBolt />
           </span>
           <p style={{ flex: 1, margin: 0, minWidth: 0, fontSize: '0.84rem', fontWeight: 700, color: '#f5f5f7', lineHeight: 1.3 }}>
             {labelText}

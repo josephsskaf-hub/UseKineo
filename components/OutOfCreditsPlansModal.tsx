@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt from '@/components/KineoBolt'
+
 // sprint-assinaturas #13 — a parede de "zerou o saldo" para quem NAO pode
 // comprar recarga (trial/free/starter) no /images e no /audio. Ate hoje o 402
 // abria o CreditsTopupModal para qualquer plano; o pack levava ao
@@ -126,7 +128,7 @@ export default function OutOfCreditsPlansModal({
           className="block w-full text-center rounded-xl py-3 font-black text-sm"
           style={{ background: 'linear-gradient(135deg,#2997ff,#5cb3ff)', color: '#0b0b0f', textDecoration: 'none' }}
         >
-          ⚡ See plans
+          <KineoBolt /> See plans
         </a>
         <p style={{ fontSize: '0.74rem', color: '#86868b', textAlign: 'center', margin: '12px 0 0' }}>
           Every plan works across video, images and audio — one balance.

@@ -1,3 +1,5 @@
+
+import KineoBolt from '@/components/KineoBolt'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -50,7 +52,7 @@ export default async function ExamplesDesign({ searchParams }: { searchParams: {
       <span>{selection.note} Vídeos reais do acervo aprovado; produção permanece inalterada.</span>
     </div>
     <header className={styles.pageHeader}><div className={styles.headerInner}>
-      <Link href="/" className={styles.brand}><span className={styles.brandIcon} aria-hidden="true">ϟ</span>Kineo</Link>
+      <Link href="/" className={styles.brand}><KineoBolt size={26} />Kineo</Link>
       <nav className={styles.nav} aria-label="Main navigation"><Link href="/examples" aria-current="page">Explore</Link><Link href="/pricing">Pricing</Link><Link href="/studio" className={styles.navCta}>Open Studio</Link></nav>
     </div></header>
     <section className={styles.content}>

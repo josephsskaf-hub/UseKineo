@@ -1,5 +1,7 @@
 'use client'
 
+import { KineoBoltText } from '@/components/KineoBolt'
+
 // Push #118 — Product highlight notification toast.
 // Floating bottom-left toast that auto-cycles through honest product-fact
 // messages every 45–90 seconds. Fades in / slides up on show, fades out
@@ -136,7 +138,7 @@ export default function SocialProofToast() {
           pointerEvents: 'none',
         }}
       >
-        <span style={{ fontSize: '1.25rem', lineHeight: 1, flexShrink: 0 }}>{toast.emoji}</span>
+        <span style={{ fontSize: '1.25rem', lineHeight: 1, flexShrink: 0 }}><KineoBoltText>{toast.emoji}</KineoBoltText></span>
         <div style={{ minWidth: 0 }}>
           <p
             style={{

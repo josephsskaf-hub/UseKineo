@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt from '@/components/KineoBolt'
+
 import Link from 'next/link'
 import { WORKSPACE_NAV, GROW_NAV, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
 import { UiLabel } from '@/components/InterfaceLanguage'
@@ -589,18 +591,7 @@ export default function Sidebar({
           className="flex items-center gap-3 px-5 flex-shrink-0"
           style={{ height: 72, borderBottom: '1px solid rgba(255,255,255,0.06)', textDecoration: 'none' }}
         >
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{
-              background: 'linear-gradient(135deg, #17171A, #161618)',
-              border: '1px solid rgba(41,151,255,0.45)',
-              boxShadow: '0 0 18px rgba(41,151,255,0.4), 0 0 8px rgba(41,151,255,0.25)',
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="#ABEDC9" stroke="#ABEDC9" strokeWidth="0.5" strokeLinejoin="round" />
-            </svg>
-          </div>
+          <KineoBolt size={32} />
           <div className="flex flex-col" style={{ gap: 2 }}>
             <div
               className="font-black tracking-tight leading-none"
@@ -684,9 +675,7 @@ export default function Sidebar({
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                    <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="#2997ff" />
-                  </svg>
+                  <KineoBolt style={{ color: 'currentColor' }} size={16} />
                 </div>
                 {creditsLoading ? (
                   <span style={{ display: 'inline-block', width: 64, height: 14, borderRadius: 4, background: 'rgba(255,255,255,0.07)', animation: 'pulse 1.4s ease-in-out infinite' }} />
@@ -743,14 +732,14 @@ export default function Sidebar({
         {!isLoggedIn ? (
           <div className="px-3 pt-3 pb-3 flex-shrink-0">
             <div style={{ borderRadius: 14, padding: '14px 14px', background: 'rgba(41,151,255,0.05)', border: '1px solid rgba(41,151,255,0.18)' }}>
-              <p style={{ fontSize: '0.8rem', fontWeight: 800, color: '#F5F7FF', marginBottom: 4 }}><FreeTierCopy legacy="⚡ 3 free Fast previews daily" on={`⚡ Creator trial: ${TRIAL_GRANT_CREDITS_COPY} free credits`} /></p>
+              <p style={{ fontSize: '0.8rem', fontWeight: 800, color: '#F5F7FF', marginBottom: 4 }}><KineoBolt /> <FreeTierCopy legacy="3 free Fast previews daily" on={`Creator trial: ${TRIAL_GRANT_CREDITS_COPY} free credits`} /></p>
               <p style={{ fontSize: '0.72rem', color: '#86868b', lineHeight: 1.5, marginBottom: 10 }}>Sign up and start creating in under a minute.</p>
               <button
                 onClick={() => setShowAuthModal(true)}
                 aria-label={`${signupCtaLabel} — sign up`}
                 style={{ display: 'block', width: '100%', textAlign: 'center', borderRadius: 10, padding: '9px 0', fontSize: '0.8rem', fontWeight: 800, color: '#0A0A0B', background: '#2997ff', border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(41,151,255,0.35)' }}
               >
-                <span aria-hidden="true">⚡ </span>{signupCtaLabel}
+                <span aria-hidden="true"><KineoBolt style={{ color: 'currentColor' }} /> </span>{signupCtaLabel}
               </button>
             </div>
           </div>

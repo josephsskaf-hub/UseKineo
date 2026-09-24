@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt, { KineoBoltText } from '@/components/KineoBolt'
+
 // Push #080 — Account v2: homepage-quality UI, animated credit ring, glowing avatar, polished tabs
 
 import { Suspense, useEffect, useState } from 'react'
@@ -377,7 +379,7 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
                   className="inline-flex items-center mt-1.5 text-xs font-bold px-2 py-0.5 rounded-full"
                   style={{ background: planStyle.bg, border: `1px solid ${planStyle.border}`, color: planStyle.color }}
                 >
-                  {planLabel}
+                  <KineoBoltText>{planLabel}</KineoBoltText>
                 </span>
               </div>
             </div>
@@ -705,7 +707,7 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
                     · 60 credits" responde a pergunta que a pessoa tem. */}
                 <li>🟢 Starter = <strong style={{ color: 'var(--text)' }}>{planCapacityLine('starter')}</strong></li>
                 <li>🔵 Creator = <strong style={{ color: 'var(--text)' }}>{planCapacityLine('basic')}</strong></li>
-                <li>⚡ Studio = <strong style={{ color: 'var(--text)' }}>{planCapacityLine('pro')}</strong></li>
+                <li><KineoBolt /> Studio = <strong style={{ color: 'var(--text)' }}>{planCapacityLine('pro')}</strong></li>
               </ul>
 
               <p className="text-xs mt-4" style={{ color: 'var(--muted)' }}>

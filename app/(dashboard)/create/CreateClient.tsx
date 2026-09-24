@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt, { KineoBoltText } from '@/components/KineoBolt'
+
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -591,7 +593,7 @@ export default function CreateClient() {
       <div className="mb-6">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg,#2997ff,#2997ff)', boxShadow: '0 0 24px rgba(16, 185, 129,.5)', flexShrink: 0, fontSize: '1.35rem', lineHeight: 1 }}>
-            ⚡
+            <KineoBolt />
           </div>
           <div>
             <div className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--indigo-light)', fontSize: '0.62rem' }}>
@@ -859,7 +861,7 @@ export default function CreateClient() {
               opacity: creditsLoading || suggestLoading ? 0.7 : 1,
             }}
           >
-            ⚡ Generate
+            <KineoBolt style={{ color: 'currentColor' }} /> Generate
           </button>
 
           {/* Credits hint */}
@@ -897,7 +899,7 @@ export default function CreateClient() {
               pointerEvents: 'auto',
             }}
           >
-            ⚡ Generate
+            <KineoBolt style={{ color: 'currentColor' }} /> Generate
           </button>
         </div>
       )}
@@ -1011,11 +1013,11 @@ function ProgressView({
           animation: 'pulseGlow 1.6s ease-in-out infinite',
         }}
       >
-        ⚡
+        <KineoBolt />
       </div>
 
       <div className="font-black text-base mb-2" style={{ color: 'var(--text)' }}>
-        {stageLabel}
+        <KineoBoltText>{stageLabel}</KineoBoltText>
       </div>
       <div className="text-xs mb-4" style={{ color: 'var(--muted)' }}>
         Hang tight — we&apos;re building your Short from start to finish.
@@ -1108,7 +1110,7 @@ function FinalView({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 28, height: 28, borderRadius: 8, background: 'linear-gradient(135deg,#2997ff,#2997ff)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', flexShrink: 0 }}>
-              ⚡
+              <KineoBolt />
             </div>
             <span style={{ fontSize: '0.72rem', fontWeight: 800, color: 'var(--indigo-light)', letterSpacing: '0.04em' }}>
               Kineo v3.0
@@ -1373,7 +1375,7 @@ function NoCreditsModal({ onClose }: { onClose: () => void }) {
           >
             ✕
           </button>
-          <div className="text-4xl mb-4 text-center">⚡</div>
+          <div className="text-4xl mb-4 text-center"><KineoBolt /></div>
           <h2 className="text-xl font-black tracking-tight mb-3 text-center" style={{ color: 'var(--text)' }}>
             No credits left
           </h2>

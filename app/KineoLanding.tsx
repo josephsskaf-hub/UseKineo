@@ -1,3 +1,5 @@
+
+import KineoBolt from '@/components/KineoBolt'
 // Kineo landing — new Apple-dark redesign (replaces the old HomePageClient on the homepage).
 // Self-contained, styles scoped under .klp so they don't leak into the rest of the app.
 // Marker: KINEO-LANDING-V3-2026-06-30
@@ -804,9 +806,7 @@ const TOOL_ICONS = {
   ),
   // Gratis / Fast: raio — o mesmo simbolo do logo no topo da pagina.
   bolt: (
-    <svg {...ICON_BASE} aria-hidden="true">
-      <path d="M13.2 2.4 4.3 13.7h6.4l-1 7.9 8.9-11.2h-6.3z" />
-    </svg>
+    <KineoBolt size={20} />
   ),
 } as const
 
@@ -871,20 +871,12 @@ export default function KineoLanding({
       <div className="progress" aria-hidden="true" />
       <nav aria-label="Main"><div className="wrap nav-in">
         <Link href="/" className="logo">
-          <span className="mk" aria-hidden="true">ϟ</span>
+          <KineoBolt className="mk" size={30} />
           Kineo
         </Link>
         <div className="nav-links">
             <Link href="/examples"><UiLabel>Explore</UiLabel></Link>
-            {/* KINEO-GROWTH-TOOLS-NAV-2026-08-29 — o hub de aquisição
-                orgânica já existia no sitemap e no rodapé, mas ficava
-                invisível na principal entrada pública do produto. */}
-            <Link href="/tools"><UiLabel>Editing tools</UiLabel></Link>
-            {/* KINEO-ARENA-NAV-2026-08-25 — a Arena entra na nav ao lado de
-                Explore: é a página que responde "qual motor eu uso?", a
-                dúvida nº1 de quem está decidindo assinar. Explore mostra o
-                QUE sai; Arena mostra COM O QUÊ e por quê. */}
-            <Link href="/arena">Arena</Link>
+            {/* Editing tools and Arena temporarily withdrawn by the founder. */}
             {/* KINEO-NAV-DROPDOWN-2026-08-15 — menus de categoria estilo
                 Higgsfield: Image e Video abrem submenu no hover/focus (CSS
                 puro, sem JS). O clique no proprio rotulo leva ao destino
@@ -990,7 +982,6 @@ export default function KineoLanding({
             <span className="nav-toggle-btn" aria-hidden="true"><span className="bar" /><span className="bar" /><span className="bar" /></span>
             <label htmlFor="nav-toggle" id="mobile-nav-menu" className="nav-mobile-menu">
               <Link href="/examples"><UiLabel>Explore</UiLabel></Link>
-              <Link href="/tools"><UiLabel>Editing tools</UiLabel></Link>
               <Link href="/studio"><UiLabel>🎬 Studio — generate video</UiLabel></Link>
               <Link href="/images"><UiLabel>🎨 Images — create image</UiLabel></Link>
               <Link href="/audio"><UiLabel>🎙 Audio — text to speech</UiLabel></Link>
@@ -1182,7 +1173,7 @@ export default function KineoLanding({
               <Link href="/studio?engine=fast&intent_campaign=engine_tile" className="tile">
                 {tileVid('fast')}
                 <span className="trow">
-                  <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg></span>
+                  <span className="tic"><KineoBolt size={15} /></span>
                 </span>
                 <span className="tbody">
                   <h3>Kineo 1</h3>

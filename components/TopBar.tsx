@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt from '@/components/KineoBolt'
+
 import Link from 'next/link'
 import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -63,16 +65,11 @@ export default function TopBar({ title, subtitle, onMenuToggle, isPro }: TopBarP
         href="/"
         className="md:hidden flex items-center justify-center flex-shrink-0"
         style={{
-          width: 32, height: 32, borderRadius: 10, textDecoration: 'none',
-          background: 'rgba(41,151,255,0.08)',
-          border: '1px solid rgba(41,151,255,0.35)',
-          boxShadow: '0 0 14px rgba(41,151,255,0.3)',
+          width: 32, height: 32, textDecoration: 'none',
         }}
         aria-label="Home"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="#2997ff" />
-        </svg>
+        <KineoBolt size={28} />
       </Link>
 
       {/* Breadcrumb */}
@@ -379,9 +376,7 @@ function CreditsBadge({ isPro }: { isPro: boolean }) {
       }}
     >
       {/* KINEO-NAV-REDESIGN-2026-07-10 — brand bolt instead of the emoji. */}
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill={colors.fg} />
-      </svg>
+      <KineoBolt size={11} />
       <span lang="en" className="kineo-ltr-island">{credits} credit{credits === 1 ? '' : 's'}</span>{/* KINEO-RTL-BIDI-2026-09-21: '449 credits' nunca vira 'credits 449' */}
     </span>
   )

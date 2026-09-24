@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt from '@/components/KineoBolt'
+
 // Push #082 — My Videos premium library.
 // Each card now hover-previews the rendered MP4 (muted autoplay on
 // pointer-enter, pause on leave) and shows a richer set of badges:
@@ -295,7 +297,7 @@ export default function MyVideosClient({ videos, loadError = false }: { videos: 
             boxShadow: '0 0 80px rgba(41,151,255,.08)',
           }}
         >
-          <div className="text-5xl mb-4">⚡</div>
+          <div className="text-5xl mb-4"><KineoBolt /></div>
           <h2 className="text-xl font-black mb-2" style={{ color: 'var(--text)' }}>
             No videos yet — let&apos;s make your first Short!
           </h2>
@@ -851,7 +853,7 @@ function VideoCard({
                   textDecoration: 'none',
                 }}
               >
-                ⚡ Generate Similar
+                <KineoBolt /> Generate Similar
               </Link>
             </div>
           </div>
@@ -951,7 +953,7 @@ function Header({ count }: { count: number }) {
             textDecoration: 'none',
           }}
         >
-          ⚡ Generate Video
+          <KineoBolt /> Generate Video
         </Link>
       </div>
     </div>

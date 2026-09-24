@@ -1,3 +1,5 @@
+
+import KineoBolt from '@/components/KineoBolt'
 // Index/hub page for /alternatives — fixes a 404: app/ai-shorts-without-filming/page.tsx
 // and app/cheapest-ai-shorts-maker/page.tsx both link to href="/alternatives" but no page
 // existed at that route. This page lists every /alternatives/[competitor] comparison page
@@ -52,7 +54,7 @@ export default function AlternativesIndexPage() {
     <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
       <div style={{ maxWidth: 980, margin: '0 auto', padding: '28px 18px 64px' }}>
         <Link href="/" style={{ color: '#2997ff', fontWeight: 800, textDecoration: 'none', fontSize: '1.05rem' }}>
-          ⚡ Kineo
+          <KineoBolt /> Kineo
         </Link>
 
         {/* Hero */}

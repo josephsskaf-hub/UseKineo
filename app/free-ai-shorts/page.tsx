@@ -1,3 +1,5 @@
+
+import KineoBolt from '@/components/KineoBolt'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
@@ -157,7 +159,7 @@ export default function FreeAiShortsHubPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
       <div style={{ maxWidth: 980, margin: '0 auto', padding: '28px 18px 70px' }}>
         <Link href="/" style={{ color: '#2997ff', fontWeight: 800, textDecoration: 'none', fontSize: '1.05rem' }}>
-          ⚡ Kineo
+          <KineoBolt /> Kineo
         </Link>
 
         <section style={{ marginTop: 38, textAlign: 'center' }}>

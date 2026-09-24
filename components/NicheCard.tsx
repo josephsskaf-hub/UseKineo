@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt from '@/components/KineoBolt'
+
 interface NicheCardProps {
   id: string
   emoji: string
@@ -156,7 +158,7 @@ export default function NicheCard({
         ) : disabled ? (
           <>🔒 Upgrade to Unlock</>
         ) : (
-          <>⚡ Generate Viral Video</>
+          <><KineoBolt style={{ color: 'currentColor' }} /> Generate Viral Video</>
         )}
       </button>
     </div>

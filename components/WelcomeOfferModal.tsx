@@ -1,5 +1,7 @@
 'use client'
 
+import KineoBolt from '@/components/KineoBolt'
+
 // ═══ KINEO-WELCOME20-2026-08-25 — O MODAL DE BOAS-VINDAS COM NOME ═══════════
 // Ordem do fundador (25/08): "quero um modal pra todo mundo que entrar no
 // site, com o nome da pessoa, 20% off no primeiro mês, fechando Creator ou
@@ -302,7 +304,7 @@ export default function WelcomeOfferModal({
           </button>
 
           <p style={{ color: '#2997ff', fontSize: 11, fontWeight: 900, letterSpacing: '.14em', textTransform: 'uppercase', margin: '0 0 10px' }}>
-            ⚡ Welcome offer
+            <KineoBolt /> Welcome offer
           </p>
 
           <h2 style={{ color: '#f5f5f7', fontSize: 26, fontWeight: 900, lineHeight: 1.15, letterSpacing: '-0.02em', margin: '0 0 6px' }}>

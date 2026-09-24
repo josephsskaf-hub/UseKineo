@@ -1,5 +1,7 @@
 'use client'
 
+import { KineoBoltText } from '@/components/KineoBolt'
+
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { INTERFACE_LANGUAGE_KEY, INTERFACE_LANGUAGE_OPTIONS, interfaceLanguageIsRtl, normalizeInterfaceCopy, parseInterfaceLanguage, type InterfaceLanguage } from '@/lib/ui/interfaceLanguage'
 import { INTERFACE_ES } from '@/lib/ui/interfaceLabels'
@@ -70,14 +72,14 @@ export function useUiCopy() {
 export function UiText({ children, es, hi }: { children: ReactNode; es: ReactNode; hi?: ReactNode }) {
   const { language, dict } = useContext(InterfaceLanguageContext)
   // A translation is text, not another badge/card: neutralize broad host span rules.
-  if (language === 'en') return <>{children}</>
-  if (language === 'es') return <span lang="es" style={{ all: 'unset' }}>{es}</span>
+  if (language === 'en') return <KineoBoltText>{children}</KineoBoltText>
+  if (language === 'es') return <span lang="es" style={{ all: 'unset' }}><KineoBoltText>{es}</KineoBoltText></span>
   if (language === 'hi') {
     const translated = hi ?? (typeof children === 'string' ? hindiInterfaceCopy(children) : undefined)
-    return <span lang={translated === undefined ? 'en' : 'hi'} style={{ all: 'unset' }}>{translated ?? children}</span>
+    return <span lang={translated === undefined ? 'en' : 'hi'} style={{ all: 'unset' }}><KineoBoltText>{translated ?? children}</KineoBoltText></span>
   }
   const translated = typeof children === 'string' ? translateAuthoredCopy(language, dict, children) : undefined
-  return <span lang={translated === undefined ? 'en' : language} style={{ all: 'unset' }}>{translated ?? children}</span>
+  return <span lang={translated === undefined ? 'en' : language} style={{ all: 'unset' }}><KineoBoltText>{translated ?? children}</KineoBoltText></span>
 }
 
 export function hindiInterfaceCopy(text: string): string | undefined {

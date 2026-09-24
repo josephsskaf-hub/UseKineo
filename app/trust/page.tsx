@@ -1,3 +1,5 @@
+
+import KineoBolt from '@/components/KineoBolt'
 import type { CSSProperties } from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -134,7 +136,7 @@ export default function TrustPage() {
 
       <header style={{ borderBottom: '1px solid rgba(255,255,255,.07)', background: 'rgba(5,6,8,.92)' }}>
         <div style={{ maxWidth: 1120, margin: '0 auto', padding: '17px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18 }}>
-          <Link href="/" style={{ color: '#fff', textDecoration: 'none', fontSize: 18, fontWeight: 900 }}>⚡ Kineo</Link>
+          <Link href="/" style={{ color: '#fff', textDecoration: 'none', fontSize: 18, fontWeight: 900 }}><KineoBolt /> Kineo</Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <Link href="/terms" style={{ color: '#a5a5ac', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>Terms</Link>
             <Link href="/privacy" style={{ color: '#a5a5ac', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>Privacy</Link>
