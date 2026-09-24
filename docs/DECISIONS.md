@@ -293,3 +293,13 @@ O fundador também pediu cinco recomendações e sugestão de uma terceira líng
 ## 2026-09-24 — Delegação 1-3 agora (Cowork), 4-10 depois (fundador, ~07h BRT)
 
 **DECISÃO:** das dez alavancas de fluxo/receita listadas em 24/09, o fundador mandou executar primeiro as três do Cowork: (1) diretórios e listas que o ChatGPT lê, com o TAAFT atualizado; (2) GPT Store com o "Kineo Video Maker" público; (3) Sora acabou: 10 rascunhos de imprensa, vídeo do dia nas 3 redes, thread no X. Só depois as demais (4 afiliados, 5 "apertou e não saiu", 6 winback com filme pronto, 7 Product Hunt do Studio Ads, 8 Reddit/Quora, 9 SLA da caixa de entrada, 10 tutorial no YouTube). Cowork começou ~07h BRT. Fonte única de copy e números para os formulários: `docs/KIT-DIRETORIOS-2026-09-24.md` (9,90/19,90/39,90 · 60/150/300 · anual 10× · trial 10 créditos · balcão Express/Pro). Medição por pessoa com utm_campaign=dir_sep24; releitura 27/09 e 30/09. Preço e trial seguem congelados até 09/10.
+
+## 2026-09-24 — Studio Ads: quatro decisões do fundador (~07h30 BRT)
+
+**DECISÕES (literal: "1 - A · 2 - A · 3 - sim · 5 - A"):**
+1. **Nome: Studio Ads.** Define título da página /ads, nome do SKU na Stripe e assunto dos e-mails.
+2. **Acesso: passe único US$19 (1990 centavos) com 60 créditos**, SKU `ads_pass` pelo checkout one-time da casa (mode payment, metadata.pack='ads_pass', pack_credits=60), concedido no Path A do webhook no MESMO UPDATE que grava crédito e has_paid, coluna `profiles.ads_access_until` (+365 d), fail-closed. Sobe atrás de `ADS_PASS_LIVE=false` até a palavra do fundador para ligar. Os 3 planos não mudam (congelados até 09/10).
+3. **Assinante pago entra sem passe: sim** (Starter/Creator/Studio via `isPayingProfile`); trial e free NÃO.
+5. **Revisão humana: entrega imediata + revisão humana do primeiro anúncio de cada empresa em até 24 h**, teto de 5 pedidos abertos (a página fecha a venda sozinha acima disso). Operador da fila: Claude pelo /admin/ads, com o fundador avisado a cada pedido; o fundador pode assumir a qualquer momento.
+
+**PENDENTE:** decisão 7 (trava 8.2) reformulada para o fundador em 24/09 ~07h40; decisões 4, 6, 8-11 até o meio do dia 25/09.
