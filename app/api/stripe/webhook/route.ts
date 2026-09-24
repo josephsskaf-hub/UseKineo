@@ -20,7 +20,8 @@ import {
   type CheckoutPlanTier,
 } from '@/lib/checkoutPricing'
 import { readBulkCheckoutTruthVersion } from '@/lib/growth/bulkCheckoutTruth'
-// KINEO-EMPRESAS-DFY-2026-09-23 — o pedido "feito para você" (US$100) é pago por
+// KINEO-EMPRESAS-DFY-2026-09-23 — o pedido "feito para você" (Express US$35 / Pro
+// US$75 desde 24/09; o US$100 de 23/09 virou link legado desativado) é pago por
 // Payment Link, sem SKU nesta rota; o valor vem do módulo puro que desenha o
 // cartão do Studio, para que o preço que a tela mostra e o que o webhook
 // reconhece sejam o MESMO número.
@@ -824,10 +825,11 @@ async function recordPaymentSuccess(
 // KINEO-EMPRESAS-DFY-2026-09-23 — KINEO EMPRESAS por Payment Link.
 //
 // POR QUÊ. Nove pedidos de anúncio de empresa foram escritos no Studio em
-// setembro e todos receberam um Short de curiosidades. O fundador fixou
-// US$100 por filme e mandou VENDER ANTES DE CONSTRUIR: Payment Link da Stripe
-// criado por ele, cartão no Studio (lib/growth/dfyOffer.ts), pedidos operados
-// à mão. Este webhook é o único lugar onde o pagamento vira FATO no banco.
+// setembro e todos receberam um Short de curiosidades. O fundador mandou VENDER
+// ANTES DE CONSTRUIR: Payment Links da Stripe criados no painel (US$100 em 23/09;
+// em 24/09 virou DOIS DEGRAUS, Express US$35 e Pro US$75, e o de US$100 foi
+// desativado), cartão no Studio (lib/growth/dfyOffer.ts), pedidos operados à
+// mão. Este webhook é o único lugar onde o pagamento vira FATO no banco.
 //
 // O QUE É UM PEDIDO DFY. metadata.kind === 'dfy' (quando o link carrega a
 // metadata) OU, para um Payment Link criado sem metadata, valor exato

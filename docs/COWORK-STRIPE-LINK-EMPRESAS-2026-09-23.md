@@ -51,9 +51,9 @@ Se qualquer tela for diferente do descrito (nome de menu, opção ausente), NÃO
 
 ---
 
-## O que o Claude Code faz quando a URL chegar
+## O que o Claude Code faz quando a URL chegar (FEITO em 24/09 ~04h BRT com os dois degraus; ver "Resultado v2" no fim)
 
-1. `lib/growth/dfyOffer.ts` → `DFY_PAYMENT_LINK_URL = 'https://buy.stripe.com/…'` (1 linha; o guardião confere o formato).
+1. `lib/growth/dfyOffer.ts` → `DFY_TIERS.express.url/linkId` e `DFY_TIERS.pro.url/linkId` (4 valores; o guardião `test-tres-jogadas-servidor` trava os valores exatos, não só o formato).
 2. Enfileira e avisa "hora de clicar". A partir do deploy, o cartão aparece no Studio para quem escrever pedido de anúncio de empresa (regex estrita) e o webhook grava `dfy_order_paid` com e-mail, os 3 campos e o `user_id` da conta (o link carrega `client_reference_id` e `prefilled_email`).
 3. Leitura: `select created_at, user_id, metadata->>'customer_email', metadata->'custom_fields' from events where name='dfy_order_paid' order by 1 desc` e `dfy_card_shown`/`dfy_card_clicked` por país e fonte.
 
@@ -103,3 +103,19 @@ Para cada link: a URL (https://buy.stripe.com/…), o plink_…, o prod_… e o 
 ```
 
 Quando as duas URLs chegarem, o Claude preenche `url` e `linkId` de `DFY_TIERS.express` e `DFY_TIERS.pro` em `lib/growth/dfyOffer.ts`, o cartão volta ao ar com os dois botões e os 4 rascunhos são reescritos com os valores certos.
+
+## Resultado v2 (Cowork, 24/09 01:30 BRT; relatório em docs/KINEO-EMPRESAS-STRIPE-2026-09-23.md, seção v2)
+
+| | Express | Pro |
+|---|---|---|
+| URL | https://buy.stripe.com/8x2eVddNbcHRfqH34ygjC0x | https://buy.stripe.com/28E14n38x0Z9guL6gKgjC0y |
+| plink | plink_1UJ4BgIah5dxzSBf8RGTiutr | plink_1UJ4FXIah5dxzSBf8hU9ggtE |
+| prod · price | prod_VJhVCgZceVl4ZA · price_1UJ463Iah5dxzSBf23DeBebq | prod_VJhWGOO930edEf · price_1UJ47nIah5dxzSBfIlgvnq3V |
+| Checkout conferido | US$ 35,00 · e-mail + 3 campos | US$ 75,00 · e-mail + 3 campos |
+| Metadata | kind=dfy · tier=express · product=kineo_empresas_v2 | kind=dfy · tier=pro · product=kineo_empresas_v2 |
+
+- Os dois: quantidade 1 fixa, sem código promocional, sem endereço, 3 campos de texto obrigatórios, mensagem de confirmação por degrau. Nada foi pago.
+- Link de US$100 (plink_1UJ23X…): **Desativado** na Stripe; a URL antiga mostra "The link is no longer active". Continua na lista LEGADA do webhook só por segurança.
+- Avisos do Cowork tratados no mesmo commit do Code: o webhook já reconhecia qualquer id em `dfyPaymentLinkIds()` (degraus + legado) ANTES de metadata e valor; os dois plinks entraram por `DFY_TIERS`, sem redigitar nada no webhook (guardião confere que os ids NÃO aparecem lá).
+- **O que o Code fez (24/09 ~04h BRT):** preencheu url/linkId dos dois degraus em `lib/growth/dfyOffer.ts`; a partir do deploy o cartão volta ao Studio com os dois botões para quem escrever pedido de anúncio de empresa; cada botão abre o link do degrau com `client_reference_id=<uid>` e `utm_source=studio_dfy_card`; o webhook grava `dfy_order_paid` com `tier`, e-mail, nome e os 3 campos.
+- **Leitura:** `select created_at, user_id, metadata->>'tier' tier, metadata->>'customer_email' email, metadata->'custom_fields' campos from events where name='dfy_order_paid' order by 1 desc` · impressões/cliques: `select name, metadata->>'tier' tier, count(distinct coalesce(user_id::text, session_id)) pessoas from events where name in ('dfy_card_shown','dfy_card_clicked') and created_at > '2026-09-24 07:00+00' group by 1,2`.

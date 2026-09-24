@@ -16,7 +16,9 @@
 // crédito).
 //
 // INTERRUPTOR: `DFY_TIERS.<degrau>.url` vazia = degrau desligado; sem degrau
-// ligado o cartão some. O código sobe antes de os links existirem.
+// ligado o cartão some. O código subiu pausado em 24/09 ~03h BRT e foi LIGADO
+// em 24/09 ~04h BRT com os dois links que o Cowork criou no painel da Stripe
+// (relatório: docs/KINEO-EMPRESAS-STRIPE-2026-09-23.md, seção v2).
 //
 // REGEX ESTRITA, DE PROPÓSITO. A regex larga da análise de 23/09 pegou 39
 // pessoas em 90 dias e 27 eram falso positivo ("billionaires fly commercial
@@ -32,9 +34,14 @@
 // Alemanha, Jordânia) pagam US$75-300 por isso no Fiverr. Dois mundos, dois
 // degraus. Cada degrau é um Payment Link próprio na Stripe (o Cowork cria no
 // painel; roteiro em docs/COWORK-STRIPE-LINK-EMPRESAS-2026-09-23.md).
-// INTERRUPTOR: degrau com `url` vazia está desligado; cartão some quando nenhum
-// degrau está ligado. O link antigo de US$100 fica só na lista LEGADA: se alguém
-// pagar por ele antes de o Cowork desativá-lo, o webhook ainda grava o pedido.
+// LIGADO EM 24/09 ~04h BRT (Cowork, painel da Stripe, conta live; nada foi pago):
+//   Express plink_1UJ4BgIah5dxzSBf8RGTiutr · prod_VJhVCgZceVl4ZA · price_1UJ463Iah5dxzSBf23DeBebq
+//   Pro     plink_1UJ4FXIah5dxzSBf8hU9ggtE · prod_VJhWGOO930edEf · price_1UJ47nIah5dxzSBfIlgvnq3V
+//   Os dois: quantidade 1 fixa, sem promo, sem endereço, e-mail + 3 campos de texto
+//   obrigatórios, confirmação personalizada, metadata kind=dfy · tier=<degrau> ·
+//   product=kineo_empresas_v2. O link de US$100 (plink_1UJ23X…) está DESATIVADO na
+//   Stripe ("The link is no longer active") e fica só na lista LEGADA do webhook.
+// Degrau com `url` vazia volta a ficar desligado; cartão some sem degrau ligado.
 export type DfyTier = 'express' | 'pro'
 export interface DfyTierSpec {
   tier: DfyTier
@@ -54,8 +61,8 @@ export const DFY_TIERS: Record<DfyTier, DfyTierSpec> = {
     tier: 'express',
     name: 'Express',
     priceMinor: 3500,
-    url: '',
-    linkId: '',
+    url: 'https://buy.stripe.com/8x2eVddNbcHRfqH34ygjC0x',
+    linkId: 'plink_1UJ4BgIah5dxzSBf8RGTiutr',
     hours: 48,
     revisions: 1,
     engines: 'Kineo 1 or Seedance',
@@ -65,8 +72,8 @@ export const DFY_TIERS: Record<DfyTier, DfyTierSpec> = {
     tier: 'pro',
     name: 'Pro',
     priceMinor: 7500,
-    url: '',
-    linkId: '',
+    url: 'https://buy.stripe.com/28E14n38x0Z9guL6gKgjC0y',
+    linkId: 'plink_1UJ4FXIah5dxzSBf8hU9ggtE',
     hours: 72,
     revisions: 2,
     engines: 'Seedance or Kling 3',

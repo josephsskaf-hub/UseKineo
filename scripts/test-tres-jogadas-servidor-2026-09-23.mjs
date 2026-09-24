@@ -4,7 +4,8 @@
 //  S1 pack de US$4,90: grava intent_campaign na sessão (antes: metadata só supabase_user_id/pack/
 //     pack_credits → toda medição de pack dava 0) e `?return=studio` volta ao Studio (antes: /checkout/
 //     success ficava em 'plan_pending' para sempre, lib/growth/checkoutSuccessEntitlement.ts:34-37).
-//  S2 webhook: payment_success ganha kind/payment_link; pedido KINEO EMPRESAS (US$100 por Payment Link)
+//  S2 webhook: payment_success ganha kind/payment_link; pedido KINEO EMPRESAS (Express US$35 / Pro US$75 por Payment Link;
+//     o link legado de US$100 de 23/09 está desativado na Stripe e só é reconhecido)
 //     vira 'dfy_order_paid' ANTES da checagem de userId, sem crédito/plano/has_paid, sem guard, sem throw.
 //  S3 padrão de billing da /pricing = mensal (anual concede 1×/ano, FAQ promete reset mensal; 0 vendas anuais).
 //  S4 fatos que a IA lê: vigência 17/09, Kling 3 calculado, "per week" derivado da janela, llms.txt sem
@@ -37,7 +38,19 @@ try {
   dfy = roda(rd('lib/growth/dfyOffer.ts'))
 }
 checa('DFY_TIERS: Express 3500 e Pro 7500 (fundador 24/09), legado 10000 fora dos SKUs, ACCEPTED = os três', dfy.DFY_TIERS.express.priceMinor === 3500 && dfy.DFY_TIERS.pro.priceMinor === 7500 && dfy.DFY_LEGACY_PRICE_USD_MINOR === 10000 && JSON.stringify([...dfy.DFY_ACCEPTED_AMOUNTS_USD_MINOR]) === '[3500,7500,10000]')
-checa("isDfyLinkUrl('') === false e isDfyOfferLive() === false enquanto nenhum degrau tem URL (cartão pausado)", dfy.isDfyLinkUrl('') === false && (dfy.isDfyOfferLive() === false) === (dfy.liveDfyTiers().length === 0))
+checa("isDfyLinkUrl('') === false; isDfyOfferLive() espelha liveDfyTiers() (vazio = cartão pausado)", dfy.isDfyLinkUrl('') === false && (dfy.isDfyOfferLive() === false) === (dfy.liveDfyTiers().length === 0))
+// ── LIGADO 24/09 ~04h BRT: os dois degraus com os links REAIS que o Cowork criou no painel da Stripe (conta live, nada pago;
+// relatório docs/KINEO-EMPRESAS-STRIPE-2026-09-23.md, seção v2). Se alguém esvaziar uma url/linkId, o cartão some do Studio em
+// SILÊNCIO (o componente devolve null): por isso os valores exatos ficam travados aqui, e não só o formato.
+const EXPRESS_URL = 'https://buy.stripe.com/8x2eVddNbcHRfqH34ygjC0x', EXPRESS_PLINK = 'plink_1UJ4BgIah5dxzSBf8RGTiutr'
+const PRO_URL = 'https://buy.stripe.com/28E14n38x0Z9guL6gKgjC0y', PRO_PLINK = 'plink_1UJ4FXIah5dxzSBf8hU9ggtE'
+checa('LIGADO: Express com a URL e o plink reais (Cowork 24/09)', dfy.DFY_TIERS.express.url === EXPRESS_URL && dfy.DFY_TIERS.express.linkId === EXPRESS_PLINK)
+checa('LIGADO: Pro com a URL e o plink reais (Cowork 24/09)', dfy.DFY_TIERS.pro.url === PRO_URL && dfy.DFY_TIERS.pro.linkId === PRO_PLINK)
+checa('LIGADO: isDfyOfferLive() true nos dois degraus; liveDfyTiers() = [express, pro] nesta ordem', dfy.isDfyOfferLive() === true && dfy.isDfyOfferLive('express') === true && dfy.isDfyOfferLive('pro') === true && dfy.liveDfyTiers().map((t) => t.tier).join(',') === 'express,pro')
+checa('LIGADO: dfyPaymentLinkIds() = [express, pro, legado] e dfyTierForLink resolve os dois plinks reais', JSON.stringify(dfy.dfyPaymentLinkIds()) === JSON.stringify([EXPRESS_PLINK, PRO_PLINK, 'plink_1UJ23XIah5dxzSBfyfKlmOGV']) && dfy.dfyTierForLink(EXPRESS_PLINK) === 'express' && dfy.dfyTierForLink(PRO_PLINK) === 'pro')
+checa('LIGADO: dfyCardCopy() sem argumento pinta os DOIS botões, Express primeiro, com preço e prazo', (() => { const c = dfy.dfyCardCopy(); return c.options.length === 2 && c.options[0].cta === 'Express — US$35, 48 h →' && c.options[1].cta === 'Pro — US$75, 72 h →' && c.options[1].detail.startsWith('Seedance or Kling 3.') })())
+checa('LIGADO: dfyPaymentLink sem url explícita lê o degrau e leva a identidade da conta', (() => { const u = dfy.dfyPaymentLink({ tier: 'pro', userId: '16aa454a-2ef3-4e6d-bc53-0bece84290d7' }); return typeof u === 'string' && u.startsWith(PRO_URL + '?') && u.includes('client_reference_id=16aa454a-2ef3-4e6d-bc53-0bece84290d7') && u.includes('utm_source=studio_dfy_card') })())
+checa('LIGADO: URL e plink reais NÃO aparecem no webhook nem no cartão (fonte única é o módulo puro)', !rd('app/api/stripe/webhook/route.ts').includes(EXPRESS_PLINK) && !rd('app/api/stripe/webhook/route.ts').includes(PRO_PLINK) && !rd('components/DfyOfferCard.tsx').includes(EXPRESS_URL) && !rd('components/DfyOfferCard.tsx').includes(PRO_URL))
 checa('isDfyLinkUrl aceita buy.stripe.com e recusa http/outro host', dfy.isDfyLinkUrl('https://buy.stripe.com/abc_123') === true && dfy.isDfyLinkUrl('http://buy.stripe.com/abc') === false && dfy.isDfyLinkUrl('https://evil.com/buy.stripe.com') === false)
 const POSITIVOS = [
   'Create a high-converting 30-second vertical video ad for Ascend AI, an AI automation agency. Target small business owners',
