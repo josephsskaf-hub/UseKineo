@@ -346,3 +346,9 @@ Slug do X confirmado: utm_source=x.
 **MEDIR (a partir do deploy):** render_job_finished por status (200 contra 409) nos pedidos órfãos do Kineo 1; engine_fit_box_shown com origem auto-start deve ir a zero; pessoas com generate_started e sem vídeo completo em 7 d (base: 13).
 
 **DECISÕES DO FUNDADOR (24/09 ~13h40, literal "1 troca 2 mantem"):** (1) no aviso de encaixe do Kineo 1, com saldo menor que o motor sugerido, o botão principal passa a ser "Make it with Kineo 1 now" e o Seedance vira secundário (executado; engine_fit_box_shown.keep_first mede); (2) o atalho do ChatGPT continua abrindo no Seedance — é a parede de conversão; medir, não mexer.
+
+## 2026-09-24 — Studio Ads: o servidor só liga depois da revisão adversarial (fundador delegou: "avança as coisas da forma que você sempre recomenda")
+
+**DECIDIDO (Claude):** nenhum passe é vendido e nenhuma rota /api/ads/* atende estranho antes de consertar os 10 achados confirmados pela revisão adversarial (docs/STUDIO-ADS-DIA-1-2026-09-25.md §12). Os dois que mudam regra de negócio seguem a decisão 3 do fundador ao pé da letra: "assinante pago entra sem passe" = plano mensal/anual ativo (não has_paid, que também marca comprador de pacote e ex-assinante); trial e free não entram. Conta interna = lista exata + apelidos do fundador (os padrões LIKE servem para excluir de métrica, não para autorizar).
+**EXECUTADO:** 0bd85f1b (guarda da coluna na migration, predicado estrito, interruptor nas rotas, sonda da coluna no checkout, mídia conferida no banco, consentimento amarrado à mídia). Guardiões de moeda reancorados de 5 para 6 builders avulsos (o passe é o 6º).
+**PENDENTE:** aplicar a migration em produção (aditiva) e conferir coluna, tabela e as duas guardas; o interruptor só vira com o canário aprovado pelo fundador.
