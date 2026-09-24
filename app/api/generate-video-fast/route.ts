@@ -26,14 +26,14 @@ import { FIRST_FILM_AI_CLIPS_ENABLED, FIRST_FILM_AI_CLIPS_EVENT, FIRST_FILM_BUDG
 import { pickLibraryClips, type LibraryClip } from '@/lib/stockLibrary'
 // Push #351 — ensureAccessibleUrl removed (was only used for Pexels CDN proxying; Pexels now OFF).
 // import { ensureAccessibleUrl } from '@/lib/videoCache'
-import { parseUserScript } from '@/lib/scriptParser'
+import { parseUserScript, screenplaySpeechOnly } from '@/lib/scriptParser' // KINEO-PORTA-FORMATO-2026-09-24: fala rotulada dentro de um plano
 import { narrationTooShortMessage } from '@/lib/narrationFit'
 import { largestFittingDuration } from '@/lib/expandPolicy'
 import { decideDurationFollowsScript, decideDurationFollowsScriptUp, DURATION_FOLLOWED_SCRIPT_EVENT } from '@/lib/durationFollowsScript'
 import { splitProseIntoBlocks, fallbackStockQuery } from '@/lib/proseBlocks' // KINEO1-VERBATIM-ESTICA-2026-09-22
 import { speechRateFor, narrationFitAt } from '@/lib/speechRate'
 import { writeServerEvent } from '@/lib/serverEvents'
-import { SCENE_WRITER_INPUT_MAX_CHARS } from '@/lib/analyzeLimits' // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23
+import { SCENE_WRITER_INPUT_MAX_CHARS, analyzePromptMaxChars } from '@/lib/analyzeLimits' // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23 · KINEO-PORTA-FORMATO-2026-09-24
 import { classifyEngineFit } from '@/lib/engineFit'
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
@@ -439,10 +439,23 @@ export async function POST(req: NextRequest) {
       void writeServerEvent({ name: 'series_continuation_enriched', userId: user.id, path: '/api/generate-video-fast', metadata: { found: !!anterior, matched_by: anterior?.matchedBy ?? null, previous_video_id: anterior?.id ?? null, added_chars: enriched.length - prompt.length } })
       prompt = enriched
     }
-    if (prompt.length > 5000) {
-      // Only the length is recorded — never the prompt text itself.
-      recordFastFailure('generating', 'prompt_too_long', 400, user.id, { prompt_length: prompt.length })
-      return NextResponse.json({ error: 'Prompt is too long (5000 chars max).' }, { status: 400 })
+    // ═══ KINEO-PORTA-FORMATO-2026-09-24 — o teto de entrada é o MESMO que a tela mostra ═══
+    // Até 24/09 esta rota recusava qualquer texto acima de 5.000 caracteres, enquanto o Studio (lib/analyzeLimits,
+    // fonte única) aceita 20.000 no modo em que a IA reescreve e 5.000 só no verbatim ("o texto é o filme"). Medido
+    // em 30 d: 22 recusas "Prompt is too long (5000 chars max)" de 4 pessoas, com texto colado do ChatGPT — a coorte
+    // que paga 3× mais. Fundador 24/09: "vai" (trava 8.2 liberada nominalmente para esta porta). O que NÃO muda: no
+    // verbatim continuam 5.000 e o portão de fala (abaixo) segue recusando o que não cabe em 90 s. O escritor de cenas
+    // lê até SCENE_WRITER_INPUT_MAX_CHARS; acima disso o texto entra cortado — agora medido, não escondido.
+    {
+      const promptMaxChars = analyzePromptMaxChars(body.script_mode)
+      if (prompt.length > promptMaxChars) {
+        // Only the length is recorded — never the prompt text itself.
+        recordFastFailure('generating', 'prompt_too_long', 400, user.id, { prompt_length: prompt.length, max_chars: promptMaxChars, script_mode: body.script_mode ?? null })
+        return NextResponse.json({ error: `Prompt is too long (${promptMaxChars} chars max).`, reason: 'prompt_too_long', max_chars: promptMaxChars }, { status: 400 })
+      }
+      if (prompt.length > SCENE_WRITER_INPUT_MAX_CHARS) {
+        void writeServerEvent({ name: 'prompt_over_writer_cap', userId: user.id, path: '/api/generate-video-fast', metadata: { prompt_length: prompt.length, writer_cap: SCENE_WRITER_INPUT_MAX_CHARS, script_mode: body.script_mode ?? null, version: 'porta_formato_v1' } })
+      }
     }
 
     // KINEO-DISPATCH-ENTRY-2026-09-05 — a PRIMEIRA prova de SERVIDOR de que o
@@ -480,7 +493,15 @@ export async function POST(req: NextRequest) {
     // qualquer débito, com a saída certa na mensagem.
     {
       const shot = detectShotSpec(prompt)
-      if (shot.isShotSpec) {
+      // KINEO-PORTA-FORMATO-2026-09-24 — roteiro em cenas com FALA rotulada (Voiceover:/Narrator:/VO:) não é plano de
+      // clipe: é o formato que o ChatGPT devolve quando a pessoa pede "um roteiro para Short". Medido em 30 d: 14
+      // recusas "This looks like a shot plan (camera…)" de 3 pessoas, com linhas de narração no texto. Quando há fala
+      // rotulada a rota segue, e o parser (screenplaySpeechOnly, lib/scriptParser) fica só com o que se fala.
+      const speechInsideShotPlan = shot.isShotSpec ? screenplaySpeechOnly(prompt) : null
+      if (shot.isShotSpec && speechInsideShotPlan) {
+        void writeServerEvent({ name: 'shot_spec_with_speech_admitted', userId: user.id, path: '/api/generate-video-fast', metadata: { reason: shot.reason, keys: shot.keys.slice(0, 6), speech_chars: speechInsideShotPlan.length, prompt_length: prompt.length, version: 'porta_formato_v1' } })
+      }
+      if (shot.isShotSpec && !speechInsideShotPlan) {
         await writeServerEvent({ name: 'shot_spec_detected', userId: user.id, path: '/api/generate-video-fast', metadata: { reason: shot.reason, keys: shot.keys, seconds: shot.seconds, prompt_length: prompt.length } })
         return NextResponse.json({
           error: `This looks like a shot plan (${shot.keys.slice(0, 4).join(', ')}), not a story to narrate. Kineo would read it out loud over the footage. Use "Just this clip (no narration)" in Studio to render exactly this shot (${shot.seconds} s), or write the story you want narrated.`,
