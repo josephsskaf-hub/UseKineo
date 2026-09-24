@@ -61,7 +61,8 @@ check('(0) o componente lê o parâmetro pela constante, não por string solta',
 // ─── (1) TODO slug da rota tem frase no mapa da página ──────────────────────
 const listMatch = make.match(/const HANDOFF_ERROR_SLUGS = \[([\s\S]*?)\] as const/)
 check('(1) a rota tem a lista fechada HANDOFF_ERROR_SLUGS', Boolean(listMatch))
-const listed = listMatch ? [...listMatch[1].matchAll(/'([a-z_]+)'/g)].map((m) => m[1]) : []
+// GPT-LOJA: script_too_long_for_kineo1 is a closed slug with a digit.
+const listed = listMatch ? [...listMatch[1].matchAll(/'([a-z_][a-z_0-9]*)'/g)].map((m) => m[1]) : []
 const fnMatch = make.match(/function errorSlug\(message: string\): HandoffErrorSlug \{([\s\S]*?)\n\}/)
 check('(1) a rota tem errorSlug()', Boolean(fnMatch))
 const returned = fnMatch ? [...fnMatch[1].matchAll(/return '([a-z_]+)'/g)].map((m) => m[1]) : []
@@ -72,7 +73,7 @@ check('(1) a extração dos slugs da rota não veio vazia (a lista tem >= 11)', 
 const mapMatch = page.match(/const HANDOFF_ERROR_MESSAGES: Readonly<Record<string, string>> = \{\n([\s\S]*?)\n\}/)
 check('(1) a página tem o mapa HANDOFF_ERROR_MESSAGES', Boolean(mapMatch))
 const mapBlock = mapMatch ? mapMatch[1] : ''
-const pageKeys = [...mapBlock.matchAll(/^ {2}([a-z_]+): `/gm)].map((m) => m[1])
+const pageKeys = [...mapBlock.matchAll(/^ {2}([a-z_][a-z_0-9]*): `/gm)].map((m) => m[1])
 check('(1) a extração das chaves do mapa não veio vazia', pageKeys.length >= 11)
 for (const slug of routeSlugs) {
   check(`(1) slug '${slug}' da rota tem frase no mapa da página`, pageKeys.includes(slug))
@@ -108,7 +109,10 @@ check('(2) `if (!slug) return null` — sem slug reconhecido, nada na tela', /if
 const FORBIDDEN_NUMBERS = /\b(5000|200|35|60|90)\b/
 const FORBIDDEN_ENGINES = /\b(Kineo 1|Seedance|Kling|Veo|MiniMax|Omni|seedance|kling|veo|hollywood|h3|omni)\b|'fast'/
 check('(3) bloco do mapa sem literal 5000/200/35/60/90', !FORBIDDEN_NUMBERS.test(mapBlock))
-check('(3) bloco do mapa sem nome de motor digitado', !FORBIDDEN_ENGINES.test(mapBlock))
+// Check visible literals; ENGINE_LABELS.seedance is a source reference, not literal copy.
+check('(3) bloco do mapa sem nome de motor digitado', !FORBIDDEN_ENGINES.test(mapBlock.replace(/\$\{[^}]+\}/g, '')))
+check('(3) avisos de motor usam ENGINE_LABELS da fonte', /import \{[^}]*ENGINE_LABELS[^}]*\} from '@\/lib\/gptHandoff'/.test(page) && ['fast', 'hollywood', 'h3', 'seedance'].every(e => mapBlock.includes('${ENGINE_LABELS.' + e + '}')))
+check('(3) teto de duração vem da política real', /import \{ DURATION_FOLLOWS_SCRIPT_CEILING_SECONDS \} from '@\/lib\/durationFollowsScript'/.test(page) && mapBlock.includes('${DURATION_FOLLOWS_SCRIPT_CEILING_SECONDS}'))
 check('(3) componente sem literal 5000/200/35/60/90', !FORBIDDEN_NUMBERS.test(notice))
 check('(3) componente sem nome de motor digitado', !FORBIDDEN_ENGINES.test(notice))
 const interpolations = [

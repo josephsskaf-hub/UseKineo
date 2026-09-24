@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
 import { cookies } from 'next/headers'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { handoffEngineRefusal } from '@/lib/gptHandoffEngineGuard'
 import {
   ASSISTANT_LINK_PATH,
   GO_PATH_PREFIX,
@@ -75,6 +76,8 @@ const HANDOFF_ERROR_SLUGS = [
   'script_missing',
   'script_too_long',
   'script_too_short',
+  'script_too_long_for_kineo1',
+  'engine_language',
   'script_html',
   'bad_duration',
   'bad_aspect',
@@ -145,6 +148,13 @@ export async function GET(req: NextRequest) {
       // Sem linha, sem link: o Studio recusaria este roteiro para esta
       // duração. Humano no navegador → o mesmo 302 dos outros erros.
       return landing(origin, 'script_too_short')
+    }
+    // GPT-LOJA-20260924: same engine refusal as the Action, before lookup/write.
+    // Only a closed slug leaves this route; never echo the script or raw error.
+    const engineRefusal = handoffEngineRefusal(input)
+    if (engineRefusal) {
+      await writeServerEvent({ name: 'gpt_handoff_refused', path: '/make', metadata: { channel: CHANNEL, ...engineRefusal, engine_hint: input.engineHint, duration_sec: input.durationSec } })
+      return landing(origin, engineRefusal.reason === 'too_long_for_kineo1' ? 'script_too_long_for_kineo1' : 'engine_language')
     }
     const payloadHash = handoffPayloadHash(input, CHANNEL)
 

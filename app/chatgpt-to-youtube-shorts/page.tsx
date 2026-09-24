@@ -33,7 +33,8 @@ import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorFo
 import { CREATION_HANDOFF_PROMPT_MAX_CHARS } from '@/lib/creationHandoff'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { ASPECTS } from '@/lib/aspect'
-import { DEFAULT_LANGUAGE, DURATIONS, HANDOFF_ENGINES, SCRIPT_MAX_CHARS, TOPIC_MAX_CHARS } from '@/lib/gptHandoff'
+import { DEFAULT_LANGUAGE, DURATIONS, ENGINE_LABELS, HANDOFF_ENGINES, SCRIPT_MAX_CHARS, TOPIC_MAX_CHARS } from '@/lib/gptHandoff'
+import { DURATION_FOLLOWS_SCRIPT_CEILING_SECONDS } from '@/lib/durationFollowsScript'
 import HandoffErrorNotice from './HandoffErrorNotice'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -58,6 +59,8 @@ const HANDOFF_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   script_missing: `The link you clicked had no script in it — ask your assistant to put the narration text in the link, or paste it below.`,
   script_too_long: `The script in that link is longer than the ${SCRIPT_MAX_CHARS.toLocaleString('en-US')}-character limit — ask your assistant to trim it, or paste a shorter version below.`,
   script_too_short: `The script in that link is too short for the video length it asks for — Kineo would refuse it in the Studio. Ask your assistant for more words or a shorter duration, or paste a longer script below.`,
+  script_too_long_for_kineo1: `The script in that link is too long for ${ENGINE_LABELS.fast} at its narration speed. Ask your assistant to shorten the spoken text for a video of up to ${DURATION_FOLLOWS_SCRIPT_CEILING_SECONDS} seconds, then create a new link or paste the shorter script below.`,
+  engine_language: `${ENGINE_LABELS.hollywood} and ${ENGINE_LABELS.h3} support narration in English, Spanish and Portuguese. Ask your assistant for a new link with a supported narration language, or paste the script below and choose ${ENGINE_LABELS.seedance} for its language. Engine availability and credit requirements still apply.`,
   script_html: `The script in that link contains HTML tags — ask your assistant for plain text with no markup, or paste the words below.`,
   bad_duration: `The duration in that link is not one Kineo accepts (${DURATIONS.join(', ')} seconds) — fix the number, or paste the script below.`,
   bad_aspect: `The aspect ratio in that link is not one Kineo accepts (${ASPECTS.join(', ')}) — fix it, or paste the script below.`,
