@@ -40,7 +40,7 @@ function FeaturedMedia({ video, paused }: { video: WallVideo; paused: boolean })
   </span>
 }
 
-function ExamplePreview({ video, onClose }: { video: WallVideo; onClose: () => void }) {
+function ExamplePreview({ video, onClose, actionLabel }: { video: WallVideo; onClose: () => void; actionLabel?: string }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const title = useId()
   const [failed, setFailed] = useState(false)
@@ -66,21 +66,23 @@ function ExamplePreview({ video, onClose }: { video: WallVideo; onClose: () => v
         <h2 id={title}>{video.title}</h2>
         <p>A short preview from a film made with Kineo.</p>
         {video.href && <Link className={styles.action} href={video.href}>
-          {video.engine === 'static_example' ? 'Explore this example' : `Create with ${video.badge}`} <span aria-hidden="true">→</span>
+          {actionLabel ?? (video.engine === 'static_example' ? 'Explore this example' : `Create with ${video.badge}`)} <span aria-hidden="true">→</span>
         </Link>}
       </div>
     </div>
   </dialog>
 }
 
-export default function ExamplesGallery({ videos, startPaused = false, separateFeatured = false }: { videos: WallVideo[]; startPaused?: boolean; separateFeatured?: boolean }) {
+export default function ExamplesGallery({ videos, startPaused = false, separateFeatured = false, heroOnly = false, featuredCount = 3, previewActionLabel }: {
+  videos: WallVideo[]; startPaused?: boolean; separateFeatured?: boolean; heroOnly?: boolean; featuredCount?: 3 | 4; previewActionLabel?: string
+}) {
   const [query, setQuery] = useState('')
   const [engine, setEngine] = useState('all')
   const [selected, setSelected] = useState<WallVideo | null>(null)
   const [paused, setPaused] = useState(startPaused)
   const opener = useRef<HTMLButtonElement | null>(null)
   const searchId = useId()
-  const collection = separateFeatured && videos.length >= 3 ? videos.slice(3) : videos
+  const collection = separateFeatured && videos.length >= featuredCount ? videos.slice(featuredCount) : videos
   const filtered = searchExamples(collection, query, engine)
   const choices = showcaseEngines(collection)
   const open = (video: WallVideo, button: HTMLButtonElement) => { opener.current = button; setSelected(video) }
@@ -90,10 +92,10 @@ export default function ExamplesGallery({ videos, startPaused = false, separateF
       <div className={styles.sectionTop}><span className={styles.eyebrow}>The Kineo selection</span>
         <button type="button" className={styles.quietButton} onClick={() => setPaused(!paused)} aria-pressed={paused}>{paused ? 'Play preview' : 'Pause preview'}</button>
       </div>
-      <div className={styles.featured}>
-        {videos.slice(0, 3).map((video, index) => <button type="button" className={index === 0 ? styles.lead : styles.featureCard}
+      <div className={`${styles.featured}${featuredCount === 4 ? ` ${styles.featuredFour}` : ''}`}>
+        {videos.slice(0, featuredCount).map((video, index) => <button type="button" className={index === 0 ? styles.lead : styles.featureCard}
           key={video.id} onClick={event => open(video, event.currentTarget)} aria-label={`Watch preview: ${video.title}`}>
-          {index < 2 ? <FeaturedMedia video={video} paused={paused || selected !== null} />
+          {heroOnly || index < 2 ? <FeaturedMedia video={video} paused={paused || selected !== null} />
             : <img src={video.posterUrl} alt="" loading="eager" className={styles.featurePoster} />}
           <span className={styles.featureShade} />
           <span className={styles.featureCopy}><span className={styles.featureBadge}>{video.badge}</span><strong>{video.title}</strong>
@@ -102,7 +104,7 @@ export default function ExamplesGallery({ videos, startPaused = false, separateF
         </button>)}
       </div>
     </section>}
-    <section className={styles.collection} aria-labelledby="examples-collection-heading">
+    {!heroOnly && <section className={styles.collection} aria-labelledby="examples-collection-heading">
       <div className={styles.collectionTop}>
         <div><span className={styles.eyebrow}>Made with Kineo</span><h2 id="examples-collection-heading">Explore the collection</h2></div>
         <div className={styles.search}><label className={styles.srOnly} htmlFor={searchId}>Search examples</label>
@@ -125,7 +127,7 @@ export default function ExamplesGallery({ videos, startPaused = false, separateF
       </div> : <div className={styles.empty}><h3>No matching examples</h3><p>Try a different title or engine.</p>
         <button type="button" className={styles.action} onClick={() => { setQuery(''); setEngine('all') }}>Show all examples</button>
       </div>}
-    </section>
-    {selected && <ExamplePreview key={selected.id} video={selected} onClose={() => setSelected(null)} />}
+    </section>}
+    {selected && <ExamplePreview key={selected.id} video={selected} actionLabel={previewActionLabel} onClose={() => setSelected(null)} />}
   </div>
 }

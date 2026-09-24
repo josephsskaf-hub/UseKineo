@@ -21,8 +21,7 @@ import type { WallVideo } from '@/lib/engineWall'
 import { creditCostFor } from '@/lib/credits/engineCost'
 import WallMedia from '@/components/WallMedia'
 import LiveStatsBadge from '@/components/LiveStatsBadge'
-import EngineCycleCard from '@/components/EngineCycleCard'
-import { orderHeroVideos } from '@/lib/ui/heroOpening'
+import HomeFeaturedFilms from '@/components/HomeFeaturedFilms'
 import TrendingRow from '@/components/TrendingRow'
 // KINEO-VITRINE-MOEDA-2026-08-19 — LandingStarterPrice cobria SÓ o Starter, e
 // por isso a home mostrava R$24,90 (regional) ao lado de $19.90 e $39.90
@@ -1025,40 +1024,10 @@ export default function KineoLanding({
               <UiLabel>{isSignedIn ? 'Create a video' : CARD_ENTRY_COPY.ctaShort}</UiLabel><span aria-hidden="true">↗</span>
             </Link>
           </div>
-          {/* Fileira Higgsfield: cards largos, video NITIDO (sem veu), nome do
-              motor em caps abaixo da midia. 3 videos curados por motor passando. */}
-          <div
-            id="samples"
-            className="ftr-row hero-ftr"
-            aria-label={engineWall.some((v) => v.engine === 'static_example') ? 'Kineo-owned video examples' : 'Kineo engines — real renders'}
-          >
-            {(() => {
-              const staticExamples = engineWall.filter((v) => v.engine === 'static_example')
-              if (staticExamples.length > 0) {
-                return staticExamples.slice(0, 4).map((video, index) => (
-                  <EngineCycleCard key={video.id} videos={[video]} index={index} />
-                ))
-              }
-              // KINEO-VITRINE-25/08 (fundador): Seedance 1.5 e Kling 2.5 SAEM
-              // da primeira tela; entram MiniMax H3 e Omni Flash (#1 do ranking
-              // de agosto) com os melhores renders da library — inclusive a
-              // batalha de robôs e o Mariana Trench gerados HOJE no Omni.
-              // Seedance/Kling 2.5 continuam nos tiles do bento logo abaixo.
-              // KINEO-VITRINE-APROVADOS-2026-09-16 (fundador): a primeira tela volta aos
-              // quatro motores VALIDADOS esta noite — Seedance 1.5 (nota 9,5), Kling 2.5,
-              // Veo 3.1 (nota 9) e Kling 3 — cada card abrindo com o filme aprovado.
-              // MiniMax H3 e Omni Flash saem daqui enquanto estão em manutenção
-              // (interruptor lib/engineLaunch.ts): card de motor pausado na primeira
-              // tela era convite para um Studio que recusa o pedido.
-              const order = ['cinematic_ai', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood']
-              return order.map((eng, i) => {
-                const vids = orderHeroVideos(engineWall.filter((v) => v.engine === eng)).slice(0, 4)
-                if (vids.length === 0) return null
-                return <EngineCycleCard key={eng} videos={vids} index={i} />
-              })
-            })()}
+          <div id="samples" aria-label="Films made with Kineo">
+            <HomeFeaturedFilms />
           </div>
-                  </div>
+        </div>
       </header>
 
       {/* The post-signup route intentionally lands on this engine showroom.

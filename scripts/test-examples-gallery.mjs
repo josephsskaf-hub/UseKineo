@@ -21,6 +21,7 @@ function loader(overrides = {}) {
     const exports = {}; cache.set(file, exports)
     const require = id => {
       if (id === 'react' || id === 'react/jsx-runtime') return requireNode(id)
+      if (id === '@/components/InterfaceLanguage') return { UiLabel: ({children}) => children }
       if (id === 'next/navigation') return { notFound: () => { throw Error('NOT_FOUND') } }
       if (id === 'next/link' || id === '@/components/OrganicCtaLink') return { __esModule: true, default: ({children, source, placement, ...props}) => React.createElement('a', props, children) }
       if (id === '@/lib/supabase/server') return { createClient: () => ({ auth: { getUser: async () => ({ data: { user: loggedIn ? {id:'offline-user'} : null } }) } }) }
@@ -83,6 +84,18 @@ ok(renderToStaticMarkup(await Page()).includes('/signup?'), 'visitor entry prese
 loggedIn = true
 const Design = load('app/examples/design/page.tsx').default
 const chosen = load('lib/ui/examplesSelectionSep24.ts').EXAMPLES_SELECTION_SEP24
+const homeFilms = load('lib/ui/homeFeaturedFilms.ts').HOME_FEATURED_FILMS
+const homeScreen = renderToStaticMarkup(React.createElement(load('components/HomeFeaturedFilms.tsx').default))
+ok(homeFilms.map(v=>v.id).join(',') === '36a04f7b-65f7-42d9-a2ab-198b5a7f115e,1b8e12f9-83e5-411c-8fda-0b277d289934,19e317fe-6838-4edc-9fbf-d830d62be140,6b9b363c-3185-4db7-a877-46b77e334f06', 'approved four home films in order')
+ok(homeFilms.every(v=>v.href === '/studio'), 'film showcase does not route to a paused generator')
+ok((homeScreen.match(/aria-label="Watch preview:/g) ?? []).length === 4, 'four home previews rendered')
+ok(!homeScreen.includes('Explore the collection') && !homeScreen.includes('Search examples'), 'home contains only the hero')
+ok(!homeScreen.includes('<video'), 'home waits for device/visibility policy before downloading')
+for (const video of chosen) {
+  const info = JSON.parse(execFileSync('ffprobe', ['-v','error','-select_streams','v:0','-show_entries','stream=width,height','-of','json',path.join('public',video.videoUrl)], {encoding:'utf8'}))
+  ok(info.streams[0].width === 1080 && info.streams[0].height === 1920, 'selected film is native 1080p: '+video.id)
+  ok(video.previewUrl === video.videoUrl, 'inline and expanded previews share full-quality asset')
+}
 ok(chosen.length === 9 && new Set(chosen.map(v=>v.id)).size === 9, 'nine distinct screenshot selections')
 ok(chosen.filter(v=>v.engine === 'cinematic_h3').length === 2, 'both selected H3 versions retained')
 ok(chosen.every((v,i)=>videos[i].id === v.id && videos[i].videoUrl === v.videoUrl), 'selected clips lead without hero media overrides')
@@ -132,5 +145,18 @@ if (process.argv.includes('--preview')) {
   const escape = s=>s.replaceAll('&','&amp;').replaceAll('"','&quot;')
   const panels = [['Antes · desktop','before.html',1440],['Depois · desktop','after.html',1440],['Antes · celular','before.html',390],['Depois · celular','after.html',390]].map(([label,file,width])=>`<section><h2>${label}</h2><iframe title="${label}" style="width:${width}px;height:950px" srcdoc="${escape(read(path.join(destination,file)))}"></iframe></section>`).join('')
   fs.writeFileSync(path.join(destination,'ANTES-DEPOIS.html'),`<!doctype html><html lang="pt-BR"><meta charset="utf-8"><title>Examples — antes e depois</title><style>body{margin:24px;background:#10151d;color:#eee;font:16px Arial}iframe{border:1px solid #334155;border-radius:12px}section{margin:30px 0}</style><h1>Examples — antes e depois</h1><p>JSX real, CSS inline e capas locais. Prévia estática: filtros e player são verificados no site publicado. Ponte comercial inalterada omitida.</p>${panels}</html>`)
+
+  const oldLanding = execFileSync('git',['show','ed065b91:app/KineoLanding.tsx'],{encoding:'utf8'})
+  const landingCss = oldLanding.match(/const KLP_CSS = `([\s\S]*?)`/)[1] + load('lib/ui/homePresentation.ts').HOME_PRESENTATION_CSS
+  const wall = await load('lib/engineWall.ts').getEngineHero()
+  const orderVideos = load('lib/ui/heroOpening.ts').orderHeroVideos
+  const CycleCard = load('components/EngineCycleCard.tsx').default
+  const oldCards = ['cinematic_ai','cinematic_kling','cinematic_veo','cinematic_hollywood'].map((engine,index) => renderToStaticMarkup(React.createElement(CycleCard,{index,videos:orderVideos(wall.filter(v=>v.engine===engine)).slice(0,4)}))).join('')
+  const intro = '<div class="home-intro"><div class="home-intro-copy"><p class="home-eyebrow">Kineo</p><h1 class="home-title">Type an idea — watch it become a film.</h1></div><a class="btn btn-blue" href="#">Create a video ↗</a></div>'
+  const homeDocument = media => document(`<main class="klp"><header class="hero"><div class="glow"></div><div class="wrap">${intro}${media}</div></header></main>`,landingCss+'\n'+read('app/examples/ExamplesGallery.module.css'))
+  fs.writeFileSync(path.join(destination,'home-before.html'),homeDocument(`<div class="ftr-row hero-ftr">${oldCards}</div>`))
+  fs.writeFileSync(path.join(destination,'home-after.html'),homeDocument(homeScreen))
+  const homePanels = [['Antes · desktop','home-before.html',1440],['Depois · desktop','home-after.html',1440],['Antes · celular','home-before.html',390],['Depois · celular','home-after.html',390]].map(([label,file,width])=>`<section><h2>${label}</h2><iframe title="${label}" style="width:${width}px;height:1100px" srcdoc="${escape(read(path.join(destination,file)))}"></iframe></section>`).join('')
+  fs.writeFileSync(path.join(destination,'HOME-ANTES-DEPOIS.html'),`<!doctype html><html lang="pt-BR"><meta charset="utf-8"><title>Home — antes e depois</title><style>body{margin:24px;background:#10151d;color:#eee;font:16px Arial}iframe{border:1px solid #334155;border-radius:12px}section{margin:30px 0}</style><h1>Home — apenas o hero</h1><p>Componentes reais com capas estáticas; desktop e celular. Navegação e seções abaixo não foram alteradas.</p>${homePanels}</html>`)
 }
 console.log(`Examples gallery: ${checks} checks passed; ${base.length} → ${videos.length} examples; no database/provider calls.`)

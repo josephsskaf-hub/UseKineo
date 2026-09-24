@@ -89,3 +89,16 @@
   .dialogInner { grid-template-columns:1fr } .player video { max-height:56dvh } .previewInfo { padding:22px } .previewInfo h2 { font-size:21px }
 }
 @media(prefers-reduced-motion:reduce) { .poster img { transition:none } .card:hover .poster img { transform:none } }
+
+/* Home reuses the approved film player with one lead and three side films. */
+.featuredFour { grid-template-columns:1.8fr 1fr; grid-template-rows:repeat(3,minmax(0,1fr)); height:clamp(420px,32vw,540px) }
+.featuredFour .lead { grid-row:span 3 }
+.featuredFour .featureCard .featureCopy { inset:auto 20px 15px }
+.featuredFour .featureCard strong { font-size:clamp(17px,1.4vw,22px) }
+@media(max-width:700px) {
+  .featuredFour { height:auto; grid-template-columns:1fr; grid-template-rows:auto; gap:12px }
+  .featuredFour .lead { grid-column:auto; grid-row:auto; aspect-ratio:1.35 }
+  .featuredFour .featureCard { aspect-ratio:2.35 }
+  .featuredFour .featureCard .featureCopy { inset:auto 16px 14px }
+  .featuredFour .featureCard strong { font-size:19px }
+}

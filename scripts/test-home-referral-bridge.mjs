@@ -111,7 +111,7 @@ for (const originalDestination of [
   check(landing.includes(originalDestination), `direct homepage keeps ${originalDestination}`)
 }
 
-check(landing.includes("const order = ['cinematic_ai', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood']"), 'approved top video order is unchanged (founder 16/09: the four validated engines)')
+check(landing.includes('<HomeFeaturedFilms />'), 'founder-approved September 24 film showcase opens the home')
 check(landing.includes("tileVidLast('cinematic_ai')"), 'Seedance middle-row video remains connected')
 check(landing.includes("tileVidLast('cinematic_kling')"), 'Kling 2.5 middle-row video remains connected')
 check(landing.includes("tileVidLast('cinematic_hollywood')"), 'distinct Kling 3 middle-row video remains connected')

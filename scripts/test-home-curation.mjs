@@ -75,6 +75,6 @@ for(const e of home.APPROVED_HOME_VIDEOS_SEP16){
 for(const list of [hero,trending])ok(new Set(list.map(v=>v.id)).size===list.length,'no duplicates')
 ok(load('lib/publicSurfacePolicy.ts').CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED===false,'customer gallery remains closed')
 const jsx=fs.readFileSync('app/KineoLanding.tsx','utf8')
-ok(jsx.includes(".slice(0, 4)") && !jsx.includes("cinematic_omni' ? 5"),'caller shows four per card, Omni included (founder 08/09)')
+ok(jsx.includes('<HomeFeaturedFilms />'),'home uses September 24 film showcase; catalogue curation stays available below')
 if(process.argv.includes('--data'))console.log(JSON.stringify({hero,trending,old:old.PUBLIC_ENGINE_EXAMPLES}))
 else console.log('Home curation: '+checks+' checks passed; no database or provider calls.')
