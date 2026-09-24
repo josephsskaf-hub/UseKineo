@@ -46,6 +46,7 @@ import { creditCostForDuration } from '@/lib/credits/engineCost'
 // que garante que servidor e cliente gravem exatamente o mesmo bilhete para a
 // fase 4 ler. O cron já importa deste mesmo módulo.
 import { RECOVERABLE_EVENT, sanitizeFastComposePayload } from '@/app/api/render-recovery/route'
+import { FAST_DEDUPE_EVENT, FAST_DEDUPE_VERSION, fastRequestFingerprint, findRecentTwin, responseFromTwin, waitForTwinResult } from '@/lib/fastDispatchDedupe' // PEDIDO-REPETIDO-2026-09-24
 import {
   looksOpenAiQuotaDead,
   looksOpenAiHanging,
@@ -458,6 +459,27 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ═══ PEDIDO-REPETIDO-2026-09-24 — autorização nominal do fundador ("vai no pedido repetido", trava 8.2) ═══
+    // Pedido IGUAL (lib/fastDispatchDedupe) chegando enquanto o gêmeo ainda está sendo feito: espera o gêmeo e devolve o
+    // MESMO filme, em vez de planejar e encomendar clipes de novo (caso blackmanager284: 6 repetições, 18 clipes pagos).
+    // Falha aberta: sem banco, sem gêmeo ou sem resultado em 60 s, segue o caminho de sempre. Dry-run fica fora.
+    const pedidoDigital = fastRequestFingerprint({ userId: user.id, prompt, duration: body.duration, language: body.language, aspect: (body as { aspect?: unknown }).aspect, scriptMode: body.script_mode })
+    if (body.dry_run !== true && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const dedupeDb = createAdminClientForService(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
+        const gemeoDesde = await findRecentTwin(dedupeDb, user.id, pedidoDigital)
+        if (gemeoDesde) {
+          const esperaInicio = Date.now()
+          const resultado = await waitForTwinResult(dedupeDb, user.id, pedidoDigital, gemeoDesde)
+          const resposta = resultado ? responseFromTwin(resultado, prompt) : null
+          void writeServerEvent({ name: FAST_DEDUPE_EVENT, userId: user.id, path: '/api/generate-video-fast', sessionId: resultado?.session_id ?? null, metadata: { found: Boolean(resposta), waited_ms: Date.now() - esperaInicio, version: FAST_DEDUPE_VERSION } })
+          if (resposta) return NextResponse.json(resposta)
+        }
+      } catch (e) {
+        console.warn('[generate-fast] PEDIDO-REPETIDO: checagem falhou, segue normal:', e instanceof Error ? e.message : String(e))
+      }
+    }
+
     // KINEO-DISPATCH-ENTRY-2026-09-05 — a PRIMEIRA prova de SERVIDOR de que o
     // POST chegou. Até aqui, tudo entre o clique e o primeiro erro era evento de
     // CLIENTE: quando a aba ia embora nos primeiros segundos o rastro terminava
@@ -476,6 +498,7 @@ export async function POST(req: NextRequest) {
         // Só o TAMANHO do texto, nunca o texto — a mesma regra de prompt_too_long.
         prompt_length: prompt.length,
         requested_duration: Number(body.duration) || null,
+        fingerprint: pedidoDigital, // PEDIDO-REPETIDO-2026-09-24: marca o pedido em andamento (só o hash, nunca o texto)
       },
     })
 
@@ -1798,6 +1821,12 @@ export async function POST(req: NextRequest) {
           payload: recoveryPayload,
           clips: (recoveryPayload.clip_urls as string[]).length,
           source: 'server',
+          // PEDIDO-REPETIDO-2026-09-24 — o que um pedido gêmeo precisa para devolver o MESMO filme ao navegador.
+          fingerprint: pedidoDigital,
+          verbatim: ownScript,
+          speed: ownScript ? (parsedScript.speed ?? 1) : parsedScript.speed,
+          scenes: scenes.map((sc) => sc.description).slice(0, 24),
+          ai_scene_index: clipSources[0] === 'aiHook' ? 0 : null,
         },
       })
     }
