@@ -23,3 +23,9 @@
 **TESTADO LOCALMENTE:** 559 verificações de galeria/arquivos, 180 verificações da home azul, typecheck e bateria crítica do Guardião aprovados. Validação interativa e publicação são registradas no handoff externo após o deploy.
 
 **ARTEFATO VISUAL:** `HOME-ROTACAO-ANTES-DEPOIS.html`, no diretório de outputs desta tarefa, compara a versão compacta anterior com a nova composição em desktop e celular, usando SSR e capas reais.
+
+## Correção após feedback visual — 24/09/2026
+
+**DECISÃO DO USUÁRIO NESTA TAREFA:** não gostou do segundo filme do destaque principal nem de vídeos pequenos com escrita dominante nos laterais.
+
+**IMPLEMENTADO:** avião retirado da playlist principal; robôs e castelo passam a alternar. Oito filmes no total, dois por card. Removida a apresentação que limitava personagens a 38% da largura: todos os vídeos preenchem o card. Títulos laterais reduzidos a 15px no desktop e celular; badge a 8px; removida somente a legenda visual repetida Watch preview dos laterais, mantendo botão inteiro e nome acessível. Hero permanece compacto e os arquivos continuam em 1080×1920. Examples preservado.

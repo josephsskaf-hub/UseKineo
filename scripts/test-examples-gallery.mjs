@@ -86,8 +86,8 @@ const Design = load('app/examples/design/page.tsx').default
 const chosen = load('lib/ui/examplesSelectionSep24.ts').EXAMPLES_SELECTION_SEP24
 const homeFilms = load('lib/ui/homeFeaturedFilms.ts').HOME_FEATURED_FILMS
 const homePlaylists = load('lib/ui/homeFeaturedFilms.ts').HOME_FEATURED_PLAYLISTS
-ok(homePlaylists.map(list=>list.length).join(',') === '3,2,2,2', 'three lead films and two in each side card')
-ok(new Set(homePlaylists.flat().map(v=>v.id)).size === 9, 'nine home films without repetition across cards')
+ok(homePlaylists.map(list=>list.length).join(',') === '2,2,2,2', 'two films in each home card')
+ok(new Set(homePlaylists.flat().map(v=>v.id)).size === 8, 'eight home films without repetition across cards')
 ok(['cinematic_ai','cinematic_kling','cinematic_veo','cinematic_hollywood'].every(engine=>homePlaylists.flat().some(v=>v.engine===engine)), 'all four earlier home engines return with their actual badges')
 ok(homePlaylists.flat().every(v=>v.href==='/studio'), 'rotating films retain safe Studio entry')
 for (const video of homePlaylists.flat()) {
