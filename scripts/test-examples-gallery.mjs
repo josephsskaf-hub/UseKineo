@@ -85,6 +85,17 @@ loggedIn = true
 const Design = load('app/examples/design/page.tsx').default
 const chosen = load('lib/ui/examplesSelectionSep24.ts').EXAMPLES_SELECTION_SEP24
 const homeFilms = load('lib/ui/homeFeaturedFilms.ts').HOME_FEATURED_FILMS
+const homePlaylists = load('lib/ui/homeFeaturedFilms.ts').HOME_FEATURED_PLAYLISTS
+ok(homePlaylists.map(list=>list.length).join(',') === '3,2,2,2', 'three lead films and two in each side card')
+ok(new Set(homePlaylists.flat().map(v=>v.id)).size === 9, 'nine home films without repetition across cards')
+ok(['cinematic_ai','cinematic_kling','cinematic_veo','cinematic_hollywood'].every(engine=>homePlaylists.flat().some(v=>v.engine===engine)), 'all four earlier home engines return with their actual badges')
+ok(homePlaylists.flat().every(v=>v.href==='/studio'), 'rotating films retain safe Studio entry')
+for (const video of homePlaylists.flat()) {
+  const info = JSON.parse(execFileSync('ffprobe',['-v','error','-select_streams','v:0','-show_entries','stream=width,height','-show_entries','format=duration','-of','json',path.join('public',video.videoUrl)],{encoding:'utf8'}))
+  ok(info.streams[0].width===1080 && info.streams[0].height===1920, 'home rotation remains 1080p: '+video.title)
+  ok(Number(info.format.duration)>=4 && Number(info.format.duration)<=10.1, 'bounded home clip duration')
+  ok(fs.existsSync(path.join('public',video.posterUrl)), 'home rotation poster exists')
+}
 const homeScreen = renderToStaticMarkup(React.createElement(load('components/HomeFeaturedFilms.tsx').default))
 ok(homeFilms.map(v=>v.id).join(',') === '36a04f7b-65f7-42d9-a2ab-198b5a7f115e,1b8e12f9-83e5-411c-8fda-0b277d289934,19e317fe-6838-4edc-9fbf-d830d62be140,6b9b363c-3185-4db7-a877-46b77e334f06', 'approved four home films in order')
 ok(homeFilms.every(v=>v.href === '/studio'), 'film showcase does not route to a paused generator')

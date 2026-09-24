@@ -123,4 +123,9 @@ export const HOME_PRESENTATION_CSS = `
  .klp .nav-right .kineo-interface-language { max-width:78px !important; }
  .klp .home-engines .bento { grid-template-columns:1fr; }
 }
+@media(min-width:901px) {
+ .klp .hero { padding-top:28px; }
+ .klp .home-intro { margin-bottom:20px; }
+ .klp .home-title { font-size:clamp(30px,3.1vw,42px); }
+}
 `

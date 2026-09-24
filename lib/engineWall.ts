@@ -33,6 +33,8 @@ export type WallVideo = {
   posterUrl?: string
   /** Optional framing for wide featured previews; the player stays uncropped. */
   focalPoint?: string
+  /** Opening shot can need a different crop before the action cut. */
+  previewOpening?: { seconds: number; focalPoint: string }
   /** Auditable reason this static asset can appear on an anonymous surface. */
   publicSource?: 'founder_owned_generic_example' | 'founder_owned_engine_example'
 }

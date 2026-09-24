@@ -92,10 +92,14 @@
 
 /* Home reuses the approved film player with one lead and three side films. */
 .homeHero .featuredSection { padding:0 }
-.featuredFour { grid-template-columns:1.8fr 1fr; grid-template-rows:repeat(3,minmax(0,1fr)); height:clamp(360px,26vw,400px) }
+.featuredFour { grid-template-columns:1.8fr 1fr; grid-template-rows:repeat(3,minmax(0,1fr)); height:clamp(340px,24vw,360px) }
 .featuredFour .lead { grid-row:span 3 }
 .featuredFour .featureCard .featureCopy { inset:auto 20px 15px }
 .featuredFour .featureCard strong { font-size:clamp(17px,1.4vw,22px) }
+.featuredMedia .preloadVideo { display:none }
+.filmSteps { position:absolute; top:14px; right:16px; display:flex; gap:5px; pointer-events:none }
+.filmSteps span { width:19px; height:3px; border-radius:3px; background:#ffffff50 }
+.filmSteps span[data-active=true] { background:#fff }
 @media(max-width:700px) {
   .featuredFour { height:auto; grid-template-columns:1fr; grid-template-rows:auto; gap:12px }
   .featuredFour .lead { grid-column:auto; grid-row:auto; aspect-ratio:1.35 }

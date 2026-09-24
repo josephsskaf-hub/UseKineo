@@ -7,7 +7,7 @@ import { searchExamples } from '@/lib/ui/examplesGallery'
 import { showcaseEngines, showcasePoster } from '@/lib/ui/showcaseGallery'
 import styles from './ExamplesGallery.module.css'
 
-function FeaturedMedia({ video, paused }: { video: WallVideo; paused: boolean }) {
+function FeaturedMedia({ video, paused, nextVideo, onEnded }: { video: WallVideo; paused: boolean; nextVideo?: WallVideo; onEnded?: () => void }) {
   const container = useRef<HTMLSpanElement>(null)
   const player = useRef<HTMLVideoElement>(null)
   const [visible, setVisible] = useState(false)
@@ -15,29 +15,62 @@ function FeaturedMedia({ video, paused }: { video: WallVideo; paused: boolean })
   const [mounted, setMounted] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [failed, setFailed] = useState(false)
+  const [tabVisible, setTabVisible] = useState(true)
   useEffect(() => {
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
     const connection = (navigator as Navigator & { connection?: EventTarget & { saveData?: boolean; effectiveType?: string } }).connection
     const sync = () => setAllowed(!motion.matches && !connection?.saveData && !(connection?.effectiveType ?? '').includes('2g'))
     sync()
+    const syncVisibility = () => setTabVisible(document.visibilityState !== 'hidden')
+    syncVisibility()
+    document.addEventListener('visibilitychange', syncVisibility)
     motion.addEventListener('change', sync)
     connection?.addEventListener('change', sync)
     const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { threshold: .25 })
     if (container.current) observer.observe(container.current)
-    return () => { observer.disconnect(); motion.removeEventListener('change', sync); connection?.removeEventListener('change', sync) }
+    return () => { observer.disconnect(); motion.removeEventListener('change', sync); connection?.removeEventListener('change', sync); document.removeEventListener('visibilitychange', syncVisibility) }
   }, [])
-  const active = visible && allowed && !paused && !failed
+  const active = visible && tabVisible && allowed && !paused && !failed
   useEffect(() => { if (active) setMounted(true); else player.current?.pause() }, [active])
   useEffect(() => {
     const media = player.current
     if (active && mounted) media?.play().catch(() => {})
     return () => { media?.pause() }
   }, [active, mounted])
+  useEffect(() => {
+    if (!failed || !visible || !tabVisible || !allowed || paused || !onEnded) return
+    const timer = window.setTimeout(onEnded, 6000)
+    return () => window.clearTimeout(timer)
+  }, [failed, visible, tabVisible, allowed, paused, onEnded])
+  const openingFocus = video.previewOpening?.focalPoint ?? video.focalPoint
   return <span className={styles.featuredMedia} ref={container}>
-    <img src={video.posterUrl} alt="" loading="eager" style={{ objectPosition: video.focalPoint }} />
-    {mounted && !failed && <video ref={player} src={video.previewUrl ?? video.videoUrl} muted loop playsInline preload="none"
-      style={{ opacity: playing ? 1 : 0, objectPosition: video.focalPoint }} onPlaying={() => setPlaying(true)} onError={() => setFailed(true)} />}
+    <img src={video.posterUrl} alt="" loading="eager" style={{ objectPosition: openingFocus }} />
+    {mounted && !failed && <video ref={player} src={video.previewUrl ?? video.videoUrl} muted loop={!onEnded} playsInline preload="none"
+      style={{ opacity: playing ? 1 : 0, objectPosition: openingFocus }} onPlaying={() => setPlaying(true)} onError={() => setFailed(true)}
+      onEnded={() => { if (active) onEnded?.() }}
+      onTimeUpdate={event => { if (video.previewOpening) event.currentTarget.style.objectPosition = event.currentTarget.currentTime < video.previewOpening.seconds ? video.previewOpening.focalPoint : video.focalPoint ?? '50% 50%' }} />}
+    {active && nextVideo && <video key={nextVideo.id} src={nextVideo.previewUrl ?? nextVideo.videoUrl} muted playsInline preload="auto" aria-hidden="true" className={styles.preloadVideo} />}
   </span>
+}
+
+function FeaturedCard({ videos, lead, autoplay, paused, onOpen }: {
+  videos: WallVideo[]; lead: boolean; autoplay: boolean; paused: boolean; onOpen: (video: WallVideo, button: HTMLButtonElement) => void
+}) {
+  const [index, setIndex] = useState(0)
+  const video = videos[index % videos.length]
+  const rotates = videos.length > 1
+  return <button type="button" className={lead ? styles.lead : styles.featureCard}
+    onClick={event => onOpen(video, event.currentTarget)} aria-label={`Watch preview: ${video.title}`}>
+    {autoplay ? <FeaturedMedia key={video.id} video={video} paused={paused}
+      nextVideo={rotates ? videos[(index + 1) % videos.length] : undefined}
+      onEnded={rotates ? () => setIndex(current => (current + 1) % videos.length) : undefined} />
+      : <img src={video.posterUrl} alt="" loading="eager" className={styles.featurePoster} />}
+    <span className={styles.featureShade} />
+    {rotates && <span className={styles.filmSteps} aria-hidden="true">{videos.map((item, step) => <span key={item.id} data-active={step === index} />)}</span>}
+    <span className={styles.featureCopy}><span className={styles.featureBadge}>{video.badge}</span><strong>{video.title}</strong>
+      <span className={styles.watch}><span aria-hidden="true">▶</span> Watch preview</span>
+    </span>
+  </button>
 }
 
 function ExamplePreview({ video, onClose, actionLabel }: { video: WallVideo; onClose: () => void; actionLabel?: string }) {
@@ -73,8 +106,8 @@ function ExamplePreview({ video, onClose, actionLabel }: { video: WallVideo; onC
   </dialog>
 }
 
-export default function ExamplesGallery({ videos, startPaused = false, separateFeatured = false, heroOnly = false, featuredCount = 3, previewActionLabel }: {
-  videos: WallVideo[]; startPaused?: boolean; separateFeatured?: boolean; heroOnly?: boolean; featuredCount?: 3 | 4; previewActionLabel?: string
+export default function ExamplesGallery({ videos, startPaused = false, separateFeatured = false, heroOnly = false, featuredCount = 3, previewActionLabel, featuredPlaylists }: {
+  videos: WallVideo[]; startPaused?: boolean; separateFeatured?: boolean; heroOnly?: boolean; featuredCount?: 3 | 4; previewActionLabel?: string; featuredPlaylists?: WallVideo[][]
 }) {
   const [query, setQuery] = useState('')
   const [engine, setEngine] = useState('all')
@@ -93,15 +126,9 @@ export default function ExamplesGallery({ videos, startPaused = false, separateF
         <button type="button" className={styles.quietButton} onClick={() => setPaused(!paused)} aria-pressed={paused}>{paused ? 'Play preview' : 'Pause preview'}</button>
       </div>
       <div className={`${styles.featured}${featuredCount === 4 ? ` ${styles.featuredFour}` : ''}`}>
-        {videos.slice(0, featuredCount).map((video, index) => <button type="button" className={index === 0 ? styles.lead : styles.featureCard}
-          key={video.id} onClick={event => open(video, event.currentTarget)} aria-label={`Watch preview: ${video.title}`}>
-          {heroOnly || index < 2 ? <FeaturedMedia video={video} paused={paused || selected !== null} />
-            : <img src={video.posterUrl} alt="" loading="eager" className={styles.featurePoster} />}
-          <span className={styles.featureShade} />
-          <span className={styles.featureCopy}><span className={styles.featureBadge}>{video.badge}</span><strong>{video.title}</strong>
-            <span className={styles.watch}><span aria-hidden="true">▶</span> Watch preview</span>
-          </span>
-        </button>)}
+        {videos.slice(0, featuredCount).map((video, index) => <FeaturedCard key={video.id}
+          videos={featuredPlaylists?.[index]?.length ? featuredPlaylists[index] : [video]} lead={index === 0}
+          autoplay={heroOnly || index < 2} paused={paused || selected !== null} onOpen={open} />)}
       </div>
     </section>}
     {!heroOnly && <section className={styles.collection} aria-labelledby="examples-collection-heading">
