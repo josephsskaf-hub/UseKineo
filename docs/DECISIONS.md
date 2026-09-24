@@ -309,3 +309,31 @@ O fundador também pediu cinco recomendações e sugestão de uma terceira líng
 **AUTORIZAÇÃO (fundador, ~07h50 BRT, literal: "Vai pra ii e iv"):** liberado tocar `lib/compose*` para DUAS mudanças, ambas atrás de um interruptor que só o render de Studio Ads liga (`ads_brand_layer` no payload do compose; filme comum sai idêntico ao de hoje): (ii) legendas do anúncio posicionadas na zona segura do Reels (fora da faixa inferior de ~35% e da superior de ~14% que a interface cobre); (iv) logo do cliente como elemento `image` pequeno num canto durante o filme inteiro (a receita comentada em lib/compose.ts ~:2750 usava y:'6%', que cai DENTRO da faixa superior; a versão real fica em y≥17%, largura ~26%, opacidade ~85%). NÃO liberado: (i) piso de 20 s no roteiro próprio (generate-video-fast segue em 35 s) e (iii) áudio original do vídeo do cliente sob a narração (segue mudo) — semana 2, com novo "vai".
 
 **CONDIÇÕES:** render de validação (canário na conta do fundador, Kineo 1, 3-5 cr) com o cartão e o logo conferidos em 1080×1920 ANTES de enfileirar; guardião próprio (`test-ads-brand-layer`) que prova que com o interruptor desligado o JSON do Creatomate é byte a byte o de hoje; os guardiões de escopo (test-despacho-vazio etc.) reancorados com este registro como motivo, nunca afrouxados.
+
+## 2026-09-24 — Studio Ads: preço do passe confirmado em 19,90 (fundador, ~08h45 BRT)
+
+**DECISÃO (literal: "Eu confirmo o preço de R$19,90"):** o passe `ads_pass` custa **US$19,90 (1990 centavos)** + 60 créditos — o "US$19" da decisão 2 virou 19,90 porque 1900 centavos é o valor do bulk10 e a casa termina em ,90. Lido como preço de lista em dólar (toda a conversa de preço do Studio Ads foi em USD). Para cartão brasileiro, a sessão nasce em reais pela fórmula da casa (lib/settlementCurrency.ts, BRL_PER_USD_HOUSE = 5,0, terminando em ,90): **R$99,90**. Se o fundador quiser R$19,90 LITERAL no Brasil, é uma linha nova na tabela fixa BRL (decisão de preço público, dele) — pendente de confirmação explícita; até lá vale a fórmula.
+
+Código: `lib/ads/offer.ts` ADS_PASS_USD_MINOR = 1990 (guardião test-ads-fundacao prova que não colide com nenhum one-time da casa).
+
+**ESCLARECIMENTO DO FUNDADOR (24/09 ~08h50 BRT, literal: "quero deixar os preços do jeito que está para os países emergentes; eles clicam e vêm na moeda deles. Quando eu falei R$19,90, eu quis dizer o preço global"):** 19,90 é o preço GLOBAL em dólar (US$19,90). Nenhuma exceção em reais: cartão brasileiro paga pela fórmula da casa (R$99,90) e os demais países pagam pela conversão automática da Stripe (Adaptive Pricing ligado na conta), como já acontece nos planos. Fechado.
+
+## 2026-09-24 — GPT "Kineo Video Maker": corrigir e publicar barato; NÃO migrar para plugin (custom GPTs saem em 11/12/2026)
+
+**FATO NOVO (OpenAI, anúncio de 11/09/2026, confirmado por várias fontes em 24/09):** GPTs personalizados aposentam em 11/12/2026; instruções viram Skill de plugin, **ações personalizadas não migram**, só GPT publicado migra; criação de GPT novo fecha ~26/10.
+**MEDIDO (banco, 24/09):** em 90 dias o GPT gerou 11 links de handoff, 1 clique, 0 cadastros, 0 filmes, 0 pagamentos. Os 341 cadastros/30 d vindos do ChatGPT são de CITAÇÃO orgânica, não do nosso GPT.
+**RECOMENDAÇÃO EXECUTADA (Claude):** instruções v3 (seção C de docs/GPT-KINEO-VIDEO-MAKER.md) com os fatos do código e leitura de getKineoFacts antes de responder preço/motor/trial/Empresas; red-team de 8 conversas simuladas antes de colar. Publicar na loja é aposta barata até 11/12 (e é pré-requisito de migração, se um dia valer). Esforço de crescimento continua nas citações (páginas, llms.txt, diretórios), não no GPT.
+**PENDENTE DO FUNDADOR:** autorizar o Cowork a trocar o acesso para "Loja GPT" depois de colar a v3, reimportar a ação (v1.3.0, agora com getKineoFacts do Codex) e repetir os 3 testes.
+
+## 2026-09-24 — TAAFT: três decisões do fundador (~10h BRT, literal: "1 apaga, 2 ok, 3 ok")
+
+1. **Pergunta de visitante "Rubelansari" (Rubel Bhai):** APAGAR (spam). Destrava o formulário do FAQ; o Cowork então troca os dois "30 credits" pelo trial de 10 créditos.
+2. **Release v3.4.0:** APROVADA com o texto de docs/KIT-DIRETORIOS-2026-09-24.md §8 (Business Ads, MiniMax H3 de volta desde 22/09, Omni/S25 pausados, trial 10 cr, a partir de $9.90, link /sora-alternative com utm taaft).
+3. **USP:** APROVADA: "One idea in, a finished narrated film out. 6 engines, 16 languages." (sai "Same character in every scene", que só vale para Kling 3 e H3).
+Slug do X confirmado: utm_source=x.
+
+## 2026-09-24 — Diretórios: vídeo grátis é semanal (até 15 s) e o tempo é "3 a 7 minutos" (fundador delegou: "decide pra mim no que você recomenda", ~11h BRT)
+
+**DECIDIDO (Claude, pelo código):** (1) depois do trial, 1 vídeo Kineo 1 com marca d'água por SEMANA, até 15 s (lib/freeTierOffer.ts: janela de 7 dias desde 17/09, maxFreeFastSeconds 15; /api/facts: rollingWindowHours 168). O FAQ do TAAFT dizia "every 30 days" (oferta antiga). (2) Tempo de geração: "usually 3 to 7 minutes on Kineo 1; cinematic engines take longer" (medido: mediana 4,2 min, p90 6,6 min, 114 renders; llms.txt). "About 3 minutes" sai de todo diretório; descrições do kit corrigidas e a curta recortada para caber em 160.
+**Também decidido pelo fundador (via Cowork, 24/09):** USP oficial de 40 caracteres "Idea in, finished film out. 16 languages" (TAAFT corta em 40); release nova do TAAFT NÃO paga (v3.3.3 editada de graça).
+**NÃO decidido aqui:** o modelo de pacote de publicação do canal (CLAUDE.md, "in about 3 minutes") é do fundador; a mediana medida é 4,2 min. Fica a sugestão de trocar por "in a few minutes".

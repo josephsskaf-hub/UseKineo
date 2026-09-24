@@ -764,12 +764,18 @@ console.log('\n(K) docs/GPT-KINEO-VIDEO-MAKER.md amarrado ao servidor e ao schem
   ok(priceHits.length >= 8 && wrong.length === 0, wrong.length ? `(K6) PREÇO DIVERGENTE no .md: ${wrong.map((h) => `${h.name} $${h.usd} (lib: $${expectedUsd[h.name]})`).join(', ')}` : `(K6) ${priceHits.length} preços citados no .md batem com a lib (${Object.entries(expectedUsd).map(([n, v]) => `${n} $${v}`).join(' · ')})`)
   ok(Object.keys(expectedUsd).every((n) => priceHits.some((h) => h.name === n)), '(K6) os 4 planos aparecem no .md')
   const pricingLine = instructions.split('\n').find((l) => /^- Starter \$/.test(l)) || ''
-  ok(Object.entries(expectedUsd).every(([n, v]) => pricingLine.includes(`${n} $${v}/month`)), `(K6) a linha de preços do Step "Pricing and plans" traz os 4 com "/month": "${pricingLine.slice(0, 90)}"`)
+  // KINEO-GPT-INSTRUCOES-V3-2026-09-24 — reancorado com motivo: a lib dá 9.9 (990/100) e a copy de loja escreve
+  // "$9.90"; a trava exigia o literal "$9.9/month", que nenhuma página da casa usa. Aceita as duas grafias do MESMO
+  // valor; qualquer outro número segue reprovando (o valor continua vindo de TIER_PRICES).
+  ok(Object.entries(expectedUsd).every(([n, v]) => pricingLine.includes(`${n} $${v}/month`) || pricingLine.includes(`${n} $${v.toFixed(2)}/month`)), `(K6) a linha de preços do Step "Pricing and plans" traz os 4 com "/month": "${pricingLine.slice(0, 90)}"`)
 
   // (K7) TRIAL. Todo "25" citado como crédito de trial === TRIAL_CREDIT_CAP.
   const trialHits = [...flat.matchAll(/(\d+)-credit trial|(\d+) trial credits|trial de (\d+) cr[ée]ditos|Free trial: (\d+) credits|trial of (\d+) credits/gi)].map((m) => Number(m.slice(1).find(Boolean)))
   ok(trialHits.length >= 5 && trialHits.every((n) => n === TRIAL_CAP), `(K7) todo crédito de trial citado no .md (${uniq(trialHits)}) === TRIAL_CREDIT_CAP (${TRIAL_CAP}) — ${trialHits.length} menções`)
-  ok(new RegExp(`Free trial: ${TRIAL_CAP} credits, no card required\\. Enough for one ${REF_SEC}-second`).test(instructions), `(K7) o Step "Pricing" diz o trial certo e o que ele compra (um filme de ${REF_SEC}s)`)
+  // KINEO-GPT-INSTRUCOES-V3-2026-09-24 — reancorado com motivo: "one 60-second" era o trial de 25 (um Seedance). Com o
+  // trial de 10 o saldo paga DOIS Kineo 1 de 60 s (llms.txt: "Kineo 1 (2 full reference videos)"); a trava aceita one|two
+  // e segue exigindo o TRIAL_CAP lido da fonte, "no card required" e a duração de referência.
+  ok(new RegExp(`Free trial: ${TRIAL_CAP} credits, no card required\\. Enough for (?:one|two) ${REF_SEC}-second`).test(instructions), `(K7) o Step "Pricing" diz o trial certo e o que ele compra (filme(s) de ${REF_SEC}s)`)
 
   // (K8) CUSTOS. Os créditos por motor a 60s (cabeçalho "Fatos conferidos")
   // e os custos do Seedance por duração (15/25/38 em G) vêm de engineCost.ts.
