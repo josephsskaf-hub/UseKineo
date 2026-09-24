@@ -32,6 +32,8 @@
 
 ## Pendências não encerradas por este handoff
 
+**ATUALIZAÇÃO TÉCNICA — 24/09 16:23 UTC:** GPT-V31 integrado à main43be75f1. Typecheck passou; bateria integral main610/candidato611 com mesmos132 vermelhos, nenhum novo. Em seguida, guardião A reancorado somente para tolerar espaços no CSS do design13fa216f, reexecutado verde e mutante de atribuição rejeitado (131 vermelhos preexistentes restantes). Guardião de fatos40/40 e mutante rejeitado. Pronto para a fila guardada; ainda sem publicação/deploy desta correção. A publicação e os links das seções anteriores continuam confirmados.
+
 **IMPLEMENTADO LOCALMENTE — GPT-V31-FATOS, 24/09:** seis correções do pedido nominal em fatos/llms/OpenAPI1.3.1. Saldo não é permissão de motor; acesso legado preservado; trial novo não promete Seedance; Omni permanece pausado sem selo; plano exige saldo suficiente por motor/duração; teto recorrente deriva da oferta; orçamento de palavras passa pelo estimador real. J9 exige exatamente as duas operações autorizadas. Novo guardião crítico com mutante. Typecheck verde e comparação integral contra f6dd30af: 609/132 vermelhos na main, 610/132 no candidato, nenhum vermelho novo. Os três erros preexistentes B5/C2/K0 de test-gpt-handoff não foram ocultados. Próximo passo: reconciliar a nova main43be75f1, testar novamente e enfileirar. Não publicado ainda; não clicar no BAT anterior.
 
 **DESCONHECIDO:** resultado financeiro incremental da missão. O relatório `docs/GPT-5H-2026-09-24.md` conserva baseline e limitações; não contar publicação ou rascunho como comprador. Usar carimbo servidor `business_ads_version`/`business_ads_deploy_sha` e pessoas, não apenas horário. Empresas/kind=dfy fora de MRR.

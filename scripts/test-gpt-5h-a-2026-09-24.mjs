@@ -24,5 +24,6 @@ check('unrelated events untouched', Object.keys(businessAdsStamp('another_event'
 const sink = source('app/api/events/route.ts')
 check('server sink owns the deployment stamp after client metadata', sink.indexOf('...businessAdsStamp(name, process.env.VERCEL_GIT_COMMIT_SHA)') > sink.indexOf('...metadata,'))
 check('page discoverable through sitemap and facts URL', source('app/sitemap.ts').includes("path: '/business-video-ads'") && source('app/llms.txt/route.ts').includes('DFY_SERVICE_FACT.url'))
-check('visible keyboard focus and mobile single column', source('app/business-video-ads/businessAds.module.css').includes(':focus-visible') && source('app/business-video-ads/businessAds.module.css').includes('grid-template-columns:1fr'))
+// Approved design 13fa216f formats CSS with spaces; preserve the same focus/column guard.
+check('visible keyboard focus and mobile single column', source('app/business-video-ads/businessAds.module.css').includes(':focus-visible') && /grid-template-columns:\s*1fr\s*[;}]/.test(source('app/business-video-ads/businessAds.module.css')))
 finish()
