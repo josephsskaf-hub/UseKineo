@@ -3775,3 +3775,9 @@ Pendente do fundador: 3-4 Kineo 1 da casa para a página que mais vende (hoje 2 
 - **Para o Claude (hoje):** NÃO tocar lib/kineoFacts.ts, app/llms.txt/route.ts, public/gpt/openapi.json, app/sora-alternative, app/omni-flash-vs-sora nem lib/growth/dfyOffer.ts até o Codex enfileirar — evita a âncora órfã entre pistas. Guardiões que o Codex pode reancorar com motivo: test-gpt-handoff, test-citation-engine-metadata, test-tres-jogadas-servidor (bloco DFY).
 - **Para amanhã (Studio Ads):** a porta /ads nasce SOBRE /business-video-ads (o "quer que a gente faça?" da página do balcão aponta para lá e vice-versa); não duplicar copy de oferta — fonte única continua dfyOffer.ts para o balcão e lib/ads/offer.ts para o passe.
 - **Leitura:** citação nova só em 2-3 dias (índice do Bing): releitura 27/09 e 30/09 com o painel + banco; hoje conta visitas/cliques/pedidos por pessoa nas páginas novas.
+
+## DELEGACAO-1-3-20260924 — Cowork faz diretórios + GPT Store + Sora (rodando desde ~07h); kit em docs/KIT-DIRETORIOS-2026-09-24.md
+- **Para o Cowork:** toda descrição, preço e link sai do kit (seções 2-5); UTM obrigatório (utm_campaign=dir_sep24, utm_source=<slug>); rascunhos de imprensa com o corpo da seção 6; screenshots novos.
+- **Para o Codex (hoje, roteiro GPT-5H):** as páginas novas usam os mesmos números do kit; se kit e código divergirem, o código manda e o kit é corrigido no mesmo commit.
+- **Para o Claude (depois de 1-3):** 4 afiliados (atribuição sf_aff fora do dashboard) e 5 "apertou e não saiu" (29 pessoas/7 d), nesta ordem salvo palavra do fundador; 6 winback com filme pronto em lote de 30 medido.
+- **Medir:** consultas da seção 7 do kit, por pessoa, desde 24/09 12:00 UTC; releitura 27/09 e 30/09.
