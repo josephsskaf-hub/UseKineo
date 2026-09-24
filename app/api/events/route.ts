@@ -15,6 +15,7 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 // duas cópias da mesma regra divergem e a que ninguém audita passa a mentir
 // (memória `a-regra-vive-em-varios-arquivos`).
 import { clientIp, hashIp, isLikelyBot } from '@/lib/requestIdentity'
+import { businessAdsStamp } from '@/lib/growth/businessAdsAttribution'
 
 export const dynamic = 'force-dynamic'
 
@@ -228,6 +229,8 @@ export async function POST(req: NextRequest) {
       ...metadata,
       ip_hash: hashIp(clientIp(req.headers)),
       is_bot: isLikelyBot(uaHeader),
+      // GPT-5H: after the client spread; cohort uses deployment, not wall clock.
+      ...businessAdsStamp(name, process.env.VERCEL_GIT_COMMIT_SHA),
     }
 
     const row: Record<string, unknown> = {

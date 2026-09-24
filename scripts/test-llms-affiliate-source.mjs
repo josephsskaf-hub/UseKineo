@@ -30,7 +30,7 @@ function loadGraph(overrides = {}) {
     }
     vm.runInNewContext(ts.transpileModule(input, {
       compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
-    }).outputText, { module, exports: module.exports, require: localRequire, Response, URL,
+    }).outputText, { module, exports: module.exports, require: localRequire, Response, URL, URLSearchParams,
       process: Object.freeze({ env: Object.freeze({ NODE_ENV: 'production' }) }),
     }, { timeout: 5000, filename: relative })
     return module.exports

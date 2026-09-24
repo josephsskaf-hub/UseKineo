@@ -33,6 +33,8 @@ const next={'next/server':{NextResponse:Reply}}
 // Se um dia a autorizacao passar a DEPENDER de um deles, o coto tem de sair
 // daqui e virar a funcao real — e este comentario e o aviso.
 const shares=load('lib/videoShareLink.ts',{crypto})
+// GPT-5H: execute the real pure deployment-stamp helper; no authorization stub.
+const businessAdsAttribution=load('lib/growth/businessAdsAttribution.ts')
 const id='11111111-1111-4111-8111-111111111111',other='22222222-2222-4222-8222-222222222222'
 const now=Date.now(), signed=shares.mintShareConfirmation(id,'publish',now)
 eq(shares.verifyShareConfirmation(id,'publish',signed,now),true,'matching action accepted')
@@ -122,7 +124,7 @@ for(const name of ['payment_success','video_published_v1','video_unpublished_v1'
  //    "evento reservado bloqueado" — verde por acidente. Agora o pedido tem
  //    cabecalhos de verdade, como o Next entrega, E a rota tolera a ausencia.
  const identity={clientIp:()=>null,hashIp:()=>null,isLikelyBot:ua=>!ua}
- const mod=load('app/api/events/route.ts',{...next,'@/lib/requestIdentity':identity,'@/lib/supabase/server':{createClient:()=>({auth:{getUser:async()=>({data:{user:null}})}})},'@supabase/supabase-js':{createClient:()=>({from:()=>({insert:async(row)=>{inserted++;lastRow=row;return {error:null}}})})}})
+ const mod=load('app/api/events/route.ts',{...next,'@/lib/growth/businessAdsAttribution':businessAdsAttribution,'@/lib/requestIdentity':identity,'@/lib/supabase/server':{createClient:()=>({auth:{getUser:async()=>({data:{user:null}})}})},'@supabase/supabase-js':{createClient:()=>({from:()=>({insert:async(row)=>{inserted++;lastRow=row;return {error:null}}})})}})
  await mod.POST({nextUrl:{hostname:'www.usekineo.com'},headers:new Headers({'user-agent':'Mozilla/5.0 (teste)'}),json:async()=>({name})})
  eq(inserted,name==='library_recent_project_opened'?1:0,'authoritative events reserved; harmless analytics works')
  // A rota nao pode gravar sem carimbo, e o carimbo nao pode conter IP cru.

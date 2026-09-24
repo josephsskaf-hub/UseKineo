@@ -64,6 +64,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const routes: { path: string; priority: number; freq: 'daily' | 'weekly' | 'monthly' }[] = [
     { path: '', priority: 1.0, freq: 'daily' },
     { path: '/pricing', priority: 0.9, freq: 'weekly' },
+    { path: '/business-video-ads', priority: 0.9, freq: 'weekly' },
     { path: '/viral-now', priority: 0.9, freq: 'daily' },
     // KINEO-WALL-2026-08-03 — public proof board (Shorts users actually
     // published). Daily/0.9 like /viral-now: same profile — a page whose whole
@@ -248,7 +249,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }
   const staticEntries = routes.map((r) => ({
     url: `${BASE}${r.path}`,
-    lastModified: LAST_MODIFIED,
+    lastModified: ['/business-video-ads', '/sora-alternative', '/omni-flash-vs-sora'].includes(r.path)
+      ? new Date('2026-09-24T13:51:19.000Z') : LAST_MODIFIED,
     changeFrequency: r.freq,
     priority: r.priority,
   }))

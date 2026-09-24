@@ -24,6 +24,15 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Typecheck bruto — qualquer erro reprova
         run: npx tsc --noEmit --incremental false
+      - name: GPT-5H — oferta operada, migração Sora e fatos públicos
+        run: |
+          for item in a b c; do
+            node "scripts/test-gpt-5h-${item}-2026-09-24.mjs"
+            if node "scripts/test-gpt-5h-${item}-2026-09-24.mjs" --mutant; then
+              echo "Mutante sobreviveu: ${item}"
+              exit 1
+            fi
+          done
       - name: Segurança de publicação e autoria
         run: node scripts/test-sharing-safety.mjs
       - name: Navegação, biblioteca e idioma

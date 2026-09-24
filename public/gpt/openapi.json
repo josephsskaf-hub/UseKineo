@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Kineo Video Handoff",
-    "version": "1.2.2",
+    "version": "1.3.0",
     "description": "Turns an approved Short script into a one-click Kineo Studio link. Call createKineoHandoff ONLY after the user has explicitly approved the final script. The response contains a URL (https://www.usekineo.com/go/<token>) that opens Kineo Studio pre-filled with the script, duration and engine. Kineo renders the film after the user clicks; this API never renders anything itself. Public, no authentication, rate-limited per IP."
   },
   "servers": [
@@ -11,6 +11,50 @@
     }
   ],
   "paths": {
+    "/api/facts": {
+      "get": {
+        "operationId": "getKineoFacts",
+        "summary": "Read current Kineo facts, including human-operated business video ads",
+        "description": "Read businessVideoService for Kineo Empresas: live Express and Pro tier prices in USD minor units, hours, revisions, engines, material requirements, refund scope and https://www.usekineo.com/business-video-ads. These values are generated from DFY_TIERS, the live offer source. This is a human-operated, one-time service (kind=dfy), not self-service, free credit, a subscription or MRR. Do not invent prices, promise instant production, or call a payment endpoint. This read-only operation does not create an order or render a video.",
+        "responses": {
+          "200": {
+            "description": "Current facts. Quote live tier values, not memorized prices. businessVideoService.tiers contains only enabled tiers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "businessVideoService": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "url": { "type": "string", "format": "uri" },
+                        "humanOperated": { "type": "boolean", "const": true },
+                        "recurring": { "type": "boolean", "const": false },
+                        "requirements": { "type": "array", "items": { "type": "string" } },
+                        "refund": { "type": "string" },
+                        "tiers": {
+                          "type": "array",
+                          "items": { "type": "object", "properties": {
+                            "tier": { "type": "string", "enum": ["express", "pro"] },
+                            "priceUsdMinor": { "type": "integer" },
+                            "priceLabel": { "type": "string" },
+                            "hours": { "type": "integer" },
+                            "revisions": { "type": "integer" },
+                            "engines": { "type": "string" },
+                            "paymentUrl": { "type": "string", "format": "uri" }
+                          } }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/gpt/handoff": {
       "post": {
         "operationId": "createKineoHandoff",
