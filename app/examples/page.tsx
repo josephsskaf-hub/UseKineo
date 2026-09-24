@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import WallMedia from '@/components/WallMedia'
+import ExamplesGallery from './ExamplesGallery'
+import styles from './ExamplesGallery.module.css'
+import { expandExamples } from '@/lib/ui/examplesGallery'
 import { getExamplesBest } from '@/lib/engineWall'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
@@ -8,25 +10,8 @@ import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // "Start free": a página tratava assinante como estranho. O header agora
 // pergunta ao servidor quem está olhando.
 import { createClient } from '@/lib/supabase/server'
-// KINEO-CUSTO-NO-CARD-2026-08-24 (pacote noturno, UI#2) — cada card da prova
-// ganha o PREÇO em créditos do motor que o fez. Prova de qualidade + prova de
-// preço no mesmo pixel: "isto custou ~20 créditos" transforma o catálogo numa
-// tabela de custo viva — o argumento que nenhum concorrente mostra. Derivado
-// de creditCostFor (a função que o caixa usa, #296) — nunca escrito à mão.
-import { creditCostFor, type Quality } from '@/lib/credits/engineCost'
 import ExamplesBusinessProofBridge from './ExamplesBusinessProofBridge'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
-
-const BADGE_QUALITY: Record<string, Quality> = {
-  'KINEO 1': 'fast', 'SEEDANCE 1.5': 'cinematic_ai', 'KLING 2.5': 'cinematic_kling',
-  'VEO 3.1': 'cinematic_veo', 'KLING 3': 'cinematic_hollywood', 'MINIMAX H3': 'cinematic_h3',
-  'OMNI FLASH': 'cinematic_omni', // KINEO-OMNI-2026-08-25 — pronto pra quando a vitrine ganhar o 1º clipe aprovado
-  'AVATAR': 'presenter', 'AI PRESENTER': 'presenter',
-}
-function costFor(badge: string): number | null {
-  const q = BADGE_QUALITY[(badge ?? '').toUpperCase().trim()]
-  return q ? creditCostFor(q, true) : null
-}
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -49,7 +34,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic'
 
 export default async function ExamplesPage() {
-  const best = await getExamplesBest()
+  const best = expandExamples(await getExamplesBest())
   // KINEO-EXAMPLES-LOGADO-2026-08-24 — logado vê "Open Studio" (a porta do
   // produto), visitante vê "Start free" (a porta do funil). Mostrar signup a
   // um assinante é pedir para ele criar a conta que já paga.
@@ -57,16 +42,17 @@ export default async function ExamplesPage() {
   const { data: { user } } = await supabase.auth.getUser()
   const isLoggedIn = Boolean(user)
   return (
-    <main className="min-h-screen bg-black text-white">
-      <header className="border-b border-white/10">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
-          <Link href="/" className="font-display text-lg font-semibold tracking-[-.02em] tracking-tight">Kineo</Link>
-          <nav className="flex items-center gap-4 text-sm font-bold text-white/70">
+    <main className={styles.page}>
+      <header className={styles.pageHeader}>
+        <div className={styles.headerInner}>
+          <Link href="/" className={styles.brand}><span className={styles.brandIcon} aria-hidden="true">ϟ</span>Kineo</Link>
+          <nav className={styles.nav} aria-label="Main navigation">
+            <Link href="/examples" aria-current="page" className={styles.exploreLink}>Explore</Link>
             <Link href="/pricing" className="transition hover:text-white">Pricing</Link>
             {isLoggedIn ? (
               <Link
                 href="/studio"
-                className="rounded-full bg-white px-4 py-2 text-black transition hover:bg-white"
+                className={styles.navCta}
               >
                 Open Studio
               </Link>
@@ -75,7 +61,7 @@ export default async function ExamplesPage() {
                 href="/signup?utm_source=examples&utm_medium=proof&utm_campaign=push31"
                 source="examples_index"
                 placement="header"
-                className="rounded-full bg-white px-4 py-2 text-black transition hover:bg-white"
+                className={styles.navCta}
               >
                 {CARD_ENTRY_COPY.ctaShort}
               </OrganicCtaLink>
@@ -84,49 +70,17 @@ export default async function ExamplesPage() {
         </div>
       </header>
 
-      <section className="mx-auto max-w-6xl px-5 pb-16 pt-14 sm:pt-20">
-        <div className="max-w-3xl">
-          <p className="text-xs font-semibold tracking-[-.02em] uppercase tracking-[0.18em] text-[#2997ff]">Real product proof</p>
-          <h1 className="mt-4 text-balance font-display text-4xl font-semibold tracking-[-.02em] tracking-tight sm:text-6xl">
-            Watch what Kineo actually makes.
-          </h1>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-white/65 sm:text-lg">
-            Six Kineo-owned demo previews, stored with the site and selected for public use. Customer videos stay private; open any sample to watch and remix the format with your own topic.
-          </p>
+      <section className={styles.content}>
+        <div className={styles.intro}>
+          <div>
+            <p className={styles.eyebrow}>Real product proof</p>
+            <h1>Watch what Kineo actually makes.</h1>
+            <p>Explore selected previews from films made with Kineo. Find a style, watch it, and start with your own idea.</p>
+          </div>
         </div>
+        {/* Only explicitly approved, founder-owned public assets enter this collection. */}
+        <ExamplesGallery videos={best} />
 
-        {/* P0 PRIVACY CONTAINMENT (2026-08-27): repository-owned samples only.
-            A completed customer render is not publication consent. */}
-        <div className="mt-12 grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-          {/* Modelo aprovado pelo fundador (print 15/08): card menor, video
-              LIMPO (as legendas queimadas do proprio render sao a info) e o
-              titulo em texto ABAIXO da midia, dentro do card. */}
-          {best.map((v) => (
-            <Link
-              key={v.id}
-              href={v.href ?? `/v/${v.id}`}
-              className="group block overflow-hidden rounded-[16px] border border-white/10 bg-white/[0.03] transition hover:-translate-y-1 hover:border-[#2997ff]/60"
-            >
-              <div className="relative aspect-[9/16] overflow-hidden bg-black">
-                <WallMedia src={v.videoUrl} />
-                <span className="absolute left-2.5 top-2.5 z-10 rounded-md border border-white/20 bg-black/60 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.08em] backdrop-blur">
-                  {v.badge}
-                </span>
-                {/* KINEO-CUSTO-NO-CARD-2026-08-24 — o preço mora ao lado da prova. */}
-                {costFor(v.badge) !== null && (
-                  <span className="absolute right-2.5 top-2.5 z-10 rounded-md border border-[#2997ff]/40 bg-black/60 px-2 py-0.5 text-[9.5px] font-bold text-[#7cc0ff] backdrop-blur">
-                    {costFor(v.badge)} cr
-                  </span>
-                )}
-              </div>
-              <p className="p-2.5 text-[11.5px] font-semibold leading-snug text-white/85">{v.title}</p>
-            </Link>
-          ))}
-        </div>
-
-        {/* Dynamic customer renders are intentionally absent until an explicit
-            public visibility choice exists in the durable data model. */}
-        
         {/* KINEO-EXAMPLES-REVIEWS-2026-08-24 — pedido do fundador: "coloca
             todos os reviews que temos". Todos = UM (Rick, autorização escrita
             de 19 e 24/08) — e é exatamente por isso que ele entra inteiro e
