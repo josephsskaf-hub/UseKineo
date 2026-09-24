@@ -139,7 +139,10 @@ const ramo = idxDfy >= 0 ? pathA.slice(idxDfy, pathA.indexOf('}', idxDfy) + 1) :
 checa('Path A: ramo DFY = recordDfyOrderPaid + break (nada de crédito, plano, has_paid, guard)', /await recordDfyOrderPaid\(supabase, event\.id, session\)\s*break/.test(ramo) && !/entitlementPending|video_credits|has_paid|stripe_events/.test(ramo))
 const rdoIni = wh.indexOf('async function recordDfyOrderPaid(')
 const rdo = wh.slice(rdoIni, wh.indexOf('\n}\n', rdoIni))
-checa('recordDfyOrderPaid localizado e inteiro dentro de try/catch (nunca lança para a Stripe)', rdo.length > 500 && /\): Promise<void> \{\s*try \{/.test(rdo) && /\} catch \(err\) \{\s*console\.error\('\[stripe webhook\] dfy_order_paid threw:'/.test(rdo))
+// COWORK-RELATORIO-2026-09-24 — REANCORADA (era "nunca lança para a Stripe", escrita por esta pista em c3201afc): a
+// auditoria de 24/09 noite (13 agentes, achado confirmado por cético) mostrou que o 200 com o pedido FORA do banco perde
+// pedido pago sem reenvio. Regra nova: o catch devolve erro de reenvio; o 200 só sai com a linha gravada (ou já existente).
+checa('recordDfyOrderPaid localizado e inteiro dentro de try/catch; o catch devolve RetryableCheckoutAnalyticsError (500 → a Stripe reenvia), nunca um 200 mudo com o pedido fora do banco', rdo.length > 500 && /\): Promise<void> \{\s*try \{/.test(rdo) && /\} catch \(err\) \{\s*if \(err instanceof RetryableCheckoutAnalyticsError\) throw err\s*console\.error\('\[stripe webhook\] dfy_order_paid threw:'[^\n]*\n\s*throw new RetryableCheckoutAnalyticsError\(/.test(rdo))
 checa("dfy_order_paid: dedupe por name + contains metadata.stripe_session_id (padrão do payment_success)", rdo.includes(".eq('name', 'dfy_order_paid')") && rdo.includes(".contains('metadata', { stripe_session_id: session.id })"))
 checa('dfy_order_paid: id determinístico a partir de session.id', rdo.includes("update(`dfy_order_paid:${session.id}`)"))
 // KINEO-DFY-UUID-2026-09-23 — client_reference_id é livre na URL do Payment Link; events.user_id é uuid.
@@ -171,7 +174,8 @@ const fnDoWebhook = (nome) => {
   return i < 0 ? '' : wh.slice(i + 1, wh.indexOf('\n}\n', i + 1) + 2)
 }
 const NOMES_WH = ['sessionOwnerUuid', 'isOwnerRejection', 'sessionPaymentLinkId', 'dfySessionTier', 'isDfyOrderSession', 'recordDfyOrderPaid', 'firstPaymentCreditsFromSession']
-const srcWh = [(wh.match(/^const SESSION_OWNER_UUID = .*$/m) || [''])[0], ...NOMES_WH.map(fnDoWebhook), ...NOMES_WH.map((n) => `exports.${n} = ${n}`)].join('\n')
+const classeRetry = (wh.match(/^class RetryableCheckoutAnalyticsError extends Error \{[\s\S]*?\n\}$/m) || [''])[0]
+const srcWh = [(wh.match(/^const SESSION_OWNER_UUID = .*$/m) || [''])[0], classeRetry, ...NOMES_WH.map(fnDoWebhook), ...NOMES_WH.map((n) => `exports.${n} = ${n}`), 'exports.RetryableCheckoutAnalyticsError = RetryableCheckoutAnalyticsError'].join('\n')
 const logWh = []
 let W = {}
 try {
@@ -228,9 +232,11 @@ if (typeof W.recordDfyOrderPaid === 'function') {
   const sbPro = supabaseFalso()
   await W.recordDfyOrderPaid(sbPro, 'evt_teste_pro', sPro)
   checa('P0 pedido gravado: o link Pro (objeto expandido) grava tier=pro e o plink do Pro', sbPro.linhas.length === 1 && sbPro.linhas[0].row.metadata.tier === 'pro' && sbPro.linhas[0].row.metadata.payment_link === PRO_PLINK)
-  let lancou = false
-  try { await W.recordDfyOrderPaid(supabaseFalso({ quebra: true }), 'evt_teste_queda', sExpress) } catch { lancou = true }
-  checa('P0 nunca 500: banco fora do ar dentro de recordDfyOrderPaid não lança (a Stripe recebe 200 e não reenvia pedido já pago)', lancou === false)
+  let lancou = null
+  try { await W.recordDfyOrderPaid(supabaseFalso({ quebra: true }), 'evt_teste_queda', sExpress) } catch (e) { lancou = e }
+  // COWORK-RELATORIO-2026-09-24 — REANCORADA (era "P0 nunca 500"): banco fora = pedido NÃO gravado; o 200 perdia o pedido
+  // pago em silêncio. O reenvio da Stripe é seguro: dedupe por stripe_session_id + id determinístico, e o ramo não concede nada.
+  checa('P0 banco fora do ar dentro de recordDfyOrderPaid: o pedido não foi gravado, então LANÇA RetryableCheckoutAnalyticsError (500 → a Stripe reenvia; reenvio idempotente e sem concessão)', typeof W.RetryableCheckoutAnalyticsError === 'function' && lancou instanceof W.RetryableCheckoutAnalyticsError)
 }
 const semComentWh = (s) => s.replace(/^\s*\/\/.*$/gm, '')
 const caseIni = wh.indexOf("case 'checkout.session.completed':")
