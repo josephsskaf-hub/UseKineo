@@ -1,5 +1,17 @@
 # Kineo Empresas — four visual directions
 
+DECISÃO DO USUÁRIO, 24/09/2026: **03 Studio selected** ("03 sudio").
+IMPLEMENTADO: the production route now uses the approved Studio composition,
+blue palette, shared KineoBolt and an optimized concept image. BusinessAdsOffers,
+payment attribution, package facts, metadata and commercial copy are unchanged.
+TESTADO LOCALMENTE: TypeScript, sharing safety (70), five improvements (641),
+and business ads desktop/mobile navigation checks pass offline.
+The original comparison is frozen at 209fae50. Render the actual implementation
+with `node scripts/preview-business-ads-studio.cjs <output.html>`; this writes a
+self-contained before/after with a desktop/mobile switch and disabled checkouts.
+
+## Initial proposal delivery (before selection)
+
 DECISÃO DO USUÁRIO, 24/09/2026: prepare three or four page proposals using
 Kineo's existing palette. This deliverable contains four proposals, not a
 replacement of the live product page.
