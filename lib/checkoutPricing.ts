@@ -784,6 +784,9 @@ export function checkPricingInvariants(): string[] {
   }> = [
     { id: 'pack:starter', usdMinor: 490, credits: PACK_CREDITS.starter, advertisedQuality: 'cinematic_ai' },
     { id: 'pack:starter290', usdMinor: 290, credits: PACK_CREDITS.starter290, advertisedQuality: 'cinematic_ai' },
+    // KINEO-STUDIO-ADS-2026-09-25 — passe do Studio Ads: literal espelhado de lib/ads/offer.ts (ADS_PASS_USD_MINOR /
+    // ADS_PASS_CREDITS); o guardião test-ads-servidor confere a igualdade. Anuncia Kineo 1, mas prova-se contra Seedance.
+    { id: 'pack:ads_pass', usdMinor: 1990, credits: 60, advertisedQuality: 'cinematic_ai' },
   ]
   for (const sku of packSkus) {
     const advertisedVideoCost = creditCostForDuration(sku.advertisedQuality, true, 60)

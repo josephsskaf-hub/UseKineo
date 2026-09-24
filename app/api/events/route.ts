@@ -102,6 +102,20 @@ const SERVER_ONLY_EVENTS = new Set([
   // o topo e faria a conversão mentir para baixo — exatamente o estrago de
   // viral_onboarding_viewed (9,7x) e generate_arrived_server (2,7x).
   'bulk_checkout_started',
+  // KINEO-STUDIO-ADS-2026-09-25 — funil do Studio Ads: a compra do passe e tudo que so o servidor sabe (acesso concedido
+  // ou negado, roteiro servido, render pedido/entregue/falhou, e-mail, decisao de revisao, fila cheia). Fonte unica da
+  // lista: lib/ads/events.ts ADS_SERVER_ONLY_EVENTS; o guardiao test-ads-servidor confere que cada um esta aqui.
+  'ads_checkout_started',
+  'ads_access_granted',
+  'ads_access_denied',
+  'ads_script_served',
+  'ads_render_requested',
+  'ads_render_served',
+  'ads_render_failed',
+  'ads_delivered',
+  'ads_email_sent',
+  'ads_qa_decided',
+  'ads_open_orders_capped',
   'bulk_purchase_completed',
   // KINEO-DODO-2026-09-07 — o trilho UPI/Pix. Escritos só por
   // app/api/dodo/checkout e app/api/dodo/webhook; `payment_success` (com

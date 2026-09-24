@@ -68,6 +68,8 @@ import {
 import { buildAutopilotPilotCancelUrl } from '@/lib/growth/autopilotCheckoutReturn'
 import { buildSubscriptionCheckoutSuccessUrl } from '@/lib/growth/checkoutSuccessFlow'
 import { planSettlementAmountMinor, resolveSettlementCurrency, settlementAmountMinor } from '@/lib/settlementCurrency'
+import { ADS_OFFER_VERSION, ADS_PASS_CREDITS, ADS_PASS_ID, ADS_PASS_USD_MINOR, ADS_PRODUCT_NAME, adsPassLive } from '@/lib/ads/offer' // KINEO-STUDIO-ADS-2026-09-25
+import { isInternalEmail } from '@/lib/internalAccounts' // KINEO-STUDIO-ADS-2026-09-25
 import {
   attributeAffiliateForUser,
   normalizeAffiliateClickId,
@@ -250,7 +252,8 @@ async function recordCheckoutEvent(
     // KINEO-BULK-2026-07-27 — funil de atacado, nomeado. Server-only (declarado
     // em app/api/events/route.ts): se o sink do browser pudesse cunhá-lo, o
     // denominador do único canal de receita novo viraria ficção.
-    | 'bulk_checkout_started',
+    | 'bulk_checkout_started'
+    | 'ads_checkout_started', // KINEO-STUDIO-ADS-2026-09-25
   userId: string | null,
   metadata: Record<string, unknown>,
   sessionId?: string,
@@ -3359,6 +3362,138 @@ async function buildBulkPackAndRedirect(
   return isGet ? NextResponse.redirect(session.url!) : NextResponse.json({ url: session.url })
 }
 
+// ═══ KINEO-STUDIO-ADS-2026-09-25 — passe do Studio Ads (?pack=ads_pass) ════════════════════════════
+// Decisões do fundador (24/09): passe ÚNICO de US$19,90 com 60 créditos, 365 dias de acesso, preço global em dólar
+// (Brasil paga em reais pela fórmula da casa; o resto pela conversão da Stripe). Fonte única dos números:
+// lib/ads/offer.ts. O webhook (Path A) concede os créditos pela metadata.pack_credits e o acesso
+// (profiles.ads_access_until) no MESMO UPDATE, fail-closed. DESLIGADO enquanto NEXT_PUBLIC_ADS_PASS_LIVE !== '1':
+// só contas internas compram (canário), todo o resto recebe um erro visível — nunca uma sessão da Stripe.
+async function buildAdsPassAndRedirect(req: NextRequest, isGet: boolean): Promise<NextResponse> {
+  const appUrl = req.nextUrl.origin
+  const browserSessionId = browserSessionIdFrom(req)
+  let failureUserId: string | null = null
+  const skuContext: Record<string, unknown> = {
+    sku: ADS_PASS_ID,
+    mode: 'payment',
+    ads_credits: ADS_PASS_CREDITS,
+    ads_offer_version: ADS_OFFER_VERSION,
+  }
+  async function redirectError(msg: string) {
+    await recordCheckoutEvent('checkout_failed', failureUserId, { ...skuContext, stage: 'redirect', reason: checkoutFailureReason(msg) }, browserSessionId)
+    return NextResponse.redirect(`${appUrl}/ads?checkout_error=${encodeURIComponent(msg)}`)
+  }
+  async function jsonError(msg: string, status: number) {
+    await recordCheckoutEvent('checkout_failed', failureUserId, { ...skuContext, stage: 'json', status, reason: checkoutFailureReason(msg) }, browserSessionId)
+    return NextResponse.json({ error: msg }, { status })
+  }
+  if (!process.env.STRIPE_SECRET_KEY) {
+    console.error('[stripe/checkout] STRIPE_SECRET_KEY is not set')
+    return isGet ? redirectError('Payment service is not configured. Please contact support.') : jsonError('Payment service is not configured. Please contact support.', 500)
+  }
+
+  const currency: Currency = 'usd'
+  const unitAmount = ADS_PASS_USD_MINOR
+  const settlement = resolveSettlementCurrency({
+    ipCountry: req.headers.get('x-vercel-ip-country') ?? 'US',
+    acceptLanguage: req.headers.get('accept-language'),
+    forced: req.nextUrl.searchParams.get('currency'),
+  })
+  const chargeCurrency = settlement.currency
+  const chargeAmount = settlementAmountMinor(unitAmount, chargeCurrency)
+  skuContext.currency = currency
+  skuContext.unit_amount = unitAmount
+  skuContext.settlement_currency = chargeCurrency
+  skuContext.charge_amount = chargeAmount
+
+  const supabase = createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  failureUserId = user?.id ?? null
+  await recordCheckoutEvent('checkout_attempted', user?.id ?? null, skuContext, browserSessionId)
+  if (authError || !user) {
+    await recordCheckoutEvent('checkout_auth_required', null, skuContext, browserSessionId)
+    if (!isGet) return jsonError('You must be signed in to buy the Studio Ads pass.', 401)
+    if (req.nextUrl.searchParams.get('resumed') === '1') {
+      return redirectError('We could not confirm your sign-in. Please sign in and try again.')
+    }
+    const resume = `${req.nextUrl.pathname}${req.nextUrl.search}${req.nextUrl.search ? '&' : '?'}resumed=1`
+    return NextResponse.redirect(`${appUrl}/login?reason=checkout&redirect=${encodeURIComponent(resume)}`)
+  }
+  // Interruptor: desligado, só conta interna passa (canário). Recusa visível, com o motivo gravado.
+  if (!adsPassLive() && !isInternalEmail(user.email)) {
+    return isGet ? redirectError('Studio Ads opens soon.') : jsonError('Studio Ads opens soon.', 403)
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('email, stripe_customer_id')
+    .eq('id', user.id)
+    .single()
+
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    mode: 'payment',
+    line_items: [
+      {
+        price_data: {
+          currency: chargeCurrency,
+          product_data: {
+            name: `Kineo — ${ADS_PRODUCT_NAME} pass`,
+            description: `${ADS_PASS_CREDITS} credits and 12 months of Studio Ads. One-time payment, no subscription.`,
+          },
+          unit_amount: chargeAmount,
+        },
+        quantity: 1,
+      },
+    ],
+    client_reference_id: user.id,
+    success_url: `${appUrl}/ads/new?resume=pass&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${appUrl}/ads?checkout=cancelled`,
+    metadata: {
+      supabase_user_id: user.id,
+      // metadata.pack é o que o webhook lê para conceder o acesso; sem ela a sessão cai no "valor desconhecido".
+      pack: ADS_PASS_ID,
+      pack_credits: String(ADS_PASS_CREDITS),
+      ads_offer_version: ADS_OFFER_VERSION,
+    },
+  }
+  if (profile?.stripe_customer_id) sessionParams.customer = profile.stripe_customer_id
+  else sessionParams.customer_email = profile?.email ?? user.email ?? undefined
+
+  const adsIdempotencyKey = oneTimeIdempotencyKey({
+    sku: ADS_PASS_ID,
+    user_id: user.id,
+    currency: chargeCurrency,
+    unit_amount: chargeAmount,
+    contract_version: ADS_OFFER_VERSION,
+    customer: sessionParams.customer ?? null,
+  })
+
+  let session: Stripe.Checkout.Session
+  try {
+    session = await stripe.checkout.sessions.create(sessionParams, { idempotencyKey: adsIdempotencyKey })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    if (msg.toLowerCase().includes('cannot combine currencies')) {
+      delete sessionParams.customer
+      sessionParams.customer_email = profile?.email ?? user.email ?? undefined
+      try {
+        session = await stripe.checkout.sessions.create(sessionParams, { idempotencyKey: `${adsIdempotencyKey}:email` })
+      } catch (retryErr) {
+        const rmsg = retryErr instanceof Error ? retryErr.message : String(retryErr)
+        console.error('[stripe/checkout] ads pass retry failed:', rmsg)
+        return isGet ? redirectError(`Payment session failed: ${rmsg || 'Please try again'}`) : jsonError('Payment session failed.', 500)
+      }
+    } else {
+      console.error('[stripe/checkout] ads pass session error:', msg)
+      return isGet ? redirectError(`Payment session failed: ${msg || 'Please try again'}`) : jsonError('Payment session failed.', 500)
+    }
+  }
+
+  console.log(`[stripe/checkout] ads pass session: user=${user.id.slice(0, 8)} amount=${chargeAmount} ${chargeCurrency}`)
+  await recordCheckoutEvent('checkout_started', user.id, { ...skuContext, stripe_session_id: session.id }, browserSessionId)
+  await recordCheckoutEvent('ads_checkout_started', user.id, { ...skuContext, stripe_session_id: session.id }, browserSessionId)
+  return isGet ? NextResponse.redirect(session.url!) : NextResponse.json({ url: session.url })
+}
+
 // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — buildAvatarPackAndRedirect() removed.
 // Avatar packs sold profiles.avatar_credits, now unspendable (avatar generation
 // costs 120 universal video_credits). ?pack=avatar* now returns a clean 410 in
@@ -3413,6 +3548,10 @@ export async function GET(req: NextRequest) {
       // fallback buildPackAndRedirect, que venderia um Starter Pack de $4.90 no
       // lugar de um pacote de $379 sem dar erro nenhum — a mesma armadilha
       // documentada no branch do autopilot_pilot logo abaixo.
+      // KINEO-STUDIO-ADS-2026-09-25 — passe do Studio Ads (desligado por NEXT_PUBLIC_ADS_PASS_LIVE; interno passa).
+      if (packParam === ADS_PASS_ID) {
+        return await buildAdsPassAndRedirect(req, true)
+      }
       if (isBulkPackId(packParam)) {
         return await buildBulkPackAndRedirect(req, packParam, true)
       }

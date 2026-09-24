@@ -34,6 +34,7 @@ import { AUTOPILOT_PILOT_PLAN, autopilotPilotExpiresAt } from '@/lib/autopilot/c
 // abaixo). A flag e o evento seguem o padrão do resto do trial.
 import { REVERSE_TRIAL_ENABLED } from '@/lib/reverseTrial'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { ADS_ACCESS_COLUMN, ADS_PASS_ID, adsAccessUntil } from '@/lib/ads/offer' // KINEO-STUDIO-ADS-2026-09-25
 import {
   buildCanonicalStripeCheckoutFailure,
   buildStripeChargeFailureEnrichment,
@@ -1428,6 +1429,13 @@ export async function POST(req: NextRequest) {
           const isOffer290 = session.metadata?.pack === 'starter290'
           const profileUpdate: Record<string, unknown> = { video_credits: next, has_paid: true }
           if (isOffer290) profileUpdate.offer290_used = true
+          // KINEO-STUDIO-ADS-2026-09-25 — passe do Studio Ads: o acesso (365 d) vai no MESMO UPDATE dos créditos e do
+          // has_paid. Sem a coluna (migration 2026-09-25_studio_ads.sql não aplicada) o UPDATE inteiro falha, o erro
+          // abaixo vira RetryableEntitlementError e a Stripe reenvia: nunca cobra sem conceder. Só este SKU escreve a
+          // coluna, então nenhum outro pacote depende da migration. Recompra dentro do ano recomeça os 365 d a partir de hoje.
+          const isAdsPass = packMeta === ADS_PASS_ID
+          const adsUntilIso = isAdsPass ? adsAccessUntil(new Date()).toISOString() : null
+          if (isAdsPass && adsUntilIso) profileUpdate[ADS_ACCESS_COLUMN] = adsUntilIso
 
           // KINEO-PILOT-99-2026-07-26 — este é o único ponto do Path A que escreve
           // `plan`. Duas regras:
@@ -1458,6 +1466,13 @@ export async function POST(req: NextRequest) {
             // a migration não foi aplicada e o SKU está INERTE. Erro retentável
             // (o guard de fulfillment é liberado no finally), então o Stripe
             // reenvia e o pagamento se resolve sozinho assim que a migration rodar.
+            if (isAdsPass && ((updateErr as { code?: string }).code === '42703' || new RegExp(ADS_ACCESS_COLUMN).test(updateErr.message ?? ''))) {
+              console.error(
+                '[stripe webhook] ads_pass NOT GRANTED: profiles.' + ADS_ACCESS_COLUMN + ' is missing. ' +
+                'Apply migrations_pending/2026-09-25_studio_ads.sql — the customer HAS BEEN CHARGED ' +
+                `and this event will keep retrying until the column exists (session ${session.id}).`
+              )
+            }
             if (isAutopilotPilot && ((updateErr as { code?: string }).code === '42703' || /plan_expires_at/.test(updateErr.message ?? ''))) {
               console.error(
                 '[stripe webhook] autopilot_pilot NOT GRANTED: profiles.plan_expires_at is missing. ' +
@@ -1472,6 +1487,15 @@ export async function POST(req: NextRequest) {
             entitlementConfirmed = true
             entitlementPending = false
             console.log(`[stripe webhook] +${creditsToAdd} credits → user ${userId} (now ${next})`)
+            if (isAdsPass) {
+              // Evento de servidor DEPOIS do UPDATE confirmado (a concessão é o fato; o evento é o registro).
+              await writeServerEvent({
+                name: 'ads_access_granted',
+                userId,
+                path: '/api/stripe/webhook',
+                metadata: { stripe_session_id: session.id, until: adsUntilIso, credits: creditsToAdd, reason: 'pass' },
+              })
+            }
             if (isAutopilotPilot) {
               console.log(`[stripe webhook] autopilot_pilot granted → user ${userId}, expires in ${AUTOPILOT_PILOT_DAYS}d`)
             }
