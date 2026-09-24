@@ -20,6 +20,7 @@ export const ADS_EVENTS = [
   'ads_script_served',
   'ads_script_chosen',
   'ads_voice_previewed',
+  'ads_voice_preview_served', // KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24: prévia servida pelo /api/ads/voice (conta o teto diário)
   'ads_card_rendered',
   'ads_preview_confirmed',
   // render e entrega
@@ -42,6 +43,7 @@ export const ADS_SERVER_ONLY_EVENTS: readonly AdsEventName[] = [
   'ads_access_granted',
   'ads_access_denied',
   'ads_script_served',
+  'ads_voice_preview_served',
   'ads_render_requested',
   'ads_render_served',
   'ads_render_failed',
