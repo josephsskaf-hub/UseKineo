@@ -68,7 +68,7 @@ for (const [rota, arq] of [['fast', 'app/api/generate-video-fast/route.ts'], ['c
 }
 {
   const src = rd('app/api/generate-video-fast/route.ts')
-  checa('fast: o enriquecimento vem DEPOIS das recusas (pílula, tela própria) e ANTES do teto de 5000', src.indexOf('if (isBareStarter(prompt)) {') < src.indexOf('if (isSeriesContinuationPrompt(prompt)) {') && src.indexOf('if (isSeriesContinuationPrompt(prompt)) {') < src.indexOf('if (prompt.length > 5000) {'))
+  checa('fast: o enriquecimento vem DEPOIS das recusas (pílula, tela própria) e ANTES do teto de 5000', src.indexOf('if (isBareStarter(prompt)) {') < src.indexOf('if (isSeriesContinuationPrompt(prompt)) {') && src.indexOf('if (isSeriesContinuationPrompt(prompt)) {') < src.indexOf('if (prompt.length > promptMaxChars) {')) // KINEO-PORTA-FORMATO-2026-09-24: o teto passou a vir de analyzePromptMaxChars(body.script_mode); a ordem (recusas → enriquecimento → teto) continua a mesma
 }
 
 console.log('== mutantes ==')

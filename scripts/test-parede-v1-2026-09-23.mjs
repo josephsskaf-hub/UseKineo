@@ -122,8 +122,7 @@ check('(6d) TIER_CREDITS, filmsCoveredByTier, guarda do divisor e evento continu
 // ── (7) DfyOfferCard ────────────────────────────────────────────────────────
 check('(7a) DfyOfferCard importa isDfyCandidate, isDfyOfferLive e dfyPaymentLink do módulo puro',
   /import \{[\s\S]*?dfyPaymentLink,[\s\S]*?isDfyCandidate,[\s\S]*?isDfyOfferLive,[\s\S]*?\} from '@\/lib\/growth\/dfyOffer'/.test(DFY))
-check('(7b) o cartão só existe com isDfyOfferLive() && isDfyCandidate(prompt)',
-  /const live = isDfyOfferLive\(\)/.test(DFY) && /const candidate = live && isDfyCandidate\(prompt\)/.test(DFY) && /if \(!candidate \|\| !href\) return null/.test(DFY))
+check('(7b) o cartão só existe com isDfyOfferLive() && isDfyCandidate(prompt) e pelo menos um degrau com link', /const live = isDfyOfferLive\(\)/.test(DFY) && /const candidate = live && isDfyCandidate\(prompt\)/.test(DFY) && /if \(!candidate \|\| !href \|\| !copy\) return null/.test(DFY))
 check('(7c) dfy_card_shown e dfy_card_clicked', /trackEvent\('dfy_card_shown'/.test(DFY) && /trackEvent\('dfy_card_clicked'/.test(DFY))
 check('(7d) a impressão é uma vez por MONTAGEM (ref booleana, não por tecla)', /shownRef\.current\) return/.test(DFY) && /shownRef\.current = true/.test(DFY) && !/promptHash/.test(DFY))
 check('(7e) o link abre em nova aba com rel seguro', /target="_blank"/.test(DFY) && /rel="noopener noreferrer"/.test(DFY))
@@ -133,7 +132,7 @@ const iDfyMount = GC.indexOf('<DfyOfferCard')
 const iGenBtn = GC.indexOf('ref={optionsGenerateBtnRef}')
 check('(7g) o cartão vem ANTES do botão Generate da fase options e só com prompt >= 20',
   iDfyMount > -1 && iGenBtn > -1 && iDfyMount < iGenBtn && /prompt\.trim\(\)\.length >= 20 && \(\n\s+<DfyOfferCard/.test(GC))
-check('(7h) com DFY_PAYMENT_LINK_URL vazio o cartão está desligado', /export const DFY_PAYMENT_LINK_URL = ''/.test(norm('lib/growth/dfyOffer.ts')))
+check('(7h) dois degraus (Express 3500 / Pro 7500, fundador 24/09); URL vazia = degrau PAUSADO; um botão por degrau ligado com o tier no clique', /priceMinor: 3500/.test(norm('lib/growth/dfyOffer.ts')) && /priceMinor: 7500/.test(norm('lib/growth/dfyOffer.ts')) && /options\.map\(\(o\) => \(/.test(DFY) && /dfy_card_clicked', \{ source, version: DFY_OFFER_VERSION, tier: o\.tier, price_minor: o\.priceMinor \}/.test(DFY))
 
 // ── (8) /checkout/success oferece resume=wall_v1 ────────────────────────────
 check('(8a) WALL_V1_RESUME_PATH é /studio/create?resume=wall_v1', /export const WALL_V1_RESUME_PATH = '\/studio\/create\?resume=wall_v1'/.test(WALL))

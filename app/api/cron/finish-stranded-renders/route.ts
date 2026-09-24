@@ -1300,6 +1300,13 @@ export async function GET(req: NextRequest) {
         else composedGens.add(sid)
       }
 
+      // ═══ RESGATE-SEM-DUPLICATA-2026-09-24 — um pedido, um filme ═══
+      // Caso blackmanager284 (24/09 03:32Z): a rede dele derrubava a resposta do Kineo 1 (~16 s) enquanto o servidor
+      // terminava (~34 s); o navegador repetiu o pedido 6 vezes e o servidor deixou 6 filmes prontos para montar, cada um
+      // com generationId próprio. Este laço deduplica por generationId, então montaria até 6 cópias e gastaria o trial
+      // inteiro da pessoa em duplicatas. Agora: por pessoa + mesmo tema, só o pedido MAIS NOVO é montado (a lista vem em
+      // ordem decrescente); os irmãos mais velhos viram 'recovery_superseded_duplicate' e nunca cobram.
+      const recoveryKeysSeen = new Set<string>()
       for (const row of recoverables ?? []) {
         if (fastFinished >= MAX_RECOVERY_PER_RUN) { results.push({ generation: 'recovery', outcome: 'recovery_deferred_budget' }); break }
         const genId = row.session_id as string | null
@@ -1307,6 +1314,10 @@ export async function GET(req: NextRequest) {
         const md = row.metadata as Record<string, unknown> | null
         if (!genId || !userId || !md) continue
         const gen8 = genId.slice(0, 8)
+        const temaResgate = String(((md as { payload?: { topic?: unknown } }).payload?.topic) ?? '').trim().slice(0, 300)
+        const chaveResgate = `${userId}|${temaResgate}`
+        if (recoveryKeysSeen.has(chaveResgate)) { results.push({ generation: gen8, outcome: 'recovery_superseded_duplicate' }); continue }
+        recoveryKeysSeen.add(chaveResgate)
         // A pessoa terminou sozinha (voltou e o resume compôs) → não existe
         // filme a resgatar, e recompor cobraria de novo por um filme entregue.
         if (composedGens.has(genId)) { results.push({ generation: gen8, outcome: 'recovery_user_finished' }); continue }

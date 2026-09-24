@@ -63,3 +63,43 @@ Se qualquer tela for diferente do descrito (nome de menu, opção ausente), NÃO
 - Produção: Diretor Kineo para o roteiro; Kineo 1 em modo "ai" quando a foto/clipe do cliente tem de entrar; Seedance ou Kling 3 quando o filme é gerado (a mídia do cliente NÃO entra nos motores cinematic hoje). Dry-run de US$0 antes de todo render pago. Enhance 10 cr. Entrega por `/v/<id>` privado + MP4. 1 revisão.
 - Se o pedido não couber (mídia sem autorização, promessa clínica, prazo impossível): reembolso integral pela Stripe em até 24 h e e-mail curto explicando.
 - Leitura de 14 dias: `dfy_card_shown` ≥ 8 pessoas (≥3 de países que pagam). ≥1 pagamento → constrói fila + página /empresas + "US$500 por 5". 0 pagamento com ≥2 cliques → preço/formato para a mesa de 09/10. 0 cliques em 8 → copy do cartão (+7 dias). O protótipo HTML fica congelado até o 1º pagamento.
+
+## Resultado (Cowork, 23/09 23:12 BRT; relatório em docs/KINEO-EMPRESAS-STRIPE-2026-09-23.md)
+
+Link criado em modo live: `https://buy.stripe.com/8x25kD9wVePZfqHdJcgjC0w` (plink_1UJ23XIah5dxzSBfyfKlmOGV · prod_VJfH6iSD4drTaC · price_1UJ1wlIah5dxzSBfexZXeL3D), 3 campos, confirmação personalizada, metadata kind=dfy no link. Diferenças da tela: metadata só existe depois de criado; e-mail é sempre coletado; "customer chooses price" não aparece porque o preço é fixo; a conta tem **Adaptive Pricing** ligado (pode converter para moeda local fora do Brasil). Por isso o webhook passou a reconhecer o pedido pelo **id do link** (`DFY_PAYMENT_LINK_ID`), antes de metadata e valor. Interruptor ligado em 24/09 (`DFY_PAYMENT_LINK_URL`). Pendente do fundador: decidir o Adaptive Pricing (vale para a conta inteira) e investigar as 6 entregas malsucedidas do webhook nesta semana (61 no total).
+
+## 24/09 — DOIS DEGRAUS (fundador: "express 35 usd, pro 75 usd"). Bloco para colar no Cowork
+
+```
+KINEO — DOIS PAYMENT LINKS "KINEO EMPRESAS" NA STRIPE (24/09/2026)
+
+Abra dashboard.stripe.com da Kineo em modo LIVE. Não digite cartão, senha nem CPF; se pedir login, pare e me avise.
+
+PASSO 0 — Desativar o link de US$100
+Payment Links → abra plink_1UJ23XIah5dxzSBfyfKlmOGV ("Kineo Empresas — 1 film made for you (35-60 s, 1 revision)") → menu "…" → Deactivate. Confirme que aparece como Inactive.
+
+PASSO 1 — Produto EXPRESS
+Product catalog → + Add product.
+Name: Kineo Empresas Express — 1 film made for you (30-60 s, 1 revision, 48 h)
+Description: A human editor at Kineo produces one vertical film (30-60 s) for your business on Kineo 1 or Seedance: script from your brief, narration in your language, captions, music, your logo and photos where the format allows. 1 revision. Delivered within 48 hours.
+Pricing: One-off, 35.00 USD. Save.
+
+PASSO 2 — Produto PRO
+Product catalog → + Add product.
+Name: Kineo Empresas Pro — 1 film made for you (Seedance/Kling 3, consistent characters, 2 revisions, 72 h)
+Description: A human editor at Kineo produces one vertical film (30-90 s) for your business on Seedance or Kling 3, with the same characters across scenes, a script written from your brief, narration in your language, captions and music, your logo and photos where the format allows. 2 revisions. Delivered within 72 hours.
+Pricing: One-off, 75.00 USD. Save.
+
+PASSO 3 — Um Payment Link para CADA produto (repita duas vezes, igual ao de 23/09)
+Payment Links → + New → selecione o produto → quantity 1, adjustable quantity OFF, promo codes OFF, addresses "Don't collect", moeda USD fixa.
+Custom fields (3, tipo Text, Required): 1) Business name + what you sell · 2) Last-frame CTA: phone, WhatsApp, URL or address · 3) Language + the film you want (1-2 lines)
+After payment → Show confirmation page → Replace default text:
+  Express: Thanks! Joseph will confirm your brief by email within 24 hours. Reply to the receipt email with your logo, photos or a short clip, or upload them in Kineo Studio → "My footage" (same account). Delivery within 48 hours, 1 revision included.
+  Pro: Thanks! Joseph will confirm your brief by email within 24 hours. Reply to the receipt email with your logo, photos or a short clip, or upload them in Kineo Studio → "My footage" (same account). Delivery within 72 hours, 2 revisions included.
+Create link. DEPOIS de criado, na página do link → Metadata → adicione: kind = dfy · tier = express (ou pro) · product = kineo_empresas_v2.
+
+PASSO 4 — Devolver
+Para cada link: a URL (https://buy.stripe.com/…), o plink_…, o prod_… e o price_…; confirme que o de US$100 está Inactive. Abra cada URL numa aba e confira preço, e-mail e os 3 campos. NÃO pague.
+```
+
+Quando as duas URLs chegarem, o Claude preenche `url` e `linkId` de `DFY_TIERS.express` e `DFY_TIERS.pro` em `lib/growth/dfyOffer.ts`, o cartão volta ao ar com os dois botões e os 4 rascunhos são reescritos com os valores certos.

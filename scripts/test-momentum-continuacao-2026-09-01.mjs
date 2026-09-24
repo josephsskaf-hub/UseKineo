@@ -119,9 +119,8 @@ v('C7 nada envia sem confirm', rota.includes('if (!confirm) {'))
 
 const vercel = readFileSync(join(raiz, 'vercel.json'), 'utf8')
 // 01/09: o fundador ARMOU (?confirm=SEND). #23: o cron diario nao manda max_idle_h.
-v('C8 vercel.json armado pelo fundador em 01/09 e sem max_idle_h (96h no dia a dia)',
-  vercel.includes('"/api/cron/send-momentum-nudge?confirm=SEND"') && !/send-momentum-nudge[^"]*max_idle_h/.test(vercel))
-v('C9 o cron continua agendado', vercel.includes('"schedule": "30 13 * * *"'))
+v('C8 desligado em 24/09 (fundador: "desliga"; 313 envios/30 d → 0 pagantes): send-momentum-nudge fora do vercel.json', !vercel.includes('/api/cron/send-momentum-nudge'))
+v('C9 a rota segue viva para disparo manual (não foi apagada)', readFileSync(join(raiz, 'app/api/cron/send-momentum-nudge/route.ts'), 'utf8').length > 0)
 
 // ── BLOCO D — helper puro, fora da pista do Codex ─────────────────────────
 const lib = readFileSync(join(raiz, 'lib/seriesContinuation.ts'), 'utf8')

@@ -29,7 +29,10 @@ export const ORPHAN_MIN_AGE_MS = 4 * 60 * 1000
 /** Mais velho que isto não se termina sozinho: a pessoa provavelmente já fez outro ou desistiu. */
 export const ORPHAN_MAX_AGE_MS = 6 * 60 * 60 * 1000
 export const MAX_JOBS_PER_RUN = 2
-export const RENDER_JOB_PROMPT_MAX = 5000
+// KINEO-PORTA-FORMATO-2026-09-24 — o mesmo teto de entrada do Studio e da rota no modo em que a IA reescreve
+// (lib/analyzeLimits ANALYZE_PROMPT_MAX_CHARS_SOURCE = 20000). Literal de propósito: este módulo é lido cru por
+// guardiões e não ganha import; o guardião test-porta-formato-colado confere a igualdade.
+export const RENDER_JOB_PROMPT_MAX = 20000
 
 export const RENDER_JOB_DURATIONS = [15, 35, 60, 90] as const
 export type RenderJobPayload = {

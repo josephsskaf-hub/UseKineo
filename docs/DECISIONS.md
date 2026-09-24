@@ -2,6 +2,30 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
+## 2026-09-24 — "Desliga": cartas pós-D2 e os crons do trial de US$1 saem do ar
+
+**DECISÃO APROVADA (fundador, 24/09/2026 ~02h BRT, ao item 3 das pendências: "desliga"; motivo dele: "cartas não estão trazendo pessoas para compra"):** saem do `vercel.json` os crons `send-momentum-nudge` (313 envios/30 d → 0 pagantes), `send-second-try-1usd` e `send-affiliate-wakeup-1usd` (prometiam a porta de US$1 morta em 09/09); e as cartas `expired_offer_d5` e `expired_lastcall_d10` do `trial-lifecycle-emails` (1.527 envios/30 d → 0 pagantes) ficam atrás do interruptor `POST_TRIAL_LETTERS_ENABLED = false`. Continuam: welcome, ending_soon, downgraded_loss (48 h), extensão, video_ready, failure_recovery e todo cron de operação. Motivo de fundo: 10 dos 13 pagantes orgânicos pagaram em menos de 48 h; nenhum nasceu depois do D2. Reversão: `true` no interruptor e as 3 entradas de volta no vercel.json.
+
+
+## 2026-09-24 — Kineo Empresas em dois degraus: Express US$35 · Pro US$75
+
+**DECISÃO APROVADA (fundador, 24/09/2026 ~01h30 BRT):** "preço dos degraus: express 35 usd, pro 75 usd", depois de ler os 11 pedidos de anúncio de empresa dos últimos 90 dias e chamar o US$100 único (referência de 23/09) de "absurdo". Express = Kineo 1 ou Seedance, 30-60 s, logo e fotos onde o formato permite, 1 revisão, 48 h. Pro = Seedance ou Kling 3 com os mesmos personagens entre cenas, roteiro escrito por nós, 2 revisões, 72 h. Cada degrau tem o próprio Payment Link (Cowork cria no painel; o de US$100 é desativado). Até os links existirem o cartão do Studio fica PAUSADO; os 4 rascunhos de US$100 foram apagados e serão reescritos com os degraus. Produção: no Studio da casa, na conta do fundador; material do cliente por resposta ao recibo ou "My footage"; entrega por MP4 + página /v/ privada.
+
+
+## 2026-09-24 — Sete respostas do fundador às pendências das 3 jogadas
+
+**DECISÕES (fundador, 24/09/2026 ~01h BRT, no chat do Claude Code, uma palavra cada):**
+1. **Anual: "recarga mensal".** O plano anual passa a receber TIER_CREDITS todo mês (SET, sem rollover), pelo cron diário `app/api/cron/annual-credit-refill` (dry-run por padrão, agendado com `?confirm=SEND`; razão idempotente em `events` name=`annual_credit_refill`). A promessa do FAQ ("credits reset each month") fica verdadeira. Zero assinantes anuais na vida até esta data.
+2. **Porta do formato colado no Kineo 1: "vai"** (trava 8.2 liberada nominalmente para `app/api/generate-video-fast`): a rota passa a ler o teto por modo da fonte única `lib/analyzeLimits` (verbatim 5.000; IA reescreve 20.000; clipe 6.000) em vez de 5.000 cravado, e um plano de cenas com fala rotulada (Voiceover:/Narrator:/VO:) deixa de ser recusado como "shot plan". Eventos novos: `prompt_over_writer_cap`, `shot_spec_with_speech_admitted`.
+3. **Crons mortos do vercel.json: resposta "não (cartas não estão trazendo pessoas para compra)"** — o "não" e o motivo apontam para lados opostos; PENDENTE de confirmação (ver PEDIDOS TRES-JOGADAS-R2). Nada foi desregistrado.
+4. **Rascunhos aos briefs de empresa: "sim".** 4 rascunhos criados no Gmail do fundador (Help Me Tenerife, Ascend AI, restaurante em Amã, eCredit.ng), cada um respondendo ao pedido que a pessoa escreveu no Studio, com o link de US$100 amarrado à conta (`client_reference_id`). O fundador revisa e envia.
+5. **Adaptive Pricing na Stripe: "deixa".**
+6. **Trial de cadastro novo: "manter" 10 créditos** (revisão de 30/09 antecipada; ChatGPT 5,1% × 1,4%).
+7. **Rastreio de prompts: "manual até virar alguma coisa"** — painel semanal do Cowork, sem ferramenta paga.
+
+**Kineo Empresas LIGADO em 24/09:** Payment Link `plink_1UJ23XIah5dxzSBfyfKlmOGV` (US$100, criado pelo Cowork em 23/09), cartão no Studio ativo, webhook reconhece pelo id do link; as 6 falhas do webhook da semana eram 2 checkouts abandonados de 18/09 (Supabase lento), sem pagamento perdido.
+
+
 ## 2026-09-23 — "Faz as 3": parede v1 + consertos, Kineo Empresas por Payment Link, páginas citadas viram portas do motor pago
 
 **DECISÃO APROVADA (fundador, 23/09/2026 ~22h BRT, no chat do Claude Code):** "faz as 3, o que voce precisa de mim criar o link de 100 usd no stripe? se sim, cria um script pro cowork fazer isso pra mim, ele sabe fazer isso, e vamos dar sequencia." Aprova as três jogadas de `docs/ANALISE-CEO-OPORTUNIDADES-2026-09-23.md` como descritas ali, inclusive as mecânicas novas de conversão que o congelamento de 09/09 reservava a ele: (1) parede v1 dentro do modal de crédito (título do roteiro, gap exato, Starter primeiro e sem selo "recommended" no Creator nesse bloco, roteiro guardado 45 min, render só no clique) + copy positiva da caixa de top-up + padrão MENSAL no /pricing + retorno do pack ao Studio + `intent_campaign` no pack; (2) Kineo Empresas vendido antes de construído: Payment Link de US$100 na Stripe (produto novo, fora da tabela de planos; US$500 por 5 fica para depois do 1º pagamento), cartão no Studio quando o texto parece pedido de anúncio de empresa, fundador opera os 3 primeiros; inverte a decisão de 23/09 manhã ("construir a ferramenta antes da prospecção") e congela o protótipo HTML até o 1º pagamento; (3) bloco "cole o roteiro do ChatGPT → Seedance" acima da dobra nas 4 páginas que o ChatGPT já cita, sem trocar título/H1, + correção dos fatos que a IA lê + páginas /for deixam de carimbar `utm_source=google` + página de dados `/seedance-vs-veo-vs-kling` + painel semanal de prompts (Cowork).
