@@ -279,3 +279,13 @@ O fundador também pediu cinco recomendações e sugestão de uma terceira líng
 **FORA DESTA DECISÃO:** nenhum preço público de plano mudou (congelamento até 09/10 intacto); nenhuma página pública nova (/empresas continua protótipo congelado); os 4 rascunhos de e-mail para os leads saem em seguida, com o link do degrau de cada um, para o fundador revisar e enviar.
 
 **ADENDO 24/09 ~04h30 BRT — colocação:** a auditoria adversarial mostrou que o passo 2 do /studio/create não é o caminho principal do Studio (o cockpit dispara atrás da cortina). O cartão passou a morar também no cockpit (`StudioClient`), acima do botão go, com a mesma copy e os mesmos dois botões; o passo 2 continua como segunda superfície. Detalhe técnico em docs/PEDIDOS-ENTRE-PISTAS-2026-09-03.md (EMPRESAS-COCKPIT-20260924).
+
+## 2026-09-24 — DIREÇÃO: Studio Ads para 25/09 (fundador, ~05h BRT)
+
+**DIREÇÃO DADA (não é decisão de preço):** depois de ver o balcão manual no ar, o fundador pediu para amanhã um produto self-service para empresas: "Studio Ads — a pessoa entra, paga esse valor para ter acesso, sobe imagens e o vídeo dela, a gente só narra; centenas de coisas para fazer propaganda; praticamente uma empresa de marketing". Pediu estudo do que há de bom na internet antes de construir.
+
+**O QUE FOI FEITO NA HORA:** workflow de 9 agentes (mercado/UX, preços, taxonomia de anúncios, viabilidade técnica, auditoria do código; 3 desenhos de 1 dia; 1 juiz). Plano fundido em `docs/STUDIO-ADS-DIA-1-2026-09-25.md`; pesquisa bruta em `docs/studio-ads/`. Fato da casa que muda o plano: 7 empresas/30 d entre 411 pessoas com vídeo — o produto precisa da própria porta (/ads + llms.txt + kineoFacts), não vive do tráfego atual.
+
+**PENDENTE DO FUNDADOR (11 decisões numeradas no fim do plano; as 5 primeiras destravam o bloco 08-10 de 25/09):** nome (recomendação: Studio Ads) · preço/acesso (3 opções; recomendação: passe US$19 = 1990 c + 60 cr, código sobe com ADS_PASS_LIVE=false) · quem entra sem passe (recomendação: assinante pago sim, trial não) · degraus do dia 1 (só Kineo 1) · revisão humana e quem opera a fila · consentimento de mídia/rosto/voz · "vai" nominal na trava 8.2 (piso 20 s, legendas fora da banda de Reels, áudio original baixo, logo persistente) · 3º botão no cartão DFY · e-mail aos 11 leads (dia 26) · compra de teste real · clique de publicação (~19h30).
+
+**FORA:** preços dos 3 planos seguem congelados até 09/10; /empresas segue protótipo congelado; nada de "centenas de formatos", apresentador ou voz clonada na copy do dia 1.
