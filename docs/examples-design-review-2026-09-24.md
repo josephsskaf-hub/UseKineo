@@ -2,6 +2,8 @@
 
 ## Seleção do fundador — atualização de 24/09
 
+**REVISÃO SOLICITADA / IMPLEMENTADO EM PRÉVIA:** o fundador substituiu o hero: Tunguska Omni Flash no card principal, robô Omni Flash e Lituya Bay H3 nos laterais. Farol, trem e vulcão passaram para a coleção, ao lado de Tunguska H3, avião de 1942 e castelo. Mesmos nove vídeos, preservando motores e arquivos.
+
 **DECISÃO DO USUÁRIO NESTA TAREFA / IMPLEMENTADO EM PRÉVIA:** nove filmes escolhidos por screenshot, em três destaques (farol, trem, vulcão) e seis cards (Tunguska Omni, robô Omni, Tunguska H3, avião de 1942, Lituya H3, castelo). A seleção substitui o catálogo na página candidata, sem repetição entre hero e coleção. As quatro alternativas continuam disponíveis na rota de revisão.
 
 **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT somente leitura, 24/09/2026):** os IDs novos `0ebba562-2599-40e2-ae46-b03e67dd3a28`, `48f1007c-d9be-4702-91c6-c9f1e0c3db38` e `19e317fe-6838-4edc-9fbf-d830d62be140` pertencem à conta do fundador; motores e durações conferem com os prints (H3/43s, Seedance/84s, H3/39s). As três escolhas de 16/09 também foram verificadas por ID e proprietário. Não houve escrita em banco nem alteração da política pública de vídeos de clientes.

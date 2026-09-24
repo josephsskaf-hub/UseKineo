@@ -12,7 +12,7 @@ const omni: WallVideo[] = selectedOmniIds.map(id => {
     href: '/studio?engine=omni&intent_campaign=examples_showcase', publicSource: 'founder_owned_engine_example' }
 })
 
-export const EXAMPLES_SELECTION_SEP24: readonly WallVideo[] = [
+const selectedVideos: readonly WallVideo[] = [
   ...[
     { id: 'b5434412-62b9-48f5-9a10-c36e2e725c9f', title: "The lighthouse keeper's notebook", asset: 'lighthouse-selected', engine: 'cinematic_ai', badge: 'SEEDANCE 1.5', route: 'seedance' },
     { id: 'ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb', title: 'The night train and the red suitcase', asset: 'train-selected', engine: 'cinematic_kling', badge: 'KLING 2.5', route: 'kling' },
@@ -36,4 +36,15 @@ export const EXAMPLES_SELECTION_SEP24: readonly WallVideo[] = [
     videoUrl: v.previewPath, previewUrl: v.previewPath, posterUrl: v.posterPath,
     href: '/studio?engine=seedance&intent_campaign=examples_showcase', publicSource: 'founder_owned_engine_example' as const,
   })),
+]
+
+// Founder revision: Omni Tunguska leads, with the robot and H3 Lituya beside it.
+const featuredIds = [
+  '1b8e12f9-83e5-411c-8fda-0b277d289934',
+  '36a04f7b-65f7-42d9-a2ab-198b5a7f115e',
+  '19e317fe-6838-4edc-9fbf-d830d62be140',
+]
+export const EXAMPLES_SELECTION_SEP24: readonly WallVideo[] = [
+  ...featuredIds.map(id => selectedVideos.find(video => video.id === id)!),
+  ...selectedVideos.filter(video => !featuredIds.includes(video.id)),
 ]

@@ -34,7 +34,7 @@ export default async function ExamplesDesign({ searchParams }: { searchParams: {
   const index = Math.max(0, Math.min(3, (Number(searchParams.option) || 1) - 1))
   const userSelection = !searchParams.option || searchParams.option === 'selected'
   const selection = userSelection
-    ? { name: 'Sua seleção · nove vídeos', note: 'Três destaques e seis cards, sem repetir vídeos e sem valores de créditos.', ids: EXAMPLES_SELECTION_SEP24.map(v => v.id) }
+    ? { name: 'Sua seleção · nove vídeos', note: 'Tunguska Omni Flash em destaque, com robô e Lituya Bay ao lado. Outros seis vídeos abaixo, sem repetição ou valores de créditos.', ids: EXAMPLES_SELECTION_SEP24.map(v => v.id) }
     : arrangements[index] ?? arrangements[0]
   const [examples, hero] = await Promise.all([getExamplesBest(), getEngineHero()])
   const stock = new Map<string, WallVideo>([...expandExamples(examples), ...hero, ...(userSelection ? EXAMPLES_SELECTION_SEP24 : [])].map(v=>[v.id,v]))
