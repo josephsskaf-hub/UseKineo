@@ -147,6 +147,25 @@ const EV = carrega('lib/ads/events')
 ok(EV.ADS_EVENTS.includes('ads_voice_preview_served') && EV.ADS_SERVER_ONLY_EVENTS.includes('ads_voice_preview_served') && /'ads_voice_preview_served',/.test(rd('app/api/events/route.ts')) && C.ADS_VOICE_PREVIEW_SERVED_EVENT === 'ads_voice_preview_served',
   '4b. o evento da prévia é só de servidor nas duas listas (o navegador não forja o teto)')
 
+// ── 6. gerador de roteiro (teste da padaria 24/09 noite: 0 de 6 versões passavam; depois do conserto, 11 de 12 casos) ──
+const SP = carrega('lib/ads/scriptPrompt')
+const briefP = { business: 'Padaria Pão Dourado', offer: 'Pão francês a R$ 0,90', cta: 'whatsapp', contact: '+55 11 98765-4321', language: 'pt', tone: 'warm', audience: 'bairro', extra: { deadline: 'só até sexta-feira' } }
+const msgs = SP.buildAdsScriptMessages(modelo, briefP, 'Portuguese')
+ok(msgs.system.includes('"beat ' + n + '"') && !msgs.system.includes('"beat ' + (n + 1) + '"') && /exactly 3 versions, each with exactly \d+ strings in "beats"/.test(msgs.system),
+  '6a. o exemplo de resposta tem EXATAMENTE as batidas do modelo (o exemplo antigo com 2 fazia o GPT devolver 4 "versões" de 2)')
+ok(/about \d+ words/.test(msgs.user) && /idea \(do not copy\)/.test(msgs.user) && msgs.user.includes('must say this contact in full, exactly as written: +55 11 98765-4321'),
+  '6b. cada batida tem meta de palavras, o molde é só a ideia, e o contato é exigido por extenso na última')
+ok(SP.inventedNumbers('Mais de mil pessoas já vieram', briefP).includes('mil') && SP.inventedNumbers('Hundreds of neighbours', briefP).length === 1 && SP.inventedNumbers('Só R$ 0,90 até sexta', briefP).length === 0,
+  '6c. quantidade por extenso que o brief não diz ("mil", "hundreds") conta como número inventado')
+const ultima = (t) => JSON.stringify({ versions: [{ angle: 'question', beats: [...Array.from({ length: n - 1 }, () => texto(26)), t] }] })
+ok(SP.parseAdsScriptOutput(ultima(texto(18) + ' chame no whatsapp (11) 98765-4321'), modelo, briefP)?.length === 1 && SP.parseAdsScriptOutput(ultima(texto(18) + ' toque no botão'), modelo, briefP) === null,
+  '6d. o telefone falado sem o +55 vale (8 últimos dígitos); a última batida sem contato é descartada')
+ok(SP.adsScriptMinWords(modelo) === Math.min(Math.floor(modelo.words[0] * 0.9), Math.floor(modelo.seconds * 2.45)) && SP.adsScriptMinWords(modelo) <= 86,
+  '6e. o piso de palavras é o que a voz real (~2,45 pal/s) enche na duração do modelo, não a régua de 3,1')
+const sr2 = rd('app/api/ads/script/route.ts')
+ok(/const fix = diagnoseAdsScriptOutput\(raw, model, brief\.value\)/.test(sr2) && /model: 'gpt-4o',/.test(sr2) && /None of these versions can be used\. Fix all of this/.test(sr2) && /export const maxDuration = 60/.test(sr2),
+  '6f. a rota tenta de novo com o MOTIVO da recusa (gpt-4o), dentro de 60 s')
+
 // ── 5. migration aplicada guardada ───────────────────────────────────────────────────────────────
 const mig = rd('migrations_pending/2026-09-24_studio_ads_render.sql')
 ok(/add column if not exists generation_id uuid/.test(mig) && /add column if not exists render_id text/.test(mig) && /generation_id: generationId/.test(post) && /update\(\{ render_id: renderId \}\)/.test(post),

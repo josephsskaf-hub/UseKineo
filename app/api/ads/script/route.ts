@@ -13,9 +13,10 @@ import { LANGUAGE_NAMES, narrationLanguage } from '@/lib/textLanguage'
 import { adsGate, loadAdsAccess, isMissingAdsTable } from '@/lib/ads/serverAccess'
 import { adsModelById } from '@/lib/ads/models'
 import { sanitizeBrief } from '@/lib/ads/orderContract'
-import { ADS_SCRIPT_DAILY_CAP, ADS_SCRIPT_SERVED_EVENT, buildAdsScriptMessages, parseAdsScriptOutput } from '@/lib/ads/scriptPrompt'
+import { diagnoseAdsScriptOutput, ADS_SCRIPT_DAILY_CAP, ADS_SCRIPT_SERVED_EVENT, buildAdsScriptMessages, parseAdsScriptOutput } from '@/lib/ads/scriptPrompt'
 
-export const maxDuration = 30
+// 24/09 noite: 2 chamadas ao modelo (a 2a com o motivo da recusa) cabem em 60 s, cada uma com 22 s de teto.
+export const maxDuration = 60
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
@@ -67,9 +68,35 @@ export async function POST(req: NextRequest) {
         max_tokens: 2200,
         response_format: { type: 'json_object' },
       },
-      { timeout: 25000, maxRetries: 0 },
+      { timeout: 22000, maxRetries: 0 },
     )
-    const versions = parseAdsScriptOutput(completion.choices[0]?.message?.content ?? '', model, brief.value)
+    let raw = completion.choices[0]?.message?.content ?? ''
+    let versions = parseAdsScriptOutput(raw, model, brief.value)
+    // KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — segunda tentativa com o MOTIVO (teste da padaria: 0 de 6 versões
+    // passavam na primeira). Mesma chamada, mesmo validador; conta como um pedido no teto diário.
+    let attempts = 1
+    if (!versions) {
+      const fix = diagnoseAdsScriptOutput(raw, model, brief.value)
+      const retry = await openai.chat.completions.create(
+        {
+          // a 2a tentativa usa o gpt-4o: segue tamanho e contagem de batidas bem melhor que o mini (teste da padaria)
+          model: 'gpt-4o',
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: userMsg },
+            { role: 'assistant', content: raw.slice(0, 6000) || '{}' },
+            { role: 'user', content: `None of these versions can be used. Fix all of this and rewrite the three versions:\n- ${fix.join('\n- ')}\nKeep every other rule. Answer with the JSON only.` },
+          ],
+          temperature: 0.5,
+          max_tokens: 2600,
+          response_format: { type: 'json_object' },
+        },
+        { timeout: 22000, maxRetries: 0 },
+      )
+      raw = retry.choices[0]?.message?.content ?? ''
+      versions = parseAdsScriptOutput(raw, model, brief.value)
+      attempts = 2
+    }
 
     await writeServerEvent({
       name: ADS_SCRIPT_SERVED_EVENT,
@@ -77,7 +104,8 @@ export async function POST(req: NextRequest) {
       path: '/api/ads/script',
       metadata: {
         order_id: order.id, template: model.id, seconds: model.seconds, language: lang,
-        angles: versions?.length ?? 0, words: versions?.map((v) => v.words) ?? [], ok: Boolean(versions), ms: Date.now() - started,
+        angles: versions?.length ?? 0, words: versions?.map((v) => v.words) ?? [], ok: Boolean(versions), ms: Date.now() - started, attempts,
+        why: versions ? [] : diagnoseAdsScriptOutput(raw, model, brief.value).slice(0, 4),
       },
     })
     if (!versions) return NextResponse.json({ error: 'no_script', hint: 'Add the missing facts to your brief and try again.' }, { status: 502 })
