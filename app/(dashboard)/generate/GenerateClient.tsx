@@ -2507,6 +2507,10 @@ export default function GenerateClient({
   // A tela vira isso numa escolha: trocar para o Seedance (custo real) ou manter.
   const [engineFit, setEngineFit] = useState<{ reason: string; suggestedCredits: number; suggestedLabel: string } | null>(null)
   const engineFitOverrideRef = useRef(false)
+  // KINEO-APERTOU-E-NAO-SAIU-2026-09-24 — o primeiro filme disparado SOZINHO (activation autostart) escolhe o Kineo 1 pela
+  // pessoa; o aviso de encaixe (409) recusava a escolha do próprio produto e oferecia Seedance (15-25 cr) a quem tem 10.
+  // Vale só para AQUELE despacho: é consumida antes do laço do fast e nunca passa para o próximo clique.
+  const autostartFitOverrideRef = useRef(false)
   const engineFitSwitchRef = useRef(false)
   // KINEO-ENGINE-FIT-UX-2026-09-09 — medido 19:20/19:24 BRT: o fundador viu a caixa
   // (engine_fit_box_shown) e NÃO clicou em nenhum botão (0 switched/kept). A caixa
@@ -9892,6 +9896,10 @@ export default function GenerateClient({
         // including the honest 503 blackout copy — those are never retried).
         let res!: Response
         let data: Record<string, unknown> | null = null
+        // KINEO-APERTOU-E-NAO-SAIU-2026-09-24 — capturado UMA vez antes do laço: o retry do mesmo despacho leva o mesmo
+        // valor, e a ref do auto-start volta a false para o próximo clique ser julgado pelo aviso normalmente.
+        const sendEngineFitOverride = engineFitOverrideRef.current || autostartFitOverrideRef.current
+        autostartFitOverrideRef.current = false
         let fastDispatchRetries = 0
         // KINEO-GENERATING-SEM-PRAZO-2026-08-15 — o laço abaixo já para em 2
         // retries, mas até aqui NADA limitava o tempo de cada chamada: uma lambda
@@ -9904,7 +9912,7 @@ export default function GenerateClient({
               headers: { 'Content-Type': 'application/json' },
               // KINEO-MULTIFORMATO-2026-09-02 — `aspect` só viaja quando não é
               // 9:16: link antigo e sessão sem escolha continuam idênticos.
-              body: JSON.stringify({ prompt: trimmed, duration, language, script_mode: scriptMode /* VARREDURA-LIMITES-2026-09-23: sem isto o "Use my script as is" em prosa era reescrito (caso Emily só valia no resgate) */, brollQueries, brollScenes, brollDegraded: plan?.degraded, ...(aspectRequested !== '9:16' ? { aspect: aspectRequested } : {}), ...(engineFitOverrideRef.current ? { engineFitOverride: true } : {}) }),
+              body: JSON.stringify({ prompt: trimmed, duration, language, script_mode: scriptMode /* VARREDURA-LIMITES-2026-09-23: sem isto o "Use my script as is" em prosa era reescrito (caso Emily só valia no resgate) */, brollQueries, brollScenes, brollDegraded: plan?.degraded, ...(aspectRequested !== '9:16' ? { aspect: aspectRequested } : {}), ...(sendEngineFitOverride ? { engineFitOverride: true } : {}) }),
               signal: dispatchTimeoutSignal(FAST_DISPATCH_TIMEOUT_MS),
             })
             data = await res.json().catch(() => { parseFailed = true; return null }) as Record<string, unknown> | null
@@ -10367,6 +10375,7 @@ export default function GenerateClient({
           attempt_id: generationAttemptRef.current,
         })
       }
+      autostartFitOverrideRef.current = activationEngine === 'fast' // KINEO-APERTOU-E-NAO-SAIU-2026-09-24
       void handleGenerate()
       return
     }
@@ -11071,15 +11080,25 @@ export default function GenerateClient({
     // Paid accounts can retain an old trial phase after buying.
     // Their credit shortfall must not be classified as an expired free trial.
     const paidAccount = hasPaid || isStarter || isCreator || isStudio
+    // KINEO-APERTOU-E-NAO-SAIU-2026-09-24 — 'trial_spent' ("You used your whole trial 🎬 — you went through every trial
+    // credit") só com saldo zero. Medido: 066acf11 viu essa frase com 10 de 10 créditos, porque o atalho do ChatGPT a
+    // mandou ao Seedance (15 cr). Com saldo sobrando no trial e motor de IA, a frase certa é a do motor que pede plano
+    // pago ('creator' = Seedance, 'studio' = premium) — não "gastou tudo" nem "out of credits".
+    const trialBalance = typeof credits === 'number' ? credits : 0
     const trialReasonHere: 'trial_spent' | 'trial_ended' | null =
       reason !== 'credits' || !trialGranted || paidAccount
         ? null
         : trialUi?.phase === 'ending' || trialUi?.phase === 'downgraded'
           ? 'trial_ended'
-          : trialActive === true && trialUi?.phase === 'active'
+          : trialActive === true && trialUi?.phase === 'active' && trialBalance <= 0
             ? 'trial_spent'
             : null
-    const resolvedReason = trialReasonHere ?? reason
+    const trialEngineShortfall: 'creator' | 'studio' | null =
+      trialReasonHere === null && reason === 'credits' && trialGranted && !paidAccount &&
+      trialActive === true && trialUi?.phase === 'active' && trialBalance > 0 && mode !== 'fast' && mode !== 'creator'
+        ? (aiEngine === 'seedance' ? 'creator' : 'studio')
+        : null
+    const resolvedReason = trialReasonHere ?? trialEngineShortfall ?? reason
     setUpgradeReason(resolvedReason)
 
     // ═══ KINEO-PORTA-V2-2026-09-09 — A COORTE DA PORTA VÊ UMA PORTA, NÃO UMA
@@ -13458,7 +13477,8 @@ export default function GenerateClient({
     (phase === 'idle' || phase === 'analyzing' || phase === 'scripting' ||
       (phase === 'options' && studioAutoFirePendingRef.current)) &&
     !error &&
-    !showUpgradeModal
+    !showUpgradeModal &&
+    !engineFit // KINEO-APERTOU-E-NAO-SAIU-2026-09-24 — o 409 de encaixe põe phase 'idle' sem erro; sem isto a cortina engolia o aviso
   ) {
     return (
       <div className="stu" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '72vh', textAlign: 'center' }}>

@@ -52,7 +52,9 @@ checa('já tomado por outra rodada: nunca duas vezes', J.decideOrphanJob({ opene
 checa('7 h depois: velho demais', J.decideOrphanJob({ openedAtMs: t0, nowMs: t0 + 7 * 3600 * 1000, taken: false, serverProgressAfter: false, newerJob: false }).reason === 'too_old')
 const mutJ = jSrc.replace("if (input.serverProgressAfter) return { orphan: false, reason: 'server_progressed' }", '')
 checa('mutante (ignorar progresso do servidor → filme em dobro) é pego', roda(mutJ).decideOrphanJob({ openedAtMs: t0, nowMs: agora, taken: false, serverProgressAfter: true, newerJob: false }).orphan === true)
-checa('o corpo que vai ao fast só leva o que a rota entende', JSON.stringify(Object.keys(J.fastRequestFromJob(J.sanitizeRenderJobPayload(bom))).sort()) === JSON.stringify(['duration', 'language', 'orphan_job', 'prompt']))
+// KINEO-APERTOU-E-NAO-SAIU-2026-09-24 — reancorado com motivo: o replay passa a levar engineFitOverride:true (a rota entende
+// essa chave desde KINEO-ENGINE-FIT-2026-09-09); sem ela o cron batia no mesmo 409 e dizia "a aba fechou".
+checa('o corpo que vai ao fast só leva o que a rota entende', JSON.stringify(Object.keys(J.fastRequestFromJob(J.sanitizeRenderJobPayload(bom))).sort()) === JSON.stringify(['duration', 'engineFitOverride', 'language', 'orphan_job', 'prompt']))
 const gc = rd('app/(dashboard)/generate/GenerateClient.tsx')
 checa('cliente grava o pedido logo depois de video_generation_started, com keepalive, só no Kineo 1', /trackEvent\('video_generation_started', dispatchMetadata\)[\s\S]{0,900}if \(mode === 'fast' \|\| mode === 'creator'\) \{[\s\S]{0,300}fetch\('\/api\/render-jobs', \{[\s\S]{0,200}keepalive: true/.test(gc))
 const rj = rd('app/api/render-jobs/route.ts')

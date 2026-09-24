@@ -91,6 +91,11 @@ export function decideOrphanJob(input: {
 }
 
 /** O corpo que o cron manda a /api/generate-video-fast: só o que a rota entende, nada do navegador. */
+// KINEO-APERTOU-E-NAO-SAIU-2026-09-24 — `engineFitOverride: true`: o aviso "Kineo 1 não conta esta história" (409,
+// route.ts:535) é uma ESCOLHA com botão, e quem saiu da aba não está lá para apertar. Sem esta linha o replay batia no
+// MESMO 409, o cron gravava render_job_finished 409 e a carta de socorro dizia "a aba fechou" (falso). Medido 24/09:
+// 6 de 13 pessoas que apertaram Gerar e não receberam filme em 7 d — todas trial de 10 cr, 5 via ChatGPT, uma no próprio
+// dia 24. O cron entrega o Kineo 1 que foi clicado; desenho animado cai no modo de quadros desenhados da rota.
 export function fastRequestFromJob(job: RenderJobPayload): Record<string, unknown> {
   return {
     prompt: job.prompt,
@@ -98,6 +103,7 @@ export function fastRequestFromJob(job: RenderJobPayload): Record<string, unknow
     language: job.language,
     ...(job.aspect !== '9:16' ? { aspect: job.aspect } : {}),
     ...(job.script_mode === 'verbatim' ? { script_mode: 'verbatim' } : {}),
+    engineFitOverride: true,
     orphan_job: true,
   }
 }

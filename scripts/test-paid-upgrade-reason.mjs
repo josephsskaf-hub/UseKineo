@@ -22,6 +22,9 @@ function run(input = {}, requested = 'credits', implementation = opener) {
     hasPaid: false, isStarter: false, isCreator: false, isStudio: false,
     trialUi: { creditsGranted: 30, phase: 'downgraded' }, trialActive: false,
     credits: 20, CARD_TRIAL_LIVE: false, freeFilmAvailable: true, limitPurchaseFit: null,
+    // KINEO-APERTOU-E-NAO-SAIU-2026-09-24 — o abridor passou a ler o motor da tela (mode/aiEngine) para dar a frase
+    // certa a quem está no trial com saldo; o padrão é o Kineo 1, como na tela.
+    mode: 'fast', aiEngine: 'seedance',
     ...input,
     setUpgradeReason: value => observed.reasons.push(value),
     setShowUpgradeModal: value => observed.modal.push(value),
@@ -69,8 +72,19 @@ expect({ hasPaid: true, trialActive: true, trialUi: { creditsGranted: 30, phase:
 expect({}, 'credits', 'trial_ended', 'unpaid downgraded trial')
 expect({ trialUi: { creditsGranted: 30, phase: 'ending' }, credits: 0 },
   'credits', 'trial_ended', 'unpaid exhausted trial')
-expect({ trialActive: true, trialUi: { creditsGranted: 30, phase: 'active' } },
-  'credits', 'trial_spent', 'unpaid active trial')
+// KINEO-APERTOU-E-NAO-SAIU-2026-09-24 — reancorado com motivo: "You used your whole trial" com saldo sobrando era
+// mentira (066acf11 viu com 10/10). trial_spent passa a exigir saldo zero; com saldo, motor de IA vê a frase do
+// motor que pede plano pago ('creator' = Seedance, 'studio' = premium) e o Kineo 1 segue em 'credits'.
+expect({ trialActive: true, trialUi: { creditsGranted: 30, phase: 'active' }, credits: 0 },
+  'credits', 'trial_spent', 'unpaid active trial, balance zero')
+expect({ trialActive: true, trialUi: { creditsGranted: 10, phase: 'active' }, credits: 10, mode: 'cinematic_ai', aiEngine: 'seedance' },
+  'credits', 'creator', 'unpaid active trial with balance, Seedance: never "used your whole trial"')
+expect({ trialActive: true, trialUi: { creditsGranted: 10, phase: 'active' }, credits: 10, mode: 'cinematic_ai', aiEngine: 'hollywood' },
+  'credits', 'studio', 'unpaid active trial with balance, premium engine')
+expect({ trialActive: true, trialUi: { creditsGranted: 10, phase: 'active' }, credits: 2, mode: 'fast' },
+  'credits', 'credits', 'unpaid active trial with balance, Kineo 1')
+expect({ hasPaid: true, trialActive: true, trialUi: { creditsGranted: 10, phase: 'active' }, credits: 10, mode: 'cinematic_ai', aiEngine: 'seedance' },
+  'credits', 'credits', 'paid account never gets the trial phrases')
 expect({ trialUi: { creditsGranted: 0, phase: 'downgraded' } },
   'credits', 'credits', 'never granted a trial')
 expect({ trialUi: null }, 'credits', 'credits', 'trial unknown')
