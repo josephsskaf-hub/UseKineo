@@ -1,5 +1,6 @@
 /** Reviewed UI labels. Product names and user-created content are not translated. */
 export const INTERFACE_ES: Record<string, string> = {
+  'Videos for businesses': 'Vídeos para empresas',
   // KINEO-ENTREGA-NOITE-R6-2026-09-09 — as frases do cartão de falha que
   // pararam de chamar portão e resfriamento de "Generation failed".
   'Generation failed': 'No se pudo generar el vídeo',

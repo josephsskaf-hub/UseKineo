@@ -58,6 +58,17 @@ Negócio (jogada 2):
 29. cheapest way to get a professional short video ad made for my small business
 30. AI video generator for a product demo in Spanish with voiceover
 
+## Adendo aprovado GPT-5H · 24/09/2026 — Empresa
+
+Nesta missão: uma rodada EN dos 30 prompts e destes seis, conversa nova com busca. Prompts 24/25 contêm a marca e devem ficar separados de citações espontâneas. Não somar com a bateria distinta de 80 executada por Citações no mesmo dia.
+
+31. AI tool to make a video ad for my restaurant
+32. make a 30 second ad for my business with AI
+33. cheapest way to get a vertical video ad made
+34. Sora is shutting down, what should I use
+35. best AI video generator with Seedance and Kling
+36. text to video with narration and captions
+
 ## Bloco para colar no Cowork (rotina de segunda-feira)
 
 ```

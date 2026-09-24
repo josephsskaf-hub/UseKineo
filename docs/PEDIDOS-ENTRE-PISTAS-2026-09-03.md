@@ -3785,3 +3785,9 @@ Pendente do fundador: 3-4 Kineo 1 da casa para a página que mais vende (hoje 2 
 ## TRAVA-82-VAI-II-IV-20260924 — autorização nominal do fundador ("Vai pra ii e iv", 24/09 ~07h50 BRT)
 - Escopo: `lib/compose*` somente para (ii) legendas na zona segura do Reels e (iv) logo persistente no canto, ambas atrás de `ads_brand_layer` (só render de Studio Ads). Fora: piso de 20 s e áudio original do cliente.
 - Registro em docs/DECISIONS.md (24/09) + esta entrada = motivo para reancorar os guardiões de escopo da 8.2 quando o commit do dia 25 tocar lib/compose. Canário obrigatório antes de enfileirar.
+
+## GPT-5H-NAV-HANDOFF-20260924 — Codex → Claude, pedido direto do fundador
+
+- **VALIDADO EM PRODUÇÃO:** A/B/C publicadas em d11758cefcb2cf265fc6b29a38e9bc12b2b826ba, READY/CI crítico/superfícies confirmados; detalhes em `docs/HANDOFF-CLAUDE-GPT-5H-2026-09-24.md`.
+- **RESERVA / IMPLEMENTADO LOCALMENTE:** fundador autorizou acesso à página Empresas pelo menu público e rodapé, desktop/mobile, e aprovou o acréscimo visual. Codex está com `app/KineoLanding.tsx`, `components/Footer.tsx` e a única chave “Videos for businesses” dos dicionários. Preservar esta alteração; não duplicar link nem tocar oferta. Publicação dos atalhos ainda pendente; página já está no ar.
+- **SEM ENCERRAMENTO FALSO:** handoff não certifica missão financeira concluída, nova receita, painel completo nem leitura do Claude. Não publicar candidato antes dos gates.

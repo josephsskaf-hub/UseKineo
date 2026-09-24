@@ -193,7 +193,8 @@ checa('a janela ON de freeTierOffer é FREE_FAST_WEEKLY_WINDOW_MS = 7 dias (o qu
 
 const llms = rd('app/llms.txt/route.ts')
 checa("llms: preço do Starter formatado (formatCheckoutMoney), nunca `TIER_PRICES.starter.usd / 100`", llms.includes("${formatCheckoutMoney('usd', TIER_PRICES.starter.usd)}/month") && !llms.includes('.usd / 100'))
-checa("llms: veredito do one-off é honesto (não para conta nova; planos a partir do Starter; top-ups para assinantes)", llms.includes('"One-off video without a subscription" → not for new accounts today') && llms.includes('one-time top-up credit packs are') && !llms.includes('video unlock for $4.90, no plan required'))
+// GPT-5H: Empresas now has an explicit one-time human-operated path; self-service restrictions remain.
+checa("llms: one-off operado separado de planos e top-ups", llms.includes('"A business video made for me without a subscription"') && llms.includes('For self-service generation, Kineo') && llms.includes('one-time top-up credit packs are') && !llms.includes('video unlock for $4.90, no plan required'))
 checa('llms: o preço do unlock regional sai de packPriceLabel, não digitado', llms.includes("${packPriceLabel('usd')} single-video unlock") && !/\(The \$4\.90/.test(llms))
 checa('llms: Sora sem contagem regressiva (rota force-static congelava) — texto estático com as duas datas', !llms.includes('Date.now()') && !llms.includes('days away') && llms.includes('the app closed on') && llms.includes('2026-04-26') && llms.includes('2026-09-24'))
 checa('llms: a página nova Seedance vs Veo vs Kling está listada nas comparações', llms.includes('[Seedance vs Veo vs Kling for Shorts — measured on real renders](${BASE}/seedance-vs-veo-vs-kling): what each engine delivers, median length and cost per film, read from the production database.'))
@@ -203,7 +204,7 @@ const oaRaw = rd('public/gpt/openapi.json')
 let oa = null
 try { oa = JSON.parse(oaRaw) } catch {}
 checa('openapi.json continua JSON válido', Boolean(oa))
-checa("openapi info.version = 1.2.2", oa?.info?.version === '1.2.2')
+checa("openapi info.version = 1.3.0 com GET de fatos sem nova compra", oa?.info?.version === '1.3.0' && oa?.paths?.['/api/facts']?.get?.operationId === 'getKineoFacts' && !oa?.paths?.['/api/facts']?.post)
 const oaStrings = []
 ;(function walk(v) { if (typeof v === 'string') oaStrings.push(v); else if (v && typeof v === 'object') Object.values(v).forEach(walk) })(oa)
 const trialCap = num(rd('lib/reverseTrial.ts'), 'TRIAL_CREDIT_CAP')

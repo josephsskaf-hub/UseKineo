@@ -21,7 +21,8 @@ check(source.includes('before any render begins'), 'copy states the review bound
 check(!source.includes('/free?utm_source=sora_alternative'), 'old generic /free jump is removed')
 check(!source.includes('utmSource='), 'form does not overwrite the real first-touch source')
 check(source.indexOf('<TopicGeneratorForm') < source.indexOf('Why trust this page?'), 'form appears at the migration decision before the trust appendix')
-check(source.includes('sora.chatgpt.com/sunset'), 'export guidance remains intact')
+// GPT-5H 24Sep: do not promise an expired/unverified export window; keep primary guidance.
+check(source.includes('We do not assume an export window is still open'), 'export boundary remains honest after API shutdown')
 check(source.includes('help.openai.com/en/articles/20001152'), 'primary-source link remains intact')
 
 console.log(`PASS — ${checks}/${checks} Sora migration topic checks`)

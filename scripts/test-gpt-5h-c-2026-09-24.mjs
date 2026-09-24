@@ -1,0 +1,17 @@
+import { source, moduleAt, checks } from './gpt-5h-test-support.mjs'
+const { check, finish } = checks()
+const { getKineoFacts, DFY_SERVICE_FACT } = await moduleAt('lib/kineoFacts.ts')
+const { TRIAL_CREDITS_SHOWN } = await moduleAt('lib/freeTierOffer.ts')
+let schema = JSON.parse(source('public/gpt/openapi.json'))
+if (process.argv.includes('--mutant')) delete schema.paths['/api/facts']
+const facts = getKineoFacts()
+check('facts expose the same operated offer, not a duplicate', facts.businessVideoService === DFY_SERVICE_FACT && !DFY_SERVICE_FACT.recurring && DFY_SERVICE_FACT.humanOperated)
+check('existing agency business offer preserved', Boolean(facts.businessOffer) && facts.businessOffer !== facts.businessVideoService)
+check('trial is current 10-credit source, not changed by mission', TRIAL_CREDITS_SHOWN === 10)
+check('OpenAPI reads live tier price/deadline without new order endpoint', schema.paths['/api/facts']?.get?.operationId === 'getKineoFacts' && JSON.stringify(schema.paths['/api/facts']).includes('priceUsdMinor') && JSON.stringify(schema.paths['/api/facts']).includes('hours'))
+check('handoff still requires user-approved script', schema.paths['/api/gpt/handoff'].post.description.includes('user-approved') && schema.paths['/api/gpt/handoff'].post.description.includes('explicit approval'))
+const llms = source('app/llms.txt/route.ts')
+check('llms derives both tiers, requirements and refund from shared source', llms.includes('DFY_SERVICE_FACT.tiers.map') && llms.includes('DFY_SERVICE_FACT.requirements') && llms.includes('DFY_SERVICE_FACT.refund'))
+check('llms separates one-time service from recurring revenue', llms.includes('kind=dfy') && llms.includes('not recurring revenue'))
+check('public facts endpoint actually calls the updated payload', source('app/api/facts/route.ts').includes('getKineoFacts('))
+finish()

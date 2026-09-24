@@ -43,6 +43,8 @@ import {
   type CheckoutTier,
 } from './checkoutPricing'
 import { PLANS } from './pricing'
+import { DFY_SERVICE_FACT } from './growth/dfyServiceFacts'
+export { DFY_SERVICE_FACT } from './growth/dfyServiceFacts'
 import { creditsPerReferenceVideo, videosPerMonth } from './marketingPrice'
 import { TOOLS, PAIRS, VERIFIED_ON, VERIFIED_ON_ISO, BASE } from './comparisons'
 import { getFreeTierOffer } from './freeTierOffer'
@@ -1220,6 +1222,8 @@ export interface KineoFactsPayload {
   costPlanner: PublicCostPlannerFact
   /** One-time commercial production packs; distinct from recurring plans. */
   businessOffer: BusinessOfferFact
+  /** Human-operated one-time video service, never subscription MRR. */
+  businessVideoService: typeof DFY_SERVICE_FACT
   /** Work-state router across the four existing public business paths. */
   businessCreationRouter: BusinessAnswerEngineRouter
   plans: PlanFact[]
@@ -1279,6 +1283,7 @@ export function getKineoFacts(): KineoFactsPayload {
     freeTools: FREE_TOOL_FACTS,
     costPlanner: PUBLIC_COST_PLANNER_FACT,
     businessOffer: BUSINESS_OFFER_FACT,
+    businessVideoService: DFY_SERVICE_FACT,
     businessCreationRouter: BUSINESS_ANSWER_ENGINE_ROUTER,
     plans: PLAN_FACTS,
     engines: ENGINE_FACTS,

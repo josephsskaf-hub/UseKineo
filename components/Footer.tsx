@@ -66,6 +66,7 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
     // do app — o Footer não está no layout raiz.
     // ═══════════════════════════════════════════════════════════════════════
     links: [
+      { href: '/business-video-ads', label: 'Videos for businesses' },
       // KINEO-NOITE-2026-08-17 — os produtos novos do dia entram no rodape
       // (26 paginas publicas linkando; nenhuma pagina nasce orfa).
       { href: '/images', label: 'AI image generator — 6 engines' },

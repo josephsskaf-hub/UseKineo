@@ -14,21 +14,24 @@
 // zero FUD além do fato público do desligamento.
 import type { Metadata } from 'next'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
+import SoraReplacementTable from '@/components/SoraReplacementTable'
+import { SORA_API_SHUTDOWN, SORA_API_SOURCE } from '@/lib/growth/soraMigrationFacts'
+import { TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
 
 export const dynamic = 'force-static'
 
 const BASE = 'https://www.usekineo.com'
-const LAST_UPDATED = 'August 24, 2026'
+const LAST_UPDATED = 'September 24, 2026'
 
 export const metadata: Metadata = {
   title: 'Sora Is Shut Down — Where Sora Users Are Going in 2026',
   description:
-    "OpenAI discontinued the Sora app on April 26, 2026, and the Sora API shuts down September 24, 2026. What that means, how to export your Sora content, and the honest options for text-to-video creators — including when Kineo fits and when it doesn't.",
+    'Sora 2 API shutdown: September 24, 2026. Compare available Kineo engines, current film credit costs and the path to Studio. Omni Flash is paused.',
   alternates: { canonical: `${BASE}/sora-alternative` },
   openGraph: {
     title: 'Sora Is Shut Down — Where Sora Users Are Going',
     description:
-      'Sora app: discontinued April 26, 2026. Sora API: ends September 24, 2026. Export steps and honest alternatives for text-to-video creators.',
+      'Sora 2 API shutdown: September 24, 2026. Current alternatives, availability and credit costs for finished videos.',
     url: `${BASE}/sora-alternative`,
     type: 'article',
   },
@@ -43,7 +46,7 @@ const FAQ_JSONLD = {
       name: 'Is Sora shut down?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Yes. OpenAI discontinued the Sora web and app experiences on April 26, 2026. The Sora API will be discontinued on September 24, 2026, per OpenAI’s help center.',
+        text: `${SORA_API_SHUTDOWN} in the OpenAI API, according to the official API deprecations schedule. This date refers to the Videos API and Sora 2 models, not a new announcement about the consumer app.`,
       },
     },
     {
@@ -51,7 +54,7 @@ const FAQ_JSONLD = {
       name: 'Can I still export my Sora videos?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'OpenAI provides an export at sora.chatgpt.com/sunset. After the final export window passes, OpenAI states it will permanently delete Sora data — so export as soon as possible.',
+        text: 'Check OpenAI’s current discontinuation guidance for your account. Kineo cannot export or recover Sora data, and this page does not assert that an export window is still open.',
       },
     },
     {
@@ -59,7 +62,7 @@ const FAQ_JSONLD = {
       name: 'What is the best Sora alternative for short-form creators?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'It depends on what you used Sora for. For raw cinematic clips, engines like Kling and Veo are direct successors. If your goal was finished vertical Shorts — script, voiceover, footage and captions in one pipeline — Kineo runs Kling 3, Veo 3.1, Seedance and MiniMax H3 under one roof and delivers a finished 9:16 video, with a free tier that needs no card.',
+        text: `Kineo combines script, narration, footage and captions for finished videos. Seedance 1.5, Kling 3 and Veo 3.1 require a paid plan and sufficient credits. The no-card trial has ${TRIAL_CREDITS_SHOWN} credits for the Kineo 1 path, not free access to every generative engine.`,
       },
     },
   ],
@@ -77,25 +80,25 @@ export default function SoraAlternativePage() {
       </h1>
 
       <section style={{ background: 'rgba(251,146,60,.08)', border: '1px solid rgba(251,146,60,.35)', borderRadius: 12, padding: '18px 22px', margin: '0 0 26px' }}>
-        <p style={{ margin: 0, color: '#f5f5f7', fontWeight: 700 }}>The verified facts, from OpenAI’s own help center:</p>
+        <p style={{ margin: 0, color: '#f5f5f7', fontWeight: 700 }}>{SORA_API_SHUTDOWN} in the OpenAI API. The official deprecations schedule identifies this date for the Videos API and Sora 2 models.</p>
         <ul style={{ color: '#c7c7cc', margin: '10px 0 0', paddingLeft: 20 }}>
-          <li>The Sora <b>web and app</b> were discontinued on <b>April 26, 2026</b>.</li>
-          <li>The Sora <b>API</b> will be discontinued on <b>September 24, 2026</b>.</li>
-          <li>After the export window, OpenAI says it will <b>permanently delete</b> Sora data.</li>
+          <li>This is the <b>API shutdown date</b>, not a claim that the consumer app closed today.</li>
+          <li>Kineo does not offer Sora as a replacement engine.</li>
+          <li>Choose an available engine below; Omni Flash is currently paused.</li>
         </ul>
         <p style={{ color: '#86868b', fontSize: 13, marginTop: 10 }}>
           Source:{' '}
-          <a href="https://help.openai.com/en/articles/20001152-what-to-know-about-the-sora-discontinuation" style={{ color: '#2997ff' }} rel="nofollow noreferrer">
-            “What to know about the Sora discontinuation” — OpenAI Help Center
+          <a href={SORA_API_SOURCE} style={{ color: '#2997ff' }} rel="noreferrer">
+            OpenAI API deprecations — Sora 2 / Videos API
           </a>{' '}
           (read {LAST_UPDATED}).
         </p>
       </section>
 
-      <h2 style={{ fontSize: 22, fontWeight: 900, margin: '28px 0 10px' }}>First: export your Sora content now</h2>
+      <SoraReplacementTable />
+      <h2 style={{ fontSize: 22, fontWeight: 900, margin: '28px 0 10px' }}>What about existing Sora videos?</h2>
       <p style={{ color: '#c7c7cc' }}>
-        Go to <b>sora.chatgpt.com/sunset</b> and click Export — you’ll get an email when it’s ready.
-        Don’t wait: once the final window closes, OpenAI states the data is permanently deleted.
+        Check <a href="https://help.openai.com/en/articles/20001152-what-to-know-about-the-sora-discontinuation" style={{ color: '#2997ff' }}>OpenAI’s current discontinuation guidance</a> for your account. Kineo cannot export or recover Sora data. We do not assume an export window is still open.
       </p>
 
       <h2 style={{ fontSize: 22, fontWeight: 900, margin: '28px 0 10px' }}>Then: pick your next tool by what you actually made</h2>
@@ -108,9 +111,8 @@ export default function SoraAlternativePage() {
         <b>If your real goal was finished short-form videos</b> — the clip was always just one
         ingredient — that’s the case Kineo was built for: you type an idea, and it returns a finished
         9:16 Short with script, AI voiceover, footage from those same engines, and captions. On Kling 3
-        and MiniMax H3, characters on screen speak the scripted lines with lip sync. There’s a{' '}
-        <a href={`${BASE}/free`} style={{ color: '#2997ff' }}>free tier with no card</a> to check the
-        claim in minutes.
+        and MiniMax H3, characters can speak scripted lines with lip sync. Those engines require a paid plan and enough credits. The{' '}
+        <a href={`${BASE}/free`} style={{ color: '#2997ff' }}>no-card trial</a> has {TRIAL_CREDITS_SHOWN} credits for Kineo 1, not free access to Kling, Veo or Seedance.
       </p>
       <p style={{ color: '#c7c7cc' }}>
         {/* KINEO-MULTIFORMATO-2026-09-02 — este parágrafo mandava embora todo
@@ -129,7 +131,7 @@ export default function SoraAlternativePage() {
           decidido a migrar; a banda dá o próximo passo sem caçar link. */}
       <div style={{ background: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.35)', borderRadius: 12, padding: '20px 22px', margin: '30px 0', textAlign: 'center' }}>
         <p style={{ color: '#f5f5f7', fontWeight: 800, fontSize: 16, margin: '0 0 6px' }}>
-          Test the migration path in the next 5 minutes
+          Bring your idea into Kineo
         </p>
         <p style={{ color: '#86868b', fontSize: 13, margin: 0 }}>
           Bring one idea with you. It stays attached through signup and arrives editable before anything renders.
