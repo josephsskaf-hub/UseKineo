@@ -49,7 +49,7 @@ export default async function ExamplesDesign({ searchParams }: { searchParams: {
     </div></header>
     <section className={styles.content}>
       <div className={styles.intro}><div><h1>Watch what Kineo actually makes.</h1><p>Explore selected previews from films made with Kineo. Find a style, watch it, and start with your own idea.</p></div></div>
-      <ExamplesGallery key={selection.name} videos={videos} startPaused />
+      <ExamplesGallery key={selection.name} videos={videos.slice(0, 6)} startPaused />
     </section>
   </main>
 }
