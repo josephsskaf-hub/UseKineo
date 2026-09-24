@@ -1,6 +1,7 @@
 import type { WallVideo } from '@/lib/engineWall'
 import { APPROVED_HOME_VIDEOS_SEP16 } from '@/lib/homeVideoCuration'
 import { ENGINE_PAGE_LEAD } from '@/lib/publicExamples'
+import { EXAMPLES_SELECTION_SEP24 } from './examplesSelectionSep24'
 
 const engines: Record<string, { badge: string; route: string }> = {
   cinematic_ai: { badge: 'SEEDANCE 1.5', route: 'seedance' },
@@ -27,7 +28,9 @@ export function expandExamples(existing: readonly WallVideo[]): WallVideo[] {
       publicSource: 'founder_owned_engine_example' as const,
     })),
   ]
-  return Array.from(new Map([...additions, ...existing].map(v => [v.id, v])).values())
+  const catalogue = new Map([...additions, ...existing].map(v => [v.id, v]))
+  const selectedIds = new Set(EXAMPLES_SELECTION_SEP24.map(v => v.id))
+  return [...EXAMPLES_SELECTION_SEP24, ...Array.from(catalogue.values()).filter(v => !selectedIds.has(v.id))]
 }
 
 export function searchExamples(videos: readonly WallVideo[], query: string, engine: string): WallVideo[] {

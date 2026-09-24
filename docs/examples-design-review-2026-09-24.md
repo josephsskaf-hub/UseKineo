@@ -1,5 +1,17 @@
 # Examples — revisão visual, 24/09/2026
 
+## Seleção do fundador — atualização de 24/09
+
+**DECISÃO DO USUÁRIO NESTA TAREFA / IMPLEMENTADO EM PRÉVIA:** nove filmes escolhidos por screenshot, em três destaques (farol, trem, vulcão) e seis cards (Tunguska Omni, robô Omni, Tunguska H3, avião de 1942, Lituya H3, castelo). A seleção substitui o catálogo na página candidata, sem repetição entre hero e coleção. As quatro alternativas continuam disponíveis na rota de revisão.
+
+**EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT somente leitura, 24/09/2026):** os IDs novos `0ebba562-2599-40e2-ae46-b03e67dd3a28`, `48f1007c-d9be-4702-91c6-c9f1e0c3db38` e `19e317fe-6838-4edc-9fbf-d830d62be140` pertencem à conta do fundador; motores e durações conferem com os prints (H3/43s, Seedance/84s, H3/39s). As três escolhas de 16/09 também foram verificadas por ID e proprietário. Não houve escrita em banco nem alteração da política pública de vídeos de clientes.
+
+**FATO CONFIRMADO:** `lib/ui/examplesSelectionSep24.ts` contém a lista explícita. Seis arquivos em `public/previews/examples-sep24/` são trechos reais dos primeiros dez segundos dos renders selecionados, H.264 540px sem áudio; capas são frames aos 0,3s. Omni e castelo reutilizam os previews públicos já aprovados. O player informa que são previews e preserva o enquadramento vertical; o hero usa recorte visual com foco ajustado no farol.
+
+**TESTADO LOCALMENTE:** 505 verificações offline após a seleção, incluindo nove entradas únicas e seis cards abaixo do hero. Artefato `sua-selecao.html` e antes/depois regenerados. Esta atualização permanece na branch de prévia.
+
+## Histórico das quatro propostas
+
 **SUGESTÃO / IMPLEMENTADO EM BRANCH DE PRÉVIA:** quatro montagens com a estrutura de cards escolhida pelo fundador. Ele pediu nova escolha do acervo antes da publicação. Não integrar em main até essa escolha.
 
 **FATO CONFIRMADO:** `app/examples/design/page.tsx` aceita quatro opções explícitas e devolve 404 fora de `VERCEL_ENV=preview`. Assets e motores vêm da curadoria existente em `lib/publicExamples.ts` e `lib/homeVideoCuration.ts`. Nenhuma consulta adicional a vídeos privados.

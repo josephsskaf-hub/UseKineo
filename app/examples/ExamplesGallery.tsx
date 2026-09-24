@@ -34,9 +34,9 @@ function FeaturedMedia({ video, paused }: { video: WallVideo; paused: boolean })
     return () => { media?.pause() }
   }, [active, mounted])
   return <span className={styles.featuredMedia} ref={container}>
-    <img src={video.posterUrl} alt="" loading="eager" />
+    <img src={video.posterUrl} alt="" loading="eager" style={{ objectPosition: video.focalPoint }} />
     {mounted && !failed && <video ref={player} src={video.previewUrl ?? video.videoUrl} muted loop playsInline preload="none"
-      style={{ opacity: playing ? 1 : 0 }} onPlaying={() => setPlaying(true)} onError={() => setFailed(true)} />}
+      style={{ opacity: playing ? 1 : 0, objectPosition: video.focalPoint }} onPlaying={() => setPlaying(true)} onError={() => setFailed(true)} />}
   </span>
 }
 
@@ -58,7 +58,7 @@ function ExamplePreview({ video, onClose }: { video: WallVideo; onClose: () => v
       <button type="button" autoFocus onClick={onClose} className={styles.close} aria-label="Close preview">×</button>
       <div className={styles.player}>
         {failed ? <p role="status">This preview is unavailable. You can still explore this style in the Studio.</p>
-          : <video src={video.videoUrl} poster={showcasePoster(video)} controls autoPlay muted playsInline preload="metadata"
+          : <video src={video.videoUrl} poster={video.posterUrl ?? showcasePoster(video)} controls autoPlay muted playsInline preload="metadata"
               aria-label={`Preview: ${video.title}`} onError={() => setFailed(true)} />}
       </div>
       <div className={styles.previewInfo}>
@@ -73,15 +73,16 @@ function ExamplePreview({ video, onClose }: { video: WallVideo; onClose: () => v
   </dialog>
 }
 
-export default function ExamplesGallery({ videos, startPaused = false }: { videos: WallVideo[]; startPaused?: boolean }) {
+export default function ExamplesGallery({ videos, startPaused = false, separateFeatured = false }: { videos: WallVideo[]; startPaused?: boolean; separateFeatured?: boolean }) {
   const [query, setQuery] = useState('')
   const [engine, setEngine] = useState('all')
   const [selected, setSelected] = useState<WallVideo | null>(null)
   const [paused, setPaused] = useState(startPaused)
   const opener = useRef<HTMLButtonElement | null>(null)
   const searchId = useId()
-  const filtered = searchExamples(videos, query, engine)
-  const choices = showcaseEngines(videos)
+  const collection = separateFeatured && videos.length >= 3 ? videos.slice(3) : videos
+  const filtered = searchExamples(collection, query, engine)
+  const choices = showcaseEngines(collection)
   const open = (video: WallVideo, button: HTMLButtonElement) => { opener.current = button; setSelected(video) }
   useEffect(() => { if (!selected) opener.current?.focus({ preventScroll: true }) }, [selected])
   return <div className={styles.gallery}>

@@ -46,7 +46,7 @@ const policy = load('lib/ui/examplesGallery.ts')
 const media = load('lib/ui/showcaseGallery.ts')
 const original = JSON.stringify(base)
 const videos = policy.expandExamples(base)
-ok(videos.length === base.length + 5, 'five additional approved films')
+ok(videos.length === base.length + 8, 'eight additional approved films including three newly selected renders')
 ok(new Set(videos.map(v=>v.id)).size === videos.length, 'no duplicated films')
 ok(JSON.stringify(base) === original, 'existing collection unchanged')
 ok(policy.expandExamples(videos).length === videos.length, 'repeat expansion is idempotent')
@@ -76,10 +76,20 @@ ok(renderToStaticMarkup(React.createElement(Gallery,{videos:[]})).includes('No m
 const Page = load('app/examples/page.tsx').default
 const after = renderToStaticMarkup(await Page())
 ok(after.includes('Open Studio'), 'signed-in entry preserved')
+ok((after.match(/class="card"/g) ?? []).length === 6, 'candidate page has six collection cards')
+ok((after.match(/aria-label="Watch preview:/g) ?? []).length === 9, 'candidate page has exactly nine different entry points')
 loggedIn = false
 ok(renderToStaticMarkup(await Page()).includes('/signup?'), 'visitor entry preserved')
 loggedIn = true
 const Design = load('app/examples/design/page.tsx').default
+const chosen = load('lib/ui/examplesSelectionSep24.ts').EXAMPLES_SELECTION_SEP24
+ok(chosen.length === 9 && new Set(chosen.map(v=>v.id)).size === 9, 'nine distinct screenshot selections')
+ok(chosen.filter(v=>v.engine === 'cinematic_h3').length === 2, 'both selected H3 versions retained')
+ok(chosen.every((v,i)=>videos[i].id === v.id && videos[i].videoUrl === v.videoUrl), 'selected clips lead without hero media overrides')
+const selectedScreen = renderToStaticMarkup(await Design({searchParams:{option:'selected'}}))
+ok((selectedScreen.match(/class="card"/g) ?? []).length === 6, 'selection preview shows exactly six collection cards')
+ok((selectedScreen.match(/aria-label="Watch preview:/g) ?? []).length === 9, 'three hero plus six cards without repetition')
+ok(selectedScreen.includes('Sua seleção'), 'selection is named for the founder')
 const screens = []
 for (let option=1; option<=4; option++) {
   const screen = renderToStaticMarkup(await Design({searchParams:{option:String(option)}}))
@@ -118,6 +128,7 @@ if (process.argv.includes('--preview')) {
   fs.writeFileSync(path.join(destination,'before.html'),document(before))
   fs.writeFileSync(path.join(destination,'after.html'),document(after,read('app/examples/ExamplesGallery.module.css')))
   screens.forEach((screen,index)=>fs.writeFileSync(path.join(destination,`montagem-${index+1}.html`),document(screen,read('app/examples/ExamplesGallery.module.css'))))
+  fs.writeFileSync(path.join(destination,'sua-selecao.html'),document(selectedScreen,read('app/examples/ExamplesGallery.module.css')))
   const escape = s=>s.replaceAll('&','&amp;').replaceAll('"','&quot;')
   const panels = [['Antes · desktop','before.html',1440],['Depois · desktop','after.html',1440],['Antes · celular','before.html',390],['Depois · celular','after.html',390]].map(([label,file,width])=>`<section><h2>${label}</h2><iframe title="${label}" style="width:${width}px;height:950px" srcdoc="${escape(read(path.join(destination,file)))}"></iframe></section>`).join('')
   fs.writeFileSync(path.join(destination,'ANTES-DEPOIS.html'),`<!doctype html><html lang="pt-BR"><meta charset="utf-8"><title>Examples — antes e depois</title><style>body{margin:24px;background:#10151d;color:#eee;font:16px Arial}iframe{border:1px solid #334155;border-radius:12px}section{margin:30px 0}</style><h1>Examples — antes e depois</h1><p>JSX real, CSS inline e capas locais. Prévia estática: filtros e player são verificados no site publicado. Ponte comercial inalterada omitida.</p>${panels}</html>`)

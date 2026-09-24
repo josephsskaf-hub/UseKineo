@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getEngineHero, getExamplesBest, type WallVideo } from '@/lib/engineWall'
 import { expandExamples } from '@/lib/ui/examplesGallery'
+import { EXAMPLES_SELECTION_SEP24 } from '@/lib/ui/examplesSelectionSep24'
 import { showcasePoster } from '@/lib/ui/showcaseGallery'
 import ExamplesGallery from '../ExamplesGallery'
 import styles from '../ExamplesGallery.module.css'
@@ -31,18 +32,21 @@ const posters: Record<string, string> = {
 export default async function ExamplesDesign({ searchParams }: { searchParams: { option?: string } }) {
   if (process.env.VERCEL_ENV !== 'preview') notFound()
   const index = Math.max(0, Math.min(3, (Number(searchParams.option) || 1) - 1))
-  const selection = arrangements[index] ?? arrangements[0]
+  const userSelection = !searchParams.option || searchParams.option === 'selected'
+  const selection = userSelection
+    ? { name: 'Sua seleção · nove vídeos', note: 'Três destaques e seis cards, sem repetir vídeos e sem valores de créditos.', ids: EXAMPLES_SELECTION_SEP24.map(v => v.id) }
+    : arrangements[index] ?? arrangements[0]
   const [examples, hero] = await Promise.all([getExamplesBest(), getEngineHero()])
-  const stock = new Map<string, WallVideo>([...expandExamples(examples), ...hero].map(v=>[v.id,v]))
+  const stock = new Map<string, WallVideo>([...expandExamples(examples), ...hero, ...(userSelection ? EXAMPLES_SELECTION_SEP24 : [])].map(v=>[v.id,v]))
   const preferred = selection.ids.map(id=>stock.get(id)).filter((v): v is WallVideo => Boolean(v))
   const used = new Set(preferred.map(v=>v.id))
   const videos = [...preferred, ...stock.values()].filter((v,i)=>i < preferred.length || !used.has(v.id)).map(v=>({
-    ...v, posterUrl: posters[v.id] ? `/posters/examples-sep24/${posters[v.id]}.webp` : (v.posterUrl ?? showcasePoster(v)),
+    ...v, posterUrl: !userSelection && posters[v.id] ? `/posters/examples-sep24/${posters[v.id]}.webp` : (v.posterUrl ?? showcasePoster(v)),
   }))
   return <main className={styles.page}>
     <div className={styles.reviewBar}>
       <strong>Prévia para escolha · {selection.name}</strong>
-      <nav aria-label="Escolher montagem">{arrangements.map((item,i)=><Link key={item.name} href={`/examples/design?option=${i+1}`} aria-current={index===i?'page':undefined}>{item.name}</Link>)}</nav>
+      <nav aria-label="Escolher montagem"><Link href="/examples/design?option=selected" aria-current={userSelection?'page':undefined}>Sua seleção</Link>{arrangements.map((item,i)=><Link key={item.name} href={`/examples/design?option=${i+1}`} aria-current={!userSelection && index===i?'page':undefined}>{item.name}</Link>)}</nav>
       <span>{selection.note} Vídeos reais do acervo aprovado; produção permanece inalterada.</span>
     </div>
     <header className={styles.pageHeader}><div className={styles.headerInner}>
@@ -51,7 +55,7 @@ export default async function ExamplesDesign({ searchParams }: { searchParams: {
     </div></header>
     <section className={styles.content}>
       <div className={styles.intro}><div><h1>Watch what Kineo actually makes.</h1><p>Explore selected previews from films made with Kineo. Find a style, watch it, and start with your own idea.</p></div></div>
-      <ExamplesGallery key={selection.name} videos={videos.slice(0, 6)} startPaused />
+      <ExamplesGallery key={selection.name} videos={videos.slice(0, userSelection ? 9 : 6)} separateFeatured={userSelection} startPaused />
     </section>
   </main>
 }

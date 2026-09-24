@@ -2,8 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import ExamplesGallery from './ExamplesGallery'
 import styles from './ExamplesGallery.module.css'
-import { expandExamples } from '@/lib/ui/examplesGallery'
-import { getExamplesBest } from '@/lib/engineWall'
+import { EXAMPLES_SELECTION_SEP24 } from '@/lib/ui/examplesSelectionSep24'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // KINEO-EXAMPLES-LOGADO-2026-08-24 — o fundador abriu /examples LOGADO e viu
@@ -29,12 +28,10 @@ export const metadata: Metadata = {
   },
 }
 
-// A checagem de auth torna a página por-request — aceitável: ela já lê o
-// banco (getExamplesBest) e a vitrine muda com a curadoria de qualquer jeito.
+// Auth stays per-request; the public gallery is an explicit founder selection.
 export const dynamic = 'force-dynamic'
 
 export default async function ExamplesPage() {
-  const best = expandExamples(await getExamplesBest())
   // KINEO-EXAMPLES-LOGADO-2026-08-24 — logado vê "Open Studio" (a porta do
   // produto), visitante vê "Start free" (a porta do funil). Mostrar signup a
   // um assinante é pedir para ele criar a conta que já paga.
@@ -79,7 +76,7 @@ export default async function ExamplesPage() {
           </div>
         </div>
         {/* Only explicitly approved, founder-owned public assets enter this collection. */}
-        <ExamplesGallery videos={best} />
+        <ExamplesGallery videos={[...EXAMPLES_SELECTION_SEP24]} separateFeatured />
 
         {/* KINEO-EXAMPLES-REVIEWS-2026-08-24 — pedido do fundador: "coloca
             todos os reviews que temos". Todos = UM (Rick, autorização escrita

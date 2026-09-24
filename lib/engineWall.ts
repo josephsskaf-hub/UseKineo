@@ -31,6 +31,8 @@ export type WallVideo = {
   href?: string
   /** Static poster for repository-owned examples. */
   posterUrl?: string
+  /** Optional framing for wide featured previews; the player stays uncropped. */
+  focalPoint?: string
   /** Auditable reason this static asset can appear on an anonymous surface. */
   publicSource?: 'founder_owned_generic_example' | 'founder_owned_engine_example'
 }
