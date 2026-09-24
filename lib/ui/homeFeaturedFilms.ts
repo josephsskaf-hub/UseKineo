@@ -24,7 +24,7 @@ const robot: WallVideo = { ...selectedFilm(HOME_FILM_IDS[0], 'robot-action', '50
 const hoodie: WallVideo = {
   id: '216cbed2-b95f-47e7-98bc-e4c3fc3010a9', title: 'The face that looks real', engine: 'cinematic_hollywood', badge: 'KLING 3',
   videoUrl: '/previews/home-films-sep24/hoodie-scene.mp4', previewUrl: '/previews/home-films-sep24/hoodie-scene.mp4',
-  posterUrl: '/posters/home-films-sep24/hoodie-scene.webp', focalPoint: '50% 43%', href: '/studio', publicSource: 'founder_owned_engine_example',
+  posterUrl: '/posters/home-films-sep24/hoodie-scene.webp', focalPoint: '50% 35%', href: '/studio', publicSource: 'founder_owned_engine_example',
 }
 
 // Keep the four approved openers. Add strong shots from the previous home and
