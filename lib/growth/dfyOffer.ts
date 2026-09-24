@@ -85,7 +85,7 @@ export const DFY_LEGACY_PAYMENT_LINK_IDS: readonly string[] = ['plink_1UJ23XIah5
 export const DFY_LEGACY_PRICE_USD_MINOR = 10000
 /** Valores exatos que o webhook aceita como pedido (3º critério, só em sessão de Payment Link). 3500/7500 coincidem com bulk20/bulk50 da casa: sessões da casa carregam metadata.pack e nunca payment_link, então não se confundem. */
 export const DFY_ACCEPTED_AMOUNTS_USD_MINOR: readonly number[] = [DFY_TIERS.express.priceMinor, DFY_TIERS.pro.priceMinor, DFY_LEGACY_PRICE_USD_MINOR]
-export const DFY_OFFER_VERSION = 'dfy_card_v2'
+export const DFY_OFFER_VERSION = 'dfy_card_v3' // v3 = cockpit (24/09 ~04h BRT); v2 = só passo 2
 /** Teto de pedidos abertos ao mesmo tempo (regra 24/08: nunca prometer o que não se executa). */
 export const DFY_MAX_OPEN_ORDERS = 3
 

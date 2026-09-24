@@ -25,7 +25,7 @@ import { readBulkCheckoutTruthVersion } from '@/lib/growth/bulkCheckoutTruth'
 // Payment Link, sem SKU nesta rota; o valor vem do módulo puro que desenha o
 // cartão do Studio, para que o preço que a tela mostra e o que o webhook
 // reconhece sejam o MESMO número.
-import { DFY_ACCEPTED_AMOUNTS_USD_MINOR, dfyPaymentLinkIds, dfyTierForLink } from '@/lib/growth/dfyOffer' // KINEO-EMPRESAS-DOIS-DEGRAUS-2026-09-24
+import { DFY_ACCEPTED_AMOUNTS_USD_MINOR, dfyPaymentLinkIds, dfyTierForLink, type DfyTier } from '@/lib/growth/dfyOffer' // KINEO-EMPRESAS-DOIS-DEGRAUS-2026-09-24
 // KINEO-PILOT-99-2026-07-26 — o nome do plano e o cálculo do prazo são os MESMOS
 // que o cron lê. Se divergirem, o piloto ou nunca expira ou nunca gera.
 import { AUTOPILOT_PILOT_PLAN, autopilotPilotExpiresAt } from '@/lib/autopilot/config'
@@ -724,6 +724,11 @@ async function recordPaymentSuccess(
   }
 
   const userId = sessionOwnerUuid(session)
+  // KINEO-EMPRESAS-COCKPIT-2026-09-24 — a metadata do Payment Link (Cowork) traz tier=express|pro, e
+  // 'pro' é também o nome de um tier de ASSINATURA: o funil (/api/admin/funnel) e isNewSubscriberEvent
+  // liam "tier sem pack" como assinante novo. Pedido Empresas grava tier=null, kind='dfy' e dfy_tier.
+  const dfyOrder = session.mode === 'payment' && isDfyOrderSession(session)
+  const dfyTier = dfyOrder ? dfySessionTier(session) : null
   const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null
   const subscriptionId = typeof session.subscription === 'string'
     ? session.subscription
@@ -766,7 +771,7 @@ async function recordPaymentSuccess(
       stripe_customer_id: customerId,
       stripe_subscription_id: subscriptionId,
       checkout_mode: session.mode,
-      tier: session.metadata?.tier ?? null,
+      tier: dfyOrder ? null : (session.metadata?.tier ?? null),
       billing: session.metadata?.billing ?? null,
       pack: session.metadata?.pack ?? null,
       checkout_origin: session.metadata?.checkout_origin ?? null,
@@ -798,7 +803,8 @@ async function recordPaymentSuccess(
       // assinatura/pack do que é pedido feito-para-você ('dfy'); `payment_link`
       // identifica a venda que nasceu fora do checkout da casa. amount_total e
       // currency já estavam acima; ficam como estão (null vira 0/'usd' lá).
-      kind: session.metadata?.kind ?? null,
+      kind: dfyOrder ? 'dfy' : (session.metadata?.kind ?? null),
+      dfy_tier: dfyTier,
       payment_link: typeof session.payment_link === 'string'
         ? session.payment_link
         : session.payment_link?.id ?? null,
@@ -861,6 +867,13 @@ function sessionPaymentLinkId(session: Pick<Stripe.Checkout.Session, 'payment_li
   return link && typeof link === 'object' && typeof link.id === 'string' ? link.id : null
 }
 
+/** Degrau do pedido: metadata do link (Cowork) primeiro, id do link depois; null no legado de US$100. */
+function dfySessionTier(session: Pick<Stripe.Checkout.Session, 'metadata' | 'payment_link'>): DfyTier | null {
+  const m = session.metadata?.tier
+  if (m === 'express' || m === 'pro') return m
+  return dfyTierForLink(sessionPaymentLinkId(session))
+}
+
 function isDfyOrderSession(session: Stripe.Checkout.Session): boolean {
   // KINEO-EMPRESAS-DOIS-DEGRAUS-2026-09-24 — Express/Pro (e o link legado de US$100): o id do link é a chave primeira.
   if (dfyPaymentLinkIds().includes(sessionPaymentLinkId(session) ?? '')) return true
@@ -918,7 +931,7 @@ async function recordDfyOrderPaid(
         payment_link: paymentLink,
         kind: 'dfy',
         // degrau: metadata do link (Cowork) ou o id do link; null no legado de US$100
-        tier: (session.metadata?.tier === 'express' || session.metadata?.tier === 'pro') ? session.metadata.tier : dfyTierForLink(paymentLink),
+        tier: dfySessionTier(session),
       },
     }
     const { error } = await supabase.from('events').insert(row)
@@ -951,7 +964,10 @@ async function recordAsyncCheckoutState(
   const eventName = outcome === 'pending'
     ? 'checkout_payment_pending'
     : 'checkout_async_payment_failed'
-  const userId = session.metadata?.supabase_user_id ?? session.client_reference_id ?? null
+  // KINEO-EMPRESAS-COCKPIT-2026-09-24 — Payment Link com Adaptive Pricing abre meios lentos (SEPA/Pix/iDEAL):
+  // a sessão chega 'unpaid' e cai aqui. Um client_reference_id fora do formato uuid (URL adulterada) ou de conta
+  // apagada derrubava o insert → 500 → a Stripe reenviava por dias. O dono passa pelo mesmo filtro do resto.
+  const userId = sessionOwnerUuid(session)
   const sessionRef = stripeCheckoutSessionReference(session.id)
   const recorded = await writeServerEvent({
     name: eventName,
@@ -1192,7 +1208,11 @@ export async function POST(req: NextRequest) {
         // an absolute balance write. Let it resume after a process crash even
         // when event.id was already claimed. Additive legacy packs retain the
         // strict event-level early return.
-        if (!duplicateSession || (duplicateSession.mode !== 'subscription' && !duplicateSafeObservation)) {
+        // KINEO-EMPRESAS-COCKPIT-2026-09-24 — o pedido Empresas também retoma: se o processo morrer entre o
+        // carimbo em stripe_events e o insert de dfy_order_paid, a reentrega da Stripe voltava aqui e saía
+        // como duplicate:true — pedido pago sem linha no banco. recordPaymentSuccess e recordDfyOrderPaid
+        // são idempotentes (dedupe por stripe_session_id + id determinístico), então reexecutar é seguro.
+        if (!duplicateSession || (duplicateSession.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession(duplicateSession))) {
           return NextResponse.json({ received: true, duplicate: true })
         }
         console.warn('[stripe webhook] resuming idempotent Checkout event:', event.id, duplicateSession.id)

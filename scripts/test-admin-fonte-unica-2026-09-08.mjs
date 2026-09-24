@@ -59,6 +59,7 @@ checa("classify: free", M.classifyAccount({ email: 'a@b.com', plan: 'free', tria
 checa('assinante novo: checkout de assinatura sem $1', M.isNewSubscriberEvent('payment_success', { checkout_mode: 'subscription', card_trial: false }))
 checa('NÃO assinante novo: o $1 do trial', !M.isNewSubscriberEvent('payment_success', { checkout_mode: 'subscription', card_trial: true }) && M.isTrialEntryEvent('payment_success', { card_trial: true }))
 checa('NÃO assinante novo: pacote avulso', !M.isNewSubscriberEvent('payment_success', { checkout_mode: 'payment', pack: 'starter' }))
+checa('NÃO assinante novo: pedido Kineo Empresas (kind=dfy), mesmo se um tier vazar', !M.isNewSubscriberEvent('payment_success', { checkout_mode: 'payment', tier: 'pro', kind: 'dfy' }) && !M.isNewSubscriberEvent('payment_success', { checkout_mode: 'payment', kind: 'dfy' })) // KINEO-EMPRESAS-COCKPIT-2026-09-24
 checa('assinante novo: fatura do dia 8 (trial_conversion)', M.isNewSubscriberEvent('subscription_invoice_paid', { trial_conversion: true }))
 checa('NÃO assinante novo: renovação de quem já pagava', !M.isNewSubscriberEvent('subscription_invoice_paid', { trial_conversion: false, billing_reason: 'subscription_cycle' }))
 checa('stripeMrrUsd tem cache de 5 min', /STRIPE_MRR_TTL_MS = 5 \* 60 \* 1000/.test(rd('app/api/admin/_shared/mrr.ts')))
