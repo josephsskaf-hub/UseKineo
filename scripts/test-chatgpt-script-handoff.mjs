@@ -241,7 +241,10 @@ try {
   includes(page, "const HANDOFF_ID = 'chatgpt-script-handoff'", 'machine link fragment resolves to the rendered handoff id')
   ok(!facts.includes("url: `${BASE}/signup`"), 'answer-engine start never drops a script-ready visitor on generic signup')
   includes(facts, "['script', 'campaign', 'trial_best_creation_intent', 'verbatim_mode', 'duration']", 'machine-readable contract lists all carried values')
-  includes(facts, 'Seedance when an active trial balance covers it, otherwise Fast', 'public facts describe the same bounded router')
+  // GPT-V31-FATOS: current 10-credit grant cannot cover Seedance; older balances still follow the same router.
+  includes(facts, 'new-account trial covers Kineo 1 (Fast, stock footage), not Seedance', 'facts do not imply the current grant covers Seedance')
+  includes(facts, 'Existing accounts may have a different balance', 'legacy balances remain distinct from the current grant')
+  includes(facts, 'Seedance is selected only when actual access, balance and availability permit it', 'public facts preserve the bounded router')
   includes(facts, 'startHere: START_HERE_FACT', '/api/facts payload includes start-here')
   includes(factsRoute, 'JSON.stringify(getKineoFacts()', '/api/facts serializes the shared payload')
   includes(llms, 'START_HERE_FACT', '/llms.txt imports the shared record')

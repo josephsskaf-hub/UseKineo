@@ -23,6 +23,8 @@ export interface RecurringFreeAccessFact {
   engine: string
   videosPerWindow: number
   rollingWindowHours: number
+  /** Null means this offer does not impose a recurring-free duration cap. */
+  maxSeconds: number | null
   creditsGranted: 0
   watermark: true
 }
@@ -75,6 +77,7 @@ export function buildRecurringFreeAccessFact(input: {
   engine: string
   videosPerWindow: number
   rollingWindowHours: number
+  maxSeconds?: number | null
 }): RecurringFreeAccessFact {
   if (!input.engine.trim()) throw new Error('recurring_free_engine_required')
   if (!Number.isFinite(input.videosPerWindow) || input.videosPerWindow < 0) {
@@ -83,10 +86,14 @@ export function buildRecurringFreeAccessFact(input: {
   if (!Number.isFinite(input.rollingWindowHours) || input.rollingWindowHours <= 0) {
     throw new Error('invalid_recurring_free_window')
   }
+  if (input.maxSeconds != null && (!Number.isFinite(input.maxSeconds) || input.maxSeconds <= 0)) {
+    throw new Error('invalid_recurring_free_duration')
+  }
   return {
     engine: input.engine.trim(),
     videosPerWindow: input.videosPerWindow,
     rollingWindowHours: input.rollingWindowHours,
+    maxSeconds: input.maxSeconds ?? null,
     creditsGranted: 0,
     watermark: true,
   }

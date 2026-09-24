@@ -33,6 +33,14 @@ jobs:
               exit 1
             fi
           done
+      - name: Fatos GPT — cobertura do trial, duração gratuita e orçamento de palavras
+        # GPT-V31-FATOS: real estimator, current grant and recurring cap; no network.
+        run: |
+          node scripts/test-gpt-v31-facts-2026-09-24.mjs
+          if node scripts/test-gpt-v31-facts-2026-09-24.mjs --mutant; then
+            echo "Mutante de cobertura do trial sobreviveu"
+            exit 1
+          fi
       - name: Segurança de publicação e autoria
         run: node scripts/test-sharing-safety.mjs
       - name: Navegação, biblioteca e idioma
