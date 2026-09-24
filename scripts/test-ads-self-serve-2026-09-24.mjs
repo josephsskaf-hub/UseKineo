@@ -54,6 +54,7 @@ ok(V(corpo({ beats: porBatida(lo - 5) })).error === 'script_too_short' && V(corp
   `1c. roteiro abaixo de ${lo} ou acima de ${hi} palavras é recusado (régua do modelo com folga)`)
 ok(V(corpo({ storyboard: sb.slice(1) })).error === 'storyboard_invalid' && V(corpo({ storyboard: [...sb, { beatIndex: n - 1, footageIds: [ids[0]] }] })).error === 'storyboard_invalid' && V(corpo({ storyboard: sb.map((s, i) => (i === 0 ? { ...s, footageIds: ['99999999-9999-4999-8999-999999999999'] } : s)) })).error === 'media_not_owned',
   '1d. batida sem mídia, mídia na batida do cartão e arquivo fora do pedido são recusados')
+ok(V(corpo({ storyboard: sb.slice(0, n - 2).concat([{ beatIndex: n - 1, footageIds: [ids[0]] }]) })).error === 'storyboard_invalid', '1d2. trocar uma batida pela do cartão (mesma contagem) também é recusado')
 ok(V(corpo({ card_footage_id: 'nope' })).error === 'card_invalid' && V(corpo({ beats: porBatida(Math.round((lo + hi) / 2)).map((b, i) => (i === 0 ? '<b>' + b : b)) })).error === 'beats_invalid',
   '1e. sem cartão válido e texto com tag HTML são recusados')
 ok(C.ADS_VOICES.map((v) => v.id).join(',') === 'nova,shimmer,onyx,echo' && C.isAdsVoice('nova') && !C.isAdsVoice('fable'), '1f. as 4 vozes são da família tts-1-hd e só elas passam')
