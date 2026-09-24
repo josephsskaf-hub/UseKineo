@@ -101,10 +101,6 @@
       "schedule": "0 14 * * *"
     },
     {
-      "path": "/api/cron/send-momentum-nudge?confirm=SEND",
-      "schedule": "30 13 * * *"
-    },
-    {
       "path": "/api/cron/finish-stranded-renders",
       "schedule": "*/5 * * * *"
     },
@@ -147,14 +143,6 @@
     {
       "path": "/api/admin/send-card-declined?confirm=SEND&limit=30",
       "schedule": "0 13 * * *"
-    },
-    {
-      "path": "/api/admin/send-second-try-1usd?confirm=SEND&limit=30",
-      "schedule": "12 1,13,18 * * *"
-    },
-    {
-      "path": "/api/admin/send-affiliate-wakeup-1usd?confirm=SEND&limit=30",
-      "schedule": "18 2,14 * * *"
     },
     {
       "path": "/api/cron/rescue-vendor-assets",

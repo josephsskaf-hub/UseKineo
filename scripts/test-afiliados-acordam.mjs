@@ -219,9 +219,8 @@ console.log('\n── 11. A CARTA TEM GATILHO PROPRIO, E ELE NAO PISA EM NINGUEM
   // `rota-de-admin-so-com-cookie-nunca-dispara`).
   const vercel = JSON.parse(read('vercel.json'))
   const meu = (vercel.crons ?? []).filter((c) => String(c.path).includes('send-affiliate-wakeup-1usd'))
-  ok(meu.length === 1, 'a carta tem exatamente um gatilho no vercel.json')
-  ok(String(meu[0]?.path ?? '').includes('confirm=SEND'), 'o gatilho dispara de verdade (confirm=SEND)')
-  ok(/limit=\d+/.test(String(meu[0]?.path ?? '')), 'o gatilho leva teto de lote')
+  ok(meu.length === 0, 'a carta NÃO tem gatilho no vercel.json (KINEO-CARTAS-POS-MORTE-DESLIGADAS-2026-09-24: prometia a porta de US$1 morta em 09/09; fundador: "desliga")')
+  ok(read('app/api/admin/send-affiliate-wakeup-1usd/route.ts').length > 0, 'a rota continua existindo para disparo manual (não foi apagada)')
 
   const expandir = (campo, teto) => {
     const out = new Set()
@@ -236,7 +235,8 @@ console.log('\n── 11. A CARTA TEM GATILHO PROPRIO, E ELE NAO PISA EM NINGUEM
   const hor = (s) => expandir(String(s).split(' ')[1] ?? '', 24)
   const meusMin = new Set(min(meu[0]?.schedule ?? ''))
   const minhasH = new Set(hor(meu[0]?.schedule ?? ''))
-  ok(meusMin.size > 0 && minhasH.size > 0, 'o horario do gatilho foi lido (senao a checagem seguinte e vacante)')
+  // KINEO-CARTAS-POS-MORTE-DESLIGADAS-2026-09-24: sem gatilho agendado nao ha horario a ler nem a colidir.
+  ok(meu.length === 0 || (meusMin.size > 0 && minhasH.size > 0), 'o horario do gatilho foi lido (senao a checagem seguinte e vacante) — ou nao ha gatilho (desligado 24/09)')
   const colisoes = []
   for (const c of vercel.crons ?? []) {
     if (String(c.path).includes('send-affiliate-wakeup-1usd')) continue
@@ -244,7 +244,7 @@ console.log('\n── 11. A CARTA TEM GATILHO PROPRIO, E ELE NAO PISA EM NINGUEM
     const mesmaHora = hor(c.schedule).some((h) => minhasH.has(h))
     if (mesmoMin && mesmaHora) colisoes.push(String(c.path).split('?')[0])
   }
-  ok(colisoes.length === 0, `nenhum job compartilha minuto E hora com a carta (colisoes: ${colisoes.join(', ') || 'nenhuma'})`)
+  ok(meu.length === 0 || colisoes.length === 0, meu.length === 0 ? 'sem gatilho agendado, nada a colidir (desligado 24/09)' : `nenhum job compartilha minuto E hora com a carta (colisoes: ${colisoes.join(', ') || 'nenhuma'})`)
 }
 
 console.log(`\n${n - fail} ok / ${fail} falhas`)

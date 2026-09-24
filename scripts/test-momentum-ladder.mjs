@@ -79,7 +79,7 @@ t('palavra "away" vem da escada', /videosAwayWord\(videosMade\)/.test(route) && 
 t('MAX_PER_RUN continua 40 (resgate de 25 cabe numa rodada)', /const MAX_PER_RUN = 40/.test(route))
 t('fetchCache force-no-store continua (#17)', /export const fetchCache = 'force-no-store'/.test(route))
 const vercel = readFileSync(join(R, 'vercel.json'), 'utf8')
-t('vercel.json: cron diario SEM max_idle_h (96h no dia a dia)', /"\/api\/cron\/send-momentum-nudge\?confirm=SEND"/.test(vercel) && !/send-momentum-nudge[^"]*max_idle_h/.test(vercel))
+t('vercel.json: cron DESLIGADO em 24/09 (fundador: "desliga"; 313 envios/30 d → 0 pagantes) — send-momentum-nudge fora do agendamento', !/send-momentum-nudge/.test(vercel))
 t('rota do winback-25 e a mesma lista de admins', readFileSync(join(R, 'app/api/admin/send-winback-25/route.ts'), 'utf8').includes("new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com'])") && route.includes("new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com'])"))
 
 console.log(`\n${ok} ok, ${bad} falhas`)

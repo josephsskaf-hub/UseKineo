@@ -259,6 +259,16 @@ const OUR_FAILURE_LOOKBACK_MS = 14 * DAY_MS
  * se sair no D2. Para a variante 3d nada muda: `isTrialActive` e o ramo
  * `ending_soon` já resolvem a linha antes de chegar aqui.
  */
+// ═══ KINEO-CARTAS-POS-MORTE-DESLIGADAS-2026-09-24 — D5 e D10 param de sair ═══
+// Medido (análise de 23/09, 30 d): 1.527 envios de expired_offer_d5 + expired_lastcall_d10
+// → 0 pagantes; 10 dos 13 pagantes orgânicos da história pagaram em menos de 48 h
+// do cadastro, e nenhum pagante jamais nasceu depois do D2. Fundador (24/09):
+// "desliga" ("cartas não estão trazendo pessoas para compra"). As cartas das
+// primeiras 48 h (welcome, ending_soon, downgraded_loss, extensão) CONTINUAM.
+// Interruptor: true religa D5/D10 sem mexer em mais nada (a decisão volta a
+// devolver os dois kinds nas janelas OFFER_D5/OFFER_D10). Não é export de
+// propósito: route.ts do Next só aceita os exports do segmento.
+const POST_TRIAL_LETTERS_ENABLED = false
 const D0_WINDOW_MS = 72 * HOUR_MS
 
 /**
@@ -997,10 +1007,11 @@ function dueKind(
       const lost = status === 'downgraded' ? Math.max(0, granted - used) : 0
       return { ...postBase, kind: 'downgraded_loss', creditsLost: lost }
     }
-    if (sinceEnd >= OFFER_D5_FROM_MS && sinceEnd < OFFER_D10_FROM_MS) {
+    // KINEO-CARTAS-POS-MORTE-DESLIGADAS-2026-09-24: com o interruptor em false, quem passou do D2 não recebe carta.
+    if (POST_TRIAL_LETTERS_ENABLED && sinceEnd >= OFFER_D5_FROM_MS && sinceEnd < OFFER_D10_FROM_MS) {
       return { ...postBase, kind: 'expired_offer_d5' }
     }
-    if (sinceEnd >= OFFER_D10_FROM_MS && sinceEnd < OFFER_D10_TO_MS) {
+    if (POST_TRIAL_LETTERS_ENABLED && sinceEnd >= OFFER_D10_FROM_MS && sinceEnd < OFFER_D10_TO_MS) {
       return { ...postBase, kind: 'expired_lastcall_d10' }
     }
   }
