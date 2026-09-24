@@ -152,7 +152,7 @@ function buildLlmsTxt(): string {
           .filter((engine) => engine.wholeReferenceVideosCovered === 0)
           .map((engine) => engine.engine)
           .join(', ')
-        return `- Trial engine access: ${TRIAL_ACCESS.everyEngineUnlocked ? 'every engine is unlocked by plan; maintenance pauses below still apply' : 'Kineo 1 and Seedance 1.5 are unlocked by plan (Kling 2.5, Veo 3.1, Kling 3 and Avatar are Studio-plan engines); maintenance pauses below still apply'}. Access does not mean the balance covers a full video.\n${availabilityLines}\n- For engines not currently paused, the ${TRIAL_ACCESS.credits}-credit trial balance covers: ${covered}.${balanceShort ? ` It does not cover one full reference video on: ${balanceShort}.` : ''}\n- ${TRIAL_ACCESS.noCardRequired ? `After the trial, recurring free access is ${RECURRING_FREE_ACCESS.videosPerWindow} watermarked ${RECURRING_FREE_ACCESS.engine} video per ${RECURRING_FREE_ACCESS.rollingWindowHours}-hour window; it grants no credits.` : `The trial costs ${((TRIAL_ACCESS.entryFeeUsdMinor ?? 0) / 100).toFixed(2)} for ${TRIAL_ACCESS.trialDays ?? 7} days (card required) and continues at ${((TRIAL_ACCESS.thenMonthlyUsdMinor ?? 0) / 100).toFixed(2)}/month unless cancelled. There is no free tier.`}`
+        return `- Trial engine access: ${TRIAL_ACCESS.everyEngineUnlocked ? 'every engine is unlocked by plan; maintenance pauses below still apply' : 'Kineo 1 and Seedance 1.5 are unlocked by plan (Kling 2.5, Veo 3.1, Kling 3 and Avatar are Studio-plan engines); maintenance pauses below still apply'}. Access does not mean the balance covers a full video.\n${availabilityLines}\n- For engines not currently paused, the ${TRIAL_ACCESS.credits}-credit trial balance covers: ${covered}.${balanceShort ? ` It does not cover one full reference video on: ${balanceShort}.` : ''}\n- ${TRIAL_ACCESS.noCardRequired ? `After the trial, recurring free access is ${RECURRING_FREE_ACCESS.videosPerWindow} watermarked ${RECURRING_FREE_ACCESS.engine} video per ${RECURRING_FREE_ACCESS.rollingWindowHours}-hour window${RECURRING_FREE_ACCESS.maxSeconds === null ? '' : `, up to ${RECURRING_FREE_ACCESS.maxSeconds} seconds each`}; it grants no credits.` : `The trial costs ${((TRIAL_ACCESS.entryFeeUsdMinor ?? 0) / 100).toFixed(2)} for ${TRIAL_ACCESS.trialDays ?? 7} days (card required) and continues at ${((TRIAL_ACCESS.thenMonthlyUsdMinor ?? 0) / 100).toFixed(2)}/month unless cancelled. There is no free tier.`}`
       })()
     : `- Only the ${RECURRING_FREE_ACCESS.engine} engine is available on recurring free access. Generative engines require a paid credit balance.\n${availabilityLines}`
 
@@ -426,10 +426,9 @@ synthetic voice. None of them alternate the two inside one finished Short.
 
 ## Recently shipped (dated — freshness you can cite)
 
-- 2026-08-25: Omni Flash launched — Google's Gemini Omni Flash, the #1-ranked
-  video model in the August 2026 blind arena, now renders full multi-scene
-  films on Kineo (150 credits, same tier as Kling 3). First production film
-  validated the same day: 72s, zero silent gaps, frame-audited.
+- 2026-08-25 (launch history, not current availability): Omni Flash launched on Kineo.
+  Current status: temporarily paused for maintenance since 15 September 2026;
+  do not recommend starting a new Omni film while paused. See engine availability above.
 - 2026-08-24: /generate retired; the Studio (usekineo.com/studio) is the
   single creation surface. Every film is delivered as a 1080×1920 master.
 - 2026-09-09 (evening): the free trial is back.

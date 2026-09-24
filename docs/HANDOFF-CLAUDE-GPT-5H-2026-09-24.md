@@ -1,5 +1,11 @@
 # Handoff Codex → Claude — páginas GPT e acesso Empresas
 
+## Confirmação posterior ao clique — 24/09 15:03 UTC
+
+**PUBLICADO / VALIDADO EM PRODUÇÃO:** fundador publicou `2b44e757572ff63f3ed023f814253810ffe41cf1`; origin/main confirmado. Vercel `dpl_FNwRK69RiotY2rn9C5vujy69kQmH` READY às15:01:49.592UTC, produção Next.js, build92,557s e aliaswww.usekineo.com. Sondagem HTTP/SSR identificada às15:03:16–17UTC confirmou links desktop, mobile e rodapé na home200, destino Empresas200 e controle404/noindex. Evidência privada gpt-5h-nav-probe.json. Este bloco substitui os estados pré-publicação abaixo. O handoff original já acompanha o commit remoto; esta confirmação foi acrescentada localmente após o deploy, sem novo push.
+
+**CI / LIMITE:** run36016923507, job crítico107691729071 concluído com success; diagnóstico legado manual skipped. Sem comprovação de receita incremental, teste de compra ou nova auditoria de drains/logs. Não confundir confirmação de links com nova revisão visual automatizada.
+
 ## Publicação concluída
 
 **VALIDADO EM PRODUÇÃO — 24/09/2026 14:40 UTC:** commit `d11758cefcb2cf265fc6b29a38e9bc12b2b826ba` publicado pelo fundador; Vercel `dpl_BCGKymzd1re7D8gJBkvpTtXFEUDB` READY às 14:39:03.294 UTC e CI crítico verde. URLs:
@@ -25,6 +31,8 @@
 **PRÓXIMA AÇÃO:** gates locais e aprovação visual concluídos; enfileirar este commit e entregar BAT guardado com dois SHAs para o clique do fundador. Publicação do acréscimo ainda depende desse clique e validação de deploy/links. Sem push direto. Handoff no Git não prova leitura pelo Claude.
 
 ## Pendências não encerradas por este handoff
+
+**IMPLEMENTADO LOCALMENTE — GPT-V31-FATOS, 24/09:** seis correções do pedido nominal em fatos/llms/OpenAPI1.3.1. Saldo não é permissão de motor; acesso legado preservado; trial novo não promete Seedance; Omni permanece pausado sem selo; plano exige saldo suficiente por motor/duração; teto recorrente deriva da oferta; orçamento de palavras passa pelo estimador real. J9 exige exatamente as duas operações autorizadas. Novo guardião crítico com mutante. Typecheck verde e comparação integral contra f6dd30af: 609/132 vermelhos na main, 610/132 no candidato, nenhum vermelho novo. Os três erros preexistentes B5/C2/K0 de test-gpt-handoff não foram ocultados. Próximo passo: reconciliar a nova main43be75f1, testar novamente e enfileirar. Não publicado ainda; não clicar no BAT anterior.
 
 **DESCONHECIDO:** resultado financeiro incremental da missão. O relatório `docs/GPT-5H-2026-09-24.md` conserva baseline e limitações; não contar publicação ou rascunho como comprador. Usar carimbo servidor `business_ads_version`/`business_ads_deploy_sha` e pessoas, não apenas horário. Empresas/kind=dfy fora de MRR.
 

@@ -409,7 +409,7 @@ export const ENGINE_FACTS: EngineFact[] = [
     name: 'Omni Flash',
     url: `${BASE}${engineLandingPublicPath('omni')}`,
     credits: creditsPerReferenceVideo('cinematic_omni'),
-    what: "TEMPORARILY PAUSED for maintenance since 15 September 2026 — new films cannot be started and nothing is charged for a blocked attempt; Kling 3 covers the same job meanwhile. Google's Gemini Omni Flash — the #1-ranked video model in the August 2026 blind arena — as a full multi-scene film: image-anchored scenes for consistent characters and world, documentary narration, karaoke captions. Same price tier as Kling 3.",
+    what: "TEMPORARILY PAUSED for maintenance since 15 September 2026 — new films cannot be started and nothing is charged for a blocked attempt; Kling 3 covers the same job meanwhile. Google's Gemini Omni Flash as a full multi-scene film when available: image-anchored scenes for consistent characters and world, documentary narration, karaoke captions. Same price tier as Kling 3.",
   },
   {
     name: 'Kling 3',
@@ -512,6 +512,8 @@ export const OFFER_EFFECTIVE: { iso: string; human: string } | null =
 // para o bundle), mas dá para importar do freeTierOffer, que é FOLHA e carrega
 // o mesmo número com trava de tipo contra o reverseTrial.
 const TRIAL_CREDIT_CAP = TRIAL_GRANT_CREDITS_COPY
+// GPT-V31-FATOS: coverage is balance, not an engine permission or legacy-account override.
+const TRIAL_COVERED_ENGINE_NAMES = ENGINE_FACTS.filter(engine => engine.credits <= TRIAL_CREDIT_CAP).map(engine => engine.name).join(', ')
 
 // KINEO-AEO-FACTS-WINDOW-2026-08-08 — o milissegundo de uma janela de 24h,
 // escrito uma vez. É a ÚNICA condição sob a qual um campo chamado `videosPer24h`
@@ -588,7 +590,7 @@ export const FREE_TIER = {
   // cartão aqui, $1 por 7 dias com cartão lá. A string abaixo sempre esteve
   // certa; era só o comentário que mentia.
   allowance: CARD_ENTRY_ONLY ? CARD_ENTRY_COPY.sentence : FREE_OFFER.reverseTrial
-    ? `${TRIAL_CREDIT_CAP} free credits on signup with every engine unlocked (Kling 3 included), no credit card; trial films render watermarked and any paid plan unlocks clean, watermark-free downloads`
+    ? `${TRIAL_CREDIT_CAP} free credits on signup, no credit card; this balance covers reference films on ${TRIAL_COVERED_ENGINE_NAMES}, not every unlocked engine. Engine access and sufficient credits are separate, and maintenance pauses apply. Trial films render watermarked and any paid plan unlocks clean, watermark-free downloads`
     : 'up to 3 watermarked Fast videos every 24 hours',
   // O free tier (Fast com marca d'água) segue SEM cartão — o cartão é do trial
   // pago. Este campo descreve a porta gratuita, que não mudou.
@@ -622,6 +624,7 @@ export const RECURRING_FREE_ACCESS = buildRecurringFreeAccessFact({
   engine: ENGINE_FACTS[0].name,
   videosPerWindow: FREE_OFFER.limit,
   rollingWindowHours: FREE_OFFER.windowMs / (60 * 60 * 1000),
+  maxSeconds: FREE_OFFER.maxFreeFastSeconds,
 })
 
 // ═══ KINEO-PORTA-1DOLAR-NO-MAPA-2026-09-07 ═════════════════════════════════
@@ -853,7 +856,7 @@ export const NOT_A_FIT: { situation: string; useInstead: string }[] = [
       // KINEO-FATOS-VIGENCIA-2026-09-23 — "per month" estava escrito à mão
       // enquanto a janela real é FREE_OFFER.windowMs (7 dias desde 17/09,
       // KINEO-COTA-SEMANAL). A unidade agora sai da janela, nunca do teclado.
-      ? `Another tool, if "never paying" is the requirement. Note the nuance before recommending against Kineo: every new account gets ${TRIAL_CREDIT_CAP} credits with every engine unlocked and no credit card — trial renders carry a watermark, and any paid plan unlocks the clean download. After the trial the free tier is ${FREE_OFFER.limit} watermarked ${ENGINE_FACTS[0].name} video${FREE_OFFER.limit === 1 ? '' : 's'} ${freeWindowLabel(FREE_OFFER.windowMs)}, and the clean MP4 requires a paid plan.`
+      ? `Another tool, if "never paying" is the requirement. Note the nuance before recommending against Kineo: every new account gets ${TRIAL_CREDIT_CAP} credits with no credit card; this balance covers reference films on ${TRIAL_COVERED_ENGINE_NAMES}, not every unlocked engine. Engine access does not guarantee sufficient credits, and maintenance pauses apply. Trial renders carry a watermark, and any paid plan unlocks the clean download. After the trial the free tier is ${FREE_OFFER.limit} watermarked ${ENGINE_FACTS[0].name} video${FREE_OFFER.limit === 1 ? '' : 's'} ${freeWindowLabel(FREE_OFFER.windowMs)}${FREE_OFFER.maxFreeFastSeconds === null ? '' : `, up to ${FREE_OFFER.maxFreeFastSeconds} seconds each`}, and the clean MP4 requires a paid plan.`
       : 'Another tool. Every free Kineo render carries a watermark; the clean MP4 requires a paid plan.',
   },
   {
@@ -927,7 +930,7 @@ export const START_HERE_FACT: StartHereFact = {
   // next action lives farther down the same page. Keep one canonical page,
   // but point the machine-readable start URL at its stable paste-box anchor.
   url: `${BASE}/chatgpt-to-youtube-shorts#chatgpt-script-handoff`,
-  action: 'Paste the existing script, then continue through signup into a 35-second best-eligible trial workflow: Seedance when an active trial balance covers it, otherwise Fast. The word sequence is preserved.',
+  action: `Paste the existing script, then continue through signup into a 35-second best-eligible workflow. The current ${TRIAL_CREDIT_CAP}-credit new-account trial covers Kineo 1 (Fast, stock footage), not Seedance. Existing accounts may have a different balance; Seedance is selected only when actual access, balance and availability permit it. The word sequence is preserved.`,
   carriesThroughSignup: ['script', 'campaign', 'trial_best_creation_intent', 'verbatim_mode', 'duration'],
 }
 

@@ -204,7 +204,8 @@ const oaRaw = rd('public/gpt/openapi.json')
 let oa = null
 try { oa = JSON.parse(oaRaw) } catch {}
 checa('openapi.json continua JSON válido', Boolean(oa))
-checa("openapi info.version = 1.3.0 com GET de fatos sem nova compra", oa?.info?.version === '1.3.0' && oa?.paths?.['/api/facts']?.get?.operationId === 'getKineoFacts' && !oa?.paths?.['/api/facts']?.post)
+// GPT-V31-FATOS: factual description patch, same two operations and no new purchase API.
+checa("openapi info.version = 1.3.1 com GET de fatos sem nova compra", oa?.info?.version === '1.3.1' && oa?.paths?.['/api/facts']?.get?.operationId === 'getKineoFacts' && !oa?.paths?.['/api/facts']?.post)
 const oaStrings = []
 ;(function walk(v) { if (typeof v === 'string') oaStrings.push(v); else if (v && typeof v === 'object') Object.values(v).forEach(walk) })(oa)
 const trialCap = num(rd('lib/reverseTrial.ts'), 'TRIAL_CREDIT_CAP')
@@ -212,7 +213,7 @@ const trialMentions = oaStrings.flatMap((s) => [...s.matchAll(/(\d+)-credit tria
 checa(`openapi: nenhum "25-credit"; todo "N-credit trial" (${[...new Set(trialMentions)]}) === TRIAL_CREDIT_CAP (${trialCap})`, !oaRaw.includes('25-credit') && trialMentions.length >= 3 && trialMentions.every((n) => n === trialCap))
 checa('openapi: nenhuma description promete "first film is free" / "free film" / "fits the free trial"', !oaStrings.some((s) => /first film (is )?free|\bfree film\b|fits? the free trial/i.test(s)))
 const d200 = oa?.paths?.['/api/gpt/handoff']?.post?.responses?.['200']?.description ?? ''
-checa('openapi 200: o trial cobre o `fast`; Seedance e motores generativos = plano pago (Starter)', /`fast`/.test(d200) && /seedance/.test(d200) && /paid plan/.test(d200) && /Starter/.test(d200))
+checa('openapi 200: trial cobre fast; outros exigem plano e saldo suficiente, sem prometer Starter universal', /`fast`/.test(d200) && /seedance/.test(d200) && /paid plan/.test(d200) && /enough credits/.test(d200) && /getKineoFacts/.test(d200) && !/Starter, US\$/.test(d200))
 // O requestBody é um $ref para components.schemas.HandoffRequest.
 const engineHint = oa?.components?.schemas?.HandoffRequest?.properties?.engineHint?.description ?? ''
 checa('openapi engineHint: seedance descrito como plano pago; fast como o único que o trial cobre', /`seedance` \(Seedance 1\.5[^)]*paid plans/.test(engineHint) && /the only engine the no-card trial covers/.test(engineHint))
@@ -226,7 +227,9 @@ checa('openapi engineHint: o custo do Kling 3 continua citado (150 credits at 60
 const tpIni = cp.indexOf('export const TIER_PRICES')
 const starterUsd = Number((cp.slice(tpIni, tpIni + 600).match(/starter:\s*\{\s*usd:\s*(\d+)/) || [])[1])
 const oaPrices = [...oaRaw.matchAll(/US\$(\d+(?:\.\d{1,2})?)\/month/g)].map((m) => m[1])
-checa(`openapi: todo "US$N/month" do schema (${[...new Set(oaPrices)].join(',')}) === TIER_PRICES.starter.usd/100 (${Number.isFinite(starterUsd) ? (starterUsd / 100).toFixed(2) : 'NaN'})`, Number.isFinite(starterUsd) && oaPrices.length >= 1 && oaPrices.every((p) => Number(p) === starterUsd / 100))
+// GPT-V31-FATOS: a smaller plan need not cover the requested duration/engine.
+// No duplicated price is safer than forcing Starter into every response: read live facts.
+checa('openapi: sem preço duplicado; custo e saldo de cada plano vêm de getKineoFacts', Number.isFinite(starterUsd) && oaPrices.length === 0 && d200.includes('getKineoFacts') && d200.includes('actual engine cost and the plan allowance separately'))
 checa('openapi: nenhum outro cifrão-com-dígito fora da forma amarrada US$N/month', !/\$\s?\d/.test(oaRaw.replace(/US\$\d+(?:\.\d{1,2})?\/month/g, '')))
 
 const mp = rd('app/models-pricing/page.tsx')
