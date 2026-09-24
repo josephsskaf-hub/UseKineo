@@ -1,5 +1,7 @@
 # Examples — revisão visual, 24/09/2026
 
+**CORREÇÃO DE QUALIDADE AUTORIZADA (24/09/2026):** após notar perda de nitidez, o fundador aprovou refazer os previews. Os nove filmes selecionados agora apontam para `examples-hd-sep24`: cortes reexportados diretamente dos renders de origem em 1080×1920, H.264 CRF16/preset slow, sem upscale das cópias reduzidas. Capas extraídas em resolução integral com qualidade WebP95. Mesmos filmes, trechos, ordem e enquadramento; castelo mantém o corte original 6,5–12,5s, identificado por comparação de frames. Paths novos evitam cache das versões 540p/480p. Nenhuma geração de IA ou cobrança de créditos.
+
 **AUTORIZAÇÃO DO FUNDADOR (24/09/2026):** após ver os cortes de Tunguska e robô na prévia, Joseph respondeu “ja vi, pode subir ta otimo”. Publicação da página candidata autorizada. A rota de comparação `/examples/design` continua bloqueada em produção; a página pública é `/examples`.
 
 **AJUSTE FINAL DO FUNDADOR:** durante a publicação, solicitou robôs no card horizontal principal e Tunguska à direita, mantendo Lituya Bay no terceiro destaque. Ordem final aplicada antes da integração.

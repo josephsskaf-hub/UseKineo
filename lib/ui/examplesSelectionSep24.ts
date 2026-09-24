@@ -9,8 +9,8 @@ const omni: WallVideo[] = selectedOmniIds.map(id => {
   const video = FOUNDER_SHOWCASE.find(v => v.id === id)!
   const asset = id === selectedOmniIds[0] ? 'tunguska-globe' : 'robot-collision'
   return { id, title: video.title, engine: video.engine, badge: 'OMNI FLASH',
-    videoUrl: `/previews/examples-sep24/${asset}.mp4`, previewUrl: `/previews/examples-sep24/${asset}.mp4`,
-    posterUrl: `/posters/examples-sep24/${asset}.webp`,
+    videoUrl: `/previews/examples-hd-sep24/${asset}.mp4`, previewUrl: `/previews/examples-hd-sep24/${asset}.mp4`,
+    posterUrl: `/posters/examples-hd-sep24/${asset}.webp`,
     focalPoint: id === selectedOmniIds[0] ? '50% 44%' : '50% 47%',
     href: '/studio?engine=omni&intent_campaign=examples_showcase', publicSource: 'founder_owned_engine_example' }
 })
@@ -22,8 +22,8 @@ const selectedVideos: readonly WallVideo[] = [
     { id: '6b9b363c-3185-4db7-a877-46b77e334f06', title: 'The volcano watcher', asset: 'volcano-selected', engine: 'cinematic_veo', badge: 'VEO 3.1', route: 'veo' },
   ].map(v => ({ id: v.id, title: v.title, engine: v.engine, badge: v.badge,
     focalPoint: v.asset === 'lighthouse-selected' ? '50% 25%' : '50% 50%',
-    videoUrl: `/previews/examples-sep24/${v.asset}.mp4`, previewUrl: `/previews/examples-sep24/${v.asset}.mp4`,
-    posterUrl: `/posters/examples-sep24/${v.asset}.webp`,
+    videoUrl: `/previews/examples-hd-sep24/${v.asset}.mp4`, previewUrl: `/previews/examples-hd-sep24/${v.asset}.mp4`,
+    posterUrl: `/posters/examples-hd-sep24/${v.asset}.webp`,
     href: `/studio?engine=${v.route}&intent_campaign=examples_showcase`, publicSource: 'founder_owned_engine_example' as const })),
   ...omni,
   ...[
@@ -31,12 +31,12 @@ const selectedVideos: readonly WallVideo[] = [
     { id: '48f1007c-d9be-4702-91c6-c9f1e0c3db38', title: 'The lost plane of 1942', asset: 'plane-1942', engine: 'cinematic_ai', badge: 'SEEDANCE 1.5', route: 'seedance' },
     { id: '19e317fe-6838-4edc-9fbf-d830d62be140', title: 'Lituya Bay: the tallest wave', asset: 'lituya-h3', engine: 'cinematic_h3', badge: 'MINIMAX H3', route: 'h3' },
   ].map(v => ({ id: v.id, title: v.title, engine: v.engine, badge: v.badge,
-    videoUrl: `/previews/examples-sep24/${v.asset}.mp4`, previewUrl: `/previews/examples-sep24/${v.asset}.mp4`,
-    posterUrl: `/posters/examples-sep24/${v.asset}.webp`,
+    videoUrl: `/previews/examples-hd-sep24/${v.asset}.mp4`, previewUrl: `/previews/examples-hd-sep24/${v.asset}.mp4`,
+    posterUrl: `/posters/examples-hd-sep24/${v.asset}.webp`,
     href: `/studio?engine=${v.route}&intent_campaign=examples_showcase`, publicSource: 'founder_owned_engine_example' as const })),
   ...ENGINE_PAGE_LEAD.filter(v => v.id === '90bd8367-60c6-4811-8fdd-3a5b0200eec6').map(v => ({
     id: v.id, title: v.title, engine: v.engine, badge: 'SEEDANCE 1.5',
-    videoUrl: v.previewPath, previewUrl: v.previewPath, posterUrl: v.posterPath,
+    videoUrl: '/previews/examples-hd-sep24/castle.mp4', previewUrl: '/previews/examples-hd-sep24/castle.mp4', posterUrl: '/posters/examples-hd-sep24/castle.webp',
     href: '/studio?engine=seedance&intent_campaign=examples_showcase', publicSource: 'founder_owned_engine_example' as const,
   })),
 ]
