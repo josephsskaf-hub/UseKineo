@@ -24,7 +24,7 @@ import PostFilmCreatorOffer from '@/components/PostFilmCreatorOffer'
 import { CREATOR_OFFER_PROFILE_COLUMNS, isPostFilmCreatorEligible } from '@/lib/growth/postFilmCreatorOffer'
 import { CARD_TRIAL_LIVE } from '@/lib/checkoutPricing' // GPT-LOJA-2026-09-24
 import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
-import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer' // o número que a casa MOSTRA (guardião grant-copy-single-source)
 
 // ═══ KINEO-GPT-HANDOFF-2026-09-06 — a página que o link do GPT abre ═════════
 //
@@ -234,7 +234,7 @@ export default async function GoPage({
             ? 'Opens your Studio with this script loaded, exactly as written.'
             : CARD_ENTRY_ONLY
               ? 'Create your account to open this script in Studio. The Creator trial requires a payment method.'
-              : `Sign up free (${TRIAL_GRANT_CREDITS_COPY} credits, no card) to open this script in Studio.`}
+              : `Sign up free (${TRIAL_CREDITS_SHOWN} credits, no card) to open this script in Studio.`}
         </p>
       </div>
 

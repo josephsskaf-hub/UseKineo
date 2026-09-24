@@ -95,7 +95,7 @@ ok(/searchParams\.get\('language'\)/.test(rd('app/(dashboard)/generate/GenerateC
 const page = rd('app/go/[token]/page.tsx')
 ok(/\} else \{\n\s*\/\/ Public explanation[^\n]*\n(?:\s*\/\/[^\n]*\n)*\s*creatorTrialEligible = CARD_TRIAL_LIVE\n/.test(page) && !/creatorTrialEligible = true/.test(page),
   '5a. visitante sem conta só vê a oferta de US$1 se ela estiver LIGADA (CARD_TRIAL_LIVE)')
-ok(/: CARD_ENTRY_ONLY\n\s*\? 'Create your account to open this script in Studio\. The Creator trial requires a payment method\.'\n\s*: `Sign up free \(\$\{TRIAL_GRANT_CREDITS_COPY\} credits, no card\) to open this script in Studio\.`\}/.test(page),
+ok(/: CARD_ENTRY_ONLY\n\s*\? 'Create your account to open this script in Studio\. The Creator trial requires a payment method\.'\n\s*: `Sign up free \(\$\{TRIAL_CREDITS_SHOWN\} credits, no card\) to open this script in Studio\.`\}/.test(page),
   '5b. o texto do botão diz "sem cartão" com o número do trial lido da fonte; a frase do cartão só existe no regime de cartão')
 const pricing = rd('lib/checkoutPricing.ts')
 ok(/export const CARD_TRIAL_LIVE = false/.test(pricing) && /export const CARD_ENTRY_ONLY = false/.test(rd('lib/entryPolicy.ts')), '5c. regime vigente: oferta de US$1 desligada e cadastro sem cartão (se mudar, 5a/5b seguem certos sozinhos)')
