@@ -44,7 +44,7 @@ checa('quem insiste passa (engineFitOverride) e fica registrado', /body\.engineF
 checa('custo sugerido vem da fonte de custo (creditCostForDuration), nunca digitado', /creditCostForDuration\('cinematic_ai', true, requestedForFit\)/.test(fastRoute))
 const gc = rd('app/(dashboard)/generate/GenerateClient.tsx')
 checa('tela: 409 vira caixa de escolha, não erro vermelho', /res\.status === 409 && data && typeof data\.engine_fit === 'object'/.test(gc) && /setEngineFit\(\{/.test(gc) && /data-testid="engine-fit-box"/.test(gc))
-checa('tela: "Switch" troca para Seedance (mode+aiEngine) e re-gera; "Keep" manda engineFitOverride', /data-testid="engine-fit-switch"/.test(gc) && /setMode\('cinematic_ai'\)\n\s+setAiEngine\('seedance'\)/.test(gc) && /data-testid="engine-fit-keep"/.test(gc) && /engineFitOverrideRef\.current = true/.test(gc) && /engineFitOverrideRef\.current \? \{ engineFitOverride: true \}/.test(gc))
+checa('tela: "Switch" troca para Seedance (mode+aiEngine) e re-gera; "Keep" manda engineFitOverride', /data-testid="engine-fit-switch"/.test(gc) && /setMode\('cinematic_ai'\)\n\s+setAiEngine\('seedance'\)/.test(gc) && /data-testid="engine-fit-keep"/.test(gc) && /engineFitOverrideRef\.current = true/.test(gc) && /const sendEngineFitOverride = engineFitOverrideRef\.current \|\| autostartFitOverrideRef\.current/.test(gc) && /sendEngineFitOverride \? \{ engineFitOverride: true \}/.test(gc)) // KINEO-APERTOU-E-NAO-SAIU-2026-09-24 — reancorado: o "Keep" continua mandando o override, agora pelo valor capturado antes do laço (junto com o do auto-start)
 
 console.log('== itens 3 e 5: estilo travado, fecho sem repetição, texto ilegível ==')
 const st = roda(rd('lib/cinematic/sceneStyle.ts'))
