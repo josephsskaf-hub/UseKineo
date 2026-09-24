@@ -3,20 +3,23 @@
 // KINEO-EMPRESAS-DFY-2026-09-23 — o cartão "quer que a gente faça?" dentro do
 // Studio, no instante em que alguém escreve um pedido de anúncio de empresa.
 //
-// POR QUÊ (ver o cabeçalho de lib/growth/dfyOffer.ts): nove pedidos de anúncio
-// de empresa foram escritos no Studio em setembro, metade vindos do ChatGPT
-// com briefing completo. Todos receberam um Short de curiosidades e saíram
-// com 0 crédito. O fundador fixou US$100 por filme e mandou VENDER ANTES DE
-// CONSTRUIR: Payment Link da Stripe, cartão aqui, os 3 primeiros à mão.
+// POR QUÊ (ver o cabeçalho de lib/growth/dfyOffer.ts): onze pedidos de anúncio
+// de empresa foram escritos no Studio em 90 dias, metade vindos do ChatGPT com
+// briefing completo. Todos receberam um Short de curiosidades e saíram com 0
+// crédito. O fundador mandou VENDER ANTES DE CONSTRUIR: Payment Link da Stripe,
+// cartão aqui, os 3 primeiros à mão.
 //
-// O QUE ESTE CARTÃO DECIDE: nada. `isDfyOfferLive()` (o interruptor: URL do
-// Payment Link vazia = cartão desligado em produção, o código sobe pronto),
+// KINEO-EMPRESAS-DOIS-DEGRAUS-2026-09-24 — Express US$35 e Pro US$75 (fundador,
+// 24/09), um botão por degrau LIGADO. Sem degrau ligado o cartão não existe.
+//
+// O QUE ESTE CARTÃO DECIDE: nada. `isDfyOfferLive()` (interruptor por degrau),
 // `isDfyCandidate(prompt)` (a regex estrita) e `dfyPaymentLink()` moram no
 // módulo puro. Aqui só se pinta, se abre o link em nova aba e se mede:
 // `dfy_card_shown` UMA vez por MONTAGEM (ref booleana — a v1 deduplicava por
 // hash do prompt e cada tecla que mantinha o texto candidato gerava outra
-// impressão; memória "evento por tecla infla o denominador") e `dfy_card_clicked`. O render normal continua ao alcance da pessoa
-// — o cartão fica ANTES do botão Generate e não o esconde.
+// impressão; memória "evento por tecla infla o denominador") e
+// `dfy_card_clicked` com o degrau. O render normal continua ao alcance da
+// pessoa — o cartão fica ANTES do botão Generate e não o esconde.
 import { useEffect, useRef } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import {
@@ -40,7 +43,13 @@ export default function DfyOfferCard({
 }) {
   const live = isDfyOfferLive()
   const candidate = live && isDfyCandidate(prompt)
-  const href = candidate ? dfyPaymentLink({ userId, email, source }) : null
+  const copy = candidate ? dfyCardCopy() : null
+  const options = copy
+    ? copy.options
+        .map((o) => ({ ...o, href: dfyPaymentLink({ tier: o.tier, userId, email, source }) }))
+        .filter((o): o is typeof o & { href: string } => typeof o.href === 'string')
+    : []
+  const href = options.length > 0 ? options[0].href : null
   const shownRef = useRef(false)
 
   useEffect(() => {
@@ -50,15 +59,15 @@ export default function DfyOfferCard({
       void trackEvent('dfy_card_shown', {
         source,
         version: DFY_OFFER_VERSION,
+        tiers: options.map((o) => o.tier).join(','),
         prompt_len: prompt.trim().length,
       })
     } catch {
       /* telemetria nunca derruba a tela */
     }
-  }, [candidate, href, prompt, source])
+  }, [candidate, href, prompt, source, options])
 
-  if (!candidate || !href) return null
-  const copy = dfyCardCopy()
+  if (!candidate || !href || !copy) return null
 
   return (
     <section
@@ -76,22 +85,36 @@ export default function DfyOfferCard({
       <p className="text-sm mb-3" style={{ color: 'var(--muted2)', lineHeight: 1.55 }}>
         {copy.body}
       </p>
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={() => {
-          try {
-            void trackEvent('dfy_card_clicked', { source, version: DFY_OFFER_VERSION })
-          } catch {
-            /* ignore */
-          }
-        }}
-        className="inline-flex items-center justify-center rounded-xl px-5 py-2.5 text-sm font-black"
-        style={{ background: '#2997ff', color: '#fff', textDecoration: 'none', boxShadow: '0 8px 28px rgba(41,151,255,.3)' }}
-      >
-        {copy.cta}
-      </a>
+      <div className="flex flex-col gap-2.5">
+        {options.map((o) => (
+          <a
+            key={o.tier}
+            href={o.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-kineo-dfy-tier={o.tier}
+            onClick={() => {
+              try {
+                void trackEvent('dfy_card_clicked', { source, version: DFY_OFFER_VERSION, tier: o.tier, price_minor: o.priceMinor })
+              } catch {
+                /* ignore */
+              }
+            }}
+            className="block rounded-xl px-4 py-3 text-left"
+            style={{
+              background: o.tier === 'pro' ? '#2997ff' : 'rgba(41,151,255,.12)',
+              color: o.tier === 'pro' ? '#fff' : 'var(--text)',
+              textDecoration: 'none',
+              border: '1px solid rgba(41,151,255,.45)',
+            }}
+          >
+            <span className="block text-sm font-black">{o.cta}</span>
+            <span className="block text-xs mt-1" style={{ color: o.tier === 'pro' ? 'rgba(255,255,255,.85)' : 'var(--muted2)', lineHeight: 1.45 }}>
+              {o.detail}
+            </span>
+          </a>
+        ))}
+      </div>
       <p className="text-xs mt-2.5" style={{ color: 'var(--muted)' }}>
         {copy.fine}
       </p>

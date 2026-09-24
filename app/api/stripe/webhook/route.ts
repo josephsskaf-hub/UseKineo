@@ -24,7 +24,7 @@ import { readBulkCheckoutTruthVersion } from '@/lib/growth/bulkCheckoutTruth'
 // Payment Link, sem SKU nesta rota; o valor vem do módulo puro que desenha o
 // cartão do Studio, para que o preço que a tela mostra e o que o webhook
 // reconhece sejam o MESMO número.
-import { DFY_PAYMENT_LINK_ID, DFY_PRICE_USD_MINOR } from '@/lib/growth/dfyOffer'
+import { DFY_ACCEPTED_AMOUNTS_USD_MINOR, dfyPaymentLinkIds, dfyTierForLink } from '@/lib/growth/dfyOffer' // KINEO-EMPRESAS-DOIS-DEGRAUS-2026-09-24
 // KINEO-PILOT-99-2026-07-26 — o nome do plano e o cálculo do prazo são os MESMOS
 // que o cron lê. Se divergirem, o piloto ou nunca expira ou nunca gera.
 import { AUTOPILOT_PILOT_PLAN, autopilotPilotExpiresAt } from '@/lib/autopilot/config'
@@ -831,7 +831,8 @@ async function recordPaymentSuccess(
 //
 // O QUE É UM PEDIDO DFY. metadata.kind === 'dfy' (quando o link carrega a
 // metadata) OU, para um Payment Link criado sem metadata, valor exato
-// DFY_PRICE_USD_MINOR em USD e NENHUM metadata.pack. Por que 10000 não colide
+// um valor aceito (DFY_ACCEPTED_AMOUNTS_USD_MINOR) em USD e NENHUM metadata.pack. Nota 24/09: 3500/7500
+// coincidem com bulk20/bulk50 (por isso a 3ª regra exige payment_link). Por que 10000 não colidia
 // com nenhum SKU one-time nem com o fallback por valor:
 //   · AMBIGUOUS_ONE_TIME_USD_AMOUNTS = {9900} (Starter anual × piloto);
 //   · packs: 490 (starter), 290 (starter290); top-ups: 590/1490/1290/5990;
@@ -859,10 +860,14 @@ function sessionPaymentLinkId(session: Pick<Stripe.Checkout.Session, 'payment_li
 }
 
 function isDfyOrderSession(session: Stripe.Checkout.Session): boolean {
-  if (sessionPaymentLinkId(session) === DFY_PAYMENT_LINK_ID) return true
+  // KINEO-EMPRESAS-DOIS-DEGRAUS-2026-09-24 — Express/Pro (e o link legado de US$100): o id do link é a chave primeira.
+  if (dfyPaymentLinkIds().includes(sessionPaymentLinkId(session) ?? '')) return true
   if (session.metadata?.kind === 'dfy') return true
+  // 3ª regra: valor exato, SÓ em sessão nascida de um Payment Link. Express 3500 e Pro 7500 são também os valores de
+  // bulk20/bulk50 — mas toda sessão da casa carrega metadata.pack e NUNCA payment_link, então não há como confundir.
   return (
-    session.amount_total === DFY_PRICE_USD_MINOR &&
+    sessionPaymentLinkId(session) !== null &&
+    DFY_ACCEPTED_AMOUNTS_USD_MINOR.includes(session.amount_total ?? -1) &&
     (session.currency ?? '').toLowerCase() === 'usd' &&
     !(session.metadata?.pack ?? '').trim()
   )
@@ -910,6 +915,8 @@ async function recordDfyOrderPaid(
         })),
         payment_link: paymentLink,
         kind: 'dfy',
+        // degrau: metadata do link (Cowork) ou o id do link; null no legado de US$100
+        tier: (session.metadata?.tier === 'express' || session.metadata?.tier === 'pro') ? session.metadata.tier : dfyTierForLink(paymentLink),
       },
     }
     const { error } = await supabase.from('events').insert(row)

@@ -36,9 +36,9 @@ try {
   // Node sem strip de tipos: transpila e roda no vm (mesmo caminho dos outros guardiões).
   dfy = roda(rd('lib/growth/dfyOffer.ts'))
 }
-checa('DFY_PRICE_USD_MINOR === 10000 (US$100)', dfy.DFY_PRICE_USD_MINOR === 10000)
-checa("isDfyOfferLive('') === false (interruptor desligado sem link)", dfy.isDfyOfferLive('') === false)
-checa('isDfyOfferLive aceita buy.stripe.com e recusa http/outro host', dfy.isDfyOfferLive('https://buy.stripe.com/abc_123') === true && dfy.isDfyOfferLive('http://buy.stripe.com/abc') === false && dfy.isDfyOfferLive('https://evil.com/buy.stripe.com') === false)
+checa('DFY_TIERS: Express 3500 e Pro 7500 (fundador 24/09), legado 10000 fora dos SKUs, ACCEPTED = os três', dfy.DFY_TIERS.express.priceMinor === 3500 && dfy.DFY_TIERS.pro.priceMinor === 7500 && dfy.DFY_LEGACY_PRICE_USD_MINOR === 10000 && JSON.stringify([...dfy.DFY_ACCEPTED_AMOUNTS_USD_MINOR]) === '[3500,7500,10000]')
+checa("isDfyLinkUrl('') === false e isDfyOfferLive() === false enquanto nenhum degrau tem URL (cartão pausado)", dfy.isDfyLinkUrl('') === false && (dfy.isDfyOfferLive() === false) === (dfy.liveDfyTiers().length === 0))
+checa('isDfyLinkUrl aceita buy.stripe.com e recusa http/outro host', dfy.isDfyLinkUrl('https://buy.stripe.com/abc_123') === true && dfy.isDfyLinkUrl('http://buy.stripe.com/abc') === false && dfy.isDfyLinkUrl('https://evil.com/buy.stripe.com') === false)
 const POSITIVOS = [
   'Create a high-converting 30-second vertical video ad for Ascend AI, an AI automation agency. Target small business owners',
   'make an advertisement with this man for eCredit.ng, a Nigerian digital platform',
@@ -63,12 +63,12 @@ const NEGATIVOS = [
 for (const t of POSITIVOS) checa(`isDfyCandidate POSITIVO: "${t.slice(0, 50)}…"`, dfy.isDfyCandidate(t) === true)
 for (const t of NEGATIVOS) checa(`isDfyCandidate NEGATIVO: "${t.slice(0, 50)}…"`, dfy.isDfyCandidate(t) === false)
 checa('isDfyCandidate: texto curto (<20) e vazio/null nunca casam', dfy.isDfyCandidate('ad for my shop') === false && dfy.isDfyCandidate('') === false && dfy.isDfyCandidate(null) === false && dfy.isDfyCandidate(undefined) === false)
-checa('dfyPaymentLink devolve null com URL vazia explícita (o padrão do módulo está LIGADO desde 24/09)', dfy.dfyPaymentLink({ userId: 'u1', url: '' }) === null && dfy.dfyPaymentLink({ userId: 'u1', url: 'http://buy.stripe.com/x' }) === null)
-const link = dfy.dfyPaymentLink({ userId: 'user_abc-123', email: 'joe@example.com', url: 'https://buy.stripe.com/test_XYZ' })
+checa('dfyPaymentLink devolve null com URL vazia explícita e com http', dfy.dfyPaymentLink({ tier: 'express', userId: 'u1', url: '' }) === null && dfy.dfyPaymentLink({ tier: 'pro', userId: 'u1', url: 'http://buy.stripe.com/x' }) === null)
+const link = dfy.dfyPaymentLink({ tier: 'express', userId: 'user_abc-123', email: 'joe@example.com', url: 'https://buy.stripe.com/test_XYZ' })
 checa('dfyPaymentLink monta client_reference_id + prefilled_email + utm_source sobre a URL válida', typeof link === 'string' && link.startsWith('https://buy.stripe.com/test_XYZ?') && link.includes('client_reference_id=user_abc-123') && link.includes('prefilled_email=joe%40example.com') && link.includes('utm_source=studio_dfy_card'))
-const semRef = dfy.dfyPaymentLink({ userId: 'bad id with spaces', email: 'not-an-email', url: 'https://buy.stripe.com/test_XYZ' })
+const semRef = dfy.dfyPaymentLink({ tier: 'pro', userId: 'bad id with spaces', email: 'not-an-email', url: 'https://buy.stripe.com/test_XYZ' })
 checa('dfyPaymentLink descarta client_reference_id inválido e e-mail sem @ (não quebra o link)', typeof semRef === 'string' && !semRef.includes('client_reference_id') && !semRef.includes('prefilled_email'))
-checa('dfyCardCopy cita o preço e o prazo do módulo (US$100, 72 h)', dfy.dfyCardCopy().cta.includes(`US$${dfy.DFY_PRICE_USD_MINOR / 100}`) && dfy.dfyCardCopy().body.includes(`${dfy.DFY_DELIVERY_HOURS} h`))
+checa('dfyCardCopy lista só degraus LIGADOS, na ordem Express → Pro, com preço e prazo do degrau', (() => { const T = { express: { ...dfy.DFY_TIERS.express, url: 'https://buy.stripe.com/e', linkId: 'plink_e1234567890' }, pro: { ...dfy.DFY_TIERS.pro, url: 'https://buy.stripe.com/p', linkId: 'plink_p1234567890' } }; const c = dfy.dfyCardCopy(T); const off = dfy.dfyCardCopy({ ...T, pro: { ...T.pro, url: '' } }); return c.options.length === 2 && c.options[0].tier === 'express' && c.options[0].cta.includes('US$35') && c.options[0].cta.includes('48 h') && c.options[1].cta.includes('US$75') && c.options[1].cta.includes('72 h') && off.options.length === 1 && dfy.dfyCardCopy().options.length === dfy.liveDfyTiers().length })())
 
 // ── S1: checkout do pack ─────────────────────────────────────────────────────
 console.log('== S1: app/api/stripe/checkout/route.ts ==')
@@ -96,7 +96,7 @@ checa("pack: a decisão de success_url é o ternário wm → studio → padrão 
 // ── S2: webhook ──────────────────────────────────────────────────────────────
 console.log('== S2: app/api/stripe/webhook/route.ts ==')
 const wh = rd('app/api/stripe/webhook/route.ts')
-checa("importa DFY_PRICE_USD_MINOR de '@/lib/growth/dfyOffer' (mesmo número que o cartão mostra)", wh.includes("DFY_PRICE_USD_MINOR } from '@/lib/growth/dfyOffer'"))
+checa("importa dfyPaymentLinkIds/dfyTierForLink/DFY_ACCEPTED_AMOUNTS_USD_MINOR de '@/lib/growth/dfyOffer' (mesmos números que o cartão mostra)", wh.includes("import { DFY_ACCEPTED_AMOUNTS_USD_MINOR, dfyPaymentLinkIds, dfyTierForLink } from '@/lib/growth/dfyOffer'"))
 const rpsIni = wh.indexOf('async function recordPaymentSuccess(')
 const rps = wh.slice(rpsIni, wh.indexOf('\n}\n', rpsIni))
 checa('payment_success.metadata ganha kind (session.metadata.kind ?? null)', rps.includes('kind: session.metadata?.kind ?? null'))
@@ -104,11 +104,11 @@ checa('payment_success.metadata ganha payment_link (string ou id, ou null)', /pa
 checa('payment_success.metadata segue com amount_total e currency', rps.includes('amount_total: session.amount_total') && rps.includes('currency: session.currency'))
 // KINEO-EMPRESAS-DFY-PLINK-2026-09-24 — o link existe (Cowork, 23/09) e a conta tem Adaptive Pricing: a chave primeira
 // do reconhecimento é o id do Payment Link; kind=dfy e valor exato ficam como segunda e terceira.
-checa('isDfyOrderSession: 1º o id do link, 2º kind===dfy, 3º valor exato em usd sem metadata.pack', /function isDfyOrderSession\(session: Stripe\.Checkout\.Session\): boolean \{\s*if \(sessionPaymentLinkId\(session\) === DFY_PAYMENT_LINK_ID\) return true\s*if \(session\.metadata\?\.kind === 'dfy'\) return true\s*return \(\s*session\.amount_total === DFY_PRICE_USD_MINOR &&\s*\(session\.currency \?\? ''\)\.toLowerCase\(\) === 'usd' &&\s*!\(session\.metadata\?\.pack \?\? ''\)\.trim\(\)\s*\)/.test(wh))
-checa('webhook importa DFY_PAYMENT_LINK_ID do módulo puro (não redigita o plink)', /import \{ DFY_PAYMENT_LINK_ID, DFY_PRICE_USD_MINOR \} from '@\/lib\/growth\/dfyOffer'/.test(wh) && !/plink_[A-Za-z0-9]{10,}/.test(wh))
+checa('isDfyOrderSession: 1º id do link (degraus + legado), 2º kind===dfy, 3º valor aceito em usd, sem metadata.pack e SÓ em sessão de Payment Link', /function isDfyOrderSession\(session: Stripe\.Checkout\.Session\): boolean \{[\s\S]{0,260}if \(dfyPaymentLinkIds\(\)\.includes\(sessionPaymentLinkId\(session\) \?\? ''\)\) return true\s*if \(session\.metadata\?\.kind === 'dfy'\) return true[\s\S]{0,420}return \(\s*sessionPaymentLinkId\(session\) !== null &&\s*DFY_ACCEPTED_AMOUNTS_USD_MINOR\.includes\(session\.amount_total \?\? -1\) &&\s*\(session\.currency \?\? ''\)\.toLowerCase\(\) === 'usd' &&\s*!\(session\.metadata\?\.pack \?\? ''\)\.trim\(\)\s*\)/.test(wh))
+checa('webhook não redigita plink nenhum (ids vêm do módulo puro) e grava o degrau no pedido', !/plink_[A-Za-z0-9]{10,}/.test(wh) && /tier: \(session\.metadata\?\.tier === 'express' \|\| session\.metadata\?\.tier === 'pro'\) \? session\.metadata\.tier : dfyTierForLink\(paymentLink\)/.test(wh))
 checa('sessionPaymentLinkId aceita string e objeto expandido', /function sessionPaymentLinkId\([^)]*\): string \| null \{\s*const link = session\.payment_link\s*if \(typeof link === 'string'\) return link\s*return link && typeof link === 'object' && typeof link\.id === 'string' \? link\.id : null/.test(wh))
-checa('DFY_PAYMENT_LINK_ID tem formato plink_… e DFY_PAYMENT_LINK_URL está LIGADA (buy.stripe.com)', /^plink_[A-Za-z0-9]{10,}$/.test(dfy.DFY_PAYMENT_LINK_ID) && dfy.isDfyOfferLive() === true && /^https:\/\/buy\.stripe\.com\/[A-Za-z0-9]+$/.test(dfy.DFY_PAYMENT_LINK_URL))
-checa('dfyPaymentLink com a URL real leva client_reference_id e prefilled_email', (() => { const u = dfy.dfyPaymentLink({ userId: '0b1f0b1f-0000-4000-8000-000000000001', email: 'x@y.com', source: 't' }); return typeof u === 'string' && u.startsWith(dfy.DFY_PAYMENT_LINK_URL + '?') && u.includes('client_reference_id=0b1f0b1f-0000-4000-8000-000000000001') && u.includes('prefilled_email=x%40y.com') })())
+checa('ids de link: legado plink_… presente; degrau só entra quando tiver linkId; dfyTierForLink resolve o degrau', (() => { const ids = dfy.dfyPaymentLinkIds(); const T = { express: { ...dfy.DFY_TIERS.express, linkId: 'plink_e1234567890' }, pro: { ...dfy.DFY_TIERS.pro, linkId: 'plink_p1234567890' } }; return ids.every((i) => /^plink_[A-Za-z0-9]{10,}$/.test(i)) && ids.includes('plink_1UJ23XIah5dxzSBfyfKlmOGV') && dfy.dfyPaymentLinkIds(T).length === 3 && dfy.dfyTierForLink('plink_p1234567890', T) === 'pro' && dfy.dfyTierForLink('plink_1UJ23XIah5dxzSBfyfKlmOGV', T) === null })())
+checa('dfyPaymentLink com URL real leva client_reference_id e prefilled_email', (() => { const u = dfy.dfyPaymentLink({ tier: 'pro', userId: '0b1f0b1f-0000-4000-8000-000000000001', email: 'x@y.com', source: 't', url: 'https://buy.stripe.com/real' }); return typeof u === 'string' && u.startsWith('https://buy.stripe.com/real?') && u.includes('client_reference_id=0b1f0b1f-0000-4000-8000-000000000001') && u.includes('prefilled_email=x%40y.com') })())
 const pathAIni = wh.indexOf("if (session.mode === 'payment') {")
 const pathA = wh.slice(pathAIni, pathAIni + 6000)
 const idxDfy = pathA.indexOf('if (isDfyOrderSession(session)) {')
@@ -137,8 +137,8 @@ const cp = rd('lib/checkoutPricing.ts')
 const usdAmounts = [...cp.matchAll(/\b(?:usd|usdMinor)\s*:\s*(\d+)/g)].map((m) => Number(m[1]))
 const amb = ((cp.match(/AMBIGUOUS_ONE_TIME_USD_AMOUNTS[^\n]*new Set<number>\(\[([^\]]*)\]\)/) || [])[1] || '').split(',').map((s) => Number(s.trim())).filter(Number.isFinite)
 const legados = [...wh.matchAll(/amount === (\d+)\)/g)].map((m) => Number(m[1]))
-checa(`10000 não está em AMBIGUOUS_ONE_TIME_USD_AMOUNTS ({${amb}})`, amb.length >= 1 && !amb.includes(dfy.DFY_PRICE_USD_MINOR))
-checa(`10000 não colide com nenhum valor USD de checkoutPricing (${usdAmounts.length} valores) nem com legados do webhook (${legados})`, usdAmounts.length >= 10 && !usdAmounts.includes(dfy.DFY_PRICE_USD_MINOR) && legados.length >= 2 && !legados.includes(dfy.DFY_PRICE_USD_MINOR))
+checa(`nenhum valor aceito (3500/7500/10000) está em AMBIGUOUS_ONE_TIME_USD_AMOUNTS ({${amb}})`, amb.length >= 1 && dfy.DFY_ACCEPTED_AMOUNTS_USD_MINOR.every((v) => !amb.includes(v)))
+checa('3500/7500 colidem com bulk20/bulk50 de propósito documentado: por isso a 3ª regra só vale para sessão de Payment Link (a casa nunca cria sessão com payment_link) e sem metadata.pack', /sessionPaymentLinkId\(session\) !== null &&\s*DFY_ACCEPTED_AMOUNTS_USD_MINOR\.includes\(session\.amount_total \?\? -1\)/.test(wh) && usdAmounts.includes(3500) && usdAmounts.includes(7500) && !usdAmounts.includes(10000) && legados.length >= 2 && dfy.DFY_ACCEPTED_AMOUNTS_USD_MINOR.every((v) => !legados.includes(v)))
 checa('o comentário do webhook registra a prova de não colisão (9900, 490/290, top-ups, bulk, anuais, legados)', /AMBIGUOUS_ONE_TIME_USD_AMOUNTS = \{9900\}/.test(wh) && /Nenhum é 10000/.test(wh))
 
 // ── S3: padrão mensal ────────────────────────────────────────────────────────

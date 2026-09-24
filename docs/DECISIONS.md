@@ -2,6 +2,11 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
+## 2026-09-24 — Kineo Empresas em dois degraus: Express US$35 · Pro US$75
+
+**DECISÃO APROVADA (fundador, 24/09/2026 ~01h30 BRT):** "preço dos degraus: express 35 usd, pro 75 usd", depois de ler os 11 pedidos de anúncio de empresa dos últimos 90 dias e chamar o US$100 único (referência de 23/09) de "absurdo". Express = Kineo 1 ou Seedance, 30-60 s, logo e fotos onde o formato permite, 1 revisão, 48 h. Pro = Seedance ou Kling 3 com os mesmos personagens entre cenas, roteiro escrito por nós, 2 revisões, 72 h. Cada degrau tem o próprio Payment Link (Cowork cria no painel; o de US$100 é desativado). Até os links existirem o cartão do Studio fica PAUSADO; os 4 rascunhos de US$100 foram apagados e serão reescritos com os degraus. Produção: no Studio da casa, na conta do fundador; material do cliente por resposta ao recibo ou "My footage"; entrega por MP4 + página /v/ privada.
+
+
 ## 2026-09-24 — Sete respostas do fundador às pendências das 3 jogadas
 
 **DECISÕES (fundador, 24/09/2026 ~01h BRT, no chat do Claude Code, uma palavra cada):**
