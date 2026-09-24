@@ -26,7 +26,10 @@ import {
   isSelfServeEntitlementReady,
   selfServeEntitlementState,
 } from '@/lib/growth/checkoutSuccessEntitlement'
-import { CARD_ENTRY_DRAFT_KEY } from '@/lib/growth/cardEntryResumeDraft'
+import { CARD_ENTRY_DRAFT_KEY, readCardEntryDraft } from '@/lib/growth/cardEntryResumeDraft'
+// KINEO-PAREDE-V1-2026-09-23 — quem pagou na parede volta para o PRÓPRIO
+// roteiro, sem disparo automático (regra 18-19/09). Ver lib/growth/wallV1.ts.
+import { WALL_V1_VERSION, checkoutSuccessResumeHref } from '@/lib/growth/wallV1'
 
 // KINEO-FIRST-WIN-2026-08-02 — the 5th buyer ever (01/08) paid straight from
 // TAAFT, was auto-redirected here into an EMPTY /generate, wandered between
@@ -59,6 +62,11 @@ export default function CheckoutSuccessPage() {
   const [credits, setCredits] = useState<number | null>(null)
   const [syncing, setSyncing] = useState(true)
   const [hasSavedDraft, setHasSavedDraft] = useState(false)
+  // KINEO-PAREDE-V1-2026-09-23 — rascunho FRESCO (dentro do TTL) com texto: o CTA
+  // principal vira "Back to your script →" e leva a /studio/create?resume=wall_v1,
+  // que restaura e ESPERA o clique em Generate. Nulo = copy padrão intacta.
+  const [freshDraft, setFreshDraft] = useState<{ engine: string | null; mode: string | null; duration: number | null } | null>(null)
+  const resumeOfferedEventSent = useRef(false)
 
   useEffect(() => {
     const resolved = readCheckoutSuccessFlow(new URLSearchParams(window.location.search))
@@ -68,6 +76,12 @@ export default function CheckoutSuccessPage() {
       // Era literal aqui e literal no GenerateClient: no dia em que uma mudasse,
       // esta tela mandaria o comprador para o Studio vazio sem nenhum erro.
       setHasSavedDraft(Boolean(sessionStorage.getItem(CARD_ENTRY_DRAFT_KEY)))
+      // KINEO-PAREDE-V1-2026-09-23 — o MESMO leitor do Studio decide se o
+      // rascunho está fresco; esta tela não redigita TTL nem chave.
+      const draft = readCardEntryDraft(sessionStorage.getItem(CARD_ENTRY_DRAFT_KEY), Date.now())
+      if (draft && draft.fresh && draft.prompt) {
+        setFreshDraft({ engine: draft.engine, mode: draft.mode, duration: draft.duration })
+      }
     } catch { /* Storage may be unavailable; the ordinary Studio remains usable. */ }
 
     // Computed after mount so the time-seeded shuffle can never cause a
@@ -224,6 +238,11 @@ export default function CheckoutSuccessPage() {
     : null
   if (destination === '/studio') {
     if (hasSavedDraft) destination = '/studio/create?resume=card_entry'
+    // KINEO-PAREDE-V1-2026-09-23 — rascunho fresco vence: botão E relógio vão
+    // para o roteiro da pessoa SEM disparo (o ramo wall_v1 do Studio nunca
+    // arma o autostart). Rascunho vencido segue o caminho antigo, que também
+    // não arma (`resumeArmedRef = draft.fresh`).
+    if (freshDraft) destination = checkoutSuccessResumeHref()
   }
   useEffect(() => {
     if (!autopilotReady || autopilotReadyEventSent.current) return
@@ -242,6 +261,19 @@ export default function CheckoutSuccessPage() {
       flow: 'self_serve',
     })
   }, [selfServeReady])
+
+  // KINEO-PAREDE-V1-2026-09-23 — impressão da oferta "Back to your script",
+  // uma vez, só quando o CTA foi de fato pintado (plano ativo + rascunho fresco).
+  useEffect(() => {
+    if (!selfServeReady || !freshDraft || resumeOfferedEventSent.current) return
+    resumeOfferedEventSent.current = true
+    void trackEvent('checkout_success_resume_offered', {
+      version: WALL_V1_VERSION,
+      engine: freshDraft.engine,
+      mode: freshDraft.mode,
+      duration: freshDraft.duration,
+    })
+  }, [selfServeReady, freshDraft])
 
   useEffect(() => {
     if (!flow) return
@@ -573,6 +605,11 @@ export default function CheckoutSuccessPage() {
           ) : selfServeReady ? (
             <Link
               href={destination ?? '/studio'}
+              data-kineo={freshDraft ? 'checkout-success-resume-wall-v1' : undefined}
+              onClick={() => {
+                if (!freshDraft) return
+                void trackEvent('checkout_success_resume_clicked', { version: WALL_V1_VERSION })
+              }}
               style={{
                 display: 'block',
                 textAlign: 'center',
@@ -587,7 +624,7 @@ export default function CheckoutSuccessPage() {
                 letterSpacing: '-0.01em',
               }}
             >
-              Go to Generate Video
+              {freshDraft ? 'Back to your script →' : 'Go to Generate Video'}
             </Link>
           ) : isSelfServe ? (
             <button

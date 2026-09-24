@@ -137,6 +137,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // stay on disk but are no longer surfaced or indexed).
     { path: '/niche-picker', priority: 0.9, freq: 'weekly' },
     { path: '/state-of-ai-shorts-2026', priority: 0.8, freq: 'weekly' },
+    // KINEO-BENCHMARK-MOTORES-2026-09-23 — página de dados irmã do estudo: filmes, pessoas e mediana por motor
+    // (lib/engineBenchmarkStats), revalidada 1x/dia. Mesma prioridade da /state-of-ai (a 2ª mais citada).
+    { path: '/seedance-vs-veo-vs-kling', priority: 0.8, freq: 'weekly' },
     { path: '/widget', priority: 0.7, freq: 'weekly' },
     // KINEO-SEO-SPRINT-2026-07-25 — high-demand money/monetization + roundup cluster.
     { path: '/best-ai-shorts-generators', priority: 0.9, freq: 'weekly' },

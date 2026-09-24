@@ -163,7 +163,7 @@ export default function ModelsPricingPage() {
                 name: 'How much does one AI video cost on Kineo?',
                 acceptedAnswer: {
                   '@type': 'Answer',
-                  text: `A 60-second film costs ${creditCostForDuration('fast', true, 60)} credits on Kineo 1 and ${creditCostForDuration('cinematic_ai', true, 60)} credits on Seedance 1.5, with voice, captions and score included. The free trial gives 25 credits.`,
+                  text: `A 60-second film costs ${creditCostForDuration('fast', true, 60)} credits on Kineo 1 and ${creditCostForDuration('cinematic_ai', true, 60)} credits on Seedance 1.5, with voice, captions and score included. The free trial gives ${TRIAL_CREDITS_SHOWN} credits.`, // KINEO-FATOS-VIGENCIA-2026-09-23 — "25" literal no FAQ enquanto o parágrafo acima já lia TRIAL_CREDITS_SHOWN (10 desde 16/09)
                 },
               },
               {

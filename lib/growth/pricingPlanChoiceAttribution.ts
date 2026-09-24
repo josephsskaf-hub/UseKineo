@@ -21,8 +21,14 @@ export function pricingBillingHandoff(input: { billing?: unknown; promo?: unknow
   const promo = typeof input.promo === 'string' ? input.promo.trim().toUpperCase() : ''
   // Existing email links omit billing, but these two offers promise monthly plans.
   const monthlyPromo = promo === 'FIRST50' || promo === 'COMEBACK50' ? promo : ''
+  // KINEO-PADRAO-MENSAL-2026-09-23 — o padrão da página passa de 'annual' para
+  // 'monthly' (fundador, 23/09, "vai" na jogada 1). Motivo: o anual concede os
+  // créditos por FATURA, 1× por ano, enquanto o FAQ e a página prometem reset
+  // mensal — a página abria numa oferta cujo contrato ela mesma descrevia
+  // errado; e o anual teve 0 vendas na vida. `?billing=annual` explícito
+  // continua abrindo no anual.
   return {
-    initialBilling: monthlyPromo ? 'monthly' : requestedBilling ?? 'annual',
+    initialBilling: monthlyPromo ? 'monthly' : requestedBilling ?? 'monthly',
     // A different billing handoff resets the page; unrelated query changes do not
     // overwrite a buyer's subsequent manual choice.
     key: `${requestedBilling ?? 'default'}:${monthlyPromo}`,

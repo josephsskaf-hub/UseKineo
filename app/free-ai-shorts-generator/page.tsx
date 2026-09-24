@@ -16,6 +16,10 @@ import {
   type PublicSearchParams,
 } from '@/lib/growth/affiliateLandingContext'
 import { freeShortsAlternates } from '@/lib/seo/freeShortsGeneratorLangs'
+// KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — ponte roteiro → Seedance acima da dobra (fundador 23/09, jogada 3).
+import ScriptToSeedanceBridge from '@/components/ScriptToSeedanceBridge'
+import { ENGINES } from '@/lib/growth/enginePageCatalog'
+import { enginePaused } from '@/lib/engineLaunch'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -139,6 +143,10 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 750, margin: '12px 0 0' }}>
           {ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card required.', OFFER.copy.headline)}
         </p>
+
+        {/* KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — medido 23/09: 132 sessões do ChatGPT → 70 contas → 0 pagantes em 60 d.
+            Quem chega com roteiro pronto vê o Seedance antes do formulário grátis. Some se o Seedance estiver pausado. */}
+        {!enginePaused(ENGINES.seedance.param) && <ScriptToSeedanceBridge from="free_ai_shorts_generator" compact />}
 
         <TopicGeneratorForm
           campaign={CAMPAIGN}

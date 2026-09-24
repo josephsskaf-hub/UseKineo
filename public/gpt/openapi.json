@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Kineo Video Handoff",
-    "version": "1.2.1",
+    "version": "1.2.2",
     "description": "Turns an approved Short script into a one-click Kineo Studio link. Call createKineoHandoff ONLY after the user has explicitly approved the final script. The response contains a URL (https://www.usekineo.com/go/<token>) that opens Kineo Studio pre-filled with the script, duration and engine. Kineo renders the film after the user clicks; this API never renders anything itself. Public, no authentication, rate-limited per IP."
   },
   "servers": [
@@ -28,7 +28,7 @@
         },
         "responses": {
           "200": {
-            "description": "Link created. Show `url` to the user verbatim and say it is valid for 7 days. Then ONE line about cost, conditioned on `durationSec` and `engineHint` in this response: if durationSec is 35 or 60 and engineHint is `seedance`, say the first film is free (25-credit trial, no card); if durationSec is 90, say a 90s film costs more than the free trial and needs a paid plan, and offer 60s as the free alternative without discouraging 90s; if engineHint is `hollywood`, `h3`, `omni` or `veo`, say that engine is on paid plans. Never claim a free film for 90s or for a premium engine. Then, about length, read `outcome.kind` — it is Kineo's real verdict, computed by the same rule the Studio applies before rendering: if it is `shorter_film`, quote `outcomeMessage` verbatim (it says the film will come out shorter than requested and nothing gets cut) and offer to extend the script and re-send; if it is `at_target`, say nothing about length. Never write your own estimate of the narration length, and never call the script short on your own: `outcomeMessage` is the only sentence to use about what the user will receive. `fitMessage` is the word-budget note for this engine's voice; quote it verbatim only if the user asks how the length was measured, never as a warning. If `overStudioLimit` is true, warn the user in one line that Kineo Studio accepts up to `studioLimitChars` characters and the script must be trimmed before rendering.",
+            "description": "Link created. Show `url` to the user verbatim and say it is valid for 7 days. Then ONE line about cost, conditioned on `engineHint` in this response: every new account gets a 10-credit trial, no card, and that balance covers films on `fast` (Kineo 1, real stock footage) at 35, 60 or 90 s; if engineHint is `seedance`, `kling`, `veo`, `hollywood`, `h3` or `omni`, say that engine needs a paid plan (Starter, US$9.90/month) at every duration, and offer `fast` as the no-card alternative without discouraging the chosen engine. Never say a Seedance film, or a film on any generative engine, comes at no cost; the trial is 10 credits, not more. Then, about length, read `outcome.kind` — it is Kineo's real verdict, computed by the same rule the Studio applies before rendering: if it is `shorter_film`, quote `outcomeMessage` verbatim (it says the film will come out shorter than requested and nothing gets cut) and offer to extend the script and re-send; if it is `at_target`, say nothing about length. Never write your own estimate of the narration length, and never call the script short on your own: `outcomeMessage` is the only sentence to use about what the user will receive. `fitMessage` is the word-budget note for this engine's voice; quote it verbatim only if the user asks how the length was measured, never as a warning. If `overStudioLimit` is true, warn the user in one line that Kineo Studio accepts up to `studioLimitChars` characters and the script must be trimmed before rendering.",
             "content": {
               "application/json": {
                 "schema": {
@@ -94,7 +94,7 @@
               90
             ],
             "default": 60,
-            "description": "Target length of the film in seconds. Must match the duration the user chose BEFORE the script was written. Use 60 when the user has no preference. 35 = quick fact, 60 = standard Short (recommended, best for TikTok and YouTube Shorts), 90 = deeper story. Cost on the default engine: 35s and 60s fit the free 25-credit trial; 90s does not (it costs more than the trial) and needs a paid plan — say that in one line when the user picks 90 and has not paid, offer 60s, but do not talk them out of 90s."
+            "description": "Target length of the film in seconds. Must match the duration the user chose BEFORE the script was written. Use 60 when the user has no preference. 35 = quick fact, 60 = standard Short (recommended, best for TikTok and YouTube Shorts), 90 = deeper story. Cost: the duration does not change who pays. The 10-credit trial (no card) covers films on `fast` at 35, 60 or 90 s; `seedance` and every other generative engine need a paid plan (Starter, US$9.90/month) at every duration. Do not talk the user out of 90 s — a longer film simply uses more credits on a paid plan."
           },
           "aspect": {
             "type": "string",
@@ -119,7 +119,7 @@
               "omni"
             ],
             "default": "seedance",
-            "description": "Which Kineo video engine Studio should pre-select. Send `seedance` (Seedance 1.5, AI-generated cinematic scenes; the only engine where a 35s or 60s film fits the free trial) unless the user asks for something specific. `fast` = Kineo 1, real stock footage with narration, fastest and cheapest, good for news/facts/money topics. `kling` = Kling 2.5, more detailed AI scenes. `veo` = Veo 3.1, premium realism (paid plans). `hollywood` = Kling 3, top-tier cinematic (150 credits at 60s, paid plans). `h3` = MiniMax H3, stylized motion (paid plans). `omni` = Omni Flash, premium (paid plans). When in doubt, send `seedance`. Never send a value outside this list."
+            "description": "Which Kineo video engine Studio should pre-select. Send `seedance` (Seedance 1.5, AI-generated cinematic scenes; paid plans — the 10-credit trial does not cover it at any duration) unless the user asks for something specific. `fast` = Kineo 1, real stock footage with narration, fastest and cheapest, the only engine the no-card trial covers, good for news/facts/money topics. `kling` = Kling 2.5, more detailed AI scenes. `veo` = Veo 3.1, premium realism (paid plans). `hollywood` = Kling 3, top-tier cinematic (150 credits at 60s, paid plans). `h3` = MiniMax H3, stylized motion (paid plans). `omni` = Omni Flash, premium (paid plans). When in doubt, send `seedance`. Never send a value outside this list."
           },
           "language": {
             "type": "string",
@@ -237,7 +237,7 @@
               60,
               90
             ],
-            "description": "The duration Kineo stored for this handoff. Use it to decide the cost line: 35 or 60 on `seedance` = first film free (25-credit trial); 90 = costs more than the free trial, needs a paid plan."
+            "description": "The duration Kineo stored for this handoff. Use it together with `engineHint` for the cost line: on `fast`, 35, 60 or 90 s all fit the 10-credit trial (no card); on `seedance` or any other generative engine the film needs a paid plan at every duration."
           },
           "engineHint": {
             "type": "string",

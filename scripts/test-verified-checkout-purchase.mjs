@@ -226,6 +226,11 @@ const page = load('app/checkout/success/page.tsx', {
   // do sucesso a importa em vez de redigitar o literal. O modulo REAL entra no
   // mapa (nao um duble): se ele quebrar, este contrato quebra junto.
   '@/lib/growth/cardEntryResumeDraft': load('lib/growth/cardEntryResumeDraft.ts'),
+  // KINEO-PAREDE-V1-2026-09-23 — a tela do sucesso passou a importar a volta
+  // ao rascunho (checkoutSuccessResumeHref) e o carimbo WALL_V1_VERSION. O
+  // modulo REAL entra no mapa, com o seu unico import (engineLabel), para que
+  // um import novo derrube este contrato em vez de mata-lo antes da 1a checagem.
+  '@/lib/growth/wallV1': load('lib/growth/wallV1.ts', { '@/lib/engineLabel': load('lib/engineLabel.ts') }),
   '@/lib/growth/verifiedCheckoutPurchase': policy,
   '@/lib/growth/observeCheckoutPurchase': { observeCheckoutPurchase: input => {
     observed.push(input); return () => { cleanupCalled = true }

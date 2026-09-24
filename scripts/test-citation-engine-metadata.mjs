@@ -64,22 +64,49 @@ const pageBody = source => {
 // KINEO-GALERIA-DA-CASA-2026-09-21 — fundador ("Vamos de B"): a página ganhou a vitrine da casa por motor, colada ao
 // formulário. A trava continua valendo para TODO o resto: tirado esse bloco (as 2 linhas do `house` e a seção
 // `{house.length > 0 && (...)}`), o corpo da página tem de ser byte a byte o da base 560b5e2f.
+//
+// KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — autorização do fundador 23/09: vai nas 3 jogadas; jogada 3 = bloco acima
+// da dobra nas 4 páginas citadas. Reancoragem HONESTA: a ponte de 22/09 (grade de vídeos abaixo da dobra, sem
+// evento) SAI; entra UM bloco exato — as 2 linhas da condição `showSeedanceBridge` e o JSX
+// `{showSeedanceBridge && <ScriptToSeedanceBridge from="kineo1" />}` precedido do seu comentário. Só essas linhas
+// exatas são removidas antes da comparação; qualquer outra mudança no corpo (title, H1, lead, JSON-LD, CTA) segue
+// vermelha. E o bloco novo é EXIGIDO, entre o fim do hero e o formulário do Kineo 1.
+const BRIDGE_DECL = "  const showSeedanceBridge = params.engine === 'kineo-1' && !enginePaused(ENGINES.seedance.param)"
+const BRIDGE_JSX = '        {showSeedanceBridge && <ScriptToSeedanceBridge from="kineo1" />}'
 const semGaleriaDaCasa = (body) => {
   const lines = body.split('\n')
   const out = []
   let skippingSection = false
+  let skippingBridgeComment = false
   for (let i = 0; i < lines.length; i++) {
     const l = lines[i]
-    // as 2 linhas do `house` (comentário + const)
-    if (/^  \/\/ KINEO-(GALERIA-DA-CASA-2026-09-21|PONTE-SEEDANCE-2026-09-22)/.test(l)) { i += 1; continue }
-    // a seção JSX inteira, do comentário de abertura até o `)}` que fecha `{house.length > 0 && (` (+ linha em branco)
-    if (/^        \{\/\* KINEO-(GALERIA-DA-CASA-2026-09-21|PONTE-SEEDANCE-2026-09-22)/.test(l)) { skippingSection = true; continue }
+    // as 2 linhas do `house` (comentário + const) e as 2 da condição da ponte (comentário + const exata)
+    if (/^  \/\/ KINEO-GALERIA-DA-CASA-2026-09-21/.test(l)) { i += 1; continue }
+    if (/^  \/\/ KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23/.test(l) && lines[i + 1] === BRIDGE_DECL) { i += 1; continue }
+    // a seção JSX da galeria, do comentário de abertura até o `)}` que fecha `{house.length > 0 && (` (+ linha em branco)
+    if (/^        \{\/\* KINEO-GALERIA-DA-CASA-2026-09-21/.test(l)) { skippingSection = true; continue }
     if (skippingSection) { if (l === '        )}') { skippingSection = false; if (lines[i + 1] === '') i += 1 } continue }
+    // a ponte: comentário até a linha EXATA do JSX (+ linha em branco); nada além disso
+    if (/^        \{\/\* KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23/.test(l)) { skippingBridgeComment = true; continue }
+    if (skippingBridgeComment) {
+      if (l === BRIDGE_JSX) { skippingBridgeComment = false; if (lines[i + 1] === '') i += 1; continue }
+      if (/^            /.test(l)) continue // continuação do comentário JSX
+      throw new Error('bloco da ponte com conteúdo inesperado: ' + l.trim().slice(0, 80))
+    }
     out.push(l)
   }
   return out.join('\n')
 }
-assert.notEqual(pageBody(current), pageBody(previous), 'a galeria da casa existe na página atual')
+{
+  const body = pageBody(current)
+  assert.ok(body.includes(BRIDGE_DECL), 'ponte só no kineo-1 e só com o Seedance ativo')
+  const bridgeAt = body.indexOf(BRIDGE_JSX), heroEnd = body.indexOf("{tierNote}</p>\n        </section>"), formAt = body.indexOf('<TopicGeneratorForm')
+  assert.ok(bridgeAt > 0 && heroEnd > 0 && formAt > 0, 'ponte, hero e formulário existem')
+  assert.ok(heroEnd < bridgeAt && bridgeAt < formAt, 'ponte acima da dobra: depois do hero, antes do formulário')
+  assert.equal((body.match(/<ScriptToSeedanceBridge /g) ?? []).length, 1, 'uma ponte só')
+  assert.ok(!current.includes('kineo1_bridge') && !current.includes('seedanceBridge.map'), 'a ponte antiga abaixo da dobra saiu')
+}
+assert.notEqual(pageBody(current), pageBody(previous), 'a galeria da casa e a ponte existem na página atual')
 assert.equal(semGaleriaDaCasa(pageBody(current)), pageBody(previous))
 console.log('PASS: actual metadata, canonical URLs, pause policy and credit coverage for ' + ENGINE_SLUGS.length + ' engine pages; visible page unchanged')
 

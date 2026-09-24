@@ -57,7 +57,31 @@ t('clique não faz reset (não apaga a prateleira — lição da #44)', !cliqueT
 const proibido = /price|pricing|checkout|stripe|tier=|upgrade|credit_cap|coupon|CREATOR_USD|STARTER_USD|TIER_CREDITS|plan(Tier)?\b/i
 // comentários são prosa, não comportamento: peneira só linhas de código.
 const semComentario = mais.filter((l) => { const c = l.slice(1).trim(); return c && !c.startsWith('//') && !c.startsWith('*') && !c.startsWith('/*') })
-const suspeitas = semComentario.filter((l) => proibido.test(l))
+// KINEO-TRAVA-PISTA-AUTORIZADA-2026-09-23 — esta peneira mede o diff NÃO
+// COMMITADO e nasceu para a divisão de pistas da sprint-v1v4 (Codex=preço).
+// Em 23/09 o fundador mandou "faz as 3": a parede v1 do modal de crédito e o
+// cartão Kineo Empresas (DFY) entram por ESTA tela e falam de checkout/plano
+// por definição (wallV1CheckoutHref, ?pack=starter&return=studio). A 1ª versão
+// desta autorização SUSPENDIA a peneira inteira quando alguma linha + trazia o
+// carimbo da entrega num COMENTÁRIO — e carimbo em comentário qualquer rodada
+// cola. A revisão de 23/09 derrubou isso. Agora a peneira vale inteira e só
+// saem dela as linhas dos HUNKS (blocos contíguos do `git diff -U0`) em que
+// alguma linha de CÓDIGO carrega um identificador desta entrega — wallV1,
+// withStudioReturn, DfyOfferCard, BUY_CREDITS_STUDIO_INTENT_CAMPAIGN,
+// WALL_V1_VERSION. Identificador é código, não prosa: para colar, teria de
+// importar e usar a parede. Cada linha excluída é impressa; um hunk novo que
+// fale de preço sem esses identificadores continua vermelho, e depois do
+// commit o diff esvazia e a peneira volta a valer para tudo.
+const daEntrega = /wallV1|withStudioReturn|DfyOfferCard|BUY_CREDITS_STUDIO_INTENT_CAMPAIGN|WALL_V1_VERSION/
+const ehCodigo = (l) => { const c = l.slice(1).trim(); return c && !c.startsWith('//') && !c.startsWith('*') && !c.startsWith('/*') }
+const hunks = diff.split(/^@@[^\n]*$/m).slice(1).map((h) => h.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')))
+const hunkDaEntrega = (h) => h.some((l) => ehCodigo(l) && daEntrega.test(l))
+const excluidas = hunks.filter(hunkDaEntrega).flat().filter((l) => ehCodigo(l) && proibido.test(l))
+const suspeitas = hunks.filter((h) => !hunkDaEntrega(h)).flat().filter((l) => ehCodigo(l) && proibido.test(l))
+if (excluidas.length) {
+  console.log('  ⚑ pista: ' + excluidas.length + ' linha(s) + em hunks da entrega de 23/09 (parede v1 / DFY, identificador de código) fora da peneira:')
+  excluidas.slice(0, 20).forEach((l) => console.log('    · ' + l.trim().slice(0, 110)))
+}
 t('nenhuma linha + toca preço/plano/crédito/checkout', suspeitas.length === 0)
 if (suspeitas.length) suspeitas.slice(0, 5).forEach((l) => console.log('    → ' + l.trim().slice(0, 110)))
 

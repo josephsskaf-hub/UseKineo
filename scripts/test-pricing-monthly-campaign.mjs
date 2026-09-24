@@ -121,15 +121,21 @@ export function fixture(before = false) {
 let checks = 0
 const equal = (a, b, label) => { assert.deepEqual(a, b, label); checks++ }
 const campaign = 'checkout141_completed_first50_20260916'
+// KINEO-PADRAO-MENSAL-2026-09-23 — o padrão da página passou de 'annual' para
+// 'monthly' (lib/growth/pricingPlanChoiceAttribution.ts, fundador 23/09: o
+// anual concede crédito por fatura 1×/ano enquanto a página promete reset
+// mensal, e o anual teve 0 vendas). Toda linha SEM pedido explícito de anual
+// passa a esperar 'monthly'; `billing=annual` explícito segue abrindo no anual.
+// Pedido inválido ou duplicado (weekly, dois billing) NÃO é pedido: cai no padrão.
 const cases = [
-  ['', 'annual'], ['intent_campaign=' + campaign, 'annual'], ['tier=basic', 'annual'],
-  ['billing=monthly', 'monthly'], ['billing=annual', 'annual'], ['billing=weekly', 'annual'],
+  ['', 'monthly'], ['intent_campaign=' + campaign, 'monthly'], ['tier=basic', 'monthly'],
+  ['billing=monthly', 'monthly'], ['billing=annual', 'annual'], ['billing=weekly', 'monthly'],
   ['promo=FIRST50', 'monthly'], ['promo=COMEBACK50', 'monthly'],
   ['promo=first50', 'monthly'], ['promo=%20FIRST50%20', 'monthly'],
-  ['promo=FIRST50&billing=annual', 'monthly'], ['promo=UNKNOWN', 'annual'],
-  ['promo=UNKNOWN&billing=monthly', 'monthly'], ['promo=FIRST50FAKE', 'annual'],
-  ['promo=', 'annual'], ['promo=FIRST50&promo=UNKNOWN', 'annual'],
-  ['billing=monthly&billing=annual', 'annual'],
+  ['promo=FIRST50&billing=annual', 'monthly'], ['promo=UNKNOWN', 'monthly'],
+  ['promo=UNKNOWN&billing=monthly', 'monthly'], ['promo=FIRST50FAKE', 'monthly'],
+  ['promo=', 'monthly'], ['promo=FIRST50&promo=UNKNOWN', 'monthly'],
+  ['billing=monthly&billing=annual', 'monthly'],
 ]
 for (const [query, expected] of cases) {
   const app = fixture(), ssr = app.render(query, { ssr: true }), client = app.render(query)
@@ -155,7 +161,7 @@ equal(new URL(launch.href, 'https://www.usekineo.com').searchParams.get('promo')
 view = app.render('promo=COMEBACK50')
 equal(view.billing, 'monthly', 'new monthly offer handoff initializes monthly')
 view = app.render('')
-equal(view.billing, 'annual', 'return to ordinary pricing restores annual default')
+equal(view.billing, 'monthly', 'return to ordinary pricing restores MONTHLY default (KINEO-PADRAO-MENSAL-2026-09-23)')
 app.toggle(view.tree, 'monthly'); view = app.render()
 equal(view.billing, 'monthly', 'manual monthly choice works for ordinary visitors')
 view = app.render('billing=annual')

@@ -20,6 +20,7 @@
 // data da própria análise, separado dos números vivos. Honestidade > uniformidade.
 
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import {
   getStudyStats,
   RELIABILITY_WINDOW_START,
@@ -31,6 +32,10 @@ import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // Client island; o resto da página segue server e a revalidação diária vale.
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
+// KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — ponte roteiro → Seedance acima da dobra (fundador 23/09, jogada 3).
+import ScriptToSeedanceBridge from '@/components/ScriptToSeedanceBridge'
+import { ENGINES } from '@/lib/growth/enginePageCatalog'
+import { enginePaused } from '@/lib/engineLaunch'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -182,6 +187,12 @@ export default async function StateOfAiShortsPage() {
     ],
   }
 
+  // KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — medido 23/09: esta é a página mais citada pelo ChatGPT (238 sessões
+  // em 60 d) e a que menos converte (26 contas, 0 pagantes). A ponte roteiro → Seedance nasce aqui, logo antes do
+  // bloco do formulário, e é renderizada no TOPO do conteúdo (depois do lead, antes de "Key findings"). Título, H1,
+  // lead e JSON-LD intocados. Some se o Seedance estiver pausado.
+  const seedanceBridge = !enginePaused(ENGINES.seedance.param) ? <ScriptToSeedanceBridge from="state_of_ai" /> : null
+
   // KINEO-GROWTH-STATE-STARTER-2026-08-28 — production evidence showed the
   // embedded starter converts when it is reached, but it sat after the entire
   // study. Keep one starter and one campaign; move that same useful action to
@@ -263,6 +274,8 @@ export default async function StateOfAiShortsPage() {
           Free to cite with a link to this page. Anonymous aggregates only — no individual
           creator data, no internal or test accounts.
         </p>
+
+        {seedanceBridge && <div style={{ margin: '-16px 0 40px' }}>{seedanceBridge}</div>}
 
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 16px' }}>Key findings</h2>
         <div
@@ -418,7 +431,9 @@ export default async function StateOfAiShortsPage() {
               {s.fastSharePercent}% of finished videos use the 1-credit stock engine and only{' '}
               {s.premiumSharePercent}% use a premium generative one. Whatever the marketing of this
               category says, creators are validating topics cheaply and reserving expensive renders
-              for concepts that already proved themselves.
+              for concepts that already proved themselves. Engine by engine:{' '}
+              {/* KINEO-BENCHMARK-MOTORES-2026-09-23 — liga a página de dados irmã (sem link interno ela nasce órfã). */}
+              <Link href="/seedance-vs-veo-vs-kling" style={{ color: ACCENT, fontWeight: 700 }}>Seedance vs Veo vs Kling, measured</Link>.
             </p>
           </section>
           <section style={{ ...CARD, padding: '16px 18px' }}>

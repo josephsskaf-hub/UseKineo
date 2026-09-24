@@ -20,6 +20,11 @@ import {
   type CheckoutPlanTier,
 } from '@/lib/checkoutPricing'
 import { readBulkCheckoutTruthVersion } from '@/lib/growth/bulkCheckoutTruth'
+// KINEO-EMPRESAS-DFY-2026-09-23 — o pedido "feito para você" (US$100) é pago por
+// Payment Link, sem SKU nesta rota; o valor vem do módulo puro que desenha o
+// cartão do Studio, para que o preço que a tela mostra e o que o webhook
+// reconhece sejam o MESMO número.
+import { DFY_PRICE_USD_MINOR } from '@/lib/growth/dfyOffer'
 // KINEO-PILOT-99-2026-07-26 — o nome do plano e o cálculo do prazo são os MESMOS
 // que o cron lê. Se divergirem, o piloto ou nunca expira ou nunca gera.
 import { AUTOPILOT_PILOT_PLAN, autopilotPilotExpiresAt } from '@/lib/autopilot/config'
@@ -680,6 +685,23 @@ function firstPaymentCreditsFromSession(session: Pick<Stripe.Checkout.Session, '
   return isCardTrial ? CARD_TRIAL_GRANT_CREDITS : isTrial ? TRIAL_GRANT_CREDITS : introApplied ? Math.floor(introCreditsRaw) : planCredits
 }
 
+// KINEO-DFY-UUID-2026-09-23 — o dono do evento sai de `client_reference_id`,
+// que um Payment Link aceita LIVRE (a URL é editável por quem paga; dfyPaymentLink
+// só exige [A-Za-z0-9_-]{1,200}). events.user_id é uuid: um valor que não é
+// UUID não dá 23503 (FK) e sim 22P02 ("invalid input syntax for type uuid"),
+// e o fallback "regrava sem dono" só ouvia 23503 — um pedido PAGO de US$100
+// terminaria num console.error. Regra: só é dono quem passa no formato UUID;
+// o resto vira null ANTES do insert, e o fallback aceita os dois códigos.
+const SESSION_OWNER_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+function sessionOwnerUuid(session: Pick<Stripe.Checkout.Session, 'metadata' | 'client_reference_id'>): string | null {
+  return [session.metadata?.supabase_user_id, session.client_reference_id]
+    .find((v): v is string => typeof v === 'string' && SESSION_OWNER_UUID.test(v)) ?? null
+}
+/** 23503 = dono apagado (FK); 22P02 = user_id fora do formato uuid. Nos dois, o pagamento fica sem dono, nunca se perde. */
+function isOwnerRejection(code: string | null | undefined): boolean {
+  return code === '23503' || code === '22P02'
+}
+
 async function recordPaymentSuccess(
   supabase: AdminClient,
   stripeEventId: string,
@@ -700,7 +722,7 @@ async function recordPaymentSuccess(
     console.error('[stripe webhook] payment_success dedupe lookup error:', existingError.code, existingError.message)
   }
 
-  const userId = session.metadata?.supabase_user_id ?? session.client_reference_id ?? null
+  const userId = sessionOwnerUuid(session)
   const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null
   const subscriptionId = typeof session.subscription === 'string'
     ? session.subscription
@@ -771,6 +793,14 @@ async function recordPaymentSuccess(
       currency: session.currency ?? 'usd',
       // KINEO-RAZAO-ASSINANTE-2026-09-17 — ver firstPaymentCreditsFromSession. Null em pack/pagamento único.
       credits_granted: firstPaymentCreditsFromSession(session),
+      // KINEO-EMPRESAS-DFY-2026-09-23 — `kind` separa no placar o que é
+      // assinatura/pack do que é pedido feito-para-você ('dfy'); `payment_link`
+      // identifica a venda que nasceu fora do checkout da casa. amount_total e
+      // currency já estavam acima; ficam como estão (null vira 0/'usd' lá).
+      kind: session.metadata?.kind ?? null,
+      payment_link: typeof session.payment_link === 'string'
+        ? session.payment_link
+        : session.payment_link?.id ?? null,
     },
   }
 
@@ -779,7 +809,7 @@ async function recordPaymentSuccess(
 
   // A deleted auth user should not make us lose the revenue event. If the
   // user_id foreign key rejects the row, preserve the payment with user=null.
-  if (userId && error.code === '23503') {
+  if (userId && isOwnerRejection(error.code)) {
     const { error: anonymousError } = await supabase
       .from('events')
       .insert({ ...row, user_id: null })
@@ -789,6 +819,108 @@ async function recordPaymentSuccess(
   }
 
   console.error('[stripe webhook] payment_success insert error:', error.code, error.message)
+}
+
+// KINEO-EMPRESAS-DFY-2026-09-23 — KINEO EMPRESAS por Payment Link.
+//
+// POR QUÊ. Nove pedidos de anúncio de empresa foram escritos no Studio em
+// setembro e todos receberam um Short de curiosidades. O fundador fixou
+// US$100 por filme e mandou VENDER ANTES DE CONSTRUIR: Payment Link da Stripe
+// criado por ele, cartão no Studio (lib/growth/dfyOffer.ts), pedidos operados
+// à mão. Este webhook é o único lugar onde o pagamento vira FATO no banco.
+//
+// O QUE É UM PEDIDO DFY. metadata.kind === 'dfy' (quando o link carrega a
+// metadata) OU, para um Payment Link criado sem metadata, valor exato
+// DFY_PRICE_USD_MINOR em USD e NENHUM metadata.pack. Por que 10000 não colide
+// com nenhum SKU one-time nem com o fallback por valor:
+//   · AMBIGUOUS_ONE_TIME_USD_AMOUNTS = {9900} (Starter anual × piloto);
+//   · packs: 490 (starter), 290 (starter290); top-ups: 590/1490/1290/5990;
+//   · bulk: 1900/3500/4900/7500; piloto Autopilot: 9900; Autopilot mensal 29900;
+//   · anuais (mode:'subscription' hoje): 9900/19900/39900;
+//   · legados por valor: 900 e 1900.
+// Nenhum é 10000. O `!pack` é a mesma guarda que o piloto usa: uma sessão da
+// casa SEMPRE carrega metadata.pack, então o fallback por valor só alcança
+// sessões nascidas fora desta rota (o Payment Link).
+//
+// O QUE ESTE RAMO NÃO FAZ: não concede crédito, nem plano, nem has_paid — o
+// filme é entregue por gente. Não aciona o guard de fulfillment (nada de
+// entitlementPending): não há entitlement para reter. Nunca lança: um erro
+// aqui não pode devolver 500 à Stripe, senão ela reenvia um evento que não
+// tem nada a fazer.
+function isDfyOrderSession(session: Stripe.Checkout.Session): boolean {
+  if (session.metadata?.kind === 'dfy') return true
+  return (
+    session.amount_total === DFY_PRICE_USD_MINOR &&
+    (session.currency ?? '').toLowerCase() === 'usd' &&
+    !(session.metadata?.pack ?? '').trim()
+  )
+}
+
+async function recordDfyOrderPaid(
+  supabase: AdminClient,
+  stripeEventId: string,
+  session: Stripe.Checkout.Session,
+): Promise<void> {
+  try {
+    const { data: existingRows, error: existingError } = await supabase
+      .from('events')
+      .select('id')
+      .eq('name', 'dfy_order_paid')
+      .contains('metadata', { stripe_session_id: session.id })
+      .limit(1)
+    if (!existingError && existingRows && existingRows.length > 0) return
+    if (existingError) {
+      console.error('[stripe webhook] dfy_order_paid dedupe lookup error:', existingError.code, existingError.message)
+    }
+    const userId = sessionOwnerUuid(session)
+    const paymentLink = typeof session.payment_link === 'string'
+      ? session.payment_link
+      : session.payment_link?.id ?? null
+    const eventHex = createHash('sha256').update(`dfy_order_paid:${session.id}`).digest('hex').slice(0, 32)
+    const row = {
+      id: `${eventHex.slice(0, 8)}-${eventHex.slice(8, 12)}-${eventHex.slice(12, 16)}-${eventHex.slice(16, 20)}-${eventHex.slice(20)}`,
+      name: 'dfy_order_paid',
+      user_id: userId,
+      path: '/api/stripe/webhook',
+      session_id: null,
+      metadata: {
+        source: 'stripe_webhook',
+        stripe_event_id: stripeEventId,
+        stripe_session_id: session.id,
+        amount_total: session.amount_total ?? null,
+        currency: session.currency ?? null,
+        customer_email: session.customer_details?.email ?? null,
+        customer_name: session.customer_details?.name ?? null,
+        custom_fields: (session.custom_fields ?? []).map((f) => ({
+          key: f.key,
+          label: f.label?.custom ?? null,
+          value: f.text?.value ?? f.dropdown?.value ?? (f.numeric?.value ?? null),
+        })),
+        payment_link: paymentLink,
+        kind: 'dfy',
+      },
+    }
+    const { error } = await supabase.from('events').insert(row)
+    if (!error || error.code === '23505') {
+      console.log('[stripe webhook] dfy_order_paid recorded:', session.id, userId ?? '(no user)', session.customer_details?.email ?? '(no email)')
+      return
+    }
+    // client_reference_id de um usuário apagado (23503) ou fora do formato
+    // uuid (22P02 — o formato já é filtrado por sessionOwnerUuid, o código fica
+    // por cinto e suspensório) não pode perder o pedido pago: regrava sem dono.
+    if (userId && isOwnerRejection(error.code)) {
+      const { error: anonymousError } = await supabase.from('events').insert({ ...row, user_id: null })
+      if (!anonymousError || anonymousError.code === '23505') {
+        console.log('[stripe webhook] dfy_order_paid recorded without user:', session.id)
+        return
+      }
+      console.error('[stripe webhook] dfy_order_paid fallback insert error:', anonymousError.code, anonymousError.message)
+      return
+    }
+    console.error('[stripe webhook] dfy_order_paid insert error:', error.code, error.message)
+  } catch (err) {
+    console.error('[stripe webhook] dfy_order_paid threw:', err, session.id)
+  }
 }
 
 async function recordAsyncCheckoutState(
@@ -1091,6 +1223,16 @@ export async function POST(req: NextRequest) {
         // but old links may still exist in the wild. Keep the legacy mapping
         // so refunds / late webhooks don't lose users their pack.
         if (session.mode === 'payment') {
+          // KINEO-EMPRESAS-DFY-2026-09-23 — ANTES da checagem de userId: quem
+          // paga pelo Payment Link pode chegar sem client_reference_id (link
+          // copiado, aberto em outro navegador). O pedido é gravado mesmo
+          // assim, pelo e-mail do pagador; nada é concedido. Ver
+          // isDfyOrderSession / recordDfyOrderPaid.
+          if (isDfyOrderSession(session)) {
+            await recordDfyOrderPaid(supabase, event.id, session)
+            break
+          }
+
           // #473 — Starter Pack ($4.90 → 10 Shorts) + legacy credit packs.
           // Prefer metadata.pack_credits (currency-proof) over the amount map,
           // and accept metadata.supabase_user_id as well as client_reference_id.

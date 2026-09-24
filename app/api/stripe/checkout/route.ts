@@ -294,6 +294,18 @@ function browserSessionIdFrom(req: NextRequest): string | undefined {
   return /^[A-Za-z0-9_-]{8,64}$/.test(raw) ? raw : undefined
 }
 
+// KINEO-PACK-INTENT-2026-09-23 — UMA sanitização de `intent_campaign` para as
+// duas rotas de sessão. Até aqui só a assinatura (buildAndRedirect) lia e
+// gravava a campanha; o pack de US$4,90 (buildPackAndRedirect) gravava só
+// supabase_user_id/pack/pack_credits, e toda medição "quantos packs vieram da
+// campanha X" dava 0 — não porque ninguém comprou, mas porque o dado nunca
+// viajou. Mesmo padrão (alfanumérico . _ ~ -, 1-100) que a assinatura já usa
+// e que lib/growth/pricingPlanChoiceAttribution.ts usa no cliente.
+function intentCampaignFrom(req: NextRequest): string | undefined {
+  const raw = (req.nextUrl.searchParams.get('intent_campaign') ?? '').trim()
+  return /^[A-Za-z0-9._~-]{1,100}$/.test(raw) ? raw : undefined
+}
+
 type CheckoutIntentSnapshot = {
   videosOk: number | null
   creditsIntact: boolean | null
@@ -913,10 +925,8 @@ async function buildAndRedirect(
   const browserSessionId = /^[A-Za-z0-9_-]{8,64}$/.test(browserSessionCookie)
     ? browserSessionCookie
     : null
-  const rawIntentCampaign = (req.nextUrl.searchParams.get('intent_campaign') ?? '').trim()
-  const intentCampaign = /^[A-Za-z0-9._~-]{1,100}$/.test(rawIntentCampaign)
-    ? rawIntentCampaign
-    : undefined
+  // KINEO-PACK-INTENT-2026-09-23 — helper compartilhado com buildPackAndRedirect.
+  const intentCampaign = intentCampaignFrom(req)
   const intentCampaignParam = intentCampaign
     ? `&intent_campaign=${encodeURIComponent(intentCampaign)}`
     : ''
@@ -2509,6 +2519,13 @@ async function buildPackAndRedirect(req: NextRequest, isGet: boolean): Promise<N
   const chargeAmount = settlementAmountMinor(unitAmount, chargeCurrency)
   skuContext.settlement_currency = chargeCurrency
   skuContext.charge_amount = chargeAmount
+  // KINEO-PACK-INTENT-2026-09-23 — ver intentCampaignFrom(): a campanha entra
+  // na metadata da sessão (o webhook copia para payment_success) e em TODOS os
+  // eventos do pack, do checkout_attempted em diante (a v1 de 23/09 lia a
+  // campanha depois do primeiro recordCheckoutEvent e o topo do funil saía
+  // sem ela). Só quando presente.
+  const packIntentCampaign = intentCampaignFrom(req)
+  if (packIntentCampaign) skuContext.intent_campaign = packIntentCampaign
 
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -2539,10 +2556,18 @@ async function buildPackAndRedirect(req: NextRequest, isGet: boolean): Promise<N
   // video WITHOUT the watermark and swaps it into the preview. Any other pack
   // purchase keeps the normal success page.
   const returnTo = req.nextUrl.searchParams.get('return')
+  // KINEO-PACK-RESUME-2026-09-23 — `?return=studio`: quem compra o pack de
+  // dentro do Studio volta para o Studio. Hoje o padrão cai em /checkout/success,
+  // que espera uma ASSINATURA: lib/growth/checkoutSuccessEntitlement.ts:34-37
+  // devolve 'plan_pending' enquanto `plan` não for pago — e o pack nunca muda o
+  // plano, então o comprador do pack fica preso no "preparando sua conta" para
+  // sempre, com o crédito já na conta. O ramo 'wm' e o padrão ficam intocados.
   const packSuccessUrl =
     returnTo === 'wm'
       ? `${appUrl}/generate?wm_unlock=1&session_id={CHECKOUT_SESSION_ID}`
-      : `${appUrl}/checkout/success?success=true&pack=starter&currency=${currency}&amount=${unitAmount}&session_id={CHECKOUT_SESSION_ID}`
+      : returnTo === 'studio'
+        ? `${appUrl}/studio/create?resume=wall_v1&pack=starter&session_id={CHECKOUT_SESSION_ID}`
+        : `${appUrl}/checkout/success?success=true&pack=starter&currency=${currency}&amount=${unitAmount}&session_id={CHECKOUT_SESSION_ID}`
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     mode: 'payment',
@@ -2563,6 +2588,7 @@ async function buildPackAndRedirect(req: NextRequest, isGet: boolean): Promise<N
       supabase_user_id: user.id,
       pack: 'starter10',
       pack_credits: String(STARTER_PACK.credits),
+      ...(packIntentCampaign ? { intent_campaign: packIntentCampaign } : {}),
     },
   }
   // Attach the saved customer when present (cleaner receipts); else use email.

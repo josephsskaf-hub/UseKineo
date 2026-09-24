@@ -28,6 +28,7 @@ import {
   TIER_CREDITS,
   TIER_PRICES,
 } from '@/lib/checkoutPricing'
+import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer' // KINEO-FATOS-VIGENCIA-2026-09-23
 
 export type PlanTier = 'free' | 'starter' | 'basic' | 'pro' | 'autopilot' | 'autopilot_lite'
 
@@ -78,7 +79,12 @@ export const PLANS: Record<PlanTier, PlanConfig> = {
     price: 0,
     priceLabel: '$0',
     periodLabel: 'forever',
-    credits: 3,
+    // KINEO-FATOS-VIGENCIA-2026-09-23 — era `3` (a cota diária de 2026-07),
+    // digitado à mão. O único leitor de PLANS.free.credits no repo é um
+    // comentário em app/api/cron/send-recovery; nenhuma tela ou cobrador lê
+    // este número. Passa a espelhar o trial real (lib/freeTierOffer.ts é folha:
+    // importa só credits/engineCost e entryPolicy, sem ciclo com este arquivo).
+    credits: TRIAL_GRANT_CREDITS_COPY,
     cta: 'Run Free',
     href: '/signup',
   },

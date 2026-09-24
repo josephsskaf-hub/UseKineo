@@ -139,7 +139,10 @@ checa(
 
 // ── 7. NAO-REGRESSAO: o que ja estava na caixa continua ─────────────────────
 checa('nao-regressao: as linhas de plano continuam', /PLAN_LIST\.map\(\(plan\) => \{/.test(GEN))
-checa('nao-regressao: o purchaseFit do #31 continua', /\{purchaseFit && \(/.test(GEN))
+// KINEO-PAREDE-V1-2026-09-23 — a caixa do purchaseFit virou
+// `{purchaseFit && !wallV1Eligible && (` (some só quando a parede v1 pinta o
+// mesmo gap). A âncora aceita as duas grafias e continua exigindo a caixa.
+checa('nao-regressao: o purchaseFit do #31 continua', /\{purchaseFit && (?:!wallV1Eligible && )?\(\r?\n/.test(GEN))
 checa('nao-regressao: o gatilho upgrade_modal_opened continua', /trackEvent\('upgrade_modal_opened'/.test(GEN))
 checa('nao-regressao: outOfCredits ainda libera o Fast', /if \(mode === 'fast'\) return false/.test(GEN))
 

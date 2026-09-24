@@ -486,7 +486,17 @@ console.log('\n(J) public/gpt/openapi.json amarrado ao servidor')
     const seedanceCost = (d) => Math.max(1, Math.ceil(SEEDANCE_60 * (d / REF_SEC)))
     const freeDur = DUR.filter((d) => seedanceCost(d) <= TRIAL_CAP)
     const paidDur = DUR.filter((d) => seedanceCost(d) > TRIAL_CAP)
-    ok(freeDur.length >= 1 && paidDur.length >= 1, `(J8) pelo custo real, cabem no trial: [${freeDur}] (${freeDur.map(seedanceCost)}cr) · não cabem: [${paidDur}] (${paidDur.map(seedanceCost)}cr vs ${TRIAL_CAP})`)
+    // KINEO-GPT-VERDADE-TRIAL-2026-09-23 — REANCORADO. Desde o trial de 10
+    // créditos (KINEO-TRIAL-10-2026-09-16) NENHUM Seedance cabe no trial
+    // (35s=15cr, 60s=25cr, 90s=38cr vs 10). O regime antigo ("35/60 grátis, 90
+    // paga") virou impossível, e o schema que ainda o contava mentia para o
+    // ChatGPT. Dois regimes, decididos pelo custo real, nunca por texto:
+    //   · freeDur vazio → o schema NÃO pode prometer filme grátis em Seedance;
+    //     tem de dizer que o trial de TRIAL_CAP cobre o `fast` e que Seedance/
+    //     motores generativos exigem plano pago em qualquer duração;
+    //   · freeDur não vazio → as travas antigas (toda promessa cita 35/60 e 90).
+    const noSeedanceFitsTrial = freeDur.length === 0
+    ok(paidDur.length >= 1, `(J8) pelo custo real, cabem no trial: [${freeDur}] (${freeDur.map(seedanceCost)}cr) · não cabem: [${paidDur}] (${paidDur.map(seedanceCost)}cr vs ${TRIAL_CAP})${noSeedanceFitsTrial ? ' — regime SEM Seedance grátis' : ''}`)
     const CLAIM = /\bfilm\s+(?:is\s+)?free\b|\bfree\s+film\b|\bfirst\s+film\s+is\s+free\b/i
     const sentences = strings.flatMap((s) => s.split(/(?<=[.!?])\s+/))
     const claims = sentences.filter((s) => CLAIM.test(s))
@@ -497,12 +507,25 @@ console.log('\n(J) public/gpt/openapi.json amarrado ao servidor')
     // cobrada a citar 35 e 60.
     const affirmative = claims.filter((s) => !/\bnever\b/i.test(s))
     const unconditional = claims.filter((s) => !paidDur.every((d) => mentions(s, d)))
-    ok(affirmative.length >= 1, `(J8) o schema ainda conta a história do grátis (${affirmative.length} promessas, ${claims.length - affirmative.length} proibições)`)
-    ok(unconditional.length === 0, unconditional.length ? `(J8) PROMESSA INCONDICIONAL de filme grátis sem citar ${paidDur.join('/')}: "${unconditional[0].slice(0, 110)}…"` : `(J8) toda frase de "film is free" cita a duração que NÃO cabe (${paidDur.join('/')})`)
-    ok(affirmative.every((s) => freeDur.every((d) => mentions(s, d))), `(J8) toda promessa de "film is free" cita as durações que cabem (${freeDur.join(' e ')})`)
+    if (noSeedanceFitsTrial) {
+      // KINEO-GPT-VERDADE-TRIAL-2026-09-23 — regime sem Seedance grátis.
+      ok(affirmative.length === 0, affirmative.length ? `(J8) o schema PROMETE filme grátis quando nenhum Seedance cabe no trial de ${TRIAL_CAP}: "${affirmative[0].slice(0, 110)}…"` : `(J8) nenhuma frase do schema promete "film is free" (trial de ${TRIAL_CAP} não paga Seedance)`)
+      const seedancePaid = strings.filter((s) => /seedance/i.test(s) && /paid plan/i.test(s))
+      ok(seedancePaid.length >= 3, `(J8) o schema diz que Seedance exige plano pago em ${seedancePaid.length} descriptions (200, durationSec, engineHint, resposta)`)
+      ok(strings.some((s) => new RegExp(`${TRIAL_CAP}-credit trial`).test(s) && /\`fast\`|Kineo 1/.test(s)), `(J8) o schema diz o que o trial de ${TRIAL_CAP} cobre de verdade: o \`fast\` (Kineo 1)`)
+      ok(!strings.some((s) => /fits? the free trial|free alternative/i.test(s) && /seedance/i.test(s)), '(J8) nenhuma description diz que um Seedance "fits the free trial"')
+    } else {
+      ok(affirmative.length >= 1, `(J8) o schema ainda conta a história do grátis (${affirmative.length} promessas, ${claims.length - affirmative.length} proibições)`)
+      ok(unconditional.length === 0, unconditional.length ? `(J8) PROMESSA INCONDICIONAL de filme grátis sem citar ${paidDur.join('/')}: "${unconditional[0].slice(0, 110)}…"` : `(J8) toda frase de "film is free" cita a duração que NÃO cabe (${paidDur.join('/')})`)
+      ok(affirmative.every((s) => freeDur.every((d) => mentions(s, d))), `(J8) toda promessa de "film is free" cita as durações que cabem (${freeDur.join(' e ')})`)
+    }
     ok(!/first film is free \(25-credit trial, no card\)\.\s*Never invent/.test(op?.description ?? ''), '(J8) a redação antiga incondicional da operação não voltou')
     ok((op?.description ?? '').length <= 300, `(J9) description da operação cabe no limite de 300 do editor de Actions da OpenAI (Cowork 06/09) — hoje ${(op?.description ?? '').length}`)
-    ok(/25-credit trial/.test(op?.responses?.['200']?.description ?? '') && /durationSec (is )?90/.test(op?.responses?.['200']?.description ?? ''), '(J9) a regra de custo (35/60 grátis, 90 paga) mora na description do 200, que não tem limite')
+    // KINEO-GPT-VERDADE-TRIAL-2026-09-23 — "25-credit" literal virou TRIAL_CAP; e
+    // no regime sem Seedance grátis a regra de custo é "trial cobre fast, o resto
+    // é plano pago", não "35/60 grátis, 90 paga".
+    const d200 = op?.responses?.['200']?.description ?? ''
+    ok(new RegExp(`${TRIAL_CAP}-credit trial`).test(d200) && (noSeedanceFitsTrial ? /paid plan/i.test(d200) && /\`fast\`/.test(d200) : /durationSec (is )?90/.test(d200)), `(J9) a regra de custo (${noSeedanceFitsTrial ? `trial de ${TRIAL_CAP} cobre o fast; Seedance é plano pago` : '35/60 grátis, 90 paga'}) mora na description do 200, que não tem limite`)
     const trialMentions = strings.flatMap((s) => [...s.matchAll(/(\d+)-credit trial/g)].map((m) => Number(m[1])))
     ok(trialMentions.length >= 1 && trialMentions.every((n) => n === TRIAL_CAP), `(J8) todo "N-credit trial" do schema (${[...new Set(trialMentions)]}) === TRIAL_CREDIT_CAP (${TRIAL_CAP})`)
     const hwMentions = strings.flatMap((s) => [...s.matchAll(/(\d+) credits at 60s/g)].map((m) => Number(m[1])))
@@ -627,7 +650,9 @@ console.log('\n(K) docs/GPT-KINEO-VIDEO-MAKER.md amarrado ao servidor e ao schem
   // loja da seção B, blurbs do caminho padrão (60s seedance, que É grátis).
   // Só essas duas frases, só dentro da seção B.
   const CLAIM = /\bfilm\s+(?:is\s+)?free\b|\bfree\s+film\b|\bfirst\s+film\s+is\s+free\b|\bgr[áa]tis\b|\bfilme[^.]{0,30}de gra[çc]a\b/i
-  const STORE_BLURBS = ['First film free.', 'Your first film is free: 25 trial credits, no card.']
+  // KINEO-TRIAL-10-NO-GPT-2026-09-23 — o blurb da loja deixou de cravar "25": com o trial de 10 (16/09) nenhuma
+  // duração do Seedance cabe, então a frase verdadeira nomeia o Kineo 1 e lê TRIAL_CAP da fonte única.
+  const STORE_BLURBS = ['First film free.', `Your first film is free on Kineo 1: ${TRIAL_CAP} trial credits, no card; Seedance and premium engines need a paid plan.`]
   const blurbsInB = STORE_BLURBS.filter((b) => secB.includes(b))
   ok(blurbsInB.length === STORE_BLURBS.length, `(K2) as ${STORE_BLURBS.length} frases da exceção existem na seção B, literalmente (${blurbsInB.length} achadas)`)
   ok(STORE_BLURBS.every((b) => !secC.includes(b) && !secG.includes(b)), '(K2) a exceção não vaza: os blurbs da seção B não aparecem em C nem em G')
@@ -653,7 +678,15 @@ console.log('\n(K) docs/GPT-KINEO-VIDEO-MAKER.md amarrado ao servidor e ao schem
   ok(Boolean(gPara) && freeDur.every((d) => mentions(gPara, d)) && paidDur.every((d) => mentions(gPara, d)) && /openapi\.json/.test(gPara) && /seção C/.test(gPara), '(K3) seção G: o parágrafo do grátis cita 35/60/90 e aponta para a seção C e para o openapi.json')
   let schema200 = ''
   try { schema200 = JSON.parse(read('public/gpt/openapi.json')).paths['/api/gpt/handoff'].post.responses['200'].description } catch {}
-  ok(/first film is free/i.test(schema200) && freeDur.every((d) => mentions(schema200, d)) && paidDur.every((d) => mentions(schema200, d)), '(K3) openapi.json: a description do 200 conta a mesma história (grátis só em 35/60; 90 é exceção)')
+  // KINEO-GPT-VERDADE-TRIAL-2026-09-23 — com o trial de 10 nenhum Seedance cabe:
+  // o 200 do openapi.json tem de dizer "plano pago" e NÃO "first film is free".
+  // O .md (seções C/G) segue com a redação antiga — fora do escopo desta
+  // reancoragem; as travas K2/K3/K6/K7 do .md continuam cobrando dele.
+  if (freeDur.length === 0) {
+    ok(!/first film is free/i.test(schema200) && /paid plan/i.test(schema200) && new RegExp(`${TRIAL_CAP}-credit trial`).test(schema200), `(K3) openapi.json: o 200 não promete "first film is free", diz plano pago e cita o trial de ${TRIAL_CAP}`)
+  } else {
+    ok(/first film is free/i.test(schema200) && freeDur.every((d) => mentions(schema200, d)) && paidDur.every((d) => mentions(schema200, d)), '(K3) openapi.json: a description do 200 conta a mesma história (grátis só em 35/60; 90 é exceção)')
+  }
   const trialPhrase = (s) => (s.match(/(\d+)-credit trial, no card/) || [])[1]
   ok(trialPhrase(cLine) && trialPhrase(schema200) && trialPhrase(cLine) === trialPhrase(schema200), `(K3) C e o 200 usam a mesma frase "N-credit trial, no card" (N=${trialPhrase(cLine)})`)
 

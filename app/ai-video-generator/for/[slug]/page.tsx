@@ -47,7 +47,19 @@ function studioHref(slug: string, prompt: string, engine: IntentEngine, language
   const campaign = `intent_${slug}`.slice(0, 100)
   const studio = new URLSearchParams({ engine, prompt, duration: '60', script_mode: 'ai', intent_campaign: campaign })
   if (language) studio.set('language', language) // KINEO-IDIOMAS-15: a página de idioma abre o Studio já na língua
-  const signup = new URLSearchParams({ utm_source: 'google', utm_medium: 'organic', utm_campaign: campaign, intent_campaign: campaign, redirect: `/studio?${studio.toString()}` })
+  // KINEO-ORIGEM-HONESTA-2026-09-23 — SEM utm_source/utm_medium cravados. O link
+  // dizia `utm_source=google` para todo mundo, e quem chegava do ChatGPT (ou de
+  // qualquer outro lugar) e se cadastrava por aqui virava 'google' em
+  // profiles.signup_utm_source. Conferido em lib/analytics.ts (captureSourceOnce):
+  // first-touch grava utm_* quando existem e, sem utm, grava `referrer` =
+  // sanitizeAcquisitionReferrer(document.referrer) — o referrer EXTERNO do
+  // pouso (chatgpt.com, google.com); um pouso sem utm e sem referrer não grava
+  // nada, para que um pouso externo posterior ainda vença. E em
+  // lib/acquisitionSource.ts (acquisitionSource): utm explícito vence; sem utm,
+  // a origem sai do host do referrer (sourceFromHost). Portanto, sem utm_source
+  // aqui, a origem registrada é a REAL. utm_campaign e intent_campaign ficam:
+  // são a página, não a origem.
+  const signup = new URLSearchParams({ utm_campaign: campaign, intent_campaign: campaign, redirect: `/studio?${studio.toString()}` })
   return `/signup?${signup.toString()}`
 }
 

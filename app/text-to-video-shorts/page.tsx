@@ -10,6 +10,10 @@ import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { TEXT_TO_VIDEO_CAMPAIGN } from '@/lib/growth/textToVideoIntent'
 import { buildBlankStudioSignupHref } from '@/lib/growth/publicCreationIntent'
 import TextToVideoIntentForm from './TextToVideoIntentForm'
+// KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — ponte roteiro → Seedance acima da dobra (fundador 23/09, jogada 3).
+import ScriptToSeedanceBridge from '@/components/ScriptToSeedanceBridge'
+import { ENGINES } from '@/lib/growth/enginePageCatalog'
+import { enginePaused } from '@/lib/engineLaunch'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -141,6 +145,10 @@ export default function TextToVideoShortsPage() {
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 750, margin: '12px 0 0' }}>
           {ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card required.', OFFER.copy.headline)}
         </p>
+
+        {/* KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — medido 23/09: 130 sessões do ChatGPT → 54 contas → 0 pagantes em 60 d.
+            Quem chega com roteiro pronto vê o Seedance antes do formulário grátis. Some se o Seedance estiver pausado. */}
+        {!enginePaused(ENGINES.seedance.param) && <ScriptToSeedanceBridge from="text_to_video_shorts" compact />}
 
         <TextToVideoIntentForm formId={FORM_ID} />
 

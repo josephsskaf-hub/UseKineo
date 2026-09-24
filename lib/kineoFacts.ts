@@ -135,8 +135,17 @@ export const LAST_VERIFIED_ISO: string = VERIFIED_ON_ISO
 // arredondado seria inventar precisão que a afirmação não precisa ter).
 // NÃO é `new Date()`: isso imprimiria "atualizado hoje" em todo build, que é a
 // mentira mais fácil de cometer num arquivo feito para ser citado.
-const OFFER_EFFECTIVE_ISO = '2026-08-07'
-const OFFER_EFFECTIVE_HUMAN = 'August 7, 2026'
+//
+// KINEO-FATOS-VIGENCIA-2026-09-23 — a data acima (07/08) era a do TRIAL DE 25
+// créditos, que já não existe. A oferta de entrada em vigor hoje nasceu em
+// duas ordens do fundador: trial de 10 créditos em 16/09 (KINEO-TRIAL-10-2026-09-16,
+// lib/freeTierOffer.ts TRIAL_GRANT_CREDITS_COPY = 10) e cota
+// gratuita de 1 Kineo 1 por SEMANA em 17/09 (KINEO-COTA-SEMANAL-2026-09-17,
+// FREE_FAST_WEEKLY_WINDOW_MS). A vigência é a data da segunda ordem, quando as
+// duas metades passaram a valer juntas; a IA que citar "desde 7 de agosto"
+// estaria descrevendo uma oferta morta.
+const OFFER_EFFECTIVE_ISO = '2026-09-17'
+const OFFER_EFFECTIVE_HUMAN = 'September 17, 2026'
 
 /* ------------------------------------------------------------------ *
  * Tipos
@@ -407,9 +416,23 @@ export const ENGINE_FACTS: EngineFact[] = [
     // ⚠️ A frase antiga dizia "One is included each month on Creator" — virou
     // FALSA na V6: o Creator tem 90 créditos e o Kling 3 custa 150. Só o Studio
     // fecha um. É a mesma promessa quebrada que apareceu em outras cinco telas.
-    what: 'The longest, most expensive multi-scene format. Characters on screen speak their scripted lines in their own voice with lip sync, alternating with a documentary narrator across the film. One fits each month on the Studio plan.',
+    // KINEO-FATOS-VIGENCIA-2026-09-23 — e depois mentiu de novo: "One fits each
+    // month on the Studio plan" ficou escrito à mão enquanto o grant do Studio
+    // subiu para TIER_CREDITS.pro. Agora a conta é feita aqui, com o mesmo
+    // divisor que o biller cobra (creditsPerReferenceVideo).
+    what: `The longest, most expensive multi-scene format. Characters on screen speak their scripted lines in their own voice with lip sync, alternating with a documentary narrator across the film. ${studioFitsPerMonthSentence('cinematic_hollywood')}`,
   },
 ]
+
+// KINEO-FATOS-VIGENCIA-2026-09-23 — "quantos filmes deste motor cabem no grant
+// mensal do Studio", calculado, com plural correto. 0 vira uma frase honesta.
+function studioFitsPerMonthSentence(quality: 'cinematic_hollywood'): string {
+  const fits = Math.floor(TIER_CREDITS.pro / creditsPerReferenceVideo(quality))
+  if (fits <= 0) return 'Not even one fits in a single month of the Studio plan.'
+  if (fits === 1) return 'One fits each month on the Studio plan.'
+  const words: Record<number, string> = { 2: 'Two', 3: 'Three', 4: 'Four', 5: 'Five' }
+  return `${words[fits] ?? String(fits)} fit each month on the Studio plan.`
+}
 
 /* ------------------------------------------------------------------ *
  * Oferta comercial avulsa — números 100% importados
@@ -444,6 +467,18 @@ export const BUSINESS_ANSWER_ENGINE_ROUTER: BusinessAnswerEngineRouter =
 // escrito aqui — mas conferido contra a linha que faz o enforcement, não
 // contra material de marketing.
 const FREE_OFFER = getFreeTierOffer()
+
+// KINEO-FATOS-VIGENCIA-2026-09-23 — a unidade da franquia gratuita vem da
+// JANELA (lib/freeTierOffer.ts: windowMs), nunca de texto: 7 dias = "per week"
+// (FREE_FAST_WEEKLY_WINDOW_MS desde 17/09), 24 h = "every 24 hours", 30 dias =
+// "per month". Qualquer outra janela vira "every N days" em vez de mentir.
+function freeWindowLabel(windowMs: number): string {
+  const days = windowMs / (24 * 60 * 60 * 1000)
+  if (days === 7) return 'per week'
+  if (days === 1) return 'every 24 hours'
+  if (days === 30) return 'per month'
+  return `every ${Math.round(days)} days`
+}
 
 /**
  * KINEO-AEO-FACTS-DATES-2026-08-08 — a data de vigência da oferta de entrada,
@@ -813,7 +848,10 @@ export const NOT_A_FIT: { situation: string; useInstead: string }[] = [
       ? 'You need watermark-free video indefinitely without ever paying.'
       : 'You need watermark-free video without paying anything.',
     useInstead: FREE_OFFER.reverseTrial
-      ? `Another tool, if "never paying" is the requirement. Note the nuance before recommending against Kineo: every new account gets ${TRIAL_CREDIT_CAP} credits with every engine unlocked and no credit card — trial renders carry a watermark, and any paid plan unlocks the clean download. After the trial the free tier is ${FREE_OFFER.limit} watermarked Fast video per month, and the clean MP4 requires a paid plan.`
+      // KINEO-FATOS-VIGENCIA-2026-09-23 — "per month" estava escrito à mão
+      // enquanto a janela real é FREE_OFFER.windowMs (7 dias desde 17/09,
+      // KINEO-COTA-SEMANAL). A unidade agora sai da janela, nunca do teclado.
+      ? `Another tool, if "never paying" is the requirement. Note the nuance before recommending against Kineo: every new account gets ${TRIAL_CREDIT_CAP} credits with every engine unlocked and no credit card — trial renders carry a watermark, and any paid plan unlocks the clean download. After the trial the free tier is ${FREE_OFFER.limit} watermarked ${ENGINE_FACTS[0].name} video${FREE_OFFER.limit === 1 ? '' : 's'} ${freeWindowLabel(FREE_OFFER.windowMs)}, and the clean MP4 requires a paid plan.`
       : 'Another tool. Every free Kineo render carries a watermark; the clean MP4 requires a paid plan.',
   },
   {

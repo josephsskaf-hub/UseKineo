@@ -26,6 +26,17 @@
 // no banco: às 15:38 de hoje a entrega das 15:21 não tinha como se provar. As
 // três linhas de telemetria abaixo fecham isso — `topup_unavailable_note_shown`
 // é a única prova de que a correção está no ar e de quem a está vendo.
+//
+// KINEO-PAREDE-V1-2026-09-23 — COPY POSITIVA, SEM RECUSA. A frase abria com
+// "One-time credit packs are a Creator and Studio feature": a primeira coisa
+// que a pessoa lia, no instante em que bateu na parede dos 10 créditos, era o
+// nome de um recurso que ela NÃO tem. Medido em 23/09: a parede (`reason=
+// trial_spent`, 57 de 83 aberturas em 30 d) fecha Starter 3/13 e Creator
+// 1/21 — e a caixa falava de Creator/Studio para quem o Starter já cobre o
+// filme. Agora ela aponta para o plano de cima que cobre ESTE filme (o mesmo
+// `fittingPlanIds[0]` de antes) e deixa a recarga como consequência de ter
+// um plano, não como porta fechada. Nada de número novo: TIER_CREDITS,
+// filmsCoveredByTier, a guarda do divisor e o evento continuam iguais.
 import { useEffect, useRef } from 'react'
 import type { LimitPurchaseFit, LimitPurchasePlanTier } from '@/lib/growth/limitPurchaseFit'
 import { TIER_CREDITS } from '@/lib/checkoutPricing'
@@ -58,13 +69,13 @@ export function filmsCoveredByTier(
 export function topupUnavailableCopy(fit: LimitPurchaseFit | null): string {
   const tier = fit?.fittingPlanIds[0] ?? null
   if (!fit || !tier) {
-    return 'One-time credit packs are a Creator and Studio feature. Pick a plan above to unlock them.'
+    return 'Pick the plan above that covers this film. One-time top-ups unlock once you are on a plan.'
   }
   const films = filmsCoveredByTier(tier, fit.requiredCredits)
   const name = TIER_NAMES[tier]
   return films <= 1
-    ? `One-time credit packs are a Creator and Studio feature. ${name} above covers this film today.`
-    : `One-time credit packs are a Creator and Studio feature. ${name} above covers this film and ${films - 1} more like it this month.`
+    ? `${name} above covers this film today. One-time top-ups unlock once you are on a plan.`
+    : `${name} above covers this film and ${films - 1} more like it this month. One-time top-ups unlock once you are on a plan.`
 }
 
 export default function TopupUnavailableNote({ fit }: { fit: LimitPurchaseFit | null }) {

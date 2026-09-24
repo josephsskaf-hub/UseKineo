@@ -56,6 +56,17 @@ equal(policy.sanitizePricingIntentCampaign('a'.repeat(101)), null, '101-characte
 equal(policy.sanitizePricingIntentCampaign(''), null, 'empty campaign is rejected')
 equal(policy.sanitizePricingIntentCampaign('hello world'), null, 'space-bearing campaign is rejected')
 
+// KINEO-PADRAO-MENSAL-2026-09-23 — o padrão de billing da página é MENSAL
+// (fundador, 23/09): o anual concede créditos por fatura, 1× por ano, enquanto
+// o FAQ promete reset mensal, e o anual teve 0 vendas na vida. Um ?billing=
+// explícito continua mandando; as promos mensais continuam vencendo.
+equal(policy.pricingBillingHandoff({}).initialBilling, 'monthly', 'sem parâmetro, a página abre no MENSAL (23/09)')
+equal(policy.pricingBillingHandoff({ billing: 'annual' }).initialBilling, 'annual', '?billing=annual explícito ainda abre no anual')
+equal(policy.pricingBillingHandoff({ billing: 'monthly' }).initialBilling, 'monthly', '?billing=monthly abre no mensal')
+equal(policy.pricingBillingHandoff({ billing: 'annual', promo: 'first50' }).initialBilling, 'monthly', 'promo mensal vence o billing pedido')
+equal(policy.pricingBillingHandoff({ billing: 'weekly' }).initialBilling, 'monthly', 'billing desconhecido cai no padrão mensal')
+equal(policy.pricingBillingHandoff({}).key, 'default:', 'chave do handoff sem parâmetro continua "default:" (não reseta a escolha manual)')
+
 const pricing = source('app/pricing/PricingClient.tsx')
 // The integrated Windows worktree can expose CRLF even when the source commit
 // used LF. Verify the imported module and symbols instead of line endings.

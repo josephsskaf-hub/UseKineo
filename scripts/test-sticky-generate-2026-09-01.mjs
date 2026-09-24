@@ -52,7 +52,13 @@ t('barra renderizada', gen.includes('<StickyGenerateBar'))
 t('barra recebe a mesma âncora', gen.includes('anchorRef={optionsGenerateBtnRef}'))
 t('mesmo handler do botão original', gen.includes('onGenerate={handleGenerateGuarded}'))
 t('mesmo custo do botão original', gen.includes('cost={selectedCost}'))
-t('mesma trava de fase', gen.includes('busy={isProcessingPhase(phase)}'))
+// KINEO-PAREDE-V1-CREDITO-2026-09-23 — a trava deixou de ser só a fase: a volta
+// do pacote (resume=wall_v1&pack=) também segura o botão enquanto o crédito
+// não cai. O que este guardião protege é que a BARRA e o BOTÃO REAL travem
+// pela MESMA expressão — então ele compara as duas em vez de cravar o literal.
+const travaBarra = (gen.match(/busy=\{([^}]+)\}/) || [])[1] ?? null
+const travaBotao = (gen.slice(gen.indexOf('ref={optionsGenerateBtnRef}')).match(/disabled=\{([^}]+)\}/) || [])[1] ?? null
+t('mesma trava de fase', travaBarra !== null && travaBarra === travaBotao && /isProcessingPhase\(phase\)/.test(travaBarra))
 t('evento de exibição', gen.includes("'options_sticky_generate_shown'"))
 t('evento de clique', gen.includes("'options_sticky_generate_clicked'"))
 

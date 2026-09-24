@@ -244,6 +244,29 @@ import {
 // /api/stripe/checkout usa para aceitar ou recusar a compra de recarga.
 import { canPurchaseCreditTopup } from '@/lib/growth/topupEligibility'
 import TopupUnavailableNote from '@/components/TopupUnavailableNote'
+// KINEO-PAREDE-V1-2026-09-23 — a parede dos 10 créditos com o filme da pessoa na
+// frente (ver lib/growth/wallV1.ts para o dado que motivou). `filmsCoveredByTier`
+// é a MESMA conta que a caixa de recarga já faz — nenhum número novo.
+import { filmsCoveredByTier } from '@/components/TopupUnavailableNote'
+import {
+  WALL_V1_PACK_BALANCE_KEY,
+  WALL_V1_PACK_POLL_MAX_MS,
+  WALL_V1_PACK_POLL_MS,
+  WALL_V1_SAVED_LINE,
+  WALL_V1_VERSION,
+  isWallV1Reason,
+  readWallV1PackBaseline,
+  wallV1PackCredited,
+  wallV1CheckoutHref,
+  wallV1EngineLabel,
+  wallV1FilmsLine,
+  wallV1GapLine,
+  wallV1Title,
+  withStudioReturn,
+} from '@/lib/growth/wallV1'
+// KINEO-EMPRESAS-DFY-2026-09-23 — cartão "quer que a gente faça?" para pedido de
+// anúncio de empresa. Desligado enquanto DFY_PAYMENT_LINK_URL estiver vazia.
+import DfyOfferCard from '@/components/DfyOfferCard'
 import {
   buildSeriesContinuationHref,
   buildSeriesContinuationPrompt,
@@ -3466,6 +3489,124 @@ export default function GenerateClient({
     handleGenerateGuarded()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [credits, prompt, quality, duration, phase, mode, aiEngine])
+
+  // ═══ KINEO-PAREDE-V1-2026-09-23 — o rascunho é gravado ANTES de sair para o
+  // Stripe, com o relógio zerado. O efeito acima já grava a cada tecla, mas o
+  // `at` dele é o da ÚLTIMA edição: quem escreveu o roteiro, pensou 30 min e
+  // só então bateu na parede sairia com um rascunho já quase vencido (TTL de
+  // 45 min). Um clique de compra é o instante que interessa — regravar aqui
+  // dá os 45 minutos inteiros à viagem de pagamento. Mesma chave, mesmo
+  // serializador; nada novo para o leitor.
+  function saveStudioDraftNow(): void {
+    try {
+      const clean = prompt.trim()
+      if (!clean) return
+      sessionStorage.setItem(
+        CARD_ENTRY_DRAFT_KEY,
+        serializeCardEntryDraft({ prompt: clean, quality, duration, mode, engine: aiEngine, at: Date.now() }),
+      )
+    } catch { /* ignore */ }
+  }
+  // resume=wall_v1 — a volta da parede v1 e do "Back to your script" do
+  // /checkout/success. Restaura prompt/quality/duration/mode/engine EXATAMENTE
+  // como o card_entry faz, e NUNCA dispara sozinho: regra 18-19/09 (nada de
+  // auto-start depois de pagamento; auto-start = 40% dos primeiros vídeos e 0
+  // pagantes). A pessoa vê o próprio roteiro, o motor que escolheu, o saldo
+  // novo, e aperta Generate. Efeito separado do card_entry de propósito: o
+  // ramo dele arma o disparo, e este não pode nem encostar nessa ref.
+  const wallV1ResumeRanRef = useRef(false)
+  useEffect(() => {
+    if (searchParams?.get('resume') !== 'wall_v1') return
+    if (wallV1ResumeRanRef.current) return
+    wallV1ResumeRanRef.current = true
+    try {
+      const draft = readCardEntryDraft(sessionStorage.getItem(CARD_ENTRY_DRAFT_KEY), Date.now())
+      if (!draft || !draft.fresh) {
+        void trackEvent('wall_v1_resume_missing', {
+          version: WALL_V1_VERSION,
+          reason: draft ? 'expired' : 'absent',
+          pack: searchParams?.get('pack') ?? null,
+        })
+        return
+      }
+      setPrompt(draft.prompt)
+      if (draft.quality) setQuality(draft.quality)
+      if (draft.duration) setDuration(draft.duration as Duration)
+      if (draft.mode) setMode(draft.mode)
+      if (draft.engine) setAiEngine(draft.engine)
+      void trackEvent('wall_v1_resume_restored', {
+        version: WALL_V1_VERSION,
+        had_prompt: draft.prompt.length > 0,
+        engine: draft.engine,
+        mode: draft.mode,
+        duration: draft.duration,
+        pack: searchParams?.get('pack') ?? null,
+      })
+    } catch { /* ignore */ }
+    // Mount-only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ═══ KINEO-PAREDE-V1-CREDITO-2026-09-23 — a volta do PACOTE espera o
+  // crédito CAIR antes de liberar o Generate. `?return=studio` traz o
+  // comprador direto para cá (resume=wall_v1&pack=starter&session_id=…) sem
+  // passar pelo /checkout/success, que espera o entitlement. O fetchCredits
+  // da montagem lê UMA vez; se o webhook da Stripe atrasar alguns segundos
+  // (normal), a promessa "after paying, 1 click" terminava em NOVA parede com
+  // o saldo velho — o pior desfecho, logo depois de pagar. Régua = saldo
+  // gravado no clique do pacote (handleBuyCreditsOnly → sessionStorage).
+  // Repolla /api/credits a cada 2 s por até 30 s até o saldo PASSAR da régua;
+  // enquanto isso o Generate fica travado e a tela diz por quê. Sem régua
+  // (outro navegador / storage limpo) mede sem travar: a 1ª leitura vira
+  // régua e ninguém fica preso. NUNCA dispara render: só libera o botão.
+  const [wallV1PackSyncing, setWallV1PackSyncing] = useState(false)
+  const wallV1PackPollRanRef = useRef(false)
+  useEffect(() => {
+    if (searchParams?.get('resume') !== 'wall_v1') return
+    const pack = searchParams?.get('pack')
+    const paidSessionId = searchParams?.get('session_id')
+    if (!pack || !paidSessionId) return
+    if (wallV1PackPollRanRef.current) return
+    wallV1PackPollRanRef.current = true
+    let baseline: number | null = null
+    try { baseline = readWallV1PackBaseline(sessionStorage.getItem(WALL_V1_PACK_BALANCE_KEY)) } catch { /* ignore */ }
+    const baselineKnown = baseline !== null
+    const startedAt = Date.now()
+    setWallV1PackSyncing(baselineKnown)
+    const finish = (outcome: 'credited' | 'timeout', current: number | null, regua: number | null) => {
+      setWallV1PackSyncing(false)
+      try { sessionStorage.removeItem(WALL_V1_PACK_BALANCE_KEY) } catch { /* ignore */ }
+      try { window.dispatchEvent(new Event('creditsChanged')) } catch { /* ignore */ }
+      void trackEvent(outcome === 'credited' ? 'wall_v1_pack_credited' : 'wall_v1_pack_credit_timeout', {
+        version: WALL_V1_VERSION,
+        pack,
+        waited_ms: Date.now() - startedAt,
+        baseline: regua,
+        baseline_known: baselineKnown,
+        credits: current,
+      })
+    }
+    ;(async () => {
+      let first: number | null = null
+      for (;;) {
+        let current: number | null = null
+        try {
+          const res = await fetch('/api/credits', { cache: 'no-store' })
+          if (res.ok) {
+            const data = await res.json()
+            if (typeof data.credits === 'number') current = data.credits
+          }
+        } catch { /* próxima volta */ }
+        if (first === null && current !== null) first = current
+        const regua = baseline ?? first
+        if (wallV1PackCredited(regua, current)) { finish('credited', current, regua); return }
+        if (Date.now() - startedAt >= WALL_V1_PACK_POLL_MAX_MS) { finish('timeout', current, regua); return }
+        await new Promise((resolve) => setTimeout(resolve, WALL_V1_PACK_POLL_MS))
+      }
+    })()
+    // Mount-only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Push #033: pull a prompt forwarded by the homepage's Generate Video card.
   // app/page.tsx stashes the user's idea under `pendingVideoPrompt` in
@@ -11019,6 +11160,12 @@ export default function GenerateClient({
 
   function handleGenerateGuarded() {
     if (qualityFailureRef.current) return
+    // KINEO-PAREDE-V1-CREDITO-2026-09-23 — o pacote ainda não caiu: com o saldo
+    // velho, outOfCredits() abriria a parede de novo para quem ACABOU de pagar.
+    if (wallV1PackSyncing) {
+      void trackEvent('wall_v1_pack_wait_clicked', { version: WALL_V1_VERSION })
+      return
+    }
     if (outOfCredits()) {
       openOutOfCreditsModal()
       return
@@ -11160,10 +11307,20 @@ export default function GenerateClient({
   // continua útil como pacote de créditos, mas não pode usar `return=wm` nem
   // prometer uma recomposta que perderia metadados do motor.
   function handleBuyCreditsOnly() {
+    // KINEO-PAREDE-V1-2026-09-23 — o comprador do pacote voltava para
+    // /checkout/success e ficava em `plan_pending` (pacote não muda o plano).
+    // Agora: `return=studio` (a rota do checkout devolve para
+    // /studio/create?resume=wall_v1&pack=starter) e o rascunho vai gravado
+    // antes de sair. A campanha própria só entra se a tela não trazia outra.
+    saveStudioDraftNow()
+    // KINEO-PAREDE-V1-CREDITO-2026-09-23 — régua da volta: o saldo de AGORA.
+    // O efeito resume=wall_v1&pack= só libera o Generate quando /api/credits
+    // passar deste número.
+    try { if (typeof credits === 'number') sessionStorage.setItem(WALL_V1_PACK_BALANCE_KEY, String(credits)) } catch { /* ignore */ }
     const started = wmCheckout.launch(
       'starter_pack',
-      withIntentCampaign('/api/stripe/checkout?pack=starter'),
-      { pack: 'starter', from: 'trial_post_video_credits' },
+      withStudioReturn(withIntentCampaign('/api/stripe/checkout?pack=starter')),
+      { pack: 'starter', from: 'trial_post_video_credits', return_to: 'studio' },
     )
     if (!started) return
     trackCheckoutClick('starter')
@@ -13843,6 +14000,47 @@ export default function GenerateClient({
             setUpgradeLoading(true)
           }}
           checkoutError={upgradeModalCheckout.error}
+          // KINEO-PAREDE-V1-2026-09-23 — o que a parede precisa saber do filme
+          // pedido e da conta. O modal decide se pinta (razão de crédito, sem
+          // plano pago, custo > saldo); o pai só empresta o estado da tela.
+          wallV1={{
+            prompt,
+            engineLabel: wallV1EngineLabel(mode, aiEngine),
+            engine: aiEngine,
+            mode,
+            duration,
+            country: resolvedCountryRef.current,
+            isStarter,
+            isCreator,
+            isStudio,
+            onCheckout: (tier) => {
+              // Rascunho gravado ANTES de navegar (relógio zerado) e a
+              // campanha wall_v1 na URL — vence a da tela, que vai no evento.
+              saveStudioDraftNow()
+              const started = upgradeModalCheckout.launch(
+                `wall_v1_${tier}`,
+                wallV1CheckoutHref(tier),
+                { tier, intro: tier === 'starter' || tier === 'basic', reason: upgradeReason, wall: WALL_V1_VERSION },
+              )
+              if (!started) return
+              void trackEvent('wall_v1_clicked', {
+                tier,
+                required_credits: selectedCost,
+                balance: credits,
+                engine: aiEngine,
+                mode,
+                reason: upgradeReason,
+                version: WALL_V1_VERSION,
+                previous_intent_campaign: intentCampaign || null,
+              })
+              trackCheckoutClick(tier)
+              try {
+                const ttq = (window as unknown as { ttq?: { track: Function } }).ttq
+                if (ttq && typeof ttq.track === 'function') ttq.track('InitiateCheckout', { content_name: tier })
+              } catch { /* non-blocking */ }
+              setUpgradeLoading(true)
+            },
+          }}
           // KINEO-PRIMEIRO-FILME-GRATIS-2026-09-04 — a saida honesta, quando ela
           // existe de verdade. Ver `firstFilmFreeAvailable`.
           firstFilmFree={!CARD_ENTRY_ONLY && firstFilmFreeAvailable}
@@ -15321,6 +15519,28 @@ export default function GenerateClient({
             />
           )}
 
+          {/* KINEO-EMPRESAS-DFY-2026-09-23 — "quer que a gente faça?" ANTES do
+              botão Generate, só quando o texto parece pedido de anúncio de
+              empresa (isDfyCandidate) e o Payment Link existe (isDfyOfferLive).
+              Não esconde o Generate: a pessoa segue podendo renderizar. A tela
+              não conhece o e-mail da conta — vai null; o Stripe pede na hora. */}
+          {prompt.trim().length >= 20 && (
+            <DfyOfferCard
+              prompt={prompt}
+              userId={currentUserIdRef.current ?? initialUserId ?? null}
+              email={null}
+              source="studio_analysis"
+            />
+          )}
+
+          {/* KINEO-PAREDE-V1-CREDITO-2026-09-23 — a pessoa acabou de pagar o
+              pacote e o crédito ainda não caiu: dizer por que o botão espera. */}
+          {wallV1PackSyncing && (
+            <p data-kineo="parede-v1-credito" className="text-xs mb-3" style={{ color: 'var(--muted2)' }}>
+              Payment received — adding your credits to this account. Generate unlocks in a few seconds.
+            </p>
+          )}
+
           {/* Push #034: duration / quality controls were moved to Step 1
               (above the Analyze button) so users pick them before paying any
               attention budget on the brief. Step 2 just confirms the choice
@@ -15338,7 +15558,7 @@ export default function GenerateClient({
               <button
                 ref={optionsGenerateBtnRef}
                 onClick={handleGenerateGuarded}
-                disabled={isProcessingPhase(phase)}
+                disabled={isProcessingPhase(phase) || wallV1PackSyncing}
                 className="rounded-xl px-6 py-3 text-sm font-black flex items-center gap-2"
                 style={{
                   // ONDA5 #5 (14/08) — era navy #1E3A8A fora da paleta
@@ -15350,7 +15570,9 @@ export default function GenerateClient({
                   boxShadow: '0 8px 28px rgba(41,151,255,.35)',
                 }}
               >
-                {isProcessingPhase(phase)
+                {wallV1PackSyncing
+                  ? '⏳ Adding your credits…'
+                  : isProcessingPhase(phase)
                   ? '⏳ Generating…'
                   : `Generate${selectedCost === 0 ? ' · Free' : ` · ${selectedCost} credit${selectedCost === 1 ? '' : 's'}`}`}
               </button>
@@ -15368,7 +15590,7 @@ export default function GenerateClient({
             anchorRef={optionsGenerateBtnRef}
             summary={mode === 'fast' ? `Fast \u00b7 ${duration}s` : `Cinematic \u00b7 ${duration}s`}
             cost={selectedCost}
-            busy={isProcessingPhase(phase)}
+            busy={isProcessingPhase(phase) || wallV1PackSyncing}
             onGenerate={handleGenerateGuarded}
             onShown={() => {
               void trackEvent('options_sticky_generate_shown', {
@@ -21340,6 +21562,8 @@ function UpgradeModal({
   // filme que acabou de ser recusado. Só atravessa até a caixa de $1; o modal
   // não decide nada com isto.
   readyClips = null,
+  // KINEO-PAREDE-V1-2026-09-23 — ausente = parede desligada neste modal.
+  wallV1 = null,
 }: {
   loading: boolean
   onUpgrade: (tier: 'starter' | 'basic' | 'pro') => void
@@ -21377,6 +21601,23 @@ function UpgradeModal({
   notPaidProven?: boolean
   /** Clipes já rodados para o filme recusado. Ver acima. */
   readyClips?: readonly string[] | null
+  /**
+   * KINEO-PAREDE-V1-2026-09-23 — o filme pedido e a conta, para a parede v1.
+   * `onCheckout(tier)` é do pai: grava o rascunho, lança o checkout com
+   * `intent_campaign=wall_v1` e mede o clique. O modal não monta URL nenhuma.
+   */
+  wallV1?: {
+    prompt: string
+    engineLabel: string
+    engine: string
+    mode: string
+    duration: number
+    country: string | null
+    isStarter: boolean
+    isCreator: boolean
+    isStudio: boolean
+    onCheckout: (tier: 'starter' | 'basic' | 'pro') => void
+  } | null
 }) {
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — the top-up buttons below were raw
   // window.location.href with only `loading` (a prop that is never true for
@@ -21399,6 +21640,39 @@ function UpgradeModal({
   const purchaseFit = reasonHasCreditFit
     ? calculateLimitPurchaseFit({ balance, requiredCredits, isSubscriber, plan })
     : null
+  // ═══ KINEO-PAREDE-V1-2026-09-23 — QUEM VÊ A PAREDE COM O FILME NA FRENTE ═══
+  // Razão de FALTA DE CRÉDITO (trial_spent/credits/trial_ended/trial_stalled),
+  // conta SEM plano pago (os três booleanos da tela, não uma cópia) e um pedido
+  // que o saldo não cobre (`purchaseFit` só existe quando custo > saldo; a
+  // comparação fica explícita para o guardião amarrar). Gate de plano
+  // (studio/creator/footage) e assinante caem nas linhas de plano de sempre.
+  const wallV1Eligible =
+    wallV1 !== null &&
+    isWallV1Reason(reason) &&
+    !wallV1.isStarter && !wallV1.isCreator && !wallV1.isStudio &&
+    purchaseFit !== null &&
+    purchaseFit.requiredCredits > purchaseFit.balance
+  const wallV1StarterFilms = purchaseFit ? filmsCoveredByTier('starter', purchaseFit.requiredCredits) : 1
+  // Impressão UMA vez por abertura do modal (ref), nunca a cada render.
+  const wallV1ShownRef = useRef(false)
+  useEffect(() => {
+    if (!wallV1Eligible || !wallV1 || !purchaseFit || wallV1ShownRef.current) return
+    wallV1ShownRef.current = true
+    try {
+      void trackEvent('wall_v1_shown', {
+        required_credits: purchaseFit.requiredCredits,
+        balance: purchaseFit.balance,
+        engine: wallV1.engine,
+        mode: wallV1.mode,
+        duration: wallV1.duration,
+        reason,
+        version: WALL_V1_VERSION,
+        starter_films: wallV1StarterFilms,
+        ...(wallV1.country ? { country: wallV1.country } : {}),
+      })
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wallV1Eligible])
   // #466 fake 15-min "founding offer" countdown REMOVED
   // (KINEO-SPRINT-OFFER-2026-07-14): the timer reset per browser and nothing
   // actually expired — a fabricated counter sitting next to a real offer
@@ -21635,6 +21909,68 @@ function UpgradeModal({
         <p style={{ fontSize: '0.9rem', color: '#a1a1a8', lineHeight: 1.55, margin: 0, marginBottom: 12 }}>
           {head.sub}
         </p>
+        {/* ═══ KINEO-PAREDE-V1-2026-09-23 — A PAREDE COM O FILME NA FRENTE ═══
+            Título = as 6 primeiras palavras do roteiro da pessoa; a frase do
+            gap nomeia o motor que ELA escolheu (nunca trocado aqui); Starter
+            PRIMEIRO e grande, com o preço da moeda que o modal já resolve;
+            Creator e Studio como links menores, SEM selo. O roteiro fica
+            guardado 45 min e, depois de pagar, é 1 clique — nada dispara
+            sozinho. As linhas de plano de sempre continuam logo abaixo,
+            inteiras (regra do fundador 07/09: "primeira opção", não única). */}
+        {wallV1Eligible && wallV1 && purchaseFit && (
+          <div
+            data-kineo="parede-v1"
+            data-version={WALL_V1_VERSION}
+            style={{ background: 'rgba(41,151,255,.08)', border: '1.5px solid rgba(41,151,255,.55)', borderRadius: 10, padding: '14px 15px', marginBottom: 14 }}
+          >
+            <span style={{ display: 'block', color: '#5cb3ff', fontSize: '0.64rem', fontWeight: 900, letterSpacing: '0.1em', marginBottom: 4 }}>
+              YOUR FILM
+            </span>
+            <strong style={{ display: 'block', color: '#fff', fontSize: '1rem', lineHeight: 1.3, marginBottom: 4 }}>
+              {wallV1Title(wallV1.prompt)}
+            </strong>
+            <span style={{ display: 'block', color: '#cfe6ff', fontSize: '0.82rem', lineHeight: 1.45, marginBottom: 10 }}>
+              {wallV1GapLine({ engineLabel: wallV1.engineLabel, requiredCredits: purchaseFit.requiredCredits, balance: purchaseFit.balance, reason })}
+            </span>
+            <button
+              type="button"
+              data-kineo="parede-v1-starter"
+              disabled={loading}
+              onClick={() => wallV1.onCheckout('starter')}
+              style={{ width: '100%', padding: '13px 14px', borderRadius: 10, border: 'none', background: loading ? 'rgba(41,151,255,0.5)' : '#2997ff', color: '#fff', fontWeight: 900, fontSize: '0.95rem', cursor: loading ? 'not-allowed' : 'pointer', boxShadow: '0 10px 30px rgba(41,151,255,0.35)', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 2 }}
+            >
+              <span>
+                {loading ? 'Opening checkout…' : `Starter — ${currency ? formatCheckoutMoney(currency, getTierPrice('starter', currency, region)) : '—'}/mo →`}
+              </span>
+              <span style={{ fontSize: '0.74rem', fontWeight: 700, opacity: 0.92 }}>
+                {wallV1FilmsLine(wallV1StarterFilms)}
+              </span>
+            </button>
+            <div style={{ display: 'flex', gap: 14, justifyContent: 'center', marginTop: 9 }}>
+              <button
+                type="button"
+                data-kineo="parede-v1-creator"
+                disabled={loading}
+                onClick={() => wallV1.onCheckout('basic')}
+                style={{ background: 'transparent', border: 'none', color: '#a1a1a8', fontSize: '0.78rem', fontWeight: 700, textDecoration: 'underline', cursor: loading ? 'not-allowed' : 'pointer', padding: '2px 4px' }}
+              >
+                {`Creator ${currency ? formatCheckoutMoney(currency, getTierPrice('basic', currency, region)) : '—'}/mo · ${filmsCoveredByTier('basic', purchaseFit.requiredCredits)} films`}
+              </button>
+              <button
+                type="button"
+                data-kineo="parede-v1-studio"
+                disabled={loading}
+                onClick={() => wallV1.onCheckout('pro')}
+                style={{ background: 'transparent', border: 'none', color: '#a1a1a8', fontSize: '0.78rem', fontWeight: 700, textDecoration: 'underline', cursor: loading ? 'not-allowed' : 'pointer', padding: '2px 4px' }}
+              >
+                {`Studio ${currency ? formatCheckoutMoney(currency, getTierPrice('pro', currency, region)) : '—'}/mo · ${filmsCoveredByTier('pro', purchaseFit.requiredCredits)} films`}
+              </button>
+            </div>
+            <span style={{ display: 'block', color: '#86868b', fontSize: '0.72rem', fontWeight: 600, textAlign: 'center', marginTop: 9, lineHeight: 1.4 }}>
+              {WALL_V1_SAVED_LINE}
+            </span>
+          </div>
+        )}
         {/* KINEO-PRIMEIRO-FILME-GRATIS-2026-09-04 — A SAIDA, ACIMA DO PEDIDO.
             27 das 88 pessoas que viram esta familia de caixas em 21 dias nunca
             tinham recebido um filme, e para todas as 27 o Kineo 1 sai de graca
@@ -21675,7 +22011,9 @@ function UpgradeModal({
             e não é desta conversa. Não substitui nem esconde as linhas de
             plano abaixo (regra K1). */}
         {reasonHasCreditFit && <NextActionCard surface="generate_upgrade_modal" />}
-        {purchaseFit && (
+        {/* KINEO-PAREDE-V1-2026-09-23 — com a parede pintada acima, esta caixa
+            repetiria o mesmo gap duas vezes na mesma tela; fora dela, intacta. */}
+        {purchaseFit && !wallV1Eligible && (
           <div
             style={{
               background: 'rgba(52,211,153,.09)',
