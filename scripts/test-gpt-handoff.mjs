@@ -655,17 +655,24 @@ console.log('\n(K) docs/GPT-KINEO-VIDEO-MAKER.md amarrado ao servidor e ao schem
   const CLAIM = /\bfilm\s+(?:is\s+)?free\b|\bfree\s+film\b|\bfirst\s+film\s+is\s+free\b|\bgr[áa]tis\b|\bfilme[^.]{0,30}de gra[çc]a\b/i
   // KINEO-TRIAL-10-NO-GPT-2026-09-23 — o blurb da loja deixou de cravar "25": com o trial de 10 (16/09) nenhuma
   // duração do Seedance cabe, então a frase verdadeira nomeia o Kineo 1 e lê TRIAL_CAP da fonte única.
-  const STORE_BLURBS = ['First film free.', `Your first film is free on Kineo 1: ${TRIAL_CAP} trial credits, no card; Seedance and premium engines need a paid plan.`]
+  // GPT-COWORK-FOLLOWUP-2026-09-24 — reancorado com motivo: a descrição curta dizia "First film free.", mas o motor padrão
+  // do GPT é o Seedance (pago) e só o Kineo 1 cabe no trial (achado 3 do Cowork, 24/09). A curta passou a terminar em
+  // "Try Kineo 1 free (N credits, no card)." — N lido de TRIAL_CAP — e é ELA o literal preso aqui. Essa frase não é promessa
+  // de FILME grátis (o CLAIM não casa: nomeia o motor e o saldo), então a contagem de exceções passa a ser só a dos blurbs
+  // que o CLAIM pega (a longa), e o piso de parágrafos com promessa cai de 5 para 4 pela mesma razão.
+  const STORE_BLURBS = [`Try Kineo 1 free (${TRIAL_CAP} credits, no card).`, `Your first film is free on Kineo 1: ${TRIAL_CAP} trial credits, no card; Seedance and premium engines need a paid plan.`]
   const blurbsInB = STORE_BLURBS.filter((b) => secB.includes(b))
   ok(blurbsInB.length === STORE_BLURBS.length, `(K2) as ${STORE_BLURBS.length} frases da exceção existem na seção B, literalmente (${blurbsInB.length} achadas)`)
   ok(STORE_BLURBS.every((b) => !secC.includes(b) && !secG.includes(b)), '(K2) a exceção não vaza: os blurbs da seção B não aparecem em C nem em G')
+  ok(!secB.includes('First film free.') && /\. Try Kineo 1 free \(\d+ credits, no card\)\.\n```/.test(secB), '(K2) a descrição curta da loja não diz mais "First film free." e TERMINA na frase do Kineo 1')
   const secBStart = md.indexOf('## B. ')
   const secBEnd = md.indexOf('## C. ')
   const isStoreBlurb = (p, idx) => idx >= secBStart && idx < secBEnd && STORE_BLURBS.some((b) => p.includes(b))
   const claimParas = paragraphs(md).filter(({ p }) => CLAIM.test(p))
   const excepted = claimParas.filter(({ p, idx }) => isStoreBlurb(p, idx))
   const cobrados = claimParas.filter(({ p, idx }) => !isStoreBlurb(p, idx))
-  ok(claimParas.length >= 5 && excepted.length === STORE_BLURBS.length, `(K2) ${claimParas.length} parágrafos prometem filme grátis; ${excepted.length} são os blurbs da seção B; ${cobrados.length} cobrados`)
+  const blurbsComPromessa = STORE_BLURBS.filter((b) => CLAIM.test(b))
+  ok(claimParas.length >= 4 && blurbsComPromessa.length >= 1 && excepted.length === blurbsComPromessa.length, `(K2) ${claimParas.length} parágrafos prometem filme grátis; ${excepted.length} são os blurbs da seção B que prometem (${blurbsComPromessa.length}); ${cobrados.length} cobrados`)
   const semPaid = cobrados.filter(({ p }) => !paidDur.every((d) => mentions(p, d)))
   ok(semPaid.length === 0, semPaid.length ? `(K2) PROMESSA de grátis sem citar a duração que NÃO cabe (${paidDur}): "${semPaid[0].p.slice(0, 120)}…"` : `(K2) todo parágrafo cobrado cita a exceção (${paidDur.join('/')})`)
   const semFree = cobrados.filter(({ p }) => !freeDur.every((d) => mentions(p, d)))

@@ -3,7 +3,10 @@
 //  (1) a ação recusa na conversa o roteiro longo demais para o Kineo 1 e o Kling 3/H3 fora de en/pt/es;
 //  (2) o idioma do roteiro chega ao Studio; (3) o link reaproveitado renova o prazo só se gravou;
 //  (4) a página /go não mostra a oferta de US$1 desligada nem diz "requires a payment method" com o cadastro sem cartão;
-//  (5) o texto do GPT (seção C) e o schema dizem 245-255 palavras para Kineo 1 a 90 s — números amarrados às vozes do código.
+//  (5) o texto do GPT (seção C) e o schema dizem 230-240 palavras DECLARADAS para Kineo 1 a 90 s (era 245-255 até o
+//      follow-up do Cowork de 24/09: o GPT subconta ~7-11%) — números amarrados às vozes do código com a subcontagem medida;
+//  (6) toda description/summary de operação do openapi cabe em 300 caracteres (o ChatGPT recusou o import com 532);
+//  (7) o 400 de roteiro longo manda cortar até maxWords e reenviar UMA vez sem pedir aprovação nova.
 // Estilo da casa: readFileSync + regex para rotas; módulos puros por transpile + vm (com resolvedor de '@/'). `ok(cond, nome)`.
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
@@ -100,7 +103,7 @@ ok(/: CARD_ENTRY_ONLY\n\s*\? 'Create your account to open this script in Studio\
 const pricing = rd('lib/checkoutPricing.ts')
 ok(/export const CARD_TRIAL_LIVE = false/.test(pricing) && /export const CARD_ENTRY_ONLY = false/.test(rd('lib/entryPolicy.ts')), '5c. regime vigente: oferta de US$1 desligada e cadastro sem cartão (se mudar, 5a/5b seguem certos sozinhos)')
 
-// ── 6. o texto do GPT e o schema: 245-255 no Kineo 1 a 90 s, amarrado às vozes grátis do código ───
+// ── 6. o texto do GPT e o schema: 230-240 declaradas no Kineo 1 a 90 s, amarrado às vozes grátis do código ───
 const md = rd('docs/GPT-KINEO-VIDEO-MAKER.md')
 const secC = md.slice(md.indexOf('## C.'), md.indexOf('\n## D.'))
 const instr = (secC.match(/```(?:text)?\n([\s\S]*?)\n```/) || [])[1] || ''
@@ -109,16 +112,24 @@ const faixa = instr.match(/- 90s: 270-290 words \("fast": (\d+)-(\d+), never mor
 const oa = JSON.parse(rd('public/gpt/openapi.json'))
 const scriptDesc = JSON.stringify(oa)
 const faixaOa = scriptDesc.match(/except `fast` \(Kineo 1\) at 90s: (\d+)-(\d+) words, never more/)
-ok(Boolean(faixa && faixaOa) && faixa[1] === faixaOa[1] && faixa[2] === faixaOa[2] && oa.info.version === '1.3.2', `6b. seção C e openapi (v${oa.info.version}) dizem a MESMA faixa do Kineo 1 a 90 s (${faixa?.slice(1).join('-')})`)
+// GPT-COWORK-FOLLOWUP-2026-09-24 — reancorado com motivo: 1.3.3 só muda descriptions: getKineoFacts 532 → 281 caracteres (o ChatGPT recusa operação > 300), "fast" a 90 s 230-240 e `words` manda confiar na contagem do servidor.
+ok(Boolean(faixa && faixaOa) && faixa[1] === faixaOa[1] && faixa[2] === faixaOa[2] && oa.info.version === '1.3.3', `6b. seção C e openapi (v${oa.info.version}) dizem a MESMA faixa do Kineo 1 a 90 s (${faixa?.slice(1).join('-')})`)
 if (faixa) {
   const lo = Number(faixa[1]), hi = Number(faixa[2])
+  // GPT-COWORK-FOLLOWUP-2026-09-24 — o GPT conta palavras para BAIXO. O Cowork mediu no Preview: declarou 192 e o servidor
+  // contou 205 (+6,8%); declarou 252 e o servidor contou 280 (+11%, recusado com teto 272). A faixa da seção C é o que o GPT
+  // DECLARA; o servidor mede a REAL ≈ declarada × 1,07. O teto real tem de caber no teto do Kineo 1 na voz grátis mais LENTA
+  // e o piso real tem de encher 95% de 90 s na mais RÁPIDA. No pior caso medido (11%) o servidor recusa com maxWords e a
+  // regra do 400 (7a) corta e reenvia uma vez. Nenhuma régua do servidor mudou.
+  const SUBCONTAGEM = 1.07
+  const hiReal = hi * SUBCONTAGEM, loReal = lo * SUBCONTAGEM
   const teto = DF.DURATION_FOLLOWS_SCRIPT_CEILING_SECONDS * DF.DURATION_FOLLOWS_SCRIPT_CEILING_TOLERANCE
   const gratis = P.VOICE_PERSONAS.filter((p) => p.tier === 'free')
   const ritmos = gratis.map((p) => ({ id: p.id, wps: SR.speechRateFor({ family: 'classic', voice: p.voice, personaSpeed: p.defaultSpeed }).wordsPerSecond }))
-  const estoura = ritmos.filter((r) => hi / r.wps > teto)
-  const curta = ritmos.filter((r) => lo / r.wps < 90 * 0.95)
-  ok(ritmos.length >= 2 && estoura.length === 0, `6c. o teto da faixa (${hi}) cabe em ${teto} s em TODA voz grátis do Kineo 1 (${ritmos.map((r) => r.id + ' ' + r.wps).join(', ')})${estoura.length ? ' — ESTOURA em ' + estoura.map((r) => r.id).join(',') : ''}`)
-  ok(curta.length === 0, `6d. o piso da faixa (${lo}) enche 95% de 90 s em toda voz grátis${curta.length ? ' — CURTO em ' + curta.map((r) => r.id).join(',') : ''}`)
+  const estoura = ritmos.filter((r) => hiReal / r.wps > teto)
+  const curta = ritmos.filter((r) => loReal / r.wps < 90 * 0.95)
+  ok(ritmos.length >= 2 && estoura.length === 0, `6c. o teto REAL da faixa (${hi} declaradas × ${SUBCONTAGEM} = ${hiReal.toFixed(1)}) cabe em ${teto} s em TODA voz grátis do Kineo 1 (${ritmos.map((r) => r.id + ' ' + r.wps).join(', ')})${estoura.length ? ' — ESTOURA em ' + estoura.map((r) => r.id).join(',') : ''}`)
+  ok(curta.length === 0, `6d. o piso REAL da faixa (${lo} declaradas × ${SUBCONTAGEM} = ${loReal.toFixed(1)}) enche 95% de 90 s em toda voz grátis${curta.length ? ' — CURTO em ' + curta.map((r) => r.id).join(',') : ''}`)
 }
 ok(/- "hollywood" \(Kling 3\) or "h3" \(MiniMax H3\): only if named and the script is English, Spanish or Portuguese \(else "seedance"\)\./.test(instr) && /`hollywood` and `h3` narrate only English, Spanish or Portuguese/.test(scriptDesc),
   '6e. seção C e schema dizem que Kling 3/H3 narram só en/es/pt e mandam o resto para seedance')
@@ -128,6 +139,27 @@ ok(/A new account's first film is free on Kineo 1 \(10-credit trial, no card; wa
   '6g. os 4 acertos de texto: conta nova, 35/60, anual sem Autopilot, reembolso só na 1ª cobrança')
 const arquivoColar = 'C:/kineo/docs/GPT-INSTRUCOES-V3-COLAR-2026-09-24.txt'
 if (existsSync(arquivoColar)) ok(readFileSync(arquivoColar, 'utf8').replace(/\r\n/g, '\n').replace(/\n+$/, '') === instr, '6h. o arquivo de colar do fundador é idêntico à seção C')
+// GPT-COWORK-FOLLOWUP-2026-09-24 — o editor do GPT RECUSOU o import da v1.3.2: a description de getKineoFacts tinha 532
+// caracteres e o limite de operação é 300 (o Cowork encurtou só no editor; o próximo "Import from URL" quebraria de novo).
+const METODOS = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace']
+const opsOa = Object.entries(oa.paths ?? {}).flatMap(([p, item]) => Object.entries(item).filter(([m]) => METODOS.includes(m)).map(([m, op]) => ({ id: op.operationId ?? `${m} ${p}`, summary: op.summary ?? '', description: op.description ?? '' })))
+const longas = opsOa.flatMap((o) => ['summary', 'description'].filter((k) => [...o[k]].length > 300).map((k) => `${o.id}.${k}=${[...o[k]].length}`))
+ok(opsOa.length >= 2 && opsOa.every((o) => o.description.length > 0) && longas.length === 0, `6i. toda description e summary de OPERAÇÃO do openapi cabe em 300 caracteres (${opsOa.map((o) => `${o.id} ${[...o.summary].length}/${[...o.description].length}`).join(', ')})${longas.length ? ' — LONGA: ' + longas.join(', ') : ''}`)
+
+// ── 7. o 400 de roteiro longo: cortar até maxWords e reenviar UMA vez, sem aprovação nova ──────────
+// GPT-COWORK-FOLLOWUP-2026-09-24 — no Preview o GPT recebeu 400 too_long_for_kineo1 (280 palavras, teto 272) e caiu no
+// ramo "any other error" ("handoff unavailable") em vez de cortar e reenviar. A recusa do servidor diz "Trim it to at most
+// N spoken words" e traz refusal.maxWords; a instrução tem de nomear os dois e dizer que o corte pedido pelo servidor não
+// exige aprovação nova (a do Step 4 continua valendo para edição da pessoa).
+const linha400 = instr.split('\n').find((l) => /^- 400:/.test(l)) || ''
+ok(/too_long/.test(linha400) && /maxWords/.test(linha400) && /at most N spoken words/.test(linha400) && /re-send ONCE without asking/.test(linha400) && /needs no new approval/.test(linha400) && /Step 4/.test(linha400) && /https:\/\/www\.usekineo\.com\/studio/.test(linha400),
+  '7a. seção C: o 400 de roteiro longo corta até maxWords e reenvia UMA vez sem pedir; corte do servidor não pede aprovação nova (Step 4 segue para a pessoa)')
+ok(/at most \$\{r\.maxWords\} spoken words/.test(guardSrc) && /Trim it to at most \d+ spoken words/.test(G.describeEngineRefusal({ reason: 'too_long_for_kineo1', speechSeconds: 116, maxSeconds: 90, maxWords: 258, words: 290, wordsPerSecond: 2.5 })),
+  '7b. a frase que a instrução cita ("at most N spoken words") é a que o servidor devolve de fato')
+ok(/^- Any other error: say the handoff is unavailable; paste the script at https:\/\/www\.usekineo\.com\/studio\.$/m.test(instr),
+  '7c. o ramo "any other error" ficou como estava')
+ok(/trust the action's `words`, not your count/.test(instr) && /Trust this number over your own count/.test(oa.components?.schemas?.HandoffResponse?.properties?.words?.description ?? ''),
+  '7d. seção C e schema mandam confiar no `words` que a ação devolve, não na contagem do próprio GPT')
 
 console.log(`test-gpt-loja-2026-09-24: ${passou} ok · ${falhas.length} falhas`)
 for (const f of falhas) console.log('  FAIL ' + f)

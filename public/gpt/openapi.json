@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Kineo Video Handoff",
-    "version": "1.3.2",
+    "version": "1.3.3",
     "description": "Turns an approved Short script into a one-click Kineo Studio link. Call createKineoHandoff ONLY after the user has explicitly approved the final script. The response contains a URL (https://www.usekineo.com/go/<token>) that opens Kineo Studio pre-filled with the script, duration and engine. Kineo renders the film after the user clicks; this API never renders anything itself. Public, no authentication, rate-limited per IP."
   },
   "servers": [
@@ -15,7 +15,7 @@
       "get": {
         "operationId": "getKineoFacts",
         "summary": "Read current Kineo facts, including human-operated business video ads",
-        "description": "Read businessVideoService for Kineo Empresas: live Express and Pro tier prices in USD minor units, hours, revisions, engines, material requirements, refund scope and https://www.usekineo.com/business-video-ads. These values are generated from DFY_TIERS, the live offer source. This is a human-operated, one-time service (kind=dfy), not self-service, free credit, a subscription or MRR. Do not invent prices, promise instant production, or call a payment endpoint. This read-only operation does not create an order or render a video.",
+        "description": "Read live Kineo facts: plans, trial, engine credit costs and Kineo Business Ads (human-operated, one-time; Express and Pro tiers with price, hours, revisions). Quote these live values, never memorized prices. Read-only: creates no order, renders nothing; never send a payment link.",
         "responses": {
           "200": {
             "description": "Current facts. Quote live tier values, not memorized prices. businessVideoService.tiers contains only enabled tiers.",
@@ -128,7 +128,7 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 5000,
-            "description": "The complete, user-approved narration script, plain text only (no HTML, no markdown headings), at most 5000 characters — the same limit Kineo Studio enforces; a 90s script is well under it. Keep the house structure on its own lines: `HOOK:`, `MICRO REWARD:`, `ESCALATION:`, `PAYOFF:`. Every sentence is spoken aloud by the narrator, so write only what should be heard: no stage directions, no camera notes, no visual descriptions, no [brackets]. Word budget depends on the engine, because the two families narrate at different speeds — never average them. Standard engines (`seedance`, `fast`, `kling`, `veo`): 105-115 words for 35s, 180-195 for 60s, 270-290 for 90s — except `fast` (Kineo 1) at 90s: 245-255 words, never more, because Kineo 1 refuses narration longer than its 90s ceiling. Premium engines (`hollywood`, `h3`, `omni`) speak slower in their own native voice: 80-90 words for 35s, 150-165 for 60s, 205-230 for 90s. Slightly over the budget is good; under it is a defect (the story gets cut short). Only verifiable facts."
+            "description": "The complete, user-approved narration script, plain text only (no HTML, no markdown headings), at most 5000 characters — the same limit Kineo Studio enforces; a 90s script is well under it. Keep the house structure on its own lines: `HOOK:`, `MICRO REWARD:`, `ESCALATION:`, `PAYOFF:`. Every sentence is spoken aloud by the narrator, so write only what should be heard: no stage directions, no camera notes, no visual descriptions, no [brackets]. Word budget depends on the engine, because the two families narrate at different speeds — never average them. Standard engines (`seedance`, `fast`, `kling`, `veo`): 105-115 words for 35s, 180-195 for 60s, 270-290 for 90s — except `fast` (Kineo 1) at 90s: 230-240 words, never more, because Kineo 1 refuses narration longer than its 90s ceiling. Premium engines (`hollywood`, `h3`, `omni`) speak slower in their own native voice: 80-90 words for 35s, 150-165 for 60s, 205-230 for 90s. Slightly over the budget is good; under it is a defect (the story gets cut short). Only verifiable facts."
           },
           "durationSec": {
             "type": "integer",
@@ -214,7 +214,7 @@
           },
           "words": {
             "type": "integer",
-            "description": "Spoken word count Kineo measured in the script (structure markers like HOOK/PAYOFF and [bracketed] directions are not counted)."
+            "description": "Spoken word count Kineo measured in the script (structure markers like HOOK/PAYOFF and [bracketed] directions are not counted). Trust this number over your own count: models tend to undercount."
           },
           "seconds": {
             "type": "number",

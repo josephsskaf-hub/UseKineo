@@ -13,11 +13,14 @@
 //     nem "first film is free", models-pricing e pricing.ts sem 25/3 digitados.
 //  S5 página de intenção: cadastro SEM utm_source=google cravado (quem vinha do ChatGPT virava 'google').
 //  DFY o módulo puro lib/growth/dfyOffer.ts: candidatos positivos/negativos reais, link com identidade.
+//  P0 (24/09, follow-up do Cowork) o ramo Empresas EXECUTADO: detecção pelo payment_link dos dois links sem metadata e em
+//     moeda local, zero crédito, pedido com tier/e-mail/3 custom_fields/valor/sessão, nunca lança (200), grant.ts fora do caminho.
 // Estilo da casa: readFileSync + regex (import com alias '@/' não roda); helper `checa(nome, condicao)`.
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import vm from 'node:vm'
+import { createHash } from 'node:crypto'
 import ts from 'typescript'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -158,6 +161,85 @@ const legados = [...wh.matchAll(/amount === (\d+)\)/g)].map((m) => Number(m[1]))
 checa(`nenhum valor aceito (3500/7500/10000) está em AMBIGUOUS_ONE_TIME_USD_AMOUNTS ({${amb}})`, amb.length >= 1 && dfy.DFY_ACCEPTED_AMOUNTS_USD_MINOR.every((v) => !amb.includes(v)))
 checa('3500/7500 colidem com bulk20/bulk50 de propósito documentado: por isso a 3ª regra só vale para sessão de Payment Link (a casa nunca cria sessão com payment_link) e sem metadata.pack', /sessionPaymentLinkId\(session\) !== null &&\s*DFY_ACCEPTED_AMOUNTS_USD_MINOR\.includes\(session\.amount_total \?\? -1\)/.test(wh) && usdAmounts.includes(3500) && usdAmounts.includes(7500) && !usdAmounts.includes(10000) && legados.length >= 2 && dfy.DFY_ACCEPTED_AMOUNTS_USD_MINOR.every((v) => !legados.includes(v)))
 checa('o comentário do webhook registra a prova de não colisão (9900, 490/290, top-ups, bulk, anuais, legados)', /AMBIGUOUS_ONE_TIME_USD_AMOUNTS = \{9900\}/.test(wh) && /Nenhum é 10000/.test(wh))
+// ── GPT-COWORK-FOLLOWUP-2026-09-24 (P0) — o pedido Empresas EXECUTADO, não só lido ──────────────────────────
+// Por quê: o Cowork criou os dois links (Express e Pro) com metadata kind=dfy/tier, mas a Stripe não garante copiar a
+// metadata do Payment Link para a sessão, e a conta tem Adaptive Pricing (valor em moeda local). A única chave que
+// sempre chega é session.payment_link. As travas acima leem o TEXTO do webhook; estas rodam as funções dele
+// (transpile + vm) com sessões no formato da Stripe e um Supabase falso que só guarda em memória.
+const fnDoWebhook = (nome) => {
+  const i = wh.search(new RegExp(`\\n(?:async )?function ${nome}\\(`))
+  return i < 0 ? '' : wh.slice(i + 1, wh.indexOf('\n}\n', i + 1) + 2)
+}
+const NOMES_WH = ['sessionOwnerUuid', 'isOwnerRejection', 'sessionPaymentLinkId', 'dfySessionTier', 'isDfyOrderSession', 'recordDfyOrderPaid', 'firstPaymentCreditsFromSession']
+const srcWh = [(wh.match(/^const SESSION_OWNER_UUID = .*$/m) || [''])[0], ...NOMES_WH.map(fnDoWebhook), ...NOMES_WH.map((n) => `exports.${n} = ${n}`)].join('\n')
+const logWh = []
+let W = {}
+try {
+  const jsWh = ts.transpileModule(srcWh, { compilerOptions: { module: 1, target: 9 } }).outputText
+  vm.runInNewContext(jsWh, { exports: W, createHash, dfyPaymentLinkIds: dfy.dfyPaymentLinkIds, dfyTierForLink: dfy.dfyTierForLink, DFY_ACCEPTED_AMOUNTS_USD_MINOR: dfy.DFY_ACCEPTED_AMOUNTS_USD_MINOR, console: { log: (...a) => logWh.push(a), error: (...a) => logWh.push(a), warn: (...a) => logWh.push(a) }, Promise, Error, Array, Object, String, RegExp, Number, JSON })
+} catch (e) { W = {}; falhas.push('P0: as funções do webhook não rodaram no vm: ' + e.message) }
+checa(`P0: as ${NOMES_WH.length} funções do caminho Empresas foram achadas no webhook e rodam isoladas`, NOMES_WH.every((n) => typeof W[n] === 'function'))
+const CAMPOS_LINK = [
+  { key: 'businessname', label: { type: 'custom', custom: 'Business name + what you sell' }, type: 'text', optional: false, text: { value: 'Padaria Sol, sourdough bread' } },
+  { key: 'lastframecta', label: { type: 'custom', custom: 'Last-frame CTA: phone, WhatsApp, URL or address' }, type: 'text', optional: false, text: { value: 'WhatsApp +55 11 90000-0000' } },
+  { key: 'languagefilm', label: { type: 'custom', custom: 'Language + the film you want (1-2 lines)' }, type: 'text', optional: false, text: { value: 'Portuguese; fresh bread at 6 a.m.' } },
+]
+const DONO_DFY = '16aa454a-2ef3-4e6d-bc53-0bece84290d7'
+// Sessão como a Stripe entrega um Payment Link: SEM metadata na sessão e o valor em moeda local (Adaptive Pricing).
+const sessaoLink = (extra) => ({ id: 'cs_live_teste_dfy', object: 'checkout.session', mode: 'payment', payment_status: 'paid', metadata: {}, client_reference_id: DONO_DFY, amount_total: 18990, currency: 'brl', customer_details: { email: 'dono@padaria.example', name: 'Dono da Padaria' }, custom_fields: CAMPOS_LINK, payment_link: null, ...extra })
+const sExpress = sessaoLink({ payment_link: EXPRESS_PLINK })
+const sPro = sessaoLink({ id: 'cs_live_teste_pro', payment_link: { id: PRO_PLINK, object: 'payment_link' } })
+if (typeof W.isDfyOrderSession === 'function') {
+  checa('P0 detecção: link Express (payment_link string), SEM metadata e em BRL, é pedido Empresas, degrau express', W.isDfyOrderSession(sExpress) === true && W.dfySessionTier(sExpress) === 'express')
+  checa('P0 detecção: link Pro (payment_link expandido {id}), SEM metadata e em BRL, é pedido Empresas, degrau pro', W.isDfyOrderSession(sPro) === true && W.dfySessionTier(sPro) === 'pro')
+  checa('P0 detecção: com a metadata do link copiada (kind=dfy, tier) também reconhece, e o tier da metadata vence', W.isDfyOrderSession(sessaoLink({ metadata: { kind: 'dfy', tier: 'pro', product: 'kineo_empresas_v2' } })) === true && W.dfySessionTier(sessaoLink({ metadata: { tier: 'pro' }, payment_link: EXPRESS_PLINK })) === 'pro')
+  checa('P0 detecção (controle): pack bulk20 da casa (3500 usd, metadata.pack, sem payment_link) NÃO é pedido; link desconhecido com valor fora da lista também não', W.isDfyOrderSession(sessaoLink({ payment_link: null, metadata: { pack: 'bulk20' }, amount_total: 3500, currency: 'usd' })) === false && W.isDfyOrderSession(sessaoLink({ payment_link: 'plink_outroQualquer123', amount_total: 4900, currency: 'usd' })) === false)
+  checa("P0 zero concessão: tier='pro' da metadata do link Pro NÃO vira créditos de plano no payment_success (firstPaymentCreditsFromSession = null em mode 'payment')", W.firstPaymentCreditsFromSession({ mode: 'payment', payment_status: 'paid', metadata: { kind: 'dfy', tier: 'pro' } }) === null)
+}
+const supabaseFalso = ({ quebra = false } = {}) => {
+  const tabelas = []
+  const linhas = []
+  return {
+    tabelas,
+    linhas,
+    from(t) {
+      tabelas.push(t)
+      if (quebra) throw new Error('banco fora do ar')
+      const q = {
+        select: () => q, eq: () => q, contains: () => q,
+        limit: async () => ({ data: [], error: null }),
+        insert: async (row) => { linhas.push({ t, row }); return { error: null } },
+        update: () => { throw new Error('update proibido no caminho Empresas') },
+        upsert: () => { throw new Error('upsert proibido no caminho Empresas') },
+      }
+      return q
+    },
+    rpc() { tabelas.push('rpc'); throw new Error('rpc proibido no caminho Empresas') },
+  }
+}
+if (typeof W.recordDfyOrderPaid === 'function') {
+  const sb = supabaseFalso()
+  await W.recordDfyOrderPaid(sb, 'evt_teste_dfy', sExpress)
+  const ins = sb.linhas.filter((l) => l.t === 'events').map((l) => l.row)
+  const m = ins[0]?.metadata ?? {}
+  checa(`P0 pedido gravado: UMA linha dfy_order_paid e o caminho só tocou a tabela events (tocou: ${[...new Set(sb.tabelas)].join(',')})`, ins.length === 1 && ins[0].name === 'dfy_order_paid' && sb.linhas.length === 1 && sb.tabelas.length >= 1 && sb.tabelas.every((t) => t === 'events'))
+  checa('P0 pedido gravado: tier, kind, e-mail, nome, valor, moeda, sessão, evento Stripe, id do link e dono', m.tier === 'express' && m.kind === 'dfy' && m.customer_email === 'dono@padaria.example' && m.customer_name === 'Dono da Padaria' && m.amount_total === 18990 && m.currency === 'brl' && m.stripe_session_id === sExpress.id && m.stripe_event_id === 'evt_teste_dfy' && m.payment_link === EXPRESS_PLINK && ins[0].user_id === DONO_DFY)
+  checa('P0 pedido gravado: os 3 custom_fields do link com chave, rótulo e valor (o briefing da operação manual)', Array.isArray(m.custom_fields) && m.custom_fields.length === 3 && m.custom_fields.every((f, i) => f.key === CAMPOS_LINK[i].key && f.label === CAMPOS_LINK[i].label.custom && f.value === CAMPOS_LINK[i].text.value))
+  const sbPro = supabaseFalso()
+  await W.recordDfyOrderPaid(sbPro, 'evt_teste_pro', sPro)
+  checa('P0 pedido gravado: o link Pro (objeto expandido) grava tier=pro e o plink do Pro', sbPro.linhas.length === 1 && sbPro.linhas[0].row.metadata.tier === 'pro' && sbPro.linhas[0].row.metadata.payment_link === PRO_PLINK)
+  let lancou = false
+  try { await W.recordDfyOrderPaid(supabaseFalso({ quebra: true }), 'evt_teste_queda', sExpress) } catch { lancou = true }
+  checa('P0 nunca 500: banco fora do ar dentro de recordDfyOrderPaid não lança (a Stripe recebe 200 e não reenvia pedido já pago)', lancou === false)
+}
+const semComentWh = (s) => s.replace(/^\s*\/\/.*$/gm, '')
+const caseIni = wh.indexOf("case 'checkout.session.completed':")
+const antesDoRamo = caseIni < 0 ? '' : wh.slice(caseIni, wh.indexOf('if (isDfyOrderSession(session)) {', caseIni))
+checa('P0 resposta 200: do case até o ramo Empresas não há laço nem throw (o `break` do ramo sai do switch) e o payment_success anterior roda em try/catch', antesDoRamo.length > 200 && !/\b(?:for|while)\s*\(|\bthrow\b/.test(semComentWh(antesDoRamo)) && /try \{\s*await recordPaymentSuccess\(supabase, event\.id, session\)\s*\} catch \(trackingError\)/.test(antesDoRamo))
+const posSwitch = wh.slice(wh.indexOf("console.log('Unhandled webhook event type:', event.type)"))
+checa('P0 resposta 200: depois do switch a saída é `NextResponse.json({ received: true })` sem status; o 500 só existe no catch (que exige throw)', /^[^\n]*\n\s*\}\n\n\s*return NextResponse\.json\(\{ received: true \}\)\n\s*\} catch \(error\) \{/.test(posSwitch))
+const grantTs = rd('lib/payments/grant.ts')
+checa('P0 grant.ts fora deste caminho: o webhook da Stripe não importa lib/payments/grant nem chama grantOneTimePackCredits/grantSubscriptionPlan; o ramo e recordDfyOrderPaid não falam de grant; grant.ts não conhece pedido Empresas', !/@\/lib\/payments\/grant/.test(wh) && !/grantOneTimePackCredits|grantSubscriptionPlan/.test(wh) && !/grant/i.test(semComentWh(ramo)) && !/grant/i.test(semComentWh(rdo)) && !/dfy|payment_link|Empresas/i.test(grantTs))
 
 // ── S3: padrão mensal ────────────────────────────────────────────────────────
 console.log('== S3: lib/growth/pricingPlanChoiceAttribution.ts ==')
@@ -206,7 +288,8 @@ try { oa = JSON.parse(oaRaw) } catch {}
 checa('openapi.json continua JSON válido', Boolean(oa))
 // GPT-V31-FATOS: factual description patch, same two operations and no new purchase API.
 // GPT-LOJA-2026-09-24 — reancorado com motivo: 1.3.2 só muda descriptions (Kineo 1 a 90 s, idiomas do Kling 3/H3, recusas novas do 400).
-checa("openapi info.version = 1.3.2 com GET de fatos sem nova compra", oa?.info?.version === '1.3.2' && oa?.paths?.['/api/facts']?.get?.operationId === 'getKineoFacts' && !oa?.paths?.['/api/facts']?.post)
+// GPT-COWORK-FOLLOWUP-2026-09-24 — reancorado com motivo: 1.3.3 só muda descriptions: getKineoFacts 532 → 281 caracteres (o ChatGPT recusa > 300), "fast" a 90 s 230-240 e `words` manda confiar na contagem do servidor.
+checa("openapi info.version = 1.3.3 com GET de fatos sem nova compra", oa?.info?.version === '1.3.3' && oa?.paths?.['/api/facts']?.get?.operationId === 'getKineoFacts' && !oa?.paths?.['/api/facts']?.post)
 const oaStrings = []
 ;(function walk(v) { if (typeof v === 'string') oaStrings.push(v); else if (v && typeof v === 'object') Object.values(v).forEach(walk) })(oa)
 const trialCap = num(rd('lib/reverseTrial.ts'), 'TRIAL_CREDIT_CAP')
