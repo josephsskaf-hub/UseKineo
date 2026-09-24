@@ -18,7 +18,8 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { FOOTAGE_PUBLIC_PREFIX } from '@/lib/userFootage'
 import { adsGate, isMissingAdsTable, loadAdsAccess } from '@/lib/ads/serverAccess'
 import { adsModelById } from '@/lib/ads/models'
-import { countWords, sanitizeRenderRequest, type AdsRenderStarted, type AdsRenderState } from '@/lib/ads/renderContract'
+import { ADS_MAX_NARRATION_SECONDS, countWords, sanitizeRenderRequest, type AdsRenderStarted, type AdsRenderState } from '@/lib/ads/renderContract'
+import { composeClaimId } from '@/lib/composeClaim'
 import { adsClipListLength, adsTimelineSeconds, beatStartTimes, planClipUrls, type PlanMedia } from '@/lib/ads/renderPlan'
 import type { AdsMediaItem } from '@/lib/ads/types'
 import { creditCostForDuration } from '@/lib/credits/engineCost'
@@ -107,6 +108,11 @@ export async function POST(req: NextRequest) {
     const balance = Number((prof.data as { video_credits?: number } | null)?.video_credits ?? 0)
     if (!(balance >= cost)) return fail('out_of_credits', 402, { needed: cost, balance })
 
+    // Um render por vez POR CONTA (revisão: a reserva de crédito do compose não aparece no saldo cru; sem isto dá para
+    // queimar voz e Whisper em laço até o compose recusar).
+    const busy = await admin.from('ads_orders').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'rendering').neq('id', orderId)
+    if (!busy.error && (busy.count ?? 0) > 0) return fail('another_rendering', 409)
+
     // Trava o pedido: só um render por vez (o UPDATE só pega rascunho ou falha).
     const generationId = randomUUID()
     const script = input.beats.join('\n\n')
@@ -138,15 +144,30 @@ export async function POST(req: NextRequest) {
       await back('failed', `voice_failed: ${e instanceof Error ? e.message : String(e)}`)
       return fail('voice_failed', 502)
     }
-    const voiceUrl = await uploadVoiceoverToSupabase(user.id, voiceBuf)
     const narrationSeconds = estimateMp3DurationSeconds(voiceBuf)
-    const words = await transcribeTTSWithTimestamps(voiceBuf).catch(() => [])
+    // Revisão: acima de ~89 s o montador corta a linha do tempo em 90 s e o fim da chamada + o cartão somem. Recusa
+    // ANTES do compose (nada cobrado; só a voz foi gasta) e o pedido volta a rascunho para a pessoa encurtar.
+    if (narrationSeconds > ADS_MAX_NARRATION_SECONDS) {
+      await back('draft', 'script_too_long')
+      return fail('script_too_long', 400, { narration_seconds: Math.round(narrationSeconds * 10) / 10 })
+    }
+    // Revisão: sem as palavras do Whisper a simulação cairia no corte fixo de 2,5 s enquanto o compose corta em frase —
+    // a mídia escorregaria de batida e o cartão poderia sumir. Tenta 2 vezes; sem palavras, não monta (nada cobrado).
+    let words = await transcribeTTSWithTimestamps(voiceBuf).catch(() => [])
+    if (words.length === 0) words = await transcribeTTSWithTimestamps(voiceBuf).catch(() => [])
+    if (words.length === 0) {
+      await back('draft', 'whisper_empty')
+      return fail('voice_failed', 502)
+    }
+    const voiceUrl = await uploadVoiceoverToSupabase(user.id, voiceBuf)
 
     // Onde cada tomada cai: simula o montador (puro) com URLs falsas e a MESMA voz/palavras.
     const total = adsTimelineSeconds(narrationSeconds, seconds)
-    const listLength = adsClipListLength(total)
-    const sim = buildCreatomateSource({
-      clipUrls: Array.from({ length: listLength }, (_, j) => `https://sim.invalid/${j}.png`),
+    // Revisão: a lista mais CURTA que não gira (tomadas de até 4,5 s, menos reinício de zoom e de vídeo). Começa em
+    // total/4,5 e cresce até o número de tomadas simuladas caber; o teto adsClipListLength nunca gira (tomada de 2,5 s).
+    const simulate = (len: number) => {
+      const sim = buildCreatomateSource({
+      clipUrls: Array.from({ length: len }, (_, j) => `https://sim.invalid/${j}.png`),
       voiceoverUrl: 'https://sim.invalid/v.mp3',
       voiceoverScript: narration,
       sceneCaptions: [],
@@ -157,10 +178,22 @@ export async function POST(req: NextRequest) {
       musicUrl: null,
       aspect: '9:16',
     } as Parameters<typeof buildCreatomateSource>[0]) as { elements?: { track?: number; time?: number; duration?: number }[] }
-    const slots = (sim.elements ?? [])
-      .filter((e) => e && e.track === 2 && typeof e.time === 'number' && typeof e.duration === 'number')
-      .map((e) => ({ time: Number(e.time), duration: Number(e.duration) }))
-    const starts = beatStartTimes(input.beats.map(countWords), words, total)
+      return (sim.elements ?? [])
+        .filter((e) => e && e.track === 2 && typeof e.time === 'number' && typeof e.duration === 'number')
+        .map((e) => ({ time: Number(e.time), duration: Number(e.duration) }))
+    }
+    const maxList = adsClipListLength(total)
+    let listLength = Math.max(2, Math.ceil(total / 4.5))
+    let slots = simulate(listLength)
+    while (slots.length > listLength && listLength < maxList) {
+      listLength += 1
+      slots = simulate(listLength)
+    }
+    if (slots.length > listLength) {
+      listLength = maxList
+      slots = simulate(listLength)
+    }
+    const starts = beatStartTimes(input.beats.map(countWords), words, narrationSeconds)
     const clipUrls = planClipUrls({ slots, beatStarts: starts, beatMedia, cardUrl: card.url, listLength })
 
     const brief = order.brief ?? {}
@@ -198,7 +231,10 @@ export async function POST(req: NextRequest) {
       await back('failed', `compose ${res.status}: ${typeof j.error === 'string' ? j.error : ''}`)
       return fail('render_failed', 502)
     }
-    await admin.from('ads_orders').update({ render_id: renderId }).eq('id', orderId).eq('user_id', user.id).eq('generation_id', generationId)
+    const linkOnce = () => admin.from('ads_orders').update({ render_id: renderId }).eq('id', orderId).eq('user_id', user.id).eq('generation_id', generationId).select('id').maybeSingle()
+    let link = await linkOnce()
+    if (link.error || !link.data) link = await linkOnce()
+    if (link.error || !link.data) console.warn(`[ads/render] render_id não gravado (order=${orderId} render=${renderId}); o GET recupera pelo claim do compose`)
     claimed = null
     const userMediaSlots = clipUrls.slice(0, slots.length).filter((u) => u !== card.url).length
     await writeServerEvent({
@@ -229,11 +265,11 @@ export async function GET(req: NextRequest) {
     if (!UUID.test(orderId)) return fail('order_id_invalid', 400)
     const { admin } = await loadAdsAccess(user.id, user.email)
     const read = async () =>
-      admin.from('ads_orders').select('id, status, seconds, render_id, video_id, brief, template').eq('id', orderId).eq('user_id', user.id).maybeSingle()
+      admin.from('ads_orders').select('id, status, seconds, render_id, video_id, brief, template, generation_id, updated_at').eq('id', orderId).eq('user_id', user.id).maybeSingle()
     let o = await read()
     if (o.error) return isMissingAdsTable(o.error.code) ? fail('not_ready', 503) : fail('render_failed', 500)
     if (!o.data) return fail('order_not_found', 404)
-    let order = o.data as { id: string; status: AdsRenderState['status']; seconds: 35 | 60 | null; render_id: string | null; video_id: string | null; brief: Record<string, unknown> | null; template: string | null }
+    let order = o.data as { id: string; status: AdsRenderState['status']; seconds: 35 | 60 | null; render_id: string | null; video_id: string | null; brief: Record<string, unknown> | null; template: string | null; generation_id: string | null; updated_at: string | null }
     const model = adsModelById(order.template)
     const topic = order.brief && typeof order.brief.business === 'string' && model ? `${order.brief.business} · ${model.name}`.slice(0, 200) : null
     let failure: string | null = null
@@ -241,6 +277,27 @@ export async function GET(req: NextRequest) {
     const findVideo = async (renderId: string) => {
       const v = await admin.from('videos').select('id, video_url').eq('user_id', user.id).eq('render_id', renderId).maybeSingle()
       return (v.data as { id: string; video_url: string | null } | null) ?? null
+    }
+    // Revisão: pedido preso em 'rendering' SEM render_id (a função morreu no limite de 300 s ou a escrita falhou).
+    // Primeiro recupera o render pelo claim do compose (idempotente por generation_id); sem claim e com mais de 6 min
+    // (maior que o limite da função), vira 'failed' — a tela oferece tentar de novo e nada fica preso para sempre.
+    if (order.status === 'rendering' && !order.render_id) {
+      if (order.generation_id) {
+        const claim = await admin.from('events').select('metadata').eq('id', composeClaimId(user.id, order.generation_id)).maybeSingle()
+        const rid = (claim.data as { metadata?: { render_id?: unknown } } | null)?.metadata?.render_id
+        if (typeof rid === 'string' && rid.trim() && !rid.startsWith('pending')) {
+          await admin.from('ads_orders').update({ render_id: rid }).eq('id', orderId).eq('user_id', user.id).eq('status', 'rendering').is('render_id', null)
+          order = { ...order, render_id: rid }
+        }
+      }
+      const age = order.updated_at ? Date.now() - new Date(order.updated_at).getTime() : 0
+      if (!order.render_id && age > 6 * 60 * 1000) {
+        const s = await admin.from('ads_orders').update({ status: 'failed' }).eq('id', orderId).eq('user_id', user.id).eq('status', 'rendering').is('render_id', null).select('id').maybeSingle()
+        if (s.data) await writeServerEvent({ name: 'ads_render_failed', userId: user.id, path: '/api/ads/render', metadata: { order_id: orderId, generation_id: order.generation_id, reason: 'stuck_no_render_id' } })
+        failure = 'render_failed'
+        o = await read()
+        if (o.data) order = o.data as typeof order
+      }
     }
     if (order.status === 'rendering' && order.render_id) {
       let video = await findVideo(order.render_id)
@@ -253,10 +310,12 @@ export async function GET(req: NextRequest) {
         )
         const sj = (await sres.json().catch(() => ({}))) as Record<string, unknown>
         if (sj.phase === 'done') video = await findVideo(order.render_id)
-        else if (sj.phase === 'failed') {
-          failure = typeof sj.error === 'string' ? sj.error : typeof sj.failure_reason === 'string' ? sj.failure_reason : 'render_failed'
+        // Revisão: 'failed' com reconcile:true é transitório (a própria rota de status cura na próxima consulta).
+        else if (sj.phase === 'failed' && sj.reconcile !== true) {
+          // A tela recebe um CÓDIGO (vira frase em renderContract), nunca a frase interna do compose.
+          failure = typeof sj.failure_reason === 'string' && /^[a-z0-9_]{2,60}$/.test(sj.failure_reason) ? sj.failure_reason : 'render_failed'
           const f = await admin.from('ads_orders').update({ status: 'failed' }).eq('id', orderId).eq('user_id', user.id).eq('status', 'rendering').select('id').maybeSingle()
-          if (f.data) await writeServerEvent({ name: 'ads_render_failed', userId: user.id, path: '/api/ads/render', metadata: { order_id: orderId, render_id: order.render_id, reason: String(failure).slice(0, 300) } })
+          if (f.data) await writeServerEvent({ name: 'ads_render_failed', userId: user.id, path: '/api/ads/render', metadata: { order_id: orderId, render_id: order.render_id, reason: String(failure).slice(0, 100), detail: typeof sj.error === 'string' ? sj.error.slice(0, 300) : null } })
         }
       }
       if (video) {

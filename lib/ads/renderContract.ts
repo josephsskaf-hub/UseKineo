@@ -32,6 +32,10 @@ export const ADS_VOICE_PREVIEW_SERVED_EVENT = 'ads_voice_preview_served'
 /** Mídia por batida: 1 a 4 itens da própria conta (fotos giram; vídeo entra no máximo uma vez por batida). */
 export const ADS_MAX_MEDIA_PER_BEAT = 4
 export const ADS_BEAT_MAX_CHARS = 700
+/** O montador corta a linha do tempo em 90 s: narração acima disso perde o fim da chamada e o cartão. A voz mais lenta
+ *  medida fala ~2,45 pal/s, então o teto de palavras é o que ela diz em 88 s, e o render recusa acima de 89 s medidos. */
+export const ADS_MAX_NARRATION_SECONDS = 89
+export const ADS_MAX_NARRATION_WORDS = Math.floor(88 * 2.45)
 
 // ─── POST /api/ads/render ────────────────────────────────────────────────────────────────────
 export interface AdsRenderRequest {
@@ -93,6 +97,8 @@ export const ADS_RENDER_ERROR_MESSAGES: Record<string, string> = {
   not_ready: 'Studio Ads is not ready yet.',
   daily_limit: 'You reached today’s limit of voice previews. Try again tomorrow.',
   text_invalid: 'Type a short sentence to preview the voice.',
+  another_rendering: 'Another ad is still rendering. Wait for it to finish, then try again.',
+  voice_unavailable: 'Voice previews are unavailable right now. Try again in a minute.',
 }
 
 type Ok<T> = { ok: true; value: T }
@@ -108,7 +114,7 @@ export function countWords(s: string): number {
 /** Faixa de palavras aceita no render: a régua do modelo com folga (a voz real é mais lenta que 3,1 pal/s; o filme segue
  *  a voz, então passar do alvo é bom — "35/60 é norte, não camisa de força"; ficar muito abaixo é história interrompida). */
 export function adsRenderWordRange(model: Pick<AdsModel, 'words'>): [number, number] {
-  return [Math.floor(model.words[0] * 0.75), Math.ceil(model.words[1] * 1.3)]
+  return [Math.floor(model.words[0] * 0.75), Math.min(Math.ceil(model.words[1] * 1.3), ADS_MAX_NARRATION_WORDS)]
 }
 
 /** Valida o corpo do render contra o modelo e a mídia do pedido. Pura: quem chama confere dono e banco depois. */
@@ -127,8 +133,9 @@ export function sanitizeRenderRequest(
   if (!Array.isArray(b.beats) || b.beats.length !== n || cardIndex !== n - 1) return err('beats_invalid')
   const beats: string[] = []
   for (const x of b.beats) {
-    const t = typeof x === 'string' ? x.replace(/\s+/g, ' ').trim() : ''
-    if (!t || t.length > ADS_BEAT_MAX_CHARS || /[<>]/.test(t)) return err('beats_invalid')
+    // '<' e '>' saem do texto (o GPT às vezes escreve '->'); nunca recusa o roteiro por isso.
+    const t = typeof x === 'string' ? x.replace(/[<>]/g, '').replace(/\s+/g, ' ').trim() : ''
+    if (!t || t.length > ADS_BEAT_MAX_CHARS) return err('beats_invalid')
     beats.push(t)
   }
   const words = countWords(beats.join(' '))

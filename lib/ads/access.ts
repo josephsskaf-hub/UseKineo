@@ -32,7 +32,10 @@ export function isAdsInternalEmail(email: string | null | undefined): boolean {
   const e = (email ?? '').trim().toLowerCase()
   if (!e) return false
   if (INTERNAL_EXACT_EMAILS.map((x) => x.toLowerCase()).includes(e)) return true
-  return /^josephsskaf\+[^@\s]+@gmail\.com$/.test(e)
+  // KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — revisão: apelido josephsskaf+x@gmail.com NÃO entra. O cadastro confirma o
+  // e-mail sozinho, então qualquer pessoa registraria um apelido novo e ganharia a porta da casa. Só a lista exata (contas
+  // que já existem e não podem ser registradas de novo).
+  return false
 }
 
 function passUntil(row: AdsAccessFields): Date | null {
@@ -44,13 +47,15 @@ function passUntil(row: AdsAccessFields): Date | null {
 
 /** Por que esta conta entra (ou 'none'). `authEmail` = e-mail do getUser, nunca de profiles. */
 export function adsAccessReason(row: AdsAccessFields | null | undefined, authEmail: string | null | undefined, now: Date = new Date()): AdsAccessReason {
+  // KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — revisão: a conta da casa decide PRIMEIRO. Com o interruptor desligado só
+  // 'internal' passa, e o fundador (plano pro) caía em 'subscriber' e via "opens soon" no próprio canário.
+  if (isAdsInternalEmail(authEmail)) return 'internal'
   if (row) {
     const until = passUntil(row)
     if (until && until.getTime() > now.getTime()) return 'pass'
     const plan = typeof row.plan === 'string' ? row.plan.trim().toLowerCase() : ''
     if (ADS_SUBSCRIBER_PLANS.includes(plan)) return 'subscriber'
   }
-  if (isAdsInternalEmail(authEmail)) return 'internal'
   return 'none'
 }
 

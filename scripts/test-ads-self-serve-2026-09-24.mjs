@@ -55,8 +55,10 @@ ok(V(corpo({ beats: porBatida(lo - 5) })).error === 'script_too_short' && V(corp
 ok(V(corpo({ storyboard: sb.slice(1) })).error === 'storyboard_invalid' && V(corpo({ storyboard: [...sb, { beatIndex: n - 1, footageIds: [ids[0]] }] })).error === 'storyboard_invalid' && V(corpo({ storyboard: sb.map((s, i) => (i === 0 ? { ...s, footageIds: ['99999999-9999-4999-8999-999999999999'] } : s)) })).error === 'media_not_owned',
   '1d. batida sem mídia, mídia na batida do cartão e arquivo fora do pedido são recusados')
 ok(V(corpo({ storyboard: sb.slice(0, n - 2).concat([{ beatIndex: n - 1, footageIds: [ids[0]] }]) })).error === 'storyboard_invalid', '1d2. trocar uma batida pela do cartão (mesma contagem) também é recusado')
-ok(V(corpo({ card_footage_id: 'nope' })).error === 'card_invalid' && V(corpo({ beats: porBatida(Math.round((lo + hi) / 2)).map((b, i) => (i === 0 ? '<b>' + b : b)) })).error === 'beats_invalid',
-  '1e. sem cartão válido e texto com tag HTML são recusados')
+// Reancorado com motivo (revisão 24/09): '<' e '>' passaram a ser REMOVIDOS do texto (o GPT escreve '->'), não motivo de recusa.
+const comTag = V(corpo({ beats: porBatida(Math.round((lo + hi) / 2)).map((b, i) => (i === 0 ? '<b>' + b + ' -> ok' : b)) }))
+ok(V(corpo({ card_footage_id: 'nope' })).error === 'card_invalid' && comTag.ok === true && !/[<>]/.test(comTag.value.beats[0]),
+  '1e. sem cartão válido é recusado; "<" e ">" saem do texto em vez de derrubar o roteiro')
 ok(C.ADS_VOICES.map((v) => v.id).join(',') === 'nova,shimmer,onyx,echo' && C.isAdsVoice('nova') && !C.isAdsVoice('fable'), '1f. as 4 vozes são da família tts-1-hd e só elas passam')
 
 // ── 2. mídia por tomada, EXECUTADA ──────────────────────────────────────────────────────────────
@@ -117,12 +119,30 @@ const get = (r.match(/export async function GET[\s\S]*?\n\}\n/) || [''])[0]
 ok(/\.from\('videos'\)\.select\('id, video_url'\)\.eq\('user_id', user\.id\)\.eq\('render_id', renderId\)/.test(get) && /\.update\(\{ status: 'delivered', video_id: video\.id, delivered_at: new Date\(\)\.toISOString\(\) \}\)[\s\S]{0,160}\.eq\('status', 'rendering'\)/.test(get) && /if \(d\.data\) \{\n\s*await writeServerEvent\(\{ name: 'ads_render_served'/.test(get),
   "3i. GET entrega só o vídeo DO DONO, só a partir de 'rendering', e grava ads_delivered uma vez (quando o UPDATE pegou a linha)")
 
+// ── 3b. revisão adversarial de 24/09 (32 achados confirmados): o que o render passou a garantir ──────────────
+const ip = (s) => post.indexOf(s)
+ok(ip('if (narrationSeconds > ADS_MAX_NARRATION_SECONDS) {') > ip('estimateMp3DurationSeconds(voiceBuf)') && ip('if (narrationSeconds > ADS_MAX_NARRATION_SECONDS) {') < ip('await composePost(') && /await back\('draft', 'script_too_long'\)\n\s*return fail\('script_too_long', 400/.test(post) && C.ADS_MAX_NARRATION_SECONDS <= 89 && C.adsRenderWordRange(M.adsModelById('historia_fundador'))[1] <= C.ADS_MAX_NARRATION_WORDS,
+  '3j. narração acima de 89 s é recusada ANTES do compose (o montador cortaria em 90 s a chamada e o cartão); o teto de palavras dos modelos de 60 s respeita a voz mais lenta')
+ok(/let words = await transcribeTTSWithTimestamps\(voiceBuf\)\.catch\(\(\) => \[\]\)\n\s*if \(words\.length === 0\) words = await transcribeTTSWithTimestamps\(voiceBuf\)\.catch\(\(\) => \[\]\)\n\s*if \(words\.length === 0\) \{\n\s*await back\('draft', 'whisper_empty'\)/.test(post) && ip("await back('draft', 'whisper_empty')") < ip('uploadVoiceoverToSupabase(user.id, voiceBuf)') && ip('uploadVoiceoverToSupabase(user.id, voiceBuf)') < ip('buildCreatomateSource({'),
+  '3k. sem palavras do Whisper (2 tentativas) não monta — a simulação cairia no corte fixo e a mídia escorregaria; a voz só sobe depois')
+ok(ip("return fail('another_rendering', 409)") > 0 && ip("return fail('another_rendering', 409)") < ip(".in('status', ['draft', 'failed'])") && /\.eq\('user_id', user\.id\)\.eq\('status', 'rendering'\)\.neq\('id', orderId\)/.test(post),
+  '3l. um render por vez por conta, checado antes de travar o pedido (sem laço de voz/Whisper enquanto o compose recusa)')
+ok(/while \(slots\.length > listLength && listLength < maxList\) \{/.test(post) && /let listLength = Math\.max\(2, Math\.ceil\(total \/ 4\.5\)\)/.test(post) && /beatStartTimes\(input\.beats\.map\(countWords\), words, narrationSeconds\)/.test(post),
+  '3m. a lista é a mais curta que não gira (tomadas de até 4,5 s, menos reinício de zoom e vídeo) e as batidas são medidas na narração real')
+ok(/if \(order\.status === 'rendering' && !order\.render_id\) \{/.test(get) && /composeClaimId\(user\.id, order\.generation_id\)/.test(get) && /age > 6 \* 60 \* 1000/.test(get) && /\.eq\('status', 'rendering'\)\.is\('render_id', null\)\.select\('id'\)\.maybeSingle\(\)/.test(get) && /reason: 'stuck_no_render_id'/.test(get),
+  "3n. pedido preso em 'rendering' sem render_id: recupera pelo claim do compose; sem claim e com mais de 6 min vira 'failed' (nada fica preso para sempre)")
+ok(/else if \(sj\.phase === 'failed' && sj\.reconcile !== true\) \{/.test(get) && /failure = typeof sj\.failure_reason === 'string' && \/\^\[a-z0-9_\]\{2,60\}\$\/\.test\(sj\.failure_reason\) \? sj\.failure_reason : 'render_failed'/.test(get),
+  "3o. 'failed' transitório (reconcile) não encerra o pedido; a tela recebe código, nunca a frase interna do compose")
+ok(/let link = await linkOnce\(\)\n\s*if \(link\.error \|\| !link\.data\) link = await linkOnce\(\)/.test(post), '3p. a gravação do render_id é conferida e repetida uma vez')
+
 // ── 4. prévia de voz ───────────────────────────────────────────────────────────────────────────
 const v = rd('app/api/ads/voice/route.ts')
 const vi = (s) => v.indexOf(s)
-ok(vi('supabase.auth.getUser()') < vi('adsGate(reason)') && vi('adsGate(reason)') < vi("eq('name', ADS_VOICE_PREVIEW_SERVED_EVENT)") && vi("eq('name', ADS_VOICE_PREVIEW_SERVED_EVENT)") < vi('openai.audio.speech.create(') && vi('openai.audio.speech.create(') < vi('name: ADS_VOICE_PREVIEW_SERVED_EVENT'),
-  '4a. voz: dono → acesso → teto diário contado no banco → síntese → evento (o teto conta o que foi servido)')
-ok(/if \(!used\.error && \(used\.count \?\? 0\) >= ADS_VOICE_PREVIEW_DAILY_CAP\) return fail\('daily_limit', 429\)/.test(v), '4c. o teto diário da prévia é APLICADO (429), não só consultado')
+// Reancorado com motivo (revisão 24/09): a prévia RESERVA a linha no teto antes de gastar (paralelo não fura) e falha fechada.
+ok(vi('supabase.auth.getUser()') < vi('adsGate(reason)') && vi('adsGate(reason)') < vi('const reserved = await writeServerEvent({ name: ADS_VOICE_PREVIEW_SERVED_EVENT') && vi('const reserved = await writeServerEvent({ name: ADS_VOICE_PREVIEW_SERVED_EVENT') < vi("eq('name', ADS_VOICE_PREVIEW_SERVED_EVENT)") && vi("eq('name', ADS_VOICE_PREVIEW_SERVED_EVENT)") < vi('openai.audio.speech.create(') && (v.match(/name: ADS_VOICE_PREVIEW_SERVED_EVENT/g) || []).length === 1,
+  '4a. voz: dono → acesso → reserva no teto → contagem no banco → síntese (uma escrita só, antes de gastar)')
+ok(/if \(!reserved\) return fail\('voice_unavailable', 503\)/.test(v) && /if \(used\.error\) return fail\('voice_unavailable', 503\)/.test(v) && /if \(\(used\.count \?\? 0\) > ADS_VOICE_PREVIEW_DAILY_CAP\) return fail\('daily_limit', 429\)/.test(v),
+  '4c. o teto diário é APLICADO (429, contando a própria reserva) e falha FECHADA quando o banco não responde (503)')
 const EV = carrega('lib/ads/events')
 ok(EV.ADS_EVENTS.includes('ads_voice_preview_served') && EV.ADS_SERVER_ONLY_EVENTS.includes('ads_voice_preview_served') && /'ads_voice_preview_served',/.test(rd('app/api/events/route.ts')) && C.ADS_VOICE_PREVIEW_SERVED_EVENT === 'ads_voice_preview_served',
   '4b. o evento da prévia é só de servidor nas duas listas (o navegador não forja o teto)')

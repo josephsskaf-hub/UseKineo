@@ -28,17 +28,21 @@ export async function POST(req: NextRequest) {
     if (!body || typeof body !== 'object' || Array.isArray(body)) return fail('body_must_be_object', 400)
     const voice = body.voice
     if (!isAdsVoice(voice)) return fail('voice_invalid', 400)
-    const text = typeof body.text === 'string' ? body.text.replace(/\s+/g, ' ').trim().slice(0, ADS_VOICE_PREVIEW_MAX_CHARS) : ''
-    if (text.length < 2 || /[<>]/.test(text)) return fail('text_invalid', 400)
+    const text = typeof body.text === 'string' ? body.text.replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, ADS_VOICE_PREVIEW_MAX_CHARS) : ''
+    if (text.length < 2) return fail('text_invalid', 400)
 
+    // Revisão: reserva ANTES de gastar (a linha conta no teto já agora — pedidos em paralelo não furam) e falha FECHADA
+    // se o banco não responde (sem contagem não há teto).
+    const reserved = await writeServerEvent({ name: ADS_VOICE_PREVIEW_SERVED_EVENT, userId: user.id, path: '/api/ads/voice', metadata: { voice, chars: text.length } })
+    if (!reserved) return fail('voice_unavailable', 503)
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
     const used = await admin.from('events').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('name', ADS_VOICE_PREVIEW_SERVED_EVENT).gte('created_at', since)
-    if (!used.error && (used.count ?? 0) >= ADS_VOICE_PREVIEW_DAILY_CAP) return fail('daily_limit', 429)
+    if (used.error) return fail('voice_unavailable', 503)
+    if ((used.count ?? 0) > ADS_VOICE_PREVIEW_DAILY_CAP) return fail('daily_limit', 429)
 
     const { openai } = await import('@/lib/openai')
     const speech = await openai.audio.speech.create({ model: 'tts-1-hd', voice, input: text, speed: 1 }, { timeout: 25_000, maxRetries: 1 })
     const buf = Buffer.from(await speech.arrayBuffer())
-    await writeServerEvent({ name: ADS_VOICE_PREVIEW_SERVED_EVENT, userId: user.id, path: '/api/ads/voice', metadata: { voice, chars: text.length } })
     return new NextResponse(buf, { status: 200, headers: { 'Content-Type': 'audio/mpeg', 'Cache-Control': 'no-store' } })
   } catch (e) {
     console.warn('[ads/voice] falhou:', e instanceof Error ? e.message : String(e))
