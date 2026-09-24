@@ -1,5 +1,5 @@
 -- KINEO-STUDIO-ADS-2026-09-25 — acesso por passe e tabela de pedidos do Studio Ads.
--- ✅ APLICADA EM PRODUÇÃO em 24/09/2026 ~15h40 BRT (Supabase: migration studio_ads_2026_09_25). Conferido: coluna
+-- ✅ APLICADA EM PRODUÇÃO em 24/09/2026 ~13h37 BRT (16:37 UTC) (Supabase: migration studio_ads_2026_09_25). Conferido: coluna
 --    timestamptz, ads_orders com RLS e 0 policies, triggers ads_access_client_guard + enforce_profile_client_guard
 --    em profiles; teste desfeito: authenticated deu UPDATE na própria linha e o valor ficou null; servidor gravou.
 --    NÃO reaplicar (é idempotente, mas não há motivo).

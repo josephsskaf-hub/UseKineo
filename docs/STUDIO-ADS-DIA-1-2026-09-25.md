@@ -212,7 +212,7 @@ Consentimento de rosto/voz como fluxo (atestado + evento + 403 no servidor sem a
 
 ---
 
-## 11. Estado em 24/09 ~14h30 BRT (o Claude adiantou o servidor; tudo DESLIGADO por NEXT_PUBLIC_ADS_PASS_LIVE)
+## 11. Estado em 24/09 ~13h20 BRT (o Claude adiantou o servidor; tudo DESLIGADO por NEXT_PUBLIC_ADS_PASS_LIVE)
 
 **Pronto e testado (guardiões test-ads-fundacao 36 · test-ads-servidor 34, mutantes derrubados):**
 - `lib/ads/{offer,models,access,events,types,orderContract,scriptPrompt,serverAccess}.ts` — preço/créditos/acesso (US$19,90 · 60 cr · 365 d), os 8 modelos em 35/60 s, portão passe > pagante > interna, 25 eventos, contrato do pedido, prompt + validador do roteiro.
@@ -229,7 +229,7 @@ Consentimento de rosto/voz como fluxo (atestado + evento + 403 no servidor sem a
 
 **Render (amanhã, com canário na conta do fundador):** `/api/ads/render` monta no servidor o corpo do Kineo 1 (roteiro verbatim, duração do modelo, `brollScenes[i].userFootageUrl` por batida → mídia por id, cartão final PNG na última cena, `engineFitOverride:true`) e chama a rota do Kineo 1 EM PROCESSO com cabeçalho de serviço, igual ao `finish-orphan-jobs` (app/api/cron/finish-orphan-jobs/route.ts:107-110); o `finish-stranded-renders` monta o filme na rodada seguinte. Nenhuma linha na rota travada (8.2) — só a chamada. Legendas na zona segura e logo persistente (o "vai" ii/iv) entram atrás de `ads_brand_layer` com render de validação.
 
-## 12. Revisão adversarial do servidor (24/09 ~15h BRT) — 10 achados confirmados, todos consertados antes de ligar
+## 12. Revisão adversarial do servidor (24/09 ~13h30 BRT) — 10 achados confirmados, todos consertados antes de ligar
 
 Workflow de 6 agentes (dinheiro, segurança, contrato, regressão) contra o commit 06e20234. Consertado em 0bd85f1b, guardiões test-ads-fundacao 41 · test-ads-servidor 42, 13/13 mutantes derrubados, suíte inteira sem vermelho novo (132 herdados dos dois lados).
 - **Auto-concessão do passe:** a policy "Users own profile" deixa o dono dar UPDATE na própria linha e a guarda `enforce_profile_client_guard` não conhecia a coluna nova. Agora a migration cria `ads_access_client_guard` (authenticated/anon: insert zera, update devolve o antigo; service_role passa).
@@ -240,4 +240,4 @@ Workflow de 6 agentes (dinheiro, segurança, contrato, regressão) contra o comm
 - **Mídia:** `%2e%2e` passava no startsWith; agora codificados e barra invertida são recusados, o caminho é normalizado, o id é conferido em `user_footage` do dono e a URL gravada vem do banco. Consentimento exige mídia e zera quando a mídia muda.
 - **Robustez:** corpo que não é objeto = 400; exceção = 500 genérico.
 - **Refutados pela própria revisão:** corrida no PATCH (o UPDATE já filtra `status='draft'`), eventos forjáveis (são só de servidor) e o recompra-zera-prazo (vira real só se houver recompra dentro do ano; anotado para a semana 2: estender a partir da data maior).
-- **Migration APLICADA em produção (24/09 ~15h40 BRT):** coluna, tabela (RLS, 0 policies) e as duas guardas conferidas; teste desfeito provou que o cliente não se dá o passe e o servidor grava. O passe continua sem vender: interruptor desligado, só conta interna.
+- **Migration APLICADA em produção (24/09 ~13h37 BRT):** coluna, tabela (RLS, 0 policies) e as duas guardas conferidas; teste desfeito provou que o cliente não se dá o passe e o servidor grava. O passe continua sem vender: interruptor desligado, só conta interna.
