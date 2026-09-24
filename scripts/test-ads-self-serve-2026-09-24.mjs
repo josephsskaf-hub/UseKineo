@@ -121,6 +121,7 @@ const v = rd('app/api/ads/voice/route.ts')
 const vi = (s) => v.indexOf(s)
 ok(vi('supabase.auth.getUser()') < vi('adsGate(reason)') && vi('adsGate(reason)') < vi("eq('name', ADS_VOICE_PREVIEW_SERVED_EVENT)") && vi("eq('name', ADS_VOICE_PREVIEW_SERVED_EVENT)") < vi('openai.audio.speech.create(') && vi('openai.audio.speech.create(') < vi('name: ADS_VOICE_PREVIEW_SERVED_EVENT'),
   '4a. voz: dono → acesso → teto diário contado no banco → síntese → evento (o teto conta o que foi servido)')
+ok(/if \(!used\.error && \(used\.count \?\? 0\) >= ADS_VOICE_PREVIEW_DAILY_CAP\) return fail\('daily_limit', 429\)/.test(v), '4c. o teto diário da prévia é APLICADO (429), não só consultado')
 const EV = carrega('lib/ads/events')
 ok(EV.ADS_EVENTS.includes('ads_voice_preview_served') && EV.ADS_SERVER_ONLY_EVENTS.includes('ads_voice_preview_served') && /'ads_voice_preview_served',/.test(rd('app/api/events/route.ts')) && C.ADS_VOICE_PREVIEW_SERVED_EVENT === 'ads_voice_preview_served',
   '4b. o evento da prévia é só de servidor nas duas listas (o navegador não forja o teto)')
