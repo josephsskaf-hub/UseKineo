@@ -317,3 +317,10 @@ O fundador também pediu cinco recomendações e sugestão de uma terceira líng
 Código: `lib/ads/offer.ts` ADS_PASS_USD_MINOR = 1990 (guardião test-ads-fundacao prova que não colide com nenhum one-time da casa).
 
 **ESCLARECIMENTO DO FUNDADOR (24/09 ~08h50 BRT, literal: "quero deixar os preços do jeito que está para os países emergentes; eles clicam e vêm na moeda deles. Quando eu falei R$19,90, eu quis dizer o preço global"):** 19,90 é o preço GLOBAL em dólar (US$19,90). Nenhuma exceção em reais: cartão brasileiro paga pela fórmula da casa (R$99,90) e os demais países pagam pela conversão automática da Stripe (Adaptive Pricing ligado na conta), como já acontece nos planos. Fechado.
+
+## 2026-09-24 — GPT "Kineo Video Maker": corrigir e publicar barato; NÃO migrar para plugin (custom GPTs saem em 11/12/2026)
+
+**FATO NOVO (OpenAI, anúncio de 11/09/2026, confirmado por várias fontes em 24/09):** GPTs personalizados aposentam em 11/12/2026; instruções viram Skill de plugin, **ações personalizadas não migram**, só GPT publicado migra; criação de GPT novo fecha ~26/10.
+**MEDIDO (banco, 24/09):** em 90 dias o GPT gerou 11 links de handoff, 1 clique, 0 cadastros, 0 filmes, 0 pagamentos. Os 341 cadastros/30 d vindos do ChatGPT são de CITAÇÃO orgânica, não do nosso GPT.
+**RECOMENDAÇÃO EXECUTADA (Claude):** instruções v3 (seção C de docs/GPT-KINEO-VIDEO-MAKER.md) com os fatos do código e leitura de getKineoFacts antes de responder preço/motor/trial/Empresas; red-team de 8 conversas simuladas antes de colar. Publicar na loja é aposta barata até 11/12 (e é pré-requisito de migração, se um dia valer). Esforço de crescimento continua nas citações (páginas, llms.txt, diretórios), não no GPT.
+**PENDENTE DO FUNDADOR:** autorizar o Cowork a trocar o acesso para "Loja GPT" depois de colar a v3, reimportar a ação (v1.3.0, agora com getKineoFacts do Codex) e repetir os 3 testes.
