@@ -2511,6 +2511,10 @@ export default function GenerateClient({
   // pessoa; o aviso de encaixe (409) recusava a escolha do próprio produto e oferecia Seedance (15-25 cr) a quem tem 10.
   // Vale só para AQUELE despacho: é consumida antes do laço do fast e nunca passa para o próximo clique.
   const autostartFitOverrideRef = useRef(false)
+  // KINEO-AVISO-KEEP-PRIMEIRO-2026-09-24 — decisão do fundador ("1 troca"): quando o saldo não paga o motor sugerido
+  // (trial de 10 contra Seedance de 15-25), o botão principal do aviso é "Manter Kineo 1" — o único que entrega o
+  // filme agora. Com saldo que paga, o Seedance continua principal, como antes.
+  const engineFitKeepFirst = engineFit !== null && typeof credits === 'number' && credits < engineFit.suggestedCredits
   const engineFitSwitchRef = useRef(false)
   // KINEO-ENGINE-FIT-UX-2026-09-09 — medido 19:20/19:24 BRT: o fundador viu a caixa
   // (engine_fit_box_shown) e NÃO clicou em nenhum botão (0 switched/kept). A caixa
@@ -9953,7 +9957,7 @@ export default function GenerateClient({
           })
           setError(null)
           setPhase('idle')
-          void trackEvent('engine_fit_box_shown', { suggested_credits: typeof ef.suggestedCredits === 'number' ? ef.suggestedCredits : null })
+          void trackEvent('engine_fit_box_shown', { suggested_credits: typeof ef.suggestedCredits === 'number' ? ef.suggestedCredits : null, keep_first: typeof credits === 'number' && typeof ef.suggestedCredits === 'number' && credits < ef.suggestedCredits })
           return
         }
         if (res.status === 402) {
@@ -13667,7 +13671,9 @@ export default function GenerateClient({
                 setMode('cinematic_ai')
                 setAiEngine('seedance')
               }}
-              style={{ background: '#2997ff', color: '#000', fontWeight: 800, borderRadius: 999, padding: '8px 14px', border: 0 }}
+              style={engineFitKeepFirst
+                ? { order: 2, background: 'transparent', color: '#e5efff', fontWeight: 700, borderRadius: 999, padding: '8px 14px', border: '1px solid rgba(255,255,255,.25)' }
+                : { background: '#2997ff', color: '#000', fontWeight: 800, borderRadius: 999, padding: '8px 14px', border: 0 }}
             >
               Switch to {engineFit.suggestedLabel} ({engineFit.suggestedCredits} credits)
             </button>
@@ -13680,9 +13686,11 @@ export default function GenerateClient({
                 engineFitOverrideRef.current = true
                 void handleGenerate()
               }}
-              style={{ background: 'transparent', color: '#e5efff', fontWeight: 700, borderRadius: 999, padding: '8px 14px', border: '1px solid rgba(255,255,255,.25)' }}
+              style={engineFitKeepFirst
+                ? { order: 1, background: '#2997ff', color: '#000', fontWeight: 800, borderRadius: 999, padding: '8px 14px', border: 0 }
+                : { background: 'transparent', color: '#e5efff', fontWeight: 700, borderRadius: 999, padding: '8px 14px', border: '1px solid rgba(255,255,255,.25)' }}
             >
-              Keep Kineo 1 anyway
+              {engineFitKeepFirst ? 'Make it with Kineo 1 now' : 'Keep Kineo 1 anyway'}
             </button>
           </div>
         </div>

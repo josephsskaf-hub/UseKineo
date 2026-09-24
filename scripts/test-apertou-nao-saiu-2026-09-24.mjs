@@ -42,6 +42,11 @@ checa('4a. trial_spent exige saldo <= 0', /trialActive === true && trialUi\?\.ph
 checa('4b. trial ativo com saldo e motor de IA vê a frase do motor que pede plano (creator = Seedance, studio = premium), nunca "gastou tudo"', /const trialEngineShortfall: 'creator' \| 'studio' \| null =[\s\S]{0,400}trialBalance > 0 && mode !== 'fast' && mode !== 'creator'\n\s*\? \(aiEngine === 'seedance' \? 'creator' : 'studio'\)/.test(gc) && /const resolvedReason = trialReasonHere \?\? trialEngineShortfall \?\? reason/.test(gc))
 checa('4c. conta paga nunca cai nessas frases de trial (paidAccount segue excluindo)', /reason !== 'credits' \|\| !trialGranted \|\| paidAccount/.test(gc) && /trialGranted && !paidAccount &&/.test(gc))
 
+// ── 6. decisão do fundador "1 troca" (24/09): saldo que não paga o sugerido → "Manter Kineo 1" é o principal ─────
+checa('6a. engineFitKeepFirst = aviso aberto e saldo < créditos sugeridos (sem saldo conhecido, nada muda)', /const engineFitKeepFirst = engineFit !== null && typeof credits === 'number' && credits < engineFit\.suggestedCredits/.test(gc))
+checa('6b. com keepFirst o Keep ganha o estilo principal e vem primeiro; o Switch vira secundário e depois', /style=\{engineFitKeepFirst\n\s*\? \{ order: 2, background: 'transparent'/.test(gc) && /style=\{engineFitKeepFirst\n\s*\? \{ order: 1, background: '#2997ff'/.test(gc) && /\{engineFitKeepFirst \? 'Make it with Kineo 1 now' : 'Keep Kineo 1 anyway'\}/.test(gc))
+checa('6c. a impressão do aviso carrega keep_first (o efeito se mede pela metadata)', /trackEvent\('engine_fit_box_shown', \{ suggested_credits: [^\n]*keep_first: typeof credits === 'number'/.test(gc))
+
 // ── 5. nada disto toca a trava 8.2 ─────────────────────────────────────────────────────────────
 checa('5. a rota do Kineo 1 continua com o aviso intacto (o conserto é no chamador, não no portão)', /engineFit\.verdict === 'stock_cannot_tell' && body\.engineFitOverride !== true/.test(route) && /if \(body\.engineFitOverride === true && engineFit\.verdict === 'stock_cannot_tell'\) \{/.test(route))
 
