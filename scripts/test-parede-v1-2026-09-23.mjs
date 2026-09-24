@@ -133,7 +133,7 @@ const iDfyMount = GC.indexOf('<DfyOfferCard')
 const iGenBtn = GC.indexOf('ref={optionsGenerateBtnRef}')
 check('(7g) o cartão vem ANTES do botão Generate da fase options e só com prompt >= 20',
   iDfyMount > -1 && iGenBtn > -1 && iDfyMount < iGenBtn && /prompt\.trim\(\)\.length >= 20 && \(\n\s+<DfyOfferCard/.test(GC))
-check('(7h) com DFY_PAYMENT_LINK_URL vazio o cartão está desligado', /export const DFY_PAYMENT_LINK_URL = ''/.test(norm('lib/growth/dfyOffer.ts')))
+check('(7h) o interruptor DFY_PAYMENT_LINK_URL está LIGADO com URL do buy.stripe.com (24/09) e o cartão só renderiza sob isDfyOfferLive()', /export const DFY_PAYMENT_LINK_URL = 'https:\/\/buy\.stripe\.com\/[A-Za-z0-9]+'/.test(norm('lib/growth/dfyOffer.ts')) && /isDfyOfferLive\(\)/.test(DFY))
 
 // ── (8) /checkout/success oferece resume=wall_v1 ────────────────────────────
 check('(8a) WALL_V1_RESUME_PATH é /studio/create?resume=wall_v1', /export const WALL_V1_RESUME_PATH = '\/studio\/create\?resume=wall_v1'/.test(WALL))

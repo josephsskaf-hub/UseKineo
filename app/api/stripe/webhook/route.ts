@@ -24,7 +24,7 @@ import { readBulkCheckoutTruthVersion } from '@/lib/growth/bulkCheckoutTruth'
 // Payment Link, sem SKU nesta rota; o valor vem do módulo puro que desenha o
 // cartão do Studio, para que o preço que a tela mostra e o que o webhook
 // reconhece sejam o MESMO número.
-import { DFY_PRICE_USD_MINOR } from '@/lib/growth/dfyOffer'
+import { DFY_PAYMENT_LINK_ID, DFY_PRICE_USD_MINOR } from '@/lib/growth/dfyOffer'
 // KINEO-PILOT-99-2026-07-26 — o nome do plano e o cálculo do prazo são os MESMOS
 // que o cron lê. Se divergirem, o piloto ou nunca expira ou nunca gera.
 import { AUTOPILOT_PILOT_PLAN, autopilotPilotExpiresAt } from '@/lib/autopilot/config'
@@ -847,7 +847,19 @@ async function recordPaymentSuccess(
 // entitlementPending): não há entitlement para reter. Nunca lança: um erro
 // aqui não pode devolver 500 à Stripe, senão ela reenvia um evento que não
 // tem nada a fazer.
+// KINEO-EMPRESAS-DFY-PLINK-2026-09-24 — o id do Payment Link é a chave PRIMEIRA:
+// a conta Stripe tem "Adaptive Pricing" ligado (relatório do Cowork, 23/09), então
+// um comprador fora dos EUA pode pagar em moeda local (amount_total ≠ 10000,
+// currency ≠ usd), e a metadata do link ainda não foi vista num evento real.
+// `session.payment_link` chega sempre (string ou objeto expandido).
+function sessionPaymentLinkId(session: Pick<Stripe.Checkout.Session, 'payment_link'>): string | null {
+  const link = session.payment_link
+  if (typeof link === 'string') return link
+  return link && typeof link === 'object' && typeof link.id === 'string' ? link.id : null
+}
+
 function isDfyOrderSession(session: Stripe.Checkout.Session): boolean {
+  if (sessionPaymentLinkId(session) === DFY_PAYMENT_LINK_ID) return true
   if (session.metadata?.kind === 'dfy') return true
   return (
     session.amount_total === DFY_PRICE_USD_MINOR &&

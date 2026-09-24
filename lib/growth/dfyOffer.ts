@@ -24,8 +24,22 @@
 // reais. Aqui a palavra "restaurant" sozinha NÃO basta: precisa de intenção de
 // anúncio, de posse ("my/our …") ou de chamada para ação.
 
-/** Payment Link da Stripe (buy.stripe.com/…). Vazio até o fundador criar. */
-export const DFY_PAYMENT_LINK_URL = ''
+/**
+ * Payment Link da Stripe, criado pelo Cowork em 23/09/2026 (modo live, conta
+ * acct_1NLBTkIah5dxzSBf; relatório em docs/KINEO-EMPRESAS-STRIPE-2026-09-23.md).
+ * Vazio = cartão desligado. LIGADO em 24/09/2026 (fundador: "vamos dar sequência").
+ */
+export const DFY_PAYMENT_LINK_URL = 'https://buy.stripe.com/8x25kD9wVePZfqHdJcgjC0w'
+/**
+ * ID do link, produto e preço na Stripe. O webhook reconhece o pedido por
+ * `session.payment_link === DFY_PAYMENT_LINK_ID` ALÉM de `metadata.kind` e do
+ * valor: a conta tem "Adaptive Pricing" ligado, então um comprador fora dos EUA
+ * pode pagar em moeda local (amount_total ≠ 10000, currency ≠ usd) e a metadata
+ * do link não foi confirmada no evento real. O id do link chega sempre.
+ */
+export const DFY_PAYMENT_LINK_ID = 'plink_1UJ23XIah5dxzSBfyfKlmOGV'
+export const DFY_STRIPE_PRODUCT_ID = 'prod_VJfH6iSD4drTaC'
+export const DFY_STRIPE_PRICE_ID = 'price_1UJ1wlIah5dxzSBfexZXeL3D'
 
 /** US$100,00 em centavos. Nunca 9900: colide com Starter anual e piloto. */
 export const DFY_PRICE_USD_MINOR = 10000
