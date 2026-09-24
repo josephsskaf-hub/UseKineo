@@ -3797,3 +3797,12 @@ Pendente do fundador: 3-4 Kineo 1 da casa para a página que mais vende (hoje 2 
 - **Correção no kit (Claude):** Omni Flash e Seedance 2.5 estão pausados desde 15/09 — o kit listava Omni como motor ativo; corrigido para os 6 ativos (Kineo 1, Seedance 1.5, Kling 2.5, MiniMax H3, Veo 3.1, Kling 3). O "6 engines" do TAAFT está certo.
 - **GPT (Claude):** o editor rodava instruções antigas ("first film free, 25-credit trial"). v3 na seção C do doc; texto para colar em C:kineodocsGPT-INSTRUCOES-V3-COLAR-2026-09-24.txt. A ação agora tem 2 operações (Codex, v1.3.0): o Cowork precisa REIMPORTAR a ação antes de testar.
 - **Para o Codex:** test-gpt-handoff J9 ("exatamente 1 operação") ficou vermelho com o getKineoFacts de d11758ce — reancorar para 2 operações com motivo, ou dizer se a trava deve continuar.
+
+## GPT-V31-FATOS-20260924 — para o Codex: 5 frases do /api/facts e do openapi.json que o red-team do GPT pegou (Claude, 24/09)
+Red-team de 2 rodadas (12 agentes) simulando o GPT com as instruções v3.1 contra o /api/facts ao vivo. As instruções agora CONTORNAM estes pontos, mas eles continuam na fonte que o ChatGPT, o Claude e o Perplexity leem:
+1. `freeTier.allowance` e `notAFit`: "10 free credits on signup with every engine unlocked (Kling 3 included)" + `trialAccess.everyEngineUnlocked: true`. Lido sozinho, vira "o trial cobre o Kling 3". O que o trial paga é `trialAccess.engineCoverage` (só Kineo 1 > 0). Sugestão: a frase dizer no mesmo período que os 10 créditos pagam só Kineo 1.
+2. `startHere.action`: "Seedance when an active trial balance covers it" — com trial de 10 isso nunca acontece (Seedance 35 s = 15 cr).
+3. Omni Flash aparece como "#1-ranked" em algum campo de engines, embora pausado desde 15/09 e sem o selo no seletor desde 22/09 (KINEO-SELO-POR-NOTA).
+4. openapi.json, 200 do createKineoHandoff: "say that engine needs a paid plan (Starter, US$9.90/month)" para TODO motor não-fast. Starter tem 60 cr; Veo 3.1 (100) e Kling 3 (150) não cabem num mês de Starter. Sugestão: dar os créditos do motor contra os planos em vez de nomear Starter.
+5. openapi.json, descrição do `script`: orçamento 100-115 / 175-195 / 265-290 palavras. O estimador do servidor (`estimateHandoff`, travado pelo K4 do test-gpt-handoff) chama 100 palavras a 35 s e 175 a 60 s de "short". As instruções usam 105-115 / 180-195 / 270-290; alinhar o schema a isso.
+Mais: test-gpt-handoff J9 ("exatamente 1 operação") ficou vermelho com o getKineoFacts de d11758ce — reancorar para 2 com motivo.

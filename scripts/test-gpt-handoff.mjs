@@ -772,7 +772,10 @@ console.log('\n(K) docs/GPT-KINEO-VIDEO-MAKER.md amarrado ao servidor e ao schem
   // (K7) TRIAL. Todo "25" citado como crédito de trial === TRIAL_CREDIT_CAP.
   const trialHits = [...flat.matchAll(/(\d+)-credit trial|(\d+) trial credits|trial de (\d+) cr[ée]ditos|Free trial: (\d+) credits|trial of (\d+) credits/gi)].map((m) => Number(m.slice(1).find(Boolean)))
   ok(trialHits.length >= 5 && trialHits.every((n) => n === TRIAL_CAP), `(K7) todo crédito de trial citado no .md (${uniq(trialHits)}) === TRIAL_CREDIT_CAP (${TRIAL_CAP}) — ${trialHits.length} menções`)
-  ok(new RegExp(`Free trial: ${TRIAL_CAP} credits, no card required\\. Enough for one ${REF_SEC}-second`).test(instructions), `(K7) o Step "Pricing" diz o trial certo e o que ele compra (um filme de ${REF_SEC}s)`)
+  // KINEO-GPT-INSTRUCOES-V3-2026-09-24 — reancorado com motivo: "one 60-second" era o trial de 25 (um Seedance). Com o
+  // trial de 10 o saldo paga DOIS Kineo 1 de 60 s (llms.txt: "Kineo 1 (2 full reference videos)"); a trava aceita one|two
+  // e segue exigindo o TRIAL_CAP lido da fonte, "no card required" e a duração de referência.
+  ok(new RegExp(`Free trial: ${TRIAL_CAP} credits, no card required\\. Enough for (?:one|two) ${REF_SEC}-second`).test(instructions), `(K7) o Step "Pricing" diz o trial certo e o que ele compra (filme(s) de ${REF_SEC}s)`)
 
   // (K8) CUSTOS. Os créditos por motor a 60s (cabeçalho "Fatos conferidos")
   // e os custos do Seedance por duração (15/25/38 em G) vêm de engineCost.ts.
