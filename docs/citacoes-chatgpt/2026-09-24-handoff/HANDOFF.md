@@ -1,5 +1,13 @@
 # GPT-LOJA-20260924 — recusas do link de assistente
 
+## Aceite visual e integração pelo Board — 24/09/2026 21:21 UTC
+
+**EVIDÊNCIA DE APROVAÇÃO:** fundador respondeu “aprovado” nesta tarefa ao preview das duas recusas, desktop/mobile, SHA256 `559BB7F9DB982AEAECBD21C630E0C2E7873FEC8FB567F4040BF503EABFAD7449`. Gate humano satisfeito; bloqueio do navegador do agente não foi contornado e não equivale a inspeção visual automatizada.
+
+**IMPLEMENTADO / LOCAL:** Board integrou `82bd8ec410d206ead2b8deadca2bf1889f55190a` em sua worktree `C:/kineo-wt/gpt-5h`, preservando os registros de fechamento e reservas. Código e testes idênticos ao candidato comparado à base `ce50b9c0d372118465e6243a5a14b29c55d725ae`; diferenças adicionais apenas documentais. Comparação integral herdada: 613 testes na base, 614 no candidato, mesmos 129 vermelhos preexistentes. Não declarar suíte integral verde.
+
+**PRÓXIMA AÇÃO:** fila única e batch guardado com candidato/base imutáveis; execução pelo fundador. Aprovação e enfileiramento não comprovam publicação no Git, deploy READY, exposição ou receita. Recorte 2 permanece pendente, sem alteração.
+
 **LOCAL / TESTADO LOCALMENTE — 24/09/2026, corte técnico 21:18 UTC.** Base `ce50b9c0`. Reserva nominal do Board nesta tarefa; fila e publicação continuam com o Board. Sem deploy, exposição ou pagamento comprovados por esta entrega.
 
 ## Contrato e escopo
