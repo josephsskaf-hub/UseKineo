@@ -50,10 +50,10 @@ export const HOME_PRESENTATION_CSS = `
 @media(max-width:400px) { .klp .nav-in { padding-inline:12px; } }
 @media(max-width:350px) { .klp .nav-right > .btn { padding:8px !important; font-size:11px !important; } .klp .nav-right .kineo-interface-language { max-width:80px !important; } }
 
-/* Approved 22 Sep: original blue actions, mint confined to the brand mark. */
+/* Approved 24 Sep: original blue actions and the new Explore lightning mark. */
 .klp .wrap,.klp .ew-wrap { max-width:1680px; }
 .klp .plan { min-width:0; overflow-wrap:anywhere; }
-.klp .logo .mk { border-color:rgba(171,237,201,.32); box-shadow:0 0 16px rgba(171,237,201,.12); }
+.klp .logo .mk { background:none; border:0; box-shadow:none; color:var(--blue); font-size:30px; line-height:1; }
 .klp .home-intro { position:relative; z-index:1; margin-bottom:26px; }
 .klp .home-title { max-width:780px; font-size:clamp(28px,3.1vw,46px); line-height:1.17; }
 .klp .home-eyebrow { color:var(--blue); font-size:11px; letter-spacing:.16em; text-transform:uppercase; margin-bottom:10px; }

@@ -86,9 +86,9 @@ const Design = load('app/examples/design/page.tsx').default
 const chosen = load('lib/ui/examplesSelectionSep24.ts').EXAMPLES_SELECTION_SEP24
 const homeFilms = load('lib/ui/homeFeaturedFilms.ts').HOME_FEATURED_FILMS
 const homePlaylists = load('lib/ui/homeFeaturedFilms.ts').HOME_FEATURED_PLAYLISTS
-ok(homePlaylists.map(list=>list.length).join(',') === '2,2,2,2', 'two films in each home card')
-ok(new Set(homePlaylists.flat().map(v=>v.id)).size === 8, 'eight home films without repetition across cards')
-ok(['cinematic_ai','cinematic_kling','cinematic_veo','cinematic_hollywood'].every(engine=>homePlaylists.flat().some(v=>v.engine===engine)), 'all four earlier home engines return with their actual badges')
+ok(homePlaylists.map(list=>list.length).join(',') === '2,1,2,2', 'clean-source rotation; captioned legacy presenter omitted')
+ok(new Set(homePlaylists.flat().map(v=>v.id)).size === 7, 'seven clean home films without repetition across cards')
+ok(['cinematic_ai','cinematic_kling','cinematic_veo'].every(engine=>homePlaylists.flat().some(v=>v.engine===engine)), 'recovered earlier home engines retain their actual attribution')
 ok(homePlaylists.flat().every(v=>v.href==='/studio'), 'rotating films retain safe Studio entry')
 for (const video of homePlaylists.flat()) {
   const info = JSON.parse(execFileSync('ffprobe',['-v','error','-select_streams','v:0','-show_entries','stream=width,height','-show_entries','format=duration','-of','json',path.join('public',video.videoUrl)],{encoding:'utf8'}))

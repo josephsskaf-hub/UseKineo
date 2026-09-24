@@ -53,8 +53,8 @@ function FeaturedMedia({ video, paused, nextVideo, onEnded }: { video: WallVideo
   </span>
 }
 
-function FeaturedCard({ videos, lead, autoplay, paused, onOpen }: {
-  videos: WallVideo[]; lead: boolean; autoplay: boolean; paused: boolean; onOpen: (video: WallVideo, button: HTMLButtonElement) => void
+function FeaturedCard({ videos, lead, autoplay, paused, onOpen, clean }: {
+  videos: WallVideo[]; lead: boolean; autoplay: boolean; paused: boolean; clean?: boolean; onOpen: (video: WallVideo, button: HTMLButtonElement) => void
 }) {
   const [index, setIndex] = useState(0)
   const video = videos[index % videos.length]
@@ -65,11 +65,11 @@ function FeaturedCard({ videos, lead, autoplay, paused, onOpen }: {
       nextVideo={rotates ? videos[(index + 1) % videos.length] : undefined}
       onEnded={rotates ? () => setIndex(current => (current + 1) % videos.length) : undefined} />
       : <img src={video.posterUrl} alt="" loading="eager" className={styles.featurePoster} />}
-    <span className={styles.featureShade} />
-    {rotates && <span className={styles.filmSteps} aria-hidden="true">{videos.map((item, step) => <span key={item.id} data-active={step === index} />)}</span>}
-    <span className={styles.featureCopy}><span className={styles.featureBadge}>{video.badge}</span><strong>{video.title}</strong>
+    {!clean && <span className={styles.featureShade} />}
+    {!clean && rotates && <span className={styles.filmSteps} aria-hidden="true">{videos.map((item, step) => <span key={item.id} data-active={step === index} />)}</span>}
+    {!clean && <span className={styles.featureCopy}><span className={styles.featureBadge}>{video.badge}</span><strong>{video.title}</strong>
       <span className={styles.watch}><span aria-hidden="true">▶</span> Watch preview</span>
-    </span>
+    </span>}
   </button>
 }
 
@@ -128,7 +128,7 @@ export default function ExamplesGallery({ videos, startPaused = false, separateF
       <div className={`${styles.featured}${featuredCount === 4 ? ` ${styles.featuredFour}` : ''}`}>
         {videos.slice(0, featuredCount).map((video, index) => <FeaturedCard key={video.id}
           videos={featuredPlaylists?.[index]?.length ? featuredPlaylists[index] : [video]} lead={index === 0}
-          autoplay={heroOnly || index < 2} paused={paused || selected !== null} onOpen={open} />)}
+          autoplay={heroOnly || index < 2} paused={paused || selected !== null} onOpen={open} clean={heroOnly} />)}
       </div>
     </section>}
     {!heroOnly && <section className={styles.collection} aria-labelledby="examples-collection-heading">

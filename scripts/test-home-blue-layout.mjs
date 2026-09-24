@@ -15,6 +15,6 @@ for(const signedIn of [false,true])for(const source of [null,'chatgpt','taaft'])
  const creation=html.match(/<div class="home-create-grid">([\s\S]*?)<\/section>/)?.[1]??''
  for(const href of ['/studio','/images','/audio'])check(creation.includes(`href="${href}"`),'creation tool keeps real destination '+href)
  check(html.indexOf('class="home-create"')<html.indexOf('class="home-proof"'),'creation precedes grouped proof')
- check(html.includes('fill="#ABEDC9"'),'brand mark uses approved mint')
+ check(html.includes('class="mk" aria-hidden="true">ϟ</span>'),'brand mark uses the approved Explore lightning')
 }
 console.log(`Home blue: ${checks} rendered session, referral and language checks passed; offline.`)

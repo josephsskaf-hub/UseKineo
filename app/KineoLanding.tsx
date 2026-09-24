@@ -871,11 +871,7 @@ export default function KineoLanding({
       <div className="progress" aria-hidden="true" />
       <nav aria-label="Main"><div className="wrap nav-in">
         <Link href="/" className="logo">
-          <div className="mk">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="#ABEDC9" stroke="#ABEDC9" strokeWidth="0.5" strokeLinejoin="round" />
-            </svg>
-          </div>
+          <span className="mk" aria-hidden="true">ϟ</span>
           Kineo
         </Link>
         <div className="nav-links">
