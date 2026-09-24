@@ -58,7 +58,7 @@ alter table public.ads_orders enable row level security;
 create or replace function public.ads_orders_touch_updated_at()
 returns trigger language plpgsql
 set search_path = public
-as $
+as $$
 begin
   new.updated_at = now();
   return new;
