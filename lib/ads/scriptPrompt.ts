@@ -123,8 +123,9 @@ export function diagnoseAdsScriptOutput(raw: string, model: AdsModel, brief: Ads
     const clean = beats.map((b) => (typeof b === 'string' ? b.replace(/\s+/g, ' ').trim() : ''))
     const script = clean.join('\n\n')
     const words = countWords(script)
-    if (words < adsScriptMinWords(model)) why.add(`Your versions are too short (${words} words). Each version must have ${minW} to ${maxW} words: make every beat longer with more true detail from the brief.`)
-    if (words > Math.ceil(maxW * 1.25)) why.add(`Your versions are too long (${words} words). Each version must have ${minW} to ${maxW} words.`)
+    // Teste da padaria em produção: pedindo "100 a 115" o gpt-4o entregava ~80. A 2a tentativa pede ACIMA do teto e diz quanto faltou.
+    if (words < adsScriptMinWords(model)) why.add(`Your versions are too short (${words} words; about ${Math.max(0, maxW - words)} missing). Rewrite each version with ${maxW + 5} to ${Math.round(maxW * 1.15)} words: add one or two more true sentences to EVERY beat, using the brief facts.`)
+    if (words > Math.ceil(maxW * 1.25)) why.add(`Your versions are too long (${words} words). Rewrite each version with ${minW} to ${maxW} words: shorten every beat a little.`)
     const inv = inventedNumbers(script, brief)
     if (inv.length) why.add(`Remove these numbers that are not in the brief: ${[...new Set(inv)].join(', ')}.`)
     if (!contactOk(clean[clean.length - 1] ?? '', brief.contact)) why.add(`The last beat must say the contact in full: ${brief.contact}`)

@@ -75,7 +75,9 @@ export async function POST(req: NextRequest) {
     // KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — segunda tentativa com o MOTIVO (teste da padaria: 0 de 6 versões
     // passavam na primeira). Mesma chamada, mesmo validador; conta como um pedido no teto diário.
     let attempts = 1
-    if (!versions) {
+    // Até 2 correções (3 chamadas no total, ~25 s): o tamanho varia de uma chamada para outra (teste da padaria), e cada
+    // correção leva o motivo da recusa anterior. Para no primeiro que passar ou a 45 s do início (teto da função: 60 s).
+    for (let repair = 0; !versions && repair < 2 && Date.now() - started < 45_000; repair++) {
       const fix = diagnoseAdsScriptOutput(raw, model, brief.value)
       const retry = await openai.chat.completions.create(
         {
@@ -95,7 +97,7 @@ export async function POST(req: NextRequest) {
       )
       raw = retry.choices[0]?.message?.content ?? ''
       versions = parseAdsScriptOutput(raw, model, brief.value)
-      attempts = 2
+      attempts += 1
     }
 
     await writeServerEvent({

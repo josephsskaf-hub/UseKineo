@@ -37,8 +37,15 @@ export const ONE_TIME_USD_MINOR_OCCUPIED: readonly number[] = [
 export const KINEO1_60S_CREDITS = 5
 export const KINEO1_35S_CREDITS = 3
 
+// KINEO-STUDIO-ADS-LIGADO-2026-09-24 — fundador 24/09 ~20h BRT, depois do teste da padaria: "pode ligar". A conta da Vercel
+// que o Claude usa não tem permissão para criar env de produção (403), então o interruptor passa a morar no CÓDIGO, como
+// CARD_TRIAL_LIVE: true = aberto. Desligar de emergência sem mexer no código: NEXT_PUBLIC_ADS_PASS_LIVE=0 na Vercel + deploy.
+export const ADS_PASS_LIVE_IN_CODE = true
+
 export function adsPassLive(): boolean {
-  return process.env.NEXT_PUBLIC_ADS_PASS_LIVE === '1'
+  const env = process.env.NEXT_PUBLIC_ADS_PASS_LIVE
+  if (env === '0') return false
+  return env === '1' || ADS_PASS_LIVE_IN_CODE
 }
 
 /** "US$19.90" — sem ".00" fantasma, sem inventar arredondamento. */

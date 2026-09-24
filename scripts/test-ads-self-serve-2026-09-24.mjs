@@ -166,6 +166,10 @@ const sr2 = rd('app/api/ads/script/route.ts')
 ok(/const fix = diagnoseAdsScriptOutput\(raw, model, brief\.value\)/.test(sr2) && /model: 'gpt-4o',/.test(sr2) && /None of these versions can be used\. Fix all of this/.test(sr2) && /export const maxDuration = 60/.test(sr2),
   '6f. a rota tenta de novo com o MOTIVO da recusa (gpt-4o), dentro de 60 s')
 
+ok(/for \(let repair = 0; !versions && repair < 2 && Date\.now\(\) - started < 45_000; repair\+\+\) \{/.test(sr2) && /attempts \+= 1/.test(sr2), '6g. até 2 correções (3 chamadas), cada uma com o motivo da anterior, parando a 45 s (teste: 8 de 8 casos em até 14 s)')
+const OF = carrega('lib/ads/offer')
+ok(OF.ADS_PASS_LIVE_IN_CODE === true && /if \(env === '0'\) return false/.test(rd('lib/ads/offer.ts')), '6h. Studio Ads LIGADO no código (fundador: "pode ligar"); env "0" desliga de emergência')
+
 // ── 5. migration aplicada guardada ───────────────────────────────────────────────────────────────
 const mig = rd('migrations_pending/2026-09-24_studio_ads_render.sql')
 ok(/add column if not exists generation_id uuid/.test(mig) && /add column if not exists render_id text/.test(mig) && /generation_id: generationId/.test(post) && /update\(\{ render_id: renderId \}\)/.test(post),

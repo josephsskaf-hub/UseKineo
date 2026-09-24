@@ -34,7 +34,9 @@ check('a lista de ocupados bate com o código de cobrança (bulk 1900/3500/4900/
 check('preço por crédito do passe (US$0,3317) fica ACIMA do plano mais barato (Starter US$9,90/60 = 0,165) — passe nunca canibaliza assinatura', (offer.ADS_PASS_USD_MINOR / 100) / offer.ADS_PASS_CREDITS > 990 / 100 / 60)
 check('60 créditos cobrem 20 anúncios de 35 s ou 12 de 60 s no Kineo 1 (5 cr/60 s, 3 cr/35 s de engineCost)', offer.adsCoveredByPass(35) === 20 && offer.adsCoveredByPass(60) === 12 && /return isPaidUser \? 5 : 0/.test(rd('lib/credits/engineCost.ts')))
 check('rótulo "US$19.90" (nunca "US$19" nem "19.9")', offer.adsPassPriceLabel() === 'US$19.90' && offer.adsPassPriceLabel(3500) === 'US$35')
-check('interruptor: só NEXT_PUBLIC_ADS_PASS_LIVE=1 liga; ausente/"true"/"0" = desligado', roda(offerSrc, {}).adsPassLive() === false && roda(offerSrc, { NEXT_PUBLIC_ADS_PASS_LIVE: 'true' }).adsPassLive() === false && roda(offerSrc, { NEXT_PUBLIC_ADS_PASS_LIVE: '1' }).adsPassLive() === true)
+// Reancorado com motivo (fundador 24/09 noite, "pode ligar"): o interruptor mora no código (a env de produção não pôde ser
+// criada pela conta do Claude); a env "0" continua sendo o desligamento de emergência.
+check('interruptor: ligado no código (ADS_PASS_LIVE_IN_CODE); env "0" desliga de emergência; "1" liga', offer.ADS_PASS_LIVE_IN_CODE === true && roda(offerSrc, {}).adsPassLive() === true && roda(offerSrc, { NEXT_PUBLIC_ADS_PASS_LIVE: '0' }).adsPassLive() === false && roda(offerSrc, { NEXT_PUBLIC_ADS_PASS_LIVE: '1' }).adsPassLive() === true)
 check('adsAccessUntil soma dias inteiros em UTC', offer.adsAccessUntil(new Date('2026-09-25T00:00:00Z')).toISOString() === '2027-09-25T00:00:00.000Z')
 const copy = offer.adsPassCopy()
 check('copy do passe é executável e honesta: diz o que NÃO inclui; nunca "hundreds of formats"/"instant"/"no human"/"unlimited"', copy.excludes.length >= 2 && copy.includes.some((s) => /human editor reviews your first ad within 24 hours/.test(s)) && !/hundreds of formats|instant|no human|unlimited/i.test(JSON.stringify(copy)))
