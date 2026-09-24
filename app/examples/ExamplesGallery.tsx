@@ -116,7 +116,7 @@ export default function ExamplesGallery({ videos, startPaused = false }: { video
       {filtered.length ? <div className={styles.grid}>
         {filtered.map(video => <button type="button" className={styles.card} key={video.id} onClick={event => open(video, event.currentTarget)} aria-label={`Watch preview: ${video.title}`}>
           <span className={styles.poster}>
-            <img src={showcasePoster(video)} alt="" loading="lazy" decoding="async" />
+            <img src={video.posterUrl ?? showcasePoster(video)} alt="" loading="lazy" decoding="async" />
             <span className={styles.badge}>{video.badge}</span><span className={styles.play} aria-hidden="true">▶</span>
           </span>
           <span className={styles.cardTitle}>{video.title}</span><span className={styles.cardHint}>Watch preview <span aria-hidden="true">↗</span></span>

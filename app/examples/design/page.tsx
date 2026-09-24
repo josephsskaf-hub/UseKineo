@@ -23,6 +23,8 @@ const posters: Record<string, string> = {
   '216cbed2-b95f-47e7-98bc-e4c3fc3010a9':'presenter',
   '98a5ac54-3c28-4a8f-8ba2-4071bc0388c4':'servers',
   'c4e4fbab-0978-4daa-9fcf-119096370210':'rome',
+  '4b12925e-16e6-4b56-af5a-7047f9ae7a28':'maracaibo',
+  '94d551a3-fe7a-4903-8c2b-f252bed39c4c':'lottery',
 }
 
 // Review surface only: never publicly enabled on the production deployment.
