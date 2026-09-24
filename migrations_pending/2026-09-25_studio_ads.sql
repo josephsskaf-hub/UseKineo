@@ -1,4 +1,8 @@
 -- KINEO-STUDIO-ADS-2026-09-25 — acesso por passe e tabela de pedidos do Studio Ads.
+-- ✅ APLICADA EM PRODUÇÃO em 24/09/2026 ~15h40 BRT (Supabase: migration studio_ads_2026_09_25). Conferido: coluna
+--    timestamptz, ads_orders com RLS e 0 policies, triggers ads_access_client_guard + enforce_profile_client_guard
+--    em profiles; teste desfeito: authenticated deu UPDATE na própria linha e o valor ficou null; servidor gravou.
+--    NÃO reaplicar (é idempotente, mas não há motivo).
 --
 -- ⚠️ APLICAR ANTES DA PRIMEIRA VENDA (bloco 08-10 de 25/09). Até rodar, o SKU `ads_pass` é
 -- INERTE de propósito: o webhook escreve `ads_access_until` no MESMO UPDATE que grava crédito e

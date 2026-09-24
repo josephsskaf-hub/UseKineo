@@ -240,3 +240,4 @@ Workflow de 6 agentes (dinheiro, segurança, contrato, regressão) contra o comm
 - **Mídia:** `%2e%2e` passava no startsWith; agora codificados e barra invertida são recusados, o caminho é normalizado, o id é conferido em `user_footage` do dono e a URL gravada vem do banco. Consentimento exige mídia e zera quando a mídia muda.
 - **Robustez:** corpo que não é objeto = 400; exceção = 500 genérico.
 - **Refutados pela própria revisão:** corrida no PATCH (o UPDATE já filtra `status='draft'`), eventos forjáveis (são só de servidor) e o recompra-zera-prazo (vira real só se houver recompra dentro do ano; anotado para a semana 2: estender a partir da data maior).
+- **Migration APLICADA em produção (24/09 ~15h40 BRT):** coluna, tabela (RLS, 0 policies) e as duas guardas conferidas; teste desfeito provou que o cliente não se dá o passe e o servidor grava. O passe continua sem vender: interruptor desligado, só conta interna.
