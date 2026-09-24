@@ -209,3 +209,22 @@ Consentimento de rosto/voz como fluxo (atestado + evento + 403 no servidor sem a
 9. **E-mail aos 11 leads**: rascunho dia 25, envio dia 26 após 1º render limpo, com o cartão final montado com o nome deles. Aprovar.
 10. **Compra de teste real** às ~20 h (recomendo: dinheiro é a única prova; estorno depois) ou conta interna?
 11. **Clique**: SUBIR-SITE.bat às ~19h30 quando eu avisar "hora de clicar".
+
+---
+
+## 11. Estado em 24/09 ~14h30 BRT (o Claude adiantou o servidor; tudo DESLIGADO por NEXT_PUBLIC_ADS_PASS_LIVE)
+
+**Pronto e testado (guardiões test-ads-fundacao 36 · test-ads-servidor 34, mutantes derrubados):**
+- `lib/ads/{offer,models,access,events,types,orderContract,scriptPrompt,serverAccess}.ts` — preço/créditos/acesso (US$19,90 · 60 cr · 365 d), os 8 modelos em 35/60 s, portão passe > pagante > interna, 25 eventos, contrato do pedido, prompt + validador do roteiro.
+- Checkout `/api/stripe/checkout?pack=ads_pass` (só conta interna enquanto desligado) e webhook Path A (acesso no mesmo UPDATE dos créditos, fail-closed; `ads_access_granted` depois).
+- `/api/ads/orders` (GET/POST/PATCH) e `/api/ads/script` (POST). Contrato abaixo.
+- `migrations_pending/2026-09-25_studio_ads.sql` escrita; aplicação depois da revisão adversarial.
+
+**Contrato para as telas (Codex):**
+- `GET /api/ads/orders` → `{ access: 'pass'|'paying'|'internal'|'none', live: boolean, ready: boolean, orders: AdsOrder[] }` (`ready:false` = tabela ainda não existe; mostrar "abre em breve").
+- `POST /api/ads/orders` body `{ brief?: AdsBrief }` → 201 `{ order }` · 403 `{ reason:'no_access' }` (mandar para /ads com o botão do passe) · 429 rascunhos demais · 503 não pronto.
+- `PATCH /api/ads/orders` body `{ id, brief?, media?, template?, script?, script_angle?, voice?, consent?: true }` → `{ order }`. Erros 400 com `error` em código (`business_required`, `contact_required`, `cta_invalid`, `media_not_owned`, `logo_only_one`, `logo_must_be_image`, `template_invalid`, `consent_must_be_true`…) — a tela traduz o código em frase. `seconds` vem do modelo, não da tela. Mídia: `{ footageId, url, kind:'image'|'video', isLogo, bytes, width?, height?, seconds? }`, sempre da pasta da própria conta (subir por `/api/footage` como hoje).
+- `POST /api/ads/script` body `{ order_id }` (pedido com brief e modelo) → `{ versions: [{ angle:'question'|'number'|'result', beats: string[], script, words }] }` (1 a 3 versões; a que inventar número ou esquecer o contato é descartada) · 502 `no_script` com `hint` · 429 `daily_limit` (20/24 h). A escolhida volta pelo PATCH (`script`, `script_angle`).
+- Tipos: `lib/ads/types.ts`; modelos e batidas para os cards: `ADS_MODELS` em `lib/ads/models.ts` (nome, segmento, duração, entradas mínimas, CTA de exemplo, aviso honesto); copy do passe: `adsPassCopy()` em `lib/ads/offer.ts`. Nada de preço digitado no JSX.
+
+**Render (amanhã, com canário na conta do fundador):** `/api/ads/render` monta no servidor o corpo do Kineo 1 (roteiro verbatim, duração do modelo, `brollScenes[i].userFootageUrl` por batida → mídia por id, cartão final PNG na última cena, `engineFitOverride:true`) e chama a rota do Kineo 1 EM PROCESSO com cabeçalho de serviço, igual ao `finish-orphan-jobs` (app/api/cron/finish-orphan-jobs/route.ts:107-110); o `finish-stranded-renders` monta o filme na rodada seguinte. Nenhuma linha na rota travada (8.2) — só a chamada. Legendas na zona segura e logo persistente (o "vai" ii/iv) entram atrás de `ads_brand_layer` com render de validação.
