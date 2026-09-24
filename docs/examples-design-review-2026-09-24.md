@@ -2,6 +2,8 @@
 
 **AUTORIZAÇÃO DO FUNDADOR (24/09/2026):** após ver os cortes de Tunguska e robô na prévia, Joseph respondeu “ja vi, pode subir ta otimo”. Publicação da página candidata autorizada. A rota de comparação `/examples/design` continua bloqueada em produção; a página pública é `/examples`.
 
+**AJUSTE FINAL DO FUNDADOR:** durante a publicação, solicitou robôs no card horizontal principal e Tunguska à direita, mantendo Lituya Bay no terceiro destaque. Ordem final aplicada antes da integração.
+
 ## Seleção do fundador — atualização de 24/09
 
 **REVISÃO DE TRECHOS / IMPLEMENTADO EM PRÉVIA:** a pedido do fundador, os dois Omni agora usam cortes dos renders originais: Tunguska `18,0–22,5s` (globo, onda de fogo, aproximação do continente) e robô `20,0–25,0s` (robô de pé e colisão). Capas extraídas aos `18,3s` e `22,0s`. Arquivos novos `tunguska-globe` e `robot-collision` em `public/previews/examples-sep24/` e `public/posters/examples-sep24/`. Os dois primeiros destaques reproduzem previews com os mesmos controles de pausa, visibilidade e economia de dados; Lituya permanece idêntico. Consulta de origens limitada aos dois IDs da conta do fundador, sem alteração em banco.

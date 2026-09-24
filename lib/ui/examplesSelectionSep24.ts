@@ -41,10 +41,10 @@ const selectedVideos: readonly WallVideo[] = [
   })),
 ]
 
-// Founder revision: Omni Tunguska leads, with the robot and H3 Lituya beside it.
+// Final founder revision: robots lead, with Omni Tunguska and H3 Lituya beside them.
 const featuredIds = [
-  '1b8e12f9-83e5-411c-8fda-0b277d289934',
   '36a04f7b-65f7-42d9-a2ab-198b5a7f115e',
+  '1b8e12f9-83e5-411c-8fda-0b277d289934',
   '19e317fe-6838-4edc-9fbf-d830d62be140',
 ]
 export const EXAMPLES_SELECTION_SEP24: readonly WallVideo[] = [
