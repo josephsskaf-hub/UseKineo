@@ -1,0 +1,178 @@
+{
+  "en": {
+    "Settings": "Settings",
+    "Appearance": "Appearance",
+    "Choose how Kineo looks on this device.": "Choose how Kineo looks on this device.",
+    "Light": "Light",
+    "Dark": "Dark",
+    "Soft white surfaces.": "Soft white surfaces.",
+    "Deep navy surfaces.": "Deep navy surfaces.",
+    "Your choice is saved automatically on this device.": "Your choice is saved automatically on this device.",
+    "Appearance updated.": "Appearance updated."
+  },
+  "pt": {
+    "Settings": "Configurações",
+    "Appearance": "Aparência",
+    "Choose how Kineo looks on this device.": "Escolha a aparência da Kineo neste dispositivo.",
+    "Light": "Claro",
+    "Dark": "Escuro",
+    "Soft white surfaces.": "Superfícies em branco suave.",
+    "Deep navy surfaces.": "Superfícies em azul-marinho profundo.",
+    "Your choice is saved automatically on this device.": "Sua escolha é salva automaticamente neste dispositivo.",
+    "Appearance updated.": "Aparência atualizada."
+  },
+  "es": {
+    "Settings": "Configuración",
+    "Appearance": "Apariencia",
+    "Choose how Kineo looks on this device.": "Elige cómo se ve Kineo en este dispositivo.",
+    "Light": "Claro",
+    "Dark": "Oscuro",
+    "Soft white surfaces.": "Superficies en blanco suave.",
+    "Deep navy surfaces.": "Superficies en azul marino intenso.",
+    "Your choice is saved automatically on this device.": "Tu elección se guarda automáticamente en este dispositivo.",
+    "Appearance updated.": "Apariencia actualizada."
+  },
+  "fr": {
+    "Settings": "Paramètres",
+    "Appearance": "Apparence",
+    "Choose how Kineo looks on this device.": "Choisissez l’apparence de Kineo sur cet appareil.",
+    "Light": "Clair",
+    "Dark": "Sombre",
+    "Soft white surfaces.": "Surfaces d’un blanc doux.",
+    "Deep navy surfaces.": "Surfaces d’un bleu marine profond.",
+    "Your choice is saved automatically on this device.": "Votre choix est enregistré automatiquement sur cet appareil.",
+    "Appearance updated.": "Apparence mise à jour."
+  },
+  "de": {
+    "Settings": "Einstellungen",
+    "Appearance": "Erscheinungsbild",
+    "Choose how Kineo looks on this device.": "Wähle, wie Kineo auf diesem Gerät aussieht.",
+    "Light": "Hell",
+    "Dark": "Dunkel",
+    "Soft white surfaces.": "Oberflächen in sanftem Weiß.",
+    "Deep navy surfaces.": "Oberflächen in tiefem Marineblau.",
+    "Your choice is saved automatically on this device.": "Deine Auswahl wird automatisch auf diesem Gerät gespeichert.",
+    "Appearance updated.": "Erscheinungsbild aktualisiert."
+  },
+  "it": {
+    "Settings": "Impostazioni",
+    "Appearance": "Aspetto",
+    "Choose how Kineo looks on this device.": "Scegli l’aspetto di Kineo su questo dispositivo.",
+    "Light": "Chiaro",
+    "Dark": "Scuro",
+    "Soft white surfaces.": "Superfici in bianco tenue.",
+    "Deep navy surfaces.": "Superfici in blu navy intenso.",
+    "Your choice is saved automatically on this device.": "La tua scelta viene salvata automaticamente su questo dispositivo.",
+    "Appearance updated.": "Aspetto aggiornato."
+  },
+  "nl": {
+    "Settings": "Instellingen",
+    "Appearance": "Uiterlijk",
+    "Choose how Kineo looks on this device.": "Kies hoe Kineo eruitziet op dit apparaat.",
+    "Light": "Licht",
+    "Dark": "Donker",
+    "Soft white surfaces.": "Oppervlakken in zacht wit.",
+    "Deep navy surfaces.": "Oppervlakken in diep marineblauw.",
+    "Your choice is saved automatically on this device.": "Je keuze wordt automatisch opgeslagen op dit apparaat.",
+    "Appearance updated.": "Uiterlijk bijgewerkt."
+  },
+  "pl": {
+    "Settings": "Ustawienia",
+    "Appearance": "Wygląd",
+    "Choose how Kineo looks on this device.": "Wybierz wygląd Kineo na tym urządzeniu.",
+    "Light": "Jasny",
+    "Dark": "Ciemny",
+    "Soft white surfaces.": "Powierzchnie w delikatnej bieli.",
+    "Deep navy surfaces.": "Powierzchnie w głębokim granacie.",
+    "Your choice is saved automatically on this device.": "Twój wybór jest automatycznie zapisywany na tym urządzeniu.",
+    "Appearance updated.": "Wygląd zaktualizowany."
+  },
+  "tr": {
+    "Settings": "Ayarlar",
+    "Appearance": "Görünüm",
+    "Choose how Kineo looks on this device.": "Kineo’nun bu cihazda nasıl görüneceğini seçin.",
+    "Light": "Açık",
+    "Dark": "Koyu",
+    "Soft white surfaces.": "Yumuşak beyaz yüzeyler.",
+    "Deep navy surfaces.": "Koyu lacivert yüzeyler.",
+    "Your choice is saved automatically on this device.": "Seçiminiz bu cihaza otomatik olarak kaydedilir.",
+    "Appearance updated.": "Görünüm güncellendi."
+  },
+  "ru": {
+    "Settings": "Настройки",
+    "Appearance": "Внешний вид",
+    "Choose how Kineo looks on this device.": "Выберите, как Kineo будет выглядеть на этом устройстве.",
+    "Light": "Светлая",
+    "Dark": "Тёмная",
+    "Soft white surfaces.": "Поверхности мягкого белого оттенка.",
+    "Deep navy surfaces.": "Поверхности глубокого тёмно-синего оттенка.",
+    "Your choice is saved automatically on this device.": "Ваш выбор автоматически сохраняется на этом устройстве.",
+    "Appearance updated.": "Внешний вид обновлён."
+  },
+  "uk": {
+    "Settings": "Налаштування",
+    "Appearance": "Вигляд",
+    "Choose how Kineo looks on this device.": "Виберіть, як Kineo виглядатиме на цьому пристрої.",
+    "Light": "Світла",
+    "Dark": "Темна",
+    "Soft white surfaces.": "Поверхні м’якого білого відтінку.",
+    "Deep navy surfaces.": "Поверхні глибокого темно-синього відтінку.",
+    "Your choice is saved automatically on this device.": "Ваш вибір автоматично зберігається на цьому пристрої.",
+    "Appearance updated.": "Вигляд оновлено."
+  },
+  "ar": {
+    "Settings": "الإعدادات",
+    "Appearance": "المظهر",
+    "Choose how Kineo looks on this device.": "اختر مظهر Kineo على هذا الجهاز.",
+    "Light": "فاتح",
+    "Dark": "داكن",
+    "Soft white surfaces.": "أسطح بلون أبيض ناعم.",
+    "Deep navy surfaces.": "أسطح بلون كحلي عميق.",
+    "Your choice is saved automatically on this device.": "يُحفظ اختيارك تلقائيًا على هذا الجهاز.",
+    "Appearance updated.": "تم تحديث المظهر."
+  },
+  "ur": {
+    "Settings": "ترتیبات",
+    "Appearance": "ظاہری شکل",
+    "Choose how Kineo looks on this device.": "اس ڈیوائس پر Kineo کی ظاہری شکل منتخب کریں۔",
+    "Light": "روشن",
+    "Dark": "تاریک",
+    "Soft white surfaces.": "ہلکے سفید رنگ کی سطحیں۔",
+    "Deep navy surfaces.": "گہرے نیوی بلیو رنگ کی سطحیں۔",
+    "Your choice is saved automatically on this device.": "آپ کا انتخاب اس ڈیوائس پر خود بخود محفوظ ہو جاتا ہے۔",
+    "Appearance updated.": "ظاہری شکل اپ ڈیٹ ہو گئی۔"
+  },
+  "hi": {
+    "Settings": "सेटिंग्स",
+    "Appearance": "दिखावट",
+    "Choose how Kineo looks on this device.": "इस डिवाइस पर Kineo की दिखावट चुनें।",
+    "Light": "लाइट",
+    "Dark": "डार्क",
+    "Soft white surfaces.": "हल्के सफ़ेद रंग की सतहें।",
+    "Deep navy surfaces.": "गहरे नेवी ब्लू रंग की सतहें।",
+    "Your choice is saved automatically on this device.": "आपकी पसंद इस डिवाइस पर अपने आप सेव हो जाती है।",
+    "Appearance updated.": "दिखावट अपडेट हो गई।"
+  },
+  "id": {
+    "Settings": "Pengaturan",
+    "Appearance": "Tampilan",
+    "Choose how Kineo looks on this device.": "Pilih tampilan Kineo di perangkat ini.",
+    "Light": "Terang",
+    "Dark": "Gelap",
+    "Soft white surfaces.": "Permukaan putih lembut.",
+    "Deep navy surfaces.": "Permukaan biru dongker pekat.",
+    "Your choice is saved automatically on this device.": "Pilihan Anda disimpan secara otomatis di perangkat ini.",
+    "Appearance updated.": "Tampilan diperbarui."
+  },
+  "vi": {
+    "Settings": "Cài đặt",
+    "Appearance": "Giao diện",
+    "Choose how Kineo looks on this device.": "Chọn giao diện Kineo trên thiết bị này.",
+    "Light": "Sáng",
+    "Dark": "Tối",
+    "Soft white surfaces.": "Các bề mặt màu trắng dịu.",
+    "Deep navy surfaces.": "Các bề mặt màu xanh hải quân đậm.",
+    "Your choice is saved automatically on this device.": "Lựa chọn của bạn được lưu tự động trên thiết bị này.",
+    "Appearance updated.": "Đã cập nhật giao diện."
+  }
+}

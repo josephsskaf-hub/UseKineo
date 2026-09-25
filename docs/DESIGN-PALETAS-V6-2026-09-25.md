@@ -1,6 +1,6 @@
 # Pista visual — branco e azul, versão 06
 
-DECISÃO DO FUNDADOR — instrução direta nesta tarefa: manter o desenho aprovado, comparar branco/claro e azul/navy consistentes em todas as páginas e retirar “Vocês fazem”. Em Para empresas, o próprio usuário cria no Studio Ads. A escolha da paleta definitiva permanece pendente. Esta direção substitui as duas portas e o fluxo DFY da proposta v5; comunicação endereçada ao Claude em `HANDOFF-CLAUDE-PALETAS-SELF-SERVICE-2026-09-25.md`.
+DECISÃO DO FUNDADOR — instrução direta nesta tarefa: manter o desenho aprovado, retirar “Vocês fazem” e oferecer os dois temas. **Branco/Light é o padrão; Dark azul-marinho fica em Configurações → Aparência**, com escolha salva no dispositivo. O fundador aprovou expressamente o desenho e essa interação. Em Para empresas, o próprio usuário cria no Studio Ads. Esta direção substitui as duas portas e o fluxo DFY da proposta v5; comunicação endereçada ao Claude em `HANDOFF-CLAUDE-PALETAS-SELF-SERVICE-2026-09-25.md`.
 
 IMPLEMENTADO — comparação isolada em `public/design/palette-v6-20260925/index.html`, com 13 estados: Home, Vídeo, Imagem, Empresas, Preços, Studio de vídeo, Studio Ads, Biblioteca, Exemplos, filme pronto, imagem pronta, imagem para vídeo e créditos. O comparador permite branco/azul simultâneos, uma versão ampliada, celular, comparação com a v5 e com os snapshots originais disponíveis. Arquivos gerados por `scripts/preview-kineo-palette-v6.cjs` e `scripts/package-kineo-palette-v6.cjs`.
 
@@ -14,4 +14,8 @@ TESTADO LOCALMENTE — typecheck sem incremental aprovado; revisão independente
 
 IMPLEMENTADO — pacote HTML independente com imagens e fontes locais embutidas, antes/depois e as duas paletas. Vídeos mantêm os URLs públicos Kineo. Scripts embutidos analisados estaticamente; abertura local no navegador não foi verificada porque a política do navegador impede URLs de arquivo. A prévia servida por HTTP foi verificada no navegador.
 
-QUESTÃO PENDENTE — seleção final do fundador, migração coordenada com Claude/Kineo Ads, revisão linguística completa dos textos novos nos demais idiomas e confirmação de recebimento do handoff pelo Claude. Nenhuma confirmação de leitura é inferida da publicação no Git.
+IMPLEMENTADO NA PRÉVIA — Configurações → Aparência nas páginas públicas e no Studio. Light é aplicado antes da primeira pintura quando não há preferência. A escolha é salva em uma chave isolada do protótipo (`kineo:design-preview-appearance:v1`) e acompanha a navegação; os parâmetros explícitos continuam disponíveis para comparação. O diálogo possui rádios, fechamento por Escape e retorno de foco. Os nove textos novos de aparência foram traduzidos nos 16 idiomas. O catálogo agora registra 346 textos.
+
+TESTADO NESTA RODADA — padrão Light, persistência de Dark após recarregar, navegação até o Studio e retorno a Light; troca de tema e de idioma preservando o briefing digitado. Revisão independente confirmou 16 × 9 traduções preenchidas e sintaxe válida dos 27 scripts de 14 páginas. A mudança visual não altera lógica ou preços do aplicativo.
+
+QUESTÃO PENDENTE — migração do tema para as rotas e configurações reais, coordenada com Claude/Kineo Ads; revisão linguística completa dos demais textos novos de marketing e confirmação de recebimento do handoff pelo Claude. Nenhuma confirmação de leitura é inferida da publicação no Git.
