@@ -183,6 +183,8 @@ export const INTERFACE_ES: Record<string, string> = {
   'Your videos and credits are safe — this is just a temporary read hiccup.': 'Tus vídeos y créditos están a salvo: es un fallo temporal de lectura.',
   '↻ Try again': '↻ Volver a intentar', 'My Images': 'Mis imágenes', 'My Audio': 'Mis audios',
   '⬇ Download': '⬇ Descargar', '🎬 Animate': '🎬 Animar', '✏️ Edit · 3 cr': '✏️ Editar · 3 cr',
+  // KINEO-FLUXO-NOVO-2026-09-25 — botão do /images que leva a imagem ao Animate (clipe, não filme).
+  '🎬 Turn into video': '🎬 Convertir en vídeo',
   chars: 'caracteres', 'cr per 1000 characters · MP3 download included.': 'cr por cada 1000 caracteres · Descarga MP3 incluida.',
   'Like a voice? The Studio builds the whole film around it — visuals, captions and score.': '¿Te gusta una voz? Studio crea el vídeo completo a su alrededor: imágenes, subtítulos y música.',
   'Open Studio →': 'Abrir Studio →', '🎬 Use in Studio': '🎬 Usar en Studio',

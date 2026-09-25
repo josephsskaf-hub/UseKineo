@@ -31,6 +31,13 @@ export async function GET() {
     .order('created_at', { ascending: false })
     .limit(24)
 
-  if (error) return NextResponse.json({ images: [] })
+  // KINEO-FLUXO-NOVO-2026-09-25 — falha de leitura não se disfarça de galeria vazia: /images e
+  // /library já tratam resposta não-ok como "não deu para carregar" (com Try again), e o
+  // /animate?from_image= precisa separar falha de "não achei". `images: []` fica no corpo
+  // para quem ainda lê sem olhar o status.
+  if (error) {
+    console.warn('[images] gallery read failed:', error.message)
+    return NextResponse.json({ images: [], error: 'Could not load your images right now.' }, { status: 503 })
+  }
   return NextResponse.json({ images: data ?? [] })
 }

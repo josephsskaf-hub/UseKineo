@@ -91,6 +91,92 @@ function clearStoredSubmission(userId: string | null | undefined) {
   try { localStorage.removeItem(submissionStorageKey(userId)) } catch {}
 }
 
+// KINEO-FLUXO-NOVO-2026-09-25 — peça B: /images "Turn into video" → /animate?from_image=<id>.
+// O link carrega o ID da linha em `images`, nunca a URL do storage (o caminho tem o uid).
+// Aqui o id vira arquivo: /api/images (RLS = só as linhas da própria pessoa) acha a imagem,
+// o navegador baixa (o storage público responde CORS `*`, conferido com curl em 25/09 UTC),
+// regrava em JPEG ≤1600px quando o upload recusaria (webp) ou pesaria (grande), e entrega
+// ao MESMO handleFile do botão de upload — /api/avatar/upload purpose=animate, que já
+// modera. Nenhuma rota nova e nenhuma posse alargada: o Animate segue só com avatars/<uid>/.
+// Mora fora do componente para o guardião executar com dependências falsas.
+const IMAGE_HANDOFF_PARAM = 'from_image'
+const IMAGE_HANDOFF_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+// Os tipos que /api/avatar/upload aceita, e o peso a partir do qual compressPhoto já regravaria.
+const HANDOFF_UPLOAD_TYPES = ['image/jpeg', 'image/png']
+const HANDOFF_REENCODE_FROM_BYTES = 2 * 1024 * 1024
+
+type ImageHandoffOutcome =
+  | 'ready' | 'skipped_restore' | 'invalid_id' | 'lookup_failed' | 'not_found'
+  | 'fetch_failed' | 'transcode_failed' | 'upload_refused' | 'cancelled'
+
+type ImageHandoffDeps = {
+  href: string
+  replaceUrl: (url: string) => void
+  fetch: (input: string, init?: RequestInit) => Promise<Response>
+  reencode: (file: File) => Promise<File>
+  upload: (file: File) => Promise<{ ok: boolean; status: number | null }>
+  isCancelled: () => boolean
+  onStart: () => void
+  onFail: (message: string) => void
+  track: (eventName: string, metadata: Record<string, unknown>) => void
+}
+
+async function runImageHandoff(restoring: boolean, deps: ImageHandoffDeps): Promise<ImageHandoffOutcome | null> {
+  const address = new URL(deps.href)
+  const imageId = address.searchParams.get(IMAGE_HANDOFF_PARAM)
+  if (imageId === null) return null
+  // Sai da barra ANTES de qualquer rede: recarregar a página nunca sobe a imagem de novo.
+  address.searchParams.delete(IMAGE_HANDOFF_PARAM)
+  deps.replaceUrl(address.pathname + address.search + address.hash)
+  const validId = IMAGE_HANDOFF_ID.test(imageId)
+  const report = (outcome: ImageHandoffOutcome, extra: Record<string, unknown> = {}): ImageHandoffOutcome => {
+    deps.track('animate_handoff_loaded', { image_id: validId ? imageId : null, outcome, ...extra })
+    return outcome
+  }
+  // Clipe em andamento (restaurado do localStorage) é crédito já reservado: a imagem
+  // nova nunca passa por cima dele. O clique fica medido como pulado.
+  if (restoring) return report('skipped_restore')
+  if (!validId) return report('invalid_id')
+  deps.onStart()
+  let row: { url?: unknown; upscaled_url?: unknown } | undefined
+  try {
+    const res = await deps.fetch('/api/images', { cache: 'no-store' })
+    if (!res.ok) throw new Error(String(res.status))
+    const data = await res.json()
+    row = Array.isArray(data?.images) ? data.images.find((r: { id?: unknown }) => r?.id === imageId) : undefined
+  } catch {
+    deps.onFail('We couldn’t load that image right now. Go back to Images and try again, or upload it here.')
+    return report('lookup_failed')
+  }
+  const source = typeof row?.upscaled_url === 'string' && row.upscaled_url ? row.upscaled_url
+    : typeof row?.url === 'string' && row.url ? row.url : null
+  if (!source) {
+    deps.onFail('We couldn’t find that image among your recent images. Upload it here instead.')
+    return report('not_found')
+  }
+  let blob: Blob
+  try {
+    const res = await deps.fetch(source, { cache: 'no-store' })
+    if (!res.ok) throw new Error(String(res.status))
+    blob = await res.blob()
+  } catch {
+    deps.onFail('We couldn’t load that image right now. Go back to Images and try again, or upload it here.')
+    return report('fetch_failed')
+  }
+  // Saiu da página no meio do caminho: nada de subir cópia órfã para avatars/.
+  if (deps.isCancelled()) return report('cancelled')
+  const original = new File([blob], 'kineo-image', { type: blob.type })
+  const transcoded = !HANDOFF_UPLOAD_TYPES.includes(blob.type) || blob.size >= HANDOFF_REENCODE_FROM_BYTES
+  const file = transcoded ? await deps.reencode(original) : original
+  if (!HANDOFF_UPLOAD_TYPES.includes(file.type)) {
+    deps.onFail('This browser couldn’t prepare that image. Download it from Images and upload it here.')
+    return report('transcode_failed', { source_type: blob.type })
+  }
+  const uploaded = await deps.upload(file)
+  if (!uploaded.ok) return report('upload_refused', { http_status: uploaded.status })
+  return report('ready', { transcoded, bytes: file.size, source_type: blob.type, upscaled: source === row?.upscaled_url })
+}
+
 export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: boolean; userId: string | null }) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [remoteImageUrl, setRemoteImageUrl] = useState('')
@@ -156,6 +242,20 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
         retryTimerRef.current = window.setTimeout(() => void submitStoredSubmission(stored), 500)
       }
     }
+    // KINEO-FLUXO-NOVO-2026-09-25 — a imagem vinda do /images só entra quando NÃO há
+    // envio guardado para retomar: `restoring` é a mesma condição do ramo acima.
+    const restoring = !!stored && stored.userId === userId
+    void runImageHandoff(restoring, {
+      href: window.location.href,
+      replaceUrl: (url) => { try { window.history.replaceState(window.history.state, '', url) } catch {} },
+      fetch: (input, init) => fetch(input, init),
+      reencode: (file) => compressPhoto(file, true),
+      upload: (file) => handleFile(file),
+      isCancelled: () => cancelledRef.current,
+      onStart: () => { setError(null); setPhase('uploading') },
+      onFail: (message) => { setError(message); setPhase('idle') },
+      track: (eventName, metadata) => { void trackEvent(eventName, metadata) },
+    })
     return () => {
       cancelledRef.current = true
       if (retryTimerRef.current !== null) window.clearTimeout(retryTimerRef.current)
@@ -207,8 +307,10 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
     } catch {}
   }
 
-  async function compressPhoto(file: File): Promise<File> {
-    if (file.size < 2 * 1024 * 1024) return file
+  // KINEO-FLUXO-NOVO-2026-09-25 — `force` regrava mesmo abaixo de 2MB: a imagem que vem
+  // do /images pode ser webp, e o upload só aceita JPG/PNG.
+  async function compressPhoto(file: File, force = false): Promise<File> {
+    if (!force && file.size < 2 * 1024 * 1024) return file
     try {
       const bitmap = await createImageBitmap(file)
       const maxSide = 1600
@@ -226,8 +328,10 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
     }
   }
 
-  async function handleFile(raw: File | null) {
-    if (!raw) return
+  // KINEO-FLUXO-NOVO-2026-09-25 — devolve o desfecho para o evento animate_handoff_loaded
+  // separar "moderação/upload recusou" de "pronto"; o botão de upload ignora o retorno.
+  async function handleFile(raw: File | null): Promise<{ ok: boolean; status: number | null }> {
+    if (!raw) return { ok: false, status: null }
     clearStoredSubmission(userId)
     submissionRef.current = null
     setRemoteImageUrl('')
@@ -245,13 +349,15 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
       if (!res.ok || typeof data?.url !== 'string') {
         setError(typeof data?.error === 'string' ? data.error : 'Upload failed. Please try again.')
         setPhase('idle')
-        return
+        return { ok: false, status: res.status }
       }
       setPhotoUrl(data.url)
       setPhase('idle')
+      return { ok: true, status: res.status }
     } catch {
       setError('Upload failed. Please try again.')
       setPhase('idle')
+      return { ok: false, status: null }
     }
   }
 

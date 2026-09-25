@@ -13,6 +13,8 @@ import CreditsTopupModal from '@/components/CreditsTopupModal' // KINEO-TOPUP-PO
 // veem os 3 planos com "N images/mo" em vez de um pack que o checkout recusa.
 import OutOfCreditsPlansModal from '@/components/OutOfCreditsPlansModal'
 import { outOfCreditsDestination } from '@/lib/credits/outOfCreditsPlans'
+// KINEO-FLUXO-NOVO-2026-09-25 — mede o clique em "Turn into video" (imagem → Animate).
+import { trackEvent } from '@/lib/analytics'
 
 type ImgModelKey = 'schnell' | 'dev' | 'recraft' | 'nanobanana' | 'seedream' | 'grok'
 type ImgSize = 'square_hd' | 'portrait_16_9' | 'landscape_16_9'
@@ -330,7 +332,17 @@ export default function ImagesClient() {
                         {it.upscaled ? '2x ✓' : it.upscaling ? 'Upscaling…' : '✨ Upscale 2x · 1 cr'}
                       </button>
                       {/* KINEO-CEO-HOUR-2026-08-17 (#4) — flywheel: imagem → filme */}
-                      <a className="pill" style={{ textDecoration: 'none' }} href="/animate"><UiLabel>🎬 Animate</UiLabel></a>
+                      {/* KINEO-FLUXO-NOVO-2026-09-25 — "Turn into video" LEVA esta imagem ao Animate pelo
+                          id da linha em `images` (nunca a URL do storage, que tem o uid no caminho); o
+                          Animate resolve o id em /api/images e a imagem já chega como referência. É um
+                          clipe, não um filme — a copy não promete filme nem digita crédito. Sem id (a
+                          cópia para o nosso storage falhou e a URL é do fal) fica o link genérico. */}
+                      {it.id ? (
+                        <a className="pill" style={{ textDecoration: 'none' }} href={`/animate?from_image=${encodeURIComponent(it.id)}`}
+                          onClick={() => { void trackEvent('image_to_video_clicked', { image_id: it.id, model: it.model, upscaled: !!it.upscaled }) }}><UiLabel>🎬 Turn into video</UiLabel></a>
+                      ) : (
+                        <a className="pill" style={{ textDecoration: 'none' }} href="/animate"><UiLabel>🎬 Animate</UiLabel></a>
+                      )}
                       <button type="button" className={`pill${editIdx === i ? ' on' : ''}`} onClick={() => { setEditIdx(editIdx === i ? null : i); setEditTxt('') }}><UiLabel>✏️ Edit · 3 cr</UiLabel></button>
                     </div>
                     {editIdx === i && (

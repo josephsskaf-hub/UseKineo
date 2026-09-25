@@ -60,6 +60,8 @@ export const INTERFACE_HI: Record<string, string> = {
   'Your videos and credits are safe — this is just a temporary read hiccup.': 'आपके वीडियो और क्रेडिट सुरक्षित हैं — यह डेटा पढ़ने में एक अस्थायी समस्या है।',
   '↻ Try again': '↻ फिर कोशिश करें', 'My Images': 'मेरे चित्र', 'My Audio': 'मेरा ऑडियो',
   '⬇ Download': '⬇ डाउनलोड', '🎬 Animate': '🎬 एनिमेट करें', '✏️ Edit · 3 cr': '✏️ संपादित करें · 3 cr',
+  // KINEO-FLUXO-NOVO-2026-09-25 — botão do /images que leva a imagem ao Animate (clipe, não filme).
+  '🎬 Turn into video': '🎬 वीडियो में बदलें',
   chars: 'अक्षर', 'cr per 1000 characters · MP3 download included.': 'cr प्रति 1000 अक्षर · MP3 डाउनलोड शामिल है।',
   'Like a voice? The Studio builds the whole film around it — visuals, captions and score.': 'आवाज़ पसंद आई? Studio उसके साथ पूरा वीडियो बनाता है — दृश्य, कैप्शन और संगीत।',
   'Open Studio →': 'Studio खोलें →', '🎬 Use in Studio': '🎬 Studio में इस्तेमाल करें',
