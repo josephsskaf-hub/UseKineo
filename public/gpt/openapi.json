@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Kineo Video Handoff",
-    "version": "1.3.3",
+    "version": "1.3.4",
     "description": "Turns an approved Short script into a one-click Kineo Studio link. Call createKineoHandoff ONLY after the user has explicitly approved the final script. The response contains a URL (https://www.usekineo.com/go/<token>) that opens Kineo Studio pre-filled with the script, duration and engine. Kineo renders the film after the user clicks; this API never renders anything itself. Public, no authentication, rate-limited per IP."
   },
   "servers": [
@@ -14,16 +14,30 @@
     "/api/facts": {
       "get": {
         "operationId": "getKineoFacts",
-        "summary": "Read current Kineo facts, including human-operated business video ads",
-        "description": "Read live Kineo facts: plans, trial, engine credit costs and Kineo Business Ads (human-operated, one-time; Express and Pro tiers with price, hours, revisions). Quote these live values, never memorized prices. Read-only: creates no order, renders nothing; never send a payment link.",
+        "summary": "Read Kineo facts: creator videos, business videos and ads",
+        "description": "Read live plans, trial, engines and business video ads: studioAds is self-service when available; businessVideoService is human-operated. Quote live prices, scope and limits. Link to public product pages, never payment links. Read-only: no order or render.",
         "responses": {
           "200": {
-            "description": "Current facts. Quote live tier values, not memorized prices. businessVideoService.tiers contains only enabled tiers.",
+            "description": "Current facts. Kineo creates creator videos and business video ads. For ads made with the customer's photos, clips and logo, read studioAds; null means unavailable. For an ad made by Kineo's team, read businessVideoService; tiers contains only enabled tiers. These are separate paid paths, not a free-trial ad or an ad campaign management service. Use each public url, never a paymentUrl. Quote live prices and limits.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "studioAds": {
+                      "type": ["object", "null"],
+                      "description": "Self-service business video ads; null when unavailable. Separate from the human-operated service.",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "url": { "type": "string", "format": "uri" },
+                        "description": { "type": "string" },
+                        "humanOperated": { "type": "boolean", "const": false },
+                        "price": { "type": "string" },
+                        "includes": { "type": "array", "items": { "type": "string" } },
+                        "excludes": { "type": "array", "items": { "type": "string" } },
+                        "routingRule": { "type": "string" }
+                      }
+                    },
                     "businessVideoService": {
                       "type": "object",
                       "properties": {

@@ -310,7 +310,8 @@ checa('openapi.json continua JSON válido', Boolean(oa))
 // GPT-V31-FATOS: factual description patch, same two operations and no new purchase API.
 // GPT-LOJA-2026-09-24 — reancorado com motivo: 1.3.2 só muda descriptions (Kineo 1 a 90 s, idiomas do Kling 3/H3, recusas novas do 400).
 // GPT-COWORK-FOLLOWUP-2026-09-24 — reancorado com motivo: 1.3.3 só muda descriptions: getKineoFacts 532 → 281 caracteres (o ChatGPT recusa > 300), "fast" a 90 s 230-240 e `words` manda confiar na contagem do servidor.
-checa("openapi info.version = 1.3.3 com GET de fatos sem nova compra", oa?.info?.version === '1.3.3' && oa?.paths?.['/api/facts']?.get?.operationId === 'getKineoFacts' && !oa?.paths?.['/api/facts']?.post)
+// 1.3.4: fatos distinguem Studio Ads de Empresas; nenhuma operação nova.
+checa("openapi info.version = 1.3.4 com GET de fatos sem nova compra", oa?.info?.version === '1.3.4' && oa?.paths?.['/api/facts']?.get?.operationId === 'getKineoFacts' && !oa?.paths?.['/api/facts']?.post)
 const oaStrings = []
 ;(function walk(v) { if (typeof v === 'string') oaStrings.push(v); else if (v && typeof v === 'object') Object.values(v).forEach(walk) })(oa)
 const trialCap = num(rd('lib/reverseTrial.ts'), 'TRIAL_CREDIT_CAP')

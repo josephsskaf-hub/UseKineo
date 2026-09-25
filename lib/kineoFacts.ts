@@ -696,11 +696,11 @@ export const CARD_TRIAL_FACT = {
 export const PRODUCT = {
   name: 'Kineo',
   url: BASE,
-  // fonte: lib/comparisons.ts:299-301 (kind + category + needsSource).
+  // fonte: lib/growth/dfyServiceFacts.ts (serviço Empresas), studioAdsFacts.ts
+  // (anúncios self-service) e lib/comparisons.ts (vídeo a partir de roteiro).
   oneLiner:
-    'Kineo turns one typed topic or a pasted script into a finished faceless 9:16 YouTube Short — script, AI voiceover, matched visuals and burned-in captions — without any source footage.',
-  // fonte: lib/comparisons.ts:299 (`kind: 'From-scratch generator'`).
-  category: 'From-scratch short-form video generator',
+    'Kineo creates short videos for creators and businesses, including business video ads, product and service promotions, and social media content — with scripts, narration, visuals and captions.',
+  category: 'Short-form video and business video ad creation platform',
   // fonte: lib/comparisons.ts:301 — "No. A sentence is the whole input."
   needsExistingFootage: false,
   // KINEO-MULTIFORMATO-2026-09-02 — era "9:16 vertical only". Este arquivo é

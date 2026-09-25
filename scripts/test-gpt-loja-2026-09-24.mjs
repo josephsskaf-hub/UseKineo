@@ -113,7 +113,8 @@ const oa = JSON.parse(rd('public/gpt/openapi.json'))
 const scriptDesc = JSON.stringify(oa)
 const faixaOa = scriptDesc.match(/except `fast` \(Kineo 1\) at 90s: (\d+)-(\d+) words, never more/)
 // GPT-COWORK-FOLLOWUP-2026-09-24 — reancorado com motivo: 1.3.3 só muda descriptions: getKineoFacts 532 → 281 caracteres (o ChatGPT recusa operação > 300), "fast" a 90 s 230-240 e `words` manda confiar na contagem do servidor.
-ok(Boolean(faixa && faixaOa) && faixa[1] === faixaOa[1] && faixa[2] === faixaOa[2] && oa.info.version === '1.3.3', `6b. seção C e openapi (v${oa.info.version}) dizem a MESMA faixa do Kineo 1 a 90 s (${faixa?.slice(1).join('-')})`)
+// 1.3.4: fatos distinguem Studio Ads de Empresas; limites do handoff preservados.
+ok(Boolean(faixa && faixaOa) && faixa[1] === faixaOa[1] && faixa[2] === faixaOa[2] && oa.info.version === '1.3.4', `6b. seção C e openapi (v${oa.info.version}) dizem a MESMA faixa do Kineo 1 a 90 s (${faixa?.slice(1).join('-')})`)
 if (faixa) {
   const lo = Number(faixa[1]), hi = Number(faixa[2])
   // GPT-COWORK-FOLLOWUP-2026-09-24 — o GPT conta palavras para BAIXO. O Cowork mediu no Preview: declarou 192 e o servidor

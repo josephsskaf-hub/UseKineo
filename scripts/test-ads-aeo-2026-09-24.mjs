@@ -66,11 +66,24 @@ ok(f && f.models.total === on.models.ADS_MODELS.length && f.models.seconds35 ===
 ok(f && f.credits === on.offer.ADS_PASS_CREDITS && f.accessDays === on.offer.ADS_PASS_ACCESS_DAYS && JSON.stringify(f.includes) === JSON.stringify(copy.includes), '1k. créditos, dias de acesso e includes no JSON são os de offer.ts')
 ok(on.facts.businessVideoService && on.facts.businessVideoService.humanOperated === true, '1l. o serviço feito por gente (Empresas) segue no JSON ao lado')
 
+// Pedido direto 25/09: apresentação principal deve incluir empresas, sem
+// confundir upload no Ads com vídeo de roteiro, nem trial com anúncio pago.
+ok(/business video ads/.test(on.facts.product.oneLiner) && /creators and businesses/.test(on.facts.product.oneLiner), '1m. apresentação principal do JSON inclui criadores, empresas e anúncios')
+const intro = on.llms.slice(0, on.llms.indexOf('## Videos from an idea or a script'))
+ok(intro.includes(f.url) && intro.includes(on.facts.businessVideoService.url), '1n. início do llms oferece os dois caminhos públicos de anúncio')
+ok(intro.includes('free trial does not include it') && intro.includes('guaranteed sales'), '1o. anúncio não recebe promessa de trial nem de vendas')
+ok(!on.llms.includes('there is no\nfootage to upload') && on.llms.includes('separate workflows'), '1p. limite de vídeo a partir de texto não nega upload nos anúncios')
+const schema = JSON.parse(rd('public/gpt/openapi.json'))
+const factsOp = schema.paths['/api/facts'].get
+const schemaAds = factsOp.responses['200'].content['application/json'].schema.properties.studioAds
+ok(schemaAds.type.includes('null') && schemaAds.properties.humanOperated.const === f.humanOperated && factsOp.description.includes('studioAds') && factsOp.description.includes('businessVideoService'), '1q. ação expõe os dois caminhos e aceita Studio Ads indisponível')
+
 // ── 2. passe desligado (emergência: NEXT_PUBLIC_ADS_PASS_LIVE=0 + deploy) ──────────────────────────────
 const off = await renderiza('0')
 ok(off.offer.adsPassLive() === false, '2a. premissa: env 0 desliga o passe')
 ok(!/Studio Ads|usekineo\.com\/ads\b/.test(off.llms), '2b. desligado: o llms.txt não cita Studio Ads nem /ads')
 ok(off.facts.studioAds === null, '2c. desligado: /api/facts devolve studioAds null')
+ok(off.llms.includes(off.facts.businessVideoService.url) && off.llms.includes('Does Kineo make videos and ads for businesses?'), '2e. desligar self-service preserva o serviço humano na apresentação')
 ok(/self-service production\.\n\n## One-time packs for agencies/.test(off.llms), '2d. desligado: o bloco das Empresas fecha exatamente como antes (sem linha em branco a mais nem a menos)')
 
 // ── 3. nada digitado ───────────────────────────────────────────────────────────────────────────────────

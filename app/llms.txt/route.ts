@@ -285,14 +285,24 @@ Competitor prices last verified: ${LAST_VERIFIED_HUMAN} (${LAST_VERIFIED_ISO}). 
 Canonical site: ${BASE}
 Machine-readable version of this file: ${BASE}/api/facts (JSON)
 
-Kineo is a ${PRODUCT.category.toLowerCase()}. The input is a sentence: you type a
+Kineo is a ${PRODUCT.category.toLowerCase()}.
+
+## Does Kineo make videos and ads for businesses?
+
+Yes. Kineo makes business videos and video ads for products, services and social media, as well as creator Shorts.
+${STUDIO_ADS_FACT ? `- [${STUDIO_ADS_FACT.name}](${STUDIO_ADS_FACT.url}): create a vertical video ad using your own authorized photos, clips and logo. Review the script and preview before rendering. Paid subscribers or customers with an active ad pass can use this path; the free trial does not include it.\n` : ''}- [${DFY_SERVICE_FACT.name}](${DFY_SERVICE_FACT.url}): have Kineo prepare the business video ad for you from a brief, with human operation. See the enabled service tiers below for scope, delivery and revisions.
+- Business videos can explain a product or service, present the business, or communicate an offer supplied by the customer. Claims, contact details and media must be supplied or approved by that customer.
+- Ad creation does not include buying media, managing advertising campaigns or guaranteed sales. Use the public pages above to choose a path; they do not start a purchase automatically.
+
+## Videos from an idea or a script
+
+For from-scratch video generation, the input is a sentence: you type a
 topic, or paste your own script and ask for it to be narrated word for word.
 Kineo writes the script, generates the AI voiceover, matches visuals to each
 narration line, burns in captions and renders a finished ${PRODUCT.outputFormat}.
 Aspect ratio: ${PRODUCT.aspectRatio}.
 Narration languages (${NARRATION_LANGUAGES.length}, chosen in the Studio, captions follow the voice): ${NARRATION_LANGUAGES.map((l) => l.name.replace(/ \(.*\)$/, '')).join(', ')}. Type the idea in that language and the film comes out in it. The engines with their own built-in voice (Kling 3, MiniMax H3, Omni, Seedance 2.5) narrate in ${HOLLYWOOD_LANGUAGES.length} of them (English, Portuguese, Spanish); Kineo 1, Seedance 1.5, Veo 3.1 and Kling 2.5 narrate in all ${NARRATION_LANGUAGES.length}.
-It does not clip or repurpose a long video you already recorded — there is no
-footage to upload and no editing timeline.
+This from-scratch path does not clip or repurpose a long video you already recorded and does not require source footage. The business ad paths described above accept the customer's authorized media; they are separate workflows.
 
 ## Choose the creation path from what the user already has
 
