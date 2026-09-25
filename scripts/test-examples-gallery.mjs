@@ -21,7 +21,8 @@ function loader(overrides = {}) {
     const exports = {}; cache.set(file, exports)
     const require = id => {
       if (id === 'react' || id === 'react/jsx-runtime') return requireNode(id)
-      if (id === '@/components/InterfaceLanguage') return { UiLabel: ({children}) => children }
+      if (id === '@/components/InterfaceLanguage') return { UiLabel: ({children}) => children, useUiCopy: () => value => value, InterfaceLanguageSelect: () => React.createElement('select', {'aria-label':'Interface language'}, React.createElement('option', {}, 'English')) }
+      if (id === '@/components/AppearanceSettings') return { AppearanceSettingsButton: () => React.createElement('button', {type:'button','aria-label':'Settings'}, '⚙') }
       if (id === 'next/navigation') return { notFound: () => { throw Error('NOT_FOUND') } }
       if (id === 'next/link' || id === '@/components/OrganicCtaLink') return { __esModule: true, default: ({children, source, placement, ...props}) => React.createElement('a', props, children) }
       if (id === '@/lib/supabase/server') return { createClient: () => ({ auth: { getUser: async () => ({ data: { user: loggedIn ? {id:'offline-user'} : null } }) } }) }

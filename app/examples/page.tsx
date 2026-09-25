@@ -13,6 +13,8 @@ import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { createClient } from '@/lib/supabase/server'
 import ExamplesBusinessProofBridge from './ExamplesBusinessProofBridge'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
+import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
+import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -45,15 +47,21 @@ export default async function ExamplesPage() {
       <header className={styles.pageHeader}>
         <div className={styles.headerInner}>
           <Link href="/" className={styles.brand}><KineoBolt size={26} />Kineo</Link>
-          <nav className={styles.nav} aria-label="Main navigation">
-            <Link href="/examples" aria-current="page" className={styles.exploreLink}>Explore</Link>
-            <Link href="/pricing" className="transition hover:text-white">Pricing</Link>
+          <nav className={styles.nav} aria-label="Main navigation" data-nav-surface="top" data-nav-area="public">
+            <Link href="/studio" className={styles.navPrimary} data-nav-item="video"><UiLabel>Video</UiLabel></Link>
+            <Link href="/images" data-nav-item="image"><UiLabel>Images</UiLabel></Link>
+            <Link href="/ads/new" data-nav-item="business"><UiLabel>For businesses</UiLabel></Link>
+            <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
+          </nav>
+          <div className={styles.headerTools}>
+            <InterfaceLanguageSelect />
+            <AppearanceSettingsButton compact />
             {isLoggedIn ? (
               <Link
                 href="/studio"
                 className={styles.navCta}
               >
-                Open Studio
+                <UiLabel>Open Studio</UiLabel>
               </Link>
             ) : (
               <OrganicCtaLink
@@ -62,19 +70,19 @@ export default async function ExamplesPage() {
                 placement="header"
                 className={styles.navCta}
               >
-                {CARD_ENTRY_COPY.ctaShort}
+                <UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel>
               </OrganicCtaLink>
             )}
-          </nav>
+          </div>
         </div>
       </header>
 
       <section className={styles.content}>
         <div className={styles.intro}>
           <div>
-            <p className={styles.eyebrow}>Real product proof</p>
-            <h1>Watch what Kineo actually makes.</h1>
-            <p>Explore selected previews from films made with Kineo. Find a style, watch it, and start with your own idea.</p>
+            <p className={styles.eyebrow}><UiLabel>Real product proof</UiLabel></p>
+            <h1><UiLabel>Watch what Kineo actually makes.</UiLabel></h1>
+            <p><UiLabel>Explore selected previews from films made with Kineo. Find a style, watch it, and start with your own idea.</UiLabel></p>
           </div>
         </div>
         {/* Only explicitly approved, founder-owned public assets enter this collection. */}
@@ -87,36 +95,36 @@ export default async function ExamplesPage() {
             acabou de VER os renders acima lê uma voz real confirmando o que
             os olhos viram. Quando houver 3+, virar strip — não antes (mesma
             regra da home, #304). */}
-        <figure className="mx-auto mt-14 max-w-2xl text-center">
-          <blockquote className="text-balance text-lg italic leading-8 text-white/80 sm:text-xl">
+        <figure className={styles.review}>
+          <blockquote>
             “Too many good ideas die in the mind. This is a product that gives them an escape
             route. Stay with it.”
           </blockquote>
-          <figcaption className="mt-3 text-sm text-white/50">
+          <figcaption>
             — Rick Crossley, subscriber ·{' '}
-            <Link href="/reviews" className="text-[#2997ff] transition hover:text-white">
-              read our honest reviews page →
+            <Link href="/reviews">
+              <UiLabel>read our honest reviews page →</UiLabel>
             </Link>
           </figcaption>
         </figure>
 
-        <div className="mt-12 rounded-[22px] border border-[#2997ff]/25 bg-[#2997ff]/[0.06] p-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
+        <div className={styles.createBand}>
           <div>
-            <h2 className="text-xl font-semibold tracking-[-.02em]">Bring your own topic.</h2>
-            <p className="mt-1 text-sm leading-6 text-white/60">{ft(OFFER, 'Try up to three watermarked Fast videos every 24 hours. No card required.', OFFER.copy.headline)}</p>
+            <h2><UiLabel>Bring your own topic.</UiLabel></h2>
+            <p><UiLabel>{ft(OFFER, 'Try up to three watermarked Fast videos every 24 hours. No card required.', OFFER.copy.headline)}</UiLabel></p>
           </div>
           {/* Open the public editor directly; auth is requested when needed. */}
           <OrganicCtaLink
             href="/studio?utm_source=examples&utm_medium=proof&utm_campaign=push31"
             source="examples_index"
             placement="footer_band"
-            className="mt-5 inline-flex rounded-full bg-white px-5 py-3 text-sm font-semibold tracking-[-.02em] text-black transition hover:bg-white sm:mt-0"
+            className={styles.navCta}
           >
-            {isLoggedIn ? 'Open Studio →' : 'Create a Fast video →'}
+            <UiLabel>{isLoggedIn ? 'Open Studio →' : 'Create a Fast video →'}</UiLabel>
           </OrganicCtaLink>
         </div>
 
-        <ExamplesBusinessProofBridge />
+        <div className={styles.businessBridge}><ExamplesBusinessProofBridge /></div>
       </section>
     </main>
   )

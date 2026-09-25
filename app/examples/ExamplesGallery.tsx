@@ -6,6 +6,7 @@ import type { WallVideo } from '@/lib/engineWall'
 import { searchExamples } from '@/lib/ui/examplesGallery'
 import { showcaseEngines, showcasePoster } from '@/lib/ui/showcaseGallery'
 import styles from './ExamplesGallery.module.css'
+import { UiLabel, useUiCopy } from '@/components/InterfaceLanguage'
 
 function FeaturedMedia({ video, paused, nextVideo, onEnded }: { video: WallVideo; paused: boolean; nextVideo?: WallVideo; onEnded?: () => void }) {
   const container = useRef<HTMLSpanElement>(null)
@@ -56,11 +57,12 @@ function FeaturedMedia({ video, paused, nextVideo, onEnded }: { video: WallVideo
 function FeaturedCard({ videos, lead, autoplay, paused, onOpen, clean }: {
   videos: WallVideo[]; lead: boolean; autoplay: boolean; paused: boolean; clean?: boolean; onOpen: (video: WallVideo, button: HTMLButtonElement) => void
 }) {
+  const t = useUiCopy()
   const [index, setIndex] = useState(0)
   const video = videos[index % videos.length]
   const rotates = videos.length > 1
   return <button type="button" className={lead ? styles.lead : styles.featureCard}
-    onClick={event => onOpen(video, event.currentTarget)} aria-label={`Watch preview: ${video.title}`}>
+    onClick={event => onOpen(video, event.currentTarget)} aria-label={`${t('Watch preview')}: ${video.title}`}>
     {autoplay ? <FeaturedMedia key={video.id} video={video} paused={paused}
       nextVideo={rotates ? videos[(index + 1) % videos.length] : undefined}
       onEnded={rotates ? () => setIndex(current => (current + 1) % videos.length) : undefined} />
@@ -68,12 +70,13 @@ function FeaturedCard({ videos, lead, autoplay, paused, onOpen, clean }: {
     {!clean && <span className={styles.featureShade} />}
     {!clean && rotates && <span className={styles.filmSteps} aria-hidden="true">{videos.map((item, step) => <span key={item.id} data-active={step === index} />)}</span>}
     {!clean && <span className={styles.featureCopy}><span className={styles.featureBadge}>{video.badge}</span><strong>{video.title}</strong>
-      <span className={styles.watch}><span aria-hidden="true">▶</span> Watch preview</span>
+      <span className={styles.watch}><span aria-hidden="true">▶</span> <UiLabel>Watch preview</UiLabel></span>
     </span>}
   </button>
 }
 
 function ExamplePreview({ video, onClose, actionLabel }: { video: WallVideo; onClose: () => void; actionLabel?: string }) {
+  const t = useUiCopy()
   const dialog = useRef<HTMLDialogElement>(null)
   const title = useId()
   const [failed, setFailed] = useState(false)
@@ -88,18 +91,18 @@ function ExamplePreview({ video, onClose, actionLabel }: { video: WallVideo; onC
   return <dialog ref={dialog} className={styles.dialog} aria-labelledby={title} onClose={onClose} onCancel={onClose}
     onClick={event => { if (event.target === event.currentTarget) onClose() }}>
     <div className={styles.dialogInner}>
-      <button type="button" autoFocus onClick={onClose} className={styles.close} aria-label="Close preview">×</button>
+      <button type="button" autoFocus onClick={onClose} className={styles.close} aria-label={t('Close preview')}>×</button>
       <div className={styles.player}>
-        {failed ? <p role="status">This preview is unavailable. You can still explore this style in the Studio.</p>
+        {failed ? <p role="status"><UiLabel>This preview is unavailable. You can still explore this style in the Studio.</UiLabel></p>
           : <video src={video.videoUrl} poster={video.posterUrl ?? showcasePoster(video)} controls autoPlay muted playsInline preload="metadata"
-              aria-label={`Preview: ${video.title}`} onError={() => setFailed(true)} />}
+              aria-label={`${t('Preview')}: ${video.title}`} onError={() => setFailed(true)} />}
       </div>
       <div className={styles.previewInfo}>
-        <span className={styles.eyebrow}>{video.badge} · Preview</span>
+        <span className={styles.eyebrow}>{video.badge} · <UiLabel>Preview</UiLabel></span>
         <h2 id={title}>{video.title}</h2>
-        <p>A short preview from a film made with Kineo.</p>
+        <p><UiLabel>A short preview from a film made with Kineo.</UiLabel></p>
         {video.href && <Link className={styles.action} href={video.href}>
-          {actionLabel ?? (video.engine === 'static_example' ? 'Explore this example' : `Create with ${video.badge}`)} <span aria-hidden="true">→</span>
+          {actionLabel ? t(actionLabel) : video.engine === 'static_example' ? t('Explore this example') : `${t('Create with')} ${video.badge}`} <span aria-hidden="true">→</span>
         </Link>}
       </div>
     </div>
@@ -109,6 +112,7 @@ function ExamplePreview({ video, onClose, actionLabel }: { video: WallVideo; onC
 export default function ExamplesGallery({ videos, startPaused = false, separateFeatured = false, heroOnly = false, featuredCount = 3, previewActionLabel, featuredPlaylists }: {
   videos: WallVideo[]; startPaused?: boolean; separateFeatured?: boolean; heroOnly?: boolean; featuredCount?: 3 | 4; previewActionLabel?: string; featuredPlaylists?: WallVideo[][]
 }) {
+  const t = useUiCopy()
   const [query, setQuery] = useState('')
   const [engine, setEngine] = useState('all')
   const [selected, setSelected] = useState<WallVideo | null>(null)
@@ -121,9 +125,9 @@ export default function ExamplesGallery({ videos, startPaused = false, separateF
   const open = (video: WallVideo, button: HTMLButtonElement) => { opener.current = button; setSelected(video) }
   useEffect(() => { if (!selected) opener.current?.focus({ preventScroll: true }) }, [selected])
   return <div className={`${styles.gallery}${heroOnly ? ` ${styles.homeHero}` : ''}`}>
-    {videos.length >= 3 && <section className={styles.featuredSection} aria-label="Featured examples">
-      <div className={styles.sectionTop}><span className={styles.eyebrow}>The Kineo selection</span>
-        <button type="button" className={styles.quietButton} onClick={() => setPaused(!paused)} aria-pressed={paused}>{paused ? 'Play preview' : 'Pause preview'}</button>
+    {videos.length >= 3 && <section className={styles.featuredSection} aria-label={t('Featured examples')}>
+      <div className={styles.sectionTop}><span className={styles.eyebrow}><UiLabel>The Kineo selection</UiLabel></span>
+        <button type="button" className={styles.quietButton} onClick={() => setPaused(!paused)} aria-pressed={paused}>{t(paused ? 'Play preview' : 'Pause preview')}</button>
       </div>
       <div className={`${styles.featured}${featuredCount === 4 ? ` ${styles.featuredFour}` : ''}`}>
         {videos.slice(0, featuredCount).map((video, index) => <FeaturedCard key={video.id}
@@ -133,26 +137,26 @@ export default function ExamplesGallery({ videos, startPaused = false, separateF
     </section>}
     {!heroOnly && <section className={styles.collection} aria-labelledby="examples-collection-heading">
       <div className={styles.collectionTop}>
-        <div><span className={styles.eyebrow}>Made with Kineo</span><h2 id="examples-collection-heading">Explore the collection</h2></div>
-        <div className={styles.search}><label className={styles.srOnly} htmlFor={searchId}>Search examples</label>
-          <span aria-hidden="true">⌕</span><input id={searchId} type="search" placeholder="Search films or engines…" value={query} onChange={event => setQuery(event.target.value)} />
+        <div><span className={styles.eyebrow}><UiLabel>Made with Kineo</UiLabel></span><h2 id="examples-collection-heading"><UiLabel>Explore the collection</UiLabel></h2></div>
+        <div className={styles.search}><label className={styles.srOnly} htmlFor={searchId}><UiLabel>Search examples</UiLabel></label>
+          <span aria-hidden="true">⌕</span><input id={searchId} type="search" placeholder={t('Search films or engines…')} value={query} onChange={event => setQuery(event.target.value)} />
         </div>
       </div>
-      <div className={styles.filters} role="group" aria-label="Filter by engine">
-        <button type="button" aria-pressed={engine === 'all'} onClick={() => setEngine('all')}>All engines</button>
+      <div className={styles.filters} role="group" aria-label={t('Filter by engine')}>
+        <button type="button" aria-pressed={engine === 'all'} onClick={() => setEngine('all')}><UiLabel>All engines</UiLabel></button>
         {choices.map(choice => <button type="button" key={choice.engine} aria-pressed={engine === choice.engine} onClick={() => setEngine(choice.engine)}>{choice.badge}</button>)}
       </div>
-      <div className={styles.results} role="status">{filtered.length} {filtered.length === 1 ? 'example' : 'examples'}{engine !== 'all' || query ? ' found' : ' to explore'}</div>
+      <div className={styles.results} role="status">{filtered.length} {t(filtered.length === 1 ? 'example' : 'examples')} · {t(engine !== 'all' || query ? 'Search results' : 'Explore the collection')}</div>
       {filtered.length ? <div className={styles.grid}>
-        {filtered.map(video => <button type="button" className={styles.card} key={video.id} onClick={event => open(video, event.currentTarget)} aria-label={`Watch preview: ${video.title}`}>
+        {filtered.map(video => <button type="button" className={styles.card} key={video.id} onClick={event => open(video, event.currentTarget)} aria-label={`${t('Watch preview')}: ${video.title}`}>
           <span className={styles.poster}>
             <img src={video.posterUrl ?? showcasePoster(video)} alt="" loading="lazy" decoding="async" />
             <span className={styles.badge}>{video.badge}</span><span className={styles.play} aria-hidden="true">▶</span>
           </span>
-          <span className={styles.cardTitle}>{video.title}</span><span className={styles.cardHint}>Watch preview <span aria-hidden="true">↗</span></span>
+          <span className={styles.cardTitle}>{video.title}</span><span className={styles.cardHint}><UiLabel>Watch preview</UiLabel> <span aria-hidden="true">↗</span></span>
         </button>)}
-      </div> : <div className={styles.empty}><h3>No matching examples</h3><p>Try a different title or engine.</p>
-        <button type="button" className={styles.action} onClick={() => { setQuery(''); setEngine('all') }}>Show all examples</button>
+      </div> : <div className={styles.empty}><h3><UiLabel>No matching examples</UiLabel></h3><p><UiLabel>Try a different title or engine.</UiLabel></p>
+        <button type="button" className={styles.action} onClick={() => { setQuery(''); setEngine('all') }}><UiLabel>Show all examples</UiLabel></button>
       </div>}
     </section>}
     {selected && <ExamplePreview key={selected.id} video={selected} actionLabel={previewActionLabel} onClose={() => setSelected(null)} />}
