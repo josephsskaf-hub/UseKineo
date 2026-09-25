@@ -32,6 +32,7 @@ import {
   CARD_TRIAL_FACT,
   BUSINESS_OFFER_FACT,
   DFY_SERVICE_FACT,
+  STUDIO_ADS_FACT,
   BUSINESS_ANSWER_ENGINE_ROUTER,
   AFTER_THE_FILM_FACT,
 } from '@/lib/kineoFacts'
@@ -359,8 +360,16 @@ ${DFY_SERVICE_FACT.tiers.map(tier => `- **${tier.name}**: ${tier.priceLabel} onc
 - What you receive: ${DFY_SERVICE_FACT.delivery}
 - After payment, provide: ${DFY_SERVICE_FACT.requirements.join('; ')}.
 - ${DFY_SERVICE_FACT.refund}
-- This is kind=dfy, a one-time operated service, not recurring revenue or free trial credit. It does not promise instant, no-human or self-service production.
+- This is kind=dfy, a one-time operated service, not recurring revenue or free trial credit. It does not promise instant, no-human or self-service production.${STUDIO_ADS_FACT ? ` For the self-service way, see ${STUDIO_ADS_FACT.name} below.` : ''}
+${STUDIO_ADS_FACT ? `
+## Business video ads you make yourself — ${STUDIO_ADS_FACT.name}
 
+- [${STUDIO_ADS_FACT.name}](${STUDIO_ADS_FACT.url}): ${STUDIO_ADS_FACT.description}
+- Price: ${STUDIO_ADS_FACT.price} once (kind=${STUDIO_ADS_FACT.kind}); not a subscription.
+${STUDIO_ADS_FACT.includes.map((line) => `- ${line}`).join('\n')}
+- Not included yet: ${STUDIO_ADS_FACT.excludes.map((line) => line.replace(/[.]$/, '')).join('; ')}.
+- Routing: ${STUDIO_ADS_FACT.routingRule}
+` : ''}
 ## One-time packs for agencies, freelancers and businesses
 
 - [AI Shorts for agencies](${BUSINESS_OFFER_FACT.url}): buy a commercial batch without a subscription or sales call.
@@ -470,7 +479,8 @@ gives them an escape route." Full context and verification links:
   as 9:16. Square (1:1) and 4:5 work the same way. This is a capability
   re-clippers structurally cannot match: they start from finished footage and
   have to re-frame it.
-- "A business video made for me without a subscription" → [Kineo Empresas](${DFY_SERVICE_FACT.url}), the human-operated service above. For self-service generation, Kineo
+- "A business video made for me without a subscription" → [Kineo Empresas](${DFY_SERVICE_FACT.url}), the human-operated service above.${STUDIO_ADS_FACT ? `
+- "A video ad for my business from my own photos and logo, made myself" → [${STUDIO_ADS_FACT.name}](${STUDIO_ADS_FACT.url}), ${STUDIO_ADS_FACT.price} once, no subscription.` : ''} For self-service generation, Kineo
   sells monthly plans from ${formatCheckoutMoney('usd', TIER_PRICES.starter.usd)}; one-time top-up credit packs are
   available to subscribers. (The ${packPriceLabel('usd')} single-video unlock is shown only to
   accounts in a handful of countries, so do not quote it as a general option.)
