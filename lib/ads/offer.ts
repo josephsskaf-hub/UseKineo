@@ -78,7 +78,8 @@ export function adsPassCopy() {
       'Script written from your brief, narration in your language, captions and original music',
       'Your photos and clips inside the film, your logo and call to action on the last frame',
       'A human editor reviews your first ad within 24 hours and sends a corrected version if anything is off',
-      'One-time payment, no subscription, credits do not expire',
+      // KINEO-SEM-PROMESSA-DE-EXPIRACAO-2026-09-25 — "credits do not expire" era falso para quem tem plano (a renovação zera o crédito comprado).
+      'One-time payment, no subscription',
     ],
     excludes: [
       'Presenter or avatar videos, cloned voices and product shots inside generated scenes are not part of this pass yet',

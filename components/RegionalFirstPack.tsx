@@ -280,7 +280,7 @@ export default function RegionalFirstPack({
           trava as duas. */}
       <p className="mx-auto mt-2 max-w-md text-[12.5px] leading-relaxed text-[#a1a1a6]">
         {COPY[surface].contexto} This is a one-time payment — no subscription,
-        no renewal, and the credits never expire.
+        no renewal.
       </p>
       <a
         href={href}

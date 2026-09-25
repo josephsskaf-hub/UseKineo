@@ -20,7 +20,8 @@ export function bulkCheckoutDescription(pack: BulkCheckoutEntitlement): string {
 
   return (
     `One-time purchase: ${pack.credits} universal credits, sized for ${pack.videos} Kineo 1 Fast Shorts ` +
-    `you create and download in Kineo. No subscription. Credits never expire.`
+    // KINEO-SEM-PROMESSA-DE-EXPIRACAO-2026-09-25 — sem "Credits never expire": a renovação de um plano zera o crédito comprado à parte.
+    `you create and download in Kineo. No subscription.`
   )
 }
 

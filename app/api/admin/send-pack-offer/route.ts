@@ -99,7 +99,6 @@ function emailHtml(userId: string): string {
   <ul>
     <li>No subscription</li>
     <li>Watermark-free</li>
-    <li>Credits never expire</li>
   </ul>
   <p style="margin:26px 0">
     <a href="https://usekineo.com/pricing?utm_source=winback_email&utm_campaign=starter25" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Get ${PACK_CREDITS.starter} credits for $4.90 →</a>

@@ -217,7 +217,7 @@ ${tentarDeNovoUrl(tier)}
 2) Skip the subscription entirely. ${PACK_CREDITS.starter} credits for ${packPriceLabel()}, paid once:
 ${packUrl()}
 
-Option 2 is worth a look even if option 1 sounds easier. It is a single charge, not a recurring one — and a card that refuses to sign up for a monthly international charge will often accept a one-off without blinking. No plan, no renewal, and the credits do not expire.
+Option 2 is worth a look even if option 1 sounds easier. It is a single charge, not a recurring one — and a card that refuses to sign up for a monthly international charge will often accept a one-off without blinking. No plan, no renewal.
 
 If neither works, hit reply and tell me which country you are in. I am adding local payment methods right now, and knowing where the wall is decides which one I finish first.
 
@@ -242,7 +242,7 @@ function corpoHtml(motivo: string, tier: string | null, userId: string): string 
 <p style="margin:0 0 22px">
   <a href="${packUrl()}" style="background:#111;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700;display:inline-block">Get ${PACK_CREDITS.starter} credits for ${packPriceLabel()} &rarr;</a>
 </p>
-<p>Option 2 is worth a look even if option 1 sounds easier. It is a <strong>single charge, not a recurring one</strong> &mdash; and a card that refuses to sign up for a monthly international charge will often accept a one-off without blinking. No plan, no renewal, and the credits do not expire.</p>
+<p>Option 2 is worth a look even if option 1 sounds easier. It is a <strong>single charge, not a recurring one</strong> &mdash; and a card that refuses to sign up for a monthly international charge will often accept a one-off without blinking. No plan, no renewal.</p>
 <p>If neither works, <strong>hit reply and tell me which country you are in</strong>. I am adding local payment methods right now, and knowing where the wall is decides which one I finish first.</p>
 <p style="font-size:14px;color:#555">Or look at <a href="${planosUrl()}" style="color:#2997ff">the plans</a> again first.</p>
 <p>&mdash; Joseph, founder<br/>Kineo &middot; <a href="https://usekineo.com" style="color:#2997ff">usekineo.com</a></p>

@@ -91,7 +91,7 @@ function abandonHtml(userId: string, videos?: number): { subject: string; html: 
   <p>I saw a checkout from your account that didn't finish${typeof videos === 'number' && videos > 0 ? ` — and that you've already made ${videos} video${videos === 1 ? '' : 's'} with us` : ''}. If something got in the way, two things that might help:</p>
   <p><b>1) 20% off any plan</b> with code <b>KINEO20</b> (applies automatically):<br/>
   <a href="${PRICING}" style="color:#2997ff;font-weight:bold">usekineo.com/pricing → KINEO20 applied</a></p>
-  <p><b>2) No subscription?</b> The $4.90 pack = ${PACK_CREDITS.starter} credits, and they never expire.</p>
+  <p><b>2) No subscription?</b> The $4.90 pack = ${PACK_CREDITS.starter} credits, one-time.</p>
   <p>And since you last looked, Kineo got a big upgrade: <b>AI Presenter</b> (talking host with perfect lip-sync), <b>Character Lock</b> (same face in every video), and you can now use <b>your own footage and your own voice</b>.</p>
   <p>Card being rejected? We also take <b>Apple Pay and Link</b> at checkout. Or just reply — I'll sort it personally.</p>
   <p>— Joseph, founder · Kineo</p>
@@ -108,7 +108,7 @@ function pqlHtml(userId: string, videos?: number): { subject: string; html: stri
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1e293b;line-height:1.6">
   <p>Hey — Joseph here, founder of <b>Kineo</b>.</p>
   <p>You've made <b>${n} video${n === 1 ? '' : 's'}</b> with us — you clearly get the workflow. Here's the cheapest way to keep the momentum:</p>
-  <p style="font-size:17px"><b>${PACK_CREDITS.starter} credits for $4.90, one-time.</b> No subscription, watermark-free, credits never expire.</p>
+  <p style="font-size:17px"><b>${PACK_CREDITS.starter} credits for $4.90, one-time.</b> No subscription, watermark-free.</p>
   <p style="margin:22px 0">
     <a href="${PRICING}" style="background:#2997ff;color:#ffffff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold">Get ${PACK_CREDITS.starter} credits for $4.90 →</a>
   </p>

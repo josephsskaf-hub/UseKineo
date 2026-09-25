@@ -89,7 +89,7 @@ export default function AgencyPacksClient({ packs }: { packs: AgencyPackView[] }
           Pick the client volume you already sold
         </h2>
         <p style={{ color: '#9a9aa1', fontSize: 15, lineHeight: 1.65, margin: 0 }}>
-          Every pack is paid once in USD. Credits do not expire. The named video count is the Fast workflow; premium generative engines use more credits per video.
+          Every pack is paid once in USD. The named video count is the Fast workflow; premium generative engines use more credits per video.
         </p>
       </div>
 

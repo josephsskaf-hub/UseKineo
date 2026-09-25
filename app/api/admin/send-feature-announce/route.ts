@@ -100,7 +100,7 @@ function emailHtml(userId: string): string {
   <p style="margin:26px 0">
     <a href="https://usekineo.com/avatar?utm_source=feature_email&utm_campaign=avatar_suite" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Try AI Presenter →</a>
   </p>
-  <p style="font-size:13px;color:#64748b">Out of credits? The $4.90 pack adds ${PACK_CREDITS.starter} credits (they never expire) — enough for Shorts and gesture clips. A presenter video costs ${PRESENTER_COST} credits, so for those a monthly plan is the cheaper route.</p>
+  <p style="font-size:13px;color:#64748b">Out of credits? The $4.90 pack adds ${PACK_CREDITS.starter} credits — enough for Shorts and gesture clips. A presenter video costs ${PRESENTER_COST} credits, so for those a monthly plan is the cheaper route.</p>
   <p>Just reply if you want me to walk you through any of it — I read every email.</p>
   <p>— Joseph, founder<br/>Kineo · https://usekineo.com</p>
 </div>

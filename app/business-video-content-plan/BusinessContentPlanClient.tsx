@@ -296,7 +296,7 @@ export default function BusinessContentPlanClient({
               <div style={{ ...CARD, borderRadius: 17, padding: 20 }}>
                 <div style={{ color: '#34d399', fontSize: '.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.1em' }}>Produce the batch</div>
                 <h3 style={{ margin: '8px 0 7px', fontSize: '1.08rem' }}>The closest one-time fit is the {recommendedPack === 'bulk20' ? '20' : '30'}-video pack</h3>
-                <p style={{ color: '#96969e', fontSize: '.84rem', lineHeight: 1.58, margin: '0 0 14px' }}>This is a four-week planning fit, not a promise that every month has four weeks. Credits do not expire.</p>
+                <p style={{ color: '#96969e', fontSize: '.84rem', lineHeight: 1.58, margin: '0 0 14px' }}>This is a four-week planning fit, not a promise that every month has four weeks.</p>
                 <Link href={packHref} onClick={() => void trackEvent('business_content_plan_packs_clicked', { version: BUSINESS_PLAN_SHARE_CAMPAIGN, campaign: BUSINESS_PLAN_CAMPAIGN, surface: 'business_video_content_plan', goal: result.goal, cadence: result.cadence, recommended_pack: recommendedPack, ...attributionMetadata })} style={{ display: 'inline-flex', minHeight: 46, alignItems: 'center', justifyContent: 'center', padding: '0 17px', borderRadius: 11, background: '#34d399', color: '#04110c', fontSize: '.86rem', fontWeight: 900, textDecoration: 'none' }}>
                   See the {recommendedPack === 'bulk20' ? '20' : '30'}-video pack →
                 </Link>

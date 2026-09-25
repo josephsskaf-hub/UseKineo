@@ -37,7 +37,8 @@ for (const pack of packs) {
   check(description.includes('you create and download in Kineo'), `${pack.id}: buyer action is explicit`)
   check(description.includes('One-time purchase'), `${pack.id}: purchase mode is explicit`)
   check(description.includes('No subscription'), `${pack.id}: no recurring charge is explicit`)
-  check(description.includes('Credits never expire'), `${pack.id}: expiry truth is preserved`)
+  // KINEO-SEM-PROMESSA-DE-EXPIRACAO-2026-09-25 — a verdade agora é NÃO prometer validade: a renovação de um plano zera o crédito comprado à parte.
+  check(description.includes('No subscription.') && !/expire/i.test(description), `${pack.id}: no expiry promise (plan renewal resets purchased credits)`)
   check(!/ready-to-post/i.test(description), `${pack.id}: no finished-delivery claim remains`)
   check(description.length <= 500, `${pack.id}: Stripe description limit is respected`)
 }

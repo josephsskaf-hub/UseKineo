@@ -220,7 +220,7 @@ export default function PostVideoPaywall({ credits }: PostVideoPaywallProps) {
             Not ready for a monthly plan?{' '}
             <span style={{ color: '#2997ff' }}>Start with {PACK_CREDITS.starter} credits for {packPriceLabel()} →</span>
             <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: '#86868b', marginTop: 2 }}>
-              One-time · no subscription · credits never expire
+              One-time · no subscription
             </span>
           </>
         )}
