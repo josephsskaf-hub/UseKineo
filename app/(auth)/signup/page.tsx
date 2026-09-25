@@ -120,9 +120,9 @@ function isEmbeddedBrowser(): boolean {
 }
 
 function scorePassword(pw: string): Strength {
-  if (!pw) return { level: 0, label: '', color: '#475569' }
+  if (!pw) return { level: 0, label: '', color: 'var(--muted)' }
   if (pw.length < 6)
-    return { level: 1, label: 'Too short', color: '#ef4444' }
+    return { level: 1, label: 'Too short', color: 'var(--danger)' }
 
   let score = 0
   if (pw.length >= 8) score++
@@ -130,10 +130,10 @@ function scorePassword(pw: string): Strength {
   if (/\d/.test(pw)) score++
   if (/[^A-Za-z0-9]/.test(pw)) score++
 
-  if (score <= 1) return { level: 2, label: 'Weak', color: '#f59e0b' }
+  if (score <= 1) return { level: 2, label: 'Weak', color: 'var(--warning)' }
   if (score === 2 || score === 3)
-    return { level: 3, label: 'Good', color: '#2997ff' }
-  return { level: 4, label: 'Strong', color: '#2997ff' }
+    return { level: 3, label: 'Good', color: 'var(--accent)' }
+  return { level: 4, label: 'Strong', color: 'var(--accent)' }
 }
 
 export default function SignupPage() {
@@ -498,23 +498,23 @@ export default function SignupPage() {
           no modelo novo') — signup ganha o MESMO split-screen do login:
           vitrine AuthReel a esquerda (Maracaibo HD + avalanche + Tunguska +
           Lituya), formulario em coluna fixa a direita, azul Kineo. */}
-      <div className="min-h-screen flex relative" style={{ background: '#050506' }}>
+      <div className="min-h-screen flex relative" style={{ background: 'var(--bg)' }}>
         <div className="hidden md:flex flex-1 flex-col items-center justify-center relative overflow-hidden px-10 py-12 gap-8">
           <div
             className="absolute rounded-full pointer-events-none"
-            style={{ width: 700, height: 700, background: '#2997ff', top: -260, left: -180, opacity: 0.10, filter: 'blur(100px)' }}
+            style={{ width: 700, height: 700, background: 'var(--indigo)', top: -260, left: -180, opacity: 0.10, filter: 'blur(100px)' }}
           />
           <div
             className="absolute rounded-full pointer-events-none"
-            style={{ width: 520, height: 520, background: '#2997ff', bottom: -200, right: -120, opacity: 0.07, filter: 'blur(100px)' }}
+            style={{ width: 520, height: 520, background: 'var(--indigo)', bottom: -200, right: -120, opacity: 0.07, filter: 'blur(100px)' }}
           />
           <div
             aria-hidden="true"
             className="absolute inset-0 pointer-events-none"
-            style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.5) 1px, transparent 1px)', backgroundSize: '22px 22px', opacity: 0.05 }}
+            style={{ backgroundImage: 'radial-gradient(var(--muted) 1px, transparent 1px)', backgroundSize: '22px 22px', opacity: 0.05 }}
           />
           <div className="relative z-10 text-center" style={{ maxWidth: 640 }}>
-            <h2 className="text-3xl font-black tracking-tight mb-2" style={{ color: '#f5f5f7', letterSpacing: '-0.02em' }}>
+            <h2 className="text-3xl font-black tracking-tight mb-2" style={{ color: 'var(--text)', letterSpacing: '-0.02em' }}>
               Type an idea. Watch it become a film.
             </h2>
             <p className="text-sm" style={{ color: 'var(--muted2)' }}>
@@ -533,7 +533,7 @@ export default function SignupPage() {
               <li key={line} className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'var(--text2)' }}>
                 <span
                   className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'rgba(41,151,255,.18)', border: '1px solid rgba(41,151,255,.35)', color: '#2997ff', fontSize: '0.6rem', fontWeight: 800 }}
+                  style={{ background: 'var(--accent-soft)', border: '1px solid var(--border2)', color: 'var(--accent)', fontSize: '0.6rem', fontWeight: 800 }}
                 >
                   ✓
                 </span>
@@ -546,7 +546,7 @@ export default function SignupPage() {
         {/* RIGHT — form panel */}
         <div
           className="w-full md:w-[440px] flex-shrink-0 flex flex-col justify-center p-8 md:p-10 animate-fade-in-up relative z-10 min-h-screen"
-          style={{ background: '#0e0e10', borderLeft: '1px solid #1d1d20' }}
+          style={{ background: 'var(--card)', borderLeft: '1px solid var(--border)' }}
         >
             <Link
               href="/"
@@ -569,7 +569,7 @@ export default function SignupPage() {
               <KineoBolt size={32} />
               <div
                 className="font-black text-sm tracking-tight"
-                style={{ color: '#f5f5f7' }}
+                style={{ color: 'var(--text)' }}
               >
                 Kineo
               </div>
@@ -592,9 +592,9 @@ export default function SignupPage() {
                     <p
                       className="text-sm mt-3 rounded-xl px-4 py-3"
                       style={{
-                        color: '#7cc0ff',
-                        background: 'rgba(41,151,255,.08)',
-                        border: '1px solid rgba(41,151,255,.25)',
+                        color: 'var(--accent)',
+                        background: 'var(--accent-soft)',
+                        border: '1px solid var(--border2)',
                       }}
                     >
                       {checkoutResolution.continuity}
@@ -608,12 +608,12 @@ export default function SignupPage() {
                   </p>
                 )}
                 {!checkoutResolution && savedCreation && (
-                  <p className="text-sm mt-3" style={{ color: '#7cc0ff' }}>
+                  <p className="text-sm mt-3" style={{ color: 'var(--accent)' }}>
                     Your {savedCreation.kind} is still saved. The confirmation link opens it in Kineo.
                   </p>
                 )}
                 {!checkoutResolution && savedProductDestination && (
-                  <p className="text-sm mt-3" style={{ color: '#7cc0ff' }}>
+                  <p className="text-sm mt-3" style={{ color: 'var(--accent)' }}>
                     Your destination is still saved. The confirmation link opens {savedProductDestination.destinationLabel}.
                   </p>
                 )}
@@ -629,12 +629,12 @@ export default function SignupPage() {
                     : 'inline-block mt-6 text-sm font-semibold'}
                   style={checkoutResolution
                     ? {
-                        color: '#fff',
-                        background: '#2997ff',
-                        boxShadow: '0 8px 24px rgba(41,151,255,.3)',
+                        color: 'var(--on-accent)',
+                        background: 'var(--indigo)',
+                        boxShadow: '0 8px 24px color-mix(in srgb, var(--indigo) 30%, transparent)',
                         textDecoration: 'none',
                       }
-                    : { color: '#2997ff' }}
+                    : { color: 'var(--accent)' }}
                 >
                   {checkoutResolution?.signInCta ?? 'Back to Sign In'}
                 </Link>
@@ -678,9 +678,9 @@ export default function SignupPage() {
                     data-testid="cold-trial-promise-chip"
                     className="inline-flex items-center rounded-full px-3 py-1.5 mb-2 text-xs font-black"
                     style={{
-                      color: '#04121f',
-                      background: '#2997ff',
-                      border: '1px solid #2997ff',
+                      color: 'var(--on-accent)',
+                      background: 'var(--indigo)',
+                      border: '1px solid var(--indigo)',
                     }}
                   >
                     {trialPromise.chip}
@@ -691,9 +691,9 @@ export default function SignupPage() {
                   <div
                     className="inline-flex items-center rounded-full px-3 py-1.5 mb-5 text-xs font-black"
                     style={{
-                      color: '#7cc0ff',
-                      background: 'rgba(41,151,255,.1)',
-                      border: '1px solid rgba(41,151,255,.3)',
+                      color: 'var(--accent)',
+                      background: 'var(--accent-soft)',
+                      border: '1px solid var(--border2)',
                     }}
                   >
                     {checkoutChoice.summary}
@@ -709,25 +709,25 @@ export default function SignupPage() {
                     aria-labelledby="saved-product-destination-heading"
                     className="rounded-2xl mb-5 p-4"
                     style={{
-                      background: 'linear-gradient(145deg, rgba(52,211,153,.12), rgba(41,151,255,.035))',
-                      border: '1px solid rgba(52,211,153,.3)',
-                      boxShadow: '0 14px 36px rgba(0,0,0,.22)',
+                      background: 'linear-gradient(145deg, var(--accent-soft), var(--card))',
+                      border: '1px solid var(--border2)',
+                      boxShadow: '0 14px 36px color-mix(in srgb, var(--text) 12%, transparent)',
                     }}
                   >
                     <div
                       className="text-[10px] font-black uppercase tracking-[.12em] mb-1.5"
-                      style={{ color: '#6ee7b7' }}
+                      style={{ color: 'var(--accent)' }}
                     >
                       {savedProductDestination.eyebrow}
                     </div>
                     <h2
                       id="saved-product-destination-heading"
                       className="text-sm font-black mb-2"
-                      style={{ color: '#f5f5f7' }}
+                      style={{ color: 'var(--text)' }}
                     >
                       {savedProductDestination.destinationLabel}
                     </h2>
-                    <p className="text-xs leading-relaxed m-0" style={{ color: '#aeb2ba' }}>
+                    <p className="text-xs leading-relaxed m-0" style={{ color: 'var(--muted)' }}>
                       {savedProductDestination.description}
                     </p>
                   </section>
@@ -787,18 +787,18 @@ export default function SignupPage() {
                       aria-describedby={error ? 'signup-error' : undefined}
                       className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all"
                       style={{
-                        background: 'rgba(255,255,255,.03)',
+                        background: 'var(--card2)',
                         border: '1px solid var(--border2)',
                         color: 'var(--text)',
                         fontFamily: 'inherit',
                       }}
                       onFocus={(e) => {
-                        e.target.style.borderColor = 'rgba(41,151,255,.5)'
-                        e.target.style.background = 'rgba(41,151,255,.04)'
+                        e.target.style.borderColor = 'var(--accent)'
+                        e.target.style.background = 'var(--accent-soft)'
                       }}
                       onBlur={(e) => {
                         e.target.style.borderColor = 'var(--border2)'
-                        e.target.style.background = 'rgba(255,255,255,.03)'
+                        e.target.style.background = 'var(--card2)'
                       }}
                     />
                   </div>
@@ -824,18 +824,18 @@ export default function SignupPage() {
                         aria-describedby={error ? 'signup-error' : undefined}
                         className="w-full rounded-xl px-4 py-3 pr-12 text-sm outline-none transition-all"
                         style={{
-                          background: 'rgba(255,255,255,.03)',
+                          background: 'var(--card2)',
                           border: '1px solid var(--border2)',
                           color: 'var(--text)',
                           fontFamily: 'inherit',
                         }}
                         onFocus={(e) => {
-                          e.target.style.borderColor = 'rgba(41,151,255,.5)'
-                          e.target.style.background = 'rgba(41,151,255,.04)'
+                          e.target.style.borderColor = 'var(--accent)'
+                          e.target.style.background = 'var(--accent-soft)'
                         }}
                         onBlur={(e) => {
                           e.target.style.borderColor = 'var(--border2)'
-                          e.target.style.background = 'rgba(255,255,255,.03)'
+                          e.target.style.background = 'var(--card2)'
                         }}
                       />
                       <button
@@ -895,7 +895,7 @@ export default function SignupPage() {
                                 background:
                                   strength.level >= i
                                     ? strength.color
-                                    : 'rgba(255,255,255,.08)',
+                                    : 'var(--border)',
                               }}
                             />
                           ))}
@@ -918,9 +918,9 @@ export default function SignupPage() {
                       role="alert"
                       className="rounded-xl px-4 py-3 text-sm"
                       style={{
-                        background: 'rgba(239,68,68,.08)',
-                        border: '1px solid rgba(239,68,68,.2)',
-                        color: '#f87171',
+                        background: 'color-mix(in srgb, var(--danger) 8%, transparent)',
+                        border: '1px solid color-mix(in srgb, var(--danger) 20%, transparent)',
+                        color: 'var(--danger)',
                       }}
                     >
                       {error}
@@ -932,11 +932,11 @@ export default function SignupPage() {
                           error, so a real validation message stays clean. */}
                       {/already\s*registered|already\s*exists/i.test(error) && (
                         <div style={{ marginTop: 8, color: 'var(--muted2)' }}>
-                          <Link href={loginHref} style={{ color: '#2997ff', fontWeight: 700 }}>
+                          <Link href={loginHref} style={{ color: 'var(--accent)', fontWeight: 700 }}>
                             Sign in instead
                           </Link>
                           {' · '}
-                          <Link href={forgotPasswordHref} style={{ color: '#2997ff', fontWeight: 700 }}>
+                          <Link href={forgotPasswordHref} style={{ color: 'var(--accent)', fontWeight: 700 }}>
                             Forgot your password?
                           </Link>
                         </div>
@@ -948,10 +948,10 @@ export default function SignupPage() {
                       do checkout ve o que esta acontecendo em vez de um
                       formulario que some sozinho para o seletor do Google. */}
                   {autoOauthInFlight && (
-                    <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(8,8,11,.96)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-                      <div style={{ background: '#131316', border: '1px solid rgba(41,151,255,.35)', borderRadius: 18, padding: '28px 26px', maxWidth: 380, textAlign: 'center', boxShadow: '0 18px 60px rgba(0,0,0,.6)' }}>
+                    <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'color-mix(in srgb, var(--bg) 96%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+                      <div style={{ background: 'var(--card)', border: '1px solid var(--border2)', borderRadius: 18, padding: '28px 26px', maxWidth: 380, textAlign: 'center', boxShadow: '0 18px 60px color-mix(in srgb, var(--text) 18%, transparent)' }}>
                         <div style={{ fontSize: '1.6rem', marginBottom: 10 }} aria-hidden="true">🔐</div>
-                        <div style={{ fontWeight: 800, color: '#f5f5f7', marginBottom: 6 }}>Taking you to Google sign-in…</div>
+                        <div style={{ fontWeight: 800, color: 'var(--text)', marginBottom: 6 }}>Taking you to Google sign-in…</div>
                         {/* KINEO-SPRINT-FRIO-2026-09-09 r3 — 24 das 27 pessoas
                             que chegaram no cadastro vindas de um checkout foram
                             levadas ao Google SEM escolher (selection_kind
@@ -961,12 +961,12 @@ export default function SignupPage() {
                         {trialPromise && (
                           <div
                             data-testid="cold-trial-promise-oauth"
-                            style={{ display: 'inline-block', margin: '0 0 10px', padding: '6px 12px', borderRadius: 999, fontSize: '0.78rem', fontWeight: 900, color: '#7cc0ff', background: 'rgba(41,151,255,.1)', border: '1px solid rgba(41,151,255,.3)' }}
+                            style={{ display: 'inline-block', margin: '0 0 10px', padding: '6px 12px', borderRadius: 999, fontSize: '0.78rem', fontWeight: 900, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--border2)' }}
                           >
                             {trialPromise.chip}
                           </div>
                         )}
-                        <div style={{ fontSize: '0.85rem', color: '#a1a1a8', lineHeight: 1.5 }}>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--muted)', lineHeight: 1.5 }}>
                           {bulkCheckoutContext
                             ? `Your ${bulkCheckoutContext.videos}-video pack is saved. One tap takes you back to its one-time checkout.`
                             : checkoutChoice?.continuity ?? 'One tap and we\'ll bring you straight back to secure checkout.'}
@@ -979,9 +979,9 @@ export default function SignupPage() {
                     disabled={loading}
                     className="w-full rounded-xl py-3.5 font-bold text-sm transition-all mt-1"
                     style={{
-                      background: '#f5f5f7',
-                      color: '#000',
-                      boxShadow: '0 4px 22px rgba(41,151,255,.3)',
+                      background: 'var(--indigo)',
+                      color: 'var(--on-accent)',
+                      boxShadow: '0 4px 22px color-mix(in srgb, var(--indigo) 30%, transparent)',
                       opacity: loading ? 0.7 : 1,
                       cursor: loading ? 'not-allowed' : 'pointer',
                     }}
@@ -1007,7 +1007,7 @@ export default function SignupPage() {
                   <Link
                     href={loginHref}
                     className="font-semibold transition-colors"
-                    style={{ color: '#2997ff' }}
+                    style={{ color: 'var(--accent)' }}
                   >
                     Sign in
                   </Link>

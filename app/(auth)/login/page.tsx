@@ -159,24 +159,24 @@ export default function LoginPage() {
 
   return (
     <>
-      <div className="min-h-screen flex relative" style={{ background: '#050506' }}>
+      <div className="min-h-screen flex relative" style={{ background: 'var(--bg)' }}>
         {/* LEFT — vitrine de renders (desktop) */}
         <div className="hidden md:flex flex-1 flex-col items-center justify-center relative overflow-hidden px-10 py-12 gap-8">
           <div
             className="absolute rounded-full pointer-events-none"
-            style={{ width: 700, height: 700, background: '#2997ff', top: -260, left: -180, opacity: 0.10, filter: 'blur(100px)' }}
+            style={{ width: 700, height: 700, background: 'var(--indigo)', top: -260, left: -180, opacity: 0.10, filter: 'blur(100px)' }}
           />
           <div
             className="absolute rounded-full pointer-events-none"
-            style={{ width: 520, height: 520, background: '#2997ff', bottom: -200, right: -120, opacity: 0.07, filter: 'blur(100px)' }}
+            style={{ width: 520, height: 520, background: 'var(--indigo)', bottom: -200, right: -120, opacity: 0.07, filter: 'blur(100px)' }}
           />
           <div
             aria-hidden="true"
             className="absolute inset-0 pointer-events-none"
-            style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.5) 1px, transparent 1px)', backgroundSize: '22px 22px', opacity: 0.05 }}
+            style={{ backgroundImage: 'radial-gradient(var(--muted) 1px, transparent 1px)', backgroundSize: '22px 22px', opacity: 0.05 }}
           />
           <div className="relative z-10 text-center" style={{ maxWidth: 640 }}>
-            <h2 className="text-3xl font-black tracking-tight mb-2" style={{ color: '#f5f5f7', letterSpacing: '-0.02em' }}>
+            <h2 className="text-3xl font-black tracking-tight mb-2" style={{ color: 'var(--text)', letterSpacing: '-0.02em' }}>
               Type an idea. Watch it become a film.
             </h2>
             <p className="text-sm" style={{ color: 'var(--muted2)' }}>
@@ -195,7 +195,7 @@ export default function LoginPage() {
               <li key={line} className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'var(--text2)' }}>
                 <span
                   className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'rgba(41,151,255,.18)', border: '1px solid rgba(41,151,255,.35)', color: '#2997ff', fontSize: '0.6rem', fontWeight: 800 }}
+                  style={{ background: 'var(--accent-soft)', border: '1px solid var(--border2)', color: 'var(--accent)', fontSize: '0.6rem', fontWeight: 800 }}
                 >
                   ✓
                 </span>
@@ -208,7 +208,7 @@ export default function LoginPage() {
         {/* RIGHT — form panel (fundador: "a nossa e do lado direito") */}
         <div
           className="w-full md:w-[440px] flex-shrink-0 flex flex-col justify-center p-8 md:p-10 animate-fade-in-up relative z-10 min-h-screen"
-          style={{ background: '#0e0e10', borderLeft: '1px solid #1d1d20' }}
+          style={{ background: 'var(--card)', borderLeft: '1px solid var(--border)' }}
         >
             <Link
               href="/"
@@ -231,7 +231,7 @@ export default function LoginPage() {
               <KineoBolt size={32} />
               <div
                 className="font-black text-sm tracking-tight"
-                style={{ color: '#f5f5f7' }}
+                style={{ color: 'var(--text)' }}
               >
                 Kineo
               </div>
@@ -257,9 +257,9 @@ export default function LoginPage() {
                 role="status"
                 className="rounded-xl px-4 py-3 text-sm mb-5"
                 style={{
-                  background: 'rgba(41,151,255,.08)',
-                  border: '1px solid rgba(41,151,255,.3)',
-                  color: '#2997ff',
+                  background: 'var(--accent-soft)',
+                  border: '1px solid var(--border2)',
+                  color: 'var(--accent)',
                   fontWeight: 600,
                 }}
               >
@@ -325,18 +325,18 @@ export default function LoginPage() {
                   aria-describedby={error ? 'login-error' : undefined}
                   className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all"
                   style={{
-                    background: 'rgba(255,255,255,.03)',
+                    background: 'var(--card2)',
                     border: '1px solid var(--border2)',
                     color: 'var(--text)',
                     fontFamily: 'inherit',
                   }}
                   onFocus={(e) => {
-                    e.target.style.borderColor = 'rgba(41,151,255,.5)'
-                    e.target.style.background = 'rgba(41,151,255,.04)'
+                    e.target.style.borderColor = 'var(--accent)'
+                    e.target.style.background = 'var(--accent-soft)'
                   }}
                   onBlur={(e) => {
                     e.target.style.borderColor = 'var(--border2)'
-                    e.target.style.background = 'rgba(255,255,255,.03)'
+                    e.target.style.background = 'var(--card2)'
                   }}
                 />
               </div>
@@ -354,7 +354,7 @@ export default function LoginPage() {
                     href={forgotPasswordHref}
                     className="text-xs font-semibold"
                     style={{
-                      color: '#2997ff',
+                      color: 'var(--accent)',
                       textDecoration: 'none',
                     }}
                   >
@@ -373,18 +373,18 @@ export default function LoginPage() {
                     aria-describedby={error ? 'login-error' : undefined}
                     className="w-full rounded-xl px-4 py-3 pr-12 text-sm outline-none transition-all"
                     style={{
-                      background: 'rgba(255,255,255,.03)',
+                      background: 'var(--card2)',
                       border: '1px solid var(--border2)',
                       color: 'var(--text)',
                       fontFamily: 'inherit',
                     }}
                     onFocus={(e) => {
-                      e.target.style.borderColor = 'rgba(41,151,255,.5)'
-                      e.target.style.background = 'rgba(41,151,255,.04)'
+                      e.target.style.borderColor = 'var(--accent)'
+                      e.target.style.background = 'var(--accent-soft)'
                     }}
                     onBlur={(e) => {
                       e.target.style.borderColor = 'var(--border2)'
-                      e.target.style.background = 'rgba(255,255,255,.03)'
+                      e.target.style.background = 'var(--card2)'
                     }}
                   />
                   <button
@@ -438,9 +438,9 @@ export default function LoginPage() {
                   role="alert"
                   className="rounded-xl px-4 py-3 text-sm"
                   style={{
-                    background: 'rgba(239,68,68,.08)',
-                    border: '1px solid rgba(239,68,68,.2)',
-                    color: '#f87171',
+                    background: 'color-mix(in srgb, var(--danger) 8%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--danger) 20%, transparent)',
+                    color: 'var(--danger)',
                   }}
                 >
                   {error}
@@ -452,9 +452,9 @@ export default function LoginPage() {
                 disabled={loading}
                 className="w-full rounded-xl py-3.5 font-bold text-sm transition-all mt-1"
                 style={{
-                  background: '#f5f5f7',
-                  color: '#000',
-                  boxShadow: '0 4px 22px rgba(41,151,255,.3)',
+                  background: 'var(--indigo)',
+                  color: 'var(--on-accent)',
+                  boxShadow: '0 4px 22px color-mix(in srgb, var(--indigo) 30%, transparent)',
                   opacity: loading ? 0.7 : 1,
                   cursor: loading ? 'not-allowed' : 'pointer',
                 }}
@@ -470,7 +470,7 @@ export default function LoginPage() {
               <Link
                 href={`/signup${authSearch}`}
                 className="font-semibold transition-colors"
-                style={{ color: '#2997ff' }}
+                style={{ color: 'var(--accent)' }}
               >
                 Sign up free
               </Link>

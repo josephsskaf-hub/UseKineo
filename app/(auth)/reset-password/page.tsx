@@ -153,7 +153,7 @@ export default function ResetPasswordPage() {
     : null
 
   const inputStyle = {
-    background: 'rgba(255,255,255,.03)',
+    background: 'var(--card2)',
     border: '1px solid var(--border2)',
     color: 'var(--text)',
     fontFamily: 'inherit',
@@ -161,18 +161,18 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg)' }}>
-      <div className="fixed rounded-full pointer-events-none" style={{ width: 600, height: 600, background: '#2997ff', top: -200, right: -150, opacity: 0.04, filter: 'blur(90px)', zIndex: 0 }} />
-      <div className="fixed rounded-full pointer-events-none" style={{ width: 500, height: 500, background: '#2997ff', bottom: -150, left: 300, opacity: 0.035, filter: 'blur(90px)', zIndex: 0 }} />
+      <div className="fixed rounded-full pointer-events-none" style={{ width: 600, height: 600, background: 'var(--indigo)', top: -200, right: -150, opacity: 0.04, filter: 'blur(90px)', zIndex: 0 }} />
+      <div className="fixed rounded-full pointer-events-none" style={{ width: 500, height: 500, background: 'var(--indigo)', bottom: -150, left: 300, opacity: 0.035, filter: 'blur(90px)', zIndex: 0 }} />
 
       <div className="w-full max-w-md relative z-10">
         <Link href="/" className="flex items-center justify-center gap-3 mb-8" style={{ textDecoration: 'none' }}>
           <KineoBolt size={32} />
-          <div className="font-black text-sm tracking-tight" style={{ color: '#f5f5f7' }}>
+          <div className="font-black text-sm tracking-tight" style={{ color: 'var(--text)' }}>
             Kineo
           </div>
         </Link>
 
-        <div className="rounded-2xl p-8" style={{ background: '#161618', border: '1px solid #2a2a2d', boxShadow: '0 0 80px rgba(41,151,255,.08)' }}>
+        <div className="rounded-2xl p-8" style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: '0 0 80px color-mix(in srgb, var(--indigo) 8%, transparent)' }}>
           {success ? (
             <div className="text-center py-4">
               <div className="text-4xl mb-4">✅</div>
@@ -188,7 +188,7 @@ export default function ResetPasswordPage() {
           ) : (
             <>
               {checkoutRecoveryContext ? (
-                <div role="status" className="rounded-xl px-4 py-3 text-sm mb-5" style={{ background: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.3)', color: '#5cb3ff', fontWeight: 700 }}>
+                <div role="status" className="rounded-xl px-4 py-3 text-sm mb-5" style={{ background: 'var(--accent-soft)', border: '1px solid var(--border2)', color: 'var(--accent)', fontWeight: 700 }}>
                   🔒 Your purchase is still saved
                 </div>
               ) : null}
@@ -212,14 +212,14 @@ export default function ResetPasswordPage() {
                   dois estados honestos: verificando (transitório, some sozinho)
                   e link expirado (com o caminho de volta em um clique). */}
               {linkError ? (
-                <div className="rounded-xl px-4 py-3 text-sm mb-5" style={{ background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.2)', color: '#f59e0b' }}>
+                <div className="rounded-xl px-4 py-3 text-sm mb-5" style={{ background: 'color-mix(in srgb, var(--warning) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--warning) 20%, transparent)', color: 'var(--warning)' }}>
                   {linkError}{' '}
-                  <Link href={forgotPasswordHref} style={{ color: '#2997ff', fontWeight: 700 }}>
+                  <Link href={forgotPasswordHref} style={{ color: 'var(--accent)', fontWeight: 700 }}>
                     Request a new link →
                   </Link>
                 </div>
               ) : !ready ? (
-                <div className="rounded-xl px-4 py-3 text-sm mb-5" style={{ background: 'rgba(41,151,255,.07)', border: '1px solid rgba(41,151,255,.2)', color: '#5cb3ff' }}>
+                <div className="rounded-xl px-4 py-3 text-sm mb-5" style={{ background: 'var(--accent-soft)', border: '1px solid var(--border2)', color: 'var(--accent)' }}>
                   Verifying your reset link…
                 </div>
               ) : null}
@@ -241,8 +241,8 @@ export default function ResetPasswordPage() {
                     aria-describedby={error ? 'reset-error' : undefined}
                     className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all"
                     style={inputStyle}
-                    onFocus={(e) => { e.target.style.borderColor = 'rgba(41,151,255,.5)'; e.target.style.background = 'rgba(41,151,255,.04)' }}
-                    onBlur={(e) => { e.target.style.borderColor = 'var(--border2)'; e.target.style.background = 'rgba(255,255,255,.03)' }}
+                    onFocus={(e) => { e.target.style.borderColor = 'var(--accent)'; e.target.style.background = 'var(--accent-soft)' }}
+                    onBlur={(e) => { e.target.style.borderColor = 'var(--border2)'; e.target.style.background = 'var(--card2)' }}
                   />
                 </div>
 
@@ -261,13 +261,13 @@ export default function ResetPasswordPage() {
                     aria-describedby={error ? 'reset-error' : undefined}
                     className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all"
                     style={inputStyle}
-                    onFocus={(e) => { e.target.style.borderColor = 'rgba(41,151,255,.5)'; e.target.style.background = 'rgba(41,151,255,.04)' }}
-                    onBlur={(e) => { e.target.style.borderColor = 'var(--border2)'; e.target.style.background = 'rgba(255,255,255,.03)' }}
+                    onFocus={(e) => { e.target.style.borderColor = 'var(--accent)'; e.target.style.background = 'var(--accent-soft)' }}
+                    onBlur={(e) => { e.target.style.borderColor = 'var(--border2)'; e.target.style.background = 'var(--card2)' }}
                   />
                 </div>
 
                 {error && (
-                  <div id="reset-error" role="alert" className="rounded-xl px-4 py-3 text-sm" style={{ background: 'rgba(239,68,68,.08)', border: '1px solid rgba(239,68,68,.2)', color: '#f87171' }}>
+                  <div id="reset-error" role="alert" className="rounded-xl px-4 py-3 text-sm" style={{ background: 'color-mix(in srgb, var(--danger) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--danger) 20%, transparent)', color: 'var(--danger)' }}>
                     {error}
                   </div>
                 )}
@@ -277,9 +277,9 @@ export default function ResetPasswordPage() {
                   disabled={loading || !ready}
                   className="w-full rounded-xl py-3.5 font-bold text-sm transition-all mt-1"
                   style={{
-                    background: '#f5f5f7',
-                    color: '#000',
-                    boxShadow: '0 4px 22px rgba(41,151,255,.3)',
+                    background: 'var(--indigo)',
+                    color: 'var(--on-accent)',
+                    boxShadow: '0 4px 22px color-mix(in srgb, var(--indigo) 30%, transparent)',
                     opacity: (loading || !ready) ? 0.7 : 1,
                     cursor: (loading || !ready) ? 'not-allowed' : 'pointer',
                   }}
@@ -289,7 +289,7 @@ export default function ResetPasswordPage() {
               </form>
 
               <p className="text-center text-sm mt-6" style={{ color: 'var(--muted)' }}>
-                <Link href={loginHref} className="font-semibold" style={{ color: '#2997ff', textDecoration: 'none' }}>
+                <Link href={loginHref} className="font-semibold" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
                   ← Back to Sign In
                 </Link>
               </p>
