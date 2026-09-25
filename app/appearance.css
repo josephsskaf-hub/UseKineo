@@ -53,10 +53,9 @@ html .stu .studio-modes :is(button,a){color:var(--muted)}
 html .stu .studio-modes button[aria-pressed=true]{background:var(--accent-soft);color:var(--accent)}
 html .stu.composer-proposal .composer-proposal-grid{max-width:none}
 html .stu .pk .pk-tx>.pill[role=button]{color:var(--accent)}
-/* Existing film render/result panels have explicit dark media surfaces. Keep
-   their local text tokens readable while the surrounding workspace follows
-   the selected appearance; no media, generation or export behavior changes. */
-.gv-card,.render-workspace-details{--text:#eef5fe;--text2:#d6e5f5;--muted:#a8bad0;--muted2:#91a8c2;--border:#2d425a;--card:#121f2e;--card2:#192b3f;--indigo:#2997ff;--accent:#91c9ff;--accent-soft:#1b3754;--on-accent:#062341;color:var(--text)}
+/* Legacy result/media panels keep readable dark tokens. The progress panel
+   and Current project inherit the selected workspace theme instead. */
+.gv-card:not(.render-workspace-primary){--text:#eef5fe;--text2:#d6e5f5;--muted:#a8bad0;--muted2:#91a8c2;--border:#2d425a;--card:#121f2e;--card2:#192b3f;--indigo:#2997ff;--accent:#91c9ff;--accent-soft:#1b3754;--on-accent:#062341;color:var(--text)}
 ::-webkit-scrollbar-thumb{background:#879bb470}
 @media(max-width:600px){.kineo-topbar{gap:8px;padding-inline:12px}.kineo-topbar .topbar-mobile-logo{display:none}.kineo-topbar .topbar-breadcrumb{flex:1;min-width:0}.kineo-topbar .kineo-interface-language{max-width:86px!important}}
 @media(max-width:360px){.kineo-topbar .topbar-breadcrumb{display:none}.kineo-topbar .kineo-interface-language{max-width:78px!important}}

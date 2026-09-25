@@ -13539,14 +13539,14 @@ export default function GenerateClient({
         @media (max-width: 1100px) { .done-workspace .done-result { display: flex; flex-direction: column; gap: 20px; padding: 18px; } .done-result-heading { order: 0; margin-bottom: 0; } .done-result-preview { order: 1; width: 100%; min-height: 0; padding: 12px; } .done-result-preview .gv-done-frame { width: min(100%, 300px)!important; } .done-result-export { order: 2; width: 100%; } .done-result-actions { order: 3; } .done-result-support { order: 4; margin-top: 0; } }
         .render-workspace-primary { min-height: calc(100svh - 240px); padding: clamp(20px, 3vw, 44px); display: flex; flex-direction: column; justify-content: center; gap: 22px; }
         .render-workspace-primary .gv-stage { min-height: 72px; padding: 18px; border-radius: 14px; }
-        .render-workspace-details { padding: 26px; margin-bottom: 24px; border: 1px solid var(--border); border-radius: 20px; background: #10151d; }
-        .render-workspace-details h2 { color: #8fc8ff; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+        .render-workspace-details { padding: 26px; margin-bottom: 24px; border: 1px solid var(--border); border-radius: 20px; background: var(--card); }
+        .render-workspace-details h2 { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
         .render-workspace-topic { margin: 12px 0 18px; max-width: 80ch; font-size: 17px; line-height: 1.6; color: var(--text); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
         .render-workspace-facts { display: flex; flex-wrap: wrap; gap: 12px 28px; margin-bottom: 22px; color: var(--muted2); font-size: 12px; }
         .render-workspace-facts b { color: var(--text); font-weight: 600; margin-inline-start: 8px; }
         .render-workspace-disclosure { border-top: 1px solid var(--border); padding: 6px 0; }
         .render-workspace-disclosure > summary { min-height: 48px; align-content: center; cursor: pointer; color: var(--muted2); font-size: 13px; font-weight: 600; }
-        .render-workspace-disclosure > summary:focus-visible { outline: 2px solid #2997ff; outline-offset: 3px; border-radius: 6px; }
+        .render-workspace-disclosure > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
         @media (max-width: 900px) { .render-workspace-primary { min-height: auto; padding: 20px; gap: 14px; } .render-workspace-primary .gv-stage { min-height: 64px; padding: 14px; } .render-workspace-details { padding: 20px; } }
         @keyframes gvFadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes gvShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
@@ -15727,7 +15727,7 @@ export default function GenerateClient({
             <>
             <section
               className="gv-card render-workspace-primary rounded-2xl mb-6"
-              style={{ background: '#131316', border: '1px solid var(--border)' }}
+              style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
             >
               {/* PUSH #71 — show the real API phase instead of rotating
                   cosmetic steps after that work has already finished. */}
@@ -15762,15 +15762,15 @@ export default function GenerateClient({
               <div
                 className="rounded-xl px-3 py-2 mt-4 text-xs"
                 style={{
-                  background: 'rgba(41,151,255,.06)',
-                  border: '1px solid rgba(41,151,255,.20)',
+                  background: 'var(--accent-soft)',
+                  border: '1px solid var(--border)',
                   color: 'var(--muted2)',
                   lineHeight: 1.55,
                 }}
               >
                 <div className="flex items-center gap-2 mb-1.5">
                   <span aria-hidden="true"><KineoBolt /></span>
-                  <span className="font-bold" style={{ color: '#5cb3ff' }}>
+                  <span className="font-bold" style={{ color: 'var(--accent)' }}>
                     Kineo rendering engine
                   </span>
                 </div>
@@ -15871,7 +15871,7 @@ export default function GenerateClient({
                   >
                     {scenes.map((s, i) => (
                       <li key={i}>
-                        <span style={{ color: '#5cb3ff', fontWeight: 700 }}>#{i + 1}</span> {s}
+                        <span style={{ color: 'var(--accent)', fontWeight: 700 }}>#{i + 1}</span> {s}
                       </li>
                     ))}
                   </ol>
@@ -19699,17 +19699,17 @@ function PipelineStages({
       {stages.map((s, i) => {
         const isDone = s.status === 'done'
         const isActive = s.status === 'active'
-        const color = isDone ? '#5cb3ff' : isActive ? '#5cb3ff' : 'var(--muted)'
+        const color = isDone ? 'var(--accent)' : isActive ? 'var(--accent)' : 'var(--muted)'
         const ring = isDone
-          ? '1px solid rgba(41,151,255,.45)'
+          ? '1px solid var(--border2)'
           : isActive
-          ? '1px solid rgba(92,179,255,.45)'
+          ? '1px solid var(--border2)'
           : '1px solid var(--border)'
         const bg = isDone
-          ? 'rgba(41,151,255,.08)'
+          ? 'var(--accent-soft)'
           : isActive
-          ? 'rgba(41,151,255,.08)'
-          : 'rgba(255,255,255,.03)'
+          ? 'var(--accent-soft)'
+          : 'var(--card2)'
         return (
           <li
             key={i}
@@ -19723,16 +19723,16 @@ function PipelineStages({
                 height: 22,
                 borderRadius: '50%',
                 background: isDone
-                  ? 'rgba(41,151,255,.18)'
+                  ? 'var(--accent-soft)'
                   : isActive
                   ? 'transparent'
-                  : 'rgba(255,255,255,.04)',
+                  : 'var(--card2)',
                 border: isDone
-                  ? '1px solid rgba(41,151,255,.55)'
+                  ? '1px solid var(--border2)'
                   : isActive
-                  ? '2px solid rgba(92,179,255,.55)'
+                  ? '2px solid var(--border2)'
                   : '1px solid var(--border)',
-                borderTopColor: isActive ? '#5cb3ff' : undefined,
+                borderTopColor: isActive ? 'var(--accent)' : undefined,
                 animation: isActive ? 'spin 0.9s linear infinite' : undefined,
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -20488,13 +20488,13 @@ function ProgressBar({ progress }: { progress: number }) {
   return (
     <div
       className="w-full h-2 rounded-full overflow-hidden"
-      style={{ background: 'rgba(255,255,255,.06)', border: '1px solid var(--border)' }}
+      style={{ background: 'var(--card2)', border: '1px solid var(--border)' }}
     >
       <div
         className="h-full"
         style={{
           width: `${Math.min(100, Math.max(0, progress))}%`,
-          background: 'linear-gradient(90deg, rgba(41,151,255,.85), rgba(41,151,255,1))',
+          background: 'var(--indigo)',
           transition: 'width 400ms cubic-bezier(.2,0,0,1)',
         }}
       />
@@ -20525,10 +20525,10 @@ function RenderHeader({ progress, message }: { progress: number; message: string
       {/* Ring */}
       <div style={{ position: 'relative', flexShrink: 0, width: 72, height: 72 }}>
         <svg width="72" height="72" viewBox="0 0 72 72" style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx="36" cy="36" r={r} fill="none" stroke="rgba(255,255,255,.07)" strokeWidth="5" />
+          <circle cx="36" cy="36" r={r} fill="none" stroke="var(--card2)" strokeWidth="5" />
           <circle
             cx="36" cy="36" r={r} fill="none"
-            stroke="#2997ff"
+            stroke="var(--indigo)"
             strokeWidth="5"
             strokeLinecap="round"
             strokeDasharray={`${dash} ${gap}`}
@@ -20538,7 +20538,7 @@ function RenderHeader({ progress, message }: { progress: number; message: string
         <div style={{
           position: 'absolute', inset: 0, display: 'flex',
           alignItems: 'center', justifyContent: 'center',
-          fontSize: 13, fontWeight: 700, color: '#5cb3ff', fontFamily: 'var(--font-display), var(--font-inter), sans-serif',
+          fontSize: 13, fontWeight: 700, color: 'var(--accent)', fontFamily: 'var(--font-display), var(--font-inter), sans-serif',
         }}>
           {pct}%
         </div>
@@ -20553,7 +20553,7 @@ function RenderHeader({ progress, message }: { progress: number; message: string
         <div style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{
             display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
-            background: '#2997ff', animation: 'pulse 1.5s ease-in-out infinite',
+            background: 'var(--indigo)', animation: 'pulse 1.5s ease-in-out infinite',
           }} />
           {/* ⚠️ KINEO-ESPERA-2026-08-20 — o cronômetro sozinho parece defeito.
               "Rendering · 23s" subindo ao lado de 8%, sem dizer quanto é
@@ -21303,13 +21303,13 @@ function NextIdeaDuringWait({
       <div
         className="rounded-xl px-3 py-2.5 mt-4 flex items-start gap-2.5"
         style={{
-          background: 'rgba(52,211,153,.07)',
-          border: '1px solid rgba(52,211,153,.28)',
+          background: 'var(--accent-soft)',
+          border: '1px solid var(--border2)',
         }}
       >
         <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1.2 }}>✓</span>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div className="text-xs font-black" style={{ color: '#34d399', lineHeight: 1.3 }}>
+          <div className="text-xs font-black" style={{ color: 'var(--accent)', lineHeight: 1.3 }}>
             Video #2 is lined up
           </div>
           <div className="text-[11px] mt-0.5" style={{ color: 'var(--muted2)', lineHeight: 1.45, wordBreak: 'break-word' }}>
@@ -21344,7 +21344,7 @@ function NextIdeaDuringWait({
       ref={cartaoRef}
       className="rounded-xl px-3 py-3 mt-4"
       style={{
-        background: 'rgba(255,255,255,.03)',
+        background: 'var(--card2)',
         border: '1px solid var(--border)',
       }}
     >
@@ -21375,7 +21375,7 @@ function NextIdeaDuringWait({
             minHeight: 40,
             borderRadius: 10,
             padding: '8px 11px',
-            background: 'rgba(0,0,0,.28)',
+            background: 'var(--bg)',
             border: '1px solid var(--border)',
             color: 'var(--text)',
             fontSize: '0.8rem',
@@ -21391,9 +21391,9 @@ function NextIdeaDuringWait({
           className="rounded-lg px-3.5 text-xs font-black"
           style={{
             minHeight: 40,
-            background: podeSalvar ? 'rgba(52,211,153,.16)' : 'rgba(255,255,255,.04)',
-            border: `1px solid ${podeSalvar ? 'rgba(52,211,153,.5)' : 'var(--border)'}`,
-            color: podeSalvar ? '#34d399' : 'var(--muted)',
+            background: podeSalvar ? 'var(--accent-soft)' : 'var(--card2)',
+            border: `1px solid ${podeSalvar ? 'var(--border2)' : 'var(--border)'}`,
+            color: podeSalvar ? 'var(--accent)' : 'var(--muted)',
             cursor: podeSalvar ? 'pointer' : 'not-allowed',
             whiteSpace: 'nowrap',
           }}
@@ -21414,9 +21414,9 @@ function NextIdeaDuringWait({
             maxWidth: '100%',
             minHeight: 36,
             padding: '7px 12px',
-            background: 'rgba(52,211,153,.10)',
-            border: '1px solid rgba(52,211,153,.34)',
-            color: '#34d399',
+            background: 'var(--accent-soft)',
+            border: '1px solid var(--border2)',
+            color: 'var(--accent)',
             cursor: 'pointer',
             lineHeight: 1.3,
           }}
@@ -21473,17 +21473,17 @@ function FastPipelineStages({ step, phase, startedAt }: { step: number; phase: P
       {STEPS.map((s, i) => {
         const isDone = phase === 'done' || step > i
         const isActive = !isDone && step === i
-        const color = isDone ? '#5cb3ff' : isActive ? '#5cb3ff' : 'var(--muted)'
+        const color = isDone ? 'var(--accent)' : isActive ? 'var(--accent)' : 'var(--muted)'
         const ring = isDone
-          ? '1px solid rgba(41,151,255,.45)'
+          ? '1px solid var(--border2)'
           : isActive
-          ? '1px solid rgba(92,179,255,.45)'
+          ? '1px solid var(--border2)'
           : '1px solid var(--border)'
         const bg = isDone
-          ? 'rgba(41,151,255,.08)'
+          ? 'var(--accent-soft)'
           : isActive
-          ? 'rgba(41,151,255,.08)'
-          : 'rgba(255,255,255,.03)'
+          ? 'var(--accent-soft)'
+          : 'var(--card2)'
         return (
           <li
             key={i}
@@ -21497,16 +21497,16 @@ function FastPipelineStages({ step, phase, startedAt }: { step: number; phase: P
                 height: 22,
                 borderRadius: '50%',
                 background: isDone
-                  ? 'rgba(41,151,255,.18)'
+                  ? 'var(--accent-soft)'
                   : isActive
                   ? 'transparent'
-                  : 'rgba(255,255,255,.04)',
+                  : 'var(--card2)',
                 border: isDone
-                  ? '1px solid rgba(41,151,255,.55)'
+                  ? '1px solid var(--border2)'
                   : isActive
-                  ? '2px solid rgba(92,179,255,.55)'
+                  ? '2px solid var(--border2)'
                   : '1px solid var(--border)',
-                borderTopColor: isActive ? '#5cb3ff' : undefined,
+                borderTopColor: isActive ? 'var(--accent)' : undefined,
                 animation: isActive ? 'spin 0.9s linear infinite' : undefined,
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -21539,7 +21539,7 @@ function FastPipelineStages({ step, phase, startedAt }: { step: number; phase: P
       {isRendering && (
         <li
           className="gv-stage rounded-lg px-3 py-2 flex items-center gap-3"
-          style={{ background: 'rgba(41,151,255,.08)', border: '1px solid rgba(92,179,255,.45)' }}
+          style={{ background: 'var(--accent-soft)', border: '1px solid var(--border2)' }}
         >
           <span
             aria-hidden="true"
@@ -21547,18 +21547,18 @@ function FastPipelineStages({ step, phase, startedAt }: { step: number; phase: P
               width: 22,
               height: 22,
               borderRadius: '50%',
-              background: 'rgba(41,151,255,.14)',
-              border: '1px solid rgba(92,179,255,.5)',
+              background: 'var(--accent-soft)',
+              border: '1px solid var(--border2)',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
             }}
           >
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#5cb3ff', animation: 'pulse 1.4s ease-in-out infinite' }} />
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', animation: 'pulse 1.4s ease-in-out infinite' }} />
           </span>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div className="text-sm font-bold" style={{ color: '#5cb3ff', lineHeight: 1.2 }}>
+            <div className="text-sm font-bold" style={{ color: 'var(--accent)', lineHeight: 1.2 }}>
               Rendering — this usually takes 3-7 minutes
             </div>
             <div className="text-[11px]" style={{ color: 'var(--muted)' }}>
@@ -21567,7 +21567,7 @@ function FastPipelineStages({ step, phase, startedAt }: { step: number; phase: P
           </div>
           <span
             className="text-[10px] font-black uppercase tracking-widest"
-            style={{ color: '#5cb3ff' }}
+            style={{ color: 'var(--accent)' }}
           >
             Active
           </span>
