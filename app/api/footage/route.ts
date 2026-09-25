@@ -26,6 +26,7 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { moderateContent } from '@/lib/safety/contentModeration'
 import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy'
 import { sniffMediaKind } from '@/lib/safety/mediaKind'
+import { quarantineObject } from '@/lib/safety/quarantine'
 
 export const dynamic = 'force-dynamic'
 
@@ -277,16 +278,16 @@ export async function POST(req: NextRequest) {
       }
       const sizeBytes = Math.max(0, Number(body.sizeBytes) || 0)
       const url = `${FOOTAGE_PUBLIC_PREFIX()}${path}`
-      // Foto barrada não vira linha (nenhum render a alcança) e o arquivo NÃO é apagado: vai para quarantine/<caminho> no
-      // mesmo bucket — a URL antiga morre (sai da pasta da conta, que é o que o Studio aceita) e a prova fica. O que fazer
-      // com ela é decisão do fundador. Vídeo ainda passa sem checagem (o servidor não extrai quadro) — dívida anotada.
+      // Foto barrada não vira linha (nenhum render a alcança) e o arquivo NÃO é apagado: vai para o bucket PRIVADO
+      // `quarantine` (lib/safety/quarantine.ts) — sai do ar e a prova fica. O que fazer com ela é decisão do fundador.
+      // Vídeo ainda passa sem checagem (o servidor não extrai quadro) — dívida anotada.
       const admin = footageAdminClient()
       if (kind === 'image') {
-        const safety = await moderateContent({ surface: 'footage', stage: 'upload', userId: user.id, imageUrls: [url], meta: { path, size_bytes: sizeBytes, quarantine_path: `quarantine/${path}` } })
+        const safety = await moderateContent({ surface: 'footage', stage: 'upload', userId: user.id, imageUrls: [url], meta: { path, size_bytes: sizeBytes, quarantine: `footage-bloqueado/user-footage/${path}` } })
         if (!safety.ok) {
           if (safety.reason === 'blocked') {
-            const moved = await admin.storage.from(USER_FOOTAGE_BUCKET).move(path, `quarantine/${path}`)
-            if (moved.error) console.error('[footage] quarantine move failed:', moved.error.message, path)
+            const moved = await quarantineObject(admin, { bucket: USER_FOOTAGE_BUCKET, path, label: 'footage-bloqueado' })
+            if (!moved.ok) console.error('[footage] quarantine move failed:', moved.error, path)
           }
           return NextResponse.json({ error: moderationRefusalMessage(safety.reason, 'upload'), code: safety.reason === 'blocked' ? 'moderation' : `moderation_${safety.reason}` }, { status: moderationRefusalStatus(safety.reason) })
         }

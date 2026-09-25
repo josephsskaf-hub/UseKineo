@@ -166,7 +166,17 @@ ok(K.sniffMediaKind(bytes(...asc('GIF89a'))) === null && K.sniffMediaKind(bytes(
 const foot = rd('app/api/footage/route.ts')
 const conf = foot.slice(foot.indexOf("if (body.action === 'confirm') {"), foot.indexOf("Unknown action."))
 ok(!/body\.kind/.test(conf) && /sniffMediaKind\(/.test(conf) && /kind = sniffed === 'image' \? 'image'/.test(conf), '5e. /footage confirm: o tipo sai dos bytes; o `kind` do cliente não decide mais nada (foto é foto)')
-ok(/await admin\.storage\.from\(USER_FOOTAGE_BUCKET\)\.move\(path, `quarantine\/\$\{path\}`\)/.test(conf) && !/\.remove\(/.test(conf), '5f. foto barrada vai para quarantine/ (a URL de uso morre), nunca é apagada')
+ok(/await quarantineObject\(admin, \{ bucket: USER_FOOTAGE_BUCKET, path, label: 'footage-bloqueado' \}\)/.test(conf) && !/\.remove\(/.test(conf), '5f. foto barrada vai para o bucket PRIVADO de quarentena (sai do ar), nunca é apagada')
+// Quarentena (lib/safety/quarantine.ts): move entre buckets para o PRIVADO, com caminho que não se sobrepõe; nunca apaga.
+const Q = roda('lib/safety/quarantine.ts')
+let mov = null
+const adminFalso = { storage: { from: (b) => ({ move: async (a, d, o) => { mov = { b, a, d, o }; return { error: null } } }) } }
+const rq = await Q.quarantineObject(adminFalso, { bucket: 'user-footage', path: 'u1/clip-1.jpg', label: 'footage-bloqueado' })
+ok(rq.ok && mov.b === 'user-footage' && mov.a === 'u1/clip-1.jpg' && mov.o?.destinationBucket === 'quarantine' && mov.d === 'footage-bloqueado/user-footage/u1/clip-1.jpg' && Q.QUARANTINE_BUCKET === 'quarantine', '5g. quarentena move para o bucket PRIVADO quarantine, em <etiqueta>/<bucket>/<caminho>')
+ok(!/\.remove\(|\.delete\(/.test(rd('lib/safety/quarantine.ts') + rd('app/api/admin/quarantine-media/route.ts')), '5h. nada na quarentena apaga arquivo')
+const qm = rd('app/api/admin/quarantine-media/route.ts')
+ok(qm.indexOf('isAdminEmail(user.email)') > 0 && qm.indexOf('isAdminEmail(user.email)') < qm.indexOf('serviceClient()') && /const confirm = method === 'POST' && req\.nextUrl\.searchParams\.get\('confirm'\) === 'MOVE'\n\s*if \(!confirm\) return/.test(qm), '5i. rota de quarentena: só admin, e sem POST ?confirm=MOVE é ensaio')
+ok((qm.match(/'images\/(52749de6-4394-4f1d-9e3f-16fb32c424a1|b9f49852-60b4-47c6-a7d3-ed50634aa1a7)\/[0-9a-f-]{36}\.(jpg|webp)'/g) || []).length === 9, '5j. a lista do incidente de 25/09 tem as 9 imagens das 2 contas suspensas')
 
 // ── 6. varredura admin ─────────────────────────────────────────────────────────────────────────────────
 const scan = rd('app/api/admin/moderation-scan/route.ts')
