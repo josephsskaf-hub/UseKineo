@@ -22,6 +22,10 @@ export const ADS_EVENTS = [
   'ads_voice_previewed',
   'ads_voice_preview_served', // KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24: prévia servida pelo /api/ads/voice (conta o teto diário)
   'ads_card_rendered',
+  // KINEO-ADS-IA-FAZ-2026-09-26 — modo "a IA faz o anúncio"
+  'ads_auto_started',
+  'ads_auto_brief_served',
+  'ads_auto_confirmed',
   'ads_preview_confirmed',
   // render e entrega
   'ads_render_requested',
@@ -44,6 +48,7 @@ export const ADS_SERVER_ONLY_EVENTS: readonly AdsEventName[] = [
   'ads_access_denied',
   'ads_script_served',
   'ads_voice_preview_served',
+  'ads_auto_brief_served',
   'ads_render_requested',
   'ads_render_served',
   'ads_render_failed',

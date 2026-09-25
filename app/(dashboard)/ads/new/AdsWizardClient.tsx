@@ -39,6 +39,7 @@ import {
 } from '@/lib/ads/renderContract'
 import { ADS_UPLOAD_ACCEPT_LOGO, ADS_UPLOAD_ACCEPT_MEDIA, AdsUploadError, uploadFootage } from '@/lib/ads/uploadFootage'
 import { drawEndCard, endCardCtaLabel, loadLogoImage, toPngFile } from '@/lib/ads/endCard'
+import { adsAutoVisible } from '@/lib/ads/autoBrief' // KINEO-ADS-IA-FAZ-2026-09-26
 
 // ─── tipos e constantes ──────────────────────────────────────────────────────────────────────
 
@@ -591,6 +592,12 @@ const ADS_WIZARD_CSS = `
 .adsw .adsw-logo .adsw-tile{width:104px;aspect-ratio:1/1;background:repeating-conic-gradient(#1b2230 0 25%,#141922 0 50%) 50%/16px 16px}
 .adsw .adsw-logo .adsw-tile img{object-fit:contain;padding:8px}
 .adsw .adsw-check{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:#dfe6f1;line-height:1.5;cursor:pointer;margin-top:14px}
+.adsw .adsw-mode{margin:0 0 14px;gap:8px;flex-wrap:wrap}
+.adsw .adsw-auto-stages{list-style:none;margin:14px 0;padding:0;display:grid;gap:8px}
+.adsw .adsw-auto-stages li{padding:10px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);opacity:.55}
+.adsw .adsw-auto-stages li[data-state=on]{opacity:1;border-color:rgba(120,190,255,.9);background:rgba(41,151,255,.12)}
+.adsw .adsw-auto-stages li[data-state=done]{opacity:.85}
+.adsw .adsw-auto-stages li[data-state=done]::before{content:'✓ '}
 .adsw .adsw-check input{width:20px;height:20px;margin-top:2px;accent-color:#2997ff;flex-shrink:0}
 .adsw .adsw-count{font-size:13px;color:#bdc8da;margin:0 0 10px}
 .adsw .cams .cam.adsw-model{text-align:left;display:flex;flex-direction:column;gap:5px;min-width:0;font-family:inherit}
@@ -650,6 +657,8 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
   const [localUrls, setLocalUrls] = useState<Record<string, string>>({})
   const [busyNew, setBusyNew] = useState(false)
   const [newError, setNewError] = useState<string | null>(null)
+  // KINEO-ADS-IA-FAZ-2026-09-26 — 'ai' = a IA faz o anúncio (uma tela); 'steps' = o passo a passo de sempre.
+  const [mode, setMode] = useState<'ai' | 'steps'>(() => (adsAutoVisible(access) ? 'ai' : 'steps'))
   const sessionUploads = useRef<Set<string>>(new Set())
   const rootRef = useRef<HTMLDivElement>(null)
   const settled = useRef(false)
@@ -847,6 +856,13 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
     }
   }
 
+  // O modo IA só aparece para quem o interruptor libera, num passo do assistente, com pedido novo ou em rascunho.
+  const autoOn = boot.kind === 'ready' && adsAutoVisible(access) && STEPS.some((s) => s.id === view) && (!order || order.status === 'draft')
+  const toSteps = () => {
+    setMode('steps')
+    const o = orderRef.current
+    setView(o ? STEPS[Math.min(reachableIndex(o, beatsFromOrder(o), null, {}), 5)].id : 'brief')
+  }
   let content: React.ReactNode = null
   if (boot.kind === 'loading') {
     content = (
@@ -903,6 +919,26 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
           <button type="button" className="adsw-btn" onClick={() => { setBoot({ kind: 'loading' }); setBootRound((n) => n + 1) }}>Try again</button>
         </div>
       </div>
+    )
+  } else if (autoOn && mode === 'ai') {
+    content = (
+      <AdsAutoPanel
+        order={order}
+        localUrls={localUrls}
+        addLocalUrl={addLocalUrl}
+        sessionUploads={sessionUploads}
+        onOrder={applyOrder}
+        onStarted={(s, m, b, sb, c) => {
+          setBeats(b)
+          setStoryboard(sb)
+          setCard(c)
+          setRender({ renderId: s.render_id, seconds: s.seconds, topic: s.topic })
+          const cur = orderRef.current
+          if (cur) setOrder({ ...cur, status: 'rendering', template: m.id })
+          setView('progress')
+        }}
+        onSteps={toSteps}
+      />
     )
   } else if (view === 'brief' || !order) {
     content = <BriefStep order={order} onSaved={(o) => { applyOrder(o); setView('media') }} />
@@ -1040,7 +1076,7 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
     )
   }
 
-  const showSteps = boot.kind === 'ready' && stepIndex >= 0
+  const showSteps = boot.kind === 'ready' && stepIndex >= 0 && !(autoOn && mode === 'ai')
 
   return (
     <div className="stu adsw" data-step={view} ref={rootRef}>
@@ -1073,7 +1109,384 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
           </ol>
         </nav>
       ) : null}
+      {autoOn ? (
+        <div className="row adsw-mode" role="group" aria-label="How do you want to make this ad?">
+          <button type="button" className="pill" aria-pressed={mode === 'ai'} onClick={() => setMode('ai')}>AI makes it</button>
+          <button type="button" className="pill" aria-pressed={mode === 'steps'} onClick={toSteps}>Step by step</button>
+        </div>
+      ) : null}
       {content}
+    </div>
+  )
+}
+
+// ─── modo "a IA faz o anúncio" ──────────────────────────────────────────────────
+// KINEO-ADS-IA-FAZ-2026-09-26 — fundador (25/09 à noite): "a pessoa manda uma foto, um vídeo, e ela quer uma IA ... ela
+// não vai precisar fazer muita coisa". Uma tela: logo + fotos/vídeos + UMA frase. A IA (/api/ads/auto-brief) monta o
+// brief e escolhe o formato; a pessoa CONFIRMA nome, oferta e contato (o roteiro trata o brief como fato — painel de
+// 25/09) e aperta um botão. Daí em diante tudo é automático e usa os mesmos caminhos do passo a passo: roteiro
+// (/api/ads/script, 1ª versão aprovada pelo validador), voz padrão, storyboard automático, cartão final desenhado sem
+// clique e o mesmo /api/ads/render. O pedido fica no servidor: a pessoa pode trocar para o passo a passo a qualquer hora
+// e continuar do mesmo ponto.
+
+type AutoProposal = {
+  brief: AdsBrief
+  needs: string[]
+  template: AdsModelId | null
+  eligible: AdsModelId[]
+  missing_media: string[]
+}
+
+const AUTO_PLACEHOLDER = 'Example: Pão Dourado bakery in Pinheiros. Fresh French bread at R$1 until Friday. Order on WhatsApp +55 11 98765-4321.'
+const AUTO_STAGES = ['Writing your script…', 'Choosing the voice and the scenes…', 'Drawing your end card…', 'Starting the render…'] as const
+
+function AdsAutoPanel({
+  order,
+  localUrls,
+  addLocalUrl,
+  sessionUploads,
+  onOrder,
+  onStarted,
+  onSteps,
+}: {
+  order: AdsOrder | null
+  localUrls: Record<string, string>
+  addLocalUrl: (id: string, url: string) => void
+  sessionUploads: React.MutableRefObject<Set<string>>
+  onOrder: (o: AdsOrder) => void
+  onStarted: (s: AdsRenderStarted, model: AdsModel, beats: string[], storyboard: Storyboard, card: CardInfo) => void
+  onSteps: () => void
+}) {
+  const [phase, setPhase] = useState<'input' | 'thinking' | 'confirm' | 'making'>('input')
+  const [text, setText] = useState('')
+  const [consent, setConsent] = useState(Boolean(order?.consent_at))
+  const [busy, setBusy] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [outOfCredits, setOutOfCredits] = useState<{ needed: number | null; balance: number | null } | null>(null)
+  const [proposal, setProposal] = useState<AutoProposal | null>(null)
+  const [business, setBusiness] = useState('')
+  const [offer, setOffer] = useState('')
+  const [contact, setContact] = useState('')
+  const [language, setLanguage] = useState(defaultLanguage())
+  const [template, setTemplate] = useState<AdsModelId | null>(null)
+  const [stage, setStage] = useState(0)
+  const orderLocal = useRef<AdsOrder | null>(order)
+  orderLocal.current = order ?? orderLocal.current
+  const mediaRef = useRef<AdsMediaItem[]>(orderMedia(order))
+  const media = orderMedia(order)
+  const { logo, rest, photos } = mediaSummary(media)
+  const srcOf = (m: AdsMediaItem) => localUrls[m.footageId] ?? m.url
+  const chosenModel = adsModelById(template)
+  const logoInput = useRef<HTMLInputElement>(null)
+  const mediaInput = useRef<HTMLInputElement>(null)
+
+  async function ensureOrder(): Promise<AdsOrder | null> {
+    if (orderLocal.current) return orderLocal.current
+    const r = await callJson<{ order: AdsOrder }>('/api/ads/orders', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({}) })
+    if (!r.ok) {
+      if (r.status === 401) goLogin()
+      setError(errorText(r))
+      return null
+    }
+    orderLocal.current = r.data.order
+    onOrder(r.data.order)
+    void trackEvent('ads_auto_started', { order_id: r.data.order.id })
+    return r.data.order
+  }
+
+  async function addFiles(list: FileList | null, isLogo: boolean) {
+    if (!list || !list.length || busy) return
+    setError(null)
+    const o = await ensureOrder()
+    if (!o) return
+    const files = Array.from(list)
+    let queue = isLogo ? files.slice(0, 1) : files
+    const room = MAX_MEDIA - mediaRef.current.filter((m) => !m.isLogo).length
+    if (!isLogo && room <= 0) return setError(`You already have ${MAX_MEDIA} photos and videos.`)
+    if (!isLogo) queue = queue.slice(0, room)
+    for (let i = 0; i < queue.length; i++) {
+      setBusy(isLogo ? 'Uploading your logo…' : queue.length > 1 ? `Uploading ${i + 1} of ${queue.length}…` : 'Uploading…')
+      try {
+        const up = await uploadFootage(queue[i], { isLogo })
+        sessionUploads.current.add(up.footageId)
+        if (up.localUrl) addLocalUrl(up.footageId, up.localUrl)
+        const item = stripItem(up)
+        void trackEvent('ads_media_uploaded', { order_id: o.id, kind: item.kind, bytes: item.bytes, is_logo: isLogo, mode: 'auto' })
+        const current = mediaRef.current
+        const next = isLogo ? [item, ...current.filter((m) => !m.isLogo)] : [...current, item]
+        const r = await patchOrder(o.id, { media: next.map(stripItem) })
+        if (!r.ok) {
+          if (r.status === 401) return goLogin()
+          setError(errorText(r))
+          break
+        }
+        mediaRef.current = orderMedia(r.data.order)
+        orderLocal.current = r.data.order
+        onOrder(r.data.order)
+        setConsent(false)
+      } catch (e) {
+        const reason = e instanceof AdsUploadError ? e.reason : 'upload_failed'
+        void trackEvent('ads_media_refused', { order_id: o.id, reason, is_logo: isLogo, mode: 'auto' })
+        if (reason === 'unauthenticated') return goLogin()
+        setError(`${queue[i].name || 'File'}: ${e instanceof Error ? e.message : 'The upload did not finish.'}`)
+        break
+      }
+    }
+    setBusy(null)
+  }
+
+  async function removeItem(item: AdsMediaItem) {
+    const o = orderLocal.current
+    if (!o || busy) return
+    setBusy('Removing…')
+    const r = await patchOrder(o.id, { media: mediaRef.current.filter((m) => m.footageId !== item.footageId).map(stripItem) })
+    setBusy(null)
+    if (!r.ok) return setError(errorText(r))
+    mediaRef.current = orderMedia(r.data.order)
+    orderLocal.current = r.data.order
+    onOrder(r.data.order)
+    setConsent(false)
+  }
+
+  async function analyze() {
+    setError(null)
+    if (!logo) return setError('Add your logo — it closes the ad.')
+    if (photos < MIN_PHOTOS_ANY_MODEL) return setError(PHOTOS_NEEDED_LINE)
+    if (text.trim().length < 12) return setError('Write one or two sentences: what you sell, the offer, and how customers reach you.')
+    if (!consent) return setError('Confirm you own these photos and videos, or have permission to use them.')
+    const o = orderLocal.current
+    if (!o) return
+    setPhase('thinking')
+    const c = await patchOrder(o.id, { media: mediaRef.current.map(stripItem), consent: true })
+    if (!c.ok) {
+      setPhase('input')
+      if (c.status === 401) return goLogin()
+      return setError(errorText(c))
+    }
+    orderLocal.current = c.data.order
+    onOrder(c.data.order)
+    const r = await callJson<AutoProposal>('/api/ads/auto-brief', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ order_id: o.id, text, language }) })
+    if (!r.ok) {
+      setPhase('input')
+      if (r.status === 401) return goLogin()
+      if (r.code === 'daily_limit') return setError('You reached today’s limit for AI ads. Try again tomorrow, or build this one step by step.')
+      return setError(errorText(r))
+    }
+    const p = r.data
+    if (!p.template) {
+      setPhase('input')
+      return setError(p.missing_media.length ? `To make an ad we still need: ${p.missing_media.join(', ')}.` : 'We could not pick a format for these photos. Try step by step.')
+    }
+    const [name, sells] = splitBusiness(p.brief.business)
+    setProposal(p)
+    setBusiness(sells ? `${name}${BUSINESS_SEP}${sells}` : name)
+    setOffer(p.brief.offer)
+    setContact(p.brief.contact)
+    setLanguage(p.brief.language || language)
+    setTemplate(p.template)
+    setPhase('confirm')
+  }
+
+  async function make() {
+    const o = orderLocal.current
+    const model = chosenModel
+    if (!o || !model || !proposal) return
+    setError(null)
+    setOutOfCredits(null)
+    if (!business.trim()) return setError('Add the name of your business.')
+    if (!contact.trim()) return setError('Add how customers reach you: phone, WhatsApp, address or link.')
+    const brief: AdsBrief = { ...proposal.brief, business: business.trim(), offer: offer.trim(), contact: contact.trim(), language }
+    setPhase('making')
+    setStage(0)
+    void trackEvent('ads_auto_confirmed', { order_id: o.id, template: model.id, credits: model.credits, edited: brief.business !== proposal.brief.business || brief.offer !== proposal.brief.offer || brief.contact !== proposal.brief.contact })
+    const fail = (msg: string) => { setPhase('confirm'); setError(msg) }
+
+    const saved = await patchOrder(o.id, { brief, template: model.id })
+    if (!saved.ok) return saved.status === 401 ? goLogin() : fail(errorText(saved))
+    onOrder(saved.data.order)
+
+    // 1. roteiro: a 1ª versão que o validador aprovou (nenhum número fora do brief, contato na última batida).
+    const s = await callJson<{ versions: AdsScriptVersion[] }>('/api/ads/script', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ order_id: o.id }) })
+    if (!s.ok || !Array.isArray(s.data.versions) || !s.data.versions.length) {
+      if (!s.ok && s.status === 401) return goLogin()
+      return fail(!s.ok && s.code === 'no_script' ? 'The AI could not write a script with these facts. Add one more detail about your offer and try again.' : errorText(s.ok ? { status: 502, code: 'no_script', message: null } : s))
+    }
+    const v = s.data.versions[0]
+    setStage(1)
+    const withScript = await patchOrder(o.id, { script: v.beats.join('\n\n'), script_angle: scriptAngleFor(v.angle, model.id), voice: ADS_DEFAULT_VOICE })
+    if (!withScript.ok) return fail(errorText(withScript))
+    onOrder(withScript.data.order)
+    const m = orderMedia(withScript.data.order)
+    const sb = defaultStoryboard(model, m)
+
+    // 2. cartão final: o mesmo desenho do passo a passo, sem clique.
+    setStage(2)
+    const logoItem = m.find((x) => x.isLogo)
+    if (!logoItem) return fail('Your logo is missing. Add it and try again.')
+    let cardId: string
+    try {
+      const img = await loadLogoImage(srcOf(logoItem))
+      const canvas = document.createElement('canvas')
+      const [bizName] = splitBusiness(brief.business)
+      drawEndCard(canvas, { logo: img, business: bizName, offer: brief.offer, ctaLabel: endCardCtaLabel(brief.cta, brief.language), contact: brief.contact })
+      const file = await toPngFile(canvas)
+      const up = await uploadFootage(file, { isLogo: false })
+      if (up.localUrl) URL.revokeObjectURL(up.localUrl)
+      cardId = up.footageId
+      void trackEvent('ads_card_rendered', { order_id: o.id, mode: 'auto' })
+    } catch (e) {
+      if (e instanceof AdsUploadError && e.reason === 'unauthenticated') return goLogin()
+      return fail('Your logo could not be placed on the end card. Upload it again as PNG or JPG.')
+    }
+
+    // 3. render: o mesmo corpo do passo "Render".
+    setStage(3)
+    const n = model.beats.length
+    const body: AdsRenderRequest = {
+      order_id: o.id,
+      voice: ADS_DEFAULT_VOICE,
+      beats: v.beats.map((b) => b.replace(/\s+/g, ' ').trim()),
+      storyboard: Array.from({ length: n - 1 }, (_, i) => ({ beatIndex: i, footageIds: (sb[i] ?? []).slice(0, ADS_MAX_MEDIA_PER_BEAT) })),
+      card_footage_id: cardId,
+    }
+    void trackEvent('ads_preview_confirmed', { order_id: o.id, credits: model.credits, scenes: n, user_media_scenes: n - 1, stock_scenes: 0, mode: 'auto' })
+    const r = await callJson<AdsRenderStarted>('/api/ads/render', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(body) })
+    if (r.ok) return onStarted(r.data, model, v.beats, sb, { id: cardId, sig: 'auto' })
+    if (r.status === 401) return goLogin()
+    if (r.status === 402 || r.code === 'out_of_credits') {
+      setPhase('confirm')
+      return setOutOfCredits({ needed: typeof r.body.needed === 'number' ? r.body.needed : model.credits, balance: typeof r.body.balance === 'number' ? r.body.balance : null })
+    }
+    return fail(errorText(r))
+  }
+
+  if (phase === 'thinking') {
+    return (
+      <div className="card adsw-panel" aria-busy="true">
+        <h2 tabIndex={-1} data-step-heading>Reading your business…</h2>
+        <p className="adsw-lead">The AI is turning your sentence into an ad plan and picking the best format for your photos.</p>
+      </div>
+    )
+  }
+
+  if (phase === 'making') {
+    return (
+      <div className="card adsw-panel" aria-busy="true">
+        <h2 tabIndex={-1} data-step-heading>Making your ad</h2>
+        <ol className="adsw-auto-stages">
+          {AUTO_STAGES.map((label, i) => (
+            <li key={label} data-state={i < stage ? 'done' : i === stage ? 'on' : 'todo'}>{label}</li>
+          ))}
+        </ol>
+        <p className="adsw-hint">Keep this tab open for a few seconds. After the render starts you can close it — the ad lands in My Videos.</p>
+      </div>
+    )
+  }
+
+  if (phase === 'confirm' && proposal && chosenModel) {
+    const alternatives = proposal.eligible.map((id) => adsModelById(id)).filter((x): x is AdsModel => Boolean(x))
+    return (
+      <div className="card adsw-panel">
+        <h2 tabIndex={-1} data-step-heading>Check the facts, then we make it</h2>
+        <p className="adsw-lead">The ad only says what is written here. Fix anything that is not exactly right.</p>
+        <label className="adsw-f">
+          <span>Business <b className="adsw-req">required</b></span>
+          <input value={business} maxLength={200} onChange={(e) => setBusiness(e.target.value)} />
+        </label>
+        <label className="adsw-f">
+          <span>Offer</span>
+          <small>Price, discount or deadline. Leave empty if there is no offer.</small>
+          <input value={offer} maxLength={300} onChange={(e) => setOffer(e.target.value)} />
+        </label>
+        <label className="adsw-f">
+          <span>How customers reach you <b className="adsw-req">required</b></span>
+          <small>Said at the end of the ad and printed on the last frame, exactly as written.</small>
+          <input value={contact} maxLength={200} onChange={(e) => setContact(e.target.value)} />
+        </label>
+        <label className="adsw-f">
+          <span>Narration language</span>
+          <select value={language} onChange={(e) => setLanguage(e.target.value)}>
+            {NARRATION_LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.native}</option>)}
+          </select>
+        </label>
+        <div className="adsw-f">
+          <span>Format the AI picked for your photos</span>
+          <div className="row">
+            {alternatives.map((alt) => (
+              <button key={alt.id} type="button" className="pill" aria-pressed={alt.id === template} onClick={() => setTemplate(alt.id)}>
+                {alt.name} · {alt.seconds}s
+              </button>
+            ))}
+          </div>
+          <small>{chosenModel.goal}. {chosenModel.seconds} seconds · {chosenModel.credits} credits.</small>
+        </div>
+        {outOfCredits ? (
+          <p className="adsw-warn" role="alert">
+            This ad needs {outOfCredits.needed ?? chosenModel.credits} credits{outOfCredits.balance !== null ? ` and you have ${outOfCredits.balance}` : ''}. <Link href="/pricing">Get credits</Link> and come back — everything here is saved.
+          </p>
+        ) : null}
+        {error ? <p className="adsw-err" role="alert">{error}</p> : null}
+        <div className="adsw-actions">
+          <button type="button" className="adsw-btn" onClick={() => void make()}>Make my ad · {chosenModel.credits} credits</button>
+          <button type="button" className="adsw-btn ghost" onClick={() => { setPhase('input'); setError(null) }}>Back</button>
+          <button type="button" className="adsw-link" onClick={onSteps}>Edit every detail step by step</button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="card adsw-panel">
+      <h2 tabIndex={-1} data-step-heading>Let the AI make your ad</h2>
+      <p className="adsw-lead">Add your logo and a few photos or videos, tell us about your business in one or two sentences, and the AI writes, narrates and edits the ad.</p>
+      <div className="adsw-f">
+        <span>Your logo <b className="adsw-req">required</b></span>
+        <div className="adsw-logo">
+          {logo ? (
+            <div className="adsw-tile">
+              <MediaThumb item={logo} src={srcOf(logo)} />
+              <button type="button" className="adsw-x" aria-label="Remove logo" disabled={Boolean(busy)} onClick={() => void removeItem(logo)}>✕</button>
+            </div>
+          ) : null}
+          <button type="button" className="adsw-btn ghost" disabled={Boolean(busy)} onClick={() => logoInput.current?.click()}>{logo ? 'Change logo' : 'Upload logo'}</button>
+          <input ref={logoInput} type="file" accept={ADS_UPLOAD_ACCEPT_LOGO} hidden onChange={(e) => { void addFiles(e.target.files, true); e.target.value = '' }} />
+        </div>
+      </div>
+      <div className="adsw-f">
+        <span>Photos and videos <b className="adsw-req">at least {MIN_PHOTOS_ANY_MODEL} photos</b></span>
+        <small>Your product, place, team or work. More photos unlock more formats (6 unlock them all).</small>
+        <div className="adsw-media">
+          {rest.map((m, i) => (
+            <div className="adsw-tile" key={m.footageId}>
+              <MediaThumb item={m} src={srcOf(m)} />
+              <span className="adsw-tag">{m.kind === 'video' ? 'Video' : `Photo ${i + 1}`}</span>
+              <button type="button" className="adsw-x" aria-label={`Remove ${m.kind} ${i + 1}`} disabled={Boolean(busy)} onClick={() => void removeItem(m)}>✕</button>
+            </div>
+          ))}
+          {rest.length < MAX_MEDIA ? (
+            <button type="button" className="adsw-add" disabled={Boolean(busy)} onClick={() => mediaInput.current?.click()}>
+              <span className="plus" aria-hidden="true">+</span>
+              Add photos or videos
+            </button>
+          ) : null}
+          <input ref={mediaInput} type="file" accept={ADS_UPLOAD_ACCEPT_MEDIA} multiple hidden onChange={(e) => { void addFiles(e.target.files, false); e.target.value = '' }} />
+        </div>
+      </div>
+      <label className="adsw-f">
+        <span>About your business <b className="adsw-req">required</b></span>
+        <small>What you sell, the offer (if any), and how customers reach you. Only what you write here goes in the ad.</small>
+        <textarea className="adsw-ta" rows={4} maxLength={1500} value={text} placeholder={AUTO_PLACEHOLDER} onChange={(e) => setText(e.target.value)} />
+      </label>
+      <label className="adsw-check">
+        <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+        <span>I own these photos and videos, or have permission to use them in an ad.</span>
+      </label>
+      {busy ? <p className="adsw-hint" role="status">{busy}</p> : null}
+      {error ? <p className="adsw-err" role="alert">{error}</p> : null}
+      <div className="adsw-actions">
+        <button type="button" className="adsw-btn" disabled={Boolean(busy)} onClick={() => void analyze()}>Make the plan</button>
+        <button type="button" className="adsw-link" onClick={onSteps}>I prefer step by step</button>
+      </div>
     </div>
   )
 }

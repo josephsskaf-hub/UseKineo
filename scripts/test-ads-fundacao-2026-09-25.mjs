@@ -66,7 +66,8 @@ const eventsSrc = rd('lib/ads/events.ts')
 check('events.ts é puro', !/^import /m.test(eventsSrc))
 const ev = roda(eventsSrc)
 // KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — reancorado com motivo: +ads_voice_preview_served (prévia de voz do /api/ads/voice, só servidor, conta o teto diário).
-check('26 eventos, únicos, todos com prefixo ads_', ev.ADS_EVENTS.length === 26 && new Set(ev.ADS_EVENTS).size === 26 && ev.ADS_EVENTS.every((n) => n.startsWith('ads_')))
+// 26/09: +3 do modo "a IA faz o anúncio" (ads_auto_started, ads_auto_brief_served, ads_auto_confirmed).
+check('29 eventos, únicos, todos com prefixo ads_', ev.ADS_EVENTS.length === 29 && new Set(ev.ADS_EVENTS).size === 29 && ev.ADS_EVENTS.every((n) => n.startsWith('ads_')))
 check('os eventos do funil existem: viewed → cta → checkout → access_granted → brief → media → template → script → preview → render_requested → render_served → delivered → download', ['ads_page_viewed', 'ads_cta_clicked', 'ads_checkout_started', 'ads_access_granted', 'ads_brief_saved', 'ads_media_uploaded', 'ads_template_selected', 'ads_script_served', 'ads_preview_confirmed', 'ads_render_requested', 'ads_render_served', 'ads_delivered', 'ads_download_clicked', 'ads_qa_decided', 'ads_open_orders_capped'].every((n) => ev.isAdsEvent(n)))
 check('eventos só de servidor incluem grant/deny/render_served/delivered/qa', ['ads_access_granted', 'ads_access_denied', 'ads_render_served', 'ads_delivered', 'ads_qa_decided'].every((n) => ev.ADS_SERVER_ONLY_EVENTS.includes(n)) && ev.ADS_SERVER_ONLY_EVENTS.every((n) => ev.isAdsEvent(n)))
 check('teto de 5 revisões abertas (decisão 5)', ev.ADS_MAX_OPEN_REVIEWS === 5)

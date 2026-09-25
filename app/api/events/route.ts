@@ -110,6 +110,7 @@ const SERVER_ONLY_EVENTS = new Set([
   'ads_access_denied',
   'ads_script_served',
   'ads_voice_preview_served',
+  'ads_auto_brief_served', // KINEO-ADS-IA-FAZ-2026-09-26: conta o teto diário do modo IA; o navegador não pode forjar
   'ads_render_requested',
   'ads_render_served',
   'ads_render_failed',
