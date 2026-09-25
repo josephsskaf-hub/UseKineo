@@ -8,9 +8,10 @@ const assert = require('node:assert/strict');
 
 const root = path.resolve(__dirname, '..');
 const publicRoot = path.join(root, 'public');
-const sourceDir = path.join(publicRoot, 'design/mixed-refined-20260924');
+const sourceArg = process.argv.find(arg => arg.startsWith('--source='));
+const sourceDir = sourceArg ? path.resolve(sourceArg.slice('--source='.length)) : path.join(publicRoot, 'design/mixed-refined-20260924');
 const defaultOutput = 'C:/Users/josep/Documents/Codex/2026-09-21/kineo-ux-ui/outputs/mixed-refined-20260924/KINEO-MISTO-REFINADO.html';
-const output = path.resolve(process.argv.slice(2).find(arg => arg !== '--check') || defaultOutput);
+const output = path.resolve(process.argv.slice(2).find(arg => !arg.startsWith('--')) || defaultOutput);
 const checkOnly = process.argv.includes('--check');
 const origin = 'https://www.usekineo.com';
 const mime = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.avif': 'image/avif', '.svg': 'image/svg+xml', '.gif': 'image/gif', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf' };
