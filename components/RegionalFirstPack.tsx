@@ -236,9 +236,9 @@ export default function RegionalFirstPack({
   return (
     <div
       className="mx-auto mb-7 max-w-2xl rounded-2xl px-5 py-5 text-center"
-      style={{ background: 'rgba(41,151,255,0.09)', border: '1px solid rgba(41,151,255,0.45)' }}
+      style={{ background: 'var(--accent-soft)', border: '1px solid var(--border2)' }}
     >
-      <p className="text-[12px] font-bold uppercase tracking-wide text-[#2997ff]">
+      <p className="text-[12px] font-bold uppercase tracking-wide text-[var(--accent)]">
         {COPY[surface].chapeu}
       </p>
 
@@ -248,7 +248,7 @@ export default function RegionalFirstPack({
           única de US$ 4,90 continua logo abaixo para quem não usa. */}
       {metodoLocal && (
         <div className="mt-3">
-          <p className="text-[15px] font-semibold text-white">
+          <p className="text-[15px] font-semibold text-[var(--text)]">
             {ROTULO_DO_METODO[metodoLocal].frase}
           </p>
           <a
@@ -261,8 +261,8 @@ export default function RegionalFirstPack({
                 surface_version: REGIONAL_FIRST_PACK_VERSION,
               })
             }}
-            className="mt-3 inline-block rounded-xl px-6 py-3 text-[14px] font-bold text-white no-underline"
-            style={{ background: '#00b37e' }}
+            className="mt-3 inline-block rounded-xl px-6 py-3 text-[14px] font-bold text-[var(--on-accent)] no-underline"
+            style={{ background: 'var(--indigo)' }}
           >
             {ROTULO_DO_METODO[metodoLocal].nome} →
           </a>
@@ -271,14 +271,14 @@ export default function RegionalFirstPack({
 
       {mostrarPack && (
       <>
-      <p className="mt-4 text-[15px] font-semibold text-white">
+      <p className="mt-4 text-[15px] font-semibold text-[var(--text)]">
         {metodoLocal ? 'Or start with a one-time payment' : 'Start with a one-time payment'} — {PACK_CREDITS.starter} credits for {packPriceLabel()}
       </p>
       {/* Cada frase aqui tem de ser verdadeira: `?pack=starter` é
           `mode: 'payment'` (cobrança única, sem mandato) e os créditos do pack
           não expiram — as duas coisas foram conferidas no código, e o guardião
           trava as duas. */}
-      <p className="mx-auto mt-2 max-w-md text-[12.5px] leading-relaxed text-[#a1a1a6]">
+      <p className="mx-auto mt-2 max-w-md text-[12.5px] leading-relaxed text-[var(--muted)]">
         {COPY[surface].contexto} This is a one-time payment — no subscription,
         no renewal.
       </p>
@@ -291,14 +291,14 @@ export default function RegionalFirstPack({
             surface_version: REGIONAL_FIRST_PACK_VERSION,
           })
         }}
-        className="mt-4 inline-block rounded-xl px-6 py-3 text-[14px] font-bold text-white no-underline"
-        style={{ background: '#2997ff' }}
+        className="mt-4 inline-block rounded-xl px-6 py-3 text-[14px] font-bold text-[var(--on-accent)] no-underline"
+        style={{ background: 'var(--indigo)' }}
       >
         Get {PACK_CREDITS.starter} credits for {packPriceLabel()} →
       </a>
       </>
       )}
-      <p className="mt-3 text-[11.5px] text-[#86868b]">
+      <p className="mt-3 text-[11.5px] text-[var(--muted)]">
         {/* A frase tem de dizer a verdade sobre a POSIÇÃO em cada tela: em
             /pricing e no grid do Studio a peça fica ACIMA dos planos; na tela
             pós-filme ela fica DEPOIS de tudo que entrega. O teste passa a ser
