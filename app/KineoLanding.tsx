@@ -190,6 +190,21 @@ html{scroll-behavior:smooth}
 /* Chip de tier (STUDIO) — ensina a hierarquia sem uma palavra. */
 .klp .nm-chip{display:inline-block;margin-left:7px;font-style:normal;font-size:9px;font-weight:800;letter-spacing:.1em;padding:2px 7px;border-radius:99px;background:rgba(41,151,255,.16);color:#7cc0ff;vertical-align:1px}
 .klp .nd-menu a:hover{background:rgba(255,255,255,.06);color:#fff}
+/* KINEO-NAV-4-ITENS-2026-09-25 (decisao do fundador 24/09: topo com 4 itens) —
+   Create video e o unico mega-menu e ganha a 3a coluna "More tools" (Imagem,
+   Audio, Animate, Thumbnails, Avatar). Empilhadas, as colunas ja passavam de
+   650px de altura (medido em producao, 1280x720); em linha cabem em ~670px de
+   largura. O menu ancora na esquerda do rotulo (1o item do topo) para nao
+   sair da tela em 1201px. A coluna nova e secundaria: so texto, menor, apagada. */
+.klp .nd-mega{flex-direction:row;align-items:stretch;left:-18px;transform:translate(0,10px)}
+.klp .nd:hover .nd-mega,.klp .nd:focus-within .nd-mega{transform:translate(0,0)}
+.klp .nd-mega .nm-more{min-width:170px}
+.klp .nd-mega .nm-more a{padding:8px 15px;font-size:13px;color:var(--muted2)}
+.klp .nd-mega .nm-more a:hover{color:#fff}
+.klp .nav-login{font-size:14px;font-weight:550;color:var(--muted);white-space:nowrap;transition:color var(--dur-fast) ease}
+.klp .nav-login:hover{color:var(--txt)}
+.klp .nav-mobile-menu .nav-mobile-kicker{padding:18px 4px 6px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);font-weight:700}
+.klp .nav-mobile-menu a.nav-mobile-more{font-size:14px;color:var(--muted)}
 
 .klp .nav-links a.nav-on{color:var(--txt)}
 .klp .nav-links a.nav-on::after{content:'';position:absolute;left:0;right:0;bottom:-8px;height:2px;border-radius:var(--r-pill);background:var(--blue)}
@@ -471,6 +486,8 @@ html{scroll-behavior:smooth}
    o espaço disponível em tablets. A navegação compacta entra antes que os
    links encostem no CTA; as demais regras mobile continuam em 780px. */
 .klp .nav-links{display:none}
+/* KINEO-NAV-4-ITENS-2026-09-25 — no compacto o Log in mora no menu. */
+.klp .nav-login{display:none}
 .klp .nav-toggle-wrap{display:inline-flex;position:relative;width:44px;height:44px;align-items:center;justify-content:center}
 .klp .nav-mobile-menu{position:fixed;top:62px;left:0;right:0;flex-direction:column;background:var(--s0);border-bottom:1px solid var(--line);padding:8px 28px 20px;gap:2px;max-height:calc(100vh - 62px);overflow-y:auto;z-index:49}
 .klp .nav-mobile-menu a{min-height:44px;display:flex;align-items:center;padding:10px 4px;font-size:15px;font-weight:500;color:var(--txt);border-bottom:1px solid var(--line)}
@@ -878,69 +895,27 @@ export default function KineoLanding({
           Kineo
         </Link>
         <div className="nav-links">
-            <Link href="/examples"><UiLabel>Explore</UiLabel></Link>
             {/* Editing tools and Arena temporarily withdrawn by the founder. */}
+            {/* KINEO-NAV-4-ITENS-2026-09-25 — decisao do fundador (24/09): topo
+                publico com 4 itens (Create video · For businesses · Examples ·
+                Pricing) + Log in. Os mega-menus Image e Audio e o link Avatar
+                saem do topo; Images, Audio, Animate, Thumbnails e Avatar ficam
+                em "More tools" dentro de Create video. Nenhuma rota sai do ar.
+                14 dias: video 172 pessoas, empresas 36 sessoes, Imagem 4,
+                Audio 0; os 9 pagantes de 45 dias so usaram video. */}
             {/* KINEO-NAV-DROPDOWN-2026-08-15 — menus de categoria estilo
-                Higgsfield: Image e Video abrem submenu no hover/focus (CSS
-                puro, sem JS). O clique no proprio rotulo leva ao destino
-                principal da categoria. */}
-            {/* KINEO-NAV-IMAGE-2026-08-17 (aprovado): Animate a Photo muda de
-                Video pra ca — a porta de entrada dele e uma IMAGEM. O menu
-                deixa de ser dropdown de item unico. */}
-            {/* KINEO-IMAGES-PROD-2026-08-17 (fundador: "pode subir pra
-                producao... dentro do menu de imagens vai ter todos os motores
-                de imagem"): Image vira mega-menu igual ao Video — catalogo de
-                motores com preco | ferramentas. Porta principal: /images. */}
+                Higgsfield: abrem submenu no hover/focus (CSS puro, sem JS). O
+                clique no proprio rotulo leva ao destino principal. */}
+            {/* KINEO-NAV-MEGA-2026-08-17 — Video vira mega-menu: motores
+                (catalogo com preco) | ferramentas. Pares: bento + hero cards. */}
             <span className="nd">
-              <Link href="/images"><UiLabel>Image</UiLabel><span className="nd-car" aria-hidden="true">▾</span></Link>
+              <Link href="/studio"><UiLabel>Create video</UiLabel><span className="nd-car" aria-hidden="true">▾</span></Link>
               <span className="nd-menu nd-mega">
                 <span className="nm-col">
                   <span className="nm-h"><UiLabel>Engines</UiLabel></span>
                   {/* KINEO-MENU-ICONES-2026-08-17 (fundador, ref. Higgsfield):
                       SEM preco no menu (atrito antes da hora — preco mora na
                       pagina) + caixinha com monograma/glifo de cada produto. */}
-                  <Link href="/images?engine=schnell&intent_campaign=nav_mega"><span className="nm-ic">F</span><span className="nm-tx"><b>FLUX Schnell</b><i><UiLabel>Instant drafts</UiLabel></i></span></Link>
-                  <Link href="/images?engine=dev&intent_campaign=nav_mega"><span className="nm-ic">F+</span><span className="nm-tx"><b>FLUX Dev<em className="nm-chip">TOP</em></b><i><UiLabel>Sharp &amp; photorealistic</UiLabel></i></span></Link>
-                  <Link href="/images?engine=seedream&intent_campaign=nav_mega"><span className="nm-ic">S</span><span className="nm-tx"><b>Seedream 5.0 Pro</b><i><UiLabel>Deep prompt understanding</UiLabel></i></span></Link>
-                  <Link href="/images?engine=grok&intent_campaign=nav_mega"><span className="nm-ic">𝕏</span><span className="nm-tx"><b>Grok Imagine 2.0</b><i><UiLabel>Highly aesthetic, by xAI</UiLabel></i></span></Link>
-                  <Link href="/images?engine=recraft&intent_campaign=nav_mega"><span className="nm-ic">R</span><span className="nm-tx"><b>Recraft V3</b><i><UiLabel>Perfect text rendering</UiLabel></i></span></Link>
-                  <Link href="/images?engine=nanobanana&intent_campaign=nav_mega"><span className="nm-ic">🍌</span><span className="nm-tx"><b>Nano Banana Pro<em className="nm-chip">STUDIO</em></b><i><UiLabel>Google’s best image model</UiLabel></i></span></Link>
-                </span>
-                <span className="nm-col">
-                  <span className="nm-h"><UiLabel>Create</UiLabel></span>
-                  <Link href="/images"><span className="nm-ic">🎨</span><span className="nm-tx"><b><UiLabel>Create Image</UiLabel></b><i><UiLabel>Six engines, one screen</UiLabel></i></span></Link>
-                  <Link href="/thumbnail-generator"><span className="nm-ic">🖼</span><span className="nm-tx"><b><UiLabel>Thumbnails</UiLabel></b><i><UiLabel>Click-magnet YouTube covers</UiLabel></i></span></Link>
-                  <Link href="/animate"><span className="nm-ic">🎞</span><span className="nm-tx"><b><UiLabel>Animate a Photo</UiLabel></b><i><UiLabel>Bring any image to life</UiLabel></i></span></Link>
-                </span>
-              </span>
-            </span>
-            {/* KINEO-AUDIO-2026-08-17 ([STAGE] fundador: "quero o menu de
-                audio conectando: imagem - audio - videos"): mega-menu Audio
-                entre Image e Video, mesmo padrao de catalogo com preco. */}
-            <span className="nd">
-              <Link href="/audio"><UiLabel>Audio</UiLabel><span className="nd-car" aria-hidden="true">▾</span></Link>
-              <span className="nd-menu nd-mega">
-                <span className="nm-col">
-                  <span className="nm-h"><UiLabel>Engines</UiLabel></span>
-                  <Link href="/audio?engine=minimax&intent_campaign=nav_mega"><span className="nm-ic">M</span><span className="nm-tx"><b>MiniMax Speech HD<em className="nm-chip">TOP</em></b><i><UiLabel>High-fidelity narration</UiLabel></i></span></Link>
-                  <Link href="/audio?engine=eleven&intent_campaign=nav_mega"><span className="nm-ic">11</span><span className="nm-tx"><b>Eleven v3<em className="nm-chip">STUDIO</em></b><i><UiLabel>Emotion &amp; delivery tags</UiLabel></i></span></Link>
-                  <Link href="/audio?engine=dia&intent_campaign=nav_mega"><span className="nm-ic">D</span><span className="nm-tx"><b>Dia Dialogue</b><i><UiLabel>Two-speaker scenes</UiLabel></i></span></Link>
-                  <Link href="/audio?engine=kokoro&intent_campaign=nav_mega"><span className="nm-ic">K</span><span className="nm-tx"><b>Kokoro</b><i><UiLabel>Instant narration</UiLabel></i></span></Link>
-                </span>
-                <span className="nm-col">
-                  <span className="nm-h"><UiLabel>Create</UiLabel></span>
-                  <Link href="/audio"><span className="nm-ic">🎙</span><span className="nm-tx"><b><UiLabel>Text to Speech</UiLabel></b><i><UiLabel>Four voice engines</UiLabel></i></span></Link>
-                  <Link href="/avatar"><span className="nm-ic">👤</span><span className="nm-tx"><b><UiLabel>Talking Avatar</UiLabel></b><i><UiLabel>A face that speaks your script</UiLabel></i></span></Link>
-                </span>
-              </span>
-            </span>
-            {/* KINEO-NAV-MEGA-2026-08-17 — Video vira mega-menu: motores
-                (catalogo com preco) | ferramentas. Pares: bento + hero cards. */}
-            <span className="nd">
-              <Link href="/studio"><UiLabel>Video</UiLabel><span className="nd-car" aria-hidden="true">▾</span></Link>
-              <span className="nd-menu nd-mega">
-                <span className="nm-col">
-                  <span className="nm-h"><UiLabel>Engines</UiLabel></span>
                   <NavEngineItem href="/studio?engine=fast&intent_campaign=nav_mega" name="Kineo 1" desc="Kineo’s own engine — fastest" icon="⚡" />
                   <NavEngineItem href="/studio?engine=seedance&intent_campaign=nav_mega" name="Seedance 1.5" desc="The workhorse AI engine" chip="TOP" icon="S" preview="/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4" />
                   <NavEngineItem href="/studio?engine=kling&intent_campaign=nav_mega" name="Kling 2.5" desc="Cinematic motion & camera" icon="K" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" />
@@ -968,16 +943,28 @@ export default function KineoLanding({
                   <Link href="/studio"><span className="nm-ic">🎬</span><span className="nm-tx"><b><UiLabel>Studio</UiLabel></b><i><UiLabel>Every control, one screen</UiLabel></i></span></Link>
                   <Link href="/viral-now"><span className="nm-ic">🔥</span><span className="nm-tx"><b>Viral Now</b><i><UiLabel>Today’s trending topics</UiLabel></i></span></Link>
                   <Link href="/scripts"><span className="nm-ic">✍️</span><span className="nm-tx"><b><UiLabel>Scripts</UiLabel></b><i><UiLabel>Ready-to-shoot viral scripts</UiLabel></i></span></Link>
-                  <Link href="/examples"><span className="nm-ic">▦</span><span className="nm-tx"><b><UiLabel>Examples</UiLabel></b><i><UiLabel>Real renders, every engine</UiLabel></i></span></Link>
+                </span>
+                {/* KINEO-NAV-4-ITENS-2026-09-25 — coluna secundaria: so texto,
+                    menor e apagada, para o video continuar sendo a porta. */}
+                <span className="nm-col nm-more">
+                  <span className="nm-h"><UiLabel>More tools</UiLabel></span>
+                  <Link href="/images"><UiLabel>Images</UiLabel></Link>
+                  <Link href="/audio"><UiLabel>Audio</UiLabel></Link>
+                  <Link href="/animate"><UiLabel>Animate a Photo</UiLabel></Link>
+                  <Link href="/thumbnail-generator"><UiLabel>Thumbnails</UiLabel></Link>
+                  <Link href="/avatar"><UiLabel>Talking Avatar</UiLabel></Link>
                 </span>
               </span>
             </span>
-            <Link href="/avatar">Avatar</Link>
-            <Link href="/business-video-ads"><UiLabel>Videos for businesses</UiLabel></Link>
+            <Link href="/business-video-ads"><UiLabel>For businesses</UiLabel></Link>
+            <Link href="/examples"><UiLabel>Examples</UiLabel></Link>
             <a href="#pricing"><UiLabel>Pricing</UiLabel></a>
           </div>
         <div className="nav-right">
           <InterfaceLanguageSelect />
+          {/* KINEO-NAV-4-ITENS-2026-09-25 — "Log in" em texto ao lado do CTA de
+              cadastro, so para visitante; no celular ele mora no menu. */}
+          {initialUser ? null : <Link className="nav-login" href="/login"><UiLabel>Log in</UiLabel></Link>}
           {initialUser
             ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w nav-dashboard" style={{ padding: '12px 20px', fontSize: '14px' }} href="/studio"><UiLabel>Dashboard</UiLabel></Link></div>
             : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav'}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>}
@@ -985,19 +972,25 @@ export default function KineoLanding({
             <input type="checkbox" id="nav-toggle" className="nav-toggle-input" aria-label="Menu" aria-controls="mobile-nav-menu" />
             <span className="nav-toggle-btn" aria-hidden="true"><span className="bar" /><span className="bar" /><span className="bar" /></span>
             <label htmlFor="nav-toggle" id="mobile-nav-menu" className="nav-mobile-menu">
-              <Link href="/examples"><UiLabel>Explore</UiLabel></Link>
-              <Link href="/studio"><UiLabel>🎬 Studio — generate video</UiLabel></Link>
-              <Link href="/business-video-ads"><UiLabel>Videos for businesses</UiLabel></Link>
-              <Link href="/images"><UiLabel>🎨 Images — create image</UiLabel></Link>
-              <Link href="/audio"><UiLabel>🎙 Audio — text to speech</UiLabel></Link>
-              <Link href="/viral-now">🔥 Viral Now</Link>
-              <Link href="/scripts"><UiLabel>Scripts</UiLabel></Link>
-              <Link href="/animate"><UiLabel>Animate</UiLabel></Link>
-              <Link href="/thumbnail-generator"><UiLabel>Thumbnails</UiLabel></Link>
-              <Link href="/avatar">Avatar</Link>
+              {/* KINEO-NAV-4-ITENS-2026-09-25 — par do topo: os 4 itens + Log in
+                  ou Dashboard; o resto vai para "More tools", secundario. */}
+              <Link href="/studio"><UiLabel>Create video</UiLabel></Link>
+              <Link href="/business-video-ads"><UiLabel>For businesses</UiLabel></Link>
+              <Link href="/examples"><UiLabel>Examples</UiLabel></Link>
               <a href="#pricing"><UiLabel>Pricing</UiLabel></a>
               {initialUser
                 ? <Link className="btn btn-w" href="/studio"><UiLabel>Dashboard</UiLabel></Link>
+                : <Link href="/login"><UiLabel>Log in</UiLabel></Link>}
+              <span className="nav-mobile-kicker"><UiLabel>More tools</UiLabel></span>
+              <Link className="nav-mobile-more" href="/images"><UiLabel>Images</UiLabel></Link>
+              <Link className="nav-mobile-more" href="/audio"><UiLabel>Audio</UiLabel></Link>
+              <Link className="nav-mobile-more" href="/animate"><UiLabel>Animate</UiLabel></Link>
+              <Link className="nav-mobile-more" href="/thumbnail-generator"><UiLabel>Thumbnails</UiLabel></Link>
+              <Link className="nav-mobile-more" href="/avatar">Avatar</Link>
+              <Link className="nav-mobile-more" href="/viral-now">Viral Now</Link>
+              <Link className="nav-mobile-more" href="/scripts"><UiLabel>Scripts</UiLabel></Link>
+              {initialUser
+                ? null
                 : <Link className="btn btn-w" href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav-mobile'}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>}
             </label>
           </div>

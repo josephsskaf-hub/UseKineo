@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { GROW_NAV, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
+import { MORE_NAV, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef } from 'react'
@@ -10,8 +10,10 @@ import { useEffect, useRef } from 'react'
 // KINEO-NAV-REDESIGN-2026-07-10 — emoji icons replaced with the same refined
 // line-icon set the Sidebar uses (17px, 1.7 stroke, currentColor) so mobile
 // matches the professional desktop nav.
+// KINEO-NAV-4-ITENS-2026-09-25 — decisao do fundador (24/09): a barra fica com
+// Studio, Library, Ads, Pricing + "More" (5 slots), mesmos destinos do Sidebar.
+// Home saiu (o logo ja leva a /); Ads ganha o megafone do Sidebar em 19px.
 const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolean }[] = [
-  {href:'/', label:'Home', exact:true, icon:<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m3 10 9-7 9 7v10H3Z"/><path d="M9 20v-7h6v7"/></svg>},
   {
     href: '/studio',
     icon: (
@@ -20,7 +22,18 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
         <path d="M16.5 10.5 21.5 7v10l-5-3.5" />
       </svg>
     ),
-    label: 'Video',
+    label: 'Studio',
+    exact: false,
+  },
+  {
+    href: '/ads',
+    icon: (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M4 9.5h3l7.5-4.5v14L7 14.5H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1Z" />
+        <path d="m7 14.5 1.3 4.5h2.4M18 9.5a3.5 3.5 0 0 1 0 5" />
+      </svg>
+    ),
+    label: 'Ads',
     exact: false,
   },
   // KINEO-IMAGES-PROD-2026-08-17 — par do Sidebar: Kineo Images no mobile.
@@ -110,13 +123,10 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
 ]
 
 // Same destinations as the desktop sidebar; no checkout or generation side effects.
-const TOOL_LINKS = [
-  { href: '/images', label: 'Images' },
-  { href: '/audio', label: 'Audio' },
-]
+// KINEO-NAV-4-ITENS-2026-09-25 — o grupo Tools (Images/Audio) virou parte do
+// "More"; Account continua aqui porque o celular nao tem o bloco de conta do Sidebar.
 const MORE_LINKS = [
-  ...GROW_NAV.map(item => ({ ...item, signedIn: false })),
-  { href: '/pricing', label: 'Pricing' },
+  ...MORE_NAV.map(item => ({ ...item, signedIn: false })),
   { href: '/referral', label: 'Invite & Earn', signedIn: true },
   { href: '/affiliate', label: 'Affiliate', signedIn: true },
   { href: '/account', label: 'Account', signedIn: true },
@@ -149,9 +159,8 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
     return () => document.removeEventListener('pointerdown', closeOutside)
   }, [])
 
-  const primary = NAV_ITEMS.filter((item) => ['/', '/studio', '/library'].includes(item.href))
+  const primary = NAV_ITEMS.filter((item) => ['/studio', '/library', '/ads', '/pricing'].includes(item.href))
   const groups = [
-    { label: 'Tools', links: TOOL_LINKS },
     { label: 'More', links: MORE_LINKS.filter((item) => isLoggedIn || !item.signedIn) },
   ]
   const primaryLink = (href: string) => {
@@ -177,9 +186,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
       <summary className="kineo-mobile-tab"
         data-active={group.links.some((item) => isActive(pathname, item.href)) || undefined}>
         <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
-          {group.label === 'Tools'
-            ? <><rect x="3" y="3" width="7" height="7" rx="2" /><rect x="14" y="3" width="7" height="7" rx="2" /><rect x="3" y="14" width="7" height="7" rx="2" /><rect x="14" y="14" width="7" height="7" rx="2" /></>
-            : <><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></>}
+          <circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" />
         </svg>
         <span><UiLabel>{group.label}</UiLabel></span>
       </summary>
@@ -217,11 +224,11 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
         }
       }}>
       <div className="kineo-mobile-row">
-        {primaryLink('/')}
         {primaryLink('/studio')}
         {primaryLink('/library')}
+        {primaryLink('/ads')}
+        {primaryLink('/pricing')}
         {disclosure(groups[0])}
-        {disclosure(groups[1])}
       </div>
       {/* Static CSS, never user input. Preserve raw-text selectors in SSR. */}
       <style dangerouslySetInnerHTML={{ __html: `

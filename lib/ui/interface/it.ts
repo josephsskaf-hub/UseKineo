@@ -3,6 +3,18 @@
 // Gerado de scratchpad/tr-it.js sobre o corpus vivo de frases (415); números e "Kineo" preservados por construção.
 export const DICT: Record<string, string> = {
   'Videos for businesses': 'Video per aziende',
+  // KINEO-NAV-4-ITENS-2026-09-25 — rótulos do menu de 4 itens (decisão do fundador 24/09).
+  'Create video': 'Crea video',
+  'For businesses': 'Per le aziende',
+  'More tools': 'Altri strumenti',
+  'Ads': 'Annunci',
+  'Log in': 'Accedi',
+  'More': 'Altro',
+  'Scripts': 'Script',
+  'Animate': 'Anima',
+  'Examples': 'Esempi',
+  'Pricing': 'Prezzi',
+  'Library': 'Libreria',
   'Generation failed': 'Generazione non riuscita',
   'You can retry safely.': 'Puoi riprovare in tutta sicurezza.',
   'This engine is not available on your account right now': 'Questo motore non è disponibile sul tuo account in questo momento',

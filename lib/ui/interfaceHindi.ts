@@ -3,6 +3,11 @@
  */
 export const INTERFACE_HI: Record<string, string> = {
   'Videos for businesses': 'व्यवसायों के लिए वीडियो',
+  // KINEO-NAV-4-ITENS-2026-09-25 — rótulos do menu de 4 itens (decisão do fundador 24/09).
+  'Create video': 'वीडियो बनाएँ',
+  'For businesses': 'व्यवसायों के लिए',
+  'More tools': 'और टूल',
+  'Ads': 'विज्ञापन',
   // KINEO-ENTREGA-NOITE-R6-2026-09-09 — as frases do cartão de falha que
   // pararam de chamar portão e resfriamento de "Generation failed".
   'Generation failed': 'वीडियो नहीं बन पाया',

@@ -3,7 +3,7 @@
 import KineoBolt from '@/components/KineoBolt'
 
 import Link from 'next/link'
-import { WORKSPACE_NAV, GROW_NAV, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
+import { WORKSPACE_NAV, MORE_NAV, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -163,6 +163,20 @@ const NAV_ICONS: Record<string, JSX.Element> = {
       <path d="m10.5 9.5 4 2.5-4 2.5v-5Z" />
     </svg>
   ),
+  // KINEO-NAV-4-ITENS-2026-09-25 — Studio Ads (megafone) e Scripts (folha com
+  // linhas) entram no menu; mesma grade 17px / stroke 1.7 / currentColor.
+  ads: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 9.5h3l7.5-4.5v14L7 14.5H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1Z" />
+      <path d="m7 14.5 1.3 4.5h2.4M18 9.5a3.5 3.5 0 0 1 0 5" />
+    </svg>
+  ),
+  scripts: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14 3.5H7.5A1.5 1.5 0 0 0 6 5v14a1.5 1.5 0 0 0 1.5 1.5h9A1.5 1.5 0 0 0 18 19V7.5L14 3.5Z" />
+      <path d="M14 3.5v4h4M9 12h6M9 15.5h6" />
+    </svg>
+  ),
 }
 
 function NavItem({
@@ -276,26 +290,6 @@ function NavItem({
         </span>
       )}
     </Link>
-  )
-}
-
-/** KINEO-NAV-REDESIGN-2026-07-10 — landing-style section kicker (like the
- *  homepage's uppercase micro-labels) to give the nav a clear hierarchy. */
-function NavSection({ label, first }: { label: string; first?: boolean }) {
-  return (
-    <div
-      style={{
-        padding: first ? '2px 12px 6px' : '16px 12px 6px',
-        fontSize: '0.58rem',
-        fontWeight: 900,
-        letterSpacing: '0.16em',
-        textTransform: 'uppercase',
-        color: 'rgba(134,134,139,0.75)',
-        userSelect: 'none',
-      }}
-    >
-      <UiLabel>{label}</UiLabel>
-    </div>
   )
 }
 
@@ -615,29 +609,26 @@ export default function Sidebar({
               ONLY New badge in the product now lives on the AI Avatar entry. */}
           {/* KINEO-NAV-REDESIGN-2026-07-10 (Joseph) — landing-style hierarchy:
               CREATE (the engines) · GROW (audience tools) · ACCOUNT. */}
-          <NavSection label="Create" first />
-          {WORKSPACE_NAV.map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={item.href === '/'} pathname={pathname} onClick={onClose} />)}
-          <details className="workspace-nav-group" open={GROW_NAV.some(item => workspaceNavActive(pathname, item.href)) || undefined}>
-            <summary><UiLabel>Grow</UiLabel></summary>
-            {GROW_NAV.map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} />)}
-          </details>
-          <details className="workspace-nav-group" open={['/account','/pricing','/affiliate','/referral'].some(path => workspaceNavActive(pathname,path)) || undefined}>
-          <summary><UiLabel>Account</UiLabel></summary>
-          {isLoggedIn && (
-            <>
-              <NavItem href="/referral" icon={NAV_ICONS.referral} label="Invite & Earn" exact={false} pathname={pathname} onClick={onClose} />
-              {/* PUSH #95 — the affiliate program (40% recurring, 90-day attribution,
-                  working /a/[code] tracking + dashboard) shipped with zero internal
-                  links anywhere in the app. Surfacing it here, next to "Invite & Earn"
-                  since it's the same job-to-be-done (grow the account by bringing in
-                  others). Reuses the "pricing" tag icon — closest existing NAV_ICONS
-                  match for a commission/money concept. */}
-              <NavItem href="/affiliate" icon={NAV_ICONS.pricing} label="Affiliate — 40%" exact={false} pathname={pathname} onClick={onClose} badge="NEW" />
-            </>
-          )}
-
-
-          <NavItem href="/pricing" icon={NAV_ICONS.pricing} label="Pricing" exact={false} pathname={pathname} onClick={onClose} />
+          {/* KINEO-NAV-4-ITENS-2026-09-25 — decisao do fundador (24/09): 4 portas
+              fixas (Studio, Biblioteca, Anuncios, Precos) sem kicker; Viral Now,
+              Scripts, Animate, Imagem, Audio, Autopilot, Channel Builder, Convide e
+              Afiliados vao para "More". Par: MobileNav.tsx (mesmos destinos). */}
+          {WORKSPACE_NAV.map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} />)}
+          <details className="workspace-nav-group" open={[...MORE_NAV.map(item => item.href), '/referral', '/affiliate'].some(path => workspaceNavActive(pathname, path)) || undefined}>
+            <summary><UiLabel>More</UiLabel></summary>
+            {MORE_NAV.map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} />)}
+            {isLoggedIn && (
+              <>
+                <NavItem href="/referral" icon={NAV_ICONS.referral} label="Invite & Earn" exact={false} pathname={pathname} onClick={onClose} />
+                {/* PUSH #95 — the affiliate program (40% recurring, 90-day attribution,
+                    working /a/[code] tracking + dashboard) shipped with zero internal
+                    links anywhere in the app. Surfacing it here, next to "Invite & Earn"
+                    since it's the same job-to-be-done (grow the account by bringing in
+                    others). Reuses the "pricing" tag icon — closest existing NAV_ICONS
+                    match for a commission/money concept. */}
+                <NavItem href="/affiliate" icon={NAV_ICONS.pricing} label="Affiliate — 40%" exact={false} pathname={pathname} onClick={onClose} badge="NEW" />
+              </>
+            )}
           </details>
           <style dangerouslySetInnerHTML={{__html: `.workspace-nav-group{margin-top:14px;padding-top:10px;border-top:1px solid #ffffff0c}.workspace-nav-group>summary{min-height:44px;padding:10px 12px;color:#9ca6b5;font-size:12px;font-weight:600;cursor:pointer}.workspace-nav-group>summary:focus-visible{outline:2px solid #2997ff;border-radius:8px}`}} />
 
