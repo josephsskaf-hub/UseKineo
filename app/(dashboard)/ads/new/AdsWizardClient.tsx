@@ -938,6 +938,13 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
           setView('progress')
         }}
         onSteps={toSteps}
+        onFresh={() => {
+          orderRef.current = null
+          setOrder(null)
+          setBeats(null)
+          setStoryboard({})
+          setCard(null)
+        }}
       />
     )
   } else if (view === 'brief' || !order) {
@@ -1148,6 +1155,7 @@ function AdsAutoPanel({
   onOrder,
   onStarted,
   onSteps,
+  onFresh,
 }: {
   order: AdsOrder | null
   localUrls: Record<string, string>
@@ -1156,6 +1164,7 @@ function AdsAutoPanel({
   onOrder: (o: AdsOrder) => void
   onStarted: (s: AdsRenderStarted, model: AdsModel, beats: string[], storyboard: Storyboard, card: CardInfo) => void
   onSteps: () => void
+  onFresh: () => void
 }) {
   const [phase, setPhase] = useState<'input' | 'thinking' | 'confirm' | 'making'>('input')
   const [text, setText] = useState('')
@@ -1173,6 +1182,10 @@ function AdsAutoPanel({
   const orderLocal = useRef<AdsOrder | null>(order)
   orderLocal.current = order ?? orderLocal.current
   const mediaRef = useRef<AdsMediaItem[]>(orderMedia(order))
+  // KINEO-ADS-IA-UPLOAD-2026-09-26 — relatório do Cowork: /ads/new abria o modo IA com o logo de um rascunho de outro
+  // dia, sem avisar. O pedido de rascunho continua sendo retomado (o estado vive no servidor), mas a tela diz de quando
+  // ele é e oferece começar do zero.
+  const createdHere = useRef(false)
   const media = orderMedia(order)
   const { logo, rest } = mediaSummary(media)
   const srcOf = (m: AdsMediaItem) => localUrls[m.footageId] ?? m.url
@@ -1189,17 +1202,21 @@ function AdsAutoPanel({
       return null
     }
     orderLocal.current = r.data.order
+    createdHere.current = true
     onOrder(r.data.order)
     void trackEvent('ads_auto_started', { order_id: r.data.order.id })
     return r.data.order
   }
 
-  async function addFiles(list: FileList | null, isLogo: boolean) {
-    if (!list || !list.length || busy) return
+  // KINEO-ADS-IA-UPLOAD-2026-09-26 — DEFEITO (achado pelo Cowork): a lista vinha como FileList VIVA e só era copiada
+  // depois do `await ensureOrder()`; o onChange zera o input logo em seguida (`value = ''`), então a lista chegava
+  // vazia e nada subia, sem erro. Agora o onChange copia os arquivos ANTES de zerar, e lista vazia vira mensagem.
+  async function addFiles(files: File[], isLogo: boolean) {
+    if (busy) return setError('Wait for the current upload to finish.')
+    if (!files.length) return setError('No file was received. Pick the file again.')
     setError(null)
     const o = await ensureOrder()
     if (!o) return
-    const files = Array.from(list)
     let queue = isLogo ? files.slice(0, 1) : files
     const room = MAX_MEDIA - mediaRef.current.filter((m) => !m.isLogo).length
     if (!isLogo && room <= 0) return setError(`You already have ${MAX_MEDIA} photos and videos.`)
@@ -1233,6 +1250,16 @@ function AdsAutoPanel({
       }
     }
     setBusy(null)
+  }
+
+  function startFresh() {
+    orderLocal.current = null
+    mediaRef.current = []
+    createdHere.current = false
+    setConsent(false)
+    setText('')
+    setError(null)
+    onFresh()
   }
 
   async function removeItem(item: AdsMediaItem) {
@@ -1440,6 +1467,12 @@ function AdsAutoPanel({
     <div className="card adsw-panel">
       <h2 tabIndex={-1} data-step-heading>Let the AI make your ad</h2>
       <p className="adsw-lead">Add your logo and a few photos or videos, tell us about your business in one or two sentences, and the AI writes, narrates and edits the ad.</p>
+      {order && !createdHere.current && (media.length > 0 || order.brief) ? (
+        <p className="adsw-warn" role="status">
+          Continuing your unfinished ad from {new Date(order.created_at).toLocaleDateString()} — its logo and photos are below.{' '}
+          <button type="button" className="adsw-link" disabled={Boolean(busy)} onClick={startFresh}>Start a new ad instead</button>
+        </p>
+      ) : null}
       <div className="adsw-f">
         <span>Your logo <b className="adsw-req">required</b></span>
         <div className="adsw-logo">
@@ -1450,7 +1483,7 @@ function AdsAutoPanel({
             </div>
           ) : null}
           <button type="button" className="adsw-btn ghost" disabled={Boolean(busy)} onClick={() => logoInput.current?.click()}>{logo ? 'Change logo' : 'Upload logo'}</button>
-          <input ref={logoInput} type="file" accept={ADS_UPLOAD_ACCEPT_LOGO} hidden onChange={(e) => { void addFiles(e.target.files, true); e.target.value = '' }} />
+          <input ref={logoInput} type="file" accept={ADS_UPLOAD_ACCEPT_LOGO} hidden onChange={(e) => { const picked = Array.from(e.target.files ?? []); e.target.value = ''; void addFiles(picked, true) }} />
         </div>
       </div>
       <div className="adsw-f">
@@ -1470,7 +1503,7 @@ function AdsAutoPanel({
               Add photos or videos
             </button>
           ) : null}
-          <input ref={mediaInput} type="file" accept={ADS_UPLOAD_ACCEPT_MEDIA} multiple hidden onChange={(e) => { void addFiles(e.target.files, false); e.target.value = '' }} />
+          <input ref={mediaInput} type="file" accept={ADS_UPLOAD_ACCEPT_MEDIA} multiple hidden onChange={(e) => { const picked = Array.from(e.target.files ?? []); e.target.value = ''; void addFiles(picked, false) }} />
         </div>
       </div>
       <label className="adsw-f">

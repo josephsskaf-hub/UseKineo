@@ -80,9 +80,17 @@ checa('tela: confirma nome, oferta e contato antes de gastar', /Check the facts,
 checa('tela: usa o roteiro, o cartão e o render de sempre', panel.includes("'/api/ads/script'") && panel.includes('drawEndCard(canvas') && panel.includes("'/api/ads/render'") && panel.includes('defaultStoryboard(model, m)'))
 checa('tela: consentimento pedido e gravado', panel.includes('consent: true') && panel.includes('I own these photos and videos'))
 checa('tela: sem crédito mostra quanto falta, não erro genérico', /r\.status === 402 \|\| r\.code === 'out_of_credits'/.test(panel))
+// KINEO-ADS-IA-UPLOAD-2026-09-26 — o defeito do Cowork: lista de arquivos lida depois de um await, com o input já zerado.
+checca_up(panel)
 checa('tela: saída para o passo a passo', panel.includes('onSteps') && W.includes('onSteps={toSteps}'))
 checa('eventos novos na lista fechada', ['ads_auto_started', 'ads_auto_brief_served', 'ads_auto_confirmed'].every((e) => rd('lib/ads/events.ts').includes(`'${e}'`)))
 
+function checca_up(p) {
+  checa('upload: o onChange copia os arquivos ANTES de zerar o input (logo e mídia)', p.split("const picked = Array.from(e.target.files ?? []); e.target.value = ''; void addFiles(picked, ").length - 1 === 2)
+  checa('upload: addFiles recebe File[] (nunca a FileList viva)', p.includes('async function addFiles(files: File[], isLogo: boolean)') && !p.includes('addFiles(e.target.files'))
+  checa('upload: lista vazia vira mensagem, não silêncio', p.includes('if (!files.length) return setError('))
+  checa('rascunho antigo: a tela avisa e oferece começar do zero', /Continuing your unfinished ad from/.test(p) && /Start a new ad instead/.test(p))
+}
 function mutante(nome, de, para) {
   if (SRC.split(de).length !== 2) { checa(`mutante "${nome}" aplicou`, false); return }
   const m = SRC.replace(de, para); checa(`mutante "${nome}" aplicou`, m.includes(para))
