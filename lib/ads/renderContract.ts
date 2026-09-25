@@ -47,6 +47,8 @@ export interface AdsRenderRequest {
   storyboard: { beatIndex: number; footageIds: string[] }[]
   /** O PNG do cartão final (logo + nome + oferta + contato), desenhado no navegador e subido pelo /api/footage. */
   card_footage_id: string
+  /** KINEO-ADS-SEM-LEGENDA-2026-09-26 — false = anúncio sem legenda na tela (a narração continua). Ausente = com legenda. */
+  captions?: boolean
 }
 export interface AdsRenderStarted {
   order_id: string
@@ -166,7 +168,7 @@ export function sanitizeRenderRequest(
   const card = typeof b.card_footage_id === 'string' && UUID.test(b.card_footage_id) ? b.card_footage_id : null
   if (!card) return err('card_invalid')
   const storyboard = [...byBeat.entries()].sort((a, c) => a[0] - c[0]).map(([beatIndex, footageIds]) => ({ beatIndex, footageIds }))
-  return ok({ order_id: orderId, voice: b.voice, beats, storyboard, card_footage_id: card })
+  return ok({ order_id: orderId, voice: b.voice, beats, storyboard, card_footage_id: card, captions: b.captions === false ? false : true })
 }
 
 export function adsRenderErrorMessage(code: string | null | undefined): string {

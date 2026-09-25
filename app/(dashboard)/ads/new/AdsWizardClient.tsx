@@ -1178,6 +1178,7 @@ function AdsAutoPanel({
   const [contact, setContact] = useState('')
   const [language, setLanguage] = useState(defaultLanguage())
   const [template, setTemplate] = useState<AdsModelId | null>(null)
+  const [captions, setCaptions] = useState(true) // KINEO-ADS-SEM-LEGENDA-2026-09-26
   const [stage, setStage] = useState(0)
   const orderLocal = useRef<AdsOrder | null>(order)
   orderLocal.current = order ?? orderLocal.current
@@ -1376,8 +1377,9 @@ function AdsAutoPanel({
       beats: v.beats.map((b) => b.replace(/\s+/g, ' ').trim()),
       storyboard: Array.from({ length: n - 1 }, (_, i) => ({ beatIndex: i, footageIds: (sb[i] ?? []).slice(0, ADS_MAX_MEDIA_PER_BEAT) })),
       card_footage_id: cardId,
+      captions,
     }
-    void trackEvent('ads_preview_confirmed', { order_id: o.id, credits: model.credits, scenes: n, user_media_scenes: n - 1, stock_scenes: 0, mode: 'auto' })
+    void trackEvent('ads_preview_confirmed', { order_id: o.id, credits: model.credits, scenes: n, user_media_scenes: n - 1, stock_scenes: 0, mode: 'auto', captions })
     const r = await callJson<AdsRenderStarted>('/api/ads/render', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(body) })
     if (r.ok) return onStarted(r.data, model, v.beats, sb, { id: cardId, sig: 'auto' })
     if (r.status === 401) return goLogin()
@@ -1447,6 +1449,14 @@ function AdsAutoPanel({
             ))}
           </div>
           <small>{chosenModel.goal}. {chosenModel.seconds} seconds · {chosenModel.credits} credits.</small>
+        </div>
+        <div className="adsw-f">
+          <span>Captions on screen</span>
+          <div className="row" role="group" aria-label="Captions on screen">
+            <button type="button" className="pill" aria-pressed={captions} onClick={() => setCaptions(true)}>With captions</button>
+            <button type="button" className="pill" aria-pressed={!captions} onClick={() => setCaptions(false)}>No captions</button>
+          </div>
+          <small>The voice narrates the ad either way.</small>
         </div>
         {outOfCredits ? (
           <p className="adsw-warn" role="alert">
@@ -2627,6 +2637,7 @@ function RenderStep({
   const [line, setLine] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [outOfCredits, setOutOfCredits] = useState<{ needed: number | null; balance: number | null } | null>(null)
+  const [captions, setCaptions] = useState(true) // KINEO-ADS-SEM-LEGENDA-2026-09-26
   const voice: AdsVoiceId = isAdsVoice(order.voice) ? order.voice : ADS_DEFAULT_VOICE
   const n = model.beats.length
 
@@ -2665,8 +2676,9 @@ function RenderStep({
       beats: beats.map((b) => b.replace(/\s+/g, ' ').trim()),
       storyboard: Array.from({ length: n - 1 }, (_, i) => ({ beatIndex: i, footageIds: (storyboard[i] ?? []).slice(0, ADS_MAX_MEDIA_PER_BEAT) })),
       card_footage_id: card.id,
+      captions,
     }
-    void trackEvent('ads_preview_confirmed', { order_id: order.id, credits: model.credits, scenes: n, user_media_scenes: n - 1, stock_scenes: 0 })
+    void trackEvent('ads_preview_confirmed', { order_id: order.id, credits: model.credits, scenes: n, user_media_scenes: n - 1, stock_scenes: 0, captions })
     const r = await callJson<AdsRenderStarted>('/api/ads/render', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(body) })
     if (r.ok && typeof r.data.render_id === 'string') {
       setBusy(false)
@@ -2764,6 +2776,13 @@ function RenderStep({
           </div>
         </div>
       ) : null}
+      <div className="adsw-f" style={{ marginTop: 14 }}>
+        <span>Captions on screen</span>
+        <div className="row" role="group" aria-label="Captions on screen">
+          <button type="button" className="pill" aria-pressed={captions} disabled={busy} onClick={() => setCaptions(true)}>With captions</button>
+          <button type="button" className="pill" aria-pressed={!captions} disabled={busy} onClick={() => setCaptions(false)}>No captions</button>
+        </div>
+      </div>
       {error ? <p className="adsw-err" role="alert">{error}</p> : null}
       <div className="adsw-actions">
         <button type="button" className="adsw-btn ghost" disabled={busy} onClick={onBack}>Back</button>

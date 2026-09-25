@@ -379,6 +379,8 @@ function submitCreatomateOnce(
 
 interface ComposeBody {
   generationId?: string
+  /** KINEO-ADS-SEM-LEGENDA-2026-09-26 — false = sem legenda na tela (hoje só o Studio Ads manda). */
+  captions?: boolean
   clip_urls?: string[]
   voiceover_script?: string
   scene_captions?: string[]
@@ -3105,6 +3107,19 @@ export async function POST(req: NextRequest) {
           { status: 500 },
         ),
       )
+    }
+
+    // KINEO-ADS-SEM-LEGENDA-2026-09-26 — fundador: "tem que ter opção de sem legenda". As legendas saem do montador
+    // (lib/compose, trava 8.2) como elementos de texto nas trilhas 5 (palavra falada) e 7 (destaques). Quando o
+    // pedido diz captions:false, elas são retiradas AQUI, depois de montadas: a narração, a música, o cartão final e a
+    // marca d'água (trilha 9) não mudam. Sem o campo, nada muda para nenhum outro produto.
+    if (body.captions === false) {
+      const els = (source as { elements?: unknown }).elements
+      if (Array.isArray(els)) {
+        const kept = els.filter((e) => !(e && typeof e === 'object' && (e as { type?: unknown }).type === 'text' && [5, 7].includes(Number((e as { track?: unknown }).track))))
+        console.log(`[compose] captions:false — ${els.length - kept.length} caption element(s) removed`)
+        source = { ...source, elements: kept }
+      }
     }
 
     // Step 5 — Submit to Creatomate once per authenticated generation. The
