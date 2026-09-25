@@ -3,6 +3,8 @@ import Script from 'next/script'
 import { Manrope, Noto_Sans_Devanagari } from 'next/font/google'
 import StructuredData from '@/components/StructuredData'
 import SourceCapture from '@/components/SourceCapture'
+// KINEO-FLUXO-NOVO-2026-09-25 — ouvinte único do nav_item_clicked (lê só data-nav-*; ver lib/navTelemetry.ts).
+import NavClickTelemetry from '@/components/NavClickTelemetry'
 import CheckoutResumeBanner from '@/components/CheckoutResumeBanner'
 import AutopilotPilotResumeBanner from '@/components/AutopilotPilotResumeBanner'
 // KINEO-CHECKOUT-REDIRECT-2026-08-08 — montado UMA vez, aqui, de propósito:
@@ -238,7 +240,7 @@ export default function RootLayout({
       {/* [KINEO-TRIAL-SWAP-2026-08-07] — FreeTierOfferProvider envolve TODO o
           conteúdo: é o único caminho pelo qual client components leem a oferta
           do free tier (a env da flag não existe no browser). */}
-      <body><StructuredData /><InterfaceLanguageProvider><FreeTierOfferProvider offer={OFFER}><SourceCapture /><CheckoutResumeBanner /><AutopilotPilotResumeBanner /><CheckoutStalledCta />{children}</FreeTierOfferProvider></InterfaceLanguageProvider><Analytics /></body>
+      <body><StructuredData /><InterfaceLanguageProvider><FreeTierOfferProvider offer={OFFER}><SourceCapture /><NavClickTelemetry /><CheckoutResumeBanner /><AutopilotPilotResumeBanner /><CheckoutStalledCta />{children}</FreeTierOfferProvider></InterfaceLanguageProvider><Analytics /></body>
     </html>
   )
 }
