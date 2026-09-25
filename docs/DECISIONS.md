@@ -9,7 +9,12 @@ Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aq
 - **"Comprar por tempo de vídeo":** o crédito JÁ é tempo × motor (lib/credits/engineCost.ts, proporcional desde 60 s: 35 s = 60%, 90 s = 150%). A moeda continua sendo o crédito (minuto não serve para imagem/áudio/Enhance e varia 30× entre motores); a TELA passa a mostrar o crédito traduzido em minutos por motor. Proposta, a confirmar pelo fundador.
 - **Anual (item 10): ONZE** — 11× nos três planos (evita a inversão de escada do 10×/10×/11×).
 - **Enhance grátis no Studio (item 11): UM** por mês (2 deixavam o Studio negativo).
-- Em aberto na mesa: escada 10,90/24,90/49,90 (6), Express/Pro (7), passe 19,90 (8). Nada muda antes de 09/10.
+- **Mesa FECHADA (fundador, 25/09: "6 sim, 7 matar, 8 cem, minutos"):**
+  - **Escada (6): SIM** — Starter US$10,90/60 · Creator US$24,90/150 · Studio US$49,90/320; anual 11× (119,90 · 273,90 · 548,90); piso da barra 0,149 → 0,169. Só conta nova; quem já assina renova no preço e crédito atuais.
+  - **Express/Pro (7): MATAR** — só DEPOIS da caixa de prompt de Empresas no ar; os 2 Payment Links são DESATIVADOS (não reprecificados) no dia da virada; webhook segue reconhecendo os linkIds antigos.
+  - **Passe (8): CEM** — US$19,90 passa a dar 100 créditos (o ponto de 100 da barra); nome "Studio Ads pass" fica.
+  - **Tela: MINUTOS** — a moeda continua o crédito; preço, checkout e barra mostram o crédito traduzido em tempo por motor ("150 créditos = 30 min de Kineo 1 · 6 min de Seedance · 1 min de Kling 3").
+- **Ordem de execução (do painel, obrigatória):** (1) renewalCreditsFor por valor pago + tabela BRL pela fórmula (R$54,90/124,90/249,90) ANTES de tocar em TIER_PRICES; (2) Prices novos criados na Stripe antes do deploy; (3) virada em 09/10 só para conta nova; (4) Express/Pro morrem depois da caixa no ar. A tela em minutos pode entrar antes (não muda preço). Detalhes: docs/DECISAO-ESCADA-UNIVERSAL-MESA-2026-09-25.md.
 
 ## 2026-09-25 — Cinco respostas rápidas (recibo, For businesses, conta limpa, pistas, fal)
 
