@@ -75,6 +75,10 @@ export async function waitForTwinResult(
       // toa; a rota segue normal e devolve a mesma recusa honesta na hora.
       const recusa = await eventos(db, userId, 'generation_stage_error', null, sinceIso, '/api/generate-video-fast')
       if (recusa.length > 0) return null
+      // A recusa do portão de narração (narração curta / clipes demais) grava narration_guard_blocked, não
+      // generation_stage_error (achado do levantamento de 25/09): sem esta linha, o pedido repetido esperava até 60 s.
+      const portao = await eventos(db, userId, 'narration_guard_blocked', null, sinceIso, '/api/generate-video-fast')
+      if (portao.length > 0) return null
     } catch { /* falha aberta */ }
     if (now() >= fim) return null
     await sleep(stepMs)

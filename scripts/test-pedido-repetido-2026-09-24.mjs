@@ -65,6 +65,10 @@ async function provas(L) {
   const dbRecusa = fakeDb((f) => (f.name === 'generation_stage_error' && f.path === '/api/generate-video-fast' ? [{ created_at: 'x' }] : []))
   const recusado = await L.waitForTwinResult(dbRecusa, 'u1', 'fp', 'x', { waitMs: 60000, stepMs: 2000, sleep: async (ms) => { relogio += ms; if (relogio > 600000) throw new Error('sem prazo') }, now: () => relogio })
   R.push(['(3) gêmeo recusado pelo servidor → para de esperar na hora (sem 60 s à toa)', recusado === null && relogio === 0])
+  relogio = 0
+  const dbPortao = fakeDb((f) => (f.name === 'narration_guard_blocked' && f.path === '/api/generate-video-fast' ? [{ created_at: 'x' }] : []))
+  const portao = await L.waitForTwinResult(dbPortao, 'u1', 'fp', 'x', { waitMs: 60000, stepMs: 2000, sleep: async (ms) => { relogio += ms; if (relogio > 600000) throw new Error('sem prazo') }, now: () => relogio })
+  R.push(['(3) recusa do portão de narração (narration_guard_blocked) também para a espera na hora', portao === null && relogio === 0])
   R.push(['(3) a recusa procurada é a do SERVIDOR (caminho da rota), não a do navegador', dbRecusa.chamadas.some((c) => c.name === 'generation_stage_error' && c.path === '/api/generate-video-fast' && !('metadata->>fingerprint' in c))])
   relogio = Date.parse('2026-09-24T03:35:00Z')
   const velho = await L.waitForTwinResult(fakeDb(() => []), 'u1', 'fp', '2026-09-24T03:32:00Z', { waitMs: 60000, stepMs: 2000, sleep: async (ms) => { relogio += ms; if (relogio > Date.parse('2026-09-24T04:00:00Z')) throw new Error('sem prazo') }, now: () => relogio })
@@ -104,6 +108,7 @@ async function mutante(nome, de, para) {
 await mutante('impressão ignora a duração', "String(r.duration ?? ''), ", '')
 await mutante('espera sem prazo', '    if (now() >= fim) return null\n', '    if (now() >= fim + 1e12) return null\n')
 await mutante('ignora a recusa do gêmeo', '      if (recusa.length > 0) return null\n', '')
+await mutante('ignora a recusa do portão de narração', '      if (portao.length > 0) return null\n', '')
 await mutante('espera gêmeo morto', 'Math.min(now() + waitMs, nascimento + FAST_TWIN_MAX_AGE_MS)', 'now() + waitMs')
 await mutante('devolve outro generationId', '    generationId: row.session_id,', "    generationId: 'novo',")
 await mutante('erro de banco vira gêmeo', "  if (error || !Array.isArray(data)) return []", "  if (error) return [{ created_at: 'x' }]\n  if (!Array.isArray(data)) return []")
