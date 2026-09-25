@@ -154,8 +154,8 @@ export default function CreditsTopupModal({
                 aria-valuetext={`${amount} credits for ${price}`}
                 disabled={checkout.pending !== null}
                 style={{
-                  width: '100%', margin: '18px 0 6px', accentColor: '#2997ff', cursor: 'pointer',
-                  background: `linear-gradient(90deg, #2997ff ${pct}%, var(--border) ${pct}%)`, height: 6, borderRadius: 999,
+                  width: '100%', margin: '18px 0 6px', accentColor: 'var(--indigo)', cursor: 'pointer',
+                  background: `linear-gradient(90deg, var(--indigo) ${pct}%, var(--border) ${pct}%)`, height: 6, borderRadius: 999,
                 }}
               />
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: 'var(--muted)' }}>
@@ -174,7 +174,7 @@ export default function CreditsTopupModal({
                 }}
                 style={{
                   width: '100%', marginTop: 16, padding: '14px 16px', borderRadius: 14, border: 'none',
-                  background: '#2997ff', color: '#fff', fontSize: '0.95rem', fontWeight: 900,
+                  background: 'var(--indigo)', color: 'var(--on-accent)', fontSize: '0.95rem', fontWeight: 900,
                   cursor: checkout.pending ? 'not-allowed' : 'pointer', opacity: checkout.pending ? 0.6 : 1,
                 }}
               >
