@@ -2,6 +2,24 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
+## 2026-09-25 — O FLUXO NOVO: menu final de 4 itens, o que acontece depois de cada clique, e os anúncios de vitrine (ordem do fundador via sessão "Ceo Kineo")
+
+**SUBSTITUI a mensagem de 24/09 sobre o menu** (Create video · For businesses · Examples · Pricing). A implementação feita por aquela mensagem NÃO sobe: está guardada na branch `salvo/nav-4-itens-2409` (traduções dos rótulos reaproveitáveis).
+
+**1) MENU FINAL, 4 ITENS** (fundador: "4 tá ideal por enquanto; um 5º depois, se precisar"). Topo público: **Vídeo · Imagem · Para empresas · Preços** (+ Entrar), Vídeo em destaque (9 de 9 pagantes recentes usaram só vídeo). "Exemplos" sai do topo e vai para dentro de Vídeo e da home. Lateral do app: **Vídeo (Studio) · Imagem · Anúncios · Biblioteca · Preços**; Viral Now, Roteiros, Animate, Áudio, Convide e Afiliados vão para "Mais". Pares: Sidebar ↔ MobileNav; topo ↔ menu móvel (app/KineoLanding.tsx). **Divisão:** o VISUAL do menu é do Codex (prévia polished-v4, 1944da9e); o Claude garante que cada item leva ao fluxo certo e constrói as peças de fluxo (registro no PEDIDOS, 25/09).
+
+**2) O FLUXO DEPOIS DE CADA CLIQUE:**
+- A. Vídeo → /studio direto na caixa da ideia → filme pronto com 3 saídas: próximo filme · mais créditos (barra 50–2.000) · assinar.
+- B. Imagem → depois de gerar, botão "Transformar em vídeo" que LEVA A IMAGEM para o Animate/Studio (hoje há só um "Animate" genérico em ImagesClient.tsx que não passa a imagem).
+- C. Para empresas → /business-video-ads com 2 portas: "Eu mesmo faço" (passe do Studio Ads) · "Vocês fazem pra mim" (Express/Pro). Depois do passe: onboarding do Studio Ads (já existe). Depois de Express/Pro: formulário curto de briefing (produto, objetivo, público, arquivos) — NOVO. Pedido pago avisa o fundador (alerta em payment_success{ads_pass} e dfy_order_paid) + /admin/ads — NOVO.
+- D. Preços → /pricing com seletor Mensal/Anual e 3 blocos: Planos de criação · Anúncios (passe + Express/Pro) · Créditos avulsos. Números só das fontes únicas (checkoutPricing, ads/offer, dfyServiceFacts, creditSlider). **NENHUM preço muda** (congelado até 09/10); a Research estuda um preço universal.
+
+**3) MEDIR PARA DECIDIR O 5º ITEM:** evento `nav_item_clicked {item, surface: top|mobile|sidebar}`. Em 14 dias, se Imagem ficar abaixo de ~5% dos cliques, troca com Exemplos.
+
+**4) 3 ANÚNCIOS DE VITRINE** (aprovados em 24/09; restaurante, produto e serviço, 35 s, pelo Studio Ads, dry-run e custo à "Ceo Kineo" antes do render real). **NÃO usar a conta josephsskaf@gmail.com**: ela força marca d'água (FORCE_WATERMARK_EMAILS, app/api/compose/route.ts:143) — o mesmo atingiria os pedidos pagos de Express/Pro produzidos nela. **O que aconteceu:** o "aprovo, vai" do fundador chegou antes desta ordem, e os 3 foram renderizados na conta dele (9 créditos, ~US$1,00–1,40): Nonna Rosa Trattoria 46 s, Brew Lab 37 s, SparkClean. Os três saíram com "usekineo.com/free" no canto; o cartão final da Kineo NÃO entra no Studio Ads. Servem como validação, não como prova. **Proposta enviada (c):** conta de PRODUÇÃO separada (o fundador cria; o Claude põe na lista interna do Studio Ads; créditos por /admin/people; Express/Pro produzidos lá) — recomendada; alternativa: exceção no código só para render de Studio Ads (muda regra do fundador). Até lá, nenhum pedido pago de cliente é produzido na conta do fundador.
+
+**SUGESTÃO que virou ordem:** o briefing depois do Express/Pro (item C) era sugestão de 24/09; entrou na ordem de 25/09.
+
 ## 2026-09-25 — Moderação de conteúdo em toda porta de geração e de upload (item 0 do brief de crescimento)
 
 **ORIGEM:** brief colado pelo fundador em 25/09 ("COMECE POR: item 0 e depois item 1"). O caso: /images gerou e guardou imagens de pedidos graves envolvendo menores em 2 contas (52749de6, 03/09; b9f49852, 17/09). As contas foram suspensas em 25/09 pela sessão Research com o ok do fundador; as 9 imagens foram preservadas (nada apagado). Só schnell e dev passavam o checker do fal, e um dos pedidos passou pelo dev mesmo assim.
