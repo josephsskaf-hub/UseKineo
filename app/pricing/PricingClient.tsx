@@ -34,6 +34,8 @@ import {
 import CostCalculatorLink from '@/components/CostCalculatorLink'
 import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 import PricingBusinessPathTelemetry from '@/components/PricingBusinessPathTelemetry'
+import PricingAdsBlock from '@/components/pricing/PricingAdsBlock' // KINEO-FLUXO-NOVO-2026-09-25 — blocos de compra única abaixo dos planos (peça D)
+import PricingCreditsBlock from '@/components/pricing/PricingCreditsBlock' // KINEO-FLUXO-NOVO-2026-09-25
 import { PRICING_BUSINESS_PATH_TARGET_ID } from '@/lib/growth/pricingBusinessPath'
 import PricingSavedCheckout from '@/components/PricingSavedCheckout'
 import PricingJourneyProof from '@/components/growth/PricingJourneyProof'
@@ -1464,6 +1466,9 @@ export default function PricingClient({ initialBilling = 'annual' }: {
             before you pay. Cancel anytime.
           </p>
         )}
+
+        <PricingAdsBlock />
+        <PricingCreditsBlock />
 
         {/* ══════════════════════════════════════════════════════════════
             KINEO-AUTOPILOT-299-2026-07-26 — DONE-FOR-YOU TIER.
