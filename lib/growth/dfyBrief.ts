@@ -4,7 +4,7 @@
 // pedindo "responda o recibo por e-mail ou suba em Kineo Studio → My footage" — e o My footage devolve
 // 402 para conta grátis (o ramo Empresas não concede has_paid de propósito). O pedido pago chegava ao
 // fundador com 3 campos de texto e nada mais. Agora o comprador cai numa página curta
-// (/business-video-ads/brief?session_id=…) que completa o briefing; esta é a regra dele.
+// (/business-video-ads/brief#session_id=…) que completa o briefing; esta é a regra dele.
 //
 // O QUE ESTE MÓDULO É: puro (sem servidor, sem React, sem Supabase). Ele (a) diz quais campos existem e
 // o tamanho máximo de cada um, (b) limpa o que o navegador mandou, (c) preenche o formulário a partir
@@ -141,6 +141,7 @@ export function maskEmail(email: string | null | undefined): string | null {
 }
 
 /** URL absoluta do briefing para uma sessão (vai no alerta do fundador, que pode repassar ao cliente). */
+// Fragmento (#), não query: o id do pedido é a senha dele, e o fragmento não vai ao servidor nem ao Google Ads.
 export function dfyBriefUrl(origin: string, stripeSessionId: string): string {
-  return `${origin.replace(/\/+$/, '')}${DFY_BRIEF_PATH}?session_id=${encodeURIComponent(stripeSessionId)}`
+  return `${origin.replace(/\/+$/, '')}${DFY_BRIEF_PATH}#session_id=${encodeURIComponent(stripeSessionId)}`
 }
