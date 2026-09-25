@@ -17,6 +17,12 @@ html {
   scroll-behavior: smooth;
 }
 
+/* KINEO-TEMA-COLOR-SCHEME-2026-09-25 — o popup nativo do <select> (Chrome/Windows) nasce da cor-esquema da RAIZ.
+   O merge visual de 25/09 trocou `colorScheme: 'dark'` por `'inherit'` nos selects; sem esta regra, `inherit` vira
+   `normal` e a lista de línguas do Studio abre BRANCA no tema escuro (o bug do print de 21/09 de volta). */
+html[data-theme='dark'] { color-scheme: dark; }
+html[data-theme='light'] { color-scheme: light; }
+
 /* Manrope remains the Latin face. Devanagari is a self-hosted glyph fallback,
    activated only for an explicit Hindi interface preference. */
 html[lang='hi'] {

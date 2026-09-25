@@ -57,8 +57,11 @@ console.log('5) seletor de língua legível')
   const st = rd('app/(dashboard)/studio/StudioClient.tsx')
   const ini = st.indexOf('id="studio-narration-language"')
   const sel = st.slice(ini, st.indexOf('</select>', ini))
-  checa('select de língua com colorScheme dark (popup nativo não nasce branco)', sel.includes("colorScheme: 'dark'"))
-  checa('cada option com cor e fundo explícitos', sel.includes("<option key={l.code} value={l.code} style={{ color: '#f5f5f7', background: '#131316' }}>"))
+  // 25/09 (tema claro/escuro): o select herda a cor-esquema da raiz (`inherit`) e a RAIZ precisa declará-la por tema em
+  // app/globals.css — sem a regra, `inherit` vira `normal` e o popup nasce branco no escuro (KINEO-TEMA-COLOR-SCHEME-2026-09-25).
+  const css = rd('app/globals.css')
+  checa('select de língua com colorScheme dark (popup nativo não nasce branco)', (sel.includes("colorScheme: 'dark'") || sel.includes("colorScheme: 'inherit'")) && /html\[data-theme='dark'\]\s*\{\s*color-scheme:\s*dark;?\s*\}/.test(css) && /html\[data-theme='light'\]\s*\{\s*color-scheme:\s*light;?\s*\}/.test(css))
+  checa('cada option com cor e fundo explícitos', /<option key=\{l\.code\} value=\{l\.code\} style=\{\{ color: '(#f5f5f7|var\(--text\))', background: '(#131316|var\(--card\))' \}\}>/.test(sel))
 }
 
 console.log(`\n═══ ${ok} passaram, ${falhas.length} falharam ═══`)
