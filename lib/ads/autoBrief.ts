@@ -142,12 +142,29 @@ export interface AutoModelChoice {
   missing: string[]
 }
 
+// KINEO-ADS-IA-1FOTO-1VIDEO-2026-09-26 — fundador: "ajusta pra funcionar com 1 foto + 1 vídeo". No modo IA a régua é
+// de ITENS (foto ou vídeo contam igual) e o piso é 2: o storyboard põe o vídeo numa batida e gira a foto nas outras
+// (defaultStoryboard). Só os dois formatos que SÃO vitrine de muitas fotos mantêm o mínimo do modelo — com 2 itens
+// eles virariam a mesma foto repetida o anúncio inteiro. O passo a passo segue com as regras do modelo (models.ts).
+export const ADS_AUTO_MIN_ITEMS = 2
+const AUTO_KEEPS_MODEL_MIN: readonly AdsModelId[] = ['vitrine_fotos', 'historia_fundador']
+
+/** O que falta para o modo IA liberar este modelo (vazio = liberado). */
+export function autoMissingInputs(model: AdsModel, have: AdsMediaCount): string[] {
+  if (AUTO_KEEPS_MODEL_MIN.includes(model.id)) return adsModelMissingInputs(model, have)
+  const missing: string[] = []
+  if (!have.logo) missing.push('logo')
+  const items = have.photos + have.videos
+  if (items < ADS_AUTO_MIN_ITEMS) missing.push(`${ADS_AUTO_MIN_ITEMS - items} more photo(s) or video(s)`)
+  return missing
+}
+
 /** Escolhe o modelo: só os liberados pela mídia; ganha quem tem mais campos extras preenchidos; o palpite do GPT desempata. */
 export function chooseAutoModel(brief: AdsBrief, have: AdsMediaCount, hint: AdsModelId | null): AutoModelChoice {
-  const open = ADS_MODELS.filter((m) => adsModelMissingInputs(m, have).length === 0)
+  const open = ADS_MODELS.filter((m) => autoMissingInputs(m, have).length === 0)
   if (open.length === 0) {
-    const easiest = ADS_MODELS.slice().sort((a, b) => adsModelMissingInputs(a, have).length - adsModelMissingInputs(b, have).length || a.inputs.minPhotos - b.inputs.minPhotos)[0]
-    return { model: null, eligible: [], missing: adsModelMissingInputs(easiest, have) }
+    const easiest = ADS_MODELS.slice().sort((a, b) => autoMissingInputs(a, have).length - autoMissingInputs(b, have).length || a.inputs.minPhotos - b.inputs.minPhotos)[0]
+    return { model: null, eligible: [], missing: autoMissingInputs(easiest, have) }
   }
   const score = (m: AdsModel) => {
     const { filled, total } = filledExtras(m, brief)

@@ -39,7 +39,7 @@ import {
 } from '@/lib/ads/renderContract'
 import { ADS_UPLOAD_ACCEPT_LOGO, ADS_UPLOAD_ACCEPT_MEDIA, AdsUploadError, uploadFootage } from '@/lib/ads/uploadFootage'
 import { drawEndCard, endCardCtaLabel, loadLogoImage, toPngFile } from '@/lib/ads/endCard'
-import { adsAutoVisible } from '@/lib/ads/autoBrief' // KINEO-ADS-IA-FAZ-2026-09-26
+import { ADS_AUTO_MIN_ITEMS, adsAutoVisible } from '@/lib/ads/autoBrief' // KINEO-ADS-IA-FAZ-2026-09-26
 
 // ─── tipos e constantes ──────────────────────────────────────────────────────────────────────
 
@@ -1174,7 +1174,7 @@ function AdsAutoPanel({
   orderLocal.current = order ?? orderLocal.current
   const mediaRef = useRef<AdsMediaItem[]>(orderMedia(order))
   const media = orderMedia(order)
-  const { logo, rest, photos } = mediaSummary(media)
+  const { logo, rest } = mediaSummary(media)
   const srcOf = (m: AdsMediaItem) => localUrls[m.footageId] ?? m.url
   const chosenModel = adsModelById(template)
   const logoInput = useRef<HTMLInputElement>(null)
@@ -1251,7 +1251,8 @@ function AdsAutoPanel({
   async function analyze() {
     setError(null)
     if (!logo) return setError('Add your logo — it closes the ad.')
-    if (photos < MIN_PHOTOS_ANY_MODEL) return setError(PHOTOS_NEEDED_LINE)
+    // KINEO-ADS-IA-1FOTO-1VIDEO-2026-09-26 — foto e vídeo contam igual no modo IA; o piso é 2 itens.
+    if (rest.length < ADS_AUTO_MIN_ITEMS) return setError(`Add at least ${ADS_AUTO_MIN_ITEMS} photos or videos — for example one photo and one video.`)
     if (text.trim().length < 12) return setError('Write one or two sentences: what you sell, the offer, and how customers reach you.')
     if (!consent) return setError('Confirm you own these photos and videos, or have permission to use them.')
     const o = orderLocal.current
@@ -1453,8 +1454,8 @@ function AdsAutoPanel({
         </div>
       </div>
       <div className="adsw-f">
-        <span>Photos and videos <b className="adsw-req">at least {MIN_PHOTOS_ANY_MODEL} photos</b></span>
-        <small>Your product, place, team or work. More photos unlock more formats (6 unlock them all).</small>
+        <span>Photos and videos <b className="adsw-req">at least {ADS_AUTO_MIN_ITEMS}, photos or videos</b></span>
+        <small>Your product, place, team or work. One photo and one video is enough; more give the AI more to show.</small>
         <div className="adsw-media">
           {rest.map((m, i) => (
             <div className="adsw-tile" key={m.footageId}>

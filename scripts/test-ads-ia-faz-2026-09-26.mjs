@@ -48,6 +48,11 @@ function provas(A) {
     ['extração: contato que não está no texto é apagado e vira pergunta', fake.brief.contact === '' && fake.needs.includes('contact')],
     ['extração: JSON quebrado não lança e pede nome e contato', (() => { const x = A.parseAutoBrief('{oops', TEXT, 'pt'); return x.needs.includes('business') && x.needs.includes('contact') })()],
     ['modelo: sem logo nenhum formato abre e diz o que falta', noLogo.model === null && noLogo.missing.includes('logo')],
+    // KINEO-ADS-IA-1FOTO-1VIDEO-2026-09-26 — fundador: "ajusta pra funcionar com 1 foto + 1 vídeo".
+    ['1 foto + 1 vídeo + logo abre formato (Flash offer com oferta e prazo)', A.chooseAutoModel(r.brief, { photos: 1, videos: 1, logo: true }, 'oferta_relampago').model?.id === 'oferta_relampago'],
+    ['1 foto + 1 vídeo nunca vira vitrine de fotos nem história do fundador', A.chooseAutoModel({ ...r.brief, offer: '', extra: { hours: '7h', address: 'Pinheiros' } }, { photos: 1, videos: 1, logo: true }, 'vitrine_fotos').eligible.every((id) => !['vitrine_fotos', 'historia_fundador'].includes(id))],
+    ['só 1 item não abre nada e diz o que falta', (() => { const c = A.chooseAutoModel(r.brief, { photos: 1, videos: 0, logo: true }, null); return c.model === null && c.missing.some((x) => /photo\(s\) or video/.test(x)) })()],
+    ['2 vídeos sem foto também abrem', A.chooseAutoModel(r.brief, { photos: 0, videos: 2, logo: true }, null).model !== null],
     ['modelo: 3 fotos nunca escolhe formato que pede 6', c3.model !== null && c3.model.inputs.minPhotos <= 3 && c3.eligible.every((id) => !['vitrine_fotos', 'historia_fundador'].includes(id))],
     ['modelo: oferta + prazo leva ao Flash offer', c3.model?.id === 'oferta_relampago'],
     ['modelo: sem oferta, com horário e endereço e 6 fotos → vitrine', c6plain.model?.id === 'vitrine_fotos'],
@@ -86,7 +91,9 @@ function mutante(nome, de, para) {
 }
 mutante('aceita número inventado', 'if (numbersNotInText(value, text).length > 0) { dropped.push(name); return \'\' }', '')
 mutante('aceita contato de fora do texto', "if (contact && !contactFromText(contact, text)) { dropped.push('contact'); contact = '' }", '')
-mutante('ignora a mídia na escolha', 'const open = ADS_MODELS.filter((m) => adsModelMissingInputs(m, have).length === 0)', 'const open = ADS_MODELS.slice()')
+mutante('ignora a mídia na escolha', 'const open = ADS_MODELS.filter((m) => autoMissingInputs(m, have).length === 0)', 'const open = ADS_MODELS.slice()')
+mutante('vídeo volta a não contar', 'const items = have.photos + have.videos', 'const items = have.photos')
+mutante('vitrine liberada com 2 itens', "const AUTO_KEEPS_MODEL_MIN: readonly AdsModelId[] = ['vitrine_fotos', 'historia_fundador']", 'const AUTO_KEEPS_MODEL_MIN: readonly AdsModelId[] = []')
 
 console.log(`test-ads-ia-faz-2026-09-26: ${ok} ok, ${falhas.length} falha(s)`)
 if (falhas.length) process.exit(1)
