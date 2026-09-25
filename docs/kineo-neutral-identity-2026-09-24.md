@@ -6,7 +6,7 @@ so business video and ads sit alongside narrative Shorts. No schedules resumed.
 
 IMPLEMENTADO: a reviewable prototype, not a global production theme change.
 `public/design/neutral-20260924/index.html` compares Light, Graphite and Adaptive
-across Home, Business, Studio Ads, Library, Examples and an identity guide.
+across Home, Business, Video Studio, Studio Ads, Library, Examples and an identity guide.
 Home and Business include read-only current-production before snapshots captured
 anonymously on 24/09/2026, with JavaScript removed. No customer data is included.
 
