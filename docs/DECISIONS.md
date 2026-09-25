@@ -2,6 +2,15 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
+## 2026-09-25 — Cinco respostas rápidas (recibo, For businesses, conta limpa, pistas, fal)
+
+**DECISÕES (fundador, 25/09/2026, chat do CEO: "1 ligar, 2 abrir, 3 hotmail, 4 renovar, 5 deixa do jeito que está"):**
+1. **Recibo da Stripe: LIGAR.** Configurações → E-mails de clientes → "Pagamentos concluídos" e "Reembolsos" = ON (é da conta inteira: assinantes e Empresas). Execução: Cowork. Até ligar, nenhuma copy promete recibo (4877fd0d tirou as 4 frases do briefing).
+2. **"For businesses": ABRIR.** /ads/new passa a abrir a caixa de prompt SEM login (igual /studio); conta só no "gerar"; rascunho gravado no servidor antes de qualquer redirect. Visual = Codex; servidor = Claude. Hoje o visitante deslogado cai em /login.
+3. **Conta limpa de produção dos anúncios: josephskaf@hotmail.com.** Já é interna (lib/internalAccounts.ts), NÃO está em FORCE_WATERMARK_EMAILS, plano pro (Studio Ads por plano), 43 cr em 25/09. Os 3 anúncios de vitrine e os pedidos Express/Pro saem dela; nunca da josephsskaf@gmail.com.
+4. **Semana das pistas: RENOVAR** (Codex = visual de todas as páginas; Claude = fluxo/servidor), mesmas regras (fila por scripts/enfileirar.sh, trava 8.2, preço congelado até 09/10).
+5. **Auto top-up da fal: NÃO** ("deixa do jeito que está"). Segue Pix manual.
+
 ## 2026-09-25 — O FLUXO NOVO: menu final de 4 itens, o que acontece depois de cada clique, e os anúncios de vitrine (ordem do fundador via sessão "Ceo Kineo")
 
 **SUBSTITUI a mensagem de 24/09 sobre o menu** (Create video · For businesses · Examples · Pricing). A implementação feita por aquela mensagem NÃO sobe: está guardada na branch `salvo/nav-4-itens-2409` (traduções dos rótulos reaproveitáveis).
