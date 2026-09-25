@@ -64,6 +64,7 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
       if(id==='@/components/studioKit')return load('components/studioKit.tsx')
       if(id==='@/components/InterfaceLanguage')return load('components/InterfaceLanguage.tsx')
       if(id==='@/components/KineoBolt')return load('components/KineoBolt.tsx')
+      if(id==='@/components/CreditMinutesSummary')return load('components/CreditMinutesSummary.tsx')
       if(id==='@/components/LibraryRecentProject')return load('components/LibraryRecentProject.tsx')
       if(id==='@/components/HomeFeaturedFilms')return load('components/HomeFeaturedFilms.tsx')
       if(id==='@/components/NavEngineItem')return load('components/NavEngineItem.tsx')

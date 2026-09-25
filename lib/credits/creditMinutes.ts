@@ -25,9 +25,13 @@ export function creditsToMinutes(credits: number, engines = MINUTE_ENGINES): Eng
 }
 
 /** "30 min of Kineo 1 · 6 min of Seedance 1.5 · 1 min of Kling 3" — só os motores que rendem ao menos meio minuto. */
-export function minutesLine(credits: number, pick: Quality[] = ['fast', 'cinematic_ai', 'cinematic_hollywood']): string {
+export function minutesLine(
+  credits: number,
+  pick: Quality[] = ['fast', 'cinematic_ai', 'cinematic_hollywood'],
+  format: (engine: EngineMinutes) => string = (e) => `${Number.isInteger(e.minutes) ? e.minutes : e.minutes.toFixed(1)} min of ${e.label}`,
+): string {
   return creditsToMinutes(credits)
     .filter((e) => pick.includes(e.quality) && e.minutes >= 0.5)
-    .map((e) => `${Number.isInteger(e.minutes) ? e.minutes : e.minutes.toFixed(1)} min of ${e.label}`)
+    .map(format)
     .join(' · ')
 }

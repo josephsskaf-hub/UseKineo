@@ -1,6 +1,7 @@
 'use client'
 
 import KineoBolt from '@/components/KineoBolt'
+import CreditMinutesSummary from '@/components/CreditMinutesSummary'
 
 // KINEO-TOPUP-POPUP-2026-08-18 — tarefa do dia (fundador): "adicionar o pop
 // de crédito caso a pessoa que gaste seus créditos queira mais SEM trocar de
@@ -26,7 +27,6 @@ import {
   type CheckoutCurrency,
 } from '@/lib/checkoutPricing'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
-import { formatResultCount, videosForCredits } from '@/lib/marketingPrice'
 import {
   CREDIT_SLIDER_DEFAULT, CREDIT_SLIDER_MAX, CREDIT_SLIDER_MIN, CREDIT_SLIDER_PACK_ID, CREDIT_SLIDER_STEP, sliderPriceUsdMinor,
 } from '@/lib/credits/creditSlider'
@@ -99,7 +99,7 @@ export default function CreditsTopupModal({
     >
       <div
         className="w-full max-w-lg rounded-2xl p-7 relative"
-        style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: '0 0 80px rgba(0,0,0,.5)' }}
+        style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: '0 0 80px rgba(0,0,0,.5)', maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto' }}
       >
         <button
           onClick={onClose}
@@ -129,8 +129,6 @@ export default function CreditsTopupModal({
           const priceMinor = sliderPriceUsdMinor(amount) ?? 0
           const price = currency ? formatCheckoutMoney(currency, priceMinor) : '—'
           const perCredit = currency ? formatCheckoutMoney(currency, Math.round(priceMinor / amount * 100) / 100) : '—'
-          const seedance = videosForCredits(amount, 'cinematic_ai')
-          const kling3 = videosForCredits(amount, 'cinematic_hollywood')
           const pct = ((amount - CREDIT_SLIDER_MIN) / (CREDIT_SLIDER_MAX - CREDIT_SLIDER_MIN)) * 100
           return (
             <div data-kineo="credit-slider">
@@ -163,9 +161,7 @@ export default function CreditsTopupModal({
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: 'var(--muted)' }}>
                 <span>{CREDIT_SLIDER_MIN}</span><span>500</span><span>1,000</span><span>{CREDIT_SLIDER_MAX.toLocaleString('en-US')}</span>
               </div>
-              <p style={{ fontSize: '0.78rem', color: 'var(--muted)', margin: '12px 0 0', textAlign: 'center' }}>
-                ≈ {formatResultCount(seedance, 'Seedance film')}{kling3 >= 1 ? ` or ${formatResultCount(kling3, 'Kling 3 film')}` : ''} · the more you add, the less each credit costs
-              </p>
+              <CreditMinutesSummary credits={amount} live />
               <button
                 type="button"
                 disabled={checkout.pending !== null}

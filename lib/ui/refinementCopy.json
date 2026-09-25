@@ -45,7 +45,9 @@
     "Search results": "Search results",
     "No matching examples": "No matching examples",
     "Try a different title or engine.": "Try a different title or engine.",
-    "Show all examples": "Show all examples"
+    "Show all examples": "Show all examples",
+    "{minutes} min of {engine}": "{minutes} min of {engine}",
+    "Alternative uses of the same credits, not added together.": "Alternative uses of the same credits, not added together."
   },
   "pt": {
     "Settings": "Configurações",
@@ -92,7 +94,9 @@
     "Search results": "Resultados da busca",
     "No matching examples": "Nenhum exemplo encontrado",
     "Try a different title or engine.": "Tente outro título ou motor.",
-    "Show all examples": "Mostrar todos os exemplos"
+    "Show all examples": "Mostrar todos os exemplos",
+    "{minutes} min of {engine}": "{minutes} min de {engine}",
+    "Alternative uses of the same credits, not added together.": "Usos alternativos do mesmo saldo de créditos, não cumulativos."
   },
   "es": {
     "Settings": "Configuración",
@@ -138,7 +142,9 @@
     "Search results": "Resultados de búsqueda",
     "No matching examples": "No hay ejemplos que coincidan",
     "Try a different title or engine.": "Prueba con otro título o motor.",
-    "Show all examples": "Mostrar todos los ejemplos"
+    "Show all examples": "Mostrar todos los ejemplos",
+    "{minutes} min of {engine}": "{minutes} min de {engine}",
+    "Alternative uses of the same credits, not added together.": "Usos alternativos de los mismos créditos; no se suman."
   },
   "fr": {
     "Settings": "Paramètres",
@@ -185,7 +191,9 @@
     "Search results": "Résultats de recherche",
     "No matching examples": "Aucun exemple correspondant",
     "Try a different title or engine.": "Essayez un autre titre ou moteur.",
-    "Show all examples": "Afficher tous les exemples"
+    "Show all examples": "Afficher tous les exemples",
+    "{minutes} min of {engine}": "{minutes} min avec {engine}",
+    "Alternative uses of the same credits, not added together.": "Utilisations alternatives des mêmes crédits, non cumulables."
   },
   "de": {
     "Settings": "Einstellungen",
@@ -232,7 +240,9 @@
     "Search results": "Suchergebnisse",
     "No matching examples": "Keine passenden Beispiele",
     "Try a different title or engine.": "Versuche einen anderen Titel oder ein anderes Modell.",
-    "Show all examples": "Alle Beispiele anzeigen"
+    "Show all examples": "Alle Beispiele anzeigen",
+    "{minutes} min of {engine}": "{minutes} Min. mit {engine}",
+    "Alternative uses of the same credits, not added together.": "Alternative Nutzungen desselben Guthabens, nicht addierbar."
   },
   "it": {
     "Settings": "Impostazioni",
@@ -279,7 +289,9 @@
     "Search results": "Risultati di ricerca",
     "No matching examples": "Nessun esempio corrispondente",
     "Try a different title or engine.": "Prova un altro titolo o modello.",
-    "Show all examples": "Mostra tutti gli esempi"
+    "Show all examples": "Mostra tutti gli esempi",
+    "{minutes} min of {engine}": "{minutes} min con {engine}",
+    "Alternative uses of the same credits, not added together.": "Usi alternativi degli stessi crediti, non cumulabili."
   },
   "nl": {
     "Settings": "Instellingen",
@@ -326,7 +338,9 @@
     "Search results": "Zoekresultaten",
     "No matching examples": "Geen overeenkomende voorbeelden",
     "Try a different title or engine.": "Probeer een andere titel of een ander model.",
-    "Show all examples": "Alle voorbeelden tonen"
+    "Show all examples": "Alle voorbeelden tonen",
+    "{minutes} min of {engine}": "{minutes} min met {engine}",
+    "Alternative uses of the same credits, not added together.": "Alternatieve bestedingen van dezelfde credits, niet bij elkaar opgeteld."
   },
   "pl": {
     "Settings": "Ustawienia",
@@ -373,7 +387,9 @@
     "Search results": "Wyniki wyszukiwania",
     "No matching examples": "Brak pasujących przykładów",
     "Try a different title or engine.": "Wypróbuj inny tytuł lub silnik.",
-    "Show all examples": "Pokaż wszystkie przykłady"
+    "Show all examples": "Pokaż wszystkie przykłady",
+    "{minutes} min of {engine}": "{minutes} min z {engine}",
+    "Alternative uses of the same credits, not added together.": "Alternatywne wykorzystanie tych samych kredytów; wartości się nie sumują."
   },
   "tr": {
     "Settings": "Ayarlar",
@@ -420,7 +436,9 @@
     "Search results": "Arama sonuçları",
     "No matching examples": "Eşleşen örnek bulunamadı",
     "Try a different title or engine.": "Farklı bir başlık veya motor deneyin.",
-    "Show all examples": "Tüm örnekleri göster"
+    "Show all examples": "Tüm örnekleri göster",
+    "{minutes} min of {engine}": "{engine} ile {minutes} dk",
+    "Alternative uses of the same credits, not added together.": "Aynı kredilerin alternatif kullanımlarıdır; süreler toplanmaz."
   },
   "ru": {
     "Settings": "Настройки",
@@ -467,7 +485,9 @@
     "Search results": "Результаты поиска",
     "No matching examples": "Подходящих примеров нет",
     "Try a different title or engine.": "Попробуйте другое название или модель.",
-    "Show all examples": "Показать все примеры"
+    "Show all examples": "Показать все примеры",
+    "{minutes} min of {engine}": "{minutes} мин с {engine}",
+    "Alternative uses of the same credits, not added together.": "Альтернативные способы использования одних и тех же кредитов; значения не суммируются."
   },
   "uk": {
     "Settings": "Налаштування",
@@ -514,7 +534,9 @@
     "Search results": "Результати пошуку",
     "No matching examples": "Відповідних прикладів немає",
     "Try a different title or engine.": "Спробуйте іншу назву або модель.",
-    "Show all examples": "Показати всі приклади"
+    "Show all examples": "Показати всі приклади",
+    "{minutes} min of {engine}": "{minutes} хв із {engine}",
+    "Alternative uses of the same credits, not added together.": "Альтернативні способи використання тих самих кредитів; значення не підсумовуються."
   },
   "ar": {
     "Settings": "الإعدادات",
@@ -561,7 +583,9 @@
     "Search results": "نتائج البحث",
     "No matching examples": "لا توجد أمثلة مطابقة",
     "Try a different title or engine.": "جرّب عنوانًا أو نموذجًا آخر.",
-    "Show all examples": "عرض جميع الأمثلة"
+    "Show all examples": "عرض جميع الأمثلة",
+    "{minutes} min of {engine}": "{minutes} دقيقة باستخدام {engine}",
+    "Alternative uses of the same credits, not added together.": "استخدامات بديلة للرصيد نفسه، وليست أوقاتًا تُجمع معًا."
   },
   "ur": {
     "Settings": "ترتیبات",
@@ -608,7 +632,9 @@
     "Search results": "تلاش کے نتائج",
     "No matching examples": "کوئی مماثل مثال نہیں ملی",
     "Try a different title or engine.": "دوسرا عنوان یا ماڈل آزمائیں۔",
-    "Show all examples": "تمام مثالیں دکھائیں"
+    "Show all examples": "تمام مثالیں دکھائیں",
+    "{minutes} min of {engine}": "{engine} کے ساتھ {minutes} منٹ",
+    "Alternative uses of the same credits, not added together.": "یہ ایک ہی کریڈٹ بیلنس استعمال کرنے کے متبادل ہیں؛ اوقات جمع نہیں کیے جاتے۔"
   },
   "hi": {
     "Settings": "सेटिंग्स",
@@ -653,7 +679,9 @@
     "Search results": "खोज के नतीजे",
     "No matching examples": "कोई मेल खाता उदाहरण नहीं मिला",
     "Try a different title or engine.": "कोई दूसरा शीर्षक या इंजन आज़माएँ।",
-    "Show all examples": "सभी उदाहरण दिखाएँ"
+    "Show all examples": "सभी उदाहरण दिखाएँ",
+    "{minutes} min of {engine}": "{engine} के साथ {minutes} मिनट",
+    "Alternative uses of the same credits, not added together.": "एक ही क्रेडिट शेष के वैकल्पिक उपयोग; समय को जोड़ा नहीं जाता।"
   },
   "id": {
     "Settings": "Pengaturan",
@@ -700,7 +728,9 @@
     "Search results": "Hasil pencarian",
     "No matching examples": "Tidak ada contoh yang cocok",
     "Try a different title or engine.": "Coba judul atau mesin lain.",
-    "Show all examples": "Tampilkan semua contoh"
+    "Show all examples": "Tampilkan semua contoh",
+    "{minutes} min of {engine}": "{minutes} menit dengan {engine}",
+    "Alternative uses of the same credits, not added together.": "Alternatif penggunaan kredit yang sama, bukan untuk dijumlahkan."
   },
   "vi": {
     "Settings": "Cài đặt",
@@ -747,6 +777,8 @@
     "Search results": "Kết quả tìm kiếm",
     "No matching examples": "Không có ví dụ phù hợp",
     "Try a different title or engine.": "Hãy thử tiêu đề hoặc mô hình khác.",
-    "Show all examples": "Hiển thị tất cả ví dụ"
+    "Show all examples": "Hiển thị tất cả ví dụ",
+    "{minutes} min of {engine}": "{minutes} phút với {engine}",
+    "Alternative uses of the same credits, not added together.": "Các cách sử dụng thay thế cho cùng số tín dụng, không cộng dồn."
   }
 }

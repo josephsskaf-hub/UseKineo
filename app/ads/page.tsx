@@ -20,6 +20,7 @@
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import Footer from '@/components/Footer'
+import CreditMinutesSummary from '@/components/CreditMinutesSummary'
 import KineoBolt from '@/components/KineoBolt'
 import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 import { InterfaceLanguageSelect } from '@/components/InterfaceLanguage'
@@ -264,6 +265,7 @@ export default async function StudioAdsPage() {
             <p className="ads-amount">{price}<span> one-time</span></p>
             <p className="ads-cover">About {adsCoveredByPass(35)} ads of 35 s or {adsCoveredByPass(60)} ads of 60 s.</p>
             <div className="val"><span>Credits</span><b>{ADS_PASS_CREDITS}</b></div>
+            <CreditMinutesSummary credits={ADS_PASS_CREDITS} />
             <div className="val"><span>Studio Ads access</span><b>{ADS_PASS_ACCESS_DAYS} days</b></div>
             <div className="val"><span>Subscription</span><b>None</b></div>
             <div className="ads-cta"><DoorCta cta={cta} placement="price" price={price} /></div>

@@ -49,6 +49,7 @@ function carregador({ env = {}, stubs = {} } = {}) {
       if (id === 'react-dom') return { createPortal: (el) => el } // o modal vai por portal (revisão de 25/09: z-10 prendia o fixed)
       if (id.startsWith('@/') || id.startsWith('.')) {
         const base = id.startsWith('@/') ? id.slice(2) : posix.join(posix.dirname(rel), id)
+        if (base.endsWith('.json')) return JSON.parse(rd(base))
         const file = ['.ts', '.tsx'].map((e) => base + e).find((f) => existsSync(join(RAIZ, f)))
         if (!file) throw new Error('Módulo ausente ' + id + ' em ' + rel)
         return load(file)

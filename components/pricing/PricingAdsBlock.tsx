@@ -6,6 +6,7 @@
 // interruptor do passe nem os nomes dos eventos (o guardião scripts/test-pricing-3-blocos-2026-09-25.mjs trava os três).
 // Nenhum preço digitado: tudo sai de lib/growth/pricingOfferBlocks, que lê as fontes únicas.
 import { useEffect, useRef, type Ref } from 'react'
+import CreditMinutesSummary from '@/components/CreditMinutesSummary'
 import { trackEvent } from '@/lib/analytics'
 import { formatCheckoutMoney, type CheckoutCurrency } from '@/lib/checkoutPricing'
 import {
@@ -78,6 +79,7 @@ export function PricingAdsBlockView({
             <p className="text-sm text-[var(--muted)]">
               {pass.credits} credits · {pass.accessDays} days of access
             </p>
+            <CreditMinutesSummary credits={pass.credits} />
             <p className="mt-2 text-[12.5px] text-[var(--muted)]">Paid subscription plans already include {pass.name}.</p>
             <a
               href={pass.href}

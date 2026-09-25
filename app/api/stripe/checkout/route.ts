@@ -52,6 +52,7 @@ import {
   type PriceRegion,
 } from '@/lib/checkoutPricing'
 import { describeSeedanceMix, formatResultCount, videosForCredits } from '@/lib/marketingPrice'
+import { minutesLine } from '@/lib/credits/creditMinutes'
 // KINEO-PILOT-99-2026-07-26 — plan name + expiry math shared with the cron.
 import { AUTOPILOT_PILOT_PLAN, isAutopilotEntitled } from '@/lib/autopilot/config'
 import {
@@ -3454,7 +3455,7 @@ async function buildAdsPassAndRedirect(req: NextRequest, isGet: boolean): Promis
           currency: chargeCurrency,
           product_data: {
             name: `Kineo — ${ADS_PRODUCT_NAME} pass`,
-            description: `${ADS_PASS_CREDITS} credits and 12 months of Studio Ads. One-time payment, no subscription.`,
+            description: `${ADS_PASS_CREDITS} credits and 12 months of Studio Ads. ${minutesLine(ADS_PASS_CREDITS)} (alternative uses of the same credits). One-time payment, no subscription.`,
           },
           unit_amount: chargeAmount,
         },
@@ -3481,6 +3482,8 @@ async function buildAdsPassAndRedirect(req: NextRequest, isGet: boolean): Promis
     currency: chargeCurrency,
     unit_amount: chargeAmount,
     contract_version: ADS_OFFER_VERSION,
+    // A copy-only deploy must not reuse a Stripe key with different product parameters.
+    description: sessionParams.line_items?.[0]?.price_data?.product_data?.description,
     customer: sessionParams.customer ?? null,
   })
 

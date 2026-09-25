@@ -1,6 +1,7 @@
 'use client'
 
 import KineoBolt, { KineoBoltText } from '@/components/KineoBolt'
+import CreditMinutesSummary from '@/components/CreditMinutesSummary'
 import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 
 // Push #076 — Standalone /pricing page (real route, not just an anchor).
@@ -1124,6 +1125,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                     onde o preço já foi decidido. Nada foi deletado da página —
                     só parou de disputar atenção no instante da decisão. */}
                 {isPaid && <p className="plan-credit-summary">{TIER_CREDITS[p.tier as PaidTier]} credits / month</p>}
+                {isPaid && <CreditMinutesSummary credits={TIER_CREDITS[p.tier as PaidTier]} />}
                 {'videosPerMonth' in p && p.videosPerMonth ? (
                   <div className="mt-5 text-[17px] font-black tracking-tight text-[var(--accent)]">
                     {p.videosPerMonth}
