@@ -117,6 +117,13 @@ const SERVER_ONLY_EVENTS = new Set([
   'ads_email_sent',
   'ads_qa_decided',
   'ads_open_orders_capped',
+  // KINEO-FLUXO-NOVO-2026-09-25 — pedido Kineo Empresas (Express/Pro). `dfy_order_paid` é escrito SÓ pelo webhook da
+  // Stripe e `dfy_brief_submitted` SÓ por /api/dfy/brief depois de a Stripe confirmar a sessão paga; os dois viram
+  // alerta ao fundador e fila do /admin/ads. Fora desta lista, qualquer navegador cunharia um "pedido pago" de mentira.
+  // `founder_order_alerted` é a reserva 1×/sessão do alerta (lib/founderAlert.ts): é dedupe, e dedupe é do servidor.
+  'dfy_order_paid',
+  'dfy_brief_submitted',
+  'founder_order_alerted',
   'bulk_purchase_completed',
   // KINEO-DODO-2026-09-07 — o trilho UPI/Pix. Escritos só por
   // app/api/dodo/checkout e app/api/dodo/webhook; `payment_success` (com

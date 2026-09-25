@@ -112,7 +112,12 @@ checa("pack: a decisão de success_url é o ternário wm → studio → padrão 
 // ── S2: webhook ──────────────────────────────────────────────────────────────
 console.log('== S2: app/api/stripe/webhook/route.ts ==')
 const wh = rd('app/api/stripe/webhook/route.ts')
-checa("importa dfyPaymentLinkIds/dfyTierForLink/DFY_ACCEPTED_AMOUNTS_USD_MINOR de '@/lib/growth/dfyOffer' (mesmos números que o cartão mostra)", wh.includes("import { DFY_ACCEPTED_AMOUNTS_USD_MINOR, dfyPaymentLinkIds, dfyTierForLink, type DfyTier } from '@/lib/growth/dfyOffer'"))
+// KINEO-FLUXO-NOVO-2026-09-25 — REANCORADAS (esta e as travas do reconhecimento abaixo que leem dfyS): sessionPaymentLinkId,
+// dfySessionTier e isDfyOrderSession saíram do webhook para lib/growth/dfySession.ts com o corpo idêntico, para a rota do
+// briefing pós-pagamento (app/api/dfy/brief) autorizar pela Stripe com a MESMA regra que grava dfy_order_paid. As regex são
+// as mesmas; muda só o arquivo lido. E o webhook não pode ter sobrado com uma cópia local (duas regras divergem).
+const dfyS = rd('lib/growth/dfySession.ts')
+checa("o reconhecimento lê dfyPaymentLinkIds/dfyTierForLink/DFY_ACCEPTED_AMOUNTS_USD_MINOR de './dfyOffer' (mesmos números que o cartão mostra) e o webhook importa a regra de '@/lib/growth/dfySession', sem cópia local", dfyS.includes("import { DFY_ACCEPTED_AMOUNTS_USD_MINOR, dfyPaymentLinkIds, dfyTierForLink, type DfyTier } from './dfyOffer'") && wh.includes("import { dfySessionTier, isDfyOrderSession } from '@/lib/growth/dfySession'") && !/\nfunction (?:sessionPaymentLinkId|dfySessionTier|isDfyOrderSession)\(/.test(wh))
 const rpsIni = wh.indexOf('async function recordPaymentSuccess(')
 const rps = wh.slice(rpsIni, wh.indexOf('\n}\n', rpsIni))
 checa('payment_success.metadata ganha kind (session.metadata.kind ?? null)', rps.includes("kind: dfyOrder ? 'dfy' : (session.metadata?.kind ?? null)") && rps.includes('dfy_tier: dfyTier,'))
@@ -120,14 +125,14 @@ checa('payment_success.metadata ganha payment_link (string ou id, ou null)', /pa
 checa('payment_success.metadata segue com amount_total e currency', rps.includes('amount_total: session.amount_total') && rps.includes('currency: session.currency'))
 // KINEO-EMPRESAS-DFY-PLINK-2026-09-24 — o link existe (Cowork, 23/09) e a conta tem Adaptive Pricing: a chave primeira
 // do reconhecimento é o id do Payment Link; kind=dfy e valor exato ficam como segunda e terceira.
-checa('isDfyOrderSession: 1º id do link (degraus + legado), 2º kind===dfy, 3º valor aceito em usd, sem metadata.pack e SÓ em sessão de Payment Link', /function isDfyOrderSession\(session: Stripe\.Checkout\.Session\): boolean \{[\s\S]{0,260}if \(dfyPaymentLinkIds\(\)\.includes\(sessionPaymentLinkId\(session\) \?\? ''\)\) return true\s*if \(session\.metadata\?\.kind === 'dfy'\) return true[\s\S]{0,420}return \(\s*sessionPaymentLinkId\(session\) !== null &&\s*DFY_ACCEPTED_AMOUNTS_USD_MINOR\.includes\(session\.amount_total \?\? -1\) &&\s*\(session\.currency \?\? ''\)\.toLowerCase\(\) === 'usd' &&\s*!\(session\.metadata\?\.pack \?\? ''\)\.trim\(\)\s*\)/.test(wh))
-checa('webhook não redigita plink nenhum (ids vêm do módulo puro) e grava o degrau no pedido pelo helper único', !/plink_[A-Za-z0-9]{10,}/.test(wh) && /tier: dfySessionTier\(session\),/.test(wh) && /function dfySessionTier\(session: Pick<Stripe\.Checkout\.Session, 'metadata' \| 'payment_link'>\): DfyTier \| null/.test(wh) && /if \(m === 'express' \|\| m === 'pro'\) return m\n  return dfyTierForLink\(sessionPaymentLinkId\(session\)\)/.test(wh))
+checa('isDfyOrderSession: 1º id do link (degraus + legado), 2º kind===dfy, 3º valor aceito em usd, sem metadata.pack e SÓ em sessão de Payment Link', /function isDfyOrderSession\(session: Stripe\.Checkout\.Session\): boolean \{[\s\S]{0,260}if \(dfyPaymentLinkIds\(\)\.includes\(sessionPaymentLinkId\(session\) \?\? ''\)\) return true\s*if \(session\.metadata\?\.kind === 'dfy'\) return true[\s\S]{0,420}return \(\s*sessionPaymentLinkId\(session\) !== null &&\s*DFY_ACCEPTED_AMOUNTS_USD_MINOR\.includes\(session\.amount_total \?\? -1\) &&\s*\(session\.currency \?\? ''\)\.toLowerCase\(\) === 'usd' &&\s*!\(session\.metadata\?\.pack \?\? ''\)\.trim\(\)\s*\)/.test(dfyS))
+checa('webhook não redigita plink nenhum (ids vêm do módulo puro) e grava o degrau no pedido pelo helper único', !/plink_[A-Za-z0-9]{10,}/.test(wh) && !/plink_[A-Za-z0-9]{10,}/.test(dfyS) && /tier: dfySessionTier\(session\),/.test(wh) && /function dfySessionTier\(session: Pick<Stripe\.Checkout\.Session, 'metadata' \| 'payment_link'>\): DfyTier \| null/.test(dfyS) && /if \(m === 'express' \|\| m === 'pro'\) return m\n  return dfyTierForLink\(sessionPaymentLinkId\(session\)\)/.test(dfyS))
 // ── KINEO-EMPRESAS-COCKPIT-2026-09-24 — os 4 furos de servidor que o cético do workflow achou depois de LIGAR ──
 checa('payment_success de pedido Empresas NÃO leva tier (colidia com o tier "pro" da assinatura); leva kind=dfy e dfy_tier', /const dfyOrder = session\.mode === 'payment' && isDfyOrderSession\(session\)/.test(wh) && /const dfyTier = dfyOrder \? dfySessionTier\(session\) : null/.test(wh) && /tier: dfyOrder \? null : \(session\.metadata\?\.tier \?\? null\),/.test(wh) && /kind: dfyOrder \? 'dfy' : \(session\.metadata\?\.kind \?\? null\),\n\s+dfy_tier: dfyTier,/.test(wh))
 checa('funil e isNewSubscriberEvent excluem kind=dfy (pedido Empresas é dinheiro, não assinante)', /typeof metadata\.tier === 'string' && !metadata\.pack && metadata\.kind !== 'dfy'\)/.test(rd('app/api/admin/funnel/route.ts')) && /if \(metadata\?\.kind === 'dfy'\) return false/.test(rd('app/api/admin/_shared/mrr.ts')))
 checa('recordAsyncCheckoutState (sessão unpaid de meio lento) usa sessionOwnerUuid — nunca o client_reference_id cru', /const userId = sessionOwnerUuid\(session\)\n  const sessionRef = stripeCheckoutSessionReference\(session\.id\)/.test(wh) && !/const userId = session\.metadata\?\.supabase_user_id \?\? session\.client_reference_id \?\? null\n  const sessionRef/.test(wh))
 checa('evento duplicado: pedido Empresas retoma em vez de sair como duplicate:true', /duplicateSession\.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession\(duplicateSession\)\)\) \{/.test(wh))
-checa('sessionPaymentLinkId aceita string e objeto expandido', /function sessionPaymentLinkId\([^)]*\): string \| null \{\s*const link = session\.payment_link\s*if \(typeof link === 'string'\) return link\s*return link && typeof link === 'object' && typeof link\.id === 'string' \? link\.id : null/.test(wh))
+checa('sessionPaymentLinkId aceita string e objeto expandido', /function sessionPaymentLinkId\([^)]*\): string \| null \{\s*const link = session\.payment_link\s*if \(typeof link === 'string'\) return link\s*return link && typeof link === 'object' && typeof link\.id === 'string' \? link\.id : null/.test(dfyS))
 checa('ids de link: legado plink_… presente; degrau só entra quando tiver linkId; dfyTierForLink resolve o degrau', (() => { const ids = dfy.dfyPaymentLinkIds(); const T = { express: { ...dfy.DFY_TIERS.express, linkId: 'plink_e1234567890' }, pro: { ...dfy.DFY_TIERS.pro, linkId: 'plink_p1234567890' } }; return ids.every((i) => /^plink_[A-Za-z0-9]{10,}$/.test(i)) && ids.includes('plink_1UJ23XIah5dxzSBfyfKlmOGV') && dfy.dfyPaymentLinkIds(T).length === 3 && dfy.dfyTierForLink('plink_p1234567890', T) === 'pro' && dfy.dfyTierForLink('plink_1UJ23XIah5dxzSBfyfKlmOGV', T) === null })())
 checa('dfyPaymentLink com URL real leva client_reference_id e prefilled_email', (() => { const u = dfy.dfyPaymentLink({ tier: 'pro', userId: '0b1f0b1f-0000-4000-8000-000000000001', email: 'x@y.com', source: 't', url: 'https://buy.stripe.com/real' }); return typeof u === 'string' && u.startsWith('https://buy.stripe.com/real?') && u.includes('client_reference_id=0b1f0b1f-0000-4000-8000-000000000001') && u.includes('prefilled_email=x%40y.com') })())
 const pathAIni = wh.indexOf("if (session.mode === 'payment') {")
@@ -136,7 +141,10 @@ const idxDfy = pathA.indexOf('if (isDfyOrderSession(session)) {')
 const idxUser = pathA.indexOf('const userId = session.metadata?.supabase_user_id ?? session.client_reference_id')
 checa('Path A: o ramo DFY vem ANTES da checagem de userId (quem paga pelo link pode não ter client_reference_id)', idxDfy >= 0 && idxUser > idxDfy)
 const ramo = idxDfy >= 0 ? pathA.slice(idxDfy, pathA.indexOf('}', idxDfy) + 1) : ''
-checa('Path A: ramo DFY = recordDfyOrderPaid + break (nada de crédito, plano, has_paid, guard)', /await recordDfyOrderPaid\(supabase, event\.id, session\)\s*break/.test(ramo) && !/entitlementPending|video_credits|has_paid|stripe_events/.test(ramo))
+// KINEO-FLUXO-NOVO-2026-09-25 — REANCORADA: o ramo ganhou UMA chamada, o alerta ao fundador, e ela vem DEPOIS do pedido
+// gravado (se a gravação lança, a Stripe reenvia e o alerta sai na volta; o alerta nunca lança, lib/founderAlert.ts).
+// O resto da trava é o mesmo: nada de crédito, plano, has_paid ou guard no ramo.
+checa('Path A: ramo DFY = recordDfyOrderPaid + alerta ao fundador + break (nada de crédito, plano, has_paid, guard)', /await recordDfyOrderPaid\(supabase, event\.id, session\)\s*await alertFounderDfyOrder\(session\)\s*break/.test(ramo) && !/entitlementPending|video_credits|has_paid|stripe_events/.test(ramo))
 const rdoIni = wh.indexOf('async function recordDfyOrderPaid(')
 const rdo = wh.slice(rdoIni, wh.indexOf('\n}\n', rdoIni))
 // COWORK-RELATORIO-2026-09-24 — REANCORADA (era "nunca lança para a Stripe", escrita por esta pista em c3201afc): a
@@ -162,7 +170,7 @@ const usdAmounts = [...cp.matchAll(/\b(?:usd|usdMinor)\s*:\s*(\d+)/g)].map((m) =
 const amb = ((cp.match(/AMBIGUOUS_ONE_TIME_USD_AMOUNTS[^\n]*new Set<number>\(\[([^\]]*)\]\)/) || [])[1] || '').split(',').map((s) => Number(s.trim())).filter(Number.isFinite)
 const legados = [...wh.matchAll(/amount === (\d+)\)/g)].map((m) => Number(m[1]))
 checa(`nenhum valor aceito (3500/7500/10000) está em AMBIGUOUS_ONE_TIME_USD_AMOUNTS ({${amb}})`, amb.length >= 1 && dfy.DFY_ACCEPTED_AMOUNTS_USD_MINOR.every((v) => !amb.includes(v)))
-checa('3500/7500 colidem com bulk20/bulk50 de propósito documentado: por isso a 3ª regra só vale para sessão de Payment Link (a casa nunca cria sessão com payment_link) e sem metadata.pack', /sessionPaymentLinkId\(session\) !== null &&\s*DFY_ACCEPTED_AMOUNTS_USD_MINOR\.includes\(session\.amount_total \?\? -1\)/.test(wh) && usdAmounts.includes(3500) && usdAmounts.includes(7500) && !usdAmounts.includes(10000) && legados.length >= 2 && dfy.DFY_ACCEPTED_AMOUNTS_USD_MINOR.every((v) => !legados.includes(v)))
+checa('3500/7500 colidem com bulk20/bulk50 de propósito documentado: por isso a 3ª regra só vale para sessão de Payment Link (a casa nunca cria sessão com payment_link) e sem metadata.pack', /sessionPaymentLinkId\(session\) !== null &&\s*DFY_ACCEPTED_AMOUNTS_USD_MINOR\.includes\(session\.amount_total \?\? -1\)/.test(dfyS) && usdAmounts.includes(3500) && usdAmounts.includes(7500) && !usdAmounts.includes(10000) && legados.length >= 2 && dfy.DFY_ACCEPTED_AMOUNTS_USD_MINOR.every((v) => !legados.includes(v)))
 checa('o comentário do webhook registra a prova de não colisão (9900, 490/290, top-ups, bulk, anuais, legados)', /AMBIGUOUS_ONE_TIME_USD_AMOUNTS = \{9900\}/.test(wh) && /Nenhum é 10000/.test(wh))
 // ── GPT-COWORK-FOLLOWUP-2026-09-24 (P0) — o pedido Empresas EXECUTADO, não só lido ──────────────────────────
 // Por quê: o Cowork criou os dois links (Express e Pro) com metadata kind=dfy/tier, mas a Stripe não garante copiar a
@@ -173,16 +181,23 @@ const fnDoWebhook = (nome) => {
   const i = wh.search(new RegExp(`\\n(?:async )?function ${nome}\\(`))
   return i < 0 ? '' : wh.slice(i + 1, wh.indexOf('\n}\n', i + 1) + 2)
 }
+// KINEO-FLUXO-NOVO-2026-09-25 — REANCORADA: as 3 funções do reconhecimento vêm de lib/growth/dfySession.ts (sem o export);
+// as outras 4 continuam saindo do texto do webhook.
+const MOVIDAS_DFY = ['sessionPaymentLinkId', 'dfySessionTier', 'isDfyOrderSession']
+const fnDoModulo = (nome) => {
+  const i = dfyS.indexOf('\nexport function ' + nome + '(')
+  return i < 0 ? '' : dfyS.slice(i + 1, dfyS.indexOf('\n}\n', i + 1) + 2).replace(/^export /, '')
+}
 const NOMES_WH = ['sessionOwnerUuid', 'isOwnerRejection', 'sessionPaymentLinkId', 'dfySessionTier', 'isDfyOrderSession', 'recordDfyOrderPaid', 'firstPaymentCreditsFromSession']
 const classeRetry = (wh.match(/^class RetryableCheckoutAnalyticsError extends Error \{[\s\S]*?\n\}$/m) || [''])[0]
-const srcWh = [(wh.match(/^const SESSION_OWNER_UUID = .*$/m) || [''])[0], classeRetry, ...NOMES_WH.map(fnDoWebhook), ...NOMES_WH.map((n) => `exports.${n} = ${n}`), 'exports.RetryableCheckoutAnalyticsError = RetryableCheckoutAnalyticsError'].join('\n')
+const srcWh = [(wh.match(/^const SESSION_OWNER_UUID = .*$/m) || [''])[0], classeRetry, ...NOMES_WH.map((n) => (MOVIDAS_DFY.includes(n) ? fnDoModulo(n) : fnDoWebhook(n))), ...NOMES_WH.map((n) => `exports.${n} = ${n}`), 'exports.RetryableCheckoutAnalyticsError = RetryableCheckoutAnalyticsError'].join('\n')
 const logWh = []
 let W = {}
 try {
   const jsWh = ts.transpileModule(srcWh, { compilerOptions: { module: 1, target: 9 } }).outputText
   vm.runInNewContext(jsWh, { exports: W, createHash, dfyPaymentLinkIds: dfy.dfyPaymentLinkIds, dfyTierForLink: dfy.dfyTierForLink, DFY_ACCEPTED_AMOUNTS_USD_MINOR: dfy.DFY_ACCEPTED_AMOUNTS_USD_MINOR, console: { log: (...a) => logWh.push(a), error: (...a) => logWh.push(a), warn: (...a) => logWh.push(a) }, Promise, Error, Array, Object, String, RegExp, Number, JSON })
 } catch (e) { W = {}; falhas.push('P0: as funções do webhook não rodaram no vm: ' + e.message) }
-checa(`P0: as ${NOMES_WH.length} funções do caminho Empresas foram achadas no webhook e rodam isoladas`, NOMES_WH.every((n) => typeof W[n] === 'function'))
+checa(`P0: as ${NOMES_WH.length} funções do caminho Empresas foram achadas (webhook + lib/growth/dfySession.ts) e rodam isoladas`, NOMES_WH.every((n) => typeof W[n] === 'function'))
 const CAMPOS_LINK = [
   { key: 'businessname', label: { type: 'custom', custom: 'Business name + what you sell' }, type: 'text', optional: false, text: { value: 'Padaria Sol, sourdough bread' } },
   { key: 'lastframecta', label: { type: 'custom', custom: 'Last-frame CTA: phone, WhatsApp, URL or address' }, type: 'text', optional: false, text: { value: 'WhatsApp +55 11 90000-0000' } },

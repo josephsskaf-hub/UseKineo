@@ -25,7 +25,11 @@ import { readBulkCheckoutTruthVersion } from '@/lib/growth/bulkCheckoutTruth'
 // Payment Link, sem SKU nesta rota; o valor vem do módulo puro que desenha o
 // cartão do Studio, para que o preço que a tela mostra e o que o webhook
 // reconhece sejam o MESMO número.
-import { DFY_ACCEPTED_AMOUNTS_USD_MINOR, dfyPaymentLinkIds, dfyTierForLink, type DfyTier } from '@/lib/growth/dfyOffer' // KINEO-EMPRESAS-DOIS-DEGRAUS-2026-09-24
+// KINEO-FLUXO-NOVO-2026-09-25 — o reconhecimento (id do link → kind=dfy → valor aceito) saiu desta rota para o módulo
+// puro lib/growth/dfySession.ts, que lê os MESMOS números de lib/growth/dfyOffer: a página de briefing pós-pagamento
+// autoriza pela Stripe com a MESMA regra deste webhook, sem cópia. O alerta ao fundador vem de lib/founderAlert.ts.
+import { dfySessionTier, isDfyOrderSession } from '@/lib/growth/dfySession'
+import { alertFounderAdsPass, alertFounderDfyOrder } from '@/lib/founderAlert'
 // KINEO-PILOT-99-2026-07-26 — o nome do plano e o cálculo do prazo são os MESMOS
 // que o cron lê. Se divergirem, o piloto ou nunca expira ou nunca gera.
 import { AUTOPILOT_PILOT_PLAN, autopilotPilotExpiresAt } from '@/lib/autopilot/config'
@@ -860,37 +864,9 @@ async function recordPaymentSuccess(
 // um soluço do banco em pedido pago perdido com 200. O reenvio é seguro: o
 // registro é idempotente (dedupe por stripe_session_id + id determinístico) e
 // este ramo não concede nada.
-// KINEO-EMPRESAS-DFY-PLINK-2026-09-24 — o id do Payment Link é a chave PRIMEIRA:
-// a conta Stripe tem "Adaptive Pricing" ligado (relatório do Cowork, 23/09), então
-// um comprador fora dos EUA pode pagar em moeda local (amount_total ≠ 10000,
-// currency ≠ usd), e a metadata do link ainda não foi vista num evento real.
-// `session.payment_link` chega sempre (string ou objeto expandido).
-function sessionPaymentLinkId(session: Pick<Stripe.Checkout.Session, 'payment_link'>): string | null {
-  const link = session.payment_link
-  if (typeof link === 'string') return link
-  return link && typeof link === 'object' && typeof link.id === 'string' ? link.id : null
-}
-
-/** Degrau do pedido: metadata do link (Cowork) primeiro, id do link depois; null no legado de US$100. */
-function dfySessionTier(session: Pick<Stripe.Checkout.Session, 'metadata' | 'payment_link'>): DfyTier | null {
-  const m = session.metadata?.tier
-  if (m === 'express' || m === 'pro') return m
-  return dfyTierForLink(sessionPaymentLinkId(session))
-}
-
-function isDfyOrderSession(session: Stripe.Checkout.Session): boolean {
-  // KINEO-EMPRESAS-DOIS-DEGRAUS-2026-09-24 — Express/Pro (e o link legado de US$100): o id do link é a chave primeira.
-  if (dfyPaymentLinkIds().includes(sessionPaymentLinkId(session) ?? '')) return true
-  if (session.metadata?.kind === 'dfy') return true
-  // 3ª regra: valor exato, SÓ em sessão nascida de um Payment Link. Express 3500 e Pro 7500 são também os valores de
-  // bulk20/bulk50 — mas toda sessão da casa carrega metadata.pack e NUNCA payment_link, então não há como confundir.
-  return (
-    sessionPaymentLinkId(session) !== null &&
-    DFY_ACCEPTED_AMOUNTS_USD_MINOR.includes(session.amount_total ?? -1) &&
-    (session.currency ?? '').toLowerCase() === 'usd' &&
-    !(session.metadata?.pack ?? '').trim()
-  )
-}
+// KINEO-FLUXO-NOVO-2026-09-25 — sessionPaymentLinkId, dfySessionTier e isDfyOrderSession moraram aqui até 25/09.
+// Agora vêm de lib/growth/dfySession.ts (mesmo corpo, mesmo comentário do id do link como chave primeira), para
+// que a rota do briefing (app/api/dfy/brief) reconheça o pedido com a MESMA regra que grava dfy_order_paid.
 
 async function recordDfyOrderPaid(
   supabase: AdminClient,
@@ -1281,8 +1257,11 @@ export async function POST(req: NextRequest) {
           // copiado, aberto em outro navegador). O pedido é gravado mesmo
           // assim, pelo e-mail do pagador; nada é concedido. Ver
           // isDfyOrderSession / recordDfyOrderPaid.
+          // KINEO-FLUXO-NOVO-2026-09-25 — o fundador é avisado DEPOIS de o pedido estar gravado (se a gravação lança,
+          // a Stripe reenvia e o aviso sai na volta): 1×/sessão, teto de 3 s, nunca lança (lib/founderAlert.ts).
           if (isDfyOrderSession(session)) {
             await recordDfyOrderPaid(supabase, event.id, session)
+            await alertFounderDfyOrder(session)
             break
           }
 
@@ -1506,6 +1485,9 @@ export async function POST(req: NextRequest) {
                 path: '/api/stripe/webhook',
                 metadata: { stripe_session_id: session.id, until: adsUntilIso, credits: creditsToAdd, reason: 'pass' },
               })
+              // KINEO-FLUXO-NOVO-2026-09-25 — a página promete revisão humana em 24 h: o fundador sabe do passe na hora.
+              // Depois da concessão confirmada; 1×/sessão, teto de 3 s, nunca lança (lib/founderAlert.ts).
+              await alertFounderAdsPass({ session, userId, credits: creditsToAdd, until: adsUntilIso })
             }
             if (isAutopilotPilot) {
               console.log(`[stripe webhook] autopilot_pilot granted → user ${userId}, expires in ${AUTOPILOT_PILOT_DAYS}d`)

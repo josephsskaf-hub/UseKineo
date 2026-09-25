@@ -72,7 +72,16 @@ function extrai(nome) {
   return m[1]
 }
 const constUuid = (wh.match(/\nconst SESSION_OWNER_UUID = [^\n]+\n/) || [''])[0]
-const fontes = [constUuid, ...['RetryableCheckoutAnalyticsError', 'sessionPaymentLinkId', 'dfySessionTier', 'sessionOwnerUuid', 'isOwnerRejection', 'recordDfyOrderPaid', 'recordAsyncCheckoutState'].map(extrai)].join('\n')
+// KINEO-FLUXO-NOVO-2026-09-25 — REANCORADA: sessionPaymentLinkId e dfySessionTier saíram do webhook para o módulo puro
+// lib/growth/dfySession.ts (a rota do briefing pós-pagamento autoriza com a MESMA regra, sem cópia). Corpo idêntico;
+// a extração passa a ler o módulo novo (tirando o `export`). recordDfyOrderPaid e o resto continuam vindo da rota.
+const dfyS = rd('lib/growth/dfySession.ts')
+function extraiDe(texto, nome) {
+  const m = texto.match(new RegExp('\\n(?:export )?((?:async )?(?:function|class) ' + nome + '\\b[\\s\\S]*?\\n\\}\\n)'))
+  if (!m) throw new Error('não achei ' + nome + ' em lib/growth/dfySession.ts')
+  return m[1]
+}
+const fontes = [constUuid, extrai('RetryableCheckoutAnalyticsError'), ...['sessionPaymentLinkId', 'dfySessionTier'].map((n) => extraiDe(dfyS, n)), ...['sessionOwnerUuid', 'isOwnerRejection', 'recordDfyOrderPaid', 'recordAsyncCheckoutState'].map(extrai)].join('\n')
 const jsRota = ts.transpileModule(fontes + '\nmodule.exports = { RetryableCheckoutAnalyticsError, recordDfyOrderPaid, recordAsyncCheckoutState }\n', { compilerOptions: { module: 1, target: 9 } }).outputText
 const escritas = []
 let respostasEscrita = []
