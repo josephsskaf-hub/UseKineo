@@ -153,7 +153,8 @@ const velhas = Object.keys(EXCECOES).filter((p) => !semPorta.includes(p))
 ok(velhas.length === 0, `4b. a lista de exceções não guarda rota que já tem porta ou não existe mais: ${velhas.join(', ') || 'nenhuma'}`)
 const walk = (dir) => readdirSync(join(RAIZ, dir)).flatMap((f) => { const p = `${dir}/${f}`; return statSync(join(RAIZ, p)).isDirectory() ? walk(p) : /\.tsx?$/.test(f) ? [p] : [] })
 const imp = ['app', 'lib', 'components'].flatMap(walk).filter((p) => /from '@\/lib\/safety\/contentModeration'/.test(rd(p)))
-ok(imp.length === 13 && imp.every((p) => !/^\s*['"]use client['"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`)
+// 26/09: +1 importador de servidor, app/api/ads/auto-brief/route.ts (modo "a IA faz o anúncio").
+ok(imp.length === 14 && imp.every((p) => !/^\s*['"]use client['"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`)
 
 // ── 5. upload: o tipo pelos bytes ──────────────────────────────────────────────────────────────────────
 const K = roda('lib/safety/mediaKind.ts')
