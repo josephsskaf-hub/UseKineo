@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
+import { ADS_WIZARD_THEME_CSS } from './adsWizardTheme'
 import { trackEvent } from '@/lib/analytics'
 import { downloadVideoFile } from '@/lib/videoDownload'
 import { NARRATION_LANGUAGES } from '@/lib/textLanguage'
@@ -538,7 +539,7 @@ function languageLabel(code: string | null | undefined): string {
 // ─── CSS do assistente (estático; o kit não estiliza input/select) ─────────────────────────
 
 const ADS_WIZARD_CSS = `
-.stu.adsw{max-width:920px;margin:0 auto;overflow-x:hidden}
+.stu.adsw{width:100%;max-width:none;min-width:0;margin:0}
 @media(max-width:900px){.stu.adsw{padding-left:16px;padding-right:16px}}
 .adsw h2{font-size:20px;font-weight:700;margin:0 0 6px;color:#f2f5fa;letter-spacing:-.01em;line-height:1.3}
 .adsw h2:focus{outline:none}
@@ -1042,11 +1043,13 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
   const showSteps = boot.kind === 'ready' && stepIndex >= 0
 
   return (
-    <div className="stu adsw" ref={rootRef}>
+    <div className="stu adsw" data-step={view} ref={rootRef}>
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
-      <style dangerouslySetInnerHTML={{ __html: ADS_WIZARD_CSS }} />
-      <h1>Studio Ads</h1>
-      <p className="sub">Your photos, your logo, your offer — a narrated vertical ad you can download and post.</p>
+      <style dangerouslySetInnerHTML={{ __html: ADS_WIZARD_CSS + ADS_WIZARD_THEME_CSS }} />
+      <header className="adsw-header">
+        <h1>Studio Ads</h1>
+        <p className="sub">Your photos, your logo, your offer — a narrated vertical ad you can download and post.</p>
+      </header>
       {showSteps ? (
         <nav className="adsw-steps" aria-label="Steps">
           <ol>
@@ -1151,7 +1154,7 @@ function BriefStep({ order, onSaved }: { order: AdsOrder | null; onSaved: (o: Ad
         <input type="text" value={offer} maxLength={300} placeholder="e.g. 2 croissants and a coffee for 5 dollars, until Sunday" onChange={(e) => setOffer(e.target.value)} />
       </label>
       <fieldset className="adsw-f" style={{ border: 0, padding: 0, margin: '0 0 14px' }}>
-        <legend style={{ fontSize: 13, fontWeight: 600, color: '#bdc8da', marginBottom: 8, padding: 0 }}>What should people do?<b className="adsw-req" aria-hidden="true">*</b></legend>
+        <legend className="adsw-legend">What should people do?<b className="adsw-req" aria-hidden="true">*</b></legend>
         <div className="row" role="group" aria-label="Call to action">
           {CTA_OPTIONS.map((c) => (
             <button key={c.id} type="button" aria-pressed={cta === c.id} className={`pill ${cta === c.id ? 'on' : ''}`} onClick={() => setCta(c.id)}>
@@ -1180,7 +1183,7 @@ function BriefStep({ order, onSaved }: { order: AdsOrder | null; onSaved: (o: Ad
         </label>
       </div>
       <fieldset className="adsw-f" style={{ border: 0, padding: 0, margin: '0 0 6px' }}>
-        <legend style={{ fontSize: 13, fontWeight: 600, color: '#bdc8da', marginBottom: 8, padding: 0 }}>Tone</legend>
+        <legend className="adsw-legend">Tone</legend>
         <div className="row" role="group" aria-label="Tone">
           {TONES.map((t) => (
             <button key={t.id} type="button" aria-pressed={tone === t.id} className={`pill ${tone === t.id ? 'on' : ''}`} onClick={() => setTone(t.id)}>
@@ -1690,7 +1693,7 @@ function ScriptStep({
               />
             </label>
           ))}
-          <p className={`adsw-words ${words >= lo && words <= hi ? 'adsw-good' : ''}`} aria-live="polite" style={words >= lo && words <= hi ? undefined : { color: '#fb923c' }}>
+          <p className={`adsw-words ${words >= lo && words <= hi ? 'adsw-good' : 'adsw-warn'}`} aria-live="polite">
             {words} words · aim for {model.words[0]}–{model.words[1]} ({model.seconds} s). {lengthNote}
           </p>
           {contactMissing ? <p className="adsw-warn">Tip: say your contact in the last part ({contact}).</p> : null}
