@@ -1,6 +1,7 @@
 'use client'
 
 import KineoBolt, { KineoBoltText } from '@/components/KineoBolt'
+import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 
 // Push #076 — Standalone /pricing page (real route, not just an anchor).
 // Mirrors the Cyber Blue theme used by HomePageClient.
@@ -841,41 +842,46 @@ export default function PricingClient({ initialBilling = 'annual' }: {
   }, [])
 
   return (
-    <div className="pricing-blue min-h-screen bg-[#000000] text-[#f5f5f7] font-sans">
+    <div className="pricing-blue min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans">
       <style dangerouslySetInnerHTML={{__html: `
-.pricing-blue{background:#090d13!important}.pricing-blue>section{padding-top:32px!important}.pricing-blue h1{font-size:clamp(28px,4vw,42px);font-weight:650}.pricing-blue #plans{gap:20px}.pricing-blue #plans>div{min-width:0;border-radius:20px!important;box-shadow:none!important}.pricing-blue #plans>div:hover{transform:none!important}.pricing-blue #plans button{min-height:44px}.pricing-blue .plan-credit-summary{font-size:14px;color:#8fc8ff;margin:14px 0 0;font-weight:650}.pricing-blue .plan-detail-breakdown{margin:6px 0 18px;border-top:1px solid #ffffff14;border-bottom:1px solid #ffffff14}.pricing-blue .plan-detail-breakdown>summary{min-height:44px;align-content:center;cursor:pointer;font-size:12px;color:#acb8c8}.pricing-blue .plan-detail-breakdown[open]>summary{margin-bottom:10px}.pricing-blue details summary:focus-visible{outline:2px solid #2997ff;outline-offset:3px}.pricing-blue #plans p,.pricing-blue #plans span{overflow-wrap:anywhere}.pricing-blue .pricing-secondary{margin-top:28px}.pricing-blue .pricing-intro{margin-bottom:24px!important}.pricing-blue .pricing-intro>p{display:none}
+.pricing-blue{--pricing-error:#b52b3b;--pricing-error-soft:#fff0f2;--pricing-warning:#965209;--pricing-success:#18724e;--pricing-success-soft:#edf8f2;background:var(--bg)!important;color:var(--text)}
+html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft:#381d29;--pricing-warning:#ffc17b;--pricing-success:#73d9aa;--pricing-success-soft:#163629}
+.pricing-blue>section{padding-top:32px!important}.pricing-blue h1{font-size:clamp(28px,4vw,42px);font-weight:650}.pricing-blue #plans{gap:20px}.pricing-blue #plans>div{min-width:0;border-radius:20px!important;box-shadow:none!important}.pricing-blue #plans>div:hover{transform:none!important}.pricing-blue #plans button{min-height:44px}.pricing-blue .plan-credit-summary{font-size:14px;color:var(--accent);margin:14px 0 0;font-weight:650}.pricing-blue .plan-detail-breakdown{margin:6px 0 18px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}.pricing-blue .plan-detail-breakdown>summary{min-height:44px;align-content:center;cursor:pointer;font-size:12px;color:var(--muted)}.pricing-blue .plan-detail-breakdown[open]>summary{margin-bottom:10px}.pricing-blue :is(a,button,summary):focus-visible{outline:2px solid var(--accent);outline-offset:3px}.pricing-blue #plans p,.pricing-blue #plans span{overflow-wrap:anywhere}.pricing-blue .pricing-secondary{margin-top:28px}.pricing-blue .pricing-intro{margin-bottom:24px!important}.pricing-blue .pricing-intro>p{display:none}
 @media(max-width:767px){.pricing-blue>section{padding-top:24px!important}.pricing-blue #plans{gap:28px}.pricing-blue #plans>div{padding:24px!important}.pricing-blue .pricing-intro h1{font-size:29px}}
 `}} />
       {/* Subtle cyber-blue glow */}
       <div
         aria-hidden
         className="pointer-events-none fixed -top-[300px] -right-[200px] h-[800px] w-[800px] rounded-full opacity-[0.07]"
-        style={{ background: '#2997ff', filter: 'blur(140px)' }}
+        style={{ background: 'var(--indigo)', filter: 'blur(140px)' }}
       />
       <div
         aria-hidden
         className="pointer-events-none fixed -bottom-[400px] -left-[200px] h-[700px] w-[700px] rounded-full opacity-[0.05]"
-        style={{ background: '#2997ff', filter: 'blur(160px)' }}
+        style={{ background: 'var(--indigo)', filter: 'blur(160px)' }}
       />
 
       {/* ───────── Top Nav (simple) ───────── */}
-      <nav className="sticky top-0 z-50 border-b border-white/[0.08] bg-[#161618]/90 backdrop-blur-xl">
+      <nav className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--card)] backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2.5">
             <KineoBolt size={32} />
             <div className="flex flex-col leading-none">
-              <span className="text-[15px] font-extrabold tracking-tight text-white">
+              <span className="text-[15px] font-extrabold tracking-tight text-[var(--text)]">
                 Kineo
               </span>
             </div>
           </Link>
 
-          <Link
-            href="/"
-            className="rounded-lg px-4 py-2 text-sm font-semibold text-[#86868b] hover:text-[#f5f5f7] hover:bg-white/[.04] transition"
-          >
-            ← Back to Home
-          </Link>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <AppearanceSettingsButton />
+            <Link
+              href="/"
+              className="rounded-lg px-3 py-2 text-sm font-semibold text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--card2)] transition"
+            >
+              ← Back to Home
+            </Link>
+          </div>
         </div>
       </nav>
 
@@ -888,10 +894,10 @@ export default function PricingClient({ initialBilling = 'annual' }: {
       {/* ───────── Pricing ───────── */}
       <section className="relative z-10 mx-auto max-w-5xl px-4 pt-12 pb-16 sm:px-6 sm:pt-16">
         <div className="pricing-intro mb-10 text-center">
-          <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[.16em] text-[#2997ff]">
+          <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[.16em] text-[var(--accent)]">
             Pricing
           </div>
-          <h1 className="text-balance text-4xl font-black tracking-tight sm:text-5xl text-[#f5f5f7]">
+          <h1 className="text-balance text-4xl font-black tracking-tight sm:text-5xl text-[var(--text)]">
             {displayCurrency ? headline : 'Simple monthly plans. Cancel anytime.'}
           </h1>
           {/* KINEO-SHOWCASE-2026-07-10 — Joseph: parágrafo comparativo removido
@@ -907,8 +913,8 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                 "3 grátis / 24h" saiu daqui porque a cota do free não é argumento
                 para quem já está decidindo QUAL plano pagar. */}
             {['Cancel anytime', '7-day money-back guarantee'].map((label) => (
-              <div key={label} className="flex items-center gap-1.5 text-[12.5px] font-semibold text-[#86868b]">
-                <span aria-hidden="true" style={{ color: '#2997ff' }}>✓</span>
+              <div key={label} className="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--muted)]">
+                <span aria-hidden="true" style={{ color: 'var(--accent)' }}>✓</span>
                 <span>{label}</span>
               </div>
             ))}
@@ -920,7 +926,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
               completed ext — era 896/432 em 03/08). Piso hardcoded ("+") —
               atualizar semanalmente com o placar, nunca inflar. TAAFT entra como
               "featured" (fato), não como nota. Métrica: pricing_view → checkout_started. */}
-          <p className="mt-3 text-center text-[12px] font-semibold text-[#6e6e73]">
+          <p className="mt-3 text-center text-[12px] font-semibold text-[var(--muted2)]">
             900+ creators · 450+ Shorts rendered · featured on There&apos;s An AI For That
           </p>
         </div>
@@ -937,12 +943,12 @@ export default function PricingClient({ initialBilling = 'annual' }: {
         {checkoutResumeUnavailable && (
           <div
             role="status"
-            className="mx-auto mb-6 max-w-2xl rounded-2xl border border-[#2997ff]/35 bg-[#2997ff]/[0.08] px-5 py-4 text-center"
+            className="mx-auto mb-6 max-w-2xl rounded-2xl border border-[var(--border2)] bg-[var(--accent-soft)] px-5 py-4 text-center"
           >
-            <p className="text-[14px] font-extrabold text-[#f5f5f7]">
+            <p className="text-[14px] font-extrabold text-[var(--text)]">
               {CHECKOUT_RESUME_UNAVAILABLE_COPY.title}
             </p>
-            <p className="mt-1 text-[12.5px] font-medium leading-relaxed text-[#a1a1a8]">
+            <p className="mt-1 text-[12.5px] font-medium leading-relaxed text-[var(--muted)]">
               {CHECKOUT_RESUME_UNAVAILABLE_COPY.body}
             </p>
           </div>
@@ -953,12 +959,12 @@ export default function PricingClient({ initialBilling = 'annual' }: {
 
         {/* #381 — monthly / annual billing toggle */}
         <div className="mb-7 flex items-center justify-center">
-          <div className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1">
+          <div className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--card2)] p-1">
             <button
               type="button"
               onClick={() => setBilling('monthly')}
               className={`rounded-full px-4 py-1.5 text-[13px] font-extrabold transition ${
-                billing === 'monthly' ? 'bg-[#2997ff] text-white' : 'text-[#86868b] hover:text-white'
+                billing === 'monthly' ? 'bg-[var(--indigo)] text-[var(--on-accent)]' : 'text-[var(--muted)] hover:text-[var(--text)]'
               }`}
             >
               Monthly
@@ -967,17 +973,17 @@ export default function PricingClient({ initialBilling = 'annual' }: {
               type="button"
               onClick={() => setBilling('annual')}
               className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-[13px] font-extrabold transition ${
-                billing === 'annual' ? 'bg-[#2997ff] text-white' : 'text-[#86868b] hover:text-white'
+                billing === 'annual' ? 'bg-[var(--indigo)] text-[var(--on-accent)]' : 'text-[var(--muted)] hover:text-[var(--text)]'
               }`}
             >
               Annual
-              <span className="rounded-full bg-[#2997ff]/20 px-2 py-0.5 text-[10px] font-black text-[#2997ff]">
+              <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-black text-[var(--accent)]">
                 2 MONTHS FREE
               </span>
             </button>
           </div>
         </div>
-        <p className="-mt-4 mb-7 text-center text-[11.5px] font-semibold text-[#86868b]">
+        <p className="-mt-4 mb-7 text-center text-[11.5px] font-semibold text-[var(--muted)]">
           {CHECKOUT_CURRENCY_DISCLOSURE}
         </p>
 
@@ -1012,7 +1018,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
             const switchLabel = isPaid ? planSwitchLabel(planSwitch, p.tier as SwitchableTier, p.name) : null
             const ctaLabel = switching === p.tier ? 'Switching…' : (switchLabel ?? `Choose ${p.name}`)
             // KINEO-HOME-POLISH-R2-2026-07-27 — SO FORMA, nenhum numero ou palavra.
-            // O plano recomendado usava exatamente o mesmo fundo (#161618) dos
+            // O plano recomendado usava exatamente o mesmo fundo (var(--card)) dos
             // outros dois: o unico sinal era a borda azul, que some assim que o
             // visitante rola. Agora ele usa as tres formas que um plano
             // recomendado usa para vencer — fundo proprio em gradiente, um nivel
@@ -1026,9 +1032,9 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                 data-pricing-tier-requested={requestedTier === p.tier ? 'true' : undefined}
                 className={`group relative flex flex-col rounded-2xl border p-7 transition-all duration-200 ${
                   p.highlight
-                    ? 'border-[#2997ff] bg-gradient-to-b from-[#1e1e22] to-[#151517] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_0_0_1px_rgba(41,151,255,0.35),0_24px_60px_-24px_rgba(41,151,255,0.5)] md:-translate-y-2 md:scale-[1.025]'
-                    : 'border-white/[0.08] bg-[#161618] shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_18px_44px_-30px_rgba(0,0,0,0.95)] hover:-translate-y-1 hover:border-[#2997ff]/60 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_26px_60px_-28px_rgba(0,0,0,1)]'
-                } ${requestedTier === p.tier ? 'ring-2 ring-[#62b3ff] ring-offset-4 ring-offset-black' : ''} scroll-mt-24`}
+                    ? 'border-[var(--accent)] bg-gradient-to-b from-[var(--card)] to-[var(--card)] shadow-[inset_0_1px_0_var(--border),0_0_0_1px_rgba(41,151,255,0.35),0_24px_60px_-24px_rgba(41,151,255,0.5)] md:-translate-y-2 md:scale-[1.025]'
+                    : 'border-[var(--border)] bg-[var(--card)] shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_18px_44px_-30px_rgba(0,0,0,0.95)] hover:-translate-y-1 hover:border-[var(--border2)] hover:shadow-[inset_0_1px_0_var(--border),0_26px_60px_-28px_rgba(0,0,0,1)]'
+                } ${requestedTier === p.tier ? 'ring-2 ring-[var(--accent)] ring-offset-4 ring-offset-[var(--bg)]' : ''} scroll-mt-24`}
               >
                 {/* Push #116 — Pro now carries the amber "MOST POPULAR"
                     flag instead of the blue "Best Value" pill. Popular
@@ -1039,41 +1045,41 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                     (Best Value) era azul solido. Trocados; emoji fora (nenhum
                     selo da landing tem emoji). */}
                 {requestedTier === p.tier ? (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#2997ff] px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-white shadow-[0_6px_20px_-6px_rgba(41,151,255,.85)]">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--indigo)] px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-[var(--on-accent)] shadow-[0_6px_20px_-6px_rgba(41,151,255,.85)]">
                     Your choice
                   </div>
                 ) : p.popular ? (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#2997ff] px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-white shadow-[0_6px_20px_-6px_rgba(41,151,255,.85)]">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--indigo)] px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-[var(--on-accent)] shadow-[0_6px_20px_-6px_rgba(41,151,255,.85)]">
                     Most Popular
                   </div>
                 ) : p.highlight ? (
                   <div
                     className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[.12em]"
                     style={{
-                      background: 'rgba(41,151,255,.15)',
-                      border: '1px solid rgba(41,151,255,.4)',
-                      color: '#2997ff',
+                      background: 'var(--accent-soft)',
+                      border: '1px solid var(--border2)',
+                      color: 'var(--accent)',
                     }}
                   >
                     Best Value
                   </div>
                 ) : null}
-                <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[#86868b]">
+                <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">
                   {p.name}
                 </div>
                 {/* ONDA6 #10 (14/08) — o card abria direto no preco; agora tem
                     o nome grande como na landing (.nm). */}
-                <div className="mt-1.5 text-[1.34rem] font-semibold tracking-[-.018em] text-[#f5f5f7]">
+                <div className="mt-1.5 text-[1.34rem] font-semibold tracking-[-.018em] text-[var(--text)]">
                   {p.name}
                 </div>
                 <div className="mt-2 flex items-baseline gap-1.5">
-                  <span className="text-[2.4rem] font-black leading-none tracking-tight text-[#f5f5f7]">
+                  <span className="text-[2.4rem] font-black leading-none tracking-tight text-[var(--text)]">
                     {billing === 'annual'
                       ? annualPrices[p.tier as PaidTier].perMonth
                       : p.price}
                   </span>
                 </div>
-                <div className="mt-1 text-[12.5px] font-semibold text-[#2997ff]">
+                <div className="mt-1 text-[12.5px] font-semibold text-[var(--accent)]">
                   {billing === 'annual'
                     ? `/ month · billed annually (${displayCurrency ? annualPrices[p.tier as PaidTier].total : '—'}/yr)`
                     : p.priceSub}
@@ -1081,7 +1087,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                 {/* KINEO-MOEDA-LOCAL-2026-09-09 — o preço fica em dólar para todo mundo;
                     quem vai pagar em reais vê, e só ele, o valor exato da cobrança. */}
                 {settlementCurrency === 'brl' ? (
-                  <div className="mt-1 text-[11.5px] font-medium text-[#86868b]" data-testid="settlement-note">
+                  <div className="mt-1 text-[11.5px] font-medium text-[var(--muted)]" data-testid="settlement-note">
                     {settlementNote(
                       planSettlementAmountMinor(
                         p.tier as PaidTier,
@@ -1119,12 +1125,12 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                     só parou de disputar atenção no instante da decisão. */}
                 {isPaid && <p className="plan-credit-summary">{TIER_CREDITS[p.tier as PaidTier]} credits / month</p>}
                 {'videosPerMonth' in p && p.videosPerMonth ? (
-                  <div className="mt-5 text-[17px] font-black tracking-tight text-[#2997ff]">
+                  <div className="mt-5 text-[17px] font-black tracking-tight text-[var(--accent)]">
                     {p.videosPerMonth}
                   </div>
                 ) : null}
                 {'outcome' in p && p.outcome ? (
-                  <p className="mt-1.5 mb-3 text-[13px] leading-relaxed text-[#a1a1a8]">
+                  <p className="mt-1.5 mb-3 text-[13px] leading-relaxed text-[var(--muted)]">
                     {p.outcome}
                   </p>
                 ) : null}
@@ -1164,7 +1170,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                   return (
                     <details className="plan-detail-breakdown">
                       <summary>What can I create with these credits?</summary>
-                      <div className="mb-1 text-[10px] font-black uppercase tracking-[.14em] text-[#5a5a60]">
+                      <div className="mb-1 text-[10px] font-black uppercase tracking-[.14em] text-[var(--muted2)]">
                         Your {cr} credits every month =
                       </div>
                       <div className="flex flex-col gap-[3px]">
@@ -1175,28 +1181,28 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                             <span
                               key={r.name}
                               className="flex items-baseline justify-between text-[11.5px] font-semibold"
-                              style={{ color: locked ? '#5a5a60' : '#c7c7cc' }}
+                              style={{ color: locked ? 'var(--muted2)' : 'var(--text2)' }}
                             >
                               <span><KineoBoltText>{r.ic}</KineoBoltText> {r.name}</span>
                               {locked ? (
-                                <span className="text-[9.5px] font-black uppercase" style={{ color: '#fb923c' }}>{tierFor(r.cost)} plan</span>
+                                <span className="text-[9.5px] font-black uppercase" style={{ color: 'var(--pricing-warning)' }}>{tierFor(r.cost)} plan</span>
                               ) : (
-                                <b style={{ color: '#2997ff' }}>{n}×</b>
+                                <b style={{ color: 'var(--accent)' }}>{n}×</b>
                               )}
                             </span>
                           )
                         })}
-                        <span className="flex items-baseline justify-between text-[11.5px] font-semibold text-[#c7c7cc]">
-                          <span>🎨 AI images · 6 engines</span><b style={{ color: '#2997ff' }}>up to {cr}</b>
+                        <span className="flex items-baseline justify-between text-[11.5px] font-semibold text-[var(--text2)]">
+                          <span>🎨 AI images · 6 engines</span><b style={{ color: 'var(--accent)' }}>up to {cr}</b>
                         </span>
-                        <span className="flex items-baseline justify-between text-[11.5px] font-semibold text-[#c7c7cc]">
-                          <span>🎙 AI voiceovers · 4 voices</span><b style={{ color: '#2997ff' }}>{Math.floor(cr / 2)}×</b>
+                        <span className="flex items-baseline justify-between text-[11.5px] font-semibold text-[var(--text2)]">
+                          <span>🎙 AI voiceovers · 4 voices</span><b style={{ color: 'var(--accent)' }}>{Math.floor(cr / 2)}×</b>
                         </span>
-                        <span className="flex items-baseline justify-between text-[11.5px] font-semibold text-[#c7c7cc]">
-                          <span>✨ HD Enhance{p.tier === 'pro' ? ' (+2 free)' : ''}</span><b style={{ color: '#2997ff' }}>{Math.floor(cr / 10)}×</b>
+                        <span className="flex items-baseline justify-between text-[11.5px] font-semibold text-[var(--text2)]">
+                          <span>✨ HD Enhance{p.tier === 'pro' ? ' (+2 free)' : ''}</span><b style={{ color: 'var(--accent)' }}>{Math.floor(cr / 10)}×</b>
                         </span>
                       </div>
-                      <div className="mt-2 flex flex-col gap-[2px] text-[10.5px] text-[#86868b]">
+                      <div className="mt-2 flex flex-col gap-[2px] text-[10.5px] text-[var(--muted)]">
                         <span>✓ 1080×1920 Full HD master on every film</span>
                         <span>✓ Script, voiceover, karaoke captions &amp; soundtrack included</span>
                         <span>✓ Characters that speak your lines with lip sync (Kling 3)</span>
@@ -1207,13 +1213,13 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                   )
                 })()}
                 {isPaid && (
-                  <p className="mb-2 text-[10.5px] text-[#5a5a60]">
+                  <p className="mb-2 text-[10.5px] text-[var(--muted2)]">
                     Mix &amp; match — one credit pool covers everything
                   </p>
                 )}
                 {/* KINEO-PRICING-V5-2026-08-17 — storage é entitlement visível */}
                 {'storageLine' in p && p.storageLine ? (
-                  <p className="mb-6 text-[11.5px] font-bold uppercase tracking-[.08em] text-[#86868b]">
+                  <p className="mb-6 text-[11.5px] font-bold uppercase tracking-[.08em] text-[var(--muted)]">
                     🗂 {p.storageLine}
                   </p>
                 ) : null}
@@ -1225,7 +1231,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                   type="button"
                   disabled={purchasing === p.tier}
                   onClick={() => handleBuy(p.tier as PaidTier)}
-                  className="mt-auto block w-full rounded-xl bg-[#2997ff] px-4 py-3 text-center text-[14px] font-extrabold text-white shadow-[0_8px_24px_rgba(41,151,255,.35)] transition hover:bg-[#1f86ee] hover:shadow-[0_10px_30px_rgba(41,151,255,.45)] disabled:opacity-60"
+                  className="mt-auto block w-full rounded-xl bg-[var(--indigo)] px-4 py-3 text-center text-[14px] font-extrabold text-[var(--on-accent)] shadow-[0_8px_24px_rgba(41,151,255,.35)] transition hover:brightness-110 hover:shadow-[0_10px_30px_rgba(41,151,255,.45)] disabled:opacity-60"
                 >
                   {purchasing === p.tier ? 'Opening secure checkout…' : signedIn === false ? 'Sign up & continue →' : `${ctaLabel} →`}
                 </button>
@@ -1242,7 +1248,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                       e.stopPropagation()
                       void trackEvent('local_method_clicked', { surface: 'pricing_plan', method: 'upi', tier: p.tier, billing: 'monthly' })
                     }}
-                    className="mt-2 block w-full rounded-xl border border-[#2997ff]/40 bg-[#2997ff]/[0.08] px-4 py-2.5 text-center text-[13px] font-bold text-[#7cc0ff] hover:bg-[#2997ff]/[0.14]"
+                    className="mt-2 block w-full rounded-xl border border-[var(--border2)] bg-[var(--accent-soft)] px-4 py-2.5 text-center text-[13px] font-bold text-[var(--accent)] hover:bg-[var(--accent-soft)]"
                   >
                     Pay monthly with UPI / RuPay →
                   </a>
@@ -1262,7 +1268,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                       if (!started) return
                       void trackEvent('pricing_trial_1usd_clicked', { tier: 'basic', billing: 'monthly' })
                     }}
-                    className="mt-2 block w-full rounded-xl border border-[#2997ff]/40 bg-[#2997ff]/[0.08] px-4 py-2.5 text-center text-[13px] font-bold text-[#7cc0ff] transition hover:bg-[#2997ff]/[0.16]"
+                    className="mt-2 block w-full rounded-xl border border-[var(--border2)] bg-[var(--accent-soft)] px-4 py-2.5 text-center text-[13px] font-bold text-[var(--accent)] transition hover:bg-[var(--accent-soft)]"
                   >
                     {CARD_TRIAL_SECONDARY_LABEL}
                   </button>
@@ -1276,19 +1282,19 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                       const billingParam = billing === 'annual' ? '&billing=annual' : ''
                       window.location.href = `/api/paypal/checkout?tier=${p.tier}${billingParam}`
                     }}
-                    className="mt-2 block w-full rounded-xl border border-white/[0.08] px-4 py-2 text-center text-[12.5px] font-bold text-[#f5f5f7] transition hover:bg-white/5 hover:border-[#2997ff]/40"
+                    className="mt-2 block w-full rounded-xl border border-[var(--border)] px-4 py-2 text-center text-[12.5px] font-bold text-[var(--text)] transition hover:bg-[var(--card2)] hover:border-[var(--border2)]"
                   >
-                    or pay with <span style={{ color: '#009cde', fontWeight: 900 }}>Pay</span><span style={{ color: '#2997ff', fontWeight: 900 }}>Pal</span> (USD)
+                    or pay with <span style={{ color: '#009cde', fontWeight: 900 }}>Pay</span><span style={{ color: 'var(--accent)', fontWeight: 900 }}>Pal</span> (USD)
                   </button>
                 )}
                 {isPaid && (
-                  <p className="mt-2 text-center text-[11px] font-semibold text-[#a1a1a8]">
+                  <p className="mt-2 text-center text-[11px] font-semibold text-[var(--muted)]">
                     {CHECKOUT_PAYMENT_GUIDANCE_COMPACT}
                   </p>
                 )}
                 {/* Marker: KINEO-CHECKOUT-TRUST-2026-07-05 — trust cues at the buy button (billed by Kineo after Stripe name fix) */}
                 {isPaid && (
-                  <p className="mt-1.5 text-center text-[11.5px] font-semibold leading-relaxed text-[#86868b]">
+                  <p className="mt-1.5 text-center text-[11.5px] font-semibold leading-relaxed text-[var(--muted)]">
                     {billing === 'monthly' && (p.tier === 'starter' || p.tier === 'basic') && displayCurrency
                       && hasIntroOffer(p.tier as 'starter' | 'basic', resolvedCurrency, resolvedRegion)
                       ? `First month ${entryPriceLabel(p.tier as 'starter' | 'basic')} · cancel anytime`
@@ -1305,17 +1311,17 @@ export default function PricingClient({ initialBilling = 'annual' }: {
         {checkoutError && checkoutSetupFailure ? (
           <div
             role="alert"
-            className="mx-auto mt-4 max-w-2xl rounded-2xl border border-[#2997ff]/35 bg-[#2997ff]/[0.08] px-5 py-4 text-center"
+            className="mx-auto mt-4 max-w-2xl rounded-2xl border border-[var(--border2)] bg-[var(--accent-soft)] px-5 py-4 text-center"
           >
-            <p className="text-[13px] font-bold text-[#f5f5f7]">{checkoutError}</p>
-            <p className="mt-1 text-[12px] font-medium text-[#a1a1a8]">
+            <p className="text-[13px] font-bold text-[var(--text)]">{checkoutError}</p>
+            <p className="mt-1 text-[12px] font-medium text-[var(--muted)]">
               No payment was created. Retry the same selection when you are ready.
             </p>
             <button
               type="button"
               disabled={Boolean(purchasing)}
               onClick={handleCheckoutSetupRetry}
-              className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#2997ff] px-5 text-[13px] font-extrabold text-white transition hover:bg-[#147ce5] disabled:cursor-wait disabled:opacity-60"
+              className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--indigo)] px-5 text-[13px] font-extrabold text-[var(--on-accent)] transition hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
             >
               {purchasing === `setup_retry:${checkoutSetupFailure.selection}`
                 ? 'Opening secure checkout…'
@@ -1332,15 +1338,15 @@ export default function PricingClient({ initialBilling = 'annual' }: {
              a pessoa precisa saber para nao desistir. */
           <div
             role="alert"
-            className="mx-auto mt-4 max-w-2xl rounded-2xl border border-[#f87171]/35 bg-[#f87171]/[0.08] px-5 py-4 text-center"
+            className="mx-auto mt-4 max-w-2xl rounded-2xl border border-[var(--pricing-error)] bg-[var(--pricing-error-soft)] px-5 py-4 text-center"
           >
-            <p className="text-[13px] font-bold text-[#f87171]">{checkoutError}</p>
-            <p className="mt-1 text-[12px] font-medium text-[#a1a1a8]">
+            <p className="text-[13px] font-bold text-[var(--pricing-error)]">{checkoutError}</p>
+            <p className="mt-1 text-[12px] font-medium text-[var(--muted)]">
               No payment was created and your card was not charged.
             </p>
             {checkoutErrorSignal?.from_card_entry ? (
               <>
-                <p className="mt-1 text-[12px] font-medium text-[#a1a1a8]">
+                <p className="mt-1 text-[12px] font-medium text-[var(--muted)]">
                   Your script is still saved in the studio.
                 </p>
                 <a
@@ -1348,7 +1354,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                   onClick={() => {
                     void trackEvent('checkout_error_recovery_clicked', checkoutErrorSignalTelemetry(checkoutErrorSignal))
                   }}
-                  className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#f5f5f7] px-5 text-[13px] font-extrabold text-[#0b0b0c] transition hover:bg-white"
+                  className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--text)] px-5 text-[13px] font-extrabold text-[var(--bg)] transition hover:opacity-90"
                 >
                   Back to my script
                 </a>
@@ -1360,13 +1366,13 @@ export default function PricingClient({ initialBilling = 'annual' }: {
         <div className="pricing-secondary">
         <div
           className="mx-auto mb-7 max-w-2xl rounded-2xl px-5 py-4 text-center"
-          style={{ background: 'rgba(41,151,255,0.07)', border: '1px solid rgba(41,151,255,0.4)' }}
+          style={{ background: 'var(--accent-soft)', border: '1px solid var(--border2)' }}
         >
-          <p className="text-[13px] leading-relaxed text-[#a1a1a8]">{OFFER.copy.headline}</p>
-          <Link href="/signup" className="mt-3 inline-block font-semibold text-[#2997ff]">{OFFER.copy.ctaPrimary}</Link>
+          <p className="text-[13px] leading-relaxed text-[var(--muted)]">{OFFER.copy.headline}</p>
+          <Link href="/signup" className="mt-3 inline-block font-semibold text-[var(--accent)]">{OFFER.copy.ctaPrimary}</Link>
           <CostCalculatorLink
             placement="pricing_pre_cards"
-            className="mt-2 inline-block text-[12.5px] font-extrabold text-[#2997ff] hover:underline"
+            className="mt-2 inline-block text-[12.5px] font-extrabold text-[var(--accent)] hover:underline"
           >
             Calculate the exact monthly cost for your output →
           </CostCalculatorLink>
@@ -1377,7 +1383,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
           <div
             data-kineo="latest-film"
             className="mx-auto mb-7 flex max-w-2xl items-center gap-4 rounded-2xl px-4 py-3"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)' }}
+            style={{ background: 'var(--card2)', border: '1px solid var(--border)' }}
           >
             <video
               src={latestFilm.url}
@@ -1388,9 +1394,9 @@ export default function PricingClient({ initialBilling = 'annual' }: {
               aria-hidden="true"
             />
             <div className="min-w-0 text-left">
-              <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[#2997ff]">Your latest film</p>
-              <p className="truncate text-[14px] font-bold text-white">{latestFilm.title}</p>
-              <p className="text-[12px] font-semibold text-[#86868b]">Your next films come out clean, without the watermark, in 1080p. 7-day money-back guarantee, cancel anytime.</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[var(--accent)]">Your latest film</p>
+              <p className="truncate text-[14px] font-bold text-[var(--text)]">{latestFilm.title}</p>
+              <p className="text-[12px] font-semibold text-[var(--muted)]">Your next films come out clean, without the watermark, in 1080p. 7-day money-back guarantee, cancel anytime.</p>
             </div>
           </div>
         )}
@@ -1400,16 +1406,16 @@ export default function PricingClient({ initialBilling = 'annual' }: {
 
         {/* KINEO-CEO-HOUR-2026-08-17 (#5) — o tradutor de creditos VISIVEL,
             nao so no FAQ: uma fita de precos por resultado. */}
-        <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-white/[0.08] bg-[#131316] px-5 py-4">
-          <p className="mb-2.5 text-center text-[11px] font-extrabold uppercase tracking-[.14em] text-[#2997ff]">What one credit buys</p>
-          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-[12.5px] font-semibold text-[#a1a1a8]">
-            <span>🎬 Film (Seedance) — <b className="text-[#f5f5f7]">{creditsPerReferenceVideo('cinematic_ai')} cr</b></span>
-            <span>🎥 Kling 2.5 — <b className="text-[#f5f5f7]">{creditsPerReferenceVideo('cinematic_kling')} cr</b></span>
-            <span>🌐 Veo 3.1 — <b className="text-[#f5f5f7]">{creditsPerReferenceVideo('cinematic_veo')} cr</b></span>
-            <span>🎞 Kling 3 — <b className="text-[#f5f5f7]">{creditsPerReferenceVideo('cinematic_hollywood')} cr</b></span>
-            <span>🖼 Image — <b className="text-[#f5f5f7]">1-5 cr</b></span>
-            <span>🎙 Voiceover — <b className="text-[#f5f5f7]">1-2 cr</b></span>
-            <span>✨ HD Enhance — <b className="text-[#f5f5f7]">10 cr</b></span>
+        <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-4">
+          <p className="mb-2.5 text-center text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--accent)]">What one credit buys</p>
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-[12.5px] font-semibold text-[var(--muted)]">
+            <span>🎬 Film (Seedance) — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_ai')} cr</b></span>
+            <span>🎥 Kling 2.5 — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_kling')} cr</b></span>
+            <span>🌐 Veo 3.1 — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_veo')} cr</b></span>
+            <span>🎞 Kling 3 — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_hollywood')} cr</b></span>
+            <span>🖼 Image — <b className="text-[var(--text)]">1-5 cr</b></span>
+            <span>🎙 Voiceover — <b className="text-[var(--text)]">1-2 cr</b></span>
+            <span>✨ HD Enhance — <b className="text-[var(--text)]">10 cr</b></span>
           </div>
         </div>
 
@@ -1421,11 +1427,11 @@ export default function PricingClient({ initialBilling = 'annual' }: {
             MESMA seção 5 impõe (não revender o Serviço em si). Vale para todos
             os planos, por isso vive abaixo da grade inteira e não dentro de um
             card. Sem preço, sem desconto, sem entitlement: só licença. */}
-        <p className="mx-auto mt-5 max-w-2xl text-center text-[12.5px] font-semibold leading-relaxed text-[#86868b]">
-          <span aria-hidden="true" style={{ color: '#2997ff' }}>✓</span> Commercial use is included
+        <p className="mx-auto mt-5 max-w-2xl text-center text-[12.5px] font-semibold leading-relaxed text-[var(--muted)]">
+          <span aria-hidden="true" style={{ color: 'var(--accent)' }}>✓</span> Commercial use is included
           on every plan: the videos you generate are yours to post, monetize or deliver to a client.
           What you cannot resell is Kineo itself —{' '}
-          <Link href="/terms" className="font-bold text-[#2997ff] hover:underline">
+          <Link href="/terms" className="font-bold text-[var(--accent)] hover:underline">
             see the terms
           </Link>
           .
@@ -1445,7 +1451,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
             se aplica, então esta letra miúda deixa de ser divulgação e vira
             afirmação falsa sobre duração E sobre créditos do 1º mês. */}
         {billing === 'monthly' && !arrivedWithPromo && (
-          <p className="mx-auto mt-5 max-w-2xl text-center text-[11.5px] leading-relaxed text-[#86868b]">
+          <p className="mx-auto mt-5 max-w-2xl text-center text-[11.5px] leading-relaxed text-[var(--muted)]">
             Plans renew monthly — cancel anytime. Starter includes{' '}
             {TIER_CREDITS.starter} credits a month and Creator {TIER_CREDITS.basic};
             credits reset each month (no rollover).
@@ -1454,7 +1460,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
         {billing === 'monthly' && arrivedWithPromo && (
           <p
             className="mx-auto mt-5 max-w-2xl rounded-xl px-4 py-3 text-center text-[13px] font-bold leading-relaxed"
-            style={{ background: 'rgba(52,211,153,.10)', border: '1px solid rgba(52,211,153,.4)', color: '#34d399' }}
+            style={{ background: 'var(--pricing-success-soft)', border: '1px solid var(--pricing-success)', color: 'var(--pricing-success)' }}
           >
             {/* 2ª passada: a 1ª versão dizia "your code IS APPLIED" — afirmação
                 sobre o RESULTADO, falsa se o código estiver expirado ou não
@@ -1496,38 +1502,38 @@ export default function PricingClient({ initialBilling = 'annual' }: {
             aqui vindo dos planos de crédito vê primeiro o passo pequeno. */}
         <div id="autopilot-lite" className="mx-auto mt-14 max-w-5xl scroll-mt-24">
           <div className="mb-4 text-center">
-            <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[#86868b]">
+            <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">
               Or let your series run itself
             </div>
-            <h2 className="mt-2 text-[1.7rem] font-black tracking-tight text-[#f5f5f7]">
+            <h2 className="mt-2 text-[1.7rem] font-black tracking-tight text-[var(--text)]">
               Autopilot Lite — one episode a week, published for you
             </h2>
           </div>
           <div
             className="relative overflow-hidden rounded-2xl border p-6 sm:p-8"
-            style={{ borderColor: 'rgba(41,151,255,0.28)', background: 'linear-gradient(135deg, rgba(41,151,255,0.05) 0%, #161618 55%)' }}
+            style={{ borderColor: 'var(--border2)', background: 'linear-gradient(135deg, rgba(41,151,255,0.05) 0%, var(--card) 55%)' }}
           >
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#2997ff] px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-white">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--indigo)] px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-[var(--on-accent)]">
               Weekly · done for you
             </div>
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center">
               <div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-[2.8rem] font-black leading-none tracking-tight text-[#f5f5f7]">
+                  <span className="text-[2.8rem] font-black leading-none tracking-tight text-[var(--text)]">
                     {displayCurrency ? formatCheckoutMoney(resolvedCurrency, AUTOPILOT_LITE_PRICES[resolvedCurrency]) : '—'}
                   </span>
-                  <span className="text-[13px] font-semibold text-[#2997ff]">/ month</span>
+                  <span className="text-[13px] font-semibold text-[var(--accent)]">/ month</span>
                 </div>
-                <p className="mt-3 text-[14px] leading-snug text-[#f5f5f7]">
+                <p className="mt-3 text-[14px] leading-snug text-[var(--text)]">
                   You connect your YouTube channel once and pick a niche. Every week we write the next episode of
                   your series, narrate it, pick the footage, add captions and publish it to your channel. Same thread
                   every week, never a repeat.
                 </p>
-                <p className="mt-3 text-[12.5px] leading-snug text-[#86868b]">
+                <p className="mt-3 text-[12.5px] leading-snug text-[var(--muted)]">
                   About 4 to 5 episodes a month, each one continuing the last. Want a daily channel instead? That is
                   Autopilot, right below.
                 </p>
-                <p className="mt-3 text-[12px] font-semibold text-[#86868b]">
+                <p className="mt-3 text-[12px] font-semibold text-[var(--muted)]">
                   Includes {TIER_CREDITS.autopilot_lite} credits/month for videos you want to make yourself, on any
                   engine. Cancel anytime.
                 </p>
@@ -1542,8 +1548,8 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                     `✨ ${TIER_CREDITS.autopilot_lite} credits/month for your own videos, any engine`,
                     '⏸️ Pause, change the posting time, or cancel whenever you want',
                   ].map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-[13.5px] text-[#f5f5f7]">
-                      <span className="mt-[3px] text-[#2997ff]">✓</span>
+                    <li key={f} className="flex items-start gap-2 text-[13.5px] text-[var(--text)]">
+                      <span className="mt-[3px] text-[var(--accent)]">✓</span>
                       <span>{f}</span>
                     </li>
                   ))}
@@ -1552,11 +1558,11 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                   type="button"
                   disabled={purchasing === 'autopilot_lite'}
                   onClick={() => handleBuy('autopilot_lite')}
-                  className="mt-6 block w-full rounded-xl bg-[#2997ff] px-4 py-3.5 text-center text-[14px] font-extrabold text-white shadow-[0_8px_24px_rgba(41,151,255,.3)] transition hover:bg-[#1f7fe0] disabled:opacity-60"
+                  className="mt-6 block w-full rounded-xl bg-[var(--indigo)] px-4 py-3.5 text-center text-[14px] font-extrabold text-[var(--on-accent)] shadow-[0_8px_24px_rgba(41,151,255,.3)] transition hover:brightness-110 disabled:opacity-60"
                 >
                   {purchasing === 'autopilot_lite' ? 'Opening secure checkout…' : 'Start Autopilot Lite →'}
                 </button>
-                <p className="mt-2 text-center text-[12px] font-semibold text-[#86868b]">
+                <p className="mt-2 text-center text-[12px] font-semibold text-[var(--muted)]">
                   🔒 Secure Stripe checkout · billed by Kineo · cancel anytime · 7-day money-back
                 </p>
               </div>
@@ -1566,10 +1572,10 @@ export default function PricingClient({ initialBilling = 'annual' }: {
 
         <div id="autopilot" className="mx-auto mt-14 max-w-5xl scroll-mt-24">
           <div className="mb-4 text-center">
-            <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[#86868b]">
+            <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">
               Or don&apos;t make videos at all
             </div>
-            <h2 className="mt-2 text-[1.7rem] font-black tracking-tight text-[#f5f5f7]">
+            <h2 className="mt-2 text-[1.7rem] font-black tracking-tight text-[var(--text)]">
               Autopilot — we run your channel for you
             </h2>
           </div>
@@ -1577,28 +1583,28 @@ export default function PricingClient({ initialBilling = 'annual' }: {
           <div
             className="relative overflow-hidden rounded-2xl border p-6 sm:p-8"
             style={{
-              borderColor: 'rgba(41,151,255,0.35)',
-              background: 'linear-gradient(135deg, rgba(41,151,255,0.07) 0%, #161618 55%)',
+              borderColor: 'var(--border2)',
+              background: 'linear-gradient(135deg, var(--accent-soft) 0%, var(--card) 75%)',
             }}
           >
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-white shadow-[0_4px_18px_rgba(41,151,255,.45)] bg-[#2997ff]">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-[var(--on-accent)] shadow-[0_4px_18px_rgba(41,151,255,.45)] bg-[var(--indigo)]">
               Done for you
             </div>
 
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center">
               <div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-[2.8rem] font-black leading-none tracking-tight text-[#f5f5f7]">
+                  <span className="text-[2.8rem] font-black leading-none tracking-tight text-[var(--text)]">
                     {displayCurrency ? formatCheckoutMoney(resolvedCurrency, AUTOPILOT_PRICES[resolvedCurrency]) : '—'}
                   </span>
-                  <span className="text-[13px] font-semibold text-[#2997ff]">/ month</span>
+                  <span className="text-[13px] font-semibold text-[var(--accent)]">/ month</span>
                 </div>
-                <p className="mt-3 text-[14px] leading-snug text-[#f5f5f7]">
+                <p className="mt-3 text-[14px] leading-snug text-[var(--text)]">
                   You connect your YouTube channel once. We publish one Short to it
                   every single day — script, voiceover, footage, captions, title,
                   description and upload. You do nothing.
                 </p>
-                <p className="mt-3 text-[12.5px] leading-snug text-[#86868b]">
+                <p className="mt-3 text-[12.5px] leading-snug text-[var(--muted)]">
                   That is 30 Shorts a month, about{' '}
                   {displayCurrency
                     ? formatCheckoutMoney(resolvedCurrency, Math.round(AUTOPILOT_PRICES[resolvedCurrency] / 30))
@@ -1607,7 +1613,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                   USD $2,400/month for 30. Autopilot does not give you a human editor —
                   it gives you a machine that has never missed a day.
                 </p>
-                <p className="mt-3 text-[12px] font-semibold text-[#86868b]">
+                <p className="mt-3 text-[12px] font-semibold text-[var(--muted)]">
                   Includes {TIER_CREDITS.autopilot} credits/month for videos you want to
                   make yourself, on any engine. Cancel anytime.
                 </p>
@@ -1623,8 +1629,8 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                     `✨ ${TIER_CREDITS.autopilot} credits/month for your own videos, any engine`,
                     '⏸️ Pause, change the posting time, or cancel whenever you want',
                   ].map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-[13.5px] text-[#f5f5f7]">
-                      <span className="mt-[3px] text-[#2997ff]">✓</span>
+                    <li key={f} className="flex items-start gap-2 text-[13.5px] text-[var(--text)]">
+                      <span className="mt-[3px] text-[var(--accent)]">✓</span>
                       <span>{f}</span>
                     </li>
                   ))}
@@ -1633,11 +1639,11 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                   type="button"
                   disabled={purchasing === 'autopilot'}
                   onClick={() => handleBuy('autopilot')}
-                  className="mt-6 block w-full rounded-xl bg-[#2997ff] px-4 py-3.5 text-center text-[14px] font-extrabold text-white shadow-[0_8px_24px_rgba(41,151,255,.35)] transition hover:bg-[#1f86ee] hover:shadow-[0_10px_30px_rgba(41,151,255,.45)] disabled:opacity-60"
+                  className="mt-6 block w-full rounded-xl bg-[var(--indigo)] px-4 py-3.5 text-center text-[14px] font-extrabold text-[var(--on-accent)] shadow-[0_8px_24px_rgba(41,151,255,.35)] transition hover:brightness-110 hover:shadow-[0_10px_30px_rgba(41,151,255,.45)] disabled:opacity-60"
                 >
                   {purchasing === 'autopilot' ? 'Opening secure checkout…' : 'Start Autopilot →'}
                 </button>
-                <p className="mt-2 text-center text-[12px] font-semibold text-[#86868b]">
+                <p className="mt-2 text-center text-[12px] font-semibold text-[var(--muted)]">
                   🔒 Secure Stripe checkout · billed by Kineo · cancel anytime · 7-day money-back
                 </p>
               </div>
@@ -1663,23 +1669,23 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                 ══════════════════════════════════════════════════════════════ */}
             <div
               className="mt-7 rounded-xl border border-dashed p-5 sm:p-6"
-              style={{ borderColor: 'rgba(41,151,255,0.42)', background: 'rgba(41,151,255,0.05)' }}
+              style={{ borderColor: 'var(--border2)', background: 'var(--accent-soft)' }}
             >
               <div className="grid grid-cols-1 gap-5 md:grid-cols-[1fr_auto] md:items-center">
                 <div>
-                  <div className="text-[11px] font-extrabold uppercase tracking-[.12em] text-[#2997ff]">
+                  <div className="text-[11px] font-extrabold uppercase tracking-[.12em] text-[var(--accent)]">
                     Not ready for {displayCurrency ? formatCheckoutMoney(resolvedCurrency, AUTOPILOT_PRICES[resolvedCurrency]) : 'the monthly'}/month?
                   </div>
-                  <h3 className="mt-1.5 text-[1.15rem] font-black tracking-tight text-[#f5f5f7]">
+                  <h3 className="mt-1.5 text-[1.15rem] font-black tracking-tight text-[var(--text)]">
                     Try it for one week —{' '}
                     {displayCurrency ? formatCheckoutMoney(resolvedCurrency, AUTOPILOT_PILOT_PRICES[resolvedCurrency]) : '—'}, once
                   </h3>
-                  <p className="mt-2 text-[13.5px] leading-snug text-[#f5f5f7]">
+                  <p className="mt-2 text-[13.5px] leading-snug text-[var(--text)]">
                     {AUTOPILOT_PILOT_DAYS} Shorts published to your YouTube channel,
                     one per day, at the time you pick. If you don&apos;t want to
                     continue, the videos are yours and that&apos;s it.
                   </p>
-                  <p className="mt-2 text-[12px] leading-snug text-[#86868b]">
+                  <p className="mt-2 text-[12px] leading-snug text-[var(--muted)]">
                     One-time payment — not a subscription, nothing to cancel. It ends
                     on its own after {AUTOPILOT_PILOT_DAYS} days. A human editing agency
                     would charge you roughly USD $217 for {AUTOPILOT_PILOT_DAYS} Shorts
@@ -1692,13 +1698,13 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                     type="button"
                     disabled={purchasing === 'autopilot_pilot'}
                     onClick={handleBuyAutopilotPilot}
-                    className="block w-full rounded-xl border border-[#2997ff] px-4 py-3 text-center text-[13.5px] font-extrabold text-[#2997ff] transition hover:bg-[#2997ff] hover:text-white disabled:opacity-60"
+                    className="block w-full rounded-xl border border-[var(--accent)] px-4 py-3 text-center text-[13.5px] font-extrabold text-[var(--accent)] transition hover:bg-[var(--indigo)] hover:text-[var(--on-accent)] disabled:opacity-60"
                   >
                     {purchasing === 'autopilot_pilot'
                       ? 'Opening secure checkout…'
                       : `Start the ${AUTOPILOT_PILOT_DAYS}-day pilot →`}
                   </button>
-                  <p className="mt-2 text-center text-[11.5px] font-semibold text-[#86868b]">
+                  <p className="mt-2 text-center text-[11.5px] font-semibold text-[var(--muted)]">
                     🔒 Stripe · one-time · no auto-renew
                   </p>
                 </div>
@@ -1724,21 +1730,21 @@ export default function PricingClient({ initialBilling = 'annual' }: {
         {/* Push #171 — "already subscribed" info banner. Shown instead of
             the old silent redirect so users understand their plan is active. */}
         {switchNotice && (
-          <div className="mx-auto mt-4 max-w-2xl rounded-xl border border-[#2997ff]/30 bg-[#2997ff]/[0.07] px-5 py-3 text-center" data-testid="plan-switch-notice">
-            <p className="text-[13px] font-bold text-[#2997ff]">{switchNotice}</p>
+          <div className="mx-auto mt-4 max-w-2xl rounded-xl border border-[var(--border2)] bg-[var(--accent-soft)] px-5 py-3 text-center" data-testid="plan-switch-notice">
+            <p className="text-[13px] font-bold text-[var(--accent)]">{switchNotice}</p>
           </div>
         )}
         {alreadySubscribed && (
-          <div className="mx-auto mt-4 max-w-2xl rounded-xl border border-[#2997ff]/30 bg-[#2997ff]/[0.07] px-5 py-4 text-center">
-            <p className="text-[13px] font-bold text-[#2997ff]">
+          <div className="mx-auto mt-4 max-w-2xl rounded-xl border border-[var(--border2)] bg-[var(--accent-soft)] px-5 py-4 text-center">
+            <p className="text-[13px] font-bold text-[var(--accent)]">
               ✅ You already have an active subscription!
             </p>
-            <p className="mt-1 text-[12px] text-[#86868b]">
+            <p className="mt-1 text-[12px] text-[var(--muted)]">
               Your plan is active. If your credits look low, they may still be syncing.
             </p>
             <a
               href="/studio"
-              className="mt-3 inline-block rounded-lg bg-[#2997ff] px-5 py-2 text-[13px] font-extrabold text-white shadow-[0_4px_14px_rgba(41,151,255,.35)] transition hover:bg-[#2997ff]"
+              className="mt-3 inline-block rounded-lg bg-[var(--indigo)] px-5 py-2 text-[13px] font-extrabold text-[var(--on-accent)] shadow-[0_4px_14px_rgba(41,151,255,.35)] transition hover:bg-[var(--indigo)]"
             >
               Go to Dashboard →
             </a>
@@ -1748,15 +1754,15 @@ export default function PricingClient({ initialBilling = 'annual' }: {
         {/* Push #097 — Guarantee row directly under the plan cards.
             Reinforces buyer confidence between the CTA and the comparison
             table below. */}
-        <div className="mx-auto mt-6 flex max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13.5px] font-bold text-[#f5f5f7]">
+        <div className="mx-auto mt-6 flex max-w-3xl flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13.5px] font-bold text-[var(--text)]">
           <span className="inline-flex items-center gap-1.5">
-            <span className="text-[#2997ff]">✓</span> Cancel anytime
+            <span className="text-[var(--accent)]">✓</span> Cancel anytime
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="text-[#2997ff]">✓</span> Instant access
+            <span className="text-[var(--accent)]">✓</span> Instant access
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="text-[#2997ff]">✓</span> 7-day money-back guarantee
+            <span className="text-[var(--accent)]">✓</span> 7-day money-back guarantee
           </span>
         </div>
 
@@ -1787,17 +1793,17 @@ export default function PricingClient({ initialBilling = 'annual' }: {
               key={c.title}
               className="rounded-2xl p-4"
               style={{
-                background: 'rgba(255,255,255,.03)',
-                border: '1px solid rgba(255,255,255,.06)',
+                background: 'var(--card2)',
+                border: '1px solid var(--border)',
               }}
             >
               <div className="text-[18px] mb-2" aria-hidden>
                 <KineoBoltText>{c.icon}</KineoBoltText>
               </div>
-              <p className="text-[13.5px] font-bold text-[#f5f5f7] leading-snug mb-1.5">
+              <p className="text-[13.5px] font-bold text-[var(--text)] leading-snug mb-1.5">
                 {c.title}
               </p>
-              <p className="text-[12.5px] text-[#86868b] leading-snug">
+              <p className="text-[12.5px] text-[var(--muted)] leading-snug">
                 {c.body}
               </p>
             </div>
@@ -1810,34 +1816,34 @@ export default function PricingClient({ initialBilling = 'annual' }: {
             small viewports so the table never breaks layout. */}
         <div className="mt-16">
           <div className="mb-6 text-center">
-            <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[.16em] text-[#2997ff]">
+            <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[.16em] text-[var(--accent)]">
               Compare plans
             </div>
-            <h2 className="text-balance text-2xl font-black tracking-tight sm:text-3xl text-[#f5f5f7]">
+            <h2 className="text-balance text-2xl font-black tracking-tight sm:text-3xl text-[var(--text)]">
               What you get at each tier
             </h2>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-white/[0.08] bg-[#161618]">
+          <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--card)]">
             <table className="w-full min-w-[700px] text-left text-[13.5px]">
               <thead>
-                <tr className="border-b border-white/[0.08]">
-                  <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[.14em] text-[#86868b]">
+                <tr className="border-b border-[var(--border)]">
+                  <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">
                     Feature
                   </th>
-                  <th className="px-5 py-4 text-center text-[11px] font-extrabold uppercase tracking-[.14em] text-[#86868b]">
+                  <th className="px-5 py-4 text-center text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">
                     Free
                   </th>
                   {/* KINEO-SPRINT-OFFER-2026-07-14 — column emphasis moved
                       Studio → Creator so the table agrees with the cards
                       ("Most Popular" = Creator is the primary CTA). */}
-                  <th className="px-5 py-4 text-center text-[11px] font-extrabold uppercase tracking-[.14em] text-[#86868b]">
+                  <th className="px-5 py-4 text-center text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">
                     Starter
                   </th>
-                  <th className="px-5 py-4 text-center text-[11px] font-extrabold uppercase tracking-[.14em] text-[#2997ff]">
+                  <th className="px-5 py-4 text-center text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--accent)]">
                     Creator
                   </th>
-                  <th className="px-5 py-4 text-center text-[11px] font-extrabold uppercase tracking-[.14em] text-[#86868b]">
+                  <th className="px-5 py-4 text-center text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">
                     Studio
                   </th>
                 </tr>
@@ -1938,19 +1944,19 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                     pro: 'Priority',
                   },
                 ].map((row) => (
-                  <tr key={row.label} className="border-b border-white/[0.04] last:border-0">
-                    <td className="px-5 py-3.5 font-semibold text-[#f5f5f7]">{row.label}</td>
-                    <td className="px-5 py-3.5 text-center text-[#86868b]">{row.free}</td>
-                    <td className="px-5 py-3.5 text-center text-[#86868b]">{row.starter}</td>
-                    <td className="px-5 py-3.5 text-center font-bold text-[#2997ff]">{row.basic}</td>
-                    <td className="px-5 py-3.5 text-center text-[#86868b]">{row.pro}</td>
+                  <tr key={row.label} className="border-b border-[var(--border)] last:border-0">
+                    <td className="px-5 py-3.5 font-semibold text-[var(--text)]">{row.label}</td>
+                    <td className="px-5 py-3.5 text-center text-[var(--muted)]">{row.free}</td>
+                    <td className="px-5 py-3.5 text-center text-[var(--muted)]">{row.starter}</td>
+                    <td className="px-5 py-3.5 text-center font-bold text-[var(--accent)]">{row.basic}</td>
+                    <td className="px-5 py-3.5 text-center text-[var(--muted)]">{row.pro}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          <p className="mt-4 text-center text-[12px] text-[#86868b]">
+          <p className="mt-4 text-center text-[12px] text-[var(--muted)]">
             {ft(OFFER, 'Free access lets you create, watch, download and share up to 3 watermarked Fast videos per 24h; it includes no credits or premium AI Generated videos.', OFFER.copy.planCardBody)} Every paid plan unlocks clean, watermark-free MP4s and can access every engine when its balance covers the full credit cost.
           </p>
         </div>
@@ -1968,13 +1974,13 @@ export default function PricingClient({ initialBilling = 'annual' }: {
             paga 2 vídeos de banda numa tela de 380px. */}
         <div className="mt-16">
           <div className="mb-6 text-center">
-            <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[.16em] text-[#2997ff]">
+            <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[.16em] text-[var(--accent)]">
               MADE WITH KINEO
             </div>
-            <h2 className="text-balance text-2xl font-black tracking-tight sm:text-3xl text-[#f5f5f7]">
+            <h2 className="text-balance text-2xl font-black tracking-tight sm:text-3xl text-[var(--text)]">
               This is what a plan buys
             </h2>
-            <p className="mt-2 text-[13px] text-[#86868b]">
+            <p className="mt-2 text-[13px] text-[var(--muted)]">
               Both films below were made on Kineo, start to finish, and are labelled with the engine that rendered them.
             </p>
           </div>
@@ -1986,7 +1992,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
               { id: '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba', engine: 'VEO 3.1', cap: 'Made with Kineo' },
               { id: '26d25419-6719-47ab-b24b-df214e007fbd', engine: 'KLING 2.5', cap: 'Made with Kineo' },
             ].map((f) => (
-              <div key={f.id} className="relative overflow-hidden rounded-xl border border-white/[0.08] bg-[#111]" style={{ aspectRatio: '16 / 10' }}>
+              <div key={f.id} className="relative overflow-hidden rounded-xl border border-[var(--border)] bg-[#111]" style={{ aspectRatio: '16 / 10' }}>
                 <video
                   src={`/previews/${f.id}.mp4`}
                   autoPlay
@@ -2005,7 +2011,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
               </div>
             ))}
           </div>
-          <p className="mx-auto mt-3 max-w-2xl text-center text-[12px] text-[#86868b]">
+          <p className="mx-auto mt-3 max-w-2xl text-center text-[12px] text-[var(--muted)]">
             On Kling 3, characters on screen speak their own lines with lip sync while a narrator carries the story.
           </p>
         </div>
@@ -2018,13 +2024,13 @@ export default function PricingClient({ initialBilling = 'annual' }: {
             lê um assinante de verdade, com nome e link verificável (mesmas
             regras da home #304: só citação autorizada, sem parede de estrelas). */}
         <figure className="mx-auto mt-14 max-w-2xl text-center">
-          <blockquote className="text-balance text-lg italic leading-8 text-white/80">
+          <blockquote className="text-balance text-lg italic leading-8 text-[var(--text2)]">
             “Too many good ideas die in the mind. This is a product that gives them an escape
             route.”
           </blockquote>
-          <figcaption className="mt-3 text-sm text-white/50">
+          <figcaption className="mt-3 text-sm text-[var(--muted)]">
             — Rick Crossley, subscriber ·{' '}
-            <a href="/reviews" className="text-[#2997ff] transition hover:text-white">
+            <a href="/reviews" className="text-[var(--accent)] transition hover:text-[var(--text)]">
               our honest reviews →
             </a>
           </figcaption>
@@ -2032,34 +2038,34 @@ export default function PricingClient({ initialBilling = 'annual' }: {
 
         <div className="mt-16">
           <div className="mb-6 text-center">
-            <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[.16em] text-[#2997ff]">
+            <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[.16em] text-[var(--accent)]">
               FAQ
             </div>
-            <h2 className="text-balance text-2xl font-black tracking-tight sm:text-3xl text-[#f5f5f7]">
+            <h2 className="text-balance text-2xl font-black tracking-tight sm:text-3xl text-[var(--text)]">
               💬 Frequently Asked Questions
             </h2>
           </div>
 
-          <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl border border-white/[0.08] bg-[#161618]">
+          <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)]">
             {FAQS.map((item, i) => {
               const isOpen = openFaq === i
               return (
                 <div
                   key={item.q}
-                  className="border-b border-white/[0.06] last:border-0"
+                  className="border-b border-[var(--border)] last:border-0"
                 >
                   <button
                     type="button"
                     onClick={() => setOpenFaq(isOpen ? null : i)}
                     aria-expanded={isOpen}
-                    className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition hover:bg-white/[.02]"
+                    className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition hover:bg-[var(--card2)]"
                   >
-                    <span className="text-[14.5px] font-bold text-[#f5f5f7]">
+                    <span className="text-[14.5px] font-bold text-[var(--text)]">
                       {item.q}
                     </span>
                     <span
                       aria-hidden
-                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/[0.08] text-[#2997ff] transition-transform duration-200 ${
+                      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--border)] text-[var(--accent)] transition-transform duration-200 ${
                         isOpen ? 'rotate-45' : ''
                       }`}
                       style={{ fontSize: 16, lineHeight: 1 }}
@@ -2069,7 +2075,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
                   </button>
                   {isOpen && (
                     <div className="px-5 pb-4 -mt-1">
-                      <p className="text-[13.5px] leading-relaxed text-[#86868b]">
+                      <p className="text-[13.5px] leading-relaxed text-[var(--muted)]">
                         {item.a}
                       </p>
                     </div>
@@ -2079,11 +2085,11 @@ export default function PricingClient({ initialBilling = 'annual' }: {
             })}
           </div>
 
-          <p className="mt-5 text-center text-[12.5px] text-[#86868b]">
+          <p className="mt-5 text-center text-[12.5px] text-[var(--muted)]">
             Still have questions?{' '}
             <a
               href="mailto:support@usekineo.com"
-              className="font-bold text-[#2997ff] hover:text-[#2997ff]"
+              className="font-bold text-[var(--accent)] hover:text-[var(--accent)]"
             >
               Email us →
             </a>
@@ -2098,8 +2104,8 @@ export default function PricingClient({ initialBilling = 'annual' }: {
         <div
           className="mx-auto mt-12 max-w-3xl rounded-2xl p-5 sm:p-6"
           style={{
-            background: 'rgba(41,151,255,.06)',
-            border: '1px solid rgba(41,151,255,.35)',
+            background: 'var(--accent-soft)',
+            border: '1px solid var(--border2)',
             boxShadow: '0 0 40px rgba(41,151,255,.10)',
           }}
         >
@@ -2115,10 +2121,10 @@ export default function PricingClient({ initialBilling = 'annual' }: {
               🛡️
             </div>
             <div>
-              <div className="text-[14px] font-black text-[#f5f5f7] mb-1">
+              <div className="text-[14px] font-black text-[var(--text)] mb-1">
                 7-day money-back guarantee — all plans
               </div>
-              <p className="text-[13px] text-[#86868b] leading-relaxed m-0">
+              <p className="text-[13px] text-[var(--muted)] leading-relaxed m-0">
                 If you&apos;re not happy in the first 7 days, email us and we&apos;ll refund 100%. No questions asked. Works for all plans.
               </p>
             </div>
@@ -2144,10 +2150,10 @@ export default function PricingClient({ initialBilling = 'annual' }: {
             bottom: 0,
             left: 0,
             right: 0,
-            background: 'rgba(10,10,15,0.96)',
+            background: 'var(--card)',
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
-            borderTop: '1px solid rgba(255,255,255,.08)',
+            borderTop: '1px solid var(--border)',
             padding: '12px 16px',
             display: 'flex',
             gap: 8,
@@ -2166,9 +2172,9 @@ export default function PricingClient({ initialBilling = 'annual' }: {
               flex: 1,
               padding: '12px 6px',
               borderRadius: 10,
-              background: 'rgba(255,255,255,.06)',
-              border: '1px solid rgba(255,255,255,.12)',
-              color: '#f5f5f7',
+              background: 'var(--card2)',
+              border: '1px solid var(--border)',
+              color: 'var(--text)',
               fontSize: '0.75rem',
               fontWeight: 800,
               cursor: 'pointer',
@@ -2192,8 +2198,8 @@ export default function PricingClient({ initialBilling = 'annual' }: {
               flex: 1,
               padding: '12px 8px',
               borderRadius: 10,
-              background: '#2997ff',
-              color: '#ffffff',
+              background: 'var(--indigo)',
+              color: 'var(--on-accent)',
               fontSize: '0.8rem',
               fontWeight: 800,
               cursor: 'pointer',
@@ -2219,9 +2225,9 @@ export default function PricingClient({ initialBilling = 'annual' }: {
               flex: 1,
               padding: '12px 6px',
               borderRadius: 10,
-              background: 'rgba(255,255,255,.06)',
-              border: '1px solid rgba(255,255,255,.12)',
-              color: '#f5f5f7',
+              background: 'var(--card2)',
+              border: '1px solid var(--border)',
+              color: 'var(--text)',
               fontSize: '0.75rem',
               fontWeight: 800,
               cursor: 'pointer',
@@ -2241,25 +2247,25 @@ export default function PricingClient({ initialBilling = 'annual' }: {
       )}
 
       {/* ───────── Footer ───────── */}
-      <footer className="relative z-10 border-t border-white/[0.08]">
+      <footer className="relative z-10 border-t border-[var(--border)]">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 sm:flex-row sm:px-6">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#161618] border border-[#2997ff]/40 text-sm">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--card)] border border-[var(--border2)] text-sm">
               <KineoBolt size={13} />
             </div>
-            <span className="text-[13px] font-bold text-[#f5f5f7]">
+            <span className="text-[13px] font-bold text-[var(--text)]">
               Kineo
             </span>
           </div>
-          <p className="text-[11.5px] text-[#86868b]">© 2026 Kineo</p>
+          <p className="text-[11.5px] text-[var(--muted)]">© 2026 Kineo</p>
         </div>
         {/* Push #116 — legal + contact strip. */}
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 pb-6 sm:px-6">
-          <Link href="/terms" className="text-[11.5px] font-medium text-[#86868b] hover:text-[#f5f5f7]">Terms of Service</Link>
-          <span aria-hidden className="text-[11.5px] text-[#86868b] opacity-40">·</span>
-          <Link href="/privacy" className="text-[11.5px] font-medium text-[#86868b] hover:text-[#f5f5f7]">Privacy Policy</Link>
-          <span aria-hidden className="text-[11.5px] text-[#86868b] opacity-40">·</span>
-          <a href="mailto:support@usekineo.com" className="text-[11.5px] font-medium text-[#86868b] hover:text-[#f5f5f7]">Contact</a>
+          <Link href="/terms" className="text-[11.5px] font-medium text-[var(--muted)] hover:text-[var(--text)]">Terms of Service</Link>
+          <span aria-hidden className="text-[11.5px] text-[var(--muted)] opacity-40">·</span>
+          <Link href="/privacy" className="text-[11.5px] font-medium text-[var(--muted)] hover:text-[var(--text)]">Privacy Policy</Link>
+          <span aria-hidden className="text-[11.5px] text-[var(--muted)] opacity-40">·</span>
+          <a href="mailto:support@usekineo.com" className="text-[11.5px] font-medium text-[var(--muted)] hover:text-[var(--text)]">Contact</a>
         </div>
       </footer>
     </div>

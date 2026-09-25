@@ -60,50 +60,50 @@ export function PricingAdsBlockView({
       className="mx-auto mt-14 max-w-5xl scroll-mt-24"
     >
       <div className="mb-4 text-center">
-        <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[#86868b]">{PRICING_ONE_TIME_LABEL}</div>
-        <h2 id={`${PRICING_ADS_BLOCK_ID}-title`} className="mt-2 text-[1.7rem] font-black tracking-tight text-[#f5f5f7]">
+        <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">{PRICING_ONE_TIME_LABEL}</div>
+        <h2 id={`${PRICING_ADS_BLOCK_ID}-title`} className="mt-2 text-[1.7rem] font-black tracking-tight text-[var(--text)]">
           Ads for your business
         </h2>
-        <p className="mt-1 text-[12.5px] text-[#86868b]">Not affected by the Monthly / Annual switch above.</p>
+        <p className="mt-1 text-[12.5px] text-[var(--muted)]">Not affected by the Monthly / Annual switch above.</p>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         {pass && (
-          <div data-kineo="pricing-ads-pass" className="rounded-2xl border border-[#2b3e52] p-6">
-            <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[#86868b]">Make it yourself</div>
-            <h3 className="mt-1 text-xl font-black text-[#f5f5f7]">{pass.name}</h3>
-            <p className="mt-1 text-sm text-[#86868b]">{pass.headline}</p>
-            <p className="mt-3 text-[#f5f5f7]">
+          <div data-kineo="pricing-ads-pass" className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6">
+            <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">Make it yourself</div>
+            <h3 className="mt-1 text-xl font-black text-[var(--text)]">{pass.name}</h3>
+            <p className="mt-1 text-sm text-[var(--muted)]">{pass.headline}</p>
+            <p className="mt-3 text-[var(--text)]">
               <strong className="text-2xl font-black">{money(pass.priceMinor)}</strong> one-time pass
             </p>
-            <p className="text-sm text-[#86868b]">
+            <p className="text-sm text-[var(--muted)]">
               {pass.credits} credits · {pass.accessDays} days of access
             </p>
-            <p className="mt-2 text-[12.5px] text-[#86868b]">Paid subscription plans already include {pass.name}.</p>
+            <p className="mt-2 text-[12.5px] text-[var(--muted)]">Paid subscription plans already include {pass.name}.</p>
             <a
               href={pass.href}
               onClick={() => onCtaClick?.(pass.cta)}
-              className="mt-4 inline-block font-bold text-[#2997ff] hover:underline"
+              className="mt-4 inline-block font-bold text-[var(--accent)] hover:underline"
             >
               See {pass.name} →
             </a>
           </div>
         )}
         {dfy.length > 0 && (
-          <div data-kineo="pricing-ads-dfy" className="rounded-2xl border border-[#2b3e52] p-6">
-            <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[#86868b]">We make it for you</div>
-            <h3 className="mt-1 text-xl font-black text-[#f5f5f7]">{dfy.map((t) => t.name).join(' or ')}</h3>
-            <p className="mt-1 text-sm text-[#86868b]">A human editor makes the ad from your brief.</p>
+          <div data-kineo="pricing-ads-dfy" className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6">
+            <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">We make it for you</div>
+            <h3 className="mt-1 text-xl font-black text-[var(--text)]">{dfy.map((t) => t.name).join(' or ')}</h3>
+            <p className="mt-1 text-sm text-[var(--muted)]">A human editor makes the ad from your brief.</p>
             <ul className="mt-3 space-y-3">
               {dfy.map((t) => (
-                <li key={t.tier} className="text-[#f5f5f7]">
+                <li key={t.tier} className="text-[var(--text)]">
                   <strong className="font-black">{t.name}</strong> — <strong>{money(t.priceMinor)}</strong> per video
-                  <span className="block text-sm text-[#86868b]">
+                  <span className="block text-sm text-[var(--muted)]">
                     {t.hours} h · {t.revisions} {t.revisions === 1 ? 'revision' : 'revisions'} · {t.engines}
                   </span>
                   <a
                     href={t.href}
                     onClick={() => onCtaClick?.(t.cta)}
-                    className="mt-1 inline-block font-bold text-[#2997ff] hover:underline"
+                    className="mt-1 inline-block font-bold text-[var(--accent)] hover:underline"
                   >
                     Choose {t.name} →
                   </a>

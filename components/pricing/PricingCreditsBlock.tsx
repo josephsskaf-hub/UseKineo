@@ -73,28 +73,28 @@ export function PricingCreditsBlockView({
       aria-labelledby={`${PRICING_CREDITS_BLOCK_ID}-title`}
       className="mx-auto mt-14 max-w-3xl scroll-mt-24 text-center"
     >
-      <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[#86868b]">{PRICING_ONE_TIME_LABEL}</div>
-      <h2 id={`${PRICING_CREDITS_BLOCK_ID}-title`} className="mt-2 text-[1.7rem] font-black tracking-tight text-[#f5f5f7]">
+      <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">{PRICING_ONE_TIME_LABEL}</div>
+      <h2 id={`${PRICING_CREDITS_BLOCK_ID}-title`} className="mt-2 text-[1.7rem] font-black tracking-tight text-[var(--text)]">
         One-time credits
       </h2>
-      <p className="mt-2 text-sm text-[#86868b]">
+      <p className="mt-2 text-sm text-[var(--muted)]">
         Add {model.min.toLocaleString('en-US')} to {model.max.toLocaleString('en-US')} credits in one payment
-        {fromPrice ? <>, from <strong className="text-[#f5f5f7]">{fromPrice}</strong></> : null}.
+        {fromPrice ? <>, from <strong className="text-[var(--text)]">{fromPrice}</strong></> : null}.
         {canBuy ? ' Your plan stays the same.' : null}
       </p>
       {canBuy ? (
         <button
           type="button"
           onClick={onOpen}
-          className="mt-4 rounded-xl bg-[#2997ff] px-5 py-3 font-black text-white"
+          className="mt-4 rounded-xl bg-[var(--indigo)] px-5 py-3 font-black text-[var(--on-accent)]"
         >
           Add credits
         </button>
       ) : state === 'loading' ? null : (
-        <p data-kineo="pricing-credits-locked" className="mt-3 text-[12.5px] text-[#86868b]">
+        <p data-kineo="pricing-credits-locked" className="mt-3 text-[12.5px] text-[var(--muted)]">
           {state === 'read_error' ? 'We could not check your plan right now. ' : ''}
           Top-ups are for Starter, Creator and Studio subscribers.{' '}
-          <a href={PRICING_PLANS_HREF} onClick={onChoosePlan} className="font-bold text-[#2997ff] hover:underline">
+          <a href={PRICING_PLANS_HREF} onClick={onChoosePlan} className="font-bold text-[var(--accent)] hover:underline">
             Choose a plan ↑
           </a>
         </p>
