@@ -25,7 +25,9 @@ const iSubmit = r.indexOf('await submitToFalWithOneRetry(') // a CHAMADA no laç
 checa('a recusa vem antes do piso de duração e antes de qualquer POST pago, com estorno', iRecusa > 0 && iRecusa < iFloor && iFloor < iSubmit && /releaseBirthClaim\('script_too_long_for_engine_no_charge'\)/.test(r))
 checa('a recusa diz o teto em palavras e não é retryable', /reason: 'script_too_long_for_engine', script_words: scriptWordsVerbatim, max_words: maxWords, retryable: false/.test(r) && /Math\.floor\(MAX_VERBATIM_SCENES \* SCENE_CAP \* 2\.3\)/.test(r))
 checa('a recusa deixa rastro (narration_guard_blocked reason script_too_long_for_engine)', /reason: 'script_too_long_for_engine', engine: body\.engine \?\? 'hollywood'/.test(r))
-checa('o dry-run mede excesso de fala por cena (o inverso da régua de silêncio)', /if \(\(r\.seconds \?\? 0\) > 0 && fala > \(r\.seconds \?\? 0\) \+ 1\) preflightProblems\.push\(`cena \$\{r\.scene\}: \$\{r\.words\} palavras/.test(r))
+// KINEO-MESMA-REGUA-DO-ESCRITOR-2026-09-25: a régua do ensaio passou de "fala > segundos + 1" (a 2,3 pal/s) para a DECISÃO da
+// montagem no ritmo da voz — cabeNaMontagem: fala + 0,4 ≤ segundos, ou fala ≤ segundos × 1,1 (o que o FALA-CABE acelera).
+checa('o dry-run mede excesso de fala por cena (o inverso da régua de silêncio) com a decisão da montagem', /if \(r\.words > 0 && \(r\.seconds \?\? 0\) > 0 && !cabeNaMontagem\(fala, r\.seconds \?\? 0\)\) preflightProblems\.push\(`cena \$\{r\.scene\}: \$\{r\.words\} palavras/.test(r) && /const fala = r\.words \/ ritmoVoz/.test(r))
 // aritmética do caso: 225 palavras a 2,3 pal/s = 98 s; 12 cenas × 12 s = 144 s de teto → cabe; 9 × 12 = 108 com sobra colada era o defeito
 checa('aritmética: 225 palavras cabem em 12 cenas de 12 s (teto 331 palavras); 400 palavras não cabem', Math.floor(12 * 12 * 2.3) === 331 && 225 <= 331 && 400 > 331)
 

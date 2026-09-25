@@ -73,8 +73,11 @@ Os três ramos que aceitam a recusa de qualidade (`acceptQualityFailure`) passam
   os dois textos). No Polo: folga da cena 7 = 0,37 s → não é aparada → fica com 11 s.
 - FRASE-MAIOR faz a cena crescer até a fala inteira no ritmo da voz (`ceil(palavras/ritmo)`), até o teto da família;
   acima do teto, o teto-rede divide na frase (nada recusa aqui).
-- O ensaio de $0 usa a tolerância REAL da montagem: `fala + 0,4 > segundos × 1,1` = FAIL (espelho de
-  `FALA_CABE_RESPIRO_S`/`FALA_CABE_MAX_FATOR`; o guardião compara as constantes).
+- O ensaio de $0 decide como a montagem (`cabeNaMontagem`, MIRROR): PASS se `fala + 0,4 ≤ clipe` ou se
+  `fala/1,1 − clipe ≤ 0,01` (o que o FALA-CABE acelera); não conta com a travessia (vão das vizinhas, que só a voz
+  real mede). A revisão adversarial derrubou a 1ª régua (`fala + 0,4 > s × 1,1`): "constantes iguais não são decisão
+  igual" — ela reprovava planos que a montagem fecha. O guardião EXECUTA o predicado contra a fatia real do compose em
+  250 planos: 250/250 decisões iguais.
 - As aparas de 16/09 e 23/09 (> 1,0 s) ficam como a rotação anterior deixou.
 
 ## Prova
@@ -86,13 +89,19 @@ Os três ramos que aceitam a recusa de qualidade (`acceptQualityFailure`) passam
   que cabe é entregue); fuzz 300 filmes com respiro ≥ 0,2 s em TODA fronteira; tela. `scripts/test-fala-cabe-2026-09-15.mjs` re-ancorado
   (23/23): "TTS fora → recusa" virou "TTS fora → a fala atravessa"; o estouro de 45 % continua recusado.
   `test-quality-route-integration` (363) e `test-quality-failure-ui` (141) verdes com o contexto novo.
-- **Entrega 2:** `scripts/test-h3-mesma-regua-do-escritor-2026-09-25.mjs` (12): reproduz a apara a 2,3 na origin/main
+- **Entrega 2:** `scripts/test-h3-mesma-regua-do-escritor-2026-09-25.mjs` (17): reproduz a apara a 2,3 na origin/main
   (cena 7: 11 → 10 s); no candidato fica com 11 s e as 12 cenas guardam a fala inteira a 2,07; fuzz 300 planos;
-  espelhos. `test-fala-maior-que-a-cena` re-ancorado à régua nova.
+  espelhos; `cabeNaMontagem` executado contra o compose (250/250). `test-fala-maior-que-a-cena` re-ancorado.
 - Vizinhos verdes nas duas: test-h3-verbatim-corte (fuzz 300), test-h3-palavras, test-enche-silencio,
   test-silencio-na-tela, test-regua-do-escritor, test-fidelidade-h3, test-auditoria-motores, test-compose-falha-com-nome,
   test-cena-presa, test-juiz-ve-a-cena-1, test-regua-unica-e-entrega-medida. `test-silencio-na-cena` está vermelho na
   origin/main também (herdado, âncora de texto de outra rotação). tsc limpo.
+
+## Fora do escopo (achado da revisão, pré-existente)
+Em modo IA ("Let AI structure") o caminho pago não tem portão fala × segundos: cena que o GPT escreveu maior que os
+segundos (ex.: 15 palavras para 5 s, que o esticador só leva a 6 s) vai à fal e é a montagem que resolve (acelera ou
+atravessa). A parede no escritor vale para verbatim. Próxima jogada quando o fundador quiser: rodar `cabeNaMontagem`
+sobre o plano em modo IA e CRESCER os segundos (até o teto da família) em vez de recusar — H3 só cresce.
 
 ## O que NÃO mudou
 - Régua de silêncio (1,5 s/cena; 8 s por 60 s de filme), verbatim intocado, H3 nunca encolhe, custo por segundo.

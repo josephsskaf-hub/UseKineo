@@ -3955,8 +3955,27 @@ async function manipularPost(req: NextRequest) {
           // = 9 s e o roteiro do fundador (80 s de fala, 10 cenas) reprovava por
           // 1 s. O planejador passa a aparar o respiro das cenas mais folgadas
           // até caber na régua — nunca abaixo de 4 s, nunca tocando na fala.
+          // ═══ KINEO-MESMA-REGUA-DO-ESCRITOR-2026-09-25 — o C1 mede no passo da voz que VAI falar ═══
+          // Render H3 7127d8b4 (fundador, 25/09 17:18Z, furacão Polo, roteiro pronto de 191 palavras, 60 s): 12 clipes
+          // aceitos e PAGOS ao fal (~US$ 5,70) e o compose recusou (scene_speech_exceeds_footage). A cena 7 tinha 22
+          // palavras em 10 s: nasceu com 11 s (round(22/2,3)+1); a apara abaixo mediu 1,43 s de folga A 2,3 PAL/S e tirou
+          // 1 s; a voz pinada (luxury-narrator, 0,9) fala a 2,07 pal/s → 10,6 s de fala + 0,4 s de respiro = 11,0 s num
+          // clipe de 10 s (×1,13), acima do que o FALA-CABE acelera (×1,10). Quatro réguas: 2,3 fixo AQUI, ritmoVoz nas
+          // aparas seguintes, a proporcional no portão, e a voz real na montagem — a primeira era a mais frouxa e decidia
+          // por último. Agora o C1 mede com a MESMA conta de `ritmoVoz` (espelho abaixo; o guardião compara os dois); a
+          // variação da voz real (±5 %) fica para o FALA-CABE (×1,10) e para a travessia do corte, na montagem.
+          // A parede nasce no escritor, nunca depois de pagar.
+          // ═══ MIRROR: ritmoDaVoz ═══
+          const ritmoC1 = (() => {
+            try {
+              const falas = sceneNarrationsForPlan(plan.scenes).filter(Boolean).join(' ')
+              const voz = resolveHollywoodVoice(falas || prompt, hollywoodLanguage, hollywoodVertical, plan.characterSheet)
+              return Math.round(2.3 * Math.max(0.85, Math.min(1.1, voz.defaultSpeed)) * 100) / 100
+            } catch { return 2.3 }
+          })()
+          // ═══ END MIRROR: ritmoDaVoz ═══
           {
-            const silencio = (sc: PlanScene) => (sc.seconds || 0) - wordsIn((sc.type === 'dialogue' ? sc.dialogueLine : sc.voiceover) ?? '') / 2.3
+            const silencio = (sc: PlanScene) => (sc.seconds || 0) - wordsIn((sc.type === 'dialogue' ? sc.dialogueLine : sc.voiceover) ?? '') / ritmoC1
             let total = plan.scenes.reduce((a, sc) => a + Math.max(0, silencio(sc)), 0)
             let guard = 40
             while (total > 7.5 && guard-- > 0) {
@@ -3971,8 +3990,13 @@ async function manipularPost(req: NextRequest) {
           // primeiro a cena cresce até o teto da família; o que ainda estourar
           // entra na recusa honesta abaixo (422 sem cobrança), antes de qualquer POST.
           for (const sc of plan.scenes) {
-            const fala = wordsIn((sc.type === 'dialogue' ? sc.dialogueLine : sc.voiceover) ?? '') / 2.3
+            const palavras = wordsIn((sc.type === 'dialogue' ? sc.dialogueLine : sc.voiceover) ?? '')
+            const fala = palavras / 2.3
             const teto = sc.type === 'dialogue' ? DIALOGUE_CAP : sc.type === 'cinematic' ? 8 : SCENE_CAP
+            // KINEO-MESMA-REGUA-DO-ESCRITOR-2026-09-25: a cena guarda a fala inteira NO RITMO DA VOZ (a conta a 2,3 abaixo
+            // continua valendo para a sobra). Acima do teto da família o teto-rede divide na frase — nunca recusa aqui.
+            const precisaNoRitmo = Math.ceil(palavras / ritmoC1)
+            if (palavras > 0 && palavras / ritmoC1 > (sc.seconds || 0)) sc.seconds = Math.max(sc.seconds || 0, Math.min(teto, precisaNoRitmo))
             if (fala > (sc.seconds || 0) + 1) sc.seconds = Math.max(sc.seconds || 0, Math.min(teto, Math.ceil(fala)))
             if (fala > (sc.seconds || 0) + 1) verbatimOverflowWords += Math.ceil((fala - (sc.seconds || 0) - 1) * 2.3)
           }
@@ -4557,9 +4581,23 @@ async function manipularPost(req: NextRequest) {
           const preflightProblems: string[] = []
           // KINEO-FALA-MAIOR-QUE-A-CENA — o inverso da régua de silêncio: fala
           // maior que o clipe. O compose recusa isso depois de pagar; aqui é $0.
+          // KINEO-MESMA-REGUA-DO-ESCRITOR-2026-09-25: no ritmo da voz pinada e com a DECISÃO da montagem, não só as constantes
+          // (revisão adversarial de 25/09: "constantes iguais não são decisão igual"). O compose (app/api/compose/route.ts,
+          // KINEO-FALA-CABE + KINEO-FALA-ATRAVESSA-O-CORTE) aceita a fala que cabe com 0,4 s de respiro; re-sintetiza um fio
+          // mais rápido quando fala + 0,4 ≤ clipe × 1,1; e ainda aceita fala ≤ clipe × 1,1 acelerando a ×1,1 sem respiro.
+          // Acima disso só a travessia do corte (vão das vizinhas, medido na voz real) salva — o ensaio, que só estima a
+          // fala (palavras ÷ ritmo), não conta com ela. A 2,3 fixo e com "+1 s" o ensaio aprovava planos que o render pago
+          // recusava (cena 7 do Polo: 22 palavras em 10 s passava por aqui). O guardião executa os dois lados com os mesmos
+          // planos: PASS aqui ⇔ a montagem fecha sem precisar das vizinhas.
+          // ═══ MIRROR: cabeNaMontagem ═══
+          const RESPIRO_MONTAGEM_S = 0.4 // = FALA_CABE_RESPIRO_S
+          const ACELERA_MAX_MONTAGEM = 1.1 // = FALA_CABE_MAX_FATOR
+          // a mesma tolerância de 0,01 s do compose (`sobra > capacidade + 0.01` / `falta > 0.01`)
+          const cabeNaMontagem = (fala: number, segundos: number) => fala + RESPIRO_MONTAGEM_S <= segundos || fala / ACELERA_MAX_MONTAGEM - segundos <= 0.01
+          // ═══ END MIRROR: cabeNaMontagem ═══
           for (const r of planReport) {
-            const fala = r.words / 2.3
-            if ((r.seconds ?? 0) > 0 && fala > (r.seconds ?? 0) + 1) preflightProblems.push(`cena ${r.scene}: ${r.words} palavras ≈ ${fala.toFixed(1)}s de fala para um clipe de ${r.seconds}s — o compose recusaria (scene_speech_exceeds_footage)`)
+            const fala = r.words / ritmoVoz
+            if (r.words > 0 && (r.seconds ?? 0) > 0 && !cabeNaMontagem(fala, r.seconds ?? 0)) preflightProblems.push(`cena ${r.scene}: ${r.words} palavras ≈ ${fala.toFixed(1)}s de fala (${ritmoVoz} pal/s) num clipe de ${r.seconds}s (×${(fala / (r.seconds ?? 1)).toFixed(2)} > ${ACELERA_MAX_MONTAGEM}) — nem acelerando a ×${ACELERA_MAX_MONTAGEM} cabe; o compose recusaria (scene_speech_exceeds_footage)`)
           }
           for (const v of sceneCapViolations) preflightProblems.push(`cena ${v.scene} (${v.type}) tem ${v.seconds}s > teto ${v.type === 'dialogue' ? DIALOGUE_CAP : SCENE_CAP}s da família ${family}`)
           for (const d of dispatchPreview) {
