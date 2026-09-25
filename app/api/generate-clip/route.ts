@@ -25,6 +25,10 @@ import { submitFalQueueOnce, FalQueueSubmitError } from '@/lib/falQueue'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { buildClipPrompt, CLIP_CREDITS, CLIP_MAX_SECONDS, CLIP_MIN_SECONDS, detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { CLIP_PROMPT_MAX_CHARS } from '@/lib/analyzeLimits'
+// KINEO-MODERACAO-2026-09-25 — o texto da pessoa vai direto ao Seedance (texto→vídeo) e o clipe é guardado no nosso
+// bucket; a rota não passava pela régua. Agora o texto é conferido ANTES do débito e do fal. Falha fechada.
+import { moderateContent } from '@/lib/safety/contentModeration'
+import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -56,6 +60,15 @@ export async function POST(req: NextRequest) {
   const seconds = Math.max(CLIP_MIN_SECONDS, Math.min(CLIP_MAX_SECONDS, Math.round(requestedSeconds)))
   const aspect = coerceAspect(body.aspect)
   const finalPrompt = buildClipPrompt({ ...spec, prompt: spec.isShotSpec ? spec.prompt : prompt, seconds }, aspect)
+
+  // KINEO-MODERACAO-2026-09-25 — porta de entrada: o texto cru (tudo o que a pessoa escreveu; o finalPrompt deriva dele).
+  const safety = await moderateContent({ surface: 'clip', stage: 'input', userId: user.id, text: prompt, meta: { seconds, aspect, shot_spec: spec.isShotSpec } })
+  if (!safety.ok) {
+    return NextResponse.json(
+      { error: moderationRefusalMessage(safety.reason), code: safety.reason === 'blocked' ? 'moderation' : `moderation_${safety.reason}` },
+      { status: moderationRefusalStatus(safety.reason) },
+    )
+  }
 
   const renderId = `clip-${randomUUID()}`
 

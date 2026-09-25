@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { moderateContent } from '@/lib/safety/contentModeration' // KINEO-MODERACAO-2026-09-25
-import { MODERATION_BLOCKED_MESSAGE, MODERATION_UNAVAILABLE_MESSAGE } from '@/lib/safety/moderationPolicy'
+import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy'
 import { LANGUAGE_NAMES, narrationLanguage } from '@/lib/textLanguage'
 import { adsGate, loadAdsAccess, isMissingAdsTable } from '@/lib/ads/serverAccess'
 import { adsModelById } from '@/lib/ads/models'
@@ -65,9 +65,7 @@ export async function POST(req: NextRequest) {
     const briefText = [b.business, b.offer, b.contact, b.audience, ...Object.values(b.extra ?? {})].filter((v): v is string => typeof v === 'string' && v.trim().length > 0).join('\n')
     const safety = await moderateContent({ surface: 'ads_brief', stage: 'input', userId: user.id, text: briefText, meta: { order_id: orderId } })
     if (!safety.ok) {
-      return safety.reason === 'blocked'
-        ? NextResponse.json({ error: MODERATION_BLOCKED_MESSAGE, code: 'moderation' }, { status: 422 })
-        : NextResponse.json({ error: MODERATION_UNAVAILABLE_MESSAGE, code: 'moderation_unavailable' }, { status: 503 })
+      return NextResponse.json({ error: moderationRefusalMessage(safety.reason), code: safety.reason === 'blocked' ? 'moderation' : `moderation_${safety.reason}` }, { status: moderationRefusalStatus(safety.reason) })
     }
 
     const lang = narrationLanguage(brief.value.language) ?? 'en'

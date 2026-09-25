@@ -40,8 +40,29 @@ export function characterLimitFor(plan: string, hasPaid: boolean): number {
   return hasPaid ? 3 : 0
 }
 
-const OUR_STORAGE_PREFIX = () =>
-  `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/`
+// KINEO-MODERACAO-2026-09-25 — o repasse "já é nosso storage" aceitava QUALQUER arquivo público de QUALQUER conta
+// (/storage/v1/object/public/<bucket>/<pasta de outra pessoa>/…): dava para fixar como personagem a foto de outra conta
+// sem passar por nenhuma porta. Agora só repassa o que está numa pasta da PRÓPRIA conta. Conferido em 25/09: os 7
+// personagens do banco estão em avatars/<uid>/, e todo chamador cai lá (Avatar Studio: upload, cena, rosto salvo,
+// personagem salvo; thumbnail: URL da OpenAI ou data URI, que é copiado). renders/images/<uid>/ (galeria /images) e
+// user-footage/<uid>/ entram por serem da mesma conta. Qualquer outra URL do nosso storage cai na recusa de host abaixo.
+const OWN_CHARACTER_FOLDERS = (userId: string) => [`avatars/${userId}/`, `renders/images/${userId}/`, `user-footage/${userId}/`]
+function isOwnStorageUrl(userId: string, url: string): boolean {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (!base || !userId) return false
+  try {
+    const parsed = new URL(url)
+    if (parsed.origin !== new URL(base).origin) return false
+    const publicRoot = '/storage/v1/object/public/'
+    if (!parsed.pathname.startsWith(publicRoot)) return false
+    // Decodifica (%2F vira barra) e recusa segmento de volta: "avatars/<uid>/..%2F<outra conta>/x.jpg" não passa.
+    const rest = decodeURIComponent(parsed.pathname.slice(publicRoot.length))
+    if (rest.includes('\\') || rest.split('/').some((seg) => seg === '..' || seg === '.')) return false
+    return OWN_CHARACTER_FOLDERS(userId).some((folder) => rest.startsWith(folder) && rest.length > folder.length)
+  } catch {
+    return false
+  }
+}
 const FAL_CDN = /^https:\/\/([a-z0-9-]+\.)*fal\.(media|run|ai)\//i
 // KINEO-CHARLOCK-V2 — thumbnails come back from OpenAI as azure-blob URLs or
 // data URIs; both are legit "save as character" sources.
@@ -49,7 +70,8 @@ const OPENAI_CDN = /^https:\/\/([a-z0-9-]+\.)*(oaidalleapiprodscus\.blob\.core\.
 
 /**
  * Persist the character image into OUR avatars bucket.
- * - Already our storage → returned as-is (no duplicate copy).
+ * - Already our storage, in one of the CALLER'S OWN folders → returned as-is
+ *   (no duplicate copy). Another account's file is rejected (KINEO-MODERACAO-2026-09-25).
  * - fal CDN / OpenAI CDN (generated images) → downloaded and re-uploaded,
  *   because those files expire and a character anchor must live forever.
  * - data:image base64 (thumbnail generator results) → decoded and uploaded.
@@ -58,7 +80,7 @@ const OPENAI_CDN = /^https:\/\/([a-z0-9-]+\.)*(oaidalleapiprodscus\.blob\.core\.
 export async function persistCharacterImage(userId: string, url: string): Promise<string> {
   const clean = (url ?? '').trim()
   if (!clean) throw new Error('Character image URL is required.')
-  if (clean.startsWith(OUR_STORAGE_PREFIX())) return clean
+  if (isOwnStorageUrl(userId, clean)) return clean
 
   // data URI (generated thumbnail) → decode straight to buffer.
   if (clean.startsWith('data:image/')) {

@@ -23,6 +23,7 @@ import { composeClaimId } from '@/lib/composeClaim'
 import { adsClipListLength, adsTimelineSeconds, beatStartTimes, planClipUrls, type PlanMedia } from '@/lib/ads/renderPlan'
 import type { AdsMediaItem } from '@/lib/ads/types'
 import { creditCostForDuration } from '@/lib/credits/engineCost'
+import { moderateContent } from '@/lib/safety/contentModeration' // KINEO-MODERACAO-2026-09-25
 import {
   buildCreatomateSource,
   estimateMp3DurationSeconds,
@@ -112,6 +113,11 @@ export async function POST(req: NextRequest) {
     // queimar voz e Whisper em laço até o compose recusar).
     const busy = await admin.from('ads_orders').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('status', 'rendering').neq('id', orderId)
     if (!busy.error && (busy.count ?? 0) > 0) return fail('another_rendering', 409)
+
+    // KINEO-MODERACAO-2026-09-25 — o brief passa pela régua no /api/ads/script, mas o roteiro que vira VOZ chega aqui do
+    // cliente (a pessoa pode editar): ele passa de novo, antes de travar o pedido e de gastar voz.
+    const safety = await moderateContent({ surface: 'ads_render', stage: 'input', userId: user.id, text: input.beats.join('\n'), meta: { order_id: orderId } })
+    if (!safety.ok) return fail(safety.reason === 'blocked' ? 'moderation' : `moderation_${safety.reason}`, safety.reason === 'unavailable' ? 503 : 422)
 
     // Trava o pedido: só um render por vez (o UPDATE só pega rascunho ou falha).
     const generationId = randomUUID()

@@ -19,6 +19,22 @@ import { refundRenderCredits } from '@/lib/credits/refund'
 // KINEO-REVERSE-TRIAL-P1-2026-08-06 — todo débito passa pelo wrapper único
 // (mesmo RPC; com a flag OFF é byte-idêntico ao rpc direto).
 import { debitVideoCredits } from '@/lib/credits/debit'
+// KINEO-MODERACAO-2026-09-25 — esta rota chama submitAnimateJob direto e pulava a porta do startAnimateJob. Agora a
+// foto de origem só vale da pasta do PRÓPRIO usuário, e movimento + foto passam pela régua antes de cobrar e de enviar
+// ao fornecedor. Falha fechada.
+import { moderateContent } from '@/lib/safety/contentModeration'
+import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy'
+
+// A origem tem de estar na pasta do PRÓPRIO usuário (avatars/<uid>/). URL normalizada: `..`/`%2e` não escapam da pasta.
+function isOwnAvatarUrl(url: string, userId: string, supabaseUrl: string): boolean {
+  try {
+    const parsed = new URL(url)
+    return parsed.origin === new URL(supabaseUrl).origin &&
+      parsed.pathname.startsWith(`/storage/v1/object/public/avatars/${userId}/`)
+  } catch {
+    return false
+  }
+}
 
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
@@ -70,7 +86,7 @@ export async function POST(req: NextRequest) {
       if (!charUrl) return NextResponse.json({ error: 'Character not found.' }, { status: 404 })
       imageUrl = charUrl
     }
-    if (!imageUrl.startsWith(storagePrefix)) {
+    if (!supabaseUrl || !imageUrl.startsWith(storagePrefix) || !isOwnAvatarUrl(imageUrl, user.id, supabaseUrl)) {
       return NextResponse.json({ error: 'Please upload a photo or pick a character first.' }, { status: 400 })
     }
 
@@ -80,6 +96,14 @@ export async function POST(req: NextRequest) {
     const prompt = basePrompt + GESTURE_SUFFIX
     const duration: '5' | '10' = body.duration === '10' ? '10' : '5'
     const cost = gestureCost(duration)
+
+    const safety = await moderateContent({ surface: 'gesture', stage: 'input', userId: user.id, text: prompt, imageUrls: [imageUrl], meta: { gesture: gestureKey || 'custom', duration } })
+    if (!safety.ok) {
+      return NextResponse.json(
+        { error: moderationRefusalMessage(safety.reason), code: safety.reason === 'blocked' ? 'moderation' : `moderation_${safety.reason}` },
+        { status: moderationRefusalStatus(safety.reason) },
+      )
+    }
 
     // Balance gate → submit → atomic upfront debit keyed on the request id
     // (idempotent; /api/gesture-clip-status refunds this row on failure).

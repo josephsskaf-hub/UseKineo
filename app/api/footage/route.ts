@@ -24,7 +24,8 @@ import { getEffectiveEntitlement, TRIAL_ENTITLEMENT_COLUMNS, type EffectiveEntit
 import { writeServerEvent } from '@/lib/serverEvents'
 // KINEO-MODERACAO-2026-09-25 — ponto único das fotos do cliente: Studio, Studio Ads e My footage só usam linha de user_footage.
 import { moderateContent } from '@/lib/safety/contentModeration'
-import { MODERATION_UPLOAD_BLOCKED_MESSAGE, MODERATION_UPLOAD_UNAVAILABLE_MESSAGE } from '@/lib/safety/moderationPolicy'
+import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy'
+import { sniffMediaKind } from '@/lib/safety/mediaKind'
 
 export const dynamic = 'force-dynamic'
 
@@ -255,20 +256,41 @@ export async function POST(req: NextRequest) {
       if (!path.startsWith(`${user.id}/`)) {
         return NextResponse.json({ error: 'Invalid upload path.' }, { status: 400 })
       }
-      const kind = body.kind === 'image' ? 'image' : body.kind === 'audio' ? 'audio' : 'video'
+      // KINEO-MODERACAO-2026-09-25 — o tipo vem dos PRIMEIROS BYTES do arquivo no bucket, nunca do `kind` que o cliente manda:
+      // antes, kind:'video' numa foto pulava a moderação inteira (revisão adversarial de 25/09).
+      let kind: 'image' | 'video' | 'audio'
+      try {
+        const head = await fetch(`${FOOTAGE_PUBLIC_PREFIX()}${path}`, { headers: { Range: 'bytes=0-31' }, cache: 'no-store' })
+        if (!head.ok) return NextResponse.json({ error: 'The upload did not finish. Try again.' }, { status: 409 })
+        // Só o primeiro pedaço: se o storage ignorar o Range, não baixamos um vídeo de 50 MB para ler 32 bytes.
+        const reader = head.body?.getReader()
+        const first = reader ? await reader.read() : { value: new Uint8Array(await head.arrayBuffer()) }
+        if (reader) await reader.cancel().catch(() => {})
+        const sniffed = sniffMediaKind((first.value ?? new Uint8Array()).slice(0, 32))
+        if (!sniffed) return NextResponse.json({ error: 'Use JPG, PNG, MP4, MOV or WebM files.' }, { status: 400 })
+        // Foto é foto, diga o cliente o que disser. Áudio em contêiner MP4 (marca mp42/isom) parece vídeo nos bytes: vale a
+        // extensão que o PRÓPRIO servidor escolheu no upload-url.
+        const ext = path.split('.').pop() ?? ''
+        kind = sniffed === 'image' ? 'image' : ['mp3', 'wav', 'm4a'].includes(ext) ? 'audio' : sniffed
+      } catch {
+        return NextResponse.json({ error: moderationRefusalMessage('unavailable', 'upload'), code: 'moderation_unavailable' }, { status: 503 })
+      }
       const sizeBytes = Math.max(0, Number(body.sizeBytes) || 0)
       const url = `${FOOTAGE_PUBLIC_PREFIX()}${path}`
-      // Foto barrada não vira linha (nenhum render a alcança) e o arquivo NÃO é apagado aqui: fica o evento com o caminho,
-      // e a quarentena é decisão do fundador. Vídeo ainda passa sem checagem (o servidor não extrai quadro) — dívida anotada.
+      // Foto barrada não vira linha (nenhum render a alcança) e o arquivo NÃO é apagado: vai para quarantine/<caminho> no
+      // mesmo bucket — a URL antiga morre (sai da pasta da conta, que é o que o Studio aceita) e a prova fica. O que fazer
+      // com ela é decisão do fundador. Vídeo ainda passa sem checagem (o servidor não extrai quadro) — dívida anotada.
+      const admin = footageAdminClient()
       if (kind === 'image') {
-        const safety = await moderateContent({ surface: 'footage', stage: 'upload', userId: user.id, imageUrls: [url], meta: { path, size_bytes: sizeBytes } })
+        const safety = await moderateContent({ surface: 'footage', stage: 'upload', userId: user.id, imageUrls: [url], meta: { path, size_bytes: sizeBytes, quarantine_path: `quarantine/${path}` } })
         if (!safety.ok) {
-          return safety.reason === 'blocked'
-            ? NextResponse.json({ error: MODERATION_UPLOAD_BLOCKED_MESSAGE, code: 'moderation' }, { status: 422 })
-            : NextResponse.json({ error: MODERATION_UPLOAD_UNAVAILABLE_MESSAGE, code: 'moderation_unavailable' }, { status: 503 })
+          if (safety.reason === 'blocked') {
+            const moved = await admin.storage.from(USER_FOOTAGE_BUCKET).move(path, `quarantine/${path}`)
+            if (moved.error) console.error('[footage] quarantine move failed:', moved.error.message, path)
+          }
+          return NextResponse.json({ error: moderationRefusalMessage(safety.reason, 'upload'), code: safety.reason === 'blocked' ? 'moderation' : `moderation_${safety.reason}` }, { status: moderationRefusalStatus(safety.reason) })
         }
       }
-      const admin = footageAdminClient()
       const { data, error } = await admin
         .from('user_footage')
         .insert({ user_id: user.id, url, kind, size_bytes: sizeBytes })

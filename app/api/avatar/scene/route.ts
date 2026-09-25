@@ -13,6 +13,22 @@ import { refundRenderCredits } from '@/lib/credits/refund'
 // KINEO-REVERSE-TRIAL-P1-2026-08-06 — todo débito passa pelo wrapper único
 // (mesmo RPC; com a flag OFF é byte-idêntico ao rpc direto).
 import { debitVideoCredits } from '@/lib/credits/debit'
+// KINEO-MODERACAO-2026-09-25 — esta rota gera E guarda imagem (Kontext + face-swap → bucket avatars) e passava por fora
+// da régua. Agora: a foto de origem só do próprio usuário; pedido + foto conferidos antes de cobrar e de chamar o fal; a
+// imagem FINAL conferida antes de ir para o bucket (barrada = estorno, nada guardado). Falha fechada.
+import { moderateContent } from '@/lib/safety/contentModeration'
+import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy'
+
+// A origem tem de estar na pasta do PRÓPRIO usuário (avatars/<uid>/). URL normalizada: `..`/`%2e` não escapam da pasta.
+function isOwnAvatarUrl(url: string, userId: string, supabaseUrl: string): boolean {
+  try {
+    const parsed = new URL(url)
+    return parsed.origin === new URL(supabaseUrl).origin &&
+      parsed.pathname.startsWith(`/storage/v1/object/public/avatars/${userId}/`)
+  } catch {
+    return false
+  }
+}
 
 export const maxDuration = 120
 export const dynamic = 'force-dynamic'
@@ -45,7 +61,7 @@ export async function POST(req: NextRequest) {
     const storagePrefix = `${supabaseUrl}/storage/v1/object/public/avatars/`
     const imageUrl = (body.imageUrl ?? '').trim()
     const prompt = (body.prompt ?? '').trim()
-    if (!imageUrl.startsWith(storagePrefix)) {
+    if (!imageUrl.startsWith(storagePrefix) || !isOwnAvatarUrl(imageUrl, user.id, supabaseUrl as string)) {
       return NextResponse.json({ error: 'Please upload your photo first.' }, { status: 400 })
     }
     if (prompt.length < 3) {
@@ -53,6 +69,14 @@ export async function POST(req: NextRequest) {
     }
     if (prompt.length > 600) {
       return NextResponse.json({ error: 'Scene description is too long — keep it under 600 characters.' }, { status: 400 })
+    }
+
+    const inputSafety = await moderateContent({ surface: 'avatar_scene', stage: 'input', userId: user.id, text: prompt, imageUrls: [imageUrl] })
+    if (!inputSafety.ok) {
+      return NextResponse.json(
+        { error: moderationRefusalMessage(inputSafety.reason), code: inputSafety.reason === 'blocked' ? 'moderation' : `moderation_${inputSafety.reason}` },
+        { status: moderationRefusalStatus(inputSafety.reason) },
+      )
     }
 
     // Lock the identity + steer toward a source that OmniHuman can animate well:
@@ -125,6 +149,16 @@ export async function POST(req: NextRequest) {
       const swapped = await swapFaceOntoScene({ sceneImageUrl: falUrl, faceImageUrl: imageUrl })
       if (swapped) finalUrl = swapped
     } catch { /* keep the Kontext image */ }
+
+    // A imagem que será guardada (a trocada, ou a do Kontext) passa pela régua ANTES do bucket.
+    const outputSafety = await moderateContent({ surface: 'avatar_scene', stage: 'output', userId: user.id, text: prompt, imageUrls: [finalUrl], meta: { swapped: finalUrl !== falUrl } })
+    if (!outputSafety.ok) {
+      await refundRenderCredits(billingReference)
+      return NextResponse.json(
+        { error: moderationRefusalMessage(outputSafety.reason), code: outputSafety.reason === 'blocked' ? 'moderation' : `moderation_${outputSafety.reason}` },
+        { status: moderationRefusalStatus(outputSafety.reason) },
+      )
+    }
 
     // Re-host on our bucket so the avatar pipeline accepts it as a source.
     let storageUrl: string

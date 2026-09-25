@@ -72,6 +72,22 @@ import {
   markAvatarClaimPrepaid,
   refundAvatarBirthDebit,
 } from '@/lib/avatar/reservation'
+// KINEO-MODERACAO-2026-09-25 — o avatar anima a foto e fala o roteiro, e passava por fora da régua. Agora a foto (e o
+// vídeo de origem) só valem da pasta do PRÓPRIO usuário, e roteiro + foto são conferidos numa submissão NOVA (depois da
+// reivindicação, para o reenvio de quem reconecta não reler), antes do GPT/TTS e antes do débito. Falha fechada.
+import { moderateContent } from '@/lib/safety/contentModeration'
+import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy'
+
+// A origem tem de estar na pasta do PRÓPRIO usuário (avatars/<uid>/). URL normalizada: `..`/`%2e` não escapam da pasta.
+function isOwnAvatarUrl(url: string, userId: string, supabaseUrl: string): boolean {
+  try {
+    const parsed = new URL(url)
+    return parsed.origin === new URL(supabaseUrl).origin &&
+      parsed.pathname.startsWith(`/storage/v1/object/public/avatars/${userId}/`)
+  } catch {
+    return false
+  }
+}
 
 export const maxDuration = 120
 export const dynamic = 'force-dynamic'
@@ -219,10 +235,10 @@ export async function POST(req: NextRequest) {
       : 'fabric'
     const performanceStyle: PerformanceStyle =
       body.performanceStyle === 'energetic' ? 'energetic' : 'natural'
-    if (!dryRun && videoMode && !avatarSourceVideoUrl.startsWith(storagePrefix)) {
+    if (!dryRun && videoMode && (!avatarSourceVideoUrl.startsWith(storagePrefix) || !isOwnAvatarUrl(avatarSourceVideoUrl, userId, supabaseUrl as string))) {
       return NextResponse.json({ error: 'Please upload your video first.' }, { status: 400 })
     }
-    if (!dryRun && !videoMode && !avatarImageUrl.startsWith(storagePrefix)) {
+    if (!dryRun && !videoMode && (!avatarImageUrl.startsWith(storagePrefix) || !isOwnAvatarUrl(avatarImageUrl, userId, supabaseUrl as string))) {
       return NextResponse.json({ error: 'Please upload your photo first.' }, { status: 400 })
     }
 
@@ -712,6 +728,25 @@ export async function POST(req: NextRequest) {
         return safetyUnavailable()
       }
       ownsAvatarReservation = true
+    }
+
+    // Porta de moderação: nada foi cobrado nem enviado a fornecedor ainda (GPT/TTS vêm logo abaixo, o débito bem depois).
+    // Barrado = solta a reivindicação e a reserva pelo caminho de sempre. Dry run confere só o texto (não valida foto);
+    // vídeo de origem idem (o servidor não extrai quadro).
+    const avatarSafety = await moderateContent({
+      surface: 'avatar',
+      stage: 'input',
+      userId,
+      text: prompt,
+      imageUrls: !dryRun && !videoMode ? [avatarImageUrl] : [],
+      meta: { engine, dry_run: dryRun, video_mode: videoMode, generation_id: generationId || null },
+    })
+    if (!avatarSafety.ok) {
+      await releaseAvatarSubmission()
+      return NextResponse.json(
+        { error: moderationRefusalMessage(avatarSafety.reason), code: avatarSafety.reason === 'blocked' ? 'moderation' : `moderation_${avatarSafety.reason}` },
+        { status: moderationRefusalStatus(avatarSafety.reason) },
+      )
     }
 
     const parsed = parseUserScript(prompt)

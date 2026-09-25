@@ -365,7 +365,10 @@ export async function POST(req: NextRequest) {
     let lifecycleReconciliationFailed = false
     let claimReleased = false
     if (claim && canReleaseClaim) {
-      if (importedImageUrl) {
+      // KINEO-MODERACAO-2026-09-25 — foto barrada pela moderação fica guardada (é prova; content_moderation_blocked leva a
+      // URL em evidence). Só o resto dos fechamentos apaga a cópia importada, como antes.
+      const moderationBlocked = error instanceof AnimateServiceError && error.details?.moderation === 'blocked'
+      if (importedImageUrl && !moderationBlocked) {
         await deleteOwnedAvatarPhoto(claim.userId, importedImageUrl)
       }
       if (debitMayExist) {

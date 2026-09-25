@@ -4,7 +4,7 @@ import { AvatarSubmitError, checkAvatarJob, submitAnimateJob, type AvatarJobStat
 import { refundRenderCredits } from '@/lib/credits/refund'
 // KINEO-MODERACAO-2026-09-25 — texto do movimento e a foto passam pela régua antes de qualquer débito ou envio ao fornecedor.
 import { moderateContent } from '@/lib/safety/contentModeration'
-import { MODERATION_BLOCKED_MESSAGE, MODERATION_UNAVAILABLE_MESSAGE } from '@/lib/safety/moderationPolicy'
+import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy'
 // KINEO-REVERSE-TRIAL-P1-2026-08-06 — todo débito passa pelo wrapper único
 // (mesmo RPC; com a flag OFF é byte-idêntico ao rpc direto).
 import { debitVideoCredits } from '@/lib/credits/debit'
@@ -456,9 +456,7 @@ export async function startAnimateJob(args: {
   // catch de cada rota estorna a reserva e fecha a tentativa — e a tentativa barrada conta na janela de risco (10/h).
   const safety = await moderateContent({ surface: 'animate', stage: 'input', userId: args.userId, text: args.prompt, imageUrls: [imageUrl], meta: { duration: args.duration } })
   if (!safety.ok) {
-    throw safety.reason === 'blocked'
-      ? new AnimateServiceError(MODERATION_BLOCKED_MESSAGE, 422, { retrySafe: true, moderation: 'blocked' })
-      : new AnimateServiceError(MODERATION_UNAVAILABLE_MESSAGE, 503, { retrySafe: true, moderation: 'unavailable' })
+    throw new AnimateServiceError(moderationRefusalMessage(safety.reason), moderationRefusalStatus(safety.reason), { retrySafe: true, moderation: safety.reason })
   }
   let newBalance: number
   if (typeof args.prepaidBalance === 'number') {

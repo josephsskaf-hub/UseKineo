@@ -12,6 +12,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai'
 import { uploadAvatarPhoto, saveAvatarToLibrary } from '@/lib/avatar/storage'
+// KINEO-MODERACAO-2026-09-25 — a foto enviada (rosto ou purpose=animate) passa pela régua ANTES de a URL voltar ao
+// cliente: barrada, a URL não é devolvida nem vai para biblioteca/perfil, então nenhum render a alcança. O arquivo fica
+// no bucket (é a prova; quarentena é decisão do fundador). Vídeo segue sem checagem: o servidor não extrai quadro.
+import { moderateContent } from '@/lib/safety/contentModeration'
+import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy'
 
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
@@ -117,6 +122,13 @@ export async function POST(req: NextRequest) {
     const purpose = (form.get('purpose') ?? '').toString()
     if (purpose === 'animate') {
       const animateUrl = await uploadAvatarPhoto(user.id, buffer, mime as 'image/jpeg' | 'image/png')
+      const animateSafety = await moderateContent({ surface: 'avatar', stage: 'upload', userId: user.id, imageUrls: [animateUrl], meta: { purpose: 'animate', size_bytes: buffer.length } })
+      if (!animateSafety.ok) {
+        return NextResponse.json(
+          { error: moderationRefusalMessage(animateSafety.reason, 'upload'), code: animateSafety.reason === 'blocked' ? 'moderation' : `moderation_${animateSafety.reason}` },
+          { status: moderationRefusalStatus(animateSafety.reason) },
+        )
+      }
       return NextResponse.json({ url: animateUrl, kind: 'animate' })
     }
 
@@ -130,6 +142,13 @@ export async function POST(req: NextRequest) {
     }
 
     const url = await uploadAvatarPhoto(user.id, buffer, mime as 'image/jpeg' | 'image/png')
+    const safety = await moderateContent({ surface: 'avatar', stage: 'upload', userId: user.id, imageUrls: [url], meta: { purpose: 'face', size_bytes: buffer.length } })
+    if (!safety.ok) {
+      return NextResponse.json(
+        { error: moderationRefusalMessage(safety.reason, 'upload'), code: safety.reason === 'blocked' ? 'moderation' : `moderation_${safety.reason}` },
+        { status: moderationRefusalStatus(safety.reason) },
+      )
+    }
 
     // Face-app wave 1 — avatar library. Two best-effort writes, neither may
     // fail the upload: (1) profiles.avatar_face_url = the "last approved face"

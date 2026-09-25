@@ -16,7 +16,7 @@ import { persistImage } from '@/lib/imageStore'
 // suspensas em 25/09). Só schnell/dev ligavam o checker do fal, e um dos pedidos passou pelo dev mesmo assim. Agora TODO
 // modelo passa por duas portas: o texto antes de cobrar e a imagem pronta antes de guardar. Falha fechada.
 import { moderateContent } from '@/lib/safety/contentModeration'
-import { MODERATION_BLOCKED_MESSAGE, MODERATION_UNAVAILABLE_MESSAGE } from '@/lib/safety/moderationPolicy'
+import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy'
 
 export const maxDuration = 60
 
@@ -89,9 +89,7 @@ export async function POST(req: NextRequest) {
 
   const inputCheck = await moderateContent({ surface: 'images', stage: 'input', userId: user.id, text: prompt, meta: { model: modelKey } })
   if (!inputCheck.ok) {
-    return inputCheck.reason === 'blocked'
-      ? NextResponse.json({ error: MODERATION_BLOCKED_MESSAGE, code: 'moderation' }, { status: 422 })
-      : NextResponse.json({ error: MODERATION_UNAVAILABLE_MESSAGE, code: 'moderation_unavailable' }, { status: 503 })
+    return NextResponse.json({ error: moderationRefusalMessage(inputCheck.reason), code: inputCheck.reason === 'blocked' ? 'moderation' : `moderation_${inputCheck.reason}` }, { status: moderationRefusalStatus(inputCheck.reason) })
   }
 
   // Débito upfront, idempotente por renderId; falha do fornecedor estorna.
@@ -118,9 +116,7 @@ export async function POST(req: NextRequest) {
     const outputCheck = await moderateContent({ surface: 'images', stage: 'output', userId: user.id, text: prompt, imageUrls: [url], meta: { model: modelKey } })
     if (!outputCheck.ok) {
       await refundRenderCredits(renderId).catch(() => {})
-      return outputCheck.reason === 'blocked'
-        ? NextResponse.json({ error: MODERATION_BLOCKED_MESSAGE, code: 'moderation' }, { status: 422 })
-        : NextResponse.json({ error: MODERATION_UNAVAILABLE_MESSAGE, code: 'moderation_unavailable' }, { status: 503 })
+      return NextResponse.json({ error: moderationRefusalMessage(outputCheck.reason), code: outputCheck.reason === 'blocked' ? 'moderation' : `moderation_${outputCheck.reason}` }, { status: moderationRefusalStatus(outputCheck.reason) })
     }
     // KINEO-IMAGES-STORE-2026-08-17 — URL do fal nao e permanente: copia pro
     // nosso bucket + linha na tabela `images` (galeria My Images). Fallback

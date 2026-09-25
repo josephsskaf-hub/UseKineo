@@ -37,6 +37,11 @@ import {
 // creator/studio/autopilot sem `has_paid` (ver o bug pré-existente no
 // cabeçalho) — um assinante viria como não-pagante.
 import { isTrialActive, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/reverseTrial'
+// KINEO-MODERACAO-2026-09-25 — o personagem é uma âncora que volta a CADA geração (Avatar, cena, thumbnail com rosto
+// fixo) e ninguém conferia a imagem na entrada. Agora a imagem já no nosso bucket passa pela régua ANTES da extração de
+// traços (visão da OpenAI) e antes de virar linha em `characters`. Barrada: não é salva nem apagada (prova).
+import { moderateContent } from '@/lib/safety/contentModeration'
+import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy'
 
 /**
  * Cota de personagens de um trial Creator. NÃO é um número novo: é o mesmo 3
@@ -142,6 +147,14 @@ export async function POST(req: NextRequest) {
     // the PERSISTED public URL (vision needs a reachable URL; failure never
     // blocks the save).
     const persistedUrl = await persistCharacterImage(user.id, imageUrl)
+    // KINEO-MODERACAO-2026-09-25 — porta de upload: a imagem persistida + o nome (reforço de termo de menor).
+    const safety = await moderateContent({ surface: 'character', stage: 'upload', userId: user.id, text: name, imageUrls: [persistedUrl], meta: { source } })
+    if (!safety.ok) {
+      return NextResponse.json(
+        { error: moderationRefusalMessage(safety.reason, 'upload'), code: safety.reason === 'blocked' ? 'moderation' : `moderation_${safety.reason}` },
+        { status: moderationRefusalStatus(safety.reason) },
+      )
+    }
     const traits = await extractCharacterTraits(persistedUrl)
     const character = await saveCharacter({ userId: user.id, name, imageUrl: persistedUrl, source, traits })
     console.log(`[characters] saved user=${user.id.slice(0, 8)} id=${character.id} source=${source} traits=${traits ? 'yes' : 'no'}`)
