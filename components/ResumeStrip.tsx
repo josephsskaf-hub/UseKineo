@@ -97,7 +97,7 @@ export default function ResumeStrip({ title, episode, videoId = null }: Props) {
         padding: '10px 20px',
         background: 'linear-gradient(90deg, rgba(41,151,255,.16), rgba(41,151,255,.05))',
         borderBottom: '1px solid rgba(41,151,255,.28)',
-        color: '#e9e9ee',
+        color: 'var(--text)',
         fontSize: '0.82rem',
         lineHeight: 1.35,
       }}
@@ -120,7 +120,7 @@ export default function ResumeStrip({ title, episode, videoId = null }: Props) {
       </span>
 
       <span style={{ minWidth: 0, flex: '1 1 260px' }}>
-        <strong style={{ fontWeight: 800, color: '#fff' }}>Your last Short:</strong>{' '}
+        <strong style={{ fontWeight: 800, color: 'var(--text)' }}>Your last Short:</strong>{' '}
         <span
           title={limpo}
           style={{
@@ -130,7 +130,7 @@ export default function ResumeStrip({ title, episode, videoId = null }: Props) {
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
             verticalAlign: 'bottom',
-            color: '#c9c9d1',
+            color: 'var(--text2)',
           }}
         >
           {limpo}
@@ -150,9 +150,9 @@ export default function ResumeStrip({ title, episode, videoId = null }: Props) {
           gap: 6,
           padding: '7px 14px',
           borderRadius: 9,
-          background: 'linear-gradient(135deg, #2997ff, #1d6fe0)',
+          background: 'var(--indigo)',
           border: '1px solid transparent',
-          color: '#fff',
+          color: 'var(--on-accent)',
           fontWeight: 800,
           fontSize: '0.78rem',
           textDecoration: 'none',
@@ -162,7 +162,7 @@ export default function ResumeStrip({ title, episode, videoId = null }: Props) {
         Continue this story →
       </Link>
 
-      <span style={{ flex: '0 0 auto', color: '#8f8f96', fontSize: '0.7rem' }}>
+      <span style={{ flex: '0 0 auto', color: 'var(--muted)', fontSize: '0.7rem' }}>
         Same series, new hook — your topic is already filled in.
       </span>
     </div>
