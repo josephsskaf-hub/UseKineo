@@ -9,6 +9,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { moderateContent } from '@/lib/safety/contentModeration' // KINEO-MODERACAO-2026-09-25
+import { MODERATION_BLOCKED_MESSAGE, MODERATION_UNAVAILABLE_MESSAGE } from '@/lib/safety/moderationPolicy'
 import { LANGUAGE_NAMES, narrationLanguage } from '@/lib/textLanguage'
 import { adsGate, loadAdsAccess, isMissingAdsTable } from '@/lib/ads/serverAccess'
 import { adsModelById } from '@/lib/ads/models'
@@ -57,6 +59,16 @@ export async function POST(req: NextRequest) {
     const { count, error: capError } = await admin.from('events').select('id', { count: 'exact', head: true })
       .eq('user_id', user.id).eq('name', ADS_SCRIPT_SERVED_EVENT).gte('created_at', since)
     if (!capError && (count ?? 0) >= ADS_SCRIPT_DAILY_CAP) return NextResponse.json({ error: 'daily_limit' }, { status: 429 })
+
+    // KINEO-MODERACAO-2026-09-25 — o brief é texto livre da empresa: passa pela régua antes de virar roteiro e voz.
+    const b = brief.value
+    const briefText = [b.business, b.offer, b.contact, b.audience, ...Object.values(b.extra ?? {})].filter((v): v is string => typeof v === 'string' && v.trim().length > 0).join('\n')
+    const safety = await moderateContent({ surface: 'ads_brief', stage: 'input', userId: user.id, text: briefText, meta: { order_id: orderId } })
+    if (!safety.ok) {
+      return safety.reason === 'blocked'
+        ? NextResponse.json({ error: MODERATION_BLOCKED_MESSAGE, code: 'moderation' }, { status: 422 })
+        : NextResponse.json({ error: MODERATION_UNAVAILABLE_MESSAGE, code: 'moderation_unavailable' }, { status: 503 })
+    }
 
     const lang = narrationLanguage(brief.value.language) ?? 'en'
     const { system, user: userMsg } = buildAdsScriptMessages(model, brief.value, LANGUAGE_NAMES[lang])

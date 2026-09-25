@@ -12,6 +12,11 @@ import { randomUUID } from 'crypto'
 import { debitVideoCredits } from '@/lib/credits/debit'
 import { refundRenderCredits } from '@/lib/credits/refund'
 import { persistImage } from '@/lib/imageStore'
+// KINEO-MODERACAO-2026-09-25 — pedidos graves envolvendo menores foram gerados e guardados aqui (03/09 e 17/09, 2 contas
+// suspensas em 25/09). Só schnell/dev ligavam o checker do fal, e um dos pedidos passou pelo dev mesmo assim. Agora TODO
+// modelo passa por duas portas: o texto antes de cobrar e a imagem pronta antes de guardar. Falha fechada.
+import { moderateContent } from '@/lib/safety/contentModeration'
+import { MODERATION_BLOCKED_MESSAGE, MODERATION_UNAVAILABLE_MESSAGE } from '@/lib/safety/moderationPolicy'
 
 export const maxDuration = 60
 
@@ -82,6 +87,13 @@ export async function POST(req: NextRequest) {
     body.size === 'square_hd' || body.size === 'landscape_16_9' ? body.size : 'portrait_16_9'
   const model = MODELS[modelKey]
 
+  const inputCheck = await moderateContent({ surface: 'images', stage: 'input', userId: user.id, text: prompt, meta: { model: modelKey } })
+  if (!inputCheck.ok) {
+    return inputCheck.reason === 'blocked'
+      ? NextResponse.json({ error: MODERATION_BLOCKED_MESSAGE, code: 'moderation' }, { status: 422 })
+      : NextResponse.json({ error: MODERATION_UNAVAILABLE_MESSAGE, code: 'moderation_unavailable' }, { status: 503 })
+  }
+
   // Débito upfront, idempotente por renderId; falha do fornecedor estorna.
   const renderId = `image-${randomUUID()}`
   const debit = await debitVideoCredits(supabase, { userId: user.id, renderId, cost: model.cost })
@@ -102,6 +114,14 @@ export async function POST(req: NextRequest) {
       result?.image?.url ??
       null
     if (!url) throw new Error('no image url in provider response')
+    // A imagem pronta passa pela mesma régua ANTES de ir para o nosso bucket: barrada, não é guardada nem devolvida.
+    const outputCheck = await moderateContent({ surface: 'images', stage: 'output', userId: user.id, text: prompt, imageUrls: [url], meta: { model: modelKey } })
+    if (!outputCheck.ok) {
+      await refundRenderCredits(renderId).catch(() => {})
+      return outputCheck.reason === 'blocked'
+        ? NextResponse.json({ error: MODERATION_BLOCKED_MESSAGE, code: 'moderation' }, { status: 422 })
+        : NextResponse.json({ error: MODERATION_UNAVAILABLE_MESSAGE, code: 'moderation_unavailable' }, { status: 503 })
+    }
     // KINEO-IMAGES-STORE-2026-08-17 — URL do fal nao e permanente: copia pro
     // nosso bucket + linha na tabela `images` (galeria My Images). Fallback
     // best-effort: se a copia falhar, devolve a URL do fal mesmo.

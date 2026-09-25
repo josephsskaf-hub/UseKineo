@@ -22,6 +22,9 @@ import {
 import { getEffectiveEntitlement, TRIAL_ENTITLEMENT_COLUMNS, type EffectiveEntitlement } from '@/lib/reverseTrial'
 // KINEO-BUGHUNT-FILA-2026-08-08 — telemetria da RECUSA (ver logFootageRefusal).
 import { writeServerEvent } from '@/lib/serverEvents'
+// KINEO-MODERACAO-2026-09-25 — ponto único das fotos do cliente: Studio, Studio Ads e My footage só usam linha de user_footage.
+import { moderateContent } from '@/lib/safety/contentModeration'
+import { MODERATION_UPLOAD_BLOCKED_MESSAGE, MODERATION_UPLOAD_UNAVAILABLE_MESSAGE } from '@/lib/safety/moderationPolicy'
 
 export const dynamic = 'force-dynamic'
 
@@ -255,6 +258,16 @@ export async function POST(req: NextRequest) {
       const kind = body.kind === 'image' ? 'image' : body.kind === 'audio' ? 'audio' : 'video'
       const sizeBytes = Math.max(0, Number(body.sizeBytes) || 0)
       const url = `${FOOTAGE_PUBLIC_PREFIX()}${path}`
+      // Foto barrada não vira linha (nenhum render a alcança) e o arquivo NÃO é apagado aqui: fica o evento com o caminho,
+      // e a quarentena é decisão do fundador. Vídeo ainda passa sem checagem (o servidor não extrai quadro) — dívida anotada.
+      if (kind === 'image') {
+        const safety = await moderateContent({ surface: 'footage', stage: 'upload', userId: user.id, imageUrls: [url], meta: { path, size_bytes: sizeBytes } })
+        if (!safety.ok) {
+          return safety.reason === 'blocked'
+            ? NextResponse.json({ error: MODERATION_UPLOAD_BLOCKED_MESSAGE, code: 'moderation' }, { status: 422 })
+            : NextResponse.json({ error: MODERATION_UPLOAD_UNAVAILABLE_MESSAGE, code: 'moderation_unavailable' }, { status: 503 })
+        }
+      }
       const admin = footageAdminClient()
       const { data, error } = await admin
         .from('user_footage')
