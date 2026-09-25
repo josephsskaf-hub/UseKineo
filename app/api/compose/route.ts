@@ -2266,16 +2266,50 @@ export async function POST(req: NextRequest) {
       // continua crescendo a cena até fala + 0,6 s quando a footage permite.
       const FALA_CABE_RESPIRO_S = 0.4
       const FALA_CABE_MAX_FATOR = 1.1
+      // ═══ KINEO-FALA-ATRAVESSA-O-CORTE-2026-09-25 (parte 1) — acelerar até o teto natural só vale se o RESTO couber na travessia ═══
+      // Render H3 7127d8b4 (fundador, 25/09 17:18Z, furacão Polo, 12 clipes pagos ~US$ 5,70): a cena 7 mediu 10,9 s num clipe
+      // de 10 s (×1,13) — 0,03 acima do teto — e o filme inteiro foi recusado. Um documentário não corta a voz no corte de
+      // imagem: a fala ATRAVESSA o corte (J-cut: começa na cauda muda da cena anterior; L-cut: avança sobre a cabeça da
+      // seguinte, que espera). Aqui, quando o estouro passa do teto de aceleração, a cena ainda é re-sintetizada a ×1,10
+      // (voz natural) SE o que sobra couber na folga das vizinhas — senão fica como está e a recusa honesta decide. A conta
+      // da travessia em si vive na parte 2 (antes do 422), sobre a timeline final. O clipe nunca recomeça (loop:true).
+      // vizinha narrada por TTS = apoio/cinematic COM narração medida (a travessia da parte 2 só atravessa para essas)
+      const narradaPorTts = (i: number) => { const x = hollywoodClips[i]; return !!x && (x.engine === 'support' || x.engine === 'cinematic') && measured.some((m) => m.sceneIdx === i) }
+      const falaMedida = (i: number) => measured.find((x) => x.sceneIdx === i)?.dur ?? 0
+      // o slot que a vizinha VAI ter: H3 nunca encolhe; apoio das outras famílias encolhe até fala + 0,6 s (trimNarratedSupport)
+      const slotPrevisto = (i: number) => {
+        const x = hollywoodClips[i]
+        const footage = originalFootageSeconds[i] ?? 0
+        if (!x || !(falaMedida(i) > 0)) return footage
+        // a ÚLTIMA cena pode ser aparada pelo KINEO-TAIL até fala + 0,8 s (roda depois desta parte): conta com a apara
+        if (i === hollywoodClips.length - 1) return Math.min(footage, Math.max(3, Math.ceil((falaMedida(i) + 0.8) * 1000) / 1000))
+        if (quality === 'cinematic_h3' || x.engine !== 'support') return footage
+        return Math.min(footage, Math.max(3, Math.ceil((falaMedida(i) + 0.6) * 1000) / 1000))
+      }
+      // estimativa da travessia (parte 2) com os respiros MÍNIMOS: a cauda da anterior menos 0,2 s; a cabeça da seguinte menos
+      // 0,2 s antes e 0,2 s depois da narração dela. A parte 2 decide de verdade; isto só evita acelerar (uma síntese paga)
+      // quando visivelmente não vai fechar.
+      const folgaVizinha = (i: number) => {
+        const antes = narradaPorTts(i - 1) ? Math.max(0, slotPrevisto(i - 1) - falaMedida(i - 1) - 0.2) : 0
+        const depois = narradaPorTts(i + 1) ? Math.max(0, slotPrevisto(i + 1) - falaMedida(i + 1) - 0.4) : 0
+        return Math.round((antes + depois) * 1000) / 1000
+      }
       for (const m of measured) {
         const c = hollywoodClips[m.sceneIdx]
         if (!c || (c.engine !== 'support' && c.engine !== 'cinematic') || !hollywoodPinnedVoice) continue
         const footage = originalFootageSeconds[m.sceneIdx]
         const need = m.dur + FALA_CABE_RESPIRO_S
         if (!(footage > 0) || need <= footage) continue
-        const fator = Math.round((need / footage) * 1000) / 1000
+        let fator = Math.round((need / footage) * 1000) / 1000
         if (fator > FALA_CABE_MAX_FATOR) {
-          console.warn(`[compose] KINEO-FALA-CABE: cena ${m.sceneIdx + 1} fala ${m.dur.toFixed(1)}s + ${FALA_CABE_RESPIRO_S} > clipe ${footage}s (×${fator} > ${FALA_CABE_MAX_FATOR}) — estouro grande demais para acelerar, segue para a recusa honesta`)
-          continue
+          const sobra = Math.round((m.dur / FALA_CABE_MAX_FATOR - footage) * 1000) / 1000
+          const folga = folgaVizinha(m.sceneIdx)
+          if (sobra > folga + 0.01) {
+            console.warn(`[compose] KINEO-FALA-CABE: cena ${m.sceneIdx + 1} fala ${m.dur.toFixed(1)}s + ${FALA_CABE_RESPIRO_S} > clipe ${footage}s (×${fator} > ${FALA_CABE_MAX_FATOR}) — estouro grande demais para acelerar (sobrariam ${sobra}s e as vizinhas só cedem ${folga}s), segue para a recusa honesta`)
+            continue
+          }
+          console.log(`[compose] KINEO-FALA-ATRAVESSA-O-CORTE: cena ${m.sceneIdx + 1} fala ${m.dur.toFixed(1)}s + ${FALA_CABE_RESPIRO_S} > clipe ${footage}s (×${fator}) — acelera até ×${FALA_CABE_MAX_FATOR} e o resto (${Math.max(0, sobra).toFixed(2)}s) atravessa o corte (vizinhas cedem ${folga}s)`)
+          fator = FALA_CABE_MAX_FATOR
         }
         try {
           composeCtx.stage = 'hollywood_host_tts' // KINEO-COMPOSE-FALHA-COM-NOME
@@ -2393,10 +2427,93 @@ export async function POST(req: NextRequest) {
       // Timeline FINAL (pos-ajuste) → offsets e endCaps das narracoes.
       // A slot capped by its engine cannot swallow the last word or overlap
       // another speaker. Do not submit a knowingly truncated narration.
-      const speechDoesNotFit = measured.some(m => m.dur > secondsOf(hollywoodClips[m.sceneIdx]) + 0.01)
-      if (speechDoesNotFit) {
+      // ═══ KINEO-FALA-ATRAVESSA-O-CORTE-2026-09-25 (parte 2) — a fala que não coube atravessa o corte antes de qualquer recusa ═══
+      // Sobre a timeline final (depois do FALA-CABE, do encolhe e do TAIL-GROW), cada narração que ainda passa do próprio
+      // slot ganha janela: (J-cut) começa na cauda MUDA da cena anterior — só se a anterior é narrada por TTS, não avançou
+      // sobre esta, e sobra respiro; (L-cut) o resto avança sobre a cabeça da cena seguinte, e a narração dela começa depois,
+      // com o mesmo respiro — só se a seguinte é narrada por TTS e tem folga. Diálogo/host (voz nativa) nunca cede nem
+      // recebe. O que ainda não couber é a recusa honesta de sempre, agora com evento e cena nomeada. Nenhuma palavra
+      // cortada, nenhum clipe repetido (o slot da imagem não muda; só a voz atravessa o corte, como em qualquer documentário).
+      const RESPIRO_TRAVESSIA_S = FALA_CABE_RESPIRO_S // o respiro que se quer entre duas falas (0,4 s)
+      const RESPIRO_MINIMO_S = 0.2 // o que se aceita quando a vizinha está apertada — nunca menos (duas vozes coladas)
+      const janelas = new Map<number, { time: number; endCap: number; antecipa: number; avanca: number }>()
+      let recusaTravessia: { sceneIdx: number; sobra: number; slot: number; dur: number } | null = null
+      {
+        const starts: number[] = []
+        let cursor = 0
+        hollywoodClips.forEach((c) => {
+          starts.push(cursor)
+          cursor = Math.round((cursor + secondsOf(c)) * 1000) / 1000
+        })
+        const r3 = (v: number) => Math.round(v * 1000) / 1000
+        // quanto ainda dá para tomar de um vão mudo `livre` (do qual `jaTomado` já foi usado) guardando `respiro`.
+        // (Polo com a voz real: 6 cenas 0,1-0,3 s acima do clipe em cascata — com o respiro fixo em 0,4 s a travessia
+        // parava a 0,03 s do fim e recusava um filme de 12 clipes pagos por três centésimos de segundo)
+        const tomar = (falta: number, livre: number, jaTomado: number, respiro: number) => Math.min(falta, Math.max(0, r3(livre - jaTomado - respiro)))
+        const porCena = new Map(measured.map((m) => [m.sceneIdx, m] as const))
+        const atraso = new Map<number, number>() // início adiado porque a fala anterior avançou (L-cut)
+        for (const m of [...measured].sort((a, b) => a.sceneIdx - b.sceneIdx)) {
+          const i = m.sceneIdx
+          const c = hollywoodClips[i]
+          if (!c) continue
+          const slot = secondsOf(c)
+          const adiado = atraso.get(i) ?? 0
+          let falta = r3(m.dur - (slot - adiado))
+          let antecipa = 0
+          let avanca = 0
+          const narradaTts = c.engine === 'support' || c.engine === 'cinematic'
+          const prev = hollywoodClips[i - 1]
+          const ant = porCena.get(i - 1)
+          const next = hollywoodClips[i + 1]
+          const prox = porCena.get(i + 1)
+          // a cauda muda da anterior (só se ela é narrada por TTS e não avançou sobre esta) e a cabeça livre da seguinte
+          const vaoAnterior = adiado === 0 && prev && ant && (prev.engine === 'support' || prev.engine === 'cinematic') ? r3(secondsOf(prev) - (atraso.get(i - 1) ?? 0) - ant.dur) : null
+          const vaoSeguinte = next && prox && (next.engine === 'support' || next.engine === 'cinematic') ? r3(secondsOf(next) - prox.dur) : null
+          // a cena seguinte, quando adiada, precisa guardar respiro ANTES e DEPOIS da narração dela (revisão adversarial de
+          // 25/09: o L-cut entregava a cabeça inteira e a narração adiada terminava colada na próxima voz — ou no último frame
+          // do filme, onde ficam pelo menos 0,2 s antes do fim; a música cobre o resto do fade)
+          if (falta > 0.01 && narradaTts) {
+            // duas passadas: primeiro guardando o respiro cheio dos dois lados; o mínimo só se ainda faltar
+            for (const respiro of [RESPIRO_TRAVESSIA_S, RESPIRO_MINIMO_S]) {
+              if (falta <= 0.01) break
+              if (vaoAnterior !== null) { const mais = tomar(falta, vaoAnterior, antecipa, respiro); antecipa = r3(antecipa + mais); falta = r3(falta - mais) }
+              if (falta > 0.01 && vaoSeguinte !== null) { const mais = tomar(falta, vaoSeguinte, avanca, respiro + respiro); avanca = r3(avanca + mais); falta = r3(falta - mais) }
+            }
+            // a narração adiada começa depois do avanço + respiro (cheio se der, nunca menos que o mínimo) e ainda guarda o respiro DEPOIS dela
+            if (avanca > 0 && vaoSeguinte !== null) atraso.set(i + 1, r3(avanca + Math.min(RESPIRO_TRAVESSIA_S, Math.max(RESPIRO_MINIMO_S, vaoSeguinte - avanca - RESPIRO_MINIMO_S))))
+            if (falta > 0.01) {
+              recusaTravessia ??= { sceneIdx: i, sobra: falta, slot, dur: m.dur }
+            } else {
+              console.log(`[compose] KINEO-FALA-ATRAVESSA-O-CORTE: cena ${i + 1} fala ${m.dur.toFixed(1)}s > ${r3(slot - adiado).toFixed(1)}s disponíveis → começa ${antecipa.toFixed(1)}s antes (cauda muda da cena ${i}) e avança ${avanca.toFixed(1)}s sobre a cena ${i + 2}${avanca > 0 ? ` (narração dela adiada ${(atraso.get(i + 1) ?? 0).toFixed(1)}s)` : ''}; nenhuma palavra cortada, nenhum clipe repetido`)
+            }
+          } else if (falta > 0.01) {
+            recusaTravessia ??= { sceneIdx: i, sobra: falta, slot, dur: m.dur }
+          }
+          // respiro antes da PRÓXIMA voz — narração TTS (adiada ou não) ou fala nativa de diálogo/host, que começa no
+          // primeiro frame do clipe dela: se esta fala termina a menos do respiro mínimo da próxima e a cauda muda da anterior
+          // deixa, recua mais um pouco (J-cut). Vale para toda cena narrada por TTS, inclusive a que só foi acelerada a ×1,10
+          // e ficou a 0,1 s do corte (revisão adversarial de 25/09). Sem cauda disponível, fica como o compose sempre deixou.
+          if (falta <= 0.01 && narradaTts && next) {
+            const fim = r3(starts[i] + adiado - antecipa + m.dur)
+            const proximoInicio = r3(starts[i + 1] + (atraso.get(i + 1) ?? 0))
+            let faltaRespiro = r3(RESPIRO_MINIMO_S - (proximoInicio - fim))
+            if (faltaRespiro > 0.01 && vaoAnterior !== null) { const recuo = tomar(faltaRespiro, vaoAnterior, antecipa, RESPIRO_MINIMO_S); antecipa = r3(antecipa + recuo); faltaRespiro = r3(faltaRespiro - recuo) }
+            // sem cauda atrás, a narração seguinte (TTS) espera o que falta — desde que guarde o próprio respiro depois dela
+            if (faltaRespiro > 0.01 && vaoSeguinte !== null && avanca === 0) { const espera = Math.min(faltaRespiro, Math.max(0, r3(vaoSeguinte - RESPIRO_MINIMO_S))); if (espera > 0.01) atraso.set(i + 1, r3((atraso.get(i + 1) ?? 0) + espera)) }
+          }
+          const time = r3(starts[i] + adiado - antecipa)
+          janelas.set(i, { time, endCap: r3(starts[i] + slot + avanca + (avanca > 0 ? 0.05 : 0)), antecipa, avanca })
+        }
+      }
+      if (recusaTravessia) {
+        const rt = recusaTravessia
+        // KINEO-RECUSA-COM-NOME-2026-09-25: esta recusa não deixava linha no banco (30 dias: zero eventos com o reason;
+        // a tela sintetizava `unreported_stage_failure`). Agora o motivo, a cena e o estouro ficam registrados.
+        await logComposeRefusal('scene_speech_exceeds_footage', authenticatedUserId, {
+          generation_id: generationId, quality, scene: rt.sceneIdx + 1, scene_seconds: rt.slot, speech_seconds: Math.round(rt.dur * 100) / 100, overflow_seconds: rt.sobra, scenes: hollywoodClips.length,
+        })
         return rejectBeforeProviderSubmission(NextResponse.json({
-          error: 'One narration is longer than its generated scene. Your clips are kept; no final render was submitted. Contact support to recover the complete narration.',
+          error: `Scene ${rt.sceneIdx + 1}'s narration runs ${rt.sobra.toFixed(2)}s longer than its generated clip and the neighbouring scenes have no room to absorb it. Your clips are kept; no final render was submitted. Contact support to recover the complete narration.`,
           qualityCheckFailed: true, reason: 'scene_speech_exceeds_footage', retryable: false, generationId,
         }, { status: 422 }))
       }
@@ -2411,10 +2528,11 @@ export async function POST(req: NextRequest) {
         for (const m of measured) {
           const c = hollywoodClips[m.sceneIdx]
           if (!c) continue
-          const time = starts[m.sceneIdx]
+          const janela = janelas.get(m.sceneIdx)
+          const time = janela?.time ?? starts[m.sceneIdx]
           narrationBlocks.push({
             time,
-            endCap: Math.round((time + secondsOf(c)) * 1000) / 1000,
+            endCap: janela?.endCap ?? Math.round((time + secondsOf(c)) * 1000) / 1000,
             url: m.url,
             audioDuration: m.dur,
             text: m.text,

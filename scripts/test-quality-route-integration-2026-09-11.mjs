@@ -136,7 +136,7 @@ for(const pinned of [false,true]){
       const clips=Array.from({length:6},()=>({engine:'support',seconds:10}))
       const calls=[];calls.baseDur=dur
       const module=evaluate(`export async function run(){${adjustments};return null}`,{...timeline,NextResponse:next,console:{log(){},warn(){}},quality:'cinematic_omni',duration:60,generationId:'fixture-generation',secondsOf:timeline.cinematicSceneSeconds,
-        hollywoodClips:clips,originalFootageSeconds:clips.map(timeline.cinematicSceneSeconds),measured:[{sceneIdx,dur,text:'fixture narration'}],rejectBeforeProviderSubmission:async r=>r,
+        hollywoodClips:clips,originalFootageSeconds:clips.map(timeline.cinematicSceneSeconds),measured:[{sceneIdx,dur,text:'fixture narration'}],rejectBeforeProviderSubmission:async r=>r,logComposeRefusal:async()=>{},authenticatedUserId:'fixture',/* KINEO-FALA-ATRAVESSA-O-CORTE-2026-09-25: a recusa grava evento */
         hollywoodPinnedVoice:null,...(pinned?falaCabe(calls):{})})
       const result=await module.run()
       eq(clips.every(c=>c.seconds<=10),true)
@@ -154,7 +154,7 @@ for(const pinned of [false,true]){
     const clips=Array.from({length:6},()=>({engine:'support',seconds:10}))
     const calls=[];calls.baseDur=9.7
     const module=evaluate(`export async function run(){${adjustments};return null}`,{...timeline,NextResponse:next,console:{log(){},warn(){}},quality:'cinematic_omni',duration:60,generationId:'fixture-generation',secondsOf:timeline.cinematicSceneSeconds,
-      hollywoodClips:clips,originalFootageSeconds:clips.map(timeline.cinematicSceneSeconds),measured:[{sceneIdx,dur:9.7,text:'fixture narration'}],rejectBeforeProviderSubmission:async r=>r,
+      hollywoodClips:clips,originalFootageSeconds:clips.map(timeline.cinematicSceneSeconds),measured:[{sceneIdx,dur:9.7,text:'fixture narration'}],rejectBeforeProviderSubmission:async r=>r,logComposeRefusal:async()=>{},authenticatedUserId:'fixture',/* KINEO-FALA-ATRAVESSA-O-CORTE-2026-09-25: a recusa grava evento */
       hollywoodPinnedVoice:null,...(pinned?falaCabe(calls):{})})
     const result=await module.run()
     eq(result?.status??200,200)

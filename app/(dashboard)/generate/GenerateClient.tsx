@@ -3109,6 +3109,10 @@ export default function GenerateClient({
               continue
             }
             if (cancelled) return
+            // KINEO-RECUSA-COM-NOME-2026-09-25 — a recusa de qualidade chegava com `reason` e o banco só ganhava a linha
+            // sintetizada `unreported_stage_failure` (render H3 7127d8b4, 25/09): este ramo nunca relatou a causa.
+            const recusaDaRetomada = !res.ok ? parseVideoQualityFailure(data, payloadGenerationId) : null
+            if (recusaDaRetomada) trackGenerationFailure('composing', recusaDaRetomada.reason, { httpStatus: res.status, detail: typeof data?.error === 'string' ? data.error : undefined, responded: true })
             if (!res.ok && acceptQualityFailure(data, payloadGenerationId)) return
             if (res.status === 401) {
               canResolve = false
@@ -6396,6 +6400,12 @@ export default function GenerateClient({
             continue
           }
 
+          // KINEO-RECUSA-COM-NOME-2026-09-25 — a recusa de qualidade do compose (422 com `reason`) chegava à tela e ao
+          // painel, mas o banco só ganhava `unreported_stage_failure` sintetizado pela transição de fase (render H3
+          // 7127d8b4, 25/09: scene_speech_exceeds_footage sem nenhuma linha com o nome). A causa é relatada ANTES da
+          // saída, que continua um `return` seco (test-quality-failure-ui: a recusa terminal sai, nunca reconecta).
+          const recusaDoCompose = !res.ok ? parseVideoQualityFailure(data, composeGenerationId) : null
+          if (recusaDoCompose) trackGenerationFailure('clips_ready', recusaDoCompose.reason, { httpStatus: res.status, detail: typeof data?.error === 'string' ? data.error : undefined, responded: true })
           if (!res.ok && acceptQualityFailure(data, composeGenerationId)) return
           if ((res.status === 409 || res.status === 503) && data?.pending === true) {
             reconnectAttempt += 1
@@ -9534,6 +9544,8 @@ export default function GenerateClient({
         {
           const recusaTerminal = !res.ok ? parseVideoQualityFailure(data, cinematicGenerationId) : null
           const saidaDaRecusa = parseQualityFailureExit(data, recusaTerminal)
+          // KINEO-RECUSA-COM-NOME-2026-09-25 — recusa terminal SEM "saída" (sem cenas aceitas/retidas) também relata a causa
+          if (recusaTerminal && !saidaDaRecusa) trackGenerationFailure('generating', recusaTerminal.reason, { httpStatus: res.status, detail: typeof data?.error === 'string' ? data.error : undefined, responded: true })
           if (recusaTerminal && saidaDaRecusa) {
             trackGenerationFailure('generating', recusaTerminal.reason, {
               httpStatus: res.status,
