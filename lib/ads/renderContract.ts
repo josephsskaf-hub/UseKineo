@@ -10,6 +10,7 @@
 // o montador do Kineo 1) com a lista de mídia montada no servidor, tomada a tomada, e a narração já sintetizada na
 // voz que a pessoa escolheu (user_voiceover_url). Nada na trava 8.2 é editado — só chamado.
 import type { AdsModel } from '@/lib/ads/models'
+import { AD_DEFAULT_CAPTION_STYLE, AD_DEFAULT_FORMAT, AD_DEFAULT_MUSIC, isAdCaptionStyle, isAdFormat, isAdMusicMood, type AdCaptionStyle, type AdFormat, type AdMusicMood } from '@/lib/ads/adStyle'
 
 /** Vozes da narração (OpenAI tts-1-hd — a mesma família de voz do Kineo 1). Falam o idioma do texto. */
 export const ADS_VOICES = [
@@ -49,6 +50,10 @@ export interface AdsRenderRequest {
   card_footage_id: string
   /** KINEO-ADS-SEM-LEGENDA-2026-09-26 — false = anúncio sem legenda na tela (a narração continua). Ausente = com legenda. */
   captions?: boolean
+  /** KINEO-ADS-ESTILO-2026-09-26 — formato, estilo da legenda e clima da trilha. Ausentes = 9:16, 'bold', automático. */
+  aspect?: AdFormat
+  captionStyle?: AdCaptionStyle
+  music?: AdMusicMood
 }
 export interface AdsRenderStarted {
   order_id: string
@@ -168,7 +173,12 @@ export function sanitizeRenderRequest(
   const card = typeof b.card_footage_id === 'string' && UUID.test(b.card_footage_id) ? b.card_footage_id : null
   if (!card) return err('card_invalid')
   const storyboard = [...byBeat.entries()].sort((a, c) => a[0] - c[0]).map(([beatIndex, footageIds]) => ({ beatIndex, footageIds }))
-  return ok({ order_id: orderId, voice: b.voice, beats, storyboard, card_footage_id: card, captions: b.captions === false ? false : true })
+  return ok({
+    order_id: orderId, voice: b.voice, beats, storyboard, card_footage_id: card, captions: b.captions === false ? false : true,
+    aspect: isAdFormat(b.aspect) ? b.aspect : AD_DEFAULT_FORMAT,
+    captionStyle: isAdCaptionStyle(b.captionStyle) ? b.captionStyle : AD_DEFAULT_CAPTION_STYLE,
+    music: isAdMusicMood(b.music) ? b.music : AD_DEFAULT_MUSIC,
+  })
 }
 
 export function adsRenderErrorMessage(code: string | null | undefined): string {

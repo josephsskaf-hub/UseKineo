@@ -12,6 +12,7 @@
 // e grava ads_delivered uma vez. Se o vídeo ainda não existe, pergunta ao status do compose (em processo) — é isso que
 // liquida o crédito e grava a linha do vídeo mesmo se a aba fechou; falha vira 'failed' com o motivo.
 import { NextRequest, NextResponse } from 'next/server'
+import { musicMoodFor } from '@/lib/ads/adStyle' // KINEO-ADS-ESTILO-2026-09-26
 import { randomUUID } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
 import { writeServerEvent } from '@/lib/serverEvents'
@@ -218,9 +219,12 @@ export async function POST(req: NextRequest) {
       user_voiceover_url: voiceUrl,
       real_audio_duration: narrationSeconds,
       clip_urls: clipUrls,
-      aspect: '9:16',
+      // KINEO-ADS-ESTILO-2026-09-26 — formato escolhido (padrão 9:16), estilo da legenda e clima da trilha.
+      aspect: input.aspect ?? '9:16',
       // KINEO-ADS-SEM-LEGENDA-2026-09-26 — só manda o campo quando a pessoa DESLIGOU a legenda.
       ...(input.captions === false ? { captions: false } : {}),
+      ...(input.captionStyle && input.captionStyle !== 'bold' ? { caption_style: input.captionStyle } : {}),
+      ...(input.music && input.music !== 'auto' ? { music_mood: musicMoodFor(input.music) } : {}),
     }
     let res = await composePost(new NextRequest(`${APP_URL}/api/compose`, { method: 'POST', headers: serviceHeaders(user.id), body: JSON.stringify(payload) }))
     let j = (await res.json().catch(() => ({}))) as Record<string, unknown>

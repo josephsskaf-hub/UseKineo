@@ -300,6 +300,29 @@ export function drawEndCard(canvas: HTMLCanvasElement, input: EndCardInput): voi
   }
 }
 
+/** KINEO-ADS-ESTILO-2026-09-26 — o cartão 9:16 inteiro dentro de outro formato (1:1, 4:5, 16:9): escalado para caber na
+ *  altura, centralizado, com as laterais pintadas na cor do fundo do próprio cartão. Nada do texto é cortado. */
+export function fitCardToFormat(card: HTMLCanvasElement, width: number, height: number): HTMLCanvasElement {
+  if (width === card.width && height === card.height) return card
+  const out = document.createElement('canvas')
+  out.width = width
+  out.height = height
+  const ctx = out.getContext('2d')
+  if (!ctx) throw new Error('canvas_unsupported')
+  let fill = '#0b1018'
+  try {
+    const p = card.getContext('2d')?.getImageData(2, 2, 1, 1).data
+    if (p) fill = `rgb(${p[0]},${p[1]},${p[2]})`
+  } catch { /* canvas contaminado: fica o escuro padrão */ }
+  ctx.fillStyle = fill
+  ctx.fillRect(0, 0, width, height)
+  const scale = Math.min(width / card.width, height / card.height)
+  const w = Math.round(card.width * scale)
+  const h = Math.round(card.height * scale)
+  ctx.drawImage(card, Math.round((width - w) / 2), Math.round((height - h) / 2), w, h)
+  return out
+}
+
 /** Exporta o canvas como File PNG ('end-card.png'). Rejeita se o canvas estiver contaminado (logo sem CORS). */
 export function toPngFile(canvas: HTMLCanvasElement): Promise<File> {
   return new Promise((resolve, reject) => {

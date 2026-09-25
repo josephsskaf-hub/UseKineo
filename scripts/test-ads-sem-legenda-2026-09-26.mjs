@@ -58,7 +58,8 @@ checa('contrato: sem o campo = com legenda (padrão de sempre)', on.ok && on.val
 checa('rota do anúncio: repassa ao compose só quando desligada', rd('app/api/ads/render/route.ts').includes('...(input.captions === false ? { captions: false } : {}),'))
 const W = rd('app/(dashboard)/ads/new/AdsWizardClient.tsx')
 checa('telas: "No captions" no modo IA e no passo a passo', (W.match(/>No captions<\/button>/g) || []).length === 2)
-checa('telas: o corpo do render leva a escolha nas duas telas', (W.match(/\n\s+captions,\n\s+\}/g) || []).length === 2)
+// 26/09: o corpo ganhou formato/estilo/trilha logo depois de `captions,` (KINEO-ADS-ESTILO) — a escolha continua nas duas telas.
+checa('telas: o corpo do render leva a escolha nas duas telas', (W.match(/card_footage_id: (cardId|card\.id),\n\s+captions,\n/g) || []).length === 2)
 
 console.log(`test-ads-sem-legenda-2026-09-26: ${ok} ok, ${falhas.length} falha(s)`)
 if (falhas.length) process.exit(1)

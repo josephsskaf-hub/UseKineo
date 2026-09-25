@@ -38,7 +38,8 @@ import {
   type AdsVoiceId,
 } from '@/lib/ads/renderContract'
 import { ADS_UPLOAD_ACCEPT_LOGO, ADS_UPLOAD_ACCEPT_MEDIA, AdsUploadError, uploadFootage } from '@/lib/ads/uploadFootage'
-import { drawEndCard, endCardCtaLabel, loadLogoImage, toPngFile } from '@/lib/ads/endCard'
+import { drawEndCard, endCardCtaLabel, fitCardToFormat, loadLogoImage, toPngFile } from '@/lib/ads/endCard'
+import { AD_CAPTION_STYLES, AD_FORMATS, AD_MUSIC_MOODS, adFormatSize, type AdCaptionStyle, type AdFormat, type AdMusicMood } from '@/lib/ads/adStyle' // KINEO-ADS-ESTILO-2026-09-26
 import { ADS_AUTO_MIN_ITEMS, adsAutoVisible } from '@/lib/ads/autoBrief' // KINEO-ADS-IA-FAZ-2026-09-26
 
 // ─── tipos e constantes ──────────────────────────────────────────────────────────────────────
@@ -1179,6 +1180,10 @@ function AdsAutoPanel({
   const [language, setLanguage] = useState(defaultLanguage())
   const [template, setTemplate] = useState<AdsModelId | null>(null)
   const [captions, setCaptions] = useState(true) // KINEO-ADS-SEM-LEGENDA-2026-09-26
+  // KINEO-ADS-ESTILO-2026-09-26 — formato, estilo da legenda e clima da trilha (padrões = o anúncio de sempre)
+  const [format, setFormat] = useState<AdFormat>('9:16')
+  const [captionStyle, setCaptionStyle] = useState<AdCaptionStyle>('bold')
+  const [music, setMusic] = useState<AdMusicMood>('auto')
   const [stage, setStage] = useState(0)
   const orderLocal = useRef<AdsOrder | null>(order)
   orderLocal.current = order ?? orderLocal.current
@@ -1358,7 +1363,8 @@ function AdsAutoPanel({
       const canvas = document.createElement('canvas')
       const [bizName] = splitBusiness(brief.business)
       drawEndCard(canvas, { logo: img, business: bizName, offer: brief.offer, ctaLabel: endCardCtaLabel(brief.cta, brief.language), contact: brief.contact })
-      const file = await toPngFile(canvas)
+      const size = adFormatSize(format)
+      const file = await toPngFile(fitCardToFormat(canvas, size.width, size.height))
       const up = await uploadFootage(file, { isLogo: false })
       if (up.localUrl) URL.revokeObjectURL(up.localUrl)
       cardId = up.footageId
@@ -1378,6 +1384,9 @@ function AdsAutoPanel({
       storyboard: Array.from({ length: n - 1 }, (_, i) => ({ beatIndex: i, footageIds: (sb[i] ?? []).slice(0, ADS_MAX_MEDIA_PER_BEAT) })),
       card_footage_id: cardId,
       captions,
+      aspect: format,
+      captionStyle,
+      music,
     }
     void trackEvent('ads_preview_confirmed', { order_id: o.id, credits: model.credits, scenes: n, user_media_scenes: n - 1, stock_scenes: 0, mode: 'auto', captions })
     const r = await callJson<AdsRenderStarted>('/api/ads/render', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(body) })
@@ -1451,12 +1460,31 @@ function AdsAutoPanel({
           <small>{chosenModel.goal}. {chosenModel.seconds} seconds · {chosenModel.credits} credits.</small>
         </div>
         <div className="adsw-f">
+          <span>Format</span>
+          <div className="row" role="group" aria-label="Format">
+            {AD_FORMATS.map((f) => (
+              <button key={f.id} type="button" className="pill" aria-pressed={format === f.id} onClick={() => setFormat(f.id)}>{f.label}</button>
+            ))}
+          </div>
+          <small>{AD_FORMATS.find((f) => f.id === format)?.hint}</small>
+        </div>
+        <div className="adsw-f">
           <span>Captions on screen</span>
           <div className="row" role="group" aria-label="Captions on screen">
-            <button type="button" className="pill" aria-pressed={captions} onClick={() => setCaptions(true)}>With captions</button>
+            {AD_CAPTION_STYLES.map((cs) => (
+              <button key={cs.id} type="button" className="pill" aria-pressed={captions && captionStyle === cs.id} onClick={() => { setCaptions(true); setCaptionStyle(cs.id) }}>{cs.label}</button>
+            ))}
             <button type="button" className="pill" aria-pressed={!captions} onClick={() => setCaptions(false)}>No captions</button>
           </div>
-          <small>The voice narrates the ad either way.</small>
+          <small>{captions ? AD_CAPTION_STYLES.find((cs) => cs.id === captionStyle)?.hint : 'The voice narrates the ad either way.'}</small>
+        </div>
+        <div className="adsw-f">
+          <span>Music</span>
+          <div className="row" role="group" aria-label="Music">
+            {AD_MUSIC_MOODS.map((m) => (
+              <button key={m.id} type="button" className="pill" aria-pressed={music === m.id} onClick={() => setMusic(m.id)}>{m.label}</button>
+            ))}
+          </div>
         </div>
         {outOfCredits ? (
           <p className="adsw-warn" role="alert">
@@ -2638,6 +2666,8 @@ function RenderStep({
   const [error, setError] = useState<string | null>(null)
   const [outOfCredits, setOutOfCredits] = useState<{ needed: number | null; balance: number | null } | null>(null)
   const [captions, setCaptions] = useState(true) // KINEO-ADS-SEM-LEGENDA-2026-09-26
+  const [captionStyle, setCaptionStyle] = useState<AdCaptionStyle>('bold') // KINEO-ADS-ESTILO-2026-09-26
+  const [music, setMusic] = useState<AdMusicMood>('auto')
   const voice: AdsVoiceId = isAdsVoice(order.voice) ? order.voice : ADS_DEFAULT_VOICE
   const n = model.beats.length
 
@@ -2677,6 +2707,8 @@ function RenderStep({
       storyboard: Array.from({ length: n - 1 }, (_, i) => ({ beatIndex: i, footageIds: (storyboard[i] ?? []).slice(0, ADS_MAX_MEDIA_PER_BEAT) })),
       card_footage_id: card.id,
       captions,
+      captionStyle,
+      music,
     }
     void trackEvent('ads_preview_confirmed', { order_id: order.id, credits: model.credits, scenes: n, user_media_scenes: n - 1, stock_scenes: 0, captions })
     const r = await callJson<AdsRenderStarted>('/api/ads/render', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(body) })
@@ -2779,8 +2811,18 @@ function RenderStep({
       <div className="adsw-f" style={{ marginTop: 14 }}>
         <span>Captions on screen</span>
         <div className="row" role="group" aria-label="Captions on screen">
-          <button type="button" className="pill" aria-pressed={captions} disabled={busy} onClick={() => setCaptions(true)}>With captions</button>
+          {AD_CAPTION_STYLES.map((cs) => (
+            <button key={cs.id} type="button" className="pill" aria-pressed={captions && captionStyle === cs.id} disabled={busy} onClick={() => { setCaptions(true); setCaptionStyle(cs.id) }}>{cs.label}</button>
+          ))}
           <button type="button" className="pill" aria-pressed={!captions} disabled={busy} onClick={() => setCaptions(false)}>No captions</button>
+        </div>
+      </div>
+      <div className="adsw-f">
+        <span>Music</span>
+        <div className="row" role="group" aria-label="Music">
+          {AD_MUSIC_MOODS.map((m) => (
+            <button key={m.id} type="button" className="pill" aria-pressed={music === m.id} disabled={busy} onClick={() => setMusic(m.id)}>{m.label}</button>
+          ))}
         </div>
       </div>
       {error ? <p className="adsw-err" role="alert">{error}</p> : null}

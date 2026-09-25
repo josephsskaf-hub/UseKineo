@@ -52,6 +52,7 @@ import { fetchUserPlan } from '@/lib/plan'
 import { cinematicSceneSeconds, trimNarratedSupport, assertCinematicTimeline, CinematicTimelineError, signedSceneMetadata } from '@/lib/cinematic/timelineContract'
 import { rejectCinematicQuality, readVerifiedQualityRejection, type CinematicQualityReason } from '@/lib/cinematic/qualityRejection'
 import { selectMusicForScript } from '@/lib/musicScore'
+import { captionStyleOverrides, isAdCaptionStyle, isCaptionElement } from '@/lib/ads/adStyle' // KINEO-ADS-ESTILO-2026-09-26
 import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
 import { speechRateFor, speechFamilyForQuality } from '@/lib/speechRate' // KINEO-RITMO-POR-VOZ-2026-09-15
 // KINEO-CREDIT-INTENT-2026-07-11 — record the authoritative engine + intended
@@ -381,6 +382,9 @@ interface ComposeBody {
   generationId?: string
   /** KINEO-ADS-SEM-LEGENDA-2026-09-26 — false = sem legenda na tela (hoje só o Studio Ads manda). */
   captions?: boolean
+  /** KINEO-ADS-ESTILO-2026-09-26 — estilo da legenda (lib/ads/adStyle) e clima da trilha (vocabulário de lib/musicDirection). */
+  caption_style?: string
+  music_mood?: string
   clip_urls?: string[]
   voiceover_script?: string
   scene_captions?: string[]
@@ -3037,6 +3041,8 @@ export async function POST(req: NextRequest) {
         rawScript: `${rawVoiceover}\n${String(body.topic ?? '')}`,
         vertical,
         seed: voiceoverScript,
+        // KINEO-ADS-ESTILO-2026-09-26 — clima escolhido no Studio Ads; musicDirection só aceita o vocabulário controlado.
+        ...(typeof body.music_mood === 'string' ? { musicMood: body.music_mood.slice(0, 40) } : {}),
       })
     } catch {
       console.warn('[compose] music unavailable; preserving narration')
@@ -3119,6 +3125,13 @@ export async function POST(req: NextRequest) {
         const kept = els.filter((e) => !(e && typeof e === 'object' && (e as { type?: unknown }).type === 'text' && [5, 7].includes(Number((e as { track?: unknown }).track))))
         console.log(`[compose] captions:false — ${els.length - kept.length} caption element(s) removed`)
         source = { ...source, elements: kept }
+      }
+    } else if (isAdCaptionStyle(body.caption_style)) {
+      // KINEO-ADS-ESTILO-2026-09-26 — o estilo troca só cor, contorno e caixa das legendas (trilhas 5/7), depois de montar.
+      const overrides = captionStyleOverrides(body.caption_style)
+      const els = (source as { elements?: unknown }).elements
+      if (overrides && Array.isArray(els)) {
+        source = { ...source, elements: els.map((e) => (isCaptionElement(e) ? { ...(e as Record<string, unknown>), ...overrides } : e)) }
       }
     }
 
