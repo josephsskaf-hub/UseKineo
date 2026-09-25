@@ -81,6 +81,9 @@ type View = StepId | 'progress' | 'delivery' | 'failed'
  *  salvo que a pessoa viu e aceitou: a prévia mostra ele (e não o canvas) enquanto o texto não for editado. */
 type CardInfo = { id: string; sig: string | null; savedUrl?: string | null }
 type Storyboard = Record<number, string[]>
+/** KINEO-ADS-VERSOES-2026-09-26 — nova versão de um anúncio pronto: outra abertura (A/B), outra língua ou outro formato. */
+type RemixKind = 'opening' | 'language' | 'format'
+type Remix = { base: AdsOrder; kind: RemixKind; language?: string; format?: AdFormat }
 type RenderInfo = { renderId: string | null; seconds: number; topic: string }
 
 const MAX_MEDIA = 12
@@ -660,6 +663,7 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
   const [newError, setNewError] = useState<string | null>(null)
   // KINEO-ADS-IA-FAZ-2026-09-26 — 'ai' = a IA faz o anúncio (uma tela); 'steps' = o passo a passo de sempre.
   const [mode, setMode] = useState<'ai' | 'steps'>(() => (adsAutoVisible(access) ? 'ai' : 'steps'))
+  const [remix, setRemix] = useState<Remix | null>(null) // KINEO-ADS-VERSOES-2026-09-26
   const sessionUploads = useRef<Set<string>>(new Set())
   const rootRef = useRef<HTMLDivElement>(null)
   const settled = useRef(false)
@@ -939,6 +943,8 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
           setView('progress')
         }}
         onSteps={toSteps}
+        remix={remix}
+        onRemixUsed={() => setRemix(null)}
         onFresh={() => {
           orderRef.current = null
           setOrder(null)
@@ -1056,7 +1062,28 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
       />
     )
   } else if (view === 'delivery') {
-    content = <DeliveryView order={order} state={renderState} busyNew={busyNew} newError={newError} onAnother={() => void startNew(order, 'another')} />
+    content = (
+      <DeliveryView
+        order={order}
+        state={renderState}
+        busyNew={busyNew}
+        newError={newError}
+        onAnother={() => void startNew(order, 'another')}
+        onRemix={adsAutoVisible(access) ? (r) => {
+          // Novo pedido (o de origem fica entregue como está), aberto direto na conferência do modo IA.
+          setRemix({ ...r, base: order })
+          orderRef.current = null
+          setOrder(null)
+          setBeats(null)
+          setStoryboard({})
+          setCard(null)
+          setRender(null)
+          setRenderState(null)
+          setMode('ai')
+          setView('brief')
+        } : undefined}
+      />
+    )
   } else if (view === 'failed') {
     const code = failureCode(renderState?.failure)
     content = (
@@ -1128,6 +1155,22 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
   )
 }
 
+/** KINEO-ADS-KIT-MARCA-2026-09-26 — o "kit da marca" sem tabela nova: a marca do anúncio mais recente que tem logo e
+ *  contato. Os pedidos já guardam brief e mídia no servidor; o kit é só reaproveitar (item 4 da pesquisa de concorrentes). */
+function lastBrandFrom(orders: AdsOrder[]): { brief: AdsBrief; logo: AdsMediaItem } | null {
+  for (const o of orders) {
+    const logo = orderMedia(o).find((m) => m.isLogo)
+    if (logo && o.brief && o.brief.business?.trim() && o.brief.contact?.trim()) return { brief: o.brief, logo }
+  }
+  return null
+}
+
+/** Frase inicial a partir da marca salva: a pessoa só troca a oferta. */
+function brandSentence(brief: AdsBrief): string {
+  const [name, sells] = splitBusiness(brief.business)
+  return [sells ? `${name}, ${sells}.` : `${name}.`, brief.offer ? `${brief.offer}.` : '', `Contact: ${brief.contact}.`].filter(Boolean).join(' ')
+}
+
 // ─── modo "a IA faz o anúncio" ──────────────────────────────────────────────────
 // KINEO-ADS-IA-FAZ-2026-09-26 — fundador (25/09 à noite): "a pessoa manda uma foto, um vídeo, e ela quer uma IA ... ela
 // não vai precisar fazer muita coisa". Uma tela: logo + fotos/vídeos + UMA frase. A IA (/api/ads/auto-brief) monta o
@@ -1157,6 +1200,8 @@ function AdsAutoPanel({
   onStarted,
   onSteps,
   onFresh,
+  remix,
+  onRemixUsed,
 }: {
   order: AdsOrder | null
   localUrls: Record<string, string>
@@ -1166,6 +1211,8 @@ function AdsAutoPanel({
   onStarted: (s: AdsRenderStarted, model: AdsModel, beats: string[], storyboard: Storyboard, card: CardInfo) => void
   onSteps: () => void
   onFresh: () => void
+  remix: Remix | null
+  onRemixUsed: () => void
 }) {
   const [phase, setPhase] = useState<'input' | 'thinking' | 'confirm' | 'making'>('input')
   const [text, setText] = useState('')
@@ -1192,6 +1239,56 @@ function AdsAutoPanel({
   // dia, sem avisar. O pedido de rascunho continua sendo retomado (o estado vive no servidor), mas a tela diz de quando
   // ele é e oferece começar do zero.
   const createdHere = useRef(false)
+  // KINEO-ADS-KIT-MARCA-2026-09-26 — marca do último anúncio (logo + nome + contato), oferecida quando o pedido é novo.
+  const [brand, setBrand] = useState<{ brief: AdsBrief; logo: AdsMediaItem } | null>(null)
+  const [link, setLink] = useState('') // KINEO-ADS-LINK-2026-09-26
+  const [linkNote, setLinkNote] = useState<string | null>(null)
+  // KINEO-ADS-VERSOES-2026-09-26 — abertura a evitar numa versão A/B (o ângulo do anúncio de origem).
+  const [avoidAngle, setAvoidAngle] = useState<string | null>(null)
+  const remixDone = useRef(false)
+  useEffect(() => {
+    if (!remix || remixDone.current) return
+    remixDone.current = true
+    const base = remix.base
+    const baseModel = adsModelById(base.template)
+    if (!base.brief || !baseModel) { onRemixUsed(); return }
+    const brief: AdsBrief = { ...base.brief, language: remix.language ?? base.brief.language }
+    void (async () => {
+      setPhase('thinking')
+      const created = await callJson<{ order: AdsOrder }>('/api/ads/orders', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ brief }) })
+      if (!created.ok) { setPhase('input'); onRemixUsed(); return setError(errorText(created)) }
+      // A mesma mídia que a pessoa já declarou ser dela no anúncio de origem; o consentimento vale para esses arquivos.
+      const withMedia = await patchOrder(created.data.order.id, { media: orderMedia(base).map(stripItem), consent: true, template: baseModel.id })
+      if (!withMedia.ok) { setPhase('input'); onRemixUsed(); return setError(errorText(withMedia)) }
+      const o = withMedia.data.order
+      orderLocal.current = o
+      mediaRef.current = orderMedia(o)
+      createdHere.current = true
+      onOrder(o)
+      setConsent(true)
+      setProposal({ brief, needs: [], template: baseModel.id, eligible: [baseModel.id], missing_media: [] })
+      const [name, sells] = splitBusiness(brief.business)
+      setBusiness(sells ? `${name}${BUSINESS_SEP}${sells}` : name)
+      setOffer(brief.offer)
+      setContact(brief.contact)
+      setLanguage(brief.language)
+      setTemplate(baseModel.id)
+      if (remix.format) setFormat(remix.format)
+      setAvoidAngle(remix.kind === 'opening' ? angleOf(base.script_angle).replace(/_edited$/, '') : null)
+      void trackEvent('ads_auto_started', { order_id: o.id, remix: remix.kind, from_order: base.id, language: brief.language, format: remix.format ?? null })
+      setPhase('confirm')
+      onRemixUsed()
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remix])
+  useEffect(() => {
+    if (order) return
+    let alive = true
+    void callJson<{ orders?: AdsOrder[] }>('/api/ads/orders').then((r) => {
+      if (alive && r.ok && Array.isArray(r.data.orders)) setBrand(lastBrandFrom(r.data.orders))
+    })
+    return () => { alive = false }
+  }, [order])
   const media = orderMedia(order)
   const { logo, rest } = mediaSummary(media)
   const srcOf = (m: AdsMediaItem) => localUrls[m.footageId] ?? m.url
@@ -1256,6 +1353,64 @@ function AdsAutoPanel({
       }
     }
     setBusy(null)
+  }
+
+  async function applyBrand() {
+    if (!brand || busy) return
+    setError(null)
+    setBusy('Loading your brand…')
+    const created = await callJson<{ order: AdsOrder }>('/api/ads/orders', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ brief: brand.brief }) })
+    if (!created.ok) {
+      setBusy(null)
+      if (created.status === 401) return goLogin()
+      return setError(errorText(created))
+    }
+    const withLogo = await patchOrder(created.data.order.id, { media: [stripItem(brand.logo)] })
+    setBusy(null)
+    const o = withLogo.ok ? withLogo.data.order : created.data.order
+    orderLocal.current = o
+    mediaRef.current = orderMedia(o)
+    createdHere.current = true
+    onOrder(o)
+    setText(brandSentence(brand.brief))
+    void trackEvent('ads_auto_started', { order_id: o.id, brand_kit: true, logo_reused: withLogo.ok })
+    if (!withLogo.ok) setError('Your saved logo could not be reused. Upload it again below.')
+  }
+
+  // KINEO-ADS-LINK-2026-09-26 — o servidor lê a página, salva as imagens na conta e devolve a frase; aqui só juntamos.
+  async function readLink() {
+    if (busy) return
+    setError(null)
+    setLinkNote(null)
+    if (!link.trim()) return setError('Paste your website or product link first.')
+    const o = await ensureOrder()
+    if (!o) return
+    setBusy('Reading your page…')
+    const r = await callJson<{ text: string; media: AdsMediaItem[]; logo: AdsMediaItem | null; skipped: number; facts: { host: string; price: string | null } }>('/api/ads/from-link', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ order_id: o.id, url: link }) })
+    if (!r.ok) {
+      setBusy(null)
+      if (r.status === 401) return goLogin()
+      if (r.code === 'daily_limit') return setError('You read enough links for today. Paste your text and photos instead.')
+      return setError(typeof r.body.message === 'string' ? r.body.message : errorText(r))
+    }
+    const current = mediaRef.current
+    const hasLogo = current.some((m) => m.isLogo)
+    const room = MAX_MEDIA - current.filter((m) => !m.isLogo).length
+    const next = [
+      ...(!hasLogo && r.data.logo ? [r.data.logo] : []),
+      ...current,
+      ...r.data.media.slice(0, Math.max(0, room)),
+    ]
+    const saved = await patchOrder(o.id, { media: next.map(stripItem) })
+    setBusy(null)
+    if (!saved.ok) return setError(errorText(saved))
+    mediaRef.current = orderMedia(saved.data.order)
+    orderLocal.current = saved.data.order
+    onOrder(saved.data.order)
+    setConsent(false)
+    setText(r.data.text)
+    const got = r.data.media.length + (!hasLogo && r.data.logo ? 1 : 0)
+    setLinkNote(got ? `Read ${r.data.facts.host}: ${r.data.media.length} photo(s)${!hasLogo && r.data.logo ? ' and the logo' : ''}. Check the text below and add anything missing.` : `Read ${r.data.facts.host}, but it had no usable photos. Add at least 2 photos or videos below.`)
   }
 
   function startFresh() {
@@ -1345,7 +1500,8 @@ function AdsAutoPanel({
       if (!s.ok && s.status === 401) return goLogin()
       return fail(!s.ok && s.code === 'no_script' ? 'The AI could not write a script with these facts. Add one more detail about your offer and try again.' : errorText(s.ok ? { status: 502, code: 'no_script', message: null } : s))
     }
-    const v = s.data.versions[0]
+    // KINEO-ADS-VERSOES-2026-09-26 — versão A/B: a primeira abertura DIFERENTE da do anúncio de origem.
+    const v = s.data.versions.find((x) => x.angle !== avoidAngle) ?? s.data.versions[0]
     setStage(1)
     const withScript = await patchOrder(o.id, { script: v.beats.join('\n\n'), script_angle: scriptAngleFor(v.angle, model.id), voice: ADS_DEFAULT_VOICE })
     if (!withScript.ok) return fail(errorText(withScript))
@@ -1505,12 +1661,35 @@ function AdsAutoPanel({
     <div className="card adsw-panel">
       <h2 tabIndex={-1} data-step-heading>Let the AI make your ad</h2>
       <p className="adsw-lead">Add your logo and a few photos or videos, tell us about your business in one or two sentences, and the AI writes, narrates and edits the ad.</p>
+      {!order && brand ? (
+        <div className="adsw-f" role="group" aria-label="Your brand">
+          <span>Your brand</span>
+          <div className="adsw-logo">
+            <div className="adsw-tile"><MediaThumb item={brand.logo} src={srcOf(brand.logo)} /></div>
+            <div>
+              <b>{splitBusiness(brand.brief.business)[0]}</b>
+              <small style={{ display: 'block' }}>{brand.brief.contact}</small>
+            </div>
+            <button type="button" className="adsw-btn" disabled={Boolean(busy)} onClick={() => void applyBrand()}>Use my brand</button>
+          </div>
+          <small>Logo, name and contact from your last ad. You only add photos and the new offer.</small>
+        </div>
+      ) : null}
       {order && !createdHere.current && (media.length > 0 || order.brief) ? (
         <p className="adsw-warn" role="status">
           Continuing your unfinished ad from {new Date(order.created_at).toLocaleDateString()} — its logo and photos are below.{' '}
           <button type="button" className="adsw-link" disabled={Boolean(busy)} onClick={startFresh}>Start a new ad instead</button>
         </p>
       ) : null}
+      <div className="adsw-f">
+        <span>Start from your website or product link <small style={{ fontWeight: 400 }}>(optional)</small></span>
+        <div className="row" style={{ gap: 8, flexWrap: 'nowrap' }}>
+          <input type="url" inputMode="url" placeholder="https://yourshop.com/product" value={link} onChange={(e) => setLink(e.target.value)} disabled={Boolean(busy)} style={{ flex: 1, minWidth: 0 }} />
+          <button type="button" className="adsw-btn ghost" disabled={Boolean(busy) || !link.trim()} onClick={() => void readLink()}>Read my page</button>
+        </div>
+        <small>We read the title, description, price and photos from the page. You check everything before the ad is made.</small>
+        {linkNote ? <p className="adsw-hint" role="status" style={{ margin: '6px 0 0' }}>{linkNote}</p> : null}
+      </div>
       <div className="adsw-f">
         <span>Your logo <b className="adsw-req">required</b></span>
         <div className="adsw-logo">
@@ -3037,13 +3216,19 @@ function DeliveryView({
   busyNew,
   newError,
   onAnother,
+  onRemix,
 }: {
   order: AdsOrder
   state: AdsRenderState | null
   busyNew: boolean
   newError: string | null
   onAnother: () => void
+  /** KINEO-ADS-VERSOES-2026-09-26 — só vem quando o modo IA está liberado para a conta. */
+  onRemix?: (r: Omit<Remix, 'base'>) => void
 }) {
+  const [remixLang, setRemixLang] = useState(() => (order.brief?.language === 'en' ? 'es' : 'en'))
+  const [remixFormat, setRemixFormat] = useState<AdFormat>('1:1')
+  const remixCredits = adsModelById(order.template)?.credits ?? null
   const url = state?.final_video_url ?? null
   const videoId = state?.video_id ?? order.video_id ?? null
   const [downloading, setDownloading] = useState(false)
@@ -3118,6 +3303,27 @@ function DeliveryView({
         {sent ? <p className="adsw-hint" role="status">If your email app did not open, write to hello@usekineo.com with your order number: {order.id}</p> : null}
       </div>
 
+      {onRemix ? (
+        <div className="card" style={{ marginTop: 20 }} role="group" aria-label="More versions of this ad">
+          <h3 style={{ margin: '0 0 6px' }}>More versions of this ad</h3>
+          <p className="adsw-hint" style={{ margin: '0 0 12px' }}>Same photos, facts and logo. {remixCredits ? `${remixCredits} credits each.` : ''}</p>
+          <div className="adsw-actions" style={{ marginTop: 0 }}>
+            <button type="button" className="adsw-btn ghost" onClick={() => onRemix({ kind: 'opening' })}>Different opening (A/B test)</button>
+          </div>
+          <div className="row" style={{ marginTop: 10, gap: 8, alignItems: 'center' }}>
+            <select aria-label="Language" value={remixLang} onChange={(e) => setRemixLang(e.target.value)}>
+              {NARRATION_LANGUAGES.filter((l) => l.code !== order.brief?.language).map((l) => <option key={l.code} value={l.code}>{l.native}</option>)}
+            </select>
+            <button type="button" className="adsw-btn ghost" onClick={() => onRemix({ kind: 'language', language: remixLang })}>Translate</button>
+          </div>
+          <div className="row" style={{ marginTop: 10, gap: 8, alignItems: 'center' }}>
+            <select aria-label="Format" value={remixFormat} onChange={(e) => setRemixFormat(e.target.value as AdFormat)}>
+              {AD_FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
+            </select>
+            <button type="button" className="adsw-btn ghost" onClick={() => onRemix({ kind: 'format', format: remixFormat })}>Make it in this format</button>
+          </div>
+        </div>
+      ) : null}
       <div className="adsw-actions" style={{ marginTop: 24 }}>
         <button type="button" className="adsw-btn" disabled={busyNew} onClick={onAnother}>{busyNew ? 'Preparing…' : 'Make another ad'}</button>
       </div>

@@ -26,6 +26,7 @@ export const ADS_EVENTS = [
   'ads_auto_started',
   'ads_auto_brief_served',
   'ads_auto_confirmed',
+  'ads_link_read', // KINEO-ADS-LINK-2026-09-26
   'ads_preview_confirmed',
   // render e entrega
   'ads_render_requested',
@@ -49,6 +50,7 @@ export const ADS_SERVER_ONLY_EVENTS: readonly AdsEventName[] = [
   'ads_script_served',
   'ads_voice_preview_served',
   'ads_auto_brief_served',
+  'ads_link_read',
   'ads_render_requested',
   'ads_render_served',
   'ads_render_failed',
