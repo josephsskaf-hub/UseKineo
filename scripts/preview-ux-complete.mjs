@@ -49,6 +49,7 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
       if(file==='app/tools/editor/VideoEditor.tsx' && id==='./editor.css')return {}
       if(id==='react')return react
       if(id==='react/jsx-runtime')return require(id)
+      if(id.endsWith('.module.css'))return {__esModule:true,default:new Proxy({},{get:(_target,key)=>String(key)})}
       if(id==='next/link')return {__esModule:true,default:({children,prefetch,...p})=>React.createElement('a',p,children)}
       if(id==='next/navigation')return {useSearchParams:()=>new URLSearchParams(),usePathname:()=>fixture.pathname??'/studio',useRouter:()=>({})}
       if(id==='@/lib/analytics')return {trackEvent:()=>{throw Error('Analytics forbidden')}}
@@ -64,6 +65,11 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
       if(id==='@/components/InterfaceLanguage')return load('components/InterfaceLanguage.tsx')
       if(id==='@/components/KineoBolt')return load('components/KineoBolt.tsx')
       if(id==='@/components/LibraryRecentProject')return load('components/LibraryRecentProject.tsx')
+      if(id==='@/components/HomeFeaturedFilms')return load('components/HomeFeaturedFilms.tsx')
+      if(id==='@/components/NavEngineItem')return load('components/NavEngineItem.tsx')
+      if(id==='@/components/AppearanceSettings')return load('components/AppearanceSettings.tsx')
+      if(id==='@/app/examples/ExamplesGallery')return load('app/examples/ExamplesGallery.tsx')
+      if(id==='./kineoLandingTheme')return load('app/kineoLandingTheme.ts')
       if(id==='./AutopilotBreakEvenCalculator')return load('app/pricing/AutopilotBreakEvenCalculator.tsx')
       // Explicit demo balance only, never a customer balance or a DB request.
       if(id==='@/components/NavCreditsBadge' && fixture.previewCredits!==undefined)return {__esModule:true,default:()=>React.createElement('a',{href:'/pricing',style:{whiteSpace:'nowrap',padding:'8px 14px',fontSize:13}},`⚡ ${fixture.previewCredits} credits`)}

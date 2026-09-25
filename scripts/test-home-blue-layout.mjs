@@ -13,7 +13,7 @@ for(const signedIn of [false,true])for(const source of [null,'chatgpt','taaft'])
  check(!hero.includes('sora-alternative')&&!hero.includes('paying subscriber'),'promotions and proof do not interrupt hero')
  check(html.includes('class="home-start"'),'creation available even when media list is empty')
  const creation=html.match(/<div class="home-create-grid">([\s\S]*?)<\/section>/)?.[1]??''
- for(const href of ['/studio','/images','/audio'])check(creation.includes(`href="${href}"`),'creation tool keeps real destination '+href)
+ for(const href of ['/studio','/images','/ads/new'])check(creation.includes(`href="${href}"`),'creation tool keeps real destination '+href)
  check(html.indexOf('class="home-create"')<html.indexOf('class="home-proof"'),'creation precedes grouped proof')
  check(html.includes('class="kineo-bolt mk"') && html.includes('>ϟ</span>'),'brand mark uses the approved shared lightning')
 }

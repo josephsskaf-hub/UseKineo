@@ -7,6 +7,9 @@ import { s25Visible, S25_PUBLIC, VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY
 import Link from 'next/link'
 import { InterfaceLanguageSelect, UiLabel, UiText } from '@/components/InterfaceLanguage'
 import { HOME_PRESENTATION_CSS } from '@/lib/ui/homePresentation'
+import { KINEO_LANDING_THEME_CSS } from './kineoLandingTheme'
+import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
+import { IMG_ENGINES } from '@/lib/imageModels'
 import NavCreditsBadge from '@/components/NavCreditsBadge'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
 import ExitIntentOffer from '@/components/ExitIntentOffer'
@@ -866,7 +869,7 @@ export default function KineoLanding({
           visitante — 16,5KB (9%) do HTML da home. Ficam no fonte, saem do
           fio. O replace so remove blocos completos, nao toca em url() nem em
           seletores. */}
-      <style dangerouslySetInnerHTML={{ __html: (KLP_CSS + HOME_PRESENTATION_CSS).replace(/\/\*[\s\S]*?\*\//g, '') }} />
+      <style dangerouslySetInnerHTML={{ __html: (KLP_CSS + HOME_PRESENTATION_CSS + KINEO_LANDING_THEME_CSS).replace(/\/\*[\s\S]*?\*\//g, '') }} />
       <LandingViewTracker signedIn={Boolean(initialUser)} />
       <RevealOnScroll />
       {/* KINEO-WELCOME20-2026-08-25 (fundador: "pra todo mundo que entrar no
@@ -912,7 +915,7 @@ export default function KineoLanding({
                 topo = Vídeo (com submenu) · Imagem · Para empresas · Preços + Entrar. Exemplos mora dentro de Vídeo.
                 data-nav-item/surface/area = contrato de lib/navTelemetry (nav_item_clicked). */}
             <span className="nd" data-nav-item="video">
-              <Link href="/studio"><UiLabel>Video</UiLabel><span className="nd-car" aria-hidden="true">▾</span></Link>
+              <Link href="/studio" className="nav-primary"><UiLabel>Video</UiLabel><span className="nd-car" aria-hidden="true">▾</span></Link>
               <span className="nd-menu nd-mega">
                 <span className="nm-col">
                   <span className="nm-h"><UiLabel>Engines</UiLabel></span>
@@ -959,12 +962,18 @@ export default function KineoLanding({
                 </span>
               </span>
             </span>
-            <Link href="/images" data-nav-item="image"><UiLabel>Images</UiLabel></Link>
-            <Link href="/business-video-ads" data-nav-item="business"><UiLabel>For businesses</UiLabel></Link>
+            <span className="nd" data-nav-item="image">
+              <Link href="/images"><UiLabel>Images</UiLabel><span className="nd-car" aria-hidden="true">▾</span></Link>
+              <span className="nd-menu nd-images">
+                {IMG_ENGINES.map(engine => <NavEngineItem key={engine.key} href={`/images?engine=${engine.key}`} name={engine.name} desc={engine.desc} icon={engine.icon} />)}
+              </span>
+            </span>
+            <Link href="/ads/new" data-nav-item="business"><UiLabel>For businesses</UiLabel></Link>
             <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
           </div>
         <div className="nav-right">
           <InterfaceLanguageSelect />
+          <AppearanceSettingsButton compact className="nav-appearance" />
           {/* KINEO-NAV-4-ITENS-2026-09-25 — "Log in" em texto ao lado do CTA de
               cadastro, so para visitante; no celular ele mora no menu. */}
           {initialUser ? null : <Link className="nav-login" href="/login" data-nav-item="login"><UiLabel>Log in</UiLabel></Link>}
@@ -979,7 +988,10 @@ export default function KineoLanding({
                   ou Dashboard; o resto vai para "More tools", secundario. */}
               <Link href="/studio" data-nav-item="video"><UiLabel>Video</UiLabel></Link>
               <Link href="/images" data-nav-item="image"><UiLabel>Images</UiLabel></Link>
-              <Link href="/business-video-ads" data-nav-item="business"><UiLabel>For businesses</UiLabel></Link>
+              <span className="nav-mobile-engines">
+                {IMG_ENGINES.map(engine => <Link key={engine.key} href={`/images?engine=${engine.key}`} data-nav-item="image"><span className="nm-ic" aria-hidden="true">{engine.icon}</span>{engine.name}</Link>)}
+              </span>
+              <Link href="/ads/new" data-nav-item="business"><UiLabel>For businesses</UiLabel></Link>
               <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
               {initialUser
                 ? <Link className="btn btn-w" href="/studio"><UiLabel>Dashboard</UiLabel></Link>
@@ -1005,12 +1017,15 @@ export default function KineoLanding({
         <div className="wrap">
           <div className="home-intro">
             <div className="home-intro-copy">
-              <p className="home-eyebrow">Kineo</p>
-              <h1 className="home-title"><UiText es="Escribe una idea y mira cómo se convierte en un vídeo.">Type an idea — watch it become a film.</UiText></h1>
+              <p className="home-eyebrow"><UiLabel>YOUR CREATIVE HOME</UiLabel></p>
+              <h1 className="home-title"><UiLabel>Make room for</UiLabel><br /><em><UiLabel>your next big idea.</UiLabel></em></h1>
             </div>
-            <Link className="btn btn-blue" href={isSignedIn ? '/studio' : referralBridge ? '#try-kineo' : '/signup?utm_source=hero'}>
-              <UiLabel>{isSignedIn ? 'Create a video' : CARD_ENTRY_COPY.ctaShort}</UiLabel><span aria-hidden="true">↗</span>
-            </Link>
+            <div className="home-intro-side">
+              <p><UiLabel>Original stories. Everyday content.</UiLabel><br /><UiLabel>Videos for your business.</UiLabel><br /><UiLabel>Bring your ideas to life with Kineo.</UiLabel></p>
+              <Link className="btn btn-blue" href={isSignedIn ? '/studio' : referralBridge ? '#try-kineo' : '/signup?utm_source=hero'}>
+                <UiLabel>{isSignedIn ? 'Create a video' : CARD_ENTRY_COPY.ctaShort}</UiLabel><span aria-hidden="true">↗</span>
+              </Link>
+            </div>
           </div>
           <div id="samples" aria-label="Films made with Kineo">
             <HomeFeaturedFilms />
@@ -1071,10 +1086,10 @@ export default function KineoLanding({
               <h3><UiLabel>Image</UiLabel></h3><span className="home-create-arrow" aria-hidden="true">↗</span>
               <p><UiLabel>Create image</UiLabel></p>
             </Link>
-            <Link href="/audio" className="home-create-card">
-              <span className="home-create-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M4 10v4M8 6v12M12 3v18M16 7v10M20 10v4"/></svg></span>
-              <h3><UiLabel>Audio</UiLabel></h3><span className="home-create-arrow" aria-hidden="true">↗</span>
-              <p><UiLabel>Text to speech</UiLabel></p>
+            <Link href="/ads/new" className="home-create-card">
+              <span className="home-create-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="14" rx="3"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12c6 3 12 3 18 0M12 12v4"/></svg></span>
+              <h3><UiLabel>For businesses</UiLabel></h3><span className="home-create-arrow" aria-hidden="true">↗</span>
+              <p><UiLabel>Videos for your business.</UiLabel></p>
             </Link>
           </div>
         </div>
