@@ -1,15 +1,16 @@
-/* Approved v6: one palette for the public site and creator workspaces. */
+/* Founder-approved White + Graphite, 25 September. Dark remains unchanged. */
 :root {
   color-scheme: light;
-  --bg:#f7f9fc; --sidebar-bg:#fff; --card:#fff; --card2:#eef3f9;
-  --text:#17273b; --text2:#273b53; --muted:#586c83; --muted2:#61758d;
-  --border:#d5e0ec; --border2:#b9cadc; --indigo:#1766d3; --indigo-light:#1766d3;
-  --purple:#1766d3; --purple-light:#1766d3;
-  --surface:var(--card); --surface-soft:var(--card2); --accent:#1766d3;
-  --accent-soft:#eaf2ff; --on-accent:#fff; --header-bg:#ffffffed;
+  --bg:#f6f5f2; --sidebar-bg:#fff; --card:#fff; --card2:#e7e6e2;
+  --text:#20252b; --text2:#35404b; --muted:#56616d; --muted2:#5e6873;
+  --border:#cbcdd0; --border2:#a9afb6; --indigo:#29343f; --indigo-light:#29343f;
+  --purple:#29343f; --purple-light:#29343f;
+  --surface:var(--card); --surface-soft:var(--card2); --accent:#29343f;
+  --accent-soft:#e7edf2; --on-accent:#fff; --header-bg:#ffffffed;
+  --public-nav:#20252b; --public-nav-text:#f8fafc; --brand:#66b2ff;
   --danger:#b42318; --warning:#915300;
   --sh-card:0 10px 35px #18385908; --sh-card-h:0 18px 48px #18385912;
-  --sh-cta:0 6px 18px #1766d326;
+  --sh-cta:0 6px 18px #20252b20;
 }
 html[data-theme='dark'] {
   color-scheme:dark;
@@ -19,11 +20,25 @@ html[data-theme='dark'] {
   --purple:#2997ff; --purple-light:#91c9ff; --accent:#91c9ff;
   --accent-soft:#1b3754; --on-accent:#062341; --header-bg:#121f2eed;
   --danger:#ff8787; --warning:#ffbf58;
+  --public-nav:#0c1521; --public-nav-text:#eef5fe;
   --sh-card:0 12px 36px #02081225; --sh-card-h:0 18px 48px #02081240;
   --sh-cta:0 6px 22px #2997ff26;
 }
 body::before{background:radial-gradient(ellipse 1100px 650px at 0 0,var(--accent-soft),transparent 74%)}
 body::after{opacity:.008}
+html:not([data-theme='dark']) body::before{display:none}
+/* The application canvas can grow with the viewport; reading forms keep their own measure. */
+html .stu{width:100%;max-width:none;min-width:0}
+html .pricing-blue>section{width:100%;max-width:1440px}
+html .pricing-blue #plans{max-width:none}
+/* Legacy Library declarations followed the shared kit and overrode its tokens. */
+html .stu.library-page .library-collection>.card{background:var(--card);border-color:var(--border)}
+html .stu.library-page :is(.library-project-state,.library-asset-model,.library-history-link){color:var(--accent)}
+html .stu.library-page :is(.library-details,.library-audio-text){color:var(--muted)}
+html .stu.library-page .library-toolbar{border-color:var(--border)}
+html .stu.library-page .library-search input{background:var(--card)!important;color:var(--text)!important;border-color:var(--border)!important}
+html .stu.library-page .library-audio-cover{background:var(--accent-soft);color:var(--accent)}
+html .stu.library-page .library-audio-card>.pill{background:var(--indigo);color:var(--on-accent);border-color:var(--indigo)}
 .grad-text{background-image:linear-gradient(110deg,var(--indigo),var(--accent))}
 html .stu.composer-proposal .composer-proposal-idea{background:var(--card);border-color:var(--border);box-shadow:var(--sh-card)}
 html .stu .composer-proposal-optional{background:var(--card);border-color:var(--border)}
@@ -59,8 +74,8 @@ html .stu .pk .pk-tx>.pill[role=button]{color:var(--accent)}
 .appearance-label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:14px 4px 5px;font-size:14px}
 .appearance-label input{accent-color:var(--indigo);width:15px;height:15px;margin:0;flex-shrink:0}
 .appearance-option small{display:block;margin:0 4px 7px;color:var(--muted);font-size:10px;line-height:1.5}
-.appearance-mini{height:106px;border:1px solid #cfdbeb;border-radius:7px;display:flex;background:#f7f9fc;overflow:hidden}
-.appearance-mini>i{width:23%;border-inline-end:1px solid #d5e0ec;background:#fff}
+.appearance-mini{height:106px;border:1px solid #cbcdd0;border-radius:7px;display:flex;background:#f6f5f2;overflow:hidden}
+.appearance-mini>i{width:23%;border-inline-end:1px solid #cbcdd0;background:#20252b}
 .appearance-mini>span{flex:1;padding:14px 9px;display:grid;grid-template-columns:repeat(3,1fr);gap:5px;align-content:start}
 .appearance-mini b{height:6px;grid-column:1/-1;background:#aebdd0;border-radius:2px;max-width:65%;margin-bottom:8px}
 .appearance-mini em{height:46px;background:#d8e6f7;border:1px solid #c7d7ed;border-radius:4px}

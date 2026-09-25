@@ -53,7 +53,7 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
       if(id==='next/link')return {__esModule:true,default:({children,prefetch,...p})=>React.createElement('a',p,children)}
       if(id==='next/navigation')return {useSearchParams:()=>new URLSearchParams(),usePathname:()=>fixture.pathname??'/studio',useRouter:()=>({})}
       if(id==='@/lib/analytics')return {trackEvent:()=>{throw Error('Analytics forbidden')}}
-      if(id==='@/components/FreeTierOfferProvider' && fixture.demoOffer){const offer=load('lib/freeTierOffer.ts').buildFreeTierOffer(true);return {useFreeTierOffer:()=>offer,FreeTierCopy:({children})=>children}}
+      if(id==='@/components/FreeTierOfferProvider' && fixture.demoOffer){const offer=load('lib/freeTierOffer.ts').buildFreeTierOffer(fixture.demoOffer !== 'current');return {useFreeTierOffer:()=>offer,FreeTierCopy:({children})=>children}}
       if(id==='@/lib/supabase/client' && fixture.demoShell)return {createClient:()=>({auth:{signOut:()=>{throw Error('Auth mutation forbidden')}}})}
       if(id==='@/lib/supabase/client')return {createClient:()=>{throw Error('Database access forbidden in offline preview')}}
       if(id==='@/lib/seriesDoorImpressions')return {useSeriesDoorSeen:()=>({registrarPorta:()=>()=>{}})}

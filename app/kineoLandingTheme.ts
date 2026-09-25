@@ -5,11 +5,11 @@ import gallery from './examples/ExamplesGallery.module.css'
  */
 export const KINEO_LANDING_THEME_CSS = `
 .klp {
-  --bg:#f7f9fc; --s0:#eef3f9; --card:#fff; --card2:#f0f5fb; --s3:#eaf2ff;
-  --line:#d5e0ec; --line2:#becfe1; --line3:#a4bad2;
-  --txt:#17273b; --txt2:#41566e; --muted:#586c83; --muted2:#657990;
-  --blue:#1766d3; --blue-soft:#eaf2ff; --home-action:#1766d3; --home-on-action:#fff;
-  --home-nav:rgba(247,249,252,.94); --home-wash:#edf4fc;
+  --bg:#f6f5f2; --s0:#e7e6e2; --card:#fff; --card2:#efeeeb; --s3:#e7edf2;
+  --line:#cbcdd0; --line2:#a9afb6; --line3:#818b96;
+  --txt:#20252b; --txt2:#35404b; --muted:#56616d; --muted2:#5e6873;
+  --blue:#29343f; --blue-soft:#e7edf2; --home-action:#29343f; --home-on-action:#fff;
+  --home-nav:#20252b; --home-wash:#efeeeb;
   --sh-card:0 8px 30px #18385908; --sh-card-h:0 12px 36px #18385912;
   --sh-cta:0 5px 18px #1766d31c;
   color-scheme:light;
@@ -28,7 +28,7 @@ html[data-theme=dark] .klp {
 }
 .klp .wrap,.klp .ew-wrap { width:100%; max-width:1800px; padding-inline:clamp(24px,4vw,76px); }
 .klp nav { background:var(--home-nav); border-color:var(--line); }
-.klp .nav-in { height:88px; display:grid; grid-template-columns:minmax(145px,1fr) auto minmax(145px,1fr); gap:28px; }
+.klp .nav-in { height:88px; display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:28px; }
 .klp .logo { font-size:26px; gap:10px; width:max-content; letter-spacing:-1px; }
 .klp .logo .mk { width:29px; height:34px; color:#2997ff; }
 .klp .nav-links { justify-self:center; gap:30px; font-size:14px; }
@@ -39,6 +39,19 @@ html[data-theme=dark] .klp {
 .klp .nav-right .kineo-interface-language { color:var(--txt)!important; background:var(--card)!important; border-color:var(--line)!important; color-scheme:inherit!important; border-radius:8px!important; }
 .klp .nav-right .btn-w { border-radius:9px; }
 .klp .nav-appearance { flex-shrink:0; }
+/* Center navigation in the free space between brand and account controls. */
+html:not([data-theme=dark]) .klp nav { color:#f8fafc; }
+html:not([data-theme=dark]) .klp nav .logo,
+html:not([data-theme=dark]) .klp .nav-links .nav-primary,
+html:not([data-theme=dark]) .klp .nav-links>a:hover,
+html:not([data-theme=dark]) .klp .nav-links>.nd>a:hover { color:#f8fafc; }
+html:not([data-theme=dark]) .klp .nav-links { color:#cbd0d6; }
+html:not([data-theme=dark]) .klp .nav-links .nav-primary::after { background:#66b2ff; }
+html:not([data-theme=dark]) .klp .nav-right .btn-w { background:#f8fafc; color:#20252b; border-color:#f8fafc; }
+html:not([data-theme=dark]) .klp .nav-appearance { background:#29343f; color:#f8fafc; border-color:#56616d; }
+html:not([data-theme=dark]) .klp .nav-login { color:#e3e7ec; }
+html:not([data-theme=dark]) .klp .nav-toggle-btn .bar { background:#f8fafc; }
+.klp .nd-menu { color:var(--txt); }
 .klp .nd-menu::before { background:var(--card); border-color:var(--line); box-shadow:0 16px 44px #071b3026; }
 .klp .nd-menu { padding-top:9px; }
 .klp .nd-menu::before { top:9px; }
