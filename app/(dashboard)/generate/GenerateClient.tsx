@@ -247,6 +247,7 @@ import {
 // /api/stripe/checkout usa para aceitar ou recusar a compra de recarga.
 import { canPurchaseCreditTopup } from '@/lib/growth/topupEligibility'
 import TopupUnavailableNote from '@/components/TopupUnavailableNote'
+import FilmReadyExits from '@/components/FilmReadyExits' // KINEO-FLUXO-NOVO-2026-09-25 — as 3 saídas do filme pronto
 // KINEO-PAREDE-V1-2026-09-23 — a parede dos 10 créditos com o filme da pessoa na
 // frente (ver lib/growth/wallV1.ts para o dado que motivou). `filmsCoveredByTier`
 // é a MESMA conta que a caixa de recarga já faz — nenhum número novo.
@@ -17355,6 +17356,11 @@ export default function GenerateClient({
                     </span>
                   </button>
                 )}
+
+                {/* KINEO-FLUXO-NOVO-2026-09-25 — Peça A: as 3 saídas do filme pronto (próximo filme · mais créditos ·
+                    assinar). Depois do download e da porta do episódio 2, nunca antes: deliver-first intacto. Fora do
+                    <details> fechado para ficar no primeiro olhar. Decisões em lib/growth/filmReadyExits.ts. */}
+                <FilmReadyExits videoId={publicVideoId} plan={commercialPlan} />
 
                 <details className="done-result-options">
                   <summary>Sharing, publishing & more</summary>

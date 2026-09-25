@@ -316,6 +316,32 @@ export default function StudioClient() {
     if (isOnboardingGoalId(onboardingGoal)) onboardingGoalRef.current = onboardingGoal
   }, [searchSignature])
 
+  // KINEO-FLUXO-NOVO-2026-09-25 — Peça A (fundador, 25/09): "Vídeo → /studio direto na caixa da ideia". Toda chegada
+  // põe o cursor na caixa da ideia, SÓ com ponteiro fino (mouse/trackpad): no celular o foco abriria o teclado por cima
+  // da tela. Não rouba o foco de quem já está em outro campo, não rola a página, e deixa a revisão de série e o atalho do
+  // ChatGPT com o foco que eles já dão. ?focus=idea é a chegada pela saída "Next film" do filme pronto
+  // (lib/growth/filmReadyExits.ts): grava a chegada para medir quem de fato pousou aqui e se o cursor entrou.
+  useEffect(() => {
+    const sp = new URLSearchParams(searchSignature)
+    if (isStudioSeriesReview(sp) || isChatGptQuickstartChoice(sp.get('chatgpt_quickstart'))) return
+    const ponteiroFino = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: fine)').matches
+    const vindoDoFilmePronto = sp.get('focus') === 'idea'
+    const frame = window.requestAnimationFrame(() => {
+      const caixa = promptRef.current
+      const ativo = document.activeElement
+      const livre = !ativo || ativo === document.body
+      if (ponteiroFino && caixa && livre) caixa.focus({ preventScroll: true })
+      if (vindoDoFilmePronto) {
+        void trackEvent('film_ready_next_film_arrived', {
+          version: 'film_ready_exits_v1',
+          focused: Boolean(caixa) && document.activeElement === caixa,
+          pointer_fine: ponteiroFino,
+        })
+      }
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [searchSignature])
+
   const eng = useMemo(() => ENGINES.find((e) => e.key === engine)!, [engine])
   // KINEO1-AVISO-DESENHO-2026-09-18 — ver lib/growth/kineo1FitNotice.ts. A decisão é pura; a tela só a executa.
   const kineo1Fit = useMemo(() => decideKineo1FitNotice({ engine, text: prompt }), [engine, prompt])
