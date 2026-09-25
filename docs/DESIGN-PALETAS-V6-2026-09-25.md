@@ -1,0 +1,17 @@
+# Pista visual — branco e azul, versão 06
+
+DECISÃO DO FUNDADOR — instrução direta nesta tarefa: manter o desenho aprovado, comparar branco/claro e azul/navy consistentes em todas as páginas e retirar “Vocês fazem”. Em Para empresas, o próprio usuário cria no Studio Ads. A escolha da paleta definitiva permanece pendente. Esta direção substitui as duas portas e o fluxo DFY da proposta v5; comunicação endereçada ao Claude em `HANDOFF-CLAUDE-PALETAS-SELF-SERVICE-2026-09-25.md`.
+
+IMPLEMENTADO — comparação isolada em `public/design/palette-v6-20260925/index.html`, com 13 estados: Home, Vídeo, Imagem, Empresas, Preços, Studio de vídeo, Studio Ads, Biblioteca, Exemplos, filme pronto, imagem pronta, imagem para vídeo e créditos. O comparador permite branco/azul simultâneos, uma versão ampliada, celular, comparação com a v5 e com os snapshots originais disponíveis. Arquivos gerados por `scripts/preview-kineo-palette-v6.cjs` e `scripts/package-kineo-palette-v6.cjs`.
+
+IMPLEMENTADO — ambos os temas usam os mesmos cards, vídeos, conteúdo e destinos. O passe do Studio Ads permanece apresentado; Express/Pro e promessas de produção pela equipe saíram das páginas atuais da proposta. As referências históricas v5 permanecem disponíveis apenas no modo de comparação identificado como anterior.
+
+FATO CONFIRMADO — este lote não modifica rotas reais do aplicativo, componentes, geração, fontes de preço, checkout, SKUs ou pedidos. O pop-up real não foi editado novamente: a comparação usa seu snapshot e aplica cores apenas no protótipo. Preços conferidos contra `lib/checkoutPricing.ts`, `lib/ads/offer.ts` e `lib/credits/creditSlider.ts`: planos mensais/anuais, passe e todos os 196 pontos da barra. Os dados são snapshots de design, não uma API de preços.
+
+IMPLEMENTADO — inglês canônico e padrão; seleção explícita dos 16 idiomas existentes; mesma chave de preferência, fallback em inglês e RTL para árabe/urdu. A marcação dos textos é feita na geração da prévia. O navegador traduz somente os elementos registrados, sem varrer ou traduzir prompts, valores digitados, nomes dos motores, mídia ou moeda. Português cobre os 339 textos registrados; os demais idiomas reutilizam os dicionários atuais e o suplemento de navegação/ações. Há fallback em inglês onde os dicionários existentes ainda não cobrem os novos textos de marketing. A integração posterior deve portar as novas chaves para o provedor real e completar a revisão linguística dos demais idiomas.
+
+TESTADO LOCALMENTE — typecheck sem incremental aprovado; revisão independente dos 206 links internos e âncoras; scripts das 13 páginas analisados; preços comparados às fontes; navegação do comparador, opção anual, barra até 2.000 créditos, troca de idioma preservando o prompt, layout móvel e console sem erros nos fluxos inspecionados. O comparador envia mudanças de idioma aos quadros sem recarregá-los.
+
+IMPLEMENTADO — pacote HTML independente com imagens e fontes locais embutidas, antes/depois e as duas paletas. Vídeos mantêm os URLs públicos Kineo. Scripts embutidos analisados estaticamente; abertura local no navegador não foi verificada porque a política do navegador impede URLs de arquivo. A prévia servida por HTTP foi verificada no navegador.
+
+QUESTÃO PENDENTE — seleção final do fundador, migração coordenada com Claude/Kineo Ads, revisão linguística completa dos textos novos nos demais idiomas e confirmação de recebimento do handoff pelo Claude. Nenhuma confirmação de leitura é inferida da publicação no Git.
