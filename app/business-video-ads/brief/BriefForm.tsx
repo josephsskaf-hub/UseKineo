@@ -29,11 +29,25 @@ type Phase =
 
 const EMPTY: Record<DfyBriefField, string> = { business: '', goal: '', audience: '', language: '', cta: '', facts: '' }
 
+// KINEO-BRIEF-SEM-RECIBO-2026-09-25 — relatório do Cowork: o recibo por e-mail da Stripe está DESLIGADO na conta inteira
+// (Configurações → E-mails de clientes). Nenhuma frase pode mandar a pessoa "responder ao recibo", que não chega.
+// O que é verdade para todo pedido pago: a Stripe guardou o e-mail usado no pagamento e o fundador recebe o alerta do
+// pedido (founder_order_alerted). É por esse e-mail que a casa escreve.
+const WE_HAVE_YOUR_EMAIL = 'We have your order and the email you paid with, and we will write to you there.'
 const BLOCKED_COPY: Record<string, string> = {
-  pending: 'Your payment is still being confirmed by your bank. This page opens as soon as it clears. Check again in a few minutes, or reply to your receipt email with your brief.',
-  not_found: 'We could not find a paid Express or Pro order for this link. If you just paid, reply to your receipt email with your brief and we will take it from there.',
-  invalid: 'This link is incomplete. Use the link from your payment confirmation, or reply to your receipt email with your brief.',
+  pending: 'Your payment is still being confirmed by your bank. This page opens as soon as it clears. Check again in a few minutes.',
+  not_found: `We could not find a paid Express or Pro order for this link. If you just paid, don't pay again: ${WE_HAVE_YOUR_EMAIL}`,
+  invalid: `This link is incomplete. If you just paid, don't pay again: ${WE_HAVE_YOUR_EMAIL}`,
+  // A Stripe devolveu o marcador {CHECKOUT_SESSION_ID} sem trocar pelo número do pedido (o redirect usa "#").
+  placeholder: `Your payment went through, but this confirmation link arrived without your order number. Don't pay again: ${WE_HAVE_YOUR_EMAIL}`,
   unavailable: 'We could not reach the payment system just now. Please try again in a minute.',
+}
+
+/** O marcador literal da Stripe, cru ou codificado, em qualquer ponto do endereço (hash ou query). */
+export function hasLiteralSessionPlaceholder(href: string): boolean {
+  let decoded = href
+  try { decoded = decodeURIComponent(href) } catch { /* mantém cru */ }
+  return decoded.includes('{CHECKOUT_SESSION_ID}')
 }
 
 const SESSION_RE = /^cs_(live|test)_[A-Za-z0-9]{10,200}$/
@@ -46,9 +60,13 @@ export default function BriefForm({ sessionId: fromQuery, fields, maxLinks }: { 
   useEffect(() => {
     const fromHash = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('session_id') ?? ''
     const id = SESSION_RE.test(fromHash) ? fromHash : fromQuery
+    // Ainda não provado com pagamento real se a Stripe troca o marcador depois do "#" (relatório do Cowork, 25/09).
+    // Se chegar cru, a casa fica sabendo (evento sem dado pessoal) e a pessoa não é mandada pagar de novo.
+    const literal = !id && hasLiteralSessionPlaceholder(window.location.hash + window.location.search)
+    if (literal) void trackEvent('dfy_brief_placeholder_literal', { where: window.location.hash.includes('CHECKOUT_SESSION_ID') ? 'hash' : 'query' })
     if (window.location.search || window.location.hash) window.history.replaceState(null, '', window.location.pathname)
     if (id) setSessionId(id)
-    else setPhase({ kind: 'blocked', state: 'invalid' })
+    else setPhase({ kind: 'blocked', state: literal ? 'placeholder' : 'invalid' })
   }, [fromQuery])
   const [values, setValues] = useState<Record<DfyBriefField, string>>(EMPTY)
   const [links, setLinks] = useState('')
@@ -103,12 +121,12 @@ export default function BriefForm({ sessionId: fromQuery, fields, maxLinks }: { 
       } else if (json?.state === 'incomplete') {
         setStatus({ ok: false, text: 'Please fill in the required fields.' })
       } else if (json?.state === 'too_many_edits') {
-        setStatus({ ok: false, text: 'This brief was edited too many times here. Reply to your receipt email with any further changes.' })
+        setStatus({ ok: false, text: 'This brief was edited too many times here. We have your latest version; for further changes we will write to you at the email you paid with.' })
       } else {
-        setStatus({ ok: false, text: 'We could not save your brief just now. Please try again, or reply to your receipt email with it.' })
+        setStatus({ ok: false, text: 'We could not save your brief just now. Please try again in a minute — your order is safe.' })
       }
     } catch {
-      setStatus({ ok: false, text: 'We could not save your brief just now. Please try again, or reply to your receipt email with it.' })
+      setStatus({ ok: false, text: 'We could not save your brief just now. Please try again in a minute — your order is safe.' })
     } finally {
       setSending(false)
     }
@@ -151,7 +169,7 @@ export default function BriefForm({ sessionId: fromQuery, fields, maxLinks }: { 
       ))}
       <p>
         <label htmlFor="brief-links">Links to your logo, photos or clips (optional)</label><br />
-        <small id="brief-links-hint">One link per line, up to {maxLinks}: Google Drive, Dropbox, WeTransfer or your website. Or reply to your receipt email with the files attached. Only send material you have permission to use.</small><br />
+        <small id="brief-links-hint">One link per line, up to {maxLinks}: Google Drive, Dropbox, WeTransfer or your website. Only send material you have permission to use.</small><br />
         <textarea id="brief-links" name="links" rows={3} aria-describedby="brief-links-hint" value={links} onChange={(e) => setLinks(e.target.value)} />
       </p>
       <button type="submit" className={styles.primary} disabled={sending || d.edits_left <= 0}>

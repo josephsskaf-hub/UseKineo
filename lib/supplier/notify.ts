@@ -85,6 +85,26 @@ async function sendEmail(subject: string, text: string): Promise<ChannelResult> 
   }
 }
 
+// KINEO-ALERTA-NTFY-2026-09-25 — achado do Cowork no teste real (25/09 ~13h UTC): o ntfy só interpreta JSON quando o
+// POST vai para a RAIZ (https://ntfy.sh/) com o campo `topic`. Mandado para https://ntfy.sh/<tópico>, o JSON inteiro
+// aparecia como texto cru na notificação do celular ('{"title":"Kineo teste",...}'). Para uma URL de tópico do ntfy,
+// o pedido vira {topic, title, message, tags} na raiz; qualquer outro destino (Slack, Discord, Telegram-bot, genérico)
+// segue com o corpo de sempre. Puro e exportado para o guardião provar sem rede.
+export function webhookRequestFor(url: string, subject: string, text: string): { url: string; body: Record<string, unknown>; kind: 'ntfy' | 'generic' } {
+  try {
+    const u = new URL(url)
+    const host = u.hostname.toLowerCase()
+    const segments = u.pathname.split('/').filter(Boolean)
+    const isNtfy = host === 'ntfy.sh' || host.endsWith('.ntfy.sh') || (process.env.KINEO_ALERT_WEBHOOK_FORMAT ?? '').trim().toLowerCase() === 'ntfy'
+    if (isNtfy && segments.length === 1) {
+      return { url: `${u.protocol}//${u.host}/`, kind: 'ntfy', body: { topic: segments[0], title: subject, message: text, tags: ['moneybag'] } }
+    }
+  } catch { /* URL inválida: o chamador já recusa o que não é https */ }
+  // Um corpo que serve aos três formatos mais comuns de uma vez: Slack e Discord leem `text`/`content`, um webhook
+  // genérico lê `message`/`title`. Um payload, nenhum acoplamento a fornecedor de chat.
+  return { url, kind: 'generic', body: { title: subject, text: `${subject}\n\n${text}`, content: `${subject}\n\n${text}`, message: text } }
+}
+
 async function sendWebhook(subject: string, text: string): Promise<ChannelResult> {
   const url = (process.env.KINEO_ALERT_WEBHOOK_URL ?? '').trim()
   if (!url) return 'skipped'
@@ -93,14 +113,12 @@ async function sendWebhook(subject: string, text: string): Promise<ChannelResult
     return 'skipped'
   }
   try {
-    const res = await fetch(url, {
+    const req = webhookRequestFor(url, subject, text)
+    const res = await fetch(req.url, {
       method: 'POST',
       signal: AbortSignal.timeout(CHANNEL_TIMEOUT_MS),
       headers: { 'Content-Type': 'application/json' },
-      // Um corpo que serve aos três formatos mais comuns de uma vez: Slack e
-      // Discord leem `text`/`content`, ntfy lê `message`/`title`. Um payload,
-      // nenhum acoplamento a fornecedor de chat.
-      body: JSON.stringify({ title: subject, text: `${subject}\n\n${text}`, content: `${subject}\n\n${text}`, message: text }),
+      body: JSON.stringify(req.body),
     })
     if (!res.ok) {
       console.error(`[supplier-alert] webhook recusou (${res.status})`)
