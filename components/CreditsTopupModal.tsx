@@ -91,7 +91,7 @@ export default function CreditsTopupModal({
       // 88% preto + blur 20px APAGAVA o dashboard — o modal parecia uma tela
       // nova, não uma caixa sobre a tela dele. Véu leve: o dashboard continua
       // visível escurecido atrás, como era antes.
-      style={{ background: 'rgba(8,8,15,.55)', backdropFilter: 'blur(6px)' }}
+      style={{ background: 'rgba(13,21,32,.55)', backdropFilter: 'blur(6px)' }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
@@ -99,29 +99,29 @@ export default function CreditsTopupModal({
     >
       <div
         className="w-full max-w-lg rounded-2xl p-7 relative"
-        style={{ background: '#1d1d1f', border: '1px solid #2a2a2d', boxShadow: '0 0 80px rgba(0,0,0,.5)' }}
+        style={{ background: '#0d1520', border: '1px solid #2b3e52', boxShadow: '0 0 80px rgba(0,0,0,.5)' }}
       >
         <button
           onClick={onClose}
           aria-label="Close"
           className="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center text-sm"
-          style={{ background: 'rgba(255,255,255,.04)', border: '1px solid #2a2a2d', color: '#86868b', cursor: 'pointer' }}
+          style={{ background: '#142131', border: '1px solid #2b3e52', color: '#9eafc3', cursor: 'pointer' }}
         >
           <span aria-hidden="true">✕</span>
         </button>
 
         <div
           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-3"
-          style={{ background: 'rgba(41,151,255,.12)', border: '1px solid rgba(41,151,255,.25)', color: '#2997ff' }}
+          style={{ background: 'rgba(143,198,255,.12)', border: '1px solid rgba(143,198,255,.25)', color: '#8fc6ff' }}
         >
           <span aria-hidden="true"><KineoBolt /></span>
           {credits !== null ? `${credits} ${credits === 1 ? 'credit' : 'credits'} left` : 'Credits'}
         </div>
 
-        <h2 className="text-2xl font-black mb-1 tracking-tight" style={{ color: '#f5f5f7' }}>
+        <h2 className="text-2xl font-black mb-1 tracking-tight" style={{ color: '#edf4fc' }}>
           Keep your plan. <span className="grad-text">Add credits.</span>
         </h2>
-        <p className="text-sm mb-6" style={{ color: '#86868b' }}>
+        <p className="text-sm mb-6" style={{ color: '#9eafc3' }}>
           One-time packs, added to your balance instantly after payment. No subscription change.
         </p>
 
@@ -136,12 +136,12 @@ export default function CreditsTopupModal({
             <div data-kineo="credit-slider">
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                 <div>
-                  <span style={{ fontSize: '2rem', fontWeight: 900, color: '#f5f5f7', letterSpacing: '-0.02em' }}>+{amount.toLocaleString('en-US')}</span>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#86868b', marginLeft: 6 }}>credits</span>
+                  <span style={{ fontSize: '2rem', fontWeight: 900, color: '#edf4fc', letterSpacing: '-0.02em' }}>+{amount.toLocaleString('en-US')}</span>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#9eafc3', marginLeft: 6 }}>credits</span>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <span style={{ display: 'block', fontSize: '1.6rem', fontWeight: 900, color: '#5cb3ff' }}>{price}</span>
-                  <span style={{ display: 'block', fontSize: '0.7rem', color: '#86868b' }}>{perCredit} per credit · one-time</span>
+                  <span style={{ display: 'block', fontSize: '1.6rem', fontWeight: 900, color: '#8fc6ff' }}>{price}</span>
+                  <span style={{ display: 'block', fontSize: '0.7rem', color: '#9eafc3' }}>{perCredit} per credit · one-time</span>
                 </div>
               </div>
               <input
@@ -157,13 +157,13 @@ export default function CreditsTopupModal({
                 disabled={checkout.pending !== null}
                 style={{
                   width: '100%', margin: '18px 0 6px', accentColor: '#2997ff', cursor: 'pointer',
-                  background: `linear-gradient(90deg, #2997ff ${pct}%, rgba(255,255,255,.12) ${pct}%)`, height: 6, borderRadius: 999,
+                  background: `linear-gradient(90deg, #2997ff ${pct}%, #2b3e52 ${pct}%)`, height: 6, borderRadius: 999,
                 }}
               />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: '#6e6e73' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: '#9eafc3' }}>
                 <span>{CREDIT_SLIDER_MIN}</span><span>500</span><span>1,000</span><span>{CREDIT_SLIDER_MAX.toLocaleString('en-US')}</span>
               </div>
-              <p style={{ fontSize: '0.78rem', color: '#a1a1a6', margin: '12px 0 0', textAlign: 'center' }}>
+              <p style={{ fontSize: '0.78rem', color: '#9eafc3', margin: '12px 0 0', textAlign: 'center' }}>
                 ≈ {formatResultCount(seedance, 'Seedance film')}{kling3 >= 1 ? ` or ${formatResultCount(kling3, 'Kling 3 film')}` : ''} · the more you add, the less each credit costs
               </p>
               <button
@@ -194,9 +194,9 @@ export default function CreditsTopupModal({
           </p>
         )}
 
-        <p style={{ fontSize: '0.74rem', color: '#86868b', textAlign: 'center', margin: '16px 0 0' }}>
+        <p style={{ fontSize: '0.74rem', color: '#9eafc3', textAlign: 'center', margin: '16px 0 0' }}>
           Need more every month?{' '}
-          <a href="/pricing" style={{ color: '#7cc0ff', fontWeight: 700, textDecoration: 'none' }}>
+          <a href="/pricing" style={{ color: '#8fc6ff', fontWeight: 700, textDecoration: 'none' }}>
             Upgrade your plan →
           </a>
         </p>
