@@ -13,6 +13,7 @@
 // liquida o crédito e grava a linha do vídeo mesmo se a aba fechou; falha vira 'failed' com o motivo.
 import { NextRequest, NextResponse } from 'next/server'
 import { musicMoodFor } from '@/lib/ads/adStyle' // KINEO-ADS-ESTILO-2026-09-26
+import { speakableForTts } from '@/lib/ads/speakable' // KINEO-ADS-TESTE1-2026-09-26
 import { randomUUID } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
 import { writeServerEvent } from '@/lib/serverEvents'
@@ -140,7 +141,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Narração na voz escolhida (OpenAI tts-1-hd, a mesma família do Kineo 1), verbatim, velocidade 1.
-    const narration = input.beats.join(' ')
+    // KINEO-ADS-TESTE1-2026-09-26 — telefone e site falados por extenso (a voz pulava dígitos e errava o domínio). Só a VOZ
+    // muda: roteiro salvo, legenda por cena e cartão final ficam como a pessoa escreveu.
+    const ttsLanguage = typeof (order.brief as { language?: unknown } | null)?.language === 'string' ? String((order.brief as { language?: unknown }).language) : 'en'
+    const spokenBeats = input.beats.map((b) => speakableForTts(b, ttsLanguage))
+    const narration = spokenBeats.join(' ')
     let voiceBuf: Buffer
     try {
       const { openai } = await import('@/lib/openai')
@@ -200,7 +205,7 @@ export async function POST(req: NextRequest) {
       listLength = maxList
       slots = simulate(listLength)
     }
-    const starts = beatStartTimes(input.beats.map(countWords), words, narrationSeconds)
+    const starts = beatStartTimes(spokenBeats.map(countWords), words, narrationSeconds)
     const clipUrls = planClipUrls({ slots, beatStarts: starts, beatMedia, cardUrl: card.url, listLength })
 
     const brief = order.brief ?? {}

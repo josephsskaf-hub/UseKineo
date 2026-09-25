@@ -95,7 +95,11 @@ export function parseAutoBrief(raw: string, text: string, language: string): Aut
     return value
   }
   const business = keep('business', clip(p.business, ADS_BRIEF_LIMITS.business))
-  const offer = keep('offer', clip(p.offer, ADS_BRIEF_LIMITS.offer))
+  // KINEO-ADS-TESTE1-2026-09-26 — "sapatos, flats e roupas" virou Offer. Oferta só com sinal de oferta: número, %, grátis,
+  // desconto, promoção ou prazo. Sem isso o campo fica vazio (e o roteiro não inventa urgência em cima dele).
+  const offerRaw = keep('offer', clip(p.offer, ADS_BRIEF_LIMITS.offer))
+  const offer = offerRaw && offerLooksReal(offerRaw) ? offerRaw : ''
+  if (offerRaw && !offer) dropped.push('offer_not_an_offer')
   const audience = keep('audience', clip(p.audience, ADS_BRIEF_LIMITS.audience))
   let contact = clip(p.contact, ADS_BRIEF_LIMITS.contact)
   if (contact && !contactFromText(contact, text)) { dropped.push('contact'); contact = '' }
@@ -113,6 +117,11 @@ export function parseAutoBrief(raw: string, text: string, language: string): Aut
   if (!business) needs.push('business')
   if (!contact) needs.push('contact')
   return { brief: { business, offer, cta, contact, language, tone, audience, extra }, needs, dropped, modelHint }
+}
+
+/** A oferta tem cara de oferta? (preço, %, grátis, desconto, promoção, prazo — em en/pt/es) */
+export function offerLooksReal(offer: string): boolean {
+  return /\d|%|\b(free|gr[aá]tis|gratuito|discount|desconto|descuento|off|sale|promo\w*|oferta|offer|deal|until|at[eé]|hasta|only|s[oó]|apenas|limited|limitad\w*|bonus|b[oô]nus|coupon|cupom|cup[oó]n)\b/i.test(offer)
 }
 
 /** CTA pelo tipo de contato, quando o modelo não disse. */
@@ -174,8 +183,12 @@ export function chooseAutoModel(brief: AdsBrief, have: AdsMediaCount, hint: AdsM
   // Modelos que dependem de um fato específico (depoimento, prazo, antes/depois, história, erros) só entram se a frase
   // trouxe ao menos metade dos campos deles — senão o roteiro sai genérico com colchetes sem resposta.
   const specific = (m: AdsModel) => m.id !== 'vitrine_fotos' && m.id !== 'problema_solucao'
-  const usable = open.filter((m) => !specific(m) || filledExtras(m, brief).filled * 2 >= filledExtras(m, brief).total)
-  const pool = usable.length ? usable : open
+  // KINEO-ADS-TESTE1-2026-09-26 — "Flash offer" sem oferta fazia o roteiro inventar "só esta semana". Oferta relâmpago
+  // e contagem regressiva só com os DOIS campos (oferta + prazo / prazo + vagas).
+  const complete = (m: AdsModel) => !['oferta_relampago', 'contagem_prazo'].includes(m.id) || filledExtras(m, brief).filled === filledExtras(m, brief).total
+  const usable = open.filter((m) => complete(m) && (!specific(m) || filledExtras(m, brief).filled * 2 >= filledExtras(m, brief).total))
+  // Sem nenhum formato usável, cai nos genéricos — nunca nos que exigem oferta/prazo sem tê-los.
+  const pool = usable.length ? usable : open.filter(complete).length ? open.filter(complete) : open
   const ranked = pool.slice().sort((a, b) => score(b) - score(a))
   return { model: ranked[0], eligible: ranked.map((m) => m.id), missing: [] }
 }

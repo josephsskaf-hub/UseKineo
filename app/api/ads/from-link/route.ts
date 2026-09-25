@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
       path: '/api/ads/from-link',
       metadata: { order_id: orderId, host: facts.host, ok: true, images_found: facts.images.length, images_saved: saved.length, logo: Boolean(logo), skipped, price: Boolean(facts.price), ms: Date.now() - started },
     })
-    return NextResponse.json({ text, facts: { title: facts.title, siteName: facts.siteName, price: facts.price, host: facts.host }, media: saved, logo, skipped })
+    return NextResponse.json({ text, facts: { title: facts.title, siteName: facts.siteName, price: facts.price, host: facts.host, lang: facts.lang, shareOnly: facts.shareOnly }, media: saved, logo, skipped })
   } catch (e) {
     console.warn('[ads/from-link] falhou:', e instanceof Error ? e.message : String(e))
     return NextResponse.json({ error: 'failed' }, { status: 502 })

@@ -28,7 +28,8 @@ checa('leitor: título do produto (JSON-LD vence og)', f.title === "Men's Tree R
 checa('leitor: nome da loja', f.siteName === 'Allbirds')
 checa('leitor: descrição', f.description.startsWith('Breathable, lightweight sneakers'))
 checa('leitor: preço com moeda', f.price === 'USD 98.00')
-checa('leitor: imagens absolutas, sem repetir, produto primeiro', f.images[0] === 'https://cdn.shop.com/img/runner-2.jpg' && f.images.includes('https://cdn.shop.com/img/runner-1.jpg?v=2') && f.images.includes('https://www.allbirds.com/img/runner-side.png') && new Set(f.images).size === f.images.length)
+// 26/09 (teste do Cowork): com foto de produto, a imagem de compartilhamento (og/twitter) NÃO entra — ela costuma ser logo/banner.
+checa('leitor: fotos de produto, absolutas, sem repetir; a de compartilhamento fica de fora', f.images[0] === 'https://cdn.shop.com/img/runner-2.jpg' && f.images[1] === 'https://cdn.shop.com/img/runner-3.jpg' && !f.images.includes('https://cdn.shop.com/img/runner-1.jpg?v=2') && f.shareOnly === false && new Set(f.images).size === f.images.length)
 checa('leitor: logo = apple-touch-icon (nunca o favicon .ico)', f.logo === 'https://www.allbirds.com/apple-touch-icon.png')
 checa('leitor: host sem www', f.host === 'allbirds.com')
 const frase = L.linkSentence(f)

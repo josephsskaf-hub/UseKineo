@@ -67,6 +67,10 @@ export function buildAdsScriptMessages(model: AdsModel, brief: AdsBrief, languag
     '- The last beat is the call to action and must contain the contact exactly as written in the brief.',
     '- Plain spoken sentences only: no stage directions, no [brackets], no emojis, no hashtags, no markdown, no labels.',
     '- No health, legal or financial advice, no promise of results.',
+    // KINEO-ADS-TESTE1-2026-09-26 — o teste do Cowork pegou "only this week", "ends soon", "trusted by countless customers",
+    // "sets us apart in the industry" e "conhecido por" em anúncios cujo brief não dizia nada disso.
+    '- Never add urgency (only this week, ends soon, limited time, while supplies last, last chance) unless the brief states a deadline, and never add reputation claims (trusted by, countless or thousands of customers, best in town, known for, award-winning, sets us apart, industry leader) unless the brief says so.',
+    '- If a brief fact is written in another language, say it in the ad language; keep names, prices, numbers and the contact exactly as written.',
     // Teste da padaria (24/09 noite): o exemplo antigo tinha 2 itens em beats e o modelo devolvia 4 "versões" de 2 batidas.
     // O exemplo agora tem EXATAMENTE as batidas do modelo, e a regra diz o número.
     `Answer with JSON only, exactly 3 versions, each with exactly ${model.beats.length} strings in "beats": {"versions":[${ADS_SCRIPT_ANGLES.map((a) => `{"angle":"${a}","beats":[${model.beats.map((_, i) => `"beat ${i + 1}"`).join(',')}]}`).join(',')}]}`,
@@ -109,6 +113,21 @@ function contactOk(lastBeat: string, contact: string): boolean {
   return cd.length >= 8 && bd.includes(cd.slice(-8))
 }
 
+/** KINEO-ADS-TESTE1-2026-09-26 — urgência e fama que o brief não sustenta (en/pt/es). Cada item: [regra, rótulo]. */
+const CLAIMS: ReadonlyArray<[RegExp, string]> = [
+  [/\b(only|just) (here|this|today|this week|for today)\b|\bthis week only\b|\bs[oó] (hoje|esta semana|essa semana)\b|\bs[oó]lo (hoy|esta semana)\b/i, 'only this week / today'],
+  [/\b(ends? soon|ending soon|won'?t last|while (supplies|stocks?) last|last chance|hurry|don'?t miss out|acaba em breve|[uú]ltima chance|corra|n[aã]o perca|termina pronto|[uú]ltima oportunidad|no te lo pierdas)\b/i, 'ends soon / last chance'],
+  [/\b(limited[- ]time|for a limited|por tempo limitado|por tiempo limitado)\b/i, 'limited time'],
+  [/\b(trusted by|countless|thousands of|hundreds of|milhares de|centenas de|miles de|cientos de)\b/i, 'trusted by / countless customers'],
+  [/\b(best in (town|the city|the industry)|the best in|number one|#1|award[- ]winning|premiad[oa]|o melhor d[ao]|el mejor de|industry leader|sets us apart|nos diferencia|conhecid[oa] por|famos[oa] por|reconhecid[oa]|conocid[oa] por)\b/i, 'best / known for / award'],
+]
+
+/** Afirmações de urgência ou fama que aparecem no roteiro e NÃO estão no brief. */
+export function inventedClaims(text: string, brief: AdsBrief): string[] {
+  const facts = briefFactsText(brief)
+  return CLAIMS.filter(([re]) => re.test(text) && !re.test(facts)).map(([, label]) => label)
+}
+
 /** Por que nenhuma versão passou — vira a instrução da segunda tentativa. Pura. */
 export function diagnoseAdsScriptOutput(raw: string, model: AdsModel, brief: AdsBrief): string[] {
   const why = new Set<string>()
@@ -129,6 +148,8 @@ export function diagnoseAdsScriptOutput(raw: string, model: AdsModel, brief: Ads
     const inv = inventedNumbers(script, brief)
     if (inv.length) why.add(`Remove these numbers that are not in the brief: ${[...new Set(inv)].join(', ')}.`)
     if (!contactOk(clean[clean.length - 1] ?? '', brief.contact)) why.add(`The last beat must say the contact in full: ${brief.contact}`)
+    const claims = inventedClaims(script, brief)
+    if (claims.length) why.add(`Remove these claims that the brief does not support: ${claims.join('; ')}.`)
     if (/[[\]{}#*_]|[\u{1F300}-\u{1FAFF}]/u.test(script)) why.add('No brackets, markdown or emojis.')
   }
   return [...why]
@@ -155,6 +176,7 @@ export function parseAdsScriptOutput(raw: string, model: AdsModel, brief: AdsBri
     const words = countWords(script)
     if (words < adsScriptMinWords(model) || words > Math.ceil(maxW * 1.25)) continue
     if (inventedNumbers(script, brief).length > 0) continue
+    if (inventedClaims(script, brief).length > 0) continue
     if (!contactOk(clean[clean.length - 1], brief.contact)) continue
     seen.add(angle as string)
     out.push({ angle: angle as AdsScriptAngle, beats: clean, script, words })

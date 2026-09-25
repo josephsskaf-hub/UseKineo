@@ -15,6 +15,10 @@ export interface LinkFacts {
   images: string[]
   logo: string | null
   host: string
+  /** Idioma declarado pela página (<html lang>), se for um código de 2 letras. */
+  lang: string | null
+  /** true = as únicas imagens eram a de compartilhamento (og/twitter), que costuma ser logo/banner, não produto. */
+  shareOnly: boolean
 }
 
 const MAX_IMAGES = 6
@@ -110,16 +114,27 @@ export function readLinkFacts(html: string, pageUrl: string): LinkFacts {
   const cur = offer?.priceCurrency ?? metaContent(metas, 'product:price:currency', 'og:price:currency')[0]
   if (p !== undefined && p !== null && String(p).trim() && /\d/.test(String(p))) price = `${String(cur ?? '').trim()} ${String(p).trim()}`.trim()
 
-  const candidates = [
-    ...imagesOf(product?.image),
-    ...metaContent(metas, 'og:image', 'og:image:url', 'og:image:secure_url', 'twitter:image', 'twitter:image:src'),
-  ]
+  // KINEO-ADS-TESTE1-2026-09-26 — relatório do Cowork: as "2 fotos" da Allbirds eram a MESMA imagem de compartilhamento
+  // (logo em fundo branco), com e sem query. Agora: foto de PRODUTO primeiro (JSON-LD, depois <img> grandes da página),
+  // a de compartilhamento só se não houver outra; nada com cara de logo/ícone; repetição medida por caminho, sem query.
+  const shareImages = metaContent(metas, 'og:image', 'og:image:url', 'og:image:secure_url', 'twitter:image', 'twitter:image:src')
+  const pageImages = imgTags(head)
   const images: string[] = []
-  for (const c of candidates) {
+  const seen = new Set<string>()
+  const push = (c: string) => {
     const a = absolute(c, pageUrl)
-    if (a && !images.includes(a) && !/\.svg(\?|$)/i.test(a)) images.push(a)
-    if (images.length >= MAX_IMAGES) break
+    if (!a || images.length >= MAX_IMAGES || !looksLikePhoto(a)) return
+    const key = pathKey(a)
+    if (seen.has(key)) return
+    seen.add(key)
+    images.push(a)
   }
+  for (const c of imagesOf(product?.image)) push(c)
+  for (const c of pageImages) push(c)
+  const beforeShare = images.length
+  if (beforeShare === 0) for (const c of shareImages) push(c)
+  const shareOnly = beforeShare === 0 && images.length > 0
+  const lang = (/<html\b[^>]*\blang\s*=\s*["']?([a-zA-Z]{2})/i.exec(head)?.[1] ?? '').toLowerCase() || null
 
   // Logo: logo da organização no JSON-LD → apple-touch-icon → ícone grande (nunca favicon .ico de 16 px).
   const icons = links.filter((l) => /(apple-touch-icon|icon)/i.test(l.rel ?? '') && l.href)
@@ -127,7 +142,40 @@ export function readLinkFacts(html: string, pageUrl: string): LinkFacts {
   const logoRaw = imagesOf(org?.logo)[0] ?? bigIcon?.href ?? null
   const logo = logoRaw ? absolute(logoRaw, pageUrl) : null
 
-  return { title, siteName, description, price, images, logo: logo && !/\.(svg|ico)(\?|$)/i.test(logo) ? logo : null, host }
+  return { title, siteName, description, price, images, logo: logo && !/\.(svg|ico)(\?|$)/i.test(logo) ? logo : null, host, lang, shareOnly }
+}
+
+/** Mesmo arquivo com query ou protocolo diferentes = mesma imagem. */
+function pathKey(u: string): string {
+  try { const x = new URL(u); return (x.hostname + x.pathname).toLowerCase() } catch { return u }
+}
+
+/** Parece foto (e não logo, ícone, sprite, pixel ou vetor)? */
+export function looksLikePhoto(u: string): boolean {
+  if (/\.(svg|gif|ico)(\?|$)/i.test(u) || /^data:/i.test(u)) return false
+  let path = u
+  try { path = new URL(u).pathname } catch { /* usa a string */ }
+  return !/(logo|brand-?mark|favicon|icon|sprite|placeholder|pixel|spacer|badge|avatar|payment|flag)/i.test(path)
+}
+
+/** <img> da página com cara de foto de produto: src/data-src/srcset (o maior), largura declarada ≥ 300 quando houver. */
+function imgTags(html: string): string[] {
+  const out: string[] = []
+  const re = /<img\b([^>]*)>/gi
+  let m: RegExpExecArray | null
+  while ((m = re.exec(html)) && out.length < 40) {
+    const attrs: Record<string, string> = {}
+    const ar = /([a-zA-Z:_-]+)\s*=\s*("([^"]*)"|'([^']*)'|([^\s>]+))/g
+    let a: RegExpExecArray | null
+    while ((a = ar.exec(m[1]))) attrs[a[1].toLowerCase()] = a[3] ?? a[4] ?? a[5] ?? ''
+    const w = Number(attrs.width)
+    if (Number.isFinite(w) && w > 0 && w < 300) continue
+    const set = attrs.srcset || attrs['data-srcset'] || ''
+    const biggest = set.split(',').map((p) => p.trim().split(/\s+/)).filter((p) => p[0]).sort((x, y) => (parseInt(y[1] ?? '0', 10) || 0) - (parseInt(x[1] ?? '0', 10) || 0))[0]?.[0]
+    const src = biggest || attrs['data-src'] || attrs.src
+    if (src) out.push(src)
+  }
+  return out
 }
 
 /** A frase do modo IA a partir dos fatos da página (a pessoa pode editar antes de gerar). */

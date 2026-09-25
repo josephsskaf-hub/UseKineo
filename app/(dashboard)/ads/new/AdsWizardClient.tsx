@@ -83,7 +83,9 @@ type CardInfo = { id: string; sig: string | null; savedUrl?: string | null }
 type Storyboard = Record<number, string[]>
 /** KINEO-ADS-VERSOES-2026-09-26 — nova versão de um anúncio pronto: outra abertura (A/B), outra língua ou outro formato. */
 type RemixKind = 'opening' | 'language' | 'format'
-type Remix = { base: AdsOrder; kind: RemixKind; language?: string; format?: AdFormat }
+/** KINEO-ADS-TESTE1-2026-09-26 — o que a pessoa escolheu no anúncio de origem; a versão herda (o Cowork viu a A/B voltar a 9:16/Bold). */
+type AdChoices = { format: AdFormat; captions: boolean; captionStyle: AdCaptionStyle; music: AdMusicMood }
+type Remix = { base: AdsOrder; kind: RemixKind; language?: string; format?: AdFormat; choices?: AdChoices | null }
 type RenderInfo = { renderId: string | null; seconds: number; topic: string }
 
 const MAX_MEDIA = 12
@@ -108,6 +110,8 @@ const VOICE_CACHE_MAX = 8
 const UNLOCK_POLL_MS = 3000
 const UNLOCK_CAP_MS = 90_000
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
+/** KINEO-ADS-TESTE1-2026-09-26 — "botão selecionado quase invisível": o estado aria-pressed ganha o mesmo destaque do .on. */
+const ADS_PRESSED_CSS = `.adsw .pill[aria-pressed="true"]{background:linear-gradient(140deg,#2997ff,#1a72d8)!important;border-color:rgba(120,190,255,.9)!important;color:#fff!important;box-shadow:0 4px 18px rgba(41,151,255,.35)}`
 
 const CTA_OPTIONS: { id: AdsBrief['cta']; label: string; contact: string; placeholder: string }[] = [
   { id: 'call', label: 'Call', contact: 'Phone number', placeholder: 'e.g. +1 555 010 2030' },
@@ -664,6 +668,7 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
   // KINEO-ADS-IA-FAZ-2026-09-26 — 'ai' = a IA faz o anúncio (uma tela); 'steps' = o passo a passo de sempre.
   const [mode, setMode] = useState<'ai' | 'steps'>(() => (adsAutoVisible(access) ? 'ai' : 'steps'))
   const [remix, setRemix] = useState<Remix | null>(null) // KINEO-ADS-VERSOES-2026-09-26
+  const [choices, setChoices] = useState<Record<string, AdChoices>>({}) // KINEO-ADS-TESTE1-2026-09-26
   const sessionUploads = useRef<Set<string>>(new Set())
   const rootRef = useRef<HTMLDivElement>(null)
   const settled = useRef(false)
@@ -933,7 +938,8 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
         addLocalUrl={addLocalUrl}
         sessionUploads={sessionUploads}
         onOrder={applyOrder}
-        onStarted={(s, m, b, sb, c) => {
+        onStarted={(s, m, b, sb, c, ch) => {
+          setChoices((prev) => ({ ...prev, [s.order_id]: ch }))
           setBeats(b)
           setStoryboard(sb)
           setCard(c)
@@ -945,6 +951,12 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
         onSteps={toSteps}
         remix={remix}
         onRemixUsed={() => setRemix(null)}
+        onOpenAd={(o) => {
+          orderRef.current = o
+          setOrder(o)
+          setBeats(beatsFromOrder(o))
+          void fetchRenderState(o.id).then((st) => { setRenderState(st); setView('delivery') })
+        }}
         onFresh={() => {
           orderRef.current = null
           setOrder(null)
@@ -1044,6 +1056,7 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
       <ProgressView
         orderId={order.id}
         render={render}
+        captions={choices[order.id]?.captions ?? true}
         busyNew={busyNew}
         newError={newError}
         onStartNew={() => void startNew(order, 'retry')}
@@ -1071,7 +1084,7 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
         onAnother={() => void startNew(order, 'another')}
         onRemix={adsAutoVisible(access) ? (r) => {
           // Novo pedido (o de origem fica entregue como está), aberto direto na conferência do modo IA.
-          setRemix({ ...r, base: order })
+          setRemix({ ...r, base: order, choices: choices[order.id] ?? null })
           orderRef.current = null
           setOrder(null)
           setBeats(null)
@@ -1116,7 +1129,7 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
   return (
     <div className="stu adsw" data-step={view} ref={rootRef}>
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
-      <style dangerouslySetInnerHTML={{ __html: ADS_WIZARD_CSS + ADS_WIZARD_THEME_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: ADS_WIZARD_CSS + ADS_WIZARD_THEME_CSS + ADS_PRESSED_CSS }} />
       <header className="adsw-header">
         <h1>Studio Ads</h1>
         <p className="sub">Your photos, your logo, your offer — a narrated vertical ad you can download and post.</p>
@@ -1157,6 +1170,22 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
 
 /** KINEO-ADS-KIT-MARCA-2026-09-26 — o "kit da marca" sem tabela nova: a marca do anúncio mais recente que tem logo e
  *  contato. Os pedidos já guardam brief e mídia no servidor; o kit é só reaproveitar (item 4 da pesquisa de concorrentes). */
+/** KINEO-ADS-TESTE1-2026-09-26 — o cartão final cortava "…até o fi…". Oferta longa vira a primeira parte + o preço escrito
+ *  na oferta (nada novo): "Jantar para dois com entrada, …, por R$189, …" → "Jantar para dois com entrada · R$189". */
+function cardOffer(offer: string): string {
+  const o = offer.trim()
+  if (o.length <= 64) return o
+  const parts = o.split(/\s*[,;·–—]\s*/).filter(Boolean)
+  const first = parts[0].length <= 64 ? parts[0] : parts[0].slice(0, 61).replace(/\s+\S*$/, '') + '…'
+  const price = /(?:R\$|US\$|\$|€|£)\s?\d(?:[\d.,]*\d)?|\d(?:[\d.,]*\d)?\s?(?:%|reais|dólares|dollars|euros)/i.exec(o)?.[0]
+  return price && !first.includes(price) ? `${first} · ${price}` : first
+}
+
+/** Anúncios prontos, mais novos primeiro (para "More versions" sem precisar do último). */
+function recentAdsFrom(orders: AdsOrder[]): AdsOrder[] {
+  return orders.filter((o) => (o.status === 'delivered' || o.status === 'reviewed') && o.brief && o.template).slice(0, 5)
+}
+
 function lastBrandFrom(orders: AdsOrder[]): { brief: AdsBrief; logo: AdsMediaItem } | null {
   for (const o of orders) {
     const logo = orderMedia(o).find((m) => m.isLogo)
@@ -1202,17 +1231,19 @@ function AdsAutoPanel({
   onFresh,
   remix,
   onRemixUsed,
+  onOpenAd,
 }: {
   order: AdsOrder | null
   localUrls: Record<string, string>
   addLocalUrl: (id: string, url: string) => void
   sessionUploads: React.MutableRefObject<Set<string>>
   onOrder: (o: AdsOrder) => void
-  onStarted: (s: AdsRenderStarted, model: AdsModel, beats: string[], storyboard: Storyboard, card: CardInfo) => void
+  onStarted: (s: AdsRenderStarted, model: AdsModel, beats: string[], storyboard: Storyboard, card: CardInfo, choices: AdChoices) => void
   onSteps: () => void
   onFresh: () => void
   remix: Remix | null
   onRemixUsed: () => void
+  onOpenAd: (o: AdsOrder) => void
 }) {
   const [phase, setPhase] = useState<'input' | 'thinking' | 'confirm' | 'making'>('input')
   const [text, setText] = useState('')
@@ -1241,7 +1272,10 @@ function AdsAutoPanel({
   const createdHere = useRef(false)
   // KINEO-ADS-KIT-MARCA-2026-09-26 — marca do último anúncio (logo + nome + contato), oferecida quando o pedido é novo.
   const [brand, setBrand] = useState<{ brief: AdsBrief; logo: AdsMediaItem } | null>(null)
+  const [recent, setRecent] = useState<AdsOrder[]>([]) // KINEO-ADS-TESTE1-2026-09-26: reabrir um anúncio pronto
+  const [remixKind, setRemixKind] = useState<RemixKind | null>(null)
   const [link, setLink] = useState('') // KINEO-ADS-LINK-2026-09-26
+  const [linkLang, setLinkLang] = useState<string | null>(null) // KINEO-ADS-TESTE1-2026-09-26: idioma declarado pela página
   const [linkNote, setLinkNote] = useState<string | null>(null)
   // KINEO-ADS-VERSOES-2026-09-26 — abertura a evitar numa versão A/B (o ângulo do anúncio de origem).
   const [avoidAngle, setAvoidAngle] = useState<string | null>(null)
@@ -1273,7 +1307,15 @@ function AdsAutoPanel({
       setContact(brief.contact)
       setLanguage(brief.language)
       setTemplate(baseModel.id)
+      // Herda formato, legenda e trilha do anúncio de origem; "outro formato" troca só o formato.
+      if (remix.choices) {
+        setFormat(remix.choices.format)
+        setCaptions(remix.choices.captions)
+        setCaptionStyle(remix.choices.captionStyle)
+        setMusic(remix.choices.music)
+      }
       if (remix.format) setFormat(remix.format)
+      setRemixKind(remix.kind)
       setAvoidAngle(remix.kind === 'opening' ? angleOf(base.script_angle).replace(/_edited$/, '') : null)
       void trackEvent('ads_auto_started', { order_id: o.id, remix: remix.kind, from_order: base.id, language: brief.language, format: remix.format ?? null })
       setPhase('confirm')
@@ -1285,7 +1327,7 @@ function AdsAutoPanel({
     if (order) return
     let alive = true
     void callJson<{ orders?: AdsOrder[] }>('/api/ads/orders').then((r) => {
-      if (alive && r.ok && Array.isArray(r.data.orders)) setBrand(lastBrandFrom(r.data.orders))
+      if (alive && r.ok && Array.isArray(r.data.orders)) { setBrand(lastBrandFrom(r.data.orders)); setRecent(recentAdsFrom(r.data.orders)) }
     })
     return () => { alive = false }
   }, [order])
@@ -1386,7 +1428,7 @@ function AdsAutoPanel({
     const o = await ensureOrder()
     if (!o) return
     setBusy('Reading your page…')
-    const r = await callJson<{ text: string; media: AdsMediaItem[]; logo: AdsMediaItem | null; skipped: number; facts: { host: string; price: string | null } }>('/api/ads/from-link', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ order_id: o.id, url: link }) })
+    const r = await callJson<{ text: string; media: AdsMediaItem[]; logo: AdsMediaItem | null; skipped: number; facts: { host: string; price: string | null; lang: string | null; shareOnly: boolean } }>('/api/ads/from-link', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ order_id: o.id, url: link }) })
     if (!r.ok) {
       setBusy(null)
       if (r.status === 401) return goLogin()
@@ -1409,8 +1451,13 @@ function AdsAutoPanel({
     onOrder(saved.data.order)
     setConsent(false)
     setText(r.data.text)
+    setLinkLang(NARRATION_LANGUAGES.some((l) => l.code === r.data.facts.lang) ? r.data.facts.lang : null)
     const got = r.data.media.length + (!hasLogo && r.data.logo ? 1 : 0)
-    setLinkNote(got ? `Read ${r.data.facts.host}: ${r.data.media.length} photo(s)${!hasLogo && r.data.logo ? ' and the logo' : ''}. Check the text below and add anything missing.` : `Read ${r.data.facts.host}, but it had no usable photos. Add at least 2 photos or videos below.`)
+    setLinkNote(
+      r.data.facts.shareOnly
+        ? `Read ${r.data.facts.host}, but the page only had its share image (usually a logo or banner). Add 2 or more real photos of your product or place below — they make the ad.`
+        : got ? `Read ${r.data.facts.host}: ${r.data.media.length} photo(s)${!hasLogo && r.data.logo ? ' and the logo' : ''}. Check the text below and add anything missing.` : `Read ${r.data.facts.host}, but it had no usable photos. Add at least 2 photos or videos below.`,
+    )
   }
 
   function startFresh() {
@@ -1454,7 +1501,8 @@ function AdsAutoPanel({
     }
     orderLocal.current = c.data.order
     onOrder(c.data.order)
-    const r = await callJson<AutoProposal>('/api/ads/auto-brief', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ order_id: o.id, text, language }) })
+    // KINEO-ADS-TESTE1-2026-09-26 — idioma: o da página do link manda; senão o servidor lê o texto; o navegador é só dica.
+    const r = await callJson<AutoProposal>('/api/ads/auto-brief', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ order_id: o.id, text, language: linkLang ?? undefined, language_hint: defaultLanguage() }) })
     if (!r.ok) {
       setPhase('input')
       if (r.status === 401) return goLogin()
@@ -1518,7 +1566,7 @@ function AdsAutoPanel({
       const img = await loadLogoImage(srcOf(logoItem))
       const canvas = document.createElement('canvas')
       const [bizName] = splitBusiness(brief.business)
-      drawEndCard(canvas, { logo: img, business: bizName, offer: brief.offer, ctaLabel: endCardCtaLabel(brief.cta, brief.language), contact: brief.contact })
+      drawEndCard(canvas, { logo: img, business: bizName, offer: cardOffer(brief.offer), ctaLabel: endCardCtaLabel(brief.cta, brief.language), contact: brief.contact })
       const size = adFormatSize(format)
       const file = await toPngFile(fitCardToFormat(canvas, size.width, size.height))
       const up = await uploadFootage(file, { isLogo: false })
@@ -1546,7 +1594,7 @@ function AdsAutoPanel({
     }
     void trackEvent('ads_preview_confirmed', { order_id: o.id, credits: model.credits, scenes: n, user_media_scenes: n - 1, stock_scenes: 0, mode: 'auto', captions })
     const r = await callJson<AdsRenderStarted>('/api/ads/render', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(body) })
-    if (r.ok) return onStarted(r.data, model, v.beats, sb, { id: cardId, sig: 'auto' })
+    if (r.ok) return onStarted(r.data, model, v.beats, sb, { id: cardId, sig: 'auto' }, { format, captions, captionStyle, music })
     if (r.status === 401) return goLogin()
     if (r.status === 402 || r.code === 'out_of_credits') {
       setPhase('confirm')
@@ -1582,7 +1630,7 @@ function AdsAutoPanel({
     const alternatives = proposal.eligible.map((id) => adsModelById(id)).filter((x): x is AdsModel => Boolean(x))
     return (
       <div className="card adsw-panel">
-        <h2 tabIndex={-1} data-step-heading>Check the facts, then we make it</h2>
+        <h2 tabIndex={-1} data-step-heading>{remixKind === 'opening' ? 'New version with a different opening (A/B)' : remixKind === 'language' ? 'Translated version' : remixKind === 'format' ? 'Same ad in another format' : 'Check the facts, then we make it'}</h2>
         <p className="adsw-lead">The ad only says what is written here. Fix anything that is not exactly right.</p>
         <label className="adsw-f">
           <span>Business <b className="adsw-req">required</b></span>
@@ -1613,7 +1661,8 @@ function AdsAutoPanel({
               </button>
             ))}
           </div>
-          <small>{chosenModel.goal}. {chosenModel.seconds} seconds · {chosenModel.credits} credits.</small>
+          {/* KINEO-ADS-TESTE1-2026-09-26 — a tela dizia 35 s e o anúncio saiu com 51: a voz real fala ~2,45 palavras/s. Mostra a faixa real. */}
+          <small>{chosenModel.goal}. About {chosenModel.seconds}–{Math.round((chosenModel.words[1] * 1.15) / 2.45 / 5) * 5} seconds · {chosenModel.credits} credits.</small>
         </div>
         <div className="adsw-f">
           <span>Format</span>
@@ -1661,6 +1710,17 @@ function AdsAutoPanel({
     <div className="card adsw-panel">
       <h2 tabIndex={-1} data-step-heading>Let the AI make your ad</h2>
       <p className="adsw-lead">Add your logo and a few photos or videos, tell us about your business in one or two sentences, and the AI writes, narrates and edits the ad.</p>
+      {!order && recent.length ? (
+        <div className="adsw-f" role="group" aria-label="Your ads">
+          <span>Your ads</span>
+          {recent.map((o) => (
+            <div key={o.id} className="row" style={{ gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
+              <small>{splitBusiness(o.brief?.business ?? '')[0]} · {adsModelById(o.template)?.name ?? ''} · {new Date(o.created_at).toLocaleDateString()}</small>
+              <button type="button" className="adsw-btn ghost" onClick={() => onOpenAd(o)}>Open · more versions</button>
+            </div>
+          ))}
+        </div>
+      ) : null}
       {!order && brand ? (
         <div className="adsw-f" role="group" aria-label="Your brand">
           <span>Your brand</span>
@@ -3017,6 +3077,7 @@ function RenderStep({
 function ProgressView({
   orderId,
   render,
+  captions,
   busyNew,
   newError,
   onStartNew,
@@ -3026,6 +3087,7 @@ function ProgressView({
 }: {
   orderId: string
   render: RenderInfo
+  captions: boolean
   busyNew: boolean
   newError: string | null
   onStartNew: () => void
@@ -3173,7 +3235,7 @@ function ProgressView({
     }
   }, [orderId, round])
 
-  const stage = progress < 20 ? 'Recording the narration' : progress < 60 ? 'Placing your photos and clips' : progress < 90 ? 'Adding captions and music' : 'Finishing'
+  const stage = progress < 20 ? 'Recording the narration' : progress < 60 ? 'Placing your photos and clips' : progress < 90 ? (captions ? 'Adding captions and music' : 'Adding the music') : 'Finishing'
   const late = timedOut || stuck
   return (
     <div className="card">

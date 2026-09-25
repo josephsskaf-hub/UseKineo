@@ -11,7 +11,7 @@ import { openai } from '@/lib/openai'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { moderateContent } from '@/lib/safety/contentModeration'
 import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy'
-import { LANGUAGE_NAMES, resolveNarrationLanguage } from '@/lib/textLanguage'
+import { LANGUAGE_NAMES, narrationLanguage, resolveNarrationLanguage } from '@/lib/textLanguage'
 import { adsGate, loadAdsAccess, isMissingAdsTable } from '@/lib/ads/serverAccess'
 import {
   ADS_AUTO_DAILY_CAP, ADS_AUTO_SERVED_EVENT, ADS_AUTO_TEXT_MAX_CHARS, ADS_AUTO_TEXT_MIN_CHARS, ADS_AUTO_VERSION,
@@ -67,7 +67,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: moderationRefusalMessage(safety.reason), code: safety.reason === 'blocked' ? 'moderation' : `moderation_${safety.reason}` }, { status: moderationRefusalStatus(safety.reason) })
     }
 
-    const lang = resolveNarrationLanguage(body?.language, text).language
+    // KINEO-ADS-TESTE1-2026-09-26 — o idioma do navegador (pt-BR do fundador) virava a narração de um site em inglês. Ordem
+    // agora: o idioma declarado pela página do link > o idioma do texto > o do navegador > inglês.
+    const fromLink = narrationLanguage(body?.language)
+    const detected = resolveNarrationLanguage('en', text).detected
+    const lang = fromLink ?? narrationLanguage(detected) ?? narrationLanguage(body?.language_hint) ?? 'en'
     const { system, user: userMsg } = buildAutoBriefMessages(text, LANGUAGE_NAMES[lang])
     const completion = await openai.chat.completions.create(
       {
