@@ -22,7 +22,10 @@ export default async function AccountPage() {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) redirect('/login')
+  // KINEO-DUNNING-ACCOUNT-2026-09-25 — a carta de renovação recusada (send-renewal-declined) e os rascunhos 1 a 1 mandam
+  // a pessoa para /account trocar o cartão no "Manage billing". Deslogada, ela caía em /login SEM destino e, depois de
+  // entrar, pousava na home: o botão do portal ficava a um clique que ninguém sabe dar. O login honra ?redirect=.
+  if (!user) redirect('/login?redirect=%2Faccount')
 
   const { data: profile } = await supabase
     .from('profiles')
