@@ -87,7 +87,7 @@ const iUrl = idx(img, "if (!url) throw new Error('no image url in provider respo
 const iOut = idx(img, "const outputCheck = await moderateContent({ surface: 'images', stage: 'output'")
 const iPersist = idx(img, 'const stored = await persistImage(')
 ok(iIn > 0 && iInIf > iIn && iDebit > iInIf, '3a. /images: o texto é conferido e o 422/503 sai ANTES do débito — para TODOS os modelos (a porta não depende de modelKey)')
-ok(iOut > iUrl && iPersist > iOut && /if \(!outputCheck\.ok\) \{\n\s*await refundRenderCredits\(renderId\)/.test(img), '3b. /images: a imagem pronta é conferida antes de ir ao bucket; barrada, estorna e não guarda')
+ok(iOut > iUrl && iPersist > iOut && img.split('persistImage(').length - 1 === 1 && /if \(!outputCheck\.ok\) \{\n\s*await refundRenderCredits\(renderId\)/.test(img), '3b. /images: a imagem pronta é conferida antes de ir ao bucket (única chamada de persistImage); barrada, estorna e não guarda')
 ok(/imageUrls: \[url\]/.test(img.slice(iOut, iPersist)), '3c. /images: a porta de saída recebe a URL da imagem gerada')
 const svc = rd('lib/animate/service.ts')
 const fn = svc.slice(idx(svc, 'export async function startAnimateJob('))
