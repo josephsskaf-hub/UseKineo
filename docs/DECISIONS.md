@@ -2,6 +2,26 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
+## 2026-09-25 — Moderação de conteúdo em toda porta de geração e de upload (item 0 do brief de crescimento)
+
+**ORIGEM:** brief colado pelo fundador em 25/09 ("COMECE POR: item 0 e depois item 1"). O caso: /images gerou e guardou imagens de pedidos graves envolvendo menores em 2 contas (52749de6, 03/09; b9f49852, 17/09). As contas foram suspensas em 25/09 pela sessão Research com o ok do fundador; as 9 imagens foram preservadas (nada apagado). Só schnell e dev passavam o checker do fal, e um dos pedidos passou pelo dev mesmo assim.
+
+**O QUE ENTROU (código, sem mudar preço nem oferta):**
+- Régua única `lib/safety/moderationPolicy.ts` + porta `lib/safety/contentModeration.ts` (omni-moderation da OpenAI, gratuito, texto e imagem). Barra sexual/minors a partir de 0,02 (só texto tem esse sinal); conteúdo sexual (≥ 0,5 no texto, ≥ 0,3 com imagem); e termo de menor em 7 línguas + nota sexual ≥ 0,1. Violência não barra (a casa faz filme de guerra e história). FALHA FECHADA: fora do ar = nada gerado nem cobrado.
+- 16 portas: /images (entrada e saída), edição e ampliação de imagem, /animate e /animate-image (ponto único), gesto, cena de avatar com troca de rosto (entrada e saída), upload de avatar, avatar falante, clipe, personagem, upload do /footage (que alimenta Studio e Studio Ads), brief e roteiro final do Studio Ads. Origem só da pasta do próprio usuário em 6 rotas.
+- /footage decide o tipo pelos bytes do arquivo; foto barrada vai para `quarantine/` no mesmo bucket (a URL de uso morre, a prova fica). Nenhum arquivo barrado é apagado.
+- Todo bloqueio grava `content_moderation_blocked` (conta, superfície, motivos, notas, texto truncado, URL da prova); toda falha, `content_moderation_unavailable`.
+- `/api/admin/moderation-scan` (admin, só leitura): passa os pedidos antigos de `images` pela régua e devolve só ids, contas e notas — nunca o texto.
+- Calibração real: 0 de 14 textos e 0 de 36 fotos legítimas barrados (crianças em escola, praia, balé; fotos da padaria); 2 de 2 controles adultos barrados. Revisão adversarial de 43 agentes (37 achados confirmados) fechada na rodada 2. Guardião `test-moderacao-2026-09-25` com varredura: rota geradora nova sem porta = vermelho.
+
+**DECISÕES QUE FICAM COM O FUNDADOR (não feitas):**
+1. **Trava 8.2:** os motores do Studio (generate-video-*, lib/hollywood) mandam o texto do usuário ao fal sem a régua, e o Veo está no nível de segurança mais permissivo; o Kineo 1 aceita URL de `user-footage/<uid>/` sem passar pelo confirm do /footage. Consertar exige o "vai" nominal na trava.
+2. **As 9 imagens do incidente** seguem no bucket público (a Research perguntou sobre quarentena privada); denúncia e advogado.
+3. Vídeo enviado pelo usuário ainda passa sem checagem (o servidor não extrai quadro); `/api/generate-thumbnail` aceita texto sem login (OpenAI Images modera na origem, mas é custo aberto).
+
+**ITEM 1 (rascunhos 1 a 1, no Gmail do fundador):** Suliman (SA, Pro US$29, renovação recusada em 23/09 por saldo, 16 filmes) — como trocar o cartão; Emilio (Starter, 0 filmes, renova ~01/10) — um filme pronto da casa (Lituya Bay) e o Studio Ads incluso no plano. Conserto junto: `/account` deslogado agora leva o destino pelo login (antes, a carta de cobrança recusada pousava a pessoa na home, longe do "Manage billing").
+
+
 ## 2026-09-24 — Studio Ads LIGADO para clientes ("pode ligar") + relatório do Cowork conferido
 
 **DECISÃO APROVADA (fundador, 24/09/2026 ~20h BRT: "pode ligar"; publicou PUBLICAR-STUDIO-ADS-LIGADO-2409.bat ~20h28):** o Studio Ads (self-service do Kineo Empresas: a empresa sobe fotos/vídeos, a IA escreve e narra, o Kineo monta) abre para qualquer cliente em /ads a US$19,90 = 60 créditos + 12 meses de acesso (R$ 99,90 no caixa brasileiro, pagamento único). Interruptor em código: `ADS_PASS_LIVE_IN_CODE = true` (lib/ads/offer.ts); desligar de emergência = `NEXT_PUBLIC_ADS_PASS_LIVE=0` na Vercel + redeploy. Assinantes pagos entram sem passe; trial não. Revisão humana prometida em até 24 h.
