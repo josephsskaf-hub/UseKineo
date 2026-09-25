@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { MORE_NAV, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
+import { MORE_NAV, navItemIdFor, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef } from 'react'
@@ -159,7 +159,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
     return () => document.removeEventListener('pointerdown', closeOutside)
   }, [])
 
-  const primary = NAV_ITEMS.filter((item) => ['/studio', '/library', '/ads', '/pricing'].includes(item.href))
+  const primary = NAV_ITEMS.filter((item) => ['/studio', '/images', '/library', '/ads', '/pricing'].includes(item.href)) // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25
   const groups = [
     { label: 'More', links: MORE_LINKS.filter((item) => isLoggedIn || !item.signedIn) },
   ]
@@ -167,7 +167,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
     const item = primary.find((entry) => entry.href === href)!
     const active = isActive(pathname, item.href)
     return (
-      <Link key={href} href={href} className="kineo-mobile-tab"
+      <Link key={href} href={href} className="kineo-mobile-tab" data-nav-item={navItemIdFor(href)}
         aria-current={active ? (pathname === href ? 'page' : 'location') : undefined}
         data-active={active || undefined}>
         {item.icon}<span><UiLabel>{item.label}</UiLabel></span>
@@ -200,7 +200,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
             }}>×</button>
         </div>
         {group.links.map((item) => (
-          <Link key={item.href} href={item.href}
+          <Link key={item.href} href={item.href} data-nav-item={navItemIdFor(item.href)}
             aria-current={isActive(pathname, item.href) ? (pathname === item.href ? 'page' : 'location') : undefined}
             onClick={() => closeDisclosures(navRef.current)}>
             <UiLabel>{item.label}</UiLabel><span aria-hidden="true">↗</span>
@@ -211,7 +211,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
   )
 
   return (
-    <nav ref={navRef} aria-label="Mobile navigation"
+    <nav ref={navRef} aria-label="Mobile navigation" data-nav-surface="mobile" data-nav-area="app"
       className="fixed bottom-0 left-0 right-0 z-50 md:hidden kineo-mobile-nav"
       onKeyDown={(event) => {
         if (event.key !== 'Escape') return
@@ -225,8 +225,9 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
       }}>
       <div className="kineo-mobile-row">
         {primaryLink('/studio')}
-        {primaryLink('/library')}
+        {primaryLink('/images')}
         {primaryLink('/ads')}
+        {primaryLink('/library')}
         {primaryLink('/pricing')}
         {disclosure(groups[0])}
       </div>

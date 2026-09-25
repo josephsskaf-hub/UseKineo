@@ -11,7 +11,8 @@ for(const signedIn of [false,true])for(const language of ['en','es']){
  check(!hero.includes('kineo-interface-language')&&!hero.includes('home-jump'),'no language or duplicate shortcuts in hero')
  // React also emits lang on each option; attribute adjacency is not a contract.
  check(new RegExp('<option(?=[^>]*value="'+language+'")[^>]*selected=""').test(main),'current language selected')
- check(main.includes('href="/tools"')&&main.includes('href="/examples"')&&main.includes('href="#pricing"'),'canonical navigation retained')
+ // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 — o canônico virou Vídeo (/studio, com Exemplos dentro) · Imagem · Para empresas · Preços (/pricing, não mais #pricing).
+ check(['/studio','/images','/business-video-ads','/pricing','/examples'].every(h=>main.includes('href="'+h+'"'))&&!main.includes('href="#pricing"'),'canonical navigation retained')
  if(signedIn){
   check(main.indexOf('kineo-interface-language')<main.indexOf('540 credits'),'language precedes balance')
   check(main.includes('nav-dashboard')&&main.includes('540 credits'),'balance and Dashboard preserved')

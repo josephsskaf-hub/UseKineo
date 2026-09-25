@@ -3,7 +3,7 @@
 import KineoBolt from '@/components/KineoBolt'
 
 import Link from 'next/link'
-import { WORKSPACE_NAV, MORE_NAV, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
+import { WORKSPACE_NAV, MORE_NAV, navItemIdFor, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -224,6 +224,7 @@ function NavItem({
   return (
     <Link
       href={href}
+      data-nav-item={navItemIdFor(hrefPath)} // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 — medição nav_item_clicked
       aria-current={active ? (pathname === hrefPath ? 'page' : 'location') : undefined}
       onClick={handleClick}
       onMouseEnter={() => setHovered(true)}
@@ -597,7 +598,7 @@ export default function Sidebar({
         </Link>
 
         {/* Scrollable nav */}
-        <nav className="flex-1 overflow-y-auto flex flex-col" style={{ padding: '12px 10px 12px' }}>
+        <nav className="flex-1 overflow-y-auto flex flex-col" style={{ padding: '12px 10px 12px' }} data-nav-surface="sidebar" data-nav-area="app">
 
           {/* Main nav — push #053 swapped the old "History" item (which
               routed to Shorts Packs) for "My Videos" pointing at the new

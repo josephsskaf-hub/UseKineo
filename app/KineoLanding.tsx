@@ -894,7 +894,7 @@ export default function KineoLanding({
           <KineoBolt className="mk" size={30} />
           Kineo
         </Link>
-        <div className="nav-links">
+        <div className="nav-links" data-nav-surface="top" data-nav-area="public">
             {/* Editing tools and Arena temporarily withdrawn by the founder. */}
             {/* KINEO-NAV-4-ITENS-2026-09-25 — decisao do fundador (24/09): topo
                 publico com 4 itens (Create video · For businesses · Examples ·
@@ -908,8 +908,11 @@ export default function KineoLanding({
                 clique no proprio rotulo leva ao destino principal. */}
             {/* KINEO-NAV-MEGA-2026-08-17 — Video vira mega-menu: motores
                 (catalogo com preco) | ferramentas. Pares: bento + hero cards. */}
-            <span className="nd">
-              <Link href="/studio"><UiLabel>Create video</UiLabel><span className="nd-car" aria-hidden="true">▾</span></Link>
+            {/* KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 — decisão do fundador (25/09, "vídeo com submenu, podemos dar merge"):
+                topo = Vídeo (com submenu) · Imagem · Para empresas · Preços + Entrar. Exemplos mora dentro de Vídeo.
+                data-nav-item/surface/area = contrato de lib/navTelemetry (nav_item_clicked). */}
+            <span className="nd" data-nav-item="video">
+              <Link href="/studio"><UiLabel>Video</UiLabel><span className="nd-car" aria-hidden="true">▾</span></Link>
               <span className="nd-menu nd-mega">
                 <span className="nm-col">
                   <span className="nm-h"><UiLabel>Engines</UiLabel></span>
@@ -941,6 +944,7 @@ export default function KineoLanding({
                 <span className="nm-col">
                   <span className="nm-h"><UiLabel>Create</UiLabel></span>
                   <Link href="/studio"><span className="nm-ic">🎬</span><span className="nm-tx"><b><UiLabel>Studio</UiLabel></b><i><UiLabel>Every control, one screen</UiLabel></i></span></Link>
+                  <Link href="/examples" data-nav-item="examples"><span className="nm-ic">▦</span><span className="nm-tx"><b><UiLabel>Examples</UiLabel></b><i><UiLabel>Real renders, every engine</UiLabel></i></span></Link>
                   <Link href="/viral-now"><span className="nm-ic">🔥</span><span className="nm-tx"><b>Viral Now</b><i><UiLabel>Today’s trending topics</UiLabel></i></span></Link>
                   <Link href="/scripts"><span className="nm-ic">✍️</span><span className="nm-tx"><b><UiLabel>Scripts</UiLabel></b><i><UiLabel>Ready-to-shoot viral scripts</UiLabel></i></span></Link>
                 </span>
@@ -948,7 +952,6 @@ export default function KineoLanding({
                     menor e apagada, para o video continuar sendo a porta. */}
                 <span className="nm-col nm-more">
                   <span className="nm-h"><UiLabel>More tools</UiLabel></span>
-                  <Link href="/images"><UiLabel>Images</UiLabel></Link>
                   <Link href="/audio"><UiLabel>Audio</UiLabel></Link>
                   <Link href="/animate"><UiLabel>Animate a Photo</UiLabel></Link>
                   <Link href="/thumbnail-generator"><UiLabel>Thumbnails</UiLabel></Link>
@@ -956,33 +959,33 @@ export default function KineoLanding({
                 </span>
               </span>
             </span>
-            <Link href="/business-video-ads"><UiLabel>For businesses</UiLabel></Link>
-            <Link href="/examples"><UiLabel>Examples</UiLabel></Link>
-            <a href="#pricing"><UiLabel>Pricing</UiLabel></a>
+            <Link href="/images" data-nav-item="image"><UiLabel>Images</UiLabel></Link>
+            <Link href="/business-video-ads" data-nav-item="business"><UiLabel>For businesses</UiLabel></Link>
+            <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
           </div>
         <div className="nav-right">
           <InterfaceLanguageSelect />
           {/* KINEO-NAV-4-ITENS-2026-09-25 — "Log in" em texto ao lado do CTA de
               cadastro, so para visitante; no celular ele mora no menu. */}
-          {initialUser ? null : <Link className="nav-login" href="/login"><UiLabel>Log in</UiLabel></Link>}
+          {initialUser ? null : <Link className="nav-login" href="/login" data-nav-item="login"><UiLabel>Log in</UiLabel></Link>}
           {initialUser
             ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w nav-dashboard" style={{ padding: '12px 20px', fontSize: '14px' }} href="/studio"><UiLabel>Dashboard</UiLabel></Link></div>
             : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav'}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>}
           <div className="nav-toggle-wrap">
             <input type="checkbox" id="nav-toggle" className="nav-toggle-input" aria-label="Menu" aria-controls="mobile-nav-menu" />
             <span className="nav-toggle-btn" aria-hidden="true"><span className="bar" /><span className="bar" /><span className="bar" /></span>
-            <label htmlFor="nav-toggle" id="mobile-nav-menu" className="nav-mobile-menu">
+            <label htmlFor="nav-toggle" id="mobile-nav-menu" className="nav-mobile-menu" data-nav-surface="mobile" data-nav-area="public">
               {/* KINEO-NAV-4-ITENS-2026-09-25 — par do topo: os 4 itens + Log in
                   ou Dashboard; o resto vai para "More tools", secundario. */}
-              <Link href="/studio"><UiLabel>Create video</UiLabel></Link>
-              <Link href="/business-video-ads"><UiLabel>For businesses</UiLabel></Link>
-              <Link href="/examples"><UiLabel>Examples</UiLabel></Link>
-              <a href="#pricing"><UiLabel>Pricing</UiLabel></a>
+              <Link href="/studio" data-nav-item="video"><UiLabel>Video</UiLabel></Link>
+              <Link href="/images" data-nav-item="image"><UiLabel>Images</UiLabel></Link>
+              <Link href="/business-video-ads" data-nav-item="business"><UiLabel>For businesses</UiLabel></Link>
+              <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
               {initialUser
                 ? <Link className="btn btn-w" href="/studio"><UiLabel>Dashboard</UiLabel></Link>
-                : <Link href="/login"><UiLabel>Log in</UiLabel></Link>}
+                : <Link href="/login" data-nav-item="login"><UiLabel>Log in</UiLabel></Link>}
               <span className="nav-mobile-kicker"><UiLabel>More tools</UiLabel></span>
-              <Link className="nav-mobile-more" href="/images"><UiLabel>Images</UiLabel></Link>
+              <Link className="nav-mobile-more" href="/examples" data-nav-item="examples"><UiLabel>Examples</UiLabel></Link>
               <Link className="nav-mobile-more" href="/audio"><UiLabel>Audio</UiLabel></Link>
               <Link className="nav-mobile-more" href="/animate"><UiLabel>Animate</UiLabel></Link>
               <Link className="nav-mobile-more" href="/thumbnail-generator"><UiLabel>Thumbnails</UiLabel></Link>
