@@ -23,3 +23,7 @@ White + Graphite (palette study option 1) is the initial Light appearance. Refin
 ## QUESTÃO PENDENTE / LIMITES
 
 Final production page checks follow deployment. A visual/navigation sweep does not prove every engine render, payment method or third-party integration. Dark refinement and new automated Ads workflow are tomorrow's work. Historical media/render components keep local dark playback panels; this change does not recolor video content.
+
+## EVIDÊNCIA DE PRODUÇÃO — 25 September, follow-up
+
+`21bf8600` deployment READY. Home computed background `#f6f5f2`; menu midpoint equals the free interval midpoint between logo and account controls. Visited Studio, Images, Ads wizard, Library, Pricing, Examples, business landing, Audio, Animate, Avatar and Account: shared Light tokens present; desktop document widths did not overflow. Library revealed a pre-existing mixed-theme defect in the embedded History cards: hardcoded dark backgrounds with global text tokens. Fixed in `HistoryClient.tsx` using existing surface/action tokens, including search, empty states, info panels and button labels; media areas stay dark. No handlers or media URLs changed. Actual History JSX added to the offline comparison and inspected. Re-ran typecheck, Library gallery, sharing and five-improvement guards successfully after the fix.

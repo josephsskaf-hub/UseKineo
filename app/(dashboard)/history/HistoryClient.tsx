@@ -91,10 +91,10 @@ function chipStyle(cor: string, ativo: boolean, cursor: string = 'pointer') {
   return {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 0, minHeight: 38,
     padding: '0 8px', borderRadius: 10,
-    background: ativo ? `linear-gradient(180deg, ${cor}36 0%, ${cor}1c 100%)` : 'linear-gradient(180deg, rgba(255,255,255,0.065) 0%, rgba(255,255,255,0.025) 100%)',
-    border: `1px solid ${ativo ? cor + '8c' : 'rgba(255,255,255,0.13)'}`,
+    background: ativo ? 'var(--accent-soft)' : 'var(--card2)',
+    border: `1px solid ${ativo ? cor + '8c' : 'var(--border)'}`,
     boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.07)',
-    color: ativo ? cor : 'rgba(255,255,255,0.88)', fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.01em',
+    color: 'var(--text2)', fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.01em',
     lineHeight: 1.1, cursor, textDecoration: 'none', whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
   }
 }
@@ -1085,7 +1085,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
             cantos vazios. */}
         <div
           className="rounded-2xl p-10 sm:p-16 text-center"
-          style={{ background: '#131316', border: '1px solid var(--border)' }}
+          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
         >
           <svg width="120" height="96" viewBox="0 0 120 96" fill="none" aria-hidden="true" style={{ display: 'block', margin: '0 auto 18px' }}>
             <rect x="14" y="14" width="38" height="66" rx="8" stroke="rgba(255,255,255,.14)" strokeWidth="1.5" transform="rotate(-6 33 47)" />
@@ -1321,7 +1321,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
       {/* Stats */}
       {!embedded && <div
         className="inline-flex items-center gap-px mb-6 rounded-2xl overflow-hidden"
-        style={{ background: '#161618', border: '1px solid rgba(255,255,255,0.07)' }}
+        style={{ background: 'var(--card)', border: '1px solid rgba(255,255,255,0.07)' }}
       >
         {[
           { val: String(videos.length), label: 'Videos' },
@@ -1353,13 +1353,13 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
             placeholder="Search your videos…"
             aria-label="Search your videos by title or topic"
             className="w-full rounded-xl"
-            style={{ background: '#161618', border: '1px solid rgba(255,255,255,0.09)', color: 'var(--text, #f5f5f7)', fontSize: 16, padding: '11px 14px 11px 38px', outline: 'none' }}
+            style={{ background: 'var(--card)', border: '1px solid rgba(255,255,255,0.09)', color: 'var(--text, #f5f5f7)', fontSize: 16, padding: '11px 14px 11px 38px', outline: 'none' }}
           />
         </div>
       )}
 
       {query.trim() && visibleVideos.length === 0 && (
-        <div className="rounded-2xl p-8 text-center" style={{ background: '#161618', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="rounded-2xl p-8 text-center" style={{ background: 'var(--card)', border: '1px solid rgba(255,255,255,0.07)' }}>
           <p className="text-sm" style={{ color: 'var(--muted)', margin: 0 }}><UiLabel>
             No videos match &ldquo;</UiLabel>{query.trim()}<UiLabel>&rdquo;.
           </UiLabel></p>
@@ -1397,7 +1397,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
               <div
                 key={video.id}
                 style={{
-                  background: '#161618',
+                  background: 'var(--card)',
                   border: `1px solid ${isProcessing ? 'rgba(255,255,255,0.08)' : 'rgba(239,68,68,0.25)'}`,
                   borderRadius: 12,
                   overflow: 'hidden',
@@ -1412,7 +1412,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                     paddingTop: '177.78%',
                     overflow: 'hidden',
                     background: isProcessing
-                      ? 'linear-gradient(135deg, rgba(41,151,255,.10), #161618)'
+                      ? 'var(--accent-soft)'
                       : 'rgba(239,68,68,0.06)',
                   }}
                 >
@@ -1497,7 +1497,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
             <div
               key={video.id}
               style={{
-                background: '#161618',
+                background: 'var(--card)',
                 border: '1px solid rgba(255,255,255,0.08)',
                 borderRadius: 12,
                 overflow: 'hidden',
@@ -1524,7 +1524,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        background: '#161618',
+                        background: 'var(--card)',
                         gap: 10,
                         padding: 16,
                       }}
@@ -1683,10 +1683,10 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                       gridColumn: '1 / -1',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                       minHeight: 42, padding: '0 10px', borderRadius: 11,
-                      background: 'linear-gradient(180deg, #3fa9ff 0%, #2997ff 55%, #1f86ea 100%)',
-                      border: '1px solid rgba(120,190,255,0.7)',
-                      boxShadow: '0 6px 18px rgba(41,151,255,0.32), inset 0 1px 0 rgba(255,255,255,0.22)',
-                      color: '#fff', fontSize: '0.76rem', fontWeight: 800, letterSpacing: '0.01em',
+                      background: 'var(--indigo)',
+                      border: '1px solid var(--indigo)',
+                      boxShadow: 'var(--sh-cta)',
+                      color: 'var(--on-accent)', fontSize: '0.76rem', fontWeight: 800, letterSpacing: '0.01em',
                       cursor: downloadingId === video.id ? 'wait' : 'pointer',
                     }}
                   >

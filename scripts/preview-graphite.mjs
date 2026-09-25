@@ -14,13 +14,16 @@ const read=(file,before=false)=>before?execFileSync('git',['show',`${base}:${fil
 const escape=s=>s.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;')
 function homeCSS(before){const module={exports:{}};vm.runInNewContext(ts.transpileModule(read('app/kineoLandingTheme.ts',before),{compilerOptions:{module:1}}).outputText,{module,exports:module.exports,require:()=>({default:new Proxy({},{get:(_,key)=>String(key)})})});return module.exports.KINEO_LANDING_THEME_CSS}
 const pages=[['Home','app/KineoLanding.tsx',{}],['Studio','app/(dashboard)/studio/StudioClient.tsx',{}],['Images','app/(dashboard)/images/ImagesClient.tsx',{galleryLoading:false}],['Library','app/(dashboard)/library/LibraryClient.tsx',{loaded:true,vids:[]}],['Audio','app/(dashboard)/audio/AudioClient.tsx',{galleryLoading:false}],['Animate','app/(dashboard)/animate/AnimateClient.tsx',{}],['Avatar','app/(dashboard)/avatar/AvatarStudioClient.tsx',{}],['Pricing','app/pricing/PricingClient.tsx',{}]]
-const rendered=pages.map(([name,file,fixture])=>{console.error('Render '+name);return {name,html:renderPage(file,false,{...fixture,demoOffer:'current'})}})
+const historyProps={videos:[{id:'offline-demo',topic:'Example film — offline fixture',video_url:'/fixture.mp4',status:'completed',quality_mode:'seedance',created_at:'2026-09-25T10:00:00Z',published_at:null}],snapshotTime:Date.parse('2026-09-25T12:00:00Z'),embedded:true}
+pages.push(['History','app/(dashboard)/history/HistoryClient.tsx',{},historyProps],['Business','app/business-video-ads/page.tsx',{}])
+const rendered=pages.map(([name,file,fixture,props={}])=>{console.error('Render '+name);return {name,html:renderPage(file,false,{...fixture,demoOffer:'current'},props)}})
 const utilities=(await postcss([tailwind({content:rendered.map(p=>({raw:p.html,extension:'html'})),corePlugins:{preflight:true}})]).process('@tailwind base;@tailwind utilities;',{from:undefined})).css
 const docs=rendered.map(({name,html})=>({name,variants:[true,false].map(before=>{
  let content=html
+ if(before&&name==='History')content=renderPage('app/(dashboard)/history/HistoryClient.tsx',true,{demoOffer:'current'},historyProps,base)
  if(before&&name==='Home')content=content.replace(homeCSS(false),homeCSS(true))
  content=content.replace(/src="(\/(?:posters|videos)\/[^"?]+\.(?:webp|jpg|png))"/g,(match,url,ext)=>{const file=path.join('public',url);return fs.existsSync(file)?`src="data:image/${ext==='jpg'?'jpeg':ext};base64,${fs.readFileSync(file).toString('base64')}"`:match})
- return `<!doctype html><html lang="en" data-theme="light"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${utilities}${read('app/globals.css')}${read('app/appearance.css',before)}${name==='Home'?read('app/examples/ExamplesGallery.module.css',before):''}:root{--font-manrope:Arial;--font-inter:Arial;--font-display:Arial;--font-sans:Arial}body{margin:0}video{background:#20252b}</style><body>${content}</body></html>`
+ return `<!doctype html><html lang="en" data-theme="light"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${utilities}${read('app/globals.css')}${read('app/appearance.css',before)}${name==='Home'?read('app/examples/ExamplesGallery.module.css',before):name==='Business'?read('app/business-video-ads/businessAds.module.css',before):''}:root{--font-manrope:Arial;--font-inter:Arial;--font-display:Arial;--font-sans:Arial}body{margin:0}video{background:#20252b}</style><body>${content}</body></html>`
 })}))
 fs.mkdirSync(path.dirname(out),{recursive:true})
 for(const page of docs)for(const [i,html] of page.variants.entries())fs.writeFileSync(path.join(path.dirname(out),`${page.name.toLowerCase()}-${i?'after':'before'}.html`),html)
