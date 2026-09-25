@@ -4,7 +4,7 @@
 // Higgsfield, vestida com o Studio Kit. Multi-motor (FLUX Schnell/Dev +
 // Recraft V3 pra texto perfeito), aspecto, geracao em grade com Download e
 // Upscale 2x por imagem. Aprovado pra stage; sobe pra prod no ok do fundador.
-import { UiLabel } from '@/components/InterfaceLanguage'
+import { UiLabel, useUiCopy } from '@/components/InterfaceLanguage'
 import { useEffect, useState } from 'react'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import CreditsTopupModal from '@/components/CreditsTopupModal' // KINEO-TOPUP-POPUP-2026-08-18
@@ -15,18 +15,9 @@ import OutOfCreditsPlansModal from '@/components/OutOfCreditsPlansModal'
 import { outOfCreditsDestination } from '@/lib/credits/outOfCreditsPlans'
 // KINEO-FLUXO-NOVO-2026-09-25 — mede o clique em "Turn into video" (imagem → Animate).
 import { trackEvent } from '@/lib/analytics'
+import { IMG_ENGINES, type ImgModelKey } from '@/lib/imageModels'
 
-type ImgModelKey = 'schnell' | 'dev' | 'recraft' | 'nanobanana' | 'seedream' | 'grok'
 type ImgSize = 'square_hd' | 'portrait_16_9' | 'landscape_16_9'
-
-const IMG_ENGINES: { key: ImgModelKey; icon: string; name: string; tag?: string; desc: string; credits: string }[] = [
-  { key: 'schnell', icon: 'F', name: 'FLUX Schnell', desc: 'Instant drafts — ~2 seconds', credits: '1 cr' },
-  { key: 'dev', icon: 'F+', name: 'FLUX Dev', tag: 'Popular', desc: 'Sharp, detailed, photorealistic', credits: '2 cr' },
-  { key: 'seedream', icon: 'S', name: 'Seedream 5.0 Pro', desc: 'Deep prompt understanding, native text', credits: '3 cr' },
-  { key: 'grok', icon: '𝕏', name: 'Grok Imagine 2.0', desc: 'Highly aesthetic images by xAI', credits: '3 cr' },
-  { key: 'recraft', icon: 'R', name: 'Recraft V3', tag: 'Studio', desc: 'Perfect text rendering (thumbnails!)', credits: '4 cr' },
-  { key: 'nanobanana', icon: '🍌', name: 'Nano Banana Pro', tag: 'Studio', desc: 'Google’s top-ranked image model', credits: '5 cr' },
-]
 
 const SIZES: { key: ImgSize; label: string }[] = [
   { key: 'portrait_16_9', label: '▯ 9:16 · Vertical' },
@@ -37,8 +28,8 @@ const SIZES: { key: ImgSize; label: string }[] = [
 type Item = { id?: string | null; url: string; model: ImgModelKey | string; upscaled?: string | null; upscaling?: boolean }
 
 export default function ImagesClient() {
+  const ui = useUiCopy()
   const [model, setModel] = useState<ImgModelKey>('dev')
-  const [pickerOpen, setPickerOpen] = useState(false)
   const [size, setSize] = useState<ImgSize>('portrait_16_9')
   const [prompt, setPrompt] = useState('')
   const [busy, setBusy] = useState(false)
@@ -201,16 +192,76 @@ export default function ImagesClient() {
   }
 
   return (
-    <div className="stu">
+    <div className="stu images-workspace">
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
+      <style>{`
+        .stu.images-workspace{width:100%;min-width:0;max-width:none;background:var(--bg);color:var(--text);container:images-studio / inline-size}
+        .stu.images-workspace h1{color:var(--text)}
+        .stu.images-workspace .sub{color:var(--muted2);margin-bottom:24px}
+        .stu.images-workspace .grid.creation-grid{width:100%;max-width:none;grid-template-columns:minmax(0,1fr) minmax(260px,320px);gap:24px}
+        .stu.images-workspace .card{background:var(--card);border-color:var(--border);border-radius:var(--r-md,18px)}
+        .stu.images-workspace .lab{color:var(--text2)}
+        .stu.images-workspace .creation-input{padding:22px}
+        .stu.images-workspace textarea{min-height:clamp(260px,32vh,400px);background:var(--card2);border-color:var(--border);color:var(--text);font-size:16px}
+        .stu.images-workspace textarea::placeholder{color:var(--muted2);opacity:1}
+        .stu.images-workspace .pill{background:var(--card2);border-color:var(--border);color:var(--text2);min-height:40px}
+        .stu.images-workspace .pill:hover{border-color:var(--border2);color:var(--text)}
+        .stu.images-workspace .pill.on{background:var(--indigo);border-color:var(--indigo);color:var(--on-accent,#fff)}
+        .stu.images-workspace .cost{background:var(--accent-soft,var(--card));border-color:var(--border2);border-radius:var(--r-md,18px)}
+        .stu.images-workspace .cost::before{display:none}
+        .stu.images-workspace .cost .sum,.stu.images-workspace .cost .val b{color:var(--indigo)}
+        .stu.images-workspace .cost .val span,.stu.images-workspace .gnote{color:var(--muted2)}
+        .stu.images-workspace .go.ok{background:var(--indigo);color:var(--on-accent,#fff);box-shadow:none;border-radius:var(--r-sm,13px)}
+        .stu.images-workspace .go.no{background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:var(--r-sm,13px)}
+        .stu.images-workspace .creation-results{border-color:var(--border);padding-top:24px}
+        .stu.images-workspace .image-engine-picker{border:0;padding:0;margin:0 0 28px;min-width:0}
+        .stu.images-workspace .image-engine-picker legend{padding:0;margin-bottom:12px}
+        .stu.images-workspace .image-engines{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+        .stu.images-workspace .image-engine-option{position:relative;min-width:0;cursor:pointer}
+        .stu.images-workspace .image-engine-choice{position:absolute;width:1px;height:1px;opacity:0}
+        .stu.images-workspace .image-engine-card{display:flex;flex-direction:column;gap:10px;min-height:134px;height:100%;padding:15px;border:1px solid var(--border);border-radius:var(--r-sm,13px);background:var(--card);transition:border-color var(--dur-fast,150ms),background var(--dur-fast,150ms);text-align:start}
+        .stu.images-workspace .image-engine-option:hover .image-engine-card{border-color:var(--border2);background:var(--card2)}
+        .stu.images-workspace .image-engine-choice:checked+.image-engine-card{border-color:var(--indigo);background:var(--accent-soft,var(--card2));box-shadow:inset 0 0 0 1px var(--indigo)}
+        .stu.images-workspace .image-engine-choice:focus-visible+.image-engine-card{outline:2px solid var(--indigo);outline-offset:3px}
+        .stu.images-workspace .image-engine-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+        .stu.images-workspace .image-engine-icon{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:30px;height:30px;border:1px solid var(--border);border-radius:9px;background:var(--card2);color:var(--text);font-size:12px;font-weight:800}
+        .stu.images-workspace .image-engine-check{display:grid;place-items:center;width:18px;height:18px;border:1px solid var(--border2);border-radius:50%;color:transparent;font-size:11px}
+        .stu.images-workspace .image-engine-choice:checked+.image-engine-card .image-engine-check{border-color:var(--indigo);background:var(--indigo);color:var(--on-accent,#fff)}
+        .stu.images-workspace .image-engine-name{font-size:13px;font-weight:700;line-height:1.4;color:var(--text);overflow-wrap:anywhere}
+        .stu.images-workspace .image-engine-desc{font-size:11px;line-height:1.45;color:var(--muted2);overflow-wrap:anywhere}
+        @container images-studio (min-width:1150px){.stu.images-workspace .image-engines{grid-template-columns:repeat(6,minmax(0,1fr))}}
+        @container images-studio (max-width:700px){.stu.images-workspace .grid.creation-grid{grid-template-columns:minmax(0,1fr)}.stu.images-workspace .creation-input{padding:16px}}
+        @container images-studio (max-width:550px){.stu.images-workspace .image-engines{grid-template-columns:repeat(2,minmax(0,1fr))}.stu.images-workspace .image-engine-card{padding:12px;min-height:126px;gap:8px}}
+        @media(max-width:900px){.stu.images-workspace .grid.creation-grid{grid-template-columns:minmax(0,1fr);gap:18px}.stu.images-workspace .creation-input textarea{min-height:230px}}
+      `}</style>
 
       <h1><UiLabel>Images</UiLabel></h1>
       <p className="sub"><UiLabel>Type it. See it. Six image engines, one screen.</UiLabel></p>
 
+      <fieldset className="image-engine-picker">
+        <legend className="lab"><span className="n">1</span><UiLabel>Engine</UiLabel></legend>
+        <div className="image-engines">
+          {IMG_ENGINES.map((engine) => (
+            <label key={engine.key} className="image-engine-option">
+              <input className="image-engine-choice" type="radio" name="image-engine" value={engine.key}
+                checked={model === engine.key} onChange={() => setModel(engine.key)} />
+              <span className="image-engine-card">
+                <span className="image-engine-top" aria-hidden="true">
+                  <span className="image-engine-icon">{engine.icon}</span>
+                  <span className="image-engine-check">✓</span>
+                </span>
+                <span className="image-engine-name">{engine.name}</span>
+                <span className="image-engine-desc"><UiLabel>{engine.desc}</UiLabel></span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
 <div className="grid creation-grid">
 <div className="card creation-input">
-            <div className="lab"><span className="n">1</span><UiLabel>Your image</UiLabel></div>
-            <textarea aria-label="Your image" value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} maxLength={2000}
+            <div className="lab"><span className="n">2</span><UiLabel>Your image</UiLabel></div>
+            <textarea aria-label={ui('Your image')} value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={7} maxLength={2000}
               placeholder="A lighthouse on a cliff at dusk, storm rolling in, cinematic light — or a YouTube thumbnail with the text “ABANDONED”." />
             {/* KINEO-NOITE2-2026-08-17 (#5) — chips de ideia matam a pagina em
                 branco: um clique preenche o prompt. */}
@@ -239,46 +290,19 @@ export default function ImagesClient() {
               />
             )}
             {error && (
-              <p role="alert" style={{ marginTop: 10, padding: '9px 12px', borderRadius: 10, background: 'rgba(255,107,107,.08)', border: '1px solid rgba(255,107,107,.35)', color: '#ffb4b4', fontSize: 12.5 }}>
+              <p role="alert" style={{ marginTop: 10, padding: '9px 12px', borderRadius: 10, background: 'rgba(255,107,107,.08)', border: '1px solid rgba(255,107,107,.35)', color: 'var(--text)', fontSize: 12.5 }}>
                 ⚠️ {error}
                 {/* KINEO-AUDIT-401-2026-08-18: 401 vira porta, nao beco */}
                 {error.toLowerCase().includes('credits') && (
-                  <> <button type="button" onClick={openCreditsWall} style={{ color: '#7cc0ff', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><UiLabel>Add credits →</UiLabel></button></>
+                  <> <button type="button" onClick={openCreditsWall} style={{ color: 'var(--indigo)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><UiLabel>Add credits →</UiLabel></button></>
                 )}
                 {error.toLowerCase().includes('signed in') && (
-                  <> <a href="/login?redirect=/images" style={{ color: '#7cc0ff', fontWeight: 700 }}><UiLabel>Sign in →</UiLabel></a></>
+                  <> <a href="/login?redirect=/images" style={{ color: 'var(--indigo)', fontWeight: 700 }}><UiLabel>Sign in →</UiLabel></a></>
                 )}
               </p>
             )}
           </div>
 <div className="rail creation-settings">
-          <div style={{ position: 'relative' }}>
-            <button type="button" className="mdlbtn" onClick={() => setPickerOpen((o) => !o)}>
-              <span className="lab" style={{ marginBottom: 0 }}><span className="n">2</span><UiLabel>Engine</UiLabel></span>
-              <span className="mdlname" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span className="eng-ic" aria-hidden="true">{eng.icon}</span>
-                <b>{eng.name}</b>
-                <i style={{ marginLeft: 'auto' }}>▾</i>
-              </span>
-            </button>
-            {pickerOpen && (
-              <div className="picker">
-                {IMG_ENGINES.map((e) => (
-                  <button key={e.key} type="button" className={`pk${e.key === model ? ' on' : ''}`}
-                    onClick={() => { setModel(e.key); setPickerOpen(false) }}>
-                    <span className="eng-ic" aria-hidden="true">{e.icon}</span>
-                    <span className="pk-tx">
-                      <span className="t">
-                        <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
-                      </span>
-                      <span className="d">{e.desc}</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
           <div className="card">
             <div className="lab"><span className="n">3</span><UiLabel>Format</UiLabel></div>
             <div className="row">
@@ -302,8 +326,8 @@ export default function ImagesClient() {
 <div className="creation-results">
 {galleryFailed && (
             <div role="alert" className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', border: '1px solid rgba(251,191,36,.35)', background: 'rgba(251,191,36,.06)' }}>
-              <span style={{ fontSize: 13, color: '#fbbf24', fontWeight: 700 }}><UiLabel>We couldn’t load your images right now.</UiLabel></span>
-              <span style={{ fontSize: 12.5, color: 'var(--txt2,#9aa0a6)' }}><UiLabel>Your images and credits are safe — this is just a temporary read hiccup.</UiLabel></span>
+              <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 700 }}><UiLabel>We couldn’t load your images right now.</UiLabel></span>
+              <span style={{ fontSize: 12.5, color: 'var(--muted2)' }}><UiLabel>Your images and credits are safe — this is just a temporary read hiccup.</UiLabel></span>
               <button type="button" className="pill" onClick={loadGallery}><UiLabel>↻ Try again</UiLabel></button>
             </div>
           )}
@@ -313,7 +337,7 @@ export default function ImagesClient() {
               <div className="lab"><UiLabel>My Images</UiLabel></div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} style={{ aspectRatio: '3/4', borderRadius: 12, border: '1px solid rgba(255,255,255,.06)', background: 'linear-gradient(100deg, rgba(255,255,255,.035) 40%, rgba(255,255,255,.09) 50%, rgba(255,255,255,.035) 60%)', backgroundSize: '200% 100%', animation: 'imgsk 1.4s linear infinite', animationDelay: `${(i % 3) * 120}ms` }} />
+                  <div key={i} style={{ aspectRatio: '3/4', borderRadius: 12, border: '1px solid var(--border)', background: 'linear-gradient(100deg, var(--card) 40%, var(--card2) 50%, var(--card) 60%)', backgroundSize: '200% 100%', animation: 'imgsk 1.4s linear infinite', animationDelay: `${(i % 3) * 120}ms` }} />
                 ))}
               </div>
             </div>
@@ -352,7 +376,7 @@ export default function ImagesClient() {
                           onChange={(e) => setEditTxt(e.target.value)}
                           onKeyDown={(e) => { if (e.key === 'Enter') applyEdit(i) }}
                           placeholder="make it sunset · teal palette · remove text…"
-                          style={{ flex: 1, minWidth: 0, padding: '8px 10px', borderRadius: 9, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(41,151,255,.35)', color: '#f5f5f7', fontSize: 12, outline: 'none' }}
+                          style={{ flex: 1, minWidth: 0, padding: '8px 10px', borderRadius: 9, background: 'var(--card2)', border: '1px solid var(--border2)', color: 'var(--text)', fontSize: 16 }}
                         />
                         <button type="button" className="pill on" disabled={editBusy || !editTxt.trim()} onClick={() => applyEdit(i)}>
                           {editBusy ? '…' : 'Go'}
