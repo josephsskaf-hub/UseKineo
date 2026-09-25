@@ -65,7 +65,7 @@ const dialog=document.getElementById('film-dialog');document.querySelectorAll('[
 `;
 const pages={business,home,video,studio,library,explore,guide};
 const labels={business:'Business & Ads',home:'Home',video:'Video Studio',studio:'Studio Ads',library:'Library',explore:'Examples',guide:'Guia da identidade'};
-module.exports={pages,css,interaction,labels,serviceCards,dfy,ads,models,fonts,assets:{asset,restaurant,bay,robot,volcano}};
+module.exports={pages,css,interaction,labels,serviceCards,dfy,ads,models,fonts,load,assets:{asset,restaurant,bay,robot,volcano}};
 if(require.main===module){
 for(const [key,body] of Object.entries(pages)){
  const html=`<!doctype html><html lang="${key==='guide'?'pt-BR':'en'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>${labels[key]} · Kineo neutral design</title><style>${css}</style></head><body class="${['video','studio','library'].includes(key)?'workspace':''}" data-theme="light"><div class="proposal-label">PROPOSTA VISUAL · Interface e textos em avaliação · Sem compras ou geração</div>${body}<div class="toast" role="status" hidden>Prévia de design: esta ação não realiza compras, uploads ou geração.</div><dialog id="film-dialog"><video controls playsinline></video><p>Existing Kineo film preview. This is not a client ad or a new generation.</p><form method="dialog"><button class="btn secondary small">Close</button></form></dialog><script>${interaction}</script></body></html>`;
