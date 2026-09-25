@@ -137,8 +137,13 @@ const HL = carrega('lib/textLanguage').HOLLYWOOD_LANGUAGES
 ok(JSON.stringify([...HL].sort()) === JSON.stringify(['en', 'es', 'pt']), `6f. a lista de idiomas do texto é a do código (HOLLYWOOD_LANGUAGES = ${[...HL]})`)
 ok(/A new account's first film is free on Kineo 1 \(10-credit trial, no card; watermarked\)/.test(instr) && /Credits are per 60s \(35s x35\/60, 90s x1\.5, rounded up\)/.test(instr) && /Yearly \(Starter, Creator, Studio\) = ten months\./.test(instr) && /money-back: 7 days after the first charge only/.test(instr),
   '6g. os 4 acertos de texto: conta nova, 35/60, anual sem Autopilot, reembolso só na 1ª cobrança')
-const arquivoColar = 'C:/kineo/docs/GPT-INSTRUCOES-V3-COLAR-2026-09-24.txt'
-if (existsSync(arquivoColar)) ok(readFileSync(arquivoColar, 'utf8').replace(/\r\n/g, '\n').replace(/\n+$/, '') === instr, '6h. o arquivo de colar do fundador é idêntico à seção C')
+// COWORK-RELATORIO-2026-09-24 (achado 1) — o arquivo de colar vivia só no disco do fundador (C:/kineo/docs, fora do git) e
+// esta checagem PULAVA em silêncio em qualquer outra máquina. Agora ele mora no repo e a igualdade é obrigatória: quem
+// muda a seção C muda o .txt no mesmo commit, senão a fila fica vermelha.
+const arquivoColar = 'docs/GPT-INSTRUCOES-V3-COLAR-2026-09-24.txt'
+const colar = existsSync(join(RAIZ, arquivoColar)) ? rd(arquivoColar).replace(/^\uFEFF/, '').replace(/\n+$/, '') : null
+ok(colar !== null, '6h. o arquivo de colar do fundador está no repo (docs/GPT-INSTRUCOES-V3-COLAR-2026-09-24.txt)')
+ok(colar === instr, `6h2. o arquivo de colar é idêntico à seção C (${colar === null ? 'ausente' : [...colar].length + ' contra ' + [...instr].length + ' caracteres'})`)
 // GPT-COWORK-FOLLOWUP-2026-09-24 — o editor do GPT RECUSOU o import da v1.3.2: a description de getKineoFacts tinha 532
 // caracteres e o limite de operação é 300 (o Cowork encurtou só no editor; o próximo "Import from URL" quebraria de novo).
 const METODOS = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace']

@@ -37,6 +37,9 @@ docs/KINEO-EMPRESAS-STRIPE-2026-09-23.md (webhook dos links Express/Pro).
 - **(e) Resposta:** **200.** `recordPaymentSuccess` roda em try/catch (:1253), `recordDfyOrderPaid` inteiro em
   try/catch (:957) e nunca lança; o `break` cai no `return NextResponse.json({ received: true })` (:2685). O 500
   (:2745) só existe no catch, que o caminho Empresas não alcança. Reentrega do mesmo evento retoma (idempotente).
+  ⚠ SUPERADO na mesma noite (relatório do Cowork + auditoria de 13 agentes): o 200 com o pedido FORA do banco perdia
+  pedido pago sem reenvio. Desde o commit "Webhook Stripe: pedido pago das Empresas nao se perde mais", o erro de
+  gravação devolve 500 e a Stripe reenvia; o 200 só sai com a linha gravada. Ver DECISIONS 24/09 "Studio Ads LIGADO".
 - **Guardião estendido** (não criado): `scripts/test-tres-jogadas-servidor-2026-09-23.mjs`, bloco
   "GPT-COWORK-FOLLOWUP-2026-09-24 (P0)" — roda as funções do webhook (transpile + vm) com sessões no formato da
   Stripe (sem metadata, em BRL): detecção pelos DOIS plinks (string e objeto), controle (bulk20 da casa e link

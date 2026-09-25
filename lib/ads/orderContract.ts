@@ -12,7 +12,7 @@ import type { AdsBrief, AdsMediaItem, AdsOrderStatus } from './types'
 import { adsModelById } from './models'
 
 export const ADS_ORDER_MAX_DRAFTS_PER_USER = 20
-export const ADS_MEDIA_MAX_ITEMS = 13 // logo + até 10 fotos + até 3 vídeos, com folga de 0 — o passo 2 da tela bloqueia antes
+export const ADS_MEDIA_MAX_ITEMS = 13 // logo + até 12 fotos ou vídeos (MAX_MEDIA = 12 na tela do passo 2, que bloqueia antes)
 export const ADS_BRIEF_LIMITS = { business: 200, offer: 300, contact: 200, audience: 200, extraKeys: 10, extraValue: 300 } as const
 const CTAS: readonly AdsBrief['cta'][] = ['call', 'whatsapp', 'visit', 'buy', 'book', 'signup']
 const TONES: readonly AdsBrief['tone'][] = ['warm', 'direct', 'premium']

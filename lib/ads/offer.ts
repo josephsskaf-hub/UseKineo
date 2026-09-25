@@ -12,9 +12,9 @@
 // centavo viram o mesmo pedido. Lista dos valores one-time já ocupados abaixo; o guardião
 // scripts/test-ads-fundacao-2026-09-25.mjs prova que o passe não colide.
 //
-// INTERRUPTOR: NEXT_PUBLIC_ADS_PASS_LIVE=1 liga botão E rota. Sem a env (ou qualquer outro
-// valor) tudo sobe desligado — "env nova só vale em deploy novo", então a env entra na
-// Vercel ANTES do deploy que liga.
+// INTERRUPTOR: desde 24/09 (~20h28 BRT, "pode ligar") o passe está LIGADO em código (ADS_PASS_LIVE_IN_CODE,
+// abaixo). Desligar de emergência: NEXT_PUBLIC_ADS_PASS_LIVE=0 na Vercel + deploy ("env nova só vale em deploy
+// novo"). O mesmo interruptor tira o Studio Ads do /llms.txt e do /api/facts.
 
 export const ADS_PRODUCT_NAME = 'Studio Ads' as const
 export const ADS_OFFER_VERSION = 'studio_ads_v1' as const
@@ -65,14 +65,16 @@ export function adsCoveredByPass(seconds: 35 | 60, credits: number = ADS_PASS_CR
   return Math.floor(credits / cost)
 }
 
-/** Copy pública do passe — lida pela página e pelo llms.txt; tudo que está aqui é executado pelo produto. */
+/** Copy pública do passe — lida pela página /ads e, via lib/growth/studioAdsFacts.ts, pelo /llms.txt e pelo /api/facts;
+ *  tudo que está aqui é executado pelo produto. */
 export function adsPassCopy() {
   return {
     name: ADS_PRODUCT_NAME,
     price: adsPassPriceLabel(),
     headline: 'Your photos, your logo, your offer — a narrated vertical ad, today.',
     includes: [
-      `${ADS_PASS_CREDITS} credits (about ${adsCoveredByPass(35)} ads of 35 s or ${adsCoveredByPass(60)} of 60 s on Kineo 1)`,
+      // Verificação da Research (24/09): 6 dos 8 modelos são de 35 s; o "12 de 60 s" só vale nos modelos longos.
+      `${ADS_PASS_CREDITS} credits (about ${adsCoveredByPass(35)} ads of 35 s, or ${adsCoveredByPass(60)} of 60 s with the longer models, on Kineo 1)`,
       'Script written from your brief, narration in your language, captions and original music',
       'Your photos and clips inside the film, your logo and call to action on the last frame',
       'A human editor reviews your first ad within 24 hours and sends a corrected version if anything is off',
