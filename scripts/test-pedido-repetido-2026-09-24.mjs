@@ -79,7 +79,8 @@ for (const [n, c] of await provas(roda(SRC))) checa(n, c)
 
 // (5) ligação na rota (trava 8.2, autorizada)
 const FAST = rd('app/api/generate-video-fast/route.ts')
-const iTeto = FAST.indexOf("return NextResponse.json({ error: 'Prompt is too long (5000 chars max).' }, { status: 400 })")
+// KINEO-PORTA-FORMATO-2026-09-24 mudou o teto para analyzePromptMaxChars(script_mode): a frase passou a ter o numero variavel.
+const iTeto = FAST.search(/return NextResponse\.json\(\{ error: [`'"]Prompt is too long \(/)
 const iDedupe = FAST.indexOf('const pedidoDigital = fastRequestFingerprint(')
 const iChegada = FAST.indexOf("name: 'generation_dispatch_received'")
 checa('(5) checagem depois do teto de texto e antes de marcar a chegada', iTeto > 0 && iDedupe > iTeto && iChegada > iDedupe)

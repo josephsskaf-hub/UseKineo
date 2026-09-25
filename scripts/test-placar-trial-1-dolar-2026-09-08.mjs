@@ -19,7 +19,7 @@ checa('payment_success carrega card_trial (o $1 fica distinguível)', /card_tria
 checa('fatura paga vira evento subscription_invoice_paid', /name: 'subscription_invoice_paid',/.test(wh))
 checa('o evento diz se foi conversão de trial (plano anterior *_trial)', /trial_conversion: previousPlanNormalized\.endsWith\('_trial'\),/.test(wh))
 checa('o evento carrega valor, moeda e créditos concedidos', /amount_paid: invoice\.amount_paid \?\? 0,/.test(wh) && /credits_granted: renewalCredits,/.test(wh))
-checa('o plano anterior é lido do perfil (select com plan)', /\.select\('id, stripe_customer_id, stripe_subscription_id, plan'\)/.test(wh))
+checa('o plano anterior é lido do perfil (select com plan)', /\.select\('id, stripe_customer_id, stripe_subscription_id, plan(, video_credits)?'\)/.test(wh)) // KINEO-RENOVACAO-PRESERVA-CREDITO-COMPRADO-2026-09-25: o select passou a trazer o saldo
 const iUpdate = wh.indexOf("            plan: renewalTier,")
 const iEvent = wh.indexOf("name: 'subscription_invoice_paid'")
 checa('o evento sai DEPOIS do perfil atualizado (nunca antes do dinheiro virar acesso)', iUpdate > 0 && iEvent > iUpdate)

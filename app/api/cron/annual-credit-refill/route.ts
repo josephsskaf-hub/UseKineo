@@ -21,6 +21,7 @@
 // DRY-RUN por padrão; só escreve com ?confirm=SEND (o vercel.json agenda COM o
 // token — lição de 01/09: dois crons dormiram 30 dias sem ele).
 import { NextRequest, NextResponse } from 'next/server'
+import { renewalBalance } from '@/lib/credits/renewalBalance' // KINEO-RENOVACAO-PRESERVA-CREDITO-COMPRADO-2026-09-25
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createHash } from 'node:crypto'
 import { stripe } from '@/lib/stripe'
@@ -101,7 +102,7 @@ export async function GET(req: NextRequest) {
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('id, email, plan, stripe_subscription_id')
+        .select('id, email, plan, stripe_subscription_id, video_credits')
         .eq('id', userId)
         .maybeSingle()
       if (profileError || !profile) { skipped.push({ ...grant, why: 'no_profile' }); continue }
@@ -131,10 +132,12 @@ export async function GET(req: NextRequest) {
         // 23505 = outra rodada gravou o razão no mesmo instante; ela conclui o grant.
         if (insertError) { skipped.push({ ...grant, why: insertError.code === '23505' ? 'ledger_race' : `ledger_write:${insertError.code}` }); continue }
       }
-      // SET, não soma (no rollover), o mesmo UPDATE da renovação mensal do webhook.
+      // KINEO-RENOVACAO-PRESERVA-CREDITO-COMPRADO-2026-09-25 — a mesma regra da renovação mensal do webhook: a cota do
+      // plano zera (sem rollover), o que passa de uma cota (comprado/dado) sobrevive.
+      const renovacao = renewalBalance(profile.video_credits, credits)
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ video_credits: credits, is_pro: true, plan: tier, cinematic_tokens: annualRefillCinematicTokens(tier) })
+        .update({ video_credits: renovacao.balance, is_pro: true, plan: tier, cinematic_tokens: annualRefillCinematicTokens(tier) })
         .eq('id', userId)
       if (updateError) {
         // O razão fica granted:false: a próxima rodada tenta de novo em vez de perder o mês.

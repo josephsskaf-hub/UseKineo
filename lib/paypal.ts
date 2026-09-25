@@ -11,6 +11,7 @@
 // and persisted in the paypal_config table — zero extra env vars.
 
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
+import { renewalBalance } from '@/lib/credits/renewalBalance' // KINEO-RENOVACAO-PRESERVA-CREDITO-COMPRADO-2026-09-25
 import { TIER_PRICES, ANNUAL_PRICES, TIER_CREDITS, PACK_CREDITS } from '@/lib/checkoutPricing'
 
 export type PayPalTier = 'starter' | 'basic' | 'pro'
@@ -299,12 +300,14 @@ export async function activateSubscription(
 }
 
 export async function renewSubscriptionCredits(admin: Admin, userId: string, tier: PayPalTier): Promise<void> {
-  // Mirrors Stripe renewal semantics: balance RESETS to the plan allowance.
+  // KINEO-RENOVACAO-PRESERVA-CREDITO-COMPRADO-2026-09-25 — espelha a Stripe: a cota do plano zera, o comprado sobrevive.
   const credits = PAYPAL_PLAN_CREDITS[tier]
+  const { data: atual } = await admin.from('profiles').select('video_credits').eq('id', userId).maybeSingle()
+  const renovacao = renewalBalance((atual as { video_credits?: unknown } | null)?.video_credits, credits)
   const { error } = await admin
     .from('profiles')
-    .update({ video_credits: credits, cinematic_tokens: tier === 'pro' ? 1 : 0, is_pro: true, plan: tier })
+    .update({ video_credits: renovacao.balance, cinematic_tokens: tier === 'pro' ? 1 : 0, is_pro: true, plan: tier })
     .eq('id', userId)
   if (error) console.error('[paypal] renewal grant failed:', error.message, userId)
-  else console.log(`[paypal] renewal: ${tier} → user ${userId} (credits reset to ${credits})`)
+  else console.log(`[paypal] renewal: ${tier} → user ${userId} (${credits} + ${renovacao.carried} carried = ${renovacao.balance})`)
 }

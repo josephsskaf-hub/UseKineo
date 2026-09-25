@@ -69,6 +69,7 @@ import {
 } from '@/lib/affiliateLedger'
 import { CARD_ENTRY_TRIAL_STATUS } from '@/lib/entryPolicy'
 import { renewalCreditsForInvoice } from '@/lib/settlementCurrency'
+import { RENEWAL_CARRY_VERSION, renewalBalance } from '@/lib/credits/renewalBalance' // KINEO-RENOVACAO-PRESERVA-CREDITO-COMPRADO-2026-09-25
 
 // KINEO-PILOT-99-2026-07-26 — fallback por valor para o piloto de $99, QUALIFICADO
 // POR MOEDA. Sem a moeda isto seria um bug de caixa: topup40 em INR custa 49900 e
@@ -2191,7 +2192,7 @@ export async function POST(req: NextRequest) {
 
         const { data: renewalProfile, error: renewalProfileError } = await supabase
           .from('profiles')
-          .select('id, stripe_customer_id, stripe_subscription_id, plan')
+          .select('id, stripe_customer_id, stripe_subscription_id, plan, video_credits')
           .eq('id', renewalUserId)
           .maybeSingle()
         if (renewalProfileError || !renewalProfile?.id) {
@@ -2223,12 +2224,15 @@ export async function POST(req: NextRequest) {
         // Basic = 0. Resetting (not adding) keeps the monthly cap honest
         // even if the user never spent the prior month's token.
         const renewalCinematicTokens = (renewalTier === 'pro' || renewalTier === 'autopilot') ? 1 : 0
+        // KINEO-RENOVACAO-PRESERVA-CREDITO-COMPRADO-2026-09-25 — o SET apagava o crédito COMPRADO (barra, packs, passe)
+        // e o dado pela casa. Agora só a cota do plano zera; o que passa de uma cota sobrevive (lib/credits/renewalBalance).
+        const renovacao = renewalBalance(renewalProfile.video_credits, renewalCredits)
         // Push #416 — never let a legacy subscription renewal overwrite a
         // manually-managed admin account.
         const { data: renewedProfile, error: renewErr } = await supabase
           .from('profiles')
           .update({
-            video_credits: renewalCredits,
+            video_credits: renovacao.balance, // KINEO-RENOVACAO-PRESERVA-CREDITO-COMPRADO-2026-09-25
             is_pro: true,
             plan: renewalTier,
             cinematic_tokens: renewalCinematicTokens,
@@ -2246,7 +2250,7 @@ export async function POST(req: NextRequest) {
         } else {
           entitlementConfirmed = true
           entitlementPending = false
-          console.log(`[stripe webhook] renewal: ${renewalTier} (${renewalCredits}, cin=${renewalCinematicTokens}) → user ${renewalUserId}`)
+          console.log(`[stripe webhook] renewal: ${renewalTier} (${renewalCredits} + ${renovacao.carried} carried = ${renovacao.balance}, cin=${renewalCinematicTokens}) → user ${renewalUserId}`)
         }
         // KINEO-PLACAR-TRIAL-2026-09-08 — a fatura paga (renovacao OU a primeira
         // cobranca do dia 8 depois do trial de $1) nunca virava evento: o placar so
@@ -2267,6 +2271,9 @@ export async function POST(req: NextRequest) {
             amount_paid: invoice.amount_paid ?? 0,
             currency: invoice.currency ?? 'usd',
             credits_granted: renewalCredits,
+            credits_carried: renovacao.carried, // KINEO-RENOVACAO-PRESERVA-CREDITO-COMPRADO-2026-09-25
+            balance_after: renovacao.balance,
+            carry_version: RENEWAL_CARRY_VERSION,
           },
         })
 
