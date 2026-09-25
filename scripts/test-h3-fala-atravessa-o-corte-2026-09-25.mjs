@@ -47,8 +47,9 @@ const montar = (fatia) => roda(`export async function rodar(ctx: any) {\n  const
 console.log('== âncoras do compose ==')
 const fatia = fatiaDe(compose)
 checa('fatia medição → recusa existe no compose', Boolean(fatia))
-checa('parte 1: acima de ×1,10 a cena ainda é acelerada até o teto SE a sobra couber na folga das vizinhas (folgaVizinha)', fatia.includes('KINEO-FALA-ATRAVESSA-O-CORTE-2026-09-25 (parte 1)') && fatia.includes('const sobra = Math.round((m.dur / FALA_CABE_MAX_FATOR - footage) * 1000) / 1000') && fatia.includes('if (sobra > folga + 0.01) {') && fatia.includes('fator = FALA_CABE_MAX_FATOR'))
-checa('parte 2: a travessia (J-cut na cauda da anterior, L-cut sobre a cabeça da seguinte) roda ANTES da recusa, sobre a timeline final', fatia.includes('KINEO-FALA-ATRAVESSA-O-CORTE-2026-09-25 (parte 2)') && fatia.indexOf('const janelas = new Map') > fatia.indexOf('KINEO-TAIL-2026-08-20') && fatia.indexOf('if (recusaTravessia) {') > fatia.indexOf('const janelas = new Map'))
+checa('parte 1: dentro de ×1,10 a cena é re-sintetizada como antes; acima do teto quem decide é a travessia (parte 3)', fatia.includes('const resintetizar = async (m: (typeof measured)[number], fator: number, footage: number): Promise<boolean> => {') && fatia.includes('acima do teto: a travessia do corte decide') && fatia.includes('await resintetizar(m, fator, footage)') && !fatia.includes('folgaVizinha'))
+checa('parte 2: a travessia (J-cut na cauda da anterior, L-cut sobre a cabeça da seguinte) roda sobre a timeline final, depois do TAIL, antes da recusa', fatia.includes('KINEO-FALA-ATRAVESSA-O-CORTE-2026-09-25 (parte 2)') && fatia.indexOf('if (!recusaTravessia) break') > fatia.indexOf('KINEO-TAIL-2026-08-20') && fatia.indexOf('if (recusaTravessia) {') > fatia.indexOf('if (!recusaTravessia) break'))
+checa('parte 3: recusa numa cena acima do teto → re-síntese a ×1,10 só se a sobra couber no vão que a travessia mediu (capacidade), uma vez por cena, e a montagem é refeita do slot pós-verificação', fatia.includes('KINEO-FALA-ATRAVESSA-O-CORTE-2026-09-25 (parte 3)') && fatia.includes('if (rodada > 1) hollywoodClips.forEach((c, i) => { c.seconds = originalFootageSeconds[i] })') && fatia.includes('if (sobra > rt.capacidade + 0.01) {') && fatia.includes('aceleradasNaTravessia.has(rt.sceneIdx)') && fatia.includes('if (!(await resintetizar(m, FALA_CABE_MAX_FATOR, footage))) break'))
 checa('só cenas narradas por TTS cedem ou recebem (diálogo/host de voz nativa nunca)', fatia.includes("const vaoAnterior = adiado === 0 && prev && ant && (prev.engine === 'support' || prev.engine === 'cinematic') ? r3(secondsOf(prev) - (atraso.get(i - 1) ?? 0) - ant.dur) : null") && fatia.includes("const vaoSeguinte = next && prox && (next.engine === 'support' || next.engine === 'cinematic') ? r3(secondsOf(next) - prox.dur) : null"))
 checa('respiro entre falas: 0,4 s de preferência nos dois lados, 0,2 s no aperto, nunca menos (duas passadas); a narração seguinte espera o avanço + respiro', fatia.includes('const RESPIRO_TRAVESSIA_S = FALA_CABE_RESPIRO_S') && fatia.includes('const RESPIRO_MINIMO_S = 0.2') && fatia.includes('for (const respiro of [RESPIRO_TRAVESSIA_S, RESPIRO_MINIMO_S]) {') && fatia.includes('tomar(falta, vaoSeguinte, avanca, respiro + respiro)') && fatia.includes('Math.max(RESPIRO_MINIMO_S, vaoSeguinte - avanca - RESPIRO_MINIMO_S)') && fatia.includes('if (falta <= 0.01 && narradaTts && next) {') && fatia.includes('if (faltaRespiro > 0.01 && vaoSeguinte !== null && avanca === 0) {'))
 checa('a recusa honesta continua (reason scene_speech_exceeds_footage, estorno via rejectBeforeProviderSubmission) e agora deixa evento compose_refused com cena e estouro', fatia.includes("reason: 'scene_speech_exceeds_footage'") && fatia.includes("await logComposeRefusal('scene_speech_exceeds_footage', authenticatedUserId, {") && fatia.includes('scene: rt.sceneIdx + 1, scene_seconds: rt.slot, speech_seconds:'))
@@ -138,17 +139,32 @@ console.log('== (a) reprodução na origin/main: o compose de lá recusa o Polo 
   }
 }
 
-console.log('== (b) candidato: a cena 7 acelera até ×1,10 e o filme segue ==')
+console.log('== (b) candidato: com vizinhas folgadas a cena 7 atravessa o corte sem mexer na voz ==')
 {
   const { ctx, sinteses, recusas, eventos, clips, pending } = mundo(POLO)
   const r = await montar(fatia)(ctx)
   const corrigidas = sinteses.slice(12)
-  checa(`sem 422: ${sinteses.length} sínteses = 12 medições + ${corrigidas.length} correção (só a cena 7), nenhuma recusa, nenhum evento de recusa`, r.status !== 422 && r.rejeitado === null && corrigidas.length === 1 && wordsOf(corrigidas[0]?.text) === 22 && recusas.length === 0 && eventos.length === 0)
-  checa('a correção usa persona × 1,10 = 0,99 (voz natural) e a fala corrigida cabe no clipe (9,9 s em 10 s)', Math.abs((corrigidas[0]?.speed ?? 0) - PERSONA.defaultSpeed * 1.1) < 1e-9 && r.measured[6].dur <= 10 && r.measured[6].dur > 9.5)
+  const j = r.janelas
+  const w6 = j?.get(6)
+  checa(`sem 422 e sem síntese extra: ${sinteses.length} sínteses = 12 medições + ${corrigidas.length} correção (a travessia bastou), nenhuma recusa, nenhum evento`, r.status !== 422 && r.rejeitado === null && corrigidas.length === 0 && recusas.length === 0 && eventos.length === 0)
+  checa('a cena 7 (10,9 s) começa 0,42 s antes e avança 0,47 s; a voz fica como foi gravada', w6 && w6.antecipa === r3(10 - 19 / RITMO - 0.4) && w6.avanca === r3(9 - 16 / RITMO - 0.8) && r.measured[6].dur === 10.9)
   checa('ordem intacta, texto ORIGINAL em toda cena (nenhuma palavra cortada)', r.measured.map((m) => m.sceneIdx).join(',') === '0,1,2,3,4,5,6,7,8,9,10,11' && r.measured.every((m) => m.text === pending[m.sceneIdx].text))
   checa('H3: nenhuma cena encolheu nem passou da footage', clips.every((c, i) => c.seconds === SECS[i]))
+  const inv = invariantes(r, clips, SECS, true)
+  checa('toda fala cabe na janela, respiro ≥ 0,2 s em toda fronteira', inv.janelaOk && inv.semSobreposicao && inv.footageOk)
+}
+
+console.log('== (b2) vizinhas apertadas: a travessia não fecha, a cena 7 acelera a ×1,10 e a montagem é refeita ==')
+{
+  // cena 6 mede 9,7 s (cauda 0,3 s; ×1,01: re-síntese do FALA-CABE, dentro do teto); cena 8 mede 8,6 s em 9 s (cabeça 0,4 s)
+  const { ctx, sinteses, recusas, eventos, clips } = mundo({ durs: { 5: 9.7, 6: 10.9, 7: 8.6 } })
+  const r = await montar(fatia)(ctx)
+  const corr = sinteses.slice(12).map((s) => s.text.split('_')[0] + '@' + s.speed.toFixed(3))
   const j = r.janelas
-  checa('nenhuma fala avançou sobre a seguinte (a aceleração bastou); a cena 7 só recua ≤ 0,2 s na cauda da 6 para guardar o respiro mínimo antes da 8', j && [...j.values()].every((w) => w.avanca === 0) && [...j.entries()].every(([k, w]) => (k === 6 ? w.antecipa > 0 && w.antecipa <= 0.2 : w.antecipa === 0)) && r3(startsDe(clips)[7] - (j.get(6).time + r.measured[6].dur)) >= 0.19)
+  checa(`sem 422: correções ${JSON.stringify(corr)} — a 6 dentro do teto (parte 1) e a 7 a ×1,10 (parte 3), depois da travessia recusar por falta de vão`, r.status !== 422 && recusas.length === 0 && eventos.length === 0 && corr.length === 2 && corr[0].startsWith('s6@') && corr[1] === 's7@' + (PERSONA.defaultSpeed * 1.1).toFixed(3))
+  checa('a fala corrigida da cena 7 cabe no clipe (9,9 s em 10 s) e só recua ≤ 0,2 s para o respiro; nada avança', r.measured[6].dur <= 10 && r.measured[6].dur > 9.5 && j?.get(6) && j.get(6).avanca === 0 && j.get(6).antecipa > 0 && j.get(6).antecipa <= 0.2)
+  const inv = invariantes(r, clips, SECS, true)
+  checa('H3 intacto, toda fala cabe, respiro ≥ 0,2 s em toda fronteira', clips.every((c, i) => c.seconds === SECS[i]) && inv.janelaOk && inv.semSobreposicao)
 }
 
 console.log('== (c) candidato com TTS fora na correção: a fala de 10,9 s ATRAVESSA o corte ==')
@@ -216,6 +232,22 @@ console.log('== (e3) L-cut sobre a última cena: a narração final nunca termin
   const total = r3(clips.reduce((a, c) => a + c.seconds, 0))
   const w6 = r.janelas?.get(6)
   checa(`última cena aparada pelo TAIL (${clips[6].seconds}s), a 6 acelera e avança sobre ela, e a narração final ainda termina ≥ 0,2 s antes do fim (${w6 ? r3(total - (w6.time + r.measured[6].dur)) : '?'}s) — nunca no último frame`, r.status !== 422 && recusas.length === 0 && w6 && r3(total - (w6.time + r.measured[6].dur)) >= 0.19 && r.janelas.get(5).avanca > 0)
+}
+
+console.log('== (g) cenários da revisão adversarial: nenhuma síntese desperdiçada; o filme que cabe é entregue ==')
+{
+  const W7 = [18, 18, 18, 18, 18, 18, 18], S7 = [10, 10, 10, 10, 10, 10, 10]
+  const roda7 = async (durs) => { const m = mundo({ words: W7, secs: S7, durs }); const r = await montar(fatia)(m.ctx); return { r, corr: m.sinteses.slice(7).map((s) => s.text.split('_')[0] + '@' + s.speed.toFixed(3)), recusas: m.recusas, clips: m.clips } }
+  // (i) cena 4 acelera (parte 3) e avança sobre a 5; a 6 (12,0 s) não cabe nem a ×1,10 (as vizinhas cedem 0,4 s) → recusa honesta SEM sintetizar a 6
+  const i = await roda7({ 0: 9, 1: 9, 2: 9.9, 3: 11.5, 4: 9.0, 5: 12.0, 6: 5.0 })
+  checa(`(i) recusa honesta na cena 6 com ${JSON.stringify(i.corr)}: a 3 dentro do teto, a 4 a ×1,10 (cabia), e NENHUMA síntese da 6 (não caberia)`, i.r.status === 422 && i.recusas.length === 1 && i.corr.length === 2 && i.corr[0].startsWith('s3@') && i.corr[1] === 's4@' + (PERSONA.defaultSpeed * 1.1).toFixed(3) && String(i.r.rejeitado?.error).startsWith("Scene 6's narration"))
+  // (ii) a última cena NÃO é aparada pelo TAIL (rabo 0,6 s): a 6 acelera a ×1,10 e avança sobre a 7 — o filme é entregue (a estimativa antiga recusava)
+  const ii = await roda7({ 0: 9, 1: 9, 2: 9, 3: 9, 4: 9.9, 5: 11.8, 6: 8.6 })
+  const invii = invariantes(ii.r, ii.clips, S7, true)
+  checa(`(ii) filme entregue com ${JSON.stringify(ii.corr)}: última cena intacta (${ii.clips[6].seconds}s), a 6 acelera e avança sobre a 7, respiro ≥ 0,2 s em toda fronteira`, ii.r.status !== 422 && ii.recusas.length === 0 && ii.corr.length === 2 && ii.corr[1] === 's6@' + (PERSONA.defaultSpeed * 1.1).toFixed(3) && ii.clips[6].seconds === 10 && invii.janelaOk && invii.semSobreposicao && ii.r.janelas.get(5).avanca > 0)
+  // (iii) o cenário original do revisor: a 6 (11,99 s) não cabe nem a ×1,10 (0,9 s de sobra, 0,4 s de vão) → recusa honesta sem sintetizar a 6
+  const iii = await roda7({ 0: 9, 1: 9, 2: 9, 3: 9, 4: 9.9, 5: 11.99, 6: 5.0 })
+  checa(`(iii) recusa honesta com ${JSON.stringify(iii.corr)}: só a 5 (dentro do teto); a 6 não é sintetizada à toa`, iii.r.status === 422 && iii.recusas.length === 1 && iii.corr.length === 1 && iii.corr[0].startsWith('s5@') && String(iii.r.rejeitado?.error).startsWith("Scene 6's narration"))
 }
 
 console.log('== (f) fuzz do compose: 300 filmes H3 com uma cena estourando 1-14 % ==')

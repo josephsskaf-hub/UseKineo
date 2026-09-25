@@ -44,8 +44,8 @@ código de produto em route.ts → palavra do fundador"). Por isso o conserto so
   escritor mede no ritmo da voz e o ensaio de $0 usa a tolerância da montagem — a parede volta a nascer no escritor.
 
 ### Entrega 1 — Montagem: `app/api/compose/route.ts` (KINEO-FALA-ATRAVESSA-O-CORTE)
-- **Parte 1:** acima de ×1,10 a cena ainda é acelerada até ×1,10 SE a sobra couber na folga das vizinhas narradas por
-  TTS (`folgaVizinha`); senão continua como estava (o caso de 45 % de estouro segue para a recusa).
+- **Parte 1:** dentro de ×1,10 a cena é re-sintetizada um fio mais rápida, como o FALA-CABE de 15/09 já fazia; acima do
+  teto ela fica como está e quem decide é a travessia.
 - **Parte 2:** antes do 422, sobre a timeline final, cada fala que ainda passa do slot atravessa o corte como num
   documentário: **J-cut** (começa na cauda muda da cena anterior) e **L-cut** (avança sobre a cabeça da seguinte, cuja
   narração espera, guardando respiro antes E depois dela). Respiro de 0,4 s de preferência nos dois lados; 0,2 s no
@@ -56,6 +56,10 @@ código de produto em route.ts → palavra do fundador"). Por isso o conserto so
   colada na próxima voz; um J-cut podia terminar no primeiro frame de um diálogo — e 3 arestas (aceleração ×1,10
   deixando 0,1 s de respiro; estimativa da folga ignorando a apara do TAIL; fim de filme no último frame). Todos
   fechados e cobertos pelo guardião antes de subir.
+- **Parte 3 (2ª entrega da montagem, depois da revisão):** quando a travessia recusa numa cena que passou do teto e a
+  sobra a ×1,10 cabe no vão que ELA mediu (`capacidade`), a cena é re-sintetizada a ×1,10 e encolhe/cresce, TAIL e
+  travessia rodam de novo do slot pós-verificação — uma aceleração por cena, e o log e a recusa vêm da mesma conta
+  (a 1ª versão estimava a folga antes do TAIL e dos L-cuts: gastava síntese à toa ou deixava de salvar filme que cabia).
 - A recusa honesta continua para quem não tem de onde tirar — agora com **`compose_refused`** (motivo, cena, segundos
   do clipe e da fala, estouro) e mensagem que nomeia a cena.
 
@@ -74,11 +78,12 @@ Os três ramos que aceitam a recusa de qualidade (`acceptQualityFailure`) passam
 - As aparas de 16/09 e 23/09 (> 1,0 s) ficam como a rotação anterior deixou.
 
 ## Prova
-- **Entrega 1:** `scripts/test-h3-fala-atravessa-o-corte-2026-09-25.mjs` (33): reproduz a recusa na origin/main com o
+- **Entrega 1:** `scripts/test-h3-fala-atravessa-o-corte-2026-09-25.mjs` (40): reproduz a recusa na origin/main com o
   mundo do Polo; no candidato a cena 7 acelera e o filme segue; com TTS fora na correção a fala atravessa (J 0,42 s +
   L 0,47 s, narração da 8 adiada 0,87 s e ainda com 0,4 s antes da 9); o Polo com a voz real (6 cenas em cascata)
   fecha; sem folga ou entre diálogo/host a recusa continua com evento; J-cut antes de diálogo guarda 0,2 s; L-cut
-  sobre a última cena nunca termina no último frame; fuzz 300 filmes com respiro ≥ 0,2 s em TODA fronteira; tela. `scripts/test-fala-cabe-2026-09-15.mjs` re-ancorado
+  sobre a última cena nunca termina no último frame; os 3 cenários da revisão (nenhuma síntese desperdiçada, o filme
+  que cabe é entregue); fuzz 300 filmes com respiro ≥ 0,2 s em TODA fronteira; tela. `scripts/test-fala-cabe-2026-09-15.mjs` re-ancorado
   (23/23): "TTS fora → recusa" virou "TTS fora → a fala atravessa"; o estouro de 45 % continua recusado.
   `test-quality-route-integration` (363) e `test-quality-failure-ui` (141) verdes com o contexto novo.
 - **Entrega 2:** `scripts/test-h3-mesma-regua-do-escritor-2026-09-25.mjs` (12): reproduz a apara a 2,3 na origin/main
