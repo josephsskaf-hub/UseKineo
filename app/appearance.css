@@ -12,7 +12,7 @@
   --sh-card:0 10px 35px #18385908; --sh-card-h:0 18px 48px #18385912;
   --sh-cta:0 6px 18px #20252b20;
 }
-html[data-theme='dark'] {
+html[data-theme='dark'], .kineo-admin-theme {
   color-scheme:dark;
   --bg:#0c1521; --sidebar-bg:#121f2e; --card:#121f2e; --card2:#192b3f;
   --text:#eef5fe; --text2:#d6e5f5; --muted:#a8bad0; --muted2:#91a8c2;
@@ -23,7 +23,11 @@ html[data-theme='dark'] {
   --public-nav:#0c1521; --public-nav-text:#eef5fe;
   --sh-card:0 12px 36px #02081225; --sh-card-h:0 18px 48px #02081240;
   --sh-cta:0 6px 22px #2997ff26;
+  --surface:var(--card); --surface-soft:var(--card2);
 }
+/* Admin screens deliberately use dark charts and status colors. Scope all
+   inherited tokens here too, even when the public site is saved as Light. */
+.kineo-admin-theme{position:relative;min-height:100vh;background:var(--bg);color:var(--text)}
 body::before{background:radial-gradient(ellipse 1100px 650px at 0 0,var(--accent-soft),transparent 74%)}
 body::after{opacity:.008}
 html:not([data-theme='dark']) body::before{display:none}

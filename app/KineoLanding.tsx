@@ -8,7 +8,6 @@ import Link from 'next/link'
 import { InterfaceLanguageSelect, UiLabel, UiText } from '@/components/InterfaceLanguage'
 import { HOME_PRESENTATION_CSS } from '@/lib/ui/homePresentation'
 import { KINEO_LANDING_THEME_CSS } from './kineoLandingTheme'
-import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 import { IMG_ENGINES } from '@/lib/imageModels'
 import NavCreditsBadge from '@/components/NavCreditsBadge'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
@@ -973,7 +972,6 @@ export default function KineoLanding({
           </div>
         <div className="nav-right">
           <InterfaceLanguageSelect />
-          <AppearanceSettingsButton compact className="nav-appearance" />
           {/* KINEO-NAV-4-ITENS-2026-09-25 — "Log in" em texto ao lado do CTA de
               cadastro, so para visitante; no celular ele mora no menu. */}
           {initialUser ? null : <Link className="nav-login" href="/login" data-nav-item="login"><UiLabel>Log in</UiLabel></Link>}
