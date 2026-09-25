@@ -2,6 +2,15 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
+## 2026-09-25 — Mesa de 09/10: crédito UNIVERSAL, anual 11×, 1 Enhance
+
+**DECISÕES (fundador, 25/09/2026, chat do CEO: "11 - um · 10 - onze · 9 - ... quero que o crédito seja universal"):**
+- **Crédito universal (item 9 = SIM):** um crédito vale para vídeo, anúncio, imagem, áudio e Enhance; qualquer crédito pago (plano, barra, passe) abre o Studio Ads — não só plano. O anúncio custa o crédito do motor e da duração, como o vídeo (Kineo 1: 35 s = 3, 60 s = 5, 90 s = 8).
+- **"Comprar por tempo de vídeo":** o crédito JÁ é tempo × motor (lib/credits/engineCost.ts, proporcional desde 60 s: 35 s = 60%, 90 s = 150%). A moeda continua sendo o crédito (minuto não serve para imagem/áudio/Enhance e varia 30× entre motores); a TELA passa a mostrar o crédito traduzido em minutos por motor. Proposta, a confirmar pelo fundador.
+- **Anual (item 10): ONZE** — 11× nos três planos (evita a inversão de escada do 10×/10×/11×).
+- **Enhance grátis no Studio (item 11): UM** por mês (2 deixavam o Studio negativo).
+- Em aberto na mesa: escada 10,90/24,90/49,90 (6), Express/Pro (7), passe 19,90 (8). Nada muda antes de 09/10.
+
 ## 2026-09-25 — Cinco respostas rápidas (recibo, For businesses, conta limpa, pistas, fal)
 
 **DECISÕES (fundador, 25/09/2026, chat do CEO: "1 ligar, 2 abrir, 3 hotmail, 4 renovar, 5 deixa do jeito que está"):**
