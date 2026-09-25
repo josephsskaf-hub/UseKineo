@@ -14,7 +14,7 @@ function page(before, theme) {
     const file = path.join(root, 'public', url)
     return fs.existsSync(file) ? `src="data:image/${ext === 'jpg' ? 'jpeg' : ext};base64,${fs.readFileSync(file).toString('base64')}"` : match
   })
-  return `<!doctype html><html lang="en" data-theme="${theme}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0}button{font:inherit}.appearance-icon{display:inline-grid;place-items:center;width:35px;height:35px;background:transparent;color:inherit;border:1px solid #8da4bd55;border-radius:8px}${galleryCss}</style><body>${embedded}</body></html>`
+  return `<!doctype html><html lang="en" data-theme="${theme}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>:root{--font-manrope:Arial;--font-sans:Arial;--font-inter:Arial;--font-space-grotesk:Arial}body{margin:0}button{font:inherit}.appearance-icon{display:inline-grid;place-items:center;width:35px;height:35px;background:transparent;color:inherit;border:1px solid #8da4bd55;border-radius:8px}${galleryCss}</style><body>${embedded}</body></html>`
 }
 const panels = [1280,390].map(width => `<section><h2>${width === 390 ? 'Mobile · 390px' : 'Desktop · 1280px'}</h2><div class="compare">${[[true,'dark','Antes'],[false,'light','Depois · Branco padrão'],[false,'dark','Depois · Azul-marinho']].map(([before,theme,title])=>`<article><h3>${title}</h3><iframe title="${title} ${width}" width="${width}" height="1200" sandbox="allow-same-origin" srcdoc="${escape(page(before,theme))}"></iframe></article>`).join('')}</div></section>`).join('')
 fs.mkdirSync(path.dirname(target), {recursive:true})

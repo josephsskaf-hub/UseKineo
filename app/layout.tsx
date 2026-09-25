@@ -13,10 +13,13 @@ import AutopilotPilotResumeBanner from '@/components/AutopilotPilotResumeBanner'
 import CheckoutStalledCta from '@/components/CheckoutStalledCta'
 import { Analytics } from '@vercel/analytics/next'
 import { InterfaceLanguageProvider } from '@/components/InterfaceLanguage'
+import { AppearanceProvider } from '@/components/AppearanceSettings'
+import { APPEARANCE_BOOT } from '@/lib/ui/appearance'
 import { FreeTierOfferProvider } from '@/components/FreeTierOfferProvider'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { LLMS_TXT_PATH } from '@/lib/gptHandoff'
 import './globals.css'
+import './appearance.css'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — a oferta do free tier (comportamento + copy)
 // resolvida UMA vez no servidor. O provider abaixo leva o MESMO objeto para
@@ -165,8 +168,9 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${manrope.variable} ${devanagari.variable}`}>
+    <html lang="en" data-theme="light" suppressHydrationWarning className={`${manrope.variable} ${devanagari.variable}`}>
       <head>
+        <script id="kineo-appearance-boot" dangerouslySetInnerHTML={{ __html: APPEARANCE_BOOT }} />
         <link
           rel="alternate"
           type="application/rss+xml"
@@ -240,7 +244,7 @@ export default function RootLayout({
       {/* [KINEO-TRIAL-SWAP-2026-08-07] — FreeTierOfferProvider envolve TODO o
           conteúdo: é o único caminho pelo qual client components leem a oferta
           do free tier (a env da flag não existe no browser). */}
-      <body><StructuredData /><InterfaceLanguageProvider><FreeTierOfferProvider offer={OFFER}><SourceCapture /><NavClickTelemetry /><CheckoutResumeBanner /><AutopilotPilotResumeBanner /><CheckoutStalledCta />{children}</FreeTierOfferProvider></InterfaceLanguageProvider><Analytics /></body>
+      <body><StructuredData /><InterfaceLanguageProvider><AppearanceProvider><FreeTierOfferProvider offer={OFFER}><SourceCapture /><NavClickTelemetry /><CheckoutResumeBanner /><AutopilotPilotResumeBanner /><CheckoutStalledCta />{children}</FreeTierOfferProvider></AppearanceProvider></InterfaceLanguageProvider><Analytics /></body>
     </html>
   )
 }

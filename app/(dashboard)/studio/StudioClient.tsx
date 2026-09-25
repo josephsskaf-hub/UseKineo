@@ -603,12 +603,12 @@ export default function StudioClient() {
                   borderRadius: 12,
                   border: '1px solid rgba(103,232,249,.36)',
                   background: 'linear-gradient(135deg, rgba(103,232,249,.11), rgba(41,151,255,.06))',
-                  color: '#c7d7e5',
+                  color: 'var(--text2)',
                   fontSize: 12,
                   lineHeight: 1.5,
                 }}
               >
-                <b style={{ color: '#67e8f9' }}><UiLabel>Continue exactly where ChatGPT stopped.</UiLabel></b>{' '}
+                <b style={{ color: 'var(--accent)' }}><UiLabel>Continue exactly where ChatGPT stopped.</UiLabel></b>{' '}
                 {chatGptQuickstart === 'finished_script'
                   ? 'Paste the full answer below. “Use my script as is” and the 35s target are already selected; review the Seedance cost, then press Generate.'
                   : 'Paste the idea or one sentence below. Kineo will write the hook, scenes and payoff; Seedance and the 60s target are already selected.'}
@@ -675,7 +675,7 @@ export default function StudioClient() {
               )
             })()}
             {bareStarter && (
-              <div className="val" data-kineo="pilula-sozinha" style={{ color: '#67e8f9', fontSize: '0.78rem', marginTop: 6 }}>
+              <div className="val" data-kineo="pilula-sozinha" style={{ color: 'var(--accent)', fontSize: '0.78rem', marginTop: 6 }}>
                 <UiLabel>{`Finish the sentence — what is it about? e.g. “${prompt.trim()} the Dyatlov Pass”.`}</UiLabel>
               </div>
             )}
@@ -825,7 +825,7 @@ export default function StudioClient() {
                         <i>{engineCostLabel(e.key)}</i>
                       </span>
                       <span className="d"><UiLabel>{pausa ? `Temporarily paused for maintenance · use ${pausa.alternative.label} meanwhile` : e.desc}</UiLabel></span>
-                      <span className="d" style={{ color: e.key === 'fast' ? '#5cb3ff' : undefined, marginTop: 2 }}>
+                      <span className="d" style={{ color: e.key === 'fast' ? 'var(--accent)' : undefined, marginTop: 2 }}>
                         {filmsLabel(e.key)}
                       </span>
                       {(() => { const st = stepDownFor(e.key); return st ? (
@@ -930,12 +930,12 @@ export default function StudioClient() {
                 onChange={(e) => setLanguage(narrationLanguage(e.target.value) ?? 'en')}
                 // KINEO-SELECT-LEGIVEL-2026-09-21 — fundador (print de 21/09 00:50): a lista abria BRANCA com as 16 línguas
                 // em cinza-claro, parecendo todas desabilitadas (só a que estava sob o mouse era legível). O <select> herdava
-                // color: var(--text) (quase branco) e o Chrome pintava o popup nativo de branco. colorScheme: 'dark' faz o
+                // color: var(--text) (quase branco) e o Chrome pintava o popup nativo de branco. colorScheme: 'inherit' faz o
                 // popup nascer escuro, e cada <option> leva cor e fundo explícitos para qualquer navegador.
-                style={{ background: 'rgba(255,255,255,.04)', border: '1px solid var(--border2)', color: 'var(--text)', colorScheme: 'dark', borderRadius: 999, padding: '6px 12px', fontSize: 12, fontFamily: 'inherit' }}
+                style={{ background: 'rgba(255,255,255,.04)', border: '1px solid var(--border2)', color: 'var(--text)', colorScheme: 'inherit', borderRadius: 999, padding: '6px 12px', fontSize: 12, fontFamily: 'inherit' }}
               >
                 {NARRATION_LANGUAGES.map((l) => (
-                  <option key={l.code} value={l.code} style={{ color: '#f5f5f7', background: '#131316' }}>{l.native}{l.code !== 'en' ? ` · ${l.name.replace(/ \(.*\)$/, '')}` : ''}</option>
+                  <option key={l.code} value={l.code} style={{ color: 'var(--text)', background: 'var(--card)' }}>{l.native}{l.code !== 'en' ? ` · ${l.name.replace(/ \(.*\)$/, '')}` : ''}</option>
                 ))}
               </select>
               {!isHollywoodLanguage(language) && (
@@ -1028,7 +1028,7 @@ export default function StudioClient() {
                         : `${myVids.length} of your first 4 Shorts`}
                   </span>
                 </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: '#f5f5f7' }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
                   <UiLabel>{myVids.length === 1 ? 'Turn it into episode 2' : 'Keep your show moving'}</UiLabel>
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--txt2,#9aa0a6)', marginTop: 2 }}><UiLabel>

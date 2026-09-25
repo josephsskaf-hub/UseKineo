@@ -430,3 +430,11 @@ Slug do X confirmado: utm_source=x.
 **DECIDIDO (Claude, pelo código):** o anúncio NÃO passa pelo generate-video-fast. Com o passe a conta tem has_paid e a rota do Kineo 1 injeta clipes Seedance na frente das fotos da empresa; com marcadores ela ignora a mídia; sem marcadores divide por frases; e não tem campo de voz. O /api/ads/render narra na voz escolhida (tts-1-hd, 4 vozes, prévia grátis com teto diário), simula o montador do Kineo 1 para saber onde cai cada tomada e manda a lista de mídia tomada a tomada direto ao /api/compose (quality 'fast'), com o cartão final (PNG desenhado no navegador) na última batida. Crédito pelo cobrador normal (35 s = 3, 60 s = 5), sem marca d'água para quem tem o passe.
 **INTERRUPTOR:** segue desligado (NEXT_PUBLIC_ADS_PASS_LIVE). Só contas internas usam até o fundador aprovar o teste da padaria e mandar ligar. Env nova só vale em deploy novo.
 **TESTE:** padaria "Pão Dourado" (6 fotos livres do Pexels + logo desenhado), na conta do fundador — que sai com marca d'água por design (FORCE_WATERMARK_EMAILS); cliente com passe sai limpo.
+
+## 2026-09-25 — versão branca padrão, aparência opcional e entrada direta no Studio Ads
+
+**DECISÃO APROVADA (fundador, tarefa visual):** migrar a direção v6 aprovada para as telas reais: “pode trocar a tela [...] pra nova, versão branca”. Light branco é o padrão; Dark azul-marinho continua selecionável em Configurações → Aparência, com escolha salva no dispositivo. Preservar os cards/vídeos aprovados, corrigir enquadramento do menu Home e ampliar as áreas de criação. Imagem ganha os seis motores visíveis; Vídeo · Imagem · Para empresas · Preços continua a navegação pública.
+
+**DECISÃO APROVADA (fluxo):** Para empresas abre `/ads/new` diretamente, para a pessoa criar o próprio anúncio. O gate de sessão/acesso permanece no servidor; não se remove compra exigida para quem ainda não tem acesso. Serviços/pedidos/checkout legados não são apagados.
+
+**DECISÃO APROVADA (preços):** ao esclarecer se “9, 19, 39” seriam valores inteiros, o fundador respondeu **“Manter US$ 9,90 / 19,90 / 39,90”**. Não alterar as fontes únicas de preço nem o cálculo da recarga. Idiomas seguem inglês canônico e preferência explícita existente. Handoff: `docs/HANDOFF-CLAUDE-PALETAS-SELF-SERVICE-2026-09-25.md`.

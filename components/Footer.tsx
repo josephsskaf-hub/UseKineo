@@ -29,7 +29,7 @@ import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 const OFFER = getFreeTierOffer()
 
 const linkStyle: React.CSSProperties = {
-  color: '#86868b',
+  color: 'var(--muted)',
   textDecoration: 'none',
 }
 
@@ -66,7 +66,7 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
     // do app — o Footer não está no layout raiz.
     // ═══════════════════════════════════════════════════════════════════════
     links: [
-      { href: '/business-video-ads', label: 'Videos for businesses' },
+      { href: '/ads/new', label: 'Videos for businesses' },
       // KINEO-NOITE-2026-08-17 — os produtos novos do dia entram no rodape
       // (26 paginas publicas linkando; nenhuma pagina nasce orfa).
       { href: '/images', label: 'AI image generator — 6 engines' },
@@ -194,7 +194,7 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
         padding: '32px 16px 28px',
         marginTop: 24,
         background: 'transparent',
-        color: '#86868b',
+        color: 'var(--muted)',
         fontSize: 12,
         lineHeight: 1.5,
       }}
@@ -203,11 +203,11 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
       <div style={{ textAlign: 'center', marginBottom: 22 }}>
         <Link
           href="/"
-          style={{ ...linkStyle, color: '#FAFAFA', fontWeight: 800, fontSize: 15 }}
+          style={{ ...linkStyle, color: 'var(--text)', fontWeight: 800, fontSize: 15 }}
         >
           <KineoBolt /> Kineo
         </Link>
-        <p style={{ margin: '6px auto 0', maxWidth: 460, color: '#86868b' }}><UiLabel>
+        <p style={{ margin: '6px auto 0', maxWidth: 460, color: 'var(--muted)' }}><UiLabel>
           Turn one idea into a ready-to-post faceless YouTube Short — script,
           AI voiceover, footage &amp; captions in a few minutes. </UiLabel><UiLabel>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}</UiLabel><UiLabel> Paid plans unlock clean MP4s.
         </UiLabel></p>
@@ -242,7 +242,7 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
                 fontWeight: 700,
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
-                color: '#71717A',
+                color: 'var(--muted)',
               }}
             >
               <UiLabel>{group.title}</UiLabel>

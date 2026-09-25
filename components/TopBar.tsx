@@ -1,6 +1,7 @@
 'use client'
 
 import KineoBolt from '@/components/KineoBolt'
+import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 
 import Link from 'next/link'
 import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage'
@@ -30,11 +31,11 @@ interface TopBarProps {
 export default function TopBar({ title, subtitle, onMenuToggle, isPro }: TopBarProps) {
   return (
     <div
-      className="flex items-center gap-3 flex-shrink-0 sticky top-0 z-30 px-4 sm:px-6"
+      className="kineo-topbar flex items-center gap-3 flex-shrink-0 sticky top-0 z-30 px-4 sm:px-6"
       style={{
         height: 64,
         // Kineo re-skin — black glass bar.
-        background: 'rgba(0,0,0,0.88)',
+        background: 'var(--header-bg)',
         backdropFilter: 'blur(24px) saturate(180%)',
         WebkitBackdropFilter: 'blur(24px) saturate(180%)',
         borderBottom: '1px solid var(--border)',
@@ -63,7 +64,7 @@ export default function TopBar({ title, subtitle, onMenuToggle, isPro }: TopBarP
       {/* Mobile logo link */}
       <Link
         href="/"
-        className="md:hidden flex items-center justify-center flex-shrink-0"
+        className="topbar-mobile-logo md:hidden flex items-center justify-center flex-shrink-0"
         style={{
           width: 32, height: 32, textDecoration: 'none',
         }}
@@ -73,7 +74,7 @@ export default function TopBar({ title, subtitle, onMenuToggle, isPro }: TopBarP
       </Link>
 
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-xs min-w-0" style={{ color: 'var(--muted)' }}>
+      <div className="topbar-breadcrumb flex items-center gap-2 text-xs min-w-0" style={{ color: 'var(--muted)' }}>
         <Link href="/" className="hidden sm:inline" style={{ textDecoration: 'none', color: 'inherit' }}>Kineo</Link>
         <span className="hidden sm:inline" style={{ opacity: 0.3 }}>›</span>
         <span className="font-semibold truncate" style={{ color: 'var(--text)' }}>
@@ -93,6 +94,7 @@ export default function TopBar({ title, subtitle, onMenuToggle, isPro }: TopBarP
           nav home for the Avatar product; the top bar stays clean. */}
       <div className="ml-auto flex items-center gap-2 flex-shrink-0">
         <InterfaceLanguageSelect />
+        <AppearanceSettingsButton />
         {/* Push #098 — header credits badge. Red link to /pricing when 0,
             amber when <=5 and not Pro, neutral otherwise. */}
         <CreditsBadge isPro={isPro} />
@@ -356,10 +358,10 @@ function CreditsBadge({ isPro }: { isPro: boolean }) {
   // is amber, everything else keeps the original neutral chip. If product
   // wants zero back to "normal, not urgent," revert this block.
   const colors = isZero
-    ? { fg: '#ff6b6b', bg: 'rgba(255,107,107,.10)', border: 'rgba(255,107,107,.35)' }
+    ? { fg: 'var(--danger)', bg: 'rgba(255,107,107,.10)', border: 'rgba(255,107,107,.35)' }
     : isLow
-    ? { fg: '#ffb020', bg: 'rgba(255,176,32,.10)', border: 'rgba(255,176,32,.35)' }
-    : { fg: '#f5f5f7', bg: 'rgba(255,255,255,.04)', border: 'rgba(255,255,255,.08)' }
+    ? { fg: 'var(--warning)', bg: 'rgba(255,176,32,.10)', border: 'rgba(255,176,32,.35)' }
+    : { fg: 'var(--text)', bg: 'var(--card2)', border: 'var(--border)' }
 
   const opensPricing = isZero || lowBalanceBridgeEligible
   const balanceDescription = `${credits} credit${credits === 1 ? '' : 's'} remaining${opensPricing ? ' — view pricing' : ''}`

@@ -239,7 +239,7 @@ function NavItem({
           : hovered
           ? 'rgba(255,255,255,0.045)'
           : 'transparent',
-        color: active ? '#f5f5f7' : hovered ? 'var(--text)' : 'var(--muted2)',
+        color: active ? 'var(--text)' : hovered ? 'var(--text)' : 'var(--muted2)',
         border: active ? '1px solid rgba(41,151,255,0.28)' : '1px solid transparent',
         textDecoration: 'none',
         fontSize: '0.86rem',
@@ -572,7 +572,7 @@ export default function Sidebar({
           height: '100dvh',
           // Neon redesign (12/06) — violet-black glass column with a faint
           // top-down violet wash instead of the flat navy slab.
-          background: 'linear-gradient(180deg, #161618 0%, #000000 55%, #0E0E10 100%)',
+          background: 'var(--sidebar-bg)',
           borderRight: '1px solid rgba(41,151,255,0.12)',
           transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
         }}
@@ -584,7 +584,7 @@ export default function Sidebar({
           href="/"
           onClick={onClose}
           className="flex items-center gap-3 px-5 flex-shrink-0"
-          style={{ height: 72, borderBottom: '1px solid rgba(255,255,255,0.06)', textDecoration: 'none' }}
+          style={{ height: 72, borderBottom: '1px solid var(--border)', textDecoration: 'none' }}
         >
           <KineoBolt size={32} />
           <div className="flex flex-col" style={{ gap: 2 }}>
@@ -592,7 +592,7 @@ export default function Sidebar({
               className="font-black tracking-tight leading-none"
               style={{ fontSize: '1.1rem' }}
             >
-              <span style={{ color: '#F5F7FF' }}>Kineo</span>
+              <span style={{ color: 'var(--text)' }}>Kineo</span>
             </div>
           </div>
         </Link>
@@ -631,7 +631,7 @@ export default function Sidebar({
               </>
             )}
           </details>
-          <style dangerouslySetInnerHTML={{__html: `.workspace-nav-group{margin-top:14px;padding-top:10px;border-top:1px solid #ffffff0c}.workspace-nav-group>summary{min-height:44px;padding:10px 12px;color:#9ca6b5;font-size:12px;font-weight:600;cursor:pointer}.workspace-nav-group>summary:focus-visible{outline:2px solid #2997ff;border-radius:8px}`}} />
+          <style dangerouslySetInnerHTML={{__html: `.workspace-nav-group{margin-top:14px;padding-top:10px;border-top:1px solid var(--border)}.workspace-nav-group>summary{min-height:44px;padding:10px 12px;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer}.workspace-nav-group>summary:focus-visible{outline:2px solid #2997ff;border-radius:8px}`}} />
 
         </nav>
 
@@ -650,7 +650,7 @@ export default function Sidebar({
                 width: '100%', textAlign: 'left', cursor: planResolved ? 'pointer' : 'wait',
                 // KINEO-NAV-REDESIGN-2026-07-10 — landing-card surface (quiet
                 // border, no neon halo) so the column reads clean.
-                background: '#131316',
+                background: 'var(--card)',
                 border: '1px solid rgba(255,255,255,0.08)',
                 textDecoration: 'none',
                 transition: 'border-color 0.18s ease',
@@ -670,10 +670,10 @@ export default function Sidebar({
                   <KineoBolt style={{ color: 'currentColor' }} size={16} />
                 </div>
                 {creditsLoading ? (
-                  <span style={{ display: 'inline-block', width: 64, height: 14, borderRadius: 4, background: 'rgba(255,255,255,0.07)', animation: 'pulse 1.4s ease-in-out infinite' }} />
+                  <span style={{ display: 'inline-block', width: 64, height: 14, borderRadius: 4, background: 'var(--border)', animation: 'pulse 1.4s ease-in-out infinite' }} />
                 ) : (
                   <div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: creditsReadFailed ? '#86868b' : '#2997ff', lineHeight: 1.1 }}>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 900, color: creditsReadFailed ? 'var(--muted)' : '#2997ff', lineHeight: 1.1 }}>
                       {creditsReadFailed
                         ? READ_FAILED_LABEL
                         : `${credits ?? 0} ${credits === 1 ? 'credit' : 'credits'}`}
@@ -694,7 +694,7 @@ export default function Sidebar({
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize: '0.6rem', color: '#86868b', marginTop: 1 }}>
+                    <div style={{ fontSize: '0.6rem', color: 'var(--muted)', marginTop: 1 }}>
                       {creditsReadFailed
                         ? READ_FAILED_HINT
                         : topupEligible
@@ -724,12 +724,12 @@ export default function Sidebar({
         {!isLoggedIn ? (
           <div className="px-3 pt-3 pb-3 flex-shrink-0">
             <div style={{ borderRadius: 14, padding: '14px 14px', background: 'rgba(41,151,255,0.05)', border: '1px solid rgba(41,151,255,0.18)' }}>
-              <p style={{ fontSize: '0.8rem', fontWeight: 800, color: '#F5F7FF', marginBottom: 4 }}><KineoBolt /> <FreeTierCopy legacy="3 free Fast previews daily" on={`Creator trial: ${TRIAL_GRANT_CREDITS_COPY} free credits`} /></p>
-              <p style={{ fontSize: '0.72rem', color: '#86868b', lineHeight: 1.5, marginBottom: 10 }}>Sign up and start creating in under a minute.</p>
+              <p style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text)', marginBottom: 4 }}><KineoBolt /> <FreeTierCopy legacy="3 free Fast previews daily" on={`Creator trial: ${TRIAL_GRANT_CREDITS_COPY} free credits`} /></p>
+              <p style={{ fontSize: '0.72rem', color: 'var(--muted)', lineHeight: 1.5, marginBottom: 10 }}>Sign up and start creating in under a minute.</p>
               <button
                 onClick={() => setShowAuthModal(true)}
                 aria-label={`${signupCtaLabel} — sign up`}
-                style={{ display: 'block', width: '100%', textAlign: 'center', borderRadius: 10, padding: '9px 0', fontSize: '0.8rem', fontWeight: 800, color: '#0A0A0B', background: '#2997ff', border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(41,151,255,0.35)' }}
+                style={{ display: 'block', width: '100%', textAlign: 'center', borderRadius: 10, padding: '9px 0', fontSize: '0.8rem', fontWeight: 800, color: 'var(--on-accent)', background: '#2997ff', border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px rgba(41,151,255,0.35)' }}
               >
                 <span aria-hidden="true"><KineoBolt style={{ color: 'currentColor' }} /> </span>{signupCtaLabel}
               </button>
@@ -742,7 +742,7 @@ export default function Sidebar({
             (red reads as an error; 0 credits is the normal free-tier state). */}
 
         {/* User row + settings menu + small logout */}
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '10px 12px 12px', position: 'relative' }}>
+        <div style={{ borderTop: '1px solid var(--border)', padding: '10px 12px 12px', position: 'relative' }}>
           {/* KINEO-ACCOUNT-PANEL-2026-08-19 — o painel de 950x430 (uma caixa
               de Library + tres links empilhados) virou components/AccountPanel:
               1240x620, com creditos, plano, data de renovacao real vinda da
@@ -766,7 +766,7 @@ export default function Sidebar({
             <div
               style={{
                 width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-                background: isLoggedIn ? 'linear-gradient(135deg, #2997ff, #2997ff)' : 'rgba(255,255,255,0.06)',
+                background: isLoggedIn ? 'linear-gradient(135deg, #2997ff, #2997ff)' : 'var(--border)',
                 border: isLoggedIn ? 'none' : '1px solid rgba(255,255,255,0.08)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: '0.85rem', fontWeight: 800, color: '#fff',
@@ -820,14 +820,14 @@ export default function Sidebar({
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   width: 30, height: 30,
                   background: settingsOpen ? 'rgba(41,151,255,0.14)' : 'transparent',
-                  border: settingsOpen ? '1px solid rgba(41,151,255,0.35)' : '1px solid rgba(255,255,255,0.10)',
+                  border: settingsOpen ? '1px solid rgba(41,151,255,0.35)' : '1px solid var(--border)',
                   borderRadius: 8,
                   color: settingsOpen ? '#2997ff' : 'var(--muted)',
                   cursor: 'pointer',
                   flexShrink: 0, transition: 'all 0.15s',
                 }}
                 onMouseEnter={(e) => { if (!settingsOpen) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.22)' }}
-                onMouseLeave={(e) => { if (!settingsOpen) (e.currentTarget as HTMLElement).style.borderColor = 'rgba(255,255,255,0.10)' }}
+                onMouseLeave={(e) => { if (!settingsOpen) (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)' }}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <circle cx="12" cy="12" r="3.2" />

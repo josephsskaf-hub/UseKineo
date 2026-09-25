@@ -46,7 +46,8 @@ ok(html.includes('/demo.webp')&&!html.includes('/history#v-failed-demo'),'image 
 for(const language of ['en','es','hi']){
  const h=renderPage('components/MobileNav.tsx',false,{interfaceLanguage:language},{isLoggedIn:true})
  // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 — Home saiu da barra de abas (o logo da gaveta leva a /); Images e Ads viraram abas.
- for(const href of ['/studio','/images','/ads','/library','/audio','/pricing','/account'])ok(h.includes(`href="${href}"`),'mobile destination '+href)
+ // 25/09 founder: Ads opens the creator directly; server access gates still apply.
+ for(const href of ['/studio','/images','/ads/new','/library','/audio','/pricing','/account'])ok(h.includes(`href="${href}"`),'mobile destination '+href)
  ok(!h.includes('href="/"'),'mobile tab bar no longer carries Home (25/09)')
  for(const href of ['/history','/thumbnail-generator','/avatar'])ok(!h.includes(`href="${href}"`),'no redundant top-level menu '+href)
 }

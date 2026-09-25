@@ -1,5 +1,7 @@
 'use client'
 
+import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
+
 import KineoBolt, { KineoBoltText } from '@/components/KineoBolt'
 
 // Push #080 — Account v2: homepage-quality UI, animated credit ring, glowing avatar, polished tabs
@@ -301,7 +303,7 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
           style={{ fontSize: 'clamp(1.55rem, 4vw, 2rem)', color: 'var(--text)', lineHeight: 1.1 }}
         >
           Account{' '}
-          <span style={{ background: 'linear-gradient(180deg,#fff 35%,#a1a1a6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+          <span style={{ background: 'linear-gradient(180deg,var(--text) 35%,var(--muted))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
             Settings
           </span>
         </h1>
@@ -310,10 +312,12 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
         </p>
       </div>
 
+      <div style={{ maxWidth: 340, marginBottom: 20 }}><AppearanceSettingsButton compact={false} /></div>
+
       {/* ── Tabs ── */}
       <div
         className="flex gap-1 mb-6 rounded-2xl p-1 overflow-x-auto"
-        style={{ background: 'rgba(11,17,32,0.8)', border: '1px solid rgba(255,255,255,0.07)', maxWidth: 640 }}
+        style={{ background: 'var(--card2)', border: '1px solid var(--border)', maxWidth: 640 }}
       >
         {TABS.map((t) => {
           const active = t.key === activeTab

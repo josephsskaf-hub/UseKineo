@@ -27,7 +27,8 @@ for(const [en,es] of Object.entries(labels)){
  equal(es.match(/\d+/g),en.match(/\d+/g),'numerical claims unchanged: '+en)
 }
 for(const [file,expected] of [
- ['app/KineoLanding.tsx','Escribe una idea'],
+ // 25/09: approved v6 headline, translated through the existing interface provider.
+ ['app/KineoLanding.tsx','Haz espacio para'],
  // 06/09: the founder added local editors; assert the new real Spanish heading.
  // Founder requested descriptive tool names instead of the previous slogan.
  ['app/tools/page.tsx','Herramientas para editar y crear vídeos'],
@@ -49,11 +50,14 @@ check(audio.includes('>'+userText+'</textarea>'),'narration untouched in Spanish
 const library=renderPage('app/(dashboard)/library/LibraryClient.tsx',false,{loaded:true,interfaceLanguage:'es',vids:[{id:'fixture',title:userText,video_url:'/fixture.mp4'}]})
 check(library.includes(userText),'user video title not translated')
 for(const file of ['app/(dashboard)/animate/AnimateClient.tsx','app/(dashboard)/avatar/AvatarStudioClient.tsx']){
- const parse=before=>ts.createSourceFile(file,source(file,before),99,true,4)
+ // 25/09: production already includes Claude's image -> Animate handoff.
+ // Freeze that shipped logic (048878ea), rather than reject it against August's base.
+ const comparisonBase='048878ea'
+ const parse=before=>ts.createSourceFile(file,source(file,before,comparisonBase),99,true,4)
  // Git stores LF; this Windows worktree may use CRLF. Normalize only line endings.
  const callbacks=before=>{const sf=parse(before),out=[];function walk(n){if(ts.isJsxAttribute(n)&&['onClick','onChange','disabled','src','poster','checked','value'].includes(n.name.getText(sf)))out.push(n.getText(sf).replace(/\r\n/g,'\n'));ts.forEachChild(n,walk)}walk(sf);return out.sort()}
  equal(callbacks(false),callbacks(true),file+' preserves handlers, consent, media and disabled gates')
- const logic=before=>{const sf=parse(before),component=sf.statements.find(n=>ts.isFunctionDeclaration(n)&&n.modifiers?.some(m=>m.kind===ts.SyntaxKind.DefaultKeyword));const firstReturn=component.body.statements.find(ts.isReturnStatement);return source(file,before).slice(component.body.pos,firstReturn.pos).replace(/\r\n/g,'\n')}
+ const logic=before=>{const sf=parse(before),component=sf.statements.find(n=>ts.isFunctionDeclaration(n)&&n.modifiers?.some(m=>m.kind===ts.SyntaxKind.DefaultKeyword));const firstReturn=component.body.statements.find(ts.isReturnStatement);return source(file,before,comparisonBase).slice(component.body.pos,firstReturn.pos).replace(/\r\n/g,'\n')}
  equal(logic(false),logic(true),file+' all pre-render executable logic unchanged')
  for(const phase of ['idle','submitting','animating','done','failed']){
   const html=renderPage(file,false,{phase,finalUrl:phase==='done'?'/fixture.mp4':null,resultUrl:phase==='done'?'/fixture.mp4':null}, {isLoggedIn:false,userId:null})
@@ -65,8 +69,9 @@ const avatar=renderPage('app/(dashboard)/avatar/AvatarStudioClient.tsx',false,{p
 check(avatar.includes('id="avatar-preview"'),'avatar preview has an actual jump target')
 check(!avatar.includes('hidden lg:flex'),'avatar result and download no longer desktop-only')
 check(avatar.includes('download=""')&&avatar.includes('/fixture.mp4'),'completed avatar keeps its download')
-const footerBefore=renderPage('components/Footer.tsx',true),footerAfter=renderPage('components/Footer.tsx')
+const footerBefore=renderPage('components/Footer.tsx',true,{}, {},'048878ea'),footerAfter=renderPage('components/Footer.tsx')
 const links=html=>[...html.matchAll(/href="([^"]*)"/g)].map(m=>m[1]).sort()
-equal(links(footerAfter),links(footerBefore),'footer keeps every link through native disclosures')
+// Founder explicitly requested the business destination to open the creator on 25/09.
+equal(links(footerAfter),links(footerBefore).map(h=>h==='/business-video-ads'?'/ads/new':h).sort(),'footer keeps every link except approved direct Ads entry')
 equal((footerAfter.match(/<details /g)||[]).length,4,'four footer navigation groups')
 console.log(`PASS ${checks} locale and workspace checks; no network, database, email or generation`)

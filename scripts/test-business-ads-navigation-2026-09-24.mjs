@@ -2,18 +2,18 @@ import { readFileSync } from 'node:fs'
 import { renderPage } from './preview-ux-complete.mjs'
 const check = (name, condition) => { if (!condition) throw Error(name); console.log('PASS '+name) }
 const read = file => readFileSync(new URL('../'+file, import.meta.url), 'utf8')
-const destination = 'href="/business-video-ads"'
+const destination = 'href="/ads/new"'
 const home = renderPage('app/KineoLanding.tsx')
 const footer = renderPage('components/Footer.tsx', false, {}, {showStats:false})
 const nav = home.match(/<nav aria-label="Main">[\s\S]*?<\/nav>/)?.[0] ?? ''
 const mobile = nav.slice(nav.indexOf('id="mobile-nav-menu"'))
 const desktop = nav.slice(0,nav.indexOf('class="nav-right"'))
 // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 — o topo diz "For businesses" (Para empresas, decisão do fundador de 25/09); o
-// rodapé segue "Videos for businesses". O contrato é o DESTINO (apresentação, nunca o checkout da Stripe).
+// rodapé segue "Videos for businesses". Pedido explícito25/09: o destino agora é o criador /ads/new; acesso é validado lá, nunca um checkout direto.
 const linked = html => html.includes(destination) && /Videos for businesses|For businesses/.test(html) && !html.includes('buy.stripe.com')
-check('desktop menu links to presentation, not checkout', linked(desktop))
-check('mobile menu links to presentation, not checkout', linked(mobile))
-check('shared footer links to presentation', linked(footer))
+check('desktop menu opens the creator, not checkout', linked(desktop))
+check('mobile menu opens the creator, not checkout', linked(mobile))
+check('shared footer opens the creator', linked(footer))
 check('existing pricing and studio destinations survive', nav.includes('href="/pricing"') && nav.includes('href="/studio"'))
 for (const lang of ['es','hi','pt','fr','de','it','nl','pl','tr','ru','uk','ar','ur','id','vi']) {
   const file = lang==='es'?'lib/ui/interfaceLabels.ts':lang==='hi'?'lib/ui/interfaceHindi.ts':`lib/ui/interface/${lang}.ts`

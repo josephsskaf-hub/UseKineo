@@ -26,7 +26,7 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
     exact: false,
   },
   {
-    href: '/ads',
+    href: '/ads/new',
     icon: (
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M4 9.5h3l7.5-4.5v14L7 14.5H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1Z" />
@@ -159,7 +159,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
     return () => document.removeEventListener('pointerdown', closeOutside)
   }, [])
 
-  const primary = NAV_ITEMS.filter((item) => ['/studio', '/images', '/library', '/ads', '/pricing'].includes(item.href)) // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25
+  const primary = NAV_ITEMS.filter((item) => ['/studio', '/images', '/library', '/ads/new', '/pricing'].includes(item.href)) // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25
   const groups = [
     { label: 'More', links: MORE_LINKS.filter((item) => isLoggedIn || !item.signedIn) },
   ]
@@ -226,30 +226,30 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
       <div className="kineo-mobile-row">
         {primaryLink('/studio')}
         {primaryLink('/images')}
-        {primaryLink('/ads')}
+        {primaryLink('/ads/new')}
         {primaryLink('/library')}
         {primaryLink('/pricing')}
         {disclosure(groups[0])}
       </div>
       {/* Static CSS, never user input. Preserve raw-text selectors in SSR. */}
       <style dangerouslySetInnerHTML={{ __html: `
-        .kineo-mobile-nav{background:#000;border-top:1px solid #2a2a2d;padding-bottom:max(env(safe-area-inset-bottom),6px)}
+        .kineo-mobile-nav{background:var(--card);border-top:1px solid var(--border);padding-bottom:max(env(safe-area-inset-bottom),6px)}
         /* Open navigation must clear the install (70) and push (69) banners.
            Closed navigation keeps its existing layer; dialogs stay above it. */
         .kineo-mobile-nav:has(details[open]){z-index:71}
         .kineo-mobile-row{display:flex;align-items:stretch;height:62px}
-        .kineo-mobile-nav .kineo-mobile-tab{flex:1;min-width:0;height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:#a1a1aa;text-decoration:none;cursor:pointer;list-style:none;position:relative}
+        .kineo-mobile-nav .kineo-mobile-tab{flex:1;min-width:0;height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:var(--muted);text-decoration:none;cursor:pointer;list-style:none;position:relative}
         .kineo-mobile-tab>span{font-size:11px;font-weight:600;white-space:nowrap}
         .kineo-mobile-tab[data-active]{color:#2997ff;background:rgba(41,151,255,.08)}
         .kineo-mobile-tab[data-active]:before{content:'';position:absolute;top:0;left:20%;right:20%;height:2px;background:#2997ff}
         .kineo-mobile-group{flex:1;min-width:0}
         .kineo-mobile-group summary::-webkit-details-marker{display:none}
-        .kineo-mobile-group[open] summary{color:#f5f5f7;background:#161619}
-        .kineo-mobile-sheet{position:absolute;left:12px;right:12px;bottom:calc(100% + 8px);max-height:50vh;max-height:50dvh;overflow-y:auto;overscroll-behavior:contain;padding:12px;border:1px solid #303036;border-radius:16px;background:#111113;box-shadow:0 8px 32px #0009}
-        .kineo-mobile-sheet-heading{display:flex;align-items:center;justify-content:space-between;padding-left:12px;color:#f5f5f7}
-        .kineo-mobile-sheet button{min-width:44px;min-height:44px;border:0;background:transparent;color:#a1a1aa;font-size:24px;cursor:pointer}
-        .kineo-mobile-sheet a{display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:8px 12px;color:#d4d4d8;text-decoration:none;font-size:14px;border-radius:8px}
-        .kineo-mobile-sheet a[aria-current],.kineo-mobile-sheet a:hover{background:#1f1f24;color:#fff}
+        .kineo-mobile-group[open] summary{color:var(--text);background:var(--card2)}
+        .kineo-mobile-sheet{position:absolute;left:12px;right:12px;bottom:calc(100% + 8px);max-height:50vh;max-height:50dvh;overflow-y:auto;overscroll-behavior:contain;padding:12px;border:1px solid var(--border);border-radius:16px;background:var(--card);box-shadow:0 8px 32px #0009}
+        .kineo-mobile-sheet-heading{display:flex;align-items:center;justify-content:space-between;padding-left:12px;color:var(--text)}
+        .kineo-mobile-sheet button{min-width:44px;min-height:44px;border:0;background:transparent;color:var(--muted);font-size:24px;cursor:pointer}
+        .kineo-mobile-sheet a{display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:8px 12px;color:var(--text2);text-decoration:none;font-size:14px;border-radius:8px}
+        .kineo-mobile-sheet a[aria-current],.kineo-mobile-sheet a:hover{background:var(--accent-soft);color:var(--accent)}
         .kineo-mobile-nav a:focus-visible,.kineo-mobile-nav summary:focus-visible,.kineo-mobile-nav button:focus-visible{outline:2px solid #2997ff;outline-offset:-3px;border-radius:8px}
       ` }} />
     </nav>

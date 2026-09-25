@@ -1,0 +1,69 @@
+/* Approved v6: one palette for the public site and creator workspaces. */
+:root {
+  color-scheme: light;
+  --bg:#f7f9fc; --sidebar-bg:#fff; --card:#fff; --card2:#eef3f9;
+  --text:#17273b; --text2:#273b53; --muted:#586c83; --muted2:#61758d;
+  --border:#d5e0ec; --border2:#b9cadc; --indigo:#1766d3; --indigo-light:#1766d3;
+  --purple:#1766d3; --purple-light:#1766d3;
+  --surface:var(--card); --surface-soft:var(--card2); --accent:#1766d3;
+  --accent-soft:#eaf2ff; --on-accent:#fff; --header-bg:#ffffffed;
+  --danger:#b42318; --warning:#915300;
+  --sh-card:0 10px 35px #18385908; --sh-card-h:0 18px 48px #18385912;
+  --sh-cta:0 6px 18px #1766d326;
+}
+html[data-theme='dark'] {
+  color-scheme:dark;
+  --bg:#0c1521; --sidebar-bg:#121f2e; --card:#121f2e; --card2:#192b3f;
+  --text:#eef5fe; --text2:#d6e5f5; --muted:#a8bad0; --muted2:#91a8c2;
+  --border:#2d425a; --border2:#42617f; --indigo:#2997ff; --indigo-light:#91c9ff;
+  --purple:#2997ff; --purple-light:#91c9ff; --accent:#91c9ff;
+  --accent-soft:#1b3754; --on-accent:#062341; --header-bg:#121f2eed;
+  --danger:#ff8787; --warning:#ffbf58;
+  --sh-card:0 12px 36px #02081225; --sh-card-h:0 18px 48px #02081240;
+  --sh-cta:0 6px 22px #2997ff26;
+}
+body::before{background:radial-gradient(ellipse 1100px 650px at 0 0,var(--accent-soft),transparent 74%)}
+body::after{opacity:.008}
+.grad-text{background-image:linear-gradient(110deg,var(--indigo),var(--accent))}
+html .stu.composer-proposal .composer-proposal-idea{background:var(--card);border-color:var(--border);box-shadow:var(--sh-card)}
+html .stu .composer-proposal-optional{background:var(--card);border-color:var(--border)}
+html .stu .composer-proposal-optional>summary,html .stu .studio-output-details,html .stu .composer-proposal-how>summary{color:var(--muted)}
+html .stu .studio-generation-review{background:var(--accent-soft);border-color:var(--border2)}
+html .stu .studio-modes{max-width:none;border-color:var(--border)}
+html .stu .studio-modes :is(button,a){color:var(--muted)}
+html .stu .studio-modes button[aria-pressed=true]{background:var(--accent-soft);color:var(--accent)}
+html .stu.composer-proposal .composer-proposal-grid{max-width:none}
+html .stu .pk .pk-tx>.pill[role=button]{color:var(--accent)}
+/* Existing film render/result panels have explicit dark media surfaces. Keep
+   their local text tokens readable while the surrounding workspace follows
+   the selected appearance; no media, generation or export behavior changes. */
+.gv-card,.render-workspace-details{--text:#eef5fe;--text2:#d6e5f5;--muted:#a8bad0;--muted2:#91a8c2;--border:#2d425a;--card:#121f2e;--card2:#192b3f;--indigo:#2997ff;--accent:#91c9ff;--accent-soft:#1b3754;--on-accent:#062341;color:var(--text)}
+::-webkit-scrollbar-thumb{background:#879bb470}
+@media(max-width:600px){.kineo-topbar{gap:8px;padding-inline:12px}.kineo-topbar .topbar-mobile-logo{display:none}.kineo-topbar .topbar-breadcrumb{flex:1;min-width:0}.kineo-topbar .kineo-interface-language{max-width:86px!important}}
+@media(max-width:360px){.kineo-topbar .topbar-breadcrumb{display:none}.kineo-topbar .kineo-interface-language{max-width:78px!important}}
+.appearance-icon{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;flex-shrink:0;border:1px solid var(--border);border-radius:9px;background:var(--card);color:var(--muted);cursor:pointer;font-size:22px}
+.appearance-icon:hover{color:var(--accent);background:var(--accent-soft)}
+.appearance-icon:focus-visible,.appearance-settings-row:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.appearance-settings-row{display:flex;align-items:center;gap:10px;min-height:44px;padding:9px 12px;width:100%;border:1px solid var(--border);border-radius:9px;color:var(--text);background:var(--card2);font:inherit;cursor:pointer}
+.kineo-appearance{margin:auto;padding:30px;width:min(510px,calc(100% - 28px));max-height:calc(100dvh - 32px);overflow:auto;border:1px solid var(--border);border-radius:21px;background:var(--card);color:var(--text);box-shadow:0 30px 100px #020b1b50}
+.kineo-appearance::backdrop{background:#07132177;backdrop-filter:blur(5px)}
+.kineo-appearance:not([open]){display:none}
+.appearance-header{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:16px}
+.appearance-header>span{color:var(--accent);font-size:11px;font-weight:700;letter-spacing:.14em}
+.kineo-appearance h2{font-size:29px;letter-spacing:-1px;margin:0 0 11px;font-weight:600}
+.kineo-appearance>p{font-size:13px;line-height:1.7;color:var(--muted)}
+.appearance-options{border:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin:27px 0 22px}
+.appearance-option{display:block;border:1px solid var(--border);background:var(--bg);border-radius:13px;padding:10px;cursor:pointer;min-width:0}
+.appearance-option:has(input:checked){border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.appearance-option:has(input:focus-visible){outline:3px solid var(--accent);outline-offset:4px}
+.appearance-label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:14px 4px 5px;font-size:14px}
+.appearance-label input{accent-color:var(--indigo);width:15px;height:15px;margin:0;flex-shrink:0}
+.appearance-option small{display:block;margin:0 4px 7px;color:var(--muted);font-size:10px;line-height:1.5}
+.appearance-mini{height:106px;border:1px solid #cfdbeb;border-radius:7px;display:flex;background:#f7f9fc;overflow:hidden}
+.appearance-mini>i{width:23%;border-inline-end:1px solid #d5e0ec;background:#fff}
+.appearance-mini>span{flex:1;padding:14px 9px;display:grid;grid-template-columns:repeat(3,1fr);gap:5px;align-content:start}
+.appearance-mini b{height:6px;grid-column:1/-1;background:#aebdd0;border-radius:2px;max-width:65%;margin-bottom:8px}
+.appearance-mini em{height:46px;background:#d8e6f7;border:1px solid #c7d7ed;border-radius:4px}
+.appearance-mini-dark{background:#0c1521;border-color:#2d425a}.appearance-mini-dark>i{background:#121f2e;border-color:#2d425a}.appearance-mini-dark b{background:#91c9ff}.appearance-mini-dark em{background:#203b56;border-color:#375470}
+.kineo-appearance .appearance-save{font-size:11px;padding-top:17px;border-top:1px solid var(--border)}
+@media(max-width:760px){.kineo-appearance{padding:24px 20px}.appearance-options{gap:11px}.appearance-option{padding:8px}.appearance-mini{height:94px}.appearance-mini>span{padding:13px 6px}.appearance-mini em{height:38px}.kineo-appearance h2{font-size:27px}.appearance-icon{width:34px;height:34px}}

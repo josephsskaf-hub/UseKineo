@@ -79,6 +79,7 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
       }
       const base=id.startsWith('@/')?id.slice(2):id.startsWith('.')?path.posix.join(path.posix.dirname(file),id):null
       if(!base || !base.startsWith('lib/'))throw Error('Unexpected dependency '+id+' in '+file)
+      if(base.endsWith('.json'))return JSON.parse(source(base))
       for(const ext of ['.ts','.tsx'])if(fs.existsSync(path.join(root,base+ext)))return load(base+ext)
       throw Error('Missing '+base)
     }

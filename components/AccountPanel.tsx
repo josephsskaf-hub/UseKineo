@@ -35,6 +35,7 @@
 // do saldo, não escondido atrás de um upsell de plano.
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import type { MySubscription } from '@/app/api/me/subscription/route'
 import { canPurchaseCreditTopup } from '@/lib/growth/topupEligibility'
@@ -73,7 +74,7 @@ const PLAN_PRICE: Record<string, number> = {
 }
 
 const CARD: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.028)',
+  background: 'var(--card2)',
   border: '1px solid rgba(255,255,255,0.075)',
   borderRadius: 18,
   padding: '18px 20px',
@@ -83,12 +84,12 @@ const CARD: React.CSSProperties = {
 }
 const EYEBROW: React.CSSProperties = {
   fontSize: '0.63rem', fontWeight: 800, textTransform: 'uppercase',
-  letterSpacing: '0.11em', color: '#86868b',
+  letterSpacing: '0.11em', color: 'var(--muted)',
 }
 
 function Bar({ pct, warn }: { pct: number; warn?: boolean }) {
   return (
-    <span aria-hidden="true" style={{ display: 'block', height: 7, borderRadius: 99, background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
+    <span aria-hidden="true" style={{ display: 'block', height: 7, borderRadius: 99, background: 'var(--border)', overflow: 'hidden' }}>
       <span style={{
         display: 'block', height: '100%', borderRadius: 99,
         width: `${Math.max(2, Math.min(100, pct))}%`,
@@ -153,8 +154,8 @@ export default function AccountPanel({
           // para não cortar conteúdo em tela baixa.
           width: 'min(1240px, calc(100vw - 28px))',
           maxHeight: 'min(620px, calc(100vh - 96px))',
-          background: 'linear-gradient(180deg,#17171a 0%,#131315 100%)',
-          border: '1px solid rgba(255,255,255,0.10)',
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
           borderRadius: 24,
           boxShadow: '0 30px 90px rgba(0,0,0,0.7), 0 0 0 1px rgba(41,151,255,0.07)',
           padding: 20,
@@ -174,12 +175,12 @@ export default function AccountPanel({
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-              <span style={{ fontSize: '1.02rem', fontWeight: 800, color: 'var(--text,#f5f5f7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: '1.02rem', fontWeight: 800, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {displayName || email.split('@')[0]}
               </span>
               <span style={{
                 fontSize: '0.6rem', fontWeight: 900, letterSpacing: '0.09em', textTransform: 'uppercase',
-                color: isPaid ? '#2997ff' : '#86868b',
+                color: isPaid ? 'var(--accent)' : 'var(--muted)',
                 background: isPaid ? 'rgba(41,151,255,0.13)' : 'rgba(255,255,255,0.05)',
                 border: `1px solid ${isPaid ? 'rgba(41,151,255,0.34)' : 'rgba(255,255,255,0.1)'}`,
                 borderRadius: 6, padding: '3px 8px', flexShrink: 0,
@@ -187,7 +188,7 @@ export default function AccountPanel({
                 {planName}
               </span>
             </div>
-            <div style={{ fontSize: '0.75rem', color: '#86868b', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {email}
             </div>
           </div>
@@ -196,8 +197,8 @@ export default function AccountPanel({
             aria-label="Close"
             style={{
               width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)',
-              color: '#86868b', cursor: 'pointer', fontSize: '1rem', lineHeight: 1,
+              background: 'var(--card2)', border: '1px solid var(--border)',
+              color: 'var(--muted)', cursor: 'pointer', fontSize: '1rem', lineHeight: 1,
             }}
           >
             ×
@@ -210,11 +211,11 @@ export default function AccountPanel({
           <div style={{ ...CARD, borderColor: lowCredits ? 'rgba(245,158,11,0.35)' : 'rgba(41,151,255,0.22)', background: lowCredits ? 'rgba(245,158,11,0.05)' : 'rgba(41,151,255,0.055)' }}>
             <span style={EYEBROW}>Credits</span>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, marginTop: 10 }}>
-              <span style={{ fontSize: '2.9rem', fontWeight: 900, lineHeight: 0.95, letterSpacing: '-0.03em', color: lowCredits ? '#fbbf24' : '#f5f5f7' }}>
+              <span style={{ fontSize: '2.9rem', fontWeight: 900, lineHeight: 0.95, letterSpacing: '-0.03em', color: lowCredits ? 'var(--warning)' : 'var(--text)' }}>
                 {credits ?? '…'}
               </span>
               {grant && (
-                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#86868b', paddingBottom: 5 }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--muted)', paddingBottom: 5 }}>
                   of {grant} this month
                 </span>
               )}
@@ -222,7 +223,7 @@ export default function AccountPanel({
             {creditPct !== null && (
               <div style={{ marginTop: 14 }}><Bar pct={creditPct} warn={lowCredits} /></div>
             )}
-            <p style={{ fontSize: '0.76rem', color: '#a1a1a6', lineHeight: 1.5, margin: '12px 0 0' }}>
+            <p style={{ fontSize: '0.76rem', color: 'var(--muted)', lineHeight: 1.5, margin: '12px 0 0' }}>
               {lowCredits
                 ? topupEligible
                   ? 'Running low. A one-time pack tops you up without touching your plan.'
@@ -264,9 +265,9 @@ export default function AccountPanel({
           <div style={CARD}>
             <span style={EYEBROW}>Plan &amp; billing</span>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 10 }}>
-              <span style={{ fontSize: '1.5rem', fontWeight: 900, color: '#f5f5f7', letterSpacing: '-0.02em' }}>{planName}</span>
+              <span style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>{planName}</span>
               {priceMinor !== null && (
-                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#86868b' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--muted)' }}>
                   {formatCheckoutMoney('usd', priceMinor)}/mo
                 </span>
               )}
@@ -276,28 +277,28 @@ export default function AccountPanel({
               {/* Só afirma sobre renovação quando a Stripe respondeu. Um painel
                   que chuta data de cobrança é pior que um painel silencioso. */}
               {renewLabel && !sub?.cancelsAtPeriodEnd && (
-                <span style={{ fontSize: '0.82rem', color: '#a1a1a6' }}>
-                  Renews <b style={{ color: '#f5f5f7' }}>{renewLabel}</b>
-                  {daysLeft !== null && daysLeft <= 10 && <span style={{ color: '#86868b' }}> · in {daysLeft}d</span>}
+                <span style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>
+                  Renews <b style={{ color: 'var(--text)' }}>{renewLabel}</b>
+                  {daysLeft !== null && daysLeft <= 10 && <span style={{ color: 'var(--muted)' }}> · in {daysLeft}d</span>}
                 </span>
               )}
               {renewLabel && sub?.cancelsAtPeriodEnd && (
-                <span style={{ fontSize: '0.82rem', color: '#fbbf24' }}>
+                <span style={{ fontSize: '0.82rem', color: 'var(--warning)' }}>
                   Cancels on <b>{renewLabel}</b> — access continues until then
                 </span>
               )}
               {!renewLabel && isPaid && (
-                <span style={{ fontSize: '0.82rem', color: '#86868b' }}>Active subscription</span>
+                <span style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>Active subscription</span>
               )}
               {!isPaid && (
-                <span style={{ fontSize: '0.82rem', color: '#86868b' }}>No subscription — you are on the free tier</span>
+                <span style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>No subscription — you are on the free tier</span>
               )}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 'auto', paddingTop: 14 }}>
               <Link href="/account?tab=billing" onClick={go} style={linkBtn}>Manage billing &amp; invoices</Link>
               {isPaid && planKey !== 'pro' && (
-                <Link href="/pricing" onClick={go} style={{ ...linkBtn, color: '#7cc0ff', borderColor: 'rgba(41,151,255,0.3)', background: 'rgba(41,151,255,0.08)' }}>
+                <Link href="/pricing" onClick={go} style={{ ...linkBtn, color: 'var(--accent)', borderColor: 'rgba(41,151,255,0.3)', background: 'rgba(41,151,255,0.08)' }}>
                   Upgrade plan
                 </Link>
               )}
@@ -310,12 +311,12 @@ export default function AccountPanel({
           <Link href="/library" onClick={go} style={{ ...CARD, textDecoration: 'none' }}>
             <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={EYEBROW}>Your library</span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#7cc0ff' }}>open →</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent)' }}>open →</span>
             </span>
             <span style={{ display: 'flex', gap: 44, marginTop: 16 }}>
               {([['Videos', storage?.videos], ['Images', storage?.images], ['Audio', storage?.audios]] as const).map(([lbl, n]) => (
                 <span key={lbl} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ fontSize: '2rem', fontWeight: 900, letterSpacing: '-0.02em', color: '#f5f5f7', lineHeight: 1 }}>
+                  <span style={{ fontSize: '2rem', fontWeight: 900, letterSpacing: '-0.02em', color: 'var(--text)', lineHeight: 1 }}>
                     {typeof n === 'number' ? n : '…'}
                   </span>
                   <span style={EYEBROW}>{lbl}</span>
@@ -328,7 +329,7 @@ export default function AccountPanel({
                   pct={storage.limit ? (storage.total / storage.limit) * 100 : 100}
                   warn={Boolean(storage.limit && storage.total / storage.limit > 0.85)}
                 />
-                <span style={{ display: 'block', marginTop: 8, fontSize: '0.75rem', color: '#86868b' }}>
+                <span style={{ display: 'block', marginTop: 8, fontSize: '0.75rem', color: 'var(--muted)' }}>
                   {storage.limit
                     ? `${storage.total} of ${storage.limit} projects · ${storage.retention}`
                     : `${storage.total} projects · unlimited · ${storage.retention}`}
@@ -339,6 +340,7 @@ export default function AccountPanel({
 
           <div style={{ ...CARD, gap: 7 }}>
             <span style={{ ...EYEBROW, marginBottom: 4 }}>Settings</span>
+            <AppearanceSettingsButton compact={false} />
             {[
               { href: '/account?tab=profile', label: 'Profile', d: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-8 8c1.5-3.4 4.5-5.3 8-5.3s6.5 1.9 8 5.3' },
               { href: '/history', label: 'My videos', d: 'M4 5.5h16v13H4zM10 9.5l5 2.5-5 2.5z' },
@@ -351,12 +353,12 @@ export default function AccountPanel({
                 <span>{it.label}</span>
               </Link>
             ))}
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: 'auto 4px 4px' }} />
+            <div style={{ height: 1, background: 'var(--border)', margin: 'auto 4px 4px' }} />
             <button
               onClick={() => { onClose(); onSignOut() }}
               style={{ ...rowBtn, cursor: 'pointer', textAlign: 'left', width: '100%' }}
               onMouseEnter={(e) => { const el = e.currentTarget as HTMLElement; el.style.background = 'rgba(239,68,68,0.10)'; el.style.color = '#f87171' }}
-              onMouseLeave={(e) => { const el = e.currentTarget as HTMLElement; el.style.background = 'rgba(255,255,255,0.03)'; el.style.color = 'var(--text2,#c7c7cc)' }}
+              onMouseLeave={(e) => { const el = e.currentTarget as HTMLElement; el.style.background = 'var(--card2)'; el.style.color = 'var(--text2,#c7c7cc)' }}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M9 21H5.5A1.5 1.5 0 0 1 4 19.5v-15A1.5 1.5 0 0 1 5.5 3H9" />
@@ -374,7 +376,7 @@ export default function AccountPanel({
 const linkBtn: React.CSSProperties = {
   display: 'block', textAlign: 'center', padding: '10px 12px', borderRadius: 11,
   fontSize: '0.8rem', fontWeight: 700, textDecoration: 'none',
-  color: 'var(--text2,#c7c7cc)', background: 'rgba(255,255,255,0.035)',
+  color: 'var(--text2,#c7c7cc)', background: 'var(--card2)',
   border: '1px solid rgba(255,255,255,0.08)',
 }
 
@@ -382,6 +384,6 @@ const rowBtn: React.CSSProperties = {
   display: 'flex', alignItems: 'center', gap: 11,
   padding: '12px 13px', borderRadius: 11,
   fontSize: '0.85rem', fontWeight: 700, textDecoration: 'none',
-  color: 'var(--text2,#c7c7cc)', background: 'rgba(255,255,255,0.03)',
-  border: '1px solid rgba(255,255,255,0.06)',
+  color: 'var(--text2,#c7c7cc)', background: 'var(--card2)',
+  border: '1px solid var(--border)',
 }

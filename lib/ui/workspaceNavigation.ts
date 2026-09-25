@@ -7,7 +7,7 @@ export const WORKSPACE_NAV = [
   { href: '/studio', label: 'Studio', icon: 'generate' },
   // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 — Imagem é porta do topo (fundador 25/09); espelha na lateral e no mobile.
   { href: '/images', label: 'Images', icon: 'images' },
-  { href: '/ads', label: 'Ads', icon: 'ads' },
+  { href: '/ads/new', label: 'Ads', icon: 'ads' },
   { href: '/library', label: 'Library', icon: 'videos' },
   { href: '/pricing', label: 'Pricing', icon: 'pricing' },
 ] as const
@@ -27,6 +27,7 @@ export function workspaceNavActive(pathname: string, href: string): boolean {
   if (href === '/library') return ['/library', '/history', '/my-videos'].some(matches)
   // Animate virou item proprio do "More" (KINEO-NAV-4-ITENS-2026-09-25).
   if (href === '/studio') return ['/studio', '/generate', '/avatar'].some(matches)
+  if (href === '/ads/new') return matches('/ads')
   return matches(href)
 }
 
@@ -37,6 +38,7 @@ const NAV_ITEM_BY_HREF: Record<string, string> = {
   '/studio': 'video',
   '/images': 'image',
   '/ads': 'ads',
+  '/ads/new': 'ads',
   '/library': 'library',
   '/pricing': 'pricing',
   '/examples': 'examples',

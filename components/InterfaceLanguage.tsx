@@ -8,6 +8,10 @@ import { INTERFACE_ES } from '@/lib/ui/interfaceLabels'
 import { canonicalCopySpanish } from '@/lib/ui/canonicalCopySpanish'
 import { INTERFACE_HI, canonicalCopyHindi } from '@/lib/ui/interfaceHindi'
 import { loadInterfaceDictionary, type InterfaceDictionary } from '@/lib/ui/interfaceDictionaries'
+import refinementCopy from '@/lib/ui/refinementCopy.json'
+
+const refinementDictionary: Record<string, Record<string, string>> = refinementCopy
+function refinedCopy(language: string, text: string) { return refinementDictionary[language]?.[text] }
 
 // KINEO-INTERFACE-16-LINGUAS-2026-09-21 — o contexto carrega o dicionário da língua escolhida (13 novas, sob
 // demanda) e expõe `dict`; es/hi continuam pelos dicionários já no bundle. Enquanto o dicionário carrega, a
@@ -53,9 +57,9 @@ export function useInterfaceLanguage() { return useContext(InterfaceLanguageCont
 function translateAuthoredCopy(language: InterfaceLanguage, dict: InterfaceDictionary | null, text: string): string | undefined {
   if (language === 'en') return undefined
   const normalized = normalizeInterfaceCopy(text)
-  const translated = language === 'es' ? (INTERFACE_ES[normalized] ?? canonicalCopySpanish(normalized))
+  const translated = (language === 'es' ? (INTERFACE_ES[normalized] ?? canonicalCopySpanish(normalized))
     : language === 'hi' ? (INTERFACE_HI[normalized] ?? canonicalCopyHindi(normalized))
-    : dict?.[normalized]
+    : dict?.[normalized]) ?? refinedCopy(language, normalized)
   return translated === undefined ? undefined : (text.match(/^\s+/)?.[0] ?? '') + translated + (text.match(/\s+$/)?.[0] ?? '')
 }
 
@@ -84,13 +88,13 @@ export function UiText({ children, es, hi }: { children: ReactNode; es: ReactNod
 
 export function hindiInterfaceCopy(text: string): string | undefined {
   const normalized = normalizeInterfaceCopy(text)
-  const translated = INTERFACE_HI[normalized] ?? canonicalCopyHindi(normalized)
+  const translated = INTERFACE_HI[normalized] ?? canonicalCopyHindi(normalized) ?? refinedCopy('hi', normalized)
   return translated === undefined ? undefined : (text.match(/^\s+/)?.[0] ?? '') + translated + (text.match(/\s+$/)?.[0] ?? '')
 }
 
 export function UiLabel({ children }: { children: string }) {
   const normalized = normalizeInterfaceCopy(children)
-  const translated = INTERFACE_ES[normalized] ?? canonicalCopySpanish(normalized)
+  const translated = INTERFACE_ES[normalized] ?? canonicalCopySpanish(normalized) ?? refinedCopy('es', normalized)
   const es = translated ? (children.match(/^\s+/)?.[0] ?? '') + translated + (children.match(/\s+$/)?.[0] ?? '') : children
   return <UiText es={es}>{children}</UiText>
 }
@@ -100,7 +104,7 @@ export function InterfaceLanguageSelect() {
   return (
     <select className="kineo-interface-language" aria-label="Interface language / Idioma de interfaz" value={language}
       onChange={event => choose(parseInterfaceLanguage(event.target.value))}
-      style={{ color: '#f5f5f7', background: '#14171d', border: '1px solid #3a414c', borderRadius: 9, padding: '8px 6px', minHeight: 36, maxWidth: 110, fontSize: 12, cursor: 'pointer', colorScheme: 'dark' }}>
+      style={{ color: 'var(--text)', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 9, padding: '8px 6px', minHeight: 36, maxWidth: 110, fontSize: 12, cursor: 'pointer', colorScheme: 'inherit' }}>
       {INTERFACE_LANGUAGE_OPTIONS.map((o) => (
         <option key={o.code} value={o.code} lang={o.code} dir={o.rtl ? 'rtl' : undefined}>{o.native}</option>
       ))}
