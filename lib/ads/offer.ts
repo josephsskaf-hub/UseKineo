@@ -2,7 +2,8 @@
 //
 // DECISÕES DO FUNDADOR (24/09 ~07h30 BRT, docs/DECISIONS.md): nome "Studio Ads"; acesso por
 // passe ÚNICO "US$19" com 60 créditos; assinante pago entra sem passe; entrega imediata com
-// revisão humana do 1º anúncio em 24 h. Este módulo é PURO (sem import): quem cobra
+// um humano confere o 1º anúncio (27/09: a promessa de "24 h" e de "versão corrigida" CAIU — decisão do fundador;
+// fica "A human checks your first ad"). Este módulo é PURO (sem import): quem cobra
 // (app/api/stripe/checkout), quem concede (webhook, Path A) e quem pinta (/ads, /ads/new)
 // leem daqui — nunca digitam o número.
 //
@@ -77,13 +78,15 @@ export function adsPassCopy() {
       `${ADS_PASS_CREDITS} credits (about ${adsCoveredByPass(35)} ads of 35 s, or ${adsCoveredByPass(60)} of 60 s with the longer models, on Kineo 1)`,
       'Script written from your brief, narration in your language, captions and original music',
       'Your photos and clips inside the film, your logo and call to action on the last frame',
-      'A human editor reviews your first ad within 24 hours and sends a corrected version if anything is off',
+      // KINEO-ADS-REVISAO-2026-09-27 — fundador 27/09: sem prazo de 24 h nem "versão corrigida"; só o que o produto faz.
+      'A human checks your first ad',
       // KINEO-SEM-PROMESSA-DE-EXPIRACAO-2026-09-25 — "credits do not expire" era falso para quem tem plano (a renovação zera o crédito comprado).
       'One-time payment, no subscription',
     ],
     excludes: [
       'Presenter or avatar videos, cloned voices and product shots inside generated scenes are not part of this pass yet',
-      'Square and landscape cuts, 15-second ads and ads with the original audio of your clip are coming next',
+      // KINEO-ADS-REVISAO-2026-09-27 — 1:1, 4:5 e 16:9 existem desde 26/09 (lib/ads/adStyle.ts AD_FORMATS): saíram do "ainda não".
+      '15-second ads and ads with the original audio of your clip are coming next',
     ],
   }
 }

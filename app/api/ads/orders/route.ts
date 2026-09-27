@@ -37,6 +37,18 @@ async function gateOrDeny(userId: string, reason: Parameters<typeof adsGate>[0],
     : NextResponse.json({ error: 'Studio Ads needs the Studio Ads pass or a paid plan.', reason: 'no_access' }, { status: 403 })
 }
 
+// KINEO-ADS-LISTA-2026-09-27 — a lista "Your ads" do /ads/new mostra a miniatura do filme: videos.thumbnail_url juntada
+// por video_id numa consulta só para todos os pedidos da página (nunca N+1). Falha ao ler videos = miniatura nula, nunca erro.
+async function withThumbnails<T extends { video_id?: string | null }>(admin: Awaited<ReturnType<typeof loadAdsAccess>>['admin'], orders: T[]): Promise<Array<T & { thumbnail_url: string | null }>> {
+  const ids = Array.from(new Set(orders.map((o) => o.video_id).filter((v): v is string => typeof v === 'string' && v.length > 0)))
+  const thumbs = new Map<string, string | null>()
+  if (ids.length) {
+    const v = await admin.from('videos').select('id, thumbnail_url').in('id', ids)
+    if (!v.error) for (const row of (v.data ?? []) as { id: string; thumbnail_url: string | null }[]) thumbs.set(row.id, row.thumbnail_url ?? null)
+  }
+  return orders.map((o) => ({ ...o, thumbnail_url: typeof o.video_id === 'string' ? thumbs.get(o.video_id) ?? null : null }))
+}
+
 export async function GET() {
   try {
     const user = await requireUser()
@@ -47,7 +59,7 @@ export async function GET() {
       if (isMissingAdsTable(error.code)) return NextResponse.json({ access: reason, gate: adsGate(reason), live: adsPassLive(), ready: false, orders: [] })
       return NextResponse.json({ error: 'Could not load your orders.' }, { status: 500 })
     }
-    return NextResponse.json({ access: reason, gate: adsGate(reason), live: adsPassLive(), ready: true, orders: data ?? [] })
+    return NextResponse.json({ access: reason, gate: adsGate(reason), live: adsPassLive(), ready: true, orders: await withThumbnails(admin, data ?? []) })
   } catch (e) {
     console.warn('[ads/orders GET] falhou:', e instanceof Error ? e.message : String(e))
     return NextResponse.json({ error: 'failed' }, { status: 500 })

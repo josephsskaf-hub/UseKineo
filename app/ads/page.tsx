@@ -12,9 +12,10 @@
 //   2. adsPassLive() OR internal account     → "Get Studio Ads · <price>" as a plain <a> to the checkout GET
 //      (logged-out people are sent to /login by the checkout and brought back); the same rule the checkout applies;
 //   3. otherwise                             → "Opens soon", no button.
-// The buy CTA (and only it) closes when the first-ad review queue is full: ads_orders delivered IN THE LAST 24 HOURS
-// with qa_at null, counted by distinct user, >= ADS_MAX_OPEN_REVIEWS. The 24-hour window is the promised review window,
-// so a review nobody closed can never lock the door for good and "come back tomorrow" stays true. A read failure or a
+// The buy CTA (and only it) closes when the first-ad review queue is full: ads_orders delivered inside REVIEW_WINDOW_MS
+// with qa_at null, counted by distinct user, >= ADS_MAX_OPEN_REVIEWS. The window is the operator's review rhythm (since
+// 27/09 the page promises no deadline: "A human checks your first ad"), so a review nobody closed can never lock the
+// door for good and "come back tomorrow" stays true. A read failure or a
 // missing table counts as 0 — the page never hangs or breaks on it (the server side of the cap belongs to the
 // render/checkout routes, not to this page).
 import type { Metadata } from 'next'
@@ -34,6 +35,7 @@ import { ADS_MODELS, type AdsModel } from '@/lib/ads/models'
 import {
   ADS_PASS_ACCESS_DAYS,
   ADS_PASS_CREDITS,
+  KINEO1_35S_CREDITS, // KINEO-ADS-REVISAO-2026-09-27: o custo por anúncio da FAQ nasce daqui, nunca digitado
   adsCoveredByPass,
   adsPassCopy,
   adsPassLive,
@@ -61,7 +63,7 @@ const WIZARD_HREF = '/ads/new'
 const DFY_HREF = '/business-video-ads'
 /** A slow auth or database read must never hold the public door; past this, the page renders the safe default. */
 const READ_TIMEOUT_MS = 2500
-/** The promised review window: only ads delivered inside it count toward the review cap. */
+/** The operator's review window (an internal rhythm, not a customer promise since 27/09): only ads delivered inside it count toward the review cap. */
 const REVIEW_WINDOW_MS = 24 * 3600 * 1000
 
 type Viewer = { signedIn: boolean; gate: 'ok' | 'no_access' | 'closed' | null; internal: boolean }
@@ -94,7 +96,7 @@ async function readViewer(): Promise<Viewer> {
   }
 }
 
-/** Businesses waiting for the human review of an ad delivered in the last 24 hours (distinct users; 0 on any failure). */
+/** Businesses waiting for the human review of an ad delivered inside REVIEW_WINDOW_MS (distinct users; 0 on any failure). */
 async function countOpenReviews(): Promise<number> {
   try {
     const since = new Date(Date.now() - REVIEW_WINDOW_MS).toISOString()
@@ -255,7 +257,8 @@ export default async function StudioAdsPage() {
 
         <section className="ads-sec ads-review" aria-labelledby="ads-review">
           <h2 id="ads-review">A person checks your first ad</h2>
-          <p>A human editor reviews your first ad within 24 hours and sends a corrected version if anything is off.</p>
+          {/* KINEO-ADS-REVISAO-2026-09-27 — fundador 27/09: sem prazo nem "versão corrigida"; o pedido de mudança da entrega é o que existe. */}
+          <p>A human checks your first ad. Need a change? The delivery screen has a request button that opens an email to us with your order number already filled in.</p>
         </section>
 
         <section className="ads-sec" aria-labelledby="ads-price">
@@ -294,7 +297,8 @@ export default async function StudioAdsPage() {
           </details>
           <details>
             <summary>Do I need a subscription?</summary>
-            <p>No. The pass is a single payment of {price} with {ADS_PASS_CREDITS} credits and {ADS_PASS_ACCESS_DAYS} days of Studio Ads. Nothing renews.</p>
+            {/* KINEO-ADS-REVISAO-2026-09-27 — assinante entra sem passe (lib/ads/access.ts ADS_SUBSCRIBER_PLANS); o custo por anúncio vem de lib/ads/offer.ts. */}
+            <p>No. Any paid plan includes Studio Ads ({KINEO1_35S_CREDITS} credits per 35-second ad, the same credits as your videos). The pass is for people without a plan: a single payment of {price} with {ADS_PASS_CREDITS} credits and {ADS_PASS_ACCESS_DAYS} days of Studio Ads. Nothing renews.</p>
           </details>
           <details>
             <summary>I would rather have someone make it for me.</summary>

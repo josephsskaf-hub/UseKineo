@@ -74,8 +74,28 @@ check(read('app/ads/page.tsx').includes('<CreditMinutesSummary credits={ADS_PASS
 check(read('components/pricing/PricingAdsBlock.tsx').includes('<CreditMinutesSummary credits={pass.credits} />'), 'pricing pass uses offer model grant')
 
 // Pin the founder freeze, checking real source files rather than a second price table.
-for (const file of ['lib/checkoutPricing.ts', 'lib/ads/offer.ts', 'lib/credits/engineCost.ts', 'lib/credits/creditSlider.ts']) {
+for (const file of ['lib/checkoutPricing.ts', 'lib/credits/engineCost.ts', 'lib/credits/creditSlider.ts']) {
   const base = execFileSync('git', ['show', `d3c21742:${file}`], { encoding: 'utf8' }).replace(/\r\n/g, '\n')
   check(read(file) === base, 'unchanged billing source: ' + file)
+}
+// KINEO-ADS-SPRINT16H-2026-09-27 — lib/ads/offer.ts changed COPY only on 27/09 (the founder dropped "within 24 hours" and
+// "corrected version"; square/landscape cuts exist since 26/09). The byte pin for that file now freezes its BILLING SURFACE
+// (every exported number, the price label, the coverage figures and the credits line of the pass copy), evaluated from the
+// frozen commit and from the working file: a price or credit change still fails here, a sentence change does not.
+{
+  const file = 'lib/ads/offer.ts'
+  const pureSource = source => {
+    const module = { exports: {} }
+    vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: 1, target: 9 } }).outputText, { module, exports: module.exports, require: id => { throw Error(id) } })
+    return module.exports
+  }
+  const frozen = pureSource(execFileSync('git', ['show', `d3c21742:${file}`], { encoding: 'utf8' }).replace(/\r\n/g, '\n'))
+  const now = pureSource(read(file))
+  const surface = m => JSON.stringify({
+    id: m.ADS_PASS_ID, minor: m.ADS_PASS_USD_MINOR, credits: m.ADS_PASS_CREDITS, days: m.ADS_PASS_ACCESS_DAYS, occupied: m.ONE_TIME_USD_MINOR_OCCUPIED,
+    k60: m.KINEO1_60S_CREDITS, k35: m.KINEO1_35S_CREDITS, live: m.ADS_PASS_LIVE_IN_CODE, label: m.adsPassPriceLabel(),
+    c35: m.adsCoveredByPass(35), c60: m.adsCoveredByPass(60), name: m.adsPassCopy().name, price: m.adsPassCopy().price, creditsLine: m.adsPassCopy().includes[0],
+  })
+  check(surface(now) === surface(frozen), 'unchanged billing surface: ' + file)
 }
 console.log(`Credit minutes UI: ${checks} checks passed; offline, no payments.`)

@@ -39,7 +39,8 @@ check('rótulo "US$19.90" (nunca "US$19" nem "19.9")', offer.adsPassPriceLabel()
 check('interruptor: ligado no código (ADS_PASS_LIVE_IN_CODE); env "0" desliga de emergência; "1" liga', offer.ADS_PASS_LIVE_IN_CODE === true && roda(offerSrc, {}).adsPassLive() === true && roda(offerSrc, { NEXT_PUBLIC_ADS_PASS_LIVE: '0' }).adsPassLive() === false && roda(offerSrc, { NEXT_PUBLIC_ADS_PASS_LIVE: '1' }).adsPassLive() === true)
 check('adsAccessUntil soma dias inteiros em UTC', offer.adsAccessUntil(new Date('2026-09-25T00:00:00Z')).toISOString() === '2027-09-25T00:00:00.000Z')
 const copy = offer.adsPassCopy()
-check('copy do passe é executável e honesta: diz o que NÃO inclui; nunca "hundreds of formats"/"instant"/"no human"/"unlimited"', copy.excludes.length >= 2 && copy.includes.some((s) => /human editor reviews your first ad within 24 hours/.test(s)) && !/hundreds of formats|instant|no human|unlimited/i.test(JSON.stringify(copy)))
+// Reancorado 27/09 (sprint16h ADS): o fundador tirou o prazo de 24 h e a 'versão corrigida' — fica 'A human checks your first ad'. A intenção (copy executável e honesta) não mudou; scripts/test-ads-sprint16h-2026-09-27.mjs trava o literal antigo em 0.
+check('copy do passe é executável e honesta: diz o que NÃO inclui; nunca "hundreds of formats"/"instant"/"no human"/"unlimited"', copy.excludes.length >= 2 && copy.includes.some((s) => /^A human checks your first ad$/.test(s)) && !/hundreds of formats|instant|no human|unlimited|24 hours|corrected version/i.test(JSON.stringify(copy)))
 check('a copy do passe promete exatamente o que o crédito paga (20/12 anúncios)', copy.includes[0].includes('20 ads of 35 s') && copy.includes[0].includes('12 of 60 s'))
 
 // ── 2. models.ts ──────────────────────────────────────────────────────────────────────────────

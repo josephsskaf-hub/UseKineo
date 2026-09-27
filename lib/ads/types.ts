@@ -54,6 +54,8 @@ export interface AdsOrder {
   storyboard: AdsStoryboardScene[]
   card_footage_id: string | null   // PNG do cartão final (desenhado no navegador) já subido
   video_id: string | null
+  /** KINEO-ADS-LISTA-2026-09-27 — só no GET /api/ads/orders: videos.thumbnail_url juntada por video_id (não é coluna de ads_orders). */
+  thumbnail_url?: string | null
   consent_at: string | null
   qa_by: string | null
   qa_at: string | null

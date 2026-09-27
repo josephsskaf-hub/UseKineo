@@ -44,7 +44,7 @@ import { ADS_AUTO_MIN_ITEMS, adsAutoVisible } from '@/lib/ads/autoBrief' // KINE
 
 // ─── tipos e constantes ──────────────────────────────────────────────────────────────────────
 
-type Gate = 'ok' | 'no_access' | 'closed'
+type Gate = 'ok' | 'no_access' | 'closed' | 'anon' // KINEO-ADS-SEM-LOGIN-2026-09-27: 'anon' = visitante sem login (painel da IA, nenhuma chamada de API)
 type Access = 'pass' | 'subscriber' | 'internal' | 'none'
 
 interface OrdersPayload {
@@ -63,6 +63,7 @@ type Boot =
   | { kind: 'no_access' }
   | { kind: 'error'; message: string }
   | { kind: 'ready' }
+  | { kind: 'anonymous' } // KINEO-ADS-SEM-LOGIN-2026-09-27
 
 const STEPS = [
   { id: 'brief', label: 'Brief' },
@@ -92,7 +93,11 @@ const MAX_MEDIA = 12
 const REUSABLE_STATUSES: readonly string[] = ['draft', 'rendering', 'failed', 'delivered', 'reviewed']
 /** Estados em que o pedido carrega o storyboard e o cartão gravados pelo render (o claim grava os dois). */
 const SEEDABLE_STATUSES: readonly string[] = ['draft', 'failed', 'rendering']
-const REVIEW_LINE = 'A human editor reviews your first ad within 24 hours and sends a corrected version if anything is off.'
+// KINEO-ADS-REVISAO-2026-09-27 — fundador 27/09: sem prazo de 24 h nem "versão corrigida"; só o que o produto faz.
+const REVIEW_LINE = 'A human checks your first ad.'
+// KINEO-ADS-SEM-LOGIN-2026-09-27 — rascunho do visitante (texto + link) guardado antes do /login; vale 1 h; arquivos não sobrevivem.
+const ADS_DRAFT_KEY = 'kineo:ads:draft:v1'
+const ADS_DRAFT_TTL_MS = 60 * 60_000
 const BUSINESS_SEP = ' — '
 const POLL_MS = 5000
 const POLL_CAP_MS = 15 * 60_000
@@ -241,6 +246,43 @@ function failureCode(failure: string | null | undefined): string | null {
 function goLogin() {
   if (typeof window === 'undefined') return
   window.location.href = `/login?redirect=${encodeURIComponent('/ads/new')}`
+}
+
+// KINEO-ADS-SEM-LOGIN-2026-09-27 — o visitante escreve antes de entrar: texto e link vão ao sessionStorage e voltam
+// depois do login (uma restauração só, dentro de ADS_DRAFT_TTL_MS). Arquivos não cabem aqui (a tela avisa em uma linha).
+type AdsDraft = { text: string; link: string; savedAt: number }
+
+function saveDraft(text: string, link: string) {
+  try {
+    if (typeof window === 'undefined') return
+    const d: AdsDraft = { text, link, savedAt: Date.now() }
+    window.sessionStorage.setItem(ADS_DRAFT_KEY, JSON.stringify(d))
+  } catch {
+    /* armazenamento indisponível (aba privada, cota): o texto só não volta depois do login */
+  }
+}
+
+/** Lê e APAGA o rascunho; vencido (> ADS_DRAFT_TTL_MS) ou malformado vira null. */
+function takeDraft(): AdsDraft | null {
+  try {
+    if (typeof window === 'undefined') return null
+    const raw = window.sessionStorage.getItem(ADS_DRAFT_KEY)
+    if (!raw) return null
+    window.sessionStorage.removeItem(ADS_DRAFT_KEY)
+    const parsed: unknown = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') return null
+    const x = parsed as Record<string, unknown>
+    if (typeof x.savedAt !== 'number' || Date.now() - x.savedAt > ADS_DRAFT_TTL_MS) return null
+    return { text: typeof x.text === 'string' ? x.text : '', link: typeof x.link === 'string' ? x.link : '', savedAt: x.savedAt }
+  } catch {
+    return null
+  }
+}
+
+/** Primeira ação de rede do visitante: guarda o rascunho e vai ao /login, que volta para /ads/new. */
+function saveDraftAndLogin(text: string, link: string) {
+  saveDraft(text, link)
+  goLogin()
 }
 
 function splitBusiness(b: string): [string, string] {
@@ -648,12 +690,14 @@ const ADS_WIZARD_CSS = `
 .adsw .adsw-sum dt{color:rgba(255,255,255,.55)}
 .adsw .adsw-sum dd{margin:0;color:#fff;font-weight:600;text-align:right;min-width:0;overflow-wrap:anywhere}
 .adsw .adsw-review{font-size:13.5px;color:#cfe3ff;background:rgba(41,151,255,.08);border:1px solid rgba(41,151,255,.28);border-radius:12px;padding:10px 12px;line-height:1.5;margin:14px 0 0}
+.adsw .adsw-thumb{width:40px;height:56px;object-fit:cover;border-radius:6px;flex:0 0 auto;background:#000;border:1px solid rgba(255,255,255,.12)}
 `
 
 // ─── componente principal ───────────────────────────────────────────────────────────────────
 
 export default function AdsWizardClient({ gate, access, resumingPass }: { gate: Gate; access: Access; resumingPass: boolean }) {
-  const [boot, setBoot] = useState<Boot>(() => (resumingPass && (access === 'none' || gate === 'no_access') ? { kind: 'unlocking' } : { kind: 'loading' }))
+  // KINEO-ADS-SEM-LOGIN-2026-09-27 — gate 'anon' = visitante: nasce em 'anonymous' e nunca chama a API.
+  const [boot, setBoot] = useState<Boot>(() => (gate === 'anon' ? { kind: 'anonymous' } : resumingPass && (access === 'none' || gate === 'no_access') ? { kind: 'unlocking' } : { kind: 'loading' }))
   const [bootRound, setBootRound] = useState(0)
   const [order, setOrder] = useState<AdsOrder | null>(null)
   const [view, setView] = useState<View>('brief')
@@ -713,6 +757,17 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
       setView(STEPS[Math.min(reachableIndex(pick, b, null, {}), 5)].id)
       return
     }
+    // KINEO-ADS-LISTA-2026-09-27 — o anúncio mais novo já foi entregue e o modo IA está visível: abre na lista "Your ads"
+    // (miniatura, negócio, modelo, data com hora, idioma) em vez da entrega; "Open · more versions" leva à entrega de sempre.
+    if ((pick.status === 'delivered' || pick.status === 'reviewed') && adsAutoVisible(access)) {
+      orderRef.current = null
+      setOrder(null)
+      setBeats(null)
+      setStoryboard({})
+      setCard(null)
+      setView('brief')
+      return
+    }
     const st = await fetchRenderState(pick.id)
     setRenderState(st)
     const status = st?.status ?? pick.status
@@ -726,10 +781,12 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
     }
     setRender({ renderId: st?.render_id ?? null, seconds: st?.seconds ?? pick.seconds ?? 35, topic: st?.topic ?? '' })
     setView('progress')
-  }, [])
+  }, [access])
 
   // Carga + reconsulta pós-checkout (o webhook do passe pode atrasar alguns segundos).
+  // KINEO-ADS-SEM-LOGIN-2026-09-27 — visitante (gate 'anon'): nenhuma chamada a /api/ads/orders (responderia 401).
   useEffect(() => {
+    if (gate === 'anon') return
     let cancelled = false
     let timer: ReturnType<typeof setTimeout> | null = null
     const started = Date.now()
@@ -769,7 +826,7 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
       cancelled = true
       if (timer) clearTimeout(timer)
     }
-  }, [resumingPass, hydrate, bootRound])
+  }, [gate, resumingPass, hydrate, bootRound])
 
   // URLs locais (blob:) das miniaturas desta sessão: liberadas ao sair.
   useEffect(() => {
@@ -929,6 +986,25 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
           <button type="button" className="adsw-btn" onClick={() => { setBoot({ kind: 'loading' }); setBootRound((n) => n + 1) }}>Try again</button>
         </div>
       </div>
+    )
+  } else if (boot.kind === 'anonymous') {
+    // KINEO-ADS-SEM-LOGIN-2026-09-27 — visitante: o mesmo painel da IA, sem nenhuma chamada de API; a primeira ação de
+    // rede guarda texto+link em sessionStorage e leva ao /login, que volta para cá.
+    content = (
+      <AdsAutoPanel
+        anon
+        order={null}
+        localUrls={localUrls}
+        addLocalUrl={addLocalUrl}
+        sessionUploads={sessionUploads}
+        onOrder={applyOrder}
+        onStarted={() => undefined}
+        onSteps={() => undefined}
+        remix={null}
+        onRemixUsed={() => undefined}
+        onOpenAd={() => undefined}
+        onFresh={() => undefined}
+      />
     )
   } else if (autoOn && mode === 'ai') {
     content = (
@@ -1232,7 +1308,10 @@ function AdsAutoPanel({
   remix,
   onRemixUsed,
   onOpenAd,
+  anon = false, // KINEO-ADS-SEM-LOGIN-2026-09-27
 }: {
+  /** KINEO-ADS-SEM-LOGIN-2026-09-27 — visitante sem login: nenhuma chamada de API; a 1ª ação de rede guarda o rascunho e vai ao /login. */
+  anon?: boolean
   order: AdsOrder | null
   localUrls: Record<string, string>
   addLocalUrl: (id: string, url: string) => void
@@ -1324,19 +1403,32 @@ function AdsAutoPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [remix])
   useEffect(() => {
-    if (order) return
+    if (order || anon) return // KINEO-ADS-SEM-LOGIN-2026-09-27: sem login, sem GET
     let alive = true
     void callJson<{ orders?: AdsOrder[] }>('/api/ads/orders').then((r) => {
       if (alive && r.ok && Array.isArray(r.data.orders)) { setBrand(lastBrandFrom(r.data.orders)); setRecent(recentAdsFrom(r.data.orders)) }
     })
     return () => { alive = false }
-  }, [order])
+  }, [order, anon])
+  // KINEO-ADS-SEM-LOGIN-2026-09-27 — de volta do login: o texto e o link que o visitante escreveu voltam para a caixa.
+  const [welcomeBack, setWelcomeBack] = useState(false)
+  useEffect(() => {
+    if (anon) return
+    const d = takeDraft()
+    if (!d || (!d.text && !d.link)) return
+    setText((t) => t || d.text)
+    setLink((l) => l || d.link)
+    setWelcomeBack(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const media = orderMedia(order)
   const { logo, rest } = mediaSummary(media)
   const srcOf = (m: AdsMediaItem) => localUrls[m.footageId] ?? m.url
   const chosenModel = adsModelById(template)
   const logoInput = useRef<HTMLInputElement>(null)
   const mediaInput = useRef<HTMLInputElement>(null)
+  // KINEO-ADS-SEM-LOGIN-2026-09-27 — sem login, "passo a passo" também passa pelo /login com o rascunho guardado.
+  const stepsOut = () => (anon ? saveDraftAndLogin(text, link) : onSteps())
 
   async function ensureOrder(): Promise<AdsOrder | null> {
     if (orderLocal.current) return orderLocal.current
@@ -1356,45 +1448,62 @@ function AdsAutoPanel({
   // KINEO-ADS-IA-UPLOAD-2026-09-26 — DEFEITO (achado pelo Cowork): a lista vinha como FileList VIVA e só era copiada
   // depois do `await ensureOrder()`; o onChange zera o input logo em seguida (`value = ''`), então a lista chegava
   // vazia e nada subia, sem erro. Agora o onChange copia os arquivos ANTES de zerar, e lista vazia vira mensagem.
+  // KINEO-ADS-FILA-UPLOAD-2026-09-27 — a recusa "Wait for the current upload…" MORREU: arquivos escolhidos durante um upload
+  // entram numa fila (useRef) que o laço em curso consome em série; o texto já digitado fica onde está.
+  const uploadQueue = useRef<Array<{ file: File; isLogo: boolean }>>([])
+  const draining = useRef(false)
   async function addFiles(files: File[], isLogo: boolean) {
-    if (busy) return setError('Wait for the current upload to finish.')
+    if (anon) return saveDraftAndLogin(text, link) // KINEO-ADS-SEM-LOGIN-2026-09-27
     if (!files.length) return setError('No file was received. Pick the file again.')
     setError(null)
-    const o = await ensureOrder()
-    if (!o) return
-    let queue = isLogo ? files.slice(0, 1) : files
-    const room = MAX_MEDIA - mediaRef.current.filter((m) => !m.isLogo).length
-    if (!isLogo && room <= 0) return setError(`You already have ${MAX_MEDIA} photos and videos.`)
-    if (!isLogo) queue = queue.slice(0, room)
-    for (let i = 0; i < queue.length; i++) {
-      setBusy(isLogo ? 'Uploading your logo…' : queue.length > 1 ? `Uploading ${i + 1} of ${queue.length}…` : 'Uploading…')
-      try {
-        const up = await uploadFootage(queue[i], { isLogo })
-        sessionUploads.current.add(up.footageId)
-        if (up.localUrl) addLocalUrl(up.footageId, up.localUrl)
-        const item = stripItem(up)
-        void trackEvent('ads_media_uploaded', { order_id: o.id, kind: item.kind, bytes: item.bytes, is_logo: isLogo, mode: 'auto' })
-        const current = mediaRef.current
-        const next = isLogo ? [item, ...current.filter((m) => !m.isLogo)] : [...current, item]
-        const r = await patchOrder(o.id, { media: next.map(stripItem) })
-        if (!r.ok) {
-          if (r.status === 401) return goLogin()
-          setError(errorText(r))
+    uploadQueue.current.push(...(isLogo ? files.slice(0, 1) : files).map((file) => ({ file, isLogo })))
+    if (draining.current) return
+    draining.current = true
+    let done = 0
+    try {
+      const o = await ensureOrder()
+      if (!o) return
+      for (let job = uploadQueue.current.shift(); job; job = uploadQueue.current.shift()) {
+        const { file, isLogo: asLogo } = job
+        if (!asLogo && mediaRef.current.filter((m) => !m.isLogo).length >= MAX_MEDIA) {
+          uploadQueue.current = uploadQueue.current.filter((q) => q.isLogo)
+          setError(`You already have ${MAX_MEDIA} photos and videos.`)
+          continue
+        }
+        const total = done + 1 + uploadQueue.current.length
+        setBusy(asLogo ? 'Uploading your logo…' : total > 1 ? `Uploading ${done + 1} of ${total}…` : 'Uploading…')
+        try {
+          const up = await uploadFootage(file, { isLogo: asLogo })
+          sessionUploads.current.add(up.footageId)
+          if (up.localUrl) addLocalUrl(up.footageId, up.localUrl)
+          const item = stripItem(up)
+          void trackEvent('ads_media_uploaded', { order_id: o.id, kind: item.kind, bytes: item.bytes, is_logo: asLogo, mode: 'auto' })
+          const current = mediaRef.current
+          const next = asLogo ? [item, ...current.filter((m) => !m.isLogo)] : [...current, item]
+          const r = await patchOrder(o.id, { media: next.map(stripItem) })
+          if (!r.ok) {
+            if (r.status === 401) return goLogin()
+            setError(errorText(r))
+            break
+          }
+          mediaRef.current = orderMedia(r.data.order)
+          orderLocal.current = r.data.order
+          onOrder(r.data.order)
+          setConsent(false)
+          done += 1
+        } catch (e) {
+          const reason = e instanceof AdsUploadError ? e.reason : 'upload_failed'
+          void trackEvent('ads_media_refused', { order_id: o.id, reason, is_logo: asLogo, mode: 'auto' })
+          if (reason === 'unauthenticated') return goLogin()
+          setError(`${file.name || 'File'}: ${e instanceof Error ? e.message : 'The upload did not finish.'}`)
           break
         }
-        mediaRef.current = orderMedia(r.data.order)
-        orderLocal.current = r.data.order
-        onOrder(r.data.order)
-        setConsent(false)
-      } catch (e) {
-        const reason = e instanceof AdsUploadError ? e.reason : 'upload_failed'
-        void trackEvent('ads_media_refused', { order_id: o.id, reason, is_logo: isLogo, mode: 'auto' })
-        if (reason === 'unauthenticated') return goLogin()
-        setError(`${queue[i].name || 'File'}: ${e instanceof Error ? e.message : 'The upload did not finish.'}`)
-        break
       }
+    } finally {
+      uploadQueue.current = []
+      draining.current = false
+      setBusy(null)
     }
-    setBusy(null)
   }
 
   async function applyBrand() {
@@ -1421,6 +1530,7 @@ function AdsAutoPanel({
 
   // KINEO-ADS-LINK-2026-09-26 — o servidor lê a página, salva as imagens na conta e devolve a frase; aqui só juntamos.
   async function readLink() {
+    if (anon) return saveDraftAndLogin(text, link) // KINEO-ADS-SEM-LOGIN-2026-09-27
     if (busy) return
     setError(null)
     setLinkNote(null)
@@ -1485,6 +1595,7 @@ function AdsAutoPanel({
 
   async function analyze() {
     setError(null)
+    if (anon) return saveDraftAndLogin(text, link) // KINEO-ADS-SEM-LOGIN-2026-09-27
     if (!logo) return setError('Add your logo — it closes the ad.')
     // KINEO-ADS-IA-1FOTO-1VIDEO-2026-09-26 — foto e vídeo contam igual no modo IA; o piso é 2 itens.
     if (rest.length < ADS_AUTO_MIN_ITEMS) return setError(`Add at least ${ADS_AUTO_MIN_ITEMS} photos or videos — for example one photo and one video.`)
@@ -1700,7 +1811,7 @@ function AdsAutoPanel({
         <div className="adsw-actions">
           <button type="button" className="adsw-btn" onClick={() => void make()}>Make my ad · {chosenModel.credits} credits</button>
           <button type="button" className="adsw-btn ghost" onClick={() => { setPhase('input'); setError(null) }}>Back</button>
-          <button type="button" className="adsw-link" onClick={onSteps}>Edit every detail step by step</button>
+          <button type="button" className="adsw-link" onClick={stepsOut}>Edit every detail step by step</button>
         </div>
       </div>
     )
@@ -1710,15 +1821,27 @@ function AdsAutoPanel({
     <div className="card adsw-panel">
       <h2 tabIndex={-1} data-step-heading>Let the AI make your ad</h2>
       <p className="adsw-lead">Add your logo and a few photos or videos, tell us about your business in one or two sentences, and the AI writes, narrates and edits the ad.</p>
+      {/* KINEO-ADS-SEM-LOGIN-2026-09-27 — uma linha: o que sobrevive ao login (texto e link) e o que não (arquivos). */}
+      {anon ? <p className="adsw-hint" role="status">Write first, sign in when you are ready: your text and link come with you; photos and logo are uploaded after you sign in.</p> : null}
+      {welcomeBack ? <p className="adsw-hint" role="status">Welcome back — your text is here. Add your logo and photos.</p> : null}
       {!order && recent.length ? (
         <div className="adsw-f" role="group" aria-label="Your ads">
           <span>Your ads</span>
-          {recent.map((o) => (
-            <div key={o.id} className="row" style={{ gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
-              <small>{splitBusiness(o.brief?.business ?? '')[0]} · {adsModelById(o.template)?.name ?? ''} · {new Date(o.created_at).toLocaleDateString()}</small>
-              <button type="button" className="adsw-btn ghost" onClick={() => onOpenAd(o)}>Open · more versions</button>
-            </div>
-          ))}
+          {/* KINEO-ADS-LISTA-2026-09-27 — miniatura (videos.thumbnail_url pelo GET; sem ela, a 1ª foto do anúncio), data COM hora e idioma. */}
+          {recent.map((o) => {
+            const thumb = o.thumbnail_url ?? orderMedia(o).find((m) => !m.isLogo && m.kind === 'image')?.url ?? null
+            const lang = NARRATION_LANGUAGES.find((l) => l.code === (o.brief?.language ?? '').slice(0, 2))
+            return (
+              <div key={o.id} className="row" style={{ gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
+                <div className="row" style={{ gap: 10, alignItems: 'center', minWidth: 0, flex: 1 }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {thumb ? <img className="adsw-thumb" src={thumb} alt="" loading="lazy" /> : null}
+                  <small>{splitBusiness(o.brief?.business ?? '')[0]} · {adsModelById(o.template)?.name ?? ''} · {new Date(o.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}{lang ? ` · ${lang.native}` : ''}</small>
+                </div>
+                <button type="button" className="adsw-btn ghost" onClick={() => onOpenAd(o)}>Open · more versions</button>
+              </div>
+            )
+          })}
         </div>
       ) : null}
       {!order && brand ? (
@@ -1759,7 +1882,7 @@ function AdsAutoPanel({
               <button type="button" className="adsw-x" aria-label="Remove logo" disabled={Boolean(busy)} onClick={() => void removeItem(logo)}>✕</button>
             </div>
           ) : null}
-          <button type="button" className="adsw-btn ghost" disabled={Boolean(busy)} onClick={() => logoInput.current?.click()}>{logo ? 'Change logo' : 'Upload logo'}</button>
+          <button type="button" className="adsw-btn ghost" disabled={Boolean(busy)} onClick={() => (anon ? saveDraftAndLogin(text, link) : logoInput.current?.click())}>{logo ? 'Change logo' : 'Upload logo'}</button>
           <input ref={logoInput} type="file" accept={ADS_UPLOAD_ACCEPT_LOGO} hidden onChange={(e) => { const picked = Array.from(e.target.files ?? []); e.target.value = ''; void addFiles(picked, true) }} />
         </div>
       </div>
@@ -1775,7 +1898,7 @@ function AdsAutoPanel({
             </div>
           ))}
           {rest.length < MAX_MEDIA ? (
-            <button type="button" className="adsw-add" disabled={Boolean(busy)} onClick={() => mediaInput.current?.click()}>
+            <button type="button" className="adsw-add" disabled={Boolean(busy)} onClick={() => (anon ? saveDraftAndLogin(text, link) : mediaInput.current?.click())}>
               <span className="plus" aria-hidden="true">+</span>
               Add photos or videos
             </button>
@@ -1796,7 +1919,7 @@ function AdsAutoPanel({
       {error ? <p className="adsw-err" role="alert">{error}</p> : null}
       <div className="adsw-actions">
         <button type="button" className="adsw-btn" disabled={Boolean(busy)} onClick={() => void analyze()}>Make the plan</button>
-        <button type="button" className="adsw-link" onClick={onSteps}>I prefer step by step</button>
+        <button type="button" className="adsw-link" onClick={stepsOut}>I prefer step by step</button>
       </div>
     </div>
   )
@@ -3244,7 +3367,7 @@ function ProgressView({
       <div className={`adsw-bar ${progress === 0 && !late ? 'pulse' : ''}`} role="progressbar" aria-label="Render progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
         <i style={{ width: `${Math.max(4, progress)}%` }} />
       </div>
-      <p className="adsw-hint">{progress > 0 ? `${progress}% · ` : ''}This usually takes 3 to 7 minutes. You can close this page — the ad will also be in your library.</p>
+      <p className="adsw-hint">{progress > 0 ? `${progress}% · ` : ''}This usually takes 2–3 minutes. You can close this page — the ad will also be in your library.</p>
       {trouble && !late ? <p className="adsw-warn" role="status">Connection trouble — still checking…</p> : null}
       {late ? (
         <p className="adsw-hint">If it does not finish, start a new ad with the same brief, photos, script and voice.</p>
