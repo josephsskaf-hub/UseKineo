@@ -14,6 +14,7 @@ import { FREE_SHORTS_LANGS } from '@/lib/seo/freeShortsGeneratorLangs'
 import { LOCALIZED_ENGINE_SLUGS, ENGINE_LANG_CODES } from '@/lib/seo/enginePageLangs'
 // KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — the self-serve ads door enters the map only while the pass is on sale.
 import { adsPassLive } from '@/lib/ads/offer'
+import { ADS_SEGMENT_SLUGS, ADS_SEGMENTS_UPDATED, adsSegmentPath } from '@/lib/growth/adsSegments'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -324,6 +325,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }))
   return [
+    ...ADS_SEGMENT_SLUGS.map((slug) => ({
+      url: `${BASE}${adsSegmentPath(slug)}`,
+      lastModified: ADS_SEGMENTS_UPDATED,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    })),
     ...staticEntries,
     ...nicheEntries,
     ...altEntries,
