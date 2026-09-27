@@ -13,6 +13,8 @@
 // ?from=new, and that adds a strip above the hero saying that Studio Ads comes with every paid plan. Facts the copy
 // leans on: every TIER_CREDITS plan is 'subscriber' in lib/ads/access.ts (ADS_SUBSCRIBER_PLANS), the engine gate is off
 // for every account (lib/enginePlanGate.ts ENGINE_GATE_SINCE), and app/api/stripe/portal exists (cancel anytime).
+// "Every engine" carries "your balance covers": TIER_CREDITS.starter is below the dearest engine's 60 s cost
+// (lib/credits/engineCost.ts creditCostForDuration) — access and sufficient credits are separate (lib/kineoFacts.ts).
 // The subscription checkout GET reads tier, billing and intent_campaign; it has NO post-payment return parameter, so
 // success lands on /checkout/success like every plan — nothing here pretends otherwise.
 //
@@ -316,7 +318,7 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
                 <p className="ads-amount">{starterPrice}<span> /month</span></p>
                 <p className="ads-cover">{TIER_CREDITS.starter} credits every month. About {starterAds35} ads of 35 s.</p>
                 <div className="val"><span>Studio Ads</span><b>Included</b></div>
-                <div className="val"><span>Video engines</span><b>Every engine</b></div>
+                <div className="val"><span>Video engines</span><b>Every engine your balance covers</b></div>
                 <div className="val"><span>Subscription</span><b>Monthly · cancel anytime</b></div>
                 <div className="ads-cta">
                   <AdsCtaLink href={STARTER_CHECKOUT_HREF} cta="plan" tier="starter" from={from} placement="price" className="go ok ads-go">

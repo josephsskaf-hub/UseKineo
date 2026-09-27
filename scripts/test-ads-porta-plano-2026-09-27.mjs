@@ -64,13 +64,18 @@ const doorStart = DOOR.indexOf('{planOffer ? (')
 const doorBlock = DOOR.slice(doorStart, DOOR.indexOf('<div className="cost ads-price">', doorStart))
 checa('3f. a porta Starter vem PRIMEIRO (antes do card do passe) e usa AdsCtaLink cta="plan" tier="starter" from={from}', doorStart > 0 && doorBlock.includes('<div className="cost ads-price ads-plan" data-kineo="ads-door-plan">') && doorBlock.includes('<AdsCtaLink href={STARTER_CHECKOUT_HREF} cta="plan" tier="starter" from={from} placement="price" className="go ok ads-go">'))
 checa('3g. copy da porta interpolada: "<nome> plan", "<preço> /month", "{TIER_CREDITS.starter} credits every month. About {starterAds35} ads of 35 s.", CTA "Get <nome> · <preço>/mo"', doorBlock.includes('<div className="sum">{starterName} plan</div>') && doorBlock.includes('<p className="ads-amount">{starterPrice}<span> /month</span></p>') && doorBlock.includes('{TIER_CREDITS.starter} credits every month. About {starterAds35} ads of 35 s.') && doorBlock.includes('Get {starterName} · {starterPrice}/mo'))
-checa('3h. a porta diz "Studio Ads · Included", "Video engines · Every engine" e "Monthly · cancel anytime" — e nada de priority/editor/never expire', doorBlock.includes('<div className="val"><span>Studio Ads</span><b>Included</b></div>') && doorBlock.includes('<div className="val"><span>Video engines</span><b>Every engine</b></div>') && doorBlock.includes('<div className="val"><span>Subscription</span><b>Monthly · cancel anytime</b></div>') && !/priority|human editor|never expire|forever/i.test(doorBlock))
+checa('3h. a porta diz "Studio Ads · Included", "Video engines · Every engine your balance covers" (nunca "Every engine" pelado) e "Monthly · cancel anytime" — e nada de priority/editor/never expire', doorBlock.includes('<div className="val"><span>Studio Ads</span><b>Included</b></div>') && doorBlock.includes('<div className="val"><span>Video engines</span><b>Every engine your balance covers</b></div>') && !doorBlock.includes('<b>Every engine</b>') && doorBlock.includes('<div className="val"><span>Subscription</span><b>Monthly · cancel anytime</b></div>') && !/priority|human editor|never expire|forever/i.test(doorBlock))
 const access = load('lib/ads/access.ts')
 checa('3i. FATO "Studio Ads · Included": adsAccessReason({ plan: starter }) === subscriber (lib/ads/access.ts ADS_SUBSCRIBER_PLANS)', access.adsAccessReason({ plan: 'starter', ads_access_until: null }, 'someone@example.com') === 'subscriber' && access.ADS_SUBSCRIBER_PLANS.includes('starter'))
 const gate = load('lib/enginePlanGate.ts')
 const nowIso = new Date().toISOString()
 const premium = [...gate.STUDIO_ONLY_ENGINE_KEYS, ...gate.STUDIO_ONLY_QUALITIES]
 checa('3j. FATO "Every engine": decideEngineGate libera todo motor Studio-only para conta Starter criada hoje (gate desligado)', premium.length >= 6 && premium.every((e) => gate.decideEngineGate({ engine: e, plan: 'starter', profileCreatedAt: nowIso }).allowed === true))
+// Revisão adversarial 27/09: acesso e saldo são coisas separadas (lib/kineoFacts.ts). A ressalva "your balance covers" só é
+// honesta se for NECESSÁRIA: o motor mais caro a 60 s tem de custar mais do que o grant mensal do Starter.
+const ec = load('lib/credits/engineCost.ts')
+const dearest60 = Math.max(...[...gate.STUDIO_ONLY_QUALITIES].map((q) => ec.creditCostForDuration(q, true, 60)))
+checa('3j2. FATO "your balance covers": o motor mais caro a 60 s (creditCostForDuration, conta paga) custa MAIS que TIER_CREDITS.starter — a ressalva é obrigatória, não enfeite', Number.isFinite(dearest60) && dearest60 > cp.TIER_CREDITS.starter)
 checa('3k. FATO "cancel anytime": app/api/stripe/portal cria a sessão do Billing Portal', PORTAL.includes('stripe.billingPortal.sessions.create('))
 checa('3l. o card do passe segue intacto ao lado (sum, CreditMinutesSummary, DoorCta price, CHECKOUT_HREF)', DOOR.includes('<div className="sum">{copy.name} pass</div>') && DOOR.includes('<CreditMinutesSummary credits={ADS_PASS_CREDITS} />') && DOOR.includes('<div className="ads-cta"><DoorCta cta={cta} placement="price" price={price} /></div>') && count(DOOR, "const CHECKOUT_HREF = '/api/stripe/checkout?pack=ads_pass'") === 1)
 
@@ -98,6 +103,8 @@ const viewed = BANNERS.slice(viewedStart, BANNERS.indexOf('})', viewedStart))
 checa('5b. ads_page_viewed carrega plan_offer e from (e planOffer entra nas dependências do efeito)', viewedStart > 0 && viewed.includes('plan_offer: planOffer,') && /^\s+from,$/m.test(viewed) && BANNERS.includes('}, [live, cta, from, planOffer, error, cancelled])'))
 checa('5c. o from do servidor passa pelo mesmo sanitizador (entrySource) com a URL como reserva — nunca ecoado cru', BANNERS.includes("const from = entrySource(fromProp ?? params?.get('from') ?? null)"))
 checa('5d. AdsCtaLink reutilizado: cta="plan" grava ads_door_plan_clicked {tier, from}; open/buy seguem em ads_cta_clicked; nenhum componente novo', /cta: Extract<AdsDoorCta, 'open' \| 'buy'> \| 'plan'/.test(BANNERS) && BANNERS.includes("void trackEvent('ads_door_plan_clicked', { source: 'ads_page', tier: tier ?? null, from: entrySource(from), placement, ads_offer_version: ADS_OFFER_VERSION })") && BANNERS.includes("void trackEvent('ads_cta_clicked', { source: 'ads_page', cta, placement, ads_offer_version: ADS_OFFER_VERSION })") && count(BANNERS, 'export function') === 1)
+const ev = load('lib/ads/events.ts')
+checa('5e. ads_door_plan_clicked está na lista FECHADA ADS_EVENTS (lib/ads/events.ts, fonte única) e NÃO é só-de-servidor (o navegador grava)', ev.isAdsEvent('ads_door_plan_clicked') && !ev.ADS_SERVER_ONLY_EVENTS.includes('ads_door_plan_clicked'))
 
 // ── 6. mutantes em memória: o guardião pega o que ele promete pegar ──
 const auditDoor = (src) => {
@@ -108,6 +115,7 @@ const auditDoor = (src) => {
   if (!h || !params.includes('tier=starter') || !params.includes('intent_campaign=ads_door')) p.push('href')
   if (!src.includes("const starterPrice = formatCheckoutMoney('usd', getTierPrice('starter', 'usd', 'standard'))")) p.push('derivation')
   if (!src.includes("const planOffer = live && viewer.gate !== 'ok'")) p.push('condition')
+  if (/<b>Every engine<\/b>/.test(src)) p.push('engine-claim')
   return p
 }
 checa('6a. o auditor aprova o arquivo real', auditDoor(DOOR).length === 0)
@@ -121,6 +129,8 @@ const mutLive = DOOR.replace("const planOffer = live && viewer.gate !== 'ok'", "
 checa('6e. MUTANTE porta Starter sem a trava do passe ligado fica vermelho', mutLive !== DOOR && auditDoor(mutLive).includes('condition'))
 const mutRedirect = PAGE.replace("redirect('/ads?from=new')", "redirect('/ads')")
 checa('6f. MUTANTE ads/new devolvendo a /ads pelado fica vermelho (1a travaria)', mutRedirect !== PAGE && count(mutRedirect, "redirect('/ads')") === 1)
+const mutEngine = DOOR.replace('<b>Every engine your balance covers</b>', '<b>Every engine</b>')
+checa('6g. MUTANTE "Every engine" sem a ressalva do saldo fica vermelho', mutEngine !== DOOR && auditDoor(mutEngine).includes('engine-claim'))
 
 console.log(`test-ads-porta-plano-2026-09-27: ${ok} ok, ${falhas.length} falha(s)`)
 if (falhas.length) process.exit(1)
