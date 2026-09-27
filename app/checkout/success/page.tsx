@@ -30,6 +30,15 @@ import { CARD_ENTRY_DRAFT_KEY, readCardEntryDraft } from '@/lib/growth/cardEntry
 // KINEO-PAREDE-V1-2026-09-23 — quem pagou na parede volta para o PRÓPRIO
 // roteiro, sem disparo automático (regra 18-19/09). Ver lib/growth/wallV1.ts.
 import { WALL_V1_VERSION, checkoutSuccessResumeHref } from '@/lib/growth/wallV1'
+// KINEO-SUCESSO-STUDIO-ADS-2026-09-27 — quem acabou de ASSINAR fica sabendo que o Studio Ads já está no plano.
+// Fato medido (27/09): 0 dos 10 assinantes pagos tocou /ads em 30 dias, e ninguém contava isso a quem acabou de pagar.
+// "Included" é fato de lib/ads/access.ts: adsAccessReason({ plan }) === 'subscriber' para todo plano em
+// ADS_SUBSCRIBER_PLANS (trial e pack avulso ficam de fora — dão 'none'). O custo vem de lib/ads/offer.ts
+// (KINEO1_35S_CREDITS, o mesmo que /api/ads/render cobra via creditCostForDuration('fast', true, 35)) e o "35"
+// do modelo mais curto de lib/ads/models.ts. Os três módulos são puros (sem servidor): entram no bundle do cliente.
+import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/access'
+import { ADS_MODELS } from '@/lib/ads/models'
+import { KINEO1_35S_CREDITS, adsPassLive } from '@/lib/ads/offer'
 
 // KINEO-FIRST-WIN-2026-08-02 — the 5th buyer ever (01/08) paid straight from
 // TAAFT, was auto-redirected here into an EMPTY /generate, wandered between
@@ -39,6 +48,12 @@ import { WALL_V1_VERSION, checkoutSuccessResumeHref } from '@/lib/growth/wallV1'
 // click, video starts by itself via the existing create_intent=fast autostart
 // rail. Topics come from the deterministic in-bundle pool (no fetch, no
 // failure mode — the "demo never dies" principle applied at birth).
+
+// KINEO-SUCESSO-STUDIO-ADS-2026-09-27 — nada digitado: o "35" nasce do modelo mais curto (ADS_MODELS), o custo de
+// KINEO1_35S_CREDITS. O href leva utm triplo (o clique chega em /ads/new sem cookie de origem) com a campanha do dia.
+const CHECKOUT_SUCCESS_ADS_VERSION = 'checkout_success_studio_ads_v1'
+const CHECKOUT_SUCCESS_ADS_HREF = '/ads/new?utm_source=checkout_success&utm_medium=studio_ads&utm_campaign=sprint0927'
+const ADS_SHORTEST_SECONDS = Math.min(...ADS_MODELS.map((m) => m.seconds))
 
 export default function CheckoutSuccessPage() {
   const router = useRouter()
@@ -67,10 +82,13 @@ export default function CheckoutSuccessPage() {
   // que restaura e ESPERA o clique em Generate. Nulo = copy padrão intacta.
   const [freshDraft, setFreshDraft] = useState<{ engine: string | null; mode: string | null; duration: number | null } | null>(null)
   const resumeOfferedEventSent = useRef(false)
+  // KINEO-SUCESSO-STUDIO-ADS-2026-09-27 — pack avulso (?pack=…, mode payment) nunca ganha o bloco do Studio Ads.
+  const [packPurchase, setPackPurchase] = useState(false)
 
   useEffect(() => {
     const resolved = readCheckoutSuccessFlow(new URLSearchParams(window.location.search))
     setFlow(resolved)
+    setPackPurchase(new URLSearchParams(window.location.search).has('pack'))
     try {
       // KINEO-RESUME-1DOLAR-FIEL-2026-09-09 — a chave vem do modulo que a define.
       // Era literal aqui e literal no GenerateClient: no dia em que uma mudasse,
@@ -231,6 +249,10 @@ export default function CheckoutSuccessPage() {
   })
   const selfServeReady = isSelfServe && selfServeState === 'ready'
   const checkoutReady = autopilotReady || selfServeReady
+  // KINEO-SUCESSO-STUDIO-ADS-2026-09-27 — só ASSINATURA CONFIRMADA: selfServeReady (fluxo self_serve + /api/credits
+  // devolveu hasPaid e plano pago), sem ?pack=, plano dentro de ADS_SUBSCRIBER_PLANS (trial fica fora) e passe ligado.
+  // O fluxo Autopilot nunca chega aqui (selfServeReady exige flow.kind === 'self_serve').
+  const adsBlockShown = selfServeReady && !packPurchase && accountPlan !== null && ADS_SUBSCRIBER_PLANS.includes(accountPlan) && adsPassLive()
   // Both the immediate button and the timer continue the same confirmed purchase.
   // Studio retains ownership of draft freshness, credit checks and generation.
   let destination = flow && checkoutReady
@@ -259,8 +281,10 @@ export default function CheckoutSuccessPage() {
     void trackEvent('checkout_success_entitlement_ready', {
       version: SELF_SERVE_CHECKOUT_SUCCESS_VERSION,
       flow: 'self_serve',
+      // KINEO-SUCESSO-STUDIO-ADS-2026-09-27 — impressão do bloco no MESMO evento (denominador junto).
+      ads_block: adsBlockShown,
     })
-  }, [selfServeReady])
+  }, [selfServeReady, adsBlockShown])
 
   // KINEO-PAREDE-V1-2026-09-23 — impressão da oferta "Back to your script",
   // uma vez, só quando o CTA foi de fato pintado (plano ativo + rascunho fresco).
@@ -649,6 +673,39 @@ export default function CheckoutSuccessPage() {
               {countdown > 0 ? 'Confirming access…' : 'Check access again'}
             </button>
           ) : null}
+          {/* KINEO-SUCESSO-STUDIO-ADS-2026-09-27 — bloco SECUNDÁRIO, sempre abaixo do CTA principal, nunca no lugar dele.
+              Cada frase é fato que o código cumpre: link ou frase = AdsWizardClient (input type="url" opcional + "one or
+              two sentences"); escreve = /api/ads/script; narra e corta = /api/ads/render → /api/compose (user_voiceover_url,
+              aspect padrão '9:16', legendas salvo captions:false, trilha via selectMusicForScript, cartão do logo pinado à
+              última cena); custo = creditCostForDuration('fast', true, 35) = KINEO1_35S_CREDITS, debitado de
+              profiles.video_credits — o mesmo saldo que /api/credits mostra acima. */}
+          {adsBlockShown && (
+            <div
+              data-kineo="checkout-success-studio-ads"
+              data-version={CHECKOUT_SUCCESS_ADS_VERSION}
+              style={{
+                padding: '15px 16px',
+                borderRadius: 14,
+                textAlign: 'left',
+                background: 'rgba(41,151,255,.08)',
+                border: '1px solid rgba(41,151,255,.3)',
+              }}
+            >
+              <p style={{ margin: 0, color: 'var(--text)', fontSize: '0.9rem', fontWeight: 850 }}>
+                Studio Ads is included in your plan
+              </p>
+              <p style={{ margin: '6px 0 0', color: 'var(--muted2)', fontSize: '0.8rem', lineHeight: 1.55 }}>
+                Paste your website link or write one sentence; the AI writes, narrates and cuts a vertical ad with captions, music and your logo. A {ADS_SHORTEST_SECONDS}-second ad costs {KINEO1_35S_CREDITS} credits from the same balance.
+              </p>
+              <Link
+                href={CHECKOUT_SUCCESS_ADS_HREF}
+                onClick={() => { void trackEvent('checkout_success_ads_clicked', { version: CHECKOUT_SUCCESS_ADS_VERSION, plan: accountPlan }) }}
+                style={{ display: 'inline-flex', alignItems: 'center', marginTop: 10, color: '#2997ff', fontWeight: 800, textDecoration: 'none', fontSize: '0.9rem' }}
+              >
+                Make a business ad →
+              </Link>
+            </div>
+          )}
           {selfServeReady && (
           <Link
             href="/my-videos"

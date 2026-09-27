@@ -212,6 +212,11 @@ eq(cancelledPixels, 0, 'late response after unmount never dispatches')
 // Execute the real page and its second effect, not a regex that guesses wiring.
 const effects = [], pageViews = [], observed = []
 let cleanupCalled = false
+// KINEO-SUCESSO-STUDIO-ADS-2026-09-27 — a tela do sucesso passou a importar a porta do Studio Ads (ADS_SUBSCRIBER_PLANS),
+// o custo e o interruptor (KINEO1_35S_CREDITS, adsPassLive) e os modelos (ADS_MODELS, fonte do "35"). Os módulos REAIS
+// entram no mapa, com os seus únicos imports (internalAccounts e offer), para que um import novo derrube este contrato
+// em vez de matá-lo antes da 1ª checagem — o mesmo padrão do wallV1 abaixo.
+const adsOffer = load('lib/ads/offer.ts')
 const page = load('app/checkout/success/page.tsx', {
   'react/jsx-runtime': { jsx: () => null, jsxs: () => null },
   react: { useEffect: fn => effects.push(fn), useRef: value => ({current:value}), useState: value => [value, () => {}] },
@@ -231,6 +236,9 @@ const page = load('app/checkout/success/page.tsx', {
   // modulo REAL entra no mapa, com o seu unico import (engineLabel), para que
   // um import novo derrube este contrato em vez de mata-lo antes da 1a checagem.
   '@/lib/growth/wallV1': load('lib/growth/wallV1.ts', { '@/lib/engineLabel': load('lib/engineLabel.ts') }),
+  '@/lib/ads/offer': adsOffer,
+  '@/lib/ads/models': load('lib/ads/models.ts'),
+  '@/lib/ads/access': load('lib/ads/access.ts', { '@/lib/internalAccounts': internal, '@/lib/ads/offer': adsOffer }),
   '@/lib/growth/verifiedCheckoutPurchase': policy,
   '@/lib/growth/observeCheckoutPurchase': { observeCheckoutPurchase: input => {
     observed.push(input); return () => { cleanupCalled = true }
