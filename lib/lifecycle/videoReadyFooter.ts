@@ -402,5 +402,10 @@ export function videoReadyFooterFromRows(prof: ReadyProfileRow, vid: ReadyVideoR
     // so quando a coluna existe e e falsa. Linha ausente => `undefined` => a
     // porta de $1 nao abre (falha fechada).
     hasPaid: typeof prof?.has_paid === 'boolean' ? prof.has_paid : null,
+    // sprint16h-f X (27/09) — o plano CRU da MESMA linha de perfil (a rota ja
+    // pede `plan` no select), so para a linha do Studio Ads: a condicao mora em
+    // studioAdsLineHtml (ADS_SUBSCRIBER_PLANS, nunca has_paid). Coluna ausente
+    // ou nao-string => null => sem linha (falha fechada, como no W).
+    plan: typeof prof?.plan === 'string' ? prof.plan.toLowerCase() : null,
   })
 }

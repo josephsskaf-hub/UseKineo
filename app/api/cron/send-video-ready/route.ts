@@ -541,6 +541,9 @@ export async function GET(req: NextRequest) {
               // va-r5 — mesmo carimbo do e-mail de entrega: o `kind` nao separa
               // a versao COM a porta de $1 da versao sem ela.
               trial_door: footer.trialDoor,
+              // sprint16h-f X — mesmo carimbo do W (status e stranded): a linha do
+              // Studio Ads entrou neste e-mail? O `prof.plan` ja vinha do select.
+              ads_line: footer.adsLine,
               has_paid: typeof prof.has_paid === 'boolean' ? prof.has_paid : null,
               subscriber: isSubscriberProfile(prof),
               cost: video.creditsUsed,
