@@ -71,7 +71,8 @@ checa('rota: pedido do dono e em rascunho', /\.eq\('user_id', user\.id\)/.test(R
 checa('rota: teto diário e moderação ANTES do modelo', pos('ADS_AUTO_DAILY_CAP') < pos('openai.chat.completions.create') && pos('moderateContent(') < pos('openai.chat.completions.create'))
 checa('rota: não grava o pedido (quem grava é o PATCH depois da confirmação)', !/from\('ads_orders'\)\.(update|insert|upsert)/.test(ROUTE))
 checa('rota: grava o evento com order_id', /name: ADS_AUTO_SERVED_EVENT/.test(ROUTE) && /order_id: orderId/.test(ROUTE))
-checa('interruptor nasce só-internas', /export const ADS_AUTO_MODE: 'off' \| 'internal' \| 'all' = 'internal'/.test(SRC))
+// 27/09: aberto para todos (sprint MRR).
+checa('interruptor aberto para todos (27/09)', /export const ADS_AUTO_MODE: 'off' \| 'internal' \| 'all' = 'all'/.test(SRC))
 
 const W = rd('app/(dashboard)/ads/new/AdsWizardClient.tsx')
 const panel = W.slice(W.indexOf('function AdsAutoPanel('), W.indexOf('// ─── passo 1: brief'))

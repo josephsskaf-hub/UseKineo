@@ -2348,6 +2348,9 @@ export default function GenerateClient({
   const verbatimOrderReanalyzeRef = useRef(false)
   const [showFirstShortNudge, setShowFirstShortNudge] = useState(false) // #379 — new-user onboarding nudge
   const [credits, setCredits] = useState<number | null>(null)
+  // KINEO-PAREDE-NO-CLIQUE-2026-09-27 — o auto-analyze espera o saldo chegar (até 1,5 s) antes de decidir se abre a parede.
+  const [autoWaitTick, setAutoWaitTick] = useState(0)
+  const autoWaitScheduledRef = useRef(false)
 
   // sprint-v1v4 #43 — desarme (a). No instante em que existe saldo, a memoria
   // do muro deixa de ser verdade: quem comprou, ganhou credito do /admin ou
@@ -8851,11 +8854,27 @@ export default function GenerateClient({
     if (!auto || !sp.trim()) return
     const key = sp.trim()
     if (autoAnalyzeKeyRef.current === key) return
+    // KINEO-PAREDE-NO-CLIQUE-2026-09-27 — medido 14 d: 48 de 48 paredes do trial passaram por analyze_idea_clicked
+    // ANTES de abrir (2 chamadas OpenAI e mediana de 20 s de espera para depois ouvir "não"). A guarda de saldo
+    // (outOfCredits, a mesma do botão) roda AQUI, antes do roteiro. Enquanto o saldo não chegou (credits === null)
+    // espera até 1,5 s e tenta de novo; passado isso segue como sempre (nunca deixa a pessoa sem análise).
+    if (credits === null) {
+      if (!autoWaitScheduledRef.current) {
+        autoWaitScheduledRef.current = true
+        setTimeout(() => setAutoWaitTick((t) => t + 1), 1500)
+        return
+      }
+    } else if (outOfCredits()) {
+      autoAnalyzeKeyRef.current = key
+      void trackEvent('wall_before_script', { surface: 'studio_create_autoanalyze', credits, mode, engine: aiEngine, duration })
+      openOutOfCreditsModal()
+      return
+    }
     autoAnalyzeKeyRef.current = key
     if (process.env.NODE_ENV === 'development') console.log(`[ux1] autoanalyze-effect -> handleAnalyze() key="${key.slice(0,40)}" phase=${phase} @${Date.now()}`)
     handleAnalyze(sp, { fromTopic: true, skipPreview: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, activeRenderRestoreResolved])
+  }, [searchParams, activeRenderRestoreResolved, credits, autoWaitTick])
 
   // KINEO-STUDIO-ONECLICK-2026-08-17 — degrau 2 do Studio: quando a chegada
   // vem do Studio com o TOKEN de intencao (setado pelo clique em Generate LA,
@@ -14109,10 +14128,25 @@ export default function GenerateClient({
           // KINEO-PRIMEIRO-FILME-GRATIS-2026-09-04 — a saida honesta, quando ela
           // existe de verdade. Ver `firstFilmFreeAvailable`.
           firstFilmFree={!CARD_ENTRY_ONLY && firstFilmFreeAvailable}
+          // KINEO-PAREDE-TRIAL-KINEO1-2026-09-27 — medido 24→26/09 (depois do conserto do rótulo): 6 de 8 pessoas que
+          // abriram esta caixa tinham 10 créditos do trial e 0 filmes — escolheram Seedance (15+), viram só botões de
+          // plano e sumiram; 1 fez um Kineo 1 e foi ao checkout. Para trial ATIVO o "first film free" não existe (a
+          // conta é treatAsPaid: o Kineo 1 custa crédito), então a saída é a honesta: "seu saldo paga um Kineo 1 agora".
+          // Não gera nada, não muda preço nem trial: seleciona o motor que cabe e devolve a tela.
+          trialKineo1={
+            !CARD_ENTRY_ONLY && trialActive === true && filmsDelivered === 0 && !hasPaid && credits !== null &&
+            credits >= creditCostForDuration('fast', isPaidAccount, duration)
+              ? { credits, cost: creditCostForDuration('fast', isPaidAccount, duration), seconds: duration }
+              : null
+          }
           onFirstFilmFree={() => {
             // NAO gera nada: seleciona o motor gratuito e devolve a tela a ela.
             // O clique e da pessoa, exatamente como o card do Kineo 1 no seletor.
-            void trackEvent('first_film_free_offer_clicked', { reason: upgradeReason, surface: 'generate_upgrade_modal' })
+            void trackEvent('first_film_free_offer_clicked', {
+              reason: upgradeReason, surface: 'generate_upgrade_modal',
+              // KINEO-PAREDE-TRIAL-KINEO1-2026-09-27 — a mesma saída, dois motivos: grátis (free) ou saldo do trial (trial_kineo1).
+              variant: trialActive === true ? 'trial_kineo1' : 'free', credits: credits ?? null,
+            })
             setShowUpgradeModal(false)
             setMode('fast')
           }}
@@ -21624,6 +21658,7 @@ function UpgradeModal({
   region = 'standard',
   firstFilmFree = false,
   onFirstFilmFree,
+  trialKineo1 = null, // KINEO-PAREDE-TRIAL-KINEO1-2026-09-27
   // KINEO-UPGRADE-MODAL-TRIAL-DOOR-2026-09-07 — o predicado ESTRITO. `false`
   // por padrão fecha a porta: nunca se anuncia $1 sem o servidor ter dito
   // `has_paid === false` com todas as letras.
@@ -21666,6 +21701,8 @@ function UpgradeModal({
    * filme. Ver `firstFilmFreeAvailable` no componente pai.
    */
   firstFilmFree?: boolean
+  /** KINEO-PAREDE-TRIAL-KINEO1-2026-09-27 — trial ativo com saldo que paga um Kineo 1 e nenhum filme entregue. */
+  trialKineo1?: { credits: number; cost: number; seconds: number } | null
   onFirstFilmFree?: () => void
   /** Prova positiva de `has_paid === false` vinda do servidor. Ver acima. */
   notPaidProven?: boolean
@@ -22069,6 +22106,31 @@ function UpgradeModal({
               style={{ width: '100%', padding: '11px 14px', borderRadius: 8, border: '1px solid rgba(52,211,153,.7)', background: 'rgba(52,211,153,.16)', color: '#d1fae5', fontWeight: 800, fontSize: '0.88rem', cursor: 'pointer' }}
             >
               Make my first film free →
+            </button>
+          </div>
+        )}
+        {/* KINEO-PAREDE-TRIAL-KINEO1-2026-09-27 — a saída para o trial: o motor que o saldo paga, ACIMA dos planos. */}
+        {trialKineo1 && onFirstFilmFree && (
+          <div
+            data-testid="trial-kineo1-offer"
+            style={{ background: 'rgba(52,211,153,.10)', border: '1px solid rgba(52,211,153,.45)', borderRadius: 10, padding: '13px 14px', marginBottom: 14 }}
+          >
+            <span style={{ display: 'block', color: '#6ee7b7', fontSize: '0.64rem', fontWeight: 900, letterSpacing: '0.1em', marginBottom: 4 }}>
+              BEFORE YOU DECIDE
+            </span>
+            <strong style={{ display: 'block', color: '#fff', fontSize: '0.95rem', lineHeight: 1.35, marginBottom: 3 }}>
+              Your {trialKineo1.credits} trial credits already make a film — with Kineo 1.
+            </strong>
+            <span style={{ display: 'block', color: '#a7f3d0', fontSize: '0.78rem', lineHeight: 1.45, marginBottom: 10 }}>
+              A {trialKineo1.seconds}-second Kineo 1 film costs {trialKineo1.cost} of your {trialKineo1.credits} credits: same script, same voice,
+              captions and soundtrack, real footage instead of AI scenes. Make it now, then decide.
+            </span>
+            <button
+              type="button"
+              onClick={onFirstFilmFree}
+              style={{ width: '100%', padding: '11px 14px', borderRadius: 8, border: '1px solid rgba(52,211,153,.7)', background: 'rgba(52,211,153,.16)', color: '#d1fae5', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer' }}
+            >
+              Make it now with Kineo 1 · {trialKineo1.cost} credits →
             </button>
           </div>
         )}

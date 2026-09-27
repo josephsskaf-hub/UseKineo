@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs'
 import { renderPage } from './preview-ux-complete.mjs'
 const check = (name, condition) => { if (!condition) throw Error(name); console.log('PASS '+name) }
 const read = file => readFileSync(new URL('../'+file, import.meta.url), 'utf8')
-const destination = 'href="/ads/new"'
+// 27/09: visitante deslogado caía no /login; a porta pública é /ads (200 para todos), que leva ao criador.
+const destination = 'href="/ads"'
 const home = renderPage('app/KineoLanding.tsx')
 const footer = renderPage('components/Footer.tsx', false, {}, {showStats:false})
 const nav = home.match(/<nav aria-label="Main">[\s\S]*?<\/nav>/)?.[0] ?? ''

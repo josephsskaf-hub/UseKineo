@@ -13,7 +13,8 @@ for(const signedIn of [false,true])for(const language of ['en','es']){
  check(new RegExp('<option(?=[^>]*value="'+language+'")[^>]*selected=""').test(main),'current language selected')
  // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 — o canônico virou Vídeo (/studio, com Exemplos dentro) · Imagem · Para empresas · Preços (/pricing, não mais #pricing).
  // 25/09 founder: For businesses now enters the Ads creator, preserving server access gates.
- check(['/studio','/images','/ads/new','/pricing','/examples'].every(h=>main.includes('href="'+h+'"'))&&!main.includes('href="#pricing"'),'canonical navigation retained')
+ // 27/09: For businesses → /ads (porta pública; /ads/new mandava visitante ao /login).
+ check(['/studio','/images','/ads','/pricing','/examples'].every(h=>main.includes('href="'+h+'"'))&&!main.includes('href="#pricing"'),'canonical navigation retained')
  if(signedIn){
   check(main.indexOf('kineo-interface-language')<main.indexOf('540 credits'),'language precedes balance')
   check(main.includes('nav-dashboard')&&main.includes('540 credits'),'balance and Dashboard preserved')

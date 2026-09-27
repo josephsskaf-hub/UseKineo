@@ -23,7 +23,8 @@ export const ADS_AUTO_SERVED_EVENT = 'ads_auto_brief_served'
 export const ADS_AUTO_VERSION = 'ads_ia_faz_v1_20260926'
 /** Interruptor único: 'internal' = só contas internas veem o modo (teste do fundador em produção); 'all' = todos com
  *  acesso ao Studio Ads; 'off' = some da tela e a rota responde 404. Virar para 'all' só com o ok do fundador. */
-export const ADS_AUTO_MODE: 'off' | 'internal' | 'all' = 'internal'
+// 27/09 (sprint MRR, fundador "abre"): 'all' — todo mundo com acesso ao Studio Ads (plano pago ou passe) vê o modo IA.
+export const ADS_AUTO_MODE: 'off' | 'internal' | 'all' = 'all'
 export function adsAutoVisible(access: string | null | undefined): boolean {
   return ADS_AUTO_MODE === 'all' || (ADS_AUTO_MODE === 'internal' && access === 'internal')
 }

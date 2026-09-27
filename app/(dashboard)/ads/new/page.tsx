@@ -9,6 +9,7 @@ import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { adsGate, loadAdsAccess } from '@/lib/ads/serverAccess'
+import { writeServerEvent } from '@/lib/serverEvents' // KINEO-ADS-PORTA-MEDIDA-2026-09-27
 import AdsWizardClient from './AdsWizardClient'
 
 export const metadata = { title: 'Studio Ads — Kineo' }
@@ -38,11 +39,18 @@ export default async function AdsNewPage({ searchParams }: { searchParams?: Sear
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user) redirect(`/login?redirect=${encodeURIComponent('/ads/new' + (qs ? '?' + qs : ''))}`)
+  // KINEO-ADS-PORTA-MEDIDA-2026-09-27 — quem bate na porta e é mandado embora deixa rastro (antes: redirect mudo).
+  if (!user) {
+    await writeServerEvent({ name: 'ads_access_denied', path: '/ads/new', metadata: { stage: 'page', who: 'anon' } })
+    redirect(`/login?redirect=${encodeURIComponent('/ads/new' + (qs ? '?' + qs : ''))}`)
+  }
 
   const { reason } = await loadAdsAccess(user.id, user.email)
   const gate = adsGate(reason)
-  if (gate === 'no_access' && !resumingPass) redirect('/ads')
+  if (gate === 'no_access' && !resumingPass) {
+    await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/ads/new', metadata: { stage: 'page', who: 'no_access', reason } })
+    redirect('/ads')
+  }
 
   return (
     <Suspense fallback={null}>

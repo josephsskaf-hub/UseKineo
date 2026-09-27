@@ -967,7 +967,7 @@ export default function KineoLanding({
                 {IMG_ENGINES.map(engine => <NavEngineItem key={engine.key} href={`/images?engine=${engine.key}`} name={engine.name} desc={engine.desc} icon={engine.icon} />)}
               </span>
             </span>
-            <Link href="/ads/new" data-nav-item="business"><UiLabel>For businesses</UiLabel></Link>
+            <Link href="/ads" data-nav-item="business"><UiLabel>For businesses</UiLabel></Link>
             <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
           </div>
         <div className="nav-right">
@@ -989,7 +989,7 @@ export default function KineoLanding({
               <span className="nav-mobile-engines">
                 {IMG_ENGINES.map(engine => <Link key={engine.key} href={`/images?engine=${engine.key}`} data-nav-item="image"><span className="nm-ic" aria-hidden="true">{engine.icon}</span>{engine.name}</Link>)}
               </span>
-              <Link href="/ads/new" data-nav-item="business"><UiLabel>For businesses</UiLabel></Link>
+              <Link href="/ads" data-nav-item="business"><UiLabel>For businesses</UiLabel></Link>
               <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
               {initialUser
                 ? <Link className="btn btn-w" href="/studio"><UiLabel>Dashboard</UiLabel></Link>
@@ -1084,7 +1084,7 @@ export default function KineoLanding({
               <h3><UiLabel>Image</UiLabel></h3><span className="home-create-arrow" aria-hidden="true">↗</span>
               <p><UiLabel>Create image</UiLabel></p>
             </Link>
-            <Link href="/ads/new" className="home-create-card">
+            <Link href="/ads" className="home-create-card">
               <span className="home-create-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="14" rx="3"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12c6 3 12 3 18 0M12 12v4"/></svg></span>
               <h3><UiLabel>For businesses</UiLabel></h3><span className="home-create-arrow" aria-hidden="true">↗</span>
               <p><UiLabel>Videos for your business.</UiLabel></p>
