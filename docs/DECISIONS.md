@@ -2,6 +2,17 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
+## 2026-09-27 — Sprint de 16 h (MRR): cinco decisões e a pista visual fica no Code
+
+**DECISÕES (fundador, 27/09/2026 ~07h30 BRT: "vou seguir todas as suas decisões que são recomendadas"; "a sprint ... fazer aqui dentro do code, não mandar para o codex"):**
+1. **Quickstart do ChatGPT com 10 cr continua no Seedance** — com a parede no clique (5ca92533) e a saída "Kineo 1 cabe nos seus 10" no modal.
+2. **/ads/new sem login = texto + link em sessionStorage** (`kineo:ads:draft:v1`); rascunho no servidor fica para outra semana (impossível sem user_id).
+3. **Trial NÃO faz anúncio** (nem com marca d'água) por enquanto.
+4. **"Human-reviewed within 24 hours with corrected version" CAI** (0 de 11 pedidos com qa_at) — vira "A human checks your first ad."
+5. **godofloki fica no US$29 legado** (já é a coluna Studio, plan=pro, 180 cr; compra top-up sozinho) — migrar seria aumento de preço.
+6. **Pista visual da sprint é executada no Code** (Claude), não no Codex: V1 exit-intent/copy do trial/llms.txt · V2 tabela do /pricing e Termos · V3 CTAs do trial com Starter primeiro (constante TRIAL_CTA_PRIMARY_TIER, reversível) · V4 Studio Ads (lista, fila de upload, copies) + /ads/new sem login.
+Contexto: docs/SPRINT-2026-09-27.md. Marco 0 (OpenAI de volta) 08:35Z; marco A (parede no clique + Studio Ads aberto + porta /ads) 09:54Z.
+
 ## 2026-09-25 — Mesa de 09/10: crédito UNIVERSAL, anual 11×, 1 Enhance
 
 **DECISÕES (fundador, 25/09/2026, chat do CEO: "11 - um · 10 - onze · 9 - ... quero que o crédito seja universal"):**
