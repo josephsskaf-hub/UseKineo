@@ -1,0 +1,55 @@
+{
+  "sourceDocument": "docs/growth/CONCORRENTES-ADS-2026-09-26.md",
+  "accessWindow": "25-26/09",
+  "year": "2026",
+  "competitors": [
+    {
+      "id": "creatify",
+      "name": "Creatify",
+      "slug": "creatify-alternative",
+      "officialUrl": "https://creatify.ai/pricing",
+      "sourceRow": "| Creatify | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | $39 |",
+      "linkToAd": "✓",
+      "avatar": "✓",
+      "variations": "✓",
+      "formats": "✓",
+      "brandKit": "✓",
+      "publishing": "✓",
+      "analytics": "✓",
+      "translation": "✓",
+      "price": "$39"
+    },
+    {
+      "id": "topview",
+      "name": "Topview",
+      "slug": "topview-alternative",
+      "officialUrl": "https://topview.ai/pricing",
+      "sourceRow": "| Topview | ✓ | ✓ | ✓ | ✓ | ✓ | ? | ? | ✓* | $16 (anual) |",
+      "linkToAd": "✓",
+      "avatar": "✓",
+      "variations": "✓",
+      "formats": "✓",
+      "brandKit": "✓",
+      "publishing": "?",
+      "analytics": "?",
+      "translation": "✓*",
+      "price": "$16 (anual)"
+    },
+    {
+      "id": "zeely",
+      "name": "Zeely",
+      "slug": "zeely-alternative",
+      "officialUrl": "https://zeely.ai/pricing",
+      "sourceRow": "| Zeely | ✓ | ✓ | ✓ | ✓ | ✓* | ✓ (Meta) | ✓ | ? | $29,95 |",
+      "linkToAd": "✓",
+      "avatar": "✓",
+      "variations": "✓",
+      "formats": "✓",
+      "brandKit": "✓*",
+      "publishing": "✓ (Meta)",
+      "analytics": "✓",
+      "translation": "?",
+      "price": "$29,95"
+    }
+  ]
+}

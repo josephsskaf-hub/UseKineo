@@ -19,6 +19,7 @@ export function offlineModules({ replacements = {}, mocks = {} } = {}) {
     if (!existsSync(file)) file += existsSync(file + '.ts') ? '.ts' : '.tsx'
     const key = file.slice(root.length + 1).replace(/\\/g, '/')
     if (Object.hasOwn(mocks, key)) return mocks[key]
+    if (file.endsWith('.json')) return JSON.parse(readFileSync(file, 'utf8'))
     if (cache.has(file)) return cache.get(file).exports
     const module = { exports: {} }
     cache.set(file, module)
