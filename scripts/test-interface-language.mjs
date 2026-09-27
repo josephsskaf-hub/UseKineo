@@ -71,7 +71,8 @@ check(!avatar.includes('hidden lg:flex'),'avatar result and download no longer d
 check(avatar.includes('download=""')&&avatar.includes('/fixture.mp4'),'completed avatar keeps its download')
 const footerBefore=renderPage('components/Footer.tsx',true,{}, {},'048878ea'),footerAfter=renderPage('components/Footer.tsx')
 const links=html=>[...html.matchAll(/href="([^"]*)"/g)].map(m=>m[1]).sort()
-// Founder explicitly requested the business destination to open the creator on 25/09.
-equal(links(footerAfter),links(footerBefore).map(h=>h==='/business-video-ads'?'/ads/new':h).sort(),'footer keeps every link except approved direct Ads entry')
+// Founder explicitly requested the business destination to open the creator on 25/09; 27/09 (sprint MRR): the public
+// door is /ads (200 for everyone) — /ads/new bounced signed-out visitors to /login.
+equal(links(footerAfter),links(footerBefore).map(h=>h==='/business-video-ads'?'/ads':h).sort(),'footer keeps every link except approved direct Ads entry')
 equal((footerAfter.match(/<details /g)||[]).length,4,'four footer navigation groups')
 console.log(`PASS ${checks} locale and workspace checks; no network, database, email or generation`)
