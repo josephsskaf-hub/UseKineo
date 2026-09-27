@@ -109,17 +109,20 @@ check(
   ),
   'o destino do CTA segue a decisão da porta',
 )
+// REANCORADO em 27/09 (sprint16h V3): o destino da queda passou a levar o tier
+// do botão principal (TRIAL_CTA_PRIMARY_TIER, Starter no teste). A intenção
+// não muda: fora da porta, o CTA cai para o mês cheio (intro=1), nunca trial=1.
 check(
-  /: '\/api\/stripe\/checkout\?tier=basic&intro=1'/.test(banner),
-  'a queda mantém o destino histórico (intro=1)',
+  /: `\/api\/stripe\/checkout\?tier=\$\{TRIAL_CTA_PRIMARY_TIER\}&intro=1`/.test(banner),
+  'a queda mantém o destino histórico (intro=1), no tier do botão principal',
 )
 check(
   /\(subscriptionDoor\.visible && subscriptionDoor\.buttonLabel\) \|\|/.test(banner),
   'o rótulo do CTA vem da mesma decisão que pintou o destino',
 )
 check(
-  /Keep Creator after the trial — \$\{priceLabel\}/.test(banner),
-  'a queda mantém o rótulo honesto de mês cheio',
+  /Continue on \$\{primaryTierName\} after the trial — \$\{priceLabel\}\/mo/.test(banner),
+  'a queda mantém o rótulo honesto de mês cheio (nome do plano principal + preço derivado)',
 )
 check(
   /!firstDelivery\.eligible && subscriptionDoor\.visible && subscriptionDoor\.priceNote/.test(banner),
@@ -179,9 +182,9 @@ const MUTANTS = [
   {
     nome: 'o CTA manda todo mundo para trial=1, sem queda honesta',
     arquivo: BANNER,
-    de: ": '/api/stripe/checkout?tier=basic&intro=1',",
+    de: ": `/api/stripe/checkout?tier=${TRIAL_CTA_PRIMARY_TIER}&intro=1`,",
     para: ": `/api/stripe/checkout?tier=basic&billing=monthly&trial=1&intent_campaign=${TRIAL_ACTIVE_BANNER_DOOR_VERSION}`,",
-    trava: (b) => /: '\/api\/stripe\/checkout\?tier=basic&intro=1'/.test(b),
+    trava: (b) => /: `\/api\/stripe\/checkout\?tier=\$\{TRIAL_CTA_PRIMARY_TIER\}&intro=1`/.test(b),
   },
   {
     nome: 'o botão de $1 perde a nota que diz o preço do dia 8',

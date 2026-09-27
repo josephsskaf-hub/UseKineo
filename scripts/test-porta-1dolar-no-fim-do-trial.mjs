@@ -55,7 +55,11 @@ const TRIAL_URL = "'/api/stripe/checkout?tier=basic&billing=monthly&trial=1&inte
 check('a URL do trial de $1 existe no modal', MODAL.includes(TRIAL_URL))
 check('ela e escolhida por trialDoor.visible', /trialDoor\.visible\s*\n?\s*\?\s*'\/api\/stripe\/checkout\?tier=basic&billing=monthly&trial=1/.test(MODAL))
 check('o intent_campaign nomeia esta superficie', MODAL.includes('intent_campaign=trial_1usd_downgrade'))
-check('a queda honesta para intro=1 continua existindo', MODAL.includes("'/api/stripe/checkout?tier=basic&intro=1'"))
+// REANCORADO em 27/09 (sprint16h V3): a queda do botão principal leva o tier
+// da constante (Starter no teste); a URL literal de Creator sobrevive no link
+// secundário. A intenção é a mesma: fora da porta, mês cheio (intro=1).
+check('a queda honesta para intro=1 continua existindo (no tier do botão principal)', MODAL.includes(": `/api/stripe/checkout?tier=${TRIAL_CTA_PRIMARY_TIER}&intro=1`"))
+check('o Creator continua na tela como link secundário, no destino histórico', MODAL.includes("checkout.launch('basic', '/api/stripe/checkout?tier=basic&intro=1'"))
 check('o tier continua basic (TRIAL_TIER do cobrador)', !/checkout\?tier=(starter|pro|autopilot)[^']*trial=1/.test(MODAL))
 
 console.log('── 2. A fonte unica, nunca uma copia da regra ──')
@@ -87,7 +91,7 @@ check('a mensalidade entregue ao nucleo e o fullPrice ja formatado', /monthlyLab
 console.log('── 4. O plano continua visivel (ordem do fundador) ──')
 check('a nota de preco do nucleo diz a mensalidade', /then \$\{input\.monthlyLabel\}\/month from day/.test(CORE))
 check('o modal imprime a priceNote do nucleo', MODAL.includes('trialDoor.priceNote'))
-check('o botao cai para Continue on Creator quando a porta nao aparece', MODAL.includes("|| 'Continue on Creator'"))
+check('o botao cai para Continue on <plano principal> quando a porta nao aparece', MODAL.includes("|| `Continue on ${primaryName}`"))
 
 console.log('── 5. A promessa so sai para quem o cobrador aceita ──')
 check('o modal so abre com has_paid provado FALSO', MODAL.includes('if (data?.hasPaid !== false) return'))
@@ -123,10 +127,10 @@ const mutants = [
     breaks: (m) => !m.includes('decideTrialDoorOffer({'),
   },
   {
-    label: 'a queda honesta para Continue on Creator',
-    from: "|| 'Continue on Creator'",
+    label: 'a queda honesta para Continue on <plano principal>',
+    from: "|| `Continue on ${primaryName}`",
     to: "|| ''",
-    breaks: (m) => !m.includes("|| 'Continue on Creator'"),
+    breaks: (m) => !m.includes("|| `Continue on ${primaryName}`"),
   },
 ]
 for (const mutant of mutants) {

@@ -53,13 +53,14 @@ ok(component.includes("const needsFirstValue = journeyState === 'first_value'"),
 ok(component.includes('onClick={needsFirstValue ? goToFirstFilm : goToCreator}'), 'primary button follows the exact journey state')
 ok(component.includes('trialDowngradeFirstValueClickMetadata()'), 'first-film click uses closed metadata')
 ok(component.indexOf("trackClosedEvent(\n      'trial_downgrade_first_film_clicked'") < component.indexOf('window.location.assign(TRIAL_DOWNGRADE_FIRST_VALUE_HREF)'), 'click is persisted before navigation')
-ok(component.includes('Choose Creator now'), 'payment remains available before delivery')
+// REANCORADO em 27/09 (sprint16h V3): o nome do plano vem de TRIAL_CTA_PRIMARY_TIER.
+ok(component.includes('`Choose ${primaryName} now`'), 'payment remains available before delivery')
 ok(component.includes('Compare all plans →'), 'plan comparison remains available')
 ok(component.includes('Keep creating on the free plan'), 'existing free choice remains available')
 ok(!component.includes('first film free'), 'new branch does not promise unused quota')
 
 const firstValueIndex = component.lastIndexOf('Make your first film →')
-const creatorIndex = component.lastIndexOf('Choose Creator now')
+const creatorIndex = component.lastIndexOf('`Choose ${primaryName} now`')
 const compareIndex = component.lastIndexOf('Compare all plans →')
 equal(firstValueIndex > 0 && firstValueIndex < creatorIndex, true, 'first value precedes payment only in its branch')
 equal(creatorIndex < compareIndex, true, 'direct payment still precedes plan comparison')

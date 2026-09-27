@@ -36,13 +36,22 @@ export function shouldCountTrialActiveSubscriptionCtaView(input: {
     && input.documentVisible
 }
 
-export function trialActiveSubscriptionCtaViewMetadata(input: { returnLadderRendered: boolean }) {
+// KINEO-TRIAL-CTA-STARTER-PRIMEIRO-2026-09-27 — o tier deixou de ser literal:
+// o botão que a pessoa vê (Starter no teste de 27/09; Creator quando a porta de
+// $1 estiver viva) é o que o evento afirma. Quem chama passa o tier; aqui não
+// existe padrão mudo (memória `fallback-silencioso-vaza-no-caso-caro`).
+export type TrialActiveSubscriptionCtaTier = 'starter' | 'basic'
+
+export function trialActiveSubscriptionCtaViewMetadata(input: {
+  returnLadderRendered: boolean
+  tier: TrialActiveSubscriptionCtaTier
+}) {
   return {
     version: TRIAL_ACTIVE_SUBSCRIPTION_CTA_VERSION,
     offer_version: TRIAL_ACTIVE_SUBSCRIPTION_CTA_VERSION,
     offer_mode: TRIAL_ACTIVE_SUBSCRIPTION_CTA_MODE,
     surface: 'trial_active_banner',
-    tier: 'basic',
+    tier: input.tier,
     actor_unit: 'authenticated_user',
     event_unit: 'subscription_cta_human_view',
     measurement_unit: 'authenticated_user_trial_active_subscription_cta_human_view',
@@ -55,13 +64,16 @@ export function trialActiveSubscriptionCtaViewMetadata(input: { returnLadderRend
   } as const
 }
 
-export function trialActiveSubscriptionCtaClickMetadata(input: { returnLadderRendered: boolean }) {
+export function trialActiveSubscriptionCtaClickMetadata(input: {
+  returnLadderRendered: boolean
+  tier: TrialActiveSubscriptionCtaTier
+}) {
   return {
     version: TRIAL_ACTIVE_SUBSCRIPTION_CTA_VERSION,
     offer_version: TRIAL_ACTIVE_SUBSCRIPTION_CTA_VERSION,
     offer_mode: TRIAL_ACTIVE_SUBSCRIPTION_CTA_MODE,
     surface: 'trial_active_banner',
-    tier: 'basic',
+    tier: input.tier,
     actor_unit: 'authenticated_user',
     event_unit: 'subscription_cta_click',
     measurement_unit: 'authenticated_user_trial_active_subscription_cta_click',

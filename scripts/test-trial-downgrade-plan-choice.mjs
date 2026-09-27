@@ -45,11 +45,12 @@ ok(component.includes('comparisonDeferralValue(current, Date.now(), MAX_ADIAMENT
 ok(component.includes("trackEvent('trial_downgrade_compare_plans_clicked'"), 'real modal emits a dedicated comparison event')
 ok(component.includes("source: 'trial_downgrade_modal'"), 'event names the finite source')
 ok(component.includes("destination: 'pricing_plans'"), 'event names the finite destination')
-ok(component.includes("primary_tier: 'basic'"), 'event records the primary offer without price or free text')
+// REANCORADO em 27/09 (sprint16h V3): o tier principal é a constante, não um literal.
+ok(component.includes('primary_tier: TRIAL_CTA_PRIMARY_TIER'), 'event records the primary offer without price or free text')
 ok(component.indexOf("trackEvent('trial_downgrade_compare_plans_clicked'") < component.indexOf('window.location.assign(TRIAL_DOWNGRADE_PLAN_COMPARE_HREF)'), 'event is emitted before navigation')
 // These labels also appear in historical comments. `lastIndexOf` anchors the
 // rendered controls instead of mistaking prose for product order.
-ok(component.lastIndexOf('Continue on Creator') < component.lastIndexOf('Compare all plans →'), 'direct Creator checkout remains primary')
+ok(component.lastIndexOf('`Continue on ${primaryName}`') < component.lastIndexOf('Compare all plans →'), 'direct primary-plan checkout remains primary')
 ok(component.lastIndexOf('Compare all plans →') < component.lastIndexOf('Keep creating on the free plan'), 'plan comparison appears before the permanent free choice')
 ok(component.includes('See monthly credits and included engines before you decide.'), 'comparison explains what the plan grid resolves')
 ok(component.includes('onClick={goToCreator}'), 'existing Creator checkout is preserved')

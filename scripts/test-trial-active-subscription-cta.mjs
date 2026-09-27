@@ -31,7 +31,10 @@ equal(policy.TRIAL_ACTIVE_SUBSCRIPTION_CTA_MODE, 'trial_active_subscription', 'm
 equal(policy.TRIAL_ACTIVE_SUBSCRIPTION_CTA_VIEW_RATIO, 0.5, 'half of the real CTA must be visible')
 equal(policy.TRIAL_ACTIVE_SUBSCRIPTION_CTA_DWELL_MS, 1000, 'view requires one continuous second')
 
-const metadata = policy.trialActiveSubscriptionCtaViewMetadata({ returnLadderRendered: true })
+// REANCORADO em 27/09 (sprint16h V3): o tier virou entrada explícita — o evento
+// afirma o plano que o botão pinta (Starter no teste), nunca um literal.
+const metadata = policy.trialActiveSubscriptionCtaViewMetadata({ returnLadderRendered: true, tier: 'basic' })
+equal(policy.trialActiveSubscriptionCtaViewMetadata({ returnLadderRendered: true, tier: 'starter' }).tier, 'starter', 'view tier follows the button the person sees')
 equal(metadata.offer_version, policy.TRIAL_ACTIVE_SUBSCRIPTION_CTA_VERSION, 'view metadata carries the offer version')
 equal(metadata.offer_mode, policy.TRIAL_ACTIVE_SUBSCRIPTION_CTA_MODE, 'view metadata carries the offer mode')
 equal(metadata.surface, 'trial_active_banner', 'view names the checkout surface')
@@ -66,7 +69,8 @@ check(!policy.shouldCountTrialActiveSubscriptionCtaView({ ...eligible, documentV
 check(policy.trialActiveSubscriptionCtaMarker('account-a') !== policy.trialActiveSubscriptionCtaMarker('account-b'), 'marker is account-scoped')
 check(policy.trialActiveSubscriptionCtaMarker('account-a').includes(policy.TRIAL_ACTIVE_SUBSCRIPTION_CTA_VERSION), 'marker is version-scoped')
 
-const click = policy.trialActiveSubscriptionCtaClickMetadata({ returnLadderRendered: false })
+const click = policy.trialActiveSubscriptionCtaClickMetadata({ returnLadderRendered: false, tier: 'basic' })
+equal(policy.trialActiveSubscriptionCtaClickMetadata({ returnLadderRendered: false, tier: 'starter' }).tier, 'starter', 'click tier follows the button the person sees')
 equal(click.offer_version, metadata.offer_version, 'view and click share one version')
 equal(click.offer_mode, metadata.offer_mode, 'view and click share one mode')
 equal(click.surface, metadata.surface, 'view and click share one surface')
@@ -208,6 +212,7 @@ check(componentSource.includes("fetch('/api/videos'"), 'caller asks the existing
 check(componentSource.includes('payload?.historyReliable === true'), 'unreliable history fails the measurement closed')
 check(componentSource.includes('payload.completedCount >= 1'), 'at least one persisted completion is required')
 check(componentSource.includes('trialActiveSubscriptionCtaViewMetadata({'), 'caller cannot hand-write view metadata')
+check(/trialActiveSubscriptionCtaViewMetadata\(\{[^}]*tier: TRIAL_CTA_PRIMARY_TIER/.test(componentSource), 'view metadata carries the tier the primary button paints')
 check(componentSource.includes('trialActiveSubscriptionCtaClickMetadata({'), 'caller cannot hand-write click contract')
 check(/<button\s+ref=\{subscriptionCtaRef\}\s+type="button"/.test(componentSource), 'ref belongs to the real checkout button')
 check(!componentSource.includes("trial_active_subscription_cta_viewed', {"), 'component cannot hand-write the closed view payload')

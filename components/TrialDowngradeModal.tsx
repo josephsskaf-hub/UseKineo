@@ -64,6 +64,9 @@ import {
 // testada por mutação. Este arquivo não reescreve a regra — importa (memória
 // `superficie-medida-por-copia-da-regra`).
 import { decideTrialDoorOffer } from '@/lib/growth/cleanFilmTrialDoor'
+// KINEO-TRIAL-CTA-STARTER-PRIMEIRO-2026-09-27 — o plano do botão principal vem
+// de UMA constante; reverter o teste é uma linha em lib/growth/trialCtaTier.ts.
+import { TRIAL_CTA_PRIMARY_TIER, TRIAL_CTA_TIER_NAME } from '@/lib/growth/trialCtaTier'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 import {
   comparisonDeferralValue,
@@ -448,13 +451,22 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
 
   if (!open) return null
 
-  const introEligible = currency !== null && hasIntroOffer('basic', currency, region)
+  // KINEO-TRIAL-CTA-STARTER-PRIMEIRO-2026-09-27 — tudo que a caixa de decisão
+  // imprime (nome, preço, créditos, filmes/mês, preço por filme) deriva de
+  // TRIAL_CTA_PRIMARY_TIER (teste de 27/09: Starter primeiro). O Creator fica
+  // como link secundário logo abaixo do botão principal.
+  const primaryName = TRIAL_CTA_TIER_NAME[TRIAL_CTA_PRIMARY_TIER]
+  const primaryCredits = TIER_CREDITS[TRIAL_CTA_PRIMARY_TIER]
+  const introEligible = currency !== null && hasIntroOffer(TRIAL_CTA_PRIMARY_TIER, currency, region)
+  const primaryPrice = currency !== null ? formatCheckoutMoney(currency, getTierPrice(TRIAL_CTA_PRIMARY_TIER, currency, region)) : null
+  // `fullPrice` continua sendo a mensalidade do CREATOR: é o que a porta de $1
+  // (produto de Creator) promete no "then X/month" — nunca o preço do Starter.
   const fullPrice = currency !== null ? formatCheckoutMoney(currency, getTierPrice('basic', currency, region)) : null
   const introPrice =
     currency !== null && introEligible
-      ? formatCheckoutMoney(currency, getIntroPrice('basic', currency, region))
+      ? formatCheckoutMoney(currency, getIntroPrice(TRIAL_CTA_PRIMARY_TIER, currency, region))
       : null
-  const firstMonthCredits = introEligible ? INTRO_CREDITS.basic : TIER_CREDITS.basic
+  const firstMonthCredits = introEligible ? INTRO_CREDITS[TRIAL_CTA_PRIMARY_TIER] : primaryCredits
 
   // ═══ KINEO-PORTA-1DOLAR-NO-FIM-DO-TRIAL-2026-09-07 (fv-r9) ═══════════════
   // A porta de $1 no instante em que o trial morre. Duas observações que
@@ -483,9 +495,12 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
   // Vídeos AI que a concessão do trial realmente comprava. Derivado, nunca
   // redigitado: no dia em que o custo do motor mudar, esta frase acompanha.
   const trialVideos = SEEDANCE_COST > 0 ? Math.floor(granted / SEEDANCE_COST) : 0
-  // Filmes de IA que a mensalidade do Creator compra. Mesma derivação do
-  // `trialVideos` acima — uma só fonte para "quantos vídeos isto dá".
-  const filmesPorMes = SEEDANCE_COST > 0 ? Math.floor(TIER_CREDITS.basic / SEEDANCE_COST) : 0
+  // Filmes de IA que a mensalidade do plano PRINCIPAL compra. Mesma derivação
+  // do `trialVideos` acima — uma só fonte para "quantos vídeos isto dá".
+  const filmesPorMes = SEEDANCE_COST > 0 ? Math.floor(primaryCredits / SEEDANCE_COST) : 0
+  // Quando a porta de $1 está visível, ela manda no botão: o rótulo dela diz
+  // "Creator" e o destino tem de bater. Fora dela, o tier é o da constante.
+  const primaryCtaTier: 'starter' | 'basic' = trialDoor.visible ? 'basic' : TRIAL_CTA_PRIMARY_TIER
   const needsFirstValue = journeyState === 'first_value'
 
   function goToFirstFilm() {
@@ -512,11 +527,12 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
     // O evento sai ANTES da navegação — depois do redirect do Stripe não existe
     // mais página para emitir nada.
     void trackEvent('trial_downgrade_modal_cta', {
-      tier: 'basic',
+      tier: primaryCtaTier,
+      cta_role: 'primary',
       display_currency: currency ?? 'resolving',
       price_region: region,
-      displayed_price_minor: currency ? getTierPrice('basic', currency, region) : null,
-      displayed_intro_price_minor: currency && introEligible ? getIntroPrice('basic', currency, region) : null,
+      displayed_price_minor: currency ? getTierPrice(primaryCtaTier, currency, region) : null,
+      displayed_intro_price_minor: currency && introEligible ? getIntroPrice(primaryCtaTier, currency, region) : null,
       credits_granted: granted,
       credits_used: used,
       // Os dois campos que separam o placar antigo do novo. Linha sem eles é de
@@ -535,16 +551,42 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
     // sendo o servidor — `?trial=1` é recusado para `has_paid`, e aí a sessão
     // nasce como Creator normal, que é o que este link fazia antes.
     checkout.launch(
-      'basic',
+      primaryCtaTier,
       trialDoor.visible
         ? '/api/stripe/checkout?tier=basic&billing=monthly&trial=1&intent_campaign=trial_1usd_downgrade'
-        : '/api/stripe/checkout?tier=basic&intro=1',
+        : `/api/stripe/checkout?tier=${TRIAL_CTA_PRIMARY_TIER}&intro=1`,
       {
-        tier: 'basic',
+        tier: primaryCtaTier,
+        cta_role: 'primary',
         pricing_surface: 'trial_downgrade_modal',
         card_trial: trialDoor.visible ? '1' : '0',
       },
     )
+  }
+
+  // KINEO-TRIAL-CTA-STARTER-PRIMEIRO-2026-09-27 — o Creator não sai da tela:
+  // link secundário abaixo do botão principal, com o MESMO destino histórico.
+  // Evento com o tier REAL (basic) e cta_role 'secondary', para o placar
+  // separar os dois cliques da mesma superfície.
+  function goToCreatorMore() {
+    humanViewStopRef.current?.()
+    void trackEvent('trial_downgrade_modal_cta', {
+      tier: 'basic',
+      cta_role: 'secondary',
+      display_currency: currency ?? 'resolving',
+      price_region: region,
+      displayed_price_minor: currency ? getTierPrice('basic', currency, region) : null,
+      credits_granted: granted,
+      credits_used: used,
+      trial_door: trialDoor.visible,
+      card_trial: null,
+    })
+    checkout.launch('basic', '/api/stripe/checkout?tier=basic&intro=1', {
+      tier: 'basic',
+      cta_role: 'secondary',
+      pricing_surface: 'trial_downgrade_modal',
+      card_trial: '0',
+    })
   }
 
   function comparePlans() {
@@ -565,7 +607,7 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
       version: TRIAL_DOWNGRADE_PLAN_CHOICE_VERSION,
       source: 'trial_downgrade_modal',
       destination: 'pricing_plans',
-      primary_tier: 'basic',
+      primary_tier: TRIAL_CTA_PRIMARY_TIER,
     })
     setOpen(false)
     window.location.assign(TRIAL_DOWNGRADE_PLAN_COMPARE_HREF)
@@ -666,7 +708,7 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
           ) : (
             <>
               {granted > 0 ? `You used ${used} of the ${granted} trial credits. ` : ''}
-              Creator brings back everything the trial unlocked — every month, not just once.
+              {primaryName} brings the AI engines and clean downloads back — every month, not just once.
               {' '}<FreeTierCopy legacy={`Free plan: ${FREE_FAST_PREVIEW_LIMIT} Fast previews every 24h.`} on="The free plan keeps 1 Fast video per month." />
             </>
           )}
@@ -676,13 +718,13 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
             nunca redigitados: a lição das três frases falsas da v1. */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 16 }}>
           <div style={{ background: '#1d1d1f', border: '1px solid #2a2a2d', borderRadius: 8, padding: '12px 13px' }}>
-            <div style={{ fontSize: 20, fontWeight: 800 }}>{TIER_CREDITS.basic} cr/mo</div>
+            <div style={{ fontSize: 20, fontWeight: 800 }}>{primaryCredits} cr/mo</div>
             <div style={{ fontSize: 10.5, color: '#86868b', marginTop: 3, lineHeight: 1.45 }}>≈ {filmesPorMes} AI films every month</div>
           </div>
           <div style={{ background: '#1d1d1f', border: '1px solid #2a2a2d', borderRadius: 8, padding: '12px 13px' }}>
             <div style={{ fontSize: 20, fontWeight: 800 }}>
               {currency !== null && filmesPorMes > 0
-                ? formatCheckoutMoney(currency, Math.round(getTierPrice('basic', currency, region) / filmesPorMes))
+                ? formatCheckoutMoney(currency, Math.round(getTierPrice(TRIAL_CTA_PRIMARY_TIER, currency, region) / filmesPorMes))
                 : '—'}
             </div>
             <div style={{ fontSize: 10.5, color: '#86868b', marginTop: 3, lineHeight: 1.45 }}>per finished film (editors: $30+)</div>
@@ -706,9 +748,9 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
             marginBottom: 14,
           }}
         >
-          <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800 }}>Continue on Creator</p>
+          <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800 }}>Continue on {primaryName}</p>
           <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: '#86868b' }}>
-            {currency === null || fullPrice === null ? (
+            {currency === null || primaryPrice === null ? (
               // AFIRMAÇÃO SOBRE PREÇO NUNCA SAI INCONDICIONALMENTE: enquanto a
               // moeda não resolveu, não há número na tela.
               <span aria-hidden="true">&nbsp;</span>
@@ -721,17 +763,17 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
               <strong style={{ color: '#f5f5f7' }}>{trialDoor.priceNote}</strong>
             ) : introEligible && introPrice ? (
               <>
-                <strong style={{ color: '#f5f5f7' }}>{introPrice}</strong> your first month, then {fullPrice}/month
+                <strong style={{ color: '#f5f5f7' }}>{introPrice}</strong> your first month, then {primaryPrice}/month
                 {' · '}
-                {firstMonthCredits} credits now, {TIER_CREDITS.basic}/month after
+                {firstMonthCredits} credits now, {primaryCredits}/month after
                 {' · '}
                 {CURRENCY_DISPLAY[currency].label}
               </>
             ) : (
               <>
-                <strong style={{ color: '#f5f5f7' }}>{fullPrice}</strong>/month
+                <strong style={{ color: '#f5f5f7' }}>{primaryPrice}</strong>/month
                 {' · '}
-                {TIER_CREDITS.basic} credits every month
+                {primaryCredits} credits every month
                 {' · '}
                 {CURRENCY_DISPLAY[currency].label}
               </>
@@ -747,7 +789,7 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
               sobreviveu meses ao fim do desconto. */}
           {currency !== null && filmesPorMes > 0 && (
             <p style={{ margin: '8px 0 0', fontSize: 12, lineHeight: 1.5, color: '#8ec5ff' }}>
-              ≈ {formatCheckoutMoney(currency, Math.round(getTierPrice('basic', currency, region) / filmesPorMes))} per AI film
+              ≈ {formatCheckoutMoney(currency, Math.round(getTierPrice(TRIAL_CTA_PRIMARY_TIER, currency, region) / filmesPorMes))} per AI film
               {' · '}
               {filmesPorMes} AI films a month
             </p>
@@ -787,7 +829,7 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
                 // sendo o texto para quem a porta não alcança — a tela nunca
                 // fica sem botão (memória `vitrine-oferece-o-que-o-cobrador-
                 // recusa`: a queda é para o caminho honesto, não para o vazio).
-                (trialDoor.visible && trialDoor.buttonLabel) || 'Continue on Creator'}
+                (trialDoor.visible && trialDoor.buttonLabel) || `Continue on ${primaryName}`}
         </button>
 
         {needsFirstValue && (
@@ -809,7 +851,33 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
               opacity: checkout.pending !== null ? 0.6 : 1,
             }}
           >
-            {checkout.pending !== null ? 'Opening checkout…' : 'Choose Creator now'}
+            {checkout.pending !== null ? 'Opening checkout…' : `Choose ${primaryName} now`}
+          </button>
+        )}
+
+        {/* KINEO-TRIAL-CTA-STARTER-PRIMEIRO-2026-09-27 — o Creator continua na
+            tela, como link secundário. Só existe quando o principal é OUTRO
+            plano: com a constante em 'basic' seria o mesmo plano duas vezes. */}
+        {TRIAL_CTA_PRIMARY_TIER !== 'basic' && (
+          <button
+            type="button"
+            onClick={goToCreatorMore}
+            disabled={checkout.pending !== null}
+            style={{
+              width: '100%',
+              marginTop: 8,
+              padding: '8px 16px',
+              border: 'none',
+              background: 'transparent',
+              color: '#7cc0ff',
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: checkout.pending !== null ? 'wait' : 'pointer',
+              textDecoration: 'underline',
+              textUnderlineOffset: 3,
+            }}
+          >
+            need more? Creator · {TIER_CREDITS.basic} cr
           </button>
         )}
 

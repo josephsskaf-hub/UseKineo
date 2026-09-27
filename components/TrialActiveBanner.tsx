@@ -115,9 +115,13 @@ import {
   getIntroPrice,
   getTierPrice,
   hasIntroOffer,
+  TIER_CREDITS,
   type CheckoutCurrency,
   type PriceRegion,
 } from '@/lib/checkoutPricing'
+// KINEO-TRIAL-CTA-STARTER-PRIMEIRO-2026-09-27 — o plano do botão principal vem
+// de UMA constante; reverter o teste é uma linha em lib/growth/trialCtaTier.ts.
+import { TRIAL_CTA_PRIMARY_TIER, TRIAL_CTA_TIER_NAME } from '@/lib/growth/trialCtaTier'
 
 // Dispensa POR CONTA, POR NAVEGADOR e POR DIA.
 //
@@ -468,6 +472,10 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
       storage,
       metadata: trialActiveSubscriptionCtaViewMetadata({
         returnLadderRendered: returnLadder.eligible,
+        // O tier que a pessoa VÊ no botão. A porta de $1 (produto de Creator)
+        // está aposentada por constante (TRIAL_DOOR_LIVE=false); se voltar,
+        // este campo tem de acompanhar a decisão dela.
+        tier: TRIAL_CTA_PRIMARY_TIER,
       }),
       transport: (eventName, metadata) => trackClosedEvent(eventName, metadata),
     })
@@ -557,15 +565,19 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
   const timeLeft = formatTimeLeft(msLeft)
   if (timeLeft === null) return null
 
-  const introEligible = currency !== null && hasIntroOffer('basic', currency, region)
+  // KINEO-TRIAL-CTA-STARTER-PRIMEIRO-2026-09-27 — preço, nome e destino do
+  // botão principal derivam de TRIAL_CTA_PRIMARY_TIER (teste de 27/09:
+  // Starter primeiro; Creator vira link secundário logo abaixo).
+  const introEligible = currency !== null && hasIntroOffer(TRIAL_CTA_PRIMARY_TIER, currency, region)
   const priceMinor =
     currency !== null
       ? introEligible
-        ? getIntroPrice('basic', currency, region)
-        : getTierPrice('basic', currency, region)
+        ? getIntroPrice(TRIAL_CTA_PRIMARY_TIER, currency, region)
+        : getTierPrice(TRIAL_CTA_PRIMARY_TIER, currency, region)
       : null
   // Preço SEMPRE de lib/checkoutPricing, por moeda. Zero literal nesta tela.
   const priceLabel = currency !== null && priceMinor !== null ? formatCheckoutMoney(currency, priceMinor) : null
+  const primaryTierName = TRIAL_CTA_TIER_NAME[TRIAL_CTA_PRIMARY_TIER]
 
   // KINEO-TRIAL-CTA-PORTA-1USD-2026-09-07 — a MESMA fonte única que a caixa de
   // export limpo, o modal de fim de trial e a porta do primeiro filme
@@ -582,6 +594,12 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
     trialDays: CARD_TRIAL_DAYS,
     unlocksCurrentFilm: false,
   })
+  // Quando a porta de $1 está visível, ela manda no botão: o rótulo dela diz
+  // "Creator" e o destino tem de bater. Fora dela, o tier é o da constante.
+  const primaryCtaTier: 'starter' | 'basic' = subscriptionDoor.visible ? 'basic' : TRIAL_CTA_PRIMARY_TIER
+  // O link secundário de Creator só existe quando o principal é OUTRO plano:
+  // com a constante em 'basic' seria o mesmo plano duas vezes, e some sozinho.
+  const creatorLinkRendered = !subscriptionDoor.visible && TRIAL_CTA_PRIMARY_TIER !== 'basic'
 
   // Vídeos cinematográficos que a concessão realmente compra. DERIVADO, nunca
   // redigitado: no dia em que o custo do motor mudar, esta frase acompanha.
@@ -755,8 +773,10 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
           void trackEvent('trial_active_banner_cta', {
             ...trialActiveSubscriptionCtaClickMetadata({
               returnLadderRendered: returnLadder.eligible,
+              tier: primaryCtaTier,
             }),
-            tier: 'basic',
+            tier: primaryCtaTier,
+            cta_role: 'primary',
             ms_left: msLeft,
             time_left_label: timeLeft,
             display_currency: currency ?? 'resolving',
@@ -775,15 +795,17 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
           // desde a V5); quem valida elegibilidade é sempre o servidor, que
           // recusa `?trial=1` para quem já pagou.
           checkout.launch(
-            'basic',
+            primaryCtaTier,
             subscriptionDoor.visible
               ? `/api/stripe/checkout?tier=basic&billing=monthly&trial=1&intent_campaign=${TRIAL_ACTIVE_BANNER_DOOR_VERSION}`
-              : '/api/stripe/checkout?tier=basic&intro=1',
+              : `/api/stripe/checkout?tier=${TRIAL_CTA_PRIMARY_TIER}&intro=1`,
             {
               ...trialActiveSubscriptionCtaClickMetadata({
                 returnLadderRendered: returnLadder.eligible,
+                tier: primaryCtaTier,
               }),
-              tier: 'basic',
+              tier: primaryCtaTier,
+              cta_role: 'primary',
               pricing_surface: 'trial_active_banner',
               card_trial: subscriptionDoor.visible ? '1' : '0',
               intent_campaign: subscriptionDoor.visible ? TRIAL_ACTIVE_BANNER_DOOR_VERSION : null,
@@ -872,8 +894,65 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
         {checkout.pending !== null
           ? 'Opening checkout…'
           : (subscriptionDoor.visible && subscriptionDoor.buttonLabel) ||
-            (priceLabel ? `Keep Creator after the trial — ${priceLabel}` : 'Keep Creator after the trial')}
+            (priceLabel ? `Continue on ${primaryTierName} after the trial — ${priceLabel}/mo` : `Continue on ${primaryTierName} after the trial`)}
       </button>}
+      {/* KINEO-TRIAL-CTA-STARTER-PRIMEIRO-2026-09-27 — o Creator não sai da
+          tela: vira link secundário, com o grant DERIVADO (TIER_CREDITS.basic)
+          e o MESMO destino histórico. O evento leva o tier real (basic) e
+          cta_role 'secondary', para o placar separar os dois cliques. */}
+      {!firstDelivery.eligible && creatorLinkRendered && (
+        <button
+          type="button"
+          onClick={() => {
+            subscriptionCtaViewStopRef.current()
+            void trackEvent('trial_active_banner_cta', {
+              ...trialActiveSubscriptionCtaClickMetadata({
+                returnLadderRendered: returnLadder.eligible,
+                tier: 'basic',
+              }),
+              tier: 'basic',
+              cta_role: 'secondary',
+              ms_left: msLeft,
+              time_left_label: timeLeft,
+              display_currency: currency ?? 'resolving',
+              price_region: region,
+              displayed_price_minor: currency !== null ? getTierPrice('basic', currency, region) : null,
+              credits_granted: granted,
+              credits_used: used,
+              trial_counter_rendered: counterRendered,
+              trial_door: subscriptionDoor.visible,
+              card_trial: null,
+              trial_door_reason: subscriptionDoor.reason,
+            })
+            checkout.launch('basic', '/api/stripe/checkout?tier=basic&intro=1', {
+              ...trialActiveSubscriptionCtaClickMetadata({
+                returnLadderRendered: returnLadder.eligible,
+                tier: 'basic',
+              }),
+              tier: 'basic',
+              cta_role: 'secondary',
+              pricing_surface: 'trial_active_banner',
+              card_trial: '0',
+              intent_campaign: null,
+            })
+          }}
+          disabled={checkout.pending !== null}
+          // Link, não botão: o pedido principal é o de cima. 44px de alvo de
+          // toque como o resto desta tela.
+          className="mt-1 flex min-h-11 items-center text-xs font-bold"
+          style={{
+            color: '#8ec5ff',
+            background: 'transparent',
+            border: 0,
+            padding: 0,
+            cursor: checkout.pending !== null ? 'wait' : 'pointer',
+            textDecoration: 'underline',
+            textUnderlineOffset: 3,
+          }}
+        >
+          need more? Creator · {TIER_CREDITS.basic} cr
+        </button>
+      )}
       {/* A nota de preço não é enfeite: sem ela o botão diria "$1" e calaria o
           que acontece no dia 8. A frase vem pronta do núcleo — esta tela não
           escreve dinheiro à mão. */}
