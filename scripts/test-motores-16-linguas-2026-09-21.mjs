@@ -60,7 +60,10 @@ const wall = rd('lib/engineWall.ts')
 checa('getHouseEngineExamples filtra por motor e junta FOUNDER_SHOWCASE + PUBLIC_ENGINE_EXAMPLES sem repetir id', wall.includes('export function getHouseEngineExamples(engine: string, limit = 6): WallVideo[] {') && wall.includes("if (v.engine !== engine || seen.has(v.id)) continue") && wall.includes("publicSource: 'founder_owned_engine_example'"))
 checa('página traduzida: galeria da casa só quando não há render de cliente, e ANTES do "o que é"', page.includes("const house = renders.length > 0 ? [] : getHouseEngineExamples(e.qualityMode, 6)") && page.indexOf('{house.length > 0 && (') < page.indexOf('{L.about[slug](facts)}') && page.indexOf('{house.length > 0 && (') > page.indexOf('<TopicGeneratorForm'))
 checa('página traduzida: vídeo com poster, sem autoplay (preload none), selo do motor', page.includes('<video src={v.videoUrl} poster={v.posterUrl} muted playsInline controls preload="none"') && page.includes('{v.badge}'))
-checa('página inglesa: mesma galeria logo abaixo do formulário, com legenda honesta', en.includes("const house = renders.length > 0 ? [] : getHouseEngineExamples(e.qualityMode, 6)") && en.includes('Kineo-owned samples rendered on {e.name}') && en.indexOf('{house.length > 0 && (') < en.indexOf('{/* A PROVA — renders reais deste motor */}'))
+// GPT24h G3 autorizado 27/09: quatro motores ingleses selecionam dois previews
+// da lista pública; demais motores/traduções preservam a galeria anterior.
+// Intenção mantida: privacidade, motor real, legenda honesta e mesma posição.
+checa('página inglesa: galeria pública abaixo do formulário, com legenda honesta', en.includes("const house = renders.length > 0 ? [] : paidBudget ? paidEngineExamples(params.engine, e.name) : getHouseEngineExamples(e.qualityMode, 6)") && en.includes("Kineo-owned {paidBudget ? 'previews' : 'samples'} rendered on {e.name}") && en.indexOf('{house.length > 0 && (') < en.indexOf('{/* A PROVA — renders reais deste motor */}'))
 
 console.log('3c) llms.txt e /facts citam as 52 páginas traduzidas a partir do catálogo (KINEO-LLMS-52-TRADUZIDAS-2026-09-21)')
 const llms = rd('app/llms.txt/route.ts'), facts = rd('app/facts/page.tsx')

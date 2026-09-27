@@ -27,6 +27,8 @@ import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
 import WallMedia from '@/components/WallMedia'
+import PaidEngineBudget from '@/components/PaidEngineBudget'
+import { paidEngineBudget, paidEngineExamples } from '@/lib/growth/paidEngineProof'
 import ScriptToSeedanceBridge from '@/components/ScriptToSeedanceBridge' // KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { getEngineRenders, getHouseEngineExamples } from '@/lib/engineWall'
@@ -96,7 +98,8 @@ export default async function EnginePage({ params }: { params: { engine: string 
   // nunca quebra por causa dela.
   const renders = await getEngineRenders(e.qualityMode, 8)
   // KINEO-GALERIA-DA-CASA-2026-09-21 — sem vídeo de cliente público, a prova é a vitrine da casa daquele motor.
-  const house = renders.length > 0 ? [] : getHouseEngineExamples(e.qualityMode, 6)
+  const paidBudget = paidEngineBudget(params.engine)
+  const house = renders.length > 0 ? [] : paidBudget ? paidEngineExamples(params.engine, e.name) : getHouseEngineExamples(e.qualityMode, 6)
   // KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — a ponte para o Seedance subiu para logo abaixo do hero (ver bloco).
   const showSeedanceBridge = params.engine === 'kineo-1' && !enginePaused(ENGINES.seedance.param)
 
@@ -154,6 +157,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
             {e.name} · {engineCostLabel(e)}
           </div>
           <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 900, lineHeight: 1.15, margin: '16px 0 0' }}>{e.h1}</h1>
+          {!enginePaused(e.param) && <PaidEngineBudget slug={params.engine} />}
           {enginePaused(e.param) && (
             <div role="status" style={{ margin: '14px 0 0', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(255,180,84,.45)', background: 'rgba(255,180,84,.10)', color: '#ffd9a3', fontSize: 14.5, lineHeight: 1.6 }}>
               <strong>Temporarily paused for maintenance.</strong> {enginePaused(e.param)!.message}{' '}
@@ -217,9 +221,9 @@ export default async function EnginePage({ params }: { params: { engine: string 
           <section style={{ marginTop: 40 }}>
             <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 6px' }}>Made with {e.name}</h2>
             <p style={{ textAlign: 'center', color: '#86868b', fontSize: '0.9rem', margin: '0 auto 18px', maxWidth: 620, lineHeight: 1.6 }}>
-              Kineo-owned samples rendered on {e.name} — the badge is the engine that actually made each one. Customer videos stay private.
+              Kineo-owned {paidBudget ? 'previews' : 'samples'} rendered on {e.name} — the badge is the engine that actually made each one. Customer videos stay private.
             </p>
-            <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
+            <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', ...(paidBudget ? { maxWidth: 520, margin: '0 auto', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } : {}) }}>
               {house.map((v) => (
                 <div key={v.id} style={{ overflow: 'hidden', borderRadius: 14, ...CARD }}>
                   <div style={{ position: 'relative', aspectRatio: '9 / 16', overflow: 'hidden', background: '#000' }}>
@@ -280,7 +284,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
                 {[
                   ['Model called', e.model],
                   ['Cost per video', engineCostLabel(e)],
-                  ['Smallest monthly grant that covers one', e.tier === 'Free' ? 'None — runs on a free account' : e.tier],
+                  ['Smallest monthly grant that covers one', paidBudget?.label ?? (e.tier === 'Free' ? 'None — runs on a free account' : e.tier)],
                   ['Output', 'Vertical 9:16 MP4, script + AI voiceover + captions already assembled'],
                   ['Typical turnaround', '3–7 minutes from idea to download'],
                   ['Best for', e.bestFor],

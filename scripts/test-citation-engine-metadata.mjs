@@ -74,6 +74,15 @@ const pageBody = source => {
 const BRIDGE_DECL = "  const showSeedanceBridge = params.engine === 'kineo-1' && !enginePaused(ENGINES.seedance.param)"
 const BRIDGE_JSX = '        {showSeedanceBridge && <ScriptToSeedanceBridge from="kineo1" />}'
 const semGaleriaDaCasa = (body) => {
+  // GPT24h G3 (fundador 27/09): capacity + authorized paid-engine previews.
+  // Normalize ONLY the exact additions before the historical byte comparison;
+  // titles, CTAs, destinations, bridge and all other page content stay locked.
+  // Actual calculations, public assets and Kineo 1 identity have their own
+  // behavioral guard: test-paid-engine-proof-2026-09-27.mjs.
+  body = body.replace("  const paidBudget = paidEngineBudget(params.engine)\n", '')
+    .replace('paidBudget ? paidEngineExamples(params.engine, e.name) : getHouseEngineExamples(e.qualityMode, 6)', 'getHouseEngineExamples(e.qualityMode, 6)')
+    .replace('          {!enginePaused(e.param) && <PaidEngineBudget slug={params.engine} />}\n', '')
+    .replace("paidBudget?.label ?? (e.tier === 'Free' ? 'None — runs on a free account' : e.tier)", "e.tier === 'Free' ? 'None — runs on a free account' : e.tier")
   const lines = body.split('\n')
   const out = []
   let skippingSection = false
@@ -108,7 +117,7 @@ const semGaleriaDaCasa = (body) => {
 }
 assert.notEqual(pageBody(current), pageBody(previous), 'a galeria da casa e a ponte existem na página atual')
 assert.equal(semGaleriaDaCasa(pageBody(current)), pageBody(previous))
-console.log('PASS: actual metadata, canonical URLs, pause policy and credit coverage for ' + ENGINE_SLUGS.length + ' engine pages; visible page unchanged')
+console.log('PASS: actual metadata, canonical URLs, pause policy and credit coverage for ' + ENGINE_SLUGS.length + ' engine pages; visible page locked outside approved gallery, bridge and G3 additions')
 
 // Exercise the hub's actual metadata object, not a copied expected object.
 const hubFile = 'app/ai-video-generator/page.tsx'
