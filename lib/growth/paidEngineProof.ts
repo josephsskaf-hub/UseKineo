@@ -2,6 +2,7 @@ import { getTierPrice, formatCheckoutMoney, TIER_CREDITS } from '../checkoutPric
 import { creditCostForDuration, type Quality } from '../credits/engineCost'
 import { MARKETING_REFERENCE_SECONDS } from '../marketingPrice'
 import { PUBLIC_ENGINE_EXAMPLES } from '../publicExamples'
+import { SUPPORTED_DURATIONS } from '../expandPolicy'
 
 // Existing canonical routes. Never apply to Kineo 1 or change engine access.
 export const PAID_ENGINE_PROOF = {
@@ -22,8 +23,18 @@ export function paidEngineBudget(slug: string) {
   const tier = Math.floor(TIER_CREDITS.starter / cost) >= 1 ? 'starter' : 'basic'
   const films = Math.floor(TIER_CREDITS[tier] / cost)
   if (films < 1) return null
+  // KINEO-SPRINT16H-B-CAPACIDADE-35S-2026-09-27: the shortest film the Studio
+  // selector really offers (lib/expandPolicy SUPPORTED_DURATIONS), priced by the
+  // same creditCostForDuration and floored per tier. Lets the block say what
+  // Starter covers at the short length when the 60 s film only fits Creator.
+  const shortSeconds = Math.min(...SUPPORTED_DURATIONS)
+  const shortCost = creditCostForDuration(config.quality, true, shortSeconds)
+  const shortFilms = (t: 'starter' | 'basic') => Number.isFinite(shortCost) && shortCost > 0 ? Math.floor(TIER_CREDITS[t] / shortCost) : 0
   return { tier, label: tier === 'starter' ? 'Starter' : 'Creator', films, seconds, cost,
-    price: formatCheckoutMoney('usd', getTierPrice(tier, 'usd', 'standard')) }
+    price: formatCheckoutMoney('usd', getTierPrice(tier, 'usd', 'standard')),
+    short: { seconds: shortSeconds, starterFilms: shortFilms('starter'), creatorFilms: shortFilms('basic'),
+      starterPrice: formatCheckoutMoney('usd', getTierPrice('starter', 'usd', 'standard')),
+      creatorPrice: formatCheckoutMoney('usd', getTierPrice('basic', 'usd', 'standard')) } }
 }
 
 export function paidEngineExamples(slug: string, badge: string) {
