@@ -42,7 +42,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { trackEvent as trackAnalyticsEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
-import { TRIAL_CREDITS_SHOWN, TRIAL_FILMS, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { TRIAL_CREDITS_SHOWN, TRIAL_GRANT_CREDITS_COPY, TRIAL_KINEO1_FILMS } from '@/lib/freeTierOffer'
+import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 import { videosPerMonth } from '@/lib/marketingPrice'
 // KINEO-VITRINE-MOEDA-2026-08-19 — ver o bloco grande junto ao texto do modal.
 import {
@@ -308,6 +309,22 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
     return () => { cancelled = true }
   }, [open])
 
+  // KINEO-EXIT-INTENT-VERDADE-2026-09-27 (sprint16h V1) — quem JÁ tem conta
+  // não deve ler "Sign up": 20 sessões logadas viram esse botão desde 09/09.
+  // Mesma sonda barata do NavCreditsBadge (/api/credits responde 401 sem
+  // sessão), disparada só quando o painel free abre — na maioria das visitas
+  // ele nunca aparece, e não vale um fetch por pageview. Leitura que falha =
+  // continua deslogado (o botão de hoje); nunca inventa sessão.
+  const [signedIn, setSignedIn] = useState(false)
+  useEffect(() => {
+    if (!open || variant !== 'free') return
+    let cancelled = false
+    void fetch('/api/credits', { credentials: 'same-origin', cache: 'no-store' })
+      .then((r) => { if (!cancelled && r.ok) setSignedIn(true) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [open, variant])
+
   // KINEO-INTRO-MONTH-2026-07-13 — EXIT-INTENT v3 "RECORRÊNCIA": os dois
   // cards agora são ASSINATURAS com 1º mês de entrada ($4.90 Starter /
   // $9.90 Creator). Mesma mecânica GET (302 servidor, gesture-chain do
@@ -388,7 +405,14 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
               Kineo writes the script, records the voiceover, cuts the scenes, captions and delivers the MP4. <b style={{ color: '#f5f5f7', fontWeight: 800 }}>You just type the topic.</b>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {[`${TRIAL_CREDITS_SHOWN} CREDITS FOR $1`, '7 DAYS', 'KINEO 1 + SEEDANCE'].map((t) => (
+              {/* KINEO-EXIT-INTENT-VERDADE-2026-09-27 — os selos são os MESMOS três
+                  fatos da frase canônica (lib/freeTierOffer.ts ON_COPY): o que é
+                  grátis, o que isso compra, onde os motores de IA começam. Os
+                  selos da porta de $1 só voltam se a porta voltar (CARD_ENTRY_ONLY). */}
+              {(CARD_ENTRY_ONLY
+                ? [`${TRIAL_CREDITS_SHOWN} CREDITS FOR $1`, '7 DAYS', 'KINEO 1 + SEEDANCE']
+                : [`${TRIAL_CREDITS_SHOWN} FREE CREDITS`, `${TRIAL_KINEO1_FILMS} KINEO 1 ${TRIAL_KINEO1_FILMS === 1 ? 'FILM' : 'FILMS'}`, 'AI ENGINES FROM STARTER']
+              ).map((t) => (
                 <span key={t} style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.08em', padding: '4px 9px', borderRadius: 4, background: '#1d1d1f', border: '1px solid #2a2a2d', color: '#a8a8ad' }}>{t}</span>
               ))}
             </div>
@@ -416,7 +440,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
               {/* KINEO-GRANT-COPY-UNICA — número derivado; ver lib/freeTierOffer.ts. */}
               <FreeTierCopy
                 legacy="3 free videos every day · no card needed."
-                on={`Signing up gets you the standard ${TRIAL_GRANT_CREDITS_COPY} free credits every new account receives — enough for ${TRIAL_FILMS} Seedance ${TRIAL_FILMS === 1 ? 'film' : 'films'}. No card, no special deal for leaving: this is simply what a new account comes with.`}
+                on={`Signing up gets you the standard ${TRIAL_GRANT_CREDITS_COPY} free credits every new account receives — enough for ${TRIAL_KINEO1_FILMS} Kineo 1 ${TRIAL_KINEO1_FILMS === 1 ? 'film' : 'films'}. No card, no special deal for leaving: this is simply what a new account comes with.`}
               />
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 18 }}>
@@ -424,7 +448,11 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
                 ['~3 min', 'from topic to finished video'],
                 ['9:16', 'built for Shorts, TikTok & Reels'],
                 ['6 engines', 'Veo, Kling 3, Seedance…'],
-                ['$1', 'for 7 days of Creator, no trick'],
+                // KINEO-EXIT-INTENT-VERDADE-2026-09-27 — o tile "$1 for 7 days of
+                // Creator" anunciava um trial DESLIGADO (lib/checkoutPricing.ts
+                // CARD_TRIAL_LIVE = false). Entra o Starter, com preço e créditos
+                // lidos do cobrador (getTierPrice/formatCheckoutMoney/TIER_CREDITS).
+                [`${exitPrice('starter')}/mo`, `Starter · ${TIER_CREDITS.starter} credits a month · cancel anytime`],
               ].map(([n, d]) => (
                 <div key={n} style={{ background: '#1d1d1f', border: '1px solid #2a2a2d', borderRadius: 8, padding: '12px 13px' }}>
                   <div style={{ fontSize: 20, fontWeight: 800, color: '#f5f5f7' }}>{n}</div>
@@ -432,15 +460,22 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
                 </div>
               ))}
             </div>
+            {/* KINEO-EXIT-INTENT-VERDADE-2026-09-27 — utm triplo no cadastro (o
+                clique de exit-intent chega sem cookie de campanha; o signup grava
+                signup_utm_* a partir da URL) e CTA de quem já tem conta: "Back to
+                Studio", nunca "Sign up". */}
             <a
-              href="/signup"
-              onClick={() => trackEvent('exit_intent_free_clicked', variant)}
+              href={signedIn ? '/studio' : '/signup?utm_source=exit_intent&utm_medium=free_panel&utm_campaign=sprint0927'}
+              onClick={() => {
+                if (signedIn) trackEvent('exit_intent_back_to_studio_clicked', variant)
+                else trackEvent('exit_intent_free_clicked', variant)
+              }}
               style={{ display: 'block', width: '100%', textAlign: 'center', background: '#2997ff', color: '#fff', borderRadius: 8, padding: 15, fontSize: 15, fontWeight: 800, textDecoration: 'none' }}
             >
-              Sign up and make my first video
+              {signedIn ? 'Back to Studio' : 'Sign up and make my first video'}
             </a>
             <p style={{ fontSize: 11, color: '#6e6e73', textAlign: 'center', marginTop: 14, lineHeight: 1.5 }}>
-              Creating an account takes under a minute.
+              {signedIn ? 'You are already signed in — pick up where you left off.' : 'Creating an account takes under a minute.'}
             </p>
           </div>
         </div>

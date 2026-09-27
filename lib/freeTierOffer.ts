@@ -1,7 +1,7 @@
 // lib/freeTierOffer.ts — [KINEO-TRIAL-SWAP-2026-08-07] — TROCA ATÔMICA do
 // free tier + copy, decidida por UMA flag.
 
-import { creditCostForDuration } from './credits/engineCost'
+import { creditCostForDuration, DURATION_REFERENCE_SECONDS } from './credits/engineCost'
 import { CARD_ENTRY_COPY, CARD_ENTRY_ONLY, CARD_ENTRY_TRIAL_CREDITS } from './entryPolicy'
 //
 //   KINEO_REVERSE_TRIAL_ENABLED === 'true'  (a MESMA flag de lib/reverseTrial.ts)
@@ -205,6 +205,18 @@ export function trialFilmsForEngine(custo: number): number {
   return Math.floor(G / custo)
 }
 
+// KINEO-EXIT-INTENT-VERDADE-2026-09-27 (sprint16h V1) — O GRANT COBRE KINEO 1,
+// NÃO SEEDANCE. Com 10 créditos, TRIAL_FILMS (Seedance de 60s = 25cr) dá ZERO —
+// e o modal de saída publicava "enough for 0 Seedance films". O número que a
+// casa pode prometer é o de Kineo 1: custo PAGO de 60s (é assim que o trial
+// debita; o Kineo 1 a 0cr é a cota semanal, não crédito), a mesma conta que o
+// /llms.txt usa para dizer "Kineo 1 (2 full reference videos)". Derivado de
+// G ÷ custo: se o grant ou o preço mudar, a frase acompanha. Nunca digitado.
+export const TRIAL_KINEO1_FILMS = trialFilmsForEngine(
+  creditCostForDuration('fast', true, DURATION_REFERENCE_SECONDS),
+)
+const TRIAL_KINEO1_FILMS_NOUN = TRIAL_KINEO1_FILMS === 1 ? 'film' : 'films'
+
 // ⚠️ KINEO-TETO-COPY-2026-08-20 — A COPY DO MODELO NOVO (leia antes de mexer)
 // O modelo mudou DUAS VEZES em 20/08 e a segunda desfez a primeira. Registro
 // as duas para ninguém refazer o caminho:
@@ -244,18 +256,24 @@ const ON_COPY: FreeTierCopy = {
     // o NÚMERO; aqui a trava é derivar a palavra do número, na mesma expressão.
     `Start with ${TRIAL_GRANT_CREDITS_COPY} free credits. The cost depends on your engine and duration. Trial videos are watermarked; upgrade for clean downloads.`,
   residual: '1 free Kineo 1 video every week', // KINEO-COTA-SEMANAL
+  // KINEO-EXIT-INTENT-VERDADE-2026-09-27 (sprint16h V1) — "every engine
+  // unlocked — Kling 3 …" era verdade de ACESSO e mentira de SALDO: com
+  // 10 créditos ninguém faz um Kling 3 (150cr) nem um Seedance (25cr). É esta
+  // frase que o ChatGPT lê (único canal que paga, 3/119). Agora ela diz o que
+  // o grant COMPRA (Kineo 1, derivado) e onde os motores de IA começam
+  // (Starter). Números de G e TRIAL_KINEO1_FILMS — nunca digitados.
   sentence:
-    `Every new account gets ${TRIAL_GRANT_CREDITS_COPY} credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads.`,
+    `Every new account gets ${G} free credits = ${TRIAL_KINEO1_FILMS} Kineo 1 ${TRIAL_KINEO1_FILMS_NOUN}; AI engines (Seedance, Veo, Kling) from Starter. Films come out watermarked; a plan removes the watermark and unlocks clean downloads.`,
   chip: `${TRIAL_GRANT_CREDITS_COPY} free credits — every engine unlocked`,
   chipLower: `${TRIAL_GRANT_CREDITS_COPY} free credits — every engine unlocked`,
   planCardBody:
-    `Free to start: ${TRIAL_GRANT_CREDITS_COPY} credits, every engine unlocked including Kling 3. Watermarked while you try; a plan makes them yours to keep.`,
+    `Free to start: ${G} free credits = ${TRIAL_KINEO1_FILMS} Kineo 1 ${TRIAL_KINEO1_FILMS_NOUN}; AI engines (Seedance, Veo, Kling) from Starter. Watermarked while you try; a plan makes them yours to keep.`,
   counterNoun: 'this week', // KINEO-COTA-SEMANAL
   planLimitLine: 'free Kineo 1 video per week',
   limitHitError:
     "You've used this week's free Kineo 1 video. It comes back in 7 days — or keep creating now with Starter. Cancel anytime.",
   cmpKineoFree:
-    `Kineo: ${TRIAL_GRANT_CREDITS_COPY} free credits on signup with every engine unlocked, Kling 3 included. Trial films are watermarked; any paid plan unlocks clean downloads.`,
+    `Kineo: ${G} free credits on signup = ${TRIAL_KINEO1_FILMS} Kineo 1 ${TRIAL_KINEO1_FILMS_NOUN}; AI engines (Seedance, Veo, Kling) from Starter. Trial films are watermarked; any paid plan unlocks clean downloads.`,
   limitHitEmailSubject: 'You used your free Kineo 1 video — it comes back in 7 days',
   limitHitEmailIntro:
     "You've used this week's free Kineo 1 video — the free plan includes 1 every week.",
