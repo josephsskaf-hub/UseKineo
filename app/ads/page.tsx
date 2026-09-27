@@ -324,7 +324,9 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
                   <AdsCtaLink href={STARTER_CHECKOUT_HREF} cta="plan" tier="starter" from={from} placement="price" className="go ok ads-go">
                     Get {starterName} · {starterPrice}/mo
                   </AdsCtaLink>
-                  <p className="gnote">Secure Stripe checkout. You sign in (or create your account) first.</p>
+                  {/* KINEO-COPY-HONESTA-C-2026-09-27 — this door is also shown to signed-in people without access (planOffer = gate !== 'ok');
+                      the checkout GET only sends anonymous viewers to /login (app/api/stripe/checkout/route.ts), so the note tells each viewer the truth. */}
+                  <p className="gnote">{viewer.signedIn ? 'Secure Stripe checkout.' : 'Secure Stripe checkout. You sign in (or create your account) first.'}</p>
                 </div>
                 <p className="ads-fine">Shown in US dollars; the checkout may show the amount in your local currency.</p>
               </div>

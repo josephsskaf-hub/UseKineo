@@ -654,7 +654,7 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
   return (
     <div
       role="region"
-      aria-label="Creator trial status"
+      aria-label="Free trial status"
       className="mx-3 mt-3 rounded-xl px-4 py-3 md:mx-6"
       style={{
         background: 'linear-gradient(135deg, rgba(41,151,255,.12), rgba(41,151,255,.04))',
@@ -664,8 +664,11 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           {/* A MANCHETE É O PRAZO. Ver decisão 2 no topo do arquivo. */}
+          {/* KINEO-COPY-HONESTA-C-2026-09-27 — o nome do plano (Creator) saiu da manchete: desde o V3 (Starter primeiro) o CTA logo abaixo diz
+              "Continue on Starter after the trial", e o trial de hoje é grátis e sem cartão — TRIAL_CREDIT_CAP concedido no
+              cadastro "SEM tocar em Stripe" (lib/reverseTrial.ts) e CARD_TRIAL_LIVE = false (lib/checkoutPricing.ts). */}
           <p className="text-sm font-black" style={{ color: '#5cb3ff', lineHeight: 1.4 }}>
-            You&apos;re on the Creator trial — ends {timeLeft}
+            You&apos;re on your free trial — ends {timeLeft}
           </p>
           <p className="mt-1 text-xs" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
             {/* O que a concessão É, em unidades que a pessoa reconhece. "40

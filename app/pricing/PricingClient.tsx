@@ -117,6 +117,7 @@ import {
   type CheckoutErrorSignal,
 } from '@/lib/growth/checkoutErrorSignal'
 import { CARD_TRIAL_LIVE, CARD_TRIAL_SECONDARY_LABEL } from '@/lib/checkoutPricing'
+import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/access' // KINEO-COPY-HONESTA-C-2026-09-27 — módulo puro (sem server-only/supabase); lib/ads/offer.ts fica pinado, só chega por ele
 import Studio50OfferBanner from '@/components/Studio50OfferBanner'
 
 // PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's
@@ -334,6 +335,10 @@ export default function PricingClient({ initialBilling = 'annual', characterLimi
     return style === 'mo' ? `✅ ${films}/mo` : `✅ ${films} ${films === 1 ? 'film' : 'films'}`
   }
   const charCell = (n: number | undefined): string => (typeof n === 'number' && n > 0 ? String(n) : '—')
+  // KINEO-COPY-HONESTA-C-2026-09-27 — linha "Studio Ads" da tabela: cada célula nasce de ADS_SUBSCRIBER_PLANS (lib/ads/access.ts,
+  // adsAccessReason devolve 'subscriber' para esses planos; lib/ads/serverAccess.ts adsGate → 'ok' com o passe ligado em
+  // lib/ads/offer.ts ADS_PASS_LIVE_IN_CODE). 'free' e o trial (*_trial) não estão no array → '—'. Nenhuma célula digitada por coluna.
+  const adsCell = (plan: string): string => (ADS_SUBSCRIBER_PLANS.includes(plan) ? '✅ included' : '—')
   const FAQS = buildFaqs(OFFER).filter((f) => PRICING_SHOW_AUTOPILOT || !/Autopilot/.test(f.q))
 
   // Push #099 — open FAQ index for the accordion (null = all collapsed). First
@@ -1965,6 +1970,14 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                     starter: charCell(characterLimits?.starter),
                     basic: charCell(characterLimits?.basic),
                     pro: charCell(characterLimits?.pro),
+                  },
+                  {
+                    // KINEO-COPY-HONESTA-C-2026-09-27 — Studio Ads entra na tabela; 'included' só onde lib/ads/access.ts abre a porta.
+                    label: 'Studio Ads (business video ads)',
+                    free: adsCell('free'),
+                    starter: adsCell('starter'),
+                    basic: adsCell('basic'),
+                    pro: adsCell('pro'),
                   },
                   {
                     label: 'Monthly credits',
