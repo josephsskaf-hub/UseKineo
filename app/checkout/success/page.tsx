@@ -54,6 +54,8 @@ import { KINEO1_35S_CREDITS, adsPassLive } from '@/lib/ads/offer'
 const CHECKOUT_SUCCESS_ADS_VERSION = 'checkout_success_studio_ads_v1'
 const CHECKOUT_SUCCESS_ADS_HREF = '/ads/new?utm_source=checkout_success&utm_medium=studio_ads&utm_campaign=sprint0927'
 const ADS_SHORTEST_SECONDS = Math.min(...ADS_MODELS.map((m) => m.seconds))
+// KINEO-SUCESSO-TEMPO-ADS-2026-09-27 — segundos que o relógio ganha, UMA vez, quando o bloco do Studio Ads aparece.
+const CHECKOUT_SUCCESS_ADS_EXTRA_SECONDS = 15
 
 export default function CheckoutSuccessPage() {
   const router = useRouter()
@@ -84,6 +86,8 @@ export default function CheckoutSuccessPage() {
   const resumeOfferedEventSent = useRef(false)
   // KINEO-SUCESSO-STUDIO-ADS-2026-09-27 — pack avulso (?pack=…, mode payment) nunca ganha o bloco do Studio Ads.
   const [packPurchase, setPackPurchase] = useState(false)
+  // KINEO-SUCESSO-TEMPO-ADS-2026-09-27 — guarda: a soma ao relógio acontece uma única vez por montagem.
+  const adsBlockTimeAdded = useRef(false)
 
   useEffect(() => {
     const resolved = readCheckoutSuccessFlow(new URLSearchParams(window.location.search))
@@ -285,6 +289,17 @@ export default function CheckoutSuccessPage() {
       ads_block: adsBlockShown,
     })
   }, [selfServeReady, adsBlockShown])
+
+  // KINEO-SUCESSO-TEMPO-ADS-2026-09-27 — o bloco do Studio Ads só aparece depois de /api/credits confirmar o plano, e
+  // 15 s eram pouco para ler e clicar. Quando adsBlockShown vira true pela primeira vez, o relógio ganha
+  // CHECKOUT_SUCCESS_ADS_EXTRA_SECONDS UMA vez (ref de guarda; nunca em loop). Relógio que já chegou a 0 não
+  // reinicia: o redirect ou o estado "delayed" já foi decidido. CTA principal, redirect e os ramos autopilot/pack
+  // ficam idênticos; a copy "Redirecting to the app in {countdown}…" segue lendo o mesmo estado.
+  useEffect(() => {
+    if (!adsBlockShown || adsBlockTimeAdded.current) return
+    adsBlockTimeAdded.current = true
+    setCountdown((c) => (c > 0 ? c + CHECKOUT_SUCCESS_ADS_EXTRA_SECONDS : c))
+  }, [adsBlockShown])
 
   // KINEO-PAREDE-V1-2026-09-23 — impressão da oferta "Back to your script",
   // uma vez, só quando o CTA foi de fato pintado (plano ativo + rascunho fresco).
