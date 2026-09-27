@@ -12,7 +12,8 @@
 //      studio_tile_ads_clicked {plan, has_access, href_kind}; o evento está em ADS_EVENTS e fora de ADS_SERVER_ONLY_EVENTS.
 //   E. O plano cru chega do /api/me/credits (select 'video_credits, plan' + `plan` no JSON) e StudioClient o lê (d?.plan).
 //   F. Mutantes em memória: (1) preço digitado no lugar da derivação → vermelho; (2) wizard para todo mundo (sem a condição
-//      de plano) → vermelho; (3) tile sem adsPassLive() → vermelho; (4) studio_tiles_shown sem ads_tile → vermelho.
+//      de plano) → vermelho; (3) tile sem adsPassLive() → vermelho; (4) studio_tiles_shown sem ads_tile → vermelho;
+//      (5) poster sem object-fit contain → vermelho (revisão 27/09: o cartão 1200×630 com o cover herdado virava "ces" no tile 9:16).
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -85,6 +86,9 @@ function verificar(src) {
   r.mesmaForma = /className="vtwatch"/.test(tileBloco) && /className="vt"/.test(tileBloco) && /className="vtnext"/.test(tileBloco) && /href=\{adsTileHref\}/.test(tileBloco)
   r.posterEstatico = src.includes("const ADS_TILE_POSTER = '/og/ads-for-local-services.png'") && /<img src=\{ADS_TILE_POSTER\} alt=""/.test(tileBloco) && !/<video/.test(tileBloco)
   r.tituloESubtitulo = /<UiLabel>Business ad<\/UiLabel>/.test(tileBloco) && /<UiLabel>Studio Ads<\/UiLabel>/.test(tileBloco)
+  // revisão 27/09 (render em Edge headless): o poster é um cartão 1200×630 e a regra .stu .vtile img é object-fit cover — num tile
+  // 9:16 sobrava só "ces" e "ENT RESULT". O contain inline mostra o cartão inteiro; o guardião trava a tag completa.
+  r.posterInteiro = tileBloco.includes("<img src={ADS_TILE_POSTER} alt=\"\" loading=\"lazy\" decoding=\"async\" style={{ objectFit: 'contain' }} />")
   // plano cru lido da mesma chamada
   r.lePlano = /typeof d\?\.plan === 'string'\) setPlan\(d\.plan\)/.test(src)
   return r
@@ -115,6 +119,8 @@ const m3 = STUDIO.split('{adsPassLive() && (\n').join('{(\n')
 check('mutante 3 (tile sem adsPassLive()) → vermelho', m3 !== STUDIO && !verificar(m3).tileSoComPasse)
 const m4 = STUDIO.replace(/\n\s+ads_tile: adsPassLive\(\),[^\n]*/, '')
 check('mutante 4 (studio_tiles_shown sem ads_tile) → vermelho', m4 !== STUDIO && !verificar(m4).adsTileNaImpressao)
+const m5 = STUDIO.split(" style={{ objectFit: 'contain' }} />").join(' />')
+check('mutante 5 (poster sem object-fit contain: o cartão 1200×630 vira "ces" no tile 9:16) → vermelho', m5 !== STUDIO && !verificar(m5).posterInteiro)
 
 console.log(`test-studio-tile-ads-2026-09-27: ${ok} ok · ${falhas.length} falhas`)
 if (falhas.length) console.log(falhas.map((f) => ` - ${f}`).join('\n'))

@@ -1145,7 +1145,8 @@ export default function StudioClient() {
                 {/* KINEO-STUDIO-TILE-ADS-2026-09-27 — tile "Business ad" ao fim da fileira, mesma forma dos irmãos
                     (.vtile/.vtwatch/.vt/.vtnext do studioKit; selo no canto como o "✨ HD"). Só com o passe ligado
                     (adsPassLive). Assinante → /ads/new; qualquer outro → porta /ads. Um link só: a barra de baixo não
-                    rouba o clique (pointer-events none), como o título. */}
+                    rouba o clique (pointer-events none), como o título. Poster = cartão 1200×630 de public/og num tile 9:16:
+                    object-fit contain inline (revisão 27/09: com o cover herdado de .stu .vtile img só aparecia "ces"). */}
                 {adsPassLive() && (
                   <div className="vtile" data-tile="ads">
                     <Link
@@ -1162,7 +1163,7 @@ export default function StudioClient() {
                       }}
                     >
                       <span style={{ position: 'absolute', top: 6, right: 6, zIndex: 2, fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 99, background: 'rgba(41,151,255,0.18)', border: '1px solid rgba(41,151,255,0.5)', color: '#bfe0ff' }}><UiLabel>Studio Ads</UiLabel></span>
-                      <img src={ADS_TILE_POSTER} alt="" loading="lazy" decoding="async" />
+                      <img src={ADS_TILE_POSTER} alt="" loading="lazy" decoding="async" style={{ objectFit: 'contain' }} />
                     </Link>
                     <span className="vt"><UiLabel>Business ad</UiLabel></span>
                     <span className="vtnext" style={{ pointerEvents: 'none' }}>
