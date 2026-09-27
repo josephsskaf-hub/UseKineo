@@ -9,6 +9,7 @@ export const ADS_EVENTS = [
   'ads_page_viewed',
   'ads_cta_clicked',
   'ads_door_plan_clicked', // KINEO-ADS-PORTA-PLANO-2026-09-27: clique na porta do plano Starter em /ads ({tier, from}); navegador, nunca só-servidor
+  'studio_tile_ads_clicked', // KINEO-STUDIO-TILE-ADS-2026-09-27: clique no tile "Business ad" do /studio ({plan, has_access, href_kind}); navegador. Único sem prefixo ads_: é evento da tela /studio (família studio_tile_*), registrado aqui para o funil de anúncios contar a porta
   'ads_checkout_started',
   'ads_access_granted',
   'ads_access_denied',

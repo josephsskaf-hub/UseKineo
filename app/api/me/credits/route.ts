@@ -30,8 +30,12 @@ export async function GET() {
   if (!user) return NextResponse.json({ credits: null }, { status: 401 })
   const { data } = await supabase
     .from('profiles')
-    .select('video_credits')
+    .select('video_credits, plan')
     .eq('id', user.id)
     .maybeSingle()
-  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, internal: s25Visible(user.email) })
+  // KINEO-STUDIO-TILE-ADS-2026-09-27 — `plan` cru (profiles.plan, minúsculo) para o tile "Business ad" do /studio decidir
+  // com o MESMO predicado do servidor (lib/ads/access.ts ADS_SUBSCRIBER_PLANS). O /api/me/plan não serve: ele achata
+  // starter_trial→basic e creator_trial→pro, e a porta do Studio Ads NÃO abre para trial. Leitura própria, só o dono.
+  const plan = typeof data?.plan === 'string' ? data.plan.trim().toLowerCase() : null
+  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, internal: s25Visible(user.email), plan })
 }

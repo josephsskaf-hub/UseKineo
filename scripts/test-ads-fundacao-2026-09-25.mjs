@@ -70,7 +70,11 @@ const ev = roda(eventsSrc)
 // 26/09: +3 do modo "a IA faz o anúncio" (ads_auto_started, ads_auto_brief_served, ads_auto_confirmed).
 // 26/09: +1 do link → anúncio (ads_link_read).
 // 27/09: +1 da porta do plano em /ads (ads_door_plan_clicked — KINEO-ADS-PORTA-PLANO-2026-09-27).
-check('31 eventos, únicos, todos com prefixo ads_', ev.ADS_EVENTS.length === 31 && new Set(ev.ADS_EVENTS).size === 31 && ev.ADS_EVENTS.every((n) => n.startsWith('ads_')))
+// 27/09: +1 do tile "Business ad" no /studio (studio_tile_ads_clicked — KINEO-STUDIO-TILE-ADS-2026-09-27). É o ÚNICO sem
+//        prefixo ads_: nasce na família studio_tile_* da tela /studio (irmão de studio_tile_watch_clicked) e entra na lista
+//        fechada para o funil de anúncios contar a porta. A exceção é nominal — um segundo nome fora do prefixo fica vermelho.
+const ADS_EVENTS_FORA_DO_PREFIXO = ['studio_tile_ads_clicked']
+check('32 eventos, únicos, todos com prefixo ads_ (salvo o tile do /studio, nominal)', ev.ADS_EVENTS.length === 32 && new Set(ev.ADS_EVENTS).size === 32 && ev.ADS_EVENTS.every((n) => n.startsWith('ads_') || ADS_EVENTS_FORA_DO_PREFIXO.includes(n)) && ADS_EVENTS_FORA_DO_PREFIXO.every((n) => ev.isAdsEvent(n) && !ev.ADS_SERVER_ONLY_EVENTS.includes(n)))
 check('os eventos do funil existem: viewed → cta → checkout → access_granted → brief → media → template → script → preview → render_requested → render_served → delivered → download', ['ads_page_viewed', 'ads_cta_clicked', 'ads_checkout_started', 'ads_access_granted', 'ads_brief_saved', 'ads_media_uploaded', 'ads_template_selected', 'ads_script_served', 'ads_preview_confirmed', 'ads_render_requested', 'ads_render_served', 'ads_delivered', 'ads_download_clicked', 'ads_qa_decided', 'ads_open_orders_capped'].every((n) => ev.isAdsEvent(n)))
 check('eventos só de servidor incluem grant/deny/render_served/delivered/qa', ['ads_access_granted', 'ads_access_denied', 'ads_render_served', 'ads_delivered', 'ads_qa_decided'].every((n) => ev.ADS_SERVER_ONLY_EVENTS.includes(n)) && ev.ADS_SERVER_ONLY_EVENTS.every((n) => ev.isAdsEvent(n)))
 check('teto de 5 revisões abertas (decisão 5)', ev.ADS_MAX_OPEN_REVIEWS === 5)

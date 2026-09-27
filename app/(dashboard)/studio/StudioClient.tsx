@@ -51,6 +51,14 @@ import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 import { STUDIO_ONLY_ENGINE_KEYS } from '@/lib/enginePlanGate'
 import DiretorKineo from '@/components/DiretorKineo' // DIRETOR-KINEO-20260923
 import DfyOfferCard from '@/components/DfyOfferCard' // KINEO-EMPRESAS-COCKPIT-2026-09-24
+// KINEO-STUDIO-TILE-ADS-2026-09-27 — tile "Business ad" na fileira de miniaturas. Fato: 0 dos 10 assinantes tocaram /ads em
+// 30 d; o /studio é a tela que todo mundo abre (studio_tiles_shown). Nenhum número digitado: acesso por plano (lib/ads/
+// access.ts, o mesmo predicado do servidor), custo por anúncio e interruptor (lib/ads/offer.ts, pinado — só import), duração
+// mínima (lib/ads/models.ts), preço do Starter (lib/checkoutPricing.ts). Módulos puros: já entram em PricingClient/AdsWizardClient.
+import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/access'
+import { KINEO1_35S_CREDITS, adsPassLive } from '@/lib/ads/offer'
+import { ADS_MODELS } from '@/lib/ads/models'
+import { formatCheckoutMoney, getTierPrice } from '@/lib/checkoutPricing'
 
 // A chave do card → a Quality que o biller entende. Uma fonte só para os dois
 // (tela e cobrança) evita a classe de bug que este arquivo já teve: custo em
@@ -134,6 +142,15 @@ const ENGINES: { paused?: boolean; /* KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 */
 // os formatos que abrem público novo (YouTube longo, feed, anúncio).
 const ASPECT_PILLS = allAspectSpecs().map((s) => ({ value: s.aspect, label: s.label, where: s.where }))
 
+// KINEO-STUDIO-TILE-ADS-2026-09-27 — o tile deriva tudo da fonte: o anúncio mais curto do catálogo (35 s hoje) custa
+// KINEO1_35S_CREDITS; a porta para quem não tem plano cita o Starter por getTierPrice + formatCheckoutMoney. Poster = cartão
+// estático de public/og (placeholder da casa, nunca vídeo de cliente). utm_campaign=sprint0927 separa esta porta das outras.
+const ADS_TILE_MIN_SECONDS = Math.min(...ADS_MODELS.map((m) => m.seconds))
+const ADS_TILE_STARTER_PRICE = formatCheckoutMoney('usd', getTierPrice('starter', 'usd', 'standard'))
+const ADS_TILE_WIZARD_HREF = '/ads/new?utm_source=studio&utm_medium=tile&utm_campaign=sprint0927'
+const ADS_TILE_DOOR_HREF = '/ads?from=studio&utm_source=studio&utm_medium=tile&utm_campaign=sprint0927'
+const ADS_TILE_POSTER = '/og/ads-for-local-services.png'
+
 
 const CAMERA_PRESETS: { key: string; label: string; emoji: string; prompt: string }[] = [
   { key: 'dolly', label: 'Slow Dolly-In', emoji: '🎥', prompt: 'slow cinematic dolly-in toward the subject' },
@@ -196,14 +213,20 @@ export default function StudioClient() {
   const [balance, setBalance] = useState<number | null>(null)
   // KINEO-S25-CARD-2026-09-01 — so a casa ve o card do 2.5 durante o canario.
   const [internal, setInternal] = useState(false)
+  // KINEO-STUDIO-TILE-ADS-2026-09-27 — plano cru (profiles.plan) da mesma leitura; null até chegar = porta (falha fechada).
+  const [plan, setPlan] = useState<string | null>(null)
   useEffect(() => {
     let alive = true
     fetch('/api/me/credits', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true) })
+      .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true); if (alive && typeof d?.plan === 'string') setPlan(d.plan) })
       .catch(() => {}) // saldo é enfeite: falhou, a tela segue como antes
     return () => { alive = false }
   }, [])
+  // KINEO-STUDIO-TILE-ADS-2026-09-27 — o MESMO predicado que abre a porta no servidor (lib/ads/access.ts adsAccessReason →
+  // 'subscriber'): plano de assinatura paga entra direto no /ads/new; free, trial e sem plano vão à porta /ads.
+  const adsTileAccess = plan !== null && ADS_SUBSCRIBER_PLANS.includes(plan)
+  const adsTileHref = adsTileAccess ? ADS_TILE_WIZARD_HREF : ADS_TILE_DOOR_HREF
   const [preset, setPreset] = useState<string | null>(null)
   const [prompt, setPrompt] = useState('')
   // KINEO-STUDIO-SCRIPTMODE-2026-08-17 (fundador: 'faltou usar a script do
@@ -257,6 +280,7 @@ export default function StudioClient() {
       videos: myVids.length,
       is_touch: coarse,
       viewport_w: typeof window !== 'undefined' ? window.innerWidth : null,
+      ads_tile: adsPassLive(), // KINEO-STUDIO-TILE-ADS-2026-09-27: o tile "Business ad" estava na fileira?
     })
   }, [myVids.length])
 
@@ -1118,6 +1142,36 @@ export default function StudioClient() {
                     </UiLabel></Link>
                   </div>
                 ))}
+                {/* KINEO-STUDIO-TILE-ADS-2026-09-27 — tile "Business ad" ao fim da fileira, mesma forma dos irmãos
+                    (.vtile/.vtwatch/.vt/.vtnext do studioKit; selo no canto como o "✨ HD"). Só com o passe ligado
+                    (adsPassLive). Assinante → /ads/new; qualquer outro → porta /ads. Um link só: a barra de baixo não
+                    rouba o clique (pointer-events none), como o título. */}
+                {adsPassLive() && (
+                  <div className="vtile" data-tile="ads">
+                    <Link
+                      className="vtwatch"
+                      href={adsTileHref}
+                      prefetch={false}
+                      aria-label={adsTileAccess ? 'Business ad — Studio Ads, included in your plan' : 'Business ad — Studio Ads, included in any paid plan'}
+                      onClick={() => {
+                        void trackEvent('studio_tile_ads_clicked', {
+                          plan,
+                          has_access: adsTileAccess,
+                          href_kind: adsTileAccess ? 'wizard' : 'door',
+                        })
+                      }}
+                    >
+                      <span style={{ position: 'absolute', top: 6, right: 6, zIndex: 2, fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 99, background: 'rgba(41,151,255,0.18)', border: '1px solid rgba(41,151,255,0.5)', color: '#bfe0ff' }}><UiLabel>Studio Ads</UiLabel></span>
+                      <img src={ADS_TILE_POSTER} alt="" loading="lazy" decoding="async" />
+                    </Link>
+                    <span className="vt"><UiLabel>Business ad</UiLabel></span>
+                    <span className="vtnext" style={{ pointerEvents: 'none' }}>
+                      <UiLabel>{adsTileAccess
+                        ? `Included in your plan · ${KINEO1_35S_CREDITS} credits per ${ADS_TILE_MIN_SECONDS}-second ad`
+                        : `Included in any paid plan · from ${ADS_TILE_STARTER_PRICE}/month`}</UiLabel>
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           )}

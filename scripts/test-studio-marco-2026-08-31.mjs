@@ -66,7 +66,17 @@ check('nada de preco/plano/checkout no bloco novo', (() => {
   const bloco = studio.slice(studio.indexOf('SPRINT-V1V4-2026-08-31 (#2)'), studio.indexOf('Your latest videos'))
   return !/(checkout|stripe|upgrade|plan|price|\bcr\b)/i.test(bloco)
 })())
-check('StudioClient nao importa nada de growth/checkout novo', !/from '@\/lib\/checkoutPricing'/.test(studio))
+// KINEO-STUDIO-TILE-ADS-2026-09-27 — reancorado: o item U (sprint 16 h, ciclo D) pôs o tile "Business ad" no fim da fileira de
+// miniaturas, e o preço do Starter na porta para quem não tem plano NASCE de lib/checkoutPricing (regra da casa: nenhum preço
+// digitado). A intenção de 31/08 continua de pé: o BLOCO DO MARCO não fala de preço (check acima) e o único import de checkout
+// é o do tile, com exatamente esses dois símbolos, usados UMA vez cada (na constante ADS_TILE_STARTER_PRICE) — nada de upsell no marco.
+check('StudioClient nao importa nada de growth/checkout novo (salvo o par do tile Business ad, usado so na constante do tile)', (() => {
+  const imports = studio.match(/from '@\/lib\/checkoutPricing'/g) ?? []
+  const soOTile = imports.length === 1 && /import \{ formatCheckoutMoney, getTierPrice \} from '@\/lib\/checkoutPricing'/.test(studio)
+  const usoUnico = (studio.match(/getTierPrice\(/g) ?? []).length === 1 && (studio.match(/formatCheckoutMoney\(/g) ?? []).length === 1
+    && /const ADS_TILE_STARTER_PRICE = formatCheckoutMoney\('usd', getTierPrice\('starter', 'usd', 'standard'\)\)/.test(studio)
+  return soOTile && usoUnico
+})())
 
 console.log(`\n${ok} ok · ${bad} falhas`)
 process.exit(bad === 0 ? 0 : 1)
