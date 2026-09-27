@@ -3,6 +3,8 @@ import KineoBolt from '@/components/KineoBolt'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import ExamplesGallery from './ExamplesGallery'
+import BusinessAdExamples from './BusinessAdExamples'
+import { examplesSprintVideo } from '@/lib/growth/examplesSprintIntent'
 import styles from './ExamplesGallery.module.css'
 import { EXAMPLES_SELECTION_SEP24 } from '@/lib/ui/examplesSelectionSep24'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
@@ -86,7 +88,8 @@ export default async function ExamplesPage() {
           </div>
         </div>
         {/* Only explicitly approved, founder-owned public assets enter this collection. */}
-        <ExamplesGallery videos={[...EXAMPLES_SELECTION_SEP24]} separateFeatured />
+        <ExamplesGallery videos={EXAMPLES_SELECTION_SEP24.map(examplesSprintVideo)} separateFeatured previewActionLabel="Make one like this" />
+        <BusinessAdExamples />
 
         {/* KINEO-EXAMPLES-REVIEWS-2026-08-24 — pedido do fundador: "coloca
             todos os reviews que temos". Todos = UM (Rick, autorização escrita

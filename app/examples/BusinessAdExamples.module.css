@@ -1,0 +1,7 @@
+.section{margin:40px 0;padding-block:28px;border-block:1px solid var(--border);color:var(--text)}
+.section h2{font-size:clamp(26px,3vw,38px);margin:0 0 24px;letter-spacing:-1px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:20px}
+.card{border:1px solid var(--border);border-radius:16px;padding:18px;background:var(--card);min-width:0}
+.card img{width:100%;height:auto;border-radius:10px}.card p{font-size:13px;color:var(--muted)}
+.card h3{font-size:20px}.section a{color:var(--accent);font-weight:700}.action{display:inline-block;margin-top:24px;padding-block:12px}
+.section a:focus-visible{outline:3px solid var(--accent);outline-offset:5px}

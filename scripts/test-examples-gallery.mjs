@@ -24,6 +24,8 @@ function loader(overrides = {}) {
       if (id === '@/components/InterfaceLanguage') return { UiLabel: ({children}) => children, useUiCopy: () => value => value, InterfaceLanguageSelect: () => React.createElement('select', {'aria-label':'Interface language'}, React.createElement('option', {}, 'English')) }
       if (id === '@/components/AppearanceSettings') return { AppearanceSettingsButton: () => React.createElement('button', {type:'button','aria-label':'Settings'}, '⚙') }
       if (id === 'next/navigation') return { notFound: () => { throw Error('NOT_FOUND') } }
+      // G4: support the new conditional proof section without relaxing gallery checks.
+      if (id === 'next/image') return { __esModule: true, default: ({priority, ...props}) => React.createElement('img', props) }
       if (id === 'next/link' || id === '@/components/OrganicCtaLink') return { __esModule: true, default: ({children, source, placement, ...props}) => React.createElement('a', props, children) }
       if (id === '@/lib/supabase/server') return { createClient: () => ({ auth: { getUser: async () => ({ data: { user: loggedIn ? {id:'offline-user'} : null } }) } }) }
       if (id === '@supabase/supabase-js') return { createClient: () => { throw Error('Database forbidden') } }
