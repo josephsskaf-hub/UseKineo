@@ -31,8 +31,12 @@ import {
   CHECKOUT_CURRENCY_DISCLOSURE,
   filmsAndScenes,
   formatResultCount,
+  MARKETING_REFERENCE_SECONDS,
   videosPerMonth,
 } from '@/lib/marketingPrice'
+// KINEO-PRICING-VERDADE-2026-09-27 — a tabela "Compare plans" passa a contar filmes com a MESMA função que o caixa
+// cobra (creditCostForDuration a 60 s); nenhum "1/mo" digitado à mão sobrevive a uma mudança de grant.
+import { creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
 import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 import PricingBusinessPathTelemetry from '@/components/PricingBusinessPathTelemetry'
@@ -127,6 +131,11 @@ const PAYPAL_ENABLED = false
 const CARD_TRIAL_LINK_ENABLED = CARD_TRIAL_LIVE // KINEO-RESTAURACAO-2026-09-09
 const CARD_TRIAL_CHECKOUT_URL = '/api/stripe/checkout?tier=basic&billing=monthly&trial=1&intent_campaign=trial_1usd'
 
+// KINEO-PRICING-VERDADE-2026-09-27 — UM só texto de tempo de render para a FAQ e a tabela. "3–5 min" era o número
+// do Kineo 1 (stock + TTS); os motores de IA (Seedance, Kling, Veo, H3) levam 8–20 min e a página prometia menos
+// do que entrega. Mudou aqui, mudou nos dois lugares.
+const RENDER_TIME_COPY = 'Kineo 1 ~3–7 min · AI engines 8–20 min'
+
 // Push #099 — FAQ entries shown below the pricing comparison table. Pure
 // content array so the accordion renders from one source of truth.
 // [KINEO-TRIAL-SWAP-2026-08-07] — virou função da oferta: a resposta sobre o
@@ -160,7 +169,8 @@ const buildFaqs = (OFFER: FreeTierOffer): { q: string; a: string }[] => [
   },
   {
     q: 'How fast are videos generated?',
-    a: 'Each AI video renders in about 3–5 minutes. We use AI to write, voice, and edit everything automatically.',
+    // KINEO-PRICING-VERDADE-2026-09-27 — mesma régua da tabela (RENDER_TIME_COPY).
+    a: `${RENDER_TIME_COPY}. We use AI to write, voice, and edit everything automatically.`,
   },
   {
     q: 'Can I cancel anytime?',
@@ -298,11 +308,32 @@ function trackPricingEvent(name: string, metadata?: Record<string, unknown>): vo
   void trackEvent(name, metadata)
 }
 
-export default function PricingClient({ initialBilling = 'annual' }: {
+/**
+ * KINEO-PRICING-VERDADE-2026-09-27 — cota de personagens salvos por plano, calculada NO SERVIDOR por
+ * characterLimitFor (lib/characters.ts) em app/pricing/page.tsx e entregue por prop: lib/characters.ts importa
+ * node:crypto (via lib/avatar/storage) e este arquivo é 'use client', então não pode importá-lo. `trial` é a cota
+ * que o trial recebe (app/api/characters/route.ts aplica Math.max(plano, cota de Creator)).
+ */
+export type PricingCharacterLimits = { free: number; trial: number; starter: number; basic: number; pro: number }
+
+export default function PricingClient({ initialBilling = 'annual', characterLimits }: {
   initialBilling?: PricingPlanChoiceBilling
+  characterLimits?: PricingCharacterLimits
 } = {}) {
   // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
   const OFFER = useFreeTierOffer()
+
+  // KINEO-PRICING-VERDADE-2026-09-27 — a tabela "Compare plans" dizia "—" para H3 e Kling 2.5 no Starter (60 cr
+  // compram um filme de 45/50), "1/mo" de Kling 3 no Studio (300 cr compram 2) e "—" no Creator (150 cr compram 1).
+  // Nada digitado: custo do filme de 60 s = creditCostForDuration (a régua do caixa), grant = TIER_CREDITS.
+  const filmCreditsAt60s = (quality: Quality): number => creditCostForDuration(quality, true, MARKETING_REFERENCE_SECONDS)
+  const filmsPerMonthFor = (tier: PaidTier, quality: Quality): number => Math.floor(TIER_CREDITS[tier] / filmCreditsAt60s(quality))
+  const filmsCell = (tier: PaidTier, quality: Quality, style: 'film' | 'mo'): string => {
+    const films = filmsPerMonthFor(tier, quality)
+    if (films < 1) return '—'
+    return style === 'mo' ? `✅ ${films}/mo` : `✅ ${films} ${films === 1 ? 'film' : 'films'}`
+  }
+  const charCell = (n: number | undefined): string => (typeof n === 'number' && n > 0 ? String(n) : '—')
   const FAQS = buildFaqs(OFFER).filter((f) => PRICING_SHOW_AUTOPILOT || !/Autopilot/.test(f.q))
 
   // Push #099 — open FAQ index for the accordion (null = all collapsed). First
@@ -933,9 +964,10 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
               filtro de contas internas (04/08 14:50Z: 915 perfis ext, 456 vídeos
               completed ext — era 896/432 em 03/08). Piso hardcoded ("+") —
               atualizar semanalmente com o placar, nunca inflar. TAAFT entra como
-              "featured" (fato), não como nota. Métrica: pricing_view → checkout_started. */}
+              "featured" (fato), não como nota. Métrica: pricing_view → checkout_started.
+              // banco 2026-09-27: 2.156 perfis externos, 1.563 vídeos completed externos */}
           <p className="mt-3 text-center text-[12px] font-semibold text-[var(--muted2)]">
-            900+ creators · 450+ Shorts rendered · featured on There&apos;s An AI For That
+            2,100+ creators · 1,500+ films · featured on There&apos;s An AI For That
           </p>
         </div>
 
@@ -1896,16 +1928,18 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                   {
                     label: `MiniMax H3 — cinematic (${creditsPerReferenceVideo('cinematic_h3')} cr)`,
                     free: ft(OFFER, '—', '✅ watermark'),
-                    starter: '—',
+                    starter: filmsCell('starter', 'cinematic_h3', 'film'), // KINEO-PRICING-VERDADE-2026-09-27: 60 cr ≥ 45
                     basic: '✅',
                     pro: '✅',
                   },
                   {
                     label: `Cinematic AI videos (Kling, ${creditsPerReferenceVideo('cinematic_kling')} cr)`,
                     free: ft(OFFER, '—', '✅ watermark'),
-                    starter: '—',
+                    starter: filmsCell('starter', 'cinematic_kling', 'film'), // KINEO-PRICING-VERDADE-2026-09-27: 60 cr ≥ 50
                     basic: '✅',
-                    pro: '✅ 1080p',
+                    // KINEO-PRICING-VERDADE-2026-09-27 — "1080p" saiu: o motor roda em 720p nativo em TODO plano e o
+                    // master 1080×1920 é de todo mundo; o Studio não compra resolução, compra créditos.
+                    pro: '✅',
                   },
                   {
                     label: `🎬 AI Presenter — talking avatar (${creditsPerReferenceVideo('presenter')} cr)`,
@@ -1917,16 +1951,20 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                   {
                     label: `🎥 Kling 3 — top cinematic (${creditsPerReferenceVideo('cinematic_hollywood')} cr)`,
                     free: ft(OFFER, '—', 'Unlocked · needs credits'),
-                    starter: '—',
-                    basic: '—',
-                    pro: '✅ 1/mo',
+                    starter: filmsCell('starter', 'cinematic_hollywood', 'mo'),
+                    // KINEO-PRICING-VERDADE-2026-09-27 — Math.floor(TIER_CREDITS ÷ custo a 60 s): Creator 1, Studio 2.
+                    // O "1/mo" antigo era da V6 (Studio 180 cr) e ficou para trás quando a V7 subiu o Studio para 300.
+                    basic: filmsCell('basic', 'cinematic_hollywood', 'mo'),
+                    pro: filmsCell('pro', 'cinematic_hollywood', 'mo'),
                   },
                   {
                     label: '🎭 Saved characters (same face every video)',
-                    free: '1',
-                    starter: '12',
-                    basic: '12',
-                    pro: '12',
+                    // KINEO-PRICING-VERDADE-2026-09-27 — dizia 1/12/12/12; o servidor (characterLimitFor) dá 0/3/3/10
+                    // e o trial recebe a cota de Creator. Valores chegam por prop de app/pricing/page.tsx.
+                    free: ft(OFFER, charCell(characterLimits?.free), characterLimits ? `${characterLimits.trial} during trial` : '—'),
+                    starter: charCell(characterLimits?.starter),
+                    basic: charCell(characterLimits?.basic),
+                    pro: charCell(characterLimits?.pro),
                   },
                   {
                     label: 'Monthly credits',
@@ -1937,10 +1975,11 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                   },
                   {
                     label: 'Render time',
-                    free: 'Usually 3–7 min (Fast)',
-                    starter: 'Usually 3–7 min',
-                    basic: '~3-5 min',
-                    pro: '~3-5 min',
+                    // KINEO-PRICING-VERDADE-2026-09-27 — "~3-5 min" era só o Kineo 1; os motores de IA levam 8–20 min.
+                    free: RENDER_TIME_COPY,
+                    starter: RENDER_TIME_COPY,
+                    basic: RENDER_TIME_COPY,
+                    pro: RENDER_TIME_COPY,
                   },
                   {
                     label: 'Watermark-free MP4',
@@ -1950,11 +1989,13 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                     pro: '✅',
                   },
                   {
-                    label: 'Priority support',
-                    free: '—',
-                    starter: 'Email',
-                    basic: 'Email',
-                    pro: 'Priority',
+                    // KINEO-PRICING-VERDADE-2026-09-27 — "Priority" não existe em lugar nenhum do código (nem fila, nem
+                    // SLA); o que existe é support@usekineo.com para qualquer conta. Copy só com fato que o código cumpre.
+                    label: 'Support',
+                    free: 'Email support',
+                    starter: 'Email support',
+                    basic: 'Email support',
+                    pro: 'Email support',
                   },
                 ].map((row) => (
                   <tr key={row.label} className="border-b border-[var(--border)] last:border-0">

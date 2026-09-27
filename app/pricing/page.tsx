@@ -6,6 +6,11 @@ import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
 // de tabela publicando um valor que o checkout não cobrava mais.
 import { STARTER_MONTH } from '@/lib/marketingPrice'
+// KINEO-PRICING-VERDADE-2026-09-27 — cota de personagens salvos da tabela "Compare plans" vem da MESMA função que a
+// rota /api/characters aplica (characterLimitFor). Calculada aqui (servidor) porque lib/characters.ts puxa node:crypto
+// e o PricingClient é 'use client'.
+import { characterLimitFor } from '@/lib/characters'
+import type { PricingCharacterLimits } from './PricingClient'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -50,5 +55,14 @@ export default function PricingPage({ searchParams = {} }: {
   searchParams?: Record<string, string | string[] | undefined>
 } = {}) {
   const handoff = pricingBillingHandoff(searchParams)
-  return <PricingClient key={handoff.key} initialBilling={handoff.initialBilling} />
+  // KINEO-PRICING-VERDADE-2026-09-27 — 0/3/3/10 saem de characterLimitFor; `trial` é a cota de Creator que
+  // app/api/characters/route.ts garante ao trial (Math.max(plano, TRIAL_CHARACTER_LIMIT) — o mesmo 3 de 'basic_trial').
+  const characterLimits: PricingCharacterLimits = {
+    free: characterLimitFor('free', false),
+    trial: characterLimitFor('basic_trial', false),
+    starter: characterLimitFor('starter', true),
+    basic: characterLimitFor('basic', true),
+    pro: characterLimitFor('pro', true),
+  }
+  return <PricingClient key={handoff.key} initialBilling={handoff.initialBilling} characterLimits={characterLimits} />
 }

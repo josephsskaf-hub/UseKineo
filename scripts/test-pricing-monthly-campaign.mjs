@@ -61,7 +61,10 @@ export function fixture(before = false) {
         if (!target) throw new Error(`Missing module ${name}`)
         return load(target)
       }
-      if (!['react/jsx-runtime', 'node:crypto', 'crypto'].includes(name)) throw new Error(`Unexpected dependency ${name}`)
+      // KINEO-PRICING-VERDADE-2026-09-27 — app/pricing/page.tsx passou a importar lib/characters.ts (characterLimitFor,
+      // a cota de personagens da tabela), que importa @supabase/supabase-js só para criar o cliente admin SOB DEMANDA
+      // (nada roda no import). A lista continua fechada: qualquer outra dependência nova segue estourando aqui.
+      if (!['react/jsx-runtime', 'node:crypto', 'crypto', '@supabase/supabase-js'].includes(name)) throw new Error(`Unexpected dependency ${name}`)
       return require(name)
     }
     new Function('require', 'module', 'exports', 'fetch', output)(resolve, module, module.exports, forbidden)

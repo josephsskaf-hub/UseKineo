@@ -81,12 +81,15 @@ export default function TermsPage() {
             to deliver the Service.
           </Section>
 
-          <Section title="4. Payments, introductory prices and refunds">
+          {/* KINEO-PRICING-VERDADE-2026-09-27 — não existe mês introdutório (INTRO_PRICES = preço cheio,
+              hasIntroOffer() false desde KINEO-NO-INTRO-2026-08-17); os termos prometiam um desconto que o
+              checkout não cobra. */}
+          <Section title="4. Payments and refunds">
             Unless checkout explicitly states otherwise, a paid subscription
-            is charged immediately at the introductory first-month price shown
-            in checkout. The regular monthly price and the exact first renewal
-            date are shown before payment. The subscription then renews at that
-            price each month until you cancel. You can
+            is charged immediately at the price shown in checkout. The monthly
+            price and the exact first renewal date are shown before payment.
+            The subscription then renews at that price each month until you
+            cancel. You can
             cancel anytime from your account settings. We honor a 7-day
             money-back guarantee on the first paid month — email{' '}
             <a
