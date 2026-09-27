@@ -29,9 +29,17 @@ const series = loadTs('lib/seriesContinuation.ts')
 const marketing = loadTs('lib/marketingPrice.ts', { '@/lib/checkoutPricing': checkout, '@/lib/credits/engineCost': engine })
 // va-r5 — o rodape passou a importar o preco da porta de $1 (trialEntryFee).
 const trialFee = loadTs('lib/lifecycle/trialEntryFee.ts', { '@/lib/checkoutPricing': checkout })
+// sprint16h-e W (27/09) — o rodape passou a importar o Studio Ads (plano em
+// ADS_SUBSCRIBER_PLANS, interruptor adsPassLive, custo KINEO1_35S_CREDITS e o
+// menor modelo de ADS_MODELS). Carregados REAIS, nao mockados.
+const adsOffer = loadTs('lib/ads/offer.ts')
+const adsModels = loadTs('lib/ads/models.ts')
+const internalAccounts = loadTs('lib/internalAccounts.ts')
+const adsAccess = loadTs('lib/ads/access.ts', { '@/lib/internalAccounts': internalAccounts, '@/lib/ads/offer': adsOffer })
 const footerMod = loadTs('lib/lifecycle/videoReadyFooter.ts', {
   '@/lib/checkoutPricing': checkout, '@/lib/lifecycle/trialFilmPlans': filmPlans, '@/lib/seriesContinuation': series, '@/lib/marketingPrice': marketing,
   '@/lib/lifecycle/trialEntryFee': trialFee,
+  '@/lib/ads/access': adsAccess, '@/lib/ads/models': adsModels, '@/lib/ads/offer': adsOffer,
 })
 
 const ROUTE = 'app/api/cron/finish-stranded-renders/route.ts'

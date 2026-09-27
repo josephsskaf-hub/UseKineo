@@ -31,9 +31,17 @@ const marketing = loadTs('lib/marketingPrice.ts', { '@/lib/checkoutPricing': che
 // va-r5 — o rodape passou a importar o preco da porta de $1. Carregado REAL
 // (nao mockado) de proposito: o ponto do modulo e que nenhum numero e digitado.
 const trialFee = loadTs('lib/lifecycle/trialEntryFee.ts', { '@/lib/checkoutPricing': checkout })
+// sprint16h-e W (27/09) — o rodape passou a importar o Studio Ads (plano em
+// ADS_SUBSCRIBER_PLANS, interruptor adsPassLive, custo KINEO1_35S_CREDITS e o
+// menor modelo de ADS_MODELS). Carregados REAIS, nao mockados.
+const adsOffer = loadTs('lib/ads/offer.ts')
+const adsModels = loadTs('lib/ads/models.ts')
+const internalAccounts = loadTs('lib/internalAccounts.ts')
+const adsAccess = loadTs('lib/ads/access.ts', { '@/lib/internalAccounts': internalAccounts, '@/lib/ads/offer': adsOffer })
 const { videoReadyFooter, NEXT_VIDEO_MIN_CREDITS } = loadTs('lib/lifecycle/videoReadyFooter.ts', {
   '@/lib/checkoutPricing': checkout, '@/lib/lifecycle/trialFilmPlans': filmPlans, '@/lib/seriesContinuation': series, '@/lib/marketingPrice': marketing,
   '@/lib/lifecycle/trialEntryFee': trialFee,
+  '@/lib/ads/access': adsAccess, '@/lib/ads/models': adsModels, '@/lib/ads/offer': adsOffer,
 })
 const APP = 'https://www.usekineo.com'
 const starter = checkout.formatCheckoutMoney('usd', checkout.TIER_PRICES.starter.usd)

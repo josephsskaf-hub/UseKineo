@@ -73,12 +73,20 @@ const filmPlans = loadTs('lib/lifecycle/trialFilmPlans.ts', { '@/lib/checkoutPri
 const series = loadTs('lib/seriesContinuation.ts')
 const marketing = loadTs('lib/marketingPrice.ts', { '@/lib/checkoutPricing': pricing, '@/lib/credits/engineCost': engine })
 const trialFee = loadTs('lib/lifecycle/trialEntryFee.ts', { '@/lib/checkoutPricing': pricing })
+// sprint16h-e W (27/09) — o rodape passou a importar o Studio Ads (plano em
+// ADS_SUBSCRIBER_PLANS, interruptor adsPassLive, custo KINEO1_35S_CREDITS e o
+// menor modelo de ADS_MODELS). Carregados REAIS, nao mockados.
+const adsOffer = loadTs('lib/ads/offer.ts')
+const adsModels = loadTs('lib/ads/models.ts')
+const internalAccounts = loadTs('lib/internalAccounts.ts')
+const adsAccess = loadTs('lib/ads/access.ts', { '@/lib/internalAccounts': internalAccounts, '@/lib/ads/offer': adsOffer })
 const FOOTER_MOCKS = {
   '@/lib/checkoutPricing': pricing,
   '@/lib/lifecycle/trialFilmPlans': filmPlans,
   '@/lib/seriesContinuation': series,
   '@/lib/marketingPrice': marketing,
   '@/lib/lifecycle/trialEntryFee': trialFee,
+  '@/lib/ads/access': adsAccess, '@/lib/ads/models': adsModels, '@/lib/ads/offer': adsOffer,
 }
 const { videoReadyFooter } = loadTs('lib/lifecycle/videoReadyFooter.ts', FOOTER_MOCKS)
 
@@ -253,8 +261,8 @@ const mutantes = [
   },
   {
     nome: 'apagar o plano do ramo sem saldo (esconder o plano)',
-    de: "  if (films) return { kind: 'plan_films', html: `${door ?? ''}${films}`, trialDoor: door !== null }",
-    para: "  if (films) return { kind: 'plan_films', html: `${door ?? ''}`, trialDoor: door !== null }",
+    de: "  if (films) return { kind: 'plan_films', html: `${door ?? ''}${films}`, trialDoor: door !== null, adsLine: false }",
+    para: "  if (films) return { kind: 'plan_films', html: `${door ?? ''}`, trialDoor: door !== null, adsLine: false }",
     prova: (f) => f({ ...semSaldo, hasPaid: false }).html.includes('/pricing?'),
   },
   {

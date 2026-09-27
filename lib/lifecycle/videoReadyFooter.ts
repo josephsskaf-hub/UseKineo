@@ -32,6 +32,12 @@ import { trialEntryFeeLabel, trialMonthlyAfterLabel } from '@/lib/lifecycle/tria
 import { filmsPerPlan, filmNoun, sanitizeFilmCost } from '@/lib/lifecycle/trialFilmPlans'
 import { buildSeriesContinuationEmailUrl, normalizeSeriesSeed, type SeriesContinuationSource } from '@/lib/seriesContinuation'
 import { videosForCredits } from '@/lib/marketingPrice'
+// sprint16h-e W (27/09/2026) — Studio Ads no rodape do assinante: a lista de
+// planos e a MESMA do portao (lib/ads/access.ts), o interruptor e o custo vem
+// de lib/ads/offer.ts e os segundos do menor modelo de lib/ads/models.ts.
+import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/access'
+import { ADS_MODELS } from '@/lib/ads/models'
+import { KINEO1_35S_CREDITS, adsPassLive } from '@/lib/ads/offer'
 
 export type VideoReadyFooterKind =
   | 'subscriber_next' // ja paga: episodio 2 + saldo, sem preco
@@ -63,6 +69,14 @@ export interface VideoReadyFooterInput {
    * (has_paid OU plano pago) — a porta precisa do predicado ESTREITO.
    */
   hasPaid?: boolean | null
+  /**
+   * sprint16h-e W (27/09) — `profiles.plan` CRU (minusculo), so para a linha do
+   * Studio Ads do rodape do assinante. A condicao e o PLANO estar em
+   * ADS_SUBSCRIBER_PLANS (lib/ads/access.ts), a mesma lista que abre o /ads —
+   * nunca `has_paid`: comprador de pack tem has_paid=true, plan='free' e NAO
+   * tem Studio Ads. `null`/ausente = nao sabemos = sem linha (falha fechada).
+   */
+  plan?: string | null
 }
 
 export interface VideoReadyFooter {
@@ -74,6 +88,11 @@ export interface VideoReadyFooter {
    * (memoria `carimbo-proprio-para-a-versao-nova`, va-r4b).
    */
   trialDoor: boolean
+  /**
+   * sprint16h-e W — a linha do Studio Ads entrou neste e-mail? Vai para o
+   * carimbo `ads_line` do evento, pelo mesmo motivo do `trialDoor`.
+   */
+  adsLine: boolean
 }
 
 /** Menor custo de um video na casa (Kineo 1 = 5cr). Abaixo disso o saldo nao
@@ -135,6 +154,36 @@ function filmsPlanHtml(appUrl: string, cost: number, durationSeconds: number | n
     .map((r) => `${r.name} &mdash; ${r.films} ${r.films === 1 ? 'film' : 'films'} like this a month`)
     .join(' &middot; ')
   return `<p style="color:#94a3b8;font-size:12px;margin:24px 0 0">This ${noun} cost <strong style="color:#fff">${c} credit${c === 1 ? '' : 's'}</strong>. ${lines}. <a href="${esc(pricingUrl(appUrl, campaign))}" style="color:#2997ff;">Plans from ${starterPrice()}/month &rarr;</a></p>`
+}
+
+// ═══ sprint16h-e W (27/09/2026) — STUDIO ADS NO RODAPE DO ASSINANTE ═════════
+//
+// FATO: 0 dos 10 assinantes tocaram /ads em 30 dias. Este e-mail e o que chega
+// no minuto de maior boa vontade, e o rodape do assinante so pedia o episodio 2.
+//
+// TRAVAS: (1) SO no kind 'subscriber_next'; (2) SO quando o PLANO esta em
+// ADS_SUBSCRIBER_PLANS — a lista que o portao de lib/ads/access.ts le
+// (adsAccessReason → 'subscriber'). `has_paid` NAO decide: comprador de pack
+// tem has_paid=true, plan='free' e o portao recusa — "included" para ele seria
+// mentira medivel; (3) interruptor adsPassLive() ligado.
+// COPY SO COM FATO QUE O CODIGO CUMPRE: link ou frase = /api/ads/from-link +
+// /api/ads/script; narracao, legendas, musica e logo no ultimo cartao =
+// /api/ads/render (captions true por padrao, card_footage_id); custo =
+// creditCostForDuration('fast', true, seconds) do MESMO video_credits, e para o
+// menor modelo isso e KINEO1_35S_CREDITS. Nenhum numero digitado.
+const ADS_SHORTEST_SECONDS = Math.min(...ADS_MODELS.map((m) => m.seconds))
+const ADS_LINE_UTM = 'utm_source=video_ready&utm_medium=footer&utm_campaign=sprint0927'
+
+function studioAdsLineHtml(appUrl: string, plan: string | null | undefined): string | null {
+  if (!adsPassLive()) return null
+  const p = typeof plan === 'string' ? plan.trim().toLowerCase() : ''
+  if (!ADS_SUBSCRIBER_PLANS.includes(p)) return null
+  const url = `${appUrl.replace(/\/+$/, '')}/ads/new?${ADS_LINE_UTM}`
+  return (
+    `<p style="color:#94a3b8;font-size:12px;margin:14px 0 0">Studio Ads is included in your plan: paste your website link or write one sentence and the AI writes, narrates and cuts a vertical ad with captions, music and your logo. ` +
+    `A ${ADS_SHORTEST_SECONDS}-second ad costs ${KINEO1_35S_CREDITS} credits from the same balance. ` +
+    `<a href="${esc(url)}" style="color:#2997ff;">Make a business ad &rarr;</a></p>`
+  )
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -235,12 +284,16 @@ export function videoReadyFooter(input: VideoReadyFooterInput): VideoReadyFooter
     const lead = left
       ? `${left} this cycle &mdash; the next episode is one click away.`
       : 'The next episode is one click away.'
+    // sprint16h-e W — Studio Ads DEPOIS do episodio 2 (o episodio continua sendo
+    // o primeiro pedido); so com plano em ADS_SUBSCRIBER_PLANS, nunca has_paid.
+    const ads = studioAdsLineHtml(appUrl, input.plan)
     return {
       kind: 'subscriber_next',
-      html: `<p style="color:#94a3b8;font-size:13px;margin:24px 0 0">${lead}</p>${ep2}`,
+      html: `<p style="color:#94a3b8;font-size:13px;margin:24px 0 0">${lead}</p>${ep2}${ads ?? ''}`,
       // Quem ja paga nunca ve a porta de entrada: o cobrador recusaria (`has_paid`)
       // e o pedido dele nao e entrar, e o proximo filme.
       trialDoor: false,
+      adsLine: ads !== null,
     }
   }
 
@@ -258,6 +311,7 @@ export function videoReadyFooter(input: VideoReadyFooterInput): VideoReadyFooter
       kind: 'trial_episode2',
       html: `<p style="color:#94a3b8;font-size:13px;margin:24px 0 0">${left} &mdash; enough for the next episode. People who make a second video are the ones who keep going.</p>${ep2}${door ?? ''}${plan}`,
       trialDoor: door !== null,
+      adsLine: false,
     }
   }
 
@@ -292,6 +346,7 @@ export function videoReadyFooter(input: VideoReadyFooterInput): VideoReadyFooter
         kind: 'unknown_balance_episode2',
         html: `<p style="color:#94a3b8;font-size:13px;margin:24px 0 0">The next episode is one click away.</p>${ep2}${door ?? ''}${plan}`,
         trialDoor: door !== null,
+        adsLine: false,
       }
     }
     // Sem tema utilizavel nao ha porta para abrir: cai no ramo de hoje.
@@ -306,10 +361,10 @@ export function videoReadyFooter(input: VideoReadyFooterInput): VideoReadyFooter
   const door = trialDoorHtml(appUrl, input.hasPaid, 'video_ready_no_balance_door_1usd', true)
 
   const films = filmsPlanHtml(appUrl, input.cost, input.durationSeconds, 'video_ready_plan_films')
-  if (films) return { kind: 'plan_films', html: `${door ?? ''}${films}`, trialDoor: door !== null }
+  if (films) return { kind: 'plan_films', html: `${door ?? ''}${films}`, trialDoor: door !== null, adsLine: false }
 
   // 4) Custo desconhecido: a copy de hoje.
-  return { kind: 'plan_generic', html: `${door ?? ''}${genericPlanHtml(appUrl)}`, trialDoor: door !== null }
+  return { kind: 'plan_generic', html: `${door ?? ''}${genericPlanHtml(appUrl)}`, trialDoor: door !== null, adsLine: false }
 }
 
 // ═══ sprint-assinaturas #26 (02/09) — mesma leitura de perfil + linha de

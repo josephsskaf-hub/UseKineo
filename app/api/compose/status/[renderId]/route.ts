@@ -975,6 +975,10 @@ export async function GET(
         // pago) e nasce `false` quando a leitura falha, que e justamente quando
         // a porta NAO pode aparecer. `null` = nao sabemos = porta fechada.
         let readyEmailHasPaid: boolean | null = null
+        // sprint16h-e W (27/09) — `profiles.plan` CRU do MESMO `planRow`, para a
+        // linha do Studio Ads no rodape do assinante (lib/lifecycle/videoReadyFooter.ts).
+        // Zero consulta nova; leitura falha = null = sem linha.
+        let readyEmailPlan: string | null = null
         try {
           const { data: planRow } = await supabase
             .from('profiles')
@@ -1010,6 +1014,8 @@ export async function GET(
             PAID_PLANS.has(planName)
           const hasPaidCol = (planRow as { has_paid?: boolean | null } | null)?.has_paid
           readyEmailHasPaid = typeof hasPaidCol === 'boolean' ? hasPaidCol : null
+          const planCol = (planRow as { plan?: string | null } | null)?.plan
+          readyEmailPlan = typeof planCol === 'string' ? planName : null
           const saldoPerfil = (planRow as { video_credits?: number | null } | null)?.video_credits
           readyEmailCreditsFallback =
             typeof saldoPerfil === 'number' && Number.isFinite(saldoPerfil) ? saldoPerfil : null
@@ -1123,6 +1129,7 @@ export async function GET(
               durationSeconds: Number.isFinite(duration) ? duration : null,
               appUrl: process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usekineo.com',
               hasPaid: readyEmailHasPaid,
+              plan: readyEmailPlan,
             })
             // ═══ KINEO-CONSENTIMENTO-DE-PARTILHA-2026-09-06 (#28) ══════════
             // A #27 construiu a porta e a ligou no e-mail ERRADO: o cron
@@ -1298,6 +1305,8 @@ export async function GET(
                         // da porta seria por relogio, e relogio nao e carimbo
                         // (memoria `campo-novo-e-o-carimbo-do-deploy`).
                         trial_door: readyFooter.trialDoor,
+                        // sprint16h-e W — a linha do Studio Ads entrou? (mesmo motivo do trial_door)
+                        ads_line: readyFooter.adsLine,
                         has_paid: readyEmailHasPaid,
                         subscriber: readyEmailIsSubscriber,
                         cost,
