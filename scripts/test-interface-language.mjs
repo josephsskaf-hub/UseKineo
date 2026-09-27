@@ -73,6 +73,10 @@ const footerBefore=renderPage('components/Footer.tsx',true,{}, {},'048878ea'),fo
 const links=html=>[...html.matchAll(/href="([^"]*)"/g)].map(m=>m[1]).sort()
 // Founder explicitly requested the business destination to open the creator on 25/09; 27/09 (sprint MRR): the public
 // door is /ads (200 for everyone) — /ads/new bounced signed-out visitors to /login.
-equal(links(footerAfter),links(footerBefore).map(h=>h==='/business-video-ads'?'/ads':h).sort(),'footer keeps every link except approved direct Ads entry')
+// 27/09 (sprint16h-b C): the business link now carries one derived sub-link per ADS_SEGMENTS entry
+// (lib/growth/adsSegments.ts). The expected extra set is READ from that source, never typed here, so a
+// segment added or removed at the source moves the expectation with it; every historical link must remain.
+const segments=pure('lib/growth/adsSegments.ts'),segmentLinks=segments.ADS_SEGMENTS.map(s=>segments.adsSegmentPath(s.slug))
+equal(links(footerAfter),[...links(footerBefore).map(h=>h==='/business-video-ads'?'/ads':h),...segmentLinks].sort(),'footer keeps every link except approved direct Ads entry, plus the derived segment doors')
 equal((footerAfter.match(/<details /g)||[]).length,4,'four footer navigation groups')
 console.log(`PASS ${checks} locale and workspace checks; no network, database, email or generation`)

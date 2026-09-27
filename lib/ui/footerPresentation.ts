@@ -7,6 +7,7 @@ export const FOOTER_PRESENTATION_CSS = `
  .kineo-footer .footer-group[open] summary:after{content:'−'}
  .kineo-footer .footer-group summary h2{margin:0!important;color:inherit!important;font-size:12px!important}
  .kineo-footer .footer-group ul{padding-top:14px!important}
+ .kineo-footer .footer-group .footer-sublist ul{padding-top:4px!important}
  .kineo-footer .footer-group a{display:block;padding-block:6px;line-height:1.55}
  .kineo-footer a:hover{color:#fff!important}
  .kineo-footer summary:focus-visible,.kineo-footer a:focus-visible{outline:2px solid #85baff;outline-offset:4px;border-radius:4px}

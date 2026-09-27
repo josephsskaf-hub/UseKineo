@@ -24,6 +24,11 @@ import LiveStatsBadge from '@/components/LiveStatsBadge'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { footerBusinessDestinationForHref } from '@/lib/growth/footerBusinessDiscovery'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
+// SPRINT16H-B-C-2026-09-27 — as 8 páginas /ads/for/<segmento> (G1, em produção) só tinham
+// entrada pelo sitemap e entre si. Este rodapé é a única superfície global que já carrega o
+// link de negócios, então a sublista nasce DERIVADA de ADS_SEGMENTS (adsSegmentPath +
+// shortName) — nunca uma lista digitada; segmento novo na fonte entra aqui sozinho.
+import { ADS_SEGMENTS, adsSegmentPath } from '@/lib/growth/adsSegments'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -33,8 +38,14 @@ const linkStyle: React.CSSProperties = {
   textDecoration: 'none',
 }
 
+// Sublista do link de negócios: um destino por segmento, derivado da fonte (ver import acima).
+const ADS_SEGMENT_SUBLIST: { title: string; links: { href: string; label: string }[] } = {
+  title: 'Video ads for…',
+  links: ADS_SEGMENTS.map((segment) => ({ href: adsSegmentPath(segment.slug), label: segment.shortName })),
+}
+
 // Internal navigation grouped for crawl depth + human wayfinding.
-const navGroups: { title: string; links: { href: string; label: string; costCalculator?: boolean }[] }[] = [
+const navGroups: { title: string; links: { href: string; label: string; costCalculator?: boolean; sublist?: typeof ADS_SEGMENT_SUBLIST }[] }[] = [
   {
     title: 'Product',
     // ═══════════════════════════════════════════════════════════════════════
@@ -66,7 +77,7 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
     // do app — o Footer não está no layout raiz.
     // ═══════════════════════════════════════════════════════════════════════
     links: [
-      { href: '/ads', label: 'Videos for businesses' }, // 27/09: porta pública (200 para todos); /ads/new mandava visitante ao /login
+      { href: '/ads', label: 'Videos for businesses', sublist: ADS_SEGMENT_SUBLIST }, // 27/09: porta pública (200 para todos); /ads/new mandava visitante ao /login
       // KINEO-NOITE-2026-08-17 — os produtos novos do dia entram no rodape
       // (26 paginas publicas linkando; nenhuma pagina nasce orfa).
       { href: '/images', label: 'AI image generator — 6 engines' },
@@ -269,6 +280,20 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
                       <Link href={link.href} style={linkStyle}>
                         <UiLabel>{link.label}</UiLabel>
                       </Link>
+                    )}
+                    {link.sublist && (
+                      <div className="footer-sublist" style={{ margin: '4px 0 0 12px' }}>
+                        <span style={{ display: 'block', fontSize: 11 }}><UiLabel>{link.sublist.title}</UiLabel></span>
+                        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                          {link.sublist.links.map((item) => (
+                            <li key={item.href} style={{ marginBottom: 7 }}>
+                              <Link href={item.href} style={linkStyle}>
+                                <UiLabel>{item.label}</UiLabel>
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     )}
                   </li>
                 )
