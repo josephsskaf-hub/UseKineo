@@ -212,7 +212,11 @@ const requiredReferences = {
   // K17 replaced the single Creator snapshot constant with per-card calls.
   // Guard the canonical calculator and grant source, not the old symbol name;
   // test-plan-film-language executes the resulting Starter/Creator values.
-  'components/ExitIntentOffer.tsx': ['TRIAL_FILMS', 'videosPerMonth', 'TIER_CREDITS'],
+  // sprint16h V1 (2026-09-27): the free panel now derives its film count from
+  // TRIAL_KINEO1_FILMS (Kineo 1, the engine the 10-credit grant actually buys)
+  // instead of TRIAL_FILMS (Seedance, which printed 0). Same intent: the number
+  // comes from lib/freeTierOffer's calculator, never typed in the component.
+  'components/ExitIntentOffer.tsx': ['TRIAL_KINEO1_FILMS', 'videosPerMonth', 'TIER_CREDITS'],
   'components/PostVideoPaywall.tsx': ['packPriceLabel()', 'PACK_CREDITS.starter'],
   'app/(dashboard)/generate/Offer290Banner.tsx': [
     "videosForCredits(PACK_CREDITS.starter290, 'cinematic_ai')",

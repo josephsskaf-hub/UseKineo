@@ -109,7 +109,13 @@ ok(!welcome.includes('credits: `${TIER_CREDITS'), 'welcome no longer leads plan 
 ok(!exit.includes('{TIER_CREDITS.starter} credits/mo'), 'exit Starter no longer leads with raw credits')
 ok(!exit.includes('{TIER_CREDITS.basic} credits/mo'), 'exit Creator no longer leads with raw credits')
 ok(exit.includes('A monthly balance for finished films.'), 'exit-intent framing names the customer outcome')
-ok(exit.indexOf('formatPlanFilmCapacity(') < exit.indexOf("exitPrice('starter')"), 'capacity is visible before the Starter price CTA')
+// sprint16h V1 (2026-09-27): the free panel (variant="free") now shows a Starter
+// tile with exitPrice('starter') BEFORE the deal card in the file. The intent of
+// this check is the DEAL card (aria-labelledby="exit-offer-title"): capacity
+// label first, Starter price after. Measure inside that card only.
+ok(exit.includes('aria-labelledby="exit-offer-title"'), 'deal card is present')
+const dealCard = exit.slice(exit.indexOf('aria-labelledby="exit-offer-title"'))
+ok(dealCard.indexOf('formatPlanFilmCapacity(') < dealCard.indexOf("exitPrice('starter')"), 'capacity is visible before the Starter price CTA')
 ok(welcome.includes('promo=WELCOME20&checkout_origin=welcome20_modal'), 'welcome checkout destination is unchanged')
 ok(exit.includes('/api/stripe/checkout?tier=starter&intro=1'), 'exit Starter checkout destination is unchanged')
 ok(exit.includes('/api/stripe/checkout?tier=basic&intro=1'), 'exit Creator checkout destination is unchanged')
