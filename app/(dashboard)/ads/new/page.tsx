@@ -3,7 +3,7 @@
 // Server Component fino (padrão do /autopilot): confere a identidade AQUI porque o layout (dashboard) não redireciona
 // e o middleware só protege /history e /library. Sem login → painel anônimo (gate 'anon', 27/09); só ?resume=pass sem
 // sessão vai ao /login preservando ?resume=pass&session_id (o success_url do passe cai aqui). Sem acesso e sem voltar
-// do checkout → /ads (a porta com o botão do passe). Voltando
+// do checkout → /ads?from=new (a porta, que mostra o plano Starter e o passe — KINEO-ADS-PORTA-PLANO-2026-09-27). Voltando
 // do checkout, o webhook pode atrasar: o cliente reconsulta GET /api/ads/orders até o acesso chegar. O noindex vem do
 // layout do grupo. lib/ads/serverAccess (chave de serviço) só é importado aqui, nunca no cliente.
 import { Suspense } from 'react'
@@ -65,9 +65,12 @@ export default async function AdsNewPage({ searchParams }: { searchParams?: Sear
 
   const { reason } = await loadAdsAccess(user.id, user.email)
   const gate = adsGate(reason)
+  // KINEO-ADS-PORTA-PLANO-2026-09-27 — dado de 27/09: 2 pessoas logadas sem acesso abriram /ads/new e foram devolvidas a
+  // /ads sem uma palavra, onde só havia o passe. Agora o destino leva ?from=new (a porta explica e mostra Starter + passe)
+  // e o evento grava para onde a pessoa foi.
   if (gate === 'no_access' && !resumingPass) {
-    await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/ads/new', metadata: { stage: 'page', who: 'no_access', reason } })
-    redirect('/ads')
+    await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/ads/new', metadata: { stage: 'page', who: 'no_access', reason, redirect: '/ads?from=new' } })
+    redirect('/ads?from=new')
   }
 
   return (

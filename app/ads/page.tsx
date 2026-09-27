@@ -7,6 +7,15 @@
 // SOURCES, NEVER TYPED HERE: price, credits, days and the includes/excludes lists come from lib/ads/offer.ts; the 8
 // models from lib/ads/models.ts; the review cap from lib/ads/events.ts; the voices from lib/ads/renderContract.ts.
 //
+// KINEO-ADS-PORTA-PLANO-2026-09-27 — whoever cannot open the wizard (anonymous, or signed in without access) sees TWO
+// doors in Price: the Starter plan first (price and credits from lib/checkoutPricing.ts, name from lib/growth/planFit.ts,
+// ads-per-month from KINEO1_35S_CREDITS) and the pass beside it, untouched. The wizard's no_access redirect now carries
+// ?from=new, and that adds a strip above the hero saying that Studio Ads comes with every paid plan. Facts the copy
+// leans on: every TIER_CREDITS plan is 'subscriber' in lib/ads/access.ts (ADS_SUBSCRIBER_PLANS), the engine gate is off
+// for every account (lib/enginePlanGate.ts ENGINE_GATE_SINCE), and app/api/stripe/portal exists (cancel anytime).
+// The subscription checkout GET reads tier, billing and intent_campaign; it has NO post-payment return parameter, so
+// success lands on /checkout/success like every plan — nothing here pretends otherwise.
+//
 // THE CTA IS DECIDED ON THE SERVER, in this order:
 //   1. signed in and adsGate(...) === 'ok'  → "Open Studio Ads" (/ads/new)          — pass, paid plan or internal;
 //   2. adsPassLive() OR internal account     → "Get Studio Ads · <price>" as a plain <a> to the checkout GET
@@ -42,6 +51,8 @@ import {
   adsPassPriceLabel,
 } from '@/lib/ads/offer'
 import { ADS_VOICES } from '@/lib/ads/renderContract'
+import { TIER_CREDITS, formatCheckoutMoney, getTierPrice } from '@/lib/checkoutPricing' // KINEO-ADS-PORTA-PLANO-2026-09-27
+import { planName } from '@/lib/growth/planFit' // KINEO-ADS-PORTA-PLANO-2026-09-27 — the canonical plan name
 import AdsPageBanners, { AdsCtaLink, type AdsDoorCta } from './AdsPageBanners'
 
 export const dynamic = 'force-dynamic'
@@ -59,6 +70,10 @@ export const metadata: Metadata = {
 }
 
 const CHECKOUT_HREF = '/api/stripe/checkout?pack=ads_pass'
+/** KINEO-ADS-PORTA-PLANO-2026-09-27 — the Starter door: tier, billing and intent_campaign are the GET parameters
+ *  app/api/stripe/checkout/route.ts reads (intentCampaignFrom accepts [A-Za-z0-9._~-]{1,100}). Signed out, the checkout
+ *  sends the person to /signup carrying this URL and resumes it. */
+const STARTER_CHECKOUT_HREF = '/api/stripe/checkout?tier=starter&billing=monthly&intent_campaign=ads_door'
 const WIZARD_HREF = '/ads/new'
 const DFY_HREF = '/business-video-ads'
 /** A slow auth or database read must never hold the public door; past this, the page renders the safe default. */
@@ -68,6 +83,14 @@ const REVIEW_WINDOW_MS = 24 * 3600 * 1000
 
 type Viewer = { signedIn: boolean; gate: 'ok' | 'no_access' | 'closed' | null; internal: boolean }
 const ANONYMOUS: Viewer = { signedIn: false, gate: null, internal: false }
+
+type SearchParams = Record<string, string | string[] | undefined>
+
+function first(v: string | string[] | undefined): string | null {
+  if (typeof v === 'string') return v
+  if (Array.isArray(v) && typeof v[0] === 'string') return v[0]
+  return null
+}
 
 function withTimeout<T>(work: Promise<T>, fallback: T): Promise<T> {
   return new Promise<T>((resolve) => {
@@ -168,7 +191,7 @@ function DoorCta({ cta, placement, price }: { cta: AdsDoorCta; placement: 'hero'
   )
 }
 
-export default async function StudioAdsPage() {
+export default async function StudioAdsPage({ searchParams }: { searchParams?: SearchParams }) {
   const live = adsPassLive()
   const viewer = await withTimeout(readViewer(), ANONYMOUS)
   const canBuy = live || viewer.internal
@@ -176,6 +199,15 @@ export default async function StudioAdsPage() {
   if (viewer.gate === 'ok') cta = 'open'
   else if (!canBuy) cta = 'soon'
   else cta = (await withTimeout(countOpenReviews(), 0)) >= ADS_MAX_OPEN_REVIEWS ? 'full' : 'buy'
+
+  // KINEO-ADS-PORTA-PLANO-2026-09-27 — the plan door only while the pass is live: with it off the whole product says
+  // "Opens soon" and adsGate answers 'closed' to subscribers too, so a Starter door would sell a closed room.
+  const from = first(searchParams?.from)
+  const planOffer = live && viewer.gate !== 'ok'
+  const returnedFromWizard = from === 'new' && viewer.signedIn && viewer.gate === 'no_access'
+  const starterName = planName('starter')
+  const starterPrice = formatCheckoutMoney('usd', getTierPrice('starter', 'usd', 'standard'))
+  const starterAds35 = Math.floor(TIER_CREDITS.starter / KINEO1_35S_CREDITS)
 
   const copy = adsPassCopy()
   const price = adsPassPriceLabel()
@@ -197,8 +229,19 @@ export default async function StudioAdsPage() {
         </nav>
 
         <Suspense fallback={null}>
-          <AdsPageBanners live={live} cta={cta} />
+          <AdsPageBanners live={live} cta={cta} planOffer={planOffer} from={from} />
         </Suspense>
+
+        {/* KINEO-ADS-PORTA-PLANO-2026-09-27 — sent back by /ads/new (no access): say why, point to the two doors. No promise
+            about a saved draft: AdsWizardClient only writes 'kineo:ads:draft:v1' in the anonymous mode (saveDraftAndLogin),
+            never for a signed-in account, so there is nothing to bring back here. */}
+        {returnedFromWizard ? (
+          <div className="ads-banner ads-returned" role="status">
+            <p>
+              <b>Studio Ads is part of every paid plan.</b> Pick {starterName} or the pass below and open the wizard again. <a href="#ads-price">See both options →</a>
+            </p>
+          </div>
+        ) : null}
 
         <header className="ads-hero">
           <p className="ads-eyebrow">STUDIO ADS · KINEO EMPRESAS</p>
@@ -208,6 +251,7 @@ export default async function StudioAdsPage() {
             approve the script and the voice, and download a vertical MP4 ready for Reels, TikTok and Shorts.
           </p>
           <div className="ads-cta"><DoorCta cta={cta} placement="hero" price={price} /></div>
+          {planOffer ? <p className="ads-plan-line"><a href="#ads-price">Included in any paid plan — from {starterPrice}/month</a></p> : null}
         </header>
 
         <section className="ads-sec" aria-labelledby="ads-how">
@@ -263,17 +307,38 @@ export default async function StudioAdsPage() {
 
         <section className="ads-sec" aria-labelledby="ads-price">
           <h2 id="ads-price">Price</h2>
-          <div className="cost ads-price">
-            <div className="sum">{copy.name} pass</div>
-            <p className="ads-amount">{price}<span> one-time</span></p>
-            <p className="ads-cover">About {adsCoveredByPass(35)} ads of 35 s or {adsCoveredByPass(60)} ads of 60 s.</p>
-            <div className="val"><span>Credits</span><b>{ADS_PASS_CREDITS}</b></div>
-            <CreditMinutesSummary credits={ADS_PASS_CREDITS} />
-            <div className="val"><span>Studio Ads access</span><b>{ADS_PASS_ACCESS_DAYS} days</b></div>
-            <div className="val"><span>Subscription</span><b>None</b></div>
-            <div className="ads-cta"><DoorCta cta={cta} placement="price" price={price} /></div>
-            <p className="ads-fine">Shown in US dollars; the checkout may show the amount in your local currency.</p>
-            {live ? <p className="ads-fine">Already on a paid Kineo plan? Studio Ads is open to you with your plan&apos;s credits — sign in and open it.</p> : null}
+          {/* KINEO-ADS-PORTA-PLANO-2026-09-27 — two doors for whoever cannot open the wizard: the Starter plan first (it includes
+              Studio Ads and costs less than the pass), the pass beside it, untouched. With gate 'ok' the pass card stands alone. */}
+          <div className={planOffer ? 'ads-doors' : undefined}>
+            {planOffer ? (
+              <div className="cost ads-price ads-plan" data-kineo="ads-door-plan">
+                <div className="sum">{starterName} plan</div>
+                <p className="ads-amount">{starterPrice}<span> /month</span></p>
+                <p className="ads-cover">{TIER_CREDITS.starter} credits every month. About {starterAds35} ads of 35 s.</p>
+                <div className="val"><span>Studio Ads</span><b>Included</b></div>
+                <div className="val"><span>Video engines</span><b>Every engine</b></div>
+                <div className="val"><span>Subscription</span><b>Monthly · cancel anytime</b></div>
+                <div className="ads-cta">
+                  <AdsCtaLink href={STARTER_CHECKOUT_HREF} cta="plan" tier="starter" from={from} placement="price" className="go ok ads-go">
+                    Get {starterName} · {starterPrice}/mo
+                  </AdsCtaLink>
+                  <p className="gnote">Secure Stripe checkout. You sign in (or create your account) first.</p>
+                </div>
+                <p className="ads-fine">Shown in US dollars; the checkout may show the amount in your local currency.</p>
+              </div>
+            ) : null}
+            <div className="cost ads-price">
+              <div className="sum">{copy.name} pass</div>
+              <p className="ads-amount">{price}<span> one-time</span></p>
+              <p className="ads-cover">About {adsCoveredByPass(35)} ads of 35 s or {adsCoveredByPass(60)} ads of 60 s.</p>
+              <div className="val"><span>Credits</span><b>{ADS_PASS_CREDITS}</b></div>
+              <CreditMinutesSummary credits={ADS_PASS_CREDITS} />
+              <div className="val"><span>Studio Ads access</span><b>{ADS_PASS_ACCESS_DAYS} days</b></div>
+              <div className="val"><span>Subscription</span><b>None</b></div>
+              <div className="ads-cta"><DoorCta cta={cta} placement="price" price={price} /></div>
+              <p className="ads-fine">Shown in US dollars; the checkout may show the amount in your local currency.</p>
+              {live ? <p className="ads-fine">Already on a paid Kineo plan? Studio Ads is open to you with your plan&apos;s credits — sign in and open it.</p> : null}
+            </div>
           </div>
         </section>
 
@@ -377,6 +442,11 @@ html[data-theme=dark] .stu.ads-door{--ads-door-error:#ff9b9b;--ads-door-error-so
 .ads-review{padding:20px 18px;border-radius:16px;border:1px solid var(--border2);background:var(--accent-soft)}
 .ads-review p{margin:0;font-size:15px;line-height:1.55;color:var(--text2)}
 .ads-price{max-width:520px}
+.ads-doors{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;max-width:1000px}
+.ads-doors .ads-price{max-width:none}
+.ads-plan-line{margin:12px 0 0;font-size:13px;line-height:1.5}
+.ads-plan-line a,.ads-returned a{color:var(--accent);text-decoration:none;font-weight:600}
+.ads-plan-line a:hover,.ads-returned a:hover{text-decoration:underline}
 .ads-amount{margin:2px 0 14px;font-size:40px;font-weight:750;letter-spacing:-.03em;color:var(--text);line-height:1.05}
 .ads-amount span{font-size:14px;font-weight:600;color:var(--muted);letter-spacing:0}
 .ads-cover{margin:-6px 0 14px;font-size:13px;color:var(--accent);line-height:1.45}
@@ -394,6 +464,7 @@ html[data-theme=dark] .stu.ads-door{--ads-door-error:#ff9b9b;--ads-door-error-so
   .ads-hero{padding-top:30px}
   .ads-sec{margin:38px 0}
   .ads-get{grid-template-columns:1fr}
+  .ads-doors{grid-template-columns:1fr}
   .ads-cta{max-width:none}
   .ads-amount{font-size:34px}
 }

@@ -67,7 +67,8 @@ checa('4a. page.tsx: anônimo renderiza o assistente com gate "anon" em vez de m
 const anonBlock = PAGE.slice(PAGE.indexOf('if (!user) {'), PAGE.indexOf('const { reason } = await loadAdsAccess'))
 checa('4b. page.tsx: o único redirect ao /login fica atrás de ?resume=pass ou do modo IA fechado', count(PAGE, 'redirect(`/login') === 1 && /if \(resumingPass \|\| !adsAutoVisible\('none'\)\) \{\n\s+await writeServerEvent[^\n]*\n\s+redirect\(`\/login/.test(anonBlock))
 checa('4c. page.tsx: adsAutoVisible importado de @/lib/ads/autoBrief (o painel anônimo É o painel da IA)', /import \{ adsAutoVisible \} from '@\/lib\/ads\/autoBrief'/.test(PAGE))
-checa('4d. page.tsx: sem acesso (trial) continua indo a /ads — o rascunho fica no sessionStorage', /if \(gate === 'no_access' && !resumingPass\) \{[\s\S]*?redirect\('\/ads'\)/.test(PAGE))
+// KINEO-ADS-PORTA-PLANO-2026-09-27 — o destino ganhou ?from=new (a porta explica Starter + passe); a intenção da prova é a mesma: sem acesso vai à porta /ads, nunca ao /login.
+checa('4d. page.tsx: sem acesso (trial) continua indo a /ads (agora /ads?from=new) — o rascunho fica no sessionStorage', /if \(gate === 'no_access' && !resumingPass\) \{[\s\S]*?redirect\('\/ads\?from=new'\)/.test(PAGE))
 checa('4e. page.tsx: o rastro do visitante continua (ads_access_denied who:anon), agora com outcome do painel', /name: 'ads_access_denied', path: '\/ads\/new', metadata: \{ stage: 'page', who: 'anon', outcome: 'anonymous_panel' \}/.test(PAGE))
 checa('4f. assistente: tipo Gate aceita "anon" e Boot tem "anonymous"', /type Gate = 'ok' \| 'no_access' \| 'closed' \| 'anon'/.test(W) && /\| \{ kind: 'anonymous' \}/.test(W))
 

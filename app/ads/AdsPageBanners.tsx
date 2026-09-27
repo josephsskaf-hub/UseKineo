@@ -7,7 +7,9 @@
 //     /ads?checkout_error=<msg> (app/api/stripe/checkout, buildAdsPassAndRedirect) and /ads?checkout=cancelled;
 //   · ONE `ads_page_viewed` per page load (ref, not render), carrying the CTA state the server decided
 //     ('open' | 'buy' | 'full' | 'soon'), so the impression can be split by branch before anyone reads a rate;
-//   · the CTA wrapper that writes `ads_cta_clicked` — the FIRST gesture, the event impressions are compared with.
+//   · the CTA wrapper that writes `ads_cta_clicked` — the FIRST gesture, the event impressions are compared with;
+//   · KINEO-ADS-PORTA-PLANO-2026-09-27: the same wrapper with cta="plan" writes `ads_door_plan_clicked` {tier, from} for
+//     the Starter door, and `ads_page_viewed` carries plan_offer (both doors rendered) and from (server-read ?from=).
 //
 // The checkout error text arrives in the URL, so it is never echoed as-is: a crafted link could otherwise print
 // any sentence on our page. Only the messages the checkout actually writes are shown verbatim; anything else
@@ -16,6 +18,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
 import { ADS_OFFER_VERSION } from '@/lib/ads/offer'
+import type { CheckoutTier } from '@/lib/checkoutPricing'
 
 export type AdsDoorCta = 'open' | 'buy' | 'full' | 'soon'
 
@@ -41,11 +44,23 @@ function entrySource(raw: string | null): string | null {
   return /^[a-z0-9_]{1,40}$/.test(v) ? v : null
 }
 
-export default function AdsPageBanners({ live, cta }: { live: boolean; cta: AdsDoorCta }) {
+export default function AdsPageBanners({
+  live,
+  cta,
+  planOffer = false,
+  from: fromProp = null,
+}: {
+  live: boolean
+  cta: AdsDoorCta
+  /** KINEO-ADS-PORTA-PLANO-2026-09-27 — true when the server rendered the two doors (Starter + pass). */
+  planOffer?: boolean
+  /** The `?from=` the server read; the URL is the fallback. Sanitized here, never echoed. */
+  from?: string | null
+}) {
   const params = useSearchParams()
   const error = checkoutErrorMessage(params?.get('checkout_error') ?? null)
   const cancelled = !error && params?.get('checkout') === 'cancelled'
-  const from = entrySource(params?.get('from') ?? null)
+  const from = entrySource(fromProp ?? params?.get('from') ?? null)
   const [dismissed, setDismissed] = useState(false)
   const viewedRef = useRef(false)
 
@@ -58,12 +73,13 @@ export default function AdsPageBanners({ live, cta }: { live: boolean; cta: AdsD
         cta,
         ads_offer_version: ADS_OFFER_VERSION,
         from,
+        plan_offer: planOffer,
         returned: error ? 'checkout_error' : cancelled ? 'checkout_cancelled' : null,
       })
     } catch {
       /* telemetry never breaks the page */
     }
-  }, [live, cta, from, error, cancelled])
+  }, [live, cta, from, planOffer, error, cancelled])
 
   function dismiss() {
     setDismissed(true)
@@ -96,19 +112,27 @@ export default function AdsPageBanners({ live, cta }: { live: boolean; cta: AdsD
   )
 }
 
-/** The door's CTA: a plain <a> (never a prefetching <Link>) that records the first gesture before navigating. */
+/** The door's CTA: a plain <a> (never a prefetching <Link>) that records the first gesture before navigating.
+ *  cta="plan" (KINEO-ADS-PORTA-PLANO-2026-09-27) is the Starter door: it writes `ads_door_plan_clicked` {tier, from}
+ *  instead of `ads_cta_clicked`, so the plan door and the pass door are never summed into one rate. */
 export function AdsCtaLink({
   href,
   cta,
   placement,
   className,
   children,
+  tier,
+  from = null,
 }: {
   href: string
-  cta: Extract<AdsDoorCta, 'open' | 'buy'>
+  cta: Extract<AdsDoorCta, 'open' | 'buy'> | 'plan'
   placement: 'hero' | 'price' | 'end'
   className?: string
   children: ReactNode
+  /** Only with cta="plan": the checkout tier the link opens. */
+  tier?: CheckoutTier
+  /** Only with cta="plan": the raw `?from=` the server read (sanitized by entrySource before it reaches the event). */
+  from?: string | null
 }) {
   return (
     <a
@@ -118,7 +142,11 @@ export function AdsCtaLink({
       data-cta={cta}
       onClick={() => {
         try {
-          void trackEvent('ads_cta_clicked', { source: 'ads_page', cta, placement, ads_offer_version: ADS_OFFER_VERSION })
+          if (cta === 'plan') {
+            void trackEvent('ads_door_plan_clicked', { source: 'ads_page', tier: tier ?? null, from: entrySource(from), placement, ads_offer_version: ADS_OFFER_VERSION })
+          } else {
+            void trackEvent('ads_cta_clicked', { source: 'ads_page', cta, placement, ads_offer_version: ADS_OFFER_VERSION })
+          }
         } catch {
           /* ignore */
         }
