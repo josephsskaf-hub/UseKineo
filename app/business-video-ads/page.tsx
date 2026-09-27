@@ -2,17 +2,17 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import KineoBolt from '@/components/KineoBolt'
 import { DFY_SERVICE_FACT } from '@/lib/growth/dfyServiceFacts'
-// KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — the self-serve door under Express/Pro, only while the pass is on sale.
-import { ADS_PASS_CREDITS, adsPassLive, adsPassPriceLabel } from '@/lib/ads/offer'
+import { adsSegmentOffer } from '@/lib/growth/adsSegmentPresentation'
+import OrganicCtaLink from '@/components/OrganicCtaLink'
 import BusinessAdsOffers from './BusinessAdsOffers'
 import styles from './businessAds.module.css'
 
 export const dynamic = 'force-static'
 export const metadata: Metadata = {
-  title: 'Business Video Ads, Made for You | Kineo Empresas',
-  description: 'A human-operated AI video service for your business. Send your brief, logo and authorized photos; get a video with narration, captions and music. Express and Pro, no subscription.',
+  title: 'Business Video Ads — Create or Order | Kineo',
+  description: 'Make your own video ad with Studio Ads, included in any paid plan. Or order an Express or Pro video made from your brief by Kineo Empresas.',
   alternates: { canonical: DFY_SERVICE_FACT.url },
-  openGraph: { title: 'Your business. A video made for you.', description: DFY_SERVICE_FACT.description, url: DFY_SERVICE_FACT.url, type: 'website' },
+  openGraph: { title: 'Your business. Your next video ad.', description: 'Make it yourself with Studio Ads, or choose an operated Express or Pro production.', url: DFY_SERVICE_FACT.url, type: 'website' },
 }
 
 // Brief sources: anonymized completed-video requests, 11 and 17 Sep 2026.
@@ -24,15 +24,16 @@ const BRIEFS = [
 ]
 
 export default function BusinessVideoAdsPage() {
+  const offer = adsSegmentOffer()
   return <div className={styles.surface}><main className={styles.page}>
-    <nav className={styles.nav} aria-label="Business video navigation"><a href="/" className={styles.brand}><KineoBolt size={33} />Kineo<span> / empresas</span></a><a href="/studio">Make it yourself in Studio ↗</a></nav>
-    <header className={styles.hero}>
+    <nav className={styles.nav} aria-label="Business video navigation"><a href="/" className={styles.brand}><KineoBolt size={33} />Kineo<span> / empresas</span></a><a href="/ads">Explore Studio Ads ↗</a></nav>
+    <header className={styles.hero} data-kineo="business-self-service-first">
       <div className={styles.heroCopy}>
-      <p className={styles.eyebrow}>YOUR BRIEF. OUR PRODUCTION.</p>
-      <h1>Your business.<br /><em>A video made for you.</em></h1>
-      <p className={styles.intro}>You know your business. We turn your brief into a video ad with AI tools and a human behind the work — ready for you to post on your social channels.</p>
-      <a className={styles.primary} href="#packages">Choose your video <span aria-hidden="true">↓</span></a>
-      <p className={styles.note}>Human-operated · One-time purchase · No subscription required</p>
+      <p className={styles.eyebrow}>STUDIO ADS · MAKE IT YOURSELF</p>
+      <h1>Your business.<br /><em>Your next video ad.</em></h1>
+      <p className={styles.intro}>Make it yourself in minutes. Paste your website link or write a brief, add your logo and authorized photos or clips, and check the facts before creating your ad.</p>
+      <OrganicCtaLink className={styles.primary} href="/ads?from=business_ads&utm_source=business_video_ads&utm_campaign=gpt24h&utm_content=self_service" source="business_video_ads" placement="self_service_hero">Make my business ad <span aria-hidden="true">→</span></OrganicCtaLink>
+      <p className={styles.note}>Included in any paid plan · from {offer.starterPrice} USD/month · {offer.credits} credits per {offer.seconds} s ad. Generation time can vary.</p>
       </div>
       <div className={styles.composition}>
         <figure className={styles.art}>
@@ -42,36 +43,32 @@ export default function BusinessVideoAdsPage() {
         </figure>
         <div className={styles.mediaMeta}><span>Restaurant / Creative direction</span><span>Concept still ↗</span></div>
         <div className={styles.workflow} aria-label="Production steps">
-          <span><b>01 · Brief</b>Your business</span>
-          <span><b>02 · Production</b>AI + human</span>
-          <span><b>03 · Delivery</b>Finished MP4</span>
+          <span><b>Your brief</b>Link or idea</span>
+          <span><b>Check the facts</b>Review your script</span>
+          <span><b>Your ad</b>Download and post</span>
         </div>
         <div className={styles.diagram} aria-hidden="true"><i /><i /><i /><i /><i /></div>
       </div>
     </header>
     <section className={styles.section} aria-labelledby="packages-heading">
-      <div className={styles.sectionHeading}><p className={styles.eyebrow}>TWO WAYS TO GET IT MADE</p><h2 id="packages-heading">Choose the production that fits.</h2></div>
+      <div className={styles.sectionHeading}><p className={styles.eyebrow}>OR, HAVE US MAKE IT</p><h2 id="packages-heading">Prefer a done-for-you video?</h2><p>Kineo Empresas is a separate service operated by a human. Choose Express or Pro; the package sets the delivery time and revisions.</p></div>
       <BusinessAdsOffers />
     </section>
-    {adsPassLive() && <section className={styles.selfServe} aria-labelledby="self-serve-heading">
-      <div><p className={styles.eyebrow}>STUDIO ADS · MAKE IT YOURSELF</p><h2 id="self-serve-heading">Prefer to make it yourself?</h2><p className={styles.selfServeText}>Upload your own photos, clips and logo, pick an ad model, approve the script and the voice, and download the finished vertical ad. A human editor still reviews your first one.</p></div>
-      <div className={styles.selfServeBuy}><p className={styles.selfServePrice}>{adsPassPriceLabel()}<span>One-time pass · {ADS_PASS_CREDITS} credits · no subscription</span></p><a className={styles.primary} href="/ads?from=business_ads">See Studio Ads <span aria-hidden="true">→</span></a></div>
-    </section>}
     <section className={styles.split} aria-label="Delivery and materials">
-      <div><p className={styles.eyebrow}>THE FINISHED PIECE</p><h2>What you receive</h2><p>{DFY_SERVICE_FACT.delivery}</p><p>A human prepares the script and production. The selected package sets the engines, delivery time and included revisions.</p></div>
+      <div><p className={styles.eyebrow}>EXPRESS / PRO PRODUCTION</p><h2>What you receive</h2><p>{DFY_SERVICE_FACT.delivery}</p><p>A human prepares the script and production. The selected package sets the engines, delivery time and included revisions.</p></div>
       <div><p className={styles.eyebrow}>AFTER PAYMENT</p><h2>Send the ingredients.</h2><ol>{DFY_SERVICE_FACT.requirements.map(item => <li key={item}>{item}</li>)}</ol><p>Follow the instructions in your order confirmation. Include the phone number, website or call to action exactly as it should appear. Only send material you have permission to use.</p></div>
     </section>
     <section className={styles.section} aria-labelledby="briefs-heading">
       <div className={styles.sectionHeading}><p className={styles.eyebrow}>START WITH THE BUSINESS, NOT THE TOOL</p><h2 id="briefs-heading">What a useful brief looks like.</h2><p>These are brief summaries, not finished-video samples or testimonials. They do not promise a particular generated result.</p></div>
       <div className={styles.briefs}>{BRIEFS.map((brief, index) => <article className={styles.brief} key={brief.label}><span className={styles.briefIcon} aria-hidden="true">{['◉', '✧', '▣'][index]}</span><span className={styles.category}>{brief.label}</span><small>{brief.tag}</small><h3>{brief.title}</h3><p>{brief.text}</p></article>)}</div>
     </section>
-    <section className={styles.faq} aria-labelledby="faq-heading"><h2 id="faq-heading">Before you order</h2>
-      <details open><summary>Is this an automatic ad generator?</summary><p>No. Kineo Empresas is operated by a human using AI tools. You buy the production of a video, not access to a self-service editor. If you prefer to create your own film, use <a href="/studio">Kineo Studio</a>.</p></details>
-      <details><summary>When will I receive it?</summary><p>{DFY_SERVICE_FACT.tiers.map(tier => `${tier.name}: ${tier.hours} hours, with ${tier.revisions} ${tier.revisions === 1 ? 'revision' : 'revisions'}.`).join(' ')} Send your brief and authorized materials promptly after payment. Missing material or an out-of-scope request needs human review; we do not promise an impossible deadline.</p></details>
+    <section className={styles.faq} aria-labelledby="faq-heading"><h2 id="faq-heading">Choose your workflow</h2>
+      <details open><summary>Can I make the ad myself?</summary><p>Yes. <a href="/ads">Studio Ads</a> creates an ad from your link or brief and authorized materials, with narration, captions, music and a final card. You check the facts and script, then download it to post yourself. It is included in any paid plan; a one-time pass is also available. Express and Pro below are separate human-operated services, not the self-service editor.</p></details>
+      <details><summary>When will my Express or Pro order arrive?</summary><p>{DFY_SERVICE_FACT.tiers.map(tier => `${tier.name}: ${tier.hours} hours, with ${tier.revisions} ${tier.revisions === 1 ? 'revision' : 'revisions'}.`).join(' ')} Send your brief and authorized materials promptly after payment. Missing material or an out-of-scope request needs human review; we do not promise an impossible deadline.</p></details>
       <details><summary>What if my brief does not fit?</summary><p>{DFY_SERVICE_FACT.refund} For example, missing permission to use footage, unsupported clinical claims or an impossible deadline can make a brief unsuitable.</p></details>
       <details><summary>Can you include my logo, photos and professional details?</summary><p>Yes, where the format allows, using material and facts you supply and approve. We do not invent qualifications, endorsements, patient stories or results. Medical and other regulated claims must be verified by you before publication.</p></details>
       <details><summary>Does this include posting, ads or guaranteed sales?</summary><p>No. You receive the video to publish yourself. Advertising spend, channel management and sales guarantees are not included. This is a one-time service, separate from Kineo subscriptions and credits.</p></details>
     </section>
-    <footer className={styles.footer}><p>Bring a clear brief. Let us make the video.</p><a href="#packages">View Express and Pro ↑</a><span>Kineo Empresas · Updated September 24, 2026</span></footer>
+    <footer className={styles.footer}><p>Create it yourself. Or let us help.</p><a href="#packages">View Express and Pro ↑</a><span>Kineo Empresas · Updated September 27, 2026</span></footer>
   </main></div>
 }
