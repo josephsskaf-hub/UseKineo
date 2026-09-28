@@ -5,6 +5,8 @@
 //   sem login                         → /login?redirect=/ads/v2
 //   sem acesso ao Studio Ads (adsGate) → /ads?from=v2 (a porta mostra plano e passe), com rastro ads_access_denied
 //   sem o v2 (adsV2Visible: ADS_V2_PUBLIC=false → só contas internas pela lista EXATA) → /ads/new (o assistente v1)
+// KINEO-ADS-V2-VIRADA-2026-09-29 — com ADS_V2_PUBLIC=true a 3ª porta nunca fecha; /ads/new sem ?classic=1 manda para cá
+// (sem laço: o /ads/new só redireciona quando ADS_V2_PUBLIC, e aí adsV2Visible é sempre true). O clássico é /ads/new?classic=1.
 // O saldo é lido aqui com a chave de serviço (a mesma de loadAdsAccess) só para o primeiro desenho; a tela relê em
 // /api/credits. Leitura que falha = null ("não sei"), nunca 0. lib/ads/serverAccess só é importado aqui, nunca no cliente.
 import { redirect } from 'next/navigation'
@@ -12,6 +14,7 @@ import { createClient } from '@/lib/supabase/server'
 import { adsGate, loadAdsAccess } from '@/lib/ads/serverAccess'
 import { adsV2Visible } from '@/lib/ads/v2Access'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { KINEO1_35S_CREDITS } from '@/lib/ads/offer' // KINEO-ADS-V2-VIRADA-2026-09-29 — o preço do link "classic maker"
 import AdsV2Client from './AdsV2Client'
 
 export const metadata = { title: 'Studio Ads — Kineo' }
@@ -42,5 +45,5 @@ export default async function AdsV2Page() {
     balance = null
   }
 
-  return <AdsV2Client initialBalance={balance} />
+  return <AdsV2Client initialBalance={balance} classicCredits={KINEO1_35S_CREDITS} />
 }

@@ -43,7 +43,10 @@ for (const [nome, p] of Object.entries(MOD)) {
 // ── 1. v2Tiers ──────────────────────────────────────────────────────────────────────────────────
 const tiersSrc = rd(MOD.tiers)
 const TIERS = ['photo_motion', 'commercial', 'cinema']
-check('T1 interruptor ADS_V2_PUBLIC = false (literal e valor)', T.ADS_V2_PUBLIC === false && /export const ADS_V2_PUBLIC = false\b/.test(tiersSrc))
+// REANCORADO 29/09 (KINEO-ADS-V2-VIRADA-2026-09-29): a virada pública foi ordem do fundador ("deixa os motores já acionados");
+// a intenção segue — o interruptor é UM literal e o valor importado bate com ele. O guardião da virada
+// (scripts/test-ads-v2-virada-2026-09-29.mjs) prova o resto (redirect do /ads/new e copy pública).
+check('T1 interruptor ADS_V2_PUBLIC = true desde a virada de 29/09 (literal e valor)', T.ADS_V2_PUBLIC === true && /export const ADS_V2_PUBLIC = true\b/.test(tiersSrc) && (tiersSrc.match(/export const ADS_V2_PUBLIC\b/g) || []).length === 1)
 check('T2 créditos 34/41/51 por 15 s · planos 6/6/7 · cenas criadas 0/3/4 · closes-herói 0/0/2', () => {
   const t = T.ADS_V2_TIERS
   return t.photo_motion.credits15 === 34 && t.commercial.credits15 === 41 && t.cinema.credits15 === 51 &&

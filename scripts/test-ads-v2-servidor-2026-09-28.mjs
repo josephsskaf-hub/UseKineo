@@ -691,7 +691,11 @@ await check('T8 /plan não cobra: nenhum débito, nenhuma chamada à fal, e a r�
 })
 await check('T9 v2Access: adsV2Visible = ADS_V2_PUBLIC || isAdsInternalEmail(email)', () => {
   const V = makeLoader({}, { real: ['lib/ads/access.ts', 'lib/internalAccounts.ts', 'lib/ads/offer.ts', 'lib/ads/v2Tiers.ts'] })('lib/ads/v2Access.ts')
-  return /return ADS_V2_PUBLIC \|\| isAdsInternalEmail\(email\)/.test(cod('lib/ads/v2Access.ts')) && V.adsV2Visible('josephsskaf@gmail.com') === true && V.adsV2Visible('cliente@exemplo.com') === false && V.adsV2Visible('josephsskaf+x@gmail.com') === false
+  // REANCORADO 29/09 (KINEO-ADS-V2-VIRADA-2026-09-29): com ADS_V2_PUBLIC = true, qualquer conta VÊ o v2 (o acesso ao Studio Ads
+  // continua sendo conferido antes, por adsGate). A fórmula segue cravada; o resultado segue o interruptor importado.
+  const T = makeLoader({}, { real: [] })('lib/ads/v2Tiers.ts')
+  const aberto = T.ADS_V2_PUBLIC === true
+  return /return ADS_V2_PUBLIC \|\| isAdsInternalEmail\(email\)/.test(cod('lib/ads/v2Access.ts')) && V.adsV2Visible('josephsskaf@gmail.com') === true && V.adsV2Visible('cliente@exemplo.com') === aberto && V.adsV2Visible('josephsskaf+x@gmail.com') === aberto && aberto
 })
 
 // ═══ 7. CRON, SUPERFÍCIES, TRAVA 8.2 ════════════════════════════════════════════════════════════════════════════════

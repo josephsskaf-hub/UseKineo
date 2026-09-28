@@ -197,9 +197,14 @@ check('T1 ESPELHO: as 4 marcações de foto = tipos do contrato (product/place/p
 check('T2 ESPELHO: setores da tela = setores do contrato e dos moldes; limite da frase = contrato; 3 a 7 fotos', eqSet(SC.ADS_V2_SECTOR_OPTIONS.map((s) => s.id), CT.ADS_V2_CONTRACT_SECTORS) && eqSet(SC.ADS_V2_SECTOR_OPTIONS.map((s) => s.id), SL.ADS_V2_SECTORS) && SC.ADS_V2_SCREEN_SENTENCE_MAX === CT.ADS_V2_SENTENCE_MAX_CHARS && SL.ADS_V2_MIN_PHOTOS === 3 && SL.ADS_V2_MAX_PHOTOS === 7)
 check('T3 frase ao servidor leva o nome do negócio (o plano recusa brief sem nome) e respeita 400', SC.composeSentence('Casa Laila', 'Grill in Amman') === 'Casa Laila: Grill in Amman' && SC.composeSentence('Casa Laila', 'casa laila grills in Amman') === 'casa laila grills in Amman' && SC.composeSentence('X', '  ') === null && SC.composeSentence('Name', 'y'.repeat(399)) === 'too_long')
 check('T4 "How it works" em 4 passos e a coluna de ensino ao lado do montador (depois dele no HTML: no celular vai para baixo)', SC.ADS_V2_HOW_IT_WORKS.length === 4 && ordem(sessionBody, 'className="adv2-main"', '<aside className="adv2-aside"') && /@media\(max-width:1000px\)\{\.adv2 \.adv2-layout\{grid-template-columns:minmax\(0,1fr\)\}/.test(rd(F.client)))
+// REANCORADO 29/09 (KINEO-ADS-V2-VIRADA-2026-09-29): o fundador pediu, na virada, UM link discreto para o assistente
+// clássico ("Prefer a narrated 35-second ad? Use the classic maker"). A intenção do T5 continua: o v2 não vende 35/60 s
+// como produto dele. O link clássico é a ÚNICA exceção, exigida inteira (uma vez, apontando para ?classic=1) e retirada
+// do texto antes da varredura — qualquer outro "35 s"/"60 s" no cliente continua vermelho.
+const LINK_CLASSICO = '<a href="/ads/new?classic=1">Prefer a narrated 35-second ad? Use the classic maker ({classicCredits} credits)</a>'
 check('T5 nada de texto velho: sem 35/60 s, sem legenda/caption, sem narração obrigatória (cliente + regras da tela)', () => {
-  const txt = client + '\n' + semComentarios(screenSrc)
-  return !/\b(35|60)[- ]?(s\b|sec|second)/i.test(txt) && !/caption|subtitle/i.test(txt) && !/narration is required|voice-over is required/i.test(txt) && /you can turn off/.test(txt)
+  const txt = client.split(LINK_CLASSICO).join('') + '\n' + semComentarios(screenSrc)
+  return client.split(LINK_CLASSICO).length === 2 && !/\b(35|60)[- ]?(s\b|sec|second)/i.test(txt) && !/caption|subtitle/i.test(txt) && !/narration is required|voice-over is required/i.test(txt) && /you can turn off/.test(txt)
 })
 check('T6 entrega lembra o rótulo de IA do TikTok e o progresso não promete tempo (a pessoa pode sair)', /Turn on the AI-generated label when you post on TikTok/.test(client) && /You can leave this page/.test(client) && !/\d+\s*(min|minutes|seconds) (left|remaining)/i.test(client) && ['pending', 'image_submitted'].every((s) => SC.shotStateLabel({ kind: 'people', source: 'generated_scene', status: s, state: 'working' }, 'generating') === 'Preparing image') && SC.shotStateLabel({ kind: 'place', source: 'client_photo', status: 'submitted', state: 'working' }, 'generating') === 'Animating' && SC.shotStateLabel({ kind: 'place', source: 'client_photo', status: 'done', state: 'ready' }, 'generating') === 'Ready')
 check('T7 todo erro das rotas vira frase que explica e diz o que fazer (nenhum código cru na tela)', () => {

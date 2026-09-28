@@ -34,7 +34,10 @@ for (const [name, src] of Object.entries(ADS_FILES)) {
 }
 checa('1a. offer.ts: o include da revisão é "A human checks your first ad"', /^\s+'A human checks your first ad',$/m.test(OFFER))
 checa('1b. assistente: REVIEW_LINE = "A human checks your first ad."', /^const REVIEW_LINE = 'A human checks your first ad\.'$/m.test(W))
-checa('1c. porta /ads: o parágrafo diz o novo e só cita o botão de pedido de mudança que a entrega tem (DeliveryView)', /<p>A human checks your first ad\. Need a change\? The delivery screen has a request button that opens an email to us with your order number already filled in\.<\/p>/.test(DOOR) && /Email the change request/.test(W) && /Studio Ads change request · \$\{order\.id\}/.test(W))
+// REANCORADO 29/09 (KINEO-ADS-V2-VIRADA-2026-09-29): a revisão humana é do anúncio CLÁSSICO (ads_orders.qa_at); o v2
+// (ads_v2_orders) não tem revisão. A porta passou a dizer isso na seção "Classic narrated ads", sem prazo nem "versão
+// corrigida", e o botão de pedido de mudança continua na entrega do clássico (DeliveryView).
+checa('1c. porta /ads: a revisão humana aparece só como do clássico, sem prazo, e o botão de pedido de mudança segue na entrega (DeliveryView)', /A person checks your first classic ad\./.test(DOOR) && !/24 hours|corrected version|human editor/i.test(DOOR) && /Email the change request/.test(W) && /Studio Ads change request · \$\{order\.id\}/.test(W))
 const offer = load('lib/ads/offer.ts')
 const copy = offer.adsPassCopy()
 checa('1d. adsPassCopy() EXECUTADO: include novo presente; nada de prazo nem "versão corrigida" em lugar nenhum da copy', copy.includes.includes('A human checks your first ad') && !/24 hours|corrected version|human editor/i.test(JSON.stringify(copy)))
@@ -44,7 +47,9 @@ checa('1f. o /llms.txt e o /api/facts herdam a copy (studioAdsFacts copia includ
 // ── 2. FAQ "Do I need a subscription?": o custo por anúncio nasce de KINEO1_35S_CREDITS, nunca digitado ──
 const faqStart = DOOR.indexOf('<summary>Do I need a subscription?</summary>')
 const faq = DOOR.slice(faqStart, DOOR.indexOf('</details>', faqStart))
-checa('2a. FAQ: "Any paid plan includes Studio Ads ({KINEO1_35S_CREDITS} credits per 35-second ad, the same credits as your videos). The pass is for people without a plan"', /Any paid plan includes Studio Ads \(\{KINEO1_35S_CREDITS\} credits per 35-second ad, the same credits as your videos\)\. The pass is for people without a plan/.test(faq))
+// REANCORADO 29/09 (KINEO-ADS-V2-VIRADA-2026-09-29): a FAQ cita o preço dos 3 níveis do v2 (de adsV2Credits) e o do clássico,
+// ainda de {KINEO1_35S_CREDITS}. Intenção mantida: "Any paid plan", mesmos créditos dos vídeos, nada digitado.
+checa('2a. FAQ: "Any paid plan includes Studio Ads, with the same credits as your videos" + preço do v2 por V2_LEVELS + clássico {KINEO1_35S_CREDITS} + "The pass is for people without a plan"', /Any paid plan includes Studio Ads, with the same credits as your videos: a new ad costs \{V2_LEVELS\.map\(/.test(faq) && /a classic narrated ad of 35 seconds costs \{KINEO1_35S_CREDITS\}\. The pass is for people without a plan/.test(faq))
 checa('2b. FAQ: nenhum número de crédito digitado à mão (o passe também vem de {ADS_PASS_CREDITS})', !/\b\d+ credits?\b/.test(faq) && /\{ADS_PASS_CREDITS\} credits/.test(faq))
 const offerImport = DOOR.slice(DOOR.indexOf('import {\n  ADS_PASS_ACCESS_DAYS'), DOOR.indexOf("} from '@/lib/ads/offer'"))
 checa('2c. KINEO1_35S_CREDITS vem do import de @/lib/ads/offer e é número', offerImport.includes('KINEO1_35S_CREDITS,') && typeof offer.KINEO1_35S_CREDITS === 'number')
@@ -87,7 +92,9 @@ checa('5f. os botões de logo/fotos não abrem o seletor sem login, e a tela avi
 checa('5g. de volta do login: restaura texto+link do rascunho e diz "Welcome back — your text is here. Add your logo and photos."', /if \(anon\) return\n\s+const d = takeDraft\(\)/.test(panel) && /setText\(\(t\) => t \|\| d\.text\)/.test(panel) && /setLink\(\(l\) => l \|\| d\.link\)/.test(panel) && panel.includes('{welcomeBack ? <p className="adsw-hint" role="status">Welcome back — your text is here. Add your logo and photos.</p> : null}'))
 checa('5h. "passo a passo" sem login também passa pelo /login com o rascunho; logado, continua indo ao onSteps de sempre', panel.includes('const stepsOut = () => (anon ? saveDraftAndLogin(text, link) : onSteps())') && count(panel, 'onClick={stepsOut}') === 2 && W.includes('onSteps={toSteps}'))
 checa('5i. ads_auto_started só nasce em ensureOrder/applyBrand/remix (todos depois do POST, logo depois do login); nenhum trackEvent atrás de anon', /void trackEvent\('ads_auto_started', \{ order_id: r\.data\.order\.id \}\)/.test(panel.slice(fnStart('ensureOrder'))) && !/anon[^\n]*trackEvent|trackEvent[^\n]*anon/.test(panel))
-checa('5j. goLogin continua voltando para /ads/new', W.includes("window.location.href = `/login?redirect=${encodeURIComponent('/ads/new')}`"))
+// REANCORADO 29/09 (KINEO-ADS-V2-VIRADA-2026-09-29): /ads/new sem ?classic=1 agora leva ao v2; o login do assistente volta ao
+// ASSISTENTE (wizardPath: '/ads/new?classic=1' quando a pessoa está no clássico, '/ads/new' fora dele).
+checa('5j. goLogin continua voltando para o assistente (/ads/new, com ?classic=1 quando é o clássico)', W.includes("window.location.href = `/login?redirect=${encodeURIComponent(wizardPath())}`") && W.includes("get('classic') === '1') return '/ads/new?classic=1'") && /\n  return '\/ads\/new'\n\}/.test(W))
 
 // ── 6. miniatura: uma consulta no GET (nunca N+1) e na lista "Your ads" ──
 const get = (ROUTE.match(/export async function GET[\s\S]*?\n\}\n/) || [''])[0]
