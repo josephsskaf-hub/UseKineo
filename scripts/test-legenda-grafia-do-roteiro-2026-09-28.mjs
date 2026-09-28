@@ -20,7 +20,8 @@
 //      intacta (start, end e sentenceEnd idênticos) ou dentro de um reagrupamento que preserva as pontas e o fim de
 //      frase; os cortes (sentenceStartTimes real) e a janela do gancho idênticos nos 10;
 //   2. casos sintéticos: "63%" × "sixty three percent" nos dois sentidos, roteiro que não bate (a trava devolve o
-//      Whisper), trecho longo, 70%, texto vazio, pontuação que fecha frase, fim de frase enterrado, cauda não falada;
+//      Whisper), trecho longo, 70%, texto vazio, pontuação que fecha frase, fim de frase enterrado, cauda não falada,
+//      hindi (a vogal final é marca \p{M} e não pode sumir — revisão de 28/09);
 //   3. a ligação: predicado avaliado nas 16 combinações (avatar, voz enviada, modo serviço, narration_source), a
 //      ordem (depois do retorno do hollywood), o cache guardando o Whisper bruto, o unlock e o Studio Ads;
 //   4. mutantes em memória (cada um provado aplicado): mexer no tempo, tirar a trava de 70%, ligar no avatar, tirar a
@@ -346,6 +347,17 @@ function sinteticos(L) {
     r.travessaoColado = o.motivo === 'aplicada' && o.ancoras === 10 && o.words.map((w) => w.word).join(' ') === ditas.join(' ')
   }
   {
+    // Revisão 28/09 — hindi é idioma da narração (lib/textLanguage.ts): a vogal final ("है", "में", "करते") é MARCA
+    // (\p{M}), não letra. Com o Whisper igual ao roteiro, NADA pode mudar na tela; o acento em NFD também fica.
+    const rot = 'भारत में हर साल लाखों छात्र आवेदन करते हैं। यह प्रक्रिया बहुत कठिन है।'
+    const cru = rot.split(/\s+/)
+    const ws = cru.map((t, k) => W(t.replace(/।$/u, ''), k * 0.4, k * 0.4 + 0.35, /।$/u.test(t)))
+    const o = L.alinharGrafiaDoRoteiro(ws, rot)
+    const nfd = 'café'.normalize('NFD')
+    r.hindi = o.motivo === 'aplicada' && o.ancoras === ws.length && o.words.length === ws.length && o.words.every((w, k) => w.word === ws[k].word) &&
+      L.grafiaExibida('है।') === 'है' && L.grafiaExibida(`${nfd}.`) === nfd
+  }
+  {
     const ws = [W('Hello', 0, 0.3), W('world', 0.3, 0.6), W('again', 0.6, 1.0, true)]
     const o = L.alinharGrafiaDoRoteiro(ws, 'Hello [world] again.')
     r.colchete = o.motivo === 'aplicada' && o.words.every((w) => !/[[\]]/.test(w.word)) && o.words[1].word === 'world'
@@ -370,6 +382,7 @@ function sinteticos(L) {
   check("palavra do Whisper com ponto final ('U.S.') fica como está (é corte no montador)", s.pontoFinal)
   check('cauda do roteiro que o TTS não leu NÃO é anexada', s.cauda)
   check("'[' e ']' nunca chegam à palavra (rich text do karaokê)", s.colchete)
+  check('hindi com o Whisper igual ao roteiro: a vogal final (marca \\p{M}) não some ("है" fica "है"; acento NFD fica)', s.hindi)
   check('travessão colado entre palavras separa como espaço (nenhum "—" na tela, as duas palavras ancoram)', s.travessaoColado)
   check('grafia exibida: pontas limpas, símbolos de número/marca mantidos (%, $, ₹, #, +), interno mantido', s.exibida)
   check("chave: sem acento, minúscula, só \\p{L}\\p{N} ('één' → 'een', 'eCredit.ng' → 'ecreditng')", s.chave)
@@ -473,6 +486,10 @@ function mutaLib(de, para, rotulo) {
 {
   const m = mutaLib("if (pares.length < GRAFIA_ANCORAS_MINIMAS * tokens.length) return sem('poucas_ancoras')", '', 'tirar a trava de 70%')
   check('tirar a trava de 70% → o caso de 50% de âncoras fica vermelho', !sinteticos(m).setenta)
+}
+{
+  const m = mutaLib('\\p{L}\\p{M}\\p{N}', '\\p{L}\\p{N}', 'tirar \\p{M} das pontas')
+  check('tirar \\p{M} das pontas → o caso hindi fica vermelho ("है" viraria "ह")', !sinteticos(m).hindi)
 }
 {
   const src = ROUTE.replace('const legendaPelaGrafiaDoRoteiro = !avatarMode && (', 'const legendaPelaGrafiaDoRoteiro = (')

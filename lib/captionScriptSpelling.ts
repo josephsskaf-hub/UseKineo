@@ -80,8 +80,10 @@ export interface ResultadoGrafia {
   trechosMantidos: number
 }
 
-// Pontas: fica letra, dígito e o símbolo que dá sentido ao número ou à marca.
-const PONTAS = /^[^\p{L}\p{N}\p{Sc}%#@&+°]+|[^\p{L}\p{N}\p{Sc}%#@&+°]+$/gu
+// Pontas: fica letra, marca combinante, dígito e o símbolo que dá sentido ao número ou à marca.
+// \p{M} (revisão 28/09): a vogal do hindi ("है", "में") e o acento em NFD são MARCAS, não letras; sem \p{M} a ponta
+// apagava a vogal final e "है" saía "ह" na legenda (hi, ar e ur são idiomas da narração em lib/textLanguage.ts).
+const PONTAS = /^[^\p{L}\p{M}\p{N}\p{Sc}%#@&+°]+|[^\p{L}\p{M}\p{N}\p{Sc}%#@&+°]+$/gu
 // Espelho do teste de pontuação final de sentenceStartTimes (lib/compose.ts).
 const FECHA_POR_PONTUACAO = /[.!?]["'”’)\]]?$/
 
