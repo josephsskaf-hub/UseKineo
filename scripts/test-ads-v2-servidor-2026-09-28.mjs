@@ -560,6 +560,36 @@ await check('A18 a entrega RESERVA o video_id antes da linha em videos: o prazo 
   return seen.length === 1 && !!seen[0].reserved && seen[0].reserved === seen[0].id && r && !r.won && o.status === 'delivered' && o.video_id === tables.videos[0].id && tables.videos.length === 1 && billCalls.refund.length === 0
 })
 
+// Guardas que já existiam e nenhuma asserção segurava (mutantes vivos na revisão de 28/09).
+await check('A19 clipe MEDIDO mais curto que o trecho da montagem (corte + 0,25 s) não vira done: o plano falha e ganha nova tentativa', async () => {
+  reset()
+  const { db, tables, plan } = scenario()
+  await db.from('ads_v2_shots').upsert(A.buildInitialShotRows(ORDER, 'photo_motion', plan))
+  const ai = tables.ads_v2_shots.find((r) => r.kind !== 'text')
+  Object.assign(ai, { status: 'submitted', request_id: 'req-curto', submitted_at: new Date().toISOString(), cut_start: 0, cut_seconds: 3 })
+  pollImpl = async () => ({ state: 'done', url: 'https://fal.media/curto.mp4' })
+  await A.advanceAdsV2Order(db, ORDER, { deadlineMs: DL() })
+  pollImpl = async () => ({ state: 'processing', url: null })
+  const first = tables.ads_v2_shots.find((r) => r.idx === ai.idx && r.attempt === 1)
+  return first.status === 'failed' && /^clip_too_short/.test(first.reason ?? '') && !first.stored_url && tables.ads_v2_shots.some((r) => r.idx === ai.idx && r.attempt === 2)
+})
+await check('A20 id que chega TARDE só grava em plano ainda ambíguo: plano que já venceu (failed) não ressuscita', async () => {
+  reset()
+  const { db, tables, plan, order } = scenario()
+  await db.from('ads_v2_shots').upsert(A.buildInitialShotRows(ORDER, 'photo_motion', plan))
+  let soltar = null
+  const late = new Promise((r) => { soltar = r })
+  submitImpl = async () => ({ kind: 'ambiguous', reasonClass: 'transport_timeout_5xx', posts: 1, late })
+  await A.dispatchAdsV2Shots(db, order, DL())
+  submitImpl = async () => ({ kind: 'accepted', requestId: `req-${prov.submits.length}`, posts: 1 })
+  const ai = tables.ads_v2_shots.filter((r) => r.kind !== 'text')
+  const allAmb = ai.length > 0 && ai.every((r) => r.status === 'ambiguous')
+  ai[0].status = 'failed'
+  soltar('req-tarde')
+  for (let i = 0; i < 5; i++) await new Promise((r) => setImmediate(r))
+  return allAmb && ai[0].status === 'failed' && !ai[0].request_id && ai.slice(1).every((r) => r.status === 'submitted' && r.request_id === 'req-tarde')
+})
+
 // ═══ 4. VARREDURAS (lib/credits/refund.ts executado) ═══════════════════════════════════════════════════════════════
 {
   const refunds = []
@@ -594,6 +624,12 @@ await check('A18 a entrega RESERVA o video_id antes da linha em videos: o prazo 
     const r = await R.sweepAbandonedAdsV2Debits()
     const got = refunds.slice().sort().join(',')
     return got === 'adsv2-cancel,adsv2-failed,adsv2-stalled' && r.stalledFailed === 1 && r.ambiguous === 1 && sweepTables.ads_v2_orders.find((x) => x.id === '6').status === 'failed' && sweepTables.ads_v2_orders.find((x) => x.id === '4').status === 'assembling'
+  })
+  await check('R4 débito adsv2 cujo pedido é de OUTRA conta não é estornado (ambíguo): a chave não prova de quem é o dinheiro', async () => {
+    sweepTables = { credit_debits: [deb('adsv2-alheio')], ads_v2_orders: [{ id: '9', user_id: U(7), status: 'failed', billing_ref: 'adsv2-alheio', started_at: old, video_id: null }], videos: [], events: [] }
+    refunds.length = 0
+    const r = await R.sweepAbandonedAdsV2Debits()
+    return refunds.length === 0 && r.ambiguous === 1 && r.refunded === 0
   })
   await check('R3 o cron refund-sweep chama a varredura nova (e as antigas continuam)', /sweepAbandonedAdsV2Debits\(\)/.test(cod('app/api/cron/refund-sweep/route.ts')) && /sweepAbandonedAvatarDebits\(\)/.test(cod('app/api/cron/refund-sweep/route.ts')) && rd('app/api/cron/refund-sweep/route.ts').includes('animatePublished, avatar, errors'))
 }
@@ -637,6 +673,7 @@ await check('T2 /start: o bloco do dry_run devolve SEM cobrar (charged:false) e 
 })
 await check('T3 /start: a trava é condicional (draft|planned) e 23505 do índice de "um ativo por conta" vira 409 another_active', /\.in\('status', \['draft', 'planned'\]\)/.test(START) && /23505' \? v2Fail\('another_active', 409\)/.test(START))
 await check('T4 /start: débito sem prova de que não aconteceu → falha COM estorno; provado que não → volta a planned', /if \(!charge\.debitPossible\)/.test(START) && /failAdsV2Order\(admin, locked, `charge_/.test(START))
+await check('T10 /start: a trava de início exige o DONO (id + user_id + draft|planned no mesmo UPDATE)', /\.eq\('id', orderId\)\s*\.eq\('user_id', user\.id\)\s*\.in\('status', \['draft', 'planned'\]\)/.test(START))
 const RETAKE = cod('app/api/ads/v2/retake/route.ts')
 await check('T5 /retake: v2_closed → text recusado → preço mostrado confere → id determinístico GRAVADO → débito → planos → envio', ordem(RETAKE,
   'adsV2Visible(user.email)', "'v2_closed'", "target.kind === 'text'", "'text_not_retakable'", "'price_changed'", 'deterministicUuid(', ".from('ads_v2_orders')", '.insert(', 'chargeAdsV2(', "from('ads_v2_shots').upsert(", 'dispatchAdsV2Shots('))
