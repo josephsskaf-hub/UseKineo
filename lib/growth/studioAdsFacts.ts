@@ -8,10 +8,11 @@
 // REGRA: nada aqui é digitado. Nome, preço, créditos, o que entra e o que não entra saem de lib/ads/offer.ts
 // (adsPassCopy, a mesma copy da página /ads); a contagem de modelos sai de lib/ads/models.ts. Com o passe desligado
 // (NEXT_PUBLIC_ADS_PASS_LIVE=0 + deploy), o fato vira null e o bloco some do llms.txt e do JSON no mesmo deploy.
-// Módulo puro: só importa os dois módulos puros do Studio Ads.
+// Módulo puro: oferta/modelos e lista canônica do acesso, sem consulta de perfil ou banco.
 
 import { ADS_PASS_ACCESS_DAYS, ADS_PASS_CREDITS, adsPassCopy, adsPassLive } from '../ads/offer'
 import { ADS_MODELS } from '../ads/models'
+import { ADS_SUBSCRIBER_PLANS } from '../ads/access'
 
 export const STUDIO_ADS_PATH = '/ads'
 
@@ -30,6 +31,14 @@ export interface StudioAdsFact {
   models: { total: number; seconds35: number; seconds60: number }
   /** Quando mandar a pessoa para cá e quando mandar para o serviço feito por gente. */
   routingRule: string
+  /** These access rules describe the product; price/credits/accessDays above describe the one-time pass. */
+  access: {
+    subscriberPlanIds: string[]
+    subscriberNeedsPass: false
+    usesPlanCredits: true
+    trialIncluded: false
+    summary: string
+  }
 }
 
 export function studioAdsFact(): StudioAdsFact | null {
@@ -37,6 +46,7 @@ export function studioAdsFact(): StudioAdsFact | null {
   const copy = adsPassCopy()
   const seconds35 = ADS_MODELS.filter((m) => m.seconds === 35).length
   const seconds60 = ADS_MODELS.filter((m) => m.seconds === 60).length
+  const accessSummary = 'Eligible paid subscribers use Studio Ads with their plan credits; no separate ad pass is required. The free trial does not include Studio Ads. People without an eligible paid plan can choose the one-time pass.'
   return {
     name: copy.name,
     url: `https://www.usekineo.com${STUDIO_ADS_PATH}`,
@@ -49,12 +59,19 @@ export function studioAdsFact(): StudioAdsFact | null {
     description:
       `Self-service: a business uploads its own photos, clips and logo, picks one of ${ADS_MODELS.length} ad models ` +
       `(${seconds35} of 35 seconds, ${seconds60} of 60 seconds), approves a script written from its brief and an AI voice, ` +
-      `and downloads a narrated vertical MP4 ad. ${copy.headline}`,
+      `and downloads a narrated vertical MP4 ad. ${copy.headline} ${accessSummary}`,
     includes: [...copy.includes],
     excludes: [...copy.excludes],
     models: { total: ADS_MODELS.length, seconds35, seconds60 },
     routingRule:
       `A business that has its own photos and logo and wants to make the ad itself → ${copy.name} (${STUDIO_ADS_PATH}), ` +
-      `${copy.price} once. A business that wants Kineo to make the ad for it → Kineo Empresas (/business-video-ads).`,
+      `${accessSummary} The optional pass costs ${copy.price} once. A business that wants Kineo to make the ad for it → Kineo Empresas (/business-video-ads).`,
+    access: {
+      subscriberPlanIds: [...ADS_SUBSCRIBER_PLANS],
+      subscriberNeedsPass: false,
+      usesPlanCredits: true,
+      trialIncluded: false,
+      summary: accessSummary,
+    },
   }
 }

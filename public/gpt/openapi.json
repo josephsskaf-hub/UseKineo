@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Kineo Video Handoff",
-    "version": "1.3.4",
+    "version": "1.3.5",
     "description": "Turns an approved Short script into a one-click Kineo Studio link. Call createKineoHandoff ONLY after the user has explicitly approved the final script. The response contains a URL (https://www.usekineo.com/go/<token>) that opens Kineo Studio pre-filled with the script, duration and engine. Kineo renders the film after the user clicks; this API never renders anything itself. Public, no authentication, rate-limited per IP."
   },
   "servers": [
@@ -26,13 +26,23 @@
                   "properties": {
                     "studioAds": {
                       "type": ["object", "null"],
-                      "description": "Self-service business video ads; null when unavailable. Separate from the human-operated service.",
+                      "description": "Self-service business video ads; null when unavailable. Read access for paid-subscriber eligibility: an eligible subscriber does not need a separate pass and uses plan credits. price, credits, accessDays and recurring describe the optional one-time pass, not the subscriber's plan. Trial is excluded. Separate from the human-operated service.",
                       "properties": {
                         "name": { "type": "string" },
                         "url": { "type": "string", "format": "uri" },
                         "description": { "type": "string" },
                         "humanOperated": { "type": "boolean", "const": false },
-                        "price": { "type": "string" },
+                        "price": { "type": "string", "description": "Price of the optional one-time pass; not an extra fee for eligible subscribers." },
+                        "access": {
+                          "type": "object",
+                          "properties": {
+                            "subscriberPlanIds": { "type": "array", "items": { "type": "string" } },
+                            "subscriberNeedsPass": { "type": "boolean", "const": false },
+                            "usesPlanCredits": { "type": "boolean", "const": true },
+                            "trialIncluded": { "type": "boolean", "const": false },
+                            "summary": { "type": "string" }
+                          }
+                        },
                         "includes": { "type": "array", "items": { "type": "string" } },
                         "excludes": { "type": "array", "items": { "type": "string" } },
                         "routingRule": { "type": "string" }

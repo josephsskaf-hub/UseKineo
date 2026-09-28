@@ -1,0 +1,17 @@
+# Studio Ads: acesso por assinatura nas fontes citáveis
+
+**AUTORIZAÇÃO DIRETA:** mandato do fundador de 28/09, nesta tarefa, até 20h BRT. Correção factual na frente Citações; sem mudança comercial ou de acesso.
+
+**FATO CONFIRMADO / PARCIAL:** base bf180175. `lib/ads/access.ts:20` e `:57` admitem assinantes pagos sem passe. `app/ads/page.tsx:370` já explica essa alternativa. A introdução de llms também a menciona, mas `lib/growth/studioAdsFacts.ts:18` descreve somente o passe e seu routingRule só informa pagamento avulso; a seção detalhada de llms e o schema não explicitam acesso por assinatura. O problema é a resposta incompleta quando o consumidor consulta somente o fato de Studio Ads.
+
+**RESERVA / ESCOPO:** continuação das fontes empresariais publicadas pela tarefa em 4b5b9a5f. Somente projeção factual em lib/growth/studioAdsFacts.ts, app/llms.txt/route.ts, public/gpt/openapi.json e testes pertinentes. A alteração recente de Claude para Avatar foi integrada na base e será preservada. Consulta ao status da worktree analise-0923 não mostrou edição pendente nesses arquivos no início. Nenhuma edição de lib/ads, preço, acesso, render ou página/experimento visual.
+
+**HIPÓTESE / CONTRATO:** coorte = pessoa que pergunta ao GPT como criar anúncio com mídia própria e avalia assinatura; obstáculo = fato isolado apresenta apenas passe; mudança = explicitar acesso pago já existente, uso de créditos e exclusão do trial, preservando campos legados do passe e nulidade quando desligado. Superfície = JSON de fatos, llms e schema existentes. Eventos existentes = chegada atribuída, cadastro e transação canônica, sem novo contador. Sucesso técnico = resposta coerente com o gate real; sucesso comercial = primeira assinatura externa comprovada, ainda DESCONHECIDO. Amostra = novas chegadas após eventual deploy até 28/09 23:00 UTC, sem extrapolar resultado curto. Parada = conflito de dono, fonte, teste, fila ou corte. Mudança reversível, sem terceira variante.
+
+**CANDIDATAS:** PARCIAL acesso Studio Ads nas fontes; BLOQUEADA Seedance3fb96b1a pelo preview humano; BLOQUEADA contratos SSR/TRIAL10/PROVA-ORIGEM e recorte2 já registrados. Não reconstruir as bloqueadas, nem aplicar resíduos supersedidos. Nenhuma medição nova do benchmark80.
+
+**TESTADO LOCALMENTE:** TypeScript sem emissão; Ads AEO 32, porta por plano 45, GPT Loja 33, fatos GPT V31 40 e três jogadas 124 verificações aprovadas. As 24 baterias adicionais do workflow crítico passaram, e os quatro mutantes críticos foram rejeitados. Os testes de AEO executam o gate real por plano, rejeitam free/trial/desconhecido, renderizam llms e JSON com interruptor ligado/desligado e verificam o schema. Duas guardas de versão foram reancoradas em 1.3.5; não mudou a quantidade de operações ou o contrato do handoff. Sem alteração de layout ou componente visual; não há preview visual novo a aprovar.
+
+**EVIDÊNCIA DE PRODUÇÃO / ANTES (28/09):** domínio www.usekineo.com em bf180175, deployment dpl_7zp1uMU8iSrKQygX4mSEYF8nq6jT READY. GET /api/facts devolveu Studio Ads sem o campo access, confirmando a omissão estruturada. Sonda própria não conta como aquisição. Provas e horários completos ficam na pasta privada da tarefa, ads-access-20260928-before.json e ads-access-20260928-gates.json.
+
+**ESTADO:** LOCAL e TESTADO LOCALMENTE; publicação, exposição e pagamento ainda não comprovados. Próximo passo: fila protegida, confirmar SHA/deploy e conteúdo público. Esta correção disponibiliza informação; não prova leitura pelo ChatGPT nem assinatura.

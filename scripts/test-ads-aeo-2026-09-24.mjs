@@ -52,11 +52,11 @@ const copy = on.offer.adsPassCopy()
 ok(on.offer.adsPassLive() === true, '1a. premissa: com o código de hoje o passe está ligado (ADS_PASS_LIVE_IN_CODE)')
 const bloco = on.llms.slice(on.llms.indexOf(`## Business video ads you make yourself — ${copy.name}`), on.llms.indexOf('## One-time packs for agencies'))
 ok(bloco.length > 200, '1b. llms.txt ligado: seção própria "Business video ads you make yourself — Studio Ads" antes dos pacotes')
-ok(bloco.includes(`[${copy.name}](https://www.usekineo.com/ads)`) && bloco.includes(`- Price: ${copy.price} once`), `1c. a seção leva o link /ads e o preço de adsPassCopy (${copy.price})`)
+ok(bloco.includes(`[${copy.name}](https://www.usekineo.com/ads)`) && bloco.includes(`- Pass price: ${copy.price} once`), `1c. a seção leva o link /ads e identifica o preço de adsPassCopy como passe (${copy.price})`)
 ok(copy.includes.every((line) => bloco.includes(`- ${line}\n`)), '1d. cada linha de "includes" da página /ads aparece igual no llms.txt (mesma fonte, nada redigitado)')
 ok(copy.excludes.every((line) => bloco.includes(line.replace(/[.]$/, ''))), '1e. o que NÃO entra no passe também aparece (excludes da página)')
 ok(/does not promise instant, no-human or self-service production\. For the self-service way, see Studio Ads below\./.test(on.llms), '1f. a frase das Empresas ("não promete self-service") passa a apontar para o Studio Ads')
-ok(on.llms.includes(`"A video ad for my business from my own photos and logo, made myself" → [${copy.name}](https://www.usekineo.com/ads), ${copy.price} once, no subscription.`), '1g. o roteador de perguntas manda "anúncio com as minhas fotos, feito por mim" para /ads')
+ok(on.llms.includes(`"A video ad for my business from my own photos and logo, made myself" → [${copy.name}](https://www.usekineo.com/ads). ${on.facts.studioAds.access.summary} Optional pass: ${copy.price} once, no subscription.`), '1g. roteador de perguntas explica acesso por plano e passe opcional no mesmo trecho')
 ok(on.llms.includes('For self-service generation, Kineo'), '1h. a frase antiga dos planos segue lá (guardada pelo test-tres-jogadas)')
 const f = on.facts.studioAds
 ok(f && f.url === 'https://www.usekineo.com/ads' && f.price === copy.price && f.kind === 'self_service_ad_pass' && f.recurring === false && f.humanOperated === false, '1i. /api/facts ganha studioAds com url, preço, kind, sem recorrência e sem operação humana')
@@ -77,6 +77,16 @@ const schema = JSON.parse(rd('public/gpt/openapi.json'))
 const factsOp = schema.paths['/api/facts'].get
 const schemaAds = factsOp.responses['200'].content['application/json'].schema.properties.studioAds
 ok(schemaAds.type.includes('null') && schemaAds.properties.humanOperated.const === f.humanOperated && factsOp.description.includes('studioAds') && factsOp.description.includes('businessVideoService'), '1q. ação expõe os dois caminhos e aceita Studio Ads indisponível')
+
+// 28/09: comparar o fato efetivo ao gate executado; não basta testar texto novo.
+const access = require(join(RAIZ, 'lib/ads/access.ts'))
+const { TIER_CREDITS } = require(join(RAIZ, 'lib/checkoutPricing.ts'))
+ok(Object.keys(TIER_CREDITS).every((plan) => f.access.subscriberPlanIds.includes(plan) && access.adsAccessReason({ plan }, null) === 'subscriber'), '1r. cada plano vendido é elegível no JSON e no gate real, sem passe')
+ok(f.access.subscriberPlanIds.length === access.ADS_SUBSCRIBER_PLANS.length && f.access.subscriberPlanIds.every((plan) => access.adsAccessReason({ plan }, null) === 'subscriber'), '1s. lista publicada coincide com os planos realmente aceitos')
+ok(['free', 'starter_trial', 'basic_trial', 'pro_trial', 'unknown'].every((plan) => !f.access.subscriberPlanIds.includes(plan) && access.adsAccessReason({ plan }, null) === 'none') && f.access.trialIncluded === false, '1t. trial, free e plano desconhecido não ganham acesso na projeção')
+ok(f.access.subscriberNeedsPass === false && f.access.usesPlanCredits === true && f.description.includes(f.access.summary) && f.routingRule.includes(f.access.summary) && bloco.includes(f.access.summary), '1u. descrição isolada, roteamento e llms deixam claro plano sem passe e uso de créditos')
+ok(bloco.includes('not an extra grant to subscribers') && schemaAds.description.includes('describe the optional one-time pass'), '1v. benefício do passe não vira crédito adicional de assinatura')
+ok(schemaAds.properties.access.properties.subscriberNeedsPass.const === false && schemaAds.properties.access.properties.usesPlanCredits.const === true && schemaAds.properties.access.properties.trialIncluded.const === false, '1w. schema e resposta real concordam sobre acesso e trial')
 
 // ── 2. passe desligado (emergência: NEXT_PUBLIC_ADS_PASS_LIVE=0 + deploy) ──────────────────────────────
 const off = await renderiza('0')
