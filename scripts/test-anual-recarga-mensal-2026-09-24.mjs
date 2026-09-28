@@ -33,8 +33,20 @@ function tabelaUsd(nome) {
 const TIER_CREDITS = tabelaNum('TIER_CREDITS')
 const LEGACY = tabelaNum('LEGACY_TIER_CREDITS_V6')
 const ANNUAL = tabelaUsd('ANNUAL_PRICES')
-checa('tabelas lidas do arquivo real (TIER_CREDITS, LEGACY, ANNUAL_PRICES com starter/basic/pro)',
-  ['starter', 'basic', 'pro'].every((t) => TIER_CREDITS[t] > 0 && LEGACY[t] > 0 && ANNUAL[t]?.usd > 0))
+// KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: o módulo passou a importar legacyCreditsForUsd (escada por fatura:
+// ≥ anual V5 → 60/150/300; abaixo → V6) em vez de LEGACY_TIER_CREDITS_V6 cru. A função injetada é a REAL da fonte, transpilada
+// sobre as tabelas lidas do arquivo — não uma cópia da regra escrita aqui.
+const LEGACY_V5 = tabelaNum('LEGACY_TIER_CREDITS_V5')
+const V5_PRICES = tabelaNum('LEGACY_V5_PRICES_USD')
+const legacyCreditsForUsd = (() => {
+  const i = pricing.indexOf('export function legacyCreditsForUsd')
+  const fn = pricing.slice(i, pricing.indexOf('\n}', i) + 2)
+  const exp = {}
+  vm.runInNewContext(ts.transpileModule(fn, { compilerOptions: { module: 1, target: 9 } }).outputText, { exports: exp, LEGACY_V5_PRICES_USD: V5_PRICES, LEGACY_TIER_CREDITS_V5: LEGACY_V5, LEGACY_TIER_CREDITS_V6: LEGACY })
+  return exp.legacyCreditsForUsd
+})()
+checa('tabelas lidas do arquivo real (TIER_CREDITS, LEGACY V6, LEGACY V5 + piso V5, ANNUAL_PRICES com starter/basic/pro) e a escada real transpilada',
+  ['starter', 'basic', 'pro'].every((t) => TIER_CREDITS[t] > 0 && LEGACY[t] > 0 && LEGACY_V5[t] > 0 && V5_PRICES[t] > 0 && ANNUAL[t]?.usd > 0) && typeof legacyCreditsForUsd === 'function')
 
 // ── módulo puro, transpilado e executado com as tabelas injetadas no lugar do import ──
 const src = rd('lib/billing/annualRefill.ts')
@@ -46,7 +58,7 @@ vm.runInNewContext(js, {
   exports: exp, console, Date, Math, Number, String, Array, Object,
   require: (mod) => {
     if (mod !== '@/lib/checkoutPricing') throw new Error('import inesperado: ' + mod)
-    return { ANNUAL_PRICES: ANNUAL, LEGACY_TIER_CREDITS_V6: LEGACY, TIER_CREDITS }
+    return { ANNUAL_PRICES: ANNUAL, TIER_CREDITS, legacyCreditsForUsd }
   },
 })
 const lib = exp
@@ -68,7 +80,10 @@ checa('período inválido = nada a conceder', lib.annualRefillDueMonths(0, now).
 
 // créditos: vigente × legado
 checa('anual pago ao preço vigente → grant vigente do plano', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, ANNUAL[t].usd, 'usd') === TIER_CREDITS[t]))
-checa('anual pago abaixo do vigente (assinante antigo) → grant antigo', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, ANNUAL[t].usd - 100, 'usd') === LEGACY[t]))
+// KINEO-PRECO-V8-A-2026-09-28 — três degraus da escada, todos executados na função real:
+checa('anual pago abaixo do vigente mas no piso V5 ou acima (ex.: 12800 ≥ 9900) → grant V5 (60/150/300 — o que esse valor comprou)', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, ANNUAL[t].usd - 100, 'usd') === LEGACY_V5[t]))
+checa('anual pago EXATAMENTE no anual V5 (9900/19900/39900, assinante de antes de 28/09) → mantém 60/150/300', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, V5_PRICES[t] * 10, 'usd') === LEGACY_V5[t]))
+checa('anual pago abaixo do piso V5 (assinante V6) → grant V6 (60/150/180)', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, V5_PRICES[t] * 10 - 100, 'usd') === LEGACY[t]))
 checa('fatura em BRL não tem legado a honrar → grant vigente', lib.annualRefillCredits('pro', 1, 'brl') === TIER_CREDITS.pro)
 checa('valor ausente → grant vigente', lib.annualRefillCredits('starter', null, 'usd') === TIER_CREDITS.starter)
 checa('só starter/basic/pro têm anual', lib.annualTierFromMetadata('pro') === 'pro' && lib.annualTierFromMetadata('autopilot') === null && lib.annualTierFromMetadata(undefined) === null)

@@ -848,10 +848,11 @@ async function recordPaymentSuccess(
 // um valor aceito (DFY_ACCEPTED_AMOUNTS_USD_MINOR) em USD e NENHUM metadata.pack. Nota 24/09: 3500/7500
 // coincidem com bulk20/bulk50 (por isso a 3ª regra exige payment_link). Por que 10000 não colidia
 // com nenhum SKU one-time nem com o fallback por valor:
-//   · AMBIGUOUS_ONE_TIME_USD_AMOUNTS = {9900} (Starter anual × piloto);
+//   · AMBIGUOUS_ONE_TIME_USD_AMOUNTS = {} (vazia desde V8-A, 28/09: o Starter anual foi de 9900 para 12900 e o
+//     piloto voltou a ser o único dono de 9900; até então era {9900}, Starter anual × piloto);
 //   · packs: 490 (starter), 290 (starter290); top-ups: 590/1490/1290/5990;
 //   · bulk: 1900/3500/4900/7500; piloto Autopilot: 9900; Autopilot mensal 29900;
-//   · anuais (mode:'subscription' hoje): 9900/19900/39900;
+//   · mensais (subscription): 1290/2990/5490; anuais (mode:'subscription' hoje): 12900/29900/54900;
 //   · legados por valor: 900 e 1900.
 // Nenhum é 10000. O `!pack` é a mesma guarda que o piloto usa: uma sessão da
 // casa SEMPRE carrega metadata.pack, então o fallback por valor só alcança
@@ -1293,10 +1294,11 @@ export async function POST(req: NextRequest) {
           //   2. valor + moeda → só quando NÃO há metadata.pack alguma, isto é,
           //      numa sessão que perdeu a metadata.
           // A condição (2) precisa da guarda `packMeta === ''` porque o preço do
-          // piloto COLIDE com o Starter anual em USD (9900) e em BRL (49900).
-          // Hoje o anual é mode:'subscription' e nem chega neste bloco, mas se um
-          // dia virar pagamento único, sem esta guarda um comprador de plano anual
-          // de $99 sairia daqui com plan='autopilot_pilot'.
+          // piloto COLIDIA com o Starter anual em USD (9900) e em BRL (49900) até
+          // 28/09 (V8-A: Starter anual = 12900 / R$ 649,00). A guarda fica: o anual
+          // é mode:'subscription' e nem chega neste bloco, mas se um dia virar
+          // pagamento único e voltar a empatar, sem ela um comprador de plano anual
+          // sairia daqui com plan='autopilot_pilot'.
           const packMeta = (session.metadata?.pack ?? '').trim()
 
           // KINEO-BULK-2026-07-27 — os pacotes de atacado colidem em VALOR com o

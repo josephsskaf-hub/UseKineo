@@ -19,14 +19,17 @@
 //  · o mês 0 é o da própria fatura (já concedido pelo webhook); aqui vão os
 //    meses 1..11; o mês 12 é a fatura seguinte;
 //  · quem pagou o preço anual ANTIGO (menor que ANNUAL_PRICES vigente) recebe
-//    o grant antigo (LEGACY_TIER_CREDITS_V6), como a renovação mensal faz com
-//    renewalCreditsFor; em BRL o anual só existe desde 09/09 na tabela vigente,
-//    então não há legado a honrar;
+//    o grant que ESSE valor comprou (legacyCreditsForUsd, escada por fatura:
+//    ≥ anual V5 = 60/150/300; abaixo = V6), como a renovação mensal faz com
+//    renewalCreditsFor; em BRL o anual nasceu em 09/09 e todo valor pago
+//    comprou o grant vigente (60/150/300), então não há legado a honrar;
 //  · cinematic_tokens: Studio = 1, demais = 0 (Push #088).
+// KINEO-PRECO-V8-A-2026-09-28 — LEGACY_TIER_CREDITS_V6 direto virou
+// legacyCreditsForUsd(tier, valor, 'annual'): um anual de $99 (V5) segue com 60.
 import {
   ANNUAL_PRICES,
-  LEGACY_TIER_CREDITS_V6,
   TIER_CREDITS,
+  legacyCreditsForUsd,
   type CheckoutTier,
 } from '@/lib/checkoutPricing'
 
@@ -84,7 +87,7 @@ export function annualRefillCredits(
 ): number {
   const cur = typeof currency === 'string' ? currency.trim().toLowerCase() : 'usd'
   if (cur === 'usd' && typeof annualAmountMinor === 'number' && annualAmountMinor > 0 && annualAmountMinor < ANNUAL_PRICES[tier].usd) {
-    return LEGACY_TIER_CREDITS_V6[tier]
+    return legacyCreditsForUsd(tier, annualAmountMinor, 'annual')
   }
   return TIER_CREDITS[tier]
 }

@@ -103,10 +103,29 @@ export type CheckoutCurrency = 'usd'
 // preço, 9.90, 19.90 e 39.90". Motivo medido: a semana de 17/08 (V5, trial grátis,
 // todo motor aberto) foi o recorde de cadastros (243), checkouts (35) e pagantes
 // (3). Os créditos do V7 (60/150/300) FICAM. Preço congelado por 30 dias.
+// ═══ KINEO-PRECO-V8-A-2026-09-28 — ESCADA 13/30/55 (OPÇÃO A) ═══════════════
+// Decisão do fundador (28/09): "subir um pouco o preço, 3 degraus como o
+// mercado" (tier 1 / tier 2 / tier 3, como os pares vendem). Os créditos NÃO
+// mudam (60/150/300); o que sobe é o preço, e o anual segue 10× o mensal.
+//
+//   plano    | V5 restaurada (09/09→28/09) | V8-A (esta tabela)        | margem pior caso*
+//   Starter  | $9,90  / anual $99  / 60cr  | $12,90 / anual $129 / 60cr  | 49%
+//   Creator  | $19,90 / anual $199 / 150cr | $29,90 / anual $299 / 150cr | 42%
+//   Studio   | $39,90 / anual $399 / 300cr | $54,90 / anual $549 / 300cr | 37%
+//   * líquido após Stripe (netAfterStripeUsd) menos worstCaseCogsUsd(créditos),
+//     sobre o líquido — o invariante (3) abaixo é quem confere que nunca fica negativo.
+//
+// QUEM JÁ ASSINA MANTÉM O PREÇO: a Stripe cobra o que está na assinatura. A
+// renovação recebe o grant que a FATURA comprou (renewalCreditsFor, abaixo):
+// quem paga a V5 restaurada (990/1990/3990) continua com 60/150/300 — a régua
+// antiga "abaixo do vigente = V6" mandaria o Studio de $39,90 de 300 para 180.
+//
+// Guardião: scripts/test-preco-v8-A-2026-09-28.mjs (readFileSync, com mutante).
+// Doc: docs/DECISAO-PRECOS-V8-2026-09-28.md — INERTE até o "vai" do fundador.
 export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {
-  starter: { usd: 990 },
-  basic: { usd: 1990 },
-  pro: { usd: 3990 },
+  starter: { usd: 1290 },
+  basic: { usd: 2990 },
+  pro: { usd: 5490 },
 }
 
 // KINEO-AUTOPILOT-299-2026-07-26 — $299/mo done-for-you tier.
@@ -180,9 +199,10 @@ export function monthlyPriceMinor(
 // mensal (dois meses de graça). $70 / $150 / $290.
 export const ANNUAL_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {
   // KINEO-PLANOS-9-19-29-2026-09-08 — anual = 10 meses (2 grátis), padrão do mercado.
-  starter: { usd: 9900 },
-  basic: { usd: 19900 },
-  pro: { usd: 39900 },
+  // KINEO-PRECO-V8-A-2026-09-28 — 10× o mensal novo: $129 / $299 / $549.
+  starter: { usd: 12900 },
+  basic: { usd: 29900 },
+  pro: { usd: 54900 },
 }
 
 export const INTRO_PRICES: Record<CheckoutIntroTier, Record<CheckoutCurrency, number>> = {
@@ -196,8 +216,9 @@ export const INTRO_PRICES: Record<CheckoutIntroTier, Record<CheckoutCurrency, nu
   // KINEO-PRICING-V6-2026-08-19 — segue espelhando TIER_PRICES. Se algum dia
   // voltar a existir intro, é AQUI que ele nasce, e o hasIntroOffer() acende
   // a UI sozinho. Enquanto for igual, nenhuma tela promete desconto.
-  starter: { usd: 990 },
-  basic: { usd: 1990 },
+  // KINEO-PRECO-V8-A-2026-09-28 — espelha o mensal novo (sem 1º mês).
+  starter: { usd: 1290 },
+  basic: { usd: 2990 },
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -459,10 +480,44 @@ export const LEGACY_TIER_CREDITS_V6: Record<CheckoutPlanTier, number> = {
   autopilot_lite: 160,
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-PRECO-V8-A-2026-09-28 — O GRANT LEGADO DEPENDE DO QUE A FATURA COMPROU.
+// A régua "pagou menos que o vigente → V6" foi escrita quando o preço subiu
+// JUNTO com o grant (V7: Studio $29/180 → $59/300). Na V8 só o preço sobe:
+// quem assinou na V5 restaurada (990/1990/3990, de 09/09 a 28/09) comprou
+// exatamente os 60/150/300 de hoje, e cairia para 60/150/180 na primeira
+// renovação depois da subida. Escada por valor pago, em USD (a versão em
+// reais mora no módulo de liquidação, com a tabela BRL — ele importa daqui,
+// nunca o contrário):
+//   · fatura ≥ preço V5 do plano (990/1990/3990; anual 10×) → 60/150/300;
+//   · abaixo disso (V6: $7/$15/$29, ou V7 $14/$29)           → 60/150/180.
+// ═══════════════════════════════════════════════════════════════════════════
+export const LEGACY_V5_PRICES_USD: Record<CheckoutTier, number> = {
+  starter: 990,
+  basic: 1990,
+  pro: 3990,
+}
+export const LEGACY_TIER_CREDITS_V5: Record<CheckoutPlanTier, number> = {
+  starter: 60,
+  basic: 150,
+  pro: 300,
+  autopilot: 400,
+  autopilot_lite: 160,
+}
+
+/** Grant de quem paga MENOS que o vigente, pelo valor da fatura em USD (mensal, ou anual = 10× o piso V5). */
+export function legacyCreditsForUsd(tier: CheckoutPlanTier, amountPaidMinor: number, billing: 'monthly' | 'annual' = 'monthly'): number {
+  if (tier === 'starter' || tier === 'basic' || tier === 'pro') {
+    const floorV5 = LEGACY_V5_PRICES_USD[tier] * (billing === 'annual' ? 10 : 1)
+    if (amountPaidMinor >= floorV5) return LEGACY_TIER_CREDITS_V5[tier]
+  }
+  return LEGACY_TIER_CREDITS_V6[tier]
+}
+
 export function renewalCreditsFor(tier: CheckoutPlanTier, amountPaidMinor: number | null | undefined): number {
   const current = tier === 'autopilot' ? AUTOPILOT_PRICES.usd : tier === 'autopilot_lite' ? AUTOPILOT_LITE_PRICES.usd : TIER_PRICES[tier].usd
   if (typeof amountPaidMinor === 'number' && amountPaidMinor > 0 && amountPaidMinor < current) {
-    return LEGACY_TIER_CREDITS_V6[tier]
+    return legacyCreditsForUsd(tier, amountPaidMinor, 'monthly')
   }
   return TIER_CREDITS[tier]
 }
@@ -674,7 +729,11 @@ export function isBulkPackId(raw: string | null | undefined): raw is BulkPackId 
 // Esta lista é o contrato entre o preço e o webhook: para QUALQUER valor aqui,
 // o webhook resolve SÓ por metadata.pack exata e NUNCA por valor.
 // KINEO-PRICING-V7-2026-09-09 — bulk10 saiu de $99 (era o que colidia com o piloto de $99); a lista fica vazia até a próxima colisão real.
-export const AMBIGUOUS_ONE_TIME_USD_AMOUNTS: ReadonlySet<number> = new Set<number>([9900]) // KINEO-RESTAURACAO-2026-09-09 — Starter anual ($99) colide com o piloto de $99
+// KINEO-RESTAURACAO-2026-09-09 — o Starter anual ($99) colidia com o piloto de $99 e 9900 entrou na lista.
+// KINEO-PRECO-V8-A-2026-09-28 — o Starter anual foi para 12900; 9900 voltou a ter UM dono (o piloto) e o
+// invariante (6) exige que a entrada saia ("stale entries block a legitimate amount fallback"). Lista vazia até a
+// próxima colisão real — o próprio invariante acusa quando ela nascer.
+export const AMBIGUOUS_ONE_TIME_USD_AMOUNTS: ReadonlySet<number> = new Set<number>([])
 
 /** true = este valor em USD não identifica um SKU sozinho. */
 export function isAmbiguousOneTimeUsdAmount(amountMinor: number, currency: string | null | undefined): boolean {

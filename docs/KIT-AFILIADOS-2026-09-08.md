@@ -14,17 +14,17 @@
 
 Earn **30% on every eligible purchase validly attributed to you, paid in USD**. Eligible subscription payments can earn recurring commissions while your referred customer keeps paying. You get your own affiliate link and a dashboard for attributed activity and commissions. The attribution window is **90 days**, using the first eligible affiliate touch. A future purchase or top-up must qualify and retain valid attribution; commission on every future recharge is not guaranteed.
 
-Your audience can **start free with 30 credits, every engine unlocked and no card required**. Free narrated Shorts have a watermark. Paid plans start at **US$9.90/month** and remove the watermark from paid exports. Credit use depends on the engine and video settings; 30 credits do not mean unlimited videos or 30 videos.
+Your audience can **start free with 30 credits, every engine unlocked and no card required**. Free narrated Shorts have a watermark. Paid plans start at **US$12.90/month** and remove the watermark from paid exports. Credit use depends on the engine and video settings; 30 credits do not mean unlimited videos or 30 videos.
 
 Current monthly plans:
 
 | Plan | Monthly USD price | Monthly credits | Brazilian monthly checkout |
 |---|---:|---:|---:|
-| Starter | US$9.90 | 60 | R$49.90 |
-| Creator | US$19.90 | 150 | R$99.90 |
-| Studio | US$39.90 | 300 | R$199.90 |
+| Starter | US$12.90 | 60 | R$64.90 |
+| Creator | US$29.90 | 150 | R$149.90 |
+| Studio | US$54.90 | 300 | R$274.90 |
 
-For full monthly payments actually charged in USD, 30% is US$2.97 on Starter, US$5.97 on Creator, and US$11.97 on Studio. These examples do not apply directly to BRL charges. Cards display USD prices; Brazilian checkout uses the BRL table above. Discounts, failed payments and refunds can change what qualifies. These are not earnings forecasts. Credit amounts describe the plans; output quantity depends on the selected engine and settings.
+For full monthly payments actually charged in USD, 30% is US$3.87 on Starter, US$8.97 on Creator, and US$16.47 on Studio. These examples do not apply directly to BRL charges. Cards display USD prices; Brazilian checkout uses the BRL table above. Discounts, failed payments and refunds can change what qualifies. These are not earnings forecasts. Credit amounts describe the plans; output quantity depends on the selected engine and settings.
 
 ## Payout and activation bonus — approved policy, English wording
 

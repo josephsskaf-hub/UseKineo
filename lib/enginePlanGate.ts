@@ -95,5 +95,7 @@ export function engineDisplayName(engine: string): string {
 }
 
 export function engineGateMessage(engine: string): string {
-  return `${engineDisplayName(engine)} is a Studio engine ($39.90/mo, every engine). Starter and Creator include Kineo 1 and Seedance 1.5.`
+  // KINEO-PRECO-V8-A-2026-09-28 — "$54.90" é literal espelhado de TIER_PRICES.pro (módulo puro, sem import);
+  // o guardião scripts/test-preco-v8-A-2026-09-28.mjs confere a igualdade lendo os dois arquivos.
+  return `${engineDisplayName(engine)} is a Studio engine ($54.90/mo, every engine). Starter and Creator include Kineo 1 and Seedance 1.5.`
 }

@@ -21,13 +21,16 @@ checa('/partners calcula com a fonte e não diz 40%', /const COMMISSION_RATE = A
 for (const f of ['app/(dashboard)/affiliate/page.tsx', 'components/Footer.tsx', 'lib/ui/interfaceLabels.ts', 'lib/ui/interfaceHindi.ts', 'lib/growth/affiliateProgramComparison.ts']) {
   checa(`${f}: 30% e nenhum "40% recurring"`, /30%/.test(rd(f)) && !/40% recurring|40% recurrente/.test(rd(f)))
 }
-checa('kit de afiliados: 30% e $8,70 por Creator', /30% recorrente/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')) && /\$29\/mês → \$8,70/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')))
+// KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: o kit foi reescrito em inglês depois da V7 (a frase "$29/mês → $8,70"
+// não existia mais) e a escada é 12,90/29,90/54,90: 30% do Creator = US$8,97. A prova lê a tabela e o exemplo do kit.
+checa('kit de afiliados: 30% e US$8,97 por Creator (US$29,90)', /30%/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')) && /\| Creator \| US\$29\.90 \| 150 \|/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')) && /US\$8\.97 on Creator/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')))
 
 console.log('== packs de agência no V7 ==')
 const cp = rd('lib/checkoutPricing.ts')
 checa('bulkCreditsFor conta filmes Kineo 1 de 60 s (× custo real), com folga', /const KINEO1_60S_CREDITS = creditCostForDuration\('fast', true, 60\)/.test(cp) && /const base = videos \* KINEO1_60S_CREDITS/.test(cp))
 checa('preços V7: $19 / $35 / $49 / $75', /bulk10: \{ videos: 10, usdMinor: 1900,/.test(cp) && /bulk20: \{ videos: 20, usdMinor: 3500,/.test(cp) && /bulk30: \{ videos: 30, usdMinor: 4900,/.test(cp) && /bulk50: \{ videos: 50, usdMinor: 7500,/.test(cp))
-checa('nenhum pack a $99 (o 9900 ambíguo é o Starter anual, desde a restauração)', !/usdMinor: 9900, credits: bulkCreditsFor/.test(cp) && /AMBIGUOUS_ONE_TIME_USD_AMOUNTS: ReadonlySet<number> = new Set<number>\(\[9900\]\)/.test(cp))
+// KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: o Starter anual foi para 12900 e o 9900 voltou a ter um dono só; a lista fica vazia.
+checa('nenhum pack a $99 (e a lista de ambíguos ficou vazia: Starter anual = 12900 desde V8-A)', !/usdMinor: 9900, credits: bulkCreditsFor/.test(cp) && /AMBIGUOUS_ONE_TIME_USD_AMOUNTS: ReadonlySet<number> = new Set<number>\(\[\]\)/.test(cp))
 {
   // executa a régua do pack: cada pack cobre os N filmes prometidos e custa mais por crédito que o Creator
   // o bloco começa no `export const X`, pula a anotação de tipo (que pode ter

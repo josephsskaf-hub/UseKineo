@@ -31,10 +31,14 @@ const gate = rd('lib/enginePlanGate.ts')
 const door = rd('lib/growth/cleanFilmTrialDoor.ts')
 const ck = rd('app/api/stripe/checkout/route.ts')
 
-console.log('== 1. preço V5 ==')
-checa('TIER_PRICES = 990 / 1990 / 3990', /starter: \{ usd: 990 \},\n  basic: \{ usd: 1990 \},\n  pro: \{ usd: 3990 \},/.test(cp))
-checa('ANNUAL = 9900 / 19900 / 39900', /starter: \{ usd: 9900 \},\n  basic: \{ usd: 19900 \},\n  pro: \{ usd: 39900 \},/.test(cp))
-checa('INTRO = preço cheio (990 / 1990)', /starter: \{ usd: 990 \},\n  basic: \{ usd: 1990 \},\n\}/.test(cp))
+// KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: a restauração de 09/09 trouxe a V5 ($9,90/$19,90/$39,90) de volta;
+// em 28/09 o fundador subiu a escada para $12,90 / $29,90 / $54,90 ("subir um pouco o preço, 3 degraus como o mercado"),
+// créditos intactos. O que este guardião segue provando é a ESTRUTURA da restauração (anual 10×, intro = cheio,
+// 60/150/300); o número vigente e o mutante moram em scripts/test-preco-v8-A-2026-09-28.mjs.
+console.log('== 1. preço V8-A (escada 13/30/55 sobre a estrutura da V5) ==')
+checa('TIER_PRICES = 1290 / 2990 / 5490', /starter: \{ usd: 1290 \},\n  basic: \{ usd: 2990 \},\n  pro: \{ usd: 5490 \},/.test(cp))
+checa('ANNUAL = 12900 / 29900 / 54900 (10×)', /starter: \{ usd: 12900 \},\n  basic: \{ usd: 29900 \},\n  pro: \{ usd: 54900 \},/.test(cp))
+checa('INTRO = preço cheio (1290 / 2990)', /starter: \{ usd: 1290 \},\n  basic: \{ usd: 2990 \},\n\}/.test(cp))
 checa('créditos dos planos intactos (60/150/300)', /starter: 60,\n  basic: 150,\n  pro: 300,/.test(cp))
 
 // KINEO-TRIAL-10-2026-09-16 — fundador reduziu o trial de cadastro novo para 10 ("impulso maior de comprar"). Quem já tinha 30 mantém (trialCapFor).
@@ -83,4 +87,4 @@ checa('kit do PH: sem "$1 for 7 days", com "Free to start"', !/\$1 for 7 days/.t
 
 console.log(`\n  verificacoes: ${ok + falhas.length} · falhas: ${falhas.length}`)
 if (falhas.length) { for (const f of falhas) console.log('  ✗ ' + f); process.exit(1) }
-console.log('OK — restauração: V5 na fonte, entrada grátis de 10 (16/09), $1 morto, motores abertos, copy limpa')
+console.log('OK — restauração: estrutura V5 na fonte (preço V8-A desde 28/09), entrada grátis de 10 (16/09), $1 morto, motores abertos, copy limpa')
