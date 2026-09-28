@@ -1,15 +1,15 @@
 /* Founder-approved White + Graphite, 25 September. Dark remains unchanged. */
 :root {
   color-scheme: light;
-  --bg:#f6f5f2; --sidebar-bg:#fff; --card:#fff; --card2:#f0f1ef;
-  --text:#20252b; --text2:#35404b; --muted:#56616d; --muted2:#5e6873;
-  --border:#dcdedc; --border2:#a9afb6; --indigo:#29343f; --indigo-light:#29343f;
+  --bg:#e3e4e5; --sidebar-bg:#eeeef0; --card:#f4f4f3; --card2:#e7e8e8;
+  --text:#20252b; --text2:#303b45; --muted:#495660; --muted2:#535f68;
+  --border:#c6cacd; --border2:#969da3; --indigo:#29343f; --indigo-light:#29343f;
   --purple:#29343f; --purple-light:#29343f;
   --surface:var(--card); --surface-soft:var(--card2); --accent:#29343f;
-  --accent-soft:#eceeec; --on-accent:#fff; --header-bg:#ffffffed;
+  --accent-soft:#dce0e2; --on-accent:#fff; --header-bg:#eeeef0f5;
   --public-nav:#20252b; --public-nav-text:#f8fafc; --brand:#66b2ff;
   --danger:#b42318; --warning:#915300;
-  --sh-card:0 1px 2px #20252b04,0 5px 18px #20252b04; --sh-card-h:0 8px 24px #20252b0d;
+  --sh-card:0 1px 2px #20252b08,0 5px 18px #20252b06; --sh-card-h:0 8px 24px #20252b12;
   --sh-cta:0 2px 4px #20252b14;
 }
 html[data-theme='dark'], .kineo-admin-theme {

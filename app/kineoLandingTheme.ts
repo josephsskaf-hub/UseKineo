@@ -5,12 +5,12 @@ import gallery from './examples/ExamplesGallery.module.css'
  */
 export const KINEO_LANDING_THEME_CSS = `
 .klp {
-  --bg:#f6f5f2; --s0:#f0f1ef; --card:#fff; --card2:#f0f1ef; --s3:#eceeec;
-  --line:#dcdedc; --line2:#a9afb6; --line3:#818b96;
-  --txt:#20252b; --txt2:#35404b; --muted:#56616d; --muted2:#5e6873;
-  --blue:#29343f; --blue-soft:#eceeec; --home-action:#29343f; --home-on-action:#fff;
-  --home-nav:#20252b; --home-wash:#efeeeb;
-  --sh-card:0 8px 30px #18385908; --sh-card-h:0 12px 36px #18385912;
+  --bg:#e3e4e5; --s0:#e7e8e8; --card:#f4f4f3; --card2:#e7e8e8; --s3:#dce0e2;
+  --line:#c6cacd; --line2:#969da3; --line3:#75808a;
+  --txt:#20252b; --txt2:#303b45; --muted:#495660; --muted2:#535f68;
+  --blue:#29343f; --blue-soft:#dce0e2; --home-action:#29343f; --home-on-action:#fff;
+  --home-nav:#20252b; --home-wash:#dce0e2;
+  --sh-card:0 1px 2px #20252b08,0 5px 18px #20252b06; --sh-card-h:0 8px 24px #20252b12;
   --sh-cta:0 2px 4px #20252b14;
   color-scheme:light;
   background:radial-gradient(ellipse 1100px 650px at 0 0,var(--home-wash),transparent 72%),var(--bg);

@@ -15,4 +15,8 @@
 
 **LIMITAÇÃO:** prévia offline, sem efeitos React ou integrações. Biblioteca usa uma imagem de demonstração; saldo é fictício. Não valida checkout ou geração. As telas recebem os estilos compartilhados, mas não há alegação de validação exaustiva de todos os estados do produto.
 
-**ESTADO:** alterações locais e comparação prontas para avaliação visual; esta rodada ainda não publicada. Diretório de entrega: `C:/Users/josep/Documents/Codex/2026-09-21/kineo-ux-ui/outputs/polish-20260928/`.
+**IMPLEMENTADO:** rodada de acabamento registrada em `cab1668b` após aprovação do fundador nesta conversa. Complemento solicitado: Light menos claro, com fundo `#e3e4e5`, cards `#f4f4f3`, bordas e texto secundário mais definidos (`app/appearance.css:4`, `app/kineoLandingTheme.ts:8`).
+
+**TESTADO LOCALMENTE (28/09):** contraste calculado por luminância relativa dos nove pares de texto principal/secundário/muted2 sobre bg/card/card2: mínimo 5,15:1. Os blocos de tokens Dark são idênticos aos de `cab1668b`. Não equivale a certificação integral de acessibilidade.
+
+**ESTADO:** publicação será confirmada pelo estado do deployment; este documento não afirma validação em produção. Comparação acumulada em `outputs/polish-20260928/`; contraste Light contra a rodada aprovada em `C:/Users/josep/Documents/Codex/2026-09-21/kineo-ux-ui/outputs/light-contrast-20260928/antes-depois.html`.

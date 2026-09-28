@@ -8,7 +8,7 @@ import { renderPage } from './preview-ux-complete.mjs'
 const require=createRequire(import.meta.url)
 const postcss=require('postcss'),tailwind=require('tailwindcss')
 const ts=require('typescript'),React=require('react'),{renderToStaticMarkup}=require('react-dom/server')
-const base='799133fd',out=process.argv[2]
+const base=process.argv[3]??'799133fd',out=process.argv[2]
 if(!out)throw Error('Output directory required')
 const read=(file,before)=>before?execFileSync('git',['show',`${base}:${file}`],{encoding:'utf8',maxBuffer:16*1024*1024}):fs.readFileSync(file,'utf8')
 const font=`@font-face{font-family:PreviewManrope;src:url(data:font/woff2;base64,${fs.readFileSync('public/design/business-ads-20260924/manrope-latin.woff2').toString('base64')}) format('woff2');font-weight:200 800;font-display:swap}`
