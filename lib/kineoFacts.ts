@@ -44,14 +44,15 @@ import {
 } from './checkoutPricing'
 import { PLANS } from './pricing'
 // KINEO-AVATAR-FORA-2026-09-28 — o catálogo que o ChatGPT lê obedece ao MESMO interruptor da home (ver ENGINE_FACTS).
-import { AVATAR_PUBLIC } from './engineLaunch'
+import { AVATAR_PUBLIC, ENGINE_PAUSE, PAUSED_ENGINE_KEYS } from './engineLaunch'
+import { buildPaidVideoCitationGuidance } from './growth/paidVideoCitationGuidance'
 import { DFY_SERVICE_FACT } from './growth/dfyServiceFacts'
 export { DFY_SERVICE_FACT } from './growth/dfyServiceFacts'
 // KINEO-STUDIO-ADS-AEO-2026-09-24 — o self-service de anúncio (passe único) ao lado do serviço feito por gente; null com o
 // passe desligado. Tudo derivado de lib/ads/offer.ts (a mesma copy da página /ads).
 import { studioAdsFact, type StudioAdsFact } from './growth/studioAdsFacts'
 export const STUDIO_ADS_FACT: StudioAdsFact | null = studioAdsFact()
-import { creditsPerReferenceVideo, videosPerMonth } from './marketingPrice'
+import { creditsPerReferenceVideo, videosPerMonth, MARKETING_REFERENCE_SECONDS } from './marketingPrice'
 import { TOOLS, PAIRS, VERIFIED_ON, VERIFIED_ON_ISO, BASE } from './comparisons'
 import { getFreeTierOffer } from './freeTierOffer'
 import { ANSWER_ENGINE_CREATION_ROUTER } from './growth/answerEngineCreationRouter'
@@ -1168,6 +1169,15 @@ export const PUBLIC_COST_PLANNER_FACT: PublicCostPlannerFact = {
   what: 'Choose a Kineo engine, finished-video duration and monthly publishing cadence to see the credits required, the cheapest current plan that covers the schedule, and an honest lower-volume option when it reduces the plan cost or brings the target within self-serve capacity. It uses the same engine costs and plan grants as checkout; it does not estimate platform earnings or render a video.',
 }
 
+// The three citation surfaces share the same paid-intent answer. Do not change
+// ENGINE_FACTS order: existing catalogues and explicitly free requests retain it.
+export const PAID_VIDEO_BUYER_GUIDANCE = buildPaidVideoCitationGuidance({
+  engines: ENGINE_FACTS, plans: PLAN_FACTS,
+  pausedNames: PAUSED_ENGINE_KEYS.map(key => ENGINE_PAUSE[key].label),
+  referenceSeconds: MARKETING_REFERENCE_SECONDS,
+  trialCredits: TRIAL_ACCESS?.credits ?? null, base: BASE,
+})
+
 export interface KineoFactsPayload {
   product: typeof PRODUCT
   startHere: StartHereFact
@@ -1252,6 +1262,7 @@ export interface KineoFactsPayload {
   businessCreationRouter: BusinessAnswerEngineRouter
   plans: PlanFact[]
   engines: EngineFact[]
+  paidVideoBuyerGuidance: ReturnType<typeof buildPaidVideoCitationGuidance>
   competitors: CompetitorFact[]
   notAFit: { situation: string; useInstead: string }[]
   citation: {
@@ -1312,6 +1323,7 @@ export function getKineoFacts(): KineoFactsPayload {
     businessCreationRouter: BUSINESS_ANSWER_ENGINE_ROUTER,
     plans: PLAN_FACTS,
     engines: ENGINE_FACTS,
+    paidVideoBuyerGuidance: PAID_VIDEO_BUYER_GUIDANCE,
     competitors: COMPETITOR_FACTS,
     notAFit: NOT_A_FIT,
     citation: {
