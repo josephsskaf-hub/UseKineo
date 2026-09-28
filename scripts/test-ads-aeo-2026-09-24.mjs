@@ -35,15 +35,18 @@ for (const ext of ['.ts', '.tsx']) {
   }
 }
 const limpaCache = () => { for (const k of Object.keys(require.cache)) if (k.startsWith(RAIZ) && !k.includes('node_modules')) delete require.cache[k] }
-async function renderiza(envLive) {
+async function renderiza(envLive, v2Public, changedCredits) {
   limpaCache()
   if (envLive === undefined) delete process.env.NEXT_PUBLIC_ADS_PASS_LIVE
   else process.env.NEXT_PUBLIC_ADS_PASS_LIVE = envLive
+  const tiers = require(join(RAIZ, 'lib/ads/v2Tiers.ts'))
+  if (v2Public !== undefined) tiers.ADS_V2_PUBLIC = v2Public
+  if (changedCredits !== undefined) tiers.ADS_V2_TIERS.photo_motion.credits15 = changedCredits
   const llms = await (await require(join(RAIZ, 'app/llms.txt/route.ts')).GET()).text()
   const facts = JSON.parse(await require(join(RAIZ, 'app/api/facts/route.ts')).GET().text())
   const offer = require(join(RAIZ, 'lib/ads/offer.ts'))
   const models = require(join(RAIZ, 'lib/ads/models.ts'))
-  return { llms, facts, offer, models }
+  return { llms, facts, offer, models, tiers }
 }
 
 // ── 1. passe ligado (padrão do código) ─────────────────────────────────────────────────────────────────
@@ -63,7 +66,7 @@ ok(f && f.url === 'https://www.usekineo.com/ads' && f.price === copy.price && f.
 const n35 = on.models.ADS_MODELS.filter((m) => m.seconds === 35).length
 const n60 = on.models.ADS_MODELS.filter((m) => m.seconds === 60).length
 ok(f && f.models.total === on.models.ADS_MODELS.length && f.models.seconds35 === n35 && f.models.seconds60 === n60 && n35 + n60 === on.models.ADS_MODELS.length, `1j. contagem de modelos vem de ADS_MODELS (${n35} de 35 s + ${n60} de 60 s)`)
-ok(f && f.credits === on.offer.ADS_PASS_CREDITS && f.accessDays === on.offer.ADS_PASS_ACCESS_DAYS && JSON.stringify(f.includes) === JSON.stringify(copy.includes), '1k. créditos, dias de acesso e includes no JSON são os de offer.ts')
+ok(f && f.credits === on.offer.ADS_PASS_CREDITS && f.accessDays === on.offer.ADS_PASS_ACCESS_DAYS && JSON.stringify(f.classic.includes) === JSON.stringify(copy.includes), '1k. créditos/dias do passe e benefícios classic vêm de offer.ts; não contam como benefícios v2')
 ok(on.facts.businessVideoService && on.facts.businessVideoService.humanOperated === true, '1l. o serviço feito por gente (Empresas) segue no JSON ao lado')
 
 // Pedido direto 25/09: apresentação principal deve incluir empresas, sem
@@ -87,6 +90,19 @@ ok(['free', 'starter_trial', 'basic_trial', 'pro_trial', 'unknown'].every((plan)
 ok(f.access.subscriberNeedsPass === false && f.access.usesPlanCredits === true && f.description.includes(f.access.summary) && f.routingRule.includes(f.access.summary) && bloco.includes(f.access.summary), '1u. descrição isolada, roteamento e llms deixam claro plano sem passe e uso de créditos')
 ok(bloco.includes('not an extra grant to subscribers') && schemaAds.description.includes('describe the optional one-time pass'), '1v. benefício do passe não vira crédito adicional de assinatura')
 ok(schemaAds.properties.access.properties.subscriberNeedsPass.const === false && schemaAds.properties.access.properties.usesPlanCredits.const === true && schemaAds.properties.access.properties.trialIncluded.const === false, '1w. schema e resposta real concordam sobre acesso e trial')
+
+// 28/09: product switch must change the actual routes, not just a new helper.
+ok(on.tiers.ADS_V2_PUBLIC && f.v2 && f.modelsScope === 'classic', 'v2a. flag pública projeta v2 e identifica escopo legado dos modelos')
+ok(f.v2.tiers.length === on.tiers.ADS_V2_TIER_IDS.length && f.v2.tiers.every(t => t.credits === on.tiers.adsV2Credits(t.id, f.v2.referenceSeconds) && t.adsPerPass === Math.floor(f.credits / t.credits)), 'v2b. custo e capacidade por nível vêm da calculadora real, com floor')
+ok(f.v2.tiers.every(t => bloco.includes(`${t.name}: ${t.credits} credits`)), 'v2c. mesmos custos no JSON e llms')
+ok(f.includes.every(line => !/human checks|\b20 ads|\b12 of 60|captions/.test(line)) && f.v2.limits.some(line => line.includes('No word-by-word captions or human review')), 'v2d. nenhuma promessa clássica herdada pelo v2')
+ok(f.classic.url.endsWith('/ads/new?classic=1') && bloco.includes(f.classic.url) && bloco.includes('benefits apply to classic only'), 'v2e. clássico continua alcançável com escopo explícito')
+ok(schemaAds.properties.v2.type.includes('null') && schemaAds.properties.modelsScope.const === 'classic', 'v2f. schema preserva gate e distinção dos produtos')
+const internal = await renderiza(undefined, false)
+ok(internal.facts.studioAds.v2 === null && !internal.llms.includes('Current workflow tiers') && !internal.facts.studioAds.description.includes('photo-motion'), 'v2g. flag falsa retira recomendação v2 nas rotas reais')
+ok(JSON.stringify(internal.facts.studioAds.includes) === JSON.stringify(copy.includes) && internal.llms.includes(copy.includes[0]), 'v2h. flag falsa restaura clássico sem perder acesso por assinatura')
+const altered = await renderiza(undefined, true, 61)
+ok(altered.facts.studioAds.v2.tiers[0].credits === 61 && altered.facts.studioAds.v2.tiers[0].adsPerPass === 0 && altered.llms.includes('Photo motion: 61 credits'), 'v2i. mudança na fonte canônica atravessa ambas as rotas, sem inventar capacidade do passe')
 
 // ── 2. passe desligado (emergência: NEXT_PUBLIC_ADS_PASS_LIVE=0 + deploy) ──────────────────────────────
 const off = await renderiza('0')
