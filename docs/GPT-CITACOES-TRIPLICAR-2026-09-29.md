@@ -15,20 +15,31 @@ Para a sessão do Codex "Kineo · Citações no ChatGPT". Pedido do fundador (28
 
 O ChatGPT traz metade dos cadastros e 5 de cada 6 pagantes. Medição de 22/09 (memória da casa): entre as páginas citadas, só a do Seedance (/ai-video-generator/seedance) gerou pagante; a do Kineo 1 teve 175 sessões, 94 contas e 0 pagantes. Motor grátis atrai quem fica grátis. Quem paga está em US, ES, GB, NL; IN (131 cadastros), NG e PK não pagaram ninguém.
 
-## Meta
+## Meta (revista pelo fundador em 29/09: "5 pagantes por mês é muito pouco, aumenta")
 
-Em 30 dias: de 331 cadastros e 5 pagantes/mês vindos do ChatGPT para ~1.000 cadastros e 15 pagantes/mês. O que conta é visita → conta → pagamento no NOSSO banco. Painel do Bing (Copilot) não conta: 10,1 mil citações deram 1 visitante.
+A meta da casa é 10 a 15 pagantes POR DIA (fundador, 06/09). O ChatGPT é o canal que já paga, então ele carrega a maior parte dela.
+
+**Meta de 30 dias: 50 pagantes/mês vindos do ChatGPT (10x o de hoje).** A conta: com ~2% de conversão (as portas pagas convertem mais que o 1,5% atual), 50 pagantes pedem ~2.500 cadastros/mês do ChatGPT (7,5x os 332 de hoje). Isso só vem aparecendo em MUITO mais perguntas de compra, e cada resposta mandando para uma porta paga.
+
+| Semana | Pagantes do ChatGPT na semana | O que tem de estar feito |
+|---|---|---|
+| 1 | 3 | linha de base; 100 perguntas de compra mapeadas; 20 portas corrigidas ou criadas |
+| 2 | 6 | +20 portas; fatos errados corrigidos na fonte; 5 línguas |
+| 3 | 10 | +20 portas; Studio Ads v2 citado em todas as perguntas de anúncio (se já PÚBLICO) |
+| 4 | 15 | +20 portas; o que não trouxe cadastro em 14 dias é refeito ou descartado |
+
+O que conta é visita → conta → pagamento no NOSSO banco. Painel do Bing (Copilot) não conta: 10,1 mil citações deram 1 visitante. Se a semana ficar abaixo da linha, o relatório diz por que e o que muda na semana seguinte; nada de maquiar a medição.
 
 ## O que fazer (execução contínua, lotes de 10 ações, relatório a cada lote)
 
 1. **Linha de base diária.** Rodar a consulta do fim deste documento todo dia e registrar no relatório. Costurar anônimo → conta por `events.session_id`.
-2. **Descobrir o que o ChatGPT responde hoje.** Montar 30 perguntas de COMPRA (não de curiosidade), em EN primeiro e depois ES/PT/NL/DE, dos dois públicos que pagam:
+2. **Descobrir o que o ChatGPT responde hoje.** Montar 100 perguntas de COMPRA (não de curiosidade), em EN primeiro e depois ES/PT/NL/DE, dos dois públicos que pagam:
    - criadores que querem vídeo cinematográfico: "best AI video generator with Kling 3 / Seedance / Veo", "AI cinematic short film maker", "Higgsfield alternative", "InVideo alternative cheaper";
    - pequenos negócios que querem anúncio: "AI ad maker from my own photos", "video ad for my restaurant from photos", "animate product photos into an ad", "AI commercial for small business", "Higgsfield marketing studio alternative".
    Registrar para cada uma: a Kineo aparece? em que posição? com qual URL? com fato certo ou errado?
 3. **Dar ao ChatGPT a página certa para cada pergunta que paga.** Para cada pergunta sem a Kineo ou com fato errado: garantir uma página que responda de forma honesta, com o produto pago certo e o preço certo na primeira dobra (portas pagas: motores cinematográficos e Studio Ads). Priorizar melhorar e ligar as páginas que já existem (/ai-video-generator/*, /vs/*, /ads, /ads/for/[setor], /llms.txt, /api/facts, fatos do GPT) antes de criar página nova. Toda página nova entra no sitemap e no llms.txt.
 4. **Corrigir fato errado onde ele nasce.** Se o ChatGPT repete preço, trial ou motor errado, achar a fonte (página nossa velha, diretório, llms.txt) e corrigir.
-5. **Medir de novo** as mesmas 30 perguntas a cada 3 dias e cruzar com a linha de base do banco.
+5. **Medir de novo** as mesmas 100 perguntas a cada 3 dias e cruzar com a linha de base do banco.
 
 ## Produto novo: Studio Ads v2 (anúncio com as fotos do próprio negócio)
 
