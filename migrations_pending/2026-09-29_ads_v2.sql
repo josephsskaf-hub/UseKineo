@@ -42,7 +42,20 @@ create table if not exists public.ads_v2_orders (
   updated_at timestamptz not null default now(),
   started_at timestamptz,
   delivered_at timestamptz,
-  failed_at timestamptz
+  failed_at timestamptz,
+  -- ETAPA 2 (servidor, 28/09) — colunas que as rotas e o motor de avanço (lib/ads/v2Advance.ts) leem e escrevem.
+  -- Fotos do pedido JÁ conferidas no user_footage do dono: [{ footage_id, kind, url }] (3 a 7).
+  photos jsonb,
+  card_footage_id text,
+  voice_seconds numeric(6, 3),
+  -- Montagem: a trava de preparo (música/voz) e o carimbo gravado ANTES do POST ao Creatomate. Com o carimbo e sem
+  -- creatomate_render_id, o envio é AMBÍGUO: nunca reenviar (passado o prazo, o pedido falha e o crédito volta).
+  assembly_lease_at timestamptz,
+  assembly_submit_at timestamptz,
+  -- Refação cobrada à parte = um pedido NOVO com id determinístico (pai, plano, linha substituída) e chave
+  -- 'adsv2redo-<id>'; os planos prontos do pai são copiados e só o plano refeito vai à fal.
+  parent_order_id uuid references public.ads_v2_orders (id) on delete set null,
+  retake_idx integer check (retake_idx is null or (retake_idx >= 0 and retake_idx <= 31))
 );
 
 comment on table public.ads_v2_orders is
@@ -75,6 +88,15 @@ create table if not exists public.ads_v2_shots (
   measured_seconds numeric(6, 3),
   usd numeric(8, 4) check (usd is null or usd >= 0),
   reason text,
+  -- ETAPA 2: classe do motivo (lib/cinematic/sceneDisposition.ts), variante de movimento e os carimbos de envio.
+  -- *_claimed_at é gravado ANTES do POST à fal pelo UPDATE condicional que decide quem envia (tela e cron juntos
+  -- nunca mandam o mesmo plano duas vezes); sem request_id depois de 20 min = ambíguo vencido → falha.
+  reason_class text,
+  movement_variant integer not null default 0,
+  image_submit_claimed_at timestamptz,
+  submit_claimed_at timestamptz,
+  submitted_at timestamptz,
+  fal_done_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (order_id, idx, attempt),

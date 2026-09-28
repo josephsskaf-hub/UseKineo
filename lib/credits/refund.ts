@@ -118,6 +118,7 @@ export async function sweepStuckRenderDebits(): Promise<{
     .not('render_id', 'like', 'gesture-%')
     .not('render_id', 'like', 'cinematic-%')
     .not('render_id', 'like', 'avatar-%')
+    .not('render_id', 'like', 'adsv2%') // KINEO-ADS-V2-2026-09-28: adsv2-/adsv2redo- são varridos por sweepAbandonedAdsV2Debits (abaixo)
     .order('created_at', { ascending: false })
     .limit(200)
 
@@ -573,6 +574,104 @@ export async function sweepAbandonedAvatarDebits(): Promise<{
         name: 'credits_refunded',
         path: '/api/cron/refund-sweep',
         metadata: { billing_reference: renderId, amount: refunded.credits, reason: 'abandoned_avatar' },
+      })
+    }
+  }
+  return result
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-ADS-V2-2026-09-28 — a rede de estorno do anúncio v2 (Studio Ads com foto real animada).
+//
+// POR QUE UMA VARREDURA PRÓPRIA: o anúncio v2 debita NO INÍCIO (chave 'adsv2-<order>-<generation>') e passa minutos
+// na fal (Kling O3 ~2 min por plano) antes da montagem; a refação ('adsv2redo-<id>') idem. A varredura genérica acima
+// estornaria todo pedido em andamento há mais de 2 h — por isso o prefixo 'adsv2%' está excluído lá — e quem decide
+// aqui é a TABELA DO PEDIDO (ads_v2_orders.billing_ref = chave do débito), não a ausência de linha em videos.
+//
+// REGRAS (falha FECHADA — qualquer erro de leitura pula a linha e tenta na hora seguinte):
+//   · pedido 'delivered' ou com linha em videos (render_id = chave) → ENTREGOU, nunca estorna;
+//   · pedido 'failed'/'cancelled' (ou rascunho/planejado com débito órfão) → estorna (idempotente no RPC);
+//   · pedido 'generating'/'assembling' iniciado há mais de 2 h → UPDATE condicional →failed; só o VENCEDOR estorna;
+//   · débito sem pedido nenhum → não estorna (não há prova de nada) e aparece no log como ambíguo.
+// ═══════════════════════════════════════════════════════════════════════════
+const ADS_V2_ABANDON_CUTOFF_MS = 2 * 60 * 60 * 1000
+
+export async function sweepAbandonedAdsV2Debits(): Promise<{
+  scanned: number
+  refunded: number
+  creditsReturned: number
+  stalledFailed: number
+  ambiguous: number
+}> {
+  const result = { scanned: 0, refunded: 0, creditsReturned: 0, stalledFailed: 0, ambiguous: 0 }
+  const db = adminClient()
+  if (!db) return result
+  const cutoff = new Date(Date.now() - ADS_V2_ABANDON_CUTOFF_MS).toISOString()
+  const { data: debits, error } = await db
+    .from('credit_debits')
+    .select('render_id, user_id, amount, created_at')
+    .eq('kind', 'video')
+    .is('refunded_at', null)
+    .like('render_id', 'adsv2%')
+    .lt('created_at', cutoff)
+    .order('created_at', { ascending: true })
+    .limit(200)
+  if (error) {
+    console.error('[refund/ads-v2-sweep] debit query failed:', error.message)
+    return result
+  }
+  const candidates = (debits ?? []) as { render_id: string; user_id: string; amount: number }[]
+  result.scanned = candidates.length
+  if (candidates.length === 0) return result
+  const refs = candidates.map((d) => d.render_id)
+
+  const { data: orders, error: ordersErr } = await db
+    .from('ads_v2_orders')
+    .select('id, user_id, status, billing_ref, started_at, video_id')
+    .in('billing_ref', refs)
+  if (ordersErr) {
+    // Tabela ainda não aplicada (42P01/PGRST205) ou leitura fora: não estorna nada.
+    console.error('[refund/ads-v2-sweep] orders lookup failed — skipping:', ordersErr.message)
+    return result
+  }
+  const { data: vids, error: vidErr } = await db.from('videos').select('render_id').in('render_id', refs)
+  if (vidErr) {
+    console.error('[refund/ads-v2-sweep] videos lookup failed — skipping:', vidErr.message)
+    return result
+  }
+  const delivered = new Set((vids ?? []).map((v) => v.render_id as string))
+  const byRef = new Map<string, { id: string; user_id: string; status: string; billing_ref: string; started_at: string | null; video_id: string | null }>()
+  for (const o of (orders ?? []) as { id: string; user_id: string; status: string; billing_ref: string; started_at: string | null; video_id: string | null }[]) {
+    byRef.set(o.billing_ref, o)
+  }
+
+  for (const d of candidates) {
+    const order = byRef.get(d.render_id)
+    if (!order || order.user_id !== d.user_id) { result.ambiguous += 1; continue }
+    if (order.status === 'delivered' || order.video_id || delivered.has(d.render_id)) continue
+    if (order.status === 'generating' || order.status === 'assembling') {
+      const started = Date.parse(order.started_at ?? '')
+      if (!Number.isFinite(started) || started > Date.now() - ADS_V2_ABANDON_CUTOFF_MS) continue
+      const won = await db
+        .from('ads_v2_orders')
+        .update({ status: 'failed', failed_at: new Date().toISOString(), error: 'swept_stalled_2h' })
+        .eq('id', order.id)
+        .in('status', ['generating', 'assembling'])
+        .is('video_id', null)
+        .select('id')
+        .maybeSingle()
+      if (won.error || !won.data) continue
+      result.stalledFailed += 1
+    }
+    const amount = await refundRenderCredits(d.render_id)
+    if (amount > 0) {
+      result.refunded += 1
+      result.creditsReturned += amount
+      await db.from('events').insert({
+        user_id: d.user_id,
+        name: 'credits_refunded',
+        path: '/api/cron/refund-sweep',
+        metadata: { billing_reference: d.render_id, order_id: order.id, amount, reason: 'abandoned_ads_v2' },
       })
     }
   }

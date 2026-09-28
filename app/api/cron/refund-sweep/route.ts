@@ -60,7 +60,7 @@
 // (:05/:35 winback, :10/:40 video-ready, :15/:45 cap-hit, :40 activation,
 // :50 post-nudge, :55 trial-downgrade, :00 autopilot).
 import { NextRequest, NextResponse } from 'next/server'
-import { sweepAbandonedAvatarDebits, sweepAbandonedCinematicDebits, sweepStuckRenderDebits } from '@/lib/credits/refund'
+import { sweepAbandonedAdsV2Debits, sweepAbandonedAvatarDebits, sweepAbandonedCinematicDebits, sweepStuckRenderDebits } from '@/lib/credits/refund'
 import { sweepPublishedAnimateJobs, sweepStaleAnimateClaims } from '@/lib/animate/service'
 
 export const dynamic = 'force-dynamic'
@@ -160,9 +160,20 @@ export async function GET(req: NextRequest) {
     console.error('[cron/refund-sweep] abandoned-avatar sweep failed:', msg)
   }
 
+  // KINEO-ADS-V2-2026-09-28 — o anúncio v2 debita no início (adsv2-/adsv2redo-) e fica fora da varredura genérica;
+  // esta é a rede dele, guiada por ads_v2_orders (pedido failed/cancelled ou parado > 2 h sem entrega → estorno).
+  const adsV2 = { scanned: 0, refunded: 0, creditsReturned: 0, stalledFailed: 0, ambiguous: 0 }
+  try {
+    Object.assign(adsV2, await sweepAbandonedAdsV2Debits())
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    errors.push(`abandoned_ads_v2: ${msg}`)
+    console.error('[cron/refund-sweep] abandoned-ads-v2 sweep failed:', msg)
+  }
+  console.log('[cron/refund-sweep] ads_v2', JSON.stringify(adsV2))
   console.log('[cron/refund-sweep]', JSON.stringify({ renders, animate, cinematic, animatePublished, avatar, errors }))
 
   // 200 mesmo com erro parcial: as três varreduras são idempotentes e rodam de
   // novo na hora seguinte. Um 5xx aqui só produziria ruído sem ação possível.
-  return NextResponse.json({ ok: errors.length === 0, renders, animate, cinematic, animatePublished, errors })
+  return NextResponse.json({ ok: errors.length === 0, renders, animate, cinematic, animatePublished, adsV2, errors })
 }

@@ -155,6 +155,10 @@
     {
       "path": "/api/admin/reconcile-dunning?confirm=APPLY",
       "schedule": "47 * * * *"
+    },
+    {
+      "path": "/api/cron/ads-v2-advance",
+      "schedule": "2-57/5 * * * *"
     }
   ]
 }

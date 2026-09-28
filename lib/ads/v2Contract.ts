@@ -167,3 +167,52 @@ export function sanitizeRetakeBody(raw: unknown): AdsV2Sanitized<AdsV2RetakeBody
   if (typeof c !== 'number' || !Number.isInteger(c) || c < 1 || c > ADS_V2_MAX_RETAKE_CREDITS) return fail('bad_expected_credits')
   return { ok: true, value: { order_id: (b.order_id as string).toLowerCase(), idx: b.idx, expected_credits: c } }
 }
+
+export interface AdsV2AssetsBody {
+  logo_footage_id: string | null
+  /** Cartão final (PNG 1080×1920 desenhado no navegador por lib/ads/endCard.ts e enviado ao user_footage). */
+  card_footage_id: string | null
+  /** null = não mandou fotos ainda (o rascunho pode nascer só com a frase); mandou = 3 a 7, sem repetir. */
+  photos: AdsV2PlanPhoto[] | null
+}
+
+/**
+ * ETAPA 2 — os arquivos que o rascunho (POST /api/ads/v2/orders) e o plano (POST /api/ads/v2/plan) podem trazer:
+ * logo, cartão final e fotos com o tipo marcado. Tudo opcional aqui; o /start exige plano e cartão. Mesmas regras
+ * das fotos do plano: uuid, tipo no enum, sem repetir, logo e cartão nunca contam como foto.
+ */
+export function sanitizeAssetsBody(raw: unknown): AdsV2Sanitized<AdsV2AssetsBody> {
+  const b = obj(raw)
+  if (!b) return fail('bad_body')
+  let logo: string | null = null
+  if (b.logo_footage_id !== undefined && b.logo_footage_id !== null) {
+    if (!isUuid(b.logo_footage_id)) return fail('bad_logo_footage_id')
+    logo = (b.logo_footage_id as string).toLowerCase()
+  }
+  let card: string | null = null
+  if (b.card_footage_id !== undefined && b.card_footage_id !== null) {
+    if (!isUuid(b.card_footage_id)) return fail('bad_card_footage_id')
+    card = (b.card_footage_id as string).toLowerCase()
+  }
+  if (logo && card && logo === card) return fail('card_is_logo')
+  let photos: AdsV2PlanPhoto[] | null = null
+  if (b.photos !== undefined && b.photos !== null) {
+    if (!Array.isArray(b.photos)) return fail('bad_photos')
+    if (b.photos.length < ADS_V2_CONTRACT_MIN_PHOTOS) return fail('too_few_photos')
+    if (b.photos.length > ADS_V2_CONTRACT_MAX_PHOTOS) return fail('too_many_photos')
+    photos = []
+    const seen = new Set<string>()
+    for (const item of b.photos) {
+      const p = obj(item)
+      if (!p || !isUuid(p.footage_id)) return fail('bad_photo_id')
+      if (typeof p.kind !== 'string' || !(ADS_V2_CONTRACT_PHOTO_KINDS as readonly string[]).includes(p.kind)) return fail('bad_photo_kind')
+      const id = (p.footage_id as string).toLowerCase()
+      if (seen.has(id)) return fail('duplicate_photo')
+      if (id === logo) return fail('logo_is_photo')
+      if (id === card) return fail('card_is_photo')
+      seen.add(id)
+      photos.push({ footage_id: id, kind: p.kind as AdsV2ContractPhotoKind })
+    }
+  }
+  return { ok: true, value: { logo_footage_id: logo, card_footage_id: card, photos } }
+}
