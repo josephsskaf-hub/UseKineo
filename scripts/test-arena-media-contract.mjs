@@ -50,7 +50,9 @@ for (const id of fighterIds) {
   check(fs.existsSync(path.join(root, 'public', posterPath.slice(1))), `${id} poster file exists`)
 }
 
-const kineoOne = examples.getPublicEngineExample('c87c3a25-c3b7-4a97-8429-eb0fc98b67bc')
+// 28/09: vitrine sem filme de cliente — o Kineo 1 da vitrine passa a ser o render do fundador 0ab3e871 (o anterior era de
+// uma conta externa, marcado por engano como do fundador). Guardião próprio: test-vitrine-sem-filme-de-cliente-2026-09-28.
+const kineoOne = examples.getPublicEngineExample('0ab3e871-2c99-4f6e-9f3c-59773208b12e')
 check(kineoOne?.engine === 'fast', 'Kineo 1 resolves to the approved Fast render')
 check(kineoOne?.videoPath.startsWith('https://cqqukkvjjrguayiyjvhh.supabase.co/storage/'), 'home keeps the founder-selected Kineo 1 render')
 check(kineoOne?.arenaPreviewPath === '/videos/example-turkmenistan.mp4', 'Arena uses the lightweight approved Kineo 1 preview')

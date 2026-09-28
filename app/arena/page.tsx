@@ -114,7 +114,7 @@ const FIGHTERS: Fighter[] = [
     badge: 'KINEO 1',
     engineParam: 'fast',
     quality: 'fast',
-    exampleId: 'c87c3a25-c3b7-4a97-8429-eb0fc98b67bc',
+    exampleId: '0ab3e871-2c99-4f6e-9f3c-59773208b12e', // 28/09: filme do fundador (o anterior era de uma conta externa)
     strength: "Our own engine: real stock footage, cut to your narration, with karaoke captions. Not AI-generated imagery — real filmed footage.",
     watchOut: 'You get reality, not imagination: it cannot render a giant robot.',
     bestFor: 'Facts, finance and news formats where footage beats generation.',

@@ -4,9 +4,16 @@ Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aq
 
 ## 2026-09-28 — Passe do Studio Ads: opção B (90 créditos por US$19,90)
 
-**DECIDIDO (fundador, 28/09, literal):** "B, vai para as duas" — a opção B da mesa de ~04h (A: manter 60 cr · **B: 90 cr por US$19,90** · C: 100 cr por US$29,90), e o "as duas" é esta decisão mais a troca do filme da vitrine (entrada seguinte do mesmo dia no git).
+**DECIDIDO (fundador, 28/09, literal):** "B, vai para as duas" — a opção B da mesa de ~04h (A: manter 60 cr · **B: 90 cr por US$19,90** · C: 100 cr por US$29,90), e o "as duas" é esta decisão mais a troca do filme da vitrine (entrada logo abaixo).
 **O QUE MUDA:** o passe único continua US$19,90 e passa de 60 para 90 créditos; os 365 dias de acesso ao Studio Ads não mudam; nada renova. A frase pública, calculada pelo código (lib/ads/offer.ts adsCoverageLine, com os níveis de adsV2Credits): "90 credits: 2 new ads (Photo motion or Commercial), 1 Cinema, or about 30 classic ads of 35 s" (e ~18 clássicos de 60 s nos modelos longos).
 **CONSEQUÊNCIAS:** (1) ADS_PASS_CREDITS = 90 em lib/ads/offer.ts e no espelho de checkPricingInvariants (lib/checkoutPricing.ts); o checkout grava 90 em metadata.pack_credits e na descrição da Stripe. (2) Quem abriu o checkout ANTES do deploy e paga depois recebe o que viu (60): o webhook concede metadata.pack_credits da sessão (app/api/stripe/webhook/route.ts, creditsToAdd), nunca a constante no momento do pagamento — ninguém recebe menos do que viu; se o fundador quiser completar os 30 desses, é pelo botão "+ créditos" do /admin/people. (3) Copy: /ads (cartão e FAQ), /pricing (bloco de anúncios), /llms.txt e /api/facts (via adsPassCopy) e o botão "Get 90 more credits" do montador leem a constante; nenhum número digitado. (4) Preço por crédito do passe (US$0,221) segue acima do Starter (US$0,165): o passe não canibaliza a assinatura.
+
+## 2026-09-28 — Vitrine: sai o filme de cliente, entra o do fundador (Kineo 1)
+
+**DECIDIDO (fundador, 28/09, literal):** "B, vai para as duas" — a segunda das duas.
+**O QUE:** o filme c87c3a25 ("The world's untouched natural wonders", Kineo 1, 14/08) é de uma conta EXTERNA gratuita e estava marcado por engano como do fundador desde a curadoria de 15/08. Saiu de lib/publicExamples.ts (PUBLIC_ENGINE_EXAMPLES), lib/engineWall.ts (CURATED.fast e EXAMPLES_BEST) e do card KINEO 1 do /arena. No mesmo papel entra o filme do fundador 0ab3e871 ("The town in Norway where the sun disappears for two months every winter", Kineo 1, 40 s, 02/09; dono conferido no banco; já estava na home desde a curadoria de 07/09).
+**MANTIDO:** a prévia leve já aprovada do /arena e das páginas de motor (/videos/example-turkmenistan.mp4 e .jpg, 5 s).
+**GUARDIÃO:** scripts/test-vitrine-sem-filme-de-cliente-2026-09-28.mjs (o id do cliente não volta a app/, lib/, components/ nem aos textos de public/).
 
 ## 2026-09-28 (madrugada, ~04h BRT) — Motores do anúncio abertos para quem quiser; meta 50-100 clientes
 
