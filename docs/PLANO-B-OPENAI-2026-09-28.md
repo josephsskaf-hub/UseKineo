@@ -78,8 +78,8 @@ group by 1, 2, 3, 4 order by 5 desc;
 - **Estrada hollywood inteira** (Kling 3, H3, Omni, Seedance 2.5):
   - `synthesizeHostSpeech` fica em `lib/hollywood/hostVoice.ts`, que está na trava 8.2, e continua só na OpenAI.
   - Por isso o plano B de texto também fica desligado na rota cinematográfica.
-- **A chamada de texto dos clássicos na rota cinematográfica** (Seedance 1.5, Veo, Kling 2.5 no modo IA): fica como na origin/main, pela mesma trava. Liberar só o escritor clássico exige uma segunda marca no prompt dele (`lib/runway.ts`) ou mexer na rota travada — decisão sua.
   - Para ligar os dois juntos, a narração hollywood precisa de uma voz reserva com a mesma régua de ritmo (2,3 pal/s). Isso exige mexer em arquivo travado, com aprovação sua.
+- **A chamada de texto dos clássicos na rota cinematográfica** (Seedance 1.5, Veo, Kling 2.5 no modo IA): fica como na origin/main, pela mesma trava. Liberar só o escritor clássico exige uma segunda marca no prompt dele (`lib/runway.ts`) ou mexer na rota travada — decisão sua.
 - **Três chamadas diretas** que não usam o cliente: `lib/pixabay.ts` (diretor), `lib/cinematic/speechImageAlign.ts` e `lib/fastCoherence.ts`. As três já seguem funcionando, de forma reduzida, quando falham.
 - **Whisper** (legenda sincronizada): quando falha, a legenda passa a ser proporcional.
 - **Recusas 422 do modelo**: são uma questão de política de conteúdo, não um apagão.
