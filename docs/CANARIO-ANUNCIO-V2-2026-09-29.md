@@ -1,4 +1,4 @@
-# Canário do anúncio v2 — 29/09/2026 (madrugada, BRT)
+# Canário do anúncio v2 — 28/09/2026 (entre 08:57 e 09:55 UTC) (nota de 28/09 10:30 UTC: a data certa é 28/09; o nome do arquivo ficou com 2026-09-29 por engano do Claude e foi mantido porque as sessões do Codex já usam este endereço)
 
 Três anúncios reais na conta interna do fundador, pelo navegador dele, com o restaurante fictício de teste "Brasa" (3 fotos verticais recortadas do kit C:/kineo-teste-anuncio + logo). Todos passaram pelo ensaio grátis (dry_run) antes do pago.
 

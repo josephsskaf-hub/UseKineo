@@ -2,7 +2,7 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
-## 2026-09-29 (madrugada) — Motores do anúncio abertos para quem quiser; meta 50-100 clientes
+## 2026-09-28 (madrugada, ~04h BRT) — Motores do anúncio abertos para quem quiser; meta 50-100 clientes
 
 **DECIDIDO (fundador, ~04h BRT, literal):** "deixa tudo pronto para amanhã. Deixa os motores já acionados para quem quiser fazer o tipo de ads" · "a gente está empacado em 10 clientes, a gente precisa de 50, de 100" · "a partir do momento que você já fizer a resposta, você já pode começar a executar" · sobre a meta do ChatGPT: "5 pagantes por mês é muito pouco, aumenta".
 **CONSEQUÊNCIAS:** (1) o anúncio v2 abre ao público (ADS_V2_PUBLIC=true) nesta noite, DEPOIS de um anúncio real de teste por motor novo sair certo na leitura quadro a quadro; se sair errado, fica interno e o motivo vai no relatório das 11h. O fundador antecipou o congelamento de preço só para os créditos do v2 (34/41/51 por 15 s), aprovados em 28/09. O v1 (anúncio narrado de 35/60 s, 3/5 cr) continua disponível, então o passe de 60 cr não perde valor. (2) Meta do canal ChatGPT: 50 pagantes/mês em 30 dias (docs/GPT-CITACOES-TRIPLICAR-2026-09-29.md, sessão [Citações] do Codex). (3) E-mails para empresas com anúncio pronto: o fundador disse "tô pronto pra enviar os emails"; o Claude produz e deixa em rascunho, o fundador envia.
