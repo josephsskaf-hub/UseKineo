@@ -16,6 +16,10 @@ import type { CSSProperties } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { isAdminEmail, serviceClient } from '@/app/api/admin/_shared/db'
 import { readSupplierBurn, type SupplierBurnRow } from '@/lib/supplier/burn'
+// KINEO-FAL-SALDO-ALERTA-2026-09-28 — card do topo: o alarme de saldo da fal, contado no banco.
+import { readFalBalancePanel, falRefusalIsFresh, falLastRefusalAt, FAL_PANEL_MIGRATION, type FalBalancePanel } from '@/lib/supplier/falBalancePanel'
+import { FAL_BILLING_URL } from '@/lib/falAlert'
+import { INTERNAL_ACCOUNTS_LABEL } from '@/lib/internalAccounts'
 import {
   readGenerationHealth,
   describeRules,
@@ -49,6 +53,145 @@ function fmtAmount(row: SupplierBurnRow, value: number): string {
 function fmtDate(iso: string | null): string {
   if (!iso) return '—'
   return iso.slice(0, 10)
+}
+
+function fmtUtc(iso: string): string {
+  const t = Date.parse(iso)
+  return Number.isFinite(t) ? `${new Date(t).toISOString().slice(0, 16).replace('T', ' ')} UTC` : iso
+}
+
+function fmtN(v: number | null): string {
+  return v === null ? '—' : Math.round(v).toLocaleString('en-US')
+}
+
+/**
+ * KINEO-FAL-SALDO-ALERTA-2026-09-28 — "a fal travou por saldo?" em 5 segundos. (a) a ÚLTIMA recusa, vermelho se tem
+ * menos de 6 h (revisão de 28/09: antes seguia a reserva, que nasce na 1ª recusa da janela), e o último alarme com o
+ * estado do e-mail, com o botão de recarga; (b) por dia e fonte; (c) o lado do dinheiro nos despachos cinematic.
+ * Tudo contado no banco (lib/supplier/falBalancePanel). (d) saldo ao vivo: fora — a fal só expõe com chave admin.
+ * panel null = leitura falhou (RPC E fallback): âmbar "não medido", nunca verde.
+ */
+function FalBalanceCard({ panel, nowMs }: { panel: FalBalancePanel | null; nowMs: number }) {
+  const fresh = falRefusalIsFresh(panel, nowMs)
+  const lastRefusal = falLastRefusalAt(panel)
+  const d = panel?.dispatch ?? null
+  const stuck = (d?.unrefundedUndeliveredCredits ?? 0) > 0
+  const tile = (label: string, value: string, color = '#f5f5f7', note?: string) => (
+    <div key={label} className="rounded-xl p-4" style={{ background: '#1c1c1f', border: '1px solid #2a2a2d' }}>
+      <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#86868b' }}>{label}</div>
+      <div className="font-black" style={{ fontSize: '1.5rem', lineHeight: 1.1, color }}>{value}</div>
+      {note && <p className="text-[11px] mt-1" style={{ color: '#6e6e73' }}>{note}</p>}
+    </div>
+  )
+  return (
+    <section className="rounded-2xl p-5 mb-6" style={{ ...CARD, border: `1px solid ${fresh ? '#f87171' : '#2a2a2d'}` }}>
+      <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+        <div>
+          <div className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: '#86868b' }}>
+            fal.ai balance — the alarm that e-mails you
+          </div>
+          <div className="font-black" style={{ fontSize: '1.15rem', color: !panel ? '#fbbf24' : fresh ? '#f87171' : '#34d399' }}>
+            {!panel
+              ? 'Not measured right now — this is NOT a sign of health'
+              : fresh
+                ? 'fal refused work for BALANCE in the last 6 h'
+                : lastRefusal
+                  ? 'No balance refusal in the last 6 h'
+                  : 'No balance refusal recorded yet'}
+          </div>
+        </div>
+        <a
+          href={FAL_BILLING_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-4 py-2 rounded-xl text-xs font-black"
+          style={{ background: fresh ? '#f87171' : '#2a2a2d', color: fresh ? '#000' : '#f5f5f7' }}
+        >
+          Recharge fal.ai →
+        </a>
+      </div>
+
+      {lastRefusal && (
+        <p className="text-xs mb-1" style={{ color: '#86868b' }}>
+          Last refusal: <b style={{ color: fresh ? '#f87171' : '#f5f5f7' }}>{fmtUtc(lastRefusal)}</b>
+        </p>
+      )}
+      {panel?.latest ? (
+        <p className="text-xs mb-4" style={{ color: '#86868b' }}>
+          Last alarm: <b style={{ color: '#f5f5f7' }}>{fmtUtc(panel.latest.createdAt)}</b>
+          {' · '}source {panel.latest.source ?? '—'}
+          {panel.latest.engine ? ` · ${panel.latest.engine}` : ''}
+          {panel.latest.scenesRefused !== null ? ` · ${panel.latest.scenesRefused} scenes refused` : ''}
+          {' · '}e-mail {panel.latest.state ?? 'unknown'}
+        </p>
+      ) : (
+        <p className="text-xs mb-4" style={{ color: '#6e6e73' }}>
+          The alarm writes a <code>fal_balance_exhausted</code> row on every refusal since 28/09; the history before that
+          lives only in the dispatch numbers below.
+        </p>
+      )}
+
+      {d && (
+        <div className="grid gap-3 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))' }}>
+          {tile(`Dispatches hit (${panel?.days ?? 30}d)`, fmtN(d.dispatches), d.dispatches > 0 ? '#fbbf24' : '#f5f5f7', 'cinematic, balance_exhausted')}
+          {tile('Scenes refused', fmtN(d.scenesRefused))}
+          {tile('People', d.people === null ? '—' : `${fmtN(d.people)} (${fmtN(d.externalPeople)} ext.)`, '#f5f5f7', INTERNAL_ACCOUNTS_LABEL)}
+          {tile('Credits refunded', fmtN(d.refundedCredits))}
+          {tile('Charged, film delivered', fmtN(d.deliveredChargedCredits))}
+          {tile(
+            'Charged, NOT delivered',
+            fmtN(d.unrefundedUndeliveredCredits),
+            stuck ? '#f87171' : '#34d399',
+            stuck
+              ? `${fmtN(d.unrefundedUndeliveredDebits)} debit(s), ${fmtN(d.unrefundedUndeliveredExternal)} external — refund them`
+              : 'should always be 0',
+          )}
+        </div>
+      )}
+
+      {panel?.mode === 'rpc' && panel.byDay.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs" style={{ borderCollapse: 'collapse', minWidth: 640 }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #2a2a2d' }}>
+                {['Day (UTC)', 'Source', 'Refusals', 'E-mails sent', 'Scenes refused', 'People', 'External'].map((h) => (
+                  <th key={h} className="px-3 py-2 text-[10px] font-black uppercase tracking-widest" style={{ color: '#86868b' }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {panel.byDay.map((r) => (
+                <tr key={`${r.day}-${r.source}`} style={{ borderBottom: '1px solid #202023', color: '#f5f5f7' }}>
+                  <td className="px-3 py-2">{r.day}</td>
+                  <td className="px-3 py-2">{r.source}</td>
+                  <td className="px-3 py-2 font-bold">{r.events}</td>
+                  <td className="px-3 py-2">{r.alerts}</td>
+                  <td className="px-3 py-2">{r.scenesRefused}</td>
+                  <td className="px-3 py-2">{r.people}</td>
+                  <td className="px-3 py-2" style={{ color: r.externalPeople > 0 ? '#fbbf24' : '#f5f5f7' }}>{r.externalPeople}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {panel?.mode === 'fallback' && (
+        <p className="text-[11px] mt-2" style={{ color: '#fbbf24' }}>
+          Per-day detail and the money side wait for the migration {FAL_PANEL_MIGRATION}. Until then only the last alarm
+          and the exact dispatch count are shown.
+        </p>
+      )}
+      <p className="text-[11px] mt-3" style={{ color: '#6e6e73' }}>
+        One delivered e-mail per 6 h window (KINEO_ALERT_EMAIL + the alert webhook; a send that fails is retried at the
+        next refusal 10+ min later, up to 3 tries); every other refusal is counted here. Only the
+        balance class triggers it — a 403 for model access does not. Live fal balance is not shown: fal exposes it only
+        to an admin key.
+      </p>
+    </section>
+  )
 }
 
 /** Verde / âmbar / vermelho pela pergunta que importa: dá para dormir? */
@@ -87,9 +230,10 @@ export default async function AdminSupplierHealthPage() {
   }
 
   const now = new Date()
-  const [rows, health]: [SupplierBurnRow[], GenerationHealth | null] = await Promise.all([
+  const [rows, health, falPanel]: [SupplierBurnRow[], GenerationHealth | null, FalBalancePanel | null] = await Promise.all([
     readSupplierBurn(admin, now),
     readGenerationHealth(admin, now),
+    readFalBalancePanel(admin, now), // KINEO-FAL-SALDO-ALERTA-2026-09-28
   ])
 
   const worst = rows.filter((r) => r.willBlowBeforeCycleEnd)
@@ -124,6 +268,9 @@ export default async function AdminSupplierHealthPage() {
           ))}
         </nav>
       </header>
+
+      {/* ── KINEO-FAL-SALDO-ALERTA-2026-09-28: fal balance alarm, on top ────── */}
+      <FalBalanceCard panel={falPanel} nowMs={now.getTime()} />
 
       {/* ── one line per supplier ─────────────────────────────────────────── */}
       <section className="rounded-2xl overflow-hidden mb-6" style={CARD}>

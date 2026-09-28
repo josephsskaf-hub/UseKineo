@@ -134,7 +134,9 @@ export async function submitAnimateJob(args: {
       ambiguous: err instanceof AvatarSubmitError ? err.ambiguous : true,
       message: e?.message,
     }))
-    if (looksExhausted(e)) void alertFalExhausted('animate submit')
+    // KINEO-FAL-SALDO-ALERTA-2026-09-28 — await, não void: o throw logo abaixo encerra a lambda e cortava o envio.
+    // looksExhausted agora exige a CLASSE saldo (sceneDisposition) — um 403 de acesso não acorda o fundador.
+    if (looksExhausted(e)) await alertFalExhausted({ source: 'avatar_animate', engine: model, context: 'animate submit' })
     // A transport failure after POST may still mean FAL accepted the paid job.
     // Propagate that uncertainty so callers never tell the user to submit a
     // second job. Explicit provider rejections remain safe to retry.
@@ -374,7 +376,8 @@ export async function submitAvatarJob(args: {
       body: e?.body,
     }))
       // KINEO-FAL-ALERT-LIB-2026-07-10 — exhausted balance → e-mail the founder.
-    if (looksExhausted(e)) void alertFalExhausted(`avatar submit model=${model}`)
+    // KINEO-FAL-SALDO-ALERTA-2026-09-28 — await, não void (o throw abaixo mata o envio na Vercel).
+    if (looksExhausted(e)) await alertFalExhausted({ source: 'avatar_submit', engine: model, context: `avatar submit model=${model}` })
     throw err
   }
 }
@@ -409,7 +412,8 @@ export async function submitMatteJob(videoUrl: string): Promise<string | null> {
     } catch (err) {
       const e = err as { status?: number; message?: string }
       console.error(`[gesture/matte] queue submit attempt ${attempt} failed:`, JSON.stringify({ status: e?.status, message: e?.message }))
-      if (looksExhausted(e)) void alertFalExhausted('gesture matte submit')
+      // KINEO-FAL-SALDO-ALERTA-2026-09-28 — await, não void; a 2ª tentativa na mesma janela de 6 h vira linha de contagem.
+      if (looksExhausted(e)) await alertFalExhausted({ source: 'avatar_matte', engine: model, context: 'gesture matte submit' })
       if (attempt === 1) await new Promise((r) => setTimeout(r, 800))
     }
   }

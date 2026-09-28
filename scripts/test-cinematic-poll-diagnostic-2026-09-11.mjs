@@ -66,6 +66,9 @@ async function run({ stage = 'status', status = 403, detail = 'Forbidden', recov
       releaseCinematicClaim: async () => { releases++; return { ok: true } },
     },
     '@/lib/credits/refund': { refundRenderCredits: async () => { refunds++; return 25 } },
+    // KINEO-FAL-SALDO-ALERTA-2026-09-28 — a rota agora avisa o fundador na frase explícita de saldo (poll, countRow:false).
+    // Este guardião prova diagnóstico e dinheiro; o alarme é provado executando em scripts/test-fal-saldo-alerta-2026-09-28.mjs.
+    '@/lib/falAlert': { alertFalExhausted: async () => 'duplicate' },
   }
   vm.runInNewContext(code, {
     exports,

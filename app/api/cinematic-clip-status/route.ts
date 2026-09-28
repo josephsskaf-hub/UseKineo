@@ -17,6 +17,7 @@ import {
   validCinematicGenerationId,
 } from '@/lib/cinematic/claim'
 import { refundRenderCredits } from '@/lib/credits/refund'
+import { alertFalExhausted } from '@/lib/falAlert' // KINEO-FAL-SALDO-ALERTA-2026-09-28
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -125,12 +126,19 @@ async function checkFalClip(requestId: string, model: string, generationId: stri
       // https://fal.ai/docs/documentation/model-apis/inference/queue#check-status
       hasQueueError = typeof finished.error === 'string' && finished.error.trim().length > 0
       if (queueIdMatches && hasQueueError) {
+        const messageSignal = pollMessageSignal({ body: { error: finished.error } })
         console.warn('[cinematic-job-terminal]', {
           generation_id: generationId,
           scene_index: sceneIndex,
           reason: 'completed_with_job_error',
-          message_signal: pollMessageSignal({ body: { error: finished.error } }),
+          message_signal: messageSignal,
         })
+        // KINEO-FAL-SALDO-ALERTA-2026-09-28 — cena ACEITA que morre depois com a conta travada (21/09: "as cenas
+        // aceitas rodaram com a conta travada e também morreram"). O poll roda a cada poucos segundos por cena:
+        // countRow:false — reserva a janela de 6 h uma vez e não escreve linha de contagem.
+        if (messageSignal === 'explicit_exhausted_balance') {
+          await alertFalExhausted({ source: 'poll', engine: model, generationId, countRow: false })
+        }
         return { id: requestId, status: 'failed', url: null }
       }
       if (!queueIdMatches) return { id: requestId, status: 'processing', url: null }
@@ -162,6 +170,12 @@ async function checkFalClip(requestId: string, model: string, generationId: stri
       message_signal: pollMessageSignal(error),
     }
     console.warn('[cinematic-poll-diagnostic]', diagnostic)
+    // KINEO-FAL-SALDO-ALERTA-2026-09-28 — a frase EXATA da fal ("Reason: Exhausted balance") já era reconhecida aqui e
+    // só ia para o console. Agora avisa o fundador (uma vez por janela de 6 h; countRow:false porque o poll repete).
+    // Só a evidência explícita: "user is locked" sozinho não prova saldo.
+    if (diagnostic.message_signal === 'explicit_exhausted_balance') {
+      await alertFalExhausted({ source: 'poll', engine: model, generationId, countRow: false })
+    }
     // An application-result rejection can close ONLY an identity-confirmed
     // COMPLETED job. Status lookup 400/422, generic exception wording, and
     // account/auth 403 are not evidence that the paid job has finished.

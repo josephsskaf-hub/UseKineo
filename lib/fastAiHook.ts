@@ -16,6 +16,7 @@
 import { fal } from '@fal-ai/client'
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { vaultClipAsync } from './clipVault'
+import { alertFalExhausted, looksExhausted } from '@/lib/falAlert' // KINEO-FAL-SALDO-ALERTA-2026-09-28
 import type { StyleAnchor } from '@/lib/cinematic/sceneStyle' // KINEO1-FILME-DESENHADO-2026-09-21 (só tipo)
 
 const SEEDANCE_MODEL = 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
@@ -74,6 +75,13 @@ export async function submitAiHook(prompt: string): Promise<AiHookHandle | null>
     return { requestId: request_id, prompt }
   } catch (err) {
     console.warn('[ai-hook] submit failed (non-blocking):', err instanceof Error ? err.message : String(err))
+    // KINEO-FAL-SALDO-ALERTA-2026-09-28 — o gancho do primeiro filme usa o MESMO Seedance 1.5 que recusou 10 cenas por
+    // saldo em 21/09 (19 com 16/09). Aqui a recusa morria no console.warn e o filme caía para stock sem ninguém saber
+    // (indício: 21/09 00:00:41 UTC, fast_ai_still sem fast_ai_clips_pending). O @fal-ai/client põe só "Forbidden" na
+    // mensagem; looksExhausted lê o body.detail. await, não void: na Vercel o que fica pendurado depois do return morre.
+    if (looksExhausted(err as { status?: number; message?: string; body?: unknown })) {
+      await alertFalExhausted({ source: 'kineo1_hook', engine: SEEDANCE_MODEL, context: 'Kineo 1 first-film hook fell back to stock' })
+    }
     return null
   }
 }

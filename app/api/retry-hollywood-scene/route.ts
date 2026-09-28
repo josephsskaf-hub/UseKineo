@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { FalQueueSubmitError, submitFalQueueOnce } from '@/lib/falQueue'
+import { alertFalExhausted, looksExhausted } from '@/lib/falAlert' // KINEO-FAL-SALDO-ALERTA-2026-09-28
 import { writeServerEvent } from '@/lib/serverEvents' // KINEO-CENA-PRESA-2026-09-22
 import { HOLLYWOOD_SCENE_RETRIED_EVENT } from '@/lib/stuckScene' // KINEO-CENA-PRESA-2026-09-22
 import { loadVerifiedCinematicClaim, retargetCinematicRequestId, validCinematicGenerationId, type CinematicClaim } from '@/lib/cinematic/claim'
@@ -143,6 +144,9 @@ export async function POST(req: NextRequest) {
     // Generic exceptions after the POST, 408, 5xx, transport failures and a
     // successful response without an id never prove that the paid job is absent.
     const explicitRejection = !accepted && error instanceof FalQueueSubmitError && !error.ambiguous
+    // KINEO-FAL-SALDO-ALERTA-2026-09-28 — a retentativa de cena recusada por saldo era mais um 502 mudo. Mesma classe
+    // de sceneDisposition (403 de acesso NÃO é saldo); o alarme nunca lança e tem teto de 3 s.
+    if (explicitRejection && looksExhausted(error as FalQueueSubmitError)) await alertFalExhausted({ source: 'retry_scene', engine: slot.model, userId: args.userId, generationId: args.generationId })
     if (!falPosted || explicitRejection) {
       if (await releaseSceneRetryMutex(args, mutex)) return NextResponse.json({ error: 'Scene retry was not submitted.', retryable: false }, { status: 502 })
     }

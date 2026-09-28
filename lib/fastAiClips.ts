@@ -25,6 +25,7 @@
 
 import { fal } from '@fal-ai/client'
 import { persistHookClip } from './fastAiHook'
+import { alertFalExhausted, looksExhausted } from '@/lib/falAlert' // KINEO-FAL-SALDO-ALERTA-2026-09-28
 import type { StyleAnchor } from '@/lib/cinematic/sceneStyle' // KINEO1-FILME-DESENHADO-2026-09-21 (só tipo)
 
 export const FIRST_FILM_BUDGET_USD = 0.5
@@ -131,6 +132,12 @@ export async function submitSceneClip(prompt: string): Promise<string | null> {
     return request_id || null
   } catch (err) {
     console.warn('[ai-clips] submit failed (non-blocking):', err instanceof Error ? err.message : String(err))
+    // KINEO-FAL-SALDO-ALERTA-2026-09-28 — mesmo Seedance que recusou 10 cenas por saldo em 21/09: o clipe da cena fraca
+    // do primeiro filme morria aqui em silêncio (o stock cobre a cena e ninguém sabe que a fal travou). looksExhausted
+    // lê o body.detail (o SDK põe só "Forbidden" na mensagem). await, não void (void antes do return morre na Vercel).
+    if (looksExhausted(err as { status?: number; message?: string; body?: unknown })) {
+      await alertFalExhausted({ source: 'kineo1_clip', engine: SEEDANCE_MODEL, context: 'Kineo 1 first-film scene clip fell back to stock' })
+    }
     return null
   }
 }
