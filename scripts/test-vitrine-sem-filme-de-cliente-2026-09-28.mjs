@@ -95,6 +95,15 @@ check('3 /arena: o card KINEO 1 aponta para 0ab3e871, com prévia leve local (< 
 check('3-mutante: card KINEO 1 com o id do cliente fica vermelho', () => !arenaKineo1(trocar(arena, `exampleId: '${FUNDADOR}'`, `exampleId: '${CLIENTE}'`)))
 const ew = rd('lib/engineWall.ts')
 check('3b engineWall: 0ab3e871 abre a curadoria do Kineo 1 (CURATED.fast) e está na lista dos 20 melhores', /\n  fast: \['0ab3e871-2c99-4f6e-9f3c-59773208b12e', /.test(ew) && /\n  '0ab3e871-2c99-4f6e-9f3c-59773208b12e', \/\/ KINEO 1 — /.test(ew))
+// 28/09 (revisão do passe B): o título diz "Norway" — a prévia e a capa que o /arena, as páginas de motor e
+// /ai-video-generator/for tocam (arenaPreviewPath/arenaPosterPath) têm de ser cortes DESTE render, não uma amostra de
+// outro filme (a do Turcomenistão tocava a cratera sob o título da Noruega).
+const midiaDoProprioFilme = (src) => {
+  const e = catalogo(src).getPublicEngineExample(FUNDADOR)
+  return !!e && [e.arenaPreviewPath, e.arenaPosterPath].every((p) => typeof p === 'string' && p.startsWith('/') && p.includes(FUNDADOR) && existsSync(join(RAIZ, 'public', p.slice(1))))
+}
+check('3c a prévia e a capa do Kineo 1 são cortes do próprio 0ab3e871 (título e imagem do mesmo filme), locais e existentes', midiaDoProprioFilme(PE_SRC))
+check('3c-mutante: a amostra do Turcomenistão de volta sob o título da Noruega fica vermelho', () => !midiaDoProprioFilme(trocar(PE_SRC, `arenaPreviewPath: '/previews/curation-sep07/${FUNDADOR}-v.mp4',`, "arenaPreviewPath: '/videos/example-turkmenistan.mp4',")))
 
 console.log(`test-vitrine-sem-filme-de-cliente-2026-09-28: ${verdes} verdes, ${vermelhos.length} vermelhos`)
 for (const v of vermelhos) console.log('  ✗ ' + v)

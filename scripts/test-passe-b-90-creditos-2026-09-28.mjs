@@ -4,7 +4,8 @@
 //   2. o espelho ADS_V2_LEVEL_PRICES_MIRROR (offer.ts) é IGUAL aos níveis derivados (v2Tiers adsV2Credits × v2Screen nomes),
 //      e lib/ads/v2Levels.ts deriva do mesmo jeito (sem número digitado).
 //   3. a frase do fundador sai calculada: "2 new ads (Photo motion or Commercial), 1 Cinema, or about 30 classic ads of 35 s".
-//   4. o webhook concede metadata.pack_credits (o que a pessoa viu ao abrir o checkout), nunca a constante no momento do pagamento.
+//   4. o webhook concede metadata.pack_credits (o que a pessoa viu ao abrir o checkout); a constante só no fallback sem
+//      pack_credits (revisão 28/09), e a chave de idempotência muda quando o crédito muda (sessão em cache não volta com 60).
 //   5. superfícies: /ads (cartão e FAQ) e /pricing usam a frase calculada.
 // Cada regra tem mutante que prova que o guardião fica vermelho.
 import { readFileSync } from 'node:fs'
@@ -88,14 +89,37 @@ check('3c-mutante: arredondar para cima fica vermelho', () => {
 check('3d 60 créditos (Starter) seguem "1 new ad at any level" — a mesma função serve às duas portas', O.adsNewAdsLabel(60, derived()) === '1 new ad at any level')
 
 // ── 4. o webhook concede o que a pessoa viu ──────────────────────────────────────────────────────────────────────────
-const concedeMetadata = (wh, co) =>
-  /const metaCredits = Number\(session\.metadata\?\.pack_credits \?\? 0\)/.test(wh) &&
-  /let creditsToAdd = metaCredits > 0 \? metaCredits : 0/.test(wh) &&
-  !/\bADS_PASS_CREDITS\b/.test(wh) &&
-  /pack: ADS_PASS_ID,\n\s*pack_credits: String\(ADS_PASS_CREDITS\)/.test(co)
-check('4 webhook: creditsToAdd = metadata.pack_credits gravado na abertura do checkout; o webhook não lê ADS_PASS_CREDITS', concedeMetadata(SRC.webhook, SRC.checkout))
-check('4-mutante: webhook lendo a constante do passe fica vermelho', () => !concedeMetadata(trocar(SRC.webhook, "import { ADS_ACCESS_COLUMN, ADS_PASS_ID, adsAccessUntil } from '@/lib/ads/offer'", "import { ADS_ACCESS_COLUMN, ADS_PASS_CREDITS, ADS_PASS_ID, adsAccessUntil } from '@/lib/ads/offer'"), SRC.checkout))
+// 28/09 (revisão do passe B): o webhook passou a ler ADS_PASS_CREDITS num ÚNICO lugar — o fallback de uma sessão do passe que
+// manteve metadata.pack mas perdeu metadata.pack_credits (antes: cobrada sem crédito nem acesso). O caminho normal segue
+// concedendo metaCredits; a constante só vale DENTRO do `if (creditsToAdd === 0)` que vem logo depois dele.
+const semComentario = (s) => s.split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n')
+const MAIN = 'let creditsToAdd = metaCredits > 0 ? metaCredits : 0\n          if (creditsToAdd === 0) {'
+const FALLBACK = 'else if (packMeta === ADS_PASS_ID) creditsToAdd = ADS_PASS_CREDITS'
+const concedeMetadata = (wh, co) => {
+  const code = semComentario(wh)
+  const ini = code.indexOf(MAIN)
+  const fim = ini >= 0 ? code.indexOf('if (creditsToAdd === 0) {', ini + MAIN.length) : -1
+  const fb = code.indexOf(FALLBACK)
+  return /const metaCredits = Number\(session\.metadata\?\.pack_credits \?\? 0\)/.test(code) && ini >= 0 &&
+    (code.match(/\bADS_PASS_CREDITS\b/g) || []).length === 2 && /import \{[^}]*\bADS_PASS_CREDITS\b[^}]*\} from '@\/lib\/ads\/offer'/.test(code) &&
+    fb > ini && fb < fim &&
+    /pack: ADS_PASS_ID,\n\s*pack_credits: String\(ADS_PASS_CREDITS\)/.test(co)
+}
+check('4 webhook: creditsToAdd = metadata.pack_credits gravado na abertura do checkout; ADS_PASS_CREDITS só no fallback sem pack_credits', concedeMetadata(SRC.webhook, SRC.checkout))
+check('4-mutante: webhook concedendo a constante no caminho normal fica vermelho', () => !concedeMetadata(trocar(SRC.webhook, 'let creditsToAdd = metaCredits > 0 ? metaCredits : 0', 'let creditsToAdd = packMeta === ADS_PASS_ID ? ADS_PASS_CREDITS : metaCredits > 0 ? metaCredits : 0'), SRC.checkout))
+check('4-mutante: sem o fallback do passe (sessão sem pack_credits volta a ser cobrada sem crédito) fica vermelho', () => !concedeMetadata(trocar(SRC.webhook, FALLBACK, '{}'), SRC.checkout))
 check('4-mutante: checkout sem pack_credits fica vermelho', () => !concedeMetadata(SRC.webhook, trocar(SRC.checkout, 'pack_credits: String(ADS_PASS_CREDITS)', "pack_credits: '0'")))
+// 4b. Sessão aberta antes do deploy: a chave de idempotência da Stripe (janela de 5 min) inclui a descrição, que traz
+// ${ADS_PASS_CREDITS}. Sem isso, quem abrisse o checkout logo depois do deploy receberia de volta a sessão em cache com
+// pack_credits '60' enquanto a página mostra 90.
+const passBuilder = (co) => co.slice(co.indexOf('async function buildAdsPassAndRedirect'))
+const chaveMudaComCredito = (co) => {
+  const b = passBuilder(co)
+  return /description: `\$\{ADS_PASS_CREDITS\} credits and 12 months of Studio Ads\./.test(b) &&
+    /const adsIdempotencyKey = oneTimeIdempotencyKey\(\{[\s\S]*?description: sessionParams\.line_items\?\.\[0\]\?\.price_data\?\.product_data\?\.description,[\s\S]*?\}\)/.test(b)
+}
+check('4b a chave de idempotência do passe inclui a descrição com ${ADS_PASS_CREDITS} (mudar o crédito nunca devolve sessão em cache)', chaveMudaComCredito(SRC.checkout))
+check('4b-mutante: chave sem a descrição fica vermelho', () => !chaveMudaComCredito(trocar(SRC.checkout, '    description: sessionParams.line_items?.[0]?.price_data?.product_data?.description,\n', '')))
 
 // ── 5. superfícies ───────────────────────────────────────────────────────────────────────────────────────────────────
 const porta = (d) => d.includes('const passCoverage = adsCoverageLine(ADS_PASS_CREDITS, V2_LEVELS)') && d.includes('<p className="ads-cover">Enough for {passCoverage}.</p>') && d.includes('with {ADS_PASS_CREDITS} credits — enough for {passCoverage} — and {ADS_PASS_ACCESS_DAYS} days of Studio Ads.') && !d.includes('newAdsLabel(passV2)')
@@ -104,6 +128,13 @@ check('5-mutante: cartão de volta a "newAdsLabel(passV2)" fica vermelho', () =>
 const pricing = (b, a) => /coverage: adsCoverageLine\(ADS_PASS_CREDITS, ADS_V2_LEVEL_PRICES\),/.test(b) && a.includes('{pass.coverage ? <p className="text-sm text-[var(--muted)]">Enough for {pass.coverage}.</p> : null}')
 check('5b /pricing: o bloco de anúncios pinta o que o passe paga (adsCoverageLine com os níveis derivados)', pricing(SRC.blocks, SRC.adsBlock))
 check('5b-mutante: sem a linha no modelo fica vermelho', () => !pricing(trocar(SRC.blocks, '        coverage: adsCoverageLine(ADS_PASS_CREDITS, ADS_V2_LEVEL_PRICES),\n', ''), SRC.adsBlock))
+// 5c. (revisão 28/09) o número de créditos do passe nunca é digitado nas telas: o valor "Credits" do cartão do /ads e o botão
+// do montador sem saldo leem a constante. Antes desta regra, `<b>60</b>` no cartão passava verde em toda a suíte.
+const wizard = rd('app/(dashboard)/ads/new/AdsWizardClient.tsx')
+const semDigitar = (d, w) => d.includes('<div className="val"><span>Credits</span><b>{ADS_PASS_CREDITS}</b></div>') && d.includes('<CreditMinutesSummary credits={ADS_PASS_CREDITS} />') &&
+  !/<b>\s*(60|90)\s*<\/b>/.test(d) && w.includes('Get {ADS_PASS_CREDITS} more credits') && !/Get (60|90) more credits/.test(w)
+check('5c /ads (valor "Credits" e minutos) e o botão do montador leem ADS_PASS_CREDITS — nenhum 60/90 digitado', semDigitar(SRC.door, wizard))
+check('5c-mutante: "Credits" digitado como 60 no cartão do /ads fica vermelho', () => !semDigitar(trocar(SRC.door, '<b>{ADS_PASS_CREDITS}</b>', '<b>60</b>'), wizard))
 
 console.log(`test-passe-b-90-creditos-2026-09-28: ${verdes} verdes, ${vermelhos.length} vermelhos`)
 for (const v of vermelhos) console.log('  ✗ ' + v)

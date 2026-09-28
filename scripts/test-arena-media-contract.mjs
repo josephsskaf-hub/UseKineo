@@ -55,7 +55,9 @@ for (const id of fighterIds) {
 const kineoOne = examples.getPublicEngineExample('0ab3e871-2c99-4f6e-9f3c-59773208b12e')
 check(kineoOne?.engine === 'fast', 'Kineo 1 resolves to the approved Fast render')
 check(kineoOne?.videoPath.startsWith('https://cqqukkvjjrguayiyjvhh.supabase.co/storage/'), 'home keeps the founder-selected Kineo 1 render')
-check(kineoOne?.arenaPreviewPath === '/videos/example-turkmenistan.mp4', 'Arena uses the lightweight approved Kineo 1 preview')
+// 28/09 (revisão do passe B): a prévia leve do /arena é o corte do PRÓPRIO render — com a amostra do Turcomenistão o card
+// dizia "Norway" e tocava a cratera. Continua local e < 2 MB (laço acima).
+check(kineoOne?.arenaPreviewPath === '/previews/curation-sep07/0ab3e871-2c99-4f6e-9f3c-59773208b12e-v.mp4' && kineoOne?.arenaPosterPath === '/posters/showcase-sep07/0ab3e871-2c99-4f6e-9f3c-59773208b12e.webp', 'Arena uses the lightweight cut of the same Kineo 1 render')
 check(!page.includes("preview: '/previews/c87c3a25-c3b7-4a97-8429-eb0fc98b67bc.mp4'"), 'dead Kineo 1 preview path is gone')
 check(page.includes('getPublicEngineExample(f.exampleId)'), 'render resolves media from the allowlist')
 check(page.includes('src={previewPath}'), 'video source is the Arena path resolved from the allowlist')

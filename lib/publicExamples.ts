@@ -145,10 +145,11 @@ export const PUBLIC_ENGINE_EXAMPLES = [
     title: 'The town in Norway where the sun disappears for two months every winter',
     engine: 'fast',
     videoPath: 'https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/e97ea42d-f63b-4197-9cd7-e12e9a57744d.mp4',
-    // /arena shows seven videos on one page. Use the already-approved 5s Kineo
-    // 1 sample there instead of auto-loading the full render.
-    arenaPreviewPath: '/videos/example-turkmenistan.mp4',
-    arenaPosterPath: '/videos/example-turkmenistan.jpg',
+    // /arena shows seven videos on one page: a light local cut instead of the full render. 28/09 (revisão do passe B):
+    // a prévia é o corte DESTE render (6 s, 540×960, 1,5 MB — aprovado para a home em 07/09, lib/homeVideoCuration.ts),
+    // não a amostra do Turcomenistão: o card do /arena e as páginas de motor diziam "Norway" e tocavam a cratera.
+    arenaPreviewPath: '/previews/curation-sep07/0ab3e871-2c99-4f6e-9f3c-59773208b12e-v.mp4',
+    arenaPosterPath: '/posters/showcase-sep07/0ab3e871-2c99-4f6e-9f3c-59773208b12e.webp',
   },
   // KINEO-VITRINE-FUNDADOR-2026-09-07 — cinematic_ai: renders recentes do fundador (motores caros), preview 8s cortado do master enhanced.
   { ...FOUNDER_OWNERSHIP, id: 'fe055601-0668-4d33-be49-82c1cb033779', title: 'Something is leaving our solar system', engine: 'cinematic_ai', videoPath: '/previews/fe055601-0668-4d33-be49-82c1cb033779.mp4' },
