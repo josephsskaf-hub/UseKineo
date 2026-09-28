@@ -53,6 +53,7 @@ import { cinematicSceneSeconds, trimNarratedSupport, assertCinematicTimeline, Ci
 import { rejectCinematicQuality, readVerifiedQualityRejection, type CinematicQualityReason } from '@/lib/cinematic/qualityRejection'
 import { selectMusicForScript } from '@/lib/musicScore'
 import { captionStyleOverrides, isAdCaptionStyle, isCaptionElement } from '@/lib/ads/adStyle' // KINEO-ADS-ESTILO-2026-09-26
+import { alinharGrafiaDoRoteiro } from '@/lib/captionScriptSpelling' // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28
 import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
 import { speechRateFor, speechFamilyForQuality } from '@/lib/speechRate' // KINEO-RITMO-POR-VOZ-2026-09-15
 // KINEO-CREDIT-INTENT-2026-07-11 — record the authoritative engine + intended
@@ -441,6 +442,9 @@ interface ComposeBody {
   // Level B: narrate with the user's CLONED voice (profiles.voice_clone_id,
   // created in Avatar Studio). An explicit voice cannot become a default voice.
   use_cloned_voice?: boolean
+  // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28 — 'tts' = o áudio de user_voiceover_url é TTS do próprio
+  // voiceover_script (hoje só o Studio Ads manda, pelo modo serviço). Sem o campo, voz enviada = gravação humana.
+  narration_source?: string
 }
 
 export async function POST(req: NextRequest) {
@@ -3181,6 +3185,22 @@ export async function POST(req: NextRequest) {
       console.warn('[compose] music unavailable; preserving narration')
     }
 
+    // ═══ KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28 — a legenda escreve a marca como o roteiro escreve ═══
+    // Os 10 anúncios Kineo 1 de 28/09 saíram com 12 marcas erradas na tela (ADMITIWE, SHIVSHANKER, UNATI, RUUS,
+    // ECREDIT NG, "12 OVER 4") com a narração certa: o texto da legenda era o que o Whisper ouviu. Aqui as palavras do
+    // Whisper ganham a grafia do texto que o TTS LEU (scaledScript) e mantêm o tempo medido; os cortes não mudam, e na
+    // dúvida (âncoras < 70%, trecho sem âncora > 4) o Whisper fica como está (lib/captionScriptSpelling.ts).
+    // Só quando o áudio é TTS de scaledScript: nunca avatar (o mp3 é dele), nunca voz gravada pela pessoa — a legenda
+    // não pode mentir sobre o que ela disse. A exceção é o Studio Ads, cuja voz enviada é TTS do voiceover_script: ele
+    // declara narration_source 'tts' e só chega pelo modo serviço (o segredo é do servidor). O cache de voz continua
+    // guardando o Whisper bruto; o caminho hollywood já retornou lá em cima e não passa por aqui.
+    const legendaPelaGrafiaDoRoteiro = !avatarMode && (!hasUserVoice || (isServiceFinish && body.narration_source === 'tts'))
+    const grafia = legendaPelaGrafiaDoRoteiro && whisperWords ? alinharGrafiaDoRoteiro(whisperWords, scaledScript) : null
+    if (grafia) {
+      console.log(`[compose] legenda com a grafia do roteiro: ${grafia.motivo} ancoras=${grafia.ancoras}/${grafia.palavrasDoRoteiro} trocadas=${grafia.trocadas} mantidos=${grafia.trechosMantidos}`)
+    }
+    const legendaWords: WhisperWord[] | undefined = grafia ? grafia.words : whisperWords
+
     // KINEO-TRIAL-WATERMARK-2026-09-07 — a decisão de marca d'água mora AQUI,
     // uma única vez, lida pelo builder logo abaixo E pela resposta lá no fim.
     // `FORCE_WATERMARK_EMAILS` (#434) segue como último termo: as contas de
@@ -3202,7 +3222,7 @@ export async function POST(req: NextRequest) {
         aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
         quality,
         realAudioDuration,
-        whisperWords,
+        whisperWords: legendaWords, // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28 — tempo do Whisper, grafia do roteiro
         musicUrl,
         avatarUrl: avatarMode ? avatarUrlBody : null,
         // Hook Avatar (12/06) — validated: only meaningful in avatar mode and

@@ -222,6 +222,9 @@ export async function POST(req: NextRequest) {
       voiceover_script: narration,
       scene_captions: input.beats,
       user_voiceover_url: voiceUrl,
+      // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28 — a voz enviada é o TTS de voiceover_script (acima): a legenda pode
+      // usar a grafia dele (marca do cliente) com o tempo do Whisper. O compose só aceita isto no modo serviço.
+      narration_source: 'tts',
       real_audio_duration: narrationSeconds,
       clip_urls: clipUrls,
       // KINEO-ADS-ESTILO-2026-09-26 — formato escolhido (padrão 9:16), estilo da legenda e clima da trilha.
