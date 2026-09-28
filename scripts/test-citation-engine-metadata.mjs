@@ -72,8 +72,11 @@ const pageBody = source => {
 // exatas são removidas antes da comparação; qualquer outra mudança no corpo (title, H1, lead, JSON-LD, CTA) segue
 // vermelha. E o bloco novo é EXIGIDO, entre o fim do hero e o formulário do Kineo 1.
 const BRIDGE_DECL = "  const showSeedanceBridge = params.engine === 'kineo-1' && !enginePaused(ENGINES.seedance.param)"
-const BRIDGE_JSX = '        {showSeedanceBridge && <ScriptToSeedanceBridge from="kineo1" />}'
+const BRIDGE_JSX = '          {showSeedanceBridge && <PaidSeedanceBridge from="kineo1" />}'
 const semGaleriaDaCasa = (body) => {
+  // Founder mandate 28/09: only this bridge moves inside the hero and gains
+  // approved paid proof; all other historical page-body locks remain intact.
+  body = body.replace(BRIDGE_JSX + '\n', '')
   // GPT24h G3 (fundador 27/09): capacity + authorized paid-engine previews.
   // Normalize ONLY the exact additions before the historical byte comparison;
   // titles, CTAs, destinations, bridge and all other page content stay locked.
@@ -111,8 +114,8 @@ const semGaleriaDaCasa = (body) => {
   assert.ok(body.includes(BRIDGE_DECL), 'ponte só no kineo-1 e só com o Seedance ativo')
   const bridgeAt = body.indexOf(BRIDGE_JSX), heroEnd = body.indexOf("{tierNote}</p>\n        </section>"), formAt = body.indexOf('<TopicGeneratorForm')
   assert.ok(bridgeAt > 0 && heroEnd > 0 && formAt > 0, 'ponte, hero e formulário existem')
-  assert.ok(heroEnd < bridgeAt && bridgeAt < formAt, 'ponte acima da dobra: depois do hero, antes do formulário')
-  assert.equal((body.match(/<ScriptToSeedanceBridge /g) ?? []).length, 1, 'uma ponte só')
+  assert.ok(body.indexOf('{e.intro}</p>') < bridgeAt && bridgeAt < body.indexOf('<OrganicCtaLink') && bridgeAt < heroEnd && bridgeAt < formAt, 'prova após introdução, antes do CTA gratuito e formulário')
+  assert.equal((body.match(/<PaidSeedanceBridge /g) ?? []).length, 1, 'uma ponte só')
   assert.ok(!current.includes('kineo1_bridge') && !current.includes('seedanceBridge.map'), 'a ponte antiga abaixo da dobra saiu')
 }
 assert.notEqual(pageBody(current), pageBody(previous), 'a galeria da casa e a ponte existem na página atual')

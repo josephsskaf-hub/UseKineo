@@ -22,6 +22,7 @@ import { useEffect, useRef } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { creditCostForDuration } from '@/lib/credits/engineCost'
+import { TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
 
 export const SCRIPT_BRIDGE_VERSION = 'bridge_v1'
 const BRIDGE_FILM_SECONDS = 35
@@ -38,10 +39,16 @@ export function scriptBridgeHref(from: string): string {
   return `/ai-video-generator/seedance?from=${encodeURIComponent(from)}_bridge`
 }
 
-export default function ScriptToSeedanceBridge({ from, compact = false }: { from: string; compact?: boolean }) {
+type BridgeProof = { id: string; title: string; src: string; poster: string }
+
+export default function ScriptToSeedanceBridge({ from, compact = false, proof }: { from: string; compact?: boolean; proof?: BridgeProof }) {
   const starter = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
   const films = starterSeedanceFilms()
   const href = scriptBridgeHref(from)
+  const version = proof ? 'bridge_paid_proof_v2' : SCRIPT_BRIDGE_VERSION
+  const shortCost = creditCostForDuration('cinematic_ai', true, BRIDGE_FILM_SECONDS)
+  const minuteCost = creditCostForDuration('cinematic_ai', true, 60)
+  const playedRef = useRef(false)
 
   // Uma impressão por montagem, fire-and-forget: telemetria nunca derruba a página citada.
   const shownRef = useRef(false)
@@ -49,15 +56,15 @@ export default function ScriptToSeedanceBridge({ from, compact = false }: { from
     if (shownRef.current) return
     shownRef.current = true
     try {
-      void trackEvent('engine_bridge_shown', { from, to: 'seedance', version: SCRIPT_BRIDGE_VERSION })
+      void trackEvent('engine_bridge_shown', { from, to: 'seedance', version })
     } catch {
       /* ignore */
     }
-  }, [from])
+  }, [from, version])
 
   const onClick = () => {
     try {
-      void trackEvent('engine_bridge_clicked', { from, to: 'seedance', version: SCRIPT_BRIDGE_VERSION })
+      void trackEvent('engine_bridge_clicked', { from, to: 'seedance', version })
     } catch {
       /* ignore */
     }
@@ -66,7 +73,7 @@ export default function ScriptToSeedanceBridge({ from, compact = false }: { from
   return (
     <section
       aria-label="Render your script on Seedance 1.5"
-      data-bridge={SCRIPT_BRIDGE_VERSION}
+      data-bridge={version}
       style={{
         margin: compact ? '22px 0 0' : '28px 0 0',
         padding: compact ? '16px 18px' : '20px 22px',
@@ -76,6 +83,27 @@ export default function ScriptToSeedanceBridge({ from, compact = false }: { from
         textAlign: 'left',
       }}
     >
+      {proof ? <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+        <figure style={{ margin: 0, width: 120, flexShrink: 0 }}>
+          <video src={proof.src} poster={proof.poster} controls playsInline preload="none"
+            aria-label={`Seedance 1.5 preview: ${proof.title}`}
+            style={{ display: 'block', width: '100%', aspectRatio: '9 / 16', objectFit: 'cover', borderRadius: 10, background: '#000' }}
+            onPlay={() => {
+              if (playedRef.current) return
+              playedRef.current = true
+              try { void trackEvent('example_video_play', { version, example_slug: proof.id, placement: `${from}_bridge` }) } catch { /* telemetry is optional */ }
+            }} />
+          <figcaption style={{ color: '#a1a1a6', fontSize: 11, lineHeight: 1.4, marginTop: 6 }}>Existing Seedance preview · {proof.title}</figcaption>
+        </figure>
+        <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+          <p style={{ margin: '0 0 6px', color: '#2997ff', fontSize: 12, fontWeight: 800 }}>GENERATED SCENES · SEEDANCE 1.5</p>
+          <h2 style={{ fontSize: '1.2rem', lineHeight: 1.3, margin: '0 0 8px', color: '#f5f5f7' }}>Make your next story with generated scenes.</h2>
+          <p style={{ margin: '0 0 8px', color: '#f5f5f7', lineHeight: 1.6 }}><strong>Starter {starter} USD/month</strong> · {TIER_CREDITS.starter} credits per billing month.</p>
+          <p style={{ margin: '0 0 8px', color: '#a1a1a6', fontSize: '.92rem', lineHeight: 1.6 }}>A {BRIDGE_FILM_SECONDS}-second film costs {shortCost} credits; a 60-second film costs {minuteCost}. The plan covers {films} films of {BRIDGE_FILM_SECONDS} s if you spend its whole balance on this engine and duration. Other creations share that balance.</p>
+          <p style={{ margin: '0 0 14px', color: '#a1a1a6', fontSize: '.85rem', lineHeight: 1.5 }}>The {TRIAL_CREDITS_SHOWN}-credit trial {TRIAL_CREDITS_SHOWN >= shortCost ? 'covers the 35-second reference; trial films are watermarked' : 'does not cover this Seedance film'}. A paid plan unlocks clean downloads. Review the prepared script and settings before generating.</p>
+          <Link href={href} onClick={onClick} style={{ display: 'inline-block', background: '#2997ff', color: '#fff', fontWeight: 900, padding: '12px 20px', borderRadius: 980, textDecoration: 'none', fontSize: '.95rem' }}>See Seedance films & plans →</Link>
+        </div>
+      </div> : <>
       <p style={{ margin: '0 0 6px', color: '#2997ff', fontSize: 12, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
         Have a script from ChatGPT?
       </p>
@@ -92,6 +120,7 @@ export default function ScriptToSeedanceBridge({ from, compact = false }: { from
       >
         Render my script on Seedance →
       </Link>
+      </>}
     </section>
   )
 }

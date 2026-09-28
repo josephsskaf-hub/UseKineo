@@ -17,7 +17,7 @@ import {
 } from '@/lib/growth/affiliateLandingContext'
 import { freeShortsAlternates } from '@/lib/seo/freeShortsGeneratorLangs'
 // KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — ponte roteiro → Seedance acima da dobra (fundador 23/09, jogada 3).
-import ScriptToSeedanceBridge from '@/components/ScriptToSeedanceBridge'
+import PaidSeedanceBridge from '@/components/PaidSeedanceBridge'
 import { ENGINES } from '@/lib/growth/enginePageCatalog'
 import { enginePaused } from '@/lib/engineLaunch'
 
@@ -132,6 +132,7 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
         <p style={{ fontSize: '1.08rem', color: '#86868b', lineHeight: 1.6, margin: '16px 0 0' }}>
           Type one idea and Kineo generates a ready-to-post vertical Short: script, AI voiceover, visuals, captions, and MP4 export. {ft(OFFER, 'Try the Fast workflow with no credit card.', 'Your active trial starts with the best engine it can cover — Seedance when eligible.')}
         </p>
+        {!enginePaused(ENGINES.seedance.param) && <PaidSeedanceBridge from="free_ai_shorts_generator" compact />}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '26px 0 0' }}>
           <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 850, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>
             Generate a free Short
@@ -143,10 +144,6 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 750, margin: '12px 0 0' }}>
           {ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card required.', OFFER.copy.headline)}
         </p>
-
-        {/* KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — medido 23/09: 132 sessões do ChatGPT → 70 contas → 0 pagantes em 60 d.
-            Quem chega com roteiro pronto vê o Seedance antes do formulário grátis. Some se o Seedance estiver pausado. */}
-        {!enginePaused(ENGINES.seedance.param) && <ScriptToSeedanceBridge from="free_ai_shorts_generator" compact />}
 
         <TopicGeneratorForm
           campaign={CAMPAIGN}

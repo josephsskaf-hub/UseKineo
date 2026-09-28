@@ -36,8 +36,8 @@ console.log('1) componente')
 const COMP = 'components/ScriptToSeedanceBridge.tsx'
 const comp = fs.existsSync(COMP) ? read(COMP) : ''
 check(comp.startsWith("'use client'"), 'componente existe e é client')
-check(/trackEvent\('engine_bridge_shown', \{ from, to: 'seedance', version: SCRIPT_BRIDGE_VERSION \}\)/.test(comp), 'impressão engine_bridge_shown com from/to/version')
-check(/trackEvent\('engine_bridge_clicked', \{ from, to: 'seedance', version: SCRIPT_BRIDGE_VERSION \}\)/.test(comp), 'clique engine_bridge_clicked com from/to/version')
+check(/trackEvent\('engine_bridge_shown', \{ from, to: 'seedance', version \}\)/.test(comp), 'impressão engine_bridge_shown com from/to/version')
+check(/trackEvent\('engine_bridge_clicked', \{ from, to: 'seedance', version \}\)/.test(comp), 'clique engine_bridge_clicked com from/to/version')
 check(comp.includes("export const SCRIPT_BRIDGE_VERSION = 'bridge_v1'"), 'versão bridge_v1')
 check(/if \(shownRef\.current\) return\s+shownRef\.current = true/.test(comp), 'impressão uma vez por montagem (ref)')
 check(/<Link\s+href=\{href\}\s+onClick=\{onClick\}/.test(comp), 'o clique do CTA dispara o evento')
@@ -67,9 +67,11 @@ const PAGES = [
 ]
 for (const p of PAGES) {
   const src = read(p.file)
-  const tag = `<ScriptToSeedanceBridge from="${p.from}"`
-  check(src.includes("import ScriptToSeedanceBridge from '@/components/ScriptToSeedanceBridge'"), `${p.file}: importa a ponte`)
-  check((src.match(/<ScriptToSeedanceBridge /g) ?? []).length === 1, `${p.file}: uma ponte só`)
+  // Founder mandate 28/09: paid proof on these three doors; state keeps v1.
+  const component = p.from === 'state_of_ai' ? 'ScriptToSeedanceBridge' : 'PaidSeedanceBridge'
+  const tag = `<${component} from="${p.from}"`
+  check(src.includes(`import ${component} from '@/components/${component}'`), `${p.file}: importa a ponte`)
+  check((src.match(new RegExp(`<${component} `, 'g')) ?? []).length === 1, `${p.file}: uma ponte só`)
   const at = src.indexOf(tag), form = src.indexOf(p.form)
   check(at > 0 && form > 0 && at < form, `${p.file}: ponte (from=${p.from}) antes do formulário`)
 }
@@ -77,8 +79,8 @@ for (const p of PAGES) {
   const free = read('app/free-ai-shorts-generator/page.tsx')
   const text = read('app/text-to-video-shorts/page.tsx')
   const state = read('app/state-of-ai-shorts-2026/page.tsx')
-  check(free.includes(`{${PAUSE_GUARD} && <ScriptToSeedanceBridge from="free_ai_shorts_generator" compact />}`), 'free: some quando o Seedance pausa')
-  check(text.includes(`{${PAUSE_GUARD} && <ScriptToSeedanceBridge from="text_to_video_shorts" compact />}`), 'text-to-video: some quando o Seedance pausa')
+  check(free.includes(`{${PAUSE_GUARD} && <PaidSeedanceBridge from="free_ai_shorts_generator" compact />}`), 'free: some quando o Seedance pausa')
+  check(text.includes(`{${PAUSE_GUARD} && <PaidSeedanceBridge from="text_to_video_shorts" compact />}`), 'text-to-video: some quando o Seedance pausa')
   check(state.includes(`const seedanceBridge = ${PAUSE_GUARD} ? <ScriptToSeedanceBridge from="state_of_ai" /> : null`), 'state: some quando o Seedance pausa')
   for (const [name, src] of [['free', free], ['text', text], ['state', state]]) {
     check(src.includes("import { ENGINES } from '@/lib/growth/enginePageCatalog'") && src.includes("import { enginePaused } from '@/lib/engineLaunch'"), `${name}: pausa pelo mesmo helper da página do motor`)
@@ -93,9 +95,9 @@ console.log('3) página do motor')
 {
   const src = read(ENGINE_PAGE)
   check(src.includes("const showSeedanceBridge = params.engine === 'kineo-1' && !enginePaused(ENGINES.seedance.param)"), 'engine: condição kineo-1 + Seedance não pausado')
-  check(src.includes('{showSeedanceBridge && <ScriptToSeedanceBridge from="kineo1" />}'), 'engine: a ponte renderiza só sob a condição')
-  const at = src.indexOf('<ScriptToSeedanceBridge from="kineo1"')
-  check(at > src.indexOf('{tierNote}</p>') && at < src.indexOf('<TopicGeneratorForm'), 'engine: ponte entre o hero e o formulário (acima da dobra)')
+  check(src.includes('{showSeedanceBridge && <PaidSeedanceBridge from="kineo1" />}'), 'engine: a ponte renderiza só sob a condição')
+  const at = src.indexOf('<PaidSeedanceBridge from="kineo1"')
+  check(at > src.indexOf('{e.intro}</p>') && at < src.indexOf('<OrganicCtaLink'), 'engine: prova após introdução e antes do CTA gratuito, mandato 28/09')
   check(!src.includes('kineo1_bridge') && !src.includes('seedanceBridge.map'), 'engine: a ponte antiga abaixo da dobra sumiu')
 }
 

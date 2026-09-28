@@ -11,7 +11,7 @@ import { TEXT_TO_VIDEO_CAMPAIGN } from '@/lib/growth/textToVideoIntent'
 import { buildBlankStudioSignupHref } from '@/lib/growth/publicCreationIntent'
 import TextToVideoIntentForm from './TextToVideoIntentForm'
 // KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — ponte roteiro → Seedance acima da dobra (fundador 23/09, jogada 3).
-import ScriptToSeedanceBridge from '@/components/ScriptToSeedanceBridge'
+import PaidSeedanceBridge from '@/components/PaidSeedanceBridge'
 import { ENGINES } from '@/lib/growth/enginePageCatalog'
 import { enginePaused } from '@/lib/engineLaunch'
 
@@ -134,6 +134,7 @@ export default function TextToVideoShortsPage() {
         <p style={{ fontSize: '1.08rem', color: '#86868b', lineHeight: 1.6, margin: '16px 0 0' }}>
           Paste a topic, prompt, or full script. Kineo turns it into a faceless vertical video with AI voiceover, visuals, captions, and an MP4 export for YouTube Shorts, TikTok, and Reels.
         </p>
+        {!enginePaused(ENGINES.seedance.param) && <PaidSeedanceBridge from="text_to_video_shorts" compact />}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '26px 0 0' }}>
           <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 850, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>
             Try text to video free
@@ -145,10 +146,6 @@ export default function TextToVideoShortsPage() {
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 750, margin: '12px 0 0' }}>
           {ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card required.', OFFER.copy.headline)}
         </p>
-
-        {/* KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — medido 23/09: 130 sessões do ChatGPT → 54 contas → 0 pagantes em 60 d.
-            Quem chega com roteiro pronto vê o Seedance antes do formulário grátis. Some se o Seedance estiver pausado. */}
-        {!enginePaused(ENGINES.seedance.param) && <ScriptToSeedanceBridge from="text_to_video_shorts" compact />}
 
         <TextToVideoIntentForm formId={FORM_ID} />
 

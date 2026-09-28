@@ -29,7 +29,7 @@ import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
 import WallMedia from '@/components/WallMedia'
 import PaidEngineBudget from '@/components/PaidEngineBudget'
 import { paidEngineBudget, paidEngineExamples } from '@/lib/growth/paidEngineProof'
-import ScriptToSeedanceBridge from '@/components/ScriptToSeedanceBridge' // KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23
+import PaidSeedanceBridge from '@/components/PaidSeedanceBridge' // Paid proof on the existing Kineo 1 bridge.
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { getEngineRenders, getHouseEngineExamples } from '@/lib/engineWall'
 import {
@@ -165,6 +165,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
             </div>
           )}
           <p style={{ fontSize: '1.02rem', color: '#86868b', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{e.intro}</p>
+          {showSeedanceBridge && <PaidSeedanceBridge from="kineo1" />}
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 22 }}>
             <OrganicCtaLink
               href={primaryCtaHref}
@@ -186,11 +187,6 @@ export default async function EnginePage({ params }: { params: { engine: string 
           {/* Honestidade explícita: nunca prometer grátis um motor de Studio. */}
           <p style={{ fontSize: '0.82rem', color: '#86868b', margin: '12px 0 0' }}>{tierNote}</p>
         </section>
-
-        {/* KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — medido 23/09: esta página recebe a maior fatia do ChatGPT (228 sessões,
-            103 contas, 0 pagantes em 60 d) e a ponte de 22/09 vivia abaixo da dobra, sem evento. Agora ela vem logo
-            depois do hero e antes do formulário, com impressão e clique medidos (components/ScriptToSeedanceBridge). */}
-        {showSeedanceBridge && <ScriptToSeedanceBridge from="kineo1" />}
 
         {e.param === 'fast' && (
           <TopicGeneratorForm
