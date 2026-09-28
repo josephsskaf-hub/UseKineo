@@ -193,6 +193,9 @@ import { CARD_ENTRY_CHECKOUT_PATH, CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 // KINEO1-PRIMEIRO-FILME-VIDEO-2026-09-17 — clipes Seedance do primeiro filme são esperados aqui, não na rota fast.
 import { FIRST_FILM_AI_CLIPS_EVENT, FIRST_FILM_AI_CLIPS_RESULT_EVENT, FIRST_FILM_AI_CLIPS_AWAIT_MS, SEEDANCE_720P_5S_USD, parsePendingAiClips, awaitPendingAiClips, spliceAiClips } from '@/lib/fastAiClips'
 import { writeServerEvent } from '@/lib/serverEvents'
+// KINEO-PLANO-B-OPENAI-2026-09-28 — voz reserva (MiniMax 2.8 HD na fal) quando a TTS da OpenAI cai.
+import { ttsFallbackApplies, synthesizeTtsFallback, registerTtsFallbackUse, TTS_FALLBACK_MODEL } from '@/lib/ttsFallback'
+import { primaryStatusOf } from '@/lib/llmFallback'
 
 // FREE_FAST_PREVIEW_LIMIT e FREE_FAST_WINDOW_MS moraram aqui até 06/08/2026.
 // Agora vêm de lib/freeFastQuota.ts, junto da contagem que os usa — o cron
@@ -2787,6 +2790,46 @@ export async function POST(req: NextRequest) {
     // upload entirely and reuse the stored mp3, Whisper words and duration.
     let voiceoverCacheKey: string | null = null
     let cachedVoiceover: CachedVoiceoverEntry | null = null
+    // ═══ KINEO-PLANO-B-OPENAI-2026-09-28 — plano B da voz (narrarPeloPlanoB) ═══
+    // 26-27/09 a conta da OpenAI ficou sem crédito (59 tentativas bloqueadas de 9 pessoas externas no
+    // roteiro). Com o plano B de texto (lib/llmFallback) o filme passa do roteiro — e morreria AQUI, no
+    // 502 "Voiceover generation failed", depois de pagar o b-roll: generateTTS (lib/compose, travado) é
+    // tts-1-hd. Quando a TTS da OpenAI falha com 429/5xx/conexão e há FAL_KEY, a narração sai pela
+    // MiniMax 2.8 HD na fal (schema da rota /audio, output_format 'url'). Qualquer outro erro (400/401,
+    // chave ausente) segue exatamente como antes. Devolve null quando não se aplica ou quando a fal falha
+    // — o chamador então faz o que sempre fez. `ttsFallbackUsed` tira este áudio do cache de voz (a
+    // chave do cache é a da voz da OpenAI) e do passe corretivo (o schema verificado não tem velocidade).
+    // `inicio` = quando a chamada à OpenAI começou: só falha rápida (< 20 s) vai ao plano B — um timeout de
+    // 55 s somado à MiniMax estouraria o maxDuration 300 (ver TTS_FALLBACK_MAX_ELAPSED_MS).
+    let ttsFallbackUsed = false
+    // KINEO-PLANO-B-OPENAI-2026-09-28 (revisão adversarial) — a MiniMax é tentada NO MÁXIMO uma vez por render. A 1ª versão
+    // chamava de novo na 2ª volta do laço corretivo: com a fal presa, até ~2 × 90 s de fila (mais submit e download) dentro
+    // dos 300 s do compose, depois do débito e antes do Whisper e da espera dos clipes — para no fim manter o áudio
+    // original. Na origin/main o mesmo estado custava duas recusas rápidas (~1 s). A primária que usou a voz reserva
+    // pula o corretivo (!ttsFallbackUsed); a primária cuja voz reserva falhou já devolveu o 502 — então "uma vez por
+    // render" é o mesmo que "uma vez por passe".
+    let planoBDeVozTentado = false
+    const narrarPeloPlanoB = async (err: unknown, stage: 'primary' | 'corrective', inicio: number): Promise<Buffer | null> => {
+      const primaryMs = Date.now() - inicio
+      if (!ttsFallbackApplies(err, primaryMs)) return null
+      if (planoBDeVozTentado) {
+        console.warn(`[compose] plano B de voz já foi tentado neste render (${stage}) — não chama a MiniMax de novo`)
+        return null
+      }
+      planoBDeVozTentado = true
+      const t0 = Date.now()
+      try {
+        const buf = await synthesizeTtsFallback(scaledScript)
+        const ms = Date.now() - t0
+        console.warn(`[compose] PLANO B DE VOZ (${stage}): OpenAI ${String(primaryStatusOf(err))} em ${primaryMs} ms → ${TTS_FALLBACK_MODEL}, ${buf.length} bytes em ${ms} ms`)
+        await registerTtsFallbackUse({ err, stage, primaryMs, ms, bytes: buf.length, chars: scaledScript.length, userId: authenticatedUserId, generationId, quality })
+        return buf
+      } catch (fallbackErr) {
+        console.error(`[compose] plano B de voz falhou (${stage}) — segue o caminho de sempre:`, fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr))
+        return null
+      }
+    }
+    // ═══ fim KINEO-PLANO-B-OPENAI-2026-09-28 (narrarPeloPlanoB) ═══
     if (avatarMode || hasUserVoice) {
       try {
         const audioRes = await fetch(externalVoiceUrl)
@@ -2874,6 +2917,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      const inicioTts = Date.now() // KINEO-PLANO-B-OPENAI-2026-09-28 — o plano B de voz só entra em falha rápida
       try {
         if (!cachedVoiceover && (!audioBuffer || audioBuffer.length === 0)) {
           audioBuffer = await generateTTS(scaledScript, explicitSpeed ?? 1.0, vertical, narrationTier, language)
@@ -2889,12 +2933,18 @@ export async function POST(req: NextRequest) {
         console.error('[compose] TTS failed:', err instanceof Error
           ? JSON.stringify({ name: err.name, message: err.message, stack: err.stack?.split('\n').slice(0, 3).join(' | ') })
           : String(err))
-        return rejectBeforeProviderSubmission(
-          NextResponse.json(
-            { error: 'Voiceover generation failed. Please try again.' },
-            { status: 502 },
-          ),
-        )
+        // KINEO-PLANO-B-OPENAI-2026-09-28 — OpenAI sem crédito/5xx/conexão: a voz sai pela fal em vez do 502.
+        const planoB = await narrarPeloPlanoB(err, 'primary', inicioTts)
+        if (!planoB) {
+          return rejectBeforeProviderSubmission(
+            NextResponse.json(
+              { error: 'Voiceover generation failed. Please try again.' },
+              { status: 502 },
+            ),
+          )
+        }
+        audioBuffer = planoB
+        ttsFallbackUsed = true
       }
 
       if (!cachedVoiceover && (!audioBuffer || audioBuffer.length === 0)) {
@@ -2966,6 +3016,7 @@ export async function POST(req: NextRequest) {
       !avatarMode && // feature/ai-avatar — never re-synthesize the lip-synced mp3
       !hasUserVoice && // KINEO-OWN-VOICE — the user's file IS the narration
       !clonedVoiceUsed && // never replace the cloned voice with the default one
+      !ttsFallbackUsed && // KINEO-PLANO-B-OPENAI-2026-09-28 — a voz reserva não tem velocidade no schema verificado, e a OpenAI acabou de recusar
       !scriptWellSized && // word count already predicts an on-target length → don't re-synth
       explicitSpeed == null &&
       !claimVerbatim && // KINEO-VERBATIM-NAO-REESCREVE — texto literal também não muda de ritmo
@@ -2988,10 +3039,22 @@ export async function POST(req: NextRequest) {
         // out" e o filme saiu com 86 s para 60 pedidos. Uma segunda tentativa antes de aceitar o
         // áudio errado; só depois de duas falhas o original é mantido (como antes).
         let retryBuffer: Awaited<ReturnType<typeof generateTTS>> | null = null
+        let correctiveViaPlanoB = false
         for (let tentativa = 1; tentativa <= 2 && !retryBuffer; tentativa++) {
+          const inicioTentativa = Date.now() // KINEO-PLANO-B-OPENAI-2026-09-28
           try {
             retryBuffer = await generateTTS(scaledScript, correctiveSpeed, vertical, narrationTier, language)
           } catch (e) {
+            // KINEO-PLANO-B-OPENAI-2026-09-28 — conta sem crédito não volta em 1 s: a 2ª tentativa só
+            // repetiria a recusa. Vai direto ao plano B (voz reserva, sem velocidade: o `improved` abaixo
+            // decide se ela fica mais perto do alvo do que o áudio que já temos). Se a MiniMax falhar aqui, a 2ª
+            // volta tenta só a OpenAI (rápida, como na origin/main): narrarPeloPlanoB não repete a MiniMax.
+            const planoB = await narrarPeloPlanoB(e, 'corrective', inicioTentativa)
+            if (planoB) {
+              retryBuffer = planoB
+              correctiveViaPlanoB = true
+              break
+            }
             if (tentativa === 2) throw e
             console.warn('[compose] corrective TTS pass failed once — retrying:', e instanceof Error ? e.message : String(e))
           }
@@ -3003,6 +3066,7 @@ export async function POST(req: NextRequest) {
           if (improved) {
             audioBuffer = retryBuffer
             realAudioDuration = retryDuration
+            if (correctiveViaPlanoB) ttsFallbackUsed = true // KINEO-PLANO-B-OPENAI-2026-09-28 — fora do cache de voz
             console.log(
               `[compose] corrected TTS duration: ${retryDuration.toFixed(1)}s (requested ${duration}s)`,
             )
@@ -3087,7 +3151,9 @@ export async function POST(req: NextRequest) {
       // identical renders (only the default-TTS path is cacheable). Awaited so
       // the small mp3 upload completes before the function can be frozen, but
       // wrapped so it can NEVER break a render that already succeeded.
-      const cacheable = !avatarMode && !hasUserVoice && !clonedVoiceUsed && !!voiceoverCacheKey
+      // KINEO-PLANO-B-OPENAI-2026-09-28 — a voz reserva NUNCA entra no cache: a chave é a da voz da OpenAI,
+      // e o próximo filme com o mesmo roteiro (já com a OpenAI de volta) herdaria a voz errada.
+      const cacheable = !avatarMode && !hasUserVoice && !clonedVoiceUsed && !ttsFallbackUsed && !!voiceoverCacheKey
       if (cacheable && voiceoverCacheKey && audioBuffer && realAudioDuration > 0) {
         try {
           await storeCachedVoiceover(voiceoverCacheKey, audioBuffer, whisperWords ?? [], realAudioDuration)

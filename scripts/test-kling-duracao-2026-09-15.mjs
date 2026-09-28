@@ -29,8 +29,12 @@ function fatiaDe(rota) {
   if (a < 0 || b < a) return null
   return rota.slice(a, b + FIM.length)
 }
+// KINEO-PLANO-B-OPENAI-2026-09-28 — re-âncora: a fatia do corretivo passou a ler `ttsFallbackUsed` e a chamar
+// `narrarPeloPlanoB` (voz reserva da fal quando a TTS da OpenAI cai). Aqui o plano B fica DESLIGADO (false / null = erro
+// que não é apagão), então o que este guardião mede — o corretivo do Kling 976eb60d — segue idêntico. O plano B tem o
+// guardião dele: scripts/test-llm-fallback-2026-09-28.mjs.
 function montar(fatia) {
-  return roda(`export async function rodar(ctx: any) {\n  const { scaledScript, composeRate, predictTtsSecondsFromWords, DURATION_TOLERANCE_SECONDS, cachedVoiceover, avatarMode, hasUserVoice, clonedVoiceUsed, explicitSpeed, claimVerbatim, duration, generateTTS, estimateMp3DurationSeconds, vertical, narrationTier, language, console } = ctx\n  let realAudioDuration: number = ctx.realAudioDuration\n  let audioBuffer: any = ctx.audioBuffer\n${fatia}\n  return { realAudioDuration, audioBuffer }\n}`).rodar
+  return roda(`export async function rodar(ctx: any) {\n  const { scaledScript, composeRate, predictTtsSecondsFromWords, DURATION_TOLERANCE_SECONDS, cachedVoiceover, avatarMode, hasUserVoice, clonedVoiceUsed, explicitSpeed, claimVerbatim, duration, generateTTS, estimateMp3DurationSeconds, vertical, narrationTier, language, console } = ctx\n  let realAudioDuration: number = ctx.realAudioDuration\n  let audioBuffer: any = ctx.audioBuffer\n  let ttsFallbackUsed = ctx.ttsFallbackUsed ?? false\n  const narrarPeloPlanoB = ctx.narrarPeloPlanoB ?? (async () => null)\n${fatia}\n  return { realAudioDuration, audioBuffer }\n}`).rodar
 }
 const rota = rd('app/api/compose/route.ts')
 const fatia = fatiaDe(rota)
