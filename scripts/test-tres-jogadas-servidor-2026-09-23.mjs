@@ -171,7 +171,9 @@ const amb = ((cp.match(/AMBIGUOUS_ONE_TIME_USD_AMOUNTS[^\n]*new Set<number>\(\[(
 const legados = [...wh.matchAll(/amount === (\d+)\)/g)].map((m) => Number(m[1]))
 checa(`nenhum valor aceito (3500/7500/10000) está em AMBIGUOUS_ONE_TIME_USD_AMOUNTS ({${amb}})`, amb.length >= 1 && dfy.DFY_ACCEPTED_AMOUNTS_USD_MINOR.every((v) => !amb.includes(v)))
 checa('3500/7500 colidem com bulk20/bulk50 de propósito documentado: por isso a 3ª regra só vale para sessão de Payment Link (a casa nunca cria sessão com payment_link) e sem metadata.pack', /sessionPaymentLinkId\(session\) !== null &&\s*DFY_ACCEPTED_AMOUNTS_USD_MINOR\.includes\(session\.amount_total \?\? -1\)/.test(dfyS) && usdAmounts.includes(3500) && usdAmounts.includes(7500) && !usdAmounts.includes(10000) && legados.length >= 2 && dfy.DFY_ACCEPTED_AMOUNTS_USD_MINOR.every((v) => !legados.includes(v)))
-checa('o comentário do webhook registra a prova de não colisão (9900, 490/290, top-ups, bulk, anuais, legados)', /AMBIGUOUS_ONE_TIME_USD_AMOUNTS = \{9900\}/.test(wh) && /Nenhum é 10000/.test(wh))
+// KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: o Starter anual saiu de 9900 e a lista de ambíguos ficou vazia; o
+// comentário do webhook diz isso e segue listando os valores (490/290, top-ups, bulk, mensais, anuais novos, legados).
+checa('o comentário do webhook registra a prova de não colisão (lista vazia desde V8-A, 490/290, top-ups, bulk, anuais, legados)', /AMBIGUOUS_ONE_TIME_USD_AMOUNTS = \{\} \(vazia desde V8-A/.test(wh) && /anuais \(mode:'subscription' hoje\): 12900\/29900\/54900/.test(wh) && /Nenhum é 10000/.test(wh))
 // ── GPT-COWORK-FOLLOWUP-2026-09-24 (P0) — o pedido Empresas EXECUTADO, não só lido ──────────────────────────
 // Por quê: o Cowork criou os dois links (Express e Pro) com metadata kind=dfy/tier, mas a Stripe não garante copiar a
 // metadata do Payment Link para a sessão, e a conta tem Adaptive Pricing (valor em moeda local). A única chave que

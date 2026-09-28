@@ -7,8 +7,10 @@ import { fileURLToPath as __f } from 'node:url'
 {
   const __raiz = __j(__d(__f(import.meta.url)), '..')
   const __src = __rf(__j(__raiz, 'lib/checkoutPricing.ts'), 'utf8').replace(/\r\n/g, '\n')
-  if (/starter: \{ usd: 990 \}/.test(__src)) {
-    console.log('APOSENTADO (restauração 09/09/2026): os preços V7 ($14/$29/$59) está desligado na fonte (lib/checkoutPricing.ts). Volta a valer sozinho no dia em que religar.')
+  // KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: o preâmbulo perguntava "a fonte está na V5 (990)?"; com a escada
+  // V8-A (1290) a resposta virava "não" e este guardião ACORDAVA cobrando $14/$29/$59. A pergunta certa é "a fonte está na V7?".
+  if (!/starter: \{ usd: 1400 \}/.test(__src)) {
+    console.log('APOSENTADO (restauração 09/09/2026; escada V8-A 28/09/2026): os preços V7 ($14/$29/$59) estão desligados na fonte (lib/checkoutPricing.ts). Volta a valer sozinho no dia em que religar.')
     process.exit(0)
   }
 }

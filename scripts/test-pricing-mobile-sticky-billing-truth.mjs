@@ -66,8 +66,9 @@ const telemetryKeys = Object.keys(policy.mobileStickyTelemetry({ billing: 'annua
 equal(telemetryKeys, ['billing', 'placement', 'tier', 'version'], 'telemetry emits only categorical, non-identity keys')
 
 const checkoutPricing = read('lib/checkoutPricing.ts')
-ok(checkoutPricing.includes("starter: { usd: 9900 }"), 'Starter annual total remains canonical (V5, restauração 09/09)')
-ok(checkoutPricing.includes("basic: { usd: 19900 }"), 'Creator annual total remains canonical')
-ok(checkoutPricing.includes("pro: { usd: 39900 }"), 'Studio annual total remains canonical')
+// KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: escada 13/30/55 do fundador (28/09); anual = 10× o mensal novo.
+ok(checkoutPricing.includes("starter: { usd: 12900 }"), 'Starter annual total remains canonical (V8-A, 28/09: 10 × $12.90)')
+ok(checkoutPricing.includes("basic: { usd: 29900 }"), 'Creator annual total remains canonical (10 × $29.90)')
+ok(checkoutPricing.includes("pro: { usd: 54900 }"), 'Studio annual total remains canonical (10 × $54.90)')
 
 console.log(`pricing mobile sticky billing truth: ${checks}/${checks} checks passed`)

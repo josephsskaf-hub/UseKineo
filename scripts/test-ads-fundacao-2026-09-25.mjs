@@ -32,7 +32,10 @@ check('a lista de ocupados bate com o código de cobrança (bulk 1900/3500/4900/
   const cp = rd('lib/checkoutPricing.ts'); const wh = rd('app/api/stripe/webhook/route.ts'); const dfy = rd('lib/growth/dfyOffer.ts')
   return /1900/.test(cp) && /3500/.test(cp) && /4900/.test(cp) && /7500/.test(cp) && /490/.test(cp) && /priceMinor: 3500/.test(dfy) && /priceMinor: 7500/.test(dfy) && /DFY_LEGACY_PRICE_USD_MINOR = 10000/.test(dfy) && /DFY_ACCEPTED_AMOUNTS_USD_MINOR/.test(wh)
 })())
-check('preço por crédito do passe (US$0,3317) fica ACIMA do plano mais barato (Starter US$9,90/60 = 0,165) — passe nunca canibaliza assinatura', (offer.ADS_PASS_USD_MINOR / 100) / offer.ADS_PASS_CREDITS > 990 / 100 / 60)
+// KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: o Starter subiu para US$12,90 (escada 13/30/55); o passe (US$0,2211/cr
+// desde o passe B) continua acima de 12,90/60 = 0,215 — por 3%, apertado de propósito: se o passe ganhar crédito de novo
+// sem subir de preço, esta linha acusa a canibalização.
+check('preço por crédito do passe (US$0,2211) fica ACIMA do plano mais barato (Starter US$12,90/60 = 0,215) — passe nunca canibaliza assinatura', (offer.ADS_PASS_USD_MINOR / 100) / offer.ADS_PASS_CREDITS > 1290 / 100 / 60)
 // 28/09: passe B do fundador (90 cr) — reancorado de 20/12 para 30/18.
 check('90 créditos cobrem 30 anúncios de 35 s ou 18 de 60 s no Kineo 1 (5 cr/60 s, 3 cr/35 s de engineCost)', offer.adsCoveredByPass(35) === 30 && offer.adsCoveredByPass(60) === 18 && /return isPaidUser \? 5 : 0/.test(rd('lib/credits/engineCost.ts')))
 check('rótulo "US$19.90" (nunca "US$19" nem "19.9")', offer.adsPassPriceLabel() === 'US$19.90' && offer.adsPassPriceLabel(3500) === 'US$35')

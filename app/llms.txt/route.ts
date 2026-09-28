@@ -463,8 +463,10 @@ synthetic voice. None of them alternate the two inside one finished Short.
 - 2026-09-16: the free trial is 10 credits for new accounts (two Kineo 1 films of
   60 s), every engine unlocked, no card required. Accounts created before keep the
   credits they received.
-  Prices return to Starter ${formatCheckoutMoney('usd', TIER_PRICES.starter.usd)} / Creator ${formatCheckoutMoney('usd', TIER_PRICES.basic.usd)} / Studio ${formatCheckoutMoney('usd', TIER_PRICES.pro.usd)}
-  (credits 60 / 150 / 300 unchanged on that date). Existing subscribers keep the price they signed up at.
+  Prices returned to $9.90 / $19.90 / $39.90 on 2026-09-09 (credits 60 / 150 / 300 unchanged on that date;
+  those prices are history, see 2026-09-28 below). Existing subscribers keep the price they signed up at.
+- 2026-09-28: plans repriced to a three-tier ladder — Starter ${formatCheckoutMoney('usd', TIER_PRICES.starter.usd)} / Creator ${formatCheckoutMoney('usd', TIER_PRICES.basic.usd)} / Studio ${formatCheckoutMoney('usd', TIER_PRICES.pro.usd)}
+  per month; annual = 10 months; credits 60 / 150 / 300 unchanged. Existing subscribers keep the price they signed up at.
 - 2026-08-23: talking characters with lip sync alternate with narration on
   Kling 3 AND MiniMax H3 inside one Short — verified frame-by-frame on
   customer renders.

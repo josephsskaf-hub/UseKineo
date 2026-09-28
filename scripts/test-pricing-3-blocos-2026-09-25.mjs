@@ -99,7 +99,8 @@ const money = (minor) => checkout.formatCheckoutMoney('usd', minor)
   const semComentario = (rel) => ts.transpileModule(rd(rel), {
     fileName: rel, compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.Preserve, removeComments: true },
   }).outputText
-  const PRECO = /\$\s?\d|US\$\s?\d|\b(990|1990|3990|3500|7500|29790)\b|0\.1[49]9/
+  // KINEO-PRECO-V8-A-2026-09-28 — os mensais novos (1290/2990/5490) entram na lista de literais proibidos; os antigos ficam.
+  const PRECO = /\$\s?\d|US\$\s?\d|\b(990|1990|3990|1290|2990|5490|3500|7500|29790)\b|0\.1[49]9/
   const PROIBIDO = /buy\.stripe\.com|checkout\.stripe\.com|\/api\/stripe\/checkout|pack=|dfyPaymentLink|paymentUrl/
   for (const rel of [LIB, ADS, CREDITS]) {
     const code = semComentario(rel)
@@ -250,7 +251,8 @@ const money = (minor) => checkout.formatCheckoutMoney('usd', minor)
   }
   ok(dfyOffer.DFY_TIERS.express.priceMinor === 3500 && dfyOffer.DFY_TIERS.pro.priceMinor === 7500 && dfyOffer.DFY_TIERS.express.hours === 48 && dfyOffer.DFY_TIERS.pro.hours === 72, '7b Express 3500/48 h · Pro 7500/72 h')
   ok(slider.CREDIT_SLIDER_MIN === 50 && slider.CREDIT_SLIDER_MAX === 2000 && slider.sliderPriceUsdMinor(50) === 990 && slider.sliderPriceUsdMinor(2000) === 29790, '7c barra 50..2000, 50 = 990, 2000 = 29790')
-  ok(checkout.TIER_PRICES.starter.usd === 990 && checkout.TIER_PRICES.basic.usd === 1990 && checkout.TIER_PRICES.pro.usd === 3990, '7d planos 990/1990/3990')
+  // KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: escada 13/30/55 do fundador (28/09).
+  ok(checkout.TIER_PRICES.starter.usd === 1290 && checkout.TIER_PRICES.basic.usd === 2990 && checkout.TIER_PRICES.pro.usd === 5490, '7d planos 1290/2990/5490 (V8-A)')
 }
 
 console.log(`\n  verificações: ${passou + falhas.length} · falhas: ${falhas.length}`)

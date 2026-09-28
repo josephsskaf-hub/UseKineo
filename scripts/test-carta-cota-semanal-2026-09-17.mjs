@@ -20,7 +20,9 @@ checa('primeiro quem fez filme; &all=1 inclui o resto', r.includes("const includ
 checa('respeita a supressão de 24 h da casa (loadLifecycleSuppression, falha fechada)', r.includes('const sup = await loadLifecycleSuppression(admin, candidatos.map((c) => c.id))') && r.includes('const alvos = candidatos.filter((c) => !sup.isSuppressed(c.id))'))
 checa('lote limitado a 120', r.includes("const MAX_BATCH = 120") && r.includes("Math.min(limitParam, MAX_BATCH)"))
 checa('NÃO concede crédito (só carimbo)', !r.includes("admin_credits_granted") && !r.includes("video_credits") )
-checa('a carta separa as duas coisas: fala do plano grátis, e o Starter fica como opção com preço da casa', r.includes("the free plan now gives you") && r.includes("Starter is $9.90/month and you can cancel anytime"))
+// KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: a carta dizia "$9.90" digitado; agora o preço do Starter sai de
+// TIER_PRICES via formatCheckoutMoney (o número vigente vive na fonte única, não aqui).
+checa('a carta separa as duas coisas: fala do plano grátis, e o Starter fica como opção com preço da casa (derivado, nunca digitado)', r.includes("the free plan now gives you") && r.includes("Starter is ${STARTER_USD}/month and you can cancel anytime") && r.includes("const STARTER_USD = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)") && !/Starter is \$\d/.test(r))
 checa('link com campanha própria e cabeçalho de descadastro', r.includes("export const CAMPAIGN = 'weekly_quota_sep17'") && r.includes("headers: unsubscribeHeaders(a.id)"))
 checa('reply-to na caixa profissional', r.includes("const REPLY_TO = 'joseph@usekineo.com'"))
 

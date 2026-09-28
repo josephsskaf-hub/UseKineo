@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { renderPage } from './preview-ux-complete.mjs'
 
 let checks = 0
@@ -84,11 +85,19 @@ check(read('components/pricing/PricingAdsBlock.tsx').includes('<CreditMinutesSum
 // de lib/checkoutPricing.ts que mudar continua vermelho.
 const PASSE_B_ROW_NOW = "    // 28/09: passe B do fundador (90 cr pelo mesmo US$19,90).\n    { id: 'pack:ads_pass', usdMinor: 1990, credits: 90, advertisedQuality: 'cinematic_ai' },"
 const PASSE_B_ROW_FROZEN = "    { id: 'pack:ads_pass', usdMinor: 1990, credits: 60, advertisedQuality: 'cinematic_ai' },"
-for (const file of ['lib/checkoutPricing.ts', 'lib/credits/engineCost.ts', 'lib/credits/creditSlider.ts']) {
+// KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: a escada 13/30/55 do fundador (28/09: "subir um pouco o preço, 3 degraus
+// como o mercado") é a SEGUNDA mudança de cobrança autorizada desde o congelamento, e ela reescreve tabelas (TIER/ANNUAL/INTRO),
+// a lista de ambíguos e a escada legada de lib/checkoutPricing.ts — não uma linha que dê para desfazer antes de comparar. O pino
+// desse arquivo passa a ser o SHA-256 do TEXTO (um SHA de commit desta branch morreria no rebase do enfileirar.sh); qualquer byte
+// que mudar depois continua vermelho, que é o que o congelamento quer. engineCost e creditSlider seguem pinados ao commit do
+// congelamento (nada mudou neles). PASSE_B_ROW_FROZEN fica como registro do que era a linha antes do passe B.
+const PRICING_V8A_SHA256 = '47d79ff31ea2a4352c0aad7349424aecf6c36d3bc0703037a1d111519f18ce4a'
+void PASSE_B_ROW_FROZEN
+for (const file of ['lib/credits/engineCost.ts', 'lib/credits/creditSlider.ts']) {
   const base = execFileSync('git', ['show', `d3c21742:${file}`], { encoding: 'utf8' }).replace(/\r\n/g, '\n')
-  const now = file === 'lib/checkoutPricing.ts' ? read(file).split(PASSE_B_ROW_NOW).join(PASSE_B_ROW_FROZEN) : read(file)
-  check(now === base, 'unchanged billing source: ' + file)
+  check(read(file) === base, 'unchanged billing source: ' + file)
 }
+check(createHash('sha256').update(read('lib/checkoutPricing.ts')).digest('hex') === PRICING_V8A_SHA256, 'unchanged billing source (pinned to the V8-A text of 28/09 by sha256): lib/checkoutPricing.ts')
 check(read('lib/checkoutPricing.ts').split(PASSE_B_ROW_NOW).length === 2, 'passe B: the pass row in checkPricingInvariants says 90 credits (28/09)')
 // KINEO-ADS-SPRINT16H-2026-09-27 — lib/ads/offer.ts changed COPY only on 27/09 (the founder dropped "within 24 hours" and
 // "corrected version"; square/landscape cuts exist since 26/09). The byte pin for that file now freezes its BILLING SURFACE
@@ -110,7 +119,9 @@ check(read('lib/checkoutPricing.ts').split(PASSE_B_ROW_NOW).length === 2, 'passe
   })
   // 28/09: passe B do fundador (90 cr) — os créditos do passe, a cobertura derivada deles e a linha de créditos da copy mudaram
   // por decisão; o resto da superfície (SKU, preço, dias, valores ocupados, custos do Kineo 1, interruptor, rótulo) segue congelado.
-  const semPasse = m => { const s = JSON.parse(surface(m)); delete s.credits; delete s.c35; delete s.c60; delete s.creditsLine; return JSON.stringify(s) }
+  // KINEO-PRECO-V8-A-2026-09-28 — a lista de valores ocupados acompanha a escada 13/30/55 (anuais 12900/29900/54900 no lugar
+  // de 9900/19900/39900; mensais 2990/5490 entram): sai da comparação congelada; o passe (1990) segue fora dela por test-ads-fundacao.
+  const semPasse = m => { const s = JSON.parse(surface(m)); delete s.credits; delete s.c35; delete s.c60; delete s.creditsLine; delete s.occupied; return JSON.stringify(s) }
   check(semPasse(now) === semPasse(frozen), 'unchanged billing surface: ' + file)
   check(now.ADS_PASS_CREDITS === 90 && now.adsCoveredByPass(35) === Math.floor(90 / now.KINEO1_35S_CREDITS) && now.adsCoveredByPass(60) === Math.floor(90 / now.KINEO1_60S_CREDITS), 'passe B: 90 credits and the coverage computed from them')
   check(now.adsPassCopy().includes[0].startsWith(`${now.ADS_PASS_CREDITS} credits: ${now.adsCoverageLine()}`), 'passe B: the credits line of the pass copy is computed')

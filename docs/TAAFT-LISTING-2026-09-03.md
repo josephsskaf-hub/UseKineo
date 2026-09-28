@@ -32,11 +32,11 @@
 
 ### Long description
 
-`Turn a topic or script into a video with narration, visuals, captions and music. Free to start: 10 credits, no card — enough for two Kineo 1 films of 60 seconds. Trial videos are watermarked. Available video options include Kineo 1, Seedance 1.5, Kling 2.5, Kling 3 and Veo 3.1. Credit use varies by engine and duration; generation requires an available engine, account access and sufficient credits. Plans start at $9.90/month USD. Check the displayed credit cost before generating.`
+`Turn a topic or script into a video with narration, visuals, captions and music. Free to start: 10 credits, no card — enough for two Kineo 1 films of 60 seconds. Trial videos are watermarked. Available video options include Kineo 1, Seedance 1.5, Kling 2.5, Kling 3 and Veo 3.1. Credit use varies by engine and duration; generation requires an available engine, account access and sufficient credits. Plans start at $12.90/month USD. Check the displayed credit cost before generating.`
 
 ### Pricing field
 
-`Free to start (10 credits, no card) · plans from $9.90/month USD`
+`Free to start (10 credits, no card) · plans from $12.90/month USD`
 
 ### Primary URL
 

@@ -16623,7 +16623,7 @@ export default function GenerateClient({
               <h3 className="mt-1" style={{ color: 'var(--text)', fontSize: '1.15rem', fontWeight: 600, lineHeight: 1.25 }}>Continue this series → Episode 2</h3>
               <p className="text-sm mt-1.5" style={{ color: 'var(--muted)', lineHeight: 1.5 }}>Same character, same voice, next chapter — without the watermark. Episode 2 is part of the Creator plan.</p>
               <div className="mt-3 flex flex-wrap gap-2">
-                <a href={`/pricing?intent_campaign=${PRIMEIRO_FILME_VERSION}#plans`} className="btn btn-w" onClick={() => { void trackEvent('first_film_cta_click', { version: PRIMEIRO_FILME_VERSION, target: 'pricing' }) }}>See plans — from $9.90/mo</a>
+                <a href={`/pricing?intent_campaign=${PRIMEIRO_FILME_VERSION}#plans`} className="btn btn-w" onClick={() => { void trackEvent('first_film_cta_click', { version: PRIMEIRO_FILME_VERSION, target: 'pricing' }) }}>See plans — from {formatCheckoutMoney('usd', getTierPrice('starter', 'usd'))}/mo</a>{/* KINEO-PRECO-V8-A-2026-09-28 — era "$9.90" digitado; o preço sai da fonte única */}
               </div>
             </section>
           )}
