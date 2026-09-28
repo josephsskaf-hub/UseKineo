@@ -4923,6 +4923,10 @@ async function manipularPost(req: NextRequest) {
       const hSubmittedPrompts: string[] = []
       // KINEO-ANCORA-REAL-NO-CLAIM-2026-09-15 — a image_url que REALMENTE foi ao fal, cena a cena (still FLUX incluído).
       const hSceneAnchors: (string | null)[] = []
+      // KINEO-OMNI-ANCORA-2026-09-28 — teto de tempo das 2ªs chances de still no filme inteiro (o laço é serial e a rota
+      // tem 300 s): com o FLUX lento em todas as cenas, 11 cenas × 15 s estourariam; 45 s cobrem 3 cenas no pior caso.
+      const OMNI_STILL_RETRY_BUDGET_MS = 45_000
+      let omniStillRetryMs = 0
       // Veredito do Contrato Cena Verdadeira, cena a cena. Vai para o claim
       // junto com o resto — sem isso o gate corrige no escuro e ninguem
       // consegue auditar depois se ele acertou ou estragou.
@@ -5112,9 +5116,38 @@ async function manipularPost(req: NextRequest) {
               })
             } catch { sceneStillUrl = null }
           }
+          // ═══ KINEO-OMNI-ANCORA-2026-09-28 — cena Omni sem imagem não vira Kling em silêncio ═══
+          // O fal só tem Omni em image-to-video (o t2v responde 404, conferido em 27/09); sem imagem a cena ia para o Kling
+          // v3 t2v (cinematicSceneModel) — US$ 0,168/s contra 0,13/s, outro look dentro de um filme vendido como Omni, e
+          // nenhum evento dizia isso: no render e7918140 (16/09, saldo normal) 2 de 11 cenas foram assim, e só se via pelo
+          // nome do modelo em cinematic_dispatch_result. Agora, SÓ na família omni e só em cena de apoio/cinemática: o still
+          // ganha UMA 2ª chance com janela de 15 s; se falhar de novo e o filme tem âncoras, a cena anima o still de ambiente
+          // (já pago, nenhum POST novo; o risco de repetição do KINEO-SPECTACLE só é aceito aqui, como penúltimo recurso).
+          // O Kling v3 continua como último recurso — e agora grava omni_scene_kling_fallback.
+          // O resultado mora em sceneStillUrl, então hSceneAnchors e o modelo leem a imagem FINAL (a retomada da cena recebe
+          // a image_url certa).
+          if (family === 'omni' && !anchorUrl && !sceneStillUrl && (hs.type === 'support' || hs.type === 'cinematic')) {
+            if (omniStillRetryMs < OMNI_STILL_RETRY_BUDGET_MS) {
+              const inicioStill = Date.now()
+              try {
+                sceneStillUrl = await generateCinematicSceneStill({
+                  scenePrompt: hs.prompt,
+                  styleSuffix: plan.styleSheet ?? '',
+                  seed: generationSeed,
+                  pollWindowMs: 15_000,
+                })
+              } catch { sceneStillUrl = null }
+              omniStillRetryMs += Date.now() - inicioStill
+            }
+            if (!sceneStillUrl && anchors?.environmentUrl) sceneStillUrl = anchors.environmentUrl
+          }
           const sceneAnchor = anchorUrl ?? sceneStillUrl ?? undefined
           hSceneAnchors[idx] = sceneAnchor ?? null // KINEO-ANCORA-REAL-NO-CLAIM-2026-09-15
           sceneModel = cinematicSceneModel(family, hs.type, Boolean(sceneAnchor))
+          if (family === 'omni' && !sceneAnchor) {
+            // KINEO-OMNI-ANCORA-2026-09-28 — o fallback agora tem nome no banco (diálogo sem retrato = no_anchors).
+            await writeServerEvent({ name: 'omni_scene_kling_fallback', userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { scene_index: idx, reason: hs.type === 'dialogue' ? 'no_anchors' : 'still_failed', scene_type: hs.type, model: sceneModel } })
+          }
           // KINEO-VOICEFIX-2026-08-17 (parte 2, em CODIGO): cena NAO-dialogo
           // nunca pode ter boca mexendo — a narracao TTS toca por cima e boca
           // + voz de outra pessoa = dublagem de terror (o bug que o fundador
@@ -5719,6 +5752,13 @@ async function manipularPost(req: NextRequest) {
     const anchorI2vModel = anchorEngine === 'kling' ? KLING_I2V_MODEL : anchorEngine === 'veo' ? VEO_I2V_MODEL : SEEDANCE_I2V_MODEL
     const anchorActive = anchorEngine !== null && CINEMATIC_ANCHOR_ENABLED
     const sceneStills: (string | null)[] = new Array(scenes.length).fill(null)
+    // ═══ KINEO-CENA-CLASSICA-2026-09-28 — o payload que foi ao fal, cena a cena ═══
+    // 3ab8128c (externa, Seedance 60 s, 16/09): 1 de 7 cenas nunca voltou e o filme morreu no prazo; d6e8e8b3 (fundador,
+    // 15/09) saiu com 6 de 7, sem retentativa. A família hollywood refaz a cena em 2 rodadas via /api/retry-hollywood-scene;
+    // a clássica não tinha o que reenviar: a cena ancorada vai em i2v com still próprio e o claim não guardava nem o still
+    // nem o seed. Gravado ANTES de cada POST — a despachante para no primeiro aceite, então o último payload gravado é o
+    // aceito, no modelo de usedModels[i]; sem aceite, é o da última tentativa (mesmo modelo que o claim grava).
+    const classicSceneInputs: (Record<string, unknown> | null)[] = new Array(scenes.length).fill(null)
     if (anchorActive) {
       // FLUX stills are paid Fal work: once we start them, an unexpected throw
       // must keep the deterministic claim PENDING (never release + let a new
@@ -5813,13 +5853,13 @@ async function manipularPost(req: NextRequest) {
         models: modelos,
         visualPrompt: cinematic,
         safeVisualPrompt,
-        submit: async (m, promptForAttempt, onPost) => submitFalQueueOnce(
-          m,
+        submit: async (m, promptForAttempt, onPost) => {
           // KINEO-MULTIFORMATO-2026-09-02 — o caminho clássico (Seedance 1.5,
           // Kling 2.5, Veo) gera cada cena já no quadro pedido.
-          buildFalInput(m, promptForAttempt, hd, false, undefined, m === modelos[0] ? imageUrl : undefined, generationSeed, isStylizedLook(styleAnchor), aspectRequested, classicVisualMode),
-          onPost,
-        ),
+          const input = buildFalInput(m, promptForAttempt, hd, false, undefined, m === modelos[0] ? imageUrl : undefined, generationSeed, isStylizedLook(styleAnchor), aspectRequested, classicVisualMode)
+          classicSceneInputs[sceneIndex] = input // KINEO-CENA-CLASSICA-2026-09-28
+          return submitFalQueueOnce(m, input, onPost)
+        },
       })
       {
         const c = ctxDespacho()
@@ -6136,10 +6176,20 @@ async function manipularPost(req: NextRequest) {
       voiceover_script: voiceoverScript,
       fal_request_ids: falRequestIds, // null for failed submissions
       fal_model: usedModel, // #401 — which engine ran (client passes it to clip-status)
-      // KINEO-CINEMATIC-ANCHOR-2026-07-24 — per-scene models ONLY when anchoring
-      // ran (some scenes i2v, some t2v-fallback), so the client polls each clip
-      // on its own endpoint. Omitted when OFF → response is byte-identical.
-      ...(anchorActive ? { fal_models: usedModels } : {}),
+      // KINEO-CINEMATIC-ANCHOR-2026-07-24 — per-scene models (i2v for anchored
+      // scenes, t2v otherwise), so the client polls each clip on its own endpoint.
+      // KINEO-CENA-CLASSICA-2026-09-28 — agora SEMPRE (antes só com âncora): é o
+      // modelo que o cliente manda na retomada da cena, e o claim já o assina
+      // (fal_models ≡ claim.falModels na amarração da resposta).
+      fal_models: usedModels,
+      // KINEO-CENA-CLASSICA-2026-09-28 — scene_prompts abre o portão de retomada do
+      // cliente (2 rodadas, como na família hollywood); scene_fal_inputs é o payload
+      // assinado que /api/retry-hollywood-scene reenvia (só o prompt troca, e só
+      // suavizado). O compose e o cron de resgate não leem nenhum dos dois: o
+      // cliente só manda scene_* ao compose nas qualidades hollywood, e o cron só
+      // quando há scene_engines (que o clássico não tem).
+      scene_prompts: classicSceneInputs.map((input) => (typeof input?.prompt === 'string' ? input.prompt : '')),
+      scene_fal_inputs: classicSceneInputs,
       quality: claimQuality,
       verbatim,
       speed: parsedScript.speed,

@@ -12,7 +12,16 @@
 //       sem gasto; modelo desconhecido = 400; hollywood intacto (family 'hollywood');
 //   (d) o portão do cliente (fatias reais do GenerateClient): abre com scene_prompts, e o corpo manda o modelo do filme
 //       quando a resposta não traz fal_models;
-//   (e) mutantes: sem o https do i2v, e sem os clássicos no ALLOWED.
+//   (f) [TRAVA 8.2] o submit clássico REAL, passando pela despachante real (lib/cinematic/dispatchScenes): o payload
+//       gravado é o aceito — i2v de primeira, t2v depois de recusa, prompt neutro depois de moderação —, no modelo que o
+//       claim assina; POST ambíguo não autoriza nada;
+//   (g) o objeto de resposta clássico (fatia real): scene_prompts, scene_fal_inputs e fal_models SEMPRE, sem scene_engines;
+//   (h) a cadeia: resposta da geração → retomada (200, payload byte a byte) → portão do cliente; compose (signedSceneMetadata
+//       real) e cron de resgate não leem os campos novos;
+//   (i) Omni (fatia real do laço hollywood): still falhou → 2ª chance de 15 s → still de ambiente → só então Kling v3, com
+//       omni_scene_kling_fallback; teto de 45 s por filme; Kling 3/H3/S25 intocados;
+//   (j) mutantes: sem o https do i2v, sem os clássicos no ALLOWED, submit que não grava, Omni sem 2ª chance, fal_models
+//       só com âncora.
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -446,7 +455,146 @@ if (gate && fill.every(Boolean) && linhaModelo) {
   checa('sem cena falha: portão fechado', cliente(classicaNova, []).abre === false)
 }
 
-console.log('== (e) mutantes ==')
+console.log('== (f) rota de geração [TRAVA 8.2]: o payload aceito cena a cena, pela despachante REAL ==')
+const rc = rd('app/api/generate-video-cinematic/route.ts')
+const loadLib = createOfflineLoader({})
+const despacho = loadLib('@/lib/cinematic/dispatchScenes')
+const cbSubmit = fatia(rc, 'submit: async (m, promptForAttempt, onPost) => {', '\n        },\n', false)
+checa('fatia do submit clássico existe e grava o payload ANTES do POST', Boolean(cbSubmit) && cbSubmit.indexOf('classicSceneInputs[sceneIndex] = input') > 0 && cbSubmit.indexOf('classicSceneInputs[sceneIndex] = input') < cbSubmit.indexOf('return submitFalQueueOnce(m, input, onPost)'))
+checa('classicSceneInputs nasce ao lado de sceneStills, um slot por cena', rc.includes('const sceneStills: (string | null)[] = new Array(scenes.length).fill(null)') && rc.includes('const classicSceneInputs: (Record<string, unknown> | null)[] = new Array(scenes.length).fill(null)'))
+// monta o callback REAL com um buildFalInput de mentira (o formato do payload é do buildFalInput, que não muda aqui)
+const montaSubmit = (cb, ctx) => roda(`export function fazer(ctx: any) {\n  const { hd, imageUrl, modelos, generationSeed, isStylizedLook, styleAnchor, aspectRequested, classicVisualMode, classicSceneInputs, sceneIndex, buildFalInput, submitFalQueueOnce } = ctx\n  return ${cb.replace(/^submit: /, '')}\n        }\n}`).fazer(ctx)
+const buildFake = (m, prompt, _hd, _h, _s, image, seed) => ({ ...(image ? { image_url: image } : {}), prompt, duration: '8', seed, _modelo: m })
+const cenaDespachada = async (fal, { imageUrl = 'https://v3.fal.media/files/still-3.png', sceneIndex = 2, visualPrompt = PROMPT + 'Lava tubes.', safe = 'Family-safe, non-graphic depiction of lava tubes at dusk.' } = {}) => {
+  const classicSceneInputs = new Array(4).fill(null)
+  const posts = []
+  const modelos = imageUrl ? [ID.SEEDANCE_I2V_MODEL, ID.SEEDANCE_MODEL] : [ID.SEEDANCE_MODEL]
+  const submit = montaSubmit(cbSubmit, { hd: false, imageUrl, modelos, generationSeed: 4242, isStylizedLook: () => false, styleAnchor: {}, aspectRequested: '9:16', classicVisualMode: 'documentary_faceless', classicSceneInputs, sceneIndex, buildFalInput: buildFake,
+    submitFalQueueOnce: async (m, input, onPost) => { onPost(); posts.push({ m, input: clone(input) }); const r = fal(posts.length, m, input); if (r instanceof Error) throw r; return r } })
+  const res = await despacho.dispatchOneSceneWithSafeVisualRetry({ sceneIndex, models: modelos, visualPrompt, safeVisualPrompt: safe, submit })
+  return { res, gravado: classicSceneInputs[sceneIndex], posts, classicSceneInputs }
+}
+const recusa = (status, message, ambiguous = false) => Object.assign(new Error(message), { status, ambiguous })
+if (cbSubmit) {
+  {
+    const { res, gravado, posts } = await cenaDespachada(() => 'req-i2v')
+    checa('i2v aceito de primeira: gravado o payload i2v (com still), no mesmo modelo que o claim assina', res.requestId === 'req-i2v' && res.model === ID.SEEDANCE_I2V_MODEL && gravado?._modelo === ID.SEEDANCE_I2V_MODEL && gravado.image_url === 'https://v3.fal.media/files/still-3.png' && posts.length === 1 && JSON.stringify(gravado) === JSON.stringify(posts[0].input))
+  }
+  {
+    const { res, gravado, posts } = await cenaDespachada((n) => (n === 1 ? recusa(422, 'image_url: unsupported dimensions') : 'req-t2v'))
+    checa('i2v recusado (422 de payload) → t2v aceito: o gravado é o t2v aceito, sem image_url, e casa com usedModels[i]', res.requestId === 'req-t2v' && res.model === ID.SEEDANCE_MODEL && gravado?._modelo === ID.SEEDANCE_MODEL && !('image_url' in gravado) && posts.length === 2)
+  }
+  {
+    const { res, gravado, posts } = await cenaDespachada((n) => (n <= 2 ? recusa(422, 'content policy violation') : 'req-safe'))
+    checa('moderação nos dois modelos → prompt neutro aceito: o gravado leva o prompt neutro que o fal aceitou', res.requestId === 'req-safe' && gravado?.prompt === 'Family-safe, non-graphic depiction of lava tubes at dusk.' && posts.length === 3 && gravado._modelo === res.model)
+  }
+  {
+    const { res, gravado, classicSceneInputs } = await cenaDespachada(() => recusa(null, 'timeout', true))
+    checa('POST ambíguo: nada é reenviado; o slot fica null (a retomada exige submission_uncertain=false) e só este índice foi gravado', res.requestId === null && res.posts === 1 && Boolean(gravado) && classicSceneInputs.filter(Boolean).length === 1)
+  }
+}
+
+console.log('== (g) a resposta clássica assinada: scene_prompts, scene_fal_inputs e fal_models sempre ==')
+const objResp = fatia(rc, "\n    const response: Record<string, unknown> = {\n      mode: 'cinematic_ai',", '\n    }\n')
+checa('fatia do objeto de resposta clássico existe', Boolean(objResp))
+checa('fal_models incondicional (o spread "anchorActive ? { fal_models" saiu)', Boolean(objResp) && objResp.includes('      fal_models: usedModels,\n') && !objResp.includes('anchorActive ? { fal_models'))
+const VARS = ['generationId', 'prompt', 'duration', 'requestedDuration', 'aspectRequested', 'degrau', 'scenes', 'voiceoverScript', 'falRequestIds', 'usedModel', 'usedModels', 'claimQuality', 'verbatim', 'parsedScript', 'contratoRelatoClassico', 'formatoVisual', 'classicSceneInputs', 'anchorActive']
+const montaResp = (src) => roda(`export function montar(ctx: any) {\n  const { ${VARS.join(', ')} } = ctx\n${src}\n  return response\n}`).montar
+const i2vAceito = { image_url: 'https://v3.fal.media/files/still-1.png', prompt: PROMPT + 'Scene one, the crater.', aspect_ratio: '9:16', resolution: '720p', duration: '8', generate_audio: false, seed: 4242 }
+const t2vAceito = { prompt: PROMPT + 'Scene two, the coastline.', aspect_ratio: '9:16', resolution: '720p', duration: '8', generate_audio: false, seed: 4242 }
+const ctxResp = (extra = {}) => ({ generationId: 'classic-generation-2809', prompt: 'basalt', duration: 35, requestedDuration: 35, aspectRequested: '9:16', degrau: null,
+  scenes: [{ description: 'a', caption: 'A' }, { description: 'b', caption: 'B' }, { description: 'c', caption: 'C' }], voiceoverScript: 'v',
+  falRequestIds: ['old-request-id', 'ready-request-id', null], usedModel: ID.SEEDANCE_MODEL, usedModels: [ID.SEEDANCE_I2V_MODEL, ID.SEEDANCE_MODEL, ID.SEEDANCE_MODEL],
+  claimQuality: 'cinematic_ai', verbatim: true, parsedScript: { speed: 1 }, contratoRelatoClassico: [], formatoVisual: { modo: 'documentary_faceless' },
+  classicSceneInputs: [i2vAceito, t2vAceito, null], anchorActive: false, ...extra })
+let respClassica = null
+if (objResp) {
+  respClassica = clone(montaResp(objResp)(ctxResp()))
+  checa('com a âncora DESLIGADA a resposta ainda leva fal_models = usedModels (o que o claim assina)', JSON.stringify(respClassica.fal_models) === JSON.stringify(ctxResp().usedModels))
+  checa('scene_prompts = o prompt de cada payload aceito; slot sem payload = "" (o cliente pula)', JSON.stringify(respClassica.scene_prompts) === JSON.stringify([i2vAceito.prompt, t2vAceito.prompt, '']))
+  checa('scene_fal_inputs = os payloads aceitos, alinhados ao índice da cena', JSON.stringify(respClassica.scene_fal_inputs) === JSON.stringify([i2vAceito, t2vAceito, null]))
+  checa('a resposta clássica NÃO ganha scene_engines/scene_seconds/scene_narrations (compose e cron seguem no caminho clássico)', !('scene_engines' in respClassica) && !('scene_seconds' in respClassica) && !('scene_narrations' in respClassica))
+  const tam = JSON.stringify({ ...respClassica, scene_fal_inputs: new Array(9).fill({ ...i2vAceito, prompt: 'p'.repeat(900), negative_prompt: 'n'.repeat(300) }), scene_prompts: new Array(9).fill('p'.repeat(900)) }).length
+  checa(`tamanho: 9 cenas com prompt de 900 e negative de 300 somam ${tam} bytes na resposta (os claims hollywood de hoje chegam a 31 KB)`, tam < 32_000)
+}
+
+console.log('== (h) a cadeia inteira: resposta da geração → retomada → portão do cliente ==')
+if (respClassica) {
+  const f = fixture({ model: ID.SEEDANCE_I2V_MODEL, response: { scene_prompts: respClassica.scene_prompts.slice(0, 2), scene_fal_inputs: respClassica.scene_fal_inputs.slice(0, 2) } })
+  const r = await f.post()
+  checa('a retomada aceita o que a rota de geração assina: 200 e o payload aceito reenviado byte a byte', r.status === 200 && JSON.stringify(f.posts[0]?.body) === JSON.stringify(i2vAceito))
+  if (gate && fill.every(Boolean) && linhaModelo) {
+    const c0 = cliente(respClassica, [0]), c1 = cliente(respClassica, [1])
+    checa('o portão do cliente ABRE para o claim clássico e manda o modelo do slot (i2v na cena 1, t2v na cena 2)', c0.abre === true && c0.model === ID.SEEDANCE_I2V_MODEL && c1.model === ID.SEEDANCE_MODEL)
+  }
+  const tl = loadLib('@/lib/cinematic/timelineContract')
+  const alinhado = tl.signedSceneMetadata(respClassica, ['https://x/1.mp4', 'https://x/2.mp4', null], ['https://x/1.mp4', 'https://x/2.mp4'], false)
+  checa('compose: signedSceneMetadata (real) só extrai scene_captions do claim clássico — scene_prompts/scene_fal_inputs nunca chegam à montagem', JSON.stringify(Object.keys(alinhado)) === JSON.stringify(['scene_captions']) && JSON.stringify(alinhado.scene_captions) === JSON.stringify(['A', 'B']))
+  checa('compose chama signedSceneMetadata exigindo metadados avançados só nas qualidades hollywood', rd('app/api/compose/route.ts').includes("['cinematic_hollywood', 'cinematic_h3', 'cinematic_omni', 'cinematic_s25'].includes(trustedQuality))"))
+  checa('cliente: scene_* só vai ao compose nas qualidades hollywood', gc.includes("...(falUsedRef.current && (falQualityRef.current === 'cinematic_hollywood' || falQualityRef.current === 'cinematic_h3' || falQualityRef.current === 'cinematic_omni' || falQualityRef.current === 'cinematic_s25') && sceneEnginesRef.current.length > 0"))
+  const cron = rd('app/api/cron/finish-stranded-renders/route.ts')
+  checa('cron de resgate: scene_* só com scene_engines; a duração vem de response.duration', cron.includes('...(Array.isArray(response.scene_engines) && response.scene_engines.length > 0') && cron.includes("typeof response.duration === 'number' && response.duration > 0") && !cron.includes('scene_fal_inputs') && !cron.includes('scene_prompts'))
+}
+
+console.log('== (i) Omni: still ganha 2ª chance, depois o ambiente, e só então o Kling v3 com evento ==')
+const blocoOmni = fatia(rc, '          let sceneStillUrl: string | null = null', '          // KINEO-VOICEFIX-2026-08-17 (parte 2', false)
+const orcamento = Number((rc.match(/const OMNI_STILL_RETRY_BUDGET_MS = ([\d_]+)/) || [])[1]?.replace(/_/g, ''))
+checa('fatia do still hollywood existe, com o teto de 2ªs chances declarado fora do laço', Boolean(blocoOmni) && orcamento === 45000 && rc.indexOf('let omniStillRetryMs = 0') < rc.indexOf('for (const [idx, hs] of plan.scenes.entries()) {'))
+checa('o 80-char de test-qualidade-comprovada segue: hSceneAnchors logo depois do sceneAnchor', Boolean(blocoOmni) && blocoOmni.includes('const sceneAnchor = anchorUrl ?? sceneStillUrl ?? undefined\n          hSceneAnchors[idx] = sceneAnchor ?? null'))
+const fnModelo = fatia(router, 'export function cinematicSceneModel(', '\n}\n')
+const cinematicSceneModel = roda(fnModelo, { ...ROUTER, H3_MODELS: ROUTER.H3_MODELS }).cinematicSceneModel
+const montaOmni = (bloco, relogio = Date) => roda(`export async function rodar(ctx: any) {\n  const { family, hs, anchorUrl, anchors, plan, generationSeed, generateCinematicSceneStill, hSceneAnchors, idx, cinematicSceneModel, writeServerEvent, user, generationId, OMNI_STILL_RETRY_BUDGET_MS } = ctx\n  let omniStillRetryMs = ctx.omniStillRetryMs ?? 0\n  let sceneModel = 'antes'\n${bloco}\n  return { sceneAnchor, sceneModel, omniStillRetryMs }\n}`, { Date: relogio }).rodar
+const omni = async (bloco, { family = 'omni', type = 'support', anchors = null, anchorUrl = undefined, stills = [], gasto = 0, relogio = Date } = {}) => {
+  const chamadas = [], eventos = [], hSceneAnchors = []
+  const out = await montaOmni(bloco, relogio)({ family, hs: { type, prompt: 'Basalt columns under a storm, wide aerial.', index: 3 }, anchorUrl, anchors, plan: { styleSheet: 'teal grade' }, generationSeed: 7,
+    generateCinematicSceneStill: async (a) => { chamadas.push(a.pollWindowMs); const v = stills[chamadas.length - 1]; if (v instanceof Error) throw v; return v ?? null },
+    hSceneAnchors, idx: 2, cinematicSceneModel, writeServerEvent: async (e) => { eventos.push(clone(e)); return true }, user: { id: 'u-omni' }, generationId: 'gen-omni', OMNI_STILL_RETRY_BUDGET_MS: orcamento, omniStillRetryMs: gasto })
+  return { ...out, chamadas, eventos, ancora: hSceneAnchors[2] }
+}
+const KLING3 = ROUTER.HOLLYWOOD_MODELS.support
+const ANCORAS = { portraitUrl: 'https://fal/portrait.png', environmentUrl: 'https://fal/environment.png' }
+if (blocoOmni && fnModelo) {
+  {
+    const r = await omni(blocoOmni, { stills: [null, 'https://fal/still-2a-chance.png'] })
+    checa('1º still falha, 2º (janela 15 s) sai: a cena fica no Omni i2v e o claim guarda a imagem FINAL', JSON.stringify(r.chamadas) === JSON.stringify([9000, 15000]) && r.sceneModel === ROUTER.OMNI_I2V_MODEL && r.ancora === 'https://fal/still-2a-chance.png' && r.eventos.length === 0)
+  }
+  {
+    const r = await omni(blocoOmni, { anchors: ANCORAS, stills: [null, new Error('flux down')] })
+    checa('os dois stills falham e o filme tem âncoras: a cena anima o still de AMBIENTE (nenhum POST novo), segue Omni, sem evento', r.chamadas.length === 2 && r.sceneModel === ROUTER.OMNI_I2V_MODEL && r.ancora === ANCORAS.environmentUrl && r.eventos.length === 0)
+  }
+  {
+    const r = await omni(blocoOmni, { stills: [null, null] })
+    const e = r.eventos[0]
+    checa('os dois stills falham e não há âncoras: Kling v3 como antes, e agora com omni_scene_kling_fallback {scene_index, reason: still_failed}', r.sceneModel === KLING3 && r.ancora === null && r.eventos.length === 1 && e.name === 'omni_scene_kling_fallback' && e.metadata.scene_index === 2 && e.metadata.reason === 'still_failed' && e.sessionId === 'gen-omni' && e.userId === 'u-omni')
+  }
+  {
+    const r = await omni(blocoOmni, { type: 'dialogue' })
+    checa('diálogo Omni sem retrato: nenhum still, Kling v3, evento reason no_anchors', r.chamadas.length === 0 && r.sceneModel === KLING3 && r.eventos[0]?.metadata.reason === 'no_anchors')
+  }
+  {
+    const r = await omni(blocoOmni, { type: 'dialogue', anchors: ANCORAS, anchorUrl: ANCORAS.portraitUrl })
+    checa('diálogo Omni com retrato: Omni i2v, nenhum still, nenhum evento (caminho normal intocado)', r.chamadas.length === 0 && r.sceneModel === ROUTER.OMNI_I2V_MODEL && r.ancora === ANCORAS.portraitUrl && r.eventos.length === 0)
+  }
+  {
+    const r = await omni(blocoOmni, { stills: ['https://fal/still-1.png'] })
+    checa('1º still sai: UMA chamada só (a 2ª chance não roda à toa)', JSON.stringify(r.chamadas) === JSON.stringify([9000]) && r.sceneModel === ROUTER.OMNI_I2V_MODEL)
+  }
+  {
+    const r = await omni(blocoOmni, { stills: [null, 'https://fal/nunca.png'], gasto: 45000 })
+    // relógio de mentira: cada leitura avança 16 s — a 2ª chance mede o próprio tempo e soma no teto do filme
+    let agora = 0
+    class Relogio extends Date { static now() { agora += 16000; return agora } }
+    const t1 = await omni(blocoOmni, { stills: [null, 'https://fal/s.png'], relogio: Relogio })
+    checa('a 2ª chance SOMA o tempo gasto no teto do filme (16 s medidos → 16 s no acumulador)', t1.omniStillRetryMs === 16000 && t1.sceneModel === ROUTER.OMNI_I2V_MODEL)
+    checa('teto de 45 s já gasto no filme: sem 2ª chance (a rota tem 300 s), cai no Kling com evento', r.chamadas.length === 1 && r.sceneModel === KLING3 && r.eventos[0]?.metadata.reason === 'still_failed')
+  }
+  for (const family of ['hollywood', 'h3', 's25']) {
+    const r = await omni(blocoOmni, { family, stills: [null, 'https://fal/nunca.png'] })
+    checa(`família ${family}: still que falha segue como hoje — UMA chamada, t2v da família, nenhum evento Omni`, r.chamadas.length === 1 && r.eventos.length === 0 && r.sceneModel === cinematicSceneModel(family, 'support', false))
+  }
+}
+
+console.log('== (j) mutantes ==')
 {
   const mut = fnSigned ? fnSigned.replace("!image.startsWith('https://')", 'false') : fnSigned
   checa('mutante (i2v aceita qualquer image_url) aplicou e é pego: http:// passaria', Boolean(mut) && mut !== fnSigned && montaSigned(mut)(claimCom([{ ...i2v, image_url: 'http://x.invalid/a.png' }]), slotDe(ID.KLING_I2V_MODEL)) !== null)
@@ -454,6 +602,23 @@ console.log('== (e) mutantes ==')
 {
   const mut = blocoAllowed ? blocoAllowed.replace('for (const model of CLASSIC) ALLOWED.add(model)', '') : blocoAllowed
   checa('mutante (ALLOWED sem os clássicos) aplicou e é pego: Seedance voltaria ao 400', Boolean(mut) && mut !== blocoAllowed && !montaAllowed(mut).ALLOWED.has(ID.SEEDANCE_MODEL))
+}
+if (cbSubmit) {
+  const mut = cbSubmit.replace('classicSceneInputs[sceneIndex] = input', 'void input')
+  const classicSceneInputs = [null]
+  const cb = montaSubmit(mut, { hd: false, imageUrl: undefined, modelos: [ID.VEO_MODEL], generationSeed: 1, isStylizedLook: () => false, styleAnchor: {}, aspectRequested: '9:16', classicVisualMode: 'documentary_faceless', classicSceneInputs, sceneIndex: 0, buildFalInput: buildFake, submitFalQueueOnce: async () => 'req' })
+  await cb(ID.VEO_MODEL, PROMPT, () => {})
+  checa('mutante (submit não grava o payload) aplicou e é pego: a resposta sairia sem nada para a retomada reenviar', mut !== cbSubmit && classicSceneInputs[0] === null)
+}
+if (blocoOmni && fnModelo) {
+  const mut = blocoOmni.replace('if (omniStillRetryMs < OMNI_STILL_RETRY_BUDGET_MS) {', 'if (false) {')
+  const r = await omni(mut, { stills: [null, 'https://fal/still-2a-chance.png'] })
+  checa('mutante (Omni sem 2ª chance de still) aplicou e é pego: a cena cairia no Kling v3', mut !== blocoOmni && r.sceneModel === KLING3 && r.chamadas.length === 1)
+}
+if (objResp) {
+  const mut = objResp.replace('      fal_models: usedModels,\n', "      ...(anchorActive ? { fal_models: usedModels } : {}),\n")
+  const r = clone(montaResp(mut)(ctxResp()))
+  checa('mutante (fal_models só com âncora, o de antes) aplicou e é pego: sem âncora a resposta sairia sem fal_models', mut !== objResp && !('fal_models' in r))
 }
 
 console.log(`\n${ok} ok · ${falhas.length} falhas`)
