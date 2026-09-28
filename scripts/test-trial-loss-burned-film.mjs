@@ -69,7 +69,8 @@ ok(filmNoun(0) === 'film', 'duracao 0 -> "film"')
 ok(filmNoun(61.6) === '62-second film', 'arredonda')
 
 // caller no cron
-ok(route.includes("select('user_id, topic, created_at, credits_used, duration')"), 'cron: custo/duracao colhidos no mesmo laco de videos (zero consulta nova)')
+// 29/09: a mesma consulta passou a ler quality_mode para pular o anuncio v2 (KINEO-ADS-V2) — continua UMA consulta so.
+ok(route.includes("select('user_id, topic, created_at, credits_used, duration, quality_mode')"), 'cron: custo/duracao colhidos no mesmo laco de videos (zero consulta nova)')
 ok(route.includes('burnedWithFilm: isBurnedWithFilm({ status, granted, used, videosMade })'), 'cron: decisao em dueKind com videosMade real')
 ok(route.includes('burnedWithFilm: false,') , 'cron: base nasce false (falha fechada)')
 ok(route.includes('if (c.burnedWithFilm) {'), 'cron: ramo novo existe')
