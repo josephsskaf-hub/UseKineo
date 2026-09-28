@@ -140,6 +140,9 @@ function avaliar(f, verbose = false) {
     chk(`a. tela recusa x@${d}`, tenta(pura.isDisposableEmail, `x@${d}`) === true)
     chk(`a. tela recusa subdomínio x@mail.${d}`, tenta(pura.isDisposableEmail, `x@mail.${d}`) === true)
     chk(`a. tela recusa caixa alta X@${d.toUpperCase()}`, tenta(pura.isDisposableEmail, `X@${d.toUpperCase()}`) === true)
+    // (revisão) ponto final de FQDN entrega no mesmo domínio — tem de casar igual
+    chk(`a. tela recusa ponto final de FQDN x@${d}.`, tenta(pura.isDisposableEmail, `x@${d}.`) === true)
+    chk(`a. servidor recusa ponto final de FQDN x@${d}.`, tenta(srv.isDisposableEmail, `x@${d}.`) === true)
     chk(`a. servidor recusa x@${d}`, tenta(srv.isDisposableEmail, `x@${d}`) === true)
     chk(`a. servidor recusa subdomínio x@a.b.${d}`, tenta(srv.isDisposableEmail, `x@a.b.${d}`) === true)
   }
@@ -253,6 +256,11 @@ const mutantes = [
     nome: 'lista pura sem casamento de subdomínio',
     secao: 'a.',
     f: { ...real, pura: trocar(real.pura, "  return Array.from(DISPOSABLE_DOMAINS).some((d) => domain.endsWith('.' + d))", '  return false') },
+  },
+  {
+    nome: 'lista pura sem tirar o ponto final de FQDN',
+    secao: 'a.',
+    f: { ...real, pura: trocar(real.pura, "    .replace(/\\.+$/, '')\n", '') },
   },
   {
     nome: 'relay entra na lista (duck.com)',

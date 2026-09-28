@@ -198,6 +198,9 @@ export function isDisposableEmail(email: string): boolean {
     .slice(at + 1)
     .trim()
     .toLowerCase()
+    // KINEO-DESCARTAVEIS-2026-09-27 (revisão) — ponto final de FQDN ("x@omanarts.com.")
+    // entrega no mesmo domínio; sem tirar o ponto, o Set e o endsWith não casam.
+    .replace(/\.+$/, '')
 
   if (!domain || domain.includes('@') || !domain.includes('.')) return false
 
