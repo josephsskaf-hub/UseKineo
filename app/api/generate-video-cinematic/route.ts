@@ -4991,6 +4991,9 @@ async function manipularPost(req: NextRequest) {
               audioUrl,
               engine: 'presenter',
               performancePrompt: hostPerformancePrompt,
+              // KINEO-FAL-UM-ALARME-POR-FILME-2026-09-28 — o alarme de saldo deste despacho é o do finalizador (um só,
+              // creditado ao filme). O veed alarmava 'avatar_submit' a cada cena de diálogo recusada.
+              alertOnBalance: false,
             })
             if (!reqId) throw new Error('presenter queue submit returned no request id')
             id = reqId
@@ -5004,6 +5007,10 @@ async function manipularPost(req: NextRequest) {
               `[cinematic] hollywood host scene ${hs.index}: TTS ${audioDur.toFixed(1)}s voice=${hostVoice.voice} → presenter submitted`,
             )
           } catch (e) {
+            // KINEO-FAL-UM-ALARME-POR-FILME-2026-09-28 — a recusa de SALDO do host vira a flag do despacho (a mesma classe
+            // de sempre: looksExhausted = espelho de sceneDisposition). finalizarDespacho alarma UMA vez, como 'cinematic',
+            // com motor, pessoa, geração e cenas. No S25 a cena retida (sem fallback O3) não ligava a flag sozinha.
+            if (e instanceof AvatarSubmitError && looksExhausted(e)) ctxDespacho().balanceExhausted = true
             if (e instanceof AvatarSubmitError && e.ambiguous) {
               cinematicSubmissionUncertain = true
               // The presenter POST may have been accepted. Falling back to O3

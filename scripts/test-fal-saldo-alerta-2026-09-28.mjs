@@ -883,7 +883,7 @@ console.log(`== 9. rota cinematic — trava 8.2 ${TRAVA_82_APLICADA ? 'APLICADA'
   }
   // ═══ REVISÃO 2 (28/09) — o host do Hollywood (cena de diálogo por submitAvatarJob) não alarma por conta própria ═══
   // Vira true no commit "[TRAVA 8.2] FIX-REVISAO-2" que passa alertOnBalance:false e liga a flag do despacho no catch.
-  const HOST_UM_ALARME_APLICADO = false
+  const HOST_UM_ALARME_APLICADO = true
   const hostIni = rota.indexOf('const reqId = await submitAvatarJob({')
   const hostCall = hostIni >= 0 ? rota.slice(hostIni, rota.indexOf('})', hostIni) + 2) : ''
   checa('rota: uma chamada só de submitAvatarJob — a do host do Hollywood', (rota.match(/submitAvatarJob\(/g) ?? []).length === 1 && hostCall.includes("engine: 'presenter'"))
