@@ -2,6 +2,13 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
+## 2026-09-28 — Studio Ads v2: preço igual ao do Higgsfield, sem prejuízo
+
+**CONTEXTO:** o fundador reprovou os anúncios feitos com o Kineo 1 (notas 4, 3, 2, 1) e decidiu refazer os motores do anúncio (docs/FEEDBACK-FUNDADOR-10-ANUNCIOS-2026-09-28.md). A pesquisa mostrou que o mercado gera cada cena a partir da foto real do cliente com Seedance 2.0/2.5, Kling 3 e Veo 3.1 (docs/growth/MOTORES-DOS-CONCORRENTES-ADS-2026-09-28.md).
+**DECIDIDO (fundador, 28/09, literal):** "refaz com os preços do Higgsfield então, não quero ter prejuízo" — descartado ficar 15% abaixo (daria prejuízo com o Seedance 2.0).
+**TRADUÇÃO EM CRÉDITOS (anúncio de 15 s, âncora = o plano com o crédito mais barato paga o preço do Higgsfield):** Foto em movimento 34 cr (Higgsfield US$4,50) · Comercial 41 cr (US$5,40) · Cinema 51 cr (US$6,75). Quem está no Starter paga mais (US$5,61 / 6,77 / 8,42), ainda abaixo do que o Starter do próprio Higgsfield cobra (US$6,33 / 7,60 / 9,50).
+**CONDIÇÕES:** (1) o preço cobre UMA geração; refazer cena é cobrado à parte — senão o Comercial em Seedance 2.0 dá prejuízo no Creator/Studio quando metade das cenas é refeita; (2) o motor de cada produto sai do teste de US$8 (3 fotos reais × 4 motores × 5 s, nota do fundador); (3) o passe do Ads (60 cr) precisa ser revisto junto — hoje paga 1 anúncio novo; (4) preço público continua congelado até 09/10: isto entra na mesa de 09/10, a não ser que o fundador antecipe.
+
 ## 2026-09-28 — O botão de compra antes do 1º filme FICA
 
 **DECIDIDO (fundador, 28/09, literal):** "mantém o botão".
