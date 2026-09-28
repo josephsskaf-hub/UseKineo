@@ -17,3 +17,9 @@ Os vídeos são os 10 anúncios Kineo 1 das empresas (docs/COWORK-10-ANUNCIOS-20
 - **A melhor cena do vídeo: três pessoas mexendo numa holografia.** Pelo registro, também é clipe gerado por IA (cena 3, "build the answer themselves… late nights, first versions"). Ou seja: o clipe de IA fez a pior e a melhor cena — funciona quando a frase descreve uma AÇÃO, falha quando descreve uma PALAVRA-CONCEITO.
 - **"Não tenho certeza do que essa empresa faz."** Isto é defeito do ROTEIRO, não do motor: o texto que a ADMITIY deixou foi cortado em ~500 caracteres e o roteiro que escrevemos virou "história do fundador" sem dizer o que o produto faz nem para quem. Regra para roteiro de anúncio (Studio Ads e os nossos): nos primeiros 5 segundos, dizer o que é e para quem.
 - **Legenda:** de novo descasada e com a marca errada (ADMITI) — já em conserto.
+
+## 3 · Restaurante em Amã — nota 2 ("é impossível alguém querer comprar um negócio desse")
+
+- **Veredito do fundador sobre o caminho:** "acho que a gente está indo para o caminho totalmente errado." Um vídeo de IA bom hoje, para restaurante, mostra a COMIDA, as pessoas felizes em volta da mesa comendo, o prato, o restaurante bonito. Não faz sentido mostrar a família no carro indo para o restaurante (o roteiro que escrevemos era a família dirigindo pela rua dos restaurantes — erro de roteiro nosso, além da fachada do concorrente).
+- **O que ele faria:** olhar os melhores vídeos de anúncio de IA na internet, principalmente no Higgsfield ("lá eles realmente fazem vídeos de ads bons; dá para ver a qualidade"), para aprender e fazer melhor ou igual. Vale para TODOS os anúncios.
+- **Consequência (decidida pelo Claude, 28/09):** não refazer os anúncios segurados no molde atual (Kineo 1 = banco de imagens + narração). Abrir um estudo do Higgsfield e dos melhores anúncios de IA, e voltar com uma receita nova de anúncio, provada num protótipo do próprio restaurante de Amã.
