@@ -8,7 +8,7 @@ import type { Scene } from '@/lib/runway'
 // import { getPexelsVideoForScene, getPexelsVideoForExactQuery, getPexelsVideoForQueries } from '@/lib/pexels'
 // Push #353 — Pixabay replaces Pexels as primary B-roll source.
 // Fast Mode v2 (02/07) — getPixabayClipsForScene returns a RANKED mini-pool per scene.
-import { getPixabayClipsForScene, notePickedClipTags, pixabayTagsForUrl } from '@/lib/pixabay'
+import { getPixabayClipsForScene, notePickedClipTags, pixabayTagsForUrl, type ScenePoolReport } from '@/lib/pixabay'
 import { isBareStarter, BARE_STARTER_MESSAGE, BARE_STARTER_REASON, looksLikeOurOwnUi, PROMPT_PROPRIO_MESSAGE, PROMPT_PROPRIO_REASON } from '@/lib/promptGuard'
 import { isSeriesContinuationPrompt, enrichSeriesContinuationPrompt } from '@/lib/seriesContinuation' // KINEO-EPISODIO-COM-ASSUNTO-2026-09-22
 import { findPreviousEpisode } from '@/lib/episodeSubject' // KINEO-EPISODIO-COM-ASSUNTO-2026-09-22
@@ -22,7 +22,10 @@ import { searchVault } from '@/lib/clipVault'
 // KINEO-AI-HOOK — Seedance cinematic "wow" opener for a free user's FIRST video.
 import { buildHookPrompt, submitAiHook, awaitAiHook, persistHookClip, type AiHookHandle } from '@/lib/fastAiHook'
 // KINEO1-PRIMEIRO-FILME-VIDEO-2026-09-17 — Seedance nas cenas fracas do primeiro filme; quem espera é o compose.
-import { FIRST_FILM_AI_CLIPS_ENABLED, FIRST_FILM_AI_CLIPS_EVENT, FIRST_FILM_BUDGET_USD, FIRST_FILM_STILL_USD, FIRST_FILM_STILLS_WITH_CLIPS_MAX, CHARACTER_STORY_STILLS_WITH_CLIPS_MAX, SEEDANCE_720P_5S_USD, firstFilmAiClipCount, pickWeakScenes, buildSceneClipPrompt, submitSceneClip } from '@/lib/fastAiClips'
+import { FIRST_FILM_AI_CLIPS_ENABLED, FIRST_FILM_AI_CLIPS_EVENT, FIRST_FILM_BUDGET_USD, FIRST_FILM_STILL_USD, FIRST_FILM_STILLS_WITH_CLIPS_MAX, CHARACTER_STORY_STILLS_WITH_CLIPS_MAX, SEEDANCE_720P_5S_USD, firstFilmAiClipCount, pickWeakScenes, buildSceneClipPrompt, submitSceneClip, planAiClipForSlot, AI_CLIPS_PER_FILM_MAX } from '@/lib/fastAiClips'
+// KINEO1-IMAGEM-V2-2026-09-28 (parte B) — buscas da fala, cena fraca depois da busca, instrução colada fora da fala.
+import { planSceneQueries, splitCommaQueries, planFirstQueries, weakSceneReason, type SceneQueryPlan, type StockOrigin } from '@/lib/kineo1/sceneQueries'
+import { splitPastedBrief, PASTED_BRIEF_EVENT, PASTED_BRIEF_VERSION } from '@/lib/kineo1/pastedBrief'
 import { pickLibraryClips, type LibraryClip } from '@/lib/stockLibrary'
 // Push #351 — ensureAccessibleUrl removed (was only used for Pexels CDN proxying; Pexels now OFF).
 // import { ensureAccessibleUrl } from '@/lib/videoCache'
@@ -94,6 +97,29 @@ const FAST_MODE_CREDIT_COST = 0
 const FAST_CLIPS_PER_SCENE = 2
 // Sanity cap on total clip elements per video (12 verbatim scenes × 2 = 24 is too many).
 const FAST_MAX_TOTAL_CLIPS = 16
+
+// ═══ KINEO1-IMAGEM-V2-2026-09-28 (parte B, [TRAVA 8.2]) — a IMAGEM nova do Kineo 1 ═══
+// Kineo 1 faz 93% dos filmes de cliente; desde 19/09 o juiz dá 69 no geral, 89 na fala e 53 na IMAGEM (63 de 131
+// filmes de cliente com 40, 56 com 60, 13 com 80+; meta do fundador: 9 de 10). As peças da parte A (67912def: buscas
+// da fala em lib/kineo1/sceneQueries.ts, portão do sujeito v2 em lib/pixabay.ts, cofre com portão em lib/clipVault.ts,
+// personagem v2 em lib/fastAiScene.ts, modo TROCA em lib/fastAiClips.ts) ligam AQUI, atrás de UM interruptor em código
+// (a Vercel não aceita env nossa). false = o comportamento de 22c8e70e: nenhuma chamada nova, nenhuma opção v2.
+const KINEO1_IMAGEM_V2 = true
+// Regra 5 do portão v2 (a ÂNCORA como segunda linha): medida offline em 28/09 nos clipes já escolhidos — sem ela o v2
+// recusa 8 de 16 clipes que os filmes nota 80+ usavam ("tiger stalking in jungle", "earth spinning", "new york skyline
+// sunset"); com ela, 3 de 16, e os vazamentos do scout (vulcão, Riviera, chafariz, cachoeira, garfo) continuam fora. O
+// clipe que só passou pela âncora fica atrás dos completos e deixa a cena 'subject_not_exact' (candidata ao clipe de IA).
+const KINEO1_GATE_HEAD_FALLBACK = true
+// Clipe de IA nas cenas FRACAS (decididas depois da busca): até 4 por filme além do hook da cena 1, com teto DURO de
+// gasto por filme — hook + clipes + a reserva dos stills do híbrido nunca passam de US$ 0,65 (hoje: 0,50 com 2 clipes).
+// Elegibilidade = a de hoje (KINEO-CLIPES-PARA-PAGANTE-2026-09-21: 1º filme de qualquer conta ou conta paga); filme
+// grátis depois do primeiro continua sem clipe (preço é decisão do fundador).
+const KINEO1_AI_WEAK_CLIPS_MAX = 4
+const KINEO1_AI_BUDGET_USD = 0.65
+// Buscas por cena que chegam à Pixabay: as 3 do plano novo + a melhor de hoje. O pool usa só as 3 primeiras
+// (SCENE_POOL_QUERY_CAP), mas a cadeia de reserva (pool seco) tenta TODAS, com até 4 alargamentos cada — sem teto, uma
+// cena seca passaria de 12 para 24 pedidos (a chave tem 100/min e é a mesma do replay).
+const KINEO1_SCENE_QUERIES_MAX = 4
 
 // KINEO-AI-HOOK — bounded budget for awaiting the first-video Seedance opener.
 // The hook is submitted in PARALLEL with scene→clip resolution (which already
@@ -666,6 +692,20 @@ export async function POST(req: NextRequest) {
     // the user already chose the perfect clip and wrote the exact narration.
     const parsedScript = parseUserScript(prompt)
     const marcadoresValidos = parsedScript.hasMarkers && parsedScript.segments.length > 0
+    // ═══ KINEO1-IMAGEM-V2-2026-09-28 — instrução colada NÃO é fala (lib/kineo1/pastedBrief.ts) ═══
+    // 2ff93c15 (a Lua, 24/09) narrou "Comece nos primeiros 2 segundos com um gancho muito forte…", "Use narração natural…",
+    // "Troque as cenas…", "Não use avatar…"; b3b3e101 (os gêmeos, 23/09) narrou "Estilo visual: ilustración minimalista…" e
+    // "Subtítulos: grandes, blancos…". Só em "Use my script as is" sem [Pexels:]: as linhas de instrução saem da fala (a do
+    // autor fica palavra por palavra, pelo MESMO parser de hoje) e vão como briefing para quem escolhe a imagem
+    // (planSceneQueries); sem fala de verdade sobrando, o texto É um briefing — a rota o trata como "a IA estrutura" e o
+    // escritor de cenas lê o briefing inteiro (o prompt não muda).
+    const briefColado = KINEO1_IMAGEM_V2 && body.script_mode === 'verbatim' && !marcadoresValidos ? splitPastedBrief(prompt) : null
+    if (briefColado?.mode === 'narration_kept') parsedScript.narration = parseUserScript(briefColado.narration).narration || briefColado.narration
+    if (briefColado?.mode === 'brief_only') body.script_mode = 'ai'
+    if (briefColado && briefColado.mode !== 'none' && !(body.dry_run === true && isDryRunAccount(user.email))) {
+      void writeServerEvent({ name: PASTED_BRIEF_EVENT, userId: user.id, path: '/api/generate-video-fast', metadata: { engine: 'fast', mode: briefColado.mode, lines_total: briefColado.linesTotal, lines_removed: briefColado.brief.length, kinds: briefColado.kinds, narration_words: briefColado.narrationWords, version: PASTED_BRIEF_VERSION } })
+      console.log(`[brief-colado] ${briefColado.mode}: ${briefColado.brief.length} linha(s) de instrução fora da fala, ${briefColado.narrationWords} palavra(s) de fala user=${user.id.slice(0, 8)}`)
+    }
     // ═══ KINEO-IDIOMA-DO-TEXTO-2026-09-12 — a voz fala a língua do texto. Render
     // 59e1c0ce (11/09): história em ESPANHOL escrita na home, seletor no padrão
     // "en", escritor de cenas em inglês. Escolha explícita (pt/es) vence; o
@@ -890,6 +930,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // KINEO1-IMAGEM-V2-2026-09-28 — o que o planejador de buscas lê além das falas: o briefing colado vem na frente.
+    const contextoDoPlano = { language: narrationLanguage.language, topic: briefColado?.mode === 'narration_kept' ? `${briefColado.brief.join(' ')} | ${prompt}` : prompt }
+
     // ═══ KINEO-DRYRUN-CLASSICO-2026-09-12 — VALIDADOR DE $0 DO KINEO 1 ═══
     // ═══ KINEO-REGUA-UNICA-2026-09-14 — O KINEO 1 ENCURTAVA SEM AVISAR ═══════
     // Medido nos arquivos entregues (cabeçalho MP4, 14/09): 515c188b pediu 35 s,
@@ -990,7 +1033,17 @@ export async function POST(req: NextRequest) {
           ? `FAIL — portão: ${parsedScript.segments.length} blocos [Pexels], o Kineo 1 monta até 12 — o render real seria recusado antes do gasto`
           : `FAIL — portão: ${portao?.speech_seconds ?? 0}s de fala a ${portao?.words_per_second ?? narrationRate.wordsPerSecond} pal/s para ${duration}s — o render real seria recusado antes do gasto`)
         : null
-      return NextResponse.json({ dry_run: true, family: 'fast', engine: 'fast', gate: portao, verbatim: ownScript /* KINEO1-VERBATIM-ESTICA: o relatório diz a mesma coisa que o render */, refunded: true, words_per_scene: verbatim ? null : wordsPerSceneFor(duration, clipCount), ...fastReport, ...(vereditoDoPortao ? { verdict: vereditoDoPortao, pass: false, problems: [vereditoDoPortao, ...(fastReport.problems ?? [])] } : {}) })
+      // KINEO1-IMAGEM-V2-2026-09-28 — o ensaio mostra o que a imagem nova faria: a instrução colada que saiu da fala e as
+      // buscas que o planejador escreveu da fala (UMA gpt-4o-mini). A busca do plano de B-roll entra sem o alinhamento por
+      // narração, que no render roda depois deste ponto.
+      const planoEnsaio = KINEO1_IMAGEM_V2 && !verbatim ? await planSceneQueries(scenes.map((sc) => ({ voiceover: sc.voiceover ?? '', planQuery: sc.stockSearchQuery ?? null })), contextoDoPlano) : null
+      const imagemV2Ensaio = KINEO1_IMAGEM_V2
+        ? {
+            pasted_brief: briefColado && briefColado.mode !== 'none' ? { mode: briefColado.mode, removed: briefColado.brief.map((l) => l.slice(0, 160)), narration_words: briefColado.narrationWords } : null,
+            scene_queries: planoEnsaio ? planoEnsaio.map((pl, i) => ({ scene: i + 1, subject: pl?.subject ?? null, stockable: pl?.stockable ?? null, queries: pl?.queries ?? [] })) : null,
+          }
+        : {}
+      return NextResponse.json({ ...imagemV2Ensaio, dry_run: true, family: 'fast', engine: 'fast', gate: portao, verbatim: ownScript /* KINEO1-VERBATIM-ESTICA: o relatório diz a mesma coisa que o render */, refunded: true, words_per_scene: verbatim ? null : wordsPerSceneFor(duration, clipCount), ...fastReport, ...(vereditoDoPortao ? { verdict: vereditoDoPortao, pass: false, problems: [vereditoDoPortao, ...(fastReport.problems ?? [])] } : {}) })
     }
 
     // KINEO-AI-HOOK — FIRST-VIDEO cinematic opener.
@@ -1152,6 +1205,23 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ═══ KINEO1-IMAGEM-V2-2026-09-28 — as buscas nascem da FALA: UMA chamada antes do laço, falha aberta ═══
+    // Taxonomia (136 cenas reprovadas, 40 filmes nota 40, 21-27/09): 36 com a busca errada para a fala — o roteiro
+    // próprio buscava as 4 primeiras palavras do bloco ("long before people played" → Long Beach; "news seconds launched
+    // tts" → borboleta), o plano trazia marcos inventados ("space needle, brainstorming, skyline" para os ovos do Bezos).
+    // planSceneQueries dá, por cena, o sujeito filmável, 3 buscas sem nome próprio nem plano de câmera, se o banco tem o
+    // assunto (stockable) e o prompt de IA; null → as buscas de hoje. Marcadores [Pexels:] são do autor: a busca dele é
+    // soberana (12/06) e o portão fica o de hoje.
+    const imagemV2 = KINEO1_IMAGEM_V2 && !verbatim
+    const planoCenas: Array<SceneQueryPlan | null> = imagemV2 ? ((await planSceneQueries(scenes.map((sc, i) => ({ voiceover: sc.voiceover ?? '', planQuery: alignedMeta[i]?.pexelsQuery ?? sc.stockSearchQuery ?? null })), contextoDoPlano)) ?? []) : []
+    if (imagemV2) console.log(`[imagem-v2] plano de buscas: ${planoCenas.length > 0 ? `${planoCenas.filter(Boolean).length}/${scenes.length} cena(s)` : 'falhou — buscas de hoje (fail-open)'}`)
+    // Roteiro próprio em prosa: a busca de reserva era fallbackStockQuery (as 4 primeiras palavras do bloco); com o plano,
+    // é a do plano. A fala do autor não muda uma letra.
+    if (prosaVerbatim) scenes.forEach((sc, i) => { const qs = planoCenas[i]?.queries ?? []; if (qs.length > 0) { sc.stockSearchQuery = qs[0]; sc.searchKeywords = qs.join(' ') } })
+    // Duração provável do filme (o compose mede o áudio): a fala no ritmo da voz, +10%, com o piso de 61,5 s do TIKTOK-61
+    // — é o que decide se a fatia do clipe de IA pode reentrar na volta de reciclagem (planAiClipForSlot).
+    const filmeEstimadoS = Math.min(90, Math.max(duration >= 60 ? 61.5 : 0, Math.max(duration, (ownScript ? falaPropria : scenes.map((sc) => sc.voiceover ?? '').join(' ')).split(/\s+/).filter(Boolean).length / Math.max(0.5, fastRate.wordsPerSecond)) * 1.1))
+
     const usedPexelsUrls = new Set<string>()
     const clipUrls: string[] = []
     // KINEO-FAST-CINEMA-2026-07-10 — per-video style memory. Every picked clip
@@ -1173,7 +1243,7 @@ export async function POST(req: NextRequest) {
     // falas; somar os dois contava cada palavra em dobro e "Faster. Wilder. Boundless." virou personagem).
     // Sem fala nenhuma (roteiro cru), cai no prompt.
     const falas = scenes.map((sc) => sc.voiceover ?? '').join(' ').trim()
-    const personagem = characterStoryName(falas || prompt)
+    const personagem = characterStoryName(falas || prompt, { v2: KINEO1_IMAGEM_V2 }) // KINEO1-IMAGEM-V2: Google/Earth/Moon/France não são personagem (46 de 61 filmes, 19-27/09)
     if (personagem || filmeDesenhado) aiStillsMax = Math.max(aiStillsMax, Math.min(scenes.length, CHARACTER_STORY_MAX_STILLS)) // KINEO1-FILME-DESENHADO: toda cena desenhada
     // KINEO-PRIMEIRO-FILME-COM-STILLS — desligado por padrão desde 17/09 (fundador: "era VÍDEO que era para ser
     // melhor"); só entra com KINEO_FIRST_FILM_STILLS=on.
@@ -1184,15 +1254,19 @@ export async function POST(req: NextRequest) {
     // /api/compose, onde o tempo do TTS/Whisper já existe (a rota esperava 15 s e a Seedance leva 60-120 s:
     // 0 de 142 hooks chegaram em 12 dias). Os stills do híbrido ficam em 3 para o filme caber no teto.
     // Falha aberta: sem request, a cena fica no stock de sempre.
-    const aiClipsSubmitted: Array<{ scene: number; requestId: string; prompt: string }> = []
+    const aiClipsSubmitted: Array<{ scene: number; requestId: string; prompt: string; usd?: number; seconds?: number; replaceRaw?: number }> = []
     const primeiroFilmeComClipes = !!aiHookHandle && FIRST_FILM_AI_CLIPS_ENABLED
+    // KINEO1-IMAGEM-V2-2026-09-28 — com a imagem nova, os clipes das cenas fracas saem DENTRO do laço, depois da busca
+    // (fecharCenaV2, abaixo). O desenho segue o caminho de 21/09 (todo o filme é gerado e os clipes abrem a cena), e o
+    // roteiro com [Pexels:] também (a busca é do autor; a cena fraca não é medida com o portão v2).
+    const clipesNaCenaFraca = imagemV2 && primeiroFilmeComClipes && !filmeDesenhado
     if (primeiroFilmeComClipes) {
       // KINEO1-FILME-DESENHADO: desenho mantém still em toda cena. KINEO1-FICCAO-STOCK-EXATO-2026-09-22: história com
       // personagem sobe o teto para 6 (a Emily ficou com stills só nas cenas 1-3; as cenas 4-6 eram só banco) — +US$ 0,08.
       if (!filmeDesenhado) aiStillsMax = Math.min(aiStillsMax, personagem ? CHARACTER_STORY_STILLS_WITH_CLIPS_MAX : FIRST_FILM_STILLS_WITH_CLIPS_MAX)
       const extras = Math.max(0, firstFilmAiClipCount(FIRST_FILM_STILLS_WITH_CLIPS_MAX) - 1)
       const notas = scenes.map((_, i) => ({ scene: i + 1, relevance: typeof alignedMeta[i]?.relevanceScore === 'number' ? (alignedMeta[i]?.relevanceScore as number) : null }))
-      for (const sceneNo of pickWeakScenes(notas, extras)) {
+      for (const sceneNo of pickWeakScenes(notas, clipesNaCenaFraca ? 0 : extras)) { // KINEO1-IMAGEM-V2: 0 = a escolha é depois da busca
         const sc = scenes[sceneNo - 1]
         const clipPrompt = buildSceneClipPrompt(sc?.description ?? '', sc?.voiceover ?? '', alignedMeta[sceneNo - 1]?.pexelsQuery ?? sc?.stockSearchQuery ?? '', desenhoLook)
         const requestId = await submitSceneClip(clipPrompt)
@@ -1225,12 +1299,95 @@ export async function POST(req: NextRequest) {
       return still
     }
 
+    // ═══ KINEO1-IMAGEM-V2-2026-09-28 — cena fraca DEPOIS da busca; o clipe de IA sai DENTRO do laço e TROCA o stock ═══
+    // Na amostra (30 filmes com clipe, 21-27/09), 38 das 103 cenas reprovadas JÁ tinham clipe Seedance pronto: ele era
+    // escolhido ANTES da busca (pela relevância do plano) e entrava na frente do stock, que continuava tocando e sendo
+    // julgado. Agora cada cena é fechada logo depois da sua busca — no topo da cena seguinte e depois da última, então
+    // nenhum `continue` escapa: fraca = o banco não deu nada (reciclado/biblioteca), o assunto não é filmável
+    // (stockable=false), só o cofre serviu, ou a cabeça do sujeito não é tag exata do clipe (weakSceneReason). Cena fraca
+    // elegível pede o clipe NA HORA (a espera p90 da Seedance já é 54 s dos 60 s do compose), fica com UM stock e o evento
+    // pendente leva replace_index: pronto, o clipe TROCA esse stock; não pronto (5%: 194 de 204 prontos desde 21/09), o
+    // stock fica. A duração vem de planAiClipForSlot: cobre a fatia do montador sem laço, inclusive na volta de
+    // reciclagem; quando o teto não paga essa duração, o clipe entra como hoje (inserção de 5 s). Nunca passa de
+    // KINEO1_AI_WEAK_CLIPS_MAX clipes nem de KINEO1_AI_BUDGET_USD por filme.
+    type CenaV2 = { idx: number; vault: number; report: ScenePoolReport | null; skip: 'gap' | 'extension' | null; queries: string[] }
+    let cenaV2: CenaV2 | null = null
+    const reservaStillsUsd = Math.round(aiStillsMax * FIRST_FILM_STILL_USD * 1000) / 1000 // os stills do híbrido que ainda podem sair
+    let gastoIaUsd = primeiroFilmeComClipes ? SEEDANCE_720P_5S_USD : 0 // o hook da cena 1
+    const mantidos = (urls: string[]) => urls.filter((u) => typeof u === 'string' && u.length > 0 && !/^https:\/\/([a-z0-9-]+\.)*fal\.(media|run|ai)\//i.test(u)).length
+    const fecharCenaV2 = async (): Promise<void> => {
+      const c = cenaV2
+      cenaV2 = null
+      if (!c) return
+      const ev = sceneEvidence[c.idx]
+      if (!ev) return
+      try {
+        const sceneNo = c.idx + 1
+        const plano = planoCenas[c.idx] ?? null
+        const fontes = clipSources.slice(ev.from)
+        const iStock = fontes.findIndex((f) => f !== 'aiStill')
+        const rawStock = iStock >= 0 ? ev.from + iStock : -1
+        const pixMantidos = fontes.filter((f) => f === 'pixabay').length - c.vault
+        const origem: StockOrigin | 'still' | 'user' | 'gap' | 'extension' =
+          c.skip ? c.skip
+          : fontes.includes('user') ? 'user'
+          : iStock < 0 ? 'still'
+          : fontes[iStock] === 'fallbackA' ? 'recycled'
+          : fontes[iStock] === 'stockLibrary' ? 'library'
+          : fontes[iStock] === 'none' ? 'none'
+          : c.vault > 0 && pixMantidos <= 0 ? 'vault'
+          : c.report?.origin === 'chain' ? 'chain'
+          : 'pool'
+        const tagsDoStock = rawStock >= 0 ? pixabayTagsForUrl(clipUrls[rawStock]) : null
+        const fraca = origem === 'still' || origem === 'user' || origem === 'gap' || origem === 'extension'
+          ? null
+          : weakSceneReason({ origin: origem, stockable: plano?.stockable ?? null, subject: plano?.subject ?? null, pickedTags: tagsDoStock })
+        ev.queries = c.queries.slice(0, 8)
+        ev.origin = origem
+        ev.stock_origin = origem
+        ev.candidates = c.report?.candidates ?? []
+        ev.subject = plano?.subject ?? null
+        ev.stockable = plano?.stockable ?? null
+        ev.weak = fraca
+        if (!fraca) return
+        if (!clipesNaCenaFraca) { ev.ai_clip = { skipped: primeiroFilmeComClipes ? 'drawn_film' : 'not_eligible' }; return } // desenho: clipes antes do laço (21/09)
+        if (sceneNo === 1) { ev.ai_clip = { skipped: 'hook_scene' }; return } // o hook já abre a cena 1
+        if (aiClipsSubmitted.length >= KINEO1_AI_WEAK_CLIPS_MAX) { ev.ai_clip = { skipped: 'cap' }; return }
+        const livreUsd = Math.round((KINEO1_AI_BUDGET_USD - gastoIaUsd - reservaStillsUsd) * 1000) / 1000
+        const podeTrocar = rawStock >= 0 && mantidos([clipUrls[rawStock]]) === 1
+        const plan = podeTrocar
+          ? planAiClipForSlot({ filmSeconds: filmeEstimadoS, clipCount: mantidos(clipUrls.slice(0, rawStock + 1)) + (scenes.length - sceneNo), index: mantidos(clipUrls.slice(0, rawStock)), maxUsd: livreUsd })
+          : { mode: 'insert' as const, seconds: 5, usd: SEEDANCE_720P_5S_USD }
+        if (plan.usd > livreUsd + 1e-9) {
+          ev.ai_clip = { skipped: 'budget' }
+          console.log(`[ai-clips] v2 scene=${sceneNo} reason=${fraca} sem orçamento (livre US$${livreUsd}, gasto US$${gastoIaUsd}, teto US$${KINEO1_AI_BUDGET_USD})`)
+          return
+        }
+        const sc = scenes[c.idx]
+        const clipPrompt = buildSceneClipPrompt(plano?.aiPrompt || sc?.description || '', sc?.voiceover ?? '', plano?.subject || ev.query || sc?.stockSearchQuery || '', desenhoLook)
+        const requestId = await submitSceneClip(clipPrompt, plan.mode === 'replace' ? plan.seconds : undefined)
+        console.log(`[ai-clips] v2 scene=${sceneNo} reason=${fraca} origin=${origem} mode=${plan.mode} ${plan.seconds}s US$${plan.usd} (gasto antes US$${gastoIaUsd} de ${KINEO1_AI_BUDGET_USD}) submit ${requestId ? 'OK request=' + requestId : 'skipped/failed'}`)
+        if (!requestId) { ev.ai_clip = { skipped: 'submit_failed' }; return }
+        gastoIaUsd = Math.round((gastoIaUsd + plan.usd) * 1000) / 1000
+        aiClipsSubmitted.push({ scene: sceneNo, requestId, prompt: clipPrompt, usd: plan.usd, ...(plan.mode === 'replace' ? { seconds: plan.seconds, replaceRaw: rawStock } : {}) })
+        cenasComClipeIA.add(sceneNo)
+        // A cena fraca fica com UM stock (KINEO1-MUNDO-DA-ENTIDADE: o gerado ganha a tela) — na troca, é o que o clipe substitui.
+        if (rawStock >= 0) while (clipUrls.length > rawStock + 1) { clipUrls.pop(); clipSources.pop() }
+        ev.origin = 'ai'
+        ev.ai_clip = { mode: plan.mode, seconds: plan.seconds, usd: plan.usd, reason: fraca }
+      } catch (err) {
+        console.warn('[imagem-v2] fechar a cena falhou (non-blocking):', err instanceof Error ? err.message : String(err))
+      }
+    }
+
     for (let idx = 0; idx < scenes.length; idx++) {
+      await fecharCenaV2() // KINEO1-IMAGEM-V2 — a busca da cena anterior terminou: fecha ela ANTES de abrir esta
       const scene = scenes[idx]
       const cat = scene.visualCategory ?? ''
       const sceneNo = idx + 1
       const ev: FastSceneEvidence = { scene: sceneNo, voiceover: (scene.voiceover ?? '').slice(0, 240), query: scene.stockSearchQuery ?? null, from: clipSources.length, sources: [], tags: [] } // KINEO-1-COERENCIA
       sceneEvidence.push(ev)
+      if (imagemV2) cenaV2 = { idx, vault: 0, report: null, skip: null, queries: [] } // KINEO1-IMAGEM-V2
 
       // Push #349 — pull this scene's BrollPlan metadata (1-based sceneNumber).
       // Hotfix (12/06): in VERBATIM mode the user hand-picked a [Pexels: ...]
@@ -1273,6 +1430,7 @@ export async function POST(req: NextRequest) {
       if (brollMeta?.requiresExtension && clipUrls.length > 0) {
         const extUrl = findPreviousRelevantClip(clipUrls, usedPexelsUrls, idx)
         if (extUrl) {
+          if (cenaV2) cenaV2.skip = 'extension' // KINEO1-IMAGEM-V2: o plano não achou busca segura — não é cena fraca de busca
           clipUrls.push(extUrl)
           clipSources.push('fallbackA') // #355
           console.log(
@@ -1290,6 +1448,7 @@ export async function POST(req: NextRequest) {
       // stays full and visually coherent. Only fires when we know the planned
       // duration (BrollPlan metadata present) and there is a prior clip.
       if (typeof durationSeconds === 'number' && durationSeconds < 3 && clipUrls.length > 0) {
+        if (cenaV2) cenaV2.skip = 'gap' // KINEO1-IMAGEM-V2: vão < 3 s, sem busca — nunca ganha clipe de IA
         const prevUrl = clipUrls[clipUrls.length - 1]
         clipUrls.push(prevUrl)
         clipSources.push('fallbackA') // #355
@@ -1356,6 +1515,13 @@ export async function POST(req: NextRequest) {
                   ? [libQuery]
                   : []
 
+        // KINEO1-IMAGEM-V2-2026-09-28 — busca do plano com vírgula ("space needle, brainstorming, skyline") vira só os
+        // pedaços que a fala menciona (12,7% das buscas nos filmes nota 40, 1,4% nos 80+); nenhum → a busca da própria cena.
+        if (imagemV2 && pixQueries.some((q) => q.includes(','))) {
+          const partes = splitCommaQueries(pixQueries, scene.voiceover ?? '')
+          pixQueries = partes.length > 0 ? partes : [scene.stockSearchQuery || libQuery].filter((q): q is string => !!q)
+        }
+
         // Fix 03/07 — HOOK ANTI-OFFTOPIC GUARD (scene 1 only). Scene 1 is the
         // visual hook; one off-topic clip there kills the video (the "snow clip
         // on a cave video" bug, 11h20 E2E). If a planned query shares ZERO
@@ -1395,6 +1561,11 @@ export async function POST(req: NextRequest) {
           }
         }
 
+        // KINEO1-IMAGEM-V2-2026-09-28 — as buscas do plano novo (feitas da FALA) vão NA FRENTE; as de hoje depois, sem o plano
+        // de câmera; a já usada em outra cena vai para o fim. A guarda do gancho não vale para elas: a fala pode estar em
+        // espanhol e a busca é em inglês de propósito (o banco é em inglês).
+        if (imagemV2) pixQueries = planFirstQueries(planoCenas[idx]?.queries, pixQueries, usedQueriesNoFilme).slice(0, KINEO1_SCENE_QUERIES_MAX)
+        if (cenaV2) cenaV2.queries = [...pixQueries]
         ev.query = pixQueries[0] ?? ev.query // KINEO-1-COERENCIA — a busca que valeu, depois do hook-guard
         if (pixQueries[0]) usedQueriesNoFilme.add(pixQueries[0].trim().toLowerCase()) // KINEO1-BUSCA-DA-FALA
         // KINEO-1-HIBRIDO — antes de gastar a busca: se o plano, a relevância ou a fala dizem que o banco
@@ -1459,6 +1630,7 @@ export async function POST(req: NextRequest) {
             const vaultHits = await searchVault(pixQueries[0] ?? libQuery ?? '', {
               exclude: usedPexelsUrls,
               limit: clipsWanted,
+              ...(imagemV2 ? { v2: true, sceneText: scene.voiceover ?? '', sceneNeedsPeople } : {}), // KINEO1-IMAGEM-V2: o portão do pool, só tags, sem ai-hook
             })
             for (const hit of vaultHits) {
               clipUrls.push(hit.storageUrl)
@@ -1467,6 +1639,7 @@ export async function POST(req: NextRequest) {
               { const sig = tagSig(hit.tags); if (sig) usedTagSigs.add(sig) } // KINEO1-MUNDO-DA-ENTIDADE
               clipSources.push('pixabay') // metrics bucket: vault clips originated from pixabay
               vaultTaken++
+              if (cenaV2) cenaV2.vault++ // KINEO1-IMAGEM-V2
               console.log(
                 `[clip] scene=${sceneNo} purpose=${purpose} duration=${durLabel}s query="${(pixQueries[0] ?? '').slice(0, 50)}" source=VAULT score=${hit.score} url=${hit.storageUrl.slice(0, 60)}`,
               )
@@ -1489,7 +1662,7 @@ export async function POST(req: NextRequest) {
             // KINEO-MULTIFORMATO-2026-09-02 — o ranker precisa saber o quadro:
             // num Short vale +10 para clipe retrato; num 16:9 é o inverso.
             // KINEO1-FICCAO-STOCK-EXATO-2026-09-22 — história com personagem: o banco só entra se a cabeça da busca for tag exata.
-            { exact: verbatim, exclude: usedPexelsUrls, minDurationSec: durationSeconds, maxClips: clipsWanted - vaultTaken, styleCtx, aspect, strictSubject: !!personagem },
+            { exact: verbatim, exclude: usedPexelsUrls, minDurationSec: durationSeconds, maxClips: clipsWanted - vaultTaken, ...(imagemV2 ? { v2: true, headFallback: KINEO1_GATE_HEAD_FALLBACK, onReport: (r: ScenePoolReport) => { if (cenaV2) cenaV2.report = r } } : {}), styleCtx, aspect, strictSubject: !!personagem },
           )
           // KINEO1-MUNDO-DA-ENTIDADE-2026-09-17 — dedupe por assinatura de tags: o mesmo gráfico de bolsa com outra
           // URL é o mesmo gráfico para quem vê (cenas 2 e 3 do filme do Bezos). Se todos repetem, fica o primeiro.
@@ -1559,6 +1732,8 @@ export async function POST(req: NextRequest) {
         clipSources.push('none') // #355
       }
     }
+
+    await fecharCenaV2() // KINEO1-IMAGEM-V2 — a última cena também é fechada (e pode pedir o seu clipe de IA)
 
     // KINEO-1-COERENCIA-2026-09-16 — fecha a evidência ANTES do hook (que faz unshift e deslocaria os índices):
     // cada cena recebe as origens e as tags dos clipes que ficaram entre o seu `from` e o `from` da próxima.
@@ -1651,7 +1826,7 @@ export async function POST(req: NextRequest) {
         sessionId: generationId,
         path: '/api/generate-video-fast',
         // topic INTEIRO (o teto da caixa é 5.000): videos.topic é cortado em 500 e o juiz precisa do texto real.
-        metadata: { generation_id: generationId, topic: prompt.slice(0, 5000), scenes: sceneEvidence.slice(0, 24).map(({ from: _from, ...rest }) => rest), verbatim },
+        metadata: { generation_id: generationId, topic: prompt.slice(0, 5000), scenes: sceneEvidence.slice(0, 24).map(({ from: _from, ...rest }) => rest), verbatim, ...(KINEO1_IMAGEM_V2 ? { image_v2: { on: imagemV2, plan_ok: planoCenas.length > 0, head_fallback: KINEO1_GATE_HEAD_FALLBACK, pasted_brief: briefColado?.mode ?? null, ai_budget_usd: clipesNaCenaFraca ? KINEO1_AI_BUDGET_USD : null, ai_spent_usd: clipesNaCenaFraca ? Math.round((gastoIaUsd + aiStillsUsed * FIRST_FILM_STILL_USD) * 100) / 100 : null, weak_scenes: sceneEvidence.filter((e) => !!e.weak).map((e) => e.scene) } } : {}) },
       })
     }
 
@@ -1663,17 +1838,19 @@ export async function POST(req: NextRequest) {
       const keptBefore = (rawIndex: number) => clipUrls.slice(0, Math.max(0, rawIndex)).filter((u) => typeof u === 'string' && u.length > 0 && !/^https:\/\/([a-z0-9-]+\.)*fal\.(media|run|ai)\//i.test(u)).length
       const clips = [
         { request_id: aiHookHandle.requestId, scene: 1, at_index: 0, prompt: aiHookHandle.prompt.slice(0, 300), usd: SEEDANCE_720P_5S_USD },
-        ...aiClipsSubmitted.map((c) => ({ request_id: c.requestId, scene: c.scene, at_index: keptBefore(sceneEvidence[c.scene - 1]?.from ?? 0), prompt: c.prompt.slice(0, 300), usd: SEEDANCE_720P_5S_USD })),
+        // KINEO1-IMAGEM-V2-2026-09-28 — no modo troca o clipe leva replace_index (posição no clip_urls ENTREGUE do stock que
+        // ele substitui) e a duração pedida à fal; o custo é o de cada clipe (US$ 0,026/s).
+        ...aiClipsSubmitted.map((c) => ({ request_id: c.requestId, scene: c.scene, at_index: keptBefore(sceneEvidence[c.scene - 1]?.from ?? 0), prompt: c.prompt.slice(0, 300), usd: c.usd ?? SEEDANCE_720P_5S_USD, ...(typeof c.replaceRaw === 'number' ? { replace_index: keptBefore(c.replaceRaw), seconds: c.seconds } : {}) })),
       ]
-      const estUsd = Math.round((clips.length * SEEDANCE_720P_5S_USD + aiStillsUsed * FIRST_FILM_STILL_USD) * 100) / 100
+      const estUsd = Math.round((clips.reduce((a, c) => a + c.usd, 0) + aiStillsUsed * FIRST_FILM_STILL_USD) * 100) / 100
       await writeServerEvent({
         name: FIRST_FILM_AI_CLIPS_EVENT,
         userId: user.id,
         sessionId: generationId,
         path: '/api/generate-video-fast',
-        metadata: { generation_id: generationId, clips, budget_usd: FIRST_FILM_BUDGET_USD, est_usd: estUsd, stills_used: aiStillsUsed, scenes: scenes.length, clip_count: filtered.length },
+        metadata: { generation_id: generationId, clips: clips.slice(0, AI_CLIPS_PER_FILM_MAX), budget_usd: clipesNaCenaFraca ? KINEO1_AI_BUDGET_USD : FIRST_FILM_BUDGET_USD, est_usd: estUsd, stills_used: aiStillsUsed, scenes: scenes.length, clip_count: filtered.length, ...(clipesNaCenaFraca ? { version: 'kineo1_imagem_v2', stills_reserved_usd: reservaStillsUsd, weak_scenes: sceneEvidence.filter((e) => !!e.weak).map((e) => e.scene) } : {}) },
       })
-      console.log(`[ai-clips] pending for compose: ${clips.length} clip(s) est=US$${estUsd} scenes=${clips.map((c) => c.scene).join(',')}`)
+      console.log(`[ai-clips] pending for compose: ${clips.length} clip(s) est=US$${estUsd} budget=US$${clipesNaCenaFraca ? KINEO1_AI_BUDGET_USD : FIRST_FILM_BUDGET_USD} scenes=${clips.map((c) => c.scene).join(',')} replace=${clips.filter((c) => 'replace_index' in c).map((c) => c.scene).join(',') || 'none'}`)
     }
 
     // Push #355 — Compute B-roll quality metrics and write to broll_metrics.

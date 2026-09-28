@@ -41,6 +41,12 @@ export const FIRST_FILM_STILLS_WITH_CLIPS_MAX = 3
 /** KINEO1-FICCAO-STOCK-EXATO-2026-09-22 — história com personagem: até 6 stills mesmo com os 3 clipes (6 × 0,026 + 3 × 0,13 ≈ US$ 0,55). */
 export const CHARACTER_STORY_STILLS_WITH_CLIPS_MAX = 6
 export const FIRST_FILM_AI_CLIPS_EVENT = 'fast_ai_clips_pending'
+/**
+ * KINEO1-IMAGEM-V2-2026-09-28 (parte B) — teto de clipes pendentes lidos por filme: o hook da cena 1 + até 4 cenas
+ * fracas (KINEO1_AI_WEAK_CLIPS_MAX na rota). Era 3 (hook + 2 extras); com 3, o 4º e o 5º clipe — já PAGOS — sumiriam
+ * no compose. O teto de gasto por filme mora na rota (KINEO1_AI_BUDGET_USD).
+ */
+export const AI_CLIPS_PER_FILM_MAX = 5
 export const FIRST_FILM_AI_CLIPS_RESULT_EVENT = 'fast_ai_clips_result'
 /** Teto de espera no compose (o TTS/Whisper já consumiu 30-60 s; a Seedance costuma fechar em 60-120 s). */
 export const FIRST_FILM_AI_CLIPS_AWAIT_MS = 60_000
@@ -309,5 +315,5 @@ export function parsePendingAiClips(raw: unknown): PendingAiClip[] {
       ...(typeof o.seconds === 'number' && Number.isInteger(o.seconds) && o.seconds >= SEEDANCE_MIN_SECONDS && o.seconds <= SEEDANCE_MAX_SECONDS ? { seconds: o.seconds } : {}),
     })
   }
-  return out.slice(0, 3)
+  return out.slice(0, AI_CLIPS_PER_FILM_MAX)
 }

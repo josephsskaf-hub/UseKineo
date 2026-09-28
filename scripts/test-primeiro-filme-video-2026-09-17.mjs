@@ -41,12 +41,17 @@ console.log('== (c) encaixe ==')
 const base = ['s1', 's2', 's3', 's4', 's5']
 checa('clipe abre a cena: entra ANTES do índice; dois clipes deslocam certo; nulos ignorados', JSON.stringify(C.spliceAiClips(base, [{ scene: 1, at_index: 0, url: 'H', ms: 1 }, { scene: 3, at_index: 3, url: 'A', ms: 1 }, { scene: 5, at_index: 4, url: null, ms: 1 }])) === JSON.stringify(['H', 's1', 's2', 's3', 'A', 's4', 's5']))
 checa('índice fora do alcance é preso ao fim; original intocado', C.spliceAiClips(base, [{ scene: 9, at_index: 99, url: 'Z', ms: 0 }]).at(-1) === 'Z' && base.length === 5)
-checa('parsePendingAiClips: só linhas válidas, máximo 3', C.parsePendingAiClips({ clips: [{ request_id: 'r1', scene: 1, at_index: 0 }, { request_id: '', scene: 2, at_index: 1 }, { scene: 3, at_index: 2 }, { request_id: 'r4', scene: 4, at_index: 3 }, { request_id: 'r5', scene: 5, at_index: 4 }, { request_id: 'r6', scene: 6, at_index: 5 }] }).length === 3 && C.parsePendingAiClips(null).length === 0)
+// KINEO1-IMAGEM-V2-2026-09-28 [TRAVA 8.2] — o teto de leitura subiu de 3 para 5 (AI_CLIPS_PER_FILM_MAX: o hook + até 4
+// cenas fracas, KINEO1_AI_WEAK_CLIPS_MAX na rota); com 3, o 4º e o 5º clipe — já PAGOS — sumiriam no compose. O teto de
+// GASTO por filme mora na rota (KINEO1_AI_BUDGET_USD, guardado em scripts/test-kineo1-imagem-v2-rota-2026-09-28.mjs).
+checa('parsePendingAiClips: só linhas válidas, máximo 5 (hook + 4)', C.parsePendingAiClips({ clips: [{ request_id: 'r1', scene: 1, at_index: 0 }, { request_id: '', scene: 2, at_index: 1 }, { scene: 3, at_index: 2 }, { request_id: 'r4', scene: 4, at_index: 3 }, { request_id: 'r5', scene: 5, at_index: 4 }, { request_id: 'r6', scene: 6, at_index: 5 }] }).length === 4 && C.parsePendingAiClips({ clips: [1, 2, 3, 4, 5, 6, 7].map((k) => ({ request_id: 'r' + k, scene: k, at_index: k })) }).length === 5 && C.AI_CLIPS_PER_FILM_MAX === 5 && C.parsePendingAiClips(null).length === 0)
 
 console.log('== (d) rota fast: submete, não espera ==')
 const ft = rd('app/api/generate-video-fast/route.ts')
 const iAligned = ft.indexOf('const alignedMeta: (BrollSceneMeta | undefined)[]')
-const iSubmit = ft.indexOf('for (const sceneNo of pickWeakScenes(notas, extras))')
+// KINEO1-IMAGEM-V2-2026-09-28 [TRAVA 8.2] — o laço pré-busca continua (desenho, roteiro com [Pexels:] e o interruptor
+// desligado); com a imagem nova ele pede 0 e a escolha vem depois da busca (fecharCenaV2 — scripts/test-kineo1-imagem-v2-rota-2026-09-28.mjs).
+const iSubmit = ft.indexOf('for (const sceneNo of pickWeakScenes(notas, clipesNaCenaFraca ? 0 : extras))')
 const iLoop = ft.indexOf('for (let idx = 0; idx < scenes.length; idx++) {')
 checa('cenas fracas escolhidas DEPOIS do alinhamento do plano (notas) e ANTES do laço de clipes', iAligned > 0 && iSubmit > iAligned && iLoop > iSubmit)
 checa('só no primeiro filme de conta gratuita (o mesmo sinal do hook) e com o interruptor', ft.includes('if (primeiroFilmeComClipes) {\n') && ft.includes('if (!filmeDesenhado) aiStillsMax = Math.min(aiStillsMax, personagem ? CHARACTER_STORY_STILLS_WITH_CLIPS_MAX : FIRST_FILM_STILLS_WITH_CLIPS_MAX)')) // KINEO1-FILME-DESENHADO-2026-09-21: desenho mantém still em toda cena; KINEO1-FICCAO-STOCK-EXATO-2026-09-22: história com personagem até 6
