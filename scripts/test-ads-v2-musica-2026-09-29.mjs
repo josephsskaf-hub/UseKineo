@@ -47,6 +47,8 @@ check('sem voz: 1 trecho a 70% começando no trim', () => {
   const a = els(M.buildAdV2Source({ ...base, musicTrimStart: 57.05, voiceUrl: null, voiceSeconds: null }))
   return a.length === 1 && a[0].trim_start === 57.05 && a[0].volume === '70%' && a[0].duration === 15
 })
+check('Creatomate: nenhum elemento de música leva loop E trim_start juntos (o 2º canário saiu mudo por isso)', () => [0, 57.05].every((t) => [7.128, null].every((v) => els(M.buildAdV2Source({ ...base, musicTrimStart: t, voiceUrl: v ? 'https://x.co/v.mp3' : null, voiceSeconds: v })).every((e) => !('loop' in e && 'trim_start' in e)))))
+check('início 0 = loop sem trim; início > 0 = trim sem loop', () => { const z = els(M.buildAdV2Source({ ...base, musicTrimStart: 0, voiceUrl: null, voiceSeconds: null }))[0]; const t = els(M.buildAdV2Source({ ...base, musicTrimStart: 57.05, voiceUrl: null, voiceSeconds: null }))[0]; return z.loop === true && !('trim_start' in z) && t.trim_start === 57.05 && !('loop' in t) })
 check('trim inválido é recusado', () => { try { M.buildAdV2Source({ ...base, musicTrimStart: -1 }); return false } catch (e) { return /bad_music_trim/.test(String(e)) } })
 
 // 4. o motor usa: troca faixa reprovada e passa o trim à montagem

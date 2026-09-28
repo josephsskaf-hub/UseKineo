@@ -190,25 +190,20 @@ export function buildAdV2Source(input: AdV2MontageInput): Record<string, unknown
     const trim = input.musicTrimStart ?? 0
     if (!(typeof trim === 'number' && Number.isFinite(trim) && trim >= 0)) throw new Error('ads_v2_montage_bad_music_trim')
     const source = input.musicUrl.trim()
+    // ⚠ O Creatomate NÃO aceita `loop` junto com `trim_start` no áudio (docs "Audio properties in RenderScript"):
+    // o 2º canário (pedido bdba9af5, 28/09) mandou os dois e saiu SEM música nenhuma. Com início > 0 vai só o
+    // trim_start (a tabela de lib/ads/v2Music.ts garante 32 s seguidos de som a partir dele); com início 0 vai só o loop.
+    const musicEl = (time: number, duration: number, start: number, volume: string, fadeIn: number, fadeOut: number): Record<string, unknown> => ({
+      type: 'audio', track: 6, time: r3(time), duration: r3(duration), source, volume,
+      ...(start > 0 ? { trim_start: r3(start) } : { loop: true }),
+      audio_fade_in: fadeIn, audio_fade_out: fadeOut,
+    })
     const rise = hasVoice ? r3(ADS_V2_VOICE_START + (input.voiceSeconds as number) + ADS_V2_MUSIC_RISE_AFTER_VOICE) : 0
     if (hasVoice && rise < total - 0.5) {
-      elements.push({
-        type: 'audio', track: 6, time: 0, duration: rise,
-        source, trim_start: r3(trim), volume: ADS_V2_MUSIC_VOLUME_WITH_VOICE,
-        loop: true, audio_fade_in: 0.5, audio_fade_out: 0.3,
-      })
-      elements.push({
-        type: 'audio', track: 6, time: rise, duration: r3(total - rise),
-        source, trim_start: r3(trim + rise), volume: ADS_V2_MUSIC_VOLUME_NO_VOICE,
-        loop: true, audio_fade_in: 0.6, audio_fade_out: 1,
-      })
+      elements.push(musicEl(0, rise, trim, ADS_V2_MUSIC_VOLUME_WITH_VOICE, 0.5, 0.3))
+      elements.push(musicEl(rise, total - rise, trim + rise, ADS_V2_MUSIC_VOLUME_NO_VOICE, 0.6, 1))
     } else {
-      elements.push({
-        type: 'audio', track: 6, time: 0, duration: total,
-        source, trim_start: r3(trim),
-        volume: hasVoice ? ADS_V2_MUSIC_VOLUME_WITH_VOICE : ADS_V2_MUSIC_VOLUME_NO_VOICE,
-        loop: true, audio_fade_in: 0.5, audio_fade_out: 1,
-      })
+      elements.push(musicEl(0, total, trim, hasVoice ? ADS_V2_MUSIC_VOLUME_WITH_VOICE : ADS_V2_MUSIC_VOLUME_NO_VOICE, 0.5, 1))
     }
   }
 
