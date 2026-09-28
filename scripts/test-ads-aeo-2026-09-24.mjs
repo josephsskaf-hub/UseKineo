@@ -101,8 +101,9 @@ ok(schemaAds.properties.v2.type.includes('null') && schemaAds.properties.modelsS
 const internal = await renderiza(undefined, false)
 ok(internal.facts.studioAds.v2 === null && !internal.llms.includes('Current workflow tiers') && !internal.facts.studioAds.description.includes('photo-motion'), 'v2g. flag falsa retira recomendação v2 nas rotas reais')
 ok(JSON.stringify(internal.facts.studioAds.includes) === JSON.stringify(copy.includes) && internal.llms.includes(copy.includes[0]), 'v2h. flag falsa restaura clássico sem perder acesso por assinatura')
-const altered = await renderiza(undefined, true, 61)
-ok(altered.facts.studioAds.v2.tiers[0].credits === 61 && altered.facts.studioAds.v2.tiers[0].adsPerPass === 0 && altered.llms.includes('Photo motion: 61 credits'), 'v2i. mudança na fonte canônica atravessa ambas as rotas, sem inventar capacidade do passe')
+// 28/09: passe B do fundador (90 cr) — o valor de teste tem de ficar ACIMA do passe para provar 'sem inventar capacidade' (era 61 com o passe de 60).
+const altered = await renderiza(undefined, true, 91)
+ok(altered.facts.studioAds.v2.tiers[0].credits === 91 && altered.facts.studioAds.v2.tiers[0].adsPerPass === 0 && altered.llms.includes('Photo motion: 91 credits'), 'v2i. mudança na fonte canônica atravessa ambas as rotas, sem inventar capacidade do passe')
 
 // ── 2. passe desligado (emergência: NEXT_PUBLIC_ADS_PASS_LIVE=0 + deploy) ──────────────────────────────
 const off = await renderiza('0')
