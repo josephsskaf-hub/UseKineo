@@ -243,9 +243,20 @@ function failureCode(failure: string | null | undefined): string | null {
   return /^[a-z][a-z0-9_]{1,47}$/.test(f) ? f : null
 }
 
+// KINEO-ADS-V2-VIRADA-2026-09-29 — desde a virada, /ads/new sem ?classic=1 redireciona ao /ads/v2. Quem está NO assistente
+// clássico volta para ELE (login, limpeza do endereço): sem o ?classic=1 a pessoa cairia no v2 e perderia o rascunho.
+function wizardPath(): string {
+  try {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('classic') === '1') return '/ads/new?classic=1'
+  } catch {
+    /* ignore */
+  }
+  return '/ads/new'
+}
+
 function goLogin() {
   if (typeof window === 'undefined') return
-  window.location.href = `/login?redirect=${encodeURIComponent('/ads/new')}`
+  window.location.href = `/login?redirect=${encodeURIComponent(wizardPath())}`
 }
 
 // KINEO-ADS-SEM-LOGIN-2026-09-27 — o visitante escreve antes de entrar: texto e link vão ao sessionStorage e voltam
@@ -796,7 +807,7 @@ const ADS_WIZARD_CSS = `
 
 // ─── componente principal ───────────────────────────────────────────────────────────────────
 
-export default function AdsWizardClient({ gate, access, resumingPass }: { gate: Gate; access: Access; resumingPass: boolean }) {
+export default function AdsWizardClient({ gate, access, resumingPass, v2Href = null }: { gate: Gate; access: Access; resumingPass: boolean; /** KINEO-ADS-V2-VIRADA-2026-09-29 — com o v2 público e sem ?classic=1: para onde ir quando o passe destrava. */ v2Href?: string | null }) {
   // KINEO-ADS-SEM-LOGIN-2026-09-27 — gate 'anon' = visitante: nasce em 'anonymous' e nunca chama a API.
   const [boot, setBoot] = useState<Boot>(() => (gate === 'anon' ? { kind: 'anonymous' } : resumingPass && (access === 'none' || gate === 'no_access') ? { kind: 'unlocking' } : { kind: 'loading' }))
   const [bootRound, setBootRound] = useState(0)
@@ -903,7 +914,7 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
     const started = Date.now()
     const dropQuery = () => {
       try {
-        if (window.location.search) window.history.replaceState(null, '', '/ads/new')
+        if (window.location.search) window.history.replaceState(null, '', wizardPath()) // KINEO-ADS-V2-VIRADA-2026-09-29: o clássico mantém ?classic=1
       } catch {
         /* ignore */
       }
@@ -929,6 +940,16 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
       if (resumingPass) dropQuery()
       if (!d.ready || d.gate === 'closed') return setBoot({ kind: 'closed' })
       if (d.gate !== 'ok') return setBoot({ kind: 'no_access' })
+      // KINEO-ADS-V2-VIRADA-2026-09-29 — voltou do checkout do passe, o acesso chegou e o v2 é público: o montador v2 é a
+      // porta (o assistente clássico só abre com ?classic=1). replace: o "voltar" do navegador não reabre esta espera.
+      if (resumingPass && v2Href) {
+        try {
+          window.location.replace(v2Href)
+          return
+        } catch {
+          /* sem navegação: segue no assistente clássico */
+        }
+      }
       await hydrate(Array.isArray(d.orders) ? d.orders : [])
       if (!cancelled) setBoot({ kind: 'ready' })
     }
@@ -937,7 +958,7 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
       cancelled = true
       if (timer) clearTimeout(timer)
     }
-  }, [gate, resumingPass, hydrate, bootRound])
+  }, [gate, resumingPass, hydrate, bootRound, v2Href])
 
   // URLs locais (blob:) das miniaturas desta sessão: liberadas ao sair.
   useEffect(() => {

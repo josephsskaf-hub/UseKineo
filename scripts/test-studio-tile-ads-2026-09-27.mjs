@@ -63,7 +63,10 @@ function verificar(src) {
   r.linhaAssinante = src.includes('`Included in your plan · ${KINEO1_35S_CREDITS} credits per ${ADS_TILE_MIN_SECONDS}-second ad`')
   r.linhaPorta = src.includes('`Included in any paid plan · from ${ADS_TILE_STARTER_PRICE}/month`')
   // hrefs
-  r.hrefWizard = src.includes("const ADS_TILE_WIZARD_HREF = '/ads/new?utm_source=studio&utm_medium=tile&utm_campaign=sprint0927'")
+  // REANCORADO 29/09 (KINEO-ADS-V2-VIRADA-2026-09-29): /ads/new sem ?classic=1 agora cai no v2 (34/41/51 por 15 s); a linha
+  // do tile vende o CLÁSSICO (KINEO1_35S_CREDITS por 35 s), então o href leva &classic=1 no fim. Intenção mantida: utm triplo
+  // com a campanha do dia, e o assistente (não a porta) para quem tem plano.
+  r.hrefWizard = src.includes("const ADS_TILE_WIZARD_HREF = '/ads/new?utm_source=studio&utm_medium=tile&utm_campaign=sprint0927&classic=1'")
   r.hrefPorta = src.includes("const ADS_TILE_DOOR_HREF = '/ads?from=studio&utm_source=studio&utm_medium=tile&utm_campaign=sprint0927'")
   // predicado de plano: o wizard só sai sob adsTileAccess, e adsTileAccess é o predicado do servidor
   r.predicadoPlano = src.includes('const adsTileAccess = plan !== null && ADS_SUBSCRIBER_PLANS.includes(plan)')

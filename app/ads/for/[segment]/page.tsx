@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { ADS_SEGMENTS, findAdsSegment, adsSegmentPath, adsSegmentPoster, adsSegmentCta, approvedSegmentExample } from '@/lib/growth/adsSegments'
 import { adsSegmentOffer, adsSegmentFaq, adsSegmentFaqSchema } from '@/lib/growth/adsSegmentPresentation'
+import { ADS_V2_HOW_IT_WORKS } from '@/lib/ads/v2Screen' // KINEO-ADS-V2-VIRADA-2026-09-29 — os mesmos 4 passos do montador
 import styles from './segment.module.css'
 
 type Props = { params: { segment: string } }
@@ -38,9 +39,10 @@ export default function AdsSegmentPage({ params }: Props) {
       <div>
         <p className={styles.eyebrow}>YOUR BUSINESS. YOUR STORY.</p>
         <h1>Video ads for {segment.name}<span> — made by AI in minutes.</span></h1>
-        <p className={styles.intro}>Your logo, photos and facts. Kineo turns them into a narrated ad with captions, music and a final card.</p>
+        {/* KINEO-ADS-V2-VIRADA-2026-09-29 — o produto principal é o anúncio v2: fotos reais em movimento, ~15 s, sem legenda prometida. */}
+        <p className={styles.intro}>Your logo and your real photos. Kineo gives them movement and turns them into a vertical ad of about {offer.v2Seconds} seconds, with music, a short voice-over and your logo at the end.</p>
         <a className={styles.cta} href={adsSegmentCta(segment.slug)}>Make your ad <span aria-hidden="true">→</span></a>
-        <p className={styles.offer}>Included in any paid plan · from {offer.starterPrice} USD/month · {offer.credits} credits per {offer.seconds}-second ad.</p>
+        <p className={styles.offer}>Included in any paid plan · from {offer.starterPrice} USD/month · from {offer.v2Credits} credits per {offer.v2Seconds}-second ad.</p>
         <p className={styles.note}>Check your facts before rendering. Generation time varies.</p>
       </div>
       <figure className={styles.preview}>
@@ -55,9 +57,7 @@ export default function AdsSegmentPage({ params }: Props) {
     <section className={styles.section} aria-labelledby="how-heading">
       <h2 id="how-heading">How it works</h2>
       <ol className={styles.steps}>
-        <li><h3>Start with your business</h3><p>Paste your website link or write a sentence. Add your logo and authorized photos or clips.</p></li>
-        <li><h3>Check the facts</h3><p>Review the business details, script, language and call to action before rendering.</p></li>
-        <li><h3>Get your ad</h3><p>Download the narrated video with captions, music and a final card. Post it yourself.</p></li>
+        {ADS_V2_HOW_IT_WORKS.map(step => <li key={step.title}><h3>{step.title}</h3><p>{step.body}</p></li>)}
       </ol>
     </section>
     <section className={styles.brief} aria-labelledby="brief-heading">

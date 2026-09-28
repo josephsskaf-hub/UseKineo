@@ -330,6 +330,9 @@ const ADS_V2_CSS = `
 .adv2 .adv2-note{margin:14px 0 0;padding:14px 16px;border-radius:12px;border:1px solid var(--ads-line);background:var(--ads-tint);color:var(--ads-text);line-height:1.6;font-size:14px}
 .adv2 .adv2-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:18px}
 .adv2 .adv2-aside h2{font-size:17px;margin:0 0 10px}
+.adv2 .adv2-classic{margin:6px 0 0;font-size:13px;line-height:1.5}
+.adv2 .adv2-classic a{color:var(--ads-muted);text-decoration:underline;text-underline-offset:3px}
+.adv2 .adv2-classic a:hover{color:var(--ads-accent)}
 .adv2 .adv2-how{margin:0;padding:0;list-style:none;display:grid;gap:12px}
 .adv2 .adv2-how li{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.6;color:var(--ads-secondary)}
 .adv2 .adv2-how b{display:block;color:var(--ads-text)}
@@ -343,7 +346,9 @@ const ADS_V2_CSS = `
 
 // ─── a página: cabeçalho com "Start over" + a sessão (remontada a cada Start over) ────────────
 
-export default function AdsV2Client({ initialBalance }: { initialBalance: number | null }) {
+// KINEO-ADS-V2-VIRADA-2026-09-29 — classicCredits: o custo do anúncio clássico (KINEO1_35S_CREDITS) vem do servidor
+// (page.tsx lê lib/ads/offer) — o cliente não ganha import novo e nunca digita o número.
+export default function AdsV2Client({ initialBalance, classicCredits = null }: { initialBalance: number | null; classicCredits?: number | null }) {
   const [session, setSession] = useState(0)
   const [balance, setBalance] = useState<number | null>(initialBalance)
   const [confirmingReset, setConfirmingReset] = useState(false)
@@ -388,6 +393,12 @@ export default function AdsV2Client({ initialBalance }: { initialBalance: number
         <div>
           <h1>Studio Ads</h1>
           <p className="sub">Your real photos, brought to life in a vertical ad with music, a short voice-over and your logo.</p>
+          {/* KINEO-ADS-V2-VIRADA-2026-09-29 — o assistente antigo continua existindo como opção clássica (discreto, <a> sem prefetch). */}
+          {classicCredits !== null ? (
+            <p className="adv2-classic">
+              <a href="/ads/new?classic=1">Prefer a narrated 35-second ad? Use the classic maker ({classicCredits} credits)</a>
+            </p>
+          ) : null}
         </div>
         <button ref={resetBtnRef} type="button" className="adsw-btn ghost small" aria-expanded={confirmingReset} aria-controls="adv2-reset" onClick={() => setConfirmingReset(true)}>
           Start over

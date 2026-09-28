@@ -178,7 +178,9 @@ function studioAdsLineHtml(appUrl: string, plan: string | null | undefined): str
   if (!adsPassLive()) return null
   const p = typeof plan === 'string' ? plan.trim().toLowerCase() : ''
   if (!ADS_SUBSCRIBER_PLANS.includes(p)) return null
-  const url = `${appUrl.replace(/\/+$/, '')}/ads/new?${ADS_LINE_UTM}`
+  // REVISÃO 29/09 (KINEO-ADS-V2-VIRADA-2026-09-29): a linha vende o anúncio CLÁSSICO (narrado, com legenda, 3 créditos por 35 s);
+  // desde a virada /ads/new sem ?classic=1 cai no v2 (34/41/51 por 15 s, sem legenda). classic=1 cumpre a promessa.
+  const url = `${appUrl.replace(/\/+$/, '')}/ads/new?${ADS_LINE_UTM}&classic=1`
   return (
     `<p style="color:#94a3b8;font-size:12px;margin:14px 0 0">Studio Ads is included in your plan: paste your website link or write one sentence and the AI writes, narrates and cuts a vertical ad with captions, music and your logo. ` +
     `A ${ADS_SHORTEST_SECONDS}-second ad costs ${KINEO1_35S_CREDITS} credits from the same balance. ` +

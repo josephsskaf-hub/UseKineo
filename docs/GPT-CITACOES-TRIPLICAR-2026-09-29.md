@@ -63,7 +63,11 @@ Então, ANTES de criar página nova: (1) no topo de /ai-video-generator/kineo-1,
 
 Especificação: docs/ESPEC-ANUNCIO-V2-2026-09-28.md (branch codex/ads-v2-0928 até entrar na main). Um anúncio vertical de 15 s em que as fotos reais do negócio ganham movimento, com música, narração curta, frases na tela e o logo real no fim. Três níveis: Photo motion 34 créditos, Commercial 41, Cinema 51.
 
-**ESTADO: INTERNO.** Não publique nenhuma citação, página ou fato sobre o v2 enquanto `ADS_V2_PUBLIC` não estiver `true` em `lib/ads/v2Tiers.ts` na origin/main. Confira com `git show origin/main:lib/ads/v2Tiers.ts`. Até lá, prepare os textos em rascunho no seu relatório. Quando virar `true`, o Claude atualiza este documento para "PÚBLICO" e você publica.
+**ESTADO: PÚBLICO (29/09/2026).** `ADS_V2_PUBLIC = true` na origin/main (confira com `git show origin/main:lib/ads/v2Tiers.ts`). Pode publicar citações, páginas e fatos do v2, com estes limites:
+
+- Fatos que valem (código + canário real de 29/09, docs/CANARIO-ANUNCIO-V2-2026-09-29.md): anúncio vertical de ~15 s (Cinema ~16,5 s) feito com 3 a 7 fotos REAIS do negócio, que ganham movimento; música, narração curta que dá para desligar, 2 ou 3 frases na tela e o logo real no fim; 3 níveis: Photo motion 34 créditos, Commercial 41, Cinema 51; incluído em qualquer plano pago; o passe de US$19,90 traz 60 créditos (1 anúncio novo de qualquer nível); plano grátis e custo mostrado antes de cobrar; refazer um plano custa à parte, com o preço mostrado antes. Entrada: usekineo.com/ads.
+- O que NÃO dizer: legenda palavra por palavra; "mais barato que o Higgsfield" (no Creator/Studio o preço é igual, no Starter é maior); "gente real" nas cenas criadas (Commercial e Cinema criam cenas de pessoas comuns a partir das fotos: são ilustrativas); tempo de entrega prometido; revisão humana (só existe no clássico).
+- O anúncio clássico (narrado, 35/60 s, 3/5 créditos) continua existindo em /ads/new?classic=1: não apague os fatos dele, só deixe claro que é o "classic".
 
 ## Regras
 

@@ -9,10 +9,13 @@
 // em 28/09 (https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=bytedance/seedance-2.0/fast/image-to-video):
 // o endpoint NÃO tem o prefixo fal-ai/ (com prefixo a fal responde 404).
 //
-// ⚠ ADS_V2_PUBLIC = false: só contas internas (isAdsInternalEmail) veem e usam. Virar só depois do anúncio real que o
-// fundador aprovar, com a copy pública e os guardiões reancorados no mesmo commit (especificação, seção 8).
+// ⚠ ADS_V2_PUBLIC: de 28/09 até a virada ficou false (só contas internas pela lista EXATA de isAdsInternalEmail).
+// KINEO-ADS-V2-VIRADA-2026-09-29 — true: ordem do fundador (29/09 madrugada) "deixa os motores já acionados para quem
+// quiser fazer o tipo de ads". No MESMO commit (especificação, seção 8): /ads/new sem ?classic=1 leva ao /ads/v2, a copy
+// pública de /ads e /ads/for fala do anúncio de ~15 s, e os guardiões foram reancorados. Desligar = reverter o commit
+// inteiro (só voltar a false deixa a copy de /ads vendendo o v2 para quem não consegue abri-lo).
 
-export const ADS_V2_PUBLIC = false
+export const ADS_V2_PUBLIC = true
 
 export type AdsV2Tier = 'photo_motion' | 'commercial' | 'cinema'
 export type AdsV2Seconds = 15 | 20 | 30

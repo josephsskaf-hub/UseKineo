@@ -84,9 +84,11 @@ export function adsPassCopy() {
       'One-time payment, no subscription',
     ],
     excludes: [
-      'Presenter or avatar videos, cloned voices and product shots inside generated scenes are not part of this pass yet',
+      // KINEO-ADS-V2-VIRADA-2026-09-29 — com o anúncio v2 público, o anúncio de ~15 s EXISTE e o Commercial/Cinema põem o produto
+      // da foto dentro de cenas criadas (lib/ads/v2Screen.ts ADS_V2_TIER_COPY): as duas meias-frases viraram mentira e saíram.
+      'Presenter or avatar videos and cloned voices are not part of this pass yet',
       // KINEO-ADS-REVISAO-2026-09-27 — 1:1, 4:5 e 16:9 existem desde 26/09 (lib/ads/adStyle.ts AD_FORMATS): saíram do "ainda não".
-      '15-second ads and ads with the original audio of your clip are coming next',
+      'Ads with the original audio of your clip are coming next',
     ],
   }
 }
