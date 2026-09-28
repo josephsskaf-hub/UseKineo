@@ -29,7 +29,11 @@ check(synthesiaStart > -1 && synthesiaEnd > synthesiaStart, 'Synthesia record is
 for (const forbidden of ['perfect lip-sync', 'and stops there', 'delivers the whole ready-to-post Short']) {
   check(!synthesiaBlock.toLowerCase().includes(forbidden.toLowerCase()), `Synthesia block excludes: ${forbidden}`)
 }
-check(synthesiaBlock.includes('optional 720p lip-synced presenter'), 'Kineo presenter claim is bounded to the implemented output')
+// KINEO-AVATAR-FORA-2026-09-28 — re-ancorada: a ficha dizia "optional 720p lip-synced presenter" e "Does Kineo have an
+// AI presenter? Yes.". O fundador tirou o Avatar do catálogo público em 27/09 ("avatar sai por hora"), então o que o
+// produto entrega HOJE é nenhum apresentador. A intenção é a mesma (a frase sobre o presenter só diz o que a Kineo
+// entrega), agora exigindo a negativa, e a promessa antiga passa a ser proibida.
+check(synthesiaBlock.includes('does not offer a presenter today') && synthesiaBlock.includes("sfa: 'Not offered today'") && !synthesiaBlock.includes('optional 720p lip-synced presenter'), 'Kineo presenter claim is bounded to the implemented output (none today)')
 check(synthesiaBlock.includes('not a stock-avatar library or an enterprise avatar workspace'), 'Kineo limitation is explicit')
 check(synthesiaBlock.includes('Pick Synthesia when'), 'competitor win condition is visible')
 check(synthesiaBlock.includes('Pick Kineo when'), 'Kineo win condition is visible')

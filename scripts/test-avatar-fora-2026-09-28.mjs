@@ -15,7 +15,9 @@
 //   (b) catálogo que o ChatGPT lê (kineoFacts → llms.txt) sem Avatar, e o interruptor o traz de volta com 110 cr;
 //   (c) home, pricing, rodapé e Studio sem nenhuma porta do Avatar para o público — e a conta da casa ainda vê;
 //   (d) /ai-avatar com robots noindex (canonical mantido), fora do sitemap e do rodapé;
-//   (e) o /avatar e o /api/generate-avatar seguem no ar (clonagem de voz: 5 perfis, 1 pagante) e a cobrança não mudou.
+//   (e) o /avatar e o /api/generate-avatar seguem no ar (clonagem de voz: 5 perfis, 1 pagante) e a cobrança não mudou;
+//   (f) a copy de SEO (lib/comparisons.ts executado + as fichas HeyGen/Synthesys/D-ID/Synthesia das alternativas) não
+//       promete apresentador — diz "not today" e manda quem precisa de rosto ao concorrente.
 // Cada bloco tem um mutante em memória que precisa ficar VERMELHO.
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
@@ -24,6 +26,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 import { renderPage } from './preview-ux-complete.mjs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { offlineModules } from './gpt24h-offline-support.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(RAIZ) // o carregador offline resolve '@/' a partir do cwd
@@ -182,6 +185,55 @@ console.log('== (e) o que NÃO mudou: /avatar no ar, servidor aberto, cobrança 
   checa('/api/me/credits (executado): público avatar:false, casa avatar:true; saldo e plano intactos', pub.avatar === false && casa.avatar === true && pub.credits === 7 && pub.plan === 'basic' && pub.internal === false)
   const st = rd('app/(dashboard)/studio/StudioClient.tsx')
   checa('Studio liga o card pela flag `avatar`, nunca pela `internal` do S25', st.includes('if (alive && d?.avatar === true) setAvatarOn(true)') && !/d\?\.internal === true\) setAvatarOn/.test(st) && st.includes('{avatarOn && <Link href="/avatar">'))
+}
+
+console.log('== (f) copy de SEO/comparação sem apresentador ==')
+{
+  // lib/comparisons.ts EXECUTADO (TOOLS + PAIRS, o que as 8 páginas de comparação e o kineoFacts leem).
+  const compSrc = readFileSync(join(RAIZ, 'lib/comparisons.ts'), 'utf8')
+  const carrega = (src) => offlineModules({ replacements: { 'lib/comparisons.ts': src } })('lib/comparisons.ts')
+  const provaComp = (C) => {
+    const tudo = JSON.stringify(C.TOOLS) + JSON.stringify(C.PAIRS)
+    const faqs = C.PAIRS.flatMap((p) => p.faq)
+    const hey = C.getPair('heygen-vs-kineo')?.faq.find((f) => f.q === 'Does Kineo have avatars at all?')
+    const syn = faqs.find((f) => f.q === 'Does Kineo have avatars?')
+    return !/AI Presenter|presenter render type, priced/.test(tudo) && !/Presenter/.test(C.TOOLS.kineo.exportLimits) &&
+      /^Not today\. .*does not currently offer an avatar or presenter render type/.test(hey?.a ?? '') &&
+      /^Not today\. .*does not currently offer an avatar or presenter render type/.test(syn?.a ?? '')
+  }
+  const C = carrega(compSrc)
+  checa('comparisons (executado): régua de créditos, linha da Kineo e as 2 FAQs sem "AI Presenter"; respostas "Not today"', provaComp(C))
+  checa('comparisons: a régua segue com os motores vendidos (Kineo 1, Seedance, Kling 2.5, Kling 3)', /Kineo 1 \d+ credits, Seedance \d+, MiniMax H3 \d+, Kling 2\.5 \d+, Kling 3 \d+/.test(C.TOOLS.kineo.exportLimits))
+  const mut = compSrc.split('`Kling 2.5 ${KINEO_KLING_COST}, ` +').join("`Kling 2.5 ${KINEO_KLING_COST}, AI Presenter 70, ` +")
+  checa('mutante (régua volta a cobrar "AI Presenter 70") → vermelho', mut !== compSrc && !provaComp(carrega(mut)))
+}
+{
+  // As 4 fichas da página de alternativas, isoladas como o test-synthesia-ai-answer isola a da Synthesia.
+  const alt = rd('app/alternatives/[competitor]/page.tsx')
+  // Comentários saem antes da checagem: o marcador da casa cita a copy antiga e não pode passar por copy publicada.
+  const semComentario = (s) => s.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/^\s*\/\/[^\n]*$/gm, '').replace(/\s\/\/ KINEO-[^\n]*/g, '')
+  const ficha = (src, ini, fim) => { const a = src.indexOf(ini), b = src.indexOf(fim, a + 1); return a > -1 && b > a ? semComentario(src.slice(a, b)) : '' }
+  const fichas = (src) => ({
+    heygen: ficha(src, '\n  heygen: {', '\n  pika: {'),
+    synthesys: ficha(src, '\n  synthesys: {', "\n  'd-id': {"),
+    did: ficha(src, "\n  'd-id': {", '\n  sendshort: {'),
+    synthesia: ficha(src, '\n  synthesia: {', '\n  canva:'),
+  })
+  const PROMESSA = /AI Presenter|Character Lock|gesture clips|same trick|Presenter AND|optional 720p|perfect lip-sync/
+  const provaAlt = (src) => {
+    const f = fichas(src)
+    return Object.values(f).every((b) => b.length > 200 && !PROMESSA.test(b)) &&
+      /feature: 'Talking AI presenter with lip-sync \(photo \+ script\)', sfa: false/.test(f.heygen) &&
+      /feature: 'Talking AI presenter with lip-sync', sfa: false/.test(f.synthesys) &&
+      /feature: 'Photo \+ script → talking video with lip-sync', sfa: false/.test(f.did) &&
+      /feature: 'AI presenter', sfa: 'Not offered today'/.test(f.synthesia) &&
+      [f.heygen, f.synthesys, f.did].every((b) => /does not offer (an avatar or )?(a )?presenter today|does not offer a presenter/.test(b)) &&
+      /No, not today\./.test(f.heygen) && /No, not today\./.test(f.did) && /No, not today\./.test(f.synthesia)
+  }
+  checa('alternativas: HeyGen, Synthesys, D-ID e Synthesia sem prometer apresentador; linha do presenter = não; "No, not today"', provaAlt(alt))
+  checa('alternativas: a vitória honesta do concorrente segue visível (Pick HeyGen/Synthesys/D-ID if…)', alt.includes('Pick HeyGen if you need enterprise avatar libraries') && alt.includes('Pick Synthesys if you need a spokesperson on screen') && alt.includes('Pick D-ID if you need a talking face'))
+  const mut = alt.replace("feature: 'Talking AI presenter with lip-sync (photo + script)', sfa: false", "feature: 'Talking AI presenter with lip-sync (photo + script)', sfa: true")
+  checa('mutante (HeyGen volta a marcar presenter = sim) → vermelho', mut !== alt && !provaAlt(mut))
 }
 
 console.log(`${ok} ok · ${falhas.length} falhas`)

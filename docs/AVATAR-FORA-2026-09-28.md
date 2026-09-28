@@ -34,9 +34,10 @@ Não é "pausa" (`enginePaused`). A pausa escreve "manutenção" na tela e no ll
 
 `/api/me/credits` ganhou a flag `avatar` separada da `internal`. A `internal` é `s25Visible`: no dia em que o S25 abrir ela vira true para todo mundo, e não pode trazer o Avatar de volta junto.
 
-### Commit 2 — copy de SEO/comparação
+### Commit 2 — copy de SEO/comparação (texto reescrito, não interruptor)
 
-Vem no commit seguinte deste branch (lib/comparisons.ts e app/alternatives/[competitor]/page.tsx).
+- `lib/comparisons.ts`: `KINEO_ENGINE_METERING` (usada em 8 páginas) e a linha de créditos pública da Kineo perderam o "AI Presenter 70". As duas respostas "Does Kineo have avatars?" (HeyGen e Synthesia) agora dizem "Not today". A mesma página do HeyGen já dizia "you cannot get a talking avatar out of Kineo at any price", então a casa se contradizia.
+- `app/alternatives/[competitor]/page.tsx`: HeyGen, Synthesys e D-ID eram páginas inteiras vendendo o AI Presenter, com Character Lock e clipes de gesto. Foram reescritas em torno do filme narrado sem rosto. A linha "presenter" da tabela virou ✗ ou "Not offered today", e cada página diz que a Kineo não tem apresentador hoje e manda quem precisa de rosto na tela para o concorrente. A Synthesia também foi corrigida: dizia "optional 720p lip-synced presenter" e respondia "Yes" sobre apresentador. A clonagem de voz ficou, porque existe e o /studio/create a usa.
 
 ## O que NÃO mudou
 
@@ -53,7 +54,7 @@ Vem no commit seguinte deste branch (lib/comparisons.ts e app/alternatives/[comp
 ## Guardiões
 
 - Novo: `scripts/test-avatar-fora-2026-09-28.mjs`, com 39 verificações. Ele executa engineLaunch, kineoFacts, a rota do llms.txt, o `/api/me/credits`, o metadata do /ai-avatar e o biller. Também renderiza a home, o Studio, o pricing e o rodapé com o JSX real. Tem mutantes em memória em cada bloco.
-- Re-ancorados, cada um com um comentário da intenção nova: `test-motores-pausados-2026-09-15` ("Six" e resultado do Studio sem Avatar), `test-app-blue-layout` (/avatar ausente para o público e presente para a casa), `test-avatar-card` (card atrás de `avatarOn`), `test-interface-language` e `test-rodape-segmentos-2026-09-27` (o /ai-avatar pode faltar no rodapé só enquanto `AVATAR_PUBLIC=false`).
+- Re-ancorados, cada um com um comentário da intenção nova: `test-motores-pausados-2026-09-15` ("Six" e resultado do Studio sem Avatar), `test-app-blue-layout` (/avatar ausente para o público e presente para a casa), `test-avatar-card` (card atrás de `avatarOn`), `test-interface-language` e `test-rodape-segmentos-2026-09-27` (o /ai-avatar pode faltar no rodapé só enquanto `AVATAR_PUBLIC=false`) e, no commit 2, `test-synthesia-ai-answer` (a frase sobre o presenter agora exige "does not offer a presenter today"). O guardião novo ganhou no commit 2 o bloco (f), com 6 verificações sobre comparisons (executado) e as 4 fichas de alternativas, e passou de 39 para 45 verificações.
 
 ## Riscos
 
