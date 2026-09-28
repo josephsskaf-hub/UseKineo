@@ -12732,16 +12732,16 @@ export default function GenerateClient({
       disabled={wmCheckout.pending !== null}
       className="flex w-full flex-col items-center justify-center rounded-xl mt-2.5 px-4 py-3 text-center font-black"
       style={{
-        background: 'linear-gradient(135deg, #2997ff, #0a6fd8)',
-        border: '1px solid rgba(41,151,255,.6)',
-        color: '#fff',
+        background: 'var(--accent)',
+        border: '1px solid var(--border)',
+        color: 'var(--on-accent)',
         cursor: wmCheckout.pending ? 'wait' : 'pointer',
         opacity: wmCheckout.pending ? 0.7 : 1,
-        boxShadow: '0 8px 24px rgba(41,151,255,.28)',
+        boxShadow: 'var(--sh-card)',
       }}
     >
       <span style={{ fontSize: '0.95rem' }}>{wmCheckout.pending ? 'Opening secure checkout…' : `✨ ${cleanDownloadTwinCopy.title}`}</span>
-      <span style={{ marginTop: 3, fontSize: '0.68rem', fontWeight: 700, color: 'rgba(255,255,255,.85)', lineHeight: 1.4 }}>
+      <span style={{ marginTop: 3, fontSize: '0.68rem', fontWeight: 700, color: 'var(--on-accent)', lineHeight: 1.4 }}>
         {cleanDownloadTwinCopy.sub}
       </span>
     </button>
@@ -13549,11 +13549,11 @@ export default function GenerateClient({
       <style jsx global>{`
         main.render-workspace { width: 100%; max-width: none; }
         main.done-workspace { width: 100%; max-width: none; }
-        .done-workspace .done-result { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 460px); grid-template-rows: auto auto 1fr; gap: 0 36px; align-items: start; padding: clamp(20px, 3vw, 40px); background: #121820!important; }
+        .done-workspace .done-result { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 460px); grid-template-rows: auto auto 1fr; gap: 0 36px; align-items: start; padding: clamp(20px, 3vw, 40px); background: var(--card)!important; }
         .done-result-heading { grid-column: 2; grid-row: 1; text-align: start; margin-bottom: 24px; }
         .done-result-heading > svg { margin: 0 0 16px!important; }
         .done-result-heading > p:last-child { margin-inline: 0!important; max-width: none!important; font-size: 20px; }
-        .done-result-preview { grid-column: 1; grid-row: 1 / 4; min-width: 0; min-height: clamp(360px, calc(100svh - 280px), 640px); display: flex; align-items: center; justify-content: center; border: 1px solid #273343; border-radius: 16px; padding: 20px; background: radial-gradient(ellipse at center, rgba(41,151,255,.07), transparent 65%), #090e15; }
+        .done-result-preview { grid-column: 1; grid-row: 1 / 4; min-width: 0; min-height: clamp(360px, calc(100svh - 280px), 640px); display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--bg); }
         .done-result-preview .gv-done-frame { margin: 0!important; max-width: 100%; max-height: none!important; width: min(100%, clamp(220px, calc((100svh - 320px) * .5625), 340px))!important; box-shadow: 0 16px 40px rgba(0,0,0,.3)!important; }
         .done-result-preview .gv-done-frame[data-kineo-frame-ratio="landscape"] { width: min(100%, 780px)!important; }
         .done-result-preview .gv-done-frame[data-kineo-frame-ratio="square"] { width: min(100%, 600px, calc(100svh - 320px))!important; }
@@ -13562,10 +13562,10 @@ export default function GenerateClient({
         .done-result-export:empty { display: none; }
         .done-result-export > div { margin-top: 0!important; }
         .done-result-actions { grid-column: 2; grid-row: 3; margin-top: 0!important; max-width: none!important; min-width: 0; }
-        .done-result-options { width: 100%; border-top: 1px solid #293443; margin-top: 12px; }
-        .done-result-options > summary { padding: 18px 0; cursor: pointer; color: #9ecbff; font-size: 13px; font-weight: 600; }
-        .done-result-options > summary:focus-visible { outline: 2px solid #2997ff; outline-offset: 3px; border-radius: 6px; }
-        .done-result-support { grid-column: 1 / -1; width: 100%; margin-top: 28px; border-top: 1px solid #293443; }
+        .done-result-options { width: 100%; border-top: 1px solid var(--border); margin-top: 12px; }
+        .done-result-options > summary { padding: 18px 0; cursor: pointer; color: var(--accent); font-size: 13px; font-weight: 600; }
+        .done-result-options > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
+        .done-result-support { grid-column: 1 / -1; width: 100%; margin-top: 28px; border-top: 1px solid var(--border); }
         .done-result-support-body { display: flex; flex-direction: column; align-items: center; padding-bottom: 12px; }
         @media (max-width: 1100px) { .done-workspace .done-result { display: flex; flex-direction: column; gap: 20px; padding: 18px; } .done-result-heading { order: 0; margin-bottom: 0; } .done-result-preview { order: 1; width: 100%; min-height: 0; padding: 12px; } .done-result-preview .gv-done-frame { width: min(100%, 300px)!important; } .done-result-export { order: 2; width: 100%; } .done-result-actions { order: 3; } .done-result-support { order: 4; margin-top: 0; } }
         .render-workspace-primary { min-height: calc(100svh - 240px); padding: clamp(20px, 3vw, 44px); display: flex; flex-direction: column; justify-content: center; gap: 22px; }
@@ -14200,11 +14200,11 @@ export default function GenerateClient({
             justifyContent: 'center',
             gap: 10,
             padding: '10px 12px calc(10px + env(safe-area-inset-bottom, 0px))',
-            background: 'rgba(10,10,12,0.92)',
+            background: 'var(--header-bg)',
             backdropFilter: 'blur(10px)',
             WebkitBackdropFilter: 'blur(10px)',
-            borderTop: '1px solid rgba(41,151,255,0.35)',
-            boxShadow: '0 -10px 30px rgba(0,0,0,0.45)',
+            borderTop: '1px solid var(--border)',
+            boxShadow: 'var(--sh-card)',
           }}
         >
           <span
@@ -14226,9 +14226,9 @@ export default function GenerateClient({
             }}
             className="rounded-xl px-4 py-2 text-xs font-black"
             style={{
-              background: '#2997ff',
-              border: '1px solid #2997ff',
-              color: '#0b0b0d',
+              background: 'var(--accent)',
+              border: '1px solid var(--accent)',
+              color: 'var(--on-accent)',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
             }}
@@ -16624,16 +16624,16 @@ export default function GenerateClient({
           {phase === 'done' && finalVideoUrl && (
             <section
               className="gv-card done-result rounded-2xl px-5 sm:px-8 py-8 sm:py-10 mb-6 flex flex-col items-center"
-              style={{ background: '#131316', border: '1px solid var(--border)' }}
+              style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
             >
               <div className="done-result-heading">
                 {/* Dia 7 (13/08) — cerimonia: check que se desenha + a moldura
                     abaixo entra em pop com um pulso de glow azul, 1x so. */}
                 <svg width="34" height="34" viewBox="0 0 20 20" fill="none" aria-hidden="true" style={{ display: 'block', margin: '0 auto 10px' }}>
-                  <circle cx="10" cy="10" r="9" stroke="#2997ff" strokeWidth="1.6" />
+                  <circle cx="10" cy="10" r="9" stroke="var(--accent)" strokeWidth="1.6" />
                   <path
                     d="M6 10.4l2.7 2.7 5.2-5.8"
-                    stroke="#2997ff"
+                    stroke="var(--accent)"
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -16651,7 +16651,7 @@ export default function GenerateClient({
                     menor e culparia o produto. Honesta e vendedora: diz o
                     limite e diz a saída. */}
                 {freeClampNotice && (
-                  <p className="text-xs mt-2" style={{ color: '#fbbf24', lineHeight: 1.5 }}>
+                  <p className="text-xs mt-2" style={{ color: 'var(--warning)', lineHeight: 1.5 }}>
                     Free preview is limited to {freeClampNotice.to}s — you asked for {freeClampNotice.from}s.
                     Paid plans render the full length on every engine.
                   </p>
@@ -16664,7 +16664,7 @@ export default function GenerateClient({
                 {credits !== null && (
                   <p className="text-xs mt-2" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
                     You have{' '}
-                    <span style={{ color: '#f5f5f7', fontWeight: 700 }}>
+                    <span style={{ color: 'var(--text)', fontWeight: 700 }}>
                       {credits} credit{credits === 1 ? '' : 's'}
                     </span>{' '}
                     left —{' '}
@@ -16683,7 +16683,7 @@ export default function GenerateClient({
                 <p
                   className="font-semibold text-base sm:text-lg mt-3 mx-auto"
                   style={{
-                    color: '#fff',
+                    color: 'var(--text)',
                     maxWidth: 'min(460px, 90vw)',
                     lineHeight: 1.3,
                     display: '-webkit-box',
@@ -16721,8 +16721,8 @@ export default function GenerateClient({
                   aspectRatio: '9 / 16',
                   marginLeft: 'auto',
                   marginRight: 'auto',
-                  border: '1px solid rgba(41,151,255,.45)',
-                  boxShadow: '0 18px 60px rgba(41,151,255,.22)',
+                  border: '1px solid var(--border)',
+                  boxShadow: 'var(--sh-card)',
                   background: '#000',
                 }}
               >
@@ -16785,7 +16785,7 @@ export default function GenerateClient({
                         justifyContent: 'center',
                         padding: '24px',
                         textAlign: 'center',
-                        background: '#0b0b1a',
+                        background: 'var(--card)',
                         color: 'var(--text)',
                         gap: '14px',
                       }}
@@ -16793,7 +16793,7 @@ export default function GenerateClient({
                       <div style={{ fontSize: '38px', lineHeight: 1 }} aria-hidden>⏳</div>
                       <p
                         style={{
-                          color: '#fff',
+                          color: 'var(--text)',
                           fontSize: '0.95rem',
                           fontWeight: 600,
                           lineHeight: 1.45,
@@ -16808,15 +16808,15 @@ export default function GenerateClient({
                         onClick={() => { setPlayerFailed(false); playerRetryAttemptRef.current = 0 }}
                         style={{
                           marginTop: '4px',
-                          background: '#2997ff',
+                          background: 'var(--accent)',
                           border: 'none',
-                          color: '#fff',
+                          color: 'var(--on-accent)',
                           fontWeight: 700,
                           fontSize: '0.85rem',
                           padding: '10px 22px',
                           borderRadius: '12px',
                           cursor: 'pointer',
-                          boxShadow: '0 6px 22px rgba(41,151,255,.32)',
+                          boxShadow: 'var(--sh-card)',
                         }}
                       >
                         Refresh now
@@ -16839,15 +16839,15 @@ export default function GenerateClient({
                   className="rounded-2xl px-5 py-5 mt-6 w-full"
                   style={{
                     maxWidth: 460,
-                    background: 'linear-gradient(135deg, rgba(41,151,255,.12), rgba(41,151,255,.05))',
-                    border: '1px solid rgba(41,151,255,.5)',
-                    boxShadow: '0 0 28px rgba(41,151,255,.16)',
+                    background: 'var(--accent-soft)',
+                    border: '1px solid var(--border)',
+                    boxShadow: 'var(--sh-card)',
                   }}
                 >
                   <div className="text-center">
                     <div
                       className="text-[10px] font-black uppercase tracking-[.18em] mb-1.5"
-                      style={{ color: '#2997ff' }}
+                      style={{ color: 'var(--accent)' }}
                     >
                       {watermarkedDownloadConfirmed ? 'Want it clean?' : 'Your Short is ready'}
                     </div>
@@ -16899,7 +16899,7 @@ export default function GenerateClient({
                         (ver o bloco do divisor, mais abaixo) — mesma razão da nota
                         KINEO-READING-ORDER acima. */}
                     {watermarkedDownloadConfirmed && (
-                      <p className="text-xs mt-2 font-bold" style={{ color: '#5cb3ff', lineHeight: 1.45 }}>
+                      <p className="text-xs mt-2 font-bold" style={{ color: 'var(--accent)', lineHeight: 1.45 }}>
                         {/* KINEO-PRICING-V6-2026-08-19 — o FALLBACK (usado
                             enquanto o /api/geo não respondeu) prometia desconto
                             de 1º mês. Ele aparecia exatamente para quem ainda
@@ -16934,11 +16934,11 @@ export default function GenerateClient({
                       <div
                         className="mt-3 rounded-xl px-3 py-2.5"
                         style={{
-                          background: 'rgba(41,151,255,.07)',
-                          border: '1px solid rgba(41,151,255,.28)',
+                          background: 'var(--accent-soft)',
+                          border: '1px solid var(--border)',
                         }}
                       >
-                        <p className="text-xs font-bold" style={{ color: '#5cb3ff', lineHeight: 1.5 }}>
+                        <p className="text-xs font-bold" style={{ color: 'var(--accent)', lineHeight: 1.5 }}>
                           The opening scene of this video was generated by AI.
                         </p>
                         <p className="text-[11px] mt-1" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
@@ -16991,12 +16991,12 @@ export default function GenerateClient({
                     className="flex items-center justify-center gap-2 w-full rounded-xl mt-4 py-3.5 px-3 text-[15px] font-black"
                     style={{
                       background: watermarkedDownloadConfirmed
-                        ? 'rgba(34,197,94,.10)'
-                        : 'linear-gradient(135deg, #22C55E, #15803D)',
-                      border: watermarkedDownloadConfirmed ? '1px solid rgba(34,197,94,.35)' : 'none',
-                      color: watermarkedDownloadConfirmed ? '#5cb3ff' : '#fff',
+                        ? 'var(--accent-soft)'
+                        : 'var(--accent)',
+                      border: watermarkedDownloadConfirmed ? '1px solid var(--border)' : 'none',
+                      color: watermarkedDownloadConfirmed ? 'var(--accent)' : 'var(--on-accent)',
                       textDecoration: 'none',
-                      boxShadow: watermarkedDownloadConfirmed ? 'none' : '0 8px 24px rgba(34,197,94,.30)',
+                      boxShadow: watermarkedDownloadConfirmed ? 'none' : 'var(--sh-card)',
                     }}
                   >
                     <span>{watermarkedDownloadConfirmed ? '✓' : '⬇'}</span>
@@ -17020,16 +17020,16 @@ export default function GenerateClient({
                       className="flex w-full flex-col items-center justify-center rounded-xl mt-2.5 px-5 py-3.5 text-center font-black"
                       style={{
                         background: watermarkedDownloadConfirmed
-                          ? 'linear-gradient(135deg, #2997ff, #0a6fd8)'
-                          : 'rgba(41,151,255,.10)',
+                          ? 'var(--accent)'
+                          : 'var(--accent-soft)',
                         border: watermarkedDownloadConfirmed
-                          ? '1px solid rgba(41,151,255,.6)'
-                          : '1px solid rgba(41,151,255,.40)',
-                        color: watermarkedDownloadConfirmed ? '#fff' : '#5cb3ff',
+                          ? '1px solid var(--border)'
+                          : '1px solid var(--border)',
+                        color: watermarkedDownloadConfirmed ? 'var(--on-accent)' : 'var(--accent)',
                         cursor: 'pointer',
                         boxShadow: watermarkedDownloadConfirmed
-                          ? '0 8px 24px rgba(41,151,255,.28)'
-                          : '0 6px 18px rgba(41,151,255,.10)',
+                          ? 'var(--sh-card)'
+                          : 'var(--sh-card)',
                       }}
                     >
                       <span style={{ fontSize: '0.92rem' }}>Episode 2 of this story →</span>
@@ -17038,7 +17038,7 @@ export default function GenerateClient({
                           marginTop: 4,
                           fontSize: '0.7rem',
                           fontWeight: 650,
-                          color: watermarkedDownloadConfirmed ? 'rgba(255,255,255,.82)' : 'rgba(92,179,255,.78)',
+                          color: watermarkedDownloadConfirmed ? 'var(--on-accent)' : 'var(--accent)',
                           lineHeight: 1.4,
                         }}
                       >
@@ -17082,11 +17082,11 @@ export default function GenerateClient({
                       className="mt-4 rounded-xl"
                       style={{
                         padding: 12,
-                        background: 'rgba(41,151,255,.07)',
-                        border: '1px solid rgba(41,151,255,.34)',
+                        background: 'var(--accent-soft)',
+                        border: '1px solid var(--border)',
                       }}
                     >
-                      <p style={{ margin: '0 0 10px', textAlign: 'center', color: '#f5f5f7', fontSize: 13, fontWeight: 800, lineHeight: 1.45 }}>
+                      <p style={{ margin: '0 0 10px', textAlign: 'center', color: 'var(--text)', fontSize: 13, fontWeight: 800, lineHeight: 1.45 }}>
                         Your free copy is safe. Choose a clean export when you&apos;re ready.
                       </p>
                       {/* KINEO-1DOLAR-NA-CAIXA-DE-EXPORT-2026-09-07 — UMA linha
@@ -17111,8 +17111,8 @@ export default function GenerateClient({
                           display: 'block',
                           width: '100%',
                           textAlign: 'center',
-                          background: '#2997ff',
-                          color: '#fff',
+                          background: 'var(--accent)',
+                          color: 'var(--on-accent)',
                           border: 'none',
                           borderRadius: 8,
                           padding: 14,
@@ -17140,8 +17140,8 @@ export default function GenerateClient({
                           width: '100%',
                           textAlign: 'center',
                           background: 'transparent',
-                          color: '#c7c7cc',
-                          border: '1px solid #343438',
+                          color: 'var(--text)',
+                          border: '1px solid var(--border)',
                           borderRadius: 8,
                           padding: 11,
                           fontSize: 12.5,
@@ -17153,7 +17153,7 @@ export default function GenerateClient({
                       >
                         Just this video — {packPriceLabel()}, one-time
                       </button>
-                      <p style={{ margin: '9px 0 0', textAlign: 'center', color: '#6e6e73', fontSize: 10.5, lineHeight: 1.45 }}>
+                      <p style={{ margin: '9px 0 0', textAlign: 'center', color: 'var(--muted)', fontSize: 10.5, lineHeight: 1.45 }}>
                         Secure Stripe checkout · cancel anytime · 7-day money-back
                       </p>
                     </div>
@@ -17163,9 +17163,9 @@ export default function GenerateClient({
                       onClick={() => { setShowCleanPaywall(true); void trackEvent('clean_paywall_opened', { after_download: false, offer_layout: 'pre_download_modal_v1' }) }}
                       className="flex flex-col items-center justify-center w-full rounded-xl mt-4 py-3 px-3 text-sm font-black text-center"
                       style={{
-                        background: 'rgba(41,151,255,.10)',
-                        border: '1px solid rgba(41,151,255,.45)',
-                        color: '#5cb3ff',
+                        background: 'var(--accent-soft)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--accent)',
                         cursor: 'pointer',
                       }}
                     >
@@ -17194,23 +17194,23 @@ export default function GenerateClient({
                       <div
                         onClick={(e) => e.stopPropagation()}
                         className="grid md:grid-cols-[1fr_1.15fr]"
-                        style={{ width: '100%', maxWidth: 880, background: '#131316', border: '1px solid #2a2a2d', borderRadius: 10, overflow: 'hidden', textAlign: 'left', boxShadow: '0 24px 80px rgba(0,0,0,.55)' }}
+                        style={{ width: '100%', maxWidth: 880, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', textAlign: 'left', boxShadow: 'var(--sh-card)' }}
                       >
-                        <div className="hidden md:flex flex-col gap-3" style={{ background: '#0d0d10', borderRight: '1px solid #2a2a2d', padding: 22 }}>
-                          <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '9 / 12', background: '#111', border: '1px solid #2a2a2d' }}>
+                        <div className="hidden md:flex flex-col gap-3" style={{ background: 'var(--card)', borderRight: '1px solid var(--border)', padding: 22 }}>
+                          <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '9 / 12', background: 'var(--card)', border: '1px solid var(--border)' }}>
                             <video src={finalVideoUrl} autoPlay muted loop playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                            <span style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,.72)', padding: '3px 8px', borderRadius: 4, fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', color: '#fff' }}>YOUR FILM</span>
+                            <span style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,.72)', padding: '3px 8px', borderRadius: 4, fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', color: 'var(--text)' }}>YOUR FILM</span>
                           </div>
-                          <div style={{ fontSize: 12, color: '#86868b', lineHeight: 1.6 }}>
+                          <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
                             This is the exact video you just made. Clean means this same file, rebuilt without the Kineo watermark.
                           </div>
                         </div>
                         <div style={{ padding: '26px 26px 22px' }}>
-                          <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#5cb3ff', marginBottom: 10 }}>Remove the watermark</div>
-                          <h2 style={{ fontSize: 26, lineHeight: 1.12, fontWeight: 900, letterSpacing: '-0.02em', color: '#f5f5f7', margin: 0, marginBottom: 10 }}>
+                          <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 10 }}>Remove the watermark</div>
+                          <h2 style={{ fontSize: 26, lineHeight: 1.12, fontWeight: 900, letterSpacing: '-0.02em', color: 'var(--text)', margin: 0, marginBottom: 10 }}>
                             Your film, without the mark
                           </h2>
-                          <p style={{ fontSize: 13.5, color: '#86868b', lineHeight: 1.6, margin: 0, marginBottom: 16 }}>
+                          <p style={{ fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.6, margin: 0, marginBottom: 16 }}>
                             {postVideoPriceNote ?? CHECKOUT_CURRENCY_DISCLOSURE}
                           </p>
                           {/* KINEO-1DOLAR-NA-CAIXA-DE-EXPORT-2026-09-07 — o
@@ -17231,7 +17231,7 @@ export default function GenerateClient({
                             type="button"
                             onClick={handleRemoveWatermark}
                             disabled={wmCheckout.pending !== null}
-                            style={{ display: 'block', width: '100%', textAlign: 'center', background: '#2997ff', color: '#fff', border: 'none', borderRadius: 8, padding: 15, fontSize: 15, fontWeight: 800, cursor: wmCheckout.pending ? 'wait' : 'pointer', opacity: wmCheckout.pending ? 0.7 : 1 }}
+                            style={{ display: 'block', width: '100%', textAlign: 'center', background: 'var(--accent)', color: 'var(--on-accent)', border: 'none', borderRadius: 8, padding: 15, fontSize: 15, fontWeight: 800, cursor: wmCheckout.pending ? 'wait' : 'pointer', opacity: wmCheckout.pending ? 0.7 : 1 }}
                           >
                             {wmCheckout.pending ? 'Opening secure checkout…' : `Start Starter${postVideoIntroPrice ? ` — ${postVideoIntroPrice}` : ''} · ${cleanExportRebuildReady ? 'this video clean + ' : ''}${TIER_CREDITS.starter} credits/mo`}
                           </button>
@@ -17239,21 +17239,21 @@ export default function GenerateClient({
                             type="button"
                             onClick={handleBuyThisVideoOnly}
                             disabled={wmCheckout.pending !== null}
-                            style={{ display: 'block', width: '100%', textAlign: 'center', background: 'transparent', color: '#86868b', border: '1px solid #2a2a2d', borderRadius: 8, padding: 12, fontSize: 13, fontWeight: 700, cursor: wmCheckout.pending ? 'wait' : 'pointer', marginTop: 8 }}
+                            style={{ display: 'block', width: '100%', textAlign: 'center', background: 'transparent', color: 'var(--muted)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, fontSize: 13, fontWeight: 700, cursor: wmCheckout.pending ? 'wait' : 'pointer', marginTop: 8 }}
                           >
                             Just this one video — {packPriceLabel()}, one-time · {PACK_CREDITS.starter} credits
                           </button>
                           <button
                             type="button"
                             onClick={() => setShowCleanPaywall(false)}
-                            style={{ display: 'block', width: '100%', textAlign: 'center', background: 'transparent', color: '#6e6e73', border: 'none', padding: '10px 0 0', fontSize: 12, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
+                            style={{ display: 'block', width: '100%', textAlign: 'center', background: 'transparent', color: 'var(--muted)', border: 'none', padding: '10px 0 0', fontSize: 12, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
                           >
                             Keep the free watermarked copy
                           </button>
                           {wmCheckout.error && (
-                            <p role="alert" style={{ marginTop: 10, fontSize: 12, fontWeight: 600, color: '#ff6b6b', lineHeight: 1.45 }}>{wmCheckout.error}</p>
+                            <p role="alert" style={{ marginTop: 10, fontSize: 12, fontWeight: 600, color: 'var(--danger)', lineHeight: 1.45 }}>{wmCheckout.error}</p>
                           )}
-                          <p style={{ fontSize: 11, color: '#6e6e73', textAlign: 'center', marginTop: 12, lineHeight: 1.5 }}>
+                          <p style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center', marginTop: 12, lineHeight: 1.5 }}>
                             Cancel anytime. Your videos stay yours.
                           </p>
                         </div>
@@ -17261,7 +17261,7 @@ export default function GenerateClient({
                     </div>
                   )}
                   {wmCheckout.error && !showCleanPaywall && (
-                    <p role="alert" className="text-xs mt-2 font-semibold" style={{ color: '#ff6b6b', lineHeight: 1.45 }}>
+                    <p role="alert" className="text-xs mt-2 font-semibold" style={{ color: 'var(--danger)', lineHeight: 1.45 }}>
                       {wmCheckout.error}
                     </p>
                   )}
@@ -17294,9 +17294,9 @@ export default function GenerateClient({
                         : 'Download clean MP4'}
                     className="flex items-center justify-center gap-2 w-full rounded-2xl py-4 text-base font-black text-white"
                     style={{
-                      background: 'linear-gradient(135deg, #2997ff, #1870d6)',
+                      background: 'var(--accent)', color: 'var(--on-accent)',
                       textDecoration: 'none',
-                      boxShadow: '0 8px 28px rgba(41,151,255,.45)',
+                      boxShadow: 'var(--sh-card)',
                       letterSpacing: '-0.01em',
                       fontSize: '1rem',
                     }}
@@ -17374,16 +17374,16 @@ export default function GenerateClient({
                     className="flex w-full flex-col items-center justify-center rounded-xl px-5 py-3.5 text-center font-black"
                     style={{
                       background: watermarkedDownloadConfirmed
-                        ? 'linear-gradient(135deg, #2997ff, #0a6fd8)'
-                        : 'rgba(41,151,255,.10)',
+                        ? 'var(--accent)'
+                        : 'var(--accent-soft)',
                       border: watermarkedDownloadConfirmed
-                        ? '1px solid rgba(41,151,255,.6)'
-                        : '1px solid rgba(41,151,255,.40)',
-                      color: watermarkedDownloadConfirmed ? '#fff' : '#5cb3ff',
+                        ? '1px solid var(--border)'
+                        : '1px solid var(--border)',
+                      color: watermarkedDownloadConfirmed ? 'var(--on-accent)' : 'var(--accent)',
                       cursor: 'pointer',
                       boxShadow: watermarkedDownloadConfirmed
-                        ? '0 8px 24px rgba(41,151,255,.28)'
-                        : '0 6px 18px rgba(41,151,255,.10)',
+                        ? 'var(--sh-card)'
+                        : 'var(--sh-card)',
                     }}
                   >
                     <span style={{ fontSize: '0.92rem' }}>Episode 2 of this story →</span>
@@ -17392,7 +17392,7 @@ export default function GenerateClient({
                         marginTop: 4,
                         fontSize: '0.7rem',
                         fontWeight: 650,
-                        color: watermarkedDownloadConfirmed ? 'rgba(255,255,255,.82)' : 'rgba(92,179,255,.78)',
+                        color: watermarkedDownloadConfirmed ? 'var(--on-accent)' : 'var(--accent)',
                         lineHeight: 1.4,
                       }}
                     >
@@ -17543,7 +17543,7 @@ export default function GenerateClient({
                       placeholder="https://youtube.com/shorts/…"
                       className="flex-1 rounded-xl px-3 py-2 text-xs"
                       style={{
-                        background: 'rgba(13,13,28,.6)',
+                        background: 'var(--card2)',
                         border: '1px solid var(--border)',
                         color: 'var(--text)',
                         outline: 'none',
@@ -17556,7 +17556,7 @@ export default function GenerateClient({
                       disabled={postRewardSending || !postUrl.trim()}
                       className="rounded-xl px-4 py-2 text-xs font-black text-white"
                       style={{
-                        background: 'linear-gradient(135deg,#2997ff,#2997ff)',
+                        background: 'var(--accent)', color: 'var(--on-accent)',
                         border: 'none',
                         whiteSpace: 'nowrap',
                         cursor: postRewardSending || !postUrl.trim() ? 'not-allowed' : 'pointer',
@@ -17570,7 +17570,7 @@ export default function GenerateClient({
                     <p
                       role="status"
                       className="text-xs mt-2 font-semibold"
-                      style={{ color: postRewardMsg.ok ? '#5cb3ff' : '#ff6b6b', lineHeight: 1.45 }}
+                      style={{ color: postRewardMsg.ok ? 'var(--accent)' : 'var(--danger)', lineHeight: 1.45 }}
                     >
                       {postRewardMsg.text}
                     </p>
@@ -17591,8 +17591,8 @@ export default function GenerateClient({
                     maxWidth: 460,
                     marginLeft: 'auto',
                     marginRight: 'auto',
-                    background: 'rgba(41,151,255,.06)',
-                    border: '1px solid rgba(41,151,255,.28)',
+                    background: 'var(--accent-soft)',
+                    border: '1px solid var(--border)',
                   }}
                 >
                   <div
@@ -17633,15 +17633,15 @@ export default function GenerateClient({
                           ref={thirdFilmDoorRef}
                           data-third-film-door={thirdFilmDoor.version}
                           className="mt-3 rounded-xl p-3"
-                          style={{ background: 'rgba(52,211,153,.09)', border: '1px solid rgba(52,211,153,.45)' }}
+                          style={{ background: 'var(--accent-soft)', border: '1px solid var(--border)' }}
                         >
-                          <span className="block text-[10px] font-black uppercase tracking-widest" style={{ color: '#6ee7b7' }}>
+                          <span className="block text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--accent)' }}>
                             Your balance: {credits} credits · this episode needs {episode2InheritedCost}
                           </span>
                           <strong className="block mt-1.5 text-sm" style={{ color: 'var(--text)', lineHeight: 1.35 }}>
                             Starter unlocks this episode{thirdFilmDoorPrice ? ` — ${thirdFilmDoorPrice}/month` : ''}
                           </strong>
-                          <span className="block mt-1 text-xs" style={{ color: '#a7f3d0', lineHeight: 1.45 }}>
+                          <span className="block mt-1 text-xs" style={{ color: 'var(--accent)', lineHeight: 1.45 }}>
                             {thirdFilmDoorCapacityLine(thirdFilmDoor.episodesOnStarter)} · cancel anytime · 7-day money-back guarantee.
                           </span>
                           <button
@@ -17668,16 +17668,16 @@ export default function GenerateClient({
                             }}
                             className="w-full rounded-xl mt-3 py-2.5 text-sm font-black"
                             style={{
-                              background: thirdFilmCheckout.pending !== null ? 'rgba(52,211,153,.35)' : '#10b981',
+                              background: thirdFilmCheckout.pending !== null ? 'var(--accent-soft)' : 'var(--accent)',
                               border: 'none',
-                              color: '#052e16',
+                              color: 'var(--text)',
                               cursor: thirdFilmCheckout.pending !== null ? 'wait' : 'pointer',
                             }}
                           >
                             {thirdFilmCheckout.pending !== null ? 'Opening secure checkout…' : 'Unlock this episode and keep going →'}
                           </button>
                           {thirdFilmCheckout.error && (
-                            <p role="alert" className="text-xs mt-2 font-semibold" style={{ color: '#ff6b6b', lineHeight: 1.45 }}>
+                            <p role="alert" className="text-xs mt-2 font-semibold" style={{ color: 'var(--danger)', lineHeight: 1.45 }}>
                               {thirdFilmCheckout.error}
                             </p>
                           )}
@@ -17688,7 +17688,7 @@ export default function GenerateClient({
                               router.push(withIntentCampaign(`/pricing?intent_campaign=${thirdFilmDoor.version}#plans`))
                             }}
                             className="w-full mt-1.5 py-1.5 text-xs font-bold"
-                            style={{ color: '#6ee7b7', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                            style={{ color: 'var(--accent)', background: 'transparent', border: 'none', cursor: 'pointer' }}
                           >
                             Compare all plans →
                           </button>
@@ -17699,7 +17699,7 @@ export default function GenerateClient({
                           onClick={() => startNextEpisode(showTrialRepeatEpisode ? { trialRepeat: true } : undefined)}
                           className="w-full rounded-xl mt-3 py-2.5 text-sm font-black text-white"
                           style={{
-                            background: 'linear-gradient(135deg,#2997ff,#2997ff)',
+                            background: 'var(--accent)', color: 'var(--on-accent)',
                             border: 'none',
                             cursor: 'pointer',
                           }}
@@ -17730,7 +17730,7 @@ export default function GenerateClient({
                               router.push('/pricing?intent_campaign=trial_repeat_secondary_v1#plans')
                             }}
                             className="w-full mt-2 py-1.5 text-xs font-bold"
-                            style={{ color: '#5cb3ff', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                            style={{ color: 'var(--accent)', background: 'transparent', border: 'none', cursor: 'pointer' }}
                           >
                             {/* KINEO-PRECO-PARA-SALDO-CHEIO-2026-09-07 — ver o
                                 cabeçalho. O número sai da fonte única; sem
@@ -17752,15 +17752,15 @@ export default function GenerateClient({
                     data-trial-balance-bridge={trialBalanceBridge.version}
                     className="w-full rounded-2xl px-5 py-5"
                     style={{
-                      background: 'linear-gradient(135deg, rgba(168,85,247,.15), rgba(41,151,255,.07))',
-                      border: '1px solid rgba(192,132,252,.55)',
-                      boxShadow: '0 0 30px rgba(168,85,247,.16)',
+                      background: 'var(--accent-soft)',
+                      border: '1px solid var(--border)',
+                      boxShadow: 'var(--sh-card)',
                     }}
                   >
                     <div className="text-center">
                       <div
                         className="text-[10px] font-black uppercase tracking-[.18em] mb-1.5"
-                        style={{ color: '#c084fc' }}
+                        style={{ color: 'var(--accent)' }}
                       >
                         Your trial has one stronger test left
                       </div>
@@ -17775,7 +17775,7 @@ export default function GenerateClient({
                         AI-generated scenes and costs {trialBalanceBridge.cost} credits. After a successful film,
                         you&apos;ll have {trialBalanceBridge.creditsAfterSuccess} left.
                       </p>
-                      <p className="text-xs mt-2 font-bold" style={{ color: '#d8b4fe', lineHeight: 1.45 }}>
+                      <p className="text-xs mt-2 font-bold" style={{ color: 'var(--accent)', lineHeight: 1.45 }}>
                         No card. No purchase. Nothing starts until you enter the next idea and press Generate.
                       </p>
                     </div>
@@ -17784,10 +17784,10 @@ export default function GenerateClient({
                       onClick={handleTrialBalanceBridge}
                       className="flex items-center justify-center w-full rounded-xl mt-4 py-3.5 text-sm font-black text-white"
                       style={{
-                        background: 'linear-gradient(135deg, #9333ea, #2563eb)',
-                        border: '1px solid rgba(216,180,254,.65)',
+                        background: 'var(--accent)', color: 'var(--on-accent)',
+                        border: '1px solid var(--border)',
                         cursor: 'pointer',
-                        boxShadow: '0 8px 24px rgba(147,51,234,.28)',
+                        boxShadow: 'var(--sh-card)',
                       }}
                     >
                       Set up my {trialBalanceBridge.duration}s Seedance film →
@@ -17811,7 +17811,7 @@ export default function GenerateClient({
                           router.push('/pricing?intent_campaign=trial_bridge_secondary_v1#plans')
                         }}
                         className="w-full mt-2 py-1.5 text-xs font-bold"
-                        style={{ color: '#d8b4fe', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                        style={{ color: 'var(--accent)', background: 'transparent', border: 'none', cursor: 'pointer' }}
                       >
                         When the trial credits run out, plans start at{' '}
                         {STARTER_PLAN_FACTS.priceLabel}/month for {STARTER_PLAN_FACTS.credits} credits. See plans →
@@ -17825,15 +17825,15 @@ export default function GenerateClient({
                     ref={trialPostVideoOfferRef}
                     className="w-full rounded-2xl px-5 py-5"
                     style={{
-                      background: 'linear-gradient(135deg, rgba(41,151,255,.12), rgba(41,151,255,.05))',
-                      border: '1px solid rgba(41,151,255,.5)',
-                      boxShadow: '0 0 28px rgba(41,151,255,.16)',
+                      background: 'var(--accent-soft)',
+                      border: '1px solid var(--border)',
+                      boxShadow: 'var(--sh-card)',
                     }}
                   >
                     <div className="text-center">
                       <div
                         className="text-[10px] font-black uppercase tracking-[.18em] mb-1.5"
-                        style={{ color: '#2997ff' }}
+                        style={{ color: 'var(--accent)' }}
                       >
                         {/* KINEO-TRIAL-DEATH-OFFER-2026-08-08 — a sobrancelha
                             carrega o SUJEITO e o tempo verbal; a manchete
@@ -17851,7 +17851,7 @@ export default function GenerateClient({
                         {postDownloadAskEyebrow
                           ?? (trialPostVideoPhase === 'ending' ? 'Your Creator trial has ended' : 'Your Creator trial')}
                       </div>
-                      <p className="text-xs mt-1 font-bold" style={{ color: '#5cb3ff', lineHeight: 1.4 }}>
+                      <p className="text-xs mt-1 font-bold" style={{ color: 'var(--accent)', lineHeight: 1.4 }}>
                         {trialOfferHeadline}
                       </p>
                       {/* O contador só é impresso quando argumenta A FAVOR de
@@ -17860,7 +17860,7 @@ export default function GenerateClient({
                           deixa de ser dito num lugar onde só pode atrapalhar —
                           o saldo continua visível no resto do produto. */}
                       {trialCounterRendered && (
-                        <p className="text-xs mt-1.5 font-bold" style={{ color: '#5cb3ff', lineHeight: 1.45 }}>
+                        <p className="text-xs mt-1.5 font-bold" style={{ color: 'var(--accent)', lineHeight: 1.45 }}>
                           {trialCreditsCounterLabel}
                         </p>
                       )}
@@ -17890,7 +17890,7 @@ export default function GenerateClient({
                         {ladderPrimaryOutputLabel ? ` — enough for ${ladderPrimaryOutputLabel}.` : '.'}
                       </p>
                       {trialOfferPriceNote && (
-                        <p className="text-xs mt-2 font-bold" style={{ color: '#5cb3ff', lineHeight: 1.45 }}>
+                        <p className="text-xs mt-2 font-bold" style={{ color: 'var(--accent)', lineHeight: 1.45 }}>
                           {trialOfferPriceNote}
                         </p>
                       )}
@@ -18003,12 +18003,12 @@ export default function GenerateClient({
                       style={{
                         background: cleanFilmTrialDoor.visible
                           ? 'transparent'
-                          : 'linear-gradient(135deg, #2997ff, #0a6fd8)',
-                        color: cleanFilmTrialDoor.visible ? '#7cc0ff' : '#fff',
-                        border: '1px solid rgba(41,151,255,.6)',
+                          : 'var(--accent)',
+                        color: cleanFilmTrialDoor.visible ? 'var(--accent)' : 'var(--on-accent)',
+                        border: '1px solid var(--border)',
                         cursor: trialPostVideoCheckout.pending !== null ? 'wait' : 'pointer',
                         opacity: trialPostVideoCheckout.pending !== null ? 0.6 : 1,
-                        boxShadow: cleanFilmTrialDoor.visible ? 'none' : '0 8px 24px rgba(41,151,255,.28)',
+                        boxShadow: cleanFilmTrialDoor.visible ? 'none' : 'var(--sh-card)',
                       }}
                     >
                       {trialPostVideoCheckout.pending !== null
@@ -18026,7 +18026,7 @@ export default function GenerateClient({
                       {CHECKOUT_PAYMENT_GUIDANCE_COMPACT}
                     </p>
                     {trialPostVideoCheckout.error && (
-                      <p role="alert" className="text-center mt-2 text-xs" style={{ color: '#ff6b6b' }}>
+                      <p role="alert" className="text-center mt-2 text-xs" style={{ color: 'var(--danger)' }}>
                         {trialPostVideoCheckout.error}
                       </p>
                     )}
@@ -18057,7 +18057,7 @@ export default function GenerateClient({
                       style={{
                         background: 'transparent',
                         border: 'none',
-                        color: '#7cc0ff',
+                        color: 'var(--accent)',
                         cursor: 'pointer',
                         textDecoration: 'underline',
                         textUnderlineOffset: 3,
@@ -18079,7 +18079,7 @@ export default function GenerateClient({
                     <details className="mt-3 group">
                       <summary
                         className="text-center text-xs font-bold"
-                        style={{ color: '#7cc0ff', cursor: 'pointer', listStylePosition: 'inside' }}
+                        style={{ color: 'var(--accent)', cursor: 'pointer', listStylePosition: 'inside' }}
                       >
                         Other options
                       </summary>
@@ -18118,7 +18118,7 @@ export default function GenerateClient({
                           </span>
                         </button>
                         {wmCheckout.error && (
-                          <p role="alert" className="text-xs mt-2 font-semibold" style={{ color: '#ff6b6b', lineHeight: 1.45 }}>
+                          <p role="alert" className="text-xs mt-2 font-semibold" style={{ color: 'var(--danger)', lineHeight: 1.45 }}>
                             {wmCheckout.error}
                           </p>
                         )}
@@ -18152,7 +18152,7 @@ export default function GenerateClient({
                             style={{
                               background: 'none',
                               border: 'none',
-                              color: '#7cc0ff',
+                              color: 'var(--accent)',
                               cursor: trialPostVideoCheckout.pending !== null ? 'wait' : 'pointer',
                               padding: '4px 0',
                             }}
@@ -18195,15 +18195,15 @@ export default function GenerateClient({
                   ref={sharePromptRef}
                   className="w-full rounded-2xl px-5 py-5"
                   style={{
-                    background: 'linear-gradient(145deg, rgba(37,211,102,.14), rgba(41,151,255,.10))',
-                    border: '1px solid rgba(37,211,102,.42)',
-                    boxShadow: '0 10px 32px rgba(37,211,102,.10)',
+                    background: 'var(--accent-soft)',
+                    border: '1px solid var(--border)',
+                    boxShadow: 'var(--sh-card)',
                   }}
                 >
                   <div className="text-center">
                     <div
                       className="text-[10px] font-black uppercase tracking-[.18em]"
-                      style={{ color: '#5cb3ff' }}
+                      style={{ color: 'var(--accent)' }}
                     >
                       {shareReferralCode
                         ? 'Give 30 credits · Get 30 credits'
@@ -18243,12 +18243,12 @@ export default function GenerateClient({
                       className="flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-black text-white"
                       style={{
                         background: publicVideoId
-                          ? 'linear-gradient(135deg, #25D366, #128C4A)'
-                          : 'rgba(255,255,255,.08)',
-                        border: '1px solid rgba(37,211,102,.45)',
+                          ? 'var(--accent)'
+                          : 'var(--card2)',
+                        border: '1px solid var(--border)',
                         cursor: publicVideoId ? 'pointer' : 'not-allowed',
                         opacity: publicVideoId ? 1 : 0.65,
-                        boxShadow: publicVideoId ? '0 8px 24px rgba(37,211,102,.24)' : 'none',
+                        boxShadow: publicVideoId ? 'var(--sh-card)' : 'none',
                       }}
                     >
                       <span aria-hidden>↗</span>
@@ -18261,7 +18261,7 @@ export default function GenerateClient({
                       aria-describedby="post-render-referral-description"
                       className="flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-bold"
                       style={{
-                        background: 'rgba(255,255,255,.06)',
+                        background: 'var(--card2)',
                         border: '1px solid var(--border2)',
                         color: publicVideoId ? 'var(--text)' : 'var(--muted)',
                         cursor: publicVideoId ? 'pointer' : 'not-allowed',
@@ -18295,14 +18295,14 @@ export default function GenerateClient({
                     className="w-full rounded-2xl px-5 py-5 text-center"
                     style={{
                       background: shareableDownloadedFile
-                        ? 'linear-gradient(145deg, rgba(37,211,102,.12), rgba(41,151,255,.08))'
-                        : 'rgba(41,151,255,.06)',
+                        ? 'var(--accent-soft)'
+                        : 'var(--accent-soft)',
                       border: shareableDownloadedFile
-                        ? '1px solid rgba(37,211,102,.38)'
-                        : '1px solid rgba(41,151,255,.24)',
+                        ? '1px solid var(--border)'
+                        : '1px solid var(--border)',
                     }}
                   >
-                    <div className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: '#7cc0ff' }}>
+                    <div className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: 'var(--accent)' }}>
                       {shareableDownloadedFile && privateReferral
                         ? privateReferral.eyebrow
                         : 'Private by default'}
@@ -18325,11 +18325,11 @@ export default function GenerateClient({
                           disabled={privateFileShareState === 'sharing'}
                           className="flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-black text-white"
                           style={{
-                            background: 'linear-gradient(135deg, #25D366, #128C4A)',
-                            border: '1px solid rgba(37,211,102,.55)',
+                            background: 'var(--accent)', color: 'var(--on-accent)',
+                            border: '1px solid var(--border)',
                             cursor: privateFileShareState === 'sharing' ? 'wait' : 'pointer',
                             opacity: privateFileShareState === 'sharing' ? 0.7 : 1,
-                            boxShadow: '0 8px 24px rgba(37,211,102,.20)',
+                            boxShadow: 'var(--sh-card)',
                           }}
                         >
                           <span aria-hidden>{privateFileShareState === 'shared' ? '✓' : '↗'}</span>
@@ -18347,7 +18347,7 @@ export default function GenerateClient({
                             onClick={handleCopyPrivateReferral}
                             className="flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-black"
                             style={{
-                              background: 'rgba(255,255,255,.06)',
+                              background: 'var(--card2)',
                               border: '1px solid var(--border2)',
                               color: 'var(--text)',
                               cursor: 'pointer',
@@ -18387,9 +18387,9 @@ export default function GenerateClient({
                         data-viral-loop={VIRAL_LOOP_VERSION}
                         className="w-full rounded-xl mt-3 py-2.5 text-sm font-black"
                         style={{
-                          background: 'rgba(37,211,102,.14)',
-                          border: '1px solid rgba(37,211,102,.45)',
-                          color: '#bbf7d0',
+                          background: 'var(--accent-soft)',
+                          border: '1px solid var(--border)',
+                          color: 'var(--accent)',
                           cursor: publishPageState === 'publishing' ? 'wait' : 'pointer',
                           opacity: publishPageState === 'publishing' ? 0.7 : 1,
                         }}
@@ -18397,7 +18397,7 @@ export default function GenerateClient({
                         {publishPageState === 'publishing' ? 'Creating your public watch page…' : 'Create a public watch page & share it →'}
                       </button>
                     )}
-                    <p className="mt-2 text-center" style={{ color: '#606068', fontSize: '0.64rem', lineHeight: 1.4 }}>
+                    <p className="mt-2 text-center" style={{ color: 'var(--muted)', fontSize: '0.64rem', lineHeight: 1.4 }}>
                       {publishPageState === 'error'
                         ? 'The page could not be created. Nothing was published — try again in a moment.'
                         : 'Nothing is public until you press it. The page shows this film with a "make your own" button for whoever you send it to.'}
@@ -18414,15 +18414,15 @@ export default function GenerateClient({
                   onClick={() => handleContinueSeries(analysis?.title ?? prompt, 'done_screen', publicVideoId)}
                   className="flex w-full flex-col items-center justify-center rounded-2xl px-5 py-4 text-center font-black"
                   style={{
-                    background: 'rgba(41,151,255,.10)',
-                    border: '1px solid rgba(41,151,255,.40)',
-                    color: '#5cb3ff',
+                    background: 'var(--accent-soft)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--accent)',
                     cursor: 'pointer',
-                    boxShadow: '0 8px 24px rgba(41,151,255,.12)',
+                    boxShadow: 'var(--sh-card)',
                   }}
                 >
                   <span style={{ fontSize: '0.95rem' }}>Build the next episode →</span>
-                  <span style={{ marginTop: 4, fontSize: '0.72rem', fontWeight: 650, color: 'rgba(92,179,255,.78)' }}>
+                  <span style={{ marginTop: 4, fontSize: '0.72rem', fontWeight: 650, color: 'var(--accent)' }}>
                     Same settings stay selected · new hook, facts and payoff
                   </span>
                 </button>
@@ -18437,9 +18437,9 @@ export default function GenerateClient({
                       rel="noopener noreferrer"
                       className="flex items-center justify-center gap-2 w-full rounded-xl py-3 text-sm font-bold"
                       style={{
-                        background: 'rgba(41,151,255,.10)',
-                        border: '1px solid rgba(41,151,255,.40)',
-                        color: '#5cb3ff',
+                        background: 'var(--accent-soft)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--accent)',
                         textDecoration: 'none',
                       }}
                     >
@@ -18450,12 +18450,12 @@ export default function GenerateClient({
                         o claim foi para revisão: silêncio quando não houve nem
                         um nem outro é honesto (não prometemos nada aqui). */}
                     {ytResult.reward?.granted && (
-                      <p className="text-xs mt-2 text-center font-black" style={{ color: '#5cb3ff' }}>
+                      <p className="text-xs mt-2 text-center font-black" style={{ color: 'var(--accent)' }}>
                         +{ytResult.reward.credits} credits added for publishing it 🎉
                       </p>
                     )}
                     {ytResult.reward?.pending && (
-                      <p className="text-xs mt-2 text-center" style={{ color: '#86868b', lineHeight: 1.55 }}>
+                      <p className="text-xs mt-2 text-center" style={{ color: 'var(--muted)', lineHeight: 1.55 }}>
                         {ytResult.reward.message}
                       </p>
                     )}
@@ -18467,8 +18467,8 @@ export default function GenerateClient({
                   <div
                     className="flex items-center justify-center gap-2 w-full rounded-xl py-3 text-center text-sm font-semibold"
                     style={{
-                      background: 'rgba(255,255,255,.04)',
-                      border: '1px solid rgba(255,255,255,.12)',
+                      background: 'var(--card2)',
+                      border: '1px solid var(--border)',
                       color: 'var(--muted2)',
                     }}
                   >
@@ -18482,7 +18482,7 @@ export default function GenerateClient({
                     style={{
                       background: 'rgba(255,0,0,.08)',
                       border: '1px solid rgba(255,0,0,.28)',
-                      color: '#ff4444',
+                      color: 'var(--danger)',
                       textDecoration: 'none',
                     }}
                   >
@@ -18509,9 +18509,9 @@ export default function GenerateClient({
                       disabled={ytUploading}
                       className="w-full rounded-xl py-2 px-3 text-xs font-bold mb-2"
                       style={{
-                        background: 'rgba(255,255,255,.04)',
-                        border: '1px solid rgba(255,255,255,.12)',
-                        color: '#a1a1a8',
+                        background: 'var(--card2)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--muted)',
                         cursor: ytUploading ? 'not-allowed' : 'pointer',
                       }}
                     >
@@ -18527,7 +18527,7 @@ export default function GenerateClient({
                       style={{
                         background: ytUploading ? 'rgba(255,0,0,.04)' : 'rgba(255,0,0,.08)',
                         border: '1px solid rgba(255,0,0,.28)',
-                        color: ytUploading ? '#ff888888' : '#ff4444',
+                        color: ytUploading ? 'var(--danger)' : 'var(--danger)',
                         cursor: ytUploading ? 'not-allowed' : 'pointer',
                       }}
                     >
@@ -18538,7 +18538,7 @@ export default function GenerateClient({
                   </>
                 )}
                 {ytError && (
-                  <p className="text-xs text-center mt-1" style={{ color: '#f87171' }}>{ytError}</p>
+                  <p className="text-xs text-center mt-1" style={{ color: 'var(--danger)' }}>{ytError}</p>
                 )}
                 {/* KINEO-DISTRIBUTION-LOOP-2026-08-11 — por que este botão e não
                     o campo de colar link. Os dois caminhos pagam os mesmos 3
@@ -18553,7 +18553,7 @@ export default function GenerateClient({
                 {!ytResult && ytConnected !== 'error' && (
                   <p
                     className="text-xs text-center mt-1.5 font-bold"
-                    style={{ color: '#5cb3ff', lineHeight: 1.5 }}
+                    style={{ color: 'var(--accent)', lineHeight: 1.5 }}
                   >
                     {POST_TO_EARN_DIRECT_PITCH}
                   </p>
@@ -18580,11 +18580,11 @@ export default function GenerateClient({
                   className="rounded-2xl px-5 py-4 mt-6 w-full"
                   style={{
                     maxWidth: 480,
-                    background: '#161618',
+                    background: 'var(--card)',
                     border:
                       POST_HANDOFF_ENABLED && postHandoffArmed && postedLinkState !== 'done'
-                        ? '1px solid rgba(74,222,128,0.45)'
-                        : '1px solid rgba(255,255,255,0.08)',
+                        ? '1px solid var(--border)'
+                        : '1px solid var(--border)',
                   }}
                 >
                   {/* KINEO-WALL-2026-08-03 — o mesmo campo, agora com um destino
@@ -18602,7 +18602,7 @@ export default function GenerateClient({
                     <div>
                       <div
                         className="text-sm font-black"
-                        style={{ color: postedReward?.granted ? '#5cb3ff' : '#f5f5f7' }}
+                        style={{ color: postedReward?.granted ? 'var(--accent)' : 'var(--text)' }}
                       >
                         {postedReward?.granted
                           ? `🎉 +${postedReward.credits} credits — you're on the wall.`
@@ -18611,18 +18611,18 @@ export default function GenerateClient({
                           href="/wall"
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{ color: '#2997ff', textDecoration: 'underline' }}
+                          style={{ color: 'var(--accent)', textDecoration: 'underline' }}
                         >
                           See your Short on the Wall of Proof →
                         </a>
                       </div>
                       {postedReward && !postedReward.granted && (
-                        <p className="text-xs mt-1.5" style={{ color: '#86868b', lineHeight: 1.55 }}>
+                        <p className="text-xs mt-1.5" style={{ color: 'var(--muted)', lineHeight: 1.55 }}>
                           {postedReward.message}
                         </p>
                       )}
                       {postedReward?.granted && postedReward.remainingThisWeek > 0 && (
-                        <p className="text-xs mt-1.5" style={{ color: '#86868b', lineHeight: 1.55 }}>
+                        <p className="text-xs mt-1.5" style={{ color: 'var(--muted)', lineHeight: 1.55 }}>
                           {postedReward.remainingThisWeek} more rewarded{' '}
                           {postedReward.remainingThisWeek === 1 ? 'link' : 'links'} left this week.
                         </p>
@@ -18637,13 +18637,13 @@ export default function GenerateClient({
                           ainda", e a frase certa é a que diz o que fazer com o
                           arquivo que acabou de chegar. Fora do handoff (ou com
                           a flag em 'off') o texto original permanece. */}
-                      <div className="text-sm font-black" style={{ color: '#f5f5f7' }}>
+                      <div className="text-sm font-black" style={{ color: 'var(--text)' }}>
                         {POST_HANDOFF_ENABLED && postHandoffArmed
                           ? POST_TO_EARN_HANDOFF_TITLE
                           : 'Published it? Paste the link and get paid 🔗'}
                       </div>
                       {/* A regra ANTES de colar, não depois da recusa. */}
-                      <p className="text-xs mt-1.5 font-bold" style={{ color: '#5cb3ff', lineHeight: 1.55 }}>
+                      <p className="text-xs mt-1.5 font-bold" style={{ color: 'var(--accent)', lineHeight: 1.55 }}>
                         {POST_TO_EARN_PITCH}
                       </p>
                       {/* KINEO-DISTRIBUTION-LOOP-2026-08-11 — a verdade sobre
@@ -18654,16 +18654,16 @@ export default function GenerateClient({
                           possibilidades; esta diz qual delas é a provável e por
                           quê, para ninguém ficar esperando um crédito que só
                           chega depois da revisão. */}
-                      <p className="text-xs mt-1.5" style={{ color: '#86868b', lineHeight: 1.55 }}>
+                      <p className="text-xs mt-1.5" style={{ color: 'var(--muted)', lineHeight: 1.55 }}>
                         {POST_TO_EARN_PASTE_NOTE}
                       </p>
-                      <p className="text-xs mt-1.5" style={{ color: '#86868b', lineHeight: 1.55 }}>
+                      <p className="text-xs mt-1.5" style={{ color: 'var(--muted)', lineHeight: 1.55 }}>
                         Each video counts once and has to be public. Your Short also joins the{' '}
                         <a
                           href="/wall"
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}
+                          style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 700 }}
                         >
                           Wall of Proof
                         </a>{' '}
@@ -18697,8 +18697,8 @@ export default function GenerateClient({
                           placeholder="https://youtube.com/shorts/…"
                           className="flex-1 rounded-xl px-3 py-2 text-xs"
                           style={{
-                            background: 'rgba(0,0,0,.35)',
-                            border: '1px solid rgba(255,255,255,.12)',
+                            background: 'var(--card)',
+                            border: '1px solid var(--border)',
                             color: 'var(--text)',
                             outline: 'none',
                             minWidth: 0,
@@ -18710,9 +18710,9 @@ export default function GenerateClient({
                           disabled={postedLinkState === 'saving' || !postedLink.trim()}
                           className="rounded-xl px-4 py-2 text-xs font-bold"
                           style={{
-                            background: 'rgba(41,151,255,.10)',
-                            border: '1px solid rgba(41,151,255,.45)',
-                            color: '#2997ff',
+                            background: 'var(--accent-soft)',
+                            border: '1px solid var(--border)',
+                            color: 'var(--accent)',
                             cursor: postedLinkState === 'saving' || !postedLink.trim() ? 'not-allowed' : 'pointer',
                             whiteSpace: 'nowrap',
                           }}
@@ -18721,7 +18721,7 @@ export default function GenerateClient({
                         </button>
                       </div>
                       {postedLinkError && (
-                        <p className="text-xs mt-2" style={{ color: '#f87171' }}>{postedLinkError}</p>
+                        <p className="text-xs mt-2" style={{ color: 'var(--danger)' }}>{postedLinkError}</p>
                       )}
                     </>
                   )}
@@ -18751,19 +18751,19 @@ export default function GenerateClient({
                 className="rounded-2xl mt-6 w-full"
                 style={{
                   maxWidth: 480,
-                  background: 'rgba(41,151,255,.05)',
-                  border: '1px solid #2997ff',
+                  background: 'var(--accent-soft)',
+                  border: '1px solid var(--border)',
                 }}
               >
                 <summary
                   className="cursor-pointer select-none px-5 py-3 text-sm font-black"
-                  style={{ color: '#2997ff', listStyle: 'none' }}
+                  style={{ color: 'var(--accent)', listStyle: 'none' }}
                 >
                   ✅ What to do next ▾
                 </summary>
                 <div className="px-5 pb-5 pt-1 flex flex-col gap-3">
                   <div className="flex items-start gap-3 text-xs" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
-                    <span style={{ color: '#5cb3ff', fontWeight: 800 }}>✓</span>
+                    <span style={{ color: 'var(--accent)', fontWeight: 800 }}>✓</span>
                     <span>
                       <span style={{ color: 'var(--text)', fontWeight: 700 }}>Download your video</span>{' '}
                       — use the download button above to save the file to your device
@@ -18771,7 +18771,7 @@ export default function GenerateClient({
                     </span>
                   </div>
                   <div className="flex items-start gap-3 text-xs" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
-                    <span style={{ color: '#2997ff', fontWeight: 800 }}>2</span>
+                    <span style={{ color: 'var(--accent)', fontWeight: 800 }}>2</span>
                     <span>
                       <span style={{ color: 'var(--text)', fontWeight: 700 }}>Post to YouTube</span>{' '}
                       — click the red "Post to YouTube" button above to upload directly. Or open{' '}
@@ -18779,7 +18779,7 @@ export default function GenerateClient({
                         href="https://studio.youtube.com"
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ color: '#2997ff', textDecoration: 'underline', fontWeight: 700 }}
+                        style={{ color: 'var(--accent)', textDecoration: 'underline', fontWeight: 700 }}
                       >
                         studio.youtube.com
                       </a>{' '}
@@ -18787,7 +18787,7 @@ export default function GenerateClient({
                     </span>
                   </div>
                   <div className="flex items-start gap-3 text-xs" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
-                    <span style={{ color: '#2997ff', fontWeight: 800 }}>3</span>
+                    <span style={{ color: 'var(--accent)', fontWeight: 800 }}>3</span>
                     <div className="flex-1">
                       <span style={{ color: 'var(--text)', fontWeight: 700 }}>Paste the description</span>{' '}
                       — copy the ready-made caption below.
@@ -18795,8 +18795,8 @@ export default function GenerateClient({
                         <div
                           className="rounded-lg mt-2 p-3 text-xs"
                           style={{
-                            background: 'rgba(0,0,0,.30)',
-                            border: '1px solid rgba(41,151,255,.25)',
+                            background: 'var(--card)',
+                            border: '1px solid var(--border)',
                             color: 'var(--muted2)',
                             whiteSpace: 'pre-wrap',
                             lineHeight: 1.5,
@@ -18814,13 +18814,13 @@ export default function GenerateClient({
                         style={{
                           background:
                             copiedSection === 'next-steps-desc'
-                              ? 'rgba(41,151,255,.12)'
-                              : 'rgba(41,151,255,.10)',
+                              ? 'var(--accent-soft)'
+                              : 'var(--accent-soft)',
                           border:
                             copiedSection === 'next-steps-desc'
-                              ? '1px solid rgba(41,151,255,.45)'
-                              : '1px solid rgba(41,151,255,.45)',
-                          color: copiedSection === 'next-steps-desc' ? '#5cb3ff' : '#2997ff',
+                              ? '1px solid var(--border)'
+                              : '1px solid var(--border)',
+                          color: copiedSection === 'next-steps-desc' ? 'var(--accent)' : 'var(--accent)',
                           cursor: 'pointer',
                           transition: 'all 150ms cubic-bezier(.2,0,0,1)',
                         }}
@@ -18860,16 +18860,16 @@ export default function GenerateClient({
                   style={{
                     maxWidth: 480,
                     background:
-                      'linear-gradient(135deg, rgba(41,151,255,.10), rgba(41,151,255,.06))',
-                    border: '1px solid rgba(41,151,255,.45)',
+                      'var(--accent-soft)',
+                    border: '1px solid var(--border)',
                     boxShadow:
-                      '0 0 28px rgba(41,151,255,.16), inset 0 1px 0 rgba(255,255,255,.04)',
+                      'var(--sh-card)',
                   }}
                 >
                   <div className="text-center">
                     <div
                       className="text-[11px] font-black uppercase tracking-[.16em] mb-1.5"
-                      style={{ color: '#5cb3ff' }}
+                      style={{ color: 'var(--accent)' }}
                     >
                       🚀 Loved your Short? Make more.
                     </div>
@@ -18895,11 +18895,11 @@ export default function GenerateClient({
                     disabled={postVideoCheckout.pending !== null}
                     className="flex flex-col items-center justify-center w-full rounded-xl mt-4 py-3 text-sm font-black text-center text-white"
                     style={{
-                      background: 'linear-gradient(135deg, #2997ff, #1d6fe0)',
+                      background: 'var(--accent)', color: 'var(--on-accent)',
                       border: 'none',
                       cursor: postVideoCheckout.pending ? 'wait' : 'pointer',
                       opacity: postVideoCheckout.pending ? 0.7 : 1,
-                      boxShadow: '0 8px 24px rgba(41,151,255,.32)',
+                      boxShadow: 'var(--sh-card)',
                     }}
                   >
                     {postVideoCheckout.pending === 'basic' ? (
@@ -18930,9 +18930,9 @@ export default function GenerateClient({
                     disabled={postVideoCheckout.pending !== null}
                     className="block w-full rounded-xl mt-2.5 px-4 py-3 text-center"
                     style={{
-                      background: 'rgba(41,151,255,0.06)',
-                      border: '1px dashed rgba(41,151,255,0.4)',
-                      color: '#f5f5f7',
+                      background: 'var(--accent-soft)',
+                      border: '1px dashed var(--border)',
+                      color: 'var(--text)',
                       fontSize: '0.82rem',
                       fontWeight: 800,
                       lineHeight: 1.35,
@@ -18948,15 +18948,15 @@ export default function GenerateClient({
                         {/* KINEO-PRICING-V6-2026-08-19 — "renews at $9.90/mo in
                             30 days" insinuava que os 30 primeiros dias custavam
                             outra coisa. Custam o mesmo. */}
-                        <span style={{ color: '#2997ff' }}>Starter — {STARTER_USD_LABEL}/mo →</span>
-                        <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, color: '#86868b', marginTop: 2 }}>
+                        <span style={{ color: 'var(--accent)' }}>Starter — {STARTER_USD_LABEL}/mo →</span>
+                        <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, color: 'var(--muted)', marginTop: 2 }}>
                           {TIER_CREDITS.starter} credits/month · same price every month · cancel anytime
                         </span>
                       </>
                     )}
                   </button>
                   {postVideoCheckout.error && (
-                    <p role="alert" className="text-xs mt-2.5 font-semibold" style={{ color: '#ff6b6b', lineHeight: 1.45 }}>
+                    <p role="alert" className="text-xs mt-2.5 font-semibold" style={{ color: 'var(--danger)', lineHeight: 1.45 }}>
                       {postVideoCheckout.error}
                     </p>
                   )}
@@ -18977,9 +18977,9 @@ export default function GenerateClient({
                   disabled={!prompt.trim()}
                   className="rounded-xl px-4 py-2 text-xs font-bold"
                   style={{
-                    background: 'rgba(41,151,255,.10)',
-                    border: '1px solid rgba(41,151,255,.35)',
-                    color: '#5cb3ff',
+                    background: 'var(--accent-soft)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--accent)',
                     cursor: !prompt.trim() ? 'not-allowed' : 'pointer',
                     opacity: !prompt.trim() ? 0.5 : 1,
                   }}
@@ -18991,7 +18991,7 @@ export default function GenerateClient({
                   onClick={handleBackToEdit}
                   className="rounded-xl px-4 py-2 text-xs font-bold"
                   style={{
-                    background: 'rgba(255,255,255,.04)',
+                    background: 'var(--card2)',
                     border: '1px solid var(--border)',
                     color: 'var(--text)',
                     cursor: 'pointer',
@@ -19006,7 +19006,7 @@ export default function GenerateClient({
               <div
                 className="rounded-xl px-4 py-3 mt-6 text-xs flex flex-wrap items-center justify-center gap-x-4 gap-y-1"
                 style={{
-                  background: 'rgba(255,255,255,.02)',
+                  background: 'var(--card2)',
                   border: '1px solid var(--border)',
                   color: 'var(--muted2)',
                   maxWidth: 480,
@@ -19020,12 +19020,12 @@ export default function GenerateClient({
                     : `${selectedCost === 0 ? 'Free' : `${selectedCost} credit${selectedCost === 1 ? '' : 's'} used`}`}
                 </span>
                 <span>·</span>
-                <span style={{ color: mode === 'fast' ? '#5cb3ff' : mode === 'cinematic_ai' ? '#2997ff' : '#2997ff', fontWeight: 700 }}>
+                <span style={{ color: mode === 'fast' ? 'var(--accent)' : mode === 'cinematic_ai' ? 'var(--accent)' : 'var(--accent)', fontWeight: 700 }}>
                   <KineoBoltText>{mode === 'fast' ? 'Fast Mode ⚡' : mode === 'cinematic_ai' ? 'AI Video 🤖' : 'Cinematic 🎬'}</KineoBoltText>
                 </span>
               </div>
 
-              <p className="text-xs mt-4 text-center" style={{ color: '#5cb3ff', maxWidth: 480, lineHeight: 1.55 }}>
+              <p className="text-xs mt-4 text-center" style={{ color: 'var(--accent)', maxWidth: 480, lineHeight: 1.55 }}>
                 💡 Tip: Post within 2 hours for max algorithm boost.
               </p>
 
@@ -20571,10 +20571,10 @@ function RenderHeader({ progress, message }: { progress: number; message: string
       {/* Ring */}
       <div style={{ position: 'relative', flexShrink: 0, width: 72, height: 72 }}>
         <svg width="72" height="72" viewBox="0 0 72 72" style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx="36" cy="36" r={r} fill="none" stroke="var(--card2)" strokeWidth="5" />
+          <circle cx="36" cy="36" r={r} fill="none" stroke='var(--card2)' strokeWidth="5" />
           <circle
             cx="36" cy="36" r={r} fill="none"
-            stroke="var(--indigo)"
+            stroke='var(--indigo)'
             strokeWidth="5"
             strokeLinecap="round"
             strokeDasharray={`${dash} ${gap}`}

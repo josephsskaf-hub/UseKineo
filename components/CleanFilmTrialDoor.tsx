@@ -51,18 +51,19 @@ export default function CleanFilmTrialDoor({ decision, pending, telemetry, onSta
         disabled={pending}
         className="flex items-center justify-center w-full rounded-xl py-3.5 text-sm font-black text-white"
         style={{
-          background: 'linear-gradient(135deg, #2997ff, #0a6fd8)',
-          border: '1px solid rgba(41,151,255,.6)',
+          background: 'var(--accent)',
+          border: '1px solid var(--border)',
+          color: 'var(--on-accent)',
           cursor: pending ? 'wait' : 'pointer',
           opacity: pending ? 0.6 : 1,
-          boxShadow: '0 8px 24px rgba(41,151,255,.28)',
+          boxShadow: 'var(--sh-cta)',
         }}
       >
         {pending ? 'Opening checkout…' : decision.buttonLabel}
       </button>
       <p
         className="mt-2 text-center"
-        style={{ color: '#5cb3ff', fontSize: '0.7rem', lineHeight: 1.45, fontWeight: 700 }}
+        style={{ color: 'var(--accent)', fontSize: '0.7rem', lineHeight: 1.45, fontWeight: 700 }}
       >
         {decision.priceNote}
       </p>

@@ -76,7 +76,7 @@ export default function FilmReadyExits({ videoId, plan }: { videoId: string | nu
         href={nextFilmHref}
         onClick={() => track('next_film')}
         className="rounded-xl px-4 py-3 text-center text-sm font-bold"
-        style={{ border: '1px solid #2b3e52', color: '#edf4fc', textDecoration: 'none' }}
+        style={{ border: '1px solid var(--border)', color: 'var(--text)', textDecoration: 'none' }}
       >
         Next film
       </Link>
@@ -88,7 +88,7 @@ export default function FilmReadyExits({ videoId, plan }: { videoId: string | nu
             setTopupOpen(true)
           }}
           className="rounded-xl px-4 py-3 text-center text-sm font-bold"
-          style={{ border: '1px solid #2b3e52', color: '#edf4fc', background: 'transparent', cursor: 'pointer' }}
+          style={{ border: '1px solid var(--border)', color: 'var(--text)', background: 'transparent', cursor: 'pointer' }}
         >
           More credits
         </button>
@@ -97,7 +97,7 @@ export default function FilmReadyExits({ videoId, plan }: { videoId: string | nu
           href={plansHref}
           onClick={() => track('more_credits')}
           className="rounded-xl px-4 py-3 text-center text-sm font-bold"
-          style={{ border: '1px solid #2b3e52', color: '#edf4fc', textDecoration: 'none' }}
+          style={{ border: '1px solid var(--border)', color: 'var(--text)', textDecoration: 'none' }}
         >
           More credits
         </a>
@@ -106,7 +106,7 @@ export default function FilmReadyExits({ videoId, plan }: { videoId: string | nu
         href={plansHref}
         onClick={() => track('subscribe')}
         className="rounded-xl px-4 py-3 text-center text-sm font-bold"
-        style={{ border: '1px solid #2b3e52', color: '#edf4fc', textDecoration: 'none' }}
+        style={{ border: '1px solid var(--border)', color: 'var(--text)', textDecoration: 'none' }}
       >
         {filmReadyPlanLabel(plan)}
       </a>

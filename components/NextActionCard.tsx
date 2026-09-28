@@ -130,14 +130,14 @@ export default function NextActionCard({ surface }: { surface: string }) {
   return (
     <div
       style={{
-        background: 'rgba(41,151,255,.08)',
-        border: '1px solid rgba(41,151,255,.42)',
+        background: 'var(--accent-soft)',
+        border: '1px solid var(--border)',
         borderRadius: 10,
         padding: '13px 14px',
         marginBottom: 12,
       }}
     >
-      <span style={{ display: 'block', color: '#8fc4ff', fontSize: '0.64rem', fontWeight: 900, letterSpacing: '0.1em', marginBottom: 4 }}>
+      <span style={{ display: 'block', color: 'var(--accent)', fontSize: '0.64rem', fontWeight: 900, letterSpacing: '0.1em', marginBottom: 4 }}>
         {perdida ? 'YOUR FILM DIDN\u2019T FINISH' : 'YOUR NEXT FILM'}
       </span>
       {/* A frase vem PRONTA do servidor (os dois números, sem adjetivo). A tela
@@ -148,7 +148,7 @@ export default function NextActionCard({ surface }: { surface: string }) {
           tela não tem como verificar o que o servidor não mandou. Sem os dois,
           a caixa mostra só os botões, que continuam corretos. */}
       {(dados.primary?.sublabel || (seco && typeof dados.balance === 'number' && typeof dados.shortBy === 'number')) && (
-        <strong style={{ display: 'block', color: '#fff', fontSize: '0.9rem', lineHeight: 1.35, marginBottom: (alternativa || retomar) ? 8 : 0 }}>
+        <strong style={{ display: 'block', color: 'var(--text)', fontSize: '0.9rem', lineHeight: 1.35, marginBottom: (alternativa || retomar) ? 8 : 0 }}>
           {/* O fallback é do estado SECO e só dele: dizer "short of another one
               like it" para quem nunca recebeu filme nenhum seria inventar um
               filme que não existe. */}
@@ -163,8 +163,8 @@ export default function NextActionCard({ surface }: { surface: string }) {
           onClick={() => clicar('retry_first_film', retomar.href)}
           style={{
             width: '100%', padding: '10px 14px', borderRadius: 8,
-            border: '1px solid rgba(41,151,255,.7)', background: 'rgba(41,151,255,.18)',
-            color: '#dbeeff', fontWeight: 800, fontSize: '0.86rem', cursor: 'pointer',
+            border: '1px solid var(--border)', background: 'var(--accent-soft)',
+            color: 'var(--accent)', fontWeight: 800, fontSize: '0.86rem', cursor: 'pointer',
           }}
         >
           {retomar.label}
@@ -178,8 +178,8 @@ export default function NextActionCard({ surface }: { surface: string }) {
             onClick={() => clicar(alternativa.cost === 0 ? 'continue_free' : 'continue_cheaper', alternativa.href)}
             style={{
               width: '100%', padding: '10px 14px', borderRadius: 8,
-              border: '1px solid rgba(41,151,255,.7)', background: 'rgba(41,151,255,.18)',
-              color: '#dbeeff', fontWeight: 800, fontSize: '0.86rem', cursor: 'pointer',
+              border: '1px solid var(--border)', background: 'var(--accent-soft)',
+              color: 'var(--accent)', fontWeight: 800, fontSize: '0.86rem', cursor: 'pointer',
             }}
           >
             {alternativa.label}
@@ -192,7 +192,7 @@ export default function NextActionCard({ surface }: { surface: string }) {
           {dizerClamp && typeof dados.freeTier?.limit === 'number' && typeof dados.freeTier?.windowHours === 'number' && (
             // O que a pessoa REALMENTE recebe. Sem isto, o botão grátis promete
             // o filme que ela acabou de fazer e entrega um terço dele.
-            <span style={{ display: 'block', color: '#93b4d4', fontSize: '0.72rem', lineHeight: 1.4, marginTop: 6 }}>
+            <span style={{ display: 'block', color: 'var(--muted)', fontSize: '0.72rem', lineHeight: 1.4, marginTop: 6 }}>
               Free films are {clamp} seconds and watermarked — {dados.freeTier?.limit} every{' '}
               {Math.round((dados.freeTier?.windowHours ?? 0) / 24)} days.
             </span>
@@ -209,7 +209,7 @@ export default function NextActionCard({ surface }: { surface: string }) {
           style={{
             display: 'block', width: '100%', marginTop: (alternativa || retomar) ? 8 : 10,
             padding: '8px 10px', borderRadius: 8, border: '1px solid transparent',
-            background: 'transparent', color: '#8fc4ff', fontWeight: 700,
+            background: 'transparent', color: 'var(--accent)', fontWeight: 700,
             fontSize: '0.8rem', cursor: 'pointer', textAlign: 'center',
           }}
         >
