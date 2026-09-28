@@ -14,6 +14,12 @@
 //       personagem, encaixe dos clipes;
 //   (c) inerte: a rota travada não liga nada (nenhum `v2: true` em app/api/generate-video-fast/route.ts);
 //   (d) o replay não escreve (dryRun, zero insert/update/delete) e roda ponta a ponta sem rede.
+//   (e) parte B, peças ainda inertes (lib/kineo1/pastedBrief.ts, a ordem das buscas, os candidatos do pool, o painel no
+//       modo troca, o custo real no compose): os textos REAIS da Lua (2ff93c15) e dos gêmeos (b3b3e101), narração com
+//       abertura imperativa que NÃO pode perder linha, e a fatia real do painel executada com eventos falsos.
+//       Revisão pós-auditoria (28/09): D1 — briefing com SOBRA de instrução (17dd0c7a virava filme cobrado lendo
+//       "Conte a história…"; 8b23d27a e 8c0ed465 narravam direção) e D2 — roteiro de UM parágrafo lido como briefing
+//       ("Este vídeo vai…", "Evite… Em poucos segundos…", "Change your life in 30 seconds…").
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -393,6 +399,138 @@ checa('replay e rota não escrevem nada (nenhum insert/update/upsert/delete/rpc)
   juizes.length = 0
   const ambas = await R.replayFilm(sb, film, { aiMax: 2, pixabayRpm: 80 })
   checa('padrão = as duas variantes: 2 juízes (regra 2 pura e regra 5), after e after_fallback, 3 chamadas; ainda nada gravado', juizes.length === 2 && ambas.variant === 'strict' && ambas.after && ambas.after_fallback && Array.isArray(ambas.per_scene_fallback) && ambas.cost.openai_calls === 3 && sb.chamadas.every((c) => c.escrita === null) && R.summarizeReplay([ambas]).image_up_fallback === 1)
+}
+
+console.log('== (e) parte B, peças inertes: instrução colada, ordem das buscas, candidatos, painel no modo troca ==')
+const PB = mundo().carregar('lib/kineo1/pastedBrief.ts')
+// Os dois textos REAIS da taxonomia (fast_scene_plan.topic de 2ff93c15 e b3b3e101), inteiros.
+const LUA = 'Crie um vídeo vertical 9:16 de 45–60 segundos, estilo YouTube Shorts viral, sobre: “O que aconteceria se a Lua desaparecesse de repente?”\n\nComece nos primeiros 2 segundos com um gancho muito forte. Use narração natural em inglês americano e legendas grandes e dinâmicas em inglês, destacando palavras importantes.\n\nMostre consequências cada vez mais surpreendentes: mudanças nas marés, noites muito mais escuras, impacto nos animais e possíveis efeitos de longo prazo na Terra.\n\nTroque as cenas a cada 2–3 segundos, usando imagens realistas e cinematográficas, movimentos de câmera, cortes rápidos e música de suspense.\n\nNão use avatar, introdução ou “like and subscribe”.\n\nO vídeo deve parecer profissional e feito por um criador humano, não um vídeo genérico de IA. Termine com uma informação surpreendente que faça a pessoa querer comentar.'
+const GEMEOS = '"Esto le pasó a dos gemelos que nunca se conocieron. Los separaron al nacer. Cuando se reencontraron, a los 39 años, ambos se llamaban Jim. Ambos se habían casado con una Linda, luego con una Betty, y tenían un perro llamado Toy. Los científicos los estudiaron durante años. ¿Genética, casualidad... o algo más?"\n\nEstilo visual: ilustración minimalista, fondo azul marino profundo, acentos dorados y lavanda, siluetas sin rostros, hilos de luz dorada conectando figuras, atmósfera calmada y misteriosa. Sin personas reales ni caras detalladas.\n\nSubtítulos: grandes, blancos con contorno azul marino, en el centro-superior de la pantalla, nunca abajo.\n\nMúsica: ambiental suave y baja, sin letra.\n\nSin logos ni marcas de agua.'
+{
+  const lua = PB.splitPastedBrief(LUA)
+  checa('2ff93c15 (a Lua): as 6 linhas são instrução (5 fortes + "Mostre…" fraca) → brief_only: o texto é um BRIEFING, quem escreve a fala é a IA', lua.mode === 'brief_only' && lua.brief.length === 6 && lua.narrationWords === 0 && J(lua.kinds) === J(['imperative', 'imperative', 'imperative_weak', 'imperative', 'imperative', 'about_film']))
+  const gem = PB.splitPastedBrief(GEMEOS)
+  checa('b3b3e101 (os gêmeos): "Estilo visual:", "Subtítulos:", "Música:" e "Sin logos…" saem; a fala entre aspas fica PALAVRA POR PALAVRA', gem.mode === 'narration_kept' && gem.narration === GEMEOS.split('\n')[0] && gem.brief.length === 4 && gem.brief[0].startsWith('Estilo visual:') && gem.brief.at(-1) === 'Sin logos ni marcas de agua.')
+  const NARR = [
+    'Use this trick to save money every month. Start your day with cold water. Show me a man who never failed, and I will show you a man who never tried.',
+    'Keep watching, because the ending will shock you.\nTom: I told you the video was fake.\nMake no mistake, this changed everything.',
+    'Imagine waking up in a world without the Moon. The tides would collapse. The nights would go black.',
+    'No music could calm him that night. No light, no sound, only the sea.',
+    'Mostre ao mundo quem você é. Comece hoje, termine amanhã, e nunca pare de tentar.',
+  ]
+  checa('narração com abertura imperativa ("Use this trick", "Start your day", "Show me", "Keep watching", "Tom:", "No music could…", "Mostre ao mundo") não perde nenhuma linha', NARR.every((t) => { const r = PB.splitPastedBrief(t); return r.mode === 'none' && r.narration === t }))
+  const TITULO = 'Title: The Moon Vanishes\nImagine waking up without the Moon. The tides would collapse, the nights would go black, and every animal would lose its clock.\nHashtags: #moon #space'
+  const t = PB.splitPastedBrief(TITULO)
+  checa('roteiro do ChatGPT com Title:/Hashtags: fica só com a fala (linha inteira, intocada)', t.mode === 'narration_kept' && t.narration === TITULO.split('\n')[1])
+  checa('rótulo de FALA ("Narração:") → nada muda aqui (o parser decide o roteiro rotulado)', PB.splitPastedBrief('Estilo visual: noir\nNarração: Era uma vez um farol no fim do mundo, e ninguém sabia quem acendia a luz.').mode === 'none')
+  checa('linha que abre com aspas é fala mesmo com verbo de editor ou rótulo', PB.classifyPastedLine('“Use a narração do seu coração”, disse ela.') === null && PB.classifyPastedLine('> "Estilo visual: é tudo o que importa", ele disse.') === null)
+  const KEEP = 'Title: The Last Signal\nKeep watching, because the video you see next was recorded seconds before the signal died.\nHashtags: #space #mystery'
+  checa('"Keep watching…" é fala mesmo num texto com 2 rótulos (keep não é verbo de editor)', PB.splitPastedBrief(KEEP).mode === 'narration_kept' && PB.splitPastedBrief(KEEP).narration === KEEP.split('\n')[1])
+  const umaForte = PB.splitPastedBrief('Estilo visual: noir, chuva, neon.\nMostre ao mundo quem você é. A cidade dorme, mas você não dorme há três dias e sabe muito bem por quê.')
+  checa('uma linha forte sozinha sai; sem 2 fortes a fraca ("Mostre ao mundo…") fica', umaForte.mode === 'narration_kept' && umaForte.brief.length === 1 && umaForte.narration.startsWith('Mostre ao mundo'))
+  checa('fala que sobra com menos de 12 palavras = briefing (a IA escreve)', PB.splitPastedBrief('Estilo visual: noir.\nSubtítulos: grandes.\nA Lua sumiu.').mode === 'brief_only' && PB.PASTED_BRIEF_MIN_NARRATION_WORDS === 12)
+}
+{
+  // ── REVISÃO PÓS-AUDITORIA (28/09): os dois defeitos que o revisor provou executando a v1 desta peça ──
+  // D1 — 17dd0c7a/2fa42114 (24/09, PT, 1ª tentativa da mesma pessoa da Lua): em 22c8e70e 108 s de fala → 422 sem
+  // cobrança; a v1 deixava 102 palavras ("Conte a história…", "O resultado final deve…" e as duas falas entre aspas) →
+  // filme de 35 s COBRADO lendo instrução. Texto REAL (render_job_opened.prompt), inteiro.
+  const LUA17 = 'Crie um vídeo vertical (9:16) altamente envolvente de 35 a 45 segundos, desenvolvido para YouTube Shorts e Instagram Reels, com foco máximo em retenção.\n\nTema: O que aconteceria se a Lua desaparecesse de repente?\n\nComece imediatamente, sem introdução, com uma imagem impactante e o seguinte gancho:\n\n“Se a Lua desaparecesse hoje à noite, a Terra mudaria mais rápido do que você imagina.”\n\nO vídeo deve ter aparência de um documentário científico cinematográfico misturado com o ritmo rápido de um vídeo viral.\n\nUse imagens realistas e cinematográficas da Terra, Lua, oceanos, marés, cidades durante a noite, animais noturnos e espaço. Evite imagens genéricas com aparência óbvia de IA, objetos deformados, planetas irreais ou cenas repetidas.\n\nTroque o visual a cada 2–3 segundos. Use movimentos de câmera, aproximações, mudanças de escala, cortes rápidos e transições suaves para manter a atenção.\n\nConte a história aumentando progressivamente as consequências: primeiro a Lua desaparece; depois mostre o efeito sobre as marés; noites muito mais escuras; impacto sobre animais que dependem da luz da Lua; possíveis efeitos de longo prazo sobre a estabilidade do eixo da Terra; e termine com a consequência mais surpreendente.\n\nUse narração em inglês americano natural, com voz de documentário moderna, energética e convincente. As frases devem ser curtas e diretas.\n\nColoque legendas grandes e dinâmicas em inglês, perfeitamente sincronizadas com a narração. Destaque palavras importantes em amarelo. As legendas devem ser fáceis de ler em um celular e não devem cobrir os elementos principais das imagens.\n\nAdicione efeitos sonoros cinematográficos sutis e uma música de suspense que aumente gradualmente ao longo do vídeo.\n\nNão use apresentador ou avatar de IA. Não coloque introdução, logo, enrolação, “like and subscribe” ou conclusão genérica.\n\nTermine com:\n\n“And the strangest effects might not appear for thousands of years.”\n\nO resultado final deve parecer um YouTube Short profissional e viral, editado por uma pessoa, e não uma sequência genérica de imagens geradas por IA.'
+  const l17 = PB.splitPastedBrief(LUA17)
+  const cheias = (t) => t.split('\n').map((x) => x.trim()).filter(Boolean)
+  checa('D1 17dd0c7a: briefing com gancho e fecho entre aspas → brief_only (a IA escreve o filme em volta; nenhuma linha de instrução é narrada)', l17.mode === 'brief_only' && J(cheias(l17.narration)) === J([LUA17.split('\n')[6], LUA17.split('\n')[26]]) && l17.narrationWords < PB.PASTED_BRIEF_QUOTED_FILM_MIN_WORDS && PB.PASTED_BRIEF_QUOTED_FILM_MIN_WORDS === 80)
+  checa('D1 17dd0c7a: "Conte a história…" e "O resultado final deve…" são SOBRA de instrução (residual) — as duas que a v1 narrava', l17.brief.filter((l, i) => l17.kinds[i] === 'residual').map((l) => l.slice(0, 18)).join('|') === 'Conte a história a|O resultado final ')
+  // 8b23d27a (ES, tênis, filme REAL entregue): 6 linhas de fala + 4 de instrução; a v1 tirava só "La narración debe…".
+  const TENIS = '¿Por qué los tenistas cambian pelotas que parecen completamente nuevas?\n\n¡No es por capricho!\n\nCon cada golpe, el fieltro de la pelota se desgasta y cambia cómo se mueve por el aire y cómo bota.\n\nPor eso, en los torneos profesionales, las pelotas se cambian siguiendo una regla: después de los primeros siete juegos y, normalmente, cada nueve juegos más.\n\nY cuando escuchas al juez decir «¡pelotas nuevas!», ya sabes por qué.\n\nOjito con esto… porque puede que todo, no lo supieras.\n\nEstilo documental deportivo moderno, dinámico y visualmente atractivo. Utiliza imágenes o vídeos de stock relacionados directamente con el tenis: primeros planos de pelotas nuevas y usadas, jugadores sacando, pelotas botando en pista y recogepelotas.\n\nLa narración debe sonar natural en español de España, con ritmo ágil y tono de sorpresa. Añade subtítulos grandes, claros y sincronizados. Cambia de plano con frecuencia, pero evita transiciones exageradas y movimientos de cámara artificiales.\n\nEl primer segundo debe mostrar una pelota de tenis y presentar directamente la pregunta del guion. No incluyas una introducción, logo animado ni despedida larga.\n\nNo inventes escenas de un torneo específico ni presentes imágenes genéricas como si fueran de un partido real. No añadas estadísticas, textos ni afirmaciones que no estén en el guion. Termina justo después de la última frase.'
+  const tn = PB.splitPastedBrief(TENIS)
+  checa('D1 8b23d27a: com UMA linha forte ("La narración debe…"), a sobra de instrução também sai; a fala são as 6 linhas do autor, idênticas, na ordem', tn.mode === 'narration_kept' && tn.narration === TENIS.split('\n\n').slice(0, 6).join('\n\n') && J(tn.kinds) === J(['residual', 'about_film', 'residual', 'residual']))
+  // 8c0ed465 (EN, "3 Places on Earth…"): roteiro + 17 linhas de direção; fica a fala do autor, com os títulos das partes.
+  const LUGARES = 'Create a 40–45 second vertical viral video titled:\n\n“3 Places on Earth Where You Wouldn’t Survive 5 Minutes”\n\n“There are places on Earth where your body wouldn’t survive five minutes. And the last one is terrifying.”\n\n#3 – Death Valley, California\n\nDeath Valley is one of the hottest places on Earth. Temperatures can rise above 50°C. Without water or protection, extreme heat can quickly overwhelm the human body.\n\n#2 – Antarctica\n\nIn the coldest parts of Antarctica, temperatures can fall below -70°C. Exposed skin can freeze within minutes, while powerful winds make the conditions even more dangerous.\n\n#1 – The Bottom of the Mariana Trench\n\nAlmost 11 kilometers beneath the ocean, the pressure is more than 1,000 times greater than at sea level. Without a specially designed vessel, a human would have absolutely no chance of surviving.\n\n“And somehow, all three of these places exist on the same planet you call home.”\n\nCreate a completely NEW visual scene every 2–4 seconds.\n\nEvery visual MUST directly match the narration at that exact moment.\n\nFor Death Valley, show realistic extreme desert heat, cracked ground, heat distortion and temperature visuals.\n\nFor Antarctica, show realistic Antarctic landscapes, extreme snowstorms, ice and dangerous freezing conditions.\n\nFor the Mariana Trench, show a descent from the ocean surface into increasingly dark deep water, realistic deep-sea environments and crushing underwater pressure.\n\nDo NOT repeat the same footage.\n\nDo NOT use unrelated people, offices, houses, cities or random stock footage.\n\nDo NOT show cartoon visuals.\n\nUse photorealistic cinematic footage.\n\nUse dramatic male narration.\n\nAdd suspenseful cinematic background music.\n\nUse large, modern, readable subtitles.\n\nHighlight important words and numbers.\n\nFast pacing with a strong visual change every 2–4 seconds.\n\n1080x1920.\n\nDesigned specifically for TikTok, YouTube Shorts and Instagram Reels.'
+  const lg = PB.splitPastedBrief(LUGARES)
+  checa('D1 8c0ed465: fica a fala do autor (aspas + títulos + 3 parágrafos), sai toda linha de direção — nenhuma linha que sobra é instrução', lg.mode === 'narration_kept' && lg.narration === LUGARES.split('\n\n').slice(1, 10).join('\n\n') && lg.brief.length === 17)
+  // e90a2f9c (PT, o polvo): "Narração:" sozinho marca a fala (fica); "Termine mostrando… na tela…" sai.
+  const POLVO = 'Narração:\n\n“Esse animal parece ter saído de um filme de ficção científica… mas ele existe de verdade. O polvo tem três corações e seu sangue é azulado. Dois corações bombeiam sangue para as brânquias, enquanto o terceiro manda sangue para o resto do corpo. E tem uma coisa ainda mais estranha: quando ele nada, o coração principal diminui sua atividade. Talvez seja por isso que eles prefiram rastejar pelo fundo do oceano. Você já sabia disso?”\n\nTermine mostrando o polvo e a pergunta “Você já sabia disso?” na tela por alguns segundos. Não adicione informações que não estejam no roteiro.'
+  const pv = PB.splitPastedBrief(POLVO)
+  checa('e90a2f9c: "Termine mostrando… na tela" sai; o rótulo "Narração:" sozinho NÃO é instrução (fica para o parser)', pv.mode === 'narration_kept' && pv.narration === POLVO.split('\n\n').slice(0, 2).join('\n\n') && J(pv.kinds) === J(['imperative']))
+  // Cada forma de sobra, isolada (um mutante por regra) — e as falas vizinhas que NÃO podem sair.
+  const SOBRAS = [
+    'Conte a história aumentando progressivamente as consequências.', // verbo de direção + história
+    'Primeiro a Lua desaparece; depois mostre o efeito sobre as marés e a história muda.', // verbo de editor depois de ";"
+    'O resultado final deve parecer profissional e viral.', // obrigação do resultado
+    'Close-up of a digital clock showing 2:13 AM.', // plano de câmera
+    'For Antarctica, show realistic Antarctic landscapes, extreme snowstorms, ice and dangerous freezing conditions.', // "Para X, mostre…"
+    'Do NOT repeat the same footage.', // negação + produção
+    '1080x1920.', // ficha técnica
+    'Designed specifically for TikTok, YouTube Shorts and Instagram Reels.', // densidade de produção
+    'Keep the horror suspenseful rather than showing graphic violence or gore. Do not reveal the entity too early. Keep the staircase and house visually consistent. Make the final whisper feel extremely close and unexpected.', // cadeia de ordens (801d0adf)
+  ]
+  checa('sobra de instrução: as 9 formas (direção+história, ";"+verbo, obrigação do resultado, câmera, "Para X, mostre", negação+produção, ficha, densidade, cadeia de ordens) são reconhecidas', SOBRAS.every((l) => PB.isResidualInstruction(l)))
+  const FALAS = [
+    'Death Valley is one of the hottest places on Earth. Temperatures can rise above 50°C. Without water or protection, extreme heat can quickly overwhelm the human body.',
+    'For the first few nights, nothing happened.',
+    'Con cada golpe, el fieltro de la pelota se desgasta y cambia cómo se mueve por el aire y cómo bota.',
+    'Por eso, en los torneos profesionales, las pelotas se cambian siguiendo una regla: después de los primeros siete juegos y, normalmente, cada nueve juegos más.',
+    '¡No es por capricho!',
+    'Then another message appears:',
+    'Here is the trick: start before you are ready.',
+    '“Daniel... please come upstairs.”',
+    'Narração:',
+    '“Nobody watches this video on YouTube anymore.”',
+    'The Moon holds the tides in place. Without it, the oceans would slowly settle into new shapes. Nights would turn pitch black for weeks at a time. Animals that hunt by moonlight would lose their clock. Close-up of a wolf in the dark would never mean the same again.',
+  ]
+  checa('as falas vizinhas NÃO são sobra (narração com "For…,", ":" + verbo sem história, "¡No…", aspas, rótulo de fala sozinho, parágrafo longo com UMA frase de câmera)', FALAS.every((l) => !PB.isResidualInstruction(l)))
+  const TITULO_FALA = 'Title: The Rescue Ship\nThe video footage from the rescue ship still exists today, and almost nobody has ever watched it.\nHashtags: #titanic #history'
+  checa('texto só com rótulos (Title:/Hashtags: do ChatGPT) não tem a sobra examinada: a fala com "video footage" fica', PB.splitPastedBrief(TITULO_FALA).mode === 'narration_kept' && PB.splitPastedBrief(TITULO_FALA).narration === TITULO_FALA.split('\n')[1])
+  const ROTEIRO_ASPAS = 'Use narração em inglês americano.\nColoque legendas grandes.\nNão use avatar.\n“' + Array.from({ length: 9 }, () => 'The Moon holds the tides, the nights and the clock of every animal on Earth.').join(' ') + '”'
+  checa('briefing com o ROTEIRO inteiro entre aspas (≥ 80 palavras) → a fala entre aspas é narrada como está (só o gancho curto vira "a IA escreve")', PB.splitPastedBrief(ROTEIRO_ASPAS).mode === 'narration_kept' && PB.splitPastedBrief(ROTEIRO_ASPAS).narration === ROTEIRO_ASPAS.split('\n')[3])
+  // D2 — roteiro de UM parágrafo (os exemplos do revisor, PT/ES/EN): nada muda, a fala é o texto inteiro.
+  const PARAGRAFOS = [
+    'Este vídeo vai mudar a forma como você enxerga o dinheiro. A maioria das pessoas trabalha a vida inteira e nunca fica rica. O motivo é simples: elas gastam primeiro e investem o que sobra. Os ricos fazem o contrário. Eles pagam a si mesmos primeiro, investem pelo menos dez por cento de tudo que ganham e só depois gastam. Em dez anos, essa única decisão separa quem vive de salário de quem vive de renda. Comece hoje, mesmo com pouco. Você não precisa ganhar mais para ficar rico, precisa guardar antes de gastar.',
+    'Evite estes três erros com dinheiro. Em poucos segundos, seu salário desaparece e você nem percebe para onde ele foi. O primeiro erro é gastar antes de investir. O segundo é parcelar tudo no cartão, pagando juros que dobram o preço das coisas. O terceiro é não ter reserva de emergência, e qualquer imprevisto vira dívida. Quem corrige esses três erros sai do vermelho em poucos meses e começa a construir patrimônio de verdade.',
+    'Change your life in 30 seconds a day. Most people wake up, grab their phone and lose the first hour of their morning to other people’s problems. The top one percent do the opposite: they drink water, move their body and write down the one thing that matters today. Try it for a week and watch what happens to your focus.',
+    'Este video va a cambiar tu forma de ver el dinero. La mayoría de la gente trabaja toda su vida y nunca se hace rica, porque gasta primero y ahorra lo que sobra. Los ricos hacen lo contrario: se pagan a sí mismos primero, invierten al menos el diez por ciento y solo después gastan.',
+    'Este vídeo vai mudar a forma como você vê o dinheiro. A maioria das pessoas trabalha a vida inteira e nunca fica rica. O motivo é simples: elas gastam antes de investir.',
+    'Evite estes 3 erros com dinheiro. Em poucos segundos, seu salário desaparece. O primeiro erro é gastar antes de investir, e quase todo mundo faz isso.',
+    'Start every video with a hook. Use captions, because 85% of people watch on mute. Show your face in the first 3 seconds. Post at the same time every day.',
+    'Avoid the camera at all costs, the spy said. For twenty years, no one ever saw his face in a single image.',
+  ]
+  checa('D2: roteiro de UM parágrafo (PT/ES/EN: "Este vídeo vai…", "Evite… Em poucos segundos…", "Change your life in 30 seconds…", "Este video va a…", "Start every video with a hook…") → nada muda, narrado palavra por palavra', PARAGRAFOS.every((t) => { const r = PB.splitPastedBrief(t); return r.mode === 'none' && r.narration === t }))
+  checa('D2: parágrafo de fala (várias frases, > 40 palavras) nunca é classificado inteiro; a 1ª frase decide o resto', PB.classifyPastedLine(PARAGRAFOS[1]) === null && PB.classifyPastedLine(PARAGRAFOS[2]) === null && PB.PASTED_BRIEF_PROSE_LINE_WORDS === 40)
+  checa('D2: o substantivo de produção só vale na 1ª frase ("…nenhum vídeo te conta isso" na 2ª não faz o imperativo virar forte)', PB.classifyPastedLine('Evite estes 3 erros com dinheiro. Em pouco tempo, seu salário some, e nenhum vídeo te conta isso.') === 'imperative_weak')
+  checa('D2: "segundos" solto é narração ("in 30 seconds a day"); como especificação ("a cada 2–3 segundos", "35 a 45 segundos") é produção', PB.classifyPastedLine('Change your life in 30 seconds a day.') === 'imperative_weak' && PB.classifyPastedLine('Troque o visual a cada 2–3 segundos.') === 'imperative' && PB.classifyPastedLine('Faça algo de 35 a 45 segundos.') === 'imperative')
+  checa('D2: "Este vídeo vai…"/"Este video va a…" é abertura de narração; "O vídeo deve…" continua instrução', PB.classifyPastedLine('Este vídeo vai mudar a forma como você enxerga o dinheiro.') === null && PB.classifyPastedLine('Este video va a cambiar tu forma de ver el dinero.') === null && PB.classifyPastedLine('O vídeo deve parecer profissional.') === 'about_film')
+  checa('D2: UMA linha forte sozinha nunca troca para "a IA estrutura" ("Create a 1-minute video of…" sozinho → nada muda; a v1 dava brief_only)', PB.splitPastedBrief('Create a 1-minute video of the nursery rhyme "The Little Rocket"').mode === 'none' && PB.splitPastedBrief('Estilo visual: noir.\nA Lua sumiu.').mode === 'none')
+}
+{
+  checa('buscas com vírgula: só os pedaços que a fala menciona; sem vírgula passa; tudo inventado → nada', J(Q.splitCommaQueries(['space needle, brainstorming, skyline', 'eggs toast plate'], 'Bezos preferred eggs and toast.')) === J(['eggs toast plate']) && J(Q.splitCommaQueries(['woman removing ring, praça do comércio, couple laughing'], 'She slowly took off her wedding ring.')) === J(['woman removing ring']))
+  checa('ordem: as do plano novo na frente, as de hoje sem plano de câmera depois, sem repetir (caixa baixa), a já usada vai para o fim', J(Q.planFirstQueries(['cone snail reef', 'cone snail shell'], ['close-up macro Cone Snail Shell', 'venomous sea snail coral'], new Set(['cone snail reef']))) === J(['cone snail shell', 'venomous sea snail coral', 'cone snail reef']))
+  checa('plano nulo (falha aberta) = as buscas de hoje, só sem o plano de câmera', J(Q.planFirstQueries(null, ['close-up macro wolf tracks snow', 'wolf in forest'])) === J(['wolf tracks snow', 'wolf in forest']))
+  checa('tudo já usado: a ordem fica (a cena nunca fica sem busca)', J(Q.planFirstQueries(['a b'], [], new Set(['a b']))) === J(['a b']))
+}
+{
+  const c = await pool(null, ['cone snail on coral'], { maxClips: 1, v2: true })
+  checa('relatório do pool traz os candidatos (tags, nota, busca) — a evidência mostra o que a cena podia ter tido', Array.isArray(c.rel?.candidates) && c.rel.candidates.length >= 1 && c.rel.candidates[0].tags.startsWith('cone snail') && typeof c.rel.candidates[0].score === 'number' && c.rel.candidates[0].query === 'cone snail on coral')
+}
+{
+  // Painel: a fatia REAL de lib/admin/fastCoherence.ts (aiClipPromptByGen … applyAiClips), executada com eventos falsos.
+  const adm = rd('lib/admin/fastCoherence.ts')
+  const ini = adm.indexOf('  const aiClipPromptByGen = new Map<string, Map<number, string>>()')
+  const fim = adm.indexOf('  const planByGen = new Map<string, EventRow>()')
+  const fatiaAdm = ini > 0 && fim > ini ? adm.slice(ini, fim) : null
+  checa('fatia do painel encontrada', !!fatiaAdm)
+  if (fatiaAdm) {
+    const js = ts.transpileModule(`type EventRow = any\ntype FastSceneEvidence = any\nexport function montar(aiClipsPending: any, aiClipsResult: any) {\n${fatiaAdm}\n  return applyAiClips\n}`, { compilerOptions: { module: 1, target: 9 } }).outputText
+    const ex = {}
+    vm.runInNewContext(js, { exports: ex, Map, Set, Array, Number })
+    const pend = { data: [{ session_id: 'g', metadata: { clips: [{ scene: 1, prompt: 'HOOK', at_index: 0 }, { scene: 2, prompt: 'P2', at_index: 3 }, { scene: 3, prompt: 'P3', at_index: 5, replace_index: 5 }] } }] }
+    const res = { data: [{ session_id: 'g', metadata: { scenes: [{ scene: 1, ok: true }, { scene: 2, ok: true }, { scene: 3, ok: true }] } }] }
+    const cenas = [1, 2, 3].map((n) => ({ scene: n, voiceover: 'v', query: 'q', from: 0, sources: n === 3 ? ['aiStill', 'pixabay'] : ['pixabay', 'pixabay'], tags: ['t1', 't2'] }))
+    const out = ex.montar(pend, res)('g', cenas)
+    checa('painel no modo TROCA: a cena 3 fica só com o gerado (still + aiVideo), sem as tags do stock que saiu; a inserção (cenas 1-2) segue como antes', J(out[2].sources) === J(['aiStill', 'aiVideo']) && out[2].tags.length === 0 && out[2].query === 'AI clip: P3' && J(out[1].sources) === J(['aiVideo', 'pixabay', 'pixabay']) && out[1].tags.length === 2)
+    const semTroca = ex.montar({ data: [{ session_id: 'g', metadata: { clips: [{ scene: 3, prompt: 'P3', at_index: 5 }] } }] }, res)('g', cenas)
+    checa('painel sem replace_index = o de antes (aiVideo na frente, stock e tags ficam)', J(semTroca[2].sources) === J(['aiVideo', 'aiStill', 'pixabay']) && semTroca[2].tags.length === 2)
+  }
+  checa('compose: o custo do resultado soma o preço de CADA clipe (4-12 s) e conta as trocas — com os clipes de 5 s de hoje, o mesmo número', rd('app/api/compose/route.ts').includes("est_usd: Math.round(pending.reduce((soma, p) => soma + (typeof p.usd === 'number' ? p.usd : SEEDANCE_720P_5S_USD), 0) * 100) / 100, replaced: ready.filter((r) => !!r.url && typeof r.replace_index === 'number').length }"))
 }
 
 console.log(`\n${ok} ok · ${falhas.length} falhas`)

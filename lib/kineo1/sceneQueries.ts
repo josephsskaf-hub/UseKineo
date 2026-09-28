@@ -165,6 +165,35 @@ export function commaPlanQueryParts(planQuery: string | null | undefined, voiceo
   return partes.filter((p) => Array.from(contentWords(p)).some((w) => fala.has(w)))
 }
 
+/**
+ * KINEO1-IMAGEM-V2-2026-09-28 (parte B) — a lista de buscas que a rota recebe do plano de B-roll: busca SEM vírgula
+ * passa como está; busca COM vírgula ("space needle, brainstorming, skyline" para os ovos do Bezos) vira só os pedaços
+ * que a fala menciona (commaPlanQueryParts). Até hoje a guarda do gancho guardava a string INTEIRA se um token batesse.
+ */
+export function splitCommaQueries(queries: string[], voiceover: string | null | undefined): string[] {
+  return (queries ?? []).flatMap((q) => (typeof q === 'string' && q.includes(',') ? commaPlanQueryParts(q, voiceover) : typeof q === 'string' ? [q] : []))
+}
+
+/**
+ * KINEO1-IMAGEM-V2-2026-09-28 (parte B) — a ordem das buscas da cena: as do plano novo (planSceneQueries, feitas da
+ * FALA) NA FRENTE, depois as de hoje sem o plano de câmera; sem repetir (caixa baixa); e a busca que já abriu outra cena
+ * vai para o fim (a regra KINEO1-BUSCA-DA-FALA de 18/09, agora valendo também para a busca do plano novo).
+ */
+export function planFirstQueries(planQueries: string[] | null | undefined, legacy: string[], used?: Set<string>): string[] {
+  const vistas = new Set<string>()
+  const todas: string[] = []
+  for (const q of [...(planQueries ?? []), ...(legacy ?? []).map((l) => stripCameraPhrases(l ?? ''))]) {
+    const t = (q ?? '').replace(/\s+/g, ' ').trim()
+    const k = t.toLowerCase()
+    if (!t || vistas.has(k)) continue
+    vistas.add(k)
+    todas.push(t)
+  }
+  if (!used || used.size === 0) return todas
+  const ineditas = todas.filter((q) => !used.has(q.toLowerCase()))
+  return ineditas.length > 0 ? [...ineditas, ...todas.filter((q) => used.has(q.toLowerCase()))] : todas
+}
+
 // ── Cena fraca DEPOIS da busca (quem ganha o clipe de IA) ───────────────────────────────────────────────────────
 /** De onde veio o stock da cena: pool/cadeia da Pixabay, cofre, ou nada (a rota recicla um clipe ou usa a biblioteca). */
 export type StockOrigin = 'pool' | 'chain' | 'vault' | 'recycled' | 'library' | 'none'

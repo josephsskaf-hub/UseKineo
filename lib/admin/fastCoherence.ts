@@ -185,11 +185,19 @@ export async function listFastCoherence(
   const recoverableByGen = new Map<string, EventRow>()
   for (const r of (recoverables.data ?? []) as EventRow[]) if (r.session_id && !recoverableByGen.has(r.session_id)) recoverableByGen.set(r.session_id, r)
   const aiClipPromptByGen = new Map<string, Map<number, string>>()
+  // KINEO1-IMAGEM-V2-2026-09-28 (parte B) — cenas cujo clipe veio no modo TROCA (replace_index no evento pendente): o stock
+  // da cena SAI do filme quando o clipe fica pronto (lib/fastAiClips.ts spliceAiClips), então sai também da evidência.
+  const aiClipReplaceByGen = new Map<string, Set<number>>()
   for (const p of (aiClipsPending.data ?? []) as EventRow[]) {
     if (!p.session_id || !Array.isArray(p.metadata?.clips)) continue
     const m = aiClipPromptByGen.get(p.session_id) ?? new Map<number, string>()
-    for (const c of p.metadata.clips as Array<{ scene?: unknown; prompt?: unknown }>) if (typeof c?.scene === 'number' && typeof c?.prompt === 'string') m.set(c.scene, c.prompt)
+    const troca = aiClipReplaceByGen.get(p.session_id) ?? new Set<number>()
+    for (const c of p.metadata.clips as Array<{ scene?: unknown; prompt?: unknown; replace_index?: unknown }>) {
+      if (typeof c?.scene === 'number' && typeof c?.prompt === 'string') m.set(c.scene, c.prompt)
+      if (typeof c?.scene === 'number' && typeof c?.replace_index === 'number' && Number.isInteger(c.replace_index) && c.replace_index >= 0) troca.add(c.scene)
+    }
     aiClipPromptByGen.set(p.session_id, m)
+    if (troca.size > 0) aiClipReplaceByGen.set(p.session_id, troca)
   }
   const aiClipReadyByGen = new Map<string, Set<number>>()
   for (const r of (aiClipsResult.data ?? []) as EventRow[]) {
@@ -203,7 +211,13 @@ export async function listFastCoherence(
     if (!gen || !scenes) return scenes
     const prompts = aiClipPromptByGen.get(gen); const ready = aiClipReadyByGen.get(gen)
     if (!prompts || !ready || ready.size === 0) return scenes
-    return scenes.map((s) => (ready.has(s.scene) && prompts.get(s.scene)) ? { ...s, query: `AI clip: ${prompts.get(s.scene)}`, sources: ['aiVideo', ...s.sources.filter((x) => x !== 'aiVideo')] } : s)
+    const troca = aiClipReplaceByGen.get(gen)
+    return scenes.map((s) => {
+      if (!(ready.has(s.scene) && prompts.get(s.scene))) return s
+      // KINEO1-IMAGEM-V2 — modo troca: só o gerado fica (still + clipe), como lib/kineo1/replay.ts simula; sem as tags do stock que saiu.
+      if (troca?.has(s.scene)) return { ...s, query: `AI clip: ${prompts.get(s.scene)}`, sources: [...s.sources.filter((x) => x === 'aiStill' || x === 'aiHook'), 'aiVideo'], tags: [] }
+      return { ...s, query: `AI clip: ${prompts.get(s.scene)}`, sources: ['aiVideo', ...s.sources.filter((x) => x !== 'aiVideo')] }
+    })
   }
   const planByGen = new Map<string, EventRow>()
   for (const p of (plans.data ?? []) as EventRow[]) if (p.session_id && !planByGen.has(p.session_id)) planByGen.set(p.session_id, p)

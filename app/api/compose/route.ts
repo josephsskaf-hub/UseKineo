@@ -3223,7 +3223,7 @@ export async function POST(req: NextRequest) {
             userId: authenticatedUserId,
             sessionId: generationId,
             path: '/api/compose',
-            metadata: { generation_id: generationId, pending: pending.length, ready: ok.length, waited_ms: Date.now() - t0, scenes: ready.map((r) => ({ scene: r.scene, ok: !!r.url, ms: r.ms })), est_usd: Math.round(pending.length * SEEDANCE_720P_5S_USD * 100) / 100 },
+            metadata: { generation_id: generationId, pending: pending.length, ready: ok.length, waited_ms: Date.now() - t0, scenes: ready.map((r) => ({ scene: r.scene, ok: !!r.url, ms: r.ms })), est_usd: Math.round(pending.reduce((soma, p) => soma + (typeof p.usd === 'number' ? p.usd : SEEDANCE_720P_5S_USD), 0) * 100) / 100, replaced: ready.filter((r) => !!r.url && typeof r.replace_index === 'number').length }, // KINEO1-IMAGEM-V2-2026-09-28: o custo de cada clipe (4-12 s) e quantos TROCARAM o stock
           })
         }
       } catch (err) {

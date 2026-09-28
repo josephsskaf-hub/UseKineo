@@ -1391,6 +1391,11 @@ export type ScenePoolReport = {
   /** as buscas que valeram, na ordem (já sem plano de câmera no v2) */
   queries: string[]
   picks: Array<{ url: string; tags: string; score: number | null; query: string | null }>
+  /**
+   * KINEO1-IMAGEM-V2-2026-09-28 (parte B) — os 5 primeiros candidatos do pool na ordem da heurística (antes do diretor
+   * GPT), com tags e nota: a evidência do juiz passa a mostrar o que a cena PODIA ter tido. Na cadeia não há pool: [].
+   */
+  candidates?: Array<{ tags: string; score: number; query: string | null; anchor_only?: boolean }>
 }
 
 // Max queries pooled per scene — each pool query is exactly ONE Pixabay API call
@@ -1709,7 +1714,12 @@ export async function getPixabayClipsForScene(
     })
   }
   for (const c of pickedCands) notePickedClipTags(c.url, c.tags) // KINEO-1-COERENCIA
-  opts?.onReport?.({ origin: 'pool', queries: cleaned, picks: pickedCands.map((c) => ({ url: c.url, tags: c.tags, score: Math.round(c.score * 100) / 100, query: c.query ?? null })) }) // KINEO1-IMAGEM-V2
+  opts?.onReport?.({
+    origin: 'pool',
+    queries: cleaned,
+    picks: pickedCands.map((c) => ({ url: c.url, tags: c.tags, score: Math.round(c.score * 100) / 100, query: c.query ?? null })),
+    candidates: pool.slice(0, 5).map((c) => ({ tags: c.tags.slice(0, 160), score: Math.round(c.score * 100) / 100, query: c.query ?? null, ...(c.anchorOnly ? { anchor_only: true } : {}) })), // KINEO1-IMAGEM-V2 (parte B)
+  }) // KINEO1-IMAGEM-V2
   const picked = pickedCands.map((c) => c.url)
   console.log(
     `[pixabay-pool] ${pool.length} candidate(s) → ${picked.length} clip(s), top score=${pool[0].score.toFixed(2)}` +
