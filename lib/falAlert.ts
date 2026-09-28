@@ -44,6 +44,9 @@
 //  · NUNCA LANÇA. Toda saída é um FalAlertOutcome.
 //  · TETO DE 3 s no envio. notifyFounder espera até 8 s por canal; o filme não
 //    fica refém do Resend. Estourou = 'timeout' anotado na reserva.
+//    KINEO-FAL-CANAL-A-CANAL-2026-09-28 — o teto vale POR CANAL: o primeiro canal que confirma dentro dos 3 s
+//    resolve o envio como 'sent'. Antes a corrida era contra o Promise.all dos dois: Resend 200 em 50 ms + ntfy em
+//    4 s = 'timeout', e o e-mail que já tinha chegado era re-enviado até 3 vezes na janela (medido pela revisão).
 //  · O BANCO CAIU? O alerta sai mesmo assim (dois e-mails custam menos que um
 //    apagão que ninguém viu), mas a lambda lembra da janela: entregue, não
 //    repete; não saiu, segue a mesma regra de re-tentativa abaixo, contada nela.
@@ -245,12 +248,33 @@ async function leVaga(db: AdminDb, id: string): Promise<{ state: string | null; 
   }
 }
 
+// KINEO-FAL-CANAL-A-CANAL-2026-09-28 — a corrida é contra o PRIMEIRO canal que confirma, não contra os dois juntos.
+// 'sent' = algum canal confirmou dentro do teto (o outro fica anotado como 'pending' se ainda estava no ar);
+// 'timeout' = nenhum canal confirmou em 3 s; 'failed' = os dois terminaram e nenhum entregou.
 async function sendWithCeiling(subject: string, text: string): Promise<{ outcome: FalAlertOutcome; channels: { email: string; webhook: string } | null }> {
   let timer: ReturnType<typeof setTimeout> | null = null
   const timeout = new Promise<'timeout'>((resolve) => { timer = setTimeout(() => resolve('timeout'), FAL_ALERT_TIMEOUT_MS) })
+  const canais: { email: string; webhook: string } = { email: 'pending', webhook: 'pending' }
+  let primeiroEntregue: ((v: 'first_sent') => void) | null = null
+  const entregue = new Promise<'first_sent'>((resolve) => { primeiroEntregue = resolve })
+  const algumSaiu = () => canais.email === 'sent' || canais.webhook === 'sent'
+  const soubeAlgo = () => canais.email !== 'pending' || canais.webhook !== 'pending'
   try {
-    const res = await Promise.race([notifyFounder(subject, text), timeout])
-    if (res === 'timeout') return { outcome: 'timeout', channels: null }
+    const envio = notifyFounder(subject, text, {
+      onChannel: (canal, resultado) => {
+        canais[canal] = resultado
+        if (resultado === 'sent') primeiroEntregue?.('first_sent')
+      },
+    })
+    // O canal lento segue no ar depois que a corrida acabou: a rejeição dele (notifyFounder não lança, mas um
+    // carteiro de teste pode) não pode virar unhandledRejection na lambda.
+    envio.catch(() => undefined)
+    const res = await Promise.race([envio, entregue, timeout])
+    if (res === 'first_sent') return { outcome: 'sent', channels: { ...canais } }
+    if (res === 'timeout') {
+      if (algumSaiu()) return { outcome: 'sent', channels: { ...canais } }
+      return { outcome: 'timeout', channels: soubeAlgo() ? { ...canais } : null }
+    }
     return { outcome: res.delivered ? 'sent' : 'failed', channels: { email: res.email, webhook: res.webhook } }
   } catch (e) {
     console.error('[fal-alert] envio lançou:', e instanceof Error ? e.message : String(e))

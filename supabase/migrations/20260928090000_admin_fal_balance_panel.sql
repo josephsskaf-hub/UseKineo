@@ -45,6 +45,31 @@
 -- pintava o card de vermelho. O nome também entrou em SERVER_ONLY_EVENTS.
 -- (`->` devolve SQL NULL só com a chave AUSENTE; espelho em
 -- lib/supplier/falBalancePanel.ts FAL_PANEL_CLIENT_STAMP_KEYS.)
+-- KINEO-FAL-EM-VOO-2026-09-28 — FILME AINDA RENDERIZANDO NÃO É DINHEIRO PARADO.
+-- A 1ª versão contava como "cobrado, NÃO entregue" todo débito sem claim de
+-- compose 'done' — inclusive o filme que ainda estava renderizando. E é
+-- exatamente aí que o fundador abre o card: um Hollywood que segue cobrado com
+-- recusa de saldo manda o e-mail NA HORA, com o link deste painel, e o card
+-- dizia "refund them" sobre um filme a minutos da entrega. Medido pela revisão
+-- (só leitura, lógica desta função em 11/09 05:13 UTC): 94 cr e 1 externo
+-- "parados" — incluindo os 19 cr do filme externo 53d7cae1, entregue às
+-- 05:14:51 (a mesma leitura com a regra abaixo: 0 cr parados, 94 cr em voo).
+-- Medido agora (45 dias, 266 despachos 200): a entrega leva p50
+-- 2,6 min, p99 26 min, máximo 117,5 min — nenhuma passou de 2 h. Por isso:
+--   em voo  = despacho com MENOS de 120 minutos, OU compose com claim
+--             'pending' aberta há menos de 120 minutos (a montagem está
+--             rodando agora). Vira in_flight_* — "espere, está a caminho".
+--   parado  = sem estorno, sem entrega e FORA da janela: só este pede
+--             estorno (unrefunded_undelivered_*).
+-- Uma claim 'pending' velha NÃO segura o débito em voo para sempre: em 30
+-- dias havia 9 claims 'pending' (a mais antiga de 13/09) — esconder essas
+-- seria esconder exatamente o dinheiro parado.
+--
+-- LINHA FORJADA NÃO CONTA (mesma revisão): o /api/events público aceitava o
+-- nome fal_balance_exhausted — uma linha anônima com state 'sent' pintava o
+-- card de vermelho e inventava um e-mail. O sink do navegador SEMPRE carimba
+-- metadata.ip_hash (e is_bot); lib/falAlert nunca carimba. alarmes e ultimo
+-- ignoram linha com ip_hash (a porta em si é o SERVER_ONLY_EVENTS da rota).
 
 create or replace function public.admin_fal_balance_panel(
   p_exact_emails text[],
@@ -110,7 +135,14 @@ as $$
       exists (
         select 1 from events c
         where c.name = 'compose_submission_claim' and c.session_id = d.gid and c.metadata->>'status' = 'done'
-      ) as entregue
+      ) as entregue,
+      -- KINEO-FAL-EM-VOO-2026-09-28 — ainda dentro da janela normal de entrega (ver o cabeçalho).
+      (d.created_at > now() - interval '120 minutes'
+        or exists (
+          select 1 from events c
+          where c.name = 'compose_submission_claim' and c.session_id = d.gid
+            and c.metadata->>'status' = 'pending' and c.created_at > now() - interval '120 minutes'
+        )) as em_voo
     from despachos d
     join credit_debits cd on cd.render_id = d.br
   )
@@ -139,10 +171,15 @@ as $$
         where d.user_id is not null and not exists (select 1 from internos i where i.id = d.user_id)),
       'refunded_credits', (select coalesce(sum(b.amount), 0) from debitos b where b.refunded_at is not null),
       'delivered_charged_credits', (select coalesce(sum(b.amount), 0) from debitos b where b.refunded_at is null and b.entregue),
-      'unrefunded_undelivered_credits', (select coalesce(sum(b.amount), 0) from debitos b where b.refunded_at is null and not b.entregue),
-      'unrefunded_undelivered_debits', (select count(*) from debitos b where b.refunded_at is null and not b.entregue),
-      'unrefunded_undelivered_external', (select count(*) from debitos b where b.refunded_at is null and not b.entregue
-        and b.user_id is not null and not exists (select 1 from internos i where i.id = b.user_id))
+      -- Parado = sem estorno, sem entrega e FORA da janela de entrega: só este pede estorno.
+      'unrefunded_undelivered_credits', (select coalesce(sum(b.amount), 0) from debitos b where b.refunded_at is null and not b.entregue and not b.em_voo),
+      'unrefunded_undelivered_debits', (select count(*) from debitos b where b.refunded_at is null and not b.entregue and not b.em_voo),
+      'unrefunded_undelivered_external', (select count(*) from debitos b where b.refunded_at is null and not b.entregue and not b.em_voo
+        and b.user_id is not null and not exists (select 1 from internos i where i.id = b.user_id)),
+      -- Em voo = cobrado, ainda sem entrega, DENTRO da janela: o card diz "a caminho", nunca "estorne".
+      'in_flight_credits', (select coalesce(sum(b.amount), 0) from debitos b where b.refunded_at is null and not b.entregue and b.em_voo),
+      'in_flight_debits', (select count(*) from debitos b where b.refunded_at is null and not b.entregue and b.em_voo),
+      'in_flight_window_minutes', 120
     ),
     'days', greatest(1, least(coalesce(p_days, 30), 90))
   );

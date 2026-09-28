@@ -30,6 +30,17 @@
 // mostrava um e-mail "sent" que nunca saiu. O nome agora é só-do-servidor lá; e, em defesa em profundidade, este leitor (e
 // a RPC) ignoram toda linha com o carimbo daquele sink — ip_hash/is_bot são escritos pelo /api/events DEPOIS do metadata
 // do cliente, em TODA linha dele, e o alarme (lib/falAlert, service role) nunca os escreve.
+// KINEO-FAL-EM-VOO-2026-09-28 — segunda revisão, o lado do dinheiro:
+//  · FILME RENDERIZANDO NÃO É DINHEIRO PARADO: "Charged, NOT delivered" contava o filme que ainda estava a caminho
+//    (sem claim 'done' ainda) e dizia "refund them" — logo depois do e-mail que traz o fundador ao card. A RPC agora
+//    separa in_flight_* (despacho com menos de 120 min, ou compose rodando) de unrefunded_undelivered_* (fora da
+//    janela). falStuckMoneyState decide a cor com essa separação.
+//  · NÃO MEDIDO NUNCA É VERDE: no fallback (migration não aplicada — o estado no lançamento) o número vem null e o
+//    tile pintava '—' em verde com "should always be 0". Agora null = âmbar "Not measured".
+//  · LINHA FORJADA NÃO PINTA O CARD: o /api/events público aceitava o nome fal_balance_exhausted (o revisor gravou
+//    uma linha anônima com state:'sent' e o card ficou vermelho, "Last alarm … e-mail sent"). A porta em si é do
+//    SERVER_ONLY_EVENTS; aqui fica a defesa em profundidade: o sink do navegador SEMPRE carimba metadata.ip_hash e
+//    is_bot, e lib/falAlert nunca carimba — as leituras (fallback e RPC) ignoram linha com ip_hash.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { INTERNAL_EXACT_EMAILS, INTERNAL_LIKE_PATTERNS } from '@/lib/internalAccounts'
 
@@ -38,6 +49,11 @@ export const FAL_PANEL_MIGRATION = 'supabase/migrations/20260928090000_admin_fal
 export const FAL_PANEL_DAYS = 30
 /** Mesma janela do alarme (lib/falAlert FAL_ALERT_WINDOW_MS): recusa mais nova que isto = vermelho. */
 export const FAL_PANEL_FRESH_MS = 6 * 60 * 60 * 1000
+/**
+ * KINEO-FAL-EM-VOO-2026-09-28 — janela normal de entrega (a mesma "interval '120 minutes'" da RPC; o guardião confere
+ * que as duas batem). Medido em 45 dias: p99 da entrega 26 min, máximo 117,5 min.
+ */
+export const FAL_PANEL_IN_FLIGHT_MINUTES = 120
 
 export interface FalPanelLatest {
   createdAt: string
@@ -62,9 +78,14 @@ export interface FalPanelDispatch {
   externalPeople: number | null
   refundedCredits: number | null
   deliveredChargedCredits: number | null
+  /** Cobrado, sem estorno, sem entrega e FORA da janela de entrega — só este pede estorno. */
   unrefundedUndeliveredCredits: number | null
   unrefundedUndeliveredDebits: number | null
   unrefundedUndeliveredExternal: number | null
+  /** KINEO-FAL-EM-VOO-2026-09-28 — cobrado e ainda a caminho (dentro da janela). null = a leitura não separou. */
+  inFlightCredits: number | null
+  inFlightDebits: number | null
+  inFlightWindowMinutes: number | null
 }
 export interface FalBalancePanel {
   /** 'rpc' = números completos; 'fallback' = migration pendente, só o que dá para contar exato sem ela. */
@@ -138,9 +159,28 @@ export function parseFalBalancePanel(raw: unknown): FalBalancePanel | null {
           unrefundedUndeliveredCredits: numOrNull(d.unrefunded_undelivered_credits),
           unrefundedUndeliveredDebits: numOrNull(d.unrefunded_undelivered_debits),
           unrefundedUndeliveredExternal: numOrNull(d.unrefunded_undelivered_external),
+          inFlightCredits: numOrNull(d.in_flight_credits),
+          inFlightDebits: numOrNull(d.in_flight_debits),
+          inFlightWindowMinutes: numOrNull(d.in_flight_window_minutes),
         }
       : null,
   }
+}
+
+/**
+ * KINEO-FAL-EM-VOO-2026-09-28 — a cor do tile "Charged, NOT delivered", decidida aqui (puro, o guardião executa):
+ *  · 'not_measured' — o número não foi medido (fallback sem a migration, ou leitura sem o campo): âmbar, nunca verde;
+ *  · 'unseparated'  — há débito sem entrega, mas a leitura não separou os filmes em voo (RPC sem in_flight_*): âmbar,
+ *                     "confira antes de estornar" — nunca "refund them" sobre um filme que pode estar a caminho;
+ *  · 'stuck'        — dinheiro parado FORA da janela de entrega: vermelho, "refund them";
+ *  · 'clear'        — zero parado: verde.
+ */
+export type FalStuckMoneyState = 'not_measured' | 'unseparated' | 'stuck' | 'clear'
+export function falStuckMoneyState(dispatch: FalPanelDispatch | null): FalStuckMoneyState {
+  const parado = dispatch?.unrefundedUndeliveredCredits ?? null
+  if (parado === null) return 'not_measured'
+  if (parado <= 0) return 'clear'
+  return dispatch?.inFlightCredits === null || dispatch?.inFlightCredits === undefined ? 'unseparated' : 'stuck'
 }
 
 /** A última recusa conhecida: a mais nova entre last_refusal_at e o último alarme (a reserva também é uma recusa). */
@@ -237,6 +277,9 @@ async function readFallback(admin: SupabaseClient, nowMs: number): Promise<FalBa
     unrefundedUndeliveredCredits: null,
     unrefundedUndeliveredDebits: null,
     unrefundedUndeliveredExternal: null,
+    inFlightCredits: null,
+    inFlightDebits: null,
+    inFlightWindowMinutes: null,
   }
   return { mode: 'fallback', days: FAL_PANEL_DAYS, latest, lastRefusalAt, byDay: [], dispatch }
 }

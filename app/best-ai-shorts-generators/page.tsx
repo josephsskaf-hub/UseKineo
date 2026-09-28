@@ -20,6 +20,9 @@ import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorFo
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
 // de tabela publicando um valor que o checkout não cobrava mais.
 import { STARTER_MO, STARTER_MONTH } from '@/lib/marketingPrice'
+// KINEO-AVATAR-FORA-2026-09-28 (revisão 2) — a ficha da Kineo vendia "add a talking AI Presenter" depois que o Avatar
+// saiu do catálogo (fundador 27/09: "avatar sai por hora"). A frase agora deriva do interruptor, como no /llms.txt.
+import { AVATAR_PUBLIC } from '@/lib/engineLaunch'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -77,7 +80,7 @@ const TOOLS: Tool[] = [
     slug: null,
     category: 'From-scratch faceless Short generator',
     take:
-      'Kineo turns a single typed topic into a finished faceless Short — script, AI voiceover, matched visuals and captions — with no footage, no camera and no timeline. Fast Mode renders usually land in about 3–7 minutes, and you can also paste your own script, choose among several video engines or add a talking AI Presenter. It is narrow on purpose: it does one job, idea-to-postable-Short, and does not try to be a general editor.',
+      `Kineo turns a single typed topic into a finished faceless Short — script, AI voiceover, matched visuals and captions — with no footage, no camera and no timeline. Fast Mode renders usually land in about 3–7 minutes, and you can also paste your own script${AVATAR_PUBLIC ? ', choose among several video engines or add a talking AI Presenter' : ' or choose among several video engines. It does not offer an AI presenter or avatar today — if you need a face on screen, an avatar tool like HeyGen fits better'}. It is narrow on purpose: it does one job, idea-to-postable-Short, and does not try to be a general editor.`,
     bestFor: 'Faceless creators starting from just an idea, with no source video to work from.',
     fromScratch: 'Yes',
     freeTier: `${ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)}, no card`,

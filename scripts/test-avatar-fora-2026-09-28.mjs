@@ -18,12 +18,18 @@
 //   (e) o /avatar e o /api/generate-avatar seguem no ar (clonagem de voz: 5 perfis, 1 pagante) e a cobrança não mudou;
 //   (f) a copy de SEO (lib/comparisons.ts executado + as fichas HeyGen/Synthesys/D-ID/Synthesia das alternativas) não
 //       promete apresentador — diz "not today" e manda quem precisa de rosto ao concorrente.
+//   (f2) REVISÃO 2: /best-ai-shorts-generators (render real) e a página do Kling 3 (Character Lock) sem apresentador;
+//   (g)  REVISÃO 2: o bento da home fecha a grade — JSX real + cascata real do <style> da página + auto-placement,
+//        nenhuma célula vazia de 1440px a 320px, para 5 motores (visitante), 6 (casa) e qualquer contagem de 1 a 9.
 // Cada bloco tem um mutante em memória que precisa ficar VERMELHO.
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
 import vm from 'node:vm'
 import ts from 'typescript'
+import postcss from 'postcss'
+import selectorParser from 'postcss-selector-parser'
 import { renderPage } from './preview-ux-complete.mjs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { offlineModules } from './gpt24h-offline-support.mjs'
@@ -234,6 +240,305 @@ console.log('== (f) copy de SEO/comparação sem apresentador ==')
   checa('alternativas: a vitória honesta do concorrente segue visível (Pick HeyGen/Synthesys/D-ID if…)', alt.includes('Pick HeyGen if you need enterprise avatar libraries') && alt.includes('Pick Synthesys if you need a spokesperson on screen') && alt.includes('Pick D-ID if you need a talking face'))
   const mut = alt.replace("feature: 'Talking AI presenter with lip-sync (photo + script)', sfa: false", "feature: 'Talking AI presenter with lip-sync (photo + script)', sfa: true")
   checa('mutante (HeyGen volta a marcar presenter = sim) → vermelho', mut !== alt && !provaAlt(mut))
+}
+
+// ═══ REVISÃO 2 (28/09) — as sobras que o revisor achou com a integração rodando ═══════════════════════════════════
+console.log('== (f2) sobras públicas do apresentador: /best-ai-shorts-generators e a página do Kling 3 ==')
+{
+  // A página renderizada com o JSX real (React clássico; filhos de @/app e @/components viram null — a ficha da Kineo
+  // é texto da própria página). Era a ÚNICA superfície pública não travada que ainda dizia "add a talking AI Presenter".
+  const requireNode = createRequire(import.meta.url)
+  const React = requireNode('react')
+  const { renderToStaticMarkup } = requireNode('react-dom/server')
+  const realLaunch = createOfflineLoader()('lib/engineLaunch.ts')
+  const melhores = (launchMock = null) => {
+    const cache = new Map()
+    const load = (file) => {
+      if (cache.has(file)) return cache.get(file)
+      const js = ts.transpileModule(readFileSync(join(RAIZ, file), 'utf8'), { compilerOptions: { module: 1, jsx: ts.JsxEmit.React, target: 9, esModuleInterop: true } }).outputText
+      const box = { exports: {} }
+      cache.set(file, box.exports)
+      const shim = (id) => {
+        if (id === 'react') return React
+        if (id === 'next/link') return { __esModule: true, default: ({ children, prefetch, ...p }) => React.createElement('a', p, children) }
+        if (id === '@/lib/engineLaunch' && launchMock) return launchMock
+        if (id.startsWith('@/app/') || id.startsWith('@/components/')) return { __esModule: true, default: () => null }
+        const base = id.startsWith('@/') ? id.slice(2) : id.startsWith('.') ? join(dirname(file), id).split('\\').join('/') : null
+        if (!base) return requireNode(id)
+        for (const ext of ['.ts', '.tsx']) if (existsSync(join(RAIZ, base + ext))) return load(base + ext)
+        throw new Error('import inesperado em ' + file + ': ' + id)
+      }
+      vm.runInNewContext(js, { module: box, exports: box.exports, require: shim, React, process: { env: {} }, URL, URLSearchParams, console: { log() {}, warn() {}, error() {} }, Intl, Date, Math, JSON })
+      cache.set(file, box.exports)
+      return box.exports
+    }
+    return renderToStaticMarkup(React.createElement(load('app/best-ai-shorts-generators/page.tsx').default))
+  }
+  const pub = melhores()
+  const fichaKineo = (html) => { const i = html.indexOf('Kineo turns a single typed topic'); return i >= 0 ? html.slice(i, html.indexOf('does not try to be a general editor', i) + 40) : '' }
+  checa('/best-ai-shorts-generators (render real): a ficha da Kineo não vende "AI Presenter" e diz que não há apresentador hoje', fichaKineo(pub).length > 200 && !/AI Presenter/.test(pub) && fichaKineo(pub).includes('It does not offer an AI presenter or avatar today'))
+  checa('/best-ai-shorts-generators: o resto da ficha segue (roteiro próprio e vários motores) e o HeyGen continua como escolha honesta de rosto', fichaKineo(pub).includes('paste your own script or choose among several video engines') && pub.includes('If you need a talking presenter on screen, HeyGen is built for that'))
+  const liga = melhores({ ...realLaunch, AVATAR_PUBLIC: true })
+  checa('/best-ai-shorts-generators: virar AVATAR_PUBLIC devolve "add a talking AI Presenter" (derivado, não digitado)', fichaKineo(liga).includes('choose among several video engines or add a talking AI Presenter') && !fichaKineo(liga).includes('does not offer an AI presenter'))
+  // A página do Kling 3 (lib/growth/enginePageCatalog, lida por /ai-video-generator/kling-3, /facts e o hub) prometia
+  // "Yes. Character Lock saves a presenter" — ferramenta do Avatar Studio, fora do catálogo junto com o Avatar.
+  const ENV_CAT = { NODE_ENV: 'production', KINEO_REVERSE_TRIAL_ENABLED: 'true' }
+  const catalogo = (mock) => createOfflineLoader({ env: ENV_CAT, mocks: mock ? { '@/lib/engineLaunch': mock } : {} })('lib/growth/enginePageCatalog.ts')
+  const C = catalogo()
+  const faqK3 = C.ENGINES['kling-3']?.faq ?? []
+  checa('página do Kling 3 (executada): nenhuma página de motor promete Character Lock/AI Presenter; a FAQ diz o que o motor faz e "not part of the catalogue today"', Object.keys(C.ENGINES).length >= 6 && !/Character Lock|AI Presenter/.test(JSON.stringify(C.ENGINES)) && faqK3.length === 3 && faqK3.some((f) => /one portrait of the character/.test(f.a) && /not part of the catalogue today/.test(f.a)))
+  const Con = catalogo({ ...realLaunch, AVATAR_PUBLIC: true })
+  checa('página do Kling 3: com AVATAR_PUBLIC=true a resposta do Character Lock volta', (Con.ENGINES['kling-3']?.faq ?? []).some((f) => f.a.startsWith('Yes. Character Lock saves a presenter')))
+}
+
+console.log('== (g) bento da home completo: o JSX real, a cascata real, nenhuma célula vazia em nenhuma largura ==')
+{
+  // O CASO (revisão 2): sem o tile do Avatar, o visitante vê 5 motores num grid de 3 colunas (e de 2 até 700px) — a
+  // última fileira ficava com um buraco. Contar "5 tiles" (bloco c) ficava verde com o buraco na tela.
+  // A PROVA: renderiza a home com o JSX real, lê o <style> que a própria página injeta, monta a cascata (postcss +
+  // postcss-selector-parser: mídia, especificidade, ordem, :last-child/:nth-child) para o .bento e cada .tile, e
+  // simula o auto-placement do grid (esparso, por fileira). Vazias = colunas × fileiras − soma dos spans.
+  const VAZIOS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr'])
+  const dom = (html) => {
+    const raiz = { tag: '#root', attrs: {}, classes: [], children: [], parent: null }
+    let atual = raiz
+    let i = 0
+    while (i < html.length) {
+      const lt = html.indexOf('<', i)
+      if (lt < 0) break
+      if (html.startsWith('<!--', lt)) { const f = html.indexOf('-->', lt); i = f < 0 ? html.length : f + 3; continue }
+      let gt = lt + 1
+      let aspas = null
+      for (; gt < html.length; gt++) { const ch = html[gt]; if (aspas) { if (ch === aspas) aspas = null } else if (ch === '"' || ch === "'") aspas = ch; else if (ch === '>') break }
+      const dentro = html.slice(lt + 1, gt)
+      i = gt + 1
+      if (dentro.startsWith('!')) continue
+      if (dentro.startsWith('/')) { const nome = dentro.slice(1).trim().toLowerCase(); let n = atual; while (n && n.tag !== nome) n = n.parent; if (n && n.parent) atual = n.parent; continue }
+      const tag = (/^([a-zA-Z][\w:-]*)/.exec(dentro) ?? [null, ''])[1].toLowerCase()
+      const attrs = {}
+      for (const m of dentro.slice(tag.length).matchAll(/([^\s=/]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g)) attrs[m[1].toLowerCase()] = (m[2] ?? m[3] ?? m[4] ?? '').replace(/&amp;/g, '&')
+      const el = { tag, attrs, classes: (attrs.class ?? '').split(/\s+/).filter(Boolean), children: [], parent: atual }
+      atual.children.push(el)
+      const fecha = dentro.endsWith('/') || VAZIOS.has(tag)
+      if (!fecha && (tag === 'style' || tag === 'script')) { const f = html.indexOf(`</${tag}`, i); el.text = html.slice(i, f); i = html.indexOf('>', f) + 1; continue }
+      if (!fecha) atual = el
+    }
+    return raiz
+  }
+  const acha = (no, fn, out = []) => { for (const c of no.children) { if (fn(c)) out.push(c); acha(c, fn, out) } return out }
+  const irmaos = (el) => (el.parent ? el.parent.children : [el])
+  const nth = (expr, pos) => {
+    const e = String(expr).replace(/\s+/g, '').toLowerCase()
+    if (e === 'odd') return pos % 2 === 1
+    if (e === 'even') return pos % 2 === 0
+    if (/^[+-]?\d+$/.test(e)) return pos === Number(e)
+    const m = /^([+-]?\d*)n([+-]\d+)?$/.exec(e)
+    if (!m) throw new Error('nth não suportado: ' + expr)
+    const a = m[1] === '' || m[1] === '+' ? 1 : m[1] === '-' ? -1 : Number(m[1])
+    const b = Number(m[2] ?? 0)
+    if (a === 0) return pos === b
+    const k = (pos - b) / a
+    return Number.isInteger(k) && k >= 0
+  }
+  const DINAMICAS = new Set([':hover', ':focus', ':focus-visible', ':focus-within', ':active', ':visited', ':target', ':checked', ':disabled', ':placeholder-shown', ':invalid', ':link', ':any-link'])
+  const PSEUDO_ELEMENTO = /^::|^:(before|after|first-line|first-letter)$/i
+  const temPseudoElemento = (sel) => sel.nodes.some((n) => n.type === 'pseudo' && PSEUDO_ELEMENTO.test(n.value))
+  const casaComposto = (el, partes) => partes.every((p) => {
+    if (p.type === 'class') return el.classes.includes(p.value)
+    if (p.type === 'tag') return el.tag === p.value.toLowerCase()
+    if (p.type === 'universal') return true
+    if (p.type === 'id') return el.attrs.id === p.value
+    if (p.type === 'attribute') {
+      const v = el.attrs[p.attribute.toLowerCase()]
+      if (v === undefined) return false
+      if (!p.operator) return true
+      if (p.operator === '=') return v === p.value
+      if (p.operator === '^=') return v.startsWith(p.value)
+      if (p.operator === '$=') return v.endsWith(p.value)
+      if (p.operator === '*=') return v.includes(p.value)
+      if (p.operator === '~=') return v.split(/\s+/).includes(p.value)
+      throw new Error('atributo não suportado: ' + String(p))
+    }
+    if (p.type === 'pseudo') {
+      const nome = p.value.toLowerCase()
+      const irm = irmaos(el)
+      const pos = irm.indexOf(el) + 1
+      if (nome === ':last-child') return pos === irm.length
+      if (nome === ':first-child') return pos === 1
+      if (nome === ':only-child') return irm.length === 1
+      if (nome === ':nth-child') return nth(String(p.nodes[0]), pos)
+      if (nome === ':nth-last-child') return nth(String(p.nodes[0]), irm.length - pos + 1)
+      if (nome === ':not') return !p.nodes.some((s) => casaSeletor(el, s))
+      if (nome === ':is' || nome === ':where') return p.nodes.some((s) => casaSeletor(el, s))
+      if (DINAMICAS.has(nome)) return false
+      throw new Error('pseudo não suportado: ' + nome)
+    }
+    throw new Error('nó de seletor não suportado: ' + p.type)
+  })
+  function casaSeletor(el, sel) {
+    const comps = [[]]
+    const combs = []
+    for (const n of sel.nodes) {
+      if (n.type === 'combinator') { combs.push(n.value.trim() || ' '); comps.push([]) } else if (n.type !== 'comment') comps[comps.length - 1].push(n)
+    }
+    const casa = (e, i) => {
+      if (!casaComposto(e, comps[i])) return false
+      if (i === 0) return true
+      const c = combs[i - 1]
+      if (c === '>') return !!e.parent && e.parent.tag !== '#root' && casa(e.parent, i - 1)
+      if (c === ' ') { for (let a = e.parent; a && a.tag !== '#root'; a = a.parent) if (casa(a, i - 1)) return true; return false }
+      const irm = irmaos(e)
+      const k = irm.indexOf(e)
+      if (c === '+') return k > 0 && casa(irm[k - 1], i - 1)
+      if (c === '~') return irm.slice(0, k).some((x) => casa(x, i - 1))
+      throw new Error('combinador não suportado: ' + c)
+    }
+    return casa(el, comps.length - 1)
+  }
+  const cmp = (x, y) => x[0] - y[0] || x[1] - y[1] || x[2] - y[2]
+  const especificidade = (sel) => {
+    let e = [0, 0, 0]
+    for (const n of sel.nodes) {
+      if (n.type === 'id') e[0]++
+      else if (n.type === 'class' || n.type === 'attribute') e[1]++
+      else if (n.type === 'tag') e[2]++
+      else if (n.type === 'pseudo') {
+        const nome = n.value.toLowerCase()
+        if (PSEUDO_ELEMENTO.test(nome)) e[2]++
+        else if (nome === ':where') { /* especificidade 0 */ } else if (nome === ':not' || nome === ':is') { const m = n.nodes.map(especificidade).reduce((a, b) => (cmp(a, b) >= 0 ? a : b), [0, 0, 0]); e = [e[0] + m[0], e[1] + m[1], e[2] + m[2]] } else e[1]++
+      }
+    }
+    return e
+  }
+  // Mídia: true/false/null (null = não sei avaliar — só pode existir longe dos elementos medidos, senão lança).
+  const midia = (params, w) => {
+    const q = params.split(',').map((consulta) => {
+      const termos = consulta.trim().toLowerCase().split(/\s+and\s+/).map((bruto) => {
+        const t = bruto.trim()
+        if (t === 'screen' || t === 'all' || t === 'only screen') return true
+        if (t === 'print') return false
+        let m = /^\(\s*max-width\s*:\s*(\d+(?:\.\d+)?)px\s*\)$/.exec(t)
+        if (m) return w <= Number(m[1])
+        m = /^\(\s*min-width\s*:\s*(\d+(?:\.\d+)?)px\s*\)$/.exec(t)
+        if (m) return w >= Number(m[1])
+        return null
+      })
+      return termos.includes(false) ? false : termos.includes(null) ? null : true
+    })
+    return q.includes(true) ? true : q.includes(null) ? null : false
+  }
+  const regrasDe = (css) => {
+    const regras = []
+    const coleta = (no, medias) => no.each((f) => {
+      if (f.type === 'rule') {
+        let seletores = null
+        try { seletores = selectorParser().astSync(f.selector).nodes } catch { seletores = null }
+        regras.push({ seletores, texto: f.selector, medias, decls: (f.nodes ?? []).filter((d) => d.type === 'decl').map((d) => ({ prop: d.prop.toLowerCase(), value: d.value.trim(), important: !!d.important })) })
+      } else if (f.type === 'atrule') {
+        const nome = f.name.toLowerCase()
+        if (nome === 'media') coleta(f, [...medias, f.params])
+        else if (nome === 'supports') coleta(f, [...medias, '@supports ' + f.params])
+      }
+    })
+    coleta(postcss.parse(css), [])
+    return regras
+  }
+  const valores = (regras, el, props, w) => {
+    const cands = []
+    regras.forEach((r, ordem) => {
+      const rel = r.decls.filter((d) => props.includes(d.prop))
+      if (!rel.length) return
+      let ok = true
+      for (const m of r.medias) { const v = m.startsWith('@supports') ? null : midia(m, w); if (v === false) return; if (v === null) ok = null }
+      if (!r.seletores) throw new Error('seletor que o parser recusou declara ' + rel.map((d) => d.prop).join(',') + ': ' + r.texto)
+      let melhor = null
+      for (const s of r.seletores) if (!temPseudoElemento(s) && casaSeletor(el, s)) { const e = especificidade(s); if (!melhor || cmp(e, melhor) > 0) melhor = e }
+      if (!melhor) return
+      if (ok === null) throw new Error('mídia não avaliável numa regra que acerta o elemento: ' + r.medias.join(' | '))
+      for (const d of rel) cands.push({ ...d, spec: melhor, ordem })
+    })
+    for (const par of (el.attrs.style ?? '').split(';')) {
+      const k = par.indexOf(':')
+      if (k > 0) { const prop = par.slice(0, k).trim().toLowerCase(); if (props.includes(prop)) cands.push({ prop, value: par.slice(k + 1).replace(/!important/i, '').trim(), important: /!important/i.test(par), spec: [1e9, 0, 0], ordem: 1e9 }) }
+    }
+    const out = {}
+    for (const p of props) {
+      const cs = cands.filter((c) => c.prop === p).sort((x, y) => (Number(x.important) - Number(y.important)) || cmp(x.spec, y.spec) || (x.ordem - y.ordem))
+      out[p] = cs.length ? cs[cs.length - 1].value : null
+    }
+    return out
+  }
+  const trilhas = (v) => {
+    const toks = []
+    let prof = 0
+    let cur = ''
+    for (const ch of v) { if (ch === '(') prof++; if (ch === ')') prof--; if (/\s/.test(ch) && prof === 0) { if (cur) toks.push(cur); cur = '' } else cur += ch }
+    if (cur) toks.push(cur)
+    let n = 0
+    for (const t of toks) {
+      const m = /^repeat\((.*)\)$/i.exec(t)
+      if (m) { const k = m[1].indexOf(','); const vezes = m[1].slice(0, k).trim(); if (!/^\d+$/.test(vezes)) throw new Error('repeat não numérico: ' + t); n += Number(vezes) * trilhas(m[1].slice(k + 1).trim()) } else if (!/^\[.*\]$/.test(t)) n++
+    }
+    return n
+  }
+  const COLUNA = ['grid-column', 'grid-column-start', 'grid-column-end', 'grid-area', 'grid-row', 'grid-row-start', 'grid-row-end']
+  const GRID = ['display', 'grid-template-columns', 'grid-auto-flow', 'grid-template', 'grid']
+  const spanDe = (v, cols) => {
+    if (v === null || v === 'auto') return 1
+    const m = /^span\s+(\d+)$/.exec(v)
+    if (m) return Number(m[1])
+    if (/^1\s*\/\s*-1$/.test(v)) return cols
+    throw new Error('grid-column não suportado: ' + v)
+  }
+  /** Mede o bento da seção .home-engines (ou uma cópia dele com `k` tiles) numa largura de viewport. */
+  const mede = (arv, regras, w, k = null) => {
+    const secao = acha(arv, (e) => e.classes.includes('home-engines'))[0]
+    const bento = secao ? acha(secao, (e) => e.classes.includes('bento'))[0] : null
+    if (!bento) throw new Error('bento da home não achado')
+    const salvo = bento.children
+    const tiles = k === null ? salvo : Array.from({ length: k }, (_, i) => ({ ...salvo[i % salvo.length], parent: bento, children: [] }))
+    bento.children = tiles
+    try {
+      const g = valores(regras, bento, GRID, w)
+      if (g['grid-template'] || g.grid) throw new Error('grid/grid-template no bento: medir à mão')
+      const cols = trilhas(g['grid-template-columns'] ?? 'none')
+      const spans = tiles.map((t) => {
+        const v = valores(regras, t, COLUNA, w)
+        for (const p of COLUNA.slice(1)) if (v[p] !== null && v[p] !== 'auto') throw new Error(`${p} no tile: medir à mão`)
+        return spanDe(v['grid-column'], cols)
+      })
+      let fileira = 0
+      let col = 0
+      let excesso = 0
+      for (const s of spans) { if (s > cols) excesso++; const ss = Math.min(s, cols); if (col + ss > cols) { fileira++; col = 0 } col += ss }
+      const fileiras = spans.length ? fileira + 1 : 0
+      const vazias = fileiras * cols - spans.reduce((a, s) => a + Math.min(s, cols), 0)
+      return { display: g.display, fluxo: g['grid-auto-flow'], cols, tiles: tiles.length, spans, fileiras, vazias, excesso, todosTiles: tiles.every((t) => t.classes.includes('tile')) }
+    } finally { bento.children = salvo }
+  }
+  const cssDa = (arv) => acha(arv, (e) => e.tag === 'style').map((e) => e.text ?? '').join('\n')
+  const LARGURAS = [1440, 1280, 1001, 1000, 901, 900, 701, 700, 600, 561, 560, 381, 380, 360, 320]
+  const esperado = (w) => (w > 700 ? 3 : w > 380 ? 2 : 1)
+  const pubArv = dom(home(null))
+  const casaArv = dom(home(INTERNO))
+  const cssPub = cssDa(pubArv)
+  const regras = regrasDe(cssPub)
+  const regrasCasa = regrasDe(cssDa(casaArv))
+  const m1440 = mede(pubArv, regras, 1440)
+  checa(`denominador: o <style> real da home tem ${regras.length} regras (≥ 300) e o .bento tem 5 filhos .tile (visitante) / 6 (casa)`, regras.length >= 300 && m1440.tiles === 5 && m1440.todosTiles && mede(casaArv, regrasCasa, 1440).tiles === 6)
+  const colunasVistas = LARGURAS.map((w) => mede(pubArv, regras, w).cols)
+  checa(`a cascata lê os três degraus do grid (colunas por largura: ${colunasVistas.join(',')}) e o bento é grid esparso`, LARGURAS.every((w, i) => colunasVistas[i] === esperado(w)) && LARGURAS.every((w) => { const m = mede(pubArv, regras, w); return m.display === 'grid' && (m.fluxo === null || m.fluxo === 'row') }))
+  for (const [quem, arv, rs] of [['visitante (5 motores)', pubArv, regras], ['conta da casa (6 motores)', casaArv, regrasCasa]]) {
+    const ruins = LARGURAS.map((w) => ({ w, ...mede(arv, rs, w) })).filter((m) => m.vazias !== 0 || m.excesso !== 0)
+    checa(`home ${quem}: nenhuma célula vazia e nenhuma coluna implícita em ${LARGURAS.length} larguras (falhas: ${ruins.map((m) => `${m.w}px ${m.cols}col spans ${m.spans.join('+')} → ${m.vazias} vazia(s)`).slice(0, 3).join(' | ') || 'nenhuma'})`, ruins.length === 0)
+  }
+  const genericos = []
+  for (let k = 1; k <= 9; k++) for (const w of [1440, 700, 380]) { const m = mede(pubArv, regras, w, k); if (m.vazias !== 0 || m.excesso !== 0) genericos.push(`${k} tiles @${w}px → ${m.vazias}`) }
+  checa(`a regra é da contagem, não do 5: 1 a 9 tiles em 3, 2 e 1 coluna fecham a grade (falhas: ${genericos.slice(0, 3).join(' | ') || 'nenhuma'})`, genericos.length === 0)
+  // MUTANTE: o CSS de antes (sem as regras do último tile) — o buraco tem de voltar nas duas larguras do revisor.
+  const semConserto = cssPub.replace(/\.klp \.home-engines \.bento > \.tile:last-child:nth-child\([^)]*\) \{[^}]*\}/g, '')
+  const rm = regrasDe(semConserto)
+  checa('mutante (CSS sem o conserto): o buraco volta — 1 célula vazia em 3 colunas (1440px) e em 2 colunas (700px)', semConserto !== cssPub && mede(pubArv, rm, 1440).vazias === 1 && mede(pubArv, rm, 700).vazias === 1)
 }
 
 console.log(`${ok} ok · ${falhas.length} falhas`)

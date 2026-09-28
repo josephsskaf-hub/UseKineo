@@ -27,6 +27,9 @@
 //      veed → falAlert). A 1ª versão importava node:crypto e o build de navegador do Next quebrava com tsc verde. A
 //      seção varre o grafo de TODO arquivo 'use client' (import estático, export-from e import()) e reprova qualquer
 //      node:* alcançável — com denominador conferido e um controle negativo que injeta o import e exige o vermelho.
+//  REVISÃO 2 (28/09): 3c teto de 3 s POR CANAL (notify.ts real + falAlert.ts real: e-mail em 5 ms + ntfy lento = 'sent',
+//      um e-mail só); 7b host do Hollywood = UM alarme por despacho, creditado ao filme (veed.ts real); 8b o card não
+//      manda estornar filme a caminho (in_flight_*) e não pinta de verde o que não mediu (FalBalanceCard real).
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs'
 import { join, dirname, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -393,6 +396,87 @@ console.log('== 3b. envio falhou / estourou / lambda morreu: re-tentativa, com i
   checa('defeito de despacho: envio que falhou também é re-tentado (e continua sem linha de contagem)', d1 === 'failed' && d2 === 'sent' && bancoD.rows.length === 2 && bancoD.rows.every((r) => r.metadata.alerted === true))
 }
 
+// ═══════════════════ 3c. teto POR CANAL (revisão 2, 28/09) ═══════════════════
+// O CASO DO REVISOR: notify.ts real + falAlert.ts real, RESEND_API_KEY e KINEO_ALERT_WEBHOOK_URL (ntfy) ligados; o
+// Resend respondia 200 em 50 ms e o ntfy em 4 s. O teto de 3 s corria contra o Promise.all dos DOIS canais: saía
+// 'timeout' a cada recusa, o e-mail que JÁ tinha chegado era re-enviado (3 e-mails na janela) e o painel dizia
+// "E-mails sent 0". Aqui o teto de 3 s vira 60 ms (só o relógio do teto de lib/falAlert) e os canais têm 5 ms / 300 ms.
+console.log('== 3c. teto de 3 s por canal: o primeiro canal que confirma decide ==')
+{
+  const MIN = 60 * 1000
+  const tetoRapido = (fn, ms) => setTimeout(fn, ms === 3000 ? 60 : ms)
+  const espera = (ms) => new Promise((r) => setTimeout(r, ms))
+  const resposta = (status) => ({ ok: status >= 200 && status < 300, status, text: async () => '' })
+  /** notify.ts REAL com fetch falso: cada canal responde no seu tempo. */
+  const notifyReal = ({ email = [5, 200], webhook = [300, 200] } = {}) => {
+    const chamadas = { email: 0, webhook: 0 }
+    const fetchFalso = async (url) => {
+      const canal = String(url).includes('api.resend.com') ? 'email' : 'webhook'
+      chamadas[canal]++
+      const [ms, status] = canal === 'email' ? email : webhook
+      await espera(ms)
+      return resposta(status)
+    }
+    const N = carrega('lib/supplier/notify.ts', {}, {
+      process: { env: { RESEND_API_KEY: 're_offline', KINEO_ALERT_WEBHOOK_URL: 'https://ntfy.sh/kineo-offline' } },
+      fetch: fetchFalso, AbortSignal,
+    })
+    return { N, chamadas }
+  }
+  // notifyFounder real: avisa canal a canal, antes do mais lento terminar.
+  {
+    const { N } = notifyReal()
+    const avisos = []
+    const t0 = Date.now()
+    const r = await N.notifyFounder('s', 't', { onChannel: (canal, res) => avisos.push({ canal, res, ms: Date.now() - t0 }) })
+    checa('notify.ts real: onChannel avisa o e-mail (5 ms) ANTES do webhook (300 ms) e o retorno segue completo', avisos.length === 2 && avisos[0].canal === 'email' && avisos[0].res === 'sent' && avisos[0].ms < 200 && avisos[1].canal === 'webhook' && r.email === 'sent' && r.webhook === 'sent' && r.delivered === true)
+    const r2 = await N.notifyFounder('s', 't', { onChannel: () => { throw new Error('aviso quebrado') } })
+    checa('notify.ts real: um onChannel que lança não derruba o alarme (nunca lança)', r2.delivered === true)
+    const r3 = await N.notifyFounder('s', 't')
+    checa('notify.ts real: sem opções, o contrato de sempre (cron supplier-watch, quality-radar)', r3.email === 'sent' && r3.webhook === 'sent')
+  }
+  // A sequência do revisor: 4 lambdas novas, recusas a 11 min uma da outra, a mesma janela de 6 h.
+  {
+    relogio.agora = Date.UTC(2026, 8, 28, 0, 5, 0)
+    const banco = bancoFalso()
+    const { N, chamadas } = notifyReal()
+    const saidas = []
+    for (let i = 0; i < 4; i++) {
+      saidas.push(await lambda({ banco, notify: N.notifyFounder, setTimeoutImpl: tetoRapido }).alertFalExhausted({ source: 'cinematic', userId: 'u-' + i }))
+      relogio.agora += 11 * MIN
+    }
+    const vaga0 = banco.rows.find((r) => r.id === falAlertIdDe(Date.UTC(2026, 8, 28, 0, 5, 0), 0))
+    checa(`e-mail em 5 ms + ntfy em 300 ms (teto 60 ms): 'sent' na 1ª, e as outras são contagem (saídas: ${saidas.join(',')}; antes: timeout,timeout,timeout,duplicate)`, saidas.join(',') === 'sent,duplicate,duplicate,duplicate')
+    checa(`… o Resend recebeu UM e-mail, não três (recebeu ${chamadas.email})`, chamadas.email === 1)
+    checa("… e a vaga ficou 'sent' com email:'sent' (o painel conta o e-mail entregue; o webhook ainda no ar fica 'pending')", vaga0?.metadata.state === 'sent' && vaga0.metadata.email === 'sent' && vaga0.metadata.webhook === 'pending')
+  }
+  // O outro lado: o webhook entrega rápido e o Resend trava — também é 'sent' (qualquer canal).
+  {
+    relogio.agora = Date.UTC(2026, 8, 28, 6, 5, 0)
+    const banco = bancoFalso()
+    const { N } = notifyReal({ email: [300, 200], webhook: [5, 200] })
+    const r = await lambda({ banco, notify: N.notifyFounder, setTimeoutImpl: tetoRapido }).alertFalExhausted({ source: 'cinematic' })
+    checa("webhook em 5 ms + Resend em 300 ms: 'sent' pelo webhook", r === 'sent' && banco.rows[0]?.metadata.webhook === 'sent' && banco.rows[0].metadata.email === 'pending')
+  }
+  // 'timeout' continua existindo: nenhum canal confirmou dentro do teto.
+  {
+    relogio.agora = Date.UTC(2026, 8, 28, 12, 5, 0)
+    const banco = bancoFalso()
+    const { N } = notifyReal({ email: [200, 200], webhook: [300, 200] })
+    const r = await lambda({ banco, notify: N.notifyFounder, setTimeoutImpl: tetoRapido }).alertFalExhausted({ source: 'cinematic' })
+    checa("os dois canais lentos (200/300 ms, teto 60 ms): 'timeout' — ainda não saiu, a re-tentativa segue valendo", r === 'timeout' && banco.rows[0]?.metadata.state === 'timeout')
+  }
+  // Canal que FALHA rápido não é entrega: Resend 429 em 5 ms + ntfy lento → timeout, com o 'failed' anotado.
+  {
+    relogio.agora = Date.UTC(2026, 8, 28, 18, 5, 0)
+    const banco = bancoFalso()
+    const { N } = notifyReal({ email: [5, 429], webhook: [300, 200] })
+    const r = await lambda({ banco, notify: N.notifyFounder, setTimeoutImpl: tetoRapido }).alertFalExhausted({ source: 'cinematic' })
+    checa("Resend 429 em 5 ms + ntfy lento: 'timeout' (falha rápida não é entrega) e o 'failed' do e-mail fica anotado", r === 'timeout' && banco.rows[0]?.metadata.state === 'timeout' && banco.rows[0].metadata.email === 'failed')
+  }
+  await espera(350) // os canais lentos terminam aqui dentro — nada vaza para a seção seguinte
+}
+
 // ═══════════════════ 4. EMPTY_PLAN / ZERO_POSTS ═══════════════════
 console.log('== 4. defeito de despacho não é saldo ==')
 {
@@ -515,6 +599,44 @@ console.log('== 7. retry-hollywood-scene e veed ==')
   checa('veed: as 3 chamadas agora são await com fonte própria', ['avatar_animate', 'avatar_submit', 'avatar_matte'].every((s) => veed.includes(`await alertFalExhausted({ source: '${s}'`)))
 }
 
+// ═══════════════════ 7b. Hollywood host: UM alarme por despacho, creditado ao filme (revisão 2, 28/09) ═══════════════════
+// O CASO DO REVISOR: na rota cinematic, cena de diálogo com âncora vai por submitAvatarJob (host TTS, ligado por
+// padrão). Com a fal sem saldo, veed alarmava 'avatar_submit' ANTES de a rota cair no O3 — que também recusava e
+// ligava a flag do finalizador. Um despacho = N+1 linhas, e o ÚNICO e-mail da janela saía como "Source: avatar_submit ·
+// engine: fal-ai/kling-video/ai-avatar/v2/standard", sem cena, pessoa nem geração — um produto fora do catálogo desde
+// 27/09. Aqui: veed.ts REAL + falAlert.ts REAL (banco falso), fetch devolvendo o 403 real da fal.
+console.log('== 7b. host do Hollywood: a recusa vira a flag do despacho; o finalizador é o único alarme ==')
+{
+  const fetch403 = async () => ({ ok: false, status: 403, text: async () => JSON.stringify({ detail: FRASE_FAL }) })
+  const veedCom = (L) => carrega('lib/avatar/veed.ts', { '@fal-ai/client': { fal: { config() {} } }, '@/lib/falAlert': L }, { process: { env: { FAL_KEY: 'offline-only' } }, fetch: fetch403 })
+  const cenaHost = { imageUrl: 'https://offline.invalid/p.png', audioUrl: 'https://offline.invalid/a.mp3', engine: 'presenter' }
+  relogio.agora = Date.UTC(2026, 8, 29, 0, 30, 0)
+  const banco = bancoFalso()
+  const c = carteiro()
+  const L = lambda({ banco, notify: c.fn })
+  const V = veedCom(L)
+  const erros = []
+  for (let i = 0; i < 2; i++) { try { await V.submitAvatarJob({ ...cenaHost, alertOnBalance: false }) } catch (e) { erros.push(e) } }
+  checa('veed real, alertOnBalance:false: as 2 cenas de diálogo lançam o AvatarSubmitError explícito (403, não ambíguo) sem alarmar', erros.length === 2 && erros.every((e) => e instanceof V.AvatarSubmitError && e.status === 403 && e.ambiguous === false) && banco.rows.length === 0 && c.enviados.length === 0)
+  checa('… e o erro carrega a frase da fal: o looksExhausted real diz SALDO (é o que a rota lê para ligar a flag)', erros.every((e) => L.looksExhausted(e) === true))
+  // O que o finalizador manda (seção 9 executa a fatia real da rota): source cinematic, motor, pessoa, geração, cenas.
+  await L.alertFalExhausted({ source: 'cinematic', engine: 'fal-ai/kling-video/o3/pro/image-to-video', userId: 'u-1', generationId: 'g-1', scenesRefused: 5, path: '/api/generate-video-cinematic' })
+  const linhas = banco.rows.filter((r) => r.name === 'fal_balance_exhausted')
+  checa(`um despacho Hollywood com 2 cenas de diálogo recusadas = UMA linha fal_balance_exhausted (achei ${linhas.length}; antes: 3)`, linhas.length === 1)
+  checa("… creditada ao FILME: source 'cinematic', geração, pessoa e cenas — nada de 'avatar_submit'", linhas[0]?.metadata.source === 'cinematic' && linhas[0].metadata.generation_id === 'g-1' && linhas[0].metadata.user_id === 'u-1' && linhas[0].metadata.scenes_refused === 5 && !banco.rows.some((r) => r.metadata?.source === 'avatar_submit'))
+  checa('… e o único e-mail diz "Source: cinematic" com as cenas recusadas', c.enviados.length === 1 && c.enviados[0].text.includes('Source: cinematic') && c.enviados[0].text.includes('Scenes refused in this attempt: 5') && !c.enviados[0].text.includes('avatar_submit'))
+  // O /api/generate-avatar (link direto, fora do catálogo mas no ar) continua com o alarme próprio: o padrão não mudou.
+  relogio.agora = Date.UTC(2026, 8, 29, 6, 30, 0)
+  const banco2 = bancoFalso()
+  const c2 = carteiro()
+  const L2 = lambda({ banco: banco2, notify: c2.fn })
+  let lancou = false
+  try { await veedCom(L2).submitAvatarJob(cenaHost) } catch { lancou = true }
+  checa("sem a opção (o /api/generate-avatar): o alarme 'avatar_submit' de sempre, um e-mail", lancou && banco2.rows.length === 1 && banco2.rows[0].metadata.source === 'avatar_submit' && c2.enviados.length === 1)
+  const veed = rd('lib/avatar/veed.ts')
+  checa('veed: a guarda é explícita — só alertOnBalance === false cala o alarme de dentro', veed.includes("if (args.alertOnBalance !== false && looksExhausted(e)) await alertFalExhausted({ source: 'avatar_submit'"))
+}
+
 // ═══════════════════ 8. /admin ═══════════════════
 console.log('== 8. card do /admin/supplier-health ==')
 {
@@ -545,6 +667,7 @@ console.log('== 8. card do /admin/supplier-health ==')
         const api = {
           select(s, o) { q.sel = s; q.opts = o ?? null; return api },
           eq(k, v) { q.filtros.push([k, v]); return api },
+          is(k, v) { q.filtros.push([k, v]); return api }, // revisão 2: a leitura real filtra metadata->>ip_hash is null
           gte(k, v) { q.filtros.push([k, v]); return api },
           is(k, v) { q.filtros.push([k, v]); return api }, // FIX-REVISAO-2: o leitor filtra o carimbo do sink (metadata->ip_hash/is_bot IS NULL)
           order() { return api },
@@ -589,6 +712,124 @@ console.log('== 8. card do /admin/supplier-health ==')
   checa('a RPC conta créditos cobrados SEM entrega (dinheiro parado) e usa NOT EXISTS para contas internas', sql.includes("'unrefunded_undelivered_credits'") && sql.includes("c.metadata->>'status' = 'done'") && !/not in \(select/i.test(sql))
   checa('a RPC devolve last_refusal_at = max das DUAS fontes (toda linha fal_balance_exhausted + despacho com saldo)', sql.includes("'last_refusal_at', greatest(") && sql.includes('(select max(a.created_at) from alarmes a)') && sql.includes('(select max(d.created_at) from despachos d)') && /despachos as \(\s*\n\s*select e\.user_id,\s*\n\s*e\.created_at,/.test(sql))
   checa("'E-mails sent' conta só envio entregue (state=sent) — uma re-tentativa que falhou não vira e-mail", sql.includes("count(*) filter (where a.metadata->>'alerted' = 'true' and a.metadata->>'state' = 'sent') as alertas"))
+}
+
+// ═══════════════════ 8b. o card não manda estornar filme a caminho, e não pinta de verde o que não mediu (revisão 2) ═══════════════════
+console.log('== 8b. card: filme em voo fora do "refund them"; fallback nunca verde (FalBalanceCard real) ==')
+{
+  const P = carrega('lib/supplier/falBalancePanel.ts', { '@/lib/internalAccounts': { INTERNAL_EXACT_EMAILS: ['a@x'], INTERNAL_LIKE_PATTERNS: ['t%'] } })
+  // O card REAL: FalBalanceCard de app/admin/supplier-health/page.tsx (a página não pode exportá-lo — o Next recusa
+  // export extra em page — então o export é acrescentado em memória), renderizado com react-dom/server.
+  const requireNode = (await import('node:module')).createRequire(import.meta.url)
+  const React = requireNode('react')
+  const jsxRuntime = requireNode('react/jsx-runtime')
+  const { renderToStaticMarkup } = requireNode('react-dom/server')
+  const pagina = rd('app/admin/supplier-health/page.tsx')
+  const js = ts.transpileModule(`${pagina}\nexport { FalBalanceCard }\n`, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText
+  const ex = {}
+  vm.runInNewContext(js, {
+    exports: ex,
+    require: (m) => ({
+      'react/jsx-runtime': jsxRuntime, react: React,
+      'next/link': { __esModule: true, default: ({ children, ...p }) => React.createElement('a', p, children) },
+      '@/lib/supabase/server': { createClient() { throw new Error('offline') } },
+      '@/app/api/admin/_shared/db': { isAdminEmail: () => false, serviceClient: () => null },
+      '@/lib/supplier/burn': { readSupplierBurn: async () => [] },
+      '@/lib/supplier/falBalancePanel': P,
+      '@/lib/falAlert': { FAL_BILLING_URL: 'https://fal.ai/dashboard/billing' },
+      '@/lib/internalAccounts': { INTERNAL_ACCOUNTS_LABEL: 'internal accounts excluded' },
+      '@/lib/supplier/generationHealth': { readGenerationHealth: async () => null, describeRules: () => '', FAILURE_RATE_PCT: 50, FAST_MIN_ATTEMPTS: 5, SLOW_MIN_ATTEMPTS: 8, MIN_DISTINCT_USERS: 2, REASON_REPEAT_MIN: 10 },
+    })[m] ?? (() => { throw new Error('import inesperado no card: ' + m) })(),
+    process: { env: {} }, console: { log() {}, warn() {}, error() {} }, Date, Math, JSON, Number, String, Array, Object, Promise, Error,
+  }, { filename: 'supplier-health/page.tsx' })
+  const agora = Date.UTC(2026, 8, 28, 12)
+  const card = (panel) => renderToStaticMarkup(React.createElement(ex.FalBalanceCard, { panel, nowMs: agora }))
+  const tileDe = (html, rotulo) => {
+    const m = new RegExp(`>${rotulo}</div><div class="font-black" style="[^"]*color:(#[0-9a-fA-F]{6})">([^<]*)</div>(?:<p[^>]*>([^<]*)</p>)?`).exec(html)
+    return m ? { cor: m[1].toLowerCase(), valor: m[2], nota: m[3] ?? '' } : null
+  }
+  const VERDE = '#34d399', AMBAR = '#fbbf24', VERMELHO = '#f87171'
+  // (1) O CASO DO REVISOR, fallback (migration não aplicada = o estado no lançamento): RPC PGRST202 + 4 leituras exatas.
+  const adminFallback = {
+    rpc: async () => ({ data: null, error: { code: 'PGRST202', message: 'function not found' } }),
+    from() {
+      const q = { head: false, alarme: false, nome: null }
+      const api = {
+        select(_s, o) { q.head = !!o?.head; return api }, eq(k, v) { if (k === 'metadata->>alerted') q.alarme = true; if (k === 'name') q.nome = v; return api },
+        is() { return api }, gte() { return api }, order() { return api }, limit() { return api },
+        then(res) {
+          if (q.head) return Promise.resolve({ data: null, count: 12, error: null }).then(res)
+          if (q.alarme) return Promise.resolve({ data: [{ created_at: '2026-09-21T00:28:40Z', metadata: { source: 'cinematic', state: 'sent', alerted: true } }], error: null }).then(res)
+          return Promise.resolve({ data: [{ created_at: '2026-09-21T02:03:36Z' }], error: null }).then(res)
+        },
+      }
+      return api
+    },
+  }
+  const fb = await P.readFalBalancePanel(adminFallback, new Date(agora))
+  checa('fallback real: modo fallback com o dinheiro NÃO medido (null) — inclusive o em voo', fb?.mode === 'fallback' && fb.dispatch?.unrefundedUndeliveredCredits === null && fb.dispatch?.inFlightCredits === null)
+  checa("falStuckMoneyState(fallback) = 'not_measured'", P.falStuckMoneyState?.(fb.dispatch) === 'not_measured')
+  const hFb = card(fb)
+  const parado = tileDe(hFb, 'Charged, NOT delivered')
+  checa(`card real no fallback: "Charged, NOT delivered" em ÂMBAR "Not measured", nunca verde "should always be 0" (achei ${parado?.cor} "${parado?.valor}" "${parado?.nota}")`, parado?.cor === AMBAR && parado.valor === '—' && /^Not measured/.test(parado.nota) && !hFb.includes('should always be 0'))
+  const semMedida = ['Scenes refused', 'Credits refunded', 'Charged, film delivered', 'People'].map((r) => tileDe(hFb, r))
+  checa('card real no fallback: nenhum tile sem número fica verde — todos âmbar "Not measured"', semMedida.every((t) => t && t.cor === AMBAR && t.valor === '—' && /^Not measured/.test(t.nota)) && !new RegExp(`color:${VERDE}">—<`).test(hFb))
+  checa('card real no fallback: o tile "still rendering" só existe quando a RPC mede (não inventa zero)', tileDe(hFb, 'Charged, still rendering') === null)
+  // (2) Hollywood ≥ 90 % seguindo cobrado com recusa de saldo: o e-mail sai NA HORA e o filme ainda renderiza.
+  const rpc = (dispatch) => P.parseFalBalancePanel({ days: 30, by_day: [], latest: null, last_refusal_at: new Date(agora - 60e3).toISOString(), dispatch: { dispatches: 1, scenes_refused: 1, people: 1, external_people: 1, refunded_credits: 0, delivered_charged_credits: 0, ...dispatch } })
+  const emVoo = rpc({ unrefunded_undelivered_credits: 0, unrefunded_undelivered_debits: 0, unrefunded_undelivered_external: 0, in_flight_credits: 150, in_flight_debits: 1, in_flight_window_minutes: 120 })
+  checa('parser lê in_flight_* da RPC (150 cr, 1 débito, janela de 120 min)', emVoo?.dispatch?.inFlightCredits === 150 && emVoo.dispatch.inFlightDebits === 1 && emVoo.dispatch.inFlightWindowMinutes === 120 && P.falStuckMoneyState?.(emVoo.dispatch) === 'clear')
+  const hVoo = card(emVoo)
+  const vooParado = tileDe(hVoo, 'Charged, NOT delivered')
+  const vooTile = tileDe(hVoo, 'Charged, still rendering')
+  checa('filme de 150 cr a caminho: nenhum "refund them" no card; "Charged, NOT delivered" = 0', !hVoo.includes('refund them') && vooParado?.valor === '0' && vooParado.cor === VERDE)
+  checa('… e o filme aparece em "Charged, still rendering" (âmbar) com "do NOT refund"', vooTile?.valor === '150' && vooTile.cor === AMBAR && /do NOT refund/.test(vooTile.nota) && /120-min delivery window/.test(vooTile.nota))
+  // (3) Dinheiro parado de verdade (fora da janela): continua vermelho e manda estornar.
+  const hParado = card(rpc({ unrefunded_undelivered_credits: 25, unrefunded_undelivered_debits: 1, unrefunded_undelivered_external: 1, in_flight_credits: 0, in_flight_debits: 0, in_flight_window_minutes: 120 }))
+  const t3 = tileDe(hParado, 'Charged, NOT delivered')
+  checa('parado fora da janela (25 cr, externo): vermelho "older than 120 min — refund them"', t3?.cor === VERMELHO && t3.valor === '25' && /older than 120 min — refund them/.test(t3.nota))
+  // (4) Uma RPC que não separa o em voo (sem in_flight_*): nunca "refund them" às cegas.
+  const cega = rpc({ unrefunded_undelivered_credits: 150, unrefunded_undelivered_debits: 1, unrefunded_undelivered_external: 1 })
+  const t4 = tileDe(card(cega), 'Charged, NOT delivered')
+  checa("RPC sem in_flight_*: 'unseparated' — âmbar \"check each one before refunding\", nunca \"refund them\"", P.falStuckMoneyState?.(cega.dispatch) === 'unseparated' && t4?.cor === AMBAR && /check each one before refunding/.test(t4.nota))
+  // (5) A SQL (a migration ainda não foi aplicada — editada no lugar): a janela de entrega existe e bate com o TS.
+  const sql = rd('supabase/migrations/20260928090000_admin_fal_balance_panel.sql')
+  const corpoDebitos = sql.slice(sql.indexOf('  debitos as ('), sql.indexOf('  select jsonb_build_object('))
+  checa('SQL: em_voo = despacho com menos de 120 min OU compose com claim pending aberta há menos de 120 min', /\(d\.created_at > now\(\) - interval '120 minutes'\s*\n\s*or exists \(/.test(corpoDebitos) && /c\.metadata->>'status' = 'pending' and c\.created_at > now\(\) - interval '120 minutes'/.test(corpoDebitos) && /\) as em_voo/.test(corpoDebitos))
+  const linhaDe = (chave) => (sql.match(new RegExp(`'${chave}', \\(select[^\\n]*`)) ?? [''])[0]
+  checa("SQL: os 3 números de 'dinheiro parado' excluem o em voo (and not b.em_voo) — antes contavam o filme renderizando", ['unrefunded_undelivered_credits', 'unrefunded_undelivered_debits', 'unrefunded_undelivered_external'].every((k) => linhaDe(k).includes('and not b.entregue and not b.em_voo')))
+  checa("SQL: in_flight_credits/in_flight_debits = cobrado, sem entrega, DENTRO da janela; in_flight_window_minutes = 120", linhaDe('in_flight_credits').includes('and not b.entregue and b.em_voo') && linhaDe('in_flight_debits').includes('and not b.entregue and b.em_voo') && sql.includes("'in_flight_window_minutes', 120"))
+  checa('janela da SQL (120 min) = FAL_PANEL_IN_FLIGHT_MINUTES do card', P.FAL_PANEL_IN_FLIGHT_MINUTES === 120 && (sql.match(/interval '120 minutes'/g) ?? []).length === 2)
+  // (6) LINHA FORJADA (o revisor: POST anônimo no /api/events com event_name fal_balance_exhausted, state 'sent'):
+  // o sink do navegador carimba metadata.ip_hash/is_bot; lib/falAlert nunca. Banco falso que APLICA os filtros.
+  const adminDe = (linhas) => ({
+    rpc: async () => ({ data: null, error: { code: 'PGRST202', message: 'function not found' } }),
+    from() {
+      const q = { head: false, filtros: [], nulos: [] }
+      const api = {
+        select(_s, o) { q.head = !!o?.head; return api }, eq(k, v) { q.filtros.push([k, v]); return api }, is(k, v) { if (v === null) q.nulos.push(k); return api },
+        gte() { return api }, order() { return api }, limit() { return api },
+        then(res) {
+          const campo = (r, k) => (k.startsWith('metadata->>') ? (r.metadata?.[k.slice(11)] === undefined ? undefined : String(r.metadata[k.slice(11)])) : r[k])
+          const achadas = linhas.filter((r) => q.filtros.every(([k, v]) => campo(r, k) === v) && q.nulos.every((k) => campo(r, k) === undefined))
+            .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+          if (q.head) return Promise.resolve({ data: null, count: achadas.length, error: null }).then(res)
+          return Promise.resolve({ data: achadas.slice(0, 1), error: null }).then(res)
+        },
+      }
+      return api
+    },
+  })
+  const recente = new Date(agora - 60e3).toISOString()
+  const forjada = { name: 'fal_balance_exhausted', created_at: recente, metadata: { alerted: true, state: 'sent', source: 'cinematic', engine: 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video', scenes_refused: 9, ip_hash: 'h-anon', is_bot: false } }
+  const doServidor = { name: 'fal_balance_exhausted', created_at: recente, metadata: { alerted: true, state: 'sent', source: 'cinematic', engine: 'x', user_id: null } }
+  const pForjado = await P.readFalBalancePanel(adminDe([forjada]), new Date(agora))
+  checa('linha forjada pelo sink do navegador (ip_hash carimbado): o card NÃO fica vermelho nem mostra "Last alarm … sent"', pForjado?.mode === 'fallback' && pForjado.latest === null && pForjado.lastRefusalAt === null && P.falRefusalIsFresh(pForjado, agora) === false)
+  const pServidor = await P.readFalBalancePanel(adminDe([doServidor, forjada]), new Date(agora))
+  checa('controle: a linha do servidor (lib/falAlert, sem ip_hash) continua pintando o vermelho', pServidor?.latest?.state === 'sent' && P.falRefusalIsFresh(pServidor, agora) === true)
+  const cteAlarmes = sql.slice(sql.indexOf('  alarmes as ('), sql.indexOf('  por_dia as ('))
+  checa("SQL: alarmes e ultimo ignoram linha com metadata ? 'ip_hash' (carimbo do sink do navegador)", cteAlarmes.split("and not (e.metadata ? 'ip_hash')").length === 3)
+  checa('SQL segue só leitura, SECURITY DEFINER, search_path public, revoke public/anon/authenticated, grant só service_role', /language sql\nsecurity definer\nset search_path = public\nstable\n/.test(sql) && !/\b(insert|update|delete|truncate|alter|drop)\b/i.test(sql.slice(sql.indexOf('as $$'), sql.indexOf('$$;'))) && sql.includes('revoke all on function public.admin_fal_balance_panel(text[], text[], integer) from public, anon, authenticated;') && sql.includes('grant execute on function public.admin_fal_balance_panel(text[], text[], integer) to service_role;') && (sql.match(/^grant /gm) ?? []).length === 1)
 }
 
 // ═══════════════════ 9. rota cinematic (TRAVA 8.2) ═══════════════════
@@ -637,6 +878,37 @@ console.log(`== 9. rota cinematic — trava 8.2 ${TRAVA_82_APLICADA ? 'APLICADA'
       const d = await exec(base(), true)
       checa('finalizarDespacho: telemetria que cai não cala o alarme', d.alarmes.length === 1)
     }
+  }
+  // ═══ REVISÃO 2 (28/09) — o host do Hollywood (cena de diálogo por submitAvatarJob) não alarma por conta própria ═══
+  // Vira true no commit "[TRAVA 8.2] FIX-REVISAO-2" que passa alertOnBalance:false e liga a flag do despacho no catch.
+  const HOST_UM_ALARME_APLICADO = false
+  const hostIni = rota.indexOf('const reqId = await submitAvatarJob({')
+  const hostCall = hostIni >= 0 ? rota.slice(hostIni, rota.indexOf('})', hostIni) + 2) : ''
+  checa('rota: uma chamada só de submitAvatarJob — a do host do Hollywood', (rota.match(/submitAvatarJob\(/g) ?? []).length === 1 && hostCall.includes("engine: 'presenter'"))
+  if (!(TRAVA_82_APLICADA && HOST_UM_ALARME_APLICADO)) {
+    checa('host intacto até a trava subir: a rota ainda não passa alertOnBalance (nada pela metade)', !rota.includes('alertOnBalance'))
+  } else {
+    checa('host: a chamada passa alertOnBalance:false — o veed não alarma dentro do despacho', /\n\s*alertOnBalance: false,?\n/.test(hostCall))
+    const catchIni = rota.indexOf('} catch (e) {', hostIni)
+    const ambIdx = rota.indexOf('if (e instanceof AvatarSubmitError && e.ambiguous) {', hostIni)
+    const LINHA = 'if (e instanceof AvatarSubmitError && looksExhausted(e)) ctxDespacho().balanceExhausted = true'
+    const flagIdx = rota.indexOf(LINHA, catchIni)
+    checa('host: no catch, a recusa de SALDO liga a flag do despacho antes de qualquer outro ramo (o finalizador alarma UMA vez, como cinematic)', catchIni > hostIni && flagIdx > catchIni && flagIdx < ambIdx && rota.slice(catchIni, flagIdx).split('\n').filter((l) => l.trim() && !l.trim().startsWith('//')).length === 1)
+    // A LINHA REAL, executada com o AvatarSubmitError e o looksExhausted reais (veed.ts e falAlert.ts carregados).
+    const Lh = lambda({ banco: bancoFalso(), notify: carteiro().fn })
+    const erroDe = async (status, detail) => {
+      const Vh = carrega('lib/avatar/veed.ts', { '@fal-ai/client': { fal: { config() {} } }, '@/lib/falAlert': Lh }, { process: { env: { FAL_KEY: 'offline-only' } }, fetch: async () => ({ ok: false, status, text: async () => JSON.stringify({ detail }) }) })
+      try { await Vh.submitAvatarJob({ imageUrl: 'https://offline.invalid/p.png', audioUrl: 'https://offline.invalid/a.mp3', engine: 'presenter', alertOnBalance: false }) } catch (e) { return { e, Classe: Vh.AvatarSubmitError } }
+      return null
+    }
+    const roda = async (status, detail) => {
+      const r = await erroDe(status, detail)
+      const ctx = { balanceExhausted: false }
+      vm.runInNewContext(`(function (e, AvatarSubmitError, looksExhausted, ctxDespacho) { ${LINHA} })`, {})(r.e, r.Classe, Lh.looksExhausted, () => ctx)
+      return ctx.balanceExhausted
+    }
+    checa('linha real: 403 de saldo da fal no host → flag do despacho ligada', (await roda(403, FRASE_FAL)) === true)
+    checa('linha real: 403 de ACESSO ("model is locked for your account") e 503 ambíguo → flag desligada', (await roda(403, 'This model is locked for your account')) === false && (await roda(503, FRASE_FAL)) === false)
   }
 }
 

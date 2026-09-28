@@ -17,7 +17,7 @@ import { createClient } from '@/lib/supabase/server'
 import { isAdminEmail, serviceClient } from '@/app/api/admin/_shared/db'
 import { readSupplierBurn, type SupplierBurnRow } from '@/lib/supplier/burn'
 // KINEO-FAL-SALDO-ALERTA-2026-09-28 — card do topo: o alarme de saldo da fal, contado no banco.
-import { readFalBalancePanel, falRefusalIsFresh, falLastRefusalAt, FAL_PANEL_MIGRATION, type FalBalancePanel } from '@/lib/supplier/falBalancePanel'
+import { readFalBalancePanel, falRefusalIsFresh, falLastRefusalAt, falStuckMoneyState, FAL_PANEL_MIGRATION, FAL_PANEL_IN_FLIGHT_MINUTES, type FalBalancePanel } from '@/lib/supplier/falBalancePanel'
 import { FAL_BILLING_URL } from '@/lib/falAlert'
 import { INTERNAL_ACCOUNTS_LABEL } from '@/lib/internalAccounts'
 import {
@@ -70,19 +70,25 @@ function fmtN(v: number | null): string {
  * estado do e-mail, com o botão de recarga; (b) por dia e fonte; (c) o lado do dinheiro nos despachos cinematic.
  * Tudo contado no banco (lib/supplier/falBalancePanel). (d) saldo ao vivo: fora — a fal só expõe com chave admin.
  * panel null = leitura falhou (RPC E fallback): âmbar "não medido", nunca verde.
+ * KINEO-FAL-EM-VOO-2026-09-28 — tile sem número (fallback sem a migration) = âmbar "Not measured", nunca verde; e o
+ * filme ainda na janela de entrega sai do "Charged, NOT delivered" para "Charged, still rendering" (não estornar).
  */
 function FalBalanceCard({ panel, nowMs }: { panel: FalBalancePanel | null; nowMs: number }) {
   const fresh = falRefusalIsFresh(panel, nowMs)
   const lastRefusal = falLastRefusalAt(panel)
   const d = panel?.dispatch ?? null
-  const stuck = (d?.unrefundedUndeliveredCredits ?? 0) > 0
-  const tile = (label: string, value: string, color = '#f5f5f7', note?: string) => (
+  const dinheiro = falStuckMoneyState(d)
+  const janela = d?.inFlightWindowMinutes ?? FAL_PANEL_IN_FLIGHT_MINUTES
+  const naoMedido = panel?.mode === 'fallback' ? `Not measured — waits for ${FAL_PANEL_MIGRATION.split('/').pop()}` : 'Not measured'
+  // value null = número não medido: âmbar com a nota "Not measured", qualquer que seja a cor pedida.
+  const tile = (label: string, value: string | null, color = '#f5f5f7', note?: string) => (
     <div key={label} className="rounded-xl p-4" style={{ background: '#1c1c1f', border: '1px solid #2a2a2d' }}>
       <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#86868b' }}>{label}</div>
-      <div className="font-black" style={{ fontSize: '1.5rem', lineHeight: 1.1, color }}>{value}</div>
-      {note && <p className="text-[11px] mt-1" style={{ color: '#6e6e73' }}>{note}</p>}
+      <div className="font-black" style={{ fontSize: '1.5rem', lineHeight: 1.1, color: value === null ? '#fbbf24' : color }}>{value ?? '—'}</div>
+      {(value === null || note) && <p className="text-[11px] mt-1" style={{ color: value === null ? '#fbbf24' : '#6e6e73' }}>{value === null ? naoMedido : note}</p>}
     </div>
   )
+  const n = (v: number | null): string | null => (v === null ? null : fmtN(v))
   return (
     <section className="rounded-2xl p-5 mb-6" style={{ ...CARD, border: `1px solid ${fresh ? '#f87171' : '#2a2a2d'}` }}>
       <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
@@ -134,17 +140,27 @@ function FalBalanceCard({ panel, nowMs }: { panel: FalBalancePanel | null; nowMs
       {d && (
         <div className="grid gap-3 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))' }}>
           {tile(`Dispatches hit (${panel?.days ?? 30}d)`, fmtN(d.dispatches), d.dispatches > 0 ? '#fbbf24' : '#f5f5f7', 'cinematic, balance_exhausted')}
-          {tile('Scenes refused', fmtN(d.scenesRefused))}
-          {tile('People', d.people === null ? '—' : `${fmtN(d.people)} (${fmtN(d.externalPeople)} ext.)`, '#f5f5f7', INTERNAL_ACCOUNTS_LABEL)}
-          {tile('Credits refunded', fmtN(d.refundedCredits))}
-          {tile('Charged, film delivered', fmtN(d.deliveredChargedCredits))}
+          {tile('Scenes refused', n(d.scenesRefused))}
+          {tile('People', d.people === null ? null : `${fmtN(d.people)} (${fmtN(d.externalPeople)} ext.)`, '#f5f5f7', INTERNAL_ACCOUNTS_LABEL)}
+          {tile('Credits refunded', n(d.refundedCredits))}
+          {tile('Charged, film delivered', n(d.deliveredChargedCredits))}
           {tile(
             'Charged, NOT delivered',
-            fmtN(d.unrefundedUndeliveredCredits),
-            stuck ? '#f87171' : '#34d399',
-            stuck
-              ? `${fmtN(d.unrefundedUndeliveredDebits)} debit(s), ${fmtN(d.unrefundedUndeliveredExternal)} external — refund them`
-              : 'should always be 0',
+            n(d.unrefundedUndeliveredCredits),
+            dinheiro === 'stuck' ? '#f87171' : dinheiro === 'clear' ? '#34d399' : '#fbbf24',
+            dinheiro === 'stuck'
+              ? `${fmtN(d.unrefundedUndeliveredDebits)} debit(s), ${fmtN(d.unrefundedUndeliveredExternal)} external, older than ${janela} min — refund them`
+              : dinheiro === 'unseparated'
+                ? 'may include films still rendering — check each one before refunding'
+                : 'should always be 0',
+          )}
+          {d.inFlightCredits !== null && tile(
+            'Charged, still rendering',
+            n(d.inFlightCredits),
+            d.inFlightCredits > 0 ? '#fbbf24' : '#f5f5f7',
+            d.inFlightCredits > 0
+              ? `${fmtN(d.inFlightDebits)} film(s) inside the ${janela}-min delivery window — do NOT refund, they are on their way`
+              : `none inside the ${janela}-min delivery window`,
           )}
         </div>
       )}

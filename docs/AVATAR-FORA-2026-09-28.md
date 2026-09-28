@@ -39,6 +39,13 @@ Não é "pausa" (`enginePaused`). A pausa escreve "manutenção" na tela e no ll
 - `lib/comparisons.ts`: `KINEO_ENGINE_METERING` (usada em 8 páginas) e a linha de créditos pública da Kineo perderam o "AI Presenter 70". As duas respostas "Does Kineo have avatars?" (HeyGen e Synthesia) agora dizem "Not today". A mesma página do HeyGen já dizia "you cannot get a talking avatar out of Kineo at any price", então a casa se contradizia.
 - `app/alternatives/[competitor]/page.tsx`: HeyGen, Synthesys e D-ID eram páginas inteiras vendendo o AI Presenter, com Character Lock e clipes de gesto. Foram reescritas em torno do filme narrado sem rosto. A linha "presenter" da tabela virou ✗ ou "Not offered today", e cada página diz que a Kineo não tem apresentador hoje e manda quem precisa de rosto na tela para o concorrente. A Synthesia também foi corrigida: dizia "optional 720p lip-synced presenter" e respondia "Yes" sobre apresentador. A clonagem de voz ficou, porque existe e o /studio/create a usa.
 
+### Revisão 2 (28/09, FIX-REVISAO-2) — as sobras que a integração achou
+
+- `/best-ai-shorts-generators` (sitemap e llms.txt) ainda dizia que a Kineo pode "add a talking AI Presenter" — a única superfície pública sem trava que vendia o apresentador. A frase agora deriva do `AVATAR_PUBLIC`: sem ele, "It does not offer an AI presenter or avatar today" e manda quem precisa de rosto para o HeyGen.
+- A página do Kling 3 (`lib/growth/enginePageCatalog.ts`, lida por /ai-video-generator/kling-3, /facts e o hub) respondia "Yes. Character Lock saves a presenter…". Atrás do interruptor; sem ele, diz o que o motor faz (um retrato-âncora por filme, toda cena de diálogo parte dele) e que rosto salvo entre vídeos não está no catálogo hoje.
+- O bento da home: 5 motores num grid de 3 colunas (2 até 700px) deixavam uma célula vazia. O último tile agora ocupa o que falta da fileira para qualquer contagem (`lib/ui/homePresentation.ts`: 3 colunas → sobra 1 = span 3, sobra 2 = span 2; 2 colunas → último ímpar = span 2; 1 coluna → sem span). Prova no guardião, bloco (g): JSX real + cascata real do `<style>` da página + auto-placement, 0 célula vazia de 1440px a 320px para 5 (visitante), 6 (casa) e 1 a 9 tiles; o mutante sem o CSS devolve o buraco nas duas larguras.
+- Varredura de `app/`, `components/` e das libs que alimentam página pública: o resto que ainda cita Avatar/Presenter é o próprio /avatar e /ai-avatar (link direto), superfícies atrás de `showAvatar`/`avatarOn`/`AVATAR_PUBLIC`, rotas de admin, dicionários de tradução, a prévia `/examples/design` (só em preview) e o `EngineCycleCard` (sem nenhum importador).
+
 ## O que NÃO mudou
 
 - O `/avatar` (Avatar Studio: clonagem de voz, personagens, gesto, anúncio UGC) e o `/api/generate-avatar` continuam no ar por link direto. O servidor não ganhou gate, e isso é de propósito: quem chega pelo link de clonar voz do /studio/create ou por um e-mail antigo não pode dar com um botão que falha.
@@ -60,5 +67,5 @@ Não é "pausa" (`enginePaused`). A pausa escreve "manutenção" na tela e no ll
 
 - Os motores de resposta que já guardaram o texto antigo podem citar o Avatar por um tempo.
 - O `/ai-avatar` sai do índice do Google. Volta com o interruptor.
-- O bento da home ficou com 5 tiles: a 2ª fileira tem só o Kling 3 (antes tinha Kling 3 + Avatar).
+- O bento da home ficou com 5 tiles. Desde a revisão 2 o último tile ocupa o resto da fileira (sem célula vazia); com 5 motores a 2ª fileira é Veo 3.1 + Kling 3 largo.
 - Ficaram de fora, porque já existiam antes: a linha do Studio no /ph e as páginas "seven engines" (/arena, /kineo-vs-higgsfield, /tiktok-creator-rewards-videos) ainda contam o Omni Flash, que está pausado.

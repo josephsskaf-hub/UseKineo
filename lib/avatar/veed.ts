@@ -329,6 +329,14 @@ export async function submitAvatarJob(args: {
    * PLUS the plan's characterSheet/styleSheet so the avatar clip matches the
    * anchored look. Absent/empty → the safe per-engine default below. */
   performancePrompt?: string
+  /**
+   * KINEO-FAL-UM-ALARME-POR-FILME-2026-09-28 — false = o CHAMADOR soma a recusa de saldo ao próprio alarme. A rota
+   * cinematic passa false no caminho host (cena de diálogo com âncora): lá o alarme é UM por despacho, no
+   * finalizarDespacho, creditado ao filme (source 'cinematic', motor, pessoa, geração, cenas). Sem isto cada cena de
+   * diálogo recusada gravava uma linha 'avatar_submit' e o ÚNICO e-mail da janela saía em nome de um produto fora do
+   * catálogo desde 27/09, sem pessoa e sem cena (revisão de 28/09). Omitido/true = o /api/generate-avatar de sempre.
+   */
+  alertOnBalance?: boolean
 }): Promise<string> {
   const model = modelFor(args.engine)
   const performancePrompt =
@@ -377,7 +385,8 @@ export async function submitAvatarJob(args: {
     }))
       // KINEO-FAL-ALERT-LIB-2026-07-10 — exhausted balance → e-mail the founder.
     // KINEO-FAL-SALDO-ALERTA-2026-09-28 — await, não void (o throw abaixo mata o envio na Vercel).
-    if (looksExhausted(e)) await alertFalExhausted({ source: 'avatar_submit', engine: model, context: `avatar submit model=${model}` })
+    // KINEO-FAL-UM-ALARME-POR-FILME-2026-09-28 — alertOnBalance:false = quem chama tem o alarme (a rota cinematic).
+    if (args.alertOnBalance !== false && looksExhausted(e)) await alertFalExhausted({ source: 'avatar_submit', engine: model, context: `avatar submit model=${model}` })
     throw err
   }
 }
