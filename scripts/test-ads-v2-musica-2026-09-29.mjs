@@ -51,6 +51,9 @@ check('Creatomate: nenhum elemento de música leva loop E trim_start juntos (o 2
 check('início 0 = loop sem trim; início > 0 = trim sem loop', () => { const z = els(M.buildAdV2Source({ ...base, musicTrimStart: 0, voiceUrl: null, voiceSeconds: null }))[0]; const t = els(M.buildAdV2Source({ ...base, musicTrimStart: 57.05, voiceUrl: null, voiceSeconds: null }))[0]; return z.loop === true && !('trim_start' in z) && t.trim_start === 57.05 && !('loop' in t) })
 check('trim inválido é recusado', () => { try { M.buildAdV2Source({ ...base, musicTrimStart: -1 }); return false } catch (e) { return /bad_music_trim/.test(String(e)) } })
 
+// 3b. frases legíveis sobre foto clara (1ª amostra real, cozinha branca): pílula escura igual à legenda do compose
+check('frase na tela leva pílula escura (background_color rgba(0,0,0,0.55) + padding 3%/2% + border_radius 10)', () => { const t = M.buildAdV2Source({ ...base, overlays: [{ text: 'Kitchen Magic', start: 0.3, end: 4 }], musicTrimStart: 0, voiceUrl: null, voiceSeconds: null }).elements.filter((e) => e.type === 'text'); return t.length === 1 && t[0].background_color === 'rgba(0,0,0,0.55)' && t[0].background_x_padding === '3%' && t[0].background_y_padding === '2%' && t[0].border_radius === 10 })
+
 // 4. o motor usa: troca faixa reprovada e passa o trim à montagem
 const adv = rd('lib/ads/v2Advance.ts')
 check('v2Advance troca faixa que não serve por uma aprovada do mesmo clima', /if \(musicUrl && !adsV2MusicUsable\(musicUrl\)\) musicUrl = adsV2SwapLibraryTrack\(musicUrl, adsV2FallbackTrack\(mood, order\.id\)\)/.test(adv))
