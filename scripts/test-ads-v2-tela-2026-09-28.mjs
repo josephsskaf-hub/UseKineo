@@ -10,6 +10,9 @@
 //   X — "Screen or text" nunca oferece "Redo" por IA;
 //   K — recorte 9:16 1080×1920 JPEG q0.9 com ponto focal, e a prévia usa a mesma conta;
 //   P — PATCH do pedido (narração/cartão) com os portões do POST; I — o cliente não importa módulo de servidor.
+//   V — revisão cética de 28/09: poll que não para/agenda, trava de duplo clique antes do 1º await, voz que volta
+//       (rascunho com a narração na chave), "Get credits" em outra aba, aviso do Start over com /start no ar, refação
+//       que falha volta ao anúncio do pai, copy do Cinema amarrada ao planShots, touch-action por eixo, foco seguro.
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -220,6 +223,75 @@ check('P3 sanitizePatchBody: exige order_id uuid e pelo menos um campo; tipos co
     CT.sanitizePatchBody({ order_id: U, narration: false }).value.narration === false && CT.sanitizePatchBody({ order_id: U.toUpperCase(), card_footage_id: U }).value.order_id === U
 })
 check('P4 a tela usa o PATCH para narração (botão na prévia) e para o cartão editado depois do plano', /method: 'PATCH', body: \{ order_id: plan\.order_id, narration: want \}/.test(client) && /method: 'PATCH', body: \{ order_id: p\.order_id, card_footage_id: done\.footageId \}/.test(client) && /role="switch" aria-checked=\{narrationOn\}/.test(client))
+
+// ── V. revisão cética da etapa 3 (28/09): defeitos confirmados e três furos que passavam verdes ────────────────
+const pollBody = bloco(sessionBody, 'async function pollOnce(')
+const applyBody = bloco(sessionBody, 'function applyView(')
+const planBody = bloco(sessionBody, 'async function planAd()')
+const makeBody = bloco(sessionBody, 'async function makeAd()')
+const redoBody = bloco(sessionBody, 'async function redoShot(')
+const toggleBody = bloco(sessionBody, 'async function toggleNarration()')
+const draftBody = bloco(sessionBody, 'async function ensureDraft()')
+const clientRaw = rd(F.client)
+check('V1 poll que falha por rede/servidor CONTINUA (20 s) com aviso; só para em order_not_found/unauthenticated, e também com aviso', () => {
+  const stop = bloco(pollBody, "if (r.code === 'order_not_found' || r.code === 'unauthenticated')")
+  return /setPollNote\(apiError\(r\)\)/.test(stop) && ordem(pollBody, 'if (!r.ok) {', "if (r.code === 'order_not_found' || r.code === 'unauthenticated')", 'setPollNote(', 'schedulePoll(orderId, POLL_RETRY_MS)', 'setPollNote(null)', 'applyView(r.data)') && /const POLL_RETRY_MS = 20_000/.test(client)
+})
+check('V2 pedido em andamento SEMPRE agenda o próximo poll (8 s); entregue/falho não', () => {
+  const ativo = bloco(applyBody, 'if (isActiveOrderStatus(v.status)) {')
+  return /schedulePoll\(v\.order_id, POLL_MS\)/.test(ativo) && (applyBody.match(/schedulePoll\(/g) || []).length === 1 && /const POLL_MS = 8000/.test(client)
+})
+/** A trava (guarda de busy) vem antes do setBusy, e NENHUM await entre o começo da função e o setBusy. */
+const travaAntesDoAwait = (body, guarda, liga) => { const g = body.indexOf(guarda), l = body.indexOf(liga); return g >= 0 && l > g && !body.slice(0, l).includes('await ') && body.indexOf('await ', l) > l }
+check('V3 duplo clique não dispara duas vezes: planejar/começar/refazer/voz conferem busy e o ligam ANTES do 1º await; botões travam com busy', () =>
+  travaAntesDoAwait(planBody, 'if (busy || missing.length) return', "setBusy('plan')") &&
+  travaAntesDoAwait(makeBody, 'if (!plan || !planFresh || busy || cost === null) return', "setBusy('start')") &&
+  travaAntesDoAwait(redoBody, 'if (!order || busy || !canRedoShot(shot, order.status)) return', "setBusy('redo')") &&
+  travaAntesDoAwait(toggleBody, 'if (!plan || busy) return', "setBusy('voice')") &&
+  /disabled=\{busy !== null \|\| cost === null \|\| short > 0\} onClick=\{onMake\}/.test(client) &&
+  /disabled=\{busy !== null\} onClick=\{onCheck\}/.test(client) &&
+  /disabled=\{locked \|\| missing\.length > 0\} onClick=\{\(\) => void planAd\(\)\}/.test(client) &&
+  /disabled=\{redo\.busy\} onClick=\{\(\) => redo\.onConfirm\(s\)\}/.test(client))
+check('V4 voz: o rascunho nasce com a narração da tela e a chave inclui a voz; planejar não "religa" a voz; religar sem texto = plano novo (sem PATCH)', () =>
+  /const draftKey = \(voice: boolean\) => JSON\.stringify\(\{ tier, composed, link: linkNorm, voice \}\)/.test(sessionBody) &&
+  /const key = draftKey\(narrationOn\)/.test(draftBody) && /narration: narrationOn \}/.test(draftBody) && !/narration: true/.test(draftBody) &&
+  !/setNarrationOn\(true\)/.test(planBody) &&
+  ordem(toggleBody, "if (want && !(typeof plan.narration === 'string' && plan.narration.trim())) {", 'setNarrationOn(true)', 'setPlan(null)', 'return', "method: 'PATCH'") &&
+  /setDraft\(\(d\) => \(d && d\.id === plan\.order_id \? \{ \.\.\.d, key: draftKey\(on\) \} : d\)\)/.test(toggleBody) &&
+  /role="switch" aria-checked=\{narrationOn\} disabled=\{busy !== null\} onClick/.test(client))
+check('V5 "Get credits" abre OUTRA aba (fotos e plano só existem na memória desta) e o saldo é relido ao voltar', () => {
+  const links = client.match(/<Link [^>]*href="\/pricing"[^>]*>/g) || []
+  return links.length === 2 && links.every((l) => /target="_blank"/.test(l) && /rel="noopener"/.test(l)) &&
+    /document\.addEventListener\('visibilitychange', onVisible\)/.test(wrapper) && /if \(document\.visibilityState === 'visible'\) void refreshBalance\(\)/.test(wrapper)
+})
+check('V6 "Start over" com /start ou /retake no ar AVISA que o anúncio continua (onActive antes da chamada paga; desfeito se falhar)', () =>
+  ordem(makeBody, 'onActive(true)', "'/api/ads/v2/start'", 'if (!r.ok) {', 'onActive(false)') &&
+  ordem(redoBody, 'onActive(true)', "'/api/ads/v2/retake'", 'if (!r.ok) {', 'onActive(false)') &&
+  /\{activeWork \? ' The ad being made right now keeps going and will appear in My Videos\.' : ''\}/.test(wrapper))
+check('V7 refação que falha: não diz "this ad did not work", diz que o anúncio segue em My Videos e volta ao anúncio do pai', () => {
+  const m1 = SC.failedOrderMessage('fal_503', true), m2 = SC.failedOrderMessage('charge_debit_unconfirmed', true), m0 = SC.failedOrderMessage('fal_503')
+  return /still in My Videos/.test(m1) && /still in My Videos/.test(m2) && !/this ad/i.test(m1) && /redo/i.test(m1) && !/still in My Videos/.test(m0) &&
+    /failedOrderMessage\(order\.error, !!order\.parent_order_id\)/.test(client) && /order\.parent_order_id \? 'This shot could not be redone' : 'This ad did not work'/.test(client) &&
+    ordem(client, '{order.parent_order_id ? (', 'onClick={() => openOrder(order.parent_order_id as string)}', 'Back to my ad', ') : photos.length ? (', 'Back to my photos') &&
+    ordem(bloco(sessionBody, 'function openOrder('), 'if (!aliveRef.current) return', 'currentOrderRef.current = id', 'setOrderParam(id)', "setPhase('loading')", 'void pollOnce(id)')
+})
+check('V8 copy do Cinema amarrada ao planShots: sem foto Food or product NÃO há close-herói, e a copy só promete com essa foto', () => {
+  const ph = (kinds) => kinds.map((k, i) => ({ id: 'p' + i, url: 'https://x/' + i + '.jpg', kind: k }))
+  const semProduto = SL.planShots({ sector: 'real_estate', tier: 'cinema', photos: ph(['place', 'place', 'people']) })
+  const comProduto = SL.planShots({ sector: 'restaurant', tier: 'cinema', photos: ph(['product', 'place', 'people']) })
+  const cin = SC.ADS_V2_TIER_COPY.cinema.includes.join(' ')
+  return semProduto.shots.every((s) => s.kind !== 'product_hero') && comProduto.shots.filter((s) => s.kind === 'product_hero').length === 2 &&
+    /with a Food or product photo, it opens on 2 hero close-ups/.test(cin) && !/Redo any shot/i.test(SC.ADS_V2_HOW_IT_WORKS.map((s) => s.body).join(' ')) &&
+    !/\{ADS_V2_SCREEN_SECONDS\}-second/.test(client)
+})
+check('V9 celular: a moldura só prende o eixo que enquadra (paisagem pan-y, print estreito pan-x, 9:16 auto) e usa isso no estilo', () =>
+  SC.frameTouchAction(4000, 3000) === 'pan-y' && SC.frameTouchAction(3000, 4000) === 'pan-y' && SC.frameTouchAction(1000, 1000) === 'pan-y' &&
+  SC.frameTouchAction(1080, 2340) === 'pan-x' && SC.frameTouchAction(1080, 1920) === 'auto' && SC.frameTouchAction(0, 10) === 'auto' &&
+  /const touchAction = frameTouchAction\(photo\.w, photo\.h\)/.test(client) && /style=\{\{ touchAction \}\}/.test(client))
+check('V10 confirmação do "Start over" foca a opção SEGURA ("Keep working") e devolve o foco ao botão ao cancelar', () =>
+  /<button ref=\{confirmRef\} type="button" className="adsw-btn ghost small" onClick=\{\(\) => \{ setConfirmingReset\(false\); resetBtnRef\.current\?\.focus\(\) \}\}>Keep working<\/button>/.test(wrapper) &&
+  !/ref=\{confirmRef\}[^>]*onClick=\{startOver\}/.test(wrapper))
+check('V11 "No logo" legível no ladrilho escuro (cor clara própria, não o cinza do tema)', /\.adv2 \.adv2-logo \.tile \.ph\{[^}]*color:#dbe4ef/.test(clientRaw) && /<span className="ph">No logo<\/span>/.test(client))
 
 console.log(`${ok} verdes, ${falhas.length} vermelhos`)
 if (falhas.length) {

@@ -50,6 +50,7 @@ import {
   describeShot,
   failedOrderMessage,
   focalPosition,
+  frameTouchAction,
   isActiveOrderStatus,
   isSmallCrop,
   panFocal,
@@ -291,6 +292,7 @@ const ADS_V2_CSS = `
 .adv2 .adv2-logo{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
 .adv2 .adv2-logo .tile{width:96px;height:96px;border-radius:12px;border:1px solid var(--ads-line);background:repeating-conic-gradient(#1b2230 0 25%,#141922 0 50%) 50%/16px 16px;display:flex;align-items:center;justify-content:center;overflow:hidden}
 .adv2 .adv2-logo .tile img{max-width:100%;max-height:100%;object-fit:contain;padding:8px}
+.adv2 .adv2-logo .tile .ph{font-size:12px;font-weight:600;color:#dbe4ef}
 .adv2 .adv2-cardwrap{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start}
 .adv2 .adv2-cardwrap>.fields{flex:1 1 240px;min-width:0}
 .adv2 .adv2-cardprev{width:120px;aspect-ratio:9/16;height:auto;border-radius:10px;border:1px solid var(--ads-line);background:#0b1018;flex:0 0 auto}
@@ -346,7 +348,9 @@ export default function AdsV2Client({ initialBalance }: { initialBalance: number
   const [balance, setBalance] = useState<number | null>(initialBalance)
   const [confirmingReset, setConfirmingReset] = useState(false)
   const [activeWork, setActiveWork] = useState(false)
+  // Foco na opção SEGURA ("Keep working"): Enter segurado no "Start over" não apaga tudo por repetição de tecla.
   const confirmRef = useRef<HTMLButtonElement | null>(null)
+  const resetBtnRef = useRef<HTMLButtonElement | null>(null)
 
   const refreshBalance = useCallback(async () => {
     const r = await api<{ credits?: unknown }>('/api/credits')
@@ -356,6 +360,15 @@ export default function AdsV2Client({ initialBalance }: { initialBalance: number
   useEffect(() => {
     if (confirmingReset) confirmRef.current?.focus()
   }, [confirmingReset])
+
+  // "Get credits" abre /pricing em OUTRA aba (a página guarda fotos e plano só na memória): ao voltar, relê o saldo.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void refreshBalance()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [refreshBalance])
 
   // Start over: a sessão velha é desmontada inteira (key muda) e a nova nasce vazia, sem retomar pedido nenhum.
   function startOver() {
@@ -376,7 +389,7 @@ export default function AdsV2Client({ initialBalance }: { initialBalance: number
           <h1>Studio Ads</h1>
           <p className="sub">Your real photos, brought to life in a vertical ad with music, a short voice-over and your logo.</p>
         </div>
-        <button type="button" className="adsw-btn ghost small" aria-expanded={confirmingReset} aria-controls="adv2-reset" onClick={() => setConfirmingReset(true)}>
+        <button ref={resetBtnRef} type="button" className="adsw-btn ghost small" aria-expanded={confirmingReset} aria-controls="adv2-reset" onClick={() => setConfirmingReset(true)}>
           Start over
         </button>
       </header>
@@ -388,8 +401,8 @@ export default function AdsV2Client({ initialBalance }: { initialBalance: number
             {activeWork ? ' The ad being made right now keeps going and will appear in My Videos.' : ''}
           </p>
           <div className="adv2-actions" style={{ marginTop: 0 }}>
-            <button ref={confirmRef} type="button" className="adsw-btn small" onClick={startOver}>Yes, start over</button>
-            <button type="button" className="adsw-btn ghost small" onClick={() => setConfirmingReset(false)}>Keep working</button>
+            <button type="button" className="adsw-btn small" onClick={startOver}>Yes, start over</button>
+            <button ref={confirmRef} type="button" className="adsw-btn ghost small" onClick={() => { setConfirmingReset(false); resetBtnRef.current?.focus() }}>Keep working</button>
           </div>
         </div>
       ) : null}
@@ -801,14 +814,20 @@ function AdsV2Session({
     }
   }
 
-  /** Rascunho no servidor para esta combinação de nível + frase + link (mudou = rascunho novo). */
+  /**
+   * Chave do rascunho: nível + frase + link + NARRAÇÃO. O /plan escreve a voz só se order.narration for true, e o
+   * PATCH recusa religar a voz num plano feito sem ela (replan_needed): religar = rascunho novo com a voz ligada.
+   */
+  const draftKey = (voice: boolean) => JSON.stringify({ tier, composed, link: linkNorm, voice })
+
+  /** Rascunho no servidor para esta combinação de nível + frase + link + narração (mudou = rascunho novo). */
   async function ensureDraft(): Promise<string | null> {
-    const key = JSON.stringify({ tier, composed, link: linkNorm })
+    const key = draftKey(narrationOn)
     if (draft && draft.key === key) return draft.id
     setBusyNote('Saving your ad…')
     const r = await api<{ order_id: string }>('/api/ads/v2/orders', {
       method: 'POST',
-      body: { tier, seconds: ADS_V2_SCREEN_SECONDS, sector, sentence: composed && composed !== 'too_long' ? composed : null, link: linkNorm || null, narration: true },
+      body: { tier, seconds: ADS_V2_SCREEN_SECONDS, sector, sentence: composed && composed !== 'too_long' ? composed : null, link: linkNorm || null, narration: narrationOn },
     })
     if (!aliveRef.current) return null
     if (!r.ok) {
@@ -848,7 +867,6 @@ function AdsV2Session({
         return
       }
       setPlan({ ...r.data, sig: sigAtStart, cardSig: cardDone.sig })
-      setNarrationOn(true)
       window.setTimeout(() => planHeadingRef.current?.focus(), 30)
     } finally {
       if (aliveRef.current) {
@@ -860,9 +878,17 @@ function AdsV2Session({
 
   async function toggleNarration() {
     if (!plan || busy) return
-    setBusy('voice')
     setPlanError(null)
     const want = !narrationOn
+    // Voz de volta num plano feito SEM narração: não há texto para falar (o PATCH devolveria replan_needed). O plano
+    // fica velho e o próximo "Plan my ad" nasce num rascunho novo com a voz ligada (draftKey muda).
+    if (want && !(typeof plan.narration === 'string' && plan.narration.trim())) {
+      setNarrationOn(true)
+      setPlan(null)
+      setCheckNote('Voice-over on. Plan your ad again to write it: planning is free.')
+      return
+    }
+    setBusy('voice')
     const r = await api<{ narration: boolean }>('/api/ads/v2/orders', { method: 'PATCH', body: { order_id: plan.order_id, narration: want } })
     if (!aliveRef.current) return
     setBusy(null)
@@ -870,7 +896,10 @@ function AdsV2Session({
       setPlanError(apiError(r))
       return
     }
-    setNarrationOn(r.data.narration === true)
+    const on = r.data.narration === true
+    setNarrationOn(on)
+    // O rascunho do servidor agora tem esta narração: a chave acompanha (replanejar reusa o mesmo rascunho).
+    setDraft((d) => (d && d.id === plan.order_id ? { ...d, key: draftKey(on) } : d))
   }
 
   /** O cartão mudou depois do plano: sobe o novo e troca no pedido (sem planejar de novo). */
@@ -919,9 +948,12 @@ function AdsV2Session({
     try {
       if (!(await syncCard(plan))) return
       setBusyNote('Starting your ad…')
+      // Daqui em diante o servidor pode cobrar e começar mesmo que a pessoa aperte "Start over": a confirmação avisa.
+      onActive(true)
       const r = await api<StatusView>('/api/ads/v2/start', { method: 'POST', body: { order_id: plan.order_id } })
       if (!aliveRef.current) return
       if (!r.ok) {
+        onActive(false)
         if (r.code === 'not_startable') {
           setDraft(null)
           setPlan(null)
@@ -949,10 +981,12 @@ function AdsV2Session({
     setBusy('redo')
     setRedoError(null)
     const parent = order.order_id
+    onActive(true)
     const r = await api<StatusView>('/api/ads/v2/retake', { method: 'POST', body: { order_id: parent, idx: shot.idx, expected_credits: shot.retake_credits } })
     if (!aliveRef.current) return
     setBusy(null)
     if (!r.ok) {
+      onActive(false)
       setRedoError(apiError(r))
       if (r.code === 'price_changed') void pollOnce(parent)
       void onBalance()
@@ -963,6 +997,18 @@ function AdsV2Session({
     setRedoNote(`Redoing shot ${shot.idx + 1}. The first version of your ad stays in My Videos.`)
     void onBalance()
     adoptOrder({ ...r.data, shots: Array.isArray(r.data.shots) ? r.data.shots : [] })
+  }
+
+  /** Mostra outro pedido desta conta (a refação que falhou volta ao anúncio do pai, que continua entregue). */
+  function openOrder(id: string) {
+    if (!aliveRef.current) return
+    currentOrderRef.current = id
+    setOrderParam(id)
+    setRedoNote(null)
+    setRedoError(null)
+    setPollNote(null)
+    setPhase('loading')
+    void pollOnce(id)
   }
 
   async function download() {
@@ -1003,7 +1049,8 @@ function AdsV2Session({
 
         {phase === 'loading' ? (
           <section className="adv2-card" aria-busy="true">
-            <p className="adsw-lead" role="status" style={{ margin: 0 }}>Checking for an ad in progress…</p>
+            <p className="adsw-lead" role="status" style={{ margin: 0 }}>Loading your ad…</p>
+            {pollNote ? <p className="adsw-warn" role="status">{pollNote}</p> : null}
           </section>
         ) : null}
 
@@ -1012,7 +1059,7 @@ function AdsV2Session({
             {/* 1. Nível */}
             <section className="adv2-card" aria-labelledby="adv2-s1">
               <h2 id="adv2-s1"><span className="adv2-num" aria-hidden="true">1</span>Choose your ad</h2>
-              <p className="adsw-lead">A {ADS_V2_SCREEN_SECONDS}-second vertical ad for TikTok, Reels and Shorts, made from your own photos.</p>
+              <p className="adsw-lead">A vertical ad of about {ADS_V2_SCREEN_SECONDS} seconds for TikTok, Reels and Shorts, made from your own photos.</p>
               <fieldset className="adv2-tiers">
                 <legend className="adv2-sr">Level</legend>
                 {ADS_V2_TIER_IDS.map((t) => {
@@ -1036,7 +1083,7 @@ function AdsV2Session({
               </fieldset>
               <p className="adv2-balance" role="status">
                 {balance === null ? 'We could not read your credit balance right now.' : `You have ${balance} credits.`}{' '}
-                {cost !== null && balance !== null && balance < cost ? <Link className="adsw-link" href="/pricing">Get credits</Link> : null}
+                {cost !== null && balance !== null && balance < cost ? <Link className="adsw-link" href="/pricing" target="_blank" rel="noopener">Get credits (opens a new tab)</Link> : null}
               </p>
             </section>
 
@@ -1075,7 +1122,7 @@ function AdsV2Session({
               <div className="adsw-f">
                 <span>Logo <span className="adsw-req" aria-hidden="true">*</span></span>
                 <div className="adv2-logo">
-                  <div className="tile">{logo?.localUrl ? <img src={logo.localUrl} alt="Your logo" /> : <span className="adsw-hint" style={{ margin: 0 }}>No logo</span>}</div>
+                  <div className="tile">{logo?.localUrl ? <img src={logo.localUrl} alt="Your logo" /> : <span className="ph">No logo</span>}</div>
                   <input ref={logoInputRef} className="adv2-sr" type="file" accept={ADS_UPLOAD_ACCEPT_LOGO} tabIndex={-1} aria-hidden="true" onChange={(e) => { void chooseLogo(e.target.files?.[0]); e.target.value = '' }} />
                   <button type="button" className="adsw-btn ghost small" disabled={locked || !!logo?.busy} onClick={() => logoInputRef.current?.click()}>
                     {logo?.busy ? 'Uploading…' : logo?.footageId ? 'Change logo' : 'Add logo'}
@@ -1189,7 +1236,7 @@ function AdsV2Session({
             <p className="adsw-lead">
               {order.status === 'assembling'
                 ? 'Every shot is ready. Now adding the music, the voice-over and your last frame.'
-                : 'Your photos are being animated, one shot at a time. Shots marked Still with zoom are already done.'}{' '}
+                : 'Your photos are being animated. Shots marked Still with zoom are already done.'}{' '}
               You can leave this page: the ad keeps being made and lands in <Link className="adsw-link" href="/history">My Videos</Link>.
             </p>
             {redoNote ? <p className="adv2-note" role="status" style={{ marginTop: 0, marginBottom: 16 }}>{redoNote}</p> : null}
@@ -1239,10 +1286,14 @@ function AdsV2Session({
 
         {phase === 'failed' && order ? (
           <section className="adv2-card" aria-labelledby="adv2-fail">
-            <h2 id="adv2-fail" ref={headingRef} tabIndex={-1}>{order.status === 'cancelled' ? 'This was not started' : 'This ad did not work'}</h2>
-            <p className="adsw-lead">{order.status === 'cancelled' ? 'Nothing was charged.' : failedOrderMessage(order.error)}</p>
+            <h2 id="adv2-fail" ref={headingRef} tabIndex={-1}>{order.status === 'cancelled' ? 'This was not started' : order.parent_order_id ? 'This shot could not be redone' : 'This ad did not work'}</h2>
+            <p className="adsw-lead">{order.status === 'cancelled' ? 'Nothing was charged.' : failedOrderMessage(order.error, !!order.parent_order_id)}</p>
             <div className="adv2-actions">
-              {photos.length ? (
+              {order.parent_order_id ? (
+                <button type="button" className="adsw-btn" onClick={() => openOrder(order.parent_order_id as string)}>
+                  Back to my ad
+                </button>
+              ) : photos.length ? (
                 <button type="button" className="adsw-btn" onClick={() => { clearOrderParam(); currentOrderRef.current = null; setOrder(null); setPlan(null); setDraft(null); setPhase('build') }}>
                   Back to my photos
                 </button>
@@ -1308,6 +1359,7 @@ function PhotoRow({
   const small = isSmallCrop(rect)
   const kindHint = ADS_V2_PHOTO_KIND_OPTIONS.find((o) => o.id === photo.kind)?.hint ?? null
   const status = photo.busy ? 'Uploading…' : photo.uploaded && photo.uploaded.sig === focalSig(photo) ? 'Uploaded' : null
+  const touchAction = frameTouchAction(photo.w, photo.h)
 
   function down(e: ReactPointerEvent<HTMLDivElement>) {
     if (locked) return
@@ -1344,6 +1396,7 @@ function PhotoRow({
         role="group"
         aria-label={`Framing of photo ${index + 1}. Drag the photo, or use the arrow keys, to choose what stays in the vertical frame.`}
         aria-disabled={locked}
+        style={{ touchAction }}
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}
@@ -1436,7 +1489,7 @@ function PlanPreview({
         </>
       ) : null}
       <div className="adv2-voice">
-        <button type="button" className="adv2-switch" role="switch" aria-checked={narrationOn} disabled={busy !== null || (!plan.narration && !narrationOn)} onClick={onToggleNarration}>
+        <button type="button" className="adv2-switch" role="switch" aria-checked={narrationOn} disabled={busy !== null} onClick={onToggleNarration}>
           <i aria-hidden="true" /> Voice-over {narrationOn ? 'on' : 'off'}
         </button>
         {plan.narration ? (
@@ -1448,7 +1501,7 @@ function PlanPreview({
       </div>
       <p className="adv2-total">About {Math.round(plan.total_seconds * 10) / 10} seconds · vertical 9:16{cost !== null ? ` · ${cost} credits` : ''}</p>
       {short > 0 ? (
-        <p className="adsw-warn">You need {short} more credits for this ad. <Link className="adsw-link" href="/pricing">Get credits</Link> and come back: your plan stays on this page.</p>
+        <p className="adsw-warn">You need {short} more credits for this ad. <Link className="adsw-link" href="/pricing" target="_blank" rel="noopener">Get credits (opens a new tab)</Link> and come back: your plan stays on this page.</p>
       ) : null}
       <div className="adv2-actions">
         <button type="button" className="adsw-btn" disabled={busy !== null || cost === null || short > 0} onClick={onMake}>

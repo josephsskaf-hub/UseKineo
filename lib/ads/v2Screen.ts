@@ -79,6 +79,21 @@ export function panFocal(
   }
 }
 
+/**
+ * REVISÃO 28/09 (celular): `touch-action` da moldura. Com `none` o dedo que começa em cima da foto não rola a página
+ * (7 fotos = a lista inteira vira parede). Quase toda foto é mais LARGA que 9:16 (paisagem, 3:4, quadrada): só o eixo
+ * X tem sobra, então o gesto vertical fica com a página ('pan-y') e o horizontal enquadra. Foto mais estreita que
+ * 9:16 (print de celular): 'pan-x'. Já 9:16: nada a enquadrar ('auto').
+ */
+export function frameTouchAction(imgW: number, imgH: number): 'pan-y' | 'pan-x' | 'auto' {
+  if (!(imgW > 0) || !(imgH > 0)) return 'auto'
+  const r = imgW / imgH
+  const target = ADS_V2_CROP.width / ADS_V2_CROP.height
+  if (r > target * 1.01) return 'pan-y'
+  if (r < target * 0.99) return 'pan-x'
+  return 'auto'
+}
+
 /** A foto é pequena para 1080×1920 (o recorte vai ser ampliado)? */
 export function isSmallCrop(rect: AdsV2CropRect): boolean {
   return rect.sw < ADS_V2_MIN_CROP_WIDTH
@@ -141,7 +156,8 @@ export const ADS_V2_TIER_COPY: Readonly<Record<AdsV2ScreenTier, { name: string; 
   cinema: {
     name: 'Cinema',
     pitch: 'The full commercial look.',
-    includes: ['Everything in Commercial, opening on 2 hero close-ups of your best dish or product', 'One more created scene: 7 shots in about 16 seconds', 'Music, voice-over and your logo at the end'],
+    // REVISÃO 28/09: o close-herói só existe quando há foto marcada Food or product (planShots: heroSlot && product).
+    includes: ['Everything in Commercial; with a Food or product photo, it opens on 2 hero close-ups of it', 'One more created scene: 7 shots in about 16 seconds', 'Music, voice-over and your logo at the end'],
   },
 }
 
@@ -150,7 +166,7 @@ export const ADS_V2_HOW_IT_WORKS: readonly { title: string; body: string }[] = [
   { title: 'Pick a level', body: 'Photo motion, Commercial or Cinema. The price is shown before anything is charged.' },
   { title: 'Show your business', body: 'One sentence (or your link), your logo and 3 to 7 real photos. Frame each one for a vertical phone screen.' },
   { title: 'Check the plan', body: 'See every shot, the words on screen and the voice-over. Planning is free.' },
-  { title: 'Get your ad', body: 'We animate your photos, add music and your logo, and deliver a vertical ad. Redo any shot you do not like.' },
+  { title: 'Get your ad', body: 'We animate your photos, add music and your logo, and deliver a vertical ad. Not happy with a shot? Redo it for a few credits, with the price shown first.' },
 ]
 /** A estrutura do anúncio (o "modelo" ao lado do montador). */
 export const ADS_V2_AD_SHAPE: readonly string[] = ['Hook', 'Desire', 'In use', 'Your place or product', 'Your logo']
@@ -299,9 +315,17 @@ export function adsV2ErrorMessage(code: string | null | undefined, extra: { need
   }
 }
 
-/** Anúncio que falhou: o que dizer (o estorno é automático — failAdsV2Order só falha quem não tem vídeo entregue). */
-export function failedOrderMessage(error: string | null | undefined): string {
+/**
+ * Anúncio que falhou: o que dizer (o estorno é automático — failAdsV2Order só falha quem não tem vídeo entregue).
+ * REVISÃO 28/09: a REFAÇÃO que falha (pedido com parent_order_id) estorna só a refação e o anúncio do pai continua
+ * entregue — dizer "This ad did not work" ali assustava quem tem o anúncio pronto em My Videos.
+ */
+export function failedOrderMessage(error: string | null | undefined, redo = false): string {
   const e = String(error ?? '')
+  if (redo) {
+    if (/^charge_/.test(e)) return 'We could not confirm the credits for this redo, so it was not made. If credits left your balance, they come back on their own. Your ad is still in My Videos, exactly as it was.'
+    return 'We could not redo this shot. The credits for the redo go back to your balance automatically. Your ad is still in My Videos, exactly as it was.'
+  }
   if (/^charge_/.test(e)) return 'We could not confirm the credits for this ad, so it was not made. If credits left your balance, they come back on their own.'
   if (/moderation/.test(e)) return 'This ad could not be finished because of our content rules. Its credits go back to your balance automatically.'
   return 'We could not finish this ad. Its credits go back to your balance automatically. You can plan it again from your photos.'
