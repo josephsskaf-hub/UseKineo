@@ -30,6 +30,11 @@ import type { StyleAnchor } from '@/lib/cinematic/sceneStyle' // KINEO1-FILME-DE
 
 export const FIRST_FILM_BUDGET_USD = 0.5
 export const SEEDANCE_720P_5S_USD = 0.13
+/** KINEO1-IMAGEM-V2-2026-09-28 — o mesmo preço por segundo (0,13 / 5 s): 720p SEM áudio, US$ 1,2 por milhão de tokens. */
+export const SEEDANCE_720P_USD_PER_SECOND = 0.026
+/** Durações que a Seedance 1.5 Pro aceita na fal: inteiros de 4 a 12 s (espelho de lib/cinematic/shotSpec.ts, travado). */
+export const SEEDANCE_MIN_SECONDS = 4
+export const SEEDANCE_MAX_SECONDS = 12
 export const FIRST_FILM_STILL_USD = 0.03
 /** Stills do híbrido no primeiro filme com clipes de IA: 3 × 0,03 = 0,09. */
 export const FIRST_FILM_STILLS_WITH_CLIPS_MAX = 3
@@ -111,6 +116,13 @@ export interface PendingAiClip {
   at_index: number
   prompt: string
   usd: number
+  /**
+   * KINEO1-IMAGEM-V2-2026-09-28 — modo TROCA: índice (no clip_urls entregue) do clipe de stock que o clipe de IA
+   * SUBSTITUI quando fica pronto. Ausente = modo de hoje (entra antes de `at_index`, o stock segue depois).
+   */
+  replace_index?: number
+  /** KINEO1-IMAGEM-V2-2026-09-28 — duração pedida à fal (4-12 s); ausente = 5 s, como sempre. */
+  seconds?: number
 }
 
 export interface ReadyAiClip {
@@ -118,16 +130,27 @@ export interface ReadyAiClip {
   at_index: number
   url: string | null
   ms: number
+  /** KINEO1-IMAGEM-V2-2026-09-28 — herdado do pendente (ver PendingAiClip.replace_index). */
+  replace_index?: number
+}
+
+/** O enum de duração do schema da fal para a Seedance 1.5 Pro (o tipo do @fal-ai/client confirma: "4" a "12"). */
+export type SeedanceSeconds = '4' | '5' | '6' | '7' | '8' | '9' | '10' | '11' | '12'
+/** KINEO1-IMAGEM-V2-2026-09-28 — duração para a fal: inteiro entre 4 e 12; sem pedido (ou pedido inválido), 5. */
+export function seedanceDurationParam(seconds?: number | null): SeedanceSeconds {
+  if (typeof seconds !== 'number' || !Number.isFinite(seconds)) return '5'
+  return String(Math.max(SEEDANCE_MIN_SECONDS, Math.min(SEEDANCE_MAX_SECONDS, Math.ceil(seconds - 1e-9)))) as SeedanceSeconds
 }
 
 /** Submete um clipe Seedance 5 s 720p sem áudio. Nunca lança; null = não submeteu. */
-export async function submitSceneClip(prompt: string): Promise<string | null> {
+export async function submitSceneClip(prompt: string, seconds?: number): Promise<string | null> {
   try {
     const falKey = process.env.FAL_KEY
     if (!falKey) return null
     fal.config({ credentials: falKey })
     const { request_id } = await fal.queue.submit(SEEDANCE_MODEL, {
-      input: { prompt, aspect_ratio: '9:16', resolution: '720p', duration: '5', generate_audio: false },
+      // KINEO1-IMAGEM-V2-2026-09-28 — `seconds` (opcional) troca só a duração; sem ele, o pedido é o de sempre.
+      input: { prompt, aspect_ratio: '9:16', resolution: '720p', duration: '5', generate_audio: false, ...(seconds !== undefined ? { duration: seedanceDurationParam(seconds) } : {}) },
     })
     return request_id || null
   } catch (err) {
@@ -172,23 +195,95 @@ export async function awaitPendingAiClips(pending: PendingAiClip[], budgetMs = F
       }
       return { scene: p.scene, at_index: p.at_index, url: null, ms: Date.now() - t0 }
     }),
-  )
+  ).then((prontos) => prontos.map((r, i) => comModoTroca(r, pending[i]))) // KINEO1-IMAGEM-V2-2026-09-28
+}
+
+/** KINEO1-IMAGEM-V2-2026-09-28 — o pronto herda o modo TROCA do pendente (só quando o pendente o pediu). */
+function comModoTroca(r: ReadyAiClip, p: PendingAiClip | undefined): ReadyAiClip {
+  return p && typeof p.replace_index === 'number' ? { ...r, replace_index: p.replace_index } : r
 }
 
 /**
  * Encaixa os clipes prontos ABRINDO a sua cena: cada um entra antes de `at_index` (índice do clip_urls
  * ORIGINAL). Ordem crescente de índice; o deslocamento dos anteriores é somado. Clipes sem URL são ignorados.
+ *
+ * KINEO1-IMAGEM-V2-2026-09-28 — MODO TROCA. Nos 30 filmes da amostra com clipe de IA (21-27/09), 38 das 103 cenas
+ * reprovadas pelo juiz JÁ tinham um clipe Seedance pronto: foram reprovadas pelo STOCK que tocava logo depois dele. Com
+ * `replace_index` (índice do clip_urls ORIGINAL, dentro do alcance), o clipe pronto SUBSTITUI aquele stock; se não
+ * ficou pronto (5% dos casos: 194 de 204 prontos desde 21/09), o stock fica — cena nunca vazia. Sem `replace_index`
+ * (ou fora do alcance), o encaixe é o de sempre. Troca não desloca ninguém; inserção desloca os seguintes; empate de
+ * índice → a inserção vem antes (o hook abre o filme e a troca cai no clipe que ele empurrou).
+ *
+ * SEM LAÇO / SEM QUADRO REPETIDO (proibição do fundador) — como o montador trata o clipe (lib/compose.ts, travado, só
+ * lido): no Kineo 1 não existe "duração da cena" na montagem. A lista é plana e cada clipe ganha UMA fatia de
+ * clamp(total ÷ clipes, 2,5 s, 4,5 s) (FAST_MIN/MAX_CUT_SECONDS), com o corte ajustado ao início de frase DENTRO dessa
+ * faixa. O elemento dura fatia + 0,06 s (sobreposição) + 0,25 s (crossfade) e começa em trim_start 0,1 s: no pior
+ * caso lê 4,91 s do arquivo — um clipe de 5 s cobre qualquer fatia sem laço. A troca mantém a CONTAGEM de clipes que
+ * a rota planejou (a inserção somava um e encolhia todas as fatias). O único jeito de o montador repetir um arquivo é
+ * a volta de reciclagem (clipes × fatia < duração do filme): aí ele reentra no mesmo arquivo em trim_start
+ * 0,1 + min(volta × (fatia + 0,6), 6) — e um clipe de 5 s daria a volta (laço). Isso já vale hoje para o clipe
+ * INSERIDO; planAiClipForSlot (abaixo) calcula, com a mesma aritmética, se o índice pode reentrar e devolve a duração
+ * que cobre a pior reentrada — ou, se o teto de custo não pagar, o modo INSERÇÃO de hoje (sem troca). Escolha
+ * documentada: trocar só quando a duração cobre a fatia sem laço.
  */
 export function spliceAiClips(clipUrls: string[], ready: ReadyAiClip[]): string[] {
   const out = [...clipUrls]
-  const prontos = ready.filter((r) => !!r.url).sort((a, b) => a.at_index - b.at_index)
+  const n = clipUrls.length
+  const troca = (r: ReadyAiClip) => typeof r.replace_index === 'number' && Number.isInteger(r.replace_index) && r.replace_index >= 0 && r.replace_index < n
+  const pos = (r: ReadyAiClip) => (troca(r) ? (r.replace_index as number) : r.at_index)
+  const prontos = ready.filter((r) => !!r.url).sort((a, b) => pos(a) - pos(b) || (troca(a) ? 1 : 0) - (troca(b) ? 1 : 0))
   let shift = 0
   for (const r of prontos) {
+    if (troca(r)) {
+      out[(r.replace_index as number) + shift] = r.url as string
+      continue
+    }
     const at = Math.max(0, Math.min(out.length, r.at_index + shift))
     out.splice(at, 0, r.url as string)
     shift++
   }
   return out
+}
+
+// ── KINEO1-IMAGEM-V2-2026-09-28 — duração do clipe de IA para a fatia do montador (espelho, lib/compose.ts é travado) ──
+// Constantes copiadas de lib/compose.ts (buildCreatomateSource, caminho fast): o guardião
+// scripts/test-kineo1-imagem-v2-2026-09-28.mjs lê o compose e fica vermelho se alguma mudar lá.
+const FAST_SLOT_MIN_S = 2.5 // FAST_MIN_CUT_SECONDS
+const FAST_SLOT_MAX_S = 4.5 // FAST_MAX_CUT_SECONDS
+const FAST_TRIM_START_S = 0.1 // CLIP_TRIM_START
+const FAST_GAP_OVERLAP_S = 0.06 // CLIP_GAP_OVERLAP
+const FAST_CROSSFADE_S = 0.25 // FAST_CROSSFADE_SECONDS
+const FAST_REUSE_STEP_S = 0.6 // reuseIndex * (segLen + 0.6)
+const FAST_REUSE_CAP_S = 6 // Math.min(…, 6)
+/** Segundos de arquivo que UMA fatia do montador lê (pior caso: fatia cheia, com crossfade), na volta `reentrada`. */
+export function fastSlotSourceSeconds(slotSeconds: number = FAST_SLOT_MAX_S, reentrada = 0): number {
+  const seg = Math.max(0, Math.min(FAST_SLOT_MAX_S, slotSeconds))
+  const trim = reentrada > 0 ? FAST_TRIM_START_S + Math.min(reentrada * (seg + FAST_REUSE_STEP_S), FAST_REUSE_CAP_S) : FAST_TRIM_START_S
+  return Math.round((trim + seg + FAST_GAP_OVERLAP_S + FAST_CROSSFADE_S) * 1000) / 1000
+}
+/**
+ * Plano do clipe de IA que vai TROCAR o stock no índice `index` de uma lista de `clipCount` clipes num filme de
+ * `filmSeconds`. Pior caso de reciclagem: o montador pode cortar toda fatia em 2,5 s (início de frase), então o filme
+ * tem até ceil(filme ÷ 2,5) fatias; o índice reentra nas voltas em que volta × clipes + índice < fatias. Devolve a
+ * duração (4-12 s, inteira) que cobre a pior leitura sem laço e o custo (US$ 0,026/s). Se o custo passar de `maxUsd`
+ * (padrão: o preço de hoje, 5 s = US$ 0,13), devolve modo 'insert' com 5 s — o comportamento de hoje, sem troca.
+ */
+export function planAiClipForSlot(input: { filmSeconds: number; clipCount: number; index: number; maxUsd?: number }): { mode: 'replace' | 'insert'; seconds: number; usd: number; reentries: number; sourceSeconds: number } {
+  const film = Number.isFinite(input.filmSeconds) && input.filmSeconds > 0 ? input.filmSeconds : 0
+  const n = Math.max(1, Math.floor(input.clipCount))
+  const idx = Math.max(0, Math.floor(input.index))
+  const fatia = Math.min(FAST_SLOT_MAX_S, Math.max(FAST_SLOT_MIN_S, film / n))
+  const fatiasMax = Math.ceil(film / FAST_SLOT_MIN_S - 1e-9)
+  let reentries = 0
+  while ((reentries + 1) * n + idx < fatiasMax) reentries++
+  let sourceSeconds = fastSlotSourceSeconds(fatia, 0)
+  for (let r = 1; r <= reentries; r++) sourceSeconds = Math.max(sourceSeconds, fastSlotSourceSeconds(FAST_SLOT_MAX_S, r))
+  const seconds = Math.max(5, Number(seedanceDurationParam(sourceSeconds)))
+  const usd = Math.round(seconds * SEEDANCE_720P_USD_PER_SECOND * 1000) / 1000
+  const maxUsd = typeof input.maxUsd === 'number' ? input.maxUsd : SEEDANCE_720P_5S_USD
+  const cobre = sourceSeconds <= SEEDANCE_MAX_SECONDS && usd <= maxUsd + 1e-9
+  if (!cobre) return { mode: 'insert', seconds: 5, usd: SEEDANCE_720P_5S_USD, reentries, sourceSeconds }
+  return { mode: 'replace', seconds, usd, reentries, sourceSeconds }
 }
 
 /** Forma do evento pendente (validação do que vem do banco). */
@@ -201,7 +296,12 @@ export function parsePendingAiClips(raw: unknown): PendingAiClip[] {
     const o = c as Record<string, unknown>
     if (typeof o.request_id !== 'string' || !o.request_id) continue
     if (typeof o.scene !== 'number' || typeof o.at_index !== 'number') continue
-    out.push({ request_id: o.request_id, scene: o.scene, at_index: o.at_index, prompt: typeof o.prompt === 'string' ? o.prompt : '', usd: typeof o.usd === 'number' ? o.usd : SEEDANCE_720P_5S_USD })
+    out.push({
+      request_id: o.request_id, scene: o.scene, at_index: o.at_index, prompt: typeof o.prompt === 'string' ? o.prompt : '', usd: typeof o.usd === 'number' ? o.usd : SEEDANCE_720P_5S_USD,
+      // KINEO1-IMAGEM-V2-2026-09-28 — modo troca e duração só entram quando o evento os traz e são válidos.
+      ...(typeof o.replace_index === 'number' && Number.isInteger(o.replace_index) && o.replace_index >= 0 ? { replace_index: o.replace_index } : {}),
+      ...(typeof o.seconds === 'number' && Number.isInteger(o.seconds) && o.seconds >= SEEDANCE_MIN_SECONDS && o.seconds <= SEEDANCE_MAX_SECONDS ? { seconds: o.seconds } : {}),
+    })
   }
   return out.slice(0, 3)
 }

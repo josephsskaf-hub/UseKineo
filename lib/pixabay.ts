@@ -67,12 +67,18 @@ const SUBJECT_CONFLICTS: ReadonlyArray<{ subject: RegExp; context: RegExp; rejec
   { subject: /\b(crane|cranes)\b/, context: /\b(construction|building|site|lift|lifting|tower)\b/, rejectTags: /\b(bird|birds|wildlife|marsh|wading)\b/, label: 'crane_not_bird' },
   { subject: /\bbat\b/, context: /\b(baseball|cricket|bat swing|batter)\b/, rejectTags: /\b(animal|cave|wing|wings|nocturnal|mammal)\b/, label: 'bat_not_animal' },
 ]
+// KINEO1-IMAGEM-V2-2026-09-28 — homônimo que só o v2 recusa: "historical players" (7c0a2023, cena 3, "Players originally
+// hit the ball with their bare hands") recebeu uma vitrola ("record, record player, vinyl, turntable"). O plural simples
+// da regra 3 ainda casa "players" com a palavra "player" — quem separa as acepções é o contexto (bola, jogo, quadra).
+const SUBJECT_CONFLICTS_V2: typeof SUBJECT_CONFLICTS = [
+  { subject: /\bplayers?\b/, context: /\b(ball|balls|game|games|match|sport|sports|team|court|field|tennis|football|soccer|basketball|baseball|cricket|golf|chess|poker|athlete|athletes|played|serve|serving)\b/, rejectTags: /\b(record player|record|vinyl|turntable|gramophone|phonograph|dvd|cd player|mp3|media player|cassette)\b/, label: 'player_not_device' },
+]
 /** Recusa por homônimo: o sujeito da busca, no contexto da cena, não pode receber a tag da outra acepção. Exportado para o guardião. */
-export function subjectConflictWithTags(query: string, tagsBlob: string, context: string = ACTIVE_SUBJECT_CONTEXT): string | null {
+export function subjectConflictWithTags(query: string, tagsBlob: string, context: string = ACTIVE_SUBJECT_CONTEXT, gate?: { v2?: boolean }): string | null {
   const q = query.toLowerCase()
   const ctx = `${q} ${context}`
   const tags = tagsBlob.toLowerCase()
-  for (const c of SUBJECT_CONFLICTS) {
+  for (const c of gate?.v2 ? [...SUBJECT_CONFLICTS, ...SUBJECT_CONFLICTS_V2] : SUBJECT_CONFLICTS) {
     if (c.subject.test(q) && c.context.test(ctx) && c.rejectTags.test(tags)) return c.label
   }
   return null
@@ -231,7 +237,9 @@ function subjectFamilyOf(token: string): ReadonlyArray<string> | null {
   return null
 }
 /** Tokens da busca que carregam o SUJEITO (fora dos genéricos e dos de estilo). */
-export function specificTokens(query: string): string[] { // exportado para o guardião
+export function specificTokens(query: string, gate?: SubjectGateOptions): string[] { // exportado para o guardião
+  // KINEO1-IMAGEM-V2-2026-09-28 — v2: a busca perde o plano de câmera e mais uns adjetivos de enchimento (GENERIC_V2).
+  if (gate?.v2) return meaningfulTokens(stripCameraPhrases(query)).filter((t) => !GENERIC_NOUNS.has(t) && !GENERIC_V2.has(t))
   return meaningfulTokens(query).filter((t) => !GENERIC_NOUNS.has(t))
 }
 // ═══ KINEO1-SUJEITO-CABECA-2026-09-18 — o sujeito é a CABEÇA da busca, não qualquer palavra específica ═══
@@ -243,19 +251,185 @@ export function specificTokens(query: string): string[] { // exportado para o gu
 // REGRA: a primeira palavra específica da busca que não é modificador ("freshwater", "giant"…) é a cabeça, e a
 // tag TEM de bater com ela (direto ou pela família de sinônimo). Sem cabeça (busca só de genéricos), vale a
 // regra antiga. Pool vazio → still gerado do sujeito certo (foto do mosquito > vídeo da vespa).
-export function headSubjectToken(query: string): string | null { // exportado para o guardião
+export function headSubjectToken(query: string, gate?: SubjectGateOptions): string | null { // exportado para o guardião
+  if (gate?.v2) return subjectPhraseV2(query).head // KINEO1-IMAGEM-V2-2026-09-28 — ver o bloco v2 abaixo
   const specific = specificTokens(query)
   const head = specific.find((t) => !HEAD_MODIFIERS.has(t)) ?? specific[0] ?? null
   return head
 }
-function specificTokenHitsTags(token: string, tagWords: string[]): boolean {
-  if (tokenHitsTags(token, tagWords)) return true
+function specificTokenHitsTags(token: string, tagWords: string[], v2 = false): boolean {
+  if (tokenHitsTags(token, tagWords, v2)) return true
   const fam = subjectFamilyOf(token)
   if (!fam) return false
-  return fam.some((w) => w !== token && tokenHitsTags(w, tagWords))
+  return fam.some((w) => w !== token && tokenHitsTags(w, tagWords, v2))
 }
 
-function hasLifestylePollution(video: PixabayVideo, sceneNeedsPeople: boolean): boolean {
+// ═══ KINEO1-IMAGEM-V2-2026-09-28 — portão do sujeito v2 (INERTE: só vale com { v2: true }) ═══
+//
+// Kineo 1 faz 93% dos filmes de cliente, e desde 19/09 o juiz dá 69 no geral, 89 na fala e 53 na imagem (63 de 131
+// filmes de cliente com 40 na imagem, 56 com 60, 13 com 80+). Na taxonomia das 136 cenas reprovadas de 40 filmes nota
+// 40 (21-27/09, docs/KINEO1-IMAGEM-V2-2026-09-28.md), 21 são DESTE portão — ele pegou o clipe errado ou jogou fora o
+// certo. Os casos, com as tags reais do fast_scene_plan:
+//   · a cabeça era a PRIMEIRA palavra específica, e o inglês põe o sujeito no FIM da frase nominal: "cone snail on
+//     coral" → vulcão (tag "cone", 3b01d92c); "french handwriting" → Riviera Francesa; "parisian diner" → chafariz de
+//     Paris (463958ba); "food truck london" → caminhão de carga; "hair growth bottle" → cabelo de mulher; "quick dance
+//     moves" → cachoeira (tag "quick"); "antique fork" → cinema antigo;
+//   · plural de palavra curta: "news" casou a tag "new" (borboleta no filme de notícias de IA, com o modo ficção
+//     ligado porque "Google" virou personagem — ver characterStoryName v2 em lib/fastAiScene.ts);
+//   · substring ao contrário (token.includes(tag)): "handwriting" ⊃ "writing", "players" ⊃ "player";
+//   · HARD_LIFESTYLE_TAGS recusava criança até quando a cena É sobre criança (99d5e8bb: "toddler breakdancing" caiu na
+//     biblioteca, "kids dancing outdoors" num clipe reciclado);
+//   · o roteirista põe um plano de câmera na frente de toda busca (lib/runway.ts: "aerial drone", "close-up macro"…),
+//     e essas palavras iam para o texto da Pixabay e para o cofre — 14,9% das buscas dos filmes nota 40.
+// REGRAS v2 (todas atrás de { v2: true }; sem a opção o portão é, byte a byte, o de 18-22/09):
+//   1. a busca perde o plano de câmera antes de chegar à Pixabay ou ao cofre (stripCameraPhrases). O plano continua
+//      NASCENDO no roteirista: lib/runway.ts (outraConsulta) depende do prefixo — tira-se no USO, não na instrução;
+//   2. frase-cabeça = o trecho antes da 1ª vírgula ou de on/in/near/of/over. Com até 3 palavras específicas, TODAS têm
+//      de bater (o modificador de HEAD_MODIFIERS fica de fora: "freshwater snail" exige só "snail") e a cabeça é a
+//      ÚLTIMA. Com 4+ (saco de palavras: "wolf tracks snow moonlight", "mosquito insect close up macro bite") a cabeça
+//      segue sendo a PRIMEIRA — a regra de 18/09, que acertou o mosquito; pôr "moonlight" como sujeito do lobo seria o
+//      mesmo erro ao contrário;
+//   3. sem substring ao contrário; plural (±s/es) só com base de 4+ letras ("news" ≠ "new"; "rings" = "ring");
+//   4. criança só é recusada quando a cena não pede criança (sceneAsksForKids);
+//   5. OPCIONAL ({ v2: true, headFallback: true }): se nenhum clipe bate todas as palavras da frase-cabeça, entra o
+//      que bate a ÂNCORA (sem ação -ing, hora/luz ou parte do corpo), sempre atrás dos completos — medido abaixo, junto
+//      de ING_NOUNS_V2. A frase-cabeça também corta em at/with/under/into/from/above… além das 5 pedidas.
+// O risco conhecido: portão mais duro esvazia mais pools, e pool vazio vira clipe reciclado (que o juiz também pune).
+// Por isso o v2 só liga junto com as buscas novas (lib/kineo1/sceneQueries.ts) e o clipe de IA nas cenas fracas — e
+// só depois do replay offline (/api/admin/kineo1-replay) provar a nota.
+export type SubjectGateOptions = {
+  /** liga o portão v2 (KINEO1-IMAGEM-V2-2026-09-28). Ausente/false = o portão de hoje. */
+  v2?: boolean
+  /** fala da cena — decide se a cena pede criança (regra 4) */
+  sceneText?: string
+  /** modo ficção explícito; ausente = o do módulo (setActiveStrictSubject) */
+  strict?: boolean
+  /**
+   * Regra 5 (opcional DENTRO do v2 — o padrão do v2 é a regra 2 pura, como pedida): quando nenhum clipe bate TODAS as
+   * palavras da frase-cabeça, aceita o que bate a ÂNCORA (a última palavra que não é ação -ing, hora/luz nem parte do
+   * corpo), sempre ranqueado DEPOIS de qualquer clipe que bate todas. Ver o cabeçalho do bloco v2.
+   */
+  headFallback?: boolean
+}
+/** Enchimento que o v2 também não aceita como sujeito ("quick" trouxe a cachoeira; "news", a borboleta). */
+const GENERIC_V2 = new Set(['quick', 'rapid', 'fast', 'news', 'seconds', 'minutes', 'hours', 'launched', 'says'])
+// Os planos que lib/runway.ts manda o roteirista pôr na frente de toda busca, e as variações que o GPT escreve.
+// "medium" e "aerial" sozinhos NÃO saem ("medium rare steak", "aerial silk"): só a expressão de plano inteira.
+const CAMERA_PHRASE_RE = /\b(?:(?:extreme |tight )?close[- ]?ups?(?:[- ]macro)?|macro (?:close[- ]?up|shot)|aerial drone(?: shot| view| footage)?|aerial (?:shot|view|footage)|drone (?:shot|view|footage)|wide establishing(?: shot)?|establishing shot|wide shot|medium (?:close[- ]?up |wide )?shot|(?:low|high)[- ]angle(?: shot| view)?|pov(?: shot)?|point[- ]of[- ]view(?: shot)?|slow[- ]?motion|slow[- ]?mo|tracking shot|overhead shot)\b/gi
+/** Tira o plano de câmera da busca ("close-up macro wolf tracks snow" → "wolf tracks snow"). Se não sobrar nada, devolve a busca. */
+export function stripCameraPhrases(query: string): string { // exportado para a rota (parte B) e o guardião
+  const q = (query ?? '').replace(/\s+/g, ' ').trim()
+  const out = q
+    .replace(CAMERA_PHRASE_RE, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^(?:[,:;–—-]\s*)+/, '')
+    .replace(/^(?:shot of|of|showing)\s+/i, '')
+    .replace(/[\s,;:–—-]+$/, '') // "maple leaves, autumn forest, slow motion" não termina em vírgula
+    .trim()
+  return out || q
+}
+// on/in/near/of/over (o pedido) + as outras preposições de lugar/companhia: "wolf looking at camera" exigia "camera";
+// "aerial drone shot above clouds" exigia "above" (medido no replay offline de 28/09).
+const HEAD_CUT_RE = /,|\b(?:on|in|near|of|over|at|with|under|into|from|above|below|behind|inside|through|during|across|around)\b/i
+// Regra 5 — MEDIDO (28/09) no que já foi escolhido: nas cenas de stock dos filmes de cliente julgados desde 19/09, a
+// regra 2 pura recusa ~metade dos clipes que o v1 aceitava — inclusive os bons dos filmes nota 80+: "tiger stalking in
+// jungle", "tiger paw closeup" (tigre sem "stalking"/"paw" na tag), "earth spinning", "new york skyline sunset", "eagle
+// wings folding". O que sobra nessas frases depois da âncora é AÇÃO (-ing), HORA/LUZ ou PARTE DO CORPO — e o clipe do
+// sujeito inteiro serve. Os vazamentos do scout continuam recusados pela âncora (snail, handwriting, diner, bottle,
+// moves, fork), menos "joyful child dancing" → presépio ("dancing" é ação; a âncora vira "child") — por isso a regra 5
+// é opcional e o replay mede as duas.
+const ING_NOUNS_V2 = new Set(['handwriting', 'building', 'painting', 'clothing', 'ceiling', 'wedding', 'morning', 'evening', 'lightning', 'pudding', 'stuffing', 'housing', 'frosting', 'dumpling', 'sibling', 'duckling', 'seedling', 'earring', 'stocking', 'bedding', 'railing', 'awning', 'lettering', 'engraving', 'carving', 'drawing', 'recording', 'offering', 'landing', 'clearing', 'crossing', 'opening', 'setting', 'spring', 'string', 'nothing', 'something', 'everything', 'viking'])
+const SETTING_V2 = new Set(['sunset', 'sunrise', 'dawn', 'dusk', 'twilight', 'midnight', 'moonlight', 'sunlight', 'silhouette'])
+const PART_V2 = new Set(['paw', 'paws', 'skin', 'fur', 'teeth', 'tooth', 'claw', 'claws', 'tail', 'tails', 'wing', 'wings', 'feather', 'feathers', 'feet', 'foot', 'leg', 'legs', 'head', 'fin', 'fins', 'scale', 'scales', 'horn', 'horns', 'beak', 'mane', 'whiskers', 'nose', 'mouth', 'ear', 'ears', 'hoof', 'hooves', 'tusk', 'tusks', 'shell'])
+const acaoV2 = (w: string) => w.length >= 6 && w.endsWith('ing') && !ING_NOUNS_V2.has(w)
+/** Frase-cabeça da busca (regra 2): a cabeça, as palavras que TÊM de estar nas tags e a âncora da regra 5. Exportado para o guardião. */
+export function subjectPhraseV2(query: string): { head: string | null; required: string[]; anchor: string | null } {
+  const chunks = stripCameraPhrases(query).toLowerCase().split(HEAD_CUT_RE).map((c) => c.trim()).filter(Boolean)
+  for (const c of chunks) {
+    const spec = specificTokens(c, { v2: true })
+    if (spec.length === 0) continue
+    const core = spec.filter((t) => !HEAD_MODIFIERS.has(t))
+    if (spec.length <= 3) {
+      const head = core.length > 0 ? core[core.length - 1] : spec[spec.length - 1]
+      const required = core.length > 0 ? core : [head]
+      const firmes = required.filter((t) => !acaoV2(t) && !SETTING_V2.has(t) && !PART_V2.has(t))
+      return { head, required, anchor: firmes.length > 0 ? firmes[firmes.length - 1] : head }
+    }
+    const head = core[0] ?? spec[0]
+    return { head, required: [head], anchor: head }
+  }
+  return { head: null, required: [], anchor: null }
+}
+/** Mesma palavra, ou plural simples (±s/es) com base de 4+ letras: "rings"="ring", "news"≠"new". */
+function pluralOrSameV2(a: string, b: string): boolean {
+  if (a === b) return true
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a]
+  return short.length >= 4 && (long === `${short}s` || long === `${short}es`)
+}
+function tokenHitsTagsV2(token: string, tagWords: string[]): boolean {
+  for (const w of tagWords) if (pluralOrSameV2(token, w)) return true
+  if (token.length < 5) return false
+  for (const w of tagWords) if (w.includes(token)) return true // "ocean" → "oceanic"; o sentido inverso morreu
+  return false
+}
+/** Quantos tokens batem com uma palavra INTEIRA das tags (o cofre v2 usa; plural pela regra 3). */
+export function wholeWordTagHits(tokens: string[], tags: string): number {
+  const words = (tags ?? '').toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)
+  return tokens.filter((t) => words.some((w) => pluralOrSameV2(t, w))).length
+}
+const KIDS_QUERY_RE = /\b(?:child|children|kid|kids|toddler|toddlers|baby|babies|school|schools|schoolchildren|student|students|pupil|pupils|classroom|kindergarten|homework)\b/i
+const KIDS_SPEECH_RE = /\b(?:child|children|kid|kids|toddler|toddlers|baby|babies|kindergarten)\b|crian[çc]as?|beb[êeé]s?|\bni[ñn][oa]s?\b/i
+/**
+ * Regra 4: a cena pede criança? A BUSCA manda (é a intenção visual: "toddler breakdancing", "kids dancing outdoors",
+ * "school classroom"). Na FALA só vale palavra inequívoca de criança — "school"/"student" na fala é quase sempre
+ * figura ("Mark Cuban lived like a broke student", o caso do Push #437 que criou a lista dura) e não abre a porta.
+ */
+export function sceneAsksForKids(query: string, sceneText: string): boolean {
+  return KIDS_QUERY_RE.test(query ?? '') || KIDS_SPEECH_RE.test(sceneText ?? '')
+}
+function tagsRelevantV2(tagWords: string[], query: string, strict: boolean, headFallback = false): boolean {
+  const q = stripCameraPhrases(query)
+  const { head, required, anchor } = subjectPhraseV2(q)
+  // Ficção (KINEO1-FICCAO-STOCK-EXATO): as palavras da frase-cabeça têm de ser tags EXATAS (plural pela regra 3).
+  if (strict) return head !== null && required.every((t) => tagWords.some((w) => pluralOrSameV2(t, w)))
+  const qTokens = meaningfulTokens(q)
+  if (qTokens.length === 0) return true
+  let hits = 0
+  for (const t of qTokens) if (tokenHitsTagsV2(t, tagWords)) hits++
+  if (hits < (qTokens.length >= 4 ? 2 : 1)) return false
+  const specific = specificTokens(q, { v2: true })
+  if (specific.length === 0) return true
+  if (!specific.some((t) => specificTokenHitsTags(t, tagWords, true))) return false
+  if (required.every((t) => specificTokenHitsTags(t, tagWords, true))) return true
+  return headFallback && anchor !== null && specificTokenHitsTags(anchor, tagWords, true) // regra 5 (opcional)
+}
+/** Regra 5: o clipe passou só pela âncora (não bate todas as palavras da frase-cabeça)? Ranqueia depois dos completos. */
+function soPelaAncoraV2(video: PixabayVideo, query: string): boolean {
+  const { required } = subjectPhraseV2(query)
+  const tagWords = tagWordsOf(video)
+  return required.length > 0 && !required.every((t) => specificTokenHitsTags(t, tagWords, true))
+}
+/**
+ * KINEO1-IMAGEM-V2-2026-09-28 — o MESMO portão do pool (lifestyle → relevância → homônimo, nesta ordem, como em
+ * collectCandidates) sobre uma string de tags. O cofre v2 passa cada linha por aqui: até hoje o clipe do cofre não
+ * passava por portão nenhum (o raio-X de hospital foi servido a "close-up macro wolf tracks snow moonlight").
+ */
+export function clipTagsGate(
+  tags: string,
+  query: string,
+  opts?: SubjectGateOptions & { sceneNeedsPeople?: boolean },
+): { ok: boolean; reason: 'lifestyle' | 'irrelevant' | 'homonym' | null } {
+  const video = { id: 0, pageURL: '', type: 'film', tags: tags ?? '', duration: 0, videos: {} } as unknown as PixabayVideo
+  const gate: SubjectGateOptions | undefined = opts?.v2 ? { v2: true, sceneText: opts.sceneText ?? '', strict: opts.strict === true, headFallback: opts.headFallback === true } : undefined
+  if (hasLifestylePollution(video, opts?.sceneNeedsPeople ?? true, gate, query)) return { ok: false, reason: 'lifestyle' }
+  if (!tagsRelevantToQuery(video, query, gate)) return { ok: false, reason: 'irrelevant' }
+  const ctx = typeof opts?.sceneText === 'string' ? opts.sceneText.toLowerCase().slice(0, 600) : ACTIVE_SUBJECT_CONTEXT
+  if (subjectConflictWithTags(query, tags ?? '', ctx, gate)) return { ok: false, reason: 'homonym' }
+  return { ok: true, reason: null }
+}
+
+function hasLifestylePollution(video: PixabayVideo, sceneNeedsPeople: boolean, gate?: SubjectGateOptions, query?: string): boolean {
   const tags = video.tags
     .toLowerCase()
     .split(',')
@@ -265,7 +439,8 @@ function hasLifestylePollution(video: PixabayVideo, sceneNeedsPeople: boolean): 
   const blob = video.tags.toLowerCase()
   if (HARD_OFFTOPIC_SUBSTRINGS.some((s) => blob.includes(s))) return true
   // Hard offenders are always rejected.
-  if (tags.some((t) => HARD_LIFESTYLE_TAGS.has(t))) return true
+  // KINEO1-IMAGEM-V2-2026-09-28 — no v2, menos quando a cena pede criança (regra 4 do bloco v2).
+  if (tags.some((t) => HARD_LIFESTYLE_TAGS.has(t)) && !(gate?.v2 && sceneAsksForKids(query ?? '', gate.sceneText ?? ''))) return true
   // Soft lifestyle tags only matter when the scene isn't about people.
   if (sceneNeedsPeople) return false
   return tags.some((t) => LIFESTYLE_TAG_SET.has(t))
@@ -332,7 +507,8 @@ function tagWordsOf(video: PixabayVideo): string[] {
 // pass the relevance gate. Now: an exact tag-word match always counts, and the
 // useful loose cases ("ocean" → "oceanic", "plane" → "airplane") are still
 // allowed but only for tokens of 5+ chars, where an accidental hit is unlikely.
-function tokenHitsTags(token: string, tagWords: string[]): boolean {
+function tokenHitsTags(token: string, tagWords: string[], v2 = false): boolean {
+  if (v2) return tokenHitsTagsV2(token, tagWords) // KINEO1-IMAGEM-V2-2026-09-28 — regra 3
   for (const w of tagWords) if (w === token) return true
   if (token.length < 5) return false
   for (const w of tagWords) {
@@ -353,12 +529,15 @@ export function setActiveStrictSubject(strict: boolean): void {
   ACTIVE_STRICT_SUBJECT = strict
 }
 /** Igualdade de palavra, tolerando só o plural simples ("door"/"doors"). Nada de substring nem família. */
-export function headMatchesTagExactly(head: string, tagWords: string[]): boolean { // exportado para o guardião
+export function headMatchesTagExactly(head: string, tagWords: string[], gate?: SubjectGateOptions): boolean { // exportado para o guardião
   const h = head.toLowerCase()
+  if (gate?.v2) return tagWords.some((w) => pluralOrSameV2(h, w)) // KINEO1-IMAGEM-V2-2026-09-28 — "news" ≠ "new"
   return tagWords.some((w) => w === h || w === `${h}s` || h === `${w}s`)
 }
 
-export function tagsRelevantToQuery(video: PixabayVideo, query: string): boolean { // exportado para o guardião (KINEO1-SUJEITO)
+export function tagsRelevantToQuery(video: PixabayVideo, query: string, gate?: SubjectGateOptions): boolean { // exportado para o guardião (KINEO1-SUJEITO)
+  // KINEO1-IMAGEM-V2-2026-09-28 — portão v2 só com a opção (ver o bloco v2 acima); sem ela, o de sempre.
+  if (gate?.v2) return tagsRelevantV2(tagWordsOf(video), query, gate.strict ?? ACTIVE_STRICT_SUBJECT, gate.headFallback === true)
   const qTokens = meaningfulTokens(query)
   if (ACTIVE_STRICT_SUBJECT) {
     // KINEO1-FICCAO-STOCK-EXATO — busca sem cabeça (só genéricos/estilo) não traz stock nenhum para uma ficção.
@@ -407,13 +586,13 @@ function styleAlignScore(video: PixabayVideo, query: string): number {
 // share with the query. tagsRelevantToQuery is a pass/fail gate (≥1 token);
 // this count feeds the candidate RANKING so a clip matching "volcano"+"lava"
 // +"eruption" beats one matching only "volcano".
-function tagMatchCount(video: PixabayVideo, query: string): number {
-  const qTokens = meaningfulTokens(query)
+function tagMatchCount(video: PixabayVideo, query: string, gate?: SubjectGateOptions): number {
+  const qTokens = meaningfulTokens(gate?.v2 ? stripCameraPhrases(query) : query)
   if (qTokens.length === 0) return 0
   // PUSH #93 — same word-level matcher as the gate, so the ranking can't reward
   // an accidental substring hit ("ice" inside "office") the gate now rejects.
   const tagWords = tagWordsOf(video)
-  return qTokens.filter((t) => tokenHitsTags(t, tagWords)).length
+  return qTokens.filter((t) => tokenHitsTags(t, tagWords, gate?.v2 === true)).length
 }
 
 // ── KINEO-FAST-CINEMA-2026-07-10 — "AI Gen look" ranking signals ────────────
@@ -737,6 +916,10 @@ type PixabayCandidate = {
   /** KINEO-FAST-V4 — full provider tags + duration, for the clip vault index. */
   tags: string
   durationSec?: number
+  /** KINEO1-IMAGEM-V2-2026-09-28 — a busca do pool que trouxe o candidato (relatório do replay). */
+  query?: string
+  /** KINEO1-IMAGEM-V2-2026-09-28 — regra 5: entrou só pela âncora; vai para o fim do pool. */
+  anchorOnly?: boolean
   /** PUSH #93 (FIX 1) — true when this candidate came from a CONCEPT_VISUAL_MAP
    *  generic query rather than the scene's own narration-derived query. Generic
    *  candidates are ranked strictly below grounded ones (see the pool sort). */
@@ -754,6 +937,7 @@ async function collectCandidates(
   exclude?: Set<string>,
   minDurationSec?: number,
   styleCtx?: StyleContext,
+  gate?: SubjectGateOptions, // KINEO1-IMAGEM-V2-2026-09-28 — ausente = portão de hoje
 ): Promise<PixabayCandidate[]> {
   // Push #484 (02/07) — pool 7 → 20. The #483 ranker only beats "first clean
   // clip wins" if it has real candidates to rank; 7 hits often left 1-2 clean
@@ -788,7 +972,7 @@ async function collectCandidates(
 
   for (let order = 0; order < hits.length; order++) {
     const video = hits[order]
-    if (hasLifestylePollution(video, sceneNeedsPeople)) {
+    if (hasLifestylePollution(video, sceneNeedsPeople, gate, query)) {
       console.log(
         `[pixabay] ${label} rejected id=${video.id} tags="${video.tags.slice(0, 60)}" reason=lifestyle`,
       )
@@ -796,14 +980,15 @@ async function collectCandidates(
     }
     // Push #403 — positive relevance gate: the clip's tags must share a word
     // with the query, else it's off-topic ("cat video") → reject.
-    if (!tagsRelevantToQuery(video, query)) {
+    if (!tagsRelevantToQuery(video, query, gate)) {
       console.log(
         `[pixabay] ${label} rejected id=${video.id} tags="${video.tags.slice(0, 60)}" reason=irrelevant query="${query.slice(0, 50)}"`,
       )
       continue
     }
     // KINEO1-SEM-GENERICO-E-HOMONIMO-2026-09-20 — "mustang car" não recebe cavalo; "bullet trajectory" não recebe trem.
-    const conflito = subjectConflictWithTags(query, video.tags)
+    // KINEO1-IMAGEM-V2-2026-09-28 — no v2 entra também a tabela de homônimos v2 (SUBJECT_CONFLICTS_V2).
+    const conflito = subjectConflictWithTags(query, video.tags) ?? (gate?.v2 ? subjectConflictWithTags(query, video.tags, ACTIVE_SUBJECT_CONTEXT, gate) : null)
     if (conflito) {
       console.log(`[pixabay] ${label} rejected id=${video.id} tags="${video.tags.slice(0, 60)}" reason=homonym:${conflito} query="${query.slice(0, 50)}"`)
       continue
@@ -848,7 +1033,7 @@ async function collectCandidates(
     // Explicit penalty, NOT a reject: on thin queries a short on-topic clip still
     // beats FALLBACK-A/B repetition.
     const tooShort = typeof video.duration === 'number' && video.duration > 0 && video.duration < 3
-    const matches = tagMatchCount(video, query)
+    const matches = tagMatchCount(video, query, gate)
     // KINEO-FAST-CINEMA (10/07) — production-value signals added to the score.
     // Topic strength (×4) still dominates: style/res/coherence only decide
     // between clips that are EQUALLY on-topic.
@@ -914,6 +1099,7 @@ async function collectCandidates(
     candidates.push({
       url, score, order, id: video.id, styleTags: sTags,
       tags: video.tags, durationSec: typeof video.duration === 'number' ? video.duration : undefined,
+      ...(gate?.v2 && gate.headFallback && soPelaAncoraV2(video, query) ? { anchorOnly: true } : {}), // KINEO1-IMAGEM-V2 regra 5
     })
     console.log(
       `[pixabay] ${label} candidate id=${video.id} score=${score.toFixed(2)} (matches=${matches} dur=${video.duration ?? '?'}s/${neededSec}s portrait=${portrait} tooShort=${tooShort} lowRes=${lowRes} cohere=${cohere} styleAlign=${styleAlign} aesthetic=${aesthetic.score.toFixed(2)}→${aesthetic.points.toFixed(2)}pts/${AESTHETIC_MAX_SWING} [${formatAestheticBreakdown(aesthetic)}]) tags="${video.tags.slice(0, 60)}"`,
@@ -930,8 +1116,9 @@ async function searchAndFilter(
   label: string,
   exclude?: Set<string>,
   minDurationSec?: number,
+  gate?: SubjectGateOptions, // KINEO1-IMAGEM-V2-2026-09-28
 ): Promise<string | null> {
-  const candidates = await collectCandidates(query, sceneNeedsPeople, category, label, exclude, minDurationSec)
+  const candidates = await collectCandidates(query, sceneNeedsPeople, category, label, exclude, minDurationSec, undefined, gate)
 
   if (candidates.length === 0) return null
 
@@ -940,6 +1127,10 @@ async function searchAndFilter(
   console.log(
     `[pixabay] ${label} ACCEPTED id=${best.id} score=${best.score.toFixed(2)} of ${candidates.length} candidate(s) url="${best.url.slice(0, 60)}"`,
   )
+  // KINEO1-IMAGEM-V2-2026-09-28 — o clipe achado pela cadeia (pool seco) nunca tinha as tags gravadas: a evidência do
+  // juiz o mostrava como stock SEM tags. No v2 a cadeia anota como o pool anota (só com a opção: a rota usa as tags
+  // anotadas para o dedupe por assinatura, e isso não pode mudar sem o v2).
+  if (gate?.v2) notePickedClipTags(best.url, best.tags)
   return best.url
 }
 
@@ -954,20 +1145,21 @@ export async function getPixabayVideoForExactQuery(
   sceneNeedsPeople = false,
   exclude?: Set<string>,
   minDurationSec?: number, // Push #483 — planned scene duration for ranking
+  gate?: SubjectGateOptions, // KINEO1-IMAGEM-V2-2026-09-28 — ausente = portão de hoje
 ): Promise<string | null> {
-  const q = (query ?? '').trim()
+  const q = (gate?.v2 ? stripCameraPhrases(query ?? '') : (query ?? '')).trim()
   if (!q) return null
 
   const category = inferCategory(q)
 
   // 1) Exact query with inferred category
-  const direct = await searchAndFilter(q, sceneNeedsPeople, category, 'exact', exclude, minDurationSec)
+  const direct = await searchAndFilter(q, sceneNeedsPeople, category, 'exact', exclude, minDurationSec, gate)
   if (direct) return direct
 
   // 2) First 3 tokens (broadened) — same semantic topic
   const broad = q.split(/\s+/).slice(0, 3).join(' ')
   if (broad.length > 0 && broad !== q) {
-    const broadUrl = await searchAndFilter(broad, sceneNeedsPeople, category, 'broad', exclude, minDurationSec)
+    const broadUrl = await searchAndFilter(broad, sceneNeedsPeople, category, 'broad', exclude, minDurationSec, gate)
     if (broadUrl) return broadUrl
   }
 
@@ -975,13 +1167,13 @@ export async function getPixabayVideoForExactQuery(
   // 4-word hand-picked queries like "man reading book penthouse" → "man reading").
   const broad2 = q.split(/\s+/).slice(0, 2).join(' ')
   if (broad2.length > 0 && broad2 !== broad && broad2 !== q) {
-    const broad2Url = await searchAndFilter(broad2, sceneNeedsPeople, category, 'broad2', exclude, minDurationSec)
+    const broad2Url = await searchAndFilter(broad2, sceneNeedsPeople, category, 'broad2', exclude, minDurationSec, gate)
     if (broad2Url) return broad2Url
   }
 
   // 3) Remove category constraint — may have been over-narrowing
   if (category) {
-    const noCat = await searchAndFilter(q, sceneNeedsPeople, undefined, 'no_cat', exclude, minDurationSec)
+    const noCat = await searchAndFilter(q, sceneNeedsPeople, undefined, 'no_cat', exclude, minDurationSec, gate)
     if (noCat) return noCat
   }
 
@@ -1139,11 +1331,16 @@ export async function getPixabayVideoForQueries(
     exclude?: Set<string>
     /** Push #483 — planned scene duration (s); clips covering it rank higher. */
     minDurationSec?: number
+    /** KINEO1-IMAGEM-V2-2026-09-28 — portão v2 + busca sem plano de câmera (ver o bloco v2). Ausente = hoje. */
+    v2?: boolean
+    /** KINEO1-IMAGEM-V2-2026-09-28 — regra 5 do portão v2. */
+    headFallback?: boolean
   },
 ): Promise<string | null> {
+  const gate: SubjectGateOptions | undefined = opts?.v2 ? { v2: true, sceneText: hint ?? '', headFallback: opts.headFallback === true } : undefined
   const rawCleaned = (queries ?? [])
     .filter((q): q is string => typeof q === 'string' && q.trim().length > 0)
-    .map((q) => q.trim())
+    .map((q) => (gate ? stripCameraPhrases(q) : q).trim())
 
   // Push #437 — concrete cinematic queries for any abstract concept detected in
   // the scene, so a scene with no literal stock inventory still finds something.
@@ -1163,7 +1360,7 @@ export async function getPixabayVideoForQueries(
 
   for (let i = 0; i < cleaned.length; i++) {
     const q = cleaned[i]
-    const url = await getPixabayVideoForExactQuery(q, sceneNeedsPeople, opts?.exclude, opts?.minDurationSec)
+    const url = await getPixabayVideoForExactQuery(q, sceneNeedsPeople, opts?.exclude, opts?.minDurationSec, gate)
     if (url) {
       console.log(
         `[pixabay-multi] HIT query[${i + 1}/${cleaned.length}]="${q}"` +
@@ -1186,6 +1383,15 @@ export async function getPixabayVideoForQueries(
 }
 
 // ── Fast Mode v2 (02/07) — multi-clip scene pools ──────────────────────────
+
+/** KINEO1-IMAGEM-V2-2026-09-28 — o que o pool escolheu e de onde veio (o replay e, na parte B, a evidência do juiz). */
+export type ScenePoolReport = {
+  /** pool = busca da cena; chain = pool seco, a cadeia antiga achou; none = nada (a rota recicla um clipe) */
+  origin: 'pool' | 'chain' | 'none'
+  /** as buscas que valeram, na ordem (já sem plano de câmera no v2) */
+  queries: string[]
+  picks: Array<{ url: string; tags: string; score: number | null; query: string | null }>
+}
 
 // Max queries pooled per scene — each pool query is exactly ONE Pixabay API call
 // (no broadening tiers), so a scene costs at most 3 calls before falling back.
@@ -1267,12 +1473,27 @@ export async function getPixabayClipsForScene(
      * cena; o stock é o segundo corte e precisa provar que é da cena.
      */
     strictSubject?: boolean
+    /**
+     * KINEO1-IMAGEM-V2-2026-09-28 — portão do sujeito v2 e busca sem plano de câmera (ver o bloco v2 no topo do
+     * arquivo). Ausente/false = exatamente o comportamento de hoje. Quem liga é a rota (parte B, trava 8.2) e o replay.
+     */
+    v2?: boolean
+    /** KINEO1-IMAGEM-V2-2026-09-28 — regra 5 do portão v2 (âncora como segunda linha); só vale com v2. */
+    headFallback?: boolean
+    /** KINEO1-IMAGEM-V2-2026-09-28 — replay offline: não grava no cofre (nenhuma escrita). Ausente = grava como hoje. */
+    dryRun?: boolean
+    /** KINEO1-IMAGEM-V2-2026-09-28 — relatório da escolha (origem pool/cadeia e as tags de cada clipe). */
+    onReport?: (report: ScenePoolReport) => void
   },
 ): Promise<string[]> {
   setActiveStrictSubject(opts?.strictSubject === true) // KINEO1-FICCAO-STOCK-EXATO
-  const rawCleaned = (queries ?? [])
+  // KINEO1-IMAGEM-V2-2026-09-28 — o portão v2 viaja EXPLÍCITO (não em estado de módulo): o replay e a rota nunca se
+  // misturam, mesmo na mesma instância.
+  const gate: SubjectGateOptions | undefined = opts?.v2 ? { v2: true, sceneText: hint ?? '', strict: opts.strictSubject === true, headFallback: opts.headFallback === true } : undefined
+  const mapped = (queries ?? [])
     .filter((q): q is string => typeof q === 'string' && q.trim().length > 0)
-    .map((q) => q.trim())
+    .map((q) => (gate ? stripCameraPhrases(q) : q).trim())
+  const rawCleaned = gate ? Array.from(new Set(mapped)) : mapped // v2: dois planos sobre o mesmo sujeito viram a mesma busca
   const { queries: cleaned, genericStart } = opts?.exact
     ? verbatimQueries(rawCleaned)
     : concretizeQueries(rawCleaned, hint, { allowGenerics: genericsAllowedFor(rawCleaned) })
@@ -1312,6 +1533,7 @@ export async function getPixabayClipsForScene(
       seenUrls,
       opts?.minDurationSec,
       opts?.styleCtx,
+      gate,
     )
     for (const c of cands) {
       if (seenUrls.has(c.url)) continue
@@ -1322,6 +1544,7 @@ export async function getPixabayClipsForScene(
       // every narration-grounded candidate.
       pool.push({
         ...c,
+        query: q,
         generic: isGeneric,
         score: c.score + (isGeneric ? 0 : Math.max(0, SCENE_POOL_PRIORITY_BONUS - i)),
       })
@@ -1348,6 +1571,7 @@ export async function getPixabayClipsForScene(
   if (pool.length === 0) {
     // Pool dry (niche query) — classic chain with broadening finds SOMETHING.
     const single = await getPixabayVideoForQueries(queries, sceneNeedsPeople, hint, opts)
+    opts?.onReport?.({ origin: single ? 'chain' : 'none', queries: cleaned, picks: single ? [{ url: single, tags: pixabayTagsForUrl(single) ?? '', score: null, query: null }] : [] }) // KINEO1-IMAGEM-V2
     return single ? [single] : []
   }
 
@@ -1359,7 +1583,8 @@ export async function getPixabayClipsForScene(
   // narration-grounded candidate.
   pool.sort(
     (a, b) =>
-      (a.generic ? 1 : 0) - (b.generic ? 1 : 0) || b.score - a.score || a.order - b.order,
+      // KINEO1-IMAGEM-V2-2026-09-28 — regra 5: o que entrou só pela âncora fica atrás (sem o v2, anchorOnly não existe).
+      (a.generic ? 1 : 0) - (b.generic ? 1 : 0) || (a.anchorOnly ? 1 : 0) - (b.anchorOnly ? 1 : 0) || b.score - a.score || a.order - b.order,
   )
 
   // KINEO-FAST-V4 — GPT SCENE DIRECTOR. Tag heuristics can't tell that a
@@ -1472,7 +1697,8 @@ export async function getPixabayClipsForScene(
   // KINEO-FAST-V4 — vault the winners (fire-and-forget: zero added latency).
   // Every picked clip enriches our own library; future videos on similar
   // topics hit the vault before any external API.
-  for (const c of pickedCands) {
+  // KINEO1-IMAGEM-V2-2026-09-28 — o replay offline (dryRun) não escreve nada: nem cofre.
+  for (const c of opts?.dryRun ? [] : pickedCands) {
     void vaultClipAsync({
       sourceUrl: c.url,
       provider: 'pixabay',
@@ -1483,6 +1709,7 @@ export async function getPixabayClipsForScene(
     })
   }
   for (const c of pickedCands) notePickedClipTags(c.url, c.tags) // KINEO-1-COERENCIA
+  opts?.onReport?.({ origin: 'pool', queries: cleaned, picks: pickedCands.map((c) => ({ url: c.url, tags: c.tags, score: Math.round(c.score * 100) / 100, query: c.query ?? null })) }) // KINEO1-IMAGEM-V2
   const picked = pickedCands.map((c) => c.url)
   console.log(
     `[pixabay-pool] ${pool.length} candidate(s) → ${picked.length} clip(s), top score=${pool[0].score.toFixed(2)}` +

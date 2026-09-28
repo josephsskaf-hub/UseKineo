@@ -18,6 +18,9 @@
 //   - Max 40MB per clip (Pixabay 1080p clips are typically 5-25MB).
 
 import { createClient as createServiceClient, type SupabaseClient } from '@supabase/supabase-js'
+// KINEO1-IMAGEM-V2-2026-09-28 — o cofre v2 usa o MESMO portão do pool (import circular com ./pixabay, que importa
+// vaultClipAsync daqui: seguro, nenhum dos dois chama o outro na carga do módulo — só dentro de funções).
+import { clipTagsGate, specificTokens, stripCameraPhrases, wholeWordTagHits } from './pixabay'
 
 const VAULT_BUCKET = 'broll'
 const MAX_CLIP_BYTES = 40 * 1024 * 1024
@@ -62,12 +65,24 @@ function vaultTokens(text: string): string[] {
  */
 export async function searchVault(
   query: string,
-  opts?: { exclude?: Set<string>; limit?: number },
+  opts?: {
+    exclude?: Set<string>
+    limit?: number
+    /** KINEO1-IMAGEM-V2-2026-09-28 — cofre com portão (ver searchVaultV2). Ausente/false = o cofre de hoje. */
+    v2?: boolean
+    /** v2: fala da cena (portão do pool: criança, homônimo) */
+    sceneText?: string
+    /** v2: a cena fala de gente? (lifestyle leve do pool; ausente = não recusa por isso) */
+    sceneNeedsPeople?: boolean
+    /** cliente de serviço já aberto (o replay passa o dele); ausente = o do ambiente, como sempre */
+    client?: SupabaseClient | null
+  },
 ): Promise<VaultHit[]> {
   try {
     if (process.env.ENABLE_CLIP_VAULT === 'false') return []
-    const admin = serviceClient()
+    const admin = opts?.client ?? serviceClient()
     if (!admin) return []
+    if (opts?.v2) return await searchVaultV2(admin, query, opts)
     const tokens = vaultTokens(query)
     if (tokens.length === 0) return []
 
@@ -102,6 +117,62 @@ export async function searchVault(
     console.warn('[clip-vault] search failed (non-blocking):', err instanceof Error ? err.message : String(err))
     return []
   }
+}
+
+// ═══ KINEO1-IMAGEM-V2-2026-09-28 — o cofre passa pelo portão do pool (INERTE: só com { v2: true }) ═══
+//
+// Na taxonomia das 136 cenas reprovadas (40 filmes nota 40, 21-27/09), 24 vieram do cofre — ele roda ANTES da
+// Pixabay e não passava por portão nenhum:
+//   · casava por SUBSTRING nas tags E na busca antiga do clipe, e 2 tokens quaisquer bastavam — inclusive as palavras
+//     de câmera que o roteirista põe em toda busca ("close", "macro", "wide", "establishing", "slow", "motion"). Um
+//     clipe de raio-X de hospital (busca antiga "close-up macro patient coughing clinic room") foi servido a 5 cenas
+//     de 4 filmes nota 40: "close-up macro wolf tracks snow moonlight", "close-up macro restaurant bill cash payment",
+//     "close-up macro golden ribbon postman pastel", "close-up macro pigeon barbershop sunglasses". Um call center
+//     ("wide establishing customer service call center busy") foi para "wide establishing café exterior…" (3 cenas);
+//     "maple leaves, autumn forest, slow motion" foi para "slow-motion impact";
+//   · a busca antiga gravada no cofre muitas vezes nem é a do clipe ("enigma machine closeup" num cinema antigo);
+//   · as 8 linhas 'ai-hook' (score 30 contra mediana 13, a última de 08/08) carregam o prompt INTEIRO de outro
+//     cliente como tag e casam quase tudo: 13 cenas de 9 filmes desde 19/09 — o massacre real do Nepal abriu a
+//     história de uma esposa traída (5aab0b8c, cena 1).
+// REGRAS v2: tokens = as palavras ESPECÍFICAS da busca sem o plano de câmera (as do portão do pool); casa só nas TAGS
+// e só palavra INTEIRA (plural simples com base de 4+ letras); linha 'ai-hook…' fica de fora (no SQL e aqui — as 8
+// linhas NÃO são apagadas: apagar é decisão do fundador); e cada acerto passa por clipTagsGate (lifestyle →
+// relevância → homônimo), exatamente o portão que um clipe da Pixabay atravessa.
+async function searchVaultV2(
+  admin: SupabaseClient,
+  query: string,
+  opts: { exclude?: Set<string>; limit?: number; sceneText?: string; sceneNeedsPeople?: boolean },
+): Promise<VaultHit[]> {
+  const q = stripCameraPhrases(query)
+  const tokens = specificTokens(q, { v2: true }).slice(0, 8)
+  if (tokens.length === 0) return []
+  const orExpr = tokens.map((t) => `tags.ilike.%${t}%`).join(',') // tokens são [a-z0-9]+ — nada a escapar
+  const { data, error } = await admin
+    .from('clip_vault')
+    .select('storage_url, tags, query, score, duration_sec')
+    .or(orExpr)
+    .not('tags', 'ilike', 'ai-hook%')
+    .order('score', { ascending: false })
+    .limit(40)
+  if (error || !Array.isArray(data)) return []
+  const needed = Math.min(2, tokens.length)
+  const hits: VaultHit[] = []
+  for (const row of data as Array<{ storage_url: string; tags: string | null; score: number | null; duration_sec: number | null }>) {
+    if (!row.storage_url) continue
+    if (opts.exclude?.has(row.storage_url)) continue
+    const tags = (row.tags ?? '').trim()
+    if (!tags || tags.toLowerCase().startsWith('ai-hook')) continue
+    const matched = wholeWordTagHits(tokens, tags)
+    if (matched < needed) continue
+    const gate = clipTagsGate(tags, q, { v2: true, sceneText: opts.sceneText ?? '', sceneNeedsPeople: opts.sceneNeedsPeople ?? true })
+    if (!gate.ok) {
+      console.log(`[clip-vault] v2 rejected reason=${gate.reason} tags="${tags.slice(0, 60)}" query="${q.slice(0, 50)}"`)
+      continue
+    }
+    hits.push({ storageUrl: row.storage_url, tags, score: (row.score ?? 0) + matched, durationSec: row.duration_sec })
+    if (hits.length >= (opts.limit ?? 3)) break
+  }
+  return hits
 }
 
 /**
