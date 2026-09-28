@@ -49,7 +49,9 @@ check('direct branch is visually identified by its own ref', directArea.includes
 check('direct branch reassures that the free copy is safe', directArea.includes('Your free copy is safe'))
 check('monthly checkout is one click after download', primaryStart > directStart)
 check('one-time checkout is one click after download', secondaryStart > primaryStart)
-check('monthly checkout stays visually primary', /onClick=\{handleRemoveWatermark\}[\s\S]{0,700}background: '#2997ff'/.test(directArea))
+// 27/09 (22c8e70e, design de outra sessão): o azul fixo virou o token do tema. Primário = fundo preenchido com a
+// cor de destaque (#2997ff antigo OU var(--accent)); nunca 'transparent', que é o estilo do botão secundário.
+check('monthly checkout stays visually primary', /onClick=\{handleRemoveWatermark\}[\s\S]{0,700}background: '(#2997ff|var\(--accent\))'/.test(directArea))
 check('one-time checkout stays visually secondary', /onClick=\{handleBuyThisVideoOnly\}[\s\S]{0,700}background: 'transparent'/.test(directArea))
 // KINEO-REANCORA-PROMESSA-CONDICIONAL-2026-09-07 — a trava exigia a frase
 // INCONDICIONAL `this video clean + {TIER_CREDITS.starter} credits every month`.
