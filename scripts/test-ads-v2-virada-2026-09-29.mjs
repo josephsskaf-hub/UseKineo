@@ -133,21 +133,23 @@ try {
   vermelhos.push(`N0 o page.tsx do /ads/new executa (lançou: ${e && e.message})`)
 }
 const NN = N ?? new Proxy({}, { get: () => ({}) })
-const redirecionaAoV2 = (n) => n.anon.redirect === '/ads/v2' && n.logado.redirect === '/ads/v2' && n.semAcesso.redirect === '/ads/v2'
+// 29/09 (Claude, pós-revisão): anônimo vai à porta pública /ads (vê produto e preço antes do login); logado vai ao v2.
+const redirecionaAoV2 = (n) => n.anon.redirect === '/ads' && n.logado.redirect === '/ads/v2' && n.semAcesso.redirect === '/ads/v2'
 const classicoAbre = (n) => !n.classicAnon.redirect && n.classicAnon.props?.gate === 'anon' && !n.classicLogado.redirect && n.classicLogado.props?.gate === 'ok' && n.classicLogado.props?.v2Href === null && n.classicSemAcesso.redirect === '/ads?from=new'
-await check('N1 /ads/new sem ?classic=1 → redirect ao /ads/v2 (anônimo, com acesso e sem acesso: o v2 decide login/preço)', redirecionaAoV2(NN))
-await check('N2 utm_* limpos seguem no redirect; parâmetro estranho e utm sujo ficam para trás', NN.utm.redirect === '/ads/v2?utm_source=studio&utm_medium=tile&utm_campaign=sprint0927' && NN.utmSujo.redirect === '/ads/v2')
+await check('N1 /ads/new sem ?classic=1 → logado (com ou sem acesso) vai ao /ads/v2; anônimo vai à porta pública /ads', redirecionaAoV2(NN))
+await check('N2 utm_* limpos seguem no redirect; parâmetro estranho e utm sujo ficam para trás', NN.utm.redirect === '/ads/v2?utm_source=studio&utm_medium=tile&utm_campaign=sprint0927' && NN.utmSujo.redirect === '/ads')
 await check('N3 /ads/new?classic=1 abre o assistente antigo (anônimo = painel anon; logado = assistente sem v2Href; sem acesso = porta ?from=new)', classicoAbre(NN))
 await check('N4 ?resume=pass fica no assistente (o webhook pode atrasar) e ganha v2Href=/ads/v2; com ?classic=1 o v2Href é null', !NN.passe.redirect && NN.passe.props?.resumingPass === true && NN.passe.props?.v2Href === '/ads/v2' && !NN.passeClassico.redirect && NN.passeClassico.props?.v2Href === null)
 await check('N5 com ADS_V2_PUBLIC=false nada redireciona ao v2 (o redirect mora atrás do interruptor)', !NN.fechado.redirect && NN.fechado.props?.gate === 'ok' && NN.fechado.props?.v2Href === null)
-await check('N6 o redirect vem ANTES de qualquer leitura (createClient/getUser/loadAdsAccess)', () => {
+await check('N6 o redirect vem ANTES de loadAdsAccess (só o getUser é lido, para separar anônimo de logado)', () => {
   const s = semComentarios(SRC.newPage)
-  const i = s.indexOf('if (ADS_V2_PUBLIC && !classic && !resumingPass) redirect(adsV2Href(searchParams))')
-  return i > 0 && i < s.indexOf('createClient()') && i < s.indexOf('loadAdsAccess(')
+  const i = s.indexOf('redirect(visitante ? adsV2Href(searchParams) : adsPublicHref(searchParams))')
+  return i > 0 && i < s.indexOf('loadAdsAccess(')
 })
 // mutantes da porta
 await check('N-mutante: redirect que ignora ?classic=1 fica vermelho (N3)', async () => !classicoAbre(await portaNova(trocar(SRC.newPage, 'if (ADS_V2_PUBLIC && !classic && !resumingPass)', 'if (ADS_V2_PUBLIC && !resumingPass)'))))
-await check('N-mutante: sem o redirect, N1 fica vermelho', async () => !redirecionaAoV2(await portaNova(trocar(SRC.newPage, 'if (ADS_V2_PUBLIC && !classic && !resumingPass) redirect(adsV2Href(searchParams))', ''))))
+await check('N-mutante: sem o redirect, N1 fica vermelho', async () => !redirecionaAoV2(await portaNova(trocar(SRC.newPage, 'redirect(visitante ? adsV2Href(searchParams) : adsPublicHref(searchParams))', ''))))
+await check('N-mutante: anônimo mandado direto ao montador (parede de login) fica vermelho', async () => !redirecionaAoV2(await portaNova(trocar(SRC.newPage, 'visitante ? adsV2Href(searchParams) : adsPublicHref(searchParams)', 'adsV2Href(searchParams)'))))
 await check('N-mutante: classic sempre verdadeiro (nada redireciona) fica vermelho (N1)', async () => !redirecionaAoV2(await portaNova(trocar(SRC.newPage, "const classic = first(searchParams?.classic) === '1'", 'const classic = true'))))
 await check('N-mutante: redirect que leva também o ?resume=pass fica vermelho (N4)', async () => {
   const m = await portaNova(trocar(SRC.newPage, 'if (ADS_V2_PUBLIC && !classic && !resumingPass)', 'if (ADS_V2_PUBLIC && !classic)'))

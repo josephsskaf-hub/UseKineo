@@ -29,14 +29,21 @@ function first(v: string | string[] | undefined): string | null {
 
 /** KINEO-ADS-V2-VIRADA-2026-09-29 — o endereço do montador v2, levando só os utm_* curtos e limpos (a atribuição dos
  *  links do menu, do tile do /studio, do /checkout/success e do rodapé de e-mail não some no redirect). */
-function adsV2Href(searchParams?: SearchParams): string {
+function cleanUtmQuery(searchParams?: SearchParams): string {
   const out = new URLSearchParams()
   for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content']) {
     const v = first(searchParams?.[key])
     if (v && /^[A-Za-z0-9._~-]{1,100}$/.test(v)) out.set(key, v)
   }
   const s = out.toString()
-  return s ? `/ads/v2?${s}` : '/ads/v2'
+  return s ? `?${s}` : ''
+}
+function adsV2Href(searchParams?: SearchParams): string {
+  return `/ads/v2${cleanUtmQuery(searchParams)}`
+}
+/** Anônimo vai à porta pública /ads: vê o produto e o preço antes de qualquer login (o v2 exige conta). */
+function adsPublicHref(searchParams?: SearchParams): string {
+  return `/ads${cleanUtmQuery(searchParams)}`
 }
 
 export default async function AdsNewPage({ searchParams }: { searchParams?: SearchParams }) {
@@ -48,7 +55,12 @@ export default async function AdsNewPage({ searchParams }: { searchParams?: Sear
   // narrado de 35/60 s) continua inteiro em /ads/new?classic=1. Exceção: ?resume=pass (o success_url do passe cai aqui
   // e o webhook pode atrasar) fica no assistente, que espera o acesso chegar e SÓ ENTÃO leva ao v2 (prop v2Href).
   const classic = first(searchParams?.classic) === '1'
-  if (ADS_V2_PUBLIC && !classic && !resumingPass) redirect(adsV2Href(searchParams))
+  if (ADS_V2_PUBLIC && !classic && !resumingPass) {
+    // Logado vai direto ao montador; anônimo vai à porta pública /ads (o montador exige conta, e uma tela de login sem
+    // contexto é parede: a decisão de 27/09 era "o visitante vê antes de entrar").
+    const { data: { user: visitante } } = await createClient().auth.getUser()
+    redirect(visitante ? adsV2Href(searchParams) : adsPublicHref(searchParams))
+  }
 
   const keep = new URLSearchParams()
   if (classic) keep.set('classic', '1')
