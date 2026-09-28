@@ -36,7 +36,8 @@ const semComentario = (src) => src
   .split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n')
 
 const MENSAGEM = "Please use a permanent email address — disposable inboxes aren't allowed."
-const NOVOS = ['omanarts.com', 'pumpoly.com', 'nixadrume40.asia', 'nodgwdg.eu.cc']
+// + vmail.dev, mailshan.com, playboot.com: 2ª ordem do fundador na mesma noite.
+const NOVOS = ['omanarts.com', 'pumpoly.com', 'nixadrume40.asia', 'nodgwdg.eu.cc', 'vmail.dev', 'mailshan.com', 'playboot.com']
 const NUNCA = [
   // provedores comuns
   'gmail.com', 'googlemail.com', 'outlook.com', 'hotmail.com', 'live.com', 'yahoo.com', 'aol.com',

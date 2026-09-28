@@ -36,6 +36,13 @@ export const DISPOSABLE_DOMAINS: Set<string> = new Set([
   'pumpoly.com',
   'nixadrume40.asia',
   'nodgwdg.eu.cc',
+  // Mesma noite, 2ª ordem do fundador: "bloqueia vmail.dev, mailshan e playboot
+  // também". Evidência mais fraca que os quatro acima (registrado em
+  // docs/DECISIONS.md 27/09 noite): vmail.dev = 3 contas no mesmo dia (04/09);
+  // mailshan.com e playboot.com = 2 contas cada no mesmo dia; 0 pagantes.
+  'vmail.dev',
+  'mailshan.com',
+  'playboot.com',
   // seen in this app
   'yopmail.com',
   'mailinator.com',
