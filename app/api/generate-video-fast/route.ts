@@ -1308,13 +1308,20 @@ export async function POST(req: NextRequest) {
     // elegível pede o clipe NA HORA (a espera p90 da Seedance já é 54 s dos 60 s do compose), fica com UM stock e o evento
     // pendente leva replace_index: pronto, o clipe TROCA esse stock; não pronto (5%: 194 de 204 prontos desde 21/09), o
     // stock fica. A duração vem de planAiClipForSlot: cobre a fatia do montador sem laço, inclusive na volta de
-    // reciclagem; quando o teto não paga essa duração, o clipe entra como hoje (inserção de 5 s). Nunca passa de
-    // KINEO1_AI_WEAK_CLIPS_MAX clipes nem de KINEO1_AI_BUDGET_USD por filme.
+    // reciclagem; quando o teto não paga essa duração, a cena fica no stock (KINEO1-SEM-LACO-2026-09-28: o recuo antigo
+    // para a inserção de 5 s relia o arquivo em laço). Nunca passa de KINEO1_AI_WEAK_CLIPS_MAX clipes nem de
+    // KINEO1_AI_BUDGET_USD por filme. O stock que a troca tira não volta em outra cena (stockTrocado, abaixo).
     type CenaV2 = { idx: number; vault: number; report: ScenePoolReport | null; skip: 'gap' | 'extension' | null; queries: string[] }
     let cenaV2: CenaV2 | null = null
     const reservaStillsUsd = Math.round(aiStillsMax * FIRST_FILM_STILL_USD * 1000) / 1000 // os stills do híbrido que ainda podem sair
     let gastoIaUsd = primeiroFilmeComClipes ? SEEDANCE_720P_5S_USD : 0 // o hook da cena 1
     const mantidos = (urls: string[]) => urls.filter((u) => typeof u === 'string' && u.length > 0 && !/^https:\/\/([a-z0-9-]+\.)*fal\.(media|run|ai)\//i.test(u)).length
+    // KINEO1-SEM-LACO-2026-09-28 (FIX-REVISAO-2) — o stock que um clipe de IA vai TROCAR sai do filme: a revisão 2 provou
+    // (cena 2 fraca trocada, cena 3 um vão < 3 s) que o vão copiava clipUrls[último] = aquele stock, e o chafariz de Paris
+    // julgado errado para o hambúrguer tocava logo depois do clipe que o substituiu. Vão, extensão e reciclagem (#352)
+    // escolhem entre os clipes que ficam. Sem troca no filme, o conjunto é vazio e tudo é como antes.
+    const stockTrocado = new Set<string>()
+    const semTrocados = (urls: string[]) => (stockTrocado.size === 0 ? urls : urls.filter((u) => !stockTrocado.has(u)))
     const fecharCenaV2 = async (): Promise<void> => {
       const c = cenaV2
       cenaV2 = null
@@ -1355,12 +1362,22 @@ export async function POST(req: NextRequest) {
         if (aiClipsSubmitted.length >= KINEO1_AI_WEAK_CLIPS_MAX) { ev.ai_clip = { skipped: 'cap' }; return }
         const livreUsd = Math.round((KINEO1_AI_BUDGET_USD - gastoIaUsd - reservaStillsUsd) * 1000) / 1000
         const podeTrocar = rawStock >= 0 && mantidos([clipUrls[rawStock]]) === 1
+        // KINEO1-SEM-LACO-2026-09-28 (FIX-REVISAO-2) — nenhum clipe de IA que o montador leria em laço (SEM QUADRO
+        // REPETIDO). Troca: a duração que cobre a pior reentrada; se o teto não a paga (fits=false), a cena fica no stock —
+        // o recuo antigo comprava 5 s para uma fatia que reentrava (revisão 2: cena 3 reciclada do filme de 60 s, 11 s
+        // necessários, US$ 0,144 livres → o clipe de 5 s relido de 3,3 s a 5,96 s, loop:true). Inserção (o stock da cena
+        // não é mantido): só quando a posição do clipe inserido nunca reentra — aí 5 s cobrem a fatia.
         const plan = podeTrocar
           ? planAiClipForSlot({ filmSeconds: filmeEstimadoS, clipCount: mantidos(clipUrls.slice(0, rawStock + 1)) + (scenes.length - sceneNo), index: mantidos(clipUrls.slice(0, rawStock)), maxUsd: livreUsd })
-          : { mode: 'insert' as const, seconds: 5, usd: SEEDANCE_720P_5S_USD }
-        if (plan.usd > livreUsd + 1e-9) {
-          ev.ai_clip = { skipped: 'budget' }
-          console.log(`[ai-clips] v2 scene=${sceneNo} reason=${fraca} sem orçamento (livre US$${livreUsd}, gasto US$${gastoIaUsd}, teto US$${KINEO1_AI_BUDGET_USD})`)
+          : { mode: 'insert' as const, seconds: 5, usd: SEEDANCE_720P_5S_USD, fits: true, reentries: planAiClipForSlot({ filmSeconds: filmeEstimadoS, clipCount: mantidos(clipUrls.slice(0, rawStock + 1)) + 1 + (scenes.length - sceneNo), index: mantidos(clipUrls.slice(0, ev.from)) }).reentries }
+        if (plan.mode === 'insert' && plan.reentries > 0) {
+          ev.ai_clip = { skipped: 'insert_loop' }
+          console.log(`[ai-clips] v2 scene=${sceneNo} reason=${fraca} inserção de 5 s reentraria ${plan.reentries}x (laço) — a cena fica como está`)
+          return
+        }
+        if (!plan.fits || plan.usd > livreUsd + 1e-9) {
+          ev.ai_clip = { skipped: plan.reentries > 0 ? 'budget_loop' : 'budget' }
+          console.log(`[ai-clips] v2 scene=${sceneNo} reason=${fraca} sem orçamento para ${plan.seconds}s sem laço (reentradas ${plan.reentries}, US$${plan.usd}; livre US$${livreUsd}, gasto US$${gastoIaUsd}, teto US$${KINEO1_AI_BUDGET_USD})`)
           return
         }
         const sc = scenes[c.idx]
@@ -1370,6 +1387,7 @@ export async function POST(req: NextRequest) {
         if (!requestId) { ev.ai_clip = { skipped: 'submit_failed' }; return }
         gastoIaUsd = Math.round((gastoIaUsd + plan.usd) * 1000) / 1000
         aiClipsSubmitted.push({ scene: sceneNo, requestId, prompt: clipPrompt, usd: plan.usd, ...(plan.mode === 'replace' ? { seconds: plan.seconds, replaceRaw: rawStock } : {}) })
+        if (plan.mode === 'replace' && clipUrls[rawStock]) stockTrocado.add(clipUrls[rawStock]) // KINEO1-SEM-LACO: sai do filme
         cenasComClipeIA.add(sceneNo)
         // A cena fraca fica com UM stock (KINEO1-MUNDO-DA-ENTIDADE: o gerado ganha a tela) — na troca, é o que o clipe substitui.
         if (rawStock >= 0) while (clipUrls.length > rawStock + 1) { clipUrls.pop(); clipSources.pop() }
@@ -1428,7 +1446,7 @@ export async function POST(req: NextRequest) {
       // safe Pexels query for this scene (blacklisted topic). Skip the Pexels search
       // entirely and go straight to FALLBACK-A (extend the previous relevant clip).
       if (brollMeta?.requiresExtension && clipUrls.length > 0) {
-        const extUrl = findPreviousRelevantClip(clipUrls, usedPexelsUrls, idx)
+        const extUrl = findPreviousRelevantClip(semTrocados(clipUrls), usedPexelsUrls, idx) // KINEO1-SEM-LACO: sem o stock trocado
         if (extUrl) {
           if (cenaV2) cenaV2.skip = 'extension' // KINEO1-IMAGEM-V2: o plano não achou busca segura — não é cena fraca de busca
           clipUrls.push(extUrl)
@@ -1447,9 +1465,12 @@ export async function POST(req: NextRequest) {
       // looks jarring) — just extend whatever clip preceded it so the timeline
       // stays full and visually coherent. Only fires when we know the planned
       // duration (BrollPlan metadata present) and there is a prior clip.
-      if (typeof durationSeconds === 'number' && durationSeconds < 3 && clipUrls.length > 0) {
+      // KINEO1-SEM-LACO-2026-09-28 — o vão copia o último clipe que FICA no filme (nunca o stock que um clipe de IA troca);
+      // sem nenhum, a cena segue para a busca normal. Sem troca no filme, é o último clipe, como antes.
+      const clipesQueFicam = semTrocados(clipUrls)
+      if (typeof durationSeconds === 'number' && durationSeconds < 3 && clipesQueFicam.length > 0) {
         if (cenaV2) cenaV2.skip = 'gap' // KINEO1-IMAGEM-V2: vão < 3 s, sem busca — nunca ganha clipe de IA
-        const prevUrl = clipUrls[clipUrls.length - 1]
+        const prevUrl = clipesQueFicam[clipesQueFicam.length - 1]
         clipUrls.push(prevUrl)
         clipSources.push('fallbackA') // #355
         console.log(
@@ -1705,7 +1726,7 @@ export async function POST(req: NextRequest) {
       }
 
       // FALLBACK-A: cycle through previous valid clips (#352 — intelligent cycling).
-      const previousRelevantUrl = findPreviousRelevantClip(clipUrls, usedPexelsUrls, idx)
+      const previousRelevantUrl = findPreviousRelevantClip(semTrocados(clipUrls), usedPexelsUrls, idx) // KINEO1-SEM-LACO: sem o stock trocado
 
       // FALLBACK-B: stockLibrary (Cloudinary — pre-curated, pre-approved).
       const libUrl = previousRelevantUrl ?? fallbackUrl

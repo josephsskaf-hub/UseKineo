@@ -23,6 +23,10 @@
 //       revisão pós-auditoria (28/09): 17dd0c7a (briefing com gancho/fecho entre aspas) vira "a IA estrutura" em vez de
 //       filme cobrado lendo instrução; 8b23d27a narra só a fala do autor; roteiro de UM parágrafo segue verbatim;
 //   (h) o ensaio (dry-run) mostra a instrução que saiu e as buscas do plano.
+// REVISÃO 2 (28/09, FIX-REVISAO-2): (d) KINEO1-SEM-LACO — nenhum clipe de IA que o montador leria em laço: sem orçamento
+//   para a duração sem laço a cena fica no stock ("budget_loop"; o recuo antigo comprava 5 s e reentrava), e o stock que a
+//   troca tira não volta no vão/extensão/reciclagem seguinte; (g) KINEO1-BRIEF-PORTAO — roteiro de dicas para criador, uma
+//   dica por linha, segue verbatim pelo bloco real da rota (os 3 casos do revisor: 60→35 s, brief_only, 422).
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -182,8 +186,11 @@ const pronto = [{ scene: 1, at_index: 0, url: 'HOOK', ms: 1 }, ...clips.slice(1)
 const final = C.spliceAiClips(R.filtered, pronto)
 checa('encaixe real: o hook abre o filme, o clipe da cena 2 SUBSTITUI o stock dela (o stock some) e a contagem só cresce pelas inserções', final[0] === 'HOOK' && final.includes('AI2') && !final.includes('https://cdn.pixabay.com/v/s2-0.mp4') && final.length === R.filtered.length + pronto.filter((p) => typeof p.replace_index !== 'number').length)
 const c3 = clips.find((c) => c.scene === 3) ?? null
-checa('cena 3 (o banco não deu nada: clipe RECICLADO) é fraca por no_stock; sem orçamento para a duração que cobre a reentrada, entra como hoje (inserção de 5 s)', R.sceneEvidence[2].stock_origin === 'recycled' && R.sceneEvidence[2].weak === 'no_stock' && !!c3 && c3.replace_index === undefined && c3.usd === C.SEEDANCE_720P_5S_USD && F.chamadas.submit.length >= 2 && F.chamadas.submit[1].seconds === undefined)
-checa('teto duro: hook + clipes + reserva dos stills ≤ US$ 0,65; o que não coube ficou registrado como "budget"', r3(somaUsd(clips) + R.reservaStillsUsd) <= 0.65 && R.sceneEvidence.filter((e) => e.ai_clip?.skipped === 'budget').length >= 1 && pend.metadata.budget_usd === 0.65)
+// KINEO1-SEM-LACO-2026-09-28 (FIX-REVISAO-2) — a revisão 2 provou este caso: reentries=3, 11 s necessários, US$ 0,144 livres,
+// e a rota comprava um clipe de 5 s que o montador relia de 3,3 s a 5,96 s (loop:true). Agora a cena fica no stock.
+checa('cena 3 (o banco não deu nada: clipe RECICLADO) é fraca por no_stock; o teto não paga os 11 s que cobrem a reentrada → a cena fica no stock ("budget_loop"), NENHUM clipe de 5 s comprado', R.sceneEvidence[2].stock_origin === 'recycled' && R.sceneEvidence[2].weak === 'no_stock' && R.sceneEvidence[2].ai_clip?.skipped === 'budget_loop' && c3 === null && F.chamadas.submit.every((s) => typeof s.seconds === 'number'))
+checa('sem laço: todo clipe de cena fraca pedido é TROCA com a duração que cobre a pior reentrada (nenhuma inserção de 5 s)', clips.length > 1 && clips.slice(1).every((c) => typeof c.replace_index === 'number' && typeof c.seconds === 'number' && c.seconds >= C.planAiClipForSlot({ filmSeconds: R.filmeEstimadoS, clipCount: c.replace_index + 1 + (7 - c.scene), index: c.replace_index, maxUsd: 99 }).seconds))
+checa('teto duro: hook + clipes + reserva dos stills ≤ US$ 0,65; o que não coube ficou registrado como "budget" (ou "budget_loop", quando a fatia reentra)', r3(somaUsd(clips) + R.reservaStillsUsd) <= 0.65 && R.sceneEvidence.filter((e) => e.ai_clip?.skipped === 'budget' || e.ai_clip?.skipped === 'budget_loop').length >= 1 && pend.metadata.budget_usd === 0.65)
 checa('a reserva é a dos 3 stills do híbrido que um 1º filme com clipes ainda pode gerar (3 × US$ 0,03), e sai do orçamento dos clipes', R.reservaStillsUsd === r3(3 * C.FIRST_FILM_STILL_USD) && pend.metadata.stills_reserved_usd === R.reservaStillsUsd)
 checa('duração provável do filme: a fala no ritmo da voz, +10%, piso de 61,5 s do TIKTOK-61 (60 s pedidos → 66 s)', R.filmeEstimadoS === Math.min(90, Math.max(61.5, 60 * 1.1)))
 checa('cena 1 fraca não pede clipe: o hook já abre a cena ("hook_scene")', R.sceneEvidence[0].weak === 'subject_not_exact' && R.sceneEvidence[0].ai_clip?.skipped === 'hook_scene' && !R.aiClipsSubmitted.some((c) => c.scene === 1))
@@ -204,6 +211,22 @@ checa('gasto registrado no evento pendente (est_usd = soma real) e na evidência
   const R35 = await rodarRico(F35.ctx)
   const trocas35 = evento(F35.chamadas, C.FIRST_FILM_AI_CLIPS_EVENT).metadata.clips.slice(1)
   checa('35 s: cada troca tem a duração de planAiClipForSlot com o PISO de clipes (1 por cena que falta): a cena 4 (índice 5, faltam 3) reentra → 11 s; a 7 (a última) não reentra → 5 s', J(trocas35.map((c) => c.scene)) === '[4,7]' && trocas35.every((c) => c.seconds === C.planAiClipForSlot({ filmSeconds: R35.filmeEstimadoS, clipCount: c.replace_index + 1 + (7 - c.scene), index: c.replace_index, maxUsd: 40 }).seconds) && J(trocas35.map((c) => c.seconds)) === '[11,5]' && trocas35[0].replace_index === 5)
+}
+
+{
+  // KINEO1-SEM-LACO-2026-09-28 (FIX-REVISAO-2) — a revisão 2: cena 2 fraca (Paris no lugar do hambúrguer) é TROCADA; a
+  // cena 3 é um vão < 3 s do plano de B-roll (Push #349) e copiava clipUrls[último] = o stock que o clipe de IA tira →
+  // no encaixe real, o chafariz julgado errado tocava logo depois do AI2. Agora o vão copia o último clipe que FICA.
+  const Fg = filme()
+  Fg.ctx.alignedMeta = Fg.ctx.alignedMeta.map((m, i) => (i === 2 ? { ...(m ?? {}), durationSeconds: 2 } : m))
+  const Rg = await rodar(Fg.ctx)
+  const pendG = evento(Fg.chamadas, C.FIRST_FILM_AI_CLIPS_EVENT)
+  const c2g = pendG?.metadata?.clips?.find((c) => c.scene === 2) ?? null
+  const trocado = c2g ? Rg.filtered[c2g.replace_index] : null
+  const prontoG = (pendG?.metadata?.clips ?? []).map((c) => ({ scene: c.scene, at_index: c.at_index, url: `AI${c.scene}`, ms: 1, ...(typeof c.replace_index === 'number' ? { replace_index: c.replace_index } : {}) }))
+  const finalG = C.spliceAiClips(Rg.filtered, prontoG)
+  checa('vão < 3 s logo depois da cena trocada: copia o último clipe que FICA — o stock que o AI2 substitui não volta no filme entregue', Rg.sceneEvidence[2].origin === 'gap' && trocado === 'https://cdn.pixabay.com/v/s2-0.mp4' && finalG.includes('AI2') && !finalG.includes(trocado) && Rg.clipUrls[Rg.sceneEvidence[2].from] !== trocado)
+  checa('vão, extensão (#350) e reciclagem (#352) escolhem entre os clipes que ficam (semTrocados); sem troca no filme o conjunto é vazio e tudo é como antes', (LACO.match(/findPreviousRelevantClip\(semTrocados\(clipUrls\), usedPexelsUrls, idx\)/g) || []).length === 2 && !/findPreviousRelevantClip\(clipUrls,/.test(LACO) && LACO.includes('const clipesQueFicam = semTrocados(clipUrls)') && LACO.includes('const semTrocados = (urls: string[]) => (stockTrocado.size === 0 ? urls : urls.filter((u) => !stockTrocado.has(u)))') && LACO.includes("if (plan.mode === 'replace' && clipUrls[rawStock]) stockTrocado.add(clipUrls[rawStock])"))
 }
 
 console.log('== (e) evidência ==')
@@ -298,6 +321,19 @@ function fala(constSrc = CONST) {
   const p = f(PARAGRAFO, 'verbatim', ev2)
   const t = f('Start every video with a hook. Use captions, because 85% of people watch on mute. Show your face in the first 3 seconds. Post at the same time every day.', 'verbatim', ev2)
   checa('D2 pela rota: roteiro de UM parágrafo ("Este vídeo vai…", "Start every video with a hook…") continua verbatim (script_mode verbatim, a fala de hoje), sem evento', p.ownScript === true && p.script_mode === 'verbatim' && p.briefColado.mode === 'none' && p.falaPropria === (SP.parseUserScript(PARAGRAFO).narration || PARAGRAFO) && t.script_mode === 'verbatim' && t.briefColado.mode === 'none' && ev2.length === 0)
+  // KINEO1-BRIEF-PORTAO-2026-09-28 (FIX-REVISAO-2) — os 3 casos do revisor, pelo bloco REAL: roteiro de dicas para
+  // criador, UMA dica por linha. A peça de e750656c: (a) 60 s → 5 dicas cortadas → 35 s com UMA; (b) brief_only → a IA
+  // reescrevia; (c) 63 palavras → 422. Agora: a fala é a mesma do interruptor desligado (o parser de hoje), verbatim.
+  const DICAS = [
+    ['Two years ago I had eleven followers and a phone with a cracked screen.', 'Today my videos reach millions of people every single week, and nothing about my gear has changed.', 'What changed was a short list of habits I picked up from the creators who were already winning.', 'Here they are, in the order I learned them.', 'Start every video with a hook. The first two seconds decide whether anyone stays.', 'Use captions on every clip. Most people scroll with the sound off, on the bus or in bed.', 'Change the scene every three seconds. A still frame is the fastest way to lose a viewer.', 'Add trending music at low volume. The algorithm notices the sound before it notices you.', 'Show your face in the first three seconds. People follow people, not logos or landscapes.', 'Cut every pause and every breath. Silence feels twice as long on a phone.', 'None of this costs money, and none of it needs a new camera or a studio.', 'It only needs you to post, look at what worked, and do a little more of that tomorrow.', 'Give it thirty days and then come back and tell me what happened to your numbers.'].join('\n'),
+    ['Seven rules the biggest creators never break.', 'Start every video with a hook. The first second decides if anyone stays to watch the rest.', 'Use captions on every clip. Most people scroll with the sound off, on the bus or in bed.', 'Change the scene every three seconds. A frozen frame is the fastest way to lose a viewer.', 'Add music at low volume. The right sound makes a boring clip feel like a movie trailer.', 'Show your face in the first three seconds. People follow people, not logos or empty landscapes.', 'Avoid long intros on TikTok. Nobody waits for your logo animation to finish before they swipe.', 'Create videos every single day. Consistency beats talent, and the algorithm rewards people who show up.'].join('\n'),
+    ['Want more views on TikTok? Most creators get this completely wrong, and it quietly kills their reach.', 'Start every video with a hook in the first two seconds.', 'Use captions on every clip, because most people watch on mute.', 'Change the scene every three seconds so the eye never gets bored.', 'Add trending music at low volume under your voice.', 'Show your face early, because people follow people, not logos.', 'Post at the same time every day, so the algorithm learns when to push you.', 'Reply to every comment in the first hour, because early replies tell the app your post is worth showing.', 'Do this for thirty days and watch what happens to your views.'].join('\n'),
+    'In 1992 a retired teacher from Ohio bought the same lottery numbers every week for thirty years.\nHer family laughed at her every single Sunday, and she never missed a draw.\nThe week she finally won, she gave almost everything away to the school where she had taught.\nThis video must be shared with everyone who says luck does not exist.',
+  ]
+  const desligada = fala(CONST.replace('const KINEO1_IMAGEM_V2 = true', 'const KINEO1_IMAGEM_V2 = false'))
+  const ev3 = []
+  const pelaRota = DICAS.map((d) => ({ on: f(d, 'verbatim', ev3), off: desligada(d) }))
+  checa('REVISÃO 2 pela rota: as dicas do revisor (60 s, 7 regras, lista de 35 s) e o fecho "This video must be shared…" seguem "Use my script as is": script_mode verbatim, nenhuma linha tirada, a fala = a do interruptor desligado, sem evento', pelaRota.every(({ on, off }) => on.ownScript === true && on.script_mode === 'verbatim' && on.briefColado?.mode === 'none' && on.falaPropria === off.falaPropria) && ev3.length === 0)
 }
 
 console.log('== (h) o ensaio (dry-run) mostra a instrução que saiu e as buscas do plano ==')

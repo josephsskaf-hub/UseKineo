@@ -59,14 +59,15 @@ No Kineo 1 o montador (`lib/compose.ts`, travado) não tem "duração de cena": 
 então um clipe de 5 s cobre qualquer fatia **sem repetir quadro**. A troca mantém a contagem de clipes que a rota
 planejou. O único caso de laço é a volta de reciclagem do montador (poucos clipes para o filme), que reentra no
 mesmo arquivo mais adiante: `planAiClipForSlot` calcula, com a aritmética do montador, se aquele índice pode reentrar;
-se pode, devolve a duração que cobre (até 12 s, US$ 0,026/s) ou, se o teto de custo não pagar, o modo inserção de
-hoje. Regra: **só troca quando a duração cobre a fatia sem laço**.
+se pode, devolve a duração que cobre (até 12 s, US$ 0,026/s) e diz se ela cabe no teto (`fits`); se não cabe, a cena fica
+no stock (revisão 2: o antigo recuo para a inserção de 5 s reentrava em laço). Regra: **só troca quando a duração cobre
+a fatia sem laço — e nunca compra clipe que dê laço**.
 
 ## Como provar antes de ligar (custo ~US$ 0,003-0,004 por filme, nenhum render, nada gravado)
 - um filme: `/api/admin/kineo1-replay?generation_id=<uuid>`
 - lote: `/api/admin/kineo1-replay?last=10&max_image=60` (teto 40; continua com `&offset=` do `next_offset`)
 - opções: `&variants=strict|fallback|both` (padrão both), `&ai_max=4` (simula 4 clipes de IA), `&ai_scope=all` (clipe de IA também em filme que hoje não ganha),
-  `&rejudge=1` (re-julga a evidência gravada: mede o ruído do juiz), `&rpm=40` (teto da Pixabay: a chave é da produção)
+  `&rejudge=1` (re-julga a evidência gravada: mede o ruído do juiz), `&rpm=40` (teto da Pixabay POR PEDIDO, 10-50: a chave é da produção)
 - devolve `before` (nota gravada), `after` (o mesmo juiz na evidência nova), cena a cena, e a distribuição do lote.
 
 Limites: o juiz lê texto, não pixel — cena que vira clipe de IA sai sem tags e o juiz tende a aceitar "gerado". A
@@ -111,9 +112,10 @@ opção, tudo devolve o mesmo que a origin/main 22c8e70e).
   com personagem) nunca passa de 0,65. Até 4 clipes de cena fraca além do hook.
 - Sem laço (sua regra): o clipe que troca precisa cobrir a fatia do montador também na volta de reciclagem. Filme do Kineo 1
   tem poucos clipes para os cortes de 2,5-4,5 s, então quase toda troca no começo/meio do filme precisa de 11 s (US$ 0,286);
-  só as do fim cabem em 5 s (0,13). Quando o teto não paga os 11 s, o clipe entra como hoje (inserção de 5 s, abre a cena).
-- Na prática, um 1º filme de 60 s com 3-5 cenas fracas sai com: hook + 1 troca de 11 s + 1 inserção de 5 s ≈ US$ 0,55 (hoje
-  0,39). Para 2 trocas por filme o teto teria de ir a ~US$ 0,80 — decisão sua (1 linha: `KINEO1_AI_BUDGET_USD`).
+  só as do fim cabem em 5 s (0,13). Quando o teto não paga os 11 s, a cena fica no stock ("budget_loop" na evidência) — a
+  inserção de 5 s de antes reentrava em laço (revisão 2).
+- Na prática, um 1º filme de 60 s com 3-5 cenas fracas sai com: hook + 1 troca de 11 s ≈ US$ 0,42 (0,55 com uma troca de 5 s
+  numa cena do fim; hoje 0,39). Para 2 trocas por filme o teto teria de ir a ~US$ 0,80 — decisão sua (1 linha: `KINEO1_AI_BUDGET_USD`).
 
 ## Como desligar
 `app/api/generate-video-fast/route.ts`: `const KINEO1_IMAGEM_V2 = false` → a rota volta ao caminho de 22c8e70e (nenhuma
@@ -168,3 +170,18 @@ nenhuma linha que abre com verbo, rótulo ou artigo é forte (a peça não mexe 
 Guardiões: `scripts/test-kineo1-imagem-v2-2026-09-28.mjs` (peças) e `scripts/test-kineo1-imagem-v2-rota-2026-09-28.mjs`
 (executa o laço real da rota com a rede falsa: plano de buscas, opções v2, cena fraca, troca, teto, evidência, instrução
 colada, ensaio e o interruptor desligado).
+
+---
+
+# Revisão 2 (28/09, FIX-REVISAO-2) — os 4 achados da lente kineo1
+| achado | conserto |
+|---|---|
+| roteiro de dicas para criador, UMA dica por linha ("Start every video with a hook…", "Use captions on every clip…"), era lido como briefing: 60 s viravam 35 s com UMA dica, 7 regras viravam "a IA reescreve", 116 palavras viravam 422 | `lib/kineo1/pastedBrief.ts`: imperativo sozinho nunca prova briefing — antes de tirar qualquer linha, o texto precisa de um sinal (`briefSignal`): rótulo de PRODUÇÃO (não Title:/Hashtags:/Caption:), frase sobre ESTE filme com obrigação ("O vídeo deve…", "The narrator should…"; não "Every video should…" nem "This video must be shared…"), pedido de filme com formato/duração, ou linha ao editor sobre narração/subtítulo/avatar/formato/texto na tela/imagem anexada (sem "every video/your videos"). Evento v2 |
+| sem orçamento para a duração sem laço, a rota comprava uma inserção de 5 s que reentrava em laço | `planAiClipForSlot` devolve `fits` e nunca recua para 5 s; a rota pula a cena ("budget_loop"; "insert_loop" quando a inserção reentraria) |
+| o vão < 3 s logo depois de uma cena trocada copiava o stock que o clipe de IA tira | `stockTrocado`/`semTrocados` na rota: vão, extensão e reciclagem escolhem entre os clipes que ficam |
+| o replay estourava o rpm (24 pedidos numa cena com rpm=10; até 80 rpm na chave da produção) | 4 buscas por cena, vaga POR PEDIDO (`throttle` na lib da Pixabay, só o replay passa), rpm 10-50 |
+
+Calibração do portão (só leitura): 146 textos reais de 90 dias com várias linhas e alguma linha imperativa/rótulo/sobre
+o filme; nenhum texto do Kineo 1 (fast_scene_plan / render_job_opened) muda; 9 prompts de geração visual de
+videos.topic voltam ao comportamento de antes da peça. Guardiões: 141 ok (peças) e 54 ok (rota), cada checagem nova
+reprovando no código anterior.
