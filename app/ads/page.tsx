@@ -56,7 +56,7 @@ import {
   ADS_PASS_ACCESS_DAYS,
   ADS_PASS_CREDITS,
   KINEO1_35S_CREDITS, // KINEO-ADS-REVISAO-2026-09-27: o custo por anúncio da FAQ nasce daqui, nunca digitado
-  adsCoveredByPass,
+  adsCoverageLine, // KINEO-PASSE-B-2026-09-28: 90 cr = "2 new ads (Photo motion or Commercial), 1 Cinema, or about 30 classic ads of 35 s"
   adsPassCopy,
   adsPassLive,
   adsPassPriceLabel,
@@ -247,7 +247,9 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
   const starterPrice = formatCheckoutMoney('usd', getTierPrice('starter', 'usd', 'standard'))
   const starterAds35 = Math.floor(TIER_CREDITS.starter / KINEO1_35S_CREDITS)
   const starterV2 = v2AdsAnyLevel(TIER_CREDITS.starter) // KINEO-ADS-V2-VIRADA-2026-09-29
-  const passV2 = v2AdsAnyLevel(ADS_PASS_CREDITS) // KINEO-ADS-V2-VIRADA-2026-09-29
+  // KINEO-PASSE-B-2026-09-28 — passe B do fundador (90 cr): o cartão e a FAQ dizem nível a nível o que o passe paga, com os
+  // níveis DERIVADOS desta página (V2_LEVELS) — "1 new ad at any level" deixou de ser a frase inteira (90 paga 2 de Photo motion).
+  const passCoverage = adsCoverageLine(ADS_PASS_CREDITS, V2_LEVELS)
 
   const copy = adsPassCopy()
   const price = adsPassPriceLabel()
@@ -387,7 +389,7 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
             <div className="cost ads-price">
               <div className="sum">{copy.name} pass</div>
               <p className="ads-amount">{price}<span> one-time</span></p>
-              <p className="ads-cover">Enough for {newAdsLabel(passV2)}, or about {adsCoveredByPass(35)} classic ads of 35 s.</p>
+              <p className="ads-cover">Enough for {passCoverage}.</p>
               <div className="val"><span>Credits</span><b>{ADS_PASS_CREDITS}</b></div>
               <CreditMinutesSummary credits={ADS_PASS_CREDITS} />
               <div className="val"><span>Studio Ads access</span><b>{ADS_PASS_ACCESS_DAYS} days</b></div>
@@ -420,7 +422,7 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
           <details>
             <summary>Do I need a subscription?</summary>
             {/* KINEO-ADS-REVISAO-2026-09-27 — assinante entra sem passe (lib/ads/access.ts ADS_SUBSCRIBER_PLANS); o custo por anúncio vem de lib/ads/offer.ts. */}
-            <p>No. Any paid plan includes Studio Ads, with the same credits as your videos: a new ad costs {V2_LEVELS.map((l) => `${l.name} ${l.credits}`).join(', ')} credits, and a classic narrated ad of 35 seconds costs {KINEO1_35S_CREDITS}. The pass is for people without a plan: a single payment of {price} with {ADS_PASS_CREDITS} credits (enough for {newAdsLabel(passV2)}, or classic ads) and {ADS_PASS_ACCESS_DAYS} days of Studio Ads. Nothing renews.</p>
+            <p>No. Any paid plan includes Studio Ads, with the same credits as your videos: a new ad costs {V2_LEVELS.map((l) => `${l.name} ${l.credits}`).join(', ')} credits, and a classic narrated ad of 35 seconds costs {KINEO1_35S_CREDITS}. The pass is for people without a plan: a single payment of {price} with {ADS_PASS_CREDITS} credits — enough for {passCoverage} — and {ADS_PASS_ACCESS_DAYS} days of Studio Ads. Nothing renews.</p>
           </details>
           <details>
             <summary>I would rather have someone make it for me.</summary>
