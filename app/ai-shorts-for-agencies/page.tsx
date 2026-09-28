@@ -9,6 +9,7 @@ import { BULK_PACK_IDS, BULK_PACKS, formatCheckoutMoney } from '@/lib/checkoutPr
 import AgencyPacksClient, { type AgencyPackView } from './AgencyPacksClient'
 import AgencyMarginCalculator from './AgencyMarginCalculator'
 import AgencyBriefClient from './AgencyBriefClient'
+import OrganicCtaLink from '@/components/OrganicCtaLink'
 
 const CANONICAL = 'https://www.usekineo.com/ai-shorts-for-agencies'
 
@@ -53,6 +54,10 @@ const FAQ = [
   {
     q: 'Is this a subscription?',
     a: 'No. Agency packs are one-time purchases in USD. The credits remain in your account until you use them.',
+  },
+  {
+    q: 'Can I choose a monthly plan instead?',
+    a: 'Yes. Monthly subscriptions are available separately on the pricing page. Choose a plan for recurring production or a one-time pack for a fixed batch. Agency packs do not start a subscription.',
   },
   {
     q: 'Does a 30-video pack always create exactly 30 videos?',
@@ -149,6 +154,12 @@ export default function AiShortsForAgenciesPage() {
                 Plan the week free
               </Link>
             </div>
+            <p data-agency-monthly-plans style={{ color: '#aaaab1', fontSize: 14, lineHeight: 1.65, margin: '18px 0 0' }}>
+              Producing Shorts every month?{' '}
+              <OrganicCtaLink href="/pricing" source="ai_shorts_for_agencies" placement="hero_monthly_plans" style={{ color: '#5cb3ff', fontWeight: 800, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                See monthly plans →
+              </OrganicCtaLink>
+            </p>
           </div>
 
           <div style={{ borderRadius: 24, padding: 24, border: '1px solid rgba(41,151,255,.25)', background: 'radial-gradient(circle at 100% 0%, rgba(41,151,255,.2), transparent 42%), #101116' }}>
