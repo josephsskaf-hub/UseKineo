@@ -105,6 +105,12 @@ const FAST_MAX_TOTAL_CLIPS = 16
 // personagem v2 em lib/fastAiScene.ts, modo TROCA em lib/fastAiClips.ts) ligam AQUI, atrás de UM interruptor em código
 // (a Vercel não aceita env nossa). false = o comportamento de 22c8e70e: nenhuma chamada nova, nenhuma opção v2.
 const KINEO1_IMAGEM_V2 = true
+// KINEO1-BRIEF-COLADO-DESLIGADO-2026-09-28 — o filtro de instrução colada (lib/kineo1/pastedBrief.ts) fica DESLIGADO na rota.
+// Três revisões adversárias seguidas acharam roteiro próprio de verdade (dicas de criador, uma por linha, que falam de
+// vídeo, legenda, narração) lido como briefing: a fala perdia linhas ou era reescrita pela IA — quebra direta do "Use my
+// script as is". O ganho era pequeno (2 filmes em 40 da amostra de 21-27/09). Até um portão que não erre, a fala do autor
+// segue palavra por palavra como na origin/main; o resto do Kineo 1 v2 (buscas, portão, clipe de IA na cena fraca) segue.
+const KINEO1_BRIEF_COLADO = false
 // Regra 5 do portão v2 (a ÂNCORA como segunda linha): medida offline em 28/09 nos clipes já escolhidos — sem ela o v2
 // recusa 8 de 16 clipes que os filmes nota 80+ usavam ("tiger stalking in jungle", "earth spinning", "new york skyline
 // sunset"); com ela, 3 de 16, e os vazamentos do scout (vulcão, Riviera, chafariz, cachoeira, garfo) continuam fora. O
@@ -699,7 +705,7 @@ export async function POST(req: NextRequest) {
     // autor fica palavra por palavra, pelo MESMO parser de hoje) e vão como briefing para quem escolhe a imagem
     // (planSceneQueries); sem fala de verdade sobrando, o texto É um briefing — a rota o trata como "a IA estrutura" e o
     // escritor de cenas lê o briefing inteiro (o prompt não muda).
-    const briefColado = KINEO1_IMAGEM_V2 && body.script_mode === 'verbatim' && !marcadoresValidos ? splitPastedBrief(prompt) : null
+    const briefColado = KINEO1_IMAGEM_V2 && KINEO1_BRIEF_COLADO && body.script_mode === 'verbatim' && !marcadoresValidos ? splitPastedBrief(prompt) : null
     if (briefColado?.mode === 'narration_kept') parsedScript.narration = parseUserScript(briefColado.narration).narration || briefColado.narration
     if (briefColado?.mode === 'brief_only') body.script_mode = 'ai'
     if (briefColado && briefColado.mode !== 'none' && !(body.dry_run === true && isDryRunAccount(user.email))) {
