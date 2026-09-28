@@ -30,7 +30,7 @@ const fnSrc = (name, prefix = 'function') => { const i = W.indexOf(`${prefix} ${
 // ── 1. os dois botões, nos dois modos ─────────────────────────────────────────────────────────
 checa('1a. "Start from scratch" aparece em todo passo do assistente, sem depender do modo (IA ou passo a passo)',
   main.includes('const scratchOn = boot.kind === \'ready\' && stepIndex >= 0\n') &&
-  /\{scratchOn \? \(\n\s+<div className="row adsw-scratch">\n\s+<button type="button" className="adsw-btn ghost small" disabled=\{scratchBusy \|\| busyNew\} aria-busy=\{scratchBusy\} onClick=\{\(\) => void startFromScratch\(\)\}>\n\s+\{scratchBusy \? 'Starting a new ad…' : 'Start from scratch'\}/.test(main))
+  /\{scratchOn \? \(\n\s+<div className="row adsw-scratch">\n\s+<button type="button" className="adsw-btn ghost small" disabled=\{scratchBusy \|\| busyNew \|\| childWorking\} aria-busy=\{scratchBusy\} onClick=\{\(\) => void startFromScratch\(\)\}>\n\s+\{scratchBusy \? 'Starting a new ad…' : 'Start from scratch'\}/.test(main))
 checa('1b. o botão fica no topo, logo depois dos botões de modo e antes do conteúdo do passo',
   main.indexOf('>Step by step</button>') > 0 && main.indexOf('>Step by step</button>') < main.indexOf('{scratchOn ? (') && main.indexOf('{scratchOn ? (') < main.indexOf('<Fragment key={freshRound}>{content}</Fragment>'))
 checa('1c. "Delete old photos and videos" no modo IA (painel) e no passo a passo (etapa de fotos)',
@@ -48,7 +48,14 @@ checa('2a. confirma antes com a frase combinada',
   scratch.indexOf('window.confirm(') < scratch.indexOf("callJson<{ order: AdsOrder }>('/api/ads/orders'"))
 checa('2b. cria o pedido pelo POST de sempre com corpo VAZIO (sem brief, logo, fotos, vídeos ou texto) e não copia nada',
   scratch.includes("await callJson<{ order: AdsOrder }>('/api/ads/orders', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({}) })") &&
-  !/patchOrder|orderMedia|stripItem|\.brief|media:/.test(scratch))
+  !/patchOrder|stripItem|media:|brief:/.test(scratch))
+// Revisão 29/09: clique repetido com o pedido JÁ vazio não gasta vaga de rascunho (teto de 20 → 429); só pedido sem mídia,
+// sem brief, sem roteiro e sem modelo é reaproveitado — qualquer coisa escrita nele força pedido novo.
+checa('2b2. pedido atual já vazio é reaproveitado (sem POST); com mídia/brief/roteiro/modelo, pedido novo',
+  scratch.includes("const reuse = prev && prev.status === 'draft' && orderMedia(prev).length === 0 && !prev.brief && !prev.script && !prev.template ? prev : null") &&
+  /if \(reuse\) next = reuse\n\s+else \{\n\s+const created = await callJson/.test(scratch) && scratch.includes('if (prev && prev.id !== next.id) abandoned.current.add(prev.id)'))
+checa('2b3. o rascunho de visitante (sessionStorage kineo:ads:draft:v1) é descartado ao começar do zero',
+  /setScratchError\(null\)\n\s+try \{\n\s+takeDraft\(\)/.test(scratch))
 checa('2c. passa a mostrar o pedido novo e zera o que era do anterior (batidas, storyboard, cartão, render, versão)',
   /orderRef\.current = next\n\s+setOrder\(next\)\n\s+setBeats\(null\)\n\s+setStoryboard\(\{\}\)\n\s+setCard\(null\)\n\s+setRender\(null\)\n\s+setRenderState\(null\)\n\s+setRemix\(null\)/.test(scratch) &&
   scratch.includes("setView('brief')") && scratch.includes('setFreshRound((n) => n + 1)'))
@@ -70,7 +77,7 @@ checa('2h. erro claro ao criar (429 com a saída; outros com a frase do servidor
   scratch.includes("created.status === 429 ? 'You have too many unfinished ads, so a new one could not start.") &&
   scratch.includes('`A new ad could not start. ${errorText(created)}`') && scratch.includes('if (created.status === 401) return goLogin()') &&
   main.includes('{scratchError ? <p className="adsw-err" role="alert">{scratchError}</p> : null}') &&
-  scratch.includes('if (scratchBusy || busyNew) return') && /finally \{\n\s+setScratchBusy\(false\)/.test(scratch))
+  scratch.includes('if (scratchBusy || busyNew || childWorking) return') && /finally \{\n\s+setScratchBusy\(false\)/.test(scratch))
 
 // ── 3. o apagar, EXECUTADO com fetch falso ───────────────────────────────────────────────────
 const ts = createRequire(import.meta.url)(join(root, 'node_modules', 'typescript'))
@@ -101,6 +108,7 @@ const orders = [
   { id: 'f', status: 'failed', media: [img('p4'), img('logoB')] },
 ]
 let env
+const existentes = new Set(['p1', 'p2', 'p3', 'p4', 'p9', 'v1', 'v2', 'logoA', 'logoB', 'q1', 'logoZ'])
 const freshEnv = (confirmAnswer = true) => {
   env = { log: [], events: [], confirmText: null, callJson: null, patchOrder: null, confirm: null }
   env.confirm = (t) => { env.log.push('confirm'); env.confirmText = t; return confirmAnswer }
@@ -108,6 +116,7 @@ const freshEnv = (confirmAnswer = true) => {
     const method = init?.method ?? 'GET'
     env.log.push(`${method} ${url}`)
     if (url === '/api/ads/orders' && method === 'GET') return { ok: true, status: 200, data: { orders } }
+    if (url.startsWith('/api/footage?ids=') && method === 'GET') return { ok: true, status: 200, data: { ids: url.slice('/api/footage?ids='.length).split(',').map(decodeURIComponent).filter((x) => existentes.has(x)) } }
     if (url.startsWith('/api/footage?id=') && method === 'DELETE') return url.endsWith('=v2') ? { ok: false, status: 500, code: null, message: null, body: {} } : { ok: true, status: 200, data: { ok: true } }
     return { ok: false, status: 404, code: null, message: null, body: {} }
   }
@@ -144,12 +153,51 @@ if (M) {
   const saved = orders.splice(0, orders.length, onlyLogo, { id: 'r2', status: 'rendering', media: [img('q1')] })
   const n = await M.deleteOldAdsMedia(onlyLogo, () => undefined)
   orders.splice(0, orders.length, ...saved)
+  // Revisão 29/09: arquivo que já foi apagado (o anúncio pronto segue apontando para ele; o DELETE responde ok para id
+  // inexistente) não entra na conta nem no DELETE — antes o 2º clique prometia e "apagava" os mesmos N para sempre.
+  freshEnv(true)
+  existentes.delete('p2'); existentes.delete('v2')
+  const r2 = await M.deleteOldAdsMedia(current, () => undefined)
+  existentes.add('p2'); existentes.add('v2')
+  const del2 = env.log.filter((l) => l.startsWith('DELETE ')).map((l) => l.split('=')[1]).sort().join()
+  checa('3n. já apagado não conta: confirma 3, apaga só p3,p4,v1 e tira do pedido atual também o que sumiu', del2 === 'p3,p4,v1' && env.confirmText.startsWith('Deletes 3 photos and videos') && r2.deleted === 3 &&
+    env.log.some((l) => l.startsWith('GET /api/footage?ids=')) && env.log.findIndex((l) => l.startsWith('GET /api/footage?ids=')) < env.log.indexOf('confirm'))
+  freshEnv(true)
+  const tudoIdo = new Set(existentes); existentes.clear()
+  const r3 = await M.deleteOldAdsMedia(current, () => undefined)
+  tudoIdo.forEach((x) => existentes.add(x))
+  checa('3o. 2º clique depois de tudo apagado: "nada para apagar", sem confirmação e sem DELETE', r3.kind === 'nothing' && !env.log.includes('confirm') && !env.log.some((l) => l.startsWith('DELETE')))
+  freshEnv(true)
+  const r4 = await M.deleteOldAdsMedia(current, () => undefined, new Set(['v1', 'p4']))
+  const del4 = env.log.filter((l) => l.startsWith('DELETE ')).map((l) => l.split('=')[1]).sort().join()
+  checa('3p. o que a pessoa acabou de subir para ESTE anúncio (v1) fica e é contado; upload desta sessão fora do anúncio atual (p4) não protege',
+    del4 === 'p2,p3,p4,v2' && r4.keptNew === 1 && M.oldMediaResultText(r4).includes('kept 1 you just added to this ad') && !env.log.some((l) => l.startsWith('PATCH')))
+  freshEnv(true)
+  const r5 = await (async () => { const save = env.callJson; env.callJson = async (url, init) => url.startsWith('/api/footage?ids=') ? { ok: false, status: 500, code: null, message: null, body: {} } : save(url, init); return M.deleteOldAdsMedia(current, () => undefined) })()
+  checa('3q. conferência falhou: nada é apagado nem alterado, e a frase diz isso', r5.kind === 'error' && r5.message.startsWith('Nothing was deleted') && !env.log.some((l) => l.startsWith('DELETE') || l.startsWith('PATCH')) && !env.log.includes('confirm'))
+
   checa('3m. nada para apagar: não pede confirmação e diz o porquê', n.kind === 'nothing' && !env.log.includes('confirm') && M.oldMediaResultText(n) === 'No old photos or videos to delete · kept 1 in use by an ad that is rendering.')
 }
 
 // ── 4. telas: o resultado vai ao pedido atual; eventos novos; rota de apagar confere o dono ──
-checa('4a. modo IA: depois de apagar, o pedido atual (sem os ids) é o que a tela mostra', /if \(r\.kind === 'done' && r\.order\) \{\n\s+mediaRef\.current = orderMedia\(r\.order\)\n\s+orderLocal\.current = r\.order\n\s+onOrder\(r\.order\)/.test(panel) && panel.includes('const r = await deleteOldAdsMedia(orderLocal.current, setBusy)'))
-checa('4b. passo a passo: idem na etapa de fotos', /if \(r\.kind === 'done' && r\.order\) \{\n\s+mediaRef\.current = orderMedia\(r\.order\)\n\s+onOrder\(r\.order\)/.test(mediaStep) && mediaStep.includes('const r = await deleteOldAdsMedia(order, setBusy)'))
+checa('4a. modo IA: depois de apagar, o pedido atual (sem os ids) é o que a tela mostra', /if \(r\.kind === 'done' && r\.order\) \{\n\s+mediaRef\.current = orderMedia\(r\.order\)\n\s+orderLocal\.current = r\.order\n\s+onOrder\(r\.order\)/.test(panel) && panel.includes('const r = await deleteOldAdsMedia(orderLocal.current, setBusy, sessionUploads.current)'))
+checa('4b. passo a passo: idem na etapa de fotos', /if \(r\.kind === 'done' && r\.order\) \{\n\s+mediaRef\.current = orderMedia\(r\.order\)\n\s+onOrder\(r\.order\)/.test(mediaStep) && mediaStep.includes('const r = await deleteOldAdsMedia(order, setBusy, sessionUploads.current)'))
+// Revisão 29/09: GET /api/footage?ids= é só leitura e filtra pelo dono; sem ?ids= a lista de sempre.
+checa('4f. GET /api/footage?ids= devolve só ids desta conta que ainda existem (uuid, até 50), sem mudar o GET de sempre',
+  /export async function GET\(req: NextRequest\)[\s\S]*?const idsParam = req\.nextUrl\.searchParams\.get\('ids'\)\n\s+if \(idsParam !== null\) \{[\s\S]*?\.slice\(0, 50\)[\s\S]*?\.from\('user_footage'\)\.select\('id'\)\.eq\('user_id', user\.id\)\.in\('id', ids\)[\s\S]*?\n\s+\}\n\s+const items = await listUserFootage\(user\.id\)/.test(FOOTAGE))
+
+// ── 5. revisão 29/09: resposta atrasada do pedido abandonado não volta; render/IA em curso trava o "Start from scratch" ──
+checa('5a. passos que gravam direto (roteiro, voz) e o Render ignoram o pedido abandonado',
+  main.includes("onSaved={(o, b) => { if (abandoned.current.has(o.id)) return; setOrder(o); setBeats(b); setView('voice') }}") &&
+  main.includes("onSaved={(o) => { if (abandoned.current.has(o.id)) return; setOrder(o); setView('storyboard') }} />") &&
+  /onStarted=\{\(s\) => \{\n\s+if \(abandoned\.current\.has\(s\.order_id\)\) return/.test(main) &&
+  /onState=\{\(st\) => \{\n\s+if \(abandoned\.current\.has\(st\.order_id\)\) return/.test(main))
+const renderStep = W.slice(W.indexOf('function RenderStep('), W.indexOf('function RenderStep(') + 2500)
+checa('5b. painel da IA (ocupado/pensando/fazendo) e Render (despachando) avisam o pai, que desabilita o botão',
+  panel.includes("const working = Boolean(busy) || phase === 'thinking' || phase === 'making'") && /onWorking\?\.\(working\)\n\s+return \(\) => onWorking\?\.\(false\)/.test(panel) &&
+  /onWorking\?\.\(busy\)\n\s+return \(\) => onWorking\?\.\(false\)/.test(renderStep) && count(main, 'onWorking={setChildWorking}') === 2)
+checa('5c. "Start a new ad instead" (aviso de rascunho antigo) é o mesmo começar-do-zero: o velho não volta ao recarregar',
+  main.includes('onFresh={() => void startFromScratch()}') && !/onFresh=\{\(\) => \{\n\s+orderRef\.current = null/.test(main))
 checa('4c. eventos novos na lista fechada, do navegador (não só-servidor)',
   EVENTS.includes("'ads_started_from_scratch',") && EVENTS.includes("'ads_old_media_deleted',") &&
   !/ADS_SERVER_ONLY_EVENTS[^\]]*ads_(started_from_scratch|old_media_deleted)/.test(EVENTS) &&

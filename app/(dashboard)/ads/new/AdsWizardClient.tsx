@@ -581,8 +581,10 @@ async function fetchRenderState(orderId: string): Promise<AdsRenderState | null>
 // comando que apaga as fotos e vídeos antigos no ads". Apaga só fotos e vídeos que os pedidos de anúncio da pessoa
 // usam (nunca o logo, que tem o próprio "Change logo"; nunca arquivo de pedido em 'rendering', que quebraria o render).
 const OLD_MEDIA_BUSY_STATUS = 'rendering'
-/** Plano puro do "Delete old photos and videos": ids a apagar e quantos ficam por estarem num render em curso. */
-function oldMediaPlan(orders: AdsOrder[], current: AdsOrder | null): { ids: string[]; keptRendering: number } {
+/** Plano puro do "Delete old photos and videos": ids a apagar e quantos ficam por estarem num render em curso.
+ *  Revisão 29/09: o que a pessoa acabou de subir NESTA sessão para o anúncio atual (sessionUploads) não é "antigo" — fica,
+ *  e a frase conta quantos ficaram por isso (keptNew). */
+function oldMediaPlan(orders: AdsOrder[], current: AdsOrder | null, fresh: ReadonlySet<string> = new Set()): { ids: string[]; keptRendering: number; keptNew: number } {
   const all = current && !orders.some((o) => o.id === current.id) ? [current, ...orders] : orders
   const logos = new Set<string>()
   const inRender = new Set<string>()
@@ -594,20 +596,23 @@ function oldMediaPlan(orders: AdsOrder[], current: AdsOrder | null): { ids: stri
       else candidates.add(m.footageId)
     }
   }
-  const ids = Array.from(candidates).filter((id) => !logos.has(id) && !inRender.has(id))
+  const newHere = new Set(current ? orderMedia(current).filter((m) => !m.isLogo && fresh.has(m.footageId)).map((m) => m.footageId) : [])
+  const ids = Array.from(candidates).filter((id) => !logos.has(id) && !inRender.has(id) && !newHere.has(id))
   const keptRendering = Array.from(inRender).filter((id) => !logos.has(id)).length
-  return { ids, keptRendering }
+  const keptNew = Array.from(newHere).filter((id) => !logos.has(id) && !inRender.has(id)).length
+  return { ids, keptRendering, keptNew }
 }
 
 type OldMediaResult =
-  | { kind: 'done'; deleted: number; keptRendering: number; failed: number; order: AdsOrder | null }
-  | { kind: 'nothing'; keptRendering: number }
+  | { kind: 'done'; deleted: number; keptRendering: number; keptNew: number; failed: number; order: AdsOrder | null }
+  | { kind: 'nothing'; keptRendering: number; keptNew: number }
   | { kind: 'cancelled' }
   | { kind: 'error'; message: string }
 
 /** Frase do resultado: "Deleted 7 · kept 1 in use by an ad that is rendering". */
 function oldMediaResultText(r: OldMediaResult): string {
-  const kept = 'keptRendering' in r && r.keptRendering ? ` · kept ${r.keptRendering} in use by an ad that is rendering` : ''
+  const kept = ('keptRendering' in r && r.keptRendering ? ` · kept ${r.keptRendering} in use by an ad that is rendering` : '') +
+    ('keptNew' in r && r.keptNew ? ` · kept ${r.keptNew} you just added to this ad` : '')
   if (r.kind === 'nothing') return `No old photos or videos to delete${kept}.`
   if (r.kind !== 'done') return ''
   const failed = r.failed ? ` · ${r.failed} could not be deleted, try again` : ''
@@ -616,19 +621,33 @@ function oldMediaResultText(r: OldMediaResult): string {
 
 /** Apaga, com confirmação, as fotos e vídeos antigos dos anúncios pela rota que confere o dono (DELETE /api/footage),
  *  um por um. Antes de apagar, tira os ids do pedido atual (rascunho), para ele nunca apontar para arquivo apagado. */
-async function deleteOldAdsMedia(current: AdsOrder | null, progress: (line: string) => void): Promise<OldMediaResult> {
+async function deleteOldAdsMedia(current: AdsOrder | null, progress: (line: string) => void, justAdded: ReadonlySet<string> = new Set()): Promise<OldMediaResult> {
   const list = await callJson<{ orders?: AdsOrder[] }>('/api/ads/orders')
   if (!list.ok) {
     if (list.status === 401) goLogin()
     return { kind: 'error', message: `Could not load your photos and videos. ${errorText(list)}` }
   }
   const orders = Array.isArray(list.data.orders) ? list.data.orders : []
-  const plan = oldMediaPlan(orders, current)
-  if (!plan.ids.length) return { kind: 'nothing', keptRendering: plan.keptRendering }
-  const n = plan.ids.length
+  const plan = oldMediaPlan(orders, current, justAdded)
+  // Revisão 29/09: anúncios prontos continuam apontando para arquivos já apagados, e o DELETE responde ok para id que não
+  // existe mais — sem esta conferência o 2º clique prometia e "apagava" os mesmos N para sempre. Só entra o que ainda existe
+  // NESTA conta (GET /api/footage?ids= filtra pelo dono), em lotes de 50.
+  const doomed = new Set(plan.ids)
+  const alive = new Set<string>()
+  for (let i = 0; i < plan.ids.length; i += 50) {
+    const chunk = plan.ids.slice(i, i + 50)
+    const r = await callJson<{ ids?: string[] }>(`/api/footage?ids=${chunk.map(encodeURIComponent).join(',')}`)
+    if (!r.ok) {
+      if (r.status === 401) goLogin()
+      return { kind: 'error', message: `Nothing was deleted: could not check your photos and videos. ${errorText(r)}` }
+    }
+    for (const id of Array.isArray(r.data.ids) ? r.data.ids : []) if (doomed.has(id)) alive.add(id)
+  }
+  const ids = plan.ids.filter((id) => alive.has(id))
+  if (!ids.length) return { kind: 'nothing', keptRendering: plan.keptRendering, keptNew: plan.keptNew }
+  const n = ids.length
   const ok = window.confirm(`Deletes ${n} ${n === 1 ? 'photo or video' : 'photos and videos'} from your account. Finished ads stay. Old ads can't make new versions from these files.`)
   if (!ok) return { kind: 'cancelled' }
-  const doomed = new Set(plan.ids)
   let order: AdsOrder | null = null
   const fresh = current ? orders.find((o) => o.id === current.id) ?? current : null
   if (fresh && fresh.status === 'draft' && orderMedia(fresh).some((m) => doomed.has(m.footageId))) {
@@ -642,17 +661,17 @@ async function deleteOldAdsMedia(current: AdsOrder | null, progress: (line: stri
   }
   let deleted = 0
   let failed = 0
-  for (let i = 0; i < plan.ids.length; i++) {
+  for (let i = 0; i < ids.length; i++) {
     progress(`Deleting ${i + 1} of ${n}…`)
-    const r = await callJson<{ ok: boolean }>(`/api/footage?id=${encodeURIComponent(plan.ids[i])}`, { method: 'DELETE' })
+    const r = await callJson<{ ok: boolean }>(`/api/footage?id=${encodeURIComponent(ids[i])}`, { method: 'DELETE' })
     if (r.ok) deleted += 1
     else if (r.status === 401) {
       goLogin()
       break
     } else failed += 1
   }
-  void trackEvent('ads_old_media_deleted', { order_id: current?.id ?? null, deleted, failed, kept_rendering: plan.keptRendering, planned: n })
-  return { kind: 'done', deleted, keptRendering: plan.keptRendering, failed, order }
+  void trackEvent('ads_old_media_deleted', { order_id: current?.id ?? null, deleted, failed, kept_rendering: plan.keptRendering, kept_new: plan.keptNew, planned: n })
+  return { kind: 'done', deleted, keptRendering: plan.keptRendering, keptNew: plan.keptNew, failed, order }
 }
 
 function voiceLabel(id: string | null | undefined): string {
@@ -800,6 +819,9 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
   const [scratchError, setScratchError] = useState<string | null>(null)
   const [freshRound, setFreshRound] = useState(0)
   const abandoned = useRef<Set<string>>(new Set())
+  // Revisão 29/09: com o painel da IA trabalhando (subindo, apagando, fazendo o anúncio) ou o Render despachando,
+  // "Start from scratch" fica desabilitado — senão o render pago seguia invisível e a resposta dele trazia o pedido antigo.
+  const [childWorking, setChildWorking] = useState(false)
   const sessionUploads = useRef<Set<string>>(new Set())
   const rootRef = useRef<HTMLDivElement>(null)
   const settled = useRef(false)
@@ -1016,19 +1038,26 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
   // texto) e passa a mostrá-lo. É o mais novo, então o hydrate o escolhe também depois de recarregar a página. Os
   // anúncios prontos seguem na lista "Your ads"; nada é apagado aqui.
   async function startFromScratch() {
-    if (scratchBusy || busyNew) return
+    if (scratchBusy || busyNew || childWorking) return
     if (!window.confirm("Start a new ad from zero? Your finished ads stay in 'Your ads'.")) return
     setScratchBusy(true)
     setScratchError(null)
     try {
-      const created = await callJson<{ order: AdsOrder }>('/api/ads/orders', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({}) })
-      if (!created.ok) {
-        if (created.status === 401) return goLogin()
-        setScratchError(created.status === 429 ? 'You have too many unfinished ads, so a new one could not start. Finish one first, or write to hello@usekineo.com.' : `A new ad could not start. ${errorText(created)}`)
-        return
-      }
+      takeDraft() // revisão 29/09: texto de visitante ainda guardado não volta como "Welcome back" no pedido novo
       const prev = orderRef.current
-      const next = created.data.order
+      // Revisão 29/09: pedido atual JÁ vazio (clique repetido) = só limpa a tela; não gasta uma das 20 vagas de rascunho.
+      const reuse = prev && prev.status === 'draft' && orderMedia(prev).length === 0 && !prev.brief && !prev.script && !prev.template ? prev : null
+      let next: AdsOrder
+      if (reuse) next = reuse
+      else {
+        const created = await callJson<{ order: AdsOrder }>('/api/ads/orders', { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({}) })
+        if (!created.ok) {
+          if (created.status === 401) return goLogin()
+          setScratchError(created.status === 429 ? 'You have too many unfinished ads, so a new one could not start. Finish one first, or write to hello@usekineo.com.' : `A new ad could not start. ${errorText(created)}`)
+          return
+        }
+        next = created.data.order
+      }
       if (prev && prev.id !== next.id) abandoned.current.add(prev.id)
       orderRef.current = next
       setOrder(next)
@@ -1158,13 +1187,8 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
           setBeats(beatsFromOrder(o))
           void fetchRenderState(o.id).then((st) => { setRenderState(st); setView('delivery') })
         }}
-        onFresh={() => {
-          orderRef.current = null
-          setOrder(null)
-          setBeats(null)
-          setStoryboard({})
-          setCard(null)
-        }}
+        onFresh={() => void startFromScratch()}
+        onWorking={setChildWorking}
       />
     )
   } else if (view === 'brief' || !order) {
@@ -1207,11 +1231,11 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
         model={model}
         initialBeats={beats}
         onBack={() => setView('model')}
-        onSaved={(o, b) => { setOrder(o); setBeats(b); setView('voice') }}
+        onSaved={(o, b) => { if (abandoned.current.has(o.id)) return; setOrder(o); setBeats(b); setView('voice') }}
       />
     )
   } else if (view === 'voice' && model && beats) {
-    content = <VoiceStep order={order} firstBeat={beats[0] ?? ''} onBack={() => setView('script')} onSaved={(o) => { setOrder(o); setView('storyboard') }} />
+    content = <VoiceStep order={order} firstBeat={beats[0] ?? ''} onBack={() => setView('script')} onSaved={(o) => { if (abandoned.current.has(o.id)) return; setOrder(o); setView('storyboard') }} />
   } else if (view === 'storyboard' && model && beats) {
     content = (
       <StoryboardStep
@@ -1236,12 +1260,15 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
         storyboard={storyboard}
         card={card}
         onBack={() => setView('storyboard')}
+        onWorking={setChildWorking}
         onStarted={(s) => {
+          if (abandoned.current.has(s.order_id)) return // revisão 29/09
           setRender({ renderId: s.render_id, seconds: s.seconds, topic: s.topic })
           setOrder({ ...order, status: 'rendering' })
           setView('progress')
         }}
         onState={(st) => {
+          if (abandoned.current.has(st.order_id)) return // revisão 29/09
           setRenderState(st)
           if (st.status === 'delivered' || st.status === 'reviewed') setView('delivery')
           else if (st.status === 'failed') setView('failed')
@@ -1368,7 +1395,7 @@ export default function AdsWizardClient({ gate, access, resumingPass }: { gate: 
       ) : null}
       {scratchOn ? (
         <div className="row adsw-scratch">
-          <button type="button" className="adsw-btn ghost small" disabled={scratchBusy || busyNew} aria-busy={scratchBusy} onClick={() => void startFromScratch()}>
+          <button type="button" className="adsw-btn ghost small" disabled={scratchBusy || busyNew || childWorking} aria-busy={scratchBusy} onClick={() => void startFromScratch()}>
             {scratchBusy ? 'Starting a new ad…' : 'Start from scratch'}
           </button>
           {scratchError ? <p className="adsw-err" role="alert">{scratchError}</p> : null}
@@ -1443,6 +1470,7 @@ function AdsAutoPanel({
   remix,
   onRemixUsed,
   onOpenAd,
+  onWorking,
   anon = false, // KINEO-ADS-SEM-LOGIN-2026-09-27
 }: {
   /** KINEO-ADS-SEM-LOGIN-2026-09-27 — visitante sem login: nenhuma chamada de API; a 1ª ação de rede guarda o rascunho e vai ao /login. */
@@ -1458,6 +1486,7 @@ function AdsAutoPanel({
   remix: Remix | null
   onRemixUsed: () => void
   onOpenAd: (o: AdsOrder) => void
+  onWorking?: (working: boolean) => void
 }) {
   const [phase, setPhase] = useState<'input' | 'thinking' | 'confirm' | 'making'>('input')
   const [text, setText] = useState('')
@@ -1477,6 +1506,13 @@ function AdsAutoPanel({
   const [captionStyle, setCaptionStyle] = useState<AdCaptionStyle>('bold')
   const [music, setMusic] = useState<AdMusicMood>('auto')
   const [stage, setStage] = useState(0)
+  // Revisão 29/09: o pai desabilita "Start from scratch" enquanto este painel trabalha (subindo, apagando, fazendo o anúncio).
+  const working = Boolean(busy) || phase === 'thinking' || phase === 'making'
+  useEffect(() => {
+    onWorking?.(working)
+    return () => onWorking?.(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [working])
   const orderLocal = useRef<AdsOrder | null>(order)
   orderLocal.current = order ?? orderLocal.current
   const mediaRef = useRef<AdsMediaItem[]>(orderMedia(order))
@@ -1709,11 +1745,7 @@ function AdsAutoPanel({
   }
 
   function startFresh() {
-    orderLocal.current = null
-    mediaRef.current = []
-    createdHere.current = false
-    setConsent(false)
-    setText('')
+    // Revisão 29/09: o pai confirma, cria o pedido vazio e remonta o painel (o estado local zera junto); cancelar não mexe.
     setError(null)
     onFresh()
   }
@@ -1726,7 +1758,7 @@ function AdsAutoPanel({
     setCleanNote(null)
     setBusy('Checking your photos and videos…')
     try {
-      const r = await deleteOldAdsMedia(orderLocal.current, setBusy)
+      const r = await deleteOldAdsMedia(orderLocal.current, setBusy, sessionUploads.current)
       if (r.kind === 'error') return setError(r.message)
       if (r.kind === 'cancelled') return
       if (r.kind === 'done' && r.order) {
@@ -2335,7 +2367,7 @@ function MediaStep({
     setCleanNote(null)
     setBusy('Checking your photos and videos…')
     try {
-      const r = await deleteOldAdsMedia(order, setBusy)
+      const r = await deleteOldAdsMedia(order, setBusy, sessionUploads.current)
       if (r.kind === 'error') return setErrors([r.message])
       if (r.kind === 'cancelled') return
       if (r.kind === 'done' && r.order) {
@@ -3206,6 +3238,7 @@ function RenderStep({
   onBack,
   onStarted,
   onState,
+  onWorking,
 }: {
   order: AdsOrder
   model: AdsModel
@@ -3215,9 +3248,16 @@ function RenderStep({
   onBack: () => void
   onStarted: (s: AdsRenderStarted) => void
   onState: (s: AdsRenderState) => void
+  onWorking?: (working: boolean) => void
 }) {
   const [balance, setBalance] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
+  // Revisão 29/09: despacho pago em curso = "Start from scratch" desabilitado no pai.
+  useEffect(() => {
+    onWorking?.(busy)
+    return () => onWorking?.(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busy])
   const [line, setLine] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [outOfCredits, setOutOfCredits] = useState<{ needed: number | null; balance: number | null } | null>(null)
