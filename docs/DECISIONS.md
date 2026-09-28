@@ -2,6 +2,14 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
+## 2026-09-28 — O botão de compra antes do 1º filme FICA
+
+**DECIDIDO (fundador, 28/09, literal):** "mantém o botão".
+**O QUE:** o CTA de checkout do banner do trial (e das outras portas) continua visível para quem ainda não fez o 1º filme. A proposta de 27/09 de escondê-lo até o 1º filme está DERRUBADA.
+**POR QUÊ (dados, docs/PLANO-10-VENDAS-MRR-2026-09-28.md):** os 5 assinantes novos desde 28/08 pagaram com 0 filmes, de 1 a 32 min depois do cadastro, todos de país rico (ES, US, BE, NL, ES); o axe pagou o Creator por esse botão 2 min depois de chegar. Os 4 que clicaram antes do filme em 7 dias e não pagaram são de KE, UA, IN e NG. Esconder fecharia a porta de quem paga.
+**ATENÇÃO:** isto corrige, para país rico, a nota "checkout de conta sem vídeo = defeito, não desejo" do CLAUDE.md (02/09). Não reabrir sem dado novo por país.
+**MEDIR:** vendas por pessoa de quem clicou antes do 1º filme, separadas por país rico/emergente (leitura de 30/09 e 04/10, tarefa 4 do plano).
+
 ## 2026-09-27 (noite) — Domínios descartáveis bloqueados no cadastro
 
 **DECIDIDO (fundador, ~21h30 BRT, literal):** "bloqueia esses domínios descartáveis no cadastro" e, em seguida, "bloqueia vmail.dev, mailshan e playboot também".

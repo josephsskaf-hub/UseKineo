@@ -2,7 +2,7 @@
 
 Pedido do fundador (27/09 ~23h BRT): "as próximas 10 tasks voltadas a vendas e aumento de MRR, simples, as de maior probabilidade". Montado por 6 análises com dados do banco e do código (pagantes, checkout, ativação, canais, MRR/churn, alavancas paradas), síntese com 17 candidatas e 2 céticos adversariais (evidência/história e execução/velocidade de dinheiro). Workflow wf_8eb884ae-60d. Preço e oferta congelados até 09/10: o que depende de preço está na seção da mesa.
 
-**Status em 28/09:** tarefa 1 FEITA pelo Cowork (Stripe: 4 tentativas em 3 semanas → 8 em 2 meses; relatório docs/COWORK-STRIPE-RETENTATIVAS-2026-09-28.md). As perguntas do Cowork sobre o webhook em atraso longo estão em verificação (workflow wf_8934f8db-ece).
+**Status em 28/09:** tarefas 1, 2 e 3 FEITAS. (1) Cowork: Stripe de 4 tentativas em 3 semanas → 8 em 2 meses (docs/COWORK-STRIPE-RETENTATIVAS-2026-09-28.md). (2) Fundador pôs saldo pré-pago na OpenAI; conferido no banco: roteiro e filme saindo às 01:23-01:27Z, 0 erros de capacidade em 6 h. (3) Fundador: "mantém o botão" — registrado em docs/DECISIONS.md. As perguntas do Cowork sobre o webhook em atraso longo estão em verificação (workflow wf_8934f8db-ece). Próximas datas: 30/09 (tarefas 4 e 5), 01/10-21/10 (tarefa 6), 04/10 (7 e 8), 07/10 (9), 12/10 (10).
 
 ## Números-base
 
