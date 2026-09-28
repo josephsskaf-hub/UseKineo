@@ -14,7 +14,7 @@ import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 // launch offer.
 
 import { PLAN_SWITCH_EMPTY, fetchPlanSwitchState, planSwitchConfirmText, planSwitchErrorText, planSwitchLabel, switchPlan, type PlanSwitchState, type SwitchableTier } from '@/lib/growth/planSwitch'
-import { S25_PUBLIC } from '@/lib/engineLaunch'
+import { S25_PUBLIC, AVATAR_PUBLIC } from '@/lib/engineLaunch' // KINEO-AVATAR-FORA-2026-09-28
 import Link from 'next/link'
 import React, { useEffect, useRef, useState } from 'react'
 import { trackCheckoutClick } from '@/lib/trackClick'
@@ -207,7 +207,8 @@ const buildFaqs = (OFFER: FreeTierOffer): { q: string; a: string }[] => [
   {
     // KINEO-AUTOPILOT-299-2026-07-26
     q: 'Do I still get to make my own videos on Autopilot?',
-    a: 'Yes. Autopilot includes 400 credits a month that you can spend on any engine — Seedance, Kling, Hollywood, AI Presenter — completely separately from the daily Short we publish for you. The daily Short uses Fast Mode so it is quick, reliable and cheap to run every single day.',
+    // KINEO-AVATAR-FORA-2026-09-28 — 'AI Presenter' só aparece com AVATAR_PUBLIC=true (Avatar fora do catálogo desde 27/09).
+    a: `Yes. Autopilot includes 400 credits a month that you can spend on any engine — Seedance, Kling, Hollywood${AVATAR_PUBLIC ? ', AI Presenter' : ''} — completely separately from the daily Short we publish for you. The daily Short uses Fast Mode so it is quick, reliable and cheap to run every single day.`,
   },
 ]
 
@@ -297,7 +298,8 @@ function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
       // do card e vive na tabela comparativa.
       // KINEO-PRICING-V5-2026-08-17 — 320cr: volume + Kling 3 todo mês +
       // 2 Enhance HD grátis (Topaz) + storage ilimitado.
-      outcome: 'Every available engine — Kling 3, Veo 3.1, Kling 2.5, MiniMax H3, Seedance 1.5, Kineo 1, Avatar — plus 2 free HD enhances and unlimited forever storage.', // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15: Omni pausado não se vende · KINEO-H3-DE-VOLTA-2026-09-22
+      // KINEO-AVATAR-FORA-2026-09-28 — ', Avatar' saiu do resultado do Studio: o motor deixou o catálogo público em 27/09.
+      outcome: `Every available engine — Kling 3, Veo 3.1, Kling 2.5, MiniMax H3, Seedance 1.5, Kineo 1${AVATAR_PUBLIC ? ', Avatar' : ''} — plus 2 free HD enhances and unlimited forever storage.`, // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15: Omni pausado não se vende · KINEO-H3-DE-VOLTA-2026-09-22
       videosPerMonth: filmsAndScenes('pro'),
       storageLine: 'Unlimited projects · forever storage',
       cta: { label: 'Get Started', href: '#checkout' },
@@ -1203,13 +1205,15 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                   const costKling25 = creditsPerReferenceVideo('cinematic_kling')
                   const costVeo = creditsPerReferenceVideo('cinematic_veo')
                   const costFlag = creditsPerReferenceVideo('cinematic_hollywood')
+                  // KINEO-AVATAR-FORA-2026-09-28 — a linha 'AI Presenter videos' (70 cr) só entra com AVATAR_PUBLIC=true:
+                  // o Avatar saiu do catálogo público em 27/09. O custo continua no biller (engineCost 'presenter').
                   const costPres = creditsPerReferenceVideo('presenter')
                   const tierFor = (cost: number) => cost <= TIER_CREDITS.starter ? 'Starter' : cost <= TIER_CREDITS.basic ? 'Creator' : 'Studio'
                   const engineRows: { ic: string; name: string; cost: number; note?: string }[] = [
                     { ic: '⚡', name: 'Kineo 1 quick videos', cost: costFast },
                     { ic: '🎬', name: 'Seedance 1.5 films', cost: costSeed },
                     { ic: '🎞', name: 'Kling 2.5 films', cost: costKling25 },
-                    { ic: '🧑‍🎤', name: 'AI Presenter videos', cost: costPres },
+                    ...(AVATAR_PUBLIC ? [{ ic: '🧑‍🎤', name: 'AI Presenter videos', cost: costPres }] : []),
                     { ic: '🌐', name: 'Veo 3.1 films', cost: costVeo },
                     { ic: '🏆', name: 'Kling 3 films · native voice & lip sync', cost: costFlag }, // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
                   ]
@@ -1252,7 +1256,8 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                         <span>✓ 1080×1920 Full HD master on every film</span>
                         <span>✓ Script, voiceover, karaoke captions &amp; soundtrack included</span>
                         <span>✓ Characters that speak your lines with lip sync (Kling 3)</span>
-                        <span>✓ Character Lock — same face in every video</span>
+                        {/* KINEO-AVATAR-FORA-2026-09-28 — Character Lock é vendido como ferramenta do Avatar Studio; sai junto com o Avatar. */}
+                        {AVATAR_PUBLIC && <span>✓ Character Lock — same face in every video</span>}
                         <span>✓ Animate a Photo · AI Thumbnails · Viral Now topics</span>
                       </div>
                     </details>
@@ -1946,13 +1951,16 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                     // master 1080×1920 é de todo mundo; o Studio não compra resolução, compra créditos.
                     pro: '✅',
                   },
-                  {
-                    label: `🎬 AI Presenter — talking avatar (${creditsPerReferenceVideo('presenter')} cr)`,
-                    free: ft(OFFER, '—', '✅ watermark'),
-                    starter: '—',
-                    basic: '✅',
-                    pro: '✅',
-                  },
+                  // KINEO-AVATAR-FORA-2026-09-28 — linha do AI Presenter só com AVATAR_PUBLIC=true (Avatar fora do catálogo).
+                  ...(AVATAR_PUBLIC
+                    ? [{
+                        label: `🎬 AI Presenter — talking avatar (${creditsPerReferenceVideo('presenter')} cr)`,
+                        free: ft(OFFER, '—', '✅ watermark'),
+                        starter: '—',
+                        basic: '✅',
+                        pro: '✅',
+                      }]
+                    : []),
                   {
                     label: `🎥 Kling 3 — top cinematic (${creditsPerReferenceVideo('cinematic_hollywood')} cr)`,
                     free: ft(OFFER, '—', 'Unlocked · needs credits'),

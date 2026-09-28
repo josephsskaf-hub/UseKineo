@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 // KINEO-S25-CARD-2026-09-01 — a flag `internal` existe para o /studio poder
 // mostrar o card do Seedance 2.5 SO para contas da casa enquanto o motor
 // esta no periodo de canario (o gate de verdade continua no servidor).
-import { s25Visible } from '@/lib/engineLaunch'
+import { s25Visible, avatarVisible } from '@/lib/engineLaunch'
 
 // KINEO-CABE-2026-08-21 — saldo do usuário logado, para a tela poder dizer a
 // verdade ANTES do clique. Existe porque o /studio oferecia motores que o
@@ -37,5 +37,7 @@ export async function GET() {
   // com o MESMO predicado do servidor (lib/ads/access.ts ADS_SUBSCRIBER_PLANS). O /api/me/plan não serve: ele achata
   // starter_trial→basic e creator_trial→pro, e a porta do Studio Ads NÃO abre para trial. Leitura própria, só o dono.
   const plan = typeof data?.plan === 'string' ? data.plan.trim().toLowerCase() : null
-  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, internal: s25Visible(user.email), plan })
+  // KINEO-AVATAR-FORA-2026-09-28 — `avatar` separado de `internal`: `internal` é s25Visible (vira true para todos no
+  // dia do S25_PUBLIC=true) e não pode arrastar o Avatar de volta ao catálogo junto. Cada interruptor, sua flag.
+  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), internal: s25Visible(user.email), plan })
 }

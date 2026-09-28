@@ -23,7 +23,7 @@ import { CARD_ENTRY_COPY, FREE_ENTRY_CREDITS } from '@/lib/entryPolicy'
 // desses três lugares são a METADATA, ou seja, o texto que o Product Hunt e o
 // X puxam como prévia do link. O site dizia oito e o cartão de compartilhamento
 // do lançamento dizia nove.
-import { VIDEO_ENGINE_COUNT_WORD } from '@/lib/engineLaunch'
+import { VIDEO_ENGINE_COUNT_WORD, AVATAR_PUBLIC } from '@/lib/engineLaunch'
 
 export const dynamic = 'force-static'
 
@@ -174,7 +174,8 @@ export default function PhPage() {
           {([
             ['Starter', TIER_PRICES.starter.usd, '3 films a week', 'Kineo 1 + Seedance 1.5'],
             ['Creator', TIER_PRICES.basic.usd, '1 film a day', 'Kineo 1 + Seedance 1.5'],
-            ['Studio', TIER_PRICES.pro.usd, 'Every engine', 'Kling 3, Veo 3.1, MiniMax H3, Omni Flash, Avatar'],
+            // KINEO-AVATAR-FORA-2026-09-28 — ', Avatar' só com AVATAR_PUBLIC=true (Avatar fora do catálogo desde 27/09).
+            ['Studio', TIER_PRICES.pro.usd, 'Every engine', `Kling 3, Veo 3.1, MiniMax H3, Omni Flash${AVATAR_PUBLIC ? ', Avatar' : ''}`],
           ] as Array<[string, number, string, string]>).map(([name, minor, promise, engines]) => (
             <div key={name} style={{ border: '1px solid rgba(255,255,255,.12)', borderRadius: 14, padding: '16px 18px' }}>
               <div style={{ fontSize: 13, fontWeight: 800, color: 'rgba(255,255,255,.6)', letterSpacing: '.06em', textTransform: 'uppercase' }}>{name}</div>

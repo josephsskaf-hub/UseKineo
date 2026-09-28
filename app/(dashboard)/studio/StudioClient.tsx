@@ -22,7 +22,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 // KINEO-H3-2026-08-19 — custo por motor vem da fonte única, nunca de string.
 import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
 import { NARRATION_LANGUAGES, narrationLanguage, isHollywoodLanguage, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
-import { enginePaused } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
+import { enginePaused, AVATAR_PUBLIC } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 · KINEO-AVATAR-FORA-2026-09-28
 import { isBareStarter } from '@/lib/promptGuard' // KINEO-1-COERENCIA-2026-09-16
 import type { Quality } from '@/lib/credits/engineCost'
 // KINEO-MULTIFORMATO-2026-09-02 — os 4 enquadramentos, de uma fonte só.
@@ -213,13 +213,18 @@ export default function StudioClient() {
   const [balance, setBalance] = useState<number | null>(null)
   // KINEO-S25-CARD-2026-09-01 — so a casa ve o card do 2.5 durante o canario.
   const [internal, setInternal] = useState(false)
+  // KINEO-AVATAR-FORA-2026-09-28 — fundador (27/09): "avatar sai por hora". O link "AI Presenter ↗" e o card Avatar
+  // do seletor só aparecem com AVATAR_PUBLIC=true ou para conta da casa (flag `avatar` do /api/me/credits =
+  // avatarVisible). Medido: 0 cliques em studio_avatar_card_clicked na história do evento. Flag própria, não
+  // `internal`: esta vira true para todos quando o S25 abrir, e não pode reabrir o Avatar junto.
+  const [avatarOn, setAvatarOn] = useState<boolean>(AVATAR_PUBLIC)
   // KINEO-STUDIO-TILE-ADS-2026-09-27 — plano cru (profiles.plan) da mesma leitura; null até chegar = porta (falha fechada).
   const [plan, setPlan] = useState<string | null>(null)
   useEffect(() => {
     let alive = true
     fetch('/api/me/credits', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true); if (alive && typeof d?.plan === 'string') setPlan(d.plan) })
+      .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true); if (alive && d?.avatar === true) setAvatarOn(true); if (alive && typeof d?.plan === 'string') setPlan(d.plan) })
       .catch(() => {}) // saldo é enfeite: falhou, a tela segue como antes
     return () => { alive = false }
   }, [])
@@ -598,7 +603,7 @@ export default function StudioClient() {
       <nav className="studio-modes" aria-label={t('Video mode', 'Modo de vídeo')}>
         <button type="button" aria-pressed={scriptMode !== 'clip'} onClick={() => { if (scriptMode === 'clip') setScriptMode('ai') }}><UiLabel>Film</UiLabel></button>
         <button type="button" data-testid="script-mode-clip" aria-pressed={scriptMode === 'clip'} onClick={() => setScriptMode('clip')}><UiLabel>Clip</UiLabel></button>
-        <Link href="/avatar"><UiLabel>AI Presenter</UiLabel><span aria-hidden="true">↗</span></Link>
+        {avatarOn && <Link href="/avatar"><UiLabel>AI Presenter</UiLabel><span aria-hidden="true">↗</span></Link>}
         <Link href="/animate"><UiLabel>Animate a Photo</UiLabel><span aria-hidden="true">↗</span></Link>
       </nav>
       <div className="grid composer-proposal-grid">
@@ -875,8 +880,9 @@ export default function StudioClient() {
                     UNICO lugar onde cliente escolhe motor. O Avatar tem pipeline
                     proprio (foto → apresentador falando), entao o card nao entra
                     no fluxo do Studio: e a PORTA para o ambiente dedicado /avatar.
-                    Selo honesto: sem claim de resolucao (0 masters verificados). */}
-                <button
+                    Selo honesto: sem claim de resolucao (0 masters verificados).
+                    KINEO-AVATAR-FORA-2026-09-28 — atrás de avatarOn (AVATAR_PUBLIC || conta da casa). */}
+                {avatarOn && <button
                   type="button"
                   className="pk"
                   onClick={() => { setPickerOpen(false); router.push('/avatar') }}
@@ -890,7 +896,7 @@ export default function StudioClient() {
                     </span>
                     <span className="d"><UiLabel>Talking AI presenter from a photo — lip-synced, its own studio</UiLabel></span>
                   </span>
-                </button>
+                </button>}
               </div>
             )}
           </div>

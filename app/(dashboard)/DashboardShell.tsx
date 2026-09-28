@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar'
 import TopBar from '@/components/TopBar'
 import MobileNav from '@/components/MobileNav'
 import AvatarLaunchBanner from '@/components/AvatarLaunchBanner'
+import { AVATAR_PUBLIC } from '@/lib/engineLaunch' // KINEO-AVATAR-FORA-2026-09-28
 import WorkspaceSecondaryNotice from '@/components/WorkspaceSecondaryNotice'
 import AffiliateFirstClickNudge from '@/components/AffiliateFirstClickNudge'
 // KINEO-REBASE-2026-07-10 — one-time 2:1 credit-rebase notice (self-expires 24/07)
@@ -131,8 +132,10 @@ export default function DashboardShell({
         {/* KINEO-WELCOME20-2026-08-25 — convite de boas-vindas com nome:
             20% no 1º mês de Creator/Studio, 1×/72h, pagante nunca vê. */}
         <WelcomeOfferModal surface="dashboard" />
-        {/* AI Avatar launch banner — dismissible, links to /generate?avatar=1 */}
-        <WorkspaceSecondaryNotice><AvatarLaunchBanner /></WorkspaceSecondaryNotice>
+        {/* AI Avatar launch banner — dismissible, links to /generate?avatar=1
+            KINEO-AVATAR-FORA-2026-09-28 — "NEW — AI Avatar Video" não se anuncia com o Avatar fora do catálogo
+            (fundador 27/09: "avatar sai por hora"). O componente fica; volta com AVATAR_PUBLIC=true. */}
+        {AVATAR_PUBLIC && <WorkspaceSecondaryNotice><AvatarLaunchBanner /></WorkspaceSecondaryNotice>}
         {/* KINEO-PRELAUNCH-PATH-2026-08-08 — pb-16 (64px) era MENOR que a barra
             que ele existe para compensar. MobileNav e fixed bottom:0 com uma
             linha de 62px MAIS paddingBottom: max(env(safe-area-inset-bottom),

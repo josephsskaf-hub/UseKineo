@@ -70,7 +70,13 @@ for (const language of ['es', 'hi']) {
 const before = renderPage(FOOTER, true, {}, {}, '910317ea')
 const hrefs = (html) => [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1])
 const beforeHrefs = hrefs(before), afterHrefs = hrefs(after)
-check(beforeHrefs.length > 0 && beforeHrefs.every((h) => afterHrefs.includes(h)), 'every historical footer link (' + beforeHrefs.length + ') is still rendered')
+// KINEO-AVATAR-FORA-2026-09-28 — re-ancorada: /ai-avatar saiu do rodapé com o Avatar fora do catálogo público
+// (fundador 27/09: "avatar sai por hora"). A exceção é lida do interruptor único, não digitada: enquanto
+// AVATAR_PUBLIC=false o link precisa estar AUSENTE; com true ele volta a ser exigido como histórico.
+const avatarOffCatalogue = /^export const AVATAR_PUBLIC = false$/m.test(read('lib/engineLaunch.ts').replace(/\r\n/g, '\n'))
+const historicalHrefs = beforeHrefs.filter((h) => !(avatarOffCatalogue && h === '/ai-avatar'))
+check(beforeHrefs.length > 0 && historicalHrefs.every((h) => afterHrefs.includes(h)), 'every historical footer link (' + historicalHrefs.length + ') is still rendered')
+check(!avatarOffCatalogue || (beforeHrefs.includes('/ai-avatar') && !afterHrefs.includes('/ai-avatar')), 'Avatar off the catalogue: /ai-avatar was in the footer and is no longer rendered')
 equal(afterHrefs.filter((h) => !beforeHrefs.includes(h)).sort(), [...expectedHrefs].sort(), 'the only new links are the derived segment doors')
 check((before.match(/href="\/ads\/for\//g) || []).length === 0, 'baseline had zero segment links from the footer (the orphan state this item closes)')
 

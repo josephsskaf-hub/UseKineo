@@ -14329,7 +14329,8 @@ export default function GenerateClient({
             <p style={{ fontSize: '0.85rem', color: '#86868b', marginBottom: 16, lineHeight: 1.6 }}>
               {/* Fix 2 (12/06) + KINEO-SPRINT-OFFER-2026-07-14 + KINEO-PRICING-V6:
                   copy sempre do tier REAL do botão (Creator), números derivados. */}
-              Creator keeps the credits coming every month — full AI scenes, AI Presenter, clean downloads.
+              {/* KINEO-AVATAR-FORA-2026-09-28 — 'AI Presenter' saiu da promessa do Creator: o Avatar deixou o catálogo em 27/09. */}
+              Creator keeps the credits coming every month — full AI scenes, clean downloads.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
               {[
@@ -14877,7 +14878,9 @@ export default function GenerateClient({
                 🧬 Use my cloned voice
               </button>
               <span className="text-[11px]" style={{ color: 'var(--muted)' }}>
-                No clone yet? <a href="/avatar" style={{ color: '#2997ff', fontWeight: 700 }}>Record one in AI Presenter →</a>
+                {/* KINEO-AVATAR-FORA-2026-09-28 — o link fica (a clonagem de voz mora no /avatar: 5 clones, 1 pagante);
+                    o rótulo deixa de vender o "AI Presenter" que saiu do catálogo e nomeia o lugar. */}
+                No clone yet? <a href="/avatar" style={{ color: '#2997ff', fontWeight: 700 }}>Record one in Avatar Studio →</a>
               </span>
             </div>
             {footageMsg && (
@@ -18890,7 +18893,8 @@ export default function GenerateClient({
                       style={{ color: 'var(--muted2)', lineHeight: 1.5 }}
                     >
                       {/* KINEO-PRICING-V6-2026-08-19 — 150 → TIER_CREDITS.basic. */}
-                      Full AI scenes, AI Presenter and {TIER_CREDITS.basic} credits every month.
+                      {/* KINEO-AVATAR-FORA-2026-09-28 — sem 'AI Presenter' (Avatar fora do catálogo desde 27/09). */}
+                      Full AI scenes and {TIER_CREDITS.basic} credits every month.
                     </p>
                   </div>
                   <button
@@ -22672,7 +22676,8 @@ function UrgencyModal({
         >
           {/* KINEO-PRICING-V6-2026-08-19 — "$19.90/mo … 140 credits" era a V5
               literal dentro do modal de urgência (contagem regressiva). */}
-          Go Creator for <strong style={{ color: '#5cb3ff' }}>{CREATOR_USD_LABEL}/mo</strong> — full AI scenes, the AI Presenter and {TIER_CREDITS.basic} credits every month.
+          {/* KINEO-AVATAR-FORA-2026-09-28 — sem 'the AI Presenter' (Avatar fora do catálogo desde 27/09). */}
+          Go Creator for <strong style={{ color: '#5cb3ff' }}>{CREATOR_USD_LABEL}/mo</strong> — full AI scenes and {TIER_CREDITS.basic} credits every month.
         </p>
         <button
           type="button"

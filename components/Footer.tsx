@@ -24,6 +24,7 @@ import LiveStatsBadge from '@/components/LiveStatsBadge'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { footerBusinessDestinationForHref } from '@/lib/growth/footerBusinessDiscovery'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
+import { AVATAR_PUBLIC } from '@/lib/engineLaunch' // KINEO-AVATAR-FORA-2026-09-28
 // SPRINT16H-B-C-2026-09-27 — as 8 páginas /ads/for/<segmento> (G1, em produção) só tinham
 // entrada pelo sitemap e entre si. Este rodapé é a única superfície global que já carrega o
 // link de negócios, então a sublista nasce DERIVADA de ADS_SEGMENTS (adsSegmentPath +
@@ -84,7 +85,9 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       { href: '/audio', label: 'AI voice generator (text to speech)' },
       { href: '/ai-video-upscaler', label: 'AI video upscaler & enhancer' },
       { href: '/viral-now', label: 'Trending Shorts ideas today' },
-      { href: '/ai-avatar', label: 'AI Avatar video — your face, any script' },
+      // KINEO-AVATAR-FORA-2026-09-28 — o link sai com o Avatar fora do catálogo (fundador 27/09: "avatar sai por hora");
+      // a página continua no ar (noindex) e o link volta sozinho com AVATAR_PUBLIC=true.
+      ...(AVATAR_PUBLIC ? [{ href: '/ai-avatar', label: 'AI Avatar video — your face, any script' }] : []),
       // `&` literal, NÃO `&amp;`: isto é uma string JS renderizada como
       // {children}, não texto JSX — a entidade HTML sairia na tela como texto.
       { href: '/facts', label: 'Kineo facts & numbers (citable)' },
