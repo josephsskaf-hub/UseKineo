@@ -2,6 +2,13 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
+## 2026-09-28 — Studio Ads v2: os 5 motores passaram; construir e vender
+
+**CONTEXTO:** teste de US$8,24 do Cowork (docs/teste-motores-2026-09-28/): 3 fotos reais (prato, salão com gente, tela de app) × 5 motores de image-to-video (Seedance 2.0 Fast, Kling O3 Pro, Veo 3.1 Fast, MiniMax H3, Seedance 1.5 Pro), 15/15 gerados, 0 recusas.
+**NOTAS DO FUNDADOR:** 10 em todos os 14 que ele avaliou (Seedance 1.5 no prato ficou sem nota).
+**DECIDIDO (fundador, 28/09, literal):** "todos os ads estão muito bons ... se a gente conseguir fazer um vídeo com uma empresa agora, alguém se identificar e querer comprar os nossos ads, a gente está pronto para vender ... vamos dar merge ... para esses motores ... você vai definir tudo isso para mim, e vamos fazer acontecer."
+**CONSEQUÊNCIAS:** (1) a escolha do motor de cada nível (Foto em movimento / Comercial / Cinema) é do CEO-executor, por custo, velocidade, estabilidade e defeito técnico, já que a qualidade vista pelo fundador empatou; (2) o anúncio v2 passa a ser construído agora, em lib/ads/ e app/api/ads/, fora da trava 8.2; (3) abre primeiro para contas internas, o fundador faz 1 anúncio de uma empresa real, e então abre ao público; (4) o preço de 34/41/51 cr aprovado no mesmo dia vale para o lançamento.
+
 ## 2026-09-28 — Studio Ads v2: preço igual ao do Higgsfield, sem prejuízo
 
 **CONTEXTO:** o fundador reprovou os anúncios feitos com o Kineo 1 (notas 4, 3, 2, 1) e decidiu refazer os motores do anúncio (docs/FEEDBACK-FUNDADOR-10-ANUNCIOS-2026-09-28.md). A pesquisa mostrou que o mercado gera cada cena a partir da foto real do cliente com Seedance 2.0/2.5, Kling 3 e Veo 3.1 (docs/growth/MOTORES-DOS-CONCORRENTES-ADS-2026-09-28.md).
