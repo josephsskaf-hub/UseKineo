@@ -216,3 +216,33 @@ export function sanitizeAssetsBody(raw: unknown): AdsV2Sanitized<AdsV2AssetsBody
   }
   return { ok: true, value: { logo_footage_id: logo, card_footage_id: card, photos } }
 }
+
+export interface AdsV2PatchBody {
+  order_id: string
+  /** Liga/desliga a narração do rascunho/plano (o botão da prévia do plano). Ausente = não mexe. */
+  narration: boolean | null
+  /** Troca o cartão final do plano (a pessoa editou o cartão depois de planejar). Ausente = não mexe. */
+  card_footage_id: string | null
+}
+
+/**
+ * ETAPA 3 — PATCH do pedido pela tela (/ads/v2): só narração e cartão final, só em rascunho/planejado. Pelo menos um
+ * dos dois. Nada aqui muda nível, fotos, frase ou plano (isso é um plano novo, com o modelo de novo).
+ */
+export function sanitizePatchBody(raw: unknown): AdsV2Sanitized<AdsV2PatchBody> {
+  const b = obj(raw)
+  if (!b) return fail('bad_body')
+  if (!isUuid(b.order_id)) return fail('bad_order_id')
+  let narration: boolean | null = null
+  if (b.narration !== undefined && b.narration !== null) {
+    if (typeof b.narration !== 'boolean') return fail('bad_narration')
+    narration = b.narration
+  }
+  let card: string | null = null
+  if (b.card_footage_id !== undefined && b.card_footage_id !== null) {
+    if (!isUuid(b.card_footage_id)) return fail('bad_card_footage_id')
+    card = (b.card_footage_id as string).toLowerCase()
+  }
+  if (narration === null && card === null) return fail('nothing_to_change')
+  return { ok: true, value: { order_id: (b.order_id as string).toLowerCase(), narration, card_footage_id: card } }
+}

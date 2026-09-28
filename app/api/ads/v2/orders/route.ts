@@ -2,13 +2,14 @@
 // intactos). GET lista os pedidos da conta (ou um, com os planos); POST cria o RASCUNHO: nível, duração, 1 frase OU o
 // link do negócio, idioma, narração (padrão ligada) e, opcionalmente, logo, cartão final e fotos com o tipo marcado.
 // Nada aqui chama fornecedor pago nem cobra crédito.
+// ETAPA 3 — PATCH (tela /ads/v2): só narração e cartão final, só em rascunho/planejado, com os mesmos portões do POST.
 // Tabela não aplicada (migrations_pending/2026-09-29_ads_v2.sql) = 503 'not_ready', nunca 500.
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { adsGate, isMissingAdsTable, loadAdsAccess } from '@/lib/ads/serverAccess'
 import { adsV2Visible } from '@/lib/ads/v2Access'
-import { isUuid, sanitizeAssetsBody, sanitizeCreateOrderBody } from '@/lib/ads/v2Contract'
+import { isUuid, sanitizeAssetsBody, sanitizeCreateOrderBody, sanitizePatchBody } from '@/lib/ads/v2Contract'
 import { adsV2Credits } from '@/lib/ads/v2Tiers'
 import { adsV2View, loadAdsV2Order, loadAdsV2Shots } from '@/lib/ads/v2Advance'
 import { ownedFootage, v2Fail, v2Json } from '@/lib/ads/v2Server'
@@ -106,6 +107,63 @@ export async function POST(req: NextRequest) {
     return v2Json({ order_id: orderId, status: 'draft', credits }, 201)
   } catch (e) {
     console.warn('[ads/v2/orders POST] falhou:', e instanceof Error ? e.message : String(e))
+    return v2Fail('orders_failed', 502)
+  }
+}
+
+/**
+ * ETAPA 3 — a tela liga/desliga a narração na prévia do plano e troca o cartão final editado depois de planejar, sem
+ * rodar o modelo de novo. Só rascunho/planejado (UPDATE condicional); cartão conferido no user_footage DO DONO (PNG).
+ * Religar a narração de um plano feito sem ela = 409 'replan_needed' (não há texto para falar).
+ */
+export async function PATCH(req: NextRequest) {
+  try {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return v2Fail('unauthenticated', 401)
+    const { admin, reason } = await loadAdsAccess(user.id, user.email)
+    const gate = adsGate(reason)
+    if (gate !== 'ok') {
+      await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/api/ads/v2/orders', metadata: { reason: gate, method: 'PATCH' } })
+      return v2Fail(gate === 'closed' ? 'closed' : 'no_access', 403)
+    }
+    if (!adsV2Visible(user.email)) return v2Fail('v2_closed', 403)
+
+    const parsed = sanitizePatchBody(await req.json().catch(() => null))
+    if (!parsed.ok) return v2Fail(parsed.error, 400)
+    const p = parsed.value
+
+    const { order, error } = await loadAdsV2Order(admin, p.order_id, user.id)
+    if (error) return isMissingAdsTable(error.code) ? v2Fail('not_ready', 503) : v2Fail('orders_failed', 502)
+    if (!order) return v2Fail('order_not_found', 404)
+    if (order.status !== 'draft' && order.status !== 'planned') return v2Fail('not_editable', 409)
+    if (p.narration === true && !(typeof order.plan?.narration === 'string' && order.plan.narration.trim())) return v2Fail('replan_needed', 409)
+
+    const patch: Record<string, unknown> = {}
+    if (p.narration !== null) patch.narration = p.narration
+    if (p.card_footage_id) {
+      if (order.logo_footage_id && p.card_footage_id === order.logo_footage_id.toLowerCase()) return v2Fail('card_is_logo', 400)
+      const own = await ownedFootage(admin, user.id, [p.card_footage_id])
+      if (!own) return v2Fail('orders_failed', 502)
+      const card = own.get(p.card_footage_id)
+      if (!card?.isPng) return v2Fail('card_invalid', 400)
+      patch.card_footage_id = p.card_footage_id
+      patch.card_url = card.url
+    }
+    const upd = await admin
+      .from('ads_v2_orders')
+      .update(patch)
+      .eq('id', order.id)
+      .eq('user_id', user.id)
+      .in('status', ['draft', 'planned'])
+      .select('id, narration, card_url')
+      .maybeSingle()
+    if (upd.error) return isMissingAdsTable(upd.error.code) ? v2Fail('not_ready', 503) : v2Fail('orders_failed', 502)
+    if (!upd.data) return v2Fail('not_editable', 409)
+    const row = upd.data as { id: string; narration: boolean; card_url: string | null }
+    return v2Json({ order_id: row.id, narration: row.narration, card_ready: Boolean(row.card_url) })
+  } catch (e) {
+    console.warn('[ads/v2/orders PATCH] falhou:', e instanceof Error ? e.message : String(e))
     return v2Fail('orders_failed', 502)
   }
 }
