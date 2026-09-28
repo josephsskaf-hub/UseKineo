@@ -221,7 +221,8 @@ const copyNova = (d) => {
     iHow > 0 && iLevels > iHow && iClassic > iLevels && t.slice(iHow, iLevels).includes('{ADS_V2_HOW_IT_WORKS.map((s, i) => (') &&
     t.slice(iClassic).includes('<a href={CLASSIC_HREF}>Open the classic maker ({KINEO1_35S_CREDITS} credits) →</a>') && /const CLASSIC_HREF = '\/ads\/new\?classic=1'/.test(t) &&
     t.slice(iClassic, t.indexOf('</section>', iClassic)).includes('{ADS_MODELS.map((m) => (') &&
-    t.includes('Enough for {newAdsLabel(passV2)}, or about {adsCoveredByPass(35)} classic ads of 35 s.') &&
+    // 28/09: passe B do fundador (90 cr) — o cartão do passe diz nível a nível (adsCoverageLine com os V2_LEVELS derivados).
+    t.includes('<p className="ads-cover">Enough for {passCoverage}.</p>') && t.includes('const passCoverage = adsCoverageLine(ADS_PASS_CREDITS, V2_LEVELS)') &&
     /const DESCRIPTION =\n\s+'Your real business photos, brought to life in a vertical video ad of about 15 seconds, with music, a short voice-over and your logo\. Included in any paid plan\.'/.test(d)
 }
 const semFraseVelha = (d) => {
@@ -247,7 +248,9 @@ await check('C2-mutante: "{ADS_MODELS.length} ad models" de volta como seção p
 // fatos executados que a copy afirma
 const levels = T.ADS_V2_TIER_IDS.map((id) => T.adsV2Credits(id, SC.ADS_V2_SCREEN_SECONDS))
 await check('C3 EXECUTADO: 3 níveis a 34/41/51 créditos por 15 s (decisão do fundador 28/09), nomes Photo motion/Commercial/Cinema', SC.ADS_V2_SCREEN_SECONDS === 15 && JSON.stringify(levels) === '[34,41,51]' && T.ADS_V2_TIER_IDS.map((id) => SC.ADS_V2_TIER_COPY[id].name).join('|') === 'Photo motion|Commercial|Cinema')
-await check('C4 EXECUTADO: o passe (60 créditos, US$19.90 — intocado) paga 1 anúncio novo de QUALQUER nível ("1 new ad at any level" é verdade)', OF.ADS_PASS_CREDITS === 60 && OF.ADS_PASS_USD_MINOR === 1990 && Math.floor(OF.ADS_PASS_CREDITS / Math.max(...levels)) === 1 && D.includes("return n === 1 ? '1 new ad at any level'"))
+// 28/09: passe B do fundador (90 cr) — reancorado: o passe paga 2 Photo motion ou 2 Commercial ou 1 Cinema, e a frase é CALCULADA
+// pelos níveis reais (não mais "1 new ad at any level", que com 90 cr passou a esconder o 2º anúncio).
+await check('C4 EXECUTADO: o passe (90 créditos, US$19.90) paga 2 Photo motion, 2 Commercial ou 1 Cinema, e a frase calculada diz isso', OF.ADS_PASS_CREDITS === 90 && OF.ADS_PASS_USD_MINOR === 1990 && JSON.stringify(levels.map((c) => Math.floor(OF.ADS_PASS_CREDITS / c))) === '[2,2,1]' && OF.adsCoverageLine(OF.ADS_PASS_CREDITS, T.ADS_V2_TIER_IDS.map((id, i) => ({ name: SC.ADS_V2_TIER_COPY[id].name, credits: levels[i] }))) === '2 new ads (Photo motion or Commercial), 1 Cinema, or about 30 classic ads of 35 s')
 await check('C5 "How it works" da porta = os MESMOS 4 passos da coluna do montador (mesma fonte ADS_V2_HOW_IT_WORKS)', SC.ADS_V2_HOW_IT_WORKS.length === 4 && SRC.v2Client.includes('{ADS_V2_HOW_IT_WORKS.map((s, i) => (') && D.includes('{ADS_V2_HOW_IT_WORKS.map((s, i) => ('))
 
 // ═══ F. /ads/for e offer.ts ══════════════════════════════════════════════════════════════════════════════════════════

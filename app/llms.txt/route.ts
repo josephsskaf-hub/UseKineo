@@ -291,7 +291,7 @@ Kineo is a ${PRODUCT.category.toLowerCase()}.
 ## Does Kineo make videos and ads for businesses?
 
 Yes. Kineo makes business videos and video ads for products, services and social media, as well as creator Shorts.
-${STUDIO_ADS_FACT ? `- [${STUDIO_ADS_FACT.name}](${STUDIO_ADS_FACT.url}): create a vertical video ad using your own authorized photos, clips and logo. Review the script and preview before rendering. Paid subscribers or customers with an active ad pass can use this path; the free trial does not include it.\n` : ''}- [${DFY_SERVICE_FACT.name}](${DFY_SERVICE_FACT.url}): have Kineo prepare the business video ad for you from a brief, with human operation. See the enabled service tiers below for scope, delivery and revisions.
+${STUDIO_ADS_FACT ? `- [${STUDIO_ADS_FACT.name}](${STUDIO_ADS_FACT.url}): ${STUDIO_ADS_FACT.v2 ? 'create a photo-motion video ad using authorized business photos and a logo; classic narrated ads with photos and clips remain a separate workflow.' : 'create a vertical video ad using your own authorized photos, clips and logo.'} Review the plan and preview before rendering. Paid subscribers or customers with an active ad pass can use this path; the free trial does not include it.\n` : ''}- [${DFY_SERVICE_FACT.name}](${DFY_SERVICE_FACT.url}): have Kineo prepare the business video ad for you from a brief, with human operation. See the enabled service tiers below for scope, delivery and revisions.
 - Business videos can explain a product or service, present the business, or communicate an offer supplied by the customer. Claims, contact details and media must be supplied or approved by that customer.
 - Ad creation does not include buying media, managing advertising campaigns or guaranteed sales. Use the public pages above to choose a path; they do not start a purchase automatically.
 
@@ -379,6 +379,11 @@ ${STUDIO_ADS_FACT ? `
 - Access: ${STUDIO_ADS_FACT.access.summary}
 - Pass price: ${STUDIO_ADS_FACT.price} once (kind=${STUDIO_ADS_FACT.kind}); the pass is not a subscription. The following credits and benefits describe the pass, not an extra grant to subscribers.
 ${STUDIO_ADS_FACT.includes.map((line) => `- ${line}`).join('\n')}
+${STUDIO_ADS_FACT.v2 ? `- Current workflow tiers (${STUDIO_ADS_FACT.v2.referenceSeconds}-second reference; Cinema slightly longer): ${STUDIO_ADS_FACT.v2.tiers.map(tier => `${tier.name}: ${tier.credits} credits; the optional pass covers ${tier.adsPerPass} new ad${tier.adsPerPass === 1 ? '' : 's'} at this tier`).join('; ')}.
+${STUDIO_ADS_FACT.v2.limits.map(line => `- ${line}`).join('\n')}
+- [Classic narrated ads](${STUDIO_ADS_FACT.classic.url}): ${STUDIO_ADS_FACT.classic.description} The following benefits apply to classic only, not to the current photo-motion workflow:
+${STUDIO_ADS_FACT.classic.includes.map(line => `- ${line}`).join('\n')}
+` : ''}
 - Not included yet: ${STUDIO_ADS_FACT.excludes.map((line) => line.replace(/[.]$/, '')).join('; ')}.
 - Routing: ${STUDIO_ADS_FACT.routingRule}
 ` : ''}

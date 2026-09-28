@@ -79,6 +79,8 @@ export function PricingAdsBlockView({
             <p className="text-sm text-[var(--muted)]">
               {pass.credits} credits · {pass.accessDays} days of access
             </p>
+            {/* KINEO-PASSE-B-2026-09-28 — o que os créditos do passe pagam, nível a nível (sai de adsCoverageLine; nada digitado). */}
+            {pass.coverage ? <p className="text-sm text-[var(--muted)]">Enough for {pass.coverage}.</p> : null}
             <CreditMinutesSummary credits={pass.credits} />
             <p className="mt-2 text-[12.5px] text-[var(--muted)]">Paid subscription plans already include {pass.name}.</p>
             <a

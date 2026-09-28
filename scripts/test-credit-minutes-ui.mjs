@@ -79,10 +79,17 @@ check(read('app/ads/page.tsx').includes('<CreditMinutesSummary credits={ADS_PASS
 check(read('components/pricing/PricingAdsBlock.tsx').includes('<CreditMinutesSummary credits={pass.credits} />'), 'pricing pass uses offer model grant')
 
 // Pin the founder freeze, checking real source files rather than a second price table.
+// 28/09: passe B do fundador (90 cr) — a ÚNICA mudança de cobrança autorizada desde o congelamento é a linha do passe em
+// checkPricingInvariants (60 → 90 créditos, mesmo US$19,90). Ela é desfeita aqui antes da comparação: qualquer outro byte
+// de lib/checkoutPricing.ts que mudar continua vermelho.
+const PASSE_B_ROW_NOW = "    // 28/09: passe B do fundador (90 cr pelo mesmo US$19,90).\n    { id: 'pack:ads_pass', usdMinor: 1990, credits: 90, advertisedQuality: 'cinematic_ai' },"
+const PASSE_B_ROW_FROZEN = "    { id: 'pack:ads_pass', usdMinor: 1990, credits: 60, advertisedQuality: 'cinematic_ai' },"
 for (const file of ['lib/checkoutPricing.ts', 'lib/credits/engineCost.ts', 'lib/credits/creditSlider.ts']) {
   const base = execFileSync('git', ['show', `d3c21742:${file}`], { encoding: 'utf8' }).replace(/\r\n/g, '\n')
-  check(read(file) === base, 'unchanged billing source: ' + file)
+  const now = file === 'lib/checkoutPricing.ts' ? read(file).split(PASSE_B_ROW_NOW).join(PASSE_B_ROW_FROZEN) : read(file)
+  check(now === base, 'unchanged billing source: ' + file)
 }
+check(read('lib/checkoutPricing.ts').split(PASSE_B_ROW_NOW).length === 2, 'passe B: the pass row in checkPricingInvariants says 90 credits (28/09)')
 // KINEO-ADS-SPRINT16H-2026-09-27 — lib/ads/offer.ts changed COPY only on 27/09 (the founder dropped "within 24 hours" and
 // "corrected version"; square/landscape cuts exist since 26/09). The byte pin for that file now freezes its BILLING SURFACE
 // (every exported number, the price label, the coverage figures and the credits line of the pass copy), evaluated from the
@@ -101,6 +108,11 @@ for (const file of ['lib/checkoutPricing.ts', 'lib/credits/engineCost.ts', 'lib/
     k60: m.KINEO1_60S_CREDITS, k35: m.KINEO1_35S_CREDITS, live: m.ADS_PASS_LIVE_IN_CODE, label: m.adsPassPriceLabel(),
     c35: m.adsCoveredByPass(35), c60: m.adsCoveredByPass(60), name: m.adsPassCopy().name, price: m.adsPassCopy().price, creditsLine: m.adsPassCopy().includes[0],
   })
-  check(surface(now) === surface(frozen), 'unchanged billing surface: ' + file)
+  // 28/09: passe B do fundador (90 cr) — os créditos do passe, a cobertura derivada deles e a linha de créditos da copy mudaram
+  // por decisão; o resto da superfície (SKU, preço, dias, valores ocupados, custos do Kineo 1, interruptor, rótulo) segue congelado.
+  const semPasse = m => { const s = JSON.parse(surface(m)); delete s.credits; delete s.c35; delete s.c60; delete s.creditsLine; return JSON.stringify(s) }
+  check(semPasse(now) === semPasse(frozen), 'unchanged billing surface: ' + file)
+  check(now.ADS_PASS_CREDITS === 90 && now.adsCoveredByPass(35) === Math.floor(90 / now.KINEO1_35S_CREDITS) && now.adsCoveredByPass(60) === Math.floor(90 / now.KINEO1_60S_CREDITS), 'passe B: 90 credits and the coverage computed from them')
+  check(now.adsPassCopy().includes[0].startsWith(`${now.ADS_PASS_CREDITS} credits: ${now.adsCoverageLine()}`), 'passe B: the credits line of the pass copy is computed')
 }
 console.log(`Credit minutes UI: ${checks} checks passed; offline, no payments.`)

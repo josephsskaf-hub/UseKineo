@@ -46,7 +46,9 @@ checa('Kling 3: o navio que evaporou vem antes do Maracaibo (antigo)', idx('7efd
 checa('Omni: Halifax vem antes do robô do porto (antigo)', idx('7579e8d7-97ff-4be7-91c9-fe11f6698a00') < idx('36a04f7b-65f7-42d9-a2ab-198b5a7f115e'))
 checa('H3: o Golfo vem antes do Shazam (antigo)', idx('ad6cb185-a0a2-46cf-a148-ea7503dfe6d3') < idx('8aabb05a-2492-48de-a96a-0a7875c0c8d3'))
 checa('Veo: Cooper vem antes do domo de Runit (antigo)', idx('16742e11-a2fc-4e0a-a49a-2862e0ee36b0') < idx('9bbd5d98-33e5-423f-b9cb-82f7af6c67ba'))
-checa('os antigos NÃO foram apagados (continuam disponíveis para /arena e lookups)', ['4b12925e-16e6-4b56-af5a-7047f9ae7a28', '36a04f7b-65f7-42d9-a2ab-198b5a7f115e', '8aabb05a-2492-48de-a96a-0a7875c0c8d3', '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba', 'c87c3a25-c3b7-4a97-8429-eb0fc98b67bc'].every((id) => pe.includes(`id: '${id}'`)))
+// 28/09: o Kineo 1 antigo (c87c3a25) SAIU — era de uma conta externa; o do fundador 0ab3e871 ocupa o lugar dele
+// (test-vitrine-sem-filme-de-cliente-2026-09-28).
+checa('os antigos NÃO foram apagados (continuam disponíveis para /arena e lookups)', ['4b12925e-16e6-4b56-af5a-7047f9ae7a28', '36a04f7b-65f7-42d9-a2ab-198b5a7f115e', '8aabb05a-2492-48de-a96a-0a7875c0c8d3', '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba', '0ab3e871-2c99-4f6e-9f3c-59773208b12e'].every((id) => pe.includes(`id: '${id}'`)))
 
 console.log('\n== engineWall: ligação ==')
 checa('getExamplesBest devolve os 30 + os 6 estáticos com a trava de privacidade ligada', ew.includes('return [...founderShowcaseWall(), ...staticExampleWall()]'))

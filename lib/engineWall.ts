@@ -194,7 +194,9 @@ const CURATED: Record<string, string[]> = {
   //   SEEDANCE (recurado 15/08 g — os 4 favoritos do fundador, todos renders Seedance): ONDA da ilha proibida (North Sentinel) + JAPAO AI aereo noturno + ilha proibida aerea + cratera de fogo
   cinematic_ai: ['75728dfb-3b29-47fa-aea8-b806d549a2b9', 'd8157290-65db-4d1d-b914-268d54f92087', 'a88b7564-3592-4b12-9560-1646ea998e78', '86653d2d-8d31-4937-8d98-e56c50706fd2'],
   //   FAST: montanhas com nuvens + Dubai dourada + praca aerea
-  fast: ['c87c3a25-c3b7-4a97-8429-eb0fc98b67bc', 'cc1dcb36-b627-412b-9cf1-461f9bcdf592', '107dd757-6454-4af9-9b3e-b07fb8656f2a', 'ea7c8d34-8a6e-4a2e-872e-e12a400e267d'],
+  //   28/09 (KINEO-VITRINE-SEM-CLIENTE): as "montanhas com nuvens" eram de uma conta EXTERNA (marcadas por engano como do
+  //   fundador) e SAÍRAM; entra no mesmo lugar a cidade da Noruega sem sol (render do fundador, 02/09, Kineo 1).
+  fast: ['0ab3e871-2c99-4f6e-9f3c-59773208b12e', 'cc1dcb36-b627-412b-9cf1-461f9bcdf592', '107dd757-6454-4af9-9b3e-b07fb8656f2a', 'ea7c8d34-8a6e-4a2e-872e-e12a400e267d'],
   //   PRESENTER: o apresentador generico "Made with Kineo" (unico seguro — ver EXCLUDED)
   //   AVATAR: o close 'Made with Kineo' (render do modo avatar) + o plano aberto
   //   AVATAR (17/08 c — fundador: 'nao quero nada igual'): o narrador do
@@ -376,7 +378,7 @@ const EXAMPLES_BEST: string[] = [
   'a88b7564-3592-4b12-9560-1646ea998e78', // SEEDANCE — ilha proibida (tenda saiu: fundador rejeitou)
   'c4e4fbab-0978-4daa-9fcf-119096370210', // KLING 2.5 — Roma com moedas
   '86653d2d-8d31-4937-8d98-e56c50706fd2', // SEEDANCE — cratera de fogo
-  'c87c3a25-c3b7-4a97-8429-eb0fc98b67bc', // KINEO 1 — montanhas com nuvens
+  '0ab3e871-2c99-4f6e-9f3c-59773208b12e', // KINEO 1 — cidade da Noruega sem sol (28/09: substitui um render de conta externa)
   '956187b7-08d2-4c54-ac99-fa8508a9ed5c', // KLING 3 — historiador medieval
   '98a5ac54-3c28-4a8f-8ba2-4071bc0388c4', // VEO 3.1 — racks vermelhos
   '26d25419-6719-47ab-b24b-df214e007fbd', // KLING 2.5 — montanha de 1922

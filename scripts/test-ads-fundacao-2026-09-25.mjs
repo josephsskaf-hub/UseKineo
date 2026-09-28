@@ -24,15 +24,17 @@ const roda = (src, env = {}) => {
 const offerSrc = rd('lib/ads/offer.ts')
 check('offer.ts é puro (sem import)', !/^import /m.test(offerSrc))
 const offer = roda(offerSrc)
-check('nome Studio Ads · SKU ads_pass · 1990 centavos · 60 créditos · 365 dias (decisões 1 e 2)',
-  offer.ADS_PRODUCT_NAME === 'Studio Ads' && offer.ADS_PASS_ID === 'ads_pass' && offer.ADS_PASS_USD_MINOR === 1990 && offer.ADS_PASS_CREDITS === 60 && offer.ADS_PASS_ACCESS_DAYS === 365)
+// 28/09: passe B do fundador (90 cr) — "B, vai para as duas": o mesmo US$19,90 passa de 60 para 90 créditos; SKU, preço e 365 dias intactos.
+check('nome Studio Ads · SKU ads_pass · 1990 centavos · 90 créditos (passe B, 28/09) · 365 dias (decisões 1 e 2)',
+  offer.ADS_PRODUCT_NAME === 'Studio Ads' && offer.ADS_PASS_ID === 'ads_pass' && offer.ADS_PASS_USD_MINOR === 1990 && offer.ADS_PASS_CREDITS === 90 && offer.ADS_PASS_ACCESS_DAYS === 365)
 check('1990 não colide com nenhum one-time da casa (1900 é o bulk10)', !offer.ONE_TIME_USD_MINOR_OCCUPIED.includes(offer.ADS_PASS_USD_MINOR) && offer.ONE_TIME_USD_MINOR_OCCUPIED.includes(1900) && offer.ONE_TIME_USD_MINOR_OCCUPIED.includes(3500) && offer.ONE_TIME_USD_MINOR_OCCUPIED.includes(7500))
 check('a lista de ocupados bate com o código de cobrança (bulk 1900/3500/4900/7500, packs 290/490, DFY 3500/7500/10000)', (() => {
   const cp = rd('lib/checkoutPricing.ts'); const wh = rd('app/api/stripe/webhook/route.ts'); const dfy = rd('lib/growth/dfyOffer.ts')
   return /1900/.test(cp) && /3500/.test(cp) && /4900/.test(cp) && /7500/.test(cp) && /490/.test(cp) && /priceMinor: 3500/.test(dfy) && /priceMinor: 7500/.test(dfy) && /DFY_LEGACY_PRICE_USD_MINOR = 10000/.test(dfy) && /DFY_ACCEPTED_AMOUNTS_USD_MINOR/.test(wh)
 })())
 check('preço por crédito do passe (US$0,3317) fica ACIMA do plano mais barato (Starter US$9,90/60 = 0,165) — passe nunca canibaliza assinatura', (offer.ADS_PASS_USD_MINOR / 100) / offer.ADS_PASS_CREDITS > 990 / 100 / 60)
-check('60 créditos cobrem 20 anúncios de 35 s ou 12 de 60 s no Kineo 1 (5 cr/60 s, 3 cr/35 s de engineCost)', offer.adsCoveredByPass(35) === 20 && offer.adsCoveredByPass(60) === 12 && /return isPaidUser \? 5 : 0/.test(rd('lib/credits/engineCost.ts')))
+// 28/09: passe B do fundador (90 cr) — reancorado de 20/12 para 30/18.
+check('90 créditos cobrem 30 anúncios de 35 s ou 18 de 60 s no Kineo 1 (5 cr/60 s, 3 cr/35 s de engineCost)', offer.adsCoveredByPass(35) === 30 && offer.adsCoveredByPass(60) === 18 && /return isPaidUser \? 5 : 0/.test(rd('lib/credits/engineCost.ts')))
 check('rótulo "US$19.90" (nunca "US$19" nem "19.9")', offer.adsPassPriceLabel() === 'US$19.90' && offer.adsPassPriceLabel(3500) === 'US$35')
 // Reancorado com motivo (fundador 24/09 noite, "pode ligar"): o interruptor mora no código (a env de produção não pôde ser
 // criada pela conta do Claude); a env "0" continua sendo o desligamento de emergência.
@@ -41,7 +43,8 @@ check('adsAccessUntil soma dias inteiros em UTC', offer.adsAccessUntil(new Date(
 const copy = offer.adsPassCopy()
 // Reancorado 27/09 (sprint16h ADS): o fundador tirou o prazo de 24 h e a 'versão corrigida' — fica 'A human checks your first ad'. A intenção (copy executável e honesta) não mudou; scripts/test-ads-sprint16h-2026-09-27.mjs trava o literal antigo em 0.
 check('copy do passe é executável e honesta: diz o que NÃO inclui; nunca "hundreds of formats"/"instant"/"no human"/"unlimited"', copy.excludes.length >= 2 && copy.includes.some((s) => /^A human checks your first ad$/.test(s)) && !/hundreds of formats|instant|no human|unlimited|24 hours|corrected version/i.test(JSON.stringify(copy)))
-check('a copy do passe promete exatamente o que o crédito paga (20/12 anúncios)', copy.includes[0].includes('20 ads of 35 s') && copy.includes[0].includes('12 of 60 s'))
+// 28/09: passe B do fundador (90 cr) — a linha passa a dizer os anúncios novos por nível (frase do fundador) e depois os clássicos.
+check('a copy do passe promete exatamente o que o crédito paga (2 novos Photo motion/Commercial, 1 Cinema, 30 clássicos de 35 s, 18 de 60 s)', copy.includes[0].startsWith('90 credits: 2 new ads (Photo motion or Commercial), 1 Cinema, or about 30 classic ads of 35 s') && copy.includes[0].includes('about 18 of 60 s'))
 
 // ── 2. models.ts ──────────────────────────────────────────────────────────────────────────────
 const modelsSrc = rd('lib/ads/models.ts')

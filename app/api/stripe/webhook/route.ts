@@ -38,7 +38,7 @@ import { AUTOPILOT_PILOT_PLAN, autopilotPilotExpiresAt } from '@/lib/autopilot/c
 // abaixo). A flag e o evento seguem o padrão do resto do trial.
 import { REVERSE_TRIAL_ENABLED } from '@/lib/reverseTrial'
 import { writeServerEvent } from '@/lib/serverEvents'
-import { ADS_ACCESS_COLUMN, ADS_PASS_ID, adsAccessUntil } from '@/lib/ads/offer' // KINEO-STUDIO-ADS-2026-09-25
+import { ADS_ACCESS_COLUMN, ADS_PASS_CREDITS, ADS_PASS_ID, adsAccessUntil } from '@/lib/ads/offer' // KINEO-STUDIO-ADS-2026-09-25 · ADS_PASS_CREDITS só no fallback sem pack_credits (28/09)
 import {
   buildCanonicalStripeCheckoutFailure,
   buildStripeChargeFailureEnrichment,
@@ -1356,6 +1356,11 @@ export async function POST(req: NextRequest) {
             // SKU é seguro (não depende do valor) e evita o bug do $2.90:
             // cartão cobrado, zero creditado.
             else if (bulkPack) creditsToAdd = bulkPack.credits
+            // KINEO-PASSE-B-2026-09-28 — passe do Studio Ads que manteve metadata.pack mas perdeu
+            // metadata.pack_credits: sem esta linha caía no "unexpected amount_total" e a pessoa pagava
+            // US$19,90 sem crédito NEM acesso (o break vem antes do UPDATE). Só roda sem pack_credits; o
+            // caminho normal continua concedendo o que a pessoa viu ao abrir o checkout (metaCredits).
+            else if (packMeta === ADS_PASS_ID) creditsToAdd = ADS_PASS_CREDITS
           }
 
           if (creditsToAdd === 0) {

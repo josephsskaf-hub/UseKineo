@@ -164,6 +164,10 @@ export function buildAdV2Source(input: AdV2MontageInput): Record<string, unknown
       width: '84%', height: pct(ADS_V2_OVERLAY_H),
       font_family: fontFamily, font_size: 64, font_weight: '800', line_height: '110%',
       fill_color: '#ffffff', stroke_color: 'rgba(0,0,0,0.55)', stroke_width: 2,
+      // KINEO-ADS-V2-PILULA-2026-09-28 — 1ª amostra real (Kitchen Magic, cozinha branca): frase branca sumia sobre a foto
+      // clara. Pílula escura que abraça a linha, com as MESMAS propriedades que a legenda do compose já usa em produção
+      // (lib/compose.ts: background_color + background_x/y_padding + border_radius): nada de propriedade nunca exercitada.
+      background_color: 'rgba(0,0,0,0.55)', background_x_padding: '3%', background_y_padding: '2%', border_radius: 10,
       enter_transition: { type: 'fade', duration: 0.2 },
     })
   })

@@ -241,7 +241,13 @@ const money = (minor) => checkout.formatCheckoutMoney('usd', minor)
 
 // ── 7. Tripwire do congelamento de preço (até 09/10) ──────────────────────────────────────────────────────────────
 {
-  ok(offer.ADS_PASS_USD_MINOR === 1990 && offer.ADS_PASS_CREDITS === 60, '7a passe 1990 c / 60 cr')
+  // 28/09: passe B do fundador (90 cr) — mesmo 1990 c, 60 → 90 créditos; o bloco pinta o que os créditos pagam (adsCoverageLine).
+  ok(offer.ADS_PASS_USD_MINOR === 1990 && offer.ADS_PASS_CREDITS === 90, '7a passe 1990 c / 90 cr (passe B, 28/09)')
+  {
+    const m7 = blocks.pricingAdsBlockModel({ passLive: true })
+    const h7 = renderToStaticMarkup(React.createElement(load(ADS).PricingAdsBlockView, { model: m7 }))
+    ok(m7.pass && m7.pass.coverage === offer.adsCoverageLine(offer.ADS_PASS_CREDITS) && h7.includes('Enough for 2 new ads (Photo motion or Commercial), 1 Cinema, or about 30 classic ads of 35 s.'), '7a2 passe B: o bloco do /pricing diz o que os 90 créditos pagam, calculado')
+  }
   ok(dfyOffer.DFY_TIERS.express.priceMinor === 3500 && dfyOffer.DFY_TIERS.pro.priceMinor === 7500 && dfyOffer.DFY_TIERS.express.hours === 48 && dfyOffer.DFY_TIERS.pro.hours === 72, '7b Express 3500/48 h · Pro 7500/72 h')
   ok(slider.CREDIT_SLIDER_MIN === 50 && slider.CREDIT_SLIDER_MAX === 2000 && slider.sliderPriceUsdMinor(50) === 990 && slider.sliderPriceUsdMinor(2000) === 29790, '7c barra 50..2000, 50 = 990, 2000 = 29790')
   ok(checkout.TIER_PRICES.starter.usd === 990 && checkout.TIER_PRICES.basic.usd === 1990 && checkout.TIER_PRICES.pro.usd === 3990, '7d planos 990/1990/3990')
