@@ -252,10 +252,10 @@ check('M7 frases no terço do meio: caixa entre 14% e 65% da altura, fonte do id
     y - h / 2 >= M.ADS_V2_SAFE_TOP && y + h / 2 <= M.ADS_V2_SAFE_BOTTOM && M.ADS_V2_SAFE_TOP === 0.14 && M.ADS_V2_SAFE_BOTTOM === 0.65
 })
 check('M8 RECUSA frase sobre o cartão, frase vazia e mais de 3 frases', throws(() => build({ overlays: [{ text: 'x', start: 11, end: 13 }] }), /overlay_window/) && throws(() => build({ overlays: [{ text: ' ', start: 1, end: 2 }] }), /empty_overlay/) && throws(() => build({ overlays: [1, 2, 3, 4].map((n) => ({ text: 'a', start: n, end: n + 0.5 })) }), /too_many/))
-check('M9 voz a partir de 0,3 s; música 25% com voz e 70% sem; voz que passa do fim é recusada', () => {
+check('M9 voz a partir de 0,3 s; música 25% sob a voz e 70% depois dela (29/09: sobe quando a voz acaba) e 70% sem voz; voz que passa do fim é recusada', () => {
   const a = build(); const b = build({ voiceUrl: null, voiceSeconds: null })
   const voice = els(a, 'audio', 5)[0]; const musA = els(a, 'audio', 6)[0]; const musB = els(b, 'audio', 6)[0]
-  return voice.time === 0.3 && voice.duration === 11.2 && musA.volume === '25%' && musB.volume === '70%' && els(b, 'audio', 5).length === 0 && musA.duration === 15 &&
+  return voice.time === 0.3 && voice.duration === 11.2 && musA.volume === '25%' && musB.volume === '70%' && els(b, 'audio', 5).length === 0 && musA.duration === 11.7 && els(a, 'audio', 6).length === 2 && els(a, 'audio', 6)[1].time === 11.7 && els(a, 'audio', 6)[1].volume === '70%' && els(b, 'audio', 6).length === 1 && musB.duration === 15 && musA.trim_start === 0 &&
     throws(() => build({ voiceSeconds: 14.8 }), /voice_too_long/) && throws(() => build({ voiceSeconds: null }), /voice_unmeasured/)
 })
 check('M10 cartão final: imagem de 2,5 s que começa no fim dos planos e fecha exatamente no fim do anúncio', () => {

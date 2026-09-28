@@ -36,6 +36,7 @@ import { buildShotInput } from '@/lib/ads/v2Engines'
 import { ADS_V2_ENGINES, adsV2RetakeCredits, routeShot, type AdsV2Engine, type AdsV2ShotKind, type AdsV2Tier } from '@/lib/ads/v2Tiers'
 import { ADS_V2_CARD_SECONDS, type AdsV2ShotPlan } from '@/lib/ads/v2ShotLists'
 import { buildAdV2Source, ADS_V2_VOICE_START, type AdV2MontageShot } from '@/lib/ads/adV2Montage'
+import { adsV2FallbackTrack, adsV2MusicTrimStart, adsV2MusicUsable, adsV2SwapLibraryTrack } from '@/lib/ads/v2Music'
 import { ADS_V2_QUALITY, confirmAdsV2Debit, failAdsV2Order } from '@/lib/ads/v2Billing'
 import {
   ADS_V2_AMBIGUOUS_MAX_MS,
@@ -461,6 +462,9 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
     const lyria = await getLyriaMusicUrl(null, mood)
     musicUrl = lyria ? await persistAudioCopy({ userId: order.user_id, name: `adsv2-${order.id}-music`, sourceUrl: lyria }) : null
     if (!musicUrl) musicUrl = await getBackgroundMusicUrl(order.id, mood).catch(() => null)
+    // KINEO-ADS-V2-MUSICA-2026-09-29 — faixa da biblioteca sem 32 s seguidos de música não serve para anúncio:
+    // troca por uma aprovada do mesmo clima (lib/ads/v2Music.ts).
+    if (musicUrl && !adsV2MusicUsable(musicUrl)) musicUrl = adsV2SwapLibraryTrack(musicUrl, adsV2FallbackTrack(mood, order.id))
     if (musicUrl) await admin.from('ads_v2_orders').update({ music_url: musicUrl }).eq('id', order.id).is('music_url', null)
   }
   // 2. Voz MiniMax (a mesma TTS da casa para MiniMax: synthesizeTtsFallback, fal-ai/minimax/speech-2.8-hd), medida
@@ -506,6 +510,7 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
       cardUrl: order.card_url,
       cardSeconds,
       musicUrl,
+      musicTrimStart: adsV2MusicTrimStart(musicUrl),
       voiceUrl,
       voiceSeconds,
     })

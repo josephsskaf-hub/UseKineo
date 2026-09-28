@@ -62,9 +62,14 @@ export interface AdV2MontageInput {
   cardUrl: string
   cardSeconds?: number
   musicUrl: string | null
+  /** De onde a música começa (s) — o início medido da faixa (lib/ads/v2Music.ts); 0 fora da biblioteca. */
+  musicTrimStart?: number
   voiceUrl?: string | null
   voiceSeconds?: number | null
 }
+
+/** A música sobe quando a voz acaba: começa a subir este tempo depois do fim da voz. */
+export const ADS_V2_MUSIC_RISE_AFTER_VOICE = 0.2
 
 const r3 = (n: number): number => Math.round(n * 1000) / 1000
 const pct = (f: number): string => `${r3(f * 100)}%`
@@ -177,14 +182,34 @@ export function buildAdV2Source(input: AdV2MontageInput): Record<string, unknown
     })
   }
 
+  // KINEO-ADS-V2-MUSICA-2026-09-29 — a música começa no início MEDIDO da faixa (a biblioteca tem faixa com 14 s de
+  // silêncio na abertura: o 1º anúncio real saiu mudo do segundo 8 ao 14) e fica baixa só enquanto a voz fala:
+  // trecho 1 a 25% até o fim da voz, trecho 2 a 70% até o fim, continuando a MESMA música (trim contínuo).
   if (input.musicUrl) {
     if (!isHttps(input.musicUrl)) throw new Error('ads_v2_montage_bad_music')
-    elements.push({
-      type: 'audio', track: 6, time: 0, duration: total,
-      source: input.musicUrl.trim(),
-      volume: hasVoice ? ADS_V2_MUSIC_VOLUME_WITH_VOICE : ADS_V2_MUSIC_VOLUME_NO_VOICE,
-      loop: true, audio_fade_in: 0.5, audio_fade_out: 1,
-    })
+    const trim = input.musicTrimStart ?? 0
+    if (!(typeof trim === 'number' && Number.isFinite(trim) && trim >= 0)) throw new Error('ads_v2_montage_bad_music_trim')
+    const source = input.musicUrl.trim()
+    const rise = hasVoice ? r3(ADS_V2_VOICE_START + (input.voiceSeconds as number) + ADS_V2_MUSIC_RISE_AFTER_VOICE) : 0
+    if (hasVoice && rise < total - 0.5) {
+      elements.push({
+        type: 'audio', track: 6, time: 0, duration: rise,
+        source, trim_start: r3(trim), volume: ADS_V2_MUSIC_VOLUME_WITH_VOICE,
+        loop: true, audio_fade_in: 0.5, audio_fade_out: 0.3,
+      })
+      elements.push({
+        type: 'audio', track: 6, time: rise, duration: r3(total - rise),
+        source, trim_start: r3(trim + rise), volume: ADS_V2_MUSIC_VOLUME_NO_VOICE,
+        loop: true, audio_fade_in: 0.6, audio_fade_out: 1,
+      })
+    } else {
+      elements.push({
+        type: 'audio', track: 6, time: 0, duration: total,
+        source, trim_start: r3(trim),
+        volume: hasVoice ? ADS_V2_MUSIC_VOLUME_WITH_VOICE : ADS_V2_MUSIC_VOLUME_NO_VOICE,
+        loop: true, audio_fade_in: 0.5, audio_fade_out: 1,
+      })
+    }
   }
 
   return {
