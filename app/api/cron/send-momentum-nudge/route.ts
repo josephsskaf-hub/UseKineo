@@ -305,7 +305,7 @@ export async function GET(req: NextRequest) {
   // pessoa em memória (o Supabase JS não faz GROUP BY).
   const { data: vids, error } = await admin
     .from('videos')
-    .select('user_id, created_at, topic')
+    .select('user_id, created_at, topic, quality_mode')
     .eq('status', 'completed')
     .gte('created_at', new Date(now - 30 * 24 * 3600_000).toISOString())
     .limit(4000)
@@ -322,6 +322,9 @@ export async function GET(req: NextRequest) {
   for (const v of vids ?? []) {
     const uid = v.user_id as string | null
     if (!uid) continue
+    // KINEO-ADS-V2-2026-09-28 — anúncio v2 não é Short: não conta nem vira o "tema" da carta (filtro em memória: .neq no banco
+    // descartaria as linhas com quality_mode nulo).
+    if ((v as { quality_mode?: string | null }).quality_mode === 'ads_v2') continue
     const created = v.created_at as string
     const cur = byUser.get(uid)
     if (!cur) byUser.set(uid, { count: 1, last: created, topic: (v.topic as string | null) ?? null })

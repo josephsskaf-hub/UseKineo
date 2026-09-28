@@ -2316,7 +2316,7 @@ export async function GET(req: NextRequest) {
     for (;;) {
       const { data: vidRows, error: vidErr } = await admin
         .from('videos')
-        .select('user_id, topic, created_at, credits_used, duration')
+        .select('user_id, topic, created_at, credits_used, duration, quality_mode')
         .in('user_id', part)
         .eq('status', 'completed')
         // ⚠️ ORDENAÇÃO ESTÁVEL É REQUISITO DA PAGINAÇÃO, NÃO ENFEITE. Sem
@@ -2337,6 +2337,8 @@ export async function GET(req: NextRequest) {
       const got = (vidRows ?? []) as Array<Record<string, unknown>>
       for (const v of got) {
         if (typeof v.user_id !== 'string') continue
+        // KINEO-ADS-V2-2026-09-28 — anúncio v2 não é Short: fora da contagem, do tema e do custo da carta (filtro em memória).
+        if (v.quality_mode === 'ads_v2') continue
         counts.set(v.user_id, (counts.get(v.user_id) ?? 0) + 1)
         // O tema NUNCA falha fechado: qualquer duvida (tema nao-string, vazio,
         // carimbo ilegivel) simplesmente nao entra no mapa, e o e-mail sai
