@@ -4,6 +4,8 @@ Pedido do fundador (27/09 ~23h BRT): "as próximas 10 tasks voltadas a vendas e 
 
 **Status em 28/09:** tarefas 1, 2 e 3 FEITAS. (1) Cowork: Stripe de 4 tentativas em 3 semanas → 8 em 2 meses (docs/COWORK-STRIPE-RETENTATIVAS-2026-09-28.md). (2) Fundador pôs saldo pré-pago na OpenAI; conferido no banco: roteiro e filme saindo às 01:23-01:27Z, 0 erros de capacidade em 6 h. (3) Fundador: "mantém o botão" — registrado em docs/DECISIONS.md. As perguntas do Cowork sobre o webhook em atraso longo estão em verificação (workflow wf_8934f8db-ece). Próximas datas: 30/09 (tarefas 4 e 5), 01/10-21/10 (tarefa 6), 04/10 (7 e 8), 07/10 (9), 12/10 (10).
 
+**Cobrança em atraso (28/09 ~06h30 UTC, deploy 5c3114c8 READY):** a verificação do webhook (wf_8934f8db-ece) confirmou que o atraso não dá crédito grátis nem crédito em dobro no fluxo normal, e achou 3 defeitos, consertados com revisor adversarial e suíte inteira sem regressão: (1) cliente em atraso que clicava em assinar era rebaixado a free — checkout agora usa a regra única stripeSubscriptionKeepsAccess; (2) fim de assinatura não deixava rastro — evento subscription_ended {reason, tier, credits_left}; (3) com a janela de 2 meses, pagar a fatura antiga depois de a nova falhar era ignorado — agora credita uma vez (chave renewal_granted:<invoice.id> em stripe_events) e o que ainda for ignorado grava renewal_ignored_non_access. Sondas: webhook GET 405, POST sem assinatura 400, checkout anônimo 307 para /signup, controle 404; Vercel sem erro de runtime. Prova real: tentativa de cobrança da salswina em 01/10 00:57 UTC.
+
 ## Números-base
 
 - Pagantes por canal (cadastros de 28/08 a 28/09 02h UTC, pessoas distintas): ChatGPT 353 cadastros → 5 assinantes; TAAFT 144 → 0; direto/sem origem 110 → 0; outros 113 → 1.
