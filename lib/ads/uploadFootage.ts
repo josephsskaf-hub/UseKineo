@@ -5,6 +5,11 @@
 // WEBP e HEIC (recusados pela rota E pelo bucket) viram JPEG no navegador quando ele sabe decodificar; o logo
 // vira PNG para não perder a transparência. Largura/altura/duração são lidas ANTES do envio e nunca bloqueiam:
 // HEVC .mov não decodifica no Chrome e devolve null.
+// KINEO-PNG-CINZA-2026-09-28 — todo PNG (logo ou foto) passa pelo canvas antes de subir e sai PNG 8 bits RGBA, sem perda e
+// com a transparência. A moderação da OpenAI responde 500 "Unexpected error" para PNG cinza+alfa (ffprobe `ya8`) e cinza
+// 16 bits (`gray16be`) — medido 3×3 no endpoint em 28/09; RGBA, RGB, paleta, cinza 8 bits e JPEG passam. O 500 virava
+// "We could not check this file right now. Try the upload again in a minute." para sempre: o logo nunca subia. A porta do
+// servidor NÃO muda (falha continua barrando); aqui só se entrega a ela um formato que ela sabe ler.
 import type { AdsMediaItem } from '@/lib/ads/types'
 import { readClip } from '@/lib/videoEditing/browserEditor'
 
@@ -116,6 +121,21 @@ async function reencodeImage(file: File, asPng: boolean): Promise<File> {
   }
 }
 
+/**
+ * PNG → PNG 8 bits RGBA pelo canvas (KINEO-PNG-CINZA-2026-09-28). Nunca lança: se o navegador não decodifica ou o
+ * resultado passa do teto, segue o ARQUIVO ORIGINAL — é o comportamento de antes, e a moderação do servidor continua
+ * valendo para ele. Exportada para o upload do Studio (GenerateClient), que sobe pela mesma rota e toma o mesmo 500.
+ */
+export async function normalizePngForUpload(file: File): Promise<File> {
+  if (normalizeFootageType(file) !== 'image/png') return file
+  try {
+    const out = await reencodeImage(file, true)
+    return out.size > 0 && out.size <= ADS_UPLOAD_MAX_BYTES ? out : file
+  } catch {
+    return file
+  }
+}
+
 export interface PreparedFootage {
   file: File
   type: RouteType
@@ -133,6 +153,8 @@ export async function prepareFootageFile(input: File, opts: { isLogo?: boolean }
   if ((CONVERTIBLE as readonly string[]).includes(type)) {
     file = await reencodeImage(file, isLogo)
     type = file.type
+  } else if (type === 'image/png') {
+    file = await normalizePngForUpload(file)
   }
   if (!isRouteType(type)) {
     throw new AdsUploadError(
