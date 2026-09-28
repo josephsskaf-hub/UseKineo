@@ -158,6 +158,10 @@ const SERVER_ONLY_EVENTS = new Set([
   'narration_guard_blocked',
   'oneoff_unlock_emailed',
   'trial_downgraded',
+  // KINEO-DESCARTAVEIS-2026-09-27 — escrito SÓ por maybeActivateReverseTrial
+  // (lib/reverseTrial.ts) quando o e-mail é descartável. É a contagem do bloqueio;
+  // se o sink do browser pudesse cunhá-lo, o "abuso barrado" viraria ficção.
+  'trial_blocked_disposable_email',
 ])
 
 export async function POST(req: NextRequest) {

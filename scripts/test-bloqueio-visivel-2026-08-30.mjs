@@ -27,9 +27,23 @@ chk('o bloqueio marca trial_status = blocked',
   'sem a marca, toda varredura de órfão lê a conta barrada como vítima')
 chk('a marca é guardada por trial_status NULL (nunca sobrescreve trial real)',
   /update\(\{ trial_status: 'blocked' \}\)[\s\S]{0,120}\.is\('trial_status', null\)/.test(cod))
+// KINEO-DESCARTAVEIS-2026-09-27 — REANCORADO, mesma intenção e mais estrito: o ramo
+// de e-mail descartável (que vem ANTES no arquivo) ganhou a MESMA marca, e o
+// indexOf da 1ª ocorrência passou a achar a dele. Agora a busca parte de
+// `outcome: 'blocked'` (a marca de digital continua entre ele e o evento
+// trial_blocked_fingerprint) e SOMA a prova de que a outra marca mora dentro do
+// ramo de descartável — e que não existe uma terceira fora dos dois ramos.
+const MARCA = "update({ trial_status: 'blocked' })"
+const iOutcome = cod.indexOf("outcome: 'blocked'")
+const iMarcaDigital = iOutcome >= 0 ? cod.indexOf(MARCA, iOutcome) : -1
 chk('a marca fica DENTRO do ramo de bloqueio (só quem foi barrado)',
-  cod.indexOf("outcome: 'blocked'") < cod.indexOf("update({ trial_status: 'blocked' })") &&
-  cod.indexOf("update({ trial_status: 'blocked' })") < cod.indexOf("name: 'trial_blocked_fingerprint'"))
+  iOutcome >= 0 && iMarcaDigital > iOutcome &&
+  iMarcaDigital < cod.indexOf("name: 'trial_blocked_fingerprint'"))
+const iDesc = cod.indexOf('if (isDisposableEmail(args.email)) {')
+const iDescFim = iDesc >= 0 ? cod.indexOf("return { activated: false, reason: 'disposable_email' }", iDesc) : -1
+const iMarcaDesc = iDesc >= 0 ? cod.indexOf(MARCA, iDesc) : -1
+chk('a marca do ramo de descartável também fica DENTRO do ramo, e não há marca fora dos dois',
+  iDesc >= 0 && iMarcaDesc > iDesc && iMarcaDesc < iDescFim && cod.split(MARCA).length - 1 === 2)
 chk('falha-aberto: erro ao marcar não derruba o bloqueio (só loga)',
   cod.includes('could not mark blocked profile'))
 chk('o contrato silencioso continua (fingerprint_limit, sem copy acusatória)',

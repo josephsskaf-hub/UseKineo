@@ -53,6 +53,10 @@
 
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { writeServerEvent } from '@/lib/serverEvents'
+// KINEO-DESCARTAVEIS-2026-09-27 — a lista da TELA (pura, também roda no cliente)
+// passa a valer no grant: antes, skyprofy.com/tabeebee.com (farm de 13/08) eram
+// barrados só na página /signup e ganhavam trial por qualquer outra porta.
+import { isDisposableEmail as isDisposableEmailDaTela } from '@/lib/emailValidation'
 // KINEO-TRIAL-ABUSE-PMP-2026-08-07 — sinal de device/IP (fase 2 do anti-abuso).
 // Este módulo recebe SÓ o hash, nunca o IP: o cálculo mora na borda
 // (app/api/track-signup-source), ver o cabeçalho de lib/trialFingerprint.ts.
@@ -307,11 +311,24 @@ export function isDisposableEmail(email: string | null | undefined): boolean {
   if (at < 0) return false
   const domain = (email ?? '').toLowerCase().trim().slice(at + 1)
   if (!domain) return false
-  return DISPOSABLE_EMAIL_TOKENS.some((token) =>
-    token.includes('.')
-      ? domain === token || domain.endsWith('.' + token)
-      : domain.includes(token),
+  // KINEO-DESCARTAVEIS-2026-09-27 — UMA decisão, duas listas: os tokens daqui OU
+  // lib/emailValidation (a lista que a página /signup e o modal usam). Sem a
+  // união, domínio barrado na tela ganhava trial pelo modal, pelo OAuth ou por
+  // um POST direto no Supabase. Nenhum token daqui foi removido.
+  return (
+    DISPOSABLE_EMAIL_TOKENS.some((token) =>
+      token.includes('.')
+        ? domain === token || domain.endsWith('.' + token)
+        : domain.includes(token),
+    ) || isDisposableEmailDaTela(email ?? '')
   )
+}
+
+/** Só o DOMÍNIO, para evento/log — o e-mail inteiro nunca sai daqui. */
+function dominioDoEmail(email: string | null | undefined): string {
+  const e = (email ?? '').toLowerCase().trim()
+  const at = e.lastIndexOf('@')
+  return at < 0 ? '' : e.slice(at + 1).slice(0, 128)
 }
 
 /**
@@ -806,6 +823,34 @@ export async function maybeActivateReverseTrial(args: {
     }
     if (isDisposableEmail(args.email)) {
       console.warn(`[reverse-trial] disposable email blocked user=${args.userId.slice(0, 8)}`)
+      // KINEO-DESCARTAVEIS-2026-09-27 — o bloqueio passa a DEIXAR RASTRO, espelhando o
+      // ramo de digital (KINEO-BLOQUEIO-VISIVEL-2026-08-30, mais abaixo): sem a marca,
+      // a conta barrada aqui tem a assinatura de trial órfão (trial_status NULL +
+      // 0 créditos) e a varredura de órfão a recreditaria. Mesma guarda
+      // `.is('trial_status', null)`: idempotente, nunca sobrescreve trial real. O
+      // evento sai na TRANSIÇÃO (ou se a marca falhar, para o bloqueio nunca ser
+      // mudo) — logins repetidos nas primeiras 24h não o duplicam. Metadata leva só
+      // o DOMÍNIO, nunca o e-mail. Silencioso para o usuário, como o de digital.
+      const dbDescartavel = adminClient()
+      if (dbDescartavel) {
+        const { data: marcadas, error: marcaDescErr } = await dbDescartavel
+          .from('profiles')
+          .update({ trial_status: 'blocked' })
+          .eq('id', args.userId)
+          .is('trial_status', null)
+          .select('id')
+        if (marcaDescErr) {
+          console.warn(`[reverse-trial] could not mark disposable profile user=${args.userId.slice(0, 8)}:`, marcaDescErr.message)
+        }
+        const marked = !marcaDescErr && Array.isArray(marcadas) && marcadas.length > 0
+        if (marked || marcaDescErr) {
+          await writeServerEvent({
+            name: 'trial_blocked_disposable_email',
+            userId: args.userId,
+            metadata: { reason: 'disposable_email', domain: dominioDoEmail(args.email), marked },
+          })
+        }
+      }
       return { activated: false, reason: 'disposable_email' }
     }
     const db = adminClient()

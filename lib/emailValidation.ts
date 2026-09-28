@@ -8,12 +8,34 @@
 // Includes the usual temp-mail providers PLUS domains actually seen abusing this
 // app (yopmail, doefy, kinws, gmeenramy, x-box.in, vtmpj, lovadio, asitrai,
 // sages.us, etc.). Keep additions lowercase and bare (no leading "@").
+//
+// KINEO-DESCARTAVEIS-2026-09-27 — esta lista deixou de ser só da página /signup:
+// o modal de cadastro (components/AuthModal.tsx) checa antes do signUp, e o grant
+// do trial no servidor (lib/reverseTrial.ts isDisposableEmail) recusa quem casar
+// aqui OU nos tokens de lá — para TODA conta nova, inclusive OAuth (a conta nasce;
+// só o trial não vem). Por isso nada de alias/relay nem provedor comum entra aqui
+// (guardião scripts/test-dominios-descartaveis-2026-09-27.mjs). Continua PURA:
+// sem import — roda no cliente.
 
 export const DISPOSABLE_DOMAINS: Set<string> = new Set([
   // KINEO-FARM-2026-08-17 — dominios flagrados queimando trial em producao
   // (80 creditos em contas descartaveis no dia 13/08).
   'tabeebee.com',
   'skyprofy.com',
+  // KINEO-DESCARTAVEIS-2026-09-27 — fundador 27/09 21h30 BRT: "bloqueia esses
+  // domínios descartáveis no cadastro". Medido no banco em 27/09:
+  //   omanarts.com     = 8 contas em 2 dias, 5 barradas pela trava de aparelho
+  //                      (trial_blocked_fingerprint over_limit), 0 filmes, 0 pagantes;
+  //   pumpoly.com      = 7 contas em 1 dia, 4 barradas, 0 filmes, 0 pagantes;
+  //   nixadrume40.asia e nodgwdg.eu.cc = nomes gerados, 1 conta cada, 0 filmes,
+  //                      apareceram na lista de checkout abandonado.
+  // Desde esta data a lista vale também no SERVIDOR (lib/reverseTrial.ts
+  // isDisposableEmail = tokens de lá OU esta lista) e no modal de cadastro
+  // (components/AuthModal.tsx) — não só na página /signup.
+  'omanarts.com',
+  'pumpoly.com',
+  'nixadrume40.asia',
+  'nodgwdg.eu.cc',
   // seen in this app
   'yopmail.com',
   'mailinator.com',
@@ -179,5 +201,11 @@ export function isDisposableEmail(email: string): boolean {
 
   if (!domain || domain.includes('@') || !domain.includes('.')) return false
 
-  return DISPOSABLE_DOMAINS.has(domain)
+  // KINEO-DESCARTAVEIS-2026-09-27 — subdomínio também casa (x.omanarts.com): o
+  // farmer troca o prefixo, não o domínio. `endsWith('.' + d)` exige fronteira de
+  // rótulo, então só pega FILHO de domínio da lista — provedor comum e relay
+  // (gmail, outlook, icloud, privaterelay.appleid.com, duck.com...) não entram
+  // por aqui; o guardião test-dominios-descartaveis-2026-09-27 confere.
+  if (DISPOSABLE_DOMAINS.has(domain)) return true
+  return Array.from(DISPOSABLE_DOMAINS).some((d) => domain.endsWith('.' + d))
 }

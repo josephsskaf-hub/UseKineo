@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
 import { normalizeInternalRedirect } from '@/lib/authRedirect'
+import { isDisposableEmail } from '@/lib/emailValidation'
 import { trackCheckoutAuthStep } from '@/lib/authAnalytics'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
@@ -114,6 +115,17 @@ export default function AuthModal({ onClose, defaultTab = 'signup', redirectTo }
     setError(null)
     setEmailAlreadyExists(false)
     trackCheckoutAuthStep('method_selected', 'auth_modal', destination, 'email')
+
+    // KINEO-DESCARTAVEIS-2026-09-27 — a mesma porta da página /signup
+    // (KINEO-DISPOSABLE-BLOCK-2026-07-06): este modal criava a conta por senha SEM
+    // olhar a lista de descartáveis. Mesma lista, mesma frase, antes do signUp.
+    if (isDisposableEmail(email)) {
+      setError(
+        "Please use a permanent email address — disposable inboxes aren't allowed."
+      )
+      setLoading(false)
+      return
+    }
 
     const { data, error } = await supabase.auth.signUp({
       email,
