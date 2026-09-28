@@ -76,6 +76,7 @@ async function fetchResilienteSemDinheiro(url: string, init: RequestInit): Promi
   throw ultimoErro
 }
 import { downloadVideoFile } from '@/lib/videoDownload'
+import { normalizePngForUpload } from '@/lib/ads/uploadFootage' // KINEO-PNG-CINZA-2026-09-28
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import type { BrollPlan } from '@/lib/broll/types'
 // KINEO-TRIAL-SURFACES-2026-08-07 — import de TIPO apenas (apagado no build,
@@ -1576,7 +1577,10 @@ export default function GenerateClient({
 
   // Signed-URL upload: POST upload-url → browser PUTs straight to storage
   // (bypasses Vercel's body cap) → POST confirm registers the row.
-  async function uploadUserFile(file: File): Promise<FootageItem | null> {
+  async function uploadUserFile(input: File): Promise<FootageItem | null> {
+    // KINEO-PNG-CINZA-2026-09-28 — PNG passa pelo canvas (8 bits RGBA): a moderação da OpenAI devolve 500 para PNG
+    // cinza+alfa e a pessoa lia "try again in a minute" para sempre. Áudio, vídeo e JPEG seguem intactos.
+    const file = await normalizePngForUpload(input)
     const startRes = await fetch('/api/footage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
