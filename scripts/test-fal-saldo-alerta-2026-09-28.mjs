@@ -38,7 +38,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 
 // Vira true no commit "[TRAVA 8.2]" que liga a rota cinematic ao alarme único.
-const TRAVA_82_APLICADA = false
+const TRAVA_82_APLICADA = true
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')

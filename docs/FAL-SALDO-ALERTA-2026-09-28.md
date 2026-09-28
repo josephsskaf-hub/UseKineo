@@ -42,7 +42,8 @@
 ## Prova
 - `node scripts/test-fal-saldo-alerta-2026-09-28.mjs` — executa o código real (classificação, id de 6 h, reserva/contagem/teto/banco fora, catches do Kineo 1 com await, a rota real do poll, parser e fallback do card; após a trava, a fatia real de `finalizarDespacho`).
 - Re-ancorados (só o stub do import novo): `test-cinematic-poll-diagnostic-2026-09-11`, `test-cinematic-terminal-proof-2026-09-11`.
+- Re-ancorados no commit `[TRAVA 8.2]` (mesma intenção, transporte novo): `test-despacho-vazio-2026-09-04` 1.7/7.2 (alarme próprio de EMPTY_PLAN e de ZERO_POSTS → `alertDispatchDefect`), `test-saldo-parcial-2026-09-21` (o alarme do parcial sai do finalizador único, nunca 2 e-mails), `test-leva-confiabilidade-2026-08-28` P3 (zero-posts continua alarmando sozinho).
 
 ## Riscos conhecidos
-- Janela FIXA de 6 h: dois e-mails podem sair minutos apart na virada da janela; uma 2ª pane na mesma janela depois de recarregar só aparece no card.
+- Janela FIXA de 6 h: dois e-mails podem sair com minutos de diferença na virada da janela; uma 2ª pane na mesma janela depois de recarregar só aparece no card.
 - `lib/hollywood/anchors.ts` (trava) e /images, /audio, /enhance, generate-clip seguem sem o alarme.

@@ -23,12 +23,14 @@ import { SCENE_WRITER_INPUT_MAX_CHARS } from '@/lib/analyzeLimits' // V3-ESCRITO
 // KINEO-353A — classificacao pura da falha de cena (sem rede, sem banco).
 import {
   classifyProviderFailure,
-  isBalanceExhausted,
   providerSpendPossible,
   safeLogFields,
   type ReasonClass,
   type SceneOutcome,
 } from '@/lib/cinematic/sceneDisposition'
+// KINEO-FAL-SALDO-ALERTA-2026-09-28 — o alarme de saldo é UM só, em lib/falAlert (a cópia local com o e-mail cravado
+// e o throttle na memória da lambda morreu). looksExhausted segue a classe de sceneDisposition.
+import { alertDispatchDefect, alertFalExhausted, looksExhausted } from '@/lib/falAlert'
 // KINEO-353A.1 — a orquestracao (retry, fallback de modelo, vetor por cena)
 // vive num modulo importavel para o teste de contrato exercitar ESTA logica.
 import {
@@ -353,6 +355,10 @@ function ctxDespacho(): DispatchContext {
 async function finalizarDespacho(ctx: DispatchContext, res: Response): Promise<void> {
   if (ctx.registrado) return
   ctx.registrado = true
+  // KINEO-FAL-SALDO-ALERTA-2026-09-28 — números do alarme, lidos do MESMO resumo que vai para o evento.
+  let saldoRecusadas: number | null = null
+  let aceitas: number | null = null
+  let planejadas: number | null = null
   try {
     const plano = {
       outcomes: ctx.outcomes,
@@ -362,6 +368,9 @@ async function finalizarDespacho(ctx: DispatchContext, res: Response): Promise<v
       totalPosts: ctx.totalPosts,
     }
     const resumo = resumirPlano(plano as never)
+    saldoRecusadas = resumo.reason_histogram.balance_quota ?? 0
+    aceitas = resumo.accepted
+    planejadas = ctx.planned || resumo.planned
     await writeServerEvent({
       name: 'cinematic_dispatch_result',
       userId: ctx.userId ?? undefined,
@@ -398,40 +407,29 @@ async function finalizarDespacho(ctx: DispatchContext, res: Response): Promise<v
     console.error('[cinematic] telemetria falhou (resposta do cliente preservada):',
       e instanceof Error ? e.name : 'unknown')
   }
-}
-// `looksExhausted` tratava QUALQUER 403 como saldo estourado. Um 403 de
-// "modelo sem acesso" virava alarme de saldo para o fundador e "alta demanda"
-// para o cliente — três mentiras numa resposta só. A classificação agora mora
-// em lib/cinematic/sceneDisposition e exige a CLASSE saldo, não o status.
-function looksExhausted(e: { status?: number; message?: string }): boolean {
-  return isBalanceExhausted(e?.status ?? null, e?.message)
-}
-// Fire-and-forget founder alert via Resend. Throttled to once per 30 min via a
-// module timestamp so a burst of failures doesn't spam the inbox.
-let LAST_FAL_ALERT = 0
-async function alertFalExhausted(context: string): Promise<void> {
-  try {
-    const key = process.env.RESEND_API_KEY
-    if (!key || key === 'your_resend_api_key_here') return
-    const now = Date.now()
-    if (now - LAST_FAL_ALERT < 30 * 60 * 1000) return
-    LAST_FAL_ALERT = now
-    const from = process.env.RESEND_FROM_EMAIL || 'Kineo <support@usekineo.com>'
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from,
-        to: ['josephsskaf@gmail.com'],
-        subject: '🚨 Kineo: fal.ai balance EXHAUSTED — AI videos are failing',
-        text: `The fal.ai balance is exhausted — AI (Seedance/Kling/Veo) renders are failing RIGHT NOW and users are seeing the "high demand" queue message instead of a video.\n\nContext: ${context}\nTime: ${new Date().toISOString()}\n\nRecharge fal.ai to restore AI generation: https://fal.ai/dashboard/billing`,
-      }),
+  // ═══ KINEO-FAL-SALDO-ALERTA-2026-09-28 — O ALARME DE SALDO MORA AQUI, E SÓ AQUI ═══
+  //
+  // Antes: três chamadas espalhadas (Hollywood FAILFAST, clássico parcial, clássico zero aceitas) e DUAS que não
+  // eram saldo (EMPTY_PLAN, ZERO_POSTS mandavam "balance EXHAUSTED"). E um buraco: Hollywood com recusa de saldo que
+  // ainda cobria ≥ 90% dos segundos seguia em frente SEM alarme. O finalizador roda em TODA resposta desta rota,
+  // com a flag que só a classe balance_quota liga — um lugar cobre os quatro caminhos. Fora do try: telemetria que
+  // cai não cala o alarme. alertFalExhausted nunca lança, tem teto de 3 s e manda um e-mail por janela de 6 h.
+  if (ctx.balanceExhausted) {
+    await alertFalExhausted({
+      source: 'cinematic',
+      engine: ctx.engine,
+      userId: ctx.userId,
+      generationId: ctx.generationId,
+      scenesRefused: saldoRecusadas,
+      context: `app_http=${res.status} claim=${ctx.claimAction} accepted=${aceitas ?? '?'}/${planejadas ?? '?'}`,
+      path: '/api/generate-video-cinematic',
     })
-    console.error('[cinematic] FAL BALANCE EXHAUSTED — founder alerted')
-  } catch (e) {
-    console.error('[cinematic] fal alert email failed:', e instanceof Error ? e.message : String(e))
   }
 }
+// KINEO-FAL-SALDO-ALERTA-2026-09-28 — aqui moravam `looksExhausted` e `alertFalExhausted` LOCAIS: e-mail do fundador
+// cravado em código, throttle de 30 min na memória da lambda e nenhuma linha no banco (12 despachos e 36 cenas
+// recusadas por saldo em 30 dias, e nenhum e-mail provável). Agora os dois vêm de lib/falAlert, e o alarme dispara
+// num lugar só: finalizarDespacho, quando ctx.balanceExhausted.
 
 // KINEO-SEEDANCE-720-CREATOR-2026-07-06 — margin fix. Seedance v1.5 pro at 1080p
 // runs ~$0.62-0.74/clip on fal; a Creator video is 6-9 clips, which breaks the
@@ -5421,7 +5419,7 @@ async function manipularPost(req: NextRequest) {
           )
         }
         if (ctxDespacho().balanceExhausted) {
-          await alertFalExhausted(`user=${user.id.slice(0, 8)} engine=hollywood submitted=${hValid.length}/${plan.scenes.length}`)
+          // KINEO-FAL-SALDO-ALERTA-2026-09-28 — o fundador é avisado pelo finalizador único (finalizarDespacho).
           return NextResponse.json(
             {
               queued: true,
@@ -5963,7 +5961,7 @@ async function manipularPost(req: NextRequest) {
         c.refundConfirmed = released
       }
       console.error(`[cinematic] FAL BALANCE EXHAUSTED mid-dispatch: ${validIds.length}/${scenes.length} accepted — aborting user=${user.id.slice(0, 8)} gen=${generationId} refunded=${released}`)
-      await alertFalExhausted(`PARTIAL user=${user.id.slice(0, 8)} engine=${usedModel} accepted=${validIds.length}/${scenes.length} refunded=${released}`)
+      // KINEO-FAL-SALDO-ALERTA-2026-09-28 — alarme ao fundador sai do finalizador único, com accepted/planned do resumo.
       if (!released) {
         return NextResponse.json(
           { error: 'Our video provider ran out of capacity mid-way and your automatic refund is still being confirmed. Please retry this same generation in a few minutes.' },
@@ -6026,11 +6024,11 @@ async function manipularPost(req: NextRequest) {
         )
       }
       // KINEO-FAL-ALARM-2026-07-06 — if the failure was an exhausted fal balance,
-      // don't show a dead error: alert the founder and return a soft "queued"
-      // message so the user waits calmly instead of thinking the product broke.
-      // The deterministic upfront debit has already been refunded above.
+      // don't show a dead error: return a soft "queued" message so the user waits
+      // calmly instead of thinking the product broke. The deterministic upfront
+      // debit has already been refunded above. KINEO-FAL-SALDO-ALERTA-2026-09-28 —
+      // the founder is alerted once, by finalizarDespacho.
       if (ctxDespacho().balanceExhausted) {
-        await alertFalExhausted(`user=${user.id.slice(0, 8)} engine=${usedModel}`)
         return NextResponse.json(
           {
             queued: true,
@@ -6088,7 +6086,9 @@ async function manipularPost(req: NextRequest) {
               },
             })
           } catch { /* telemetria nunca derruba a resposta */ }
-          await alertFalExhausted(`EMPTY_PLAN user=${user.id.slice(0, 8)} engine=${usedModel} duration=${duration}`)
+          // KINEO-FAL-SALDO-ALERTA-2026-09-28 — plano vazio NÃO é saldo: ia como "fal.ai balance EXHAUSTED". Agora o
+          // alarme diz o que é (defeito nosso, nada foi enviado), um por janela de 6 h.
+          await alertDispatchDefect({ kind: 'EMPTY_PLAN', engine: usedModel, userId: user.id, generationId, context: `user=${user.id.slice(0, 8)} duration=${duration}` })
           return NextResponse.json(
             {
               queued: true,
@@ -6097,7 +6097,8 @@ async function manipularPost(req: NextRequest) {
             { status: 503 },
           )
         }
-        await alertFalExhausted(`ZERO_POSTS user=${user.id.slice(0, 8)} engine=${usedModel} planned=${ctxDespacho().planned}`)
+        // KINEO-FAL-SALDO-ALERTA-2026-09-28 — zero POSTs também não é saldo: alarme de defeito com assunto verdadeiro.
+        await alertDispatchDefect({ kind: 'ZERO_POSTS', engine: usedModel, userId: user.id, generationId, context: `user=${user.id.slice(0, 8)} planned=${ctxDespacho().planned}` })
         return NextResponse.json(
           {
             queued: true,
