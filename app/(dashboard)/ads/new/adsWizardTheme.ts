@@ -91,6 +91,24 @@ html[data-theme=dark] .stu.adsw{--ads-error:#ff9aa5;--ads-warning:#ffc17b;--ads-
 .adsw .adsw-video{max-width:420px;max-height:75dvh;object-fit:contain;border-color:var(--ads-line)}
 .adsw .adsw-panel{padding:48px 24px;min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .adsw .adsw-panel .adsw-bar{width:min(100%,440px)}
+/* Input panels need a form layout; centered status panels keep their layout. */
+.adsw .adsw-panel:has(.adsw-f){align-items:stretch;text-align:start;justify-content:flex-start;gap:0}
+.adsw .adsw-panel:has(.adsw-f)>.adsw-lead{max-width:76ch;margin-bottom:28px}
+.adsw .adsw-panel:has(.adsw-f)>.adsw-f{width:100%;max-width:none}
+.adsw .adsw-panel:has(.adsw-f) .adsw-media{grid-template-columns:repeat(auto-fill,minmax(132px,180px))}
+.adsw .adsw-panel:has(.adsw-f) .adsw-logo{background:var(--ads-card);border-style:dashed}
+.adsw .adsw-panel:has(.adsw-f) .adsw-actions{justify-content:flex-start}
+@media(min-width:901px){
+ .adsw .adsw-panel:has(.adsw-f){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:28px}
+ .adsw .adsw-panel:has(.adsw-f)>*{grid-column:1/-1}
+ .adsw .adsw-panel:has(.adsw-f)>.adsw-f:has(.adsw-logo){grid-column:1}
+ .adsw .adsw-panel:has(.adsw-f)>.adsw-f:has(.adsw-media){grid-column:2}
+ .adsw .adsw-panel:has(.adsw-f) .adsw-logo{min-height:208px}
+}
+html .stu.adsw .pill[aria-pressed=true]{background:var(--ads-action);color:var(--ads-on-action);border-color:var(--ads-action);box-shadow:none}
+.adsw input[type=url]{width:100%;min-width:0;min-height:48px;padding:12px 16px;border:1px solid var(--ads-line);border-radius:11px;background:var(--ads-card);color:var(--ads-text);font-size:15px}
+html .stu.adsw :is(input[type=text],input[type=url],select,textarea.adsw-ta):focus-visible{outline:2px solid var(--ads-accent);outline-offset:2px;box-shadow:none}
+@media(max-width:600px){.adsw .adsw-panel:has(.adsw-f) .adsw-f>.row:has(input[type=url]){flex-wrap:wrap!important}.adsw .adsw-panel:has(.adsw-f) input[type=url]{flex-basis:100%!important}.adsw .adsw-panel:has(.adsw-f) .adsw-media{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .adsw .adsw-sum{gap:13px 22px;max-width:760px;padding-bottom:20px;margin-bottom:20px;border-bottom:1px solid var(--ads-line)}
 .adsw .adsw-review{color:var(--ads-secondary);background:var(--ads-tint);border-color:var(--ads-line);padding:17px 20px;line-height:1.7}
 .adsw .cost{padding:26px;border:1px solid var(--ads-line);background:var(--ads-bg);border-radius:15px}

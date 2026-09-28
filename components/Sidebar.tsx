@@ -235,12 +235,12 @@ function NavItem({
         padding: '8px 10px',
         margin: '1px 0',
         background: active
-          ? 'rgba(41,151,255,0.10)'
+          ? 'var(--accent-soft)'
           : hovered
-          ? 'rgba(255,255,255,0.045)'
+          ? 'var(--card2)'
           : 'transparent',
         color: active ? 'var(--text)' : hovered ? 'var(--text)' : 'var(--muted2)',
-        border: active ? '1px solid rgba(41,151,255,0.28)' : '1px solid transparent',
+        border: active ? '1px solid var(--border)' : '1px solid transparent',
         textDecoration: 'none',
         fontSize: '0.86rem',
         fontWeight: active ? 700 : 600,
@@ -255,7 +255,7 @@ function NavItem({
             top: '22%',
             height: '56%',
             width: 2.5,
-            background: '#2997ff',
+            background: 'var(--accent)',
             borderRadius: '0 3px 3px 0',
           }}
         />
@@ -270,8 +270,8 @@ function NavItem({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: active ? '#2997ff' : 'inherit',
-          background: active ? 'rgba(41,151,255,0.14)' : 'transparent',
+          color: active ? 'var(--accent)' : 'inherit',
+          background: active ? 'var(--card)' : 'transparent',
           transition: 'background 0.15s ease, color 0.15s ease',
         }}
       >

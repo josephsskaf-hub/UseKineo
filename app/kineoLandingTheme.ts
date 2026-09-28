@@ -5,13 +5,13 @@ import gallery from './examples/ExamplesGallery.module.css'
  */
 export const KINEO_LANDING_THEME_CSS = `
 .klp {
-  --bg:#f6f5f2; --s0:#e7e6e2; --card:#fff; --card2:#efeeeb; --s3:#e7edf2;
-  --line:#cbcdd0; --line2:#a9afb6; --line3:#818b96;
+  --bg:#f6f5f2; --s0:#f0f1ef; --card:#fff; --card2:#f0f1ef; --s3:#eceeec;
+  --line:#dcdedc; --line2:#a9afb6; --line3:#818b96;
   --txt:#20252b; --txt2:#35404b; --muted:#56616d; --muted2:#5e6873;
-  --blue:#29343f; --blue-soft:#e7edf2; --home-action:#29343f; --home-on-action:#fff;
+  --blue:#29343f; --blue-soft:#eceeec; --home-action:#29343f; --home-on-action:#fff;
   --home-nav:#20252b; --home-wash:#efeeeb;
   --sh-card:0 8px 30px #18385908; --sh-card-h:0 12px 36px #18385912;
-  --sh-cta:0 5px 18px #1766d31c;
+  --sh-cta:0 2px 4px #20252b14;
   color-scheme:light;
   background:radial-gradient(ellipse 1100px 650px at 0 0,var(--home-wash),transparent 72%),var(--bg);
   overflow-x:clip;
@@ -72,7 +72,7 @@ html:not([data-theme=dark]) .klp .nav-toggle-btn .bar { background:#f8fafc; }
 .klp .nd-images .nm-tx b { font-size:13px; }
 .klp .nd-images .nm-tx i { font-size:11px; color:var(--muted); font-style:normal; white-space:normal; line-height:1.5; margin-top:3px; max-width:178px; }
 .klp .btn-blue,.klp .btn-w,.klp .nav-right .btn-w { background:var(--home-action); color:var(--home-on-action); border-color:var(--home-action); border-radius:9px; box-shadow:var(--sh-cta); }
-.klp .btn-blue:hover,.klp .btn-w:hover,.klp .nav-right .btn-w:hover { background:var(--home-action); border-color:var(--home-action); color:var(--home-on-action); box-shadow:0 7px 22px #1766d326; filter:brightness(1.06); }
+.klp .btn-blue:hover,.klp .btn-w:hover,.klp .nav-right .btn-w:hover { background:var(--home-action); border-color:var(--home-action); color:var(--home-on-action); box-shadow:var(--sh-card-h); filter:brightness(1.06); }
 .klp .btn-w::before { display:none; }
 .klp .hero { padding-top:48px; padding-bottom:0; }
 .klp .hero>.glow { display:none; }

@@ -1,16 +1,16 @@
 /* Founder-approved White + Graphite, 25 September. Dark remains unchanged. */
 :root {
   color-scheme: light;
-  --bg:#f6f5f2; --sidebar-bg:#fff; --card:#fff; --card2:#e7e6e2;
+  --bg:#f6f5f2; --sidebar-bg:#fff; --card:#fff; --card2:#f0f1ef;
   --text:#20252b; --text2:#35404b; --muted:#56616d; --muted2:#5e6873;
-  --border:#cbcdd0; --border2:#a9afb6; --indigo:#29343f; --indigo-light:#29343f;
+  --border:#dcdedc; --border2:#a9afb6; --indigo:#29343f; --indigo-light:#29343f;
   --purple:#29343f; --purple-light:#29343f;
   --surface:var(--card); --surface-soft:var(--card2); --accent:#29343f;
-  --accent-soft:#e7edf2; --on-accent:#fff; --header-bg:#ffffffed;
+  --accent-soft:#eceeec; --on-accent:#fff; --header-bg:#ffffffed;
   --public-nav:#20252b; --public-nav-text:#f8fafc; --brand:#66b2ff;
   --danger:#b42318; --warning:#915300;
-  --sh-card:0 10px 35px #18385908; --sh-card-h:0 18px 48px #18385912;
-  --sh-cta:0 6px 18px #20252b20;
+  --sh-card:0 1px 2px #20252b04,0 5px 18px #20252b04; --sh-card-h:0 8px 24px #20252b0d;
+  --sh-cta:0 2px 4px #20252b14;
 }
 html[data-theme='dark'], .kineo-admin-theme {
   color-scheme:dark;
@@ -53,6 +53,43 @@ html .stu .studio-modes :is(button,a){color:var(--muted)}
 html .stu .studio-modes button[aria-pressed=true]{background:var(--accent-soft);color:var(--accent)}
 html .stu.composer-proposal .composer-proposal-grid{max-width:none}
 html .stu .pk .pk-tx>.pill[role=button]{color:var(--accent)}
+/* Finish the shared workspace without changing its controls or content. */
+html .stu{padding-top:30px;position:relative;z-index:1}
+html .stu h1{font-size:clamp(28px,2.5vw,34px);letter-spacing:-.035em;margin-bottom:8px}
+html .stu .sub{line-height:1.6;margin-bottom:28px}
+html .stu .card{border-radius:16px}
+html .stu .lab{margin-bottom:12px;font-weight:650}
+html .stu .lab .n{background:var(--card2);color:var(--text2);border:1px solid var(--border);border-radius:6px}
+html .stu .pill{border-radius:10px;min-height:40px;transition:background .15s,border-color .15s,color .15s;transform:none}
+html .stu .pill:not(.on):not(.off){background:var(--card);color:var(--text2)}
+html .stu .pill:not(.on):hover{background:var(--card2)}
+html .stu textarea{background:var(--card);border-radius:12px;padding:18px;box-shadow:none}
+html .stu textarea:focus{border-color:var(--accent);box-shadow:none}
+html .stu :is(textarea,input,select):focus-visible{outline:2px solid var(--accent);outline-offset:2px;box-shadow:none}
+html .stu .go{border-radius:12px;min-height:48px;box-shadow:var(--sh-cta)}
+html .stu .go.no{box-shadow:none}
+html .stu .cost::before{display:none}
+html .stu .cost{border-color:var(--border);border-radius:14px}
+html .stu .creation-results{border-color:var(--border)}
+html .stu.composer-proposal .composer-proposal-idea{border-radius:18px}
+html .stu .studio-generation-review{background:var(--card2);border-color:var(--border);padding:20px;gap:14px}
+html .stu .composer-proposal-settings select{width:100%;min-height:42px;border-radius:10px}
+html .stu .studio-modes{padding-bottom:14px;margin-bottom:24px;gap:8px}
+html .stu .studio-modes :is(button,a){border-radius:10px;min-height:40px}
+html .stu .studio-modes button[aria-pressed=true]{border-color:var(--border2)}
+html .stu.images-workspace .image-engine-choice:checked+.image-engine-card{background:var(--card);box-shadow:inset 0 0 0 1px var(--indigo)}
+html .stu.images-workspace .image-engine-desc{font-size:12px;line-height:1.5}
+html .stu.library-page .library-toolbar{border:0;background:var(--card);border-radius:14px;padding:12px;box-shadow:var(--sh-card);gap:12px}
+html .stu.library-page .library-toolbar .pill:not(.on){border-color:transparent;background:transparent}
+html .stu.library-page .library-collection{gap:18px}
+html .stu.library-page .library-search input:focus-visible{outline-color:var(--accent)!important}
+html .pricing-blue>nav>div{max-width:1440px;padding-inline:32px}
+html .pricing-blue #plans{gap:24px}
+html .pricing-blue #plans>div{transform:none;border-radius:18px!important;box-shadow:var(--sh-card)!important}
+html .pricing-blue #plans>div>.absolute{box-shadow:none}
+html .pricing-blue #plans button{border-radius:11px}
+@media(max-width:900px){html .stu{padding-top:22px}html .stu .sub{margin-bottom:22px}html .stu .studio-generation-review{padding:16px}}
+@media(max-width:600px){html .stu.library-page .library-collection{gap:12px}html .pricing-blue>nav>div{padding-inline:20px}html .stu.library-page .library-toolbar{padding:10px}}
 /* Legacy result/media panels keep readable dark tokens. The progress panel
    Current project and finished result inherit the selected workspace theme instead. */
 .gv-card:not(.render-workspace-primary):not(.done-result){--text:#eef5fe;--text2:#d6e5f5;--muted:#a8bad0;--muted2:#91a8c2;--border:#2d425a;--card:#121f2e;--card2:#192b3f;--indigo:#2997ff;--accent:#91c9ff;--accent-soft:#1b3754;--on-accent:#062341;color:var(--text)}
