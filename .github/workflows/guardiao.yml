@@ -46,6 +46,8 @@ jobs:
       - name: Citações — destino pago e limite real do trial
         # Shared purchase guidance: canonical prices, maintenance and no fake attribution.
         run: node scripts/test-paid-video-citation-guidance-2026-09-28.mjs
+      - name: Seedance EN — planos no hero e cadastro com intenção preservada
+        run: node scripts/test-seedance-hero-plans-2026-09-28.mjs
       - name: Navegação, biblioteca e idioma
         run: node scripts/test-five-improvements.mjs
       - name: Studio — entrada direta e retomada sem formulário antigo
