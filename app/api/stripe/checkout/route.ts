@@ -7,6 +7,9 @@ import { OFFER_290_ENABLED } from '@/lib/flags'
 import Stripe from 'stripe'
 import { createHash } from 'node:crypto'
 import { paypalFetch } from '@/lib/paypal'
+// KINEO-STRIPE-ATRASO-2026-09-28 — a regra ÚNICA "esta assinatura ainda dá acesso?" (active/trialing/past_due),
+// a mesma que o webhook, o reconcile-dunning e o MRR já usam. Ver o reparo de perfil abaixo.
+import { stripeSubscriptionKeepsAccess } from '@/lib/billing/subscriptionAccess'
 // KINEO-SCANNER-DENOMINADOR-2026-08-16 — o detector NÃO é novo e é de
 // propósito que ele venha de lá: `app/revive/_lib/reviveProspect.ts` nasceu
 // com esta regex CITANDO este arquivo ("mesma lista de headers que
@@ -1364,7 +1367,10 @@ async function buildAndRedirect(
     .sort((a, b) => subscriptionPriority(a) - subscriptionPriority(b))[0] ?? null
 
   if (existingCustomerSubscription) {
-    const grantsAccess = existingCustomerSubscription.status === 'active' || existingCustomerSubscription.status === 'trialing'
+    // KINEO-STRIPE-ATRASO-2026-09-28 — a Stripe cobra por 2 meses (8 tentativas) e past_due MANTÉM o acesso. O literal
+    // active/trialing gravava plan='free'/is_pro=false em quem estava em atraso e só clicou num card de assinar. O
+    // bloqueio da segunda assinatura abaixo é o mesmo; incomplete/unpaid/paused continuam virando free.
+    const grantsAccess = stripeSubscriptionKeepsAccess(existingCustomerSubscription.status)
     const repair: Record<string, unknown> = {
       stripe_subscription_id: existingCustomerSubscription.id,
       is_pro: grantsAccess,

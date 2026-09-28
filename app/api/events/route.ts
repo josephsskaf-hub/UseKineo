@@ -162,6 +162,10 @@ const SERVER_ONLY_EVENTS = new Set([
   // (lib/reverseTrial.ts) quando o e-mail é descartável. É a contagem do bloqueio;
   // se o sink do browser pudesse cunhá-lo, o "abuso barrado" viraria ficção.
   'trial_blocked_disposable_email',
+  // KINEO-STRIPE-ATRASO-2026-09-28 — escritos SÓ pelo webhook da Stripe. `subscription_ended` é o churn (fim de
+  // assinatura) e `renewal_ignored_non_access` o pagamento de renovação descartado; forjá-los mentiria no placar.
+  'subscription_ended',
+  'renewal_ignored_non_access',
 ])
 
 export async function POST(req: NextRequest) {

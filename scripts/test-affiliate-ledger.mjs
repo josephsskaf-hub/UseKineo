@@ -229,9 +229,11 @@ ok(balanceReadIndex > commissionIndex, 'commission precedes additive balance rea
 ok(balanceWriteIndex > commissionIndex, 'commission precedes additive balance write')
 equal((paymentPath.match(/await recordAffiliateCommission\(supabase/g) ?? []).length, 1, 'payment path has one commission call')
 equal((paymentPath.match(/paymentKind:\s*'one_time'/g) ?? []).length, 1, 'payment path explicitly classifies its one-time commission')
-equal((webhookSource.match(/paymentKind:\s*'subscription'/g) ?? []).length, 6, 'all six subscription commission callers classify payment explicitly')
+// KINEO-STRIPE-ATRASO-2026-09-28 — +1 chamador de assinatura: a renovação idempotente por fatura ganhou o ramo
+// "fatura já concedida" (renewal_granted:${invoice.id}), que repete a comissão idempotente como o checkout_fulfilled: já faz.
+equal((webhookSource.match(/paymentKind:\s*'subscription'/g) ?? []).length, 7, 'all seven subscription commission callers classify payment explicitly')
 equal((webhookSource.match(/paymentKind:\s*'one_time'/g) ?? []).length, 1, 'exactly one one-time commission caller exists')
-equal((webhookSource.match(/await recordAffiliateCommission\(supabase/g) ?? []).length, 7, 'all seven real commission callers remain present')
+equal((webhookSource.match(/await recordAffiliateCommission\(supabase/g) ?? []).length, 8, 'all eight real commission callers remain present')
 ok(/paymentKind:\s*AffiliatePaymentKind/.test(webhookSource), 'recordAffiliateCommission requires explicit payment kind')
 // Retry now also includes the checkout-analytics sink. Assert each cause and
 // the composed guard instead of freezing the former two-term source line.

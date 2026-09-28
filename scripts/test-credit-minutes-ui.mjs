@@ -69,6 +69,11 @@ const restoredRoute = route
   .replace("import { minutesLine } from '@/lib/credits/creditMinutes'\n", '')
   .replace(' ${minutesLine(ADS_PASS_CREDITS)} (alternative uses of the same credits).', '')
   .replace('    // A copy-only deploy must not reuse a Stripe key with different product parameters.\n    description: sessionParams.line_items?.[0]?.price_data?.product_data?.description,\n', '')
+  // KINEO-STRIPE-ATRASO-2026-09-28 — o conserto do past_due (import da regra única + grantsAccess) tem guardião próprio
+  // (scripts/test-stripe-atraso-2-meses-2026-09-28.mjs); aqui ele é desfeito para esta comparação seguir provando que a
+  // mudança dos minutos foi só copy.
+  .replace(/\/\/ KINEO-STRIPE-ATRASO-2026-09-28[^\n]*\n\/\/[^\n]*\nimport \{ stripeSubscriptionKeepsAccess \} from '@\/lib\/billing\/subscriptionAccess'\n/, '')
+  .replace(/    \/\/ KINEO-STRIPE-ATRASO-2026-09-28[^\n]*\n(?:    \/\/[^\n]*\n){2}    const grantsAccess = stripeSubscriptionKeepsAccess\(existingCustomerSubscription\.status\)\n/, "    const grantsAccess = existingCustomerSubscription.status === 'active' || existingCustomerSubscription.status === 'trialing'\n")
 check(restoredRoute === baseRoute, 'checkout change is only display copy and its idempotency signature')
 check(read('app/ads/page.tsx').includes('<CreditMinutesSummary credits={ADS_PASS_CREDITS} />'), 'pass review uses current grant')
 check(read('components/pricing/PricingAdsBlock.tsx').includes('<CreditMinutesSummary credits={pass.credits} />'), 'pricing pass uses offer model grant')

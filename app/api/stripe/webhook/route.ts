@@ -2180,13 +2180,27 @@ export async function POST(req: NextRequest) {
           console.log('[stripe webhook] renewal skipped for protected admin account:', renewalUserId)
           break
         }
-        if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+        // KINEO-STRIPE-ATRASO-2026-09-28 — com a janela de 2 meses, a fatura de um mês pode ser paga em atraso enquanto
+        // a do mês seguinte ainda falha: a assinatura segue past_due e o portão active/trialing jogava o pagamento fora
+        // (pagou e não recebeu). past_due mantém o acesso pela regra única (lib/billing/subscriptionAccess.ts);
+        // unpaid/canceled/incomplete_expired/paused seguem ignorados — e agora o descarte deixa rastro no banco.
+        if (!stripeSubscriptionKeepsAccess(subscription.status)) {
           // Stripe events can arrive out of order. A historical paid invoice
           // must not reactivate/refill a subscription whose live state is now
           // canceled, unpaid, paused or otherwise non-access.
           entitlementConfirmed = true
           entitlementPending = false
           console.warn('[stripe webhook] stale renewal ignored for non-access subscription:', invoice.id, subscriptionId, subscription.status)
+          await writeServerEvent({
+            name: 'renewal_ignored_non_access',
+            userId: renewalUserId,
+            path: '/api/stripe/webhook',
+            metadata: {
+              invoice_ref: invoice.id ?? null,
+              subscription_ref: subscriptionId,
+              status: subscription.status,
+            },
+          })
           break
         }
 
@@ -2216,6 +2230,31 @@ export async function POST(req: NextRequest) {
           await recordAffiliateCommission(supabase, { userId: renewalUserId, externalId: invoice.id ?? subscriptionId, amountGross: invoice.amount_paid ?? 0, currency: invoice.currency ?? 'usd', type: 'recurring', paymentKind: 'subscription', attributionSystem: subscription.metadata?.affiliate_system })
           console.warn('[stripe webhook] stale renewal ignored for superseded subscription:', invoice.id, subscriptionId, renewalProfile.stripe_subscription_id)
           break
+        }
+
+        // KINEO-STRIPE-ATRASO-2026-09-28 — renovação idempotente POR FATURA (mesmo padrão do checkout_fulfilled:).
+        // O dedupe por event.id é liberado quando algo depois do crédito pede reenvio (ex.: ledger de afiliado);
+        // sem esta chave o reenvio reaplicava o saldo da mesma fatura. Já concedida → só os passos idempotentes.
+        const renewalGrantKey = invoice.id ? `renewal_granted:${invoice.id}` : null
+        if (renewalGrantKey) {
+          const { data: renewalGranted, error: renewalGrantLookupError } = await supabase
+            .from('stripe_events')
+            .select('id')
+            .eq('id', renewalGrantKey)
+            .maybeSingle()
+          if (renewalGrantLookupError) {
+            throw new RetryableEntitlementError(
+              `Failed to verify renewal grant (${invoice.id}): ${renewalGrantLookupError.message}`
+            )
+          }
+          if (renewalGranted?.id === renewalGrantKey) {
+            entitlementConfirmed = true
+            entitlementPending = false
+            await markTrialConverted(supabase, renewalUserId, { source: 'invoice_payment_succeeded', stripeRef: invoice.id ?? subscriptionId })
+            await recordAffiliateCommission(supabase, { userId: renewalUserId, externalId: invoice.id ?? subscriptionId, amountGross: invoice.amount_paid ?? 0, currency: invoice.currency ?? 'usd', type: 'recurring', paymentKind: 'subscription', attributionSystem: subscription.metadata?.affiliate_system })
+            console.log('[stripe webhook] renewal already granted for invoice:', invoice.id, subscriptionId)
+            break
+          }
         }
 
         // On renewal we set the balance to the plan amount rather than adding,
@@ -2251,6 +2290,20 @@ export async function POST(req: NextRequest) {
           entitlementConfirmed = true
           entitlementPending = false
           console.log(`[stripe webhook] renewal: ${renewalTier} (${renewalCredits} + ${renovacao.carried} carried = ${renovacao.balance}, cin=${renewalCinematicTokens}) → user ${renewalUserId}`)
+        }
+        // KINEO-STRIPE-ATRASO-2026-09-28 — a chave só nasce DEPOIS do crédito (se o update falhar, a renovação não se
+        // perde). Se a inserção falhar, loga e segue: o crédito já foi dado e derrubar o webhook agora não desfaz nada.
+        if (renewalGrantKey) {
+          try {
+            const { error: renewalGrantMarkError } = await supabase
+              .from('stripe_events')
+              .insert({ id: renewalGrantKey })
+            if (renewalGrantMarkError && renewalGrantMarkError.code !== '23505') {
+              console.error('[stripe webhook] renewal grant marker insert failed (credit already applied):', invoice.id, renewalGrantMarkError.code, renewalGrantMarkError.message)
+            }
+          } catch (renewalGrantMarkThrown) {
+            console.error('[stripe webhook] renewal grant marker insert threw (credit already applied):', invoice.id, renewalGrantMarkThrown)
+          }
         }
         // KINEO-PLACAR-TRIAL-2026-09-08 — a fatura paga (renovacao OU a primeira
         // cobranca do dia 8 depois do trial de $1) nunca virava evento: o placar so
@@ -2468,7 +2521,7 @@ export async function POST(req: NextRequest) {
           })
           .eq('stripe_customer_id', customerId)
           .eq('stripe_subscription_id', subscription.id)
-          .select('id')
+          .select('id, video_credits')
           .maybeSingle()
 
         if (subscriptionDeleteErr) {
@@ -2480,6 +2533,24 @@ export async function POST(req: NextRequest) {
         entitlementPending = false
         if (!deletedSubscriptionProfile?.id) {
           console.warn('[stripe webhook] stale subscription deletion ignored for superseded subscription:', subscription.id, customerId)
+        }
+        // KINEO-STRIPE-ATRASO-2026-09-28 — o rebaixamento acima não deixava rastro: o churn ficava invisível e o
+        // /admin/people mostrava o ex-assinante como 'one_time'. Um evento por assinatura encerrada, só com ids/valores.
+        if (deletedSubscriptionProfile?.id) {
+          const endedRecorded = await writeServerEvent({
+            name: 'subscription_ended',
+            userId: deletedSubscriptionProfile.id,
+            path: '/api/stripe/webhook',
+            metadata: {
+              version: 'stripe_subscription_ended_v1',
+              source: 'stripe_webhook',
+              subscription_ref: subscription.id,
+              tier: subscription.metadata?.tier ?? null,
+              reason: subscription.cancellation_details?.reason ?? null,
+              credits_left: typeof deletedSubscriptionProfile.video_credits === 'number' ? deletedSubscriptionProfile.video_credits : null,
+            },
+          })
+          if (!endedRecorded) console.error('[stripe webhook] subscription_ended event not recorded:', subscription.id)
         }
 
         break
