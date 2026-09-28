@@ -2,6 +2,13 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
+## 2026-09-27 (noite) — Domínios descartáveis bloqueados no cadastro
+
+**DECIDIDO (fundador, ~21h30 BRT, literal):** "bloqueia esses domínios descartáveis no cadastro" e, em seguida, "bloqueia vmail.dev, mailshan e playboot também".
+**LISTA NOVA (7 domínios):** omanarts.com (8 contas em 2 dias, 5 barradas pela trava de aparelho, 0 filmes) · pumpoly.com (7 contas em 1 dia, 4 barradas, 0 filmes) · nixadrume40.asia e nodgwdg.eu.cc (nomes gerados, chegaram ao checkout, 0 filmes) · vmail.dev (3 contas no mesmo dia 04/09) · mailshan.com e playboot.com (2 contas cada no mesmo dia). Os três últimos por decisão do fundador, com evidência mais fraca que os quatro primeiros.
+**COMO:** uma lista só (lib/emailValidation.ts) vale para a tela de cadastro, o cadastro pelo modal (AuthModal, que antes não checava) e o servidor que concede o trial (lib/reverseTrial.ts passa a usar a união das duas listas). O bloqueio no servidor grava evento com o domínio, nunca o e-mail. OAuth (Google/Apple) e serviços de e-mail privado (Hide My Email, DuckDuckGo, SimpleLogin, addy.io, Firefox Relay) nunca são bloqueados.
+**NÃO FEITO (de propósito):** contas que já existem nesses domínios não foram mexidas (nada de zerar crédito ou apagar conta).
+
 ## 2026-09-27 — Sprint de 16 h (MRR): cinco decisões e a pista visual fica no Code
 
 **DECISÕES (fundador, 27/09/2026 ~07h30 BRT: "vou seguir todas as suas decisões que são recomendadas"; "a sprint ... fazer aqui dentro do code, não mandar para o codex"):**
