@@ -143,6 +143,8 @@ import {
   videosForCredits,
   videosPerMonth,
 } from '@/lib/marketingPrice'
+// KINEO-SALDO-DO-MOTOR-USADO-2026-09-28 — a frase de saldo da tela de pronto conta pelo motor/duração que ACABOU de sair.
+import { readyCreditsLine } from '@/lib/growth/readyCreditsLine'
 // K17 — contrato de MEDICAO da copy de capacidade (pedido do Codex, 04/09
 // 09:58 BRT). Nao muda grant, custo de motor, preco nem destino de checkout:
 // so poe o filme terminado antes da unidade interna de credito.
@@ -11900,7 +11902,6 @@ export default function GenerateClient({
     isSubscriber: isStarter || isCreator || isStudio,
     plan: serverPlanName,
   })
-  const seedanceReferenceCost = creditsPerReferenceVideo('cinematic_ai')
   const shareRewardMix = videoMixForCredits(30, 'cinematic_ai', 'fast')
 
   // ═══ KINEO-CUSTO-VISIVEL-2026-08-23 — o custo de CADA duração, antes do
@@ -16656,11 +16657,20 @@ export default function GenerateClient({
                     Paid plans render the full length on every engine.
                   </p>
                 )}
-                {/* ROBO-ENTRY-495 — honest credits line at the win moment. AI
-                    Generated (Seedance) costs creditCostFor('cinematic_ai') credits (V6.1) and Fast Mode is free,
-                    so we state both plainly instead of a vague "low credits"
-                    nudge. Renders for any signed-in user; guests (credits null
-                    after 401) see nothing. */}
+                {/* ROBO-ENTRY-495 — honest credits line at the win moment.
+                    Renders for any signed-in user; guests (credits null after
+                    401) see nothing.
+                    KINEO-SALDO-DO-MOTOR-USADO-2026-09-28 — a frase dividia o
+                    saldo pelo Seedance 1.5 de 60 s, qualquer que fosse o motor:
+                    37 cr numa conta Pro que acabou de fazer um Kineo 1 de 35 s
+                    liam "about 1 more 60-second AI video" (o saldo pagava 12).
+                    Agora conta pelo motor do filme que ACABOU de sair
+                    (planFitNormalizedQuality = o ref do motor, o mesmo do
+                    generate_completed e restaurado na retomada) e pela duração
+                    dele, com creditCostForDuration e isPaidAccount (trial conta
+                    como pago, como no servidor). Conta grátis: crédito não compra
+                    filme, então a frase diz a cota de OFFER.copy — sem "per
+                    month" nem "3 per 24h" digitados. Ver lib/growth/readyCreditsLine.ts. */}
                 {credits !== null && (
                   <p className="text-xs mt-2" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
                     You have{' '}
@@ -16668,12 +16678,14 @@ export default function GenerateClient({
                       {credits} credit{credits === 1 ? '' : 's'}
                     </span>{' '}
                     left —{' '}
-                    {/* KINEO-TRIAL-BLOCKERS-2026-08-07 — `!trialActive` nos dois
-                        ramos: durante o trial o Fast é PAGO (1 crédito, export
-                        limpo), então a frase correta é a do ramo pago. */}
-                    {credits >= seedanceReferenceCost
-                      ? `about ${videosForCredits(credits, 'cinematic_ai')} more 60-second AI video${videosForCredits(credits, 'cinematic_ai') === 1 ? '' : 's'}. ${planTier === 'free' && !hasPaid && !trialActive ? ft(OFFER, 'Free Fast includes up to 3 watermarked previews per 24 hours.', 'The free plan includes 1 watermarked Fast video per month.') : `Paid Fast clean exports use ${creditsPerReferenceVideo('fast')} credits per 60-second video.`}`
-                      : `not enough for another 60-second AI video (each takes ${seedanceReferenceCost}). ${planTier === 'free' && !hasPaid && !trialActive ? (freeFastQuotaSpent ? 'Your 3 free watermarked Fast previews for this 24h window are already used.' : ft(OFFER, 'You can still make up to 3 watermarked Fast previews per 24 hours.', 'The free plan includes 1 watermarked Fast video per month.')) : `Paid Fast clean exports use ${creditsPerReferenceVideo('fast')} credits per 60-second video.`}`}
+                    {readyCreditsLine({
+                      credits,
+                      quality: planFitNormalizedQuality,
+                      seconds: duration,
+                      isPaidAccount,
+                      freeOffer: { cardEntry: OFFER.cardEntry, residual: OFFER.copy.residual, chip: OFFER.copy.chip },
+                      freeQuotaSpent: freeFastQuotaSpent,
+                    })}
                   </p>
                 )}
                 {/* Push #065 — show the generated title so the user can see

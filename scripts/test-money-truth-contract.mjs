@@ -224,8 +224,14 @@ const requiredReferences = {
   'app/(dashboard)/generate/GenerateClient.tsx': [
     "creditCostForDuration('cinematic_hollywood', true, duration)",
     'videosForCredits(TOPUP_CREDITS.topup300',
-    'seedanceReferenceCost',
+    // 2026-09-28: the ready-screen credits line no longer divides by the fixed
+    // Seedance 60s reference (seedanceReferenceCost, removed); it counts with
+    // the engine + duration just used. Same intent — derived, never typed:
+    // the call site is anchored here and executed with the real engineCost in
+    // scripts/test-creditos-restantes-e-resgate-2026-09-28.mjs.
+    'readyCreditsLine({',
   ],
+  'lib/growth/readyCreditsLine.ts': ['creditCostForDuration(q, input.isPaidAccount, seconds)', 'engineLabelFor(q)'],
   'app/cheapest-ai-shorts-maker/ShortCostCalculator.tsx': [
     // The calculator moved from three direct 60s-only lookups to the Plan Fit
     // contract so engine + 35/60/90s + monthly volume share Checkout's ruler.
@@ -305,6 +311,7 @@ const publicFiles = [
   'app/(dashboard)/generate/LowCreditsUpsell.tsx',
   'app/(dashboard)/generate/Offer290Banner.tsx',
   'app/(dashboard)/generate/GenerateClient.tsx',
+  'lib/growth/readyCreditsLine.ts',
   'app/cheapest-ai-shorts-maker/ShortCostCalculator.tsx',
   'app/cheapest-ai-shorts-maker/page.tsx',
   'app/ai-shorts-without-filming/page.tsx',

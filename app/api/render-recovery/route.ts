@@ -47,6 +47,17 @@ const ALLOWED_CLIP_HOSTS = [
   'supabase.co',
   'supabase.in',
   'fal.media',
+  // KINEO-RESGATE-ESTOQUE-2026-09-28 — os 4 hosts do fallback de estoque
+  // (lib/stockLibrary.ts, FALLBACK-B do Kineo 1). Sem eles, UM clipe dali
+  // recusava o checkpoint INTEIRO (400) e o cron não tinha o que salvar se a
+  // aba morresse: foi o que aconteceu no anúncio eCredit de 28/09 (cena 1 em
+  // res.cloudinary.com/demo). Mesma regra de sempre: host exato ou subdomínio.
+  // Guardião: scripts/test-creditos-restantes-e-resgate-2026-09-28.mjs lê os
+  // hosts da própria stockLibrary e reprova se algum ficar de fora.
+  'res.cloudinary.com',
+  'archive.org',
+  'test-videos.co.uk',
+  'mdn.github.io',
 ]
 
 const MAX_CLIPS = 24
