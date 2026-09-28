@@ -63,8 +63,19 @@ export async function POST(req: NextRequest) {
     const price = adsV2RetakeCredits(target.kind, parent.tier)
     if (price !== expected) return v2Fail('price_changed', 409, { credits: price })
 
-    // Id determinístico gravado ANTES do débito e do POST.
-    const retakeId = deterministicUuid(`adsv2redo:${parent.id}:${idx}:${target.id}`)
+    // Id determinístico gravado ANTES do débito e do POST. REVISÃO 28/09: a semente leva quantas refações DESTE plano
+    // já FECHARAM (entregue/falhou/cancelada). Sem isso, a refação recusada por saldo (cancelled) ou que falhou com
+    // estorno travava o plano PARA SEMPRE (o 2º clique caía no 23505 e devolvia o pedido morto como "já começou"), e
+    // refazer de novo o mesmo plano devolvia a refação velha. Dois cliques juntos contam o mesmo número = o mesmo id.
+    const prior = await admin
+      .from('ads_v2_orders')
+      .select('id, status')
+      .eq('parent_order_id', parent.id)
+      .eq('retake_idx', idx)
+      .eq('user_id', user.id)
+    if (prior.error) return isMissingAdsTable(prior.error.code) ? v2Fail('not_ready', 503) : v2Fail('retake_failed', 502)
+    const closed = ((prior.data ?? []) as { status: string }[]).filter((r) => r.status === 'delivered' || r.status === 'failed' || r.status === 'cancelled').length
+    const retakeId = deterministicUuid(`adsv2redo:${parent.id}:${idx}:${target.id}:${closed}`)
     const billingRef = adsV2RetakeRef(retakeId)
     const ins = await admin
       .from('ads_v2_orders')

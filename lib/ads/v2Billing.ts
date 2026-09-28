@@ -138,6 +138,13 @@ export async function failAdsV2Order(
   reason: string,
   path = '/lib/ads/v2Billing',
 ): Promise<{ won: boolean; refund: 'refunded' | 'missing' | 'unconfirmed' | 'skipped'; amount: number }> {
+  // REVISÃO 28/09 (dinheiro): a linha em videos com render_id = chave de cobrança É a entrega (o cliente já tem o
+  // filme na biblioteca). video_id nulo no pedido não prova que não entregou — a entrega grava videos ANTES do
+  // →delivered. Com entrega (ou sem conseguir ler), NUNCA vira failed nem estorna; a varredura de 2 h lê o mesmo fato.
+  if (order.billing_ref) {
+    const delivered = await admin.from('videos').select('id').eq('render_id', order.billing_ref).maybeSingle()
+    if (delivered.error || delivered.data) return { won: false, refund: 'skipped', amount: 0 }
+  }
   const won = await admin
     .from('ads_v2_orders')
     .update({ status: 'failed', failed_at: new Date().toISOString(), error: reason.slice(0, 300) })

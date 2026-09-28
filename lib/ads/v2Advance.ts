@@ -14,6 +14,7 @@
 //             (quality_mode 'ads_v2', render_id = billing_ref) ──▶ UPDATE condicional →delivered ──▶ evento.
 //             Falha terminal → failAdsV2Order (UPDATE condicional →failed; só o vencedor estorna).
 //   Creatomate ambíguo (carimbo sem id) NUNCA é reenviado: passado o prazo, falha com estorno.
+import { randomUUID } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ReasonClass } from '@/lib/cinematic/sceneDisposition'
 import {
@@ -35,7 +36,7 @@ import { buildShotInput } from '@/lib/ads/v2Engines'
 import { ADS_V2_ENGINES, adsV2RetakeCredits, routeShot, type AdsV2Engine, type AdsV2ShotKind, type AdsV2Tier } from '@/lib/ads/v2Tiers'
 import { ADS_V2_CARD_SECONDS, type AdsV2ShotPlan } from '@/lib/ads/v2ShotLists'
 import { buildAdV2Source, ADS_V2_VOICE_START, type AdV2MontageShot } from '@/lib/ads/adV2Montage'
-import { ADS_V2_QUALITY, failAdsV2Order } from '@/lib/ads/v2Billing'
+import { ADS_V2_QUALITY, confirmAdsV2Debit, failAdsV2Order } from '@/lib/ads/v2Billing'
 import {
   ADS_V2_AMBIGUOUS_MAX_MS,
   ADS_V2_BATCH_SIZE,
@@ -60,6 +61,13 @@ export const ADS_V2_ASSEMBLY_LEASE_MS = 5 * 60 * 1000
 export const ADS_V2_CREATOMATE_AMBIGUOUS_MS = 15 * 60 * 1000
 /** Render do Creatomate que não termina depois disto (a partir do carimbo) = falha. */
 export const ADS_V2_CREATOMATE_MAX_MS = 45 * 60 * 1000
+/**
+ * REVISÃO 28/09 (dinheiro): pedido 'generating' SEM as linhas de plano. A rota (/start ou /retake) grava o status
+ * ANTES do débito e das linhas; tela/cron podem cair nessa janela. Dentro da folga, o avanço ESPERA (nunca manda nada
+ * à fal antes do débito confirmado); passada a folga, o pedido novo só é recriado com o débito CONFIRMADO no ledger, e a
+ * refação (cujas linhas são cópias do pai) nunca é recriada pelo plano — falha com estorno.
+ */
+export const ADS_V2_ROWS_GRACE_MS = 3 * 60 * 1000
 /** O cartão final pode crescer para caber a voz (passar do alvo é bom), até este teto. */
 export const ADS_V2_CARD_MAX_SECONDS = ADS_V2_CARD_SECONDS + 4
 
@@ -296,6 +304,8 @@ async function submitVideoFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
  * Kling O3 em série com pausa curta; Seedance/H3/Nano Banana em lotes de 3. Para de abrir envio novo no prazo.
  */
 export async function dispatchAdsV2Shots(admin: SupabaseClient, order: AdsV2OrderRow, deadlineMs: number): Promise<number> {
+  // Pedido que já falhou/entregou (outra lambda venceu entre a leitura e aqui) não manda NADA à fal.
+  if (order.status !== 'generating') return 0
   const rows = await loadAdsV2Shots(admin, order.id)
   if (!rows) return 0
   const latest = latestShots(rows)
@@ -574,8 +584,18 @@ async function pollAssembly(admin: SupabaseClient, order: AdsV2OrderRow): Promis
     credits_used: order.credits_charged,
     ...(order.plan?.narration ? { script: order.plan.narration } : {}),
   }
+  // REVISÃO 28/09 (dinheiro): o id do vídeo é RESERVADO no pedido ANTES da linha em videos. failAdsV2Order (prazo do
+  // pedido, Creatomate preso) e a varredura exigem video_id nulo — com a reserva, ninguém estorna o filme que está
+  // entrando na biblioteca do cliente. Linha em videos que não entra: a reserva é SOLTA (o prazo volta a decidir).
+  let reserved = order.video_id
+  if (!reserved) {
+    const fresh = randomUUID()
+    const claim = await admin.from('ads_v2_orders').update({ video_id: fresh }).eq('id', order.id).eq('status', 'assembling').is('video_id', null).select('id').maybeSingle()
+    if (claim.error || !claim.data) return
+    reserved = fresh
+  }
   let videoId: string | null = null
-  const ins = await admin.from('videos').insert(row).select('id').maybeSingle()
+  const ins = await admin.from('videos').insert({ id: reserved, ...row }).select('id').maybeSingle()
   if (!ins.error && ins.data) videoId = String((ins.data as { id: string }).id)
   else if ((ins.error as { code?: string } | null)?.code === '23505') {
     const ex = await admin.from('videos').select('id').eq('render_id', order.billing_ref).eq('user_id', order.user_id).maybeSingle()
@@ -583,6 +603,7 @@ async function pollAssembly(admin: SupabaseClient, order: AdsV2OrderRow): Promis
   }
   if (!videoId) {
     console.error(`[ads-v2] insert em videos falhou order=${order.id}:`, ins.error?.message)
+    await admin.from('ads_v2_orders').update({ video_id: null }).eq('id', order.id).eq('status', 'assembling').eq('video_id', reserved)
     return
   }
   const won = await admin
@@ -590,6 +611,7 @@ async function pollAssembly(admin: SupabaseClient, order: AdsV2OrderRow): Promis
     .update({ status: 'delivered', video_id: videoId, delivered_at: nowIso(), error: null })
     .eq('id', order.id)
     .eq('status', 'assembling')
+    .eq('video_id', reserved)
     .select('id')
     .maybeSingle()
   if (!won.error && won.data) {
@@ -723,6 +745,19 @@ async function stepGenerating(admin: SupabaseClient, order: AdsV2OrderRow, deadl
   const have = new Set(rows.map((r) => r.idx))
   const missing = planned.filter((s) => !have.has(s.idx))
   if (missing.length > 0) {
+    const young = ageMs(order.started_at) < ADS_V2_ROWS_GRACE_MS
+    if (order.parent_order_id) {
+      // Refação: as linhas são CÓPIAS do pai + 1 plano refeito. Recriar pelo plano mandaria o anúncio INTEIRO à fal.
+      if (!young) await failAdsV2Order(admin, order, 'retake_rows_missing', '/lib/ads/v2Advance')
+      return
+    }
+    const debit = order.billing_ref
+      ? await confirmAdsV2Debit(admin, { userId: order.user_id, billingRef: order.billing_ref, cost: order.credits_charged })
+      : ({ ok: false, reason: 'missing' } as const)
+    if (!debit.ok || debit.refunded) {
+      if (!young) await failAdsV2Order(admin, order, 'rows_missing_debit_unconfirmed', '/lib/ads/v2Advance')
+      return
+    }
     await admin.from('ads_v2_shots').upsert(buildInitialShotRows(order.id, order.tier, { shots: missing }), { onConflict: 'order_id,idx,attempt', ignoreDuplicates: true })
     rows = (await loadAdsV2Shots(admin, order.id)) ?? rows
   }

@@ -203,6 +203,14 @@ await check('B9 pedido entregue (video_id) ou já failed nunca vira failed nem e
   return !a.won && !b.won && billCalls.refund.length === 0
 })
 
+// REVISÃO 28/09 (dinheiro): a entrega grava videos ANTES do →delivered; video_id nulo não prova "não entregou".
+await check('B10 linha em videos com a chave de cobrança = ENTREGUE: nunca vira failed nem estorna (mesmo com video_id nulo no pedido)', async () => {
+  billCalls.refund.length = 0
+  const tables = { ads_v2_orders: [{ id: ORDER, user_id: USER, status: 'assembling', billing_ref: REF, video_id: null }], videos: [{ id: U(6), render_id: REF }] }
+  const r = await B.failAdsV2Order(fakeDb(tables), { id: ORDER, user_id: USER, billing_ref: REF }, 'order_timeout')
+  return !r.won && billCalls.refund.length === 0 && tables.ads_v2_orders[0].status === 'assembling'
+})
+
 // ═══ 2. ENVIO À FAL (lib/ads/v2Shots.ts executado com fila falsa) ═════════════════════════════════════════════════
 class FalQueueSubmitError extends Error { constructor(m, o) { super(m); this.ambiguous = o.ambiguous; this.status = o.status ?? null; this.providerBody = o.providerBody } }
 let falSubmit = async () => 'req-1'
@@ -493,6 +501,65 @@ await check('A14 pedido parado além do teto falha e estorna (a varredura de 2 h
   return tables.ads_v2_orders[0].status === 'failed' && billCalls.refund.length === 1 && prov.submits.length === 0
 })
 
+// ── REVISÃO 28/09 (dinheiro e estado) ──────────────────────────────────────────────────────────────────────────────
+const antigo4min = () => new Date(Date.now() - 4 * 60_000).toISOString()
+await check('A15 refação SEM linhas nunca é recriada pelo plano (mandaria o anúncio INTEIRO à fal por 5 cr): espera a folga; vencida, falha com estorno', async () => {
+  reset(); billCalls.refund.length = 0
+  const RR = `adsv2redo-${U(4)}`
+  const { db, tables } = scenario('photo_motion', { parent_order_id: U(3), retake_idx: 1, billing_ref: RR, credits_charged: 5 })
+  tables.credit_debits = [{ render_id: RR, user_id: USER, amount: 5, refunded_at: null }]
+  await A.advanceAdsV2Order(db, ORDER, { deadlineMs: DL() })
+  const waited = prov.submits.length === 0 && tables.ads_v2_shots.length === 0 && tables.ads_v2_orders[0].status === 'generating'
+  tables.ads_v2_orders[0].started_at = antigo4min()
+  await A.advanceAdsV2Order(db, ORDER, { deadlineMs: DL() })
+  return waited && prov.submits.length === 0 && tables.ads_v2_shots.length === 0 && tables.ads_v2_orders[0].status === 'failed' && billCalls.refund.length === 1 && billCalls.refund[0] === RR
+})
+await check('A16 pedido SEM linhas: sem débito confirmado nada vai à fal (espera; vencida a folga, falha); com débito confirmado as linhas renascem', async () => {
+  reset(); billCalls.refund.length = 0
+  const a = scenario()
+  a.tables.credit_debits = []
+  await A.advanceAdsV2Order(a.db, ORDER, { deadlineMs: DL() })
+  const waited = prov.submits.length === 0 && a.tables.ads_v2_shots.length === 0 && a.tables.ads_v2_orders[0].status === 'generating'
+  a.tables.ads_v2_orders[0].started_at = antigo4min()
+  await A.advanceAdsV2Order(a.db, ORDER, { deadlineMs: DL() })
+  const failed = prov.submits.length === 0 && a.tables.ads_v2_shots.length === 0 && a.tables.ads_v2_orders[0].status === 'failed'
+  reset()
+  const b = scenario()
+  await A.advanceAdsV2Order(b.db, ORDER, { deadlineMs: DL() })
+  const reborn = b.tables.ads_v2_shots.length === b.plan.shots.length && prov.submits.length === b.plan.shots.filter((x) => x.kind !== 'text').length
+  return waited && failed && reborn
+})
+await check('A17 envio de pedido que já não está em generating (outra lambda falhou/entregou) não manda nada à fal', async () => {
+  reset()
+  const { db, plan, order } = scenario()
+  await db.from('ads_v2_shots').upsert(A.buildInitialShotRows(ORDER, 'photo_motion', plan))
+  const n = await A.dispatchAdsV2Shots(db, { ...order, status: 'failed' }, DL())
+  const m = await A.dispatchAdsV2Shots(db, { ...order, status: 'delivered' }, DL())
+  return n === 0 && m === 0 && prov.submits.length === 0
+})
+await check('A18 a entrega RESERVA o video_id antes da linha em videos: o prazo do pedido correndo junto NÃO estorna o filme entregue', async () => {
+  const { tables } = await readyScenario()
+  billCalls.refund.length = 0
+  let concurrent = null
+  const seen = []
+  const db = fakeDb(tables, {
+    before(ctx) {
+      if (ctx.name === 'videos' && ctx.op === 'insert' && !concurrent) {
+        seen.push({ reserved: tables.ads_v2_orders[0].video_id, id: ctx.rows[0].id })
+        concurrent = advStubs['@/lib/ads/v2Billing'].failAdsV2Order(db, { ...tables.ads_v2_orders[0] }, 'order_timeout')
+      }
+    },
+  })
+  cmSubmitImpl = async () => 'cm-18'
+  await A.advanceAdsV2Order(db, ORDER, { deadlineMs: DL() })
+  cmPollImpl = async () => ({ status: 'succeeded', url: 'https://cdn.creatomate.com/r.mp4', snapshotUrl: null, durationSeconds: 15 })
+  await A.advanceAdsV2Order(db, ORDER, { deadlineMs: DL() })
+  cmPollImpl = async () => ({ status: 'rendering', url: null })
+  const r = await concurrent
+  const o = tables.ads_v2_orders[0]
+  return seen.length === 1 && !!seen[0].reserved && seen[0].reserved === seen[0].id && r && !r.won && o.status === 'delivered' && o.video_id === tables.videos[0].id && tables.videos.length === 1 && billCalls.refund.length === 0
+})
+
 // ═══ 4. VARREDURAS (lib/credits/refund.ts executado) ═══════════════════════════════════════════════════════════════
 {
   const refunds = []
@@ -573,7 +640,7 @@ await check('T4 /start: débito sem prova de que não aconteceu → falha COM es
 const RETAKE = cod('app/api/ads/v2/retake/route.ts')
 await check('T5 /retake: v2_closed → text recusado → preço mostrado confere → id determinístico GRAVADO → débito → planos → envio', ordem(RETAKE,
   'adsV2Visible(user.email)', "'v2_closed'", "target.kind === 'text'", "'text_not_retakable'", "'price_changed'", 'deterministicUuid(', ".from('ads_v2_orders')", '.insert(', 'chargeAdsV2(', "from('ads_v2_shots').upsert(", 'dispatchAdsV2Shots('))
-await check('T6 /retake: a chave é adsv2redo-<id determinístico> e o motor do plano refeito recomeça na tentativa 1 (routeShot(..., 1))', /deterministicUuid\(`adsv2redo:\$\{parent\.id\}:\$\{idx\}:\$\{target\.id\}`\)/.test(RETAKE) && /adsV2RetakeRef\(retakeId\)/.test(RETAKE) && /routeShot\(target\.kind, parent\.tier, 1\)/.test(RETAKE))
+await check('T6 /retake: a chave é adsv2redo-<id determinístico> (semente com as refações FECHADAS do plano: recusa/falha não trava o plano para sempre) e o motor recomeça na tentativa 1', /deterministicUuid\(`adsv2redo:\$\{parent\.id\}:\$\{idx\}:\$\{target\.id\}:\$\{closed\}`\)/.test(RETAKE) && /\.eq\('parent_order_id', parent\.id\)\s*\.eq\('retake_idx', idx\)/.test(RETAKE) && /r\.status === 'delivered' \|\| r\.status === 'failed' \|\| r\.status === 'cancelled'/.test(RETAKE) && ordem(RETAKE, 'const closed', 'deterministicUuid(', '.insert(', 'chargeAdsV2(') && /adsV2RetakeRef\(retakeId\)/.test(RETAKE) && /routeShot\(target\.kind, parent\.tier, 1\)/.test(RETAKE))
 await check('T7 rotas v2: runtime nodejs, tabela ausente = 503 not_ready, nenhum status 500; POST 60 s e status 300 s', () => {
   const rotas = { orders: 60, plan: 60, start: 60, retake: 60, status: 300 }
   return Object.entries(rotas).every(([n, md]) => {
