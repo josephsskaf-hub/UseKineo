@@ -36,6 +36,17 @@ union all select 'payment_success', count(*), count(distinct user_id) from e whe
 union all select 'generation_stage_error (pessoas)', count(*), count(distinct user_id) from e where name='generation_stage_error'
 order by 1;
 
+-- Vigias do fechamento de 27/09 (rodar junto):
+-- (1) CTA do banner do trial clicado ANTES do 1º filme → checkout sem pagamento = "checkout de conta sem vídeo = defeito".
+select 'banner_cta antes do 1º filme' k, count(distinct e.user_id) pessoas,
+  count(distinct e.user_id) filter (where exists (select 1 from events p where p.user_id=e.user_id and p.name='payment_success' and p.created_at > e.created_at)) pagaram
+from events e where e.name in ('trial_active_banner_cta','trial_downgrade_modal_cta') and e.created_at > :marco::timestamptz
+  and not exists (select 1 from videos v where v.user_id=e.user_id and v.status='completed' and v.created_at < e.created_at);
+-- (2) Trial bloqueado por fingerprint: domínio das contas (descartável = bloqueio certo; gmail/empresa real = olhar de perto).
+select split_part(p.email,'@',2) dominio, count(distinct p.id) contas
+from events e join profiles p on p.id=e.user_id
+where e.name='trial_blocked_fingerprint' and e.created_at > :marco::timestamptz group by 1 order by 2 desc;
+
 -- Por pessoa: quem chegou ao checkout depois do marco e o que fez antes (para ler o degrau seco, nunca o agregado).
 with ext as (
   select p.id, p.email, p.plan, p.trial_status, p.created_at from profiles p
