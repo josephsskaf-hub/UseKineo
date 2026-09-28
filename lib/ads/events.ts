@@ -30,6 +30,9 @@ export const ADS_EVENTS = [
   'ads_auto_confirmed',
   'ads_link_read', // KINEO-ADS-LINK-2026-09-26
   'ads_preview_confirmed',
+  // KINEO-ADS-COMECAR-DO-ZERO-2026-09-29 — /ads/new: 'Start from scratch' e 'Delete old photos and videos' (navegador)
+  'ads_started_from_scratch',
+  'ads_old_media_deleted',
   // render e entrega
   'ads_render_requested',
   'ads_render_served',
@@ -41,6 +44,16 @@ export const ADS_EVENTS = [
   'ads_qa_decided',
   'ads_dfy_upsell_clicked',
   'ads_open_orders_capped',
+  // KINEO-ADS-V2-2026-09-28 — anúncio v2 (fotos reais animadas, lib/ads/v2*.ts): todos só-servidor, todos com order_id.
+  'ads_v2_order_created',
+  'ads_v2_plan_served',
+  'ads_v2_dry_run_served',
+  'ads_v2_started',
+  'ads_v2_retake_started',
+  'ads_v2_shot_retried',
+  'ads_v2_assembling',
+  'ads_v2_delivered',
+  'ads_v2_failed',
 ] as const
 
 export type AdsEventName = (typeof ADS_EVENTS)[number]
@@ -60,6 +73,15 @@ export const ADS_SERVER_ONLY_EVENTS: readonly AdsEventName[] = [
   'ads_email_sent',
   'ads_qa_decided',
   'ads_open_orders_capped',
+  'ads_v2_order_created',
+  'ads_v2_plan_served',
+  'ads_v2_dry_run_served',
+  'ads_v2_started',
+  'ads_v2_retake_started',
+  'ads_v2_shot_retried',
+  'ads_v2_assembling',
+  'ads_v2_delivered',
+  'ads_v2_failed',
 ]
 
 export function isAdsEvent(name: string): name is AdsEventName {

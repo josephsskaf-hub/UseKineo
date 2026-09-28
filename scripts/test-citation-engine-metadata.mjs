@@ -77,6 +77,11 @@ const semGaleriaDaCasa = (body) => {
   // Founder mandate 28/09: only this bridge moves inside the hero and gains
   // approved paid proof; all other historical page-body locks remain intact.
   body = body.replace(BRIDGE_JSX + '\n', '')
+  // Founder 28/09: ONLY the English Seedance hero actions change. Keep the
+  // original else body byte-locked; actual page scope and links are exercised
+  // by test-seedance-hero-plans-2026-09-28.mjs.
+  body = body.replace("          {params.engine === 'seedance' ? (\n            <SeedanceHeroActions signupHref={signupUrl} campaign={campaign} />\n          ) : <div", '          <div')
+    .replace('          </div>}\n          {/* Honestidade explícita: nunca prometer grátis um motor de Studio. */}', '          </div>\n          {/* Honestidade explícita: nunca prometer grátis um motor de Studio. */}')
   // GPT24h G3 (fundador 27/09): capacity + authorized paid-engine previews.
   // Normalize ONLY the exact additions before the historical byte comparison;
   // titles, CTAs, destinations, bridge and all other page content stay locked.

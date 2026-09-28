@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/server'
 import { adsGate, loadAdsAccess } from '@/lib/ads/serverAccess'
 import { adsAutoVisible } from '@/lib/ads/autoBrief' // KINEO-ADS-SEM-LOGIN-2026-09-27
 import { writeServerEvent } from '@/lib/serverEvents' // KINEO-ADS-PORTA-MEDIDA-2026-09-27
+import { ADS_V2_PUBLIC } from '@/lib/ads/v2Tiers' // KINEO-ADS-V2-VIRADA-2026-09-29
 import AdsWizardClient from './AdsWizardClient'
 
 export const metadata = { title: 'Studio Ads — Kineo' }
@@ -26,15 +27,47 @@ function first(v: string | string[] | undefined): string | null {
   return null
 }
 
+/** KINEO-ADS-V2-VIRADA-2026-09-29 — o endereço do montador v2, levando só os utm_* curtos e limpos (a atribuição dos
+ *  links do menu, do tile do /studio, do /checkout/success e do rodapé de e-mail não some no redirect). */
+function cleanUtmQuery(searchParams?: SearchParams): string {
+  const out = new URLSearchParams()
+  for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content']) {
+    const v = first(searchParams?.[key])
+    if (v && /^[A-Za-z0-9._~-]{1,100}$/.test(v)) out.set(key, v)
+  }
+  const s = out.toString()
+  return s ? `?${s}` : ''
+}
+function adsV2Href(searchParams?: SearchParams): string {
+  return `/ads/v2${cleanUtmQuery(searchParams)}`
+}
+/** Anônimo vai à porta pública /ads: vê o produto e o preço antes de qualquer login (o v2 exige conta). */
+function adsPublicHref(searchParams?: SearchParams): string {
+  return `/ads${cleanUtmQuery(searchParams)}`
+}
+
 export default async function AdsNewPage({ searchParams }: { searchParams?: SearchParams }) {
   const resume = first(searchParams?.resume)
   const sessionId = first(searchParams?.session_id)
   const resumingPass = resume === 'pass'
+  // KINEO-ADS-V2-VIRADA-2026-09-29 — fundador 29/09: "seria legal se a pessoa já entrasse na parte onde ela consegue
+  // fazer o produto dela". Com o v2 público, /ads/new é só a PORTA para o montador v2; o assistente antigo (anúncio
+  // narrado de 35/60 s) continua inteiro em /ads/new?classic=1. Exceção: ?resume=pass (o success_url do passe cai aqui
+  // e o webhook pode atrasar) fica no assistente, que espera o acesso chegar e SÓ ENTÃO leva ao v2 (prop v2Href).
+  const classic = first(searchParams?.classic) === '1'
+  if (ADS_V2_PUBLIC && !classic && !resumingPass) {
+    // Logado vai direto ao montador; anônimo vai à porta pública /ads (o montador exige conta, e uma tela de login sem
+    // contexto é parede: a decisão de 27/09 era "o visitante vê antes de entrar").
+    const { data: { user: visitante } } = await createClient().auth.getUser()
+    redirect(visitante ? adsV2Href(searchParams) : adsPublicHref(searchParams))
+  }
 
   const keep = new URLSearchParams()
+  if (classic) keep.set('classic', '1')
   if (resume) keep.set('resume', resume)
   if (sessionId && /^[A-Za-z0-9_]{1,255}$/.test(sessionId)) keep.set('session_id', sessionId)
   const qs = keep.toString()
+  const v2Href = ADS_V2_PUBLIC && !classic ? '/ads/v2' : null
 
   const supabase = createClient()
   const {
@@ -75,7 +108,7 @@ export default async function AdsNewPage({ searchParams }: { searchParams?: Sear
 
   return (
     <Suspense fallback={null}>
-      <AdsWizardClient gate={gate} access={reason} resumingPass={resumingPass} />
+      <AdsWizardClient gate={gate} access={reason} resumingPass={resumingPass} v2Href={v2Href} />
     </Suspense>
   )
 }

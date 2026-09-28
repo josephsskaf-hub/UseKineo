@@ -12,7 +12,8 @@
 // ou "cheio" pelo teto de revisões — um ?pack=ads_pass direto pularia os dois). Express/Pro vão para
 // /business-video-ads#packages (é lá que o link da Stripe ganha a identidade da conta, o escopo e o reembolso; um
 // buy.stripe.com daqui sairia sem client_reference_id e o pedido chegaria anônimo).
-import { ADS_PASS_ACCESS_DAYS, ADS_PASS_CREDITS, ADS_PASS_USD_MINOR, adsPassCopy, adsPassLive } from '@/lib/ads/offer'
+import { ADS_PASS_ACCESS_DAYS, ADS_PASS_CREDITS, ADS_PASS_USD_MINOR, adsCoverageLine, adsPassCopy, adsPassLive } from '@/lib/ads/offer'
+import { ADS_V2_LEVEL_PRICES } from '@/lib/ads/v2Levels' // KINEO-PASSE-B-2026-09-28 — níveis derivados (adsV2Credits), nunca digitados
 import { liveDfyTiers, type DfyTier, type DfyTierSpec } from '@/lib/growth/dfyOffer'
 import { CREDIT_SLIDER_MAX, CREDIT_SLIDER_MIN, sliderPriceUsdMinor } from '@/lib/credits/creditSlider'
 import { canPurchaseCreditTopup } from '@/lib/growth/topupEligibility'
@@ -42,6 +43,8 @@ export interface PricingAdsPassModel {
   priceMinor: number
   credits: number
   accessDays: number
+  /** KINEO-PASSE-B-2026-09-28 — "2 new ads (Photo motion or Commercial), 1 Cinema, or about 30 classic ads of 35 s" (adsCoverageLine). */
+  coverage?: string
   href: string
   cta: 'ads_pass'
 }
@@ -79,6 +82,7 @@ export function pricingAdsBlockModel(input: { passLive?: boolean; dfyTiers?: rea
         priceMinor: ADS_PASS_USD_MINOR,
         credits: ADS_PASS_CREDITS,
         accessDays: ADS_PASS_ACCESS_DAYS,
+        coverage: adsCoverageLine(ADS_PASS_CREDITS, ADS_V2_LEVEL_PRICES),
         href: PRICING_ADS_PASS_HREF,
         cta: 'ads_pass',
       }

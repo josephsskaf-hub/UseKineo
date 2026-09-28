@@ -101,7 +101,7 @@ export default function ScriptToSeedanceBridge({ from, compact = false, proof }:
           <p style={{ margin: '0 0 8px', color: '#f5f5f7', lineHeight: 1.6 }}><strong>Starter {starter} USD/month</strong> · {TIER_CREDITS.starter} credits per billing month.</p>
           <p style={{ margin: '0 0 8px', color: '#a1a1a6', fontSize: '.92rem', lineHeight: 1.6 }}>A {BRIDGE_FILM_SECONDS}-second film costs {shortCost} credits; a 60-second film costs {minuteCost}. The plan covers {films} films of {BRIDGE_FILM_SECONDS} s if you spend its whole balance on this engine and duration. Other creations share that balance.</p>
           <p style={{ margin: '0 0 14px', color: '#a1a1a6', fontSize: '.85rem', lineHeight: 1.5 }}>The {TRIAL_CREDITS_SHOWN}-credit trial {TRIAL_CREDITS_SHOWN >= shortCost ? 'covers the 35-second reference; trial films are watermarked' : 'does not cover this Seedance film'}. A paid plan unlocks clean downloads. Review the prepared script and settings before generating.</p>
-          <Link href={href} onClick={onClick} style={{ display: 'inline-block', background: '#2997ff', color: '#fff', fontWeight: 900, padding: '12px 20px', borderRadius: 980, textDecoration: 'none', fontSize: '.95rem' }}>See Seedance films & plans →</Link>
+          <Link href={href} onClick={onClick} style={{ display: 'inline-block', background: '#2997ff', color: '#001b33', fontWeight: 900, padding: '12px 20px', borderRadius: 980, textDecoration: 'none', fontSize: '.95rem' }}>See Seedance films & plans →</Link>
         </div>
       </div> : <>
       <p style={{ margin: '0 0 6px', color: '#2997ff', fontSize: 12, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase' }}>

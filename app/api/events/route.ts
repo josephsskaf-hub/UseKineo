@@ -119,6 +119,17 @@ const SERVER_ONLY_EVENTS = new Set([
   'ads_email_sent',
   'ads_qa_decided',
   'ads_open_orders_capped',
+  // KINEO-ADS-V2-2026-09-28 — anúncio v2: pedido, plano, ensaio, início, refação, montagem, entrega e falha são fatos do
+  // servidor (lib/ads/events.ts ADS_SERVER_ONLY_EVENTS); o navegador não cunha nenhum deles.
+  'ads_v2_order_created',
+  'ads_v2_plan_served',
+  'ads_v2_dry_run_served',
+  'ads_v2_started',
+  'ads_v2_retake_started',
+  'ads_v2_shot_retried',
+  'ads_v2_assembling',
+  'ads_v2_delivered',
+  'ads_v2_failed',
   // KINEO-FLUXO-NOVO-2026-09-25 — pedido Kineo Empresas (Express/Pro). `dfy_order_paid` é escrito SÓ pelo webhook da
   // Stripe e `dfy_brief_submitted` SÓ por /api/dfy/brief depois de a Stripe confirmar a sessão paga; os dois viram
   // alerta ao fundador e fila do /admin/ads. Fora desta lista, qualquer navegador cunharia um "pedido pago" de mentira.

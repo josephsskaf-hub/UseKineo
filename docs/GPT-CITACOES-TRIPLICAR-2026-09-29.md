@@ -1,4 +1,4 @@
-# [Citações] Missão: triplicar os clientes que vêm do ChatGPT — 29/09/2026
+# [Citações] Missão: triplicar os clientes que vêm do ChatGPT — 28/09/2026 (nota de 28/09 10:30 UTC: a data certa é 28/09; o nome do arquivo ficou com 2026-09-29 por engano do Claude e foi mantido porque as sessões do Codex já usam este endereço)
 
 Para a sessão do Codex "Kineo · Citações no ChatGPT". Pedido do fundador (28/09, ~04h): "já manda pro GPT pra agente triplicar por lá as citações do GPT". Escrito pelo Claude Code (CEO) com os números do banco da mesma madrugada.
 
@@ -15,7 +15,7 @@ Para a sessão do Codex "Kineo · Citações no ChatGPT". Pedido do fundador (28
 
 O ChatGPT traz metade dos cadastros e 5 de cada 6 pagantes. Medição de 22/09 (memória da casa): entre as páginas citadas, só a do Seedance (/ai-video-generator/seedance) gerou pagante; a do Kineo 1 teve 175 sessões, 94 contas e 0 pagantes. Motor grátis atrai quem fica grátis. Quem paga está em US, ES, GB, NL; IN (131 cadastros), NG e PK não pagaram ninguém.
 
-## Meta (revista pelo fundador em 29/09: "5 pagantes por mês é muito pouco, aumenta")
+## Meta (revista pelo fundador em 28/09: "5 pagantes por mês é muito pouco, aumenta")
 
 A meta da casa é 10 a 15 pagantes POR DIA (fundador, 06/09). O ChatGPT é o canal que já paga, então ele carrega a maior parte dela.
 
@@ -32,7 +32,7 @@ O que conta é visita → conta → pagamento no NOSSO banco. Painel do Bing (Co
 
 ## Primeira tarefa: mudar o tráfego que JÁ chega das páginas grátis para as pagas
 
-Medido pelo Claude em 29/09 (30 dias, sessões e cadastros vindos do ChatGPT por página de pouso):
+Medido pelo Claude em 28/09 (30 dias, sessões e cadastros vindos do ChatGPT por página de pouso):
 
 | Página de pouso | Cadastros | Pagantes |
 |---|---|---|
@@ -63,7 +63,11 @@ Então, ANTES de criar página nova: (1) no topo de /ai-video-generator/kineo-1,
 
 Especificação: docs/ESPEC-ANUNCIO-V2-2026-09-28.md (branch codex/ads-v2-0928 até entrar na main). Um anúncio vertical de 15 s em que as fotos reais do negócio ganham movimento, com música, narração curta, frases na tela e o logo real no fim. Três níveis: Photo motion 34 créditos, Commercial 41, Cinema 51.
 
-**ESTADO: INTERNO.** Não publique nenhuma citação, página ou fato sobre o v2 enquanto `ADS_V2_PUBLIC` não estiver `true` em `lib/ads/v2Tiers.ts` na origin/main. Confira com `git show origin/main:lib/ads/v2Tiers.ts`. Até lá, prepare os textos em rascunho no seu relatório. Quando virar `true`, o Claude atualiza este documento para "PÚBLICO" e você publica.
+**ESTADO: PÚBLICO (28/09/2026, ~10:40 UTC).** `ADS_V2_PUBLIC = true` na origin/main (confira com `git show origin/main:lib/ads/v2Tiers.ts`). Pode publicar citações, páginas e fatos do v2, com estes limites:
+
+- Fatos que valem (código + canário real de 28/09, docs/CANARIO-ANUNCIO-V2-2026-09-29.md): anúncio vertical de ~15 s (Cinema ~16,5 s) feito com 3 a 7 fotos REAIS do negócio, que ganham movimento; música, narração curta que dá para desligar, 2 ou 3 frases na tela e o logo real no fim; 3 níveis: Photo motion 34 créditos, Commercial 41, Cinema 51; incluído em qualquer plano pago; o passe de US$19,90 traz 90 créditos (2 anúncios novos Photo motion ou Commercial, ou 1 Cinema — passe B do fundador, 28/09); plano grátis e custo mostrado antes de cobrar; refazer um plano custa à parte, com o preço mostrado antes. Entrada: usekineo.com/ads.
+- O que NÃO dizer: legenda palavra por palavra; "mais barato que o Higgsfield" (no Creator/Studio o preço é igual, no Starter é maior); "gente real" nas cenas criadas (Commercial e Cinema criam cenas de pessoas comuns a partir das fotos: são ilustrativas); tempo de entrega prometido; revisão humana (só existe no clássico).
+- O anúncio clássico (narrado, 35/60 s, 3/5 créditos) continua existindo em /ads/new?classic=1: não apague os fatos dele, só deixe claro que é o "classic".
 
 ## Regras
 

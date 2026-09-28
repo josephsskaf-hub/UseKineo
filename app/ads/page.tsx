@@ -18,8 +18,16 @@
 // The subscription checkout GET reads tier, billing and intent_campaign; it has NO post-payment return parameter, so
 // success lands on /checkout/success like every plan — nothing here pretends otherwise.
 //
+// KINEO-ADS-V2-VIRADA-2026-09-29 — the v2 ad is public (lib/ads/v2Tiers.ts ADS_V2_PUBLIC). This door now sells what the
+// ad maker at /ads/v2 makes: a vertical ad of about 15 s where the business's REAL photos get motion, with music, a short
+// voice-over and the real logo; 3 levels priced by adsV2Credits (founder, 28/09: 34/41/51 per 15 s); "How it works" is
+// the SAME 4 steps as the maker's side column (lib/ads/v2Screen.ts ADS_V2_HOW_IT_WORKS). The 8 v1 models moved down to
+// "Classic narrated ads", with the link to /ads/new?classic=1. No caption promise, no "35 or 60 seconds" as the product.
+// ?from=v2 (the maker's no-access redirect) gets the same strip as ?from=new. The pass price and credits are unchanged
+// (lib/ads/offer.ts); the price cards only say how many ads of each kind those credits pay for.
+//
 // THE CTA IS DECIDED ON THE SERVER, in this order:
-//   1. signed in and adsGate(...) === 'ok'  → "Open Studio Ads" (/ads/new)          — pass, paid plan or internal;
+//   1. signed in and adsGate(...) === 'ok'  → "Make your ad" (MAKER_HREF: /ads/v2)  — pass, paid plan or internal;
 //   2. adsPassLive() OR internal account     → "Get Studio Ads · <price>" as a plain <a> to the checkout GET
 //      (logged-out people are sent to /login by the checkout and brought back); the same rule the checkout applies;
 //   3. otherwise                             → "Opens soon", no button.
@@ -31,6 +39,7 @@
 // render/checkout routes, not to this page).
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
+import { redirect } from 'next/navigation' // KINEO-ADS-V2-VIRADA-2026-09-29 — go=maker
 import Footer from '@/components/Footer'
 import CreditMinutesSummary from '@/components/CreditMinutesSummary'
 import KineoBolt from '@/components/KineoBolt'
@@ -47,20 +56,24 @@ import {
   ADS_PASS_ACCESS_DAYS,
   ADS_PASS_CREDITS,
   KINEO1_35S_CREDITS, // KINEO-ADS-REVISAO-2026-09-27: o custo por anúncio da FAQ nasce daqui, nunca digitado
-  adsCoveredByPass,
+  adsCoverageLine, // KINEO-PASSE-B-2026-09-28: 90 cr = "2 new ads (Photo motion or Commercial), 1 Cinema, or about 30 classic ads of 35 s"
   adsPassCopy,
   adsPassLive,
   adsPassPriceLabel,
 } from '@/lib/ads/offer'
 import { ADS_VOICES } from '@/lib/ads/renderContract'
+import { ADS_V2_PUBLIC, ADS_V2_TIER_IDS, adsV2Credits } from '@/lib/ads/v2Tiers' // KINEO-ADS-V2-VIRADA-2026-09-29
+import { ADS_V2_HOW_IT_WORKS, ADS_V2_SCREEN_SECONDS, ADS_V2_TIER_COPY } from '@/lib/ads/v2Screen' // KINEO-ADS-V2-VIRADA-2026-09-29
+import { ADS_V2_MAX_PHOTOS, ADS_V2_MIN_PHOTOS } from '@/lib/ads/v2ShotLists' // KINEO-ADS-V2-VIRADA-2026-09-29
 import { TIER_CREDITS, formatCheckoutMoney, getTierPrice } from '@/lib/checkoutPricing' // KINEO-ADS-PORTA-PLANO-2026-09-27
 import { planName } from '@/lib/growth/planFit' // KINEO-ADS-PORTA-PLANO-2026-09-27 — the canonical plan name
 import AdsPageBanners, { AdsCtaLink, type AdsDoorCta } from './AdsPageBanners'
 
 export const dynamic = 'force-dynamic'
 
+// KINEO-ADS-V2-VIRADA-2026-09-29 — the description sells the v2 ad (real photos in motion, ~15 s), not the v1 narrated ad.
 const DESCRIPTION =
-  'Make your own vertical video ad from your photos, clips and logo. Approve the script and voice, download the MP4. A human editor checks your first ad.'
+  'Your real business photos, brought to life in a vertical video ad of about 15 seconds, with music, a short voice-over and your logo. Included in any paid plan.'
 
 export const metadata: Metadata = {
   title: 'Studio Ads — make your own video ad | Kineo',
@@ -76,7 +89,9 @@ const CHECKOUT_HREF = '/api/stripe/checkout?pack=ads_pass'
  *  app/api/stripe/checkout/route.ts reads (intentCampaignFrom accepts [A-Za-z0-9._~-]{1,100}). Signed out, the checkout
  *  sends the person to /signup carrying this URL and resumes it. */
 const STARTER_CHECKOUT_HREF = '/api/stripe/checkout?tier=starter&billing=monthly&intent_campaign=ads_door'
-const WIZARD_HREF = '/ads/new'
+// KINEO-ADS-V2-VIRADA-2026-09-29 — the main button opens the ad maker (/ads/v2); the old wizard is the classic option.
+const MAKER_HREF = ADS_V2_PUBLIC ? '/ads/v2' : '/ads/new'
+const CLASSIC_HREF = '/ads/new?classic=1'
 const DFY_HREF = '/business-video-ads'
 /** A slow auth or database read must never hold the public door; past this, the page renders the safe default. */
 const READ_TIMEOUT_MS = 2500
@@ -151,19 +166,34 @@ function mediaNeeds(model: AdsModel): string {
   return `${photos}; photos only`
 }
 
-const HOW_IT_WORKS: { step: string; text: string }[] = [
-  { step: 'Brief', text: 'Your business, the offer, the call to action and how customers reach you. A couple of minutes.' },
-  { step: 'Your media', text: 'Upload your own photos, video clips and logo straight from your phone or computer.' },
-  { step: 'Pick a model', text: `${ADS_MODELS.length} ad structures that small businesses use every day, each with its own rhythm.` },
-  { step: 'Script and voice', text: 'Pick one of the script versions written from your brief, edit any line, listen to the voices and choose one.' },
-  { step: 'Render and download', text: 'Your photos, narration, captions, music and end card become a vertical MP4. Download it and post it.' },
-]
+// KINEO-ADS-V2-VIRADA-2026-09-29 — the 3 levels of the v2 ad: name and pitch from ADS_V2_TIER_COPY, credits from adsV2Credits
+// (the same function /api/ads/v2/start debits). Never typed here.
+const V2_LEVELS = ADS_V2_TIER_IDS.map((id) => ({ id, name: ADS_V2_TIER_COPY[id].name, pitch: ADS_V2_TIER_COPY[id].pitch, credits: adsV2Credits(id, ADS_V2_SCREEN_SECONDS) }))
+const V2_DEAREST = Math.max(...V2_LEVELS.map((l) => l.credits))
+/** How many new ads a balance pays for at ANY level (the dearest level decides), so the page never promises more. */
+function v2AdsAnyLevel(credits: number): number {
+  return Math.floor(credits / V2_DEAREST)
+}
+function newAdsLabel(n: number): string {
+  return n === 1 ? '1 new ad at any level' : `${n} new ads at any level`
+}
+
+/** REVISÃO 29/09 (KINEO-ADS-V2-VIRADA-2026-09-29) — the same rule as /ads/new adsV2Href: only short, clean utm_* travel. */
+function withCleanUtm(href: string, searchParams?: SearchParams): string {
+  const out = new URLSearchParams()
+  for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content']) {
+    const v = first(searchParams?.[key])
+    if (v && /^[A-Za-z0-9._~-]{1,100}$/.test(v)) out.set(key, v)
+  }
+  const s = out.toString()
+  return s ? `${href}${href.includes('?') ? '&' : '?'}${s}` : href
+}
 
 function DoorCta({ cta, placement, price }: { cta: AdsDoorCta; placement: 'hero' | 'price' | 'end'; price: string }) {
   if (cta === 'open') {
     return (
-      <AdsCtaLink href={WIZARD_HREF} cta="open" placement={placement} className="go ok ads-go">
-        Open Studio Ads <span aria-hidden="true">→</span>
+      <AdsCtaLink href={MAKER_HREF} cta="open" placement={placement} className="go ok ads-go">
+        Make your ad <span aria-hidden="true">→</span>
       </AdsCtaLink>
     )
   }
@@ -201,15 +231,25 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
   if (viewer.gate === 'ok') cta = 'open'
   else if (!canBuy) cta = 'soon'
   else cta = (await withTimeout(countOpenReviews(), 0)) >= ADS_MAX_OPEN_REVIEWS ? 'full' : 'buy'
+  // KINEO-ADS-V2-VIRADA-2026-09-29 — the /ads/for/<segment> button carries go=maker (those pages are static and cannot
+  // tell who is looking): whoever can already make an ad goes straight to the maker; everyone else stays on this door.
+  // REVISÃO 29/09: o redirect leva os utm_* curtos e limpos (o SourceCapture do /ads/v2 grava a origem; sem eles o clique
+  // do /ads/for de quem já tem acesso chegava ao montador sem atribuição nenhuma).
+  if (ADS_V2_PUBLIC && cta === 'open' && first(searchParams?.go) === 'maker') redirect(withCleanUtm(MAKER_HREF, searchParams))
 
   // KINEO-ADS-PORTA-PLANO-2026-09-27 — the plan door only while the pass is live: with it off the whole product says
   // "Opens soon" and adsGate answers 'closed' to subscribers too, so a Starter door would sell a closed room.
   const from = first(searchParams?.from)
   const planOffer = live && viewer.gate !== 'ok'
-  const returnedFromWizard = from === 'new' && viewer.signedIn && viewer.gate === 'no_access'
+  // KINEO-ADS-V2-VIRADA-2026-09-29 — /ads/v2 sends no-access people here with ?from=v2: same strip as ?from=new.
+  const returnedFromWizard = (from === 'new' || from === 'v2') && viewer.signedIn && viewer.gate === 'no_access'
   const starterName = planName('starter')
   const starterPrice = formatCheckoutMoney('usd', getTierPrice('starter', 'usd', 'standard'))
   const starterAds35 = Math.floor(TIER_CREDITS.starter / KINEO1_35S_CREDITS)
+  const starterV2 = v2AdsAnyLevel(TIER_CREDITS.starter) // KINEO-ADS-V2-VIRADA-2026-09-29
+  // KINEO-PASSE-B-2026-09-28 — passe B do fundador (90 cr): o cartão e a FAQ dizem nível a nível o que o passe paga, com os
+  // níveis DERIVADOS desta página (V2_LEVELS) — "1 new ad at any level" deixou de ser a frase inteira (90 paga 2 de Photo motion).
+  const passCoverage = adsCoverageLine(ADS_PASS_CREDITS, V2_LEVELS)
 
   const copy = adsPassCopy()
   const price = adsPassPriceLabel()
@@ -240,44 +280,47 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
         {returnedFromWizard ? (
           <div className="ads-banner ads-returned" role="status">
             <p>
-              <b>Studio Ads is part of every paid plan.</b> Pick {starterName} or the pass below and open the wizard again. <a href="#ads-price">See both options →</a>
+              <b>Studio Ads is part of every paid plan.</b> Pick {starterName} or the pass below and open the ad maker again. <a href="#ads-price">See both options →</a>
             </p>
           </div>
         ) : null}
 
         <header className="ads-hero">
           <p className="ads-eyebrow">STUDIO ADS · KINEO EMPRESAS</p>
-          <h1>Your photos. Your logo. A narrated video ad, made by you.</h1>
+          <h1>Your real photos, brought to life. A video ad of about {ADS_V2_SCREEN_SECONDS} seconds.</h1>
           <p className="sub ads-intro">
-            Write a short brief, upload your own photos, clips and logo, pick one of {ADS_MODELS.length} ad models,
-            approve the script and the voice, and download a vertical MP4 ready for Reels, TikTok and Shorts.
+            Add {ADS_V2_MIN_PHOTOS} to {ADS_V2_MAX_PHOTOS} photos of your business and your logo. Kineo gives your photos movement, adds music,
+            a short voice-over and your real logo at the end, and delivers a vertical ad of about {ADS_V2_SCREEN_SECONDS} seconds for Reels, TikTok and Shorts.
           </p>
+          <ul className="ads-tiers-line" aria-label="Levels and credits">
+            {V2_LEVELS.map((l) => <li key={l.id}><b>{l.name}</b> {l.credits} credits</li>)}
+          </ul>
           <div className="ads-cta"><DoorCta cta={cta} placement="hero" price={price} /></div>
           {planOffer ? <p className="ads-plan-line"><a href="#ads-price">Included in any paid plan — from {starterPrice}/month</a></p> : null}
         </header>
 
         <section className="ads-sec" aria-labelledby="ads-how">
           <h2 id="ads-how">How it works</h2>
-          <p className="ads-lede">Five steps, all on one page. You stay in control of every word and every photo.</p>
+          <p className="ads-lede">{ADS_V2_HOW_IT_WORKS.length} steps, all on one page: the same ones you see next to the ad maker. Planning is free.</p>
           <ol className="ads-how">
-            {HOW_IT_WORKS.map((s, i) => (
-              <li className="step" key={s.step}>
-                <b>{String(i + 1).padStart(2, '0')} · {s.step.toUpperCase()}</b>
-                <p>{s.text}</p>
+            {ADS_V2_HOW_IT_WORKS.map((s, i) => (
+              <li className="step" key={s.title}>
+                <b>{String(i + 1).padStart(2, '0')} · {s.title.toUpperCase()}</b>
+                <p>{s.body}</p>
               </li>
             ))}
           </ol>
         </section>
 
-        <section className="ads-sec" aria-labelledby="ads-models">
-          <h2 id="ads-models">{ADS_MODELS.length} ad models</h2>
-          <p className="ads-lede">Each model is a proven structure with a hook, a proof and a last frame with your logo and call to action. Every shot comes from your own photos and clips. {lengthsLabel} seconds.</p>
+        <section className="ads-sec" aria-labelledby="ads-levels">
+          <h2 id="ads-levels">{V2_LEVELS.length} levels</h2>
+          <p className="ads-lede">Every level starts from your own photos and ends on your logo. The price shows before anything is charged, and it comes out of the same credits as your videos.</p>
           <ul className="ads-models">
-            {ADS_MODELS.map((m) => (
-              <li className="card ads-model" key={m.id}>
-                <div className="ads-model-top"><b>{m.name}</b><span className="ads-secs">{m.seconds} s</span></div>
-                <p className="ads-seg">{m.segment}</p>
-                <p className="hint">Goal: {m.goal}. Needs {mediaNeeds(m)}.</p>
+            {V2_LEVELS.map((l) => (
+              <li className="card ads-model" key={l.id}>
+                <div className="ads-model-top"><b>{l.name}</b><span className="ads-secs">{l.credits} credits</span></div>
+                <p className="ads-seg">{l.pitch}</p>
+                <ul className="ads-level-list">{ADS_V2_TIER_COPY[l.id].includes.map((item) => <li key={item}>{item}</li>)}</ul>
               </li>
             ))}
           </ul>
@@ -289,7 +332,10 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
             <div className="card">
               <div className="lab">Included</div>
               <ul className="ads-list ok">
-                {copy.includes.map((item) => <li key={item}>{item}</li>)}
+                <li>A vertical 9:16 ad of about {ADS_V2_SCREEN_SECONDS} seconds, made from your own photos</li>
+                <li>Music, a short voice-over you can turn off, and your real logo on the last frame</li>
+                <li>Every shot, the words on screen and the voice-over shown before you pay: planning is free</li>
+                <li>Not happy with a shot? Redo just that one, with the price shown first</li>
               </ul>
             </div>
             <div className="card">
@@ -301,10 +347,19 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
           </div>
         </section>
 
-        <section className="ads-sec ads-review" aria-labelledby="ads-review">
-          <h2 id="ads-review">A person checks your first ad</h2>
-          {/* KINEO-ADS-REVISAO-2026-09-27 — fundador 27/09: sem prazo nem "versão corrigida"; o pedido de mudança da entrega é o que existe. */}
-          <p>A human checks your first ad. Need a change? The delivery screen has a request button that opens an email to us with your order number already filled in.</p>
+        <section className="ads-sec" aria-labelledby="ads-models">
+          <h2 id="ads-models">Classic narrated ads</h2>
+          <p className="ads-lede">Prefer a longer ad with a script written from your brief? The classic maker still makes it from your photos and clips: {ADS_MODELS.length} ad models, {lengthsLabel} seconds, {KINEO1_35S_CREDITS} credits for a 35-second ad. A person checks your first classic ad.</p>
+          <p className="ads-classic-link"><a href={CLASSIC_HREF}>Open the classic maker ({KINEO1_35S_CREDITS} credits) →</a></p>
+          <ul className="ads-models">
+            {ADS_MODELS.map((m) => (
+              <li className="card ads-model" key={m.id}>
+                <div className="ads-model-top"><b>{m.name}</b><span className="ads-secs">{m.seconds} s</span></div>
+                <p className="ads-seg">{m.segment}</p>
+                <p className="hint">Goal: {m.goal}. Needs {mediaNeeds(m)}.</p>
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section className="ads-sec" aria-labelledby="ads-price">
@@ -316,7 +371,7 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
               <div className="cost ads-price ads-plan" data-kineo="ads-door-plan">
                 <div className="sum">{starterName} plan</div>
                 <p className="ads-amount">{starterPrice}<span> /month</span></p>
-                <p className="ads-cover">{TIER_CREDITS.starter} credits every month. About {starterAds35} ads of 35 s.</p>
+                <p className="ads-cover">{TIER_CREDITS.starter} credits every month: {newAdsLabel(starterV2)}, or about {starterAds35} classic ads of 35 s.</p>
                 <div className="val"><span>Studio Ads</span><b>Included</b></div>
                 <div className="val"><span>Video engines</span><b>Every engine your balance covers</b></div>
                 <div className="val"><span>Subscription</span><b>Monthly · cancel anytime</b></div>
@@ -334,7 +389,7 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
             <div className="cost ads-price">
               <div className="sum">{copy.name} pass</div>
               <p className="ads-amount">{price}<span> one-time</span></p>
-              <p className="ads-cover">About {adsCoveredByPass(35)} ads of 35 s or {adsCoveredByPass(60)} ads of 60 s.</p>
+              <p className="ads-cover">Enough for {passCoverage}.</p>
               <div className="val"><span>Credits</span><b>{ADS_PASS_CREDITS}</b></div>
               <CreditMinutesSummary credits={ADS_PASS_CREDITS} />
               <div className="val"><span>Studio Ads access</span><b>{ADS_PASS_ACCESS_DAYS} days</b></div>
@@ -350,24 +405,24 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
           <h2 id="ads-faq">Questions</h2>
           <details open>
             <summary>What format is the ad?</summary>
-            <p>Vertical 9:16, made for Reels, TikTok, Shorts and Stories. The length follows the model you pick: {lengthsLabel} seconds. The narration sets the final cut, so it can run a few seconds longer; it is never cut mid-sentence.</p>
+            <p>Vertical 9:16, made for Reels, TikTok, Shorts and Stories, about {ADS_V2_SCREEN_SECONDS} seconds long. Classic narrated ads follow the model you pick: {lengthsLabel} seconds.</p>
           </details>
           <details>
             <summary>Which files can I upload?</summary>
-            <p>JPG, PNG, MP4, MOV or WebM, up to 50 MB each. On an iPhone, send photos as JPG (Settings → Camera → Formats → Most Compatible) — HEIC, WebP, GIF and SVG files are not accepted yet. Send your logo as PNG or JPG. Only upload material you have the right to use.</p>
+            <p>{ADS_V2_MIN_PHOTOS} to {ADS_V2_MAX_PHOTOS} photos in JPG, PNG or WebP, and your logo as PNG or JPG. You frame each photo for a vertical screen right on the page. On an iPhone, send photos as JPG (Settings → Camera → Formats → Most Compatible) — HEIC files are not accepted yet. The classic maker also takes MP4, MOV or WebM clips up to 50 MB. Only upload material you have the right to use.</p>
           </details>
           <details>
-            <summary>What about the narration?</summary>
-            <p>The script is written from your brief in the language you choose, and you can edit every line. You pick the narrator from {ADS_VOICES.length} voices and hear a short preview before you render.</p>
+            <summary>What about the voice-over?</summary>
+            <p>A short voice-over is written from your sentence, with music under it. You see it in the plan before anything is charged, and you can turn it off. The classic maker writes a longer script you can edit line by line, with {ADS_VOICES.length} voices to choose from.</p>
           </details>
           <details>
-            <summary>Will my clips keep their own sound?</summary>
-            <p>No. The narration and the music replace the original sound of your clips. Ads that keep your clip&apos;s original audio are coming next.</p>
+            <summary>Can I use video clips?</summary>
+            <p>The new ad is made from photos: each one gets its own movement. To put your own clips in an ad, use the <a href={CLASSIC_HREF}>classic maker</a>; there the narration and the music replace the original sound of your clips.</p>
           </details>
           <details>
             <summary>Do I need a subscription?</summary>
             {/* KINEO-ADS-REVISAO-2026-09-27 — assinante entra sem passe (lib/ads/access.ts ADS_SUBSCRIBER_PLANS); o custo por anúncio vem de lib/ads/offer.ts. */}
-            <p>No. Any paid plan includes Studio Ads ({KINEO1_35S_CREDITS} credits per 35-second ad, the same credits as your videos). The pass is for people without a plan: a single payment of {price} with {ADS_PASS_CREDITS} credits and {ADS_PASS_ACCESS_DAYS} days of Studio Ads. Nothing renews.</p>
+            <p>No. Any paid plan includes Studio Ads, with the same credits as your videos: a new ad costs {V2_LEVELS.map((l) => `${l.name} ${l.credits}`).join(', ')} credits, and a classic narrated ad of 35 seconds costs {KINEO1_35S_CREDITS}. The pass is for people without a plan: a single payment of {price} with {ADS_PASS_CREDITS} credits — enough for {passCoverage} — and {ADS_PASS_ACCESS_DAYS} days of Studio Ads. Nothing renews.</p>
           </details>
           <details>
             <summary>I would rather have someone make it for me.</summary>
@@ -436,6 +491,14 @@ html[data-theme=dark] .stu.ads-door{--ads-door-error:#ff9b9b;--ads-door-error-so
 .ads-model-top b{font-size:16px;letter-spacing:-.01em}
 .ads-secs{flex-shrink:0;font-size:11px;font-weight:800;color:var(--accent);background:var(--accent-soft);border:1px solid var(--border2);border-radius:999px;padding:2px 9px}
 .ads-seg{margin:6px 0 0;font-size:13px;color:var(--text2);line-height:1.45}
+.ads-tiers-line{list-style:none;display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:0 0 20px}
+.ads-tiers-line li{font-size:13px;color:var(--text2);background:var(--accent-soft);border:1px solid var(--border2);border-radius:999px;padding:5px 12px}
+.ads-tiers-line b{color:var(--text)}
+.ads-level-list{margin:10px 0 0;padding:0 0 0 18px;font-size:13px;line-height:1.5;color:var(--muted)}
+.ads-level-list li{margin:0 0 4px}
+.ads-classic-link{margin:0 0 16px;font-size:14px}
+.ads-classic-link a{color:var(--accent);text-decoration:none;font-weight:600}
+.ads-classic-link a:hover{text-decoration:underline}
 .ads-get{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .ads-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:9px}
 .ads-list li{position:relative;padding-left:22px;font-size:14px;line-height:1.5;color:var(--text2)}
@@ -443,8 +506,6 @@ html[data-theme=dark] .stu.ads-door{--ads-door-error:#ff9b9b;--ads-door-error-so
 .ads-list.ok li::before{content:'✓';color:var(--accent)}
 .ads-list.no li{color:var(--muted)}
 .ads-list.no li::before{content:'–';color:var(--muted2)}
-.ads-review{padding:20px 18px;border-radius:16px;border:1px solid var(--border2);background:var(--accent-soft)}
-.ads-review p{margin:0;font-size:15px;line-height:1.55;color:var(--text2)}
 .ads-price{max-width:520px}
 .ads-doors{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;max-width:1000px}
 .ads-doors .ads-price{max-width:none}

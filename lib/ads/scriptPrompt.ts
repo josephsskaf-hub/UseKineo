@@ -103,7 +103,8 @@ export function inventedNumbers(text: string, brief: AdsBrief): string[] {
   return [...found.filter((n) => !factDigits.has(n)), ...wordQty]
 }
 
-function contactOk(lastBeat: string, contact: string): boolean {
+// KINEO-ADS-V2-2026-09-28 — exportado (antes local) para o anúncio v2 validar frase de tela e narração (lib/ads/v2Brief.ts).
+export function contactOk(lastBeat: string, contact: string): boolean {
   const norm = (s: string) => s.toLowerCase().replace(/[\s\-().]/g, '')
   if (norm(lastBeat).includes(norm(contact))) return true
   // Telefone falado sem o código do país ("(11) 98765-4321" para "+55 11 98765-4321"): vale se os 8 últimos dígitos

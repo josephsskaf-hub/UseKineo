@@ -147,7 +147,9 @@ const ASPECT_PILLS = allAspectSpecs().map((s) => ({ value: s.aspect, label: s.la
 // estático de public/og (placeholder da casa, nunca vídeo de cliente). utm_campaign=sprint0927 separa esta porta das outras.
 const ADS_TILE_MIN_SECONDS = Math.min(...ADS_MODELS.map((m) => m.seconds))
 const ADS_TILE_STARTER_PRICE = formatCheckoutMoney('usd', getTierPrice('starter', 'usd', 'standard'))
-const ADS_TILE_WIZARD_HREF = '/ads/new?utm_source=studio&utm_medium=tile&utm_campaign=sprint0927'
+// REVISÃO 29/09 (KINEO-ADS-V2-VIRADA-2026-09-29): a linha do tile vende o anúncio CLÁSSICO (KINEO1_35S_CREDITS por 35 s);
+// desde a virada /ads/new sem ?classic=1 cai no v2 (34/41/51 por 15 s). classic=1 faz o destino cumprir a promessa.
+const ADS_TILE_WIZARD_HREF = '/ads/new?utm_source=studio&utm_medium=tile&utm_campaign=sprint0927&classic=1'
 const ADS_TILE_DOOR_HREF = '/ads?from=studio&utm_source=studio&utm_medium=tile&utm_campaign=sprint0927'
 const ADS_TILE_POSTER = '/og/ads-for-local-services.png'
 

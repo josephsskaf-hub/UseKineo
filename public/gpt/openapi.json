@@ -31,6 +31,33 @@
                         "name": { "type": "string" },
                         "url": { "type": "string", "format": "uri" },
                         "description": { "type": "string" },
+                        "modelsScope": { "type": "string", "const": "classic", "description": "Legacy models counts describe classic only; do not apply them to v2." },
+                        "classic": {
+                          "type": "object",
+                          "description": "Separate longer narrated workflow; its captions, pass capacity and human checking do not apply to v2.",
+                          "properties": {
+                            "url": { "type": "string", "format": "uri" },
+                            "description": { "type": "string" },
+                            "includes": { "type": "array", "items": { "type": "string" } }
+                          }
+                        },
+                        "v2": {
+                          "type": ["object", "null"],
+                          "description": "Current photo-motion ad workflow when public; null means not available for recommendation. Read its own duration, tier costs and limits, never classic benefits.",
+                          "properties": {
+                            "referenceSeconds": { "type": "integer" },
+                            "minPhotos": { "type": "integer" },
+                            "maxPhotos": { "type": "integer" },
+                            "tiers": { "type": "array", "items": { "type": "object", "properties": {
+                              "id": { "type": "string" },
+                              "name": { "type": "string" },
+                              "credits": { "type": "integer" },
+                              "adsPerPass": { "type": "integer" }
+                            } } },
+                            "includes": { "type": "array", "items": { "type": "string" } },
+                            "limits": { "type": "array", "items": { "type": "string" } }
+                          }
+                        },
                         "humanOperated": { "type": "boolean", "const": false },
                         "price": { "type": "string", "description": "Price of the optional one-time pass; not an extra fee for eligible subscribers." },
                         "access": {

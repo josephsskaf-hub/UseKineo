@@ -313,7 +313,7 @@ export async function GET(req: NextRequest) {
   // Completed videos in the 30min-24h window (small volume: dozens/day).
   const { data: readyVideos, error: videosErr } = await admin
     .from('videos')
-    .select('id, user_id, title, topic, thumbnail_url, thumb_url, created_at, credits_used, duration')
+    .select('id, user_id, title, topic, thumbnail_url, thumb_url, created_at, credits_used, duration, quality_mode')
     .eq('status', 'completed')
     .gte('created_at', oldest)
     .lte('created_at', newest)
@@ -330,6 +330,10 @@ export async function GET(req: NextRequest) {
   for (const row of readyVideos ?? []) {
     const id = row.user_id as string | null
     if (!id) continue
+    // KINEO-ADS-V2-2026-09-28 — o anúncio v2 (quality_mode 'ads_v2') não é um Short: a carta genérica "seu vídeo ficou
+    // pronto" (e o rodapé de anúncio de 35 s) mentiria. Filtro no JS, não .neq: .neq('quality_mode', …) no PostgREST
+    // também derruba as linhas com quality_mode NULO (NULL <> x é NULL), e elas são filmes de verdade.
+    if ((row as { quality_mode?: string | null }).quality_mode === 'ads_v2') continue
     const existing = perUser.get(id)
     if (!existing) {
       perUser.set(id, {

@@ -1,5 +1,19 @@
 # Portas existentes para Seedance — 28/09/2026
 
+## Retomada S24-01 — estado vigente em 28/09, 23:40 UTC
+
+**AUTORIZAÇÃO DIRETA / PARCIAL:** nova sprint do fundador, 28/09 23:31 UTC a 29/09 23:31 UTC. Esta seção substitui os estados e próximos passos históricos abaixo. Retoma a mesma entrega a0db28df; não são três experimentos novos. Skill antiga rejeitada e não aplicada. Contador37 e corpus29/100 permanecem históricos.
+
+**FATO CONFIRMADO / IMPLEMENTADO:** conciliado com origin/main f834c583. `app/ai-video-generator/[engine]/page.tsx:169` mantém a ponte exclusiva do Kineo1 e os botões publicados de Seedance; `components/PaidSeedanceBridge.tsx:6` seleciona somente prova Seedance com propriedade confirmada do fundador na curadoria atual. A fonte de mídia permanece intacta. `components/ScriptToSeedanceBridge.tsx:108` mantém custos derivados, limite do trial e destino para Seedance. CTA novo tem texto escuro sobre azul para legibilidade; variante antiga preservada. Não altera ofertas, preços, pop-ups, checkout ou motores.
+
+**TESTADO LOCALMENTE:** typecheck sem emissão/incremental passou; guardiões da ponte20, ponte anterior63, motores85 e prova anterior35 passaram. Metadados e sete páginas de motores passaram. O teste dos botões Seedance remove somente a fronteira vazia exata da ponte Kineo1, uma vez em cada lado, e compara todo o restante da página; demais motores continuam iguais. Comparação completa da suíte com a base ainda pendente neste registro.
+
+**QUESTÃO PENDENTE / GATE VISUAL:** preview novo `sprint24h-20260928-2331/preview/antes-depois.html` na pasta privada da tarefa, gerado por `preview.mjs`: JSX real da introdução até os CTAs e início do formulário nas três rotas, pares desktop1040/mobile390, poster incorporado, Arial fallback, sem rede/reprodução/navegação. O preview antigo mostrava apenas a ponte e não bastava para avaliar a posição. Revisão visual humana própria continua necessária; aprovação de Seedance não se estende a estas três telas. Não contornar a recusa anterior de file no navegador.
+
+**LOCAL / NÃO ENFILEIRADO:** publicação e exposição desta entrega não confirmadas. Compras atribuíveis: DESCONHECIDO. Próximo passo: concluir comparação dos testes e apresentar o pacote visual. Falha preexistente do renderer Ads permanece com seu dono e não dispensa gate. Nenhuma SQL, envio externo, geração paga ou publicação executada.
+
+## Histórico da primeira preparação (estados abaixo não são atuais)
+
 **AUTORIZAÇÃO DIRETA / RESERVA:** missão indicada pelo fundador nesta conversa, adendo `4e349e6a` em `docs/GPT-CITACOES-TRIPLICAR-2026-09-29.md`. Base `4c7110e2`; worktree própria `citacoes-empresas-20260925`, branch `codex/citacoes-portas-pagas-20260928`. Publicação somente pelo fundador via SUBIR-SITE.bat. Sem assumir Studio Ads v2.
 
 **PARCIAL / FATO CONFIRMADO:** as três portas `/ai-video-generator/kineo-1`, `/free-ai-shorts-generator`, `/text-to-video-shorts` já chamam `ScriptToSeedanceBridge`, mas o componente não mostra filme ou custo por duração/trial. Reutilizar a ponte; não criar quarta campanha. A quarta chamada em `/state-of-ai-shorts-2026` preserva a variante existente.

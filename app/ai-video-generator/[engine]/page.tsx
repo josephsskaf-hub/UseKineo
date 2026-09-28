@@ -25,6 +25,7 @@ import { notFound } from 'next/navigation'
 import Footer from '@/components/Footer'
 import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
+import SeedanceHeroActions from '@/components/SeedanceHeroActions'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
 import WallMedia from '@/components/WallMedia'
 import PaidEngineBudget from '@/components/PaidEngineBudget'
@@ -166,7 +167,9 @@ export default async function EnginePage({ params }: { params: { engine: string 
           )}
           <p style={{ fontSize: '1.02rem', color: '#86868b', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{e.intro}</p>
           {showSeedanceBridge && <PaidSeedanceBridge from="kineo1" />}
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 22 }}>
+          {params.engine === 'seedance' ? (
+            <SeedanceHeroActions signupHref={signupUrl} campaign={campaign} />
+          ) : <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 22 }}>
             <OrganicCtaLink
               href={primaryCtaHref}
               source={campaign}
@@ -183,7 +186,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
             >
               See plans &amp; credits
             </Link>
-          </div>
+          </div>}
           {/* Honestidade explícita: nunca prometer grátis um motor de Studio. */}
           <p style={{ fontSize: '0.82rem', color: '#86868b', margin: '12px 0 0' }}>{tierNote}</p>
         </section>

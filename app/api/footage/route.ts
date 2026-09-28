@@ -95,11 +95,22 @@ async function logFootageRefusal(
   })
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
+    // KINEO-ADS-COMECAR-DO-ZERO-2026-09-29 (revisão) — ?ids=a,b,c: só leitura, devolve quais desses ids ainda existem E são
+    // desta conta. O "Delete old photos and videos" do /ads/new usa para não prometer apagar arquivo já apagado (o DELETE
+    // responde ok também para id inexistente) nem contar arquivo que não é da pessoa. Sem ?ids= nada muda.
+    const idsParam = req.nextUrl.searchParams.get('ids')
+    if (idsParam !== null) {
+      const ids = Array.from(new Set(idsParam.split(',').map((s) => s.trim()).filter((s) => /^[0-9a-f-]{36}$/i.test(s)))).slice(0, 50)
+      if (!ids.length) return NextResponse.json({ ids: [] })
+      const { data, error } = await footageAdminClient().from('user_footage').select('id').eq('user_id', user.id).in('id', ids)
+      if (error) return NextResponse.json({ error: 'Could not check your files.' }, { status: 500 })
+      return NextResponse.json({ ids: (data ?? []).map((r: { id: string }) => r.id) })
+    }
     const items = await listUserFootage(user.id)
     const used = items.reduce((s, i) => s + (i.size_bytes || 0), 0)
     return NextResponse.json({ items, used_bytes: used, quota_bytes: FOOTAGE_QUOTA_PAID })

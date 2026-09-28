@@ -133,17 +133,23 @@ const FOUNDER_OWNERSHIP = {
 } as const
 
 export const PUBLIC_ENGINE_EXAMPLES = [
+  // KINEO-VITRINE-SEM-CLIENTE-2026-09-28 — fundador 28/09 ("B, vai para as duas"): o Kineo 1 que estava aqui
+  // ("The world's untouched natural wonders", 14/08) era de uma conta EXTERNA gratuita, marcado por engano como do
+  // fundador, e SAIU de toda a vitrine. Entra o filme do fundador de 02/09 (Kineo 1, 40 s; dono conferido no banco:
+  // conta interna; já aprovado para a home em 07/09 em lib/homeVideoCuration.ts). Guardião:
+  // scripts/test-vitrine-sem-filme-de-cliente-2026-09-28.mjs. O carimbo segue o do catálogo (tipo literal '2026-08-27',
+  // cobrado por dois guardiões); a conferência de dono DESTE render no banco foi em 28/09.
   {
     ...FOUNDER_OWNERSHIP,
-    id: 'c87c3a25-c3b7-4a97-8429-eb0fc98b67bc',
-    title: 'The world’s untouched natural wonders',
+    id: '0ab3e871-2c99-4f6e-9f3c-59773208b12e',
+    title: 'The town in Norway where the sun disappears for two months every winter',
     engine: 'fast',
-    videoPath: 'https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/0e175818-2758-4c73-a1dc-52404b99874c/3dd8a945-c01d-4522-921b-f64705029815.mp4',
-    // /arena shows seven videos on one page. Use the already-approved 5s Kineo
-    // 1 sample there instead of auto-loading this 48 MB full render. The home
-    // keeps the founder-selected mountains video above unchanged.
-    arenaPreviewPath: '/videos/example-turkmenistan.mp4',
-    arenaPosterPath: '/videos/example-turkmenistan.jpg',
+    videoPath: 'https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/e97ea42d-f63b-4197-9cd7-e12e9a57744d.mp4',
+    // /arena shows seven videos on one page: a light local cut instead of the full render. 28/09 (revisão do passe B):
+    // a prévia é o corte DESTE render (6 s, 540×960, 1,5 MB — aprovado para a home em 07/09, lib/homeVideoCuration.ts),
+    // não a amostra do Turcomenistão: o card do /arena e as páginas de motor diziam "Norway" e tocavam a cratera.
+    arenaPreviewPath: '/previews/curation-sep07/0ab3e871-2c99-4f6e-9f3c-59773208b12e-v.mp4',
+    arenaPosterPath: '/posters/showcase-sep07/0ab3e871-2c99-4f6e-9f3c-59773208b12e.webp',
   },
   // KINEO-VITRINE-FUNDADOR-2026-09-07 — cinematic_ai: renders recentes do fundador (motores caros), preview 8s cortado do master enhanced.
   { ...FOUNDER_OWNERSHIP, id: 'fe055601-0668-4d33-be49-82c1cb033779', title: 'Something is leaving our solar system', engine: 'cinematic_ai', videoPath: '/previews/fe055601-0668-4d33-be49-82c1cb033779.mp4' },
