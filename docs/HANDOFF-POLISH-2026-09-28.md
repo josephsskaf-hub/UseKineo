@@ -20,3 +20,5 @@
 **TESTADO LOCALMENTE (28/09):** contraste calculado por luminância relativa dos nove pares de texto principal/secundário/muted2 sobre bg/card/card2: mínimo 5,15:1. Os blocos de tokens Dark são idênticos aos de `cab1668b`. Não equivale a certificação integral de acessibilidade.
 
 **ESTADO:** publicação será confirmada pelo estado do deployment; este documento não afirma validação em produção. Comparação acumulada em `outputs/polish-20260928/`; contraste Light contra a rodada aprovada em `C:/Users/josep/Documents/Codex/2026-09-21/kineo-ux-ui/outputs/light-contrast-20260928/antes-depois.html`.
+
+**VALIDADO EM PRODUÇÃO (28/09):** deployment `dpl_FypXC1s8Wh75iCvg4eTYpo4omiGU`, SHA `7f7a13e1`, READY. Chrome em `/studio`: `--bg:#e3e4e5`, `--card:#f4f4f3`, largura de conteúdo igual à viewport (1920 px). A conferência de foco mostrou uma separação entre borda e outline; ajuste final de `outline-offset:0` une o indicador sem remover o foco visível (`app/appearance.css:69`).

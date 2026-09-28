@@ -65,7 +65,7 @@ html .stu .pill:not(.on):not(.off){background:var(--card);color:var(--text2)}
 html .stu .pill:not(.on):hover{background:var(--card2)}
 html .stu textarea{background:var(--card);border-radius:12px;padding:18px;box-shadow:none}
 html .stu textarea:focus{border-color:var(--accent);box-shadow:none}
-html .stu :is(textarea,input,select):focus-visible{outline:2px solid var(--accent);outline-offset:2px;box-shadow:none}
+html .stu :is(textarea,input,select):focus-visible{outline:2px solid var(--accent);outline-offset:0;box-shadow:none}
 html .stu .go{border-radius:12px;min-height:48px;box-shadow:var(--sh-cta)}
 html .stu .go.no{box-shadow:none}
 html .stu .cost::before{display:none}
