@@ -107,6 +107,16 @@ export const ADS_V2_SCENE_IMAGE_USD = 0.15
 /** Fixos por anúncio (especificação, seção 3): Lyria 0,08 + voz MiniMax ~0,03 + Creatomate ~0,13 + GPT ~0,01. */
 export const ADS_V2_FIXED_USD_PARTS = { lyria: 0.08, voice: 0.03, creatomate: 0.13, gpt: 0.01 } as const
 export const ADS_V2_FIXED_USD = 0.25
+/**
+ * Fixos de 15 s que crescem com a duração: o Creatomate cobra por segundo renderizado (lib/renderProfile.ts:
+ * width × height × fps × segundos) e a voz MiniMax por caractere (a narração cresce com o anúncio: 30/40/60 palavras).
+ * Lyria (1 faixa) e GPT (1 chamada) não crescem. Em 30 s o fixo é 0,08 + 0,01 + (0,03 + 0,13) × 2 = 0,41, não 0,25.
+ */
+export function adsV2FixedUsd(seconds: number = 15): number {
+  if (!Number.isFinite(seconds) || seconds <= 0) throw new Error(`ads_v2_bad_seconds:${String(seconds)}`)
+  const f = ADS_V2_FIXED_USD_PARTS
+  return Math.round((f.lyria + f.gpt + (f.voice + f.creatomate) * (seconds / 15)) * 1000) / 1000
+}
 
 /** A partir de qual tentativa a vaga cai na reserva H3 (o motor principal falhou 2 vezes). */
 export const ADS_V2_FALLBACK_FROM_ATTEMPT = 3
@@ -119,6 +129,9 @@ export const ADS_V2_FALLBACK_FROM_ATTEMPT = 3
  * - people/place/product → Kling O3 Pro i2v, sem áudio, 3 s.
  * - `attempt` começa em 1. Tentativas 1 e 2 vão ao motor principal (a 2ª é a refação automática sem custo); da 3ª em
  *   diante (principal falhou 2 vezes) vai à reserva MiniMax H3 i2v 768P.
+ * ⚠ `attempt` conta só as tentativas da MESMA geração paga (1ª + refação automática por falha do fornecedor). Uma
+ *   refação cobrada (adsV2RetakeCredits, preço do motor principal) recomeça em 1 — se a rota passar o `attempt`
+ *   acumulado da tabela ads_v2_shots, a 2ª refação de um plano que nunca falhou cai no H3 cobrando o preço do principal.
  */
 export function routeShot(kind: AdsV2ShotKind, tier: AdsV2Tier, attempt: number): AdsV2Engine | null {
   if (kind === 'text') return null
@@ -152,8 +165,9 @@ const round3 = (n: number): number => Math.round(n * 1000) / 1000
 /**
  * Custo estimado em US$ de um plano (dry-run): vídeo por motor × segundos gerados + Nano Banana por cena criada + fixos.
  * Na tabela da especificação (15 s): Foto em movimento 2,266 · Comercial 2,716 · Cinema ~4,465.
+ * `seconds` = duração pedida (15/20/30; padrão 15): os fixos de render e voz crescem com ela (adsV2FixedUsd).
  */
-export function estimateAdUsd(plan: { tier: AdsV2Tier; shots: readonly AdsV2CostShot[] }): AdsV2UsdEstimate {
+export function estimateAdUsd(plan: { tier: AdsV2Tier; shots: readonly AdsV2CostShot[]; seconds?: number }): AdsV2UsdEstimate {
   let videoUsd = 0
   let aiShots = 0
   let sceneImages = 0
@@ -167,11 +181,12 @@ export function estimateAdUsd(plan: { tier: AdsV2Tier; shots: readonly AdsV2Cost
     if (shot.source === 'generated_scene') sceneImages += 1
   }
   const imageUsd = sceneImages * ADS_V2_SCENE_IMAGE_USD
+  const fixedUsd = adsV2FixedUsd(plan.seconds ?? 15)
   return {
     videoUsd: round3(videoUsd),
     imageUsd: round3(imageUsd),
-    fixedUsd: ADS_V2_FIXED_USD,
-    totalUsd: round3(videoUsd + imageUsd + ADS_V2_FIXED_USD),
+    fixedUsd,
+    totalUsd: round3(videoUsd + imageUsd + fixedUsd),
     aiShots,
     sceneImages,
   }

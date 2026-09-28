@@ -99,7 +99,7 @@ create index if not exists ads_v2_orders_user_created_idx on public.ads_v2_order
 create index if not exists ads_v2_orders_active_status_idx
   on public.ads_v2_orders (status, updated_at)
   where status in ('generating', 'assembling');
-create index if not exists ads_v2_shots_order_idx on public.ads_v2_shots (order_id, idx, attempt);
+-- (Sem índice separado em (order_id, idx, attempt): o unique acima já cria esse índice; um segundo igual só dobraria a escrita.)
 -- Planos que o cron precisa consultar na fal.
 create index if not exists ads_v2_shots_pending_status_idx
   on public.ads_v2_shots (status, updated_at)

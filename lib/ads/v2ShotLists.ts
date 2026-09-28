@@ -15,6 +15,8 @@
 // the photo"; a cena criada usa as fotos do cliente como ÚNICA referência de lugar/produto/decoração e proíbe
 // acrescentar prato, decoração, estrutura ou vista que não estejam nas fotos. Foto marcada `text` (tela, cardápio com
 // preço, placa) vira plano `text`: foto parada com zoom do montador, nunca IA (o motor troca o preço).
+// Sem nenhuma foto de produto, a cena criada troca as ações que citam "the food/product from the photos" por ações
+// sem produto (sceneActionsNoProduct): pedir o prato "das fotos" a quem não mandou prato faz o Nano Banana inventá-lo.
 //
 // LIB PURA (nenhum import): tipos copiados de lib/ads/v2Tiers.ts; o guardião confere que as listas batem.
 
@@ -61,6 +63,15 @@ interface SectorSpec {
   wants: Readonly<Record<AdsV2Role, readonly AdsV2PhotoKind[]>>
   /** 4 cenas de gente comum usando/curtindo, no lugar do cliente (Comercial usa 3; Cinema, 4). */
   sceneActions: readonly [string, string, string, string]
+  /**
+   * As mesmas 4 vagas quando o cliente NÃO mandou foto de produto (nenhuma foto 'product' entre as referências).
+   * Sem isto, "the food from the photos" num restaurante que só mandou salão e fachada faz o Nano Banana INVENTAR o
+   * prato — exatamente o que a especificação proíbe (seção 5, passo 2). Ausente = as ações do setor já não citam
+   * produto das fotos.
+   */
+  sceneActionsNoProduct?: readonly [string, string, string, string]
+  /** Proibição extra do setor quando não há foto de produto (acompanha sceneActionsNoProduct). */
+  noProductRule?: string
   /** Regra extra do setor na cena criada (política de anúncio / honestidade). */
   sceneRule: string
 }
@@ -79,6 +90,13 @@ export const ADS_V2_SECTOR_SPECS: Readonly<Record<AdsV2Sector, SectorSpec>> = {
       'A couple tasting the food from the photos and smiling at each other',
       'A family at a table in this dining room enjoying the food from the photos together',
     ],
+    sceneActionsNoProduct: [
+      'Friends at a table in this dining room, talking and laughing',
+      'A couple being welcomed at the entrance of this restaurant, smiling',
+      'A couple sitting at a table in this restaurant, talking and smiling at each other',
+      'A family arriving at this restaurant, relaxed and happy',
+    ],
+    noProductRule: 'The photos show no dishes, so no food and no plates appear in this frame.',
     sceneRule: 'Only the dishes that appear in the photos; no new dishes, no oven, grill or decor that is not in the photos.',
   },
   clinic: {
@@ -115,6 +133,12 @@ export const ADS_V2_SECTOR_SPECS: Readonly<Record<AdsV2Sector, SectorSpec>> = {
       'A person drinking water and smiling after training here',
       'A small group class moving together in this space',
     ],
+    sceneActionsNoProduct: [
+      'A person stretching on the training floor of this gym, focused and calm',
+      'Two friends high-fiving after a workout in this gym',
+      'A person drinking water and smiling after training here',
+      'A small group class moving together in this space',
+    ],
     sceneRule: 'Only the equipment that appears in the photos; no body before-and-after, nothing about appearance flaws.',
   },
   salon: {
@@ -127,6 +151,13 @@ export const ADS_V2_SECTOR_SPECS: Readonly<Record<AdsV2Sector, SectorSpec>> = {
       'A client touching her new look and smiling',
       'Two friends leaving this salon happy and confident',
     ],
+    sceneActionsNoProduct: [
+      'A client relaxing in a chair of this salon, smiling',
+      'A stylist welcoming a client at the reception of this salon',
+      'A client chatting with a stylist in this salon, relaxed',
+      'Two friends leaving this salon happy and confident',
+    ],
+    noProductRule: 'The photos show no finished work, so no hairstyle, nail or makeup result is shown up close in this frame.',
     sceneRule: 'No before-and-after, nothing about appearance flaws, no portfolio work that is not in the photos.',
   },
   store: {
@@ -139,6 +170,13 @@ export const ADS_V2_SECTOR_SPECS: Readonly<Record<AdsV2Sector, SectorSpec>> = {
       'A person showing the product from the photos to a friend, both smiling',
       'A person enjoying the product from the photos in everyday life',
     ],
+    sceneActionsNoProduct: [
+      'A person walking into this shop and looking around, smiling',
+      'Two friends browsing this shop together, curious and happy',
+      'A customer being greeted warmly in this shop',
+      'A customer leaving this shop satisfied',
+    ],
+    noProductRule: 'The photos show no product close-up, so no product is held or shown up close in this frame.',
     sceneRule: 'The product must look exactly like in the photos: same shape, color, label and size; no other products.',
   },
   app_service: {
@@ -163,6 +201,13 @@ export const ADS_V2_SECTOR_SPECS: Readonly<Record<AdsV2Sector, SectorSpec>> = {
       'Two friends at this place, smiling and talking',
       'A customer leaving this place satisfied',
     ],
+    sceneActionsNoProduct: [
+      'A happy customer at this place, smiling',
+      'A customer being welcomed warmly at this place',
+      'Two friends at this place, smiling and talking',
+      'A customer leaving this place satisfied',
+    ],
+    noProductRule: 'The photos show no product close-up, so no product is held or shown up close in this frame.',
     sceneRule: 'Only what appears in the photos; no products, services or structures that are not in the photos.',
   },
 }
@@ -195,15 +240,22 @@ export function motionPrompt(kind: Exclude<AdsV2PlanShotKind, 'text'>, variant: 
   return `${list[((variant % list.length) + list.length) % list.length]}. ${ADS_V2_KEEP_PHRASE}`
 }
 
-export function sceneImagePrompt(sector: AdsV2Sector, sceneIdx: number): string {
+/**
+ * Pedido da cena criada. `hasProduct` = alguma referência é foto 'product'; sem ela, as ações do setor que citam
+ * "the food/product/equipment from the photos" são trocadas por ações sem produto e o pedido proíbe mostrar produto.
+ */
+export function sceneImagePrompt(sector: AdsV2Sector, sceneIdx: number, hasProduct = true): string {
   const s = ADS_V2_SECTOR_SPECS[sector]
-  const action = s.sceneActions[sceneIdx % s.sceneActions.length]
+  const noProduct = !hasProduct && !!s.sceneActionsNoProduct
+  const actions = noProduct && s.sceneActionsNoProduct ? s.sceneActionsNoProduct : s.sceneActions
+  const action = actions[sceneIdx % actions.length]
   return (
     `Photorealistic vertical 9:16 frame from a ${s.label} commercial, shot on a cinema camera, natural light, subtle film grain. ` +
     `${action}. ` +
     'Use the attached photos of this business as the only reference for the place, the products and the decor: same room, same furniture, same products. ' +
     'Do not add dishes, products, decoration, furniture, structures or views that are not in the photos. ' +
     `${s.sceneRule} ` +
+    (noProduct && s.noProductRule ? `${s.noProductRule} ` : '') +
     'Ordinary non-famous people with natural skin texture and everyday clothes; every hand has five natural fingers. ' +
     'No text, no logos, no signs, no writing anywhere, no watermarks.'
   )
@@ -336,6 +388,7 @@ export function adsV2OverlaySlots(shotsSeconds: number): AdsV2OverlaySlot[] {
  *  3. Vaga herói (Cinema): só produto — nova ou repetida; sem foto de produto, cai no passo 1.
  *  4. Foto `text` vira plano `text` (sem IA, sem prompt). Herói só com foto de produto; senão o tipo é o da foto.
  *  5. Cena criada: referência = todas as fotos do cliente que não são `text`, lugar primeiro, depois produto e gente.
+ *     Sem foto de produto entre as referências, as ações do setor não citam produto (sceneActionsNoProduct).
  *     Sem nenhuma foto sem texto, a vaga vira foto do cliente (passos 1-2) — o Nano Banana exige referência.
  */
 export function planShots(input: { sector: AdsV2Sector; tier: AdsV2PlanTier; photos: readonly AdsV2Photo[]; seconds?: number }): AdsV2ShotPlan {
@@ -383,6 +436,7 @@ export function planShots(input: { sector: AdsV2Sector; tier: AdsV2PlanTier; pho
 
   const refOrder: AdsV2PhotoKind[] = ['place', 'product', 'people']
   const refs = refOrder.flatMap((k) => photos.filter((p) => p.kind === k))
+  const refsHaveProduct = refs.some((p) => p.kind === 'product')
 
   const shots: AdsV2PlannedShot[] = slots.map((slot, idx) => {
     if (slot.source === 'generated_scene' && refs.length > 0) {
@@ -397,7 +451,7 @@ export function planShots(input: { sector: AdsV2Sector; tier: AdsV2PlanTier; pho
         imageUrl: null,
         referenceFootageIds: refs.map((p) => p.id),
         referenceUrls: refs.map((p) => p.url),
-        scenePrompt: sceneImagePrompt(sector, slot.scene),
+        scenePrompt: sceneImagePrompt(sector, slot.scene, refsHaveProduct),
         prompt: motionPrompt('people', variant),
         movementVariant: variant,
         cutStart: adsV2CutStart(slot.cut, 'people'),

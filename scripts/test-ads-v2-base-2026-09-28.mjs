@@ -93,6 +93,12 @@ check('T15 plano text custa zero em estimateAdUsd (melhora a margem)', () => {
   const r = T.estimateAdUsd({ tier: 'photo_motion', shots: [{ kind: 'text', source: 'client_photo' }, { kind: 'people', source: 'client_photo' }] })
   return r.aiShots === 1 && near(r.videoUsd, 0.336) && near(r.totalUsd, 0.586)
 })
+check('T16 fixos crescem com a duração (Creatomate por segundo, voz por caractere): 15 s 0,25 · 30 s 0,41; Foto em movimento 30 s = 12 × 0,336 + 0,41', () => {
+  const p30 = S.planShots({ sector: 'restaurant', tier: 'photo_motion', photos: FULL, seconds: 30 })
+  const e30 = T.estimateAdUsd({ tier: 'photo_motion', shots: p30.shots, seconds: 30 })
+  return near(T.adsV2FixedUsd(15), 0.25) && near(T.adsV2FixedUsd(), 0.25) && near(T.adsV2FixedUsd(30), 0.41) && near(T.adsV2FixedUsd(20), 0.303) &&
+    near(e30.fixedUsd, 0.41) && near(e30.totalUsd, 12 * 0.336 + 0.41, 0.001) && throws(() => T.adsV2FixedUsd(0))
+})
 
 check('S1 8 setores exatos, cada um com 3 pedidos de foto em inglês ("Your best-selling dish, close up") e 4 cenas', S.ADS_V2_SECTOR_SPECS.restaurant.photoRequests[0] === 'Your best-selling dish, close up' && eqSet(S.ADS_V2_SECTORS, SECTORS) && SECTORS.every((s) => {
   const sp = S.ADS_V2_SECTOR_SPECS[s]
@@ -156,6 +162,17 @@ check('S11 herói do Cinema só com foto de PRODUTO (a mesma foto repetida com o
   const noProduct = S.planShots({ sector: 'restaurant', tier: 'cinema', photos: [{ id: U(2), url: url(2), kind: 'place' }, { id: U(3), url: url(3), kind: 'people' }, { id: U(4), url: url(4), kind: 'place' }] })
   return h.length === 2 && h.every((x) => x.sourceFootageId === U(1)) && h[0].prompt !== h[1].prompt && noProduct.shots.every((x) => x.kind !== 'product_hero') &&
     TIERS.filter((t) => t !== 'cinema').every((tier) => S.planShots({ sector: 'store', tier, photos: FULL }).shots.every((x) => x.kind !== 'product_hero'))
+})
+check('S18 SEM foto de produto a cena criada não pede o prato/produto "das fotos" (senão o Nano Banana inventa); com produto, mantém', () => {
+  const noProd = [{ id: U(2), url: url(2), kind: 'place' }, { id: U(3), url: url(3), kind: 'people' }, { id: U(5), url: url(5), kind: 'place' }]
+  const citaProduto = /(food|product|equipment|plate|dish|dishes)[^.]*from the photos|passing a plate|finishing a client's hair|new look/i
+  const semProduto = SECTORS.every((sector) => ['commercial', 'cinema'].every((tier) => S.planShots({ sector, tier, photos: noProd }).shots
+    .filter((x) => x.source === 'generated_scene').every((x) => !citaProduto.test(x.scenePrompt.split('. ')[1]))))
+  const regra = S.planShots({ sector: 'restaurant', tier: 'commercial', photos: noProd }).shots.filter((x) => x.source === 'generated_scene')
+    .every((x) => /no food and no plates appear/.test(x.scenePrompt))
+  const comProduto = S.planShots({ sector: 'restaurant', tier: 'cinema', photos: FULL }).shots.filter((x) => x.source === 'generated_scene')
+  return semProduto && regra && /sharing the food from the photos/.test(comProduto[0].scenePrompt) && !/no food and no plates/.test(comProduto[0].scenePrompt) &&
+    S.sceneImagePrompt('clinic', 0, false) === S.sceneImagePrompt('clinic', 0, true)
 })
 check('S12 determinístico: mesma entrada → mesmo plano', SECTORS.every((sector) => TIERS.every((tier) => JSON.stringify(S.planShots({ sector, tier, photos: FULL })) === JSON.stringify(S.planShots({ sector, tier, photos: FULL })))))
 check('S13 narração: até 30 palavras em 15 s (40 em 20 s, 60 em 30 s)', S.planShots({ sector: 'gym', tier: 'commercial', photos: FULL }).narrationMaxWords === 30 && S.adsV2NarrationMaxWords(20) === 40 && S.adsV2NarrationMaxWords(30) === 60)
