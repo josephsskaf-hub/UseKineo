@@ -23,3 +23,10 @@ Os vídeos são os 10 anúncios Kineo 1 das empresas (docs/COWORK-10-ANUNCIOS-20
 - **Veredito do fundador sobre o caminho:** "acho que a gente está indo para o caminho totalmente errado." Um vídeo de IA bom hoje, para restaurante, mostra a COMIDA, as pessoas felizes em volta da mesa comendo, o prato, o restaurante bonito. Não faz sentido mostrar a família no carro indo para o restaurante (o roteiro que escrevemos era a família dirigindo pela rua dos restaurantes — erro de roteiro nosso, além da fachada do concorrente).
 - **O que ele faria:** olhar os melhores vídeos de anúncio de IA na internet, principalmente no Higgsfield ("lá eles realmente fazem vídeos de ads bons; dá para ver a qualidade"), para aprender e fazer melhor ou igual. Vale para TODOS os anúncios.
 - **Consequência (decidida pelo Claude, 28/09):** não refazer os anúncios segurados no molde atual (Kineo 1 = banco de imagens + narração). Abrir um estudo do Higgsfield e dos melhores anúncios de IA, e voltar com uma receita nova de anúncio, provada num protótipo do próprio restaurante de Amã.
+
+## 4 · SmartTender AI — nota 1 ("sem palavras")
+
+- "Tender" virou CARNE: o banco de imagens casou a palavra com carne grelhada (confirmado no laudo técnico: a tag 'tender' do Pixabay). A mensagem do produto ele entendeu (plataforma de documentos/licitação), mas o vídeo "não dá para usar".
+- **DECISÃO DO FUNDADOR (28/09):** parou de assistir os vídeos 5 a 10 — "já tomei minha decisão". O Kineo 1 "foi desenvolvido para fazer vídeos mais baratos; está zero pronto para ads; não raciocina bem; pega coisas de banco de dados tudo errado". **Refazer toda a questão dos motores do anúncio.** Pesquisar na internet que motor as outras empresas usam para anúncio e trazer para mudar agora.
+- **Cobrança justa ao Claude:** "você podia ter feito isso sem me perguntar" — descobrir o motor dos concorrentes era trabalho meu antes de montar o produto. Virou memória permanente.
+- **Em curso:** estudo do Higgsfield + formato dos melhores anúncios (wf_ea6ee70f-65c) e pesquisa ferramenta → motor dos concorrentes (wf_e7255aab-15c). Os anúncios segurados NÃO serão refeitos no Kineo 1.
