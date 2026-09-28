@@ -178,6 +178,17 @@ function newAdsLabel(n: number): string {
   return n === 1 ? '1 new ad at any level' : `${n} new ads at any level`
 }
 
+/** REVISÃO 29/09 (KINEO-ADS-V2-VIRADA-2026-09-29) — the same rule as /ads/new adsV2Href: only short, clean utm_* travel. */
+function withCleanUtm(href: string, searchParams?: SearchParams): string {
+  const out = new URLSearchParams()
+  for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content']) {
+    const v = first(searchParams?.[key])
+    if (v && /^[A-Za-z0-9._~-]{1,100}$/.test(v)) out.set(key, v)
+  }
+  const s = out.toString()
+  return s ? `${href}${href.includes('?') ? '&' : '?'}${s}` : href
+}
+
 function DoorCta({ cta, placement, price }: { cta: AdsDoorCta; placement: 'hero' | 'price' | 'end'; price: string }) {
   if (cta === 'open') {
     return (
@@ -222,7 +233,9 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
   else cta = (await withTimeout(countOpenReviews(), 0)) >= ADS_MAX_OPEN_REVIEWS ? 'full' : 'buy'
   // KINEO-ADS-V2-VIRADA-2026-09-29 — the /ads/for/<segment> button carries go=maker (those pages are static and cannot
   // tell who is looking): whoever can already make an ad goes straight to the maker; everyone else stays on this door.
-  if (ADS_V2_PUBLIC && cta === 'open' && first(searchParams?.go) === 'maker') redirect(MAKER_HREF)
+  // REVISÃO 29/09: o redirect leva os utm_* curtos e limpos (o SourceCapture do /ads/v2 grava a origem; sem eles o clique
+  // do /ads/for de quem já tem acesso chegava ao montador sem atribuição nenhuma).
+  if (ADS_V2_PUBLIC && cta === 'open' && first(searchParams?.go) === 'maker') redirect(withCleanUtm(MAKER_HREF, searchParams))
 
   // KINEO-ADS-PORTA-PLANO-2026-09-27 — the plan door only while the pass is live: with it off the whole product says
   // "Opens soon" and adsGate answers 'closed' to subscribers too, so a Starter door would sell a closed room.
@@ -272,7 +285,7 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
 
         <header className="ads-hero">
           <p className="ads-eyebrow">STUDIO ADS · KINEO EMPRESAS</p>
-          <h1>Your real photos, brought to life. A {ADS_V2_SCREEN_SECONDS}-second video ad.</h1>
+          <h1>Your real photos, brought to life. A video ad of about {ADS_V2_SCREEN_SECONDS} seconds.</h1>
           <p className="sub ads-intro">
             Add {ADS_V2_MIN_PHOTOS} to {ADS_V2_MAX_PHOTOS} photos of your business and your logo. Kineo gives your photos movement, adds music,
             a short voice-over and your real logo at the end, and delivers a vertical ad of about {ADS_V2_SCREEN_SECONDS} seconds for Reels, TikTok and Shorts.

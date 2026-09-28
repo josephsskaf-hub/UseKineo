@@ -52,7 +52,9 @@ import { KINEO1_35S_CREDITS, adsPassLive } from '@/lib/ads/offer'
 // KINEO-SUCESSO-STUDIO-ADS-2026-09-27 — nada digitado: o "35" nasce do modelo mais curto (ADS_MODELS), o custo de
 // KINEO1_35S_CREDITS. O href leva utm triplo (o clique chega em /ads/new sem cookie de origem) com a campanha do dia.
 const CHECKOUT_SUCCESS_ADS_VERSION = 'checkout_success_studio_ads_v1'
-const CHECKOUT_SUCCESS_ADS_HREF = '/ads/new?utm_source=checkout_success&utm_medium=studio_ads&utm_campaign=sprint0927'
+// REVISÃO 29/09 (KINEO-ADS-V2-VIRADA-2026-09-29): este bloco vende o anúncio CLÁSSICO (narrado, com legenda, KINEO1_35S_CREDITS
+// por 35 s); desde a virada /ads/new sem ?classic=1 cai no v2 (34/41/51 por 15 s, sem legenda). classic=1 cumpre a promessa.
+const CHECKOUT_SUCCESS_ADS_HREF = '/ads/new?utm_source=checkout_success&utm_medium=studio_ads&utm_campaign=sprint0927&classic=1'
 const ADS_SHORTEST_SECONDS = Math.min(...ADS_MODELS.map((m) => m.seconds))
 // KINEO-SUCESSO-TEMPO-ADS-2026-09-27 — segundos que o relógio ganha, UMA vez, quando o bloco do Studio Ads aparece.
 const CHECKOUT_SUCCESS_ADS_EXTRA_SECONDS = 15

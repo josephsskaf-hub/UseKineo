@@ -169,9 +169,39 @@ const D = SRC.door
 const portaAbreMontador = (d) => /const MAKER_HREF = ADS_V2_PUBLIC \? '\/ads\/v2' : '\/ads\/new'\n/.test(d) && /<AdsCtaLink href=\{MAKER_HREF\} cta="open"/.test(d) && !/href=\{WIZARD_HREF\}/.test(d)
 await check('P1 /ads: o botão principal de quem tem acesso abre o montador (/ads/v2); quem não tem segue no checkout/preço', portaAbreMontador(D) && /<AdsCtaLink href=\{CHECKOUT_HREF\} cta="buy"/.test(D) && /if \(viewer\.gate === 'ok'\) cta = 'open'/.test(D))
 await check('P1-mutante: botão de volta ao /ads/new fica vermelho', () => !portaAbreMontador(trocar(D, "const MAKER_HREF = ADS_V2_PUBLIC ? '/ads/v2' : '/ads/new'", "const MAKER_HREF = '/ads/new'")))
-const goMaker = (d) => /if \(ADS_V2_PUBLIC && cta === 'open' && first\(searchParams\?\.go\) === 'maker'\) redirect\(MAKER_HREF\)/.test(d) && /import \{ redirect \} from 'next\/navigation'/.test(d)
+const goMaker = (d) => /if \(ADS_V2_PUBLIC && cta === 'open' && first\(searchParams\?\.go\) === 'maker'\) redirect\(withCleanUtm\(MAKER_HREF, searchParams\)\)/.test(d) && /import \{ redirect \} from 'next\/navigation'/.test(d)
 await check('P2 /ads?go=maker leva direto ao montador SÓ quem já tem acesso (cta open)', goMaker(D))
 await check('P2-mutante: go=maker sem exigir acesso fica vermelho', () => !goMaker(trocar(D, "ADS_V2_PUBLIC && cta === 'open' && first(", 'ADS_V2_PUBLIC && first(')))
+// REVISÃO 29/09: o go=maker levava ao /ads/v2 PELADO — o clique do /ads/for (utm seo/ads_for/gpt24h/<segmento>) de quem já
+// tem acesso chegava ao montador sem atribuição. withCleanUtm EXECUTADO (a função real, extraída do page.tsx).
+const utmDaPorta = (d) => {
+  const i = d.indexOf('function withCleanUtm('), j = d.indexOf('\n}\n', i)
+  if (i < 0 || j < 0) return null
+  const firstSrc = d.slice(d.indexOf('function first('), d.indexOf('\n}\n', d.indexOf('function first(')) + 2)
+  return runModule(`${firstSrc}\n${d.slice(i, j + 2)}\nexports.f = withCleanUtm`, () => { throw new Error('sem import') }).f
+}
+const utmOk = (d) => {
+  const f = utmDaPorta(d)
+  return !!f && f('/ads/v2', { utm_source: 'seo', utm_medium: 'ads_for', utm_campaign: 'gpt24h', utm_content: 'restaurants', go: 'maker' }) === '/ads/v2?utm_source=seo&utm_medium=ads_for&utm_campaign=gpt24h&utm_content=restaurants' &&
+    f('/ads/v2', { utm_source: '<x>', go: 'maker' }) === '/ads/v2' && f('/ads/v2', {}) === '/ads/v2'
+}
+await check('P4 go=maker leva os utm_* limpos ao montador (e deixa go/lixo para trás)', utmOk(D))
+await check('P4-mutante: redirect sem os utm fica vermelho', () => !goMaker(trocar(D, 'redirect(withCleanUtm(MAKER_HREF, searchParams))', 'redirect(MAKER_HREF)')))
+await check('P4-mutante: withCleanUtm que deixa passar utm sujo fica vermelho', () => !utmOk(trocar(D, 'if (v && /^[A-Za-z0-9._~-]{1,100}$/.test(v)) out.set(key, v)\n  }\n  const s = out.toString()\n  return s ? `${href}', 'if (v) out.set(key, v)\n  }\n  const s = out.toString()\n  return s ? `${href}')))
+
+// REVISÃO 29/09: três superfícies ainda vendem o anúncio CLÁSSICO (narrado, com legenda, 3 créditos por 35 s) e apontavam
+// para /ads/new — que desde a virada cai no v2 (34/41/51 por 15 s, sem legenda). O destino tem de cumprir a promessa: &classic=1.
+const SUPERFICIES_CLASSICAS = {
+  tile: ["app/(dashboard)/studio/StudioClient.tsx", "const ADS_TILE_WIZARD_HREF = '/ads/new?utm_source=studio&utm_medium=tile&utm_campaign=sprint0927&classic=1'", /\$\{KINEO1_35S_CREDITS\} credits per \$\{ADS_TILE_MIN_SECONDS\}-second ad/],
+  sucesso: ['app/checkout/success/page.tsx', "const CHECKOUT_SUCCESS_ADS_HREF = '/ads/new?utm_source=checkout_success&utm_medium=studio_ads&utm_campaign=sprint0927&classic=1'", /with captions, music and your logo\. A \{ADS_SHORTEST_SECONDS\}-second ad costs \{KINEO1_35S_CREDITS\} credits/],
+  email: ['lib/lifecycle/videoReadyFooter.ts', "const url = `${appUrl.replace(/\\/+$/, '')}/ads/new?${ADS_LINE_UTM}&classic=1`", /with captions, music and your logo\. ` \+\n\s+`A \$\{ADS_SHORTEST_SECONDS\}-second ad costs \$\{KINEO1_35S_CREDITS\} credits/],
+}
+for (const [nome, [arq, linha, promessa]] of Object.entries(SUPERFICIES_CLASSICAS)) {
+  const s = rd(arq)
+  await check(`S-${nome}: a superfície que vende o clássico (${arq}) leva ao clássico (&classic=1)`, promessa.test(s) && s.includes(linha))
+  await check(`S-${nome}-mutante: sem &classic=1 fica vermelho`, () => !trocar(s, linha, linha.replace('&classic=1', '')).includes(linha))
+}
+await check('S-shell: o montador v2 tem título no shell ("Studio Ads", não "Dashboard")', rd('app/(dashboard)/DashboardShell.tsx').includes("'/ads/v2': 'Studio Ads',"))
 const faixaV2 = (d) => d.includes("const returnedFromWizard = (from === 'new' || from === 'v2') && viewer.signedIn && viewer.gate === 'no_access'") && d.includes('<b>Studio Ads is part of every paid plan.</b>')
 await check('P3 ?from=v2 (o montador devolve quem não tem acesso) ganha a mesma faixa do ?from=new', faixaV2(D) && /redirect\('\/ads\?from=v2'\)/.test(SRC.v2Page))
 await check('P3-mutante: faixa só para ?from=new fica vermelho', () => !faixaV2(trocar(D, "(from === 'new' || from === 'v2')", "from === 'new'")))
@@ -182,7 +212,7 @@ const hero = (d) => { const t = texto(d); return t.slice(t.indexOf('<header clas
 const copyNova = (d) => {
   const t = texto(d), h = hero(d)
   const iHow = t.indexOf('<h2 id="ads-how">How it works</h2>'), iLevels = t.indexOf('<h2 id="ads-levels">'), iClassic = t.indexOf('<h2 id="ads-models">Classic narrated ads</h2>')
-  return h.includes('<h1>Your real photos, brought to life. A {ADS_V2_SCREEN_SECONDS}-second video ad.</h1>') &&
+  return h.includes('<h1>Your real photos, brought to life. A video ad of about {ADS_V2_SCREEN_SECONDS} seconds.</h1>') /* REVISÃO 29/09: o Cinema dura ~16,5 s (7 planos de 2 s + cartão de 2,5 s); o h1 diz 'about' como o resto da copy */ &&
     h.includes('Kineo gives your photos movement, adds music,') && h.includes('a short voice-over and your real logo at the end') &&
     h.includes('{V2_LEVELS.map((l) => <li key={l.id}><b>{l.name}</b> {l.credits} credits</li>)}') &&
     /const V2_LEVELS = ADS_V2_TIER_IDS\.map\(\(id\) => \(\{ id, name: ADS_V2_TIER_COPY\[id\]\.name, pitch: ADS_V2_TIER_COPY\[id\]\.pitch, credits: adsV2Credits\(id, ADS_V2_SCREEN_SECONDS\) \}\)\)/.test(t) &&
@@ -202,7 +232,7 @@ const semFraseVelha = (d) => {
 }
 await check('C1 copy nova: hero do v2 (fotos reais em movimento, ~15 s, 3 níveis por adsV2Credits), 4 passos do montador, clássico depois com ?classic=1', copyNova(D))
 await check('C2 frases velhas de produto principal ausentes (legenda, "35 or 60", "8 ad models" no topo, "A narrated video ad", 5 passos do v1, includes do passe v1, revisão humana como promessa geral)', semFraseVelha(D))
-await check('C1-mutante: hero de volta ao v1 fica vermelho', () => !copyNova(trocar(D, '<h1>Your real photos, brought to life. A {ADS_V2_SCREEN_SECONDS}-second video ad.</h1>', '<h1>Your photos. Your logo. A narrated video ad, made by you.</h1>')))
+await check('C1-mutante: hero de volta ao v1 fica vermelho', () => !copyNova(trocar(D, '<h1>Your real photos, brought to life. A video ad of about {ADS_V2_SCREEN_SECONDS} seconds.</h1>', '<h1>Your photos. Your logo. A narrated video ad, made by you.</h1>')))
 await check('C1-mutante: clássico ANTES dos níveis fica vermelho (a ordem é o v2 primeiro)', () => {
   const t = D
   const a = t.indexOf('        <section className="ads-sec" aria-labelledby="ads-levels">'), b = t.indexOf('        <section className="ads-sec" aria-labelledby="ads-get">')

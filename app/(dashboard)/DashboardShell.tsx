@@ -52,6 +52,7 @@ const pageTitles: Record<string, string> = {
   // KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — o assistente do Studio Ads (/ads/new) ganha título no shell.
   '/ads': 'Studio Ads',
   '/ads/new': 'Studio Ads',
+  '/ads/v2': 'Studio Ads', // KINEO-ADS-V2-VIRADA-2026-09-29 — o montador v2 virou a porta principal (antes: "Dashboard")
   '/admin/metrics': 'Admin · Metrics',
   '/thumbnail-generator': 'AI Thumbnail Generator',
   '/referral': 'Invite & Earn',
