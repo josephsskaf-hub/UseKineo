@@ -71,7 +71,8 @@ import { alertCreatomateDown } from '@/lib/creatomateAlert'
 import { checkCreatomateQuota } from '@/lib/creatomateQuota'
 import { inspectActiveComposeCreditHolds } from '@/lib/credits/composeHold'
 import { loadVerifiedCinematicClaim, cinematicJobsAreTerminal, type CinematicClaim } from '@/lib/cinematic/claim'
-import { readVerifiedSceneRetryHold } from '@/lib/cinematic/sceneRetry'
+import { readVerifiedSceneRetryHold, releaseSceneRetryMutex, type SceneRetryMutex } from '@/lib/cinematic/sceneRetry'
+import { classicSceneRetryHoldResolvable } from '@/lib/classicSceneRetry' // KINEO-CENA-CLASSICA-2026-09-28
 import { collectSceneNarrations, verifyObservedSpeech } from '@/lib/cinematic/speechContract'
 // KINEO-COMPOSE-REJECT-NOREFUND-2026-08-10 — ver o cabeçalho do arquivo: numa
 // recusa TERMINAL do fornecedor nenhum render_id nasce, logo /api/compose/status
@@ -1015,6 +1016,24 @@ export async function POST(req: NextRequest) {
           const hold = await readVerifiedSceneRetryHold({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, generationId })
           if (hold) {
             const elapsed = Date.now() - Date.parse(hold.startedAt)
+            // ═══ KINEO-CENA-CLASSICA-2026-09-28 — hold de retomada CLÁSSICA não prende o filme ═══
+            // Revisão adversarial de 27/09: com um 503 da fal na retomada de uma cena Seedance, esta linha respondia 422
+            // "Contact support" a cada tentativa, para sempre — o filme (1 de 2 cenas pronta) nunca saía e o refund-sweep
+            // o via como ambíguo. A retomada clássica agora solta o mutex sozinha; o que chega aqui é o resto: liberação que
+            // falhou duas vezes (fase final anotada) ou lambda morta ('submitting' com mais de 120 s — a retomada tem
+            // maxDuration 60). Na família clássica a cena perdida é sobrevivível e o claim de nascimento só fica terminal
+            // com ela falhada ou pronta, então desfazer o hold é seguro: apaga SÓ a linha do mutex (dono + assinatura do
+            // marcador conferidos em releaseSceneRetryMutex) e devolve 409 pendente — a próxima chamada (aba ou cron de
+            // resgate) monta com as cenas prontas. Hollywood nunca entra aqui: lá o hold segue esperando confirmação.
+            if (classicSceneRetryHoldResolvable(metadata.scene_retry, hold.phase, elapsed)) {
+              const cleared = await releaseSceneRetryMutex({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, generationId },
+                { id: claimId, authority: String(metadata.authority ?? ''), metadata, marker: metadata.scene_retry as SceneRetryMutex['marker'] })
+              if (cleared) {
+                await writeServerEvent({ name: 'classic_scene_retry_hold_cleared', userId: authenticatedUserId, path: '/api/compose', sessionId: generationId,
+                  metadata: { phase: hold.phase, elapsed_ms: Number.isFinite(elapsed) ? elapsed : null } })
+                return NextResponse.json({ pending: true, retry_after_ms: 2500 }, { status: 409 })
+              }
+            }
             if (hold.phase === 'submitting' && elapsed >= 0 && elapsed < 120_000) {
               return NextResponse.json({ pending: true, retry_after_ms: 2500 }, { status: 409 })
             }

@@ -63,13 +63,19 @@ eq(terminalGuard.pos<src.indexOf('async function rejectBeforeProviderSubmission'
 // Execute the actual retry-hold branch used by compose replays. A paid retry
 // may be recent, unresolved or tampered; none authorizes a second submission.
 const retryReplay=find(n=>ts.isIfStatement(n)&&n.expression.getText(ast)==='metadata.scene_retry')
+// KINEO-CENA-CLASSICA-2026-09-28 — re-ancorado: o ramo ganhou a régua do hold CLÁSSICO (lib/classicSceneRetry, real aqui),
+// que o compose desfaz. A intenção deste bloco não muda e fica mais estrita: hold sem modelo clássico assinado (vazio OU
+// hollywood) nunca é apagado pelo compose (releaseSceneRetryMutex/writeServerEvent lançam se chamados) nem vira 2ª submissão.
+const classicScope={classicSceneRetryHoldResolvable:load('@/lib/classicSceneRetry').classicSceneRetryHoldResolvable,claimId:'fixture-claim',
+  releaseSceneRetryMutex:async()=>{throw Error('Non-classic hold must never be released by compose')},writeServerEvent:async()=>{throw Error('Non-classic hold must never be cleared')}}
+for(const marker of [{},{model:'minimax/h3/text-to-video'}])
 for(const phase of ['submitting','ambiguous','retarget_failed','release_unconfirmed']){
   for(const age of [30_000,180_000]){
     let fallthrough=0
     const hold={generationId:'fixture-generation',phase,startedAt:new Date(Date.now()-age).toISOString(),refunded:false,refundConfirmed:false,claimReleased:false,retryable:false}
     const module=evaluate(`export async function run(){${retryReplay.getText(ast)} fallThrough();return null}`,{
-      NextResponse:next,metadata:{scene_retry:{}},composeAdmin:{},serviceRoleKey:'FIXTURE_ONLY',authenticatedUserId:'fixture',generationId:'fixture-generation',
-      readVerifiedSceneRetryHold:async()=>hold,unavailableClaimResponse:()=>json({error:'Unavailable'},{status:503}),fallThrough:()=>fallthrough++,
+      NextResponse:next,metadata:{scene_retry:marker},composeAdmin:{},serviceRoleKey:'FIXTURE_ONLY',authenticatedUserId:'fixture',generationId:'fixture-generation',
+      readVerifiedSceneRetryHold:async()=>hold,unavailableClaimResponse:()=>json({error:'Unavailable'},{status:503}),fallThrough:()=>fallthrough++,...classicScope,
     })
     const response=await module.run(),body=await response.json()
     const pending=phase==='submitting'&&age<120_000

@@ -1,5 +1,8 @@
 // One failed scene, under the SAME unique compose mutex as the final render.
 // Provider ambiguity retains ownership: no blind re-POST or automatic refund.
+// KINEO-CENA-CLASSICA-2026-09-28 — EXCEÇÃO na família clássica (Seedance 1.5, Kling 2.5, Veo 3.1): a cena perdida é
+// sobrevivível, então a ambiguidade SOLTA o mutex e o filme segue com as cenas prontas (ver o bloco da família clássica).
+import { createHash } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
@@ -12,23 +15,44 @@ import { acquireSceneRetryMutex, markSceneRetryHold, readVerifiedSceneRetryHold,
 import { HOLLYWOOD_MODELS, KLING3_I2V_MODEL, H3_MODELS, H3_I2V_MODEL, H3_RESOLUTION, OMNI_I2V_MODEL, S25_I2V_MODEL, S25_T2V_MODEL, S25_RESOLUTION } from '@/lib/hollywood/router'
 import { openai } from '@/lib/openai'
 import { normalizeAspect } from '@/lib/aspect' // LOTE2-RESGATE-FIEL-2026-09-23
+import { CLASSIC, CLASSIC_I2V } from '@/lib/classicSceneRetry' // KINEO-CENA-CLASSICA-2026-09-28
+
+// KINEO-CENA-CLASSICA-2026-09-28 — teto EXPLÍCITO de 60 s (antes a rota herdava o padrão da plataforma). O marcador
+// 'submitting' do mutex vale 120 s no compose, no /api/compose/active e aqui: com a OpenAI a 20 s sem retentativa e o POST
+// clássico a 25 s, a rota sempre termina (e solta ou anota o mutex) muito antes; 'submitting' com mais de 120 s = lambda morta.
+export const maxDuration = 60
+const SANITIZE_TIMEOUT_MS = 20_000
 
 async function softenPromptForModeration(prompt: string): Promise<string> {
   try {
+    // KINEO-CENA-CLASSICA-2026-09-28 — prazo próprio e maxRetries 0: o padrão do cliente (20 s × 2 tentativas) somava 40 s
+    // antes do POST dentro da janela do mutex. Estourou → catch → o prompt assinado segue sem reescrita (como em qualquer erro).
     const r = await openai.chat.completions.create({
       model: 'gpt-4o-mini', temperature: 0.3, max_tokens: 900,
       messages: [
         { role: 'system', content: 'A video-generation provider rejected the following SCENE PROMPT for content-policy reasons. Rewrite it so it passes moderation while staying AS CLOSE AS POSSIBLE to the original scene. Rules: keep the same subject, setting, era, mood, camera directions and cinematography lines VERBATIM where they are not the problem. Soften or replace only what typically trips moderation: graphic violence/injury (imply aftermath instead), weapons pointed at people (holstered/lowered), gore/blood (remove), destruction of people (make it property/landscape), real people/brands (make generic), anything sexual (remove). Never add new story elements. Output ONLY the rewritten prompt, no explanation.' },
         { role: 'user', content: prompt },
       ],
-    })
+    }, { timeout: SANITIZE_TIMEOUT_MS, maxRetries: 0 })
     const out = (r.choices[0]?.message?.content ?? '').trim()
     return out.length >= 20 && out.length <= Math.min(prompt.length * 1.5, 6000) ? out : prompt
   } catch { return prompt }
 }
 
 const H3_SET = new Set<string>([...Object.values(H3_MODELS), H3_I2V_MODEL])
+// ═══ KINEO-CENA-CLASSICA-2026-09-28 — a retomada de cena passa a valer para os motores CLÁSSICOS ═══
+// Casos: 3ab8128c (conta externa vinda do TAAFT, Seedance 60 s, 16/09) — 7/7 cenas aceitas, 6 prontas, a 7ª nunca voltou;
+// o filme morreu no prazo de 50 min e os 25 cr voltaram por estorno. d6e8e8b3 (fundador, Seedance 60 s, 15/09) saiu com 6
+// de 7 cenas, cobrado inteiro, sem nenhuma retentativa. Em 14 dias, claims clássicos com cena perdida: Seedance 5 de 49,
+// Veo 1 de 6, Kling 2.5 0 de 5. Causa: esta rota só conhecia Kling 3/H3/Omni/S25 (modelo clássico = 400) e o claim
+// clássico não guardava o que foi ao fal (âncora ligada por padrão: as 6 primeiras cenas vão em i2v com still próprio, e o
+// retarget proíbe trocar o modelo do slot). Agora: os 6 ids clássicos (CLASSIC/CLASSIC_I2V de lib/classicSceneRetry.ts —
+// ESPELHO de app/api/cinematic-clip-status/route.ts, mexeu lá, mexe na lib) — e, para eles, a cena refeita é o PAYLOAD ASSINADO
+// que o fal aceitou (response.scene_fal_inputs[i], gravado pela rota de geração): mesmo seed, negative_prompt, still,
+// duração e quadro; só o prompt troca, e só na 2ª rodada (sanitize), suavizado. Inerte até a rota de geração gravar
+// scene_fal_inputs (commit [TRAVA 8.2]): sem o campo, signedClassic devolve null e a resposta é o 409 de hoje.
 const ALLOWED = new Set<string>([...Object.values(HOLLYWOOD_MODELS), KLING3_I2V_MODEL, ...H3_SET, OMNI_I2V_MODEL, S25_I2V_MODEL, S25_T2V_MODEL]) // KINEO-S25-STATUS-2026-09-15: a retomada também conhece o Seedance 2.5
+for (const model of CLASSIC) ALLOWED.add(model) // KINEO-CENA-CLASSICA-2026-09-28: e os 6 clássicos
 type Slot = { index: number; oldRequestId: string | null; model: string }
 
 function retryableSlot(claim: CinematicClaim, slot: Slot): boolean {
@@ -56,6 +80,75 @@ function signedScene(claim: CinematicClaim, slot: Slot) {
   if (requiresAnchor && (typeof anchor !== 'string' || !anchor.startsWith('https://'))) return null
   // LOTE2-RESGATE-FIEL-2026-09-23 — o formato do filme vem do claim assinado; a cena refeita usa o MESMO que o render original.
   return { prompt: prompt.trim(), seconds: Math.round(seconds), anchor: requiresAnchor ? anchor as string : null, aspect: normalizeAspect(response?.aspect) }
+}
+
+// KINEO-CENA-CLASSICA-2026-09-28 — o payload clássico assinado, conferido antes de qualquer gasto: objeto, prompt de 20 a
+// 6000 caracteres; i2v só com image_url https, t2v sem image_url (payload de outro modelo nunca é reenviado). O prompt volta
+// EXATO (sem trim): a 1ª rodada reenvia byte a byte o que o fal já aceitou.
+function signedClassic(claim: CinematicClaim, slot: Slot): { input: Record<string, unknown>; prompt: string } | null {
+  const inputs = claim.response?.scene_fal_inputs
+  const raw: unknown = Array.isArray(inputs) ? inputs[slot.index] : null
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const input = raw as Record<string, unknown>
+  const prompt = input.prompt
+  if (typeof prompt !== 'string' || prompt.trim().length < 20 || prompt.length > 6000) return null
+  const image = input.image_url
+  if (CLASSIC_I2V.has(slot.model) ? typeof image !== 'string' || !image.startsWith('https://') : image !== undefined) return null
+  return { input, prompt }
+}
+
+// ═══ KINEO-CENA-CLASSICA-2026-09-28 (revisão adversarial) — família clássica: UM POST pago por cena falhada, e nunca prender ═══
+// A revisão rodou o POST real num claim clássico assinado (1 de 2 cenas pronta) com a fal respondendo 503: 422
+// scene_retry_unresolved e o mutex do compose preso em 'ambiguous' para sempre — compose 422 a cada tentativa, cron lendo
+// "a pessoa compôs sozinha", refund-sweep lendo "ambíguo": filme perdido e 25 cr presos (lib/classicSceneRetry.ts tem o
+// caso inteiro). Na clássica, então:
+//  · antes de qualquer gasto (OpenAI ou fal), um registro de id DETERMINÍSTICO (usuário, geração, cena, request antigo): a
+//    2ª chamada para a MESMA cena falhada colide no PK (409, sem gasto). É o que impede a 2ª rodada do cliente de pagar de
+//    novo uma cena cujo 1º envio ficou ambíguo. Recusa EXPLÍCITA do fal (nenhum job existe) devolve o registro, e a 2ª
+//    rodada, suavizada, continua valendo. Rodada que deu certo troca o request do slot, e o id seguinte é outro.
+//  · desfecho ambíguo (408/5xx/transporte/resposta sem id/prazo de 25 s) ou retarget que falha: o registro FICA, o mutex é
+//    solto (2 tentativas) e a resposta é 502 — a cena segue falhada no claim e o compose monta com as prontas, como a
+//    origin/main fazia. Custo máximo: um job órfão na fal.
+//  · se nem a 2ª liberação confirmar, a fase fica anotada e o compose desfaz o hold clássico (e o cron chega nele pelo compose).
+const CLASSIC_ATTEMPT_EVENT = 'classic_scene_retry_attempt'
+const CLASSIC_UNCONFIRMED_EVENT = 'classic_scene_retry_unconfirmed'
+const CLASSIC_SUBMIT_DEADLINE_MS = 25_000
+type RetryIdentity = Parameters<typeof releaseSceneRetryMutex>[0]
+
+function classicAttemptId(args: RetryIdentity, slot: Slot): string {
+  const hex = createHash('sha256').update(JSON.stringify(['kineo:classic-scene-retry:v1', args.userId, args.generationId, slot.index, slot.oldRequestId]))
+    .digest('hex').slice(0, 32)
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`
+}
+
+async function claimClassicAttempt(args: RetryIdentity, slot: Slot, sanitize: boolean): Promise<'claimed' | 'used' | 'unavailable'> {
+  try {
+    const { error } = await args.db.from('events').insert({ id: classicAttemptId(args, slot), user_id: args.userId, name: CLASSIC_ATTEMPT_EVENT,
+      path: '/api/retry-hollywood-scene', session_id: args.generationId,
+      metadata: { scene_index: slot.index, old_request_id: slot.oldRequestId, model: slot.model, sanitize } })
+    if (!error) return 'claimed'
+    return (error as { code?: string }).code === '23505' ? 'used' : 'unavailable'
+  } catch { return 'unavailable' }
+}
+
+// Só quando NENHUM job pode existir (recusa explícita do fal, ou saída antes do POST). Se falhar, a cena apenas não ganha
+// outra rodada — fecha para o lado seguro.
+async function returnClassicAttempt(args: RetryIdentity, slot: Slot): Promise<void> {
+  try {
+    await args.db.from('events').delete().eq('id', classicAttemptId(args, slot)).eq('user_id', args.userId)
+      .eq('name', CLASSIC_ATTEMPT_EVENT).eq('session_id', args.generationId)
+  } catch { /* registro fica: sem 2ª rodada para esta cena */ }
+}
+
+// submitFalQueueOnce não tem prazo; na clássica o POST ganha 25 s e, estourado, é AMBÍGUO (o job pode existir): nunca se
+// repete, e o mutex é solto pelo catch. A promessa perdedora continua com handler (Promise.race), sem rejeição solta.
+async function submitClassicWithDeadline(model: string, input: Record<string, unknown>, onPost: () => void): Promise<string> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new FalQueueSubmitError('Fal queue submit exceeded the scene retry deadline', { ambiguous: true })), CLASSIC_SUBMIT_DEADLINE_MS)
+  })
+  try { return await Promise.race([submitFalQueueOnce(model, input, onPost), deadline]) }
+  finally { if (timer !== undefined) clearTimeout(timer) }
 }
 
 const ENQUADRAMENTO: Record<string, string> = { '9:16': 'Vertical 9:16', '16:9': 'Horizontal 16:9', '1:1': 'Square 1:1', '4:5': 'Vertical 4:5' } // LOTE2-RESGATE-FIEL-2026-09-23
@@ -106,8 +199,12 @@ export async function POST(req: NextRequest) {
   try { loaded = await loadVerifiedCinematicClaim(args) }
   catch { return NextResponse.json({ error: 'Generation verification unavailable', retryable: false }, { status: 503 }) }
   if (!loaded.ok || !loaded.claim || !retryableSlot(loaded.claim, slot)) return refused()
-  const birth = loaded.claim, scene = signedScene(birth, slot)
-  if (!scene) return refused()
+  // KINEO-CENA-CLASSICA-2026-09-28 — motor clássico: o payload assinado; família hollywood: a cena assinada, como sempre.
+  const classic = CLASSIC.has(slot.model)
+  const signedNow = (claim: CinematicClaim) => classic ? signedClassic(claim, slot) : signedScene(claim, slot)
+  const birth = loaded.claim, scene = classic ? null : signedScene(birth, slot), classicScene = classic ? signedClassic(birth, slot) : null
+  if (!scene && !classicScene) return refused()
+  const signedAtBirth = JSON.stringify(signedNow(birth))
   const acquired = await acquireSceneRetryMutex({ ...args, quality: birth.quality, cost: birth.creditCost,
     sceneIndex: slot.index, oldRequestId: slot.oldRequestId, model: slot.model })
   if (acquired.kind !== 'acquired') {
@@ -117,28 +214,70 @@ export async function POST(req: NextRequest) {
       pending: true, generationId: args.generationId, retryable: false }, { status: acquired.kind === 'collision' ? 409 : 503 })
   }
   const mutex = acquired.mutex
-  let falPosted = false, accepted = false, acceptedRequestId: string | null = null
+  let falPosted = false, accepted = false, acceptedRequestId: string | null = null, classicClaimed = false
   const revalidate = async () => {
     const current = await loadVerifiedCinematicClaim(args)
     return current.ok && current.claim && retryableSlot(current.claim, slot) &&
       current.claim.quality === birth.quality && current.claim.creditCost === birth.creditCost &&
-      current.claim.fingerprint === birth.fingerprint && JSON.stringify(signedScene(current.claim, slot)) === JSON.stringify(scene)
+      current.claim.fingerprint === birth.fingerprint && JSON.stringify(signedNow(current.claim)) === signedAtBirth
+  }
+  // KINEO-CENA-CLASSICA-2026-09-28 — família clássica: SOLTAR o mutex, nunca prender (2 tentativas de liberação). Só se as
+  // duas falharem a fase fica anotada — e esse hold clássico o compose desfaz sozinho (lib/classicSceneRetry.ts).
+  const soltaClassica = async (resposta: () => NextResponse | Promise<NextResponse>, phase: 'ambiguous' | 'retarget_failed', requestId: string | null) => {
+    if (await releaseSceneRetryMutex(args, mutex) || await releaseSceneRetryMutex(args, mutex)) return await resposta()
+    await markSceneRetryHold(args, mutex, phase, requestId)
+    return support()
+  }
+  const notSubmitted = () => NextResponse.json({ error: 'Scene retry was not submitted.', retryable: false }, { status: 502 })
+  // O job PODE existir (ambíguo) ou existe sem retarget: a cena segue falhada no claim e o filme vai com as prontas. O
+  // evento é o único rastro do job órfão (e mede quantas vezes isto acontece); ESPERADO antes da resposta.
+  const unconfirmed = async (phase: 'ambiguous' | 'retarget_failed', requestId: string | null) => {
+    await writeServerEvent({ name: CLASSIC_UNCONFIRMED_EVENT, userId: birth.userId, path: '/api/retry-hollywood-scene', sessionId: args.generationId, metadata: { scene_index: slot.index, old_request_id: slot.oldRequestId, new_request_id: requestId, model: slot.model, phase, sanitize: body.sanitize === true } })
+    return NextResponse.json({ error: 'This scene could not be confirmed. The film continues with the scenes that are ready.',
+      sceneSkipped: true, retryable: false }, { status: 502 })
   }
   try {
     // Close stale pre-lock reads before either paid service. Recheck after the
     // optional rewrite too: it yields long enough for a birth to change.
-    if (!await revalidate()) return await releaseSceneRetryMutex(args, mutex) ? refused() : support()
-    const prompt = body.sanitize === true ? await softenPromptForModeration(scene.prompt) : scene.prompt
-    if (!await revalidate()) return await releaseSceneRetryMutex(args, mutex) ? refused() : support()
-    const requestId = await submitFalQueueOnce(slot.model, sceneInput(slot.model, scene, prompt), () => { falPosted = true })
+    if (!await revalidate()) return classic ? await soltaClassica(refused, 'ambiguous', null) : await releaseSceneRetryMutex(args, mutex) ? refused() : support()
+    if (classic) {
+      // KINEO-CENA-CLASSICA-2026-09-28 — o registro da tentativa nasce ANTES de qualquer gasto (OpenAI ou fal).
+      const tentativa = await claimClassicAttempt(args, slot, body.sanitize === true)
+      if (tentativa !== 'claimed') return await soltaClassica(tentativa === 'used' ? refused : notSubmitted, 'ambiguous', null)
+      classicClaimed = true
+    }
+    const sourcePrompt = classicScene ? classicScene.prompt : scene!.prompt
+    const prompt = body.sanitize === true ? await softenPromptForModeration(sourcePrompt) : sourcePrompt
+    if (!await revalidate()) {
+      if (classic) { await returnClassicAttempt(args, slot); return await soltaClassica(refused, 'ambiguous', null) }
+      return await releaseSceneRetryMutex(args, mutex) ? refused() : support()
+    }
+    const input = classicScene ? { ...classicScene.input, prompt } : sceneInput(slot.model, scene!, prompt)
+    const requestId = classic
+      ? await submitClassicWithDeadline(slot.model, input, () => { falPosted = true })
+      : await submitFalQueueOnce(slot.model, input, () => { falPosted = true })
     accepted = true
     acceptedRequestId = requestId
     const retargeted = await retargetCinematicRequestId({ ...args, index: slot.index, oldRequestId: slot.oldRequestId, newRequestId: requestId, model: slot.model })
-    if (!retargeted.ok) { await markSceneRetryHold(args, mutex, 'retarget_failed', requestId); return support() }
-    if (!await releaseSceneRetryMutex(args, mutex)) { await markSceneRetryHold(args, mutex, 'release_unconfirmed', requestId); return support() }
+    if (!retargeted.ok) {
+      if (!classic) { await markSceneRetryHold(args, mutex, 'retarget_failed', requestId); return support() }
+      // KINEO-CENA-CLASSICA-2026-09-28 — clássica: o retarget é idempotente (id novo já no claim = ok), então a 2ª chamada
+      // confirma uma 1ª que gravou sem responder, ou grava agora. Falhou de novo: o claim segue com a cena falhada e o job
+      // novo vira órfão — o filme não.
+      const deNovo = await retargetCinematicRequestId({ ...args, index: slot.index, oldRequestId: slot.oldRequestId, newRequestId: requestId, model: slot.model })
+      if (!deNovo.ok) return await soltaClassica(() => unconfirmed('retarget_failed', requestId), 'retarget_failed', requestId)
+    }
+    if (!await releaseSceneRetryMutex(args, mutex)) {
+      // KINEO-CENA-CLASSICA-2026-09-28 — clássica: o claim JÁ aponta para o job novo. 2ª tentativa de soltar; se falhar, a
+      // fase fica anotada e a resposta segue de SUCESSO — o cliente acompanha a cena nova e o compose desfaz o hold clássico.
+      if (!classic || !await releaseSceneRetryMutex(args, mutex)) {
+        await markSceneRetryHold(args, mutex, 'release_unconfirmed', requestId)
+        if (!classic) return support()
+      }
+    }
     // KINEO-CENA-PRESA-2026-09-22 — carimbo da ressubmissão: o relógio da "cena presa" (/api/cinematic-clip-status)
     // reinicia aqui, senão a cena nova seria declarada presa no poll seguinte. ESPERADO (void antes do return morre na Vercel).
-    await writeServerEvent({ name: HOLLYWOOD_SCENE_RETRIED_EVENT, userId: birth.userId, path: '/api/retry-hollywood-scene', sessionId: args.generationId, metadata: { scene_index: slot.index, old_request_id: slot.oldRequestId, new_request_id: requestId, model: slot.model, sanitize: body.sanitize === true } })
+    await writeServerEvent({ name: HOLLYWOOD_SCENE_RETRIED_EVENT, userId: birth.userId, path: '/api/retry-hollywood-scene', sessionId: args.generationId, metadata: { scene_index: slot.index, old_request_id: slot.oldRequestId, new_request_id: requestId, model: slot.model, sanitize: body.sanitize === true, family: classic ? 'classic' : 'hollywood' } })
     return NextResponse.json({ requestId, model: slot.model })
   } catch (error) {
     // Generic exceptions after the POST, 408, 5xx, transport failures and a
@@ -147,6 +286,15 @@ export async function POST(req: NextRequest) {
     // KINEO-FAL-SALDO-ALERTA-2026-09-28 — a retentativa de cena recusada por saldo era mais um 502 mudo. Mesma classe
     // de sceneDisposition (403 de acesso NÃO é saldo); o alarme nunca lança e tem teto de 3 s.
     if (explicitRejection && looksExhausted(error as FalQueueSubmitError)) await alertFalExhausted({ source: 'retry_scene', engine: slot.model, userId: args.userId, generationId: args.generationId })
+    if (classic) {
+      // KINEO-CENA-CLASSICA-2026-09-28 — nenhum job (recusa explícita, ou saída antes do POST): o registro volta e a 2ª
+      // rodada (suavizada) segue possível. Job possível (ambíguo) ou aceito sem retarget: o registro FICA — nenhum 2º POST
+      // para esta cena falhada — e o mutex é solto; o filme segue com as cenas prontas.
+      const semJob = !falPosted || explicitRejection
+      if (semJob && classicClaimed) await returnClassicAttempt(args, slot)
+      const phase = accepted ? 'retarget_failed' : 'ambiguous'
+      return await soltaClassica(semJob ? notSubmitted : () => unconfirmed(phase, acceptedRequestId), phase, acceptedRequestId)
+    }
     if (!falPosted || explicitRejection) {
       if (await releaseSceneRetryMutex(args, mutex)) return NextResponse.json({ error: 'Scene retry was not submitted.', retryable: false }, { status: 502 })
     }

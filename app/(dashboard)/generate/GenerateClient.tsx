@@ -4933,7 +4933,9 @@ export default function GenerateClient({
                     prompt: p,
                     anchorUrl: sceneAnchorsRef.current[fi] ?? null,
                     seconds: sceneSecondsRef.current[fi] ?? 10,
-                    model: falModelsRef.current[fi] ?? undefined,
+                    // KINEO-CENA-CLASSICA-2026-09-28 — resposta sem fal_models (motor único): o modelo do filme; o servidor
+                    // confere contra o claim assinado (slot com outro modelo = 409), então o fallback nunca troca de motor.
+                    model: falModelsRef.current[fi] ?? (falModelRef.current || undefined),
                     // KINEO-H3-AUDIT2-2026-08-20 — o servidor RETARGETA o claim
                     // assinado pro request id novo; sem isso o próximo poll
                     // morria em 404 (ids do poll ≠ ids do claim).
