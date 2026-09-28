@@ -319,7 +319,7 @@ const advStubs = {
     submitSceneImage: async (scene) => { prov.submits.push({ model: T.ADS_V2_SCENE_IMAGE_SLUG, input: scene, rowsAtPost: currentTables.ads_v2_shots.map((r) => ({ ...r })) }); return { kind: 'accepted', requestId: 'img-1', posts: 1 } },
   },
 }
-const A = makeLoader(advStubs, { timers: fastTimers, real: ['lib/ads/v2Engines.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/adV2Montage.ts'] })('lib/ads/v2Advance.ts')
+const A = makeLoader(advStubs, { timers: fastTimers, real: ['lib/ads/v2Engines.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/adV2Montage.ts', 'lib/ads/v2Music.ts'] })('lib/ads/v2Advance.ts')
 
 const PH = 'https://x.supabase.co/storage/v1/object/public/user-footage/u/'
 const photos = [
