@@ -73,9 +73,9 @@ check('R2 sem acesso ao Studio Ads (adsGate ≠ ok) → /ads?from=v2, com rastro
   const b = bloco(page, "if (gate !== 'ok')")
   return /const gate = adsGate\(reason\)/.test(page) && /name: 'ads_access_denied'/.test(b) && /redirect\('\/ads\?from=v2'\)/.test(b)
 })
-check('R3 sem o v2 (adsV2Visible com o e-mail VERIFICADO do auth) → /ads/new', /if \(!adsV2Visible\(user\.email\)\) redirect\('\/ads\/new'\)/.test(page))
+check('R3 sem o v2 (adsV2Visible com o e-mail VERIFICADO do auth) → /ads/new, conferido UMA vez só (depois do acesso)', /if \(!adsV2Visible\(user\.email\)\) redirect\('\/ads\/new'\)/.test(page) && (page.match(/adsV2Visible\(/g) || []).length === 1)
 check('R4 ordem das portas: login → acesso ao Ads → v2 → desenho da tela', ordem(page, 'if (!user) redirect(', "if (gate !== 'ok')", 'if (!adsV2Visible(user.email))', '<AdsV2Client'))
-check('R5 página dinâmica e saldo que falha vira null (nunca 0)', /export const dynamic = 'force-dynamic'/.test(page) && /balance = null/.test(page) && !/balance = 0\b/.test(page))
+check('R5 página dinâmica e saldo que falha vira null (nunca 0)', /export const dynamic = 'force-dynamic'/.test(page) && /balance = !prof\.error && prof\.data && Number\.isFinite\(n\) \? n : null/.test(page) && /\} catch \{\n    balance = null\n  \}/.test(page) && !/balance = 0\b/.test(page))
 
 // ── I. fronteira servidor/cliente ───────────────────────────────────────────────────────────────
 const importsClient = [...rd(F.client).matchAll(/^import[\s\S]*?from '([^']+)'/gm)].map((m) => m[1])
