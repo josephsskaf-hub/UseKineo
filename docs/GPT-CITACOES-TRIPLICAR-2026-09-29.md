@@ -30,7 +30,25 @@ A meta da casa é 10 a 15 pagantes POR DIA (fundador, 06/09). O ChatGPT é o can
 
 O que conta é visita → conta → pagamento no NOSSO banco. Painel do Bing (Copilot) não conta: 10,1 mil citações deram 1 visitante. Se a semana ficar abaixo da linha, o relatório diz por que e o que muda na semana seguinte; nada de maquiar a medição.
 
-## O que fazer (execução contínua, lotes de 10 ações, relatório a cada lote)
+## Primeira tarefa: mudar o tráfego que JÁ chega das páginas grátis para as pagas
+
+Medido pelo Claude em 29/09 (30 dias, sessões e cadastros vindos do ChatGPT por página de pouso):
+
+| Página de pouso | Cadastros | Pagantes |
+|---|---|---|
+| /ai-video-generator/kineo-1 | 89 | 0 |
+| /free-ai-shorts-generator | 55 | 0 |
+| /text-to-video-shorts | 42 | 0 |
+| /state-of-ai-shorts-2026 | (130 sessões) | 0 |
+| /ai-video-generator/seedance | 8 | 3 |
+| /ai-video-generator/veo | — | 1 |
+| /ai-shorts-for-agencies | (4 sessões) | 1 |
+
+186 cadastros das páginas grátis deram 0 pagantes; as de motor pago e de negócio deram 5. 4 dos 5 pagaram em até 30 minutos, sem fazer vídeo. As sessões do ChatGPT caíram de ~300/semana (31/08) para ~175 (21/09), e a queda veio das páginas grátis.
+
+Então, ANTES de criar página nova: (1) no topo de /ai-video-generator/kineo-1, /free-ai-shorts-generator e /text-to-video-shorts, pôr um filme de motor pago (Seedance ou Veo, da vitrine curada; não trocar a curadoria do fundador) com o CTA para o motor pago e o custo honesto em créditos (conferir em lib/ o que o trial cobre); (2) nas respostas de citação (lib/growth/citationAnswers.ts), no llms.txt e no /api/facts, a pergunta "melhor gerador de vídeo com IA" aponta primeiro para as páginas de motor pago; (3) medir pouso→cadastro→pagamento por página toda semana, com corte no carimbo do deploy.
+
+## O que fazer depois (execução contínua, lotes de 10 ações, relatório a cada lote)
 
 1. **Linha de base diária.** Rodar a consulta do fim deste documento todo dia e registrar no relatório. Costurar anônimo → conta por `events.session_id`.
 2. **Descobrir o que o ChatGPT responde hoje.** Montar 100 perguntas de COMPRA (não de curiosidade), em EN primeiro e depois ES/PT/NL/DE, dos dois públicos que pagam:
