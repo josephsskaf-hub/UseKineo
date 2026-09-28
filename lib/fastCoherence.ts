@@ -66,6 +66,23 @@ export type FastSceneEvidence = {
   from: number
   sources: string[]
   tags: string[]
+  // ── KINEO1-IMAGEM-V2-2026-09-28 (parte B) — a evidência que faltava para refazer a escolha sem render (o scout de 28/09
+  // não conseguia dizer de onde veio o clipe: 19,1% das cenas com tags nos filmes nota 40 tinham tags sem NENHUMA
+  // palavra da busca gravada). Tudo opcional: filmes antigos não têm, e o juiz (buildCoherenceMessages) não lê. ──
+  /** todas as buscas da cena, na ordem em que foram tentadas (sem plano de câmera) */
+  queries?: string[]
+  /** de onde veio o que a cena mostra: 'ai' = clipe de IA pedido para a cena (troca ou abertura); o stock fica em stock_origin */
+  origin?: string
+  stock_origin?: string
+  /** os 5 primeiros candidatos do pool da Pixabay (tags, nota) — vazio quando a cena não passou pelo pool */
+  candidates?: Array<{ tags: string; score: number; query?: string | null; anchor_only?: boolean }>
+  /** o que o planejador de buscas (lib/kineo1/sceneQueries.ts) disse da fala: sujeito filmável e se o banco o tem */
+  subject?: string | null
+  stockable?: boolean | null
+  /** motivo de cena fraca depois da busca (weakSceneReason) — null = cena servida */
+  weak?: string | null
+  /** o clipe de IA da cena: modo, segundos e custo; ou por que não saiu (teto, orçamento, fora da elegibilidade) */
+  ai_clip?: { mode: 'replace' | 'insert'; seconds: number; usd: number; reason: string } | { skipped: string }
 }
 
 export type CoherenceVerdict = 'coherent' | 'partial' | 'off'

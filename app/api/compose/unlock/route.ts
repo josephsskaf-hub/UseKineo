@@ -19,6 +19,7 @@ import { narrationLanguage } from '@/lib/textLanguage' // LOTE2-EXPORT-LIMPO-FIE
 import { normalizeAspect } from '@/lib/aspect' // LOTE2-EXPORT-LIMPO-FIEL-2026-09-23
 import { salvageScriptNarration, stripScriptMarkers } from '@/lib/scriptParser'
 import { selectMusicForScript } from '@/lib/musicScore'
+import { grafiaDoRoteiro } from '@/lib/captionScriptSpelling' // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28
 // KINEO-CREDIT-INTENT-2026-07-11 — record the engine + intended cost for the
 // clean re-render so /api/compose/status bills it from the server-side intent
 // (not the client ?quality param), exactly like /api/compose does.
@@ -588,7 +589,9 @@ export async function POST(req: NextRequest) {
         // (o protocolo do unlock não muda um byte).
         quality: rebuildQuality,
         realAudioDuration,
-        whisperWords,
+        // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28 — o export limpo PAGO mostra a marca como o roteiro escreve, igual à
+        // prévia do /api/compose (o TTS daqui sempre lê scaledScript). Sem isto a versão paga voltaria com a marca errada.
+        whisperWords: whisperWords ? grafiaDoRoteiro(whisperWords, scaledScript) : whisperWords,
         musicUrl,
         // Paid means a genuinely clean MP4: no watermark and no promotional
         // end card. This matches the public pricing promise.

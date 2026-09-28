@@ -211,8 +211,48 @@ export const IMAGE_URL_RE = /\.(png|jpe?g|webp)(\?|#|$)/i
 const PAPEIS_DE_FAMILIA = new Set(['papa', 'mama', 'mom', 'mommy', 'mum', 'mummy', 'dad', 'daddy', 'grandma', 'grandpa', 'granny', 'nana', 'auntie', 'uncle'])
 export const CHARACTER_STORY_MAX_STILLS = 8
 
+// ═══ KINEO1-IMAGEM-V2-2026-09-28 — characterStoryName v2 (INERTE: só com { v2: true }) ═══
+//
+// Medido no evento fast_ai_still de 19 a 27/09 (61 filmes do Kineo 1 marcados como "história com personagem"): o
+// detector chamou de personagem Google (6 filmes), Earth (5), Moon (3), Singapore (3), Your (2), France (2),
+// Lantana (2), Mars (2), Iran, Kawasaki, Mustang, Titanic, Bermuda, Okavango, Howrah, Australian, Sentinelese, New
+// (York), Los (separaron), Alimentar, More, Prepare, Program, Dinner, Player, Snake, Starvation, Sunlight e Hypnosis.
+// Personagem liga o modo ficção (stock só com a cabeça como tag EXATA), sobe o teto de stills para 6-8 e tira o
+// filme do cofre. Em não-ficção isso deu: o filme de notícias de IA com a borboleta da tag "new" (a busca "news…"
+// passou pelo plural do modo ficção), o filme da Lantana com a floresta reciclada, e foto parada onde o fundador
+// pediu vídeo (21/09). Duas regras, derivadas desses 61 filmes:
+//   1. o nome tem de aparecer NO MEIO de uma frase pelo menos uma vez. Palavra que só abre frase é abertura, não
+//      nome: "Your brain…", "More networks. More connections.", "Prepare to be…", "Starvation. Dehydration.",
+//      "Dinner Lady: …", "Los separaron…", "Alimentar a nuestras…" (e a cena depois de ":" também abre frase);
+//   2. lugar, astro, marca/produto, gentílico, título e substantivo comum capitalizado não são personagem
+//      (NAO_PERSONAGEM): os que aparecem no meio da frase — "medieval France", "the Moon", "on Mars", "in Iran",
+//      "The Bermuda Triangle", "the RMS Titanic", "The new Mustang", "This $6,999 Kawasaki", "Lantana camara".
+// Nos 61 filmes, o v2 solta 46 e mantém 15. Continuam personagem: Emily, Mimi, Dodi, Maria, Kevin, Naruto, Invincible
+// (o filme do Tung Tung Tung Sahur — ficção), Wojtek (o urso), e gente real que o
+// stock não tem e aparece no meio da frase (Bezos, Verstappen, Yang Guifei, Mesmer, o sultão Khalid) — o critério de
+// 16/09 ("quando repetem, o still também é melhor que o stock") segue valendo para eles. A contagem ≥ 2 e os papéis
+// de família (Papa, Mom…) não mudaram. Trechos dos textos reais em scripts/test-kineo1-imagem-v2-2026-09-28.mjs.
+const NAO_PERSONAGEM = new Set([
+  // astros e lugares (os do evento + os mais comuns em filme de fatos)
+  'Earth', 'Moon', 'Mars', 'Sun', 'Venus', 'Jupiter', 'Saturn', 'Mercury', 'Neptune', 'Uranus', 'Pluto', 'Galaxy', 'Universe', 'Space',
+  'Africa', 'Asia', 'Europe', 'America', 'Americas', 'Antarctica', 'Arctic', 'Atlantic', 'Pacific', 'Mediterranean', 'Caribbean', 'Sahara', 'Amazon', 'Himalayas', 'Everest', 'Alps', 'Nile',
+  'France', 'Singapore', 'Iran', 'India', 'China', 'Japan', 'Russia', 'Brazil', 'Mexico', 'Canada', 'Germany', 'Italy', 'Spain', 'Portugal', 'Egypt', 'Australia', 'Korea', 'Vietnam', 'Thailand', 'Indonesia', 'Turkey', 'Greece', 'Israel', 'Ukraine', 'Pakistan', 'Nigeria', 'Kenya', 'Peru', 'Chile', 'Argentina', 'Colombia', 'Cuba', 'Iraq', 'Syria', 'Afghanistan', 'Poland', 'Sweden', 'Norway', 'Finland', 'Denmark', 'Netherlands', 'Holland', 'Belgium', 'Switzerland', 'Austria', 'Ireland', 'Scotland', 'England', 'Britain', 'Wales', 'Iceland', 'Morocco', 'Ethiopia', 'Zanzibar', 'Nepal', 'Tibet', 'Mongolia', 'Philippines', 'Malaysia', 'Dubai', 'Qatar', 'Arabia',
+  'Paris', 'London', 'Tokyo', 'Rome', 'Berlin', 'Moscow', 'Beijing', 'Shanghai', 'Madrid', 'Lisbon', 'Venice', 'Chicago', 'Boston', 'Miami', 'Seattle', 'Vegas', 'Hollywood', 'Manhattan', 'Brooklyn', 'Kolkata', 'Mumbai', 'Delhi', 'Howrah', 'Bermuda', 'Okavango', 'Silverstone', 'Wimbledon', 'Hawaii', 'Alaska', 'Texas', 'California', 'Florida', 'Siberia', 'Chernobyl', 'Pompeii',
+  'New', 'Los', 'Las', 'San', 'Santa', 'Saint', 'Mount', 'Lake', 'River', 'Cape', 'Port', 'Fort', 'North', 'South', 'East', 'West', 'Northern', 'Southern', 'Eastern', 'Western', 'Central', 'Great', 'United', 'States', 'Kingdom', 'Republic', 'Island', 'Islands', 'Bay', 'Gulf', 'Sea', 'Ocean', 'Valley', 'Desert', 'Triangle', 'Bridge', 'Tower', 'Palace', 'Castle', 'Street', 'City', 'Park', 'Museum', 'University', 'Station', 'Building', 'Buildings', 'Borehole', 'York', 'Kola', 'Pentagon', 'Kremlin', 'Vatican', 'Congress', 'Senate', 'Parliament',
+  // marcas e produtos
+  'Google', 'Apple', 'Microsoft', 'Tesla', 'Meta', 'Facebook', 'Instagram', 'Youtube', 'Tiktok', 'Netflix', 'Samsung', 'Toyota', 'Honda', 'Ford', 'Ferrari', 'Porsche', 'Lamborghini', 'Mercedes', 'Nike', 'Adidas', 'Disney', 'Starbucks', 'Kawasaki', 'Yamaha', 'Harley', 'Mustang', 'Corvette', 'Grammarly', 'Canva', 'Jasper', 'Gemini', 'Nvidia', 'Intel', 'Sony', 'Nintendo', 'Boeing', 'Airbus', 'Titanic', 'Bitcoin', 'Ethereum', 'Coca', 'Cola', 'Pepsi', 'Walmart', 'Uber', 'Airbnb', 'Spotify', 'Twitter', 'Reddit', 'Linkedin', 'Whatsapp', 'Android', 'Windows', 'Lego', 'Rolex', 'Gucci', 'Chanel', 'Ikea', 'Starlink', 'Falcon', 'Flash', 'Lite', 'Claude', 'Chatgpt', 'Anthropic', 'Curiosity', 'Phoenix', 'Rover', 'Lander', 'Voyager', 'Apollo', 'Hubble',
+  // gentílicos e povos
+  'American', 'Americans', 'British', 'English', 'French', 'Chinese', 'Japanese', 'Indian', 'Indians', 'Russian', 'German', 'Italian', 'Spanish', 'Brazilian', 'Mexican', 'African', 'European', 'Asian', 'Arab', 'Arabic', 'Roman', 'Romans', 'Greek', 'Greeks', 'Egyptian', 'Egyptians', 'Australian', 'Australians', 'Canadian', 'Korean', 'Persian', 'Iranian', 'Iranians', 'Polish', 'Irish', 'Scottish', 'Dutch', 'Swiss', 'Swedish', 'Norse', 'Viking', 'Vikings', 'Soviet', 'Soviets', 'Nazi', 'Nazis', 'Sentinelese', 'Mayan', 'Maya', 'Aztec', 'Aztecs', 'Inca', 'Incas', 'Christian', 'Christians', 'Muslim', 'Muslims', 'Jewish', 'Buddhist', 'Hindu', 'Catholic', 'Latin',
+  // títulos (o NOME que vem depois continua contando: "Sultan Khalid" → Khalid)
+  'Sultan', 'King', 'Queen', 'Emperor', 'Empress', 'President', 'Prince', 'Princess', 'Pope', 'General', 'Captain', 'Doctor', 'Lord', 'Lady', 'Sir', 'Mister', 'Madame', 'Professor', 'Chief', 'Pharaoh', 'Czar', 'Tsar', 'Shah', 'Duke', 'Major', 'Sergeant', 'Colonel', 'Private', 'Commander', 'Admiral', 'Senator', 'Governor', 'Mayor', 'Judge', 'Officer', 'Agent', 'Detective',
+  // substantivo comum capitalizado (os do evento) e eras/eventos/datas
+  'Your', 'More', 'Dinner', 'Program', 'Prepare', 'Starvation', 'Sunlight', 'Hypnosis', 'Player', 'Snake', 'Lantana', 'Alimentar', 'Commentator', 'Manager', 'Follow', 'Subscribe', 'Discover', 'Chapter', 'Part', 'Step', 'Fact', 'Number', 'Level', 'Science', 'History', 'Nature', 'Internet', 'Artificial', 'Intelligence', 'Energy', 'God', 'Heaven', 'Hell', 'Giant',
+  'War', 'World', 'Battle', 'Revolution', 'Dynasty', 'Empire', 'Olympics', 'Christmas', 'Easter', 'Halloween', 'Thanksgiving', 'Ramadan', 'Diwali', 'Depression', 'Renaissance', 'Tang', 'Ming', 'Qing', 'Cold',
+  'January', 'February', 'March', 'April', 'June', 'July', 'August', 'September', 'October', 'November', 'December', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+])
+
 /** Nome do personagem quando o texto é uma história com personagens; null caso contrário. */
-export function characterStoryName(text: string | null | undefined): string | null {
+export function characterStoryName(text: string | null | undefined, opts?: { v2?: boolean }): string | null {
   const t0 = (text ?? '').replace(/\s+/g, ' ').trim()
   if (!t0) return null
   // Cada frase conta uma vez (o prompt do Kineo 1 repete as falas do roteiro).
@@ -221,15 +261,29 @@ export function characterStoryName(text: string | null | undefined): string | nu
     .split(/(?<=[.!?…])\s+/)
     .filter((f) => { const k = f.trim().toLowerCase(); if (!k || vistas.has(k)) return false; vistas.add(k); return true })
     .join(' ')
+  const v2 = opts?.v2 === true // KINEO1-IMAGEM-V2-2026-09-28 — ver o cabeçalho acima
   const counts = new Map<string, number>()
-  for (const raw of t.split(' ')) {
+  const noMeio = new Set<string>()
+  const toks = t.split(' ')
+  for (let i = 0; i < toks.length; i++) {
+    const raw = toks[i]
     const w = raw.replace(/^[("'“‘]+|[)"'”’,.;:!?…]+$/g, '').replace(/['’]s$/, '')
     if (PAPEIS_DE_FAMILIA.has(w.toLowerCase())) return w
-    if (/^[A-Z][a-z]{2,}$/.test(w) && !STOP.has(w)) counts.set(w, (counts.get(w) ?? 0) + 1)
+    if (/^[A-Z][a-z]{2,}$/.test(w) && !STOP.has(w)) {
+      if (v2 && NAO_PERSONAGEM.has(w)) continue
+      counts.set(w, (counts.get(w) ?? 0) + 1)
+      // v2 — abre frase: início do texto, ou o token anterior termina em . ! ? … : (com aspas/parênteses depois).
+      // E a ocorrência do meio tem de FECHAR o nome: seguida de outra palavra capitalizada, é pedaço de nome de
+      // coisa/lugar ("Muse Realtime Avatar", "Kola Superdeep Borehole", "Chrysler Building"); nome de gente fecha a
+      // sequência ("Jeff Bezos does", "Max Verstappen se", "Milo and Mimi begin").
+      const abreFrase = i === 0 || /[.!?…:]["'”’)\]]*$/.test(toks[i - 1])
+      const fechaNome = /[,.;:!?…)"”’]$/.test(raw) || !/^[("'“‘]*[A-Z]/.test(toks[i + 1] ?? '')
+      if (v2 && !abreFrase && fechaNome) noMeio.add(w)
+    }
   }
   let best: string | null = null
   let bestN = 0
-  for (const [w, n] of counts) if (n >= 2 && n > bestN) { best = w; bestN = n }
+  for (const [w, n] of counts) if (n >= 2 && n > bestN && (!v2 || noMeio.has(w))) { best = w; bestN = n }
   return best
 }
 

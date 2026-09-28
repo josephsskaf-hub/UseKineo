@@ -131,15 +131,35 @@ async function sendWebhook(subject: string, text: string): Promise<ChannelResult
   }
 }
 
+export type AlertChannel = 'email' | 'webhook'
+
+export interface NotifyOptions {
+  /**
+   * KINEO-FAL-CANAL-A-CANAL-2026-09-28 — avisado assim que CADA canal termina, antes do outro. Quem tem teto próprio
+   * (lib/falAlert, 3 s) não pode esperar o canal mais lento para saber que o e-mail já saiu. Nunca lança para dentro.
+   */
+  onChannel?: (channel: AlertChannel, result: ChannelResult) => void
+}
+
 /**
  * Dispara o alerta em TODOS os canais configurados, em paralelo.
  *
  * Paralelo de propósito: em série, um Resend travado até o timeout atrasaria o
  * webhook em 8s — e o webhook é justamente o canal que existe para o caso do
  * e-mail estar indisponível.
+ *
+ * KINEO-FAL-CANAL-A-CANAL-2026-09-28 — o retorno segue esperando os dois canais (o cron quer o desfecho completo),
+ * mas `opts.onChannel` avisa canal a canal. Achado da revisão: o alarme da fal tem teto de 3 s e esperava o
+ * Promise.all inteiro — Resend 200 em 50 ms + ntfy em 4 s virava 'timeout', e o e-mail que JÁ tinha chegado era
+ * re-enviado até 3 vezes na janela, com o painel dizendo "0 e-mails".
  */
-export async function notifyFounder(subject: string, text: string): Promise<NotifyResult> {
-  const [email, webhook] = await Promise.all([sendEmail(subject, text), sendWebhook(subject, text)])
+export async function notifyFounder(subject: string, text: string, opts: NotifyOptions = {}): Promise<NotifyResult> {
+  const avisa = (channel: AlertChannel, envio: Promise<ChannelResult>): Promise<ChannelResult> =>
+    envio.then((result) => {
+      try { opts.onChannel?.(channel, result) } catch { /* o aviso é do chamador; o alarme não pode cair por ele */ }
+      return result
+    })
+  const [email, webhook] = await Promise.all([avisa('email', sendEmail(subject, text)), avisa('webhook', sendWebhook(subject, text))])
   const delivered = email === 'sent' || webhook === 'sent'
   if (!delivered) {
     // Último recurso legível: o log de runtime da Vercel. Não substitui um

@@ -7,8 +7,13 @@ import Footer from '@/components/Footer'
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
 // de tabela publicando um valor que o checkout não cobrava mais.
 import { STARTER_PRICE } from '@/lib/marketingPrice'
+import { AVATAR_PUBLIC } from '@/lib/engineLaunch'
 
 export const metadata: Metadata = {
+  // KINEO-AVATAR-FORA-2026-09-28 — o Avatar saiu do catálogo público (fundador 27/09: "avatar sai por hora"): a
+  // página fica no ar para quem tem o link, mas pede noindex (follow mantido) e saiu do sitemap e do rodapé.
+  // O canonical fica: é a URL que volta a ser indexada no dia do AVATAR_PUBLIC=true.
+  ...(AVATAR_PUBLIC ? {} : { robots: { index: false, follow: true } }),
   title: 'AI Avatar Video — your face, speaking any script | Kineo',
   description:
     'Upload one photo and get a 720p lip-synced video of that person speaking your script — with footage, captions and music. No camera, no editing. From ' + STARTER_PRICE + '.',

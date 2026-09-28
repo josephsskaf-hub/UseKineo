@@ -1,6 +1,6 @@
 // Shared data for the engine page, hub and sitemap. Route modules export only Next-supported names.
 // Mechanical extraction for CITACOES-01; existing content and feature gates are preserved.
-import { S25_PUBLIC } from '@/lib/engineLaunch'
+import { S25_PUBLIC, AVATAR_PUBLIC } from '@/lib/engineLaunch'
 import { getFreeTierOffer, swapFreeTierCopy as ft, trialFilmsForEngine, TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
 import { STARTER_MONTH, MARKETING_REFERENCE_SECONDS, creditsPerReferenceVideo, videosPerMonth } from '@/lib/marketingPrice'
 import type { EngineLandingParam } from '@/lib/growth/engineLandingIntent'
@@ -172,10 +172,19 @@ export const ENGINES: Record<string, Engine> = {
         q: 'Can Kling 3 make a character speak on camera?',
         a: 'Yes — that is the reason it exists in the catalogue. Kling 3 renders dialogue scenes with a native generated voice and lip sync, so you can build a talking-head channel without ever filming yourself.',
       },
-      {
-        q: 'Can I keep the same face across every video?',
-        a: 'Yes. Character Lock saves a presenter and reuses the exact same face across renders and thumbnails, so a channel keeps one recognisable host.',
-      },
+      // KINEO-AVATAR-FORA-2026-09-28 (revisão 2) — o Character Lock é ferramenta do Avatar Studio e saiu do catálogo
+      // junto com o Avatar (pricing e kineoFacts já não vendem). A página do Kling 3 ainda prometia "Yes. Character Lock
+      // saves a presenter". Sem o interruptor, a resposta diz o que o motor FAZ: um retrato-âncora por filme
+      // (lib/hollywood/anchors.ts semeia toda cena de diálogo com ele) e nenhum rosto salvo entre vídeos no catálogo.
+      AVATAR_PUBLIC
+        ? {
+            q: 'Can I keep the same face across every video?',
+            a: 'Yes. Character Lock saves a presenter and reuses the exact same face across renders and thumbnails, so a channel keeps one recognisable host.',
+          }
+        : {
+            q: 'Does the character keep the same face across the film?',
+            a: 'Within one film, that is the job of the anchor: before any scene is rendered, Kineo generates one portrait of the character and starts every dialogue scene from it, so the face and outfit stay the same scene to scene. Saving a face to reuse across separate videos is not part of the catalogue today.',
+          },
     ],
   },
   // KINEO-H3-2026-08-19 — pagina propria do motor novo. Estas paginas sao a

@@ -30,7 +30,13 @@ ok(html.includes('without narration'),'clip does not promise film narration')
 studio.click('Film');html=studio.render();equal(studio.state.scriptMode,'ai','real Film handler')
 equal(studio.state.prompt,'A lighthouse in a storm','mode change preserves input')
 studio.state.scriptMode='verbatim';studio.render();studio.click('Film');equal(studio.state.scriptMode,'verbatim','film tab preserves own script mode')
-for(const href of ['/avatar','/animate'])ok(html.includes(`href="${href}"`),'existing dedicated mode '+href)
+// KINEO-AVATAR-FORA-2026-09-28 — re-ancorada: exigia href="/avatar" no Studio de qualquer conta. O fundador tirou o
+// Avatar do catálogo público em 27/09 ("avatar sai por hora"): o link "AI Presenter" só aparece com avatarOn
+// (AVATAR_PUBLIC || flag `avatar` do /api/me/credits). /animate segue obrigatório; /avatar vira ausente para o
+// público e presente para a conta da casa — as duas metades rodam o StudioClient real.
+ok(html.includes('href="/animate"'),'existing dedicated mode /animate')
+ok(!html.includes('href="/avatar"'),'AI Presenter mode link hidden for a public account (AVATAR_PUBLIC=false)')
+ok(page('app/(dashboard)/studio/StudioClient.tsx',{prompt:'A lighthouse in a storm',balance:100,avatarOn:true}).render().includes('href="/avatar"'),'internal account (avatar flag) still sees the AI Presenter mode link')
 const videos=[{id:'completed-demo',title:'Lighthouse story',status:'completed',video_url:'/demo.mp4',thumbnail_url:null},{id:'pending-demo',title:'Forest story',status:'processing',video_url:null,thumbnail_url:null},{id:'failed-demo',title:'Ocean story',status:'failed',video_url:null,thumbnail_url:null}]
 const library=page('app/(dashboard)/library/LibraryClient.tsx',{loaded:true,vids:videos,imgs:[{id:'image-demo',url:'/demo.webp',model:'Demo image'}],auds:[{id:'audio-demo',url:'/demo.mp3',text:'Demo voice',model:'Demo audio'}]})
 html=library.render()

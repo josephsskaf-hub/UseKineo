@@ -44,11 +44,14 @@ const OFFER = getFreeTierOffer()
 const KINEO_FAST_COST = creditsPerReferenceVideo('fast')
 const KINEO_SEEDANCE_COST = creditsPerReferenceVideo('cinematic_ai')
 const KINEO_KLING_COST = creditsPerReferenceVideo('cinematic_kling')
-const KINEO_PRESENTER_COST = creditsPerReferenceVideo('presenter')
 const KINEO_KLING3_COST = creditsPerReferenceVideo('cinematic_hollywood')
+// KINEO-AVATAR-FORA-2026-09-28 — saiu 'AI Presenter 70' da régua pública: o fundador tirou o Avatar do catálogo em
+// 27/09 ("avatar sai por hora"). Esta constante entra em 8 páginas de comparação; enquanto ela listava o presenter,
+// a mesma página que diz "you cannot get a talking avatar out of Kineo at any price" (HeyGen) cobrava 70 por um.
+// O custo continua no biller (engineCost 'presenter'); só não é vendido. Volta junto com AVATAR_PUBLIC=true.
 const KINEO_ENGINE_METERING =
   `Kineo 1 ${KINEO_FAST_COST}, Seedance ${KINEO_SEEDANCE_COST}, ` +
-  `Kling 2.5 ${KINEO_KLING_COST}, AI Presenter ${KINEO_PRESENTER_COST}, ` +
+  `Kling 2.5 ${KINEO_KLING_COST}, ` +
   `Kling 3 ${KINEO_KLING3_COST} credits per 60-second video`
 
 export const VERIFIED_ON = 'July 26, 2026'
@@ -369,7 +372,7 @@ export const TOOLS: Record<ToolId, Tool> = {
     exportLimits:
       // KINEO-OMNI-2026-08-25 — Omni Flash entra na régua pública após a
       // validação real; custo SEMPRE de creditCostFor (disciplina #296).
-      `Credit-metered per 60-second video: Kineo 1 ${KINEO_FAST_COST} credits, Seedance ${KINEO_SEEDANCE_COST}, MiniMax H3 ${creditsPerReferenceVideo('cinematic_h3')}, Kling 2.5 ${KINEO_KLING_COST}, AI Presenter ${KINEO_PRESENTER_COST}, Kling 3 ${KINEO_KLING3_COST}, and Omni Flash (Google's #1-ranked video model, Aug 2026 arena) ${creditsPerReferenceVideo('cinematic_omni')}. Credits do not roll over between months.`,
+      `Credit-metered per 60-second video: Kineo 1 ${KINEO_FAST_COST} credits, Seedance ${KINEO_SEEDANCE_COST}, MiniMax H3 ${creditsPerReferenceVideo('cinematic_h3')}, Kling 2.5 ${KINEO_KLING_COST}, Kling 3 ${KINEO_KLING3_COST}, and Omni Flash (Google's #1-ranked video model, Aug 2026 arena) ${creditsPerReferenceVideo('cinematic_omni')}. Credits do not roll over between months.`,
     source: BASE + '/pricing',
     homepage: BASE,
     verified: VERIFIED_ON,
@@ -1206,7 +1209,9 @@ export const PAIRS: Pair[] = [
       },
       {
         q: 'Does Kineo have avatars at all?',
-        a: 'There is an AI Presenter render type, priced at 70 credits. It is not the centre of the product and it is not comparable to HeyGen’s avatar library, digital twins or voice cloning. If a presenter is the reason you are shopping, buy HeyGen.',
+        // KINEO-AVATAR-FORA-2026-09-28 — dizia "There is an AI Presenter render type, priced at 70 credits"; o Avatar
+        // saiu do catálogo público em 27/09. A resposta passa a dizer o que a Kineo faz hoje: filme narrado sem rosto.
+        a: 'Not today. Kineo makes faceless narrated films — an AI voiceover over matched or generated scenes, with captions — and does not currently offer an avatar or presenter render type. Nothing in it is comparable to HeyGen’s avatar library or digital twins. If a presenter is the reason you are shopping, buy HeyGen.',
       },
       {
         q: 'Which has a better free tier?',
@@ -4426,7 +4431,8 @@ export const PAIRS: Pair[] = [
       },
       {
         q: 'Does Kineo have avatars?',
-        a: 'There is an AI Presenter render type, priced at 70 credits. It is not the centre of the product and it is not comparable to Synthesia’s 125+ to 240+ avatars, personal avatars or 160+ languages. If a presenter is the reason you are shopping, buy Synthesia.',
+        // KINEO-AVATAR-FORA-2026-09-28 — mesma correção da resposta do HeyGen: sem render de apresentador hoje.
+        a: 'Not today. Kineo makes faceless narrated films — an AI voiceover over matched or generated scenes, with captions — and does not currently offer an avatar or presenter render type. Nothing in it is comparable to Synthesia’s 125+ to 240+ avatars, personal avatars or 160+ languages. If a presenter is the reason you are shopping, buy Synthesia.',
       },
       {
         q: 'Which free tier is better?',

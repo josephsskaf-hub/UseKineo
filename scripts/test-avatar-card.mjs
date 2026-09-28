@@ -29,5 +29,10 @@ check('sem claim de resolucao no card do Avatar', !cardBlock.includes('1080p'))
 // nao virou EngineKey — o fluxo de cobrança do Studio continua intocado
 check("EngineKey continua sem 'avatar'", src.includes("type EngineKey = 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni'"))
 check('card e depois do map dos motores (dentro do picker)', src.indexOf('KINEO-SPRINT-UI8-2026-08-30') > src.indexOf('{ENGINES.map((e) => ('))
+// KINEO-AVATAR-FORA-2026-09-28 — o card continua existindo (a casa ainda o usa), mas atrás do interruptor: fundador
+// (27/09) "avatar sai por hora". avatarOn nasce de AVATAR_PUBLIC e só vira true pela flag `avatar` do /api/me/credits
+// (avatarVisible = AVATAR_PUBLIC || conta interna) — nunca pela `internal` do S25.
+check('card do Avatar atras de avatarOn', /\{avatarOn && <button\s+type="button"\s+className="pk"\s+onClick=\{\(\) => \{ setPickerOpen\(false\); router\.push\('\/avatar'\)/.test(src))
+check('avatarOn nasce do interruptor e so a flag avatar do servidor liga', src.includes('useState<boolean>(AVATAR_PUBLIC)') && src.includes('if (alive && d?.avatar === true) setAvatarOn(true)') && !/d\?\.internal === true\) setAvatarOn/.test(src))
 console.log(`${ok} ok, ${fail} fail`)
 process.exit(fail ? 1 : 0)

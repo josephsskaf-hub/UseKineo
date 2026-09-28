@@ -3,7 +3,7 @@ import KineoBolt from '@/components/KineoBolt'
 // Kineo landing — new Apple-dark redesign (replaces the old HomePageClient on the homepage).
 // Self-contained, styles scoped under .klp so they don't leak into the rest of the app.
 // Marker: KINEO-LANDING-V3-2026-06-30
-import { s25Visible, S25_PUBLIC, VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, PAUSED_ENGINES_COPY, enginePaused } from '@/lib/engineLaunch'
+import { s25Visible, S25_PUBLIC, VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, PAUSED_ENGINES_COPY, enginePaused, avatarVisible } from '@/lib/engineLaunch'
 import Link from 'next/link'
 import { InterfaceLanguageSelect, UiLabel, UiText } from '@/components/InterfaceLanguage'
 import { HOME_PRESENTATION_CSS } from '@/lib/ui/homePresentation'
@@ -859,6 +859,11 @@ export default function KineoLanding({
   const starterCheckoutHref = pricingCheckoutHref('/api/stripe/checkout?tier=starter&intro=1', isSignedIn)
   const creatorCheckoutHref = pricingCheckoutHref('/api/stripe/checkout?tier=basic&intro=1', isSignedIn)
   const studioCheckoutHref = pricingCheckoutHref('/api/stripe/checkout?tier=pro', isSignedIn)
+  // KINEO-AVATAR-FORA-2026-09-28 — fundador (27/09): "avatar sai por hora". Um único booleano decide as 5 portas do
+  // Avatar nesta página (mega-menu, menu mobile, tile do bento, os 4 cards do toolkit que levam ao /avatar e o
+  // subtítulo que os vende). Medido: 0 cliques no card do /studio e o último filme de apresentador em 15/07.
+  // Contas da casa (isInternalEmail) continuam vendo tudo; o /avatar segue no ar por link direto.
+  const showAvatar = avatarVisible(initialEmail)
 
   return (
     <>
@@ -957,7 +962,7 @@ export default function KineoLanding({
                   <Link href="/audio"><UiLabel>Audio</UiLabel></Link>
                   <Link href="/animate"><UiLabel>Animate a Photo</UiLabel></Link>
                   <Link href="/thumbnail-generator"><UiLabel>Thumbnails</UiLabel></Link>
-                  <Link href="/avatar"><UiLabel>Talking Avatar</UiLabel></Link>
+                  {showAvatar && <Link href="/avatar"><UiLabel>Talking Avatar</UiLabel></Link>}
                 </span>
               </span>
             </span>
@@ -999,7 +1004,7 @@ export default function KineoLanding({
               <Link className="nav-mobile-more" href="/audio"><UiLabel>Audio</UiLabel></Link>
               <Link className="nav-mobile-more" href="/animate"><UiLabel>Animate</UiLabel></Link>
               <Link className="nav-mobile-more" href="/thumbnail-generator"><UiLabel>Thumbnails</UiLabel></Link>
-              <Link className="nav-mobile-more" href="/avatar">Avatar</Link>
+              {showAvatar && <Link className="nav-mobile-more" href="/avatar">Avatar</Link>}
               <Link className="nav-mobile-more" href="/viral-now">Viral Now</Link>
               <Link className="nav-mobile-more" href="/scripts"><UiLabel>Scripts</UiLabel></Link>
               {initialUser
@@ -1232,7 +1237,7 @@ export default function KineoLanding({
                   <span className="tcredits"><UiLabel>{creditLabel('cinematic_hollywood')}</UiLabel></span>
                 </span>
               </Link>
-              <Link href="/avatar" className="tile">
+              {showAvatar && <Link href="/avatar" className="tile">
                 {tileVid('presenter')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="4"/><path d="M3 21c0-3.9 3.1-7 7-7 1.6 0 3.1.5 4.3 1.4"/><path d="M18 8c1 1.2 1 3 0 4.2M21 6c2 2.4 2 6 0 8.4"/></svg></span>
@@ -1243,7 +1248,7 @@ export default function KineoLanding({
                   <p><UiLabel>Talking video from one photo</UiLabel></p>
                   <span className="tcredits"><UiLabel>{creditLabel('avatar')}</UiLabel></span>
                 </span>
-              </Link>
+              </Link>}
             </div>
               )
             })()}
@@ -1356,8 +1361,14 @@ export default function KineoLanding({
         <div className="wrap">
           {/* KINEO-SHOWCASE-2026-07-10 — toolkit expanded to 8 cards (2 rows):
               the 4 new avatar-suite features on top, evergreen tools below. */}
-          <div className="sec-h"><span className="sec-eyebrow"><UiLabel>The toolkit</UiLabel></span><h2><UiLabel>One idea — or a whole toolkit.</UiLabel></h2><p><UiLabel>Talking presenters, reusable characters, transparent clips, product ads — plus everything to find and ride a trend.</UiLabel></p></div>
+          {/* KINEO-AVATAR-FORA-2026-09-28 — o subtítulo vendia as 4 ferramentas do Avatar Studio; sem o Avatar ele some
+              (texto novo não entra: os 16 dicionários da interface ficam intocados nesta mudança). */}
+          <div className="sec-h"><span className="sec-eyebrow"><UiLabel>The toolkit</UiLabel></span><h2><UiLabel>One idea — or a whole toolkit.</UiLabel></h2>{showAvatar && <p><UiLabel>Talking presenters, reusable characters, transparent clips, product ads — plus everything to find and ride a trend.</UiLabel></p>}</div>
           <div className="tools">
+            {/* KINEO-AVATAR-FORA-2026-09-28 — os 4 cards abaixo levam ao /avatar (AI Presenter, Character Lock,
+                Transparent Clips, UGC Product Ads): saem juntos do catálogo público; ficam Animate, Thumbnails,
+                Viral Now e Free AI Shorts (uma fileira de 4 na grade de 4 colunas). */}
+            {showAvatar && <>
             <Link href="/avatar" className="tcard">
               <span className="tico">{TOOL_ICONS.presenter}</span>
               <h3><UiLabel>AI Presenter </UiLabel><span className="badge"><UiLabel>New</UiLabel></span></h3>
@@ -1382,6 +1393,7 @@ export default function KineoLanding({
               <p><UiLabel>Paste any product — get a 15-30s creator-style ad, scripted and spoken for you.</UiLabel></p>
               <span className="tlink"><UiLabel>Make an ad →</UiLabel></span>
             </Link>
+            </>}
             <Link href="/animate" className="tcard">
               <span className="tico">{TOOL_ICONS.animate}</span>
               <h3><UiLabel>Animate a Photo</UiLabel></h3>

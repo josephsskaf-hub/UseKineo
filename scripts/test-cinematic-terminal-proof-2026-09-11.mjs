@@ -175,6 +175,8 @@ async function poll({ state = database(), status = 'IN_PROGRESS', mismatched = f
       releaseCinematicClaim: async args => { releases++; return claimLib.releaseCinematicClaim(args) },
     },
     '@/lib/credits/refund': { refundRenderCredits: async () => { refunds++; return 50 } },
+    // KINEO-FAL-SALDO-ALERTA-2026-09-28 — import novo da rota (alarme de saldo no poll); provado em test-fal-saldo-alerta-2026-09-28.
+    '@/lib/falAlert': { alertFalExhausted: async () => 'duplicate' },
   }
   const route = load('app/api/cinematic-clip-status/route.ts', imports, {
     process: { env: { FAL_KEY: 'offline-test-only', NEXT_PUBLIC_SUPABASE_URL: 'https://offline.invalid', SUPABASE_SERVICE_ROLE_KEY: secret } },

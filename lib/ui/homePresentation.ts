@@ -89,6 +89,12 @@ export const HOME_PRESENTATION_CSS = `
 .klp .home-catalog-heading a { color:var(--blue); font-size:13px; }
 .klp .home-engines .bento { grid-template-columns:repeat(3,minmax(0,1fr)); grid-auto-rows:minmax(175px,auto); gap:16px; margin:0; }
 .klp .home-engines .tile { padding:20px; }
+/* KINEO-BENTO-COMPLETO-2026-09-28 — com o Avatar fora do catálogo o visitante vê 5 motores num grid de 3 colunas
+   (e de 2 no celular): sobrava uma célula vazia na última fileira. O último tile agora ocupa o que falta da fileira,
+   para QUALQUER contagem (5 do visitante, 6 da conta da casa): 3 colunas → sobra 1 = span 3, sobra 2 = span 2;
+   2 colunas → último ímpar = span 2; 1 coluna → sem span. Mesmo especificador nos três degraus, a ordem decide. */
+.klp .home-engines .bento > .tile:last-child:nth-child(3n+1) { grid-column:span 3; }
+.klp .home-engines .bento > .tile:last-child:nth-child(3n+2) { grid-column:span 2; }
 @media(max-width:1000px) {
  .klp .hero-ftr { gap:14px; }
  .klp .home-create-card { padding:20px 16px; column-gap:10px; }
@@ -101,6 +107,8 @@ export const HOME_PRESENTATION_CSS = `
  .klp .home-create-grid { grid-template-columns:1fr; gap:10px; }
  .klp .home-create-card { padding:18px 20px; }
  .klp .home-engines .bento { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+ .klp .home-engines .bento > .tile:last-child:nth-child(n) { grid-column:auto; }
+ .klp .home-engines .bento > .tile:last-child:nth-child(2n+1) { grid-column:span 2; }
 }
 @media(max-width:560px) {
  .klp .wrap,.klp .ew-wrap { padding-inline:18px; }
@@ -122,6 +130,7 @@ export const HOME_PRESENTATION_CSS = `
  .klp .nav-right { gap:5px; }
  .klp .nav-right .kineo-interface-language { max-width:78px !important; }
  .klp .home-engines .bento { grid-template-columns:1fr; }
+ .klp .home-engines .bento > .tile:last-child:nth-child(n) { grid-column:auto; }
 }
 @media(min-width:901px) {
  .klp .hero { padding-top:28px; }

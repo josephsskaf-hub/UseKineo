@@ -143,6 +143,8 @@ import {
   videosForCredits,
   videosPerMonth,
 } from '@/lib/marketingPrice'
+// KINEO-SALDO-DO-MOTOR-USADO-2026-09-28 — a frase de saldo da tela de pronto conta pelo motor/duração que ACABOU de sair.
+import { readyCreditsLine } from '@/lib/growth/readyCreditsLine'
 // K17 — contrato de MEDICAO da copy de capacidade (pedido do Codex, 04/09
 // 09:58 BRT). Nao muda grant, custo de motor, preco nem destino de checkout:
 // so poe o filme terminado antes da unidade interna de credito.
@@ -4931,7 +4933,9 @@ export default function GenerateClient({
                     prompt: p,
                     anchorUrl: sceneAnchorsRef.current[fi] ?? null,
                     seconds: sceneSecondsRef.current[fi] ?? 10,
-                    model: falModelsRef.current[fi] ?? undefined,
+                    // KINEO-CENA-CLASSICA-2026-09-28 — resposta sem fal_models (motor único): o modelo do filme; o servidor
+                    // confere contra o claim assinado (slot com outro modelo = 409), então o fallback nunca troca de motor.
+                    model: falModelsRef.current[fi] ?? (falModelRef.current || undefined),
                     // KINEO-H3-AUDIT2-2026-08-20 — o servidor RETARGETA o claim
                     // assinado pro request id novo; sem isso o próximo poll
                     // morria em 404 (ids do poll ≠ ids do claim).
@@ -11900,7 +11904,6 @@ export default function GenerateClient({
     isSubscriber: isStarter || isCreator || isStudio,
     plan: serverPlanName,
   })
-  const seedanceReferenceCost = creditsPerReferenceVideo('cinematic_ai')
   const shareRewardMix = videoMixForCredits(30, 'cinematic_ai', 'fast')
 
   // ═══ KINEO-CUSTO-VISIVEL-2026-08-23 — o custo de CADA duração, antes do
@@ -14328,7 +14331,8 @@ export default function GenerateClient({
             <p style={{ fontSize: '0.85rem', color: '#86868b', marginBottom: 16, lineHeight: 1.6 }}>
               {/* Fix 2 (12/06) + KINEO-SPRINT-OFFER-2026-07-14 + KINEO-PRICING-V6:
                   copy sempre do tier REAL do botão (Creator), números derivados. */}
-              Creator keeps the credits coming every month — full AI scenes, AI Presenter, clean downloads.
+              {/* KINEO-AVATAR-FORA-2026-09-28 — 'AI Presenter' saiu da promessa do Creator: o Avatar deixou o catálogo em 27/09. */}
+              Creator keeps the credits coming every month — full AI scenes, clean downloads.
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
               {[
@@ -14876,7 +14880,9 @@ export default function GenerateClient({
                 🧬 Use my cloned voice
               </button>
               <span className="text-[11px]" style={{ color: 'var(--muted)' }}>
-                No clone yet? <a href="/avatar" style={{ color: '#2997ff', fontWeight: 700 }}>Record one in AI Presenter →</a>
+                {/* KINEO-AVATAR-FORA-2026-09-28 — o link fica (a clonagem de voz mora no /avatar: 5 clones, 1 pagante);
+                    o rótulo deixa de vender o "AI Presenter" que saiu do catálogo e nomeia o lugar. */}
+                No clone yet? <a href="/avatar" style={{ color: '#2997ff', fontWeight: 700 }}>Record one in Avatar Studio →</a>
               </span>
             </div>
             {footageMsg && (
@@ -16656,11 +16662,20 @@ export default function GenerateClient({
                     Paid plans render the full length on every engine.
                   </p>
                 )}
-                {/* ROBO-ENTRY-495 — honest credits line at the win moment. AI
-                    Generated (Seedance) costs creditCostFor('cinematic_ai') credits (V6.1) and Fast Mode is free,
-                    so we state both plainly instead of a vague "low credits"
-                    nudge. Renders for any signed-in user; guests (credits null
-                    after 401) see nothing. */}
+                {/* ROBO-ENTRY-495 — honest credits line at the win moment.
+                    Renders for any signed-in user; guests (credits null after
+                    401) see nothing.
+                    KINEO-SALDO-DO-MOTOR-USADO-2026-09-28 — a frase dividia o
+                    saldo pelo Seedance 1.5 de 60 s, qualquer que fosse o motor:
+                    37 cr numa conta Pro que acabou de fazer um Kineo 1 de 35 s
+                    liam "about 1 more 60-second AI video" (o saldo pagava 12).
+                    Agora conta pelo motor do filme que ACABOU de sair
+                    (planFitNormalizedQuality = o ref do motor, o mesmo do
+                    generate_completed e restaurado na retomada) e pela duração
+                    dele, com creditCostForDuration e isPaidAccount (trial conta
+                    como pago, como no servidor). Conta grátis: crédito não compra
+                    filme, então a frase diz a cota de OFFER.copy — sem "per
+                    month" nem "3 per 24h" digitados. Ver lib/growth/readyCreditsLine.ts. */}
                 {credits !== null && (
                   <p className="text-xs mt-2" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
                     You have{' '}
@@ -16668,12 +16683,14 @@ export default function GenerateClient({
                       {credits} credit{credits === 1 ? '' : 's'}
                     </span>{' '}
                     left —{' '}
-                    {/* KINEO-TRIAL-BLOCKERS-2026-08-07 — `!trialActive` nos dois
-                        ramos: durante o trial o Fast é PAGO (1 crédito, export
-                        limpo), então a frase correta é a do ramo pago. */}
-                    {credits >= seedanceReferenceCost
-                      ? `about ${videosForCredits(credits, 'cinematic_ai')} more 60-second AI video${videosForCredits(credits, 'cinematic_ai') === 1 ? '' : 's'}. ${planTier === 'free' && !hasPaid && !trialActive ? ft(OFFER, 'Free Fast includes up to 3 watermarked previews per 24 hours.', 'The free plan includes 1 watermarked Fast video per month.') : `Paid Fast clean exports use ${creditsPerReferenceVideo('fast')} credits per 60-second video.`}`
-                      : `not enough for another 60-second AI video (each takes ${seedanceReferenceCost}). ${planTier === 'free' && !hasPaid && !trialActive ? (freeFastQuotaSpent ? 'Your 3 free watermarked Fast previews for this 24h window are already used.' : ft(OFFER, 'You can still make up to 3 watermarked Fast previews per 24 hours.', 'The free plan includes 1 watermarked Fast video per month.')) : `Paid Fast clean exports use ${creditsPerReferenceVideo('fast')} credits per 60-second video.`}`}
+                    {readyCreditsLine({
+                      credits,
+                      quality: planFitNormalizedQuality,
+                      seconds: duration,
+                      isPaidAccount,
+                      freeOffer: { cardEntry: OFFER.cardEntry, residual: OFFER.copy.residual, chip: OFFER.copy.chip },
+                      freeQuotaSpent: freeFastQuotaSpent,
+                    })}
                   </p>
                 )}
                 {/* Push #065 — show the generated title so the user can see
@@ -18878,7 +18895,8 @@ export default function GenerateClient({
                       style={{ color: 'var(--muted2)', lineHeight: 1.5 }}
                     >
                       {/* KINEO-PRICING-V6-2026-08-19 — 150 → TIER_CREDITS.basic. */}
-                      Full AI scenes, AI Presenter and {TIER_CREDITS.basic} credits every month.
+                      {/* KINEO-AVATAR-FORA-2026-09-28 — sem 'AI Presenter' (Avatar fora do catálogo desde 27/09). */}
+                      Full AI scenes and {TIER_CREDITS.basic} credits every month.
                     </p>
                   </div>
                   <button
@@ -22660,7 +22678,8 @@ function UrgencyModal({
         >
           {/* KINEO-PRICING-V6-2026-08-19 — "$19.90/mo … 140 credits" era a V5
               literal dentro do modal de urgência (contagem regressiva). */}
-          Go Creator for <strong style={{ color: '#5cb3ff' }}>{CREATOR_USD_LABEL}/mo</strong> — full AI scenes, the AI Presenter and {TIER_CREDITS.basic} credits every month.
+          {/* KINEO-AVATAR-FORA-2026-09-28 — sem 'the AI Presenter' (Avatar fora do catálogo desde 27/09). */}
+          Go Creator for <strong style={{ color: '#5cb3ff' }}>{CREATOR_USD_LABEL}/mo</strong> — full AI scenes and {TIER_CREDITS.basic} credits every month.
         </p>
         <button
           type="button"

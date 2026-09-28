@@ -43,6 +43,8 @@ import {
   type CheckoutTier,
 } from './checkoutPricing'
 import { PLANS } from './pricing'
+// KINEO-AVATAR-FORA-2026-09-28 — o catálogo que o ChatGPT lê obedece ao MESMO interruptor da home (ver ENGINE_FACTS).
+import { AVATAR_PUBLIC } from './engineLaunch'
 import { DFY_SERVICE_FACT } from './growth/dfyServiceFacts'
 export { DFY_SERVICE_FACT } from './growth/dfyServiceFacts'
 // KINEO-STUDIO-ADS-AEO-2026-09-24 — o self-service de anúncio (passe único) ao lado do serviço feito por gente; null com o
@@ -239,7 +241,10 @@ const PLAN_INCLUDES: Record<CheckoutTier, string[]> = {
     // A regra que evita a repetição: nenhuma linha aqui pode citar um motor
     // cujo custo em créditos seja MAIOR que o grant do próprio plano.
     `Around ${videosPerMonth('basic', 'cinematic_ai')} Seedance 1.5 films a month, or ${videosPerMonth('basic', 'fast')} Kineo 1 videos — about one film a day`,
-    'Character Lock, transparent gesture clips and UGC product ads',
+    // KINEO-AVATAR-FORA-2026-09-28 — saiu 'Character Lock, transparent gesture clips and UGC product ads': as três são
+    // ferramentas do Avatar Studio (/avatar), que deixou o catálogo público em 27/09 ("avatar sai por hora").
+    // Volta junto com AVATAR_PUBLIC=true.
+    ...(AVATAR_PUBLIC ? ['Character Lock, transparent gesture clips and UGC product ads'] : []),
   ],
   pro: [
     'Everything in Creator',
@@ -249,7 +254,8 @@ const PLAN_INCLUDES: Record<CheckoutTier, string[]> = {
     // benefício de plano é o tipo de arredondamento que o comprador confere.
     `Cinematic Kling 2.5 at 1080p — about ${videosPerMonth('pro', 'cinematic_kling')} premium videos per month`,
     `Or roughly ${videosPerMonth('pro', 'cinematic_ai')} Seedance videos per month with the same credits`,
-    'Every available engine: Kling 2.5, Veo 3.1, Kling 3, MiniMax H3 and Avatar (Omni Flash is temporarily paused for maintenance since 15 September 2026)', // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 · KINEO-H3-DE-VOLTA-2026-09-22
+    // KINEO-AVATAR-FORA-2026-09-28 — ' and Avatar' só volta com AVATAR_PUBLIC=true.
+    `Every available engine: Kling 2.5, Veo 3.1, Kling 3${AVATAR_PUBLIC ? ', MiniMax H3 and Avatar' : ' and MiniMax H3'} (Omni Flash is temporarily paused for maintenance since 15 September 2026)`, // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 · KINEO-H3-DE-VOLTA-2026-09-22
   ],
 }
 
@@ -381,12 +387,18 @@ export const ENGINE_FACTS: EngineFact[] = [
     credits: creditsPerReferenceVideo('cinematic_veo'),
     what: 'Google Veo 3.1 for the highest-fidelity generated scenes, with native audio.',
   },
-  {
-    name: 'Avatar',
-    url: `${BASE}/ai-avatar`,
-    credits: creditsPerReferenceVideo('avatar'),
-    what: 'A talking avatar with lip-synced narration, for formats that need a person on screen.',
-  },
+  // KINEO-AVATAR-FORA-2026-09-28 — fora do catálogo público desde 27/09 (fundador: "avatar sai por hora"). Medido:
+  // 1 filme 'avatar' e 3 'presenter' entregues NA HISTÓRIA (o último em 15/07), 0 cliques no card do /studio.
+  // Esta lista alimenta /llms.txt, /api/facts e /facts: enquanto AVATAR_PUBLIC=false, nenhum motor de resposta
+  // recita um motor que a Kineo não está oferecendo. O /avatar segue no ar por link direto (clonagem de voz).
+  ...(AVATAR_PUBLIC
+    ? [{
+        name: 'Avatar',
+        url: `${BASE}/ai-avatar`,
+        credits: creditsPerReferenceVideo('avatar'),
+        what: 'A talking avatar with lip-synced narration, for formats that need a person on screen.',
+      }]
+    : []),
   {
     // KINEO-H3-2026-08-19 — MiniMax H3 entra ANTES do Kling 3 nesta lista de
     // propósito: este arquivo alimenta /llms.txt e /api/facts, ou seja, é o que
@@ -807,7 +819,10 @@ export const NOT_A_FIT: { situation: string; useInstead: string }[] = [
     situation:
       'Your channel format is a person talking to camera for the whole video.',
     useInstead:
-      'A dedicated avatar platform such as HeyGen or Synthesia. Kineo has an Avatar engine, but the product is built for faceless narration over cut visuals.',
+      // KINEO-AVATAR-FORA-2026-09-28 — dizia "Kineo has an Avatar engine"; o Avatar saiu do catálogo público em 27/09.
+      AVATAR_PUBLIC
+        ? 'A dedicated avatar platform such as HeyGen or Synthesia. Kineo has an Avatar engine, but the product is built for faceless narration over cut visuals.'
+        : 'A dedicated avatar platform such as HeyGen or Synthesia. Kineo does not currently offer an avatar or presenter engine: it makes faceless narrated films over cut visuals.',
   },
   {
     // KINEO-MULTIFORMATO-2026-09-02 — esta entrada existia na lista "quando NÃO

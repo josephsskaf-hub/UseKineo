@@ -83,7 +83,10 @@ console.log('== (d) compose: escala e prevê na régua da voz; corretivo tenta d
   const a = cp.indexOf(INI), b = cp.indexOf(FIM, a)
   checa('fatia previsão → corretivo existe', a > 0 && b > a)
   const fatia = cp.slice(a, b + FIM.length)
-  const rodar = roda(`export async function rodar(ctx: any) {\n  const { scaledScript, composeRate, predictTtsSecondsFromWords, DURATION_TOLERANCE_SECONDS, cachedVoiceover, avatarMode, hasUserVoice, clonedVoiceUsed, explicitSpeed, claimVerbatim, duration, generateTTS, estimateMp3DurationSeconds, vertical, narrationTier, language, console } = ctx\n  let realAudioDuration = ctx.realAudioDuration\n  let audioBuffer = ctx.audioBuffer\n${fatia}\n  return { realAudioDuration, audioBuffer }\n}`).rodar
+  // KINEO-PLANO-B-OPENAI-2026-09-28 — re-âncora: a fatia do corretivo passou a ler `ttsFallbackUsed` e a chamar
+  // `narrarPeloPlanoB` (voz reserva da fal quando a TTS da OpenAI cai). Aqui o plano B fica DESLIGADO (false / null = erro
+  // que não é apagão), então a régua por voz medida aqui segue idêntica. Plano B: scripts/test-llm-fallback-2026-09-28.mjs.
+  const rodar = roda(`export async function rodar(ctx: any) {\n  const { scaledScript, composeRate, predictTtsSecondsFromWords, DURATION_TOLERANCE_SECONDS, cachedVoiceover, avatarMode, hasUserVoice, clonedVoiceUsed, explicitSpeed, claimVerbatim, duration, generateTTS, estimateMp3DurationSeconds, vertical, narrationTier, language, console } = ctx\n  let realAudioDuration = ctx.realAudioDuration\n  let audioBuffer = ctx.audioBuffer\n  let ttsFallbackUsed = ctx.ttsFallbackUsed ?? false\n  const narrarPeloPlanoB = ctx.narrarPeloPlanoB ?? (async () => null)\n${fatia}\n  return { realAudioDuration, audioBuffer }\n}`).rodar
   const script198 = Array.from({ length: 198 }, (_, i) => `p${i}`).join(' ')
   const mundo = (over = {}) => {
     const chamadas = []

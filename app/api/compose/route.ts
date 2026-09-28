@@ -53,6 +53,7 @@ import { cinematicSceneSeconds, trimNarratedSupport, assertCinematicTimeline, Ci
 import { rejectCinematicQuality, readVerifiedQualityRejection, type CinematicQualityReason } from '@/lib/cinematic/qualityRejection'
 import { selectMusicForScript } from '@/lib/musicScore'
 import { captionStyleOverrides, isAdCaptionStyle, isCaptionElement } from '@/lib/ads/adStyle' // KINEO-ADS-ESTILO-2026-09-26
+import { alinharGrafiaDoRoteiro } from '@/lib/captionScriptSpelling' // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28
 import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
 import { speechRateFor, speechFamilyForQuality } from '@/lib/speechRate' // KINEO-RITMO-POR-VOZ-2026-09-15
 // KINEO-CREDIT-INTENT-2026-07-11 — record the authoritative engine + intended
@@ -70,7 +71,8 @@ import { alertCreatomateDown } from '@/lib/creatomateAlert'
 import { checkCreatomateQuota } from '@/lib/creatomateQuota'
 import { inspectActiveComposeCreditHolds } from '@/lib/credits/composeHold'
 import { loadVerifiedCinematicClaim, cinematicJobsAreTerminal, type CinematicClaim } from '@/lib/cinematic/claim'
-import { readVerifiedSceneRetryHold } from '@/lib/cinematic/sceneRetry'
+import { readVerifiedSceneRetryHold, releaseSceneRetryMutex, type SceneRetryMutex } from '@/lib/cinematic/sceneRetry'
+import { classicSceneRetryHoldResolvable } from '@/lib/classicSceneRetry' // KINEO-CENA-CLASSICA-2026-09-28
 import { collectSceneNarrations, verifyObservedSpeech } from '@/lib/cinematic/speechContract'
 // KINEO-COMPOSE-REJECT-NOREFUND-2026-08-10 — ver o cabeçalho do arquivo: numa
 // recusa TERMINAL do fornecedor nenhum render_id nasce, logo /api/compose/status
@@ -192,6 +194,9 @@ import { CARD_ENTRY_CHECKOUT_PATH, CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 // KINEO1-PRIMEIRO-FILME-VIDEO-2026-09-17 — clipes Seedance do primeiro filme são esperados aqui, não na rota fast.
 import { FIRST_FILM_AI_CLIPS_EVENT, FIRST_FILM_AI_CLIPS_RESULT_EVENT, FIRST_FILM_AI_CLIPS_AWAIT_MS, SEEDANCE_720P_5S_USD, parsePendingAiClips, awaitPendingAiClips, spliceAiClips } from '@/lib/fastAiClips'
 import { writeServerEvent } from '@/lib/serverEvents'
+// KINEO-PLANO-B-OPENAI-2026-09-28 — voz reserva (MiniMax 2.8 HD na fal) quando a TTS da OpenAI cai.
+import { ttsFallbackApplies, ttsFallbackSkipsRetry, synthesizeTtsFallback, registerTtsFallbackUse, TTS_FALLBACK_MODEL } from '@/lib/ttsFallback'
+import { primaryStatusOf } from '@/lib/llmFallback'
 
 // FREE_FAST_PREVIEW_LIMIT e FREE_FAST_WINDOW_MS moraram aqui até 06/08/2026.
 // Agora vêm de lib/freeFastQuota.ts, junto da contagem que os usa — o cron
@@ -441,6 +446,9 @@ interface ComposeBody {
   // Level B: narrate with the user's CLONED voice (profiles.voice_clone_id,
   // created in Avatar Studio). An explicit voice cannot become a default voice.
   use_cloned_voice?: boolean
+  // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28 — 'tts' = o áudio de user_voiceover_url é TTS do próprio
+  // voiceover_script (hoje só o Studio Ads manda, pelo modo serviço). Sem o campo, voz enviada = gravação humana.
+  narration_source?: string
 }
 
 export async function POST(req: NextRequest) {
@@ -1008,6 +1016,24 @@ export async function POST(req: NextRequest) {
           const hold = await readVerifiedSceneRetryHold({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, generationId })
           if (hold) {
             const elapsed = Date.now() - Date.parse(hold.startedAt)
+            // ═══ KINEO-CENA-CLASSICA-2026-09-28 — hold de retomada CLÁSSICA não prende o filme ═══
+            // Revisão adversarial de 27/09: com um 503 da fal na retomada de uma cena Seedance, esta linha respondia 422
+            // "Contact support" a cada tentativa, para sempre — o filme (1 de 2 cenas pronta) nunca saía e o refund-sweep
+            // o via como ambíguo. A retomada clássica agora solta o mutex sozinha; o que chega aqui é o resto: liberação que
+            // falhou duas vezes (fase final anotada) ou lambda morta ('submitting' com mais de 120 s — a retomada tem
+            // maxDuration 60). Na família clássica a cena perdida é sobrevivível e o claim de nascimento só fica terminal
+            // com ela falhada ou pronta, então desfazer o hold é seguro: apaga SÓ a linha do mutex (dono + assinatura do
+            // marcador conferidos em releaseSceneRetryMutex) e devolve 409 pendente — a próxima chamada (aba ou cron de
+            // resgate) monta com as cenas prontas. Hollywood nunca entra aqui: lá o hold segue esperando confirmação.
+            if (classicSceneRetryHoldResolvable(metadata.scene_retry, hold.phase, elapsed)) {
+              const cleared = await releaseSceneRetryMutex({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, generationId },
+                { id: claimId, authority: String(metadata.authority ?? ''), metadata, marker: metadata.scene_retry as SceneRetryMutex['marker'] })
+              if (cleared) {
+                await writeServerEvent({ name: 'classic_scene_retry_hold_cleared', userId: authenticatedUserId, path: '/api/compose', sessionId: generationId,
+                  metadata: { phase: hold.phase, elapsed_ms: Number.isFinite(elapsed) ? elapsed : null } })
+                return NextResponse.json({ pending: true, retry_after_ms: 2500 }, { status: 409 })
+              }
+            }
             if (hold.phase === 'submitting' && elapsed >= 0 && elapsed < 120_000) {
               return NextResponse.json({ pending: true, retry_after_ms: 2500 }, { status: 409 })
             }
@@ -2783,6 +2809,51 @@ export async function POST(req: NextRequest) {
     // upload entirely and reuse the stored mp3, Whisper words and duration.
     let voiceoverCacheKey: string | null = null
     let cachedVoiceover: CachedVoiceoverEntry | null = null
+    // ═══ KINEO-PLANO-B-OPENAI-2026-09-28 — plano B da voz (narrarPeloPlanoB) ═══
+    // 26-27/09 a conta da OpenAI ficou sem crédito (59 tentativas bloqueadas de 9 pessoas externas no
+    // roteiro). Com o plano B de texto (lib/llmFallback) o filme passa do roteiro — e morreria AQUI, no
+    // 502 "Voiceover generation failed", depois de pagar o b-roll: generateTTS (lib/compose, travado) é
+    // tts-1-hd. Quando a TTS da OpenAI falha com 429/5xx/conexão e há FAL_KEY, a narração sai pela
+    // MiniMax 2.8 HD na fal (schema da rota /audio, output_format 'url'). Qualquer outro erro (400/401,
+    // chave ausente) segue exatamente como antes. Devolve null quando não se aplica ou quando a fal falha
+    // — o chamador então faz o que sempre fez. `ttsFallbackUsed` tira este áudio do cache de voz (a
+    // chave do cache é a da voz da OpenAI) e do passe corretivo (o schema verificado não tem velocidade).
+    // `inicio` = quando a chamada à OpenAI começou: só falha rápida (< 20 s) vai ao plano B — um timeout de
+    // 55 s somado à MiniMax estouraria o maxDuration 300 (ver TTS_FALLBACK_MAX_ELAPSED_MS).
+    let ttsFallbackUsed = false
+    // KINEO-PLANO-B-OPENAI-2026-09-28 (revisão adversarial) — a MiniMax é tentada NO MÁXIMO uma vez por render. A 1ª versão
+    // chamava de novo na 2ª volta do laço corretivo: com a fal presa, até ~2 × 90 s de fila (mais submit e download) dentro
+    // dos 300 s do compose, depois do débito e antes do Whisper e da espera dos clipes — para no fim manter o áudio
+    // original. Na origin/main o mesmo estado custava duas recusas rápidas (~1 s). A primária que usou a voz reserva
+    // pula o corretivo (!ttsFallbackUsed); a primária cuja voz reserva falhou já devolveu o 502 — então "uma vez por
+    // render" é o mesmo que "uma vez por passe".
+    let planoBDeVozTentado = false
+    // FIX-REVISAO-2 (KINEO-PLANO-B-OPENAI-2026-09-28) — `ultimaChance`: a OpenAI não tem outra tentativa depois desta. Na
+    // primária é sempre (a origin/main devolvia o 502 na hora). No corretivo a OpenAI acabou de entregar a primária, então
+    // a 1ª recusa só vai à MiniMax quando é conta SEM CRÉDITO (ttsFallbackSkipsRetry); um 503/429 de passagem segue a 2ª
+    // tentativa da OpenAI (KINEO-CORRETIVO-TENTA-DE-NOVO-2026-09-15) e só cai na voz reserva se ela também falhar.
+    const narrarPeloPlanoB = async (err: unknown, stage: 'primary' | 'corrective', inicio: number, ultimaChance = true): Promise<Buffer | null> => {
+      const primaryMs = Date.now() - inicio
+      if (!ttsFallbackApplies(err, primaryMs)) return null
+      if (!ultimaChance && !ttsFallbackSkipsRetry(err)) return null
+      if (planoBDeVozTentado) {
+        console.warn(`[compose] plano B de voz já foi tentado neste render (${stage}) — não chama a MiniMax de novo`)
+        return null
+      }
+      planoBDeVozTentado = true
+      const t0 = Date.now()
+      try {
+        const buf = await synthesizeTtsFallback(scaledScript, { userId: authenticatedUserId, generationId }) // FIX-REVISAO-2: alarme de saldo com dono
+        const ms = Date.now() - t0
+        console.warn(`[compose] PLANO B DE VOZ (${stage}): OpenAI ${String(primaryStatusOf(err))} em ${primaryMs} ms → ${TTS_FALLBACK_MODEL}, ${buf.length} bytes em ${ms} ms`)
+        await registerTtsFallbackUse({ err, stage, primaryMs, ms, bytes: buf.length, chars: scaledScript.length, userId: authenticatedUserId, generationId, quality })
+        return buf
+      } catch (fallbackErr) {
+        console.error(`[compose] plano B de voz falhou (${stage}) — segue o caminho de sempre:`, fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr))
+        return null
+      }
+    }
+    // ═══ fim KINEO-PLANO-B-OPENAI-2026-09-28 (narrarPeloPlanoB) ═══
     if (avatarMode || hasUserVoice) {
       try {
         const audioRes = await fetch(externalVoiceUrl)
@@ -2870,6 +2941,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      const inicioTts = Date.now() // KINEO-PLANO-B-OPENAI-2026-09-28 — o plano B de voz só entra em falha rápida
       try {
         if (!cachedVoiceover && (!audioBuffer || audioBuffer.length === 0)) {
           audioBuffer = await generateTTS(scaledScript, explicitSpeed ?? 1.0, vertical, narrationTier, language)
@@ -2885,12 +2957,18 @@ export async function POST(req: NextRequest) {
         console.error('[compose] TTS failed:', err instanceof Error
           ? JSON.stringify({ name: err.name, message: err.message, stack: err.stack?.split('\n').slice(0, 3).join(' | ') })
           : String(err))
-        return rejectBeforeProviderSubmission(
-          NextResponse.json(
-            { error: 'Voiceover generation failed. Please try again.' },
-            { status: 502 },
-          ),
-        )
+        // KINEO-PLANO-B-OPENAI-2026-09-28 — OpenAI sem crédito/5xx/conexão: a voz sai pela fal em vez do 502.
+        const planoB = await narrarPeloPlanoB(err, 'primary', inicioTts)
+        if (!planoB) {
+          return rejectBeforeProviderSubmission(
+            NextResponse.json(
+              { error: 'Voiceover generation failed. Please try again.' },
+              { status: 502 },
+            ),
+          )
+        }
+        audioBuffer = planoB
+        ttsFallbackUsed = true
       }
 
       if (!cachedVoiceover && (!audioBuffer || audioBuffer.length === 0)) {
@@ -2962,6 +3040,7 @@ export async function POST(req: NextRequest) {
       !avatarMode && // feature/ai-avatar — never re-synthesize the lip-synced mp3
       !hasUserVoice && // KINEO-OWN-VOICE — the user's file IS the narration
       !clonedVoiceUsed && // never replace the cloned voice with the default one
+      !ttsFallbackUsed && // KINEO-PLANO-B-OPENAI-2026-09-28 — a voz reserva não tem velocidade no schema verificado, e a OpenAI acabou de recusar
       !scriptWellSized && // word count already predicts an on-target length → don't re-synth
       explicitSpeed == null &&
       !claimVerbatim && // KINEO-VERBATIM-NAO-REESCREVE — texto literal também não muda de ritmo
@@ -2984,10 +3063,24 @@ export async function POST(req: NextRequest) {
         // out" e o filme saiu com 86 s para 60 pedidos. Uma segunda tentativa antes de aceitar o
         // áudio errado; só depois de duas falhas o original é mantido (como antes).
         let retryBuffer: Awaited<ReturnType<typeof generateTTS>> | null = null
+        let correctiveViaPlanoB = false
         for (let tentativa = 1; tentativa <= 2 && !retryBuffer; tentativa++) {
+          const inicioTentativa = Date.now() // KINEO-PLANO-B-OPENAI-2026-09-28
           try {
             retryBuffer = await generateTTS(scaledScript, correctiveSpeed, vertical, narrationTier, language)
           } catch (e) {
+            // KINEO-PLANO-B-OPENAI-2026-09-28 — conta sem crédito não volta em 1 s: a 2ª tentativa só
+            // repetiria a recusa. Vai direto ao plano B (voz reserva, sem velocidade: o `improved` abaixo
+            // decide se ela fica mais perto do alvo do que o áudio que já temos). Se a MiniMax falhar aqui, a 2ª
+            // volta tenta só a OpenAI (rápida, como na origin/main): narrarPeloPlanoB não repete a MiniMax.
+            // FIX-REVISAO-2 — só a conta SEM CRÉDITO pula a 2ª tentativa; 503/429 de passagem numa OpenAI que acabou de
+            // narrar a primária segue o retry de sempre, e a voz reserva só entra se a 2ª também falhar (tentativa 2).
+            const planoB = await narrarPeloPlanoB(e, 'corrective', inicioTentativa, tentativa === 2)
+            if (planoB) {
+              retryBuffer = planoB
+              correctiveViaPlanoB = true
+              break
+            }
             if (tentativa === 2) throw e
             console.warn('[compose] corrective TTS pass failed once — retrying:', e instanceof Error ? e.message : String(e))
           }
@@ -2999,6 +3092,7 @@ export async function POST(req: NextRequest) {
           if (improved) {
             audioBuffer = retryBuffer
             realAudioDuration = retryDuration
+            if (correctiveViaPlanoB) ttsFallbackUsed = true // KINEO-PLANO-B-OPENAI-2026-09-28 — fora do cache de voz
             console.log(
               `[compose] corrected TTS duration: ${retryDuration.toFixed(1)}s (requested ${duration}s)`,
             )
@@ -3083,7 +3177,9 @@ export async function POST(req: NextRequest) {
       // identical renders (only the default-TTS path is cacheable). Awaited so
       // the small mp3 upload completes before the function can be frozen, but
       // wrapped so it can NEVER break a render that already succeeded.
-      const cacheable = !avatarMode && !hasUserVoice && !clonedVoiceUsed && !!voiceoverCacheKey
+      // KINEO-PLANO-B-OPENAI-2026-09-28 — a voz reserva NUNCA entra no cache: a chave é a da voz da OpenAI,
+      // e o próximo filme com o mesmo roteiro (já com a OpenAI de volta) herdaria a voz errada.
+      const cacheable = !avatarMode && !hasUserVoice && !clonedVoiceUsed && !ttsFallbackUsed && !!voiceoverCacheKey
       if (cacheable && voiceoverCacheKey && audioBuffer && realAudioDuration > 0) {
         try {
           await storeCachedVoiceover(voiceoverCacheKey, audioBuffer, whisperWords ?? [], realAudioDuration)
@@ -3153,7 +3249,7 @@ export async function POST(req: NextRequest) {
             userId: authenticatedUserId,
             sessionId: generationId,
             path: '/api/compose',
-            metadata: { generation_id: generationId, pending: pending.length, ready: ok.length, waited_ms: Date.now() - t0, scenes: ready.map((r) => ({ scene: r.scene, ok: !!r.url, ms: r.ms })), est_usd: Math.round(pending.length * SEEDANCE_720P_5S_USD * 100) / 100 },
+            metadata: { generation_id: generationId, pending: pending.length, ready: ok.length, waited_ms: Date.now() - t0, scenes: ready.map((r) => ({ scene: r.scene, ok: !!r.url, ms: r.ms })), est_usd: Math.round(pending.reduce((soma, p) => soma + (typeof p.usd === 'number' ? p.usd : SEEDANCE_720P_5S_USD), 0) * 100) / 100, replaced: ready.filter((r) => !!r.url && typeof r.replace_index === 'number').length }, // KINEO1-IMAGEM-V2-2026-09-28: o custo de cada clipe (4-12 s) e quantos TROCARAM o stock
           })
         }
       } catch (err) {
@@ -3181,6 +3277,22 @@ export async function POST(req: NextRequest) {
       console.warn('[compose] music unavailable; preserving narration')
     }
 
+    // ═══ KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28 — a legenda escreve a marca como o roteiro escreve ═══
+    // Os 10 anúncios Kineo 1 de 28/09 saíram com 12 marcas erradas na tela (ADMITIWE, SHIVSHANKER, UNATI, RUUS,
+    // ECREDIT NG, "12 OVER 4") com a narração certa: o texto da legenda era o que o Whisper ouviu. Aqui as palavras do
+    // Whisper ganham a grafia do texto que o TTS LEU (scaledScript) e mantêm o tempo medido; os cortes não mudam, e na
+    // dúvida (âncoras < 70%, trecho sem âncora > 4) o Whisper fica como está (lib/captionScriptSpelling.ts).
+    // Só quando o áudio é TTS de scaledScript: nunca avatar (o mp3 é dele), nunca voz gravada pela pessoa — a legenda
+    // não pode mentir sobre o que ela disse. A exceção é o Studio Ads, cuja voz enviada é TTS do voiceover_script: ele
+    // declara narration_source 'tts' e só chega pelo modo serviço (o segredo é do servidor). O cache de voz continua
+    // guardando o Whisper bruto; o caminho hollywood já retornou lá em cima e não passa por aqui.
+    const legendaPelaGrafiaDoRoteiro = !avatarMode && (!hasUserVoice || (isServiceFinish && body.narration_source === 'tts'))
+    const grafia = legendaPelaGrafiaDoRoteiro && whisperWords ? alinharGrafiaDoRoteiro(whisperWords, scaledScript) : null
+    if (grafia) {
+      console.log(`[compose] legenda com a grafia do roteiro: ${grafia.motivo} ancoras=${grafia.ancoras}/${grafia.palavrasDoRoteiro} trocadas=${grafia.trocadas} mantidos=${grafia.trechosMantidos}`)
+    }
+    const legendaWords: WhisperWord[] | undefined = grafia ? grafia.words : whisperWords
+
     // KINEO-TRIAL-WATERMARK-2026-09-07 — a decisão de marca d'água mora AQUI,
     // uma única vez, lida pelo builder logo abaixo E pela resposta lá no fim.
     // `FORCE_WATERMARK_EMAILS` (#434) segue como último termo: as contas de
@@ -3202,7 +3314,7 @@ export async function POST(req: NextRequest) {
         aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
         quality,
         realAudioDuration,
-        whisperWords,
+        whisperWords: legendaWords, // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28 — tempo do Whisper, grafia do roteiro
         musicUrl,
         avatarUrl: avatarMode ? avatarUrlBody : null,
         // Hook Avatar (12/06) — validated: only meaningful in avatar mode and

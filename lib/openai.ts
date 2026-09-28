@@ -1,4 +1,5 @@
 import OpenAI from 'openai'
+import { chatWithLlmFallback } from '@/lib/llmFallback'
 
 // KINEO-OPENAI-HANG-2026-08-05 — a SLOW OpenAI must fail INSIDE our catch.
 //
@@ -51,6 +52,12 @@ function getClient(): OpenAI {
 
 export const openai = new Proxy({} as OpenAI, {
   get(_target, prop) {
+    // KINEO-PLANO-B-OPENAI-2026-09-28 — `chat` é um OBJETO (o bind abaixo só toca funções), então o
+    // plano B entra aqui: chat.completions.create sai pela fal quando a OpenAI devolve 429/5xx/conexão
+    // em menos de 8 s (26-27/09: conta sem crédito, 59 tentativas bloqueadas de 9 pessoas externas).
+    // A chamada primária é a mesma de sempre; o resto do cliente (audio, images, moderations…) não muda.
+    // Regras, interruptor e evento em lib/llmFallback.ts.
+    if (prop === 'chat') return chatWithLlmFallback(getClient(), OPENAI_TIMEOUT_MS)
     const client = getClient() as unknown as Record<string | symbol, unknown>
     const value = client[prop]
     return typeof value === 'function' ? (value as Function).bind(client) : value

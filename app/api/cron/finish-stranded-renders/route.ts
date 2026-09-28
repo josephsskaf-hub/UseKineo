@@ -42,6 +42,7 @@ import { persistRenderAssets } from '@/lib/renderAssets'
 import { CLIP_CREDITS } from '@/lib/cinematic/shotSpec'
 import { normalizeAspect } from '@/lib/aspect' // LOTE2-RESGATE-FIEL-2026-09-23
 import { resolveNarrationLanguage } from '@/lib/textLanguage' // LOTE2-RESGATE-FIEL-2026-09-23
+import { classicSceneRetryHoldRow } from '@/lib/classicSceneRetry' // KINEO-CENA-CLASSICA-2026-09-28
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -643,12 +644,16 @@ export async function GET(req: NextRequest) {
     if (!weComposed && !claimRenderId && (attempts.get(genId) ?? 0) === 0) {
       const { data: ownCompose, error: ownComposeErr } = await admin
         .from('events')
-        .select('id')
+        .select('id, metadata')
         .eq('name', 'compose_submission_claim')
         .eq('session_id', genId)
         .limit(1)
       if (ownComposeErr) console.warn(`[stranded] own-compose lookup failed gen=${gen8}:`, ownComposeErr.message)
-      if ((ownCompose ?? []).length > 0) {
+      // KINEO-CENA-CLASSICA-2026-09-28 — a linha pode ser só o mutex de uma retomada de cena CLÁSSICA que não conseguiu se
+      // soltar (liberação falhou duas vezes, ou a lambda morreu). Nenhum render final nasceu sob ela; lida como "a pessoa
+      // compôs sozinha", o filme ficava sem entrega e sem estorno para sempre (revisão adversarial de 27/09). Não conta:
+      // o compose que chamamos abaixo desfaz esse hold (409 pendente) e a rodada seguinte monta.
+      if ((ownCompose ?? []).some((row) => !classicSceneRetryHoldRow((row as { metadata?: unknown }).metadata))) {
         results.push({ generation: gen8, outcome: 'user_finished_themselves' })
         continue
       }

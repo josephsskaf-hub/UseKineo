@@ -46,11 +46,32 @@ export function s25Visible(email?: string | null): boolean {
   return S25_PUBLIC || isInternalEmail(email)
 }
 
+// ═══ KINEO-AVATAR-FORA-2026-09-28 — decisão do fundador (27/09): "avatar sai por hora".
+// O caso, medido no banco: em toda a história, 1 filme 'avatar' e 3 'presenter' entregues (o último em 15/07);
+// nos últimos 30 dias, 3 avatar_dispatch_received, os 3 ensaios de $0 (dry_run), e 0 cliques no card do /studio
+// (studio_avatar_card_clicked). Mesmo assim o Avatar era vendido em 14 superfícies públicas — contagem "Seven",
+// mega-menu, bento e 4 cards da home, pricing, llms.txt, /ph, rodapé, sitemap, comparativos. É o mesmo desenho do
+// S25_PUBLIC: AVATAR_PUBLIC=false tira o motor do CATÁLOGO público; contas da casa (isInternalEmail) continuam
+// vendo o card do /studio. NÃO é pausa (enginePaused): pausa diz "manutenção" e o llms.txt publicaria um motivo
+// falso. O /avatar e o /api/generate-avatar seguem no ar por link direto de propósito — a clonagem de voz mora lá
+// (5 perfis com voz clonada, 1 pagante) e o seletor de voz do /studio/create aponta para ele. Preço e cobrança
+// (engineCost 'avatar' 110 / 'presenter' 70) intocados. Para voltar: AVATAR_PUBLIC=true, e repor rodapé, sitemap,
+// index do /ai-avatar, as linhas do pricing e a copy dos comparativos (lista em docs/AVATAR-FORA-2026-09-28.md).
+export const AVATAR_PUBLIC = false
+
+/** O Avatar aparece para este e-mail? Com AVATAR_PUBLIC=false, só a casa (mesma régua do s25Visible). */
+export function avatarVisible(email?: string | null): boolean {
+  return AVATAR_PUBLIC || isInternalEmail(email)
+}
+
 /** Copy de contagem: 'Eight' hoje, 'Nine' no lancamento. Uma verdade, N telas. */
 // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 — a contagem e a lista públicas só falam dos motores que o público pode
 // apertar HOJE: Veo 3.1, Kling 3, Kling 2.5, Seedance 1.5, Kineo 1 e Avatar (H3/Omni/S25 pausados, S25 interno).
 // KINEO-H3-DE-VOLTA-2026-09-22: sete — o MiniMax H3 voltou.
-export const VIDEO_ENGINE_COUNT_WORD = 'Seven'
-export const VIDEO_ENGINE_COUNT_SENTENCE_START = 'Seven'
-export const VIDEO_ENGINE_LIST_COPY = 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5, Kineo 1 and Avatar'
+// KINEO-AVATAR-FORA-2026-09-28: seis — o Avatar saiu do catálogo público. Contagem e lista DERIVAM do interruptor,
+// para que virar AVATAR_PUBLIC=true devolva 'Seven' e '..., Kineo 1 and Avatar' nas 4 telas que leem daqui
+// (FAQ da home, FAQ/Organization do schema, /ph e a calculadora) sem ninguém redigitar número.
+export const VIDEO_ENGINE_COUNT_WORD = AVATAR_PUBLIC ? 'Seven' : 'Six'
+export const VIDEO_ENGINE_COUNT_SENTENCE_START = VIDEO_ENGINE_COUNT_WORD
+export const VIDEO_ENGINE_LIST_COPY = 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5' + (AVATAR_PUBLIC ? ', Kineo 1 and Avatar' : ' and Kineo 1')
 export const PAUSED_ENGINES_COPY = 'Omni Flash and Seedance 2.5 are temporarily paused for maintenance (since 15 September 2026); nothing is charged for a blocked attempt, and Kling 3 / Kling 2.5 cover the same jobs meanwhile.'

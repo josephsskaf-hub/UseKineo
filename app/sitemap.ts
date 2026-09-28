@@ -3,6 +3,7 @@ import { NICHE_SLUGS } from './free-ai-shorts/[niche]/page'
 import { COMPETITOR_SLUGS } from './alternatives/[competitor]/page'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
 import { CANONICAL_SLUGS } from '@/lib/comparisons'
+import { AVATAR_PUBLIC } from '@/lib/engineLaunch' // KINEO-AVATAR-FORA-2026-09-28
 import { SCRIPT_VERTICAL_SLUGS } from '@/lib/scriptLibrary'
 import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy'
 // KINEO-ENGINE-SEO-2026-08-15 — cluster por MOTOR (hub + 5 páginas).
@@ -109,7 +110,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/youtube-shorts-title-generator', priority: 0.8, freq: 'weekly' },
     { path: '/youtube-shorts-script-timer', priority: 0.8, freq: 'weekly' },
     { path: '/viral-score', priority: 0.8, freq: 'weekly' },
-    { path: '/ai-avatar', priority: 0.8, freq: 'weekly' },
+    // KINEO-AVATAR-FORA-2026-09-28 — /ai-avatar sai do sitemap enquanto o Avatar está fora do catálogo público
+    // (a página responde com robots noindex); volta com AVATAR_PUBLIC=true.
+    ...(AVATAR_PUBLIC ? [{ path: '/ai-avatar', priority: 0.8, freq: 'weekly' as const }] : []),
     { path: '/partners', priority: 0.8, freq: 'weekly' },
     { path: '/youtube-shorts-from-topic', priority: 0.9, freq: 'weekly' },
     { path: '/text-to-video-shorts', priority: 0.9, freq: 'weekly' },
