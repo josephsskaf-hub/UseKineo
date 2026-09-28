@@ -425,6 +425,15 @@ await check('A8 cena criada: a IMAGEM (Nano Banana) sai antes do vídeo; o víde
   const videoFromBucket = prov.submits.filter((s) => s.model === T.ADS_V2_KLING_O3_I2V_SLUG && /-scene\.jpg$/.test(s.input.image_url)).length
   return scenes.length === 3 && noVideoYet && imgPosts === 3 && after.every((r) => r.status === 'submitted' && /^https:\/\/sb\//.test(r.image_url)) && videoFromBucket === 3
 })
+await check('A8b cena com o envio da IMAGEM em curso noutra lambda: nada de vídeo sem imagem, e o plano não é derrubado', async () => {
+  reset()
+  const { db, tables, plan, order } = scenario('commercial')
+  await db.from('ads_v2_shots').upsert(A.buildInitialShotRows(ORDER, 'commercial', plan))
+  for (const r of tables.ads_v2_shots) if (r.source === 'generated_scene') r.image_submit_claimed_at = new Date().toISOString()
+  await A.dispatchAdsV2Shots(db, order, DL())
+  const scenes = tables.ads_v2_shots.filter((r) => r.source === 'generated_scene')
+  return scenes.length === 3 && scenes.every((r) => r.status === 'pending' && !r.submit_claimed_at) && !prov.submits.some((s) => s.model === T.ADS_V2_SCENE_IMAGE_SLUG || !s.input.image_url)
+})
 async function readyScenario() {
   reset()
   const sc = scenario()
@@ -532,9 +541,10 @@ await check('A14 pedido parado além do teto falha e estorna (a varredura de 2 h
     const r = BR.checkV2Copy(JSON.stringify(good), brief, opts)
     return r.ok && r.copy.overlays.length === 3 && r.copy.sectorHint === 'restaurant'
   })
-  await check('V2 número inventado na NARRAÇÃO é recusado', () => !BR.checkV2Copy(JSON.stringify({ ...good, narration: 'Bella Pizza has served 5000 happy guests with wood-fired pizza every single night.' }), brief, opts).ok)
-  await check('V3 número inventado numa FRASE DE TELA é recusado', () => !BR.checkV2Copy(JSON.stringify({ ...good, overlays: ['Bella Pizza', '50% off today'] }), brief, opts).ok)
-  await check('V4 fama/urgência sem base ("best in town", "last chance") é recusada', () => !BR.checkV2Copy(JSON.stringify({ ...good, overlays: ['Bella Pizza', 'Best in town'] }), brief, opts).ok && !BR.checkV2Copy(JSON.stringify({ ...good, narration: 'Bella Pizza wood-fired pizza, last chance to try it tonight with friends and family.' }), brief, opts).ok)
+  const why = (o) => { const r = BR.checkV2Copy(JSON.stringify({ ...good, ...o }), brief, opts); return r.ok ? [] : r.why }
+  await check('V2 número inventado na NARRAÇÃO é recusado PELO NÚMERO (no tamanho certo)', () => why({ narration: 'Bella Pizza has served 5000 happy guests with wood-fired pizza every single night, come taste it with your family.' }).some((w) => /^narration: remove these numbers.*5000/.test(w)))
+  await check('V3 número inventado numa FRASE DE TELA é recusado PELO NÚMERO', () => why({ overlays: ['Bella Pizza', '50% off today'] }).some((w) => /^overlays.1.: remove these numbers.*50/.test(w)))
+  await check('V4 fama/urgência sem base ("best in town", "last chance") é recusada PELA AFIRMAÇÃO', () => why({ overlays: ['Bella Pizza', 'Best in town'] }).some((w) => /^overlays.1.: remove these claims/.test(w)) && why({ narration: 'Bella Pizza bakes wood-fired pizza every night, and this is your last chance to try it with friends.' }).some((w) => /^narration: remove these claims/.test(w)))
   await check('V5 contato diferente do brief (outro telefone, site inventado) é recusado', () => !BR.checkV2Copy(JSON.stringify({ ...good, overlays: ['Bella Pizza', 'Wood-fired', 'bellapizza.com'] }), brief, opts).ok && !BR.checkV2Copy(JSON.stringify({ ...good, overlays: ['Bella Pizza', 'Wood-fired', 'Call 0800 123 4567'] }), brief, opts).ok)
   await check('V6 narração acima de 30 palavras e marca ausente da 1ª frase de tela são recusadas', () => !BR.checkV2Copy(JSON.stringify({ ...good, narration: Array.from({ length: 31 }, () => 'pizza').join(' ') }), brief, opts).ok && !BR.checkV2Copy(JSON.stringify({ ...good, overlays: ['Wood-fired pizza', '2 pizzas for $20'] }), brief, opts).ok)
   await check('V7 os PROMPTS de movimento e de cena do molde passam pela régua (só "9:16" e o ângulo "N-degree" são permitidos, mesmo com brief sem número)', () => {
@@ -620,7 +630,7 @@ await check('E6 trava 8.2: nenhum arquivo do servidor v2 nasce em caminho travad
 })
 await check('E7 migration: as colunas que o servidor lê e escreve existem', () => {
   const sql = rd('migrations_pending/2026-09-29_ads_v2.sql')
-  return ['photos jsonb', 'card_footage_id text', 'voice_seconds numeric', 'assembly_lease_at timestamptz', 'assembly_submit_at timestamptz', 'parent_order_id uuid', 'retake_idx integer', 'reason_class text', 'movement_variant integer', 'image_submit_claimed_at timestamptz', 'submit_claimed_at timestamptz', 'submitted_at timestamptz', 'fal_done_at timestamptz'].every((c) => sql.includes(c))
+  return ['photos jsonb', 'card_footage_id text', 'voice_seconds numeric', 'assembly_lease_at timestamptz', 'assembly_submit_at timestamptz', 'parent_order_id uuid', 'retake_idx integer', 'reason_class text', 'movement_variant integer', 'image_submit_claimed_at timestamptz', 'submit_claimed_at timestamptz', 'submitted_at timestamptz', 'fal_done_at timestamptz'].every((c) => sql.split(String.fromCharCode(10)).some((l) => l.trim().startsWith(c)))
 })
 
 console.log(`${ok} verdes, ${falhas.length} vermelhos`)
