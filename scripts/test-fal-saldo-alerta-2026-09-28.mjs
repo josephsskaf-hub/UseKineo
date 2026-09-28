@@ -546,6 +546,7 @@ console.log('== 8. card do /admin/supplier-health ==')
           select(s, o) { q.sel = s; q.opts = o ?? null; return api },
           eq(k, v) { q.filtros.push([k, v]); return api },
           gte(k, v) { q.filtros.push([k, v]); return api },
+          is(k, v) { q.filtros.push([k, v]); return api }, // FIX-REVISAO-2: o leitor filtra o carimbo do sink (metadata->ip_hash/is_bot IS NULL)
           order() { return api },
           limit(n) { q.lim = n; return api },
           then(res) {

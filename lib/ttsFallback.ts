@@ -2,7 +2,9 @@ import { fal } from '@fal-ai/client'
 import { stripScriptMarkers } from '@/lib/scriptParser'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { alertOpenAiExhausted, looksOpenAiQuotaDead, openAiAlertKind } from '@/lib/openaiAlert'
-import { isOpenAiOutageError, primaryStatusOf, settleWithin, FALLBACK_SIDE_EFFECTS_MS } from '@/lib/llmFallback'
+import { isOpenAiOutageError, primaryStatusOf, settleWithin, FALLBACK_SIDE_EFFECTS_MS, FAL_BALANCE_ALARM_WAIT_MS } from '@/lib/llmFallback'
+// FIX-REVISAO-2 (KINEO-PLANO-B-OPENAI-2026-09-28): a voz reserva gasta a carteira da fal; a recusa por saldo toca o alarme único.
+import { alertFalExhausted, looksExhausted } from '@/lib/falAlert'
 
 // ═══ KINEO-PLANO-B-OPENAI-2026-09-28 — plano B da VOZ do Kineo 1 / clássicos ═══════════════════════
 //
@@ -51,13 +53,61 @@ export function ttsFallbackApplies(err: unknown, elapsedMs: number): boolean {
   return isOpenAiOutageError(err) || looksOpenAiQuotaDead(err)
 }
 
+/**
+ * FIX-REVISAO-2 KINEO-PLANO-B-OPENAI-2026-09-28 — no PASSE CORRETIVO a OpenAI acabou de entregar a narração primária:
+ * ela está de pé. Um 503 "overloaded" ou um 429 de RPM ali é passageiro, e a 2ª tentativa da OpenAI
+ * (KINEO-CORRETIVO-TENTA-DE-NOVO-2026-09-15) devolve a voz da persona no ritmo certo — a 1ª versão trocava a voz do filme
+ * pela MiniMax (outra voz, ~2,7 pal/s: 70 s num filme de 60) e mandava "Recarregar a OpenAI" ao fundador. Só a conta
+ * SEM CRÉDITO (o que a OpenAI declara, ou o 429 sem pista, que nesta casa é saldo — openAiAlertKind) pula a 2ª tentativa
+ * e vai direto à voz reserva; todo o resto segue o retry da origin/main e só cai na MiniMax se ele também falhar.
+ */
+export function ttsFallbackSkipsRetry(err: unknown): boolean {
+  return looksOpenAiQuotaDead(err) && openAiAlertKind(err) === 'quota'
+}
+
 /** O corpo EXATO da rota /audio para a MiniMax 2.8 HD (nunca inventar parâmetro). */
 export function ttsFallbackInput(text: string): { prompt: string; output_format: 'url'; language_boost: 'auto' } {
   return { prompt: text, output_format: 'url', language_boost: 'auto' }
 }
 
-/** Sintetiza a narração pela MiniMax na fal e devolve o mp3 em Buffer (o que o compose espera). */
-export async function synthesizeTtsFallback(script: string): Promise<Buffer> {
+/**
+ * Sintetiza a narração pela MiniMax na fal e devolve o mp3 em Buffer (o que o compose espera).
+ * FIX-REVISAO-2 — recusa da fal por SALDO (403 "User is locked. Reason: Exhausted balance", o ApiError do @fal-ai/client
+ * traz a frase em body.detail) toca o alarme único de saldo (lib/falAlert, fonte 'tts_fallback') antes de relançar: o
+ * compose segue o caminho de sempre (502 na primária, áudio original no corretivo), e o fundador sabe que a fal travou.
+ */
+export async function synthesizeTtsFallback(
+  script: string,
+  ctx: { userId?: string | null; generationId?: string | null } = {},
+): Promise<Buffer> {
+  try {
+    return await sintetizaPelaFal(script)
+  } catch (e) {
+    await avisaSaldoDaFalNaVoz(e, ctx)
+    throw e
+  }
+}
+
+/** FIX-REVISAO-2 — o alarme de saldo da voz reserva: só com recusa de SALDO, com teto de espera, nunca lança. */
+async function avisaSaldoDaFalNaVoz(e: unknown, ctx: { userId?: string | null; generationId?: string | null }): Promise<void> {
+  try {
+    if (!looksExhausted(e as Parameters<typeof looksExhausted>[0])) return
+    console.error(`[tts-fallback] a fal recusou a voz reserva por SALDO (${TTS_FALLBACK_MODEL}) — alarme único de saldo da fal`)
+    await settleWithin(FAL_BALANCE_ALARM_WAIT_MS, [
+      alertFalExhausted({
+        source: 'tts_fallback',
+        engine: TTS_FALLBACK_MODEL,
+        userId: ctx.userId ?? null,
+        generationId: ctx.generationId ?? null,
+        context: 'voz reserva do /api/compose: a TTS da OpenAI recusou e a MiniMax na fal recusou por saldo — o filme segue o caminho de sempre sem a voz reserva',
+      }),
+    ])
+  } catch {
+    // o alarme é anotação: nunca troca o erro que o compose recebe
+  }
+}
+
+async function sintetizaPelaFal(script: string): Promise<Buffer> {
   const falKey = process.env.FAL_KEY
   if (!falKey) throw new Error('FAL_KEY is not set')
   // A mesma limpeza do generateTTS: o narrador nunca lê "[Pexels: …]", "HOOK" ou linha de "speed:".
@@ -118,7 +168,9 @@ export async function registerTtsFallbackUse(args: {
     alertOpenAiExhausted(
       `PLANO B DE VOZ ATIVO (/api/compose, ${args.stage}): a TTS da OpenAI recusou (${String(primaryStatus)}) e a ` +
         `narração saiu pela ${TTS_FALLBACK_MODEL} na fal (${args.ms} ms). O filme segue, com outra voz e outro ritmo; ` +
-        `cada narração agora gasta o saldo da fal. Recarregar a OpenAI.`,
+        `cada narração agora gasta o saldo da fal. ` +
+        // FIX-REVISAO-2 — "Recarregar" só quando foi crédito: num 5xx/rate limit o e-mail já diz que recarregar não resolve.
+        (kind === 'quota' ? 'Recarregar a OpenAI.' : 'Não é falta de crédito: acompanhar https://status.openai.com/.'),
       kind,
     ),
   ])

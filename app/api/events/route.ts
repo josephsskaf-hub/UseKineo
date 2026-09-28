@@ -166,6 +166,22 @@ const SERVER_ONLY_EVENTS = new Set([
   // assinatura) e `renewal_ignored_non_access` o pagamento de renovação descartado; forjá-los mentiria no placar.
   'subscription_ended',
   'renewal_ignored_non_access',
+  // FIX-REVISAO-2 (KINEO-FAL-SALDO-ALERTA / PLANO-B-OPENAI / CENA-CLASSICA / KINEO1-IMAGEM-V2 — 2026-09-28) — os nove
+  // nomes que as levas de 28/09 escrevem SÓ no servidor (writeServerEvent ou insert com a service role). Fora desta
+  // lista, a 2ª revisão executou este POST anônimo com {event_name: fal_balance_exhausted, metadata: {alerted: true,
+  // state: sent}} e o card de saldo do /admin/supplier-health ficou VERMELHO com um "e-mail sent" que nunca saiu; e
+  // os outros oito são a métrica pós-deploy dos docs das mesmas levas (plano B usado, retomada clássica, Omni que caiu
+  // no Kling, brief colado) — qualquer navegador inflaria a contagem. O leitor do card também passou a ignorar linha
+  // com o carimbo deste sink (ip_hash/is_bot), para o caso de um nome novo nascer fora desta lista.
+  'fal_balance_exhausted', // lib/falAlert — reserva + contagem do alarme de saldo
+  'cinematic_dispatch_defect_alerted', // lib/falAlert — reserva do alarme EMPTY_PLAN / ZERO_POSTS
+  'llm_fallback_used', // lib/llmFallback — plano B de texto salvou a chamada
+  'tts_fallback_used', // lib/ttsFallback — voz reserva MiniMax no compose
+  'classic_scene_retry_attempt', // app/api/retry-hollywood-scene — registro de id determinístico da retomada clássica
+  'classic_scene_retry_unconfirmed', // app/api/retry-hollywood-scene — retomada clássica que não confirmou
+  'classic_scene_retry_hold_cleared', // app/api/compose — hold clássico desfeito
+  'omni_scene_kling_fallback', // app/api/generate-video-cinematic — cena Omni que caiu no Kling
+  'pasted_brief_detected', // lib/kineo1/pastedBrief (gravado por /api/generate-video-fast)
 ])
 
 export async function POST(req: NextRequest) {

@@ -17,6 +17,7 @@ import {
   FAL_OPENAI_ROUTER_BASE_URL,
   LLM_FALLBACK_ENABLED,
   falRouterClient,
+  isRealChatCompletion,
   primaryStatusOf,
 } from '@/lib/llmFallback'
 
@@ -47,19 +48,17 @@ function semSegredo(text: string, falKey: string): string {
 async function probe(model: string, falKey: string): Promise<ProbeResult> {
   const t0 = Date.now()
   try {
-    const completion = await falRouterClient(falKey).chat.completions.create(
-      {
-        model,
-        temperature: 0,
-        max_tokens: 40,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: 'You are a health probe. Reply with a single JSON object and nothing else.' },
-          { role: 'user', content: 'Return exactly {"ok":true,"probe":"kineo-plano-b"} as JSON.' },
-        ],
-      },
-      { timeout: PROBE_TIMEOUT_MS, maxRetries: 0 },
-    )
+    const body = {
+      model,
+      temperature: 0,
+      max_tokens: 40,
+      response_format: { type: 'json_object' as const },
+      messages: [
+        { role: 'system' as const, content: 'You are a health probe. Reply with a single JSON object and nothing else.' },
+        { role: 'user' as const, content: 'Return exactly {"ok":true,"probe":"kineo-plano-b"} as JSON.' },
+      ],
+    }
+    const completion = await falRouterClient(falKey).chat.completions.create(body, { timeout: PROBE_TIMEOUT_MS, maxRetries: 0 })
     const content = completion.choices?.[0]?.message?.content ?? ''
     let jsonOk = false
     try {
@@ -68,7 +67,9 @@ async function probe(model: string, falKey: string): Promise<ProbeResult> {
     } catch {
       jsonOk = false
     }
-    return { ok: content.length > 0, model, ms: Date.now() - t0, json_ok: jsonOk, sample: content.slice(0, 120) }
+    // FIX-REVISAO-2 (KINEO-PLANO-B-OPENAI-2026-09-28) — a sonda aprova pela MESMA régua do plano B (isRealChatCompletion):
+    // um 200 com erro no corpo ou finish_reason 'error' não pode dizer "ok" aqui e ser recusado no embrulho.
+    return { ok: isRealChatCompletion(completion, body), model, ms: Date.now() - t0, json_ok: jsonOk, sample: content.slice(0, 120) }
   } catch (err) {
     return {
       ok: false,

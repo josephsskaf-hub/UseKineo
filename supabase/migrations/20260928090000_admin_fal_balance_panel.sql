@@ -36,6 +36,15 @@
 -- Conferido em 27/09 (SELECT idêntico, só leitura): 12 despachos, 36 cenas,
 -- 2 pessoas (1 externa), 450 cr estornados, 44 cr cobrados de filme entregue,
 -- 0 cr cobrados sem entrega.
+--
+-- FIX-REVISAO-2 (28/09) — EVENTO_DO_SERVIDOR: `alarmes` e `ultimo` só leem
+-- linha escrita pelo servidor. O sink público /api/events carimba ip_hash e
+-- is_bot em TODA linha dele (depois do metadata do cliente); o alarme
+-- (lib/falAlert, service role) nunca. Antes, um POST anônimo com
+-- fal_balance_exhausted {alerted:true, state:sent} virava "último alarme" e
+-- pintava o card de vermelho. O nome também entrou em SERVER_ONLY_EVENTS.
+-- (`->` devolve SQL NULL só com a chave AUSENTE; espelho em
+-- lib/supplier/falBalancePanel.ts FAL_PANEL_CLIENT_STAMP_KEYS.)
 
 create or replace function public.admin_fal_balance_panel(
   p_exact_emails text[],
@@ -61,11 +70,13 @@ as $$
     select e.created_at, coalesce(e.user_id::text, e.metadata->>'user_id') as pessoa, e.metadata
     from events e, janela j
     where e.name = 'fal_balance_exhausted' and e.created_at > j.desde
+      and (e.metadata->'ip_hash') is null and (e.metadata->'is_bot') is null -- EVENTO_DO_SERVIDOR
   ),
   ultimo as (
     select e.created_at, e.metadata
     from events e
     where e.name = 'fal_balance_exhausted' and e.metadata->>'alerted' = 'true'
+      and (e.metadata->'ip_hash') is null and (e.metadata->'is_bot') is null -- EVENTO_DO_SERVIDOR
     order by e.created_at desc
     limit 1
   ),

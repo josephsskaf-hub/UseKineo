@@ -24,6 +24,12 @@
 //    aberto às 06:30 → verde "No balance alarm in the last 6 h" com a fal recusando 40 min antes. Agora o fresco é a
 //    ÚLTIMA recusa registrada (last_refusal_at = max de fal_balance_exhausted e de cinematic_dispatch_result com
 //    saldo); a reserva fica só para a linha "e-mail sent/failed".
+//
+// FIX-REVISAO-2 (2026-09-28) — LINHA FORJADA PELO NAVEGADOR: `fal_balance_exhausted` não estava em SERVER_ONLY_EVENTS e o
+// sink público /api/events aceitava o nome — um POST anônimo com {alerted:true, state:'sent'} pintava o card de vermelho e
+// mostrava um e-mail "sent" que nunca saiu. O nome agora é só-do-servidor lá; e, em defesa em profundidade, este leitor (e
+// a RPC) ignoram toda linha com o carimbo daquele sink — ip_hash/is_bot são escritos pelo /api/events DEPOIS do metadata
+// do cliente, em TODA linha dele, e o alarme (lib/falAlert, service role) nunca os escreve.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { INTERNAL_EXACT_EMAILS, INTERNAL_LIKE_PATTERNS } from '@/lib/internalAccounts'
 
@@ -161,15 +167,27 @@ function firstCreatedAt(res: Leitura): string | null {
   return row ? strOrNull(row.created_at) : null
 }
 
+/**
+ * FIX-REVISAO-2 — só linhas do SERVIDOR: sem as chaves que o sink público carimba em toda linha (`metadata->ip_hash` e
+ * `metadata->is_bot` ausentes = SQL NULL no operador `->`; a chave com valor null no JSON não é NULL e fica de fora).
+ * Espelho do filtro da RPC (EVENTO_DO_SERVIDOR na migration).
+ */
+export const FAL_PANEL_CLIENT_STAMP_KEYS = ['metadata->ip_hash', 'metadata->is_bot'] as const
+function soDoServidor<Q extends { is: (column: string, value: null) => Q }>(q: Q): Q {
+  return FAL_PANEL_CLIENT_STAMP_KEYS.reduce((acc, chave) => acc.is(chave, null), q)
+}
+
 /** null = alguma leitura falhou: o card diz "não medido", nunca "sem alarme". */
 async function readFallback(admin: SupabaseClient, nowMs: number): Promise<FalBalancePanel | null> {
   const since = new Date(nowMs - FAL_PANEL_DAYS * 24 * 60 * 60 * 1000).toISOString()
   const [latestRes, dispatchRes, lastRowRes, lastDispatchRes] = (await Promise.all([
-    admin
-      .from('events')
-      .select('created_at, metadata')
-      .eq('name', 'fal_balance_exhausted')
-      .eq('metadata->>alerted', 'true')
+    soDoServidor(
+      admin
+        .from('events')
+        .select('created_at, metadata')
+        .eq('name', 'fal_balance_exhausted')
+        .eq('metadata->>alerted', 'true'),
+    )
       .order('created_at', { ascending: false })
       .limit(1),
     // count exact + head: o banco conta e não devolve linha — imune ao corte de 1000.
@@ -179,12 +197,14 @@ async function readFallback(admin: SupabaseClient, nowMs: number): Promise<FalBa
       .eq('name', 'cinematic_dispatch_result')
       .eq('metadata->>balance_exhausted', 'true')
       .gte('created_at', since),
-    // a ÚLTIMA recusa (reserva OU contagem), só a data
-    admin
-      .from('events')
-      .select('created_at')
-      .eq('name', 'fal_balance_exhausted')
-      .gte('created_at', since)
+    // a ÚLTIMA recusa (reserva OU contagem), só a data — e só linha do servidor (FIX-REVISAO-2)
+    soDoServidor(
+      admin
+        .from('events')
+        .select('created_at')
+        .eq('name', 'fal_balance_exhausted')
+        .gte('created_at', since),
+    )
       .order('created_at', { ascending: false })
       .limit(1),
     admin

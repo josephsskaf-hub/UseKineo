@@ -195,7 +195,7 @@ import { CARD_ENTRY_CHECKOUT_PATH, CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 import { FIRST_FILM_AI_CLIPS_EVENT, FIRST_FILM_AI_CLIPS_RESULT_EVENT, FIRST_FILM_AI_CLIPS_AWAIT_MS, SEEDANCE_720P_5S_USD, parsePendingAiClips, awaitPendingAiClips, spliceAiClips } from '@/lib/fastAiClips'
 import { writeServerEvent } from '@/lib/serverEvents'
 // KINEO-PLANO-B-OPENAI-2026-09-28 — voz reserva (MiniMax 2.8 HD na fal) quando a TTS da OpenAI cai.
-import { ttsFallbackApplies, synthesizeTtsFallback, registerTtsFallbackUse, TTS_FALLBACK_MODEL } from '@/lib/ttsFallback'
+import { ttsFallbackApplies, ttsFallbackSkipsRetry, synthesizeTtsFallback, registerTtsFallbackUse, TTS_FALLBACK_MODEL } from '@/lib/ttsFallback'
 import { primaryStatusOf } from '@/lib/llmFallback'
 
 // FREE_FAST_PREVIEW_LIMIT e FREE_FAST_WINDOW_MS moraram aqui até 06/08/2026.
@@ -2828,9 +2828,14 @@ export async function POST(req: NextRequest) {
     // pula o corretivo (!ttsFallbackUsed); a primária cuja voz reserva falhou já devolveu o 502 — então "uma vez por
     // render" é o mesmo que "uma vez por passe".
     let planoBDeVozTentado = false
-    const narrarPeloPlanoB = async (err: unknown, stage: 'primary' | 'corrective', inicio: number): Promise<Buffer | null> => {
+    // FIX-REVISAO-2 (KINEO-PLANO-B-OPENAI-2026-09-28) — `ultimaChance`: a OpenAI não tem outra tentativa depois desta. Na
+    // primária é sempre (a origin/main devolvia o 502 na hora). No corretivo a OpenAI acabou de entregar a primária, então
+    // a 1ª recusa só vai à MiniMax quando é conta SEM CRÉDITO (ttsFallbackSkipsRetry); um 503/429 de passagem segue a 2ª
+    // tentativa da OpenAI (KINEO-CORRETIVO-TENTA-DE-NOVO-2026-09-15) e só cai na voz reserva se ela também falhar.
+    const narrarPeloPlanoB = async (err: unknown, stage: 'primary' | 'corrective', inicio: number, ultimaChance = true): Promise<Buffer | null> => {
       const primaryMs = Date.now() - inicio
       if (!ttsFallbackApplies(err, primaryMs)) return null
+      if (!ultimaChance && !ttsFallbackSkipsRetry(err)) return null
       if (planoBDeVozTentado) {
         console.warn(`[compose] plano B de voz já foi tentado neste render (${stage}) — não chama a MiniMax de novo`)
         return null
@@ -2838,7 +2843,7 @@ export async function POST(req: NextRequest) {
       planoBDeVozTentado = true
       const t0 = Date.now()
       try {
-        const buf = await synthesizeTtsFallback(scaledScript)
+        const buf = await synthesizeTtsFallback(scaledScript, { userId: authenticatedUserId, generationId }) // FIX-REVISAO-2: alarme de saldo com dono
         const ms = Date.now() - t0
         console.warn(`[compose] PLANO B DE VOZ (${stage}): OpenAI ${String(primaryStatusOf(err))} em ${primaryMs} ms → ${TTS_FALLBACK_MODEL}, ${buf.length} bytes em ${ms} ms`)
         await registerTtsFallbackUse({ err, stage, primaryMs, ms, bytes: buf.length, chars: scaledScript.length, userId: authenticatedUserId, generationId, quality })
@@ -3068,7 +3073,9 @@ export async function POST(req: NextRequest) {
             // repetiria a recusa. Vai direto ao plano B (voz reserva, sem velocidade: o `improved` abaixo
             // decide se ela fica mais perto do alvo do que o áudio que já temos). Se a MiniMax falhar aqui, a 2ª
             // volta tenta só a OpenAI (rápida, como na origin/main): narrarPeloPlanoB não repete a MiniMax.
-            const planoB = await narrarPeloPlanoB(e, 'corrective', inicioTentativa)
+            // FIX-REVISAO-2 — só a conta SEM CRÉDITO pula a 2ª tentativa; 503/429 de passagem numa OpenAI que acabou de
+            // narrar a primária segue o retry de sempre, e a voz reserva só entra se a 2ª também falhar (tentativa 2).
+            const planoB = await narrarPeloPlanoB(e, 'corrective', inicioTentativa, tentativa === 2)
             if (planoB) {
               retryBuffer = planoB
               correctiveViaPlanoB = true

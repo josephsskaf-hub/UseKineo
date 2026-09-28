@@ -19,6 +19,15 @@
 //            pela marca do prompt E pela rota lida da pilha; o Kineo 1 e o generate-script seguem com o plano B;
 //       (d2) no corretivo do compose a MiniMax é tentada no máximo UMA vez por render (eram até 2 × 90 s);
 //       (d3) evento + e-mail do plano B de VOZ têm o mesmo teto de 2,5 s do texto (eram aguardados sem teto).
+//   (e) FIX-REVISAO-2 (2ª revisão, 28/09) — cada defeito com a verificação que reprova o código anterior:
+//       (e1) 200 da fal que não é conclusão de chat relança o erro ORIGINAL (sem evento, sem e-mail de plano B);
+//       (e2) recusa da fal por SALDO no plano B de texto e de voz toca o alarme único de saldo (lib/falAlert), com teto,
+//            e o SDK passa a enxergar o {detail} da fal;
+//       (e3) no corretivo do compose, 503/429 de passagem seguem a 2ª tentativa da OpenAI (só sem crédito pula);
+//       (e4) o e-mail do plano B só manda "Recarregar a OpenAI" quando foi crédito; o log da trava diz "rota
+//            cinematográfica" quando é a rota (clássico ou hollywood) e "estrada hollywood" só com a marca;
+//       (e5) o /api/events REAL recusa os nove nomes só-do-servidor das levas de 28/09, e o card de saldo da fal (leitura
+//            reserva e RPC) ignora linha com o carimbo do sink.
 import { readFileSync, readdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -67,12 +76,18 @@ const SRC_OPENAI = rd('lib/openai.ts')
 const SRC_ALERTA = rd('lib/openaiAlert.ts')
 const SRC_TTS = rd('lib/ttsFallback.ts')
 const SRC_PARSER = rd('lib/scriptParser.ts')
+// (e2) FIX-REVISAO-2 — o alarme de saldo da fal REAL (looksExhausted de verdade), com o envio espionado
+const SRC_FAL_ALERTA = rd('lib/falAlert.ts')
+function falAlertaSpy(alarmesFal, travar = false) {
+  const real = carregar(SRC_FAL_ALERTA, { reqs: { '@supabase/supabase-js': { createClient: () => { throw new Error('sem banco no guardião') } }, '@/lib/supplier/notify': { notifyFounder: async () => ({ delivered: false, email: 'skip', webhook: 'skip' }) } } })
+  return { ...real, alertFalExhausted: async (input) => { alarmesFal.push(input); if (travar) await travado(); return 'sent' } }
+}
 
 // ── um mundo: SDK real com rede falsa, lib/openai + lib/llmFallback reais, evento e alarme espionados ──
 // (d3) efeitosTravados: o evento e o e-mail são registrados mas nunca terminam (Supabase/Resend presos no apagão)
 const travado = () => new Promise(() => {})
-function mundo({ primaria, fal = () => conclusao('{"ok":true}'), env = { OPENAI_API_KEY: OPENAI_KEY, FAL_KEY }, srcLf = SRC_LF, efeitosTravados = false, timers } = {}) {
-  const logs = [], eventos = [], alertas = []
+function mundo({ primaria, fal = () => conclusao('{"ok":true}'), env = { OPENAI_API_KEY: OPENAI_KEY, FAL_KEY }, srcLf = SRC_LF, efeitosTravados = false, timers, alarmeFalTravado = false } = {}) {
+  const logs = [], eventos = [], alertas = [], alarmesFal = []
   const chamadas = { primaria: [], fal: [] }
   let agora = 1_000_000
   class Relogio extends Date { static now() { return agora } }
@@ -85,16 +100,17 @@ function mundo({ primaria, fal = () => conclusao('{"ok":true}'), env = { OPENAI_
     if (u.startsWith(BASE_FAL)) { chamadas.fal.push({ url: u, headers, body }); return fal({ n: chamadas.fal.length, body }) }
     throw new Error('rede inesperada: ' + u)
   }
-  class OpenAITeste extends OpenAI { constructor(o = {}) { super({ ...o, fetch: rede }) } }
+  // (e2) um fetch passado pelo código (o embrulho que traduz o erro da fal) é respeitado — por baixo dele segue a rede falsa
+  class OpenAITeste extends OpenAI { constructor(o = {}) { super({ ...o, fetch: o.fetch ?? rede }) } }
   const alertaReal = carregar(SRC_ALERTA, { reqs: { openai: OpenAITeste }, env, logs })
   const alertaSpy = { ...alertaReal, alertOpenAiExhausted: async (context, kind) => { alertas.push({ context, kind }); if (efeitosTravados) await travado() } }
   const lf = carregar(srcLf, {
-    reqs: { openai: OpenAITeste, '@/lib/serverEvents': { writeServerEvent: async (e) => { eventos.push(e); if (efeitosTravados) await travado(); return true } }, '@/lib/openaiAlert': alertaSpy },
+    reqs: { openai: OpenAITeste, '@/lib/serverEvents': { writeServerEvent: async (e) => { eventos.push(e); if (efeitosTravados) await travado(); return true } }, '@/lib/openaiAlert': alertaSpy, '@/lib/falAlert': falAlertaSpy(alarmesFal, alarmeFalTravado) },
     env, logs, relogio: Relogio, timers,
   })
   const lib = carregar(SRC_OPENAI, { reqs: { openai: OpenAITeste, '@/lib/llmFallback': lf }, env, logs })
   const rota = carregar('exports.POST = (openai, body, opts) => openai.chat.completions.create(body, opts)', { filename: ROTA })
-  return { openai: lib.openai, lf, rota, logs, eventos, alertas, chamadas, env, avanca }
+  return { openai: lib.openai, lf, rota, logs, eventos, alertas, alarmesFal, chamadas, env, avanca }
 }
 const tenta = async (p) => { try { return { valor: await p } } catch (erro) { return { erro } } }
 const CORPO_SCRIPT = { model: 'gpt-4o', temperature: 0.7, max_tokens: 700, response_format: { type: 'json_object' }, messages: [{ role: 'system', content: 'Write a script.' }, { role: 'user', content: 'the ocean' }] }
@@ -202,8 +218,8 @@ console.log('== (a) peças puras ==')
 
 // ═══════════════════════ (b) VOZ ═══════════════════════
 const parser = carregar(SRC_PARSER, {})
-function mundoTts({ env = { FAL_KEY }, subscribe, baixar, srcTts = SRC_TTS, efeitosTravados = false, timers } = {}) {
-  const logs = [], eventos = [], alertas = [], subs = [], configs = [], baixados = [], sinais = []
+function mundoTts({ env = { FAL_KEY }, subscribe, baixar, srcTts = SRC_TTS, efeitosTravados = false, timers, alarmeFalTravado = false } = {}) {
+  const logs = [], eventos = [], alertas = [], subs = [], configs = [], baixados = [], sinais = [], alarmesFal = []
   const m = mundo({ primaria: () => semCredito(), timers }) // o settleWithin da voz mora em lib/llmFallback
   const falMock = {
     fal: {
@@ -220,10 +236,11 @@ function mundoTts({ env = { FAL_KEY }, subscribe, baixar, srcTts = SRC_TTS, efei
       '@/lib/serverEvents': { writeServerEvent: async (e) => { eventos.push(e); if (efeitosTravados) await travado(); return true } },
       '@/lib/openaiAlert': { ...alertaReal, alertOpenAiExhausted: async (context, kind) => { alertas.push({ context, kind }); if (efeitosTravados) await travado() } },
       '@/lib/llmFallback': m.lf,
+      '@/lib/falAlert': falAlertaSpy(alarmesFal, alarmeFalTravado),
     },
     env, logs, rede, timers,
   })
-  return { tts, logs, eventos, alertas, subs, configs, baixados, sinais, lf: m.lf }
+  return { tts, logs, eventos, alertas, alarmesFal, subs, configs, baixados, sinais, lf: m.lf }
 }
 
 console.log('== (b) voz reserva: schema exato da rota /audio ==')
@@ -258,7 +275,7 @@ const FECHO = fatia('    let ttsFallbackUsed = false\n', '    // ═══ fim K
 const PRIMARIA = fatia('      const inicioTts = Date.now() // KINEO-PLANO-B-OPENAI-2026-09-28 — o plano B de voz só entra em falha rápida\n      try {\n        if (!cachedVoiceover && (!audioBuffer || audioBuffer.length === 0)) {\n          audioBuffer = await generateTTS(', '        audioBuffer = planoB\n        ttsFallbackUsed = true\n      }')
 const CORRETIVA = fatia('        let retryBuffer: Awaited<ReturnType<typeof generateTTS>> | null = null\n', 'if (retryBuffer && retryBuffer.length > 0) {', false)
 checa('as três fatias existem no compose (fecho narrarPeloPlanoB, TTS primária, laço corretivo)', !!FECHO && !!PRIMARIA && !!CORRETIVA)
-const CTX = ['generateTTS', 'scaledScript', 'explicitSpeed', 'vertical', 'narrationTier', 'language', 'rejectBeforeProviderSubmission', 'NextResponse', 'ttsFallbackApplies', 'synthesizeTtsFallback', 'registerTtsFallbackUse', 'TTS_FALLBACK_MODEL', 'primaryStatusOf', 'authenticatedUserId', 'generationId', 'quality', 'correctiveSpeed']
+const CTX = ['generateTTS', 'scaledScript', 'explicitSpeed', 'vertical', 'narrationTier', 'language', 'rejectBeforeProviderSubmission', 'NextResponse', 'ttsFallbackApplies', 'synthesizeTtsFallback', 'registerTtsFallbackUse', 'TTS_FALLBACK_MODEL', 'primaryStatusOf', 'authenticatedUserId', 'generationId', 'quality', 'correctiveSpeed', 'ttsFallbackSkipsRetry']
 const montarPrimaria = (relogio) => carregar(`exports.rodar = async function (ctx: any) {\n  const { ${CTX.join(', ')} } = ctx\n  let audioBuffer: any = null\n  const cachedVoiceover: any = null\n  const clonedVoiceUsed = false\n${FECHO}\n${PRIMARIA}\n  return { audioBuffer, ttsFallbackUsed, rejeitado: null }\n}`, { filename: '/compose-primaria.js', relogio }).rodar
 const montarCorretiva = (relogio) => carregar(`exports.rodar = async function (ctx: any) {\n  const { ${CTX.join(', ')} } = ctx\n  let audioBuffer: any = null\n${FECHO}\n${CORRETIVA}\n  return { retryBuffer, correctiveViaPlanoB, ttsFallbackUsed }\n}`, { filename: '/compose-corretiva.js', relogio }).rodar
 function ctxCompose(w, gerar) {
@@ -272,6 +289,7 @@ function ctxCompose(w, gerar) {
     rejectBeforeProviderSubmission: async (r) => r, NextResponse: { json: (b, init) => ({ rejeitado: b, status: init?.status ?? 200 }) },
     ttsFallbackApplies: w.tts.ttsFallbackApplies, synthesizeTtsFallback: w.tts.synthesizeTtsFallback, registerTtsFallbackUse: w.tts.registerTtsFallbackUse, TTS_FALLBACK_MODEL: w.tts.TTS_FALLBACK_MODEL,
     primaryStatusOf: w.lf.primaryStatusOf, authenticatedUserId: 'u-1', generationId: 'gen-0928', quality: 'fast', correctiveSpeed: 1.1,
+    ttsFallbackSkipsRetry: w.tts.ttsFallbackSkipsRetry, // (e3) FIX-REVISAO-2
   }
   return { ctx, chamadas: () => chamadasTts, Relogio }
 }
@@ -343,7 +361,7 @@ if (FECHO && PRIMARIA && CORRETIVA) {
   checa('passe corretivo pula a voz reserva (!ttsFallbackUsed na condição)', /^\s+!ttsFallbackUsed && \/\/ KINEO-PLANO-B-OPENAI-2026-09-28/m.test(cond))
   checa('voz reserva adotada no corretivo marca ttsFallbackUsed dentro do `if (improved)`', /if \(improved\) \{\n\s+audioBuffer = retryBuffer\n\s+realAudioDuration = retryDuration\n\s+if \(correctiveViaPlanoB\) ttsFallbackUsed = true/.test(compose))
   checa('voz reserva nunca entra no cache de voz (a chave é a da voz da OpenAI)', /^\s+const cacheable = !avatarMode && !hasUserVoice && !clonedVoiceUsed && !ttsFallbackUsed && !!voiceoverCacheKey$/m.test(compose))
-  checa('compose importa o plano B de voz de lib/ttsFallback', /^import \{ ttsFallbackApplies, synthesizeTtsFallback, registerTtsFallbackUse, TTS_FALLBACK_MODEL \} from '@\/lib\/ttsFallback'$/m.test(compose))
+  checa('compose importa o plano B de voz de lib/ttsFallback', /^import \{ ttsFallbackApplies, ttsFallbackSkipsRetry, synthesizeTtsFallback, registerTtsFallbackUse, TTS_FALLBACK_MODEL \} from '@\/lib\/ttsFallback'$/m.test(compose))
   checa('hollywood segue em synthesizeHostSpeech (lib/hollywood, trava 8.2) — este plano B não toca o arquivo travado', compose.includes("import { hollywoodVoiceFromClaim, resolveHollywoodVoice, synthesizeHostSpeech, type HollywoodVoice } from '@/lib/hollywood/hostVoice'"))
 }
 
@@ -399,7 +417,8 @@ const ARGS_PLANO = { idea: 'The Boiling River of the Amazon: water hot enough to
 // a rota cinematográfica e um ajudante num chunk compartilhado, com await no meio (os quadros da rota chegam como "at async")
 const rotaCine = carregar('exports.POST = async (planejar) => { await Promise.resolve(); return await planejar() }', { filename: ROTA_CINE })
 const ajudante = carregar('exports.ajuda = async (fn) => { await Promise.resolve(); return await fn() }\nexports.fundo = (n, fn) => (n === 0 ? fn() : exports.fundo(n - 1, fn))', { filename: CHUNK_AJUDA })
-const retido = (m) => m.logs.some((l) => /SEM plano B na estrada hollywood/.test(l))
+// (e4) FIX-REVISAO-2 — pela ROTA o log diz "rota cinematográfica" (os clássicos também despacham por ela); só a MARCA diz "estrada hollywood"
+const retido = (m) => m.logs.some((l) => /SEM plano B na (estrada hollywood|rota cinematográfica)/.test(l))
 {
   // chamado de um chunk: a pilha NÃO mostra a rota (é o que o bundle faz com módulo importado por 2+ entradas) — só a marca segura
   const m = mundo({ primaria: () => semCredito() })
@@ -490,7 +509,7 @@ if (FECHO && CORRETIVA) {
   const iAplica = f.indexOf('if (!ttsFallbackApplies(err, primaryMs)) return null')
   const iVez = f.indexOf('if (planoBDeVozTentado) {')
   const iMarca = f.indexOf('planoBDeVozTentado = true')
-  const iChama = f.indexOf('await synthesizeTtsFallback(scaledScript)')
+  const iChama = f.indexOf('await synthesizeTtsFallback(scaledScript') // (e2) agora com { userId, generationId } para o alarme de saldo
   checa('narrarPeloPlanoB: aplica? → já tentou? → marca a vez → chama a MiniMax, nesta ordem (a vez só é gasta quando a MiniMax vai ser chamada)', iAplica > 0 && iVez > iAplica && iMarca > iVez && iChama > iMarca)
 }
 
@@ -526,6 +545,240 @@ if (FECHO && PRIMARIA) {
   const r = await dentroDe(m.openai.chat.completions.create({ ...CORPO_SCRIPT }, { maxRetries: 0 }))
   checa('texto: com Supabase e Resend travados, a resposta da fal volta pelo mesmo teto de 2,5 s', r === 'resolveu' && rf.atrasos.includes(2_500) && m.chamadas.fal.length === 1)
   checa('o teto é UM só: FALLBACK_SIDE_EFFECTS_MS = 2500 em lib/llmFallback, usado pelo texto e pela voz via settleWithin', m.lf.FALLBACK_SIDE_EFFECTS_MS === 2_500 && /await settleWithin\(FALLBACK_SIDE_EFFECTS_MS, \[/.test(SRC_TTS) && /await settleWithin\(FALLBACK_SIDE_EFFECTS_MS, \[/.test(SRC_LF))
+}
+
+// ═══════════════════════ (e) FIX-REVISAO-2 — 2ª REVISÃO (28/09) ═══════════════════════
+// Cada verificação daqui reprova o código anterior (6583b709): rodada com os arquivos de antes, fica vermelha.
+const fn = (x) => typeof x === 'function'
+const falApiError = (status, detail) => Object.assign(new Error(status === 403 ? 'Forbidden' : 'Error'), { status, body: { detail } })
+const SALDO_FAL = 'User is locked. Reason: Exhausted balance'
+const saldoFal403 = () => jsonRes(403, { detail: SALDO_FAL })
+
+console.log('== (e1) 200 da fal que NÃO é conclusão de chat: o erro ORIGINAL volta ==')
+{
+  const corpos = [
+    ['{"error":{"message":"Provider returned error","code":502}} (OpenRouter: erro de geração com HTTP 200)', { error: { message: 'Provider returned error', code: 502 } }],
+    ["choices[0].finish_reason 'error' com conteúdo vazio", { id: 'gen-x', object: 'chat.completion', choices: [{ index: 0, finish_reason: 'error', message: { role: 'assistant', content: '' } }] }],
+    ["finish_reason 'stop' e conteúdo vazio", { id: 'gen-x', object: 'chat.completion', choices: [{ index: 0, finish_reason: 'stop', message: { role: 'assistant', content: '   ' } }] }],
+    ['objeto vazio', {}],
+    ['choices vazio', { choices: [] }],
+  ]
+  for (const [nome, corpo] of corpos) {
+    const m = mundo({ primaria: () => semCredito(), fal: () => jsonRes(200, corpo) })
+    const r = await tenta(m.openai.chat.completions.create({ ...CORPO_SCRIPT }, { maxRetries: 0 }))
+    const alertaReal = carregar(SRC_ALERTA, { reqs: { openai: OpenAI } })
+    checa(`${nome}: relança o 429 ORIGINAL (a rota segue o 503 de capacidade: looksOpenAiQuotaDead), 1 chamada à fal, 0 llm_fallback_used, 0 e-mail "PLANO B ATIVO"`, r.erro instanceof OpenAI.RateLimitError && /no credits/.test(r.erro.message) && alertaReal.looksOpenAiQuotaDead(r.erro) && m.chamadas.fal.length === 1 && m.eventos.length === 0 && m.alertas.length === 0)
+    checa(`${nome}: o log diz que o plano B devolveu 200 SEM conclusão, sem chave e sem conteúdo`, m.logs.some((l) => /200 SEM conclusão de chat/.test(l)) && semChave(m))
+  }
+  const toolCall = { id: 'gen-t', object: 'chat.completion', choices: [{ index: 0, finish_reason: 'tool_calls', message: { role: 'assistant', content: null, tool_calls: [{ id: 'c1', type: 'function', function: { name: 'f', arguments: '{}' } }] } }] }
+  const comFerramenta = mundo({ primaria: () => semCredito(), fal: () => jsonRes(200, toolCall) })
+  const r1 = await tenta(comFerramenta.openai.chat.completions.create({ ...CORPO_SCRIPT, tools: [{ type: 'function', function: { name: 'f', parameters: { type: 'object', properties: {} } } }] }, { maxRetries: 0 }))
+  checa('controle: pedido COM ferramentas e resposta com tool_calls → salvo pela fal (evento llm_fallback_used)', !r1.erro && r1.valor?.choices?.[0]?.message?.tool_calls?.length === 1 && comFerramenta.eventos.length === 1)
+  const semFerramenta = mundo({ primaria: () => semCredito(), fal: () => jsonRes(200, toolCall) })
+  const r2 = await tenta(semFerramenta.openai.chat.completions.create({ ...CORPO_SCRIPT }, { maxRetries: 0 }))
+  checa('tool_calls sem o pedido ter ferramentas não é conclusão: erro original, 0 eventos', r2.erro?.status === 429 && semFerramenta.eventos.length === 0)
+  const { lf } = mundo({ primaria: () => semCredito() })
+  const ok1 = { choices: [{ finish_reason: 'stop', message: { content: '{"a":1}' } }] }
+  checa('isRealChatCompletion (peça pura): conclusão com texto sim; error no topo, error na escolha, finish_reason error, sem message, null não', fn(lf.isRealChatCompletion) && lf.isRealChatCompletion(ok1, {}) && !lf.isRealChatCompletion({ ...ok1, error: { message: 'x' } }, {}) && !lf.isRealChatCompletion({ choices: [{ finish_reason: 'stop', error: { code: 502 }, message: { content: 'x' } }] }, {}) && !lf.isRealChatCompletion({ choices: [{ finish_reason: 'error', message: { content: 'x' } }] }, {}) && !lf.isRealChatCompletion({ choices: [{ finish_reason: 'stop' }] }, {}) && !lf.isRealChatCompletion(null, {}))
+  const SRC_PROBE2 = rd('app/api/admin/llm-fallback-probe/route.ts')
+  checa('a sonda aprova pela MESMA régua (isRealChatCompletion)', /ok: isRealChatCompletion\(completion, body\)/.test(SRC_PROBE2))
+}
+
+console.log('== (e2) saldo da fal no plano B de TEXTO: alarme único, erro original ==')
+{
+  checa('premissa: o SDK instalado guarda o fetch no campo `fetch` do cliente (é por ele que a tradução embrulha o fetch padrão)', typeof new OpenAI({ apiKey: 'x' }).fetch === 'function')
+  const m = mundo({ primaria: () => semCredito(), fal: saldoFal403 })
+  const r = await tenta(m.openai.chat.completions.create({ ...CORPO_SCRIPT }, { maxRetries: 0 }))
+  const a = m.alarmesFal[0]
+  checa(`fal 403 "${SALDO_FAL}": o cliente recebe o 429 ORIGINAL da OpenAI, 1 chamada à fal, 0 eventos de plano B`, r.erro instanceof OpenAI.RateLimitError && /no credits/.test(r.erro.message) && m.chamadas.fal.length === 1 && m.eventos.length === 0 && m.alertas.length === 0)
+  checa(`...e toca o alarme único de saldo da fal UMA vez (fonte llm_fallback, motor openai/gpt-4o) — antes: 0 (${m.alarmesFal.length})`, m.alarmesFal.length === 1 && a?.source === 'llm_fallback' && a?.engine === 'openai/gpt-4o' && /saldo/.test(a?.context ?? ''))
+  checa('o SDK agora enxerga a frase da fal (o log do plano B diz "User is locked", não "403 status code (no body)"), sem chave', m.logs.some((l) => /plano B também falhou/.test(l) && /User is locked/.test(l)) && !m.logs.some((l) => /no body/.test(l)) && semChave(m))
+  for (const [nome, resp] of [['403 de ACESSO ("model is locked for your account")', () => jsonRes(403, { detail: 'model openai/gpt-4o is locked for your account' })], ['404 id de modelo', () => jsonRes(404, { detail: 'model not found' })], ['500 do roteador', () => jsonRes(500, { error: { message: 'router down' } })]]) {
+    const c = mundo({ primaria: () => semCredito(), fal: resp })
+    const rc = await tenta(c.openai.chat.completions.create({ ...CORPO_SCRIPT }, { maxRetries: 0 }))
+    checa(`controle ${nome}: erro original, NENHUM alarme de saldo`, rc.erro?.status === 429 && c.alarmesFal.length === 0)
+  }
+  const corpo402 = mundo({ primaria: () => semCredito(), fal: () => jsonRes(200, { error: { message: 'Insufficient balance to run this model', code: 402 } }) })
+  const r402 = await tenta(corpo402.openai.chat.completions.create({ ...CORPO_SCRIPT }, { maxRetries: 0 }))
+  checa('200 com {error:{code:402}} no corpo: erro original E alarme de saldo', r402.erro?.status === 429 && corpo402.alarmesFal.length === 1 && corpo402.alarmesFal[0].source === 'llm_fallback')
+  const rf = relogioFalso()
+  const preso = mundo({ primaria: () => semCredito(), fal: saldoFal403, alarmeFalTravado: true, timers: rf.timers })
+  const rp = await dentroDe(preso.openai.chat.completions.create({ ...CORPO_SCRIPT }, { maxRetries: 0 }))
+  checa(`alarme de saldo preso (Supabase/Resend travados): a rota recebe o erro pelo teto de ${preso.lf.FAL_BALANCE_ALARM_WAIT_MS} ms (${rp}; atrasos ${rf.atrasos.join('/')})`, rp === 'lançou' && preso.lf.FAL_BALANCE_ALARM_WAIT_MS === 4_000 && rf.atrasos.includes(4_000) && preso.alarmesFal.length === 1)
+}
+
+console.log('== (e2) saldo da fal na voz reserva: alarme único, o compose segue o caminho de sempre ==')
+{
+  const w = mundoTts({ subscribe: () => { throw falApiError(403, SALDO_FAL) } })
+  const e1 = await tenta(w.tts.synthesizeTtsFallback('Some narration here.', { userId: 'u-9', generationId: 'gen-9' }))
+  const a = w.alarmesFal[0]
+  checa(`MiniMax recusada por saldo (403, body.detail): relança e toca o alarme de saldo (fonte tts_fallback, dono u-9/gen-9) — antes: 0 (${w.alarmesFal.length})`, !!e1.erro && w.alarmesFal.length === 1 && a?.source === 'tts_fallback' && a?.engine === 'fal-ai/minimax/speech-2.8-hd' && a?.userId === 'u-9' && a?.generationId === 'gen-9')
+  const outro = mundoTts({ subscribe: () => { throw falApiError(503, 'overloaded') } })
+  await tenta(outro.tts.synthesizeTtsFallback('Some narration here.'))
+  const acesso = mundoTts({ subscribe: () => { throw falApiError(403, 'model fal-ai/minimax is locked for your account') } })
+  await tenta(acesso.tts.synthesizeTtsFallback('Some narration here.'))
+  checa('controle: 503 da fal e 403 de ACESSO não tocam o alarme de saldo', outro.alarmesFal.length === 0 && acesso.alarmesFal.length === 0)
+  if (FECHO && PRIMARIA) {
+    const wc = mundoTts({ subscribe: () => { throw falApiError(403, SALDO_FAL) } })
+    const { ctx } = ctxCompose(wc, () => { throw erroApi(429, 'You have no credits remaining') })
+    const r = await montarPrimaria()(ctx)
+    checa('compose: TTS 429 + MiniMax sem saldo → o 502 de sempre E o alarme de saldo com a pessoa e a geração do filme', r.status === 502 && wc.alarmesFal.length === 1 && wc.alarmesFal[0].userId === 'u-1' && wc.alarmesFal[0].generationId === 'gen-0928' && wc.eventos.length === 0)
+  }
+  const rf = relogioFalso()
+  const presa = mundoTts({ subscribe: () => { throw falApiError(403, SALDO_FAL) }, alarmeFalTravado: true, timers: rf.timers })
+  const rp = await dentroDe(presa.tts.synthesizeTtsFallback('Some narration here.'))
+  checa(`voz: alarme de saldo preso não segura o compose (teto de 4 s; ${rp})`, rp === 'lançou' && rf.atrasos.includes(4_000))
+}
+
+console.log('== (e3) corretivo: 503/429 de passagem seguem a 2ª tentativa da OpenAI ==')
+if (FECHO && CORRETIVA) {
+  const e503 = () => erroApi(503, 'The server is overloaded or not ready yet.')
+  const eRpm = () => OpenAI.APIError.generate(429, { error: { message: 'Rate limit reached for tts-1-hd in organization org-x on requests per min (RPM): Limit 50, Used 50, Requested 1.', type: 'requests', code: 'rate_limit_exceeded' } }, undefined, {})
+  const eConexao = () => new OpenAI.APIConnectionError({ message: 'Connection error.' })
+  for (const [nome, erro] of [['503 overloaded', e503], ['429 de RPM (rate_limit_exceeded)', eRpm], ['queda de conexão', eConexao]]) {
+    const w = mundoTts()
+    const c = ctxCompose(w, (n) => { if (n === 1) throw erro(); return Buffer.from('mp3-openai-2') })
+    const r = (await tenta(montarCorretiva()(c.ctx))).valor ?? {}
+    checa(`corretivo com ${nome} e depois ok: a 2ª tentativa da OpenAI vale (2 chamadas, 0 MiniMax, voz da persona) — antes ia à MiniMax na 1ª (${c.chamadas()} OpenAI/${w.subs.length} MiniMax)`, c.chamadas() === 2 && w.subs.length === 0 && r.retryBuffer?.toString() === 'mp3-openai-2' && r.correctiveViaPlanoB === false && w.eventos.length === 0 && w.alertas.length === 0)
+  }
+  {
+    const w = mundoTts()
+    const c = ctxCompose(w, () => { throw e503() })
+    const r = (await tenta(montarCorretiva()(c.ctx))).valor ?? {}
+    checa(`corretivo com 503 nas DUAS tentativas: aí sim a voz reserva (2 OpenAI, 1 MiniMax, stage corrective) (${c.chamadas()}/${w.subs.length})`, c.chamadas() === 2 && w.subs.length === 1 && r.correctiveViaPlanoB === true && w.eventos[0]?.metadata?.stage === 'corrective')
+    checa('...e o e-mail NÃO manda recarregar a OpenAI (kind hang; não é crédito)', w.alertas.length === 1 && w.alertas[0].kind === 'hang' && !/Recarregar a OpenAI/.test(w.alertas[0].context) && /status\.openai\.com/.test(w.alertas[0].context))
+  }
+  {
+    const w = mundoTts()
+    const c = ctxCompose(w, () => { throw OpenAI.APIError.generate(429, { error: { message: 'You exceeded your current quota, please check your plan and billing details.', type: 'insufficient_quota', code: 'insufficient_quota' } }, undefined, {}) })
+    const r = (await tenta(montarCorretiva()(c.ctx))).valor ?? {}
+    checa('controle: conta SEM CRÉDITO (insufficient_quota) segue direto à voz reserva (1 OpenAI, 1 MiniMax) e o e-mail manda recarregar', c.chamadas() === 1 && w.subs.length === 1 && r.correctiveViaPlanoB === true && w.alertas[0]?.kind === 'quota' && /Recarregar a OpenAI/.test(w.alertas[0]?.context ?? ''))
+  }
+  const w = mundoTts()
+  const pula = w.tts.ttsFallbackSkipsRetry
+  checa('ttsFallbackSkipsRetry (peça pura): sem crédito e 429 sem pista sim; 503, RPM e conexão não', fn(pula) && pula(erroApi(429, 'You have no credits remaining')) && pula(erroApi(429, 'x')) && !pula(e503()) && !pula(eRpm()) && !pula(eConexao()))
+  const f = fatia('    let ttsFallbackUsed = false\n', '    // ═══ fim KINEO-PLANO-B-OPENAI-2026-09-28 (narrarPeloPlanoB) ═══') ?? ''
+  checa("narrarPeloPlanoB: a 1ª recusa do corretivo só vai à MiniMax sem crédito (ultimaChance || ttsFallbackSkipsRetry), e o corretivo passa tentativa === 2", /if \(!ultimaChance && !ttsFallbackSkipsRetry\(err\)\) return null/.test(f) && compose.includes("await narrarPeloPlanoB(e, 'corrective', inicioTentativa, tentativa === 2)"))
+}
+
+console.log('== (e4) o texto que o fundador lê: e-mail do plano B e log da trava ==')
+{
+  const m503 = mundo({ primaria: () => jsonRes(503, { error: { message: 'overloaded' } }, { 'retry-after-ms': '1' }) })
+  await tenta(m503.openai.chat.completions.create({ ...CORPO_SCRIPT }, { maxRetries: 0 }))
+  const mQuota = mundo({ primaria: () => semCredito() })
+  await tenta(mQuota.openai.chat.completions.create({ ...CORPO_SCRIPT }, { maxRetries: 0 }))
+  checa('plano B de texto com 503: o contexto do e-mail NÃO manda recarregar a OpenAI (kind hang)', m503.alertas.length === 1 && m503.alertas[0].kind === 'hang' && !/Recarregar a OpenAI/.test(m503.alertas[0].context))
+  checa('plano B de texto sem crédito: o contexto manda recarregar (kind quota)', mQuota.alertas[0]?.kind === 'quota' && /Recarregar a OpenAI/.test(mQuota.alertas[0]?.context ?? ''))
+  const rotaCine2 = carregar('exports.POST = async (fn) => { await Promise.resolve(); return await fn() }', { filename: ROTA_CINE })
+  const mRota = mundo({ primaria: () => semCredito() })
+  await tenta(rotaCine2.POST(() => mRota.openai.chat.completions.create({ ...CORPO_SCRIPT }, { maxRetries: 0 })))
+  checa('trava pela ROTA (sem a marca): o log diz "rota cinematográfica" e nomeia os clássicos — não conta como filme hollywood', mRota.logs.some((l) => /SEM plano B na rota cinematográfica \(\/api\/generate-video-cinematic\): texto de um clássico \(Seedance 1\.5\/Veo\/Kling 2\.5\)/.test(l)) && !mRota.logs.some((l) => /SEM plano B na estrada hollywood/.test(l)))
+  const mMarca = mundo({ primaria: () => semCredito() })
+  await tenta(mMarca.openai.chat.completions.create({ ...CORPO_SCRIPT, messages: [{ role: 'system', content: `x ${MARCA}` }, { role: 'user', content: 'y' }] }, { maxRetries: 0 }))
+  checa('trava pela MARCA: o log segue dizendo "estrada hollywood (…, planejador hollywood)"', mMarca.logs.some((l) => /SEM plano B na estrada hollywood \(rota \?, planejador hollywood\)/.test(l)))
+  const doc = rd('docs/PLANO-B-OPENAI-2026-09-28.md')
+  checa('o doc não diz mais que os clássicos continuam com o plano B de texto na rota cinematográfica', !doc.includes('**O Kineo 1 e os clássicos continuam com o plano B**') && /Os clássicos \(Seedance 1\.5, Veo, Kling 2\.5\) não têm plano B na chamada de texto da rota cinematográfica/.test(doc))
+}
+
+console.log('== (e5) eventos só do servidor: o /api/events REAL recusa, o card de saldo ignora linha do navegador ==')
+const NOVOS_SO_SERVIDOR = ['fal_balance_exhausted', 'cinematic_dispatch_defect_alerted', 'llm_fallback_used', 'tts_fallback_used', 'classic_scene_retry_attempt', 'classic_scene_retry_unconfirmed', 'classic_scene_retry_hold_cleared', 'omni_scene_kling_fallback', 'pasted_brief_detected']
+function sinkDeEventos() {
+  const gravadas = []
+  const rota = carregar(rd('app/api/events/route.ts'), {
+    filename: '/var/task/.next/server/app/api/events/route.js',
+    reqs: {
+      'next/server': { NextResponse: { json: (b, init) => ({ body: b, status: init?.status ?? 200 }) } },
+      '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: null } }) } }) },
+      '@supabase/supabase-js': { createClient: () => ({ from: (t) => ({ insert: async (row) => { gravadas.push({ t, row }); return { error: null } } }) }) },
+      '@/lib/requestIdentity': carregar(rd('lib/requestIdentity.ts'), { reqs: { crypto: requireRaiz('node:crypto') } }),
+      '@/lib/growth/businessAdsAttribution': carregar(rd('lib/growth/businessAdsAttribution.ts')),
+    },
+    env: { NEXT_PUBLIC_SUPABASE_URL: 'https://teste.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'service-teste' },
+  })
+  const posta = (body) => rota.POST({ nextUrl: { hostname: 'www.usekineo.com' }, json: async () => body, headers: new Headers({ 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'x-forwarded-for': '203.0.113.9' }) })
+  return { posta, gravadas }
+}
+{
+  // os nomes que o código das levas de 28/09 escreve de verdade (constante ou literal no próprio escritor)
+  const escritos = []
+  const constante = (arq, re) => { const s = rd(arq); const mm = re.exec(s); if (mm) escritos.push([arq, mm[1]]); return !!mm }
+  const achouTodos = [
+    constante('lib/falAlert.ts', /export const FAL_BALANCE_EVENT = '([a-z_]+)'/),
+    constante('lib/falAlert.ts', /export const DISPATCH_DEFECT_EVENT = '([a-z_]+)'/),
+    constante('lib/llmFallback.ts', /export const LLM_FALLBACK_EVENT = '([a-z_]+)'/),
+    constante('lib/ttsFallback.ts', /export const TTS_FALLBACK_EVENT = '([a-z_]+)'/),
+    constante('lib/kineo1/pastedBrief.ts', /export const PASTED_BRIEF_EVENT = '([a-z_]+)'/),
+    constante('app/api/retry-hollywood-scene/route.ts', /const CLASSIC_ATTEMPT_EVENT = '([a-z_]+)'/),
+    constante('app/api/retry-hollywood-scene/route.ts', /const CLASSIC_UNCONFIRMED_EVENT = '([a-z_]+)'/),
+    constante('app/api/compose/route.ts', /writeServerEvent\(\{ name: '(classic_scene_retry_hold_cleared)'/),
+  ].every(Boolean)
+  // a rota cinematográfica é da trava 8.2: o literal só existe depois dela — quando existir, também tem de estar na lista
+  constante('app/api/generate-video-cinematic/route.ts', /writeServerEvent\(\{ name: '(omni_scene_kling_fallback)'/)
+  checa(`os escritores das levas de 28/09 foram achados (${escritos.map(([, n]) => n).join(', ')})`, achouTodos)
+  checa('todo nome escrito por eles está na lista dos nove', escritos.every(([, n]) => NOVOS_SO_SERVIDOR.includes(n)))
+  const sink = sinkDeEventos()
+  const aceitos = []
+  for (const nome of NOVOS_SO_SERVIDOR) {
+    const antes = sink.gravadas.length
+    const r = await sink.posta({ event_name: nome, path: '/fal/cinematic', metadata: { alerted: true, state: 'sent', source: 'cinematic', scenes_refused: 9 } })
+    if (!(r.body?.stored === false && r.body?.ignored === true && sink.gravadas.length === antes)) aceitos.push(nome)
+  }
+  checa(`POST anônimo no /api/events REAL com cada um dos nove nomes: recusado, nada gravado (aceitos: ${aceitos.join(', ') || 'nenhum'})`, aceitos.length === 0)
+  const legado = await sink.posta({ name: 'llm_fallback_used' })
+  checa('o campo legado `name` também é recusado', legado.body?.stored === false && !sink.gravadas.some((g) => g.row.name === 'llm_fallback_used'))
+  const ctrl = await sink.posta({ event_name: 'landing_session_started', metadata: { is_bot: true, ip_hash: 'forjado' } })
+  const linha = sink.gravadas.find((g) => g.row.name === 'landing_session_started')?.row
+  checa('controle: evento do navegador segue gravado, com o carimbo do servidor por cima do metadata do cliente', ctrl.body?.stored === true && linha?.metadata?.is_bot === false && typeof linha?.metadata?.ip_hash === 'string' && linha.metadata.ip_hash !== 'forjado')
+
+  // o card de saldo: uma tabela events em memória que responde aos MESMOS filtros do PostgREST (->> texto, -> jsonb)
+  const P = carregar(rd('lib/supplier/falBalancePanel.ts'), { reqs: { '@/lib/internalAccounts': { INTERNAL_EXACT_EMAILS: ['a@x'], INTERNAL_LIKE_PATTERNS: ['t%'] } } })
+  const valorDe = (row, k) => {
+    if (['name', 'created_at', 'path', 'id'].includes(k)) return row[k] ?? null
+    let mm = /^metadata->>(\w+)$/.exec(k)
+    if (mm) { const v = row.metadata?.[mm[1]]; return v === undefined || v === null ? null : String(v) }
+    mm = /^metadata->(\w+)$/.exec(k)
+    if (mm) return row.metadata && Object.prototype.hasOwnProperty.call(row.metadata, mm[1]) ? row.metadata[mm[1]] : undefined
+    throw new Error('filtro não mapeado: ' + k)
+  }
+  const bancoFalso = (linhas) => ({
+    rpc: async () => ({ data: null, error: { code: 'PGRST202', message: 'function not found' } }), // o estado no lançamento
+    from() {
+      const q = { filtros: [], opts: null, lim: null, desc: false }
+      const api = {
+        select(_s, o) { q.opts = o ?? null; return api },
+        eq(k, v) { q.filtros.push((r) => valorDe(r, k) === v); return api },
+        gte(k, v) { q.filtros.push((r) => String(valorDe(r, k)) >= v); return api },
+        // `->` devolve SQL NULL só com a chave AUSENTE; `->>` também com o JSON null
+        is(k, v) { if (v !== null) throw new Error('is só com null'); q.filtros.push((r) => (/^metadata->\w+$/.test(k) ? valorDe(r, k) === undefined : valorDe(r, k) === null)); return api },
+        order(_c, o) { q.desc = o?.ascending === false; return api },
+        limit(n) { q.lim = n; return api },
+        then(res, rej) {
+          let rows = linhas.filter((r) => q.filtros.every((f) => f(r)))
+          rows.sort((x, y) => (q.desc ? y.created_at.localeCompare(x.created_at) : x.created_at.localeCompare(y.created_at)))
+          if (q.opts?.head) return Promise.resolve({ data: null, count: rows.length, error: null }).then(res, rej)
+          if (q.lim != null) rows = rows.slice(0, q.lim)
+          return Promise.resolve({ data: rows.map((r) => ({ created_at: r.created_at, metadata: r.metadata })), error: null }).then(res, rej)
+        },
+      }
+      return api
+    },
+  })
+  const agora = Date.UTC(2026, 8, 28, 12)
+  const iso = (ms) => new Date(ms).toISOString()
+  // a linha que o sink ANTIGO gravava para o POST forjado: o metadata do cliente + o carimbo REAL do sink (ip_hash/is_bot)
+  const forjada = { name: 'fal_balance_exhausted', path: '/fal/cinematic', created_at: iso(agora - 3600e3), metadata: { alerted: true, state: 'sent', source: 'cinematic', engine: 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video', scenes_refused: 9, ip_hash: linha?.metadata?.ip_hash ?? 'hash', is_bot: false } }
+  // a linha que o alarme (lib/falAlert, service role) grava: sem carimbo
+  const doServidor = { name: 'fal_balance_exhausted', path: '/fal/kineo1_clip', created_at: iso(agora - 10 * 3600e3), metadata: { source: 'kineo1_clip', engine: null, generation_id: null, scenes_refused: null, context: null, window_start: iso(agora - 12 * 3600e3), user_id: null, alerted: true, state: 'sent', attempt: 0 } }
+  const soForjada = await P.readFalBalancePanel(bancoFalso([forjada]), new Date(agora))
+  checa(`card (leitura reserva): a linha FORJADA pelo navegador não vira "último alarme" nem pinta o vermelho — antes: latest=${soForjada?.latest?.source ?? 'null'}, fresco=${P.falRefusalIsFresh(soForjada, agora)}`, soForjada?.mode === 'fallback' && soForjada.latest === null && soForjada.lastRefusalAt === null && P.falRefusalIsFresh(soForjada, agora) === false)
+  const mistura = await P.readFalBalancePanel(bancoFalso([forjada, doServidor]), new Date(agora))
+  checa('card: com as duas, vale a do SERVIDOR (kineo1_clip, 10 h atrás → não fresco)', mistura?.latest?.source === 'kineo1_clip' && mistura.lastRefusalAt === doServidor.created_at && P.falRefusalIsFresh(mistura, agora) === false)
+  const soServidor = await P.readFalBalancePanel(bancoFalso([{ ...doServidor, created_at: iso(agora - 3600e3) }]), new Date(agora))
+  checa('controle: a linha do servidor de 1 h atrás segue pintando o vermelho', soServidor?.latest?.source === 'kineo1_clip' && P.falRefusalIsFresh(soServidor, agora) === true)
+  const sql = rd('supabase/migrations/20260928090000_admin_fal_balance_panel.sql')
+  const cte = (nome) => { const i = sql.indexOf(`  ${nome} as (`); return i < 0 ? '' : sql.slice(i, sql.indexOf('\n  ),', i)) }
+  const FILTRO_SQL = "(e.metadata->'ip_hash') is null and (e.metadata->'is_bot') is null"
+  checa('RPC: `alarmes` (contagem, pessoas, última recusa) e `ultimo` (o alarme do card) ignoram linha com o carimbo do sink', cte('alarmes').includes(FILTRO_SQL) && cte('ultimo').includes(FILTRO_SQL))
 }
 
 console.log(`\n${ok} ok · ${falhas.length} falhas`)

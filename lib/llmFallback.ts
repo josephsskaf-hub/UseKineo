@@ -1,6 +1,8 @@
 import OpenAI from 'openai'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { alertOpenAiExhausted, looksOpenAiQuotaDead, openAiAlertKind } from '@/lib/openaiAlert'
+// FIX-REVISAO-2 (KINEO-PLANO-B-OPENAI-2026-09-28): o plano B gasta a carteira da fal; a recusa dela por saldo toca o alarme único.
+import { alertFalExhausted, looksExhausted } from '@/lib/falAlert'
 
 // ═══ KINEO-PLANO-B-OPENAI-2026-09-28 — quando a OpenAI cai, o texto sai pela fal ═══════════════════
 //
@@ -57,8 +59,12 @@ export const FALLBACK_SIDE_EFFECTS_MS = 2_500
 // na hora). Até a narração hollywood ter voz reserva, toda chamada de texto da rota cinematográfica fica como antes:
 // a OpenAI ou o erro dela. (Nos 30 dias até 27/09 foram ~24 despachos hollywood e 0 no apagão de 26-27/09 — o defeito
 // estava armado, não disparado.) O Kineo 1 e os clássicos (Seedance 1.5/Veo/Kling 2.5) narram por generateTTS, que
-// tem a voz reserva de lib/ttsFallback, e seguem com o plano B no generate-script, analyze-idea, generate-video-fast e
-// compose.
+// tem a voz reserva de lib/ttsFallback, e seguem com o plano B no generate-script, analyze-idea e compose (o Kineo 1
+// também no generate-video-fast).
+// FIX-REVISAO-2 KINEO-PLANO-B-OPENAI-2026-09-28 — os clássicos DESPACHAM pela rota cinematográfica: o escritor de cenas
+// deles (generateScenes no modo IA, a chamada de texto da rota) fica SEM plano B, exatamente como na origin/main; só a
+// narração deles no compose tem a voz reserva. Por isso o log da trava pela ROTA diz "rota cinematográfica" (clássico
+// ou hollywood), e só o da MARCA diz "planejador hollywood" — contar filmes hollywood retidos pelo log exige a marca.
 // Duas travas, porque a pilha é melhor esforço:
 //   (1) a rota lida da pilha = '/api/generate-video-cinematic'. Confiável enquanto o módulo da rota viver SÓ no bundle
 //       dela: o webpack do servidor (Next 14, splitChunks minChunks 2) manda para .next/server/chunks/ todo módulo
@@ -69,6 +75,24 @@ export const FALLBACK_SIDE_EFFECTS_MS = 2_500
 //       lib/hollywood/router.ts) — não depende do bundle nem da pilha.
 export const LLM_FALLBACK_BLOCKED_ROUTES: readonly string[] = ['/api/generate-video-cinematic']
 export const HOLLYWOOD_PLANNER_MARKER = 'THE FOUR KEYS TO REALISM'
+
+// ═══ FIX-REVISAO-2 KINEO-PLANO-B-OPENAI-2026-09-28 — o que a 2ª revisão achou no plano B de texto ═══════════════════════
+// (1) 200 QUE NÃO É CONCLUSÃO: o roteador (OpenRouter) devolve erro de geração com HTTP 200 e o erro no corpo
+//     ({"error":{"message":"Provider returned error","code":502}}, ou choices[0].finish_reason 'error' com conteúdo vazio).
+//     A 1ª versão contava isso como sucesso: o escritor de cenas do Kineo 1 quebrava em completion.choices[0] (TypeError →
+//     500 genérico 'scene_generation_failed', não o 503 de capacidade com 'openai_quota_dead'), e o fundador recebia
+//     "PLANO B ATIVO … O cliente não viu erro". Agora só conta como salvo o que é conclusão de verdade
+//     (isRealChatCompletion); o resto é falha do plano B: log e o erro ORIGINAL da OpenAI, sem evento e sem e-mail de
+//     plano B — o cliente segue o caminho de capacidade da origin/main.
+// (2) SALDO DA FAL: o plano B gasta a mesma carteira pré-paga dos clipes. Quando ela acaba, o roteador recusa com 403
+//     {"detail":"User is locked. Reason: Exhausted balance"} e todo filme do Kineo 1 morre NO ROTEIRO, antes de qualquer
+//     clipe — nenhum dos alarmes de saldo (kineo1_clip, poll, retry, cinematic) chegava a rodar. Agora a recusa por saldo
+//     toca o alarme único (lib/falAlert, fonte 'llm_fallback') e o erro ORIGINAL continua voltando. Dois detalhes:
+//       · o SDK da OpenAI só lê {error:{message}}: com o {detail} da fal ele monta "403 status code (no body)" e a frase
+//         do saldo sumia antes do looksExhausted — traduzErroDaFal passa o detail para o formato que o SDK lê;
+//       · o alarme espera no máximo FAL_BALANCE_ALARM_WAIT_MS (reserva no banco + o teto de 3 s do envio): um Supabase
+//         preso no apagão não segura a rota que já vai responder o erro.
+export const FAL_BALANCE_ALARM_WAIT_MS = 4_000
 
 type ChatCreateBody = Record<string, unknown> & { model?: unknown; stream?: unknown }
 type ChatCreateOptions = { timeout?: unknown; signal?: unknown } & Record<string, unknown>
@@ -164,6 +188,41 @@ function pilhaDaEntrada(): string | undefined {
   }
 }
 
+/**
+ * FIX-REVISAO-2 — resposta de ERRO da fal ({detail: …}, sem `error`) reescrita no formato que o SDK da OpenAI lê
+ * ({error:{message: detail}}), com o MESMO status e os mesmos cabeçalhos. Sem isto o 403 de saldo chega ao looksExhausted
+ * como "403 status code (no body)". Resposta de sucesso, corpo que não é JSON ou que já tem `error` passam intactos.
+ */
+export function traduzErroDaFal(base: FalRouterFetch): FalRouterFetch {
+  type Resposta = Awaited<ReturnType<FalRouterFetch>>
+  const traduzido = async (...args: Parameters<FalRouterFetch>): Promise<Resposta> => {
+    const res = await base(...args)
+    if (res.ok) return res
+    try {
+      const parsed = JSON.parse(await res.clone().text()) as { detail?: unknown; error?: unknown } | null
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || parsed.error !== undefined) return res
+      const detail = parsed.detail
+      const message = typeof detail === 'string' ? detail : detail !== undefined && detail !== null ? JSON.stringify(detail) : ''
+      if (!message) return res
+      const headers: Array<[string, string]> = []
+      res.headers.forEach((valor: string, nome: string) => {
+        if (!/^(content-length|content-encoding|transfer-encoding)$/i.test(nome)) headers.push([nome, valor])
+      })
+      const Classe = res.constructor as unknown as new (body: string, init: { status: number; statusText: string; headers: Array<[string, string]> }) => Resposta
+      return new Classe(JSON.stringify({ error: { message: message.slice(0, 500), type: 'fal_error' } }), { status: res.status, statusText: res.statusText, headers })
+    } catch {
+      return res
+    }
+  }
+  return traduzido as unknown as FalRouterFetch
+}
+
+/** O fetch que o SDK usaria sozinho (o shim dele) — campo privado `fetch` do APIClient do SDK 4.x; null se mudar. */
+function fetchPadraoDoSdk(client: OpenAI): FalRouterFetch | null {
+  const f = (client as unknown as { fetch?: unknown }).fetch
+  return typeof f === 'function' ? (f as FalRouterFetch) : null
+}
+
 let falRouterMemo: { key: string; client: OpenAI } | null = null
 
 /**
@@ -174,7 +233,7 @@ let falRouterMemo: { key: string; client: OpenAI } | null = null
  */
 export function falRouterClient(falKey: string, fetchImpl?: FalRouterFetch): OpenAI {
   if (!fetchImpl && falRouterMemo && falRouterMemo.key === falKey) return falRouterMemo.client
-  const client = new OpenAI({
+  const opcoes = {
     apiKey: falKey,
     baseURL: FAL_OPENAI_ROUTER_BASE_URL,
     defaultHeaders: { Authorization: `Key ${falKey}` },
@@ -182,10 +241,78 @@ export function falRouterClient(falKey: string, fetchImpl?: FalRouterFetch): Ope
     project: null,
     maxRetries: 0,
     timeout: 20_000,
-    ...(fetchImpl ? { fetch: fetchImpl } : {}),
-  })
+  }
+  // FIX-REVISAO-2 — o mesmo fetch de sempre (o do SDK, ou o do guardião), embrulhado por traduzErroDaFal.
+  const semTraducao = new OpenAI({ ...opcoes, ...(fetchImpl ? { fetch: fetchImpl } : {}) })
+  const base = fetchImpl ?? fetchPadraoDoSdk(semTraducao)
+  const client = base ? new OpenAI({ ...opcoes, fetch: traduzErroDaFal(base) }) : semTraducao
   if (!fetchImpl) falRouterMemo = { key: falKey, client }
   return client
+}
+
+/**
+ * FIX-REVISAO-2 — a resposta da fal é uma conclusão de chat de VERDADE? Sem `error` no topo, choices[0] com message,
+ * finish_reason diferente de 'error' e conteúdo de texto não vazio — ou tool_calls/function_call quando o chamador pediu
+ * ferramentas. Um conteúdo vazio também não salva nada: todo chamador de hoje lê o texto (JSON do roteiro/cenas).
+ */
+export function isRealChatCompletion(result: unknown, body: unknown): boolean {
+  if (!result || typeof result !== 'object' || Array.isArray(result)) return false
+  const r = result as { error?: unknown; choices?: unknown }
+  if (r.error !== undefined && r.error !== null) return false
+  if (!Array.isArray(r.choices) || r.choices.length === 0) return false
+  const primeira = r.choices[0] as { finish_reason?: unknown; message?: unknown; error?: unknown } | null
+  if (!primeira || typeof primeira !== 'object') return false
+  if (primeira.finish_reason === 'error' || (primeira.error !== undefined && primeira.error !== null)) return false
+  const message = primeira.message as { content?: unknown; tool_calls?: unknown; function_call?: unknown } | null | undefined
+  if (!message || typeof message !== 'object') return false
+  if (typeof message.content === 'string' && message.content.trim().length > 0) return true
+  const b = body as { tools?: unknown; functions?: unknown } | null | undefined
+  const pediuFerramenta = (Array.isArray(b?.tools) && b.tools.length > 0) || (Array.isArray(b?.functions) && b.functions.length > 0)
+  if (!pediuFerramenta) return false
+  return (Array.isArray(message.tool_calls) && message.tool_calls.length > 0) || (!!message.function_call && typeof message.function_call === 'object')
+}
+
+/** O erro que veio DENTRO de um 200 ({error:{message, code}} no topo ou na 1ª escolha), no formato que looksExhausted lê. */
+function erroNoCorpo(result: unknown): { status: number | null; message: string } | null {
+  const r = result as { error?: unknown; choices?: unknown } | null
+  const primeira = Array.isArray(r?.choices) ? (r?.choices[0] as { error?: unknown } | null | undefined) : undefined
+  const e = r?.error ?? primeira?.error
+  if (e === undefined || e === null) return null
+  if (typeof e === 'string') return { status: null, message: e }
+  if (typeof e !== 'object') return null
+  const { code, message } = e as { code?: unknown; message?: unknown }
+  return { status: typeof code === 'number' ? code : null, message: typeof message === 'string' ? message : '' }
+}
+
+/** A forma da resposta rejeitada, para o log — nunca o conteúdo (pode ecoar o roteiro do cliente). */
+function formaDaResposta(result: unknown): string {
+  const noCorpo = erroNoCorpo(result)
+  if (noCorpo) return `erro no corpo ${noCorpo.status ?? '?'}: ${noCorpo.message.slice(0, 120)}`
+  const choices = (result as { choices?: unknown } | null)?.choices
+  if (!Array.isArray(choices)) return 'sem choices'
+  const primeira = choices[0] as { finish_reason?: unknown; message?: { content?: unknown } } | undefined
+  const content = primeira?.message?.content
+  return `choices ${choices.length}, finish_reason ${String(primeira?.finish_reason)}, conteúdo ${typeof content === 'string' ? `${content.length} caracteres` : typeof content}`
+}
+
+/**
+ * FIX-REVISAO-2 — a fal recusou o plano B por SALDO? Toca o alarme único de saldo (lib/falAlert, fonte 'llm_fallback'),
+ * com teto de espera. Nunca lança e nunca troca o erro que o cliente recebe (o ORIGINAL da OpenAI).
+ */
+async function avisaSaldoDaFal(falErr: unknown, ctx: { model: string; fallbackModel: string; route: string | null }): Promise<void> {
+  try {
+    if (!looksExhausted(falErr as Parameters<typeof looksExhausted>[0])) return
+    console.error(`[llm-fallback] a fal recusou o plano B por SALDO (${ctx.fallbackModel}) — alarme único de saldo da fal`)
+    await settleWithin(FAL_BALANCE_ALARM_WAIT_MS, [
+      alertFalExhausted({
+        source: 'llm_fallback',
+        engine: ctx.fallbackModel,
+        context: `plano B de texto (${ctx.route ?? 'rota ?'}): a OpenAI recusou ${ctx.model} e o roteador da fal recusou por saldo — o cliente recebeu o erro de capacidade da OpenAI`,
+      }),
+    ])
+  } catch {
+    // o alarme é anotação: nunca troca o erro que o cliente recebe
+  }
 }
 
 export type LlmFallbackUse = {
@@ -206,10 +333,13 @@ function semSegredo(text: string, falKey: string | null | undefined): string {
 /** Sucesso do plano B: alarme ao fundador (mesmo limitador de sempre) + evento `llm_fallback_used`. */
 export async function registerLlmFallbackUse(use: LlmFallbackUse): Promise<void> {
   const kind: 'quota' | 'hang' | 'rate_limit' = looksOpenAiQuotaDead(use.err) ? openAiAlertKind(use.err) : 'hang'
+  // FIX-REVISAO-2 — "Recarregar a OpenAI" só quando a recusa foi de crédito: num 5xx/timeout/rate limit o e-mail do
+  // alarme já diz que recarregar NÃO resolve, e o contexto não pode mandar o contrário.
   const context =
     `PLANO B ATIVO (${use.route ?? 'rota ?'}): a OpenAI recusou ${use.model} (${String(use.primary_status)}) e a ` +
     `chamada saiu pela fal (${use.fallback_model}, ${use.ms} ms). O cliente não viu erro, mas cada chamada agora ` +
-    `gasta o saldo da fal — o mesmo que paga os clipes. Recarregar a OpenAI.`
+    `gasta o saldo da fal — o mesmo que paga os clipes. ` +
+    (kind === 'quota' ? 'Recarregar a OpenAI.' : 'Não é falta de crédito: acompanhar https://status.openai.com/.')
   await settleWithin(FALLBACK_SIDE_EFFECTS_MS, [
     alertOpenAiExhausted(context, kind),
     writeServerEvent({
@@ -275,9 +405,14 @@ export function withLlmFallback<F extends (...args: never[]) => unknown>(primary
       })
       if (!decision.use) {
         if (decision.why === 'hollywood_road') {
+          // FIX-REVISAO-2 — "estrada hollywood" só com a MARCA do planejador; pela rota é "rota cinematográfica" (os
+          // clássicos Seedance 1.5/Veo/Kling 2.5 também despacham por ela).
           console.warn(
-            `[llm-fallback] SEM plano B na estrada hollywood (${route ?? 'rota ?'}${hollywoodPlanner ? ', planejador hollywood' : ''}): ` +
-              `a narração hollywood só tem a voz da OpenAI — o ${String(primaryStatusOf(err))} original volta ANTES de qualquer clipe pago`,
+            hollywoodPlanner
+              ? `[llm-fallback] SEM plano B na estrada hollywood (${route ?? 'rota ?'}, planejador hollywood): ` +
+                  `a narração hollywood só tem a voz da OpenAI — o ${String(primaryStatusOf(err))} original volta ANTES de qualquer clipe pago`
+              : `[llm-fallback] SEM plano B na rota cinematográfica (${route ?? 'rota ?'}): texto de um clássico (Seedance 1.5/Veo/Kling 2.5) ` +
+                  `ou de um motor hollywood — o ${String(primaryStatusOf(err))} original volta, como na origin/main`,
           )
         }
         throw err
@@ -303,6 +438,17 @@ export function withLlmFallback<F extends (...args: never[]) => unknown>(primary
           `[llm-fallback] plano B também falhou (${model} → ${fallbackModel}, fal ${String(primaryStatusOf(fallbackErr))}: ` +
             `${semSegredo(detail, falKey)}) — relançando o erro ORIGINAL da OpenAI (${String(primaryStatusOf(err))})`,
         )
+        await avisaSaldoDaFal(fallbackErr, { model, fallbackModel, route }) // FIX-REVISAO-2 — saldo da fal: alarme único
+        throw err
+      }
+      // FIX-REVISAO-2 — HTTP 200 não basta: só conclusão de chat de verdade salva a chamada (ver (1) no topo).
+      if (!isRealChatCompletion(result, body)) {
+        console.error(
+          `[llm-fallback] plano B devolveu 200 SEM conclusão de chat (${model} → ${fallbackModel}, ${semSegredo(formaDaResposta(result), falKey)}) ` +
+            `— relançando o erro ORIGINAL da OpenAI (${String(primaryStatusOf(err))})`,
+        )
+        const noCorpo = erroNoCorpo(result)
+        if (noCorpo) await avisaSaldoDaFal(noCorpo, { model, fallbackModel, route })
         throw err
       }
       const use: LlmFallbackUse = {

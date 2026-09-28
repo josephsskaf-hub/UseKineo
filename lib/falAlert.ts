@@ -94,6 +94,10 @@ export const FAL_ALERT_SUBJECT = '🚨 Kineo: fal.ai balance EXHAUSTED — AI vi
 
 export type FalAlertSource =
   | 'cinematic'
+  // FIX-REVISAO-2 (KINEO-PLANO-B-OPENAI-2026-09-28): os dois consumidores do plano B da OpenAI também gastam a carteira da
+  // fal — o roteador compatível (lib/llmFallback) e a voz reserva MiniMax (lib/ttsFallback).
+  | 'llm_fallback'
+  | 'tts_fallback'
   | 'kineo1_hook'
   | 'kineo1_clip'
   | 'poll'
