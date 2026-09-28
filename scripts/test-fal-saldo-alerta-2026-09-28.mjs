@@ -810,7 +810,9 @@ console.log('== 8b. card: filme em voo fora do "refund them"; fallback nunca ver
         select(_s, o) { q.head = !!o?.head; return api }, eq(k, v) { q.filtros.push([k, v]); return api }, is(k, v) { if (v === null) q.nulos.push(k); return api },
         gte() { return api }, order() { return api }, limit() { return api },
         then(res) {
-          const campo = (r, k) => (k.startsWith('metadata->>') ? (r.metadata?.[k.slice(11)] === undefined ? undefined : String(r.metadata[k.slice(11)])) : r[k])
+          // integração 28/09: o leitor filtra com 'metadata->chave' (soDoServidor, FIX-REVISAO-2 openai+eventos) — o banco falso
+          // entende '->>' e '->' (os dois são SQL NULL quando a chave falta).
+          const campo = (r, k) => { const m = k.match(/^metadata->>?(.+)$/); return m ? (r.metadata?.[m[1]] === undefined ? undefined : String(r.metadata[m[1]])) : r[k] }
           const achadas = linhas.filter((r) => q.filtros.every(([k, v]) => campo(r, k) === v) && q.nulos.every((k) => campo(r, k) === undefined))
             .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
           if (q.head) return Promise.resolve({ data: null, count: achadas.length, error: null }).then(res)
@@ -828,7 +830,7 @@ console.log('== 8b. card: filme em voo fora do "refund them"; fallback nunca ver
   const pServidor = await P.readFalBalancePanel(adminDe([doServidor, forjada]), new Date(agora))
   checa('controle: a linha do servidor (lib/falAlert, sem ip_hash) continua pintando o vermelho', pServidor?.latest?.state === 'sent' && P.falRefusalIsFresh(pServidor, agora) === true)
   const cteAlarmes = sql.slice(sql.indexOf('  alarmes as ('), sql.indexOf('  por_dia as ('))
-  checa("SQL: alarmes e ultimo ignoram linha com metadata ? 'ip_hash' (carimbo do sink do navegador)", cteAlarmes.split("and not (e.metadata ? 'ip_hash')").length === 3)
+  checa("SQL: alarmes e ultimo ignoram linha com metadata ? 'ip_hash' (carimbo do sink do navegador)", (cteAlarmes.split("and not (e.metadata ? 'ip_hash')").length === 3 || cteAlarmes.split("and (e.metadata->'ip_hash') is null and (e.metadata->'is_bot') is null").length === 3) /* integração 28/09: as duas formas que as duas correções escreveram */)
   checa('SQL segue só leitura, SECURITY DEFINER, search_path public, revoke public/anon/authenticated, grant só service_role', /language sql\nsecurity definer\nset search_path = public\nstable\n/.test(sql) && !/\b(insert|update|delete|truncate|alter|drop)\b/i.test(sql.slice(sql.indexOf('as $$'), sql.indexOf('$$;'))) && sql.includes('revoke all on function public.admin_fal_balance_panel(text[], text[], integer) from public, anon, authenticated;') && sql.includes('grant execute on function public.admin_fal_balance_panel(text[], text[], integer) to service_role;') && (sql.match(/^grant /gm) ?? []).length === 1)
 }
 
