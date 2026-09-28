@@ -327,7 +327,19 @@ checa('uma fatia cheia lê 4,91 s do arquivo: 5 s cobrem sem laço', C.fastSlotS
   const meio = C.planAiClipForSlot({ filmSeconds: 35, clipCount: 12, index: 5 })
   const reentra = C.planAiClipForSlot({ filmSeconds: 35, clipCount: 12, index: 1 })
   const pago = C.planAiClipForSlot({ filmSeconds: 35, clipCount: 12, index: 1, maxUsd: 0.3 })
-  checa('35 s / 12 clipes: índice 5 nunca reentra → troca com 5 s (US$ 0,13); índice 1 pode reentrar → inserção de hoje (5 s cobririam com laço); pagando, 11 s cobrem a reentrada', meio.mode === 'replace' && meio.seconds === 5 && meio.usd === 0.13 && meio.reentries === 0 && reentra.mode === 'insert' && reentra.reentries === 1 && pago.mode === 'replace' && pago.seconds === 11 && pago.sourceSeconds <= 11)
+  // KINEO1-SEM-LACO-2026-09-28 (FIX-REVISAO-2) — o plano não recua mais para a inserção de 5 s: o índice 1 reentra, 11 s
+  // não cabem no teto de hoje → fits=false com a duração e o preço de verdade (quem chama pula a cena, o stock fica).
+  checa('35 s / 12 clipes: índice 5 nunca reentra → troca com 5 s (US$ 0,13); índice 1 reentra → SEM o recuo de 5 s (fits=false, 11 s e o preço deles); pagando, 11 s cobrem a reentrada', meio.mode === 'replace' && meio.seconds === 5 && meio.usd === 0.13 && meio.reentries === 0 && meio.fits === true && reentra.fits === false && reentra.mode === 'replace' && reentra.reentries === 1 && reentra.seconds === 11 && reentra.usd > C.SEEDANCE_720P_5S_USD && pago.mode === 'replace' && pago.fits === true && pago.seconds === 11 && pago.sourceSeconds <= 11)
+  // Varredura: nenhum plano que cabe lê além do arquivo (sem laço), e nenhum plano devolve um clipe de 5 s para uma fatia
+  // que reentra. O recuo antigo ('insert' 5 s com reentries > 0) reprova aqui.
+  let semLaco = true
+  const quebras = []
+  for (const filmSeconds of [35, 45, 61.5, 66, 90]) for (let clipCount = 4; clipCount <= 20; clipCount++) for (let index = 0; index < clipCount; index++) for (const maxUsd of [0.05, 0.13, 0.144, 0.2, 0.3, 0.4]) {
+    const p = C.planAiClipForSlot({ filmSeconds, clipCount, index, maxUsd })
+    const ok = typeof p.fits === 'boolean' && p.mode === 'replace' && p.seconds >= C.fastSlotSourceSeconds(4.5, 0) && (p.fits ? p.sourceSeconds <= p.seconds && p.usd <= maxUsd + 1e-9 : p.usd > maxUsd + 1e-9 || p.sourceSeconds > 12) && !(p.reentries > 0 && p.seconds <= 5)
+    if (!ok) { semLaco = false; if (quebras.length < 3) quebras.push(J({ filmSeconds, clipCount, index, maxUsd, p })) }
+  }
+  checa(`sem laço: em ${5 * 17} filmes × índices × 6 tetos, todo plano cobre a leitura (fits) ou diz que não cabe; nunca 5 s numa fatia que reentra${quebras.length ? ' — ' + quebras.join(' | ') : ''}`, semLaco)
 }
 const clipsSrc = rd('lib/fastAiClips.ts')
 checa('o pedido padrão à fal é o de sempre (720p, 5 s, SEM áudio); seconds só troca a duração', clipsSrc.includes("resolution: '720p', duration: '5', generate_audio: false, ...(seconds !== undefined ? { duration: seedanceDurationParam(seconds) } : {})"))
@@ -399,6 +411,48 @@ checa('replay e rota não escrevem nada (nenhum insert/update/upsert/delete/rpc)
   juizes.length = 0
   const ambas = await R.replayFilm(sb, film, { aiMax: 2, pixabayRpm: 80 })
   checa('padrão = as duas variantes: 2 juízes (regra 2 pura e regra 5), after e after_fallback, 3 chamadas; ainda nada gravado', juizes.length === 2 && ambas.variant === 'strict' && ambas.after && ambas.after_fallback && Array.isArray(ambas.per_scene_fallback) && ambas.cost.openai_calls === 3 && sb.chamadas.every((c) => c.escrita === null) && R.summarizeReplay([ambas]).image_up_fallback === 1)
+}
+
+{
+  // KINEO1-REPLAY-RPM-2026-09-28 (FIX-REVISAO-2) — o teto do replay vale POR PEDIDO. O revisor (replayFilm REAL, Pixabay
+  // REAL, fetch falso sem acertos) mediu 24 pedidos em 13 ms numa cena só com rpm=10: a vaga era checada só antes de
+  // cada cena e a cena levava TODAS as buscas (as da fala + 3 do plano + cada pedaço com vírgula), cada uma com até 4
+  // alargamentos × 2 pedidos na cadeia do pool seco. A chave (100/min) é da produção também.
+  const pedidos = []
+  const fetchSeco = async (url) => { pedidos.push(new URL(url).searchParams.get('q')); return { ok: true, status: 200, json: async () => ({ hits: [] }) } }
+  const semAcerto = () => []
+  const mr = mundo({ stubs: { './clipVault': { vaultClipAsync: () => {} }, '@/lib/openai': { openai: {} } }, env: { PIXABAY_API_KEY: 'k', FAST_GPT_DIRECTOR: 'false' }, globals: { fetch: fetchSeco } })
+  const pixR = mr.carregar('lib/pixabay.ts')
+  const QmR = mr.carregar('lib/kineo1/sceneQueries.ts')
+  const CmR = mundo({ stubs: { '@fal-ai/client': falStub, './fastAiHook': {} } }).carregar('lib/fastAiClips.ts')
+  const carregarReplay = () => mundo({
+    stubs: {
+      '@/lib/broll/aesthetic-packs': { PEOPLE_LIFESTYLE_RE: /\b(people|person|man|woman)\b/i },
+      '@/lib/clipVault': { searchVault: async () => semAcerto() },
+      '@/lib/fastAiClips': { buildSceneClipPrompt: CmR.buildSceneClipPrompt, FIRST_FILM_AI_CLIPS_EVENT: 'fast_ai_clips_pending', FIRST_FILM_AI_CLIPS_RESULT_EVENT: 'fast_ai_clips_result' },
+      '@/lib/fastAiScene': { characterStoryName: () => null },
+      '@/lib/fastCoherence': { FAST_COHERENCE_EVENT: 'fast_coherence', FAST_COHERENCE_VERSION: 'v5', FAST_SCENE_PLAN_EVENT: 'fast_scene_plan', scoreFastCoherence: async () => ({ score: 60, narration_vs_visuals: 60, problems: [], summary: '' }) },
+      '@/lib/pixabay': pixR,
+      './sceneQueries': { ...QmR, planSceneQueries: async (cenas) => cenas.map((_, i) => ({ subject: `grass court ${i}`, queries: [`grass tennis court ${i}`, `tennis ball bounce ${i}`, `tennis player serve ${i}`], stockable: true, aiPrompt: 'x' })) },
+    },
+  }).carregar('lib/kineo1/replay.ts')
+  const cena = (n) => ({ scene: n, voiceover: `With every hit the felt of the tennis ball wears down, and the ball boy hands the umpire chair a new one ${n}.`, query: `tennis ball felt closeup ${n}, tennis court bounce ${n}, player hitting ball ${n}, ball boy ${n}, umpire chair ${n}`, from: n - 1, sources: ['pixabay'], tags: ['x'] })
+  const filmeRpm = (n) => ({ generation_id: 'g', user_id: 'u', created_at: '2026-09-27T00:00:00Z', topic: 'Why tennis players change balls', verbatim: false, scenes: Array.from({ length: n }, (_, i) => cena(i + 1)), narration: 'x', narration_source: 'scene_plan', film_seconds: 35, before: null, ai: { eligible: false, hookPrompt: null, hookReady: false, clipPrompts: {}, clipReady: [] }, stills: { character: null, byScene: {} } })
+  const R10 = carregarReplay()
+  const r10 = await R10.replayFilm({}, filmeRpm(2), { variants: 'strict', pixabayRpm: 10, deadlineAt: Date.now() + 300 })
+  checa(`replay com rpm=10: no máximo 10 pedidos à Pixabay no minuto, o resto sem vaga até o prazo (cost.pixabay_denied) — foram ${pedidos.length}`, pedidos.length <= 10 && r10.cost?.pixabay_requests === pedidos.length && r10.cost?.pixabay_denied > 0)
+  checa('replay: no máximo 4 buscas por cena, como a rota (KINEO1_SCENE_QUERIES_MAX); a vírgula da busca antiga não multiplica pedidos', R10.REPLAY_SCENE_QUERIES_MAX === 4 && r10.per_scene.every((s) => s.after.queries.length <= 4))
+  pedidos.length = 0
+  const R80 = carregarReplay()
+  const r80 = await R80.replayFilm({}, filmeRpm(6), { variants: 'strict', pixabayRpm: 80, deadlineAt: Date.now() + 300 })
+  checa(`replay pedindo rpm=80: o teto é REPLAY_PIXABAY_RPM_MAX (50) — a produção fica com a metade da chave; foram ${pedidos.length}`, R80.REPLAY_PIXABAY_RPM_MAX === 50 && pedidos.length <= 50 && r80.cost?.pixabay_denied > 0)
+  const Rv = carregarReplay()
+  const seq = [await Rv.vagaNaPixabay?.(3, Date.now() + 50), await Rv.vagaNaPixabay?.(3, Date.now() + 50), await Rv.vagaNaPixabay?.(3, Date.now() + 50), await Rv.vagaNaPixabay?.(3, Date.now() + 50)]
+  checa('a vaga é por pedido: 3 por minuto → a 4ª espera; sem tempo até o prazo, volta false (nunca estoura o teto)', J(seq) === J([true, true, true, false]))
+  const rotaRpm = rd('app/api/admin/kineo1-replay/route.ts')
+  checa('rota do replay: o ?rpm= vai de REPLAY_PIXABAY_RPM_MIN a REPLAY_PIXABAY_RPM_MAX (era 10-80)', rotaRpm.includes("pixabayRpm: intParam(url, 'rpm', 40, REPLAY_PIXABAY_RPM_MIN, REPLAY_PIXABAY_RPM_MAX)") && !rotaRpm.includes("intParam(url, 'rpm', 40, 10, 80)"))
+  const pixSrc = rd('lib/pixabay.ts')
+  checa('lib/pixabay: a vaga só existe com a opção (throttle ausente = hoje) e é pedida antes de cada ida à rede, depois do cache e do disjuntor', pixSrc.includes('    if (throttle && !(await throttle())) return []') && pixSrc.indexOf('if (throttle && !(await throttle())) return []') > pixSrc.indexOf('if (Date.now() < breakerOpenUntil) {') && (pixSrc.match(/\.\.\.\(opts\.throttle \? \{ throttle: opts\.throttle \} : \{\}\)/g) || []).length === 2)
 }
 
 console.log('== (e) parte B, peças inertes: instrução colada, ordem das buscas, candidatos, painel no modo troca ==')
@@ -500,6 +554,69 @@ const GEMEOS = '"Esto le pasó a dos gemelos que nunca se conocieron. Los separa
   checa('D2: "segundos" solto é narração ("in 30 seconds a day"); como especificação ("a cada 2–3 segundos", "35 a 45 segundos") é produção', PB.classifyPastedLine('Change your life in 30 seconds a day.') === 'imperative_weak' && PB.classifyPastedLine('Troque o visual a cada 2–3 segundos.') === 'imperative' && PB.classifyPastedLine('Faça algo de 35 a 45 segundos.') === 'imperative')
   checa('D2: "Este vídeo vai…"/"Este video va a…" é abertura de narração; "O vídeo deve…" continua instrução', PB.classifyPastedLine('Este vídeo vai mudar a forma como você enxerga o dinheiro.') === null && PB.classifyPastedLine('Este video va a cambiar tu forma de ver el dinero.') === null && PB.classifyPastedLine('O vídeo deve parecer profissional.') === 'about_film')
   checa('D2: UMA linha forte sozinha nunca troca para "a IA estrutura" ("Create a 1-minute video of…" sozinho → nada muda; a v1 dava brief_only)', PB.splitPastedBrief('Create a 1-minute video of the nursery rhyme "The Little Rocket"').mode === 'none' && PB.splitPastedBrief('Estilo visual: noir.\nA Lua sumiu.').mode === 'none')
+  // ── REVISÃO 2 (28/09, FIX-REVISAO-2 — KINEO1-BRIEF-PORTAO-2026-09-28): imperativo SOZINHO nunca prova briefing ──
+  // Os casos do revisor pelo bloco REAL da rota (roteiro de dicas para criador, UMA dica por linha, "Use my script as
+  // is"): a peça de e750656c cortava (a) 60 s, 201 palavras → 5 dicas fora, 122 palavras, o filme descia a 35 s e dava UMA
+  // dica; (b) 7 regras → 'brief_only' → a IA reescrevia o roteiro; (c) 116 → 63 palavras → 422 narration_too_short. E o
+  // fecho de narração "This video must be shared…" saía como about_film. Todos ficam PALAVRA POR PALAVRA.
+  const sinal = (t) => (typeof PB.briefSignal === 'function' ? PB.briefSignal(t) : 'sem_briefSignal')
+  const DICAS_60 = [
+    'Two years ago I had eleven followers and a phone with a cracked screen.',
+    'Today my videos reach millions of people every single week, and nothing about my gear has changed.',
+    'What changed was a short list of habits I picked up from the creators who were already winning.',
+    'Here they are, in the order I learned them.',
+    'Start every video with a hook. The first two seconds decide whether anyone stays.',
+    'Use captions on every clip. Most people scroll with the sound off, on the bus or in bed.',
+    'Change the scene every three seconds. A still frame is the fastest way to lose a viewer.',
+    'Add trending music at low volume. The algorithm notices the sound before it notices you.',
+    'Show your face in the first three seconds. People follow people, not logos or landscapes.',
+    'Cut every pause and every breath. Silence feels twice as long on a phone.',
+    'None of this costs money, and none of it needs a new camera or a studio.',
+    'It only needs you to post, look at what worked, and do a little more of that tomorrow.',
+    'Give it thirty days and then come back and tell me what happened to your numbers.',
+  ].join('\n')
+  const DICAS_REGRAS = [
+    'Seven rules the biggest creators never break.',
+    'Start every video with a hook. The first second decides if anyone stays to watch the rest.',
+    'Use captions on every clip. Most people scroll with the sound off, on the bus or in bed.',
+    'Change the scene every three seconds. A frozen frame is the fastest way to lose a viewer.',
+    'Add music at low volume. The right sound makes a boring clip feel like a movie trailer.',
+    'Show your face in the first three seconds. People follow people, not logos or empty landscapes.',
+    'Avoid long intros on TikTok. Nobody waits for your logo animation to finish before they swipe.',
+    'Create videos every single day. Consistency beats talent, and the algorithm rewards people who show up.',
+  ].join('\n')
+  const DICAS_LINHAS = [
+    'Want more views on TikTok? Most creators get this completely wrong, and it quietly kills their reach.',
+    'Start every video with a hook in the first two seconds.',
+    'Use captions on every clip, because most people watch on mute.',
+    'Change the scene every three seconds so the eye never gets bored.',
+    'Add trending music at low volume under your voice.',
+    'Show your face early, because people follow people, not logos.',
+    'Post at the same time every day, so the algorithm learns when to push you.',
+    'Reply to every comment in the first hour, because early replies tell the app your post is worth showing.',
+    'Do this for thirty days and watch what happens to your views.',
+  ].join('\n')
+  const D2_EM_LINHAS = 'Start every video with a hook.\nUse captions, because 85% of people watch on mute.\nShow your face in the first 3 seconds.\nPost at the same time every day.'
+  const DICAS_PT = 'Sete hábitos que mudaram o meu canal.\nComece todo vídeo com um gancho forte nos primeiros 2 segundos.\nUse legendas em todos os clipes, porque quase todo mundo assiste sem som.\nTroque de cena a cada 3 segundos para o olho não cansar.\nAdicione música em volume baixo por baixo da sua voz.\nMostre o seu rosto logo no começo, porque gente segue gente.\nPoste sempre no mesmo horário, para o algoritmo aprender quando te empurrar.\nFaça isso por trinta dias e depois me conte o que aconteceu com as suas visualizações.'
+  const DICAS_ES = 'Cinco reglas que usan los creadores que más crecen.\nEmpieza cada video con un gancho en los primeros 2 segundos.\nUsa subtítulos en todos tus videos, porque casi nadie los ve con sonido.\nCambia de escena cada 3 segundos para que nadie se aburra.\nAñade música suave debajo de tu voz.\nEvita las introducciones largas en TikTok.\nHazlo durante treinta días y cuéntame qué pasó con tus vistas.'
+  const LOTERIA = 'In 1992 a retired teacher from Ohio bought the same lottery numbers every week for thirty years.\nHer family laughed at her every single Sunday, and she never missed a draw.\nThe week she finally won, she gave almost everything away to the school where she had taught.\nThis video must be shared with everyone who says luck does not exist.'
+  const TODO_VIDEO = 'Every video should teach your viewer one thing they did not know.\nStart every video with a hook in the first 2 seconds.\nUse captions on every clip, because most people watch on mute.'
+  const CRIADOR = [DICAS_60, DICAS_REGRAS, DICAS_LINHAS, D2_EM_LINHAS, DICAS_PT, DICAS_ES, LOTERIA, TODO_VIDEO]
+  checa('REVISÃO 2: dicas para criador, UMA por linha (os 3 do revisor, a D2 em linhas, PT, ES), "Every video should…" e o fecho "This video must be shared…" → nada muda, narrado palavra por palavra', CRIADOR.every((t) => { const r = PB.splitPastedBrief(t); return r.mode === 'none' && r.narration === t }))
+  checa('REVISÃO 2: nenhum desses textos tem sinal de briefing (briefSignal null) — e o resultado diz o sinal (null)', CRIADOR.every((t) => sinal(t) === null && PB.splitPastedBrief(t).signal === null))
+  const TITULO_DICAS = 'Title: 5 Rules Every Creator Follows\nStart every video with a hook in the first 2 seconds.\nUse captions on every clip, because most people watch on mute.\nShow your face early, because people follow people.\nHashtags: #creator #tiktok'
+  const td = PB.splitPastedBrief(TITULO_DICAS)
+  checa('REVISÃO 2: Title:/Hashtags: em volta das dicas → só os rótulos (de metadado) saem; as dicas, fortes e fracas, ficam na ordem (a peça de e750656c dava brief_only e a IA reescrevia)', td.mode === 'narration_kept' && td.narration === TITULO_DICAS.split('\n').slice(1, -1).join('\n') && J(td.kinds) === J(['label', 'label']) && td.signal === null)
+  checa('REVISÃO 2: os briefings REAIS (2ff93c15, b3b3e101, 17dd0c7a, 8b23d27a, 8c0ed465, e90a2f9c) têm sinal — cada um pelo seu', sinal(LUA) === 'create_request' && sinal(GEMEOS) === 'production_label' && sinal(LUA17) === 'create_request' && sinal(TENIS) === 'about_film' && sinal(LUGARES) === 'create_request' && sinal(POLVO) === 'editor_line' && sinal(ROTEIRO_ASPAS) === 'editor_line')
+  checa('REVISÃO 2: com sinal, a regra de antes vale inteira (mesmos modos, mesmas linhas)', PB.splitPastedBrief(LUA).mode === 'brief_only' && PB.splitPastedBrief(LUA17).mode === 'brief_only' && PB.splitPastedBrief(TENIS).brief.length === 4 && PB.splitPastedBrief(LUGARES).brief.length === 17 && PB.splitPastedBrief(GEMEOS).brief.length === 4 && PB.splitPastedBrief(LUA).signal === 'create_request')
+  checa('REVISÃO 2: cada sinal isolado — e a dica vizinha que NÃO é sinal', sinal('Estilo visual: noir, chuva, neon.') === 'production_label' && sinal('Title: The Moon\nHashtags: #moon') === null && sinal('Caption: 7 rules #fyp') === null &&
+    sinal('O vídeo deve parecer profissional.') === 'about_film' && sinal('The narrator should speak slowly, like a documentary.') === 'about_film' && sinal('The final result must look like real footage.') === 'about_film' &&
+    sinal('Every video should teach one thing.') === null && sinal('This video must be shared with everyone who says luck does not exist.') === null && sinal('Este vídeo precisa ser visto por todo mundo que trabalha com vendas.') === null && sinal('The music should never be louder than your voice.') === null &&
+    sinal('Create a funny 60–90 second 3D story about a pigeon.') === 'create_request' && sinal('Create this YouTube Short entirely in Arabic.') === 'create_request' && sinal('Crea un vídeo vertical sobre el tenis.') === 'create_request' &&
+    sinal('Create videos every single day.') === null && sinal('Create a video about the Moon.') === null && sinal('Crie um gancho de 3 segundos em cada vídeo.') === null &&
+    sinal('Use narração natural em inglês americano.') === 'editor_line' && sinal('Não use avatar.') === 'editor_line' && sinal('Use the provided image as the only visual source.') === 'editor_line' &&
+    sinal('Add subtitles to every video.') === null && sinal('Use captions on every clip.') === null && sinal('Add trending music at low volume.') === null)
+  checa('REVISÃO 2: o evento distingue a regra nova (versão v2 do detector)', PB.PASTED_BRIEF_VERSION === 'kineo1_brief_colado_v2')
 }
 {
   checa('buscas com vírgula: só os pedaços que a fala menciona; sem vírgula passa; tudo inventado → nada', J(Q.splitCommaQueries(['space needle, brainstorming, skyline', 'eggs toast plate'], 'Bezos preferred eggs and toast.')) === J(['eggs toast plate']) && J(Q.splitCommaQueries(['woman removing ring, praça do comércio, couple laughing'], 'She slowly took off her wedding ring.')) === J(['woman removing ring']))

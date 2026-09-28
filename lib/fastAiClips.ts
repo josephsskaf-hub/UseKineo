@@ -223,8 +223,12 @@ function comModoTroca(r: ReadyAiClip, p: PendingAiClip | undefined): ReadyAiClip
  * a volta de reciclagem (clipes × fatia < duração do filme): aí ele reentra no mesmo arquivo em trim_start
  * 0,1 + min(volta × (fatia + 0,6), 6) — e um clipe de 5 s daria a volta (laço). Isso já vale hoje para o clipe
  * INSERIDO; planAiClipForSlot (abaixo) calcula, com a mesma aritmética, se o índice pode reentrar e devolve a duração
- * que cobre a pior reentrada — ou, se o teto de custo não pagar, o modo INSERÇÃO de hoje (sem troca). Escolha
- * documentada: trocar só quando a duração cobre a fatia sem laço.
+ * que cobre a pior reentrada. Escolha documentada: trocar só quando a duração cobre a fatia sem laço.
+ * KINEO1-SEM-LACO-2026-09-28 (FIX-REVISAO-2) — quando o teto de custo não paga essa duração, NÃO há mais o recuo para a
+ * inserção de 5 s: o revisor provou (filme de 60 s do guardião, cena 3 reciclada, reentries=3, 11 s necessários, US$ 0,144
+ * livres) que a rota comprava o clipe de 5 s e o montador o relia em trim 3,3 s até 5,96 s de um arquivo de 5 s, com
+ * loop:true — o clipe recomeçava na tela (SEM QUADRO REPETIDO, proibição do fundador). Agora o plano diz `fits: false` com a
+ * duração e o preço de verdade, e quem chama pula a cena (o stock fica).
  */
 export function spliceAiClips(clipUrls: string[], ready: ReadyAiClip[]): string[] {
   const out = [...clipUrls]
@@ -265,10 +269,13 @@ export function fastSlotSourceSeconds(slotSeconds: number = FAST_SLOT_MAX_S, ree
  * Plano do clipe de IA que vai TROCAR o stock no índice `index` de uma lista de `clipCount` clipes num filme de
  * `filmSeconds`. Pior caso de reciclagem: o montador pode cortar toda fatia em 2,5 s (início de frase), então o filme
  * tem até ceil(filme ÷ 2,5) fatias; o índice reentra nas voltas em que volta × clipes + índice < fatias. Devolve a
- * duração (4-12 s, inteira) que cobre a pior leitura sem laço e o custo (US$ 0,026/s). Se o custo passar de `maxUsd`
- * (padrão: o preço de hoje, 5 s = US$ 0,13), devolve modo 'insert' com 5 s — o comportamento de hoje, sem troca.
+ * duração (4-12 s, inteira) que cobre a pior leitura sem laço e o custo (US$ 0,026/s).
+ * KINEO1-SEM-LACO-2026-09-28 (FIX-REVISAO-2) — `fits` = essa duração cabe em `maxUsd` (padrão: o preço de hoje, 5 s =
+ * US$ 0,13) e na Seedance (≤ 12 s). `fits: false` → NÃO compre: nenhum clipe mais curto serve sem laço (antes o plano
+ * recuava para 'insert' de 5 s, que reentrava em laço). O índice que não reentra custa 5 s = o mínimo: se nem isso cabe,
+ * não há clipe nenhum a comprar.
  */
-export function planAiClipForSlot(input: { filmSeconds: number; clipCount: number; index: number; maxUsd?: number }): { mode: 'replace' | 'insert'; seconds: number; usd: number; reentries: number; sourceSeconds: number } {
+export function planAiClipForSlot(input: { filmSeconds: number; clipCount: number; index: number; maxUsd?: number }): { mode: 'replace'; seconds: number; usd: number; reentries: number; sourceSeconds: number; fits: boolean } {
   const film = Number.isFinite(input.filmSeconds) && input.filmSeconds > 0 ? input.filmSeconds : 0
   const n = Math.max(1, Math.floor(input.clipCount))
   const idx = Math.max(0, Math.floor(input.index))
@@ -281,9 +288,8 @@ export function planAiClipForSlot(input: { filmSeconds: number; clipCount: numbe
   const seconds = Math.max(5, Number(seedanceDurationParam(sourceSeconds)))
   const usd = Math.round(seconds * SEEDANCE_720P_USD_PER_SECOND * 1000) / 1000
   const maxUsd = typeof input.maxUsd === 'number' ? input.maxUsd : SEEDANCE_720P_5S_USD
-  const cobre = sourceSeconds <= SEEDANCE_MAX_SECONDS && usd <= maxUsd + 1e-9
-  if (!cobre) return { mode: 'insert', seconds: 5, usd: SEEDANCE_720P_5S_USD, reentries, sourceSeconds }
-  return { mode: 'replace', seconds, usd, reentries, sourceSeconds }
+  const fits = sourceSeconds <= SEEDANCE_MAX_SECONDS && usd <= maxUsd + 1e-9
+  return { mode: 'replace', seconds, usd, reentries, sourceSeconds, fits }
 }
 
 /** Forma do evento pendente (validação do que vem do banco). */

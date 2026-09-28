@@ -14,14 +14,15 @@
 //   &ai_max=2                                  clipes de IA nas cenas fracas (0-6; padrão 2 = os extras de hoje)
 //   &ai_scope=all                              simula clipe de IA também em filme que hoje não ganha (padrão: só elegíveis)
 //   &rejudge=1                                 re-julga também a evidência GRAVADA (mede o ruído do juiz; +1 chamada)
-//   &rpm=40                                    teto de requisições/min à Pixabay (10-80; a chave é dividida com a produção)
+//   &rpm=40                                    teto de requisições/min à Pixabay (10-50, POR PEDIDO; a chave é dividida com a
+//                                              produção — KINEO1-REPLAY-RPM-2026-09-28: a metade fica sempre com ela)
 //   &variants=both                             strict (regra 2 do portão v2, como pedida) | fallback (com a regra 5, a
 //                                              âncora) | both (padrão: as duas; `after` = strict, `after_fallback` = âncora)
 // Custo: ~3 chamadas gpt-4o-mini por filme com as duas variantes (+ o diretor de clipes da Pixabay). Nada de fal, nada de render.
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { ADMIN_EMAILS, isAdminEmail, serviceClient } from '../_shared/db'
-import { loadReplayFilm, pickReplayBatch, replayFilm, summarizeReplay, type ReplayFilmResult } from '@/lib/kineo1/replay'
+import { loadReplayFilm, pickReplayBatch, replayFilm, summarizeReplay, REPLAY_PIXABAY_RPM_MAX, REPLAY_PIXABAY_RPM_MIN, type ReplayFilmResult } from '@/lib/kineo1/replay'
 
 export const dynamic = 'force-dynamic'
 // Rota SÓ-GET: sem isto o Data Cache da Vercel congelaria as leituras do supabase-js (ver person-media, 02/09).
@@ -63,7 +64,7 @@ export async function GET(req: Request) {
     aiMax: intParam(url, 'ai_max', 2, 0, 6),
     aiScope: url.searchParams.get('ai_scope') === 'all' ? ('all' as const) : ('eligible' as const),
     rejudgeBefore: url.searchParams.get('rejudge') === '1',
-    pixabayRpm: intParam(url, 'rpm', 40, 10, 80),
+    pixabayRpm: intParam(url, 'rpm', 40, REPLAY_PIXABAY_RPM_MIN, REPLAY_PIXABAY_RPM_MAX), // KINEO1-REPLAY-RPM-2026-09-28
     variants: (['strict', 'fallback', 'both'] as const).find((v) => v === url.searchParams.get('variants')) ?? ('both' as const),
     deadlineAt,
   }

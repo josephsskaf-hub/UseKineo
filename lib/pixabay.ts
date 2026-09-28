@@ -310,6 +310,12 @@ export type SubjectGateOptions = {
    * corpo), sempre ranqueado DEPOIS de qualquer clipe que bate todas. Ver o cabeçalho do bloco v2.
    */
   headFallback?: boolean
+  /**
+   * KINEO1-REPLAY-RPM-2026-09-28 (FIX-REVISAO-2) — vaga por PEDIDO na chave da Pixabay (100/min, dividida com a produção).
+   * Só o replay offline passa (lib/kineo1/replay.ts): é chamada antes de CADA ida à rede (cada tentativa conta); false =
+   * sem vaga até o prazo do lote → a busca volta vazia, sem rede e sem contar como falha no disjuntor. Ausente = hoje.
+   */
+  throttle?: () => Promise<boolean>
 }
 /** Enchimento que o v2 também não aceita como sujeito ("quick" trouxe a cachoeira; "news", a borboleta). */
 const GENERIC_V2 = new Set(['quick', 'rapid', 'fast', 'news', 'seconds', 'minutes', 'hours', 'launched', 'says'])
@@ -756,6 +762,8 @@ async function searchPixabay(
   category?: string,
   /** PUSH #93 — vertical-preferred secondary pass (see below). */
   verticalPreferred = false,
+  /** KINEO1-REPLAY-RPM-2026-09-28 — vaga por pedido (só o replay; ver SubjectGateOptions.throttle). */
+  throttle?: () => Promise<boolean>,
 ): Promise<PixabayVideo[]> {
   const apiKey = process.env.PIXABAY_API_KEY
   if (!apiKey) {
@@ -811,6 +819,8 @@ async function searchPixabay(
   let res: Response | null = null
   for (let attempt = 1; attempt <= PIXABAY_MAX_ATTEMPTS; attempt += 1) {
     const isLastAttempt = attempt === PIXABAY_MAX_ATTEMPTS
+    // KINEO1-REPLAY-RPM-2026-09-28 — sem vaga na janela da chave (replay): volta vazio, sem rede e sem tocar o disjuntor.
+    if (throttle && !(await throttle())) return []
     try {
       res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(PIXABAY_TIMEOUT_MS) })
     } catch (err) {
@@ -951,8 +961,8 @@ async function collectCandidates(
   // pool never starves the way a hard orientation filter did (#438). Two
   // concurrent, memoised requests per query stays well inside 100 req / 60s.
   const [verticalHits, anyHits] = await Promise.all([
-    searchPixabay(query, 8, category, true),
-    searchPixabay(query, 30, category),
+    searchPixabay(query, 8, category, true, gate?.throttle),
+    searchPixabay(query, 30, category, false, gate?.throttle),
   ])
   const seenHitIds = new Set<number>()
   const hits: PixabayVideo[] = []
@@ -1335,9 +1345,11 @@ export async function getPixabayVideoForQueries(
     v2?: boolean
     /** KINEO1-IMAGEM-V2-2026-09-28 — regra 5 do portão v2. */
     headFallback?: boolean
+    /** KINEO1-REPLAY-RPM-2026-09-28 — vaga por pedido (só o replay; só vale com v2). */
+    throttle?: () => Promise<boolean>
   },
 ): Promise<string | null> {
-  const gate: SubjectGateOptions | undefined = opts?.v2 ? { v2: true, sceneText: hint ?? '', headFallback: opts.headFallback === true } : undefined
+  const gate: SubjectGateOptions | undefined = opts?.v2 ? { v2: true, sceneText: hint ?? '', headFallback: opts.headFallback === true, ...(opts.throttle ? { throttle: opts.throttle } : {}) } : undefined
   const rawCleaned = (queries ?? [])
     .filter((q): q is string => typeof q === 'string' && q.trim().length > 0)
     .map((q) => (gate ? stripCameraPhrases(q) : q).trim())
@@ -1489,12 +1501,14 @@ export async function getPixabayClipsForScene(
     dryRun?: boolean
     /** KINEO1-IMAGEM-V2-2026-09-28 — relatório da escolha (origem pool/cadeia e as tags de cada clipe). */
     onReport?: (report: ScenePoolReport) => void
+    /** KINEO1-REPLAY-RPM-2026-09-28 — vaga por pedido na chave da Pixabay (só o replay; só vale com v2). */
+    throttle?: () => Promise<boolean>
   },
 ): Promise<string[]> {
   setActiveStrictSubject(opts?.strictSubject === true) // KINEO1-FICCAO-STOCK-EXATO
   // KINEO1-IMAGEM-V2-2026-09-28 — o portão v2 viaja EXPLÍCITO (não em estado de módulo): o replay e a rota nunca se
   // misturam, mesmo na mesma instância.
-  const gate: SubjectGateOptions | undefined = opts?.v2 ? { v2: true, sceneText: hint ?? '', strict: opts.strictSubject === true, headFallback: opts.headFallback === true } : undefined
+  const gate: SubjectGateOptions | undefined = opts?.v2 ? { v2: true, sceneText: hint ?? '', strict: opts.strictSubject === true, headFallback: opts.headFallback === true, ...(opts.throttle ? { throttle: opts.throttle } : {}) } : undefined
   const mapped = (queries ?? [])
     .filter((q): q is string => typeof q === 'string' && q.trim().length > 0)
     .map((q) => (gate ? stripCameraPhrases(q) : q).trim())

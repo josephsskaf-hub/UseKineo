@@ -18,6 +18,14 @@
 //     fica com o clipe reciclado (o pior caso);
 //   · a Pixabay de hoje não é a Pixabay do dia do filme: o pool pode ter mudado.
 // A Pixabay tem 100 req/min por CHAVE, dividida com a produção: o replay se limita a `pixabayRpm` (padrão 40).
+// KINEO1-REPLAY-RPM-2026-09-28 (FIX-REVISAO-2) — o teto valia só ANTES de cada cena, e a cena levava TODAS as buscas
+// (as da fala + 3 do plano + cada pedaço com vírgula da busca antiga), cada uma com até 4 alargamentos × 2 pedidos na
+// cadeia do pool seco: o revisor mediu 24 pedidos em 13 ms numa cena só com rpm=10, e com rpm até 80 o replay sozinho
+// passava dos 100/min da chave — a produção levava 429 e o disjuntor dela abria. Agora: (1) no máximo
+// REPLAY_SCENE_QUERIES_MAX buscas por cena, como a rota (KINEO1_SCENE_QUERIES_MAX); (2) a vaga é POR PEDIDO — cada ida à
+// rede (cada tentativa) espera a janela de 60 s ter lugar (lib/pixabay.ts, opção `throttle`), e sem lugar até o prazo
+// do lote a busca volta vazia e conta em cost.pixabay_denied (nunca estoura o teto); (3) teto de rpm em
+// REPLAY_PIXABAY_RPM_MAX (50): a produção fica sempre com metade da chave.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { PEOPLE_LIFESTYLE_RE } from '@/lib/broll/aesthetic-packs'
 import { searchVault } from '@/lib/clipVault'
@@ -31,7 +39,7 @@ import {
   type FastCoherenceResult,
   type FastSceneEvidence,
 } from '@/lib/fastCoherence'
-import { getPixabayClipsForScene, readPixabayHealth, stripCameraPhrases, type ScenePoolReport } from '@/lib/pixabay'
+import { getPixabayClipsForScene, stripCameraPhrases, type ScenePoolReport } from '@/lib/pixabay'
 import { commaPlanQueryParts, pickAiClipScenesV2, planSceneQueries, weakSceneReason, type SceneQueryPlan, type StockOrigin, type WeakReason } from './sceneQueries'
 
 type EventRow = { created_at: string; session_id: string | null; user_id: string | null; metadata: Record<string, unknown> | null }
@@ -76,7 +84,8 @@ export type ReplayFilmResult = {
   plan_ok: boolean
   per_scene: ReplaySceneRow[]
   per_scene_fallback: Array<{ scene: number; origin: StockOrigin | 'kept'; tags: string | null; weak: WeakReason | null; ai_clip: boolean }> | null
-  cost: { openai_calls: number; pixabay_requests: number; ms: number }
+  /** pixabay_requests = pedidos que foram à rede (cada tentativa); pixabay_denied = buscas que ficaram sem vaga até o prazo */
+  cost: { openai_calls: number; pixabay_requests: number; pixabay_denied: number; ms: number }
 }
 
 export type ReplayOptions = {
@@ -86,7 +95,7 @@ export type ReplayOptions = {
   aiScope?: 'eligible' | 'all'
   /** também re-julga a evidência GRAVADA (mede o ruído do juiz; +1 chamada) */
   rejudgeBefore?: boolean
-  /** teto de requisições por minuto à Pixabay (padrão 40 de 100: o resto é da produção) */
+  /** teto de requisições por minuto à Pixabay (padrão 40 de 100, máximo REPLAY_PIXABAY_RPM_MAX: o resto é da produção) */
   pixabayRpm?: number
   /** variantes do portão v2: 'strict' (regra 2 pura), 'fallback' (com a regra 5), 'both' (padrão: as duas, +1 juiz) */
   variants?: 'strict' | 'fallback' | 'both'
@@ -157,18 +166,27 @@ export async function loadReplayFilm(admin: SupabaseClient, generationId: string
   }
 }
 
-// Pixabay: janela deslizante de 60 s por instância (o replay divide a chave com a produção).
-const janela: Array<{ at: number; n: number }> = []
-const reqCount = () => { const h = readPixabayHealth(); return h.ok + h.transient + h.hard }
-async function esperarVaga(rpm: number, deadlineAt?: number): Promise<void> {
+/** KINEO1-REPLAY-RPM-2026-09-28 — espelho de KINEO1_SCENE_QUERIES_MAX (app/api/generate-video-fast/route.ts): buscas por cena. */
+export const REPLAY_SCENE_QUERIES_MAX = 4
+/** KINEO1-REPLAY-RPM-2026-09-28 — teto do rpm do replay: a chave tem 100/min e a produção fica sempre com a metade. */
+export const REPLAY_PIXABAY_RPM_MAX = 50
+export const REPLAY_PIXABAY_RPM_MIN = 10
+
+// Pixabay: janela deslizante de 60 s por instância, POR PEDIDO (o replay divide a chave com a produção). Cada ida à rede
+// (cada tentativa) marca o seu instante; a checagem e a marcação são síncronas, então as duas buscas paralelas de
+// collectCandidates nunca passam juntas pela mesma vaga.
+const janela: number[] = []
+export async function vagaNaPixabay(rpm: number, deadlineAt?: number): Promise<boolean> {
   for (;;) {
     const agora = Date.now()
-    while (janela.length > 0 && agora - janela[0].at > 60_000) janela.shift()
-    const usadas = janela.reduce((a, j) => a + j.n, 0)
-    if (usadas < rpm || janela.length === 0) return
-    const espera = Math.min(60_000 - (agora - janela[0].at) + 50, 15_000)
-    if (deadlineAt && agora + espera > deadlineAt) return
-    await new Promise((r) => setTimeout(r, espera))
+    while (janela.length > 0 && agora - janela[0] >= 60_000) janela.shift()
+    if (janela.length < rpm) {
+      janela.push(agora)
+      return true
+    }
+    const espera = 60_000 - (agora - janela[0]) + 25
+    if (deadlineAt && agora + espera > deadlineAt) return false // sem vaga até o prazo: nunca estoura o teto
+    await new Promise((r) => setTimeout(r, Math.min(espera, 15_000)))
   }
 }
 
@@ -182,9 +200,17 @@ export function storedEvidenceAsJudged(film: ReplayFilm): FastSceneEvidence[] {
 /** Refaz a escolha de imagem de UM filme com as peças v2 e julga de novo. Nunca grava nada. */
 export async function replayFilm(admin: SupabaseClient, film: ReplayFilm, opts: ReplayOptions & { deadlineAt?: number } = {}): Promise<ReplayFilmResult> {
   const t0 = Date.now()
-  const rpm = Math.max(10, Math.min(80, opts.pixabayRpm ?? 40))
+  const rpm = Math.max(REPLAY_PIXABAY_RPM_MIN, Math.min(REPLAY_PIXABAY_RPM_MAX, opts.pixabayRpm ?? 40))
   let openaiCalls = 0
   let pixabayRequests = 0
+  let pixabayDenied = 0
+  // KINEO1-REPLAY-RPM-2026-09-28 — a vaga é pedida pela lib antes de CADA ida à rede.
+  const throttle = async (): Promise<boolean> => {
+    const ok = await vagaNaPixabay(rpm, opts.deadlineAt)
+    if (ok) pixabayRequests++
+    else pixabayDenied++
+    return ok
+  }
   const falas = film.scenes.map((s) => s.voiceover ?? '').join(' ').trim()
   const charV1 = film.stills.character ?? characterStoryName(falas || film.topic)
   const charV2 = characterStoryName(falas || film.topic, { v2: true })
@@ -218,14 +244,13 @@ export async function replayFilm(admin: SupabaseClient, film: ReplayFilm, opts: 
       // Buscas v2: as do plano novo; depois os pedaços da busca antiga que a fala menciona; a do cliente ([Pexels: …]) na frente.
       const antigas = commaPlanQueryParts(s.query, fala)
       const minhas = handPicked && s.query ? [stripCameraPhrases(s.query)] : []
-      const queries = Array.from(new Set([...minhas, ...(plan?.queries ?? []), ...antigas].map((q) => q.trim()).filter(Boolean)))
+      // KINEO1-REPLAY-RPM-2026-09-28 — no máximo REPLAY_SCENE_QUERIES_MAX, como a rota (a cadeia do pool seco roda TODAS).
+      const queries = Array.from(new Set([...minhas, ...(plan?.queries ?? []), ...antigas].map((q) => q.trim()).filter(Boolean))).slice(0, REPLAY_SCENE_QUERIES_MAX)
       if (queries.length === 0 && s.query) queries.push(stripCameraPhrases(s.query))
       const maxClips = temVisualGerado ? 1 : i === 0 ? 3 : 2
       const sceneNeedsPeople = PEOPLE_LIFESTYLE_RE.test(fala)
       const picks: Array<{ url: string; tags: string; query: string | null }> = []
       let origin: StockOrigin = 'none'
-      await esperarVaga(rpm, opts.deadlineAt)
-      const antesReq = reqCount()
       if (!film.verbatim && !charV2 && !temVisualGerado && queries[0]) {
         const hits = await searchVault(queries[0], { v2: true, client: admin, exclude: used, limit: maxClips, sceneText: fala, sceneNeedsPeople })
         for (const h of hits) { picks.push({ url: h.storageUrl, tags: h.tags, query: queries[0] }); used.add(h.storageUrl) }
@@ -235,15 +260,12 @@ export async function replayFilm(admin: SupabaseClient, film: ReplayFilm, opts: 
         let rel: ScenePoolReport | null = null
         await getPixabayClipsForScene(queries, sceneNeedsPeople, fala, {
           exact: film.verbatim, exclude: used, maxClips: maxClips - picks.length, aspect: '9:16', strictSubject: !!charV2,
-          v2: true, dryRun: true, headFallback, onReport: (r) => { rel = r },
+          v2: true, dryRun: true, headFallback, onReport: (r) => { rel = r }, throttle,
         })
         const r = rel as ScenePoolReport | null
         for (const p of r?.picks ?? []) { picks.push({ url: p.url, tags: p.tags, query: p.query }); used.add(p.url) }
         if (r && r.picks.length > 0) origin = origin === 'vault' ? 'pool' : r.origin === 'none' ? 'none' : r.origin
       }
-      const delta = Math.max(0, reqCount() - antesReq)
-      pixabayRequests += delta
-      janela.push({ at: Date.now(), n: delta })
       if (picks.length === 0) origin = 'recycled'
       const reason = weakSceneReason({ origin, stockable: plan?.stockable ?? null, subject: plan?.subject ?? null, pickedTags: picks[0]?.tags ?? null })
       weak.push({ scene: s.scene, reason })
@@ -309,7 +331,7 @@ export async function replayFilm(admin: SupabaseClient, film: ReplayFilm, opts: 
     plan_ok: !!plans,
     per_scene: principal.rows,
     per_scene_fallback: estrito && ancora ? ancora.rows.map((r) => ({ scene: r.scene, origin: r.after.origin, tags: r.after.tags[0] ?? null, weak: r.after.weak, ai_clip: r.after.ai_clip })) : null,
-    cost: { openai_calls: openaiCalls, pixabay_requests: pixabayRequests, ms: Date.now() - t0 },
+    cost: { openai_calls: openaiCalls, pixabay_requests: pixabayRequests, pixabay_denied: pixabayDenied, ms: Date.now() - t0 },
   }
 }
 

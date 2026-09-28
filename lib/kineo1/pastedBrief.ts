@@ -58,9 +58,31 @@
 // sobra são SÓ falas entre aspas curtas demais para o filme mais curto do Kineo 1 — o gancho e o fecho que a pessoa quer
 // ouvir (17dd0c7a: "…o seguinte gancho: “Se a Lua…”" / "Termine com: “And the strangest…”", 26 palavras).
 // UMA linha forte sozinha nunca vira 'brief_only' (D2): ela só sai se sobrar fala; senão nada muda.
+//
+// REVISÃO 2 (28/09, FIX-REVISAO-2 — KINEO1-BRIEF-PORTAO-2026-09-28): imperativo SOZINHO nunca prova briefing.
+//   O caso: roteiro próprio de dicas para criador, UMA dica por linha — "Start every video with a hook. The first two
+//   seconds decide…", "Use captions on every clip…", "Add trending music at low volume…", "Show your face in the first
+//   3 seconds…". Cada linha abre com verbo de editor e fala de vídeo/legenda/música/TikTok → 'imperative'; com 2+ fortes
+//   o texto passava por briefing e o revisor provou pelo bloco REAL da rota: (a) 60 s, 201 palavras → 5 dicas cortadas,
+//   122 palavras, a duração descia 60→35 e o filme dizia "Here they are…" e dava UMA; (b) 7 regras → 'brief_only' → a
+//   IA REESCREVIA o roteiro de quem pediu "Use my script as is"; (c) 116 palavras → 63 → 422 narration_too_short. E o
+//   fecho de narração "This video must be shared with everyone who…" saía como about_film. A D2 só fechava o parágrafo.
+//   REGRA: antes de qualquer linha imperativa, fraca, de sobra ou sobre o filme sair, o texto precisa de UM sinal que
+//   roteiro nenhum tem (briefSignal — os 5 briefings reais da amostra de 60 dias têm pelo menos um):
+//     · rótulo de PRODUÇÃO ("Estilo visual:", "Subtítulos:", "Visual style:", "Música:"…). Rótulo de METADADO (Title:,
+//       Hashtags:, Tema:, CTA:, Caption:, Legenda:…) não conta: o roteiro do ChatGPT vem com eles em volta da fala;
+//     · frase sobre ESTE filme com obrigação ("O vídeo deve…", "La narración debe…", "The video should…"). "Every
+//       video should…"/"Cada vídeo deve…" é dica ao ouvinte, e "This video must be shared…" é fala (ação do espectador);
+//     · pedido de filme com formato ou duração ("Crie um vídeo vertical 9:16 de 45–60 segundos", "Create a 40–45 second
+//       vertical video", "Crea un vídeo de 60 segundos") — "Create videos every single day" é dica;
+//     · linha ao EDITOR sobre narração, subtítulo, avatar/apresentador, formato (9:16, 1080x1920), marca d'água ou texto
+//       na tela ("Use narração natural…", "Não use avatar", "Termine mostrando… na tela") — sem "every video / your
+//       videos / todos os seus vídeos": quem fala dos vídeos DO OUVINTE está dando dica, não ordem.
+//   Sem sinal: só os rótulos (de metadado) saem, como antes; tudo o mais fica na fala — sem rótulo, 'none' e a narração
+//   não é tocada. Com sinal, a regra de antes vale inteira.
 
 export const PASTED_BRIEF_EVENT = 'pasted_brief_detected'
-export const PASTED_BRIEF_VERSION = 'kineo1_brief_colado_v1'
+export const PASTED_BRIEF_VERSION = 'kineo1_brief_colado_v2' // v2 = KINEO1-BRIEF-PORTAO-2026-09-28 (o portão do briefing)
 /** Fala que sobra abaixo disto não é roteiro: é o resto de um briefing (a rota passa a IA a escrever). */
 export const PASTED_BRIEF_MIN_NARRATION_WORDS = 12
 /** Linha com mais palavras que isto E mais de uma frase é um PARÁGRAFO de fala: nunca é classificada inteira (D2). */
@@ -80,6 +102,8 @@ export type PastedBriefSplit = {
   kinds: PastedBriefLineKind[]
   narrationWords: number
   linesTotal: number
+  /** KINEO1-BRIEF-PORTAO-2026-09-28 — o sinal que provou BRIEFING (null = nenhum: só rótulo de metadado pode ter saído) */
+  signal: PastedBriefSignal | null
 }
 
 // Fronteira de palavra que entende acento ("não use": o \b do JS não vê fronteira depois de "ã").
@@ -149,6 +173,60 @@ const NEGATION_RE = new RegExp(
 const SPEECH_LABEL_RE = /^(?:narra[çc][ãa]o|narraci[óo]n|narration|narrador(?:a)?|narrator|voice\s?-?\s?over|voiceover|vo|locu[çc][ãa]o|locutor(?:a)?|fala|falas|texto falado|di[áa]logo|dialogue|speech)\s*(?:\([^)]{0,60}\))?\s*[:：]\s*\S/iu
 // O mesmo rótulo de FALA sozinho na linha ("Narração:" com a fala na linha de baixo, e90a2f9c): marca a fala, não é instrução.
 const SPEECH_LABEL_ALONE_RE = /^(?:narra[çc][ãa]o|narraci[óo]n|narration|narrador(?:a)?|narrator|voice\s?-?\s?over|voiceover|vo|locu[çc][ãa]o|locutor(?:a)?|fala|falas|texto falado|di[áa]logo|dialogue|speech|script|roteiro|gui[óo]n)\s*(?:\([^)]{0,60}\))?\s*[:：]\s*$/iu
+
+// ── KINEO1-BRIEF-PORTAO-2026-09-28 (FIX-REVISAO-2): o sinal que prova BRIEFING (ver REVISÃO 2 no topo) ──
+// Rótulo de METADADO: vem em volta da fala do roteiro do ChatGPT (Title:/Hashtags:/Caption:) — não prova briefing.
+const METADATA_LABEL_RE = new RegExp(
+  '^(?:t[íi]tulo|title|hashtags?|thumbnail|miniatura|caption|legenda|cta|call to action|objetivo|goal|tema|theme|topic|assunto|t[óo]pico)' +
+    '\\s*(?:\\([^)]{0,40}\\))?\\s*[:：]',
+  'iu',
+)
+// Frase sobre ESTE filme com obrigação: artigo definido/demonstrativo, sem adjetivo no meio ("The first video should…" é
+// dica), e só o que é do filme — vídeo, narração/narrador/voz, roteiro, animação, o resultado final. "Every video
+// should…"/"Cada vídeo deve…" e "The music should…" (assunto das dicas) não entram.
+const ABOUT_THIS_FILM_RE = new RegExp(
+  `^(?:o|a|el|la|the|este|esta|this)\\s+(?:v[íi]deo|video|clipe?|clip|short|reel|filme|film|narra[çc][ãa]o|narraci[óo]n|narration|narrador(?:a)?|narrator|` +
+    `voz|voice|voice-?over|locu[çc][ãa]o|locutor(?:a)?|roteiro|gui[óo]n|script|anima[çc][ãa]o|animaci[óo]n|animation|resultado final|final result|end result|` +
+    `produto final|final product|final video|v[íi]deo final)\\s+` +
+    `(?:deve|devem|debe|deben|should|must|tem que|t[êe]m que|tiene que|tienen que|needs? to|precisa|precisam|necesita|necesitan|has to|have to)${NW}`,
+  'iu',
+)
+// Obrigação que é AÇÃO DO ESPECTADOR ("This video must be shared…", "Este vídeo precisa ser visto…", "must go viral").
+const VIEWER_ACTION_RE = new RegExp(
+  `(?:deve|devem|debe|deben|should|must|tem que|t[êe]m que|tiene que|tienen que|needs? to|precisa|precisam|necesita|necesitan|has to|have to)\\s+` +
+    `(?:(?:be|ser|get)\\s+(?:\\p{L}+\\s+)?(?:shared|watched|seen|viewed|heard|saved|sent|forwarded|remembered|compartilhad[oa]s?|vist[oa]s?|assistid[oa]s?|` +
+    `salv[oa]s?|enviad[oa]s?|lembrad[oa]s?|ouvid[oa]s?|compartid[oa]s?|guardad[oa]s?|escuchad[oa]s?|recordad[oa]s?)|(?:go|ir)\\s+viral|viralizar|reach|chegar|llegar)${NW}`,
+  'iu',
+)
+// Pedido de filme: verbo de criação + artigo ou "este/this" ("Create a funny 60–90 second 3D story", "Crie um vídeo
+// vertical 9:16…", "Create this YouTube Short…"); só prova com formato ou duração na frase (FORMAT_SPEC_RE).
+const CREATE_REQUEST_RE = new RegExp(
+  `^(?:(?:please|por favor)[,\\s]+)?(?:create|make|generate|produce|crie|cria|fa[çc]a|gere|produza|crea|haz|haga|genera|produzca|quero|quiero|i want|i need|preciso de|necesito)\\s+` +
+    `(?:a|an|um|uma|un|una|one|this|este|esta|esse|essa|ese|esa)${NW}`,
+  'iu',
+)
+const FORMAT_SPEC_RE = new RegExp(
+  `9:16|16:9|1:1|4:5|(?<![\\p{L}\\p{N}])(?:vertical|horizontal|youtube shorts?|reels|tiktok)${NW}|` +
+    `\\d+(?:[.,]\\d+)?\\s*(?:(?:[–—-]|a|to|e|y|and|ou|or|o)\\s*\\d+(?:[.,]\\d+)?\\s*)?-?\\s*(?:segundos?|seconds?|secs?|s|minutos?|minutes?|mins?|min)${NW}`,
+  'iu',
+)
+// Linha ao EDITOR: o que só quem monta o filme decide (narração, subtítulo, avatar, formato, marca d'água, texto na tela,
+// a imagem de referência anexada). "captions/legendas" e "música" ficam de fora: são assunto de metade das dicas.
+const EDITOR_NOUN_RE = new RegExp(
+  `(?<![\\p{L}\\p{N}])(?:narra[çc][ãa]o|narraci[óo]n|narration|narrador(?:a)?|narrator|voice-?over|voz em off|voz en off|locu[çc][ãa]o|locutor(?:a)?|` +
+    `subt[íi]tulos?|subtitles?|avatar(?:es|s)?|apresentador(?:a)?|presentador(?:a)?|presenter|marcas? d['’]?[áa]gua|marcas? de agua|watermarks?|` +
+    `aspect ratio|propor[çc][ãa]o|resolu[çc][ãa]o|resoluci[óo]n|resolution|texto na tela|texto en (?:la )?pantalla|on-screen text|na tela|en (?:la )?pantalla|on[- ]screen|` +
+    `(?:provided|uploaded|attached|reference|given)\\s+(?:image|photo|picture)s?|imagens? (?:enviadas?|anexadas?|fornecidas?|de refer[êe]ncia)|` +
+    `im[áa]gen(?:es)? (?:adjuntas?|proporcionadas?|de referencia))${NW}|9:16|16:9|1080p|4k|\\d{3,4}\\s*[x×]\\s*\\d{3,4}`,
+  'iu',
+)
+// Os vídeos DO OUVINTE ("every video", "your videos", "todos os seus vídeos", "tus videos"): é dica, não ordem ao editor.
+const OUVINTE_RE = new RegExp(
+  `(?<![\\p{L}\\p{N}])(?:every|each|all|your|todos|todas|cada|seus?|suas?|teus?|tuas?|tus?|sus?)\\s+` +
+    `(?:(?:os|as|los|las|of|the|seus|suas|teus|tuas|tus|sus|your|single|new|next|pr[óo]xim[oa]s?)\\s+){0,2}` +
+    `(?:v[íi]deos?|videos?|clips?|clipes?|shorts|reels?|posts?|tiktoks?|conte[úu]dos?|content|canal|channel)${NW}`,
+  'iu',
+)
 
 // ── KINEO1-IMAGEM-V2-2026-09-28 (D1): a SOBRA de instrução, frase a frase ──
 const STORY_NOUN_RE = new RegExp(
@@ -244,15 +322,49 @@ export function isResidualInstruction(line: string): boolean {
   return true
 }
 
+// KINEO1-BRIEF-PORTAO-2026-09-28 (FIX-REVISAO-2) — aspas não contam: "Você já sabia disso?" é a fala citada, não a ordem.
+const semAspas = (s: string) => s.replace(/[“"«„][^“”"«»„]{0,400}[”"»“]/gu, ' ')
+
+export type PastedBriefSignal = 'production_label' | 'about_film' | 'create_request' | 'editor_line'
+
+function sinalDasLinhas(lines: string[], kinds: Array<PastedBriefLineKind | null>): PastedBriefSignal | null {
+  for (let i = 0; i < lines.length; i++) {
+    const u = unwrapHead(lines[i])
+    if (!u || abreComAspas(u)) continue
+    const k = kinds[i]
+    if (k === 'label') {
+      if (!METADATA_LABEL_RE.test(u)) return 'production_label'
+      continue
+    }
+    const f = semAspas(frasesDe(u)[0] ?? u)
+    if (ABOUT_THIS_FILM_RE.test(f) && !VIEWER_ACTION_RE.test(f)) return 'about_film'
+    if (OUVINTE_RE.test(f)) continue // "Crie um gancho de 3 segundos em cada vídeo" / "Use subtitles in every video": dica
+    if (CREATE_REQUEST_RE.test(f) && FORMAT_SPEC_RE.test(f)) return 'create_request'
+    if ((k === 'imperative' || k === 'imperative_weak') && EDITOR_NOUN_RE.test(f)) return 'editor_line'
+  }
+  return null
+}
+
+/** O sinal que prova que o texto é um BRIEFING (o 1º achado, na ordem das linhas) — null = roteiro. Exportado para o guardião. */
+export function briefSignal(text: string | null | undefined): PastedBriefSignal | null {
+  const lines = (text ?? '').toString().replace(/\r\n?/g, '\n').split('\n')
+  return sinalDasLinhas(lines, lines.map((l) => (l.trim() ? classifyPastedLine(l) : null)))
+}
+
 /** Separa as linhas de instrução à IA da fala do autor. Puro; nunca muda uma palavra da fala. */
 export function splitPastedBrief(text: string | null | undefined): PastedBriefSplit {
   const raw = (text ?? '').toString().replace(/\r\n?/g, '\n')
   const lines = raw.split('\n')
   const linesTotal = lines.filter((l) => l.trim()).length
-  const nada: PastedBriefSplit = { mode: 'none', narration: raw, brief: [], kinds: [], narrationWords: wordsOf(raw), linesTotal }
+  const nada: PastedBriefSplit = { mode: 'none', narration: raw, brief: [], kinds: [], narrationWords: wordsOf(raw), linesTotal, signal: null }
   if (!raw.trim()) return nada
   if (lines.some((l) => SPEECH_LABEL_RE.test(unwrapHead(l)))) return nada
-  const kinds = lines.map((l) => (l.trim() ? classifyPastedLine(l) : null))
+  const lidas = lines.map((l) => (l.trim() ? classifyPastedLine(l) : null))
+  if (!lidas.some(forte)) return nada
+  // KINEO1-BRIEF-PORTAO-2026-09-28 (FIX-REVISAO-2) — sem sinal de BRIEFING, imperativo, frase sobre o filme, fraca e sobra
+  // são FALA (a dica "Start every video with a hook"); só o rótulo — de metadado, o único que chega aqui sem sinal — sai.
+  const signal = sinalDasLinhas(lines, lidas)
+  const kinds = signal ? lidas : lidas.map((k) => (k === 'label' ? k : null))
   const fortes = kinds.filter(forte).length
   if (fortes === 0) return nada
   // D1: só um texto que fala COM O EDITOR (imperativo ou frase sobre o filme) tem a sobra examinada; rótulos sozinhos não.
@@ -287,5 +399,5 @@ export function splitPastedBrief(text: string | null | undefined): PastedBriefSp
     mode = soAspas && dirigidas >= 2 && narrationWords < PASTED_BRIEF_QUOTED_FILM_MIN_WORDS ? 'brief_only' : 'narration_kept'
   }
   if (mode === 'none') return nada
-  return { mode, narration, brief, kinds: tiradas, narrationWords, linesTotal }
+  return { mode, narration, brief, kinds: tiradas, narrationWords, linesTotal, signal }
 }
