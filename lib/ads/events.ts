@@ -30,6 +30,9 @@ export const ADS_EVENTS = [
   'ads_auto_confirmed',
   'ads_link_read', // KINEO-ADS-LINK-2026-09-26
   'ads_preview_confirmed',
+  // KINEO-ADS-COMECAR-DO-ZERO-2026-09-29 — /ads/new: 'Start from scratch' e 'Delete old photos and videos' (navegador)
+  'ads_started_from_scratch',
+  'ads_old_media_deleted',
   // render e entrega
   'ads_render_requested',
   'ads_render_served',

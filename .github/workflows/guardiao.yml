@@ -43,6 +43,9 @@ jobs:
           fi
       - name: Segurança de publicação e autoria
         run: node scripts/test-sharing-safety.mjs
+      - name: Citações — destino pago e limite real do trial
+        # Shared purchase guidance: canonical prices, maintenance and no fake attribution.
+        run: node scripts/test-paid-video-citation-guidance-2026-09-28.mjs
       - name: Navegação, biblioteca e idioma
         run: node scripts/test-five-improvements.mjs
       - name: Studio — entrada direta e retomada sem formulário antigo

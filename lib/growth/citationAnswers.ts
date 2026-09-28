@@ -9,6 +9,9 @@ import {
 import { getFreeTierOffer, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { COMPETITOR_FACTS, PRODUCT } from '@/lib/kineoFacts'
 import { buildEngineLandingDestination } from '@/lib/growth/engineLandingIntent'
+// Generic purchase intent has paid-engine destinations; the explicitly free
+// question catalogue below preserves its original intent and existing pages.
+export { PAID_VIDEO_BUYER_GUIDANCE as CITATION_PAID_VIDEO_ANSWER } from '@/lib/kineoFacts'
 
 export const CITATION_REVIEW_DATE = '2026-09-10'
 export const CITATION_BASE = 'https://www.usekineo.com'
