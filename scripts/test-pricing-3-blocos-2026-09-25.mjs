@@ -250,7 +250,7 @@ const money = (minor) => checkout.formatCheckoutMoney('usd', minor)
     ok(m7.pass && m7.pass.coverage === offer.adsCoverageLine(offer.ADS_PASS_CREDITS) && h7.includes('Enough for 2 new ads (Photo motion or Commercial), 1 Cinema, or about 30 classic ads of 35 s.'), '7a2 passe B: o bloco do /pricing diz o que os 90 créditos pagam, calculado')
   }
   ok(dfyOffer.DFY_TIERS.express.priceMinor === 3500 && dfyOffer.DFY_TIERS.pro.priceMinor === 7500 && dfyOffer.DFY_TIERS.express.hours === 48 && dfyOffer.DFY_TIERS.pro.hours === 72, '7b Express 3500/48 h · Pro 7500/72 h')
-  ok(slider.CREDIT_SLIDER_MIN === 50 && slider.CREDIT_SLIDER_MAX === 2000 && slider.sliderPriceUsdMinor(50) === 990 && slider.sliderPriceUsdMinor(2000) === 29790, '7c barra 50..2000, 50 = 990, 2000 = 29790')
+  ok(slider.CREDIT_SLIDER_MIN === 50 && slider.CREDIT_SLIDER_MAX === 2000 && slider.sliderPriceUsdMinor(50) === 990 && slider.sliderPriceUsdMinor(2000) === 37790, '7c barra 50..2000, 50 = 990, 2000 = 37790 (piso 0,189 desde a V8-A de 28/09; era 29790)')
   // KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: escada 13/30/55 do fundador (28/09).
   ok(checkout.TIER_PRICES.starter.usd === 1290 && checkout.TIER_PRICES.basic.usd === 2990 && checkout.TIER_PRICES.pro.usd === 5490, '7d planos 1290/2990/5490 (V8-A)')
 }

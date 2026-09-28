@@ -2,6 +2,13 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
+## 2026-09-28 (noite) — Preço V8, opção A: Starter US$12,90 · Creator US$29,90 · Studio US$54,90; barra de créditos mais cara
+
+**QUEM DECIDIU:** o fundador, 28/09 ~20h30 BRT: "Preço A" e "Barra de crédito mais cara". Antecipa a mesa de preço de 09/10 (o congelamento de 09/09 acabou aqui).
+**O QUE MUDA:** Starter US$9,90 → 12,90 · Creator 19,90 → 29,90 · Studio 39,90 → 54,90 (créditos iguais: 60/150/300; anual 10× = 129/299/549; reais R$64,90/149,90/274,90). A barra de créditos avulsos sobe o piso de US$0,149 para 0,189 por crédito (50 e 100 créditos não mudam; 1.000 = US$188,90). Quem já assina paga o que paga hoje e renova com os mesmos créditos (escada legada V5 em renewalCreditsFor).
+**POR QUÊ:** margem no pior caso era 33% / 12,5% / 13,4% (Creator e Studio quase no zero a zero) e fica 49% / 42% / 37%; os três degraus seguem abaixo do Higgsfield (US$15 / 49 / 129, página oficial lida em 28/09). Detalhe e riscos: docs/DECISAO-PRECOS-V8-2026-09-28.md.
+**COMO MEDIR:** payment_success por plano e por bloco de país com corte no carimbo do deploy; recuo se a conversão checkout→pago do bloco rico (base ~39%) cair mais de 28%.
+
 ## 2026-09-28 — Passe do Studio Ads: opção B (90 créditos por US$19,90)
 
 **DECIDIDO (fundador, 28/09, literal):** "B, vai para as duas" — a opção B da mesa de ~04h (A: manter 60 cr · **B: 90 cr por US$19,90** · C: 100 cr por US$29,90), e o "as duas" é esta decisão mais a troca do filme da vitrine (entrada logo abaixo).

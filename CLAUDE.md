@@ -1,6 +1,11 @@
 # CLAUDE.md — Regras Permanentes para todas as sessões
 
 # ══════════════════════════════════════════════════════════════════════════
+# 💲 PREÇO V8-A (fundador 28/09/2026 noite, "Preço A"): Starter US$12,90 · Creator US$29,90 ·
+#   Studio US$54,90 (60/150/300 cr; anual 10×; R$64,90/149,90/274,90); barra de créditos com piso
+#   0,189/cr. O congelamento "até 09/10" abaixo ACABOU. Quem já assinava mantém preço e créditos.
+#   Doc: docs/DECISAO-PRECOS-V8-2026-09-28.md. Guardião: scripts/test-preco-v8-A-2026-09-28.mjs.
+# ══════════════════════════════════════════════════════════════════════════
 # 🔁 RESTAURAÇÃO 09/09/2026 (noite) — LER ANTES DE QUALQUER OFERTA/PREÇO
 # ══════════════════════════════════════════════════════════════════════════
 # · A Versão B (porta de $1, 08/09) e os preços V6/V7 MORRERAM em 09/09 à noite

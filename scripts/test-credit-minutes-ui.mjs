@@ -93,7 +93,11 @@ const PASSE_B_ROW_FROZEN = "    { id: 'pack:ads_pass', usdMinor: 1990, credits: 
 // congelamento (nada mudou neles). PASSE_B_ROW_FROZEN fica como registro do que era a linha antes do passe B.
 const PRICING_V8A_SHA256 = '47d79ff31ea2a4352c0aad7349424aecf6c36d3bc0703037a1d111519f18ce4a'
 void PASSE_B_ROW_FROZEN
-for (const file of ['lib/credits/engineCost.ts', 'lib/credits/creditSlider.ts']) {
+// KINEO-PRECO-V8-A-2026-09-28 — creditSlider sai do pino por commit: o fundador subiu o piso da barra de 0,149 para 0,189 junto com
+// o vai da escada 12,90/29,90/54,90 ("barra de crédito mais cara"). Passa a ser pinado ao SHA-256 do texto, como o checkoutPricing.
+const SLIDER_V8A_SHA256 = 'ed09e5e147764874186148ede44e567b366153575738dd2a98c4e2b28363fc21'
+check(createHash('sha256').update(read('lib/credits/creditSlider.ts')).digest('hex') === SLIDER_V8A_SHA256, 'unchanged billing source (pinned to the V8-A text of 28/09 by sha256): lib/credits/creditSlider.ts')
+for (const file of ['lib/credits/engineCost.ts']) {
   const base = execFileSync('git', ['show', `d3c21742:${file}`], { encoding: 'utf8' }).replace(/\r\n/g, '\n')
   check(read(file) === base, 'unchanged billing source: ' + file)
 }

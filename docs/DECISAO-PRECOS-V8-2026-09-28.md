@@ -1,8 +1,8 @@
 # DECISÃO DE PREÇOS V8 — OPÇÃO A (ESCADA 13/30/55) — 28/09/2026
 
-**STATUS: AGUARDA O VAI DO FUNDADOR.** Código pronto e commitado na branch
-`codex/preco-v8-A-0928` (worktree `C:\kineo-wt\preco-A`), **não enfileirada**.
-Nada foi publicado. Produção segue na V5 restaurada ($9,90 / $19,90 / $39,90).
+**STATUS: APROVADO PELO FUNDADOR em 28/09/2026 (~20h30 BRT): "Preço A" + "Barra de crédito mais cara".**
+Branch `codex/preco-v8-A-0928`, enfileirada no mesmo dia. Vale para quem assinar depois do deploy;
+quem já assina segue no preço e nos créditos de hoje (escada legada abaixo).
 
 ## A decisão (fundador, 28/09)
 
@@ -75,7 +75,12 @@ a entrada obsoleta).
 
 ## Decisões que ficam com o fundador (abertas)
 
-1. **Barra de créditos (`lib/credits/creditSlider.ts`)** — a barra vende a
+1. **Barra de créditos — DECIDIDA (28/09, "barra de crédito mais cara"):** piso 0,149 → **0,189** (topo 0,199 igual).
+   Nova tabela: 50 = US$9,90 · 100 = 19,90 · 300 = 58,90 · 500 = 96,90 · 1.000 = 188,90 · 2.000 = 377,90;
+   pior degrau US$0,1889/cr > Studio 0,183/cr, então assinar volta a ser o melhor negócio em toda a barra.
+   O texto abaixo é o registro de antes da decisão.
+
+   (antes) a barra vende a
    US$ 0,199/cr até 100 créditos, afinando até US$ 0,149/cr em 1.000+. O Studio
    novo custa US$ 0,183/cr. A partir de ~390 créditos a barra fica **mais barata
    por crédito que o plano mais caro** (500 cr = US$ 87,90 → 0,176; 1.000 = 148,90

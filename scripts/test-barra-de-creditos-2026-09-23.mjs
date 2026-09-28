@@ -33,8 +33,10 @@ function provas(S) {
   R.push(['(1) faixa aprovada: 50–2.000 de 10 em 10', S.CREDIT_SLIDER_MIN === 50 && S.CREDIT_SLIDER_MAX === 2000 && S.CREDIT_SLIDER_STEP === 10])
   R.push(['(1) fora da faixa ou fora do passo não tem preço', [0, 40, 49, 55, 2010, 5000, -50, '1e3', 'abc', null, 100.5].every((x) => S.sliderPriceUsdMinor(x) === null)])
   R.push(['(1) quantidade como texto da URL é aceita só se limpa', S.normalizeSliderCredits('300') === 300 && S.normalizeSliderCredits(' 300 ') === 300 && S.normalizeSliderCredits('300abc') === null])
-  const tabela = { 50: 990, 100: 1990, 300: 5590, 500: 8790, 1000: 14890, 2000: 29790 }
-  R.push(['(2) tabela aprovada pelo fundador (50=$9,90 · 100=$19,90 · 300=$55,90 · 500=$87,90 · 1.000=$148,90 · 2.000=$297,90)', Object.entries(tabela).every(([c, v]) => S.sliderPriceUsdMinor(Number(c)) === v)])
+  // KINEO-PRECO-V8-A-2026-09-28 — reancorado: o fundador subiu o piso da barra de 0,149 para 0,189 junto com a escada 12,90/29,90/54,90
+  // ("barra de crédito mais cara"). O topo não mudou (50 e 100 iguais); a tabela de 23/09 era 300=55,90 · 500=87,90 · 1.000=148,90 · 2.000=297,90.
+  const tabela = { 50: 990, 100: 1990, 300: 5890, 500: 9690, 1000: 18890, 2000: 37790 }
+  R.push(['(2) tabela aprovada pelo fundador (50=$9,90 · 100=$19,90 · 300=$58,90 · 500=$96,90 · 1.000=$188,90 · 2.000=$377,90)', Object.entries(tabela).every(([c, v]) => S.sliderPriceUsdMinor(Number(c)) === v)])
   R.push(['(2) todo preço termina em ,90', degraus.every((c) => S.sliderPriceUsdMinor(c) % 100 === 90)])
   R.push(['(2) mais créditos nunca custam menos no total', degraus.every((c, i) => i === 0 || S.sliderPriceUsdMinor(c) >= S.sliderPriceUsdMinor(degraus[i - 1]))])
   R.push(['(2) por crédito nunca sobe quando a quantidade sobe (desde 100)', degraus.filter((c) => c >= 100).every((c, i, a) => i === 0 || S.sliderRatePerCredit(c) <= S.sliderRatePerCredit(a[i - 1]) + 1e-12)])
@@ -44,7 +46,7 @@ function provas(S) {
 }
 const S = roda(SLIDER_SRC)
 for (const [n, c] of provas(S)) checa(n, c)
-checa('(4) reais pela fórmula da casa: 100 créditos = R$ 99,90; 1.000 = R$ 744,90', SETTLE.settlementAmountMinor(S.sliderPriceUsdMinor(100), 'brl') === 9990 && SETTLE.settlementAmountMinor(S.sliderPriceUsdMinor(1000), 'brl') === 74490)
+checa('(4) reais pela fórmula da casa: 100 créditos = R$ 99,90; 1.000 = R$ 944,90 (piso 0,189 desde 28/09; era R$ 744,90)', SETTLE.settlementAmountMinor(S.sliderPriceUsdMinor(100), 'brl') === 9990 && SETTLE.settlementAmountMinor(S.sliderPriceUsdMinor(1000), 'brl') === 94490)
 
 // (5) rota da Stripe
 const CK = rd('app/api/stripe/checkout/route.ts')
@@ -74,7 +76,7 @@ function mutante(nome, de, para) {
   try { cai = provas(roda(m)).some(([, c]) => !c) } catch { cai = true }
   checa(`mutante "${nome}" é pego`, cai)
 }
-mutante('piso abaixo do plano', 'const RATE_FLOOR = 0.149', 'const RATE_FLOOR = 0.12')
+mutante('piso abaixo do plano', 'const RATE_FLOOR = 0.189', 'const RATE_FLOOR = 0.12')
 mutante('mínimo volta a 30', 'export const CREDIT_SLIDER_MIN = 50', 'export const CREDIT_SLIDER_MIN = 30')
 mutante('sem etiqueta ,90', 'return dollars * 100 - 10', 'return dollars * 100')
 mutante('aceita fora do passo', '  if (n % CREDIT_SLIDER_STEP !== 0) return null\n', '')
