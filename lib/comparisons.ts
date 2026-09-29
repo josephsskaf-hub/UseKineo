@@ -41,7 +41,6 @@ import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual;
 // este módulo só é importado por código server-side, ver revisão no SPRINT).
 const OFFER = getFreeTierOffer()
-const KINEO_FAST_COST = creditsPerReferenceVideo('fast')
 const KINEO_SEEDANCE_COST = creditsPerReferenceVideo('cinematic_ai')
 const KINEO_KLING_COST = creditsPerReferenceVideo('cinematic_kling')
 const KINEO_KLING3_COST = creditsPerReferenceVideo('cinematic_hollywood')
@@ -49,8 +48,10 @@ const KINEO_KLING3_COST = creditsPerReferenceVideo('cinematic_hollywood')
 // 27/09 ("avatar sai por hora"). Esta constante entra em 8 páginas de comparação; enquanto ela listava o presenter,
 // a mesma página que diz "you cannot get a talking avatar out of Kineo at any price" (HeyGen) cobrava 70 por um.
 // O custo continua no biller (engineCost 'presenter'); só não é vendido. Volta junto com AVATAR_PUBLIC=true.
+// KINEO-FILME-GRATIS-15S-2026-09-29 — o Kineo 1 saiu da régua pública (fora do catálogo, KINEO1_PUBLIC=false): as páginas
+// de comparação medem o Kineo pelo Seedance 1.5, o motor de entrada (e o do filme grátis de 15 s).
 const KINEO_ENGINE_METERING =
-  `Kineo 1 ${KINEO_FAST_COST}, Seedance ${KINEO_SEEDANCE_COST}, ` +
+  `Seedance ${KINEO_SEEDANCE_COST}, ` +
   `Kling 2.5 ${KINEO_KLING_COST}, ` +
   `Kling 3 ${KINEO_KLING3_COST} credits per 60-second video`
 
@@ -372,7 +373,7 @@ export const TOOLS: Record<ToolId, Tool> = {
     exportLimits:
       // KINEO-OMNI-2026-08-25 — Omni Flash entra na régua pública após a
       // validação real; custo SEMPRE de creditCostFor (disciplina #296).
-      `Credit-metered per 60-second video: Kineo 1 ${KINEO_FAST_COST} credits, Seedance ${KINEO_SEEDANCE_COST}, MiniMax H3 ${creditsPerReferenceVideo('cinematic_h3')}, Kling 2.5 ${KINEO_KLING_COST}, Kling 3 ${KINEO_KLING3_COST}, and Omni Flash (Google's #1-ranked video model, Aug 2026 arena) ${creditsPerReferenceVideo('cinematic_omni')}. Credits do not roll over between months.`,
+      `Credit-metered per 60-second video: Seedance ${KINEO_SEEDANCE_COST} credits, MiniMax H3 ${creditsPerReferenceVideo('cinematic_h3')}, Kling 2.5 ${KINEO_KLING_COST}, Kling 3 ${KINEO_KLING3_COST}, and Omni Flash (Google's #1-ranked video model, Aug 2026 arena) ${creditsPerReferenceVideo('cinematic_omni')}. Credits do not roll over between months.`,
     source: BASE + '/pricing',
     homepage: BASE,
     verified: VERIFIED_ON,
@@ -1337,7 +1338,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'On volume, Pictory’s quota is larger and differently shaped',
-        p: `Pictory Starter is $29/month, or $25/month annually, for 200 video minutes a month. At 35 seconds a Short that is well over three hundred. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month for ${TIER_CREDITS.starter} credits; a 60-second Kineo 1 video costs ${KINEO_FAST_COST} and Kling 2.5 costs ${KINEO_KLING_COST}. Cheaper per month, and metered by render quality and duration rather than a monthly minute pool.`,
+        p: `Pictory Starter is $29/month, or $25/month annually, for 200 video minutes a month. At 35 seconds a Short that is well over three hundred. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month for ${TIER_CREDITS.starter} credits; a 60-second Seedance 1.5 film costs ${KINEO_SEEDANCE_COST} and Kling 2.5 costs ${KINEO_KLING_COST}. Cheaper per month, and metered by render quality and duration rather than a monthly minute pool.`,
       },
     ],
     pickA: [
@@ -1426,7 +1427,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'The volume ceilings are shaped differently',
-        p: `Submagic Starter is $19/member/month, or $12/member/month billed yearly, for 15 videos a month up to 2 minutes each. Pro is $39/month, or $23 yearly, for 40 videos. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month for ${TIER_CREDITS.starter} credits, with a 60-second Kineo 1 video costing ${KINEO_FAST_COST} credits. If you post daily, compare that credit-metered output with Submagic's fixed 15-video Starter ceiling.`,
+        p: `Submagic Starter is $19/member/month, or $12/member/month billed yearly, for 15 videos a month up to 2 minutes each. Pro is $39/month, or $23 yearly, for 40 videos. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month for ${TIER_CREDITS.starter} credits, with a 60-second Seedance 1.5 film costing ${KINEO_SEEDANCE_COST} credits. If you post daily, compare that credit-metered output with Submagic's fixed 15-video Starter ceiling.`,
       },
       {
         h: 'Both free tiers watermark, with different caps',
@@ -1480,7 +1481,7 @@ export const PAIRS: Pair[] = [
       },
       {
         q: 'How many videos a month do I get?',
-        a: `Submagic Starter: 15 videos a month, up to 2 minutes each. Kineo Starter: ${TIER_CREDITS.starter} credits, and a 60-second Kineo 1 video costs ${KINEO_FAST_COST} credits — higher-quality render types cost considerably more, from ${KINEO_SEEDANCE_COST} credits for Seedance up to ${KINEO_KLING3_COST} for Kling 3.`,
+        a: `Submagic Starter: 15 videos a month, up to 2 minutes each. Kineo Starter: ${TIER_CREDITS.starter} credits, and a 60-second Seedance 1.5 film costs ${KINEO_SEEDANCE_COST} credits — cinematic engines cost considerably more, up to ${KINEO_KLING3_COST} for Kling 3.`,
       },
       {
         q: 'Can I use both together?',
@@ -4295,7 +4296,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'On price at entry Kineo is lower and the units are unrelated',
-        p: `Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, for ${TIER_CREDITS.starter} credits, with a 60-second Kineo 1 video costing ${KINEO_FAST_COST} credits. quso Lite is $29/month, or $19 annually, for unlimited 1080p clips plus 10GB storage and publishing. Unlimited clips of footage you already have is very hard to beat on value — provided you have the footage.`,
+        p: `Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, for ${TIER_CREDITS.starter} credits, with a 60-second Seedance 1.5 film costing ${KINEO_SEEDANCE_COST} credits. quso Lite is $29/month, or $19 annually, for unlimited 1080p clips plus 10GB storage and publishing. Unlimited clips of footage you already have is very hard to beat on value — provided you have the footage.`,
       },
     ],
     pickA: [
@@ -4369,7 +4370,7 @@ export const PAIRS: Pair[] = [
     verdict: [
       {
         h: 'Ten minutes a month is the fact that decides it for creators',
-        p: `Synthesia includes up to 10 minutes of finished video a month on Basic and Starter at $29/month, or $18 billed yearly, and 30 minutes on Creator at $89, or $64. At 35 seconds a Short, 10 minutes is roughly 17 videos — for a whole month. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month for ${TIER_CREDITS.starter} credits with a 60-second Kineo 1 video costing ${KINEO_FAST_COST} credits${ft(OFFER, ', and its free tier allows up to 3 Fast videos every 24 hours.', `, and every new account starts with a Creator trial: ${TRIAL_GRANT_CREDITS_COPY} free credits.`)}`,
+        p: `Synthesia includes up to 10 minutes of finished video a month on Basic and Starter at $29/month, or $18 billed yearly, and 30 minutes on Creator at $89, or $64. At 35 seconds a Short, 10 minutes is roughly 17 videos — for a whole month. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month for ${TIER_CREDITS.starter} credits with a 60-second Seedance 1.5 film costing ${KINEO_SEEDANCE_COST} credits${ft(OFFER, ', and its free tier allows up to 3 Fast videos every 24 hours.', `, and every new account starts with a Creator trial: ${TRIAL_GRANT_CREDITS_COPY} free credits.`)}`,
       },
       {
         h: 'Synthesia is the better platform on almost every axis except one',

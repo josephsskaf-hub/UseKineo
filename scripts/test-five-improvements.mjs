@@ -93,7 +93,20 @@ ok(wf.includes('npm ci')&&wf.includes('node scripts/test-sharing-safety.mjs')&&w
 // export in Claude's send-checkout-recovery route. Do not edit that campaign
 // or claim Next-generated route types are clean. Preserve production config;
 // the newly enforced raw typecheck + contracts in critical CI still apply.
-eq(fs.readFileSync('next.config.js','utf8').replace(/\r\n/g,'\n'),execFileSync('git',['show','19708bd0:next.config.js'],{encoding:'utf8'}).replace(/\r\n/g,'\n'),'build settings remain the production baseline pending cross-lane route fix')
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: a única mudança autorizada desde a base é o bloco EXATO do
+// redirect 301 de /ai-video-generator/kineo-1 (Kineo 1 fora do catálogo público, decisão do fundador 29/09). O bloco tem
+// de existir uma vez, inteiro; todo o resto (build settings) segue byte a byte igual ao 19708bd0.
+const KINEO1_REDIRECT_BLOCK=[
+"      // KINEO-FILME-GRATIS-15S-2026-09-29 — o Kineo 1 saiu do catálogo público (KINEO1_PUBLIC=false, lib/engineLaunch.ts)",
+"      // e o filme grátis de quem chega passou a ser o Seedance 1.5 de 15 s. A página do Kineo 1 era a que mais recebia",
+"      // chegada do ChatGPT: o redirect permanente leva essas citações (e as 13 línguas) para a página do Seedance em vez",
+"      // de um 404 (301 literal, pedido do fundador; os demais daqui são 308). Saiu também do sitemap (ENGINE_SLUGS/LOCALIZED_ENGINE_SLUGS). Decisão do fundador (29/09).",
+"      { source: '/ai-video-generator/kineo-1', destination: '/ai-video-generator/seedance', statusCode: 301 },",
+"      { source: '/ai-video-generator/kineo-1/:lang', destination: '/ai-video-generator/seedance/:lang', statusCode: 301 },",
+""].join('\n')
+const nextCfg=fs.readFileSync('next.config.js','utf8').replace(/\r\n/g,'\n')
+ok(nextCfg.split(KINEO1_REDIRECT_BLOCK).length===2,'next.config carries the exact Kineo 1 301 block once')
+eq(nextCfg.replace(KINEO1_REDIRECT_BLOCK,''),execFileSync('git',['show','19708bd0:next.config.js'],{encoding:'utf8'}).replace(/\r\n/g,'\n'),'build settings remain the production baseline pending cross-lane route fix')
 // AST compare all functional Studio handlers to the approved base, not regex names.
 const file='app/(dashboard)/studio/StudioClient.tsx'
 const old=execFileSync('git',['show','5b155dc5:'+file],{encoding:'utf8'})

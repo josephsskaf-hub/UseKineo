@@ -8,7 +8,7 @@ import { CITATION_COST_DECISION_CSS } from '@/lib/ui/citationCostDecisionStyles'
 
 const CAMPAIGN = 'citacoes_cost_decision_v1'
 const ENGINES = [
-  { quality: 'fast', name: 'Kineo 1', visuals: 'Matched stock footage' },
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — a linha do Kineo 1 saiu (fora do catálogo público); fica o Seedance 1.5.
   { quality: 'cinematic_ai', name: 'Seedance 1.5', visuals: 'AI-generated scenes' },
 ] as const
 

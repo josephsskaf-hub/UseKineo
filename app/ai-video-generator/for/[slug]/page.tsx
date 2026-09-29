@@ -11,7 +11,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
-import { getFreeTierOffer, swapFreeTierCopy as ft, trialFilmsForEngine, TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
+import { FREE_FILM_LABEL, getFreeTierOffer, swapFreeTierCopy as ft, trialFilmsForEngine, TRIAL_CREDITS_SHOWN, TRIAL_SEEDANCE15_FILMS } from '@/lib/freeTierOffer'
 import { STARTER_MONTH, STARTER_CREDITS, creditsPerReferenceVideo } from '@/lib/marketingPrice'
 import { PUBLIC_ENGINE_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
 import { getIntentPage, INTENT_FAMILY_LABEL, INTENT_HUB_PATH, INTENT_PAGES, INTENT_SLUGS, intentPagePath, type IntentEngine } from '@/lib/seo/intentPages'
@@ -70,7 +70,10 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
   if (!p) notFound()
   const url = `${BASE}${intentPagePath(p.slug)}`
   const engineCost = creditsPerReferenceVideo(p.engine)
-  const trialFilms = trialFilmsForEngine(engineCost)
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — o Kineo 1 ('fast') não é mais oferecido a conta nova: a página não diz que o trial
+  // cobre filmes dele (era "the trial covers 2 Kineo 1 films"). O que o trial paga é o Seedance 1.5 de 15 s.
+  const trialFilms = p.engine === 'fast' ? 0 : trialFilmsForEngine(engineCost)
+  const trialFreeFilm = TRIAL_SEEDANCE15_FILMS >= 1 ? `; a new account's trial pays for one ${FREE_FILM_LABEL} instead` : ''
   // A vitrine é `as const`: nem toda entrada tem poster/preview leve. O Kineo 1 da home é um master de 48 MB;
   // aqui vai o preview de 5 s (arenaPreviewPath) quando existir. Nunca a URL do fal.
   const films = PUBLIC_ENGINE_EXAMPLES.filter((e) => e.engine === p.engine).slice(0, 3).map((e) => {
@@ -86,7 +89,7 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
     '@type': 'FAQPage',
     mainEntity: [
       ...p.faq,
-      { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${ENGINE_NAME[p.engine]} costs ${engineCost} credits for a 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : ', which needs a plan'}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` },
+      { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${ENGINE_NAME[p.engine]} costs ${engineCost} credits for a 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` },
     ].map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
   }
   const breadcrumbJsonLd = {
@@ -140,7 +143,7 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
           </div>
           <p style={{ fontSize: '0.82rem', color: '#86868b', margin: '12px 0 0' }}>
             {ft(OFFER, `${TRIAL_CREDITS_SHOWN} free credits, no card`, OFFER.copy.chip)}
-            {trialFilms > 0 ? ` · the trial covers ${trialFilms} ${ENGINE_NAME[p.engine]} film${trialFilms > 1 ? 's' : ''}` : ` · ${ENGINE_NAME[p.engine]} needs a plan (from ${STARTER_MONTH})`}
+            {trialFilms > 0 ? ` · the trial covers ${trialFilms} ${ENGINE_NAME[p.engine]} film${trialFilms > 1 ? 's' : ''}` : ` · ${ENGINE_NAME[p.engine]} needs a plan (from ${STARTER_MONTH})${TRIAL_SEEDANCE15_FILMS >= 1 ? ` · the trial pays for one ${FREE_FILM_LABEL}` : ''}`}
           </p>
         </section>
 
@@ -194,7 +197,7 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
         {/* FAQ */}
         <section style={{ marginTop: 44 }}>
           <h2 style={{ fontSize: '1.3rem', fontWeight: 900, margin: '0 0 12px' }}>Questions</h2>
-          {[...p.faq, { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${ENGINE_NAME[p.engine]} costs ${engineCost} credits per 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : ', which needs a plan'}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` }].map((f) => (
+          {[...p.faq, { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${ENGINE_NAME[p.engine]} costs ${engineCost} credits per 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` }].map((f) => (
             <details key={f.q} style={{ ...CARD, padding: '12px 16px', marginBottom: 8 }}>
               <summary style={{ cursor: 'pointer', fontWeight: 800 }}>{f.q}</summary>
               <p style={{ margin: '8px 0 0', color: '#d2d2d7', lineHeight: 1.6 }}>{f.a}</p>

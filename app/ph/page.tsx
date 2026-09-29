@@ -15,6 +15,8 @@ import { FOUNDER_SHOWCASE } from '@/lib/publicExamples'
 import { engineDisplayName } from '@/lib/enginePlanGate'
 import { CARD_TRIAL_DAYS, CARD_TRIAL_GRANT_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { CARD_ENTRY_COPY, FREE_ENTRY_CREDITS } from '@/lib/entryPolicy'
+import { FREE_FILM_LABEL } from '@/lib/freeTierOffer' // KINEO-FILME-GRATIS-15S-2026-09-29
+import { videosPerMonth } from '@/lib/marketingPrice' // KINEO-FILME-GRATIS-15S-2026-09-29
 // KINEO-PH-CONTAGEM-2026-09-09 — a contagem de motores É DERIVADA. Esta página
 // era o ÚNICO lugar do site que digitava "Nine" à mão, em três lugares (título
 // social, descrição social e o parágrafo do herói) enquanto
@@ -172,8 +174,10 @@ export default function PhPage() {
 
         <section style={{ marginTop: 56, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
           {([
-            ['Starter', TIER_PRICES.starter.usd, '3 films a week', 'Kineo 1 + Seedance 1.5'],
-            ['Creator', TIER_PRICES.basic.usd, '1 film a day', 'Kineo 1 + Seedance 1.5'],
+            // KINEO-FILME-GRATIS-15S-2026-09-29 — "3 films a week"/"1 film a day" eram a conta do Kineo 1 (fora do catálogo
+            // público); agora a promessa é a contagem derivada de Seedance 1.5 de 60 s.
+            ['Starter', TIER_PRICES.starter.usd, `${videosPerMonth('starter', 'cinematic_ai')} AI films a month`, 'Seedance 1.5'],
+            ['Creator', TIER_PRICES.basic.usd, `${videosPerMonth('basic', 'cinematic_ai')} AI films a month`, 'Seedance 1.5'],
             // KINEO-AVATAR-FORA-2026-09-28 — ', Avatar' só com AVATAR_PUBLIC=true (Avatar fora do catálogo desde 27/09).
             ['Studio', TIER_PRICES.pro.usd, 'Every engine', `Kling 3, Veo 3.1, MiniMax H3, Omni Flash${AVATAR_PUBLIC ? ', Avatar' : ''}`],
           ] as Array<[string, number, string, string]>).map(([name, minor, promise, engines]) => (
@@ -186,15 +190,15 @@ export default function PhPage() {
           ))}
         </section>
         <p style={{ marginTop: 10, fontSize: 13, color: 'rgba(255,255,255,.55)' }}>
-          Every account starts free with {FREE_ENTRY_CREDITS} credits (two Kineo 1 films of 60 seconds), every engine unlocked, no card. Full details on the <Link href="/pricing" style={{ color: '#7cc0ff' }}>pricing page</Link>.
+          Every account starts free with {FREE_ENTRY_CREDITS} credits — enough for one {FREE_FILM_LABEL} — every engine unlocked, no card. Full details on the <Link href="/pricing" style={{ color: '#7cc0ff' }}>pricing page</Link>.
         </p>
 
         <section style={{ marginTop: 48, maxWidth: 720 }}>
           <h2 style={{ fontSize: 20, fontWeight: 900, margin: '0 0 12px' }}>Honest answers</h2>
           {[
-            ['Is it really free to start?', `Yes. Sign up and you get ${FREE_ENTRY_CREDITS} credits — two Kineo 1 films of 60 seconds — with every engine unlocked. No card. Plans start at ${usd(TIER_PRICES.starter.usd)}/month when you want more.`],
+            ['Is it really free to start?', `Yes. Sign up and you get ${FREE_ENTRY_CREDITS} credits — enough for one ${FREE_FILM_LABEL}, watermarked — with every engine unlocked. No card. Plans start at ${usd(TIER_PRICES.starter.usd)}/month when you want more.`],
             ['Is there a free tier?', `Yes: ${FREE_ENTRY_CREDITS} credits on signup, no card. Trial films are watermarked; any paid plan unlocks clean downloads.`],
-            ['How long does a film take?', 'About 3 minutes on Kineo 1 and Seedance; cinematic engines (Kling 3, Veo 3.1) take longer, sometimes 10–15 minutes when the provider is busy.'],
+            ['How long does a film take?', 'Usually 8–20 minutes on the AI engines (Seedance 1.5, Kling 2.5); cinematic engines (Kling 3, Veo 3.1) take longer, especially when the provider is busy.'],
             ['Who owns the videos?', 'You do. Download the MP4 and post it anywhere.'],
           ].map(([q, a]) => (
             <details key={q} style={{ borderTop: '1px solid rgba(255,255,255,.1)', padding: '12px 0' }}>

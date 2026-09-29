@@ -188,7 +188,7 @@ const faqSchema = {
         // frase antiga enquanto a pagina mostra a nova — exatamente o "spam
         // signal" que o comentario adverte. Mesmos dois argumentos, na mesma
         // ordem: com a flag OFF os dois textos voltam byte a byte ao de hoje.
-        text: `${ft(OFFER, 'Yes. Never-paid free users can download, share and post the watermarked MP4.', 'Trial films carry a small watermark — you can download, share and post the MP4. After the trial, the free Fast video carries a watermark.')} Paid plans unlock the clean, watermark-free MP4 for YouTube, TikTok or Reels.`,
+        text: `${ft(OFFER, 'Yes. Never-paid free users can download, share and post the watermarked MP4.', 'Yes. Never-paid free users can download, share and post the watermarked MP4.')} Paid plans unlock the clean, watermark-free MP4 for YouTube, TikTok or Reels.`,
       },
     },
     {
@@ -196,7 +196,7 @@ const faqSchema = {
       name: 'Do I need any editing skills?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `None. You type one idea and the AI writes the script, records the voice, finds the footage and adds captions. ${ft(OFFER, 'Free downloads carry a watermark; paid plans unlock the clean MP4.', 'Trial downloads carry a watermark, and so does the free Fast video after the trial, and paid plans always export clean.')}`,
+        text: `None. You type one idea and the AI writes the script, records the voice, finds the footage and adds captions. ${ft(OFFER, 'Free downloads carry a watermark; paid plans unlock the clean MP4.', 'Free downloads carry a watermark; paid plans unlock the clean MP4.')}`,
       },
     },
     {

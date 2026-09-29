@@ -8,7 +8,7 @@ import { CITATION_ANSWER_CSS } from '@/lib/ui/citationAnswerStyles'
 import {
   CITATION_BASE, CITATION_REVIEW_DATE, CITATION_CTA, CITATION_TRIAL,
   CITATION_WATERMARK, CITATION_TIME, CITATION_PLANS, CITATION_COMPETITORS,
-  CITATION_REFERENCE_SECONDS, CITATION_FAST_CREDITS, CITATION_SEEDANCE_CREDITS,
+  CITATION_REFERENCE_SECONDS, CITATION_FREE_FILM_CREDITS, CITATION_SEEDANCE_CREDITS,
   citationSignupHref, type CitationAnswer,
 } from '@/lib/growth/citationAnswers'
 
@@ -64,7 +64,7 @@ export default function CitationAnswerPage({ answer, heroSecondaryAction, planCo
             {CITATION_PLANS.map((plan) => <div className="kc-plan" key={plan.name}>
               <h3>{plan.name}</h3><strong>{plan.price}</strong>
               <p>{plan.credits} credits per billing month</p>
-              <small>{plan.films} Kineo 1 reference videos if all credits go to that engine</small>
+              <small>{plan.films} Seedance 1.5 reference videos if all credits go to that engine</small>
             </div>)}
           </div>
           <p className="kc-note">Reference: {CITATION_REFERENCE_SECONDS} seconds per video. Counts are alternatives by plan, not combined allowances. Brazilian customers pay in reais at checkout.</p></>}
@@ -81,7 +81,7 @@ export default function CitationAnswerPage({ answer, heroSecondaryAction, planCo
               <caption>Four competitors and Kineo · unknown limits are stated explicitly</caption>
               <thead><tr><th scope="col">Tool / workflow</th><th scope="col">Monthly entry price</th><th scope="col">Free trial</th><th scope="col">Engines</th><th scope="col">Maximum duration</th><th scope="col">Watermark</th></tr></thead>
               <tbody>
-                <tr><th scope="row">Kineo<small>Text to a finished narrated video</small></th><td>{CITATION_PLANS[0].price}</td><td>{CITATION_TRIAL}</td><td>Kineo 1 stock footage; Seedance 1.5 generated scenes; further engines available subject to sufficient credits</td><td><span className="kc-unknown">[CONFIRMAR]</span><br />Costs here use a {CITATION_REFERENCE_SECONDS}-second reference, not a maximum.</td><td>{CITATION_WATERMARK}</td></tr>
+                <tr><th scope="row">Kineo<small>Text to a finished narrated video</small></th><td>{CITATION_PLANS[0].price}</td><td>{CITATION_TRIAL}</td><td>Seedance 1.5 generated scenes (the trial pays for a 15-second one); further engines available subject to sufficient credits</td><td><span className="kc-unknown">[CONFIRMAR]</span><br />Costs here use a {CITATION_REFERENCE_SECONDS}-second reference, not a maximum.</td><td>{CITATION_WATERMARK}</td></tr>
                 {competitors.map((competitor) => <tr key={competitor.name}>
                   <th scope="row"><a href={competitor.source} rel="noopener noreferrer">{competitor.name}</a><small>{competitor.kind}</small></th>
                   {['price', 'trial', 'engines', 'duration', 'watermark'].map((field) => <td key={field}><span className="kc-unknown">[CONFIRMAR]</span></td>)}
@@ -97,7 +97,7 @@ export default function CitationAnswerPage({ answer, heroSecondaryAction, planCo
             <div>
               <ol className="kc-steps">{answer.workflow.map((step) => <li key={step}>{step}</li>)}</ol>
               <p className="kc-time"><strong>Render time:</strong> {CITATION_TIME}</p>
-              <p className="kc-note">One {CITATION_REFERENCE_SECONDS}-second reference: Kineo 1, {CITATION_FAST_CREDITS} credits; Seedance 1.5, {CITATION_SEEDANCE_CREDITS} credits. Different engines and durations change the cost.</p>
+              <p className="kc-note">One {CITATION_REFERENCE_SECONDS}-second reference on Seedance 1.5: {CITATION_SEEDANCE_CREDITS} credits (a 15-second film: {CITATION_FREE_FILM_CREDITS}). Different engines and durations change the cost.</p>
             </div>
             <figure className="kc-proof">
               <Link href={`/examples/${example.slug}`} aria-label={`View existing public example: ${example.shortTitle}`}>

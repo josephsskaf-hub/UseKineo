@@ -138,7 +138,9 @@ const LANGUAGES: LangSeed[] = [
 type AltSeed = { name: string; slug?: string; differences: string[]; prompt: string }
 const KINEO_TRUTHS = {
   finished: 'Kineo delivers a finished MP4: script, AI voice, matched scenes, captions and music, from one idea or a pasted script.',
-  engines: 'You choose the engine per film: Kineo 1 (real footage, fits the free trial) or generative engines such as Seedance 1.5, Veo 3.1, Kling 2.5 and Kling 3.',
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — o Kineo 1 deixou de caber no trial de conta nova (fora do catálogo público); o filme
+  // grátis é o Seedance 1.5 de 15 s. O motor padrão das páginas (engine) é decisão da E2b — aqui só o texto.
+  engines: 'You choose the engine per film: Seedance 1.5 (a new account\'s trial pays for one free 15-second film), Veo 3.1, Kling 2.5 or Kling 3.',
   noCard: 'The free trial needs no card; the trial size and every price on this page are read live from the same source as the pricing page.',
   series: 'Every finished film comes with a written next episode, so a channel becomes a series instead of one-off videos.',
 }
@@ -177,7 +179,7 @@ function nichePage(n: NicheSeed): IntentPage {
     intro: `Built for ${n.who}. You type one idea; Kineo writes the hook and the script, records the voice, matches a scene to every line, burns in captions and hands you a vertical MP4, usually in about three minutes.`,
     examplePrompt: n.prompt,
     engine,
-    engineWhy: n.why ?? 'Kineo 1 matches real footage to every line and fits inside the free trial, so the first film costs nothing to test.',
+    engineWhy: n.why ?? 'Kineo 1 matches real footage to every line.',
     faq: [
       { q: `Do I need to record anything for ${n.name} videos?`, a: 'No. The narration is an AI voice, the scenes are matched or generated from your text, and the captions are timed automatically. You only write the idea or paste a script.' },
       { q: `Can I use my own script for ${n.name}?`, a: 'Yes. Choose "Use my script as is" and Kineo narrates it word for word, then matches scenes to each sentence.' },
@@ -196,7 +198,7 @@ function formatPage(f: FormatSeed): IntentPage {
     intro: `What you get: ${f.what}. What you write: one idea or a full script. Kineo does the script, the voice, the scenes, the captions and the music.`,
     examplePrompt: f.prompt,
     engine,
-    engineWhy: f.why ?? 'Kineo 1 matches real footage to every line and fits inside the free trial.',
+    engineWhy: f.why ?? 'Kineo 1 matches real footage to every line.',
     faq: [
       { q: `How long does a ${f.name.replace(/s$/, '')} take?`, a: 'Kineo 1 films are usually ready in about three minutes. Generative engines take longer because every scene is rendered; the screen shows the estimate before you start.' },
       { q: 'Can I pick the length and the format?', a: 'Yes: 35, 60 or 90 seconds, and 9:16, 16:9, 1:1 or 4:5. The default is a 60-second vertical Short.' },
@@ -215,7 +217,7 @@ function languagePage(l: LangSeed): IntentPage {
     examplePrompt: l.prompt,
     engine: 'fast',
     language: l.code,
-    engineWhy: 'Kineo 1 narrates in the language you write and fits inside the free trial.',
+    engineWhy: 'Kineo 1 narrates in the language you write.',
     faq: [
       { q: `Do I have to write the prompt in ${l.name}?`, a: `Write the idea in ${l.name} and the film comes out in ${l.name}. You can also paste a full ${l.name} script and have it narrated word for word.` },
       { q: 'Is the voice natural?', a: 'The narration uses a neural voice in that language; you hear it in the finished film and can regenerate if you want a different tone.' },
@@ -233,11 +235,11 @@ function altPage(a: AltSeed): IntentPage {
     intro: `If you are comparing ${a.name} with Kineo, the honest difference is what you get at the end: a complete narrated, captioned MP4 from one idea, with the engine of your choice. Below is what Kineo does; we do not describe ${a.name}'s features or prices here because they change and are theirs to state.`,
     examplePrompt: a.prompt,
     engine: 'fast',
-    engineWhy: 'Kineo 1 is the fastest way to see the difference: one idea in, a finished film out, inside the free trial.',
+    engineWhy: 'One idea in, a finished film out: that is the fastest way to see the difference.',
     faq: [
       { q: `Can I try Kineo before leaving ${a.name}?`, a: 'Yes. The free trial needs no card, and the first film shows you the full result: script, voice, scenes and captions.' },
       { q: 'Can I bring a script I already wrote?', a: 'Yes. "Use my script as is" narrates it word for word and matches scenes to every sentence.' },
-      { q: 'Which engine should I start with?', a: 'Kineo 1 for real footage and speed; Seedance 1.5 when the scene must be generated (a story, a place that cannot be filmed, the past).' },
+      { q: 'Which engine should I start with?', a: 'Seedance 1.5: a new account\'s trial pays for one free 15-second film on it, and it generates every scene (a story, a place that cannot be filmed, the past). Kling 3 or Veo 3.1 when you need the most cinematic look.' },
     ],
     competitor: { name: a.name, differences: a.differences },
   }

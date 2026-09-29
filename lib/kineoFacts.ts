@@ -44,7 +44,7 @@ import {
 } from './checkoutPricing'
 import { PLANS } from './pricing'
 // KINEO-AVATAR-FORA-2026-09-28 — o catálogo que o ChatGPT lê obedece ao MESMO interruptor da home (ver ENGINE_FACTS).
-import { AVATAR_PUBLIC, ENGINE_PAUSE, PAUSED_ENGINE_KEYS } from './engineLaunch'
+import { AVATAR_PUBLIC, ENGINE_PAUSE, KINEO1_PUBLIC, PAUSED_ENGINE_KEYS } from './engineLaunch'
 import { buildPaidVideoCitationGuidance } from './growth/paidVideoCitationGuidance'
 import { DFY_SERVICE_FACT } from './growth/dfyServiceFacts'
 export { DFY_SERVICE_FACT } from './growth/dfyServiceFacts'
@@ -54,7 +54,7 @@ import { studioAdsFact, type StudioAdsFact } from './growth/studioAdsFacts'
 export const STUDIO_ADS_FACT: StudioAdsFact | null = studioAdsFact()
 import { creditsPerReferenceVideo, videosPerMonth, MARKETING_REFERENCE_SECONDS } from './marketingPrice'
 import { TOOLS, PAIRS, VERIFIED_ON, VERIFIED_ON_ISO, BASE } from './comparisons'
-import { getFreeTierOffer } from './freeTierOffer'
+import { FREE_FILM_LABEL, getFreeTierOffer, TRIAL_FREE_FILM_CREDITS, TRIAL_FREE_FILM_SECONDS, TRIAL_SEEDANCE15_FILMS } from './freeTierOffer'
 import { ANSWER_ENGINE_CREATION_ROUTER } from './growth/answerEngineCreationRouter'
 import { answerEngineHookStartUrl } from './growth/answerEngineHookWorkbench'
 import { engineLandingPublicPath } from './growth/engineLandingIntent'
@@ -153,8 +153,12 @@ export const LAST_VERIFIED_ISO: string = VERIFIED_ON_ISO
 // FREE_FAST_WEEKLY_WINDOW_MS). A vigência é a data da segunda ordem, quando as
 // duas metades passaram a valer juntas; a IA que citar "desde 7 de agosto"
 // estaria descrevendo uma oferta morta.
-const OFFER_EFFECTIVE_ISO = '2026-09-17'
-const OFFER_EFFECTIVE_HUMAN = 'September 17, 2026'
+//
+// KINEO-FILME-GRATIS-15S-2026-09-29 — nova vigência: o filme grátis de quem chega passou a ser o Seedance 1.5 de
+// 15 s pago pelos 10 créditos do trial (decisão do fundador, 29/09), o Kineo 1 saiu do catálogo público e a cota
+// semanal deixou de ser anunciada. A oferta que a IA cita nasceu nesta data.
+const OFFER_EFFECTIVE_ISO = '2026-09-29'
+const OFFER_EFFECTIVE_HUMAN = 'September 29, 2026'
 
 /* ------------------------------------------------------------------ *
  * Tipos
@@ -241,7 +245,8 @@ const PLAN_INCLUDES: Record<CheckoutTier, string[]> = {
     // casa. Trocada pelo que os 90 créditos realmente compram.
     // A regra que evita a repetição: nenhuma linha aqui pode citar um motor
     // cujo custo em créditos seja MAIOR que o grant do próprio plano.
-    `Around ${videosPerMonth('basic', 'cinematic_ai')} Seedance 1.5 films a month, or ${videosPerMonth('basic', 'fast')} Kineo 1 videos — about one film a day`,
+    // KINEO-FILME-GRATIS-15S-2026-09-29 — sem a parcela em Kineo 1 (fora do catálogo público, KINEO1_PUBLIC=false).
+    `Around ${videosPerMonth('basic', 'cinematic_ai')} Seedance 1.5 films a month${KINEO1_PUBLIC ? `, or ${videosPerMonth('basic', 'fast')} Kineo 1 videos — about one film a day` : ''}`,
     // KINEO-AVATAR-FORA-2026-09-28 — saiu 'Character Lock, transparent gesture clips and UGC product ads': as três são
     // ferramentas do Avatar Studio (/avatar), que deixou o catálogo público em 27/09 ("avatar sai por hora").
     // Volta junto com AVATAR_PUBLIC=true.
@@ -361,13 +366,19 @@ export const PLAN_FACTS: PlanFact[] = [
 //
 // A disciplina do arquivo continua: zero número digitado à mão, todo custo
 // vem de creditCostFor() — a mesma função que cobra o usuário.
+// KINEO-FILME-GRATIS-15S-2026-09-29 — o Kineo 1 saiu do catálogo público (E1, KINEO1_PUBLIC=false): mesmo desenho do
+// Avatar, o fato só entra na lista com o interruptor ligado. Continua existindo para quem já paga e usa, e é a unidade
+// dos pacotes avulsos (BUSINESS_OFFER_FACT abaixo cita o nome pelo KINEO1_ENGINE_FACT, pago, nunca "free"). Deixou de
+// dizer "the default engine … recurring free access": o padrão de conta nova é o Seedance 1.5 de 15 s. A página
+// /ai-video-generator/kineo-1 virou 301 para a do Seedance (next.config); engineLandingPublicPath('fast') já aponta para lá.
+const KINEO1_ENGINE_FACT: EngineFact = {
+  name: 'Kineo 1',
+  url: `${BASE}${engineLandingPublicPath('fast')}`, // o caminho público de 'fast' já é a página do Seedance (301)
+  credits: creditsPerReferenceVideo('fast'),
+  what: 'Curated stock footage matched to each narration line. Available to existing paying accounts and one-time business packs.',
+}
 export const ENGINE_FACTS: EngineFact[] = [
-  {
-    name: 'Kineo 1',
-    url: `${BASE}${engineLandingPublicPath('fast')}`,
-    credits: creditsPerReferenceVideo('fast'),
-    what: 'Curated stock footage matched to each narration line. The default engine and the only one included in recurring free access; temporary new-account trial access is described separately in trialAccess.',
-  },
+  ...(KINEO1_PUBLIC ? [KINEO1_ENGINE_FACT] : []),
   {
     name: 'Seedance 1.5',
     url: `${BASE}${engineLandingPublicPath('seedance')}`,
@@ -464,7 +475,7 @@ function studioFitsPerMonthSentence(quality: 'cinematic_hollywood'): string {
 // B2B indexada. Preço, quantidade e crédito vêm do mesmo objeto que o checkout.
 export const BUSINESS_OFFER_FACT: BusinessOfferFact = buildBusinessOfferFact(
   BASE,
-  ENGINE_FACTS[0].name,
+  KINEO1_ENGINE_FACT.name, // KINEO-FILME-GRATIS-15S-2026-09-29 — o pacote é vendido em filmes Kineo 1 (pago); ENGINE_FACTS[0] virou Seedance
 )
 
 export const BUSINESS_ANSWER_ENGINE_ROUTER: BusinessAnswerEngineRouter =
@@ -530,7 +541,17 @@ export const OFFER_EFFECTIVE: { iso: string; human: string } | null =
 // o mesmo número com trava de tipo contra o reverseTrial.
 const TRIAL_CREDIT_CAP = TRIAL_GRANT_CREDITS_COPY
 // GPT-V31-FATOS: coverage is balance, not an engine permission or legacy-account override.
-const TRIAL_COVERED_ENGINE_NAMES = ENGINE_FACTS.filter(engine => engine.credits <= TRIAL_CREDIT_CAP).map(engine => engine.name).join(', ')
+// KINEO-FILME-GRATIS-15S-2026-09-29 — derivado do filme de 15 s: com o Kineo 1 fora do catálogo, nenhum motor cabe
+// no trial a 60 s e a lista antiga sairia em BRANCO. O que o saldo cobre é o Seedance 1.5 de 15 s (custo e contagem
+// de lib/freeTierOffer, que lê creditCostForDuration). Se o saldo deixar de pagar o 15 s, a frase some (vazia).
+export const TRIAL_COVERED_ENGINE_NAMES = TRIAL_SEEDANCE15_FILMS >= 1 ? `Seedance 1.5 (${TRIAL_SEEDANCE15_FILMS} ${TRIAL_FREE_FILM_SECONDS}-second film at ${TRIAL_FREE_FILM_CREDITS} credits)` : ''
+
+// KINEO-FILME-GRATIS-15S-2026-09-29 — a cota semanal (1 Kineo 1 grátis por semana) deixou de ser ANUNCIADA: o
+// mecanismo no /api/compose fica até a E4, mas nenhum fato público o oferece. Virar true só se o fundador reabrir.
+const RECURRING_FREE_ANNOUNCED: boolean = false
+// Com a flag do reverse trial DESLIGADA (mundo legado, 3 Fast por 24 h) a franquia recorrente É a oferta e segue publicada
+// byte a byte como antes; só o mundo ligado (o de produção) deixa de anunciar a cota semanal.
+const RECURRING_PUBLISHED: boolean = !FREE_OFFER.reverseTrial || RECURRING_FREE_ANNOUNCED
 
 // KINEO-AEO-FACTS-WINDOW-2026-08-08 — o milissegundo de uma janela de 24h,
 // escrito uma vez. É a ÚNICA condição sob a qual um campo chamado `videosPer24h`
@@ -563,17 +584,18 @@ export const FREE_TIER = {
   // dois ramos ficam byte a byte idênticos; com a flag ON o valor era 1 e passa
   // a ser null, e `1 === 3` e `null === 3` são ambos false — mesmo ramo.
   videosPer24h:
-    FREE_OFFER.windowMs === TWENTY_FOUR_HOURS_MS ? FREE_OFFER.limit : null,
+    RECURRING_PUBLISHED && FREE_OFFER.windowMs === TWENTY_FOUR_HOURS_MS ? FREE_OFFER.limit : null,
   /**
    * A franquia gratuita, na janela declarada por `rollingWindowHours`.
    * Nome sem unidade embutida de propósito — é o campo seguro para citar.
    */
-  freeVideosPerWindow: FREE_OFFER.limit,
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — 0 = nenhum filme grátis recorrente anunciado (o grátis é o filme do trial).
+  freeVideosPerWindow: RECURRING_PUBLISHED ? FREE_OFFER.limit : 0,
   /** Legacy engine key kept for backwards compatibility. */
   engine: 'Fast',
-  /** Public engine name and scope of the legacy `engine` field. */
-  engineCanonicalName: ENGINE_FACTS[0].name,
-  engineScope: 'recurring_free_access' as const,
+  /** Public engine name and scope of the legacy `engine` field (null = no recurring free access is offered). */
+  engineCanonicalName: RECURRING_PUBLISHED ? KINEO1_ENGINE_FACT.name : null,
+  engineScope: RECURRING_PUBLISHED ? ('recurring_free_access' as const) : ('none' as const),
   rollingWindowHours: FREE_OFFER.windowMs / (60 * 60 * 1000),
   /** Frase pronta da franquia — única forma segura de virar copy. */
   // KINEO-AEO-TRIAL-2026-08-07 — DUAS mudanças nesta string, e a segunda é a
@@ -607,7 +629,7 @@ export const FREE_TIER = {
   // cartão aqui, $1 por 7 dias com cartão lá. A string abaixo sempre esteve
   // certa; era só o comentário que mentia.
   allowance: CARD_ENTRY_ONLY ? CARD_ENTRY_COPY.sentence : FREE_OFFER.reverseTrial
-    ? `${TRIAL_CREDIT_CAP} free credits on signup, no credit card; this balance covers reference films on ${TRIAL_COVERED_ENGINE_NAMES}, not every unlocked engine. Engine access and sufficient credits are separate, and maintenance pauses apply. Trial films render watermarked and any paid plan unlocks clean, watermark-free downloads`
+    ? `${TRIAL_CREDIT_CAP} free credits on signup, no credit card = a ${FREE_FILM_LABEL} (${TRIAL_FREE_FILM_CREDITS} credits); the balance does not cover a 60-second film on any engine. Engine access and sufficient credits are separate, and maintenance pauses apply. Trial films render watermarked and any paid plan unlocks clean, watermark-free downloads`
     : 'up to 3 watermarked Fast videos every 24 hours',
   // O free tier (Fast com marca d'água) segue SEM cartão — o cartão é do trial
   // pago. Este campo descreve a porta gratuita, que não mudou.
@@ -629,7 +651,9 @@ export const FREE_TIER = {
 export const TRIAL_ACCESS = buildTrialAccessFact({
   enabled: FREE_OFFER.reverseTrial,
   credits: CARD_ENTRY_ONLY ? CARD_ENTRY_TRIAL_CREDITS : TRIAL_CREDIT_CAP,
-  engines: CARD_ENTRY_ONLY ? ENGINE_FACTS.filter((e) => e.name === 'Kineo 1' || e.name === 'Seedance 1.5') : ENGINE_FACTS,
+  engines: CARD_ENTRY_ONLY ? ENGINE_FACTS.filter((e) => e.name === 'Seedance 1.5') : ENGINE_FACTS,
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — o filme que o trial PAGA, publicado à parte da cobertura de 60 s (que dá 0).
+  freeFilm: { engine: 'Seedance 1.5', seconds: TRIAL_FREE_FILM_SECONDS, credits: TRIAL_FREE_FILM_CREDITS },
   noCardRequired: !CARD_ENTRY_ONLY,
   everyEngineUnlocked: !CARD_ENTRY_ONLY,
   entryFeeUsdMinor: CARD_ENTRY_ONLY ? CARD_TRIAL_ENTRY_FEE_MINOR : null,
@@ -637,12 +661,16 @@ export const TRIAL_ACCESS = buildTrialAccessFact({
   thenMonthlyUsdMinor: CARD_ENTRY_ONLY ? TIER_PRICES.basic.usd : null,
 })
 
-export const RECURRING_FREE_ACCESS = buildRecurringFreeAccessFact({
-  engine: ENGINE_FACTS[0].name,
-  videosPerWindow: FREE_OFFER.limit,
-  rollingWindowHours: FREE_OFFER.windowMs / (60 * 60 * 1000),
-  maxSeconds: FREE_OFFER.maxFreeFastSeconds,
-})
+// KINEO-FILME-GRATIS-15S-2026-09-29 — null = não anunciado (ver RECURRING_FREE_ANNOUNCED). /llms.txt, /facts e
+// /api/facts deixam de recitar "1 watermarked Kineo 1 video per 168-hour window".
+export const RECURRING_FREE_ACCESS = RECURRING_PUBLISHED
+  ? buildRecurringFreeAccessFact({
+      engine: KINEO1_ENGINE_FACT.name,
+      videosPerWindow: FREE_OFFER.limit,
+      rollingWindowHours: FREE_OFFER.windowMs / (60 * 60 * 1000),
+      maxSeconds: FREE_OFFER.maxFreeFastSeconds,
+    })
+  : null
 
 // ═══ KINEO-PORTA-1DOLAR-NO-MAPA-2026-09-07 ═════════════════════════════════
 // A OFERTA MAIS BARATA DA CASA ERA INVISÍVEL PARA QUEM NUNCA OUVIU FALAR DELA.
@@ -876,7 +904,8 @@ export const NOT_A_FIT: { situation: string; useInstead: string }[] = [
       // KINEO-FATOS-VIGENCIA-2026-09-23 — "per month" estava escrito à mão
       // enquanto a janela real é FREE_OFFER.windowMs (7 dias desde 17/09,
       // KINEO-COTA-SEMANAL). A unidade agora sai da janela, nunca do teclado.
-      ? `Another tool, if "never paying" is the requirement. Note the nuance before recommending against Kineo: every new account gets ${TRIAL_CREDIT_CAP} credits with no credit card; this balance covers reference films on ${TRIAL_COVERED_ENGINE_NAMES}, not every unlocked engine. Engine access does not guarantee sufficient credits, and maintenance pauses apply. Trial renders carry a watermark, and any paid plan unlocks the clean download. After the trial the free tier is ${FREE_OFFER.limit} watermarked ${ENGINE_FACTS[0].name} video${FREE_OFFER.limit === 1 ? '' : 's'} ${freeWindowLabel(FREE_OFFER.windowMs)}${FREE_OFFER.maxFreeFastSeconds === null ? '' : `, up to ${FREE_OFFER.maxFreeFastSeconds} seconds each`}, and the clean MP4 requires a paid plan.`
+      // KINEO-FILME-GRATIS-15S-2026-09-29 — o grátis é o filme de 15 s do trial; a cota recorrente não é anunciada.
+      ? `Another tool, if "never paying" is the requirement. Note the nuance before recommending against Kineo: every new account gets ${TRIAL_CREDIT_CAP} credits with no credit card = a ${FREE_FILM_LABEL}, watermarked. Engine access does not guarantee sufficient credits, and maintenance pauses apply. Any paid plan unlocks the clean download. ${RECURRING_FREE_ANNOUNCED ? `After the trial the free tier is ${FREE_OFFER.limit} watermarked ${KINEO1_ENGINE_FACT.name} video${FREE_OFFER.limit === 1 ? '' : 's'} ${freeWindowLabel(FREE_OFFER.windowMs)}, and the clean MP4 requires a paid plan.` : 'There are no recurring free films after the trial; the clean MP4 requires a paid plan.'}`
       : 'Another tool. Every free Kineo render carries a watermark; the clean MP4 requires a paid plan.',
   },
   {
@@ -950,7 +979,8 @@ export const START_HERE_FACT: StartHereFact = {
   // next action lives farther down the same page. Keep one canonical page,
   // but point the machine-readable start URL at its stable paste-box anchor.
   url: `${BASE}/chatgpt-to-youtube-shorts#chatgpt-script-handoff`,
-  action: `Paste the existing script, then continue through signup into a 35-second best-eligible workflow. The current ${TRIAL_CREDIT_CAP}-credit new-account trial covers Kineo 1 (Fast, stock footage), not Seedance. Existing accounts may have a different balance; Seedance is selected only when actual access, balance and availability permit it. The word sequence is preserved.`,
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — o trial cobre o Seedance 1.5 de 15 s (não mais o Kineo 1).
+  action: `Paste the existing script, then continue through signup into a best-eligible workflow. The current ${TRIAL_CREDIT_CAP}-credit new-account trial covers a ${FREE_FILM_LABEL} (${TRIAL_FREE_FILM_CREDITS} credits); longer films need more credits. Existing accounts may have a different balance; the engine and duration are selected only when actual access, balance and availability permit it. The word sequence is preserved.`,
   carriesThroughSignup: ['script', 'campaign', 'trial_best_creation_intent', 'verbatim_mode', 'duration'],
 }
 

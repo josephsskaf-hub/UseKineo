@@ -94,12 +94,18 @@ equal(recurring.creditsGranted, 0, 'recurring access does not pretend to grant c
 const canonical = read('lib/kineoFacts.ts')
 ok(canonical.includes('export const TRIAL_ACCESS = buildTrialAccessFact({'), 'canonical facts build the trial record')
 ok(canonical.includes('engines: ENGINE_FACTS'), 'trial coverage uses the canonical engine catalog')
-ok(canonical.includes('export const RECURRING_FREE_ACCESS = buildRecurringFreeAccessFact({'), 'canonical facts build recurring access')
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: a cota semanal deixou de ser ANUNCIADA (decisão do fundador); o builder continua
+// sendo a única forma de publicar a cota, mas só atrás de RECURRING_FREE_ANNOUNCED (hoje false → null).
+// RECURRING_PUBLISHED = !reverseTrial || RECURRING_FREE_ANNOUNCED: o mundo legado (flag OFF) segue publicando a franquia.
+ok(/export const RECURRING_FREE_ACCESS = RECURRING_PUBLISHED\r?\n  \? buildRecurringFreeAccessFact\(\{/.test(canonical) && /^const RECURRING_PUBLISHED: boolean = !FREE_OFFER\.reverseTrial \|\| RECURRING_FREE_ANNOUNCED\r?$/m.test(canonical),'canonical facts build recurring access only when announced (or in the legacy flag-OFF world)')
 ok(canonical.includes('videosPerWindow: FREE_OFFER.limit'), 'recurring limit uses the offer')
+ok(/^const RECURRING_FREE_ANNOUNCED: boolean = false$/m.test(canonical), 'recurring access is not announced (29/09)')
 ok(canonical.includes('trialAccess: TRIAL_ACCESS'), 'JSON payload exposes trialAccess')
 ok(canonical.includes('recurringFreeAccess: RECURRING_FREE_ACCESS'), 'JSON payload exposes recurringFreeAccess')
-ok(canonical.includes("engineScope: 'recurring_free_access' as const"), 'legacy free-tier engine declares its recurring scope')
-ok(canonical.includes('engineCanonicalName: ENGINE_FACTS[0].name'), 'legacy engine key is paired with the public name')
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o escopo recorrente e o nome do motor só saem com a cota anunciada;
+// ENGINE_FACTS[0] deixou de ser o Kineo 1 (fora do catálogo), então o nome vem do KINEO1_ENGINE_FACT.
+ok(canonical.includes("engineScope: RECURRING_PUBLISHED ? ('recurring_free_access' as const) : ('none' as const)"), 'legacy free-tier engine declares its recurring scope (or none)')
+ok(canonical.includes('engineCanonicalName: RECURRING_PUBLISHED ? KINEO1_ENGINE_FACT.name : null'), 'legacy engine key is paired with the public name only when announced')
 ok(!canonical.includes('80 créditos na inscrição'), 'stale trial-credit comment is removed')
 ok(!canonical.includes('the only one available on the free tier'), 'engine prose no longer contradicts trial access')
 
@@ -107,6 +113,8 @@ const llms = read('app/llms.txt/route.ts')
 ok(llms.includes('TRIAL_ACCESS.engineCoverage'), 'llms text derives engine coverage')
 ok(llms.includes('Access does not mean the balance covers a full video.'), 'llms text explains access versus balance')
 ok(llms.includes('After the trial, recurring free access is'), 'llms text distinguishes the recurring allowance')
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: sem cota anunciada o llms diz que não há filme grátis recorrente, e publica o filme que o trial paga.
+ok(llms.includes('After the trial there are no recurring free films') && llms.includes('const freeFilm = TRIAL_ACCESS.freeFilm'), 'llms text states no recurring free films and the 15-second free film')
 ok(!llms.includes('The generative engines below require a paid plan.'), 'live contradictory sentence is removed')
 ok(llms.includes('wholeReferenceVideosCovered === 0'), 'insufficient balance is calculated rather than guessed')
 
@@ -114,7 +122,7 @@ const page = read('app/facts/page.tsx')
 ok(page.includes("q: 'Can I try every Kineo video engine for free?'"), 'human fact sheet answers the buyer question')
 ok(page.includes('TRIAL_COVERED_ENGINES'), 'human answer derives covered engines')
 ok(page.includes('TRIAL_BALANCE_SHORT_ENGINES'), 'human answer derives balance-short engines')
-ok(page.includes('recurring free access is'), 'human page distinguishes post-trial access')
+ok(page.includes('recurring free access is') && page.includes('After the trial there are no recurring free films.'), 'human page distinguishes post-trial access')
 
 const preview = read('docs/previews/AEO-TRIAL-ACCESS-TRUTH-2026-08-28.html')
 for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {

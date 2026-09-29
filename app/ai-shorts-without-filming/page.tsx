@@ -13,7 +13,7 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import ExampleVideoPlayer from '@/app/examples/ExampleVideoPlayer'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
-import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { FREE_FILM_LABEL, getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
 // de tabela publicando um valor que o checkout não cobrava mais.
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Make YouTube Shorts without filming — faceless AI, no camera',
     description:
-      'Turn one idea into a finished faceless Short: script, AI voiceover, footage and captions. No camera. Try Fast free; Starter is ' + STARTER_MONTH + '.',
+      'Turn one idea into a finished faceless Short: script, AI voiceover, footage and captions. No camera. Try it free; Starter is ' + STARTER_MONTH + '.', // KINEO-FILME-GRATIS-15S-2026-09-29 — "Try Fast free" era o Kineo 1 grátis
     url: 'https://www.usekineo.com/ai-shorts-without-filming',
     type: 'website',
     images: [{ url: FEATURED_EXAMPLE.posterPath, width: 360, height: 640 }],
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
 const STEPS: { n: string; t: string; d: string }[] = [
   { n: '1', t: 'Type one idea — never open a camera', d: 'No footage to upload, nothing to record, no face on screen. One line is enough — "the island too dangerous to visit", "the money habit that quietly makes you broke".' },
   { n: '2', t: 'AI builds every layer for you', d: 'It writes the hook and script, generates an AI voiceover so your own voice stays private, matches footage to each line and burns in captions — all without you filming a single frame.' },
-  { n: '3', t: 'Download a ready-to-post Short', d: 'Fast Mode is usually ready in 3–7 minutes. Download the finished 9:16 video for YouTube, TikTok or Reels — no editor, timeline or recording session required.' },
+  { n: '3', t: 'Download a ready-to-post Short', d: 'AI films are usually ready in 8–20 minutes. Download the finished 9:16 video for YouTube, TikTok or Reels — no editor, timeline or recording session required.' },
 ]
 
 const NO_NEED: { t: string; d: string }[] = [
@@ -144,7 +144,7 @@ export default function AiShortsWithoutFilmingPage() {
             placeholder: 'Type one topic or paste your script',
             submit: 'Turn this idea into a Short →',
             examplesLabel: 'No-camera topic examples',
-            note: 'Your idea stays attached through signup. Create a watermarked Fast video without entering a card.',
+            note: 'Your idea stays attached through signup. Create a watermarked film without entering a card.',
           }}
         />
 
@@ -221,7 +221,7 @@ export default function AiShortsWithoutFilmingPage() {
 
         <h2 style={h2}>Stay anonymous, ship daily</h2>
         <p style={p}>
-          Because you never appear and never record your voice, you can publish in money, mystery, geography or finance niches without being on camera. Pick the engine per 60-second video — <strong style={{ color: '#f5f5f7' }}>on paid plans, Fast uses {creditsPerReferenceVideo('fast')} credits, AI Generated (Seedance) uses {creditsPerReferenceVideo('cinematic_ai')}, and Cinematic (Kling) uses {creditsPerReferenceVideo('cinematic_kling')}</strong>. {ft(OFFER, 'Free accounts can make up to 3 watermarked Fast videos every 24 hours without using paid-plan credits.', 'After the Creator trial, free accounts keep 1 free Kineo 1 video every week without using paid-plan credits.')} Looking for the most affordable path? See the <Link href="/cheapest-ai-shorts-maker" style={{ color: '#2997ff' }}>cheapest AI shorts maker</Link> breakdown, or compare plans on the <Link href="/pricing" style={{ color: '#2997ff' }}>pricing page</Link>.
+          Because you never appear and never record your voice, you can publish in money, mystery, geography or finance niches without being on camera. Pick the engine per 60-second video — <strong style={{ color: '#f5f5f7' }}>on paid plans, Fast uses {creditsPerReferenceVideo('fast')} credits, AI Generated (Seedance) uses {creditsPerReferenceVideo('cinematic_ai')}, and Cinematic (Kling) uses {creditsPerReferenceVideo('cinematic_kling')}</strong>. {ft(OFFER, 'Free accounts can make up to 3 watermarked Fast videos every 24 hours without using paid-plan credits.', `New accounts start with a ${FREE_FILM_LABEL}, watermarked; more films need a paid plan.`)} {/* KINEO-FILME-GRATIS-15S-2026-09-29 — a cota semanal deixou de ser anunciada */} Looking for the most affordable path? See the <Link href="/cheapest-ai-shorts-maker" style={{ color: '#2997ff' }}>cheapest AI shorts maker</Link> breakdown, or compare plans on the <Link href="/pricing" style={{ color: '#2997ff' }}>pricing page</Link>.
         </p>
 
         <h2 style={h2}>Frequently asked questions</h2>

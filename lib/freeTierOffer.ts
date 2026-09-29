@@ -215,7 +215,20 @@ export function trialFilmsForEngine(custo: number): number {
 export const TRIAL_KINEO1_FILMS = trialFilmsForEngine(
   creditCostForDuration('fast', true, DURATION_REFERENCE_SECONDS),
 )
-const TRIAL_KINEO1_FILMS_NOUN = TRIAL_KINEO1_FILMS === 1 ? 'film' : 'films'
+
+// ═══ KINEO-FILME-GRATIS-15S-2026-09-29 — decisão do fundador (29/09): o filme grátis de quem chega é o SEEDANCE 1.5
+// DE 15 s (7 cr), pago pelos 10 créditos do trial (TRIAL_CREDIT_CAP intocado; sobram 3). O Kineo 1 saiu da vitrine
+// (E1, KINEO1_PUBLIC=false) e a cota semanal de Kineo 1 deixa de ser ANUNCIADA (o mecanismo fica até a E4).
+// TRIAL_KINEO1_FILMS acima fica exportado só como histórico/leitores antigos — nenhuma copy pública o cita mais.
+// Regra de texto público: "free 15-second film (Seedance 1.5)". Custo de creditCostForDuration (a mesma função que
+// cobra), filmes = G ÷ custo — nunca digitados. Os segundos são espelho de lib/durationByEngine SEEDANCE_SHORT_SECONDS
+// (sem import de propósito: ~40 guardiões carregam este módulo com lista fechada de imports); o guardião
+// scripts/test-copy-filme-gratis-15s-2026-09-29.mjs confere a igualdade executando os dois.
+export const TRIAL_FREE_FILM_SECONDS = 15
+export const TRIAL_FREE_FILM_CREDITS = creditCostForDuration('cinematic_ai', true, TRIAL_FREE_FILM_SECONDS)
+export const TRIAL_SEEDANCE15_FILMS = trialFilmsForEngine(TRIAL_FREE_FILM_CREDITS)
+/** "free 15-second film (Seedance 1.5)" — a frase única do filme grátis. */
+export const FREE_FILM_LABEL = `free ${TRIAL_FREE_FILM_SECONDS}-second film (Seedance 1.5)`
 
 // ⚠️ KINEO-TETO-COPY-2026-08-20 — A COPY DO MODELO NOVO (leia antes de mexer)
 // O modelo mudou DUAS VEZES em 20/08 e a segunda desfez a primeira. Registro
@@ -255,7 +268,8 @@ const ON_COPY: FreeTierCopy = {
     // É o mesmo gênero de defeito que a trava de compilação acima resolveu para
     // o NÚMERO; aqui a trava é derivar a palavra do número, na mesma expressão.
     `Start with ${TRIAL_GRANT_CREDITS_COPY} free credits. The cost depends on your engine and duration. Trial videos are watermarked; upgrade for clean downloads.`,
-  residual: '1 free Kineo 1 video every week', // KINEO-COTA-SEMANAL
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — a cota semanal deixou de ser anunciada (o mecanismo segue até a E4).
+  residual: 'your saved library (no recurring free films)',
   // KINEO-EXIT-INTENT-VERDADE-2026-09-27 (sprint16h V1) — "every engine
   // unlocked — Kling 3 …" era verdade de ACESSO e mentira de SALDO: com
   // 10 créditos ninguém faz um Kling 3 (150cr) nem um Seedance (25cr). É esta
@@ -263,24 +277,26 @@ const ON_COPY: FreeTierCopy = {
   // o grant COMPRA (Kineo 1, derivado) e onde os motores de IA começam
   // (Starter). Números de G e TRIAL_KINEO1_FILMS — nunca digitados.
   sentence:
-    `Every new account gets ${G} free credits = ${TRIAL_KINEO1_FILMS} Kineo 1 ${TRIAL_KINEO1_FILMS_NOUN}; AI engines (Seedance, Veo, Kling) from Starter. Films come out watermarked; a plan removes the watermark and unlocks clean downloads.`,
+    `Every new account gets ${G} free credits = a ${FREE_FILM_LABEL}; longer films and the other AI engines (Veo, Kling) from Starter. Films come out watermarked; a plan removes the watermark and unlocks clean downloads.`,
   chip: `${TRIAL_GRANT_CREDITS_COPY} free credits — every engine unlocked`,
   chipLower: `${TRIAL_GRANT_CREDITS_COPY} free credits — every engine unlocked`,
   planCardBody:
-    `Free to start: ${G} free credits = ${TRIAL_KINEO1_FILMS} Kineo 1 ${TRIAL_KINEO1_FILMS_NOUN}; AI engines (Seedance, Veo, Kling) from Starter. Watermarked while you try; a plan makes them yours to keep.`,
+    `Free to start: ${G} free credits = a ${FREE_FILM_LABEL}; longer films and the other AI engines from Starter. Watermarked while you try; a plan makes them yours to keep.`,
   counterNoun: 'this week', // KINEO-COTA-SEMANAL
-  planLimitLine: 'free Kineo 1 video per week',
+  planLimitLine: `one ${FREE_FILM_LABEL} with the trial credits; no recurring free films`,
+  // Texto da RECUSA do mecanismo (compose/send-cap-hit): só chega a quem já usou a cota; sem nome de motor e sem
+  // promessa semanal. Morre com a cota na E4.
   limitHitError:
-    "You've used this week's free Kineo 1 video. It comes back in 7 days — or keep creating now with Starter. Cancel anytime.",
+    "You've used this week's free watermarked video. Keep creating now with Starter. Cancel anytime.",
   cmpKineoFree:
-    `Kineo: ${G} free credits on signup = ${TRIAL_KINEO1_FILMS} Kineo 1 ${TRIAL_KINEO1_FILMS_NOUN}; AI engines (Seedance, Veo, Kling) from Starter. Trial films are watermarked; any paid plan unlocks clean downloads.`,
-  limitHitEmailSubject: 'You used your free Kineo 1 video — it comes back in 7 days',
+    `Kineo: ${G} free credits on signup = a ${FREE_FILM_LABEL}; longer films and the other AI engines (Veo, Kling) from Starter. Trial films are watermarked; any paid plan unlocks clean downloads.`,
+  limitHitEmailSubject: 'You used your free watermarked video — Starter keeps you creating',
   limitHitEmailIntro:
-    "You've used this week's free Kineo 1 video — the free plan includes 1 every week.",
+    "You've used this week's free watermarked video.",
   limitHitEmailIntroHtml:
-    "You've used <strong>this week's free Kineo 1 video</strong> — the free plan includes 1 every week.",
+    "You've used <strong>this week's free watermarked video</strong>.",
   limitResetLine:
-    'Or wait — your free Kineo 1 video comes back in 7 days, and your videos stay in your library either way.',
+    'Or wait — it comes back in 7 days, and your videos stay in your library either way.',
   // Nomeia a coisa MAIOR que a pessoa recebe no clique, sem prometer desconto
   // (guardrail do fundador: 50%/COMEBACK50 nunca em superficie publica) e sem
   // numero de tracao. O numero e verificavel: e o grant exato, derivado.

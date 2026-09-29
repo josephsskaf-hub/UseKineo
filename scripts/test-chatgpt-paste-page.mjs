@@ -102,7 +102,9 @@ if (L) {
   // Math.round(d * WORDS_PER_SECOND_CLASSIC) — calculado AQUI, não lido da lib.
   const WPS = L.WORDS_PER_SECOND_CLASSIC
   ok(WPS === 3.1, `(A3) régua clássica = 3,1 pal/s (achado: ${WPS})`)
-  ok(Array.isArray(L.DURATIONS) && L.DURATIONS.length === 3, `(A3) DURATIONS = ${L.DURATIONS?.join('/')}`)
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o handoff aceita 15 s (só Seedance, o filme grátis de conta
+  // nova); a faixa do 15 s sai da MESMA régua (Math.round(15×3,1)=47), testada no laço abaixo.
+  ok(Array.isArray(L.DURATIONS) && L.DURATIONS.length === 4 && L.DURATIONS[0] === 15, `(A3) DURATIONS = ${L.DURATIONS?.join('/')}`)
   for (const d of L.DURATIONS) {
     const min = Math.round(d * WPS)
     const budget = L.pasteWordBudget(d)

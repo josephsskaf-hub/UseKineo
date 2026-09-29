@@ -1,7 +1,7 @@
 // Shared data for the engine page, hub and sitemap. Route modules export only Next-supported names.
 // Mechanical extraction for CITACOES-01; existing content and feature gates are preserved.
 import { S25_PUBLIC, AVATAR_PUBLIC } from '@/lib/engineLaunch'
-import { getFreeTierOffer, swapFreeTierCopy as ft, trialFilmsForEngine, TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
+import { FREE_FILM_LABEL, getFreeTierOffer, swapFreeTierCopy as ft, trialFilmsForEngine, TRIAL_CREDITS_SHOWN, TRIAL_SEEDANCE15_FILMS } from '@/lib/freeTierOffer'
 import { STARTER_MONTH, MARKETING_REFERENCE_SECONDS, creditsPerReferenceVideo, videosPerMonth } from '@/lib/marketingPrice'
 import type { EngineLandingParam } from '@/lib/growth/engineLandingIntent'
 
@@ -49,15 +49,18 @@ export const ENGINES: Record<string, Engine> = {
     model: 'Kineo’s own stock-footage + TTS pipeline',
     creditCost: FAST_COST,
     tier: 'Starter',
-    h1: 'Kineo 1 — the free AI video generator that finishes the whole Short',
+    // KINEO-FILME-GRATIS-15S-2026-09-29 — [Citações/Codex, edição mínima factual] o Kineo 1 deixou de ser o motor
+    // grátis de conta nova: a página /ai-video-generator/kineo-1 virou 301 para a do Seedance (next.config) e saiu do
+    // sitemap/ENGINE_SLUGS. O texto abaixo fica para o dia em que KINEO1_PUBLIC voltar, já sem promessa de grátis.
+    h1: 'Kineo 1 — the stock-footage AI video generator that finishes the whole Short',
     intro:
-      'Kineo 1 is our own engine: it writes a hook-first script, records the AI voiceover, matches real footage to every line and burns in captions, then hands you a ready-to-post 9:16 MP4 — usually in 3–7 minutes. It is the engine that runs without a card, and it is the one most of the videos on this page were made with.',
+      'Kineo 1 is our own engine: it writes a hook-first script, records the AI voiceover, matches real footage to every line and burns in captions, then hands you a ready-to-post 9:16 MP4 — usually in 3–7 minutes. It is kept for existing paying accounts and one-time business packs.',
     bestFor: 'Daily posting volume. Facts, listicles, money and history Shorts where the footage is real-world B-roll, not generated.',
     tradeoff: 'It uses stock footage rather than generating each frame, so it cannot invent a scene that does not exist. For invented scenes, use Seedance or a Studio engine.',
     faq: [
       {
-        q: 'Is Kineo 1 really free?',
-        a: `Kineo 1 is included in every plan and in the free trial (10 credits, every engine unlocked, no card). ${ft(OFFER, 'A new account can create up to 3 watermarked Fast videos every 24 hours.', OFFER.copy.sentence)} A clean, watermark-free 60-second export costs ${FAST_COST} credits on a paid plan.`,
+        q: 'Who can use Kineo 1?',
+        a: `Kineo 1 is kept for existing paying accounts and one-time business packs; a 60-second export costs ${FAST_COST} credits. New accounts start instead with a ${FREE_FILM_LABEL}. ${ft(OFFER, 'A new account can create up to 3 watermarked Fast videos every 24 hours.', OFFER.copy.sentence)}`,
       },
       {
         q: 'How long does a Kineo 1 video take?',
@@ -78,14 +81,13 @@ export const ENGINES: Record<string, Engine> = {
     tier: 'Starter',
     h1: 'Seedance 1.5 AI video generator — every scene generated, not stock',
     intro:
-      `Seedance 1.5 Pro (ByteDance) is the workhorse generative engine inside Kineo: instead of matching stock footage to your script, it generates every scene from the script itself. You still type one idea — Kineo writes the beats, prompts Seedance scene by scene, voices it, captions it and returns a finished vertical Short. ${SEEDANCE_COST} credits per 60-second video; the 10-credit free trial does not cover one, so the first Seedance film comes with Starter.`,
+      `Seedance 1.5 Pro (ByteDance) is the workhorse generative engine inside Kineo: instead of matching stock footage to your script, it generates every scene from the script itself. You still type one idea — Kineo writes the beats, prompts Seedance scene by scene, voices it, captions it and returns a finished vertical Short. ${SEEDANCE_COST} credits per 60-second video; the ${TRIAL_CREDITS_SHOWN}-credit free trial pays for ${TRIAL_SEEDANCE15_FILMS === 1 ? 'one' : TRIAL_SEEDANCE15_FILMS} ${FREE_FILM_LABEL}, and longer Seedance films come with Starter.`,
     bestFor: 'Anything that does not exist on a stock site: an abandoned island, a burning crater, a 1922 expedition. Mystery, history and “weird facts” channels live here.',
-    tradeoff: 'Generated scenes cost more than stock and take longer than Kineo 1. If your topic is well covered by real footage, Kineo 1 is faster and free.',
+    tradeoff: 'Generated scenes take longer to render than stock footage (8–20 minutes), and a 60-second film costs more credits than a short one.',
     faq: [
       {
         q: 'Can I use Seedance 1.5 without paying?',
-        a: `Seedance costs ${SEEDANCE_COST} credits per 60-second video. Every new account starts with the
-         free trial (10 credits, every engine unlocked, no card) but 10 credits do not cover a ${SEEDANCE_COST}-credit Seedance film — your first Seedance film comes with Starter. After the trial, Starter (${STARTER_MONTH}) and Creator keep Seedance unlocked.`,
+        a: `Yes, once: every new account starts with the free trial (${TRIAL_CREDITS_SHOWN} credits, every engine unlocked, no card), which pays for ${TRIAL_SEEDANCE15_FILMS === 1 ? 'one' : TRIAL_SEEDANCE15_FILMS} ${FREE_FILM_LABEL}, watermarked. A 60-second Seedance film costs ${SEEDANCE_COST} credits and comes with Starter (${STARTER_MONTH}) or Creator.`,
       },
       {
         q: 'What model is behind Kineo’s Seedance engine?',
@@ -135,7 +137,7 @@ export const ENGINES: Record<string, Engine> = {
     intro:
       `Veo 3.1 is Google’s flagship video model, and inside Kineo it is not a clip generator you then have to edit: you type one idea and get the whole vertical Short — script, AI voiceover, Veo-generated scenes and captions — assembled and ready to post. A 60-second video costs ${VEO_COST} credits; the Studio monthly grant covers ${videosPerMonth('pro', 'cinematic_veo')}.`,
     bestFor: 'The hero video of a channel: the one render a week that has to look expensive. Prompt adherence and scene coherence are its strong suit.',
-    tradeoff: `The most expensive engine after the ${KLING3_COST}-credit flagships (${VEO_COST} credits per 60 seconds). It is not the engine for posting daily — pair it with Kineo 1 for volume.`,
+    tradeoff: `The most expensive engine after the ${KLING3_COST}-credit flagships (${VEO_COST} credits per 60 seconds). It is not the engine for posting daily — pair it with Seedance 1.5 for volume.`,
     faq: [
       {
         q: 'Can I try Veo 3.1 for free?',
@@ -295,4 +297,9 @@ export const ENGINES: Record<string, Engine> = {
     : {}),
 }
 
-export const ENGINE_SLUGS = Object.keys(ENGINES)
+// KINEO-FILME-GRATIS-15S-2026-09-29 — slugs aposentados das páginas públicas: /ai-video-generator/kineo-1 (e /<lang>)
+// virou 301 para /ai-video-generator/seedance em next.config.js (Kineo 1 fora do catálogo público, KINEO1_PUBLIC=false,
+// lib/engineLaunch.ts). Espelho sem import de propósito (este catálogo é carregado por guardiões com lista fechada de
+// imports); scripts/test-copy-filme-gratis-15s-2026-09-29.mjs confere que o espelho e o interruptor andam juntos.
+export const RETIRED_ENGINE_SLUGS: readonly string[] = ['kineo-1']
+export const ENGINE_SLUGS = Object.keys(ENGINES).filter((slug) => !RETIRED_ENGINE_SLUGS.includes(slug))

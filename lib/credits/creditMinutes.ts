@@ -24,10 +24,12 @@ export function creditsToMinutes(credits: number, engines = MINUTE_ENGINES): Eng
   })
 }
 
-/** "30 min of Kineo 1 · 6 min of Seedance 1.5 · 1 min of Kling 3" — só os motores que rendem ao menos meio minuto. */
+/** "6 min of Seedance 1.5 · 2.5 min of Kling 2.5 · 1 min of Kling 3" — só os motores que rendem ao menos meio minuto. */
+// KINEO-FILME-GRATIS-15S-2026-09-29 — o exemplo padrão trocou o Kineo 1 (fora do catálogo público) pelo Kling 2.5. Só o
+// EXEMPLO muda: créditos e preços cobrados (inclusive a descrição da Stripe do passe de anúncios) seguem os mesmos.
 export function minutesLine(
   credits: number,
-  pick: Quality[] = ['fast', 'cinematic_ai', 'cinematic_hollywood'],
+  pick: Quality[] = ['cinematic_ai', 'cinematic_kling', 'cinematic_hollywood'],
   format: (engine: EngineMinutes) => string = (e) => `${Number.isInteger(e.minutes) ? e.minutes : e.minutes.toFixed(1)} min of ${e.label}`,
 ): string {
   return creditsToMinutes(credits)

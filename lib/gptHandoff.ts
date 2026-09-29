@@ -69,7 +69,12 @@ export const SCRIPT_MAX_CHARS = 5000
  *  importado para manter este módulo sem import; o guardião confere o espelho. */
 export const STUDIO_PROMPT_MAX_CHARS = 5000
 export const TOPIC_MAX_CHARS = 200
-export const DURATIONS = [35, 60, 90] as const
+// KINEO-FILME-GRATIS-15S-2026-09-29 — 15 entra para o filme grátis de conta nova (Seedance 1.5 de 15 s = 7 cr, cabe
+// nos 10 do trial). Só vale com engineHint 'seedance' (validateHandoffInput recusa 15 nos outros motores, o mesmo
+// contrato de lib/durationByEngine.ts — espelhado aqui para manter o módulo sem import novo). O padrão segue 60.
+export const DURATIONS = [15, 35, 60, 90] as const
+/** A duração que só existe no Seedance 1.5 (espelho de lib/durationByEngine SEEDANCE_SHORT_SECONDS). */
+export const SEEDANCE_ONLY_DURATION = 15
 export const DEFAULT_DURATION: HandoffDuration = 60
 export const DEFAULT_ENGINE: HandoffEngine = 'seedance'
 export const DEFAULT_LANGUAGE = 'en'
@@ -383,6 +388,12 @@ export function validateHandoffInput(body: unknown): HandoffValidation {
       return { ok: false, error: `engineHint must be one of ${HANDOFF_ENGINES.join(', ')}.` }
     }
     engineHint = normalized
+  }
+
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — 15 s só no Seedance 1.5: recusa honesta aqui, na conversa com o GPT, em vez de
+  // um link que o Studio trocaria para 35 s (15 cr, fora do trial).
+  if (durationSec === SEEDANCE_ONLY_DURATION && engineHint !== 'seedance') {
+    return { ok: false, error: `durationSec ${SEEDANCE_ONLY_DURATION} is only available with engineHint seedance (Seedance 1.5). Send engineHint seedance, or durationSec 35, 60 or 90 for ${engineHint}.` }
   }
 
   let language = DEFAULT_LANGUAGE

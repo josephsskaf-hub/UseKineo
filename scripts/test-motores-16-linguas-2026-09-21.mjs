@@ -24,7 +24,9 @@ const engSrc = rd('lib/seo/enginePageLangs.ts')
 const E = roda(engSrc, { '@/lib/seo/freeShortsGeneratorLangs': F })
 const esperadas = F.FREE_SHORTS_LANGS.map((l) => l.code)
 checa('13 línguas, as mesmas da porta grátis', E.ENGINE_LANG_CODES.length === 13 && esperadas.every((c) => E.ENGINE_LANG_CODES.includes(c)))
-checa('3 motores: kineo-1, seedance, veo (os que vendem)', JSON.stringify(E.LOCALIZED_ENGINE_SLUGS) === '["kineo-1","seedance","veo"]')
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: /ai-video-generator/kineo-1/<lang> virou 301 para o Seedance
+// (Kineo 1 fora do catálogo público); as páginas localizadas publicadas são as dos 2 motores que seguem vendendo.
+checa('2 motores publicados: seedance, veo (kineo-1 aposentado, 301)', JSON.stringify(E.LOCALIZED_ENGINE_SLUGS) === '["seedance","veo"]')
 const f = { engine: 'Seedance 1.5', credits: 25, trial: 10 }
 for (const code of E.ENGINE_LANG_CODES) {
   const L = E.ENGINE_LANGS[code]
