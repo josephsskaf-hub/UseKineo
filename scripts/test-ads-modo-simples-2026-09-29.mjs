@@ -148,7 +148,11 @@ await check('A3 trocar de modo é link de página inteira (o anúncio em andamen
 // O modo completo passou a aceitar vídeo (até 2 entram como vídeo; o resto vira fotos, com o motivo em inglês): PhotoItem
 // ganhou `video`, addPhotos/ensurePhotosUploaded/PhotoRow mudaram e o /plan leva `videos`. Nada mais do completo mudou
 // (preço, voz, cartão, refação: os guardiões da tela seguem verdes). Base anterior: 2e1d8881… (origin/main 06bc9d6f).
-const Z1_BASE = 'a2fbf94d5be79bc3453c101ed62e9973d2f90dca1628e80a7e9b8c2849db1a26'
+// REANCORADO 29/09 (revisão adversarial do vídeo do cliente, 26151671 → a2fbf94d…): o completo ganhou só os consertos da
+// revisão — uma seleção por vez (addPhotos → addPhotosNow, contagem por photosRef), vídeo > 10 min com aviso, excesso de
+// vídeos vira fotos antes de subir (videosPastLimitToPhotos) e 'video_too_long'/'too_many_videos' trocam por fotos.
+// Provado em scripts/test-ads-video-do-cliente-2026-09-29.mjs (V5-V7, com mutantes). Preço/voz/cartão/refação intocados.
+const Z1_BASE = '50875fe1f68d88b75413a0e9304dd8d41000fc3b7e2b4c3796ed87401e65b2dd'
 const trechoCompleto = (src) => { const s = src.replace(/\r\n/g, '\n'); const i = s.indexOf('function AdsV2Session('); return i < 0 ? '' : semComentarios(s.slice(i)) }
 await check('Z1 impressão digital do modo completo (AdsV2Session, PhotoRow, PlanPreview, ShotGrid) = a do vídeo do cliente (29/09)', sha(trechoCompleto(SRC.client)) === Z1_BASE)
 await check('Z1-mutante: 1 caractere trocado no modo completo fica vermelho', () => sha(trechoCompleto(trocar(SRC.client, "const POLL_RETRY_MS = 20_000", "const POLL_RETRY_MS = 20_001").replace('Plan my ad (free)', 'Plan my ad (freE)'))) !== Z1_BASE)
@@ -600,7 +604,10 @@ await check('V1-mutante: frações 0,2/0,5/0,8 trocadas fica vermelho', () => !t
 // recorte) e o resto cai no plano B de antes (grabVideoFrames + videoFrameTimes). O add continua sem subir nada.
 await check('V2 a tela aceita vídeo: o que cabe entra como vídeo (sobe o original, uma vez); o que não cabe vira quadros (grabVideoFrames + videoFrameTimes); o add não sobe nada', () => {
   const s = semComentarios(SRC.simple)
-  const add = bloco(s, 'async function addFiles(')
+  // REANCORADO 29/09 (revisão do vídeo do cliente): addFiles virou a trava de "uma seleção por vez" e o corpo mudou para
+  // addFilesNow — o bloco conferido é o que lê os arquivos; addFiles tem de delegar a ele.
+  const add = bloco(s, 'async function addFilesNow(')
+  if (!/await addFilesNow\(list\)/.test(bloco(s, 'async function addFiles('))) return false
   const b = bloco(s, 'async function framesFromVideo(')
   const ups = s.match(/uploadFootage\([^)]*\)/g) || []
   return /video\/mp4,video\/quicktime,video\/webm,\.mov/.test(S.ADS_V2_SIMPLE_ACCEPT) && /accept=\{ADS_V2_SIMPLE_ACCEPT\}/.test(s) &&
