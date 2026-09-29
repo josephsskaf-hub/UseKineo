@@ -5,7 +5,9 @@
 // aconteça, escolhe premium, comercial ou normal, e a gente faz". "Sem legenda, com a fala em português."
 //
 // O que muda em relação ao modo completo (que continua idêntico em AdsV2Client.tsx, preso por impressão digital):
-//   · fotos OU vídeo (o vídeo vira 1 a 3 quadros NO NAVEGADOR — lib/ads/v2VideoFrames.ts; nada de vídeo sobe);
+//   · fotos E vídeos. KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29: até 2 vídeos entram COMO VÍDEO (o original sobe pelo
+//     /api/footage; o trecho mais vivo e a miniatura saem no navegador — lib/ads/v2UserVideo.ts + readUserVideo). O que
+//     não cabe (acima de 50 MB, WebM, < 3 s, ilegível, 3º vídeo) cai no plano B de antes: 1 a 3 quadros viram fotos;
 //   · um campo de texto só; nome e tipo de negócio saem do texto (inferSector/simpleTitle em lib/ads/v2Simple.ts);
 //   · logo opcional; preço, contato, frases na tela, narração e língua da fala em "Mais opções";
 //   · "Descobrir e planejar (grátis)": sobe as fotos e o cartão, cria o rascunho, pesquisa fatos públicos COM FONTE
@@ -18,7 +20,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import Link from 'next/link'
 import { downloadVideoFile } from '@/lib/videoDownload'
-import { ADS_UPLOAD_ACCEPT_LOGO, AdsUploadError, uploadFootage } from '@/lib/ads/uploadFootage'
+import { ADS_UPLOAD_ACCEPT_LOGO, AdsUploadError, normalizeFootageType, uploadFootage } from '@/lib/ads/uploadFootage'
 import { drawEndCard, endCardCtaLabel, loadLogoImage, toPngFile } from '@/lib/ads/endCard'
 import { ADS_V2_TIER_IDS, ADS_V2_TIERS, adsV2Credits, type AdsV2Tier } from '@/lib/ads/v2Tiers'
 import {
@@ -63,7 +65,8 @@ import {
   videoFrameTimes,
   type AdsV2SimpleCopy,
 } from '@/lib/ads/v2Simple'
-import { VideoFramesError, grabVideoFrames } from '@/lib/ads/v2VideoFrames'
+import { VideoFramesError, grabVideoFrames, readUserVideo } from '@/lib/ads/v2VideoFrames'
+import { pickLivelyStart, userVideoSampleTimes, userVideoVerdict, type AdsV2UserVideoVerdict } from '@/lib/ads/v2UserVideo'
 import { NARRATION_LANGUAGES, detectNarrationLanguage, narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage'
 import { pickInterfaceCopy, type InterfaceLanguage } from '@/lib/ui/interfaceLanguage'
 
@@ -94,6 +97,15 @@ interface PlanShot {
   source: string
   cut_seconds: number
   photo: string | null
+}
+/** Um vídeo no corpo do /plan (contrato: lib/ads/v2Contract.ts, AdsV2PlanVideo). */
+interface PlanVideoBody {
+  footage_id: string
+  start: number
+  focus_x: number
+  focus_y: number
+  width: number
+  height: number
 }
 interface PlanResponse {
   order_id: string
@@ -127,6 +139,11 @@ interface SimpleItem {
   fx: number
   fy: number
   fromVideo: boolean
+  /**
+   * KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — preenchido quando o arquivo entra COMO VÍDEO: o original (sobe como está), a
+   * duração/dimensões lidas no navegador e o início do trecho mais vivo. srcUrl é a miniatura desse trecho.
+   */
+  video: { file: File; seconds: number; width: number; height: number; start: number } | null
   uploaded: { sig: string; footageId: string } | null
   busy: boolean
   error: string | null
@@ -148,6 +165,8 @@ const JSON_HEADERS = { 'Content-Type': 'application/json' }
 const POLL_MS = 8000
 const POLL_RETRY_MS = 20_000
 const PHOTO_MAX_BYTES = 50 * 1024 * 1024
+/** Recusas do /plan em que o vídeo volta ao plano B (quadros viram fotos) — KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29. */
+const VIDEO_TO_PHOTOS_CODES: readonly string[] = ['video_unreadable', 'video_too_short', 'video_invalid']
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const DEFAULT_COLOR = '#2997ff'
 
@@ -217,8 +236,42 @@ async function cropToVertical(p: Pick<SimpleItem, 'srcUrl' | 'fx' | 'fy' | 'name
 // ─── utilidades do modo simples ───────────────────────────────────────────────────────────────
 
 const focalSig = (p: Pick<SimpleItem, 'fx' | 'fy'>) => `${p.fx.toFixed(3)},${p.fy.toFixed(3)}`
+/** O vídeo sobe UMA vez (o enquadramento vai no pedido, não no arquivo): a assinatura do envio não muda com o foco. */
+const uploadSig = (p: Pick<SimpleItem, 'fx' | 'fy' | 'video'>) => (p.video ? 'video' : focalSig(p))
 const numOr = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) ? v : undefined)
 const newKey = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
+/**
+ * KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — decide se o vídeo entra COMO VÍDEO (e já lê duração, tamanho, trecho mais vivo
+ * e miniatura) ou cai no plano B, com o motivo. Exportada: o modo completo (AdsV2Client.tsx) usa a MESMA regra.
+ */
+export type AdVideoRead =
+  | { kind: 'video'; seconds: number; width: number; height: number; start: number; thumb: File }
+  | { kind: 'photos'; verdict: AdsV2UserVideoVerdict }
+export async function readVideoForAd(f: File, videosAlready: number): Promise<AdVideoRead> {
+  const type = normalizeFootageType(f)
+  const first = userVideoVerdict({ bytes: f.size, type, seconds: 1e9, width: 1, height: 1, videosAlready })
+  if (first !== 'video') return { kind: 'photos', verdict: first }
+  let read: Awaited<ReturnType<typeof readUserVideo>> | null = null
+  try {
+    read = await readUserVideo(f, (d) => userVideoSampleTimes(d), (t, d, dur) => pickLivelyStart(t, d, dur))
+  } catch {
+    read = null
+  }
+  const verdict = userVideoVerdict({ bytes: f.size, type, seconds: read?.seconds ?? null, width: read?.width ?? null, height: read?.height ?? null, videosAlready })
+  if (verdict !== 'video' || !read) return { kind: 'photos', verdict: verdict === 'video' ? 'unreadable' : verdict }
+  return { kind: 'video', seconds: read.seconds, width: read.width, height: read.height, start: read.start, thumb: read.thumb }
+}
+
+/** PLANO B de antes, exportado para o modo completo: 1 a 3 quadros do vídeo viram fotos (JPEG). Falha = []. */
+export async function videoFramesForAd(f: File): Promise<File[]> {
+  if (f.size > ADS_V2_SIMPLE_VIDEO_MAX_BYTES) return []
+  try {
+    return await grabVideoFrames(f, (d) => videoFrameTimes(d, 3), { maxSeconds: ADS_V2_SIMPLE_VIDEO_MAX_SECONDS })
+  } catch {
+    return []
+  }
+}
 
 function errorText(lang: InterfaceLanguage, r: { code: string; body: Record<string, unknown> }): string {
   const extra = { needed: numOr(r.body.needed), balance: numOr(r.body.balance), credits: numOr(r.body.credits) }
@@ -246,6 +299,8 @@ const SIMPLE_CSS = `
 .adv2 .adv2s-item[data-out=true]{opacity:.45}
 .adv2 .adv2s-item .row{display:flex;flex-wrap:wrap;gap:6px}
 .adv2 .adv2s-item small{font-size:12px;line-height:1.4}
+.adv2 .adv2s-asvideo{display:grid;gap:2px;color:var(--ads-muted)}
+.adv2 .adv2s-asvideo b{color:var(--ads-action);font-weight:700}
 .adv2 .adv2s-out{margin:16px 0 8px;font-size:13px;font-weight:650;color:var(--ads-secondary)}
 .adv2 .adv2s-lang{display:inline-flex;align-items:center;gap:8px;margin:10px 0 0;font-size:13.5px;font-weight:650;color:var(--ads-text)}
 .adv2 .adv2s-lang select{min-height:36px;padding:4px 8px;border-radius:9px;border:1px solid var(--ads-line);background:var(--ads-card);color:var(--ads-text);font:inherit}
@@ -279,6 +334,9 @@ export function AdsV2SimpleSession({
   const copy: AdsV2SimpleCopy = pickInterfaceCopy(ADS_V2_SIMPLE_COPY, lang)
   const [phase, setPhase] = useState<Phase>(resume ? 'loading' : 'build')
   const [items, setItems] = useState<SimpleItem[]>([])
+  // Leitura fresca dos itens para quem roda no fim de um await longo (o planAd): o `items` do fechamento é o da renderização.
+  const itemsRef = useRef<SimpleItem[]>([])
+  itemsRef.current = items
   const [fileNote, setFileNote] = useState<string | null>(null)
   const [videoBusy, setVideoBusy] = useState(0)
   const [text, setText] = useState('')
@@ -363,6 +421,8 @@ export function AdsV2SimpleSession({
 
   const missing: string[] = []
   if (inAd.length < ADS_V2_SIMPLE_MIN_IN_AD) missing.push(fill(copy.plan.needFiles, { n: ADS_V2_SIMPLE_MIN_IN_AD - inAd.length, min: ADS_V2_SIMPLE_MIN_IN_AD, max: ADS_V2_SIMPLE_MAX_IN_AD }))
+  // O vídeo ocupa vaga de foto, mas o plano precisa de pelo menos 1 foto (referência das cenas criadas).
+  if (inAd.length > 0 && inAd.every((p) => p.video)) missing.push(copy.plan.needPhoto)
   if (!sentence) missing.push(copy.plan.needText)
   if (sentence.length > ADS_V2_SCREEN_SENTENCE_MAX) missing.push(copy.plan.textTooLong)
   if (!tier) missing.push(copy.plan.needTier)
@@ -535,11 +595,63 @@ export function AdsV2SimpleSession({
     const url = trackUrl(URL.createObjectURL(f))
     try {
       const img = await loadImage(url)
-      return { key: newKey(), name: f.name, srcUrl: url, w: img.naturalWidth, h: img.naturalHeight, fx: 0.5, fy: 0.5, fromVideo, uploaded: null, busy: false, error: null }
+      return { key: newKey(), name: f.name, srcUrl: url, w: img.naturalWidth, h: img.naturalHeight, fx: 0.5, fy: 0.5, fromVideo, video: null, uploaded: null, busy: false, error: null }
     } catch {
       dropUrl(url)
       return null
     }
+  }
+
+  /** PLANO B (o de antes): o vídeo vira 1 a 3 fotos tiradas dele. Devolve os itens (vazio = não abriu). */
+  async function framesFromVideo(f: File, notes: string[]): Promise<SimpleItem[]> {
+    if (f.size > ADS_V2_SIMPLE_VIDEO_MAX_BYTES) {
+      notes.push(fill(copy.files.videoTooBig, { name: f.name }))
+      return []
+    }
+    try {
+      const frames = await grabVideoFrames(f, (d) => videoFrameTimes(d, 3), { maxSeconds: ADS_V2_SIMPLE_VIDEO_MAX_SECONDS })
+      const added: SimpleItem[] = []
+      for (const fr of frames) {
+        const it = await itemFromFile(fr, true)
+        if (it) added.push(it)
+      }
+      if (!added.length) notes.push(copy.files.videoDecode)
+      return added
+    } catch (e) {
+      notes.push(e instanceof VideoFramesError && e.code === 'too_long' ? fill(copy.files.videoTooLong, { name: f.name }) : copy.files.videoDecode)
+      return []
+    }
+  }
+
+  /** Aviso (traduzido) de por que um vídeo caiu no plano B. */
+  function asPhotosNote(verdict: AdsV2UserVideoVerdict, name: string): string | null {
+    const t = verdict === 'too_big' ? copy.files.videoBigAsPhotos
+      : verdict === 'bad_type' ? copy.files.videoTypeAsPhotos
+        : verdict === 'too_short' ? copy.files.videoShortAsPhotos
+          : verdict === 'too_many' ? copy.files.videoManyAsPhotos
+            : verdict === 'unreadable' ? copy.files.videoUnreadableAsPhotos
+              : null
+    return t ? fill(t, { name }) : null
+  }
+
+  /**
+   * KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — o vídeo entra COMO VÍDEO quando cabe (até 2 por pedido, até 50 MB, MP4/MOV,
+   * duração e tamanho legíveis, ≥ 3 s): miniatura do trecho mais vivo + o arquivo original, que sobe como está. Senão,
+   * plano B com o aviso do motivo.
+   */
+  async function videoItemOrFrames(f: File, videosAlready: number, notes: string[]): Promise<SimpleItem[]> {
+    const read = await readVideoForAd(f, videosAlready)
+    if (read.kind === 'video') {
+      const url = trackUrl(URL.createObjectURL(read.thumb))
+      return [{
+        key: newKey(), name: f.name, srcUrl: url, w: read.width, h: read.height, fx: 0.5, fy: 0.5, fromVideo: false,
+        video: { file: f, seconds: read.seconds, width: read.width, height: read.height, start: read.start },
+        uploaded: null, busy: false, error: null,
+      }]
+    }
+    const note = asPhotosNote(read.verdict, f.name)
+    if (note) notes.push(note)
+    return framesFromVideo(f, notes)
   }
 
   async function addFiles(list: FileList | null) {
@@ -547,27 +659,16 @@ export function AdsV2SimpleSession({
     setFileNote(null)
     const notes: string[] = []
     const files = Array.from(list)
+    let videosAlready = items.filter((p) => p.video).length
     for (const f of files) {
       if (!aliveRef.current) return
       if (isVideoFile(f.name, f.type)) {
-        if (f.size > ADS_V2_SIMPLE_VIDEO_MAX_BYTES) {
-          notes.push(fill(copy.files.videoTooBig, { name: f.name }))
-          continue
-        }
         setVideoBusy((n) => n + 1)
         try {
-          const frames = await grabVideoFrames(f, (d) => videoFrameTimes(d, 3), { maxSeconds: ADS_V2_SIMPLE_VIDEO_MAX_SECONDS })
-          const added: SimpleItem[] = []
-          for (const fr of frames) {
-            const it = await itemFromFile(fr, true)
-            if (it) added.push(it)
-          }
+          const added = await videoItemOrFrames(f, videosAlready, notes)
           if (!aliveRef.current) return
-          if (!added.length) notes.push(copy.files.videoDecode)
+          videosAlready += added.filter((p) => p.video).length
           setItems((prev) => [...prev, ...added].slice(0, ADS_V2_SIMPLE_MAX_ITEMS))
-        } catch (e) {
-          if (!aliveRef.current) return
-          notes.push(e instanceof VideoFramesError && e.code === 'too_long' ? fill(copy.files.videoTooLong, { name: f.name }) : copy.files.videoDecode)
         } finally {
           if (aliveRef.current) setVideoBusy((n) => Math.max(0, n - 1))
         }
@@ -638,25 +739,34 @@ export function AdsV2SimpleSession({
     }
   }
 
-  /** Recorta e sobe (um por vez) cada arquivo DO ANÚNCIO cujo enquadramento mudou desde o último envio. */
-  async function ensureItemsUploaded(): Promise<{ footage_id: string; kind: typeof photoKind }[] | null> {
+  /**
+   * Recorta e sobe (um por vez) cada arquivo DO ANÚNCIO cujo enquadramento mudou desde o último envio.
+   * KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — o vídeo que entra como vídeo sobe ORIGINAL (sem recorte, uma vez só) e vai
+   * em `videos` com o início do trecho e o foco; as fotos seguem em `photos`.
+   */
+  async function ensureItemsUploaded(): Promise<{ photos: { footage_id: string; kind: typeof photoKind }[]; videos: PlanVideoBody[] } | null> {
     const out: { footage_id: string; kind: typeof photoKind }[] = []
+    const videos: PlanVideoBody[] = []
+    const push = (p: SimpleItem, footageId: string) => {
+      if (p.video) videos.push({ footage_id: footageId, start: p.video.start, focus_x: p.fx, focus_y: p.fy, width: p.video.width, height: p.video.height })
+      else out.push({ footage_id: footageId, kind: photoKind })
+    }
     let n = 0
     for (const p of inAd) {
       n += 1
-      const sig = focalSig(p)
+      const sig = uploadSig(p)
       if (p.uploaded && p.uploaded.sig === sig) {
-        out.push({ footage_id: p.uploaded.footageId, kind: photoKind })
+        push(p, p.uploaded.footageId)
         continue
       }
       setBusyNote(fill(copy.plan.noteUpload, { i: n, n: inAd.length }))
       updateItem(p.key, { busy: true, error: null })
       try {
-        const file = await cropToVertical(p)
+        const file = p.video ? p.video.file : await cropToVertical(p)
         const up = await uploadFootage(file)
         if (!aliveRef.current) return null
         updateItem(p.key, { busy: false, uploaded: { sig, footageId: up.footageId } })
-        out.push({ footage_id: up.footageId, kind: photoKind })
+        push(p, up.footageId)
       } catch (e) {
         if (!aliveRef.current) return null
         const msg = uploadError(e, copy.plan.uploadFailed)
@@ -665,7 +775,33 @@ export function AdsV2SimpleSession({
         return null
       }
     }
-    return out
+    return { photos: out, videos }
+  }
+
+  /**
+   * O servidor não conseguiu usar um vídeo como vídeo (não mediu, curto, tipo): ESSE item vira fotos (plano B), com aviso.
+   * A pessoa planeja de novo (grátis).
+   */
+  async function videoBackToFrames(footageId: string | null) {
+    const target = itemsRef.current.find((p) => p.video && p.uploaded?.footageId === footageId)
+    if (!target?.video) return
+    const notes: string[] = [fill(copy.files.videoServerAsPhotos, { name: target.name })]
+    setVideoBusy((n) => n + 1)
+    try {
+      const frames = await framesFromVideo(target.video.file, notes)
+      if (!aliveRef.current) return
+      setItems((prev) => {
+        const i = prev.findIndex((p) => p.key === target.key)
+        if (i < 0) return prev
+        const next = prev.slice()
+        next.splice(i, 1, ...frames)
+        return next.slice(0, ADS_V2_SIMPLE_MAX_ITEMS)
+      })
+      dropUrl(target.srcUrl)
+      setFileNote(notes.join(' '))
+    } finally {
+      if (aliveRef.current) setVideoBusy((n) => Math.max(0, n - 1))
+    }
   }
 
   /** Desenha o quadro final (logo opcional) e sobe como PNG — só se mudou desde o último envio. */
@@ -752,8 +888,9 @@ export function AdsV2SimpleSession({
     setPlanError(null)
     try {
       const baseAtStart = baseSig
-      const uploaded = await ensureItemsUploaded()
-      if (!uploaded || !aliveRef.current) return
+      const media = await ensureItemsUploaded()
+      if (!media || !aliveRef.current) return
+      const { photos: uploaded, videos } = media
       const card = await ensureCard()
       if (!card || !aliveRef.current) return
       const orderId = await ensureDraft()
@@ -764,11 +901,12 @@ export function AdsV2SimpleSession({
       setBusyNote(copy.plan.notePlan)
       const r = await api<PlanResponse>('/api/ads/v2/plan', {
         method: 'POST',
-        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, photos: uploaded, card_footage_id: card.footageId, facts: chosen },
+        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen },
       })
       if (!aliveRef.current) return
       if (!r.ok) {
         if (r.code === 'not_ready') setNotReady(true)
+        if (VIDEO_TO_PHOTOS_CODES.includes(r.code)) void videoBackToFrames(typeof r.body.footage_id === 'string' ? r.body.footage_id : null)
         if (r.code === 'not_editable') setDraft(null)
         setPlanError(errorText(lang, r))
         return
@@ -1212,7 +1350,13 @@ function ItemCard({
         <span className="badge">{index + 1}</span>
       </div>
       {item.fromVideo ? <small className="adsw-hint" style={{ margin: 0 }}>{copy.files.fromVideo}</small> : null}
-      {small && !out ? <small className="adsw-warn" style={{ margin: 0 }}>{copy.files.small}</small> : null}
+      {item.video ? (
+        <small className="adv2s-asvideo" style={{ margin: 0 }}>
+          <b><span aria-hidden="true">▶ </span>{copy.files.asVideo}</b>
+          <span>{copy.files.asVideoHint}</span>
+        </small>
+      ) : null}
+      {small && !out && !item.video ? <small className="adsw-warn" style={{ margin: 0 }}>{copy.files.small}</small> : null}
       {item.busy ? <small className="adsw-hint" style={{ margin: 0 }} role="status">{copy.files.uploading}</small> : null}
       {item.error ? <small className="adsw-err" style={{ margin: 0 }} role="alert">{item.error}</small> : null}
       <div className="row">

@@ -192,6 +192,8 @@ export function isActiveOrderStatus(status: unknown): boolean {
 /** Rótulo de um plano na grade. Nenhum rótulo promete tempo. */
 export function shotStateLabel(shot: Pick<AdsV2ScreenShot, 'kind' | 'source' | 'status' | 'state'>, orderStatus: string): string {
   if (shot.kind === 'text' || shot.status === 'skipped_text') return 'Still with zoom'
+  // KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — o vídeo do cliente não passa por IA: entra pronto, como foi gravado.
+  if (shot.kind === 'user_video') return 'Your video'
   if (shot.state === 'ready' || shot.status === 'done') return 'Ready'
   if (shot.state === 'failed' || shot.status === 'failed' || shot.status === 'stuck') {
     return isActiveOrderStatus(orderStatus) ? 'Trying again' : 'Did not work'
@@ -206,6 +208,8 @@ export function shotStateLabel(shot: Pick<AdsV2ScreenShot, 'kind' | 'source' | '
  */
 export function canRedoShot(shot: Pick<AdsV2ScreenShot, 'kind' | 'status' | 'state' | 'retake_credits'>, orderStatus: string): boolean {
   if (shot.kind === 'text') return false
+  // O vídeo do cliente também não (não passa por IA; outro trecho = planejar de novo, grátis).
+  if (shot.kind === 'user_video') return false
   if (orderStatus !== 'delivered') return false
   if (shot.state !== 'ready' || shot.status !== 'done') return false
   return Number.isInteger(shot.retake_credits) && shot.retake_credits > 0
@@ -305,6 +309,20 @@ export function adsV2ErrorMessage(code: string | null | undefined, extra: { need
         : 'The price of redoing this shot changed. Check the new price and try again.'
     case 'text_not_retakable':
       return 'Screen or text shots are stills, so every word stays exact. There is nothing to redo.'
+    // KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — vídeo do cliente (entra como vídeo).
+    case 'video_not_retakable':
+      return 'This shot is your own video, used as you filmed it (no AI), so there is nothing to redo. To use another part of it, plan the ad again (free).'
+    case 'video_unreadable':
+    case 'video_invalid':
+      return 'We could not read one of your videos on our side, so it now goes in as photos taken from it. Plan again (free).'
+    case 'video_too_short':
+      return 'One of your videos is shorter than 3 seconds, so it now goes in as photos taken from it. Plan again (free).'
+    case 'too_many_videos':
+      return 'Up to 2 videos go in as video. Remove one, or it goes in as photos.'
+    case 'bad_video':
+    case 'bad_video_id':
+    case 'bad_videos':
+      return 'One of your videos did not upload correctly. Remove it, add it again and plan again.'
     case 'shot_not_ready':
     case 'not_delivered':
       return 'This shot can be redone only after the ad is ready.'
@@ -344,6 +362,7 @@ export const ADS_V2_ROLE_LABELS: Readonly<Record<string, string>> = {
 /** Uma linha, em linguagem de dono de negócio, do que o plano vai mostrar. */
 export function describeShot(shot: { kind: string; source: string }): string {
   if (shot.kind === 'text') return 'Your photo as a still with a slow zoom, so every word stays exactly right'
+  if (shot.kind === 'user_video') return 'Your own video, as you filmed it: a short part, muted, no AI'
   if (shot.source === 'generated_scene') return 'A new scene of everyday people enjoying it, created from your photos'
   if (shot.kind === 'product_hero') return 'A hero close-up of your product, from your photo'
   return 'Your photo, brought to life with one slow camera move'

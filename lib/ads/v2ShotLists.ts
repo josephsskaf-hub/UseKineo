@@ -23,7 +23,10 @@
 export type AdsV2Sector = 'restaurant' | 'clinic' | 'real_estate' | 'gym' | 'salon' | 'store' | 'app_service' | 'other'
 export type AdsV2PlanTier = 'photo_motion' | 'commercial' | 'cinema'
 export type AdsV2PhotoKind = 'people' | 'place' | 'product' | 'text'
-export type AdsV2PlanShotKind = AdsV2PhotoKind | 'product_hero'
+// KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — 'user_video': o vídeo do cliente, montado como vídeo (sem IA, sem prompt).
+export type AdsV2PlanShotKind = AdsV2PhotoKind | 'product_hero' | 'user_video'
+/** Tipos que passam por movimento de IA (o `text` e o `user_video` nunca passam). */
+export type AdsV2MotionKind = Exclude<AdsV2PlanShotKind, 'text' | 'user_video'>
 export type AdsV2PlanSource = 'client_photo' | 'generated_scene'
 export type AdsV2Role = 'hook' | 'desire' | 'use' | 'emotion' | 'place' | 'product'
 export type AdsV2Beat = 'hook' | 'desire' | 'use_emotion' | 'place_product'
@@ -230,7 +233,7 @@ export const ADS_V2_SECTOR_SPECS: Readonly<Record<AdsV2Sector, SectorSpec>> = {
 }
 
 // ── Movimentos (1 por plano; o mesmo arquivo reusado ganha outro movimento) ─────────────────────────────────────────
-export const ADS_V2_MOVEMENTS: Readonly<Record<Exclude<AdsV2PlanShotKind, 'text'>, readonly string[]>> = {
+export const ADS_V2_MOVEMENTS: Readonly<Record<AdsV2MotionKind, readonly string[]>> = {
   people: [
     'Gentle handheld drift; the people move naturally, blink and smile',
     'Slow dolly-in at eye level; the people make small natural gestures',
@@ -252,7 +255,7 @@ export const ADS_V2_MOVEMENTS: Readonly<Record<Exclude<AdsV2PlanShotKind, 'text'
   ],
 }
 
-export function motionPrompt(kind: Exclude<AdsV2PlanShotKind, 'text'>, variant: number): string {
+export function motionPrompt(kind: AdsV2MotionKind, variant: number): string {
   const list = ADS_V2_MOVEMENTS[kind]
   const move = list[((variant % list.length) + list.length) % list.length]
   if (kind === 'product_hero') return `${move}. ${ADS_V2_HERO_STATE_LOCKS} ${ADS_V2_KEEP_PHRASE}`
@@ -350,6 +353,39 @@ export interface AdsV2Photo {
   kind: AdsV2PhotoKind
 }
 
+/**
+ * KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — vídeo do cliente que entra COMO VÍDEO. `seconds` = duração MEDIDA pelo
+ * servidor (mvhd do arquivo no bucket), nunca a do navegador; `start` = sugestão do navegador (trecho mais vivo).
+ */
+export interface AdsV2Video {
+  id: string
+  url: string
+  seconds: number
+  start: number | null
+  focusX?: number
+  focusY?: number
+  width?: number | null
+  height?: number | null
+}
+/** Espelho de ADS_V2_MAX_USER_VIDEOS (lib/ads/v2UserVideo.ts) e ADS_V2_CONTRACT_MAX_VIDEOS (lib/ads/v2Contract.ts). */
+export const ADS_V2_PLAN_MAX_VIDEOS = 2
+/** Espelho de ADS_V2_USER_VIDEO_MIN_SECONDS (lib/ads/v2UserVideo.ts): abaixo disto o /plan devolve video_too_short. */
+export const ADS_V2_PLAN_VIDEO_MIN_SECONDS = 3
+
+/**
+ * Início do trecho do vídeo do cliente (espelho EXATO de clampUserVideoStart, lib/ads/v2UserVideo.ts — o guardião
+ * compara os dois): trecho + dissolve + folga cabem no vídeo MEDIDO; sem sugestão válida = o meio. null = não cabe.
+ */
+export function adsV2UserVideoStart(suggested: unknown, measured: number, cut: number): number | null {
+  if (!(typeof measured === 'number' && Number.isFinite(measured) && measured > 0)) return null
+  if (!(typeof cut === 'number' && Number.isFinite(cut) && cut > 0)) return null
+  const maxStart = Math.round((measured - cut - ADS_V2_FADE_SECONDS - ADS_V2_CUT_MARGIN) * 1000) / 1000
+  if (maxStart < 0) return null
+  const fallback = Math.max(0, (measured - cut) / 2 - ADS_V2_FADE_SECONDS / 2)
+  const s = typeof suggested === 'number' && Number.isFinite(suggested) && suggested >= 0 ? suggested : fallback
+  return Math.round(Math.min(maxStart, Math.max(0, s)) * 1000) / 1000
+}
+
 export interface AdsV2PlannedShot {
   idx: number
   role: AdsV2Role
@@ -369,6 +405,13 @@ export interface AdsV2PlannedShot {
   movementVariant: number
   cutStart: number
   cutSeconds: number
+  /** Só no plano 'user_video': o arquivo do cliente no bucket, a duração MEDIDA e o enquadramento (foco 0..1). */
+  videoUrl?: string
+  videoSeconds?: number
+  focusX?: number
+  focusY?: number
+  videoWidth?: number | null
+  videoHeight?: number | null
 }
 
 export interface AdsV2OverlaySlot {
@@ -418,7 +461,7 @@ export function adsV2OverlaySlots(shotsSeconds: number): AdsV2OverlaySlot[] {
  *     Sem foto de produto entre as referências, as ações do setor não citam produto (sceneActionsNoProduct).
  *     Sem nenhuma foto sem texto, a vaga vira foto do cliente (passos 1-2) — o Nano Banana exige referência.
  */
-export function planShots(input: { sector: AdsV2Sector; tier: AdsV2PlanTier; photos: readonly AdsV2Photo[]; seconds?: number }): AdsV2ShotPlan {
+export function planShots(input: { sector: AdsV2Sector; tier: AdsV2PlanTier; photos: readonly AdsV2Photo[]; seconds?: number; videos?: readonly AdsV2Video[] }): AdsV2ShotPlan {
   const { sector, tier } = input
   const seconds = input.seconds ?? 15
   if (!isAdsV2Sector(sector)) throw new Error(`ads_v2_unknown_sector:${String(sector)}`)
@@ -465,7 +508,57 @@ export function planShots(input: { sector: AdsV2Sector; tier: AdsV2PlanTier; pho
   const refs = refOrder.flatMap((k) => photos.filter((p) => p.kind === k))
   const refsHaveProduct = refs.some((p) => p.kind === 'product')
 
+  // KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — cada vídeo ocupa UMA vaga de FOTO do molde (nunca de cena criada): primeiro as
+  // vagas de foto sem herói, na ordem da linha do tempo (Foto em movimento/Comercial: o gancho; Cinema: o lugar), depois
+  // as de herói. O nº de planos do nível não muda. Vídeo repetido, sem URL/id ou sem duração medida = erro (a rota confere).
+  const videos = Array.isArray(input.videos) ? input.videos : []
+  if (videos.length > ADS_V2_PLAN_MAX_VIDEOS) throw new Error('ads_v2_too_many_videos')
+  const seenVideo = new Set<string>()
+  for (const v of videos) {
+    if (!v || typeof v.id !== 'string' || !v.id || typeof v.url !== 'string' || !v.url) throw new Error('ads_v2_bad_video')
+    if (!(typeof v.seconds === 'number' && Number.isFinite(v.seconds) && v.seconds > 0)) throw new Error(`ads_v2_video_unmeasured:${v.id}`)
+    if (seenVideo.has(v.id) || photos.some((p) => p.id === v.id)) throw new Error(`ads_v2_duplicate_video:${v.id}`)
+    seenVideo.add(v.id)
+  }
+  const photoSlots = slots.map((s, i) => ({ s, i })).filter((x) => x.s.source === 'client_photo')
+  const videoSlotOrder = [...photoSlots.filter((x) => !x.s.hero), ...photoSlots.filter((x) => x.s.hero)].map((x) => x.i)
+  const videoAt = new Map<number, AdsV2Video>()
+  videos.forEach((v, k) => {
+    const at = videoSlotOrder[k]
+    if (at === undefined) throw new Error('ads_v2_no_slot_for_video')
+    videoAt.set(at, v)
+  })
+
   const shots: AdsV2PlannedShot[] = slots.map((slot, idx) => {
+    const video = videoAt.get(idx)
+    if (video) {
+      const start = adsV2UserVideoStart(video.start, video.seconds, slot.cut)
+      if (start === null) throw new Error(`ads_v2_video_too_short:${video.id}`)
+      const focus = (f: unknown) => (typeof f === 'number' && Number.isFinite(f) ? Math.min(1, Math.max(0, f)) : 0.5)
+      const dim = (d: unknown) => (typeof d === 'number' && Number.isFinite(d) && d > 0 ? Math.round(d) : null)
+      return {
+        idx,
+        role: slot.role,
+        beat: slot.beat,
+        kind: 'user_video',
+        source: 'client_photo',
+        sourceFootageId: video.id,
+        imageUrl: null,
+        referenceFootageIds: [],
+        referenceUrls: [],
+        scenePrompt: null,
+        prompt: null,
+        movementVariant: 0,
+        cutStart: start,
+        cutSeconds: slot.cut,
+        videoUrl: video.url,
+        videoSeconds: Math.round(video.seconds * 1000) / 1000,
+        focusX: focus(video.focusX),
+        focusY: focus(video.focusY),
+        videoWidth: dim(video.width),
+        videoHeight: dim(video.height),
+      }
+    }
     if (slot.source === 'generated_scene' && refs.length > 0) {
       const variant = slot.scene
       return {
@@ -489,7 +582,7 @@ export function planShots(input: { sector: AdsV2Sector; tier: AdsV2PlanTier; pho
     const photo = pickPhoto(spec.wants[slot.role], heroSlot)
     const variant = uses.get(photo.id) ?? 0
     uses.set(photo.id, variant + 1)
-    const kind: AdsV2PlanShotKind = photo.kind === 'text' ? 'text' : heroSlot && photo.kind === 'product' ? 'product_hero' : photo.kind
+    const kind: AdsV2MotionKind | 'text' = photo.kind === 'text' ? 'text' : heroSlot && photo.kind === 'product' ? 'product_hero' : photo.kind
     return {
       idx,
       role: slot.role,

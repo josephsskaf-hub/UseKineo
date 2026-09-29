@@ -34,7 +34,7 @@ export const ADS_V2_OVERLAY_Y = 0.45
 export const ADS_V2_OVERLAY_H = 0.18
 export const ADS_V2_MAX_OVERLAYS = 3
 
-export type AdV2MontageShotKind = 'people' | 'place' | 'product' | 'product_hero' | 'text'
+export type AdV2MontageShotKind = 'people' | 'place' | 'product' | 'product_hero' | 'text' | 'user_video'
 
 export interface AdV2MontageShot {
   url: string
@@ -45,6 +45,44 @@ export interface AdV2MontageShot {
   cutSeconds: number
   /** Duração MEDIDA do clipe copiado para o bucket (mvhd). Obrigatória fora do plano `text`. */
   measuredSeconds: number | null
+  /** Só no 'user_video': ponto focal (0..1) e dimensões do vídeo do cliente, para o recorte 9:16. */
+  focusX?: number
+  focusY?: number
+  videoWidth?: number | null
+  videoHeight?: number | null
+}
+
+/**
+ * KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — o vídeo do próprio cliente entra com um zoom lento (o mesmo movimento suave que
+ * o montador já dá à foto de texto, e a MESMA propriedade `animations: scale` que lib/compose.ts usa em elemento de vídeo
+ * em produção), mudo (o som do anúncio é voz + música), sem loop e só com o trecho escolhido.
+ */
+export const ADS_V2_USER_VIDEO_ZOOM_END = '105%'
+/** Diferença de proporção abaixo da qual o vídeo já é 9:16 (ex.: 464×832) e entra com o recorte central de sempre. */
+export const ADS_V2_USER_VIDEO_ASPECT_TOLERANCE = 0.02
+
+/**
+ * Enquadramento 9:16 do vídeo do cliente SEM propriedade nova: o elemento ganha a proporção do próprio vídeo (fit cover
+ * sem corte interno) e é deslocado por x/y para o ponto focal ficar no centro, sempre cobrindo o quadro inteiro.
+ * Dimensões desconhecidas ou vídeo já vertical = recorte ao centro (100% × 100%), como qualquer outro plano.
+ */
+export function userVideoFrame(frameW: number, frameH: number, videoW: unknown, videoH: unknown, focusX: unknown, focusY: unknown): { x: string; y: string; width: string; height: string } {
+  const centered = { x: '50%', y: '50%', width: '100%', height: '100%' }
+  if (!finitePos(videoW) || !finitePos(videoH) || !finitePos(frameW) || !finitePos(frameH)) return centered
+  const F = frameW / frameH
+  const A = videoW / videoH
+  if (Math.abs(A / F - 1) < ADS_V2_USER_VIDEO_ASPECT_TOLERANCE) return centered
+  const clamp01 = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5)
+  if (A > F) {
+    const ew = A / F
+    const half = 1 / (2 * ew)
+    const fx = Math.min(1 - half, Math.max(half, clamp01(focusX)))
+    return { x: pct(0.5 + ew * (0.5 - fx)), y: '50%', width: pct(ew), height: '100%' }
+  }
+  const eh = F / A
+  const half = 1 / (2 * eh)
+  const fy = Math.min(1 - half, Math.max(half, clamp01(focusY)))
+  return { x: '50%', y: pct(0.5 + eh * (0.5 - fy)), width: '100%', height: pct(eh) }
 }
 
 export interface AdV2Overlay {
@@ -129,6 +167,19 @@ export function buildAdV2Source(input: AdV2MontageInput): Record<string, unknown
     // O trecho usado (com o dissolve) tem de caber no clipe medido: nada de loop nem de quadro congelado no fim.
     if (r3(cutStart + duration) > r3(shot.measuredSeconds)) {
       throw new Error(`ads_v2_montage_trim_past_clip:${i}:${r3(cutStart + duration)}>${r3(shot.measuredSeconds)}`)
+    }
+    if (shot.kind === 'user_video') {
+      // KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — o vídeo do cliente: SEMPRE mudo (o áudio dele não entra; voz e música
+      // seguem), sem loop, só o trecho [trim_start, trim_start + duração], recortado em 9:16 no ponto focal.
+      elements.push({
+        type: 'video', track: 2, time: starts[i], duration,
+        source: shot.url.trim(), fit: 'cover', loop: false, trim_start: r3(cutStart),
+        ...userVideoFrame(width, height, shot.videoWidth, shot.videoHeight, shot.focusX, shot.focusY),
+        volume: '0%',
+        ...transition,
+        animations: [{ type: 'scale', fade: false, start_scale: '100%', end_scale: ADS_V2_USER_VIDEO_ZOOM_END, easing: 'linear' }],
+      })
+      return
     }
     elements.push({
       type: 'video', track: 2, time: starts[i], duration,

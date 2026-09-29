@@ -144,9 +144,13 @@ await check('A3 trocar de modo é link de página inteira (o anúncio em andamen
 // commit 65a49c30 ("Refine creation previews") mexeu no AdsV2Session (previewPhotoKey + coluna lateral). Na junção o
 // trecho do HEAD é BYTE A BYTE o de origin/main 06bc9d6f (conferido: os dois dão 2e1d8881…) — o modo simples continua
 // sem tocar no completo; só a referência mudou.
-const Z1_BASE = '2e1d888136b1f7bc7996c03a86edda223fdf8faf7bc0078c340b69d3b37ab945'
+// REANCORADO 29/09 (KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29): pedido do fundador — "quero colocar as minhas fotos e VÍDEOS".
+// O modo completo passou a aceitar vídeo (até 2 entram como vídeo; o resto vira fotos, com o motivo em inglês): PhotoItem
+// ganhou `video`, addPhotos/ensurePhotosUploaded/PhotoRow mudaram e o /plan leva `videos`. Nada mais do completo mudou
+// (preço, voz, cartão, refação: os guardiões da tela seguem verdes). Base anterior: 2e1d8881… (origin/main 06bc9d6f).
+const Z1_BASE = 'a2fbf94d5be79bc3453c101ed62e9973d2f90dca1628e80a7e9b8c2849db1a26'
 const trechoCompleto = (src) => { const s = src.replace(/\r\n/g, '\n'); const i = s.indexOf('function AdsV2Session('); return i < 0 ? '' : semComentarios(s.slice(i)) }
-await check('Z1 impressão digital do modo completo (AdsV2Session, PhotoRow, PlanPreview, ShotGrid) = a de origin/main 06bc9d6f', sha(trechoCompleto(SRC.client)) === Z1_BASE)
+await check('Z1 impressão digital do modo completo (AdsV2Session, PhotoRow, PlanPreview, ShotGrid) = a do vídeo do cliente (29/09)', sha(trechoCompleto(SRC.client)) === Z1_BASE)
 await check('Z1-mutante: 1 caractere trocado no modo completo fica vermelho', () => sha(trechoCompleto(trocar(SRC.client, "const POLL_RETRY_MS = 20_000", "const POLL_RETRY_MS = 20_001").replace('Plan my ad (free)', 'Plan my ad (freE)'))) !== Z1_BASE)
 
 const keys = (o) => Object.keys(o).sort().join(',')
@@ -591,12 +595,18 @@ const tempos = (M) => {
 }
 await check('V1 (M8) quadros do vídeo em 20/50/80% (curto < 1,5 s = só o meio; nunca além do fim)', tempos(S))
 await check('V1-mutante: frações 0,2/0,5/0,8 trocadas fica vermelho', () => !tempos(pura(F.simpleLib, trocar(SRC.simpleLib, 'export const ADS_V2_SIMPLE_VIDEO_FRACTIONS: readonly number[] = [0.2, 0.5, 0.8]', 'export const ADS_V2_SIMPLE_VIDEO_FRACTIONS: readonly number[] = [0.1, 0.5, 0.9]'))))
-await check('V2 a tela aceita vídeo e o transforma em quadros (grabVideoFrames + videoFrameTimes); o VÍDEO nunca sobe (uploadFootage só com recorte, cartão e logo)', () => {
+// REANCORADO 29/09 (KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29): o V2 dizia "o VÍDEO nunca sobe" — o pedido do fundador é o
+// contrário: o vídeo entra no anúncio COMO VÍDEO. Agora: até 2 vídeos que cabem sobem ORIGINAIS (uploadFootage, sem
+// recorte) e o resto cai no plano B de antes (grabVideoFrames + videoFrameTimes). O add continua sem subir nada.
+await check('V2 a tela aceita vídeo: o que cabe entra como vídeo (sobe o original, uma vez); o que não cabe vira quadros (grabVideoFrames + videoFrameTimes); o add não sobe nada', () => {
   const s = semComentarios(SRC.simple)
   const add = bloco(s, 'async function addFiles(')
+  const b = bloco(s, 'async function framesFromVideo(')
   const ups = s.match(/uploadFootage\([^)]*\)/g) || []
   return /video\/mp4,video\/quicktime,video\/webm,\.mov/.test(S.ADS_V2_SIMPLE_ACCEPT) && /accept=\{ADS_V2_SIMPLE_ACCEPT\}/.test(s) &&
-    /grabVideoFrames\(f, \(d\) => videoFrameTimes\(d, 3\), \{ maxSeconds: ADS_V2_SIMPLE_VIDEO_MAX_SECONDS \}\)/.test(add) && !/uploadFootage/.test(add) &&
+    /await videoItemOrFrames\(f, videosAlready, notes\)/.test(add) && !/uploadFootage/.test(add) &&
+    /grabVideoFrames\(f, \(d\) => videoFrameTimes\(d, 3\), \{ maxSeconds: ADS_V2_SIMPLE_VIDEO_MAX_SECONDS \}\)/.test(b) &&
+    /const file = p\.video \? p\.video\.file : await cropToVertical\(p\)/.test(s) &&
     ups.length === 3 && ups.every((u) => u === 'uploadFootage(file)' || u === 'uploadFootage(file, { isLogo: true })')
 })
 await check('V3 lib de quadros: só navegador, sem import; JPEG 0,92; quadro escuro (< 0,06) trocado pelo de 35%/65%; seek com limite de 15 s; decodificação falha = erro "decode"', () => {
@@ -670,11 +680,12 @@ await check('E2 CONTACTISH da pesquisa = o da régua do texto (v2Brief)', () => 
   const re = /const CONTACTISH = (\/.*\/[a-z]*)\n/
   return (SRC.research.match(re) || [])[1] === (SRC.brief.match(re) || [])[1] && !!(SRC.research.match(re) || [])[1]
 })
-const IMPORTS_OK = ['react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage']
+// REANCORADO 29/09 (KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29): + '@/lib/ads/v2UserVideo' (regra pura do vídeo do cliente, sem import).
+const IMPORTS_OK = ['react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage']
 await check('E3 a tela simples é cliente e só importa módulos de navegador/puros; v2Simple, v2Research e v2VideoFrames não têm import; textLanguage é pura', () => {
   const imps = [...SRC.simple.matchAll(/^import[\s\S]*?from '([^']+)'/gm)].map((m) => m[1])
   return /^'use client'/.test(SRC.simple) && imps.length >= 8 && imps.every((m) => IMPORTS_OK.includes(m)) &&
-    [SRC.simpleLib, SRC.research, SRC.frames, rd('lib/textLanguage.ts'), rd('lib/ui/interfaceLanguage.ts')].every((s) => !/^\s*import\s(?!type)/m.test(s)) && !/trackEvent\(/.test(SRC.simple)
+    [SRC.simpleLib, SRC.research, SRC.frames, rd('lib/ads/v2UserVideo.ts'), rd('lib/textLanguage.ts'), rd('lib/ui/interfaceLanguage.ts')].every((s) => !/^\s*import\s(?!type)/m.test(s)) && !/trackEvent\(/.test(SRC.simple)
 })
 await check('E4 trava 8.2: nenhum arquivo do modo simples mora em caminho travado', () => {
   const novos = [F.simple, F.simpleLib, F.research, F.frames, F.researchRoute, F.contract, F.brief, F.planRoute, F.ordersRoute, F.client]
@@ -695,7 +706,8 @@ const soOsMarcadosNaTela = (src) => {
   const s = semComentarios(src)
   const plan = bloco(s, 'async function planAd()')
   return /const chosen = facts\.filter\(\(f\) => isFactOn\(f\)\)\.map\(\(f\) => f\.id\)/.test(plan) &&
-    /body: \{ mode: 'simple', order_id: orderId, sector, logo_footage_id: logo\?\.footageId \?\? null, photos: uploaded, card_footage_id: card\.footageId, facts: chosen \},/.test(plan) &&
+    // REANCORADO 29/09 (KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29): o corpo ganhou `videos` (vídeos que entram como vídeo); fatos iguais.
+    /body: \{ mode: 'simple', order_id: orderId, sector, logo_footage_id: logo\?\.footageId \?\? null, photos: uploaded, videos, card_footage_id: card\.footageId, facts: chosen \},/.test(plan) &&
     (plan.match(/facts:/g) || []).length === 2 && /setPlan\(\{ \.\.\.r\.data, sig: JSON\.stringify\(\{ base: baseAtStart, facts: chosen \}\), cardSig: card\.sig \}\)/.test(plan) &&
     (s.match(/'\/api\/ads\/v2\/plan'/g) || []).length === 1 &&
     /const planSig = JSON\.stringify\(\{ base: baseSig, facts: factsNow\.filter\(\(f\) => isFactOn\(f\)\)\.map\(\(f\) => f\.id\) \}\)/.test(s)
