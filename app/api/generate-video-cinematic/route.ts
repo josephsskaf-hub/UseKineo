@@ -3265,9 +3265,9 @@ async function manipularPost(req: NextRequest) {
     // mais ou a menos, custo igual), pela mesma lib do 15 s (seedanceShortMarkedScenes, que já recebe N): a soma das falas é
     // a narração inteira, toda pista [Pexels] vira imagem, nenhuma cena sem fala, a maior cena a menor possível, PAYOFF
     // sozinho no último clipe e HOOK no 1º quando der. Com blocos <= clipes nada muda (o sorteio devolve os blocos como
-    // estão). Só o Seedance 1.5 da estrada clássica: Kling 2.5, Veo, Sora e hollywood/H3/Omni/S25 nunca entram (Kineo 1 é
-    // outra rota). Guardião: scripts/test-seedance-blocos-e-voz-2026-09-29.mjs.
-    const seedanceClassicFilm = isSeedance15(typeof body.engine === 'string' ? body.engine : null) && !wantsKling && !wantsVeo && !wantsSora && !hollywoodPath
+    // estão). Só o Seedance 1.5 da estrada clássica: Kling 2.5, Veo, Sora e hollywood/H3/Omni/S25 nunca entram (isSeedance15
+    // já recusa os quatro da estrada hollywood; Kineo 1 é outra rota). Guardião: scripts/test-seedance-blocos-e-voz-2026-09-29.mjs.
+    const seedanceClassicFilm = isSeedance15(typeof body.engine === 'string' ? body.engine : null) && !wantsKling && !wantsVeo && !wantsSora
     if (seedanceClassicFilm && !seedanceShortFilm && verbatim && scenes.length > 0 && parsedScript.segments.length > scenes.length) {
       const juntosLongo = seedanceShortMarkedScenes(parsedScript, scenes.length)
       if (juntosLongo.length === scenes.length) {

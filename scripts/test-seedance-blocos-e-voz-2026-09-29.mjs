@@ -282,7 +282,7 @@ console.log('6) mutantes (todos VERMELHOS)')
   checa('o bloco novo está entre o bloco do 15 s e o VEO-PLANOS, em uma só peça', Boolean(bloco) && ROTA.indexOf('      const juntos = seedanceShortMarkedScenes(parsedScript, SEEDANCE_SHORT_CLIPS)') < ROTA.indexOf(INI_BLOCO))
   const semBloco = bloco ? ROTA.split(bloco).join('') : null
   checa('mutante: a rota sem o bloco (volta o sorteio por índice) → VERMELHO', semBloco !== null && !(await provaSeedance(semBloco, D)))
-  const L_GUARDA = "    const seedanceClassicFilm = isSeedance15(typeof body.engine === 'string' ? body.engine : null) && !wantsKling && !wantsVeo && !wantsSora && !hollywoodPath"
+  const L_GUARDA = "    const seedanceClassicFilm = isSeedance15(typeof body.engine === 'string' ? body.engine : null) && !wantsKling && !wantsVeo && !wantsSora"
   const todos = trocaUma(ROTA, L_GUARDA, '    const seedanceClassicFilm = true')
   const difsTodos = todos ? await identicoABase(todos, D, casosDe(['kling', 'hollywood', 'fast'], [60])) : []
   checa('mutante: o bloco vale para todo motor (sem isSeedance15/!wantsKling/!hollywoodPath) → VERMELHO nos outros motores', todos !== null && difsTodos.length > 0)
