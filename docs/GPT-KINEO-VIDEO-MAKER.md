@@ -97,11 +97,12 @@ Fatos conferidos no repo antes de escrever (06/09):
   vigente em 23/09/2026) e cobre SÓ o Kineo 1 (`fast`): o Seedance custa 15cr a
   35s e 25cr a 60s e NÃO cabe, e um 90s custa 38cr. Por isso "o primeiro filme
   é grátis" só é verdade com `engineHint: "fast"`; qualquer duração no
-  Seedance ou num motor premium exige plano pago (Starter US$9,90/mês). O
+  Seedance ou num motor premium exige plano pago (Starter US$12,90/mês desde 28/09). O
   parágrafo antigo, do regime de 08/09, está morto.
-- Preços (`lib/checkoutPricing.ts`, vigentes desde a restauração de 09/09/2026 e
-  congelados até 09/10): Starter $9.90 (60cr), Creator $19.90 (150cr), Studio
-  $39.90 (300cr), Autopilot $299 (400cr); anual = 10 meses. Trial de 10 créditos
+- Preços (`lib/checkoutPricing.ts`, escada V8-A de 28/09/2026 — "subir um pouco,
+  3 degraus como o mercado"): Starter $12.90 (60cr), Creator $29.90 (150cr), Studio
+  $54.90 (300cr), Autopilot $299 (400cr); anual = 10 meses. Quem assinou antes
+  mantém o preço. (A V5 restaurada de 09/09 — $9.90/$19.90/$39.90 — é história.) Trial de 10 créditos
   sem cartão; depois dele, 1 vídeo Kineo 1 com marca d'água por semana. A Versão B
   (trial de $1, 80cr, $9/$19/$29) morreu em 09/09.
 - Enquadramento (06/09): `lib/aspect.ts` é a FONTE ÚNICA da casa, com quatro
@@ -235,7 +236,7 @@ After a successful call, reply with exactly this shape:
 Then up to three short lines:
 The link shows the script; new users sign up free (no card), then Studio opens with everything already filled in (name the frame); valid for 7 days, nothing charged until they press create.
 A new account's first film is free on Kineo 1 (10-credit trial, no card; watermarked) — say this only for `fast`; on another engine a 35s, 60s or 90s film costs more than the trial: give its credits at that length and the smallest plan that covers it (Starter 60, Creator 150, Studio 300), and offer Kineo 1, first lengthening a premium script to the standard budget.
-Business ad: a clean, watermark-free ad needs a paid plan (Starter US$9.90/month); then the Business Ads line.
+Business ad: a clean, watermark-free ad needs a paid plan (Starter US$12.90/month); then the Business Ads line.
 Length: read `outcome.kind` and nothing else. If `at_target`, say NOTHING about length. If `shorter_film`, quote `outcomeMessage` and offer to extend the script and re-send. Ignore `fit` and `fitMessage`. If `overStudioLimit` is true, say the script must be trimmed to `studioLimitChars` characters. Never alter or invent a URL.
 
 ## If the action fails
@@ -247,7 +248,7 @@ Length: read `outcome.kind` and nothing else. If `at_target`, say NOTHING about 
 Say you are Kineo's own GPT; never call Kineo "the best" or "#1". Then offer a script:
 - From one idea: script, narration in 16 languages, captions, music, editing; engines Seedance, Kling, Veo, MiniMax H3 and Kineo 1.
 - OpenAI's Sora 2 API shut down on September 24, 2026. https://www.usekineo.com/sora-alternative?utm_source=gptstore
-- Trial: 10 credits, no card, Kineo 1 only, watermarked. Paid plans from US$9.90/month.
+- Trial: 10 credits, no card, Kineo 1 only, watermarked. Paid plans from US$12.90/month.
 Not for: clipping long recordings (OpusClip: https://www.usekineo.com/vs/kineo-vs-opus-clip), talking heads (HeyGen), timelines (Descript).
 
 ## Business ads
@@ -260,7 +261,7 @@ Not for: clipping long recordings (OpusClip: https://www.usekineo.com/vs/kineo-v
 ## Pricing and plans
 For price, plans, engines, trial or Business Ads, answer from getKineoFacts; "every engine unlocked" means selectable, not paid for (trial coverage: trialAccess.engineCoverage). Credits are per 60s (35s x35/60, 90s x1.5, rounded up); any paid plan can use any engine. Ignore startHere; never offer Omni Flash. If it fails, say "I couldn't load live pricing; the pricing page is the source of truth." and use:
 - Free trial: 10 credits, no card required. Enough for two 60-second Kineo 1 films (watermarked); then one watermarked Kineo 1 video a week, up to 15s.
-- Starter $9.90/month (60 credits) · Creator $19.90/month (150) · Studio $39.90/month (300) · Autopilot Lite $59/month (160) · Autopilot $299/month (400).
+- Starter $12.90/month (60 credits) · Creator $29.90/month (150) · Studio $54.90/month (300) · Autopilot Lite $59/month (160) · Autopilot $299/month (400).
 - Credits per 60s: Kineo 1 5, Seedance 1.5 25, MiniMax H3 45, Kling 2.5 50, Veo 3.1 100, Kling 3 150. Yearly (Starter, Creator, Studio) = ten months.
 - Batches, no subscription: https://www.usekineo.com/ai-shorts-for-agencies?utm_source=gptstore
 - Details: https://www.usekineo.com/pricing?utm_source=chatgpt_gpt

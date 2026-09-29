@@ -22,7 +22,14 @@ const cp = rd('lib/checkoutPricing.ts')
 // (campanha mensal abre mensal); a entrada comum continua no anual pelo padrão da prop.
 checa('a página abre no anual (padrão da prop; campanha mensal pode abrir mensal — A1)', pc.includes("initialBilling = 'annual'") && pc.includes("useState<PricingPlanChoiceBilling>(initialBilling)"))
 checa('o mensal continua a um clique e o selo "2 MONTHS FREE" segue no botão', pc.includes("onClick={() => setBilling('monthly')}") && pc.includes('2 MONTHS FREE'))
-checa('nenhum preço mudou: anual = 10× o mensal (990/1990/3990 ↔ 9900/19900/39900)', /starter: \{ usd: 990 \},\n  basic: \{ usd: 1990 \},\n  pro: \{ usd: 3990 \},/.test(cp) && /starter: \{ usd: 9900 \}/.test(cp) && /basic: \{ usd: 19900 \}/.test(cp) && /pro: \{ usd: 39900 \}/.test(cp))
+// KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: a alavanca (1) não mudou preço em 16/09; em 28/09 o fundador subiu a
+// escada para 1290/2990/5490 (anual 12900/29900/54900). A promessa desta linha é a do anual = 10× o mensal — provada
+// pelos números lidos da fonte, não por literal solto.
+{
+  const mensal = { starter: 1290, basic: 2990, pro: 5490 }
+  const anualLido = Object.fromEntries(['starter', 'basic', 'pro'].map((t) => [t, Number((cp.slice(cp.indexOf('export const ANNUAL_PRICES')).match(new RegExp(`${t}: \\{ usd: (\\d+) \\}`)) || [])[1])]))
+  checa('a alavanca (1) não muda preço: mensal 1290/2990/5490 (V8-A) e anual = 10× o mensal lido da fonte (12900/29900/54900)', /starter: \{ usd: 1290 \},\n  basic: \{ usd: 2990 \},\n  pro: \{ usd: 5490 \},/.test(cp) && ['starter', 'basic', 'pro'].every((t) => anualLido[t] === mensal[t] * 10))
+}
 checa('o checkout recebe billing=annual só quando o toggle está no anual (autopilot nunca); mensal vai explícito (A1)', pc.includes("const billingParam = billing === 'annual' && !isAutopilotFamily ? '&billing=annual' : '&billing=monthly'") && pc.includes("const isAutopilotFamily = tier === 'autopilot' || tier === 'autopilot_lite'"))
 
 console.log('== (2) recarga para quem já paga ==')

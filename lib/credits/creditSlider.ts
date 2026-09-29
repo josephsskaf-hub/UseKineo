@@ -10,6 +10,11 @@
 //
 // Fonte única: a barra (UI), a rota da Stripe e o guardião leem daqui. O cliente só manda a QUANTIDADE; o preço é sempre
 // recalculado no servidor. Nada aqui chama rede.
+//
+// KINEO-PRECO-V8-A-2026-09-28 — "barra de crédito mais cara" (fundador, junto com o vai da escada 12,90/29,90/54,90): o
+// piso sobe de 0,149 para 0,189. Com o Studio novo a US$0,183/cr, o piso antigo vendia crédito avulso mais barato que
+// assinar a partir de ~390 créditos. O topo (0,199 até 100) não mudou: 50 = US$9,90 e 100 = US$19,90 continuam iguais;
+// 300 = US$58,90 (era 55,90) · 500 = US$96,90 (era 87,90) · 1.000 = US$188,90 (era 148,90) · 2.000 = US$377,90 (era 297,90).
 export const CREDIT_SLIDER_PACK_ID = 'credits_custom'
 export const CREDIT_SLIDER_MIN = 50
 export const CREDIT_SLIDER_MAX = 2000
@@ -17,7 +22,7 @@ export const CREDIT_SLIDER_STEP = 10
 export const CREDIT_SLIDER_DEFAULT = 300
 
 const RATE_TOP = 0.199
-const RATE_FLOOR = 0.149
+const RATE_FLOOR = 0.189
 const TAPER_FROM = 100
 const TAPER_TO = 1000
 

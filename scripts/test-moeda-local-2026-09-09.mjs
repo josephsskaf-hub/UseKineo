@@ -24,12 +24,18 @@ const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else falhas.push(n) }
-// checkoutPricing stubado com os números vigentes (V5 restaurado): a lib só lê constantes e delega a régua USD.
+// checkoutPricing stubado com os números vigentes (V8-A, 28/09: 1290/2990/5490): a lib só lê constantes e delega a régua USD.
+// KINEO-PRECO-V8-A-2026-09-28 — o stub modela a escada legada da fonte (fatura ≥ piso V5 990/1990/3990 → 60/150/300; abaixo → V6).
+const V5 = { starter: 990, basic: 1990, pro: 3990 }
 const STUB = {
   AUTOPILOT_PRICES: { usd: 29900 },
-  TIER_CREDITS: { starter: 60, basic: 150, pro: 300, autopilot: 400 },
-  LEGACY_TIER_CREDITS_V6: { starter: 60, basic: 150, pro: 180, autopilot: 400 },
-  renewalCreditsFor: (tier, amount) => ({ starter: 990, basic: 1990, pro: 3990, autopilot: 29900 }[tier] > (amount ?? Infinity) && amount > 0 ? STUB.LEGACY_TIER_CREDITS_V6[tier] : STUB.TIER_CREDITS[tier]),
+  AUTOPILOT_LITE_PRICES: { usd: 5900 },
+  TIER_CREDITS: { starter: 60, basic: 150, pro: 300, autopilot: 400, autopilot_lite: 160 },
+  LEGACY_TIER_CREDITS_V5: { starter: 60, basic: 150, pro: 300, autopilot: 400, autopilot_lite: 160 },
+  LEGACY_TIER_CREDITS_V6: { starter: 60, basic: 150, pro: 180, autopilot: 400, autopilot_lite: 160 },
+  renewalCreditsFor: (tier, amount) => ({ starter: 1290, basic: 2990, pro: 5490, autopilot: 29900, autopilot_lite: 5900 }[tier] > (amount ?? Infinity) && amount > 0
+    ? (V5[tier] !== undefined && amount >= V5[tier] ? STUB.LEGACY_TIER_CREDITS_V5[tier] : STUB.LEGACY_TIER_CREDITS_V6[tier])
+    : STUB.TIER_CREDITS[tier]),
 }
 const roda = (src) => { const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText; const exp = {}; vm.runInNewContext(js, { exports: exp, Intl, require: (id) => { if (id === './checkoutPricing') return STUB; throw new Error('import inesperado: ' + id) } }); return exp }
 
@@ -38,15 +44,17 @@ const libSrc = rd('lib/settlementCurrency.ts')
 checa('a lib importa só de checkoutPricing, e checkoutPricing NÃO importa de volta (sem ciclo; guardiões de lista fechada intactos)', (libSrc.match(/^import /gm) || []).length === 1 && /from '\.\/checkoutPricing'/.test(libSrc) && !/settlementCurrency/.test(rd('lib/checkoutPricing.ts')))
 const m = roda(libSrc)
 
-// a tabela aprovada pelo fundador
-checa('Starter R$ 49,90 · anual R$ 499,00', m.BRL_PLAN_PRICES_MINOR.starter.monthly === 4990 && m.BRL_PLAN_PRICES_MINOR.starter.annual === 49900)
-checa('Creator R$ 99,90 · anual R$ 999,00', m.BRL_PLAN_PRICES_MINOR.basic.monthly === 9990 && m.BRL_PLAN_PRICES_MINOR.basic.annual === 99900)
-checa('Studio R$ 199,90 · anual R$ 1.999,00', m.BRL_PLAN_PRICES_MINOR.pro.monthly === 19990 && m.BRL_PLAN_PRICES_MINOR.pro.annual === 199900)
-checa('a tabela é exatamente o que a fórmula da casa dá sobre $9,90/$19,90/$39,90 (invariante vazio)', m.checkSettlementInvariants({ starter: 990, basic: 1990, pro: 3990 }).length === 0)
-checa('o invariante ACUSA uma tabela torta', m.checkSettlementInvariants({ starter: 1490, basic: 1990, pro: 3990 }).length === 1)
+// a tabela em reais — KINEO-PRECO-V8-A-2026-09-28: reancorada com motivo (escada 13/30/55 do fundador, 28/09; a tabela V5
+// de 09/09 — R$ 49,90/99,90/199,90 — virou o piso do grant legado, LEGACY_V5_BRL_PLAN_PRICES_MINOR).
+checa('Starter R$ 64,90 · anual R$ 649,00', m.BRL_PLAN_PRICES_MINOR.starter.monthly === 6490 && m.BRL_PLAN_PRICES_MINOR.starter.annual === 64900)
+checa('Creator R$ 149,90 · anual R$ 1.499,00', m.BRL_PLAN_PRICES_MINOR.basic.monthly === 14990 && m.BRL_PLAN_PRICES_MINOR.basic.annual === 149900)
+checa('Studio R$ 274,90 · anual R$ 2.749,00', m.BRL_PLAN_PRICES_MINOR.pro.monthly === 27490 && m.BRL_PLAN_PRICES_MINOR.pro.annual === 274900)
+checa('piso legado V5 em reais: R$ 49,90 · 99,90 · 199,90', m.LEGACY_V5_BRL_PLAN_PRICES_MINOR.starter === 4990 && m.LEGACY_V5_BRL_PLAN_PRICES_MINOR.basic === 9990 && m.LEGACY_V5_BRL_PLAN_PRICES_MINOR.pro === 19990)
+checa('a tabela é exatamente o que a fórmula da casa dá sobre $12,90/$29,90/$54,90 (invariante vazio)', m.checkSettlementInvariants({ starter: 1290, basic: 2990, pro: 5490 }).length === 0)
+checa('o invariante ACUSA uma tabela torta', m.checkSettlementInvariants({ starter: 1490, basic: 2990, pro: 5490 }).length === 1)
 checa('fórmula: termina em ,90 e nunca abaixo de R$ 1,90', m.usdToBrlMinor(490) === 2490 && m.usdToBrlMinor(1990) === 9990 && m.usdToBrlMinor(0) === 190 && m.usdToBrlMinor(1) === 190)
-checa('plano: anual em BRL vem da TABELA (10× o mensal), não da fórmula sobre o anual em USD', m.planSettlementAmountMinor('starter', 'annual', 'brl', 9900) === 49900 && m.usdToBrlMinor(9900) !== 49900)
-checa('plano em USD: devolve o próprio preço de lista', m.planSettlementAmountMinor('pro', 'monthly', 'usd', 3990) === 3990 && m.settlementAmountMinor(1990, 'usd') === 1990)
+checa('plano: anual em BRL vem da TABELA (10× o mensal), não da fórmula sobre o anual em USD', m.planSettlementAmountMinor('starter', 'annual', 'brl', 12900) === 64900 && m.usdToBrlMinor(12900) !== 64900)
+checa('plano em USD: devolve o próprio preço de lista', m.planSettlementAmountMinor('pro', 'monthly', 'usd', 5490) === 5490 && m.settlementAmountMinor(2990, 'usd') === 2990)
 
 // a decisão
 const dec = (i) => m.resolveSettlementCurrency(i)
@@ -94,10 +102,13 @@ console.log('== webhook e régua ==')
 const wh = rd('app/api/stripe/webhook/route.ts')
 const cp = rd('lib/checkoutPricing.ts')
 checa('renovação passa a moeda da fatura pela régua com moeda', /const renewalCredits = renewalCreditsForInvoice\(renewalTier, invoice\.amount_paid, invoice\.currency\)/.test(wh) && /import \{ renewalCreditsForInvoice \} from '@\/lib\/settlementCurrency'/.test(wh))
-checa('régua executada: fatura em reais no preço vigente (R$ 199,90) → grant vigente 300', m.renewalCreditsForInvoice('pro', 19990, 'brl') === 300)
-checa('régua executada: fatura em reais abaixo da tabela (R$ 149,90) → legado 180', m.renewalCreditsForInvoice('pro', 14990, 'brl') === 180)
-checa('régua executada: R$ 49,90 no Starter NÃO é comparado com 990 de dólar', m.renewalCreditsForInvoice('starter', 4990, 'brl') === 60)
-checa('régua executada: fatura em dólar delega à fonte única (5900 no Studio = 300; 2900 = legado 180)', m.renewalCreditsForInvoice('pro', 5900, 'usd') === 300 && m.renewalCreditsForInvoice('pro', 2900, 'USD') === 180 && m.renewalCreditsForInvoice('pro', 2900, null) === 180)
+// KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: o vigente em reais é R$ 274,90; quem paga a tabela V5 (R$ 199,90)
+// comprou 300 e MANTÉM; só abaixo do piso V5 cai para o legado V6 (180).
+checa('régua executada: fatura em reais no preço vigente (R$ 274,90) → grant vigente 300', m.renewalCreditsForInvoice('pro', 27490, 'brl') === 300)
+checa('régua executada: fatura em reais na tabela V5 (R$ 199,90, assinante de antes de 28/09) → mantém 300', m.renewalCreditsForInvoice('pro', 19990, 'brl') === 300)
+checa('régua executada: fatura em reais abaixo do piso V5 (R$ 149,90) → legado 180', m.renewalCreditsForInvoice('pro', 14990, 'brl') === 180)
+checa('régua executada: R$ 49,90 no Starter NÃO é comparado com 1290 de dólar (e mantém 60)', m.renewalCreditsForInvoice('starter', 4990, 'brl') === 60)
+checa('régua executada: fatura em dólar delega à fonte única (5900 no Studio = 300; 3990 = V5, mantém 300; 2900 = legado 180)', m.renewalCreditsForInvoice('pro', 5900, 'usd') === 300 && m.renewalCreditsForInvoice('pro', 3990, 'usd') === 300 && m.renewalCreditsForInvoice('pro', 2900, 'USD') === 180 && m.renewalCreditsForInvoice('pro', 2900, null) === 180)
 checa('o tipo de exibição continua USD-only (nenhuma tela reabriu multi-moeda)', /export type CheckoutCurrency = 'usd'$/m.test(cp))
 
 console.log('== telas ==')

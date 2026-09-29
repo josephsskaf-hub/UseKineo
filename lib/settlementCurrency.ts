@@ -12,6 +12,9 @@
 // região aparecem (Pix nunca para americano) — e isso a Stripe faz sozinha
 // quando a sessão nasce em BRL. Tabela FIXA em reais (aprovada: R$ 49,90 ·
 // 99,90 · 199,90; anual 10×), não câmbio do dia — e revista uma vez por mês.
+// KINEO-PRECO-V8-A-2026-09-28 — a tabela acompanha a escada 13/30/55 pela
+// MESMA fórmula da casa (usdToBrlMinor): R$ 64,90 · 149,90 · 274,90; anual 10×.
+// A tabela V5 (49,90 · 99,90 · 199,90) fica como piso do grant legado abaixo.
 //
 // Este módulo NÃO reabre o tipo CheckoutCurrency ('usd'). A moeda de EXIBIÇÃO
 // continua uma só; o que nasce aqui é a moeda de LIQUIDAÇÃO, decidida no
@@ -23,6 +26,7 @@
 import {
   AUTOPILOT_PRICES,
   AUTOPILOT_LITE_PRICES,
+  LEGACY_TIER_CREDITS_V5,
   LEGACY_TIER_CREDITS_V6,
   TIER_CREDITS,
   renewalCreditsFor,
@@ -52,7 +56,8 @@ export const BRL_HOUSE_RATE_NEXT_REVIEW = '2026-10-09'
 /**
  * USD (centavos) → BRL (centavos), terminando em ,90 como toda etiqueta da casa.
  *   990 → 4990 · 1990 → 9990 · 3990 → 19990 · 490 → 2490 · 1990 (top-up) → 9990
- *   (o ANUAL de plano NÃO passa por aqui: 9900 daria 49490; ele vem da tabela, 10× o mensal)
+ *   V8-A (28/09): 1290 → 6490 · 2990 → 14990 · 5490 → 27490
+ *   (o ANUAL de plano NÃO passa por aqui: 12900 daria 64490; ele vem da tabela, 10× o mensal)
  * Piso R$ 1,90 para nunca gerar zero nem negativo.
  */
 export function usdToBrlMinor(usdMinor: number): number {
@@ -60,11 +65,20 @@ export function usdToBrlMinor(usdMinor: number): number {
   return Math.max(190, Math.ceil(raw / 100) * 100 - 10)
 }
 
-/** A tabela aprovada pelo fundador em 09/09, escrita por extenso para poder ser lida. */
+/** A tabela em reais, escrita por extenso para poder ser lida.
+ *  KINEO-PRECO-V8-A-2026-09-28 — usdToBrlMinor(1290/2990/5490) = 6490/14990/27490; anual 10×.
+ *  checkSettlementInvariants confere que cada linha é exatamente o que a fórmula dá sobre TIER_PRICES. */
 export const BRL_PLAN_PRICES_MINOR: Record<CheckoutTier, { monthly: number; annual: number }> = {
-  starter: { monthly: 4990, annual: 49900 },
-  basic: { monthly: 9990, annual: 99900 },
-  pro: { monthly: 19990, annual: 199900 },
+  starter: { monthly: 6490, annual: 64900 },
+  basic: { monthly: 14990, annual: 149900 },
+  pro: { monthly: 27490, annual: 274900 },
+}
+
+/** A tabela V5 em reais (09/09 → 28/09: R$ 49,90 · 99,90 · 199,90) — piso do grant legado de quem assinou nela. */
+export const LEGACY_V5_BRL_PLAN_PRICES_MINOR: Record<CheckoutTier, number> = {
+  starter: 4990,
+  basic: 9990,
+  pro: 19990,
 }
 
 export function settlementAmountMinor(usdMinor: number, currency: SettlementCurrency): number {
@@ -166,6 +180,11 @@ export function renewalCreditsForInvoice(
   if (cur !== 'brl') return renewalCreditsFor(tier, amountPaidMinor)
   const currentBrl = tier === 'autopilot' ? usdToBrlMinor(AUTOPILOT_PRICES.usd) : tier === 'autopilot_lite' ? usdToBrlMinor(AUTOPILOT_LITE_PRICES.usd) : BRL_PLAN_PRICES_MINOR[tier].monthly
   if (typeof amountPaidMinor === 'number' && amountPaidMinor > 0 && amountPaidMinor < currentBrl) {
+    // KINEO-PRECO-V8-A-2026-09-28 — mesma escada da régua em USD (legacyCreditsForUsd), na tabela em reais:
+    // quem pagou a tabela V5 (R$ 49,90 · 99,90 · 199,90) comprou 60/150/300 e mantém; abaixo disso, V6.
+    if ((tier === 'starter' || tier === 'basic' || tier === 'pro') && amountPaidMinor >= LEGACY_V5_BRL_PLAN_PRICES_MINOR[tier]) {
+      return LEGACY_TIER_CREDITS_V5[tier]
+    }
     return LEGACY_TIER_CREDITS_V6[tier]
   }
   return TIER_CREDITS[tier]

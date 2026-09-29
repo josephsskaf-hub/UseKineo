@@ -19,6 +19,7 @@ import { isInternalEmail } from '@/lib/internalAccounts'
 import { isDisposableEmail } from '@/lib/emailValidation'
 import { composerUrl } from '@/lib/lifecycle/composerUrl'
 import { getFreeTierOffer } from '@/lib/freeTierOffer'
+import { TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing' // KINEO-PRECO-V8-A-2026-09-28 — a carta dizia "$9.90" digitado; o preco do Starter passa a sair da fonte unica
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression' // regra da casa: 1 e-mail por pessoa por 24 h, falha fechada
 
 export const maxDuration = 300
@@ -44,6 +45,8 @@ export function buildWeeklyQuotaEmail(userId: string): { text: string; html: str
   const days = Math.round(offer.windowMs / 86_400_000)
   const url = composerUrl({ base: APP, campaign: CAMPAIGN })
   const seconds = offer.maxFreeFastSeconds ?? 15
+  // KINEO-PRECO-V8-A-2026-09-28 — o preço do Starter na carta vem da fonte única (era "$9.90" digitado).
+  const STARTER_USD = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
   const text = `Hey,
 
 Quick one. Your Kineo trial ended a while ago, and until today the free plan gave you one video a month.
@@ -52,7 +55,7 @@ That changed: the free plan now gives you 1 Kineo 1 video every ${days} days —
 
 Your video for this week is already unlocked: ${url}
 
-If you ever want longer films, every engine and clean downloads, Starter is $9.90/month and you can cancel anytime. But the weekly video is yours either way.
+If you ever want longer films, every engine and clean downloads, Starter is ${STARTER_USD}/month and you can cancel anytime. But the weekly video is yours either way.
 
 Joseph
 usekineo.com`
@@ -61,7 +64,7 @@ usekineo.com`
   <p>Quick one. Your Kineo trial ended a while ago, and until today the free plan gave you one video a month.</p>
   <p>That changed: the free plan now gives you <strong>1 Kineo 1 video every ${days} days</strong> — script, voice, captions and footage from any idea you type, up to ${seconds} seconds, watermarked. No card, nothing to buy. It just comes back every week.</p>
   <p style="margin:24px 0"><a href="${url}" style="display:inline-block;background:#2997ff;color:#fff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px">Make this week's free video →</a></p>
-  <p>If you ever want longer films, every engine and clean downloads, Starter is $9.90/month and you can cancel anytime. But the weekly video is yours either way.</p>
+  <p>If you ever want longer films, every engine and clean downloads, Starter is ${STARTER_USD}/month and you can cancel anytime. But the weekly video is yours either way.</p>
   <p style="margin:0 0 2px">Joseph</p>
   <p style="margin:0"><a href="${APP}" style="color:#2997ff">usekineo.com</a></p>
 </div>${emailFooterHtml(userId)}`
