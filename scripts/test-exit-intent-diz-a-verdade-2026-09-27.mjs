@@ -88,7 +88,9 @@ for (const campo of ['sentence', 'planCardBody', 'cmpKineoFree']) {
   const corpo = candidatos.find((l) => l.includes('${G}')) ?? (candidatos[0] ?? '')
   // cmpKineoFree diz "on signup" entre o grant e o "=" (é assim que as páginas
   // de comparação a leem); os outros dois campos não. A frase é a mesma.
-  const novaRe = /\$\{G\} free credits( on signup)? = a \$\{FREE_FILM_LABEL\}; longer films and the other AI engines( \(Veo, Kling\))? from Starter\./
+  // KINEO-E4-CONSERTO-2026-09-29 — reancorado com motivo: com a saída B o grant vale "in supported countries" (${CC}, espelho
+  // de FREE_FILM_COUNTRY_CLAUSE); a cláusula fica entre o grant e o "=". O resto da frase é o mesmo.
+  const novaRe = /\$\{G\} free credits( on signup)?(\$\{CC\})? = a \$\{FREE_FILM_LABEL\}; longer films and the other AI engines( \(Veo, Kling\))? from Starter\./
   check(`B7 ON_COPY.${campo} publica "\${G} ${NOVA}"`, novaRe.test(corpo), corpo.trim().slice(0, 140))
   check(`B8 ON_COPY.${campo} não digita número (fora de \${…} e do nome "Kineo 1")`,
     !/\d/.test(corpo.replace(/\$\{[^}]*\}/g, '').replace(/Kineo 1/g, '')), corpo.trim().slice(0, 140))
@@ -121,7 +123,8 @@ const on = fto.buildFreeTierOffer(true).copy
 // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: a copy servida publica o filme grátis de 15 s, com segundos e custo lidos do código.
 const s15 = fto.TRIAL_FREE_FILM_SECONDS
 check('C1b o grant compra ≥ 1 filme Seedance de 15 s (custo = creditCostForDuration)', s15 === 15 && fto.TRIAL_FREE_FILM_CREDITS === cost.creditCostForDuration('cinematic_ai', true, s15) && fto.TRIAL_SEEDANCE15_FILMS === Math.floor(G / fto.TRIAL_FREE_FILM_CREDITS) && fto.TRIAL_SEEDANCE15_FILMS >= 1)
-const esperado = new RegExp(`${G} free credits( on signup)? = a free ${s15}-second film \\(Seedance 1\\.5\\); longer films and the other AI engines( \\(Veo, Kling\\))? from Starter\\.`)
+// KINEO-E4-CONSERTO-2026-09-29 — reancorado com motivo: " in supported countries" (saída B) entre o grant e o "=".
+const esperado = new RegExp(`${G} free credits( on signup)?( in supported countries)? = a free ${s15}-second film \\(Seedance 1\\.5\\); longer films and the other AI engines( \\(Veo, Kling\\))? from Starter\\.`)
 if (policy.CARD_ENTRY_ONLY) {
   notas.push('CARD_ENTRY_ONLY = true: a copy servida é a da porta de $1; C3/C4 medem a versão A só pelo texto (B7)')
 } else {

@@ -486,7 +486,7 @@ checa('mutante (casa pelos padrões LIKE de isInternalEmail) → vermelho', !pro
   const iPortao = linhas.indexOf(A.slice(0, -1))
   const iRamo = linhas.indexOf('        if (isFreePlanFast) {')
   const iClamp = linhas.indexOf('            freeDurationClamped = { from: duration, to: maxFreeSeconds }')
-  const iCota = linhas.indexOf('            const quotaResponse = await reserveFreeFastPreviewSlot()')
+  const iCota = linhas.indexOf('          const quotaResponse = await reserveFreeFastPreviewSlot()')
   const iCredito = linhas.indexOf("          const requiredCredits = creditCostForDuration('fast', true, duration)")
   checa('no compose o portão vem depois de isFreePlanFast e ANTES da divisão free/crédito, do clamp e da reserva de cota', iDef > 0 && iPortao > iDef && iRamo > iPortao && iClamp > iPortao && iCota > iPortao && iCredito > iPortao)
   // achado 2: casa/Autopilot em plano grátis não passam pela contagem da cota (limit 0), mas tomam o mesmo claim de custo 0

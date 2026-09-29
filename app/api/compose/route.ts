@@ -2004,13 +2004,14 @@ export async function POST(req: NextRequest) {
           // (depois de a generate-video-fast já ter gasto OpenAI/Pixabay/fal) e Autopilot sem has_paid. Esses dois não
           // passam mais pela contagem da cota (seguem com marca d'água e o corte acima), mas continuam tomando o MESMO
           // claim de submissão de custo 0 que a reserva toma (mutex/dedupe do render); nenhum outro chega aqui (portão).
+          // (As duas linhas da reserva ficam como na base — só ACRESCENTADAS as linhas marcadas em volta.)
           if (kineo1Porta === 'internal' || kineo1Porta === 'autopilot') {
             const houseReservation = await claimGenerationSubmission(0)
             if (houseReservation.kind !== 'acquired') return houseReservation.response
           } else {
-            const quotaResponse = await reserveFreeFastPreviewSlot()
-            if (quotaResponse) return quotaResponse
-          }
+          const quotaResponse = await reserveFreeFastPreviewSlot()
+          if (quotaResponse) return quotaResponse
+          } // KINEO-E4-CONSERTO-2026-09-29 — fim do desvio da casa/Autopilot
         } else {
           const requiredCredits = creditCostForDuration('fast', true, duration)
           if (creditBalance < requiredCredits) {
