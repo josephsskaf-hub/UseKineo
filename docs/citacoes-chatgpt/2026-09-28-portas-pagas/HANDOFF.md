@@ -1,5 +1,13 @@
 # Portas existentes para Seedance — 28/09/2026
 
+## Atualização vigente após preços V8-A — 29/09 00:05 UTC (28/09 BRT)
+
+**DECISÃO APROVADA / BASE CONCILIADA:** origin/main b99717a6 inclui a decisão do fundador registrada em docs/DECISIONS.md:5. Candidato de código a332c1d6 incorpora essa base sem alterar suas regras. Preview completo regenerado contra b99717a6; o Starter mostrado agora deriva US$12,90 da fonte, mantendo os mesmos créditos/custos. Não revisar o preço da captura antiga. Nenhum preço digitado em JSX por esta entrega.
+
+**TESTADO LOCALMENTE — corte00:05:20UTC:** typecheck aprovado; ponte20 e hero Seedance passaram; comparação completa usa a base V8-A já medida. Base676 testes:548 verdes/128 vermelhos; candidato677:549 verdes/128 vermelhos. Nenhum verde regrediu, nenhum teste foi removido; teste adicional passou. Guardiões críticos27 verdes/1 vermelho em ambos; a falha do renderer segue bloqueando publicação. Fonte privada s24-01-v8-suite-comparison.json e logs s24-base-b99717a6/s24-01-v8-candidate-a332c1d6. Mutantes GPT da base V8-A em mutants-v8.json falham nas quatro asserções esperadas; preços V8-A passam no guardião próprio com mutantes internos. Não repetir a suíte sem nova alteração/dependência resolvida.
+
+**LOCAL / QUESTÃO PENDENTE:** revisão humana própria, renderer pelo dono e publicação pelo fundador continuam pendentes. Pedido S24-01-RENDERER permanece único; não reenviado. S24-02, em branch codex/citacoes-agency-plans-20260928, é uma entrega independente da página de agências, não incorporada nesta branch.
+
 ## Retomada S24-01 — estado vigente em 28/09, 23:40 UTC
 
 **AUTORIZAÇÃO DIRETA / PARCIAL:** nova sprint do fundador, 28/09 23:31 UTC a 29/09 23:31 UTC. Esta seção substitui os estados e próximos passos históricos abaixo. Retoma a mesma entrega a0db28df; não são três experimentos novos. Skill antiga rejeitada e não aplicada. Contador37 e corpus29/100 permanecem históricos.
