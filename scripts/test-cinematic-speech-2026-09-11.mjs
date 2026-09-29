@@ -12,6 +12,8 @@ const ok = (value, label) => { assert.ok(value, label); checks++ }
 const rejects = (fn, label) => { assert.throws(fn, /unverified|narration|captions|timeline/); checks++ }
 const load = createOfflineLoader()
 const speech = load('@/lib/cinematic/speechContract')
+// KINEO-FAL-UM-ALARME-POR-FILME-2026-09-28 — o catch do host na rota lê o classificador de saldo real.
+const falAlertReal = load('@/lib/falAlert')
 const visual = load('@/lib/cinematic/visualMode')
 const compose = load('@/lib/compose')
 const timeline = load('@/lib/cinematic/timelineContract')
@@ -404,6 +406,8 @@ eq(notRequested.calls.length, 0, 'No clone/profile lookup when unrequested')
       estimateMp3DurationSeconds: () => 8, uploadVoiceoverToSupabase: async () => { calls.push(['upload']); if (upload) return upload(); return 'https://offline.invalid/voice.mp3' },
       submitAvatarJob: async a => { calls.push(['host-submit', a.engine]); return submit() },
       HOST_PRESENTER_MODEL: 'offline-host-model', AvatarSubmitError, cinematicSubmissionUncertain: false, providerSubmissionMayExist: false,
+      // KINEO-FAL-UM-ALARME-POR-FILME-2026-09-28 — re-ancorado: o catch real do host lê looksExhausted (o REAL, de lib/falAlert).
+      looksExhausted: falAlertReal.looksExhausted,
       cinematicSceneModel: (fam, t, anchored) => `${fam}/${t}/${anchored ? 'i2v' : 't2v'}`, ctxDespacho: () => ctxStub,
       console: { log() {}, warn() {} }, fetch() { throw Error('network forbidden') }, Buffer, Math,
     }
@@ -527,6 +531,7 @@ eq(notRequested.calls.length, 0, 'No clone/profile lookup when unrequested')
       estimateMp3DurationSeconds: () => 5, uploadVoiceoverToSupabase: async () => { calls.push(['upload']); if (upload) return upload(); return 'https://offline.invalid/voice.mp3' },
       submitAvatarJob: async a => { calls.push(['host-submit', a.engine]); return api.submitQueueOnce('fixture-host-model', {}) },
       AvatarSubmitError: api.AvatarSubmitError, HOST_PRESENTER_MODEL: 'offline-host-model',
+      looksExhausted: falAlertReal.looksExhausted, // KINEO-FAL-UM-ALARME-POR-FILME-2026-09-28 — re-ancorado (catch real do host)
       cinematicSceneModel: (fam, t, anchored) => `${fam}/${t}/${anchored ? 'i2v' : 't2v'}`, ctxDespacho: () => c, classifyProviderFailure: disposition.classifyProviderFailure,
       confirmCinematicRefund: async () => { calls.push(['refund']); return refunded }, releaseBirthClaim: async (reason) => { calls.push(['release', reason]); return released },
       writeServerEvent: async (e) => { calls.push(['event', e.name, e.metadata]) },
@@ -549,6 +554,13 @@ eq(notRequested.calls.length, 0, 'No clone/profile lookup when unrequested')
   ok(!posted.calls.some(c => c[0] === 'native-post'), '§2: the silent native POST never happens for the held scene')
   const postedEvent = posted.calls.find(c => c[0] === 'event')[2]
   eq([postedEvent.host_attempts, postedEvent.native_posts_for_held, postedEvent.scene_posts], [[{ scene_index: 0, host_model: 'offline-host-model', host_post: true, host_status: 400 }], 0, 1], 'the event separates the real host attempt (posted, 400) from the native fallback (blocked, zero POST)')
+  // KINEO-FAL-UM-ALARME-POR-FILME-2026-09-28 — o host recusado por SALDO (adaptador real + catch REAL da rota) liga a
+  // flag do despacho: o finalizador alarma UMA vez, como 'cinematic'. O 400 de payload não liga. No S25 a cena retida
+  // (sem fallback O3) não ligava nada — e o veed alarmava 'avatar_submit' por conta própria.
+  const saldo403 = async () => ({ ok: false, status: 403, text: async () => '{"detail":"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing"}' })
+  const semSaldo = await runFull({ scenes: presenterPlan(11), fetchImpl: saldo403 })
+  eq([semSaldo.ctx.balanceExhausted === true, semSaldo.result.held, posted.ctx.balanceExhausted === true], [true, [0], false], 'host 403 de saldo: flag do despacho ligada e a cena S25 retida; host 400 de payload: flag desligada')
+  ok(semSaldo.calls.find(c => c[0] === 'host-submit') && !semSaldo.calls.some(c => c[0] === 'native-post' && c[3] === 0), 'host 403 de saldo: o POST nativo mudo da cena retida continua sem acontecer')
   // §1 — TTS falha ANTES de qualquer POST: zero tentativas de vídeo, como sempre.
   const ttsFail = await runFull({ scenes: presenterPlan(11), fetchImpl: reject400, tts: async () => { throw Error('tts unavailable') } })
   eq([ttsFail.calls.filter(c => c[0] === 'provider-post').length, ttsFail.ctx.outcomes[0].attempt_count, ttsFail.ctx.outcomes[0].reason_class, ttsFail.ctx.attempts[0], ttsFail.ctx.totalPosts], [0, 0, 'local_policy_gate', [], 0], '§1: a TTS failure before the submit stays a zero-attempt policy hold (no phantom POST)')

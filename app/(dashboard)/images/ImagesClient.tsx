@@ -15,6 +15,7 @@ import OutOfCreditsPlansModal from '@/components/OutOfCreditsPlansModal'
 import { outOfCreditsDestination } from '@/lib/credits/outOfCreditsPlans'
 // KINEO-FLUXO-NOVO-2026-09-25 — mede o clique em "Turn into video" (imagem → Animate).
 import { trackEvent } from '@/lib/analytics'
+import EngineVisualReference from '@/components/EngineVisualReference'
 import { IMG_ENGINES, type ImgModelKey } from '@/lib/imageModels'
 
 type ImgSize = 'square_hd' | 'portrait_16_9' | 'landscape_16_9'
@@ -240,12 +241,14 @@ export default function ImagesClient() {
 
       <fieldset className="image-engine-picker">
         <legend className="lab"><span className="n">1</span><UiLabel>Engine</UiLabel></legend>
+        <p className="image-reference-note"><UiLabel>Illustrative references, not model outputs.</UiLabel></p>
         <div className="image-engines">
           {IMG_ENGINES.map((engine) => (
             <label key={engine.key} className="image-engine-option">
               <input className="image-engine-choice" type="radio" name="image-engine" value={engine.key}
                 checked={model === engine.key} onChange={() => setModel(engine.key)} />
               <span className="image-engine-card">
+                <EngineVisualReference model={engine.key} />
                 <span className="image-engine-top" aria-hidden="true">
                   <span className="image-engine-icon">{engine.icon}</span>
                   <span className="image-engine-check">✓</span>

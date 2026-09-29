@@ -1,0 +1,280 @@
+// KINEO-KLING25-VARIEDADE-2026-09-28 — guardião do eixo de variedade por plano do Kling 2.5.
+// Fundador, 28/09, aprovando o canário de 35 s (c83074b6, 38 s entregues) e pedindo o de 60 s chegando a 65-70 s:
+// "a única coisa é mais variedade de cenas" · "melhore o Kling 2.5 (...) nas próximas uma hora foca em melhorar ele".
+// Com 12 planos de 5 s o descritor repete enquadramento e movimento nos vizinhos apesar do pedido "do not repeat the
+// same shot type" — pedido não é garantia. Este guardião EXECUTA (readFileSync + transpile + vm, sem rede, sem banco,
+// sem fornecedor) e prova:
+//   (a) a lib (lib/cinematic/klingShots kling25ShotAxis / kling25ApplyShotAxis): 12 planos → 12 eixos distintos, vizinhos
+//       sempre diferentes (inclusive acima de 12), determinístico, o eixo é PREFIXO e nenhuma palavra do prompt some, os
+//       sufixos de proteção (fim do prompt) ficam intactos; o teto de 2.500 chars só corta em fronteira de frase,
+//       preserva a cauda e nunca decapita uma proibição;
+//   (b) prompts REAIS do caminho clássico (buildClassicVisualPrompt via loader offline) nos 3 modos visuais: nada perdido;
+//   (c) a rota: o ponto onde classicScenePrompts nasce — executado com wantsKling=true (12 prefixos distintos) e com
+//       wantsKling=false (saída idêntica à da BASE, o pai do commit, byte a byte) — e só ESSE ponto chama a função;
+//       buildFalInput (Seedance/Veo/Sora/hollywood) idêntico à base;
+//   (d) mutantes: sem o prefixo, sem a rotação e com corte por contagem de palavras, as verificações ficam vermelhas;
+//   (e) revisão: o juiz de coerência (lib/admin/fastCoherence, `submitted_prompts` = 240 chars por cena) lê o prompt SEM o
+//       eixo — a gravação real do submitScene é EXECUTADA com o eixo aplicado e começa pelo sujeito da cena; wantsKling
+//       false grava byte a byte o que a base gravava; o mutante que grava o prompt com eixo fica vermelho.
+//   DIFF: as asserções byte a byte comparam o COMMIT da trilha (o mais recente = a revisão) com o pai do PRIMEIRO commit,
+//       nunca a worktree — depois do merge ela carrega os irmãos (teto, âncora, pilha) e ficava vermelha à toa.
+import { readFileSync } from 'node:fs'
+import { join, dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { execFileSync } from 'node:child_process'
+import vm from 'node:vm'
+import ts from 'typescript'
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+
+const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
+process.chdir(RAIZ)
+const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+let ok = 0
+const falhas = []
+const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.log('  FALHOU: ' + n) } }
+const roda = (src, globals = {}) => {
+  const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText
+  const exp = {}
+  vm.runInNewContext(js, { exports: exp, console: { log() {}, warn() {}, error() {} }, JSON, Math, Number, Array, Object, Set, Map, String, RegExp, process: { env: {} }, ...globals })
+  return exp
+}
+const palavras = (t) => String(t ?? '').replace(/[.,;:!?()]/g, ' ').split(/\s+/).filter(Boolean)
+
+// ── base = o "antes" e candidato = o commit da trilha ───────────────────────────────────────────────────────────────
+// Memória "trava por diff fica verde ao mergear / medir vs pai do commit": depois do merge com a main e a fila, HEAD é um
+// merge — comparar a base com a WORKTREE carrega o trabalho dos IRMÃOS (teto KLING25-60S-TETO, âncora, pilha mexem em
+// klingShots.ts e no route.ts) e fica vermelho à toa (medido 28/09: "fora do import ... a rota é idêntica à base"). Por
+// isso, no padrão dos guardiões do teto e da âncora:
+//   (1) os commits "[TRAVA 8.2] KLING25-60S-VARIEDADE" na história de HEAD (o PRIMEIRO = o eixo; a revisão = o juiz sem
+//       eixo): base = <primeiro>^ e candidato = <o mais recente da trilha> — o diff cobre os dois commits. As asserções
+//       de DIFF (byte a byte) leem `git show <sha>:<arquivo>`; as que EXECUTAM a lógica leem o arquivo ATUAL da worktree,
+//       para provar que o comportamento continua no HEAD;
+//   (2) sem o commit na história (worktree pristina): base = HEAD (senão origin/main) e candidato = a worktree, como antes.
+// A base escolhida NÃO pode conter o marcador; o candidato TEM de conter.
+const git = (args) => execFileSync('git', args, { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()
+let BASE = null
+let SHA = null // o candidato do diff (o commit mais recente da trilha); null = a worktree
+{
+  let trilha = []
+  try { trilha = git(['log', '--basic-regexp', '--topo-order', '--format=%H', '--grep=^\\[TRAVA 8.2\\] KLING25-60S-VARIEDADE', 'HEAD']).trim().split('\n').filter(Boolean) } catch { /* sem commit ainda */ }
+  const primeiro = trilha.length ? trilha[trilha.length - 1] : null // o mais antigo: o commit que introduziu o eixo
+  if (trilha.length) SHA = trilha[0] // o mais recente: a revisão (ou o próprio primeiro, sem revisão)
+  const candidatos = primeiro ? [primeiro + '^'] : []
+  candidatos.push('HEAD', 'origin/main')
+  for (const ref of candidatos) {
+    try { if (!git(['show', `${ref}:app/api/generate-video-cinematic/route.ts`]).includes('KINEO-KLING25-VARIEDADE')) { BASE = ref; break } } catch { /* próximo */ }
+  }
+  if (primeiro && BASE !== primeiro + '^') SHA = null // o pai do primeiro já tinha o marcador: não é o introdutor — o candidato volta a ser a worktree
+}
+console.log(`   base de comparação: ${BASE ?? '(nenhuma)'} · candidato do diff: ${SHA ?? 'worktree (sem o commit na história)'}`)
+const rdBase = (p) => { if (!BASE) return null; try { return git(['show', `${BASE}:${p}`]).replace(/\r\n/g, '\n') } catch { return null } }
+const rdCand = (p) => { if (!SHA) return rd(p); try { return git(['show', `${SHA}:${p}`]).replace(/\r\n/g, '\n') } catch { return null } }
+checa('a base (pai do primeiro commit da trilha, sem o eixo) está disponível para as comparações byte a byte', Boolean(BASE))
+
+// ═══ (a) a lib ═══
+console.log('== (a) lib/cinematic/klingShots — eixo por plano ==')
+const libSrc = rd('lib/cinematic/klingShots.ts')
+checa('a lib continua PURA (sem import): guardiões e a rota leem a mesma régua', !/^import\s/m.test(libSrc))
+const lib = roda(libSrc)
+const { KLING25_SHOT_AXES, KLING25_MAX_SHOTS, KLING25_PROMPT_MAX_CHARS, kling25ShotAxis, kling25ApplyShotAxis, kling25StripShotAxis } = lib
+checa('exporta KLING25_SHOT_AXES, kling25ShotAxis e kling25ApplyShotAxis', Array.isArray(KLING25_SHOT_AXES) && typeof kling25ShotAxis === 'function' && typeof kling25ApplyShotAxis === 'function')
+// Depois do teto (KLING25-60S-TETO) a lib tem o teto FÍSICO (18, roteiro pronto) e o do modo IA (12); antes dele, só um (12).
+const TETO_IA = typeof lib.KLING25_MAX_SHOTS_AI === 'number' ? lib.KLING25_MAX_SHOTS_AI : KLING25_MAX_SHOTS
+checa(`há tantos eixos quanto o teto de planos do modo IA (${TETO_IA}): um filme de 12 planos não repete nenhum`, TETO_IA === 12 && KLING25_SHOT_AXES.length === TETO_IA && new Set(KLING25_SHOT_AXES).size === TETO_IA)
+checa('teto de prompt do fornecedor = 2.500 chars (schema da fal do Kling 2.5)', KLING25_PROMPT_MAX_CHARS === 2500)
+checa('nenhum eixo pede ângulo holandês, texto ou rosto falando (STABLE_SHOT / NO_TEXT / mouth)', KLING25_SHOT_AXES.every((e) => !/dutch|tilted horizon|\btext\b|caption|letters|mouth|talking|speaking/i.test(e)))
+checa('todo eixo declara escala/ângulo E um movimento de câmera', KLING25_SHOT_AXES.every((e) => /shot|close-up|view|overview/i.test(e) && /push-in|dolly|tilt|travelling|tracking|crane|orbit|drift|pull-back|gliding|rotation|rack focus/i.test(e)))
+
+const eixos12 = Array.from({ length: 12 }, (_, i) => kling25ShotAxis(i))
+checa('12 planos → 12 eixos, todos distintos', new Set(eixos12).size === 12)
+const eixos14 = Array.from({ length: 14 }, (_, i) => kling25ShotAxis(i))
+checa('acima do teto (14 planos) nenhum vizinho repete o eixo', eixos14.every((e, i) => i === 0 || e !== eixos14[i - 1]))
+const eixosFisico = Array.from({ length: Math.max(KLING25_MAX_SHOTS, 14) }, (_, i) => kling25ShotAxis(i))
+checa(`até o teto físico de planos (${eixosFisico.length}, roteiro pronto de 90 s) nenhum vizinho repete o eixo`, eixosFisico.every((e, i) => i === 0 || e !== eixosFisico[i - 1]))
+checa('determinístico: a mesma chamada devolve o mesmo eixo', eixos14.every((e, i) => kling25ShotAxis(i) === e))
+checa('índice inválido cai no plano médio (eixo 0), nunca lança', kling25ShotAxis(-1) === KLING25_SHOT_AXES[0] && kling25ShotAxis(1.5) === KLING25_SHOT_AXES[0] && kling25ShotAxis(NaN) === KLING25_SHOT_AXES[0])
+checa('o plano 1 é plano médio com sujeito legível (compatível com "Opening shot: show the described subject immediately")', /medium shot/i.test(kling25ShotAxis(0)) && /clearly readable/i.test(kling25ShotAxis(0)))
+
+const CAUDA_REAL = ', no watermark, no logo. No readable on-screen text, no letters, no captions, no subtitles, no signage, no labels. Mouth closed, not speaking, no lip movement, vertical 9:16 composition'
+const PROMPT_TIPICO = 'Opening shot: show the described subject and action immediately in the first frame, clearly readable; no unrelated establishing landscape or slow fade-in. A weathered stone valley floor with a lone boulder leaving a long trail in cracked dry mud, faceless cinematic b-roll, focus on the described subject and its environment, no foreground human faces, photorealistic, ultra-detailed, dramatic cinematic lighting, smooth camera motion, subject clearly framed with the lower third clear for captions' + CAUDA_REAL
+const aplicado = kling25ApplyShotAxis(PROMPT_TIPICO, 3)
+checa('o eixo é PREFIXO: o prompt começa pelo eixo do plano e segue com o prompt inteiro', aplicado.startsWith(kling25ShotAxis(3) + '. ') && aplicado.endsWith(PROMPT_TIPICO.replace(/\s+/g, ' ').trim()))
+checa('nenhuma palavra do prompt original some (multiconjunto de palavras preservado)', (() => { const a = palavras(PROMPT_TIPICO); const b = palavras(aplicado); return a.every((w) => b.includes(w)) && b.length === a.length + palavras(kling25ShotAxis(3)).length })())
+checa('os sufixos de proteção (cauda) ficam intactos', aplicado.endsWith(CAUDA_REAL.trim()))
+checa('prompt vazio → só o eixo (o motor precisa de algo); espaços múltiplos são normalizados', kling25ApplyShotAxis('', 2) === kling25ShotAxis(2) && kling25ApplyShotAxis('  a   b  ', 2) === kling25ShotAxis(2) + '. a b')
+checa('o prompt típico (~' + PROMPT_TIPICO.length + ' chars) fica muito abaixo do teto: o corte NUNCA entra no caso comum', aplicado.length < KLING25_PROMPT_MAX_CHARS / 2)
+
+// Teto: prompt anormalmente longo. Frases numeradas para saber o que sobreviveu.
+const frasesLongas = Array.from({ length: 40 }, (_, i) => `Sentence number ${i + 1} describes yet another layer of the scene with plenty of detail about light and weather and texture.`)
+const PROMPT_LONGO = frasesLongas.join(' ') + CAUDA_REAL
+checa('o prompt longo de teste passa mesmo do teto (senão o teste não prova nada)', (kling25ShotAxis(5) + '. ' + PROMPT_LONGO).length > KLING25_PROMPT_MAX_CHARS)
+const cortado = kling25ApplyShotAxis(PROMPT_LONGO, 5)
+checa('acima do teto: a saída cabe no teto', cortado.length <= KLING25_PROMPT_MAX_CHARS)
+checa('acima do teto: o eixo segue na frente', cortado.startsWith(kling25ShotAxis(5) + '. '))
+checa('acima do teto: a CAUDA (sufixos de proteção) sobrevive inteira', cortado.endsWith('Mouth closed, not speaking, no lip movement, vertical 9:16 composition'))
+checa('acima do teto: o corte é em fronteira de FRASE — nenhuma frase numerada fica pela metade', (() => { const m = cortado.match(/Sentence number \d+ [^.]*\./g) || []; const parciais = (cortado.match(/Sentence number \d+/g) || []).length; return m.length === parciais && m.length >= 10 })())
+const PROMPT_PROIBICAO = frasesLongas.slice(0, 26).join(' ') + ' Mouth closed, not speaking. Mouth' + CAUDA_REAL
+const cortadoProib = kling25ApplyShotAxis(PROMPT_PROIBICAO, 7, 2500, 400)
+checa('acima do teto: nunca termina o miolo num começo de proibição solto ("Mouth")', !/\bMouth\s+(?:, )?no watermark/.test(cortadoProib) && !/Sentence number \d+ [^.]*\.\s+Mouth\s*,?\s*(?:no watermark)/.test(cortadoProib) && cortadoProib.length <= 2500)
+checa('teto pequeno de propósito (300 chars) ainda entrega eixo + cauda dentro do limite', (() => { const s = kling25ApplyShotAxis(PROMPT_TIPICO, 1, 300, 120); return s.length <= 300 && s.startsWith(kling25ShotAxis(1)) })())
+
+// ═══ (b) prompts REAIS do caminho clássico ═══
+console.log('== (b) prompts reais de buildClassicVisualPrompt nos 3 modos ==')
+const load = createOfflineLoader()
+const politica = load('@/lib/cinematic/visualPromptPolicy')
+const estilo = load('@/lib/cinematic/sceneStyle')
+const style = typeof estilo.resolveStyleAnchor === 'function' ? estilo.resolveStyleAnchor('cinematic') : (estilo.DEFAULT_STYLE_ANCHOR ?? estilo.STYLE_ANCHORS?.cinematic ?? { lookPhrase: 'cinematic', suffix: 'cinematic look' })
+const visuais = [
+  'A lone boulder on a cracked dry lakebed leaving a long trail behind it at dawn',
+  'Wind-driven sheets of thin ice sliding across a shallow flooded playa',
+  'Close view of rock tracks converging and diverging across the mud',
+  'A survey camera mounted on a tripod overlooking the playa at dusk',
+  'Storm clouds rolling over distant mountains above the valley',
+  'A GPS unit resting on a rock surface with a trail behind it',
+  'Frozen puddles reflecting an orange sunrise over the flat valley',
+  'The valley seen from a ridge with dozens of parallel trails',
+  'Rain drops hitting the dry mud and darkening its surface',
+  'A boulder half-buried in mud with a fresh furrow behind it',
+  'Thin ice breaking apart into floating panels under sunlight',
+  'The empty playa under a star-filled night sky',
+]
+let modosOk = 0
+for (const mode of ['documentary_faceless', 'character_story', 'presenter_requested']) {
+  const prompts = visuais.map((v, i) => politica.buildClassicVisualPrompt(v, { mode, style, character: mode === 'character_story' ? 'a geologist in a wide hat' : null, eraSuffix: '', opening: i === 0, aspect: null }))
+  const comEixo = prompts.map((p, i) => kling25ApplyShotAxis(p, i))
+  const nadaPerdido = prompts.every((p, i) => { const a = palavras(p); const b = palavras(comEixo[i]); return a.every((w) => b.includes(w)) && comEixo[i].endsWith(p.replace(/\s+/g, ' ').trim()) })
+  const prefixos = new Set(comEixo.map((p) => p.split('. ')[0]))
+  const abaixoDoTeto = comEixo.every((p) => p.length <= KLING25_PROMPT_MAX_CHARS)
+  if (nadaPerdido && prefixos.size === 12 && abaixoDoTeto) modosOk++
+  else console.log(`   modo ${mode}: nadaPerdido=${nadaPerdido} prefixos=${prefixos.size} abaixoDoTeto=${abaixoDoTeto}`)
+}
+checa('nos 3 modos visuais: 12 prompts reais → 12 prefixos distintos, nada perdido, abaixo do teto', modosOk === 3)
+
+// ═══ (c) a rota ═══
+console.log('== (c) app/api/generate-video-cinematic/route.ts ==')
+const ROTA = 'app/api/generate-video-cinematic/route.ts'
+const rota = rd(ROTA)
+const rotaBase = rdBase(ROTA)
+const rotaCand = rdCand(ROTA)
+checa('o route.ts de HEAD carrega o marcador KINEO-KLING25-VARIEDADE', rota.includes('KINEO-KLING25-VARIEDADE'))
+checa('o candidato do diff (o commit mais recente da trilha, ou a worktree antes dele existir) carrega o eixo E a revisão (kling25StripShotAxis) — o diff abaixo mede ESTE trabalho, não o dos irmãos', String(rotaCand).includes('KINEO-KLING25-VARIEDADE') && String(rotaCand).includes('kling25StripShotAxis'))
+checa('a base NÃO carrega o marcador (é o antes de verdade)', rotaBase !== null && !rotaBase.includes('KINEO-KLING25-VARIEDADE'))
+const routeAst = (src) => ts.createSourceFile('route.ts', src, ts.ScriptTarget.Latest, true)
+function acha(ast, pred) { let f; const v = (n) => { if (!f && pred(n)) f = n; if (!f) ts.forEachChild(n, v) }; v(ast); return f }
+const varDe = (src, nome) => { const ast = routeAst(src); const n = acha(ast, (x) => ts.isVariableDeclaration(x) && x.name.getText(ast) === nome); return n ? n.initializer.getText(ast) : null }
+const funcaoDe = (src, nome) => { const ast = routeAst(src); const n = acha(ast, (x) => ts.isFunctionDeclaration(x) && x.name?.text === nome); return n ? n.getText(ast) : null }
+
+checa('a rota importa kling25ApplyShotAxis de @/lib/cinematic/klingShots', /import \{[^}]*kling25ApplyShotAxis[^}]*\} from '@\/lib\/cinematic\/klingShots'/.test(rota))
+const chamadas = rota.split('kling25ApplyShotAxis(').length - 1
+checa('a rota chama kling25ApplyShotAxis exatamente UMA vez (o ponto onde classicScenePrompts nasce)', chamadas === 1)
+const iniClassic = varDe(rota, 'classicScenePrompts')
+checa('a chamada está amarrada a wantsKling no ternário: `wantsKling ? kling25ApplyShotAxis(promptDaCena, sceneIndex) : promptDaCena`', Boolean(iniClassic) && iniClassic.includes('wantsKling ? kling25ApplyShotAxis(promptDaCena, sceneIndex) : promptDaCena'))
+checa('a chamada vem DEPOIS do contrato de cena (aplicarContrato → promptCorrigido) — o eixo prefixa o prompt já corrigido', Boolean(iniClassic) && iniClassic.indexOf('aplicarContrato(') < iniClassic.indexOf('kling25ApplyShotAxis('))
+const rotaSemComentarios = rota.split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n')
+checa('fora de comentários, a rota cita kling25ApplyShotAxis exatamente 2 vezes: o import e a chamada dentro de classicScenePrompts (hollywood/Seedance/Veo/Sora nem sabem que existe)', rotaSemComentarios.split('kling25ApplyShotAxis').length - 1 === 2 && iniClassic.replace(/\/\/.*$/gm, '').includes('kling25ApplyShotAxis('))
+
+// Executa o bloco real de classicScenePrompts com dependências inertes: contrato aprova tudo, builder devolve o visual.
+const ambiente = (wantsKling, scenes) => ({
+  wantsKling, scenes, eraSuffix: '', classicVisualMode: 'documentary_faceless', classicVisualPolicy: { mode: 'documentary_faceless' },
+  buildClassicVisualPrompt: (v, pol) => (pol.opening ? 'Opening shot: subject first. ' : '') + v + CAUDA_REAL,
+  montarContrato: (c) => c, aplicarContrato: (c) => ({ promptCorrigido: c.promptFinal, antes: { veredicto: 'ok', cobertura: '', motivo: '' }, depois: { veredicto: 'ok' }, acoes: [] }),
+  severidadeDe: () => 'ok', proibidosPorModo: () => [], contratoRelatoClassico: [], kling25ApplyShotAxis,
+})
+const executaClassic = (src, wantsKling, scenes) => {
+  const ini = varDe(src, 'classicScenePrompts')
+  if (!ini) return null
+  return roda(`export const out = ${ini}`, ambiente(wantsKling, scenes)).out
+}
+const cenas12 = visuais.map((v, i) => ({ aiPrompt: v, voiceover: `Line ${i + 1} of the narration.` }))
+const klingHead = executaClassic(rota, true, cenas12)
+const outrosHead = executaClassic(rota, false, cenas12)
+const outrosBase = rotaBase ? executaClassic(rotaBase, false, cenas12) : null
+const klingBase = rotaBase ? executaClassic(rotaBase, true, cenas12) : null
+checa('rota (Kling, 12 cenas): 12 prompts com 12 prefixos distintos, cada um = eixo do índice', Array.isArray(klingHead) && klingHead.length === 12 && klingHead.every((p, i) => p.startsWith(kling25ShotAxis(i) + '. ')) && new Set(klingHead.map((p) => p.split('. ')[0])).size === 12)
+checa('rota (Kling): nenhuma palavra do prompt da cena se perde e a cauda de proteção sobrevive', Array.isArray(klingHead) && klingHead.every((p, i) => p.endsWith((visuais[i] + CAUDA_REAL).trim()) && (i !== 0 || p.includes('Opening shot: subject first.'))))
+checa('rota (Seedance/Veo/Sora = wantsKling false): saída IDÊNTICA à da base, byte a byte', Array.isArray(outrosHead) && Array.isArray(outrosBase) && JSON.stringify(outrosHead) === JSON.stringify(outrosBase))
+checa('rota (wantsKling false): nenhum prompt começa por eixo', Array.isArray(outrosHead) && outrosHead.every((p) => !KLING25_SHOT_AXES.some((e) => p.startsWith(e))))
+const temEixo = (p) => KLING25_SHOT_AXES.some((e) => p.includes(e))
+checa('ANTES (base, Kling): nenhum dos 12 prompts trazia eixo de câmera; DEPOIS: os 12 trazem, cada um o seu, 12 distintos', Array.isArray(klingBase) && klingBase.length === 12 && klingBase.every((p) => !temEixo(p)) && klingHead.every(temEixo) && new Set(klingHead.map((p) => p.split('. ')[0])).size === 12)
+checa('o still FLUX e o clipe leem o MESMO vetor (classicScenePrompts[idx] no still; classicScenePrompts[sceneIndex] no submitScene): o eixo entra nas duas peças', rota.includes('const scenePrompt = classicScenePrompts[idx]') && rota.includes('const cinematic = classicScenePrompts[sceneIndex]'))
+
+// Outros motores byte a byte: buildFalInput e o bloco hollywood não mudaram — CANDIDATO × base (commit × commit), nunca a
+// worktree: depois do merge ela carrega o teto (KLING25-60S-TETO), a âncora e a pilha — irmãos, não esta entrega. Medido em
+// 28/09: contra a worktree, "fora do import ... a rota é idêntica à base" ficava vermelho à toa.
+if (rotaBase && rotaCand) {
+  checa('buildFalInput (Seedance/Veo/Sora/Kling payload/hollywood) idêntico à base (candidato × base)', funcaoDe(rotaCand, 'buildFalInput') === funcaoDe(rotaBase, 'buildFalInput'))
+  const semVariedade = (s) => s
+    .replace(', kling25ApplyShotAxis, kling25StripShotAxis }', ' }').replace(' · KINEO-KLING25-VARIEDADE-2026-09-28', '')
+    // (revisão) a gravação para o juiz volta à forma da base — o bloco (e) prova o conteúdo dela executado.
+    .replace(/\n {8}\/\/ KINEO-KLING25-VARIEDADE-2026-09-28 \(revisão\)[\s\S]*?\(wantsKling \? kling25StripShotAxis\(cinematic\) : cinematic\)\.slice\(0, 240\)/, '\n        c.submittedPrompts[sceneIndex] = cinematic.slice(0, 240)')
+    .replace(/\n {6}\/\/ ═══ KINEO-KLING25-VARIEDADE-2026-09-28[\s\S]*?\.map\(\(promptDaCena, sceneIndex\) => \(wantsKling \? kling25ApplyShotAxis\(promptDaCena, sceneIndex\) : promptDaCena\)\)/, '')
+  checa('fora do import, dos comentários, da linha do .map e da gravação para o juiz, o route.ts do candidato é idêntico à base (Seedance/Veo/Sora/hollywood intocados nos dois commits da trilha)', semVariedade(rotaCand) === semVariedade(rotaBase))
+  const hollywoodCand = rotaCand.slice(rotaCand.indexOf('if (hollywoodPath)'), rotaCand.indexOf('// ── end KINEO-HOLLYWOOD-2026-07-09'))
+  const hollywoodBase = rotaBase.slice(rotaBase.indexOf('if (hollywoodPath)'), rotaBase.indexOf('// ── end KINEO-HOLLYWOOD-2026-07-09'))
+  checa('bloco hollywood (Kling 3 / H3 / Omni / S25) idêntico à base (candidato × base)', hollywoodCand.length > 1000 && hollywoodCand === hollywoodBase)
+  const varietyCand = rdCand('lib/hollywood/varietyAxis.ts'), varietyBase = rdBase('lib/hollywood/varietyAxis.ts')
+  checa('lib/hollywood/varietyAxis.ts (eixo da família hollywood) intocado neste commit (candidato × base)', varietyCand !== null && varietyCand === varietyBase)
+  for (const f of ['lib/compose.ts', 'lib/cinematic/speechImageAlign.ts', 'lib/cinematic/visualPromptPolicy.ts', 'lib/hollywood/anchors.ts']) checa(`${f} intocado neste commit (candidato × base)`, rdCand(f) !== null && rdCand(f) === rdBase(f))
+}
+
+// ═══ (d) mutantes ═══
+console.log('== (d) mutantes ==')
+const mutante = (troca) => { const s = troca(libSrc); if (s === libSrc) throw new Error('mutante não aplicou'); return roda(s) }
+const semRotacao = mutante((s) => s.split('index % n : 0').join('0 : 0'))
+checa('mutante sem rotação (sempre o eixo 0): a verificação de 12 eixos distintos fica vermelha', new Set(Array.from({ length: 12 }, (_, i) => semRotacao.kling25ShotAxis(i))).size !== 12)
+const semPrefixo = mutante((s) => s.split('const junto = `${eixo}. ${corpo}`').join('const junto = corpo'))
+checa('mutante sem prefixo: o prompt não começa pelo eixo → vermelho', !semPrefixo.kling25ApplyShotAxis(PROMPT_TIPICO, 3).startsWith(kling25ShotAxis(3)))
+const cortePorPalavra = mutante((s) => s.split('if (junto.length <= maxChars) return junto').join('return `${eixo}. ${corpo.split(\' \').slice(0, 14).join(\' \')}`'))
+checa('mutante com corte por contagem de palavras (o bug do "Mouth"): palavras somem e a cauda morre → vermelho', (() => { const p = cortePorPalavra.kling25ApplyShotAxis(PROMPT_TIPICO, 3); return !p.endsWith(CAUDA_REAL.trim()) && palavras(p).length < palavras(PROMPT_TIPICO).length })())
+const semCauda = mutante((s) => s.split('const saida = miolo ? `${eixo}. ${miolo} ${cauda}` : `${eixo}. ${cauda}`').join('const saida = `${eixo}. ${miolo}`'))
+checa('mutante que descarta a cauda acima do teto: os sufixos de proteção somem → vermelho', !semCauda.kling25ApplyShotAxis(PROMPT_LONGO, 5).endsWith('vertical 9:16 composition'))
+
+// ═══ (e) revisão — o juiz de coerência lê a cena SEM o eixo ═══
+// O juiz (lib/admin/fastCoherence, `submitted_prompts`) lê só os primeiros 240 chars do prompt gravado no despacho
+// (route.ts, submitScene: `c.submittedPrompts[sceneIndex] = ...slice(0, 240)`). Com o eixo PREFIXADO (60-100 chars) ele
+// veria a câmera no lugar do sujeito da cena e a nota visual do Kling 2.5 sairia enviesada. Prova: a lib inverte o eixo
+// exatamente; a gravação REAL da rota é executada com wantsKling true (começa pelo sujeito) e false (byte a byte a base);
+// o mutante que grava o prompt com eixo fica vermelho.
+console.log('== (e) revisão: o juiz de coerência lê a cena sem o eixo ==')
+checa('a lib exporta kling25StripShotAxis (função pura, sem regex sobre o eixo)', typeof kling25StripShotAxis === 'function')
+const normal = (t) => String(t).replace(/\s+/g, ' ').trim()
+checa('strip(apply(p, i)) devolve o prompt (normalizado) para os 12 índices: a inversão é exata', Array.from({ length: 12 }, (_, i) => i).every((i) => kling25StripShotAxis(kling25ApplyShotAxis(PROMPT_TIPICO, i)) === normal(PROMPT_TIPICO)))
+checa('prompt SEM eixo volta intocado (só remove se o prefixo casar): típico, vazio, e eixo no MEIO do texto', kling25StripShotAxis(PROMPT_TIPICO) === PROMPT_TIPICO && kling25StripShotAxis('') === '' && kling25StripShotAxis('foo. ' + kling25ShotAxis(2) + '. bar') === 'foo. ' + kling25ShotAxis(2) + '. bar')
+checa('eixo sem o ". " que a aplicação põe NÃO é prefixo (fica intocado); prompt que É só o eixo (corpo vazio) → vazio', kling25StripShotAxis(kling25ShotAxis(4) + ' and more') === kling25ShotAxis(4) + ' and more' && kling25StripShotAxis(kling25ApplyShotAxis('', 4)) === '')
+checa('acima do teto (prompt cortado em frase): strip devolve texto sem eixo, começando pela primeira frase do miolo', !temEixo(kling25StripShotAxis(cortado).slice(0, 120)) && kling25StripShotAxis(cortado).startsWith('Sentence number 1 '))
+{
+  let modosStrip = 0
+  for (const mode of ['documentary_faceless', 'character_story', 'presenter_requested']) {
+    const prompts = visuais.map((v, i) => politica.buildClassicVisualPrompt(v, { mode, style, character: mode === 'character_story' ? 'a geologist in a wide hat' : null, eraSuffix: '', opening: i === 0, aspect: null }))
+    const paraOJuiz = prompts.map((p, i) => kling25StripShotAxis(kling25ApplyShotAxis(p, i)).slice(0, 240))
+    if (paraOJuiz.every((j, i) => j === normal(prompts[i]).slice(0, 240) && !temEixo(j))) modosStrip++
+    else console.log(`   modo ${mode}: a cópia do juiz não bate com os 240 chars do prompt real sem eixo`)
+  }
+  checa('prompts REAIS nos 3 modos: os 240 chars para o juiz = os 240 primeiros do prompt sem eixo (normalizado), nunca começam pelo eixo', modosStrip === 3)
+}
+// A rota: a gravação REAL do submitScene, achada por AST e executada.
+checa('a rota importa kling25StripShotAxis de @/lib/cinematic/klingShots', /import \{[^}]*kling25StripShotAxis[^}]*\} from '@\/lib\/cinematic\/klingShots'/.test(rota))
+checa('fora de comentários, a rota cita kling25StripShotAxis exatamente 2 vezes: o import e a gravação para o juiz (o payload da fal não passa por ela)', rotaSemComentarios.split('kling25StripShotAxis').length - 1 === 2)
+const gravacaoDoJuiz = (src) => { const ast = routeAst(src); const n = acha(ast, (x) => ts.isBinaryExpression(x) && x.operatorToken.kind === ts.SyntaxKind.EqualsToken && x.left.getText(ast) === 'c.submittedPrompts[sceneIndex]'); return n ? n.right.getText(ast) : null }
+const rhsHead = gravacaoDoJuiz(rota)
+const rhsBase = rotaBase ? gravacaoDoJuiz(rotaBase) : null
+checa('a gravação para o juiz existe UMA vez (submitScene) e está amarrada a wantsKling: `(wantsKling ? kling25StripShotAxis(cinematic) : cinematic).slice(0, 240)`', rhsHead === '(wantsKling ? kling25StripShotAxis(cinematic) : cinematic).slice(0, 240)' && rota.split('c.submittedPrompts[sceneIndex] =').length - 1 === 1)
+checa('a base gravava o prompt cru — `cinematic.slice(0, 240)` — e é isso que o ramo wantsKling=false preserva', rhsBase === 'cinematic.slice(0, 240)')
+const executaGravacao = (rhs, wantsKling, cinematic) => roda(`export const out = ${rhs}`, { wantsKling, cinematic, kling25StripShotAxis }).out
+const juizKling = Array.isArray(klingHead) && rhsHead ? klingHead.map((p) => executaGravacao(rhsHead, true, p)) : null
+checa('EXECUTADO (Kling, 12 cenas com eixo aplicado): o texto gravado para o juiz começa pelo SUJEITO da cena, nunca pelo eixo', Array.isArray(juizKling) && juizKling.length === 12 && juizKling.every((j, i) => j.startsWith((i === 0 ? 'Opening shot: subject first. ' : '') + visuais[i]) && !KLING25_SHOT_AXES.some((e) => j.startsWith(e))))
+checa('EXECUTADO (Kling): o juiz segue lendo no máximo 240 chars — os 240 primeiros do prompt sem eixo', Array.isArray(juizKling) && juizKling.every((j, i) => j.length <= 240 && j === kling25StripShotAxis(klingHead[i]).slice(0, 240)))
+checa('EXECUTADO (Kling): o payload da fal (classicScenePrompts) segue COM o eixo — só a cópia do juiz perde o prefixo', Array.isArray(klingHead) && klingHead.every((p, i) => p.startsWith(kling25ShotAxis(i) + '. ')))
+checa('EXECUTADO (Seedance/Veo/Sora = wantsKling false, 12 prompts): gravação IDÊNTICA à da base, byte a byte', Array.isArray(outrosHead) && rhsHead !== null && rhsBase !== null && outrosHead.every((p) => executaGravacao(rhsHead, false, p) === executaGravacao(rhsBase, false, p) && executaGravacao(rhsHead, false, p) === p.slice(0, 240)))
+// Mutantes desta revisão.
+if (rhsHead) {
+  const rotaMutante = rota.split(rhsHead).join('cinematic.slice(0, 240)')
+  if (rotaMutante === rota) throw new Error('mutante da rota não aplicou')
+  const rhsMutante = gravacaoDoJuiz(rotaMutante)
+  checa('mutante da ROTA (grava o prompt COM eixo, como antes da revisão): o juiz passa a ver o eixo nas 12 cenas → vermelho', Array.isArray(klingHead) && klingHead.every((p) => KLING25_SHOT_AXES.some((e) => executaGravacao(rhsMutante, true, p).startsWith(e))))
+}
+const stripInerte = mutante((s) => s.split('if (texto.startsWith(`${eixo}. `)) return texto.slice(eixo.length + 2)').join('if (texto.startsWith(`${eixo}. `)) return texto'))
+checa('mutante da LIB (strip que devolve o prompt com eixo): a inversão deixa de ser exata → vermelho', stripInerte.kling25StripShotAxis(kling25ApplyShotAxis(PROMPT_TIPICO, 3)) !== normal(PROMPT_TIPICO))
+
+console.log(`\n${ok} verificações OK, ${falhas.length} falha(s)`)
+if (falhas.length) { console.log('FALHAS:\n - ' + falhas.join('\n - ')); process.exit(1) }

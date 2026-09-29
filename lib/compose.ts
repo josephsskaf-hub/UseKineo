@@ -358,6 +358,22 @@ export interface ComposeInputs {
    * legenda/marca d'água/letterbox (lib/aspect.ts).
    */
   aspect?: string | null
+  /**
+   * KINEO-KLING25-PLANOS-5S-2026-09-28 — segundos REAIS de cada clipe (o que foi pedido à fal: 5 ou 10 no Kling 2.5),
+   * alinhados a `clipUrls`. Quem passa é só o /api/compose, lido do claim ASSINADO (lib/cinematic/klingShots
+   * alignSignedClipSeconds) — nunca do corpo do cliente. Com ele, nenhum clipe ocupa na tela mais do que tem
+   * (trim_start + duração ≤ segundos do clipe: plano de 5 s nunca vira slot de 10 s repetindo quadros). Ausente,
+   * tamanho diferente de clipUrls ou valor inválido = a montagem de sempre, byte a byte (AI_CLIP_LEN 10/8).
+   */
+  clipSeconds?: number[] | null
+  /**
+   * KINEO-KLING25-PLANOS-5S-2026-09-28 (revisão adversarial) — onde a fala de CADA clipe começa: `wordStarts` (um por
+   * clipe, alinhado a `clipUrls`) indexa `narrationWords` (a narração assinada, separada por espaço). Vem do mesmo claim
+   * ASSINADO que `clipSeconds` (lib/cinematic/klingShots alignSignedClipPlan). Com ele, cada plano entra no instante em
+   * que a SUA fala começa (clipSpeechAnchors) em vez de numa fatia de tempo cega à cena. Ausente = a linha do tempo por
+   * nível d'água (só respeita o comprimento de cada clipe).
+   */
+  clipSpeech?: { narrationWords: string[]; wordStarts: number[] } | null
 }
 
 export interface CreatomateRenderState {
@@ -1872,6 +1888,163 @@ export function buildCaptionElements({
   return [baseCaption]
 }
 
+// ═══ KINEO-KLING25-PLANOS-5S-2026-09-28 — linha do tempo com o comprimento REAL de cada clipe ═══════════════════════
+// O Kling 2.5 passou a pedir planos de 5 s (lib/cinematic/klingShots). O corte clássico abaixo (slotLen = min(CLIP_LEN,
+// total/clipes), CLIP_LEN = 10 no Kling, encaixe de frase até slotLen + 2,5) deixaria um clipe de 5 s ocupar ~9 s com
+// loop:true — os mesmos quadros duas vezes na tela, o que o fundador proibiu. Garantia desta função, para TODO trecho:
+// trimStart + len + overlap ≤ segundos do clipe. Distribuição: nível d'água (cada clipe leva a sua parte do que falta,
+// sem passar do próprio teto; o que um clipe curto não carrega, os seguintes carregam); o corte encaixa no início de
+// frase (Whisper) quando cabe no teto E os clipes restantes ainda cobrem o resto. Só se a soma dos tetos não cobrir o
+// filme (clipe perdido na fal, voz mais lenta que a régua) um clipe volta — e o reuso também fica dentro do teto.
+// Pura e sem dependência (o guardião a executa isolada).
+//
+// REVISÃO ADVERSARIAL (28/09) — o nível d'água dividia o tempo cego à fronteira da cena: no 06fe798a (185 palavras,
+// 78,8 s) o plano 12 ("Follow for more divine stories.") ia ao ar 8 s antes da própria frase, que tocou sobre a
+// ABERTURA reusada; 5 de 12 planos mostravam menos de 25 % da própria fala. Com `anchors` (o instante em que a fala de
+// cada clipe começa — clipSpeechAnchors) cada clipe termina onde a fala do SEGUINTE começa, dentro do próprio teto; se
+// o teto não chega, o seguinte entra antes e volta a alcançar a sua frase no corte dele (o erro não se acumula). Os
+// clipes que restam sempre cobrem o resto do filme (limite de trás), e o reuso só existe se a soma dos tetos não cobrir.
+export interface CappedClipSlot { clip: number; time: number; len: number; trimStart: number }
+export function planCappedClipTimeline(input: {
+  totalDuration: number
+  clipSeconds: ReadonlyArray<number>
+  beatTimes?: ReadonlyArray<number>
+  /** Instante em que a fala de cada clipe começa (um por clipe; o do 1º é ignorado — ele abre o filme). */
+  anchors?: ReadonlyArray<number> | null
+  trimStart: number
+  overlap: number
+}): CappedClipSlot[] {
+  const r3 = (v: number) => Math.round(v * 1000) / 1000
+  const floor3 = (v: number) => Math.floor(v * 1000 + 1e-6) / 1000
+  const total = Number.isFinite(input.totalDuration) && input.totalDuration > 0 ? input.totalDuration : 0
+  const n = input.clipSeconds.length
+  if (n === 0 || total <= 0) return []
+  const trim = Math.max(0, input.trimStart)
+  const overlap = Math.max(0, input.overlap)
+  const caps = input.clipSeconds.map((s) => Math.max(0.5, floor3(s - trim - overlap)))
+  const beats = (input.beatTimes ?? []).filter((t) => Number.isFinite(t) && t > 0 && t < total)
+  const slots: CappedClipSlot[] = []
+  let cursor = 0
+  const anchors = Array.isArray(input.anchors) && input.anchors.length === n && input.anchors.every((t) => Number.isFinite(t))
+    ? input.anchors
+    : null
+  if (anchors) {
+    // KINEO-KLING25-PLANOS-5S-2026-09-28 — cada corte no início da fala do clipe seguinte, entre dois limites: nunca além
+    // do teto do clipe (hi) e nunca tão cedo que os clipes restantes não cubram o resto do filme (lo).
+    const MIN_LEN = 0.5
+    const suffix = new Array<number>(n + 1).fill(0)
+    for (let i = n - 1; i >= 0; i--) suffix[i] = suffix[i + 1] + caps[i]
+    for (let i = 0; i < n && cursor < total - 0.001; i++) {
+      let end: number
+      if (i === n - 1) end = cursor + caps[i]
+      else {
+        const hi = cursor + caps[i]
+        const lo = Math.max(cursor + Math.min(MIN_LEN, caps[i]), total - suffix[i + 1])
+        end = lo > hi ? hi : Math.min(hi, Math.max(lo, Math.min(anchors[i + 1], total)))
+      }
+      const segLen = Math.min(r3(Math.min(end, total) - cursor), caps[i])
+      if (!(segLen > 0.001)) continue
+      slots.push({ clip: i, time: r3(cursor), len: segLen, trimStart: trim })
+      cursor = r3(cursor + segLen)
+    }
+  }
+  for (let i = 0; !anchors && i < n && cursor < total - 0.001; i++) {
+    const remaining = r3(total - cursor)
+    const rest = caps.slice(i)
+    const restAfter = rest.slice(1).reduce((a, c) => a + c, 0)
+    // nível d'água: L com Σ min(teto, L) = o que falta — os clipes daqui para frente dividem o resto por igual
+    let level = Number.POSITIVE_INFINITY
+    if (rest.reduce((a, c) => a + c, 0) > remaining) {
+      const sorted = [...rest].sort((a, b) => a - b)
+      let left = remaining
+      for (let k = 0; k < sorted.length; k++) {
+        const share = left / (sorted.length - k)
+        if (sorted[k] >= share) { level = share; break }
+        left -= sorted[k]
+      }
+    }
+    let segLen = r3(Math.min(caps[i], level, remaining))
+    if (i < n - 1 && beats.length > 0 && remaining > segLen + 0.001) {
+      // mesma janela do corte clássico (slot − 1,8 … slot + 2,5), mas nunca além do teto do clipe e nunca tão cedo que
+      // os clipes restantes não cubram o resto do filme
+      const lo = Math.max(cursor + Math.max(1.5, segLen - 1.8), total - restAfter)
+      const hi = cursor + Math.min(caps[i], segLen + 2.5)
+      const ideal = cursor + segLen
+      let best: number | null = null
+      let bestDist = Number.POSITIVE_INFINITY
+      for (const t of beats) {
+        if (t <= lo || t >= hi) continue
+        const d = Math.abs(t - ideal)
+        if (d < bestDist) { bestDist = d; best = t }
+      }
+      if (best !== null) segLen = r3(best - cursor)
+    }
+    if (!(segLen > 0.4)) segLen = r3(Math.min(caps[i], remaining))
+    segLen = Math.min(segLen, caps[i])
+    slots.push({ clip: i, time: r3(cursor), len: segLen, trimStart: trim })
+    cursor = r3(cursor + segLen)
+  }
+  // Sobra: a imagem não cobre o filme. Reuso em ordem, cada volta entrando mais adiante no clipe — sempre dentro do teto.
+  let r = 0
+  while (cursor < total - 0.001 && r < 400) {
+    const j = r % n
+    const reuse = Math.floor(r / n) + 1
+    const len = r3(Math.min(caps[j], total - cursor))
+    const room = Math.max(0, floor3(input.clipSeconds[j] - overlap - len - trim))
+    const offset = Math.min(reuse * (len + 0.6), room)
+    slots.push({ clip: j, time: r3(cursor), len, trimStart: r3(trim + offset) })
+    cursor = r3(cursor + len)
+    r++
+  }
+  return slots
+}
+
+// ═══ KINEO-KLING25-PLANOS-5S-2026-09-28 — o instante em que a fala de cada clipe começa ═══════════════════════════
+// Revisão adversarial (28/09): "cortar no instante do Whisper da 1ª palavra de cada cena". `wordStarts[i]` é o índice
+// da 1ª palavra do clipe i em `narrationWords` (a narração ASSINADA). O Whisper nem sempre tem as mesmas palavras
+// ("hurricane-force" em uma ou duas, "2013" por extenso), então o índice vira posição proporcional e se ajusta a até 4
+// palavras de distância: a mesma palavra ganha, o início de frase ajuda quando a cena abre frase. O corte fica na pausa
+// antes da palavra (até 0,15 s antes, nunca antes do fim da palavra anterior). Sem Whisper: posição proporcional sobre a
+// fala. Nunca decresce. Pura (o guardião executa isolada).
+export function clipSpeechAnchors(input: {
+  narrationWords: ReadonlyArray<string>
+  wordStarts: ReadonlyArray<number>
+  whisperWords?: ReadonlyArray<WhisperWord> | null
+  speechSeconds: number
+}): number[] {
+  const r3 = (v: number) => Math.round(v * 1000) / 1000
+  const norm = (w: string) => String(w ?? '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
+  const N = input.narrationWords.length
+  const ww = (input.whisperWords ?? []).filter((w) => w && Number.isFinite(w.start) && Number.isFinite(w.end))
+  const M = ww.length
+  const speech = Number.isFinite(input.speechSeconds) && input.speechSeconds > 0 ? input.speechSeconds : 0
+  const out: number[] = []
+  input.wordStarts.forEach((k, i) => {
+    let t = 0
+    if (i > 0 && N > 0 && Number.isFinite(k) && k > 0) {
+      if (M >= 2) {
+        const guess = Math.max(1, Math.min(M - 1, Math.round((k * M) / N)))
+        const alvo = norm(input.narrationWords[k] ?? '')
+        const abreFrase = /[.!?…]["'”’)\]]*$/u.test(input.narrationWords[k - 1] ?? '')
+        let best = guess
+        let bestScore = Number.POSITIVE_INFINITY
+        for (let m = Math.max(1, guess - 4); m <= Math.min(M - 1, guess + 4); m++) {
+          let score = Math.abs(m - guess)
+          if (alvo && norm(ww[m].word) === alvo) score -= 10
+          const prev = ww[m - 1]
+          if (abreFrase && (prev.sentenceEnd === true || /[.!?]["'”’)\]]?$/.test(String(prev.word ?? '').trim()))) score -= 6
+          if (score < bestScore) { bestScore = score; best = m }
+        }
+        t = Math.max(ww[best - 1].end, ww[best].start - 0.15)
+      } else {
+        t = (speech * Math.min(k, N)) / N
+      }
+    }
+    out.push(r3(Math.max(out.length ? out[out.length - 1] : 0, t)))
+  })
+  return out
+}
+
 /**
  * Build a Creatomate source JSON: video clips tiled to fill `duration`,
  * voiceover audio across the full timeline, captions evenly distributed, and —
@@ -1895,6 +2068,8 @@ export function buildCreatomateSource({
   avatarUrl = null,
   avatarHookSeconds = null,
   aspect,
+  clipSeconds = null, // KINEO-KLING25-PLANOS-5S-2026-09-28
+  clipSpeech = null, // KINEO-KLING25-PLANOS-5S-2026-09-28 (revisão adversarial)
 }: ComposeInputs): Record<string, unknown> {
   // KINEO-MULTIFORMATO-2026-09-02 — primeira linha do builder, antes de
   // qualquer elemento ser montado. Sem `aspect` no input isto resolve para
@@ -2060,6 +2235,14 @@ export function buildCreatomateSource({
   // later element (higher array index) on top, giving a seamless hard cut with
   // no black flash between clips.
   const CLIP_GAP_OVERLAP = 0.06
+  // KINEO-KLING25-PLANOS-5S-2026-09-28 — segundos reais de cada clipe (claim assinado, via /api/compose). Só vale para
+  // clipe de IA, fora do avatar, com um valor válido por clipe; qualquer outra coisa = null = montagem de sempre.
+  const signedClipSeconds =
+    isAiGen && !isFastStock && !hasAvatar && Array.isArray(clipSeconds) && clipSeconds.length > 0 &&
+    clipSeconds.length === clipUrls.length && cleanClips.length === clipUrls.length &&
+    clipSeconds.every((s) => typeof s === 'number' && Number.isFinite(s) && s > 0.5 && s <= 30)
+      ? clipSeconds
+      : null
   // Push #241 — size each slot so EVERY clip appears, in order, within the audio
   // window. The old fixed 10s slots overflowed the timeline and silently dropped
   // the later clips: a 7-clip / ~52s verbatim script laid clips across 0–70s, so
@@ -2222,6 +2405,71 @@ export function buildCreatomateSource({
 
     console.log(
       `[compose] avatar mode v2 (sequential): ${cutStarts.length} cutaway(s), ${cleanClips.length} clip(s), total ${totalDuration}s`,
+    )
+  } else if (signedClipSeconds) {
+    // ═══ KINEO-KLING25-PLANOS-5S-2026-09-28 — clipes com comprimento assinado (Kling 2.5: 5 s; 10 s acima do teto) ═══
+    // planCappedClipTimeline garante trim_start + duração ≤ segundos do clipe em todo trecho; por isso loop:false — o
+    // Creatomate nunca precisa de quadro que o clipe não tem. Mesmo enquadramento (cover, 100%) e o mesmo Ken Burns do
+    // corte clássico (#292/#94). Encaixe no início de frase pelas mesmas palavras do Whisper que as legendas usam.
+    const beatTimesAssinados =
+      Array.isArray(whisperWords) && whisperWords.length > 0
+        ? sentenceStartTimes(whisperWords).filter((t) => t > 0 && t < totalDuration)
+        : []
+    // Revisão adversarial (28/09): com o início de cada fala assinado, o corte vai ao instante da 1ª palavra da cena
+    // seguinte (clipSpeechAnchors); sem ele, o nível d'água com encaixe de frase de antes.
+    const falaAssinada =
+      clipSpeech && Array.isArray(clipSpeech.wordStarts) && clipSpeech.wordStarts.length === signedClipSeconds.length &&
+      Array.isArray(clipSpeech.narrationWords) && clipSpeech.narrationWords.length > 0
+        ? clipSpeech
+        : null
+    const ancorasDaFala = falaAssinada
+      ? clipSpeechAnchors({
+          narrationWords: falaAssinada.narrationWords,
+          wordStarts: falaAssinada.wordStarts,
+          whisperWords,
+          speechSeconds: Math.min(totalDuration, masterDuration > 0 ? masterDuration : totalDuration),
+        })
+      : null
+    const trechos = planCappedClipTimeline({
+      totalDuration,
+      clipSeconds: signedClipSeconds,
+      beatTimes: ancorasDaFala ? [] : beatTimesAssinados,
+      anchors: ancorasDaFala,
+      trimStart: CLIP_TRIM_START,
+      overlap: CLIP_GAP_OVERLAP,
+    })
+    trechos.forEach((trecho, k) => {
+      const zoomIn = k % 2 === 0
+      elements.push({
+        type: 'video',
+        track: 2,
+        time: trecho.time,
+        duration: round3(trecho.len + CLIP_GAP_OVERLAP), // micro-overlap #256 → corte seco, sem vão preto
+        source: cleanClips[trecho.clip],
+        fit: 'cover',
+        loop: false,
+        trim_start: trecho.trimStart,
+        x: '50%',
+        y: '50%',
+        width: '100%',
+        height: '100%',
+        volume: '0%',
+        animations: [
+          {
+            type: 'scale',
+            fade: false,
+            start_scale: zoomIn ? '100%' : '108%',
+            end_scale: zoomIn ? '108%' : '100%',
+            easing: 'ease-out',
+          },
+        ],
+      })
+    })
+    const reusados = trechos.length - signedClipSeconds.length
+    console.log(
+      `[compose] KLING25-PLANOS-5S: ${signedClipSeconds.length} clipe(s) [${signedClipSeconds.join(',')}] em ${trechos.length} trecho(s) para ${totalDuration}s` +
+        (ancorasDaFala ? ` — cortes no início da fala de cada cena [${ancorasDaFala.map((t) => t.toFixed(1)).join(',')}]` : " — sem início de fala assinado: nível d'água") +
+        (reusados > 0 ? ` — ${reusados} reuso(s) dentro do teto (a imagem não cobria a fala)` : ' — nenhum clipe repetido'),
     )
   } else {
   // Fast Mode v2 (a) — RITMO: fast stock cuts every 2.5–4s (generate-video-fast

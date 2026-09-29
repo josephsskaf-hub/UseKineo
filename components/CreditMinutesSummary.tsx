@@ -21,8 +21,8 @@ export default function CreditMinutesSummary({ credits, live = false }: { credit
       lang={language}
       style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, background: 'var(--accent-soft)', color: 'var(--text)', overflowWrap: 'anywhere' }}
     >
-      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.65, fontWeight: 600 }}>{line}</p>
-      <p style={{ margin: '5px 0 0', fontSize: 11, lineHeight: 1.55, color: 'var(--muted)' }}>
+      <ul className="credit-minutes-list">{line.split(" · ").map(item => <li key={item}>{item}</li>)}</ul>
+      <p style={{ margin: '5px 0 0', fontSize: 12, lineHeight: 1.55, color: 'var(--muted)' }}>
         {ui('Alternative uses of the same credits, not added together.')}
       </p>
     </div>

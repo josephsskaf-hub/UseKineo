@@ -15,7 +15,10 @@ checa('o bloco novo vem DEPOIS de conhecer os ids aceitos e ANTES da decisão de
 checa('condição amarrada ao flag que só o 403 balance_quota liga, e a pelo menos 1 aceita (o zero já tem ramo)', bloco.includes('if (ctxDespacho().balanceExhausted && validIds.length > 0) {'))
 checa('estorna pelo mesmo releaseBirthClaim, com motivo próprio', bloco.includes("await releaseBirthClaim('provider_balance_rejected_partial')"))
 checa('grava claimAction/refundConfirmed no ledger do despacho', bloco.includes("c.claimAction = released ? 'released' : 'release_failed'") && bloco.includes('c.refundConfirmed = released'))
-checa('alarme ao fundador com PARTIAL e contagem', bloco.includes('await alertFalExhausted(`PARTIAL user=') && bloco.includes('accepted=${validIds.length}/${scenes.length}'))
+// KINEO-FAL-SALDO-ALERTA-2026-09-28 — re-ancorado: o alarme ao fundador continua obrigatório, mas mora no finalizador
+// único (finalizarDespacho), que roda depois deste 503 com a flag de saldo ligada e manda accepted/planned do resumo.
+// Chamada direta aqui seria o 2º e-mail do mesmo despacho. A contagem aceita/planejada segue no log do bloco.
+checa('alarme ao fundador com PARTIAL e contagem', !bloco.includes('alertFalExhausted(') && bloco.includes('${validIds.length}/${scenes.length} accepted') && /if \(ctx\.balanceExhausted\) \{\n    await alertFalExhausted\(\{\n      source: 'cinematic',[\s\S]{0,260}accepted=\$\{aceitas \?\? '\?'\}\/\$\{planejadas \?\? '\?'\}/.test(rota))
 checa('estorno não confirmado → 503 pedindo retry, nunca segue em frente', bloco.includes('if (!released) {') && bloco.includes("status: 503"))
 checa('estorno confirmado → mensagem calma com "refunded automatically" e queued', bloco.includes('queued: true') && bloco.includes('your credits were refunded automatically'))
 checa('o flag só nasce de balance_quota', rota.includes("if (despachoCena.outcome.reason_class === 'balance_quota') c.balanceExhausted = true"))

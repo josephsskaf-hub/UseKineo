@@ -12,7 +12,8 @@
 //   (b) v1 INTACTO sem a opção: as mesmas funções, com os mesmos insumos, devolvem o mesmo que o código do commit
 //       22c8e70e (a origin/main de onde a v2 nasceu) — portão, cabeça, pool com Pixabay falsa, cofre, detector de
 //       personagem, encaixe dos clipes;
-//   (c) inerte: a rota travada não liga nada (nenhum `v2: true` em app/api/generate-video-fast/route.ts);
+//   (c) a rota: até a parte B, "não liga nada"; com o commit [TRAVA 8.2], tudo atrás do interruptor KINEO1_IMAGEM_V2
+//       (o caminho da rota é executado em scripts/test-kineo1-imagem-v2-rota-2026-09-28.mjs);
 //   (d) o replay não escreve (dryRun, zero insert/update/delete) e roda ponta a ponta sem rede.
 //   (e) parte B, peças ainda inertes (lib/kineo1/pastedBrief.ts, a ordem das buscas, os candidatos do pool, o painel no
 //       modo troca, o custo real no compose): os textos REAIS da Lua (2ff93c15) e dos gêmeos (b3b3e101), narração com
@@ -42,6 +43,7 @@ const ALIAS = {
   './pixabay': 'lib/pixabay.ts', '@/lib/pixabay': 'lib/pixabay.ts',
   '@/lib/aspect': 'lib/aspect.ts', './broll/aesthetic-score': 'lib/broll/aesthetic-score.ts',
   './sceneQueries': 'lib/kineo1/sceneQueries.ts', '@/lib/kineo1/sceneQueries': 'lib/kineo1/sceneQueries.ts',
+  '@/lib/kineo1/aiClipPrompt': 'lib/kineo1/aiClipPrompt.ts', // KINEO1-CLIPE-IA-PROMPT-2026-09-28
 }
 function mundo({ fontes = {}, stubs = {}, env = {}, globals = {} } = {}) {
   const cache = new Map()
@@ -349,9 +351,13 @@ if (temBase) {
   checa(`encaixe e leitura do evento sem replace_index = o do ${BASE}`, casos.every((r) => J(C.spliceAiClips(base5, r)) === J(C0.spliceAiClips(base5, r))) && J(C.parsePendingAiClips({ clips: [{ request_id: 'a', scene: 1, at_index: 0, prompt: 'p', usd: 0.13 }] })) === J(C0.parsePendingAiClips({ clips: [{ request_id: 'a', scene: 1, at_index: 0, prompt: 'p', usd: 0.13 }] })))
 } else checa('comparação com a base pulada', true)
 
-console.log('== (c) inerte: a rota travada não liga nada ==')
+console.log('== (c) a rota: a parte B ([TRAVA 8.2]) liga tudo atrás de UM interruptor ==')
+// KINEO1-IMAGEM-V2-2026-09-28 [TRAVA 8.2] — até a parte B esta seção provava "a rota travada não liga nada" (a parte A
+// subia sozinha). Com o commit [TRAVA 8.2] a intenção passa a ser: tudo o que a rota liga passa pelo interruptor
+// KINEO1_IMAGEM_V2 (false = o caminho de 22c8e70e, EXECUTADO em scripts/test-kineo1-imagem-v2-rota-2026-09-28.mjs), o
+// roteiro com [Pexels:] fica de fora, e o dryRun do replay (que não grava no cofre) nunca entra na rota.
 const rota = rd('app/api/generate-video-fast/route.ts')
-checa('app/api/generate-video-fast/route.ts não passa v2/dryRun/replace_index (a parte B é o commit [TRAVA 8.2])', !/\bv2: true\b/.test(rota) && !/\bdryRun: true\b/.test(rota) && !rota.includes('replace_index') && !rota.includes('planSceneQueries') && !rota.includes('stripCameraPhrases'))
+checa('app/api/generate-video-fast/route.ts: um interruptor; as duas opções v2 (cofre e Pixabay) só com imagemV2; personagem v2 pelo interruptor; nenhum dryRun', /\nconst KINEO1_IMAGEM_V2 = (?:true|false)\n/.test(rota) && rota.includes('const imagemV2 = KINEO1_IMAGEM_V2 && !verbatim') && (rota.match(/\bv2: true\b/g) || []).length === 2 && (rota.match(/imagemV2 \? \{ v2: true/g) || []).length === 2 && rota.includes('characterStoryName(falas || prompt, { v2: KINEO1_IMAGEM_V2 })') && !/\bdryRun: true\b/.test(rota))
 checa('o compose continua chamando o mesmo encaixe (o modo troca chega pelo pronto, não por parâmetro novo)', rd('app/api/compose/route.ts').includes('composeClipUrls = spliceAiClips(clipUrls, ready)'))
 
 console.log('== (d) replay: sem escrita, ponta a ponta sem rede ==')

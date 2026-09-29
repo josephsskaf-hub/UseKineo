@@ -47,7 +47,13 @@
     "Try a different title or engine.": "Try a different title or engine.",
     "Show all examples": "Show all examples",
     "{minutes} min of {engine}": "{minutes} min of {engine}",
-    "Alternative uses of the same credits, not added together.": "Alternative uses of the same credits, not added together."
+    "Alternative uses of the same credits, not added together.": "Alternative uses of the same credits, not added together.",
+    "Restaurant": "Restaurant",
+    "Product": "Product",
+    "AI-generated visual concepts · not client results.": "AI-generated visual concepts · not client results.",
+    "Illustrative references, not model outputs.": "Illustrative references, not model outputs.",
+    "The shape of your ad": "The shape of your ad",
+    "What makes a good photo": "What makes a good photo"
   },
   "pt": {
     "Settings": "Configurações",
@@ -96,7 +102,13 @@
     "Try a different title or engine.": "Tente outro título ou motor.",
     "Show all examples": "Mostrar todos os exemplos",
     "{minutes} min of {engine}": "{minutes} min de {engine}",
-    "Alternative uses of the same credits, not added together.": "Usos alternativos do mesmo saldo de créditos, não cumulativos."
+    "Alternative uses of the same credits, not added together.": "Usos alternativos do mesmo saldo de créditos, não cumulativos.",
+    "Restaurant": "Restaurante",
+    "Product": "Produto",
+    "AI-generated visual concepts · not client results.": "Conceitos visuais gerados por IA · não são resultados de clientes.",
+    "Illustrative references, not model outputs.": "Referências ilustrativas, não resultados dos motores.",
+    "The shape of your ad": "A estrutura do seu anúncio",
+    "What makes a good photo": "O que faz uma boa foto"
   },
   "es": {
     "Settings": "Configuración",
@@ -144,7 +156,13 @@
     "Try a different title or engine.": "Prueba con otro título o motor.",
     "Show all examples": "Mostrar todos los ejemplos",
     "{minutes} min of {engine}": "{minutes} min de {engine}",
-    "Alternative uses of the same credits, not added together.": "Usos alternativos de los mismos créditos; no se suman."
+    "Alternative uses of the same credits, not added together.": "Usos alternativos de los mismos créditos; no se suman.",
+    "Restaurant": "Restaurante",
+    "Product": "Producto",
+    "AI-generated visual concepts · not client results.": "Conceptos visuales generados por IA · no son resultados de clientes.",
+    "Illustrative references, not model outputs.": "Referencias ilustrativas, no resultados de los modelos.",
+    "The shape of your ad": "La estructura de tu anuncio",
+    "What makes a good photo": "Qué hace que una foto sea buena"
   },
   "fr": {
     "Settings": "Paramètres",
@@ -193,7 +211,13 @@
     "Try a different title or engine.": "Essayez un autre titre ou moteur.",
     "Show all examples": "Afficher tous les exemples",
     "{minutes} min of {engine}": "{minutes} min avec {engine}",
-    "Alternative uses of the same credits, not added together.": "Utilisations alternatives des mêmes crédits, non cumulables."
+    "Alternative uses of the same credits, not added together.": "Utilisations alternatives des mêmes crédits, non cumulables.",
+    "Restaurant": "Restaurant",
+    "Product": "Produit",
+    "AI-generated visual concepts · not client results.": "Concepts visuels générés par IA · pas des résultats clients.",
+    "Illustrative references, not model outputs.": "Références illustratives, pas des résultats des modèles.",
+    "The shape of your ad": "La structure de votre publicité",
+    "What makes a good photo": "Les qualités d’une bonne photo"
   },
   "de": {
     "Settings": "Einstellungen",
@@ -242,7 +266,13 @@
     "Try a different title or engine.": "Versuche einen anderen Titel oder ein anderes Modell.",
     "Show all examples": "Alle Beispiele anzeigen",
     "{minutes} min of {engine}": "{minutes} Min. mit {engine}",
-    "Alternative uses of the same credits, not added together.": "Alternative Nutzungen desselben Guthabens, nicht addierbar."
+    "Alternative uses of the same credits, not added together.": "Alternative Nutzungen desselben Guthabens, nicht addierbar.",
+    "Restaurant": "Restaurant",
+    "Product": "Produkt",
+    "AI-generated visual concepts · not client results.": "KI-generierte Bildkonzepte · keine Kundenergebnisse.",
+    "Illustrative references, not model outputs.": "Illustrative Referenzen, keine Modellergebnisse.",
+    "The shape of your ad": "Der Aufbau deiner Anzeige",
+    "What makes a good photo": "Was ein gutes Foto ausmacht"
   },
   "it": {
     "Settings": "Impostazioni",
@@ -291,7 +321,13 @@
     "Try a different title or engine.": "Prova un altro titolo o modello.",
     "Show all examples": "Mostra tutti gli esempi",
     "{minutes} min of {engine}": "{minutes} min con {engine}",
-    "Alternative uses of the same credits, not added together.": "Usi alternativi degli stessi crediti, non cumulabili."
+    "Alternative uses of the same credits, not added together.": "Usi alternativi degli stessi crediti, non cumulabili.",
+    "Restaurant": "Ristorante",
+    "Product": "Prodotto",
+    "AI-generated visual concepts · not client results.": "Concept visivi generati con IA · non risultati dei clienti.",
+    "Illustrative references, not model outputs.": "Riferimenti illustrativi, non risultati dei modelli.",
+    "The shape of your ad": "La struttura del tuo annuncio",
+    "What makes a good photo": "Cosa rende buona una foto"
   },
   "nl": {
     "Settings": "Instellingen",
@@ -340,7 +376,13 @@
     "Try a different title or engine.": "Probeer een andere titel of een ander model.",
     "Show all examples": "Alle voorbeelden tonen",
     "{minutes} min of {engine}": "{minutes} min met {engine}",
-    "Alternative uses of the same credits, not added together.": "Alternatieve bestedingen van dezelfde credits, niet bij elkaar opgeteld."
+    "Alternative uses of the same credits, not added together.": "Alternatieve bestedingen van dezelfde credits, niet bij elkaar opgeteld.",
+    "Restaurant": "Restaurant",
+    "Product": "Product",
+    "AI-generated visual concepts · not client results.": "AI-gegenereerde beeldconcepten · geen klantresultaten.",
+    "Illustrative references, not model outputs.": "Illustratieve voorbeelden, geen modelresultaten.",
+    "The shape of your ad": "De opbouw van je advertentie",
+    "What makes a good photo": "Wat een goede foto maakt"
   },
   "pl": {
     "Settings": "Ustawienia",
@@ -389,7 +431,13 @@
     "Try a different title or engine.": "Wypróbuj inny tytuł lub silnik.",
     "Show all examples": "Pokaż wszystkie przykłady",
     "{minutes} min of {engine}": "{minutes} min z {engine}",
-    "Alternative uses of the same credits, not added together.": "Alternatywne wykorzystanie tych samych kredytów; wartości się nie sumują."
+    "Alternative uses of the same credits, not added together.": "Alternatywne wykorzystanie tych samych kredytów; wartości się nie sumują.",
+    "Restaurant": "Restauracja",
+    "Product": "Produkt",
+    "AI-generated visual concepts · not client results.": "Koncepcje wizualne wygenerowane przez AI · nie wyniki klientów.",
+    "Illustrative references, not model outputs.": "Ilustracyjne przykłady, nie wyniki modeli.",
+    "The shape of your ad": "Struktura Twojej reklamy",
+    "What makes a good photo": "Co wyróżnia dobre zdjęcie"
   },
   "tr": {
     "Settings": "Ayarlar",
@@ -438,7 +486,13 @@
     "Try a different title or engine.": "Farklı bir başlık veya motor deneyin.",
     "Show all examples": "Tüm örnekleri göster",
     "{minutes} min of {engine}": "{engine} ile {minutes} dk",
-    "Alternative uses of the same credits, not added together.": "Aynı kredilerin alternatif kullanımlarıdır; süreler toplanmaz."
+    "Alternative uses of the same credits, not added together.": "Aynı kredilerin alternatif kullanımlarıdır; süreler toplanmaz.",
+    "Restaurant": "Restoran",
+    "Product": "Ürün",
+    "AI-generated visual concepts · not client results.": "Yapay zekâ ile üretilmiş görsel konseptler · müşteri sonuçları değildir.",
+    "Illustrative references, not model outputs.": "Temsili görseller, model çıktıları değildir.",
+    "The shape of your ad": "Reklamınızın yapısı",
+    "What makes a good photo": "İyi bir fotoğrafın özellikleri"
   },
   "ru": {
     "Settings": "Настройки",
@@ -487,7 +541,13 @@
     "Try a different title or engine.": "Попробуйте другое название или модель.",
     "Show all examples": "Показать все примеры",
     "{minutes} min of {engine}": "{minutes} мин с {engine}",
-    "Alternative uses of the same credits, not added together.": "Альтернативные способы использования одних и тех же кредитов; значения не суммируются."
+    "Alternative uses of the same credits, not added together.": "Альтернативные способы использования одних и тех же кредитов; значения не суммируются.",
+    "Restaurant": "Ресторан",
+    "Product": "Продукт",
+    "AI-generated visual concepts · not client results.": "Визуальные концепции, созданные ИИ · не результаты клиентов.",
+    "Illustrative references, not model outputs.": "Иллюстративные примеры, не результаты моделей.",
+    "The shape of your ad": "Структура вашей рекламы",
+    "What makes a good photo": "Что делает фотографию хорошей"
   },
   "uk": {
     "Settings": "Налаштування",
@@ -536,7 +596,13 @@
     "Try a different title or engine.": "Спробуйте іншу назву або модель.",
     "Show all examples": "Показати всі приклади",
     "{minutes} min of {engine}": "{minutes} хв із {engine}",
-    "Alternative uses of the same credits, not added together.": "Альтернативні способи використання тих самих кредитів; значення не підсумовуються."
+    "Alternative uses of the same credits, not added together.": "Альтернативні способи використання тих самих кредитів; значення не підсумовуються.",
+    "Restaurant": "Ресторан",
+    "Product": "Продукт",
+    "AI-generated visual concepts · not client results.": "Візуальні концепції, створені ШІ · не результати клієнтів.",
+    "Illustrative references, not model outputs.": "Ілюстративні приклади, не результати моделей.",
+    "The shape of your ad": "Структура вашої реклами",
+    "What makes a good photo": "Що робить фотографію вдалою"
   },
   "ar": {
     "Settings": "الإعدادات",
@@ -585,7 +651,13 @@
     "Try a different title or engine.": "جرّب عنوانًا أو نموذجًا آخر.",
     "Show all examples": "عرض جميع الأمثلة",
     "{minutes} min of {engine}": "{minutes} دقيقة باستخدام {engine}",
-    "Alternative uses of the same credits, not added together.": "استخدامات بديلة للرصيد نفسه، وليست أوقاتًا تُجمع معًا."
+    "Alternative uses of the same credits, not added together.": "استخدامات بديلة للرصيد نفسه، وليست أوقاتًا تُجمع معًا.",
+    "Restaurant": "مطعم",
+    "Product": "منتج",
+    "AI-generated visual concepts · not client results.": "تصورات بصرية مولّدة بالذكاء الاصطناعي · ليست نتائج عملاء.",
+    "Illustrative references, not model outputs.": "مراجع توضيحية وليست مخرجات النماذج.",
+    "The shape of your ad": "بنية إعلانك",
+    "What makes a good photo": "ما الذي يجعل الصورة جيدة"
   },
   "ur": {
     "Settings": "ترتیبات",
@@ -634,7 +706,13 @@
     "Try a different title or engine.": "دوسرا عنوان یا ماڈل آزمائیں۔",
     "Show all examples": "تمام مثالیں دکھائیں",
     "{minutes} min of {engine}": "{engine} کے ساتھ {minutes} منٹ",
-    "Alternative uses of the same credits, not added together.": "یہ ایک ہی کریڈٹ بیلنس استعمال کرنے کے متبادل ہیں؛ اوقات جمع نہیں کیے جاتے۔"
+    "Alternative uses of the same credits, not added together.": "یہ ایک ہی کریڈٹ بیلنس استعمال کرنے کے متبادل ہیں؛ اوقات جمع نہیں کیے جاتے۔",
+    "Restaurant": "ریستوران",
+    "Product": "مصنوعہ",
+    "AI-generated visual concepts · not client results.": "AI سے تیار کردہ بصری تصورات · صارفین کے نتائج نہیں۔",
+    "Illustrative references, not model outputs.": "وضاحتی مثالیں، ماڈلز کے نتائج نہیں۔",
+    "The shape of your ad": "آپ کے اشتہار کی ساخت",
+    "What makes a good photo": "اچھی تصویر کی خصوصیات"
   },
   "hi": {
     "Settings": "सेटिंग्स",
@@ -681,7 +759,13 @@
     "Try a different title or engine.": "कोई दूसरा शीर्षक या इंजन आज़माएँ।",
     "Show all examples": "सभी उदाहरण दिखाएँ",
     "{minutes} min of {engine}": "{engine} के साथ {minutes} मिनट",
-    "Alternative uses of the same credits, not added together.": "एक ही क्रेडिट शेष के वैकल्पिक उपयोग; समय को जोड़ा नहीं जाता।"
+    "Alternative uses of the same credits, not added together.": "एक ही क्रेडिट शेष के वैकल्पिक उपयोग; समय को जोड़ा नहीं जाता।",
+    "Restaurant": "रेस्तराँ",
+    "Product": "उत्पाद",
+    "AI-generated visual concepts · not client results.": "AI से बनी दृश्य अवधारणाएँ · ग्राहकों के परिणाम नहीं।",
+    "Illustrative references, not model outputs.": "उदाहरणात्मक संदर्भ, मॉडल के परिणाम नहीं।",
+    "The shape of your ad": "आपके विज्ञापन की संरचना",
+    "What makes a good photo": "एक अच्छी फ़ोटो की खूबियाँ"
   },
   "id": {
     "Settings": "Pengaturan",
@@ -730,7 +814,13 @@
     "Try a different title or engine.": "Coba judul atau mesin lain.",
     "Show all examples": "Tampilkan semua contoh",
     "{minutes} min of {engine}": "{minutes} menit dengan {engine}",
-    "Alternative uses of the same credits, not added together.": "Alternatif penggunaan kredit yang sama, bukan untuk dijumlahkan."
+    "Alternative uses of the same credits, not added together.": "Alternatif penggunaan kredit yang sama, bukan untuk dijumlahkan.",
+    "Restaurant": "Restoran",
+    "Product": "Produk",
+    "AI-generated visual concepts · not client results.": "Konsep visual buatan AI · bukan hasil pelanggan.",
+    "Illustrative references, not model outputs.": "Referensi ilustratif, bukan hasil model.",
+    "The shape of your ad": "Struktur iklan Anda",
+    "What makes a good photo": "Ciri foto yang bagus"
   },
   "vi": {
     "Settings": "Cài đặt",
@@ -779,6 +869,12 @@
     "Try a different title or engine.": "Hãy thử tiêu đề hoặc mô hình khác.",
     "Show all examples": "Hiển thị tất cả ví dụ",
     "{minutes} min of {engine}": "{minutes} phút với {engine}",
-    "Alternative uses of the same credits, not added together.": "Các cách sử dụng thay thế cho cùng số tín dụng, không cộng dồn."
+    "Alternative uses of the same credits, not added together.": "Các cách sử dụng thay thế cho cùng số tín dụng, không cộng dồn.",
+    "Restaurant": "Nhà hàng",
+    "Product": "Sản phẩm",
+    "AI-generated visual concepts · not client results.": "Ý tưởng hình ảnh do AI tạo · không phải kết quả của khách hàng.",
+    "Illustrative references, not model outputs.": "Hình minh họa tham khảo, không phải kết quả của mô hình.",
+    "The shape of your ad": "Cấu trúc quảng cáo của bạn",
+    "What makes a good photo": "Điều tạo nên một bức ảnh đẹp"
   }
 }

@@ -117,7 +117,7 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
       <p className="sub"><UiLabel>
         Everything you’ve created, in one place.
         </UiLabel>{usage && (
-          <span style={{ marginLeft: 10, fontSize: 12, color: '#7cc0ff', fontWeight: 700 }}>
+          <span style={{ marginLeft: 10, fontSize: 12, color: 'var(--accent)', fontWeight: 700 }}>
             {usage.limit ? (t(`${usage.total} of ${usage.limit} projects`, `${usage.total} de ${usage.limit} proyectos`)) : (t(`${usage.total} projects · unlimited`, `${usage.total} proyectos · sin límite`))} · {usage.retention}
           </span>
         )}
@@ -131,10 +131,15 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
           aparecia quando nao servia para retencao e sumia no instante em que
           passaria a servir — logo depois do 1o video. Agora o botao de criar
           e fixo no topo, e vem com a contagem honesta do proprio acervo. */}
+
+
+      {!unifiedGallery && <div className="library-history-link"><Link href="/history"><UiLabel>Video history and downloads</UiLabel> ↗</Link></div>}
+      {loaded && !loadFailed && activeCount === 0 && tab === 'all' && <p className="sub"><UiLabel>No projects yet.</UiLabel> <Link href="/studio"><UiLabel>Create a video</UiLabel> →</Link></p>}
+      <div className="library-toolbar">
       {(unifiedGallery || (loaded && !loadFailed)) && (
         <div
-          className="row"
-          style={{ marginBottom: 18, alignItems: 'center', gap: 12, flexWrap: 'wrap' }}
+          className="row library-create-actions"
+          style={{ marginBottom: 0, alignItems: 'center', gap: 12, flexWrap: 'wrap' }}
         >
           <Link
             href="/studio"
@@ -165,7 +170,7 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
                   />
                 ))}
               </span>
-              <span style={{ fontSize: 12, color: 'var(--txt2,#9aa0a6)', fontWeight: 700 }}>
+              <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 700 }}>
                 {completedCount >= 4
                   ? (t(`${completedCount} Shorts made`, `${completedCount} Shorts creados`))
                   : (t(`${completedCount} of your first 4 Shorts`, `${completedCount} de tus primeros 4 Shorts`))}
@@ -174,10 +179,6 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
           )}
         </div>
       )}
-
-      {!unifiedGallery && <div className="library-history-link"><Link href="/history"><UiLabel>Video history and downloads</UiLabel> ↗</Link></div>}
-      {loaded && !loadFailed && activeCount === 0 && tab === 'all' && <p className="sub"><UiLabel>No projects yet.</UiLabel> <Link href="/studio"><UiLabel>Create a video</UiLabel> →</Link></p>}
-      <div className="library-toolbar">
       <div className="row" role="group" aria-label="Asset type">
         {TABS.filter((t) => !unifiedGallery || t.key !== 'all').map((t) => (
           <button key={t.key} type="button" aria-pressed={tab === t.key} className={`pill${tab === t.key ? ' on' : ''}`} onClick={() => { setTab(t.key); setQ('') }}>
@@ -205,7 +206,7 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
       {unifiedGallery && tab === 'videos' && videoCollection}
 
       {!(unifiedGallery && tab === 'videos') && !loaded && (
-        <div aria-label="Loading your library" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12 }}>
+        <div className="library-loading" aria-label="Loading your library" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12 }}>
           <style>{'@keyframes libsk{0%{background-position:200% 0}100%{background-position:-200% 0}}'}</style>
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} style={{ aspectRatio: '9/16', borderRadius: 12, border: '1px solid rgba(255,255,255,.06)', background: 'linear-gradient(100deg, rgba(255,255,255,.035) 40%, rgba(255,255,255,.09) 50%, rgba(255,255,255,.035) 60%)', backgroundSize: '200% 100%', animation: 'libsk 1.4s linear infinite', animationDelay: `${(i % 3) * 120}ms` }} />
@@ -215,7 +216,7 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
 
       {!(unifiedGallery && tab === 'videos') && loaded && loadFailed && (
         <div role="alert" className="card" style={{ padding: '14px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', border: '1px solid rgba(251,191,36,.35)', background: 'rgba(251,191,36,.06)' }}>
-          <span style={{ fontSize: 13, color: '#fbbf24', fontWeight: 700 }}><UiLabel>We couldn’t load part of your library right now.</UiLabel></span>
+          <span style={{ fontSize: 13, color: 'var(--warning)', fontWeight: 700 }}><UiLabel>We couldn’t load part of your library right now.</UiLabel></span>
           <span style={{ fontSize: 12.5, color: 'var(--txt2,#9aa0a6)' }}><UiLabel>Your videos and credits are safe — this is just a temporary read hiccup.</UiLabel></span>
           <button type="button" className="pill" onClick={loadAll}><UiLabel>↻ Try again</UiLabel></button>
         </div>

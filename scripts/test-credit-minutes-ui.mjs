@@ -21,13 +21,13 @@ const cost = pure('lib/credits/engineCost.ts')
 const minutes = pure('lib/credits/creditMinutes.ts', { '@/lib/credits/engineCost': cost })
 const summary = (credits, language = 'en', live = false) => renderPage('components/CreditMinutesSummary.tsx', false, { interfaceLanguage: language }, { credits, live })
 for (const credits of [50, 60, 80, 150, 300, 2000]) {
-  check(summary(credits).includes(minutes.minutesLine(credits)), `real summary uses source for ${credits}`)
+  check(minutes.minutesLine(credits).split(" \u00b7 ").every(part=>summary(credits).includes(part)), `real summary uses source for ${credits}`)
 }
 check(summary(0) === '', 'no misleading minutes for zero balance')
-check(summary(60).includes('12 min of Kineo 1 · 2 min of Seedance 1.5'), 'current pass is 60 credits')
+check(['12 min of Kineo 1','2 min of Seedance 1.5'].every(part=>summary(60).includes(part)), 'current pass is 60 credits')
 check(!summary(60).includes('Kling 3'), 'omit engine below half a minute')
 check(summary(150, 'en', true).includes('aria-live="polite"'), 'slider announces updates')
-check(summary(150, 'pt').includes('30 min de Kineo 1 · 6 min de Seedance 1.5 · 1 min de Kling 3'), 'Portuguese template')
+check(['30 min de Kineo 1','6 min de Seedance 1.5','1 min de Kling 3'].every(part=>summary(150,'pt').includes(part)), 'Portuguese template')
 check(summary(80, 'pt').includes('0,5 min de Kling 3'), 'localized half-minute decimal')
 const copy = JSON.parse(read('lib/ui/refinementCopy.json'))
 for (const language of Object.keys(copy)) {
@@ -49,13 +49,13 @@ for (const amount of [150, 300, 2000, 50]) {
   range.props.onChange({ target: { value: String(amount) } })
   check(nextAmount === amount, 'range changes amount to ' + amount)
   const html = renderPage('components/CreditsTopupModal.tsx', false, { amount: nextAmount, currency: 'usd' }, props)
-  check(html.includes(minutes.minutesLine(amount)), 'popup rerenders minutes for ' + amount)
+  check(minutes.minutesLine(amount).split(" \u00b7 ").every(part=>html.includes(part)), 'popup rerenders minutes for ' + amount)
 }
 
 // Same plan grant for monthly/annual: minutes never multiply the credits.
 for (const billing of ['monthly', 'annual']) {
   const html = renderPage('app/pricing/PricingClient.tsx', false, { billing, currency: 'usd', demoOffer: true })
-  for (const credits of [60, 150, 300]) check(html.includes(minutes.minutesLine(credits)), `${billing} plan ${credits}`)
+  for (const credits of [60, 150, 300]) check(minutes.minutesLine(credits).split(" \u00b7 ").every(part=>html.includes(part)), `${billing} plan ${credits}`)
 }
 
 // Evaluate the real pass description expression only, never the payment route.

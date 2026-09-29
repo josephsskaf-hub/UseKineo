@@ -141,7 +141,7 @@ export default function PaymentConfirmedToast() {
 
   return (
     <div
-      role="status"
+      className="kineo-payment-notice" role="status"
       aria-live="polite"
       style={{
         position: 'fixed',
@@ -156,10 +156,10 @@ export default function PaymentConfirmedToast() {
         gap: 12,
         padding: '13px 16px',
         borderRadius: 16,
-        background: 'rgba(11,17,32,.96)',
-        border: '1px solid rgba(52,211,153,.45)',
-        boxShadow: '0 14px 44px rgba(0,0,0,.55)',
-        color: '#f5f5f7',
+        background: 'var(--card)',
+        border: '1px solid var(--border2)',
+        boxShadow: 'var(--sh-card-h)',
+        color: 'var(--text)',
         fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif',
       }}
     >
@@ -175,7 +175,7 @@ export default function PaymentConfirmedToast() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#34d399',
+          color: 'var(--success)',
           fontWeight: 900,
         }}
       >

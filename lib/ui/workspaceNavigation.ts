@@ -13,8 +13,6 @@ export const WORKSPACE_NAV = [
 ] as const
 /** Public "More" links shared by Sidebar and MobileNav; each shell appends its signed-in account links. */
 export const MORE_NAV = [
-  { href: '/viral-now', label: 'Viral Now', icon: 'viral' },
-  { href: '/scripts', label: 'Scripts', icon: 'scripts' },
   { href: '/animate', label: 'Animate', icon: 'animate' },
   { href: '/audio', label: 'Audio', icon: 'audio' },
   // Autopilot e Channel Builder moravam no grupo Grow; seguem alcancaveis aqui.
