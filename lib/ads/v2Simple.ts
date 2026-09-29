@@ -83,7 +83,185 @@ export function simpleTitle(text: string): string {
   if (first.length <= 40) return first
   const cut = first.slice(0, 40)
   const sp = cut.lastIndexOf(' ')
-  return (sp >= 20 ? cut.slice(0, sp) : cut).trim()
+  if (sp < 20) return cut.trim()
+  // KINEO-ADS-SIMPLES-ACABAMENTO-2026-09-29 — o corte não termina num nome pela metade ("…para alugar na Rua", de "Rua das
+  // Flores") nem numa palavra de ligação solta ("…en alquiler en el"). Sobrou pouco (< 12 caracteres) = o corte de antes.
+  const kept = cut.slice(0, sp).trim()
+  const cutWord = first.slice(sp + 1).split(' ')[0] ?? ''
+  const words = kept.split(' ')
+  const nameBit = (w: string) => isCap(w) || NAME_JOINERS.has(w.toLowerCase()) || /^\p{N}+[ºª°]?$/u.test(w)
+  let tail = words.length
+  while (tail > 0 && nameBit(words[tail - 1])) tail--
+  if (cutWord && nameBit(cutWord) && words.slice(tail).some((w) => isCap(w))) words.length = tail
+  while (words.length && FUNCTION_WORDS.has(words[words.length - 1].toLowerCase())) words.pop()
+  const out = words.join(' ')
+  return out.length >= 12 ? out : kept
+}
+
+// ── KINEO-ADS-SIMPLES-ACABAMENTO-2026-09-29 — a narração cita os NOMES que a pessoa escreveu ────────────────────────────
+// Teste do fundador em produção (29/09, pedido 1ddfcf25): "Espaço comercial à venda ou para alugar no Edifício Villa
+// Versace, em Moema, São Paulo" virou "Conheça o Espaço comercial, à venda ou para alugar. Venha conferir as oportunidades
+// em Moema!" — sumiram o edifício e a cidade, e "Espaço comercial" entrou com maiúscula no meio da frase. A causa estava no
+// brief: o GPT tratou "Espaço comercial" como NOME do negócio ("Espaço comercial — à venda ou para alugar") e o pedido de
+// texto manda "Say the business name once". As regras abaixo são determinísticas e puras: quais nomes próprios a pessoa
+// escreveu (a narração tem de citá-los) e se o "nome" do brief é, na verdade, um substantivo comum (vai em minúscula no
+// meio da frase). Nenhum nome sai daqui que a pessoa não tenha escrito.
+
+/** Palavras de ligação que podem ficar DENTRO de um nome ("Rua das Flores", "Centro de Campinas", "Bank of America"). */
+const NAME_JOINERS = new Set(['de', 'da', 'do', 'das', 'dos', 'del', 'di', 'du', 'la', 'las', 'los', 'le', 'e', 'y', 'of', 'the', 'and', '&'])
+/** Palavras de função: se alguma aparece com maiúscula fora do começo, o texto está em "Título Assim" (ou CAIXA ALTA) e a
+ *  maiúscula não prova nome nenhum — nenhum nome é exigido. */
+const FUNCTION_WORDS = new Set(['a', 'o', 'as', 'os', 'à', 'às', 'ao', 'aos', 'no', 'na', 'nos', 'nas', 'em', 'de', 'da', 'do', 'das', 'dos', 'com', 'para', 'pra', 'por', 'ou', 'e', 'um', 'uma', 'in', 'on', 'at', 'for', 'to', 'of', 'the', 'and', 'or', 'with', 'en', 'el', 'la', 'los', 'las', 'con', 'por', 'y', 'al', 'del'])
+/** Maiúscula que não é lugar nem negócio (canal, pagamento, dia, mês, "I"): nunca vira nome exigido. */
+const NOT_A_NAME = /^(whats\s?app|instagram|insta|facebook|tiktok|youtube|google|pix|wi-?fi|zap|i|monday|tuesday|wednesday|thursday|friday|saturday|sunday|january|february|march|april|may|june|july|august|september|october|november|december)$/iu
+/** 1ª palavra de um trecho no começo da frase que descreve O QUE é anunciado (tipo de imóvel ou de negócio), não um nome. */
+const WHAT_IT_IS = /^(espa[cç]os?|salas?|lojas?|casas?|sobrados?|apartamentos?|aptos?|im[oó]ve(l|is)|terrenos?|lotes?|coberturas?|kitnets?|flats?|galp[aã]o|galp[oõ]es|pontos?|ch[aá]caras?|s[ií]tios?|fazendas?|quartos?|su[ií]tes?|escrit[oó]rios?|consult[oó]rios?|restaurantes?|padarias?|lanchonetes?|pizzarias?|cafeterias?|academias?|cl[ií]nicas?|sal[aã]o|sal[oõ]es|barbearias?|houses?|homes?|apartments?|condos?|shops?|stores?|offices?|spaces?|units?|lots?|land|bakery|bakeries|restaurants?|caf[eé]s?|gyms?|clinics?|salons?|corner|cozy|charming|beautiful|spacious|new|novo|nova|lindo|linda|amplo|ampla|moderno|moderna|bonito|bonita|locales?|local|pisos?|departamentos?|oficinas?|tiendas?|naves?|panader[ií]as?|gimnasios?|peluquer[ií]as?)$/iu
+
+const isCap = (w: string) => /^\p{Lu}/u.test(w)
+const isWordish = (w: string) => /^[\p{L}\p{N}][\p{L}\p{N}'’.&․-]*$/u.test(w) || w === '&'
+
+/**
+ * Nomes próprios que a pessoa escreveu (lugar, edifício, rua, bairro, cidade, negócio), na ordem da frase, no máximo 3.
+ * Um nome = sequência de palavras com maiúscula, com ligações internas ("das", "de") e números no meio ("Rua 25 de
+ * Março"). Palavra solta com maiúscula no começo da frase NÃO conta ("Espaço", "Casa", "Corner" — é só o começo da
+ * frase). Trecho no começo da frase com 2+ maiúsculas perde a 1ª palavra se ela diz o que é anunciado ("Apartamento Vila
+ * Mariana" → "Vila Mariana"). Texto em "Título Assim"/CAIXA ALTA = [] (a maiúscula não prova nada). Pura.
+ */
+export function simpleNames(text: string): string[] {
+  // O ponto de abreviação ("Av. Paulista", "R. das Flores") não termina a frase: vira um ponto-guia (U+2024) até o fim.
+  const s = String(text ?? '').replace(/\s+/g, ' ').trim().replace(/(?<![\p{L}\p{N}])(Av|Avda|Al|R|Pç|Pça|Pq|Jd|Vl|Dr|Dra|Sr|Sra|Sto|Sta|St|Ave|Blvd|Rd|Mt|Ft|Prof|Profa|Gral|Cdad)\.(?=\s)/gu, (_m: string, ab: string) => `${ab}․`)
+  if (!s) return []
+  // Pedaços separados por pontuação; cada pedaço sabe se começa uma frase.
+  const pieces: { words: string[]; sentenceStart: boolean }[] = []
+  let sentenceStart = true
+  for (const part of s.split(/(\s[—–-]\s|[,;:!?()"“”\n]|\.(?=\s|$))/u)) {
+    if (part === undefined) continue
+    if (/^(\s[—–-]\s|[,;:()"“”])$/u.test(part)) { continue }
+    if (/^[.!?\n]$/.test(part)) { sentenceStart = true; continue }
+    const words = part.trim().split(' ').filter(Boolean)
+    if (!words.length) continue
+    pieces.push({ words, sentenceStart })
+    sentenceStart = false
+  }
+  // Título/CAIXA ALTA: uma palavra de função com maiúscula fora do começo da frase.
+  for (const p of pieces) {
+    for (let i = 0; i < p.words.length; i++) {
+      if (i === 0 && p.sentenceStart) continue
+      const w = p.words[i]
+      if (FUNCTION_WORDS.has(w.toLowerCase()) && isCap(w)) return []
+    }
+  }
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const p of pieces) {
+    let i = 0
+    // Palavra de nome = maiúscula, com cara de palavra e fora da lista NOT_A_NAME (canal, dia, mês, "I" quebram a corrida).
+    const nameWord = (w: string) => isCap(w) && isWordish(w) && !NOT_A_NAME.test(w)
+    while (i < p.words.length) {
+      if (!nameWord(p.words[i])) { i++; continue }
+      const start = i
+      let end = i // último índice com maiúscula da corrida
+      let j = i + 1
+      while (j < p.words.length) {
+        const w = p.words[j]
+        if (nameWord(w)) { end = j; j++; continue }
+        if (NAME_JOINERS.has(w.toLowerCase()) || /^\p{N}+[ºª°]?$/u.test(w)) { j++; continue }
+        break
+      }
+      let run = p.words.slice(start, end + 1)
+      i = end + 1
+      const atStart = start === 0 && p.sentenceStart
+      const caps = run.filter((w) => isCap(w)).length
+      if (atStart && caps === 1) continue
+      if (atStart && WHAT_IT_IS.test(run[0])) {
+        run = run.slice(1)
+        while (run.length && !isCap(run[0])) run = run.slice(1)
+      }
+      if (!run.length || run.length > 6) continue
+      const name = run.join(' ').split('․').join('.')
+      // Sigla solta ("SP", "NY", "USA") não é exigida: a voz lê letra por letra e a pessoa quase sempre quis dizer o lugar.
+      if (run.length === 1 && (name.replace(/[^\p{L}]/gu, '').length < 2 || /^\p{Lu}{1,3}$/u.test(name))) continue
+      const key = name.toLowerCase()
+      if (seen.has(key)) continue
+      seen.add(key)
+      out.push(name)
+    }
+  }
+  return out.slice(0, 3)
+}
+
+/**
+ * Nomes da lista que o texto NÃO cita. Citar = as palavras do nome, na ordem e juntas, sem diferenciar maiúscula; as
+ * ligações ("das", "de") e as abreviações com ponto ("Av.") não contam, então "Avenida Paulista" cita "Av. Paulista" e
+ * "Rua das Flores" cita "Rua das Flores". Pura.
+ */
+export function missingNames(text: string, names: readonly string[]): string[] {
+  const words = (s: string) => s.toLocaleLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w && !NAME_JOINERS.has(w))
+  const said = words(String(text ?? ''))
+  return names.filter((name) => {
+    const want = String(name ?? '').split(/\s+/).filter((w) => w && !/\.$/.test(w)).join(' ')
+    const seq = words(want)
+    if (!seq.length) return false
+    for (let i = 0; i + seq.length <= said.length; i++) if (seq.every((w, k) => said[i + k] === w)) return false
+    return true
+  })
+}
+
+/** Línguas em que substantivo comum vai em minúscula no meio da frase (alemão fica de fora: lá todo substantivo é maiúsculo). */
+const LOWERCASE_NOUN_LANGS = new Set(['en', 'pt', 'es', 'fr', 'it'])
+
+/**
+ * O "nome" do brief é um substantivo comum? ("Espaço comercial", "Casa", "Corner bakery", "Local comercial" — o que é
+ * anunciado, não um nome.) Devolve a forma em minúscula para o meio da frase, ou null quando é nome de verdade ou não dá
+ * para saber (na dúvida, nada muda). A prova vem do que a PESSOA escreveu:
+ *   · achado no meio da frase dela: minúsculo lá = comum; com maiúscula = nome;
+ *   · achado no começo da frase: comum se alguma palavra seguinte está em minúscula lá ("Espaço comercial"), ou se é uma
+ *     palavra só que diz o que é anunciado ("Casa"); qualquer outra maiúscula depois ("Casa Bonita") = nome;
+ *   · não achado: comum só se a 1ª palavra diz o que é anunciado e as outras estão em minúscula. Pura.
+ */
+export function simpleCommonNoun(brand: string, sentence: string, language: string): string | null {
+  const b = String(brand ?? '').replace(/\s+/g, ' ').trim()
+  const s = String(sentence ?? '').replace(/\s+/g, ' ').trim()
+  if (!b || !LOWERCASE_NOUN_LANGS.has(String(language ?? '').toLowerCase().slice(0, 2))) return null
+  const lower = b.toLocaleLowerCase(language)
+  const bw = b.split(' ')
+  const idx = s.toLocaleLowerCase(language).indexOf(lower)
+  const boundaryOk = idx >= 0 && !/[\p{L}\p{N}]/u.test(s.slice(idx - 1, idx) || ' ') && !/[\p{L}\p{N}]/u.test(s.slice(idx + b.length, idx + b.length + 1) || ' ')
+  if (boundaryOk) {
+    const written = s.slice(idx, idx + b.length).split(' ')
+    const atStart = idx === 0 || /[.!?]\s*$/.test(s.slice(0, idx))
+    if (!atStart) return isCap(written[0]) ? null : lower
+    if (written.slice(1).some((w) => isCap(w) && !NAME_JOINERS.has(w.toLowerCase()))) return null
+    if (written.length > 1) return lower
+    return WHAT_IT_IS.test(written[0]) ? lower : null
+  }
+  if (!WHAT_IT_IS.test(bw[0])) return null
+  return bw.slice(1).some((w) => isCap(w)) ? null : lower
+}
+
+/**
+ * Pós-processamento: cada ocorrência de `phrase` (sem diferenciar maiúscula) que está NO MEIO de uma frase vira `lower`;
+ * no começo da frase (início do texto ou depois de . ! ?) fica como está. Fronteira de palavra Unicode. Pura.
+ */
+export function lowerMidSentence(text: string, phrase: string, lower: string): string {
+  const t = String(text ?? '')
+  const p = String(phrase ?? '').trim()
+  if (!t || !p) return t
+  const low = t.toLowerCase()
+  const needle = p.toLowerCase()
+  let out = ''
+  let from = 0
+  for (let i = low.indexOf(needle); i >= 0; i = low.indexOf(needle, i + needle.length)) {
+    const before = t.slice(0, i)
+    const after = t.slice(i + needle.length, i + needle.length + 1)
+    const wordEdge = !/[\p{L}\p{N}]$/u.test(before) && !/^[\p{L}\p{N}]/u.test(after)
+    const midSentence = /\S/.test(before) && !/[.!?]["”')\]]*\s*$/.test(before)
+    if (wordEdge && midSentence) {
+      out += t.slice(from, i) + lower
+      from = i + needle.length
+    }
+  }
+  return out + t.slice(from)
 }
 
 /** O botão do cartão pelo contato que a pessoa escreveu (os rótulos por língua vêm de endCardCtaLabel). */
@@ -131,6 +309,8 @@ const EN = {
     fromVideo: 'From your video',
     small: 'This photo is small and may look soft. Send the original file, not a copy from a chat app.',
     readingVideo: 'Reading your video…',
+    videoHidden: 'Come back to this tab so we can finish reading your video.',
+    videoHiddenRetry: '{name}: this tab stayed in the background too long, so we could not finish reading the video. Add it again.',
     videoDecode: "Your browser cannot open this video; record it in 'Most Compatible' or send photos.",
     asVideo: 'Goes in as video',
     asVideoHint: 'We use a short, lively part of it, muted: the music and the voice-over play over it.',
@@ -161,10 +341,13 @@ const EN = {
     pricePlaceholder: 'e.g. 450,000 or 2,500 a month',
     contact: 'Contact (optional)',
     contactPlaceholder: 'Phone, WhatsApp or @handle',
-    overlays: 'Short phrases on screen',
+    overlays: 'Phrases on screen',
+    overlaysHint: '2 or 3 short phrases over the video (the name, what it is, where). They are not subtitles of the voice-over.',
     narration: 'Voice-over',
     on: 'on',
     off: 'off',
+    onMany: 'on',
+    offMany: 'off',
     cardTitle: 'Title of the last frame',
     cardTitleHint: 'Empty = taken from your text.',
     logo: 'Logo (optional)',
@@ -216,8 +399,8 @@ const EN = {
     photo: 'Photo',
     lastFrame: 'Your last frame',
     lastFrameDesc: 'Title, price and contact',
-    words: 'Words on screen',
-    noWords: 'No words on screen.',
+    words: 'Phrases on screen',
+    noWords: 'No phrases on screen.',
     voice: 'Voice-over',
     noVoice: 'No voice-over: music only.',
     total: 'About {s} seconds · vertical 9:16 · {c} credits',
@@ -327,6 +510,8 @@ const PT: AdsV2SimpleCopy = {
     fromVideo: 'Do seu vídeo',
     small: 'Esta foto é pequena e pode ficar sem nitidez. Mande o arquivo original, não a cópia do WhatsApp.',
     readingVideo: 'Lendo o seu vídeo…',
+    videoHidden: 'Volte para esta aba para terminarmos de ler o vídeo.',
+    videoHiddenRetry: '{name}: esta aba ficou em segundo plano por muito tempo e não terminamos de ler o vídeo. Adicione-o de novo.',
     videoDecode: "Seu navegador não abre este vídeo; grave em 'Mais compatível' ou envie fotos.",
     asVideo: 'Vai entrar como vídeo',
     asVideoHint: 'Usamos um trecho curto e com movimento, sem o som: a música e a narração tocam por cima.',
@@ -357,10 +542,13 @@ const PT: AdsV2SimpleCopy = {
     pricePlaceholder: 'Ex.: R$ 450.000 ou R$ 2.500 por mês',
     contact: 'Contato (opcional)',
     contactPlaceholder: 'Telefone, WhatsApp ou @perfil',
-    overlays: 'Frases curtas na tela',
+    overlays: 'Frases na tela',
+    overlaysHint: '2 ou 3 frases curtas por cima do vídeo (o nome, o que é, onde). Não são legenda da narração.',
     narration: 'Narração',
     on: 'ligada',
     off: 'desligada',
+    onMany: 'ligadas',
+    offMany: 'desligadas',
     cardTitle: 'Título do quadro final',
     cardTitleHint: 'Vazio = tirado do seu texto.',
     logo: 'Logo (opcional)',
@@ -521,6 +709,8 @@ const ES: AdsV2SimpleCopy = {
     fromVideo: 'De tu video',
     small: 'Esta foto es pequeña y puede verse borrosa. Envía el archivo original, no la copia de una app de chat.',
     readingVideo: 'Leyendo tu video…',
+    videoHidden: 'Vuelve a esta pestaña para que terminemos de leer el video.',
+    videoHiddenRetry: '{name}: esta pestaña quedó en segundo plano demasiado tiempo y no terminamos de leer el video. Agrégalo de nuevo.',
     videoDecode: "Tu navegador no abre este video; grábalo en 'Más compatible' o envía fotos.",
     asVideo: 'Entra como video',
     asVideoHint: 'Usamos una parte corta y con movimiento, sin sonido: la música y la narración suenan encima.',
@@ -551,10 +741,13 @@ const ES: AdsV2SimpleCopy = {
     pricePlaceholder: 'Ej.: 450.000 o 2.500 al mes',
     contact: 'Contacto (opcional)',
     contactPlaceholder: 'Teléfono, WhatsApp o @usuario',
-    overlays: 'Frases cortas en pantalla',
+    overlays: 'Frases en pantalla',
+    overlaysHint: '2 o 3 frases cortas sobre el video (el nombre, qué es, dónde). No son subtítulos de la narración.',
     narration: 'Narración',
     on: 'activada',
     off: 'desactivada',
+    onMany: 'activadas',
+    offMany: 'desactivadas',
     cardTitle: 'Título del cuadro final',
     cardTitleHint: 'Vacío = sale de tu texto.',
     logo: 'Logo (opcional)',

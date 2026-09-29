@@ -65,7 +65,7 @@ import {
   videoFrameTimes,
   type AdsV2SimpleCopy,
 } from '@/lib/ads/v2Simple'
-import { VideoFramesError, grabVideoFrames, readUserVideo } from '@/lib/ads/v2VideoFrames'
+import { VideoFramesError, grabVideoFrames, pageHidden, readUserVideo } from '@/lib/ads/v2VideoFrames'
 import { ADS_V2_MAX_USER_VIDEOS, ADS_V2_USER_VIDEO_MIN_SECONDS, pickLivelyStart, userVideoSampleTimes, userVideoVerdict, type AdsV2UserVideoVerdict } from '@/lib/ads/v2UserVideo'
 import { NARRATION_LANGUAGES, detectNarrationLanguage, narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage'
 import { pickInterfaceCopy, type InterfaceLanguage } from '@/lib/ui/interfaceLanguage'
@@ -247,7 +247,8 @@ const newKey = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
  */
 export type AdVideoRead =
   | { kind: 'video'; seconds: number; width: number; height: number; start: number; thumb: File }
-  | { kind: 'photos'; verdict: AdsV2UserVideoVerdict }
+  // hidden: a aba ficou oculta além do teto (VIDEO_FRAME_HIDDEN_MAX_MS) — o vídeo NÃO foi julgado ilegível.
+  | { kind: 'photos'; verdict: AdsV2UserVideoVerdict; hidden?: true }
 export async function readVideoForAd(f: File, videosAlready: number): Promise<AdVideoRead> {
   const type = normalizeFootageType(f)
   const first = userVideoVerdict({ bytes: f.size, type, seconds: ADS_V2_USER_VIDEO_MIN_SECONDS, width: 1, height: 1, videosAlready })
@@ -255,7 +256,8 @@ export async function readVideoForAd(f: File, videosAlready: number): Promise<Ad
   let read: Awaited<ReturnType<typeof readUserVideo>> | null = null
   try {
     read = await readUserVideo(f, (d) => userVideoSampleTimes(d), (t, d, dur) => pickLivelyStart(t, d, dur))
-  } catch {
+  } catch (e) {
+    if (e instanceof VideoFramesError && e.code === 'hidden') return { kind: 'photos', verdict: 'unreadable', hidden: true }
     read = null
   }
   const verdict = userVideoVerdict({ bytes: f.size, type, seconds: read?.seconds ?? null, width: read?.width ?? null, height: read?.height ?? null, videosAlready })
@@ -339,6 +341,9 @@ export function AdsV2SimpleSession({
   itemsRef.current = items
   const [fileNote, setFileNote] = useState<string | null>(null)
   const [videoBusy, setVideoBusy] = useState(0)
+  // KINEO-ADS-SIMPLES-ACABAMENTO-2026-09-29 — aba oculta durante a leitura do vídeo: a leitura espera (v2VideoFrames) e a
+  // tela pede para voltar, em vez de acusar o navegador.
+  const [tabHidden, setTabHidden] = useState(false)
   const [text, setText] = useState('')
   const [tier, setTier] = useState<AdsV2Tier | null>(null)
   const [price, setPrice] = useState('')
@@ -560,6 +565,21 @@ export function AdsV2SimpleSession({
     if (phase === 'progress' || phase === 'delivered' || phase === 'failed') headingRef.current?.focus()
   }, [phase])
 
+  // Aba oculta enquanto um vídeo é lido: o aviso vira "Volte para esta aba…" — na tela e no título da aba (o único lugar
+  // que a pessoa vê com a aba em segundo plano). Voltou ou terminou = título de antes.
+  useEffect(() => {
+    const sync = () => setTabHidden(pageHidden())
+    sync()
+    document.addEventListener('visibilitychange', sync)
+    return () => document.removeEventListener('visibilitychange', sync)
+  }, [])
+  useEffect(() => {
+    if (!(videoBusy > 0 && tabHidden)) return
+    const before = document.title
+    document.title = copy.files.videoHidden
+    return () => { document.title = before }
+  }, [videoBusy, tabHidden, copy.files.videoHidden])
+
   // Prévia do quadro final (logo opcional + título + preço + contato).
   useEffect(() => {
     const canvas = cardCanvasRef.current
@@ -621,7 +641,9 @@ export function AdsV2SimpleSession({
       if (!added.length) notes.push(copy.files.videoDecode)
       return added
     } catch (e) {
-      notes.push(e instanceof VideoFramesError && e.code === 'too_long' ? fill(copy.files.videoTooLong, { name: f.name }) : copy.files.videoDecode)
+      const code = e instanceof VideoFramesError ? e.code : null
+      // Aba oculta além do teto: o vídeo não foi julgado — nunca "seu navegador não abre".
+      notes.push(code === 'too_long' ? fill(copy.files.videoTooLong, { name: f.name }) : code === 'hidden' ? fill(copy.files.videoHiddenRetry, { name: f.name }) : copy.files.videoDecode)
       return []
     }
   }
@@ -651,6 +673,10 @@ export function AdsV2SimpleSession({
         video: { file: f, seconds: read.seconds, width: read.width, height: read.height, start: read.start },
         uploaded: null, busy: false, error: null,
       }]
+    }
+    if (read.hidden) {
+      notes.push(fill(copy.files.videoHiddenRetry, { name: f.name }))
+      return []
     }
     const note = asPhotosNote(read.verdict, f.name)
     if (note) notes.push(note)
@@ -1079,7 +1105,7 @@ export function AdsV2SimpleSession({
                   <span aria-hidden="true">+</span> {items.length ? copy.files.addMore : copy.files.add}
                 </button>
               </div>
-              {videoBusy > 0 ? <p className="adsw-hint" role="status">{copy.files.readingVideo}</p> : null}
+              {videoBusy > 0 ? <p className="adsw-hint" role="status">{tabHidden ? copy.files.videoHidden : copy.files.readingVideo}</p> : null}
               {fileNote ? <p className="adsw-warn" role="status">{fileNote}</p> : null}
             </section>
 
@@ -1101,12 +1127,14 @@ export function AdsV2SimpleSession({
                 <summary>{copy.text.more}</summary>
                 <div className="adv2s-toggles">
                   <button type="button" className="adv2-switch" role="switch" aria-checked={overlaysOn} disabled={locked} onClick={() => setOverlaysOn((v) => !v)}>
-                    <i aria-hidden="true" /> {copy.text.overlays}: {overlaysOn ? copy.text.on : copy.text.off}
+                    <i aria-hidden="true" /> {copy.text.overlays}: {overlaysOn ? copy.text.onMany : copy.text.offMany}
                   </button>
                   <button type="button" className="adv2-switch" role="switch" aria-checked={narrationOn} disabled={locked} onClick={() => setNarrationOn((v) => !v)}>
                     <i aria-hidden="true" /> {copy.text.narration}: {narrationOn ? copy.text.on : copy.text.off}
                   </button>
                 </div>
+                {/* KINEO-ADS-SIMPLES-ACABAMENTO-2026-09-29 — "sem legenda" (fundador): as frases são 2-3 frases curtas, não legenda. */}
+                <p className="adsw-hint">{copy.text.overlaysHint}</p>
                 <label className="adsw-f">
                   <span>{copy.text.price}</span>
                   <input type="text" value={price} maxLength={60} disabled={locked} onChange={(e) => setPrice(e.target.value)} placeholder={copy.text.pricePlaceholder} />

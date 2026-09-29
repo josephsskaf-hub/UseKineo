@@ -10,24 +10,87 @@ export const VIDEO_FRAME_JPEG_QUALITY = 0.92
 export const VIDEO_FRAME_DARK_LUMA = 0.06
 export const VIDEO_FRAME_SEEK_TIMEOUT_MS = 15_000
 export const VIDEO_FRAME_FALLBACK_FRACTIONS: readonly number[] = [0.35, 0.65]
+/**
+ * KINEO-ADS-SIMPLES-ACABAMENTO-2026-09-29 — ABA EM SEGUNDO PLANO. O fundador trocou de aba enquanto a tela lia o vídeo:
+ * com a aba oculta o navegador não carrega nem avança o <video>, os 15 s estouravam e a tela dizia "Seu navegador não abre
+ * este vídeo" — mentira. Agora o tempo-limite só corre com a aba VISÍVEL; oculta, a leitura espera a aba voltar (até este
+ * teto) e a tela pede "Volte para esta aba…". Teto estourado = VideoFramesError('hidden'), nunca 'decode'.
+ */
+export const VIDEO_FRAME_HIDDEN_MAX_MS = 10 * 60_000
 
+export type VideoFramesErrorCode = 'decode' | 'too_long' | 'canvas' | 'aborted' | 'hidden'
 export class VideoFramesError extends Error {
-  code: 'decode' | 'too_long' | 'canvas' | 'aborted'
-  constructor(code: 'decode' | 'too_long' | 'canvas' | 'aborted') {
+  code: VideoFramesErrorCode
+  constructor(code: VideoFramesErrorCode) {
     super(`video_frames_${code}`)
     this.code = code
   }
 }
 
+/** A aba está oculta agora? (sem document = nunca oculta) */
+export function pageHidden(): boolean {
+  try {
+    return typeof document !== 'undefined' && document.hidden === true
+  } catch {
+    return false
+  }
+}
+
+/** Visível = resolve na hora. Oculta = espera 'visibilitychange' para visível, até `maxMs` (estourou = 'hidden'). */
+export function untilVisible(signal?: AbortSignal, maxMs: number = VIDEO_FRAME_HIDDEN_MAX_MS): Promise<void> {
+  if (signal?.aborted) return Promise.reject(new VideoFramesError('aborted'))
+  if (!pageHidden()) return Promise.resolve()
+  return new Promise((resolve, reject) => {
+    let timer = 0
+    const done = (fn: () => void) => {
+      window.clearTimeout(timer)
+      document.removeEventListener('visibilitychange', onVis)
+      signal?.removeEventListener('abort', onAbort)
+      fn()
+    }
+    const onVis = () => { if (!pageHidden()) done(resolve) }
+    const onAbort = () => done(() => reject(new VideoFramesError('aborted')))
+    document.addEventListener('visibilitychange', onVis)
+    signal?.addEventListener('abort', onAbort)
+    timer = window.setTimeout(() => done(() => reject(new VideoFramesError('hidden'))), maxMs)
+  })
+}
+
+/**
+ * Espera o evento `ok` do vídeo. O tempo-limite `ms` só conta enquanto a aba está VISÍVEL (pausa ao ocultar, retoma com o
+ * que faltava ao voltar); oculta há mais de VIDEO_FRAME_HIDDEN_MAX_MS = 'hidden'. O evento 'error' do vídeo é falha real
+ * de decodificação ('decode') a qualquer momento.
+ */
 function waitEvent(el: HTMLVideoElement, ok: string, ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     let timer = 0
+    let hidden = pageHidden()
+    let since = Date.now()
+    let visibleLeft = ms
+    let hiddenLeft = VIDEO_FRAME_HIDDEN_MAX_MS
+    const arm = () => {
+      window.clearTimeout(timer)
+      since = Date.now()
+      timer = hidden
+        ? window.setTimeout(() => done(() => reject(new VideoFramesError('hidden'))), Math.max(0, hiddenLeft))
+        : window.setTimeout(() => done(() => reject(new VideoFramesError('decode'))), Math.max(0, visibleLeft))
+    }
     const done = (fn: () => void) => {
       window.clearTimeout(timer)
       el.removeEventListener(ok, onOk)
       el.removeEventListener('error', onErr)
       signal?.removeEventListener('abort', onAbort)
+      try { document.removeEventListener('visibilitychange', onVis) } catch { /* sem document */ }
       fn()
+    }
+    const onVis = () => {
+      const now = pageHidden()
+      if (now === hidden) return
+      const spent = Date.now() - since
+      if (hidden) hiddenLeft -= spent
+      else visibleLeft -= spent
+      hidden = now
+      arm()
     }
     const onOk = () => done(resolve)
     const onErr = () => done(() => reject(new VideoFramesError('decode')))
@@ -35,7 +98,8 @@ function waitEvent(el: HTMLVideoElement, ok: string, ms: number, signal?: AbortS
     el.addEventListener(ok, onOk)
     el.addEventListener('error', onErr)
     signal?.addEventListener('abort', onAbort)
-    timer = window.setTimeout(() => done(() => reject(new VideoFramesError('decode'))), ms)
+    try { document.addEventListener('visibilitychange', onVis) } catch { /* sem document */ }
+    arm()
   })
 }
 
@@ -82,6 +146,8 @@ export async function grabVideoFrames(
   video.playsInline = true
   video.preload = 'auto'
   try {
+    // Aba oculta: o navegador não carrega o <video>; a leitura começa quando a aba voltar (até o teto).
+    await untilVisible(opts.signal)
     video.src = url
     await waitEvent(video, 'loadeddata', VIDEO_FRAME_SEEK_TIMEOUT_MS, opts.signal)
     const duration = video.duration
@@ -94,11 +160,14 @@ export async function grabVideoFrames(
     if (!ctx) throw new VideoFramesError('canvas')
 
     const drawAt = async (t: number): Promise<number> => {
+      await untilVisible(opts.signal)
       if (Math.abs(video.currentTime - t) > 0.001) {
         const seeked = waitEvent(video, 'seeked', VIDEO_FRAME_SEEK_TIMEOUT_MS, opts.signal)
         video.currentTime = t
         await seeked
       }
+      // O quadro só é desenhado com a aba visível (oculta, o navegador pode entregar um quadro vazio).
+      await untilVisible(opts.signal)
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
       return meanLuma(canvas)
     }
@@ -164,18 +233,23 @@ export async function readUserVideo(
   video.playsInline = true
   video.preload = 'auto'
   try {
+    // Aba oculta: o navegador não carrega o <video>; a leitura começa quando a aba voltar (até o teto).
+    await untilVisible(opts.signal)
     video.src = url
     await waitEvent(video, 'loadeddata', VIDEO_FRAME_SEEK_TIMEOUT_MS, opts.signal)
     const duration = video.duration
     const width = video.videoWidth
     const height = video.videoHeight
     if (!Number.isFinite(duration) || duration <= 0 || !width || !height) throw new VideoFramesError('decode')
+    // Cada avanço espera a aba visível antes E depois: quem chama desenha o quadro logo em seguida (aba oculta = quadro vazio).
     const seekTo = async (t: number) => {
+      await untilVisible(opts.signal)
       if (Math.abs(video.currentTime - t) > 0.001) {
         const seeked = waitEvent(video, 'seeked', VIDEO_FRAME_SEEK_TIMEOUT_MS, opts.signal)
         video.currentTime = t
         await seeked
       }
+      await untilVisible(opts.signal)
     }
     const small = document.createElement('canvas')
     small.width = 32
