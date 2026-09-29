@@ -463,22 +463,31 @@ const cbSubmit = fatia(rc, 'submit: async (m, promptForAttempt, onPost) => {', '
 checa('fatia do submit clássico existe e grava o payload ANTES do POST', Boolean(cbSubmit) && cbSubmit.indexOf('classicSceneInputs[sceneIndex] = input') > 0 && cbSubmit.indexOf('classicSceneInputs[sceneIndex] = input') < cbSubmit.indexOf('return submitFalQueueOnce(m, input, onPost)'))
 checa('classicSceneInputs nasce ao lado de sceneStills, um slot por cena', rc.includes('const sceneStills: (string | null)[] = new Array(scenes.length).fill(null)') && rc.includes('const classicSceneInputs: (Record<string, unknown> | null)[] = new Array(scenes.length).fill(null)'))
 // monta o callback REAL com um buildFalInput de mentira (o formato do payload é do buildFalInput, que não muda aqui)
-const montaSubmit = (cb, ctx) => roda(`export function fazer(ctx: any) {\n  const { hd, imageUrl, modelos, generationSeed, isStylizedLook, styleAnchor, aspectRequested, classicVisualMode, classicSceneInputs, sceneIndex, buildFalInput, submitFalQueueOnce } = ctx\n  return ${cb.replace(/^submit: /, '')}\n        }\n}`).fazer(ctx)
-const buildFake = (m, prompt, _hd, _h, _s, image, seed) => ({ ...(image ? { image_url: image } : {}), prompt, duration: '8', seed, _modelo: m })
-const cenaDespachada = async (fal, { imageUrl = 'https://v3.fal.media/files/still-3.png', sceneIndex = 2, visualPrompt = PROMPT + 'Lava tubes.', safe = 'Family-safe, non-graphic depiction of lava tubes at dusk.' } = {}) => {
+// Re-âncora (28/09, merge da pilha): o callback passou a ler `scene.clipSeconds` (KINEO-KLING25-PLANOS-5S-2026-09-28) como 5º
+// argumento do buildFalInput — undefined em Seedance/Veo/Sora (o mesmo undefined de antes), 5|10 no Kling 2.5. O harness
+// entrega `scene` no contexto; sem ele, o callback real morre em ReferenceError e os 4 casos do despacho caem juntos.
+const montaSubmit = (cb, ctx) => roda(`export function fazer(ctx: any) {\n  const { hd, imageUrl, modelos, generationSeed, isStylizedLook, styleAnchor, aspectRequested, classicVisualMode, classicSceneInputs, sceneIndex, buildFalInput, submitFalQueueOnce, scene } = ctx\n  return ${cb.replace(/^submit: /, '')}\n        }\n}`).fazer({ scene: { clipSeconds: undefined }, ...ctx })
+const buildFake = (m, prompt, _hd, _h, segundos, image, seed) => ({ ...(image ? { image_url: image } : {}), prompt, duration: '8', seed, _modelo: m, _segundos: segundos })
+const cenaDespachada = async (fal, { imageUrl = 'https://v3.fal.media/files/still-3.png', sceneIndex = 2, visualPrompt = PROMPT + 'Lava tubes.', safe = 'Family-safe, non-graphic depiction of lava tubes at dusk.', scene = { clipSeconds: undefined }, modelos: modelosPedidos } = {}) => {
   const classicSceneInputs = new Array(4).fill(null)
   const posts = []
-  const modelos = imageUrl ? [ID.SEEDANCE_I2V_MODEL, ID.SEEDANCE_MODEL] : [ID.SEEDANCE_MODEL]
-  const submit = montaSubmit(cbSubmit, { hd: false, imageUrl, modelos, generationSeed: 4242, isStylizedLook: () => false, styleAnchor: {}, aspectRequested: '9:16', classicVisualMode: 'documentary_faceless', classicSceneInputs, sceneIndex, buildFalInput: buildFake,
-    submitFalQueueOnce: async (m, input, onPost) => { onPost(); posts.push({ m, input: clone(input) }); const r = fal(posts.length, m, input); if (r instanceof Error) throw r; return r } })
+  const enviados = [] // o objeto de verdade que foi ao submitFalQueueOnce (posts guarda um clone)
+  const modelos = modelosPedidos ?? (imageUrl ? [ID.SEEDANCE_I2V_MODEL, ID.SEEDANCE_MODEL] : [ID.SEEDANCE_MODEL])
+  const submit = montaSubmit(cbSubmit, { hd: false, imageUrl, modelos, generationSeed: 4242, isStylizedLook: () => false, styleAnchor: {}, aspectRequested: '9:16', classicVisualMode: 'documentary_faceless', classicSceneInputs, sceneIndex, buildFalInput: buildFake, scene,
+    submitFalQueueOnce: async (m, input, onPost) => { onPost(); enviados.push(input); posts.push({ m, input: clone(input) }); const r = fal(posts.length, m, input); if (r instanceof Error) throw r; return r } })
   const res = await despacho.dispatchOneSceneWithSafeVisualRetry({ sceneIndex, models: modelos, visualPrompt, safeVisualPrompt: safe, submit })
-  return { res, gravado: classicSceneInputs[sceneIndex], posts, classicSceneInputs }
+  return { res, gravado: classicSceneInputs[sceneIndex], posts, enviados, classicSceneInputs }
 }
 const recusa = (status, message, ambiguous = false) => Object.assign(new Error(message), { status, ambiguous })
 if (cbSubmit) {
   {
     const { res, gravado, posts } = await cenaDespachada(() => 'req-i2v')
     checa('i2v aceito de primeira: gravado o payload i2v (com still), no mesmo modelo que o claim assina', res.requestId === 'req-i2v' && res.model === ID.SEEDANCE_I2V_MODEL && gravado?._modelo === ID.SEEDANCE_I2V_MODEL && gravado.image_url === 'https://v3.fal.media/files/still-3.png' && posts.length === 1 && JSON.stringify(gravado) === JSON.stringify(posts[0].input))
+    checa('Seedance (cena sem clipSeconds): o 5º argumento do buildFalInput chega undefined — o mesmo undefined de antes do KLING25-PLANOS-5S', gravado && '_segundos' in gravado && gravado._segundos === undefined)
+  }
+  {
+    const { res, gravado, posts, enviados } = await cenaDespachada(() => 'req-k25', { scene: { clipSeconds: 5 }, modelos: [ID.KLING_I2V_MODEL, ID.KLING_MODEL] })
+    checa('Kling 2.5 (cena com clipSeconds 5): o 5º argumento do buildFalInput recebe 5, e o payload gravado em classicSceneInputs é o MESMO objeto enviado ao fal', res.requestId === 'req-k25' && res.model === ID.KLING_I2V_MODEL && gravado?._segundos === 5 && posts.length === 1 && posts[0].input._segundos === 5 && enviados.length === 1 && gravado === enviados[0])
   }
   {
     const { res, gravado, posts } = await cenaDespachada((n) => (n === 1 ? recusa(422, 'image_url: unsupported dimensions') : 'req-t2v'))
