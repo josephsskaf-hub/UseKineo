@@ -146,3 +146,12 @@
   .featuredFour .featureCard .filmSteps { top:8px; right:8px; gap:3px }
   .featuredFour .featureCard .filmSteps span { width:12px; height:2px }
 }
+
+.engineDetails{margin:16px 0;color:var(--muted);font-size:13px}
+.engineDetails summary{cursor:pointer;min-height:32px;align-content:center}
+.gallery .dialog{width:min(1180px,calc(100vw - 32px));background:var(--card)}
+.dialogInner{grid-template-columns:minmax(0,1.8fr) minmax(240px,1fr)}
+.player{min-width:0;padding:16px}
+.player video{width:100%;height:76dvh;object-fit:contain;border-radius:10px}
+.gallery .close{width:44px;height:44px}
+@media(max-width:700px){.dialogInner{grid-template-columns:1fr}.player{padding:8px}.player video{height:auto;max-height:62dvh}.gallery .previewInfo{padding:18px}}

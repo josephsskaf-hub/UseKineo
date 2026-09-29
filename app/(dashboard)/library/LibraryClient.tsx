@@ -1,4 +1,6 @@
 'use client'
+import { FavoriteButton, LibraryOrganization, organizeAssets, useLibraryOrganization } from '@/components/LibraryOrganization'
+import ControlIcon from '@/components/ControlIcon'
 
 // KINEO-LIBRARY-2026-08-17 — a estante do usuario (fundador: "a pessoa clicar
 // e ver os projetos que ela tem: videos, imagens, audios"). Padrao InVideo
@@ -98,14 +100,15 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
   // memoria (zero rede), por aba: video=titulo, imagem=motor, audio=texto/
   // voz/motor. Contadores das abas seguem contando o acervo TOTAL.
   const [q, setQ] = useState('')
+  const organization = useLibraryOrganization()
   const needle = q.trim().toLowerCase()
-  const fVids = needle ? vids.filter((v) => (v.title ?? '').toLowerCase().includes(needle)) : vids
-  const fImgs = needle ? imgs.filter((im) => (im.model ?? '').toLowerCase().includes(needle)) : imgs
-  const fAuds = needle ? auds.filter((a) => [a.text, a.voice, a.model].filter(Boolean).join(' ').toLowerCase().includes(needle)) : auds
+  const fVids = organizeAssets(needle ? vids.filter((v) => (v.title ?? '').toLowerCase().includes(needle)) : vids, organization.favorites, organization.favoritesOnly, organization.sort, v => v.title ?? '')
+  const fImgs = organizeAssets(needle ? imgs.filter((im) => (im.model ?? '').toLowerCase().includes(needle)) : imgs, organization.favorites, organization.favoritesOnly, organization.sort, im => im.model ?? '')
+  const fAuds = organizeAssets(needle ? auds.filter((a) => [a.text, a.voice, a.model].filter(Boolean).join(' ').toLowerCase().includes(needle)) : auds, organization.favorites, organization.favoritesOnly, organization.sort, a => a.text ?? a.model ?? '')
   const activeCount = tab === 'all' ? vids.length + imgs.length + auds.length : tab === 'videos' ? vids.length : tab === 'images' ? imgs.length : auds.length
   const clearBtn = (
-    <button type="button" className="pill" onClick={() => setQ('')} style={{ color: '#2997ff', borderColor: 'rgba(41,151,255,.4)' }}><UiLabel>
-      Clear search
+    <button type="button" className="pill" onClick={() => { setQ(''); organization.setFavoritesOnly(false) }} style={{ color: 'var(--accent)', borderColor: 'var(--border)' }}><UiLabel>
+      Reset filters
     </UiLabel></button>
   )
 
@@ -189,7 +192,7 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
 
       {!(unifiedGallery && tab === 'videos') && loaded && activeCount > 0 && (
         <div className="library-search">
-          <span aria-hidden="true" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, opacity: 0.55 }}>🔍</span>
+          <span aria-hidden="true" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, opacity: 0.55 }}><ControlIcon name="search" /></span>
           <input
             type="search"
             value={q}
@@ -204,6 +207,7 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
       </div>
 
       {unifiedGallery && tab === 'videos' && videoCollection}
+      {!(unifiedGallery && tab === 'videos') && <LibraryOrganization state={organization} />}
 
       {!(unifiedGallery && tab === 'videos') && !loaded && (
         <div className="library-loading" aria-label="Loading your library" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12 }}>
@@ -227,13 +231,13 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
           loadFailed ? null : recentVideo ? <p className="sub">{t('No playable videos in your library yet. Check your latest project above.', 'Todavía no hay vídeos reproducibles en tu biblioteca. Consulta el estado de tu último proyecto arriba.')}</p> : <p className="sub"><UiLabel>No videos yet — </UiLabel><Link href="/studio" style={{ color: '#2997ff' }}><UiLabel>open the Studio</UiLabel></Link><UiLabel> and make your first film.</UiLabel></p>
         ) : fVids.length === 0 ? (
           <div className="card" style={{ padding: 24, textAlign: 'center' }}>
-            <p className="sub" style={{ marginBottom: 14 }}><UiLabel>No videos match &ldquo;</UiLabel>{q.trim()}&rdquo;.</p>
+            <p className="sub" style={{ marginBottom: 14 }}><UiLabel>No projects match these filters.</UiLabel></p>
             {clearBtn}
           </div>
         ) : (
           <div className="library-asset-section"><h2><UiLabel>Videos</UiLabel></h2><div className="library-collection">
             {fVids.map((v) => (
-              <div key={v.id} className="card" style={{ padding: 8 }}>
+              <div key={v.id} className="card library-organized-card" style={{ padding: 8 }}><FavoriteButton id={v.id} state={organization} />
                 <Link href={`/history#v-${v.id}`} style={{ display: 'block', textDecoration: 'none' }}>
                 <div style={{ position: 'relative', aspectRatio: '9/16', borderRadius: 10, overflow: 'hidden', background: '#000' }}>
                   {v.enhanced_url && (
@@ -301,19 +305,20 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
           loadFailed ? null : <p className="sub"><UiLabel>No images yet — </UiLabel><Link href="/images" style={{ color: '#2997ff' }}><UiLabel>create your first image</UiLabel></Link>.</p>
         ) : fImgs.length === 0 ? (
           <div className="card" style={{ padding: 24, textAlign: 'center' }}>
-            <p className="sub" style={{ marginBottom: 14 }}><UiLabel>No images match &ldquo;</UiLabel>{q.trim()}&rdquo;.</p>
+            <p className="sub" style={{ marginBottom: 14 }}><UiLabel>No projects match these filters.</UiLabel></p>
             {clearBtn}
           </div>
         ) : (
           <div className="library-asset-section"><h2><UiLabel>Images</UiLabel></h2><div className="library-collection">
             {fImgs.map((im) => (
-              <div key={im.id} className="card" style={{ padding: 8 }}>
+              <div key={im.id} className="card library-organized-card" style={{ padding: 8 }}>
+                <FavoriteButton id={im.id} state={organization} />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={im.upscaled_url ?? im.url} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'contain', background: '#0b1018', borderRadius: 10, display: 'block' }} />
+                <img src={im.upscaled_url ?? im.url} alt="" loading="lazy" decoding="async" style={{ width: '100%', aspectRatio: '1', objectFit: 'contain', background: 'var(--card2)', borderRadius: 10, display: 'block' }} />
                 {im.model && <p className="library-asset-model">{im.model}</p>}
                 <div className="row library-asset-actions" style={{ marginTop: 8 }}>
-                  <button type="button" className="pill" onClick={() => dl(im.upscaled_url ?? im.url, `kineo-image-${im.id.slice(0, 6)}.png`)}><UiLabel>⬇ Download</UiLabel></button>
-                  <a className="pill" style={{ textDecoration: 'none' }} href="/animate"><UiLabel>🎬 Animate</UiLabel></a>
+                  <button type="button" className="pill" onClick={() => dl(im.upscaled_url ?? im.url, `kineo-image-${im.id.slice(0, 6)}.png`)}><ControlIcon name="download" /> <UiLabel>Download</UiLabel></button>
+                  <a className="pill" style={{ textDecoration: 'none' }} href="/animate"><ControlIcon name="film" /> <UiLabel>Animate</UiLabel></a>
                 </div>
               </div>
             ))}
@@ -326,18 +331,18 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
           loadFailed ? null : <p className="sub"><UiLabel>No audio yet — </UiLabel><Link href="/audio" style={{ color: '#2997ff' }}><UiLabel>generate your first voiceover</UiLabel></Link>.</p>
         ) : fAuds.length === 0 ? (
           <div className="card" style={{ padding: 24, textAlign: 'center' }}>
-            <p className="sub" style={{ marginBottom: 14 }}><UiLabel>No audio matches &ldquo;</UiLabel>{q.trim()}&rdquo;.</p>
+            <p className="sub" style={{ marginBottom: 14 }}><UiLabel>No projects match these filters.</UiLabel></p>
             {clearBtn}
           </div>
         ) : (
           <div className="library-audio-section"><h2><UiLabel>Audio</UiLabel></h2><div className="library-collection library-audio-grid">
             {fAuds.map((a) => (
-              <div key={a.id} className="card library-audio-card">
+              <div key={a.id} className="card library-audio-card library-organized-card"><FavoriteButton id={a.id} state={organization} />
                 <div className="library-audio-cover" aria-hidden="true">♫</div>
                 <p className="library-asset-model">{a.model}{a.voice ? ` · ${a.voice}` : ''}</p>
                 {a.text && <p className="library-audio-text">{a.text}</p>}
                 <audio controls preload="none" src={a.url} style={{ width: '100%', height: 36 }} aria-label={a.voice || a.model || 'Audio'} />
-                <button type="button" aria-label="Download audio" className="pill" onClick={() => dl(a.url, `kineo-audio-${a.id.slice(0, 6)}.mp3`)}><UiLabel>⬇ Download</UiLabel></button>
+                <button type="button" aria-label="Download audio" className="pill" onClick={() => dl(a.url, `kineo-audio-${a.id.slice(0, 6)}.mp3`)}><ControlIcon name="download" /> <UiLabel>Download</UiLabel></button>
               </div>
             ))}
           </div></div>
