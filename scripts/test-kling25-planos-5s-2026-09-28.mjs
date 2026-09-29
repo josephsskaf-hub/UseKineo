@@ -13,7 +13,8 @@
 //       Kling);
 //   (d) o compose real (lib/compose buildCreatomateSource via loader offline): com clip_seconds nenhum trecho passa do
 //       comprimento do clipe; com clip_word_starts cada plano entra quando a SUA fala começa; sem os campos, a saída é
-//       JSON-idêntica à da base;
+//       JSON-idêntica à da base (na pilha [TRAVA 8.2], idêntica EXCETO pelos 3 campos da CENA-CLASSICA parte 2, que a
+//       base 3519a0b0^ não tem: fal_models, scene_prompts, scene_fal_inputs — nunca os campos do Kling);
 //   (e) o canário: a base reproduz as 4 cenas do claim de produção (as palavras perdidas); o novo divide em planos que
 //       somam o roteiro palavra por palavra e cabem, cada um, a própria fala;
 //   (f) ensaio de $0 (imagem útil e fala × plano), supervisor fala×imagem e escritor de cenas com o dobro de cenas;
@@ -388,7 +389,23 @@ checa('resposta assinada: clip_seconds e clip_word_starts (início da fala de ca
 if (rotaBase) {
   const o = objResp(rota), ob = objResp(rotaBase)
   const cenas = [{ description: 'a', caption: 'A', voiceover: 'x' }, { description: 'b', caption: 'B', voiceover: 'y' }]
-  checa('resposta de Seedance/Veo/Sora JSON-idêntica à base (nenhum campo novo)', Boolean(o && ob) && eqJ(montaResp(o)(ctxResp(cenas)), montaResp(ob)(ctxResp(cenas))))
+  // Re-âncora (28/09, merge da pilha [TRAVA 8.2]): a CENA-CLASSICA parte 2 (KINEO-CENA-CLASSICA-2026-09-28) acrescenta DE
+  // PROPÓSITO fal_models/scene_prompts/scene_fal_inputs à resposta clássica de TODOS os motores. A base deste guardião
+  // (3519a0b0^) é anterior à parte 2; quando o candidato a tem e a base não, a resposta de Seedance/Veo/Sora só pode
+  // diferir por esses 3 campos — com o conteúdo da parte 2 (usedModels / classicSceneInputs), e NUNCA pelos campos do
+  // Kling (clip_seconds, clip_word_starts) nem por qualquer outro campo. Nos demais casos, a igualdade byte a byte de sempre.
+  const MARCA_PARTE2 = 'classicSceneInputs[sceneIndex] = input'
+  const CAMPOS_PARTE2 = ['fal_models', 'scene_prompts', 'scene_fal_inputs']
+  const parte2 = rota.includes(MARCA_PARTE2), baseParte2 = rotaBase.includes(MARCA_PARTE2)
+  const ctx = { ...ctxResp(cenas), classicSceneInputs: [{ prompt: 'Signed scene prompt zero.', duration: '5', seed: 7 }, null] }
+  const nova = o ? montaResp(o)(ctx) : null, velha = ob ? montaResp(ob)(ctx) : null
+  const semParte2 = (r) => Object.fromEntries(Object.entries(r).filter(([k]) => !CAMPOS_PARTE2.includes(k)))
+  if (parte2 && !baseParte2) {
+    checa('resposta de Seedance/Veo/Sora JSON-idêntica à base EXCETO pelos 3 campos da CENA-CLASSICA parte 2 (fal_models = usedModels, scene_prompts e scene_fal_inputs = classicSceneInputs); sem clip_seconds/clip_word_starts e sem nenhum outro campo novo', Boolean(nova && velha) && eqJ(semParte2(nova), velha) && !('clip_seconds' in nova) && !('clip_word_starts' in nova) && CAMPOS_PARTE2.every((k) => k in nova) && eqJ(nova.fal_models, ctx.usedModels) && eqJ(nova.scene_fal_inputs, ctx.classicSceneInputs) && eqJ(nova.scene_prompts, ['Signed scene prompt zero.', '']) && Object.keys(nova).length === Object.keys(velha).length + CAMPOS_PARTE2.length)
+    checa('a base de comparação NÃO tem a parte 2 nem o Kling de 5 s (é o "antes" dos dois): sem fal_models sem âncora, sem scene_prompts, sem clip_seconds', Boolean(velha) && !('fal_models' in velha) && !('scene_prompts' in velha) && !('scene_fal_inputs' in velha) && !('clip_seconds' in velha))
+  } else {
+    checa('resposta de Seedance/Veo/Sora JSON-idêntica à base (nenhum campo novo)', Boolean(nova && velha) && eqJ(nova, velha))
+  }
 }
 checa('o claim clássico vira plano → compose: o alinhamento aceita a resposta real com cena perdida no meio (segundos E início da fala)', (() => { const r = montaResp(objResp(rota))(ctxResp([{ description: 'a', caption: 'A', voiceover: 'a b c.', clipSeconds: 5 }, { description: 'b', caption: 'B', voiceover: 'd e.', clipSeconds: 5 }, { description: 'c', caption: 'C', voiceover: 'f g h i.', clipSeconds: 10 }])); const p = K.alignSignedClipPlan(r, ['u1', null, 'u3'], ['u1', 'u3']); return eqJ(p?.seconds, [5, 10]) && eqJ(p?.wordStarts, [0, 5]) })())
 
