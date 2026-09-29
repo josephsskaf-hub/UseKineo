@@ -224,10 +224,17 @@ export function isSeedanceShortClaim(response: Record<string, unknown> | null | 
 // política do #369); depois o mais equilibrado. Fala antes do 1º marcador vai para a 1ª cena. Com `clips` blocos ou
 // menos, devolve os blocos como estão (a rota nem chama). Puro, sem import (executado por
 // scripts/test-contagem-fala-15s-2026-09-29.mjs).
+// [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-SEEDANCE-BLOCOS-2026-09-29 — `alinharFatias` (só o Seedance de
+// 35/60/90 s liga): esse filme NÃO assina clip_word_starts, então o compose mostra a cena k na fatia igual k·T/N do tempo
+// da voz. Entre cortes empatados (mesma maior cena, mesmo HOOK/PAYOFF), vence o que põe o início da fala de cada cena mais
+// perto do início da sua fatia (|N·início − k·W|, em palavras) — sem isto o empate ia para o 1º corte achado e empurrava as
+// junções para o fim (90 s, 12 blocos: a imagem do bloco 6 chegava ~29 palavras depois da fala). Desligado (o 15 s, que
+// entra cada clipe na própria fala), o critério vale 0 para todos e a escolha é a de sempre, byte a byte.
 export interface SeedanceShortBeat { voiceover: string; pexelsQuery: string }
 export function seedanceShortMarkedScenes(
   parsed: { segments: ReadonlyArray<SeedanceShortBeat>; narration: string },
   clips: number = SEEDANCE_SHORT_CLIPS,
+  opcoes: { alinharFatias?: boolean } = {},
 ): SeedanceShortBeat[] {
   const norm = (t: string) => String(t ?? '').trim().replace(/\s+/gu, ' ')
   const segs = parsed.segments.map((s) => ({ voiceover: norm(s.voiceover), pexelsQuery: norm(s.pexelsQuery) }))
@@ -236,6 +243,15 @@ export function seedanceShortMarkedScenes(
   if (n <= count) return segs
   const words = segs.map((s) => s.voiceover.split(' ').filter(Boolean).length)
   const soma = (a: number, b: number) => { let t = 0; for (let i = a; i < b; i++) t += words[i]; return t }
+  const narradas = norm(parsed.narration).split(' ').filter(Boolean).length
+  const antesDoMarcador = Math.max(0, narradas - soma(0, n)) // fala antes do 1º marcador (vai para a 1ª cena)
+  const totalFalado = antesDoMarcador + soma(0, n)
+  const desvioDasFatias = (limites: number[]): number => {
+    if (!opcoes.alinharFatias) return 0
+    let pior = 0
+    for (let g = 1; g < count; g++) pior = Math.max(pior, Math.abs(count * (antesDoMarcador + soma(0, limites[g])) - g * totalFalado))
+    return pior
+  }
   const chaveDe = (limites: number[]): number[] => {
     const somas = limites.slice(0, -1).map((a, g) => soma(a, limites[g + 1]))
     return [
@@ -243,6 +259,7 @@ export function seedanceShortMarkedScenes(
       Math.max(...somas),
       limites[count - 1] === n - 1 ? 0 : 1, // PAYOFF sozinho no último clipe
       limites[1] === 1 ? 0 : 1, // HOOK sozinho no 1º
+      desvioDasFatias(limites), // KINEO-SEEDANCE-BLOCOS: início da cena perto da sua fatia (só com alinharFatias)
       somas.reduce((a, x) => a + x * x, 0),
     ]
   }
