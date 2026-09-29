@@ -64,11 +64,12 @@ const stillDesenhado = FS.buildFastStillPrompt({ description: 'a cardboard house
 const stillReal = FS.buildFastStillPrompt({ description: 'a cardboard house with paper stairs', voiceover: 'Le facteur arrive', query: 'cardboard house' })
 checa('still desenhado abre com o look (3D animado) e não diz "Photorealistic"; sem look segue fotorreal', stillDesenhado.startsWith(look.lookPhrase) && !/^Photorealistic cinematic still/.test(stillDesenhado) && !/documentary photography/.test(stillDesenhado) && stillDesenhado.includes('cardboard house with paper stairs') && stillReal.startsWith('Photorealistic cinematic still')) // o lookPhrase diz "not photorealistic" de propósito
 checa('generateFastSceneStill usa o sufixo do look quando há desenho (o fotorreal contradizia o prompt)', rd('lib/fastAiScene.ts').includes("styleSuffix: args.look && args.look.look !== 'photoreal' ? args.look.suffix : 'documentary realism, natural color grade, sharp 35mm film look'"))
-const FC = roda(rd('lib/fastAiClips.ts'), { '@fal-ai/client': { fal: {} }, './fastAiHook': {} })
+const PROMPT = roda(rd('lib/kineo1/aiClipPrompt.ts')) // KINEO1-CLIPE-IA-PROMPT-2026-09-28: módulo puro, sem import
+const FC = roda(rd('lib/fastAiClips.ts'), { '@fal-ai/client': { fal: {} }, './fastAiHook': {}, '@/lib/kineo1/aiClipPrompt': PROMPT })
 const clipDesenhado = FC.buildSceneClipPrompt('a friendly mailman climbs the paper stairs', 'Le facteur monte', 'mailman', look)
 const clipReal = FC.buildSceneClipPrompt('a friendly mailman climbs the paper stairs', 'Le facteur monte', 'mailman')
 checa('clipe desenhado leva o look, sem "photorealistic", e o personagem NÃO vira silhueta; sem look segue como antes', clipDesenhado.includes(look.lookPhrase) && !/, photorealistic, dramatic lighting/.test(clipDesenhado) && !clipDesenhado.includes('silhouetted') && clipDesenhado.includes(look.suffix.trim()) && /, photorealistic, dramatic lighting/.test(clipReal))
-const FH = roda(rd('lib/fastAiHook.ts'), { '@fal-ai/client': { fal: {} }, '@supabase/supabase-js': { createClient: () => ({}) }, './clipVault': {} })
+const FH = roda(rd('lib/fastAiHook.ts'), { '@fal-ai/client': { fal: {} }, '@supabase/supabase-js': { createClient: () => ({}) }, './clipVault': {}, '@/lib/kineo1/aiClipPrompt': PROMPT })
 const hookDesenhado = FH.buildHookPrompt('a cute character in a cardboard house', 'topic', look)
 checa('gancho desenhado leva o look e não diz "photorealistic"; sem look segue fotorreal', hookDesenhado.includes(look.lookPhrase) && !/, photorealistic, dramatic lighting/.test(hookDesenhado) && /, photorealistic, dramatic lighting/.test(FH.buildHookPrompt('a cute character in a cardboard house', 'topic')))
 
