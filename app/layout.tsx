@@ -147,8 +147,8 @@ export const metadata: Metadata = {
     images: ['https://www.usekineo.com/og-card.png'],
   },
   icons: {
-    icon: '/favicon.svg',
-    shortcut: '/favicon.svg',
+    icon: '/favicon.svg?v=blue-bolt-20260928',
+    shortcut: '/favicon.svg?v=blue-bolt-20260928',
     // Push #422 — real PNG for iOS home screen (Safari ignores SVG here
     // and would fall back to a screenshot-gray tile).
     apple: '/apple-touch-icon.png',

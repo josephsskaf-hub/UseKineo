@@ -12,13 +12,9 @@ export default function KineoBolt({ size = '1.3em', className, style }: {
   }}>ϟ</span>
 }
 
-/** Site identity uses the exact asset declared as the browser favicon. */
+/** Keep the approved unboxed blue lightning mark on every brand surface. */
 export function KineoBrandIcon({ size = 28, className }: { size?: number; className?: string }) {
-  return <img src="/favicon.svg" alt="" aria-hidden="true" width={size} height={size}
-    className={className}
-    style={{ display: 'inline-block', width: size, height: size, flexShrink: 0,
-      verticalAlign: 'middle', objectFit: 'contain', border: 0, borderRadius: 0,
-      background: 'none', boxShadow: 'none' }} />
+  return <KineoBolt size={size} className={className} />
 }
 
 /** Keep authored copy/translation keys intact; only replace the decorative glyph. */
