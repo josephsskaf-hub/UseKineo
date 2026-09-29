@@ -23,7 +23,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import Link from 'next/link'
 import BusinessVisualReferences from '@/components/BusinessVisualReferences'
-import { UiLabel } from '@/components/InterfaceLanguage'
+import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
+import { AdsV2SimpleSession } from './AdsV2Simple'
+import { ADS_V2_SIMPLE_COPY } from '@/lib/ads/v2Simple'
+import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { ADS_WIZARD_THEME_CSS } from '../new/adsWizardTheme'
 import { downloadVideoFile } from '@/lib/videoDownload'
@@ -348,6 +351,23 @@ const ADS_V2_CSS = `
 
 // ─── a página: cabeçalho com "Start over" + a sessão (remontada a cada Start over) ────────────
 
+// KINEO-ADS-MODO-SIMPLES-2026-09-29 — o invólucro escolhe o MODO. Entrada padrão = SIMPLES (AdsV2Simple.tsx: arquivos,
+// uma frase, nível, pesquisa com fonte, logo opcional, tela em pt/es/en). ?mode=full = o construtor completo, IDÊNTICO
+// ao de antes (AdsV2Session daqui para baixo não mudou; o guardião test-ads-modo-simples prende a impressão digital).
+// Os textos do cabeçalho vêm de ADS_V2_SIMPLE_COPY.shell: no modo completo, a tabela en (o inglês de sempre); no simples,
+// a língua da interface. Trocar de modo é um link de página inteira (o anúncio em andamento é retomado na troca);
+// "Start over" volta ao simples. O page.tsx não mudou.
+function setModeParam(mode: 'full' | null) {
+  try {
+    const u = new URL(window.location.href)
+    if (mode) u.searchParams.set('mode', mode)
+    else u.searchParams.delete('mode')
+    window.history.replaceState(null, '', u.toString())
+  } catch {
+    /* ignore */
+  }
+}
+
 // KINEO-ADS-V2-VIRADA-2026-09-29 — classicCredits: o custo do anúncio clássico (KINEO1_35S_CREDITS) vem do servidor
 // (page.tsx lê lib/ads/offer) — o cliente não ganha import novo e nunca digita o número.
 export default function AdsV2Client({ initialBalance, classicCredits = null }: { initialBalance: number | null; classicCredits?: number | null }) {
@@ -355,9 +375,25 @@ export default function AdsV2Client({ initialBalance, classicCredits = null }: {
   const [balance, setBalance] = useState<number | null>(initialBalance)
   const [confirmingReset, setConfirmingReset] = useState(false)
   const [activeWork, setActiveWork] = useState(false)
+  const [mode, setMode] = useState<'simple' | 'full' | null>(null)
+  const lang = useInterfaceLanguage()
   // Foco na opção SEGURA ("Keep working"): Enter segurado no "Start over" não apaga tudo por repetição de tecla.
   const confirmRef = useRef<HTMLButtonElement | null>(null)
   const resetBtnRef = useRef<HTMLButtonElement | null>(null)
+  // Modo completo = o inglês de sempre; simples (e o instante antes de ler a URL) = a língua da interface.
+  const shell = mode === 'full' ? ADS_V2_SIMPLE_COPY.en.shell : pickInterfaceCopy(ADS_V2_SIMPLE_COPY, lang).shell
+  const nav = pickInterfaceCopy(ADS_V2_SIMPLE_COPY, lang).shell
+
+  // ?mode=full abre o construtor completo; qualquer outra coisa, o simples.
+  useEffect(() => {
+    let m: 'simple' | 'full' = 'simple'
+    try {
+      if (new URLSearchParams(window.location.search).get('mode') === 'full') m = 'full'
+    } catch {
+      m = 'simple'
+    }
+    setMode(m)
+  }, [])
 
   const refreshBalance = useCallback(async () => {
     const r = await api<{ credits?: unknown }>('/api/credits')
@@ -377,11 +413,13 @@ export default function AdsV2Client({ initialBalance, classicCredits = null }: {
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [refreshBalance])
 
-  // Start over: a sessão velha é desmontada inteira (key muda) e a nova nasce vazia, sem retomar pedido nenhum.
+  // Start over: a sessão velha é desmontada inteira (key muda) e a nova nasce vazia, sem retomar pedido nenhum — no modo simples.
   function startOver() {
     clearOrderParam()
+    setModeParam(null)
     setConfirmingReset(false)
     setActiveWork(false)
+    setMode('simple')
     setSession((s) => s + 1)
     void refreshBalance()
     if (typeof window !== 'undefined') window.scrollTo({ top: 0 })
@@ -393,40 +431,57 @@ export default function AdsV2Client({ initialBalance, classicCredits = null }: {
       <style dangerouslySetInnerHTML={{ __html: ADS_WIZARD_THEME_CSS + ADS_V2_CSS }} />
       <header className="adsw-header adv2-head">
         <div>
-          <h1>Studio Ads</h1>
-          <p className="sub">Your real photos, brought to life in a vertical ad with music, a short voice-over and your logo.</p>
+          <h1>{shell.title}</h1>
+          <p className="sub">{mode === 'full' ? shell.sub : shell.subSimple}</p>
           {/* KINEO-ADS-V2-VIRADA-2026-09-29 — o assistente antigo continua existindo como opção clássica (discreto, <a> sem prefetch). */}
-          {classicCredits !== null ? (
+          {classicCredits !== null && mode === 'full' ? (
             <p className="adv2-classic">
               <a href="/ads/new?classic=1">Prefer a narrated 35-second ad? Use the classic maker ({classicCredits} credits)</a>
             </p>
           ) : null}
+          {mode ? (
+            <p className="adv2-classic">
+              <a href={mode === 'simple' ? '/ads/v2?mode=full' : '/ads/v2'}>{mode === 'simple' ? nav.toFull : nav.toSimple}</a>
+            </p>
+          ) : null}
         </div>
         <button ref={resetBtnRef} type="button" className="adsw-btn ghost small" aria-expanded={confirmingReset} aria-controls="adv2-reset" onClick={() => setConfirmingReset(true)}>
-          Start over
+          {shell.startOver}
         </button>
       </header>
       {confirmingReset ? (
         <div id="adv2-reset" className="adv2-confirm" role="alertdialog" aria-labelledby="adv2-reset-t" aria-describedby="adv2-reset-d">
-          <p id="adv2-reset-t"><b>Start over with an empty ad?</b></p>
+          <p id="adv2-reset-t"><b>{shell.confirmTitle}</b></p>
           <p id="adv2-reset-d">
-            Everything on this page (level, text, logo, photos and plan) will be cleared.
-            {activeWork ? ' The ad being made right now keeps going and will appear in My Videos.' : ''}
+            {shell.confirmBody}
+            {activeWork ? shell.activeNote : ''}
           </p>
           <div className="adv2-actions" style={{ marginTop: 0 }}>
-            <button type="button" className="adsw-btn small" onClick={startOver}>Yes, start over</button>
-            <button ref={confirmRef} type="button" className="adsw-btn ghost small" onClick={() => { setConfirmingReset(false); resetBtnRef.current?.focus() }}>Keep working</button>
+            <button type="button" className="adsw-btn small" onClick={startOver}>{shell.yes}</button>
+            <button ref={confirmRef} type="button" className="adsw-btn ghost small" onClick={() => { setConfirmingReset(false); resetBtnRef.current?.focus() }}>{shell.keep}</button>
           </div>
         </div>
       ) : null}
-      <AdsV2Session
-        key={session}
-        resume={session === 0}
-        balance={balance}
-        onBalance={refreshBalance}
-        onActive={setActiveWork}
-        onAskStartOver={() => setConfirmingReset(true)}
-      />
+      {mode === 'full' ? (
+        <AdsV2Session
+          key={session}
+          resume={session === 0}
+          balance={balance}
+          onBalance={refreshBalance}
+          onActive={setActiveWork}
+          onAskStartOver={() => setConfirmingReset(true)}
+        />
+      ) : mode === 'simple' ? (
+        <AdsV2SimpleSession
+          key={session}
+          resume={session === 0}
+          lang={lang}
+          balance={balance}
+          onBalance={refreshBalance}
+          onActive={setActiveWork}
+          onAskStartOver={() => setConfirmingReset(true)}
+        />
+      ) : null}
     </div>
   )
 }

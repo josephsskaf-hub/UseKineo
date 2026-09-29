@@ -1,0 +1,1320 @@
+'use client'
+
+// KINEO-ADS-MODO-SIMPLES-2026-09-29 — MODO SIMPLES do /ads/v2 (a entrada padrão). Pedido do fundador, 29/09, depois de
+// tentar anunciar o próprio imóvel: "a pessoa coloca os arquivos que ela quer, fala mais ou menos o que ela quer que
+// aconteça, escolhe premium, comercial ou normal, e a gente faz". "Sem legenda, com a fala em português."
+//
+// O que muda em relação ao modo completo (que continua idêntico em AdsV2Client.tsx, preso por impressão digital):
+//   · fotos OU vídeo (o vídeo vira 1 a 3 quadros NO NAVEGADOR — lib/ads/v2VideoFrames.ts; nada de vídeo sobe);
+//   · um campo de texto só; nome e tipo de negócio saem do texto (inferSector/simpleTitle em lib/ads/v2Simple.ts);
+//   · logo opcional; preço, contato, frases na tela, narração e língua da fala em "Mais opções";
+//   · "Descobrir e planejar (grátis)": sobe as fotos e o cartão, cria o rascunho, pesquisa fatos públicos COM FONTE
+//     (/api/ads/v2/research, sem cobrar) e planeja. Cada fato aparece com o link da fonte para a pessoa conferir;
+//   · tela inteira em pt/es/en (ADS_V2_SIMPLE_COPY; outras línguas caem no inglês).
+// Custo: adsV2Credits (o mesmo que o /start debita) — nenhum número de preço digitado aqui.
+// ESPELHO: api, loadImage, canvasToBlob e cropToVertical são cópias EXATAS do AdsV2Client.tsx (import de lá seria
+// circular); o guardião test-ads-modo-simples confere os corpos. Eventos do v2 são só-servidor: nada de trackEvent.
+
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import Link from 'next/link'
+import { downloadVideoFile } from '@/lib/videoDownload'
+import { ADS_UPLOAD_ACCEPT_LOGO, AdsUploadError, uploadFootage } from '@/lib/ads/uploadFootage'
+import { drawEndCard, endCardCtaLabel, loadLogoImage, toPngFile } from '@/lib/ads/endCard'
+import { ADS_V2_TIER_IDS, ADS_V2_TIERS, adsV2Credits, type AdsV2Tier } from '@/lib/ads/v2Tiers'
+import {
+  ADS_V2_CROP,
+  ADS_V2_ROLE_LABELS,
+  ADS_V2_SCREEN_SECONDS,
+  ADS_V2_SCREEN_SENTENCE_MAX,
+  adFileSlug,
+  adsV2ErrorMessage,
+  clampFocal,
+  cropRect,
+  describeShot,
+  failedOrderMessage,
+  focalPosition,
+  frameTouchAction,
+  isActiveOrderStatus,
+  isSmallCrop,
+  panFocal,
+  shotStateLabel,
+  type AdsV2ScreenOrderStatus,
+  type AdsV2ScreenShot,
+} from '@/lib/ads/v2Screen'
+import {
+  ADS_V2_SIMPLE_ACCEPT,
+  ADS_V2_SIMPLE_COPY,
+  ADS_V2_SIMPLE_FACTS_DEFAULT_ON,
+  ADS_V2_SIMPLE_MAX_IN_AD,
+  ADS_V2_SIMPLE_MAX_ITEMS,
+  ADS_V2_SIMPLE_MIN_IN_AD,
+  ADS_V2_SIMPLE_VIDEO_MAX_BYTES,
+  ADS_V2_SIMPLE_VIDEO_MAX_SECONDS,
+  defaultPhotoKind,
+  fill,
+  inferSector,
+  isImageFile,
+  isVideoFile,
+  simpleCtaKind,
+  simpleErrorMessage,
+  simpleLabel,
+  simpleTitle,
+  videoFrameTimes,
+  type AdsV2SimpleCopy,
+} from '@/lib/ads/v2Simple'
+import { VideoFramesError, grabVideoFrames } from '@/lib/ads/v2VideoFrames'
+import { NARRATION_LANGUAGES, detectNarrationLanguage, narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage'
+import { pickInterfaceCopy, type InterfaceLanguage } from '@/lib/ui/interfaceLanguage'
+
+// ─── tipos ────────────────────────────────────────────────────────────────────────────────────
+
+interface OrderView {
+  order_id: string
+  status: AdsV2ScreenOrderStatus
+  tier: AdsV2Tier
+  seconds: number
+  credits: number
+  video_id: string | null
+  error: string | null
+  parent_order_id: string | null
+  shots: AdsV2ScreenShot[]
+}
+interface VideoInfo {
+  id: string
+  video_url: string | null
+  thumbnail_url: string | null
+}
+type StatusView = OrderView & { video?: VideoInfo | null }
+
+interface PlanShot {
+  idx: number
+  role: string
+  kind: string
+  source: string
+  cut_seconds: number
+  photo: string | null
+}
+interface PlanResponse {
+  order_id: string
+  credits: number
+  narration: string | null
+  overlays: { role: string; start: number; end: number; text: string }[]
+  total_seconds: number
+  shots: PlanShot[]
+}
+interface Plan extends PlanResponse {
+  sig: string
+  cardSig: string
+}
+interface Fact {
+  id: string
+  text: string
+  url: string
+  host: string
+}
+interface Research {
+  orderId: string
+  status: 'ok' | 'failed'
+  facts: Fact[]
+}
+interface SimpleItem {
+  key: string
+  name: string
+  srcUrl: string
+  w: number
+  h: number
+  fx: number
+  fy: number
+  fromVideo: boolean
+  uploaded: { sig: string; footageId: string } | null
+  busy: boolean
+  error: string | null
+}
+interface LogoItem {
+  footageId: string | null
+  localUrl: string | null
+  busy: boolean
+  error: string | null
+}
+
+type Phase = 'loading' | 'build' | 'progress' | 'delivered' | 'failed'
+
+type ApiResult<T> = { ok: true; status: number; data: T } | { ok: false; status: number; code: string; body: Record<string, unknown> }
+
+// ─── constantes ───────────────────────────────────────────────────────────────────────────────
+
+const JSON_HEADERS = { 'Content-Type': 'application/json' }
+const POLL_MS = 8000
+const POLL_RETRY_MS = 20_000
+const PHOTO_MAX_BYTES = 50 * 1024 * 1024
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const DEFAULT_COLOR = '#2997ff'
+
+// ─── utilidades (sem estado) — ESPELHO do AdsV2Client.tsx ─────────────────────────────────────
+
+async function api<T>(url: string, init: { method?: string; body?: unknown } = {}): Promise<ApiResult<T>> {
+  let res: Response
+  try {
+    res = await fetch(url, {
+      method: init.method ?? 'GET',
+      headers: init.body !== undefined ? JSON_HEADERS : undefined,
+      body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+      cache: 'no-store',
+    })
+  } catch {
+    return { ok: false, status: 0, code: 'network', body: {} }
+  }
+  let body: Record<string, unknown> = {}
+  try {
+    const j = await res.json()
+    if (j && typeof j === 'object' && !Array.isArray(j)) body = j as Record<string, unknown>
+  } catch {
+    /* corpo vazio */
+  }
+  if (!res.ok) return { ok: false, status: res.status, code: typeof body.error === 'string' ? body.error : `http_${res.status}`, body }
+  return { ok: true, status: res.status, data: body as T }
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.decoding = 'async'
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error('image_load_failed'))
+    img.src = src
+  })
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    try {
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('encode_failed'))), type, quality)
+    } catch (e) {
+      reject(e instanceof Error ? e : new Error('encode_failed'))
+    }
+  })
+}
+
+/** Recorte 9:16 no navegador: a janela do ponto focal, desenhada em 1080×1920 e codificada em JPEG q0.9. */
+async function cropToVertical(p: Pick<SimpleItem, 'srcUrl' | 'fx' | 'fy' | 'name'>): Promise<File> {
+  const img = await loadImage(p.srcUrl)
+  const r = cropRect(img.naturalWidth, img.naturalHeight, p.fx, p.fy)
+  const canvas = document.createElement('canvas')
+  canvas.width = ADS_V2_CROP.width
+  canvas.height = ADS_V2_CROP.height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('canvas_unsupported')
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, ADS_V2_CROP.width, ADS_V2_CROP.height)
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(img, r.sx, r.sy, r.sw, r.sh, 0, 0, ADS_V2_CROP.width, ADS_V2_CROP.height)
+  const blob = await canvasToBlob(canvas, ADS_V2_CROP.type, ADS_V2_CROP.quality)
+  const base = (p.name || 'photo').replace(/\.[a-z0-9]{2,5}$/i, '').replace(/[^\w-]+/g, '-').slice(0, 40) || 'photo'
+  return new File([blob], `${base}-9x16.jpg`, { type: ADS_V2_CROP.type })
+}
+
+// ─── utilidades do modo simples ───────────────────────────────────────────────────────────────
+
+const focalSig = (p: Pick<SimpleItem, 'fx' | 'fy'>) => `${p.fx.toFixed(3)},${p.fy.toFixed(3)}`
+const numOr = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) ? v : undefined)
+const newKey = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
+function errorText(lang: InterfaceLanguage, r: { code: string; body: Record<string, unknown> }): string {
+  const extra = { needed: numOr(r.body.needed), balance: numOr(r.body.balance), credits: numOr(r.body.credits) }
+  return simpleErrorMessage(r.code, lang, extra) ?? adsV2ErrorMessage(r.code, { ...extra, message: typeof r.body.message === 'string' ? r.body.message : undefined })
+}
+
+function setUrlParams(set: Record<string, string | null>) {
+  try {
+    const u = new URL(window.location.href)
+    for (const [k, v] of Object.entries(set)) {
+      if (v === null) u.searchParams.delete(k)
+      else u.searchParams.set(k, v)
+    }
+    window.history.replaceState(null, '', u.toString())
+  } catch {
+    /* ignore */
+  }
+}
+
+// Classes .adv2-* vêm do ADS_V2_CSS que o invólucro (AdsV2Client) já injeta; aqui só o que é do modo simples.
+const SIMPLE_CSS = `
+.adv2 .adv2s-items{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(46%,150px),1fr));gap:12px}
+.adv2 .adv2s-item{display:grid;gap:6px;min-width:0}
+.adv2 .adv2s-item .adv2-frame{width:100%}
+.adv2 .adv2s-item[data-out=true]{opacity:.45}
+.adv2 .adv2s-item .row{display:flex;flex-wrap:wrap;gap:6px}
+.adv2 .adv2s-item small{font-size:12px;line-height:1.4}
+.adv2 .adv2s-out{margin:16px 0 8px;font-size:13px;font-weight:650;color:var(--ads-secondary)}
+.adv2 .adv2s-lang{display:inline-flex;align-items:center;gap:8px;margin:10px 0 0;font-size:13.5px;font-weight:650;color:var(--ads-text)}
+.adv2 .adv2s-lang select{min-height:36px;padding:4px 8px;border-radius:9px;border:1px solid var(--ads-line);background:var(--ads-card);color:var(--ads-text);font:inherit}
+.adv2 .adv2s-more{margin-top:14px;border:1px solid var(--ads-line);border-radius:14px;padding:4px 14px 14px;background:var(--ads-bg)}
+.adv2 .adv2s-more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--ads-text)}
+.adv2 .adv2s-toggles{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}
+.adv2 .adv2s-facts{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:8px}
+.adv2 .adv2s-facts li{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--ads-line);border-radius:12px;background:var(--ads-bg);font-size:13.5px;line-height:1.5;min-width:0}
+.adv2 .adv2s-facts input{margin-top:3px;accent-color:var(--ads-action);flex-shrink:0}
+.adv2 .adv2s-facts a{font-size:12px;color:var(--ads-muted);text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+.adv2 .adv2s-facts .tx{display:grid;gap:2px;min-width:0}
+`
+
+// ─── a sessão do modo simples ─────────────────────────────────────────────────────────────────
+
+export function AdsV2SimpleSession({
+  resume,
+  lang,
+  balance,
+  onBalance,
+  onActive,
+  onAskStartOver,
+}: {
+  resume: boolean
+  lang: InterfaceLanguage
+  balance: number | null
+  onBalance: () => Promise<void>
+  onActive: (active: boolean) => void
+  onAskStartOver: () => void
+}) {
+  const copy: AdsV2SimpleCopy = pickInterfaceCopy(ADS_V2_SIMPLE_COPY, lang)
+  const [phase, setPhase] = useState<Phase>(resume ? 'loading' : 'build')
+  const [items, setItems] = useState<SimpleItem[]>([])
+  const [fileNote, setFileNote] = useState<string | null>(null)
+  const [videoBusy, setVideoBusy] = useState(0)
+  const [text, setText] = useState('')
+  const [tier, setTier] = useState<AdsV2Tier | null>(null)
+  const [price, setPrice] = useState('')
+  const [contact, setContact] = useState('')
+  const [overlaysOn, setOverlaysOn] = useState(true)
+  const [narrationOn, setNarrationOn] = useState(true)
+  const [voiceLang, setVoiceLang] = useState<NarrationLanguage | null>(null)
+  const [cardTitle, setCardTitle] = useState('')
+  const [cardColor, setCardColor] = useState(DEFAULT_COLOR)
+  const [logo, setLogo] = useState<LogoItem | null>(null)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const [cardUpload, setCardUpload] = useState<{ sig: string; footageId: string } | null>(null)
+  const [draft, setDraft] = useState<{ id: string; key: string } | null>(null)
+  const [research, setResearch] = useState<Research | null>(null)
+  const [factOn, setFactOn] = useState<Record<string, boolean>>({})
+  const [plan, setPlan] = useState<Plan | null>(null)
+  const [busy, setBusy] = useState<null | 'plan' | 'start'>(null)
+  const [busyNote, setBusyNote] = useState<string | null>(null)
+  const [planError, setPlanError] = useState<string | null>(null)
+  const [factsNote, setFactsNote] = useState<string | null>(null)
+  const [order, setOrder] = useState<OrderView | null>(null)
+  const [video, setVideo] = useState<VideoInfo | null>(null)
+  const [pollNote, setPollNote] = useState<string | null>(null)
+  const [downloading, setDownloading] = useState(false)
+  const [downloadNote, setDownloadNote] = useState<string | null>(null)
+  const [notReady, setNotReady] = useState(false)
+
+  const aliveRef = useRef(true)
+  const pollRef = useRef<number | null>(null)
+  const currentOrderRef = useRef<string | null>(null)
+  const urlsRef = useRef<Set<string>>(new Set())
+  const cardCanvasRef = useRef<HTMLCanvasElement | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const logoInputRef = useRef<HTMLInputElement | null>(null)
+  const headingRef = useRef<HTMLHeadingElement | null>(null)
+  const planHeadingRef = useRef<HTMLHeadingElement | null>(null)
+
+  // Desmontar ("Recomeçar", troca de modo ou sair): nada que chegue depois mexe na tela; o poll para.
+  useEffect(() => {
+    aliveRef.current = true
+    const urls = urlsRef.current
+    return () => {
+      aliveRef.current = false
+      currentOrderRef.current = null
+      if (pollRef.current) window.clearTimeout(pollRef.current)
+      pollRef.current = null
+      for (const u of urls) {
+        try { URL.revokeObjectURL(u) } catch { /* ignore */ }
+      }
+      urls.clear()
+    }
+  }, [])
+
+  // ── o que a pessoa escolheu, derivado ────────────────────────────────────────────────────
+
+  const sentence = text.replace(/\s+/g, ' ').trim()
+  const sector = inferSector(sentence)
+  const photoKind = defaultPhotoKind(sector)
+  const detected = detectNarrationLanguage(sentence).language
+  const spoken: NarrationLanguage = voiceLang ?? narrationLanguage(detected) ?? narrationLanguage(lang) ?? 'en'
+  const cardTitleFinal = cardTitle.trim() || simpleTitle(sentence)
+  const cost = tier ? adsV2Credits(tier, ADS_V2_SCREEN_SECONDS) : null
+  const inAd = items.slice(0, ADS_V2_SIMPLE_MAX_IN_AD)
+  const priceT = price.replace(/\s+/g, ' ').trim()
+  const contactT = contact.replace(/\s+/g, ' ').trim()
+
+  /** Chave do rascunho: mudou texto, preço, contato, frases, voz, língua ou nível = rascunho novo (a pesquisa é copiada). */
+  const draftKey = JSON.stringify({ text: sentence, price: priceT, contact: contactT, overlays: overlaysOn, voice: narrationOn, lang: spoken, tier })
+  const baseSig = JSON.stringify({ draftKey, sector, items: inAd.map((p) => [p.key, focalSig(p)]) })
+  const isFactOn = (id: string) => factOn[id] ?? ADS_V2_SIMPLE_FACTS_DEFAULT_ON
+  const factsNow = research && draft && research.orderId === draft.id ? research.facts : []
+  const planSig = JSON.stringify({ base: baseSig, facts: factsNow.filter((f) => isFactOn(f.id)).map((f) => f.id) })
+  const cardSig = JSON.stringify({ title: cardTitleFinal, price: priceT, contact: contactT, color: cardColor, logo: logo?.footageId ?? null, lang: spoken })
+  const planFresh = !!plan && plan.sig === planSig
+
+  const missing: string[] = []
+  if (inAd.length < ADS_V2_SIMPLE_MIN_IN_AD) missing.push(fill(copy.plan.needFiles, { n: ADS_V2_SIMPLE_MIN_IN_AD - inAd.length, min: ADS_V2_SIMPLE_MIN_IN_AD, max: ADS_V2_SIMPLE_MAX_IN_AD }))
+  if (!sentence) missing.push(copy.plan.needText)
+  if (sentence.length > ADS_V2_SCREEN_SENTENCE_MAX) missing.push(copy.plan.textTooLong)
+  if (!tier) missing.push(copy.plan.needTier)
+  if (logo?.busy) missing.push(copy.plan.waitLogo)
+  if (videoBusy > 0) missing.push(copy.plan.waitVideo)
+
+  // ── URL, poll e vista do pedido (mesmas regras do modo completo: 8 s, 20 s depois de erro) ─────
+
+  function setOrderParam(id: string) {
+    if (!aliveRef.current) return
+    setUrlParams({ order: id })
+  }
+
+  function schedulePoll(orderId: string, ms: number) {
+    if (!aliveRef.current) return
+    if (pollRef.current) window.clearTimeout(pollRef.current)
+    pollRef.current = window.setTimeout(() => {
+      void pollOnce(orderId)
+    }, ms)
+  }
+
+  function applyView(v: StatusView) {
+    if (!aliveRef.current || currentOrderRef.current !== v.order_id) return
+    setOrder({
+      order_id: v.order_id,
+      status: v.status,
+      tier: v.tier,
+      seconds: v.seconds,
+      credits: v.credits,
+      video_id: v.video_id,
+      error: v.error,
+      parent_order_id: v.parent_order_id,
+      shots: Array.isArray(v.shots) ? v.shots : [],
+    })
+    if ('video' in v) setVideo(v.video ?? null)
+    if (isActiveOrderStatus(v.status)) {
+      setPhase('progress')
+      onActive(true)
+      schedulePoll(v.order_id, POLL_MS)
+    } else if (v.status === 'delivered') {
+      setPhase('delivered')
+      onActive(false)
+      void onBalance()
+    } else if (v.status === 'failed' || v.status === 'cancelled') {
+      setPhase('failed')
+      onActive(false)
+      void onBalance()
+    } else {
+      setPhase('build')
+    }
+  }
+
+  function adoptOrder(v: StatusView) {
+    if (!aliveRef.current) return
+    currentOrderRef.current = v.order_id
+    setOrderParam(v.order_id)
+    applyView(v)
+  }
+
+  async function pollOnce(orderId: string) {
+    if (!aliveRef.current || currentOrderRef.current !== orderId) return
+    const r = await api<StatusView>(`/api/ads/v2/status?order_id=${encodeURIComponent(orderId)}`)
+    if (!aliveRef.current || currentOrderRef.current !== orderId) return
+    if (!r.ok) {
+      if (r.code === 'order_not_found' || r.code === 'unauthenticated') {
+        setPollNote(errorText(lang, r))
+        return
+      }
+      setPollNote(copy.progress.lost)
+      schedulePoll(orderId, POLL_RETRY_MS)
+      return
+    }
+    setPollNote(null)
+    applyView(r.data)
+  }
+
+  function openOrder(id: string) {
+    if (!aliveRef.current) return
+    currentOrderRef.current = id
+    setOrderParam(id)
+    setPollNote(null)
+    setPhase('loading')
+    void pollOnce(id)
+  }
+
+  // Retomar (só a 1ª sessão): ?order=<id> ou o anúncio em andamento mais novo. Rascunho/plano velho NUNCA volta.
+  useEffect(() => {
+    if (!resume) return
+    let cancelled = false
+    ;(async () => {
+      let wanted: string | null = null
+      try {
+        const q = new URLSearchParams(window.location.search).get('order')
+        if (q && UUID_RE.test(q)) wanted = q.toLowerCase()
+      } catch {
+        wanted = null
+      }
+      if (!wanted) {
+        const list = await api<{ orders?: { id: string; status: string }[] }>('/api/ads/v2/orders')
+        if (cancelled || !aliveRef.current) return
+        if (!list.ok) {
+          if (list.code === 'not_ready') setNotReady(true)
+          setPhase('build')
+          return
+        }
+        const active = (list.data.orders ?? []).find((o) => isActiveOrderStatus(o.status))
+        wanted = active ? active.id : null
+      }
+      if (!wanted) {
+        setPhase('build')
+        return
+      }
+      const one = await api<{ order?: StatusView }>(`/api/ads/v2/orders?id=${encodeURIComponent(wanted)}`)
+      if (cancelled || !aliveRef.current) return
+      const v = one.ok ? one.data.order : undefined
+      if (!v || v.status === 'draft' || v.status === 'planned') {
+        if (!one.ok && one.code === 'not_ready') setNotReady(true)
+        setUrlParams({ order: null })
+        setPhase('build')
+        return
+      }
+      adoptOrder(v)
+      if (!isActiveOrderStatus(v.status)) void pollOnce(v.order_id)
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resume])
+
+  useEffect(() => {
+    if (phase === 'progress' || phase === 'delivered' || phase === 'failed') headingRef.current?.focus()
+  }, [phase])
+
+  // Prévia do quadro final (logo opcional + título + preço + contato).
+  useEffect(() => {
+    const canvas = cardCanvasRef.current
+    if (!canvas || phase !== 'build' || !moreOpen) return
+    let stop = false
+    ;(async () => {
+      let img: HTMLImageElement | null = null
+      if (logo?.localUrl) {
+        try { img = await loadLogoImage(logo.localUrl) } catch { img = null }
+      }
+      if (stop) return
+      try {
+        drawEndCard(canvas, { logo: img, business: cardTitleFinal, offer: priceT, ctaLabel: contactT ? endCardCtaLabel(simpleCtaKind(contactT), spoken) : '', contact: contactT, accent: cardColor })
+      } catch {
+        /* navegador sem canvas: a prévia fica vazia */
+      }
+    })()
+    return () => {
+      stop = true
+    }
+  }, [phase, moreOpen, logo?.localUrl, cardTitleFinal, priceT, contactT, cardColor, spoken])
+
+  // ── arquivos ─────────────────────────────────────────────────────────────────────────────
+
+  function trackUrl(u: string) {
+    urlsRef.current.add(u)
+    return u
+  }
+  function dropUrl(u: string | null | undefined) {
+    if (!u) return
+    try { URL.revokeObjectURL(u) } catch { /* ignore */ }
+    urlsRef.current.delete(u)
+  }
+
+  async function itemFromFile(f: File, fromVideo: boolean): Promise<SimpleItem | null> {
+    const url = trackUrl(URL.createObjectURL(f))
+    try {
+      const img = await loadImage(url)
+      return { key: newKey(), name: f.name, srcUrl: url, w: img.naturalWidth, h: img.naturalHeight, fx: 0.5, fy: 0.5, fromVideo, uploaded: null, busy: false, error: null }
+    } catch {
+      dropUrl(url)
+      return null
+    }
+  }
+
+  async function addFiles(list: FileList | null) {
+    if (!list || !list.length) return
+    setFileNote(null)
+    const notes: string[] = []
+    const files = Array.from(list)
+    for (const f of files) {
+      if (!aliveRef.current) return
+      if (isVideoFile(f.name, f.type)) {
+        if (f.size > ADS_V2_SIMPLE_VIDEO_MAX_BYTES) {
+          notes.push(fill(copy.files.videoTooBig, { name: f.name }))
+          continue
+        }
+        setVideoBusy((n) => n + 1)
+        try {
+          const frames = await grabVideoFrames(f, (d) => videoFrameTimes(d, 3), { maxSeconds: ADS_V2_SIMPLE_VIDEO_MAX_SECONDS })
+          const added: SimpleItem[] = []
+          for (const fr of frames) {
+            const it = await itemFromFile(fr, true)
+            if (it) added.push(it)
+          }
+          if (!aliveRef.current) return
+          if (!added.length) notes.push(copy.files.videoDecode)
+          setItems((prev) => [...prev, ...added].slice(0, ADS_V2_SIMPLE_MAX_ITEMS))
+        } catch (e) {
+          if (!aliveRef.current) return
+          notes.push(e instanceof VideoFramesError && e.code === 'too_long' ? fill(copy.files.videoTooLong, { name: f.name }) : copy.files.videoDecode)
+        } finally {
+          if (aliveRef.current) setVideoBusy((n) => Math.max(0, n - 1))
+        }
+        continue
+      }
+      if (!isImageFile(f.name, f.type)) {
+        notes.push(fill(copy.files.badFile, { name: f.name }))
+        continue
+      }
+      if (f.size > PHOTO_MAX_BYTES) {
+        notes.push(fill(copy.files.photoTooBig, { name: f.name }))
+        continue
+      }
+      const it = await itemFromFile(f, false)
+      if (!aliveRef.current) return
+      if (!it) {
+        notes.push(fill(copy.files.photoUnreadable, { name: f.name }))
+        continue
+      }
+      setItems((prev) => [...prev, it].slice(0, ADS_V2_SIMPLE_MAX_ITEMS))
+    }
+    if (aliveRef.current) setFileNote(notes.length ? notes.join(' ') : null)
+  }
+
+  function updateItem(key: string, patch: Partial<SimpleItem>) {
+    setItems((prev) => prev.map((p) => (p.key === key ? { ...p, ...patch } : p)))
+  }
+  function removeItem(key: string) {
+    setItems((prev) => {
+      const gone = prev.find((p) => p.key === key)
+      if (gone) dropUrl(gone.srcUrl)
+      return prev.filter((p) => p.key !== key)
+    })
+  }
+  function moveUp(key: string) {
+    setItems((prev) => {
+      const i = prev.findIndex((p) => p.key === key)
+      if (i <= 0) return prev
+      const next = prev.slice()
+      ;[next[i - 1], next[i]] = [next[i], next[i - 1]]
+      return next
+    })
+  }
+  /** Um arquivo que ficou fora do anúncio entra no lugar do último que está dentro. */
+  function promoteItem(key: string) {
+    setItems((prev) => {
+      const i = prev.findIndex((p) => p.key === key)
+      if (i < ADS_V2_SIMPLE_MAX_IN_AD) return prev
+      const next = prev.slice()
+      const [it] = next.splice(i, 1)
+      next.splice(ADS_V2_SIMPLE_MAX_IN_AD - 1, 0, it)
+      return next
+    })
+  }
+
+  async function chooseLogo(file: File | undefined) {
+    if (!file) return
+    const previous = logo?.localUrl
+    setLogo({ footageId: null, localUrl: null, busy: true, error: null })
+    try {
+      const up = await uploadFootage(file, { isLogo: true })
+      if (!aliveRef.current) return
+      dropUrl(previous)
+      setLogo({ footageId: up.footageId, localUrl: up.localUrl ? trackUrl(up.localUrl) : up.url, busy: false, error: null })
+    } catch (e) {
+      if (!aliveRef.current) return
+      setLogo({ footageId: null, localUrl: null, busy: false, error: e instanceof AdsUploadError ? e.message : copy.plan.logoFailed })
+    }
+  }
+
+  /** Recorta e sobe (um por vez) cada arquivo DO ANÚNCIO cujo enquadramento mudou desde o último envio. */
+  async function ensureItemsUploaded(): Promise<{ footage_id: string; kind: typeof photoKind }[] | null> {
+    const out: { footage_id: string; kind: typeof photoKind }[] = []
+    let n = 0
+    for (const p of inAd) {
+      n += 1
+      const sig = focalSig(p)
+      if (p.uploaded && p.uploaded.sig === sig) {
+        out.push({ footage_id: p.uploaded.footageId, kind: photoKind })
+        continue
+      }
+      setBusyNote(fill(copy.plan.noteUpload, { i: n, n: inAd.length }))
+      updateItem(p.key, { busy: true, error: null })
+      try {
+        const file = await cropToVertical(p)
+        const up = await uploadFootage(file)
+        if (!aliveRef.current) return null
+        updateItem(p.key, { busy: false, uploaded: { sig, footageId: up.footageId } })
+        out.push({ footage_id: up.footageId, kind: photoKind })
+      } catch (e) {
+        if (!aliveRef.current) return null
+        const msg = e instanceof AdsUploadError ? e.message : copy.plan.uploadFailed
+        updateItem(p.key, { busy: false, error: msg })
+        setPlanError(fill(copy.plan.photoError, { n, msg }))
+        return null
+      }
+    }
+    return out
+  }
+
+  /** Desenha o quadro final (logo opcional) e sobe como PNG — só se mudou desde o último envio. */
+  async function ensureCard(): Promise<{ sig: string; footageId: string } | null> {
+    if (cardUpload && cardUpload.sig === cardSig) return cardUpload
+    setBusyNote(copy.plan.noteCard)
+    try {
+      let img: HTMLImageElement | null = null
+      if (logo?.localUrl) {
+        try { img = await loadLogoImage(logo.localUrl) } catch { img = null }
+      }
+      const canvas = document.createElement('canvas')
+      drawEndCard(canvas, { logo: img, business: cardTitleFinal, offer: priceT, ctaLabel: contactT ? endCardCtaLabel(simpleCtaKind(contactT), spoken) : '', contact: contactT, accent: cardColor })
+      const file = await toPngFile(canvas)
+      const up = await uploadFootage(file)
+      if (!aliveRef.current) return null
+      const done = { sig: cardSig, footageId: up.footageId }
+      setCardUpload(done)
+      return done
+    } catch (e) {
+      if (!aliveRef.current) return null
+      setPlanError(e instanceof AdsUploadError ? e.message : copy.plan.cardFailed)
+      return null
+    }
+  }
+
+  /** Rascunho no servidor para esta combinação (mudou = rascunho novo, com research_from apontando o anterior). */
+  async function ensureDraft(): Promise<string | null> {
+    if (draft && draft.key === draftKey) return draft.id
+    setBusyNote(copy.plan.noteSave)
+    const r = await api<{ order_id: string }>('/api/ads/v2/orders', {
+      method: 'POST',
+      body: {
+        mode: 'simple',
+        tier,
+        seconds: ADS_V2_SCREEN_SECONDS,
+        sector,
+        sentence,
+        language: spoken,
+        narration: narrationOn,
+        overlays: overlaysOn,
+        price: priceT || null,
+        contact: contactT || null,
+        research_from: draft?.id ?? null,
+      },
+    })
+    if (!aliveRef.current) return null
+    if (!r.ok) {
+      if (r.code === 'not_ready') setNotReady(true)
+      setPlanError(errorText(lang, r))
+      return null
+    }
+    setDraft({ id: r.data.order_id, key: draftKey })
+    return r.data.order_id
+  }
+
+  /** Pesquisa (grátis para o cliente): uma por rascunho; o servidor devolve a gravada/copiada sem pesquisar de novo. */
+  async function ensureResearch(orderId: string): Promise<Fact[]> {
+    if (research && research.orderId === orderId) return research.facts
+    setBusyNote(copy.plan.noteResearch)
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const r = await api<{ status: string; facts?: Fact[] }>('/api/ads/v2/research', { method: 'POST', body: { order_id: orderId } })
+      if (!aliveRef.current) return []
+      if (r.ok && r.data.status === 'running') {
+        await new Promise((res) => window.setTimeout(res, 4000))
+        if (!aliveRef.current) return []
+        continue
+      }
+      const facts = r.ok && r.data.status === 'ok' && Array.isArray(r.data.facts) ? r.data.facts : []
+      setResearch({ orderId, status: facts.length ? 'ok' : 'failed', facts })
+      setFactsNote(facts.length ? null : r.ok ? copy.plan.factsNone : errorText(lang, r))
+      return facts
+    }
+    setResearch({ orderId, status: 'failed', facts: [] })
+    setFactsNote(copy.plan.factsNone)
+    return []
+  }
+
+  // ── plano e início ───────────────────────────────────────────────────────────────────────
+
+  async function planAd() {
+    if (busy || missing.length) return
+    setBusy('plan')
+    setPlanError(null)
+    try {
+      const baseAtStart = baseSig
+      const uploaded = await ensureItemsUploaded()
+      if (!uploaded || !aliveRef.current) return
+      const card = await ensureCard()
+      if (!card || !aliveRef.current) return
+      const orderId = await ensureDraft()
+      if (!orderId || !aliveRef.current) return
+      const facts = await ensureResearch(orderId)
+      if (!aliveRef.current) return
+      const chosen = facts.filter((f) => isFactOn(f.id)).map((f) => f.id)
+      setBusyNote(copy.plan.notePlan)
+      const r = await api<PlanResponse>('/api/ads/v2/plan', {
+        method: 'POST',
+        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, photos: uploaded, card_footage_id: card.footageId, facts: chosen },
+      })
+      if (!aliveRef.current) return
+      if (!r.ok) {
+        if (r.code === 'not_ready') setNotReady(true)
+        if (r.code === 'not_editable') setDraft(null)
+        setPlanError(errorText(lang, r))
+        return
+      }
+      setPlan({ ...r.data, sig: JSON.stringify({ base: baseAtStart, facts: chosen }), cardSig: card.sig })
+      window.setTimeout(() => planHeadingRef.current?.focus(), 30)
+    } finally {
+      if (aliveRef.current) {
+        setBusy(null)
+        setBusyNote(null)
+      }
+    }
+  }
+
+  /** O quadro final mudou depois do plano: sobe o novo e troca no pedido (sem planejar de novo). */
+  async function syncCard(p: Plan): Promise<boolean> {
+    if (p.cardSig === cardSig) return true
+    const done = await ensureCard()
+    if (!done || !aliveRef.current) return false
+    const r = await api('/api/ads/v2/orders', { method: 'PATCH', body: { order_id: p.order_id, card_footage_id: done.footageId } })
+    if (!aliveRef.current) return false
+    if (!r.ok) {
+      setPlanError(errorText(lang, r))
+      return false
+    }
+    setPlan((cur) => (cur && cur.order_id === p.order_id ? { ...cur, cardSig: done.sig } : cur))
+    return true
+  }
+
+  async function makeAd() {
+    if (!plan || !planFresh || busy || cost === null) return
+    if (plan.credits !== cost) {
+      setPlanError(copy.plan.priceChanged)
+      return
+    }
+    setBusy('start')
+    setPlanError(null)
+    try {
+      if (!(await syncCard(plan))) return
+      setBusyNote(copy.plan.starting)
+      onActive(true)
+      const r = await api<StatusView>('/api/ads/v2/start', { method: 'POST', body: { order_id: plan.order_id } })
+      if (!aliveRef.current) return
+      if (!r.ok) {
+        onActive(false)
+        if (r.code === 'not_startable') {
+          setDraft(null)
+          setPlan(null)
+        }
+        setPlanError(errorText(lang, r))
+        void onBalance()
+        return
+      }
+      setDraft(null)
+      void onBalance()
+      const v = r.data.order_id ? r.data : ({ ...r.data, order_id: plan.order_id } as StatusView)
+      adoptOrder({ ...v, shots: Array.isArray(v.shots) ? v.shots : [] })
+    } finally {
+      if (aliveRef.current) {
+        setBusy(null)
+        setBusyNote(null)
+      }
+    }
+  }
+
+  async function download() {
+    const url = video?.video_url
+    if (!url || downloading) return
+    setDownloading(true)
+    setDownloadNote(null)
+    try {
+      const outcome = await downloadVideoFile({
+        url,
+        filename: `${adFileSlug(cardTitleFinal)}-ad.mp4`,
+        exportType: 'clean',
+        surface: 'ads',
+        videoId: video?.id ?? order?.video_id ?? null,
+        extra: { order_id: order?.order_id ?? null, v2: true, mode: 'simple' },
+      })
+      if (outcome === 'popup_blocked' || outcome === 'unavailable') setDownloadNote(copy.done.downloadFailed)
+    } catch {
+      setDownloadNote(copy.done.downloadFailed)
+    } finally {
+      if (aliveRef.current) setDownloading(false)
+    }
+  }
+
+  // ── desenho ──────────────────────────────────────────────────────────────────────────────
+
+  const locked = busy !== null
+  const itemByFootage = new Map<string, SimpleItem>()
+  for (const p of items) if (p.uploaded) itemByFootage.set(p.uploaded.footageId.toLowerCase(), p)
+  const short = cost !== null && balance !== null && balance < cost ? cost - balance : 0
+
+  return (
+    <div className="adv2-layout">
+      <style dangerouslySetInnerHTML={{ __html: SIMPLE_CSS }} />
+      <div className="adv2-main">
+        {notReady ? <p className="adv2-note" role="status">{copy.notReady}</p> : null}
+
+        {phase === 'loading' ? (
+          <section className="adv2-card" aria-busy="true">
+            <p className="adsw-lead" role="status" style={{ margin: 0 }}>{copy.progress.loading}</p>
+            {pollNote ? <p className="adsw-warn" role="status">{pollNote}</p> : null}
+          </section>
+        ) : null}
+
+        {phase === 'build' ? (
+          <>
+            {/* 1. Arquivos */}
+            <section className="adv2-card" aria-labelledby="adv2s-s1">
+              <h2 id="adv2s-s1"><span className="adv2-num" aria-hidden="true">1</span>{copy.files.title}</h2>
+              <p className="adsw-lead">{copy.files.lead}</p>
+              {items.length ? (
+                <>
+                  <p className="adsw-hint" style={{ margin: '0 0 10px' }}>{fill(copy.files.count, { n: inAd.length, max: ADS_V2_SIMPLE_MAX_IN_AD })} · {copy.files.frameHint}</p>
+                  <ol className="adv2s-items" aria-label={copy.files.title}>
+                    {inAd.map((p, i) => (
+                      <ItemCard key={p.key} item={p} index={i} copy={copy} locked={locked} out={false}
+                        onFocal={(fx, fy) => updateItem(p.key, { fx, fy })}
+                        onRemove={() => removeItem(p.key)}
+                        onMoveUp={i > 0 ? () => moveUp(p.key) : undefined}
+                      />
+                    ))}
+                  </ol>
+                  {items.length > ADS_V2_SIMPLE_MAX_IN_AD ? (
+                    <>
+                      <p className="adv2s-out">{fill(copy.files.outTitle, { max: ADS_V2_SIMPLE_MAX_IN_AD })}</p>
+                      <ol className="adv2s-items">
+                        {items.slice(ADS_V2_SIMPLE_MAX_IN_AD).map((p, j) => (
+                          <ItemCard key={p.key} item={p} index={ADS_V2_SIMPLE_MAX_IN_AD + j} copy={copy} locked={locked} out
+                            onFocal={() => undefined}
+                            onRemove={() => removeItem(p.key)}
+                            onUse={() => promoteItem(p.key)}
+                          />
+                        ))}
+                      </ol>
+                    </>
+                  ) : null}
+                </>
+              ) : null}
+              <input ref={fileInputRef} className="adv2-sr" type="file" accept={ADS_V2_SIMPLE_ACCEPT} multiple tabIndex={-1} aria-hidden="true" onChange={(e) => { void addFiles(e.target.files); e.target.value = '' }} />
+              <div style={{ marginTop: 14 }}>
+                <button type="button" className="adv2-add" disabled={locked || items.length >= ADS_V2_SIMPLE_MAX_ITEMS} onClick={() => fileInputRef.current?.click()}>
+                  <span aria-hidden="true">+</span> {items.length ? copy.files.addMore : copy.files.add}
+                </button>
+              </div>
+              {videoBusy > 0 ? <p className="adsw-hint" role="status">{copy.files.readingVideo}</p> : null}
+              {fileNote ? <p className="adsw-warn" role="status">{fileNote}</p> : null}
+            </section>
+
+            {/* 2. O texto */}
+            <section className="adv2-card" aria-labelledby="adv2s-s2">
+              <h2 id="adv2s-s2"><span className="adv2-num" aria-hidden="true">2</span>{copy.text.title}</h2>
+              <label className="adsw-f">
+                <span>{copy.text.question}</span>
+                <small>{copy.text.hint}</small>
+                <textarea className="adsw-ta" rows={3} maxLength={ADS_V2_SCREEN_SENTENCE_MAX} value={text} disabled={locked} onChange={(e) => setText(e.target.value)} placeholder={copy.text.placeholder} />
+              </label>
+              <label className="adv2s-lang">
+                {copy.text.voiceIn}
+                <select value={spoken} disabled={locked} onChange={(e) => setVoiceLang(narrationLanguage(e.target.value))}>
+                  {NARRATION_LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.native}</option>)}
+                </select>
+              </label>
+              <details className="adv2s-more" open={moreOpen} onToggle={(e) => setMoreOpen((e.currentTarget as HTMLDetailsElement).open)}>
+                <summary>{copy.text.more}</summary>
+                <div className="adv2s-toggles">
+                  <button type="button" className="adv2-switch" role="switch" aria-checked={overlaysOn} disabled={locked} onClick={() => setOverlaysOn((v) => !v)}>
+                    <i aria-hidden="true" /> {copy.text.overlays}: {overlaysOn ? copy.text.on : copy.text.off}
+                  </button>
+                  <button type="button" className="adv2-switch" role="switch" aria-checked={narrationOn} disabled={locked} onClick={() => setNarrationOn((v) => !v)}>
+                    <i aria-hidden="true" /> {copy.text.narration}: {narrationOn ? copy.text.on : copy.text.off}
+                  </button>
+                </div>
+                <label className="adsw-f">
+                  <span>{copy.text.price}</span>
+                  <input type="text" value={price} maxLength={60} disabled={locked} onChange={(e) => setPrice(e.target.value)} placeholder={copy.text.pricePlaceholder} />
+                </label>
+                <label className="adsw-f">
+                  <span>{copy.text.contact}</span>
+                  <input type="text" value={contact} maxLength={80} disabled={locked} onChange={(e) => setContact(e.target.value)} placeholder={copy.text.contactPlaceholder} />
+                </label>
+                <div className="adv2-cardwrap" style={{ marginTop: 12 }}>
+                  <canvas ref={cardCanvasRef} className="adv2-cardprev" width={1080} height={1920} role="img" aria-label={copy.text.cardPreview} />
+                  <div className="fields">
+                    <label className="adsw-f">
+                      <span>{copy.text.cardTitle}</span>
+                      <small>{copy.text.cardTitleHint}</small>
+                      <input type="text" value={cardTitle} maxLength={60} disabled={locked} onChange={(e) => setCardTitle(e.target.value)} placeholder={simpleTitle(sentence)} />
+                    </label>
+                    <div className="adsw-f">
+                      <span>{copy.text.logo}</span>
+                      <div className="adv2-logo">
+                        {logo?.localUrl ? <div className="tile"><img src={logo.localUrl} alt="" /></div> : null}
+                        <input ref={logoInputRef} className="adv2-sr" type="file" accept={ADS_UPLOAD_ACCEPT_LOGO} tabIndex={-1} aria-hidden="true" onChange={(e) => { void chooseLogo(e.target.files?.[0]); e.target.value = '' }} />
+                        <button type="button" className="adsw-btn ghost small" disabled={locked || !!logo?.busy} onClick={() => logoInputRef.current?.click()}>
+                          {logo?.busy ? copy.files.uploading : logo?.footageId ? copy.text.changeLogo : copy.text.addLogo}
+                        </button>
+                        {logo?.footageId ? (
+                          <button type="button" className="adsw-btn ghost small" disabled={locked} onClick={() => { dropUrl(logo.localUrl); setLogo(null) }}>{copy.text.removeLogo}</button>
+                        ) : null}
+                      </div>
+                      {logo?.error ? <p className="adsw-err" role="alert">{logo.error}</p> : null}
+                    </div>
+                    <label className="adsw-f adv2-color">
+                      <input type="color" value={cardColor} disabled={locked} onChange={(e) => setCardColor(e.target.value)} />
+                      <span style={{ margin: 0 }}>{copy.text.color}</span>
+                    </label>
+                  </div>
+                </div>
+              </details>
+            </section>
+
+            {/* 3. Nível */}
+            <section className="adv2-card" aria-labelledby="adv2s-s3">
+              <h2 id="adv2s-s3"><span className="adv2-num" aria-hidden="true">3</span>{copy.tiers.title}</h2>
+              <fieldset className="adv2-tiers">
+                <legend className="adv2-sr">{copy.tiers.title}</legend>
+                {ADS_V2_TIER_IDS.map((t) => {
+                  const credits = adsV2Credits(t, ADS_V2_SCREEN_SECONDS)
+                  const tc = copy.tiers[t]
+                  const need = balance !== null && balance < credits ? credits - balance : 0
+                  return (
+                    <label key={t} className="adv2-tier">
+                      <input className="adv2-sr" type="radio" name="adv2s-tier" value={t} checked={tier === t} disabled={locked} onChange={() => setTier(t)} />
+                      <b>{tc.name}</b>
+                      <span className="cr">{fill(copy.tiers.credits, { n: credits })}</span>
+                      <span>{tc.pitch}</span>
+                      <span className="adsw-hint" style={{ margin: 0 }}>{fill(copy.tiers.shots, { n: ADS_V2_TIERS[t].shots })}</span>
+                      {need > 0 ? <span className="short">{fill(copy.tiers.needMore, { n: need })}</span> : null}
+                    </label>
+                  )
+                })}
+              </fieldset>
+              {tier && tier !== 'photo_motion' ? <p className="adsw-hint">{copy.tiers.aiPeople}</p> : null}
+              <p className="adv2-balance" role="status">
+                {balance === null ? copy.tiers.balanceUnknown : fill(copy.tiers.balance, { n: balance })}{' '}
+                {short > 0 ? <Link className="adsw-link" href="/pricing" target="_blank" rel="noopener">{copy.tiers.getCredits}</Link> : null}
+              </p>
+            </section>
+
+            {/* 4. Descobrir, planejar e fazer */}
+            <section className="adv2-card" aria-labelledby="adv2s-s4">
+              <h2 id="adv2s-s4" ref={planHeadingRef} tabIndex={-1}><span className="adv2-num" aria-hidden="true">4</span>{copy.plan.title}</h2>
+              {factsNow.length ? (
+                <>
+                  <h3>{copy.plan.factsTitle}</h3>
+                  <p className="adsw-hint" style={{ margin: '0 0 10px' }}>{copy.plan.factsHint}</p>
+                  <ul className="adv2s-facts">
+                    {factsNow.map((f) => (
+                      <li key={f.id}>
+                        <input type="checkbox" id={`adv2s-${f.id}`} checked={isFactOn(f.id)} disabled={locked} onChange={(e) => setFactOn((m) => ({ ...m, [f.id]: e.target.checked }))} />
+                        <span className="tx">
+                          <label htmlFor={`adv2s-${f.id}`}>{f.text}</label>
+                          <a href={f.url} target="_blank" rel="noopener noreferrer nofollow">{copy.plan.source}: {f.host}</a>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
+              {factsNote ? <p className="adsw-hint" role="status">{factsNote}</p> : null}
+              {!planFresh ? (
+                <>
+                  <p className="adsw-lead">{plan ? copy.plan.stale : copy.plan.lead}</p>
+                  {missing.length ? (
+                    <div className="adv2-missing" role="status">
+                      {copy.plan.missingTitle}
+                      <ul>{missing.map((m) => <li key={m}>{m}</li>)}</ul>
+                    </div>
+                  ) : null}
+                  <div className="adv2-actions">
+                    <button type="button" className="adsw-btn" disabled={locked || missing.length > 0} onClick={() => void planAd()}>
+                      {busy === 'plan' ? copy.plan.planning : plan ? copy.plan.again : copy.plan.go}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <SimplePlanPreview
+                  plan={plan as Plan}
+                  copy={copy}
+                  cost={cost}
+                  short={short}
+                  busy={busy}
+                  narrationOn={narrationOn}
+                  itemByFootage={itemByFootage}
+                  onMake={() => void makeAd()}
+                />
+              )}
+              {busyNote ? <p className="adsw-hint" role="status">{busyNote}</p> : null}
+              {planError ? <p className="adsw-err" role="alert">{planError}</p> : null}
+            </section>
+          </>
+        ) : null}
+
+        {phase === 'progress' && order ? (
+          <section className="adv2-card" aria-labelledby="adv2s-prog">
+            <h2 id="adv2s-prog" ref={headingRef} tabIndex={-1}>{copy.progress.title}</h2>
+            <p className="adsw-lead">
+              {order.status === 'assembling' ? copy.progress.assembling : copy.progress.animating}{' '}
+              {copy.progress.leave} <Link className="adsw-link" href="/history">{copy.progress.myVideos}</Link>.
+            </p>
+            <SimpleShotGrid shots={order.shots} orderStatus={order.status} copy={copy} />
+            {pollNote ? <p className="adsw-warn" role="status">{pollNote}</p> : null}
+          </section>
+        ) : null}
+
+        {phase === 'delivered' && order ? (
+          <section className="adv2-card" aria-labelledby="adv2s-done">
+            <h2 id="adv2s-done" ref={headingRef} tabIndex={-1}>{copy.done.title}</h2>
+            {video?.video_url ? (
+              <video className="adv2-player" src={video.video_url} controls playsInline preload="metadata" />
+            ) : (
+              <p className="adsw-lead">{copy.done.inMyVideos} <Link className="adsw-link" href="/history">{copy.progress.myVideos}</Link>.</p>
+            )}
+            <div className="adv2-actions">
+              {video?.video_url ? (
+                <button type="button" className="adsw-btn" disabled={downloading} onClick={() => void download()}>
+                  {downloading ? copy.done.downloading : copy.done.download}
+                </button>
+              ) : null}
+              <Link className="adsw-link" href="/history">{copy.done.open}</Link>
+            </div>
+            {downloadNote ? <p className="adsw-warn" role="status">{downloadNote}</p> : null}
+            <p className="adv2-note">{copy.done.aiLabel}</p>
+            <h3 style={{ margin: '24px 0 6px' }}>{copy.done.redoTitle}</h3>
+            <div className="adv2-actions" style={{ marginTop: 0 }}>
+              <a className="adsw-btn ghost small" href={`/ads/v2?mode=full&order=${encodeURIComponent(order.order_id)}`}>{copy.done.redo}</a>
+              <button type="button" className="adsw-btn ghost" onClick={onAskStartOver}>{copy.done.another}</button>
+            </div>
+          </section>
+        ) : null}
+
+        {phase === 'failed' && order ? (
+          <section className="adv2-card" aria-labelledby="adv2s-fail">
+            <h2 id="adv2s-fail" ref={headingRef} tabIndex={-1}>{order.status === 'cancelled' ? copy.failed.cancelled : order.parent_order_id ? copy.failed.redoTitle : copy.failed.title}</h2>
+            <p className="adsw-lead">{order.status === 'cancelled' ? copy.failed.nothing : simpleLabel(copy, failedOrderMessage(order.error, !!order.parent_order_id))}</p>
+            <div className="adv2-actions">
+              {order.parent_order_id ? (
+                <button type="button" className="adsw-btn" onClick={() => openOrder(order.parent_order_id as string)}>{copy.failed.backToAd}</button>
+              ) : items.length ? (
+                <button type="button" className="adsw-btn" onClick={() => { setUrlParams({ order: null }); currentOrderRef.current = null; setOrder(null); setPlan(null); setDraft(null); setPhase('build') }}>
+                  {copy.failed.back}
+                </button>
+              ) : null}
+              <button type="button" className="adsw-btn ghost" onClick={onAskStartOver}>{copy.shell.startOver}</button>
+            </div>
+          </section>
+        ) : null}
+      </div>
+
+      <aside className="adv2-aside" aria-label={copy.how.title}>
+        <section className="adv2-card">
+          <h2>{copy.how.title}</h2>
+          <ol className="adv2-how">
+            {copy.how.steps.map((s, i) => (
+              <li key={s}>
+                <span className="adv2-num" aria-hidden="true">{i + 1}</span>
+                <span>{s}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      </aside>
+    </div>
+  )
+}
+
+// ─── um arquivo: moldura 9:16 arrastável ─────────────────────────────────────────────────────
+
+function ItemCard({
+  item,
+  index,
+  copy,
+  locked,
+  out,
+  onFocal,
+  onRemove,
+  onMoveUp,
+  onUse,
+}: {
+  item: SimpleItem
+  index: number
+  copy: AdsV2SimpleCopy
+  locked: boolean
+  out: boolean
+  onFocal: (fx: number, fy: number) => void
+  onRemove: () => void
+  onMoveUp?: () => void
+  onUse?: () => void
+}) {
+  const drag = useRef<{ x: number; y: number; fx: number; fy: number; id: number } | null>(null)
+  const frameRef = useRef<HTMLDivElement | null>(null)
+  const small = isSmallCrop(cropRect(item.w, item.h, item.fx, item.fy))
+  const canDrag = !locked && !out
+
+  function down(e: ReactPointerEvent<HTMLDivElement>) {
+    if (!canDrag) return
+    drag.current = { x: e.clientX, y: e.clientY, fx: item.fx, fy: item.fy, id: e.pointerId }
+    try { e.currentTarget.setPointerCapture(e.pointerId) } catch { /* ignore */ }
+  }
+  function move(e: ReactPointerEvent<HTMLDivElement>) {
+    const d = drag.current
+    const el = frameRef.current
+    if (!d || !el || d.id !== e.pointerId) return
+    const box = el.getBoundingClientRect()
+    const next = panFocal({ fx: d.fx, fy: d.fy }, { dx: e.clientX - d.x, dy: e.clientY - d.y }, { w: box.width, h: box.height }, { w: item.w, h: item.h })
+    onFocal(next.fx, next.fy)
+  }
+  function up(e: ReactPointerEvent<HTMLDivElement>) {
+    if (drag.current?.id === e.pointerId) drag.current = null
+  }
+  function key(e: KeyboardEvent<HTMLDivElement>) {
+    if (!canDrag) return
+    const step = e.shiftKey ? 0.2 : 0.05
+    const map: Record<string, [number, number]> = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }
+    const m = map[e.key]
+    if (!m) return
+    e.preventDefault()
+    onFocal(clampFocal(item.fx + m[0]), clampFocal(item.fy + m[1]))
+  }
+
+  return (
+    <li className="adv2s-item" data-out={out}>
+      <div
+        ref={frameRef}
+        className="adv2-frame"
+        tabIndex={canDrag ? 0 : -1}
+        role="group"
+        aria-label={fill(copy.files.frameLabel, { n: index + 1 })}
+        aria-disabled={!canDrag}
+        style={{ touchAction: frameTouchAction(item.w, item.h) }}
+        onPointerDown={down}
+        onPointerMove={move}
+        onPointerUp={up}
+        onPointerCancel={up}
+        onKeyDown={key}
+      >
+        <img src={item.srcUrl} alt={fill(copy.files.photoAlt, { n: index + 1 })} draggable={false} style={{ objectPosition: focalPosition(item.fx, item.fy) }} />
+        <span className="badge">{index + 1}</span>
+      </div>
+      {item.fromVideo ? <small className="adsw-hint" style={{ margin: 0 }}>{copy.files.fromVideo}</small> : null}
+      {small && !out ? <small className="adsw-warn" style={{ margin: 0 }}>{copy.files.small}</small> : null}
+      {item.busy ? <small className="adsw-hint" style={{ margin: 0 }} role="status">{copy.files.uploading}</small> : null}
+      {item.error ? <small className="adsw-err" style={{ margin: 0 }} role="alert">{item.error}</small> : null}
+      <div className="row">
+        {onUse ? <button type="button" className="adsw-btn ghost small" disabled={locked} onClick={onUse}>{copy.files.useThis}</button> : null}
+        {onMoveUp ? <button type="button" className="adsw-btn ghost small" disabled={locked} onClick={onMoveUp}>{copy.files.moveUp}</button> : null}
+        <button type="button" className="adsw-btn ghost small" disabled={locked} onClick={onRemove}>{copy.files.remove}</button>
+      </div>
+    </li>
+  )
+}
+
+// ─── prévia do plano ─────────────────────────────────────────────────────────────────────────
+
+function SimplePlanPreview({
+  plan,
+  copy,
+  cost,
+  short,
+  busy,
+  narrationOn,
+  itemByFootage,
+  onMake,
+}: {
+  plan: Plan
+  copy: AdsV2SimpleCopy
+  cost: number | null
+  short: number
+  busy: string | null
+  narrationOn: boolean
+  itemByFootage: Map<string, SimpleItem>
+  onMake: () => void
+}) {
+  return (
+    <>
+      <p className="adsw-lead">{copy.plan.lead}</p>
+      <h3>{copy.plan.shots}</h3>
+      <ol className="adv2-plan-shots">
+        {plan.shots.map((s, i) => {
+          const p = s.photo ? itemByFootage.get(s.photo.toLowerCase()) : undefined
+          return (
+            <li key={s.idx}>
+              <span className="th">
+                {p && s.source === 'client_photo' ? (
+                  <img src={p.srcUrl} alt="" style={{ objectPosition: focalPosition(p.fx, p.fy) }} />
+                ) : (
+                  <span>{s.source === 'generated_scene' ? copy.plan.newScene : copy.plan.photo}</span>
+                )}
+              </span>
+              <span className="tx">
+                <b>{i + 1}. {simpleLabel(copy, ADS_V2_ROLE_LABELS[s.role] ?? s.role)} · {s.cut_seconds} s</b>
+                <span>{simpleLabel(copy, describeShot(s))}</span>
+              </span>
+            </li>
+          )
+        })}
+        <li>
+          <span className="th"><span>{plan.shots.length + 1}</span></span>
+          <span className="tx"><b>{plan.shots.length + 1}. {copy.plan.lastFrame}</b><span>{copy.plan.lastFrameDesc}</span></span>
+        </li>
+      </ol>
+      <h3>{copy.plan.words}</h3>
+      {plan.overlays.length ? (
+        <ul className="adv2-lines">{plan.overlays.map((o) => <li key={`${o.role}-${o.start}`}>{o.text}</li>)}</ul>
+      ) : (
+        <p className="adsw-hint" style={{ margin: '0 0 18px' }}>{copy.plan.noWords}</p>
+      )}
+      <div className="adv2-voice">
+        <b>{copy.plan.voice}</b>
+        {narrationOn && plan.narration ? <p>{plan.narration}</p> : <p className="off">{copy.plan.noVoice}</p>}
+      </div>
+      <p className="adv2-total">{fill(copy.plan.total, { s: Math.round(plan.total_seconds * 10) / 10, c: cost ?? '' })}</p>
+      {short > 0 ? (
+        <p className="adsw-warn">{fill(copy.tiers.needMore, { n: short })} <Link className="adsw-link" href="/pricing" target="_blank" rel="noopener">{copy.tiers.getCredits}</Link></p>
+      ) : null}
+      <div className="adv2-actions">
+        <button type="button" className="adsw-btn" disabled={busy !== null || cost === null || short > 0} onClick={onMake}>
+          {busy === 'start' ? copy.plan.starting : fill(copy.plan.make, { c: cost ?? '' })}
+        </button>
+      </div>
+    </>
+  )
+}
+
+// ─── grade das cenas (progresso) ─────────────────────────────────────────────────────────────
+
+function SimpleShotGrid({ shots, orderStatus, copy }: { shots: AdsV2ScreenShot[]; orderStatus: string; copy: AdsV2SimpleCopy }) {
+  if (!shots.length) return <p className="adsw-hint" role="status">{copy.progress.preparing}</p>
+  return (
+    <ol className="adv2-grid" aria-label={copy.plan.shots}>
+      {shots.map((s, i) => {
+        const label = simpleLabel(copy, shotStateLabel(s, orderStatus))
+        const isText = s.kind === 'text'
+        const name = fill(copy.progress.shot, { n: i + 1 })
+        return (
+          <li key={s.idx} className="adv2-shot">
+            <div className="th">
+              {s.url && isText ? (
+                <img src={s.url} alt={name} />
+              ) : s.url ? (
+                <video src={s.url} muted playsInline preload="metadata" aria-label={name} />
+              ) : (
+                <span className="ph">{name}</span>
+              )}
+            </div>
+            <span className="st" data-state={s.state}>{i + 1}. {label}</span>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
