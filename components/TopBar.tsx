@@ -1,6 +1,6 @@
 'use client'
 
-import KineoBolt from '@/components/KineoBolt'
+import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 
 import Link from 'next/link'
@@ -70,7 +70,7 @@ export default function TopBar({ title, subtitle, onMenuToggle, isPro }: TopBarP
         }}
         aria-label="Home"
       >
-        <KineoBolt size={28} />
+        <KineoBrandIcon size={28} />
       </Link>
 
       {/* Breadcrumb */}

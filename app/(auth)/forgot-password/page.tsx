@@ -1,6 +1,6 @@
 'use client'
 
-import KineoBolt from '@/components/KineoBolt'
+import { KineoBrandIcon } from '@/components/KineoBolt'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -85,7 +85,7 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md relative z-10">
         {/* Logo */}
         <Link href="/" className="flex items-center justify-center gap-3 mb-8" style={{ textDecoration: 'none' }}>
-          <KineoBolt size={32} />
+          <KineoBrandIcon size={32} />
           <div>
             <div className="font-black text-sm tracking-tight" style={{ color: 'var(--text)' }}>
               Kineo

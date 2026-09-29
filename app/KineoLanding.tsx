@@ -1,5 +1,5 @@
 
-import KineoBolt from '@/components/KineoBolt'
+import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 // Kineo landing — new Apple-dark redesign (replaces the old HomePageClient on the homepage).
 // Self-contained, styles scoped under .klp so they don't leak into the rest of the app.
 // Marker: KINEO-LANDING-V3-2026-06-30
@@ -898,7 +898,7 @@ export default function KineoLanding({
       <div className="progress" aria-hidden="true" />
       <nav aria-label="Main"><div className="wrap nav-in">
         <Link href="/" className="logo">
-          <KineoBolt className="mk" size={30} />
+          <KineoBrandIcon className="mk" size={30} />
           Kineo
         </Link>
         <div className="nav-links" data-nav-surface="top" data-nav-area="public">
