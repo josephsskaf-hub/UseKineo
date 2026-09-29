@@ -139,7 +139,7 @@ html{scroll-behavior:smooth}
    deixava a segunda linha do h1 visivelmente lavada. Agora fica solido ate
    58% e para em #c7c7cd — mesma sensacao, muito mais presenca. */
 .klp .gtxt{background:linear-gradient(180deg,#fff 0%,#fff 64%,var(--txt2) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.klp section[id],.klp #pricing,.klp #how,.klp #toolkit,.klp #faq,.klp #compare{scroll-margin-top:78px}
+.klp section[id],.klp #pricing,.klp #how,.klp #faq,.klp #compare{scroll-margin-top:78px}
 .klp .progress{position:fixed;top:0;left:0;height:2px;width:calc(var(--scroll-p,0)*100%);background:var(--blue);z-index:60;pointer-events:none;transition:width 80ms linear}
 .klp nav{position:sticky;top:0;z-index:50;background:rgba(0,0,0,.7);backdrop-filter:blur(20px);border-bottom:1px solid var(--line)}
 .klp .nav-in{display:flex;align-items:center;justify-content:space-between;height:62px}
@@ -263,7 +263,7 @@ html{scroll-behavior:smooth}
 /* ONDA7 (14/08): eyebrow de secao — o rotulo pequeno acima do h2 da estrutura de leitura (padrao Higgsfield) sem pedir um pixel a mais. */
 .klp .hero a[target]{transition:border-color var(--dur-fast) ease,color var(--dur-fast) ease}
 .klp .hero a[target]:hover{border-color:rgba(41,151,255,.5)!important;color:var(--txt)!important}
-.klp #compare::before,.klp #toolkit::before,.klp #pricing::before,.klp #faq::before{content:'';display:block;width:min(560px,72%);height:1px;margin:0 auto clamp(48px,7vh,84px);background:linear-gradient(90deg,transparent,var(--line2),transparent)}
+.klp #compare::before,.klp #pricing::before,.klp #faq::before{content:'';display:block;width:min(560px,72%);height:1px;margin:0 auto clamp(48px,7vh,84px);background:linear-gradient(90deg,transparent,var(--line2),transparent)}
 /* KINEO-CONCORRENTES-2026-08-15 — 4 blocos da analise de concorrentes:
    statband (numeros reais), niches (29 paginas viram chips), sv (mini-visual
    por passo), fnote (nota do fundador — o toque humano que nenhum template tem). */
@@ -730,111 +730,6 @@ a.pl-badge:hover{color:var(--txt);border-color:rgba(41,151,255,.5)}
 }
 `
 
-// KINEO-HOME-POLISH-R2-2026-07-27 — set de icones proprio do toolkit.
-// Regras que TODOS os oito obedecem, e que sao a razao de eles lerem como um
-// conjunto e nao como oito desenhos avulsos:
-//   · mesmo viewBox 24x24, mesma area optica (nada encostando na borda)
-//   · fill="none", stroke="currentColor", strokeWidth 1.6, cantos e pontas
-//     arredondados — a placa .tico define a cor, o SVG nunca a repete
-//   · aria-hidden: o significado ja esta no <h3> do card, entao para um leitor
-//     de tela estes sao puramente decorativos
-// O icone de Viral Now e deliberadamente o MESMO desenho ja usado em
-// components/Sidebar.tsx e components/MobileNav.tsx, para que o item nao mude
-// de cara entre o site publico e o app.
-const ICON_BASE = {
-  width: 23,
-  height: 23,
-  viewBox: '0 0 24 24',
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 1.6,
-  strokeLinecap: 'round',
-  strokeLinejoin: 'round',
-} as const
-
-const TOOL_ICONS = {
-  // Apresentador: figura enquadrada — o rosto que fala na tela.
-  presenter: (
-    <svg {...ICON_BASE} aria-hidden="true">
-      <rect x="3" y="3" width="18" height="18" rx="5.2" />
-      <circle cx="12" cy="10" r="2.6" />
-      <path d="M7.6 17.8a4.6 4.6 0 0 1 8.8 0" />
-    </svg>
-  ),
-  // Character Lock: a mesma figura, agora com cadeado — "trancada".
-  lock: (
-    <svg {...ICON_BASE} aria-hidden="true">
-      <circle cx="9.6" cy="8.2" r="3.3" />
-      <path d="M3.4 19.4a6.3 6.3 0 0 1 9-5.7" />
-      <rect x="14.3" y="14.4" width="6.9" height="5.8" rx="1.6" />
-      <path d="M16.2 14.4v-1.3a1.6 1.6 0 0 1 3.1 0v1.3" />
-    </svg>
-  ),
-  // Transparente: o mesmo enquadramento do apresentador, mas com a moldura
-  // tracejada — a convencao universal de "sem fundo".
-  transparent: (
-    <svg {...ICON_BASE} aria-hidden="true">
-      <rect x="3" y="3" width="18" height="18" rx="5.2" strokeDasharray="3.4 3" />
-      <circle cx="12" cy="10" r="2.4" />
-      <path d="M8 17.6a4.1 4.1 0 0 1 8 0" />
-    </svg>
-  ),
-  // Anuncio de produto: caixa isometrica.
-  product: (
-    <svg {...ICON_BASE} aria-hidden="true">
-      <path d="m12 2.7 8.1 4.4v9.8L12 21.3 3.9 16.9V7.1z" />
-      <path d="M3.9 7.1 12 11.5l8.1-4.4M12 11.5v9.8" />
-    </svg>
-  ),
-  // Animar foto: foto parada + ondas de movimento saindo dela.
-  // O <g> so recentra (medido: o desenho caia em 12.7/11.0 em vez de 12/12,
-  // porque as ondas puxam massa para a direita e nao somam altura). Translate
-  // puro, sem escala — o traco continua identico ao dos outros sete.
-  animate: (
-    <svg {...ICON_BASE} aria-hidden="true">
-      <g transform="translate(-0.7 1)">
-        <rect x="2.8" y="4.4" width="13.2" height="13.2" rx="3.4" />
-        <circle cx="7.3" cy="9" r="1.4" />
-        <path d="m3.2 14.9 4-3.5 3.5 3" />
-        <path d="M18.9 9.5a6.4 6.4 0 0 1 0 5.2M21.5 7.6a9.8 9.8 0 0 1 0 9" />
-      </g>
-    </svg>
-  ),
-  // Thumbnail: imagem cheia + brilho, o "clique" da miniatura.
-  // Mesmo caso do anterior: o brilho no canto superior puxava o centro optico
-  // para cima (cy 10.8). Translate puro.
-  thumbnail: (
-    <svg {...ICON_BASE} aria-hidden="true">
-      <g transform="translate(0 1.2)">
-        <rect x="2.8" y="5" width="18.4" height="14.4" rx="3.4" />
-        <circle cx="8.4" cy="10.4" r="1.5" />
-        <path d="m3.4 17 4.9-4.3 4.1 3.5 2.9-2.5 4.5 3.9" />
-        <path d="m18.6 2.2.62 1.58 1.58.62-1.58.62-.62 1.58-.62-1.58-1.58-.62 1.58-.62z" />
-      </g>
-    </svg>
-  ),
-  // Viral: chama. O desenho e o MESMO path do Sidebar/MobileNav — nao vale
-  // redesenhar um simbolo que o usuario ja aprendeu a reconhecer dentro do app.
-  // Mas aquele path foi desenhado para uma caixa de 19px na nav e transborda a
-  // viewBox aqui: medido, ele ocupa y 3 -> 24.6 (a base da chama era CORTADA)
-  // e o centro optico caia em 13.4/13.8 em vez de 12/12, o que o deixava baixo
-  // e a direita ao lado dos outros sete. O <g> reenquadra sem tocar no desenho;
-  // strokeWidth 1.93 e 1.6 / 0.83, entao depois da escala o traco volta a ser
-  // exatamente 1.6 como o dos demais.
-  viral: (
-    <svg {...ICON_BASE} aria-hidden="true">
-      <g transform="translate(0.9 0.55) scale(0.83)" strokeWidth={1.93}>
-        <path d="M12 3c1 3-3 5-3 8.5a3.5 3.5 0 0 0 7 0c0-1-.4-2-1-2.8.2 2-1 2.6-1 1.3 0-2.5-1-5.5-2-7Z" />
-        <path d="M8 14.5A6.5 6.5 0 1 0 18.5 14" />
-      </g>
-    </svg>
-  ),
-  // Gratis / Fast: raio — o mesmo simbolo do logo no topo da pagina.
-  bolt: (
-    <KineoBolt size={20} />
-  ),
-} as const
-
 function pricingCheckoutHref(checkoutPath: string, isSignedIn: boolean): string {
   if (isSignedIn) return checkoutPath
 
@@ -862,9 +757,8 @@ export default function KineoLanding({
   const starterCheckoutHref = pricingCheckoutHref('/api/stripe/checkout?tier=starter&intro=1', isSignedIn)
   const creatorCheckoutHref = pricingCheckoutHref('/api/stripe/checkout?tier=basic&intro=1', isSignedIn)
   const studioCheckoutHref = pricingCheckoutHref('/api/stripe/checkout?tier=pro', isSignedIn)
-  // KINEO-AVATAR-FORA-2026-09-28 — fundador (27/09): "avatar sai por hora". Um único booleano decide as 5 portas do
-  // Avatar nesta página (mega-menu, menu mobile, tile do bento, os 4 cards do toolkit que levam ao /avatar e o
-  // subtítulo que os vende). Medido: 0 cliques no card do /studio e o último filme de apresentador em 15/07.
+  // KINEO-AVATAR-FORA-2026-09-28 — fundador (27/09): "avatar sai por hora". Um único booleano decide as 3 portas do
+  // Avatar nesta página (mega-menu, menu mobile e tile do bento). Medido: 0 cliques no card do /studio e o último filme de apresentador em 15/07.
   // Contas da casa (isInternalEmail) continuam vendo tudo; o /avatar segue no ar por link direto.
   const showAvatar = avatarVisible(initialEmail)
   // KINEO-KINEO1-FORA-2026-09-29 — fundador (29/09): "quero tirar o kineo 1 do jogo, ele estraga a entrada". Mesmo
@@ -1361,65 +1255,6 @@ export default function KineoLanding({
             </UiLabel></OrganicCtaLink>
           </div>
           <LiveStatsBand />
-        </div>
-      </section>
-
-      <section id="toolkit">
-        <div className="wrap">
-          {/* KINEO-SHOWCASE-2026-07-10 — toolkit expanded to 8 cards (2 rows):
-              the 4 new avatar-suite features on top, evergreen tools below. */}
-          {/* KINEO-AVATAR-FORA-2026-09-28 — o subtítulo vendia as 4 ferramentas do Avatar Studio; sem o Avatar ele some
-              (texto novo não entra: os 16 dicionários da interface ficam intocados nesta mudança). */}
-          <div className="sec-h"><span className="sec-eyebrow"><UiLabel>The toolkit</UiLabel></span><h2><UiLabel>One idea — or a whole toolkit.</UiLabel></h2>{showAvatar && <p><UiLabel>Talking presenters, reusable characters, transparent clips, product ads — plus everything to find and ride a trend.</UiLabel></p>}</div>
-          <div className="tools">
-            {/* KINEO-AVATAR-FORA-2026-09-28 — os 4 cards abaixo levam ao /avatar (AI Presenter, Character Lock,
-                Transparent Clips, UGC Product Ads): saem juntos do catálogo público; ficam Animate, Thumbnails,
-                Viral Now e Free AI Shorts (uma fileira de 4 na grade de 4 colunas). */}
-            {showAvatar && <>
-            <Link href="/avatar" className="tcard">
-              <span className="tico">{TOOL_ICONS.presenter}</span>
-              <h3><UiLabel>AI Presenter </UiLabel><span className="badge"><UiLabel>New</UiLabel></span></h3>
-              <p><UiLabel>One photo + your script — a talking video with studio-grade lip-sync, HeyGen-style.</UiLabel></p>
-              <span className="tlink"><UiLabel>Try AI Presenter →</UiLabel></span>
-            </Link>
-            <Link href="/avatar" className="tcard">
-              <span className="tico">{TOOL_ICONS.lock}</span>
-              <h3>Character Lock</h3>
-              <p><UiLabel>Save a character once — the exact same face in every video and thumbnail you make.</UiLabel></p>
-              <span className="tlink"><UiLabel>Lock a character →</UiLabel></span>
-            </Link>
-            <Link href="/avatar" className="tcard">
-              <span className="tico">{TOOL_ICONS.transparent}</span>
-              <h3><UiLabel>Transparent Clips</UiLabel></h3>
-              <p><UiLabel>Presenter gestures — wave, point, present — as WebM with a real transparent background.</UiLabel></p>
-              <span className="tlink"><UiLabel>Make a clip →</UiLabel></span>
-            </Link>
-            <Link href="/avatar" className="tcard">
-              <span className="tico">{TOOL_ICONS.product}</span>
-              <h3><UiLabel>UGC Product Ads</UiLabel></h3>
-              <p><UiLabel>Paste any product — get a 15-30s creator-style ad, scripted and spoken for you.</UiLabel></p>
-              <span className="tlink"><UiLabel>Make an ad →</UiLabel></span>
-            </Link>
-            </>}
-            <Link href="/animate" className="tcard">
-              <span className="tico">{TOOL_ICONS.animate}</span>
-              <h3><UiLabel>Animate a Photo</UiLabel></h3>
-              <p><UiLabel>Bring any still photo to life as a moving, postable video.</UiLabel></p>
-              <span className="tlink"><UiLabel>Animate a photo →</UiLabel></span>
-            </Link>
-            <Link href="/thumbnail-generator" className="tcard">
-              <span className="tico">{TOOL_ICONS.thumbnail}</span>
-              <h3><UiLabel>AI Thumbnails</UiLabel></h3>
-              <p><UiLabel>Click-worthy thumbnails in the style of the biggest channels — from a prompt.</UiLabel></p>
-              <span className="tlink"><UiLabel>Make a thumbnail →</UiLabel></span>
-            </Link>
-            <Link href="/free-ai-shorts-generator" className="tcard">
-              <span className="tico">{TOOL_ICONS.bolt}</span>
-              <h3><UiLabel>Free AI Shorts</UiLabel></h3>
-              <p><UiLabel>{CARD_ENTRY_ONLY ? 'Type one idea, start your $1 trial and make the film.' : 'Type one idea and make your first film free — every engine unlocked, no card.'}</UiLabel></p>
-              <span className="tlink"><UiLabel>Generate free →</UiLabel></span>
-            </Link>
-          </div>
         </div>
       </section>
 

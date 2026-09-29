@@ -122,10 +122,10 @@ const PORTAS = /href="\/avatar"|Talking Avatar|AI Presenter|Character Lock|Trans
   const pub = home(null), casa = home(INTERNO)
   checa('home (visitante): 0 portas do Avatar — mega-menu, mobile, bento, 4 cards do toolkit e subtítulo', !PORTAS.test(pub))
   // 29/09 (KINEO-KINEO1-FORA-2026-09-29): sem o tile do Kineo 1 o visitante vê 4 motores no bento.
-  checa('home (visitante): o bento renderizou (4 tiles de motor) e o toolkit ficou com 4 cards', conta(pub, 'class="tile') === 4 && conta(pub, 'class="tcard"') === 4 && pub.includes('href="/animate"'))
+  checa('home (visitante): os 4 tiles de motor continuam e o toolkit removido não reaparece', conta(pub, 'class="tile') === 4 && !pub.includes('id="toolkit"') && conta(pub, 'class="tcard"') === 0)
   // 29/09 (KINEO-KINEO1-FORA): "Five" e a lista sem Kineo 1 nem Avatar.
   checa('home (visitante): FAQ diz "Five" e a lista sem Avatar', pub.includes('Five') && pub.includes('Veo 3.1, Kling 3, Kling 2.5, MiniMax H3 and Seedance 1.5') && !pub.includes('and Avatar'))
-  checa('home (conta da casa): as 7 portas do Avatar continuam (mega, mobile, tile, 4 cards)', conta(casa, 'href="/avatar"') === 7 && conta(casa, 'class="tcard"') === 8 && casa.includes('Talking Avatar'))
+  checa('home (conta da casa): as 3 portas internas do Avatar continuam; os cards retirados também saem para a casa', conta(casa, 'href="/avatar"') === 3 && conta(casa, 'class="tcard"') === 0 && !casa.includes('id="toolkit"') && casa.includes('Talking Avatar'))
   checa('home (e-mail público logado): mesmas 0 portas', !PORTAS.test(home(PUBLICO)))
 }
 {
@@ -148,8 +148,17 @@ const PORTAS = /href="\/avatar"|Talking Avatar|AI Presenter|Character Lock|Trans
 }
 {
   const ft = renderPage('components/Footer.tsx', false, {}, {})
-  checa('rodapé (render real): sem link /ai-avatar; o resto do grupo Produto fica', !ft.includes('href="/ai-avatar"') && ft.includes('href="/facts"') && ft.includes('href="/viral-now"'))
+  // Viral Now saiu do rodapé na remoção aprovada de 28/09; preservar Ads e Facts.
+  checa('rodapé (render real): sem link /ai-avatar; Ads e Facts continuam', !ft.includes('href="/ai-avatar"') && ft.includes('href="/facts"') && ft.includes('href="/ads"'))
 }
+
+// Fundador 29/09: retirar toda a seção do print, inclusive UGC que levava ao /avatar.
+// A remoção é estrutural: não depende de idioma, tema ou conta interna.
+const semToolkit = (html) => !/id="toolkit"|class="tcard"|href="#toolkit"/.test(html)
+for (const language of ['en','pt','es','fr','de','it','nl','pl','ru','tr','ar','hi','ja','ko','zh','id']) {
+  checa('toolkit removido no JSX renderizado: '+language, semToolkit(renderPage('app/KineoLanding.tsx', false, {interfaceLanguage:language}, {initialEmail:INTERNO, engineWall:wall})))
+}
+checa('regressão: a home anterior é rejeitada (seção + sete cards da conta interna)', !semToolkit(renderPage('app/KineoLanding.tsx', true, {}, {initialEmail:INTERNO,engineWall:wall}, '86c46047')))
 
 console.log('== (d) /ai-avatar fora do índice, fora do sitemap ==')
 const metadataDe = (src, avatarPublic) => {
