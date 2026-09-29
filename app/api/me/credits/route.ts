@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 // KINEO-S25-CARD-2026-09-01 — a flag `internal` existe para o /studio poder
 // mostrar o card do Seedance 2.5 SO para contas da casa enquanto o motor
 // esta no periodo de canario (o gate de verdade continua no servidor).
-import { s25Visible, avatarVisible, resolveKineo1Flag } from '@/lib/engineLaunch'
+import { s25Visible, avatarVisible, resolveKineo1Flag, seedance15sVisible } from '@/lib/engineLaunch'
 import { readKineo1Access } from '@/lib/kineo1Access'
 
 // KINEO-CABE-2026-08-21 — saldo do usuário logado, para a tela poder dizer a
@@ -45,5 +45,7 @@ export async function GET() {
   // que só lê o legado para has_paid === true (trial não paga as consultas). E1 só expõe; o /studio passa a esconder o
   // card com esta flag na E2b. scripts/test-kineo1-fora-vitrine-2026-09-29.mjs EXECUTA este GET com banco falso.
   const kineo1 = await resolveKineo1Flag(user.email, () => (data as { has_paid?: boolean | null } | null)?.has_paid === true, () => readKineo1Access(user.id))
-  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), internal: s25Visible(user.email), kineo1, plan })
+  // KINEO-SEEDANCE-15S-2026-09-29 — `seedance15` = o botão de 15 s do Seedance (SEEDANCE_15S_PUBLIC || casa). Flag própria
+  // pelo mesmo motivo do `avatar`: cada interruptor vira sozinho.
+  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), internal: s25Visible(user.email), kineo1, plan })
 }

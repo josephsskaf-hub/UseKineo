@@ -17,7 +17,7 @@ import { ANALYZE_PROMPT_MAX_CHARS, ANALYZE_PROMPT_MAX_CHARS_SOURCE } from '@/lib
 export const DIRETOR_DAILY_CAP = 15
 // Mesmo teto de entrada do Studio no modo ideia (artigos colados de até 20 mil caracteres): quem o Studio aceita, o Diretor atende.
 export const DIRETOR_MAX_CHARS = ANALYZE_PROMPT_MAX_CHARS_SOURCE
-export const DIRETOR_DURATIONS = [35, 60, 90] as const
+export const DIRETOR_DURATIONS = [15, 35, 60, 90] as const // KINEO-SEEDANCE-15S-2026-09-29: 15 = Seedance 1.5 curto
 export type DiretorDuration = (typeof DIRETOR_DURATIONS)[number]
 export type DiretorMode = 'ai' | 'verbatim'
 /** Liga a orientação visual separada da fala. Só vira true junto com o tratamento de [visual: …] no analyze-idea. */

@@ -19,7 +19,8 @@ t('chave namespaced por userId', src.includes('function lastSetupStorageKey(user
 t('leitura existe', src.includes('function readLastSetup('))
 t('escrita existe', src.includes('function writeLastSetup('))
 t('leitura valida quality contra a lista', src.includes("const qualities: Quality[] = ['fast', 'basic', 'basic_ai', 'pro', 'cinematic_ai']"))
-t('leitura valida duration contra a lista', src.includes('const durations: Duration[] = [35, 45, 60, 90]'))
+// REANCORADO KINEO-SEEDANCE-15S-2026-09-29 — a lista ganhou o 15 (filme curto do Seedance 1.5). Continua uma lista fechada.
+t('leitura valida duration contra a lista', src.includes('const durations: Duration[] = [15, 35, 45, 60, 90]'))
 t('leitura devolve null em quality invalida', src.includes('if (!qualities.includes(parsed.quality as Quality)) return null'))
 t('leitura devolve null em duration invalida', src.includes('if (!durations.includes(parsed.duration as Duration)) return null'))
 t('leitura nunca lanca (try/catch com return null)', /function readLastSetup[\s\S]*?catch \{\s*\r?\n\s*return null/.test(src))

@@ -106,8 +106,10 @@ function primeiraLinha(texto: string): string {
 }
 
 /** O menor botão que COBRE o pedido. Abaixo do pedido nunca — história cortada. */
-export function menorBotaoQueCobre(segundos: number): number | null {
-  for (const d of DURACOES_SUPORTADAS) if (d >= segundos) return d
+// KINEO-SEEDANCE-15S-2026-09-29 — `duracoes` opcional: o /generate passa os botões do motor escolhido (o Seedance tem 15 s
+// quando o interruptor deixa). Sem o argumento, a lista global de sempre (35/60/90).
+export function menorBotaoQueCobre(segundos: number, duracoes: readonly number[] = DURACOES_SUPORTADAS): number | null {
+  for (const d of [...duracoes].sort((a, b) => a - b)) if (d >= segundos) return d
   return null
 }
 
@@ -119,7 +121,7 @@ function segundosDe(valor: number, unidade: string): number {
  * Lê as diretrizes que a pessoa escreveu no texto colado.
  * Puro: mesma entrada, mesma saída, sem efeito nenhum.
  */
-export function readPastedDirectives(raw: string | null | undefined): PastedDirectivesReading {
+export function readPastedDirectives(raw: string | null | undefined, duracoes: readonly number[] = DURACOES_SUPORTADAS): PastedDirectivesReading {
   const vazio: PastedDirectivesReading = {
     directives: [], suggestedDuration: null, unsupported: [], looksPasted: false,
   }
@@ -150,7 +152,7 @@ export function readPastedDirectives(raw: string | null | undefined): PastedDire
       // entregar o piso seria justamente o defeito de história interrompida.
       const pedido = segundosDe(b !== null ? Math.max(a, b) : a, unidade)
       if (pedido > 0) {
-        const botao = menorBotaoQueCobre(pedido)
+        const botao = menorBotaoQueCobre(pedido, duracoes)
         directives.push({
           kind: 'duration',
           raw: m[0].trim(),
