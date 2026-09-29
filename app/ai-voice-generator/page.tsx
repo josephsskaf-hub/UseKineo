@@ -2,7 +2,7 @@
 // mesmo padrão do /ai-image-generator (irmãos da mesma rodada de SEO).
 // Números conferidos contra app/api/audio/generate/route.ts (a rota que cobra).
 import type { Metadata } from 'next'
-import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { TRIAL_GRANT_CREDITS_COPY, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 import { buildProductSurfaceSignupHref } from '@/lib/growth/productSurfaceIntent'
@@ -35,7 +35,7 @@ const FAQS = [
   },
   {
     q: 'How much does AI voiceover cost?',
-    a: `From 1 credit per 1,000 characters — a typical 60-second narration (~1,000 characters) costs 1–2 credits. Every new account starts free with 10 credits on signup, no card. Credits are shared with image and video generation on the same balance.`,
+    a: `From 1 credit per 1,000 characters — a typical 60-second narration (~1,000 characters) costs 1–2 credits. Every new account${GRANT_COUNTRY_CLAUSE} starts free with 10 credits on signup, no card. Credits are shared with image and video generation on the same balance.`,
   },
   {
     q: 'Can I use the voices in my videos?',

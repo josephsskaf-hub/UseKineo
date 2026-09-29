@@ -65,7 +65,11 @@ export function fatos() {
   // o kit lê o bloco que está em vigor, com o número de créditos que a copy interpola.
   const versaoB = !/export const CARD_ENTRY_ONLY = false/.test(ep)
   const nomeCopy = versaoB ? 'CARD_ENTRY_COPY_V_B' : 'FREE_ENTRY_COPY'
-  const C = roda(`const FREE_ENTRY_CREDITS = ${num(ep, 'FREE_ENTRY_CREDITS')}\n` + bloco(ep, nomeCopy))[nomeCopy]
+  // KINEO-E4-CONSERTO-2026-09-29 — a copy da entrada interpola também o espelho da cláusula de país da saída B
+  // (FREE_ENTRY_COUNTRY_CLAUSE_MIRROR, string de uma linha); lido do arquivo, nunca digitado aqui.
+  const espelhoM = ep.match(/export const FREE_ENTRY_COUNTRY_CLAUSE_MIRROR = ('[^'\n]*')/)
+  const espelho = espelhoM ? `const FREE_ENTRY_COUNTRY_CLAUSE_MIRROR = ${espelhoM[1]}\n` : ''
+  const C = roda(`const FREE_ENTRY_CREDITS = ${num(ep, 'FREE_ENTRY_CREDITS')}\n` + espelho + bloco(ep, nomeCopy))[nomeCopy]
   const M = roda([
     `const creditCostFor=${E.creditCostFor};`,
     `const creditCostForDuration=${E.creditCostForDuration};`,

@@ -1,7 +1,7 @@
 // Shared data for the engine page, hub and sitemap. Route modules export only Next-supported names.
 // Mechanical extraction for CITACOES-01; existing content and feature gates are preserved.
 import { S25_PUBLIC, AVATAR_PUBLIC } from '@/lib/engineLaunch'
-import { FREE_FILM_LABEL, getFreeTierOffer, swapFreeTierCopy as ft, trialFilmsForEngine, TRIAL_CREDITS_SHOWN, TRIAL_SEEDANCE15_FILMS } from '@/lib/freeTierOffer'
+import { FREE_FILM_LABEL, getFreeTierOffer, swapFreeTierCopy as ft, trialFilmsForEngine, TRIAL_CREDITS_SHOWN, TRIAL_SEEDANCE15_FILMS, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer'
 import { STARTER_MONTH, MARKETING_REFERENCE_SECONDS, creditsPerReferenceVideo, videosPerMonth } from '@/lib/marketingPrice'
 import type { EngineLandingParam } from '@/lib/growth/engineLandingIntent'
 
@@ -87,7 +87,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Can I use Seedance 1.5 without paying?',
-        a: `Yes, once: every new account starts with the free trial (${TRIAL_CREDITS_SHOWN} credits, every engine unlocked, no card), which pays for ${TRIAL_SEEDANCE15_FILMS === 1 ? 'one' : TRIAL_SEEDANCE15_FILMS} ${FREE_FILM_LABEL}, watermarked. A 60-second Seedance film costs ${SEEDANCE_COST} credits and comes with Starter (${STARTER_MONTH}) or Creator.`,
+        a: `Yes, once: every new account${GRANT_COUNTRY_CLAUSE} starts with the free trial (${TRIAL_CREDITS_SHOWN} credits, every engine unlocked, no card), which pays for ${TRIAL_SEEDANCE15_FILMS === 1 ? 'one' : TRIAL_SEEDANCE15_FILMS} ${FREE_FILM_LABEL}, watermarked. A 60-second Seedance film costs ${SEEDANCE_COST} credits and comes with Starter (${STARTER_MONTH}) or Creator.`,
       },
       {
         q: 'What model is behind Kineo’s Seedance engine?',

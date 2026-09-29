@@ -150,6 +150,12 @@ export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  // KINEO-E4-SAIDA-B-2026-09-29 — cota de Kineo 1 desligada (FREE_CAP 0): SAI CEDO, antes de ler o banco. Sem esta
+  // linha o filtro `n >= FREE_CAP` abaixo vira `n >= 0` e toda conta com uma recusa ou um vídeo nas 24 h receberia
+  // "você usou o vídeo grátis" — e-mail em massa sobre uma cota que não existe mais.
+  if (FREE_CAP <= 0) {
+    return NextResponse.json({ skipped: 'quota_off', sent: 0, limit: FREE_CAP })
+  }
   if (!LIFECYCLE_EMAILS_ENABLED) {
     return NextResponse.json({ paused: true, sent: 0, reason: 'lifecycle_email_gate' })
   }

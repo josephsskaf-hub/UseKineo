@@ -113,6 +113,7 @@ import { quandoLiberaVaga, fraseDaVolta, minutosAteLiberar } from '@/lib/freeQuo
 //         do free Fast já existe — isFreePlanFast abaixo). 480p PENDENTE: o
 //         builder Creatomate não tem knob de resolução (ver docs/SPRINT do dia).
 import { getFreeTierOffer } from '@/lib/freeTierOffer'
+import { kineo1GateReason, KINEO1_RETIRED_EVENT, KINEO1_RETIRED_MESSAGE, KINEO1_RETIRED_REASON } from '@/lib/kineo1Gate' // KINEO-E4-SAIDA-B-2026-09-29
 import { RENDER_REJECTED_MESSAGE } from '@/lib/render/rejectionMessage'
 // KINEO-TRIAL-BLOCKERS-2026-08-07 — BLOQUEADORES #1 e #2 DO QA DE 07/08.
 // Esta rota decide marca d'água, clamp de duração, cota do free tier e o 402 do
@@ -1924,6 +1925,31 @@ export async function POST(req: NextRequest) {
         // predicado do cobrador não se redigita: `isPaidAccount` sai do mesmo
         // getEffectiveEntitlement que decide todo o resto desta rota.
         isTrialRender = ent.isTrial && !ent.isPaidAccount
+        // ═══ KINEO-E4-SAIDA-B-2026-09-29 — PORTÃO DO KINEO 1 no ramo free-plan-fast (a mesma régua da generate-video-fast,
+        // lib/kineo1Gate.ts). A cota de Kineo 1 morreu (FREE_OFFER.limit 0): a conta grátis comum é recusada AQUI, com
+        // nome, antes do clamp, da reserva de cota, do TTS e do Creatomate. Passa só a casa (lista exata) e o Autopilot sem
+        // has_paid, que seguem para o caminho de sempre. compose/status e compose/unlock NÃO são tocados. Em modo serviço
+        // o e-mail vem de profiles (editável): não vale como casa.
+        // KINEO-E4-CONSERTO-2026-09-29 (revisão de dinheiro, achados 1 e 2):
+        //   (1) o portão vale para o ramo `fast` INTEIRO, não só para o free-plan-fast. Trial ativo tem
+        //       isFreePlanFast=false e caía no ramo de crédito: um POST direto com clipes de stock (ou o composePayload
+        //       guardado no estágio `submitting`) saía Kineo 1 com o crédito do trial — a mesma conta que toma 403 na
+        //       generate-video-fast. Duas réguas; agora uma.
+        //   (2) em modo serviço o e-mail que decide "casa" é o do AUTH (auth.admin.getUserById), nunca o de profiles
+        //       (editável). Anular o e-mail barrava o Studio Ads da conta da casa em plano grátis que o adsAccessReason
+        //       já tinha liberado pelo e-mail do auth. Só é lido quando o resto recusaria (custo zero no caso comum).
+        let kineo1Porta = kineo1GateReason({ email: isServiceFinish ? null : user.email ?? null, plan: prof?.plan ?? null, hasPaid })
+        if (kineo1Porta === 'retired' && isServiceFinish) {
+          const { data: authData, error: authErr } = await supabase.auth.admin.getUserById(user.id)
+          if (!authErr) kineo1Porta = kineo1GateReason({ email: authData?.user?.email ?? null, plan: prof?.plan ?? null, hasPaid })
+        }
+        if (kineo1Porta === 'retired') {
+          await logComposeRefusal(KINEO1_RETIRED_REASON, authenticatedUserId, { plan: prof?.plan ?? null, quality, duration, event: KINEO1_RETIRED_EVENT, trial: ent.isTrial })
+          return NextResponse.json(
+            { error: KINEO1_RETIRED_MESSAGE, reason: KINEO1_RETIRED_REASON, charged: false, retryable: false, upgrade: '/pricing', alternative_engine: 'seedance' },
+            { status: 403 },
+          )
+        }
         if (isFreePlanFast) {
           // The downloadable watermark + end card are the organic distribution
           // loop. Paid Starter/Creator/Studio and pack-credit renders stay clean.
@@ -1974,8 +2000,19 @@ export async function POST(req: NextRequest) {
               metadata: freeDurationClamped,
             }).then(() => undefined, () => undefined)
           }
+          // KINEO-E4-CONSERTO-2026-09-29 (achado 2) — com a cota de Kineo 1 em 0 (FREE_OFFER.limit), a reserva recusava
+          // TODO free-plan-fast, inclusive quem o portão acima deixou passar sem pagar: conta da casa em plano grátis
+          // (depois de a generate-video-fast já ter gasto OpenAI/Pixabay/fal) e Autopilot sem has_paid. Esses dois não
+          // passam mais pela contagem da cota (seguem com marca d'água e o corte acima), mas continuam tomando o MESMO
+          // claim de submissão de custo 0 que a reserva toma (mutex/dedupe do render); nenhum outro chega aqui (portão).
+          // (As duas linhas da reserva ficam como na base — só ACRESCENTADAS as linhas marcadas em volta.)
+          if (kineo1Porta === 'internal' || kineo1Porta === 'autopilot') {
+            const houseReservation = await claimGenerationSubmission(0)
+            if (houseReservation.kind !== 'acquired') return houseReservation.response
+          } else {
           const quotaResponse = await reserveFreeFastPreviewSlot()
           if (quotaResponse) return quotaResponse
+          } // KINEO-E4-CONSERTO-2026-09-29 — fim do desvio da casa/Autopilot
         } else {
           const requiredCredits = creditCostForDuration('fast', true, duration)
           if (creditBalance < requiredCredits) {

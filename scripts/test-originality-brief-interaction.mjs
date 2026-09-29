@@ -28,6 +28,9 @@ const Component = load('app/can-you-monetize-ai-videos/OriginalityRecipeBuilder.
   'react/jsx-runtime': { jsx, jsxs: jsx },
   '@/lib/analytics': { trackEvent: (name, meta) => events.push({ name, meta }), rememberSignupCampaign() {} },
   '@/lib/growth/originalityRecipe': policy,
+  // KINEO-E4-CONSERTO-2026-09-29 — reancorado com motivo: a frase "every new account starts free with 10 credits" ganhou a
+  // cláusula de país da saída B, lida do módulo real (puro, sem import) lib/freeFilmPolicy.ts.
+  '@/lib/freeFilmPolicy': load('lib/freeFilmPolicy.ts'),
 }).default
 function render() { cursor = 0; return Component() }
 function all(node) {

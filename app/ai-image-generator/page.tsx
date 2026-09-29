@@ -4,7 +4,7 @@
 // (KINEO-CEO-HOUR #1): honesta (motores e créditos reais das rotas que
 // cobram), FAQ com JSON-LD (rich results + answer engines), CTA → signup.
 import type { Metadata } from 'next'
-import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { TRIAL_GRANT_CREDITS_COPY, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 import { buildProductSurfaceSignupHref } from '@/lib/growth/productSurfaceIntent'
@@ -46,7 +46,7 @@ const FAQS = [
   },
   {
     q: 'How much does it cost?',
-    a: `Images cost 1–5 credits depending on the engine. Every new account starts free with 10 credits — enough to try every image engine. Paid plans start at ` + STARTER_MONTH + ' for ' + STARTER_CREDITS + ' credits, charged in USD worldwide, and credits are shared across images, voice and video.',
+    a: `Images cost 1–5 credits depending on the engine. Every new account${GRANT_COUNTRY_CLAUSE} starts free with 10 credits — enough to try every image engine. Paid plans start at ` + STARTER_MONTH + ' for ' + STARTER_CREDITS + ' credits, charged in USD worldwide, and credits are shared across images, voice and video.',
   },
   {
     q: 'Can I turn my images into videos?',

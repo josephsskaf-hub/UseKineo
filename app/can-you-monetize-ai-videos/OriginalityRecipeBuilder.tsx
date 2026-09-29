@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useRef, useState } from 'react'
+import { FREE_FILM_COUNTRY_CLAUSE } from '@/lib/freeFilmPolicy' // KINEO-E4-CONSERTO-2026-09-29: o grant de 10 cr só vale na lista (saída B)
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
 import {
   buildOriginalityPrompt,
@@ -206,7 +207,7 @@ export default function OriginalityRecipeBuilder() {
           Create this original Short →
         </button>
         <p style={{ color: '#86868b', fontSize: 12, lineHeight: 1.5, margin: '11px 0 0' }}>
-          Your recipe stays attached through signup. Every new account starts free with 10 credits, no card. Original structure helps, but no tool can guarantee YouTube monetization.
+          Your recipe stays attached through signup. Every new account{FREE_FILM_COUNTRY_CLAUSE} starts free with 10 credits, no card. Original structure helps, but no tool can guarantee YouTube monetization.
         </p>
       </form>
     </section>
