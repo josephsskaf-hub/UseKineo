@@ -102,7 +102,12 @@ function blocoDaGuarda(src) {
   if (a < 0 || fimMsg < 0 || src.slice(fimMsg, fimMsg + fecho.length) !== fecho) return null
   return src.slice(a, fimMsg + fecho.length).split('await writeServerEvent(').join('writeServerEvent(')
 }
-checa('a rota do cinematic não foi tocada por este conserto (byte a byte com a base)', SRC.rota === SRC_BASE.rota)
+// Reancorado 29/09 (E4 — saída B): a prova passa a ser do COMMIT deste conserto contra o pai dele, não do arquivo de hoje.
+// Antes, qualquer entrega posterior que tocasse a rota (a E4 acrescenta blocos marcados) deixava este guardião vermelho sem
+// que este conserto tivesse mudado nada. O que ele vigia continua: o commit KINEO-PONTAS-15S-IDIOMA não tocou a rota.
+const SHA_CONSERTO = (() => { try { const shas = git(['log', '--format=%H', `--grep=${MARCA}`, 'HEAD']).trim().split(LF).filter(Boolean); return shas.length ? shas[shas.length - 1] : null } catch { return null } })()
+const noCommit = (ref, p) => { try { return semCR(git(['show', `${ref}:${p}`])) } catch { return null } }
+checa('a rota do cinematic não foi tocada por este conserto (byte a byte: commit do conserto x pai dele)', SHA_CONSERTO ? noCommit(SHA_CONSERTO, P.rota) !== null && noCommit(SHA_CONSERTO, P.rota) === noCommit(SHA_CONSERTO + '^', P.rota) : SRC.rota === SRC_BASE.rota)
 const FR = { voz: deAte(SRC.rota, '    const vozCurta = ', MARCA_RITMO), portao: linhaCom(SRC.rota, '      let fit = narrationFitAt(parsedScript.narration, duration, narrationRate)'), guarda: blocoDaGuarda(SRC.rota) }
 checa('as fatias da rota do cinematic (voz do 15 s + ritmo da língua, portão de 95 %, guarda de roteiro longo) foram achadas', Object.values(FR).every(Boolean))
 const HOLLY = new Set(['hollywood', 'h3', 'omni', 's25'])
@@ -424,7 +429,10 @@ console.log('5) render_delivered_measured grava a língua da narração')
   const pendente = (s) => ateFecho(s, '    async function claimGenerationSubmission(', '          authority: signComposeClaim(serviceRoleKey, {')
   const completo = (s) => ateFecho(s, '    async function completeGenerationClaim(', '        completed_at: new Date().toISOString(),')
   checa('o /api/compose grava `language` no claim concluído (a língua da própria rota), numa linha só, marcada', Boolean(LINHA_CO) && LINHA_CO.startsWith('        language, // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29') && Boolean(completo(co)) && completo(co).includes(LF + LINHA_CO + LF) && co.includes("    const language = narrationLanguage(body.language) ?? 'en' // KINEO-IDIOMAS-15: qualquer código do catálogo"))
-  checa('o claim pendente (claimGenerationSubmission) ficou byte a byte o da base; o resto do /api/compose também, fora a linha marcada', Boolean(pendente(co)) && pendente(co) === pendente(SRC_BASE.co) && co.split(LF).filter((l) => l !== LINHA_CO).join(LF) === SRC_BASE.co)
+  // Reancorado 29/09 (E4): medido no commit do conserto contra o pai dele — a E4 acrescenta blocos marcados ao /api/compose depois.
+  const coC = SHA_CONSERTO ? noCommit(SHA_CONSERTO, P.co) : co, coP = SHA_CONSERTO ? noCommit(SHA_CONSERTO + '^', P.co) : SRC_BASE.co
+  const linhaC = coC && linhaCom(coC, 'KINEO-PONTAS-15S-IDIOMA-2026-09-29')
+  checa('o claim pendente (claimGenerationSubmission) ficou byte a byte o da base; o resto do /api/compose também, fora a linha marcada', Boolean(coC && coP && linhaC) && Boolean(pendente(coC)) && pendente(coC) === pendente(coP) && coC.split(LF).filter((l) => l !== linhaC).join(LF) === coP && pendente(co) === pendente(coC))
   const coM = LINHA_CO && co.split(LF).filter((l) => l !== LINHA_CO).join(LF)
   checa('mutante: o claim concluído sem a língua → VERMELHO (a busca por render_id acharia o claim sem ela)', Boolean(completo(coM)) && !/\n {8}language,/.test(completo(coM)))
 }
