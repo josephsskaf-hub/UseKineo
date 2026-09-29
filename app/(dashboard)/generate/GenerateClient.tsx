@@ -319,6 +319,7 @@ import useWaitAbandon from '@/components/video/useWaitAbandon'
 // produto nao tem.
 import { MIN_COVERAGE, autofitDown } from '@/lib/narrationFit'
 import { speechRateForScript, speechSecondsOfScript, autofitDownAt } from '@/lib/speechRate'
+import { reguaDoServidorNaTela, contadorVoz, fraseDoContador, falaNaReguaDaTela, type ContadorMotor } from '@/lib/contadorVoz' // STUDIO-CONTADOR-VOZ-2026-09-28
 // KINEO-PREFLIGHT-QUE-NAO-ACUSA-2026-09-08 — o preflight desta tela precisa
 // medir a MESMA narração que o servidor mede. Ler o texto cru conta bullets e
 // `Voice:` como fala e infla o número: era metade da razão de ele prever uma
@@ -8025,7 +8026,10 @@ export default function GenerateClient({
     {
       const baseChecagem = expandBaseRef.current
       if (scriptMode === 'verbatim' && baseChecagem) {
-        const falaSeg = speechSecondsOfScript(quality, baseChecagem).seconds // KINEO-REGUA-UNICA: narração extraída, motor + velocidade do texto original
+        // STUDIO-CONTADOR-VOZ-2026-09-28: a checagem da análise mede na MESMA régua do contador e do servidor — a voz
+        // que vai narrar (persona por nicho no clássico, 2,3 no hollywood), não a da família. Antes, 3,1 aqui e 2,3 lá.
+        const reguaAnalise = reguaDoServidorNaTela({ engine: mode === 'fast' || mode === 'creator' ? 'fast' : aiEngine, script: baseChecagem, language, vertical: analysis?.niche ?? null })
+        const falaSeg = falaNaReguaDaTela(baseChecagem, reguaAnalise) // KINEO-REGUA-UNICA: narração extraída, agora na régua da voz
         const cobre = falaSeg >= duration * MIN_COVERAGE
         // KINEO-CONTRATO-DURACAO-2026-09-02 — o espelho do bloqueio acima, para
         // roteiro LONGO: "Use my script as is" com ~80s de fala e 60s no botao
@@ -14698,6 +14702,25 @@ export default function GenerateClient({
               Só aparece com 8+ palavras: contador em cima de campo vazio é
               ruído, não guia. */}
           {(() => {
+            // ═══ STUDIO-CONTADOR-VOZ-2026-09-28 — em "Use my script as is" o contador diz o RESULTADO ═══
+            // Fundador (28/09): quem escolhe Kling 2.5 não sabe que precisa de N palavras; faz 110 e "vira confusão
+            // de tempo". O servidor mede a fala na régua da VOZ que vai narrar (persona por nicho, 2,3-2,8 pal/s) e,
+            // com roteiro próprio, o filme SEGUE O ROTEIRO (desce para a duração que a fala enche e cobra essa; sobe
+            // até o teto; recusa sem cobrar abaixo do menor botão). Esta linha prevê exatamente isso, com as mesmas
+            // funções (lib/contadorVoz), antes do clique — inclusive avisando quando o seletor vai mudar.
+            if (scriptMode === 'verbatim') {
+              const motorContador: ContadorMotor = mode === 'fast' || mode === 'creator' ? 'fast' : aiEngine
+              const reguaVoz = reguaDoServidorNaTela({ engine: motorContador, script: prompt, language, vertical: analysis?.niche ?? null })
+              const veredito = contadorVoz({ script: prompt, regua: reguaVoz, requestedSeconds: duration })
+              if (!veredito) return null
+              const frase = fraseDoContador(veredito, reguaVoz.persona ? reguaVoz.persona.name : null)
+              return (
+                <p className="text-xs mt-1.5" data-contador-voz={veredito.kind} style={{ color: frase.tone === 'ok' ? '#4ade80' : frase.tone === 'warn' ? '#fbbf24' : '#5cb3ff', fontWeight: 700, maxWidth: 830 }}>
+                  {frase.text}
+                  {frase.lengthWillChange ? ` (${frase.lengthWillChange.from}s → ${frase.lengthWillChange.to}s happens automatically when you generate.)` : ''}
+                </p>
+              )
+            }
             const medidaTela = speechSecondsOfScript(quality, prompt) // KINEO-REGUA-UNICA: o contador mede a narração EXTRAÍDA, como o servidor
             const reguaTela = medidaTela.rate
             const fala = medidaTela.seconds
