@@ -25,7 +25,7 @@ export interface IntentPage {
   intro: string
   /** o que a pessoa escreve na caixa — vai pré-preenchido para o Studio */
   examplePrompt: string
-  /** motor sugerido: Kineo 1 (stock, cabe no trial) ou Seedance 1.5 (gerado) */
+  /** motor sugerido: Seedance 1.5 (gerado; o trial paga o filme grátis de 15 s). 'fast' fica no tipo só por compatibilidade: nenhuma página o usa desde a E2b. */
   engine: IntentEngine
   /** por que este motor para este caso */
   engineWhy: string
@@ -168,8 +168,12 @@ const ALTERNATIVES: AltSeed[] = [
 ]
 
 // ── montagem ─────────────────────────────────────────────────────────────────────────────────────
+// Revisão da E2b (texto, achado 1, 29/09): o motor padrão das 100 páginas deixou de ser o Kineo 1 ('fast'). Ele some
+// para conta nova (lib/engineLaunch kineo1Visible: só quem já paga e usa, ou comprou pacote/passe) — assinar um plano
+// NÃO o entrega, então "Kineo 1 needs a plan" e "Real films made with Kineo 1" eram promessa que o produto não cumpre.
+// O padrão é o Seedance 1.5, o motor do filme grátis de 15 s.
 function nichePage(n: NicheSeed): IntentPage {
-  const engine = n.engine ?? 'fast'
+  const engine = n.engine ?? 'cinematic_ai'
   return {
     slug: kebab(n.name),
     family: 'niche',
@@ -179,7 +183,7 @@ function nichePage(n: NicheSeed): IntentPage {
     intro: `Built for ${n.who}. You type one idea; Kineo writes the hook and the script, records the voice, matches a scene to every line, burns in captions and hands you a vertical MP4, usually in about three minutes.`,
     examplePrompt: n.prompt,
     engine,
-    engineWhy: n.why ?? 'Kineo 1 matches real footage to every line.',
+    engineWhy: n.why ?? 'Seedance 1.5 generates a scene for every line of the script.',
     faq: [
       { q: `Do I need to record anything for ${n.name} videos?`, a: 'No. The narration is an AI voice, the scenes are matched or generated from your text, and the captions are timed automatically. You only write the idea or paste a script.' },
       { q: `Can I use my own script for ${n.name}?`, a: 'Yes. Choose "Use my script as is" and Kineo narrates it word for word, then matches scenes to each sentence.' },
@@ -188,7 +192,7 @@ function nichePage(n: NicheSeed): IntentPage {
   }
 }
 function formatPage(f: FormatSeed): IntentPage {
-  const engine = f.engine ?? 'fast'
+  const engine = f.engine ?? 'cinematic_ai'
   return {
     slug: kebab(f.name),
     family: 'format',
@@ -198,10 +202,10 @@ function formatPage(f: FormatSeed): IntentPage {
     intro: `What you get: ${f.what}. What you write: one idea or a full script. Kineo does the script, the voice, the scenes, the captions and the music.`,
     examplePrompt: f.prompt,
     engine,
-    engineWhy: f.why ?? 'Kineo 1 matches real footage to every line.',
+    engineWhy: f.why ?? 'Seedance 1.5 generates a scene for every line of the script.',
     faq: [
-      { q: `How long does a ${f.name.replace(/s$/, '')} take?`, a: 'Kineo 1 films are usually ready in about three minutes. Generative engines take longer because every scene is rendered; the screen shows the estimate before you start.' },
-      { q: 'Can I pick the length and the format?', a: 'Yes: 35, 60 or 90 seconds, and 9:16, 16:9, 1:1 or 4:5. The default is a 60-second vertical Short.' },
+      { q: `How long does a ${f.name.replace(/s$/, '')} take?`, a: 'Every scene is rendered from your text, so it takes a few minutes; the screen shows the estimate before you start.' },
+      { q: 'Can I pick the length and the format?', a: 'Yes: 15 seconds (Seedance 1.5), 35, 60 or 90 seconds, and 9:16, 16:9, 1:1 or 4:5.' },
       { q: 'Are captions included?', a: 'Yes. Every word is on screen, timed to the voice, so the video works with the sound off.' },
     ],
   }
@@ -215,9 +219,9 @@ function languagePage(l: LangSeed): IntentPage {
     h1: `AI video generator in ${l.name}`,
     intro: `${l.note} The idea, the narration, the captions and the title stay in ${l.name}; the scenes are matched or generated from the meaning of the text.`,
     examplePrompt: l.prompt,
-    engine: 'fast',
+    engine: 'cinematic_ai',
     language: l.code,
-    engineWhy: 'Kineo 1 narrates in the language you write.',
+    engineWhy: 'The narration and the captions follow the language you write.',
     faq: [
       { q: `Do I have to write the prompt in ${l.name}?`, a: `Write the idea in ${l.name} and the film comes out in ${l.name}. You can also paste a full ${l.name} script and have it narrated word for word.` },
       { q: 'Is the voice natural?', a: 'The narration uses a neural voice in that language; you hear it in the finished film and can regenerate if you want a different tone.' },
@@ -234,7 +238,7 @@ function altPage(a: AltSeed): IntentPage {
     h1: `A ${a.name} alternative that delivers the finished film`,
     intro: `If you are comparing ${a.name} with Kineo, the honest difference is what you get at the end: a complete narrated, captioned MP4 from one idea, with the engine of your choice. Below is what Kineo does; we do not describe ${a.name}'s features or prices here because they change and are theirs to state.`,
     examplePrompt: a.prompt,
-    engine: 'fast',
+    engine: 'cinematic_ai',
     engineWhy: 'One idea in, a finished film out: that is the fastest way to see the difference.',
     faq: [
       { q: `Can I try Kineo before leaving ${a.name}?`, a: 'Yes. The free trial needs no card, and the first film shows you the full result: script, voice, scenes and captions.' },

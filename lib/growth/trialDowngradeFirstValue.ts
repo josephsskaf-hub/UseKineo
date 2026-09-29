@@ -4,14 +4,15 @@ export const TRIAL_DOWNGRADE_FIRST_VALUE_VERSION =
 export const TRIAL_DOWNGRADE_FIRST_VALUE_HREF =
   `/studio/create?engine=fast&intent_campaign=${TRIAL_DOWNGRADE_FIRST_VALUE_VERSION}` as const
 
-// KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b, M4 do cético) — com a entrada nova (SEEDANCE_15S_PUBLIC; o chamador passa
-// o interruptor) o primeiro valor é o Seedance 1.5 de 15 s, não o Kineo 1 (que some para conta nova). O link antigo
-// continua sendo o de antes com o interruptor desligado. Sem import: o guardião executa este módulo cru.
-export const TRIAL_DOWNGRADE_FIRST_VALUE_SHORT_HREF =
-  `/studio/create?engine=seedance&duration=15&intent_campaign=${TRIAL_DOWNGRADE_FIRST_VALUE_VERSION}` as const
-
-export function trialDowngradeFirstValueHref(entrada15: boolean): string {
-  return entrada15 ? TRIAL_DOWNGRADE_FIRST_VALUE_SHORT_HREF : TRIAL_DOWNGRADE_FIRST_VALUE_HREF
+// KINEO-ENTRADA-SEEDANCE15-2026-09-29 (revisão da E2b, M4 do cético) — o modal só abre para trial VENCIDO sem
+// pagamento. Com a entrada nova (SEEDANCE_15S_PUBLIC; o chamador passa o interruptor) NÃO existe "primeiro filme" para
+// oferecer a essa conta: o Seedance de 15 s é recusado pela rota do cinematic a quem não paga e não está em trial ativo
+// (motivo trial_ended) e o saldo não gasto do trial foi estornado no downgrade; o Kineo 1 (o destino antigo, grátis
+// pela cota) some para conta nova — o Studio troca ?engine=fast pelo Seedance. O botão "Make your first film" levava
+// a uma recusa. Então, com a entrada nova, o modal volta ao caminho do plano (texto honesto de conta sem filme); sem
+// ela, tudo como antes. Sem import: o guardião executa este módulo cru.
+export function trialDowngradeOffersFirstFilm(entrada15: boolean): boolean {
+  return entrada15 !== true
 }
 
 export type TrialDowngradeJourneyState =
@@ -35,12 +36,12 @@ export function resolveTrialDowngradeJourney(input: {
   return Number(input.completedCount) === 0 ? 'first_value' : 'delivered'
 }
 
-export function trialDowngradeFirstValueClickMetadata(entrada15 = false) {
+export function trialDowngradeFirstValueClickMetadata() {
   return {
     version: TRIAL_DOWNGRADE_FIRST_VALUE_VERSION,
     journey_state: 'first_value',
     primary_action: 'make_first_film',
     destination: 'studio_create',
-    engine: entrada15 ? 'seedance' : 'fast',
+    engine: 'fast',
   } as const
 }

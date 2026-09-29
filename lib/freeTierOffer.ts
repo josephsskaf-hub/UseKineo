@@ -278,8 +278,9 @@ const ON_COPY: FreeTierCopy = {
     // É o mesmo gênero de defeito que a trava de compilação acima resolveu para
     // o NÚMERO; aqui a trava é derivar a palavra do número, na mesma expressão.
     `Start with ${TRIAL_GRANT_CREDITS_COPY} free credits. The cost depends on your engine and duration. Trial videos are watermarked; upgrade for clean downloads.`,
-  // KINEO-FILME-GRATIS-15S-2026-09-29 — a cota semanal deixou de ser anunciada (o mecanismo segue até a E4).
-  residual: 'your saved library (no recurring free films)',
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — a cota semanal deixou de ser anunciada (o mecanismo segue até a E4). Revisão da
+  // E2b: deixar de anunciar NÃO é negar — "no recurring free films" desmentia o limitHitError/limitResetLine abaixo.
+  residual: 'your saved library',
   // KINEO-EXIT-INTENT-VERDADE-2026-09-27 (sprint16h V1) — "every engine
   // unlocked — Kling 3 …" era verdade de ACESSO e mentira de SALDO: com
   // 10 créditos ninguém faz um Kling 3 (150cr) nem um Seedance (25cr). É esta
@@ -293,7 +294,7 @@ const ON_COPY: FreeTierCopy = {
   planCardBody:
     `Free to start: ${G} free credits = a ${FREE_FILM_LABEL}; longer films and the other AI engines from Starter. Watermarked while you try; a plan makes them yours to keep.`,
   counterNoun: 'this week', // KINEO-COTA-SEMANAL
-  planLimitLine: `one ${FREE_FILM_LABEL} with the trial credits; no recurring free films`,
+  planLimitLine: `one ${FREE_FILM_LABEL} with the trial credits`,
   // Texto da RECUSA do mecanismo (compose/send-cap-hit): só chega a quem já usou a cota; sem nome de motor e sem
   // promessa semanal. Morre com a cota na E4.
   limitHitError:

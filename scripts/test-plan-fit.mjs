@@ -498,7 +498,9 @@ check('checkout CTA starts the matched plan', component.includes('Start ${planNa
 check('checkout reassurance is attached to the Plan Fit decision', component.includes('data-plan-fit-checkout-reassurance'))
 check('first view starts with a ready monthly decision', component.includes('useState<number>(DEFAULT_PLAN_FIT_MONTHLY_FILMS)'))
 check('first view does not wait for a cadence click', !component.includes('useState<number | null>(null)') && !component.includes('monthlyFilms === null'))
-check('ready decision calculates immediately', component.includes('calculatePlanFit({ quality: plannedQuality, seconds, monthlyFilms, currency })'))
+// Reancorado 29/09 (revisão da E2b, texto achado 6): o cálculo imediato ganhou kineo1Allowed (sem "Keep N/month with
+// Kineo 1" para quem não vê o Kineo 1); continua sem esperar clique nenhum.
+check('ready decision calculates immediately', component.includes('calculatePlanFit({ quality: plannedQuality, seconds, monthlyFilms, currency, kineo1Allowed })'))
 check('ready decision explains its default', component.includes('one film like this every month'))
 check('ready decision exposes checkout without a selection gate', !component.includes('if (!result || checkoutBusy'))
 check('impression declares the new offer version', component.includes('offer_version: PLAN_FIT_OFFER_VERSION'))

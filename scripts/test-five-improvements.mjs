@@ -39,7 +39,12 @@ for(const language of ['en','es'])for(const video of [one,two,{...one,status:'fa
 const provider=fs.readFileSync('components/InterfaceLanguage.tsx','utf8')
 ok(provider.includes('document.documentElement.lang = language'),'HTML language follows preference')
 ok(!provider.includes('MutationObserver'),'never auto-translates user DOM')
-const ui=renderPage('app/(dashboard)/studio/StudioClient.tsx',false,{interfaceLanguage:'es',prompt:'Texto privado del autor',balance:25})
+// Reancorado 29/09 (revisão da E2b, texto achado 9): com a entrada nova o Studio abre no Seedance 1.5 (60 s = 25 cr), e o
+// saldo fixo de 25 dava floor(25/25)=1 "vídeo" (singular) — a checagem do PLURAL espanhol morria aqui e apagava as 648
+// seguintes. O saldo agora é DERIVADO do custo que o Studio mostra: 2 filmes de 60 s no Seedance → "vídeos" no plural.
+const seedance60=pure('lib/credits/engineCost.ts').creditCostForDuration('cinematic_ai',true,60)
+ok(Number.isInteger(seedance60)&&seedance60>0,'custo do Seedance de 60 s lido da função que cobra')
+const ui=renderPage('app/(dashboard)/studio/StudioClient.tsx',false,{interfaceLanguage:'es',prompt:'Texto privado del autor',balance:2*seedance60})
 ok(ui.includes('Texto privado del autor'),'author script untouched')
 ok(ui.includes('palabras'),'Spanish count');ok(!ui.includes('Every film is delivered'),'HD explanation localized')
 ok(ui.includes('vídeos'),'Spanish film unit')

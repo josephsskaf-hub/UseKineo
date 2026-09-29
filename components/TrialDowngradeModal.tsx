@@ -86,7 +86,8 @@ import {
 import {
   resolveTrialDowngradeJourney,
   trialDowngradeFirstValueClickMetadata,
-  trialDowngradeFirstValueHref,
+  trialDowngradeOffersFirstFilm,
+  TRIAL_DOWNGRADE_FIRST_VALUE_HREF,
   type TrialDowngradeJourneyState,
 } from '@/lib/growth/trialDowngradeFirstValue'
 
@@ -502,7 +503,10 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
   // Quando a porta de $1 está visível, ela manda no botão: o rótulo dela diz
   // "Creator" e o destino tem de bater. Fora dela, o tier é o da constante.
   const primaryCtaTier: 'starter' | 'basic' = trialDoor.visible ? 'basic' : TRIAL_CTA_PRIMARY_TIER
-  const needsFirstValue = journeyState === 'first_value'
+  const needsFirstValue = journeyState === 'first_value' && trialDowngradeOffersFirstFilm(SEEDANCE_15S_PUBLIC)
+  // Revisão da E2b: conta vencida com 0 filmes e SEM filme para oferecer (entrada nova) — o caminho é o do plano, mas o
+  // texto não pode dizer "You made real films".
+  const semFilmeSemOferta = journeyState === 'first_value' && !needsFirstValue
 
   function goToFirstFilm() {
     humanViewStopRef.current?.()
@@ -517,10 +521,10 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
     }
     void trackClosedEvent(
       'trial_downgrade_first_film_clicked',
-      trialDowngradeFirstValueClickMetadata(SEEDANCE_15S_PUBLIC),
+      trialDowngradeFirstValueClickMetadata(),
     )
     setOpen(false)
-    window.location.assign(trialDowngradeFirstValueHref(SEEDANCE_15S_PUBLIC)) // KINEO-ENTRADA-SEEDANCE15: Seedance 15 s com a entrada nova
+    window.location.assign(TRIAL_DOWNGRADE_FIRST_VALUE_HREF)
   }
 
   function goToCreator() {
@@ -700,6 +704,8 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
         <h2 id="trial-downgrade-title" style={{ margin: '10px 0 8px', fontSize: 26, lineHeight: 1.12, fontWeight: 900, letterSpacing: '-0.02em' }}>
           {needsFirstValue ? (
             <>Make one film.<br />Then decide.</>
+          ) : semFilmeSemOferta ? (
+            <>Your first film<br />is one plan away.</>
           ) : (
             <>You made real films.<br />Don&apos;t stop now.</>
           )}
@@ -707,6 +713,8 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
         <p style={{ margin: '0 0 16px', fontSize: 13.5, lineHeight: 1.6, color: 'var(--muted)' }}>
           {needsFirstValue ? (
             <>Your trial ended before a finished film reached your library. Open the studio first; your plan options stay here when you&apos;re ready.</>
+          ) : semFilmeSemOferta ? (
+            <>Your trial ended before a finished film reached your library. {primaryName} brings the AI engines and clean downloads — every month, not just once.</>
           ) : (
             <>
               {granted > 0 ? `You used ${used} of the ${granted} trial credits. ` : ''}

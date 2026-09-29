@@ -76,6 +76,11 @@ const PROIBIDOS = [
   ['two Kineo 1', /two Kineo 1/i],
   ['grátis toda semana', /\bfree\b[^.\n]{0,80}\b(every|per|each|a) week\b|\b(every|each) week\b[^.\n]{0,60}\bfree\b/i],
   ['filme grátis de 35 s', /free\s+35-second|35-second[^.\n]{0,30}\bfree\b|free\s+35s\b/i],
+  // Revisão da E2b (texto, achado 8, 29/09): as PARÁFRASES que passavam verdes — "then 1 free film every 7 days",
+  // "Kineo 1 … costs 0 credits on the trial" — e a negação da cota que segue ligada ("no recurring free films").
+  ['grátis a cada N dias', /\bfree\b[^.\n]{0,80}\bevery \d+ days\b|\bevery \d+ days\b[^.\n]{0,60}\bfree\b/i],
+  ['Kineo 1 … 0 créditos / de graça', /Kineo 1[^.\n]{0,60}\b(0|zero|no) credits\b|\b(0|zero|no) credits\b[^.\n]{0,60}Kineo 1|Kineo 1[^.\n]{0,60}\b(costs nothing|at no cost|without credits)\b/i],
+  ['nega a cota que segue ligada', /\bno recurring free (films|videos)\b/i],
 ]
 function proibidosEm(texto) {
   const achados = []
@@ -113,6 +118,11 @@ const FONTES_PUBLICAS = [
   'lib/growth/citationAnswers.ts', 'components/CitationAnswerPage.tsx', 'components/CitationComparisonDecision.tsx',
   'components/CitationCostDecision.tsx', 'lib/growth/enginePageCatalog.ts', 'lib/seo/freeShortsGeneratorLangs.ts',
   'docs/GPT-INSTRUCOES-V3-COLAR-2026-09-24.txt', 'docs/TAAFT-LISTING-2026-09-03.md',
+  // Revisão da E2b (texto, achado 8): o hub público de motores, o modal de trial vencido, o cartão de plano, o banner do
+  // trial e o Studio (telas que a conta nova vê) entram na varredura inteira. O /generate e a carta da cota vão na seção 5
+  // (texto do Kineo 1 grátis só atrás de portão de visibilidade / anúncio desligado).
+  'app/ai-video-generator/page.tsx', 'components/TrialDowngradeModal.tsx', 'components/growth/PlanFitCard.tsx',
+  'components/TrialActiveBanner.tsx', 'app/(dashboard)/studio/StudioClient.tsx',
 ]
 function varre(sobrescritas = {}) {
   const achados = []
@@ -199,9 +209,16 @@ console.log('== 3. varredura do texto público (literais e JSX, sem comentários
   checa(`${FONTES_PUBLICAS.length} fontes públicas sem "free Kineo 1", "two Kineo 1", cota semanal grátis nem filme grátis de 35 s${achados.length ? ' — ' + achados.join(' | ') : ''}`, achados.length === 0)
   const muts = [
     ['app/pricing/PricingClient.tsx', "outcome: `Seedance 1.5: ${videosPerMonth('basic', 'cinematic_ai')} AI films", "outcome: `Seedance 1.5, enough for two Kineo 1 films: ${videosPerMonth('basic', 'cinematic_ai')} AI films"],
-    ['lib/freeTierOffer.ts', "  residual: 'your saved library (no recurring free films)',", "  residual: '1 free Kineo 1 video every week',"],
-    ['lib/seo/intentPages.ts', "    engineWhy: f.why ?? 'Kineo 1 matches real footage to every line.',", "    engineWhy: f.why ?? 'Kineo 1 matches real footage to every line and fits inside the free trial.',"],
+    // Revisão da E2b: os dois alvos abaixo mudaram de texto (a negação da cota saiu; o padrão das páginas é o Seedance) —
+    // o mutante segue a linha nova, com a mesma frase proibida de antes.
+    ['lib/freeTierOffer.ts', "  residual: 'your saved library',", "  residual: '1 free Kineo 1 video every week',"],
+    ['lib/seo/intentPages.ts', "    engineWhy: f.why ?? 'Seedance 1.5 generates a scene for every line of the script.',", "    engineWhy: f.why ?? 'Kineo 1 matches real footage to every line and fits inside the free trial.',"],
     ['app/ph/page.tsx', 'enough for one {FREE_FILM_LABEL} — every engine unlocked', 'enough for a free 35-second film — every engine unlocked'],
+    // Revisão da E2b (texto, achado 8): as paráfrases que passavam verdes, e um arquivo que antes nem era lido.
+    ['lib/freeTierOffer.ts', "  planLimitLine: `one ${FREE_FILM_LABEL} with the trial credits`,", "  planLimitLine: `one ${FREE_FILM_LABEL} with the trial credits, then 1 free film every 7 days`,"],
+    ['lib/seo/intentPages.ts', "    engineWhy: f.why ?? 'Seedance 1.5 generates a scene for every line of the script.',", "    engineWhy: f.why ?? 'Kineo 1 matches real footage and costs 0 credits on the trial.',"],
+    ['lib/freeTierOffer.ts', "  residual: 'your saved library',", "  residual: 'your saved library (no recurring free films)',"],
+    ['components/TrialActiveBanner.tsx', "'use client'", "'use client'\nexport const X = 'Your free Kineo 1 video is waiting'"],
   ]
   for (const [rel, de, para] of muts) {
     const n = varre(muta(rel, de, para)).length
@@ -238,6 +255,45 @@ console.log('== 4. openapi do GPT, página do Kineo 1 (301) e sitemap ==')
   checa('mutante (kineo-1 de volta ao ENGINE_SLUGS) → vermelho', semAposentar.ENGINE_SLUGS.includes('kineo-1'))
   const sm = rd('app/sitemap.ts')
   checa('sitemap itera as listas derivadas (ENGINE_SLUGS e LOCALIZED_ENGINE_SLUGS), sem slug digitado', /for \(const slug of ENGINE_SLUGS\)/.test(sm) && /for \(const slug of LOCALIZED_ENGINE_SLUGS\)/.test(sm) && !sm.includes("'kineo-1'"))
+}
+
+console.log('== 5. revisão da E2b: telas logadas com portão, carta da cota e as 100 páginas /for executadas ==')
+{
+  // 5a. /generate: texto de Kineo 1 grátis só atrás do portão de visibilidade (kineo1Shown). Varre o arquivo com os
+  //     padrões que valem para QUALQUER tela; os de "Kineo 1 grátis" são provados pelos predicados abaixo.
+  const GEN_REL = 'app/(dashboard)/generate/GenerateClient.tsx'
+  const SEMPRE = new Set(['two Kineo 1', 'filme grátis de 35 s', 'grátis toda semana', 'grátis a cada N dias', 'nega a cota que segue ligada'])
+  const varreGen = (src) => textoDe(GEN_REL, src).flatMap((t) => PROIBIDOS.filter(([n, re]) => SEMPRE.has(n) && re.test(t)).map(([n]) => n))
+  const gen = rd(GEN_REL)
+  checa(`/generate sem "two Kineo 1", filme grátis de 35 s, cota semanal nem negação da cota${varreGen(gen).length ? ' — ' + varreGen(gen).join(', ') : ''}`, varreGen(gen).length === 0)
+  const PORTOES = [
+    ['caixa "your first one is free" (Kineo 1 grátis)', '    trialActive !== true &&\n    kineo1Shown\n'],
+    ['desvio do episódio 2 para "Kineo 1, free on your account"', 'selectedUnaffordable && episode2FreeCost === 0 && episode2QuotaKnown && !freeFastQuotaSpent && kineo1Shown'],
+    ['saída do trial "seu saldo paga um Kineo 1"', "credits >= creditCostForDuration('fast', isPaidAccount, duration) && kineo1Shown"],
+  ]
+  for (const [nome, linha] of PORTOES) checa(`/generate: ${nome} só com kineo1Shown`, gen.includes(linha))
+  checa('/generate: a caixa grátis não promete "up to 3 films a day" (a cota real é outra)', !gen.includes('up to 3 films a day'))
+  const semPortao = gen.replace('    trialActive !== true &&\n    kineo1Shown\n', '    trialActive !== true\n')
+  checa('mutante (caixa grátis sem o portão kineo1Shown) → vermelho', semPortao !== gen && !semPortao.includes(PORTOES[0][1]))
+  // 5b. A carta "now it comes back every week" é o anúncio da cota: com o anúncio desligado, 409 antes de tudo.
+  const WQ = rd('app/api/admin/send-weekly-quota/route.ts')
+  const GATE = '    if (!RECURRING_FREE_ANNOUNCED) {'
+  const gateOk = (src) => src.includes(GATE) && src.indexOf(GATE) < src.indexOf("    const confirm = req.nextUrl.searchParams.get('confirm') === 'SEND'") && src.includes("import { RECURRING_FREE_ANNOUNCED } from '@/lib/kineoFacts'")
+  const anunciado = criaLoader()('lib/kineoFacts.ts').RECURRING_FREE_ANNOUNCED
+  checa(`send-weekly-quota: 409 enquanto a cota não é anunciada (RECURRING_FREE_ANNOUNCED=${anunciado}), antes do dry-run e do envio`, anunciado === false && gateOk(WQ))
+  checa('mutante (carta sem a trava do anúncio) → vermelho', !gateOk(WQ.replace(GATE, '    if (false) {')))
+  // 5c. As 100 páginas /ai-video-generator/for/* EXECUTADAS: nenhuma no Kineo 1, nenhum texto de página cita o Kineo 1,
+  //     o selo do motor não é "Kineo 1" e o CTA "Make this film free" não crava 60 s (que o trial não paga).
+  const paginas = (src) => criaLoader(src ? { 'lib/seo/intentPages.ts': src } : {})('lib/seo/intentPages.ts').INTENT_PAGES
+  const problemasPaginas = (lista) => lista.filter((p) => p.engine !== 'cinematic_ai' || /Kineo 1/.test([p.title, p.h1, p.intro, p.engineWhy, ...p.faq.flatMap((f) => [f.q, f.a]), ...(p.competitor?.differences ?? [])].join(' '))).map((p) => p.slug)
+  const reais = paginas()
+  checa(`${reais.length} páginas /for executadas: todas no Seedance 1.5, nenhuma cita o Kineo 1${problemasPaginas(reais).length ? ' — ' + problemasPaginas(reais).slice(0, 5).join(', ') : ''}`, reais.length >= 100 && problemasPaginas(reais).length === 0)
+  const pg = rd('app/ai-video-generator/for/[slug]/page.tsx')
+  const mapa = pg.match(/const ENGINE_NAME: Record<IntentEngine, string> = \{ fast: '([^']+)', cinematic_ai: '([^']+)' \}/)
+  checa('selo e título da página vêm de ENGINE_NAME[p.engine] e o motor das páginas é "Seedance 1.5"', !!mapa && mapa[2] === 'Seedance 1.5' && pg.includes('{ENGINE_NAME[p.engine]} · {engineCost} credits per 60-second film'))
+  checa('CTA "Make this film free" sem duração cravada (o Studio escolhe a que o saldo paga) e com o motor no vocabulário do Studio', !/duration:\s*'\d+'/.test(pg) && pg.includes("engine: engine === 'cinematic_ai' ? 'seedance' : engine"))
+  const mutPadrao = rd('lib/seo/intentPages.ts').replace("  const engine = n.engine ?? 'cinematic_ai'", "  const engine = n.engine ?? 'fast'")
+  checa('mutante (padrão das páginas de volta ao Kineo 1) → vermelho', problemasPaginas(paginas(mutPadrao)).length > 0)
 }
 
 console.log(`\n${ok}/${ok + falhas.length} verificações`)

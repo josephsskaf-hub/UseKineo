@@ -25,7 +25,7 @@ import { NARRATION_LANGUAGES, narrationLanguage, isHollywoodLanguage, type Narra
 import { enginePaused, AVATAR_PUBLIC, SEEDANCE_15S_PUBLIC } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 · KINEO-AVATAR-FORA-2026-09-28 · KINEO-ENTRADA-SEEDANCE15-2026-09-29
 // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — a régua única da entrada (quem vê o Kineo 1, a duração que o saldo paga, o
 // rótulo do filme grátis). Só age com a entrada nova ligada para a conta (flag seedance15).
-import { kineo1NaTela, duracaoDeEntrada, rotuloDoFilmeGratis } from '@/lib/growth/entradaSeedance15'
+import { kineo1NaTela, duracaoDaUrlNaEntrada, rotuloDoFilmeGratis } from '@/lib/growth/entradaSeedance15'
 import { isBareStarter } from '@/lib/promptGuard' // KINEO-1-COERENCIA-2026-09-16
 import type { Quality } from '@/lib/credits/engineCost'
 // KINEO-MULTIFORMATO-2026-09-02 — os 4 enquadramentos, de uma fonte só.
@@ -281,10 +281,13 @@ export default function StudioClient() {
     if (!flagsProntas || entradaAplicadaRef.current || !entrada15) return
     entradaAplicadaRef.current = true
     // (lê searchParams direto: o harness scripts/diagnose-studio-continuation.mjs acha o leitor de URL pelo texto)
-    if (searchParams.get('duration') || duration !== 60) return
+    // Revisão da E2b (achado 5): a ?duration= da URL vence só quando o saldo paga — um link com duration=60 abria o trial
+    // de 10 cr num Seedance de 25 cr. Sem ?duration e sem escolha manual, a régua de sempre. Mesma função do /generate.
+    const duracaoDaUrl = searchParams.get('duration') ? Number(searchParams.get('duration')) : null
+    if (duracaoDaUrl === null && duration !== 60) return
     const motorFinal = engine === 'fast' && !kineo1Shown ? 'seedance' : engine
     if (motorFinal !== 'seedance') return
-    const d = duracaoDeEntrada(balance, custoSeedance)
+    const d = duracaoDaUrlNaEntrada({ durUrl: duracaoDaUrl, balance, autoStart: false, custoSeedance })
     if (d !== null) setDuration(d)
   }, [flagsProntas]) // eslint-disable-line react-hooks/exhaustive-deps
   // KINEO-STUDIO-TILE-ADS-2026-09-27 — o MESMO predicado que abre a porta no servidor (lib/ads/access.ts adsAccessReason →

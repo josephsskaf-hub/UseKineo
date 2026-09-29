@@ -24,7 +24,8 @@ let invalidCapRejected=false
 try { buildRecurringFreeAccessFact({engine:'Kineo 1',videosPerWindow:1,rollingWindowHours:168,maxSeconds:NaN}) } catch { invalidCapRejected=true }
 check('invalid recurring duration is rejected',invalidCapRejected)
 // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o not-a-fit diz o filme grátis de 15 s e que não há filme grátis recorrente.
-check('not-a-fit copy names the free 15-second film and no recurring free films', getKineoFacts().notAFit.some(f=>f.useInstead.includes('free 15-second film (Seedance 1.5)') && f.useInstead.includes('no recurring free films')))
+// Reancorado 29/09 (revisão da E2b, texto achado 5): não anunciar a cota ≠ negar que ela existe; a frase afirma só o anunciado.
+check('not-a-fit copy names the free 15-second film as the only advertised free film', getKineoFacts().notAFit.some(f=>f.useInstead.includes('free 15-second film (Seedance 1.5)') && f.useInstead.includes('the only free film Kineo advertises') && !f.useInstead.includes('no recurring free films')))
 // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o trial cobre o Seedance de 15 s, não mais o Kineo 1.
 check('start route explains new grant and preserves existing account balances', START_HERE_FACT.action.includes('free 15-second film (Seedance 1.5)') && START_HERE_FACT.action.includes('Existing accounts'))
 check('paused Omni is not advertised with ranking badge', ENGINE_FACTS.find(e=>e.name==='Omni Flash').what.includes('PAUSED') && !ENGINE_FACTS.find(e=>e.name==='Omni Flash').what.includes('#1'))

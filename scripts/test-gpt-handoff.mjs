@@ -81,10 +81,15 @@ console.log('\n(A) lib/gptHandoff.ts executada')
   // passou a vir de @/lib/narrationFit (o cobrador, puro — zero import). A
   // lista de módulos do PROJETO que a lib pode importar é FECHADA: esses dois.
   // GPT-LOJA-2026-09-24 — reancorado com motivo: @/lib/textLanguage entrou (idioma do roteiro vai ao Studio); folha pura, zero import.
-  const PURE_ALLOWED = ['@/lib/aspect', '@/lib/narrationFit', '@/lib/textLanguage']
+  // Reancorado 29/09 (revisão da E2b, achado 3): @/lib/scriptParser (parseUserScript, a régua de fala da guarda do
+  // filme curto) e @/lib/durationByEngine (maxWordsForShortFilm, o teto de 15 s) entraram — as DUAS folhas puras,
+  // zero import (conferido logo abaixo, como aspect/narrationFit). A lista continua FECHADA.
+  const PURE_ALLOWED = ['@/lib/aspect', '@/lib/narrationFit', '@/lib/textLanguage', '@/lib/scriptParser', '@/lib/durationByEngine']
   const libImports = [...lib.matchAll(/^import (?:\{[^}]*\}|[^\n{]*) from '([^']+)'/gm)].map((m) => m[1])
   const projectImports = libImports.filter((s) => !s.startsWith('node:'))
-  ok(sameSetTop(projectImports, PURE_ALLOWED) && libImports.every((s) => PURE_ALLOWED.includes(s) || s === 'node:crypto'), `(A0) a lib importa SÓ @/lib/aspect, @/lib/narrationFit e @/lib/textLanguage do projeto, e no máximo o builtin node:crypto (achados: ${libImports.join(', ') || 'nenhum'}) — o resto continua puro`)
+  ok(sameSetTop(projectImports, PURE_ALLOWED) && libImports.every((s) => PURE_ALLOWED.includes(s) || s === 'node:crypto'), `(A0) a lib importa SÓ @/lib/aspect, @/lib/narrationFit, @/lib/textLanguage, @/lib/scriptParser e @/lib/durationByEngine do projeto, e no máximo o builtin node:crypto (achados: ${libImports.join(', ') || 'nenhum'}) — o resto continua puro`)
+  ok(!/^\s*import\s/m.test(read('lib/scriptParser.ts')), '(A0) lib/scriptParser.ts é pura: zero import')
+  ok(!/^\s*import\s/m.test(read('lib/durationByEngine.ts')), '(A0) lib/durationByEngine.ts é pura: zero import')
   ok(!/^\s*import\s/m.test(aspectLib), '(A0) lib/aspect.ts é pura: zero import (é o que permite executar as duas aqui)')
   ok(!/^\s*import\s/m.test(read('lib/narrationFit.ts')), '(A0) lib/narrationFit.ts é pura: zero import (o cobrador não traz banco nem rede para a lib)')
 }

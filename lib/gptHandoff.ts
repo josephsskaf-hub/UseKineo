@@ -47,6 +47,8 @@ import {
 } from '@/lib/narrationFit'
 import { createHash } from 'node:crypto'
 import { narrationLanguage } from '@/lib/textLanguage' // GPT-LOJA-2026-09-24
+import { parseUserScript } from '@/lib/scriptParser' // revisão E2b: a régua de fala da guarda do filme curto
+import { maxWordsForShortFilm } from '@/lib/durationByEngine' // revisão E2b: o teto de 15 s (puro)
 
 /** Reexportados para quem já importava daqui (página /go, rotas): os nomes
  *  continuam, a fonte mudou. */
@@ -399,6 +401,18 @@ export function validateHandoffInput(body: unknown): HandoffValidation {
   // um link que o Studio trocaria para 35 s (15 cr, fora do trial).
   if (durationSec === SEEDANCE_ONLY_DURATION && engineHint !== 'seedance') {
     return { ok: false, error: `durationSec ${SEEDANCE_ONLY_DURATION} is only available with engineHint seedance (Seedance 1.5). Send engineHint seedance, or durationSec 35, 60 or 90 for ${engineHint}.` }
+  }
+  // Revisão da E2b (achado 3 de dinheiro, 29/09) — 15 s tem TETO de fala: a guarda do cinematic
+  // (lib/durationByEngine checarFalaDoFilmeCurto) recusa acima de maxWordsForShortFilm(15) palavras de narração, na
+  // régua parseUserScript(...).narration contada por espaço. Sem este teto aqui, o GPT mandava 60 palavras com
+  // durationSec 15, o link abria em verbatim e o Studio devolvia 422 — a recusa chega AGORA, na conversa, onde o GPT
+  // sabe aparar. Mesma régua, mesma função: nada digitado.
+  if (durationSec === SEEDANCE_ONLY_DURATION) {
+    const palavrasFaladas = parseUserScript(script).narration.split(/\s+/).filter(Boolean).length
+    const tetoCurto = maxWordsForShortFilm(SEEDANCE_ONLY_DURATION)
+    if (palavrasFaladas > tetoCurto) {
+      return { ok: false, error: `A ${SEEDANCE_ONLY_DURATION}-second film fits at most ${tetoCurto} spoken words; this script has ${palavrasFaladas}. Trim the narration to ${tetoCurto} words or fewer and send it again, or send durationSec 35, 60 or 90 for the full script.` }
+    }
   }
 
   let language = DEFAULT_LANGUAGE

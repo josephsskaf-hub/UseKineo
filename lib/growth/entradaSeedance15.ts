@@ -47,6 +47,12 @@ export function motorDaUrl(raw: string | null | undefined, kineo1Visivel: boolea
   return e
 }
 
+/** O ?engine= da URL pede o Kineo 1 (qualquer apelido)? Traduzido para o Seedance, NÃO é escolha explícita de motor. */
+export function pedidoDeKineo1(raw: string | null | undefined): boolean {
+  const e = typeof raw === 'string' ? raw.trim().toLowerCase() : ''
+  return KINEO1_URL_KEYS.includes(e)
+}
+
 /** As durações da entrada, da maior para a menor (o 15 s é o degrau que cabe no trial). */
 export const DURACOES_DA_ENTRADA = [60, 35, SEEDANCE_SHORT_SECONDS] as const
 export type DuracaoDaEntrada = (typeof DURACOES_DA_ENTRADA)[number]
@@ -62,6 +68,28 @@ export function duracaoDeEntrada(balance: number | null | undefined, custoSeedan
     if (Number.isFinite(c) && c > 0 && c <= balance) return d
   }
   return SEEDANCE_SHORT_SECONDS
+}
+
+/**
+ * Revisão da E2b (achado 5 de dinheiro) — link com ?duration= que o saldo NÃO paga (Viral Now manda 45→35 = 15 cr; o
+ * trial tem 10) abria o trial de 10 cr direto na parede, antes do roteiro. Com a entrada nova: a duração da URL vence
+ * quando cabe no saldo (ou o saldo é desconhecido); quando não cabe, vale a mesma régua do Studio (duracaoDeEntrada).
+ * Sem ?duration, também a régua. Auto-start (create_intent) decide a própria duração → null (a tela não mexe).
+ */
+export function duracaoDaUrlNaEntrada(f: {
+  durUrl: number | null | undefined
+  balance: number | null | undefined
+  autoStart: boolean
+  custoSeedance: (segundos: number) => number
+}): DuracaoDaEntrada | null {
+  if (f.autoStart) return null
+  const d = typeof f.durUrl === 'number' && Number.isFinite(f.durUrl) && f.durUrl > 0 ? f.durUrl : null
+  if (d !== null) {
+    if (typeof f.balance !== 'number' || !Number.isFinite(f.balance)) return null
+    const c = f.custoSeedance(d)
+    if (Number.isFinite(c) && c > 0 && c <= f.balance) return null
+  }
+  return duracaoDeEntrada(f.balance, f.custoSeedance)
 }
 
 /**

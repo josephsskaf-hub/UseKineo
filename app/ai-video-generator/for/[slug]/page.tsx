@@ -45,7 +45,11 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
 /** Studio já com o prompt do nicho na caixa; cadastro preserva o destino (mesmo padrão das páginas por motor). */
 function studioHref(slug: string, prompt: string, engine: IntentEngine, language?: string): string {
   const campaign = `intent_${slug}`.slice(0, 100)
-  const studio = new URLSearchParams({ engine, prompt, duration: '60', script_mode: 'ai', intent_campaign: campaign })
+  // Revisão da E2b (texto, achado 1): SEM duração cravada. Com duration=60 o "Make this film free" abria um Seedance de
+  // 60 s (25 cr) para o trial de 10 — não era grátis. Sem ?duration, o Studio escolhe a maior duração que o saldo paga
+  // (lib/growth/entradaSeedance15 duracaoDeEntrada): o trial abre no filme grátis de 15 s.
+  // e o motor viaja no vocabulário do Studio (cinematic_ai não é chave de lá e era ignorado em silêncio).
+  const studio = new URLSearchParams({ engine: engine === 'cinematic_ai' ? 'seedance' : engine, prompt, script_mode: 'ai', intent_campaign: campaign })
   if (language) studio.set('language', language) // KINEO-IDIOMAS-15: a página de idioma abre o Studio já na língua
   // KINEO-ORIGEM-HONESTA-2026-09-23 — SEM utm_source/utm_medium cravados. O link
   // dizia `utm_source=google` para todo mundo, e quem chegava do ChatGPT (ou de
@@ -143,7 +147,7 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
           </div>
           <p style={{ fontSize: '0.82rem', color: '#86868b', margin: '12px 0 0' }}>
             {ft(OFFER, `${TRIAL_CREDITS_SHOWN} free credits, no card`, OFFER.copy.chip)}
-            {trialFilms > 0 ? ` · the trial covers ${trialFilms} ${ENGINE_NAME[p.engine]} film${trialFilms > 1 ? 's' : ''}` : ` · ${ENGINE_NAME[p.engine]} needs a plan (from ${STARTER_MONTH})${TRIAL_SEEDANCE15_FILMS >= 1 ? ` · the trial pays for one ${FREE_FILM_LABEL}` : ''}`}
+            {trialFilms > 0 ? ` · the trial covers ${trialFilms} ${ENGINE_NAME[p.engine]} film${trialFilms > 1 ? 's' : ''}` : `${TRIAL_SEEDANCE15_FILMS >= 1 ? ` · the trial pays for one ${FREE_FILM_LABEL}` : ''} · 60-second films on a plan (from ${STARTER_MONTH})`}
           </p>
         </section>
 

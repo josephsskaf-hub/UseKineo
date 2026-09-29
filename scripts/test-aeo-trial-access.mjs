@@ -114,7 +114,9 @@ ok(llms.includes('TRIAL_ACCESS.engineCoverage'), 'llms text derives engine cover
 ok(llms.includes('Access does not mean the balance covers a full video.'), 'llms text explains access versus balance')
 ok(llms.includes('After the trial, recurring free access is'), 'llms text distinguishes the recurring allowance')
 // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: sem cota anunciada o llms diz que não há filme grátis recorrente, e publica o filme que o trial paga.
-ok(llms.includes('After the trial there are no recurring free films') && llms.includes('const freeFilm = TRIAL_ACCESS.freeFilm'), 'llms text states no recurring free films and the 15-second free film')
+// Reancorado 29/09 (revisão da E2b, texto achado 5): a decisão foi DEIXAR DE ANUNCIAR a cota, não negá-la (o mecanismo segue
+// até a E4 e a recusa dele diz "comes back in 7 days"). A frase nova afirma só o que é verdade: o filme do trial é o único anunciado.
+ok(llms.includes('The trial film is the only free film Kineo advertises') && !llms.includes('no recurring free films') && llms.includes('const freeFilm = TRIAL_ACCESS.freeFilm'), 'llms text states the trial film is the only advertised free film and the 15-second free film')
 ok(!llms.includes('The generative engines below require a paid plan.'), 'live contradictory sentence is removed')
 ok(llms.includes('wholeReferenceVideosCovered === 0'), 'insufficient balance is calculated rather than guessed')
 
@@ -122,7 +124,8 @@ const page = read('app/facts/page.tsx')
 ok(page.includes("q: 'Can I try every Kineo video engine for free?'"), 'human fact sheet answers the buyer question')
 ok(page.includes('TRIAL_COVERED_ENGINES'), 'human answer derives covered engines')
 ok(page.includes('TRIAL_BALANCE_SHORT_ENGINES'), 'human answer derives balance-short engines')
-ok(page.includes('recurring free access is') && page.includes('After the trial there are no recurring free films.'), 'human page distinguishes post-trial access')
+// Reancorado 29/09 (revisão da E2b, texto achado 5): idem — sem negar o mecanismo que continua ligado.
+ok(page.includes('recurring free access is') && page.includes('The trial film is the only free film Kineo advertises.') && !page.includes('no recurring free films'), 'human page distinguishes post-trial access')
 
 const preview = read('docs/previews/AEO-TRIAL-ACCESS-TRUTH-2026-08-28.html')
 for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {

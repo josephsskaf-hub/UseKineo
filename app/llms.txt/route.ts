@@ -166,7 +166,7 @@ function buildLlmsTxt(): string {
         const afterTrial = TRIAL_ACCESS.noCardRequired
           ? RECURRING_FREE_ACCESS
             ? `After the trial, recurring free access is ${RECURRING_FREE_ACCESS.videosPerWindow} watermarked ${RECURRING_FREE_ACCESS.engine} video per ${RECURRING_FREE_ACCESS.rollingWindowHours}-hour window${RECURRING_FREE_ACCESS.maxSeconds === null ? '' : `, up to ${RECURRING_FREE_ACCESS.maxSeconds} seconds each`}; it grants no credits.`
-            : 'After the trial there are no recurring free films; more films need a paid plan or a credit pack.'
+            : 'The trial film is the only free film Kineo advertises; more films need a paid plan or a credit pack.' // revisão E2b: não anunciar a cota ≠ negar que ela existe
           : `The trial costs ${((TRIAL_ACCESS.entryFeeUsdMinor ?? 0) / 100).toFixed(2)} for ${TRIAL_ACCESS.trialDays ?? 7} days (card required) and continues at ${((TRIAL_ACCESS.thenMonthlyUsdMinor ?? 0) / 100).toFixed(2)}/month unless cancelled. There is no free tier.`
         return `- Trial engine access: ${TRIAL_ACCESS.everyEngineUnlocked ? 'every engine is unlocked by plan; maintenance pauses below still apply' : `Seedance 1.5 is unlocked by plan (${AVATAR_PUBLIC ? 'Kling 2.5, Veo 3.1, Kling 3 and Avatar' : 'Kling 2.5, Veo 3.1 and Kling 3'} are Studio-plan engines); maintenance pauses below still apply` /* KINEO-AVATAR-FORA-2026-09-28 — Avatar fora do catálogo público */}. Access does not mean the balance covers a full video.\n${availabilityLines}${freeFilmLine}${coveredLine}\n- ${afterTrial}`
       })()
@@ -480,7 +480,7 @@ synthetic voice. None of them alternate the two inside one finished Short.
   unlocked, no card required. Accounts created before keep the credits they received.
 - 2026-09-29: the 10 trial credits pay for one free 15-second film (Seedance 1.5),
   watermarked. Kineo 1 is no longer offered to new accounts (it stays for existing
-  paying accounts and one-time business packs), and there are no recurring free films.
+  paying accounts and one-time business packs).
   Prices returned to $9.90 / $19.90 / $39.90 on 2026-09-09 (credits 60 / 150 / 300 unchanged on that date;
   those prices are history, see 2026-09-28 below). Existing subscribers keep the price they signed up at.
 - 2026-09-28: plans repriced to a three-tier ladder — Starter ${formatCheckoutMoney('usd', TIER_PRICES.starter.usd)} / Creator ${formatCheckoutMoney('usd', TIER_PRICES.basic.usd)} / Studio ${formatCheckoutMoney('usd', TIER_PRICES.pro.usd)}

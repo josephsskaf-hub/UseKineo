@@ -79,7 +79,7 @@ const START_SENTENCE = TRIAL_ACCESS
 const RECURRING_SENTENCE = RECURRING_FREE_ACCESS
   ? `After the trial, recurring free access is ${RECURRING_FREE_ACCESS.videosPerWindow} watermarked ` +
     `${RECURRING_FREE_ACCESS.engine} video per ${RECURRING_FREE_ACCESS.rollingWindowHours}-hour window.`
-  : 'After the trial there are no recurring free films; episodes need a paid plan or a credit pack.'
+  : 'The trial film is the only free film Kineo advertises; episodes need a paid plan or a credit pack.' // revisão E2b: não anunciar ≠ negar
 
 const ENGINE_PRICE_SENTENCE =
   `Each episode is charged like any other video, per engine: ` +

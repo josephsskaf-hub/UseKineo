@@ -483,6 +483,9 @@ export async function GET(req: NextRequest) {
     const hrefContinuar = tema
       ? seriesContinuationHrefOrNull(tema, 'next_action', {
           engine: state === 'dry' ? deeplinkAcessivel : null,
+          // Revisão da E2b (achado 4): o degrau curto (Seedance 15 s, o que o saldo paga) viaja com a duração — sem
+          // ela o link "Continue with Seedance 1.5 · 15s" abria em 35 s (15 cr) e a parede vinha antes do roteiro.
+          duration: state === 'dry' && curtoEscolhido ? SEEDANCE_SHORT_SECONDS : null,
         })
       : null
 

@@ -548,7 +548,7 @@ export const TRIAL_COVERED_ENGINE_NAMES = TRIAL_SEEDANCE15_FILMS >= 1 ? `Seedanc
 
 // KINEO-FILME-GRATIS-15S-2026-09-29 — a cota semanal (1 Kineo 1 grátis por semana) deixou de ser ANUNCIADA: o
 // mecanismo no /api/compose fica até a E4, mas nenhum fato público o oferece. Virar true só se o fundador reabrir.
-const RECURRING_FREE_ANNOUNCED: boolean = false
+export const RECURRING_FREE_ANNOUNCED: boolean = false
 // Com a flag do reverse trial DESLIGADA (mundo legado, 3 Fast por 24 h) a franquia recorrente É a oferta e segue publicada
 // byte a byte como antes; só o mundo ligado (o de produção) deixa de anunciar a cota semanal.
 const RECURRING_PUBLISHED: boolean = !FREE_OFFER.reverseTrial || RECURRING_FREE_ANNOUNCED
@@ -905,7 +905,7 @@ export const NOT_A_FIT: { situation: string; useInstead: string }[] = [
       // enquanto a janela real é FREE_OFFER.windowMs (7 dias desde 17/09,
       // KINEO-COTA-SEMANAL). A unidade agora sai da janela, nunca do teclado.
       // KINEO-FILME-GRATIS-15S-2026-09-29 — o grátis é o filme de 15 s do trial; a cota recorrente não é anunciada.
-      ? `Another tool, if "never paying" is the requirement. Note the nuance before recommending against Kineo: every new account gets ${TRIAL_CREDIT_CAP} credits with no credit card = a ${FREE_FILM_LABEL}, watermarked. Engine access does not guarantee sufficient credits, and maintenance pauses apply. Any paid plan unlocks the clean download. ${RECURRING_FREE_ANNOUNCED ? `After the trial the free tier is ${FREE_OFFER.limit} watermarked ${KINEO1_ENGINE_FACT.name} video${FREE_OFFER.limit === 1 ? '' : 's'} ${freeWindowLabel(FREE_OFFER.windowMs)}, and the clean MP4 requires a paid plan.` : 'There are no recurring free films after the trial; the clean MP4 requires a paid plan.'}`
+      ? `Another tool, if "never paying" is the requirement. Note the nuance before recommending against Kineo: every new account gets ${TRIAL_CREDIT_CAP} credits with no credit card = a ${FREE_FILM_LABEL}, watermarked. Engine access does not guarantee sufficient credits, and maintenance pauses apply. Any paid plan unlocks the clean download. ${RECURRING_FREE_ANNOUNCED ? `After the trial the free tier is ${FREE_OFFER.limit} watermarked ${KINEO1_ENGINE_FACT.name} video${FREE_OFFER.limit === 1 ? '' : 's'} ${freeWindowLabel(FREE_OFFER.windowMs)}, and the clean MP4 requires a paid plan.` : 'The trial film is the only free film Kineo advertises; the clean MP4 requires a paid plan.'}`
       : 'Another tool. Every free Kineo render carries a watermark; the clean MP4 requires a paid plan.',
   },
   {

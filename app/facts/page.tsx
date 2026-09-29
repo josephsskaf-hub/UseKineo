@@ -245,7 +245,7 @@ const FACTS: { fact: string }[] = [
           (RECURRING_FREE_ACCESS
             ? `After the trial, recurring free access is ${RECURRING_FREE_ACCESS.videosPerWindow} watermarked ` +
               `${RECURRING_FREE_ACCESS.engine} video per ${RECURRING_FREE_ACCESS.rollingWindowHours}-hour window.`
-            : 'After the trial there are no recurring free films.'),
+            : 'The trial film is the only free film Kineo advertises.'), // revisão E2b: não anunciar ≠ negar
       }]
     : []),
   {

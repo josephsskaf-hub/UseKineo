@@ -242,12 +242,12 @@ function buildEmail(userId: string, videosMade: number, topic: string | null, ne
   // credito. Diz a verdade inteira: o motor que sai de graca, e a marca d'agua
   // que vem junto com ele (getFreeTierOffer e a mesma fonte do enforcement).
   const freeLineText = freeEngine
-    ? `Your balance won't cover an AI film right now — but your next film is not blocked. Kineo 1 costs no credits on your account. It renders with our watermark; everything else is the same machine.
+    ? `Your balance won't cover an AI film right now — but your next film is not blocked: your free plan still makes one at no credit cost. It renders with our watermark; everything else is the same machine.
 
 `
     : ''
   const freeLineHtml = freeEngine
-    ? `<p style="margin:0 0 14px;">Your balance won't cover an AI film right now — but your next film is not blocked. <strong>Kineo 1 costs no credits on your account</strong>. It renders with our watermark; everything else is the same machine.</p>`
+    ? `<p style="margin:0 0 14px;">Your balance won't cover an AI film right now — but your next film is not blocked: <strong>your free plan still makes one at no credit cost</strong>. It renders with our watermark; everything else is the same machine.</p>`
     : ''
 
   const text = `Hey,
