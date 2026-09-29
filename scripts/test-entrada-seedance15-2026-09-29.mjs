@@ -13,7 +13,7 @@
 //   E. ponte do trial em 15 s (versão nova, antiga aceita) e o degrau de volta sem Kineo 1 (M3);
 //   F. GPT: durationSec 15 só com Seedance; conta de trial abre em 15 s e roteiro longo vira teaser (B2);
 //   G. a frase de saldo da tela de pronto oferece o Seedance de 15 s, nunca o Kineo 1 a quem não o tem;
-//   H. a trava: nesta entrega o interruptor SEEDANCE_15S_PUBLIC continua false (a junção é que o vira); espelhos do 15.
+//   H. a trava: o interruptor SEEDANCE_15S_PUBLIC é ligado no commit de junção (E2b+E3, fundador 29/09); espelhos do 15.
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -210,7 +210,8 @@ const semKineo = RC.readyCreditsLine({ credits: 3, quality: 'cinematic_ai', seco
 checa('3 cr sem Kineo 1: só a parede, sem oferecer Kineo 1', !semKineo.includes('Kineo 1'))
 
 console.log('H) a trava da entrega e os espelhos do 15')
-checa('SEEDANCE_15S_PUBLIC continua false nesta entrega (quem vira é o commit de junção)', temLinha(rd('lib/engineLaunch.ts'), 'export const SEEDANCE_15S_PUBLIC = false'))
+// Reancorado 29/09 (commit "Seedance 15 s PUBLICO"): a junção E2b+E3 virou o interruptor, como este check anunciava.
+checa('SEEDANCE_15S_PUBLIC ligado no commit de junção (entrada + textos juntos)', temLinha(rd('lib/engineLaunch.ts'), 'export const SEEDANCE_15S_PUBLIC = true'))
 const FT = carregar('lib/freeTierOffer.ts')
 checa(`TRIAL_SEEDANCE15_FILMS derivado (${FT.TRIAL_SEEDANCE15_FILMS}) = floor(grant ÷ custo de 15 s) e o 15 espelha SEEDANCE_SHORT_SECONDS`, FT.TRIAL_SEEDANCE15_SECONDS === CURTO && FT.TRIAL_SEEDANCE15_FILMS === Math.floor(CAP / custo(CURTO)) && FT.TRIAL_SEEDANCE15_FILMS >= 1)
 checa('TRIAL_CREDIT_CAP intocado em 10 (a entrada nova não mexe no trial)', CAP === 10)

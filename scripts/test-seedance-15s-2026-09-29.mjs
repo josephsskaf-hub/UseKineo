@@ -6,7 +6,8 @@
 //   3. na rota do cinematic a recusa e a guarda de roteiro longo vêm ANTES do custo e do débito (mutante: mover depois = vermelho);
 //   4. /api/compose e /api/compose/unlock aceitam 15 e o export limpo espelha o compose (pula a reescala só com velocidade
 //      explícita ou verbatim do filme de IA — nunca por `duration === 15`);
-//   5. o interruptor SEEDANCE_15S_PUBLIC nasce false (mutante: true = vermelho) e é honrado nas DUAS telas (Studio e
+//   5. o interruptor SEEDANCE_15S_PUBLIC está LIGADO depois do canário aprovado (mutante: false = vermelho), a régua
+//      seedance15sVisible continua honrando-o (desligado em memória: público não vê, a casa vê) e ele é honrado nas DUAS telas (Studio e
 //      /generate) e na flag do /api/me/credits;
 //   6. DEFAULT_DURATION do /generate não é 15 (o 15 fica fora de DURATION_OPTIONS);
 //   7. ?duration=15 no handoff só vale com ?engine=seedance (executado).
@@ -187,9 +188,25 @@ const provaInterruptor = (src) => {
   const casa = roda(src, stubInterno(true))
   return pub.SEEDANCE_15S_PUBLIC === false && pub.seedance15sVisible('qualquer@exemplo.com') === false && casa.seedance15sVisible('casa@exemplo.com') === true
 }
-checa('SEEDANCE_15S_PUBLIC nasce false: público não vê o botão; a casa vê', provaInterruptor(LAUNCH_SRC))
-const mutLigado = LAUNCH_SRC.replace('export const SEEDANCE_15S_PUBLIC = false', 'export const SEEDANCE_15S_PUBLIC = true')
-checa('mutante: interruptor ligado fica VERMELHO', mutLigado !== LAUNCH_SRC && !provaInterruptor(mutLigado))
+// Reancorado 29/09 (fundador, commit "Seedance 15 s PUBLICO"): o check era "interruptor nasce false"; o canário foi aprovado e
+// o interruptor liga JUNTO com a entrada (E2b) e os textos (E3). A trava continua de mão dupla: (a) a fonte está LIGADA —
+// público e casa veem; (b) a régua não foi chumbada — a mesma fonte com o interruptor desligado em memória volta a esconder
+// o botão do público (provaInterruptor, a prova de antes, intacta). Mutantes: desligar = vermelho; régua 'return true' = vermelho.
+const INTERRUPTOR_LIGADO = 'export const SEEDANCE_15S_PUBLIC = true'
+const INTERRUPTOR_DESLIGADO = 'export const SEEDANCE_15S_PUBLIC = false'
+const provaLigado = (src) => {
+  if (!temLinha(src, INTERRUPTOR_LIGADO)) return false
+  const pub = roda(src, stubInterno(false))
+  const casa = roda(src, stubInterno(true))
+  return pub.SEEDANCE_15S_PUBLIC === true && pub.seedance15sVisible('qualquer@exemplo.com') === true && casa.seedance15sVisible('casa@exemplo.com') === true
+}
+const provaRegua = (src) => src.includes(INTERRUPTOR_LIGADO) && provaInterruptor(src.replace(INTERRUPTOR_LIGADO, INTERRUPTOR_DESLIGADO))
+checa('SEEDANCE_15S_PUBLIC ligado depois do canário aprovado: público vê o botão; a casa vê', provaLigado(LAUNCH_SRC))
+checa('a régua seedance15sVisible segue honrando o interruptor (desligado em memória: público não vê; a casa vê)', provaRegua(LAUNCH_SRC))
+const mutDesligado = LAUNCH_SRC.replace(INTERRUPTOR_LIGADO, INTERRUPTOR_DESLIGADO)
+checa('mutante: interruptor desligado fica VERMELHO', mutDesligado !== LAUNCH_SRC && !provaLigado(mutDesligado))
+const mutReguaChumbada = LAUNCH_SRC.replace('  return SEEDANCE_15S_PUBLIC || isInternalEmail(email)', '  return true')
+checa('mutante: régua chumbada em true fica VERMELHO', mutReguaChumbada !== LAUNCH_SRC && !provaRegua(mutReguaChumbada))
 // Reancorado 29/09 na integração com a E1 (Kineo 1 fora): a mesma linha passou a devolver também `kineo1` (resolveKineo1Flag).
 // Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): a resposta ganhou `hasPaid` (régua do 'não sei' do Studio); a flag
 // seedance15 segue na mesma linha inteira, pelo interruptor.
