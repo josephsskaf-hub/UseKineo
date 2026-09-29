@@ -351,6 +351,19 @@ export async function POST(req: NextRequest) {
     /** Só o CTA "Turn this idea into a full script" manda isto. */
     const forceAuthoring = body.forceAuthoring === true
 
+    // ═══ KINEO-ROTEIRO-CURTO-15S-2026-09-29 — o filme curto (≤ 20 s) sai do tamanho que a guarda do cinematic aceita ═══
+    // Ensaio real (29/09): 15 s pedidos, 64 palavras em 7 blocos devolvidas, 422 'script_too_long_for_short_film' na rota
+    // do cinematic. O prompt já pede 4 seções; nada conferia. Agora, em ordem: (1) só HOOK/MR1/MR2/PAYOFF ficam; (2) acima
+    // do teto, a ÚNICA nova tentativa leva o reforço "at most N spoken words, only these 4 sections"; (3) se ainda passar,
+    // corte determinístico até caber (lib/shortFilmScript.ts). O teto é o MENOR entre a régua do escritor e a da guarda
+    // (maxWordsForShortFilm), contado como a guarda conta. Alvos de 35/60/90 não passam por nada disto.
+    const filmeCurto = isShortFilmTarget(alvoSegundos)
+    const falaNaReguaDaGuarda = (t: string) => parseUserScript(t).narration.split(/\s+/).filter(Boolean).length
+    const palavrasDoFilmeCurto = (t: string) => Math.max(scriptWordCount(t), falaNaReguaDaGuarda(t))
+    const tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage), maxWordsForShortFilm(alvoSegundos))
+    const pisoFilmeCurto = Math.min(alvoPalavras, tetoFilmeCurto)
+    // Revisão da E2b (achado 7): estas réguas subiram para ANTES do retorno antecipado dos marcadores — o texto que já
+    // chega estruturado (o roteiro de 35/60 s guardado em structuredScriptRef, o episódio da série) também é filme curto.
     // Se o tópico já tem os marcadores virais, devolve como está — sem GPT.
     //
     // ⚠️ KINEO-351 — MAS NÃO QUANDO A AUTORIA FOI PEDIDA DE PROPÓSITO.
@@ -364,6 +377,15 @@ export async function POST(req: NextRequest) {
     // Quem chegou aqui pelo CTA já foi barrado por SER CURTO: devolver o mesmo
     // texto é a única resposta que com certeza não resolve nada.
     if (!forceAuthoring && hasViralMarkers(topic)) {
+      // Revisão da E2b (achado 7, trava 8.2 sob o "vai" do 15 s): com alvo curto, o texto pronto acima do teto NÃO volta
+      // intacto — ia verbatim pelos marcadores e a guarda do cinematic recusava (422 'script_too_long_for_short_film').
+      // Mesmo conserto determinístico da geração, sem GPT: só as 4 seções e o corte até caber (as palavras do autor).
+      if (filmeCurto && palavrasDoFilmeCurto(topic) > tetoFilmeCurto) {
+        const so4Pronto = keepShortFilmSections(topic)
+        const ajustePronto = fitShortFilmScript(so4Pronto.script, { maxWords: tetoFilmeCurto, minWords: pisoFilmeCurto, countWords: palavrasDoFilmeCurto })
+        console.warn(`[generate-script] KINEO-ROTEIRO-CURTO-15S texto pronto: ${palavrasDoFilmeCurto(topic)} → ${ajustePronto.words} palavras (teto ${tetoFilmeCurto}, corte ${ajustePronto.cut}, alvo ${alvoSegundos}s)`)
+        return NextResponse.json({ script: ajustePronto.script, alreadyStructured: true, shortFilmCut: ajustePronto.cut, droppedSections: so4Pronto.dropped })
+      }
       return NextResponse.json({ script: topic, alreadyStructured: true })
     }
 
@@ -399,17 +421,6 @@ export async function POST(req: NextRequest) {
       return await recusar(422, { error: MODEL_REFUSAL_MESSAGE, reason: 'model_refused_topic', retryable: false }, user.id, { reason: 'model_refused_topic', head: script.slice(0, 120) })
     }
 
-    // ═══ KINEO-ROTEIRO-CURTO-15S-2026-09-29 — o filme curto (≤ 20 s) sai do tamanho que a guarda do cinematic aceita ═══
-    // Ensaio real (29/09): 15 s pedidos, 64 palavras em 7 blocos devolvidas, 422 'script_too_long_for_short_film' na rota
-    // do cinematic. O prompt já pede 4 seções; nada conferia. Agora, em ordem: (1) só HOOK/MR1/MR2/PAYOFF ficam; (2) acima
-    // do teto, a ÚNICA nova tentativa leva o reforço "at most N spoken words, only these 4 sections"; (3) se ainda passar,
-    // corte determinístico até caber (lib/shortFilmScript.ts). O teto é o MENOR entre a régua do escritor e a da guarda
-    // (maxWordsForShortFilm), contado como a guarda conta. Alvos de 35/60/90 não passam por nada disto.
-    const filmeCurto = isShortFilmTarget(alvoSegundos)
-    const falaNaReguaDaGuarda = (t: string) => parseUserScript(t).narration.split(/\s+/).filter(Boolean).length
-    const palavrasDoFilmeCurto = (t: string) => Math.max(scriptWordCount(t), falaNaReguaDaGuarda(t))
-    const tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage), maxWordsForShortFilm(alvoSegundos))
-    const pisoFilmeCurto = Math.min(alvoPalavras, tetoFilmeCurto)
     const secoesCortadas: string[] = []
     if (filmeCurto) {
       const so4 = keepShortFilmSections(script)
