@@ -29,13 +29,10 @@ for (const [slug, config] of Object.entries(PAID_ENGINE_PROOF)) {
 }
 const before = execFileSync('git',['show','365e663a:app/ai-video-generator/[engine]/page.tsx'],{cwd:root,encoding:'utf8'})
 const after = readFileSync(resolve(root,pagePath),'utf8')
-// 28/09 founder: proof bridge moves before free CTA. Keep the starter form
-// byte-identical and compare all rendered Kineo 1 content outside that bridge.
-const starter = s => s.slice(s.indexOf("{e.param === 'fast' && ("), s.indexOf('{/* KINEO-GALERIA-DA-CASA')).replace(/\r\n/g,'\n')
-check('Kineo 1 starter untouched', starter(before) === starter(after))
+const bridge = s => s.slice(s.indexOf('{/* KINEO-PONTE-ACIMA'), s.indexOf('{/* KINEO-GALERIA-DA-CASA')).replace(/\r\n/g,'\n')
+check('bridge and Kineo 1 starter untouched', bridge(before) === bridge(after))
 const beforeLoad = engineFixture({[pagePath]:before})
-const withoutBridge = html => html.replace('<div data-offline-boundary="ScriptToSeedanceBridge"></div>', '')
-check('Kineo 1 renders identically outside authorized bridge', withoutBridge(renderToStaticMarkup(await beforeLoad(pagePath).default({params:{engine:'kineo-1'}}))) === withoutBridge(renderToStaticMarkup(await load(pagePath).default({params:{engine:'kineo-1'}}))))
+check('Kineo 1 renders identically', renderToStaticMarkup(await beforeLoad(pagePath).default({params:{engine:'kineo-1'}})) === renderToStaticMarkup(await load(pagePath).default({params:{engine:'kineo-1'}})))
 check('unknown engine / Kineo 1 not offered paid block', paidEngineBudget('kineo-1') === null && paidEngineBudget('unknown') === null)
 const jsx = source('components/PaidEngineBudget.tsx')
 check('no typed commercial numbers', !/\$\d|\b\d+\s*(credits|films|seconds|USD|\/month)|1080p/.test(jsx))

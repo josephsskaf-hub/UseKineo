@@ -1,5 +1,13 @@
 # Portas existentes para Seedance — 28/09/2026
 
+## Conciliação E2b/E3 — 29/09 06:57 UTC
+
+**FATO CONFIRMADO / IMPLEMENTADO LOCAL:** base c55bab53 incorporada. O redirect 301 do dono em next.config.js:166-167 tornou a ponte Kineo1 superada; retirado integralmente o delta próprio da página de motores e restaurados os quatro guardiões dessa página à base. Restam /free-ai-shorts-generator e /text-to-video-shorts. components/ScriptToSeedanceBridge.tsx distingue FREE_FILM_LABEL do filme pago de35s e deixa explícito que testar antes da assinatura é opcional; fontes de preço/trial, curadoria e mídia preservadas. E3 do dono preservada também nos leitores antigos da ponte.
+
+**TESTADO LOCALMENTE:** ponte21, ponte anterior63, texto público15s43, hero e metadados das seis páginas públicas, prova paga35 passaram em29/09. TypeScript noEmit sem incremental passou às06:57UTC. Preview completo das duas áreas atualizado contra c55bab53; Kineo1 antiga excluída da revisão atual e indicada como histórica.
+
+**LOCAL / QUESTÃO PENDENTE:** sem enqueue/publicação. Renderer crítico previamente vermelho não foi alterado nesta base; não retestado por cadência nem dispensado. Suíte comparativa completa anterior vale somente para b99717a6; gate final na base atual e revisão visual humana própria seguem necessários. Nenhuma exposição ou compra nova demonstrada. Mesmo id S24-01, sem novo contador. Histórico abaixo preservado, não representa o escopo vigente.
+
 ## Atualização vigente após preços V8-A — 29/09 00:05 UTC (28/09 BRT)
 
 **DECISÃO APROVADA / BASE CONCILIADA:** origin/main b99717a6 inclui a decisão do fundador registrada em docs/DECISIONS.md:5. Candidato de código a332c1d6 incorpora essa base sem alterar suas regras. Preview completo regenerado contra b99717a6; o Starter mostrado agora deriva US$12,90 da fonte, mantendo os mesmos créditos/custos. Não revisar o preço da captura antiga. Nenhum preço digitado em JSX por esta entrega.

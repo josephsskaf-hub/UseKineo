@@ -13,15 +13,7 @@ let tested = 0
 for (const engine of ENGINE_SLUGS) {
   const old = renderToStaticMarkup(await before(path).default({ params: { engine } }))
   const current = renderToStaticMarkup(await after(path).default({ params: { engine } }))
-  // S24-01: the separately tested paid-proof bridge moves on Kineo 1 only.
-  // The fixture represents that component by this exact empty boundary; remove
-  // only that boundary and keep every other byte of Kineo 1 locked.
-  if (engine === 'kineo-1') {
-    const bridge = '<div data-offline-boundary="ScriptToSeedanceBridge"></div>'
-    assert.equal(current.split(bridge).length, 2)
-    assert.equal(old.split(bridge).length, 2)
-    assert.equal(current.replace(bridge, ''), old.replace(bridge, ''), 'Kineo 1 unchanged outside its paid-proof bridge')
-  } else if (engine !== 'seedance') assert.equal(current, old, engine + ': entire rendered page unchanged')
+  if (engine !== 'seedance') assert.equal(current, old, engine + ': entire rendered page unchanged')
   else {
     assert.ok(hero(old) && hero(current), 'both heroes exist')
     assert.equal(current.replace(hero(current), ''), old.replace(hero(old), ''), 'all content outside hero unchanged')
