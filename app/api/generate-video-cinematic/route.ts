@@ -43,7 +43,7 @@ import {
   type AttemptRecord,
 } from '@/lib/cinematic/dispatchScenes'
 import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
-import { kling25FootageNeeded, kling25ShotCount, kling25SceneSeconds, kling25ClipsUsd, kling25WriterBudget, kling25AlignBudget, kling25AverageShotSeconds, kling25VerbatimPlan, kling25VisualHint, kling25SceneWordStarts, kling25PlanPace, kling25WordsFit, KLING25_CLIP_LOSS_SECONDS } from '@/lib/cinematic/klingShots' // KINEO-KLING25-PLANOS-5S-2026-09-28
+import { kling25FootageNeeded, kling25ShotCount, kling25SceneSeconds, kling25ClipsUsd, kling25WriterBudget, kling25AlignBudget, kling25AverageShotSeconds, kling25VerbatimPlan, kling25VisualHint, kling25SceneWordStarts, kling25PlanPace, kling25WordsFit, KLING25_CLIP_LOSS_SECONDS, kling25ApplyShotAxis } from '@/lib/cinematic/klingShots' // KINEO-KLING25-PLANOS-5S-2026-09-28 · KINEO-KLING25-VARIEDADE-2026-09-28
 import { resolveCharacterVoice } from '@/lib/hollywood/characterVoice'
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
@@ -5768,6 +5768,15 @@ async function manipularPost(req: NextRequest) {
         return cinematicBruto
       }
     })
+      // ═══ KINEO-KLING25-VARIEDADE-2026-09-28 — um eixo de enquadramento por plano, SÓ no Kling 2.5 ═══
+      // Fundador (28/09): "a única coisa é mais variedade de cenas" · "melhore o Kling 2.5 (...) foca em melhorar ele". Com 12
+      // planos de 5 s o descritor repete enquadramento e movimento nos vizinhos apesar do pedido "do not repeat the same shot
+      // type" (prompt do escritor, acima). Aqui cada plano ganha um eixo determinístico por índice (lib/cinematic/klingShots
+      // kling25ApplyShotAxis: escala + ângulo + movimento, vizinhos sempre diferentes), PREFIXADO ao prompt já corrigido pelo
+      // contrato de cena — nada do prompt é cortado (teto da fal 2.500 chars; corte só em fronteira de frase, cauda preservada).
+      // O mesmo prompt alimenta o still FLUX (o i2v segue o enquadramento do still) e o clipe t2v. Seedance/Veo/Sora: o
+      // ternário devolve o prompt de sempre, byte a byte. Guardião: scripts/test-kling25-variedade-2026-09-28.mjs.
+      .map((promptDaCena, sceneIndex) => (wantsKling ? kling25ApplyShotAxis(promptDaCena, sceneIndex) : promptDaCena))
 
     // ═══ KINEO-DRYRUN-CLASSICO-2026-09-12 — O VALIDADOR DE $0 COBRE OS CLÁSSICOS ═══
     // Até 11/09 `dry_run: true` só parava a família Kling 3/H3/Omni (bloco

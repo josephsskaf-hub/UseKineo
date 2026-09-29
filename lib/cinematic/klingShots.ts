@@ -407,3 +407,109 @@ export function alignSignedClipPlan(
   }
   return { seconds, wordStarts, narrationWords }
 }
+
+// ═══ KINEO-KLING25-VARIEDADE-2026-09-28 — um eixo de enquadramento por plano ══════════════════════════════════════════
+// Fundador, 28/09, aprovando o canário de 35 s (38 s entregues) e pedindo o de 60 s chegando a 65-70 s: "a única coisa é
+// mais variedade de cenas" · "melhore o Kling 2.5 (...) nas próximas uma hora foca em melhorar ele". Com 12 planos de 5 s,
+// o descritor (GPT, uma chamada com todas as cenas) recebe o PEDIDO "do not repeat the same shot type" (route.ts, prompt
+// do escritor) — pedido não é garantia: nos filmes reais os planos vizinhos voltam com o mesmo enquadramento e o mesmo
+// movimento, e o supervisor fala×imagem (speechImageAlign) reescreve o CONTEÚDO, não a câmera.
+//
+// A família hollywood já tem um eixo determinístico (lib/hollywood/varietyAxis.ts) e a lição de lá vale aqui: PREFIXAR o
+// eixo, nunca amputar o prompt — o corte por contagem de palavras decapitou "Mouth closed, not speaking" e o motor
+// entregou uma boca (render 37c8d832). Aqui o eixo entra na FRENTE do prompt final da cena (depois do contrato de cena),
+// o prompt segue inteiro, e o teto do fornecedor (schema da fal para kling-video/v2.5-turbo/pro: prompt até 2.500
+// caracteres) só corta em fronteira de FRASE, preservando a CAUDA (onde vivem os sufixos de proteção: sem texto
+// legível, sem marca d'água, enquadramento) e nunca deixando o começo de uma proibição solto.
+//
+// Por que na frente e por que também no still: o Kling i2v segue o enquadramento do still FLUX (as 6 primeiras cenas
+// — MAX_ANCHORED_SCENES no route.ts); o prompt da cena alimenta o still E o clipe, então o eixo na frente do prompt
+// muda a composição das duas peças. As cenas sem still (t2v) recebem o eixo no prompt do próprio clipe.
+//
+// Rotação determinística por ÍNDICE (sem relógio, sem sorteio): a lista alterna ESCALA (geral → médio → detalhe) e
+// MOVIMENTO (lateral, vertical, órbita, travelling) de modo que dois planos vizinhos nunca compartilham eixo, e o mesmo
+// filme reenviado recebe os mesmos eixos (a retomada de cena por classicSceneInputs reenvia o payload assinado). O
+// plano 1 fica em plano médio com o sujeito legível: o prompt de abertura ("Opening shot: show the described subject
+// immediately") proíbe paisagem de estabelecimento sem sujeito, e um "wide" ali brigaria com ele.
+//
+// SÓ O KLING 2.5 passa por aqui (route.ts: `wantsKling ? kling25ApplyShotAxis(...) : prompt`): Seedance 1.5, Veo 3.1,
+// Sora e a família hollywood recebem o prompt de sempre, byte a byte. Guardião: scripts/test-kling25-variedade-2026-09-28.mjs.
+
+/** Teto de caracteres do prompt no schema da fal do Kling 2.5 (t2v e i2v). */
+export const KLING25_PROMPT_MAX_CHARS = 2500
+
+/**
+ * Os eixos, na ordem da rotação. 12 = KLING25_MAX_SHOTS, para que um filme de 12 planos não repita nenhum; acima disso
+ * a rotação recomeça (o plano 13 repete o eixo do 1, nunca o do 12). Cada eixo diz ESCALA + ÂNGULO + MOVIMENTO em
+ * vocabulário que o Kling entende; nenhum pede ângulo holandês (STABLE_SHOT) nem texto.
+ */
+export const KLING25_SHOT_AXES: ReadonlyArray<string> = [
+  'Medium shot, subject centered and clearly readable, slow push-in',
+  'Wide establishing shot, subject small against a vast environment, slow lateral dolly from left to right',
+  'Extreme close-up on a telling detail of the subject, shallow depth of field, gentle rack focus',
+  'Low-angle shot looking up at the subject, slow upward tilt, imposing scale',
+  'Tracking shot gliding alongside the subject, steady lateral travelling',
+  'High-angle shot looking down over the scene, slow descending crane move',
+  'Rear three-quarter view following the subject forward, slow dolly-in',
+  'Close-up on texture and light, slow orbit around the subject',
+  'Wide aerial overview, slow forward drift revealing the setting',
+  'Medium-close profile view, subject side-on, slow pull-back',
+  'Ground-level shot, camera gliding forward low to the ground',
+  'Top-down close-up, slow rotation over the subject',
+]
+
+/** O eixo do plano `index` (0-based). Índice inválido → plano médio (o eixo 0). */
+export function kling25ShotAxis(index: number): string {
+  const n = KLING25_SHOT_AXES.length
+  const i = Number.isInteger(index) && index >= 0 ? index % n : 0
+  return KLING25_SHOT_AXES[i]
+}
+
+/** Inícios de instrução NEGATIVA que nunca podem sobrar sozinhos no fim (a lição do "Mouth" — lib/hollywood/varietyAxis). */
+const KLING25_INICIOS_DE_PROIBICAO = ['mouth', 'no ', 'not ', 'never', 'avoid', 'without', 'zero ']
+const normalizarEspacos = (t: string): string => String(t ?? '').replace(/\s+/g, ' ').trim()
+
+function kling25TerminaEmProibicaoQuebrada(texto: string): boolean {
+  const t = normalizarEspacos(texto).toLowerCase().replace(/[.,;:]+$/, '')
+  const ultima = t.split(/(?<=[.!?])\s+/).pop() ?? ''
+  const ws = ultima.split(' ').filter(Boolean)
+  if (ws.length > 2) return false
+  return KLING25_INICIOS_DE_PROIBICAO.some((p) => ultima === p.trim() || ultima.startsWith(p))
+}
+
+/** Maior prefixo que termina em `.`, `!` ou `?` e cabe em `limite`; nenhuma frase cabe → vazio (nunca meia instrução). */
+function kling25CortarEmFrase(texto: string, limite: number): string {
+  const t = normalizarEspacos(texto)
+  if (t.length <= limite) return t
+  const recorte = t.slice(0, limite)
+  const fim = Math.max(recorte.lastIndexOf('. '), recorte.lastIndexOf('! '), recorte.lastIndexOf('? '))
+  let miolo = fim > 0 ? t.slice(0, fim + 1).trim() : ''
+  while (miolo && kling25TerminaEmProibicaoQuebrada(miolo)) {
+    const anterior = miolo.slice(0, -1).lastIndexOf('.')
+    miolo = anterior > 0 ? miolo.slice(0, anterior + 1) : ''
+  }
+  return miolo
+}
+
+/**
+ * Prefixa o eixo do plano `index` ao prompt final da cena, sem cortar nada. Prompt vazio → só o eixo (o motor precisa
+ * de algo). Só quando `${eixo}. ${prompt}` passa de `maxChars` (o teto do fornecedor) o MIOLO é cortado em fronteira de
+ * frase e a CAUDA (os últimos `caudaChars` caracteres a partir de uma fronteira de frase ou vírgula) é preservada — é lá
+ * que vivem os sufixos de proteção. O eixo e a cauda nunca saem; uma proibição nunca fica decapitada.
+ */
+export function kling25ApplyShotAxis(prompt: string, index: number, maxChars: number = KLING25_PROMPT_MAX_CHARS, caudaChars = 600): string {
+  const eixo = kling25ShotAxis(index)
+  const corpo = normalizarEspacos(prompt)
+  if (!corpo) return eixo
+  const junto = `${eixo}. ${corpo}`
+  if (junto.length <= maxChars) return junto
+  // Cauda: do último ". " ou ", " que deixa no máximo `caudaChars` até o fim.
+  const inicioCauda = Math.max(0, corpo.length - caudaChars)
+  const fronteira = Math.max(corpo.indexOf('. ', inicioCauda), corpo.indexOf(', ', inicioCauda))
+  const cauda = fronteira > 0 ? corpo.slice(fronteira + 2).trim() : corpo.slice(inicioCauda).trim()
+  const cabeca = fronteira > 0 ? corpo.slice(0, fronteira + 1) : corpo.slice(0, inicioCauda)
+  const espaco = maxChars - eixo.length - cauda.length - 4
+  const miolo = espaco > 40 ? kling25CortarEmFrase(cabeca, espaco) : ''
+  const saida = miolo ? `${eixo}. ${miolo} ${cauda}` : `${eixo}. ${cauda}`
+  return saida.length <= maxChars ? saida : `${eixo}. ${cauda}`.slice(0, maxChars)
+}
