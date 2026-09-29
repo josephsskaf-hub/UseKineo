@@ -19,19 +19,52 @@
 //   · roteiro de 60 s com mais de 225 palavras: o filme é cortado em 90 s (lib/compose) — o passo nunca supõe fala além
 //     de 90 s (kling25PlanPace), e o custo a mais que sobra é declarado, não escondido.
 //
-// Módulo PURO (sem import): a rota de geração, o ensaio de $0, o /api/compose e o guardião
-// scripts/test-kling25-planos-5s-2026-09-28.mjs leem daqui a mesma régua. Só o Kling 2.5 passa por aqui: Seedance 1.5,
-// Veo 3.1, Sora e a família hollywood não chamam nenhuma função deste arquivo.
+// Módulo PURO (sem import): a rota de geração, o ensaio de $0, o /api/compose e os guardiões
+// scripts/test-kling25-planos-5s-2026-09-28.mjs e scripts/test-kling25-60s-teto-2026-09-28.mjs leem daqui a mesma régua.
+// Só o Kling 2.5 passa por aqui: Seedance 1.5, Veo 3.1, Sora e a família hollywood não chamam nenhuma função deste arquivo.
 
 /** Plano padrão novo e plano longo. Os únicos valores que o schema da fal aceita. */
 export const KLING25_SHOT_SECONDS = 5
 export const KLING25_LONG_SHOT_SECONDS = 10
 /**
- * Teto de planos por filme. 12 (não 14) porque: (1) o escritor de cenas do modo IA (lib/runway generateScenes) já corta
- * em 12; (2) o despacho do Kling é SERIAL (450 ms entre POSTs — o alias da fal limita por usuário), 12 POSTs ≈ 10-15 s;
- * (3) o descritor e o supervisor fala×imagem fazem UMA chamada com todas as cenas antes do POST pago.
+ * Teto de planos por filme.
+ * [TRAVA 8.2] KLING25-60S-TETO (28/09) — ensaio de $0 em produção (203 palavras, 60 s, roteiro pronto): o divisor bateu
+ * no teto de 12 e encheu com planos de 10 s ([5,10,10,10,10,10,10,5,5,5,10,5] = 95 s de imagem para 88 s de fala).
+ * Fundador: "mais variedade" — num filme de 60 s com 65-70 s de fala o ideal é ~13-14 planos de 5 s, não 7 de 10 s.
+ * Custo por segundo IGUAL: a fal cobra por segundo (US$ 0,07/s) — dois planos de 5 s = um de 10 s. O filme paga, em
+ * média, uma unidade de 5 s a mais (medido nos guardiões: +US$ 0,40/filme nos 30 filmes reais e +US$ 0,44 em 240
+ * aleatórios contra o teto 12; nunca mais de 3 unidades): granularidade de blocos menores + a folga de 0,3 s abaixo.
+ *  · ROTEIRO PRONTO (verbatim): o teto acompanha a imagem que o filme pede — ⌈útil ÷ 4,84⌉ + 1, entre 12 e 18
+ *    (kling25MaxShots: 60 s → 14 · 65-70 s de fala → 15-16 · 90 s → 18). 18 é o teto FÍSICO (90 s ÷ 4,84 s úteis): o
+ *    despacho do Kling é SERIAL (450 ms entre POSTs — o alias da fal limita por usuário; 18 POSTs ≈ 8 s de espera mais
+ *    a latência de cada POST, dentro dos 300 s da rota) e o descritor e o supervisor fala×imagem fazem UMA chamada com
+ *    todas as cenas (supervisor com orçamento proporcional em kling25AlignBudget; descritor cabe em 1.000 tokens:
+ *    18 × 24 palavras ≈ 700).
+ *  · MODO IA: continua 12 — o escritor de cenas (lib/runway generateScenes, safeCount) corta em 12 e é o MESMO escritor
+ *    de Seedance/Veo (fora do ramo do Kling): pedir 14 ali devolveria 12 cenas dimensionadas para 14.
  */
-export const KLING25_MAX_SHOTS = 12
+export const KLING25_MAX_SHOTS = 18
+export const KLING25_MAX_SHOTS_AI = 12
+/**
+ * Folga que o divisor do roteiro pronto reserva em CADA plano de 5 s (o bloco cabe em 5 − 0,3 s): 5 s → até 10 palavras
+ * a 2,3 pal/s (eram 11). Medido no guardião com os 30 filmes reais ao subir o teto: com blocos de 11 palavras (4,78 s de
+ * fala em 4,84 s úteis) uma voz a 2,14 pal/s (c589a6a5) acumulava 3,1 s de atraso entre o plano entrar e a fala começar
+ * — 16 planos cheios em fila, sem um plano com folga para a voz alcançar (com o teto 12 os planos de 10 s davam essa
+ * folga: 1,65 s). Com 10 palavras (4,35 s) a voz pode ir até 10 ÷ 4,84 = 2,07 pal/s sem atrasar. Só o bloco curto: o de
+ * 10 s continua em 22 palavras (9,57 s em 9,84 — a mesma folga da base).
+ */
+export const KLING25_SHORT_FIT_SLACK_SECONDS = 0.3
+
+/**
+ * Teto de planos do filme: modo IA = 12 (o escritor); roteiro pronto = ⌈útil ÷ 4,84⌉ + 1 entre 12 e 18. O piso 12
+ * mantém byte a byte todo filme que hoje cabe em 12 planos (35/45 s: o divisor escolhe 8-10 e o teto não morde).
+ */
+export function kling25MaxShots(input: { verbatim: boolean; footageSeconds?: number | null }): number {
+  if (!input.verbatim) return KLING25_MAX_SHOTS_AI
+  const need = positive(input.footageSeconds) ? input.footageSeconds : 0
+  const porImagem = Math.ceil(need / kling25UsefulSeconds(KLING25_SHOT_SECONDS) - 1e-9) + 1
+  return Math.max(KLING25_MAX_SHOTS_AI, Math.min(KLING25_MAX_SHOTS, porImagem))
+}
 /** Preço do fornecedor por segundo de clipe — docs/PRECOS-MOTORES-V4.md (fal-ai/kling-video/v2.5-turbo/pro). */
 export const KLING25_USD_PER_SECOND = 0.07
 /**
@@ -102,10 +135,16 @@ export function kling25FootageNeeded(input: { durationSeconds: number; verbatimW
   return round1(positive(input.verbatimWords) ? film : Math.min(KLING25_FILM_MAX_SECONDS + KLING25_AI_SLACK_SECONDS, film + KLING25_AI_SLACK_SECONDS))
 }
 
-/** Planos de 5 s (4,84 s úteis cada) que cobrem `footageSeconds` úteis, entre 2 e o teto. */
-export function kling25ShotCount(footageSeconds: number): number {
+/**
+ * Planos de 5 s (4,84 s úteis cada) que cobrem `footageSeconds` úteis, entre 2 e o teto (kling25MaxShots: 12 no modo
+ * IA — o padrão, sem opção — e 12-18 no roteiro pronto). No roteiro pronto este número é provisório (o plano real sai de
+ * kling25VerbatimPlan), mas é o que resolveVerbatimSegments recebe para roteiro COM marcadores: abaixo dos blocos do
+ * autor ele descarta blocos — 16 blocos num teto de 12 perdiam 4 falas.
+ */
+export function kling25ShotCount(footageSeconds: number, options?: { verbatim?: boolean }): number {
   const need = positive(footageSeconds) ? footageSeconds : 0
-  return Math.max(2, Math.min(KLING25_MAX_SHOTS, Math.ceil(need / kling25UsefulSeconds(KLING25_SHOT_SECONDS) - 1e-9)))
+  const teto = kling25MaxShots({ verbatim: options?.verbatim === true, footageSeconds: need })
+  return Math.max(2, Math.min(teto, Math.ceil(need / kling25UsefulSeconds(KLING25_SHOT_SECONDS) - 1e-9)))
 }
 
 /** Ordem de espalhamento (van der Corput): empate de narração → planos longos distribuídos pelo filme, não colados. */
@@ -214,12 +253,14 @@ export function kling25VerbatimPlan(
   const words = String(narration ?? '').trim().replace(/\s+/gu, ' ').split(' ').filter(Boolean)
   const W = words.length
   const pace = kling25PlanPace(opts.wordsPerSecond, W)
-  const fitShort = kling25WordsFit(KLING25_SHOT_SECONDS, pace)
+  const fitShort = kling25WordsFit(KLING25_SHOT_SECONDS - KLING25_SHORT_FIT_SLACK_SECONDS, pace) // [TRAVA 8.2] KLING25-60S-TETO: folga contra voz mais lenta que o passo
   const fitLong = kling25WordsFit(KLING25_LONG_SHOT_SECONDS, pace)
   const needSeconds = W > 0 ? kling25FilmSeconds({ durationSeconds: opts.durationSeconds, verbatimWords: W, wordsPerSecond: opts.wordsPerSecond }) : 0
   const empty: Kling25VerbatimPlan = { chunks: [], seconds: [], pace, fitShort, fitLong, needSeconds }
   if (W === 0) return empty
-  const maxShots = Math.max(1, Math.min(KLING25_MAX_SHOTS, Math.trunc(opts.maxShots ?? KLING25_MAX_SHOTS) || KLING25_MAX_SHOTS))
+  // [TRAVA 8.2] KLING25-60S-TETO: sem opção, o teto é o da imagem que o filme pede (12-18); a opção só pode APERTAR.
+  const tetoDoFilme = kling25MaxShots({ verbatim: true, footageSeconds: needSeconds })
+  const maxShots = Math.max(1, Math.min(tetoDoFilme, Math.trunc(opts.maxShots ?? tetoDoFilme) || tetoDoFilme))
 
   // tamanho da frase que contém cada fronteira interna (fronteira b = entre a palavra b-1 e a b)
   const sentenceLenAt = new Array<number>(W + 1).fill(0)
