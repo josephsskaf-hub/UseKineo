@@ -38,7 +38,7 @@ export function fastestClassicPersonaRate(language: string): { wordsPerSecond: n
 // (45 palavras) saiu com 17,8 s, e 56 palavras pedem 8 s por clipe. Agora, SÓ no 15 s com a régua genérica do clássico
 // (é o que writerRateFor devolve para o Seedance — 'cinematic_ai'; o Kineo 1 anda na persona mais rápida, o hollywood e
 // o legado em 2,3, e nenhum deles passa por aqui), a faixa sai de duas contas:
-//   · PISO: o filme de 15 s nunca sai abaixo do piso C2 (95 %) nem na voz MAIS RÁPIDA do catálogo (a mesma que o Kineo 1
+//   · PISO (até a KINEO-ROTEIRO-15S-FRASE-INTEIRA abaixo, que o trocou pela régua da casa): o filme de 15 s nunca sai abaixo do piso C2 (95 %) nem na voz MAIS RÁPIDA do catálogo (a mesma que o Kineo 1
 //     usa, fastestClassicPersonaRate: fable 2,55 × 1,10 = 2,81 pal/s) → ⌈15 × 0,95 × 2,81⌉ = ⌈40,04⌉ = 41 palavras (com 40,
 //     essa persona fala 14,2 s e o ensaio de $0 reprova por 0,05 s — medido no guardião);
 //   · TETO: o roteiro cabe inteiro nos 3 clipes do passo mais barato (6 s) na régua real da casa (2,5 pal/s = a da guarda
@@ -46,15 +46,26 @@ export function fastestClassicPersonaRate(language: string): { wordsPerSecond: n
 //     clipes exige (lib/durationByEngine seedanceShortSpeechCapacity: fala × 1,04 + o décimo do compose) →
 //     ⌊(3 × (6 − 0,16) − 0,1) ÷ 1,04 × 2,5⌋ = ⌊41,9⌋ = 41 palavras. Revisão adversarial (29/09): o teto antigo, 43 (sem
 //     folga), deixava 0,32 s de margem — a voz 2 % mais lenta já devolvia o clipe 0 no fim do filme.
-// Piso = teto = 41 palavras (~40) = 16,4 s de fala a 2,5 pal/s (16,2 s no ritmo do canário). A mesma função responde ao
-// /api/generate-script (piso e teto do prompt; a outra entrega corta os blocos extras em maxWordsFor) e ao guardião.
-/** Faixa de palavras do roteiro do filme de 15 s no Seedance 1.5 (piso na voz mais rápida; teto que cabe em 3 × 6 s com folga). */
-export function seedanceShortWriterWords(language: string = 'en'): { min: number; max: number; wordsPerSecond: number } {
+// ═══ KINEO-ROTEIRO-15S-FRASE-INTEIRA-2026-09-29 — o piso desce: a faixa deixa de ser 41–41 ═══
+// Defeito no ar (29/09 ~06:55 UTC, filme grátis de 15 s em português): com piso = teto = 41, o corte do escritor não
+// tinha frase inteira para tirar sem cair abaixo do piso e aparava PALAVRAS ("…do metrô em São.", "…perfeito para.").
+// Agora o piso sai da MESMA régua do teto (a da casa, 2,5 pal/s — a da guarda do filme curto e do planejador 3x6), com o
+// piso C2 do contrato (95 % do alvo):
+//   · PISO: ⌈15 × 0,95 × 2,5⌉ = ⌈35,625⌉ = 36 palavras = 14,4 s a 2,5 pal/s;
+//   · TETO (inalterado): ⌊(3 × (6 − 0,16) − 0,1) ÷ 1,04 × 2,5⌋ = ⌊41,9⌋ = 41 palavras = 16,4 s.
+// Faixa 36–41 = 14,4–16,4 s de fala na régua da casa: o plano 3x6 escolhe o clipe pela fala real (lib/durationByEngine
+// seedanceShortClipSeconds), e o corte do escritor ganha 5 palavras de espaço para tirar FRASES inteiras. O piso antigo
+// (⌈15 × 0,95 × 2,81⌉ = 41, na persona mais rápida) fica exposto em `fastestFloor` para o rastro: abaixo dele, as vozes
+// acima de 2,5 pal/s (storyteller 2,63, futuristic-ai 2,65, energetic-facts 2,81) podem ficar abaixo do C2 no portão de
+// narração do cinematic (pendência registrada no commit; aquele portão é da rota do cinematic, sob a trava 8.2).
+/** Faixa de palavras do roteiro do filme de 15 s no Seedance 1.5 (piso C2 na régua da casa; teto que cabe em 3 × 6 s com folga). */
+export function seedanceShortWriterWords(language: string = 'en'): { min: number; max: number; wordsPerSecond: number; fastestFloor: number } {
   const rapida = fastestClassicPersonaRate(language).wordsPerSecond
-  const min = Math.ceil(SEEDANCE_SHORT_SECONDS * MIN_COVERAGE * rapida - 1e-9)
+  const fastestFloor = Math.ceil(SEEDANCE_SHORT_SECONDS * MIN_COVERAGE * rapida - 1e-9)
   const cabe = seedanceShortSpeechCapacity(SEEDANCE_SHORT_CLIP_STEPS[0], KLING25_CLIP_LOSS_SECONDS)
-  const max = Math.max(min, Math.floor(cabe * VERBATIM_EST_WORDS_PER_SECOND + 1e-9))
-  return { min, max, wordsPerSecond: VERBATIM_EST_WORDS_PER_SECOND }
+  const max = Math.floor(cabe * VERBATIM_EST_WORDS_PER_SECOND + 1e-9)
+  const min = Math.min(max, Math.ceil(SEEDANCE_SHORT_SECONDS * MIN_COVERAGE * VERBATIM_EST_WORDS_PER_SECOND - 1e-9))
+  return { min, max, wordsPerSecond: VERBATIM_EST_WORDS_PER_SECOND, fastestFloor }
 }
 /** O pedido é o 15 s do Seedance: a duração curta na régua genérica do clássico (writerRateFor de 'cinematic_ai'). */
 function isSeedanceShortWriter(seconds: number, wordsPerSecond: number, coverage: number): boolean {

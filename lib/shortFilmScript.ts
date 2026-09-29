@@ -9,13 +9,26 @@
 // O conserto é determinístico, depois da geração (o modelo não é confiável para contar):
 //   1. keepShortFilmSections: fica HOOK, MICRO REWARD 1, MICRO REWARD 2 e PAYOFF, nesta ordem; MR3, ESCALATION e
 //      RHYTHM saem inteiros (só quando HOOK e PAYOFF existem — sem eles não há como saber o que é a história);
-//   2. a rota decide a nova tentativa (1 só) com o reforço "at most N spoken words, only these 4 sections";
-//   3. fitShortFilmScript: se AINDA passar do teto, corta até caber — primeiro frases inteiras dos blocos do meio
-//      (MR2, MR1, depois a 2ª frase do HOOK), só se o resultado não cair abaixo do piso; se nenhuma frase inteira
-//      couber, apara palavras do fim do bloco do meio mais longo (nunca do PAYOFF, que entrega a resposta).
+//   2. stripSocialCta: o filme de 15 s não tem "Follow for more" (ver abaixo);
+//   3. fitShortFilmScript: se passar do teto, tira FRASES INTEIRAS (e, se preciso, um bloco MICRO REWARD inteiro) até
+//      caber — nunca uma palavra do meio de uma frase;
+//   4. a rota decide a nova tentativa (1 só) quando o resultado fica abaixo do piso, com a contagem explícita.
+//
+// ═══ KINEO-ROTEIRO-15S-FRASE-INTEIRA-2026-09-29 [TRAVA 8.2 — "vai" do 15 s] — nunca cortar dentro de uma frase ═══
+// Defeito no ar (produção c55bab53, 29/09 ~06:55 UTC): o filme grátis de 15 s ("Let AI structure it", português) saiu
+// com "Localizado a poucos passos do metrô em São." e "Espaço surpreendente e bem distribuído, perfeito para." — e um
+// "Seguir para mais!" no PAYOFF. A causa: a faixa do escritor era 41–41 (piso = teto, lib/scriptWriterRate) e cada bloco
+// do meio era UMA frase; nenhuma frase inteira podia sair sem cair abaixo do piso, e o último recurso aparava PALAVRAS do
+// fim do bloco mais longo até caber. O "corte por palavra" morreu: agora o corte escolhe, entre as combinações de frases
+// removíveis, a que cabe na faixa com o PAYOFF inteiro, mais blocos e mais palavras (a 1ª frase do HOOK e a do PAYOFF
+// ficam; um bloco MICRO REWARD pode sair inteiro). Sem combinação dentro da faixa, passar do teto até o que a guarda do
+// cinematic aceita (hardMaxWords: 56 palavras = 22,5 s, 3 × 8 s) vence ficar abaixo do piso; acima disso, o texto sai
+// com frases inteiras e a guarda recusa com mensagem honesta, sem cobrar. Abaixo do piso ou acima do teto, a rota pede
+// 1 nova tentativa ao GPT com a contagem explícita e fica com a melhor das duas versões.
 //
 // Módulo PURO (sem import): a contagem de palavras é INJETADA pela rota — a mesma régua da guarda do cinematic
-// (parseUserScript(...).narration, palavras por espaço). Executado por scripts/test-entrada-seedance15-2026-09-29.mjs.
+// (parseUserScript(...).narration, palavras por espaço). Executado por scripts/test-entrada-seedance15-2026-09-29.mjs e
+// scripts/test-roteiro-15s-frase-inteira-2026-09-29.mjs.
 
 /** Alvos até aqui são "filme curto": o prompt do escritor já pede só 4 seções (generate-script, KINEO1-ROTEIRO-DA-COTA). */
 export const SHORT_FILM_MAX_TARGET_SECONDS = 20
@@ -74,6 +87,10 @@ function render(blocks: Block[]): string {
   return blocks.map((b) => [b.prefix, b.body].filter(Boolean).join(' ')).join('\n\n')
 }
 
+function labelOf(b: Block): string {
+  return b.kind === 'MR' ? `MICRO REWARD ${b.mrIndex}` : b.kind
+}
+
 /**
  * Filme curto: fica só HOOK, MICRO REWARD 1, MICRO REWARD 2 e PAYOFF (nesta ordem). Sem HOOK ou sem PAYOFF, devolve
  * o texto intacto (não há como saber o que é a história). O preâmbulo antes do 1º cabeçalho sai (não é fala do filme).
@@ -85,7 +102,7 @@ export function keepShortFilmSections(script: string): { script: string; dropped
   if (!hook || !payoff) return { script, dropped: [] }
   const mrs = blocks.filter((b) => b.kind === 'MR').sort((a, b) => a.mrIndex - b.mrIndex)
   const kept: Block[] = [hook, ...mrs.slice(0, 2), payoff]
-  const dropped = blocks.filter((b) => !kept.includes(b)).map((b) => (b.kind === 'MR' ? `MICRO REWARD ${b.mrIndex}` : b.kind))
+  const dropped = blocks.filter((b) => !kept.includes(b)).map(labelOf)
   return { script: render(kept), dropped }
 }
 
@@ -96,77 +113,223 @@ function sentencesOf(body: string): string[] {
   return body.split(SENTENCE_SPLIT).map((s) => s.trim()).filter(Boolean)
 }
 
+const wordsOf = (t: string): number => t.split(/\s+/).filter(Boolean).length
+
+// ─── CTA de rede social ─────────────────────────────────────────────────────────────────────────────────────────────
+// O filme de 15 s acaba quando a narração acaba: "Seguir para mais!" gasta 1,2 s de um filme de 15 e não é história.
+// O prompt de ≤ 20 s já não pede CTA; se vier, sai aqui. Só é CTA a frase IMPERATIVA de seguir/inscrever (o verbo abre
+// a frase, depois de um conectivo opcional) com objeto de CTA (mais/more/más, me/us/nos, canal, parte, dicas…) ou de no
+// máximo 2 palavras ("Follow now!", "Inscreva-se já!"). "Siga pela Avenida Ibirapuera" e "Follow the money." ficam.
+const semAcento = (t: string): string => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+const CTA_LEAD = String.raw`(?:(?:and|e|y|so|entao|entonces|now|agora|ahora|please|por favor|don'?t forget to|dont forget to|nao esqueca de|no olvides|like and|curta e|dale like y|deixe seu like e)\s+)*`
+const CTA_VERB = String.raw`(?:follow|subscribe|siga|sigam|segue|seguir|sigue|siguenos|sigueme|siganos|seguinos|inscreva|inscrevam|inscrevase|suscribete|suscribanse|suscribase)`
+const CTA_START = new RegExp(`^[\\s"'“¡¿(]*${CTA_LEAD}${CTA_VERB}\\b`)
+const CTA_OBJECT = /\b(?:more|mais|mas|me|us|nos|channel|canal|page|pagina|perfil|profile|part|parte|daily|diario|diaria|tips|dicas|consejos|like|likes|curtir|sininho|notifications|notificacoes|notificaciones|kineo)\b/
+
+/** A frase é um CTA de rede social ("Follow for more", "Seguir para mais!", "Sígueme para más")? */
+export function isSocialCta(sentence: string): boolean {
+  const n = semAcento(String(sentence ?? '')).trim()
+  if (!n) return false
+  const palavras = wordsOf(n)
+  if (palavras > 14 || !CTA_START.test(n)) return false
+  return CTA_OBJECT.test(n) || palavras <= 2
+}
+
+/** Tira do roteiro as frases de CTA de rede social (qualquer bloco). Sem nada a tirar, devolve o texto intacto. */
+export function stripSocialCta(script: string): { script: string; removed: string[] } {
+  const original = String(script ?? '')
+  const { blocks } = parseBlocks(original)
+  const removed: string[] = []
+  if (blocks.length === 0) {
+    const ss = sentencesOf(original.replace(/\s*\r?\n\s*/g, ' ').trim())
+    const kept = ss.filter((s) => { if (isSocialCta(s)) { removed.push(s); return false } return true })
+    return removed.length ? { script: kept.join(' '), removed } : { script: original, removed }
+  }
+  for (const b of blocks) {
+    const ss = sentencesOf(b.body)
+    const kept = ss.filter((s) => { if (isSocialCta(s)) { removed.push(s); return false } return true })
+    if (kept.length !== ss.length) b.body = kept.join(' ')
+  }
+  return removed.length ? { script: render(blocks), removed } : { script: original, removed }
+}
+
+// ─── Frase truncada ─────────────────────────────────────────────────────────────────────────────────────────────────
+// Detector (o guardião e o rastro da rota usam): frase sem pontuação final, ou que termina em preposição/artigo/
+// conjunção pendurada ("perfeito para.", "and the."). Pergunta não entra no 2º teste ("What are you waiting for?").
+const PENDURADAS = new Set([
+  // pt
+  'em', 'na', 'nas', 'nos', 'num', 'numa', 'para', 'pra', 'pro', 'de', 'do', 'da', 'dos', 'das', 'a', 'o', 'as', 'os', 'e', 'ou', 'com', 'que', 'por', 'pelo', 'pela', 'um', 'uma', 'ao', 'aos',
+  // en
+  'the', 'to', 'of', 'and', 'in', 'for', 'with', 'an', 'or', 'at', 'from',
+  // es
+  'el', 'la', 'los', 'las', 'un', 'una', 'y', 'en', 'con', 'del', 'al', 'por', 'que',
+])
+const FIM_DE_FRASE = /[.!?…]["'”’)\]]*$/
+
+/** Frases do roteiro (fala, sem cabeçalhos nem pistas) que parecem cortadas no meio. */
+export function truncatedSentences(script: string): string[] {
+  const { preamble, blocks } = parseBlocks(String(script ?? ''))
+  const corpos = blocks.length ? blocks.map((b) => b.body) : [preamble]
+  const ruins: string[] = []
+  for (const corpo of corpos) {
+    for (const s of sentencesOf(corpo)) {
+      if (!FIM_DE_FRASE.test(s)) { ruins.push(s); continue }
+      if (/\?["'”’)\]]*$/.test(s)) continue
+      const ultima = semAcento(s.replace(/[.!?…"'”’)\]]+$/, '')).split(/\s+/).filter(Boolean).pop() ?? ''
+      if (PENDURADAS.has(ultima.replace(/[,;:\-–—]+$/, ''))) ruins.push(s)
+    }
+  }
+  return ruins
+}
+
 export interface FitShortFilmArgs {
   maxWords: number
   minWords: number
   /** A régua da guarda do cinematic (a rota injeta parseUserScript(...).narration contada por espaço). */
   countWords: (script: string) => number
+  /**
+   * Teto DURO (opcional): o que a guarda do filme curto ainda aceita (Seedance 15 s: maxWordsForShortFilm = 56, 3 × 8 s).
+   * Sem combinação dentro de [minWords, maxWords], passar do teto até aqui VENCE ficar abaixo do piso — "passar do alvo é
+   * bom; ficar abaixo é defeito" (fundador 02/09), e abaixo do piso o portão de narração do cinematic pode recusar.
+   * Ausente = maxWords (sem folga).
+   */
+  hardMaxWords?: number
 }
 
 export interface FitShortFilmResult {
   script: string
   words: number
-  cut: 'none' | 'sentences' | 'words'
+  /** 'sentences' = saíram frases inteiras (e talvez um bloco inteiro). Não existe mais corte por palavra. */
+  cut: 'none' | 'sentences'
+  /** Blocos que saíram inteiros (ex.: 'MICRO REWARD 2'). */
+  droppedBlocks: string[]
+  /** Ficou abaixo do piso (a rota pede 1 nova tentativa; se ainda faltar, aceita — frases inteiras). */
+  belowFloor: boolean
+  /** Ficou acima de maxWords (até hardMaxWords, ou além quando nem o mínimo de frases coube). */
+  overCeiling: boolean
 }
 
+interface Unit { key: string; block: number; words: number; order: number; payoffTail: boolean }
+
 /**
- * Corta o roteiro curto até caber em maxWords, nunca abaixo de minWords. Ordem: frases inteiras (MR2, MR1, 2ª+ frase
- * do HOOK) enquanto o resultado ficar ≥ piso; depois, palavras do fim do bloco do meio mais longo. O PAYOFF nunca é
- * aparado (é a resposta que o HOOK prometeu). Determinístico: o mesmo texto sempre sai igual.
+ * Corta o roteiro curto até caber em maxWords, SEM NUNCA CORTAR DENTRO DE UMA FRASE. Fixas: a 1ª frase do HOOK e a 1ª do
+ * PAYOFF; todo o resto pode sair em frases inteiras (um bloco MICRO REWARD pode sair inteiro). Entre as combinações:
+ *   1º dentro da faixa [minWords, maxWords]; 2º acima do teto até hardMaxWords (o mais perto do teto); 3º abaixo do piso;
+ *   em cada faixa: PAYOFF inteiro > mais blocos > mais palavras (na 2ª, menos) > menos frases tiradas > tirar as do fim.
+ * Se nada couber nem em hardMaxWords, sai o mínimo de frases inteiras (1ª do HOOK + 1ª do PAYOFF + blocos sem frase
+ * removível) com overCeiling — a guarda do cinematic decide, com mensagem honesta. Determinístico.
  */
 export function fitShortFilmScript(script: string, args: FitShortFilmArgs): FitShortFilmResult {
   const { maxWords, minWords, countWords } = args
-  let current = String(script ?? '')
-  if (countWords(current) <= maxWords) return { script: current, words: countWords(current), cut: 'none' }
-  const { blocks } = parseBlocks(current)
-  let cut: FitShortFilmResult['cut'] = 'none'
-  const order = (): Block[] => {
-    const mrs = blocks.filter((b) => b.kind === 'MR').sort((a, b) => b.mrIndex - a.mrIndex)
-    const rest = blocks.filter((b) => b.kind !== 'MR' && b.kind !== 'HOOK' && b.kind !== 'PAYOFF')
-    const hook = blocks.filter((b) => b.kind === 'HOOK')
-    return [...rest, ...mrs, ...hook]
+  const hardMax = Math.max(maxWords, Number.isFinite(args.hardMaxWords) ? (args.hardMaxWords as number) : maxWords)
+  const original = String(script ?? '')
+  const n0 = countWords(original)
+  if (n0 <= maxWords) return { script: original, words: n0, cut: 'none', droppedBlocks: [], belowFloor: n0 < minWords, overCeiling: false }
+
+  const parsed = parseBlocks(original)
+  const blocks: Block[] = parsed.blocks.length
+    ? parsed.blocks
+    : [{ kind: 'HOOK', mrIndex: 0, prefix: '', body: parsed.preamble.replace(/\s*\n\s*/g, ' ') }]
+  const frases = blocks.map((b) => sentencesOf(b.body))
+  const hookAt = blocks.findIndex((b) => b.kind === 'HOOK')
+  const payoffAt = blocks.findIndex((b) => b.kind === 'PAYOFF')
+  const inicio = hookAt >= 0 ? hookAt : 0
+  const fim = payoffAt >= 0 ? payoffAt : blocks.length - 1
+
+  const units: Unit[] = []
+  let ordem = 0
+  frases.forEach((ss, i) => ss.forEach((s, j) => {
+    ordem += 1
+    if ((i === inicio || i === fim) && j === 0) return
+    units.push({ key: `${i}:${j}`, block: i, words: wordsOf(s), order: ordem, payoffTail: i === fim })
+  }))
+  const renderMask = (removed: Set<string>): string => render(
+    blocks
+      .map((b, i) => ({ ...b, body: frases[i].filter((_, j) => !removed.has(`${i}:${j}`)).join(' ') }))
+      .filter((b, i) => frases[i].length === 0 || b.body.length > 0),
+  )
+  const resultado = (removed: Set<string>, overCeiling: boolean): FitShortFilmResult => {
+    const texto = renderMask(removed)
+    const words = countWords(texto)
+    const droppedBlocks = blocks.filter((_, i) => frases[i].length > 0 && frases[i].every((__, j) => removed.has(`${i}:${j}`))).map(labelOf)
+    return { script: texto, words, cut: removed.size > 0 ? 'sentences' : 'none', droppedBlocks, belowFloor: words < minWords, overCeiling: overCeiling || words > maxWords }
   }
-  // 1) Frases inteiras.
-  for (let guard = 0; guard < 50 && countWords(current) > maxWords; guard++) {
-    let applied = false
-    for (const b of order()) {
-      const ss = sentencesOf(b.body)
-      if (ss.length < 2) continue
-      const before = b.body
-      b.body = ss.slice(0, -1).join(' ')
-      const candidate = render(blocks)
-      if (countWords(candidate) >= minWords) { current = candidate; cut = 'sentences'; applied = true; break }
-      b.body = before
-    }
-    if (!applied) break
+  if (units.length === 0) return { script: original, words: n0, cut: 'none', droppedBlocks: [], belowFloor: n0 < minWords, overCeiling: true }
+
+  // A régua injetada pode contar diferente da soma por espaço (pistas, números): a diferença entra como deslocamento, e
+  // o resultado é SEMPRE conferido na régua real; se ela passar do limite, o limite da estimativa desce e escolhe de novo.
+  const total = frases.reduce((a, ss) => a + ss.reduce((x, s) => x + wordsOf(s), 0), 0)
+  const desloc = n0 - total
+  let teto = maxWords
+  let duro = hardMax
+  for (let volta = 0; volta < 12; volta++) {
+    const escolha = melhorMascara(units, frases.map((ss) => ss.length), total + desloc, { piso: minWords, teto, duro })
+    if (!escolha) break
+    const r = resultado(escolha.removidas, false)
+    const limite = escolha.faixa === 'acima' ? hardMax : maxWords
+    if (r.words <= limite) return r
+    if (escolha.faixa === 'acima') duro -= r.words - hardMax
+    else teto -= r.words - maxWords
   }
-  // 2) Palavras do fim do bloco do meio mais longo (nunca o PAYOFF; o HOOK por último).
-  for (let guard = 0; guard < 400 && countWords(current) > maxWords; guard++) {
-    const candidatos = order()
-      .map((b) => ({ b, words: b.body.split(/\s+/).filter(Boolean) }))
-      .filter((c) => c.words.length > 3)
-      .sort((a, z) => (a.b.kind === 'HOOK' ? 1 : 0) - (z.b.kind === 'HOOK' ? 1 : 0) || z.words.length - a.words.length)
-    if (candidatos.length === 0) break
-    const alvo = candidatos[0]
-    const semUltima = alvo.words.slice(0, -1).join(' ').replace(/[,;:\-–—]+$/, '')
-    alvo.b.body = /[.!?]$/.test(semUltima) ? semUltima : `${semUltima}.`
-    const candidate = render(blocks)
-    if (countWords(candidate) < minWords) break
-    current = candidate
-    cut = 'words'
+  // Nada cabe nem no teto duro: o mínimo possível de frases inteiras.
+  return resultado(new Set(units.map((u) => u.key)), true)
+}
+
+type Faixa = 'dentro' | 'acima' | 'abaixo'
+
+/**
+ * A melhor combinação de frases a tirar, por estimativa aditiva de palavras (base = total estimado com deslocamento).
+ * null = nenhuma combinação fica ≤ duro.
+ */
+function melhorMascara(units: Unit[], frasesPorBloco: number[], base: number, lim: { piso: number; teto: number; duro: number }): { removidas: Set<string>; faixa: Faixa } | null {
+  const n = units.length
+  const RANK: Record<Faixa, number> = { dentro: 3, acima: 2, abaixo: 1 }
+  type Cand = { tirar: boolean[]; faixa: Faixa; chave: number[] }
+  const avalia = (tirar: boolean[]): Cand | null => {
+    let palavras = base
+    let quantas = 0
+    let tarde = 0
+    let payoffInteiro = 1
+    const tiradas = frasesPorBloco.map(() => 0)
+    units.forEach((u, i) => {
+      if (!tirar[i]) return
+      palavras -= u.words; quantas += 1; tarde += u.order; tiradas[u.block] += 1
+      if (u.payoffTail) payoffInteiro = 0
+    })
+    if (palavras > lim.duro) return null
+    const faixa: Faixa = palavras > lim.teto ? 'acima' : palavras >= lim.piso ? 'dentro' : 'abaixo'
+    const vivos = frasesPorBloco.reduce((a, k, i) => a + (k > 0 && tiradas[i] < k ? 1 : 0), 0)
+    return { tirar, faixa, chave: [RANK[faixa], payoffInteiro, vivos, faixa === 'acima' ? -palavras : palavras, -quantas, tarde] }
   }
-  // 3) Trava final: o TETO vence o piso. Acima do teto a guarda do cinematic recusa o filme inteiro (422); abaixo do
-  //    piso ele ainda sai. Só chega aqui texto sem blocos aparáveis (patológico): corta palavras do fim do texto.
-  for (let guard = 0; guard < 2000 && countWords(current) > maxWords; guard++) {
-    const antes = current
-    current = current.replace(/\s*\S+\s*$/, '')
-    if (current === antes || !current) break
-    cut = 'words'
+  let best: Cand | null = null
+  const considera = (c: Cand | null) => {
+    if (!c) return
+    if (!best) { best = c; return }
+    for (let i = 0; i < c.chave.length; i++) if (c.chave[i] !== best.chave[i]) { if (c.chave[i] > best.chave[i]) best = c; return }
   }
-  return { script: current, words: countWords(current), cut }
+  if (n <= 16) {
+    for (let mask = 0; mask < 1 << n; mask++) considera(avalia(units.map((_, i) => (mask & (1 << i)) !== 0)))
+  } else {
+    // Muitas frases (> 16 removíveis): guloso — tira do fim da história para o começo (a cauda do PAYOFF por último).
+    const ordemDeTirar = units.map((u, i) => ({ u, i })).sort((a, z) => Number(a.u.payoffTail) - Number(z.u.payoffTail) || z.u.order - a.u.order)
+    const tirar = units.map(() => false)
+    considera(avalia([...tirar]))
+    for (const { i } of ordemDeTirar) { tirar[i] = true; considera(avalia([...tirar])) }
+  }
+  if (!best) return null
+  const escolhido = best as Cand
+  return { removidas: new Set(units.filter((_, i) => escolhido.tirar[i]).map((u) => u.key)), faixa: escolhido.faixa }
+}
+
+/** O pós-processamento inteiro do filme curto, na ordem da rota: 4 seções → sem CTA de rede social → corte por frases. */
+export function finishShortFilmScript(script: string, args: FitShortFilmArgs): FitShortFilmResult & { droppedSections: string[]; ctaRemoved: string[] } {
+  const so4 = keepShortFilmSections(script)
+  const semCta = stripSocialCta(so4.script)
+  const ajuste = fitShortFilmScript(semCta.script, args)
+  return { ...ajuste, droppedSections: so4.dropped, ctaRemoved: semCta.removed }
 }
 
 /** O reforço da nova tentativa do filme curto (a rota junta aos problemas medidos). */
 export function shortFilmRetryInstruction(maxWords: number, minWords: number, seconds: number): string {
-  return `This is a ${seconds}-second film. Rewrite the FULL script with ONLY these 4 sections, each on its own line, in this order: ${SHORT_FILM_SECTIONS.join(', ')}. Do NOT write MICRO REWARD 3, ESCALATION or RHYTHM. Use at least ${minWords} and at most ${maxWords} spoken words in total (the [Pexels: ...] cues and the headers do not count) — the film ends when the narration ends, so the PAYOFF must still deliver the concrete answer the HOOK promised, with no teasing. Respond with ONLY the script.`
+  return `This is a ${seconds}-second film. Rewrite the FULL script with ONLY these 4 sections, each on its own line, in this order: ${SHORT_FILM_SECTIONS.join(', ')}. Do NOT write MICRO REWARD 3, ESCALATION or RHYTHM. Use at least ${minWords} and at most ${maxWords} spoken words in total — count them, and aim for about ${maxWords} (the [Pexels: ...] cues and the headers do not count). Every sentence must be complete. Do NOT add any follow/subscribe/like call to action. The film ends when the narration ends, so the PAYOFF must still deliver the concrete answer the HOOK promised, with no teasing. Respond with ONLY the script.`
 }

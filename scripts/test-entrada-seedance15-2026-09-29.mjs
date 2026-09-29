@@ -78,11 +78,19 @@ const LONGO = so4.script.replace('in Cameroon.', 'in Cameroon. It is one of only
 const cont = (t) => Math.max(falaDaGuarda(t), falaDaGuarda(t))
 const cortado = SF.fitShortFilmScript(LONGO, { maxWords: TETO, minWords: PISO, countWords: cont })
 checa(`roteiro de 4 blocos com ${falaDaGuarda(LONGO)} palavras: corte (${cortado.cut}) até ${cortado.words} — entre o piso ${PISO} e o teto ${TETO}; a guarda aceita`, falaDaGuarda(LONGO) > TETO && cortado.words <= TETO && cortado.words >= PISO && guarda(cortado.script).ok === true)
-const sem = SF.fitShortFilmScript('word '.repeat(90).trim(), { maxWords: TETO, minWords: PISO, countWords: cont })
-checa('texto sem cabeçalhos também nunca passa do teto (trava final)', sem.words <= TETO)
+// Reancorado 29/09 (KINEO-ROTEIRO-15S-FRASE-INTEIRA, defeito no ar "…do metrô em São." / "…perfeito para."): a "trava
+// final" que picava PALAVRAS do fim do texto para caber no teto morreu — era ela (e o aparo por palavra dos blocos) que
+// cortava frase no meio. Texto sem cabeçalho: sai frase inteira a frase inteira; uma "frase" só (sem pontuação) acima do
+// teto sai INTEIRA, marcada overCeiling, e a guarda do cinematic recusa com "encurte", sem cobrar — nunca picada.
+const semPontos = 'word '.repeat(90).trim()
+const sem = SF.fitShortFilmScript(semPontos, { maxWords: TETO, minWords: PISO, countWords: cont })
+checa('texto sem cabeçalhos e sem pontuação acima do teto: sai INTEIRO (overCeiling), nunca picado por palavra', sem.script === semPontos && sem.overCeiling === true && sem.cut === 'none')
+const semCab = Array.from({ length: 9 }, (_, i) => `Sentence number ${i} has exactly seven words here.`).join(' ')
+const semCabFit = SF.fitShortFilmScript(semCab, { maxWords: TETO, minWords: PISO, countWords: cont })
+checa(`texto sem cabeçalhos com frases: ${cont(semCab)} → ${semCabFit.words} ≤ ${TETO}, só frases inteiras`, semCabFit.words <= TETO && semCabFit.script.split(/(?<=[.])\s+/).every((f) => /^Sentence number \d has exactly seven words here\.$/.test(f)))
 {
-  const mut = roda(troca(SF_SRC, '  for (let guard = 0; guard < 2000 && countWords(current) > maxWords; guard++) {', '  for (let guard = 0; guard < 0; guard++) {'))
-  checa('mutante (sem a trava final) → vermelho: texto sem cabeçalho sai acima do teto', mut.fitShortFilmScript('word '.repeat(90).trim(), { maxWords: TETO, minWords: PISO, countWords: cont }).words > TETO)
+  const mut = roda(troca(SF_SRC, "  return body.split(SENTENCE_SPLIT).map((s) => s.trim()).filter(Boolean)", "  return body.split(/\\s+/).map((s) => s.trim()).filter(Boolean)"))
+  checa('mutante (de volta ao corte por palavra: cada palavra vira "frase") → vermelho: o texto sem pontuação sai picado', mut.fitShortFilmScript(semPontos, { maxWords: TETO, minWords: PISO, countWords: cont }).script !== semPontos)
 }
 checa('alvos: 15 é filme curto; 35/60/90 NÃO (intocados)', SF.isShortFilmTarget(15) && !SF.isShortFilmTarget(35) && !SF.isShortFilmTarget(60) && !SF.isShortFilmTarget(90))
 {
@@ -102,10 +110,13 @@ const L_ANCORAS = [
   '    if (missing.length > 0 || payoffIsEmpty(script) || curtoParaOAlvo(script) || longoParaOFilmeCurto(script)) {',
   '                ? `Your script had problems: ${problems.join(\'; \')}. ${shortFilmRetryInstruction(tetoFilmeCurto, pisoFilmeCurto, alvoSegundos)}`',
   '    if (filmeCurto && palavrasDoFilmeCurto(script) > tetoFilmeCurto) {',
-  '      const ajuste = fitShortFilmScript(script, { maxWords: tetoFilmeCurto, minWords: pisoFilmeCurto, countWords: palavrasDoFilmeCurto })',
+  // reancorado 29/09 (KINEO-ROTEIRO-15S-FRASE-INTEIRA): o corte ganhou o teto duro da guarda (hardMaxWords) — frases inteiras
+  '      const ajuste = fitShortFilmScript(script, { maxWords: tetoFilmeCurto, minWords: pisoFilmeCurto, countWords: palavrasDoFilmeCurto, hardMaxWords: tetoDuroFilmeCurto })',
+  // KINEO-ROTEIRO-15S-FRASE-INTEIRA: o fecho (4 seções → sem CTA → frases inteiras) corre logo depois da 1ª geração
+  '      fimDoFilmeCurto = fecharFilmeCurto(so4.script)',
 ]
 checa('a rota do escritor liga as 4 peças na ordem (seções → tentativa com reforço → corte final), teto derivado da guarda', L_ANCORAS.every((l) => temLinha(GS, l)) &&
-  GS.indexOf(L_ANCORAS[3]) < GS.indexOf(L_ANCORAS[4]) && GS.indexOf(L_ANCORAS[4]) < GS.indexOf(L_ANCORAS[6]) && GS.indexOf(L_ANCORAS[6]) < GS.indexOf('    if (forceAuthoring) {'))
+  GS.indexOf(L_ANCORAS[3]) < GS.indexOf(L_ANCORAS[4]) && GS.indexOf(L_ANCORAS[4]) < GS.indexOf(L_ANCORAS[6]) && GS.indexOf(L_ANCORAS[6]) < GS.indexOf('    if (forceAuthoring) {') && GS.indexOf(L_ANCORAS[3]) < GS.indexOf(L_ANCORAS[8]) && GS.indexOf(L_ANCORAS[8]) < GS.indexOf(L_ANCORAS[4]))
 checa('mutante (teto com + 10 na mesma linha) → vermelho', !temLinha(trocaLinha(GS, L_TETO, L_TETO.replace('maxWordsForShortFilm(alvoSegundos))', 'maxWordsForShortFilm(alvoSegundos)) + 10')), L_TETO))
 checa('a guarda do cinematic conta na MESMA régua (parseUserScript(prompt).narration)', temLinha(rd('app/api/generate-video-cinematic/route.ts'), "      const falaCurta = checarFalaDoFilmeCurto({ engine: typeof body.engine === 'string' ? body.engine : null, seconds: duration, verbatim, narration: parsedScript.narration })") && temLinha(rd('app/api/generate-video-cinematic/route.ts'), '    const parsedScript = parseUserScript(prompt)'))
 
