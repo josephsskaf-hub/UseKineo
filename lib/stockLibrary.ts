@@ -39,7 +39,10 @@ const CLIPS: LibraryClip[] = [
   { url: 'https://res.cloudinary.com/demo/video/upload/elephants.mp4',                   width: 1280, height: 720,  duration: 19, tags: ['nature', 'animal', 'wildlife', 'history', 'ancient'] },
   { url: 'https://res.cloudinary.com/demo/video/upload/samples/elephants.mp4',           width: 1280, height: 720,  duration: 19, tags: ['nature', 'animal', 'wildlife'] },
   { url: 'https://res.cloudinary.com/demo/video/upload/dog.mp4',                         width: 1280, height: 720,  duration:  8, tags: ['animal', 'nature'] },
-  { url: 'https://res.cloudinary.com/demo/video/upload/samples/cld-sample-video.mp4',    width: 1280, height: 720,  duration: 14, tags: ['city', 'luxury', 'business', 'money', 'technology'] },
+  // cld-sample-video.mp4 REMOVIDO — KINEO1-TAGS-PROIBIDAS-2026-09-28. Era "a menina" (feedback do fundador, 10 anúncios
+  // de 27-28/09): um clipe de demonstração do Cloudinary com uma pessoa, marcado business/money/technology/city/luxury,
+  // que entrava em toda cena de negócio/tecnologia quando a busca de estoque falhava e não havia clipe anterior para
+  // reciclar (1ª cena). A reserva neutra dessas tags passou a ser o time-lapse abstrato (flower.mp4, sem pessoa).
   // dance-2.mp4 removed (Push: stock-fallback fix) — a generic dancing-person clip
   // tagged 'lifestyle' (a NEUTRAL_FALLBACK_TAG), so it leaked into the fallback pool
   // and kept landing on the final PAYOFF scene. No relevance to any of the 5 verticals.
@@ -60,7 +63,10 @@ const CLIPS: LibraryClip[] = [
   // — MDN shared-assets (CC0, verified 206 on direct GET) —
   // Abstract blooming-flower time-lapse on a black background. Non-jarring, premium
   // look. 'lifestyle' tag removed — Push #350 hard-negative blacklist system.
-  { url: 'https://mdn.github.io/shared-assets/videos/flower.mp4', width: 960, height: 540, duration: 17, tags: ['abstract', 'nature'] },
+  // KINEO1-TAGS-PROIBIDAS-2026-09-28 — vira a reserva NEUTRA de business/money/technology/city/luxury no lugar da
+  // "menina" (cld-sample-video). Sem pessoa, sem marca, sem texto. 'nature' removida para não cair no filtro de
+  // natureza da rota em cena de negócio.
+  { url: 'https://mdn.github.io/shared-assets/videos/flower.mp4', width: 960, height: 540, duration: 17, tags: ['abstract', 'city', 'business', 'money', 'technology', 'luxury'] },
 
   // — NASA / SpaceX rocket footage (archive.org, Public Domain) — Push #217, revised #219 —
   // Fix: CLIPS had zero clips tagged rocket/space, so rocket topics fell back to sea turtle.

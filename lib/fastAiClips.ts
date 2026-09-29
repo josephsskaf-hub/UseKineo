@@ -27,6 +27,7 @@ import { fal } from '@fal-ai/client'
 import { persistHookClip } from './fastAiHook'
 import { alertFalExhausted, looksExhausted } from '@/lib/falAlert' // KINEO-FAL-SALDO-ALERTA-2026-09-28
 import type { StyleAnchor } from '@/lib/cinematic/sceneStyle' // KINEO1-FILME-DESENHADO-2026-09-21 (só tipo)
+import { buildFacelessClipPrompt, buildDrawnClipPrompt, aiClipSeedFromPrompt } from '@/lib/kineo1/aiClipPrompt' // KINEO1-CLIPE-IA-PROMPT-2026-09-28
 
 export const FIRST_FILM_BUDGET_USD = 0.5
 export const SEEDANCE_720P_5S_USD = 0.13
@@ -93,26 +94,19 @@ export function pickWeakScenes(scenes: SceneRelevance[], count: number): number[
     .sort((a, b) => a - b)
 }
 
-/** Prompt cinematográfico e sem rosto para a cena (mesma família do hook, com movimento de câmera explícito). */
+/**
+ * Prompt cinematográfico e sem rosto para a cena (mesma família do hook, com movimento de câmera explícito).
+ * KINEO1-CLIPE-IA-PROMPT-2026-09-28 — delega a lib/kineo1/aiClipPrompt.ts: a base visual é o SUJEITO/AÇÃO da cena
+ * (descrição real > busca do plano > frase descritiva da fala), sem marca/domínio/URL/@handle, sufixo negativo único,
+ * pessoas sem rosto (lista ampliada: father, wife, students, team, evaluators…). Assinatura intocada (a rota é travada).
+ */
 export function buildSceneClipPrompt(description: string, voiceover: string, query: string, look?: StyleAnchor | null): string {
   // KINEO1-FILME-DESENHADO-2026-09-21 — pedido de desenho: o clipe nasce no look pedido (não "photorealistic") e o
   // personagem desenhado pode aparecer inteiro (a silhueta é regra de pessoa REAL; caso jonathanschwapp 21/09).
   if (look && look.look !== 'photoreal' && look.look !== 'noir') {
-    const drawn = `${description || query || voiceover}`.replace(/\s+/g, ' ').trim().slice(0, 300)
-    return (
-      `${drawn}, ${look.lookPhrase}, gentle camera movement, soft lighting, high detail, ` +
-      `no text, no captions, no logos, no real person's likeness${look.suffix}`
-    )
+    return buildDrawnClipPrompt({ description, voiceover, query }, look, 'scene')
   }
-  const base = `${description || query || voiceover}`
-    .replace(/\b(man|woman|person|people|guy|girl|boy|kid|child|influencer|model)\b/gi, 'distant silhouetted figure')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 300)
-  return (
-    `${base}, cinematic shot, slow camera movement, photorealistic, dramatic lighting, ` +
-    `high detail, no text, no captions, no logos, no recognizable human faces`
-  )
+  return buildFacelessClipPrompt({ description, voiceover, query }, 'scene')
 }
 
 export interface PendingAiClip {
@@ -148,15 +142,22 @@ export function seedanceDurationParam(seconds?: number | null): SeedanceSeconds 
   return String(Math.max(SEEDANCE_MIN_SECONDS, Math.min(SEEDANCE_MAX_SECONDS, Math.ceil(seconds - 1e-9)))) as SeedanceSeconds
 }
 
-/** Submete um clipe Seedance 5 s 720p sem áudio. Nunca lança; null = não submeteu. */
-export async function submitSceneClip(prompt: string, seconds?: number): Promise<string | null> {
+/**
+ * Submete um clipe Seedance 5 s 720p sem áudio. Nunca lança; null = não submeteu.
+ * KINEO1-CLIPE-IA-PROMPT-2026-09-28 — `seed` (opcional) é a semente determinística; sem ela, nasce do prompt MAIS um
+ * discriminador por chamada (aiClipSeedFromPrompt, revisão 28/09): duas cenas do mesmo filme com a mesma fala ganham
+ * seeds diferentes (só do prompt, saía o MESMO clipe duas vezes). Quem tem o índice da cena passa `seed` =
+ * aiClipSeed(generationId, cena) ou aiClipSeedFromPrompt(prompt, cena). O schema da fal (Seedance 1.5 Pro t2v,
+ * conferido em 28/09) aceita `seed: integer | null` ("Use -1 for random"). A rota (trava 8.2) segue com 1 argumento.
+ */
+export async function submitSceneClip(prompt: string, seconds?: number, seed?: number): Promise<string | null> {
   try {
     const falKey = process.env.FAL_KEY
     if (!falKey) return null
     fal.config({ credentials: falKey })
     const { request_id } = await fal.queue.submit(SEEDANCE_MODEL, {
       // KINEO1-IMAGEM-V2-2026-09-28 — `seconds` (opcional) troca só a duração; sem ele, o pedido é o de sempre.
-      input: { prompt, aspect_ratio: '9:16', resolution: '720p', duration: '5', generate_audio: false, ...(seconds !== undefined ? { duration: seedanceDurationParam(seconds) } : {}) },
+      input: { prompt, aspect_ratio: '9:16', resolution: '720p', duration: '5', generate_audio: false, ...(seconds !== undefined ? { duration: seedanceDurationParam(seconds) } : {}), seed: Number.isInteger(seed) ? (seed as number) : aiClipSeedFromPrompt(prompt) },
     })
     return request_id || null
   } catch (err) {

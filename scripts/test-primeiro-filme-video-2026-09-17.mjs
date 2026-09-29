@@ -18,7 +18,7 @@ const checa = (n, c) => { if (c) ok++; else falhas.push(n) }
 function load(file, env = {}) {
   const exports = {}
   const js = ts.transpileModule(rd(file), { compilerOptions: { module: 1, target: 9 } }).outputText
-  vm.runInNewContext(js, { exports, require: () => ({}), process: { env }, console, Math, Date, Number, Set, Map, Array, JSON, Promise, setTimeout, clearTimeout }, { filename: file })
+  vm.runInNewContext(js, { exports, require: (m) => (m === '@/lib/kineo1/aiClipPrompt' ? load('lib/kineo1/aiClipPrompt.ts', env) : {}), process: { env }, console, Math, Date, Number, Set, Map, Array, JSON, Object, RegExp, String, Promise, setTimeout, clearTimeout }, { filename: file })
   return exports
 }
 

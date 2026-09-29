@@ -1,6 +1,6 @@
 'use client'
 
-import KineoBolt, { KineoBoltText } from '@/components/KineoBolt'
+import { KineoBoltText, KineoBrandIcon } from '@/components/KineoBolt'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -249,7 +249,7 @@ export default function AuthModal({ onClose, defaultTab = 'signup', redirectTo }
 
           {/* Logo */}
           <div className="flex items-center gap-3 mb-6">
-            <KineoBolt size={32} />
+            <KineoBrandIcon size={32} />
             <div>
               <div className="font-black text-sm tracking-tight" style={{ background: 'linear-gradient(135deg, #2997ff, #2997ff)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                 Kineo

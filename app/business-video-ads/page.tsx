@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
-import KineoBolt from '@/components/KineoBolt'
+import { KineoBrandIcon } from '@/components/KineoBolt'
 import { DFY_SERVICE_FACT } from '@/lib/growth/dfyServiceFacts'
 import { adsSegmentOffer } from '@/lib/growth/adsSegmentPresentation'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
@@ -26,7 +26,7 @@ const BRIEFS = [
 export default function BusinessVideoAdsPage() {
   const offer = adsSegmentOffer()
   return <div className={styles.surface}><main className={styles.page}>
-    <nav className={styles.nav} aria-label="Business video navigation"><a href="/" className={styles.brand}><KineoBolt size={33} />Kineo<span> / empresas</span></a><a href="/ads">Explore Studio Ads ↗</a></nav>
+    <nav className={styles.nav} aria-label="Business video navigation"><a href="/" className={styles.brand}><KineoBrandIcon size={33} />Kineo<span> / empresas</span></a><a href="/ads">Explore Studio Ads ↗</a></nav>
     <header className={styles.hero} data-kineo="business-self-service-first">
       <div className={styles.heroCopy}>
       <p className={styles.eyebrow}>STUDIO ADS · MAKE IT YOURSELF</p>

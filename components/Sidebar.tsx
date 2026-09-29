@@ -1,6 +1,6 @@
 'use client'
 
-import KineoBolt from '@/components/KineoBolt'
+import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 
 import Link from 'next/link'
 import { WORKSPACE_NAV, MORE_NAV, navItemIdFor, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
@@ -586,7 +586,7 @@ export default function Sidebar({
           className="flex items-center gap-3 px-5 flex-shrink-0"
           style={{ height: 72, borderBottom: '1px solid var(--border)', textDecoration: 'none' }}
         >
-          <KineoBolt size={32} />
+          <KineoBrandIcon size={32} />
           <div className="flex flex-col" style={{ gap: 2 }}>
             <div
               className="font-black tracking-tight leading-none"
