@@ -42,7 +42,9 @@ const roda = (src, globals = {}) => {
 const fatia = (src, ini, fim) => { const a = src.indexOf(ini); if (a < 0) return null; const b = src.indexOf(fim, a + ini.length); return b < 0 ? null : src.slice(a, b + fim.length) }
 // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29 — o /api/compose ganhou só o import e o bloco
 // marcados da voz assinada do filme de 15 s (linhas acrescentadas, antes de `vertical`/`explicitSpeed`); fora deles, byte a byte a base.
-const semVoz15 = (p, s) => { if (p !== 'app/api/compose/route.ts' || s == null) return s; const bloco = fatia(s, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29 — o filme de 15 s do', '    if (vozAssinada) { body.vertical = vozAssinada.vertical; body.speed = vozAssinada.speed }\n'); return (bloco ? s.split(bloco).join('') : s).split('\n').filter((l) => !(l.startsWith('import {') && l.includes("from '@/lib/vozDoFilmeCurto'"))).join('\n') }
+// Reancorado 29/09 ([TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29): + a linha marcada `language,` do
+// claim concluído (a língua da narração para o render_delivered_measured) — só acrescentada, uma linha, fora de todo caminho do Veo.
+const semVoz15 = (p, s) => { if (p !== 'app/api/compose/route.ts' || s == null) return s; const bloco = fatia(s, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29 — o filme de 15 s do', '    if (vozAssinada) { body.vertical = vozAssinada.vertical; body.speed = vozAssinada.speed }\n'); return (bloco ? s.split(bloco).join('') : s).split('\n').filter((l) => !(l.startsWith('import {') && l.includes("from '@/lib/vozDoFilmeCurto'")) && !(l.startsWith('        language, // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29'))).join('\n') }
 const eqJ = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 const palavras = (t) => String(t ?? '').trim().split(/\s+/).filter(Boolean)
 const git = (args) => execFileSync('git', args, { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()

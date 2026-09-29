@@ -7,6 +7,9 @@ import { speechRateForScript, narrationFitAt, speechSecondsAt } from '@/lib/spee
 // (app/api/generate-video-cinematic: `parseUserScript(prompt).narration`).
 // Importar daqui é o que garante que as duas pontas nunca mais divirjam.
 import { parseUserScript } from '@/lib/scriptParser'
+// [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29 — a régua do 15 s do Seedance na língua.
+import { SEEDANCE_SHORT_SECONDS, VERBATIM_EST_WORDS_PER_SECOND, isSeedance15, ritmoDaVozNoIdioma } from '@/lib/durationByEngine'
+import { resolveNarrationLanguage } from '@/lib/textLanguage'
 // KINEO-350-POLITICA — as regras puras (teto, preflight, preservação do autor,
 // duração sugerida) moram em lib/expandPolicy para serem testáveis de verdade.
 import {
@@ -95,9 +98,9 @@ export async function POST(req: NextRequest) {
     } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
 
-    let body: { script?: string; targetSeconds?: number; baseScript?: string; engine?: string }
+    let body: { script?: string; targetSeconds?: number; baseScript?: string; engine?: string; language?: string }
     try {
-      body = (await req.json()) as { script?: string; targetSeconds?: number; baseScript?: string; engine?: string }
+      body = (await req.json()) as { script?: string; targetSeconds?: number; baseScript?: string; engine?: string; language?: string }
     } catch {
       return NextResponse.json({ error: 'invalid body' }, { status: 400 })
     }
@@ -110,6 +113,15 @@ export async function POST(req: NextRequest) {
     // loop. As três funções abaixo têm os nomes de sempre de propósito: as
     // fórmulas desta rota não mudam, só a régua que entra nelas.
     const regua = speechRateForScript(body.engine, original) // família do motor + velocidade escrita no roteiro
+    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29 — no filme de 15 s do Seedance 1.5 a
+    // régua da família (3,1 pal/s) não é a do portão: a rota do cinematic mede na voz do 15 s (limitada à régua da casa, 2,5
+    // × a velocidade escrita) no ritmo da LÍNGUA (ritmoDaVozNoIdioma: tr 2,03, de 2,12, en/pt/es 2,5). A 3,1, a expansão
+    // mirava 47 palavras para 15 s — 23 s de fala turca, acima do teto de 45 da guarda (422 'script_too_long_for_short_film').
+    // Aqui ela mira a voz MAIS RÁPIDA do 15 s na língua: o texto expandido passa no portão com qualquer voz e cabe na guarda.
+    // Língua: a que o cliente manda, resolvida contra o texto como a rota resolve. Fora do 15 s do Seedance: nada muda.
+    if (target === SEEDANCE_SHORT_SECONDS && typeof body.engine === 'string' && body.engine.trim() !== '' && isSeedance15(body.engine)) {
+      regua.wordsPerSecond = ritmoDaVozNoIdioma(Math.round(VERBATIM_EST_WORDS_PER_SECOND * regua.speed * 100) / 100, resolveNarrationLanguage(body.language, parseUserScript(original).narration || original).language)
+    }
     const WORDS_PER_SECOND = regua.wordsPerSecond
     const narrationFit = (texto: string, alvo: number) => narrationFitAt(texto, alvo, regua)
     const speechSeconds = (texto: string) => speechSecondsAt(texto, regua)

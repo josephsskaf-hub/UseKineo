@@ -24,6 +24,7 @@ import { looksLikeModelRefusal, MODEL_REFUSAL_MESSAGE } from '@/lib/modelRefusal
 // do filme curto da rota do cinematic aceita (lib/durationByEngine.ts), contado na MESMA régua dela (parseUserScript).
 import { parseUserScript } from '@/lib/scriptParser'
 import { maxWordsForShortFilm, isSeedance15 } from '@/lib/durationByEngine'
+import { faixaAceitaNoFilmeCurto } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29
 import { isShortFilmTarget, keepShortFilmSections, fitShortFilmScript, shortFilmRetryInstruction, finishShortFilmScript, stripSocialCta, truncatedSentences } from '@/lib/shortFilmScript'
 
 // KINEO-OPENAI-HANG-2026-08-05 — this route was the ONLY OpenAI-backed route in
@@ -376,6 +377,17 @@ export async function POST(req: NextRequest) {
     // ainda aceita (22,5 s = 56 palavras, 3 × 8 s). Sem combinação de frases inteiras dentro de [piso, teto], passar do
     // teto até aqui vence ficar abaixo do piso ("passar do alvo é bom; ficar abaixo é defeito"). Kineo 1: sem folga.
     const tetoDuroFilmeCurto = isSeedance15(typeof body.engine === 'string' ? body.engine : null) ? Math.max(tetoFilmeCurto, maxWordsForShortFilm(alvoSegundos, idiomaDoRitmo)) : tetoFilmeCurto
+    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29 — o que a rota do cinematic ACEITA no
+    // filme curto do Seedance 1.5, na língua (lib/durationByEngine faixaAceitaNoFilmeCurto: o portão de 95 % na voz mais rápida
+    // do 15 s e a guarda de roteiro longo; tr 29–45, en/pt/es 36–56). Entre as duas versões do escritor, a que o cinematic aceita
+    // vence a que ele recusa (notaDoFilmeCurto, abaixo). Caso de 29/09 09:27 UTC (Turquia): 27 palavras (o portão recusa) ficavam
+    // no lugar de ~40 (a guarda aceita) porque "cabe no teto da faixa" pesava mais — e o 1º filme morria em 'narration_too_short'.
+    // Fora do 15 s do Seedance (Kineo 1, 35/60/90): null — a escolha entre as versões fica como sempre.
+    const faixaDoCinematic = idiomaDoRitmo !== undefined ? faixaAceitaNoFilmeCurto(alvoSegundos, MIN_COVERAGE, idiomaDoRitmo) : null
+    const oCinematicAceita = (t: string): boolean => faixaDoCinematic !== null && falaNaReguaDaGuarda(t) >= faixaDoCinematic.min && palavrasDoFilmeCurto(t) <= faixaDoCinematic.max
+    /** O rastro de uma versão do filme curto (log e script_written): palavras na régua da guarda e se o cinematic a aceita. */
+    const versaoDoFilmeCurto = (t: string): { words: number; cinematic_accepts: boolean | null } => ({ words: palavrasDoFilmeCurto(t), cinematic_accepts: faixaDoCinematic ? oCinematicAceita(t) : null })
+    const versoesDoFilmeCurto: { words: number; cinematic_accepts: boolean | null }[] = []
     // Revisão da E2b (achado 7): estas réguas subiram para ANTES do retorno antecipado dos marcadores — o texto que já
     // chega estruturado (o roteiro de 35/60 s guardado em structuredScriptRef, o episódio da série) também é filme curto.
     // Se o tópico já tem os marcadores virais, devolve como está — sem GPT.
@@ -458,13 +470,17 @@ export async function POST(req: NextRequest) {
       secoesCortadas.push(...so4.dropped)
       fimDoFilmeCurto = fecharFilmeCurto(so4.script)
       script = fimDoFilmeCurto.script
+      versoesDoFilmeCurto.push(versaoDoFilmeCurto(script)) // KINEO-PONTAS-15S-IDIOMA: a 1ª versão, já fechada
     }
     const longoParaOFilmeCurto = (t: string) => filmeCurto && palavrasDoFilmeCurto(t) > tetoFilmeCurto
-    /** Qual das duas versões do filme curto fica: estrutura > cabe no teto > chega ao piso > mais palavras dentro do teto. */
+    /**
+     * Qual das duas versões do filme curto fica: estrutura > o cinematic ACEITA > cabe no teto > chega ao piso > mais palavras
+     * dentro do teto. KINEO-PONTAS-15S-IDIOMA-2026-09-29: o 2º critério só separa no 15 s do Seedance (fora dele é 0 nas duas).
+     */
     const notaDoFilmeCurto = (t: string): number[] => {
       const n = palavrasDoFilmeCurto(t)
       const estrutura = missingElements(t).filter((m) => m === 'HOOK' || m === 'PAYOFF').length === 0 && !payoffIsEmpty(t) ? 1 : 0
-      return [estrutura, n <= tetoFilmeCurto ? 1 : 0, n >= pisoFilmeCurto ? 1 : 0, n <= tetoFilmeCurto ? n : -n]
+      return [estrutura, oCinematicAceita(t) ? 1 : 0, n <= tetoFilmeCurto ? 1 : 0, n >= pisoFilmeCurto ? 1 : 0, n <= tetoFilmeCurto ? n : -n]
     }
     const segundaEMelhor = (primeira: string, segunda: string): boolean => {
       const a = notaDoFilmeCurto(primeira), b = notaDoFilmeCurto(segunda)
@@ -525,6 +541,9 @@ export async function POST(req: NextRequest) {
           if (filmeCurto) {
             // KINEO-ROTEIRO-15S-FRASE-INTEIRA — a 2ª versão passa pelo MESMO fecho; fica a melhor das duas.
             const fimDaTentativa = fecharFilmeCurto(retryScript)
+            // KINEO-PONTAS-15S-IDIOMA-2026-09-29 — o tamanho das duas versões vai para o log (e para o script_written).
+            versoesDoFilmeCurto.push(versaoDoFilmeCurto(fimDaTentativa.script))
+            console.log(`[generate-script] KINEO-PONTAS-15S-IDIOMA duas versões do filme curto: 1ª ${palavrasDoFilmeCurto(script)} palavras${faixaDoCinematic ? ` (o cinematic ${oCinematicAceita(script) ? 'aceita' : 'recusa'})` : ''}, 2ª ${palavrasDoFilmeCurto(fimDaTentativa.script)}${faixaDoCinematic ? ` (o cinematic ${oCinematicAceita(fimDaTentativa.script) ? 'aceita' : 'recusa'})` : ''} → fica a ${segundaEMelhor(script, fimDaTentativa.script) ? '2ª' : '1ª'} (faixa ${pisoFilmeCurto}-${tetoFilmeCurto}${faixaDoCinematic ? `, o cinematic aceita ${faixaDoCinematic.min}-${faixaDoCinematic.max}` : ''}, língua ${idiomaDoRitmo ?? '-'}, alvo ${alvoSegundos}s)`)
             if (segundaEMelhor(script, fimDaTentativa.script)) { script = fimDaTentativa.script; fimDoFilmeCurto = fimDaTentativa }
           } else {
             script = retryScript
@@ -588,7 +607,7 @@ export async function POST(req: NextRequest) {
       name: 'script_written',
       userId: user.id,
       path: '/api/generate-script',
-      metadata: { engine: typeof body.engine === 'string' ? body.engine : null, family: regua.family, voice: regua.voice, words_per_second: regua.wordsPerSecond, target_seconds: alvoSegundos, quota_seconds: cotaSegundos, requested_seconds: Number.isFinite(pedido) ? pedido : null, min_words: alvoPalavras, words: scriptWordCount(script), fits: scriptWordCount(script) >= alvoPalavras, language, ...(filmeCurto ? { short_film_ceiling: tetoFilmeCurto, short_film_words: palavrasDoFilmeCurto(script), short_film_sections_dropped: secoesCortadas, short_film_cut: corteDoFilmeCurto, short_film_floor: pisoFilmeCurto, short_film_below_floor: palavrasDoFilmeCurto(script) < pisoFilmeCurto, short_film_blocks_dropped: fimDoFilmeCurto?.droppedBlocks ?? [], short_film_cta_removed: fimDoFilmeCurto?.ctaRemoved.length ?? 0, short_film_truncated_sentences: truncatedSentences(script).length } : {}) },
+      metadata: { engine: typeof body.engine === 'string' ? body.engine : null, family: regua.family, voice: regua.voice, words_per_second: regua.wordsPerSecond, target_seconds: alvoSegundos, quota_seconds: cotaSegundos, requested_seconds: Number.isFinite(pedido) ? pedido : null, min_words: alvoPalavras, words: scriptWordCount(script), fits: scriptWordCount(script) >= alvoPalavras, language, ...(filmeCurto ? { short_film_ceiling: tetoFilmeCurto, short_film_words: palavrasDoFilmeCurto(script), short_film_sections_dropped: secoesCortadas, short_film_cut: corteDoFilmeCurto, short_film_floor: pisoFilmeCurto, short_film_below_floor: palavrasDoFilmeCurto(script) < pisoFilmeCurto, short_film_blocks_dropped: fimDoFilmeCurto?.droppedBlocks ?? [], short_film_cta_removed: fimDoFilmeCurto?.ctaRemoved.length ?? 0, short_film_truncated_sentences: truncatedSentences(script).length, short_film_versions: versoesDoFilmeCurto, short_film_cinematic_range: faixaDoCinematic } : {}) },
     })
     return NextResponse.json({ script, alreadyStructured: false, wordsPerSecond: regua.wordsPerSecond, family: regua.family, targetSeconds: alvoSegundos, minWords: alvoPalavras, words: scriptWordCount(script), pastedScript: colado.pasted, pastedReason: colado.reason })
   } catch (err) {

@@ -25,6 +25,14 @@ import type { NarrationLanguage } from '@/lib/textLanguage'
 // MESMA que a rota do cinematic usa para o Seedance (supportedDurationsFor, lib/durationByEngine.ts). Sem isto, 45
 // palavras a 15 s davam "too short — pick 35" num filme que o servidor renderiza.
 import { supportedDurationsFor } from '@/lib/durationByEngine'
+// [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29 — no filme de 15 s do Seedance 1.5 a régua
+// do contador é a do PORTÃO da rota do cinematic: a voz que a montagem vai falar (lib/vozDoFilmeCurto, limitada à régua da
+// casa) no ritmo da língua (ritmoDaVozNoIdioma — a MESMA fonte de ritmoDoFilmeCurto do escritor e da guarda). Antes, a persona
+// sem idioma: 30 palavras turcas (fala real de ~15 s) davam "too short" na tela e o servidor as aceitava; e, na voz mais lenta
+// que a do servidor, um texto que o portão recusa podia aparecer como "✓ fills".
+import { ritmoDaVozNoIdioma } from '@/lib/durationByEngine'
+import { vozDoFilmeCurto } from '@/lib/vozDoFilmeCurto'
+import { VOICE_PERSONAS } from '@/lib/narration/personas'
 
 export type ContadorMotor = 'fast' | 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25'
 
@@ -47,8 +55,11 @@ export interface ReguaDaTela {
  *  · clássico cinematic (generate-video-cinematic ~1540): selectPersonaForScript(prompt, vertical, 'cinematic', language)
  *  · hollywood: família 2,3 pal/s (voz própria), sem persona
  * e a velocidade lida do próprio texto (`speed: 1.2`), como nas duas rotas.
+ * KINEO-PONTAS-15S-IDIOMA-2026-09-29: com `seconds` = 15 no Seedance 1.5, a régua é a do portão do filme curto na rota do
+ * cinematic (~1581-1594): vozDoFilmeCurto(narração, vertical, língua) → speechRateFor → ritmoDaVozNoIdioma. Sem `seconds`
+ * (ou fora do 15 s do Seedance), tudo como antes.
  */
-export function reguaDoServidorNaTela(args: { engine: ContadorMotor; script: string; language: NarrationLanguage; vertical?: string | null }): ReguaDaTela {
+export function reguaDoServidorNaTela(args: { engine: ContadorMotor; script: string; language: NarrationLanguage; vertical?: string | null; seconds?: number | null }): ReguaDaTela {
   const script = args.script ?? ''
   const family = speechFamilyForQuality(args.engine)
   const speed = parseSpeed(script)
@@ -56,6 +67,20 @@ export function reguaDoServidorNaTela(args: { engine: ContadorMotor; script: str
     return { rate: speechRateFor({ family, speed, language: args.language }), persona: null, floorSeconds: AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD, supported: supportedDurationsFor(args.engine) }
   }
   const vertical = typeof args.vertical === 'string' && args.vertical.trim() ? args.vertical.trim().toLowerCase() : undefined
+  // KINEO-PONTAS-15S-IDIOMA-2026-09-29 — vozDoFilmeCurto é null fora do 15 s do Seedance 1.5 (confere motor e segundos), como na rota.
+  const vozCurta = typeof args.seconds === 'number' ? (() => {
+    try { return vozDoFilmeCurto({ engine: args.engine, seconds: args.seconds as number, narration: parseUserScript(script).narration || script, vertical: vertical ?? null, language: args.language }) } catch { return null }
+  })() : null
+  if (vozCurta) {
+    const rate = speechRateFor({ family: 'classic', speed, language: args.language, voice: vozCurta.voice, personaSpeed: vozCurta.defaultSpeed })
+    const nome = VOICE_PERSONAS.find((p) => p.id === vozCurta.id)?.name ?? null
+    return {
+      rate: { ...rate, wordsPerSecond: ritmoDaVozNoIdioma(rate.wordsPerSecond, args.language) },
+      persona: nome ? { id: vozCurta.id, name: nome, voice: vozCurta.voice, defaultSpeed: vozCurta.defaultSpeed } : null,
+      floorSeconds: CONTADOR_FLOOR_CLASSIC_SECONDS,
+      supported: supportedDurationsFor(args.engine),
+    }
+  }
   const persona = (() => {
     try {
       return args.engine === 'fast'
