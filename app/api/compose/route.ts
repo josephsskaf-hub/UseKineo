@@ -74,6 +74,7 @@ import { loadVerifiedCinematicClaim, cinematicJobsAreTerminal, type CinematicCla
 import { readVerifiedSceneRetryHold, releaseSceneRetryMutex, type SceneRetryMutex } from '@/lib/cinematic/sceneRetry'
 import { classicSceneRetryHoldResolvable } from '@/lib/classicSceneRetry' // KINEO-CENA-CLASSICA-2026-09-28
 import { alignSignedClipPlan } from '@/lib/cinematic/klingShots' // KINEO-KLING25-PLANOS-5S-2026-09-28
+import { isVeoClaim, veoAlignSignedClipPlan } from '@/lib/cinematic/veoShots' // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — claim do Veo assina 4|6|8
 import { collectSceneNarrations, verifyObservedSpeech } from '@/lib/cinematic/speechContract'
 // KINEO-COMPOSE-REJECT-NOREFUND-2026-08-10 — ver o cabeçalho do arquivo: numa
 // recusa TERMINAL do fornecedor nenhum render_id nasce, logo /api/compose/status
@@ -883,6 +884,9 @@ export async function POST(req: NextRequest) {
       // authorized_completed_urls (cliente, cron de resgate e retomada passam todos por aqui). Claim sem o campo (Seedance,
       // Veo, Sora e todo Kling de antes deste deploy) = null = a montagem de sempre.
       signedClipPlan = alignSignedClipPlan(cinematicBirthClaim.response, cinematicBirthClaim.authorizedCompletedUrls, clipUrls)
+      // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — o claim do Veo 3.1 (fal_model veo3.1/…) assina 4|6|8 por cena: o alinhador do Kling
+      // (5|10) devolve null para ele, e só então o do Veo alinha. Todo outro claim para na linha acima, byte a byte.
+      if (!signedClipPlan && isVeoClaim(cinematicBirthClaim.response)) signedClipPlan = veoAlignSignedClipPlan(cinematicBirthClaim.response, cinematicBirthClaim.authorizedCompletedUrls, clipUrls)
       // Server recovery and browser submission must use the same original scene
       // indexes. A missing middle scene must not move its voice onto its neighbor.
       if (cinematicBirthClaim.response) {

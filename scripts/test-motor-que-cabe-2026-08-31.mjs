@@ -37,7 +37,12 @@ checa('Seedance 60s = 25', custoDe('seedance', 60) === 25, `=${custoDe('seedance
 checa('Seedance 35s = 15 (o selo dizia 25 em toda duração)', custoDe('seedance', 35) === 15, `=${custoDe('seedance', 35)}`)
 checa('Seedance 90s = 38', custoDe('seedance', 90) === 38, `=${custoDe('seedance', 90)}`)
 checa('H3 60s = 45', custoDe('h3', 60) === 45)
-checa('Kling 60s = 50', custoDe('kling', 60) === 50)
+// KINEO-KLING25-60CR-2026-09-29 — re-ancorado 50 → 60 (decisão do fundador, 29/09:
+// "sobe kling 2 pra 60 creditos"; planos de 5 s + still em todas as cenas ≈ US$ 8,40/filme).
+// A régua por duração é derivada de creditCostForDuration: 35 s = 35 (era 30), 90 s = 90 (era 75).
+checa('Kling 60s = 60', custoDe('kling', 60) === 60, `=${custoDe('kling', 60)}`)
+checa('Kling 35s = 35 (era 30; ceil(60×35/60))', custoDe('kling', 35) === 35, `=${custoDe('kling', 35)}`)
+checa('Kling 90s = 90 (era 75)', custoDe('kling', 90) === 90, `=${custoDe('kling', 90)}`)
 checa('Kling 3 60s = 150', custoDe('hollywood', 60) === 150)
 checa('Kling 3 35s = 88 (nem encurtando cabe em 62)', custoDe('hollywood', 35) === 88, `=${custoDe('hollywood', 35)}`)
 
@@ -54,14 +59,14 @@ console.log('\n── C. os 6 pares REAIS de recusa em produção (14d, externos
 // hollywood 150 / saldo 62 → nem 35s cabe (88); a saída é outro motor: H3 a 60s (45)
 const p1 = plano('hollywood', 60, 62)
 checa('hollywood 150 × saldo 62 → outra câmera', p1.tipo === 'outra_camera', JSON.stringify(p1))
-// Kling a 60s custa 50 e CABE em 62; H3 custa 45. A regra é "a mais cara que
-// cabe", então a resposta certa é Kling — não o mais barato da lista, e não o
-// que eu tinha chutado ao escrever este teste.
-checa('  ...e a câmera é a MAIS CARA que cabe (Kling, 50) — não a mais barata', p1.alvo?.motor === 'kling' && p1.alvo?.custo === 50, JSON.stringify(p1.alvo))
+// Kling a 60s custa 60 (era 50 até 29/09) e AINDA CABE em 62; H3 custa 45. A regra
+// é "a mais cara que cabe", então a resposta certa é Kling — não o mais barato da
+// lista, e não o que eu tinha chutado ao escrever este teste.
+checa('  ...e a câmera é a MAIS CARA que cabe (Kling, 60) — não a mais barata', p1.alvo?.motor === 'kling' && p1.alvo?.custo === 60, JSON.stringify(p1.alvo))
 checa('  ...e ela é de fato mais cara que a alternativa barata (H3, 45)', custoDe('kling', 60) > custoDe('h3', 60))
-// kling 50 / saldo 25 → 35s custa 30, não cabe; outra câmera a 60s: seedance 25 (exato)
+// kling 60 / saldo 25 → 35s custa 35, não cabe; outra câmera a 60s: seedance 25 (exato)
 const p2 = plano('kling', 60, 25)
-checa('kling 50 × saldo 25 → outra câmera', p2.tipo === 'outra_camera', JSON.stringify(p2))
+checa('kling 60 × saldo 25 → outra câmera', p2.tipo === 'outra_camera', JSON.stringify(p2))
 checa('  ...Seedance a 60s por 25, o saldo exato', p2.alvo?.motor === 'seedance' && p2.alvo?.custo === 25)
 // h3 45 / saldo 25
 const p3 = plano('h3', 60, 25)

@@ -48,7 +48,7 @@ check('FAQ estruturado para o Google/AEO', models.includes("'@type': 'FAQPage'")
 check('entrou no sitemap', sitemap.includes("{ path: '/models-pricing'"))
 
 console.log('aritmética (a mesma régua do servidor)')
-const creditCostFor = (q) => ({ fast: 2, cinematic_ai: 25, cinematic_h3: 45, cinematic_kling: 50, cinematic_veo: 100, cinematic_hollywood: 150, cinematic_omni: 150 }[q])
+const creditCostFor = (q) => ({ fast: 2, cinematic_ai: 25, cinematic_h3: 45, cinematic_kling: 60, cinematic_veo: 100, cinematic_hollywood: 150, cinematic_omni: 150 }[q])
 const forDur = (q, s) => Math.max(1, Math.ceil(creditCostFor(q) * (Math.max(10, Math.min(180, s)) / 60)))
 check('escala 35s ≈ 60% do preço de 60s (Kineo 1: 2 → 2)', forDur('fast', 35) === 2)
 check('Seedance 35s = 15 cr', forDur('cinematic_ai', 35) === 15)

@@ -328,7 +328,9 @@ export function hasIntroOffer(
 //                          é grátis — não há fornecedor de vídeo) → $0.066/cr
 //   Seedance 720p  20 cr ≈ $1.61/render                            → $0.081/cr
 //   MiniMax H3     45 cr ≈ $5.20/render                            → $0.116/cr  ← PIOR
-//   Kling 2.5      50 cr ≈ $5.50/render                            → $0.110/cr
+//   Kling 2.5      60 cr ≈ $8.40/render (KINEO-KLING25-60CR-2026-09-29) → $0.140/cr  ← ⚠ NOVO PIOR?
+//                  (era 50 cr ≈ $5.50 → $0.110/cr; desde o mutirão 27-28/09 o
+//                  filme de 60 s são ~18 planos de 5 s + 18 stills FLUX)
 //   Veo 3.1        90 cr ≈ $9.50/render                            → $0.106/cr
 //   Avatar        110 cr ≈ $9.00/render                            → $0.082/cr
 //   Kling 3       150 cr ≈ $11.85/render                           → $0.079/cr
@@ -341,6 +343,12 @@ export function hasIntroOffer(
 //
 // Worst-case COGS de um grant de N créditos: N × pior-$/crédito, com o resto
 // em Fast (o motor mais barato por crédito).
+// ⚠ KINEO-KLING25-60CR-2026-09-29 — o Kling 2.5 a 60cr com ≈ US$ 8,40/filme
+// dá $0.140/cr, ACIMA deste piso (H3, $0.116). A constante NÃO foi mexida
+// nesta entrega de propósito: subir o piso é decisão de preço de PLANO
+// (recalcula a margem de pior caso de Starter/Creator/Studio/packs), não a
+// decisão de motor que o fundador tomou. Quem for reprecificar os planos
+// parte daqui: WORST_ENGINE_CREDITS 45 → 60 e piso 0.116 → 0.140.
 export const WORST_CASE_USD_PER_CREDIT = 0.116
 export const FAST_USD_PER_CREDIT = 0.066
 
