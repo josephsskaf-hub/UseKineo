@@ -15,8 +15,7 @@ import { FOUNDER_SHOWCASE } from '@/lib/publicExamples'
 import { engineDisplayName } from '@/lib/enginePlanGate'
 import { CARD_TRIAL_DAYS, CARD_TRIAL_GRANT_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { CARD_ENTRY_COPY, FREE_ENTRY_CREDITS } from '@/lib/entryPolicy'
-import { FREE_FILM_LABEL } from '@/lib/freeTierOffer' // KINEO-FILME-GRATIS-15S-2026-09-29
-import { FREE_FILM_COUNTRY_CLAUSE } from '@/lib/freeFilmPolicy' // KINEO-E4-CONSERTO-2026-09-29: o grant só vale na lista (saída B)
+import { FREE_FILM_LABEL, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer' // KINEO-FILME-GRATIS-15S-2026-09-29
 import { videosPerMonth } from '@/lib/marketingPrice' // KINEO-FILME-GRATIS-15S-2026-09-29
 // KINEO-PH-CONTAGEM-2026-09-09 — a contagem de motores É DERIVADA. Esta página
 // era o ÚNICO lugar do site que digitava "Nine" à mão, em três lugares (título
@@ -191,7 +190,7 @@ export default function PhPage() {
           ))}
         </section>
         <p style={{ marginTop: 10, fontSize: 13, color: 'rgba(255,255,255,.55)' }}>
-          Every account{FREE_FILM_COUNTRY_CLAUSE} starts free with {FREE_ENTRY_CREDITS} credits — enough for one {FREE_FILM_LABEL} — every engine unlocked, no card. Full details on the <Link href="/pricing" style={{ color: '#7cc0ff' }}>pricing page</Link>.
+          Every account{GRANT_COUNTRY_CLAUSE} starts free with {FREE_ENTRY_CREDITS} credits — enough for one {FREE_FILM_LABEL} — every engine unlocked, no card. Full details on the <Link href="/pricing" style={{ color: '#7cc0ff' }}>pricing page</Link>.
         </p>
 
         <section style={{ marginTop: 48, maxWidth: 720 }}>

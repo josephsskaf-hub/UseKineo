@@ -2,12 +2,15 @@
 // free tier + copy, decidida por UMA flag.
 
 import { creditCostForDuration, DURATION_REFERENCE_SECONDS } from './credits/engineCost'
-import { CARD_ENTRY_COPY, CARD_ENTRY_ONLY, CARD_ENTRY_TRIAL_CREDITS } from './entryPolicy'
+import { CARD_ENTRY_COPY, CARD_ENTRY_ONLY, CARD_ENTRY_TRIAL_CREDITS, FREE_ENTRY_COUNTRY_CLAUSE_MIRROR } from './entryPolicy'
 // KINEO-E4-CONSERTO-2026-09-29 (revisão de regressão, achado 1) — com a saída B ligada, conta de país fora da lista
 // nasce com 0 crédito: "every new account gets 10 free credits" virou mentira para ela. A cláusula ' in supported
-// countries' DERIVA de FREE_FILM_POLICY e qualifica o CRÉDITO (não só o filme) em toda frase pública do grant; 'todos'
-// a apaga sozinha. Nenhuma lista de país em texto público.
-import { FREE_FILM_COUNTRY_CLAUSE as CC } from './freeFilmPolicy'
+// countries' qualifica o CRÉDITO (não só o filme) em toda frase pública do grant. Vem do espelho da entryPolicy (que
+// este módulo já importa — nenhuma aresta nova para os loaders estritos dos guardiões); o guardião da E4 exige
+// espelho === FREE_FILM_COUNTRY_CLAUSE (lib/freeFilmPolicy.ts), então 'todos' a apaga. Nenhuma lista de país em texto público.
+const CC: string = FREE_ENTRY_COUNTRY_CLAUSE_MIRROR ?? ''
+/** A cláusula do grant para as superfícies que já importam este módulo (páginas, comparações, respostas do ChatGPT). */
+export const GRANT_COUNTRY_CLAUSE: string = CC
 //
 //   KINEO_REVERSE_TRIAL_ENABLED === 'true'  (a MESMA flag de lib/reverseTrial.ts)
 //

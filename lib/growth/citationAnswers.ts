@@ -6,9 +6,8 @@ import {
   STARTER_CREDITS, CREATOR_CREDITS, STUDIO_CREDITS,
   MARKETING_REFERENCE_SECONDS, creditsPerReferenceVideo, videosPerMonth,
 } from '@/lib/marketingPrice'
-import { FREE_FILM_LABEL, getFreeTierOffer, TRIAL_FREE_FILM_CREDITS, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { FREE_FILM_LABEL, getFreeTierOffer, TRIAL_FREE_FILM_CREDITS, TRIAL_GRANT_CREDITS_COPY, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer'
 import { COMPETITOR_FACTS, PRODUCT } from '@/lib/kineoFacts'
-import { FREE_FILM_COUNTRY_CLAUSE } from '@/lib/freeFilmPolicy' // KINEO-E4-CONSERTO-2026-09-29: o grant só vale na lista (saída B)
 import { buildEngineLandingDestination } from '@/lib/growth/engineLandingIntent'
 // Generic purchase intent has paid-engine destinations; the explicitly free
 // question catalogue below preserves its original intent and existing pages.
@@ -29,10 +28,10 @@ const offer = getFreeTierOffer()
 
 export const CITATION_CTA = offer.cardEntry
   ? offer.copy.ctaPrimary
-  : `Start free — ${CITATION_TRIAL_CREDITS} credits${FREE_FILM_COUNTRY_CLAUSE}, no card`
+  : `Start free — ${CITATION_TRIAL_CREDITS} credits${GRANT_COUNTRY_CLAUSE}, no card`
 export const CITATION_TRIAL = offer.cardEntry
   ? offer.copy.sentence
-  : `Every new account${FREE_FILM_COUNTRY_CLAUSE} receives ${CITATION_TRIAL_CREDITS} free credits with every engine unlocked and no card required — enough for ${CITATION_FREE_FILM}.`
+  : `Every new account${GRANT_COUNTRY_CLAUSE} receives ${CITATION_TRIAL_CREDITS} free credits with every engine unlocked and no card required — enough for ${CITATION_FREE_FILM}.`
 export const CITATION_WATERMARK = PRODUCT.watermarkPolicy
 export const CITATION_TIME = `Kineo 1 (Fast): ${PRODUCT.fastGenerationTime}; the published Fast sample measured a ${PRODUCT.fastGenerationMedianMinutes}-minute median and ${PRODUCT.fastGenerationP90Minutes}-minute p90 across ${PRODUCT.fastGenerationSample}. Generative engines take longer; an exact completion time is not guaranteed.`
 export const CITATION_PLANS = [
