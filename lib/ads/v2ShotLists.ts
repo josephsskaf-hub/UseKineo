@@ -38,6 +38,17 @@ export const ADS_V2_CARD_SECONDS = 2.5
 export const ADS_V2_FADE_SECONDS = 0.25
 /** Menor clipe gerado entre os motores do v2 (Kling O3, 3 s): o trecho usado tem de caber nele com o dissolve. */
 export const ADS_V2_MIN_GEN_SECONDS = 3
+/**
+ * KINEO-ADS-V2-CORTES-2026-09-28 — clipe do herói (Seedance 2.0 Fast, 4 s pedidos; 4,04 s medidos no canário).
+ * Espelho de ADS_V2_ENGINES.seedance_20_fast.genSeconds (lib/ads/v2Tiers.ts; o guardião confere).
+ */
+export const ADS_V2_HERO_GEN_SECONDS = 4
+/** Herói: o corte começa em ~1,5 s — o meio do clipe, onde o movimento já aconteceu (o começo é quadro quase parado). */
+export const ADS_V2_CUT_START_HERO = 1.5
+/** Clipes de 3 s (Kling O3): teto do início do corte, alcançado SÓ quando sobra folga (3,0 − corte − dissolve − margem). */
+export const ADS_V2_CUT_START_MAX = 0.65
+/** Folga mínima entre o fim do trecho usado (com o dissolve) e o fim do clipe medido. */
+export const ADS_V2_CUT_MARGIN = 0.1
 /** Narração: até 30 palavras em 15 s (proporcional em 20/30 s). */
 export const ADS_V2_NARRATION_WORDS_15 = 30
 /** Frase de tela: no máximo 2 linhas no terço do meio. */
@@ -46,6 +57,12 @@ export const ADS_V2_MIN_PHOTOS = 3
 export const ADS_V2_MAX_PHOTOS = 7
 /** Final obrigatório de todo prompt de movimento. */
 export const ADS_V2_KEEP_PHRASE = 'Keep everything exactly as in the photo.'
+/**
+ * KINEO-ADS-V2-CORTES-2026-09-28 — travas de estado do herói (Seedance 2.0): só proíbe o que é NOVO (mão que já está
+ * na foto pode continuar), nada se move sozinho e texto/etiqueta/preço ficam como na foto. Vai entre o movimento e
+ * ADS_V2_KEEP_PHRASE, só no product_hero.
+ */
+export const ADS_V2_HERO_STATE_LOCKS = 'Natural real-time speed; nothing on the plate or product moves by itself; no new hands or objects enter the frame; text, labels and prices stay exactly as in the photo.'
 
 export function isAdsV2Sector(raw: unknown): raw is AdsV2Sector {
   return typeof raw === 'string' && (ADS_V2_SECTORS as readonly string[]).includes(raw)
@@ -237,7 +254,9 @@ export const ADS_V2_MOVEMENTS: Readonly<Record<Exclude<AdsV2PlanShotKind, 'text'
 
 export function motionPrompt(kind: Exclude<AdsV2PlanShotKind, 'text'>, variant: number): string {
   const list = ADS_V2_MOVEMENTS[kind]
-  return `${list[((variant % list.length) + list.length) % list.length]}. ${ADS_V2_KEEP_PHRASE}`
+  const move = list[((variant % list.length) + list.length) % list.length]
+  if (kind === 'product_hero') return `${move}. ${ADS_V2_HERO_STATE_LOCKS} ${ADS_V2_KEEP_PHRASE}`
+  return `${move}. ${ADS_V2_KEEP_PHRASE}`
 }
 
 /**
@@ -310,11 +329,19 @@ export function adsV2ExtraShots(seconds: number): number {
 }
 export const ADS_V2_EXTRA_CUT = 2.5
 
-/** Início do trecho usado no clipe: pula o quadro parado do começo, cabendo no menor clipe (3 s) com o dissolve. */
+/**
+ * Início do trecho usado no clipe: pula o quadro parado do começo, cabendo no clipe com o dissolve e a margem.
+ * - product_hero (Seedance 2.0, 4 s; só existe no Cinema): começa em 1,5 s → 1,5 + 2,0 + 0,25 = 3,75 ≤ 4,04 − 0,1.
+ * - demais (Kling O3, 3 s): até 0,65 s, só quando sobra folga — corte de 2,0 s → 0,65; corte de 2,5 s → 0,15 (como antes).
+ * cut_start + cut_seconds + dissolve nunca passa de (clipe − margem); o montador ainda recusa contra o clipe MEDIDO.
+ */
 export function adsV2CutStart(cut: number, kind: AdsV2PlanShotKind): number {
   if (kind === 'text') return 0
-  const room = ADS_V2_MIN_GEN_SECONDS - cut - ADS_V2_FADE_SECONDS - 0.1
-  return Math.round(Math.max(0, Math.min(0.4, room)) * 1000) / 1000
+  const hero = kind === 'product_hero'
+  const gen = hero ? ADS_V2_HERO_GEN_SECONDS : ADS_V2_MIN_GEN_SECONDS
+  const cap = hero ? ADS_V2_CUT_START_HERO : ADS_V2_CUT_START_MAX
+  const room = gen - cut - ADS_V2_FADE_SECONDS - ADS_V2_CUT_MARGIN
+  return Math.round(Math.max(0, Math.min(cap, room)) * 1000) / 1000
 }
 
 export interface AdsV2Photo {
