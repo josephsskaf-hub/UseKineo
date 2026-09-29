@@ -51,7 +51,7 @@ import { describeScenesCovered, completeSceneDescriptions, hasSpeechArtifacts, t
 import { kling25FootageNeeded, kling25ShotCount, kling25SceneSeconds, kling25ClipsUsd, kling25WriterBudget, kling25AlignBudget, kling25AverageShotSeconds, kling25VerbatimPlan, kling25VisualHint, kling25SceneWordStarts, kling25PlanPace, kling25WordsFit, KLING25_CLIP_LOSS_SECONDS, kling25ApplyShotAxis, kling25StripShotAxis } from '@/lib/cinematic/klingShots' // KINEO-KLING25-PLANOS-5S-2026-09-28 · KINEO-KLING25-VARIEDADE-2026-09-28
 import { resolveCharacterVoice } from '@/lib/hollywood/characterVoice'
 import { veoVerbatimPlan, veoVisualHint, veoSceneSeconds, veoAssignedWords, veoClipsUsd, veoApplyShotAxis, veoStripShotAxis, veoFilmSeconds } from '@/lib/cinematic/veoShots' // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — só wantsVeo
-import { veoFootageNeededAI, veoShotCountAI, veoAverageShotSecondsAI, veoWriterPaceAI, veoAiPlan, VEO_MAX_SHOTS } from '@/lib/cinematic/veoShots' // [TRAVA 8.2] VEO-MODO-IA-2026-09-29 — só wantsVeo && !verbatim (linha própria: a rota só GANHA linhas)
+import { veoFootageNeededAI, veoShotCountAI, veoAverageShotSecondsAI, veoAiPlan, VEO_MAX_SHOTS } from '@/lib/cinematic/veoShots' // [TRAVA 8.2] VEO-MODO-IA-2026-09-29 — só wantsVeo && !verbatim (linha própria: a rota só GANHA linhas)
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
 import { wordsPerSceneFor } from '@/lib/cinematic/sceneWords'
@@ -3161,10 +3161,14 @@ async function manipularPost(req: NextRequest) {
     if (wantsKling) Object.assign(classicWriterOptions, { sceneSeconds: kling25AverageShotSeconds(clipCount, kling25Footage) }, kling25WriterBudget(clipCount))
     // [TRAVA 8.2 — "vai" do 3x6] no filme de 15 s o escritor de cenas ouve "~5-second scene" (15 s ÷ 3), não o "~10" de sempre.
     if (seedanceShortFilm) Object.assign(classicWriterOptions, { sceneSeconds: duration / clipCount })
-    // [TRAVA 8.2] VEO-MODO-IA-2026-09-29 — no Veo em modo IA o escritor ouve a média real dos planos (~6 s; 90 s → 8) e escreve no
-    // passo do plano (veoWriterPaceAI = min(voz real, 2,3 × velocidade) — nunca a base 3,1 da família, com a qual 60 s nasciam com
-    // 186 palavras ≈ 78 s de fala na voz da persona quando a persona não resolvia). Seedance/Kling/Sora: objeto idêntico.
-    if (wantsVeo && !verbatim) Object.assign(classicWriterOptions, { wordsPerScene: wordsPerSceneFor(duration, clipCount, veoWriterPaceAI(narrationRate.wordsPerSecond, narrationRate.speed)), sceneSeconds: veoAverageShotSecondsAI(clipCount, veoFootage) })
+    // [TRAVA 8.2] VEO-MODO-IA-2026-09-29 — no Veo em modo IA o escritor ouve a média real dos planos (~6 s; 90 s → 8) e, com 12 cenas
+    // (60/90 s), ganha o MESMO orçamento de tokens/prazo do Kling 2.5 (kling25WriterBudget: 12 cenas de 9 campos não cabem nos 1.800
+    // fixos do gpt-4o — o JSON sairia cortado e generateScenes morreria sem try). A FAIXA DE PALAVRAS fica a da linha acima: a régua
+    // da persona (narrationRate.wordsPerSecond), a mesma pela qual o compose escala a narração — revisão de 29/09: escrever a
+    // 2,3 pal/s com persona de 2,45-2,81 dava 51-59 s de fala em 60 s, abaixo do piso de 0,92 do compose, que REESCREVIA o texto e
+    // desalinhava clip_word_starts. Cada plano é medido depois (veoAiPlan, passo min(voz, 2,3)): cena de 13-15 palavras → 8 s.
+    // Seedance/Kling/Sora: objeto idêntico.
+    if (wantsVeo && !verbatim) Object.assign(classicWriterOptions, { sceneSeconds: veoAverageShotSecondsAI(clipCount, veoFootage) }, kling25WriterBudget(clipCount))
     // Build scenes
     // #441 — aiPrompt = the cinematic SHOT description fed to Seedance (prefer
     // it over the raw stock query). Set from generateScenes prose (non-verbatim)

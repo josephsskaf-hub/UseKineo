@@ -3,18 +3,22 @@
 // ⌈s/8⌉ + 1 cenas e a rota mandava '8s' FIXO para todas. Este guardião EXECUTA a lib real e fatias reais da rota (readFileSync +
 // transpile + vm; sem rede, sem banco, sem fornecedor) e prova:
 //   (a) lib/cinematic/veoShots (modo IA): escritor dimensionado para planos de ~6 s (35 s → 7 · 45 s → 9 · 60 s → 12 · 90 s → 12,
-//       média 6/6/6/8); régua do escritor = min(voz, 2,3 × velocidade), nunca 3,1; 8 cenas com falas de 6/10/14/20 palavras →
+//       média 6/6/6/8); 8 cenas com falas de 6/10/14/20 palavras →
 //       4/6/8 s e a de 20 DIVIDIDA em 2 planos (10 + 10 → 6 + 6) na fronteira de frase; teto de planos respeitado (senão 8 s +
 //       `transbordam`); cobertura de 60 s promovida do fim; nenhuma palavra some;
 //   (b) fatias REAIS da rota: dimensionamento (Veo IA 7/9/12/12; Veo verbatim, Seedance, Kling e Sora idênticos à base em 32 casos),
-//       opções do escritor (Veo IA: ~6 s e faixa no passo 2,3; os outros idênticos à base), bloco dos planos (clipSeconds em cada
+//       opções do escritor (Veo IA: ~6 s, FAIXA NA RÉGUA DA PERSONA — para cada persona real de lib/narration/personas, 12 × piso
+//       ≥ floor(60 × voz × 0,92) e ≥ 60 s de fala, o compose não reescreve — e orçamento do Kling para 12 cenas; os outros
+//       idênticos à base), bloco dos planos (clipSeconds em cada
 //       plano, veoClipSeconds, clipCount, reindexação do supervisor; wantsVeo falso = nada muda), claim e ensaio;
 //   (c) Seedance / Kling 2.5 / Sora / hollywood byte a byte: klingShots, compose, classicDryRun, runway, sceneWords, speechRate
 //       intocados; buildFalInput e as fatias do Kling/Seedance/Veo-verbatim idênticas à base; TODA linha nova da rota mora nos
 //       blocos do modo IA do Veo (diff contra a base);
-//   (d) custo por filme de 60 s: antes 9 × 8 s = US$ 7,20; depois 12 planos de 6-8 s = US$ 7,20-9,60;
+//   (d) custo por filme na faixa REAL da rota (piso/teto do escritor em cada persona): 35 s US$ 4,20-5,60 (antes 4,80) · 60 s
+//       7,20-9,60 (antes 7,20) · 90 s 9,60 sem cena dividida (antes 9,60);
 //   (e) mutantes: lib sem dividir → (a) vermelho; dimensionamento sem `wantsVeo` → Seedance muda → vermelho; bloco dos planos
-//       sem `wantsVeo` → wantsVeo falso muda as cenas → vermelho.
+//       sem `wantsVeo` → wantsVeo falso muda as cenas → vermelho; escritor de volta a 2,3 pal/s → persona rápida cai abaixo do
+//       piso do compose → vermelho.
 import { readFileSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -85,11 +89,8 @@ const NEED_60 = V.veoFootageNeededAI(60)
 checa('imagem necessária no modo IA = a régua do Kling (filme + 3 s): 35 s → 38 · 45 s → 48 · 60 s → 64,5 · 90 s → 93', NEED_35 === 38 && V.veoFootageNeededAI(45) === 48 && NEED_60 === 64.5 && V.veoFootageNeededAI(90) === 93)
 checa('escritor dimensionado para planos de 6 s (5,84 úteis), entre 2 e 12: 35 s → 7 · 45 s → 9 · 60 s → 12 · 90 s → 12', V.veoShotCountAI(NEED_35) === 7 && V.veoShotCountAI(48) === 9 && V.veoShotCountAI(NEED_60) === 12 && V.veoShotCountAI(93) === 12 && V.veoShotCountAI(0) === 2)
 checa('o escritor ouve a média REAL dos planos (uniformes, promovidos do fim até cobrir): 35 s → 6 · 45 s → 6 · 60 s → 6 · 90 s → 8', V.veoAverageShotSecondsAI(7, NEED_35) === 6 && V.veoAverageShotSecondsAI(9, 48) === 6 && V.veoAverageShotSecondsAI(12, NEED_60) === 6 && V.veoAverageShotSecondsAI(12, 93) === 8)
-checa('régua do escritor = min(voz real, 2,3 × velocidade), nunca 3,1: 3,1 → 2,3 · 2,55 → 2,3 · 2,3 → 2,3 · 2,1 → 2,1 · 3,06 a 1,2 → 2,76 · sem voz → 2,3', V.veoWriterPaceAI(3.1, 1) === 2.3 && V.veoWriterPaceAI(2.55, 1) === 2.3 && V.veoWriterPaceAI(2.3) === 2.3 && V.veoWriterPaceAI(2.1, 1) === 2.1 && V.veoWriterPaceAI(3.06, 1.2) === 2.76 && V.veoWriterPaceAI(undefined, undefined) === 2.3)
-checa('60 s a 2,3 pal/s = 138 palavras em 12 cenas = 12-13 por cena — cabem num plano de 6 s (fit 12) ou de 8 s (fit 17); a 3,1 seriam 186 (16 por cena, só 8 s)', (() => {
-  const fit = V.veoFitWords(2.3)
-  return eqJ(fit, [8, 12, 17]) && Math.ceil(138 / 12) === 12 && Math.ceil((138 * 1.1) / 12) === 13 && Math.ceil(186 / 12) > 12
-})())
+checa('a lib NÃO tem régua própria para o escritor (veoWriterPaceAI morreu na revisão de 29/09): a faixa de palavras é a da persona, a mesma do compose', typeof V.veoWriterPaceAI === 'undefined' && !libSrc.includes('veoWriterPaceAI'))
+checa('palavras que cabem em 4/6/8 s no passo 2,3 = 8/12/17: a cena de 12 palavras vai a 6 s, a de 13-17 a 8 s', eqJ(V.veoFitWords(2.3), [8, 12, 17]) && V.veoStepFor(12, 2.3) === 6 && V.veoStepFor(13, 2.3) === 8 && V.veoStepFor(17, 2.3) === 8)
 
 const plano35 = V.veoAiPlan(CENAS_8, { footageSeconds: NEED_35, wordsPerSecond: 2.55 })
 checa('passo do plano = min(voz, 2,3) (2,55 → 2,3); palavras que cabem em 4/6/8 s = 8/12/17', plano35.pace === 2.3 && eqJ(plano35.fit, [8, 12, 17]))
@@ -108,7 +109,7 @@ checa('cena vazia (0 palavras) recebe o menor passo (4 s) e não quebra', (() =>
 
 // ═══ (b) fatias reais da rota ═══
 console.log('== (b) rota: dimensionamento, escritor, planos, claim e ensaio ==')
-checa('a rota importa as funções do modo IA da lib do Veo numa linha PRÓPRIA e marcada (o import de VEO-PLANOS fica intocado)', /\nimport \{ veoFootageNeededAI, veoShotCountAI, veoAverageShotSecondsAI, veoWriterPaceAI, veoAiPlan, VEO_MAX_SHOTS \} from '@\/lib\/cinematic\/veoShots' \/\/ \[TRAVA 8\.2\] VEO-MODO-IA-2026-09-29 — só wantsVeo && !verbatim/.test(rota) && rota.includes("import { veoVerbatimPlan, veoVisualHint, veoSceneSeconds, veoAssignedWords, veoClipsUsd, veoApplyShotAxis, veoStripShotAxis, veoFilmSeconds } from '@/lib/cinematic/veoShots' // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — só wantsVeo\n"))
+checa('a rota importa as funções do modo IA da lib do Veo numa linha PRÓPRIA e marcada (o import de VEO-PLANOS fica intocado)', /\nimport \{ veoFootageNeededAI, veoShotCountAI, veoAverageShotSecondsAI, veoAiPlan, VEO_MAX_SHOTS \} from '@\/lib\/cinematic\/veoShots' \/\/ \[TRAVA 8\.2\] VEO-MODO-IA-2026-09-29 — só wantsVeo && !verbatim/.test(rota) && rota.includes("import { veoVerbatimPlan, veoVisualHint, veoSceneSeconds, veoAssignedWords, veoClipsUsd, veoApplyShotAxis, veoStripShotAxis, veoFilmSeconds } from '@/lib/cinematic/veoShots' // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — só wantsVeo\n"))
 const veoLinha = (src) => { const m = src.match(/\n    if \(wantsVeo\) clipCount = Math\.max\(clipCount, Math\.min\(12, Math\.ceil\(duration \/ 8\) \+ 1\)\)\n/); return m ? m[0] : null }
 const bloco442 = (src) => { const ast = routeAst(src); const n = acha(ast, (x) => ts.isIfStatement(x) && x.expression.getText(ast) === 'verbatim' && x.getText(ast).includes('SECONDS_PER_CLIP')); return n ? n.getText(ast) : null }
 const blocoKlingDim = (src) => fatia(src, '    let kling25Footage = 0\n', '\n    }\n')
@@ -151,7 +152,8 @@ if (rotaBase) {
 const linhaOpcoes = (src) => src.match(/\n    const classicWriterOptions = \{ wordsPerScene: wordsPerSceneFor\(duration, clipCount, narrationRate\.wordsPerSecond\), language: narrationLanguage\.language \}[^\n]*\n/)?.[0] ?? null
 const linhaKling = (src) => src.match(/\n    if \(wantsKling\) Object\.assign\(classicWriterOptions,[^\n]*\n/)?.[0] ?? null
 const linhaSeedance = (src) => src.match(/\n    if \(seedanceShortFilm\) Object\.assign\(classicWriterOptions,[^\n]*\n/)?.[0] ?? null
-const linhaVeo = (src) => src.match(/\n    if \(wantsVeo && !verbatim\) Object\.assign\(classicWriterOptions, \{ wordsPerScene: wordsPerSceneFor\(duration, clipCount, veoWriterPaceAI\(narrationRate\.wordsPerSecond, narrationRate\.speed\)\), sceneSeconds: veoAverageShotSecondsAI\(clipCount, veoFootage\) \}\)\n/)?.[0] ?? null
+const linhaVeo = (src) => src.match(/\n    if \(wantsVeo && !verbatim\) Object\.assign\(classicWriterOptions, [^\n]*\n/)?.[0] ?? null
+const LINHA_VEO_ESPERADA = '\n    if (wantsVeo && !verbatim) Object.assign(classicWriterOptions, { sceneSeconds: veoAverageShotSecondsAI(clipCount, veoFootage) }, kling25WriterBudget(clipCount))\n'
 const wordsPerSceneForReal = load('@/lib/cinematic/sceneWords').wordsPerSceneFor
 function opcoes(src, { engine, verbatim = false, duration = 60, clipCount, footage = 0, wps = 2.55, speed = 1, seedanceShortFilm = false }) {
   const partes = [linhaOpcoes(src), linhaKling(src), linhaSeedance(src), linhaVeo(src) ?? '\n']
@@ -159,16 +161,48 @@ function opcoes(src, { engine, verbatim = false, duration = 60, clipCount, foota
   return roda(`export function run() {${partes.join('')} return classicWriterOptions }`, {
     duration, clipCount, verbatim, seedanceShortFilm, wantsKling: engine === 'kling', wantsVeo: engine === 'veo', narrationRate: { wordsPerSecond: wps, speed }, narrationLanguage: { language: 'en' },
     kling25Footage: footage, veoFootage: footage, wordsPerSceneFor: wordsPerSceneForReal, kling25AverageShotSeconds: K.kling25AverageShotSeconds, kling25WriterBudget: K.kling25WriterBudget,
-    veoWriterPaceAI: V.veoWriterPaceAI, veoAverageShotSecondsAI: V.veoAverageShotSecondsAI,
+    veoAverageShotSecondsAI: V.veoAverageShotSecondsAI,
   }).run()
 }
+const speechRateForReal = load('@/lib/speechRate').speechRateFor
+const PERSONAS = load('@/lib/narration/personas').VOICE_PERSONAS
+const vozDa = (p) => speechRateForReal({ family: 'classic', speed: 1, language: 'en', voice: p.voice, personaSpeed: p.defaultSpeed }).wordsPerSecond
+const COMPOSE_LO = 0.92 // lib/compose scaleVoiceoverScript: lo = floor(alvo × 0,92) → abaixo disso o compose REESCREVE
+const COMPOSE_HI = 1.25
 checa('a linha do escritor do Veo em modo IA existe, depois da do Kling e da do 3x6, antes do escritor de cenas', linhaVeo(rota) !== null && rota.indexOf(linhaSeedance(rota)) < rota.indexOf(linhaVeo(rota)) && rota.indexOf(linhaVeo(rota)) < rota.indexOf('const generated = await generateScenes('))
-checa('rota real: Veo IA a 60 s (12 cenas, voz 2,55) ouve "~6-second scene" e 12-13 palavras por cena (a 2,3); a 90 s (12 cenas) ouve ~8 s e 18-19 palavras', (() => {
+checa('a linha do escritor do Veo IA sobrescreve SÓ sceneSeconds e o orçamento (kling25WriterBudget) — NUNCA wordsPerScene (a faixa fica na régua da persona da linha de cima)', linhaVeo(rota) === LINHA_VEO_ESPERADA && !linhaVeo(rota).includes('wordsPerScene'))
+checa('rota real: Veo IA a 60 s (12 cenas, voz 2,55) ouve "~6-second scene" e 13-15 palavras por cena (= a régua da persona, wordsPerSceneFor(60, 12, 2,55)); a 90 s ouve ~8 s e 20-21', (() => {
   const o60 = opcoes(rota, { engine: 'veo', clipCount: 12, footage: 64.5 })
   const o90 = opcoes(rota, { engine: 'veo', clipCount: 12, footage: 93, duration: 90 })
-  return o60?.sceneSeconds === 6 && eqJ([...o60.wordsPerScene], [12, 13]) && o90?.sceneSeconds === 8 && eqJ([...o90.wordsPerScene], [18, 19])
+  return o60?.sceneSeconds === 6 && eqJ([...o60.wordsPerScene], [...wordsPerSceneForReal(60, 12, 2.55)]) && eqJ([...o60.wordsPerScene], [13, 15]) && o90?.sceneSeconds === 8 && eqJ([...o90.wordsPerScene], [...wordsPerSceneForReal(90, 12, 2.55)]) && eqJ([...o90.wordsPerScene], [20, 21])
 })())
-checa('rota real: sem persona (3,1) o Veo IA escreve a 2,3 (12-13 por cena em 60 s), não a 3,1 (16-18)', (() => { const o = opcoes(rota, { engine: 'veo', clipCount: 12, footage: 64.5, wps: 3.1 }); return eqJ([...o.wordsPerScene], [12, 13]) && eqJ([...wordsPerSceneForReal(60, 12, 3.1)], [16, 18]) })())
+checa('rota real: orçamento do escritor do Veo IA com 12 cenas (60/90 s) = maxTokens ≥ 180 × 12 + 200 (2.360) e timeoutMs 50.000 — o mesmo do Kling 2.5; a 35 s (7 cenas) 1.800 / 35.000', (() => {
+  const o60 = opcoes(rota, { engine: 'veo', clipCount: 12, footage: 64.5 })
+  const o90 = opcoes(rota, { engine: 'veo', clipCount: 12, footage: 93, duration: 90 })
+  const o35 = opcoes(rota, { engine: 'veo', clipCount: 7, footage: 38, duration: 35 })
+  const k60 = opcoes(rota, { engine: 'kling', clipCount: 12, footage: 64.5 })
+  return o60.maxTokens >= 180 * 12 + 200 && o60.timeoutMs === 50000 && o90.maxTokens >= 2360 && o90.timeoutMs === 50000 && o35.maxTokens === 1800 && o35.timeoutMs === 35000 && o60.maxTokens === k60.maxTokens && o60.timeoutMs === k60.timeoutMs
+})())
+checa('rota real: sem persona (3,1) a faixa do Veo IA é a da base (wordsPerSceneFor(60, 12, 3,1) = 16-18) — a rota não inventa régua para o escritor', (() => { const o = opcoes(rota, { engine: 'veo', clipCount: 12, footage: 64.5, wps: 3.1 }); return eqJ([...o.wordsPerScene], [...wordsPerSceneForReal(60, 12, 3.1)]) && eqJ([...o.wordsPerScene], [16, 18]) })())
+// A prova persona a persona (revisão de 29/09): para CADA persona real, o piso do escritor × 12 cenas cobre o piso do compose
+// (floor(60 × voz × 0,92)) e dá ≥ 60 s de fala na voz da persona; o teto fica abaixo do teto do compose (ceil(alvo × 1,25)).
+// Sem isso o compose reescreve a narração e clip_word_starts vira índice de outro texto.
+function provaPersona(src, p) {
+  const wps = vozDa(p)
+  const o = opcoes(src, { engine: 'veo', clipCount: 12, footage: 64.5, wps })
+  if (!o) return { id: p.id, wps, ok: false }
+  const [lo, hi] = o.wordsPerScene
+  const alvo = Math.round(60 * wps)
+  const falaMin = (12 * lo) / wps
+  const ok = 12 * lo >= Math.floor(alvo * COMPOSE_LO) && falaMin >= 60 && 12 * hi <= Math.ceil(alvo * COMPOSE_HI) && eqJ([lo, hi], [...wordsPerSceneForReal(60, 12, wps)])
+  return { id: p.id, wps, lo, hi, alvo, falaMin: Math.round(falaMin * 10) / 10, ok }
+}
+{
+  const provas = PERSONAS.map((p) => provaPersona(rota, p))
+  console.log('   personas (60 s, 12 cenas): ' + provas.map((x) => `${x.id} ${x.wps} → ${x.lo}-${x.hi}/cena, fala mín ${x.falaMin}s, alvo ${x.alvo}`).join(' · '))
+  checa(`${PERSONAS.length} personas reais (lib/narration/personas), 60 s em 12 cenas: 12 × piso ≥ floor(60 × voz × 0,92), fala mínima ≥ 60 s e 12 × teto ≤ ceil(alvo × 1,25) — o compose não reescreve em nenhuma (storyteller 2,63 = fallback; energetic 2,81 = a mais rápida)`, PERSONAS.length >= 9 && provas.every((x) => x.ok) && provas.some((x) => x.wps >= 2.8) && provas.some((x) => x.id === 'storyteller' && x.wps === 2.63))
+  checa('em cada persona, 12 cenas no piso do escritor cabem em planos de 8 s no passo min(voz, 2,3) sem dividir nem transbordar (veoAiPlan real)', provas.every((x) => { const pl = V.veoAiPlan(new Array(12).fill(fala(x.lo)), { footageSeconds: NEED_60, wordsPerSecond: x.wps }); return pl.shots.length === 12 && pl.transbordam.length === 0 && pl.seconds.every((s) => s === 6 || s === 8) }))
+}
 if (rotaBase) {
   const casos = [{ engine: 'seedance', clipCount: 7 }, { engine: 'kling', clipCount: 12, footage: 64.5 }, { engine: 'sora', clipCount: 7 }, { engine: 'veo', clipCount: 9, verbatim: true }, { engine: 'seedance', clipCount: 3, duration: 15, seedanceShortFilm: true }]
   checa('opções do escritor idênticas à base para Seedance, Kling, Sora, Seedance 15 s e Veo verbatim', casos.every((c) => eqJ(opcoes(rota, c), opcoes(rotaBase, c))))
@@ -243,15 +277,27 @@ if (rotaBase) {
   checa(`diff da rota contra a base: NENHUMA linha da base alterada ou apagada — a rota só ganhou linhas (${removidas.length} removida(s))`, removidas.length === 0)
 }
 
-// ═══ (d) custo por filme ═══
-console.log('== (d) custo por filme de 60 s ==')
+// ═══ (d) custo por filme — a faixa REAL da rota (piso/teto do escritor em cada persona), 35 / 60 / 90 s ═══
+console.log('== (d) custo por filme de 35 / 60 / 90 s ==')
 {
-  const antes = V.veoClipsUsd(new Array(9).fill(8))
-  const piso = V.veoAiPlan(new Array(12).fill(fala(12)), { footageSeconds: NEED_60, wordsPerSecond: 2.55 })
-  const teto = V.veoAiPlan(new Array(12).fill(fala(13)), { footageSeconds: NEED_60, wordsPerSecond: 2.55 })
-  const custoPiso = V.veoClipsUsd(piso.seconds), custoTeto = V.veoClipsUsd(teto.seconds)
-  console.log(`   60 s antes: 9 × 8 s = US$ ${antes.toFixed(2)} · depois: 12 cenas de 12 palavras → [${piso.seconds.join(',')}] = US$ ${custoPiso.toFixed(2)} · 12 cenas de 13 palavras → [${teto.seconds.join(',')}] = US$ ${custoTeto.toFixed(2)}`)
-  checa('custo do clipe a 60 s: antes US$ 7,20 (9 × 8 s); depois entre US$ 7,20 (12 × 6 s) e US$ 9,60 (12 × 8 s) — 12 planos em vez de 9, cada um do tamanho da própria fala', antes === 7.2 && custoPiso === 7.2 && custoTeto === 9.6 && piso.seconds.every((s) => s === 6) && teto.seconds.every((s) => s === 8))
+  const custos = {}
+  for (const [duration, cenas, footage] of [[35, 7, NEED_35], [60, 12, NEED_60], [90, 12, V.veoFootageNeededAI(90)]]) {
+    const antes = V.veoClipsUsd(new Array(Math.min(12, Math.ceil(duration / 8) + 1)).fill(8))
+    const usd = [], divididas = [], transbordam = []
+    for (const p of PERSONAS) {
+      const wps = vozDa(p)
+      const o = opcoes(rota, { engine: 'veo', clipCount: cenas, footage, duration, wps })
+      for (const n of o.wordsPerScene) {
+        const pl = V.veoAiPlan(new Array(cenas).fill(fala(n)), { footageSeconds: footage, wordsPerSecond: wps })
+        usd.push(V.veoClipsUsd(pl.seconds)); divididas.push(pl.divididas.length); transbordam.push(pl.transbordam.length)
+      }
+    }
+    custos[duration] = { antes, min: Math.min(...usd), max: Math.max(...usd), divididas: Math.max(...divididas), transbordam: Math.max(...transbordam) }
+    console.log(`   ${duration} s antes: US$ ${antes.toFixed(2)} · depois: US$ ${custos[duration].min.toFixed(2)}-${custos[duration].max.toFixed(2)} (divididas máx ${custos[duration].divididas}, transbordam máx ${custos[duration].transbordam})`)
+  }
+  checa('custo do clipe a 35 s: antes US$ 4,80 (6 × 8 s); depois US$ 4,20-5,60 (7 planos de 6-8 s)', custos[35].antes === 4.8 && custos[35].min === 4.2 && custos[35].max === 5.6)
+  checa('custo do clipe a 60 s: antes US$ 7,20 (9 × 8 s); depois US$ 7,20-9,60 (12 planos de 6-8 s), nenhuma cena transborda', custos[60].antes === 7.2 && custos[60].min === 7.2 && custos[60].max === 9.6 && custos[60].transbordam === 0)
+  checa('custo do clipe a 90 s: antes US$ 9,60 (12 × 8 s); depois US$ 9,60 (12 × 8 s) — SEM cena dividida (kling25PlanPace sobe o passo quando a fala passaria de 90 s; fit8 = 19-22)', custos[90].antes === 9.6 && custos[90].min === 9.6 && custos[90].max === 9.6 && custos[90].divididas === 0 && custos[90].transbordam === 0)
 }
 
 // ═══ (e) mutantes ═══
@@ -267,6 +313,13 @@ if (rotaBase) {
   const m = rota.replace('    if (wantsVeo && !verbatim) {\n      veoFootage = veoFootageNeededAI(duration)', '    if (!verbatim) {\n      veoFootage = veoFootageNeededAI(duration)')
   if (m === rota) throw new Error('mutante do dimensionamento não aplicou')
   checa('mutante do dimensionamento (sem wantsVeo): Seedance/Kling/Sora deixariam de ser idênticos à base → vermelho', !contagensIguais(m, rotaBase, ['seedance', 'kling', 'sora']))
+}
+{
+  // o defeito que a revisão de 29/09 bloqueou: escritor travado em 2,3 pal/s enquanto o compose escala pela persona
+  const m = rota.replace(LINHA_VEO_ESPERADA, '\n    if (wantsVeo && !verbatim) Object.assign(classicWriterOptions, { wordsPerScene: wordsPerSceneFor(duration, clipCount, Math.min(narrationRate.wordsPerSecond, 2.3)), sceneSeconds: veoAverageShotSecondsAI(clipCount, veoFootage) }, kling25WriterBudget(clipCount))\n')
+  if (m === rota) throw new Error('mutante do escritor não aplicou')
+  const provas = PERSONAS.map((p) => provaPersona(m, p))
+  checa('mutante do escritor (faixa a min(voz, 2,3)): energetic-facts 2,81 / futuristic-ai 2,65 / storyteller 2,63 cairiam abaixo do piso do compose → vermelho', !provas.every((x) => x.ok) && provas.filter((x) => !x.ok).length >= 3 && provas.find((x) => x.id === 'energetic-facts')?.ok === false)
 }
 {
   const m = rota.replace('    if (wantsVeo && !verbatim && scenes.length > 0) {\n      const palavrasDoFilme', '    if (!verbatim && scenes.length > 0) {\n      const palavrasDoFilme')

@@ -324,9 +324,10 @@ export function isVeoClaim(response: Record<string, unknown> | null | undefined)
 // (lib/runway generateScenes) devolvia ⌈s/8⌉ + 1 cenas e a rota mandava '8s' FIXO para todas: a cena de 9 palavras (≈ 4 s
 // de fala) pagava 8 s de imagem e a de 20 palavras (≈ 8,5 s) ficava com a imagem curta. Agora, SÓ no Veo 3.1 em modo IA:
 //   · o escritor é dimensionado para planos de ~6 s (veoShotCountAI / veoAverageShotSecondsAI — o padrão de
-//     kling25ShotCount / kling25AverageShotSeconds do Kling 2.5) e escreve no passo do plano (veoWriterPaceAI: min(voz
-//     real, 2,3 × velocidade) — nunca a base 3,1 da família, com a qual um filme de 60 s nascia com 186 palavras ≈ 78 s
-//     de fala na voz da persona quando a persona não resolvia);
+//     kling25ShotCount / kling25AverageShotSeconds do Kling 2.5) e escreve na RÉGUA DA PERSONA (narrationRate, a mesma
+//     pela qual o compose escala a narração — revisão de 29/09: escrever a 2,3 com persona de 2,45-2,81 dava 51-59 s de
+//     fala em 60 s, abaixo do piso 0,92 do compose, que reescrevia o texto e desalinhava clip_word_starts); com 12 cenas
+//     ganha o orçamento de tokens/prazo do Kling 2.5 (kling25WriterBudget);
 //   · cada cena recebe o menor passo 4|6|8 em que a própria fala cabe (veoSceneSeconds — a régua do roteiro marcado:
 //     min(voz, 2,3) pal/s no útil −0,16 s com folga de 0,3 s); a cena cuja fala não cabe em 8 s é DIVIDIDA em 2 planos na
 //     fronteira de frase/vírgula (mesma descrição visual; o eixo por índice dá o enquadramento diferente) enquanto o teto
@@ -355,17 +356,6 @@ export function veoAverageShotSecondsAI(count: number, footageSeconds: number): 
   const n = Math.max(1, Math.trunc(count) || 1)
   const s = veoSceneSeconds(new Array<number>(n).fill(0), footageSeconds, KLING25_PLAN_WPS)
   return Math.round(s.reduce((a, b) => a + b, 0) / n)
-}
-
-/**
- * Régua do escritor do modo IA do Veo: a voz real limitada ao passo do plano (2,3 × velocidade do roteiro) — nunca a base
- * 3,1 da família. Escrever no passo em que os planos são medidos é o que faz a fala caber em planos de 6 s; o compose (régua
- * da persona, 2,3-2,55) fica dentro da faixa −8 %/+25 % em que não reescreve.
- */
-export function veoWriterPaceAI(voiceWordsPerSecond?: number | null, speed?: number | null): number {
-  const v = positive(speed) ? Math.min(2, Math.max(0.5, speed)) : 1
-  const teto = Math.round(KLING25_PLAN_WPS * v * 100) / 100
-  return positive(voiceWordsPerSecond) ? Math.min(voiceWordsPerSecond, teto) : teto
 }
 
 export interface VeoAiShot {
