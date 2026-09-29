@@ -3,6 +3,16 @@
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
 
+## 2026-09-29 (noite) — Quatro entregas: foto de referência, Clipes 5/7/10/15 s, filmes de 15/30 s em todos os motores, "Estrela do filme"
+
+**QUEM DECIDIU:** o fundador, 29/09, literal: "vai pra todas as 4 … é muito mais público que podemos alcançar", e depois "clipes de 5, 7, 10 e 15 segundos, além dos que a gente já tem". Este "vai" é a autorização nominal da trava 8.2 para as entregas que mexem nas rotas travadas (durações curtas nos filmes); os commits levam a marca [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'].
+**O QUE MUDA:**
+1. **Foto de referência no /images** (Nano Banana Pro, `fal-ai/nano-banana-pro/edit`): 1 a 3 fotos da própria conta, consentimento obrigatório conferido no servidor, moderação antes de guardar e antes de cobrar, mesmo preço (5 cr). Guardião: scripts/test-images-foto-referencia-2026-09-29.mjs.
+2. **Clipes** (/clips): uma cena, sem narração, a partir de texto ou de uma foto, em 5/7/10/15 s — cada motor mostra SÓ as durações que entrega nativamente, com o número real; se o motor não faz a duração pedida, a tela aponta os que fazem (nunca troca em silêncio). Preço por proposta do CEO com margem ≥ a do filme do mesmo motor, aprovado pelo fundador antes de publicar.
+3. **Filmes narrados curtos:** 15 s no Kling 2.5 e no Veo (receita do Seedance 15 s); 15 e 30 s no Kling 3, H3, Omni e Seedance 2.5. Nenhum filme sai mais curto que o pedido; preço por creditCostForDuration.
+4. **"Estrela do filme":** o rosto da foto (com consentimento) em todas as cenas do filme narrado. Começa depois de 1 e 3.
+**CANÁRIOS PAGOS:** só com o ok do fundador, um motor por vez.
+
 ## 2026-09-29 — Padrão de e-mails da Kineo (remetente por tipo de conversa)
 **QUEM DECIDIU:** o fundador, 29/09, depois de notar que conversas comerciais saíam de uma caixa antiga ("estamos falando com algumas pessoas de um jeito meio errado").
 **CONTEXTO TÉCNICO (29/09):** usekineo.com é domínio de alias do Workspace shortsforgeai.com; SPF (`include:_spf.google.com`), DKIM (`google._domainkey`, 2048) e DMARC (`p=none`) publicados e ativos. Os e-mails automáticos do app (Resend) já saem de @usekineo.com (support@, hello@, joseph@) e não mudam.
