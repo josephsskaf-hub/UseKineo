@@ -29,6 +29,8 @@ import {
   kling25ApplyShotAxis,
   kling25StripShotAxis,
   KLING25_SHORT_FIT_SLACK_SECONDS,
+  kling25FootageNeeded, // [TRAVA 8.2] VEO-MODO-IA-2026-09-29
+  KLING25_PLAN_WPS, // [TRAVA 8.2] VEO-MODO-IA-2026-09-29
 } from './klingShots'
 
 /** Os únicos valores que o schema da fal do Veo 3.1 Fast aceita (t2v e i2v). Ordem crescente. */
@@ -315,4 +317,126 @@ export function veoAlignSignedClipPlan(
 export function isVeoClaim(response: Record<string, unknown> | null | undefined): boolean {
   const m = response ? response.fal_model : undefined
   return typeof m === 'string' && m.startsWith('fal-ai/veo3.1/')
+}
+
+// ═══ [TRAVA 8.2] VEO-MODO-IA-2026-09-29 — modo IA ("Let AI structure my text"): a imagem segue a fala ═══════════════════
+// Palavra do fundador (29/09): "quero o Veo pronto pra amanhã, me entrega até amanhã". Até aqui, no modo IA, o escritor
+// (lib/runway generateScenes) devolvia ⌈s/8⌉ + 1 cenas e a rota mandava '8s' FIXO para todas: a cena de 9 palavras (≈ 4 s
+// de fala) pagava 8 s de imagem e a de 20 palavras (≈ 8,5 s) ficava com a imagem curta. Agora, SÓ no Veo 3.1 em modo IA:
+//   · o escritor é dimensionado para planos de ~6 s (veoShotCountAI / veoAverageShotSecondsAI — o padrão de
+//     kling25ShotCount / kling25AverageShotSeconds do Kling 2.5) e escreve no passo do plano (veoWriterPaceAI: min(voz
+//     real, 2,3 × velocidade) — nunca a base 3,1 da família, com a qual um filme de 60 s nascia com 186 palavras ≈ 78 s
+//     de fala na voz da persona quando a persona não resolvia);
+//   · cada cena recebe o menor passo 4|6|8 em que a própria fala cabe (veoSceneSeconds — a régua do roteiro marcado:
+//     min(voz, 2,3) pal/s no útil −0,16 s com folga de 0,3 s); a cena cuja fala não cabe em 8 s é DIVIDIDA em 2 planos na
+//     fronteira de frase/vírgula (mesma descrição visual; o eixo por índice dá o enquadramento diferente) enquanto o teto
+//     de planos permitir — senão fica com 8 s e vai ao relato (`transbordam`); cobertura que faltar promove do fim para trás;
+//   · os segundos entram no claim (clip_seconds / clip_word_starts) pelo mesmo caminho do verbatim, e o ensaio de $0 os
+//     mostra (veo_ai_plan).
+// Seedance/Kling/Sora/hollywood: nada aqui roda (a rota só chama sob wantsVeo && !verbatim). Guardião:
+// scripts/test-veo-modo-ia-2026-09-29.mjs.
+
+/** Passo médio que o modo IA mira ao dimensionar o escritor: 6 s (o do meio da tabela; 4 e 8 nascem da fala de cada cena). */
+export const VEO_AI_TARGET_SHOT_SECONDS = 6
+
+/** Imagem útil que o modo IA precisa cobrir: o filme do botão (61,5 s acima de 60) + 3 s de folga — a régua do Kling. */
+export function veoFootageNeededAI(durationSeconds: number): number {
+  return kling25FootageNeeded({ durationSeconds })
+}
+
+/** Cenas pedidas ao escritor no modo IA: planos de 6 s (5,84 úteis) que cobrem a imagem, entre 2 e 12. 35 s → 7 · 45 s → 9 · 60 s → 12 · 90 s → 12. */
+export function veoShotCountAI(footageSeconds: number): number {
+  const need = positive(footageSeconds) ? footageSeconds : 0
+  return Math.max(2, Math.min(VEO_MAX_SHOTS_AI, Math.ceil(need / kling25UsefulSeconds(VEO_AI_TARGET_SHOT_SECONDS) - 1e-9)))
+}
+
+/** Segundos médios dos planos para `count` cenas uniformes (o "~X-second scene" que o escritor ouve): 35 s → 6 · 60 s → 6 · 90 s → 8. */
+export function veoAverageShotSecondsAI(count: number, footageSeconds: number): number {
+  const n = Math.max(1, Math.trunc(count) || 1)
+  const s = veoSceneSeconds(new Array<number>(n).fill(0), footageSeconds, KLING25_PLAN_WPS)
+  return Math.round(s.reduce((a, b) => a + b, 0) / n)
+}
+
+/**
+ * Régua do escritor do modo IA do Veo: a voz real limitada ao passo do plano (2,3 × velocidade do roteiro) — nunca a base
+ * 3,1 da família. Escrever no passo em que os planos são medidos é o que faz a fala caber em planos de 6 s; o compose (régua
+ * da persona, 2,3-2,55) fica dentro da faixa −8 %/+25 % em que não reescreve.
+ */
+export function veoWriterPaceAI(voiceWordsPerSecond?: number | null, speed?: number | null): number {
+  const v = positive(speed) ? Math.min(2, Math.max(0.5, speed)) : 1
+  const teto = Math.round(KLING25_PLAN_WPS * v * 100) / 100
+  return positive(voiceWordsPerSecond) ? Math.min(voiceWordsPerSecond, teto) : teto
+}
+
+export interface VeoAiShot {
+  /** Índice (0-based) da cena do escritor de onde o plano veio. */
+  scene: number
+  voiceover: string
+  seconds: number
+  /** true = este plano é uma das duas metades de uma cena dividida. */
+  split: boolean
+}
+export interface VeoAiPlan {
+  shots: VeoAiShot[]
+  seconds: number[]
+  pace: number
+  /** Palavras que cabem em 4 / 6 / 8 s no passo. */
+  fit: number[]
+  needSeconds: number
+  /** Índices (0-based) das cenas divididas em 2 planos. */
+  divididas: number[]
+  /** Índices (0-based) das cenas cuja fala passa de 8 s e NÃO puderam ser divididas (teto de planos ou sem corte que caiba): ficam com 8 s. */
+  transbordam: number[]
+}
+
+/** O corte de uma fala longa em 2 metades que cabem em 8 s: fim de frase, depois vírgula, depois palavra — o mais perto do meio. */
+function veoSplitPoint(words: ReadonlyArray<string>, fitLong: number): number | null {
+  const W = words.length
+  let best: { cut: number; cost: number } | null = null
+  for (let b = 1; b < W; b++) {
+    if (b > fitLong || W - b > fitLong) continue
+    const kind = boundaryKind(words[b - 1], words[b])
+    const cost = (kind === 'sentence' ? 0 : kind === 'clause' ? 1 : 3) + (Math.abs(b - W / 2) / W) * 2
+    if (!best || cost < best.cost - 1e-9) best = { cut: b, cost }
+  }
+  return best ? best.cut : null
+}
+
+/**
+ * O plano do modo IA, depois que o escritor devolveu as cenas: cada cena no menor passo 4|6|8 em que a fala cabe; fala que
+ * não cabe em 8 s vira 2 planos (veoSplitPoint) enquanto `maxShots` (teto físico do caminho clássico, 18) permitir — as
+ * que mais transbordam primeiro; senão 8 s e `transbordam`. Nenhuma palavra some, nenhuma muda de ordem: a narração
+ * (voiceovers unidos por espaço) é a mesma antes e depois.
+ */
+export function veoAiPlan(
+  voiceovers: ReadonlyArray<string | null | undefined>,
+  opts: { footageSeconds: number; wordsPerSecond?: number | null; maxShots?: number },
+): VeoAiPlan {
+  const falas = voiceovers.map((v) => splitWords(v))
+  const total = falas.reduce((a, w) => a + w.length, 0)
+  const pace = kling25PlanPace(opts.wordsPerSecond, total)
+  const fit = veoFitWords(pace)
+  const fitLong = fit[fit.length - 1]
+  const needSeconds = positive(opts.footageSeconds) ? opts.footageSeconds : 0
+  const maxShots = Math.max(falas.length, Math.trunc(opts.maxShots ?? VEO_MAX_SHOTS) || VEO_MAX_SHOTS)
+  const cortes = new Map<number, number>()
+  const transbordam: number[] = []
+  let vagas = maxShots - falas.length
+  const candidatas = falas.map((_, i) => i).filter((i) => falas[i].length > fitLong).sort((a, b) => falas[b].length - falas[a].length || a - b)
+  for (const i of candidatas) {
+    const cut = vagas > 0 ? veoSplitPoint(falas[i], fitLong) : null
+    if (cut === null) { transbordam.push(i); continue }
+    cortes.set(i, cut)
+    vagas--
+  }
+  const shots: VeoAiShot[] = []
+  falas.forEach((w, i) => {
+    const cut = cortes.get(i)
+    if (cut === undefined) { shots.push({ scene: i, voiceover: String(voiceovers[i] ?? ''), seconds: 0, split: false }); return }
+    shots.push({ scene: i, voiceover: w.slice(0, cut).join(' '), seconds: 0, split: true })
+    shots.push({ scene: i, voiceover: w.slice(cut).join(' '), seconds: 0, split: true })
+  })
+  const seconds = veoSceneSeconds(shots.map((s) => splitWords(s.voiceover).length), needSeconds, pace)
+  shots.forEach((s, k) => { s.seconds = seconds[k] })
+  return { shots, seconds, pace, fit, needSeconds, divididas: [...cortes.keys()].sort((a, b) => a - b), transbordam: transbordam.sort((a, b) => a - b) }
 }
