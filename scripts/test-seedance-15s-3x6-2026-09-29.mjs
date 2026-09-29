@@ -181,9 +181,10 @@ checa('o teto cabe em 3 × 6 s (o planejador pede 6 s para 43 palavras) e passa 
   checa(`todo outro par (segundos × régua × cobertura, ${pares.length} casos) e writerRateFor de 8 motores idênticos à base — Kineo 1 a 15 s segue ${W.minWordsFor(15, k1.wordsPerSecond, 1)}-${W.maxWordsFor(15, k1.wordsPerSecond, 1)}`, Boolean(WB) && pares.every(Boolean) && reguas && W.minWordsFor(15, k1.wordsPerSecond, 1) === WB.minWordsFor(15, k1.wordsPerSecond, 1))
   const W_SRC = rd('lib/scriptWriterRate.ts')
   checa('o compilador dos mutantes do escritor, sobre o arquivo SEM mutação, passa no predicado (senão o vermelho dos mutantes não prova nada)', provaEscritor(compilaW(W_SRC)))
-  const mutEscritor = trocaUma(W_SRC, '  if (isSeedanceShortWriter(seconds, wordsPerSecond, coverage)) return seedanceShortWriterWords().min // KINEO-SEEDANCE-15S-3X6-2026-09-29' + LF, '')
+  // Reancorado 29/09 (KINEO-RITMO-POR-IDIOMA-15S-2026-09-29, [TRAVA 8.2 — "vai conserta" do fundador]): a linha ganhou a língua do filme curto do Seedance (idiomaDoRitmo / ritmo); o que ela protege não muda.
+  const mutEscritor = trocaUma(W_SRC, '  if (isSeedanceShortWriter(seconds, wordsPerSecond, coverage)) return seedanceShortWriterWords(language).min // KINEO-SEEDANCE-15S-3X6-2026-09-29 · KINEO-RITMO-POR-IDIOMA-15S' + LF, '')
   checa('mutante: escritor sem o piso do 15 s (volta a 47 palavras) fica VERMELHO pelo mesmo predicado', mutEscritor !== null && !provaEscritor(compilaW(mutEscritor)))
-  const mutTeto = trocaUma(W_SRC, '  if (isSeedanceShortWriter(seconds, wordsPerSecond, coverage)) return seedanceShortWriterWords().max // KINEO-SEEDANCE-15S-3X6-2026-09-29' + LF, '')
+  const mutTeto = trocaUma(W_SRC, '  if (isSeedanceShortWriter(seconds, wordsPerSecond, coverage)) return seedanceShortWriterWords(language).max // KINEO-SEEDANCE-15S-3X6-2026-09-29 · KINEO-RITMO-POR-IDIOMA-15S' + LF, '')
   checa('mutante: escritor sem o teto do 15 s (⌊41 × 1,2⌉ = 49) fica VERMELHO pelo mesmo predicado', mutTeto !== null && !provaEscritor(compilaW(mutTeto)))
   const mutTetoSemFolga = trocaUma(W_SRC, '  const cabe = seedanceShortSpeechCapacity(SEEDANCE_SHORT_CLIP_STEPS[0], KLING25_CLIP_LOSS_SECONDS)', '  const cabe = 3 * (SEEDANCE_SHORT_CLIP_STEPS[0] - KLING25_CLIP_LOSS_SECONDS)')
   checa('mutante: teto do escritor sem a folga (o 43 de 234e3593) fica VERMELHO pelo mesmo predicado', mutTetoSemFolga !== null && !provaEscritor(compilaW(mutTetoSemFolga)))
@@ -194,7 +195,9 @@ checa('o teto cabe em 3 × 6 s (o planejador pede 6 s para 43 palavras) e passa 
 // não escreveu nada na rota (nenhum marcador dele, nenhuma faixa digitada).
 {
   const GS = rd('app/api/generate-script/route.ts')
-  checa('o /api/generate-script continua lendo min/maxWordsFor da lib (fonte única; a rota dele não foi tocada aqui)', GS.includes("import { minWordsFor, maxWordsFor, writerRateFor } from '@/lib/scriptWriterRate'") && GS.includes('    const tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage), maxWordsForShortFilm(alvoSegundos))') && !GS.includes('KINEO-SEEDANCE-15S-3X6') && !GS.includes('seedanceShortWriterWords'))
+  // Reancorado 29/09 (KINEO-RITMO-POR-IDIOMA-15S-2026-09-29, [TRAVA 8.2 — "vai conserta" do fundador]): a linha do teto ganhou idiomaDoRitmo
+  // (a língua do filme curto do Seedance); a fonte única (min/maxWordsFor da lib) continua a mesma.
+  checa('o /api/generate-script continua lendo min/maxWordsFor da lib (fonte única; a rota dele não foi tocada aqui)', GS.includes("import { minWordsFor, maxWordsFor, writerRateFor } from '@/lib/scriptWriterRate'") && GS.includes('    const tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo), maxWordsForShortFilm(alvoSegundos))') && !GS.includes('KINEO-SEEDANCE-15S-3X6') && !GS.includes('seedanceShortWriterWords'))
 }
 
 // ═══ 4. rota ═══

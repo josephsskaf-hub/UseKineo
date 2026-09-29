@@ -297,8 +297,11 @@ console.log('3) roteiro de 36 palavras de ciência: o portão deixa passar — e
   }
   checa(`36-41 palavras em cada voz que o 15 s alcança (${[...vistos].sort().join(', ')}), no navegador e no resgate: o portão passa, a voz real enche 95 % e o passo fica <= 2,5 pal/s`,
     todos && Object.keys(PERSONA_POR).every((p) => vistos.has(p)))
+  // Reancorado 29/09 (KINEO-RITMO-POR-IDIOMA-15S-2026-09-29, [TRAVA 8.2 — "vai conserta" do fundador]): o escritor do 15 s devolve
+  // `wordsPerSecond: ritmo`, com ritmo = ritmoDoFilmeCurto(língua) — 2,5 (VERBATIM_EST_WORDS_PER_SECOND) em inglês, a língua destes
+  // testes; nas línguas de palavra longa o ritmo desce junto na guarda e no portão (scripts/test-ritmo-por-idioma-15s-2026-09-29.mjs).
   checa('a régua de 2,5 é a MESMA do escritor do 15 s (seedanceShortWriterWords) e da guarda do filme curto (VERBATIM_EST_WORDS_PER_SECOND)',
-    /VERBATIM_EST_WORDS_PER_SECOND \/ passo/.test(SRC.voz) && DBE.VERBATIM_EST_WORDS_PER_SECOND === 2.5 && /return \{ min, max, wordsPerSecond: VERBATIM_EST_WORDS_PER_SECOND/.test(rd('lib/scriptWriterRate.ts')))
+    /VERBATIM_EST_WORDS_PER_SECOND \/ passo/.test(SRC.voz) && DBE.VERBATIM_EST_WORDS_PER_SECOND === 2.5 && /const ritmo = ritmoDoFilmeCurto\(language\)[^\n]*\n[\s\S]*return \{ min, max, wordsPerSecond: ritmo, fastestFloor \}/.test(rd('lib/scriptWriterRate.ts')) && DBE.ritmoDoFilmeCurto('en') === DBE.VERBATIM_EST_WORDS_PER_SECOND)
   const curto = AGORA.rota({ prompt: TEMAS['ciência/IA'].replace('Its name... halicin, and it killed superbugs nothing else could.', 'Its name... halicin.'), engine: 'seedance', duration: 15, vertical: 'Technology' })
   checa('o portão continua de pé: 29 palavras (11,6 s na voz que fala) seguem recusadas — o conserto não afrouxa, só mede a voz certa', palavras(curto.parsedScript.narration).length === 29 && curto.__fit.ok === false)
   const com11 = AGORA.rota({ prompt: 'speed: 1.1\n' + TEMAS['ciência/IA'], engine: 'seedance', duration: 15, vertical: 'Technology' })

@@ -110,7 +110,8 @@ console.log('C) o escritor (trava 8.2, "vai" do 15 s): texto pronto com marcador
   const GS = rd('app/api/generate-script/route.ts')
   const L_RET = '    if (!forceAuthoring && hasViralMarkers(topic)) {'
   const L_FIT = '      if (filmeCurto && palavrasDoFilmeCurto(topic) > tetoFilmeCurto) {'
-  const L_TETO = '    const tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage), maxWordsForShortFilm(alvoSegundos))'
+  // Reancorado 29/09 (KINEO-RITMO-POR-IDIOMA-15S-2026-09-29, [TRAVA 8.2 — "vai conserta" do fundador]): a linha ganhou a língua do filme curto do Seedance (idiomaDoRitmo / ritmo); o que ela protege não muda.
+  const L_TETO = '    const tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo), maxWordsForShortFilm(alvoSegundos))'
   const L_INTACTO = '      return NextResponse.json({ script: topic, alreadyStructured: true })'
   checa('as réguas do filme curto nascem ANTES do retorno antecipado, e o corte vem antes do "devolve intacto"', antes(GS, L_TETO, L_RET) && antes(GS, L_RET, L_FIT) && antes(GS, L_FIT, L_INTACTO) && temLinha(GS, '        const ajustePronto = fitShortFilmScript(so4Pronto.script, { maxWords: tetoFilmeCurto, minWords: pisoFilmeCurto, countWords: palavrasDoFilmeCurto, hardMaxWords: tetoDuroFilmeCurto })')) // reancorado 29/09 (KINEO-ROTEIRO-15S-FRASE-INTEIRA): + teto duro da guarda; o corte é por frases inteiras
   checa('mutante (sem o corte no retorno antecipado) → vermelho', !temLinha(GS.replace(L_FIT, '      if (false) {'), L_FIT))
