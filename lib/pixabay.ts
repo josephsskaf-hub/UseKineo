@@ -58,7 +58,7 @@ let ACTIVE_SUBJECT_CONTEXT = ''
 export function setActiveSubjectContext(hint?: unknown): void {
   ACTIVE_SUBJECT_CONTEXT = typeof hint === 'string' ? hint.toLowerCase().slice(0, 600) : ''
 }
-const SUBJECT_CONFLICTS: ReadonlyArray<{ subject: RegExp; context: RegExp; rejectTags: RegExp; label: string }> = [
+const SUBJECT_CONFLICTS: ReadonlyArray<{ subject: RegExp; context: RegExp; rejectTags: RegExp; label: string; unless?: RegExp }> = [
   { subject: /\b(mustang|jaguar|beetle|bronco|impala|cobra|viper|barracuda|stingray)\b/, context: /\b(car|cars|vehicle|ford|chevy|chevrolet|dodge|engine|drive|driving|model|sedan|coupe|drift|drifting|steering|wheel|horsepower|showroom|garage|road)\b/, rejectTags: /\b(horse|horses|stallion|mare|foal|colt|equine|gallop|galloping|rodeo|bronco|wild horse|animal|wildlife|mammal|leopard|beetle|insect|snake|fish|cat)\b/, label: 'car_not_animal' },
   { subject: /\bbullets?\b/, context: /\b(rifle|sniper|gun|guns|shot|shooting|shooter|trajectory|ammo|ammunition|target|caliber|firearm)\b/, rejectTags: /\b(train|trains|rail|railway|shinkansen|high speed|christmas|ornament|decoration|bauble)\b/, label: 'bullet_not_train' },
   { subject: /\b(python|java|ruby|swift|rust|go)\b/, context: /\b(code|coding|programming|software|developer|script|language)\b/, rejectTags: /\b(snake|reptile|coffee|gem|gemstone|bird|corrosion)\b/, label: 'language_not_thing' },
@@ -66,7 +66,45 @@ const SUBJECT_CONFLICTS: ReadonlyArray<{ subject: RegExp; context: RegExp; rejec
   { subject: /\b(mercury|saturn|jupiter|mars)\b/, context: /\b(planet|space|orbit|nasa|astronomy|solar)\b/, rejectTags: /\b(car|cars|vehicle|chocolate|candy|thermometer)\b/, label: 'planet_not_brand' },
   { subject: /\b(crane|cranes)\b/, context: /\b(construction|building|site|lift|lifting|tower)\b/, rejectTags: /\b(bird|birds|wildlife|marsh|wading)\b/, label: 'crane_not_bird' },
   { subject: /\bbat\b/, context: /\b(baseball|cricket|bat swing|batter)\b/, rejectTags: /\b(animal|cave|wing|wings|nocturnal|mammal)\b/, label: 'bat_not_animal' },
+  // KINEO1-TAGS-PROIBIDAS-2026-09-28 — 4 homônimos dos 10 anúncios de 27-28/09 (docs/DEFEITOS-KINEO1-10-ANUNCIOS):
+  // "tender" (licitação) virou carne grelhada (tag 'tender' do bife; 'smarttender' casa por substring ≥5, por isso o
+  // sujeito aceita prefixo); "lead" (cliente) virou munição; "tablet" (dispositivo) é remédio no Pixabay; "reads"
+  // (software que lê contrato) trouxe o Alcorão — a fala real do eQMS ("reads, summarizes and delivers the precise
+  // information you need") entra no contexto para a regra disparar no caso que aconteceu, não só no caso ideal.
+  { subject: /\b(?!bartenders?\b)\w*tenders?\b/, context: /\b(bid|bids|bidding|procurement|proposal|proposals|contract|contracts|public|government|rfp|rfq|award|awarded|win|winning|supplier|suppliers|tendering|evaluation|evaluate|document|documents|platform|software|ai|business|compliance|submission|submissions)\b/, rejectTags: /\b(meat|steak|steaks|grill|grilled|grilling|beef|chicken|pork|lamb|barbecue|bbq|food|cooking|kitchen|dish|roast|rose|roses|flower|flowers)\b/, label: 'tender_not_meat' },
+  { subject: /\bleads?\b/, context: /\b(sales|customer|customers|client|clients|business|marketing|funnel|pipeline|crm|conversion|conversions|generate|generating|prospect|prospects|website|campaign|campaigns|revenue|grow|growth|agency)\b/, rejectTags: /\b(bullet|bullets|ammunition|ammo|cartridge|cartridges|casing|gun|guns|rifle|pistol|metal|pencil|pencils|graphite|leash|dog)\b/, label: 'lead_not_ammo' },
+  { subject: /\btablets?\b/, context: /\b(device|devices|screen|screens|app|apps|ipad|touch|touchscreen|digital|software|tech|technology|display|scroll|scrolling|browsing|smartphone|phone|laptop|document|documents|dashboard|online|website|data)\b/, rejectTags: /\b(pill|pills|medicine|medication|medications|drug|drugs|pharmacy|pharmaceutical|capsule|capsules|vitamin|vitamins|dose|dosage|prescription|painkiller|aspirin|supplement|supplements)\b/, label: 'tablet_not_pill' },
+  // KINEO1-TAGS-PROIBIDAS (revisão) — `unless`: se a FALA (ou a busca) já diz bíblia/alcorão/oração/igreja/mesquita/templo/
+  // holy, a leitura é religiosa de verdade e a recusa do 'reads' NÃO se aplica. E 'bartender' não é 'tender' (lookahead acima).
+  { subject: /\b(reads?|reading)\b/, context: /\b(contract|contracts|document|documents|line|lines|text|email|emails|report|reports|data|code|file|files|software|ai|screen|scan|scans|analyze|analyzes|analyse|analyses|clause|clauses|page|pages|information|summarize|summarizes|summary|deliver|delivers|precise|assistant|automation|automates|platform|tool)\b/, rejectTags: /\b(quran|koran|bible|scripture|scriptures|torah|holy book|prayer|praying|religious|religion|mosque|church|hijab)\b/, unless: /\b(bible|quran|koran|scripture|scriptures|torah|prayer|prayers|church|churches|mosque|mosques|temple|temples|holy)\b/, label: 'read_not_scripture' },
 ]
+// ═══ KINEO1-TAGS-PROIBIDAS-2026-09-28 — tags de marca/placa, religião e arma são CONTEXTUAIS ═══
+//
+// Os 10 anúncios de 27-28/09: hijab lendo o Alcorão no eQMS (software), fachada com placa no restaurante, logo da
+// Apple no MadLabs. O portão só recusava lifestyle e kitsch; não havia lista para logo, placa, religião ou arma.
+// REGRA: um candidato com tag de uma dessas famílias só entra quando a fala da cena OU a busca fala do assunto
+// ("the ghats of Varanasi and its temples" → tag 'temple' passa; 'church' numa fala sobre software cai). Aplicado
+// nos dois portões (pool do Pixabay em collectCandidates e cofre v2 em clipTagsGate), depois do homônimo.
+const FORBIDDEN_TAG_FAMILIES: ReadonlyArray<{ tags: RegExp; allow: RegExp; label: string }> = [
+  { tags: /\b(logo|logos|brand|brands|branding|trademark|billboard|billboards|advertisement|advertisements|advertising|advert|adverts)\b/, allow: /\b(logo|logos|brand|brands|branding|branded|trademark|billboard|billboards|advertisement|advertisements|advertising|advert|adverts|ad|ads|marketing|campaign|campaigns|commercial|commercials|times square|neon|sponsor|sponsors)\b/, label: 'brand' },
+  { tags: /\b(sign|signs|signage|signboard|signboards|signpost|signposts)\b/, allow: /\b(sign|signs|signage|signboard|signboards|signpost|signposts|billboard|billboards|street|streets|road|roads|highway|highways|traffic|neon|shop|shops|store|stores|storefront|direction|directions|warning|warnings|route|exit|entrance|airport|station|city|downtown|town)\b/, label: 'sign' },
+  { tags: /\b(quran|koran|bible|scripture|scriptures|torah|church|churches|mosque|mosques|temple|temples|cross|crucifix|prayer|prayers|praying|hijab|worship)\b/, allow: /\b(quran|koran|bible|scripture|scriptures|torah|church|churches|mosque|mosques|temple|temples|cross|crosses|crossing|crucifix|prayer|prayers|praying|pray|prays|worship|religion|religious|faith|god|gods|goddess|holy|sacred|spiritual|cathedral|cathedrals|monastery|monk|monks|priest|priests|pilgrim|pilgrims|pilgrimage|hindu|hinduism|buddhist|buddhism|buddha|islam|islamic|muslim|muslims|christian|christianity|christ|jesus|catholic|jewish|judaism|shrine|shrines|varanasi|ganges|ganga|mecca|vatican|jerusalem|angkor|kyoto|ritual|rituals|ceremony|wedding|funeral|hijab|ramadan|easter|christmas|diwali)\b/, label: 'religion' },
+  { tags: /\b(gun|guns|rifle|rifles|pistol|pistols|ammunition|ammo|bullet|bullets|knife|knives|weapon|weapons|firearm|firearms|shotgun|handgun|revolver)\b/, allow: /\b(gun|guns|rifle|rifles|pistol|pistols|ammunition|ammo|bullet|bullets|knife|knives|weapon|weapons|firearm|firearms|shotgun|handgun|revolver|shooting|shooter|shot|sniper|soldier|soldiers|army|military|war|wars|battle|battles|combat|hunting|hunter|hunters|police|crime|criminal|murder|assassin|assassination|chef|chefs|cooking|cook|cutting|cut|slice|slicing|chopping|blade|blades|sword|swords|kitchen|butcher|surgeon|surgery|attack|defense|defence|self-defense|robbery|armed|violence|violent)\b/, label: 'weapon' },
+]
+// KINEO1-TAGS-PROIBIDAS (revisão) 2026-09-28 — compostos que carregam a palavra da família sem SER a coisa: 'dollar sign'
+// (vertical Money Facts, a principal da casa) não é placa; 'cross country' e 'prayer flags' (Himalaia/Nepal) não são
+// religião. A família casa TAG A TAG (blob do Pixabay separado por vírgula) e pula estes compostos; 'street sign' segue
+// caindo (é placa) e, como antes, só entra quando a fala ou a busca falam de rua/loja/placa.
+const LIBERATED_COMPOUND_TAGS: ReadonlySet<string> = new Set(['dollar sign', 'dollar signs', 'cross country', 'cross-country', 'prayer flag', 'prayer flags', 'sign language', 'zodiac sign', 'zodiac signs', 'peace sign'])
+/** Tag proibida no contexto: família (marca/placa/religião/arma) presente nas tags sem a palavra correspondente na fala nem na busca. Exportado para o guardião. */
+export function forbiddenTagInContext(tagsBlob: string, query: string, context: string = ACTIVE_SUBJECT_CONTEXT): string | null {
+  const tags = (tagsBlob ?? '').toLowerCase().split(',').map((t) => t.trim()).filter((t) => t && !LIBERATED_COMPOUND_TAGS.has(t)).join(', ')
+  const ctx = `${(query ?? '').toLowerCase()} ${context ?? ''}`
+  for (const f of FORBIDDEN_TAG_FAMILIES) {
+    if (f.tags.test(tags) && !f.allow.test(ctx)) return f.label
+  }
+  return null
+}
 // KINEO1-IMAGEM-V2-2026-09-28 — homônimo que só o v2 recusa: "historical players" (7c0a2023, cena 3, "Players originally
 // hit the ball with their bare hands") recebeu uma vitrola ("record, record player, vinyl, turntable"). O plural simples
 // da regra 3 ainda casa "players" com a palavra "player" — quem separa as acepções é o contexto (bola, jogo, quadra).
@@ -79,6 +117,7 @@ export function subjectConflictWithTags(query: string, tagsBlob: string, context
   const ctx = `${q} ${context}`
   const tags = tagsBlob.toLowerCase()
   for (const c of gate?.v2 ? [...SUBJECT_CONFLICTS, ...SUBJECT_CONFLICTS_V2] : SUBJECT_CONFLICTS) {
+    if (c.unless && c.unless.test(ctx)) continue // KINEO1-TAGS-PROIBIDAS (revisão) — a fala já diz que é leitura religiosa
     if (c.subject.test(q) && c.context.test(ctx) && c.rejectTags.test(tags)) return c.label
   }
   return null
@@ -425,13 +464,15 @@ export function clipTagsGate(
   tags: string,
   query: string,
   opts?: SubjectGateOptions & { sceneNeedsPeople?: boolean },
-): { ok: boolean; reason: 'lifestyle' | 'irrelevant' | 'homonym' | null } {
+): { ok: boolean; reason: 'lifestyle' | 'irrelevant' | 'homonym' | 'forbidden' | null } {
   const video = { id: 0, pageURL: '', type: 'film', tags: tags ?? '', duration: 0, videos: {} } as unknown as PixabayVideo
   const gate: SubjectGateOptions | undefined = opts?.v2 ? { v2: true, sceneText: opts.sceneText ?? '', strict: opts.strict === true, headFallback: opts.headFallback === true } : undefined
   if (hasLifestylePollution(video, opts?.sceneNeedsPeople ?? true, gate, query)) return { ok: false, reason: 'lifestyle' }
   if (!tagsRelevantToQuery(video, query, gate)) return { ok: false, reason: 'irrelevant' }
   const ctx = typeof opts?.sceneText === 'string' ? opts.sceneText.toLowerCase().slice(0, 600) : ACTIVE_SUBJECT_CONTEXT
   if (subjectConflictWithTags(query, tags ?? '', ctx, gate)) return { ok: false, reason: 'homonym' }
+  // KINEO1-TAGS-PROIBIDAS-2026-09-28 — o cofre também não devolve marca/religião/arma fora de contexto (o bife tinha 3 usos no clip_vault).
+  if (forbiddenTagInContext(tags ?? '', query, ctx)) return { ok: false, reason: 'forbidden' }
   return { ok: true, reason: null }
 }
 
@@ -934,6 +975,9 @@ type PixabayCandidate = {
    *  generic query rather than the scene's own narration-derived query. Generic
    *  candidates are ranked strictly below grounded ones (see the pool sort). */
   generic?: boolean
+  /** KINEO1-DIRETOR-VE-2026-09-28 — miniatura JPG que a Pixabay entrega em toda rendição
+   *  (videos.small.thumbnail); é o que o diretor OLHA antes de escolher. Ausente no cofre. */
+  thumbnail?: string
 }
 
 // Fast Mode v2 (02/07) — collection extracted from searchAndFilter so the new
@@ -1001,6 +1045,12 @@ async function collectCandidates(
     const conflito = subjectConflictWithTags(query, video.tags) ?? (gate?.v2 ? subjectConflictWithTags(query, video.tags, ACTIVE_SUBJECT_CONTEXT, gate) : null)
     if (conflito) {
       console.log(`[pixabay] ${label} rejected id=${video.id} tags="${video.tags.slice(0, 60)}" reason=homonym:${conflito} query="${query.slice(0, 50)}"`)
+      continue
+    }
+    // KINEO1-TAGS-PROIBIDAS-2026-09-28 — marca/placa, religião e arma só entram quando a fala ou a busca falam disso.
+    const proibida = forbiddenTagInContext(video.tags, query)
+    if (proibida) {
+      console.log(`[pixabay] ${label} rejected id=${video.id} tags="${video.tags.slice(0, 60)}" reason=forbidden:${proibida} query="${query.slice(0, 50)}"`)
       continue
     }
     const url = pickBestUrl(video)
@@ -1106,10 +1156,15 @@ async function collectCandidates(
     const score =
       matches * 4 + (coversScene ? 3 : 0) + orientationBonus - (tooShort ? 2 : 0) - lowRes +
       cohere + styleAlign + aesthetic.points
+    // KINEO1-DIRETOR-VE-2026-09-28 — a miniatura viaja com o candidato (small ≈ 640 px basta para detail 'low').
+    const thumbnail =
+      video.videos?.small?.thumbnail || video.videos?.medium?.thumbnail ||
+      video.videos?.tiny?.thumbnail || video.videos?.large?.thumbnail || undefined
     candidates.push({
       url, score, order, id: video.id, styleTags: sTags,
       tags: video.tags, durationSec: typeof video.duration === 'number' ? video.duration : undefined,
       ...(gate?.v2 && gate.headFallback && soPelaAncoraV2(video, query) ? { anchorOnly: true } : {}), // KINEO1-IMAGEM-V2 regra 5
+      ...(thumbnail ? { thumbnail } : {}),
     })
     console.log(
       `[pixabay] ${label} candidate id=${video.id} score=${score.toFixed(2)} (matches=${matches} dur=${video.duration ?? '?'}s/${neededSec}s portrait=${portrait} tooShort=${tooShort} lowRes=${lowRes} cohere=${cohere} styleAlign=${styleAlign} aesthetic=${aesthetic.score.toFixed(2)}→${aesthetic.points.toFixed(2)}pts/${AESTHETIC_MAX_SWING} [${formatAestheticBreakdown(aesthetic)}]) tags="${video.tags.slice(0, 60)}"`,
@@ -1447,6 +1502,116 @@ function noteGptDirectorFailure(reason: string, startedAt: number): void {
   )
 }
 
+// KINEO1-DIRETOR-VE-2026-09-28 — O DIRETOR PASSA A VER A MINIATURA. Até aqui o gpt-4o-mini escolhia entre os ~8
+// finalistas lendo SÓ as tags: foi assim que "tender" virou carne e um poster preto passou — ninguém olhava a imagem.
+// A Pixabay entrega uma miniatura JPG em toda rendição (hits[].videos.small.thumbnail); ela vai na MESMA chamada do
+// diretor como image_url com detail 'low' (≈ 2.833 tokens de entrada por imagem no 4o-mini ≈ US$ 0,0004 cada).
+// Custo estimado por filme: até 4 miniaturas × ~US$ 0,0004 = ~US$ 0,0017 por cena → filme de 9 cenas ≈ US$ 0,015
+// (hoje ≈ US$ 0,002). Teto de tempo do diretor NÃO muda (GPT_DIRECTOR_TIMEOUT_MS): a chamada com imagens tem até
+// GPT_DIRECTOR_VISION_TIMEOUT_MS; se estourar, falhar ou responder lixo, o que sobrar do teto vai para o caminho de
+// tags de sempre — a cena nunca fica sem decisão. Interruptor: FAST_GPT_DIRECTOR_VISION=false volta ao tags-only.
+export const GPT_DIRECTOR_MAX_IMAGES = 4
+const GPT_DIRECTOR_VISION_TIMEOUT_MS = 3500 // dentro dos 5.000 ms: sobra ≥ 1.500 ms para o caminho de tags
+export const GPT_DIRECTOR_REJECT_CRITERIA =
+  'readable text or captions, a logo or watermark, a sign or billboard, a religious symbol, a weapon, a black or blank frame, or a subject different from the narration'
+
+export type GptDirectorPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string; detail: 'low' } }
+
+/**
+ * Monta a mensagem do diretor. `withImages=false` reproduz EXATAMENTE o prompt de tags que roda em produção hoje;
+ * `withImages=true` anexa até GPT_DIRECTOR_MAX_IMAGES miniaturas (detail 'low') e pede PICK/REJECT.
+ * Pura e exportada para o guardião executar.
+ */
+export function buildGptDirectorMessages(
+  hint: string,
+  finalists: Array<{ tags: string; thumbnail?: string }>,
+  nPick: number,
+  withImages: boolean,
+): { messages: Array<{ role: 'user'; content: string | GptDirectorPart[] }>; imagesAttached: number; maxTokens: number } {
+  const narration = `Narration: "${hint.slice(0, 120)}"`
+  const listing = finalists.map((c, i) => `${i + 1}. tags: ${c.tags.slice(0, 90)}`).join('\n')
+  const n = Math.min(nPick, finalists.length)
+  if (!withImages) {
+    return {
+      messages: [{
+        role: 'user',
+        content: `${narration}\nStock clips (by tags):\n${listing}\nReply ONLY with the numbers of the ${n} clips that best match the narration's subject and a dark cinematic documentary look, comma-separated, best first.`,
+      }],
+      imagesAttached: 0,
+      maxTokens: 20,
+    }
+  }
+  const parts: GptDirectorPart[] = [{ type: 'text', text: `${narration}\nStock clips (by tags):\n${listing}` }]
+  let imagesAttached = 0
+  for (let i = 0; i < finalists.length && imagesAttached < GPT_DIRECTOR_MAX_IMAGES; i++) {
+    const url = finalists[i].thumbnail
+    if (!url) continue
+    parts.push({ type: 'text', text: `Thumbnail of clip ${i + 1}:` })
+    parts.push({ type: 'image_url', image_url: { url, detail: 'low' } })
+    imagesAttached++
+  }
+  parts.push({
+    type: 'text',
+    text: `Look at the thumbnails (each one is labeled with its clip number; clips without a thumbnail are judged by tags). REJECT any clip whose thumbnail shows ${GPT_DIRECTOR_REJECT_CRITERIA}.\nReply ONLY in this exact form: PICK: a,b REJECT: c — PICK = the numbers of the ${n} non-rejected clips that best match the narration's subject and a dark cinematic documentary look, best first; REJECT = the rejected numbers, or "none".`,
+  })
+  return { messages: [{ role: 'user', content: parts }], imagesAttached, maxTokens: 40 }
+}
+
+/** Lê a resposta do diretor: com "REJECT:" separa escolhas de reprovações; sem o rótulo, todo número é escolha (formato antigo). */
+export function parseGptDirectorReply(reply: string, count: number): { picks: number[]; rejects: number[] } {
+  const nums = (s: string): number[] =>
+    Array.from(new Set((s.match(/\d+/g) ?? []).map((n) => parseInt(n, 10) - 1).filter((n) => n >= 0 && n < count)))
+  const m = /reject\s*:/i.exec(reply)
+  if (!m) return { picks: nums(reply), rejects: [] }
+  const picks = nums(reply.slice(0, m.index))
+  const rejects = nums(reply.slice(m.index + m[0].length)).filter((n) => !picks.includes(n))
+  return { picks, rejects }
+}
+
+/** Uma chamada ao diretor com teto próprio; devolve a resposta ou a razão da falha (nunca lança). */
+async function askGptDirector(
+  body: Record<string, unknown>,
+  timeoutMs: number,
+): Promise<{ ok: true; reply: string } | { ok: false; reason: string }> {
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs)
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      signal: ctrl.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify(body),
+      // PUSH #93 (FIX 3) — clear the abort timer on the REJECTED path too;
+      // the old trailing clearTimeout was skipped whenever fetch threw, so a
+      // pending abort timer outlived the call (worse now the budget is 5s).
+    }).finally(() => clearTimeout(timer))
+    if (!res.ok) {
+      // PUSH #93 (FIX 3) — a non-2xx (401 bad key, 429 rate limit, 5xx) used
+      // to be discarded without a single line of log. Now it is diagnosable.
+      const text = await res.text().catch(() => '')
+      return { ok: false, reason: `api_error status=${res.status} body="${text.slice(0, 140).replace(/\s+/g, ' ')}"` }
+    }
+    const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> }
+    return { ok: true, reply: data.choices?.[0]?.message?.content ?? '' }
+  } catch (err) {
+    // PUSH #93 (FIX 3) — was `catch {}`: the abort (by far the most common
+    // outcome at the old 1.5s budget) left zero trace.
+    const name = err instanceof Error ? err.name : ''
+    return {
+      ok: false,
+      reason:
+        name === 'AbortError' || name === 'TimeoutError'
+          ? `timeout budget=${timeoutMs}ms`
+          : `fetch_error ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}`,
+    }
+  }
+}
+
 /**
  * Fast Mode v2 (02/07) — return up to `maxClips` RANKED clip URLs for one scene,
  * strongest first, pooled across the scene's query list.
@@ -1635,75 +1800,54 @@ export async function getPixabayClipsForScene(
       // generic over a narration-grounded clip.
       const grounded = pool.filter((c) => !c.generic)
       const finalists = (grounded.length >= 4 ? grounded : pool).slice(0, 8)
-      const listing = finalists
-        .map((c, i) => `${i + 1}. tags: ${c.tags.slice(0, 90)}`)
-        .join('\n')
-      const ctrl = new AbortController()
-      const timer = setTimeout(() => ctrl.abort(), GPT_DIRECTOR_TIMEOUT_MS)
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        signal: ctrl.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          temperature: 0,
-          max_tokens: 20,
-          messages: [
-            {
-              role: 'user',
-              content: `Narration: "${(hint ?? '').slice(0, 120)}"\nStock clips (by tags):\n${listing}\nReply ONLY with the numbers of the ${Math.min(maxClips, finalists.length)} clips that best match the narration's subject and a dark cinematic documentary look, comma-separated, best first.`,
-            },
-          ],
-        }),
-        // PUSH #93 (FIX 3) — clear the abort timer on the REJECTED path too;
-        // the old trailing clearTimeout was skipped whenever fetch threw, so a
-        // pending abort timer outlived the call (worse now the budget is 5s).
-      }).finally(() => clearTimeout(timer))
-      if (!res.ok) {
-        // PUSH #93 (FIX 3) — a non-2xx (401 bad key, 429 rate limit, 5xx) used
-        // to be discarded without a single line of log. Now it is diagnosable.
-        const body = await res.text().catch(() => '')
-        noteGptDirectorFailure(
-          `api_error status=${res.status} body="${body.slice(0, 140).replace(/\s+/g, ' ')}"`,
-          startedAt,
+      // KINEO1-DIRETOR-VE-2026-09-28 — 1ª tentativa VENDO as miniaturas (até GPT_DIRECTOR_VISION_TIMEOUT_MS);
+      // se estourar, falhar ou responder lixo, 2ª tentativa pelo caminho de tags de sempre com o que sobrar do
+      // teto de GPT_DIRECTOR_TIMEOUT_MS. O breaker só conta a falha quando as DUAS tentativas falham.
+      const visionOn =
+        process.env.FAST_GPT_DIRECTOR_VISION !== 'false' && finalists.some((c) => !!c.thumbnail)
+      const attempts: Array<'vision' | 'tags'> = visionOn ? ['vision', 'tags'] : ['tags']
+      const deadline = startedAt + GPT_DIRECTOR_TIMEOUT_MS
+      const reasons: string[] = []
+      let decided = false
+      for (const mode of attempts) {
+        const left = deadline - Date.now()
+        const budget = mode === 'vision' ? Math.min(GPT_DIRECTOR_VISION_TIMEOUT_MS, left) : left
+        if (budget < 500) {
+          reasons.push(`${mode}:no_time_left`)
+          continue
+        }
+        const built = buildGptDirectorMessages(hint ?? '', finalists, maxClips, mode === 'vision')
+        const out = await askGptDirector(
+          { model: 'gpt-4o-mini', temperature: 0, max_tokens: built.maxTokens, messages: built.messages },
+          budget,
         )
-      } else {
-        const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> }
-        const reply = data.choices?.[0]?.message?.content ?? ''
-        const nums = reply
-          .match(/\d+/g)
-          ?.map((n) => parseInt(n, 10) - 1)
-          .filter((n) => n >= 0 && n < finalists.length) ?? []
-        if (nums.length > 0) {
-          const chosen = Array.from(new Set(nums)).map((n) => finalists[n])
-          const rest = pool.filter((c) => !chosen.includes(c))
-          ranked = [...chosen, ...rest]
-          gptDirectorFailures = 0 // PUSH #93 — a success clears the breaker.
-          console.log(
-            `[gpt-director] reordered: picks=[${nums.map((n) => n + 1).join(',')}] of ${finalists.length} elapsed=${Date.now() - startedAt}ms`,
-          )
-        } else {
+        if (!out.ok) {
+          reasons.push(`${mode}:${out.reason}`)
+          continue
+        }
+        const { picks, rejects } = parseGptDirectorReply(out.reply, finalists.length)
+        if (picks.length === 0) {
           // PUSH #93 (FIX 3) — 200 OK but nothing usable in the reply is still a
           // silent degradation; name it so it can be told apart from a timeout.
-          noteGptDirectorFailure(
-            `unusable_reply reply="${reply.slice(0, 60).replace(/\s+/g, ' ')}"`,
-            startedAt,
-          )
+          reasons.push(`${mode}:unusable_reply reply="${out.reply.slice(0, 60).replace(/\s+/g, ' ')}"`)
+          continue
         }
+        const chosen = picks.map((n) => finalists[n])
+        // Reprovado pela imagem vai para o FIM do pool (nunca some: a cena não pode ficar vazia).
+        const rejected = rejects.map((n) => finalists[n])
+        const rest = pool.filter((c) => !chosen.includes(c) && !rejected.includes(c))
+        ranked = [...chosen, ...rest, ...rejected]
+        gptDirectorFailures = 0 // PUSH #93 — a success clears the breaker.
+        console.log(
+          `[gpt-director] reordered mode=${mode} images=${built.imagesAttached} picks=[${picks.map((n) => n + 1).join(',')}] rejects=[${rejects.map((n) => n + 1).join(',')}] of ${finalists.length} elapsed=${Date.now() - startedAt}ms${reasons.length ? ` after ${reasons.join(' | ')}` : ''}`,
+        )
+        decided = true
+        break
       }
+      if (!decided) noteGptDirectorFailure(reasons.join(' | ') || 'no_attempt', startedAt)
     } catch (err) {
-      // PUSH #93 (FIX 3) — was `catch {}`: the abort (by far the most common
-      // outcome at the old 1.5s budget) left zero trace. Non-blocking either
-      // way — `ranked` is still the heuristic order.
-      const name = err instanceof Error ? err.name : ''
-      const reason =
-        name === 'AbortError' || name === 'TimeoutError'
-          ? `timeout budget=${GPT_DIRECTOR_TIMEOUT_MS}ms`
-          : `fetch_error ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}`
-      noteGptDirectorFailure(reason, startedAt)
+      // Defesa em profundidade: askGptDirector já não lança, mas nada aqui pode derrubar o render.
+      noteGptDirectorFailure(`unexpected ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}`, startedAt)
     }
   }
 
