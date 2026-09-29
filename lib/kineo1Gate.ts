@@ -33,8 +33,10 @@ export const KINEO1_GATE_PAID_PLANS: ReadonlySet<string> = new Set([
 
 export const KINEO1_RETIRED_REASON = 'kineo1_retired'
 export const KINEO1_RETIRED_EVENT = 'kineo1_retired_refused'
+// Frase verdadeira para TODA conta recusada — inclusive 'region_paid_only' e trial vencido de país fora da lista, que não
+// têm filme grátis nenhum: por isso ela não promete o Seedance grátis; só diz o que mudou, que nada foi cobrado e onde seguir.
 export const KINEO1_RETIRED_MESSAGE =
-  'Kineo 1 is now available only on paid plans. Your free film is the 15-second Seedance 1.5 film — pick Seedance 1.5 in the Studio. Nothing was charged.'
+  'Kineo 1 is now available only on paid plans. Nothing was charged — see the plans to keep creating.'
 
 export type Kineo1GateReason = 'internal' | 'has_paid' | 'paid_plan' | 'autopilot' | 'retired'
 
