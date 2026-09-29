@@ -43,7 +43,7 @@ import {
   type AttemptRecord,
 } from '@/lib/cinematic/dispatchScenes'
 import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
-import { kling25FootageNeeded, kling25ShotCount, kling25SceneSeconds, kling25ClipsUsd, kling25WriterBudget, kling25AlignBudget, kling25AverageShotSeconds, kling25VerbatimPlan, kling25VisualHint, kling25SceneWordStarts, kling25PlanPace, kling25WordsFit, KLING25_CLIP_LOSS_SECONDS, kling25ApplyShotAxis } from '@/lib/cinematic/klingShots' // KINEO-KLING25-PLANOS-5S-2026-09-28 · KINEO-KLING25-VARIEDADE-2026-09-28
+import { kling25FootageNeeded, kling25ShotCount, kling25SceneSeconds, kling25ClipsUsd, kling25WriterBudget, kling25AlignBudget, kling25AverageShotSeconds, kling25VerbatimPlan, kling25VisualHint, kling25SceneWordStarts, kling25PlanPace, kling25WordsFit, KLING25_CLIP_LOSS_SECONDS, kling25ApplyShotAxis, kling25StripShotAxis } from '@/lib/cinematic/klingShots' // KINEO-KLING25-PLANOS-5S-2026-09-28 · KINEO-KLING25-VARIEDADE-2026-09-28
 import { resolveCharacterVoice } from '@/lib/hollywood/characterVoice'
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
@@ -5957,7 +5957,12 @@ async function manipularPost(req: NextRequest) {
       {
         const c = ctxDespacho()
         c.outcomes[sceneIndex] = despachoCena.outcome
-        c.submittedPrompts[sceneIndex] = cinematic.slice(0, 240)
+        // KINEO-KLING25-VARIEDADE-2026-09-28 (revisão) — o juiz de coerência (/admin/coerencia, lib/admin/fastCoherence lê
+        // `submitted_prompts`) só enxerga estes 240 chars. No Kling 2.5 o eixo de variedade (60-100 chars) é PREFIXADO ao
+        // prompt (classicScenePrompts, acima): gravado cru, o juiz veria a câmera no lugar do sujeito da cena e a nota visual
+        // sairia enviesada. Aqui o Kling grava o prompt SEM o eixo (kling25StripShotAxis só remove o prefixo exato; o payload
+        // da fal segue com ele). Seedance/Veo/Sora caem no ramo `: cinematic` — byte a byte o de sempre.
+        c.submittedPrompts[sceneIndex] = (wantsKling ? kling25StripShotAxis(cinematic) : cinematic).slice(0, 240)
         c.attempts[sceneIndex] = despachoCena.attempts
         c.totalPosts += despachoCena.posts
         if (despachoCena.outcome.reason_class === 'balance_quota') c.balanceExhausted = true

@@ -12,7 +12,10 @@
 //   (c) a rota: o ponto onde classicScenePrompts nasce — executado com wantsKling=true (12 prefixos distintos) e com
 //       wantsKling=false (saída idêntica à da BASE, o pai do commit, byte a byte) — e só ESSE ponto chama a função;
 //       buildFalInput (Seedance/Veo/Sora/hollywood) idêntico à base;
-//   (d) mutantes: sem o prefixo, sem a rotação e com corte por contagem de palavras, as verificações ficam vermelhas.
+//   (d) mutantes: sem o prefixo, sem a rotação e com corte por contagem de palavras, as verificações ficam vermelhas;
+//   (e) revisão: o juiz de coerência (lib/admin/fastCoherence, `submitted_prompts` = 240 chars por cena) lê o prompt SEM o
+//       eixo — a gravação real do submitScene é EXECUTADA com o eixo aplicado e começa pelo sujeito da cena; wantsKling
+//       false grava byte a byte o que a base gravava; o mutante que grava o prompt com eixo fica vermelho.
 import { readFileSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -55,7 +58,7 @@ console.log('== (a) lib/cinematic/klingShots — eixo por plano ==')
 const libSrc = rd('lib/cinematic/klingShots.ts')
 checa('a lib continua PURA (sem import): guardiões e a rota leem a mesma régua', !/^import\s/m.test(libSrc))
 const lib = roda(libSrc)
-const { KLING25_SHOT_AXES, KLING25_MAX_SHOTS, KLING25_PROMPT_MAX_CHARS, kling25ShotAxis, kling25ApplyShotAxis } = lib
+const { KLING25_SHOT_AXES, KLING25_MAX_SHOTS, KLING25_PROMPT_MAX_CHARS, kling25ShotAxis, kling25ApplyShotAxis, kling25StripShotAxis } = lib
 checa('exporta KLING25_SHOT_AXES, kling25ShotAxis e kling25ApplyShotAxis', Array.isArray(KLING25_SHOT_AXES) && typeof kling25ShotAxis === 'function' && typeof kling25ApplyShotAxis === 'function')
 checa(`há tantos eixos quanto o teto de planos (${KLING25_MAX_SHOTS}): um filme de 12 planos não repete nenhum`, KLING25_SHOT_AXES.length === KLING25_MAX_SHOTS && new Set(KLING25_SHOT_AXES).size === KLING25_MAX_SHOTS)
 checa('teto de prompt do fornecedor = 2.500 chars (schema da fal do Kling 2.5)', KLING25_PROMPT_MAX_CHARS === 2500)
@@ -173,9 +176,11 @@ checa('o still FLUX e o clipe leem o MESMO vetor (classicScenePrompts[idx] no st
 if (rotaBase) {
   checa('buildFalInput (Seedance/Veo/Sora/Kling payload/hollywood) idêntico à base', funcaoDe(rota, 'buildFalInput') === funcaoDe(rotaBase, 'buildFalInput'))
   const semVariedade = (s) => s
-    .replace(', kling25ApplyShotAxis }', ' }').replace(' · KINEO-KLING25-VARIEDADE-2026-09-28', '')
+    .replace(', kling25ApplyShotAxis, kling25StripShotAxis }', ' }').replace(' · KINEO-KLING25-VARIEDADE-2026-09-28', '')
+    // (revisão) a gravação para o juiz volta à forma da base — o bloco (e) prova o conteúdo dela executado.
+    .replace(/\n {8}\/\/ KINEO-KLING25-VARIEDADE-2026-09-28 \(revisão\)[\s\S]*?\(wantsKling \? kling25StripShotAxis\(cinematic\) : cinematic\)\.slice\(0, 240\)/, '\n        c.submittedPrompts[sceneIndex] = cinematic.slice(0, 240)')
     .replace(/\n {6}\/\/ ═══ KINEO-KLING25-VARIEDADE-2026-09-28[\s\S]*?\.map\(\(promptDaCena, sceneIndex\) => \(wantsKling \? kling25ApplyShotAxis\(promptDaCena, sceneIndex\) : promptDaCena\)\)/, '')
-  checa('fora do import, do comentário e da linha do .map, a rota é idêntica à base (Seedance/Veo/Sora/hollywood intocados)', semVariedade(rota) === semVariedade(rotaBase))
+  checa('fora do import, dos comentários, da linha do .map e da gravação para o juiz, a rota é idêntica à base (Seedance/Veo/Sora/hollywood intocados)', semVariedade(rota) === semVariedade(rotaBase))
   const hollywoodHead = rota.slice(rota.indexOf('if (hollywoodPath)'), rota.indexOf('// ── end KINEO-HOLLYWOOD-2026-07-09'))
   const hollywoodBase = rotaBase.slice(rotaBase.indexOf('if (hollywoodPath)'), rotaBase.indexOf('// ── end KINEO-HOLLYWOOD-2026-07-09'))
   checa('bloco hollywood (Kling 3 / H3 / Omni / S25) idêntico à base', hollywoodHead.length > 1000 && hollywoodHead === hollywoodBase)
@@ -195,6 +200,53 @@ const cortePorPalavra = mutante((s) => s.split('if (junto.length <= maxChars) re
 checa('mutante com corte por contagem de palavras (o bug do "Mouth"): palavras somem e a cauda morre → vermelho', (() => { const p = cortePorPalavra.kling25ApplyShotAxis(PROMPT_TIPICO, 3); return !p.endsWith(CAUDA_REAL.trim()) && palavras(p).length < palavras(PROMPT_TIPICO).length })())
 const semCauda = mutante((s) => s.split('const saida = miolo ? `${eixo}. ${miolo} ${cauda}` : `${eixo}. ${cauda}`').join('const saida = `${eixo}. ${miolo}`'))
 checa('mutante que descarta a cauda acima do teto: os sufixos de proteção somem → vermelho', !semCauda.kling25ApplyShotAxis(PROMPT_LONGO, 5).endsWith('vertical 9:16 composition'))
+
+// ═══ (e) revisão — o juiz de coerência lê a cena SEM o eixo ═══
+// O juiz (lib/admin/fastCoherence, `submitted_prompts`) lê só os primeiros 240 chars do prompt gravado no despacho
+// (route.ts, submitScene: `c.submittedPrompts[sceneIndex] = ...slice(0, 240)`). Com o eixo PREFIXADO (60-100 chars) ele
+// veria a câmera no lugar do sujeito da cena e a nota visual do Kling 2.5 sairia enviesada. Prova: a lib inverte o eixo
+// exatamente; a gravação REAL da rota é executada com wantsKling true (começa pelo sujeito) e false (byte a byte a base);
+// o mutante que grava o prompt com eixo fica vermelho.
+console.log('== (e) revisão: o juiz de coerência lê a cena sem o eixo ==')
+checa('a lib exporta kling25StripShotAxis (função pura, sem regex sobre o eixo)', typeof kling25StripShotAxis === 'function')
+const normal = (t) => String(t).replace(/\s+/g, ' ').trim()
+checa('strip(apply(p, i)) devolve o prompt (normalizado) para os 12 índices: a inversão é exata', Array.from({ length: 12 }, (_, i) => i).every((i) => kling25StripShotAxis(kling25ApplyShotAxis(PROMPT_TIPICO, i)) === normal(PROMPT_TIPICO)))
+checa('prompt SEM eixo volta intocado (só remove se o prefixo casar): típico, vazio, e eixo no MEIO do texto', kling25StripShotAxis(PROMPT_TIPICO) === PROMPT_TIPICO && kling25StripShotAxis('') === '' && kling25StripShotAxis('foo. ' + kling25ShotAxis(2) + '. bar') === 'foo. ' + kling25ShotAxis(2) + '. bar')
+checa('eixo sem o ". " que a aplicação põe NÃO é prefixo (fica intocado); prompt que É só o eixo (corpo vazio) → vazio', kling25StripShotAxis(kling25ShotAxis(4) + ' and more') === kling25ShotAxis(4) + ' and more' && kling25StripShotAxis(kling25ApplyShotAxis('', 4)) === '')
+checa('acima do teto (prompt cortado em frase): strip devolve texto sem eixo, começando pela primeira frase do miolo', !temEixo(kling25StripShotAxis(cortado).slice(0, 120)) && kling25StripShotAxis(cortado).startsWith('Sentence number 1 '))
+{
+  let modosStrip = 0
+  for (const mode of ['documentary_faceless', 'character_story', 'presenter_requested']) {
+    const prompts = visuais.map((v, i) => politica.buildClassicVisualPrompt(v, { mode, style, character: mode === 'character_story' ? 'a geologist in a wide hat' : null, eraSuffix: '', opening: i === 0, aspect: null }))
+    const paraOJuiz = prompts.map((p, i) => kling25StripShotAxis(kling25ApplyShotAxis(p, i)).slice(0, 240))
+    if (paraOJuiz.every((j, i) => j === normal(prompts[i]).slice(0, 240) && !temEixo(j))) modosStrip++
+    else console.log(`   modo ${mode}: a cópia do juiz não bate com os 240 chars do prompt real sem eixo`)
+  }
+  checa('prompts REAIS nos 3 modos: os 240 chars para o juiz = os 240 primeiros do prompt sem eixo (normalizado), nunca começam pelo eixo', modosStrip === 3)
+}
+// A rota: a gravação REAL do submitScene, achada por AST e executada.
+checa('a rota importa kling25StripShotAxis de @/lib/cinematic/klingShots', /import \{[^}]*kling25StripShotAxis[^}]*\} from '@\/lib\/cinematic\/klingShots'/.test(rota))
+checa('fora de comentários, a rota cita kling25StripShotAxis exatamente 2 vezes: o import e a gravação para o juiz (o payload da fal não passa por ela)', rotaSemComentarios.split('kling25StripShotAxis').length - 1 === 2)
+const gravacaoDoJuiz = (src) => { const ast = routeAst(src); const n = acha(ast, (x) => ts.isBinaryExpression(x) && x.operatorToken.kind === ts.SyntaxKind.EqualsToken && x.left.getText(ast) === 'c.submittedPrompts[sceneIndex]'); return n ? n.right.getText(ast) : null }
+const rhsHead = gravacaoDoJuiz(rota)
+const rhsBase = rotaBase ? gravacaoDoJuiz(rotaBase) : null
+checa('a gravação para o juiz existe UMA vez (submitScene) e está amarrada a wantsKling: `(wantsKling ? kling25StripShotAxis(cinematic) : cinematic).slice(0, 240)`', rhsHead === '(wantsKling ? kling25StripShotAxis(cinematic) : cinematic).slice(0, 240)' && rota.split('c.submittedPrompts[sceneIndex] =').length - 1 === 1)
+checa('a base gravava o prompt cru — `cinematic.slice(0, 240)` — e é isso que o ramo wantsKling=false preserva', rhsBase === 'cinematic.slice(0, 240)')
+const executaGravacao = (rhs, wantsKling, cinematic) => roda(`export const out = ${rhs}`, { wantsKling, cinematic, kling25StripShotAxis }).out
+const juizKling = Array.isArray(klingHead) && rhsHead ? klingHead.map((p) => executaGravacao(rhsHead, true, p)) : null
+checa('EXECUTADO (Kling, 12 cenas com eixo aplicado): o texto gravado para o juiz começa pelo SUJEITO da cena, nunca pelo eixo', Array.isArray(juizKling) && juizKling.length === 12 && juizKling.every((j, i) => j.startsWith((i === 0 ? 'Opening shot: subject first. ' : '') + visuais[i]) && !KLING25_SHOT_AXES.some((e) => j.startsWith(e))))
+checa('EXECUTADO (Kling): o juiz segue lendo no máximo 240 chars — os 240 primeiros do prompt sem eixo', Array.isArray(juizKling) && juizKling.every((j, i) => j.length <= 240 && j === kling25StripShotAxis(klingHead[i]).slice(0, 240)))
+checa('EXECUTADO (Kling): o payload da fal (classicScenePrompts) segue COM o eixo — só a cópia do juiz perde o prefixo', Array.isArray(klingHead) && klingHead.every((p, i) => p.startsWith(kling25ShotAxis(i) + '. ')))
+checa('EXECUTADO (Seedance/Veo/Sora = wantsKling false, 12 prompts): gravação IDÊNTICA à da base, byte a byte', Array.isArray(outrosHead) && rhsHead !== null && rhsBase !== null && outrosHead.every((p) => executaGravacao(rhsHead, false, p) === executaGravacao(rhsBase, false, p) && executaGravacao(rhsHead, false, p) === p.slice(0, 240)))
+// Mutantes desta revisão.
+if (rhsHead) {
+  const rotaMutante = rota.split(rhsHead).join('cinematic.slice(0, 240)')
+  if (rotaMutante === rota) throw new Error('mutante da rota não aplicou')
+  const rhsMutante = gravacaoDoJuiz(rotaMutante)
+  checa('mutante da ROTA (grava o prompt COM eixo, como antes da revisão): o juiz passa a ver o eixo nas 12 cenas → vermelho', Array.isArray(klingHead) && klingHead.every((p) => KLING25_SHOT_AXES.some((e) => executaGravacao(rhsMutante, true, p).startsWith(e))))
+}
+const stripInerte = mutante((s) => s.split('if (texto.startsWith(`${eixo}. `)) return texto.slice(eixo.length + 2)').join('if (texto.startsWith(`${eixo}. `)) return texto'))
+checa('mutante da LIB (strip que devolve o prompt com eixo): a inversão deixa de ser exata → vermelho', stripInerte.kling25StripShotAxis(kling25ApplyShotAxis(PROMPT_TIPICO, 3)) !== normal(PROMPT_TIPICO))
 
 console.log(`\n${ok} verificações OK, ${falhas.length} falha(s)`)
 if (falhas.length) { console.log('FALHAS:\n - ' + falhas.join('\n - ')); process.exit(1) }

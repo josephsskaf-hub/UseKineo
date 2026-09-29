@@ -513,3 +513,22 @@ export function kling25ApplyShotAxis(prompt: string, index: number, maxChars: nu
   const saida = miolo ? `${eixo}. ${miolo} ${cauda}` : `${eixo}. ${cauda}`
   return saida.length <= maxChars ? saida : `${eixo}. ${cauda}`.slice(0, maxChars)
 }
+
+/**
+ * O inverso EXATO de kling25ApplyShotAxis para quem LÊ o prompt, não para quem o envia: devolve o prompt SEM o eixo
+ * quando — e só quando — ele começa por um dos KLING25_SHOT_AXES seguido de ". "; prompt sem eixo volta intocado; prompt
+ * que É só o eixo (corpo vazio na aplicação) → ''. Quem precisa disto é o juiz de coerência (/admin/coerencia,
+ * lib/admin/fastCoherence lê `submitted_prompts` — os primeiros 240 chars de cada cena, gravados no submitScene do
+ * route.ts): com o eixo (60-100 chars) na frente, ele veria a CÂMERA no lugar do sujeito da cena e a nota visual do
+ * Kling 2.5 sairia enviesada. O payload da fal segue COM o eixo; só a cópia gravada para o juiz passa por aqui.
+ * Só o Kling 2.5 chama (route.ts: `wantsKling ? kling25StripShotAxis(cinematic) : cinematic`); Seedance/Veo/Sora nem
+ * sabem que existe. Guardião: scripts/test-kling25-variedade-2026-09-28.mjs, seção (e).
+ */
+export function kling25StripShotAxis(prompt: string): string {
+  const texto = String(prompt ?? '')
+  for (const eixo of KLING25_SHOT_AXES) {
+    if (texto === eixo) return ''
+    if (texto.startsWith(`${eixo}. `)) return texto.slice(eixo.length + 2)
+  }
+  return texto
+}
