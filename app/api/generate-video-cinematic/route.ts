@@ -43,7 +43,7 @@ import {
   type AttemptRecord,
 } from '@/lib/cinematic/dispatchScenes'
 import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
-import { kling25FootageNeeded, kling25ShotCount, kling25SceneSeconds, kling25ClipsUsd, kling25WriterBudget, kling25AlignBudget, kling25AverageShotSeconds, kling25VerbatimPlan, kling25VisualHint, kling25SceneWordStarts, kling25PlanPace, kling25WordsFit, KLING25_CLIP_LOSS_SECONDS } from '@/lib/cinematic/klingShots' // KINEO-KLING25-PLANOS-5S-2026-09-28
+import { kling25FootageNeeded, kling25ShotCount, kling25SceneSeconds, kling25ClipsUsd, kling25WriterBudget, kling25AlignBudget, kling25AverageShotSeconds, kling25VerbatimPlan, kling25VisualHint, kling25SceneWordStarts, kling25PlanPace, kling25WordsFit, KLING25_CLIP_LOSS_SECONDS, kling25ApplyShotAxis, kling25StripShotAxis } from '@/lib/cinematic/klingShots' // KINEO-KLING25-PLANOS-5S-2026-09-28 · KINEO-KLING25-VARIEDADE-2026-09-28
 import { resolveCharacterVoice } from '@/lib/hollywood/characterVoice'
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
@@ -3062,12 +3062,15 @@ async function manipularPost(req: NextRequest) {
     // necessária (o compose tira 0,16 s de cada plano) vira planos de 5 s (a fal cobra por segundo, US$ 0,07/s). Modo IA:
     // o filme do botão + 3 s de folga. Verbatim: o roteiro no passo de planejamento (≤ 2,3 pal/s, a voz mais lenta medida
     // nos filmes reais) — este número é provisório: o roteiro em prosa é dividido mais abaixo (kling25VerbatimPlan), com
-    // cortes e segundos decididos juntos para CADA plano caber a sua fala. Teto de 12 planos. Seedance/Veo/Sora: nada roda aqui.
+    // cortes e segundos decididos juntos para CADA plano caber a sua fala. Seedance/Veo/Sora: nada roda aqui.
+    // [TRAVA 8.2] KLING25-60S-TETO (28/09): teto de 12 planos só no modo IA (o escritor de cenas corta em 12); no roteiro
+    // pronto o teto acompanha a imagem que o filme pede (kling25MaxShots: 60 s → 14, 90 s → 18) — o ensaio de $0 de 203
+    // palavras batia no 12 e enchia com planos de 10 s; o fundador quer ~13-14 planos de 5 s num 60 s com 65-70 s de fala.
     let kling25Footage = 0
     if (wantsKling) {
       const palavrasDoRoteiro = verbatim ? parsedScript.narration.split(/\s+/).filter(Boolean).length : 0
       kling25Footage = kling25FootageNeeded({ durationSeconds: duration, verbatimWords: palavrasDoRoteiro, wordsPerSecond: narrationRate.wordsPerSecond })
-      const planos = kling25ShotCount(kling25Footage)
+      const planos = kling25ShotCount(kling25Footage, { verbatim })
       console.log(`[cinematic] KLING25-PLANOS-5S: ${clipCount} planos de 10 s → ${planos} planos de 5 s (imagem necessária ${kling25Footage}s${verbatim ? `, roteiro de ${palavrasDoRoteiro} palavras` : ''})`)
       clipCount = planos
     }
@@ -5768,6 +5771,15 @@ async function manipularPost(req: NextRequest) {
         return cinematicBruto
       }
     })
+      // ═══ KINEO-KLING25-VARIEDADE-2026-09-28 — um eixo de enquadramento por plano, SÓ no Kling 2.5 ═══
+      // Fundador (28/09): "a única coisa é mais variedade de cenas" · "melhore o Kling 2.5 (...) foca em melhorar ele". Com 12
+      // planos de 5 s o descritor repete enquadramento e movimento nos vizinhos apesar do pedido "do not repeat the same shot
+      // type" (prompt do escritor, acima). Aqui cada plano ganha um eixo determinístico por índice (lib/cinematic/klingShots
+      // kling25ApplyShotAxis: escala + ângulo + movimento, vizinhos sempre diferentes), PREFIXADO ao prompt já corrigido pelo
+      // contrato de cena — nada do prompt é cortado (teto da fal 2.500 chars; corte só em fronteira de frase, cauda preservada).
+      // O mesmo prompt alimenta o still FLUX (o i2v segue o enquadramento do still) e o clipe t2v. Seedance/Veo/Sora: o
+      // ternário devolve o prompt de sempre, byte a byte. Guardião: scripts/test-kling25-variedade-2026-09-28.mjs.
+      .map((promptDaCena, sceneIndex) => (wantsKling ? kling25ApplyShotAxis(promptDaCena, sceneIndex) : promptDaCena))
 
     // ═══ KINEO-DRYRUN-CLASSICO-2026-09-12 — O VALIDADOR DE $0 COBRE OS CLÁSSICOS ═══
     // Até 11/09 `dry_run: true` só parava a família Kling 3/H3/Omni (bloco
@@ -5956,7 +5968,12 @@ async function manipularPost(req: NextRequest) {
       {
         const c = ctxDespacho()
         c.outcomes[sceneIndex] = despachoCena.outcome
-        c.submittedPrompts[sceneIndex] = cinematic.slice(0, 240)
+        // KINEO-KLING25-VARIEDADE-2026-09-28 (revisão) — o juiz de coerência (/admin/coerencia, lib/admin/fastCoherence lê
+        // `submitted_prompts`) só enxerga estes 240 chars. No Kling 2.5 o eixo de variedade (60-100 chars) é PREFIXADO ao
+        // prompt (classicScenePrompts, acima): gravado cru, o juiz veria a câmera no lugar do sujeito da cena e a nota visual
+        // sairia enviesada. Aqui o Kling grava o prompt SEM o eixo (kling25StripShotAxis só remove o prefixo exato; o payload
+        // da fal segue com ele). Seedance/Veo/Sora caem no ramo `: cinematic` — byte a byte o de sempre.
+        c.submittedPrompts[sceneIndex] = (wantsKling ? kling25StripShotAxis(cinematic) : cinematic).slice(0, 240)
         c.attempts[sceneIndex] = despachoCena.attempts
         c.totalPosts += despachoCena.posts
         if (despachoCena.outcome.reason_class === 'balance_quota') c.balanceExhausted = true

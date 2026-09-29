@@ -19,19 +19,52 @@
 //   · roteiro de 60 s com mais de 225 palavras: o filme é cortado em 90 s (lib/compose) — o passo nunca supõe fala além
 //     de 90 s (kling25PlanPace), e o custo a mais que sobra é declarado, não escondido.
 //
-// Módulo PURO (sem import): a rota de geração, o ensaio de $0, o /api/compose e o guardião
-// scripts/test-kling25-planos-5s-2026-09-28.mjs leem daqui a mesma régua. Só o Kling 2.5 passa por aqui: Seedance 1.5,
-// Veo 3.1, Sora e a família hollywood não chamam nenhuma função deste arquivo.
+// Módulo PURO (sem import): a rota de geração, o ensaio de $0, o /api/compose e os guardiões
+// scripts/test-kling25-planos-5s-2026-09-28.mjs e scripts/test-kling25-60s-teto-2026-09-28.mjs leem daqui a mesma régua.
+// Só o Kling 2.5 passa por aqui: Seedance 1.5, Veo 3.1, Sora e a família hollywood não chamam nenhuma função deste arquivo.
 
 /** Plano padrão novo e plano longo. Os únicos valores que o schema da fal aceita. */
 export const KLING25_SHOT_SECONDS = 5
 export const KLING25_LONG_SHOT_SECONDS = 10
 /**
- * Teto de planos por filme. 12 (não 14) porque: (1) o escritor de cenas do modo IA (lib/runway generateScenes) já corta
- * em 12; (2) o despacho do Kling é SERIAL (450 ms entre POSTs — o alias da fal limita por usuário), 12 POSTs ≈ 10-15 s;
- * (3) o descritor e o supervisor fala×imagem fazem UMA chamada com todas as cenas antes do POST pago.
+ * Teto de planos por filme.
+ * [TRAVA 8.2] KLING25-60S-TETO (28/09) — ensaio de $0 em produção (203 palavras, 60 s, roteiro pronto): o divisor bateu
+ * no teto de 12 e encheu com planos de 10 s ([5,10,10,10,10,10,10,5,5,5,10,5] = 95 s de imagem para 88 s de fala).
+ * Fundador: "mais variedade" — num filme de 60 s com 65-70 s de fala o ideal é ~13-14 planos de 5 s, não 7 de 10 s.
+ * Custo por segundo IGUAL: a fal cobra por segundo (US$ 0,07/s) — dois planos de 5 s = um de 10 s. O filme paga, em
+ * média, uma unidade de 5 s a mais (medido nos guardiões: +US$ 0,40/filme nos 30 filmes reais e +US$ 0,44 em 240
+ * aleatórios contra o teto 12; nunca mais de 3 unidades): granularidade de blocos menores + a folga de 0,3 s abaixo.
+ *  · ROTEIRO PRONTO (verbatim): o teto acompanha a imagem que o filme pede — ⌈útil ÷ 4,84⌉ + 1, entre 12 e 18
+ *    (kling25MaxShots: 60 s → 14 · 65-70 s de fala → 15-16 · 90 s → 18). 18 é o teto FÍSICO (90 s ÷ 4,84 s úteis): o
+ *    despacho do Kling é SERIAL (450 ms entre POSTs — o alias da fal limita por usuário; 18 POSTs ≈ 8 s de espera mais
+ *    a latência de cada POST, dentro dos 300 s da rota) e o descritor e o supervisor fala×imagem fazem UMA chamada com
+ *    todas as cenas (supervisor com orçamento proporcional em kling25AlignBudget; descritor cabe em 1.000 tokens:
+ *    18 × 24 palavras ≈ 700).
+ *  · MODO IA: continua 12 — o escritor de cenas (lib/runway generateScenes, safeCount) corta em 12 e é o MESMO escritor
+ *    de Seedance/Veo (fora do ramo do Kling): pedir 14 ali devolveria 12 cenas dimensionadas para 14.
  */
-export const KLING25_MAX_SHOTS = 12
+export const KLING25_MAX_SHOTS = 18
+export const KLING25_MAX_SHOTS_AI = 12
+/**
+ * Folga que o divisor do roteiro pronto reserva em CADA plano de 5 s (o bloco cabe em 5 − 0,3 s): 5 s → até 10 palavras
+ * a 2,3 pal/s (eram 11). Medido no guardião com os 30 filmes reais ao subir o teto: com blocos de 11 palavras (4,78 s de
+ * fala em 4,84 s úteis) uma voz a 2,14 pal/s (c589a6a5) acumulava 3,1 s de atraso entre o plano entrar e a fala começar
+ * — 16 planos cheios em fila, sem um plano com folga para a voz alcançar (com o teto 12 os planos de 10 s davam essa
+ * folga: 1,65 s). Com 10 palavras (4,35 s) a voz pode ir até 10 ÷ 4,84 = 2,07 pal/s sem atrasar. Só o bloco curto: o de
+ * 10 s continua em 22 palavras (9,57 s em 9,84 — a mesma folga da base).
+ */
+export const KLING25_SHORT_FIT_SLACK_SECONDS = 0.3
+
+/**
+ * Teto de planos do filme: modo IA = 12 (o escritor); roteiro pronto = ⌈útil ÷ 4,84⌉ + 1 entre 12 e 18. O piso 12
+ * mantém byte a byte todo filme que hoje cabe em 12 planos (35/45 s: o divisor escolhe 8-10 e o teto não morde).
+ */
+export function kling25MaxShots(input: { verbatim: boolean; footageSeconds?: number | null }): number {
+  if (!input.verbatim) return KLING25_MAX_SHOTS_AI
+  const need = positive(input.footageSeconds) ? input.footageSeconds : 0
+  const porImagem = Math.ceil(need / kling25UsefulSeconds(KLING25_SHOT_SECONDS) - 1e-9) + 1
+  return Math.max(KLING25_MAX_SHOTS_AI, Math.min(KLING25_MAX_SHOTS, porImagem))
+}
 /** Preço do fornecedor por segundo de clipe — docs/PRECOS-MOTORES-V4.md (fal-ai/kling-video/v2.5-turbo/pro). */
 export const KLING25_USD_PER_SECOND = 0.07
 /**
@@ -102,10 +135,16 @@ export function kling25FootageNeeded(input: { durationSeconds: number; verbatimW
   return round1(positive(input.verbatimWords) ? film : Math.min(KLING25_FILM_MAX_SECONDS + KLING25_AI_SLACK_SECONDS, film + KLING25_AI_SLACK_SECONDS))
 }
 
-/** Planos de 5 s (4,84 s úteis cada) que cobrem `footageSeconds` úteis, entre 2 e o teto. */
-export function kling25ShotCount(footageSeconds: number): number {
+/**
+ * Planos de 5 s (4,84 s úteis cada) que cobrem `footageSeconds` úteis, entre 2 e o teto (kling25MaxShots: 12 no modo
+ * IA — o padrão, sem opção — e 12-18 no roteiro pronto). No roteiro pronto este número é provisório (o plano real sai de
+ * kling25VerbatimPlan), mas é o que resolveVerbatimSegments recebe para roteiro COM marcadores: abaixo dos blocos do
+ * autor ele descarta blocos — 16 blocos num teto de 12 perdiam 4 falas.
+ */
+export function kling25ShotCount(footageSeconds: number, options?: { verbatim?: boolean }): number {
   const need = positive(footageSeconds) ? footageSeconds : 0
-  return Math.max(2, Math.min(KLING25_MAX_SHOTS, Math.ceil(need / kling25UsefulSeconds(KLING25_SHOT_SECONDS) - 1e-9)))
+  const teto = kling25MaxShots({ verbatim: options?.verbatim === true, footageSeconds: need })
+  return Math.max(2, Math.min(teto, Math.ceil(need / kling25UsefulSeconds(KLING25_SHOT_SECONDS) - 1e-9)))
 }
 
 /** Ordem de espalhamento (van der Corput): empate de narração → planos longos distribuídos pelo filme, não colados. */
@@ -214,12 +253,14 @@ export function kling25VerbatimPlan(
   const words = String(narration ?? '').trim().replace(/\s+/gu, ' ').split(' ').filter(Boolean)
   const W = words.length
   const pace = kling25PlanPace(opts.wordsPerSecond, W)
-  const fitShort = kling25WordsFit(KLING25_SHOT_SECONDS, pace)
+  const fitShort = kling25WordsFit(KLING25_SHOT_SECONDS - KLING25_SHORT_FIT_SLACK_SECONDS, pace) // [TRAVA 8.2] KLING25-60S-TETO: folga contra voz mais lenta que o passo
   const fitLong = kling25WordsFit(KLING25_LONG_SHOT_SECONDS, pace)
   const needSeconds = W > 0 ? kling25FilmSeconds({ durationSeconds: opts.durationSeconds, verbatimWords: W, wordsPerSecond: opts.wordsPerSecond }) : 0
   const empty: Kling25VerbatimPlan = { chunks: [], seconds: [], pace, fitShort, fitLong, needSeconds }
   if (W === 0) return empty
-  const maxShots = Math.max(1, Math.min(KLING25_MAX_SHOTS, Math.trunc(opts.maxShots ?? KLING25_MAX_SHOTS) || KLING25_MAX_SHOTS))
+  // [TRAVA 8.2] KLING25-60S-TETO: sem opção, o teto é o da imagem que o filme pede (12-18); a opção só pode APERTAR.
+  const tetoDoFilme = kling25MaxShots({ verbatim: true, footageSeconds: needSeconds })
+  const maxShots = Math.max(1, Math.min(tetoDoFilme, Math.trunc(opts.maxShots ?? tetoDoFilme) || tetoDoFilme))
 
   // tamanho da frase que contém cada fronteira interna (fronteira b = entre a palavra b-1 e a b)
   const sentenceLenAt = new Array<number>(W + 1).fill(0)
@@ -406,4 +447,129 @@ export function alignSignedClipPlan(
     if (wordStarts.length !== seconds.length) wordStarts = null
   }
   return { seconds, wordStarts, narrationWords }
+}
+
+// ═══ KINEO-KLING25-VARIEDADE-2026-09-28 — um eixo de enquadramento por plano ══════════════════════════════════════════
+// Fundador, 28/09, aprovando o canário de 35 s (38 s entregues) e pedindo o de 60 s chegando a 65-70 s: "a única coisa é
+// mais variedade de cenas" · "melhore o Kling 2.5 (...) nas próximas uma hora foca em melhorar ele". Com 12 planos de 5 s,
+// o descritor (GPT, uma chamada com todas as cenas) recebe o PEDIDO "do not repeat the same shot type" (route.ts, prompt
+// do escritor) — pedido não é garantia: nos filmes reais os planos vizinhos voltam com o mesmo enquadramento e o mesmo
+// movimento, e o supervisor fala×imagem (speechImageAlign) reescreve o CONTEÚDO, não a câmera.
+//
+// A família hollywood já tem um eixo determinístico (lib/hollywood/varietyAxis.ts) e a lição de lá vale aqui: PREFIXAR o
+// eixo, nunca amputar o prompt — o corte por contagem de palavras decapitou "Mouth closed, not speaking" e o motor
+// entregou uma boca (render 37c8d832). Aqui o eixo entra na FRENTE do prompt final da cena (depois do contrato de cena),
+// o prompt segue inteiro, e o teto do fornecedor (schema da fal para kling-video/v2.5-turbo/pro: prompt até 2.500
+// caracteres) só corta em fronteira de FRASE, preservando a CAUDA (onde vivem os sufixos de proteção: sem texto
+// legível, sem marca d'água, enquadramento) e nunca deixando o começo de uma proibição solto.
+//
+// Por que na frente e por que também no still: o Kling i2v segue o enquadramento do still FLUX (as 6 primeiras cenas
+// — MAX_ANCHORED_SCENES no route.ts); o prompt da cena alimenta o still E o clipe, então o eixo na frente do prompt
+// muda a composição das duas peças. As cenas sem still (t2v) recebem o eixo no prompt do próprio clipe.
+//
+// Rotação determinística por ÍNDICE (sem relógio, sem sorteio): a lista alterna ESCALA (geral → médio → detalhe) e
+// MOVIMENTO (lateral, vertical, órbita, travelling) de modo que dois planos vizinhos nunca compartilham eixo, e o mesmo
+// filme reenviado recebe os mesmos eixos (a retomada de cena por classicSceneInputs reenvia o payload assinado). O
+// plano 1 fica em plano médio com o sujeito legível: o prompt de abertura ("Opening shot: show the described subject
+// immediately") proíbe paisagem de estabelecimento sem sujeito, e um "wide" ali brigaria com ele.
+//
+// SÓ O KLING 2.5 passa por aqui (route.ts: `wantsKling ? kling25ApplyShotAxis(...) : prompt`): Seedance 1.5, Veo 3.1,
+// Sora e a família hollywood recebem o prompt de sempre, byte a byte. Guardião: scripts/test-kling25-variedade-2026-09-28.mjs.
+
+/** Teto de caracteres do prompt no schema da fal do Kling 2.5 (t2v e i2v). */
+export const KLING25_PROMPT_MAX_CHARS = 2500
+
+/**
+ * Os eixos, na ordem da rotação. 12 = KLING25_MAX_SHOTS, para que um filme de 12 planos não repita nenhum; acima disso
+ * a rotação recomeça (o plano 13 repete o eixo do 1, nunca o do 12). Cada eixo diz ESCALA + ÂNGULO + MOVIMENTO em
+ * vocabulário que o Kling entende; nenhum pede ângulo holandês (STABLE_SHOT) nem texto.
+ */
+export const KLING25_SHOT_AXES: ReadonlyArray<string> = [
+  'Medium shot, subject centered and clearly readable, slow push-in',
+  'Wide establishing shot, subject small against a vast environment, slow lateral dolly from left to right',
+  'Extreme close-up on a telling detail of the subject, shallow depth of field, gentle rack focus',
+  'Low-angle shot looking up at the subject, slow upward tilt, imposing scale',
+  'Tracking shot gliding alongside the subject, steady lateral travelling',
+  'High-angle shot looking down over the scene, slow descending crane move',
+  'Rear three-quarter view following the subject forward, slow dolly-in',
+  'Close-up on texture and light, slow orbit around the subject',
+  'Wide aerial overview, slow forward drift revealing the setting',
+  'Medium-close profile view, subject side-on, slow pull-back',
+  'Ground-level shot, camera gliding forward low to the ground',
+  'Top-down close-up, slow rotation over the subject',
+]
+
+/** O eixo do plano `index` (0-based). Índice inválido → plano médio (o eixo 0). */
+export function kling25ShotAxis(index: number): string {
+  const n = KLING25_SHOT_AXES.length
+  const i = Number.isInteger(index) && index >= 0 ? index % n : 0
+  return KLING25_SHOT_AXES[i]
+}
+
+/** Inícios de instrução NEGATIVA que nunca podem sobrar sozinhos no fim (a lição do "Mouth" — lib/hollywood/varietyAxis). */
+const KLING25_INICIOS_DE_PROIBICAO = ['mouth', 'no ', 'not ', 'never', 'avoid', 'without', 'zero ']
+const normalizarEspacos = (t: string): string => String(t ?? '').replace(/\s+/g, ' ').trim()
+
+function kling25TerminaEmProibicaoQuebrada(texto: string): boolean {
+  const t = normalizarEspacos(texto).toLowerCase().replace(/[.,;:]+$/, '')
+  const ultima = t.split(/(?<=[.!?])\s+/).pop() ?? ''
+  const ws = ultima.split(' ').filter(Boolean)
+  if (ws.length > 2) return false
+  return KLING25_INICIOS_DE_PROIBICAO.some((p) => ultima === p.trim() || ultima.startsWith(p))
+}
+
+/** Maior prefixo que termina em `.`, `!` ou `?` e cabe em `limite`; nenhuma frase cabe → vazio (nunca meia instrução). */
+function kling25CortarEmFrase(texto: string, limite: number): string {
+  const t = normalizarEspacos(texto)
+  if (t.length <= limite) return t
+  const recorte = t.slice(0, limite)
+  const fim = Math.max(recorte.lastIndexOf('. '), recorte.lastIndexOf('! '), recorte.lastIndexOf('? '))
+  let miolo = fim > 0 ? t.slice(0, fim + 1).trim() : ''
+  while (miolo && kling25TerminaEmProibicaoQuebrada(miolo)) {
+    const anterior = miolo.slice(0, -1).lastIndexOf('.')
+    miolo = anterior > 0 ? miolo.slice(0, anterior + 1) : ''
+  }
+  return miolo
+}
+
+/**
+ * Prefixa o eixo do plano `index` ao prompt final da cena, sem cortar nada. Prompt vazio → só o eixo (o motor precisa
+ * de algo). Só quando `${eixo}. ${prompt}` passa de `maxChars` (o teto do fornecedor) o MIOLO é cortado em fronteira de
+ * frase e a CAUDA (os últimos `caudaChars` caracteres a partir de uma fronteira de frase ou vírgula) é preservada — é lá
+ * que vivem os sufixos de proteção. O eixo e a cauda nunca saem; uma proibição nunca fica decapitada.
+ */
+export function kling25ApplyShotAxis(prompt: string, index: number, maxChars: number = KLING25_PROMPT_MAX_CHARS, caudaChars = 600): string {
+  const eixo = kling25ShotAxis(index)
+  const corpo = normalizarEspacos(prompt)
+  if (!corpo) return eixo
+  const junto = `${eixo}. ${corpo}`
+  if (junto.length <= maxChars) return junto
+  // Cauda: do último ". " ou ", " que deixa no máximo `caudaChars` até o fim.
+  const inicioCauda = Math.max(0, corpo.length - caudaChars)
+  const fronteira = Math.max(corpo.indexOf('. ', inicioCauda), corpo.indexOf(', ', inicioCauda))
+  const cauda = fronteira > 0 ? corpo.slice(fronteira + 2).trim() : corpo.slice(inicioCauda).trim()
+  const cabeca = fronteira > 0 ? corpo.slice(0, fronteira + 1) : corpo.slice(0, inicioCauda)
+  const espaco = maxChars - eixo.length - cauda.length - 4
+  const miolo = espaco > 40 ? kling25CortarEmFrase(cabeca, espaco) : ''
+  const saida = miolo ? `${eixo}. ${miolo} ${cauda}` : `${eixo}. ${cauda}`
+  return saida.length <= maxChars ? saida : `${eixo}. ${cauda}`.slice(0, maxChars)
+}
+
+/**
+ * O inverso EXATO de kling25ApplyShotAxis para quem LÊ o prompt, não para quem o envia: devolve o prompt SEM o eixo
+ * quando — e só quando — ele começa por um dos KLING25_SHOT_AXES seguido de ". "; prompt sem eixo volta intocado; prompt
+ * que É só o eixo (corpo vazio na aplicação) → ''. Quem precisa disto é o juiz de coerência (/admin/coerencia,
+ * lib/admin/fastCoherence lê `submitted_prompts` — os primeiros 240 chars de cada cena, gravados no submitScene do
+ * route.ts): com o eixo (60-100 chars) na frente, ele veria a CÂMERA no lugar do sujeito da cena e a nota visual do
+ * Kling 2.5 sairia enviesada. O payload da fal segue COM o eixo; só a cópia gravada para o juiz passa por aqui.
+ * Só o Kling 2.5 chama (route.ts: `wantsKling ? kling25StripShotAxis(cinematic) : cinematic`); Seedance/Veo/Sora nem
+ * sabem que existe. Guardião: scripts/test-kling25-variedade-2026-09-28.mjs, seção (e).
+ */
+export function kling25StripShotAxis(prompt: string): string {
+  const texto = String(prompt ?? '')
+  for (const eixo of KLING25_SHOT_AXES) {
+    if (texto === eixo) return ''
+    if (texto.startsWith(`${eixo}. `)) return texto.slice(eixo.length + 2)
+  }
+  return texto
 }
