@@ -6,8 +6,9 @@
 // sem rede, sem banco, sem fornecedor) e prova:
 //   (a) o pool de âncoras real da rota, com relógio e FLUX simulados: Kling 2.5 com 12 e 14 planos → 12 e 14 stills
 //       (base: 6); Seedance 1.5 e Veo 3.1 → 6 stills e o MESMO vetor de stills da base (byte a byte); pool de 3 intacto;
-//   (b) o route.ts fora do bloco de âncoras é byte-idêntico à base (só a fatia mudou); lib/compose.ts e /api/compose
-//       não mudaram; o still de cada cena chega ao despacho serial do Kling (i2v cena a cena);
+//   (b) o route.ts do COMMIT INTRODUTOR fora do bloco de âncoras é byte-idêntico ao seu pai (só a fatia mudou);
+//       lib/compose.ts e /api/compose não mudaram nesse commit (commit × commit, nunca a worktree — depois do merge ela
+//       carrega os irmãos); o still de cada cena chega ao despacho serial do Kling (i2v cena a cena);
 //   (c) custo: ANCHORS_USD = US$ 0,10 por still → +US$ 0,60 (12 planos) e +US$ 0,80 (14) por filme; crédito inalterado;
 //   (d) APARA — o caminho do Kling 2.5 no compose clássico (lib/compose buildCreatomateSource, ramo signedClipSeconds):
 //       o relógio do filme é o áudio real (66,8 s de fala → filme de 66,8 s; 70,3 → 70,3); o TIKTOK-61 só ESTICA
@@ -39,25 +40,39 @@ const fatia = (src, ini, fim, incluiFim = true) => { const a = src.indexOf(ini);
 const eqJ = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 const MARCA = 'KINEO-KLING25-60S-ANCORA'
 
-// ── base = o "antes": pai do commit mais antigo com o marcador na história; antes do commit existir, o próprio HEAD ──
+// ── base = o "antes" e candidato = o commit que introduziu a âncora ──────────────────────────────────────────────────
+// Memória "trava por diff fica verde ao mergear / medir vs pai do commit": depois do merge com a main e a fila, HEAD é um
+// merge — comparar a base com a WORKTREE (ou com o pai de HEAD) carrega o trabalho dos IRMÃOS (o teto KLING25-60S-TETO
+// mexeu em klingShots.ts e no route.ts fora do bloco de âncoras) e fica vermelho à toa. Por isso, como no guardião dos
+// planos de 5 s (base 3519a0b0^ resolvida pela mensagem):
+//   (1) o commit "[TRAVA 8.2] KLING25-60S-ANCORA" mais antigo na história de HEAD → base = <sha>^ e candidato = <sha>. As
+//       asserções de DIFF (byte a byte) leem `git show <sha>:<arquivo>`; as que EXECUTAM a fatia leem o route.ts ATUAL da
+//       worktree, para provar que o comportamento continua no HEAD;
+//   (2) antes do commit existir (worktree pristina): base = HEAD (senão origin/main) e candidato = a worktree, como antes.
+// A base escolhida NÃO pode conter o marcador; o candidato TEM de conter.
+const git = (args) => execFileSync('git', args, { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()
 let BASE = null
+let SHA = null // o commit introdutor; null = o candidato é a worktree
 {
-  const git = (args) => execFileSync('git', args, { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()
-  const candidatos = []
-  try { const shas = git(['log', '--format=%H', '--grep=KLING25-60S-ANCORA:', 'HEAD']).trim().split('\n').filter(Boolean); if (shas.length) candidatos.push(shas[shas.length - 1] + '^') } catch { /* sem commit ainda */ }
+  try { const shas = git(['log', '--basic-regexp', '--format=%H', '--grep=^\\[TRAVA 8.2\\] KLING25-60S-ANCORA', 'HEAD']).trim().split('\n').filter(Boolean); if (shas.length) SHA = shas[shas.length - 1] } catch { /* sem commit ainda */ }
+  const candidatos = SHA ? [SHA + '^'] : []
   candidatos.push('HEAD', 'origin/main')
   for (const ref of candidatos) {
     try { if (!git(['show', `${ref}:app/api/generate-video-cinematic/route.ts`]).includes(MARCA)) { BASE = ref; break } } catch { /* tenta o próximo */ }
   }
+  if (SHA && BASE !== SHA + '^') SHA = null // o pai do commit já tinha o marcador: não é o introdutor — o candidato volta a ser a worktree
 }
-console.log(`   base de comparação: ${BASE ?? '(nenhuma)'}`)
-const rdBase = (p) => { if (!BASE) return null; try { return execFileSync('git', ['show', `${BASE}:${p}`], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024 }).toString().replace(/\r\n/g, '\n') } catch { return null } }
+console.log(`   base de comparação: ${BASE ?? '(nenhuma)'} · candidato do diff: ${SHA ?? 'worktree (sem o commit na história)'}`)
+const rdBase = (p) => { if (!BASE) return null; try { return git(['show', `${BASE}:${p}`]).replace(/\r\n/g, '\n') } catch { return null } }
+const rdCand = (p) => { if (!SHA) return rd(p); try { return git(['show', `${SHA}:${p}`]).replace(/\r\n/g, '\n') } catch { return null } }
 checa('a base (o "antes", com o teto de 6 cenas ancoradas) está disponível', Boolean(BASE))
 
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
 const rota = rd(ROTA)
 const rotaBase = rdBase(ROTA) ?? ''
+const rotaCand = rdCand(ROTA) ?? ''
 checa('o route.ts de HEAD carrega o marcador ' + MARCA, rota.includes(MARCA))
+checa('o candidato do diff (o commit introdutor, ou a worktree antes dele existir) carrega o marcador', rotaCand.includes(MARCA))
 checa('a base NÃO carrega o marcador (é o antes de verdade)', !rotaBase.includes(MARCA))
 
 // ═══ (a) o pool de âncoras real, executado ════════════════════════════════════════════════════════════════════════
@@ -65,9 +80,11 @@ const INI_BLOCO = '    if (anchorActive) {\n'
 const FIM_BLOCO = '(user credits unchanged; kling=${KLING_CREDIT_COST}cr)`,\n      )\n    }\n'
 const blocoNovo = fatia(rota, INI_BLOCO, FIM_BLOCO)
 const blocoBase = fatia(rotaBase, INI_BLOCO, FIM_BLOCO)
-checa('o bloco de âncoras clássico existe em HEAD e na base', Boolean(blocoNovo) && Boolean(blocoBase))
+const blocoCand = fatia(rotaCand, INI_BLOCO, FIM_BLOCO)
+checa('o bloco de âncoras clássico existe em HEAD, no candidato e na base', Boolean(blocoNovo) && Boolean(blocoCand) && Boolean(blocoBase))
 checa('HEAD: teto de cenas ancoradas = todas as cenas SÓ no Kling', blocoNovo?.includes("const MAX_ANCHORED_SCENES = anchorEngine === 'kling' ? scenes.length : 6") === true)
 checa('HEAD: orçamento de tempo dos stills = 60 s SÓ no Kling, 30 s nos outros', blocoNovo?.includes("const STILL_BUDGET_MS = anchorEngine === 'kling' ? 60_000 : 30_000") === true)
+checa('candidato: o commit introdutor já traz o teto por motor e o orçamento de 60 s (o diff de (b) mede ESTE trabalho, não o dos irmãos)', blocoCand?.includes("const MAX_ANCHORED_SCENES = anchorEngine === 'kling' ? scenes.length : 6") === true && blocoCand?.includes("const STILL_BUDGET_MS = anchorEngine === 'kling' ? 60_000 : 30_000") === true)
 checa('HEAD: pool de 3 stills em paralelo inalterado', blocoNovo?.includes('const STILL_POOL = 3') === true && blocoBase?.includes('const STILL_POOL = 3') === true)
 checa('HEAD: janela de 12 s por imagem inalterada', blocoNovo?.includes('const STILL_POLL_WINDOW_MS = 12_000') === true)
 checa('base: teto fixo de 6 cenas ancoradas (o defeito: 12 planos, 6 stills)', blocoBase?.includes('const MAX_ANCHORED_SCENES = 6') === true)
@@ -142,10 +159,12 @@ for (const [motor, planos] of [['seedance', 12], ['seedance', 9], ['veo', 9], ['
   checa(`${motor} com ${planos} cenas no pior caso (12 s por still): orçamento de 30 s como antes → ${bPior.stills} stills nos dois`, nPior.stills === bPior.stills && eqJ(nPior.sceneStills, bPior.sceneStills))
 }
 
-// ═══ (b) intocabilidade: fora do bloco, byte a byte ════════════════════════════════════════════════════════════════
-checa('route.ts fora do bloco de âncoras é byte-idêntico à base (só a fatia mudou)', rota.replace(blocoNovo, '') === rotaBase.replace(blocoBase, ''))
+// ═══ (b) intocabilidade: fora do bloco, byte a byte — CANDIDATO × base (commit × commit), nunca a worktree ═══════════
+// Depois do merge a worktree carrega o teto KLING25-60S-TETO (klingShots.ts e route.ts fora do bloco): irmão, não esta
+// entrega. Medido em 28/09: contra a worktree, "klingShots.ts não mudou" e "route.ts fora do bloco" ficavam vermelhos à toa.
+checa('route.ts do candidato fora do bloco de âncoras é byte-idêntico à base (só a fatia mudou neste commit)', Boolean(blocoCand) && rotaCand.replace(blocoCand, '') === rotaBase.replace(blocoBase, ''))
 for (const p of ['lib/compose.ts', 'app/api/compose/route.ts', 'lib/cinematic/klingShots.ts', 'lib/hollywood/anchors.ts']) {
-  checa(`${p} não mudou em relação à base`, rd(p) === rdBase(p))
+  checa(`${p} não mudou neste commit (candidato × base)`, rdCand(p) !== null && rdCand(p) === rdBase(p))
 }
 checa("a escolha do motor ancorado segue wantsKling → 'kling' (Seedance/Veo/Sora inalterados)", rota.includes("const anchorEngine: 'kling' | 'veo' | 'seedance' | null = wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? null : 'seedance'"))
 checa('o despacho SERIAL do Kling leva o still de cada cena ao i2v (submitScene com sceneStills[i])', rota.includes('const res = await submitScene(scenes[i], model, i, sceneStills[i] ?? undefined)'))
