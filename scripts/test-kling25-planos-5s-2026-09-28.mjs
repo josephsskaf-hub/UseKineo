@@ -599,7 +599,8 @@ if (DRb) {
 }
 // KINEO-KLING25-60S-ANCORA-2026-09-28 (palavra do fundador: "melhore o Kling 2.5 … 60 s para chegar em 65-70"): no Kling 2.5 o still
 // existe em TODAS as cenas do plano (orçamento de 60 s); Seedance/Veo seguem com 6 e 30 s. Guardião próprio: test-kling25-60s-ancora.
-checa('âncoras: no Kling 2.5 o teto de stills FLUX é todas as cenas do plano (60 s de orçamento); fora do Kling continua 6 (30 s)', rota.includes("      const MAX_ANCHORED_SCENES = anchorEngine === 'kling' ? scenes.length : 6\n") && rota.includes("      const STILL_BUDGET_MS = anchorEngine === 'kling' ? 60_000 : 30_000"))
+// KINEO-VEO-ANCORA-2026-09-29: o Veo 3.1 entrou na mesma regra do Kling; o Seedance continua com 6 cenas e 30 s.
+checa('âncoras: no Kling 2.5 (e no Veo 3.1) o teto de stills FLUX é todas as cenas do plano (60 s de orçamento); no Seedance continua 6 (30 s)', /      const MAX_ANCHORED_SCENES = anchorEngine === 'kling'( \|\| anchorEngine === 'veo')? \? scenes\.length : 6\n/.test(rota) && /      const STILL_BUDGET_MS = anchorEngine === 'kling'( \|\| anchorEngine === 'veo')? \? 60_000 : 30_000/.test(rota))
 
 // ═══ (e) duração: o que o fundador perguntou ═══
 console.log('== (e) duração: imagem vs fala ==')
