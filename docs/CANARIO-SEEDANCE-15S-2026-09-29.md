@@ -3,9 +3,14 @@
 **O que está sendo provado:** o filme de 15 s no Seedance 1.5 ("vai" nominal do fundador). Custa
 `creditCostForDuration('cinematic_ai', true, 15)` = **7 créditos** e é o primeiro filme de IA que cabe no trial de 10.
 O botão de 15 s está atrás de `SEEDANCE_15S_PUBLIC = false` (lib/engineLaunch.ts): **só contas da casa veem**. O
-servidor aceita 15 s no Seedance para qualquer conta e **recusa 15 s nos outros motores** (422, sem débito).
+servidor aceita 15 s no Seedance para qualquer conta e **recusa 15 s nos outros motores** (422, sem débito). Depois da
+revisão (29/09) também recusa **Seedance abaixo de 15 s** (`duration_not_offered`, sem débito): antes, `duration: 10`
+pagava 5 cr pelo piso de 10 s da conta e levava 2 clipes de IA.
+⚠ "Só a casa vê" vale para o botão aberto pela tela. Um link `/studio?engine=seedance&duration=15` acende o 15 s para
+qualquer conta logada (o preço cobrado continua certo, 7 cr). O canário não está isolado por URL — só pelo botão.
 
-Guardião: `node scripts/test-seedance-15s-2026-09-29.mjs` (35 checagens, 6 mutantes que precisam ficar vermelhos).
+Guardião: `node scripts/test-seedance-15s-2026-09-29.mjs` (68 checagens; mutantes em memória que precisam ficar
+vermelhos, inclusive os 7 da revisão adversarial: P1, P2, P3, M-D, M-J, M-K, M-L).
 
 ## Antes de começar
 
@@ -13,7 +18,11 @@ Guardião: `node scripts/test-seedance-15s-2026-09-29.mjs` (35 checagens, 6 muta
 2. Conta: **josephsskaf@gmail.com** — é a única da lista `DRY_RUN_EMAILS` (lib/cinematic/classicDryRun.ts) e é interna
    (vê o botão de 15 s). ⚠ Ela está em `FORCE_WATERMARK_EMAILS`: o filme pago sai com a marca d'água
    `usekineo.com/free`. É esperado; **não usar este filme como vitrine**.
-3. Saldo da fal ≥ US$ 5 (o render pago de 15 s custa ~US$ 0,52, até US$ 0,80).
+3. Saldo da fal ≥ US$ 5 (o render pago de 15 s custa ~US$ 0,52 com 2 clipes; **até ~US$ 0,80 com 3 clipes**).
+   Em verbatim o nº de clipes segue a fala (#442: palavras ÷ 2,5 ÷ 10 s): **até 50 palavras = 2 clipes; 51–56 palavras
+   = 3 clipes pelos mesmos 7 cr** (56 é o teto da guarda de roteiro longo). Decisão consciente da revisão de 29/09:
+   manter 56 (filme mais completo, "passar do alvo é bom"); se a margem apertar, baixar SHORT_FILM_SPEECH_FACTOR para
+   4/3 (teto 50 palavras = sempre 2 clipes).
 4. Chrome logado em `https://www.usekineo.com/studio` → F12 → Console. Todos os passos abaixo colam no Console.
 
 ## Passo 1 — ensaio de $0, "Use my script as is" (roteiro de 45 palavras)
@@ -97,9 +106,13 @@ console.log(r3.status, await r3.json());
 ```
 
 **Esperado:** HTTP **422**, `reason: "script_too_long_for_short_film"`, `est_speech_seconds: 54`, `suggested_seconds: 35`,
-`charged: false`.
+`charged: false`. A frase oferece primeiro encurtar ("Shorten it to about 56 words to keep the 15-second price") e só
+depois 35 s com o custo real (calculado pela mesma função que debita) — o trial de 10 cr não paga 35 s.
 
-Conferência no banco (os três negativos não criam claim nem débito):
+3c. **Seedance abaixo de 15 s** (revisão de 29/09): o mesmo corpo do passo 1 com `"duration": 10`.
+**Esperado:** HTTP **422**, `reason: "duration_not_offered"`, `suggested_seconds: 15`, `charged: false`.
+
+Conferência no banco (os negativos não criam claim nem débito):
 
 ```sql
 select name, metadata->>'engine' as engine, metadata->>'requested_seconds' as seg, metadata->>'charged' as cobrou, created_at
@@ -160,8 +173,12 @@ console.log('segundos =', (dur / ts).toFixed(2));
 ## Passo 6 — export limpo do filme de 15 s
 
 Na tela de filme pronto, **Download clean**. O export limpo remonta o MESMO filme (lista de durações do
-`/api/compose/unlock` agora tem 15, e a narração de um filme de 15 s não é reescalada). Conferir no MP4 limpo:
-mesma narração palavra por palavra, **2 clipes**, duração `mvhd` **15–22 s** (a mesma do passo 5 ± 1 s).
+`/api/compose/unlock` agora tem 15; e, depois da revisão de 29/09, o unlock só pula a reescala da narração nas MESMAS
+condições do compose: velocidade explícita ou filme de IA em verbatim — o cliente leva `verbatim: true` do cinematic).
+Conferir no MP4 limpo: mesma narração palavra por palavra, **mesmo nº de clipes do passo 5** (2 ou 3), duração `mvhd`
+**15–22 s** (a mesma do passo 5 ± 1 s). No modo IA ("Let AI structure"), o compose pode reescalar a narração e o
+unlock reescala de novo com o mesmo alvo — o texto pode variar em palavras (o GPT reescreve), como já acontece em
+35/60/90; o tamanho é o mesmo.
 ⚠ Se o botão pedir pagamento, é dinheiro saindo: decisão do fundador (pode pular este passo e anotar como pendente).
 
 ## Veredito

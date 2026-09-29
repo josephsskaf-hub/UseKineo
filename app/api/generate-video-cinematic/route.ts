@@ -7,7 +7,7 @@ import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credit
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { S25_PUBLIC, enginePaused } from '@/lib/engineLaunch'
 import { seedance15sVisible } from '@/lib/engineLaunch' // KINEO-SEEDANCE-15S-2026-09-29
-import { checarDuracao, checarFalaDoFilmeCurto, supportedDurationsFor, ONLY_SEEDANCE_15S_MESSAGE, scriptTooLongForShortFilmMessage } from '@/lib/durationByEngine' // KINEO-SEEDANCE-15S-2026-09-29
+import { checarDuracao, checarFalaDoFilmeCurto, supportedDurationsFor, mensagemDaRecusaDeDuracao, scriptTooLongForShortFilmMessage } from '@/lib/durationByEngine' // KINEO-SEEDANCE-15S-2026-09-29
 // sprint-v1v4 #27 — a MESMA funcao de resgate que o seletor usa desde a #13.
 // Gate de servidor e gate de UI sao um PAR (licao ja registrada no
 // GenerateClient): se a tela oferece um desvio ANTES do clique, a recusa
@@ -1536,12 +1536,13 @@ async function manipularPost(req: NextRequest) {
     // 15 s é só do Seedance 1.5. Nos outros motores um alvo abaixo de 35 é RECUSADO aqui — antes do custo (mais abaixo,
     // `const cost = creditCostForDuration(`), do claim e do débito —, nunca trocado por 35 em silêncio (a tela mostrou o
     // preço de 15 s; subir depois do clique é cobrança-surpresa). Fecha também o furo antigo: Kling 3 pedido a 15 s
-    // planejava ~34 s (Math.max(30, …)+4) e cobrava 15 s.
+    // planejava ~34 s (Math.max(30, …)+4) e cobrava 15 s. Revisão E2a: no Seedance, alvo < 15 (ou não finito) também é
+    // recusa ('duration_not_offered') — duration 10 pagava 5 cr (piso de 10 s da conta) por 2 clipes de IA.
     {
       const checagemDuracao = checarDuracao(typeof body.engine === 'string' ? body.engine : null, duration)
       if (!checagemDuracao.ok) {
         await writeServerEvent({ name: 'duration_engine_refused', userId: user.id, path: '/api/generate-video-cinematic', metadata: { engine: typeof body.engine === 'string' ? body.engine : null, requested_seconds: duration, suggested_seconds: checagemDuracao.sugestao, charged: false, version: 'seedance_15s_20260929' } })
-        return NextResponse.json({ error: ONLY_SEEDANCE_15S_MESSAGE, reason: checagemDuracao.recusa, engine: typeof body.engine === 'string' ? body.engine : null, requested_seconds: duration, suggested_seconds: checagemDuracao.sugestao, retryable: false, charged: false, refunded: false }, { status: 422 })
+        return NextResponse.json({ error: mensagemDaRecusaDeDuracao(checagemDuracao), reason: checagemDuracao.recusa, engine: typeof body.engine === 'string' ? body.engine : null, requested_seconds: duration, suggested_seconds: checagemDuracao.sugestao, retryable: false, charged: false, refunded: false }, { status: 422 })
       }
     }
     const family: CinematicFamily = wantsH3 ? 'h3' : wantsOmni ? 'omni' : wantsS25 ? 's25' : 'hollywood'
@@ -1592,7 +1593,7 @@ async function manipularPost(req: NextRequest) {
       const falaCurta = checarFalaDoFilmeCurto({ engine: typeof body.engine === 'string' ? body.engine : null, seconds: duration, verbatim, narration: parsedScript.narration })
       if (!falaCurta.ok) {
         await writeServerEvent({ name: 'short_film_script_too_long_refused', userId: user.id, path: '/api/generate-video-cinematic', metadata: { engine: typeof body.engine === 'string' ? body.engine : 'seedance', requested_seconds: duration, est_speech_seconds: Math.round(falaCurta.estSeconds), limit_seconds: falaCurta.limitSeconds, suggested_seconds: falaCurta.sugestao, charged: false, version: 'seedance_15s_20260929' } })
-        return NextResponse.json({ error: scriptTooLongForShortFilmMessage(duration, falaCurta.estSeconds), reason: falaCurta.recusa, requested_seconds: duration, est_speech_seconds: Math.round(falaCurta.estSeconds), suggested_seconds: falaCurta.sugestao, retryable: false, charged: false, refunded: false }, { status: 422 })
+        return NextResponse.json({ error: scriptTooLongForShortFilmMessage(duration, falaCurta.estSeconds, creditCostForDuration('cinematic_ai', true, falaCurta.sugestao)), reason: falaCurta.recusa, requested_seconds: duration, est_speech_seconds: Math.round(falaCurta.estSeconds), suggested_seconds: falaCurta.sugestao, retryable: false, charged: false, refunded: false }, { status: 422 })
       }
     }
 

@@ -801,6 +801,7 @@ interface FastRenderInputs {
   quality?: string
   // LOTE2-EXPORT-LIMPO-FIEL-2026-09-23 — o formato do filme. Sem ele o export limpo PAGO de um 16:9/1:1/4:5 voltava 9:16.
   aspect?: string
+  verbatim?: boolean // KINEO-SEEDANCE-15S-2026-09-29: filme de IA em verbatim — o unlock espelha o claimVerbatim do compose
 }
 
 interface ActiveRenderSnapshot {
@@ -965,6 +966,7 @@ function normalizeFastRenderInputs(value: unknown): FastRenderInputs | undefined
     // ao 'fast' de sempre: o campo só pode melhorar o rebuild, nunca quebrá-lo.
     ...(input.quality === 'fast' || input.quality === 'cinematic_ai' ? { quality: input.quality } : {}),
     ...(typeof input.aspect === 'string' && input.aspect !== '9:16' && normalizeAspect(input.aspect) === input.aspect ? { aspect: input.aspect } : {}), // LOTE2-EXPORT-LIMPO-FIEL-2026-09-23
+    ...(input.verbatim === true ? { verbatim: true } : {}), // KINEO-SEEDANCE-15S-2026-09-29 (revisão E2a)
   }
 }
 
@@ -1999,6 +2001,9 @@ export default function GenerateClient({
   const [fastVoiceover, setFastVoiceover] = useState<string | null>(null)
   const [fastCaptions, setFastCaptions] = useState<string[] | null>(null)
   const [ttsSpeed, setTtsSpeed] = useState<number | null>(null)
+  // KINEO-SEEDANCE-15S-2026-09-29 (revisão E2a) — o render de IA em curso saiu em verbatim? (data.verbatim do cinematic).
+  // Vai no ingrediente do export limpo para o unlock espelhar o claimVerbatim do /api/compose. Zera a cada filme novo.
+  const narracaoVerbatimRef = useRef(false)
   // feature/ai-avatar — premium talking-avatar state. avatarImageUrl = the
   // uploaded face photo (public storage URL, set by <AvatarUpload/>);
   // avatarRequestId = the in-flight VEED fal-queue job; avatarComposeRef =
@@ -6315,6 +6320,7 @@ export default function GenerateClient({
             language,
             vertical: analysis?.niche ?? undefined,
             speed: ttsSpeed ?? undefined,
+            ...(narracaoVerbatimRef.current ? { verbatim: true } : {}), // KINEO-SEEDANCE-15S-2026-09-29 (revisão E2a)
             // KINEO-TRIAL-WATERMARK-2026-09-07 — a MESMA expressão que o
             // composePayload usa logo abaixo. O unlock precisa remontar com o
             // ritmo do motor que fez o filme, não com o do seletor.
@@ -9143,6 +9149,7 @@ export default function GenerateClient({
       setFastVoiceover(typeof data.voiceover_script === 'string' ? data.voiceover_script : null)
       setFastCaptions(null)
       setTtsSpeed(typeof data.speed === 'number' ? data.speed : null)
+      narracaoVerbatimRef.current = false // KINEO-SEEDANCE-15S-2026-09-29: avatar não passa pelo unlock
       setClipUrls(Array.isArray(data.clip_urls)
         ? data.clip_urls.filter((url): url is string => typeof url === 'string')
         : [])
@@ -9425,6 +9432,7 @@ export default function GenerateClient({
     setFastVoiceover(null)
     setFastCaptions(null)
     setTtsSpeed(null)
+    narracaoVerbatimRef.current = false // KINEO-SEEDANCE-15S-2026-09-29
     setFalRequestIds([])
     setFalClipsDone({ done: 0, total: 0 })
     setRenderId(null)
@@ -9879,6 +9887,7 @@ export default function GenerateClient({
         setFastVoiceover(typeof data.voiceover_script === 'string' ? data.voiceover_script : null)
         setFastCaptions(Array.isArray(data.scene_captions) ? data.scene_captions : null)
         setTtsSpeed(typeof data.speed === 'number' ? data.speed : null)
+        narracaoVerbatimRef.current = data.verbatim === true // KINEO-SEEDANCE-15S-2026-09-29 (revisão E2a): o MESMO campo que o compose lê no claim
         const ids = Array.isArray(data.fal_request_ids) ? data.fal_request_ids : []
         setFalRequestIds(ids)
         setFalClipsDone({ done: 0, total: ids.filter((id: string | null) => id !== null).length })
@@ -10267,6 +10276,7 @@ export default function GenerateClient({
         setFastVoiceover(responseVoiceover)
         setFastCaptions(responseCaptions)
         setTtsSpeed(data.verbatim ? responseSpeed : null)
+        narracaoVerbatimRef.current = false // KINEO-SEEDANCE-15S-2026-09-29: Kineo 1 — o compose não tem claimVerbatim; a velocidade explícita governa
         setGenerateProgress(100)
         setPhase('clips_ready')
       } catch (err: unknown) {
@@ -13138,6 +13148,10 @@ export default function GenerateClient({
   // motor pelo nome errado (regra do selo honesto).
   const lastSetupOffer = (() => {
     if (!lastSetup) return null
+    // KINEO-SEEDANCE-15S-2026-09-29 (revisão E2a) — LastSetup não guarda o motor: um 15 s lembrado de um Seedance
+    // aplicado com Kling/Veo/Kineo 1 na tela precificava 15 s e levava 422 (ou 45 s cobrado no Kineo 1). O 15 só volta
+    // quando o seletor atual o oferece; senão a oferta não aparece (o chip nunca aplica uma duração que a tela não tem).
+    if (lastSetup.duration === SEEDANCE_SHORT_SECONDS && !opcoesDeDuracao.some((o) => o.value === SEEDANCE_SHORT_SECONDS)) return null
     const engineDiffers = lastSetup.quality !== quality
     const durationDiffers = lastSetup.duration !== duration
     const modeDiffers = lastSetup.scriptMode !== scriptMode

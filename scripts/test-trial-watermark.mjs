@@ -145,7 +145,9 @@ ok('normalize preserva fast/cinematic_ai', client.includes("input.quality === 'f
 // A ordem foi "so o booleano": regua, motor, prompt de cena, credito e preco.
 // REANCORADO KINEO-SEEDANCE-15S-2026-09-29 — o piso de saldo do cinematic_ai passou a escalar pela duração (filme de 15 s
 // pede 7 cr, não o preço de 60 s), pela MESMA função do cobrador. O preço base do motor não mudou.
-ok('o custo do cinematic_ai nao mudou', compose.includes("const requiredCredits = creditCostForDuration('cinematic_ai', true, duration)"))
+// Revisão E2a (29/09): âncora de LINHA INTEIRA (^…$) — o includes aceitava um sufixo na mesma linha (`* 0`) e o piso
+// de saldo podia zerar sem este guardião ver. Vigia o mesmo: o piso é a função do cobrador na duração, e só ela.
+ok('o custo do cinematic_ai nao mudou', /^\s*const requiredCredits = creditCostForDuration\('cinematic_ai', true, duration\)\r?$/m.test(compose))
 ok('isFreePlanFast nao mudou', compose.includes('isFreePlanFast = isFreePlan && !hasPaid && !ent.isTrial'))
 ok('o clamp de 15s do free nao mudou', compose.includes('const maxFreeSeconds = ent.maxDurationSeconds'))
 

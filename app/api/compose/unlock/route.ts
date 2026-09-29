@@ -111,6 +111,10 @@ interface UnlockBody {
   quality?: string
   // LOTE2-EXPORT-LIMPO-FIEL-2026-09-23 — formato do filme original (ausente = 9:16, como sempre foi).
   aspect?: string
+  // KINEO-SEEDANCE-15S-2026-09-29 (revisão E2a) — o filme de IA saiu em verbatim (response.verbatim do cinematic, o
+  // MESMO campo que o /api/compose lê no claim assinado como claimVerbatim). Governa só se a narração é reescalada — o
+  // texto já vem do cliente em voiceover_script, então o campo não abre nada que o corpo já não abrisse.
+  verbatim?: boolean
 }
 
 // Keep the clean re-render identical to the just-created Fast preview.
@@ -516,9 +520,11 @@ export async function POST(req: NextRequest) {
     // Mirror /api/compose scaling: verbatim (explicit speed) is used as-is; a
     // generated brief is scaled to the duration's word target. Falls back safely.
     let scaledScript: string
-    // KINEO-SEEDANCE-15S-2026-09-29 (B6) — filme de 15 s: a narração é a que foi falada, nunca reescalada (o roteiro de
-    // 15 s já nasce no tamanho; reescalar reescreveria a fala por cima dos 2 clipes do filme original).
-    if (explicitSpeed != null || duration === 15) {
+    // KINEO-SEEDANCE-15S-2026-09-29 (B6, revisão E2a) — espelho EXATO do /api/compose: pula a reescala com velocidade
+    // explícita OU quando o filme de IA saiu em verbatim (lá: claimVerbatim). A versão anterior pulava por
+    // `duration === 15` — no modo IA o compose REESCALA (fora de 92-125% do alvo) e o export limpo narrava outro texto.
+    const unlockVerbatim = body.verbatim === true && rebuildQuality === 'cinematic_ai'
+    if (explicitSpeed != null || unlockVerbatim) {
       scaledScript = voiceoverScript
     } else {
       try {

@@ -404,8 +404,12 @@ export default function StudioClient() {
   // nunca ao lado do saldo dentro do editor. Aqui a conta é feita para a pessoa,
   // na duração que ELA escolheu, motor a motor. Custo idêntico ao do servidor:
   // mesma função `creditCostForDuration` que debita.
+  // KINEO-SEEDANCE-15S-2026-09-29 (revisão E2a) — com o Seedance em 15 s, os OUTROS cards não existem a 15 s: ao clicar,
+  // o efeito abaixo sobe para 35. O card precifica na duração que o motor vai de fato receber (Kling 3 "38 cr" a 15 s
+  // virava 88 cr no clique).
+  const duracaoDoCard = (key: EngineKey): number => (key === 'seedance' ? duration : Math.max(duration, MIN_DURATION_ALL_ENGINES))
   const engineCost = (key: EngineKey) =>
-    creditCostForDuration(ENGINE_QUALITY[key] ?? 'cinematic_ai', true, duration)
+    creditCostForDuration(ENGINE_QUALITY[key] ?? 'cinematic_ai', true, duracaoDoCard(key))
   const engineCostLabel = (key: EngineKey) => {
     const c = engineCost(key)
     return c <= 0 ? 'free' : `${c} cr`
@@ -422,7 +426,7 @@ export default function StudioClient() {
     if (c <= 0 || balance >= c) return null
     const degraus: readonly (15 | 35 | 60)[] = key === 'seedance' && seedance15Ok ? [60, 35, 15] : [60, 35]
     for (const d of degraus) {
-      if (d >= duration) continue
+      if (d >= duracaoDoCard(key)) continue
       const cost = creditCostForDuration(ENGINE_QUALITY[key] ?? 'cinematic_ai', true, d)
       if (cost > 0 && cost <= balance) return { seconds: d, cost }
     }

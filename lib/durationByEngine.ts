@@ -7,6 +7,11 @@
 // Regra da casa (M1 do cético): NUNCA subir 15 → 35 em silêncio depois de a tela mostrar o preço de 15 s — é
 // cobrança-surpresa (lib/credits/engineCost.ts: "preço que muda depois do clique"). Fora do Seedance, 15 s (ou
 // qualquer alvo abaixo de 35) é RECUSA honesta, antes de qualquer débito.
+// Revisão E2a (29/09): no Seedance, alvo abaixo de 15 (ou não finito) também é recusa ('duration_not_offered') — sem
+// isso um POST com duration 10 (ou 1-9, ou negativo) pagava 5 cr pelo piso de 10 s da conta e levava 2 clipes de IA.
+// Escopo honesto: esta checagem vale para o PEDIDO. O degrau KINEO-DEGRAU (allow_shorter_duration) roda depois e
+// ainda pode DESCER o alvo até o piso da estrada (20 s clássico / 30 s hollywood, lib/narrationFit.ts) — descida que só
+// barateia, com o custo calculado depois dela; não é subida silenciosa nem 15 s fora do Seedance.
 //
 // Módulo PURO (sem import): lido pela rota, pelo /studio, pelo /generate e executado pelo guardião
 // scripts/test-seedance-15s-2026-09-29.mjs via transpile.
@@ -39,18 +44,34 @@ export function supportedDurationsFor(engine: string | null | undefined): readon
 
 export type ChecagemDeDuracao =
   | { ok: true }
-  | { ok: false; recusa: 'only_seedance_15s'; sugestao: number }
+  | { ok: false; recusa: 'only_seedance_15s' | 'duration_not_offered'; sugestao: number }
 
-/** 15 s (ou qualquer alvo abaixo de 35) fora do Seedance = recusa; nunca troca a duração em silêncio. */
+/**
+ * 15 s (ou qualquer alvo abaixo de 35) fora do Seedance = recusa; no Seedance, abaixo de 15 (ou não finito) = recusa.
+ * Nunca troca a duração em silêncio.
+ */
 export function checarDuracao(engine: string | null | undefined, seconds: number): ChecagemDeDuracao {
-  if (!Number.isFinite(seconds)) return { ok: true }
-  if (seconds < MIN_DURATION_ALL_ENGINES && !isSeedance15(engine)) {
+  const seedance = isSeedance15(engine)
+  if (!Number.isFinite(seconds)) {
+    return { ok: false, recusa: 'duration_not_offered', sugestao: seedance ? SEEDANCE_SHORT_SECONDS : MIN_DURATION_ALL_ENGINES }
+  }
+  if (seconds < MIN_DURATION_ALL_ENGINES && !seedance) {
     return { ok: false, recusa: 'only_seedance_15s', sugestao: MIN_DURATION_ALL_ENGINES }
+  }
+  if (seconds < SEEDANCE_SHORT_SECONDS && seedance) {
+    return { ok: false, recusa: 'duration_not_offered', sugestao: SEEDANCE_SHORT_SECONDS }
   }
   return { ok: true }
 }
 
 export const ONLY_SEEDANCE_15S_MESSAGE = '15-second films are available on Seedance 1.5; pick 35 s for this engine.'
+export const SEEDANCE_DURATION_NOT_OFFERED_MESSAGE = `Seedance 1.5 films are ${SEEDANCE_DURATIONS.join(', ')} seconds long; pick one of those. Nothing was charged.`
+
+/** A frase da recusa de duração, pela razão (a rota não escolhe texto). */
+export function mensagemDaRecusaDeDuracao(checagem: ChecagemDeDuracao): string {
+  if (checagem.ok) return ''
+  return checagem.recusa === 'duration_not_offered' ? SEEDANCE_DURATION_NOT_OFFERED_MESSAGE : ONLY_SEEDANCE_15S_MESSAGE
+}
 
 // ─── B4 do cético: roteiro longo pedido como filme curto ────────────────────────────────────────────────────────
 // Em verbatim, o nº de clipes segue a FALA (route.ts #442, até 9) e o compose deixa o áudio mandar até 90 s, mas o
@@ -86,6 +107,17 @@ export function checarFalaDoFilmeCurto(args: {
   return { ok: true, estSeconds, limitSeconds }
 }
 
-export function scriptTooLongForShortFilmMessage(seconds: number, estSeconds: number): string {
-  return `This script reads for about ${Math.round(estSeconds)} seconds — too long for a ${seconds}-second film. Pick 35 s for this script, or shorten it. Nothing was charged.`
+/** Quantas palavras cabem no filme curto (o teto da guarda acima, na mesma régua de 2,5 pal/s). */
+export function maxWordsForShortFilm(seconds: number): number {
+  return Math.floor(seconds * SHORT_FILM_SPEECH_FACTOR * VERBATIM_EST_WORDS_PER_SECOND)
+}
+
+/**
+ * Revisão E2a (29/09): a saída que CABE vem primeiro. O trial de 10 cr não paga 35 s — mandar "pick 35 s" levava o
+ * próximo clique ao 402. Encurtar mantém o preço do filme curto; 35 s vem com o custo real (passado pela rota, que o
+ * calcula com a mesma creditCostForDuration que debita — nada digitado aqui).
+ */
+export function scriptTooLongForShortFilmMessage(seconds: number, estSeconds: number, cost35?: number | null): string {
+  const custo = typeof cost35 === 'number' && Number.isFinite(cost35) && cost35 > 0 ? ` (${cost35} credits)` : ''
+  return `This script reads for about ${Math.round(estSeconds)} seconds — too long for a ${seconds}-second film. Shorten it to about ${maxWordsForShortFilm(seconds)} words to keep the ${seconds}-second price, or pick ${MIN_DURATION_ALL_ENGINES} s${custo}. Nothing was charged.`
 }
