@@ -21,6 +21,10 @@
 //      (claim liberado, zero crédito); a voz que fala é escolhida DENTRO do /api/compose (generateTTS por texto + vertical),
 //      que não lê persona nenhuma do claim — trocar a persona só na rota passaria o portão com uma voz que o compose não usa;
 //   6. mutantes, todos VERMELHOS.
+//   7. (revisão de be58db31) o desempate pelo alinhamento: esse filme não assina clip_word_starts, o compose mostra a cena k
+//      na fatia igual k·T/N — entre cortes empatados, vence o de menor desvio máximo entre o início da fala da cena e o da
+//      sua fatia (força bruta); o 15 s (sem a opção) fica idêntico à lib da base; e um roteiro com UM bloco a mais que clipes
+//      (6 → 5) entra na prova (o mutante "> scenes.length + 1" ficava verde).
 import { readFileSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -163,14 +167,45 @@ const R90 = Array.from({ length: 12 }, (_, i) => {
 }).join('\n\n')
 const PROSA = 'The lighthouse keeper vanished in 1900. Three men lived on the island. The lamp was cold when the ship arrived. The clocks had stopped. The table was set for dinner. Nobody ever found them. The last log entry mentioned a storm that no other station recorded. Follow for more.'
 const CURTO15 = 'HOOK (0-2s): [Pexels: foggy lake surface] Lake Nyos killed 1,700 people... in one night.\n\nMICRO REWARD 1: [Pexels: volcanic crater aerial] It\'s a volcanic crater lake in Cameroon, charged with carbon dioxide.\n\nMICRO REWARD 2: [Pexels: gas bubbling water] That night, CO2 suddenly erupted, displacing oxygen, suffocating nearby villages.\n\nPAYOFF: [Pexels: eerie village morning] The silent gas cloud spread fast... taking 1,700 lives in minutes.'
+// 35 s com 6 blocos para 5 clipes: UM bloco a mais que clipes (o caso que a revisão de be58db31 achou descoberto).
+const R35_SEIS = "HOOK (0-2s): [Pexels: prison island fog] Nobody escaped Alcatraz. Officially, anyway.\n\nMICRO REWARD 1: [Pexels: prison cell bars] In June 1962 three men left dummy heads made of soap and real hair in their beds, and slipped away.\n\nMICRO REWARD 2: [Pexels: air vent grate] For months they had widened the air vents behind their sinks with spoons and a drill built from a vacuum motor.\n\nMICRO REWARD 3: [Pexels: raincoats raft] They sewed more than fifty stolen raincoats into a raft and life vests, sealing the seams with heat from the steam pipes.\n\nESCALATION: [Pexels: dark bay water] That night they paddled into the freezing bay, and the guards only noticed the empty cells after the morning count began.\n\nPAYOFF: [Pexels: wanted poster] No bodies were ever found, and the case stayed open for decades. Would you have tried it? Follow."
 const pistasDe = (t) => [...t.matchAll(/\[Pexels:\s*([^\]]+?)\s*\]/g)].map((m) => m[1])
 const LONGOS = [
   { nome: '35 s · real de produção (7 blocos)', texto: R35_REAL, duration: 35 },
   { nome: '35 s · tamanho do escritor (7 blocos)', texto: R35, duration: 35 },
+  { nome: '35 s · um bloco a mais que clipes (6 blocos)', texto: R35_SEIS, duration: 35 },
   { nome: '60 s · 9 blocos', texto: R60, duration: 60 },
   { nome: '90 s · 12 blocos', texto: R90, duration: 90 },
 ]
 const otimoDe = (ws, k) => { let m = Infinity; const v = (i, g, mx) => { if (g === k - 1) { m = Math.min(m, Math.max(mx, ws.slice(i).reduce((a, b) => a + b, 0))); return } for (let j = i + 1; j <= ws.length - (k - 1 - g); j++) v(j, g + 1, Math.max(mx, ws.slice(i, j).reduce((a, b) => a + b, 0))) }; v(0, 0, 0); return m }
+// desvio de alinhamento (|N·início − k·W|, em palavras×N) de um corte; e o melhor possível entre os cortes empatados na
+// chave de antes (vazias, maior cena, PAYOFF sozinho, HOOK sozinho) — força bruta, independente da lib.
+const desvioDe = (tamanhos, W) => { const N = tamanhos.length; let ac = 0, pior = 0; for (let k = 1; k < N; k++) { ac += tamanhos[k - 1]; pior = Math.max(pior, Math.abs(N * ac - k * W)) } return pior }
+const cmpChave = (a, b) => { for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] < b[i] ? -1 : 1; return 0 }
+function melhorAlinhamento(ws, antes, N) {
+  const n = ws.length, W = antes + ws.reduce((a, b) => a + b, 0)
+  let chave = null, melhor = Infinity
+  const v = (lim) => {
+    if (lim.length === N) {
+      const L2 = [...lim, n]
+      const somas = L2.slice(0, -1).map((a, g) => ws.slice(a, L2[g + 1]).reduce((x, y) => x + y, 0))
+      const k = [somas.filter((x) => x === 0).length, Math.max(...somas), L2[N - 1] === n - 1 ? 0 : 1, L2[1] === 1 ? 0 : 1]
+      const d = desvioDe(somas.map((x, g) => x + (g === 0 ? antes : 0)), W)
+      const c = chave === null ? -1 : cmpChave(k, chave)
+      if (c < 0) { chave = k; melhor = d } else if (c === 0) melhor = Math.min(melhor, d)
+      return
+    }
+    for (let c = lim[lim.length - 1] + 1; c <= n - (N - lim.length); c++) v([...lim, c])
+  }
+  v([0])
+  return melhor
+}
+const alinhado = (x) => {
+  const ws = x.parsedScript.segments.map((sg) => palavras(sg.voiceover).length)
+  const W = palavras(x.parsedScript.narration).length
+  const antes = W - ws.reduce((a, b) => a + b, 0)
+  return { tem: desvioDe(x.scenes.map((sc) => palavras(sc.voiceover).length), W), melhor: melhorAlinhamento(ws, antes, x.scenes.length), N: x.scenes.length }
+}
 const ensaio = (scenes, duration) => DR.classicDryRunReport({ scenes: scenes.map((s) => ({ voiceover: s.voiceover, prompt: 'x' })), targetSeconds: duration, secondsPerClip: 10, verbatim: true }).total_words
 
 // ═══ 1-2. a causa e o conserto ═══
@@ -193,6 +228,7 @@ async function provaSeedance(src, Dx, { log = false } = {}) {
         pistas: pistas.every((q) => x.scenes.filter((s) => String(s.stockSearchQuery).split(', ').includes(q)).length === 1) && x.scenes.every((s) => s.description === s.stockSearchQuery),
         ensaio: ensaio(x.scenes, c.duration) === palavras(narr).length,
         otimo: Math.max(...falas.map((v) => palavras(v).length)) === otimoDe(blocos, x.scenes.length),
+        alinhado: (() => { const a = alinhado(x); return a.tem === a.melhor })(),
       }
       if (log && engine === undefined) {
         const perdidas = pistas.filter((q) => !b.scenes.some((s) => String(s.stockSearchQuery).split(', ').includes(q)))
@@ -213,7 +249,7 @@ for (const c of LONGOS) {
     Boolean(b) && perdidas.length === pistas.length - b.scenes.length && perdidas.length > 0 && ensaio(b.scenes, c.duration) < palavras(b.parsedScript.narration).length)
 }
 console.log('2) o conserto: toda pista vira cena, soma das falas = narração, mesmo nº de clipes')
-checa('Seedance 1.5 (engine ausente/"seedance"/"cinematic_ai") em 35/60/90 s com 7, 9 e 12 blocos: mesmo nº de cenas e clipCount da base; soma das falas = narração; nenhuma cena sem fala; cada pista [Pexels] em exatamente uma cena; o ensaio conta a narração inteira; a maior cena é a menor possível',
+checa('Seedance 1.5 (engine ausente/"seedance"/"cinematic_ai") em 35/60/90 s com 6, 7, 9 e 12 blocos (inclusive UM a mais que clipes): mesmo nº de cenas e clipCount da base; soma das falas = narração; nenhuma cena sem fala; cada pista [Pexels] em exatamente uma cena; o ensaio conta a narração inteira; a maior cena é a menor possível; entre os cortes empatados, o de menor desvio da fatia (força bruta)',
   await provaSeedance(ROTA, D, { log: true }))
 {
   const x = await rodaRota(ROTA, D, { texto: R35, engine: 'seedance', duration: 35 })
@@ -274,6 +310,29 @@ console.log('5) item 2 (voz rápida no 15 s): recusa antes do débito; a voz é 
   console.log(`     régua por persona (pal/s) e palavras mínimas para 95 % de 15 s: ${reguas.join(' · ')}`)
 }
 
+// ═══ 7. o desempate pelo alinhamento (revisão de be58db31) ═══
+console.log('7) desempate: a cena começa perto da sua fatia do tempo (o compose corta em fatias iguais); o 15 s não muda')
+{
+  const x = await rodaRota(ROTA, D, { texto: R90, engine: 'seedance', duration: 90 })
+  const velho = x ? D_BASE.seedanceShortMarkedScenes(x.parsedScript, x.scenes.length) : null
+  const W = x ? palavras(x.parsedScript.narration).length : 0
+  const dVelho = velho ? desvioDe(velho.map((c) => palavras(c.voiceover).length), W) / x.scenes.length : NaN
+  const dAgora = x ? desvioDe(x.scenes.map((c) => palavras(c.voiceover).length), W) / x.scenes.length : NaN
+  console.log(`     90 s, 12 blocos: sem o desempate ${JSON.stringify(velho?.map((c) => palavras(c.voiceover).length))} (desvio máx. ${dVelho.toFixed(1)} palavras) → agora ${JSON.stringify(x?.scenes.map((c) => palavras(c.voiceover).length))} (${dAgora.toFixed(1)})`)
+  checa('90 s com 12 blocos: o desvio máximo entre a fala da cena e a sua fatia cai (29,4 → ≤ 12 palavras), com a mesma maior cena', Boolean(x) && dVelho > 29 && dAgora <= 12 && Math.max(...x.scenes.map((c) => palavras(c.voiceover).length)) === Math.max(...velho.map((c) => palavras(c.voiceover).length)))
+  let iguais = 0, total = 0, semente = 7
+  const aleat = (m) => { semente = (semente * 1103515245 + 12345) % 2147483648; return semente % m }
+  for (let t = 0; t < 400; t++) {
+    const n = 2 + aleat(9), N = 1 + aleat(6)
+    const segs = Array.from({ length: n }, (_, i) => ({ voiceover: Array.from({ length: aleat(4) === 0 ? 0 : 1 + aleat(30) }, (_, j) => `p${i}x${j}`).join(' '), pexelsQuery: `q${i}` }))
+    const antesTxt = aleat(3) === 0 ? 'Before the marker. ' : ''
+    const parsed = { segments: segs, narration: antesTxt + segs.map((sg) => sg.voiceover).filter(Boolean).join(' ') }
+    total++
+    if (eqJ(D.seedanceShortMarkedScenes(parsed, N), D_BASE.seedanceShortMarkedScenes(parsed, N))) iguais++
+  }
+  checa(`sem a opção (o 15 s e qualquer outro chamador): ${iguais}/${total} casos gerados idênticos à lib da base`, iguais === total)
+}
+
 // ═══ 6. mutantes ═══
 console.log('6) mutantes (todos VERMELHOS)')
 {
@@ -286,7 +345,7 @@ console.log('6) mutantes (todos VERMELHOS)')
   const todos = trocaUma(ROTA, L_GUARDA, '    const seedanceClassicFilm = true')
   const difsTodos = todos ? await identicoABase(todos, D, casosDe(['kling', 'hollywood', 'fast'], [60])) : []
   checa('mutante: o bloco vale para todo motor (sem isSeedance15/!wantsKling/!hollywoodPath) → VERMELHO nos outros motores', todos !== null && difsTodos.length > 0)
-  const L_CHAMA = '      const juntosLongo = seedanceShortMarkedScenes(parsedScript, scenes.length)'
+  const L_CHAMA = '      const juntosLongo = seedanceShortMarkedScenes(parsedScript, scenes.length, { alinharFatias: true })'
   const sorteia = trocaUma(ROTA, L_CHAMA, '      const juntosLongo = resolveVerbatimSegments(parsedScript, scenes.length)')
   checa('mutante: o bloco usa o sorteio por índice no lugar da junção → VERMELHO', sorteia !== null && !(await provaSeedance(sorteia, D)))
   const muda = trocaUma(trocaUma(ROTA, L_CHAMA, '      const juntosLongo = seedanceShortMarkedScenes(parsedScript, scenes.length - 1)'), '      if (juntosLongo.length === scenes.length) {', '      if (juntosLongo.length > 0) {')
@@ -299,6 +358,14 @@ console.log('6) mutantes (todos VERMELHOS)')
   let vermelhoOtimo = false
   try { vermelhoOtimo = semOtimo !== null && !(await provaSeedance(ROTA, roda(semOtimo))) } catch { vermelhoOtimo = semOtimo !== null }
   checa('mutante: a lib sem o critério da maior cena → VERMELHO', vermelhoOtimo)
+  const semOpcao = trocaUma(ROTA, L_CHAMA, '      const juntosLongo = seedanceShortMarkedScenes(parsedScript, scenes.length)')
+  checa('mutante: a rota chama a lib sem { alinharFatias: true } (volta o desempate pelo 1º corte) → VERMELHO', semOpcao !== null && !(await provaSeedance(semOpcao, D)))
+  const semDesvio = trocaUma(D_SRC, '      desvioDasFatias(limites), // KINEO-SEEDANCE-BLOCOS: início da cena perto da sua fatia (só com alinharFatias)\n', '')
+  let vermelhoDesvio = false
+  try { vermelhoDesvio = semDesvio !== null && !(await provaSeedance(ROTA, roda(semDesvio))) } catch { vermelhoDesvio = semDesvio !== null }
+  checa('mutante: a lib sem o critério do alinhamento → VERMELHO', vermelhoDesvio)
+  const umAMais = trocaUma(ROTA, '    if (seedanceClassicFilm && !seedanceShortFilm && verbatim && scenes.length > 0 && parsedScript.segments.length > scenes.length) {', '    if (seedanceClassicFilm && !seedanceShortFilm && verbatim && scenes.length > 0 && parsedScript.segments.length > scenes.length + 1) {')
+  checa('mutante: a guarda exige 2+ blocos a mais que clipes ("> scenes.length + 1") → VERMELHO (o roteiro de 6 blocos em 5 clipes)', umAMais !== null && !(await provaSeedance(umAMais, D)))
 }
 
 console.log(`\n${ok} ok · ${falhas.length} falhas`)

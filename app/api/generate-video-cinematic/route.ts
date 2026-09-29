@@ -3269,7 +3269,9 @@ async function manipularPost(req: NextRequest) {
     // já recusa os quatro da estrada hollywood; Kineo 1 é outra rota). Guardião: scripts/test-seedance-blocos-e-voz-2026-09-29.mjs.
     const seedanceClassicFilm = isSeedance15(typeof body.engine === 'string' ? body.engine : null) && !wantsKling && !wantsVeo && !wantsSora
     if (seedanceClassicFilm && !seedanceShortFilm && verbatim && scenes.length > 0 && parsedScript.segments.length > scenes.length) {
-      const juntosLongo = seedanceShortMarkedScenes(parsedScript, scenes.length)
+      // alinharFatias: este filme não assina clip_word_starts (o compose mostra a cena k na fatia igual k·T/N); entre cortes
+      // empatados vence o que começa cada cena perto da sua fatia (revisão de be58db31: 90 s/12 blocos, atraso 29 → 12 palavras).
+      const juntosLongo = seedanceShortMarkedScenes(parsedScript, scenes.length, { alinharFatias: true })
       if (juntosLongo.length === scenes.length) {
         console.log(`[cinematic] KINEO-SEEDANCE-BLOCOS: ${parsedScript.segments.length} blocos do autor em ${scenes.length} clipes — vizinhos juntos (falas ${JSON.stringify(juntosLongo.map((s) => s.voiceover.split(' ').filter(Boolean).length))}), nenhum bloco sem imagem`)
         scenes = juntosLongo.map((seg) => ({ description: seg.pexelsQuery, voiceover: seg.voiceover, caption: shortCaptionFromVoiceover(seg.voiceover || seg.pexelsQuery), stockSearchQuery: seg.pexelsQuery }))
