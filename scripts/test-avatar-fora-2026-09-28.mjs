@@ -90,7 +90,12 @@ const provaFatos = (F) => {
 {
   const F = createOfflineLoader({ env: ENV })('lib/kineoFacts.ts')
   checa('ENGINE_FACTS, planos e "quando não usar" sem Avatar/Character Lock; frase honesta sobre apresentador', provaFatos(F))
-  checa('os 6 motores do catálogo seguem com URL e crédito (nada mais saiu)', ['Kineo 1', 'Seedance 1.5', 'Kling 2.5', 'Veo 3.1', 'MiniMax H3', 'Kling 3'].every((n) => F.ENGINE_FACTS.some((e) => e.name === n && e.credits > 0 && /^https:\/\//.test(e.url))))
+  // Reancorado 29/09 (revisão da E2b, texto achado 10): o Kineo 1 saiu do catálogo público com a E1 (KINEO1_PUBLIC=false,
+  // lido de lib/engineLaunch.ts) — ele entra na lista esperada só com o interruptor ligado. Os outros 5 seguem exigidos,
+  // e nada além deles pode ter saído; o Avatar continua proibido pela checagem de cima (provaFatos).
+  const kineo1PublicoAqui = /^export const KINEO1_PUBLIC = true\b/m.test(rd('lib/engineLaunch.ts'))
+  const esperadosNoCatalogo = [...(kineo1PublicoAqui ? ['Kineo 1'] : []), 'Seedance 1.5', 'Kling 2.5', 'Veo 3.1', 'MiniMax H3', 'Kling 3']
+  checa(`os ${esperadosNoCatalogo.length} motores do catálogo seguem com URL e crédito (nada mais saiu)`, esperadosNoCatalogo.every((n) => F.ENGINE_FACTS.some((e) => e.name === n && e.credits > 0 && /^https:\/\//.test(e.url))) && (kineo1PublicoAqui || !F.ENGINE_FACTS.some((e) => e.name === 'Kineo 1')))
   const Fliga = createOfflineLoader({ env: ENV, mocks: { './engineLaunch': { ...realLaunch, AVATAR_PUBLIC: true } } })('lib/kineoFacts.ts')
   const av = Fliga.ENGINE_FACTS.find((e) => e.name === 'Avatar')
   checa('mutante (AVATAR_PUBLIC=true no import) devolve o Avatar a 110 cr com /ai-avatar → o bloco acima fica vermelho', Boolean(av) && av.credits === 110 && /\/ai-avatar$/.test(av.url) && !provaFatos(Fliga))
@@ -102,7 +107,10 @@ const provaFatos = (F) => {
   const F = load('lib/kineoFacts.ts')
   const fixture = { ...F, TRIAL_ACCESS: { ...F.TRIAL_ACCESS, everyEngineUnlocked: false } }
   const dormente = await createOfflineLoader({ env: ENV, globals: { Response }, mocks: { '@/lib/kineoFacts': fixture } })('app/llms.txt/route.ts').GET().text()
-  checa('/llms.txt ramo dormente (trial sem todos os motores): Studio-plan sem Avatar', /Kineo 1 and Seedance 1\.5 are unlocked by plan \(Kling 2\.5, Veo 3\.1 and Kling 3 are Studio-plan engines\)/.test(dormente) && !/Kling 3 and Avatar/.test(dormente))
+  // Reancorado 29/09 (revisão da E2b, texto achado 10): a frase do ramo dormente perdeu o Kineo 1 (E1/E3: fora do catálogo
+  // público) — "Seedance 1.5 is unlocked by plan (...)". A parte que este guardião vigia (Studio-plan SEM Avatar) segue
+  // exigida literalmente, e o Kineo 1 não pode voltar a essa frase.
+  checa('/llms.txt ramo dormente (trial sem todos os motores): Studio-plan sem Avatar', /Seedance 1\.5 is unlocked by plan \(Kling 2\.5, Veo 3\.1 and Kling 3 are Studio-plan engines\)/.test(dormente) && !/Kling 3 and Avatar/.test(dormente) && !/Kineo 1 and Seedance 1\.5 are unlocked/.test(dormente))
 }
 
 console.log('== (c) home, Studio, pricing e rodapé renderizados com o JSX real ==')
@@ -130,7 +138,8 @@ const PORTAS = /href="\/avatar"|Talking Avatar|AI Presenter|Character Lock|Trans
 {
   const html = renderPage('app/pricing/PricingClient.tsx', false, { demoOffer: true, demoShell: true, displayCurrency: 'usd', signedIn: true })
   checa('pricing (render real): sem "AI Presenter", sem "Character Lock", sem ", Avatar" no Studio', !/AI Presenter|Character Lock|Kineo 1, Avatar/.test(html))
-  checa('pricing: o resultado do Studio segue, só sem o Avatar', html.includes('Every available engine — Kling 3, Veo 3.1, Kling 2.5, MiniMax H3, Seedance 1.5, Kineo 1 — plus 2 free HD enhances'))
+  // Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): o Kineo 1 também saiu da /pricing (trava j do E1); o Avatar segue fora.
+  checa('pricing: o resultado do Studio segue, só sem o Avatar', html.includes('Every available engine — Kling 3, Veo 3.1, Kling 2.5, MiniMax H3, Seedance 1.5 — plus 2 free HD enhances'))
   // A FAQ do Autopilot hoje nem renderiza (PRICING_SHOW_AUTOPILOT=false filtra a pergunta); a frase é conferida no fonte
   // para não voltar a vender o AI Presenter no dia em que o Autopilot reaparecer.
   const pcSrc = rd('app/pricing/PricingClient.tsx')
@@ -215,7 +224,9 @@ console.log('== (f) copy de SEO/comparação sem apresentador ==')
   }
   const C = carrega(compSrc)
   checa('comparisons (executado): régua de créditos, linha da Kineo e as 2 FAQs sem "AI Presenter"; respostas "Not today"', provaComp(C))
-  checa('comparisons: a régua segue com os motores vendidos (Kineo 1, Seedance, Kling 2.5, Kling 3)', /Kineo 1 \d+ credits, Seedance \d+, MiniMax H3 \d+, Kling 2\.5 \d+, Kling 3 \d+/.test(C.TOOLS.kineo.exportLimits))
+  // Reancorado 29/09 (revisão da E2b, texto achado 10): o Kineo 1 saiu da régua pública (E3 — fora do catálogo). A régua
+  // dos motores vendidos segue exigida na ordem, sem Kineo 1 e (checagem de cima) sem Avatar/Presenter.
+  checa('comparisons: a régua segue com os motores vendidos (Seedance, MiniMax H3, Kling 2.5, Kling 3)', /Seedance \d+ credits, MiniMax H3 \d+, Kling 2\.5 \d+, Kling 3 \d+/.test(C.TOOLS.kineo.exportLimits) && !/Kineo 1/.test(C.TOOLS.kineo.exportLimits))
   const mut = compSrc.split('`Kling 2.5 ${KINEO_KLING_COST}, ` +').join("`Kling 2.5 ${KINEO_KLING_COST}, AI Presenter 70, ` +")
   checa('mutante (régua volta a cobrar "AI Presenter 70") → vermelho', mut !== compSrc && !provaComp(carrega(mut)))
 }

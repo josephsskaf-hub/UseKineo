@@ -81,7 +81,10 @@ export const FREE_ENTRY_COPY = {
   sentence:
     // KINEO-PRECO-V8-A-2026-09-28 — "$12.90" é literal espelhado de TIER_PRICES.starter (este módulo é PURO, sem import);
     // o guardião scripts/test-preco-v8-A-2026-09-28.mjs confere a igualdade lendo os dois arquivos.
-    `Every new account starts free with ${FREE_ENTRY_CREDITS} credits — enough for two Kineo 1 films of 60 seconds — with every engine unlocked and no card required. Plans start at $12.90/month when you want more.`,
+    // KINEO-FILME-GRATIS-15S-2026-09-29 — "one free 15-second film (Seedance 1.5)" é espelho literal (módulo PURO) de
+    // lib/freeTierOffer.ts FREE_FILM_LABEL/TRIAL_SEEDANCE15_FILMS (1 × 7 cr ≤ 10); o guardião
+    // scripts/test-copy-filme-gratis-15s-2026-09-29.mjs executa os dois e confere. Era "two Kineo 1 films of 60 seconds".
+    `Every new account starts free with ${FREE_ENTRY_CREDITS} credits — enough for one free 15-second film (Seedance 1.5) — with every engine unlocked and no card required. Plans start at $12.90/month when you want more.`,
   noFreeTier: `Kineo is free to start: ${FREE_ENTRY_CREDITS} credits on signup, no card.`,
 } as const
 export const CARD_ENTRY_COPY = CARD_ENTRY_ONLY ? CARD_ENTRY_COPY_V_B : FREE_ENTRY_COPY

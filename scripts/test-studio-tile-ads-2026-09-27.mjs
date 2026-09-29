@@ -113,7 +113,7 @@ check('studio_tile_ads_clicked NÃO é só-de-servidor (o navegador grava)', !/s
 // ─── /api/me/credits devolve o plano cru ────────────────────────────────────────────────────────────────────────────────
 // Reancorado 29/09 (KINEO-KINEO1-FORA-2026-09-29): o select ganhou has_paid (régua do Kineo 1) e o JSON ganhou `kineo1`
 // antes de `plan`; o que se vigia é o mesmo — o plano CRU e minúsculo chega ao cliente pelo /api/me/credits.
-check("/api/me/credits seleciona 'video_credits, plan' e devolve `plan` minúsculo (a fonte do predicado no cliente)", CREDITS_ROUTE.includes(".select('video_credits, plan, has_paid')") && /const plan = typeof data\?\.plan === 'string' \? data\.plan\.trim\(\)\.toLowerCase\(\) : null/.test(CREDITS_ROUTE) && /internal: s25Visible\(user\.email\), kineo1, plan \}\)/.test(CREDITS_ROUTE))
+check("/api/me/credits seleciona 'video_credits, plan' e devolve `plan` minúsculo (a fonte do predicado no cliente)", CREDITS_ROUTE.includes(".select('video_credits, plan, has_paid')") && /const plan = typeof data\?\.plan === 'string' \? data\.plan\.trim\(\)\.toLowerCase\(\) : null/.test(CREDITS_ROUTE) && /internal: s25Visible\(user\.email\), (hasPaid, )?kineo1, plan \}\)/.test(CREDITS_ROUTE)) // reancorado 29/09 (E2b): a resposta ganhou hasPaid antes de kineo1
 
 // ─── mutantes em memória ────────────────────────────────────────────────────────────────────────────────────────────────
 const m1 = STUDIO.split('`Included in any paid plan · from ${ADS_TILE_STARTER_PRICE}/month`').join('`Included in any paid plan · from $9.90/month`')

@@ -57,7 +57,7 @@ const FAQ_JSONLD = {
       name: 'Does Kineo have the same AI models?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Kineo runs seven engines including Omni Flash (ranked #1 in the August 2026 blind arena), Veo 3.1, Kling 3 with native voice and lip sync, MiniMax H3, Kling 2.5, Seedance 1.5 and its own Kineo 1 stock engine — all inside one subscription, selectable per video.',
+        text: 'Kineo runs six engines including Omni Flash (ranked #1 in the August 2026 blind arena), Veo 3.1, Kling 3 with native voice and lip sync, MiniMax H3, Kling 2.5 and Seedance 1.5 — all inside one subscription, selectable per video.', // KINEO-FILME-GRATIS-15S-2026-09-29 — Kineo 1 fora do catálogo público
       },
     },
   ],
@@ -128,7 +128,7 @@ export default function VsHiggsfieldPage() {
       <p style={{ color: '#c7c7cc' }}>
         Tables are easy to write, so don&apos;t trust ours either — watch the films:{' '}
         <Link href="/ai-robot-video-generator" style={{ color: '#2997ff' }}>a giant-robot battle with the exact 150-word script that generated it</Link>,{' '}
-        <Link href="/arena" style={{ color: '#2997ff' }}>the same pipeline across seven engines</Link>, or{' '}
+        <Link href="/arena" style={{ color: '#2997ff' }}>the same pipeline across the engines</Link>, or{' '}
         <Link href="/examples" style={{ color: '#2997ff' }}>real user renders</Link> with honest engine badges.
       </p>
 

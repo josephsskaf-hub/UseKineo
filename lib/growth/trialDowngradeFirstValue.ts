@@ -4,6 +4,17 @@ export const TRIAL_DOWNGRADE_FIRST_VALUE_VERSION =
 export const TRIAL_DOWNGRADE_FIRST_VALUE_HREF =
   `/studio/create?engine=fast&intent_campaign=${TRIAL_DOWNGRADE_FIRST_VALUE_VERSION}` as const
 
+// KINEO-ENTRADA-SEEDANCE15-2026-09-29 (revisão da E2b, M4 do cético) — o modal só abre para trial VENCIDO sem
+// pagamento. Com a entrada nova (SEEDANCE_15S_PUBLIC; o chamador passa o interruptor) NÃO existe "primeiro filme" para
+// oferecer a essa conta: o Seedance de 15 s é recusado pela rota do cinematic a quem não paga e não está em trial ativo
+// (motivo trial_ended) e o saldo não gasto do trial foi estornado no downgrade; o Kineo 1 (o destino antigo, grátis
+// pela cota) some para conta nova — o Studio troca ?engine=fast pelo Seedance. O botão "Make your first film" levava
+// a uma recusa. Então, com a entrada nova, o modal volta ao caminho do plano (texto honesto de conta sem filme); sem
+// ela, tudo como antes. Sem import: o guardião executa este módulo cru.
+export function trialDowngradeOffersFirstFilm(entrada15: boolean): boolean {
+  return entrada15 !== true
+}
+
 export type TrialDowngradeJourneyState =
   | 'first_value'
   | 'delivered'

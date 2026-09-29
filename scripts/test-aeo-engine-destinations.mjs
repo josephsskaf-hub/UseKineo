@@ -30,7 +30,9 @@ function loadTs(path, mocks = {}) {
 
 const intent = loadTs('lib/growth/engineLandingIntent.ts')
 const expected = {
-  fast: '/ai-video-generator/kineo-1',
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: /ai-video-generator/kineo-1 virou 301 para a página do Seedance (Kineo 1 fora do
+  // catálogo público, next.config.js); o caminho canônico de 'fast' é o destino final, sem pular por redirect.
+  fast: '/ai-video-generator/seedance',
   seedance: '/ai-video-generator/seedance',
   kling: '/ai-video-generator/kling',
   veo: '/ai-video-generator/veo',
@@ -74,6 +76,8 @@ for (const [engine, path] of Object.entries(expected)) {
   const entryEnd = engine === 's25' ? enginePage.indexOf('\n        },', entryStart) : enginePage.indexOf('\n  },', entryStart)
   ok(entryEnd > entryStart, `${engine}: generated engine entry is structurally bounded`)
   const entry = enginePage.slice(entryStart, entryEnd)
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o motor aposentado ('fast') cai na página do seu sucessor (Seedance).
+  if (engine === 'fast') { ok(entry.includes("param: 'seedance'"), 'fast (Kineo 1, aposentado da vitrine): destino é a página do Seedance'); continue }
   ok(entry.includes(`param: '${engine}'`), `${engine}: destination resolves to the matching generator parameter`)
 }
 

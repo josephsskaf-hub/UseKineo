@@ -277,7 +277,9 @@ checa('o motivo está no arquivo (anual concede por fatura 1×/ano; 0 vendas anu
 // ── S4: fatos que a IA lê ────────────────────────────────────────────────────
 console.log('== S4: kineoFacts / llms.txt / openapi / models-pricing / pricing ==')
 const kf = rd('lib/kineoFacts.ts')
-checa("OFFER_EFFECTIVE_ISO = '2026-09-17' e HUMAN = 'September 17, 2026' (trial 10cr em 16/09 + cota semanal em 17/09)", kf.includes("const OFFER_EFFECTIVE_ISO = '2026-09-17'") && kf.includes("const OFFER_EFFECTIVE_HUMAN = 'September 17, 2026'") && !kf.includes("OFFER_EFFECTIVE_ISO = '2026-08-07'"))
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: a oferta vigente nasceu em 29/09 (o trial de 10 cr passou a pagar o Seedance de 15 s e a cota
+// semanal deixou de ser anunciada); a data velha de 17/09 e a de 07/08 continuam proibidas.
+checa("OFFER_EFFECTIVE_ISO = '2026-09-29' e HUMAN = 'September 29, 2026' (filme grátis = Seedance 1.5 de 15 s)", kf.includes("const OFFER_EFFECTIVE_ISO = '2026-09-29'") && kf.includes("const OFFER_EFFECTIVE_HUMAN = 'September 29, 2026'") && !kf.includes("OFFER_EFFECTIVE_ISO = '2026-08-07'") && !kf.includes("OFFER_EFFECTIVE_ISO = '2026-09-17'"))
 checa('a fonte da data nova está no comentário (KINEO-TRIAL-10 e KINEO-COTA-SEMANAL)', /KINEO-TRIAL-10-\s*2026-09-16/.test(kf) && /KINEO-COTA-SEMANAL-2026-09-17/.test(kf))
 const k3Ini = kf.indexOf("name: 'Kling 3',")
 const k3 = kf.slice(k3Ini, kf.indexOf('},', k3Ini))
@@ -313,18 +315,24 @@ checa('openapi.json continua JSON válido', Boolean(oa))
 // GPT-LOJA-2026-09-24 — reancorado com motivo: 1.3.2 só muda descriptions (Kineo 1 a 90 s, idiomas do Kling 3/H3, recusas novas do 400).
 // GPT-COWORK-FOLLOWUP-2026-09-24 — reancorado com motivo: 1.3.3 só muda descriptions: getKineoFacts 532 → 281 caracteres (o ChatGPT recusa > 300), "fast" a 90 s 230-240 e `words` manda confiar na contagem do servidor.
 // 1.3.5: acesso Studio Ads por plano e passe; nenhuma operação nova.
-checa("openapi info.version = 1.3.5 com GET de fatos sem nova compra", oa?.info?.version === '1.3.5' && oa?.paths?.['/api/facts']?.get?.operationId === 'getKineoFacts' && !oa?.paths?.['/api/facts']?.post)
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: 1.4.0 = durationSec aceita 15 (Seedance) e as descriptions do filme grátis; nenhuma operação nova.
+checa("openapi info.version = 1.4.0 com GET de fatos sem nova compra", oa?.info?.version === '1.4.0' && oa?.paths?.['/api/facts']?.get?.operationId === 'getKineoFacts' && !oa?.paths?.['/api/facts']?.post)
 const oaStrings = []
 ;(function walk(v) { if (typeof v === 'string') oaStrings.push(v); else if (v && typeof v === 'object') Object.values(v).forEach(walk) })(oa)
 const trialCap = num(rd('lib/reverseTrial.ts'), 'TRIAL_CREDIT_CAP')
 const trialMentions = oaStrings.flatMap((s) => [...s.matchAll(/(\d+)-credit trial/g)].map((m) => Number(m[1])))
 checa(`openapi: nenhum "25-credit"; todo "N-credit trial" (${[...new Set(trialMentions)]}) === TRIAL_CREDIT_CAP (${trialCap})`, !oaRaw.includes('25-credit') && trialMentions.length >= 3 && trialMentions.every((n) => n === trialCap))
-checa('openapi: nenhuma description promete "first film is free" / "free film" / "fits the free trial"', !oaStrings.some((s) => /first film (is )?free|\bfree film\b|fits? the free trial/i.test(s)))
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: desde 29/09 o filme grátis EXISTE (Seedance 1.5 de 15 s): toda description que fala em
+// filme grátis tem de amarrar a condição (15 s + seedance) na MESMA string; "fits the free trial" segue proibido.
+checa('openapi: toda promessa de filme grátis vem com a condição (15 s + seedance); nada de "fits the free trial"', !oaStrings.some((s) => /fits? the free trial/i.test(s)) && oaStrings.filter((s) => /first film (is )?free|\bfree film\b|free 15-second film/i.test(s)).every((s) => /15/.test(s) && /seedance/i.test(s)) && oaStrings.some((s) => /free 15-second film \(Seedance 1\.5\)/.test(s)))
 const d200 = oa?.paths?.['/api/gpt/handoff']?.post?.responses?.['200']?.description ?? ''
-checa('openapi 200: trial cobre fast; outros exigem plano e saldo suficiente, sem prometer Starter universal', /`fast`/.test(d200) && /seedance/.test(d200) && /paid plan/.test(d200) && /enough credits/.test(d200) && /getKineoFacts/.test(d200) && !/Starter, US\$/.test(d200))
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o trial cobre o Seedance de 15 s; o `fast` só aparece para dizer que não é oferecido a conta nova.
+checa('openapi 200: trial cobre o Seedance de 15 s; fast não é oferecido; outros exigem plano e saldo suficiente, sem prometer Starter universal', /Never offer `fast` \(Kineo 1\) to a new account/.test(d200) && /seedance/.test(d200) && /paid plan/.test(d200) && /enough credits/.test(d200) && /getKineoFacts/.test(d200) && !/Starter, US\$/.test(d200))
 // O requestBody é um $ref para components.schemas.HandoffRequest.
 const engineHint = oa?.components?.schemas?.HandoffRequest?.properties?.engineHint?.description ?? ''
-checa('openapi engineHint: seedance descrito como plano pago; fast como o único que o trial cobre', /`seedance` \(Seedance 1\.5[^)]*paid plans/.test(engineHint) && /the only engine the no-card trial covers/.test(engineHint))
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o engineHint diz que o seedance a 15 s é o filme grátis e a 35/60/90 pede plano; o fast nunca
+// é padrão nem para conta nova.
+checa('openapi engineHint: seedance a 15 s = filme grátis, 35/60/90 = plano pago; fast nunca para conta nova', /with durationSec 15 it is the free film of a new account/.test(engineHint) && /at 35, 60 or 90 s it needs a paid plan/.test(engineHint) && /never the default and never for a new account/.test(engineHint))
 checa('openapi engineHint: o custo do Kling 3 continua citado (150 credits at 60s — trava J8 do gpt-handoff)', /150 credits at 60s/.test(engineHint))
 // KINEO-PRECO-NO-OPENAPI-2026-09-23 — as descriptions novas dizem "Starter,
 // US$9.90/month" (200 e durationSec). Description de OpenAPI é INSTRUÇÃO para o
@@ -341,7 +349,8 @@ checa('openapi: sem preço duplicado; custo e saldo de cada plano vêm de getKin
 checa('openapi: nenhum outro cifrão-com-dígito fora da forma amarrada US$N/month', !/\$\s?\d/.test(oaRaw.replace(/US\$\d+(?:\.\d{1,2})?\/month/g, '')))
 
 const mp = rd('app/models-pricing/page.tsx')
-checa("models-pricing: 'The free trial gives 25 credits' morreu; interpola TRIAL_CREDITS_SHOWN (mesma constante do parágrafo acima)", !mp.includes('gives 25 credits') && mp.includes('The free trial gives ${TRIAL_CREDITS_SHOWN} credits.'))
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: a frase do FAQ ganhou o filme grátis ("— a ${FREE_FILM_LABEL}"); o número segue interpolado.
+checa("models-pricing: 'The free trial gives 25 credits' morreu; interpola TRIAL_CREDITS_SHOWN (mesma constante do parágrafo acima)", !mp.includes('gives 25 credits') && mp.includes('The free trial gives ${TRIAL_CREDITS_SHOWN} credits — a ${FREE_FILM_LABEL}.'))
 const pr = rd('lib/pricing.ts')
 const freeIni = pr.indexOf('free: {')
 const freeBloco = pr.slice(freeIni, pr.indexOf('},', freeIni))

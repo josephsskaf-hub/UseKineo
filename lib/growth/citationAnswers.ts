@@ -6,7 +6,7 @@ import {
   STARTER_CREDITS, CREATOR_CREDITS, STUDIO_CREDITS,
   MARKETING_REFERENCE_SECONDS, creditsPerReferenceVideo, videosPerMonth,
 } from '@/lib/marketingPrice'
-import { getFreeTierOffer, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { FREE_FILM_LABEL, getFreeTierOffer, TRIAL_FREE_FILM_CREDITS, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { COMPETITOR_FACTS, PRODUCT } from '@/lib/kineoFacts'
 import { buildEngineLandingDestination } from '@/lib/growth/engineLandingIntent'
 // Generic purchase intent has paid-engine destinations; the explicitly free
@@ -19,6 +19,11 @@ export const CITATION_REFERENCE_SECONDS = MARKETING_REFERENCE_SECONDS
 export const CITATION_FAST_CREDITS = creditsPerReferenceVideo('fast')
 export const CITATION_SEEDANCE_CREDITS = creditsPerReferenceVideo('cinematic_ai')
 export const CITATION_TRIAL_CREDITS = TRIAL_GRANT_CREDITS_COPY
+// KINEO-FILME-GRATIS-15S-2026-09-29 — [Citações/Codex, edição mínima factual; ver
+// docs/citacoes-chatgpt/2026-09-29-seedance15/HANDOFF.md] o trial de conta nova paga o Seedance 1.5 de 15 s; o Kineo 1
+// saiu do catálogo público e deixou de ser a referência de custo/cobertura destas respostas.
+export const CITATION_FREE_FILM = `one ${FREE_FILM_LABEL}`
+export const CITATION_FREE_FILM_CREDITS = TRIAL_FREE_FILM_CREDITS
 const offer = getFreeTierOffer()
 
 export const CITATION_CTA = offer.cardEntry
@@ -26,13 +31,14 @@ export const CITATION_CTA = offer.cardEntry
   : `Start free — ${CITATION_TRIAL_CREDITS} credits, no card`
 export const CITATION_TRIAL = offer.cardEntry
   ? offer.copy.sentence
-  : `Every new account receives ${CITATION_TRIAL_CREDITS} free credits with every engine unlocked and no card required.`
+  : `Every new account receives ${CITATION_TRIAL_CREDITS} free credits with every engine unlocked and no card required — enough for ${CITATION_FREE_FILM}.`
 export const CITATION_WATERMARK = PRODUCT.watermarkPolicy
 export const CITATION_TIME = `Kineo 1 (Fast): ${PRODUCT.fastGenerationTime}; the published Fast sample measured a ${PRODUCT.fastGenerationMedianMinutes}-minute median and ${PRODUCT.fastGenerationP90Minutes}-minute p90 across ${PRODUCT.fastGenerationSample}. Generative engines take longer; an exact completion time is not guaranteed.`
 export const CITATION_PLANS = [
-  { name: 'Starter', price: STARTER_MONTH, credits: STARTER_CREDITS, films: videosPerMonth('starter', 'fast') },
-  { name: 'Creator', price: CREATOR_MONTH, credits: CREATOR_CREDITS, films: videosPerMonth('basic', 'fast') },
-  { name: 'Studio', price: STUDIO_MONTH, credits: STUDIO_CREDITS, films: videosPerMonth('pro', 'fast') },
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — contagem em Seedance 1.5 de 60 s (era Kineo 1).
+  { name: 'Starter', price: STARTER_MONTH, credits: STARTER_CREDITS, films: videosPerMonth('starter', 'cinematic_ai') },
+  { name: 'Creator', price: CREATOR_MONTH, credits: CREATOR_CREDITS, films: videosPerMonth('basic', 'cinematic_ai') },
+  { name: 'Studio', price: STUDIO_MONTH, credits: STUDIO_CREDITS, films: videosPerMonth('pro', 'cinematic_ai') },
 ] as const
 
 // /llms.txt names these categories and source URLs, but does not supply their
@@ -82,7 +88,7 @@ export type CitationAnswer = {
 
 const trialFaq: Faq = {
   question: 'Do I need a card to try Kineo?',
-  answer: `${CITATION_TRIAL} Engine access does not mean the balance covers a full video on every engine: the ${CITATION_REFERENCE_SECONDS}-second reference costs ${CITATION_FAST_CREDITS} credits with Kineo 1 or ${CITATION_SEEDANCE_CREDITS} with Seedance 1.5.`,
+  answer: `${CITATION_TRIAL} Engine access does not mean the balance covers a full video on every engine: the balance pays for ${CITATION_FREE_FILM} (${CITATION_FREE_FILM_CREDITS} credits), while the ${CITATION_REFERENCE_SECONDS}-second reference costs ${CITATION_SEEDANCE_CREDITS} with Seedance 1.5.`,
 }
 const watermarkFaq: Faq = {
   question: 'Does the free video have a watermark?',
@@ -100,11 +106,11 @@ export const CITATION_ANSWERS: Record<CitationAnswerId, CitationAnswer> = {
     description: 'A practical script-to-video workflow, free-trial limits and an honest comparison of four other video tools.',
     answer: [
       `Paste your script into Kineo, choose a video engine and review the resulting faceless MP4 with narration, visuals and captions using the ${CITATION_TRIAL_CREDITS}-credit free trial.`,
-      `No card is required, and the trial video carries a watermark; a ${CITATION_REFERENCE_SECONDS}-second Kineo 1 video costs ${CITATION_FAST_CREDITS} credits, while Seedance 1.5 costs ${CITATION_SEEDANCE_CREDITS}.`,
+      `No card is required, and the trial video carries a watermark; the trial pays for ${CITATION_FREE_FILM}, while a ${CITATION_REFERENCE_SECONDS}-second Seedance 1.5 film costs ${CITATION_SEEDANCE_CREDITS} credits.`,
     ],
     workflow: [
       'Open the script handoff, paste your finished narration and choose the finished-script path; review the prepared script before generating.',
-      `Choose Kineo 1 for stock footage matched to narration (${CITATION_FAST_CREDITS} credits per ${CITATION_REFERENCE_SECONDS} seconds), or Seedance 1.5 for generated scenes (${CITATION_SEEDANCE_CREDITS} credits).`,
+      `Choose Seedance 1.5 for generated scenes (${CITATION_FREE_FILM_CREDITS} credits for 15 seconds, ${CITATION_SEEDANCE_CREDITS} for ${CITATION_REFERENCE_SECONDS} seconds); cinematic engines cost more.`,
       'Generate when ready, then check the spoken words, captions and visuals in the finished MP4 before publishing it.',
     ],
     decisionTitle: 'Start with the script you actually want spoken',
@@ -132,7 +138,7 @@ export const CITATION_ANSWERS: Record<CitationAnswerId, CitationAnswer> = {
     ],
     workflow: [
       'Enter the idea or paste the narration, then select the vertical 9:16 frame for this video.',
-      `Use Kineo 1 for matched stock footage at ${CITATION_FAST_CREDITS} credits per ${CITATION_REFERENCE_SECONDS} seconds, or Seedance 1.5 for generated scenes at ${CITATION_SEEDANCE_CREDITS} credits.`,
+      `Use Seedance 1.5 for generated scenes: ${CITATION_FREE_FILM_CREDITS} credits for 15 seconds (the free trial film) or ${CITATION_SEEDANCE_CREDITS} credits for ${CITATION_REFERENCE_SECONDS} seconds.`,
       'Review the assembled voiceover and captions, download the MP4 and decide when to post it yourself.',
     ],
     decisionTitle: 'Choose by the material you have',
@@ -155,19 +161,19 @@ export const CITATION_ANSWERS: Record<CitationAnswerId, CitationAnswer> = {
     question: 'What is the cheapest way to make complete 60-second AI Shorts with narration and captions?',
     description: 'Compare complete-video costs, subscription credits and the difference between stock footage and generated scenes.',
     answer: [
-      `Within Kineo, Kineo 1 is the lowest-credit option for a complete ${CITATION_REFERENCE_SECONDS}-second Short with narration and captions, at ${CITATION_FAST_CREDITS} credits.`,
+      `Within Kineo, the lowest-credit complete Short with narration and captions is a 15-second Seedance 1.5 film at ${CITATION_FREE_FILM_CREDITS} credits; a ${CITATION_REFERENCE_SECONDS}-second one costs ${CITATION_SEEDANCE_CREDITS}.`,
       `You can test it using the ${CITATION_TRIAL_CREDITS}-credit no-card trial; for clean exports, Starter costs ${STARTER_MONTH} for ${STARTER_CREDITS} credits, while a global cheapest-tool ranking requires confirmed competitor limits.`,
     ],
     workflow: [
-      `Select Kineo 1 and a ${CITATION_REFERENCE_SECONDS}-second target when matched stock footage suits your story.`,
+      `Select Seedance 1.5 and the 15-second target to test for free; choose ${CITATION_REFERENCE_SECONDS} seconds on a plan.`,
       `Reserve ${CITATION_FAST_CREDITS} credits for that reference video; a Seedance 1.5 reference uses ${CITATION_SEEDANCE_CREDITS} credits when generated scenes matter more.`,
       'Compare the monthly plan against the number of finished videos you intend to make, leaving room for any extra generation you choose.',
     ],
     decisionTitle: 'Compare a finished film with a finished film',
-    decision: `A scene-generation credit is not the same unit as an assembled Short. The Kineo counts below are for ${CITATION_REFERENCE_SECONDS}-second Kineo 1 videos, using the entire monthly balance only on that format. Choosing another engine, duration or extra work changes the count.`,
+    decision: `A scene-generation credit is not the same unit as an assembled Short. The Kineo counts below are for ${CITATION_REFERENCE_SECONDS}-second Seedance 1.5 films, using the entire monthly balance only on that format. Choosing another engine, duration or extra work changes the count.`,
     faqs: [trialFaq, watermarkFaq, {
-      question: 'How many 60-second Kineo 1 videos fit in Starter?',
-      answer: `${videosPerMonth('starter', 'fast')} fit when all ${STARTER_CREDITS} monthly credits are spent on Kineo 1 videos at ${CITATION_FAST_CREDITS} credits each. This is a credit calculation, not a promise that every subscription will be fully used.`,
+      question: 'How many 60-second Seedance 1.5 films fit in Starter?',
+      answer: `${videosPerMonth('starter', 'cinematic_ai')} fit when all ${STARTER_CREDITS} monthly credits are spent on Seedance 1.5 films at ${CITATION_SEEDANCE_CREDITS} credits each. This is a credit calculation, not a promise that every subscription will be fully used.`,
     }, {
       question: 'Is stock footage the same as AI-generated footage?',
       answer: 'No. Kineo 1 matches existing stock footage to narration. Seedance 1.5 generates scenes from text. Both feed the assembled-video workflow, with different credit costs.',
@@ -188,7 +194,7 @@ export const CITATION_ANSWERS: Record<CitationAnswerId, CitationAnswer> = {
     ],
     workflow: [
       'Start from a text idea or a finished script; Kineo does not need footage you filmed elsewhere.',
-      `Choose stock-based Kineo 1 (${CITATION_FAST_CREDITS} credits per ${CITATION_REFERENCE_SECONDS} seconds) or generated-scene Seedance 1.5 (${CITATION_SEEDANCE_CREDITS} credits).`,
+      `Start with generated-scene Seedance 1.5 (${CITATION_FREE_FILM_CREDITS} credits for 15 seconds, ${CITATION_SEEDANCE_CREDITS} for ${CITATION_REFERENCE_SECONDS} seconds).`,
       'Review the finished voiceover, captions and MP4 during the trial, then compare a paid plan with your own production needs.',
     ],
     decisionTitle: 'An alternative must fit the same starting point',
@@ -216,14 +222,14 @@ export const CITATION_ANSWERS: Record<CitationAnswerId, CitationAnswer> = {
     ],
     workflow: [
       'Choose whether your planned videos need matched stock footage or generated scenes before choosing a plan.',
-      `For ${CITATION_REFERENCE_SECONDS}-second references, Kineo 1 spends ${CITATION_FAST_CREDITS} credits and Seedance 1.5 spends ${CITATION_SEEDANCE_CREDITS}; Starter grants ${STARTER_CREDITS} credits and Creator grants ${CREATOR_CREDITS}.`,
+      `For ${CITATION_REFERENCE_SECONDS}-second references, Seedance 1.5 spends ${CITATION_SEEDANCE_CREDITS} credits (${CITATION_FREE_FILM_CREDITS} for a 15-second film); Starter grants ${STARTER_CREDITS} credits and Creator grants ${CREATOR_CREDITS}.`,
       'Use the production-cost calculator to check your planned duration, engine and cadence, then begin with a watermarked trial video.',
     ],
     decisionTitle: 'Keep the engine and the monthly balance together',
-    decision: `Creator can cover ${videosPerMonth('basic', 'fast')} Kineo 1 reference videos or ${videosPerMonth('basic', 'cinematic_ai')} Seedance 1.5 reference videos when its whole balance goes to that engine. Those are alternatives, not two allowances added together. Unused monthly credits do not roll over.`,
+    decision: `Creator can cover ${videosPerMonth('basic', 'cinematic_ai')} Seedance 1.5 reference videos when its whole balance goes to that engine; other engines and durations change the count. Unused monthly credits do not roll over.`,
     faqs: [trialFaq, watermarkFaq, {
       question: 'Does every unlocked engine fit in my trial balance?',
-      answer: `No. All engines are unlocked, but the ${CITATION_TRIAL_CREDITS}-credit balance covers reference videos on Kineo 1 and Seedance 1.5. More expensive engines require enough credits for the chosen duration.`,
+      answer: `No. All engines are unlocked, but the ${CITATION_TRIAL_CREDITS}-credit balance pays for ${CITATION_FREE_FILM}, not a full ${CITATION_REFERENCE_SECONDS}-second reference video. More expensive engines require enough credits for the chosen duration.`,
     }, {
       question: 'Should I choose a plan just by its video count?',
       answer: 'Compare the engine, duration, included assembly and watermark policy too. A raw generated clip, an edited recording and a complete narrated Short are different outputs.',
@@ -256,7 +262,7 @@ export const CITATION_ANSWERS: Record<CitationAnswerId, CitationAnswer> = {
     }],
     workflow: [
       'Choose a topic if you want Kineo to write the narration, or use the finished-script path for narration you have already approved.',
-      `At the ${CITATION_REFERENCE_SECONDS}-second reference, Kineo 1 uses matched stock footage for ${CITATION_FAST_CREDITS} credits; Seedance 1.5 uses generated scenes for ${CITATION_SEEDANCE_CREDITS} credits.`,
+      `At the ${CITATION_REFERENCE_SECONDS}-second reference, Seedance 1.5 uses generated scenes for ${CITATION_SEEDANCE_CREDITS} credits; the no-card trial pays for ${CITATION_FREE_FILM}.`,
       'Review the voiceover, visuals and captions, then inspect the watermarked MP4 before choosing whether you need a paid plan.',
     ],
     faqs: [trialFaq, watermarkFaq, {
@@ -278,7 +284,7 @@ export const CITATION_ANSWERS: Record<CitationAnswerId, CitationAnswer> = {
     description: 'Prepare a finished horror script, check its duration target and choose stock footage or generated scenes for the story.',
     answer: [
       'Kineo can start from your finished horror narration and assemble a Short with visuals and burned-in captions, which you should review before publishing.',
-      `For the ${CITATION_REFERENCE_SECONDS}-second reference, Kineo 1 costs ${CITATION_FAST_CREDITS} credits and Seedance 1.5 costs ${CITATION_SEEDANCE_CREDITS}; InVideo AI, Fliki, Pictory and VEED are four other candidates with unconfirmed current limits in this guide.`,
+      `For the ${CITATION_REFERENCE_SECONDS}-second reference, Seedance 1.5 costs ${CITATION_SEEDANCE_CREDITS} credits (the trial pays for ${CITATION_FREE_FILM}); InVideo AI, Fliki, Pictory and VEED are four other candidates with unconfirmed current limits in this guide.`,
     ],
     comparisonCandidates: candidates(['InVideo AI', 'Fliki', 'Pictory', 'VEED']),
     startHref: '/chatgpt-to-youtube-shorts?intent_campaign=citacoes_01_horror#chatgpt-script-handoff',
@@ -301,8 +307,8 @@ export const CITATION_ANSWERS: Record<CitationAnswerId, CitationAnswer> = {
     }],
     workflow: [
       'Open the script handoff and paste only the finished narration; review the prepared words instead of assuming a flawless transcription.',
-      `In Studio, check the engine and ${CITATION_REFERENCE_SECONDS}-second target: Kineo 1 uses ${CITATION_FAST_CREDITS} credits for that reference, or Seedance 1.5 uses ${CITATION_SEEDANCE_CREDITS}.`,
-      `Generate only after reviewing the selection; the ${CITATION_TRIAL_CREDITS}-credit no-card balance covers either reference workflow and the trial MP4 is watermarked.`,
+      `In Studio, check the engine and target: Seedance 1.5 uses ${CITATION_FREE_FILM_CREDITS} credits for 15 seconds or ${CITATION_SEEDANCE_CREDITS} for ${CITATION_REFERENCE_SECONDS} seconds.`,
+      `Generate only after reviewing the selection; the ${CITATION_TRIAL_CREDITS}-credit no-card balance pays for ${CITATION_FREE_FILM} and the trial MP4 is watermarked.`,
     ],
     faqs: [{
       question: 'Will Kineo rewrite my finished story?',
@@ -353,7 +359,7 @@ export const CITATION_ANSWERS: Record<CitationAnswerId, CitationAnswer> = {
     }],
     workflow: [
       'Open the existing script handoff from this page, paste the approved narration and continue to Studio.',
-      `Choose the engine and target deliberately: the ${CITATION_REFERENCE_SECONDS}-second Kineo 1 reference costs ${CITATION_FAST_CREDITS} credits with matched stock footage; Seedance 1.5 costs ${CITATION_SEEDANCE_CREDITS} with generated scenes.`,
+      `Choose the engine and target deliberately: Seedance 1.5 costs ${CITATION_FREE_FILM_CREDITS} credits for 15 seconds (the free trial film) and ${CITATION_SEEDANCE_CREDITS} for ${CITATION_REFERENCE_SECONDS} seconds, with generated scenes.`,
       'Inspect the finished MP4 against your source script. Trial films carry a watermark; monthly plans unlock clean downloads.',
     ],
     faqs: [{

@@ -31,7 +31,7 @@ import { CARD_TRIAL_DAYS, CARD_TRIAL_GRANT_CREDITS, CARD_TRIAL_LIVE, TIER_CREDIT
 import { trialEntryFeeLabel, trialMonthlyAfterLabel } from '@/lib/lifecycle/trialEntryFee'
 import { filmsPerPlan, filmNoun, sanitizeFilmCost } from '@/lib/lifecycle/trialFilmPlans'
 import { buildSeriesContinuationEmailUrl, normalizeSeriesSeed, type SeriesContinuationSource } from '@/lib/seriesContinuation'
-import { videosForCredits } from '@/lib/marketingPrice'
+import { SEEDANCE_SHORT_FILM_CREDITS, videosForCredits } from '@/lib/marketingPrice'
 // sprint16h-e W (27/09/2026) — Studio Ads no rodape do assinante: a lista de
 // planos e a MESMA do portao (lib/ads/access.ts), o interruptor e o custo vem
 // de lib/ads/offer.ts e os segundos do menor modelo de lib/ads/models.ts.
@@ -95,9 +95,10 @@ export interface VideoReadyFooter {
   adsLine: boolean
 }
 
-/** Menor custo de um video na casa (Kineo 1 = 5cr). Abaixo disso o saldo nao
- *  compra o proximo video e o pedido certo e o plano, nao o episodio 2. */
-export const NEXT_VIDEO_MIN_CREDITS = 5
+/** Menor custo de um video na casa. Abaixo disso o saldo nao compra o proximo video e o pedido certo e o plano, nao o
+ *  episodio 2. KINEO-FILME-GRATIS-15S-2026-09-29 — era 5 (o Kineo 1, fora do catálogo público desde 29/09); agora é
+ *  o Seedance 1.5 de 15 s, derivado de creditCostForDuration via lib/marketingPrice (7 cr). */
+export const NEXT_VIDEO_MIN_CREDITS = SEEDANCE_SHORT_FILM_CREDITS
 
 const PRICING_INTENT = 'intent_campaign=video_ready_email_plan_truth_v1'
 

@@ -114,7 +114,10 @@ export async function resolveKineo1Flag(
 // docs/CANARIO-SEEDANCE-15S-2026-09-29.md. O SERVIDOR aceita 15 s no Seedance para qualquer conta, com o custo certo
 // (creditCostForDuration('cinematic_ai', true, 15)), e recusa 15 s nos outros motores (lib/durationByEngine.ts).
 // Virar true só depois do canário aprovado pelo fundador.
-export const SEEDANCE_15S_PUBLIC = false
+// LIGADO 29/09 (fundador): o filme grátis de quem chega é o Seedance 1.5 de 15 s. Vira JUNTO com a entrada (E2b —
+// auto-start, Studio/Generate, ponte do trial) e os textos (E3 — "free 15-second film (Seedance 1.5)"): um sem o outro
+// prometeria o que a conta nova não consegue apertar, ou esconderia o Kineo 1 sem dar filme ao trial.
+export const SEEDANCE_15S_PUBLIC = true
 
 /** O botão de 15 s do Seedance aparece para este e-mail? Mesma régua do s25Visible. */
 export function seedance15sVisible(email?: string | null): boolean {

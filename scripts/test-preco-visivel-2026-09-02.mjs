@@ -15,7 +15,9 @@ const sitemap = src('app/sitemap.ts')
 const cost = src('lib/credits/engineCost.ts')
 
 console.log('1 · seletor: padrão, selo e preço por card')
-check('padrão volta a ser Kineo 1 (era seedance)', studio.includes("useState<EngineKey>('fast')"))
+// Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): o padrão segue o interruptor da entrada — Kineo 1 enquanto
+// SEEDANCE_15S_PUBLIC=false (o de 02/09), Seedance quando a entrada de 15 s abrir (decisão do fundador de 29/09).
+check('padrão volta a ser Kineo 1 (era seedance)', studio.includes("useState<EngineKey>(SEEDANCE_15S_PUBLIC ? 'seedance' : 'fast')"))
 check('a razão do padrão está escrita, com os números de 30 dias', studio.includes('102 das 142 pararam ali') && studio.includes('3,6 videos'))
 check("Kineo 1 ganha o selo 'Start here'", studio.includes("name: 'Kineo 1', tag: 'Start here'"))
 check("Kineo 1 deixa de se descrever como ficha técnica", !studio.includes("desc: 'Kineo’s own engine — stock + captions'"))

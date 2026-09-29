@@ -169,9 +169,12 @@ import {
 } from '@/lib/growth/trialRepeatBeforeCheckout'
 import {
   activationRenderEngineIsReady,
-  resolveActivationRenderEngine,
+  resolveActivationRender,
   type ActivationRenderEngine,
 } from '@/lib/growth/trialActivationIntent'
+// KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — a régua única da entrada: Kineo 1 na tela, motor da URL, duração que o
+// saldo paga, e o "roteiro cabe no filme curto". Tudo só age com a entrada nova ligada para a conta (flag seedance15).
+import { kineo1NaTela, motorDaUrl, duracaoDeEntrada, roteiroCabeNoFilmeCurto, pedidoDeKineo1, duracaoDaUrlNaEntrada } from '@/lib/growth/entradaSeedance15'
 // KINEO-POST-TO-EARN-2026-08-04 — regras/copy da recompensa. Módulo puro e
 // client-safe (o motor que credita é lib/postToEarnGrant, server-only), então
 // a promessa mostrada aqui lê a MESMA constante que o servidor executa.
@@ -1121,6 +1124,8 @@ export default function GenerateClient({
   initialViralPrompt = '',
   initialUserId,
   refusalNotice = null,
+  kineo1Visible,
+  seedance15: seedance15Prop,
 }: {
   initialViralPrompt?: string
   initialUserId: string
@@ -1134,12 +1139,21 @@ export default function GenerateClient({
    * KINEO-KINEO1-FORA-2026-09-29 — o Kineo 1 aparece para esta conta? Resolvido no servidor (studio/create/page.tsx
    * com lib/engineLaunch.ts kineo1Visible + lib/kineo1Access.ts). E1 só entrega a prop; a E2b passa a usá-la.
    */
-  kineo1Visible?: boolean
+  kineo1Visible?: boolean | null
+  /**
+   * KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — a entrada nova (Seedance 15 s) existe para esta conta? Resolvido no
+   * servidor (seedance15sVisible: SEEDANCE_15S_PUBLIC || casa), para a tela saber ANTES do primeiro render. E2b é o
+   * primeiro consumidor de `kineo1Visible`: null/ausente = 'não sei' (kineo1NaTela).
+   */
+  seedance15?: boolean
 }) {
   // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
   const OFFER = useFreeTierOffer()
   const router = useRouter()
   const searchParams = useSearchParams()
+  // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — na montagem (antes de /api/credits dizer se a conta paga): com a entrada
+  // nova, o Kineo 1 só existe para quem tem a flag kineo1 === true. 'Não sei' vira "pagante?" depois (kineo1Shown).
+  const kineo1NaMontagem = kineo1NaTela({ entrada15: seedance15Prop === true, kineo1: kineo1Visible, hasPaid: null })
   const [postVideoCurrency, setPostVideoCurrency] = useState<CheckoutCurrency | null>(null)
   // KINEO-REGIONAL-PRICING-2026-08-04 — default 'standard': preco cheio ate o
   // /api/geo dizer o contrario.
@@ -1382,25 +1396,39 @@ export default function GenerateClient({
     // 19 créditos gastaria o analyze e comeria 402 no generate.
     // E o `mode` daqui é um PAR com o guard do dispatcher (~6640): se um
     // aceitar cinematic_ai e o outro não, o primeiro vídeo não é despachado.
+    // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — com a entrada nova, o onboarding compara o saldo com a MAIOR duração do
+    // Seedance que ele paga (15 s = 7 cr no trial de 10) e fixa essa duração; sem Kineo 1 na tela, nunca cai nele.
+    const duracaoOnboarding = entrada15 ? duracaoDeEntrada(creditsNow, custoSeedance) : null
+    const seedanceNoOnboarding = duracaoOnboarding !== null
+      ? trialNow && typeof creditsNow === 'number' && creditsNow >= custoSeedance(duracaoOnboarding)
+      : trialNow && typeof creditsNow === 'number' && creditsNow >= creditCostFor('cinematic_ai')
+    // A duração que este clique fixa (undefined = a tela não mexeu) viaja para a análise: ver handleAnalyze targetSeconds.
+    const duracaoDoOnboarding: Duration | undefined = seedanceNoOnboarding
+      ? (duracaoOnboarding ?? undefined)
+      : !kineo1Shown ? SEEDANCE_SHORT_SECONDS : undefined
     if (
-      trialNow &&
-      typeof creditsNow === 'number' &&
-      creditsNow >= creditCostFor('cinematic_ai')
+      seedanceNoOnboarding
     ) {
       setMode('cinematic_ai')
       setAiEngine('seedance')
+      if (duracaoOnboarding !== null) setDuration(duracaoOnboarding)
+    } else if (!kineo1Shown) {
+      setMode('cinematic_ai')
+      setAiEngine('seedance')
+      setDuration(SEEDANCE_SHORT_SECONDS)
     } else {
       setMode('fast')
     }
     void trackEvent('first_video_engine_decided', {
       surface: 'niche_onboarding',
-      engine: trialNow && typeof creditsNow === 'number' && creditsNow >= creditCostFor('cinematic_ai') ? 'seedance' : 'fast',
+      engine: seedanceNoOnboarding || !kineo1Shown ? 'seedance' : 'fast',
+      duration: seedanceNoOnboarding && duracaoOnboarding !== null ? duracaoOnboarding : null,
       credits: creditsNow,
       trial_active: trialNow,
       refetched: credits === null || !trialActive,
     })
     finishOnboarding()
-    void handleAnalyze(goal.topic, { fromTopic: true, skipPreview: true, structureFirst: true })
+    void handleAnalyze(goal.topic, { fromTopic: true, skipPreview: true, structureFirst: true, targetSeconds: duracaoDoOnboarding })
   }
 
   function redirectToLoginPreservingPrompt() {
@@ -1493,7 +1521,7 @@ export default function GenerateClient({
   // aprova (a casa hoje; todos apos S25_PUBLIC). Vem do /api/me/credits.
   const [s25Ok, setS25Ok] = useState(false)
   // KINEO-SEEDANCE-15S-2026-09-29 — o botão de 15 s do Seedance (SEEDANCE_15S_PUBLIC || casa), flag `seedance15` do /api/me/credits.
-  const [seedance15Ok, setSeedance15Ok] = useState(false)
+  const [seedance15Ok, setSeedance15Ok] = useState(seedance15Prop === true) // KINEO-ENTRADA-SEEDANCE15: o servidor já sabe na montagem
   useEffect(() => {
     let alive = true
     fetch('/api/me/credits', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive && d?.internal === true) setS25Ok(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true) }).catch(() => {})
@@ -1505,7 +1533,8 @@ export default function GenerateClient({
   // selecionado (?engine=fast|seedance|kling|veo|hollywood). Quem clicou em
   // "Veo 3" entra criando com o Veo 3, nao numa pagina generica.
   useEffect(() => {
-    const engine = (searchParams.get('engine') ?? '').toLowerCase()
+    // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — ?engine=fast sem Kineo 1 na tela cai no Seedance (lib/growth/entradaSeedance15.ts).
+    const engine = motorDaUrl(searchParams.get('engine'), kineo1NaMontagem) ?? ''
     if (!engine) return
     if (engine === 'fast') {
       setMode('fast')
@@ -1905,14 +1934,14 @@ export default function GenerateClient({
   const [taskStates, setTaskStates] = useState<Record<string, TaskState>>({})
   const [error, setError] = useState<string | null>(null)
   const [duration, setDuration] = useState<Duration>(DEFAULT_DURATION)
-  const [quality, setQuality] = useState<Quality>('fast')
+  const [quality, setQuality] = useState<Quality>(kineo1NaMontagem ? 'fast' : 'cinematic_ai') // KINEO-ENTRADA-SEEDANCE15: sem Kineo 1, a entrada é o Seedance
   // Push #084 — Fast Mode (Pexels + TTS, 1 credit, ~30s) is the new default.
   // Cinematic Mode keeps the Runway path. Quality tiers above only apply to
   // Cinematic Mode; Fast Mode pins the effective quality to 'fast' on submit.
   // PUSH #20 — Fast is the zero-friction acquisition path. Start every unknown
   // session here; paid Creator/Studio accounts are defaulted to AI after their
   // plan loads below.
-  const [mode, setMode] = useState<GenerationMode>('fast')
+  const [mode, setMode] = useState<GenerationMode>(kineo1NaMontagem ? 'fast' : 'cinematic_ai') // KINEO-ENTRADA-SEEDANCE15-2026-09-29
   // KINEO-SEEDANCE-15S-2026-09-29 — os botões de duração do motor escolhido (15 s só no Seedance, só com o interruptor).
   const opcoesDeDuracao = durationOptionsFor(mode, aiEngine, seedance15Ok, duration)
   // Trocar de motor estando em 15 s volta para 35 s: o 15 não existe fora do Seedance e o servidor recusaria (422).
@@ -2391,6 +2420,13 @@ export default function GenerateClient({
   const verbatimOrderReanalyzeRef = useRef(false)
   const [showFirstShortNudge, setShowFirstShortNudge] = useState(false) // #379 — new-user onboarding nudge
   const [credits, setCredits] = useState<number | null>(null)
+  // ═══ KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — a entrada do cliente novo ═══════════════════════════════════════
+  // entrada15 = a flag seedance15 (servidor na montagem, /api/me/credits depois). kineo1Shown = a régua da tela
+  // (lib/growth/entradaSeedance15.ts): sem a entrada nova, sempre true (o de antes); com ela, só flag kineo1 === true, ou
+  // 'não sei' de quem sabidamente paga. custoSeedance = a MESMA função que cobra (nenhum número digitado).
+  const entrada15 = seedance15Ok
+  const kineo1Shown = kineo1NaTela({ entrada15, kineo1: kineo1Visible, hasPaid })
+  const custoSeedance = (segundos: number) => creditCostForDuration('cinematic_ai', true, segundos)
   // KINEO-PAREDE-NO-CLIQUE-2026-09-27 — o auto-analyze espera o saldo chegar (até 1,5 s) antes de decidir se abre a parede.
   const [autoWaitTick, setAutoWaitTick] = useState(0)
   const autoWaitScheduledRef = useRef(false)
@@ -3912,9 +3948,28 @@ export default function GenerateClient({
             // teste do Studio: escolheu Kling 2.5 e esta rotina de DEFAULTS
             // por plano atropelou pra Fast. Default e pra chegada de mao
             // vazia; ?engine= explicito na URL SEMPRE vence.
-            const urlEnginePick = (searchParams?.get('engine') ?? '').toLowerCase()
+            // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — o motor da URL passa pela régua (?engine=fast sem Kineo 1 = Seedance).
+            const kineo1NoPlano = kineo1NaTela({ entrada15: seedance15Ok, kineo1: kineo1Visible, hasPaid: data.hasPaid === true })
+            const urlEnginePick = motorDaUrl(searchParams?.get('engine'), kineo1NoPlano) ?? ''
             const urlPickedEngine = ['fast', 'seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni', 's25'].includes(urlEnginePick) && (!enginePaused(urlEnginePick) || searchParams?.get('maint') === '1') // KINEO-MOTOR-EM-MANUTENCAO
-            if (urlPickedEngine) { /* escolha explicita — nao tocar */ }
+            // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b, B8) — com a entrada nova e sem Kineo 1: Seedance na MAIOR duração
+            // que o saldo paga (o trial de 10 cr abre em 15 s), sem ?duration e sem auto-start (que decide a própria).
+            const entradaNoPlano = seedance15Ok && !kineo1NoPlano
+            // Revisão da E2b (achado 5): ?engine=fast TRADUZIDO para o Seedance não é escolha explícita (a pessoa pediu o
+            // Kineo 1, que a conta não tem) — segue a régua da entrada; e a ?duration= da URL só vence quando o saldo paga
+            // (Viral Now manda 45→35 = 15 cr e abria o trial de 10 cr direto na parede, antes do roteiro).
+            const motorTraduzidoDoKineo1 = entradaNoPlano && pedidoDeKineo1(searchParams?.get('engine'))
+            if (urlPickedEngine && !motorTraduzidoDoKineo1) { /* escolha explicita — nao tocar */ }
+            else if (entradaNoPlano) {
+              setMode('cinematic_ai'); setAiEngine('seedance')
+              const d = duracaoDaUrlNaEntrada({
+                durUrl: readCreationHandoff(searchParams).duration,
+                balance: typeof data.credits === 'number' ? data.credits : null,
+                autoStart: Boolean(searchParams?.get('create_intent')),
+                custoSeedance,
+              })
+              if (d !== null) setDuration(d)
+            }
             else if (fromViralNow) { setMode('fast') }
             else if (trialDefaultsToCreatorEngine) { setMode('cinematic_ai'); setAiEngine('seedance') }
             else if (data.isStarter || (!data.isCreator && !data.isStudio)) { setMode('fast') }
@@ -4064,8 +4119,35 @@ export default function GenerateClient({
   // entitlement checks and active-render restoration before consuming it.
   useEffect(() => {
     if (activationAutostartDecisionRef.current) return
-    const activationContract = resolveActivationCreationContract(searchParams)
-    if (!activationContract.createIntent) return
+    const contratoPedido = resolveActivationCreationContract(searchParams)
+    if (!contratoPedido.createIntent) return
+    // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b, B1/B5/M8) — motor E duração decididos juntos pela régua
+    // (lib/growth/trialActivationIntent.ts resolveActivationRender). Com a entrada nova: trial OU conta paga cai no
+    // Seedance na duração que o saldo paga (15 s no trial de 10), o roteiro colado longo demais vira teaser em modo IA,
+    // e 'none' (nada cabe, sem Kineo 1) sai por consumeAndSkip. Sem ela, o resolvedor antigo.
+    const pagouAgora =
+      activationAccountStatus === 'paid' || hasPaid || (planTier !== null && planTier !== 'free') || isStarter || isCreator || isStudio
+    const activationDecision = resolveActivationRender({
+      createIntent: contratoPedido.createIntent,
+      trialActive,
+      hasPaid: pagouAgora,
+      credits,
+      requestedDuration: contratoPedido.duration,
+      scriptMode: contratoPedido.scriptMode,
+      seedanceCostAt: custoSeedance,
+      entrada15,
+      shortSeconds: SEEDANCE_SHORT_SECONDS,
+      promptFitsShort: roteiroCabeNoFilmeCurto(contratoPedido.prompt),
+      kineo1: kineo1Visible,
+    })
+    const activationContract = activationDecision.engine === 'none'
+      ? contratoPedido
+      : {
+          ...contratoPedido,
+          duration: activationDecision.duration as typeof contratoPedido.duration,
+          scriptMode: activationDecision.scriptMode,
+          structureFirst: activationDecision.scriptMode !== 'verbatim',
+        }
 
     const explicitPrompt = activationContract.prompt
     // KINEO-FIRST-PAID-MINUTE-2026-08-11 — o par exato que /checkout/success
@@ -4090,13 +4172,13 @@ export default function GenerateClient({
       activationAutostartFirstWinRef.current = true
     }
     const isFirstWinFromCheckout = activationAutostartFirstWinRef.current
-    const activationEngine = resolveActivationRenderEngine({
-      createIntent: activationContract.createIntent,
-      trialActive,
-      credits,
-      seedanceCreditCost: creditCostFor('cinematic_ai'),
-    })
+    const activationEngine: ActivationRenderEngine | null = activationDecision.engine === 'none' ? null : activationDecision.engine
     const metadata: Record<string, unknown> = {
+      // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — por que este motor/duração (legacy | seedance_requested | seedance_short |
+      // kineo1_legacy | no_affordable_engine | balance_unknown | not_entitled) e se o roteiro virou teaser.
+      entry_reason: activationDecision.reason,
+      entry_teaser: activationDecision.teaser,
+      requested_duration: contratoPedido.duration,
       // Entra no payload de TODO evento deste rail (eligible/skipped/dispatched),
       // que é como o "% de payment_success com vídeo" passa a ser medível sem
       // criar evento novo.
@@ -4105,7 +4187,7 @@ export default function GenerateClient({
         activationContract.createIntent === 'trial_best'
           ? TRIAL_BEST_AUTOSTART_VARIANT
           : ACTIVATION_AUTOSTART_VARIANT,
-      engine: activationEngine,
+      engine: activationDecision.engine,
       requested_intent: activationContract.createIntent,
       trial_best_eligible: activationEngine === 'seedance',
       prompt_length: explicitPrompt.length,
@@ -4407,6 +4489,11 @@ export default function GenerateClient({
         })
       }
       consumeAndSkip('prompt_looks_like_instruction')
+      return
+    }
+    // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (M8) — 'none' nunca fica armado: nenhum motor que a conta tem cabe no saldo.
+    if (activationEngine === null) {
+      consumeAndSkip(activationDecision.reason === 'balance_unknown' ? 'balance_unknown' : 'no_affordable_engine')
       return
     }
     if (paidAccount) {
@@ -5568,6 +5655,8 @@ export default function GenerateClient({
     credits,
     bridgeEligible: trialBalanceBridge.eligible,
     preferredDuration: duration,
+    // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — sem Kineo 1 na tela, o episódio que o saldo paga é o Seedance de 15 s.
+    shortFilm: entrada15 && !kineo1Shown ? { seconds: SEEDANCE_SHORT_SECONDS } : null,
   })
   // KINEO-TRIAL-WATERMARK-2026-09-07 — ESTA CONDIÇÃO ERA UM SEGUNDO DONO DA
   // VERDADE. Ela reconstruía, no navegador, a decisão que /api/compose toma no
@@ -5956,6 +6045,7 @@ export default function GenerateClient({
       credits,
       bridgeEligible: balanceBridgeForImpression.eligible,
       preferredDuration: duration,
+      shortFilm: entrada15 && !kineo1Shown ? { seconds: SEEDANCE_SHORT_SECONDS } : null, // KINEO-ENTRADA-SEEDANCE15 (o MESMO que o JSX)
     })
     // KINEO-SLOT-IMPRESSAO-DIZ-A-VERDADE-2026-09-07 — QUEM DECIDE O NOME DO
     // EVENTO É QUEM DECIDE O JSX.
@@ -7943,8 +8033,16 @@ export default function GenerateClient({
       // sozinho de quem teve de recomecar a mao; sem isto os dois chegam ao
       // banco como 'manual' e a rodada nao teria juiz.
       afterExpandAccept?: boolean
+      // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (revisão da E2b, achados 1 e 6) — quem chama LOGO DEPOIS de um setDuration
+      // passa a duração DECIDIDA aqui: o estado do React só muda no próximo render e esta função ainda enxergaria a
+      // antiga (o onboarding de nicho fixava 15 s e o escritor recebia 35 → ~110 palavras → 422
+      // 'script_too_long_for_short_film' no filme grátis). scriptModeOverride 'ai' = estruturar mesmo com a tela em
+      // verbatim (o teaser de 15 s de um roteiro longo). Sem override, vale o estado da tela, como sempre.
+      targetSeconds?: Duration
+      scriptModeOverride?: 'ai' | 'verbatim'
     },
   ) {
+    const duracaoPedida: Duration = opts?.targetSeconds ?? duration
     // KINEO-P0A-2026-08-26 — ideia NOVA começa com as rodadas de expansão
     // zeradas. Sem isto, quem esgotou as duas rodadas num roteiro ficaria sem
     // auto-completar no roteiro seguinte, que é outro problema.
@@ -7962,7 +8060,7 @@ export default function GenerateClient({
     // exigia um segundo clique para chegar ao comportamento novo. O cliente
     // conserva apenas o espelho de roteiro longo abaixo, que ajusta o alvo da
     // análise sem bloquear a viagem.
-    let alvoAnalise: Duration = duration
+    let alvoAnalise: Duration = duracaoPedida
 
     // ═══ sprint-retencao #9 — O TEXTO COLADO PEDIA, E NINGUEM LIA ══════════
     //
@@ -8266,7 +8364,7 @@ export default function GenerateClient({
     const isHollywoodRaw = mode === 'cinematic_ai' && (aiEngine === 'hollywood' || aiEngine === 'h3' || aiEngine === 'omni' || aiEngine === 's25')
     const needsStructuring = isHollywoodRaw
       ? false
-      : scriptMode === 'ai' && (opts?.structureFirst === true || !opts?.skipPreview)
+      : (opts?.scriptModeOverride ?? scriptMode) === 'ai' && (opts?.structureFirst === true || !opts?.skipPreview)
 
     if (isHollywoodRaw) {
       // Keep the raw idea as the submission source; do NOT rewrite the textarea.
@@ -8286,7 +8384,7 @@ export default function GenerateClient({
           // pedida e o motor (a régua do Kineo 1 é a voz da persona, ~2,8 pal/s; a hollywood é 2,3). Sem
           // isso ele dimensionava tudo a 2,3 pal/s e 60 s, e o portão do Kineo 1 recusava o roteiro recém-
           // nascido ("narração curta": 38 pessoas em 7 dias, 10 nunca fizeram filme).
-          body: JSON.stringify({ topic: rawSource, language, targetSeconds: duration, engine: mode === 'fast' || mode === 'creator' ? 'fast' : quality }),
+          body: JSON.stringify({ topic: rawSource, language, targetSeconds: duracaoPedida, engine: mode === 'fast' || mode === 'creator' ? 'fast' : quality }),
         })
         if (sgRes.ok) {
           const sgData = await sgRes.json()
@@ -8946,6 +9044,12 @@ export default function GenerateClient({
     }
     autoAnalyzeKeyRef.current = key
     if (process.env.NODE_ENV === 'development') console.log(`[ux1] autoanalyze-effect -> handleAnalyze() key="${key.slice(0,40)}" phase=${phase} @${Date.now()}`)
+    // Revisão da E2b (achado 5): a 15 s no Seedance, roteiro pronto longo demais (Viral Now, ~110 palavras) iria sem
+    // estruturar e a guarda do cinematic recusaria (422) — vira o teaser de 15 s em modo IA, a régua do filme curto.
+    if (mode === 'cinematic_ai' && aiEngine === 'seedance' && duration === SEEDANCE_SHORT_SECONDS && !roteiroCabeNoFilmeCurto(sp)) {
+      handleAnalyze(sp, { fromTopic: true, skipPreview: true, structureFirst: true, scriptModeOverride: 'ai' })
+      return
+    }
     handleAnalyze(sp, { fromTopic: true, skipPreview: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, activeRenderRestoreResolved, credits, autoWaitTick])
@@ -8983,7 +9087,7 @@ export default function GenerateClient({
     // disparar, garante que motor e duracao SAO os da URL do Studio — se
     // qualquer efeito tardio tiver mexido, corrige e espera o proximo
     // render do React (deps incluem mode/aiEngine/duration).
-    const uEng = (searchParams?.get('engine') ?? '').toLowerCase()
+    const uEng = motorDaUrl(searchParams?.get('engine'), kineo1Shown) ?? '' // KINEO-ENTRADA-SEEDANCE15: ?engine=fast sem Kineo 1 = Seedance
     if (uEng === 'fast' && mode !== 'fast') { setMode('fast'); return }
     if (['seedance', 'kling', 'veo', 'hollywood'].includes(uEng)) {
       if (mode !== 'cinematic_ai') { setMode('cinematic_ai'); setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni' | 's25'); return }
@@ -11103,12 +11207,15 @@ export default function GenerateClient({
   // exatamente a coorte que nasce com 0 credito. `OFFER.limit` e o mesmo numero
   // que /api/compose compara contra `reservedOrCompleted` antes de recusar.
   const freeFilmAvailable = OFFER.limit > 0
+  // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (revisão da E2b) — a caixa oferece o KINEO 1 de graça e o clique faz setMode('fast'):
+  // sem o Kineo 1 na tela (conta nova com a entrada do Seedance de 15 s), ela oferecia um motor que a conta não tem.
   const firstFilmFreeAvailable =
     freeFilmAvailable &&
     filmsDelivered === 0 &&
     !isStarter && !isCreator && !isStudio &&
     !hasPaid &&
-    trialActive !== true
+    trialActive !== true &&
+    kineo1Shown
 
   function outOfCredits(): boolean {
     // KINEO-SISTEMA-DE-COMPRA-2026-09-08 — versão B: sem crédito e sem nunca ter
@@ -12060,8 +12167,10 @@ export default function GenerateClient({
   const episode2InheritedCost = costForDurationOption(duration)
   const episode2FreeCost = creditCostForDuration('fast', isPaidAccount, duration)
   const episode2QuotaKnown = freeFastUsedInWindow !== null
+  // Revisão da E2b (29/09): o desvio do episódio 2 para o Kineo 1 grátis ("renders on Kineo 1, free on your account")
+  // só existe para quem VÊ o Kineo 1 — com a entrada nova ele some para conta nova (kineo1NaTela).
   const episode2Engine: 'fast' | null =
-    selectedUnaffordable && episode2FreeCost === 0 && episode2QuotaKnown && !freeFastQuotaSpent
+    selectedUnaffordable && episode2FreeCost === 0 && episode2QuotaKnown && !freeFastQuotaSpent && kineo1Shown
       ? 'fast'
       : null
   // Por que a porta NAO desviou. Vai no evento para que a proxima rodada
@@ -12305,6 +12414,8 @@ export default function GenerateClient({
   function startNextEpisode(options?: { trialRepeat?: boolean }) {
     if (!nextEpisode) return
     trackEvent('next_episode_clicked', { title: nextEpisode.title.slice(0, 80) })
+    let duracaoDoEpisodio: Duration = duration
+    let seedanceNoEpisodio = mode === 'cinematic_ai' && aiEngine === 'seedance'
     if (
       options?.trialRepeat &&
       trialRepeatDecision.action === 'episode' &&
@@ -12321,18 +12432,38 @@ export default function GenerateClient({
         last_video_quality: quality,
         previous_intent_campaign: intentCampaign || null,
       })
-      setMode('fast')
-      setDuration(trialRepeatDecision.duration)
+      // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — o motor é o da decisão (Kineo 1 antigo ou o Seedance curto da entrada nova).
+      if (trialRepeatDecision.engine === 'cinematic_ai') { setMode('cinematic_ai'); setAiEngine('seedance') }
+      else setMode('fast')
+      setDuration(trialRepeatDecision.duration as Duration)
+      duracaoDoEpisodio = trialRepeatDecision.duration as Duration
+      seedanceNoEpisodio = trialRepeatDecision.engine === 'cinematic_ai'
     }
     const s = nextEpisode.script
     setNextEpisode(null)
     setPrompt(s)
     try { window.scrollTo({ top: 0, behavior: 'smooth' }) } catch {}
+    // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (revisão da E2b, achado 6) — o episódio vem com 150-165 palavras (escrito para
+    // 60 s). A 15 s no Seedance ele ia verbatim e a guarda do cinematic recusava SEMPRE (422
+    // 'script_too_long_for_short_film'); a subida automática só sai do 15 se o saldo pagar. Quando o saldo não paga o
+    // episódio inteiro (60 s), o episódio vira o TEASER de 15 s: estruturado em modo IA na régua do filme curto (o
+    // escritor apara o próprio roteiro — keepShortFilmSections + fitShortFilmScript). Quem paga 60 s segue como sempre.
+    if (
+      seedanceNoEpisodio &&
+      duracaoDoEpisodio === SEEDANCE_SHORT_SECONDS &&
+      !roteiroCabeNoFilmeCurto(s) &&
+      (credits === null || credits < custoSeedance(60))
+    ) {
+      setScriptMode('ai')
+      void trackEvent('next_episode_short_teaser', { words: s.split(/\s+/).filter(Boolean).length, credits: credits ?? null, trial_repeat: options?.trialRepeat === true })
+      void handleAnalyze(s, { fromTopic: true, skipPreview: true, structureFirst: true, targetSeconds: SEEDANCE_SHORT_SECONDS, scriptModeOverride: 'ai' })
+      return
+    }
     // `structureFirst: false` porque o roteiro JÁ vem com HOOK/MICRO REWARD/
     // ESCALATION/PAYOFF (a rota recusa e não devolve nada quando não vêm).
     // Mandar estruturar de novo faria o GPT reescrever a narração e quebraria
     // o Contrato C1 — a fala tem de sair exatamente como está na tela.
-    void handleAnalyze(s, { fromTopic: true, skipPreview: true, structureFirst: false })
+    void handleAnalyze(s, { fromTopic: true, skipPreview: true, structureFirst: false, targetSeconds: duracaoDoEpisodio })
   }
 
   // KINEO-REGIONAL-PRICING-2026-08-04 — na regiao `value` o Starter nao tem 1o
@@ -12691,7 +12822,8 @@ export default function GenerateClient({
   // saída de texto logo abaixo. Ambos os preços saem de getTierPrice().
   const ladderPrimaryTier = postVideoOfferDecision.primaryTier
   const ladderPrimaryPlanLabel = postVideoOfferDecision.primaryPlanLabel
-  const ladderPrimaryOutputLabel = postVideoOfferDecision.lastVideoFit === 'fast'
+  // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — sem Kineo 1 na tela, o plano não é vendido em "Kineo 1 quick videos".
+  const ladderPrimaryOutputLabel = postVideoOfferDecision.lastVideoFit === 'fast' && kineo1Shown
     ? `${videosForCredits(TIER_CREDITS[ladderPrimaryTier], 'fast')} Kineo 1 quick videos`
     : postVideoOfferDecision.lastVideoFit === 'premium'
       ? `${videosForCredits(TIER_CREDITS[ladderPrimaryTier], 'cinematic_ai')} AI films like this`
@@ -13157,6 +13289,8 @@ export default function GenerateClient({
     // aplicado com Kling/Veo/Kineo 1 na tela precificava 15 s e levava 422 (ou 45 s cobrado no Kineo 1). O 15 só volta
     // quando o seletor atual o oferece; senão a oferta não aparece (o chip nunca aplica uma duração que a tela não tem).
     if (lastSetup.duration === SEEDANCE_SHORT_SECONDS && !opcoesDeDuracao.some((o) => o.value === SEEDANCE_SHORT_SECONDS)) return null
+    // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (M2) — a memória não devolve o Kineo 1 a quem não o tem na tela.
+    if (lastSetup.quality === 'fast' && !kineo1Shown) return null
     const engineDiffers = lastSetup.quality !== quality
     const durationDiffers = lastSetup.duration !== duration
     const modeDiffers = lastSetup.scriptMode !== scriptMode
@@ -14216,8 +14350,16 @@ export default function GenerateClient({
           // Não gera nada, não muda preço nem trial: seleciona o motor que cabe e devolve a tela.
           trialKineo1={
             !CARD_ENTRY_ONLY && trialActive === true && filmsDelivered === 0 && !hasPaid && credits !== null &&
-            credits >= creditCostForDuration('fast', isPaidAccount, duration)
+            credits >= creditCostForDuration('fast', isPaidAccount, duration) && kineo1Shown
               ? { credits, cost: creditCostForDuration('fast', isPaidAccount, duration), seconds: duration }
+              : null
+          }
+          // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — a mesma saída honesta com a entrada nova: o saldo do trial paga o
+          // Seedance de 15 s (custo da função que cobra). Só quando o Kineo 1 não está na tela (senão a caixa acima já existe).
+          trialSeedance15={
+            !CARD_ENTRY_ONLY && entrada15 && !kineo1Shown && trialActive === true && filmsDelivered === 0 && !hasPaid && credits !== null &&
+            credits >= custoSeedance(SEEDANCE_SHORT_SECONDS)
+              ? { credits, cost: custoSeedance(SEEDANCE_SHORT_SECONDS), seconds: SEEDANCE_SHORT_SECONDS }
               : null
           }
           onFirstFilmFree={() => {
@@ -14226,9 +14368,17 @@ export default function GenerateClient({
             void trackEvent('first_film_free_offer_clicked', {
               reason: upgradeReason, surface: 'generate_upgrade_modal',
               // KINEO-PAREDE-TRIAL-KINEO1-2026-09-27 — a mesma saída, dois motivos: grátis (free) ou saldo do trial (trial_kineo1).
-              variant: trialActive === true ? 'trial_kineo1' : 'free', credits: credits ?? null,
+              variant: trialActive === true ? (kineo1Shown ? 'trial_kineo1' : 'trial_seedance15') : 'free', credits: credits ?? null,
             })
             setShowUpgradeModal(false)
+            // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — sem Kineo 1 na tela, a saída é o Seedance de 15 s (não gera nada).
+            if (trialActive === true && !kineo1Shown) {
+              setMode('cinematic_ai'); setAiEngine('seedance'); setDuration(SEEDANCE_SHORT_SECONDS)
+              // Revisão da E2b (achado 3): roteiro colado longo demais para 15 s não vai verbatim (a guarda do cinematic
+              // recusaria com 422) — vira o teaser em modo IA, a mesma régua do /go (roteiroCabeNoFilmeCurto).
+              if (scriptMode === 'verbatim' && !roteiroCabeNoFilmeCurto(prompt)) setScriptMode('ai')
+              return
+            }
             setMode('fast')
           }}
           onClose={() => setShowUpgradeModal(false)}
@@ -15105,6 +15255,7 @@ export default function GenerateClient({
             aiEngine={aiEngine}
             s25Ok={s25Ok}
             seedance15Ok={seedance15Ok}
+            kineo1Shown={kineo1Shown}
             setAiEngine={setAiEngine}
             isStarter={isStarter}
             isCreator={isCreator}
@@ -16788,6 +16939,9 @@ export default function GenerateClient({
                       isPaidAccount,
                       freeOffer: { cardEntry: OFFER.cardEntry, residual: OFFER.copy.residual, chip: OFFER.copy.chip },
                       freeQuotaSpent: freeFastQuotaSpent,
+                      // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — a saída barata é o Seedance de 15 s; o Kineo 1 só para quem o tem.
+                      kineo1Allowed: kineo1Shown,
+                      shortSeedanceSeconds: entrada15 ? SEEDANCE_SHORT_SECONDS : null,
                     })}
                   </p>
                 )}
@@ -17573,6 +17727,7 @@ export default function GenerateClient({
                     checkoutPending={planFitCheckout.pending}
                     checkoutError={planFitCheckout.error}
                     verifyEligibility={verifyPlanFitEligibility}
+                    kineo1Allowed={kineo1Shown}
                     onEvent={(name, metadata) => trackEvent(name, metadata)}
                     onCheckout={(tier, metadata: PlanFitCheckoutMetadata) => {
                       const started = planFitCheckout.launch(
@@ -20898,6 +21053,7 @@ function ModeSelector({
   aiEngine,
   s25Ok,
   seedance15Ok,
+  kineo1Shown = true,
   setAiEngine,
   isStarter,
   isCreator,
@@ -20920,6 +21076,8 @@ function ModeSelector({
   s25Ok: boolean
   // KINEO-SEEDANCE-15S-2026-09-29 — o resgate por saldo oferece o 15 s do Seedance só com o interruptor (espelho da rota).
   seedance15Ok?: boolean
+  /** KINEO-ENTRADA-SEEDANCE15-2026-09-29 — o card "Fast Mode" (Kineo 1) só aparece para quem o tem (kineo1NaTela). */
+  kineo1Shown?: boolean
   setAiEngine: (e: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25') => void
   isStarter: boolean
   isCreator: boolean
@@ -21049,7 +21207,8 @@ function ModeSelector({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Push #404 — Fast = Starter engine (stock, relevance-gated). Locked → upgrade. */}
         {/* #406 — tech card redesign (EngineCard). Logic identical. */}
-        <EngineCard
+        {/* KINEO-ENTRADA-SEEDANCE15-2026-09-29 — o Kineo 1 some para conta nova (kineo1Shown). */}
+        {kineo1Shown && <EngineCard
           selected={fastSelected}
           unlocked={fastUnlocked}
           accent="41,151,255"
@@ -21072,7 +21231,7 @@ function ModeSelector({
             )
           }
           onClick={() => { setMode('fast') }}
-        />
+        />}
 
         {/* #402 — AI Generated (Seedance, 30 cr). Available to all paid plans. */}
         {/* #406 — tech card redesign (EngineCard). Logic identical. */}
@@ -21783,6 +21942,7 @@ function UpgradeModal({
   firstFilmFree = false,
   onFirstFilmFree,
   trialKineo1 = null, // KINEO-PAREDE-TRIAL-KINEO1-2026-09-27
+  trialSeedance15 = null, // KINEO-ENTRADA-SEEDANCE15-2026-09-29
   // KINEO-UPGRADE-MODAL-TRIAL-DOOR-2026-09-07 — o predicado ESTRITO. `false`
   // por padrão fecha a porta: nunca se anuncia $1 sem o servidor ter dito
   // `has_paid === false` com todas as letras.
@@ -21827,6 +21987,8 @@ function UpgradeModal({
   firstFilmFree?: boolean
   /** KINEO-PAREDE-TRIAL-KINEO1-2026-09-27 — trial ativo com saldo que paga um Kineo 1 e nenhum filme entregue. */
   trialKineo1?: { credits: number; cost: number; seconds: number } | null
+  /** KINEO-ENTRADA-SEEDANCE15-2026-09-29 — o saldo do trial paga o Seedance de 15 s (entrada nova, sem Kineo 1). */
+  trialSeedance15?: { credits: number; cost: number; seconds: number } | null
   onFirstFilmFree?: () => void
   /** Prova positiva de `has_paid === false` vinda do servidor. Ver acima. */
   notPaidProven?: boolean
@@ -22221,8 +22383,7 @@ function UpgradeModal({
             </strong>
             <span style={{ display: 'block', color: '#a7f3d0', fontSize: '0.78rem', lineHeight: 1.45, marginBottom: 10 }}>
               Kineo 1 costs 0 credits on your account. Same script, same voiceover, same
-              captions and soundtrack — up to 3 films a day, watermarked. See it work
-              first, then pick a plan.
+              captions and soundtrack, watermarked. See it work first, then pick a plan.
             </span>
             <button
               type="button"
@@ -22255,6 +22416,30 @@ function UpgradeModal({
               style={{ width: '100%', padding: '11px 14px', borderRadius: 8, border: '1px solid rgba(52,211,153,.7)', background: 'rgba(52,211,153,.16)', color: '#d1fae5', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer' }}
             >
               Make it now with Kineo 1 · {trialKineo1.cost} credits →
+            </button>
+          </div>
+        )}
+        {/* KINEO-ENTRADA-SEEDANCE15-2026-09-29 — a mesma caixa, com o filme de 15 s do Seedance (entrada nova). */}
+        {trialSeedance15 && onFirstFilmFree && (
+          <div
+            data-testid="trial-seedance15-offer"
+            style={{ background: 'rgba(52,211,153,.10)', border: '1px solid rgba(52,211,153,.45)', borderRadius: 10, padding: '13px 14px', marginBottom: 14 }}
+          >
+            <span style={{ display: 'block', color: '#6ee7b7', fontSize: '0.64rem', fontWeight: 900, letterSpacing: '0.1em', marginBottom: 4 }}>
+              BEFORE YOU DECIDE
+            </span>
+            <strong style={{ display: 'block', color: '#fff', fontSize: '0.95rem', lineHeight: 1.35, marginBottom: 3 }}>
+              Your {trialSeedance15.credits} trial credits already make a film — a {trialSeedance15.seconds}-second Seedance 1.5 film.
+            </strong>
+            <span style={{ display: 'block', color: '#a7f3d0', fontSize: '0.78rem', lineHeight: 1.45, marginBottom: 10 }}>
+              It costs {trialSeedance15.cost} of your {trialSeedance15.credits} credits: AI-generated scenes, voice, captions and soundtrack, watermarked. Make it now, then decide.
+            </span>
+            <button
+              type="button"
+              onClick={onFirstFilmFree}
+              style={{ width: '100%', padding: '11px 14px', borderRadius: 8, border: '1px solid rgba(52,211,153,.7)', background: 'rgba(52,211,153,.16)', color: '#d1fae5', fontWeight: 800, fontSize: '0.9rem', cursor: 'pointer' }}
+            >
+              Make my free {trialSeedance15.seconds}-second film · {trialSeedance15.cost} credits →
             </button>
           </div>
         )}

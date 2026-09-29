@@ -9,6 +9,12 @@ export type TrialRepeatBeforeCheckoutInput = {
   credits: number | null
   bridgeEligible: boolean
   preferredDuration: number
+  /**
+   * KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — com a entrada nova ligada para a conta (flag seedance15) e sem Kineo 1
+   * (flag kineo1 !== true), o "repita antes de pagar" é o Seedance 1.5 de `shortFilm.seconds` (15), no custo que o
+   * servidor cobra. Ausente = como antes (Kineo 1).
+   */
+  shortFilm?: { seconds: number } | null
 }
 
 export type TrialRepeatBeforeCheckoutDecision = {
@@ -17,10 +23,13 @@ export type TrialRepeatBeforeCheckoutDecision = {
   creditsBefore: number | null
   creditsAfterSuccess: number | null
   cost: number | null
-  duration: (typeof SUPPORTED_DURATIONS)[number] | null
-  engine: typeof TRIAL_REPEAT_ENGINE
+  duration: (typeof SUPPORTED_DURATIONS)[number] | number | null
+  engine: typeof TRIAL_REPEAT_ENGINE | typeof TRIAL_REPEAT_SHORT_ENGINE
   version: typeof TRIAL_REPEAT_BEFORE_CHECKOUT_VERSION
 }
+
+/** KINEO-ENTRADA-SEEDANCE15 — o motor do "repita" da entrada nova (quality do cobrador; a tela usa 'seedance'). */
+export const TRIAL_REPEAT_SHORT_ENGINE = 'cinematic_ai' as const
 
 /**
  * Uses already-owned trial balance to earn another successful creation before
@@ -45,6 +54,24 @@ export function decideTrialRepeatBeforeCheckout(
   if (input.trialPhase !== 'active') return { ...base, action: 'subscription', reason: 'not_active' }
   if (input.credits === null || !Number.isFinite(input.credits) || input.credits < 0) {
     return { ...base, action: 'subscription', reason: 'unknown_balance' }
+  }
+
+  // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — conta nova sem Kineo 1: o episódio que o saldo paga é o Seedance curto.
+  if (input.shortFilm && Number.isFinite(input.shortFilm.seconds) && input.shortFilm.seconds > 0) {
+    const seconds = input.shortFilm.seconds
+    const shortCost = creditCostForDuration(TRIAL_REPEAT_SHORT_ENGINE, true, seconds)
+    const shortBase = { ...base, engine: TRIAL_REPEAT_SHORT_ENGINE }
+    if (!(shortCost > 0) || shortCost > input.credits) {
+      return { ...shortBase, action: 'subscription', reason: 'insufficient_balance' }
+    }
+    return {
+      ...shortBase,
+      action: 'episode',
+      reason: 'eligible',
+      duration: seconds,
+      cost: shortCost,
+      creditsAfterSuccess: input.credits - shortCost,
+    }
   }
 
   const preferred = Number.isFinite(input.preferredDuration) && input.preferredDuration > 0

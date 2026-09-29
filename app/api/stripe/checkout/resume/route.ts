@@ -19,6 +19,7 @@ import {
   type CheckoutResumePlanFit,
 } from '@/lib/checkoutResumeSurface'
 import { decideTrialFirstDelivery } from '@/lib/growth/trialBalanceBridge'
+import { SEEDANCE_15S_PUBLIC } from '@/lib/engineLaunch' // revisão da E2b: a mesma entrada que o banner do trial usa
 import { trialUiState } from '@/lib/reverseTrial'
 import { checkoutResumeUnavailablePath } from '@/lib/growth/checkoutResumeUnavailable'
 
@@ -524,6 +525,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       ? profile.video_credits
       : null,
     creditsUsed: trial.creditsUsedForDisplay,
+    // Revisão da E2b (achado 8): o filme grátis de quem chega é o Seedance de 15 s (7 cr). Sem isto a rota comparava o
+    // trial de 10 cr com o custo de 35 s (15 cr), achava a entrega inelegível e reabria o checkout abandonado de uma
+    // conta com 0 filmes — enquanto o banner (TrialActiveBanner, ENTRADA_CURTA) oferecia o filme grátis.
+    shortFilm: SEEDANCE_15S_PUBLIC,
   })
   if (shouldDeferPassiveCheckoutResumeForTrial({
     go,

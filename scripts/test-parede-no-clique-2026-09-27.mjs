@@ -25,7 +25,8 @@ checa('outOfCredits não foi redigitada (fast continua livre da guarda)', G.incl
 // (2) saída Kineo 1 no modal para trial ativo
 checa('modal: prop trialKineo1 só com trial ativo, 0 filmes, não pagou e saldo ≥ custo do Kineo 1 (custo nunca digitado)', /trialActive === true && filmsDelivered === 0 && !hasPaid && credits !== null &&\n\s+credits >= creditCostForDuration\('fast', isPaidAccount, duration\)/.test(G) && G.includes("cost: creditCostForDuration('fast', isPaidAccount, duration), seconds: duration"))
 checa('modal: a caixa existe e chama a mesma saída (seleciona Kineo 1, não gera)', G.includes('data-testid="trial-kineo1-offer"') && /\{trialKineo1 && onFirstFilmFree && \(/.test(G) && G.includes('Make it now with Kineo 1 · {trialKineo1.cost} credits →'))
-checa('modal: o clique registra a variante (trial_kineo1 vs free)', G.includes("variant: trialActive === true ? 'trial_kineo1' : 'free', credits: credits ?? null,"))
+// Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): a variante ganhou 'trial_seedance15' (a mesma saída com o filme de 15 s).
+checa('modal: o clique registra a variante (trial_kineo1 vs free)', G.includes("variant: trialActive === true ? (kineo1Shown ? 'trial_kineo1' : 'trial_seedance15') : 'free', credits: credits ?? null,"))
 checa('modal: a saída grátis de sempre ficou como estava', G.includes("  const firstFilmFreeAvailable =\n    freeFilmAvailable &&\n    filmsDelivered === 0 &&\n    !isStarter && !isCreator && !isStudio &&\n    !hasPaid &&\n    trialActive !== true"))
 checa('modal: o custo mostrado é a variável, nunca um número', !/Kineo 1 · [0-9]+ credits/.test(G))
 checa('nada foi tocado em CARD_ENTRY_ONLY (porta de $1 morta segue morta)', G.includes('trialKineo1={\n            !CARD_ENTRY_ONLY &&'))

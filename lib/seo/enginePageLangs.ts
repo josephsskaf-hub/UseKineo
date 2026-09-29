@@ -8,8 +8,13 @@
 // custo em créditos vem do catálogo (lib/growth/enginePageCatalog), nunca digitado.
 import { FREE_SHORTS_LANG_BY_CODE, type FreeShortsLang } from '@/lib/seo/freeShortsGeneratorLangs'
 
-export const LOCALIZED_ENGINE_SLUGS = ['kineo-1', 'seedance', 'veo'] as const
-export type LocalizedEngineSlug = (typeof LOCALIZED_ENGINE_SLUGS)[number]
+// KINEO-FILME-GRATIS-15S-2026-09-29 — 'kineo-1' saiu das páginas localizadas publicadas (sitemap, llms, /facts,
+// generateStaticParams): /ai-video-generator/kineo-1/<lang> virou 301 para /ai-video-generator/seedance/<lang>
+// (next.config.js), com o Kineo 1 fora do catálogo público. O TIPO continua com as três chaves para os textos about
+// abaixo não precisarem ser apagados (voltam com a página, se o fundador religar KINEO1_PUBLIC).
+const ALL_LOCALIZED_ENGINE_SLUGS = ['kineo-1', 'seedance', 'veo'] as const
+export type LocalizedEngineSlug = (typeof ALL_LOCALIZED_ENGINE_SLUGS)[number]
+export const LOCALIZED_ENGINE_SLUGS: readonly LocalizedEngineSlug[] = ALL_LOCALIZED_ENGINE_SLUGS.filter((slug) => slug !== 'kineo-1')
 
 type Facts = { engine: string; credits: number; trial: number }
 export type EngineLang = {

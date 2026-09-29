@@ -119,14 +119,20 @@ for (const [id, credits] of Object.entries({
   starter290: checkout.PACK_CREDITS.starter290,
   ...checkout.TOPUP_CREDITS,
 })) {
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o resto do saldo é contado em Seedance 1.5 de 15 s (o Kineo 1 saiu do
+  // catálogo público); custo do 15 s = creditCostForDuration, créditos vendidos intactos.
   check(`${id}: mix anunciado não inventa parcelas zero`, () => {
-    const mix = marketing.videoMixForCredits(credits, 'cinematic_ai', 'fast')
+    const safe = Math.max(0, Math.floor(credits))
+    const longCost = marketing.creditsPerReferenceVideo('cinematic_ai')
+    const shortCost = engine.creditCostForDuration('cinematic_ai', true, marketing.SEEDANCE_SHORT_FILM_SECONDS)
+    const long = Math.floor(safe / longCost)
+    const short = Math.floor((safe - long * longCost) / shortCost)
+    const noun = `${marketing.SEEDANCE_SHORT_FILM_SECONDS}-second Seedance film`
     const parts = []
-    if (mix.primary > 0) parts.push(marketing.formatResultCount(mix.primary, 'Seedance film'))
-    if (mix.secondary > 0) parts.push(marketing.formatResultCount(mix.secondary, 'Kineo 1 video'))
-    const expected = parts.length > 0
-      ? parts.join(' plus ')
-      : marketing.formatResultCount(marketing.videosForCredits(credits, 'fast'), 'Kineo 1 video')
+    if (long > 0) parts.push(marketing.formatResultCount(long, 'Seedance film'))
+    if (short > 0) parts.push(marketing.formatResultCount(short, noun))
+    const expected = parts.length > 0 ? parts.join(' plus ') : marketing.formatResultCount(0, noun)
+    assert.equal(marketing.SEEDANCE_SHORT_FILM_SECONDS, 15)
     const actual = marketing.describeSeedanceMix(credits)
     assert.equal(actual, expected)
     assert.doesNotMatch(actual, /(?:^|\s)0\s+(?:Seedance|Kineo)/)
@@ -216,7 +222,8 @@ const requiredReferences = {
   // TRIAL_KINEO1_FILMS (Kineo 1, the engine the 10-credit grant actually buys)
   // instead of TRIAL_FILMS (Seedance, which printed 0). Same intent: the number
   // comes from lib/freeTierOffer's calculator, never typed in the component.
-  'components/ExitIntentOffer.tsx': ['TRIAL_KINEO1_FILMS', 'videosPerMonth', 'TIER_CREDITS'],
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o painel grátis deriva do filme Seedance de 15 s (TRIAL_SEEDANCE15_FILMS).
+  'components/ExitIntentOffer.tsx': ['TRIAL_SEEDANCE15_FILMS', 'videosPerMonth', 'TIER_CREDITS'],
   'components/PostVideoPaywall.tsx': ['packPriceLabel()', 'PACK_CREDITS.starter'],
   'app/(dashboard)/generate/Offer290Banner.tsx': [
     "videosForCredits(PACK_CREDITS.starter290, 'cinematic_ai')",
@@ -358,10 +365,12 @@ check('comparações: Kineo vs Submagic executa a verdade atual de preço e Fast
   const pair = comparisons.PAIRS.find((item) => item.slug === 'kineo-vs-submagic')
   assert.ok(pair, 'par kineo-vs-submagic ausente')
   const renderedContract = JSON.stringify(pair)
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: as comparações medem o Kineo pelo Seedance 1.5 (Kineo 1 fora do catálogo).
   assert.match(
     renderedContract,
-    new RegExp(`60-second Kineo 1 video costing ${marketing.creditsPerReferenceVideo('fast')} credits`),
+    new RegExp(`60-second Seedance 1\\.5 film costing ${marketing.creditsPerReferenceVideo('cinematic_ai')} credits`),
   )
+  assert.doesNotMatch(renderedContract, /Kineo 1/)
   assert.ok(
     renderedContract.includes(
       `Kineo Starter is ${checkout.formatCheckoutMoney('usd', checkout.TIER_PRICES.starter.usd)}/month`,

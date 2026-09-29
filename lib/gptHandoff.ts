@@ -47,6 +47,8 @@ import {
 } from '@/lib/narrationFit'
 import { createHash } from 'node:crypto'
 import { narrationLanguage } from '@/lib/textLanguage' // GPT-LOJA-2026-09-24
+import { parseUserScript } from '@/lib/scriptParser' // revisão E2b: a régua de fala da guarda do filme curto
+import { maxWordsForShortFilm } from '@/lib/durationByEngine' // revisão E2b: o teto de 15 s (puro)
 
 /** Reexportados para quem já importava daqui (página /go, rotas): os nomes
  *  continuam, a fonte mudou. */
@@ -69,7 +71,16 @@ export const SCRIPT_MAX_CHARS = 5000
  *  importado para manter este módulo sem import; o guardião confere o espelho. */
 export const STUDIO_PROMPT_MAX_CHARS = 5000
 export const TOPIC_MAX_CHARS = 200
-export const DURATIONS = [35, 60, 90] as const
+// KINEO-FILME-GRATIS-15S-2026-09-29 — 15 entra para o filme grátis de conta nova (Seedance 1.5 de 15 s = 7 cr, cabe
+// nos 10 do trial). Só vale com engineHint 'seedance' (validateHandoffInput recusa 15 nos outros motores, o mesmo
+// contrato de lib/durationByEngine.ts — espelhado aqui para manter o módulo sem import novo). O padrão segue 60.
+export const DURATIONS = [15, 35, 60, 90] as const
+/** A duração que só existe no Seedance 1.5 (espelho de lib/durationByEngine SEEDANCE_SHORT_SECONDS). */
+export const SEEDANCE_ONLY_DURATION = 15
+/** KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b, B2 do cético) — o nome que a E2b usa (app/go/[token], guardião da entrada)
+ *  para a mesma duração curta. Junção E2b+E3: a fonte é SEEDANCE_ONLY_DURATION acima (a E3 pôs o 15 em DURATIONS); este
+ *  é só o apelido tipado (literal 15), não um segundo número. */
+export const HANDOFF_SHORT_DURATION = SEEDANCE_ONLY_DURATION
 export const DEFAULT_DURATION: HandoffDuration = 60
 export const DEFAULT_ENGINE: HandoffEngine = 'seedance'
 export const DEFAULT_LANGUAGE = 'en'
@@ -384,6 +395,25 @@ export function validateHandoffInput(body: unknown): HandoffValidation {
     }
     engineHint = normalized
   }
+  // Junção E2b+E3 (29/09): a E2b tinha aqui a mesma recusa com HANDOFF_SHORT_DURATION; ficou UMA só (a de baixo),
+  // senão o mutante que desliga a recusa no guardião da E3 nunca fica vermelho.
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — 15 s só no Seedance 1.5: recusa honesta aqui, na conversa com o GPT, em vez de
+  // um link que o Studio trocaria para 35 s (15 cr, fora do trial).
+  if (durationSec === SEEDANCE_ONLY_DURATION && engineHint !== 'seedance') {
+    return { ok: false, error: `durationSec ${SEEDANCE_ONLY_DURATION} is only available with engineHint seedance (Seedance 1.5). Send engineHint seedance, or durationSec 35, 60 or 90 for ${engineHint}.` }
+  }
+  // Revisão da E2b (achado 3 de dinheiro, 29/09) — 15 s tem TETO de fala: a guarda do cinematic
+  // (lib/durationByEngine checarFalaDoFilmeCurto) recusa acima de maxWordsForShortFilm(15) palavras de narração, na
+  // régua parseUserScript(...).narration contada por espaço. Sem este teto aqui, o GPT mandava 60 palavras com
+  // durationSec 15, o link abria em verbatim e o Studio devolvia 422 — a recusa chega AGORA, na conversa, onde o GPT
+  // sabe aparar. Mesma régua, mesma função: nada digitado.
+  if (durationSec === SEEDANCE_ONLY_DURATION) {
+    const palavrasFaladas = parseUserScript(script).narration.split(/\s+/).filter(Boolean).length
+    const tetoCurto = maxWordsForShortFilm(SEEDANCE_ONLY_DURATION)
+    if (palavrasFaladas > tetoCurto) {
+      return { ok: false, error: `A ${SEEDANCE_ONLY_DURATION}-second film fits at most ${tetoCurto} spoken words; this script has ${palavrasFaladas}. Trim the narration to ${tetoCurto} words or fewer and send it again, or send durationSec 35, 60 or 90 for the full script.` }
+    }
+  }
 
   let language = DEFAULT_LANGUAGE
   if (b.language !== undefined && b.language !== null && b.language !== '') {
@@ -530,6 +560,14 @@ export const LLMS_TXT_PATH = '/llms.txt'
  *  `channel` (06/09, KINEO-ASSISTANT-LINK): decide SÓ as duas etiquetas de
  *  medição, via CHANNEL_TAGS. Linha sem canal (ou com canal desconhecido) cai
  *  em DEFAULT_CHANNEL = 'gpt_store' — byte a byte o destino de antes. */
+/**
+ * KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b, B2) — decidido pela rota /api/gpt/handoff/go com a conta logada: o saldo
+ * (trial) não paga a duração pedida no Seedance, mas paga o filme curto. Então o Studio abre em Seedance a 15 s; se o
+ * roteiro do GPT for longo demais para 15 s (fitsShort=false), abre em modo IA — um TEASER do roteiro — em vez de
+ * verbatim (a guarda do cinematic recusaria o roteiro inteiro a 15 s com 422).
+ */
+export type EntradaCurtaDoHandoff = { shortSeconds: number; fitsShort: boolean }
+
 export function buildStudioDestination(row: {
   script: string
   duration_sec: number
@@ -538,12 +576,14 @@ export function buildStudioDestination(row: {
   /** GPT-LOJA-2026-09-24 — idioma do roteiro; antes era gravado e nunca chegava ao Studio (10 das 16 línguas abriam em inglês). */
   language?: string | null
   aspect: string
-}): string {
+}, entrada?: EntradaCurtaDoHandoff | null): string {
   const q = new URLSearchParams()
+  const engine = isHandoffEngine(row.engine_hint) ? row.engine_hint : DEFAULT_ENGINE
+  const curto = Boolean(entrada) && (engine === 'seedance' || engine === 'fast')
   q.set('prompt', row.script)
-  q.set('script_mode', 'verbatim')
-  q.set('duration', String(row.duration_sec))
-  q.set('engine', isHandoffEngine(row.engine_hint) ? row.engine_hint : DEFAULT_ENGINE)
+  q.set('script_mode', curto && !entrada!.fitsShort ? 'ai' : 'verbatim')
+  q.set('duration', String(curto ? entrada!.shortSeconds : row.duration_sec))
+  q.set('engine', curto ? 'seedance' : engine)
   const aspect = normalizeAspect(row.aspect)
   if (aspect !== DEFAULT_ASPECT) q.set('aspect', aspect)
   const lang = narrationLanguage(String(row.language ?? '').slice(0, 2).toLowerCase())

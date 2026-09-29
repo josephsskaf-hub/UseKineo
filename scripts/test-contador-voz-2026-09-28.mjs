@@ -29,7 +29,10 @@ const DFS = roda(rd('lib/durationFollowsScript.ts'))
 const SR = roda(semImports(rd('lib/speechRate.ts')), { ...NF, ...SPX })
 const PER = roda(rd('lib/narration/personas.ts'))
 const NM = roda(semImports(rd('lib/narration/niche-mapping.ts')), { ...PER })
-const CV = roda(semImports(rd('lib/contadorVoz.ts')), globais(EP, SPX, DFS, SR, NM, NF))
+// KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — o contador passou a ler supportedDurationsFor (lib/durationByEngine.ts,
+// módulo puro): o Seedance tem o botão de 15 s. O guardião injeta o módulo real, como faz com os outros.
+const DBE = roda(rd('lib/durationByEngine.ts'))
+const CV = roda(semImports(rd('lib/contadorVoz.ts')), globais(EP, SPX, DFS, SR, NM, NF, DBE))
 
 const palavras = (n) => Array.from({ length: n }, (_, i) => (i % 7 === 0 ? 'mystery' : 'word')).join(' ')
 const reguaDe = (wps) => ({ rate: { family: wps === 2.3 ? 'hollywood' : 'classic', wordsPerSecond: wps, speed: 1, language: 'en', basis: 'estimate' }, persona: null, floorSeconds: 15 })
@@ -162,6 +165,22 @@ console.log('== G) revisão 28/09: promessas por motor — "we narrate it all" s
   const cin = rd('app/api/generate-video-cinematic/route.ts')
   checa('generate-video-fast RECUSA acima do teto de 90 s (decideDurationFollowsScriptUp + script_too_long_for_engine); o cinematic NÃO aplica esse teto (não importa o "sobe") — a única recusa dele é o cap de cenas do hollywood (MAX_VERBATIM_SCENES × SCENE_CAP × 2,3 = 331 palavras, acima dos 238 do teto)', /decideDurationFollowsScriptUp/.test(fast) && /script_too_long_for_engine/.test(fast) && !/decideDurationFollowsScriptUp/.test(cin) && /const maxWords = Math\.floor\(MAX_VERBATIM_SCENES \* SCENE_CAP \* 2\.3\)/.test(cin) && /const MAX_VERBATIM_SCENES = 12/.test(cin) && /const SCENE_CAP = family === 'omni' \? 10 : 12/.test(cin))
   checa('a frase deriva o ramo do motor pela mesma função de família do servidor (speechFamilyForQuality), não por lista digitada', /const family = motor \? speechFamilyForQuality\(motor\) : null/.test(rd('lib/contadorVoz.ts')) && /const recusaNoTeto = motor === 'fast'/.test(rd('lib/contadorVoz.ts')))
+}
+
+// ── KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — o filme de 15 s do Seedance no contador ──────────────────────────────
+console.log('== H) Seedance a 15 s: o contador usa a lista do Seedance (15/35/60/90), os outros motores seguem em 35/60/90 ==')
+{
+  const reg = (engine) => CV.reguaDoServidorNaTela({ engine, script: palavras(45), language: 'en' })
+  const rs = reg('seedance'), rk = reg('kling'), rf = reg('fast')
+  checa('régua do Seedance traz [15, 35, 60, 90] (supportedDurationsFor, não digitado); Kling e Kineo 1 seguem [35, 60, 90]', JSON.stringify(rs.supported) === JSON.stringify(DBE.SEEDANCE_DURATIONS) && JSON.stringify(rk.supported) === JSON.stringify(DBE.DEFAULT_ENGINE_DURATIONS) && JSON.stringify(rf.supported) === JSON.stringify(DBE.DEFAULT_ENGINE_DURATIONS))
+  const palavras15 = Math.ceil(DBE.SEEDANCE_SHORT_SECONDS * rs.rate.wordsPerSecond) // enche os 15 s na voz prevista
+  const v15 = CV.contadorVoz({ script: palavras(palavras15), regua: rs, requestedSeconds: DBE.SEEDANCE_SHORT_SECONDS })
+  checa(`Seedance 15 s com ${palavras15} palavras: cabe (não "too short — pick 35")`, v15?.kind === 'fits')
+  const semLista = { ...rs, supported: undefined }
+  const mut = CV.contadorVoz({ script: palavras(palavras15), regua: semLista, requestedSeconds: DBE.SEEDANCE_SHORT_SECONDS })
+  checa('mutante (régua sem a lista do Seedance) → vermelho: volta a dizer "too short" para o filme de 15 s', mut?.kind === 'too_short')
+  const k15 = CV.contadorVoz({ script: palavras(palavras15), regua: rk, requestedSeconds: DBE.SEEDANCE_SHORT_SECONDS })
+  checa('Kling a 15 s continua "too short" (o 15 s não vaza para outro motor)', k15?.kind === 'too_short')
 }
 
 console.log(`\n${ok} verificações passaram · ${falhas.length} falharam`)

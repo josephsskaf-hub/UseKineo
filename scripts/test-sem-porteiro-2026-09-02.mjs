@@ -46,7 +46,9 @@ check('o caminho de quem NÃO está logado ficou intocado (signup)', landing.inc
 check('a razão está escrita no código, não só no commit', landing.includes('KINEO-SEM-PORTEIRO-2026-09-02'))
 
 console.log('3 · pós-pagamento (o pior lugar possível para uma tela lenta)')
-check('checkout/success: primeiro clique pós-compra é direto', sucesso.includes('/studio/create?create_intent=fast&prompt=') && !sucesso.includes('/generate?create_intent=fast'))
+// Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b/B5): o intent do pós-compra virou 'trial_best' (o resolvedor leva quem
+// acabou de pagar ao Seedance; 'fast' o mandava ao Kineo 1). A prova continua a mesma: direto ao /studio/create, nunca /generate.
+check('checkout/success: primeiro clique pós-compra é direto', sucesso.includes('/studio/create?create_intent=trial_best&prompt=') && !sucesso.includes('/generate?create_intent='))
 check('checkout/success: o link sem query vai para /studio', !sucesso.includes('href="/generate"'))
 check('checkout/cancelled: idem', !cancelado.includes('href="/generate"'))
 

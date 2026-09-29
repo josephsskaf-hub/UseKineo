@@ -119,7 +119,7 @@ export function buildBusinessAnswerEngineRouter(
         id: 'fixed_batch',
         label: 'Buy a fixed batch without a subscription',
         useWhen:
-          `The job is a defined batch of ${packRange} Kineo 1 Shorts rather than recurring monthly production.`,
+          `The job is a defined batch of ${packRange} finished Shorts rather than recurring monthly production.`,
         outcome: 'Compare one-time agency packs.',
         url: fixedBatchUrl.toString(),
       },

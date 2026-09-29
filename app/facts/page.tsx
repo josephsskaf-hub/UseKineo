@@ -134,6 +134,16 @@ const TRIAL_COVERED_ENGINES = TRIAL_ACCESS?.engineCoverage
 const TRIAL_BALANCE_SHORT_ENGINES = TRIAL_ACCESS?.engineCoverage
   .filter((engine) => engine.wholeReferenceVideosCovered === 0)
   .map((engine) => engine.engine) ?? []
+// KINEO-FILME-GRATIS-15S-2026-09-29 — o filme que o trial paga (Seedance 1.5 de 15 s), da mesma fonte do /llms.txt.
+// Com o Kineo 1 fora do catálogo, nenhum motor cabe a 60 s e TRIAL_COVERED_ENGINES sai vazio: a frase do filme
+// grátis é o que diz ao leitor o que os créditos do trial compram.
+const TRIAL_FREE_FILM = TRIAL_ACCESS?.freeFilm ?? null
+const TRIAL_FREE_FILM_SENTENCE = TRIAL_FREE_FILM
+  ? `The ${TRIAL_ACCESS?.credits}-credit balance pays for ${TRIAL_FREE_FILM.filmsCovered === 1 ? 'one' : TRIAL_FREE_FILM.filmsCovered} free ${TRIAL_FREE_FILM.seconds}-second film (${TRIAL_FREE_FILM.engine}) at ${TRIAL_FREE_FILM.creditsPerFilm} credits. `
+  : ''
+const TRIAL_COVERAGE_SENTENCE = TRIAL_COVERED_ENGINES.length > 0
+  ? `That balance covers a full reference video on ${listEn(TRIAL_COVERED_ENGINES)}. `
+  : 'That balance does not cover a full 60-second reference video on any engine. '
 const BUSINESS_PACK_LIST = listEn(
   BUSINESS_OFFER_FACT.packs.map(
     (pack) => `${pack.videos} ${BUSINESS_OFFER_FACT.namedVideoCountEngine} videos for ${pack.priceUsd} once`,
@@ -228,11 +238,14 @@ const FACTS: { fact: string }[] = [
   ...(TRIAL_ACCESS
     ? [{
         fact:
-          `The new-account trial unlocks every listed engine, but its ${TRIAL_ACCESS.credits}-credit balance ` +
-          `covers a full reference video only on ${listEn(TRIAL_COVERED_ENGINES)}. ` +
+          `The new-account trial unlocks every listed engine with a ${TRIAL_ACCESS.credits}-credit balance. ` +
+          TRIAL_FREE_FILM_SENTENCE +
+          TRIAL_COVERAGE_SENTENCE +
           `${listEn(TRIAL_BALANCE_SHORT_ENGINES)} are selectable but require more credits for a full reference video. ` +
-          `After the trial, recurring free access is ${RECURRING_FREE_ACCESS.videosPerWindow} watermarked ` +
-          `${RECURRING_FREE_ACCESS.engine} video per ${RECURRING_FREE_ACCESS.rollingWindowHours}-hour window.`,
+          (RECURRING_FREE_ACCESS
+            ? `After the trial, recurring free access is ${RECURRING_FREE_ACCESS.videosPerWindow} watermarked ` +
+              `${RECURRING_FREE_ACCESS.engine} video per ${RECURRING_FREE_ACCESS.rollingWindowHours}-hour window.`
+            : 'The trial film is the only free film Kineo advertises.'), // revisão E2b: não anunciar ≠ negar
       }]
     : []),
   {
@@ -352,8 +365,9 @@ const QA: { q: string; a: string }[] = [
     ? [{
         q: 'Can I try every Kineo video engine for free?',
         a:
-          `${TRIAL_ACCESS.everyEngineUnlocked ? 'Every engine is unlocked' : 'Kineo 1 and Seedance 1.5 are unlocked'} during the new-account trial, with ${TRIAL_ACCESS.credits} credits${TRIAL_ACCESS.noCardRequired ? ' and no card' : ' ($1 for 7 days, card required)'}. ` +
-          `That balance covers a full reference video on ${listEn(TRIAL_COVERED_ENGINES)}. ` +
+          `${TRIAL_ACCESS.everyEngineUnlocked ? 'Every engine is unlocked' : 'Seedance 1.5 is unlocked'} during the new-account trial, with ${TRIAL_ACCESS.credits} credits${TRIAL_ACCESS.noCardRequired ? ' and no card' : ' ($1 for 7 days, card required)'}. ` +
+          TRIAL_FREE_FILM_SENTENCE +
+          TRIAL_COVERAGE_SENTENCE +
           `It does not cover a full reference video on ${listEn(TRIAL_BALANCE_SHORT_ENGINES)}; those engines need a paid plan or sufficient additional credits. ` +
           `Trial films are watermarked, and a paid plan unlocks the clean download.`,
       }]

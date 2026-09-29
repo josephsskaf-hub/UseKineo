@@ -16,7 +16,7 @@ import type { Metadata } from 'next'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import SoraReplacementTable from '@/components/SoraReplacementTable'
 import { SORA_API_SHUTDOWN, SORA_API_SOURCE } from '@/lib/growth/soraMigrationFacts'
-import { TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
+import { FREE_FILM_LABEL, TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
 
 export const dynamic = 'force-static'
 
@@ -62,7 +62,7 @@ const FAQ_JSONLD = {
       name: 'What is the best Sora alternative for short-form creators?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `Kineo combines script, narration, footage and captions for finished videos. Seedance 1.5, Kling 3 and Veo 3.1 require a paid plan and sufficient credits. The no-card trial has ${TRIAL_CREDITS_SHOWN} credits for the Kineo 1 path, not free access to every generative engine.`,
+        text: `Kineo combines script, narration, footage and captions for finished videos. Seedance 1.5, Kling 3 and Veo 3.1 require a paid plan and sufficient credits. The no-card trial has ${TRIAL_CREDITS_SHOWN} credits — enough for one ${FREE_FILM_LABEL} — not free access to every generative engine.`,
       },
     },
   ],
@@ -112,7 +112,7 @@ export default function SoraAlternativePage() {
         ingredient — that’s the case Kineo was built for: you type an idea, and it returns a finished
         9:16 Short with script, AI voiceover, footage from those same engines, and captions. On Kling 3
         and MiniMax H3, characters can speak scripted lines with lip sync. Those engines require a paid plan and enough credits. The{' '}
-        <a href={`${BASE}/free`} style={{ color: '#2997ff' }}>no-card trial</a> has {TRIAL_CREDITS_SHOWN} credits for Kineo 1, not free access to Kling, Veo or Seedance.
+        <a href={`${BASE}/free`} style={{ color: '#2997ff' }}>no-card trial</a> has {TRIAL_CREDITS_SHOWN} credits — enough for one {FREE_FILM_LABEL} — not free access to Kling, Veo or longer Seedance films.
       </p>
       <p style={{ color: '#c7c7cc' }}>
         {/* KINEO-MULTIFORMATO-2026-09-02 — este parágrafo mandava embora todo

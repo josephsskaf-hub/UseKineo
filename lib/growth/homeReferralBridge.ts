@@ -26,10 +26,16 @@ export const HOME_REFERRAL_BRIDGE_COPY: Record<HomeReferralBridgeSource, {
  * K6 sends TAAFT visitors through the reliable Kineo 1 first-film rail.
  * ChatGPT and ordinary homepage traffic keep the existing guarded premium
  * trial policy; an unknown source never receives the TAAFT override.
+ *
+ * KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — K6 REVOGADA com a entrada nova (o chamador passa SEEDANCE_15S_PUBLIC):
+ * o Kineo 1 sai da entrada e o TAAFT começa no Seedance 1.5 de 15 s como todo mundo ('trial_best', que o resolvedor do
+ * auto-start leva ao Seedance curto). Com o interruptor desligado, K6 como antes.
  */
 export function homeReferralCreationIntent(
   source: HomeReferralBridgeSource | null,
+  entrada15 = false,
 ): HomeReferralCreationIntent {
+  if (entrada15) return 'trial_best'
   return source === 'taaft' ? 'fast' : 'trial_best'
 }
 

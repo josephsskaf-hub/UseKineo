@@ -81,10 +81,15 @@ console.log('\n(A) lib/gptHandoff.ts executada')
   // passou a vir de @/lib/narrationFit (o cobrador, puro — zero import). A
   // lista de módulos do PROJETO que a lib pode importar é FECHADA: esses dois.
   // GPT-LOJA-2026-09-24 — reancorado com motivo: @/lib/textLanguage entrou (idioma do roteiro vai ao Studio); folha pura, zero import.
-  const PURE_ALLOWED = ['@/lib/aspect', '@/lib/narrationFit', '@/lib/textLanguage']
+  // Reancorado 29/09 (revisão da E2b, achado 3): @/lib/scriptParser (parseUserScript, a régua de fala da guarda do
+  // filme curto) e @/lib/durationByEngine (maxWordsForShortFilm, o teto de 15 s) entraram — as DUAS folhas puras,
+  // zero import (conferido logo abaixo, como aspect/narrationFit). A lista continua FECHADA.
+  const PURE_ALLOWED = ['@/lib/aspect', '@/lib/narrationFit', '@/lib/textLanguage', '@/lib/scriptParser', '@/lib/durationByEngine']
   const libImports = [...lib.matchAll(/^import (?:\{[^}]*\}|[^\n{]*) from '([^']+)'/gm)].map((m) => m[1])
   const projectImports = libImports.filter((s) => !s.startsWith('node:'))
-  ok(sameSetTop(projectImports, PURE_ALLOWED) && libImports.every((s) => PURE_ALLOWED.includes(s) || s === 'node:crypto'), `(A0) a lib importa SÓ @/lib/aspect, @/lib/narrationFit e @/lib/textLanguage do projeto, e no máximo o builtin node:crypto (achados: ${libImports.join(', ') || 'nenhum'}) — o resto continua puro`)
+  ok(sameSetTop(projectImports, PURE_ALLOWED) && libImports.every((s) => PURE_ALLOWED.includes(s) || s === 'node:crypto'), `(A0) a lib importa SÓ @/lib/aspect, @/lib/narrationFit, @/lib/textLanguage, @/lib/scriptParser e @/lib/durationByEngine do projeto, e no máximo o builtin node:crypto (achados: ${libImports.join(', ') || 'nenhum'}) — o resto continua puro`)
+  ok(!/^\s*import\s/m.test(read('lib/scriptParser.ts')), '(A0) lib/scriptParser.ts é pura: zero import')
+  ok(!/^\s*import\s/m.test(read('lib/durationByEngine.ts')), '(A0) lib/durationByEngine.ts é pura: zero import')
   ok(!/^\s*import\s/m.test(aspectLib), '(A0) lib/aspect.ts é pura: zero import (é o que permite executar as duas aqui)')
   ok(!/^\s*import\s/m.test(read('lib/narrationFit.ts')), '(A0) lib/narrationFit.ts é pura: zero import (o cobrador não traz banco nem rede para a lib)')
 }
@@ -245,7 +250,12 @@ ok(/\} catch \(e\) \{[\s\S]*?return json\(\{ error: 'Kineo could not process[^\n
 const importsOf = (src) => [...src.matchAll(/from '([^']+)'/g)].map((m) => m[1])
 const PAID = /generate-video|\/compose|falQueue|fal\b|credit|debit|grant|hollywood\/|cinematic\/|broll\/|lyriaMusic|openai|stripe/i
 const allImports = [postRoute, goRoute, pricingRoute, store, page].flatMap(importsOf)
-ok(allImports.length >= 12 && allImports.every((i) => !PAID.test(i)), `(B9) nenhum import de pipeline/fornecedor/crédito nas 5 superfícies (${allImports.length} imports lidos)`)
+// Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b/B2): a rota /api/gpt/handoff/go passou a LER a tabela de preço
+// (lib/credits/engineCost — creditCostForDuration, função pura, sem banco nem fornecedor) para decidir se o trial abre no
+// filme de 15 s. É a única exceção, por nome exato; débito, grant, compose, fal, stripe e pipeline continuam proibidos.
+const TABELA_DE_PRECO = '@/lib/credits/engineCost'
+ok(allImports.length >= 12 && allImports.every((i) => i === TABELA_DE_PRECO || !PAID.test(i)), `(B9) nenhum import de pipeline/fornecedor/crédito nas 5 superfícies (${allImports.length} imports lidos; só a tabela de preço pura)`)
+ok(![postRoute, pricingRoute, store, page].flatMap(importsOf).includes(TABELA_DE_PRECO), '(B9) a exceção da tabela de preço vale SÓ para a rota do clique (/go), não para as outras 4 superfícies')
 ok(!/auth\.admin|signUp|createUser/.test(postRoute + store), '(B9) nunca cria conta')
 
 // ═══ (B) TEXTO REAL — rota GO (o clique) ════════════════════════════════════
@@ -260,7 +270,9 @@ ok(/const ROBO = \/\(bot\|crawler\|spider/.test(read('lib/requestIdentity.ts')) 
 ok(/const url = userId\s*\n\s*\? `\$\{origem\}\$\{destino\}`\s*\n\s*: `\$\{origem\}\$\{authPath\}\?redirect=\$\{encodeURIComponent\(`\$\{GO_PATH_PREFIX\}\$\{token\}`\)\}`/.test(goRoute), '(C3) userId ? Studio preenchido : conta com redirect=/go/<token>')
 ok(/userId = user\?\.id \?\? null/.test(goRoute), '(C3) userId vem de supabase.auth.getUser()')
 ok(/authPath = hasPriorSession \? '\/login' : '\/signup'/.test(goRoute) && /c\.name\.startsWith\('sb-'\) && c\.name\.includes\('auth-token'\)/.test(goRoute), '(C3) sem sessão: cookie antigo → /login, novo → /signup (critério do porteiro de /studio/create)')
-ok(/destino = normalizeInternalRedirect\(buildStudioDestination\(row\)\) \?\? STUDIO_CREATE_PATH/.test(goRoute), '(C3) destino passa por normalizeInternalRedirect; recusa → /studio/create pelado')
+// Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b/B2): o destino ganhou o 2º argumento (entrada curta decidida com a
+// conta logada); a prova continua a mesma — passa por normalizeInternalRedirect e cai em /studio/create pelado na recusa.
+ok(/destino = normalizeInternalRedirect\(buildStudioDestination\(row, entradaCurta\)\) \?\? STUDIO_CREATE_PATH/.test(goRoute), '(C3) destino passa por normalizeInternalRedirect; recusa → /studio/create pelado')
 ok(/if \(!isHandoffToken\(token\)\) \{\s*\n\s*return NextResponse\.redirect\(`\$\{origem\}\$\{FALLBACK\}`, 302\)/.test(goRoute), '(C4) token inválido → redirect, não 4xx')
 ok(/if \(found\.status !== 'ok' \|\| found\.expired\) \{\s*\n\s*return NextResponse\.redirect\(`\$\{origem\}\$\{GO_PATH_PREFIX\}\$\{token\}`, 302\)/.test(goRoute), '(C4) sem linha ou vencido → volta para /go/<token> (a página explica)')
 ok(/await findHandoff\(token\)\.catch\(\(\) => \(\{ status: 'unavailable' as const \}\)\)/.test(goRoute), '(C4) leitura do banco com catch → nunca lança')
@@ -527,7 +539,10 @@ console.log('\n(J) public/gpt/openapi.json amarrado ao servidor')
     // no regime sem Seedance grátis a regra de custo é "trial cobre fast, o resto
     // é plano pago", não "35/60 grátis, 90 paga".
     const d200 = op?.responses?.['200']?.description ?? ''
-    ok(new RegExp(`${TRIAL_CAP}-credit trial`).test(d200) && (noSeedanceFitsTrial ? /paid plan/i.test(d200) && /\`fast\`/.test(d200) : /durationSec (is )?90/.test(d200)), `(J9) a regra de custo (${noSeedanceFitsTrial ? `trial de ${TRIAL_CAP} cobre o fast; Seedance é plano pago` : '35/60 grátis, 90 paga'}) mora na description do 200, que não tem limite`)
+    // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: com o 15 s no handoff o regime voltou a ter Seedance grátis
+    // (freeDur = [15], decidido pelo custo real). A regra de custo do 200 passa a ser derivada: cita "durationSec N" para
+    // cada duração que cabe, cita cada duração que NÃO cabe e diz "paid plan" (era o literal "durationSec 90" de 35/60 grátis).
+    ok(new RegExp(`${TRIAL_CAP}-credit trial`).test(d200) && (noSeedanceFitsTrial ? /paid plan/i.test(d200) && /\`fast\`/.test(d200) : freeDur.every((d) => new RegExp(`durationSec ${d}\\b`).test(d200)) && paidDur.every((d) => mentions(d200, d)) && /paid plan/i.test(d200)), `(J9) a regra de custo (${noSeedanceFitsTrial ? `trial de ${TRIAL_CAP} cobre o fast; Seedance é plano pago` : '35/60 grátis, 90 paga'}) mora na description do 200, que não tem limite`)
     const trialMentions = strings.flatMap((s) => [...s.matchAll(/(\d+)-credit trial/g)].map((m) => Number(m[1])))
     ok(trialMentions.length >= 1 && trialMentions.every((n) => n === TRIAL_CAP), `(J8) todo "N-credit trial" do schema (${[...new Set(trialMentions)]}) === TRIAL_CREDIT_CAP (${TRIAL_CAP})`)
     const hwMentions = strings.flatMap((s) => [...s.matchAll(/(\d+) credits at 60s/g)].map((m) => Number(m[1])))
@@ -660,11 +675,14 @@ console.log('\n(K) docs/GPT-KINEO-VIDEO-MAKER.md amarrado ao servidor e ao schem
   // "Try Kineo 1 free (N credits, no card)." — N lido de TRIAL_CAP — e é ELA o literal preso aqui. Essa frase não é promessa
   // de FILME grátis (o CLAIM não casa: nomeia o motor e o saldo), então a contagem de exceções passa a ser só a dos blurbs
   // que o CLAIM pega (a longa), e o piso de parágrafos com promessa cai de 5 para 4 pela mesma razão.
-  const STORE_BLURBS = [`Try Kineo 1 free (${TRIAL_CAP} credits, no card).`, `Your first film is free on Kineo 1: ${TRIAL_CAP} trial credits, no card; Seedance and premium engines need a paid plan.`]
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o filme grátis de conta nova passou a ser o Seedance 1.5 de
+  // 15 s (decisão do fundador) e o Kineo 1 saiu do catálogo; os dois blurbs da loja dizem isso, com N lido de TRIAL_CAP. As
+  // travas do resto do .md seguem: todo outro parágrafo que promete grátis cita 15 (o que cabe) E 35/60/90 (o que não cabe).
+  const STORE_BLURBS = [`Your first 15-second film is free (Seedance 1.5, ${TRIAL_CAP} credits, no card).`, `Your first film is free: a 15-second Seedance 1.5 film on the ${TRIAL_CAP} trial credits, no card; longer films and premium engines need a paid plan.`]
   const blurbsInB = STORE_BLURBS.filter((b) => secB.includes(b))
   ok(blurbsInB.length === STORE_BLURBS.length, `(K2) as ${STORE_BLURBS.length} frases da exceção existem na seção B, literalmente (${blurbsInB.length} achadas)`)
   ok(STORE_BLURBS.every((b) => !secC.includes(b) && !secG.includes(b)), '(K2) a exceção não vaza: os blurbs da seção B não aparecem em C nem em G')
-  ok(!secB.includes('First film free.') && /\. Try Kineo 1 free \(\d+ credits, no card\)\.\n```/.test(secB), '(K2) a descrição curta da loja não diz mais "First film free." e TERMINA na frase do Kineo 1')
+  ok(!secB.includes('First film free.') && !secB.includes('Try Kineo 1 free') && /\. Your first 15-second film is free \(Seedance 1\.5, \d+ credits, no card\)\.\n```/.test(secB), '(K2) a descrição curta da loja não diz "First film free." nem "Try Kineo 1 free" e TERMINA na frase do Seedance de 15 s')
   const secBStart = md.indexOf('## B. ')
   const secBEnd = md.indexOf('## C. ')
   const isStoreBlurb = (p, idx) => idx >= secBStart && idx < secBEnd && STORE_BLURBS.some((b) => p.includes(b))
@@ -722,15 +740,19 @@ console.log('\n(K) docs/GPT-KINEO-VIDEO-MAKER.md amarrado ao servidor e ao schem
       const block = (instructions.match(new RegExp(`${header}[^\\n]*\\n([\\s\\S]*?)\\n\\n`)) || [])[1] || ''
       return [...block.matchAll(/^- (\d+)s: (\d+)-(\d+) words/gm)].map((m) => ({ d: Number(m[1]), lo: Number(m[2]), hi: Number(m[3]) }))
     }
+    // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: DURATIONS ganhou o 15, que só existe no Seedance
+    // (L.SEEDANCE_ONLY_DURATION; o handoff recusa 15 fora do seedance). A linha premium cobre DURATIONS sem o 15; a
+    // standard cobre todas, e o 15 dela é executado contra o estimador como as outras.
     for (const [header, ids] of [['Standard engines', stdIds], ['Premium engines', premIds]]) {
       const r = rows(header)
-      ok(sameSet(r.map((x) => x.d), DUR), `(K4) ${header}: linhas de orçamento para [${r.map((x) => x.d)}] === DURATIONS`)
+      const durs = header === 'Premium engines' ? DUR.filter((d) => d !== L.SEEDANCE_ONLY_DURATION) : DUR
+      ok(sameSet(r.map((x) => x.d), durs), `(K4) ${header}: linhas de orçamento para [${r.map((x) => x.d)}] === DURATIONS${header === 'Premium engines' ? ' sem o 15 (só Seedance)' : ''}`)
       const bad = r.flatMap((x) => ids.flatMap((e) => {
         const lo = L.estimateHandoff(mk(x.lo), x.d, e).fit
         const hi = L.estimateHandoff(mk(x.hi), x.d, e).fit
         return lo === 'short' || hi === 'long' ? [`${e}@${x.d}s ${x.lo}-${x.hi} → ${lo}/${hi}`] : []
       }))
-      ok(r.length === DUR.length && bad.length === 0, bad.length ? `(K4) faixa de palavras que o servidor reprovaria: ${bad.join('; ')}` : `(K4) ${header}: piso nunca dá "short", teto nunca dá "long" (estimateHandoff real)`)
+      ok(r.length === durs.length && bad.length === 0, bad.length ? `(K4) faixa de palavras que o servidor reprovaria: ${bad.join('; ')}` : `(K4) ${header}: piso nunca dá "short", teto nunca dá "long" (estimateHandoff real)`)
     }
   }
   const step1 = (instructions.match(/Duration: [^\n]*/) || [''])[0]
@@ -785,7 +807,9 @@ console.log('\n(K) docs/GPT-KINEO-VIDEO-MAKER.md amarrado ao servidor e ao schem
   // KINEO-GPT-INSTRUCOES-V3-2026-09-24 — reancorado com motivo: "one 60-second" era o trial de 25 (um Seedance). Com o
   // trial de 10 o saldo paga DOIS Kineo 1 de 60 s (llms.txt: "Kineo 1 (2 full reference videos)"); a trava aceita one|two
   // e segue exigindo o TRIAL_CAP lido da fonte, "no card required" e a duração de referência.
-  ok(new RegExp(`Free trial: ${TRIAL_CAP} credits, no card required\\. Enough for (?:one|two) ${REF_SEC}-second`).test(instructions), `(K7) o Step "Pricing" diz o trial certo e o que ele compra (filme(s) de ${REF_SEC}s)`)
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o trial de TRIAL_CAP passou a comprar UM Seedance 1.5 de
+  // SEEDANCE_ONLY_DURATION s (decisão do fundador); a trava segue exigindo o TRIAL_CAP da fonte, "no card" e a duração lida da lib.
+  ok(L && new RegExp(`Free trial: ${TRIAL_CAP} credits, no card = one free ${L.SEEDANCE_ONLY_DURATION}s Seedance 1\\.5 film`).test(instructions), `(K7) o Step "Pricing" diz o trial certo e o que ele compra (1 filme Seedance de ${L?.SEEDANCE_ONLY_DURATION}s)`)
 
   // (K8) CUSTOS. Os créditos por motor a 60s (cabeçalho "Fatos conferidos")
   // e os custos do Seedance por duração (15/25/38 em G) vêm de engineCost.ts.
@@ -836,7 +860,9 @@ console.log('\n(L) enquadramento: lib/aspect.ts é a fonte; nenhum formato digit
   ok(ASPECT_LIST.every((a) => !libCode.includes(`'${a}'`)), `(L1) nenhum dos ${ASPECT_LIST.length} formatos aparece como literal no CÓDIGO da lib (só em comentário) — uma cópia digitada reprova aqui`)
   // ── (L2) a emissão condicional, no texto, amarrada ao padrão da fonte.
   ok(/const aspect = normalizeAspect\(row\.aspect\)\s*\n\s*if \(aspect !== DEFAULT_ASPECT\) q\.set\('aspect', aspect\)/.test(lib), "(L2) buildStudioDestination: `if (aspect !== DEFAULT_ASPECT) q.set('aspect', aspect)` — emite só fora do padrão")
-  ok(/aspect: string\s*\n\s*\}\): string \{/.test(lib), '(L2) a assinatura de buildStudioDestination exige `aspect` na linha (a rota do clique passa a linha inteira)')
+  // Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b/B2): a assinatura ganhou o 2º argumento opcional (a entrada curta);
+  // a linha continua exigindo `aspect`.
+  ok(/aspect: string\s*\n\s*\}(, entrada\?: EntradaCurtaDoHandoff \| null)?\): string \{/.test(lib), '(L2) a assinatura de buildStudioDestination exige `aspect` na linha (a rota do clique passa a linha inteira)')
   // O Studio LÊ o parâmetro — a capacidade existe do outro lado (só leitura
   // do arquivo; o GenerateClient não é editado por este trabalho).
   const gen = read('app/(dashboard)/generate/GenerateClient.tsx')

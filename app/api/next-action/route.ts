@@ -9,6 +9,11 @@ import { getFreeTierOffer } from '@/lib/freeTierOffer'
 import { countFreeFastUsage } from '@/lib/freeFastQuota'
 import { COMPOSE_CLAIM_EVENT, COMPOSE_CLAIM_PATH } from '@/lib/composeClaim'
 import { EVENT_SESSION_COOKIE } from '@/lib/growth/checkoutAuthSessionBridge'
+// KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — com a entrada nova (seedance15sVisible), o Kineo 1 só é oferecido a quem tem
+// a flag kineo1 (a MESMA composição do /api/me/credits), e o Seedance de 15 s vira a saída barata que cabe no trial.
+import { resolveKineo1Flag, seedance15sVisible } from '@/lib/engineLaunch'
+import { readKineo1Access } from '@/lib/kineo1Access'
+import { SEEDANCE_SHORT_SECONDS } from '@/lib/durationByEngine'
 
 // ═══ KINEO-PROXIMA-ACAO-2026-09-05 — sprint-assinaturas #7 (J5 reapontada) ══
 //
@@ -362,6 +367,14 @@ export async function GET(req: NextRequest) {
     // em `isPaidAccount` como manda a invariante 1 de lib/reverseTrial.ts.
     const ent = getEffectiveEntitlement(profile, { isPaidAccount })
     const isPaidUser = ent.treatAsPaid
+    // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — sem a entrada nova, o Kineo 1 segue como antes. Com ela, só com a flag
+    // kineo1 (falha de leitura do legado = 'não sei' → só para quem sabidamente paga, a régua do kineo1NaTela).
+    const entrada15 = seedance15sVisible(user.email)
+    const kineo1Ok = !entrada15 || await resolveKineo1Flag(
+      user.email,
+      () => profile.has_paid === true,
+      () => readKineo1Access(user.id).then((l) => { if (l.ok === false) throw new Error('kineo1_legacy_unreadable'); return l }),
+    ).catch(() => profile.has_paid === true)
 
     const { data: filmes } = await supabase
       .from('videos')
@@ -438,7 +451,20 @@ export async function GET(req: NextRequest) {
     }))
       .filter((m) => m.cost <= balance)
       .filter((m) => (m.engine === 'fast' ? fastGratisDisponivel : true))
+      .filter((m) => m.engine !== 'fast' || kineo1Ok) // KINEO-ENTRADA-SEEDANCE15: conta nova não recebe Kineo 1
       .sort((a, b) => b.cost - a.cost) // o melhor que o saldo paga vem primeiro
+    // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — o degrau curto: quando o Seedance na duração do último filme não cabe, o de
+    // 15 s (custo da mesma função que cobra) entra como alternativa — é o filme que o trial de 10 cr paga.
+    const custoCurto = creditCostForDuration('cinematic_ai', isPaidUser, SEEDANCE_SHORT_SECONDS)
+    const degrauCurto = entrada15 && isPaidUser && segundos > SEEDANCE_SHORT_SECONDS && custoCurto > 0 && custoCurto <= balance &&
+      !acessiveis.some((m) => m.engine === 'cinematic_ai')
+      ? { engine: 'cinematic_ai' as Quality, label: `Seedance 1.5 · ${SEEDANCE_SHORT_SECONDS}s`, cost: custoCurto, maxSeconds: null as number | null }
+      : null
+    if (degrauCurto) {
+      acessiveis.push(degrauCurto)
+      acessiveis.sort((a, b) => b.cost - a.cost)
+    }
+    const curtoEscolhido = degrauCurto !== null && acessiveis[0] === degrauCurto
 
     const tema = (ultimo?.topic ?? ultimo?.title ?? null) as string | null
     const motorAcessivel = acessiveis.length > 0 ? acessiveis[0].engine : null
@@ -457,6 +483,9 @@ export async function GET(req: NextRequest) {
     const hrefContinuar = tema
       ? seriesContinuationHrefOrNull(tema, 'next_action', {
           engine: state === 'dry' ? deeplinkAcessivel : null,
+          // Revisão da E2b (achado 4): o degrau curto (Seedance 15 s, o que o saldo paga) viaja com a duração — sem
+          // ela o link "Continue with Seedance 1.5 · 15s" abria em 35 s (15 cr) e a parede vinha antes do roteiro.
+          duration: state === 'dry' && curtoEscolhido ? SEEDANCE_SHORT_SECONDS : null,
         })
       : null
 
@@ -465,7 +494,7 @@ export async function GET(req: NextRequest) {
     // saldo paga; `src` próprio para que o banco separe este caminho do de
     // quem tinha série.
     const hrefBarato = deeplinkAcessivel
-      ? `${DEEPLINK_PADRAO_COMPOSITOR}?engine=${encodeURIComponent(deeplinkAcessivel)}&src=next_action_dry_cheap`
+      ? `${DEEPLINK_PADRAO_COMPOSITOR}?engine=${encodeURIComponent(deeplinkAcessivel)}${curtoEscolhido ? `&duration=${SEEDANCE_SHORT_SECONDS}` : ''}&src=next_action_dry_cheap`
       : null
 
     const shortBy = state === 'dry' ? Math.max(0, ultimoCusto - balance) : 0

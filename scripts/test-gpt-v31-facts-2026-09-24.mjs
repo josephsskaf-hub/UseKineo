@@ -10,16 +10,24 @@ const schema = JSON.parse(source('public/gpt/openapi.json'))
 const props = schema.components.schemas.HandoffRequest.properties
 let allowance = FREE_TIER.allowance
 if (process.argv.includes('--mutant')) allowance = '10 free credits on signup with every engine unlocked'
-check('trial copy separates balance from access in same statement', allowance.includes('not every unlocked engine') && allowance.includes('Kineo 1') && allowance.includes('watermark'))
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o trial passou a pagar o Seedance 1.5 de 15 s (decisão do fundador) e o Kineo 1
+// saiu do catálogo; a frase ainda separa saldo de acesso (não cobre 60 s em motor nenhum). O --mutant segue vermelho.
+check('trial copy separates balance from access in same statement', allowance.includes('free 15-second film (Seedance 1.5)') && allowance.includes('does not cover a 60-second film on any engine') && allowance.includes('Engine access and sufficient credits are separate') && allowance.includes('watermark'))
 check('access entitlement preserved rather than falsely disabling engines', TRIAL_ACCESS.everyEngineUnlocked === true)
-check('current balance covers only Kineo 1 reference films', TRIAL_ACCESS.engineCoverage.filter(e=>e.wholeReferenceVideosCovered>0).map(e=>e.engine).join(',') === 'Kineo 1')
-check('recurring limit derives from live offer and reaches facts payload', RECURRING_FREE_ACCESS.maxSeconds === getFreeTierOffer().maxFreeFastSeconds && getKineoFacts().recurringFreeAccess.maxSeconds === 15)
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: com o Kineo 1 fora do catálogo nenhum motor cabe a 60 s; o que o saldo paga é o
+// filme de 15 s, publicado em trialAccess.freeFilm.
+check('current balance covers no 60-second reference film, and the 15-second Seedance film instead', TRIAL_ACCESS.engineCoverage.filter(e=>e.wholeReferenceVideosCovered>0).length === 0 && TRIAL_ACCESS.freeFilm?.engine === 'Seedance 1.5' && TRIAL_ACCESS.freeFilm?.seconds === 15 && TRIAL_ACCESS.freeFilm?.filmsCovered === 1)
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: a cota semanal deixou de ser anunciada: o fato recorrente é null no módulo e no payload.
+check('recurring free access is not announced (module and facts payload)', RECURRING_FREE_ACCESS === null && getKineoFacts().recurringFreeAccess === null && getFreeTierOffer().maxFreeFastSeconds === 15)
 check('legacy helper caller explicitly exposes unknown/no cap as null', buildRecurringFreeAccessFact({engine:'Kineo 1',videosPerWindow:1,rollingWindowHours:168}).maxSeconds===null)
 let invalidCapRejected=false
 try { buildRecurringFreeAccessFact({engine:'Kineo 1',videosPerWindow:1,rollingWindowHours:168,maxSeconds:NaN}) } catch { invalidCapRejected=true }
 check('invalid recurring duration is rejected',invalidCapRejected)
-check('not-a-fit copy includes recurring cap and balance distinction', getKineoFacts().notAFit.some(f=>f.useInstead.includes('up to 15 seconds') && f.useInstead.includes('not every unlocked engine')))
-check('start route explains new grant and preserves existing account balances', START_HERE_FACT.action.includes('not Seedance') && START_HERE_FACT.action.includes('Existing accounts'))
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o not-a-fit diz o filme grátis de 15 s e que não há filme grátis recorrente.
+// Reancorado 29/09 (revisão da E2b, texto achado 5): não anunciar a cota ≠ negar que ela existe; a frase afirma só o anunciado.
+check('not-a-fit copy names the free 15-second film as the only advertised free film', getKineoFacts().notAFit.some(f=>f.useInstead.includes('free 15-second film (Seedance 1.5)') && f.useInstead.includes('the only free film Kineo advertises') && !f.useInstead.includes('no recurring free films')))
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o trial cobre o Seedance de 15 s, não mais o Kineo 1.
+check('start route explains new grant and preserves existing account balances', START_HERE_FACT.action.includes('free 15-second film (Seedance 1.5)') && START_HERE_FACT.action.includes('Existing accounts'))
 check('paused Omni is not advertised with ranking badge', ENGINE_FACTS.find(e=>e.name==='Omni Flash').what.includes('PAUSED') && !ENGINE_FACTS.find(e=>e.name==='Omni Flash').what.includes('#1'))
 const llms=source('app/llms.txt/route.ts')
 check('llms includes source-derived recurring seconds and no stale Omni badge', llms.includes('RECURRING_FREE_ACCESS.maxSeconds') && !llms.includes('#1-ranked'))

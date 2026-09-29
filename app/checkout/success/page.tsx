@@ -527,7 +527,11 @@ export default function CheckoutSuccessPage() {
                   // tela de QUEM ACABOU DE PAGAR: fazer ele esperar duas
                   // viagens de servidor no primeiro clique pós-compra é o pior
                   // lugar possível para uma tela lenta.
-                  href={`/studio/create?create_intent=fast&prompt=${encodeURIComponent(t.prompt)}&utm_source=checkout_success&utm_medium=first_win`}
+                  // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b, B5 do cético) — 'trial_best', não 'fast': o resolvedor do auto-start
+                  // (lib/growth/trialActivationIntent.ts resolveActivationRender) leva quem ACABOU de pagar ao Seedance na duração que
+                  // o saldo paga; o Kineo 1 só para quem tem a flag kineo1. Com a entrada nova desligada, o resolvedor antigo dá o
+                  // mesmo resultado de antes para conta paga ('trial_best' sem trial ativo = Kineo 1).
+                  href={`/studio/create?create_intent=trial_best&prompt=${encodeURIComponent(t.prompt)}&utm_source=checkout_success&utm_medium=first_win`}
                   // KINEO-FIRST-PAID-MINUTE-2026-08-11 (defeito D10, corrigido
                   // pelo D12 da 3a revisao) - cobre o clique do BOTAO DO MEIO,
                   // que abre em nova aba sem disparar `onClick`. O teste de
