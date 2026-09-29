@@ -20,6 +20,12 @@
 //   8. mutantes em memória, todos VERMELHOS: sem a duração explícita; de volta ao slot fixo (2 clipes / 10 s); compose
 //      reciclando (sem o alinhador do Seedance; sem o ramo assinado; nível d'água que deixa sobra); 35 s no 3x6; escritor
 //      sem a régua do 15 s.
+// CONSERTO DAS REVISÕES (29/09): (a) montagem — a escolha do passo tinha margem zero (fala 2 % mais lenta que a estimativa
+// já devolvia o clipe 0 no fim); agora a lib exige fala × banda + o décimo do compose, conta palavras FALADAS ("1986" = 4)
+// e o escritor mira o que cabe em 3 × 6 s com essa folga (41); provado na montagem real com fala 3,5 % mais lenta de 30 a
+// 56 palavras. (b) a rota ganhou casos de borda (41/42/45 palavras, número, voz lenta) que matam o mutante "fala − perda"
+// que passava verde. (c) o mutante do escritor passa pelo MESMO predicado da checagem principal (antes: "≠ 40", que o
+// original também cumpria). (d) dinheiro — o resgate de roteiro todo entre colchetes também sai em 3 blocos.
 import { readFileSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -79,33 +85,49 @@ const COMPOSE_ROTA = rd('app/api/compose/route.ts')
 // ═══ 1. módulo puro ═══
 console.log('1) lib/durationByEngine: 3 clipes, segundos por clipe ∈ {6,7,8} pela fala')
 checa(`3 clipes; passos [6,7,8]; perda por clipe lida de klingShots (${PERDA} s)`, D.SEEDANCE_SHORT_CLIPS === 3 && eqJ([...D.SEEDANCE_SHORT_CLIP_STEPS], [6, 7, 8]) && PERDA > 0 && PERDA < 1)
+const BANDA = D.SEEDANCE_SHORT_SPEECH_BAND, DECIMO = D.SEEDANCE_SHORT_TIMELINE_ROUNDING_SECONDS
+checa(`folga da escolha do passo (lida da lib): fala × ${BANDA} + ${DECIMO} s do arredondamento do compose (⌈fala × 10⌉ ÷ 10 em lib/compose)`, BANDA > 1 && BANDA <= 1.1 && DECIMO > 0 && DECIMO <= 0.1 + 1e-9 && rd('lib/compose.ts').includes('let totalDuration = clamp(Math.ceil(masterDuration * 10) / 10,'))
+// capacidade de cada passo, na conta INDEPENDENTE do guardião (os números vêm da lib; a fórmula não)
+const capDe = (s) => (D.SEEDANCE_SHORT_CLIPS * (s - PERDA) - DECIMO) / BANDA
 function provaSegundos(M) {
   const passos = [...M.SEEDANCE_SHORT_CLIP_STEPS], n = M.SEEDANCE_SHORT_CLIPS
   const r = []
   for (let f = 0; f <= 30; f += 0.01) {
     const s = M.seedanceShortClipSeconds(f, PERDA)
     r.push(passos.includes(s))
-    const cabe = n * s >= f + n * PERDA - 1e-9
+    const cabe = capDe(s) >= f - 1e-9 && n * (s - PERDA) >= f * BANDA + DECIMO - 1e-9
     const ultimo = s === passos[passos.length - 1]
     r.push(cabe || ultimo)
-    const menor = passos.indexOf(s) === 0 || n * passos[passos.indexOf(s) - 1] < f + n * PERDA - 1e-9
+    const menor = passos.indexOf(s) === 0 || capDe(passos[passos.indexOf(s) - 1]) < f - 1e-9
     r.push(menor)
   }
-  r.push(M.seedanceShortClipSeconds(16.0, PERDA) === 6, M.seedanceShortClipSeconds(17.52, PERDA) === 6, M.seedanceShortClipSeconds(17.8, PERDA) === 7, M.seedanceShortClipSeconds(20.5, PERDA) === 7, M.seedanceShortClipSeconds(22.5, PERDA) === 8)
+  // 16,4 s = 41 palavras (6 s) · 16,8 s = 42 palavras (7 s: sem folga caberia em 6 s com 0,62 s de margem) · 17,52 s
+  // (a imagem útil inteira de 3 × 6 s: margem zero → 7 s) · 19,6 → 7 · 20,5 → 8 · 22,5 (o limite da guarda) → 8
+  r.push(M.seedanceShortClipSeconds(16.0, PERDA) === 6, M.seedanceShortClipSeconds(16.4, PERDA) === 6, M.seedanceShortClipSeconds(16.8, PERDA) === 7, M.seedanceShortClipSeconds(17.52, PERDA) === 7, M.seedanceShortClipSeconds(17.8, PERDA) === 7, M.seedanceShortClipSeconds(19.6, PERDA) === 7, M.seedanceShortClipSeconds(20.5, PERDA) === 8, M.seedanceShortClipSeconds(22.5, PERDA) === 8)
   r.push(M.seedanceShortClipSeconds(NaN, PERDA) === 6, M.seedanceShortClipSeconds(-3, PERDA) === 6)
   return r.every(Boolean)
 }
-checa('seedanceShortClipSeconds (0-30 s de fala, passo 0,01): sempre ∈ {6,7,8}, cobre fala + 3 × perda (ou é o 8), e é o MENOR que cobre; 16,0→6 · 17,52→6 · 17,8→7 · 20,5→7 · 22,5→8', provaSegundos(D))
+checa('seedanceShortClipSeconds (0-30 s de fala, passo 0,01): sempre ∈ {6,7,8}, cobre fala × banda + décimo + 3 × perda (ou é o 8), e é o MENOR que cobre; 16,4→6 · 16,8→7 · 17,52→7 · 19,6→7 · 20,5→8 · 22,5→8', provaSegundos(D))
 const limite = 15 * D.SHORT_FILM_SPEECH_FACTOR
-checa(`toda fala que a guarda de roteiro longo deixa passar (≤ ${limite} s = ${D.maxWordsForShortFilm(15)} palavras ÷ ${D.VERBATIM_EST_WORDS_PER_SECOND}) cabe em 3 × 8 s úteis`, D.SEEDANCE_SHORT_CLIPS * (8 - PERDA) >= limite && D.seedanceShortClipSeconds(limite, PERDA) === 8)
+checa(`toda fala que a guarda de roteiro longo deixa passar (≤ ${limite} s = ${D.maxWordsForShortFilm(15)} palavras ÷ ${D.VERBATIM_EST_WORDS_PER_SECOND}) cabe em 3 × 8 s úteis COM a folga (capacidade ${capDe(8).toFixed(2)} s)`, capDe(8) >= limite && D.seedanceShortSpeechCapacity(8, PERDA) >= limite && D.seedanceShortClipSeconds(limite, PERDA) === 8)
+checa('palavrasFaladas: sem número = nº de palavras; número conta pelos dígitos (até 4), +1 com % $ € £ — "In 1986, a lake killed 1,700 people. 45% died" = 17', D.palavrasFaladas('a b c') === 3 && D.palavrasFaladas('In 1986, a lake killed 1,700 people. 45% died') === 17 && D.palavrasFaladas('') === 0 && D.palavrasFaladas(null) === 0 && D.palavrasFaladas('$3 7') === 3)
+checa('seedanceShortSpeechSeconds: palavras faladas ÷ a régua MAIS LENTA entre 2,5 e a voz (voz rápida ou ausente não encurta a fala)', D.seedanceShortSpeechSeconds('a '.repeat(40), 2.5) === 16 && Math.abs(D.seedanceShortSpeechSeconds('a '.repeat(40), 2.3) - 40 / 2.3) < 1e-9 && D.seedanceShortSpeechSeconds('a '.repeat(40), 3.1) === 16 && D.seedanceShortSpeechSeconds('a '.repeat(40), 0) === 16 && D.seedanceShortSpeechSeconds('a '.repeat(40), NaN) === 16)
 checa('estimarFalaSegundos é a régua da guarda (palavras ÷ 2,5) e checarFalaDoFilmeCurto a usa', D.estimarFalaSegundos(palavras('a '.repeat(40)).join(' ')) === 16 && D.checarFalaDoFilmeCurto({ engine: 'seedance', seconds: 15, verbatim: true, narration: 'a '.repeat(45) }).estSeconds === 18)
 const SEED_T2V = 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video', SEED_I2V = 'fal-ai/bytedance/seedance/v1.5/pro/image-to-video'
 checa('isSeedanceShortClaim: duration 15 + fal_model do Seedance (t2v ou i2v) = sim; Kling, Veo, 35 s, sem claim = não', D.isSeedanceShortClaim({ duration: 15, fal_model: SEED_T2V }) && D.isSeedanceShortClaim({ duration: 15, fal_model: SEED_I2V }) && !D.isSeedanceShortClaim({ duration: 35, fal_model: SEED_T2V }) && !D.isSeedanceShortClaim({ duration: 15, fal_model: 'fal-ai/kling-video/v2.5-turbo/pro/text-to-video' }) && !D.isSeedanceShortClaim({ duration: 15, fal_model: 'fal-ai/veo3.1/fast' }) && !D.isSeedanceShortClaim(null))
 {
-  const mutMaior = trocaUma(DUR_SRC, '    if (SEEDANCE_SHORT_CLIPS * s >= fala + folga - 1e-9) return s', '    if (SEEDANCE_SHORT_CLIPS * s >= fala + folga - 1e-9) return 8')
+  const L_ESCOLHA = '    if (seedanceShortSpeechCapacity(s, clipLossSeconds) >= fala - 1e-9) return s'
+  const mutMaior = trocaUma(DUR_SRC, L_ESCOLHA, L_ESCOLHA.replace('return s', 'return 8'))
   checa('mutante: sempre o passo mais longo (8 s) fica VERMELHO', mutMaior !== null && !provaSegundos(roda(mutMaior)))
-  const mutSemFolga = trocaUma(DUR_SRC, '  const folga = SEEDANCE_SHORT_CLIPS * perda', '  const folga = 0')
-  checa('mutante: sem a folga do compose (3 × 0,16) fica VERMELHO', mutSemFolga !== null && !provaSegundos(roda(mutSemFolga)))
+  const L_CAP = '  return (SEEDANCE_SHORT_CLIPS * (stepSeconds - perda) - SEEDANCE_SHORT_TIMELINE_ROUNDING_SECONDS) / SEEDANCE_SHORT_SPEECH_BAND'
+  const mutSemFolga = trocaUma(DUR_SRC, L_CAP, '  return SEEDANCE_SHORT_CLIPS * stepSeconds')
+  checa('mutante: sem a perda do compose nem folga (3 × s ≥ fala, o 1º rascunho) fica VERMELHO', mutSemFolga !== null && !provaSegundos(roda(mutSemFolga)))
+  const mutMargemZero = trocaUma(DUR_SRC, L_CAP, '  return SEEDANCE_SHORT_CLIPS * (stepSeconds - perda)')
+  checa('mutante: margem zero (3 × (s − perda) ≥ fala — o commit 234e3593, que a revisão pegou) fica VERMELHO', mutMargemZero !== null && !provaSegundos(roda(mutMargemZero)))
+  const mutSemBanda = trocaUma(DUR_SRC, 'export const SEEDANCE_SHORT_SPEECH_BAND = ', 'export const SEEDANCE_SHORT_SPEECH_BAND = 1 || ')
+  checa('mutante: banda 1 (só o décimo do compose) fica VERMELHO', mutSemBanda !== null && !provaSegundos(roda(mutSemBanda)))
+  const mutSemDecimo = trocaUma(DUR_SRC, 'export const SEEDANCE_SHORT_TIMELINE_ROUNDING_SECONDS = ', 'export const SEEDANCE_SHORT_TIMELINE_ROUNDING_SECONDS = 0 && ')
+  checa('mutante: sem o décimo do arredondamento do compose fica VERMELHO', mutSemDecimo !== null && !provaSegundos(roda(mutSemDecimo)))
 }
 
 // ═══ 2. custo ═══
@@ -131,8 +153,14 @@ const minS = W.minWordsFor(15, reguaSeed.wordsPerSecond, reguaSeed.coverage), ma
 const rapida = W.fastestClassicPersonaRate('en').wordsPerSecond
 const taxas = PERS.VOICE_PERSONAS.map((p) => SR.speechRateFor({ family: 'classic', language: 'en', voice: p.voice, personaSpeed: p.defaultSpeed }).wordsPerSecond)
 const media = taxas.reduce((a, b) => a + b, 0) / taxas.length
-console.log(`     conta: piso ⌈15 × ${NF.MIN_COVERAGE} × ${rapida}⌉ = ${minS} · teto ⌊3 × (6 − ${PERDA}) × ${D.VERBATIM_EST_WORDS_PER_SECOND}⌋ = ${maxS} · média das personas ${media.toFixed(3)} pal/s · canário 45/17,8 = ${(45 / 17.8).toFixed(3)}`)
-checa(`Seedance a 15 s: ${minS}-${maxS} palavras (~40) — era ${WB ? `${WB.minWordsFor(15, 3.1, 1)}-${WB.maxWordsFor(15, 3.1, 1)}` : '?'} na régua genérica de 3,1`, minS >= 40 && minS <= maxS && maxS === 43 && minS === Math.ceil(15 * NF.MIN_COVERAGE * rapida - 1e-9) && maxS === Math.floor(3 * (6 - PERDA) * D.VERBATIM_EST_WORDS_PER_SECOND + 1e-9))
+console.log(`     conta: piso ⌈15 × ${NF.MIN_COVERAGE} × ${rapida}⌉ = ${minS} · teto ⌊(3 × (6 − ${PERDA}) − ${DECIMO}) ÷ ${BANDA} × ${D.VERBATIM_EST_WORDS_PER_SECOND}⌋ = ${maxS} · média das personas ${media.toFixed(3)} pal/s · canário 45/17,8 = ${(45 / 17.8).toFixed(3)}`)
+// o MESMO predicado serve à checagem e aos mutantes (revisão 29/09: o mutante antigo exigia só "≠ 40", que o original cumpria)
+function provaEscritor(Wx) {
+  const r = Wx.writerRateFor('cinematic_ai', 'tema', 'en')
+  const mn = Wx.minWordsFor(15, r.wordsPerSecond, r.coverage), mx = Wx.maxWordsFor(15, r.wordsPerSecond, r.coverage)
+  return mn === Math.ceil(15 * NF.MIN_COVERAGE * rapida - 1e-9) && mx === Math.floor(capDe(6) * D.VERBATIM_EST_WORDS_PER_SECOND + 1e-9) && mn === 41 && mx === 41 && mn <= mx
+}
+checa(`Seedance a 15 s: ${minS}-${maxS} palavras (~40) — era ${WB ? `${WB.minWordsFor(15, 3.1, 1)}-${WB.maxWordsFor(15, 3.1, 1)}` : '?'} na régua genérica de 3,1; o teto é o que cabe em 3 × 6 s COM a folga do planejador`, provaEscritor(W) && minS === 41 && maxS === 41)
 checa(`fala a ${D.VERBATIM_EST_WORDS_PER_SECOND} pal/s: ${(minS / 2.5).toFixed(1)}-${(maxS / 2.5).toFixed(1)} s (15-17 s ± 0,2); no ritmo do canário: ${(minS / (45 / 17.8)).toFixed(1)}-${(maxS / (45 / 17.8)).toFixed(1)} s`, minS / 2.5 >= 15 && maxS / 2.5 <= 17.2 + 1e-9 && minS / (45 / 17.8) >= 15 && maxS / (45 / 17.8) <= 17.01)
 checa('a régua de 2,5 é a da casa: média do catálogo de personas a ±0,05 e o canário a ±0,05', Math.abs(media - D.VERBATIM_EST_WORDS_PER_SECOND) <= 0.05 && Math.abs(45 / 17.8 - D.VERBATIM_EST_WORDS_PER_SECOND) <= 0.05)
 checa('o teto cabe em 3 × 6 s (o planejador pede 6 s para 43 palavras) e o piso passa no piso C2 na voz mais rápida', D.seedanceShortClipSeconds(D.estimarFalaSegundos('a '.repeat(maxS)), PERDA) === 6 && minS / rapida >= 15 * NF.MIN_COVERAGE)
@@ -146,8 +174,14 @@ checa('o teto cabe em 3 × 6 s (o planejador pede 6 s para 43 palavras) e o piso
   const reguas = motores.every((m) => eqJ(W.writerRateFor(m, 'x', 'en'), WB?.writerRateFor(m, 'x', 'en')))
   const k1 = W.writerRateFor('fast', 'x', 'en')
   checa(`todo outro par (segundos × régua × cobertura, ${pares.length} casos) e writerRateFor de 8 motores idênticos à base — Kineo 1 a 15 s segue ${W.minWordsFor(15, k1.wordsPerSecond, 1)}-${W.maxWordsFor(15, k1.wordsPerSecond, 1)}`, Boolean(WB) && pares.every(Boolean) && reguas && W.minWordsFor(15, k1.wordsPerSecond, 1) === WB.minWordsFor(15, k1.wordsPerSecond, 1))
-  const mutEscritor = trocaUma(rd('lib/scriptWriterRate.ts'), '  if (isSeedanceShortWriter(seconds, wordsPerSecond, coverage)) return seedanceShortWriterWords().min // KINEO-SEEDANCE-15S-3X6-2026-09-29' + LF, '')
-  checa('mutante: escritor sem a régua do 15 s (volta a 47 palavras) fica VERMELHO', mutEscritor !== null && compilaW(mutEscritor).minWordsFor(15, 3.1, 1) !== 40)
+  const W_SRC = rd('lib/scriptWriterRate.ts')
+  checa('o compilador dos mutantes do escritor, sobre o arquivo SEM mutação, passa no predicado (senão o vermelho dos mutantes não prova nada)', provaEscritor(compilaW(W_SRC)))
+  const mutEscritor = trocaUma(W_SRC, '  if (isSeedanceShortWriter(seconds, wordsPerSecond, coverage)) return seedanceShortWriterWords().min // KINEO-SEEDANCE-15S-3X6-2026-09-29' + LF, '')
+  checa('mutante: escritor sem o piso do 15 s (volta a 47 palavras) fica VERMELHO pelo mesmo predicado', mutEscritor !== null && !provaEscritor(compilaW(mutEscritor)))
+  const mutTeto = trocaUma(W_SRC, '  if (isSeedanceShortWriter(seconds, wordsPerSecond, coverage)) return seedanceShortWriterWords().max // KINEO-SEEDANCE-15S-3X6-2026-09-29' + LF, '')
+  checa('mutante: escritor sem o teto do 15 s (⌊41 × 1,2⌉ = 49) fica VERMELHO pelo mesmo predicado', mutTeto !== null && !provaEscritor(compilaW(mutTeto)))
+  const mutTetoSemFolga = trocaUma(W_SRC, '  const cabe = seedanceShortSpeechCapacity(SEEDANCE_SHORT_CLIP_STEPS[0], KLING25_CLIP_LOSS_SECONDS)', '  const cabe = 3 * (SEEDANCE_SHORT_CLIP_STEPS[0] - KLING25_CLIP_LOSS_SECONDS)')
+  checa('mutante: teto do escritor sem a folga (o 43 de 234e3593) fica VERMELHO pelo mesmo predicado', mutTetoSemFolga !== null && !provaEscritor(compilaW(mutTetoSemFolga)))
 }
 checa('o /api/generate-script continua lendo min/maxWordsFor da lib (fonte única; a rota dele não foi tocada aqui)', rd('app/api/generate-script/route.ts').includes("import { minWordsFor, maxWordsFor, writerRateFor } from '@/lib/scriptWriterRate'") && rd('app/api/generate-script/route.ts') === rdBase('app/api/generate-script/route.ts'))
 
@@ -216,34 +250,61 @@ function marcado(parsed, count, bloco = blocoMarcado) {
 }
 // (4c) segundos por clipe: o bloco real da rota
 const blocoSegundos = fatia(ROTA, '    let seedanceClipSeconds: number[] | null = null\n', 'palavras)`)\n    }\n')
-function segundosDaRota(bloco, { seedanceShortFilm = true, verbatim = true, narration, scenes, wps = 2.5 }) {
+function segundosDaRota(bloco, { seedanceShortFilm = true, verbatim = true, narration, scenes, wps = 2.5 }, M = D) {
   return roda(`export function run() { let scenes = ctxScenes\n${bloco}\n return { scenes, seedanceClipSeconds } }`, {
     ctxScenes: scenes, seedanceShortFilm, verbatim, parsedScript: { narration }, narrationRate: { wordsPerSecond: wps },
-    estimarFalaSegundos: D.estimarFalaSegundos, seedanceShortClipSeconds: D.seedanceShortClipSeconds, KLING25_CLIP_LOSS_SECONDS: PERDA, SEEDANCE_SHORT_CLIPS: 3, SEEDANCE_720P_USD_PER_SECOND: USD_S,
+    seedanceShortSpeechSeconds: M.seedanceShortSpeechSeconds, seedanceShortClipSeconds: M.seedanceShortClipSeconds, KLING25_CLIP_LOSS_SECONDS: PERDA, SEEDANCE_SHORT_CLIPS: 3, SEEDANCE_720P_USD_PER_SECOND: USD_S,
   }).run()
 }
 const POOL = 'In Death Valley the rocks move on their own and leave long trails across the cracked mud of a dry lake bed. For decades nobody ever saw a single one move, and the theories blamed wind, algae and pranksters. Then scientists fitted rocks with GPS trackers and finally caught them sliding on thin sheets of ice after a rare winter rain, pushed by a light breeze.'
 const textoN = (n) => { const w = palavras(POOL).slice(0, n); if (w.length !== n) throw new Error('POOL curto'); w[n - 1] = w[n - 1].replace(/[,.]$/, '') + '.'; return w.join(' ') }
 const tres = (t) => VB.resolveVerbatimSegments({ segments: [], narration: t }, 3).map((s) => ({ description: s.pexelsQuery, voiceover: s.voiceover, caption: s.voiceover }))
-function provaSegundosDaRota(bloco) {
+function provaSegundosDaRota(bloco, M = D) {
   if (!bloco) return false
-  const t40 = textoN(40), t43 = textoN(43), t56 = textoN(56)
-  const a = segundosDaRota(bloco, { narration: t40, scenes: tres(t40) })
-  const b = segundosDaRota(bloco, { narration: t43, scenes: tres(t43), wps: 2.3 })
-  const c = segundosDaRota(bloco, { narration: t56, scenes: tres(t56) })
-  const ia = segundosDaRota(bloco, { verbatim: false, narration: '', scenes: tres(t40) })
-  const fora = segundosDaRota(bloco, { seedanceShortFilm: false, narration: t40, scenes: tres(t40) })
-  return palavras(t40).length === 40 && palavras(t43).length === 43 && palavras(t56).length === 56 &&
+  const t40 = textoN(40), t41 = textoN(41), t42 = textoN(42), t43 = textoN(43), t45 = textoN(45), t56 = textoN(56)
+  const tAno = ['1986,', ...palavras(t40).slice(1)].join(' ') // 40 palavras escritas, 43 faladas ("1986" = 4)
+  const caso = (narration, wps = 2.5) => segundosDaRota(bloco, { narration, scenes: tres(narration), wps }, M).seedanceClipSeconds
+  const a = segundosDaRota(bloco, { narration: t40, scenes: tres(t40) }, M)
+  const ia = segundosDaRota(bloco, { verbatim: false, narration: '', scenes: tres(t40) }, M)
+  const fora = segundosDaRota(bloco, { seedanceShortFilm: false, narration: t40, scenes: tres(t40) }, M)
+  return palavras(t40).length === 40 && palavras(t43).length === 43 && palavras(t56).length === 56 && palavras(tAno).length === 40 &&
     eqJ(a.seedanceClipSeconds, [6, 6, 6]) && a.scenes.every((s) => s.clipSeconds === 6) &&
-    eqJ(b.seedanceClipSeconds, [7, 7, 7]) && // 43 palavras na voz mais lenta (2,3 pal/s = 18,7 s) pedem 7 s
-    eqJ(c.seedanceClipSeconds, [8, 8, 8]) &&
+    eqJ(caso(t41), [6, 6, 6]) && // 41 palavras (o teto do escritor): 16,4 s × 1,04 + 0,1 = 17,16 ≤ 17,52 úteis
+    eqJ(caso(t42), [7, 7, 7]) && // 42 palavras: 16,8 × 1,04 + 0,1 = 17,57 > 17,52 — sem folga cairia em 6 s com margem de 0,72 s
+    eqJ(caso(t45), [7, 7, 7]) && // o tamanho do canário de 04:34 UTC
+    eqJ(caso(tAno), [7, 7, 7]) && // o número conta pelo que se fala
+    eqJ(caso(t40, 2.3), [7, 7, 7]) && // voz lenta (2,3 pal/s): 40 palavras = 17,4 s
+    eqJ(caso(t43, 2.3), [7, 7, 7]) &&
+    eqJ(caso(t56), [8, 8, 8]) &&
     eqJ(ia.seedanceClipSeconds, [6, 6, 6]) &&
     fora.seedanceClipSeconds === null && fora.scenes.every((s) => !('clipSeconds' in s))
 }
-checa('segundos por clipe (bloco real): 40 palavras → [6,6,6]; 43 na voz de 2,3 pal/s → [7,7,7]; 56 (teto da guarda) → [8,8,8]; modo IA pelas falas das cenas; fora do 15 s nada muda', provaSegundosDaRota(blocoSegundos))
+checa('segundos por clipe (bloco real): 40 e 41 palavras → [6,6,6]; 42, 45, "1986" + 39 e voz de 2,3 pal/s → [7,7,7]; 56 (teto da guarda) → [8,8,8]; modo IA pelas falas das cenas; fora do 15 s nada muda', provaSegundosDaRota(blocoSegundos))
 {
-  const mutFixo = blocoSegundos && trocaUma(blocoSegundos, '      const segundos = seedanceShortClipSeconds(fala, KLING25_CLIP_LOSS_SECONDS)', '      const segundos = 10')
+  const L_FALA = '      const fala = seedanceShortSpeechSeconds(narracaoDoFilme, narrationRate.wordsPerSecond)'
+  const L_SEG = '      const segundos = seedanceShortClipSeconds(fala, KLING25_CLIP_LOSS_SECONDS)'
+  const mutFixo = blocoSegundos && trocaUma(blocoSegundos, L_SEG, '      const segundos = 10')
   checa('mutante "de volta ao slot fixo" (10 s por clipe) fica VERMELHO', Boolean(mutFixo) && !provaSegundosDaRota(mutFixo))
+  const mutMenosPerda = blocoSegundos && trocaUma(blocoSegundos, L_FALA, L_FALA + ' - 3 * KLING25_CLIP_LOSS_SECONDS')
+  checa('mutante da revisão: a rota desconta a perda do compose da fala (passava VERDE, 45/0) agora fica VERMELHO', Boolean(mutMenosPerda) && !provaSegundosDaRota(mutMenosPerda))
+  const mutSemVoz = blocoSegundos && trocaUma(blocoSegundos, L_FALA, '      const fala = seedanceShortSpeechSeconds(narracaoDoFilme, 2.5)')
+  checa('mutante: a rota ignora a voz que vai falar (só a régua de 2,5) fica VERMELHO', Boolean(mutSemVoz) && !provaSegundosDaRota(mutSemVoz))
+  const mutPalavraEscrita = trocaUma(DUR_SRC, '    total += digitos > 0 ? Math.min(4, digitos) + (', '    total += digitos > 0 ? 1 + 0 * (')
+  checa('mutante: número conta 1 palavra (a estimativa antiga: "1986" = 1) fica VERMELHO', mutPalavraEscrita !== null && !provaSegundosDaRota(blocoSegundos, roda(mutPalavraEscrita)))
+  const mutMargemZeroRota = trocaUma(DUR_SRC, '  return (SEEDANCE_SHORT_CLIPS * (stepSeconds - perda) - SEEDANCE_SHORT_TIMELINE_ROUNDING_SECONDS) / SEEDANCE_SHORT_SPEECH_BAND', '  return SEEDANCE_SHORT_CLIPS * (stepSeconds - perda)')
+  checa('mutante: margem zero na lib (o 234e3593) fica VERMELHO também pelo bloco da rota', mutMargemZeroRota !== null && !provaSegundosDaRota(blocoSegundos, roda(mutMargemZeroRota)))
+}
+// (4c') resgate de roteiro todo entre colchetes (KINEO-UNBRACKET): revisão de dinheiro de 29/09
+{
+  const blocoResgate = fatia(ROTA, '            if (seedanceShortFilm && recuperadas.length < SEEDANCE_SHORT_CLIPS) {\n', 'stockSearchQuery: seg.pexelsQuery }))\n            }\n')
+  const narr = 'The ocean hides a river. It flows along the seabed for miles. Divers have swum right over it. Nobody knew it was there until sonar found it.'
+  const reparse = { segments: [{ voiceover: 'The ocean hides a river. It flows along the seabed for miles.', pexelsQuery: 'river' }, { voiceover: 'Divers have swum right over it. Nobody knew it was there until sonar found it.', pexelsQuery: 'sonar' }], narration: narr }
+  const resgate = (bloco, seedanceShortFilm = true) => roda(`export function run() { let recuperadas = resolveVerbatimSegments(reparse, 3).map((seg) => ({ description: seg.pexelsQuery, voiceover: seg.voiceover, caption: seg.voiceover, stockSearchQuery: seg.pexelsQuery }))\n${bloco ?? ''}\n return recuperadas }`, {
+    resolveVerbatimSegments: VB.resolveVerbatimSegments, reparse, seedanceShortFilm, SEEDANCE_SHORT_CLIPS: 3, shortCaptionFromVoiceover: (t) => t,
+  }).run()
+  const provaResgate = (bloco) => { const r = resgate(bloco), f = resgate(bloco, false); return Boolean(bloco) && r.length === 3 && r.map((s) => s.voiceover).join(' ') === narr && f.length === 2 }
+  checa('resgate de colchetes com HOOK + PAYOFF (2 blocos): o filme de 15 s sai com 3 cenas que somam a narração desembrulhada palavra por palavra; fora do 15 s, 2 como antes', Boolean(blocoResgate) && VB.resolveVerbatimSegments(reparse, 3).length === 2 && provaResgate(blocoResgate) && ROTA.indexOf("            via = 'unbracket'\n") < ROTA.indexOf(blocoResgate))
+  checa('mutante: sem o bloco do resgate (2 cenas × segundos de 3 clipes = reuso) fica VERMELHO', !provaResgate(''))
 }
 // (4d) builder real da fal
 const aspect = loadLib('@/lib/aspect')
@@ -421,6 +482,32 @@ function provaComposeReal(Cx, fala = true) {
   const mutNivel = trocaUma(COMPOSE_LIB, '    let segLen = r3(Math.min(caps[i], level, remaining))', '    let segLen = r3(Math.min(caps[i] * 0.6, level, remaining))')
   checa("mutante \"compose reciclando\" (nível d'água que deixa imagem sem usar e recicla no fim) fica VERMELHO", mutNivel !== null && !provaComposeReal(compoe(mutNivel), false))
 }
+// (6b) a folga provada na montagem REAL (revisão 29/09: com margem zero, fala 17,53 s em [6,6,6] → 0,1,2,0)
+{
+  const LENTA = 1.035 // a voz real 3,5 % mais lenta que a estimativa
+  function provaFolga(M) {
+    const ruins = []
+    for (let n = 30; n <= D.maxWordsForShortFilm(15); n++) {
+      const texto = textoDe(n)
+      const s = M.seedanceShortClipSeconds(M.seedanceShortSpeechSeconds(texto, D.VERBATIM_EST_WORDS_PER_SECOND), PERDA)
+      const total = Math.round((n / D.VERBATIM_EST_WORDS_PER_SECOND) * LENTA * 1000) / 1000
+      for (const comFala of [true, false]) {
+        const { source, urls } = monta(C, { total, secs: [s, s, s], palavrasN: n, comFala })
+        const inv = invariantes(source, [s, s, s], urls, total)
+        if (!inv.ok) ruins.push(`${n} pal [${s}] ${total}s: ${inv.motivo}`)
+      }
+    }
+    return ruins
+  }
+  const ruins = provaFolga(D)
+  if (ruins.length) console.log('     ' + ruins.slice(0, 4).join(' | '))
+  checa(`folga na montagem real: ${D.maxWordsForShortFilm(15) - 29} tamanhos (30-${D.maxWordsForShortFilm(15)} palavras) com a fala REAL 3,5 % mais lenta que a estimativa, no passo que a lib escolhe: 1 trecho por clipe, em ordem, sem reuso`, ruins.length === 0)
+  const borda = monta(C, { total: 17.53, secs: [6, 6, 6], palavrasN: 43 })
+  const invB = invariantes(borda.source, [6, 6, 6], borda.urls, 17.53)
+  checa(`a borda da revisão reproduz (sensibilidade do teste): 43 palavras, fala 17,53 s em [6,6,6] → ${invB.motivo}`, !invB.ok)
+  const mutZero = trocaUma(DUR_SRC, '  return (SEEDANCE_SHORT_CLIPS * (stepSeconds - perda) - SEEDANCE_SHORT_TIMELINE_ROUNDING_SECONDS) / SEEDANCE_SHORT_SPEECH_BAND', '  return SEEDANCE_SHORT_CLIPS * (stepSeconds - perda)')
+  checa('mutante: margem zero (o 234e3593) fica VERMELHO na montagem real', mutZero !== null && provaFolga(roda(mutZero)).length > 0)
+}
 
 // ═══ 7. ensaio de $0 ═══
 console.log('7) ensaio de $0 (lib/cinematic/classicDryRun real): ~40 palavras dão PASS')
@@ -431,27 +518,28 @@ const DR = roda(rd('lib/cinematic/classicDryRun.ts'))
   for (const n of [40, 41, 42, 43]) {
     const texto = textoN(n)
     for (const wps of taxas) {
-      const fala = Math.max(D.estimarFalaSegundos(texto), palavras(texto).length / wps)
+      const fala = D.seedanceShortSpeechSeconds(texto, wps)
       const s = D.seedanceShortClipSeconds(fala, PERDA)
       const rel = DR.classicDryRunReport({ scenes: tres(texto).map((c) => ({ voiceover: c.voiceover, prompt: 'x' })), targetSeconds: 15, secondsPerClip: s, verbatim: true, wordsPerSecond: wps, sceneSeconds: [s, s, s], clipLossSeconds: PERDA })
       if (n >= minS) r.push(rel.pass); else n40.push(rel.pass)
       if (!rel.pass) console.log(`     ${n} palavras a ${wps} pal/s: ${rel.verdict}`)
     }
   }
-  checa(`a faixa do escritor (${minS}-${maxS} palavras) em 3 clipes, nas ${taxas.length} personas do catálogo (${Math.min(...taxas)}-${Math.max(...taxas)} pal/s): PASS em todas (${r.length} ensaios); 40 palavras: PASS em ${n40.filter(Boolean).length} de ${n40.length} (a persona mais rápida fica a 0,05 s do piso — por isso o piso do escritor é ${minS})`, r.length > 0 && r.every(Boolean) && n40.filter(Boolean).length >= n40.length - 1)
+  checa(`o teto do escritor (${maxS} palavras) e acima dele (42, 43) em 3 clipes, nas ${taxas.length} personas do catálogo (${Math.min(...taxas)}-${Math.max(...taxas)} pal/s): PASS em todas (${r.length} ensaios); 40 palavras: PASS em ${n40.filter(Boolean).length} de ${n40.length} (a persona mais rápida fica a 0,05 s do piso — por isso o piso do escritor é ${minS})`, r.length > 0 && r.every(Boolean) && n40.filter(Boolean).length >= n40.length - 1)
 }
 
 // ═══ 8. o roteiro do canário do doc ═══
 console.log('8) docs/CANARIO-SEEDANCE-15S-2026-09-29.md: o roteiro do canário do 3x6 é da faixa e dá 3 × 6 s')
 {
   const doc = rd('docs/CANARIO-SEEDANCE-15S-2026-09-29.md')
-  const m = /const SCRIPT42 = "([^"]+)"/.exec(doc)
+  const m = /const SCRIPT41 = "([^"]+)"/.exec(doc)
   const t = m ? m[1] : ''
   const n = palavras(t).length
   const cenas = tres(t)
   const inicios = K.kling25SceneWordStarts(t, cenas.map((c) => c.voiceover))
-  const s = D.seedanceShortClipSeconds(D.estimarFalaSegundos(t), PERDA)
-  checa(`roteiro do canário: ${n} palavras (faixa ${minS}-${maxS}) → ${s} s por clipe, ${cenas.length} cenas, inícios [${inicios}] (o que o doc manda conferir no claim)`, n >= minS && n <= maxS && s === 6 && cenas.length === 3 && eqJ(inicios, [0, 14, 28]) && doc.includes('inicios [0,14,28]') && doc.includes('clip_seconds [6,6,6]'))
+  const s = D.seedanceShortClipSeconds(D.seedanceShortSpeechSeconds(t, D.VERBATIM_EST_WORDS_PER_SECOND), PERDA)
+  const fimDeFrase = cenas.every((c) => /[.!?]$/.test(c.voiceover.trim()))
+  checa(`roteiro do canário: ${n} palavras escritas = ${D.palavrasFaladas(t)} faladas (sem número; faixa ${minS}-${maxS}) → ${s} s por clipe, ${cenas.length} cenas terminando em fim de frase, inícios [${inicios}] (o que o doc manda conferir no claim)`, n >= minS && n <= maxS && D.palavrasFaladas(t) === n && s === 6 && cenas.length === 3 && fimDeFrase && eqJ(inicios, [0, 14, 28]) && doc.includes('inicios [0,14,28]') && doc.includes('clip_seconds [6,6,6]') && !doc.includes('const SCRIPT42 ='))
 }
 
 console.log(`\n${ok} ok · ${falhas.length} falhas`)

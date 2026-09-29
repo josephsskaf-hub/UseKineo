@@ -13,7 +13,7 @@ import { MIN_COVERAGE, WORDS_PER_SECOND } from '@/lib/narrationFit'
 import { speechFamilyForQuality, speechRateFor, SPEECH_RATE_BASE } from '@/lib/speechRate'
 import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
 import { VOICE_PERSONAS } from '@/lib/narration/personas'
-import { SEEDANCE_SHORT_SECONDS, SEEDANCE_SHORT_CLIPS, SEEDANCE_SHORT_CLIP_STEPS, VERBATIM_EST_WORDS_PER_SECOND } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29
+import { SEEDANCE_SHORT_SECONDS, SEEDANCE_SHORT_CLIP_STEPS, VERBATIM_EST_WORDS_PER_SECOND, seedanceShortSpeechCapacity } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29
 import { KLING25_CLIP_LOSS_SECONDS } from '@/lib/cinematic/klingShots' // o que o compose tira de cada clipe (0,1 + 0,06)
 
 // AUDITORIA 17/09 (noite): as personas do Kineo 1 vão de 2,25 (onyx × 0,90) a 2,81 pal/s (fable × 1,10), e o
@@ -42,16 +42,18 @@ export function fastestClassicPersonaRate(language: string): { wordsPerSecond: n
 //     usa, fastestClassicPersonaRate: fable 2,55 × 1,10 = 2,81 pal/s) → ⌈15 × 0,95 × 2,81⌉ = ⌈40,04⌉ = 41 palavras (com 40,
 //     essa persona fala 14,2 s e o ensaio de $0 reprova por 0,05 s — medido no guardião);
 //   · TETO: o roteiro cabe inteiro nos 3 clipes do passo mais barato (6 s) na régua real da casa (2,5 pal/s = a da guarda
-//     do filme curto; média do catálogo de personas; canário 45 pal ÷ 17,8 s = 2,53) → ⌊3 × (6 − 0,16) × 2,5⌋ =
-//     ⌊43,8⌋ = 43 palavras.
-// 41-43 palavras (~40) = 16,4-17,2 s de fala a 2,5 pal/s (16,2-17,0 s no ritmo do canário). A mesma função responde ao
+//     do filme curto; média do catálogo de personas; canário 45 pal ÷ 17,8 s = 2,53) COM a folga que o planejador de
+//     clipes exige (lib/durationByEngine seedanceShortSpeechCapacity: fala × 1,04 + o décimo do compose) →
+//     ⌊(3 × (6 − 0,16) − 0,1) ÷ 1,04 × 2,5⌋ = ⌊41,9⌋ = 41 palavras. Revisão adversarial (29/09): o teto antigo, 43 (sem
+//     folga), deixava 0,32 s de margem — a voz 2 % mais lenta já devolvia o clipe 0 no fim do filme.
+// Piso = teto = 41 palavras (~40) = 16,4 s de fala a 2,5 pal/s (16,2 s no ritmo do canário). A mesma função responde ao
 // /api/generate-script (piso e teto do prompt; a outra entrega corta os blocos extras em maxWordsFor) e ao guardião.
-/** Faixa de palavras do roteiro do filme de 15 s no Seedance 1.5 (piso na voz mais rápida; teto que cabe em 3 × 6 s). */
+/** Faixa de palavras do roteiro do filme de 15 s no Seedance 1.5 (piso na voz mais rápida; teto que cabe em 3 × 6 s com folga). */
 export function seedanceShortWriterWords(language: string = 'en'): { min: number; max: number; wordsPerSecond: number } {
   const rapida = fastestClassicPersonaRate(language).wordsPerSecond
   const min = Math.ceil(SEEDANCE_SHORT_SECONDS * MIN_COVERAGE * rapida - 1e-9)
-  const util = SEEDANCE_SHORT_CLIPS * (SEEDANCE_SHORT_CLIP_STEPS[0] - KLING25_CLIP_LOSS_SECONDS)
-  const max = Math.max(min, Math.floor(util * VERBATIM_EST_WORDS_PER_SECOND + 1e-9))
+  const cabe = seedanceShortSpeechCapacity(SEEDANCE_SHORT_CLIP_STEPS[0], KLING25_CLIP_LOSS_SECONDS)
+  const max = Math.max(min, Math.floor(cabe * VERBATIM_EST_WORDS_PER_SECOND + 1e-9))
   return { min, max, wordsPerSecond: VERBATIM_EST_WORDS_PER_SECOND }
 }
 /** O pedido é o 15 s do Seedance: a duração curta na régua genérica do clássico (writerRateFor de 'cinematic_ai'). */

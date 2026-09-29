@@ -135,29 +135,68 @@ export function scriptTooLongForShortFilmMessage(seconds: number, estSeconds: nu
 // Agora: 3 clipes, cada um pedido à fal com duration EXPLÍCITA (o schema do Seedance 1.5 aceita inteiros de 4 a 12), e
 // os segundos de cada clipe + o início da fala de cada cena ASSINADOS no claim (os mesmos campos do Kling 2.5 e do Veo),
 // para o compose montar pela linha do tempo por nível d'água, sem reciclar enquanto houver imagem não usada.
-// Segundos por clipe = o menor s de {6, 7, 8} com 3 × s ≥ fala estimada + folga, e a folga é o que o compose tira de
-// cada clipe (trim 0,1 + overlap 0,06 — KLING25_CLIP_LOSS_SECONDS, passado pelo chamador: este módulo não importa nada).
+// Segundos por clipe = o menor s de {6, 7, 8} cuja imagem útil (3 × (s − perda); perda = trim 0,1 + overlap 0,06 —
+// KLING25_CLIP_LOSS_SECONDS, passado pelo chamador: este módulo não importa nada) cobre a fala estimada COM folga
+// (× 1,04 + o décimo do arredondamento do compose — ver seedanceShortSpeechCapacity).
 // A fal cobra POR SEGUNDO (720p sem áudio, tokens = w×h×fps×s/1024 a US$ 1,20/M ≈ US$ 0,026/s — lib/fastAiClips
 // SEEDANCE_720P_USD_PER_SECOND): 3 × 6 = 18 s ≈ US$ 0,47 contra 2 × 10 = 20 s ≈ US$ 0,52 de antes. O preço em créditos
 // NÃO muda (creditCostForDuration('cinematic_ai', true, 15) = 7). A guarda de roteiro longo (22,5 s) continua antes do
-// débito; o teto 8 s × 3 = 24 s cobre toda fala que ela deixa passar (22,5 + 3 × 0,16 = 22,98 s).
+// débito; o teto 8 s × 3 = 24 s cobre toda fala que ela deixa passar, com a folga ((3 × 7,84 − 0,1) ÷ 1,04 = 22,52 s).
 
 /** Clipes do filme de 15 s no Seedance 1.5 — nem mais, nem menos. */
 export const SEEDANCE_SHORT_CLIPS = 3
 /** Segundos por clipe que o filme de 15 s pode pedir à fal, do mais barato ao mais longo. */
 export const SEEDANCE_SHORT_CLIP_STEPS = [6, 7, 8] as const
 
+// REVISÃO ADVERSARIAL (29/09, montagem): com margem zero (3 × s ≥ fala + 3 × perda) a fala REAL 2 % mais lenta que a
+// estimativa já devolvia o clipe 0 no fim — montagem real, [6,6,6]: fala 17,50 s limpa, 17,53 s → 0,1,2,0. E a estimativa
+// contava "1986" como 1 palavra (falada: "nineteen eighty-six"); o próprio roteiro do canário tinha "1986" e "1,700".
+// Agora o passo só é escolhido com folga: a fala estimada (palavras FALADAS) × 1,04 + o décimo que o compose arredonda
+// para cima (totalDuration = ⌈fala × 10⌉ ÷ 10) tem de caber na imagem útil. Com 41 palavras sem número (16,4 s a 2,5
+// pal/s) a voz pode sair 6,7 % mais lenta sem reuso em 3 × 6 s; 42+ palavras vão a 3 × 7 s (+ US$ 0,08), nunca ao reuso.
+// O teto não muda: toda fala que a guarda de 22,5 s deixa passar ainda cabe em 3 × 8 s com a folga (22,52 s).
+/** Folga multiplicativa sobre a fala estimada na escolha do passo (voz real até 4 % mais lenta que a estimativa). */
+export const SEEDANCE_SHORT_SPEECH_BAND = 1.04
+/** Arredondamento da linha do tempo do compose: ⌈fala × 10⌉ ÷ 10 (lib/compose buildCreatomateSource) — até 0,1 s a mais. */
+export const SEEDANCE_SHORT_TIMELINE_ROUNDING_SECONDS = 0.1
+
 /**
- * Segundos de CADA um dos 3 clipes: o menor passo s com 3 × s ≥ fala + 3 × perda (perda = o que o compose tira de cada
- * clipe). Fala acima do que 8 s cobrem (só com voz mais lenta que a régua) fica no passo mais longo: o compose reusa
- * dentro do teto do clipe, nunca além dele.
+ * Palavras FALADAS de um texto: cada palavra conta 1; um número conta pelos dígitos (até 4 — "45" = "forty-five",
+ * "1986" = "nineteen eighty-six", "1,700" = "one thousand seven hundred"), +1 com símbolo lido em voz alta (% $ € £).
+ */
+export function palavrasFaladas(narration: string | null | undefined): number {
+  let total = 0
+  for (const w of String(narration ?? '').split(/\s+/).filter(Boolean)) {
+    const digitos = (w.match(/[0-9]/g) ?? []).length
+    total += digitos > 0 ? Math.min(4, digitos) + (/[%$€£]/.test(w) ? 1 : 0) : 1
+  }
+  return total
+}
+
+/**
+ * Fala do filme de 15 s para escolher o passo: palavras faladas ÷ a régua MAIS LENTA entre a da guarda (2,5 pal/s) e a
+ * da voz que vai falar (persona mais lenta, ex. onyx 2,3, pede mais imagem).
+ */
+export function seedanceShortSpeechSeconds(narration: string | null | undefined, voiceWordsPerSecond: number): number {
+  const voz = Number.isFinite(voiceWordsPerSecond) && voiceWordsPerSecond > 0 ? voiceWordsPerSecond : VERBATIM_EST_WORDS_PER_SECOND
+  return palavrasFaladas(narration) / Math.min(VERBATIM_EST_WORDS_PER_SECOND, voz)
+}
+
+/** Fala estimada (s) que o passo cobre COM folga: (3 × (s − perda) − arredondamento do compose) ÷ 1,04. */
+export function seedanceShortSpeechCapacity(stepSeconds: number, clipLossSeconds: number): number {
+  const perda = Number.isFinite(clipLossSeconds) && clipLossSeconds > 0 ? clipLossSeconds : 0
+  return (SEEDANCE_SHORT_CLIPS * (stepSeconds - perda) - SEEDANCE_SHORT_TIMELINE_ROUNDING_SECONDS) / SEEDANCE_SHORT_SPEECH_BAND
+}
+
+/**
+ * Segundos de CADA um dos 3 clipes: o menor passo s cuja capacidade com folga (seedanceShortSpeechCapacity) cobre a
+ * fala estimada. Fala acima do que 8 s cobrem (só com voz mais lenta que a régua) fica no passo mais longo: o compose
+ * reusa dentro do teto do clipe, nunca além dele.
  */
 export function seedanceShortClipSeconds(speechSeconds: number, clipLossSeconds: number): number {
   const fala = Number.isFinite(speechSeconds) && speechSeconds > 0 ? speechSeconds : 0
-  const perda = Number.isFinite(clipLossSeconds) && clipLossSeconds > 0 ? clipLossSeconds : 0
-  const folga = SEEDANCE_SHORT_CLIPS * perda
   for (const s of SEEDANCE_SHORT_CLIP_STEPS) {
-    if (SEEDANCE_SHORT_CLIPS * s >= fala + folga - 1e-9) return s
+    if (seedanceShortSpeechCapacity(s, clipLossSeconds) >= fala - 1e-9) return s
   }
   return SEEDANCE_SHORT_CLIP_STEPS[SEEDANCE_SHORT_CLIP_STEPS.length - 1]
 }

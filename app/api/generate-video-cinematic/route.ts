@@ -8,7 +8,7 @@ import { isInternalEmail } from '@/lib/internalAccounts'
 import { S25_PUBLIC, enginePaused } from '@/lib/engineLaunch'
 import { seedance15sVisible } from '@/lib/engineLaunch' // KINEO-SEEDANCE-15S-2026-09-29
 import { checarDuracao, checarFalaDoFilmeCurto, supportedDurationsFor, mensagemDaRecusaDeDuracao, scriptTooLongForShortFilmMessage } from '@/lib/durationByEngine' // KINEO-SEEDANCE-15S-2026-09-29
-import { SEEDANCE_SHORT_SECONDS, SEEDANCE_SHORT_CLIPS, estimarFalaSegundos, seedanceShortClipSeconds, isSeedance15 } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29
+import { SEEDANCE_SHORT_SECONDS, SEEDANCE_SHORT_CLIPS, seedanceShortSpeechSeconds, seedanceShortClipSeconds, isSeedance15 } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29
 import { SEEDANCE_720P_USD_PER_SECOND } from '@/lib/fastAiClips' // [TRAVA 8.2 — "vai" do 3x6] preço por segundo do Seedance 720p sem áudio (só o ensaio de $0 o mostra)
 // sprint-v1v4 #27 — a MESMA funcao de resgate que o seletor usa desde a #13.
 // Gate de servidor e gate de UI sao um PAR (licao ja registrada no
@@ -3315,6 +3315,14 @@ async function manipularPost(req: NextRequest) {
               stockSearchQuery: seg.pexelsQuery,
             }))
             via = 'unbracket'
+            // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29 — revisão de dinheiro (29/09): este resgate roda DEPOIS
+            // da divisão em 3 blocos acima; um roteiro todo entre colchetes com só HOOK + PAYOFF saía com 2 cenas, cada uma com os
+            // segundos pensados para 3 clipes (2 × 6 = 12 s de imagem para ~17 s de fala → reuso). A prosa desembrulhada inteira
+            // vai ao mesmo divisor de palavras equilibradas, em 3 blocos; nenhuma palavra muda.
+            if (seedanceShortFilm && recuperadas.length < SEEDANCE_SHORT_CLIPS) {
+              const blocos3 = resolveVerbatimSegments({ segments: [], narration: reparse.narration }, SEEDANCE_SHORT_CLIPS)
+              if (blocos3.length > recuperadas.length) recuperadas = blocos3.map((seg) => ({ description: seg.pexelsQuery, voiceover: seg.voiceover, caption: shortCaptionFromVoiceover(seg.voiceover || seg.pexelsQuery), stockSearchQuery: seg.pexelsQuery }))
+            }
           } else {
             const generated = await generateScenes(prompt.slice(0, SCENE_WRITER_INPUT_MAX_CHARS), clipCount, hollywoodPath ? undefined : classicVisualPolicy, hollywoodPath ? undefined : classicWriterOptions)
           recuperadas = generated.map((s) => ({
@@ -5789,9 +5797,10 @@ async function manipularPost(req: NextRequest) {
     }
 
     // ═══ [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29 — os segundos de cada um dos 3 clipes do filme de 15 s ═══
-    // O menor passo s de {6, 7, 8} com 3 × s ≥ fala + 3 × 0,16 (o que o compose tira de cada clipe). Fala = a estimativa da
-    // guarda de roteiro longo (palavras ÷ 2,5 — estimarFalaSegundos), nunca menor que a fala na voz que VAI falar (persona
-    // mais lenta que 2,5 pal/s, ex. onyx × 0,92 = 2,3, pede mais imagem). Verbatim: a narração do autor; modo IA: as falas
+    // O menor passo s de {6, 7, 8} cuja imagem útil (3 × (s − 0,16)) cobre a fala COM folga (× 1,04 + o décimo que o compose
+    // arredonda — seedanceShortSpeechCapacity; revisão adversarial de 29/09: sem folga, 2 % de voz mais lenta devolvia o
+    // clipe 0 no fim). Fala = palavras FALADAS ("1986" = 4) ÷ a régua mais lenta entre a da guarda (2,5 pal/s) e a da voz
+    // que VAI falar (persona mais lenta, ex. onyx × 0,92 = 2,3, pede mais imagem). Verbatim: a narração do autor; modo IA: as falas
     // das cenas (≡ voiceoverScript da resposta). Viaja na cena (`clipSeconds`) até o payload (buildFalInput → duration
     // '6'|'7'|'8' no i2v e no t2v de reserva), o claim assinado (`clip_seconds` e `clip_word_starts`, os campos que o Kling
     // e o Veo já assinam) e o compose. Custo de clipe: 3 × 6 = 18 s ≈ US$ 0,47 (antes 2 × 10 = 20 s ≈ US$ 0,52); crédito
@@ -5800,8 +5809,7 @@ async function manipularPost(req: NextRequest) {
     if (seedanceShortFilm && scenes.length > 0) {
       const narracaoDoFilme = verbatim && parsedScript.narration ? parsedScript.narration : scenes.map((s) => s.voiceover).filter(Boolean).join(' ')
       const palavrasDoFilme = narracaoDoFilme.split(/\s+/).filter(Boolean).length
-      const falaNaVoz = narrationRate.wordsPerSecond > 0 ? palavrasDoFilme / narrationRate.wordsPerSecond : 0
-      const fala = Math.max(estimarFalaSegundos(narracaoDoFilme), falaNaVoz)
+      const fala = seedanceShortSpeechSeconds(narracaoDoFilme, narrationRate.wordsPerSecond)
       const segundos = seedanceShortClipSeconds(fala, KLING25_CLIP_LOSS_SECONDS)
       seedanceClipSeconds = scenes.map(() => segundos)
       scenes = scenes.map((s) => ({ ...s, clipSeconds: segundos }))

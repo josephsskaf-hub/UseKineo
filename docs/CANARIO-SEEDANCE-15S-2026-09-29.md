@@ -206,37 +206,51 @@ opção bora fazer"*.
 **O que mudou (commit `SEEDANCE-15S-3X6`):**
 - 15 s no Seedance 1.5 = **exatamente 3 cenas** (ideia e verbatim; roteiro marcado com 2 blocos vira 3 blocos da prosa).
 - Cada clipe vai à fal com **duration explícita** (`'6'|'7'|'8'`, no i2v e no t2v de reserva): o menor s de {6, 7, 8}
-  com 3 × s ≥ fala + 3 × 0,16 (fala = palavras ÷ 2,5, a régua da guarda; nunca menor que a fala na voz da persona).
+  cuja imagem útil cobre a fala **com folga** — 3 × (s − 0,16) ≥ fala × 1,04 + 0,1 (o décimo que o compose arredonda
+  para cima). Fala = palavras **faladas** ÷ a régua mais lenta entre 2,5 (a da guarda) e a da voz da persona; um número
+  conta pelos dígitos ("1986" = 4, "1,700" = 4, "45%" = 3).
+- **Conserto das revisões (29/09, commit do conserto):** a 1ª versão (`234e3593`) escolhia o passo com margem zero —
+  a revisão de montagem provou, na montagem real, [6,6,6] com fala de 17,50 s limpo e 17,53 s já 0,1,2,0 (clipe 0 de
+  volta no fim): bastava a voz 2 % mais lenta, ou um ano escrito em algarismos (o próprio roteiro do canário tinha "1986"
+  e "1,700"). Agora a folga está na lib e provada na montagem real de 30 a 56 palavras com a voz 3,5 % mais lenta. A
+  revisão de dinheiro achou o resgate de roteiro todo entre colchetes (KINEO-UNBRACKET) saindo com 2 cenas: agora sai em
+  3 blocos também.
 - O claim assina `clip_seconds` e `clip_word_starts` (os campos do Kling 2.5 e do Veo); o `/api/compose` alinha o plano
   do Seedance 15 s e o lib/compose monta pela linha do tempo por nível d'água, corte no início da fala de cada cena,
   **sem reciclar enquanto houver imagem não usada** e sem passar do tamanho real de nenhum clipe.
-- Roteirista (`/api/generate-script`, via lib/scriptWriterRate): **41–43 palavras** para o 15 s do Seedance (era 47–56).
-  Conta: piso ⌈15 × 0,95 × 2,81⌉ = 41 (a voz mais rápida do catálogo não cai abaixo do piso C2); teto
-  ⌊3 × (6 − 0,16) × 2,5⌋ = 43 (cabe em 3 × 6 s na régua da casa). 41–43 palavras = 16,4–17,2 s a 2,5 pal/s.
+- Roteirista (`/api/generate-script`, via lib/scriptWriterRate): **41 palavras** (piso = teto) para o 15 s do Seedance
+  (era 47–56). Conta: piso ⌈15 × 0,95 × 2,81⌉ = 41 (a voz mais rápida do catálogo não cai abaixo do piso C2); teto
+  ⌊(3 × (6 − 0,16) − 0,1) ÷ 1,04 × 2,5⌋ = 41 (cabe em 3 × 6 s com a folga do planejador). 41 palavras = 16,4 s a 2,5
+  pal/s. 42–49 palavras vão a 3 × 7 s; 50–56, a 3 × 8 s — nunca ao reuso.
 - **Crédito não muda:** `creditCostForDuration('cinematic_ai', true, 15)` = **7 cr**.
 - **Custo de clipe por filme** (720p sem áudio, US$ 0,026/s — lib/fastAiClips): **3 × 6 s = 18 s ≈ US$ 0,47**
-  (antes 2 × 10 s = 20 s ≈ US$ 0,52). Voz lenta (persona a 2,3 pal/s) com 43 palavras pede 3 × 7 s ≈ US$ 0,55; o teto
-  3 × 8 s ≈ US$ 0,62 só com roteiro perto do limite da guarda (56 palavras).
+  (antes 2 × 10 s = 20 s ≈ US$ 0,52). Roteiro de 42–49 palavras, ou voz lenta (persona a 2,3 pal/s), pede 3 × 7 s ≈
+  US$ 0,55; o teto 3 × 8 s ≈ US$ 0,62 só com roteiro de 50–56 palavras (o limite da guarda). Fixo por filme: o Seedance
+  ancora até 6 cenas em still FLUX (≈ US$ 0,025 cada), então o 3x6 paga 3 stills em vez de 2 — total ≈ US$ 0,55 (antes
+  ≈ US$ 0,57).
 
 Guardião: `node scripts/test-seedance-15s-3x6-2026-09-29.mjs` (compose real nos 4 casos — 16,0 s [6,6,6]; 17,8 s
 [7,7,7]; 20,5 s [8,8,8]; o canário 17,8 s [10,10] — sem reuso; a montagem antiga reproduz o reuso do canário).
 
-## Passo 3x6-1 — ensaio de $0 (roteiro de 42 palavras)
+## Passo 3x6-1 — ensaio de $0 (roteiro de 41 palavras, sem algarismos)
+
+O roteiro anterior deste passo (42 palavras com "1986" e "1,700") falava como ~46 palavras — exatamente a borda que a
+revisão de montagem pegou. Este tem 41 palavras escritas = 41 faladas, e cada frase cai numa cena (14 + 14 + 13).
 
 ```
-In 1986, a lake in Cameroon killed more than 1,700 people in one night without a single flame. Lake Nyos released a hidden cloud of carbon dioxide from below. The gas rolled downhill, silent and invisible. Today, pipes vent it every day.
+One night in Cameroon, a quiet lake killed more than a thousand sleeping villagers. Lake Nyos had released a hidden cloud of carbon dioxide trapped below its surface. The gas rolled downhill, silent and invisible. Today, pipes vent it every day.
 ```
 
 ```js
-const SCRIPT42 = "In 1986, a lake in Cameroon killed more than 1,700 people in one night without a single flame. Lake Nyos released a hidden cloud of carbon dioxide from below. The gas rolled downhill, silent and invisible. Today, pipes vent it every day.";
+const SCRIPT41 = "One night in Cameroon, a quiet lake killed more than a thousand sleeping villagers. Lake Nyos had released a hidden cloud of carbon dioxide trapped below its surface. The gas rolled downhill, silent and invisible. Today, pipes vent it every day.";
 const r = await fetch('/api/generate-video-cinematic', { method: 'POST', headers: { 'content-type': 'application/json' },
-  body: JSON.stringify({ generationId: crypto.randomUUID(), prompt: SCRIPT42, duration: 15, engine: 'seedance', language: 'en', script_mode: 'verbatim', dry_run: true }) });
+  body: JSON.stringify({ generationId: crypto.randomUUID(), prompt: SCRIPT41, duration: 15, engine: 'seedance', language: 'en', script_mode: 'verbatim', dry_run: true }) });
 const j = await r.json(); console.log(r.status, j.verdict, j.clip_seconds, j.clips_usd, j.footage_useful_seconds, j.scenes?.length);
 ```
 
 **Esperado:** HTTP 200, `verdict` `PASS`, **3 cenas**, `clip_seconds: [6,6,6]`, `clips_usd: 0.47`,
-`footage_useful_seconds: 17.5`, `total_words: 42`, estorno na hora. Se vier `[7,7,7]` (`clips_usd: 0.55`), a persona
-escolhida para o tema fala abaixo de 2,45 pal/s (ex.: dark-mystery, onyx × 0,92 = 2,3) — é a regra funcionando (mais
+`footage_useful_seconds: 17.5`, `total_words: 41`, estorno na hora. Se vier `[7,7,7]` (`clips_usd: 0.55`), a persona
+escolhida para o tema fala abaixo de 2,5 pal/s (ex.: dark-mystery, onyx × 0,92 = 2,3) — é a regra funcionando (mais
 imagem para voz mais lenta), não defeito; anotar a persona do log `KINEO-RITMO-POR-VOZ`.
 
 ## Passo 3x6-2 — 1 render pago (7 cr, ≈ US$ 0,47 de clipes)
@@ -244,7 +258,7 @@ imagem para voz mais lenta), não defeito; anotar a persona do log `KINEO-RITMO-
 Só com o passo 3x6-1 em PASS. Mesmo payload **sem** `dry_run`:
 
 ```json
-{ "generationId": "<crypto.randomUUID()>", "prompt": "<SCRIPT42>", "duration": 15, "engine": "seedance", "language": "en", "script_mode": "verbatim" }
+{ "generationId": "<crypto.randomUUID()>", "prompt": "<SCRIPT41>", "duration": 15, "engine": "seedance", "language": "en", "script_mode": "verbatim" }
 ```
 
 (ou pela tela: `/studio?engine=seedance&duration=15`, "Use my script as is", custo mostrado **7 cr**).
@@ -279,7 +293,7 @@ order by created_at desc limit 1;
 -- esperado: completed · cinematic_ai · 7
 ```
 
-- **Duração pelo `mvhd`** (script do Passo 5 acima): **15–17 s** (42 palavras a ~2,5 pal/s ≈ 16,8 s).
+- **Duração pelo `mvhd`** (script do Passo 5 acima): **15–17 s** (41 palavras a ~2,5 pal/s ≈ 16,4 s).
 - **Cortes = 2, nenhum retorno ao 1º clipe** — com o MP4 baixado:
 
   ```
