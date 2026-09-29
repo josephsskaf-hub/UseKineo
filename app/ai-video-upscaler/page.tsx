@@ -6,7 +6,7 @@
 // para video de fora, o caminho e gerar/importar no Kineo (sem promessa de
 // upload avulso que nao existe — CTA leva pro signup + Studio).
 import type { Metadata } from 'next'
-import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { TRIAL_GRANT_CREDITS_COPY, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer'
 import { creditsPerReferenceVideo, formatUsd, planCreditSpendUsd } from '@/lib/marketingPrice'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
@@ -51,7 +51,7 @@ const FAQS = [
   },
   {
     q: 'How much does it cost?',
-    a: `Enhance is ${ENHANCE_CREDITS} credits per video (${CREATOR_ENHANCE_VALUE} of Creator-plan credits). Generating a full 60-second film starts at ${SEEDANCE_CREDITS} credits with Seedance. Every new account starts free with 10 credits, no card.`,
+    a: `Enhance is ${ENHANCE_CREDITS} credits per video (${CREATOR_ENHANCE_VALUE} of Creator-plan credits). Generating a full 60-second film starts at ${SEEDANCE_CREDITS} credits with Seedance. Every new account${GRANT_COUNTRY_CLAUSE} starts free with 10 credits, no card.`,
   },
 ]
 

@@ -180,6 +180,14 @@ const SERVER_ONLY_EVENTS = new Set([
   // saída B recusa o filme grátis por país (nome = TRIAL_REGION_EXCLUDED_EVENT em lib/freeFilmPolicy.ts). É a prova
   // pós-deploy (= 0 com a política 'todos') e a contagem de excluídos: se o navegador pudesse cunhá-lo, as duas mentiriam.
   'trial_region_excluded',
+  // KINEO-E4-SAIDA-B-2026-09-29 — escritos SÓ pelo servidor: a recusa do Kineo 1 grátis (lib/kineo1Gate.ts, na
+  // generate-video-fast) e a cota semanal nova (recarga em lib/freeWeeklyFilmGrant.ts; admissão no cinematic). O carimbo
+  // da recarga É a janela de 7 dias: se o navegador pudesse cunhá-lo, travaria a cota de alguém; as três são o custo medido.
+  'kineo1_retired_refused',
+  'free_weekly_film_granted',
+  'free_weekly_film_admitted',
+  'free_weekly_film_grant_voided', // KINEO-E4-CONSERTO-2026-09-29: carimbo gravado sem crédito (lib/freeWeeklyFilmGrant.ts)
+  'free_weekly_film_exclusive_refused', // KINEO-E4-CONSERTO-2026-09-29: trava de pedidos simultâneos da cota semanal (cinematic)
   // KINEO-STRIPE-ATRASO-2026-09-28 — escritos SÓ pelo webhook da Stripe. `subscription_ended` é o churn (fim de
   // assinatura) e `renewal_ignored_non_access` o pagamento de renovação descartado; forjá-los mentiria no placar.
   'subscription_ended',

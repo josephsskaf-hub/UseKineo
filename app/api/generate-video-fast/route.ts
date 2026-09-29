@@ -36,6 +36,8 @@ import { decideDurationFollowsScript, decideDurationFollowsScriptUp, DURATION_FO
 import { splitProseIntoBlocks, fallbackStockQuery } from '@/lib/proseBlocks' // KINEO1-VERBATIM-ESTICA-2026-09-22
 import { speechRateFor, narrationFitAt } from '@/lib/speechRate'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { kineo1GateReason, KINEO1_RETIRED_EVENT, KINEO1_RETIRED_MESSAGE, KINEO1_RETIRED_REASON } from '@/lib/kineo1Gate' // KINEO-E4-SAIDA-B-2026-09-29 [TRAVA 8.2]
+import { retryOwnReadOnSkew } from '@/lib/jwtSkewFallback' // KINEO-E4-SAIDA-B-2026-09-29
 import { SCENE_WRITER_INPUT_MAX_CHARS, analyzePromptMaxChars } from '@/lib/analyzeLimits' // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23 · KINEO-PORTA-FORMATO-2026-09-24
 import { classifyEngineFit } from '@/lib/engineFit'
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
@@ -380,6 +382,49 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       )
     }
+
+    // ═══ KINEO-E4-SAIDA-B-2026-09-29 [TRAVA 8.2 — "vai E4" do fundador] — PORTÃO DO KINEO 1, ANTES DE QUALQUER FORNECEDOR ═══
+    // Kineo 1 fora do jogo (fundador 29/09): só passa quem paga (has_paid / plano pago / Autopilot) ou a casa (lista
+    // exata). Fica AQUI — antes do dry-run, do corpo, do planejador (OpenAI), do Pixabay e dos clipes de IA do "1º filme"
+    // (~US$ 0,39 de fal por clique que o compose recusaria depois). Regra e razões em lib/kineo1Gate.ts. Leitura falhou
+    // = 503 sem gasto (falha FECHADA: esta é uma guarda de dinheiro). Em modo serviço (cron finish-orphan-jobs) o
+    // e-mail vem de profiles, que o cliente edita: não vale como "casa" — só plano/has_paid decidem.
+    {
+      let { data: portaoPerfil, error: portaoErro } = await supabase
+        .from('profiles')
+        .select('plan, has_paid, trial_status')
+        .eq('id', user.id)
+        .maybeSingle()
+      if (portaoErro && !isServiceJob) {
+        const resgatado = await retryOwnReadOnSkew(portaoErro, 'generate-fast', (admin) =>
+          admin.from('profiles').select('plan, has_paid, trial_status').eq('id', user!.id).maybeSingle(),
+        )
+        if (resgatado) { portaoPerfil = resgatado as typeof portaoPerfil; portaoErro = null }
+      }
+      if (portaoErro) {
+        recordFastFailure('generating', 'kineo1_gate_read_failed', 503, user.id)
+        return NextResponse.json({ error: 'Your access could not be verified. Nothing was charged. Please retry.', charged: false }, { status: 503 })
+      }
+      let portao = kineo1GateReason({
+        email: isServiceJob ? null : user.email ?? null,
+        plan: (portaoPerfil as { plan?: string | null } | null)?.plan ?? null,
+        hasPaid: (portaoPerfil as { has_paid?: boolean | null } | null)?.has_paid ?? null,
+      })
+      // KINEO-E4-CONSERTO-2026-09-29 — em modo serviço a "casa" se decide pelo e-mail do AUTH (nunca o de profiles,
+      // editável), lido só quando o resto recusaria. Mesma régua do compose.
+      if (portao === 'retired' && isServiceJob) {
+        const { data: authData, error: authErr } = await supabase.auth.admin.getUserById(user.id)
+        if (!authErr) portao = kineo1GateReason({ email: authData?.user?.email ?? null, plan: (portaoPerfil as { plan?: string | null } | null)?.plan ?? null, hasPaid: (portaoPerfil as { has_paid?: boolean | null } | null)?.has_paid ?? null })
+      }
+      if (portao === 'retired') {
+        // KINEO-E4-CONSERTO-2026-09-29 (revisão de regressão, achado 2) — `await`, não `void`: a Vercel congela a função
+        // ao responder e o evento com `void` antes do return grava ~1 em 10 (void-antes-do-return-morre-na-vercel,
+        // 16/09). Este evento É a prova pós-deploy ("recusas kineo1_retired sem fal no mesmo user_id").
+        await writeServerEvent({ name: KINEO1_RETIRED_EVENT, userId: user.id, path: '/api/generate-video-fast', metadata: { route: 'generate-video-fast', plan: (portaoPerfil as { plan?: string | null } | null)?.plan ?? null, trial_status: (portaoPerfil as { trial_status?: string | null } | null)?.trial_status ?? null, service: isServiceJob, charged: false } })
+        return NextResponse.json({ error: KINEO1_RETIRED_MESSAGE, reason: KINEO1_RETIRED_REASON, charged: false, retryable: false, upgrade: '/pricing', alternative_engine: 'seedance' }, { status: 403 })
+      }
+    }
+    // ═══ FIM KINEO-E4-SAIDA-B (portão do Kineo 1) ═══
 
     // Push #346 — accept brollQueries from the BrollPlan (v3.0 Phase 1).
     // When the client ran generate-broll-plan first (Creator Mode or Autopilot

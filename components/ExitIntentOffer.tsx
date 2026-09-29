@@ -42,7 +42,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { trackEvent as trackAnalyticsEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
-import { FREE_FILM_LABEL, TRIAL_CREDITS_SHOWN, TRIAL_FREE_FILM_SECONDS, TRIAL_GRANT_CREDITS_COPY, TRIAL_SEEDANCE15_FILMS } from '@/lib/freeTierOffer' // KINEO-FILME-GRATIS-15S-2026-09-29
+import { FREE_FILM_LABEL, TRIAL_CREDITS_SHOWN, TRIAL_FREE_FILM_SECONDS, TRIAL_GRANT_CREDITS_COPY, TRIAL_SEEDANCE15_FILMS, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer' // KINEO-FILME-GRATIS-15S-2026-09-29
 import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 import { videosPerMonth } from '@/lib/marketingPrice'
 // KINEO-VITRINE-MOEDA-2026-08-19 — ver o bloco grande junto ao texto do modal.
@@ -441,7 +441,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
               {/* KINEO-GRANT-COPY-UNICA — número derivado; ver lib/freeTierOffer.ts. */}
               <FreeTierCopy
                 legacy="3 free videos every day · no card needed."
-                on={`Signing up gets you the standard ${TRIAL_GRANT_CREDITS_COPY} free credits every new account receives — enough for ${TRIAL_SEEDANCE15_FILMS === 1 ? 'one' : TRIAL_SEEDANCE15_FILMS} ${FREE_FILM_LABEL}. No card, no special deal for leaving: this is simply what a new account comes with.`}
+                on={`Signing up gets you the standard ${TRIAL_GRANT_CREDITS_COPY} free credits every new account${GRANT_COUNTRY_CLAUSE} receives — enough for ${TRIAL_SEEDANCE15_FILMS === 1 ? 'one' : TRIAL_SEEDANCE15_FILMS} ${FREE_FILM_LABEL}. No card, no special deal for leaving: this is simply what a new account comes with.`}
               />
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 18 }}>

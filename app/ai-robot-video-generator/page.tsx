@@ -8,7 +8,7 @@
 // lado — "this exact text made this film". Nenhum demo reel fabricado.
 import { CARD_ENTRY_COPY, FREE_ENTRY_CREDITS } from '@/lib/entryPolicy'
 import type { Metadata } from 'next'
-import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { TRIAL_GRANT_CREDITS_COPY, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer'
 import {
   STUDIO_CREDITS,
   STUDIO_MONTH,
@@ -78,7 +78,7 @@ const FAQ_JSONLD = {
       name: 'How much does a robot battle film cost?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `On Omni Flash, a full 60-second multi-scene film costs ${creditsPerReferenceVideo('cinematic_omni')} credits — the Studio plan (${STUDIO_MONTH}, ${STUDIO_CREDITS} credits) fits ${videosPerMonth('pro', 'cinematic_omni')} flagship film a month plus change. Cheaper engines start at ${creditsPerReferenceVideo('cinematic_ai')} credits per 60-second film, and every new account starts free with 10 credits, no card.`,
+        text: `On Omni Flash, a full 60-second multi-scene film costs ${creditsPerReferenceVideo('cinematic_omni')} credits — the Studio plan (${STUDIO_MONTH}, ${STUDIO_CREDITS} credits) fits ${videosPerMonth('pro', 'cinematic_omni')} flagship film a month plus change. Cheaper engines start at ${creditsPerReferenceVideo('cinematic_ai')} credits per 60-second film, and every new account${GRANT_COUNTRY_CLAUSE} starts free with 10 credits, no card.`,
       },
     },
   ],

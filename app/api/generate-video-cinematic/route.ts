@@ -24,6 +24,8 @@ import { createClient as createAdminClient, type SupabaseClient } from '@supabas
 import { createHash } from 'crypto'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { FREE_WEEKLY_FILM_ADMITTED_EVENT, FREE_WEEKLY_FILM_COUNTRY_EVENTS, FREE_WEEKLY_FILM_EXCLUSIVE_REFUSED_EVENT, FREE_WEEKLY_FILM_IN_USE_MESSAGE, FREE_WEEKLY_FILM_QUALITY, FREE_WEEKLY_FILM_SECONDS, FREE_WEEKLY_FILM_WINDOW_MS, freeWeeklyCountryMatches, freeWeeklyFilmAdmissible, freeWeeklyFilmEligibility, freeWeeklyFilmExclusive } from '@/lib/freeWeeklyFilm' // KINEO-E4-SAIDA-B-2026-09-29 [TRAVA 8.2]
+import { paisDoRequest, REGION_PAID_ONLY_REFUSAL, REGION_PAID_ONLY_TRIAL_STATUS } from '@/lib/freeFilmPolicy' // KINEO-E4-SAIDA-B-2026-09-29
 import { SCENE_WRITER_INPUT_MAX_CHARS } from '@/lib/analyzeLimits' // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23
 // KINEO-353A — classificacao pura da falha de cena (sem rede, sem banco).
 import {
@@ -1938,11 +1940,55 @@ async function manipularPost(req: NextRequest) {
     const duracaoCobrada = duration // V2-PRECO-DA-DURACAO-ENTREGUE-2026-09-23: a duração que o `cost` precifica
     void baseCost // mantido para leitura: é o valor de referência a 60s
 
+    // ═══ KINEO-E4-SAIDA-B-2026-09-29 [TRAVA 8.2 — "vai E4" do fundador] — ADMISSÃO DA COTA SEMANAL NOVA ═══
+    // 1 Seedance 1.5 de 15 s por semana para conta grátis de país da lista (lib/freeWeeklyFilm.ts). ESTREITA de
+    // propósito: só costQuality 'cinematic_ai', só 15 s, só conta elegível (nunca 'region_paid_only', país do PEDIDO na
+    // lista) e só se ela não tiver filme Seedance não-falho nos últimos 7 dias — contagem que falha = não admite. O
+    // débito é o de sempre (os 7 cr que a recarga semanal do /api/credits deu); motores Studio seguem pagos (gate acima).
+    let freeWeeklyAdmitted = false
+    if (!isPaidUser && !trialActive && costQuality === FREE_WEEKLY_FILM_QUALITY && duration === FREE_WEEKLY_FILM_SECONDS) {
+      const semanal = freeWeeklyFilmEligibility(profile, paisDoRequest(req.headers))
+      let recentes: number | null = null
+      if (semanal === 'eligible') {
+        const { count: nRecentes, error: recentesErr } = await supabase
+          .from('videos')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('quality_mode', FREE_WEEKLY_FILM_QUALITY)
+          .neq('status', 'failed')
+          .gte('created_at', new Date(Date.now() - FREE_WEEKLY_FILM_WINDOW_MS).toISOString())
+        recentes = recentesErr || typeof nRecentes !== 'number' ? null : nRecentes
+        // KINEO-E4-CONSERTO-2026-09-29 (achado 4) — o país FICA: o da 1ª recarga/admissão (metadata.country) tem de ser o
+        // do pedido. `events` é só do service role; sem ele (ou leitura falhou) a contagem vira null = não admite.
+        const admUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+        const admKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+        const primeiraVez = admUrl && admKey
+          ? await createAdminClient(admUrl, admKey, { auth: { persistSession: false } }).from('events').select('metadata').eq('user_id', user.id).in('name', [...FREE_WEEKLY_FILM_COUNTRY_EVENTS]).order('created_at', { ascending: true }).limit(1)
+          : { data: null, error: { message: 'service role missing' } }
+        const primeiraMeta = Array.isArray(primeiraVez.data) && primeiraVez.data.length > 0 ? (primeiraVez.data[0] as { metadata?: Record<string, unknown> | null }).metadata ?? null : null
+        if (!freeWeeklyCountryMatches({ firstRead: !primeiraVez.error, firstCountry: primeiraMeta && typeof primeiraMeta.country === 'string' ? primeiraMeta.country : null, country: paisDoRequest(req.headers) })) recentes = null
+      }
+      freeWeeklyAdmitted = freeWeeklyFilmAdmissible({ quality: costQuality, durationSeconds: duration, eligibility: semanal, recentSeedanceFilms: recentes })
+      if (freeWeeklyAdmitted) {
+        await writeServerEvent({ name: FREE_WEEKLY_FILM_ADMITTED_EVENT, userId: user.id, path: '/api/generate-video-cinematic', metadata: { seconds: duration, cost, balance, country: paisDoRequest(req.headers) } })
+      }
+    }
+
     // PUSH #20 — every premium AI engine is paid-only. The acquisition offer is
     // Fast (3 watermarked videos / 24h), never a hidden premium trial.
     // KINEO-REVERSE-TRIAL-P1-2026-08-06 — exceção EXPLÍCITA e flag-gated: o
     // reverse trial (Creator por 3/7 dias, cap 40 no backend) libera o Seedance.
     if (!isPaidUser && !trialActive) {
+      // KINEO-E4-SAIDA-B-2026-09-29 — a cota semanal nova é a única outra exceção: o admitido pula a recusa. (Só linhas
+      // ACRESCENTADAS nesta rota — a linha do gate acima é a da base; scripts/test-seedance-15s-3x6 confere.)
+      if (!freeWeeklyAdmitted) {
+      // KINEO-E4-SAIDA-B-2026-09-29 — conta que nasceu fora do filme grátis ouve a verdade, não "upgrade" seco.
+      if (profile?.trial_status === REGION_PAID_ONLY_TRIAL_STATUS) {
+        return NextResponse.json(
+          { error: REGION_PAID_ONLY_REFUSAL, upsell: 'creator', reason: 'plan_ai_engine', region: REGION_PAID_ONLY_TRIAL_STATUS, balance },
+          { status: 402 },
+        )
+      }
       return NextResponse.json(
         {
           // KINEO-TRIAL-PAYWALL-2026-08-06 (fase 2, item 3) — PAYWALL
@@ -1965,6 +2011,7 @@ async function manipularPost(req: NextRequest) {
         },
         { status: 402 },
       )
+      } // KINEO-E4-SAIDA-B-2026-09-29 — fim do `if (!freeWeeklyAdmitted)`
     }
 
     // ═══ KINEO-TRIAL-STALL-2026-08-14 (fase 2, item 3) ═══════════════════════
@@ -2734,6 +2781,7 @@ async function manipularPost(req: NextRequest) {
     const currentPaid =
       currentProfile.has_paid === true ||
       PAID_PLANS.has(currentPlan) ||
+      freeWeeklyAdmitted || // KINEO-E4-SAIDA-B-2026-09-29: admitido acima pela cota semanal (15 s, Seedance, país da lista); o saldo abaixo segue cobrando
       isTrialActive(currentProfile)
     const currentBalance = Math.max(0, currentProfile.video_credits)
     const heldByOtherJobs = Math.max(0, holds.totalHeld - cost)
@@ -2749,6 +2797,31 @@ async function manipularPost(req: NextRequest) {
         },
         { status: 402 },
       )
+    }
+
+    // ═══ KINEO-E4-CONSERTO-2026-09-29 [TRAVA 8.2 — "vai E4" do fundador] (revisão de dinheiro, achado 5) ═══
+    // A cota semanal é EXCLUSIVA: a admissão acima conta `videos`, que só nasce quando o render termina — dois
+    // Seedance de 15 s disparados juntos contavam 0 e passavam os dois. Aqui, DEPOIS de gravar o próprio claim (o
+    // "inserir e depois auditar" dos holds, logo acima), outro render dessa conta aparece como hold (antes do débito)
+    // ou como débito `cinematic-*` não estornado na semana (depois). Qualquer um dos dois, ou leitura falhou → recusa
+    // sem cobrar. Render que falha é estornado (refunded_at) e a semana volta.
+    if (freeWeeklyAdmitted) {
+      const { count: debitosSemana, error: debitosErr } = await cinematicAdmin
+        .from('credit_debits')
+        .select('render_id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .like('render_id', 'cinematic-%')
+        .is('refunded_at', null)
+        .gte('created_at', new Date(Date.now() - FREE_WEEKLY_FILM_WINDOW_MS).toISOString())
+      const exclusivo = freeWeeklyFilmExclusive({ otherActiveHold: holds.totalHeld > cost, weekCinematicDebits: debitosErr || typeof debitosSemana !== 'number' ? null : debitosSemana })
+      if (!exclusivo) {
+        await releaseBirthClaim('free_weekly_film_in_use')
+        await writeServerEvent({ name: FREE_WEEKLY_FILM_EXCLUSIVE_REFUSED_EVENT, userId: user.id, path: '/api/generate-video-cinematic', metadata: { held: holds.totalHeld, cost, week_debits: typeof debitosSemana === 'number' ? debitosSemana : null, read_failed: Boolean(debitosErr) } })
+        return NextResponse.json(
+          { error: FREE_WEEKLY_FILM_IN_USE_MESSAGE, reason: 'free_weekly_film_in_use', charged: false, upgrade: '/pricing' },
+          { status: 402 },
+        )
+      }
     }
 
     // KINEO-CAPACITY-2026-08-08 — DISJUNTOR GLOBAL, o último portão antes do

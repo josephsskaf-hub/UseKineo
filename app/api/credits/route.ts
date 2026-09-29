@@ -9,6 +9,11 @@ import { OFFER_290_ENABLED } from '@/lib/flags'
 // KINEO-REVERSE-TRIAL-P1-2026-08-06 — reverse trial surface para a UI do
 // generate (cadeado Studio). Flag OFF => bloco nunca executa, resposta identica.
 import { REVERSE_TRIAL_ENABLED, isTrialActive, trialUiState, type TrialUiState } from '@/lib/reverseTrial'
+// KINEO-E4-SAIDA-B-2026-09-29 — recarga semanal da cota nova (1 Seedance 1.5 de 15 s/semana, só país rico).
+import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { grantFreeWeeklyFilm } from '@/lib/freeWeeklyFilmGrant'
+import { paisDoRequest } from '@/lib/freeFilmPolicy'
+import { writeServerEvent } from '@/lib/serverEvents'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
 // Rota SO-GET no Next 14.2: sem POST no modulo, o store nasce com
 // revalidate=false, e `dynamic='force-dynamic'` NAO muda isso (so pula o proxy
@@ -51,6 +56,22 @@ export async function GET(req: Request) {
         void supabase.from('profiles').update({ last_ip: ip, last_country: country }).eq('id', user.id)
       }
     } catch { /* non-blocking */ }
+
+    // ═══ KINEO-E4-SAIDA-B-2026-09-29 — COTA SEMANAL NOVA: recarga ANTES da leitura do saldo, para a tela já mostrar os
+    // créditos do filme da semana (e o botão do Seedance 15 s não abrir a parede de saldo). Só conta grátis de país
+    // da lista, sem acumular, no máximo 1×/7 dias, compare-and-set no saldo e evento — régua em lib/freeWeeklyFilm.ts,
+    // escrita em lib/freeWeeklyFilmGrant.ts. Qualquer falha aqui é silenciosa: o saldo sai como estava.
+    try {
+      const svcUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      if (svcUrl && svcKey) {
+        const svc = createServiceClient(svcUrl, svcKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+          global: { fetch: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, { ...init, cache: 'no-store' }) },
+        })
+        await grantFreeWeeklyFilm(svc, writeServerEvent, { userId: user.id, country: paisDoRequest(req.headers) })
+      }
+    } catch { /* a recarga nunca derruba o saldo */ }
 
     let { data, error } = await supabase
       .from('profiles')

@@ -33,8 +33,11 @@ const rodaPuro = (src) => { const exports = {}; vm.runInNewContext(ts.transpileM
 console.log('== (a) lib/freeFilmPolicy.ts ==')
 const polSrc = rd('lib/freeFilmPolicy.ts')
 const P = rodaPuro(polSrc)
-const provaPadrao = (M) => M.FREE_FILM_POLICY === 'todos' && ['PK', 'IN', 'NG', 'BR', 'US', null, undefined, ''].every((c) => M.filmeGratisPermitido(c) === true)
-checa("padrão 'todos': PK, IN, NG, BR, US e sem país → filme grátis (comportamento de hoje)", provaPadrao(P))
+// REANCORADO NA E4 (KINEO-E4-SAIDA-B-2026-09-29, motivo: a E4 cumpriu a condição deste guardião — cota de Kineo 1 em 0 e
+// portão do Kineo 1 no servidor — e LIGA a saída B). O padrão passa a ser 'pais_rico'; o ramo 'todos' segue provado
+// abaixo por política injetada. A prova completa da E4 mora em scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs.
+const provaPadrao = (M) => M.FREE_FILM_POLICY === 'pais_rico' && ['PK', 'IN', 'NG', 'BR'].every((c) => M.filmeGratisPermitido(c) === false) && ['US', null, undefined, ''].every((c) => M.filmeGratisPermitido(c) === true) && ['PK', 'US', null].every((c) => M.filmeGratisPermitido(c, 'todos') === true)
+checa("padrão 'pais_rico' (E4): PK, IN, NG, BR sem filme grátis; US e sem país com; 'todos' injetado concede a todos", provaPadrao(P))
 const provaB = (M) =>
   ['PK', 'IN', 'NG', 'BR', 'MX', 'BD', 'KE'].every((c) => M.filmeGratisPermitido(c, 'pais_rico') === false) &&
   ['US', 'ES', 'GB', 'DE', 'PL', 'JP', 'AE', 'IL', 'us', ' es '].every((c) => M.filmeGratisPermitido(c, 'pais_rico') === true) &&
@@ -42,7 +45,7 @@ const provaB = (M) =>
 checa("'pais_rico': PK/IN/NG/BR/MX/BD/KE → false; US/ES/GB/DE/PL/JP/AE/IL → true; sem país/'XX' → true", provaB(P))
 checa('BR e MX fora da lista; a lista é ISO-2 sem repetição', !P.PAISES_FILME_GRATIS.includes('BR') && !P.PAISES_FILME_GRATIS.includes('MX') && P.PAISES_FILME_GRATIS.every((c) => /^[A-Z]{2}$/.test(c)) && new Set(P.PAISES_FILME_GRATIS).size === P.PAISES_FILME_GRATIS.length)
 checa('lista pedida pelo fundador inteira', ['US', 'CA', 'GB', 'IE', 'AU', 'NZ', 'PL', 'CZ', 'LT', 'LV', 'EE', 'SK', 'SI', 'HR', 'GR', 'HU', 'RO', 'PT', 'ES', 'IT', 'FR', 'DE', 'NL', 'BE', 'LU', 'AT', 'SE', 'NO', 'DK', 'FI', 'IS', 'CH', 'MT', 'CY', 'JP', 'KR', 'SG', 'HK', 'TW', 'AE', 'SA', 'QA', 'KW', 'BH', 'OM', 'IL'].every((c) => P.PAISES_FILME_GRATIS.includes(c)))
-checa("mutante (padrão 'pais_rico') → vermelho em \"'todos' é o padrão\"", !provaPadrao(rodaPuro(trocar(polSrc, "export const FREE_FILM_POLICY: FreeFilmPolicy = 'todos'", "export const FREE_FILM_POLICY: FreeFilmPolicy = 'pais_rico'"))))
+checa("mutante (padrão volta a 'todos') → vermelho em \"'pais_rico' é o padrão\"", !provaPadrao(rodaPuro(trocar(polSrc, "export const FREE_FILM_POLICY: FreeFilmPolicy = 'pais_rico'", "export const FREE_FILM_POLICY: FreeFilmPolicy = 'todos'"))))
 checa('mutante (BR entra na lista) → vermelho', !provaB(rodaPuro(trocar(polSrc, "  'US', 'CA',", "  'BR', 'US', 'CA',"))))
 checa('mutante (sem país vira recusa) → vermelho', !provaB(rodaPuro(trocar(polSrc, '  if (c === null) return true\n', '  if (c === null) return false\n'))))
 checa('paisDoRequest lê x-vercel-ip-country e normaliza', P.paisDoRequest({ get: (n) => (n === 'x-vercel-ip-country' ? 'pk' : null) }) === 'PK' && P.paisDoRequest({ get: () => null }) === null && P.paisDoRequest(null) === null)
@@ -104,8 +107,10 @@ async function ativa({ country, politica }) {
   return { r, db, eventos, RT }
 }
 {
-  const hoje = await ativa({ country: 'PK' })
-  checa(`'todos' (padrão real): cadastro do PK ganha o trial como antes (${hoje.r.reason}, ${hoje.db.perfil.video_credits} cr)`, hoje.r.activated === true && hoje.db.perfil.trial_status === 'active' && hoje.db.perfil.video_credits === hoje.RT.TRIAL_GRANT_CREDITS && !hoje.eventos.some((e) => e.name === 'trial_region_excluded'))
+  const padraoReal = await ativa({ country: 'PK' })
+  checa(`'pais_rico' (padrão real desde a E4): cadastro do PK nasce region_paid_only com 0 cr (${padraoReal.r.reason})`, padraoReal.r.reason === 'region_paid_only' && padraoReal.db.perfil.video_credits === 0)
+  const hoje = await ativa({ country: 'PK', politica: 'todos' })
+  checa(`'todos' (injetado): cadastro do PK ganha o trial como antes (${hoje.r.reason}, ${hoje.db.perfil.video_credits} cr)`, hoje.r.activated === true && hoje.db.perfil.trial_status === 'active' && hoje.db.perfil.video_credits === hoje.RT.TRIAL_GRANT_CREDITS && !hoje.eventos.some((e) => e.name === 'trial_region_excluded'))
   const pk = await ativa({ country: 'PK', politica: 'pais_rico' })
   const marca = pk.db.updates.find((u) => u.patch?.trial_status === 'region_paid_only')
   checa(`'pais_rico' + PK: region_paid_only, 0 crédito, evento com o país (${pk.r.reason})`, pk.r.activated === false && pk.r.reason === 'region_paid_only' && pk.db.perfil.trial_status === 'region_paid_only' && pk.db.perfil.video_credits === 0 && !!marca && marca.filtros.some(([k, c, v]) => k === 'is' && c === 'trial_status' && v === null) && pk.eventos.some((e) => e.name === 'trial_region_excluded' && e.metadata?.country === 'PK') && !pk.eventos.some((e) => e.name === 'trial_credits_granted'))
@@ -166,4 +171,4 @@ console.log('== (e) trial_region_excluded só do servidor ==')
 
 console.log(`\n${ok}/${ok + falhas.length} verificações`)
 if (falhas.length) { for (const f of falhas) console.log('FALHOU:', f); process.exit(1) }
-console.log("PASS — interruptor de país pronto em 'todos'; a saída B só liga depois da E4.")
+console.log("PASS — saída B ligada na E4 ('pais_rico'); o ramo 'todos' segue provado por injeção.")

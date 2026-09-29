@@ -73,18 +73,24 @@ export const CARD_ENTRY_COPY_V_B = {
 // KINEO-RESTAURACAO-2026-09-09 — a copy da ENTRADA GRÁTIS. Mantém as mesmas
 // chaves porque ~25 páginas públicas leem `CARD_ENTRY_COPY.ctaLong/ctaShort`
 // no botão principal: trocar aqui troca todas de uma vez, sem redigitar.
+// KINEO-E4-CONSERTO-2026-09-29 (revisão de regressão, achado 1) — espelho LITERAL (módulo PURO, sem import) de
+// FREE_FILM_COUNTRY_CLAUSE (lib/freeFilmPolicy.ts, política 'pais_rico'): conta de país fora da lista nasce com 0 crédito,
+// então a frase do grant diz onde ele vale. Os botões (ctaShort/ctaLong) ficam curtos. O guardião
+// scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs executa os dois módulos e exige igualdade — virar a política para
+// 'todos' deixa o guardião vermelho até este espelho virar ''.
+export const FREE_ENTRY_COUNTRY_CLAUSE_MIRROR = ' in supported countries'
 export const FREE_ENTRY_COPY = {
   ctaShort: 'Start free',
   ctaLong: `Start free — ${FREE_ENTRY_CREDITS} credits →`,
-  chip: `Free to start — ${FREE_ENTRY_CREDITS} credits, every engine, no card`,
-  headline: `Start free: ${FREE_ENTRY_CREDITS} credits on signup, every engine unlocked, no card required.`,
+  chip: `Free to start — ${FREE_ENTRY_CREDITS} credits${FREE_ENTRY_COUNTRY_CLAUSE_MIRROR}, every engine, no card`,
+  headline: `Start free: ${FREE_ENTRY_CREDITS} credits on signup${FREE_ENTRY_COUNTRY_CLAUSE_MIRROR}, every engine unlocked, no card required.`,
   sentence:
     // KINEO-PRECO-V8-A-2026-09-28 — "$12.90" é literal espelhado de TIER_PRICES.starter (este módulo é PURO, sem import);
     // o guardião scripts/test-preco-v8-A-2026-09-28.mjs confere a igualdade lendo os dois arquivos.
     // KINEO-FILME-GRATIS-15S-2026-09-29 — "one free 15-second film (Seedance 1.5)" é espelho literal (módulo PURO) de
     // lib/freeTierOffer.ts FREE_FILM_LABEL/TRIAL_SEEDANCE15_FILMS (1 × 7 cr ≤ 10); o guardião
     // scripts/test-copy-filme-gratis-15s-2026-09-29.mjs executa os dois e confere. Era "two Kineo 1 films of 60 seconds".
-    `Every new account starts free with ${FREE_ENTRY_CREDITS} credits — enough for one free 15-second film (Seedance 1.5) — with every engine unlocked and no card required. Plans start at $12.90/month when you want more.`,
-  noFreeTier: `Kineo is free to start: ${FREE_ENTRY_CREDITS} credits on signup, no card.`,
+    `Every new account${FREE_ENTRY_COUNTRY_CLAUSE_MIRROR} starts free with ${FREE_ENTRY_CREDITS} credits — enough for one free 15-second film (Seedance 1.5) — with every engine unlocked and no card required. Plans start at $12.90/month when you want more.`,
+  noFreeTier: `Kineo is free to start: ${FREE_ENTRY_CREDITS} credits on signup${FREE_ENTRY_COUNTRY_CLAUSE_MIRROR}, no card.`,
 } as const
 export const CARD_ENTRY_COPY = CARD_ENTRY_ONLY ? CARD_ENTRY_COPY_V_B : FREE_ENTRY_COPY

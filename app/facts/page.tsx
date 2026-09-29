@@ -139,7 +139,7 @@ const TRIAL_BALANCE_SHORT_ENGINES = TRIAL_ACCESS?.engineCoverage
 // grátis é o que diz ao leitor o que os créditos do trial compram.
 const TRIAL_FREE_FILM = TRIAL_ACCESS?.freeFilm ?? null
 const TRIAL_FREE_FILM_SENTENCE = TRIAL_FREE_FILM
-  ? `The ${TRIAL_ACCESS?.credits}-credit balance pays for ${TRIAL_FREE_FILM.filmsCovered === 1 ? 'one' : TRIAL_FREE_FILM.filmsCovered} free ${TRIAL_FREE_FILM.seconds}-second film (${TRIAL_FREE_FILM.engine}) at ${TRIAL_FREE_FILM.creditsPerFilm} credits. `
+  ? `The ${TRIAL_ACCESS?.credits}-credit balance pays for ${TRIAL_FREE_FILM.filmsCovered === 1 ? 'one' : TRIAL_FREE_FILM.filmsCovered} free ${TRIAL_FREE_FILM.seconds}-second film (${TRIAL_FREE_FILM.engine})${TRIAL_FREE_FILM.availableIn ? ` in ${TRIAL_FREE_FILM.availableIn}` : ''} at ${TRIAL_FREE_FILM.creditsPerFilm} credits. ` // KINEO-E4-SAIDA-B-2026-09-29
   : ''
 const TRIAL_COVERAGE_SENTENCE = TRIAL_COVERED_ENGINES.length > 0
   ? `That balance covers a full reference video on ${listEn(TRIAL_COVERED_ENGINES)}. `

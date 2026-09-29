@@ -244,7 +244,9 @@ try {
   // GPT-V31-FATOS: current 10-credit grant cannot cover Seedance; older balances still follow the same router.
   // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o grant de 10 cr passou a cobrir o Seedance 1.5 de 15 s (e só
   // ele); a frase segue dizendo o limite ("longer films need more credits") em vez de prometer Seedance em qualquer duração.
-  includes(facts, 'new-account trial covers a ${FREE_FILM_LABEL} (${TRIAL_FREE_FILM_CREDITS} credits); longer films need more credits.', 'facts do not imply the current grant covers a longer Seedance film')
+  // KINEO-E4-SAIDA-B-2026-09-29 — reancorado com motivo: a saída B liga e o rótulo público ganha "in supported countries"
+  // (FREE_FILM_PUBLIC_LABEL = FREE_FILM_LABEL + cláusula derivada de FREE_FILM_POLICY); a frase do limite fica igual.
+  includes(facts, 'new-account trial covers a ${FREE_FILM_PUBLIC_LABEL} (${TRIAL_FREE_FILM_CREDITS} credits); longer films need more credits.', 'facts do not imply the current grant covers a longer Seedance film')
   includes(facts, 'Existing accounts may have a different balance', 'legacy balances remain distinct from the current grant')
   includes(facts, 'the engine and duration are selected only when actual access, balance and availability permit it', 'public facts preserve the bounded router')
   includes(facts, 'startHere: START_HERE_FACT', '/api/facts payload includes start-here')

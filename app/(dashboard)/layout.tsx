@@ -72,6 +72,8 @@ import { REVERSE_TRIAL_ENABLED } from '@/lib/reverseTrial'
 import type { Metadata } from 'next'
 import CardEntryBanner from '@/components/CardEntryBanner'
 import TrialContinueNowBanner from '@/components/TrialContinueNowBanner'
+import RegionPaidOnlyBanner from '@/components/RegionPaidOnlyBanner' // KINEO-E4-SAIDA-B-2026-09-29
+import { regionPaidOnlyNoticeVisible } from '@/lib/freeFilmPolicy'
 
 // KINEO-ACQ-SPRINT-2026-07-29 — KEEP THE APP OUT OF THE SEARCH INDEX.
 //
@@ -181,6 +183,9 @@ export default async function DashboardLayout({
           credits={typeof (profile as { video_credits?: number | null } | null)?.video_credits === 'number' ? (profile as { video_credits?: number | null }).video_credits ?? null : null}
         />
       )}
+      {/* KINEO-E4-SAIDA-B-2026-09-29 — conta que nasceu fora do filme grátis (region_paid_only) lê a verdade
+          em pt/en/es com o botão dos planos, nunca um erro seco no clique. Some quando paga. */}
+      {user && regionPaidOnlyNoticeVisible(profile as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null } | null) && <RegionPaidOnlyBanner />}
       <Suspense fallback={null}>
         <ChatGptWelcomeBanner />
       </Suspense>
