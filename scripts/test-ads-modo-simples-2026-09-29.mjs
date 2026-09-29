@@ -152,7 +152,9 @@ await check('A3 trocar de modo é link de página inteira (o anúncio em andamen
 // revisão — uma seleção por vez (addPhotos → addPhotosNow, contagem por photosRef), vídeo > 10 min com aviso, excesso de
 // vídeos vira fotos antes de subir (videosPastLimitToPhotos) e 'video_too_long'/'too_many_videos' trocam por fotos.
 // Provado em scripts/test-ads-video-do-cliente-2026-09-29.mjs (V5-V7, com mutantes). Preço/voz/cartão/refação intocados.
-const Z1_BASE = '50875fe1f68d88b75413a0e9304dd8d41000fc3b7e2b4c3796ed87401e65b2dd'
+// Reanchored 29/09: approved comparison hook + successful-plan memory + JSX only.
+// Payloads, paid actions and the complete review remain unchanged; test-delivery-refinement covers the comparison.
+const Z1_BASE = "fbed22df940da2857f476b91c288d2be88fbc184ca3c1dec27240480ba2f5484"
 const trechoCompleto = (src) => { const s = src.replace(/\r\n/g, '\n'); const i = s.indexOf('function AdsV2Session('); return i < 0 ? '' : semComentarios(s.slice(i)) }
 await check('Z1 impressão digital do modo completo (AdsV2Session, PhotoRow, PlanPreview, ShotGrid) = a do vídeo do cliente (29/09)', sha(trechoCompleto(SRC.client)) === Z1_BASE)
 await check('Z1-mutante: 1 caractere trocado no modo completo fica vermelho', () => sha(trechoCompleto(trocar(SRC.client, "const POLL_RETRY_MS = 20_000", "const POLL_RETRY_MS = 20_001").replace('Plan my ad (free)', 'Plan my ad (freE)'))) !== Z1_BASE)
@@ -688,7 +690,8 @@ await check('E2 CONTACTISH da pesquisa = o da régua do texto (v2Brief)', () => 
   return (SRC.research.match(re) || [])[1] === (SRC.brief.match(re) || [])[1] && !!(SRC.research.match(re) || [])[1]
 })
 // REANCORADO 29/09 (KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29): + '@/lib/ads/v2UserVideo' (regra pura do vídeo do cliente, sem import).
-const IMPORTS_OK = ['react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage']
+// Approved delivery refinement: browser-only plan comparison; no request or persistence.
+const IMPORTS_OK = ['@/components/AdsPlanChanges', 'react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage']
 await check('E3 a tela simples é cliente e só importa módulos de navegador/puros; v2Simple, v2Research e v2VideoFrames não têm import; textLanguage é pura', () => {
   const imps = [...SRC.simple.matchAll(/^import[\s\S]*?from '([^']+)'/gm)].map((m) => m[1])
   return /^'use client'/.test(SRC.simple) && imps.length >= 8 && imps.every((m) => IMPORTS_OK.includes(m)) &&
