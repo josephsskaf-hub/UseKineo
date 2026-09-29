@@ -636,7 +636,10 @@ await check('A20 id que chega TARDE só grava em plano ainda ambíguo: plano que
 
 // ═══ 5. BRIEF E ANTI-INVENÇÃO (lib/ads/v2Brief.ts executado com os validadores REAIS de scriptPrompt) ════════════
 {
-  const BR = makeLoader({ '@/lib/openai': { openai: {} } }, { real: ['lib/ads/autoBrief.ts', 'lib/ads/scriptPrompt.ts', 'lib/ads/models.ts', 'lib/ads/orderContract.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/types.ts'] })('lib/ads/v2Brief.ts')
+  // REANCORADO 29/09 (KINEO-ADS-SIMPLES-ACABAMENTO-2026-09-29): v2Brief passou a importar as regras PURAS da voz do modo
+  // simples (nomes da frase, substantivo comum em minúscula) de lib/ads/v2Simple.ts — lib sem import, carregada de verdade.
+  // Nada deste bloco muda: sem `sentence` o pedido e a régua são os de antes (Z3 do guardião do modo simples).
+  const BR = makeLoader({ '@/lib/openai': { openai: {} } }, { real: ['lib/ads/autoBrief.ts', 'lib/ads/scriptPrompt.ts', 'lib/ads/models.ts', 'lib/ads/orderContract.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/types.ts', 'lib/ads/v2Simple.ts'] })('lib/ads/v2Brief.ts')
   const brief = { business: 'Bella Pizza — wood-fired pizza', offer: '2 pizzas for $20', cta: 'call', contact: '+962 79 555 1234', language: 'en', tone: 'warm', audience: '', extra: {} }
   const opts = { maxWords: 30, narration: true }
   const good = { narration: 'Bella Pizza bakes wood-fired pizza every night, and right now you get 2 pizzas for $20.', overlays: ['Bella Pizza', '2 pizzas for $20', '+962 79 555 1234'], sector: 'restaurant' }

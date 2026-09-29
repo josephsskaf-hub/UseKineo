@@ -12,6 +12,7 @@ import { buildAutoBriefMessages, parseAutoBrief } from '@/lib/ads/autoBrief'
 import { briefFactsText, contactOk, countWords, inventedClaims, inventedNumbers } from '@/lib/ads/scriptPrompt'
 import type { AdsBrief } from '@/lib/ads/types'
 import { ADS_V2_OVERLAY_MAX_CHARS, ADS_V2_SECTORS, isAdsV2Sector, type AdsV2Sector } from '@/lib/ads/v2ShotLists'
+import { lowerMidSentence, missingNames, simpleCommonNoun, simpleNames } from '@/lib/ads/v2Simple'
 
 export const ADS_V2_BRIEF_MODEL = 'gpt-4o-mini'
 /** Teto de planos (chamadas ao GPT) por pessoa em 24 h, contado pelo evento ads_v2_plan_served ANTES do modelo. */
@@ -31,6 +32,30 @@ export function brandName(brief: Pick<AdsBrief, 'business'>): string {
   return (brief.business ?? '').split(/\s+[—–-]\s+/)[0].trim()
 }
 
+/**
+ * KINEO-ADS-SIMPLES-ACABAMENTO-2026-09-29 — a voz do modo simples, tirada da FRASE que a pessoa escreveu (regras puras em
+ * lib/ads/v2Simple.ts). Teste do fundador (pedido 1ddfcf25): o brief virou "Espaço comercial — à venda ou para alugar",
+ * o pedido mandou "Say the business name once" e a narração saiu "Conheça o Espaço comercial…", sem o Edifício Villa
+ * Versace e sem São Paulo. Agora: os nomes que a pessoa escreveu são fato do brief (extra.customer_names) e a narração tem
+ * de citá-los; se o "nome" do brief é substantivo comum, ele vai em minúscula no meio da frase (pedido E pós-processo).
+ */
+export interface AdsV2SimpleVoice {
+  /** Nomes próprios da frase (lugar, edifício, rua, bairro, cidade, negócio), no máximo 3: a narração cita cada um. */
+  names: string[]
+  /** O "nome" do brief é substantivo comum: esta forma minúscula vai no meio da frase. null = é nome (ou não dá para saber). */
+  commonNoun: string | null
+}
+export const ADS_V2_CUSTOMER_NAMES_KEY = 'customer_names'
+export function simpleVoiceFor(brief: Pick<AdsBrief, 'business'>, sentence: string, language: string): AdsV2SimpleVoice {
+  return { names: simpleNames(sentence), commonNoun: simpleCommonNoun(brandName(brief), sentence, language) }
+}
+/** Os nomes que a pessoa escreveu entram no brief como fato (a régua anti-invenção lê extra: "Rua 25 de Março" não vira
+ *  número inventado). Sem nomes = o brief de antes. Pura. */
+export function withCustomerNames(brief: AdsBrief, names: readonly string[]): AdsBrief {
+  if (!names.length) return brief
+  return { ...brief, extra: { ...(brief.extra ?? {}), [ADS_V2_CUSTOMER_NAMES_KEY]: names.join('; ') } }
+}
+
 /** Cara de contato (link, domínio, @, telefone): se aparecer, tem de ser o contato do brief (contactOk). */
 const CONTACTISH = /(https?:\/\/|www\.|\b[a-z0-9-]+\.(com|net|org|io|app|co|br|jo|me|shop|store)\b|@[a-z0-9_.]{2,}|\d[\d\s().-]{6,}\d)/i
 const DECOR = /[[\]{}#*_]|[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]/u
@@ -39,16 +64,29 @@ const DECOR = /[[\]{}#*_]|[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]/u
  * KINEO-ADS-MODO-SIMPLES-2026-09-29 — opts.overlays === false (modo simples, "sem frases na tela"): o pedido manda
  * devolver overlays: [] e some a regra da marca. overlays ausente = o texto de sempre, byte a byte (guardião Z3).
  */
-export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts: { maxWords: number; narration: boolean; overlays?: boolean }): { system: string; user: string } {
+export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts: { maxWords: number; narration: boolean; overlays?: boolean; simple?: AdsV2SimpleVoice }): { system: string; user: string } {
   const brand = brandName(brief)
   const noOverlays = opts.overlays === false
+  const voice = opts.simple
+  // Modo simples: "Espaço comercial" não é nome — vai em minúscula no meio da frase. Sem `simple` = a frase de sempre (Z3).
+  const sayName = voice?.commonNoun
+    ? `What is advertised ("${voice.commonNoun}") is not a name: in the middle of a sentence write it in lowercase, "${voice.commonNoun}".`
+    : 'Say the business name once.'
   const system = [
     'You write the on-screen phrases and the short voice-over of a vertical video ad for a small business. The video shows the business\'s own real photos in motion.',
     'Use ONLY the facts of the brief. Never invent a price, number, discount, deadline, rating, award, customer count, product, dish, service or place.',
     `Write everything in ${languageName}.`,
     opts.narration
-      ? `narration: one to three short spoken sentences, ${Math.ceil(opts.maxWords * 0.5)} to ${opts.maxWords} words in total (count them). Warm and natural. Say the business name once. No phone number, link or address unless copied exactly from the brief.`
+      ? `narration: one to three short spoken sentences, ${Math.ceil(opts.maxWords * 0.5)} to ${opts.maxWords} words in total (count them). Warm and natural. ${sayName} No phone number, link or address unless copied exactly from the brief.`
       : 'narration: return "" (the customer turned the voice-over off).',
+    ...(voice && opts.narration
+      ? [
+          ...(voice.names.length
+            ? [`narration: say each of these names exactly as the customer wrote it, at least once: ${voice.names.map((n) => `"${n}"`).join(', ')}. They only say WHERE it is (the place, the building, the street, the neighborhood, the city): never turn a name into a feature of what is advertised (a building's name or brand says nothing about the unit's finishes, furniture, size or view).`]
+            : []),
+          'narration: be concrete, in the customer\'s own words — what it is, where it is, and for sale or for rent if the customer said so. No empty filler such as "great opportunities" or "come and check out the opportunities".',
+        ]
+      : []),
     ...(noOverlays
       ? ['overlays: return [] (the customer turned the on-screen phrases off).']
       : [
@@ -123,7 +161,7 @@ export function textIssues(text: string, brief: AdsBrief, label: string): string
 }
 
 /** Valida a resposta do modelo. Pura; nunca lança. */
-export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: number; narration: boolean; overlays?: boolean }): { ok: true; copy: AdsV2Copy } | { ok: false; why: string[] } {
+export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: number; narration: boolean; overlays?: boolean; simple?: AdsV2SimpleVoice }): { ok: true; copy: AdsV2Copy } | { ok: false; why: string[] } {
   let p: Record<string, unknown>
   try {
     const j = JSON.parse(raw)
@@ -136,6 +174,12 @@ export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: numb
   let narration: string | null = null
   if (opts.narration) {
     narration = typeof p.narration === 'string' ? p.narration.replace(/\s+/g, ' ').trim() : ''
+    // Modo simples: substantivo comum com maiúscula no meio da frase volta à minúscula ("Conheça o Espaço comercial" →
+    // "Conheça o espaço comercial"); e cada nome que a pessoa escreveu tem de estar na narração.
+    const voice = opts.simple
+    if (voice?.commonNoun) narration = lowerMidSentence(narration, voice.commonNoun, voice.commonNoun)
+    const missing = voice ? missingNames(narration, voice.names) : []
+    if (missing.length) why.push(`narration: say ${missing.map((n) => `"${n}"`).join(', ')} exactly as the customer wrote ${missing.length > 1 ? 'them' : 'it'} — it is where the ad takes place.`)
     const words = countWords(narration)
     const min = Math.ceil(opts.maxWords * 0.5)
     if (words < min || words > opts.maxWords) why.push(`narration: write ${min} to ${opts.maxWords} words (you wrote ${words}).`)
@@ -148,7 +192,8 @@ export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: numb
     return { ok: true, copy: { narration, overlays: [], sectorHint: isAdsV2Sector(p.sector) ? p.sector : null } }
   }
   const rawOverlays = Array.isArray(p.overlays) ? p.overlays : []
-  const overlays = rawOverlays.map((o) => (typeof o === 'string' ? o.replace(/\s+/g, ' ').trim() : '')).filter(Boolean)
+  const common = opts.simple?.commonNoun ?? null
+  const overlays = rawOverlays.map((o) => (typeof o === 'string' ? o.replace(/\s+/g, ' ').trim() : '')).filter(Boolean).map((o) => (common ? lowerMidSentence(o, common, common) : o))
   if (overlays.length < 2 || overlays.length > 3) why.push('overlays: return 2 or 3 non-empty phrases.')
   overlays.forEach((o, i) => {
     if (o.length > ADS_V2_OVERLAY_MAX_CHARS) why.push(`overlays[${i}]: at most ${ADS_V2_OVERLAY_MAX_CHARS} characters (it has ${o.length}).`)
@@ -189,7 +234,7 @@ async function callJson(messages: { role: 'system' | 'user' | 'assistant'; conte
 }
 
 export type AdsV2BriefResult =
-  | { ok: true; brief: AdsBrief; copy: AdsV2Copy; dropped: string[]; attempts: number }
+  | { ok: true; brief: AdsBrief; copy: AdsV2Copy; dropped: string[]; attempts: number; voice?: AdsV2SimpleVoice & { namesMissing: string[] } }
   | { ok: false; stage: 'brief' | 'copy'; why: string[]; attempts: number }
 
 /** Fatos públicos escolhidos (modo simples) entram no brief como extra.public_fact_N: o texto os enxerga e a régua
@@ -213,14 +258,19 @@ export async function extractAdsV2Brief(args: {
   overlays?: boolean
   /** Modo simples: fatos públicos com fonte que a pessoa deixou marcados (texto resolvido NO SERVIDOR). */
   facts?: string[]
+  /** Modo simples: a frase EXATA que a pessoa escreveu (sem as linhas de preço/contato). Dela saem os nomes que a narração
+   *  cita e se o "nome" do brief é substantivo comum. Ausente = como sempre (modo completo intocado). */
+  sentence?: string
 }): Promise<AdsV2BriefResult> {
   const briefMsgs = buildAutoBriefMessages(args.text, args.languageName)
   const briefRaw = await callJson([{ role: 'system', content: briefMsgs.system }, { role: 'user', content: briefMsgs.user }], 0.2, 900)
   const parsed = parseAutoBrief(briefRaw, args.text, args.language)
   let attempts = 1
   if (parsed.needs.includes('business')) return { ok: false, stage: 'brief', why: ['business_name_missing'], attempts }
-  const brief = withPublicFacts(parsed.brief, args.facts)
-  const opts = args.overlays === false ? { maxWords: args.maxWords, narration: args.narration, overlays: false } : { maxWords: args.maxWords, narration: args.narration }
+  const voice = typeof args.sentence === 'string' ? simpleVoiceFor(parsed.brief, args.sentence, args.language) : null
+  const brief = withCustomerNames(withPublicFacts(parsed.brief, args.facts), voice?.names ?? [])
+  const base0 = args.overlays === false ? { maxWords: args.maxWords, narration: args.narration, overlays: false } : { maxWords: args.maxWords, narration: args.narration }
+  const opts = voice ? { ...base0, simple: voice } : base0
   const copyMsgs = buildV2CopyMessages(brief, args.languageName, opts)
   const base = [{ role: 'system' as const, content: copyMsgs.system }, { role: 'user' as const, content: copyMsgs.user }]
   let raw = await callJson(base, 0.6, 700)
@@ -237,6 +287,16 @@ export async function extractAdsV2Brief(args: {
     attempts += 1
     checked = checkV2Copy(raw, brief, opts)
   }
+  // Os nomes são acabamento, não honestidade: se a 2ª resposta só deixou de citar algum nome (e passa em TODO o resto —
+  // número, fama, contato, tamanho), ela é aceita e o que faltou vai para o evento. Nunca um 502 por causa de um nome.
+  let namesMissing: string[] = []
+  if (!checked.ok && voice && voice.names.length) {
+    const relaxed = checkV2Copy(raw, brief, { ...opts, simple: { ...voice, names: [] } })
+    if (relaxed.ok) {
+      namesMissing = missingNames(relaxed.copy.narration ?? '', voice.names)
+      checked = relaxed
+    }
+  }
   if (!checked.ok) return { ok: false, stage: 'copy', why: checked.why.slice(0, 6), attempts }
-  return { ok: true, brief, copy: checked.copy, dropped: parsed.dropped, attempts }
+  return { ok: true, brief, copy: checked.copy, dropped: parsed.dropped, attempts, ...(voice ? { voice: { ...voice, namesMissing } } : {}) }
 }
