@@ -509,6 +509,7 @@ function AdsV2Session({
   const [sector, setSector] = useState<AdsV2ScreenSector | null>(null)
   const [logo, setLogo] = useState<LogoItem | null>(null)
   const [photos, setPhotos] = useState<PhotoItem[]>([])
+  const [previewPhotoKey, setPreviewPhotoKey] = useState<string | null>(null)
   const [photoNote, setPhotoNote] = useState<string | null>(null)
   const [card, setCard] = useState<CardFields>(DEFAULT_CARD)
   const [cardUpload, setCardUpload] = useState<{ sig: string; footageId: string } | null>(null)
@@ -1373,7 +1374,12 @@ function AdsV2Session({
       </div>
 
       <aside className="adv2-aside" aria-label="How Studio Ads works">
-        <BusinessVisualReferences compact />
+        {phase === 'build' && photos.length > 0 ? <section className="adv2-card adv2-live-preview">
+          <h2><UiLabel>Framing preview</UiLabel></h2>
+          <p><UiLabel>Your photo before animation.</UiLabel></p>
+          {(() => { const photo = photos.find(p => p.key === previewPhotoKey) ?? photos[0]; return <div className="adv2-large-frame"><img src={photo.srcUrl} alt={photo.name} style={{ objectPosition: focalPosition(photo.fx, photo.fy) }} /></div> })()}
+          <div className="adv2-preview-strip">{photos.map((photo, index) => <button type="button" key={photo.key} aria-pressed={photo.key === (photos.find(p => p.key === previewPhotoKey)?.key ?? photos[0].key)} aria-label={photo.name} onClick={() => setPreviewPhotoKey(photo.key)}><img src={photo.srcUrl} alt="" /><span>{index + 1}</span></button>)}</div>
+        </section> : <BusinessVisualReferences compact />}
         <section className="adv2-card">
           <details className="adv2-guide" open><summary><UiLabel>How it works</UiLabel></summary>
           <ol className="adv2-how">
