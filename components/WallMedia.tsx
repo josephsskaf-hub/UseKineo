@@ -10,31 +10,38 @@ export default function WallMedia({ src }: { src: string }) {
   const boxRef = useRef<HTMLDivElement | null>(null)
   const vidRef = useRef<HTMLVideoElement | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [active, setActive] = useState(false)
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    const nav = navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }
-    if (nav.connection?.saveData || (nav.connection?.effectiveType ?? '').includes('2g')) return
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const connection = (navigator as Navigator & { connection?: EventTarget & { saveData?: boolean; effectiveType?: string } }).connection
+    let visible = false
+    const sync = () => {
+      const play = visible && !document.hidden && !motion.matches && !connection?.saveData && !(connection?.effectiveType ?? '').includes('2g')
+      setActive(play)
+      if (play) setMounted(true)
+      else vidRef.current?.pause()
+    }
     const el = boxRef.current
     if (!el) return
     const io = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setMounted(true)
-          vidRef.current?.play().catch(() => {})
-        } else {
-          vidRef.current?.pause()
-        }
+        visible = entry.isIntersecting
+        sync()
       },
       { threshold: 0.25 },
     )
     io.observe(el)
-    return () => io.disconnect()
+    document.addEventListener('visibilitychange', sync)
+    motion.addEventListener('change', sync)
+    connection?.addEventListener('change', sync)
+    return () => { io.disconnect(); document.removeEventListener('visibilitychange', sync); motion.removeEventListener('change', sync); connection?.removeEventListener('change', sync) }
   }, [])
 
   useEffect(() => {
-    if (mounted) vidRef.current?.play().catch(() => {})
-  }, [mounted])
+    if (mounted && active) vidRef.current?.play().catch(() => {})
+    else vidRef.current?.pause()
+  }, [mounted, active])
 
   return (
     <div ref={boxRef} style={{ position: 'absolute', inset: 0 }}>
@@ -45,7 +52,7 @@ export default function WallMedia({ src }: { src: string }) {
           muted
           loop
           playsInline
-          preload="metadata"
+          preload="none"
           onPlaying={(e) => { e.currentTarget.style.opacity = '1' }}
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0, transition: 'opacity 250ms cubic-bezier(.2,0,0,1)' }}
         />

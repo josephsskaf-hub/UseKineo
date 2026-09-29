@@ -329,8 +329,10 @@ checa('targetSeconds e validado contra as duracoes suportadas',
   /SUPPORTED_TARGETS as readonly number\[\]\)\.includes\(pedido\)/.test(rotaScript))
 // KINEO-REGUA-DO-ESCRITOR-2026-09-17: o alvo passou a vir da régua DO MOTOR (lib/scriptWriterRate, a mesma
 // função do portão), não mais da constante única de 2,3 pal/s — o contrato "não é 140 chumbado" fica mais forte.
+// Reancorado 29/09 (KINEO-RITMO-POR-IDIOMA-15S-2026-09-29, [TRAVA 8.2 — "vai conserta" do fundador]): a regua ganhou o 4o argumento
+// opcional (a lingua do filme curto do Seedance: idiomaDoRitmo na rota, ritmoLanguage no prompt); o contrato "nao e 140 chumbado" fica.
 checa('o alvo de palavras vem da regua canonica, nao de 140 chumbado',
-  /minWordsFor\(alvoSegundos, regua\.wordsPerSecond, regua\.coverage\)/.test(rotaScript) && /minWordsFor\(targetSeconds, wordsPerSecond, coverage\)/.test(rotaScript))
+  /minWordsFor\(alvoSegundos, regua\.wordsPerSecond, regua\.coverage(, idiomaDoRitmo)?\)/.test(rotaScript) && /minWordsFor\(targetSeconds, wordsPerSecond, coverage(, ritmoLanguage)?\)/.test(rotaScript))
 checa('forceAuthoring devolve estado honesto quando ainda curto',
   /authored_still_short/.test(rotaScript))
 // A aritmetica do alvo por duracao — o achado 2 em numeros.

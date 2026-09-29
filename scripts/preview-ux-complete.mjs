@@ -29,7 +29,7 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
   }
   // Only the page's own state receives fixtures. Child components and imported
   // hooks use real SSR defaults; their call order must not shift page fixtures.
-  const component=sf.statements.find(n=>ts.isFunctionDeclaration(n)&&n.modifiers?.some(m=>m.kind===ts.SyntaxKind.DefaultKeyword))
+  const component=sf.statements.find(n=>ts.isFunctionDeclaration(n)&&(fixture.exportName ? n.name?.text===fixture.exportName : n.modifiers?.some(m=>m.kind===ts.SyntaxKind.DefaultKeyword)))
   if(component)walk(component)
   for(const extra of fixture.previewFunctions??[]) { const fn=sf.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text===extra);if(fn)walk(fn) }
   let index=0
@@ -49,6 +49,7 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
     const shim=id=>{
       if(file==='app/tools/editor/VideoEditor.tsx' && id==='./editor.css')return {}
       if(id==='../new/adsWizardTheme')return load('app/(dashboard)/ads/new/adsWizardTheme.ts')
+      if(id==='./AdsV2Simple')return load('app/(dashboard)/ads/v2/AdsV2Simple.tsx')
       if(id==='react')return react
       if(id==='react/jsx-runtime')return require(id)
       if(id.endsWith('.module.css'))return {__esModule:true,default:new Proxy({},{get:(_target,key)=>String(key)})}
@@ -65,7 +66,8 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
       // Canonical public facts now import gptHandoff, whose hashing helper uses
       // Node crypto. Allow this built-in only; network, DB and env stay blocked.
       if(id==='node:crypto'||id==='crypto')return require(id)
-      if(['EngineVisualReference','BusinessVisualReferences','PublicNavDropdown'].some(name=>id==='@/components/'+name))return load(id.slice(2)+'.tsx')
+      if(['EngineVisualReference','BusinessVisualReferences','PublicNavDropdown','ControlIcon','LibraryOrganization','ImageResultPreview','MobileCreationShortcut','DeliveryControls','AdsPlanChanges'].some(name=>id==='@/components/'+name))return load(id.slice(2)+'.tsx')
+      if(['./ControlIcon','./InterfaceLanguage'].includes(id))return load('components/'+id.slice(2)+'.tsx')
       if(id==='@/components/studioKit')return load('components/studioKit.tsx')
       if(id==='@/components/InterfaceLanguage')return load('components/InterfaceLanguage.tsx')
       if(id==='@/components/KineoBolt')return load('components/KineoBolt.tsx')
@@ -92,10 +94,11 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
     }
     const js=ts.transpileModule(code,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React,target:ts.ScriptTarget.ES2020,esModuleInterop:true}}).outputText
     const context={module:box,exports:box.exports,require:shim,React:react,__previewState:previewState,process:{env:{}},URL,URLSearchParams,console,fetch:()=>{throw Error('Network forbidden')}}
-    vm.runInNewContext(js,context,{filename:file})
+    if(file===entry && fixture.exportName && !sf.statements.some(n=>ts.isFunctionDeclaration(n)&&n.name?.text===fixture.exportName))throw Error('Unknown preview component')
+    vm.runInNewContext(js+(file===entry&&fixture.exportName?`\nexports.__previewComponent=${fixture.exportName};`:''),context,{filename:file})
     cache.set(file,box.exports);return box.exports
   }
-  const Component=load(entry).default
+  const Component=fixture.exportName?load(entry).__previewComponent:load(entry).default
   const html=renderToStaticMarkup(React.createElement(Component,props))
   if(index!==names.length)throw Error('Conditional hooks in '+entry)
   return html

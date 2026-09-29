@@ -15,7 +15,9 @@ import OutOfCreditsPlansModal from '@/components/OutOfCreditsPlansModal'
 import { outOfCreditsDestination } from '@/lib/credits/outOfCreditsPlans'
 // KINEO-FLUXO-NOVO-2026-09-25 — mede o clique em "Turn into video" (imagem → Animate).
 import { trackEvent } from '@/lib/analytics'
-import EngineVisualReference from '@/components/EngineVisualReference'
+import ControlIcon from '@/components/ControlIcon'
+import ImageResultPreview from '@/components/ImageResultPreview'
+import MobileCreationShortcut from '@/components/MobileCreationShortcut'
 import { IMG_ENGINES, type ImgModelKey } from '@/lib/imageModels'
 
 type ImgSize = 'square_hd' | 'portrait_16_9' | 'landscape_16_9'
@@ -31,6 +33,7 @@ type Item = { id?: string | null; url: string; model: ImgModelKey | string; upsc
 export default function ImagesClient() {
   const ui = useUiCopy()
   const [model, setModel] = useState<ImgModelKey>('dev')
+  const [sample, setSample] = useState<{ src: string; name: string } | null>(null)
   const [size, setSize] = useState<ImgSize>('portrait_16_9')
   const [prompt, setPrompt] = useState('')
   const [busy, setBusy] = useState(false)
@@ -241,22 +244,29 @@ export default function ImagesClient() {
 
       <fieldset className="image-engine-picker">
         <legend className="lab"><span className="n">1</span><UiLabel>Engine</UiLabel></legend>
-        <p className="image-reference-note"><UiLabel>Illustrative references, not model outputs.</UiLabel></p>
+        <p className="image-reference-note"><UiLabel>References from your own generated images.</UiLabel></p>
         <div className="image-engines">
           {IMG_ENGINES.map((engine) => (
-            <label key={engine.key} className="image-engine-option">
+            <div key={engine.key} className="image-engine-option">
+            <label>
               <input className="image-engine-choice" type="radio" name="image-engine" value={engine.key}
                 checked={model === engine.key} onChange={() => setModel(engine.key)} />
               <span className="image-engine-card">
-                <EngineVisualReference model={engine.key} />
                 <span className="image-engine-top" aria-hidden="true">
-                  <span className="image-engine-icon">{engine.icon}</span>
+                  <span className="image-engine-icon"><ControlIcon name="image" /></span>
                   <span className="image-engine-check">✓</span>
                 </span>
                 <span className="image-engine-name">{engine.name}</span>
                 <span className="image-engine-desc"><UiLabel>{engine.desc}</UiLabel></span>
+                <span className="image-engine-price">{engine.credits} / <UiLabel>image</UiLabel></span>
               </span>
             </label>
+            {items.find(item => item.model === engine.key) ? <button type="button" className="engine-real-sample" aria-label={`${ui('Preview')}: ${engine.name}`} onClick={() => {
+              const item = items.find(item => item.model === engine.key)!
+              setSample({ src: item.upscaled ?? item.url, name: engine.name })
+            }}><img src={items.find(item => item.model === engine.key)!.upscaled ?? items.find(item => item.model === engine.key)!.url} alt="" loading="lazy" decoding="async" /><span><ControlIcon name="expand" /><UiLabel>Your latest result</UiLabel></span></button>
+              : <div className="engine-sample-empty"><ControlIcon name="image" /><UiLabel>No sample yet</UiLabel></div>}
+            </div>
           ))}
         </div>
       </fieldset>
@@ -317,13 +327,13 @@ export default function ImagesClient() {
             </div>
           </div>
 
-          <div className="cost">
+          <div className="cost" id="image-generation-review" tabIndex={-1}>
             <div className="sum">{eng.name} · {SIZES.find((s) => s.key === size)?.label}</div>
             <div className="val"><span><UiLabel>Cost per image</UiLabel></span><b>{eng.credits}</b></div>
             <button type="button" onClick={generate} disabled={!prompt.trim() || busy} className={`go ${prompt.trim() && !busy ? 'ok' : 'no'}`}>
               <UiLabel>{busy ? 'Creating…' : prompt.trim() ? 'Generate image →' : 'Describe your image first'}</UiLabel>
             </button>
-            <div className="gnote"><UiLabel>Upscale any result to 2x for 1 credit.</UiLabel></div>
+            <details className="refine-details"><summary><UiLabel>Enhancement options</UiLabel></summary><div className="gnote"><UiLabel>Upscale any result to 2x for 1 credit.</UiLabel></div></details>
           </div>
         </div>
 <div className="creation-results">
@@ -352,12 +362,9 @@ export default function ImagesClient() {
                 {items.map((it, i) => (
                   <div key={it.url} className="card" style={{ padding: 10 }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={it.upscaled ?? it.url} alt="" style={{ width: '100%', borderRadius: 10, display: 'block' }} />
+                    <button type="button" className="image-result-open" aria-label={ui('Preview')} onClick={() => setSample({ src: it.upscaled ?? it.url, name: IMG_ENGINES.find(engine => engine.key === it.model)?.name ?? it.model })}><img src={it.upscaled ?? it.url} alt="" loading="lazy" decoding="async" style={{ width: '100%', borderRadius: 10, display: 'block' }} /></button>
                     <div className="row" style={{ marginTop: 9 }}>
-                      <button type="button" className="pill" onClick={() => downloadImage(it.upscaled ?? it.url, i)}><UiLabel>⬇ Download</UiLabel></button>
-                      <button type="button" className={`pill${it.upscaled ? ' on' : ''}`} disabled={!!it.upscaled || it.upscaling} onClick={() => upscale(i)}>
-                        {it.upscaled ? '2x ✓' : it.upscaling ? 'Upscaling…' : '✨ Upscale 2x · 1 cr'}
-                      </button>
+                      <button type="button" className="pill" onClick={() => downloadImage(it.upscaled ?? it.url, i)}><ControlIcon name="download" /> <UiLabel>Download</UiLabel></button>
                       {/* KINEO-CEO-HOUR-2026-08-17 (#4) — flywheel: imagem → filme */}
                       {/* KINEO-FLUXO-NOVO-2026-09-25 — "Turn into video" LEVA esta imagem ao Animate pelo
                           id da linha em `images` (nunca a URL do storage, que tem o uid no caminho); o
@@ -366,11 +373,17 @@ export default function ImagesClient() {
                           cópia para o nosso storage falhou e a URL é do fal) fica o link genérico. */}
                       {it.id ? (
                         <a className="pill" style={{ textDecoration: 'none' }} href={`/animate?from_image=${encodeURIComponent(it.id)}`}
-                          onClick={() => { void trackEvent('image_to_video_clicked', { image_id: it.id, model: it.model, upscaled: !!it.upscaled }) }}><UiLabel>🎬 Turn into video</UiLabel></a>
+                          onClick={() => { void trackEvent('image_to_video_clicked', { image_id: it.id, model: it.model, upscaled: !!it.upscaled }) }}><ControlIcon name="film" /> <UiLabel>Turn into video</UiLabel></a>
                       ) : (
-                        <a className="pill" style={{ textDecoration: 'none' }} href="/animate"><UiLabel>🎬 Animate</UiLabel></a>
+                        <a className="pill" style={{ textDecoration: 'none' }} href="/animate"><ControlIcon name="film" /> <UiLabel>Animate</UiLabel></a>
                       )}
-                      <button type="button" className={`pill${editIdx === i ? ' on' : ''}`} onClick={() => { setEditIdx(editIdx === i ? null : i); setEditTxt('') }}><UiLabel>✏️ Edit · 3 cr</UiLabel></button>
+                    </div>
+                    <details className="refine-details"><summary><UiLabel>Enhancement options</UiLabel></summary>
+                    <div className="row">
+                      <button type="button" className={`pill${it.upscaled ? ' on' : ''}`} disabled={!!it.upscaled || it.upscaling} onClick={() => upscale(i)}>
+                        {it.upscaled ? '2x ✓' : it.upscaling ? 'Upscaling…' : ui('Upscale 2x · 1 cr')}
+                      </button>
+                      <button type="button" className={`pill${editIdx === i ? ' on' : ''}`} onClick={() => { setEditIdx(editIdx === i ? null : i); setEditTxt('') }}><ControlIcon name="edit" /> <UiLabel>Edit · 3 cr</UiLabel></button>
                     </div>
                     {editIdx === i && (
                       <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
@@ -386,6 +399,7 @@ export default function ImagesClient() {
                         </button>
                       </div>
                     )}
+                    </details>
                   </div>
                 ))}
               </div>
@@ -393,6 +407,8 @@ export default function ImagesClient() {
           )}
 </div>
 </div>
+      <MobileCreationShortcut targetId="image-generation-review" cost={`${eng.name} · ${eng.credits}`} />
+      {sample && <ImageResultPreview {...sample} onClose={() => setSample(null)} />}
     </div>
   )
 }

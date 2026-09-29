@@ -1,7 +1,11 @@
 'use client'
 
 import { KineoBoltText } from '@/components/KineoBolt'
-import { UiLabel } from '@/components/InterfaceLanguage'
+import { UiLabel, useUiCopy } from '@/components/InterfaceLanguage'
+import { FavoriteButton, LibraryOrganization, libraryFormat, organizeAssets, useLibraryOrganization } from '@/components/LibraryOrganization'
+import ControlIcon from '@/components/ControlIcon'
+import { FilmVersionPicker, ExpandableFilmTitle, ManualCopyDialog } from '@/components/DeliveryControls'
+import { downloadOutcomeMessage, filmSource, type FilmVersion } from '@/lib/ui/deliveryRefinement'
 import PostFilmCreatorOffer from '@/components/PostFilmCreatorOffer'
 
 // Push #323 - My Videos: show first frame via preload=metadata; no more black cards
@@ -229,13 +233,13 @@ function HistoryCardFrame({ src }: { src: string }) {
   )
 }
 
-function extractTitle(topic: string | null): string {
+function extractTitle(topic: string | null, compact = true): string {
   if (!topic) return 'Untitled Short'
   // Try HOOK line: "HOOK (0-2s): [Pexels: ...] Actual hook text"
   const hookMatch = topic.match(/HOOK[^:]*:\s*(?:\[Pexels:[^\]]*\]\s*)?(.+?)(?:\n|$)/)
   if (hookMatch) {
     const t = hookMatch[1].replace(/\[Pexels:[^\]]*\]/g, '').trim()
-    return t.length > 90 ? t.slice(0, 87) + '…' : t
+    return compact && t.length > 90 ? t.slice(0, 87) + '…' : t
   }
   // Fallback: first non-header line, stripping any [Pexels: ...] tags
   // KINEO-TITULO-DA-HISTORIA-2026-09-16 — pedido do fundador (16/09): "os nomes estão todos iguais". Todo pedido do Studio
@@ -249,7 +253,7 @@ function extractTitle(topic: string | null): string {
   }).filter(
     (l) => l.length > 15 && !l.startsWith('YouTube Short') && !l.startsWith('HOOK') && !l.startsWith('MICRO') && !INSTRUCAO_RE.test(l) && !REGRA_RE.test(l)
   )
-  if (lines[0]) return lines[0].slice(0, 90)
+  if (lines[0]) return compact ? lines[0].slice(0, 90) : lines[0]
   return 'Untitled Short'
 }
 
@@ -335,6 +339,7 @@ interface VideoSummary {
 }
 
 export default function MyVideosClient({ videos: initialVideos, snapshotTime, loadError = false, creatorTrialEligible = false, embedded = false }: Props) {
+  const ui = useUiCopy()
   // The server and first browser render must use the same clock and calendar.
   // Refresh display-only age after hydration; never change a stored job status.
   const [displayTime, setDisplayTime] = useState(snapshotTime)
@@ -370,12 +375,18 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
   // sprint-ui #9 (29-30/08) — busca por titulo/tema. O fundador tem 327 videos
   // e achar um era rolagem infinita; cliente com 20+ sofre igual. Client-side.
   const [query, setQuery] = useState('')
+  const organization = useLibraryOrganization()
+  const [format, setFormat] = useState('all')
   const visibleVideos = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return videos
-    return videos.filter((v) => `${extractTitle(v.topic)} ${v.topic ?? ''}`.toLowerCase().includes(q))
-  }, [videos, query])
+    const matching = videos.filter(v => (!q || `${extractTitle(v.topic)} ${v.topic ?? ''}`.toLowerCase().includes(q)) && (format === 'all' || libraryFormat(v.platform) === format))
+    return organizeAssets(matching, organization.favorites, organization.favoritesOnly, organization.sort, v => extractTitle(v.topic))
+  }, [videos, query, format, organization.favorites, organization.favoritesOnly, organization.sort])
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [fileVersions, setFileVersions] = useState<Record<string, FilmVersion>>({})
+  const [fileResolutions, setFileResolutions] = useState<Record<string, string>>({})
+  const [downloadNotes, setDownloadNotes] = useState<Record<string, string>>({})
+  const [manualCopy, setManualCopy] = useState<string | null>(null)
   // KINEO-ENHANCE-2026-08-17 — pos-producao Topaz por video (10cr): status e
   // URL final por id. 'processing' vira polling de 6s ate done/failed.
   const [enhStatus, setEnhStatus] = useState<Record<string, 'processing' | 'done' | 'failed'>>({})
@@ -709,6 +720,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
   async function handleDownload(video: Video) {
     if (!video.video_url || downloadingId) return
     setDownloadingId(video.id)
+    setDownloadNotes(prev => ({ ...prev, [video.id]: '' }))
     const safeTitle = extractTitle(video.topic)
       .replace(/[\\/:*?"<>|]/g, '')
       .trim()
@@ -718,14 +730,18 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
       ? `${safeTitle}.mp4`
       : `shortsforge-${video.id.slice(0, 8)}.mp4`
     try {
-      await downloadVideoFile({
-        url: enhUrls[video.id] ?? video.video_url,
+      const outcome = await downloadVideoFile({
+        url: filmSource(video.video_url, enhUrls[video.id], fileVersions[video.id])!,
         filename,
         exportType: isWatermarkedFastAsset(video) ? 'watermarked' : 'clean',
         surface: 'history',
         videoId: video.id,
       })
-      showToast('Download started')
+      const message = ui(downloadOutcomeMessage(outcome))
+      setDownloadNotes(prev => ({ ...prev, [video.id]: message }))
+      if (outcome === 'blob') showToast(message)
+    } catch {
+      setDownloadNotes(prev => ({ ...prev, [video.id]: ui('Download could not be confirmed. Please try again.') }))
     } finally {
       setDownloadingId(null)
     }
@@ -780,15 +796,21 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
   async function handleEnhance(video: Video, quality: 'hd' | '4k' = 'hd') {
     const cur = enhStatus[video.id]
     if (cur === 'processing') return
-    if (cur === 'done' && enhUrls[video.id]) {
-      await downloadVideoFile({
-        url: enhUrls[video.id],
-        filename: `kineo-enhanced-${video.id.slice(0, 8)}.mp4`,
-        exportType: 'clean',
-        surface: 'history',
-        videoId: video.id,
-      })
-      showToast('Enhanced download started')
+      if (cur === 'done' && enhUrls[video.id]) {
+        try {
+          const outcome = await downloadVideoFile({
+            url: enhUrls[video.id],
+            filename: `kineo-enhanced-${video.id.slice(0, 8)}.mp4`,
+            exportType: 'clean',
+            surface: 'history',
+            videoId: video.id,
+          })
+          const message = ui(downloadOutcomeMessage(outcome))
+          setDownloadNotes(prev => ({ ...prev, [video.id]: message }))
+          if (outcome === 'blob') showToast(message)
+        } catch {
+          setDownloadNotes(prev => ({ ...prev, [video.id]: ui('Download could not be confirmed. Please try again.') }))
+        }
       return
     }
     setEnhStatus((m) => ({ ...m, [video.id]: 'processing' }))
@@ -1001,15 +1023,15 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
     }
   }
 
-  function copyToClipboard(key: string, text: string) {
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        setCopiedKey(key)
-        setTimeout(() => setCopiedKey((k) => (k === key ? null : k)), 1600)
-        showToast('Copied to clipboard')
-      })
-      .catch(() => {/* clipboard denied — nothing useful to do */})
+  async function copyToClipboard(key: string, text: string) {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedKey(key)
+      setTimeout(() => setCopiedKey(k => k === key ? null : k), 1600)
+      showToast(ui('Copied to clipboard'))
+    } catch {
+      setManualCopy(text)
+    }
   }
 
   // KINEO-HIGGSFIELD-20D dia 9 (13/08) — microconfirmacao: download e copy
@@ -1343,9 +1365,14 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
         ))}
       </div>}
       {/* Embedded Library keeps search available for every non-empty collection. */}
+      <LibraryOrganization state={organization} />
+      <div className="library-format-filter" role="group" aria-label={ui('Format')}>
+        <button type="button" aria-pressed={format === 'all'} onClick={() => setFormat('all')}><UiLabel>All formats</UiLabel></button>
+        {Array.from(new Set(videos.map(v => libraryFormat(v.platform)).filter(Boolean))).map(p => <button key={p} type="button" aria-pressed={format === p} onClick={() => setFormat(p)}>{p}</button>)}
+      </div>
       {(embedded || videos.length >= 6) && (
         <div className="mb-5" style={{ position: 'relative', maxWidth: 420 }}>
-          <span aria-hidden="true" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, opacity: 0.55 }}>🔍</span>
+          <span aria-hidden="true" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, opacity: 0.55 }}><ControlIcon name="search" /></span>
           <input
             type="search"
             value={query}
@@ -1358,21 +1385,23 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
         </div>
       )}
 
-      {query.trim() && visibleVideos.length === 0 && (
+      {(query.trim() || organization.favoritesOnly || format !== 'all') && visibleVideos.length === 0 && (
         <div className="rounded-2xl p-8 text-center" style={{ background: 'var(--card)', border: '1px solid rgba(255,255,255,0.07)' }}>
           <p className="text-sm" style={{ color: 'var(--muted)', margin: 0 }}><UiLabel>
-            No videos match &ldquo;</UiLabel>{query.trim()}<UiLabel>&rdquo;.
+            No projects match these filters.
           </UiLabel></p>
           <button
             type="button"
-            onClick={() => setQuery('')}
+            onClick={() => { setQuery(''); organization.setFavoritesOnly(false); setFormat('all') }}
             className="mt-4 rounded-xl px-4 py-2 text-sm font-bold"
             style={{ background: 'rgba(41,151,255,.12)', border: '1px solid rgba(41,151,255,.4)', color: '#2997ff', cursor: 'pointer' }}
           ><UiLabel>
-            Clear search
+            Reset filters
           </UiLabel></button>
         </div>
       )}
+
+      {manualCopy !== null ? <ManualCopyDialog text={manualCopy} onClose={() => setManualCopy(null)} /> : null}
 
       {/* Video grid — compact 9:16 cards, 2-3 per row on mobile */}
       <div
@@ -1496,6 +1525,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
           return (
             <div
               key={video.id}
+              className="library-organized-card"
               style={{
                 background: 'var(--card)',
                 border: '1px solid rgba(255,255,255,0.08)',
@@ -1505,6 +1535,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
               }}
             >
               {/* 9:16 video area */}
+              <FavoriteButton id={video.id} state={organization} />
               <div
                 style={{
                   position: 'relative',
@@ -1561,7 +1592,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                           card passa a tocar a VERSAO ENHANCED + selo HD.
                           KINEO-UI-DIARIO-2026-08-17 (item 23): o <video> agora
                           monta no IntersectionObserver — ver HistoryCardFrame. */}
-                      <HistoryCardFrame src={enhUrls[video.id] ?? video.video_url} />
+                      <HistoryCardFrame src={filmSource(video.video_url, enhUrls[video.id], fileVersions[video.id])!} />
                       {enhStatus[video.id] === 'done' && (
                         <span
                           style={{
@@ -1618,21 +1649,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
 
               {/* Info below video */}
               <div style={{ padding: '7px 8px 8px' }}>
-                <p
-                  style={{
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    color: 'var(--text)',
-                    lineHeight: 1.3,
-                    marginBottom: 5,
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                  }}
-                >
-                  {title}
-                </p>
+                <ExpandableFilmTitle title={extractTitle(video.topic, false)} />
 
                 {/* KINEO-CARD-QUADRANTE-2026-09-16 — pedido do fundador: além do motor, a qualidade e o enquadramento do render; selo do motor
                     ~10 % maior. O arquivo entregue é sempre o master 1080×1920 do Creatomate (KINEO-SEEDANCE-720-MARGEM); o enquadramento vem da
@@ -1669,6 +1686,9 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                     </span>
                   )}
                 </div>
+
+                {enhUrls[video.id] ? <FilmVersionPicker value={fileVersions[video.id] ?? 'enhanced'} onChange={version => setFileVersions(prev => ({ ...prev, [video.id]: version }))} disabled={downloadingId === video.id} /> : null}
+                {downloadNotes[video.id] ? <p className="delivery-note" role="status">{downloadNotes[video.id]}</p> : null}
 
                 {/* Action buttons — KINEO-CARD-SOFISTICADO-2026-09-16 (ver chipStyle): primária cheia + chips em duas colunas */}
                 <style>{'.kc-btn{transition:transform .12s ease,box-shadow .12s ease,filter .12s ease}.kc-btn:hover{transform:translateY(-1px);filter:brightness(1.14)}.kc-btn:active{transform:translateY(0);filter:brightness(.96)}.kc-primary:hover{box-shadow:0 10px 26px rgba(41,151,255,.42),inset 0 1px 0 rgba(255,255,255,.22)!important}'}</style>
@@ -2135,20 +2155,22 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
             <div className="p3-film-player" data-kineo-frame-shell>
               <div data-kineo-frame data-kineo-frame-wide="100%" style={{ position: 'relative', width: '100%', aspectRatio: '9 / 16', borderRadius: 16, overflow: 'hidden', background: '#000', border: '1px solid rgba(41,151,255,0.4)', boxShadow: '0 18px 60px rgba(41,151,255,0.15)' }}>
                 <video
-                  src={enhUrls[v.id] ?? v.video_url}
+                  src={filmSource(v.video_url, enhUrls[v.id], fileVersions[v.id])!}
                   controls
                   autoPlay
                   playsInline
                   controlsList="nodownload"
                   disablePictureInPicture
                   style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                  onLoadedMetadata={(e) => fitLightboxFrame(e.currentTarget)}
+                  onLoadedMetadata={(e) => { fitLightboxFrame(e.currentTarget); const player = e.currentTarget; if (player.videoWidth && player.videoHeight) setFileResolutions(prev => ({ ...prev, [player.currentSrc]: `${player.videoWidth} × ${player.videoHeight}` })) }}
                   onError={() => setErrors((prev) => new Set([...prev, v.id]))}
                 />
               </div>
             </div>
             <div className="p3-film-actions">
               <p style={{ margin: 0, fontSize: 18, lineHeight: 1.4, fontWeight: 750, color: '#f5f5f7', overflowWrap: 'anywhere' }}>{extractTitle(v.topic)}</p>
+              {enhUrls[v.id] ? <FilmVersionPicker value={fileVersions[v.id] ?? 'enhanced'} onChange={version => setFileVersions(prev => ({ ...prev, [v.id]: version }))} disabled={downloadingId === v.id} resolution={fileResolutions[filmSource(v.video_url, enhUrls[v.id], fileVersions[v.id])!]} /> : null}
+              {downloadNotes[v.id] ? <p className="delivery-note" role="status">{downloadNotes[v.id]}</p> : null}
               <button
                 onClick={() => handleDownload(v)}
                 disabled={downloadingId === v.id}

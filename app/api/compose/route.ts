@@ -77,6 +77,7 @@ import { alignSignedClipPlan } from '@/lib/cinematic/klingShots' // KINEO-KLING2
 import { isVeoClaim, veoAlignSignedClipPlan } from '@/lib/cinematic/veoShots' // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — claim do Veo assina 4|6|8
 import { alignSignedClipPlanWith } from '@/lib/cinematic/klingShots' // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29
 import { isSeedanceShortClaim, SEEDANCE_SHORT_CLIP_STEPS } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 3x6] claim do Seedance a 15 s assina 6|7|8
+import { vozAssinadaDoClaim } from '@/lib/vozDoFilmeCurto' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29
 import { collectSceneNarrations, verifyObservedSpeech } from '@/lib/cinematic/speechContract'
 // KINEO-COMPOSE-REJECT-NOREFUND-2026-08-10 — ver o cabeçalho do arquivo: numa
 // recusa TERMINAL do fornecedor nenhum render_id nasce, logo /api/compose/status
@@ -1331,6 +1332,7 @@ export async function POST(req: NextRequest) {
         cost,
         credit_hold: creditHold,
         duration,
+        language, // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29 — a língua da narração: é deste claim (o único que a busca por render_id acha) que o render_delivered_measured do /api/compose/status a lê (era null em 100 % das linhas)
         // ⚠️ KINEO-TITULO-SOBREVIVE-2026-08-22 — REPETIDOS AQUI DE PROPÓSITO.
         // Este objeto SUBSTITUI o metadata inteiro do claim (não faz merge),
         // então qualquer campo que não seja re-listado aqui é APAGADO no
@@ -1661,6 +1663,13 @@ export async function POST(req: NextRequest) {
       return null
     }
 
+    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29 — o filme de 15 s do
+    // Seedance 1.5 traz no claim assinado a voz que o portão da rota mediu (`narration_voice`: o `vertical` que a escolheu e
+    // o fator de velocidade que a deixa na régua da casa). Como nas cenas assinadas (Object.assign(body, aligned)), o claim
+    // vence o corpo ANTES de `vertical` e `explicitSpeed` nascerem: régua, cache, TTS e corretivo de sempre falam essa voz —
+    // no navegador, na retomada e no resgate do cron (que não manda `vertical`). Sem o campo: null, o corpo do cliente intacto.
+    const vozAssinada = vozAssinadaDoClaim(cinematicBirthClaim?.response)
+    if (vozAssinada) { body.vertical = vozAssinada.vertical; body.speed = vozAssinada.speed }
     // Phase 1 Narration Engine — content vertical from analyze-idea (e.g. 'mystery',
     // 'finance', 'geography'). Used by selectPersonaForScript() inside generateTTS()
     // to pick the right voice persona for the niche.

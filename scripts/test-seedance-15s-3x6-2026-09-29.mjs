@@ -7,8 +7,9 @@
 //      (perda = KLING25_CLIP_LOSS_SECONDS, lida da lib); toda fala que a guarda de 22,5 s deixa passar cabe em 8 s; o claim
 //      de 15 s do Seedance é reconhecido e nenhum outro;
 //   2. custo: o crédito continua 7 (creditCostForDuration, a função que debita) e o custo de clipe cai (3 × 6 < 2 × 10);
-//   3. régua do escritor (lib/scriptWriterRate, a fonte que o /api/generate-script lê): ~40 palavras (40-43) com a conta
-//      mostrada; todo outro par (segundos, régua, cobertura) idêntico à base — Kineo 1 a 15 s incluído;
+//   3. régua do escritor (lib/scriptWriterRate, a fonte que o /api/generate-script lê): faixa 36-41 com a conta mostrada
+//      (reancorado 29/09, KINEO-ROTEIRO-15S-FRASE-INTEIRA: era 41-41); todo outro par (segundos, régua, cobertura)
+//      idêntico à base — Kineo 1 a 15 s incluído;
 //   4. rota (fatias reais): 15 s Seedance → EXATAMENTE 3 cenas (ideia e verbatim, prosa e roteiro marcado curto); 35/60/90
 //      e os outros motores intocados; o builder real da fal e o callback real do despacho mandam duration '6'|'7'|'8' no
 //      i2v E no t2v de reserva; o claim assinado leva clip_seconds + clip_word_starts; a rota só GANHOU linhas (diff);
@@ -16,7 +17,8 @@
 //   6. compose real (lib/compose buildCreatomateSource) nos 4 casos — 16,0 s [6,6,6]; 17,8 s [7,7,7]; 20,5 s [8,8,8]; o
 //      canário 17,8 s [10,10] — nenhum reuso, ordem das cenas, trim_start + duração ≤ segundos do clipe; a montagem
 //      antiga (sem o plano assinado) reproduz o defeito do canário (clipe 0 de volta no fim);
-//   7. ensaio de $0 (lib/cinematic/classicDryRun, real): ~40 palavras dão PASS em toda persona do catálogo;
+//   7. ensaio de $0 (lib/cinematic/classicDryRun, real): o teto (41) e acima dão PASS em toda persona do catálogo; o piso
+//      (36) dá PASS em toda persona até a régua da casa (2,5 pal/s);
 //   8. mutantes em memória, todos VERMELHOS: sem a duração explícita; de volta ao slot fixo (2 clipes / 10 s); compose
 //      reciclando (sem o alinhador do Seedance; sem o ramo assinado; nível d'água que deixa sobra); 35 s no 3x6; escritor
 //      sem a régua do 15 s.
@@ -153,17 +155,20 @@ const minS = W.minWordsFor(15, reguaSeed.wordsPerSecond, reguaSeed.coverage), ma
 const rapida = W.fastestClassicPersonaRate('en').wordsPerSecond
 const taxas = PERS.VOICE_PERSONAS.map((p) => SR.speechRateFor({ family: 'classic', language: 'en', voice: p.voice, personaSpeed: p.defaultSpeed }).wordsPerSecond)
 const media = taxas.reduce((a, b) => a + b, 0) / taxas.length
-console.log(`     conta: piso ⌈15 × ${NF.MIN_COVERAGE} × ${rapida}⌉ = ${minS} · teto ⌊(3 × (6 − ${PERDA}) − ${DECIMO}) ÷ ${BANDA} × ${D.VERBATIM_EST_WORDS_PER_SECOND}⌋ = ${maxS} · média das personas ${media.toFixed(3)} pal/s · canário 45/17,8 = ${(45 / 17.8).toFixed(3)}`)
+console.log(`     conta: piso ⌈15 × ${NF.MIN_COVERAGE} × ${D.VERBATIM_EST_WORDS_PER_SECOND}⌉ = ${minS} (era ⌈15 × ${NF.MIN_COVERAGE} × ${rapida}⌉ = 41, piso = teto) · teto ⌊(3 × (6 − ${PERDA}) − ${DECIMO}) ÷ ${BANDA} × ${D.VERBATIM_EST_WORDS_PER_SECOND}⌋ = ${maxS} · média das personas ${media.toFixed(3)} pal/s · canário 45/17,8 = ${(45 / 17.8).toFixed(3)}`)
 // o MESMO predicado serve à checagem e aos mutantes (revisão 29/09: o mutante antigo exigia só "≠ 40", que o original cumpria)
 function provaEscritor(Wx) {
   const r = Wx.writerRateFor('cinematic_ai', 'tema', 'en')
   const mn = Wx.minWordsFor(15, r.wordsPerSecond, r.coverage), mx = Wx.maxWordsFor(15, r.wordsPerSecond, r.coverage)
-  return mn === Math.ceil(15 * NF.MIN_COVERAGE * rapida - 1e-9) && mx === Math.floor(capDe(6) * D.VERBATIM_EST_WORDS_PER_SECOND + 1e-9) && mn === 41 && mx === 41 && mn <= mx
+  // reancorado 29/09 (KINEO-ROTEIRO-15S-FRASE-INTEIRA): piso = C2 na régua da casa (36), não mais na voz mais rápida (41 = teto)
+  return mn === Math.ceil(15 * NF.MIN_COVERAGE * D.VERBATIM_EST_WORDS_PER_SECOND - 1e-9) && mx === Math.floor(capDe(6) * D.VERBATIM_EST_WORDS_PER_SECOND + 1e-9) && mn === 36 && mx === 41 && mn < mx
 }
-checa(`Seedance a 15 s: ${minS}-${maxS} palavras (~40) — era ${WB ? `${WB.minWordsFor(15, 3.1, 1)}-${WB.maxWordsFor(15, 3.1, 1)}` : '?'} na régua genérica de 3,1; o teto é o que cabe em 3 × 6 s COM a folga do planejador`, provaEscritor(W) && minS === 41 && maxS === 41)
-checa(`fala a ${D.VERBATIM_EST_WORDS_PER_SECOND} pal/s: ${(minS / 2.5).toFixed(1)}-${(maxS / 2.5).toFixed(1)} s (15-17 s ± 0,2); no ritmo do canário: ${(minS / (45 / 17.8)).toFixed(1)}-${(maxS / (45 / 17.8)).toFixed(1)} s`, minS / 2.5 >= 15 && maxS / 2.5 <= 17.2 + 1e-9 && minS / (45 / 17.8) >= 15 && maxS / (45 / 17.8) <= 17.01)
+checa(`Seedance a 15 s: ${minS}-${maxS} palavras (~40) — era ${WB ? `${WB.minWordsFor(15, 3.1, 1)}-${WB.maxWordsFor(15, 3.1, 1)}` : '?'} na régua genérica de 3,1; o teto é o que cabe em 3 × 6 s COM a folga do planejador`, provaEscritor(W) && minS === 36 && maxS === 41)
+// reancorado 29/09 (KINEO-ROTEIRO-15S-FRASE-INTEIRA): o piso agora é o C2 (≥ 14,25 s na régua da casa), não ≥ 15 s
+checa(`fala a ${D.VERBATIM_EST_WORDS_PER_SECOND} pal/s: ${(minS / 2.5).toFixed(1)}-${(maxS / 2.5).toFixed(1)} s (piso C2 14,25 s → 17,2 s); no ritmo do canário: ${(minS / (45 / 17.8)).toFixed(1)}-${(maxS / (45 / 17.8)).toFixed(1)} s (o teto passa de 15 s)`, minS / 2.5 >= 15 * NF.MIN_COVERAGE && maxS / 2.5 <= 17.2 + 1e-9 && maxS / (45 / 17.8) >= 15 && maxS / (45 / 17.8) <= 17.01)
 checa('a régua de 2,5 é a da casa: média do catálogo de personas a ±0,05 e o canário a ±0,05', Math.abs(media - D.VERBATIM_EST_WORDS_PER_SECOND) <= 0.05 && Math.abs(45 / 17.8 - D.VERBATIM_EST_WORDS_PER_SECOND) <= 0.05)
-checa('o teto cabe em 3 × 6 s (o planejador pede 6 s para 43 palavras) e o piso passa no piso C2 na voz mais rápida', D.seedanceShortClipSeconds(D.estimarFalaSegundos('a '.repeat(maxS)), PERDA) === 6 && minS / rapida >= 15 * NF.MIN_COVERAGE)
+// reancorado 29/09 (KINEO-ROTEIRO-15S-FRASE-INTEIRA): quem passa no C2 na voz mais rápida agora é o TETO; o piso passa na régua da casa
+checa('o teto cabe em 3 × 6 s (o planejador pede 6 s para 43 palavras) e passa no piso C2 na voz mais rápida; o piso passa no C2 na régua da casa (2,5)', D.seedanceShortClipSeconds(D.estimarFalaSegundos('a '.repeat(maxS)), PERDA) === 6 && maxS / rapida >= 15 * NF.MIN_COVERAGE && minS / D.VERBATIM_EST_WORDS_PER_SECOND >= 15 * NF.MIN_COVERAGE)
 {
   const pares = []
   for (const s of [15, 20, 30, 35, 45, 60, 90]) for (const w of [2.3, 2.45, 2.5, 2.8, 3.1, rapida, ...taxas]) for (const c of [1, 0.95]) {
@@ -176,9 +181,10 @@ checa('o teto cabe em 3 × 6 s (o planejador pede 6 s para 43 palavras) e o piso
   checa(`todo outro par (segundos × régua × cobertura, ${pares.length} casos) e writerRateFor de 8 motores idênticos à base — Kineo 1 a 15 s segue ${W.minWordsFor(15, k1.wordsPerSecond, 1)}-${W.maxWordsFor(15, k1.wordsPerSecond, 1)}`, Boolean(WB) && pares.every(Boolean) && reguas && W.minWordsFor(15, k1.wordsPerSecond, 1) === WB.minWordsFor(15, k1.wordsPerSecond, 1))
   const W_SRC = rd('lib/scriptWriterRate.ts')
   checa('o compilador dos mutantes do escritor, sobre o arquivo SEM mutação, passa no predicado (senão o vermelho dos mutantes não prova nada)', provaEscritor(compilaW(W_SRC)))
-  const mutEscritor = trocaUma(W_SRC, '  if (isSeedanceShortWriter(seconds, wordsPerSecond, coverage)) return seedanceShortWriterWords().min // KINEO-SEEDANCE-15S-3X6-2026-09-29' + LF, '')
+  // Reancorado 29/09 (KINEO-RITMO-POR-IDIOMA-15S-2026-09-29, [TRAVA 8.2 — "vai conserta" do fundador]): a linha ganhou a língua do filme curto do Seedance (idiomaDoRitmo / ritmo); o que ela protege não muda.
+  const mutEscritor = trocaUma(W_SRC, '  if (isSeedanceShortWriter(seconds, wordsPerSecond, coverage)) return seedanceShortWriterWords(language).min // KINEO-SEEDANCE-15S-3X6-2026-09-29 · KINEO-RITMO-POR-IDIOMA-15S' + LF, '')
   checa('mutante: escritor sem o piso do 15 s (volta a 47 palavras) fica VERMELHO pelo mesmo predicado', mutEscritor !== null && !provaEscritor(compilaW(mutEscritor)))
-  const mutTeto = trocaUma(W_SRC, '  if (isSeedanceShortWriter(seconds, wordsPerSecond, coverage)) return seedanceShortWriterWords().max // KINEO-SEEDANCE-15S-3X6-2026-09-29' + LF, '')
+  const mutTeto = trocaUma(W_SRC, '  if (isSeedanceShortWriter(seconds, wordsPerSecond, coverage)) return seedanceShortWriterWords(language).max // KINEO-SEEDANCE-15S-3X6-2026-09-29 · KINEO-RITMO-POR-IDIOMA-15S' + LF, '')
   checa('mutante: escritor sem o teto do 15 s (⌊41 × 1,2⌉ = 49) fica VERMELHO pelo mesmo predicado', mutTeto !== null && !provaEscritor(compilaW(mutTeto)))
   const mutTetoSemFolga = trocaUma(W_SRC, '  const cabe = seedanceShortSpeechCapacity(SEEDANCE_SHORT_CLIP_STEPS[0], KLING25_CLIP_LOSS_SECONDS)', '  const cabe = 3 * (SEEDANCE_SHORT_CLIP_STEPS[0] - KLING25_CLIP_LOSS_SECONDS)')
   checa('mutante: teto do escritor sem a folga (o 43 de 234e3593) fica VERMELHO pelo mesmo predicado', mutTetoSemFolga !== null && !provaEscritor(compilaW(mutTetoSemFolga)))
@@ -189,7 +195,9 @@ checa('o teto cabe em 3 × 6 s (o planejador pede 6 s para 43 palavras) e o piso
 // não escreveu nada na rota (nenhum marcador dele, nenhuma faixa digitada).
 {
   const GS = rd('app/api/generate-script/route.ts')
-  checa('o /api/generate-script continua lendo min/maxWordsFor da lib (fonte única; a rota dele não foi tocada aqui)', GS.includes("import { minWordsFor, maxWordsFor, writerRateFor } from '@/lib/scriptWriterRate'") && GS.includes('    const tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage), maxWordsForShortFilm(alvoSegundos))') && !GS.includes('KINEO-SEEDANCE-15S-3X6') && !GS.includes('seedanceShortWriterWords'))
+  // Reancorado 29/09 (KINEO-RITMO-POR-IDIOMA-15S-2026-09-29, [TRAVA 8.2 — "vai conserta" do fundador]): a linha do teto ganhou idiomaDoRitmo
+  // (a língua do filme curto do Seedance); a fonte única (min/maxWordsFor da lib) continua a mesma.
+  checa('o /api/generate-script continua lendo min/maxWordsFor da lib (fonte única; a rota dele não foi tocada aqui)', GS.includes("import { minWordsFor, maxWordsFor, writerRateFor } from '@/lib/scriptWriterRate'") && GS.includes('    const tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo), maxWordsForShortFilm(alvoSegundos))') && !GS.includes('KINEO-SEEDANCE-15S-3X6') && !GS.includes('seedanceShortWriterWords'))
 }
 
 // ═══ 4. rota ═══
@@ -517,7 +525,7 @@ function provaComposeReal(Cx, fala = true) {
 }
 
 // ═══ 7. ensaio de $0 ═══
-console.log('7) ensaio de $0 (lib/cinematic/classicDryRun real): ~40 palavras dão PASS')
+console.log('7) ensaio de $0 (lib/cinematic/classicDryRun real): o teto (41) e acima dão PASS em toda persona; o piso (36) nas vozes até 2,5 pal/s')
 const DR = roda(rd('lib/cinematic/classicDryRun.ts'))
 {
   const r = []
@@ -528,11 +536,18 @@ const DR = roda(rd('lib/cinematic/classicDryRun.ts'))
       const fala = D.seedanceShortSpeechSeconds(texto, wps)
       const s = D.seedanceShortClipSeconds(fala, PERDA)
       const rel = DR.classicDryRunReport({ scenes: tres(texto).map((c) => ({ voiceover: c.voiceover, prompt: 'x' })), targetSeconds: 15, secondsPerClip: s, verbatim: true, wordsPerSecond: wps, sceneSeconds: [s, s, s], clipLossSeconds: PERDA })
-      if (n >= minS) r.push(rel.pass); else n40.push(rel.pass)
+      if (n >= maxS) r.push(rel.pass); else n40.push(rel.pass) // reancorado 29/09: o "sempre PASS" é do TETO (41); 40 fica abaixo dele
       if (!rel.pass) console.log(`     ${n} palavras a ${wps} pal/s: ${rel.verdict}`)
     }
   }
-  checa(`o teto do escritor (${maxS} palavras) e acima dele (42, 43) em 3 clipes, nas ${taxas.length} personas do catálogo (${Math.min(...taxas)}-${Math.max(...taxas)} pal/s): PASS em todas (${r.length} ensaios); 40 palavras: PASS em ${n40.filter(Boolean).length} de ${n40.length} (a persona mais rápida fica a 0,05 s do piso — por isso o piso do escritor é ${minS})`, r.length > 0 && r.every(Boolean) && n40.filter(Boolean).length >= n40.length - 1)
+  checa(`o teto do escritor (${maxS} palavras) e acima dele (42, 43) em 3 clipes, nas ${taxas.length} personas do catálogo (${Math.min(...taxas)}-${Math.max(...taxas)} pal/s): PASS em todas (${r.length} ensaios); 40 palavras: PASS em ${n40.filter(Boolean).length} de ${n40.length} (a persona mais rápida fica a 0,05 s do C2)`, r.length > 0 && r.every(Boolean) && n40.filter(Boolean).length >= n40.length - 1)
+  // KINEO-ROTEIRO-15S-FRASE-INTEIRA (29/09): o piso novo do escritor (36) passa no ensaio em toda voz até a régua da casa
+  const piso = taxas.filter((w) => w <= D.VERBATIM_EST_WORDS_PER_SECOND).map((wps) => {
+    const texto = textoN(minS)
+    const s = D.seedanceShortClipSeconds(D.seedanceShortSpeechSeconds(texto, wps), PERDA)
+    return DR.classicDryRunReport({ scenes: tres(texto).map((c) => ({ voiceover: c.voiceover, prompt: 'x' })), targetSeconds: 15, secondsPerClip: s, verbatim: true, wordsPerSecond: wps, sceneSeconds: [s, s, s], clipLossSeconds: PERDA }).pass
+  })
+  checa(`o piso do escritor (${minS} palavras) em 3 clipes: PASS nas ${piso.length} personas até ${D.VERBATIM_EST_WORDS_PER_SECOND} pal/s`, piso.length >= 5 && piso.every(Boolean))
 }
 
 // ═══ 8. o roteiro do canário do doc ═══

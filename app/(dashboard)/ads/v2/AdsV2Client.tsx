@@ -1,5 +1,7 @@
 'use client'
 
+import AdsPlanChanges, { usePlanComparison } from '@/components/AdsPlanChanges'
+
 // KINEO-ADS-V2-2026-09-28 — ETAPA 3: a tela do anúncio v2 (/ads/v2). O montador em primeiro plano, numa página só.
 //
 // Pedidos do fundador (28/09): a pessoa ENTRA direto na parte de fazer o anúncio; um botão "Start over" em todas as fases
@@ -23,14 +25,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import Link from 'next/link'
 import BusinessVisualReferences from '@/components/BusinessVisualReferences'
-import { UiLabel } from '@/components/InterfaceLanguage'
+import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
+import { AdsV2SimpleSession, readVideoForAd, videoFramesForAd } from './AdsV2Simple'
+import { ADS_V2_SIMPLE_COPY } from '@/lib/ads/v2Simple'
+import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { ADS_WIZARD_THEME_CSS } from '../new/adsWizardTheme'
 import { downloadVideoFile } from '@/lib/videoDownload'
 import { ADS_UPLOAD_ACCEPT_LOGO, AdsUploadError, uploadFootage } from '@/lib/ads/uploadFootage'
 import { drawEndCard, loadLogoImage, toPngFile } from '@/lib/ads/endCard'
 import { ADS_V2_TIER_IDS, ADS_V2_TIERS, adsV2Credits, type AdsV2Tier } from '@/lib/ads/v2Tiers'
-import { ADS_V2_MAX_PHOTOS, ADS_V2_MIN_PHOTOS, ADS_V2_SECTOR_SPECS } from '@/lib/ads/v2ShotLists'
+import { ADS_V2_MAX_PHOTOS, ADS_V2_MIN_PHOTOS, ADS_V2_PLAN_MAX_VIDEOS, ADS_V2_SECTOR_SPECS } from '@/lib/ads/v2ShotLists'
 import {
   ADS_V2_AD_SHAPE,
   ADS_V2_CROP,
@@ -116,6 +121,8 @@ interface PhotoItem {
   fx: number
   fy: number
   kind: AdsV2ScreenPhotoKind | null
+  /** KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — o arquivo entra COMO VÍDEO (srcUrl = miniatura do trecho mais vivo). */
+  video: { file: File; seconds: number; width: number; height: number; start: number } | null
   uploaded: { sig: string; footageId: string } | null
   busy: boolean
   error: string | null
@@ -142,7 +149,17 @@ type ApiResult<T> = { ok: true; status: number; data: T } | { ok: false; status:
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 const POLL_MS = 8000
 const POLL_RETRY_MS = 20_000
-const PHOTO_ACCEPT = 'image/jpeg,image/png,image/webp'
+const PHOTO_ACCEPT = 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm,.mov'
+/** Recusas do /plan em que o vídeo volta a ser fotos (plano B) — KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29. */
+const VIDEO_TO_PHOTOS_CODES: readonly string[] = ['video_unreadable', 'video_too_short', 'video_too_long', 'video_invalid']
+/** Por que um vídeo NÃO entrou como vídeo (inglês do modo completo). */
+const VIDEO_AS_PHOTOS_WHY: Readonly<Record<string, string>> = {
+  too_big: 'videos over 50 MB go in as photos taken from them.',
+  bad_type: 'only MP4 and MOV videos go in as video; this one goes in as photos taken from it.',
+  too_short: 'videos shorter than 3 seconds go in as photos taken from them.',
+  too_many: 'up to 2 videos go in as video; this one goes in as photos taken from it.',
+  unreadable: "your browser could not read this video's length or size, so it goes in as photos taken from it.",
+}
 const PHOTO_MAX_BYTES = 50 * 1024 * 1024
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const DEFAULT_CARD: CardFields = { offer: '', cta: 'Visit us', contact: '', color: '#2997ff' }
@@ -205,6 +222,8 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number)
 }
 
 const focalSig = (p: Pick<PhotoItem, 'fx' | 'fy'>) => `${p.fx.toFixed(3)},${p.fy.toFixed(3)}`
+/** O vídeo sobe UMA vez (o enquadramento vai no pedido, não no arquivo). */
+const uploadSig = (p: Pick<PhotoItem, 'fx' | 'fy' | 'video'>) => (p.video ? 'video' : focalSig(p))
 
 function normalizeLink(raw: string): string {
   const l = raw.trim()
@@ -348,6 +367,23 @@ const ADS_V2_CSS = `
 
 // ─── a página: cabeçalho com "Start over" + a sessão (remontada a cada Start over) ────────────
 
+// KINEO-ADS-MODO-SIMPLES-2026-09-29 — o invólucro escolhe o MODO. Entrada padrão = SIMPLES (AdsV2Simple.tsx: arquivos,
+// uma frase, nível, pesquisa com fonte, logo opcional, tela em pt/es/en). ?mode=full = o construtor completo, IDÊNTICO
+// ao de antes (AdsV2Session daqui para baixo não mudou; o guardião test-ads-modo-simples prende a impressão digital).
+// Os textos do cabeçalho vêm de ADS_V2_SIMPLE_COPY.shell: no modo completo, a tabela en (o inglês de sempre); no simples,
+// a língua da interface. Trocar de modo é um link de página inteira (o anúncio em andamento é retomado na troca);
+// "Start over" volta ao simples. O page.tsx não mudou.
+function setModeParam(mode: 'full' | null) {
+  try {
+    const u = new URL(window.location.href)
+    if (mode) u.searchParams.set('mode', mode)
+    else u.searchParams.delete('mode')
+    window.history.replaceState(null, '', u.toString())
+  } catch {
+    /* ignore */
+  }
+}
+
 // KINEO-ADS-V2-VIRADA-2026-09-29 — classicCredits: o custo do anúncio clássico (KINEO1_35S_CREDITS) vem do servidor
 // (page.tsx lê lib/ads/offer) — o cliente não ganha import novo e nunca digita o número.
 export default function AdsV2Client({ initialBalance, classicCredits = null }: { initialBalance: number | null; classicCredits?: number | null }) {
@@ -355,9 +391,25 @@ export default function AdsV2Client({ initialBalance, classicCredits = null }: {
   const [balance, setBalance] = useState<number | null>(initialBalance)
   const [confirmingReset, setConfirmingReset] = useState(false)
   const [activeWork, setActiveWork] = useState(false)
+  const [mode, setMode] = useState<'simple' | 'full' | null>(null)
+  const lang = useInterfaceLanguage()
   // Foco na opção SEGURA ("Keep working"): Enter segurado no "Start over" não apaga tudo por repetição de tecla.
   const confirmRef = useRef<HTMLButtonElement | null>(null)
   const resetBtnRef = useRef<HTMLButtonElement | null>(null)
+  // Modo completo = o inglês de sempre; simples (e o instante antes de ler a URL) = a língua da interface.
+  const shell = mode === 'full' ? ADS_V2_SIMPLE_COPY.en.shell : pickInterfaceCopy(ADS_V2_SIMPLE_COPY, lang).shell
+  const nav = pickInterfaceCopy(ADS_V2_SIMPLE_COPY, lang).shell
+
+  // ?mode=full abre o construtor completo; qualquer outra coisa, o simples.
+  useEffect(() => {
+    let m: 'simple' | 'full' = 'simple'
+    try {
+      if (new URLSearchParams(window.location.search).get('mode') === 'full') m = 'full'
+    } catch {
+      m = 'simple'
+    }
+    setMode(m)
+  }, [])
 
   const refreshBalance = useCallback(async () => {
     const r = await api<{ credits?: unknown }>('/api/credits')
@@ -377,11 +429,13 @@ export default function AdsV2Client({ initialBalance, classicCredits = null }: {
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [refreshBalance])
 
-  // Start over: a sessão velha é desmontada inteira (key muda) e a nova nasce vazia, sem retomar pedido nenhum.
+  // Start over: a sessão velha é desmontada inteira (key muda) e a nova nasce vazia, sem retomar pedido nenhum — no modo simples.
   function startOver() {
     clearOrderParam()
+    setModeParam(null)
     setConfirmingReset(false)
     setActiveWork(false)
+    setMode('simple')
     setSession((s) => s + 1)
     void refreshBalance()
     if (typeof window !== 'undefined') window.scrollTo({ top: 0 })
@@ -393,40 +447,57 @@ export default function AdsV2Client({ initialBalance, classicCredits = null }: {
       <style dangerouslySetInnerHTML={{ __html: ADS_WIZARD_THEME_CSS + ADS_V2_CSS }} />
       <header className="adsw-header adv2-head">
         <div>
-          <h1>Studio Ads</h1>
-          <p className="sub">Your real photos, brought to life in a vertical ad with music, a short voice-over and your logo.</p>
+          <h1>{shell.title}</h1>
+          <p className="sub">{mode === 'full' ? shell.sub : shell.subSimple}</p>
           {/* KINEO-ADS-V2-VIRADA-2026-09-29 — o assistente antigo continua existindo como opção clássica (discreto, <a> sem prefetch). */}
-          {classicCredits !== null ? (
+          {classicCredits !== null && mode === 'full' ? (
             <p className="adv2-classic">
               <a href="/ads/new?classic=1">Prefer a narrated 35-second ad? Use the classic maker ({classicCredits} credits)</a>
             </p>
           ) : null}
+          {mode ? (
+            <p className="adv2-classic">
+              <a href={mode === 'simple' ? '/ads/v2?mode=full' : '/ads/v2'}>{mode === 'simple' ? nav.toFull : nav.toSimple}</a>
+            </p>
+          ) : null}
         </div>
         <button ref={resetBtnRef} type="button" className="adsw-btn ghost small" aria-expanded={confirmingReset} aria-controls="adv2-reset" onClick={() => setConfirmingReset(true)}>
-          Start over
+          {shell.startOver}
         </button>
       </header>
       {confirmingReset ? (
         <div id="adv2-reset" className="adv2-confirm" role="alertdialog" aria-labelledby="adv2-reset-t" aria-describedby="adv2-reset-d">
-          <p id="adv2-reset-t"><b>Start over with an empty ad?</b></p>
+          <p id="adv2-reset-t"><b>{shell.confirmTitle}</b></p>
           <p id="adv2-reset-d">
-            Everything on this page (level, text, logo, photos and plan) will be cleared.
-            {activeWork ? ' The ad being made right now keeps going and will appear in My Videos.' : ''}
+            {shell.confirmBody}
+            {activeWork ? shell.activeNote : ''}
           </p>
           <div className="adv2-actions" style={{ marginTop: 0 }}>
-            <button type="button" className="adsw-btn small" onClick={startOver}>Yes, start over</button>
-            <button ref={confirmRef} type="button" className="adsw-btn ghost small" onClick={() => { setConfirmingReset(false); resetBtnRef.current?.focus() }}>Keep working</button>
+            <button type="button" className="adsw-btn small" onClick={startOver}>{shell.yes}</button>
+            <button ref={confirmRef} type="button" className="adsw-btn ghost small" onClick={() => { setConfirmingReset(false); resetBtnRef.current?.focus() }}>{shell.keep}</button>
           </div>
         </div>
       ) : null}
-      <AdsV2Session
-        key={session}
-        resume={session === 0}
-        balance={balance}
-        onBalance={refreshBalance}
-        onActive={setActiveWork}
-        onAskStartOver={() => setConfirmingReset(true)}
-      />
+      {mode === 'full' ? (
+        <AdsV2Session
+          key={session}
+          resume={session === 0}
+          balance={balance}
+          onBalance={refreshBalance}
+          onActive={setActiveWork}
+          onAskStartOver={() => setConfirmingReset(true)}
+        />
+      ) : mode === 'simple' ? (
+        <AdsV2SimpleSession
+          key={session}
+          resume={session === 0}
+          lang={lang}
+          balance={balance}
+          onBalance={refreshBalance}
+          onActive={setActiveWork}
+          onAskStartOver={() => setConfirmingReset(true)}
+        />
+      ) : null}
     </div>
   )
 }
@@ -454,11 +525,16 @@ function AdsV2Session({
   const [sector, setSector] = useState<AdsV2ScreenSector | null>(null)
   const [logo, setLogo] = useState<LogoItem | null>(null)
   const [photos, setPhotos] = useState<PhotoItem[]>([])
+  // Leitura fresca das fotos para quem roda no fim de um await longo (o planAd): `photos` do fechamento é o da renderização.
+  const photosRef = useRef<PhotoItem[]>([])
+  photosRef.current = photos
+  const [previewPhotoKey, setPreviewPhotoKey] = useState<string | null>(null)
   const [photoNote, setPhotoNote] = useState<string | null>(null)
   const [card, setCard] = useState<CardFields>(DEFAULT_CARD)
   const [cardUpload, setCardUpload] = useState<{ sig: string; footageId: string } | null>(null)
   const [draft, setDraft] = useState<{ id: string; key: string } | null>(null)
   const [plan, setPlan] = useState<Plan | null>(null)
+  const { previousPlan, rememberPlan } = usePlanComparison()
   const [narrationOn, setNarrationOn] = useState(true)
   const [busy, setBusy] = useState<null | 'plan' | 'start' | 'check' | 'voice' | 'redo'>(null)
   const [busyNote, setBusyNote] = useState<string | null>(null)
@@ -476,6 +552,9 @@ function AdsV2Session({
   const [notReady, setNotReady] = useState(false)
 
   const aliveRef = useRef(true)
+  // Revisão (29/09): uma seleção por vez — o limite de 2 vídeos é contado sobre `photos`, que só atualiza na próxima
+  // renderização; duas seleções seguidas durante a leitura de um vídeo passavam de 2.
+  const addingRef = useRef(false)
   const pollRef = useRef<number | null>(null)
   const currentOrderRef = useRef<string | null>(null)
   const urlsRef = useRef<Set<string>>(new Set())
@@ -529,6 +608,7 @@ function AdsV2Session({
   if (!logo?.footageId) missing.push(logo?.busy ? 'Wait for your logo to finish uploading.' : 'Add your logo.')
   if (photos.length < ADS_V2_MIN_PHOTOS) missing.push(`Add ${ADS_V2_MIN_PHOTOS - photos.length} more photo${ADS_V2_MIN_PHOTOS - photos.length === 1 ? '' : 's'} (${ADS_V2_MIN_PHOTOS} to ${ADS_V2_MAX_PHOTOS}).`)
   if (photos.some((p) => !p.kind)) missing.push('Mark what each photo shows.')
+  if (photos.length > 0 && photos.every((p) => p.video)) missing.push('Add at least 1 photo along with your videos.')
 
   // ── URL, poll e vista do pedido ──────────────────────────────────────────────────────────
 
@@ -710,15 +790,63 @@ function AdsV2Session({
 
   async function addPhotos(list: FileList | null) {
     if (!list || !list.length) return
+    if (addingRef.current) {
+      setPhotoNote('Wait: we are still reading the files you just added. Then add these again.')
+      return
+    }
+    addingRef.current = true
+    try {
+      await addPhotosNow(list)
+    } finally {
+      addingRef.current = false
+    }
+  }
+
+  async function addPhotosNow(list: FileList) {
     setPhotoNote(null)
+    const photos = photosRef.current
     const room = ADS_V2_MAX_PHOTOS - photos.length
     const files = Array.from(list).slice(0, Math.max(0, room))
     const notes: string[] = []
     if (list.length > room) notes.push(`Only ${ADS_V2_MAX_PHOTOS} photos fit in one ad; the extra ones were left out.`)
     const added: PhotoItem[] = []
+    let videosAlready = photos.filter((p) => p.video).length
     for (const f of files) {
+      // KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — vídeo: entra COMO VÍDEO quando cabe (mesma regra do modo simples:
+      // readVideoForAd); senão, plano B com o motivo: 1 a 3 quadros viram fotos (videoFramesForAd).
+      if (f.type.toLowerCase().startsWith('video/') || /\.(mp4|mov|m4v|webm|qt)$/i.test(f.name)) {
+        setBusyNote(`Reading ${f.name}…`)
+        const read = await readVideoForAd(f, videosAlready)
+        if (!aliveRef.current) return
+        if (read.kind === 'photos' && read.verdict === 'too_long') {
+          notes.push(`${f.name}: the video must be under 10 minutes.`)
+          setBusyNote(null)
+          continue
+        }
+        if (read.kind === 'video') {
+          videosAlready += 1
+          added.push({
+            key: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            name: f.name,
+            srcUrl: trackUrl(URL.createObjectURL(read.thumb)),
+            w: read.width,
+            h: read.height,
+            fx: 0.5,
+            fy: 0.5,
+            kind: 'place',
+            video: { file: f, seconds: read.seconds, width: read.width, height: read.height, start: read.start },
+            uploaded: null,
+            busy: false,
+            error: null,
+          })
+        } else {
+          added.push(...(await framesAsPhotos(f, `${f.name}: ${VIDEO_AS_PHOTOS_WHY[read.verdict] ?? VIDEO_AS_PHOTOS_WHY.unreadable}`, notes)))
+        }
+        setBusyNote(null)
+        continue
+      }
       if (!/^image\/(jpeg|png|webp)$/i.test(f.type) && !/\.(jpe?g|png|webp)$/i.test(f.name)) {
-        notes.push(`${f.name}: use a JPG, PNG or WebP photo.`)
+        notes.push(`${f.name}: use a JPG, PNG or WebP photo, or an MP4, MOV or WebM video.`)
         continue
       }
       if (f.size > PHOTO_MAX_BYTES) {
@@ -738,6 +866,7 @@ function AdsV2Session({
           fx: 0.5,
           fy: 0.5,
           kind: null,
+          video: null,
           uploaded: null,
           busy: false,
           error: null,
@@ -750,6 +879,41 @@ function AdsV2Session({
     if (!aliveRef.current) return
     if (added.length) setPhotos((prev) => [...prev, ...added].slice(0, ADS_V2_MAX_PHOTOS))
     setPhotoNote(notes.length ? notes.join(' ') : null)
+  }
+
+  /** Plano B: o vídeo vira 1 a 3 fotos (cada uma a marcar), com o aviso do motivo. */
+  async function framesAsPhotos(f: File, why: string, notes: string[]): Promise<PhotoItem[]> {
+    const frames = await videoFramesForAd(f)
+    const out: PhotoItem[] = []
+    for (const fr of frames) {
+      const url = trackUrl(URL.createObjectURL(fr))
+      try {
+        const img = await loadImage(url)
+        out.push({ key: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, name: fr.name, srcUrl: url, w: img.naturalWidth, h: img.naturalHeight, fx: 0.5, fy: 0.5, kind: null, video: null, uploaded: null, busy: false, error: null })
+      } catch {
+        dropUrl(url)
+      }
+    }
+    notes.push(out.length ? why : `${f.name}: your browser cannot open this video. Record it in 'Most Compatible' or send photos.`)
+    return out
+  }
+
+  /** O servidor não conseguiu usar um vídeo como vídeo: ESSE item vira fotos (plano B). Planejar de novo é grátis. */
+  async function videoBackToPhotos(footageId: string | null, byKey?: string, why?: string) {
+    const target = photosRef.current.find((p) => p.video && (byKey ? p.key === byKey : p.uploaded?.footageId === footageId))
+    if (!target?.video) return
+    const notes: string[] = []
+    const frames = await framesAsPhotos(target.video.file, `${target.name}: ${why ?? 'we could not use this video as video on our side, so it now goes in as photos taken from it. Mark them and plan again (free).'}`, notes)
+    if (!aliveRef.current) return
+    setPhotos((prev) => {
+      const i = prev.findIndex((p) => p.key === target.key)
+      if (i < 0) return prev
+      const next = prev.slice()
+      next.splice(i, 1, ...frames)
+      return next.slice(0, ADS_V2_MAX_PHOTOS)
+    })
+    dropUrl(target.srcUrl)
+    setPhotoNote(notes.join(' '))
   }
 
   function updatePhoto(key: string, patch: Partial<PhotoItem>) {
@@ -772,25 +936,33 @@ function AdsV2Session({
     })
   }
 
-  /** Recorta e sobe (um por vez) toda foto cujo enquadramento mudou desde o último envio. */
-  async function ensurePhotosUploaded(): Promise<{ footage_id: string; kind: AdsV2ScreenPhotoKind }[] | null> {
+  /**
+   * Recorta e sobe (um por vez) toda foto cujo enquadramento mudou desde o último envio.
+   * KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — o vídeo sobe ORIGINAL (uma vez) e vai em `videos` com o trecho e o foco.
+   */
+  async function ensurePhotosUploaded(): Promise<{ photos: { footage_id: string; kind: AdsV2ScreenPhotoKind }[]; videos: { footage_id: string; start: number; focus_x: number; focus_y: number; width: number; height: number }[] } | null> {
     const out: { footage_id: string; kind: AdsV2ScreenPhotoKind }[] = []
+    const videos: { footage_id: string; start: number; focus_x: number; focus_y: number; width: number; height: number }[] = []
+    const push = (p: PhotoItem, footageId: string) => {
+      if (p.video) videos.push({ footage_id: footageId, start: p.video.start, focus_x: p.fx, focus_y: p.fy, width: p.video.width, height: p.video.height })
+      else out.push({ footage_id: footageId, kind: p.kind as AdsV2ScreenPhotoKind })
+    }
     let n = 0
     for (const p of photos) {
       n += 1
-      const sig = focalSig(p)
+      const sig = uploadSig(p)
       if (p.uploaded && p.uploaded.sig === sig) {
-        out.push({ footage_id: p.uploaded.footageId, kind: p.kind as AdsV2ScreenPhotoKind })
+        push(p, p.uploaded.footageId)
         continue
       }
-      setBusyNote(`Framing and uploading photo ${n} of ${photos.length}…`)
+      setBusyNote(p.video ? `Uploading video ${n} of ${photos.length}…` : `Framing and uploading photo ${n} of ${photos.length}…`)
       updatePhoto(p.key, { busy: true, error: null })
       try {
-        const file = await cropToVertical(p)
+        const file = p.video ? p.video.file : await cropToVertical(p)
         const up = await uploadFootage(file)
         if (!aliveRef.current) return null
         updatePhoto(p.key, { busy: false, uploaded: { sig, footageId: up.footageId } })
-        out.push({ footage_id: up.footageId, kind: p.kind as AdsV2ScreenPhotoKind })
+        push(p, up.footageId)
       } catch (e) {
         if (!aliveRef.current) return null
         const msg = e instanceof AdsUploadError ? e.message : 'This photo could not be framed and uploaded. Try again, or add it again as JPG.'
@@ -799,7 +971,7 @@ function AdsV2Session({
         return null
       }
     }
-    return out
+    return { photos: out, videos }
   }
 
   /** Desenha o cartão final (logo real) e sobe como PNG — só se mudou desde o último envio. */
@@ -854,15 +1026,24 @@ function AdsV2Session({
 
   // ── plano, início, checagem grátis, narração ─────────────────────────────────────────────
 
+  /** Vídeos além do limite (2) viram fotos ANTES de subir — o /plan recusaria (too_many_videos). */
+  async function videosPastLimitToPhotos(): Promise<boolean> {
+    const extra = photosRef.current.filter((p) => p.video).slice(ADS_V2_PLAN_MAX_VIDEOS)
+    for (const p of extra) await videoBackToPhotos(null, p.key, 'up to 2 videos go in as video; this one now goes in as photos taken from it. Mark them and plan again (free).')
+    return extra.length > 0
+  }
+
   async function planAd() {
     if (busy || missing.length) return
     setBusy('plan')
     setPlanError(null)
     setCheckNote(null)
     try {
+      if (await videosPastLimitToPhotos()) return
       const sigAtStart = planSig
-      const uploaded = await ensurePhotosUploaded()
-      if (!uploaded || !aliveRef.current) return
+      const media = await ensurePhotosUploaded()
+      if (!media || !aliveRef.current) return
+      const { photos: uploaded, videos } = media
       const cardDone = await ensureCard()
       if (!cardDone || !aliveRef.current) return
       const orderId = await ensureDraft()
@@ -870,15 +1051,18 @@ function AdsV2Session({
       setBusyNote('Planning your shots, the words on screen and the voice-over…')
       const r = await api<PlanResponse>('/api/ads/v2/plan', {
         method: 'POST',
-        body: { order_id: orderId, sector, logo_footage_id: logo?.footageId, photos: uploaded, card_footage_id: cardDone.footageId },
+        body: { order_id: orderId, sector, logo_footage_id: logo?.footageId, photos: uploaded, videos, card_footage_id: cardDone.footageId },
       })
       if (!aliveRef.current) return
       if (!r.ok) {
         if (r.code === 'not_ready') setNotReady(true)
+        if (VIDEO_TO_PHOTOS_CODES.includes(r.code)) void videoBackToPhotos(typeof r.body.footage_id === 'string' ? r.body.footage_id : null)
+        if (r.code === 'too_many_videos') void videosPastLimitToPhotos()
         if (r.code === 'not_editable') setDraft(null)
         setPlanError(apiError(r))
         return
       }
+      rememberPlan(r.data)
       setPlan({ ...r.data, sig: sigAtStart, cardSig: cardDone.sig })
       window.setTimeout(() => planHeadingRef.current?.focus(), 30)
     } finally {
@@ -1168,7 +1352,7 @@ function AdsV2Session({
               <input ref={photoInputRef} className="adv2-sr" type="file" accept={PHOTO_ACCEPT} multiple tabIndex={-1} aria-hidden="true" onChange={(e) => { void addPhotos(e.target.files); e.target.value = '' }} />
               <div style={{ marginTop: 14 }}>
                 <button type="button" className="adv2-add" disabled={locked || photos.length >= ADS_V2_MAX_PHOTOS} onClick={() => photoInputRef.current?.click()}>
-                  <span aria-hidden="true">+</span> {photos.length ? 'Add more photos' : 'Add photos'} ({photos.length}/{ADS_V2_MAX_PHOTOS})
+                  <span aria-hidden="true">+</span> {photos.length ? 'Add more photos or videos' : 'Add photos or videos'} ({photos.length}/{ADS_V2_MAX_PHOTOS})
                 </button>
               </div>
               {photoNote ? <p className="adsw-warn" role="status">{photoNote}</p> : null}
@@ -1223,6 +1407,8 @@ function AdsV2Session({
                   </div>
                 </>
               ) : (
+                <>
+                <AdsPlanChanges before={previousPlan} after={plan as Plan} />
                 <PlanPreview
                   plan={plan as Plan}
                   cost={cost}
@@ -1234,6 +1420,7 @@ function AdsV2Session({
                   onMake={() => void makeAd()}
                   onCheck={() => void freeCheck()}
                 />
+                </>
               )}
               {busyNote ? <p className="adsw-hint" role="status">{busyNote}</p> : null}
               {checkNote ? <p className="adsw-good adsw-hint" role="status">{checkNote}</p> : null}
@@ -1318,7 +1505,12 @@ function AdsV2Session({
       </div>
 
       <aside className="adv2-aside" aria-label="How Studio Ads works">
-        <BusinessVisualReferences compact />
+        {phase === 'build' && photos.length > 0 ? <section className="adv2-card adv2-live-preview">
+          <h2><UiLabel>Framing preview</UiLabel></h2>
+          <p><UiLabel>Your photo before animation.</UiLabel></p>
+          {(() => { const photo = photos.find(p => p.key === previewPhotoKey) ?? photos[0]; return <div className="adv2-large-frame"><img src={photo.srcUrl} alt={photo.name} style={{ objectPosition: focalPosition(photo.fx, photo.fy) }} /></div> })()}
+          <div className="adv2-preview-strip">{photos.map((photo, index) => <button type="button" key={photo.key} aria-pressed={photo.key === (photos.find(p => p.key === previewPhotoKey)?.key ?? photos[0].key)} aria-label={photo.name} onClick={() => setPreviewPhotoKey(photo.key)}><img src={photo.srcUrl} alt="" /><span>{index + 1}</span></button>)}</div>
+        </section> : <BusinessVisualReferences compact />}
         <section className="adv2-card">
           <details className="adv2-guide" open><summary><UiLabel>How it works</UiLabel></summary>
           <ol className="adv2-how">
@@ -1373,7 +1565,7 @@ function PhotoRow({
   const rect = cropRect(photo.w, photo.h, photo.fx, photo.fy)
   const small = isSmallCrop(rect)
   const kindHint = ADS_V2_PHOTO_KIND_OPTIONS.find((o) => o.id === photo.kind)?.hint ?? null
-  const status = photo.busy ? 'Uploading…' : photo.uploaded && photo.uploaded.sig === focalSig(photo) ? 'Uploaded' : null
+  const status = photo.busy ? 'Uploading…' : photo.uploaded && photo.uploaded.sig === uploadSig(photo) ? 'Uploaded' : null
   const touchAction = frameTouchAction(photo.w, photo.h)
 
   function down(e: ReactPointerEvent<HTMLDivElement>) {
@@ -1423,17 +1615,23 @@ function PhotoRow({
       </div>
       <div className="adv2-pctl">
         <span className="nm">{photo.name}</span>
-        <fieldset className="adv2-kinds">
-          <legend>What this photo shows</legend>
-          {ADS_V2_PHOTO_KIND_OPTIONS.map((o) => (
-            <label key={o.id}>
-              <input type="radio" name={`adv2-kind-${photo.key}`} value={o.id} checked={photo.kind === o.id} disabled={locked} onChange={() => onKind(o.id)} />
-              {o.label}
-            </label>
-          ))}
-        </fieldset>
-        {kindHint ? <small className="adsw-hint" style={{ margin: 0 }}>{kindHint}</small> : null}
-        {small ? <small className="adsw-warn" style={{ margin: 0 }}>This photo is small, so it may look soft in the ad. A bigger photo looks sharper.</small> : null}
+        {photo.video ? (
+          <small className="adsw-hint" style={{ margin: 0 }}>
+            <b><span aria-hidden="true">▶ </span>Goes in as video.</b> We use a short, lively part of it, muted: the music and the voice-over play over it. Drag it to choose what stays in the vertical frame.
+          </small>
+        ) : (
+          <fieldset className="adv2-kinds">
+            <legend>What this photo shows</legend>
+            {ADS_V2_PHOTO_KIND_OPTIONS.map((o) => (
+              <label key={o.id}>
+                <input type="radio" name={`adv2-kind-${photo.key}`} value={o.id} checked={photo.kind === o.id} disabled={locked} onChange={() => onKind(o.id)} />
+                {o.label}
+              </label>
+            ))}
+          </fieldset>
+        )}
+        {kindHint && !photo.video ? <small className="adsw-hint" style={{ margin: 0 }}>{kindHint}</small> : null}
+        {small && !photo.video ? <small className="adsw-warn" style={{ margin: 0 }}>This photo is small, so it may look soft in the ad. A bigger photo looks sharper.</small> : null}
         {status ? <small className="adsw-hint" style={{ margin: 0 }} role="status">{status}</small> : null}
         {photo.error ? <small className="adsw-err" style={{ margin: 0 }} role="alert">{photo.error}</small> : null}
         <div className="adv2-prow">
