@@ -66,8 +66,10 @@ check('B2 o tile do Starter lê preço do cobrador (getTierPrice+formatCheckoutM
   tile.includes("exitPrice('starter')") && tile.includes('TIER_CREDITS.starter') && tile.includes('Starter ·'), tile.trim().slice(0, 120))
 check('B3 o tile do Starter não digita preço nem crédito',
   tile !== '' && !/\$\d|\b\d{2,}\b/.test(tile.replace(/\$\{[^}]*\}/g, '')))
+// Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): a frase ganhou o ramo da entrada nova (SEEDANCE_15S_PUBLIC →
+// TRIAL_SEEDANCE15_FILMS, filme grátis de 15 s); o ramo de hoje segue vindo de TRIAL_KINEO1_FILMS, derivado.
 check('B4 "enough for N Kineo 1 film(s)" vem de TRIAL_KINEO1_FILMS (trialFilmsForEngine)',
-  /enough for \$\{TRIAL_KINEO1_FILMS\} Kineo 1 \$\{TRIAL_KINEO1_FILMS === 1 \? 'film' : 'films'\}/.test(EXIT))
+  /enough for \$\{SEEDANCE_15S_PUBLIC \? /.test(EXIT) && /: `\$\{TRIAL_KINEO1_FILMS\} Kineo 1 \$\{TRIAL_KINEO1_FILMS === 1 \? 'film' : 'films'\}`\}/.test(EXIT))
 check('B5 TRIAL_KINEO1_FILMS nasce de trialFilmsForEngine(creditCostForDuration(\'fast\', true, DURATION_REFERENCE_SECONDS))',
   /export const TRIAL_KINEO1_FILMS = trialFilmsForEngine\(\s*creditCostForDuration\('fast', true, DURATION_REFERENCE_SECONDS\),?\s*\)/.test(FTO))
 check('B6 TRIAL_FILMS (Seedance) segue intacto — a constante não foi tocada',

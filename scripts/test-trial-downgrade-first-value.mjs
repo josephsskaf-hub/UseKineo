@@ -51,8 +51,11 @@ ok(component.includes('resolveTrialDowngradeJourney(history)'), 'real caller app
 ok(component.indexOf("fetch('/api/credits'") < component.indexOf("fetch('/api/videos'"), 'server eligibility is proven before the history request')
 ok(component.includes("const needsFirstValue = journeyState === 'first_value'"), 'render branch is explicit')
 ok(component.includes('onClick={needsFirstValue ? goToFirstFilm : goToCreator}'), 'primary button follows the exact journey state')
-ok(component.includes('trialDowngradeFirstValueClickMetadata()'), 'first-film click uses closed metadata')
-ok(component.indexOf("trackClosedEvent(\n      'trial_downgrade_first_film_clicked'") < component.indexOf('window.location.assign(TRIAL_DOWNGRADE_FIRST_VALUE_HREF)'), 'click is persisted before navigation')
+// Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): o metadado fechado recebe o interruptor da entrada (motor do clique).
+ok(component.includes('trialDowngradeFirstValueClickMetadata(SEEDANCE_15S_PUBLIC)'), 'first-film click uses closed metadata')
+// Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): o destino vem de trialDowngradeFirstValueHref(interruptor); a ordem
+// (evento persistido ANTES da navegação) segue exigida, e a navegação precisa existir.
+ok(component.indexOf('window.location.assign(trialDowngradeFirstValueHref(SEEDANCE_15S_PUBLIC))') > 0 && component.indexOf("trackClosedEvent(\n      'trial_downgrade_first_film_clicked'") < component.indexOf('window.location.assign(trialDowngradeFirstValueHref(SEEDANCE_15S_PUBLIC))'), 'click is persisted before navigation')
 // REANCORADO em 27/09 (sprint16h V3): o nome do plano vem de TRIAL_CTA_PRIMARY_TIER.
 ok(component.includes('`Choose ${primaryName} now`'), 'payment remains available before delivery')
 ok(component.includes('Compare all plans →'), 'plan comparison remains available')
