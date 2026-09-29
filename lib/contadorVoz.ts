@@ -123,18 +123,25 @@ export function contadorVoz(args: { script: string; regua: ReguaDaTela; requeste
 }
 
 /** A frase da tela, em inglês, uma linha por ramo — derivada só do veredito (nenhum número digitado). */
-export function fraseDoContador(v: ContadorVoz, voz: string | null): { text: string; tone: 'ok' | 'info' | 'warn'; lengthWillChange: { from: number; to: number } | null } {
+export function fraseDoContador(v: ContadorVoz, voz: string | null, motor?: ContadorMotor): { text: string; tone: 'ok' | 'info' | 'warn'; lengthWillChange: { from: number; to: number } | null } {
   const s = Math.round(v.speechSeconds)
   const comVoz = voz ? ` with the ${voz} voice` : ' with this voice'
+  // Revisão 28/09: (a) "we narrate it all" só onde está provado — clássico e Kineo 1 (o compose deixa o áudio mandar até
+  // o teto; KINEO1-VERBATIM-ESTICA). No hollywood, apararComFolga apara cenas para caber na duração: sem prova, sem promessa.
+  // (b) acima do teto, só o Kineo 1 RECUSA sem cobrar (generate-video-fast, script_too_long_for_engine); no cinematic
+  // (Kling 2.5/Seedance/Veo/hollywood) o servidor não recusa — corta no teto e o final se perde. A frase diz isso.
+  const family = motor ? speechFamilyForQuality(motor) : null
+  const narraTudoProvado = family !== 'hollywood'
+  const recusaNoTeto = motor === 'fast'
   switch (v.kind) {
     case 'fits':
-      return { text: `${v.words} words ≈ ${s}s${comVoz} ✓ fills your ${v.requested}s film${v.narratesLonger ? ` — we narrate it all (~${s}s)` : ''}`, tone: 'ok', lengthWillChange: null }
+      return { text: `${v.words} words ≈ ${s}s${comVoz} ✓ fills your ${v.requested}s film${v.narratesLonger && narraTudoProvado ? ` — we narrate it all (~${s}s)` : ''}`, tone: 'ok', lengthWillChange: null }
     case 'down':
       return { text: `Your script makes a ~${s}-second film${comVoz} (${v.words} words). Want ${v.requested}s? Add ~${v.missingWords} words — or keep it: the length switches to ${v.to}s and you pay for ${v.to}s.`, tone: 'info', lengthWillChange: { from: v.requested, to: v.to } }
     case 'up':
       return { text: `Your script makes a ~${s}-second film${comVoz} (${v.words} words) — longer than ${v.requested}s. We'll deliver the full script: the length switches to ${v.to}s.`, tone: 'info', lengthWillChange: { from: v.requested, to: v.to } }
     case 'too_long':
-      return { text: `Your script runs ~${s}s${comVoz} (${v.words} words) — films go up to ${v.maxSeconds}s. Trim ~${v.excessWords} words, or let AI structure it.`, tone: 'warn', lengthWillChange: null }
+      return { text: `Your script runs ~${s}s${comVoz} (${v.words} words) — films go up to ${v.maxSeconds}s. Trim ~${v.excessWords} words, or let AI structure it${recusaNoTeto ? '.' : ` — otherwise we cut the film at ${v.maxSeconds}s and the ending is lost.`}`, tone: 'warn', lengthWillChange: null }
     case 'too_short':
       return { text: `Too short for a film — ${v.words} words ≈ ${s}s${comVoz}. Add ~${v.missingWords} words to reach ${v.minSeconds}s, or let AI structure it.`, tone: 'warn', lengthWillChange: null }
   }

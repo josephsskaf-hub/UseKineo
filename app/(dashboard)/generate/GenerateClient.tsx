@@ -8037,26 +8037,35 @@ export default function GenerateClient({
         // — pedido 60 → entregue 30..90 medido em 14d. Como o texto e do
         // autor (C1) e o credito nao depende da duracao, a saida honesta e
         // subir o alvo para o menor botao que a fala enche, antes de gastar.
-        // Fala maior que 90×1,15 nao cabe em botao nenhum: segue como esta
-        // (o compose corta no teto) e fica registrado.
-        if (cobre && falaSeg > duration * 1.2) {
-          const cabe = DURATION_OPTIONS.map((o) => o.value).filter((d) => d > duration && falaSeg <= d * 1.15).sort((a, b) => a - b)[0]
-          if (cabe) {
-            setDuration(cabe)
-            alvoAnalise = cabe
-            void trackEvent('script_duration_autofit', {
-              speech_seconds: Math.round(falaSeg),
-              from_seconds: duration,
-              to_seconds: cabe,
-              from_topic: opts?.fromTopic === true,
-            })
-          } else {
-            void trackEvent('script_duration_overflow', {
-              speech_seconds: Math.round(falaSeg),
-              target_seconds: duration,
-              from_topic: opts?.fromTopic === true,
-            })
-          }
+        // Fala maior que o teto × tolerância nao cabe em botao nenhum: segue como esta
+        // (o compose corta no teto; o Kineo 1 recusa sem cobrar) e fica registrado.
+        //
+        // STUDIO-CONTADOR-VOZ-2026-09-28 (revisão): este bloco tinha réguas DIGITADAS (sobe acima de 1,2× do
+        // seletor, para o botão que a fala cabe em 1,15×) enquanto o contador e o servidor sobem por COBERTURA
+        // (largestFittingDuration ≥ MIN_COVERAGE). Medido com o roteiro do fundador: 109 palavras no Kling 2.5 a
+        // 2,45 pal/s = 45 s com o seletor em 35 → o contador dizia "✓ fills your 35s film", o clique virava o
+        // seletor para 60 aqui, e o servidor descia para 35 e devolvia a diferença — três frases para o mesmo
+        // texto. Agora o veredito é o MESMO do contador (contadorVoz): sobe só quando a fala ENCHE um botão maior.
+        const vereditoAnalise = contadorVoz({ script: baseChecagem, regua: reguaAnalise, requestedSeconds: duration })
+        const sobePara = vereditoAnalise?.kind === 'up' ? DURATION_OPTIONS.find((o) => o.value === vereditoAnalise.to)?.value : undefined
+        if (sobePara !== undefined) {
+          setDuration(sobePara)
+          alvoAnalise = sobePara
+          void trackEvent('script_duration_autofit', {
+            speech_seconds: Math.round(falaSeg),
+            from_seconds: duration,
+            to_seconds: sobePara,
+            words_per_second: reguaAnalise.rate.wordsPerSecond,
+            from_topic: opts?.fromTopic === true,
+          })
+        } else if (vereditoAnalise?.kind === 'too_long') {
+          void trackEvent('script_duration_overflow', {
+            speech_seconds: Math.round(falaSeg),
+            target_seconds: duration,
+            max_seconds: vereditoAnalise.maxSeconds,
+            words_per_second: reguaAnalise.rate.wordsPerSecond,
+            from_topic: opts?.fromTopic === true,
+          })
         }
         if (!cobre && falaSeg > 12) {
           // ═══ KINEO-PREFLIGHT-QUE-NAO-ACUSA-2026-09-08 ═════════════════════
@@ -14713,7 +14722,7 @@ export default function GenerateClient({
               const reguaVoz = reguaDoServidorNaTela({ engine: motorContador, script: prompt, language, vertical: analysis?.niche ?? null })
               const veredito = contadorVoz({ script: prompt, regua: reguaVoz, requestedSeconds: duration })
               if (!veredito) return null
-              const frase = fraseDoContador(veredito, reguaVoz.persona ? reguaVoz.persona.name : null)
+              const frase = fraseDoContador(veredito, reguaVoz.persona ? reguaVoz.persona.name : null, motorContador)
               return (
                 <p className="text-xs mt-1.5" data-contador-voz={veredito.kind} style={{ color: frase.tone === 'ok' ? '#4ade80' : frase.tone === 'warn' ? '#fbbf24' : '#5cb3ff', fontWeight: 700, maxWidth: 830 }}>
                   {frase.text}

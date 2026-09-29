@@ -90,7 +90,7 @@ console.log('== C) as frases: resultado, não só "add N words" ==')
   const curto = CV.fraseDoContador(v(40, 2.3, 35), null)
   checa('curto: "Too short for a film" + palavras para o menor botão + "let AI structure"', /^Too short for a film — 40 words ≈ 17s with this voice\. Add ~37 words to reach 35s, or let AI structure it\.$/.test(curto.text) && curto.tone === 'warn')
   const longo = CV.fraseDoContador(v(260, 2.3, 90), null)
-  checa('teto: diz o teto do servidor e quantas palavras cortar', /films go up to 90s\. Trim ~\d+ words, or let AI structure it\./.test(longo.text))
+  checa('teto: diz o teto do servidor e quantas palavras cortar', /films go up to 90s\. Trim ~\d+ words, or let AI structure it/.test(longo.text))
   const cabe = CV.fraseDoContador(v(150, 3.1, 35), null)
   checa('cabe: "✓ fills your 35s film"', /≈ 48s with this voice ✓ fills your 35s film/.test(cabe.text) && cabe.tone === 'ok')
 }
@@ -121,10 +121,47 @@ console.log('== E) a tela (GenerateClient) usa o contador novo só em "Use my sc
   checa('o ramo verbatim vem ANTES do contador antigo e é guardado por scriptMode === \'verbatim\'', bloco.length > 0 && /if \(scriptMode === 'verbatim'\) \{/.test(bloco))
   checa('motor do contador = fast (Kineo 1/creator) ou o aiEngine da tela — nunca `quality` (cinematic_ai virava 3,1 no Kling 3)', /const motorContador: ContadorMotor = mode === 'fast' \|\| mode === 'creator' \? 'fast' : aiEngine/.test(bloco) && !/speechSecondsOfScript\(quality/.test(bloco))
   checa('régua prevista com roteiro, idioma e vertical da análise (a mesma entrada do servidor)', /reguaDoServidorNaTela\(\{ engine: motorContador, script: prompt, language, vertical: analysis\?\.niche \?\? null \}\)/.test(bloco))
-  checa('veredito e frase vêm das funções puras; o nome da persona entra na frase', /contadorVoz\(\{ script: prompt, regua: reguaVoz, requestedSeconds: duration \}\)/.test(bloco) && /fraseDoContador\(veredito, reguaVoz\.persona \? reguaVoz\.persona\.name : null\)/.test(bloco))
+  checa('veredito e frase vêm das funções puras; o nome da persona e o motor entram na frase', /contadorVoz\(\{ script: prompt, regua: reguaVoz, requestedSeconds: duration \}\)/.test(bloco) && /fraseDoContador\(veredito, reguaVoz\.persona \? reguaVoz\.persona\.name : null, motorContador\)/.test(bloco))
   checa('quando o seletor vai mudar, a linha avisa ANTES do clique', /lengthWillChange\.from\}s → \$\{frase\.lengthWillChange\.to\}s happens automatically when you generate/.test(bloco) && /data-contador-voz=\{veredito\.kind\}/.test(bloco))
   checa('modo "Let AI structure" intocado: o contador antigo continua (speechSecondsOfScript(quality, prompt) + "add ~N words")', gc.includes('const medidaTela = speechSecondsOfScript(quality, prompt)') && /— add ~\$\{faltam\} words to fill \$\{duration\}s/.test(gc))
   checa('a checagem da análise (sobe o seletor em verbatim) mede na MESMA régua da voz', /const reguaAnalise = reguaDoServidorNaTela\(\{ engine: mode === 'fast' \|\| mode === 'creator' \? 'fast' : aiEngine, script: baseChecagem, language, vertical: analysis\?\.niche \?\? null \}\)/.test(gc) && /const falaSeg = falaNaReguaDaTela\(baseChecagem, reguaAnalise\)/.test(gc) && !/speechSecondsOfScript\(quality, baseChecagem\)\.seconds/.test(gc))
+}
+
+console.log('== F) revisão 28/09: a checagem da análise decide pelo MESMO veredito do contador (sem 1,2×/1,15× digitados) ==')
+{
+  const v = (n, wps, req) => CV.contadorVoz({ script: palavras(n), regua: reguaDe(wps), requestedSeconds: req })
+  // o caso do fundador: 109 palavras no Kling 2.5, persona documentary 2,45 pal/s = 44,5 s, seletor 35.
+  // A régua antiga da análise (45 > 42 e 45 ≤ 69) virava o seletor para 60; o servidor descia para 35 e devolvia a diferença.
+  const doc109 = v(109, 2.45, 35)
+  checa('109 @2,45 com seletor 35: NÃO vira (cabe; 44,5 s não enche 60×0,95) — antes a análise virava para 60', doc109?.kind === 'fits' && doc109.narratesLonger === true)
+  checa('203 @2,3 com seletor 60: vira para 90 (88 s enche 90×0,95)', v(203, 2.3, 60)?.kind === 'up' && v(203, 2.3, 60).to === 90)
+  checa('180 @2,3 com seletor 60 (78 s): cabe, NÃO vira para 90 — antes a análise virava (78 > 72 e 78 ≤ 103,5)', v(180, 2.3, 60)?.kind === 'fits')
+  const gc = rd('app/(dashboard)/generate/GenerateClient.tsx')
+  const ini = gc.indexOf('const reguaAnalise = reguaDoServidorNaTela(')
+  const fim = gc.indexOf('if (!cobre && falaSeg > 12) {', ini)
+  const blocoAnalise = ini > 0 && fim > ini ? gc.slice(ini, fim) : ''
+  const blocoSemComentarios = blocoAnalise.replace(/^\s*\/\/.*$/gm, '')
+  checa('o bloco da análise existe e NÃO digita mais `* 1.2` nem `* 1.15`', blocoAnalise.length > 0 && !/\*\s*1\.2\b/.test(blocoSemComentarios) && !/\*\s*1\.15\b/.test(blocoSemComentarios) && !/d \* 1\.15/.test(blocoSemComentarios))
+  checa('a análise sobe pelo veredito do contador (contadorVoz → kind up → botão do seletor)', /const vereditoAnalise = contadorVoz\(\{ script: baseChecagem, regua: reguaAnalise, requestedSeconds: duration \}\)/.test(blocoAnalise) && /vereditoAnalise\?\.kind === 'up' \? DURATION_OPTIONS\.find\(\(o\) => o\.value === vereditoAnalise\.to\)\?\.value : undefined/.test(blocoAnalise) && /setDuration\(sobePara\)/.test(blocoAnalise) && /alvoAnalise = sobePara/.test(blocoAnalise) && /trackEvent\('script_duration_autofit'/.test(blocoAnalise))
+  checa('acima do teto fica registrado pelo mesmo veredito (too_long → script_duration_overflow)', /else if \(vereditoAnalise\?\.kind === 'too_long'\) \{\s*void trackEvent\('script_duration_overflow'/.test(blocoAnalise))
+}
+
+console.log('== G) revisão 28/09: promessas por motor — "we narrate it all" só onde provado; acima do teto o clássico corta, o Kineo 1 recusa ==')
+{
+  const v = (n, wps, req) => CV.contadorVoz({ script: palavras(n), regua: reguaDe(wps), requestedSeconds: req })
+  const cabeMais = v(109, 2.45, 35)
+  checa('Kling 2.5 (clássico): cabe e diz que narra tudo (~44s)', /✓ fills your 35s film — we narrate it all \(~44s\)/.test(CV.fraseDoContador(cabeMais, null, 'kling').text))
+  checa('Kineo 1: cabe e diz que narra tudo', /we narrate it all/.test(CV.fraseDoContador(cabeMais, null, 'fast').text))
+  const holly = v(150, 2.3, 60) // 65 s no hollywood a 2,3
+  checa('hollywood (Kling 3/H3/Omni/S25): cabe, mas NÃO promete "we narrate it all" (apararComFolga apara cenas; sem prova)', holly?.kind === 'fits' && holly.narratesLonger === true && !/we narrate it all/.test(CV.fraseDoContador(holly, null, 'hollywood').text) && !/we narrate it all/.test(CV.fraseDoContador(holly, null, 'h3').text) && !/we narrate it all/.test(CV.fraseDoContador(holly, null, 'omni').text) && !/we narrate it all/.test(CV.fraseDoContador(holly, null, 's25').text))
+  const longo = v(260, 2.3, 90)
+  checa('acima do teto no clássico/hollywood: avisa que o filme é CORTADO no teto e o final se perde', /Trim ~\d+ words, or let AI structure it — otherwise we cut the film at 90s and the ending is lost\.$/.test(CV.fraseDoContador(longo, null, 'kling').text) && /we cut the film at 90s/.test(CV.fraseDoContador(longo, null, 'hollywood').text) && /we cut the film at 90s/.test(CV.fraseDoContador(longo, null, 'seedance').text))
+  checa('acima do teto no Kineo 1: sem aviso de corte (o servidor recusa sem cobrar)', /or let AI structure it\.$/.test(CV.fraseDoContador(longo, null, 'fast').text) && !/we cut the film/.test(CV.fraseDoContador(longo, null, 'fast').text))
+  // o espelho nas rotas: só generate-video-fast recusa acima do teto; o cinematic não importa o "sobe/teto"
+  const fast = rd('app/api/generate-video-fast/route.ts')
+  const cin = rd('app/api/generate-video-cinematic/route.ts')
+  checa('generate-video-fast RECUSA acima do teto de 90 s (decideDurationFollowsScriptUp + script_too_long_for_engine); o cinematic NÃO aplica esse teto (não importa o "sobe") — a única recusa dele é o cap de cenas do hollywood (MAX_VERBATIM_SCENES × SCENE_CAP × 2,3 = 331 palavras, acima dos 238 do teto)', /decideDurationFollowsScriptUp/.test(fast) && /script_too_long_for_engine/.test(fast) && !/decideDurationFollowsScriptUp/.test(cin) && /const maxWords = Math\.floor\(MAX_VERBATIM_SCENES \* SCENE_CAP \* 2\.3\)/.test(cin) && /const MAX_VERBATIM_SCENES = 12/.test(cin) && /const SCENE_CAP = family === 'omni' \? 10 : 12/.test(cin))
+  checa('a frase deriva o ramo do motor pela mesma função de família do servidor (speechFamilyForQuality), não por lista digitada', /const family = motor \? speechFamilyForQuality\(motor\) : null/.test(rd('lib/contadorVoz.ts')) && /const recusaNoTeto = motor === 'fast'/.test(rd('lib/contadorVoz.ts')))
 }
 
 console.log(`\n${ok} verificações passaram · ${falhas.length} falharam`)
