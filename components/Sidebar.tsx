@@ -4,6 +4,7 @@ import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 
 import Link from 'next/link'
 import { WORKSPACE_NAV, MORE_NAV, navItemIdFor, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
+import { clipsVisible } from '@/lib/clips/clipLaunch' // KINEO-CLIPES-2026-09-29 — item Clips só com o interruptor (ou conta da casa)
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -621,7 +622,7 @@ export default function Sidebar({
               fixas (Studio, Biblioteca, Anuncios, Precos) sem kicker; Viral Now,
               Scripts, Animate, Imagem, Audio, Autopilot, Channel Builder, Convide e
               Afiliados vao para "More". Par: MobileNav.tsx (mesmos destinos). */}
-          {WORKSPACE_NAV.map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} />)}
+          {WORKSPACE_NAV.filter(item => item.href !== '/clips' || clipsVisible(userEmail)).map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} />)}
           <details className="workspace-nav-group" open={[...MORE_NAV.map(item => item.href), '/referral', '/affiliate'].some(path => workspaceNavActive(pathname, path)) || undefined}>
             <summary><UiLabel>More</UiLabel></summary>
             {MORE_NAV.map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} />)}

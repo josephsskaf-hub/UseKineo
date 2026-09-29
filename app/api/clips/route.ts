@@ -15,6 +15,7 @@ import {
   submitDepsFor,
   toPublicClip,
 } from '@/lib/clips/clipServer'
+import { clipsVisible } from '@/lib/clips/clipLaunch'
 
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
@@ -27,7 +28,14 @@ const NO_STORE = { 'Cache-Control': 'no-store' }
 export async function GET() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'You must be signed in.', engines: [], clips: [] }, { status: 401, headers: NO_STORE })
+  if (!user) {
+    // Visitante (o dashboard é público): com o clipe lançado, vê o catálogo de conta nova e só entra no clique de gerar.
+    if (!clipsVisible(null)) return NextResponse.json({ error: 'Not found.', engines: [], clips: [] }, { status: 404, headers: NO_STORE })
+    const guest = engineAccessFor({ email: null, plan: null, createdAt: null })
+    return NextResponse.json({ engines: clipCatalogFor(guest), clips: [], balance: null, signed_in: false }, { headers: NO_STORE })
+  }
+  // Interruptor de lançamento (lib/clips/clipLaunch.ts): antes do "vai" do fundador, só a casa.
+  if (!clipsVisible(user.email)) return NextResponse.json({ error: 'Not found.', engines: [], clips: [] }, { status: 404, headers: NO_STORE })
   const account = await loadClipAccount(supabase, user)
   const admin = clipsAdmin()
   if (!account || !admin) {
@@ -51,6 +59,7 @@ export async function POST(req: NextRequest) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'You must be signed in.' }, { status: 401, headers: NO_STORE })
+  if (!clipsVisible(user.email)) return NextResponse.json({ error: 'Not found.' }, { status: 404, headers: NO_STORE })
 
   let body: Record<string, unknown>
   try {

@@ -41,6 +41,7 @@ export const CLIP_COPY_EN = {
   loadFailed: 'We couldn’t load your clips right now.',
   tryAgain: 'Try again',
   addCredits: 'Add credits →',
+  signIn: 'Sign in →',
 } as const
 
 export type ClipCopyKey = keyof typeof CLIP_COPY_EN
@@ -84,6 +85,7 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     loadFailed: 'Não conseguimos carregar seus clipes agora.',
     tryAgain: 'Tentar de novo',
     addCredits: 'Adicionar créditos →',
+    signIn: 'Entrar →',
   },
   es: {
     title: 'Clips',
@@ -122,6 +124,7 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     loadFailed: 'No pudimos cargar tus clips ahora.',
     tryAgain: 'Reintentar',
     addCredits: 'Añadir créditos →',
+    signIn: 'Iniciar sesión →',
   },
   fr: {
     title: 'Clips',
@@ -160,6 +163,7 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     loadFailed: 'Impossible de charger vos clips pour le moment.',
     tryAgain: 'Réessayer',
     addCredits: 'Ajouter des crédits →',
+    signIn: 'Se connecter →',
   },
   de: {
     title: 'Clips',
@@ -198,6 +202,7 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     loadFailed: 'Deine Clips konnten gerade nicht geladen werden.',
     tryAgain: 'Erneut versuchen',
     addCredits: 'Credits aufladen →',
+    signIn: 'Anmelden →',
   },
   it: {
     title: 'Clip',
@@ -236,6 +241,7 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     loadFailed: 'Non riusciamo a caricare i tuoi clip in questo momento.',
     tryAgain: 'Riprova',
     addCredits: 'Aggiungi crediti →',
+    signIn: 'Accedi →',
   },
   nl: {
     title: 'Clips',
@@ -274,6 +280,7 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     loadFailed: 'We konden je clips nu niet laden.',
     tryAgain: 'Opnieuw proberen',
     addCredits: 'Credits toevoegen →',
+    signIn: 'Inloggen →',
   },
   pl: {
     title: 'Klipy',
@@ -312,6 +319,7 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     loadFailed: 'Nie udało się teraz wczytać Twoich klipów.',
     tryAgain: 'Spróbuj ponownie',
     addCredits: 'Dodaj kredyty →',
+    signIn: 'Zaloguj się →',
   },
   tr: {
     title: 'Klipler',
@@ -350,6 +358,7 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     loadFailed: 'Klipleriniz şu anda yüklenemedi.',
     tryAgain: 'Tekrar dene',
     addCredits: 'Kredi ekle →',
+    signIn: 'Giriş yap →',
   },
   ru: {
     title: 'Клипы',
@@ -388,6 +397,7 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     loadFailed: 'Не удалось загрузить ваши клипы.',
     tryAgain: 'Повторить',
     addCredits: 'Пополнить кредиты →',
+    signIn: 'Войти →',
   },
   uk: {
     title: 'Кліпи',
@@ -426,6 +436,7 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     loadFailed: 'Не вдалося завантажити ваші кліпи.',
     tryAgain: 'Спробувати ще',
     addCredits: 'Поповнити кредити →',
+    signIn: 'Увійти →',
   },
   ar: {
     title: 'مقاطع',
@@ -464,6 +475,7 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     loadFailed: 'تعذر تحميل مقاطعك الآن.',
     tryAgain: 'حاول مرة أخرى',
     addCredits: 'أضف رصيدًا ←',
+    signIn: 'تسجيل الدخول ←',
   },
   ur: {
     title: 'کلپس',
@@ -502,6 +514,7 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     loadFailed: 'ہم ابھی آپ کے کلپس لوڈ نہیں کر سکے۔',
     tryAgain: 'دوبارہ کوشش کریں',
     addCredits: 'کریڈٹ شامل کریں ←',
+    signIn: 'سائن ان کریں ←',
   },
   hi: {
     title: 'क्लिप्स',
@@ -540,6 +553,7 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     loadFailed: 'हम अभी आपकी क्लिप्स लोड नहीं कर सके।',
     tryAgain: 'फिर कोशिश करें',
     addCredits: 'क्रेडिट जोड़ें →',
+    signIn: 'साइन इन करें →',
   },
   id: {
     title: 'Klip',
@@ -578,6 +592,7 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     loadFailed: 'Kami tidak dapat memuat klip Anda sekarang.',
     tryAgain: 'Coba lagi',
     addCredits: 'Tambah kredit →',
+    signIn: 'Masuk →',
   },
   vi: {
     title: 'Clip',
@@ -616,6 +631,7 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     loadFailed: 'Hiện chưa tải được clip của bạn.',
     tryAgain: 'Thử lại',
     addCredits: 'Thêm tín dụng →',
+    signIn: 'Đăng nhập →',
   },
 }
 

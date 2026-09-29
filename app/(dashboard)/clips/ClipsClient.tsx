@@ -298,6 +298,7 @@ export default function ClipsClient() {
               {error.credits && (outOfCreditsDestination(plan) === 'topup'
                 ? <button type="button" onClick={() => setShowTopup(true)} style={{ color: 'var(--indigo)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>{t('addCredits')}</button>
                 : <a href="/pricing" style={{ color: 'var(--indigo)', fontWeight: 700 }}>{t('addCredits')}</a>)}
+              {/signed in/i.test(error.text) && <a href="/login?redirect=/clips" style={{ color: 'var(--indigo)', fontWeight: 700 }}>{t('signIn')}</a>}
             </p>
           )}
           {showTopup && <CreditsTopupModal surface="clips_402" onClose={() => setShowTopup(false)} />}

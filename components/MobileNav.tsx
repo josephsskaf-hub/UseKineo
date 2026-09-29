@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { MORE_NAV, navItemIdFor, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
 import { UiLabel } from '@/components/InterfaceLanguage'
+import { CLIPS_PUBLIC } from '@/lib/clips/clipLaunch'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef } from 'react'
 
@@ -171,7 +172,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
     return () => document.removeEventListener('pointerdown', closeOutside)
   }, [])
 
-  const primary = NAV_ITEMS.filter((item) => ['/studio', '/images', '/clips', '/library', '/ads/new', '/pricing'].includes(item.href)) // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 · KINEO-CLIPES-2026-09-29
+  const primary = NAV_ITEMS.filter((item) => ['/studio', '/images', ...(CLIPS_PUBLIC ? ['/clips'] : []), '/library', '/ads/new', '/pricing'].includes(item.href)) // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 · KINEO-CLIPES-2026-09-29
   const groups = [
     { label: 'More', links: MORE_LINKS.filter((item) => isLoggedIn || !item.signedIn) },
   ]
@@ -238,7 +239,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
       <div className="kineo-mobile-row">
         {primaryLink('/studio')}
         {primaryLink('/images')}
-        {primaryLink('/clips')}
+        {CLIPS_PUBLIC && primaryLink('/clips')}
         {primaryLink('/ads/new')}
         {primaryLink('/library')}
         {primaryLink('/pricing')}

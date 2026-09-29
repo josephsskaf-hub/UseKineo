@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { settleClip } from '@/lib/clips/clipFlow'
 import { clipsAdmin, loadClip, settleDepsFor, toPublicClip } from '@/lib/clips/clipServer'
+import { clipsVisible } from '@/lib/clips/clipLaunch'
 
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
@@ -18,6 +19,7 @@ export async function GET(req: NextRequest) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'You must be signed in.' }, { status: 401, headers: NO_STORE })
+  if (!clipsVisible(user.email)) return NextResponse.json({ error: 'Not found.' }, { status: 404, headers: NO_STORE })
   const admin = clipsAdmin()
   if (!admin) return NextResponse.json({ error: 'Status check is temporarily unavailable.' }, { status: 503, headers: NO_STORE })
 
