@@ -100,7 +100,8 @@ checa('alvos: 15 é filme curto; 35/60/90 NÃO (intocados)', SF.isShortFilmTarge
 const reforco = SF.shortFilmRetryInstruction(TETO, PISO, CURTO)
 checa('o reforço da nova tentativa diz "at most N spoken words" e SÓ as 4 seções', reforco.includes(`at most ${TETO} spoken words`) && reforco.includes('HOOK, MICRO REWARD 1, MICRO REWARD 2, PAYOFF') && reforco.includes('Do NOT write MICRO REWARD 3, ESCALATION or RHYTHM'))
 const GS = rd('app/api/generate-script/route.ts')
-const L_TETO = '    const tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage), maxWordsForShortFilm(alvoSegundos))'
+// Reancorado 29/09 (KINEO-RITMO-POR-IDIOMA-15S-2026-09-29, [TRAVA 8.2 — "vai conserta" do fundador]): a linha ganhou a língua do filme curto do Seedance (idiomaDoRitmo / ritmo); o que ela protege não muda.
+const L_TETO = '    const tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo), maxWordsForShortFilm(alvoSegundos))'
 const L_REGUA = '    const falaNaReguaDaGuarda = (t: string) => parseUserScript(t).narration.split(/\\s+/).filter(Boolean).length'
 const L_ANCORAS = [
   L_TETO,

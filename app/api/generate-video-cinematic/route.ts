@@ -9,6 +9,7 @@ import { S25_PUBLIC, enginePaused } from '@/lib/engineLaunch'
 import { seedance15sVisible } from '@/lib/engineLaunch' // KINEO-SEEDANCE-15S-2026-09-29
 import { checarDuracao, checarFalaDoFilmeCurto, supportedDurationsFor, mensagemDaRecusaDeDuracao, scriptTooLongForShortFilmMessage } from '@/lib/durationByEngine' // KINEO-SEEDANCE-15S-2026-09-29
 import { SEEDANCE_SHORT_SECONDS, SEEDANCE_SHORT_CLIPS, seedanceShortSpeechSeconds, seedanceShortClipSeconds, isSeedance15 } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29
+import { ritmoDaVozNoIdioma, fatorDoRitmoDoIdioma, ritmoDoFilmeCurto } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29
 import { SEEDANCE_720P_USD_PER_SECOND } from '@/lib/fastAiClips' // [TRAVA 8.2 — "vai" do 3x6] preço por segundo do Seedance 720p sem áudio (só o ensaio de $0 o mostra)
 // sprint-v1v4 #27 — a MESMA funcao de resgate que o seletor usa desde a #13.
 // Gate de servidor e gate de UI sao um PAR (licao ja registrada no
@@ -1585,6 +1586,14 @@ async function manipularPost(req: NextRequest) {
       try { return selectPersonaForScript(prompt, typeof body.vertical === 'string' && body.vertical.trim() ? body.vertical.trim().toLowerCase() : undefined, 'cinematic', narrationLanguage.language) } catch { return null }
     })()
     const narrationRate = speechRateFor({ family: hollywoodPath ? 'hollywood' : 'classic', speed: parsedScript.speed, language: narrationLanguage.language, voice: classicPersona?.voice, personaSpeed: classicPersona?.defaultSpeed })
+    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 — no filme de 15 s do Seedance 1.5
+    // (vozCurta ≠ null) a régua anda no ritmo da LÍNGUA: o passo da voz × (ritmo da língua ÷ 2,5) (lib/durationByEngine
+    // ritmoDaVozNoIdioma — a MESMA fonte do escritor, da guarda de roteiro longo e do plano 3x6). Caso de 29/09 09:27 UTC
+    // (Turquia, log da Vercel): 27 palavras turcas na persona documentary (echo × 0,96 = 2,45 pal/s) = "speech=11s" → recusa; no
+    // ritmo do turco (2,45 × 2,03 ÷ 2,5 = 1,98) são 13,6 s — faltam 2 palavras, não 8. Em en/pt/es (e em toda língua sem
+    // medida) o fator é 1 e nada muda; fora do 15 s do Seedance (vozCurta null: 35/60/90, Kling, Veo, Sora e a estrada de voz
+    // própria), idem.
+    if (vozCurta) narrationRate.wordsPerSecond = ritmoDaVozNoIdioma(narrationRate.wordsPerSecond, narrationLanguage.language)
     if (classicPersona && narrationRate.wordsPerSecond !== 3.1) console.log(`[cinematic] KINEO-RITMO-POR-VOZ: persona ${classicPersona.id} (${classicPersona.voice} ${classicPersona.defaultSpeed}) → régua ${narrationRate.wordsPerSecond} pal/s (${Math.round(duration * narrationRate.wordsPerSecond)} palavras para ${duration}s)`)
     // ═══ KINEO-VERBATIM-SEM-MARCADOR-2026-08-24 ═════════════════════════════
     // O Contrato C1 dizia "com script verbatim, o texto falado é o roteiro do
@@ -1606,6 +1615,19 @@ async function manipularPost(req: NextRequest) {
     const briefDetected = userSaysVerbatim && !parsedScript.hasMarkers && looksLikeBrief(prompt)
     if (briefDetected) await writeServerEvent({ name: 'brief_detected_ai_mode', userId: user.id, path: '/api/generate-video-cinematic', metadata: { prompt_length: prompt.length, engine: body.engine ?? 'seedance' } })
     const verbatim = (parsedScript.hasMarkers && parsedScript.segments.length > 0) || (userSaysVerbatim && !briefDetected)
+    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 — a guarda de roteiro longo no RITMO
+    // DA LÍNGUA (lib/durationByEngine ritmoDoFilmeCurto, a mesma régua do escritor, do plano 3x6 e do portão): 46 palavras turcas
+    // são ~22,7 s de fala (46 ÷ 2,03), acima dos 22,5 s que 3 × 8 s cobrem — a guarda de 2,5 pal/s logo abaixo as deixava passar
+    // e mandava "encurtar para 56 palavras". Só nas línguas de palavra longa (fator < 1: tr, de, ru, uk, id, pl, nl); em en/pt/es
+    // nada roda aqui e a guarda de baixo é a de sempre. Linhas só acrescentadas: a guarda de baixo fica byte a byte e, por ser
+    // mais frouxa, nunca recusa o que esta aceitou.
+    if (fatorDoRitmoDoIdioma(narrationLanguage.language) < 1) {
+      const falaCurtaNaLingua = checarFalaDoFilmeCurto({ engine: typeof body.engine === 'string' ? body.engine : null, seconds: duration, verbatim, narration: parsedScript.narration, language: narrationLanguage.language })
+      if (!falaCurtaNaLingua.ok) {
+        await writeServerEvent({ name: 'short_film_script_too_long_refused', userId: user.id, path: '/api/generate-video-cinematic', metadata: { engine: typeof body.engine === 'string' ? body.engine : 'seedance', requested_seconds: duration, est_speech_seconds: Math.round(falaCurtaNaLingua.estSeconds), limit_seconds: falaCurtaNaLingua.limitSeconds, suggested_seconds: falaCurtaNaLingua.sugestao, charged: false, version: 'seedance_15s_20260929', language: narrationLanguage.language, words_per_second: ritmoDoFilmeCurto(narrationLanguage.language), ruler: 'ritmo_por_idioma_15s_20260929' } })
+        return NextResponse.json({ error: scriptTooLongForShortFilmMessage(duration, falaCurtaNaLingua.estSeconds, creditCostForDuration('cinematic_ai', true, falaCurtaNaLingua.sugestao), narrationLanguage.language), reason: falaCurtaNaLingua.recusa, requested_seconds: duration, est_speech_seconds: Math.round(falaCurtaNaLingua.estSeconds), suggested_seconds: falaCurtaNaLingua.sugestao, retryable: false, charged: false, refunded: false }, { status: 422 })
+      }
+    }
     // ═══ KINEO-SEEDANCE-15S-2026-09-29 [TRAVA 8.2 — "vai" do 15 s] — roteiro longo pedido como filme curto ═══
     // Em verbatim o filme segue a FALA (#442 abaixo: clipes = fala ÷ 10 s, até 9; o compose deixa o áudio ir a 90 s), mas o
     // preço fica selado na duração pedida. Seedance a 15 s com fala estimada > 22,5 s (mesma régua do #442: palavras ÷ 2,5)

@@ -81,10 +81,70 @@ export const VERBATIM_EST_WORDS_PER_SECOND = 2.5
 /** Folga de fala sobre o alvo curto: 15 s × 1,5 = 22,5 s (≈ 56 palavras, o teto do roteirista para 15 s). */
 export const SHORT_FILM_SPEECH_FACTOR = 1.5
 
-/** Fala estimada de um texto, em segundos, na régua da guarda (palavras ÷ 2,5 pal/s — a mesma do #442 da rota). */
-export function estimarFalaSegundos(narration: string | null | undefined): number {
+// ═══ KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 [TRAVA 8.2 — "vai conserta" do fundador, 29/09] — a régua do filme de 15 s fala a língua ═══
+// Defeito no ar (29/09 09:27 UTC): cadastro novo da Turquia, 1º filme = Seedance 15 s ("Let AI structure it", language 'tr').
+// O escritor devolveu 27 palavras em turco (≈ 204 caracteres falados, estimado dos 411 do pedido) e o portão da rota recusou com
+// 'narration_too_short' "speech=11s target=15s" (27 ÷ 2,45 pal/s da persona documentary = 11,0 s < 14,25 s). Tentou de novo e desistiu.
+// A causa: o escritor (faixa 36–41, lib/scriptWriterRate), a guarda de roteiro longo (22,5 s), o plano 3x6 e o portão de
+// 95 % contam PALAVRAS numa régua de 2,5 pal/s calibrada em inglês. Em turco, alemão, russo, polonês… a palavra é mais
+// longa — a mesma fala tem MENOS palavras: o portão subestima a fala (recusa em falso), o escritor pede palavras demais
+// (41 palavras turcas ≈ 20 s: o plano 3x6 as põe em 3 × 6 s e a montagem recicla o 1º clipe) e a guarda deixa passar
+// ~28 s de fala num filme de 3 × 8 s.
+// A régua por idioma, UMA fonte para os quatro (escritor, guarda, plano 3x6, portão):
+//   · A duração da fala do TTS acompanha o nº de LETRAS (≈ sons), não o de palavras. Não há medida da voz por idioma na
+//     casa: `render_delivered_measured` grava language = null em 100 % das 265 linhas e nenhuma delas é de filme turco.
+//     A única língua de palavra longa medida é o russo (2 filmes do Kineo 1, língua lida do `videos.script`): 2,52 pal/s
+//     contra 2,96 do inglês no mesmo motor (165 filmes) = 0,853.
+//   · Calibração: LETRAS POR PALAVRA do mesmo conteúdo nas 13 línguas das páginas de idioma (texto PARALELO da casa:
+//     lib/seo/freeShortsGeneratorLangs.ts + lib/seo/enginePageLangs.ts, 577–842 palavras por língua, medido em 29/09).
+//     Âncora = francês (4,60): na narração entregue, fr e en têm as mesmas letras por palavra (5,07–5,18 × 5,03–5,18) e o
+//     mesmo passo. Fator da língua = 4,60 ÷ letras por palavra dela (≤ 1). Conferência: o russo dá 4,60 ÷ 5,37 = 0,857 —
+//     o medido foi 0,853.
+//   · en, pt e es ficam em 1 (a régua de hoje, byte a byte — ordem do fundador). Diferença < 3 % da âncora também fica em 1
+//     (it: 0,985 — ruído: en × fr já diferem 1–2 %). Árabe, urdu (abjad: a vogal curta não é escrita), hindi (abugida) e
+//     vietnamita (monossilábico) não têm letra comparável: ficam em 1 até existir medida — nunca SOBEM (a régua por idioma só
+//     desce onde a palavra é mais longa; subir recusaria mais).
+//   · Ritmo do filme curto = 2,5 × fator, arredondado para BAIXO em centésimos (o mesmo princípio da voz do 15 s: o passo
+//     estimado nunca fica acima do real): tr 2,03 · de 2,12 · ru 2,14 · uk 2,15 · id 2,15 · pl 2,23 · nl 2,37 · demais 2,5.
+// Só o filme de 15 s do Seedance 1.5 passa a língua; 35/60/90 e os outros motores chamam sem ela (2,5, como sempre).
+/** Letras por palavra no texto paralelo das páginas de idioma (29/09) — só as línguas de alfabeto em que a letra é som. */
+export const LETRAS_POR_PALAVRA_DO_IDIOMA: Readonly<Record<string, number>> = { fr: 4.6, it: 4.67, nl: 4.84, pl: 5.14, uk: 5.33, id: 5.33, ru: 5.37, de: 5.4, tr: 5.65 }
+/** A língua âncora: letras por palavra iguais às do inglês na narração entregue, mesmo passo. */
+export const IDIOMA_ANCORA_DO_RITMO = 'fr'
+/** Abaixo desta diferença da âncora, a língua fica na régua da casa (ruído de medida). */
+export const RUIDO_DO_RITMO = 0.03
+
+/** Fator (0 < f ≤ 1) sobre a régua da casa para a língua. 1 = régua de hoje (en/pt/es, desconhecida, sem medida, ruído). */
+export function fatorDoRitmoDoIdioma(language: string | null | undefined): number {
+  const code = typeof language === 'string' ? language.trim().toLowerCase() : ''
+  const letras = LETRAS_POR_PALAVRA_DO_IDIOMA[code]
+  const ancora = LETRAS_POR_PALAVRA_DO_IDIOMA[IDIOMA_ANCORA_DO_RITMO]
+  if (!(typeof letras === 'number' && letras > 0) || !(ancora > 0)) return 1
+  const fator = ancora / letras
+  return fator >= 1 - RUIDO_DO_RITMO ? 1 : fator
+}
+
+/** Palavras por segundo do filme curto na língua: 2,5 × fator, para baixo em centésimos. Sem língua (ou fator 1) = 2,5. */
+export function ritmoDoFilmeCurto(language?: string | null): number {
+  const fator = fatorDoRitmoDoIdioma(language)
+  if (fator === 1) return VERBATIM_EST_WORDS_PER_SECOND
+  return Math.floor(VERBATIM_EST_WORDS_PER_SECOND * fator * 100 + 1e-9) / 100
+}
+
+/**
+ * O passo de uma VOZ na língua (portão de 95 % e plano 3x6 do filme de 15 s): o passo da voz × (ritmo ÷ 2,5), para baixo
+ * em centésimos. Voz a 2,5 dá exatamente ritmoDoFilmeCurto(língua). Fator 1: a própria voz, sem arredondar nada.
+ */
+export function ritmoDaVozNoIdioma(voiceWordsPerSecond: number, language?: string | null): number {
+  const ritmo = ritmoDoFilmeCurto(language)
+  if (ritmo === VERBATIM_EST_WORDS_PER_SECOND || !(Number.isFinite(voiceWordsPerSecond) && voiceWordsPerSecond > 0)) return voiceWordsPerSecond
+  return Math.floor(voiceWordsPerSecond * (ritmo / VERBATIM_EST_WORDS_PER_SECOND) * 100 + 1e-9) / 100
+}
+
+/** Fala estimada de um texto, em segundos, na régua da guarda (palavras ÷ 2,5 pal/s — a mesma do #442 da rota; no 15 s, o ritmo da língua). */
+export function estimarFalaSegundos(narration: string | null | undefined, language?: string | null): number {
   const words = String(narration ?? '').split(/\s+/).filter(Boolean).length
-  return words / VERBATIM_EST_WORDS_PER_SECOND
+  return words / ritmoDoFilmeCurto(language)
 }
 
 export type ChecagemDeFalaCurta =
@@ -100,8 +160,10 @@ export function checarFalaDoFilmeCurto(args: {
   seconds: number
   verbatim: boolean
   narration: string
+  /** KINEO-RITMO-POR-IDIOMA-15S: a língua da narração (só o 15 s do Seedance passa; ausente = 2,5 pal/s). */
+  language?: string | null
 }): ChecagemDeFalaCurta {
-  const estSeconds = estimarFalaSegundos(args.narration)
+  const estSeconds = estimarFalaSegundos(args.narration, args.language)
   const limitSeconds = args.seconds * SHORT_FILM_SPEECH_FACTOR
   if (!args.verbatim || !isSeedance15(args.engine) || !(args.seconds < MIN_DURATION_ALL_ENGINES)) {
     return { ok: true, estSeconds, limitSeconds }
@@ -112,9 +174,9 @@ export function checarFalaDoFilmeCurto(args: {
   return { ok: true, estSeconds, limitSeconds }
 }
 
-/** Quantas palavras cabem no filme curto (o teto da guarda acima, na mesma régua de 2,5 pal/s). */
-export function maxWordsForShortFilm(seconds: number): number {
-  return Math.floor(seconds * SHORT_FILM_SPEECH_FACTOR * VERBATIM_EST_WORDS_PER_SECOND)
+/** Quantas palavras cabem no filme curto (o teto da guarda acima, na mesma régua de 2,5 pal/s; com a língua, no ritmo dela). */
+export function maxWordsForShortFilm(seconds: number, language?: string | null): number {
+  return Math.floor(seconds * SHORT_FILM_SPEECH_FACTOR * ritmoDoFilmeCurto(language))
 }
 
 /**
@@ -122,9 +184,9 @@ export function maxWordsForShortFilm(seconds: number): number {
  * próximo clique ao 402. Encurtar mantém o preço do filme curto; 35 s vem com o custo real (passado pela rota, que o
  * calcula com a mesma creditCostForDuration que debita — nada digitado aqui).
  */
-export function scriptTooLongForShortFilmMessage(seconds: number, estSeconds: number, cost35?: number | null): string {
+export function scriptTooLongForShortFilmMessage(seconds: number, estSeconds: number, cost35?: number | null, language?: string | null): string {
   const custo = typeof cost35 === 'number' && Number.isFinite(cost35) && cost35 > 0 ? ` (${cost35} credits)` : ''
-  return `This script reads for about ${Math.round(estSeconds)} seconds — too long for a ${seconds}-second film. Shorten it to about ${maxWordsForShortFilm(seconds)} words to keep the ${seconds}-second price, or pick ${MIN_DURATION_ALL_ENGINES} s${custo}. Nothing was charged.`
+  return `This script reads for about ${Math.round(estSeconds)} seconds — too long for a ${seconds}-second film. Shorten it to about ${maxWordsForShortFilm(seconds, language)} words to keep the ${seconds}-second price, or pick ${MIN_DURATION_ALL_ENGINES} s${custo}. Nothing was charged.`
 }
 
 // ═══ KINEO-SEEDANCE-15S-3X6-2026-09-29 [TRAVA 8.2 — "vai" do 3x6] — o filme de 15 s são 3 clipes de 6 s ═══════════
@@ -176,6 +238,10 @@ export function palavrasFaladas(narration: string | null | undefined): number {
 /**
  * Fala do filme de 15 s para escolher o passo: palavras faladas ÷ a régua MAIS LENTA entre a da guarda (2,5 pal/s) e a
  * da voz que vai falar (persona mais lenta, ex. onyx 2,3, pede mais imagem).
+ * KINEO-RITMO-POR-IDIOMA-15S: no 15 s a voz chega JÁ no ritmo da língua (a rota aplica ritmoDaVozNoIdioma ao passo da voz), e
+ * toda voz do 15 s fica ≤ 2,5 × fator — logo, sem `speed:` no roteiro, o mínimo é a voz na língua (tr: 2,03), a mesma régua da
+ * guarda e do escritor. Borda: com `speed:` > 1 no roteiro de uma língua de palavra longa, o plano mede na voz acelerada (a
+ * fala real), sem a folga de min(2,5, voz) que o inglês ganha — o escritor do 15 s não escreve `speed:`.
  */
 export function seedanceShortSpeechSeconds(narration: string | null | undefined, voiceWordsPerSecond: number): number {
   const voz = Number.isFinite(voiceWordsPerSecond) && voiceWordsPerSecond > 0 ? voiceWordsPerSecond : VERBATIM_EST_WORDS_PER_SECOND

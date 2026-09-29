@@ -126,7 +126,8 @@ checa(`faixa ${PISO}–${TETO} (piso < teto): ${(PISO / 2.5).toFixed(1)}–${(TE
   const k1 = W.writerRateFor('fast', 'x', 'en')
   checa(`fora do 15 s do Seedance, a régua é a da base (${pares.length} pares; Kineo 1 a 15 s segue ${W.minWordsFor(15, k1.wordsPerSecond, 1)}–${W.maxWordsFor(15, k1.wordsPerSecond, 1)}); base: teto ${WB?.maxWordsFor(15, 3.1, 1)}, piso ${WB?.minWordsFor(15, 3.1, 1)}`, Boolean(WB) && pares.every(Boolean) && WB.maxWordsFor(15, 3.1, 1) === 41 && WB.minWordsFor(15, 3.1, 1) === 41)
 }
-const mutPisoTeto = trocaUma(W_SRC, '  const min = Math.min(max, Math.ceil(SEEDANCE_SHORT_SECONDS * MIN_COVERAGE * VERBATIM_EST_WORDS_PER_SECOND - 1e-9))', '  const min = max')
+// Reancorado 29/09 (KINEO-RITMO-POR-IDIOMA-15S-2026-09-29, [TRAVA 8.2 — "vai conserta" do fundador]): a linha ganhou a língua do filme curto do Seedance (idiomaDoRitmo / ritmo); o que ela protege não muda.
+const mutPisoTeto = trocaUma(W_SRC, '  const min = Math.min(max, Math.ceil(SEEDANCE_SHORT_SECONDS * MIN_COVERAGE * ritmo - 1e-9))', '  const min = max')
 checa('o compilador de mutantes, sobre o arquivo SEM mutação, passa no predicado (senão o vermelho não prova nada)', provaFaixa(roda(W_SRC)))
 checa('mutante: piso = teto (41–41, o do defeito) fica VERMELHO pelo mesmo predicado', mutPisoTeto !== null && !provaFaixa(roda(mutPisoTeto)))
 
@@ -247,14 +248,15 @@ console.log('5) CTA de rede social: detector, prompt de ≤ 20 s, reforço da no
 // ═══ 6. a rota ═══
 console.log('6) /api/generate-script: o fecho corre depois da 1ª geração e da nova tentativa, com o teto duro')
 {
-  const L_DURO = "    const tetoDuroFilmeCurto = isSeedance15(typeof body.engine === 'string' ? body.engine : null) ? Math.max(tetoFilmeCurto, maxWordsForShortFilm(alvoSegundos)) : tetoFilmeCurto"
+  // Reancorado 29/09 (KINEO-RITMO-POR-IDIOMA-15S-2026-09-29, [TRAVA 8.2 — "vai conserta" do fundador]): a linha ganhou a língua do filme curto do Seedance (idiomaDoRitmo / ritmo); o que ela protege não muda.
+  const L_DURO = "    const tetoDuroFilmeCurto = isSeedance15(typeof body.engine === 'string' ? body.engine : null) ? Math.max(tetoFilmeCurto, maxWordsForShortFilm(alvoSegundos, idiomaDoRitmo)) : tetoFilmeCurto"
   const L_FECHO = '      const fim = finishShortFilmScript(t, { maxWords: tetoFilmeCurto, minWords: pisoFilmeCurto, countWords: palavrasDoFilmeCurto, hardMaxWords: tetoDuroFilmeCurto })'
   const L_1A = '      fimDoFilmeCurto = fecharFilmeCurto(so4.script)'
   const L_DECIDE = '    if (missing.length > 0 || payoffIsEmpty(script) || curtoParaOAlvo(script) || longoParaOFilmeCurto(script)) {'
   const L_2A = '            const fimDaTentativa = fecharFilmeCurto(retryScript)'
   const L_MELHOR = '            if (segundaEMelhor(script, fimDaTentativa.script)) { script = fimDaTentativa.script; fimDoFilmeCurto = fimDaTentativa }'
   const L_PRONTO = "        const so4Pronto = keepShortFilmSections(stripSocialCta(topic).script) // KINEO-ROTEIRO-15S-FRASE-INTEIRA: sem \"Follow for more\""
-  const todas = [L_DURO, L_FECHO, L_1A, L_DECIDE, L_2A, L_MELHOR, L_PRONTO, '        const semCtaPronto = stripSocialCta(topic)', '    const tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage), maxWordsForShortFilm(alvoSegundos))']
+  const todas = [L_DURO, L_FECHO, L_1A, L_DECIDE, L_2A, L_MELHOR, L_PRONTO, '        const semCtaPronto = stripSocialCta(topic)', '    const tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo), maxWordsForShortFilm(alvoSegundos))']
   const idx = (l) => linhas(GS).indexOf(l)
   checa('linhas inteiras presentes: teto duro (só Seedance), fecho com hardMaxWords, 1ª geração → decisão → nova tentativa → a melhor das duas; texto pronto sem CTA', todas.every((l) => temLinha(GS, l)) && idx(L_1A) < idx(L_DECIDE) && idx(L_DECIDE) < idx(L_2A) && idx(L_2A) < idx(L_MELHOR))
   checa('nenhum corte por palavra sobrevive: o tipo do corte é "none" | "sentences" na lib e na rota', !SF_SRC.includes("'words'") && GS.includes("let corteDoFilmeCurto: 'none' | 'sentences' = fimDoFilmeCurto?.cut ?? 'none'") && !GS.includes("'none' | 'sentences' | 'words'"))

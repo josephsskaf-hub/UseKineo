@@ -89,7 +89,9 @@ const SUPPORTED_TARGETS = [15, 35, 60, 90] as const
 const WRITER_PAID_PLANS = new Set(['starter', 'starter_trial', 'basic', 'basic_trial', 'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial'])
 // KINEO-REGUA-DO-ESCRITOR-2026-09-17 — o roteiro nasce na régua da voz que vai falar (lib/scriptWriterRate:
 // a mesma função de régua do portão do Kineo 1). Sem `engine` no corpo, tudo como antes (2,3 pal/s, 0,95).
-function buildSystemPrompt(language: Language, targetSeconds: number = 60, wordsPerSecond: number = WORDS_PER_SECOND, coverage: number = MIN_COVERAGE): string {
+// KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 — `ritmoLanguage`: a língua da régua do filme curto do Seedance (a rota passa
+// idiomaDoRitmo; undefined fora dele = o prompt de sempre).
+function buildSystemPrompt(language: Language, targetSeconds: number = 60, wordsPerSecond: number = WORDS_PER_SECOND, coverage: number = MIN_COVERAGE, ritmoLanguage?: string): string {
   // KINEO-IDIOMAS-15-2026-09-17 — uma instrução para todas as línguas do catálogo (antes: três literais).
   const langInstruction =
     language === 'en'
@@ -134,10 +136,10 @@ FACT SELECTION RULES (#407 — this is what separates "huh, cool" from "WAIT, WH
 - Never sacrifice accuracy for surprise: every fact must still be real and verifiable. Do not invent or exaggerate.
 
 VOICEOVER RULES:
-${targetSeconds <= 20 ? `- SHORT FILM (${targetSeconds} seconds): use ONLY these sections, in this order: HOOK, MICRO REWARD 1, MICRO REWARD 2, PAYOFF. Skip MICRO REWARD 3, ESCALATION and RHYTHM entirely. NO follow/subscribe/like call to action anywhere. Every sentence must be short and complete, and the PAYOFF must still deliver the answer — the film ends when the narration ends, so the story must be COMPLETE in ${maxWordsFor(targetSeconds, wordsPerSecond, coverage)} words.
-` : ''}- Total script: ${minWordsFor(targetSeconds, wordsPerSecond, coverage)}-${maxWordsFor(targetSeconds, wordsPerSecond, coverage)} spoken words. This is a HARD FLOOR, not a style note:
-  at the measured narration rate of ${wordsPerSecond} words per second, ${minWordsFor(targetSeconds, wordsPerSecond, coverage)} words is about
-  ${Math.round(minWordsFor(targetSeconds, wordsPerSecond, coverage) / wordsPerSecond)} seconds of speech, and this video is ${targetSeconds} seconds long.
+${targetSeconds <= 20 ? `- SHORT FILM (${targetSeconds} seconds): use ONLY these sections, in this order: HOOK, MICRO REWARD 1, MICRO REWARD 2, PAYOFF. Skip MICRO REWARD 3, ESCALATION and RHYTHM entirely. NO follow/subscribe/like call to action anywhere. Every sentence must be short and complete, and the PAYOFF must still deliver the answer — the film ends when the narration ends, so the story must be COMPLETE in ${maxWordsFor(targetSeconds, wordsPerSecond, coverage, ritmoLanguage)} words.
+` : ''}- Total script: ${minWordsFor(targetSeconds, wordsPerSecond, coverage, ritmoLanguage)}-${maxWordsFor(targetSeconds, wordsPerSecond, coverage, ritmoLanguage)} spoken words. This is a HARD FLOOR, not a style note:
+  at the measured narration rate of ${wordsPerSecond} words per second, ${minWordsFor(targetSeconds, wordsPerSecond, coverage, ritmoLanguage)} words is about
+  ${Math.round(minWordsFor(targetSeconds, wordsPerSecond, coverage, ritmoLanguage) / wordsPerSecond)} seconds of speech, and this video is ${targetSeconds} seconds long.
   Anything shorter leaves the film running on music with no story being told,
   and the video is rejected before it renders. Anything much longer gets cut off.
   (Do not count the [Pexels: ...] cues or the section headers as words.)
@@ -340,12 +342,17 @@ export async function POST(req: NextRequest) {
       return await recusar(400, { error: sexualContentRefusalMessage(sexual.namedPerson), reason: sexual.reason }, user.id, { reason: sexual.reason, named_person: sexual.namedPerson, version: sexual.version })
     }
     const regua = writerRateFor(body.engine, topic, language)
+    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 — a língua entra na régua do escritor
+    // SÓ no filme curto do Seedance 1.5 (o motor que a rota do cinematic trata como Seedance, inclusive sem `engine` — o mesmo
+    // predicado do teto duro abaixo): faixa, teto duro e prompt no ritmo dela (lib/durationByEngine ritmoDoFilmeCurto: tr 29–34
+    // e 45 palavras; en/pt/es 36–41 e 56, como antes). Kineo 1, Kling 2.5, Veo, a estrada de voz própria e 35/60/90: undefined.
+    const idiomaDoRitmo = isShortFilmTarget(alvoSegundos) && isSeedance15(typeof body.engine === 'string' ? body.engine : null) ? language : undefined
     // KINEO-ROTEIRO-COLADO-NAO-ENGORDA-2026-09-18 — roteiro colado: o piso de palavras é o da própria pessoa,
     // e o escritor só estrutura. Ver lib/pastedScript.ts.
     const colado = detectPastedScript(topic)
     const alvoPalavras = colado.pasted
       ? pastedScriptMinWords(colado.words)
-      : minWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage)
+      : minWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo) // KINEO-RITMO-POR-IDIOMA-15S: só o 15 s do Seedance lê a língua
     if (colado.pasted) console.log(`[generate-script] KINEO-ROTEIRO-COLADO reason=${colado.reason} words=${colado.words} dialogue_lines=${colado.dialogueLines} → min ${alvoPalavras} words (no padding)`)
     console.log(`[generate-script] KINEO-REGUA-DO-ESCRITOR engine=${typeof body.engine === 'string' ? body.engine : '-'} family=${regua.family} voice=${regua.voice ?? '-'} rate=${regua.wordsPerSecond} target=${alvoSegundos}s${cotaSegundos ? ` (cota grátis: ${cotaSegundos}s, pedido ${pedido}s)` : ''} → min ${alvoPalavras} words`)
     /** Só o CTA "Turn this idea into a full script" manda isto. */
@@ -360,12 +367,15 @@ export async function POST(req: NextRequest) {
     const filmeCurto = isShortFilmTarget(alvoSegundos)
     const falaNaReguaDaGuarda = (t: string) => parseUserScript(t).narration.split(/\s+/).filter(Boolean).length
     const palavrasDoFilmeCurto = (t: string) => Math.max(scriptWordCount(t), falaNaReguaDaGuarda(t))
-    const tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage), maxWordsForShortFilm(alvoSegundos))
+    // KINEO-RITMO-POR-IDIOMA-15S — a faixa e o teto duro (idiomaDoRitmo, acima) correm no MESMO ritmo da guarda de roteiro longo,
+    // do plano 3x6 e do portão da rota do cinematic. O maxWordsForShortFilm do teto da faixa segue sem língua: no Seedance o
+    // teto da faixa (16,75 s) já é menor que o da guarda (22,5 s) em qualquer ritmo, e o Kineo 1 a 15 s (a cota grátis) não muda.
+    const tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo), maxWordsForShortFilm(alvoSegundos))
     const pisoFilmeCurto = Math.min(alvoPalavras, tetoFilmeCurto)
     // KINEO-ROTEIRO-15S-FRASE-INTEIRA-2026-09-29 — teto DURO do corte por frases: no Seedance, o que a guarda do cinematic
     // ainda aceita (22,5 s = 56 palavras, 3 × 8 s). Sem combinação de frases inteiras dentro de [piso, teto], passar do
     // teto até aqui vence ficar abaixo do piso ("passar do alvo é bom; ficar abaixo é defeito"). Kineo 1: sem folga.
-    const tetoDuroFilmeCurto = isSeedance15(typeof body.engine === 'string' ? body.engine : null) ? Math.max(tetoFilmeCurto, maxWordsForShortFilm(alvoSegundos)) : tetoFilmeCurto
+    const tetoDuroFilmeCurto = isSeedance15(typeof body.engine === 'string' ? body.engine : null) ? Math.max(tetoFilmeCurto, maxWordsForShortFilm(alvoSegundos, idiomaDoRitmo)) : tetoFilmeCurto
     // Revisão da E2b (achado 7): estas réguas subiram para ANTES do retorno antecipado dos marcadores — o texto que já
     // chega estruturado (o roteiro de 35/60 s guardado em structuredScriptRef, o episódio da série) também é filme curto.
     // Se o tópico já tem os marcadores virais, devolve como está — sem GPT.
@@ -398,7 +408,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ script: topic, alreadyStructured: true })
     }
 
-    const SYSTEM_PROMPT = buildSystemPrompt(language, alvoSegundos, regua.wordsPerSecond, regua.coverage) // KINEO-REGUA-DO-ESCRITOR
+    const SYSTEM_PROMPT = buildSystemPrompt(language, alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo) // KINEO-REGUA-DO-ESCRITOR
       + (colado.pasted ? `\n\n${PASTED_SCRIPT_RULE}` : '') // KINEO-ROTEIRO-COLADO-NAO-ENGORDA
 
     const completion = await openai.chat.completions.create(
