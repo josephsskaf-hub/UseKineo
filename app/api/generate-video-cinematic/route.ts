@@ -81,6 +81,7 @@ import { parseUserScript } from '@/lib/scriptParser'
 // medição que originou a regra.
 import { narrationTooShortMessage, MIN_COVERAGE } from '@/lib/narrationFit'
 import { speechRateFor, narrationFitAt, autofitDownAt } from '@/lib/speechRate'
+import { vozDoFilmeCurto, campoDaVozAssinada } from '@/lib/vozDoFilmeCurto' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29
 import { selectPersonaForScript } from '@/lib/narration/niche-mapping' // KINEO-RITMO-POR-VOZ-2026-09-15
 // KINEO-DEGRAU-2026-09-03 — o gate vira degrau: fala que não enche o botão
 // desce o alvo ANTES do custo em vez de recusar. Ver o rodapé do módulo.
@@ -1569,7 +1570,15 @@ async function manipularPost(req: NextRequest) {
     // compose vai escolher (mesma resolução: selectPersonaForScript por nicho/vertical/idioma,
     // tier cinematic). Seedance d6e8e8b3: 198 palavras "para 60 s" a 3,1 viraram 86 s com a
     // dark-mystery (onyx 0,92 ≈ 2,3 pal/s). Fail-open: sem persona, a régua da família.
+    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29 — no filme de 15 s do
+    // Seedance 1.5 a régua do portão é a voz que a MONTAGEM vai falar: a regra do compose (narração limpa + `vertical`;
+    // sem ele, onyx × 1,0), com o passo limitado à régua da casa (2,5 pal/s — só a futuristic-ai muda, 1,04 → 0,98), e essa
+    // voz vai assinada no claim (`narration_voice`, na resposta clássica abaixo) para o /api/compose falar exatamente ela.
+    // Antes: persona escolhida sobre o pedido inteiro (pistas [Pexels] inclusas) — 36 palavras de ciência/IA eram
+    // recusadas medidas a 2,65 pal/s enquanto a montagem sem `vertical` falava a 2,5. Todo outro pedido: null, nada muda.
+    const vozCurta = hollywoodPath || wantsKling || wantsVeo || wantsSora ? null : vozDoFilmeCurto({ engine: body.engine, seconds: duration, narration: parsedScript.narration || prompt, vertical: typeof body.vertical === 'string' ? body.vertical : null, language: narrationLanguage.language })
     const classicPersona = hollywoodPath ? null : (() => {
+      if (vozCurta) return vozCurta
       try { return selectPersonaForScript(prompt, typeof body.vertical === 'string' && body.vertical.trim() ? body.vertical.trim().toLowerCase() : undefined, 'cinematic', narrationLanguage.language) } catch { return null }
     })()
     const narrationRate = speechRateFor({ family: hollywoodPath ? 'hollywood' : 'classic', speed: parsedScript.speed, language: narrationLanguage.language, voice: classicPersona?.voice, personaSpeed: classicPersona?.defaultSpeed })
@@ -6625,6 +6634,11 @@ async function manipularPost(req: NextRequest) {
       contrato_cena: contratoRelatoClassico,
       visual_mode: formatoVisual.modo,
     }
+    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29 — só no filme de 15 s do
+    // Seedance 1.5: vão assinados no claim o `vertical` e o fator de velocidade da voz que o portão mediu (voz, velocidade e
+    // persona ficam de rastro); o /api/compose os põe no corpo antes de escolher a voz, em vez do `vertical` do navegador (que
+    // o resgate do cron nem manda). Todo outro filme: resposta intacta.
+    if (seedanceShortFilm && vozCurta) response.narration_voice = campoDaVozAssinada(vozCurta)
     // The signed claim records the ACTUAL per-scene model (usedModels). When
     // anchoring is OFF these are all `usedModel`, identical to the previous
     // `falRequestIds.map(() => usedModel)`.
