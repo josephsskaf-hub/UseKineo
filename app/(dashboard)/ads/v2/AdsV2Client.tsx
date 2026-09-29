@@ -33,7 +33,7 @@ import { downloadVideoFile } from '@/lib/videoDownload'
 import { ADS_UPLOAD_ACCEPT_LOGO, AdsUploadError, uploadFootage } from '@/lib/ads/uploadFootage'
 import { drawEndCard, loadLogoImage, toPngFile } from '@/lib/ads/endCard'
 import { ADS_V2_TIER_IDS, ADS_V2_TIERS, adsV2Credits, type AdsV2Tier } from '@/lib/ads/v2Tiers'
-import { ADS_V2_MAX_PHOTOS, ADS_V2_MIN_PHOTOS, ADS_V2_SECTOR_SPECS } from '@/lib/ads/v2ShotLists'
+import { ADS_V2_MAX_PHOTOS, ADS_V2_MIN_PHOTOS, ADS_V2_PLAN_MAX_VIDEOS, ADS_V2_SECTOR_SPECS } from '@/lib/ads/v2ShotLists'
 import {
   ADS_V2_AD_SHAPE,
   ADS_V2_CROP,
@@ -149,7 +149,7 @@ const POLL_MS = 8000
 const POLL_RETRY_MS = 20_000
 const PHOTO_ACCEPT = 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm,.mov'
 /** Recusas do /plan em que o vídeo volta a ser fotos (plano B) — KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29. */
-const VIDEO_TO_PHOTOS_CODES: readonly string[] = ['video_unreadable', 'video_too_short', 'video_invalid']
+const VIDEO_TO_PHOTOS_CODES: readonly string[] = ['video_unreadable', 'video_too_short', 'video_too_long', 'video_invalid']
 /** Por que um vídeo NÃO entrou como vídeo (inglês do modo completo). */
 const VIDEO_AS_PHOTOS_WHY: Readonly<Record<string, string>> = {
   too_big: 'videos over 50 MB go in as photos taken from them.',
@@ -549,6 +549,9 @@ function AdsV2Session({
   const [notReady, setNotReady] = useState(false)
 
   const aliveRef = useRef(true)
+  // Revisão (29/09): uma seleção por vez — o limite de 2 vídeos é contado sobre `photos`, que só atualiza na próxima
+  // renderização; duas seleções seguidas durante a leitura de um vídeo passavam de 2.
+  const addingRef = useRef(false)
   const pollRef = useRef<number | null>(null)
   const currentOrderRef = useRef<string | null>(null)
   const urlsRef = useRef<Set<string>>(new Set())
@@ -784,7 +787,21 @@ function AdsV2Session({
 
   async function addPhotos(list: FileList | null) {
     if (!list || !list.length) return
+    if (addingRef.current) {
+      setPhotoNote('Wait: we are still reading the files you just added. Then add these again.')
+      return
+    }
+    addingRef.current = true
+    try {
+      await addPhotosNow(list)
+    } finally {
+      addingRef.current = false
+    }
+  }
+
+  async function addPhotosNow(list: FileList) {
     setPhotoNote(null)
+    const photos = photosRef.current
     const room = ADS_V2_MAX_PHOTOS - photos.length
     const files = Array.from(list).slice(0, Math.max(0, room))
     const notes: string[] = []
@@ -798,6 +815,11 @@ function AdsV2Session({
         setBusyNote(`Reading ${f.name}…`)
         const read = await readVideoForAd(f, videosAlready)
         if (!aliveRef.current) return
+        if (read.kind === 'photos' && read.verdict === 'too_long') {
+          notes.push(`${f.name}: the video must be under 10 minutes.`)
+          setBusyNote(null)
+          continue
+        }
         if (read.kind === 'video') {
           videosAlready += 1
           added.push({
@@ -874,11 +896,11 @@ function AdsV2Session({
   }
 
   /** O servidor não conseguiu usar um vídeo como vídeo: ESSE item vira fotos (plano B). Planejar de novo é grátis. */
-  async function videoBackToPhotos(footageId: string | null) {
-    const target = photosRef.current.find((p) => p.video && p.uploaded?.footageId === footageId)
+  async function videoBackToPhotos(footageId: string | null, byKey?: string, why?: string) {
+    const target = photosRef.current.find((p) => p.video && (byKey ? p.key === byKey : p.uploaded?.footageId === footageId))
     if (!target?.video) return
     const notes: string[] = []
-    const frames = await framesAsPhotos(target.video.file, `${target.name}: we could not use this video as video on our side, so it now goes in as photos taken from it. Mark them and plan again (free).`, notes)
+    const frames = await framesAsPhotos(target.video.file, `${target.name}: ${why ?? 'we could not use this video as video on our side, so it now goes in as photos taken from it. Mark them and plan again (free).'}`, notes)
     if (!aliveRef.current) return
     setPhotos((prev) => {
       const i = prev.findIndex((p) => p.key === target.key)
@@ -1001,12 +1023,20 @@ function AdsV2Session({
 
   // ── plano, início, checagem grátis, narração ─────────────────────────────────────────────
 
+  /** Vídeos além do limite (2) viram fotos ANTES de subir — o /plan recusaria (too_many_videos). */
+  async function videosPastLimitToPhotos(): Promise<boolean> {
+    const extra = photosRef.current.filter((p) => p.video).slice(ADS_V2_PLAN_MAX_VIDEOS)
+    for (const p of extra) await videoBackToPhotos(null, p.key, 'up to 2 videos go in as video; this one now goes in as photos taken from it. Mark them and plan again (free).')
+    return extra.length > 0
+  }
+
   async function planAd() {
     if (busy || missing.length) return
     setBusy('plan')
     setPlanError(null)
     setCheckNote(null)
     try {
+      if (await videosPastLimitToPhotos()) return
       const sigAtStart = planSig
       const media = await ensurePhotosUploaded()
       if (!media || !aliveRef.current) return
@@ -1024,6 +1054,7 @@ function AdsV2Session({
       if (!r.ok) {
         if (r.code === 'not_ready') setNotReady(true)
         if (VIDEO_TO_PHOTOS_CODES.includes(r.code)) void videoBackToPhotos(typeof r.body.footage_id === 'string' ? r.body.footage_id : null)
+        if (r.code === 'too_many_videos') void videosPastLimitToPhotos()
         if (r.code === 'not_editable') setDraft(null)
         setPlanError(apiError(r))
         return

@@ -317,8 +317,10 @@ export function adsV2ErrorMessage(code: string | null | undefined, extra: { need
       return 'We could not read one of your videos on our side, so it now goes in as photos taken from it. Plan again (free).'
     case 'video_too_short':
       return 'One of your videos is shorter than 3 seconds, so it now goes in as photos taken from it. Plan again (free).'
+    case 'video_too_long':
+      return 'One of your videos is longer than 10 minutes. Use a shorter clip or send photos, then plan again (free).'
     case 'too_many_videos':
-      return 'Up to 2 videos go in as video. Remove one, or it goes in as photos.'
+      return 'Up to 2 videos go in as video; the others now go in as photos taken from them. Plan again (free).'
     case 'bad_video':
     case 'bad_video_id':
     case 'bad_videos':

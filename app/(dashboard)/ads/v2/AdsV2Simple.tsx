@@ -66,7 +66,7 @@ import {
   type AdsV2SimpleCopy,
 } from '@/lib/ads/v2Simple'
 import { VideoFramesError, grabVideoFrames, readUserVideo } from '@/lib/ads/v2VideoFrames'
-import { pickLivelyStart, userVideoSampleTimes, userVideoVerdict, type AdsV2UserVideoVerdict } from '@/lib/ads/v2UserVideo'
+import { ADS_V2_MAX_USER_VIDEOS, ADS_V2_USER_VIDEO_MIN_SECONDS, pickLivelyStart, userVideoSampleTimes, userVideoVerdict, type AdsV2UserVideoVerdict } from '@/lib/ads/v2UserVideo'
 import { NARRATION_LANGUAGES, detectNarrationLanguage, narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage'
 import { pickInterfaceCopy, type InterfaceLanguage } from '@/lib/ui/interfaceLanguage'
 
@@ -166,7 +166,7 @@ const POLL_MS = 8000
 const POLL_RETRY_MS = 20_000
 const PHOTO_MAX_BYTES = 50 * 1024 * 1024
 /** Recusas do /plan em que o vídeo volta ao plano B (quadros viram fotos) — KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29. */
-const VIDEO_TO_PHOTOS_CODES: readonly string[] = ['video_unreadable', 'video_too_short', 'video_invalid']
+const VIDEO_TO_PHOTOS_CODES: readonly string[] = ['video_unreadable', 'video_too_short', 'video_too_long', 'video_invalid']
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const DEFAULT_COLOR = '#2997ff'
 
@@ -250,7 +250,7 @@ export type AdVideoRead =
   | { kind: 'photos'; verdict: AdsV2UserVideoVerdict }
 export async function readVideoForAd(f: File, videosAlready: number): Promise<AdVideoRead> {
   const type = normalizeFootageType(f)
-  const first = userVideoVerdict({ bytes: f.size, type, seconds: 1e9, width: 1, height: 1, videosAlready })
+  const first = userVideoVerdict({ bytes: f.size, type, seconds: ADS_V2_USER_VIDEO_MIN_SECONDS, width: 1, height: 1, videosAlready })
   if (first !== 'video') return { kind: 'photos', verdict: first }
   let read: Awaited<ReturnType<typeof readUserVideo>> | null = null
   try {
@@ -367,6 +367,9 @@ export function AdsV2SimpleSession({
   const [notReady, setNotReady] = useState(false)
 
   const aliveRef = useRef(true)
+  // Revisão (29/09): uma seleção por vez. O limite de 2 vídeos é contado sobre `items`, que só atualiza na próxima
+  // renderização; duas seleções seguidas durante a leitura de um vídeo passavam de 2. A segunda espera, com aviso.
+  const addingRef = useRef(false)
   const pollRef = useRef<number | null>(null)
   const currentOrderRef = useRef<string | null>(null)
   const urlsRef = useRef<Set<string>>(new Set())
@@ -656,10 +659,23 @@ export function AdsV2SimpleSession({
 
   async function addFiles(list: FileList | null) {
     if (!list || !list.length) return
+    if (addingRef.current) {
+      setFileNote(copy.files.waitAdding)
+      return
+    }
+    addingRef.current = true
+    try {
+      await addFilesNow(list)
+    } finally {
+      addingRef.current = false
+    }
+  }
+
+  async function addFilesNow(list: FileList) {
     setFileNote(null)
     const notes: string[] = []
     const files = Array.from(list)
-    let videosAlready = items.filter((p) => p.video).length
+    let videosAlready = itemsRef.current.filter((p) => p.video).length
     for (const f of files) {
       if (!aliveRef.current) return
       if (isVideoFile(f.name, f.type)) {
@@ -782,10 +798,10 @@ export function AdsV2SimpleSession({
    * O servidor não conseguiu usar um vídeo como vídeo (não mediu, curto, tipo): ESSE item vira fotos (plano B), com aviso.
    * A pessoa planeja de novo (grátis).
    */
-  async function videoBackToFrames(footageId: string | null) {
-    const target = itemsRef.current.find((p) => p.video && p.uploaded?.footageId === footageId)
+  async function videoBackToFrames(footageId: string | null, byKey?: string, why?: string) {
+    const target = itemsRef.current.find((p) => p.video && (byKey ? p.key === byKey : p.uploaded?.footageId === footageId))
     if (!target?.video) return
-    const notes: string[] = [fill(copy.files.videoServerAsPhotos, { name: target.name })]
+    const notes: string[] = [fill(why ?? copy.files.videoServerAsPhotos, { name: target.name })]
     setVideoBusy((n) => n + 1)
     try {
       const frames = await framesFromVideo(target.video.file, notes)
@@ -882,11 +898,19 @@ export function AdsV2SimpleSession({
 
   // ── plano e início ───────────────────────────────────────────────────────────────────────
 
+  /** Vídeos além do limite (2) no anúncio viram fotos ANTES de subir — o /plan recusaria (too_many_videos). */
+  async function videosPastLimitToFrames(): Promise<boolean> {
+    const extra = itemsRef.current.slice(0, ADS_V2_SIMPLE_MAX_IN_AD).filter((p) => p.video).slice(ADS_V2_MAX_USER_VIDEOS)
+    for (const p of extra) await videoBackToFrames(null, p.key, copy.files.videoManyAsPhotos)
+    return extra.length > 0
+  }
+
   async function planAd() {
     if (busy || missing.length) return
     setBusy('plan')
     setPlanError(null)
     try {
+      if (await videosPastLimitToFrames()) return
       const baseAtStart = baseSig
       const media = await ensureItemsUploaded()
       if (!media || !aliveRef.current) return
@@ -907,6 +931,7 @@ export function AdsV2SimpleSession({
       if (!r.ok) {
         if (r.code === 'not_ready') setNotReady(true)
         if (VIDEO_TO_PHOTOS_CODES.includes(r.code)) void videoBackToFrames(typeof r.body.footage_id === 'string' ? r.body.footage_id : null)
+        if (r.code === 'too_many_videos') void videosPastLimitToFrames()
         if (r.code === 'not_editable') setDraft(null)
         setPlanError(errorText(lang, r))
         return

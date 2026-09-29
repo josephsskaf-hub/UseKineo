@@ -371,6 +371,9 @@ export interface AdsV2Video {
 export const ADS_V2_PLAN_MAX_VIDEOS = 2
 /** Espelho de ADS_V2_USER_VIDEO_MIN_SECONDS (lib/ads/v2UserVideo.ts): abaixo disto o /plan devolve video_too_short. */
 export const ADS_V2_PLAN_VIDEO_MIN_SECONDS = 3
+/** Espelho de ADS_V2_USER_VIDEO_MAX_SECONDS (lib/ads/v2UserVideo.ts): acima disto o /plan devolve video_too_long (o banco
+ * guarda measured_seconds/cut_start em numeric(6,3), teto 999,999 s; o plano B também para em 10 min). */
+export const ADS_V2_PLAN_VIDEO_MAX_SECONDS = 600
 
 /**
  * Início do trecho do vídeo do cliente (espelho EXATO de clampUserVideoStart, lib/ads/v2UserVideo.ts — o guardião
@@ -517,6 +520,7 @@ export function planShots(input: { sector: AdsV2Sector; tier: AdsV2PlanTier; pho
   for (const v of videos) {
     if (!v || typeof v.id !== 'string' || !v.id || typeof v.url !== 'string' || !v.url) throw new Error('ads_v2_bad_video')
     if (!(typeof v.seconds === 'number' && Number.isFinite(v.seconds) && v.seconds > 0)) throw new Error(`ads_v2_video_unmeasured:${v.id}`)
+    if (v.seconds > ADS_V2_PLAN_VIDEO_MAX_SECONDS) throw new Error(`ads_v2_video_too_long:${v.id}`)
     if (seenVideo.has(v.id) || photos.some((p) => p.id === v.id)) throw new Error(`ads_v2_duplicate_video:${v.id}`)
     seenVideo.add(v.id)
   }

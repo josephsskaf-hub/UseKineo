@@ -437,9 +437,11 @@ await check('A5 a tela vê o plano de vídeo como pronto, com rótulo próprio, 
 const PLAN = semComentarios(SRC.planRoute)
 await check('R1 /plan: vídeo conferido no user_footage do DONO (kind video, MP4/MOV); duração MEDIDA no servidor antes do plano; não mediu / < 3 s = 422 com o id (a tela cai no plano B); nada cobra', () =>
   /const badVideo = videosIn\.find\(\(v\) => !own\.get\(v\.footage_id\)\?\.isVideo\)/.test(PLAN) && /v2Fail\('video_invalid', 400, \{ footage_id: badVideo\.footage_id \}\)/.test(PLAN) &&
-  /measureFootageVideo\(own\.get\(v\.footage_id\)!\.url\)/.test(PLAN) && /v2Fail\('video_unreadable', 422, \{ footage_id: v\.footage_id \}\)/.test(PLAN) && /v2Fail\('video_too_short', 422, \{ footage_id: v\.footage_id \}\)/.test(PLAN) &&
+  /measureFootageVideo\(own\.get\(v\.footage_id\)!\.url\)/.test(PLAN) && /return measureRefused\('video_unreadable', v\.footage_id, null\)/.test(PLAN) && /return measureRefused\('video_too_short', v\.footage_id, measured\)/.test(PLAN) && /return v2Fail\(code, 422, \{ footage_id: footageId \}\)/.test(PLAN) &&
   ordem(PLAN, "'daily_limit'", 'measureFootageVideo(', 'moderateContent(', 'planShots(') && !/chargeAdsV2|debitVideoCredits|submitShotOnce|dispatchAdsV2Shots/.test(PLAN) &&
-  /const isVideo = r\.kind === 'video' && \/\\\.\(mp4\|mov\)/.test(semComentarios(SRC.server)) && /probeMp4DurationSeconds\(await res\.arrayBuffer\(\)\)/.test(semComentarios(SRC.server)))
+  /const isVideo = r\.kind === 'video' && \/\\\.\(mp4\|mov\)/.test(semComentarios(SRC.server)) && ordem(semComentarios(SRC.server), 'const bytes = new Uint8Array(await res.arrayBuffer())', 'if (!isMp4OrMovHead(bytes)) return null', 'probeMp4DurationSeconds(bytes)'))
+// R1 REANCORADO (revisão 29/09, motivo): a recusa 422 passou por measureRefused (grava o evento do teto diário antes —
+// achado de dinheiro) e a medição confere os primeiros bytes antes do mvhd (achado de segurança). Mesma garantia; V2/V3 provam.
 const RETAKE = semComentarios(SRC.retakeRoute)
 await check('R2 /retake: plano de vídeo = 400 video_not_retakable ANTES de qualquer preço, pedido novo ou débito', ordem(RETAKE, "if (target.kind === 'user_video') return v2Fail('video_not_retakable', 400)", 'adsV2RetakeCredits(', '.insert(', 'chargeAdsV2('))
 await check('R3 migration irmã: tipo user_video aceito e a trava "nunca IA" no banco (sem motor, sem request_id, sem imagem); a original intacta', () => {
@@ -473,6 +475,132 @@ await check('T3 completo: aceita vídeo, mesma regra (readVideoForAd) e mesmo en
 await check('T4 lib de quadros continua SEM import (a regra pura chega por parâmetro); a amostra é 32×18', !/^\s*import\s/m.test(SRC.frames) && /export async function readUserVideo\(/.test(SRC.frames) && /small\.width = 32/.test(SRC.frames) && /small\.height = 18/.test(SRC.frames) && !/^\s*import\s/m.test(SRC.userVideo))
 await check('T5 trava 8.2: nenhum arquivo deste pedido mora em caminho travado', () =>
   Object.values(F).every((p) => !/^(lib\/compose|lib\/hollywood\/|lib\/cinematic\/|lib\/broll\/|lib\/lyriaMusic|lib\/narrationFit|app\/api\/analyze-idea\/|app\/api\/generate-script\/|app\/api\/generate-video-)/.test(p)))
+
+// ═══ V. REVISÃO ADVERSARIAL (29/09) — dinheiro/segurança e montagem ═══════════════════════════════════════════════════
+// Os achados confirmados pelas revisões do SHA 26151671, cada um com mutante vermelho.
+const FOLDER = 'https://x.supabase.co/storage/v1/object/public/user-footage/'
+const servidor = (src) => makeLoader({
+  'next/server': { NextResponse: { json: (b, i) => ({ body: b, status: i?.status }) } },
+  '@/lib/userFootage': { FOOTAGE_PUBLIC_PREFIX: () => FOLDER },
+}, { real: ['lib/mp4Duration.ts'], over: src === undefined ? {} : { [F.server]: src } })(F.server)
+const SV = servidor()
+const EU = '11111111-1111-4111-8111-111111111111'
+const OUTRO = '22222222-2222-4222-8222-222222222222'
+const pasta = (Sv) => {
+  const p = `${FOLDER}${EU}/`
+  const aceita = [`${p}clip-1.mp4`, `${p}clip-1.mp4?t=1`, `${p}foto.jpg`]
+  const recusa = [`${p}../${OUTRO}/clip-9.mp4`, `${p}..%2F${OUTRO}/clip-9.mp4`, `${p}%2e%2e/${OUTRO}/clip-9.mp4`, `${p}%2E%2E/${OUTRO}/x.mp4`,
+    `${p}.\\..\\x.mp4`, `${p}./../../renders/x.mp4`, `${p}a/../../${OUTRO}/x.mp4`, `${FOLDER}${OUTRO}/clip-9.mp4`, `http://x.supabase.co/storage/v1/object/public/user-footage/${EU}/c.mp4`, null]
+  return aceita.every((u) => Sv.footageUrlInFolder(u, p)) && recusa.every((u) => !Sv.footageUrlInFolder(u, p))
+}
+// Só o segmento `..` cru (sem código): o que o mutante do segmento precisa pegar sozinho.
+const pastaSoPonto = (Sv) => !Sv.footageUrlInFolder(`${FOLDER}${EU}/../${OUTRO}/clip-9.mp4`, `${FOLDER}${EU}/`)
+const pastaSoCodigo = (Sv) => !Sv.footageUrlInFolder(`${FOLDER}${EU}/%2e%2e/${OUTRO}/clip-9.mp4`, `${FOLDER}${EU}/`) && !Sv.footageUrlInFolder(`${FOLDER}${EU}/..%2F${OUTRO}/clip-9.mp4`, `${FOLDER}${EU}/`)
+const donoRota = async (Sv) => {
+  const rows = [
+    { id: 'a', url: `${FOLDER}${EU}/clip-1.mp4`, kind: 'video' },
+    { id: 'b', url: `${FOLDER}${EU}/../${OUTRO}/clip-9.mp4`, kind: 'video' },
+    { id: 'c', url: `${FOLDER}${EU}/%2e%2e/${OUTRO}/foto.jpg`, kind: 'image' },
+  ]
+  const admin = { from: () => ({ select: () => ({ eq: () => ({ in: async () => ({ data: rows, error: null }) }) }) }) }
+  const m = await Sv.ownedFootage(admin, EU, ['a', 'b', 'c'])
+  return m.get('a')?.isVideo === true && !m.has('b') && !m.has('c')
+}
+await check('V1 SEGURANÇA: URL do user_footage com ../ (ou %2e, %2f, \\) apontando para a pasta de OUTRA conta é recusada — foto e vídeo; a legítima passa', () => pasta(SV))
+await check('V1b ownedFootage (a rota /plan) descarta a linha com ../ que a própria conta gravou; a legítima continua vídeo', () => donoRota(SV))
+const V1_SEG = "  if (rawPath.split('/').some((seg) => seg === '.' || seg === '..')) return false\n"
+const V1_COD = "  if (/\\\\|%2e|%2f|%5c/i.test(raw)) return false\n"
+// As duas camadas contra `..` (segmento cru recusado + pasta reconferida DEPOIS de normalizar) seguram sozinhas; o mutante
+// tira as duas — tirar só uma continua verde de propósito (defesa em profundidade).
+const V1_NORM = '  return `${u.origin}${u.pathname}`.startsWith(folder)\n'
+await check('V1-mutante: sem a recusa do segmento .. e sem a reconferência normalizada fica vermelho', () => !pastaSoPonto(servidor(trocar(trocar(SRC.server, V1_SEG, ''), V1_NORM, '  return true\n'))))
+await check('V1-mutante: sem a recusa do ponto/barra codificados fica vermelho', () => !pastaSoCodigo(servidor(trocar(SRC.server, V1_COD, ''))))
+await check('V1-mutante: ownedFootage voltando ao startsWith puro fica vermelho', async () => !(await donoRota(servidor(trocar(SRC.server, '    if (!footageUrlInFolder(r.url, prefix)) continue', "    if (typeof r.url !== 'string' || !r.url.startsWith(prefix) || !/^https:\\/\\//i.test(r.url)) continue")))))
+
+// MP4 mínimo: [primeira caixa] + moov{mvhd v0, timescale 1000, duration 12000} → 12 s.
+const caixa = (type, body) => { const b = new Uint8Array(8 + body.length); new DataView(b.buffer).setUint32(0, b.length); for (let i = 0; i < 4; i++) b[4 + i] = type.charCodeAt(i); b.set(body, 8); return b }
+const junta = (...xs) => { const o = new Uint8Array(xs.reduce((n, x) => n + x.length, 0)); let k = 0; for (const x of xs) { o.set(x, k); k += x.length } return o }
+const mvhd = (() => { const b = new Uint8Array(100); const dv = new DataView(b.buffer); dv.setUint32(12, 1000); dv.setUint32(16, 12000); return caixa('mvhd', b) })()
+const MP4 = junta(caixa('ftyp', new Uint8Array(8)), caixa('moov', mvhd))
+const DISFARCADO = junta(caixa('junk', new Uint8Array(8)), caixa('moov', mvhd)) // mede 12 s, mas não abre como MP4/MOV
+const WEBM = junta(new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 0, 0, 0, 0x1f]), new Uint8Array(64))
+const mede = async (Sv, bytes) => {
+  const velho = globalThis.fetch
+  globalThis.fetch = async () => ({ ok: true, arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) })
+  try { return await Sv.measureFootageVideo('https://x/v.mp4') } finally { globalThis.fetch = velho }
+}
+const tipoPelosBytes = async (Sv) => (await mede(Sv, MP4)) === 12 && (await mede(Sv, DISFARCADO)) === null && (await mede(Sv, WEBM)) === null && Sv.isMp4OrMovHead(MP4) && !Sv.isMp4OrMovHead(WEBM)
+await check('V2 o tipo do vídeo vem dos PRIMEIROS BYTES (ftyp/moov/wide…), não da coluna kind: MP4 mede 12 s; WebM e caixa estranha = null (plano B)', () => tipoPelosBytes(SV))
+await check('V2-mutante: medição sem conferir os primeiros bytes fica vermelho', async () => !(await tipoPelosBytes(servidor(trocar(SRC.server, '    if (!isMp4OrMovHead(bytes)) return null\n', '')))))
+
+// Teto diário: a recusa da medição (422) grava ads_v2_plan_served ANTES de responder — o mesmo evento que o teto conta.
+const tetoMedicao = (src) => {
+  const P = semComentarios(src)
+  const corpo = P.slice(P.indexOf('const measureRefused'), P.indexOf('for (const [i, measured]'))
+  return /\.eq\('name', 'ads_v2_plan_served'\)\.gte\('created_at', since\)/.test(P) && !/\.eq\('ok'|metadata->>ok/.test(P) &&
+    ordem(corpo, "await writeServerEvent({ name: 'ads_v2_plan_served'", 'ok: false', "stage: 'video_measure'", 'return v2Fail(code, 422, { footage_id: footageId })') &&
+    ['video_unreadable', 'video_too_short', 'video_too_long'].every((c) => new RegExp(`return measureRefused\\('${c}', v\\.footage_id`).test(P)) &&
+    !/v2Fail\('video_(unreadable|too_short|too_long)'/.test(P)
+}
+await check('V3 DINHEIRO: vídeo que o /plan não consegue usar (422) CONTA no teto diário — antes baixava até 2 × 50 MB por chamada, sem limite', () => tetoMedicao(SRC.planRoute))
+await check('V3-mutante: recusa da medição sem gravar o evento fica vermelho', () => !tetoMedicao(trocar(SRC.planRoute, "      await writeServerEvent({ name: 'ads_v2_plan_served', userId: user.id, path: '/api/ads/v2/plan', metadata: { order_id: order.id, ok: false, stage: 'video_measure'", "      void ({ name: 'x', userId: user.id, path: '/api/ads/v2/plan', metadata: { order_id: order.id, ok: false, stage: 'video_measure'")))
+
+// Enquadramento: o foco tem o sentido da PRÉVIA (cropRect/focalPosition) — o centro do quadro no render é o centro da
+// janela que a pessoa viu, em qualquer foco, horizontal e vertical alto.
+const mesmoRecorte = (Mx) => {
+  const pn = (s) => Number(String(s).replace('%', '')) / 100
+  for (const [vw, vh] of [[1920, 1080], [1280, 720], [1080, 1080], [1080, 3000]]) {
+    for (const f of [0, 0.1, 0.2, 0.33, 0.5, 0.75, 0.9, 1]) {
+      const r = Mx.userVideoFrame(1080, 1920, vw, vh, f, f)
+      const c = SC.cropRect(vw, vh, f, f)
+      const alvoX = (c.sx + c.sw / 2) / vw, alvoY = (c.sy + c.sh / 2) / vh
+      const x = pn(r.x), w = pn(r.width), y = pn(r.y), h = pn(r.height)
+      const renderX = (0.5 - (x - w / 2)) / w, renderY = (0.5 - (y - h / 2)) / h
+      if (Math.abs(renderX - alvoX) > 2e-4 || Math.abs(renderY - alvoY) > 2e-4) return false
+    }
+  }
+  return true
+}
+await check('V4 MONTAGEM: o recorte do vídeo horizontal/alto no render é o MESMO da prévia (cropRect) em 8 focos × 4 formatos — antes errava até 182 px num 1920×1080', () => mesmoRecorte(M))
+await check('V4-mutante: foco tratado como centro (a conta de antes) fica vermelho', () => !mesmoRecorte(pura(F.montage, trocar(SRC.montage, '    const cx = clamp01(focusX) * (1 - 1 / ew) + 1 / (2 * ew)\n', '    const cx = Math.min(1 - 1 / (2 * ew), Math.max(1 / (2 * ew), clamp01(focusX)))\n'))))
+
+// Duração máxima: 10 min, igual nos lugares; acima disso nem o navegador nem o plano aceitam (numeric(6,3) no banco).
+const teto = (L, Sx) => {
+  let recusou = false
+  try { Sx.planShots({ sector: 'real_estate', tier: 'commercial', photos: FOTOS.slice(0, 3), seconds: 15, videos: [VIDEO(1, { seconds: 1200 })] }) } catch (e) { recusou = /too_long/.test(e.message) }
+  return L.userVideoVerdict({ ...IMOVEL, seconds: 600 }) === 'video' && L.userVideoVerdict({ ...IMOVEL, seconds: 600.5 }) === 'too_long' && L.userVideoVerdict({ ...IMOVEL, seconds: 1000 }) === 'too_long' &&
+    L.ADS_V2_USER_VIDEO_MAX_SECONDS === Sx.ADS_V2_PLAN_VIDEO_MAX_SECONDS && L.ADS_V2_USER_VIDEO_MAX_SECONDS === SL.ADS_V2_SIMPLE_VIDEO_MAX_SECONDS && L.ADS_V2_USER_VIDEO_MAX_SECONDS < 1000 && recusou
+}
+await check('V5 vídeo de mais de 10 min: navegador = too_long, plano recusa, /plan = 422 video_too_long (vira plano B nas duas telas); teto < 1000 s (numeric(6,3))', () =>
+  teto(UV, S) && /if \(measured > ADS_V2_PLAN_VIDEO_MAX_SECONDS\) return measureRefused\('video_too_long'/.test(PLAN) &&
+  [SIMPLE, CLIENT].every((x) => /const VIDEO_TO_PHOTOS_CODES: readonly string\[\] = \[[^\]]*'video_too_long'/.test(x)) &&
+  /seconds: ADS_V2_USER_VIDEO_MIN_SECONDS, width: 1, height: 1, videosAlready/.test(SIMPLE) &&
+  ['pt', 'es'].every((l) => SL.simpleErrorMessage('video_too_long', l) !== SL.ADS_V2_SIMPLE_ERRORS[l].default) && /10 minutes/.test(SC.adsV2ErrorMessage('video_too_long')))
+await check('V5-mutante: teto de duração furado no navegador fica vermelho', () => !teto(pura(F.userVideo, trocar(SRC.userVideo, 'export const ADS_V2_USER_VIDEO_MAX_SECONDS = 600', 'export const ADS_V2_USER_VIDEO_MAX_SECONDS = 1e9')), S))
+await check('V5-mutante: teto de duração furado no plano fica vermelho', () => !teto(UV, pura(F.shots, trocar(SRC.shots, '    if (v.seconds > ADS_V2_PLAN_VIDEO_MAX_SECONDS) throw new Error(`ads_v2_video_too_long:${v.id}`)\n', ''))))
+
+// Modo completo também troca por fotos (buraco do guardião: o T3 só olhava o simples).
+const trocaNoCompleto = (src) => /if \(VIDEO_TO_PHOTOS_CODES\.includes\(r\.code\)\) void videoBackToPhotos\(typeof r\.body\.footage_id === 'string' \? r\.body\.footage_id : null\)/.test(semComentarios(src)) &&
+  /async function videoBackToPhotos\(footageId: string \| null, byKey\?: string, why\?: string\)/.test(src)
+await check('V6 completo: recusa do /plan (422) troca ESSE vídeo por fotos, como no simples', () => trocaNoCompleto(SRC.client))
+await check('V6-mutante: completo sem a troca por fotos fica vermelho', () => !trocaNoCompleto(trocar(SRC.client, 'if (VIDEO_TO_PHOTOS_CODES.includes(r.code)) void videoBackToPhotos(', 'if (VIDEO_TO_PHOTOS_CODES.includes(r.code)) void String(')))
+
+// Limite de 2 vídeos com seleções seguidas: uma seleção por vez (a 2ª espera, com aviso), contagem pela referência
+// fresca, e o que passar de 2 vira fotos ANTES de subir (e também se o /plan responder too_many_videos).
+const umaSelecao = (simple, client) => {
+  const S1 = semComentarios(simple), C1 = semComentarios(client)
+  return ordem(S1, 'async function addFiles(', 'if (addingRef.current) {', 'setFileNote(copy.files.waitAdding)', 'addingRef.current = true', 'await addFilesNow(list)', 'addingRef.current = false') &&
+    /let videosAlready = itemsRef\.current\.filter\(\(p\) => p\.video\)\.length/.test(S1) &&
+    ordem(S1, 'async function planAd()', 'if (await videosPastLimitToFrames()) return', 'await ensureItemsUploaded()') && /if \(r\.code === 'too_many_videos'\) void videosPastLimitToFrames\(\)/.test(S1) &&
+    /\.filter\(\(p\) => p\.video\)\.slice\(ADS_V2_MAX_USER_VIDEOS\)/.test(S1) &&
+    ordem(C1, 'async function addPhotos(', 'if (addingRef.current) {', 'addingRef.current = true', 'await addPhotosNow(list)', 'addingRef.current = false') &&
+    /const photos = photosRef\.current\n/.test(C1) && ordem(C1, 'async function planAd()', 'if (await videosPastLimitToPhotos()) return', 'await ensurePhotosUploaded()') &&
+    /if \(r\.code === 'too_many_videos'\) void videosPastLimitToPhotos\(\)/.test(C1) && /\.filter\(\(p\) => p\.video\)\.slice\(ADS_V2_PLAN_MAX_VIDEOS\)/.test(C1) &&
+    ['en', 'pt', 'es'].every((l) => typeof SL.ADS_V2_SIMPLE_COPY[l].files.waitAdding === 'string' && SL.ADS_V2_SIMPLE_COPY[l].files.waitAdding.length > 20)
+}
+await check('V7 2 vídeos no máximo mesmo com seleções seguidas: uma seleção por vez, contagem fresca, excesso vira fotos antes de subir (simples e completo)', () => umaSelecao(SRC.simple, SRC.client))
+await check('V7-mutante: simples sem a trava de uma seleção por vez fica vermelho', () => !umaSelecao(trocar(SRC.simple, '    if (addingRef.current) {\n      setFileNote(copy.files.waitAdding)', '    if (false) {\n      setFileNote(copy.files.waitAdding)'), SRC.client))
+await check('V7-mutante: planejar sem converter o 3º vídeo fica vermelho', () => !umaSelecao(trocar(SRC.simple, '      if (await videosPastLimitToFrames()) return\n', ''), SRC.client))
 
 console.log(`test-ads-video-do-cliente-2026-09-29: ${ok} verdes, ${falhas.length} vermelhos`)
 if (falhas.length) {

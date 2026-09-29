@@ -63,7 +63,10 @@ export const ADS_V2_USER_VIDEO_ASPECT_TOLERANCE = 0.02
 
 /**
  * Enquadramento 9:16 do vídeo do cliente SEM propriedade nova: o elemento ganha a proporção do próprio vídeo (fit cover
- * sem corte interno) e é deslocado por x/y para o ponto focal ficar no centro, sempre cobrindo o quadro inteiro.
+ * sem corte interno) e é deslocado por x/y, sempre cobrindo o quadro inteiro.
+ * O foco (fx, fy) tem o MESMO sentido da prévia (cropRect/focalPosition/panFocal, lib/ads/v2Screen.ts): é a POSIÇÃO da
+ * janela 9:16 dentro do vídeo (0 = encostada à esquerda/topo, 1 = à direita/base), não o ponto que fica no centro.
+ * Revisão 29/09: antes o fx era tratado como centro e o recorte do render saía até 30% do quadro fora do escolhido.
  * Dimensões desconhecidas ou vídeo já vertical = recorte ao centro (100% × 100%), como qualquer outro plano.
  */
 export function userVideoFrame(frameW: number, frameH: number, videoW: unknown, videoH: unknown, focusX: unknown, focusY: unknown): { x: string; y: string; width: string; height: string } {
@@ -75,14 +78,12 @@ export function userVideoFrame(frameW: number, frameH: number, videoW: unknown, 
   const clamp01 = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5)
   if (A > F) {
     const ew = A / F
-    const half = 1 / (2 * ew)
-    const fx = Math.min(1 - half, Math.max(half, clamp01(focusX)))
-    return { x: pct(0.5 + ew * (0.5 - fx)), y: '50%', width: pct(ew), height: '100%' }
+    const cx = clamp01(focusX) * (1 - 1 / ew) + 1 / (2 * ew)
+    return { x: pct(0.5 + ew * (0.5 - cx)), y: '50%', width: pct(ew), height: '100%' }
   }
   const eh = F / A
-  const half = 1 / (2 * eh)
-  const fy = Math.min(1 - half, Math.max(half, clamp01(focusY)))
-  return { x: '50%', y: pct(0.5 + eh * (0.5 - fy)), width: '100%', height: pct(eh) }
+  const cy = clamp01(focusY) * (1 - 1 / eh) + 1 / (2 * eh)
+  return { x: '50%', y: pct(0.5 + eh * (0.5 - cy)), width: '100%', height: pct(eh) }
 }
 
 export interface AdV2Overlay {

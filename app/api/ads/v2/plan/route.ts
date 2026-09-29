@@ -15,7 +15,7 @@ import { adsGate, isMissingAdsTable, loadAdsAccess } from '@/lib/ads/serverAcces
 import { adsV2Visible } from '@/lib/ads/v2Access'
 import { sanitizeAssetsBody, sanitizePlanBody } from '@/lib/ads/v2Contract'
 import { adsV2Credits, estimateAdUsd } from '@/lib/ads/v2Tiers'
-import { ADS_V2_PLAN_VIDEO_MIN_SECONDS, adsV2NarrationMaxWords, planShots, type AdsV2Video } from '@/lib/ads/v2ShotLists'
+import { ADS_V2_PLAN_VIDEO_MAX_SECONDS, ADS_V2_PLAN_VIDEO_MIN_SECONDS, adsV2NarrationMaxWords, planShots, type AdsV2Video } from '@/lib/ads/v2ShotLists'
 import { ADS_V2_PLAN_DAILY_CAP, checkV2Prompts, extractAdsV2Brief } from '@/lib/ads/v2Brief'
 import { adsV2LinkText } from '@/lib/ads/v2Link'
 import { researchState, storedResearchFacts } from '@/lib/ads/v2Research'
@@ -85,11 +85,18 @@ export async function POST(req: NextRequest) {
 
     // A duração que manda é a MEDIDA aqui (mvhd do arquivo no bucket), nunca a do navegador. Não mediu ou curto demais =
     // 422 com o id: a tela transforma ESSE vídeo em fotos (plano B) e a pessoa planeja de novo, grátis.
+    // Revisão: a recusa da medição também CONTA no teto diário (cada medição baixa até 50 MB); antes só o plano servido
+    // contava e um vídeo ilegível podia ser medido sem fim. Longo demais (> 10 min) = numeric(6,3) do banco estouraria.
     const videos: AdsV2Video[] = []
+    const measureRefused = async (code: 'video_unreadable' | 'video_too_short' | 'video_too_long', footageId: string, seconds: number | null) => {
+      await writeServerEvent({ name: 'ads_v2_plan_served', userId: user.id, path: '/api/ads/v2/plan', metadata: { order_id: order.id, ok: false, stage: 'video_measure', why: code, seconds_measured: seconds, videos: videosIn.length, ms: Date.now() - started } })
+      return v2Fail(code, 422, { footage_id: footageId })
+    }
     for (const [i, measured] of (await Promise.all(videosIn.map((v) => measureFootageVideo(own.get(v.footage_id)!.url)))).entries()) {
       const v = videosIn[i]
-      if (measured === null) return v2Fail('video_unreadable', 422, { footage_id: v.footage_id })
-      if (measured < ADS_V2_PLAN_VIDEO_MIN_SECONDS) return v2Fail('video_too_short', 422, { footage_id: v.footage_id })
+      if (measured === null) return measureRefused('video_unreadable', v.footage_id, null)
+      if (measured < ADS_V2_PLAN_VIDEO_MIN_SECONDS) return measureRefused('video_too_short', v.footage_id, measured)
+      if (measured > ADS_V2_PLAN_VIDEO_MAX_SECONDS) return measureRefused('video_too_long', v.footage_id, measured)
       videos.push({ id: v.footage_id, url: own.get(v.footage_id)!.url, seconds: measured, start: v.start, focusX: v.focus_x, focusY: v.focus_y, width: v.width, height: v.height })
     }
 

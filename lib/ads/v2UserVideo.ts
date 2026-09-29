@@ -24,6 +24,9 @@ export const ADS_V2_USER_VIDEO_MAX_BYTES = 50 * 1024 * 1024
 export const ADS_V2_USER_VIDEO_TYPES: readonly string[] = ['video/mp4', 'video/quicktime']
 /** Vídeo mais curto que isto não cabe no maior corte (2,5 s) + dissolve (0,25 s) + folga: vira fotos. */
 export const ADS_V2_USER_VIDEO_MIN_SECONDS = 3
+/** Vídeo mais longo que isto (10 min) não entra como vídeo (o banco guarda o trecho em numeric(6,3)) — espelho do teto do
+ *  plano B (ADS_V2_SIMPLE_VIDEO_MAX_SECONDS, lib/ads/v2Simple.ts) e de ADS_V2_PLAN_VIDEO_MAX_SECONDS (v2ShotLists). */
+export const ADS_V2_USER_VIDEO_MAX_SECONDS = 600
 /** Janela avaliada no navegador: o maior corte de foto do molde (2,5 s) + o dissolve (0,25 s). */
 export const ADS_V2_USER_VIDEO_WINDOW = 2.75
 /** Dissolve e folga — espelhos de ADS_V2_FADE_SECONDS e ADS_V2_CUT_MARGIN (lib/ads/v2ShotLists.ts). */
@@ -32,7 +35,7 @@ export const ADS_V2_USER_VIDEO_MARGIN = 0.1
 /** Quadros amostrados para achar o trecho mais vivo (barato: 32×18 px cada, só no navegador). */
 export const ADS_V2_USER_VIDEO_SAMPLES = 24
 
-export type AdsV2UserVideoVerdict = 'video' | 'too_big' | 'bad_type' | 'unreadable' | 'too_short' | 'too_many'
+export type AdsV2UserVideoVerdict = 'video' | 'too_big' | 'bad_type' | 'unreadable' | 'too_short' | 'too_long' | 'too_many'
 
 const r3 = (n: number): number => Math.round(n * 1000) / 1000
 const finitePos = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n) && n > 0
@@ -54,6 +57,7 @@ export function userVideoVerdict(v: {
   if (!ADS_V2_USER_VIDEO_TYPES.includes(String(v.type ?? '').toLowerCase())) return 'bad_type'
   if (!finitePos(v.seconds) || !finitePos(v.width) || !finitePos(v.height)) return 'unreadable'
   if (v.seconds < ADS_V2_USER_VIDEO_MIN_SECONDS) return 'too_short'
+  if (v.seconds > ADS_V2_USER_VIDEO_MAX_SECONDS) return 'too_long'
   return 'video'
 }
 
