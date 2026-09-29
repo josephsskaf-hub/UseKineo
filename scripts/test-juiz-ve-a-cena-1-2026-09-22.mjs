@@ -18,7 +18,7 @@ const rt = rd('app/api/generate-video-cinematic/route.ts')
 
 console.log('== (1) o prompt de cada cena hollywood cai no índice que o juiz lê ==')
 checa('as 3 gravações hollywood usam hs.index - 1 (0-based, como scene_index e como o clássico)', (rt.match(/ctxDespacho\(\)\.submittedPrompts\[hs\.index - 1\] = submittedPrompt\.slice\(0, 240\)/g) || []).length === 3 && !/submittedPrompts\[hs\.index\] =/.test(rt))
-checa('o clássico segue 0-based (c.submittedPrompts[sceneIndex])', rt.includes('c.submittedPrompts[sceneIndex] = cinematic.slice(0, 240)'))
+checa('o clássico segue 0-based (c.submittedPrompts[sceneIndex]) — desde KLING25-60S-VARIEDADE o Kling grava o prompt sem o eixo', rt.includes("c.submittedPrompts[sceneIndex] = (wantsKling ? kling25StripShotAxis(cinematic) : cinematic).slice(0, 240)"))
 // O leitor do painel: com os prompts alinhados, a cena 1 tem prompt e a última também (sem buraco no 0).
 function roda(file, requireMap = {}) {
   const exports = {}
