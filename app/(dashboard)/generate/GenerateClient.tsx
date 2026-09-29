@@ -799,9 +799,9 @@ interface FastRenderInputs {
   // /api/compose/unlock remontava TUDO como 'fast' (cortes de 6/9s, clipe
   // reciclado) e o "export limpo" de um Seedance voltava com outra montagem.
   quality?: string
+  verbatim?: boolean // KINEO-SEEDANCE-15S-2026-09-29: filme de IA em verbatim — o unlock espelha o claimVerbatim do compose
   // LOTE2-EXPORT-LIMPO-FIEL-2026-09-23 — o formato do filme. Sem ele o export limpo PAGO de um 16:9/1:1/4:5 voltava 9:16.
   aspect?: string
-  verbatim?: boolean // KINEO-SEEDANCE-15S-2026-09-29: filme de IA em verbatim — o unlock espelha o claimVerbatim do compose
 }
 
 interface ActiveRenderSnapshot {
