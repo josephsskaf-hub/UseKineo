@@ -138,9 +138,11 @@ export function seedanceDurationParam(seconds?: number | null): SeedanceSeconds 
 
 /**
  * Submete um clipe Seedance 5 s 720p sem áudio. Nunca lança; null = não submeteu.
- * KINEO1-CLIPE-IA-PROMPT-2026-09-28 — `seed` (opcional) é a semente determinística; sem ela, nasce do próprio prompt
- * (aiClipSeedFromPrompt): o mesmo prompt reproduz o mesmo clipe. O schema da fal (Seedance 1.5 Pro t2v, conferido em
- * 28/09) aceita `seed: integer | null` ("Use -1 for random"). A rota (trava 8.2) segue chamando com 1 argumento.
+ * KINEO1-CLIPE-IA-PROMPT-2026-09-28 — `seed` (opcional) é a semente determinística; sem ela, nasce do prompt MAIS um
+ * discriminador por chamada (aiClipSeedFromPrompt, revisão 28/09): duas cenas do mesmo filme com a mesma fala ganham
+ * seeds diferentes (só do prompt, saía o MESMO clipe duas vezes). Quem tem o índice da cena passa `seed` =
+ * aiClipSeed(generationId, cena) ou aiClipSeedFromPrompt(prompt, cena). O schema da fal (Seedance 1.5 Pro t2v,
+ * conferido em 28/09) aceita `seed: integer | null` ("Use -1 for random"). A rota (trava 8.2) segue com 1 argumento.
  */
 export async function submitSceneClip(prompt: string, seconds?: number, seed?: number): Promise<string | null> {
   try {

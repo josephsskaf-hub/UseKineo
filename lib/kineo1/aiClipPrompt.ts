@@ -11,6 +11,16 @@
 //
 // Módulo PURO (sem import): lib/fastAiClips.ts e lib/fastAiHook.ts delegam aqui; os guardiões o executam por
 // readFileSync + transpileModule. As assinaturas que a rota (trava 8.2) chama não mudam.
+//
+// REVISÃO 28/09 (revisor cético, 2 defeitos que o cliente via):
+//   · SEED — nascia só do prompt: duas cenas do MESMO filme com a mesma fala (prosa verbatim repete "Visit x.com")
+//     ganhavam a MESMA seed e o MESMO clipe (antes, sem seed, saíam diferentes = variedade). Agora a seed mistura o
+//     prompt com um discriminador por chamada (aiClipSeedFromPrompt): índice quando quem chama o tem, senão contador.
+//   · LIMPEZA DE MARCA engolia texto legítimo: "St. Louis" → "Louis" (a frase "St." caía no filtro de < 2 palavras),
+//     NASA/CEO/RUIS sumiam como marca em caixa alta, "cold.In the morning" virava "the morning" (o TLD "in" numa lista
+//     de 100+ TLDs comia a frase). Agora: só TLDs conhecidos; URL/www/@handle/domínio falado/CamelCase seguem; caixa
+//     alta NÃO é marca; "Xx." de 2-3 letras seguido de espaço não fecha frase; ponto colado entre palavra minúscula e
+//     Palavra capitalizada ganha espaço ANTES da limpeza.
 
 /** Sufixo negativo único — aparece UMA vez em todo prompt de clipe de IA. */
 export const AI_CLIP_NEGATIVE_SUFFIX = 'no readable text, no letters, no logos, no brand names, no signs, no subtitles, no watermarks'
@@ -22,7 +32,8 @@ export const AI_CLIP_DRAWN_LIKENESS = "no real person's likeness"
 export const AI_CLIP_SCREEN_HINT = 'any screen shown at an angle and softly out of focus, without interface text'
 export const AI_CLIP_FALLBACK_SUBJECT = 'abstract cinematic atmosphere, soft light and shadow'
 
-const TLD = 'com|net|org|io|ai|ng|in|co|app|dev|me|us|uk|br|de|fr|es|it|nl|ca|au|xyz|info|biz|online|site|store|shop|tech|pro|ly|tv|so|gg|eu|za|ke|gh|ae|sa|pk|bd|lk|my|sg|ph|id|jp|kr|cn|ru|pl|se|no|dk|fi|pt|mx|ar|cl|pe|ve|edu|gov|link|page|cloud|digital|agency|studio|media|news|global|world|life|today|top|club|design|tools|team|space|live|art|zone|one|network|solutions|services|systems|academy|health|care|law|legal|finance|bank|money|cash|credit|loans|ventures|capital|group|company|inc|ltd'
+/** Só TLDs conhecidos (revisão 28/09): a lista de 100+ ("team", "life", "one", "top", "money"…) comia frase comum. */
+const TLD = 'com|net|org|io|ai|app|co|ng|br|uk|de|fr|es|it|nl|in|us|me|tv|dev|xyz|info|biz|shop|store'
 const URL_RE = /\bhttps?:\/\/[^\s)\]]+/gi
 const WWW_RE = /\bwww\.[^\s)\]]+/gi
 const DOMAIN_RE = new RegExp(`\\b([a-z0-9][\\w-]*)(?:\\.[\\w-]+)*\\.(?:${TLD})\\b(?:\\/[^\\s)\\]]*)?`, 'gi')
@@ -31,8 +42,19 @@ const SPOKEN_DOMAIN_RE = /\b([A-Za-z][\w-]*)\s+dot\s+(?:[a-z]{1,4}\b\s*){1,3}/gi
 const HANDLE_RE = /(?:^|[\s(])@([\w.]{2,})/g
 /** Marca escrita como CamelCase interno (eCredit, SmartTender, MadLabs, eQMS, iPhone). */
 const CAMEL_RE = /\b(?:[a-z]+[A-Z][A-Za-z0-9]*|[A-Z][a-z]+[A-Z][A-Za-z0-9]*)\b/g
-/** Palavra em CAIXA ALTA com 3+ letras (ADMITIY, RUIS). Fora quando o texto inteiro grita (metade ou mais em caixa alta). */
-const ALLCAPS_RE = /\b[A-Z]{3,}\b/g
+/**
+ * "cold.In the morning" — ponto COLADO entre palavra minúscula e Palavra capitalizada é fim de frase sem espaço, não
+ * domínio ("cold.in" casava o TLD "in" e a frase inteira sumia). Roda ANTES de extrair/limpar. "eCredit.ng",
+ * "admitiy.com", "Kineo.AI" não casam (o que segue o ponto é minúsculo ou tudo maiúsculo).
+ */
+const PONTO_COLADO_RE = /(\p{Ll})\.(\p{Lu}\p{Ll})/gu
+const separarPontoColado = (s: string) => s.replace(PONTO_COLADO_RE, '$1. $2')
+/**
+ * Fim de frase = [.!?] + espaço — mas NÃO depois de abreviação "Xx." de 2-3 letras (St. Louis, Mt. Fuji, Dr. Lee,
+ * Mr., Ms.): antes, "St." virava uma "frase" de 1 palavra e caía no filtro (St. Louis → Louis).
+ */
+const FIM_DE_FRASE_RE = /(?<=[.!?])(?<!\b\p{Lu}\p{Ll}{1,2}\.)\s+/u
+const frases = (s: string) => s.split(FIM_DE_FRASE_RE)
 const CTA_SENTENCE_RE = /^(visit|go to|download|call|follow|subscribe|sign up|check out|learn more|contact|click|order|book|try|get started|join|see what|stay connected|find us|search|dm|message|whatsapp|text)\b/i
 const LEAD_FILLER_RE = /^(tonight|today|meet|introducing|welcome to|imagine|picture this|this is|here is|here's|now|so|and|but|because|that's why|at)\b[,:]?\s*/i
 const PEOPLE_RE = /\b(men|women|man|woman|persons?|people|guys?|girls?|boys?|kids?|child|children|influencers?|models?|fathers?|mothers?|dad|mom|wife|wives|husbands?|daughters?|sons?|students?|employees?|workers?|teams?|customers?|clients?|users?|families|family|owners?|founders?|entrepreneurs?|evaluators?|doctors?|nurses?|patients?|teachers?|friends?|couples?|players?|athletes?|fans|crowd|audience|staff|managers?|experts?|farmers?|travelers?|tourists?|chefs?|drivers?|creators?|professionals?|colleagues?)\b/gi
@@ -53,17 +75,15 @@ function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-function isShouting(text: string): boolean {
-  const words = text.match(/\b[A-Za-z]{3,}\b/g) ?? []
-  if (words.length < 4) return false
-  const caps = words.filter((w) => /^[A-Z]+$/.test(w)).length
-  return caps * 2 >= words.length
-}
-
-/** Nomes de marca que o texto carrega (minúsculas): base de domínio, domínio falado, @handle, CamelCase, CAIXA ALTA. */
+/**
+ * Nomes de marca que o texto carrega (minúsculas): base de domínio, domínio falado, @handle, CamelCase.
+ * CAIXA ALTA NÃO é marca (revisão 28/09): NASA, CEO, FBI, RUIS ficam — sigla legítima não se distingue de marca gritada,
+ * e o sufixo negativo do prompt já proíbe letra na tela. A marca em caixa alta que TAMBÉM aparece como domínio/handle
+ * ("ADMITIY … admitiy dot in") continua saindo: a troca é case-insensitive.
+ */
 export function extractBrandTokens(text: string): string[] {
   const out = new Set<string>()
-  const t = text ?? ''
+  const t = separarPontoColado(text ?? '')
   for (const m of t.matchAll(new RegExp(DOMAIN_RE.source, 'gi'))) if (m[1] && m[1].toLowerCase() !== 'www') out.add(m[1].toLowerCase())
   for (const m of t.matchAll(new RegExp(WWW_RE.source, 'gi'))) {
     const base = m[0].replace(/^www\./i, '').split('.')[0]
@@ -72,7 +92,6 @@ export function extractBrandTokens(text: string): string[] {
   for (const m of t.matchAll(new RegExp(SPOKEN_DOMAIN_RE.source, 'gi'))) if (m[1]) out.add(m[1].toLowerCase())
   for (const m of t.matchAll(new RegExp(HANDLE_RE.source, 'g'))) if (m[1]) out.add(m[1].replace(/\.+$/, '').toLowerCase())
   for (const m of t.matchAll(new RegExp(CAMEL_RE.source, 'g'))) out.add(m[0].toLowerCase())
-  if (!isShouting(t)) for (const m of t.matchAll(new RegExp(ALLCAPS_RE.source, 'g'))) out.add(m[0].toLowerCase())
   return [...out].filter((b) => b.length >= 2)
 }
 
@@ -81,14 +100,14 @@ export function extractBrandTokens(text: string): string[] {
  * "Visit admitiy.com" e depois "ADMITIY is building" perdem os dois). Frases que sobram com menos de 2 palavras caem.
  */
 export function stripBrandsAndUrls(text: string, extraBrands: string[] = []): string {
-  let t = (text ?? '').replace(/\s+/g, ' ')
+  let t = separarPontoColado((text ?? '').replace(/\s+/g, ' '))
   const brands = new Set<string>([...extractBrandTokens(t), ...extraBrands.map((b) => b.toLowerCase()).filter(Boolean)])
   // ordem: URL e @handle ANTES do domínio (senão "@madlabs.io" vira "@" órfão)
   t = t.replace(URL_RE, ' ').replace(HANDLE_RE, ' ').replace(WWW_RE, ' ').replace(SPOKEN_DOMAIN_RE, ' ').replace(new RegExp(DOMAIN_RE.source, 'gi'), ' ')
   for (const b of brands) t = t.replace(new RegExp(`(?<![\\p{L}\\p{N}])${escapeRe(b)}(?:'s)?(?![\\p{L}\\p{N}])`, 'giu'), ' ')
   // "dot" órfão de um domínio já removido ("at dot", "dot .")
   t = t.replace(/\bdot\b/gi, ' ').replace(/\b(?:at|on|to|in|with|via|of|for|from|by)\s*(?=[.!?,]|$)/gi, '')
-  const sentences = tidy(t).split(/(?<=[.!?])\s+/).map(tidy).filter((s) => (s.match(/[\p{L}\p{N}]+/gu) ?? []).length >= 2)
+  const sentences = frases(tidy(t)).map(tidy).filter((s) => (s.match(/[\p{L}\p{N}]+/gu) ?? []).length >= 2)
   return tidy(sentences.join(' '))
 }
 
@@ -111,7 +130,7 @@ export function looksLikeSpeech(text: string): boolean {
   const t = (text ?? '').trim()
   if (!t) return false
   if (/\b(you|your|yours|we|our|us|i|my|me|let's)\b/i.test(t)) return true
-  const sentences = t.split(/(?<=[.!?])\s+/).filter(Boolean)
+  const sentences = frases(t).filter(Boolean)
   if (sentences.some((s) => CTA_SENTENCE_RE.test(s))) return true
   return sentences.length >= 3
 }
@@ -119,7 +138,7 @@ export function looksLikeSpeech(text: string): boolean {
 /** A primeira frase descritiva da fala, sem chamada para ação e sem marca — o que a frase descreve. */
 export function subjectFromSpeech(voiceover: string): string {
   const clean = stripBrandsAndUrls(voiceover)
-  const sentences = clean.split(/(?<=[.!?])\s+/).map(tidy).filter(Boolean)
+  const sentences = frases(clean).map(tidy).filter(Boolean)
   const descriptive = sentences.filter((s) => !CTA_SENTENCE_RE.test(s) && (s.match(/[\p{L}\p{N}]+/gu) ?? []).length >= 3)
   const pick = descriptive[0] ?? sentences.sort((a, b) => b.length - a.length)[0] ?? ''
   // a marca era o sujeito ("eCredit.ng is a platform…"): sem ela, cai o verbo de ligação órfão ("is a platform…")
@@ -188,7 +207,17 @@ const SEED_MOD = 2147483646
 export function aiClipSeed(generationId: string, sceneIndex: number): number {
   return (fnv1a(`${generationId}:${Math.max(0, Math.floor(sceneIndex))}`) % SEED_MOD) + 1
 }
-/** Quando quem submete não tem o generationId (a rota só o cria depois — trava 8.2): a seed nasce do próprio prompt. */
-export function aiClipSeedFromPrompt(prompt: string): number {
-  return (fnv1a(`prompt:${prompt}`) % SEED_MOD) + 1
+/**
+ * Quando quem submete não tem o generationId (a rota só o cria depois — trava 8.2): a seed nasce do prompt MAIS um
+ * discriminador por chamada. REVISÃO 28/09: só do prompt, duas cenas do MESMO filme com a mesma fala (prosa verbatim
+ * repete a chamada "Visit x.com" em várias cenas) recebiam a MESMA seed → o MESMO clipe duas vezes; antes da seed
+ * saíam diferentes (variedade). `indice` (cena/posição), quando quem chama o tem → estável para o mesmo par
+ * (prompt, índice) e diferente entre índices; sem ele, um contador de chamadas por processo: a cena seguinte do mesmo
+ * pedido nunca repete a anterior (a rota, travada, chama com 1 argumento). Prefixos distintos (i/n) para o índice 2 e
+ * a 2ª chamada não colidirem.
+ */
+let chamadasSemIndice = 0
+export function aiClipSeedFromPrompt(prompt: string, indice?: number): number {
+  const d = typeof indice === 'number' && Number.isFinite(indice) ? `i${Math.max(0, Math.floor(indice))}` : `n${++chamadasSemIndice}`
+  return (fnv1a(`prompt:${prompt}#${d}`) % SEED_MOD) + 1
 }

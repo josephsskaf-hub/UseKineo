@@ -52,7 +52,8 @@ export function buildHookPrompt(sceneDescription: string, topic: string, look?: 
 
 /**
  * Submit the hook generation. Returns null when disabled/unconfigured. Never throws.
- * KINEO1-CLIPE-IA-PROMPT-2026-09-28 — `seed` (opcional) determinística; sem ela, nasce do prompt (o mesmo gancho reproduz).
+ * KINEO1-CLIPE-IA-PROMPT-2026-09-28 — `seed` (opcional) determinística; sem ela, nasce do prompt + discriminador por
+ * chamada (aiClipSeedFromPrompt, revisão 28/09: o gancho e uma cena com a mesma fala não repetem o clipe).
  */
 export async function submitAiHook(prompt: string, seed?: number): Promise<AiHookHandle | null> {
   try {
