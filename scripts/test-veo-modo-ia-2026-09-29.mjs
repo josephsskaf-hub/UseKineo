@@ -40,6 +40,9 @@ const roda = (src, globals = {}) => {
   return exp
 }
 const fatia = (src, ini, fim) => { const a = src.indexOf(ini); if (a < 0) return null; const b = src.indexOf(fim, a + ini.length); return b < 0 ? null : src.slice(a, b + fim.length) }
+// [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29 — o /api/compose ganhou só o import e o bloco
+// marcados da voz assinada do filme de 15 s (linhas acrescentadas, antes de `vertical`/`explicitSpeed`); fora deles, byte a byte a base.
+const semVoz15 = (p, s) => { if (p !== 'app/api/compose/route.ts' || s == null) return s; const bloco = fatia(s, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29 — o filme de 15 s do', '    if (vozAssinada) { body.vertical = vozAssinada.vertical; body.speed = vozAssinada.speed }\n'); return (bloco ? s.split(bloco).join('') : s).split('\n').filter((l) => !(l.startsWith('import {') && l.includes("from '@/lib/vozDoFilmeCurto'"))).join('\n') }
 const eqJ = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 const palavras = (t) => String(t ?? '').trim().split(/\s+/).filter(Boolean)
 const git = (args) => execFileSync('git', args, { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()
@@ -243,7 +246,7 @@ checa('o plano do modo IA viaja pelo builder da fal do Veo (scene.clipSeconds �
 // ═══ (c) byte a byte ═══
 console.log('== (c) Seedance / Kling 2.5 / Sora / hollywood byte a byte ==')
 for (const p of ['lib/cinematic/klingShots.ts', 'lib/compose.ts', 'lib/cinematic/classicDryRun.ts', 'lib/runway.ts', 'lib/cinematic/sceneWords.ts', 'lib/speechRate.ts', 'lib/narrationFit.ts', 'app/api/compose/route.ts', 'lib/cinematic/speechImageAlign.ts', 'lib/cinematic/sceneDescriptions.ts']) {
-  checa(`${p} byte a byte igual à base`, rdBase(p) !== null && rdBase(p) === rd(p))
+  checa(`${p} byte a byte igual à base${p === 'app/api/compose/route.ts' ? ' (fora o import e o bloco marcados KINEO-VOZ-15S-MESMA-DA-MONTAGEM, só acrescentados)' : ''}`, rdBase(p) !== null && rdBase(p) === semVoz15(p, rd(p)))
 }
 const fatiasIntocadas = [
   ['let kling25Footage = 0', 'clipCount = planos\n    }'],
@@ -277,7 +280,9 @@ if (rotaBase) {
     // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-SEEDANCE-BLOCOS-2026-09-29 — o bloco do Seedance 35/60/90 s (roteiro marcado com mais blocos que clipes) mora em peça própria, marcada, sem import novo; este guardião a aceita
     fatia(rota, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-SEEDANCE-BLOCOS-2026-09-29', '    // ═══ [TRAVA 8.2] VEO-PLANOS-2026-09-29'),
     // [TRAVA 8.2 — "vai" do 15 s] KINEO-CONTAGEM-FALA-15S-2026-09-29 — o bloco do filme de 15 s do Seedance (roteiro marcado com mais de 3 blocos) mora em bloco próprio, marcado, com import em linha própria; este guardião os aceita
-    fatia(rota, '    // [TRAVA 8.2 — "vai" do 15 s] KINEO-CONTAGEM-FALA-15S-2026-09-29 — roteiro marcado', '        clipCount = scenes.length\n      }\n    }\n'), rota.split('\n').find((l) => l.startsWith('import {') && l.includes("from '@/lib/durationByEngine'") && l.includes('KINEO-CONTAGEM-FALA-15S-2026-09-29'))].filter(Boolean).join('\n')
+    fatia(rota, '    // [TRAVA 8.2 — "vai" do 15 s] KINEO-CONTAGEM-FALA-15S-2026-09-29 — roteiro marcado', '        clipCount = scenes.length\n      }\n    }\n'), rota.split('\n').find((l) => l.startsWith('import {') && l.includes("from '@/lib/durationByEngine'") && l.includes('KINEO-CONTAGEM-FALA-15S-2026-09-29')),
+    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29 — a voz do filme de 15 s do Seedance (portão = voz da montagem) mora em linhas próprias, marcadas, com import em linha própria; este guardião as aceita
+    fatia(rota, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29 — no filme de 15 s do', '      if (vozCurta) return vozCurta\n'), fatia(rota, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29 — só no filme de 15 s do', 'response.narration_voice = campoDaVozAssinada(vozCurta)\n'), rota.split('\n').find((l) => l.startsWith('import {') && l.includes("from '@/lib/vozDoFilmeCurto'"))].filter(Boolean).join('\n')
   const foraDoLugar = adicionadas.filter((l) => l.trim() && !permitidas.includes(l))
   checa(`diff da rota contra a base: ${adicionadas.length} linhas novas, todas dentro dos blocos do modo IA do Veo ou do VEO-MARCADO (${foraDoLugar.length} fora: ${foraDoLugar.slice(0, 2).map((l) => l.trim().slice(0, 60)).join(' | ')})`, adicionadas.length > 0 && foraDoLugar.length === 0)
   checa(`diff da rota contra a base: NENHUMA linha da base alterada ou apagada — a rota só ganhou linhas (${removidas.length} removida(s))`, removidas.length === 0)

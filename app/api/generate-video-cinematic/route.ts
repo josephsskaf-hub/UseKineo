@@ -1576,7 +1576,8 @@ async function manipularPost(req: NextRequest) {
     // voz vai assinada no claim (`narration_voice`, na resposta clássica abaixo) para o /api/compose falar exatamente ela.
     // Antes: persona escolhida sobre o pedido inteiro (pistas [Pexels] inclusas) — 36 palavras de ciência/IA eram
     // recusadas medidas a 2,65 pal/s enquanto a montagem sem `vertical` falava a 2,5. Todo outro pedido: null, nada muda.
-    const vozCurta = hollywoodPath || wantsKling || wantsVeo || wantsSora ? null : vozDoFilmeCurto({ engine: body.engine, seconds: duration, narration: parsedScript.narration || prompt, vertical: typeof body.vertical === 'string' ? body.vertical : null, language: narrationLanguage.language })
+    // (null fora do 15 s do Seedance 1.5 — Kling/Veo/Sora/hollywood a 15 s já foram recusados acima por checarDuracao; fail-open como a persona)
+    const vozCurta = (() => { try { return vozDoFilmeCurto({ engine: body.engine, seconds: duration, narration: parsedScript.narration || prompt, vertical: typeof body.vertical === 'string' ? body.vertical : null, language: narrationLanguage.language }) } catch { return null } })()
     const classicPersona = hollywoodPath ? null : (() => {
       if (vozCurta) return vozCurta
       try { return selectPersonaForScript(prompt, typeof body.vertical === 'string' && body.vertical.trim() ? body.vertical.trim().toLowerCase() : undefined, 'cinematic', narrationLanguage.language) } catch { return null }
