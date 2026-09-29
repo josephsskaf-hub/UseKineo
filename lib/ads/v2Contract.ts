@@ -20,6 +20,16 @@ export const ADS_V2_SENTENCE_MAX_CHARS = 400
 export const ADS_V2_LINK_MAX_CHARS = 500
 export const ADS_V2_CONTRACT_MIN_PHOTOS = 3
 export const ADS_V2_CONTRACT_MAX_PHOTOS = 7
+/**
+ * KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — vídeos do cliente que entram COMO VÍDEO (espelho de ADS_V2_MAX_USER_VIDEOS,
+ * lib/ads/v2UserVideo.ts). Cada vídeo ocupa uma vaga de foto: fotos + vídeos ficam entre 3 e 7, com pelo menos 1 foto
+ * (a cena criada do Comercial/Cinema usa as fotos como referência e o molde reparte as fotos pelas vagas que sobram).
+ */
+export const ADS_V2_CONTRACT_MAX_VIDEOS = 2
+/** Teto do início sugerido pelo navegador (s) — o servidor ainda confere contra a duração MEDIDA. */
+export const ADS_V2_VIDEO_START_MAX = 3600
+/** Maior lado aceito para largura/altura informadas pelo navegador (só servem para o enquadramento). */
+export const ADS_V2_VIDEO_DIM_MAX = 8192
 /** Maior índice de plano possível: Cinema de 30 s = 7 + 6 extras = 13 planos (0..12). Folga para o molde crescer. */
 export const ADS_V2_MAX_SHOT_IDX = 15
 /** Teto do preço de refação que a tela pode confirmar (hoje 5 ou 12 cr; provisório). */
@@ -146,19 +156,71 @@ export interface AdsV2PlanPhoto {
   footage_id: string
   kind: AdsV2ContractPhotoKind
 }
+/** Vídeo do cliente que entra como vídeo (KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29). */
+export interface AdsV2PlanVideo {
+  footage_id: string
+  /** Início do trecho mais vivo sugerido pelo navegador (s); null = o servidor usa o meio. */
+  start: number | null
+  /** Ponto focal (0..1) que a pessoa arrastou; 0,5 = centro. Só pesa em vídeo horizontal (recorte 9:16). */
+  focus_x: number
+  focus_y: number
+  /** Largura/altura lidas no navegador (só para o enquadramento); null = desconhecidas (recorte ao centro). */
+  width: number | null
+  height: number | null
+}
 export interface AdsV2PlanBody {
   order_id: string
   sector: AdsV2ContractSector
   /** Obrigatório no modo completo; opcional (null) só com mode:'simple' — pessoa física não tem logo. */
   logo_footage_id: string | null
   photos: AdsV2PlanPhoto[]
+  /** Só aparece quando veio pelo menos 1 vídeo (sem vídeo o corpo devolvido é o de antes, chave por chave). */
+  videos?: AdsV2PlanVideo[]
   /** Só no modo simples. */
   mode?: 'simple'
   /** Ids dos fatos da pesquisa que a pessoa deixou marcados (f1..f6). O TEXTO do fato nunca vem do cliente. */
   facts?: string[]
 }
 
-/** POST planejar: setor, logo e 3 a 7 fotos JÁ recortadas em 9:16 no navegador, cada uma com o tipo marcado. */
+/** Número finito dentro de [min, max]; ausente = `absent`; fora = undefined (recusa). */
+function numIn(v: unknown, min: number, max: number, absent: number | null): number | null | undefined {
+  if (v === undefined || v === null) return absent
+  if (typeof v !== 'number' || !Number.isFinite(v) || v < min || v > max) return undefined
+  return v
+}
+
+/**
+ * Vídeos do corpo (KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29): ausente = []; até ADS_V2_CONTRACT_MAX_VIDEOS, uuid sem
+ * repetir, início/foco/dimensões nos limites. Nunca confere dono nem duração (a rota faz, contra o banco e o arquivo).
+ */
+function readVideos(raw: unknown): AdsV2Sanitized<AdsV2PlanVideo[]> {
+  if (raw === undefined || raw === null) return { ok: true, value: [] }
+  if (!Array.isArray(raw)) return fail('bad_videos')
+  if (raw.length > ADS_V2_CONTRACT_MAX_VIDEOS) return fail('too_many_videos')
+  const out: AdsV2PlanVideo[] = []
+  const seen = new Set<string>()
+  for (const item of raw) {
+    const v = obj(item)
+    if (!v || !isUuid(v.footage_id)) return fail('bad_video_id')
+    const id = (v.footage_id as string).toLowerCase()
+    if (seen.has(id)) return fail('duplicate_photo')
+    seen.add(id)
+    const start = numIn(v.start, 0, ADS_V2_VIDEO_START_MAX, null)
+    const fx = numIn(v.focus_x, 0, 1, 0.5)
+    const fy = numIn(v.focus_y, 0, 1, 0.5)
+    const w = numIn(v.width, 1, ADS_V2_VIDEO_DIM_MAX, null)
+    const h = numIn(v.height, 1, ADS_V2_VIDEO_DIM_MAX, null)
+    if (start === undefined || fx === undefined || fy === undefined || w === undefined || h === undefined) return fail('bad_video')
+    out.push({ footage_id: id, start, focus_x: fx as number, focus_y: fy as number, width: w === null ? null : Math.round(w), height: h === null ? null : Math.round(h) })
+  }
+  return { ok: true, value: out }
+}
+
+/**
+ * POST planejar: setor, logo e 3 a 7 fotos JÁ recortadas em 9:16 no navegador, cada uma com o tipo marcado.
+ * KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — mais até 2 vídeos que entram como vídeo: fotos + vídeos entre 3 e 7, com pelo
+ * menos 1 foto. Sem vídeo, as regras e o valor devolvido são os de antes.
+ */
 export function sanitizePlanBody(raw: unknown): AdsV2Sanitized<AdsV2PlanBody> {
   const b = obj(raw)
   if (!b) return fail('bad_body')
@@ -181,8 +243,12 @@ export function sanitizePlanBody(raw: unknown): AdsV2Sanitized<AdsV2PlanBody> {
     facts = [...seenFacts]
   }
   if (!Array.isArray(b.photos)) return fail('bad_photos')
-  if (b.photos.length < ADS_V2_CONTRACT_MIN_PHOTOS) return fail('too_few_photos')
-  if (b.photos.length > ADS_V2_CONTRACT_MAX_PHOTOS) return fail('too_many_photos')
+  const vids = readVideos(b.videos)
+  if (!vids.ok) return vids
+  const videos = vids.value
+  const total = b.photos.length + videos.length
+  if (b.photos.length < 1 || total < ADS_V2_CONTRACT_MIN_PHOTOS) return fail('too_few_photos')
+  if (total > ADS_V2_CONTRACT_MAX_PHOTOS) return fail('too_many_photos')
   const photos: AdsV2PlanPhoto[] = []
   const seen = new Set<string>()
   for (const item of b.photos) {
@@ -195,11 +261,16 @@ export function sanitizePlanBody(raw: unknown): AdsV2Sanitized<AdsV2PlanBody> {
     seen.add(id)
     photos.push({ footage_id: id, kind: p.kind as AdsV2ContractPhotoKind })
   }
+  for (const v of videos) {
+    if (seen.has(v.footage_id)) return fail('duplicate_photo')
+    if (v.footage_id === logoId) return fail('logo_is_photo')
+  }
   const value: AdsV2PlanBody = {
     order_id: (b.order_id as string).toLowerCase(),
     sector: b.sector as AdsV2ContractSector,
     logo_footage_id: logoId,
     photos,
+    ...(videos.length > 0 ? { videos } : {}),
   }
   return { ok: true, value: simple ? { ...value, mode: 'simple', facts } : value }
 }
@@ -280,9 +351,12 @@ export function sanitizeAssetsBody(raw: unknown): AdsV2Sanitized<AdsV2AssetsBody
   }
   if (logo && card && logo === card) return fail('card_is_logo')
   let photos: AdsV2PlanPhoto[] | null = null
+  // KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — cada vídeo que entra como vídeo ocupa uma vaga de foto (mínimo de 1 foto).
+  const videoCount = Array.isArray(b.videos) ? Math.min(b.videos.length, ADS_V2_CONTRACT_MAX_VIDEOS) : 0
+  const minPhotos = Math.max(1, ADS_V2_CONTRACT_MIN_PHOTOS - videoCount)
   if (b.photos !== undefined && b.photos !== null) {
     if (!Array.isArray(b.photos)) return fail('bad_photos')
-    if (b.photos.length < ADS_V2_CONTRACT_MIN_PHOTOS) return fail('too_few_photos')
+    if (b.photos.length < minPhotos) return fail('too_few_photos')
     if (b.photos.length > ADS_V2_CONTRACT_MAX_PHOTOS) return fail('too_many_photos')
     photos = []
     const seen = new Set<string>()

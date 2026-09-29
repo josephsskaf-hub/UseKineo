@@ -15,12 +15,12 @@ import { adsGate, isMissingAdsTable, loadAdsAccess } from '@/lib/ads/serverAcces
 import { adsV2Visible } from '@/lib/ads/v2Access'
 import { sanitizeAssetsBody, sanitizePlanBody } from '@/lib/ads/v2Contract'
 import { adsV2Credits, estimateAdUsd } from '@/lib/ads/v2Tiers'
-import { adsV2NarrationMaxWords, planShots } from '@/lib/ads/v2ShotLists'
+import { ADS_V2_PLAN_VIDEO_MAX_SECONDS, ADS_V2_PLAN_VIDEO_MIN_SECONDS, adsV2NarrationMaxWords, planShots, type AdsV2Video } from '@/lib/ads/v2ShotLists'
 import { ADS_V2_PLAN_DAILY_CAP, checkV2Prompts, extractAdsV2Brief } from '@/lib/ads/v2Brief'
 import { adsV2LinkText } from '@/lib/ads/v2Link'
 import { researchState, storedResearchFacts } from '@/lib/ads/v2Research'
 import { loadAdsV2Order, type AdsV2StoredPlan } from '@/lib/ads/v2Advance'
-import { ownedFootage, v2Fail, v2Json } from '@/lib/ads/v2Server'
+import { measureFootageVideo, ownedFootage, v2Fail, v2Json } from '@/lib/ads/v2Server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -67,17 +67,38 @@ export async function POST(req: NextRequest) {
     const factTexts = chosenFacts.map((f) => f!.text)
 
     // Cada arquivo conferido no user_footage DO DONO; a URL usada é a do banco. Logo só se veio (modo simples: opcional).
-    const own = await ownedFootage(admin, user.id, [...(input.logo_footage_id ? [input.logo_footage_id] : []), ...(cardId ? [cardId] : []), ...input.photos.map((p) => p.footage_id)])
+    const videosIn = input.videos ?? []
+    const own = await ownedFootage(admin, user.id, [...(input.logo_footage_id ? [input.logo_footage_id] : []), ...(cardId ? [cardId] : []), ...input.photos.map((p) => p.footage_id), ...videosIn.map((v) => v.footage_id)])
     if (!own) return v2Fail('plan_failed', 502)
     if (input.logo_footage_id && !own.get(input.logo_footage_id)?.isImage) return v2Fail('logo_invalid', 400)
     if (cardId && !own.get(cardId)?.isPng) return v2Fail('card_invalid', 400)
     const photos = input.photos.map((p) => ({ footage_id: p.footage_id, kind: p.kind, url: own.get(p.footage_id)?.isImage ? own.get(p.footage_id)!.url : '' }))
     if (photos.some((p) => !p.url)) return v2Fail('media_not_owned', 400)
+    // KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — cada vídeo: do DONO, MP4/MOV (kind 'video' no user_footage).
+    const badVideo = videosIn.find((v) => !own.get(v.footage_id)?.isVideo)
+    if (badVideo) return v2Fail('video_invalid', 400, { footage_id: badVideo.footage_id })
 
     // Teto diário ANTES do modelo.
     const since = new Date(Date.now() - 24 * 3600_000).toISOString()
     const cap = await admin.from('events').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('name', 'ads_v2_plan_served').gte('created_at', since)
     if (!cap.error && (cap.count ?? 0) >= ADS_V2_PLAN_DAILY_CAP) return v2Fail('daily_limit', 429)
+
+    // A duração que manda é a MEDIDA aqui (mvhd do arquivo no bucket), nunca a do navegador. Não mediu ou curto demais =
+    // 422 com o id: a tela transforma ESSE vídeo em fotos (plano B) e a pessoa planeja de novo, grátis.
+    // Revisão: a recusa da medição também CONTA no teto diário (cada medição baixa até 50 MB); antes só o plano servido
+    // contava e um vídeo ilegível podia ser medido sem fim. Longo demais (> 10 min) = numeric(6,3) do banco estouraria.
+    const videos: AdsV2Video[] = []
+    const measureRefused = async (code: 'video_unreadable' | 'video_too_short' | 'video_too_long', footageId: string, seconds: number | null) => {
+      await writeServerEvent({ name: 'ads_v2_plan_served', userId: user.id, path: '/api/ads/v2/plan', metadata: { order_id: order.id, ok: false, stage: 'video_measure', why: code, seconds_measured: seconds, videos: videosIn.length, ms: Date.now() - started } })
+      return v2Fail(code, 422, { footage_id: footageId })
+    }
+    for (const [i, measured] of (await Promise.all(videosIn.map((v) => measureFootageVideo(own.get(v.footage_id)!.url)))).entries()) {
+      const v = videosIn[i]
+      if (measured === null) return measureRefused('video_unreadable', v.footage_id, null)
+      if (measured < ADS_V2_PLAN_VIDEO_MIN_SECONDS) return measureRefused('video_too_short', v.footage_id, measured)
+      if (measured > ADS_V2_PLAN_VIDEO_MAX_SECONDS) return measureRefused('video_too_long', v.footage_id, measured)
+      videos.push({ id: v.footage_id, url: own.get(v.footage_id)!.url, seconds: measured, start: v.start, focusX: v.focus_x, focusY: v.focus_y, width: v.width, height: v.height })
+    }
 
     // O texto do negócio: a frase, ou o que o link diz (só a página; as fotos vêm recortadas do navegador).
     // Modo simples: a frase + o preço e o contato que a PESSOA escreveu nos campos próprios.
@@ -127,7 +148,7 @@ export async function POST(req: NextRequest) {
     const sector = simple && input.sector === 'other' && extracted.copy.sectorHint ? extracted.copy.sectorHint : input.sector
 
     // Lista de planos (determinística) e a régua anti-invenção também sobre cada prompt de movimento/cena.
-    const plan = planShots({ sector, tier: order.tier, photos: photos.map((p) => ({ id: p.footage_id, url: p.url, kind: p.kind })), seconds: order.seconds })
+    const plan = planShots({ sector, tier: order.tier, photos: photos.map((p) => ({ id: p.footage_id, url: p.url, kind: p.kind })), seconds: order.seconds, ...(videos.length ? { videos } : {}) })
     const promptIssues = checkV2Prompts(plan.shots.flatMap((s) => [s.prompt, s.scenePrompt].filter((x): x is string => !!x)), extracted.brief)
     if (promptIssues.length) {
       await served(false, { stage: 'prompts', why: promptIssues.slice(0, 4) })
@@ -168,7 +189,7 @@ export async function POST(req: NextRequest) {
       .select('id, card_url')
       .maybeSingle()
     if (upd.error || !upd.data) return v2Fail('not_editable', 409)
-    await served(true, { sector, shots: plan.shots.length, text_shots: plan.shots.filter((s) => s.kind === 'text').length, scenes: plan.shots.filter((s) => s.source === 'generated_scene').length, credits, usd: usd.totalUsd, attempts: extracted.attempts, sector_hint: extracted.copy.sectorHint })
+    await served(true, { sector, shots: plan.shots.length, text_shots: plan.shots.filter((s) => s.kind === 'text').length, video_shots: plan.shots.filter((s) => s.kind === 'user_video').length, scenes: plan.shots.filter((s) => s.source === 'generated_scene').length, credits, usd: usd.totalUsd, attempts: extracted.attempts, sector_hint: extracted.copy.sectorHint })
     return v2Json({
       order_id: order.id,
       status: 'planned',

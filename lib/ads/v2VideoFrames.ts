@@ -125,3 +125,94 @@ export async function grabVideoFrames(
     try { URL.revokeObjectURL(url) } catch { /* ignore */ }
   }
 }
+
+// ── KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — o vídeo entra COMO VÍDEO ─────────────────────────────────────────────────────
+// Lê duração/largura/altura, amostra quadros minúsculos (32×18) para achar o trecho mais "vivo" (a regra pura mora em
+// lib/ads/v2UserVideo.ts: sampleTimes e pickStart chegam por parâmetro — este arquivo continua SEM import) e tira UMA
+// miniatura JPEG no meio desse trecho, que é o que a tela mostra e o que a pessoa arrasta para escolher o enquadramento.
+// Nada sobe por aqui: o arquivo original sobe depois pelo /api/footage (uploadFootage). Falha = VideoFramesError('decode')
+// e a tela cai no plano B (grabVideoFrames: quadros viram fotos).
+
+export interface UserVideoRead {
+  seconds: number
+  width: number
+  height: number
+  /** Início sugerido do trecho (s) — o servidor ainda confere contra a duração que ELE mede. */
+  start: number
+  /** Miniatura JPEG do trecho escolhido (só para a tela). */
+  thumb: File
+}
+
+/** Brilho (0..1) de cada célula de uma amostra 32×18 do quadro atual. */
+function lumaGrid(video: HTMLVideoElement, ctx: CanvasRenderingContext2D): Float32Array {
+  ctx.drawImage(video, 0, 0, 32, 18)
+  const d = ctx.getImageData(0, 0, 32, 18).data
+  const out = new Float32Array(d.length / 4)
+  for (let i = 0, j = 0; i < d.length; i += 4, j++) out[j] = (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255
+  return out
+}
+
+export async function readUserVideo(
+  file: File,
+  sampleTimes: (duration: number) => number[],
+  pickStart: (times: number[], diffs: number[], duration: number) => number,
+  opts: { signal?: AbortSignal; thumbOffset?: number } = {},
+): Promise<UserVideoRead> {
+  const url = URL.createObjectURL(file)
+  const video = document.createElement('video')
+  video.muted = true
+  video.playsInline = true
+  video.preload = 'auto'
+  try {
+    video.src = url
+    await waitEvent(video, 'loadeddata', VIDEO_FRAME_SEEK_TIMEOUT_MS, opts.signal)
+    const duration = video.duration
+    const width = video.videoWidth
+    const height = video.videoHeight
+    if (!Number.isFinite(duration) || duration <= 0 || !width || !height) throw new VideoFramesError('decode')
+    const seekTo = async (t: number) => {
+      if (Math.abs(video.currentTime - t) > 0.001) {
+        const seeked = waitEvent(video, 'seeked', VIDEO_FRAME_SEEK_TIMEOUT_MS, opts.signal)
+        video.currentTime = t
+        await seeked
+      }
+    }
+    const small = document.createElement('canvas')
+    small.width = 32
+    small.height = 18
+    const sctx = small.getContext('2d', { willReadFrequently: true } as CanvasRenderingContext2DSettings)
+    if (!sctx) throw new VideoFramesError('canvas')
+    const times = sampleTimes(duration)
+    const diffs: number[] = []
+    let prev: Float32Array | null = null
+    for (const t of times) {
+      await seekTo(t)
+      let grid: Float32Array | null = null
+      try { grid = lumaGrid(video, sctx) } catch { grid = null }
+      if (prev && grid) {
+        let sum = 0
+        for (let i = 0; i < grid.length; i++) sum += Math.abs(grid[i] - prev[i])
+        diffs.push(sum / grid.length)
+      } else if (prev) {
+        diffs.push(0)
+      }
+      prev = grid
+    }
+    const start = pickStart(times, diffs, duration)
+    // Miniatura no meio do trecho escolhido, no tamanho original (limitado a 1920 px no lado maior).
+    await seekTo(Math.min(Math.max(0, duration - 0.05), start + (opts.thumbOffset ?? 1)))
+    const scale = Math.min(1, 1920 / Math.max(width, height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.round(width * scale))
+    canvas.height = Math.max(1, Math.round(height * scale))
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new VideoFramesError('canvas')
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+    const blob = await toBlob(canvas, VIDEO_FRAME_JPEG_QUALITY)
+    const base = (file.name || 'video').replace(/\.[a-z0-9]{2,5}$/i, '').replace(/[^\w-]+/g, '-').slice(0, 40) || 'video'
+    return { seconds: duration, width, height, start, thumb: new File([blob], `${base}-miniatura.jpg`, { type: 'image/jpeg' }) }
+  } finally {
+    try { video.removeAttribute('src'); video.load() } catch { /* ignore */ }
+    try { URL.revokeObjectURL(url) } catch { /* ignore */ }
+  }
+}

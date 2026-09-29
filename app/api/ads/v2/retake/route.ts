@@ -14,7 +14,7 @@ import { adsGate, isMissingAdsTable, loadAdsAccess } from '@/lib/ads/serverAcces
 import { adsV2Visible } from '@/lib/ads/v2Access'
 import { sanitizeRetakeBody } from '@/lib/ads/v2Contract'
 import { ADS_V2_ENGINES, adsV2RetakeCredits, routeShot } from '@/lib/ads/v2Tiers'
-import { motionPrompt } from '@/lib/ads/v2ShotLists'
+import { motionPrompt, type AdsV2MotionKind } from '@/lib/ads/v2ShotLists'
 import { adsV2RetakeRef, chargeAdsV2, deterministicUuid, failAdsV2Order } from '@/lib/ads/v2Billing'
 import { adsV2View, dispatchAdsV2Shots, latestShots, loadAdsV2Order, loadAdsV2Shots } from '@/lib/ads/v2Advance'
 import { v2Fail, v2Json } from '@/lib/ads/v2Server'
@@ -59,6 +59,9 @@ export async function POST(req: NextRequest) {
     if (!target) return v2Fail('bad_idx', 400)
     // REGRA DURA: texto nunca passa por IA — plano `text` não tem refação.
     if (target.kind === 'text') return v2Fail('text_not_retakable', 400)
+    // KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — o vídeo do cliente entra como ele gravou: não passa por IA, então não há o
+    // que refazer (nada é cobrado). Outro trecho = planejar de novo, grátis. Decisão: desabilitar com explicação.
+    if (target.kind === 'user_video') return v2Fail('video_not_retakable', 400)
     if (target.status !== 'done' || !target.image_url) return v2Fail('shot_not_ready', 409)
     const price = adsV2RetakeCredits(target.kind, parent.tier)
     if (price !== expected) return v2Fail('price_changed', 409, { credits: price })
@@ -143,7 +146,7 @@ export async function POST(req: NextRequest) {
       }
       return {
         order_id: retakeId, idx: r.idx, attempt: 1, role: r.role, kind: r.kind, source: r.source, source_footage_id: r.source_footage_id,
-        image_url: r.image_url, engine, prompt: motionPrompt(r.kind as Exclude<typeof r.kind, 'text'>, variant),
+        image_url: r.image_url, engine, prompt: motionPrompt(r.kind as AdsV2MotionKind, variant),
         gen_seconds: engine ? ADS_V2_ENGINES[engine].genSeconds : null, cut_start: r.cut_start, cut_seconds: r.cut_seconds,
         movement_variant: variant, status: r.source === 'generated_scene' ? 'image_done' : 'pending', reason: 'paid_retake',
       }
