@@ -16,6 +16,8 @@
 //   (e) revisão: o juiz de coerência (lib/admin/fastCoherence, `submitted_prompts` = 240 chars por cena) lê o prompt SEM o
 //       eixo — a gravação real do submitScene é EXECUTADA com o eixo aplicado e começa pelo sujeito da cena; wantsKling
 //       false grava byte a byte o que a base gravava; o mutante que grava o prompt com eixo fica vermelho.
+//   DIFF: as asserções byte a byte comparam o COMMIT da trilha (o mais recente = a revisão) com o pai do PRIMEIRO commit,
+//       nunca a worktree — depois do merge ela carrega os irmãos (teto, âncora, pilha) e ficava vermelha à toa.
 import { readFileSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -38,20 +40,36 @@ const roda = (src, globals = {}) => {
 }
 const palavras = (t) => String(t ?? '').replace(/[.,;:!?()]/g, ' ').split(/\s+/).filter(Boolean)
 
-// BASE = o pai do commit KLING25-60S-VARIEDADE (o "antes"); antes do commit existir, HEAD; senão origin/main.
+// ── base = o "antes" e candidato = o commit da trilha ───────────────────────────────────────────────────────────────
+// Memória "trava por diff fica verde ao mergear / medir vs pai do commit": depois do merge com a main e a fila, HEAD é um
+// merge — comparar a base com a WORKTREE carrega o trabalho dos IRMÃOS (teto KLING25-60S-TETO, âncora, pilha mexem em
+// klingShots.ts e no route.ts) e fica vermelho à toa (medido 28/09: "fora do import ... a rota é idêntica à base"). Por
+// isso, no padrão dos guardiões do teto e da âncora:
+//   (1) os commits "[TRAVA 8.2] KLING25-60S-VARIEDADE" na história de HEAD (o PRIMEIRO = o eixo; a revisão = o juiz sem
+//       eixo): base = <primeiro>^ e candidato = <o mais recente da trilha> — o diff cobre os dois commits. As asserções
+//       de DIFF (byte a byte) leem `git show <sha>:<arquivo>`; as que EXECUTAM a lógica leem o arquivo ATUAL da worktree,
+//       para provar que o comportamento continua no HEAD;
+//   (2) sem o commit na história (worktree pristina): base = HEAD (senão origin/main) e candidato = a worktree, como antes.
+// A base escolhida NÃO pode conter o marcador; o candidato TEM de conter.
+const git = (args) => execFileSync('git', args, { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()
 let BASE = null
+let SHA = null // o candidato do diff (o commit mais recente da trilha); null = a worktree
 {
-  const git = (args) => execFileSync('git', args, { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()
-  const candidatos = []
-  try { const shas = git(['log', '--format=%H', '--grep=KLING25-60S-VARIEDADE:', 'HEAD']).trim().split('\n').filter(Boolean); if (shas.length) candidatos.push(shas[shas.length - 1] + '^') } catch { /* sem commit ainda */ }
+  let trilha = []
+  try { trilha = git(['log', '--basic-regexp', '--topo-order', '--format=%H', '--grep=^\\[TRAVA 8.2\\] KLING25-60S-VARIEDADE', 'HEAD']).trim().split('\n').filter(Boolean) } catch { /* sem commit ainda */ }
+  const primeiro = trilha.length ? trilha[trilha.length - 1] : null // o mais antigo: o commit que introduziu o eixo
+  if (trilha.length) SHA = trilha[0] // o mais recente: a revisão (ou o próprio primeiro, sem revisão)
+  const candidatos = primeiro ? [primeiro + '^'] : []
   candidatos.push('HEAD', 'origin/main')
   for (const ref of candidatos) {
     try { if (!git(['show', `${ref}:app/api/generate-video-cinematic/route.ts`]).includes('KINEO-KLING25-VARIEDADE')) { BASE = ref; break } } catch { /* próximo */ }
   }
+  if (primeiro && BASE !== primeiro + '^') SHA = null // o pai do primeiro já tinha o marcador: não é o introdutor — o candidato volta a ser a worktree
 }
-console.log(`   base de comparação: ${BASE ?? '(nenhuma)'}`)
-const rdBase = (p) => { if (!BASE) return null; try { return execFileSync('git', ['show', `${BASE}:${p}`], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024 }).toString().replace(/\r\n/g, '\n') } catch { return null } }
-checa('a base (pai do commit, sem o eixo) está disponível para as comparações byte a byte', Boolean(BASE))
+console.log(`   base de comparação: ${BASE ?? '(nenhuma)'} · candidato do diff: ${SHA ?? 'worktree (sem o commit na história)'}`)
+const rdBase = (p) => { if (!BASE) return null; try { return git(['show', `${BASE}:${p}`]).replace(/\r\n/g, '\n') } catch { return null } }
+const rdCand = (p) => { if (!SHA) return rd(p); try { return git(['show', `${SHA}:${p}`]).replace(/\r\n/g, '\n') } catch { return null } }
+checa('a base (pai do primeiro commit da trilha, sem o eixo) está disponível para as comparações byte a byte', Boolean(BASE))
 
 // ═══ (a) a lib ═══
 console.log('== (a) lib/cinematic/klingShots — eixo por plano ==')
@@ -60,7 +78,9 @@ checa('a lib continua PURA (sem import): guardiões e a rota leem a mesma régua
 const lib = roda(libSrc)
 const { KLING25_SHOT_AXES, KLING25_MAX_SHOTS, KLING25_PROMPT_MAX_CHARS, kling25ShotAxis, kling25ApplyShotAxis, kling25StripShotAxis } = lib
 checa('exporta KLING25_SHOT_AXES, kling25ShotAxis e kling25ApplyShotAxis', Array.isArray(KLING25_SHOT_AXES) && typeof kling25ShotAxis === 'function' && typeof kling25ApplyShotAxis === 'function')
-checa(`há tantos eixos quanto o teto de planos (${KLING25_MAX_SHOTS}): um filme de 12 planos não repete nenhum`, KLING25_SHOT_AXES.length === KLING25_MAX_SHOTS && new Set(KLING25_SHOT_AXES).size === KLING25_MAX_SHOTS)
+// Depois do teto (KLING25-60S-TETO) a lib tem o teto FÍSICO (18, roteiro pronto) e o do modo IA (12); antes dele, só um (12).
+const TETO_IA = typeof lib.KLING25_MAX_SHOTS_AI === 'number' ? lib.KLING25_MAX_SHOTS_AI : KLING25_MAX_SHOTS
+checa(`há tantos eixos quanto o teto de planos do modo IA (${TETO_IA}): um filme de 12 planos não repete nenhum`, TETO_IA === 12 && KLING25_SHOT_AXES.length === TETO_IA && new Set(KLING25_SHOT_AXES).size === TETO_IA)
 checa('teto de prompt do fornecedor = 2.500 chars (schema da fal do Kling 2.5)', KLING25_PROMPT_MAX_CHARS === 2500)
 checa('nenhum eixo pede ângulo holandês, texto ou rosto falando (STABLE_SHOT / NO_TEXT / mouth)', KLING25_SHOT_AXES.every((e) => !/dutch|tilted horizon|\btext\b|caption|letters|mouth|talking|speaking/i.test(e)))
 checa('todo eixo declara escala/ângulo E um movimento de câmera', KLING25_SHOT_AXES.every((e) => /shot|close-up|view|overview/i.test(e) && /push-in|dolly|tilt|travelling|tracking|crane|orbit|drift|pull-back|gliding|rotation|rack focus/i.test(e)))
@@ -69,6 +89,8 @@ const eixos12 = Array.from({ length: 12 }, (_, i) => kling25ShotAxis(i))
 checa('12 planos → 12 eixos, todos distintos', new Set(eixos12).size === 12)
 const eixos14 = Array.from({ length: 14 }, (_, i) => kling25ShotAxis(i))
 checa('acima do teto (14 planos) nenhum vizinho repete o eixo', eixos14.every((e, i) => i === 0 || e !== eixos14[i - 1]))
+const eixosFisico = Array.from({ length: Math.max(KLING25_MAX_SHOTS, 14) }, (_, i) => kling25ShotAxis(i))
+checa(`até o teto físico de planos (${eixosFisico.length}, roteiro pronto de 90 s) nenhum vizinho repete o eixo`, eixosFisico.every((e, i) => i === 0 || e !== eixosFisico[i - 1]))
 checa('determinístico: a mesma chamada devolve o mesmo eixo', eixos14.every((e, i) => kling25ShotAxis(i) === e))
 checa('índice inválido cai no plano médio (eixo 0), nunca lança', kling25ShotAxis(-1) === KLING25_SHOT_AXES[0] && kling25ShotAxis(1.5) === KLING25_SHOT_AXES[0] && kling25ShotAxis(NaN) === KLING25_SHOT_AXES[0])
 checa('o plano 1 é plano médio com sujeito legível (compatível com "Opening shot: show the described subject immediately")', /medium shot/i.test(kling25ShotAxis(0)) && /clearly readable/i.test(kling25ShotAxis(0)))
@@ -133,6 +155,10 @@ console.log('== (c) app/api/generate-video-cinematic/route.ts ==')
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
 const rota = rd(ROTA)
 const rotaBase = rdBase(ROTA)
+const rotaCand = rdCand(ROTA)
+checa('o route.ts de HEAD carrega o marcador KINEO-KLING25-VARIEDADE', rota.includes('KINEO-KLING25-VARIEDADE'))
+checa('o candidato do diff (o commit mais recente da trilha, ou a worktree antes dele existir) carrega o eixo E a revisão (kling25StripShotAxis) — o diff abaixo mede ESTE trabalho, não o dos irmãos', String(rotaCand).includes('KINEO-KLING25-VARIEDADE') && String(rotaCand).includes('kling25StripShotAxis'))
+checa('a base NÃO carrega o marcador (é o antes de verdade)', rotaBase !== null && !rotaBase.includes('KINEO-KLING25-VARIEDADE'))
 const routeAst = (src) => ts.createSourceFile('route.ts', src, ts.ScriptTarget.Latest, true)
 function acha(ast, pred) { let f; const v = (n) => { if (!f && pred(n)) f = n; if (!f) ts.forEachChild(n, v) }; v(ast); return f }
 const varDe = (src, nome) => { const ast = routeAst(src); const n = acha(ast, (x) => ts.isVariableDeclaration(x) && x.name.getText(ast) === nome); return n ? n.initializer.getText(ast) : null }
@@ -172,21 +198,23 @@ const temEixo = (p) => KLING25_SHOT_AXES.some((e) => p.includes(e))
 checa('ANTES (base, Kling): nenhum dos 12 prompts trazia eixo de câmera; DEPOIS: os 12 trazem, cada um o seu, 12 distintos', Array.isArray(klingBase) && klingBase.length === 12 && klingBase.every((p) => !temEixo(p)) && klingHead.every(temEixo) && new Set(klingHead.map((p) => p.split('. ')[0])).size === 12)
 checa('o still FLUX e o clipe leem o MESMO vetor (classicScenePrompts[idx] no still; classicScenePrompts[sceneIndex] no submitScene): o eixo entra nas duas peças', rota.includes('const scenePrompt = classicScenePrompts[idx]') && rota.includes('const cinematic = classicScenePrompts[sceneIndex]'))
 
-// Outros motores byte a byte: buildFalInput e o bloco hollywood não mudaram.
-if (rotaBase) {
-  checa('buildFalInput (Seedance/Veo/Sora/Kling payload/hollywood) idêntico à base', funcaoDe(rota, 'buildFalInput') === funcaoDe(rotaBase, 'buildFalInput'))
+// Outros motores byte a byte: buildFalInput e o bloco hollywood não mudaram — CANDIDATO × base (commit × commit), nunca a
+// worktree: depois do merge ela carrega o teto (KLING25-60S-TETO), a âncora e a pilha — irmãos, não esta entrega. Medido em
+// 28/09: contra a worktree, "fora do import ... a rota é idêntica à base" ficava vermelho à toa.
+if (rotaBase && rotaCand) {
+  checa('buildFalInput (Seedance/Veo/Sora/Kling payload/hollywood) idêntico à base (candidato × base)', funcaoDe(rotaCand, 'buildFalInput') === funcaoDe(rotaBase, 'buildFalInput'))
   const semVariedade = (s) => s
     .replace(', kling25ApplyShotAxis, kling25StripShotAxis }', ' }').replace(' · KINEO-KLING25-VARIEDADE-2026-09-28', '')
     // (revisão) a gravação para o juiz volta à forma da base — o bloco (e) prova o conteúdo dela executado.
     .replace(/\n {8}\/\/ KINEO-KLING25-VARIEDADE-2026-09-28 \(revisão\)[\s\S]*?\(wantsKling \? kling25StripShotAxis\(cinematic\) : cinematic\)\.slice\(0, 240\)/, '\n        c.submittedPrompts[sceneIndex] = cinematic.slice(0, 240)')
     .replace(/\n {6}\/\/ ═══ KINEO-KLING25-VARIEDADE-2026-09-28[\s\S]*?\.map\(\(promptDaCena, sceneIndex\) => \(wantsKling \? kling25ApplyShotAxis\(promptDaCena, sceneIndex\) : promptDaCena\)\)/, '')
-  checa('fora do import, dos comentários, da linha do .map e da gravação para o juiz, a rota é idêntica à base (Seedance/Veo/Sora/hollywood intocados)', semVariedade(rota) === semVariedade(rotaBase))
-  const hollywoodHead = rota.slice(rota.indexOf('if (hollywoodPath)'), rota.indexOf('// ── end KINEO-HOLLYWOOD-2026-07-09'))
+  checa('fora do import, dos comentários, da linha do .map e da gravação para o juiz, o route.ts do candidato é idêntico à base (Seedance/Veo/Sora/hollywood intocados nos dois commits da trilha)', semVariedade(rotaCand) === semVariedade(rotaBase))
+  const hollywoodCand = rotaCand.slice(rotaCand.indexOf('if (hollywoodPath)'), rotaCand.indexOf('// ── end KINEO-HOLLYWOOD-2026-07-09'))
   const hollywoodBase = rotaBase.slice(rotaBase.indexOf('if (hollywoodPath)'), rotaBase.indexOf('// ── end KINEO-HOLLYWOOD-2026-07-09'))
-  checa('bloco hollywood (Kling 3 / H3 / Omni / S25) idêntico à base', hollywoodHead.length > 1000 && hollywoodHead === hollywoodBase)
-  const varietyHead = rd('lib/hollywood/varietyAxis.ts'), varietyBase = rdBase('lib/hollywood/varietyAxis.ts')
-  checa('lib/hollywood/varietyAxis.ts (eixo da família hollywood) intocado', varietyHead === varietyBase)
-  for (const f of ['lib/compose.ts', 'lib/cinematic/speechImageAlign.ts', 'lib/cinematic/visualPromptPolicy.ts', 'lib/hollywood/anchors.ts']) checa(`${f} intocado`, rd(f) === rdBase(f))
+  checa('bloco hollywood (Kling 3 / H3 / Omni / S25) idêntico à base (candidato × base)', hollywoodCand.length > 1000 && hollywoodCand === hollywoodBase)
+  const varietyCand = rdCand('lib/hollywood/varietyAxis.ts'), varietyBase = rdBase('lib/hollywood/varietyAxis.ts')
+  checa('lib/hollywood/varietyAxis.ts (eixo da família hollywood) intocado neste commit (candidato × base)', varietyCand !== null && varietyCand === varietyBase)
+  for (const f of ['lib/compose.ts', 'lib/cinematic/speechImageAlign.ts', 'lib/cinematic/visualPromptPolicy.ts', 'lib/hollywood/anchors.ts']) checa(`${f} intocado neste commit (candidato × base)`, rdCand(f) !== null && rdCand(f) === rdBase(f))
 }
 
 // ═══ (d) mutantes ═══
