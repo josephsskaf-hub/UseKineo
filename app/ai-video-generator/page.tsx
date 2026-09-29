@@ -11,7 +11,7 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import WallMedia from '@/components/WallMedia'
 import CitationAnswerLinks from '@/components/CitationAnswerLinks'
 import { getEngineRenders, getHouseEngineExamples } from '@/lib/engineWall'
-import { enginePaused } from '@/lib/engineLaunch'
+import { enginePaused, KINEO1_PUBLIC } from '@/lib/engineLaunch'
 import { ENGINES, ENGINE_SLUGS } from '@/lib/growth/enginePageCatalog'
 import { buildProductSurfaceSignupHref } from '@/lib/growth/productSurfaceIntent'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
@@ -26,15 +26,20 @@ const ENGINE_HUB_SIGNUP_HREF = buildProductSurfaceSignupHref({
   utmSource: 'seo',
 })
 
+// Revisão da E2b (texto, achado 7): o título e o parágrafo seguem o interruptor do Kineo 1 (fora do catálogo público
+// desde a E1), como o /arena — antes o hub ainda publicava "Seedance, Kling, Veo & Kineo 1" e "its own Kineo 1".
+const HUB_TITLE = KINEO1_PUBLIC ? 'AI Video Generator — Seedance, Kling, Veo & Kineo 1 | Kineo' : 'AI Video Generator — Seedance, Kling, Veo & MiniMax H3 | Kineo'
+const HUB_ENGINE_LIST = KINEO1_PUBLIC ? 'Seedance 1.5, Kling 2.5, MiniMax H3, Veo 3.1, Kling 3 and its own Kineo 1' : 'Seedance 1.5, Kling 2.5, MiniMax H3, Veo 3.1 and Kling 3'
+
 const HUB_DESCRIPTION = 'Compare Kineo video engines for finished vertical Shorts with narration and captions. Open each engine page for credit costs, limits and current availability.'
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE),
-  title: 'AI Video Generator — Seedance, Kling, Veo & Kineo 1 | Kineo',
+  title: HUB_TITLE,
   description: HUB_DESCRIPTION,
   alternates: { canonical: `${BASE}/ai-video-generator` },
   openGraph: {
-    title: 'AI Video Generator — Seedance, Kling, Veo & Kineo 1 | Kineo',
+    title: HUB_TITLE,
     description: HUB_DESCRIPTION,
     url: `${BASE}/ai-video-generator`,
     type: 'website',
@@ -94,7 +99,7 @@ export default async function EngineHubPage() {
           </h1>
           <p style={{ fontSize: '1.02rem', color: '#86868b', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 700 }}>
             Most AI video tools hand you a silent 5-second clip and leave the rest to you. Kineo runs the same
-            engines — Seedance 1.5, Kling 2.5, MiniMax H3, Veo 3.1, Kling 3 and its own Kineo 1 — and returns a finished
+            engines — {HUB_ENGINE_LIST} — and returns a finished
             vertical Short: hook-first script, AI voiceover, matched or generated scenes, burned-in captions.
             One idea in, a ready-to-post 9:16 MP4 out.
           </p>

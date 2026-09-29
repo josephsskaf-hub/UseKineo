@@ -96,7 +96,7 @@ t('A22 `used`/`balance`/`needed` do evento nao mudaram',
 
 // ───────────────────── BLOCO B — A REGRA, SOBRE DADO REAL ─────────────────
 const REF = 60
-const BASE = { seedance: 25, h3: 45, kling: 50, veo: 100, hollywood: 150, omni: 150 }
+const BASE = { seedance: 25, h3: 45, kling: 60, veo: 100, hollywood: 150, omni: 150 }
 const custoDe = (m, d) => Math.max(1, Math.ceil(BASE[m] * (Math.min(180, Math.max(10, d)) / REF)))
 const DUR = [35, 60, 90]
 const TODOS = ['seedance', 'h3', 'kling', 'veo', 'hollywood', 'omni']

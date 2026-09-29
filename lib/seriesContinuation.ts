@@ -307,7 +307,7 @@ export function buildSeriesContinuationHref(
 export function seriesContinuationHrefOrNull(
   value: string | null | undefined,
   source: SeriesContinuationSource,
-  opts?: { engine?: string | null },
+  opts?: { engine?: string | null; duration?: number | null },
 ): string | null {
   const prompt = buildSeriesContinuationPrompt(value)
   if (!prompt) return null
@@ -319,6 +319,9 @@ export function seriesContinuationHrefOrNull(
   })
   const engine = typeof opts?.engine === 'string' ? opts.engine.trim().toLowerCase() : ''
   if (engine) params.set('engine', engine)
+  // Revisão da E2b (29/09): o degrau curto (Seedance 15 s) precisa levar a duração — sem ela o Studio abria em 35 s.
+  const duration = typeof opts?.duration === 'number' && Number.isFinite(opts.duration) && opts.duration > 0 ? Math.round(opts.duration) : null
+  if (duration !== null) params.set('duration', String(duration))
   return `/studio/create?${params.toString()}`
 }
 

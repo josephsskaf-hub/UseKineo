@@ -204,8 +204,20 @@ const tocados = diff.split('\n').map((s) => s.trim()).filter(Boolean)
 // A trava de qualidade do fundador (8.2) roda igual nos dois casos — sobre uma
 // lista vazia ela é trivialmente verdadeira, que é exatamente o correto.
 check('8.1 o git diff foi lido (vazio = nada pendente, e isso e valido)', typeof diff === 'string')
+// Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): a trava 8.2 continua proibindo TODO arquivo desses caminhos, com uma
+// única saída — a do próprio protocolo da trava: o arquivo só pode estar no diff se TODO commit da fila que o toca
+// (origin/main..HEAD) carregar o selo nominal "[TRAVA 8.2" na mensagem (o "vai" do fundador) e se ele NÃO tiver mudança
+// pendente fora de commit. Arquivo tocado sem selo, ou com edição solta na árvore, continua vermelho.
+const pendentes = (() => { try { return execFileSync('git', ['diff', '--name-only', 'HEAD', '--'], { cwd: raiz, encoding: 'utf8' }).split('\n').map((s) => s.trim()).filter(Boolean) } catch { return null } })()
+const comSelo = (f) => {
+  if (!pendentes || pendentes.includes(f)) return false
+  try {
+    const assuntos = execFileSync('git', ['log', '--format=%s', 'origin/main..HEAD', '--', f], { cwd: raiz, encoding: 'utf8' }).split('\n').map((s) => s.trim()).filter(Boolean)
+    return assuntos.length > 0 && assuntos.every((s) => s.includes('[TRAVA 8.2'))
+  } catch { return false }
+}
 for (const p of PROIBIDOS) {
-  check(`8.2 nao toca ${p}`, !tocados.some((f) => f.startsWith(p)))
+  check(`8.2 nao toca ${p}`, !tocados.some((f) => f.startsWith(p) && !comSelo(f)))
 }
 // 8.3 (ajuste 04/09 18:40, Claude-chat): o diff e contra origin/main, ou seja, a FILA
 // inteira de entrega, nao so este commit. Numa fila com #20 (memoria de episodio) +

@@ -36,6 +36,13 @@ export interface ReadyCreditsLineInput {
   freeOffer: { cardEntry: boolean; residual: string; chip: string }
   /** Cota grátis comprovadamente esgotada (freeFastQuotaSpent da tela). */
   freeQuotaSpent: boolean
+  /**
+   * KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — o Kineo 1 está na tela desta conta? false = a saída barata NUNCA é o
+   * Kineo 1 (conta nova). Ausente = como antes.
+   */
+  kineo1Allowed?: boolean
+  /** Com a entrada nova ligada: a duração curta do Seedance (15), a saída barata que cabe no trial. Ausente/null = sem. */
+  shortSeedanceSeconds?: number | null
 }
 
 const plural = (n: number, word: string): string => `${word}${n === 1 ? '' : 's'}`
@@ -60,7 +67,18 @@ export function readyCreditsLine(input: ReadyCreditsLineInput): string {
         return `enough for about ${n} more ${seconds}s ${label} ${plural(n, 'video')} (${cost} ${plural(cost, 'credit')} each).`
       }
       const wall = `not enough for another ${seconds}s ${label} video (it takes ${cost}).`
-      if (q === 'fast') return wall
+      // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — com a entrada nova, a saída honesta é o Seedance curto (mesma função que
+      // cobra), se o saldo pagar; o Kineo 1 só entra como saída para quem o tem na tela.
+      const curto = input.shortSeedanceSeconds
+      if (typeof curto === 'number' && curto > 0 && seconds > curto) {
+        const seedLabel = engineLabelFor('cinematic_ai')
+        const seedCost = creditCostForDuration('cinematic_ai', input.isPaidAccount, curto)
+        if (seedLabel && seedCost > 0 && credits >= seedCost) {
+          const s = Math.floor(credits / seedCost)
+          return `${wall} A ${curto}s ${seedLabel} video takes ${seedCost} — enough for about ${s}.`
+        }
+      }
+      if (q === 'fast' || input.kineo1Allowed === false) return wall
       // A saída honesta quando o motor usado não cabe mais: o Kineo 1 na
       // mesma duração, se o saldo pagar (a frase antiga já apontava o Fast).
       const fastLabel = engineLabelFor('fast')

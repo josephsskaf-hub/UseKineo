@@ -195,6 +195,12 @@ export interface PlanFitInput {
   monthlyFilms: number
   /** null while the canonical display currency is unresolved. */
   currency: CheckoutCurrency | null
+  /**
+   * Revisão da E2b (texto, achado 6, M7 do cético): false = a conta NÃO vê o Kineo 1 (entrada nova; lib/engineLaunch
+   * kineo1Visible libera só quem já paga e usa, ou comprou pacote/passe). Assinar o plano não entrega o Kineo 1 a quem
+   * nunca o usou, então "Keep N/month with Kineo 1" seria promessa falsa: sem alternativa Kineo 1. Ausente = como antes.
+   */
+  kineo1Allowed?: boolean
 }
 
 const SELF_SERVE_TIERS: readonly CheckoutTier[] = ['starter', 'basic', 'pro']
@@ -286,7 +292,7 @@ export function calculatePlanFit(input: PlanFitInput): PlanFitResult {
   const result = recommendationFor(input.quality, input.seconds, monthlyFilms, input.currency)
   const lowerCostAlternative = lowerCostAlternativeFor(result, input.currency)
 
-  if (result.plan || input.quality === 'fast') {
+  if (result.plan || input.quality === 'fast' || input.kineo1Allowed === false) {
     return { ...result, lowerCostAlternative, fastAlternative: null }
   }
 

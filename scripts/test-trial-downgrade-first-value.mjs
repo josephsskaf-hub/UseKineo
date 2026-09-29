@@ -52,7 +52,22 @@ ok(component.indexOf("fetch('/api/credits'") < component.indexOf("fetch('/api/vi
 ok(component.includes("const needsFirstValue = journeyState === 'first_value'"), 'render branch is explicit')
 ok(component.includes('onClick={needsFirstValue ? goToFirstFilm : goToCreator}'), 'primary button follows the exact journey state')
 ok(component.includes('trialDowngradeFirstValueClickMetadata()'), 'first-film click uses closed metadata')
-ok(component.indexOf("trackClosedEvent(\n      'trial_downgrade_first_film_clicked'") < component.indexOf('window.location.assign(TRIAL_DOWNGRADE_FIRST_VALUE_HREF)'), 'click is persisted before navigation')
+ok(component.indexOf('window.location.assign(TRIAL_DOWNGRADE_FIRST_VALUE_HREF)') > 0 && component.indexOf("trackClosedEvent(\n      'trial_downgrade_first_film_clicked'") < component.indexOf('window.location.assign(TRIAL_DOWNGRADE_FIRST_VALUE_HREF)'), 'click is persisted before navigation')
+// Revisão da E2b (29/09): com a entrada nova (SEEDANCE_15S_PUBLIC) o trial VENCIDO não tem filme a receber (a rota do
+// cinematic recusa trial_ended; o Kineo 1 some para conta nova) — o "Make your first film" levava a uma recusa. A
+// política é executada e o modal é amarrado a ela; o texto do caminho de plano para 0 filmes não diz "You made real films".
+equal(policy.trialDowngradeOffersFirstFilm(false), true, 'sem a entrada nova, o primeiro filme continua oferecido (Kineo 1 pela cota)')
+equal(policy.trialDowngradeOffersFirstFilm(true), false, 'com a entrada nova, o trial vencido NÃO recebe botão de filme que não sai')
+ok(!('TRIAL_DOWNGRADE_FIRST_VALUE_SHORT_HREF' in policy) && !source.includes('engine=seedance&duration=15'), 'nenhum destino Seedance 15 s para trial vencido (a rota recusaria)')
+ok(component.includes("const needsFirstValue = journeyState === 'first_value' && trialDowngradeOffersFirstFilm(SEEDANCE_15S_PUBLIC)"), 'o modal só oferece o filme quando a política deixa')
+ok(component.includes("const semFilmeSemOferta = journeyState === 'first_value' && !needsFirstValue") && component.includes(') : semFilmeSemOferta ? (') && component.includes('Your first film<br />is one plan away.'), 'conta sem filme e sem oferta: texto honesto, não "You made real films"')
+{
+  // Mutante em memória: política que sempre oferece → a asserção da entrada nova ficaria VERMELHA.
+  const mut = source.replace('return entrada15 !== true', 'return true')
+  const box = { exports: {} }
+  new Function('module', 'exports', ts.transpileModule(mut, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText)(box, box.exports)
+  ok(mut !== source && box.exports.trialDowngradeOffersFirstFilm(true) === true, 'mutante (sempre oferece) é pego: a asserção da entrada nova ficaria vermelha')
+}
 // REANCORADO em 27/09 (sprint16h V3): o nome do plano vem de TRIAL_CTA_PRIMARY_TIER.
 ok(component.includes('`Choose ${primaryName} now`'), 'payment remains available before delivery')
 ok(component.includes('Compare all plans →'), 'plan comparison remains available')

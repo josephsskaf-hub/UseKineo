@@ -24,7 +24,18 @@ const home=load('lib/homeVideoCuration.ts'), wall=load('lib/engineWall.ts'), old
 const approved=JSON.parse(fs.readFileSync('docs/curation-approved-2026-09-07.json','utf8'))
 const hero=await wall.getEngineHero(), trending=await wall.getTrending()
 ok(approved.length===12,'twelve founder-approved originals')
+// Reancorado 29/09 (KINEO-KINEO1-FORA-2026-09-29, fundador: "quero tirar o kineo 1 do jogo, ele estraga a entrada"):
+// os aprovados de 07/09 do Kineo 1 saem da vitrine pública (HERO_CAPS/TRENDING_CAPS.fast = 0) mas CONTINUAM na
+// curadoria (lib/homeVideoCuration.ts), com os mesmos arquivos — voltar é devolver o cap. O que este guardião vigia
+// segue igual para os demais motores; para os 'fast' ele passa a provar "fora da vitrine, intacto na curadoria".
 for(const e of approved){
+ if(e.engine==='fast'){
+  const c=home.HOME_ENGINE_EXAMPLES.find(v=>v.id===e.id)
+  ok(c && c.engine==='fast','Kineo 1 approved film kept in the curation (off the public wall since 29/09) '+e.id)
+  ok(!hero.some(v=>v.id===e.id) && !trending.some(v=>v.id===e.id),'Kineo 1 approved film off the public hero and trending '+e.id)
+  for(const asset of [c.videoPath,c.homePreviewPath,c.posterPath])ok(fs.existsSync(path.join('public',asset)),'curated asset still exists '+asset)
+  continue
+ }
  const v=hero.find(v=>v.id===e.id)
  ok(v,'approved video present in real hero data '+e.id)
  ok(v.engine===e.engine,'real engine retained')

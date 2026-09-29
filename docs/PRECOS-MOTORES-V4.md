@@ -20,7 +20,7 @@ Valor do crédito: Creator $24.90/240cr = **$0.104/cr** · Starter intro $4.90/2
 |---|---|---|---|---|---|---|
 | Seedance 1.5 | ~$0.65 | 20 | $2.08 | ~69% | ~$1.30 | **30** (margem 58%) |
 | Veo 3.1 Fast | ~$4.00 | 90 | $9.36 | ~57% | ~$4.00 (igual!) | **90 — 1080p SEM aumento** |
-| Kling 2.5 | ~$2.80 | 50 | $5.20 | ~46% | nativo | — |
+| Kling 2.5 | ~$2.80 → **~$8.40 (29/09, planos de 5 s + still em todas as cenas)** | 50 → **60 (29/09)** | $5.20 | ~46% → ~8-22% a 50 · recomposta a 60 | nativo | **60** (fundador, 29/09 01:05 BRT: "sobe kling 2 pra 60 creditos") |
 | Kling 3 (Hollywood) | ~$8-11 | 150 | $15.60 | ~35-49% | nativo | — |
 | Wan 2.6 (novo) | ~$2.00 | — | — | — | — | **28** (margem 55%) |
 | Hailuo 2.3 (novo) | ~$2.45 (5 clipes) | — | — | — | — | **35** |
@@ -35,7 +35,8 @@ Valor do crédito: Creator $24.90/240cr = **$0.104/cr** · Starter intro $4.90/2
 - Seletor 720/1080 ponta a ponta: 1 dia (param + engineCost hd)
 
 ## 4. Quanto mudar de preço (proposta fechada)
-- **Não mexer**: Fast grátis/1cr, Kling 2.5 (50), Kling 3 (150), preços dos planos
+- **Não mexer**: Fast grátis/1cr, ~~Kling 2.5 (50)~~ **Kling 2.5 subiu para 60 em 29/09** (decisão do fundador — ver linha da tabela acima; régua derivada: 35 s = 35, 90 s = 90), Kling 3 (150), preços dos planos
+- **⚠ Piso de margem dos planos (lib/checkoutPricing.ts WORST_CASE_USD_PER_CREDIT = 0.116, H3)**: com o Kling 2.5 a ≈ US$ 8,40/60cr = $0,140/cr ele vira o pior motor por crédito, ACIMA do piso. Constante NÃO alterada em 29/09 — subir o piso reprecifica Starter/Creator/Studio e é decisão separada do fundador.
 - **Veo 3.1**: 1080p vira PADRÃO sem subir créditos (fal cobra igual) — marketing puro: "Full HD agora em todos os Veo"
 - **Seedance**: 720p segue 20cr; **1080p = 30cr** (upsell no gerador: "+10cr Full HD")
 - **60s**: passa a 1.4× créditos do motor (hoje 60s custa igual 45s = margem furada). 15s = 0.6×.

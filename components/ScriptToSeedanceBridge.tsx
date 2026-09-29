@@ -22,6 +22,7 @@ import { useEffect, useRef } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { creditCostForDuration } from '@/lib/credits/engineCost'
+import { FREE_FILM_LABEL } from '@/lib/freeTierOffer' // KINEO-FILME-GRATIS-15S-2026-09-29
 
 export const SCRIPT_BRIDGE_VERSION = 'bridge_v1'
 const BRIDGE_FILM_SECONDS = 35
@@ -83,7 +84,7 @@ export default function ScriptToSeedanceBridge({ from, compact = false }: { from
         Paste it into Seedance 1.5 — the engine people publish with.
       </h2>
       <p style={{ margin: '0 0 14px', color: '#a1a1a6', fontSize: '0.92rem', lineHeight: 1.6 }}>
-        From {starter}/month = {films} films of {BRIDGE_FILM_SECONDS} s. Kineo 1 is the free rehearsal: stock footage, watermark after the trial.
+        From {starter}/month = {films} films of {BRIDGE_FILM_SECONDS} s. New accounts start with one {FREE_FILM_LABEL}, watermarked.
       </p>
       <Link
         href={href}

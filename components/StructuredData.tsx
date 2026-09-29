@@ -1,5 +1,5 @@
 import { getFreeTierOffer, swapFreeTierCopy as ft , TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
-import { VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, PAUSED_ENGINES_COPY } from '@/lib/engineLaunch'
+import { VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, PAUSED_ENGINES_COPY, KINEO1_PUBLIC } from '@/lib/engineLaunch'
 import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
 import { CHECKOUT_CURRENCY_DISCLOSURE, formatResultCount, videosPerMonth } from '@/lib/marketingPrice'
 import { BRAND_ALIASES, BRAND_NAME, BRAND_URL } from '@/lib/brandIdentity'
@@ -136,7 +136,9 @@ const softwareApplicationSchema = {
         name: 'Creator',
         cents: TIER_PRICES.basic.usd,
         credits: TIER_CREDITS.basic,
-        extra: `Enough for ${formatResultCount(videosPerMonth('basic', 'cinematic_ai'), 'Seedance film')} a month, or ${formatResultCount(videosPerMonth('basic', 'fast'), 'Kineo 1 film')}.`,
+        // KINEO-KINEO1-FORA-2026-09-29 (conserto da revisão E1) — este JSON-LD sai em TODA página (app/layout.tsx), e o
+        // Kineo 1 saiu do catálogo público: a comparação em filmes Kineo 1 só volta com KINEO1_PUBLIC=true.
+        extra: `Enough for ${formatResultCount(videosPerMonth('basic', 'cinematic_ai'), 'Seedance film')} a month${KINEO1_PUBLIC ? `, or ${formatResultCount(videosPerMonth('basic', 'fast'), 'Kineo 1 film')}` : ''}.`,
       },
       {
         name: 'Studio',
@@ -186,7 +188,7 @@ const faqSchema = {
         // frase antiga enquanto a pagina mostra a nova — exatamente o "spam
         // signal" que o comentario adverte. Mesmos dois argumentos, na mesma
         // ordem: com a flag OFF os dois textos voltam byte a byte ao de hoje.
-        text: `${ft(OFFER, 'Yes. Never-paid free users can download, share and post the watermarked MP4.', 'Trial films carry a small watermark — you can download, share and post the MP4. After the trial, the free Fast video carries a watermark.')} Paid plans unlock the clean, watermark-free MP4 for YouTube, TikTok or Reels.`,
+        text: `${ft(OFFER, 'Yes. Never-paid free users can download, share and post the watermarked MP4.', 'Yes. Never-paid free users can download, share and post the watermarked MP4.')} Paid plans unlock the clean, watermark-free MP4 for YouTube, TikTok or Reels.`,
       },
     },
     {
@@ -194,7 +196,7 @@ const faqSchema = {
       name: 'Do I need any editing skills?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `None. You type one idea and the AI writes the script, records the voice, finds the footage and adds captions. ${ft(OFFER, 'Free downloads carry a watermark; paid plans unlock the clean MP4.', 'Trial downloads carry a watermark, and so does the free Fast video after the trial, and paid plans always export clean.')}`,
+        text: `None. You type one idea and the AI writes the script, records the voice, finds the footage and adds captions. ${ft(OFFER, 'Free downloads carry a watermark; paid plans unlock the clean MP4.', 'Free downloads carry a watermark; paid plans unlock the clean MP4.')}`,
       },
     },
     {

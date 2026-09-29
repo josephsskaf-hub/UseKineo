@@ -27,7 +27,9 @@ check('paid verdict precedes cheap/free verdict', text.indexOf(answer.question) 
 check('explicitly free intent still has its honest existing destination', answer.explicitFreeRequest.url.endsWith('/free-ai-shorts-generator') && answer.explicitFreeRequest.guidance.includes('watermark'))
 check('free-question catalogue is not replaced by paid claims', CITATION_ANSWERS.script.question.includes('for free') && CITATION_ANSWERS.youtube.question.includes('free'))
 check('no broad best-tool claim or unlimited promise', answer.scope.includes('no universally best') && answer.limits.includes('other creations share'))
-check('legacy engine order preserved', payload.engines[0].name === 'Kineo 1')
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o Kineo 1 saiu do catálogo público (ENGINE_FACTS só o lista
+// com KINEO1_PUBLIC); a ordem preservada é a dos motores restantes, com o Seedance 1.5 na frente.
+check('legacy engine order preserved', payload.engines[0].name === 'Seedance 1.5' && !payload.engines.some((e) => e.name === 'Kineo 1'))
 check('no Ads v2 added to this answer', !JSON.stringify(answer).match(/Studio Ads|Photo motion|Commercial|Cinema|ads\/v2|ADS_V2/))
 const input = { engines:payload.engines, plans:payload.plans, pausedNames:[], referenceSeconds:60, trialCredits:10, base:payload.product.url }
 check('maintenance removes even the first-choice destination', build({...input,pausedNames:['Seedance 1.5']}).destinations[0].name === 'Kling 2.5')

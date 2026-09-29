@@ -315,7 +315,7 @@ function failedCardCopy(video: Video, state: 'failed' | 'timeout'): string {
 // prefill the composer — see app/(dashboard)/generate/GenerateClient.tsx,
 // which does `searchParams.get('prompt') ?? searchParams.get('topic')` and
 // caps the stored prompt at 1000 chars.
-function tryAgainHref(video: Video): string { return reviewVideoRetryHref(video.topic) }
+function tryAgainHref(video: Video): string { return reviewVideoRetryHref(video.topic, { quality: video.quality_mode, durationSeconds: video.duration ?? null }) } // KINEO-ENTRADA-SEEDANCE15 (B9): o motor e a duração do filme original
 
 interface Props {
   embedded?: boolean

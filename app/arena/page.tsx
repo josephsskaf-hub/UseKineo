@@ -24,20 +24,28 @@ import { creditCostFor } from '@/lib/credits/engineCost'
 import { formatCheckoutMoney, getTierPrice } from '@/lib/checkoutPricing'
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { getPublicEngineExample } from '@/lib/publicExamples'
+import { KINEO1_PUBLIC } from '@/lib/engineLaunch'
 
 export const dynamic = 'force-static'
 
 const BASE = 'https://www.usekineo.com'
 const STARTER_PRICE_LABEL = formatCheckoutMoney('usd', getTierPrice('starter', 'usd'))
+// KINEO-KINEO1-FORA-2026-09-29 — o card do Kineo 1 continua DECLARADO em FIGHTER_CARDS (e o dado em
+// lib/publicExamples, exigido por test-vitrine-sem-filme-de-cliente), mas só é RENDERIZADO com KINEO1_PUBLIC. A
+// contagem da página segue o interruptor; scripts/test-kineo1-fora-vitrine-2026-09-29.mjs prova que a palavra bate
+// com o número de cards renderizados.
+const ARENA_COUNT = KINEO1_PUBLIC ? 'seven' : 'six'
+const ARENA_COUNT_CAP = KINEO1_PUBLIC ? 'Seven' : 'Six'
+const ARENA_ENGINE_LIST = 'Omni Flash (#1, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5' + (KINEO1_PUBLIC ? ', Seedance 1.5 and Kineo 1' : ' and Seedance 1.5')
 
 export const metadata: Metadata = {
   title: 'AI Video Engine Arena — Omni Flash vs Veo 3.1 vs Kling 3 vs MiniMax H3 | Kineo',
   description:
-    'The same kind of script, rendered by seven different AI video engines — real Kineo renders, honest engine labels, credit cost per film. Pick the engine by what you actually see, not by a demo reel.',
+    `The same kind of script, rendered by ${ARENA_COUNT} different AI video engines — real Kineo renders, honest engine labels, credit cost per film. Pick the engine by what you actually see, not by a demo reel.`,
   alternates: { canonical: `${BASE}/arena` },
   openGraph: {
-    title: 'AI Video Engine Arena — seven engines, real renders, one pipeline',
-    description: 'Omni Flash (#1, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5 and Kineo 1 — side by side, honestly labeled.',
+    title: `AI Video Engine Arena — ${ARENA_COUNT} engines, real renders, one pipeline`,
+    description: `${ARENA_ENGINE_LIST} — side by side, honestly labeled.`,
     url: `${BASE}/arena`,
     type: 'website',
   },
@@ -55,7 +63,7 @@ type Fighter = {
 
 // Curadoria: o MESMO tipo de cena (o melhor clipe curado de cada motor na
 // vitrine) para a comparação ser justa. Ver lib/engineWall.ts.
-const FIGHTERS: Fighter[] = [
+const FIGHTER_CARDS: Fighter[] = [
   {
     badge: 'OMNI FLASH',
     engineParam: 'omni',
@@ -120,6 +128,7 @@ const FIGHTERS: Fighter[] = [
     bestFor: 'Facts, finance and news formats where footage beats generation.',
   },
 ]
+const FIGHTERS: Fighter[] = FIGHTER_CARDS.filter((f) => f.quality !== 'fast' || KINEO1_PUBLIC)
 
 const FAQ_JSONLD = {
   '@context': 'https://schema.org',
@@ -146,7 +155,7 @@ const FAQ_JSONLD = {
       name: 'Do I have to pay for each AI video model separately?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `No. One Kineo plan unlocks all seven engines and you spend credits per video, so an expensive flagship film and a cheap fast render come out of the same balance. Plans start at ${STARTER_PRICE_LABEL}/month.`,
+        text: `No. One Kineo plan unlocks all ${ARENA_COUNT} engines and you spend credits per video, so an expensive flagship film and a cheap fast render come out of the same balance. Plans start at ${STARTER_PRICE_LABEL}/month.`,
       },
     },
   ],
@@ -158,7 +167,7 @@ export default function ArenaPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }} />
       <p style={{ color: '#86868b', fontSize: 12, textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 800 }}>Kineo · Engine Arena</p>
       <h1 style={{ fontSize: 36, fontWeight: 900, lineHeight: 1.12, letterSpacing: '-0.02em', margin: '10px 0 14px' }}>
-        Seven AI video engines. <span style={{ color: '#5cb3ff' }}>Real renders, honest labels.</span>
+        {ARENA_COUNT_CAP} AI video engines. <span style={{ color: '#5cb3ff' }}>Real renders, honest labels.</span>
       </h1>
       <p style={{ color: '#c7c7cc', fontSize: 16, maxWidth: 760 }}>
         Every comparison you find online is a blog post with a demo reel. This page is the opposite: each clip below
@@ -211,7 +220,7 @@ export default function ArenaPage() {
       </div>
 
       <div style={{ padding: '22px 24px', borderRadius: 16, background: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.3)', textAlign: 'center' }}>
-        <p style={{ fontSize: 18, fontWeight: 900, margin: '0 0 6px' }}>One subscription. All seven.</p>
+        <p style={{ fontSize: 18, fontWeight: 900, margin: '0 0 6px' }}>One subscription. All {ARENA_COUNT}.</p>
         <p style={{ color: '#a1a1a8', fontSize: 14, margin: '0 0 14px' }}>
           You don&apos;t pick an engine when you subscribe — you pick it per video, from the same text box. Plans from {STARTER_PRICE_LABEL}/month; every new account starts free with 10 credits, no card.
         </p>

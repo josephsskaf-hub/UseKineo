@@ -131,19 +131,33 @@ const hubPrevious = execFileSync('git', ['show', '7bd95b83:' + hubFile], { encod
 function hubMetadata(source) {
   const tree = ast(source)
   const declarations = tree.statements.filter(node => ts.isVariableStatement(node) &&
-    node.declarationList.declarations.some(declaration => ['HUB_DESCRIPTION', 'metadata'].includes(declaration.name.getText(tree))))
+    node.declarationList.declarations.some(declaration => ['HUB_DESCRIPTION', 'HUB_TITLE', 'metadata'].includes(declaration.name.getText(tree))))
   const js = ts.transpileModule(declarations.map(node => node.getText(tree)).join('\n'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText
   const exports = {}
-  vm.runInNewContext(js, { exports, URL, BASE: 'https://www.usekineo.com' }, { timeout: 2000 })
+  vm.runInNewContext(js, { exports, URL, BASE: 'https://www.usekineo.com', KINEO1_PUBLIC: kineo1Public }, { timeout: 2000 })
   return exports.metadata
 }
+// Reancorado 29/09 (revisão da E2b, texto achado 7): o título do hub passou a seguir o interruptor KINEO1_PUBLIC (o Kineo 1
+// saiu do catálogo público na E1). O valor do interruptor é LIDO de lib/engineLaunch.ts; com ele ligado o título tem de
+// ser EXATAMENTE o da base (a trava continua), e desligado não pode citar o Kineo 1.
+const kineo1Public = /^export const KINEO1_PUBLIC = true\b/m.test(fs.readFileSync('lib/engineLaunch.ts', 'utf8'))
 const hubBefore = hubMetadata(hubPrevious), hubAfter = hubMetadata(hubCurrent)
 assert.match(hubBefore.description, /Real user renders/)
 assert.doesNotMatch(hubAfter.description, /real user renders|demo reel|rendered by each/i)
 assert.equal(hubAfter.openGraph.description, hubAfter.description)
-assert.equal(hubAfter.title, hubBefore.title)
+if (kineo1Public) assert.equal(hubAfter.title, hubBefore.title)
+else { assert.doesNotMatch(hubAfter.title, /Kineo 1/); assert.equal(hubAfter.title, hubBefore.title.replace('Veo & Kineo 1', 'Veo & MiniMax H3')) }
+assert.equal(hubAfter.openGraph.title, hubAfter.title)
+{
+  // O mesmo metadado com o interruptor LIGADO devolve o título da base, byte a byte (mutante do interruptor).
+  const tree = ast(hubCurrent)
+  const decl = tree.statements.filter(node => ts.isVariableStatement(node) && node.declarationList.declarations.some(d => ['HUB_DESCRIPTION', 'HUB_TITLE', 'metadata'].includes(d.name.getText(tree))))
+  const exports = {}
+  vm.runInNewContext(ts.transpileModule(decl.map(n => n.getText(tree)).join('\n'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText, { exports, URL, BASE: 'https://www.usekineo.com', KINEO1_PUBLIC: true }, { timeout: 2000 })
+  assert.equal(exports.metadata.title, hubBefore.title, 'com KINEO1_PUBLIC=true o título volta ao da base')
+}
 assert.equal(hubAfter.alternates.canonical, hubBefore.alternates.canonical)
 assert.equal(hubAfter.openGraph.url, hubBefore.openGraph.url)
 const hubBody = source => {

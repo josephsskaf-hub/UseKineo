@@ -74,6 +74,9 @@ import { loadVerifiedCinematicClaim, cinematicJobsAreTerminal, type CinematicCla
 import { readVerifiedSceneRetryHold, releaseSceneRetryMutex, type SceneRetryMutex } from '@/lib/cinematic/sceneRetry'
 import { classicSceneRetryHoldResolvable } from '@/lib/classicSceneRetry' // KINEO-CENA-CLASSICA-2026-09-28
 import { alignSignedClipPlan } from '@/lib/cinematic/klingShots' // KINEO-KLING25-PLANOS-5S-2026-09-28
+import { isVeoClaim, veoAlignSignedClipPlan } from '@/lib/cinematic/veoShots' // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — claim do Veo assina 4|6|8
+import { alignSignedClipPlanWith } from '@/lib/cinematic/klingShots' // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29
+import { isSeedanceShortClaim, SEEDANCE_SHORT_CLIP_STEPS } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 3x6] claim do Seedance a 15 s assina 6|7|8
 import { collectSceneNarrations, verifyObservedSpeech } from '@/lib/cinematic/speechContract'
 // KINEO-COMPOSE-REJECT-NOREFUND-2026-08-10 — ver o cabeçalho do arquivo: numa
 // recusa TERMINAL do fornecedor nenhum render_id nasce, logo /api/compose/status
@@ -156,7 +159,10 @@ const FORCE_WATERMARK_EMAILS = new Set<string>([
 // final video came out ~half the requested length.
 // KINEO-DURACAO-2026-08-20 — 35 entra como tier curto oficial do /studio.
 // Os demais ficam por compatibilidade com links e clientes antigos.
-const SUPPORTED_DURATIONS = [10, 30, 35, 45, 50, 60, 90] as const
+// KINEO-SEEDANCE-15S-2026-09-29 (B7) — 15 entra: o filme de 15 s do Seedance 1.5. Sem ele, o 15 virava 45 aqui e o
+// filme só compunha a 15 s pendurado na ponte do claim (que NÃO age no resgate do finish-stranded-renders: o filme
+// resgatado era montado a 45 s).
+const SUPPORTED_DURATIONS = [10, 15, 30, 35, 45, 50, 60, 90] as const
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — resolvido no módulo (runtime de servidor; na
 // Vercel a env é fixa por deployment, então isto nunca muda no meio da vida do
@@ -883,6 +889,15 @@ export async function POST(req: NextRequest) {
       // authorized_completed_urls (cliente, cron de resgate e retomada passam todos por aqui). Claim sem o campo (Seedance,
       // Veo, Sora e todo Kling de antes deste deploy) = null = a montagem de sempre.
       signedClipPlan = alignSignedClipPlan(cinematicBirthClaim.response, cinematicBirthClaim.authorizedCompletedUrls, clipUrls)
+      // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — o claim do Veo 3.1 (fal_model veo3.1/…) assina 4|6|8 por cena: o alinhador do Kling
+      // (5|10) devolve null para ele, e só então o do Veo alinha. Todo outro claim para na linha acima, byte a byte.
+      if (!signedClipPlan && isVeoClaim(cinematicBirthClaim.response)) signedClipPlan = veoAlignSignedClipPlan(cinematicBirthClaim.response, cinematicBirthClaim.authorizedCompletedUrls, clipUrls)
+      // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29 — o filme de 15 s do Seedance 1.5 assina 6|7|8 por clipe e
+      // o início da fala de cada cena (os mesmos campos do Kling e do Veo): o compose monta pela linha do tempo por nível
+      // d'água com corte no início da fala, sem reciclar o clipe 0 enquanto houver imagem não usada (canário de 29/09 04:34
+      // UTC: 2 × 10 s, 17,8 s de fala, o clipe 0 voltou nos últimos 2,9 s). Os alinhadores do Kling (5|10) e do Veo devolvem
+      // null para esse claim; todo outro claim para nas linhas acima, byte a byte.
+      if (!signedClipPlan && isSeedanceShortClaim(cinematicBirthClaim.response)) signedClipPlan = alignSignedClipPlanWith(cinematicBirthClaim.response, cinematicBirthClaim.authorizedCompletedUrls, clipUrls, SEEDANCE_SHORT_CLIP_STEPS)
       // Server recovery and browser submission must use the same original scene
       // indexes. A missing middle scene must not move its voice onto its neighbor.
       if (cinematicBirthClaim.response) {
@@ -1858,7 +1873,9 @@ export async function POST(req: NextRequest) {
         // linha faz aparecer é entregável. Não estou criando um caso de unlock
         // novo; estou pondo mais gente num caso que já foi construído e testado.
         isFreePlanCinematic = isFreePlan && !hasPaid && !ent.isPaidAccount
-        const requiredCredits = creditCostFor('cinematic_ai', true)
+        // KINEO-SEEDANCE-15S-2026-09-29 — o piso de saldo escala pela duração, com a MESMA função que o cinematic cobra
+        // (creditCostForDuration): o filme de 15 s pede 7 cr, não o preço de 60 s.
+        const requiredCredits = creditCostForDuration('cinematic_ai', true, duration)
         if (!hasPaidCreditAccess) {
           return NextResponse.json(
             { error: 'AI Generated videos are available on paid plans. Upgrade to continue.', upgrade: '/pricing' },

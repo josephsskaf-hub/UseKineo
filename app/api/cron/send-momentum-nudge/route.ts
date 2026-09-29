@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
-import { creditCostFor } from '@/lib/credits/engineCost'
+import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
 import { buildSeriesContinuationEmailUrl } from '@/lib/seriesContinuation'
 import { pickMomentumTopic, momentumAnchor } from '@/lib/momentumTopic'
 import { createClient as createSessionClient } from '@/lib/supabase/server'
@@ -242,12 +242,12 @@ function buildEmail(userId: string, videosMade: number, topic: string | null, ne
   // credito. Diz a verdade inteira: o motor que sai de graca, e a marca d'agua
   // que vem junto com ele (getFreeTierOffer e a mesma fonte do enforcement).
   const freeLineText = freeEngine
-    ? `Your balance won't cover an AI film right now — but your next film is not blocked. Kineo 1 costs no credits on your account. It renders with our watermark; everything else is the same machine.
+    ? `Your balance won't cover an AI film right now — but your next film is not blocked: your free plan still makes one at no credit cost. It renders with our watermark; everything else is the same machine.
 
 `
     : ''
   const freeLineHtml = freeEngine
-    ? `<p style="margin:0 0 14px;">Your balance won't cover an AI film right now — but your next film is not blocked. <strong>Kineo 1 costs no credits on your account</strong>. It renders with our watermark; everything else is the same machine.</p>`
+    ? `<p style="margin:0 0 14px;">Your balance won't cover an AI film right now — but your next film is not blocked: <strong>your free plan still makes one at no credit cost</strong>. It renders with our watermark; everything else is the same machine.</p>`
     : ''
 
   const text = `Hey,
@@ -412,7 +412,9 @@ export async function GET(req: NextRequest) {
   // o argumento que descreve a pessoa que vai receber a carta. `minCredits`
   // sobrevive como PISO DO RAMO PAGO — e o mesmo bar de antes, e e por isso que
   // a coorte que ja recebia nao muda de carta nem de link.
-  const minCredits = creditCostFor('fast', true)
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — o piso passa a ser o filme mais barato que uma conta nova consegue fazer: o
+  // Seedance 1.5 de 15 s (creditCostForDuration, a função que cobra). O Kineo 1 saiu do catálogo público.
+  const minCredits = creditCostForDuration('cinematic_ai', true, 15)
 
   const targets: Array<{ id: string; email: string; count: number; topic: string | null; nextFilm: NextFilmKind }> = []
   const skipped = {
@@ -429,8 +431,10 @@ export async function GET(req: NextRequest) {
     const email = (p.email ?? '') as string
     if (!email || p.email_opted_out || isInternalOrJunk(email)) continue
     if (p.stripe_subscription_id) continue // já é cliente
-    // O custo do proximo filme e o desta conta — que, aqui, nunca e pagante.
-    const freeEngineCost = creditCostFor('fast', false)
+    // KINEO-FILME-GRATIS-15S-2026-09-29 — a cota semanal de Kineo 1 deixou de ser ANUNCIADA: a carta não promete mais
+    // "Kineo 1 costs no credits". Sem motor grátis anunciado, o próximo filme custa o piso (o 15 s do Seedance) e quem
+    // está abaixo dele cai em too_few_credits (o ramo free_engine fica inalcançável até a E4 decidir o destino dele).
+    const freeEngineCost = minCredits
     const decision = momentumNextFilm({
       credits: (p.video_credits as number | null) ?? null,
       // `creditFloor` E o bar antigo, byte a byte: quem passava continua
@@ -446,7 +450,7 @@ export async function GET(req: NextRequest) {
   if (!confirm) {
     return NextResponse.json({
       mode: 'DRY_RUN',
-      cohort: `fez 1-3 vídeos · parado há ${window.minIdleH}-${window.maxIdleH}h · não paga · nunca recebeu este e-mail NESTE degrau (folga ${MOMENTUM_MIN_GAP_DAYS}d entre degraus) · consegue fazer o próximo filme AGORA: tem crédito (≥${minCredits}) OU o Kineo 1 sai por ${creditCostFor('fast', false)} e a vaga free (${OFFER.limit} por ${Math.round(OFFER.windowMs / 3600_000)}h) está livre`,
+      cohort: `fez 1-3 vídeos · parado há ${window.minIdleH}-${window.maxIdleH}h · não paga · nunca recebeu este e-mail NESTE degrau (folga ${MOMENTUM_MIN_GAP_DAYS}d entre degraus) · consegue fazer o próximo filme AGORA: tem crédito (≥${minCredits}, o Seedance 1.5 de 15 s) — o ramo da cota semanal não é mais anunciado (KINEO-FILME-GRATIS-15S-2026-09-29)`,
       window,
       via: viaCron ? 'cron' : 'admin_session',
       // #23: quantos candidatos a escada segurou, por motivo.

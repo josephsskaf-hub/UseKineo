@@ -87,7 +87,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const title = titleFor(s.totalFilms)
   const description =
     `How many finished Shorts each AI video engine actually delivered on Kineo in the last ${s.windowDays} days — ` +
-    `Seedance 1.5, Veo 3.1, Kling 2.5, Kling 3, MiniMax H3 and Kineo 1 — with distinct creators, median length and ` +
+    `Seedance 1.5, Veo 3.1, Kling 2.5, Kling 3 and MiniMax H3 — with distinct creators, median length and ` + // KINEO-FILME-GRATIS-15S-2026-09-29
     `credits per 60-second film. Internal accounts excluded, free to cite.`
   return {
     title,
@@ -137,7 +137,7 @@ export default async function SeedanceVsVeoVsKlingPage() {
       q: 'Can I paste a script I wrote with ChatGPT?',
       a:
         'Yes. Paste the script into Kineo, choose "Use my script as is", and the engine you pick narrates it word for ' +
-        'word — Seedance 1.5 generates every scene with AI; Kineo 1 matches stock footage and is the free rehearsal.',
+        'word — Seedance 1.5 generates every scene with AI, and a new account can try it free with one 15-second film.',
     },
   ]
 
@@ -235,7 +235,8 @@ export default async function SeedanceVsVeoVsKlingPage() {
           people, at {seedance?.credits60 ?? '—'} credits for 60 seconds. Veo 3.1 ({veo?.films ?? 0} films) and Kling 2.5
           ({kling?.films ?? 0}) are chosen far less often — they cost {veo?.credits60 ?? '—'} and {kling?.credits60 ?? '—'} credits
           per 60-second film, and at that size of sample the honest reading is &ldquo;rarely picked&rdquo;, not &ldquo;worse&rdquo;.
-          Kineo 1 carries the volume because it is the free rehearsal: stock footage, not generated scenes.
+          {/* KINEO-FILME-GRATIS-15S-2026-09-29 — o Kineo 1 saiu do catálogo público e desta tabela (ENGINE_SLUGS). */}
+          The free way to try it is Seedance itself: a new account&apos;s trial credits pay for one 15-second Seedance film.
         </p>
 
         <section style={{ ...CARD, padding: '18px 20px', margin: '28px 0 0' }}>

@@ -132,6 +132,8 @@ export const INTERFACE_ES: Record<string, string> = {
   '🖼️ Upload a photo': '🖼️ Subir una foto', '🖼️ Choose a different photo': '🖼️ Elegir otra foto',
   '✨ Bring it to life': '✨ Darle vida', 'Generate →': 'Generar →',
   "Google's flagship cinematic engine": 'El motor cinematográfico insignia de Google',
+  'Google’s flagship cinematic engine · 1080p': 'El motor cinematográfico insignia de Google · 1080p', // KINEO-VEO-CARD-HONESTO-2026-09-29
+  'Google’s flagship engine · 1080p': 'El motor insignia de Google · 1080p',
   'Cinematic film — 9-image consistency': 'Cine con coherencia entre 9 imágenes',
   '#1-ranked video model — Aug 2026 arena': 'Modelo de vídeo n.º 1 en la arena de agosto de 2026',
   'Cinematic motion and camera work': 'Movimiento y cámara cinematográficos',

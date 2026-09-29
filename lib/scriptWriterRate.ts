@@ -10,9 +10,11 @@
 // duração inteira (cobertura 1,0): 5% de folga sobre o portão. Sem `engine` (chamadores antigos), tudo
 // como antes (2,3 pal/s, cobertura 0,95).
 import { MIN_COVERAGE, WORDS_PER_SECOND } from '@/lib/narrationFit'
-import { speechFamilyForQuality, speechRateFor } from '@/lib/speechRate'
+import { speechFamilyForQuality, speechRateFor, SPEECH_RATE_BASE } from '@/lib/speechRate'
 import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
 import { VOICE_PERSONAS } from '@/lib/narration/personas'
+import { SEEDANCE_SHORT_SECONDS, SEEDANCE_SHORT_CLIP_STEPS, VERBATIM_EST_WORDS_PER_SECOND, seedanceShortSpeechCapacity } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29
+import { KLING25_CLIP_LOSS_SECONDS } from '@/lib/cinematic/klingShots' // o que o compose tira de cada clipe (0,1 + 0,06)
 
 // AUDITORIA 17/09 (noite): as personas do Kineo 1 vão de 2,25 (onyx × 0,90) a 2,81 pal/s (fable × 1,10), e o
 // escritor escolhe a persona pelo TEMA CRU enquanto o portão escolhe pelo ROTEIRO PRONTO — podem divergir. Com
@@ -29,13 +31,45 @@ export function fastestClassicPersonaRate(language: string): { wordsPerSecond: n
   return best
 }
 
+// ═══ KINEO-SEEDANCE-15S-3X6-2026-09-29 [TRAVA 8.2 — "vai" do 3x6] — o roteiro do filme de 15 s mira ~40 palavras ═══
+// Fundador, 29/09: "3x6 gostei dessa opção bora fazer". O filme de 15 s no Seedance 1.5 são 3 clipes de 6 s
+// (lib/durationByEngine seedanceShortClipSeconds). Até aqui o escritor dimensionava o 15 s na régua GENÉRICA do clássico
+// (3,1 pal/s, a do tts-1-hd sem voz conhecida): 47-56 palavras = 18,8-22,4 s na voz real — o canário de 29/09 04:34 UTC
+// (45 palavras) saiu com 17,8 s, e 56 palavras pedem 8 s por clipe. Agora, SÓ no 15 s com a régua genérica do clássico
+// (é o que writerRateFor devolve para o Seedance — 'cinematic_ai'; o Kineo 1 anda na persona mais rápida, o hollywood e
+// o legado em 2,3, e nenhum deles passa por aqui), a faixa sai de duas contas:
+//   · PISO: o filme de 15 s nunca sai abaixo do piso C2 (95 %) nem na voz MAIS RÁPIDA do catálogo (a mesma que o Kineo 1
+//     usa, fastestClassicPersonaRate: fable 2,55 × 1,10 = 2,81 pal/s) → ⌈15 × 0,95 × 2,81⌉ = ⌈40,04⌉ = 41 palavras (com 40,
+//     essa persona fala 14,2 s e o ensaio de $0 reprova por 0,05 s — medido no guardião);
+//   · TETO: o roteiro cabe inteiro nos 3 clipes do passo mais barato (6 s) na régua real da casa (2,5 pal/s = a da guarda
+//     do filme curto; média do catálogo de personas; canário 45 pal ÷ 17,8 s = 2,53) COM a folga que o planejador de
+//     clipes exige (lib/durationByEngine seedanceShortSpeechCapacity: fala × 1,04 + o décimo do compose) →
+//     ⌊(3 × (6 − 0,16) − 0,1) ÷ 1,04 × 2,5⌋ = ⌊41,9⌋ = 41 palavras. Revisão adversarial (29/09): o teto antigo, 43 (sem
+//     folga), deixava 0,32 s de margem — a voz 2 % mais lenta já devolvia o clipe 0 no fim do filme.
+// Piso = teto = 41 palavras (~40) = 16,4 s de fala a 2,5 pal/s (16,2 s no ritmo do canário). A mesma função responde ao
+// /api/generate-script (piso e teto do prompt; a outra entrega corta os blocos extras em maxWordsFor) e ao guardião.
+/** Faixa de palavras do roteiro do filme de 15 s no Seedance 1.5 (piso na voz mais rápida; teto que cabe em 3 × 6 s com folga). */
+export function seedanceShortWriterWords(language: string = 'en'): { min: number; max: number; wordsPerSecond: number } {
+  const rapida = fastestClassicPersonaRate(language).wordsPerSecond
+  const min = Math.ceil(SEEDANCE_SHORT_SECONDS * MIN_COVERAGE * rapida - 1e-9)
+  const cabe = seedanceShortSpeechCapacity(SEEDANCE_SHORT_CLIP_STEPS[0], KLING25_CLIP_LOSS_SECONDS)
+  const max = Math.max(min, Math.floor(cabe * VERBATIM_EST_WORDS_PER_SECOND + 1e-9))
+  return { min, max, wordsPerSecond: VERBATIM_EST_WORDS_PER_SECOND }
+}
+/** O pedido é o 15 s do Seedance: a duração curta na régua genérica do clássico (writerRateFor de 'cinematic_ai'). */
+function isSeedanceShortWriter(seconds: number, wordsPerSecond: number, coverage: number): boolean {
+  return typeof SEEDANCE_SHORT_SECONDS === 'number' && seconds === SEEDANCE_SHORT_SECONDS && wordsPerSecond === SPEECH_RATE_BASE?.classic && coverage === 1
+}
+
 /** Palavras faladas mínimas para cobrir `coverage` de um vídeo de N segundos à régua dada. */
 export function minWordsFor(seconds: number, wordsPerSecond: number = WORDS_PER_SECOND, coverage: number = MIN_COVERAGE): number {
+  if (isSeedanceShortWriter(seconds, wordsPerSecond, coverage)) return seedanceShortWriterWords().min // KINEO-SEEDANCE-15S-3X6-2026-09-29
   return Math.ceil(seconds * coverage * wordsPerSecond)
 }
 
 /** Teto sugerido: dá folga ao modelo sem convidar a um roteiro de outro tamanho. */
 export function maxWordsFor(seconds: number, wordsPerSecond: number = WORDS_PER_SECOND, coverage: number = MIN_COVERAGE): number {
+  if (isSeedanceShortWriter(seconds, wordsPerSecond, coverage)) return seedanceShortWriterWords().max // KINEO-SEEDANCE-15S-3X6-2026-09-29
   return Math.round(minWordsFor(seconds, wordsPerSecond, coverage) * 1.2)
 }
 

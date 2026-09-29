@@ -84,7 +84,9 @@ check(client.includes("trackEvent('trial_repeat_episode_viewed'"), 'funded repea
 check(client.includes("trackEvent('trial_repeat_episode_clicked'"), 'funded repeat has a click outcome')
 check(client.includes("trackEvent('trial_repeat_subscription_clicked'"), 'secondary subscription intent is measurable')
 check(client.includes("setMode('fast')"), 'funded CTA selects the promised Fast engine')
-check(client.includes('setDuration(trialRepeatDecision.duration)'), 'funded CTA selects the policy duration')
+// Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): a duração da política ganhou o 15 do Seedance (tipo number) e o
+// chamador a estreita para Duration; continua sendo a duração DA POLÍTICA.
+check(client.includes('setDuration(trialRepeatDecision.duration as Duration)'), 'funded CTA selects the policy duration')
 check(client.includes('Nothing is spent until you review it and press Generate.'), 'copy states the non-spending handoff')
 check(client.includes("router.push('/pricing?intent_campaign=trial_repeat_secondary_v1#plans')"), 'secondary plans link is attributed without creating checkout')
 const policySource = read('lib/growth/trialRepeatBeforeCheckout.ts')

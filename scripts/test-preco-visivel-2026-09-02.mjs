@@ -15,7 +15,9 @@ const sitemap = src('app/sitemap.ts')
 const cost = src('lib/credits/engineCost.ts')
 
 console.log('1 · seletor: padrão, selo e preço por card')
-check('padrão volta a ser Kineo 1 (era seedance)', studio.includes("useState<EngineKey>('fast')"))
+// Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): o padrão segue o interruptor da entrada — Kineo 1 enquanto
+// SEEDANCE_15S_PUBLIC=false (o de 02/09), Seedance quando a entrada de 15 s abrir (decisão do fundador de 29/09).
+check('padrão volta a ser Kineo 1 (era seedance)', studio.includes("useState<EngineKey>(SEEDANCE_15S_PUBLIC ? 'seedance' : 'fast')"))
 check('a razão do padrão está escrita, com os números de 30 dias', studio.includes('102 das 142 pararam ali') && studio.includes('3,6 videos'))
 check("Kineo 1 ganha o selo 'Start here'", studio.includes("name: 'Kineo 1', tag: 'Start here'"))
 check("Kineo 1 deixa de se descrever como ficha técnica", !studio.includes("desc: 'Kineo’s own engine — stock + captions'"))
@@ -48,7 +50,7 @@ check('FAQ estruturado para o Google/AEO', models.includes("'@type': 'FAQPage'")
 check('entrou no sitemap', sitemap.includes("{ path: '/models-pricing'"))
 
 console.log('aritmética (a mesma régua do servidor)')
-const creditCostFor = (q) => ({ fast: 2, cinematic_ai: 25, cinematic_h3: 45, cinematic_kling: 50, cinematic_veo: 100, cinematic_hollywood: 150, cinematic_omni: 150 }[q])
+const creditCostFor = (q) => ({ fast: 2, cinematic_ai: 25, cinematic_h3: 45, cinematic_kling: 60, cinematic_veo: 100, cinematic_hollywood: 150, cinematic_omni: 150 }[q])
 const forDur = (q, s) => Math.max(1, Math.ceil(creditCostFor(q) * (Math.max(10, Math.min(180, s)) / 60)))
 check('escala 35s ≈ 60% do preço de 60s (Kineo 1: 2 → 2)', forDur('fast', 35) === 2)
 check('Seedance 35s = 15 cr', forDur('cinematic_ai', 35) === 15)

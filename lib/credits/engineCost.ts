@@ -105,7 +105,15 @@ export function creditCostFor(quality: Quality, isPaidUser = false): number {
       // KINEO-REBASE-2026-07-10 — 90 → 45 (2:1 rebase; same USD value).
       // KINEO-PRICING-V3B-2026-07-10 — 45 → 50 (margin bump). Keep in sync
       // with KLING_CREDIT_COST in generate-video-cinematic.
-      return 50
+      // KINEO-KLING25-60CR-2026-09-29 — 50 → 60 (decisão do fundador, 29/09
+      // 01:05 BRT: "sobe kling 2 pra 60 creditos"). Desde o mutirão dos
+      // motores (27-28/09) o Kling 2.5 roda com plano de 5 s + still de
+      // âncora em TODAS as cenas: um filme de 60 s são ~18 planos de 5 s +
+      // 18 stills ≈ US$ 8,40 na fal. A 50cr a margem tinha caído para 8-22%;
+      // a 60cr volta a um patamar são. A régua por duração é derivada daqui
+      // (creditCostForDuration): 35 s = ceil(60×35/60) = 35cr (era 30),
+      // 90 s = 90cr (era 75). KLING_CREDIT_COST na rota LÊ esta função.
+      return 60
     case 'cinematic_h3':
       // KINEO-H3-2026-08-19 — MiniMax H3 a 768p custa $0.06/s na fal: um filme
       // de 65s (o formato da casa, 60s+ por causa do TikTok Rewards) sai por

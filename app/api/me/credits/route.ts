@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 // KINEO-S25-CARD-2026-09-01 — a flag `internal` existe para o /studio poder
 // mostrar o card do Seedance 2.5 SO para contas da casa enquanto o motor
 // esta no periodo de canario (o gate de verdade continua no servidor).
-import { s25Visible, avatarVisible } from '@/lib/engineLaunch'
+import { s25Visible, avatarVisible, resolveKineo1Flag, seedance15sVisible } from '@/lib/engineLaunch'
+import { readKineo1Access } from '@/lib/kineo1Access'
 
 // KINEO-CABE-2026-08-21 — saldo do usuário logado, para a tela poder dizer a
 // verdade ANTES do clique. Existe porque o /studio oferecia motores que o
@@ -30,7 +31,7 @@ export async function GET() {
   if (!user) return NextResponse.json({ credits: null }, { status: 401 })
   const { data } = await supabase
     .from('profiles')
-    .select('video_credits, plan')
+    .select('video_credits, plan, has_paid')
     .eq('id', user.id)
     .maybeSingle()
   // KINEO-STUDIO-TILE-ADS-2026-09-27 — `plan` cru (profiles.plan, minúsculo) para o tile "Business ad" do /studio decidir
@@ -39,5 +40,17 @@ export async function GET() {
   const plan = typeof data?.plan === 'string' ? data.plan.trim().toLowerCase() : null
   // KINEO-AVATAR-FORA-2026-09-28 — `avatar` separado de `internal`: `internal` é s25Visible (vira true para todos no
   // dia do S25_PUBLIC=true) e não pode arrastar o Avatar de volta ao catálogo junto. Cada interruptor, sua flag.
-  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), internal: s25Visible(user.email), plan })
+  // KINEO-KINEO1-FORA-2026-09-29 — `kineo1` já resolvido (kineo1Visible): a casa, o pagante que já tem filme Kineo 1
+  // concluído, ou quem comprou pacote avulso/passe de anúncios. Composição única em resolveKineo1Flag (lib/engineLaunch.ts),
+  // que só lê o legado para has_paid === true (trial não paga as consultas). E1 só expõe; o /studio passa a esconder o
+  // card com esta flag na E2b. scripts/test-kineo1-fora-vitrine-2026-09-29.mjs EXECUTA este GET com banco falso.
+  // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b, pendência 5 da E1) — leitura de legado que FALHOU (ok === false) não vira
+  // "sem legado": a flag sai null ('não sei') e a tela (lib/growth/entradaSeedance15.ts kineo1NaTela) não esconde o motor
+  // de quem sabidamente paga numa falha momentânea. Trial/conta sem has_paid continua false decidido (nem lê).
+  const kineo1 = await resolveKineo1Flag(user.email, () => (data as { has_paid?: boolean | null } | null)?.has_paid === true, () => readKineo1Access(user.id).then((l) => { if (l.ok === false) throw new Error('kineo1_legacy_unreadable'); return l })).catch(() => null)
+  // KINEO-SEEDANCE-15S-2026-09-29 — `seedance15` = o botão de 15 s do Seedance (SEEDANCE_15S_PUBLIC || casa). Flag própria
+  // pelo mesmo motivo do `avatar`: cada interruptor vira sozinho.
+  // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — `hasPaid` para a régua do 'não sei' do Studio (kineo1NaTela).
+  const hasPaid = (data as { has_paid?: boolean | null } | null)?.has_paid === true
+  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), internal: s25Visible(user.email), hasPaid, kineo1, plan })
 }

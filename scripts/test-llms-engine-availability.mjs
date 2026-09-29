@@ -57,7 +57,12 @@ function verifyAvailability(body, facts, launch, enabled) {
     assert.ok(catalogue.includes(`- [**${fact.name}**](${fact.url}) — ${fact.credits} credit${fact.credits === 1 ? '' : 's'} per video. ${fact.what}`))
   }
   if (facts.TRIAL_ACCESS) {
-    const balance = free.split('\n').find(line => line.startsWith('- For engines not currently paused,'))
+    // Reancorado 29/09 (revisão da E2b, texto achado 10): com o Kineo 1 fora da cobertura pública (E1/E3), o trial de 10 cr
+    // não paga NENHUM filme de referência de 60 s — o llms.txt publica a forma "does not cover one full 60-second reference
+    // video on: …" (a forma "For engines not currently paused, … covers:" só existe quando algum motor é coberto). As duas
+    // formas seguem vigiadas igual: a linha tem de existir, e manutenção nunca vira falta de saldo.
+    const balance = free.split('\n').find(line => line.startsWith('- For engines not currently paused,') || line.startsWith(`- The ${facts.TRIAL_ACCESS.credits}-credit trial balance does not cover one full 60-second reference video on:`))
+    assert.ok(balance, 'the trial balance line exists (covered or not-covered form)')
     assert.ok(balance.includes(`${facts.TRIAL_ACCESS.credits}-credit trial balance`))
     for (const pause of pauses) assert.ok(!balance.includes(pause.label), 'Maintenance must not be described as insufficient balance')
     for (const engine of facts.TRIAL_ACCESS.engineCoverage.filter(e => !pauses.some(p => p.label === e.engine))) {
@@ -79,7 +84,16 @@ for (const enabled of [true, false]) {
   const response = route.GET(), body = await response.text()
   assert.equal(response.status, 200)
   verifyAvailability(body, facts, launch, enabled)
-  const previous = compile(oldSource, load).GET(), oldBody = await previous.text()
+  // Reancorado 29/09 (revisão da E2b, texto achado 10): a cota recorrente deixou de ser anunciada (E3,
+  // RECURRING_FREE_ACCESS = null) e o fonte da BASELINE lê `.videosPerWindow` sem checar nulo — o GET antigo morria com
+  // TypeError antes de qualquer asserção. Só para o fonte antigo, a cota volta a ser o objeto que ele esperava (o mesmo
+  // FREE_TIER que os fatos ainda publicam); o GET real e as asserções sobre ele seguem intactos.
+  const baselineFacts = facts.RECURRING_FREE_ACCESS ? facts : { ...facts, RECURRING_FREE_ACCESS: { videosPerWindow: 1, engine: 'Kineo 1', rollingWindowHours: 168, maxSeconds: 15 } }
+  const baselineLoad = facts.RECURRING_FREE_ACCESS ? load : createOfflineLoader({
+    env: { NODE_ENV: 'production', KINEO_REVERSE_TRIAL_ENABLED: String(enabled) },
+    mocks: { '@/lib/kineoFacts': baselineFacts }, globals: { Response, Date: FixedDate },
+  })
+  const previous = compile(oldSource, baselineLoad).GET(), oldBody = await previous.text()
   assert.throws(() => verifyAvailability(oldBody, facts, launch, enabled), assert.AssertionError, 'Baseline must reproduce the missing availability distinction')
   assert.deepEqual([...response.headers], [...previous.headers], 'No cache/header change')
   assert.equal(route.dynamic, 'force-static')
@@ -103,7 +117,9 @@ for (const enabled of [true, false]) {
     })
     const fixtureBody = await fixtureLoad('app/llms.txt/route.ts').GET().text()
     verifyAvailability(fixtureBody, fixtureFacts, launch, true)
-    assert.match(fixtureBody, /Kineo 1 and Seedance 1.5 are unlocked by plan/)
+    // Reancorado 29/09 (revisão da E2b): o Kineo 1 saiu da frase pública do ramo dormente (E1/E3).
+    assert.match(fixtureBody, /Seedance 1.5 is unlocked by plan/)
+    assert.doesNotMatch(fixtureBody, /Kineo 1 and Seedance 1.5 are unlocked/)
   }
   console.log(`PASS reverse-trial=${enabled}: real GET, maintenance/access/balance, active engines, baseline RED, unchanged links/prices/headers`)
 }

@@ -55,7 +55,9 @@ checa('teto = 1,2 × piso (folga sem convidar outro tamanho)', W.maxWordsFor(60,
 
 console.log('== (d) o cliente manda duração e motor ==')
 const gc = rd('app/(dashboard)/generate/GenerateClient.tsx')
-checa('chamada principal do estruturador leva targetSeconds e engine (fast | quality)', gc.includes("body: JSON.stringify({ topic: rawSource, language, targetSeconds: duration, engine: mode === 'fast' || mode === 'creator' ? 'fast' : quality }),"))
+// Reancorado 29/09 (revisão da E2b, achado 1): a duração vem de duracaoPedida = override do chamador ?? estado da tela (o
+// onboarding fixava 15 s e o escritor lia o estado velho, 35). Sem override é exatamente a duração da tela, como antes.
+checa('chamada principal do estruturador leva targetSeconds e engine (fast | quality)', gc.includes("body: JSON.stringify({ topic: rawSource, language, targetSeconds: duracaoPedida, engine: mode === 'fast' || mode === 'creator' ? 'fast' : quality }),") && gc.includes('    const duracaoPedida: Duration = opts?.targetSeconds ?? duration'))
 
 console.log('== (e) a rota usa a régua ==')
 const rt = rd('app/api/generate-script/route.ts')

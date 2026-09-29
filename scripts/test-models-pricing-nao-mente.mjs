@@ -37,9 +37,11 @@ const frase = (page.match(/Your free trial starts with[\s\S]{0,420}?<\/p>/) || [
 check('a frase do trial existe na página', frase.length > 0)
 
 // 1. O crédito vem da constante canônica, não digitado.
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o import passou a trazer também o filme grátis (FREE_FILM_LABEL,
+// TRIAL_FREE_FILM_CREDITS, TRIAL_SEEDANCE15_FILMS) da mesma fonte; o crédito segue vindo dela.
 check(
   'a página importa o crédito de trial da fonte canônica',
-  /import \{ TRIAL_CREDITS_SHOWN \} from '@\/lib\/freeTierOffer'/.test(page)
+  /import \{[^}]*\bTRIAL_CREDITS_SHOWN\b[^}]*\} from '@\/lib\/freeTierOffer'/.test(page)
 )
 check(
   'a frase usa a constante, não um número escrito à mão',
@@ -47,11 +49,12 @@ check(
 )
 
 // 2. A contagem de filmes é DERIVADA do mesmo helper que monta a tabela.
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o trial deixou de comprar filmes Kineo 1 (fora do catálogo público) e
+// passou a pagar UM Seedance 1.5 de 15 s. A contagem continua derivada: TRIAL_SEEDANCE15_FILMS = trialFilmsForEngine(custo
+// do 15 s por creditCostForDuration), e o custo vem de TRIAL_FREE_FILM_CREDITS — nenhum numeral na frase.
 check(
   'a contagem de filmes é dividida pelo mesmo helper da tabela',
-  /Math\.floor\(TRIAL_CREDITS_SHOWN \/ creditCostForDuration\('fast', true, 60\)\)/.test(
-    frase
-  )
+  /\{TRIAL_SEEDANCE15_FILMS === 1 \? 'one' : TRIAL_SEEDANCE15_FILMS\} \{FREE_FILM_LABEL\} \(\{TRIAL_FREE_FILM_CREDITS\} credits\)/.test(frase) && !/Kineo 1/.test(frase)
 )
 // Amarra na AUSÊNCIA do número literal: quem trocar a expressão por um numeral
 // (a regressão exata) cai aqui, mesmo mantendo o resto da frase intacto.
@@ -67,9 +70,10 @@ check(
   'a tabela continua derivando o custo por motor do helper',
   /\{creditCostForDuration\(r\.quality, true, s\)\} cr/.test(page)
 )
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: a linha do Starter conta filmes Seedance de 60 s (Kineo 1 fora do catálogo).
 check(
   'a linha do Starter continua derivando os filmes do helper',
-  /Math\.floor\(starterCredits \/ creditCostForDuration\('fast', true, 60\)\)/.test(page)
+  /Math\.floor\(starterCredits \/ creditCostForDuration\('cinematic_ai', true, 60\)\)/.test(page) && !/Math\.floor\(starterCredits \/ creditCostForDuration\('fast'/.test(page)
 )
 
 console.log(`\n${total - failed}/${total} checks passed\n`)

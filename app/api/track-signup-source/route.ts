@@ -10,6 +10,7 @@ import {
 // (signup page, login page, mount do /generate), por isso a ativação mora
 // aqui. Com KINEO_REVERSE_TRIAL_ENABLED OFF é um no-op absoluto.
 import { maybeActivateReverseTrial } from '@/lib/reverseTrial'
+import { paisDoRequest } from '@/lib/freeFilmPolicy'
 // KINEO-TRIAL-ABUSE-PMP-2026-08-07 — o hash de device/IP é calculado AQUI, na
 // borda, e só o hash desce para lib/reverseTrial.ts. O IP cru não é gravado em
 // lugar nenhum e não entra no escopo do módulo que fala com o banco.
@@ -55,6 +56,7 @@ export async function POST(req: NextRequest) {
         // fingerprint em 30 dias. Devolve null sem o salt de ambiente ou sem
         // IP utilizável, e null = concede (fail-open por ordem do fundador).
         fingerprintHash: trialFingerprintFromHeaders(req.headers),
+        country: paisDoRequest(req.headers), // KINEO-FILME-GRATIS-POR-PAIS-2026-09-29
       })
     } catch (e) {
       console.error('[track-signup-source] reverse-trial non-fatal:', e instanceof Error ? e.message : String(e))

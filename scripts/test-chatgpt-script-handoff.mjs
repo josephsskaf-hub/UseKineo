@@ -242,9 +242,11 @@ try {
   ok(!facts.includes("url: `${BASE}/signup`"), 'answer-engine start never drops a script-ready visitor on generic signup')
   includes(facts, "['script', 'campaign', 'trial_best_creation_intent', 'verbatim_mode', 'duration']", 'machine-readable contract lists all carried values')
   // GPT-V31-FATOS: current 10-credit grant cannot cover Seedance; older balances still follow the same router.
-  includes(facts, 'new-account trial covers Kineo 1 (Fast, stock footage), not Seedance', 'facts do not imply the current grant covers Seedance')
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o grant de 10 cr passou a cobrir o Seedance 1.5 de 15 s (e só
+  // ele); a frase segue dizendo o limite ("longer films need more credits") em vez de prometer Seedance em qualquer duração.
+  includes(facts, 'new-account trial covers a ${FREE_FILM_LABEL} (${TRIAL_FREE_FILM_CREDITS} credits); longer films need more credits.', 'facts do not imply the current grant covers a longer Seedance film')
   includes(facts, 'Existing accounts may have a different balance', 'legacy balances remain distinct from the current grant')
-  includes(facts, 'Seedance is selected only when actual access, balance and availability permit it', 'public facts preserve the bounded router')
+  includes(facts, 'the engine and duration are selected only when actual access, balance and availability permit it', 'public facts preserve the bounded router')
   includes(facts, 'startHere: START_HERE_FACT', '/api/facts payload includes start-here')
   includes(factsRoute, 'JSON.stringify(getKineoFacts()', '/api/facts serializes the shared payload')
   includes(llms, 'START_HERE_FACT', '/llms.txt imports the shared record')

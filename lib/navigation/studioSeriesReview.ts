@@ -9,9 +9,27 @@ const SOURCES = ['studio_milestone', 'studio_video_tile', 'landing_resume_strip'
 type StudioSeriesSource = typeof SOURCES[number]
 type QueryReader = Pick<URLSearchParams, 'get'>
 
+// KINEO-ENTRADA-SEEDANCE15-2026-09-29 (B9 do cético) — continuar a série leva o MOTOR do filme de origem quando o
+// chamador sabe qual foi (quality_mode do /api/videos). Antes era sempre Kineo 1 (padrão do link canônico): a conta nova
+// sem Kineo 1 caía num motor que ela não tem. Sem o filme (chamador antigo), o link de sempre. A duração do filme de
+// origem NÃO viaja aqui (a revisão de série sempre usou o padrão do contrato); com a entrada nova, o Studio traduz
+// ?engine=fast pela régua (lib/growth/entradaSeedance15.ts motorDaUrl). Espelho de STUDIO_ENGINE_FOR_QUALITY
+// (lib/navigation/reviewVideoRetry.ts) — sem import novo: os guardiões executam este módulo com mocks contados.
+const STUDIO_ENGINE_FOR_ORIGIN: Readonly<Record<string, string>> = {
+  fast: 'fast',
+  cinematic_ai: 'seedance',
+  cinematic_kling: 'kling',
+  cinematic_veo: 'veo',
+  cinematic_hollywood: 'hollywood',
+  cinematic_h3: 'h3',
+  cinematic_omni: 'omni',
+  cinematic_s25: 's25',
+}
+
 export function buildStudioSeriesReviewHref(
   topic: string | null | undefined,
   source: StudioSeriesSource,
+  origin?: { quality?: string | null } | null,
 ): string {
   const legacy = buildSeriesContinuationHref(topic, source satisfies SeriesContinuationSource)
   if (!legacy.startsWith('/studio/create?')) return '/studio'
@@ -25,7 +43,7 @@ export function buildStudioSeriesReviewHref(
     continuation_source: source,
     studio_continuation: VERSION,
     script_mode: 'ai',
-    engine: original.get('engine') || 'fast',
+    engine: (origin?.quality ? STUDIO_ENGINE_FOR_ORIGIN[origin.quality] : undefined) || original.get('engine') || 'fast',
     duration: String(duration),
     intent_campaign: 'studio_series_review_v1',
   })

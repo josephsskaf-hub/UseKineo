@@ -13,7 +13,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { STARTER_MO, CREATOR_MO } from '@/lib/marketingPrice'
-import { CARD_ENTRY_COPY, CARD_ENTRY_TRIAL_CREDITS } from '@/lib/entryPolicy'
+import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
+import { FREE_FILM_LABEL, TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer' // KINEO-FILME-GRATIS-15S-2026-09-29
 
 export const dynamic = 'force-static'
 
@@ -118,14 +119,15 @@ export default function RewardsPage() {
       </p>
 
       <div style={{ margin: '28px 0 0', padding: '20px 22px', borderRadius: 14, background: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.3)', textAlign: 'center' }}>
-        <p style={{ fontSize: 17, fontWeight: 800, margin: '0 0 10px' }}>Make your first minute-plus film free.</p>
+        {/* KINEO-FILME-GRATIS-15S-2026-09-29 — o filme grátis é o Seedance 1.5 de 15 s; o de 60 s+ (o que o Rewards paga) é do plano. */}
+        <p style={{ fontSize: 17, fontWeight: 800, margin: '0 0 10px' }}>Try it free first — then make minute-plus films on a plan.</p>
         <Link
           href="/free?utm_source=seo&utm_medium=tiktok_rewards&utm_campaign=one_minute"
           style={{ display: 'inline-block', background: '#2997ff', color: '#fff', fontWeight: 900, fontSize: 15, padding: '12px 28px', borderRadius: 12, textDecoration: 'none' }}
         >
           {CARD_ENTRY_COPY.ctaLong}
         </Link>
-        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>{CARD_ENTRY_TRIAL_CREDITS} credits for 7 days · Kineo 1 and Seedance unlocked</p>
+        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>{TRIAL_CREDITS_SHOWN} free credits · one {FREE_FILM_LABEL} · no card</p>
       </div>
 
       <p style={{ color: '#5a5a60', fontSize: 11.5, marginTop: 20 }}>

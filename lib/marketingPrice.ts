@@ -143,15 +143,26 @@ export function videoMixForCredits(
   }
 }
 
+/** Segundos do filme curto do Seedance 1.5 (espelho de lib/durationByEngine SEEDANCE_SHORT_SECONDS; o guardião confere). */
+export const SEEDANCE_SHORT_FILM_SECONDS = 15
+/** Custo do filme curto do Seedance 1.5 — o filme mais barato que uma conta nova consegue fazer (7 cr). Derivado. */
+export const SEEDANCE_SHORT_FILM_CREDITS = creditCostForDuration('cinematic_ai', true, SEEDANCE_SHORT_FILM_SECONDS)
+
 /** Copy de packs/top-ups: omite motores que o saldo não compra. */
+// KINEO-FILME-GRATIS-15S-2026-09-29 — o resto do saldo deixou de ser contado em "Kineo 1 video": o Kineo 1 saiu da
+// vitrine (KINEO1_PUBLIC=false) e quem compra top-up sem legado não o vê. O resto agora é contado no Seedance 1.5 de
+// 15 s, com o custo que o servidor cobra (creditCostForDuration). Os créditos vendidos não mudam — só o exemplo.
 export function describeSeedanceMix(credits: number): string {
-  const mix = videoMixForCredits(credits, 'cinematic_ai', 'fast')
+  const safe = Math.max(0, Math.floor(credits))
+  const longCost = creditsPerReferenceVideo('cinematic_ai')
+  const shortCost = creditCostForDuration('cinematic_ai', true, SEEDANCE_SHORT_FILM_SECONDS)
+  const long = longCost > 0 ? Math.floor(safe / longCost) : 0
+  const short = shortCost > 0 ? Math.floor((safe - long * longCost) / shortCost) : 0
+  const shortNoun = `${SEEDANCE_SHORT_FILM_SECONDS}-second Seedance film`
   const parts: string[] = []
-  if (mix.primary > 0) parts.push(formatResultCount(mix.primary, 'Seedance film'))
-  if (mix.secondary > 0) parts.push(formatResultCount(mix.secondary, 'Kineo 1 video'))
-  return parts.length > 0
-    ? parts.join(' plus ')
-    : formatResultCount(videosForCredits(credits, 'fast'), 'Kineo 1 video')
+  if (long > 0) parts.push(formatResultCount(long, 'Seedance film'))
+  if (short > 0) parts.push(formatResultCount(short, shortNoun))
+  return parts.length > 0 ? parts.join(' plus ') : formatResultCount(0, shortNoun)
 }
 
 /** Seedance — o motor de IA de entrada. Quantidades sempre derivadas. */
@@ -159,7 +170,8 @@ export const STARTER_AI_FILMS = videosPerMonth('starter', 'cinematic_ai')
 export const CREATOR_AI_FILMS = videosPerMonth('basic', 'cinematic_ai')
 export const STUDIO_AI_FILMS = videosPerMonth('pro', 'cinematic_ai')
 
-/** Kling 2.5 (50 cr) — o cinematográfico. Creator 1 · Studio 3. */
+/** Kling 2.5 (60 cr desde KINEO-KLING25-60CR-2026-09-29; era 50) — o cinematográfico.
+ *  Com TIER_CREDITS 60/150/300: Starter 1 · Creator 2 · Studio 5. Derivado, nunca digitado. */
 export const CREATOR_CINEMATIC_FILMS = videosPerMonth('basic', 'cinematic_kling')
 export const STUDIO_CINEMATIC_FILMS = videosPerMonth('pro', 'cinematic_kling')
 

@@ -159,6 +159,12 @@ const nextConfig = {
       // single canonical instead of creating duplicate legacy-name pages.
       { source: '/alternatives/vidyo', destination: '/alternatives/quso', permanent: true },
       { source: '/alternatives/vidyo-ai', destination: '/alternatives/quso', permanent: true },
+      // KINEO-FILME-GRATIS-15S-2026-09-29 — o Kineo 1 saiu do catálogo público (KINEO1_PUBLIC=false, lib/engineLaunch.ts)
+      // e o filme grátis de quem chega passou a ser o Seedance 1.5 de 15 s. A página do Kineo 1 era a que mais recebia
+      // chegada do ChatGPT: o redirect permanente leva essas citações (e as 13 línguas) para a página do Seedance em vez
+      // de um 404 (301 literal, pedido do fundador; os demais daqui são 308). Saiu também do sitemap (ENGINE_SLUGS/LOCALIZED_ENGINE_SLUGS). Decisão do fundador (29/09).
+      { source: '/ai-video-generator/kineo-1', destination: '/ai-video-generator/seedance', statusCode: 301 },
+      { source: '/ai-video-generator/kineo-1/:lang', destination: '/ai-video-generator/seedance/:lang', statusCode: 301 },
       // 02/08 ordem C (AEO): a rota exact-match do spec aponta para a
       // ferramenta que JÁ existe e já está no sitemap (Regra Zero — não criar
       // página duplicada). 308 real captura a busca sem diluir crawl budget.

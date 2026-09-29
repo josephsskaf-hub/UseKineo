@@ -266,7 +266,7 @@ export async function GET(req: NextRequest) {
           <tr>
             <td style="background:#161618;border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:40px 36px;">
               <p style="color:#e2e8f0;font-size:18px;font-weight:700;margin:0 0 6px;">${greeting}</p>
-              <p style="color:#94a3b8;font-size:15px;margin:0 0 24px;line-height:1.6;">You created your account yesterday but haven't made your first Fast video yet.</p>
+              <p style="color:#94a3b8;font-size:15px;margin:0 0 24px;line-height:1.6;">You created your account yesterday but haven't made your first film yet.</p>
 
               <div style="background:rgba(41,151,255,0.08);border:1px solid rgba(41,151,255,0.3);border-radius:14px;padding:20px 24px;margin-bottom:28px;text-align:center;">
                 <p style="color:#2997ff;font-size:12px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;margin:0 0 6px;">⏰ YOUR FAST ACCESS IS READY</p>
@@ -320,7 +320,7 @@ export async function GET(req: NextRequest) {
           to: [user.email],
           subject: ft(OFFER, 'Your free Fast previews are waiting', 'Your Creator trial is waiting'),
           html,
-          text: `${greeting}\n\nYou signed up for Kineo but haven't made your first Fast video yet.\n\n${ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24 hours — no card.', OFFER.copy.headline)}\n\nStart here: ${activationUrl}\n\n— The Kineo Team${emailFooterText(user.id)}`,
+          text: `${greeting}\n\nYou signed up for Kineo but haven't made your first film yet.\n\n${ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24 hours — no card.', OFFER.copy.headline)}\n\nStart here: ${activationUrl}\n\n— The Kineo Team${emailFooterText(user.id)}`,
           headers: unsubscribeHeaders(user.id),
         }),
       })

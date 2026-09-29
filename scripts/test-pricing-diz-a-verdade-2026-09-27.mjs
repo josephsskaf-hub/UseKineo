@@ -112,7 +112,9 @@ ok(charCell(charFree) === '—' && charCell(charPaid) === '3' && charCell(charPr
 ok(!/from '@\/lib\/characters'/.test(client), "PricingClient ('use client') NÃO importa lib/characters (node:crypto não entra no bundle do navegador)")
 
 // Tempo de render: um só texto, FAQ e tabela.
-ok(/const RENDER_TIME_COPY = 'Kineo 1 ~3–7 min · AI engines 8–20 min'/.test(client), 'RENDER_TIME_COPY = "Kineo 1 ~3–7 min · AI engines 8–20 min"')
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o /pricing não cita mais o Kineo 1 (fora do catálogo público;
+// trava (j) da E1). O tempo honesto dos motores de IA (8–20 min) segue o mesmo, numa fonte só.
+ok(/const RENDER_TIME_COPY = 'AI engines 8–20 min'/.test(client) && !/Kineo 1/.test(client), 'RENDER_TIME_COPY = "AI engines 8–20 min" (sem Kineo 1)')
 ok(/a: `\$\{RENDER_TIME_COPY\}\. We use AI to write, voice, and edit everything automatically\.`/.test(client), 'FAQ "How fast" usa RENDER_TIME_COPY')
 ok(/label: 'Render time',\n(?:\s*\/\/[^\n]*\n)*\s*free: RENDER_TIME_COPY,\n\s*starter: RENDER_TIME_COPY,\n\s*basic: RENDER_TIME_COPY,\n\s*pro: RENDER_TIME_COPY,/.test(tabela), 'as 4 células de Render time usam RENDER_TIME_COPY')
 
