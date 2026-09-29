@@ -82,13 +82,13 @@ export default function AgencyPacksClient({ packs }: { packs: AgencyPackView[] }
   return (
     <section aria-labelledby="agency-pack-heading" style={{ marginTop: 42 }}>
       <div style={{ textAlign: 'center', maxWidth: 760, margin: '0 auto 22px' }}>
-        <span style={{ color: '#34d399', fontWeight: 850, fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase' }}>
+        <span style={{ color: 'var(--accent)', fontWeight: 850, fontSize: 12, letterSpacing: '.14em', textTransform: 'uppercase' }}>
           One-time packs · no subscription
         </span>
-        <h2 id="agency-pack-heading" style={{ color: '#f5f5f7', fontSize: 'clamp(1.7rem, 4vw, 2.5rem)', lineHeight: 1.08, margin: '10px 0 10px', fontWeight: 900 }}>
+        <h2 id="agency-pack-heading" style={{ color: 'var(--text)', fontSize: 'clamp(1.7rem, 4vw, 2.5rem)', lineHeight: 1.08, margin: '10px 0 10px', fontWeight: 900 }}>
           Pick the client volume you already sold
         </h2>
-        <p style={{ color: '#9a9aa1', fontSize: 15, lineHeight: 1.65, margin: 0 }}>
+        <p style={{ color: 'var(--muted)', fontSize: 15, lineHeight: 1.65, margin: 0 }}>
           Every pack is paid once in USD. The named video count is the Fast workflow; premium generative engines use more credits per video.
         </p>
       </div>
@@ -102,17 +102,17 @@ export default function AgencyPacksClient({ packs }: { packs: AgencyPackView[] }
             padding: '17px 18px',
             maxWidth: 820,
             borderRadius: 16,
-            border: '1px solid rgba(251,191,36,.38)',
-            background: 'linear-gradient(135deg, rgba(245,158,11,.13), rgba(52,211,153,.06))',
+            border: '1px solid var(--border)',
+            background: 'var(--card)',
           }}
         >
-          <div style={{ color: '#fbbf24', fontSize: 11, fontWeight: 900, letterSpacing: '.11em', textTransform: 'uppercase' }}>
+          <div style={{ color: 'var(--warning)', fontSize: 11, fontWeight: 900, letterSpacing: '.11em', textTransform: 'uppercase' }}>
             Checkout closed · nothing was charged
           </div>
-          <div style={{ color: '#f5f5f7', fontSize: 17, lineHeight: 1.35, fontWeight: 900, marginTop: 6 }}>
+          <div style={{ color: 'var(--text)', fontSize: 17, lineHeight: 1.35, fontWeight: 900, marginTop: 6 }}>
             Your {cancelledPack.videos}-video pack is still selected at {cancelledPack.price}.
           </div>
-          <p style={{ color: '#aaaab1', fontSize: 13, lineHeight: 1.55, margin: '7px 0 13px' }}>
+          <p style={{ color: 'var(--muted)', fontSize: 13, lineHeight: 1.55, margin: '7px 0 13px' }}>
             Resume the same one-time USD checkout, or keep comparing the four packs below. Your selection did not become a subscription.
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9 }}>
@@ -128,14 +128,14 @@ export default function AgencyPacksClient({ packs }: { packs: AgencyPackView[] }
                   surface: 'ai_shorts_for_agencies',
                 })
               }}
-              style={{ display: 'inline-flex', alignItems: 'center', minHeight: 42, padding: '0 15px', borderRadius: 11, background: '#34d399', color: '#04110c', fontSize: 13, fontWeight: 900, textDecoration: 'none' }}
+              style={{ display: 'inline-flex', alignItems: 'center', minHeight: 42, padding: '0 15px', borderRadius: 11, background: 'var(--accent)', color: 'var(--on-accent)', fontSize: 13, fontWeight: 900, textDecoration: 'none' }}
             >
               Resume {cancelledPack.videos}-video checkout →
             </a>
             <button
               type="button"
               onClick={() => setCancelledPackId(null)}
-              style={{ minHeight: 42, padding: '0 15px', borderRadius: 11, border: '1px solid rgba(255,255,255,.16)', background: 'transparent', color: '#d4d4d8', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
+              style={{ minHeight: 42, padding: '0 15px', borderRadius: 11, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text2)', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
             >
               Keep comparing packs
             </button>
@@ -157,28 +157,26 @@ export default function AgencyPacksClient({ packs }: { packs: AgencyPackView[] }
                 minHeight: 340,
                 padding: 22,
                 borderRadius: 20,
-                border: featured ? '1px solid rgba(52,211,153,.7)' : '1px solid rgba(255,255,255,.11)',
-                background: featured
-                  ? 'linear-gradient(155deg, rgba(52,211,153,.14), rgba(41,151,255,.06) 50%, #111216)'
-                  : 'linear-gradient(155deg, rgba(255,255,255,.055), rgba(255,255,255,.02))',
-                boxShadow: featured ? '0 18px 60px rgba(16,185,129,.12)' : 'none',
+                border: featured ? '1px solid var(--accent)' : '1px solid var(--border)',
+                background: 'var(--card)',
+                boxShadow: featured ? 'var(--sh-card)' : 'none',
               }}
             >
               {featured ? (
-                <span style={{ position: 'absolute', top: -11, right: 18, background: '#34d399', color: '#04110c', borderRadius: 999, padding: '5px 10px', fontSize: 10, fontWeight: 900, letterSpacing: '.1em', textTransform: 'uppercase' }}>
+                <span style={{ position: 'absolute', top: -11, right: 18, background: 'var(--accent)', color: 'var(--on-accent)', borderRadius: 999, padding: '5px 10px', fontSize: 10, fontWeight: 900, letterSpacing: '.1em', textTransform: 'uppercase' }}>
                   Monthly content batch
                 </span>
               ) : null}
-              <div style={{ color: '#8a8a92', fontSize: 11, fontWeight: 850, letterSpacing: '.13em', textTransform: 'uppercase' }}>
+              <div style={{ color: 'var(--muted)', fontSize: 11, fontWeight: 850, letterSpacing: '.13em', textTransform: 'uppercase' }}>
                 {pack.videos} Fast Shorts
               </div>
-              <div style={{ color: '#f5f5f7', fontSize: 38, fontWeight: 920, lineHeight: 1, marginTop: 14 }}>
+              <div style={{ color: 'var(--text)', fontSize: 38, fontWeight: 920, lineHeight: 1, marginTop: 14 }}>
                 {pack.price}
               </div>
-              <div style={{ color: featured ? '#34d399' : '#5cb3ff', fontSize: 14, fontWeight: 800, marginTop: 7 }}>
+              <div style={{ color: 'var(--accent)', fontSize: 14, fontWeight: 800, marginTop: 7 }}>
                 {pack.perVideo} per finished Fast Short
               </div>
-              <ul style={{ listStyle: 'none', padding: 0, margin: '22px 0 20px', display: 'grid', gap: 9, color: '#c7c7cc', fontSize: 13, lineHeight: 1.45 }}>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '22px 0 20px', display: 'grid', gap: 9, color: 'var(--text2)', fontSize: 13, lineHeight: 1.45 }}>
                 <li>✓ {pack.credits} universal credits included</li>
                 <li>✓ Script, AI voice, visuals and captions</li>
                 <li>✓ Clean 9:16 MP4 for commercial delivery</li>
@@ -207,9 +205,9 @@ export default function AgencyPacksClient({ packs }: { packs: AgencyPackView[] }
                   textDecoration: 'none',
                   fontSize: 14,
                   fontWeight: 900,
-                  color: featured ? '#04110c' : '#fff',
-                  background: featured ? '#34d399' : '#2997ff',
-                  boxShadow: featured ? '0 8px 25px rgba(52,211,153,.2)' : '0 8px 25px rgba(41,151,255,.2)',
+                  color: 'var(--on-accent)',
+                  background: 'var(--accent)',
+                  boxShadow: 'var(--sh-cta)',
                 }}
               >
                 Buy {pack.videos}-video pack →
@@ -219,7 +217,7 @@ export default function AgencyPacksClient({ packs }: { packs: AgencyPackView[] }
         })}
       </div>
 
-      <p style={{ maxWidth: 820, margin: '17px auto 0', color: '#85858c', fontSize: 12, lineHeight: 1.6, textAlign: 'center' }}>
+      <p style={{ maxWidth: 820, margin: '17px auto 0', color: 'var(--muted)', fontSize: 12, lineHeight: 1.6, textAlign: 'center' }}>
         Fast uses stock footage matched to your narration. If you choose Seedance, Kling, Veo or another generative engine, the same universal credits are used at that engine&apos;s published rate and the pack will produce fewer videos.
       </p>
 
@@ -234,13 +232,13 @@ export default function AgencyPacksClient({ packs }: { packs: AgencyPackView[] }
           flexWrap: 'wrap',
           gap: 12,
           borderRadius: 15,
-          border: '1px solid rgba(167,139,250,.28)',
-          background: 'rgba(167,139,250,.07)',
+          border: '1px solid var(--border)',
+          background: 'var(--card2)',
         }}
       >
         <div>
-          <div style={{ color: '#f5f5f7', fontSize: 14, fontWeight: 880 }}>Need client approval before buying a batch?</div>
-          <div style={{ color: '#9a9aa1', fontSize: 12, lineHeight: 1.5, marginTop: 3 }}>Turn the offer, audience and verified proof into a client-ready Short brief first.</div>
+          <div style={{ color: 'var(--text)', fontSize: 14, fontWeight: 880 }}>Need client approval before buying a batch?</div>
+          <div style={{ color: 'var(--muted)', fontSize: 12, lineHeight: 1.5, marginTop: 3 }}>Turn the offer, audience and verified proof into a client-ready Short brief first.</div>
         </div>
         <a
           href="/client-video-brief-generator?entry=agency_page"
@@ -251,7 +249,7 @@ export default function AgencyPacksClient({ packs }: { packs: AgencyPackView[] }
               placement: 'after_pack_comparison',
             })
           }}
-          style={{ display: 'inline-flex', alignItems: 'center', minHeight: 42, padding: '0 14px', borderRadius: 11, border: '1px solid rgba(167,139,250,.42)', background: 'rgba(167,139,250,.12)', color: '#ddd6fe', fontSize: 13, fontWeight: 850, textDecoration: 'none' }}
+          style={{ display: 'inline-flex', alignItems: 'center', minHeight: 42, padding: '0 14px', borderRadius: 11, border: '1px solid var(--border)', background: 'var(--card2)', color: 'var(--accent)', fontSize: 13, fontWeight: 850, textDecoration: 'none' }}
         >
           Build the free brief →
         </a>

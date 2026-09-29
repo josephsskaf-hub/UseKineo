@@ -75,12 +75,17 @@ const links=html=>[...html.matchAll(/href="([^"]*)"/g)].map(m=>m[1]).sort()
 // door is /ads (200 for everyone) — /ads/new bounced signed-out visitors to /login.
 // 27/09 (sprint16h-b C): the business link now carries one derived sub-link per ADS_SEGMENTS entry
 // (lib/growth/adsSegments.ts). The expected extra set is READ from that source, never typed here, so a
-// segment added or removed at the source moves the expectation with it; every historical link must remain.
+// segment added or removed at the source moves the expectation with it; other historical links must remain.
 const segments=pure('lib/growth/adsSegments.ts'),segmentLinks=segments.ADS_SEGMENTS.map(s=>segments.adsSegmentPath(s.slug))
 // KINEO-AVATAR-FORA-2026-09-28 — re-ancorada: o fundador tirou o Avatar do catálogo público em 27/09 ("avatar sai por
 // hora"), e o link /ai-avatar do rodapé saiu junto (a página ficou noindex). A remoção aprovada é lida do interruptor
 // único (lib/engineLaunch.ts AVATAR_PUBLIC), nunca digitada: com AVATAR_PUBLIC=true o link volta a ser exigido.
 const avatarOffCatalogue=/^export const AVATAR_PUBLIC = false$/m.test(source('lib/engineLaunch.ts').replace(/\r\n/g,'\n'))
-equal(links(footerAfter),[...links(footerBefore).map(h=>h==='/business-video-ads'?'/ads':h).filter(h=>!(avatarOffCatalogue&&h==='/ai-avatar')),...segmentLinks].sort(),'footer keeps every link except approved direct Ads entry and the Avatar page while it is off the catalogue, plus the derived segment doors')
+// 29/09: re-anchor the two intentional navigation removals from 0449de76 (28/09),
+// documented in docs/REFINEMENT-DELIVERY-2026-09-28.md. Their routes remain available
+// for old links; this language test must not restore retired navigation entries.
+// Keep the exact multiset comparison so unrelated missing/extra links still fail.
+const retiredNavigationLinks=new Set(['/scripts','/viral-now'])
+equal(links(footerAfter),[...links(footerBefore).map(h=>h==='/business-video-ads'?'/ads':h).filter(h=>!retiredNavigationLinks.has(h)&&!(avatarOffCatalogue&&h==='/ai-avatar')),...segmentLinks].sort(),'footer preserves all destinations except documented navigation removals and off-catalogue Avatar, with direct Ads and derived segment doors')
 equal((footerAfter.match(/<details /g)||[]).length,4,'four footer navigation groups')
 console.log(`PASS ${checks} locale and workspace checks; no network, database, email or generation`)

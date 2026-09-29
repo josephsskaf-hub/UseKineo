@@ -82,9 +82,9 @@ export default function AgencyBriefClient() {
     width: '100%',
     minHeight: 50,
     borderRadius: 12,
-    border: '1px solid rgba(255,255,255,.16)',
-    background: '#090a0d',
-    color: '#f5f5f7',
+    border: '1px solid var(--border)',
+    background: 'var(--card)',
+    color: 'var(--text)',
     padding: '0 14px',
     fontSize: 15,
     fontWeight: 720,
@@ -102,21 +102,21 @@ export default function AgencyBriefClient() {
         alignItems: 'center',
         padding: 'clamp(22px, 4vw, 32px)',
         borderRadius: 24,
-        border: '1px solid rgba(167,139,250,.35)',
-        background: 'radial-gradient(circle at 0% 0%, rgba(167,139,250,.18), transparent 42%), #101116',
+        border: '1px solid var(--border)',
+        background: 'var(--card)',
       }}
     >
       <div>
-        <span style={{ color: '#c4b5fd', fontWeight: 900, fontSize: 11, letterSpacing: '.13em', textTransform: 'uppercase' }}>
+        <span style={{ color: 'var(--accent)', fontWeight: 900, fontSize: 11, letterSpacing: '.13em', textTransform: 'uppercase' }}>
           More than a one-time pack?
         </span>
-        <h2 id="agency-brief-heading" style={{ color: '#f5f5f7', fontSize: 'clamp(1.65rem, 4vw, 2.35rem)', lineHeight: 1.08, margin: '10px 0 10px', fontWeight: 920 }}>
+        <h2 id="agency-brief-heading" style={{ color: 'var(--text)', fontSize: 'clamp(1.65rem, 4vw, 2.35rem)', lineHeight: 1.08, margin: '10px 0 10px', fontWeight: 920 }}>
           Tell us the monthly volume before you buy
         </h2>
-        <p style={{ color: '#aaaab1', fontSize: 15, lineHeight: 1.65, margin: 0 }}>
+        <p style={{ color: 'var(--muted)', fontSize: 15, lineHeight: 1.65, margin: 0 }}>
           If you are planning recurring client or company content, send the number you actually need. We will review whether today&apos;s Kineo workflow fits before recommending anything.
         </p>
-        <ul style={{ margin: '15px 0 0', paddingLeft: 20, color: '#929299', fontSize: 13, lineHeight: 1.7 }}>
+        <ul style={{ margin: '15px 0 0', paddingLeft: 20, color: 'var(--muted)', fontSize: 13, lineHeight: 1.7 }}>
           <li>No invented enterprise features.</li>
           <li>No automatic sales sequence or mailing list.</li>
           <li>The self-service packs above remain available immediately.</li>
@@ -124,15 +124,15 @@ export default function AgencyBriefClient() {
       </div>
 
       {status === 'sent' ? (
-        <div role="status" style={{ padding: 22, borderRadius: 18, background: 'rgba(52,211,153,.09)', border: '1px solid rgba(52,211,153,.35)' }}>
-          <strong style={{ display: 'block', color: '#34d399', fontSize: 18 }}>Request recorded.</strong>
-          <p style={{ color: '#b8b8bf', fontSize: 14, lineHeight: 1.6, margin: '8px 0 0' }}>
+        <div role="status" style={{ padding: 22, borderRadius: 18, background: 'var(--card)', border: '1px solid var(--border)' }}>
+          <strong style={{ display: 'block', color: 'var(--success)', fontSize: 18 }}>Request recorded.</strong>
+          <p style={{ color: 'var(--text2)', fontSize: 14, lineHeight: 1.6, margin: '8px 0 0' }}>
             We will review product fit before recommending a pack or plan.
           </p>
         </div>
       ) : (
         <form onSubmit={submit} style={{ display: 'grid', gap: 13 }}>
-          <label style={{ display: 'grid', gap: 7, color: '#d2d2d7', fontSize: 12, fontWeight: 820 }}>
+          <label style={{ display: 'grid', gap: 7, color: 'var(--text2)', fontSize: 12, fontWeight: 820 }}>
             Monthly Short volume
             <select value={volume} onChange={(event) => setVolume(event.target.value as B2BVolumeId)} style={fieldStyle}>
               {B2B_VOLUME_OPTIONS.map((option) => (
@@ -140,7 +140,7 @@ export default function AgencyBriefClient() {
               ))}
             </select>
           </label>
-          <label style={{ display: 'grid', gap: 7, color: '#d2d2d7', fontSize: 12, fontWeight: 820 }}>
+          <label style={{ display: 'grid', gap: 7, color: 'var(--text2)', fontSize: 12, fontWeight: 820 }}>
             Work email
             <input
               type="email"
@@ -161,15 +161,15 @@ export default function AgencyBriefClient() {
           <button
             type="submit"
             disabled={status === 'sending'}
-            style={{ minHeight: 50, border: 0, borderRadius: 13, background: '#a78bfa', color: '#100a20', cursor: status === 'sending' ? 'wait' : 'pointer', fontSize: 14, fontWeight: 920, opacity: status === 'sending' ? 0.72 : 1 }}
+            style={{ minHeight: 50, border: 0, borderRadius: 13, background: 'var(--accent)', color: 'var(--on-accent)', cursor: status === 'sending' ? 'wait' : 'pointer', fontSize: 14, fontWeight: 920, opacity: status === 'sending' ? 0.72 : 1 }}
           >
             {status === 'sending' ? 'Recording request…' : 'Send my monthly volume →'}
           </button>
-          <p style={{ color: '#7f7f87', fontSize: 11.5, lineHeight: 1.5, margin: 0 }}>
+          <p style={{ color: 'var(--muted)', fontSize: 11.5, lineHeight: 1.5, margin: 0 }}>
             By sending, you agree that Kineo may contact you about this request. Your email is not added to the viral-ideas mailing list.
           </p>
           {status === 'error' ? (
-            <p role="alert" style={{ color: '#fca5a5', fontSize: 12.5, lineHeight: 1.5, margin: 0 }}>
+            <p role="alert" style={{ color: 'var(--danger)', fontSize: 12.5, lineHeight: 1.5, margin: 0 }}>
               We could not record this request. Please try again.
             </p>
           ) : null}
