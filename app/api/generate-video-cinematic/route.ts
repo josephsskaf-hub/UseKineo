@@ -3257,6 +3257,24 @@ async function manipularPost(req: NextRequest) {
         clipCount = scenes.length
       }
     }
+    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-SEEDANCE-BLOCOS-2026-09-29 — o MESMO defeito do 15 s, nos filmes de
+    // 35/60/90 s do Seedance 1.5: roteiro marcado com mais blocos que clipes (o de 35 s nasce com ~7 blocos para 5 clipes)
+    // passava pelo sorteio por índice de resolveVerbatimSegments (0, 2, 3, 5, 6) — MICRO REWARD 1 e ESCALATION ficavam sem
+    // imagem, a fala deles caía no clipe vizinho (a voz lê a narração inteira, voiceover_script) e o ensaio contava menos.
+    // Agora os blocos VIZINHOS se juntam na MESMA quantidade de cenas que o sorteio já tinha (scenes.length: nenhum clipe a
+    // mais ou a menos, custo igual), pela mesma lib do 15 s (seedanceShortMarkedScenes, que já recebe N): a soma das falas é
+    // a narração inteira, toda pista [Pexels] vira imagem, nenhuma cena sem fala, a maior cena a menor possível, PAYOFF
+    // sozinho no último clipe e HOOK no 1º quando der. Com blocos <= clipes nada muda (o sorteio devolve os blocos como
+    // estão). Só o Seedance 1.5 da estrada clássica: Kling 2.5, Veo, Sora e hollywood/H3/Omni/S25 nunca entram (Kineo 1 é
+    // outra rota). Guardião: scripts/test-seedance-blocos-e-voz-2026-09-29.mjs.
+    const seedanceClassicFilm = isSeedance15(typeof body.engine === 'string' ? body.engine : null) && !wantsKling && !wantsVeo && !wantsSora && !hollywoodPath
+    if (seedanceClassicFilm && !seedanceShortFilm && verbatim && scenes.length > 0 && parsedScript.segments.length > scenes.length) {
+      const juntosLongo = seedanceShortMarkedScenes(parsedScript, scenes.length)
+      if (juntosLongo.length === scenes.length) {
+        console.log(`[cinematic] KINEO-SEEDANCE-BLOCOS: ${parsedScript.segments.length} blocos do autor em ${scenes.length} clipes — vizinhos juntos (falas ${JSON.stringify(juntosLongo.map((s) => s.voiceover.split(' ').filter(Boolean).length))}), nenhum bloco sem imagem`)
+        scenes = juntosLongo.map((seg) => ({ description: seg.pexelsQuery, voiceover: seg.voiceover, caption: shortCaptionFromVoiceover(seg.voiceover || seg.pexelsQuery), stockSearchQuery: seg.pexelsQuery }))
+      }
+    }
 
     // ═══ [TRAVA 8.2] VEO-PLANOS-2026-09-29 — no Veo 3.1 o roteiro verbatim em prosa vira planos de 4/6/8 s que CABEM a
     // própria fala (lib/cinematic/veoShots veoVerbatimPlan — a mesma máquina do Kling com a tabela de passos do Veo).
