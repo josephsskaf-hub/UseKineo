@@ -6,7 +6,9 @@
 // Este guardião EXECUTA fatias reais (readFileSync + transpile + vm, sem rede, sem banco, sem fornecedor) e prova:
 //   (a) preço e fonte: US$ 0,07/s do Kling 2.5 em docs/PRECOS-MOTORES-V4.md = a constante da lib;
 //   (b) lib/cinematic/klingShots: imagem ÚTIL (−0,16 s por plano), passo de planejamento ≤ 2,3 pal/s, 35/60/90 s no
-//       modo IA, teto de 12, o alinhamento do claim assinado (segundos e início da fala de cada cena) para o compose;
+//       modo IA, teto de 12 no modo IA (roteiro pronto: 12-18 desde [TRAVA 8.2] KLING25-60S-TETO — guardião próprio,
+//       scripts/test-kling25-60s-teto-2026-09-28.mjs), o alinhamento do claim assinado (segundos e início da fala de cada
+//       cena) para o compose;
 //   (c) a rota: o dimensionamento real (Kling novo; Seedance/Veo idênticos à base), o builder real da fal ('5'/'10' no
 //       t2v e no i2v; Seedance/Veo/Sora/hollywood byte a byte), o callback real do despacho, o plano do verbatim (cortes
 //       e segundos juntos), os segundos por cena e o objeto de resposta assinado (clip_seconds e clip_word_starts só no
@@ -284,10 +286,13 @@ function canarioOk(src, libK = K) {
   if (!r) return false
   const somaFala = r.scenes.map((c) => c.voiceover).join(' ') === CANARIO
   const somaPista = eqJ(r.scenes.flatMap((c) => semPontuacao(c.description)), semPontuacao(CANARIO))
-  return r.scenes.length >= 8 && r.scenes.length <= 12 && somaFala && somaPista && cortesOk(r.scenes, CANARIO, 11) && cabeNoPlano(r.scenes, r.kling25ClipSeconds) &&
+  // re-ancorado ([TRAVA 8.2] KLING25-60S-TETO, 28/09): o bloco de 5 s do divisor reserva 0,3 s de folga (≤ 10 palavras a
+  // 2,3 pal/s, era 11) — corte de palavra só dentro de frase que não cabe nesse bloco. A regra é a mesma; o número segue a lib.
+  const fitCurto = libK.kling25WordsFit(5 - (libK.KLING25_SHORT_FIT_SLACK_SECONDS ?? 0), 2.3)
+  return r.scenes.length >= 8 && r.scenes.length <= 12 && somaFala && somaPista && cortesOk(r.scenes, CANARIO, fitCurto) && cabeNoPlano(r.scenes, r.kling25ClipSeconds) &&
     r.scenes.every((c, i) => c.clipSeconds === r.kling25ClipSeconds[i]) && r.clipCount === r.scenes.length
 }
-checa('canário no Kling (blocos reais da rota): 8 a 12 planos que somam o roteiro palavra por palavra, pista visual sem palavra perdida, cortes em fim de frase ou vírgula, e CADA plano cabe a própria fala a 2,3 pal/s (5 s ≤ 11 palavras, 10 s ≤ 22)', canarioOk(rota))
+checa('canário no Kling (blocos reais da rota): 8 a 12 planos que somam o roteiro palavra por palavra, pista visual sem palavra perdida, cortes em fim de frase ou vírgula, e CADA plano cabe a própria fala a 2,3 pal/s (5 s ≤ 10 palavras com a folga de 0,3 s, 10 s ≤ 22)', canarioOk(rota))
 {
   const r = planejaCenas(rota, { engine: 'kling', narration: CANARIO, clipCount: 9, footage: 42.6 })
   console.log('   planos do canário: ' + (r?.scenes ?? []).map((c, i) => `${i + 1}) [${c.clipSeconds}s] ${c.voiceover}`).join(' | '))
@@ -320,13 +325,15 @@ if (vbBase) {
     const p = K.kling25VerbatimPlan(texto, { durationSeconds: d, wordsPerSecond: 2.3 + rnd() * 0.8 })
     if (p.chunks.join(' ') !== texto) semPerda = false
     if (!eqJ(p.chunks.flatMap((c) => semPontuacao(K.kling25VisualHint(c))), semPontuacao(texto))) semPerda = false
-    if (p.chunks.length < Math.min(2, palavras(texto).length) || p.chunks.length > 12 || p.seconds.length !== p.chunks.length || !p.seconds.every((s) => s === 5 || s === 10)) contagem = false
+    // re-ancorado ([TRAVA 8.2] KLING25-60S-TETO, 28/09): o teto do roteiro pronto passou a acompanhar a imagem do filme (12-18);
+    // o que se protege é o mesmo — nunca acima do teto físico da lib, nunca menos de 2, só 5|10 s.
+    if (p.chunks.length < Math.min(2, palavras(texto).length) || p.chunks.length > K.KLING25_MAX_SHOTS || p.chunks.length > K.kling25MaxShots({ verbatim: true, footageSeconds: p.needSeconds }) || p.seconds.length !== p.chunks.length || !p.seconds.every((s) => s === 5 || s === 10)) contagem = false
     if (!p.chunks.every((c, i) => palavras(c).length <= (p.seconds[i] === 5 ? p.fitShort : p.fitLong))) cabe = false
     if (p.seconds.reduce((a, s) => a + s - 0.16, 0) + 1e-6 < p.needSeconds) cobre = false
     if (!cortesOk(p.chunks, texto, p.fitShort)) emFrase = false
   }
   checa('300 roteiros aleatórios: a fala somada é o roteiro e a pista visual não perde palavra', semPerda)
-  checa('300 roteiros aleatórios: 2 a 12 planos, só 5|10 s', contagem)
+  checa('300 roteiros aleatórios: de 2 ao teto do filme (12-18, nunca acima do teto físico 18), só 5|10 s', contagem)
   checa('300 roteiros aleatórios: CADA plano cabe a própria fala no passo de planejamento (5 s ≤ fitShort, 10 s ≤ fitLong)', cabe)
   checa('300 roteiros aleatórios: a imagem útil cobre o filme (inclusive os 61,5 s do TIKTOK-61 nos pedidos de 60 s)', cobre)
   checa('300 roteiros aleatórios: todo corte cai em fim de frase ou vírgula; palavra só dentro de frase maior que um plano de 5 s', emFrase)
@@ -725,9 +732,13 @@ if (medidos.every((m) => m.base)) {
   const uNovo = medidos.reduce((a, m) => a + m.usd, 0), uBase = medidos.reduce((a, m) => a + m.base.usd, 0)
   const deltas = medidos.map((m) => Math.round((m.usd - m.base.usd) * 100) / 100)
   console.log(`   custo de clipe nos 30 filmes: base US$ ${uBase.toFixed(2)} → US$ ${uNovo.toFixed(2)} (+US$ ${((uNovo - uBase) / medidos.length).toFixed(2)} por filme; faixa ${Math.min(...deltas).toFixed(2)} a +${Math.max(...deltas).toFixed(2)})`)
-  checa(`(h3) o preço da sincronia fica declarado e com teto: média ≤ +US$ 0,60 por filme e nenhum filme acima de +US$ 1,05 contra a base (medido: +US$ ${((uNovo - uBase) / medidos.length).toFixed(2)}, máx +${Math.max(...deltas).toFixed(2)})`, (uNovo - uBase) / medidos.length <= 0.6 && Math.max(...deltas) <= 1.05 + 1e-9)
+  // re-ancorado ([TRAVA 8.2] KLING25-60S-TETO, 28/09) — medido nos mesmos 30 filmes: teto 12 = +US$ 0,54/filme (máx +1,05);
+  // teto 12-18 sem folga = +0,71 (máx +1,40) e c589a6a5 (voz a 2,14 pal/s) atrasava 3,1 s; teto 12-18 com a folga de 0,3 s
+  // no bloco de 5 s = +0,94 (máx +1,75) e o pior atraso volta a 0,43 s. O preço continua DECLARADO e com teto; o que se
+  // compra com ele é o pedido do fundador (mais variedade) sem a imagem correr na frente da voz.
+  checa(`(h3) o preço da sincronia fica declarado e com teto: média ≤ +US$ 1,00 por filme e nenhum filme acima de +US$ 1,75 contra a base (medido: +US$ ${((uNovo - uBase) / medidos.length).toFixed(2)}, máx +${Math.max(...deltas).toFixed(2)}; com o teto 12 era +0,54/+1,05)`, (uNovo - uBase) / medidos.length <= 1.0 && Math.max(...deltas) <= 1.75 + 1e-9)
   const d64 = medidos.find((m) => m.id === '64f02e9c')
-  checa(`(h3) 64f02e9c (60 s, 227 palavras, filme cortado em 90 s): o passo sobe para caber em 90 s — ${d64.segundos.reduce((a, b) => a + b, 0)} s de imagem (US$ ${d64.usd.toFixed(2)}, base US$ ${d64.base.usd.toFixed(2)}), nunca 227 ÷ 2,3 = 98,7 s de fala`, d64.segundos.reduce((a, b) => a + b, 0) <= 100 && d64.segundos.reduce((a, s) => a + s - 0.16, 0) >= 90)
+  checa(`(h3) 64f02e9c (60 s, 227 palavras, filme cortado em 90 s): o passo sobe para caber em 90 s — ${d64.segundos.reduce((a, b) => a + b, 0)} s de imagem (US$ ${d64.usd.toFixed(2)}, base US$ ${d64.base.usd.toFixed(2)}), nunca 227 ÷ 2,3 = 98,7 s de fala (teto 12: 100 s; 12-18 com folga: 105 s = 21 unidades de 5 s)`, d64.segundos.reduce((a, b) => a + b, 0) <= 105 && d64.segundos.reduce((a, s) => a + s - 0.16, 0) >= 90)
 }
 // (h4) o ensaio de $0 aponta o defeito que a revisão achou (o da 1ª versão dava PASS no 06fe798a)
 {

@@ -3062,12 +3062,15 @@ async function manipularPost(req: NextRequest) {
     // necessária (o compose tira 0,16 s de cada plano) vira planos de 5 s (a fal cobra por segundo, US$ 0,07/s). Modo IA:
     // o filme do botão + 3 s de folga. Verbatim: o roteiro no passo de planejamento (≤ 2,3 pal/s, a voz mais lenta medida
     // nos filmes reais) — este número é provisório: o roteiro em prosa é dividido mais abaixo (kling25VerbatimPlan), com
-    // cortes e segundos decididos juntos para CADA plano caber a sua fala. Teto de 12 planos. Seedance/Veo/Sora: nada roda aqui.
+    // cortes e segundos decididos juntos para CADA plano caber a sua fala. Seedance/Veo/Sora: nada roda aqui.
+    // [TRAVA 8.2] KLING25-60S-TETO (28/09): teto de 12 planos só no modo IA (o escritor de cenas corta em 12); no roteiro
+    // pronto o teto acompanha a imagem que o filme pede (kling25MaxShots: 60 s → 14, 90 s → 18) — o ensaio de $0 de 203
+    // palavras batia no 12 e enchia com planos de 10 s; o fundador quer ~13-14 planos de 5 s num 60 s com 65-70 s de fala.
     let kling25Footage = 0
     if (wantsKling) {
       const palavrasDoRoteiro = verbatim ? parsedScript.narration.split(/\s+/).filter(Boolean).length : 0
       kling25Footage = kling25FootageNeeded({ durationSeconds: duration, verbatimWords: palavrasDoRoteiro, wordsPerSecond: narrationRate.wordsPerSecond })
-      const planos = kling25ShotCount(kling25Footage)
+      const planos = kling25ShotCount(kling25Footage, { verbatim })
       console.log(`[cinematic] KLING25-PLANOS-5S: ${clipCount} planos de 10 s → ${planos} planos de 5 s (imagem necessária ${kling25Footage}s${verbatim ? `, roteiro de ${palavrasDoRoteiro} palavras` : ''})`)
       clipCount = planos
     }
