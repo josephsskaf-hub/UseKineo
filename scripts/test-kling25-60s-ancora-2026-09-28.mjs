@@ -82,8 +82,11 @@ const blocoNovo = fatia(rota, INI_BLOCO, FIM_BLOCO)
 const blocoBase = fatia(rotaBase, INI_BLOCO, FIM_BLOCO)
 const blocoCand = fatia(rotaCand, INI_BLOCO, FIM_BLOCO)
 checa('o bloco de âncoras clássico existe em HEAD, no candidato e na base', Boolean(blocoNovo) && Boolean(blocoCand) && Boolean(blocoBase))
-checa('HEAD: teto de cenas ancoradas = todas as cenas SÓ no Kling', blocoNovo?.includes("const MAX_ANCHORED_SCENES = anchorEngine === 'kling' ? scenes.length : 6") === true)
-checa('HEAD: orçamento de tempo dos stills = 60 s SÓ no Kling, 30 s nos outros', blocoNovo?.includes("const STILL_BUDGET_MS = anchorEngine === 'kling' ? 60_000 : 30_000") === true)
+// KINEO-VEO-ANCORA-2026-09-29: o Veo 3.1 ganhou a mesma regra (todas as cenas, 60 s) — HEAD aceita as duas formas; o candidato (commit introdutor) segue só-Kling.
+const HEAD_TETO = /const MAX_ANCHORED_SCENES = anchorEngine === 'kling'( \|\| anchorEngine === 'veo')? \? scenes\.length : 6\n/.test(blocoNovo ?? '')
+const HEAD_ORCAMENTO = /const STILL_BUDGET_MS = anchorEngine === 'kling'( \|\| anchorEngine === 'veo')? \? 60_000 : 30_000/.test(blocoNovo ?? '')
+checa('HEAD: teto de cenas ancoradas = todas as cenas no Kling (e, desde VEO-ANCORA, no Veo); Seedance segue 6', HEAD_TETO)
+checa('HEAD: orçamento de tempo dos stills = 60 s no Kling (e no Veo), 30 s no Seedance', HEAD_ORCAMENTO)
 checa('candidato: o commit introdutor já traz o teto por motor e o orçamento de 60 s (o diff de (b) mede ESTE trabalho, não o dos irmãos)', blocoCand?.includes("const MAX_ANCHORED_SCENES = anchorEngine === 'kling' ? scenes.length : 6") === true && blocoCand?.includes("const STILL_BUDGET_MS = anchorEngine === 'kling' ? 60_000 : 30_000") === true)
 checa('HEAD: pool de 3 stills em paralelo inalterado', blocoNovo?.includes('const STILL_POOL = 3') === true && blocoBase?.includes('const STILL_POOL = 3') === true)
 checa('HEAD: janela de 12 s por imagem inalterada', blocoNovo?.includes('const STILL_POLL_WINDOW_MS = 12_000') === true)
@@ -150,15 +153,8 @@ checa('HEAD: mesmo com cada still esgotando a janela de 12 s, 12 planos → 12 s
 const piorBaseSemTeto = await simula(blocoBase.replace('const MAX_ANCHORED_SCENES = 6', 'const MAX_ANCHORED_SCENES = scenes.length'), { anchorEngine: 'kling', planos: 12, msPorStill: 12_000 })
 checa('só subir o teto sem subir o orçamento (30 s) NÃO bastaria: no pior caso 12 planos parariam em 9 stills', piorBaseSemTeto.stills === 9)
 
-// [TRAVA 8.2] VEO-PLANOS-2026-09-29 — palavra do fundador ("foco total no Veo"): o Veo 3.1 ganhou o padrão do Kling (still em
-// todas as cenas, 60 s). Só o Seedance segue com 6 stills e 30 s como antes; o Veo é medido logo abaixo.
-if (blocoNovo?.includes('VEO-PLANOS-2026-09-29')) {
-  const v12 = await simula(blocoNovo, { anchorEngine: 'veo', planos: 12 })
-  const v12pior = await simula(blocoNovo, { anchorEngine: 'veo', planos: 12, msPorStill: 12_000 })
-  checa('veo com 12 cenas (VEO-PLANOS): 12 stills, como o Kling', v12.stills === 12)
-  checa('veo com 12 cenas no pior caso (12 s por still): orçamento de 60 s → 12 stills, como o Kling', v12pior.stills === 12)
-}
-for (const [motor, planos] of blocoNovo?.includes('VEO-PLANOS-2026-09-29') ? [['seedance', 12], ['seedance', 9]] : [['seedance', 12], ['seedance', 9], ['veo', 9], ['veo', 12]]) {
+// KINEO-VEO-ANCORA-2026-09-29: o Veo saiu desta lista — ganhou still em todas as cenas (guardião test-veo-ancora-916-2026-09-29.mjs). Seedance: 6 e 30 s, como antes.
+for (const [motor, planos] of [['seedance', 12], ['seedance', 9]]) {
   const n = await simula(blocoNovo, { anchorEngine: motor, planos })
   const b = await simula(blocoBase, { anchorEngine: motor, planos })
   checa(`${motor} com ${planos} cenas: 6 stills como antes e o MESMO vetor de stills da base (byte a byte)`, n.stills === 6 && b.stills === 6 && eqJ(n.sceneStills, b.sceneStills) && eqJ(n.chamadas, b.chamadas))
@@ -250,9 +246,9 @@ checa('/api/compose: a apara do rabo mudo (KINEO-TAIL) vive dentro da família h
 
 // ═══ (e) mutantes ══════════════════════════════════════════════════════════════════════════════════════════════════
 {
-  const m1 = blocoNovo.replace("const MAX_ANCHORED_SCENES = anchorEngine === 'kling' ? scenes.length : 6", 'const MAX_ANCHORED_SCENES = 6')
+  const m1 = blocoNovo.replace(/const MAX_ANCHORED_SCENES = anchorEngine === 'kling'( \|\| anchorEngine === 'veo')? \? scenes\.length : 6/, 'const MAX_ANCHORED_SCENES = 6')
   checa('mutante: teto de 6 de volta → Kling 2.5 com 12 planos cai para 6 stills (vermelho)', (await simula(m1, { anchorEngine: 'kling', planos: 12 })).stills === 6)
-  const m2 = blocoNovo.replace("const STILL_BUDGET_MS = anchorEngine === 'kling' ? 60_000 : 30_000", 'const STILL_BUDGET_MS = 30_000')
+  const m2 = blocoNovo.replace(/const STILL_BUDGET_MS = anchorEngine === 'kling'( \|\| anchorEngine === 'veo')? \? 60_000 : 30_000/, 'const STILL_BUDGET_MS = 30_000')
   checa('mutante: orçamento de 30 s de volta → no pior caso 12 planos param em 9 stills (vermelho)', (await simula(m2, { anchorEngine: 'kling', planos: 12, msPorStill: 12_000 })).stills === 9)
   const m3 = blocoNovo.split("anchorEngine === 'kling'").join("anchorEngine === 'seedance'")
   const m3s = await simula(m3, { anchorEngine: 'seedance', planos: 12 })

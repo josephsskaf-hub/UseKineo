@@ -5941,17 +5941,26 @@ async function manipularPost(req: NextRequest) {
       // existe em TODAS as cenas do plano (12-14) e o orçamento de tempo dos stills sobe para 60 s (maxDuration da rota
       // é 300 s; o despacho serial do Kling leva 10-15 s). Pool de 3 e janela por imagem inalterados (a fila do FLUX
       // não é o alias kling-video). CUSTO: +US$ 0,10 por still a mais (ANCHORS_USD) — 12 planos = +US$ 0,60, 14 = +US$ 0,80
-      // por filme; preço em créditos inalterado. Seedance 1.5 / Veo 3.1: 6 cenas e 30 s, exatamente como antes.
-      const STILL_BUDGET_MS = anchorEngine === 'kling' ? 60_000 : 30_000 // leave the rest of the route budget for scene submits
+      // por filme; preço em créditos inalterado. Seedance 1.5: 6 cenas e 30 s, exatamente como antes.
+      // ═══ KINEO-VEO-ANCORA-2026-09-29 — still em TODAS as cenas do Veo 3.1 também ═══
+      // Palavra do fundador (29/09 00:30): "foco total hoje para arrumar o Veo, que é um motor que temos que ter a partir de
+      // agora". O Veo planeja cenas de 8 s (duration '8s' fixo): 60 s = 9 cenas, e o teto de 6 deixava as cenas 7-9 em t2v —
+      // provado no banco: a44cd5d3 (21/09, "navio ao largo de Cuba", 9 cenas) foi [t2v, i2v×4, t2v×4] e 579f4b2b (19/09)
+      // [i2v×6, t2v×3]; d21e366b (16/09) [i2v, t2v×3, i2v×2, t2v×3]. Mesma regra do Kling (anchorEngine 'veo'): todas as
+      // cenas, orçamento de 60 s (pior caso 9 cenas = 3 lotes × 12 s = 36 s; 13 cenas de 90 s = 60 s). O despacho do Veo é
+      // PARALELO (canParallelize, pool de 3), então os POSTs cabem no maxDuration de 300 s. CUSTO: +US$ 0,10 por still a
+      // mais — 60 s = +US$ 0,30 (3 stills), 35 s (≤6 cenas) = +US$ 0,00; crédito inalterado (59/100 cr). O aspecto do i2v e
+      // do t2v do Veo já vai EXPLÍCITO em buildFalInput (aspect_ratio '9:16' + resolution '1080p', desde f9652753 de 16/09);
+      // o payload cena a cena agora fica em classicSceneInputs (KINEO-CENA-CLASSICA), então a próxima cena 16:9 terá prova.
+      const STILL_BUDGET_MS = anchorEngine === 'kling' || anchorEngine === 'veo' ? 60_000 : 30_000 // leave the rest of the route budget for scene submits
       const STILL_POLL_WINDOW_MS = 12_000 // per-image cap (schnell @4 steps is fast)
-      const MAX_ANCHORED_SCENES = anchorEngine === 'kling' ? scenes.length : 6
       // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — o Veo 3.1 ganha o mesmo padrão do Kling (still em TODAS as cenas, 60 s de
       // orçamento): com planos de 4/6/8 s um filme de 60 s tem 12-14 planos e o teto de 6 deixava a segunda metade em t2v
       // (outro mundo, outra paleta — e a cena 16:9 do ep. 2 nasceu fora do still 9:16). CUSTO: +US$ 0,10 por still a mais.
       // As duas linhas acima ficam literais (guardiões do Kling); Seedance 1.5 segue em 6 cenas e 30 s, exatamente como antes.
-      const veoAnchorsAll = anchorEngine === 'veo'
-      const anchorCount = Math.min(scenes.length, veoAnchorsAll ? scenes.length : MAX_ANCHORED_SCENES)
-      const stillDeadline = Date.now() + (veoAnchorsAll ? 60_000 : STILL_BUDGET_MS)
+      const MAX_ANCHORED_SCENES = anchorEngine === 'kling' || anchorEngine === 'veo' ? scenes.length : 6
+      const anchorCount = Math.min(scenes.length, MAX_ANCHORED_SCENES)
+      const stillDeadline = Date.now() + STILL_BUDGET_MS
       let stillsMade = 0
       for (let start = 0; start < anchorCount && Date.now() < stillDeadline; start += STILL_POOL) {
         const batch: number[] = []
