@@ -48,7 +48,7 @@ import { CLIP_ASPECTS } from '@/lib/analyzeLimits' // VARREDURA-LIMITES-2026-09-
 import { formatLimitCounter, promptLimitState, trimPromptToLimit } from '@/lib/studioPromptLimit'
 import { buildStudioSeriesReviewHref, carryStudioSeriesReview, isStudioSeriesReview } from '@/lib/navigation/studioSeriesReview'
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
-import { STUDIO_ONLY_ENGINE_KEYS } from '@/lib/enginePlanGate'
+import { ENGINE_GATE_ACTIVE, STUDIO_ONLY_ENGINE_KEYS } from '@/lib/enginePlanGate'
 import { SEEDANCE_SHORT_SECONDS, MIN_DURATION_ALL_ENGINES } from '@/lib/durationByEngine' // KINEO-SEEDANCE-15S-2026-09-29
 import DiretorKineo from '@/components/DiretorKineo' // DIRETOR-KINEO-20260923
 import DfyOfferCard from '@/components/DfyOfferCard' // KINEO-EMPRESAS-COCKPIT-2026-09-24
@@ -122,7 +122,11 @@ const ENGINES: { paused?: boolean; /* KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 */
   // Creator (90cr) não fecha um Kling 3 de 150, e fecha DOIS H3 de 45.
   { key: 'h3', paused: Boolean(enginePaused('h3')), icon: 'H3', name: 'MiniMax H3', tag: 'Fits your plan', desc: 'Cinematic film that fits your plan — 9-image consistency', res: '768p', credits: `${creditCostFor('cinematic_h3', true)} cr`, supportsRef: true },
   { key: 'kling', preview: '/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4', icon: 'K', name: 'Kling 2.5', tag: 'Best value', desc: 'Cinematic motion and camera work', res: '720p', credits: `${creditCostFor('cinematic_kling', true)} cr`, supportsRef: false },
-  { key: 'veo', preview: '/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4', icon: 'G', name: 'Veo 3.1', tag: 'Studio', desc: 'Google’s flagship cinematic engine', res: '720p', credits: `${creditCostFor('cinematic_veo', true)} cr`, supportsRef: false },
+  // KINEO-VEO-CARD-HONESTO-2026-09-29 — o Veo roda em 1080p pelo mesmo preço desde 16/08
+  // (KINEO-VEO-1080, fal cobra igual) e o card ainda dizia 720p. O selo 'Studio' digitado
+  // saiu: o gate está desligado na fonte (lib/enginePlanGate.ts) e a 35 s o filme cabe no
+  // Starter — o selo automático abaixo (ENGINE_GATE_ACTIVE) volta sozinho se o gate religar.
+  { key: 'veo', preview: '/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4', icon: 'G', name: 'Veo 3.1', desc: 'Google’s flagship cinematic engine · 1080p', res: '1080p', credits: `${creditCostFor('cinematic_veo', true)} cr`, supportsRef: false },
   { key: 'hollywood', preview: '/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4', icon: 'K3', name: 'Kling 3', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '720p', credits: `${creditCostFor('cinematic_hollywood', true)} cr`, supportsRef: true },
   // KINEO-OMNI-2026-08-25 — o #1 do ranking cego de agosto (1245 Elo,
   // Artificial Analysis arena) entra no topo do catálogo. Selo honesto: a
@@ -872,7 +876,7 @@ export default function StudioClient() {
                           queimaram o trial inteiro no primeiro clique sem saber.
                           Agora cada card diz o custo E quantos filmes o saldo compra. */}
                       <span className="t">
-                        <b>{e.name}{pausa ? <span className="tag" style={{ background: 'rgba(255,180,84,.16)', color: '#ffb454' }}><UiLabel>Maintenance</UiLabel></span> : e.tag && <span className="tag"><UiLabel>{e.tag}</UiLabel></span>}{!pausa && STUDIO_ONLY_ENGINE_KEYS.has(e.key) && <span className="tag" title="Studio plan engine"><UiLabel>Studio</UiLabel></span>}</b>
+                        <b>{e.name}{pausa ? <span className="tag" style={{ background: 'rgba(255,180,84,.16)', color: '#ffb454' }}><UiLabel>Maintenance</UiLabel></span> : e.tag && <span className="tag"><UiLabel>{e.tag}</UiLabel></span>}{!pausa && ENGINE_GATE_ACTIVE && STUDIO_ONLY_ENGINE_KEYS.has(e.key) && <span className="tag" title="Studio plan engine"><UiLabel>Studio</UiLabel></span>}</b>
                         <i>{engineCostLabel(e.key)}</i>
                       </span>
                       <span className="d"><UiLabel>{pausa ? `Temporarily paused for maintenance · use ${pausa.alternative.label} meanwhile` : e.desc}</UiLabel></span>

@@ -48,6 +48,7 @@ import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
 import { describeScenesCovered, completeSceneDescriptions, hasSpeechArtifacts, type DescriptionCoverage } from '@/lib/cinematic/sceneDescriptions' // [TRAVA 8.2] KLING25-DESCRICOES-2026-09-28
 import { kling25FootageNeeded, kling25ShotCount, kling25SceneSeconds, kling25ClipsUsd, kling25WriterBudget, kling25AlignBudget, kling25AverageShotSeconds, kling25VerbatimPlan, kling25VisualHint, kling25SceneWordStarts, kling25PlanPace, kling25WordsFit, KLING25_CLIP_LOSS_SECONDS, kling25ApplyShotAxis, kling25StripShotAxis } from '@/lib/cinematic/klingShots' // KINEO-KLING25-PLANOS-5S-2026-09-28 · KINEO-KLING25-VARIEDADE-2026-09-28
 import { resolveCharacterVoice } from '@/lib/hollywood/characterVoice'
+import { veoVerbatimPlan, veoVisualHint, veoSceneSeconds, veoAssignedWords, veoClipsUsd, veoApplyShotAxis, veoStripShotAxis, veoFilmSeconds } from '@/lib/cinematic/veoShots' // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — só wantsVeo
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
 import { wordsPerSceneFor } from '@/lib/cinematic/sceneWords'
@@ -646,10 +647,14 @@ function buildFalInput(
         negative_prompt: antiCgi + 'blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text, rotated frame, sideways composition, vertical horizon, tilted horizon, soft focus, out of focus',
       }
     }
+    // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — o Veo 3.1 (t2v e i2v) recebe os segundos do PLANO: '4s' | '6s' | '8s' (schema da
+    // fal do veo3.1/fast, US$ 0,10/s); sem `seconds` (modo IA, claim antigo, qualquer outro caminho) = '8s', exatamente o de
+    // antes. Espelho de veoFalDuration (lib/cinematic/veoShots.ts): a regra fica escrita aqui porque guardiões executam
+    // este builder isolado, sem imports. O ramo hollywood do Veo (acima) segue em '8s' fixo, byte a byte.
     return {
       prompt,
       aspect_ratio: frame.falAspectRatio, // KINEO-MULTIFORMATO-2026-09-02 — '9:16' sem `aspect`
-      duration: '8s',
+      duration: typeof seconds === 'number' && seconds > 0 && seconds <= 4 ? '4s' : typeof seconds === 'number' && seconds > 0 && seconds <= 6 ? '6s' : '8s',
       // KINEO-VEO-720-2026-07-06 — era 720p por margem. KINEO-VEO-1080-2026-08-16:
       // fal cobra IGUAL em 720p e 1080p no veo3.1/fast (schema oficial conferido)
       // — Full HD ligado sem custo extra, antes do TAAFT.
@@ -688,7 +693,7 @@ function buildFalInput(
       image_url: imageUrl,
       prompt,
       aspect_ratio: frame.falAspectRatio, // schema: default 'auto'
-      duration: '8s',
+      duration: typeof seconds === 'number' && seconds > 0 && seconds <= 4 ? '4s' : typeof seconds === 'number' && seconds > 0 && seconds <= 6 ? '6s' : '8s', // [TRAVA 8.2] VEO-PLANOS-2026-09-29 (ver o ramo t2v acima)
       resolution: '1080p',
       generate_audio: false,
       safety_tolerance: '5',
@@ -3186,6 +3191,24 @@ async function manipularPost(req: NextRequest) {
           if (r.removidas.length || r2.removed.length) { sc.voiceover = texto; sc.caption = shortCaptionFromVoiceover(texto); tiradas.push(...r.removidas, ...r2.removed) }
         }
         if (tiradas.length) console.log(`[cinematic] KINEO-FALA-CLASSICA-FIEL: ${tiradas.length} data(s)/hora(s)/nome(s) fora do pedido removida(s) da fala: ${tiradas.map((t) => JSON.stringify(t)).join(', ')}`)
+      }
+    }
+
+    // ═══ [TRAVA 8.2] VEO-PLANOS-2026-09-29 — no Veo 3.1 o roteiro verbatim em prosa vira planos de 4/6/8 s que CABEM a
+    // própria fala (lib/cinematic/veoShots veoVerbatimPlan — a mesma máquina do Kling com a tabela de passos do Veo).
+    // Até aqui: ⌈s/8⌉ + 1 planos de 8 s fixos, cada um cobrindo 2-3 frases. Agora cortes e segundos saem juntos: cada
+    // bloco cabe na parte útil do seu plano no passo de planejamento (≤ 2,3 pal/s; 4 s → até 8 palavras, 6 s → 12,
+    // 8 s → 17), fim de frase quando o preço é o mesmo. Roteiro com marcadores mantém os blocos do autor (segundos por
+    // cena mais abaixo). Seedance/Kling/Sora: `wantsVeo` falso, nada roda aqui.
+    if (wantsVeo && verbatim && parsedScript.segments.length === 0 && scenes.length > 0) {
+      const plano = veoVerbatimPlan(parsedScript.narration, { durationSeconds: duration, wordsPerSecond: narrationRate.wordsPerSecond })
+      if (plano.chunks.length > 0) {
+        scenes = plano.chunks.map((fala, i) => {
+          const pista = veoVisualHint(fala)
+          return { description: pista, voiceover: fala, caption: shortCaptionFromVoiceover(fala || pista), stockSearchQuery: pista, clipSeconds: plano.seconds[i] }
+        })
+        console.log(`[cinematic] VEO-PLANOS: verbatim em ${scenes.length} planos [${plano.seconds.join(',')}] (passo ${plano.pace} pal/s: 4/6/8 s ≤ ${plano.fit.join('/')} palavras; filme ≈ ${plano.needSeconds}s)`)
+        clipCount = scenes.length
       }
     }
 
@@ -5720,6 +5743,25 @@ async function manipularPost(req: NextRequest) {
       console.log(`[cinematic] KLING25-PLANOS-5S: ${scenes.length} planos [${segundos.join(',')}] = ${segundos.reduce((a, b) => a + b, 0)}s de imagem ≈ US$ ${kling25ClipsUsd(segundos).toFixed(2)} de clipe (necessário ${kling25Footage}s)`)
     }
 
+    // ═══ [TRAVA 8.2] VEO-PLANOS-2026-09-29 — os segundos de CADA plano do Veo 3.1 no roteiro pronto ═══
+    // Verbatim em prosa: o plano acima já decidiu. Roteiro marcado: a cena recebe o menor passo (4|6|8) em que a sua fala
+    // ATRIBUÍDA cabe no passo de planejamento; cobertura que faltar promove do fim para trás. Modo IA: sem segundos =
+    // '8s' em todas, exatamente como antes. Viaja na cena (`clipSeconds`) até o payload (buildFalInput → '4s'|'6s'|'8s'),
+    // o claim assinado (`clip_seconds` e `clip_word_starts`, os campos que o Kling já assina) e o compose.
+    let veoClipSeconds: number[] | null = null
+    let veoPasso = 0
+    if (wantsVeo && verbatim && scenes.length > 0) {
+      const narracaoDoFilme = parsedScript.narration ? parsedScript.narration : scenes.map((s) => s.voiceover).filter(Boolean).join(' ')
+      const atribuicao = veoAssignedWords(narracaoDoFilme, scenes.map((s) => s.voiceover))
+      veoPasso = kling25PlanPace(narrationRate.wordsPerSecond, atribuicao.total)
+      const segundos = scenes.every((s) => s.clipSeconds === 4 || s.clipSeconds === 6 || s.clipSeconds === 8)
+        ? scenes.map((s) => s.clipSeconds as number)
+        : veoSceneSeconds(atribuicao.words, veoFilmSeconds({ durationSeconds: duration, verbatimWords: atribuicao.total, wordsPerSecond: narrationRate.wordsPerSecond }), veoPasso)
+      veoClipSeconds = segundos
+      scenes = scenes.map((s, i) => ({ ...s, clipSeconds: segundos[i] }))
+      console.log(`[cinematic] VEO-PLANOS: ${scenes.length} planos [${segundos.join(',')}] = ${segundos.reduce((a, b) => a + b, 0)}s de imagem ≈ US$ ${veoClipsUsd(segundos).toFixed(2)} de clipe (antes: ${scenes.length} × 8 s)`)
+    }
+
     // KINEO-VIGIA-CENARIO-2026-09-11 — antes de qualquer still ou clipe pago,
     // as TRÊS fontes de visual (descritor, GPT das cenas, plano de b-roll)
     // passam pelo filtro determinístico: nome próprio, ano/década e adjetivo
@@ -5834,6 +5876,10 @@ async function manipularPost(req: NextRequest) {
       // O mesmo prompt alimenta o still FLUX (o i2v segue o enquadramento do still) e o clipe t2v. Seedance/Veo/Sora: o
       // ternário devolve o prompt de sempre, byte a byte. Guardião: scripts/test-kling25-variedade-2026-09-28.mjs.
       .map((promptDaCena, sceneIndex) => (wantsKling ? kling25ApplyShotAxis(promptDaCena, sceneIndex) : promptDaCena))
+    // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — o Veo 3.1 ganha o mesmo eixo determinístico por plano (veoApplyShotAxis = a rotação
+    // do Kling, prefixada, nada cortado), aplicado no MESMO vetor que alimenta o still FLUX e o clipe. Fora do ternário acima
+    // para o ponto do Kling ficar literal; Seedance/Sora: vetor intocado, byte a byte.
+    if (wantsVeo) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = veoApplyShotAxis(classicScenePrompts[i], i)
 
     // ═══ KINEO-DRYRUN-CLASSICO-2026-09-12 — O VALIDADOR DE $0 COBRE OS CLÁSSICOS ═══
     // Até 11/09 `dry_run: true` só parava a família Kling 3/H3/Omni (bloco
@@ -5858,6 +5904,11 @@ async function manipularPost(req: NextRequest) {
       const relatorioDoEnsaio = kling25ClipSeconds
         ? classicDryRunReport({ scenes: scenes.map((s, i) => ({ voiceover: s.voiceover, prompt: classicScenePrompts[i] })), targetSeconds: duration, secondsPerClip: 5, verbatim, wordsPerSecond: narrationRate.wordsPerSecond, sceneSeconds: kling25ClipSeconds, clipLossSeconds: KLING25_CLIP_LOSS_SECONDS, sceneFitWordsPerSecond: kling25Passo, sceneFitStrict: verbatim })
         : classicReport
+      // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — o ensaio do Veo mostra os planos de 4/6/8 s como mostra os do Kling (mesmo relatório,
+      // segundos por cena, imagem útil, fala × plano no passo); entra por spread próprio para o ternário do Kling ficar literal.
+      const relatorioVeo = veoClipSeconds
+        ? classicDryRunReport({ scenes: scenes.map((s, i) => ({ voiceover: s.voiceover, prompt: classicScenePrompts[i] })), targetSeconds: duration, secondsPerClip: 8, verbatim, wordsPerSecond: narrationRate.wordsPerSecond, sceneSeconds: veoClipSeconds, clipLossSeconds: KLING25_CLIP_LOSS_SECONDS, sceneFitWordsPerSecond: veoPasso, sceneFitStrict: verbatim })
+        : null
       const refunded = await releaseBirthClaim('dry_run_no_charge')
       return NextResponse.json({
         dry_run: true,
@@ -5872,6 +5923,9 @@ async function manipularPost(req: NextRequest) {
         ...relatorioDoEnsaio,
         // KINEO-KLING25-PLANOS-5S-2026-09-28 — os segundos de cada plano, o custo de clipe e a imagem necessária, como no pago
         ...(kling25ClipSeconds ? { clip_seconds: kling25ClipSeconds, clips_usd: kling25ClipsUsd(kling25ClipSeconds), footage_needed_seconds: kling25Footage, plan_words_per_second: kling25Passo } : {}),
+        // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — o relatório do Veo (planos de 4/6/8 s), o custo de clipe (US$ 0,10/s) e o que custava a 8 s fixos
+        ...(relatorioVeo ?? {}),
+        ...(veoClipSeconds ? { clip_seconds: veoClipSeconds, clips_usd: veoClipsUsd(veoClipSeconds), clips_usd_before: veoClipsUsd(veoClipSeconds.map(() => 8)), plan_words_per_second: veoPasso } : {}),
       })
     }
 
@@ -5919,10 +5973,24 @@ async function manipularPost(req: NextRequest) {
       // existe em TODAS as cenas do plano (12-14) e o orçamento de tempo dos stills sobe para 60 s (maxDuration da rota
       // é 300 s; o despacho serial do Kling leva 10-15 s). Pool de 3 e janela por imagem inalterados (a fila do FLUX
       // não é o alias kling-video). CUSTO: +US$ 0,10 por still a mais (ANCHORS_USD) — 12 planos = +US$ 0,60, 14 = +US$ 0,80
-      // por filme; preço em créditos inalterado. Seedance 1.5 / Veo 3.1: 6 cenas e 30 s, exatamente como antes.
-      const STILL_BUDGET_MS = anchorEngine === 'kling' ? 60_000 : 30_000 // leave the rest of the route budget for scene submits
+      // por filme; preço em créditos inalterado. Seedance 1.5: 6 cenas e 30 s, exatamente como antes.
+      // ═══ KINEO-VEO-ANCORA-2026-09-29 — still em TODAS as cenas do Veo 3.1 também ═══
+      // Palavra do fundador (29/09 00:30): "foco total hoje para arrumar o Veo, que é um motor que temos que ter a partir de
+      // agora". O Veo planeja cenas de 8 s (duration '8s' fixo): 60 s = 9 cenas, e o teto de 6 deixava as cenas 7-9 em t2v —
+      // provado no banco: a44cd5d3 (21/09, "navio ao largo de Cuba", 9 cenas) foi [t2v, i2v×4, t2v×4] e 579f4b2b (19/09)
+      // [i2v×6, t2v×3]; d21e366b (16/09) [i2v, t2v×3, i2v×2, t2v×3]. Mesma regra do Kling (anchorEngine 'veo'): todas as
+      // cenas, orçamento de 60 s (pior caso 9 cenas = 3 lotes × 12 s = 36 s; 13 cenas de 90 s = 60 s). O despacho do Veo é
+      // PARALELO (canParallelize, pool de 3), então os POSTs cabem no maxDuration de 300 s. CUSTO: +US$ 0,10 por still a
+      // mais — 60 s = +US$ 0,30 (3 stills), 35 s (≤6 cenas) = +US$ 0,00; crédito inalterado (59/100 cr). O aspecto do i2v e
+      // do t2v do Veo já vai EXPLÍCITO em buildFalInput (aspect_ratio '9:16' + resolution '1080p', desde f9652753 de 16/09);
+      // o payload cena a cena agora fica em classicSceneInputs (KINEO-CENA-CLASSICA), então a próxima cena 16:9 terá prova.
+      const STILL_BUDGET_MS = anchorEngine === 'kling' || anchorEngine === 'veo' ? 60_000 : 30_000 // leave the rest of the route budget for scene submits
       const STILL_POLL_WINDOW_MS = 12_000 // per-image cap (schnell @4 steps is fast)
-      const MAX_ANCHORED_SCENES = anchorEngine === 'kling' ? scenes.length : 6
+      // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — o Veo 3.1 ganha o mesmo padrão do Kling (still em TODAS as cenas, 60 s de
+      // orçamento): com planos de 4/6/8 s um filme de 60 s tem 12-14 planos e o teto de 6 deixava a segunda metade em t2v
+      // (outro mundo, outra paleta — e a cena 16:9 do ep. 2 nasceu fora do still 9:16). CUSTO: +US$ 0,10 por still a mais.
+      // As duas linhas acima ficam literais (guardiões do Kling); Seedance 1.5 segue em 6 cenas e 30 s, exatamente como antes.
+      const MAX_ANCHORED_SCENES = anchorEngine === 'kling' || anchorEngine === 'veo' ? scenes.length : 6
       const anchorCount = Math.min(scenes.length, MAX_ANCHORED_SCENES)
       const stillDeadline = Date.now() + STILL_BUDGET_MS
       let stillsMade = 0
@@ -6028,6 +6096,9 @@ async function manipularPost(req: NextRequest) {
         // sairia enviesada. Aqui o Kling grava o prompt SEM o eixo (kling25StripShotAxis só remove o prefixo exato; o payload
         // da fal segue com ele). Seedance/Veo/Sora caem no ramo `: cinematic` — byte a byte o de sempre.
         c.submittedPrompts[sceneIndex] = (wantsKling ? kling25StripShotAxis(cinematic) : cinematic).slice(0, 240)
+        // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — o juiz lê o Veo também SEM o eixo (veoStripShotAxis = o inverso exato do prefixo);
+        // o payload da fal segue com ele. Splice na posição já gravada: a rota mantém UMA atribuição a c.submittedPrompts[...].
+        if (wantsVeo) c.submittedPrompts.splice(sceneIndex, 1, veoStripShotAxis(cinematic).slice(0, 240))
         c.attempts[sceneIndex] = despachoCena.attempts
         c.totalPosts += despachoCena.posts
         if (despachoCena.outcome.reason_class === 'balance_quota') c.balanceExhausted = true

@@ -21140,7 +21140,8 @@ function ModeSelector({
               // verdades. Entra agora, e o 2.5 junto (gate: s25Ok).
               { key: 'omni', label: 'Omni Flash', sub: 'Google · Gemini Omni Flash', cr: creditCostForDuration('cinematic_omni', true, duration) },
               ...(s25Ok ? [{ key: 's25' as const, label: 'Seedance 2.5', sub: 'ByteDance · newest · 480p→HD', cr: creditCostForDuration('cinematic_s25', true, duration) }] : []),
-              { key: 'veo', label: 'Veo 3.1', sub: 'Google · best motion', cr: creditCostForDuration('cinematic_veo', true, duration) },
+              // KINEO-VEO-CARD-HONESTO-2026-09-29 — 1080p pelo mesmo preço desde 16/08 (KINEO-VEO-1080).
+              { key: 'veo', label: 'Veo 3.1', sub: 'Google · best motion · 1080p', cr: creditCostForDuration('cinematic_veo', true, duration) },
               { key: 'kling', label: 'Kling', sub: 'cinematic motion', cr: creditCostForDuration('cinematic_kling', true, duration) }, // KINEO-PRICING-V3B-2026-07-10
             ] as { key: 'veo' | 'sora' | 'kling' | 'hollywood' | 'h3' | 'omni' | 's25'; label: string; sub: string; cr: number }[]).map((m) => {
               const active = mode === 'cinematic_ai' && aiEngine === m.key
