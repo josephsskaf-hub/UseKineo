@@ -29,6 +29,10 @@ export const INTERNAL_EXACT_EMAILS: string[] = [
 export const INTERNAL_LIKE_PATTERNS: string[] = [
   'josephsskaf+%@gmail.com', // founder plus-aliases
   'joseph+%@gmail.com', // founder plus-aliases (joseph+teste02…)
+  // KINEO-MRR-PRECO-PAGO-2026-09-28 — a régua do fundador para o MRR, por extenso:
+  // josephskaf% | josephsskaf% | victoriaskaf% | joseph+% (qualquer domínio).
+  'joseph+%',
+  'victoriaskaf%',
   '%@theresanaiforthat.com', // TAAFT reviewer account
   'josephsskaf%', // legacy #417 — typo'd domains (…@gmai.com etc.)
   'josephskaf%', // legacy #417 — hotmail variants
