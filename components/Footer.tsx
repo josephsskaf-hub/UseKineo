@@ -1,5 +1,5 @@
 
-import KineoBolt from '@/components/KineoBolt'
+import { KineoBrandIcon } from '@/components/KineoBolt'
 // Push #116 — global footer for public marketing surfaces (/, /start,
 // /pricing, /login, /signup, /terms, /privacy, /not-found). Stays out
 // of (dashboard)/* so signed-in surfaces don't pick up duplicated
@@ -219,7 +219,7 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
           href="/"
           style={{ ...linkStyle, color: 'var(--text)', fontWeight: 800, fontSize: 15 }}
         >
-          <KineoBolt /> Kineo
+          <KineoBrandIcon size={20} /> Kineo
         </Link>
         <p style={{ margin: '6px auto 0', maxWidth: 460, color: 'var(--muted)' }}><UiLabel>
           Turn one idea into a ready-to-post faceless YouTube Short — script,

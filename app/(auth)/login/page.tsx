@@ -1,6 +1,6 @@
 'use client'
 
-import KineoBolt from '@/components/KineoBolt'
+import { KineoBrandIcon } from '@/components/KineoBolt'
 
 import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -228,7 +228,7 @@ export default function LoginPage() {
               className="flex items-center gap-3 mb-6"
               style={{ textDecoration: 'none' }}
             >
-              <KineoBolt size={32} />
+              <KineoBrandIcon size={32} />
               <div
                 className="font-black text-sm tracking-tight"
                 style={{ color: 'var(--text)' }}
