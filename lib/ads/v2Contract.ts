@@ -45,7 +45,11 @@ export function isUuid(raw: unknown): raw is string {
 }
 const obj = (raw: unknown): Record<string, unknown> | null =>
   raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : null
-const fail = <T>(error: string): AdsV2Sanitized<T> => ({ ok: false, error })
+// Função declarada (não seta genérica): o pré-visualizador de páginas (scripts/preview-ux-complete.mjs) transpila como TSX,
+// e `<T>(…) =>` vira tag JSX — quebrava toda página que importa este arquivo (via lib/growth/studioAdsFacts.ts).
+function fail<T>(error: string): AdsV2Sanitized<T> {
+  return { ok: false, error }
+}
 
 // KINEO-ADS-MODO-SIMPLES-2026-09-29 — modo simples do /ads/v2 (pedido do fundador ao tentar anunciar o próprio imóvel:
 // "coloco os arquivos, falo mais ou menos o que quero, escolho o nível, e vocês fazem"). Os campos do modo simples SÓ
