@@ -29,6 +29,7 @@ const K = (minor: number) => formatCheckoutMoney('usd', minor)
 //    can never drift between two pages.
 
 import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { FREE_FILM_COUNTRY_CLAUSE } from '@/lib/freeFilmPolicy' // KINEO-E4-CONSERTO-2026-09-29: o grant de 10 cr só vale na lista (saída B)
 // #296 — o custo em créditos de CADA motor passa a ser derivado, pela mesma
 // razão que o preço em dólar já era (ver a nota do KINEO-PRICING-V6 abaixo, em
 // `entryPrice`): a linha `exportLimits` do Kineo listava "a Fast video costs 1
@@ -4370,7 +4371,7 @@ export const PAIRS: Pair[] = [
     verdict: [
       {
         h: 'Ten minutes a month is the fact that decides it for creators',
-        p: `Synthesia includes up to 10 minutes of finished video a month on Basic and Starter at $29/month, or $18 billed yearly, and 30 minutes on Creator at $89, or $64. At 35 seconds a Short, 10 minutes is roughly 17 videos — for a whole month. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month for ${TIER_CREDITS.starter} credits with a 60-second Seedance 1.5 film costing ${KINEO_SEEDANCE_COST} credits${ft(OFFER, ', and its free tier allows up to 3 Fast videos every 24 hours.', `, and every new account starts with a Creator trial: ${TRIAL_GRANT_CREDITS_COPY} free credits.`)}`,
+        p: `Synthesia includes up to 10 minutes of finished video a month on Basic and Starter at $29/month, or $18 billed yearly, and 30 minutes on Creator at $89, or $64. At 35 seconds a Short, 10 minutes is roughly 17 videos — for a whole month. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month for ${TIER_CREDITS.starter} credits with a 60-second Seedance 1.5 film costing ${KINEO_SEEDANCE_COST} credits${ft(OFFER, ', and its free tier allows up to 3 Fast videos every 24 hours.', `, and every new account${FREE_FILM_COUNTRY_CLAUSE} starts with a Creator trial: ${TRIAL_GRANT_CREDITS_COPY} free credits.`)}`,
       },
       {
         h: 'Synthesia is the better platform on almost every axis except one',

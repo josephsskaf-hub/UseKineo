@@ -77,7 +77,7 @@ function criaLoader({ sobrescritas = {}, externos = {}, env = {}, globais = {} }
 const muta = (rel, de, para) => ({ [rel]: trocar(rd(rel), de, para) })
 
 // ── banco falso genérico (profiles/events/videos), com filtros eq/is/neq/gte registrados ────────────────────────────────
-function bancoFalso({ perfil = null, eventos = [], videosRecentes = 0, falhaEventos = false, falhaPerfil = false, corrida = false } = {}) {
+function bancoFalso({ perfil = null, eventos = [], videosRecentes = 0, falhaEventos = false, falhaPerfil = false, corrida = false, debitosSemana = 0 } = {}) {
   const estado = { perfil: perfil ? { ...perfil } : null, eventos: [...eventos], updates: [], leituras: [] }
   const db = {
     estado,
@@ -99,10 +99,15 @@ function bancoFalso({ perfil = null, eventos = [], videosRecentes = 0, falhaEven
         }
         if (st.tabela === 'events') {
           if (falhaEventos) return { data: null, error: { message: 'falha simulada' } }
-          const nome = st.filtros.find(([k, c]) => k === 'eq' && c === 'name')?.[2]
+          // KINEO-E4-CONSERTO-2026-09-29 — `.in('name', [...])` (país da 1ª vez) e `.order(created_at asc)` também.
+          const nomes = st.filtros.find(([k, c]) => k === 'in' && c === 'name')?.[2] ?? [st.filtros.find(([k, c]) => k === 'eq' && c === 'name')?.[2]]
           const desde = st.filtros.find(([k]) => k === 'gte')?.[2]
-          const achados = estado.eventos.filter((e) => e.name === nome && (!desde || e.created_at >= desde))
-          return { data: achados.map((e, i) => ({ id: i })), error: null }
+          const achados = estado.eventos.filter((e) => nomes.includes(e.name) && (!desde || e.created_at >= desde)).sort((x, y) => (x.created_at < y.created_at ? -1 : 1))
+          return { data: achados.map((e, i) => ({ id: i, metadata: e.metadata ?? null })), error: null }
+        }
+        if (st.tabela === 'credit_debits') {
+          if (debitosSemana === null) return { data: null, count: null, error: { message: 'falha simulada' } }
+          return { data: null, count: debitosSemana, error: null }
         }
         if (st.tabela === 'videos') {
           if (videosRecentes === null) return { data: null, count: null, error: { message: 'falha simulada' } }
@@ -115,6 +120,7 @@ function bancoFalso({ perfil = null, eventos = [], videosRecentes = 0, falhaEven
         update(p) { st.op = 'update'; st.patch = p; return q },
         eq(c, v) { st.filtros.push(['eq', c, v]); return q }, is(c, v) { st.filtros.push(['is', c, v]); return q },
         neq(c, v) { st.filtros.push(['neq', c, v]); return q }, gte(c, v) { st.filtros.push(['gte', c, v]); return q },
+        in(c, v) { st.filtros.push(['in', c, v]); return q },
         like() { return q }, order() { return q }, limit() { return q }, range() { return q },
         maybeSingle() { return Promise.resolve(exec()) }, single() { return Promise.resolve(exec()) },
         then(res, rej) { return Promise.resolve(exec()).then(res, rej) },
@@ -174,16 +180,38 @@ const velhaConta = new Date(Date.now() - 60 * DIA).toISOString()
 const P = (o = {}) => ({ id: 'u-1', plan: 'free', has_paid: false, trial_status: 'downgraded', created_at: velhaConta, video_credits: 0, ...o })
 checa(`custo do filme da semana = creditCostForDuration('cinematic_ai', true, 15) = ${FW.FREE_WEEKLY_FILM_CREDITS}; 15 s; Seedance 1.5`, FW.FREE_WEEKLY_FILM_CREDITS === ECOST.creditCostForDuration('cinematic_ai', true, 15) && FW.FREE_WEEKLY_FILM_SECONDS === 15 && FW.FREE_WEEKLY_FILM_QUALITY === 'cinematic_ai')
 const matriz = (M) => [
-  [P(), 'US', 'eligible'], [P(), 'ES', 'eligible'], [P(), 'GB', 'eligible'], [P(), null, 'eligible'],
+  // KINEO-E4-CONSERTO-2026-09-29 — reancorado com motivo (revisão de dinheiro, achado 4): país desconhecido (nulo, 'XX',
+  // 'T1' do Tor) deixou de conceder a cota semanal — era a porta de conta antiga de fora da lista pelo Tor/VPN.
+  [P(), 'US', 'eligible'], [P(), 'ES', 'eligible'], [P(), 'GB', 'eligible'], [P(), null, 'country'], [P(), 'XX', 'country'], [P(), 'T1', 'country'], [P(), '', 'country'],
   [P(), 'PK', 'country'], [P(), 'IN', 'country'], [P(), 'NG', 'country'], [P(), 'BR', 'country'],
   [P({ trial_status: 'region_paid_only' }), 'US', 'region_paid_only'], [P({ trial_status: 'region_paid_only' }), null, 'region_paid_only'],
   [P({ has_paid: true }), 'US', 'paid'], [P({ plan: 'starter' }), 'US', 'paid'], [P({ plan: 'autopilot' }), 'US', 'paid'],
   [P({ trial_status: 'active' }), 'US', 'trial_status'], [P({ trial_status: 'blocked' }), 'US', 'trial_status'], [P({ trial_status: 'card_required' }), 'US', 'trial_status'],
   [P({ trial_status: null, created_at: new Date().toISOString() }), 'US', 'too_new'], [P({ trial_status: null }), 'US', 'eligible'],
 ].every(([perfil, pais, esperado]) => M.freeWeeklyFilmEligibility(perfil, pais) === esperado)
-checa('elegibilidade: só grátis de país da lista (nulo concede); region_paid_only/pago/trial ativo/blocked/conta nova fora', matriz(FW))
+checa('elegibilidade: só grátis de país CONHECIDO da lista (nulo/XX/T1 não); region_paid_only/pago/trial ativo/blocked/conta nova fora', matriz(FW))
 checa('mutante (region_paid_only deixa de ser barrada) → vermelho', !matriz(criaLoader({ sobrescritas: muta('lib/freeWeeklyFilm.ts', "  if (status === REGION_PAID_ONLY_TRIAL_STATUS) return 'region_paid_only'\n", '') })('lib/freeWeeklyFilm.ts')))
-checa('mutante (país ignorado) → vermelho', !matriz(criaLoader({ sobrescritas: muta('lib/freeWeeklyFilm.ts', "  if (!filmeGratisPermitido(country ?? null)) return 'country'\n", '') })('lib/freeWeeklyFilm.ts')))
+checa('mutante (país ignorado) → vermelho', !matriz(criaLoader({ sobrescritas: muta('lib/freeWeeklyFilm.ts', "  if (paisDaListaConfirmado(country ?? null) === null) return 'country'\n", '') })('lib/freeWeeklyFilm.ts')))
+checa('mutante (volta o fail-open do cadastro: país desconhecido concede) → vermelho', !matriz(criaLoader({ sobrescritas: muta('lib/freeWeeklyFilm.ts', "  if (paisDaListaConfirmado(country ?? null) === null) return 'country'\n", "  if (!require('./freeFilmPolicy').filmeGratisPermitido(country ?? null)) return 'country'\n") })('lib/freeWeeklyFilm.ts')))
+// país fixado na 1ª vez (achado 4)
+const fixa = (M) =>
+  M.freeWeeklyCountryMatches({ firstRead: true, firstCountry: null, country: 'US' }) === true &&
+  M.freeWeeklyCountryMatches({ firstRead: true, firstCountry: 'US', country: 'US' }) === true &&
+  M.freeWeeklyCountryMatches({ firstRead: true, firstCountry: 'us', country: 'US' }) === true &&
+  M.freeWeeklyCountryMatches({ firstRead: true, firstCountry: 'GB', country: 'US' }) === false &&
+  M.freeWeeklyCountryMatches({ firstRead: false, firstCountry: null, country: 'US' }) === false &&
+  M.freeWeeklyCountryMatches({ firstRead: true, firstCountry: null, country: 'T1' }) === false &&
+  M.freeWeeklyCountryMatches({ firstRead: true, firstCountry: null, country: 'PK' }) === false
+checa('país fixado: o da 1ª recarga/admissão manda; trocar de país (VPN) ou leitura falha = não; desconhecido/fora da lista = não', fixa(FW))
+checa('mutante (troca de país aceita) → vermelho', !fixa(criaLoader({ sobrescritas: muta('lib/freeWeeklyFilm.ts', '  return primeiro === null || primeiro === atual\n', '  return true\n') })('lib/freeWeeklyFilm.ts')))
+// trava de simultâneos (achado 5)
+const exclusivo = (M) =>
+  M.freeWeeklyFilmExclusive({ otherActiveHold: false, weekCinematicDebits: 0 }) === true &&
+  M.freeWeeklyFilmExclusive({ otherActiveHold: true, weekCinematicDebits: 0 }) === false &&
+  M.freeWeeklyFilmExclusive({ otherActiveHold: false, weekCinematicDebits: 1 }) === false &&
+  M.freeWeeklyFilmExclusive({ otherActiveHold: false, weekCinematicDebits: null }) === false
+checa('exclusividade: outro render em voo (hold) ou débito cinematic não estornado na semana ou leitura falha = recusa', exclusivo(FW))
+checa('mutante (hold alheio ignorado) → vermelho', !exclusivo(criaLoader({ sobrescritas: muta('lib/freeWeeklyFilm.ts', '  return input.otherActiveHold === false && input.weekCinematicDebits === 0\n', '  return input.weekCinematicDebits === 0\n') })('lib/freeWeeklyFilm.ts')))
 const semAcumular = (M) => M.freeWeeklyTopUp(0) === 7 && M.freeWeeklyTopUp(3) === 4 && M.freeWeeklyTopUp(7) === 0 && M.freeWeeklyTopUp(40) === 0 && M.freeWeeklyTopUp(null) === 7
 checa('recarga completa até 7 e nunca além (0→7, 3→+4, 7→0, 40→0)', semAcumular(FW))
 checa('mutante (recarga soma 7 sempre) → vermelho', !semAcumular(criaLoader({ sobrescritas: muta('lib/freeWeeklyFilm.ts', '  return Math.max(0, FREE_WEEKLY_FILM_CREDITS - b)', '  return FREE_WEEKLY_FILM_CREDITS') })('lib/freeWeeklyFilm.ts')))
@@ -199,17 +227,25 @@ checa('admissão: só Seedance 1.5 (cinematic_ai), só 15 s, só elegível, só 
 checa('mutante (qualquer duração) → vermelho', !admite(criaLoader({ sobrescritas: muta('lib/freeWeeklyFilm.ts', '    input.durationSeconds === FREE_WEEKLY_FILM_SECONDS &&\n', '') })('lib/freeWeeklyFilm.ts')))
 
 // recarga executada (lib/freeWeeklyFilmGrant.ts)
-async function recarga({ perfil, pais = 'US', eventos = [], sobrescritas = {}, corrida = false, falhaEventos = false }) {
+async function recarga({ perfil, pais = 'US', eventos = [], sobrescritas = {}, corrida = false, falhaEventos = false, carimboFalha = false }) {
   const db = bancoFalso({ perfil, eventos, corrida, falhaEventos })
   const escritos = []
   const G = criaLoader({ sobrescritas })('lib/freeWeeklyFilmGrant.ts')
-  const r = await G.grantFreeWeeklyFilm(db, async (e) => { escritos.push(e); db.estado.eventos.push({ name: e.name, created_at: new Date().toISOString() }); return true }, { userId: 'u-1', country: pais })
+  // KINEO-E4-CONSERTO-2026-09-29 — o escritor devolve o que o writeServerEvent real devolve (true/false) e anota quantos
+  // UPDATEs já tinham rodado quando o carimbo foi gravado (carimbo ANTES do crédito, achado 3).
+  const r = await G.grantFreeWeeklyFilm(db, async (e) => {
+    escritos.push({ ...e, updatesAntes: db.estado.updates.length })
+    if (carimboFalha && e.name === 'free_weekly_film_granted') return false
+    db.estado.eventos.push({ name: e.name, created_at: new Date().toISOString(), metadata: e.metadata })
+    return true
+  }, { userId: 'u-1', country: pais })
   return { r, db, escritos }
 }
 async function provaRecarga(sobrescritas = {}) {
   const p = []
   const a = await recarga({ perfil: P(), sobrescritas })
-  if (!(a.r.granted === 7 && a.db.estado.perfil.video_credits === 7 && a.escritos.length === 1 && a.escritos[0].name === 'free_weekly_film_granted')) p.push('US grátis com 0 cr não recebeu 7 com evento: ' + JSON.stringify(a.r))
+  if (!(a.r.granted === 7 && a.db.estado.perfil.video_credits === 7 && a.escritos.length === 1 && a.escritos[0].name === 'free_weekly_film_granted' && a.escritos[0].metadata?.country === 'US')) p.push('US grátis com 0 cr não recebeu 7 com evento: ' + JSON.stringify(a.r))
+  if (!(a.escritos[0]?.updatesAntes === 0)) p.push('carimbo gravado DEPOIS do crédito (achado 3)')
   const cas = a.db.estado.updates[0]?.filtros?.some(([k, c, v]) => k === 'eq' && c === 'video_credits' && v === 0)
   if (!cas) p.push('UPDATE sem compare-and-set no saldo lido')
   const b = await recarga({ perfil: P({ video_credits: 7 }), sobrescritas })
@@ -223,18 +259,32 @@ async function provaRecarga(sobrescritas = {}) {
   const f = await recarga({ perfil: P({ trial_status: 'region_paid_only' }), pais: 'US', sobrescritas })
   if (!(f.r.granted === 0 && f.db.estado.updates.length === 0)) p.push('region_paid_only (com VPN nos EUA) recebeu recarga')
   const g = await recarga({ perfil: P(), corrida: true, sobrescritas })
-  if (!(g.r.granted === 0 && g.r.reason === 'race' && g.escritos.length === 0)) p.push('corrida somou ou gravou evento: ' + JSON.stringify(g.r))
+  if (!(g.r.granted === 0 && g.r.reason === 'race' && g.escritos.map((x) => x.name).join(',') === 'free_weekly_film_granted,free_weekly_film_grant_voided')) p.push('corrida somou ou não anulou o carimbo: ' + JSON.stringify(g.r))
   const h = await recarga({ perfil: P(), falhaEventos: true, sobrescritas })
   if (!(h.r.granted === 0 && h.db.estado.updates.length === 0)) p.push('janela ilegível recarregou (falha aberta)')
   const i = await recarga({ perfil: P({ has_paid: true }), sobrescritas })
   if (!(i.r.granted === 0)) p.push('pagante recebeu cota grátis')
+  // achado 3: carimbo não gravou → nenhum crédito (era: crédito dado e janela sem carimbo = recarga sem teto)
+  const j = await recarga({ perfil: P(), carimboFalha: true, sobrescritas })
+  if (!(j.r.granted === 0 && j.r.reason === 'stamp_failed' && j.db.estado.updates.length === 0)) p.push('carimbo falhou e o crédito saiu: ' + JSON.stringify(j.r))
+  // achado 4: país da 1ª vez fixo; desconhecido/Tor não recarrega
+  const k = await recarga({ perfil: P(), pais: 'US', eventos: [{ name: 'free_weekly_film_granted', created_at: new Date(Date.now() - 20 * DIA).toISOString(), metadata: { country: 'GB' } }], sobrescritas })
+  if (!(k.r.granted === 0 && k.r.reason === 'country_changed' && k.db.estado.updates.length === 0)) p.push('trocou de país (GB→US) e recarregou: ' + JSON.stringify(k.r))
+  const l = await recarga({ perfil: P(), pais: 'US', eventos: [{ name: 'free_weekly_film_admitted', created_at: new Date(Date.now() - 20 * DIA).toISOString(), metadata: { country: 'US' } }], sobrescritas })
+  if (!(l.r.granted === 7)) p.push('mesmo país da 1ª vez não recarregou: ' + JSON.stringify(l.r))
+  for (const pais of [null, 'T1', 'XX']) {
+    const m = await recarga({ perfil: P(), pais, sobrescritas })
+    if (!(m.r.granted === 0 && m.db.estado.updates.length === 0)) p.push(`país ${pais} (desconhecido/Tor) recarregou`)
+  }
   return p
 }
 {
   const real = await provaRecarga()
-  checa(`recarga executada: 0→7 com evento e compare-and-set; 7 não acumula; 1×/7 dias; PK, region_paid_only, pagante e corrida fora${real.length ? ' — ' + real.join(' | ') : ''}`, real.length === 0)
+  checa(`recarga executada: 0→7 com carimbo ANTES do crédito e compare-and-set; carimbo falho = nada; 7 não acumula; 1×/7 dias; país fixo; PK, Tor, region_paid_only, pagante e corrida fora${real.length ? ' — ' + real.join(' | ') : ''}`, real.length === 0)
   checa('mutante (sem a janela de 7 dias) → vermelho', (await provaRecarga(muta('lib/freeWeeklyFilmGrant.ts', "    if (Array.isArray(recent) && recent.length > 0) return { granted: 0, reason: 'week_used', balanceAfter: balance }\n", ''))).length > 0)
   checa('mutante (sem compare-and-set) → vermelho', (await provaRecarga(muta('lib/freeWeeklyFilmGrant.ts', "      .eq('video_credits', p.video_credits ?? 0)\n", ''))).length > 0)
+  checa('mutante (carimbo que falhou é ignorado) → vermelho', (await provaRecarga(muta('lib/freeWeeklyFilmGrant.ts', "    if (stamped !== true) return { granted: 0, reason: 'stamp_failed', balanceAfter: balance }\n", ''))).length > 0)
+  checa('mutante (país da 1ª vez ignorado) → vermelho', (await provaRecarga(muta('lib/freeWeeklyFilmGrant.ts', '    if (!freeWeeklyCountryMatches({ firstRead: !firstErr, firstCountry, country: args.country })) {', '    if (false) {'))).length > 0)
   const credits = rd('app/api/credits/route.ts')
   const iGrant = credits.indexOf('        await grantFreeWeeklyFilm(svc, writeServerEvent, { userId: user.id, country: paisDoRequest(req.headers) })')
   const iSaldo = credits.indexOf("      .select('video_credits, plan')\n")
@@ -251,13 +301,15 @@ console.log('== (c2) admissão semanal no /api/generate-video-cinematic (bloco r
     if (a < 0 || b < 0) throw new Error('bloco da admissão sumiu')
     return src.slice(a, b)
   }
-  async function roda(bloco, { perfil, pais = 'US', quality = 'cinematic_ai', duracao = 15, recentes = 0, pago = false, trial = false }) {
+  // KINEO-E4-CONSERTO-2026-09-29 — o bloco lê o país da 1ª vez (events, service role): o cliente de serviço é injetado e
+  // o env também (sem env → a leitura "falha" → não admite).
+  async function roda(bloco, { perfil, pais = 'US', quality = 'cinematic_ai', duracao = 15, recentes = 0, pago = false, trial = false, eventosAntes = [], semEnv = false }) {
     const FWM = L0('lib/freeWeeklyFilm.ts')
-    const fn = `(async ({ isPaidUser, trialActive, costQuality, duration, profile, req, supabase, user, writeServerEvent, cost, balance, paisDoRequest, FREE_WEEKLY_FILM_ADMITTED_EVENT, FREE_WEEKLY_FILM_QUALITY, FREE_WEEKLY_FILM_SECONDS, FREE_WEEKLY_FILM_WINDOW_MS, freeWeeklyFilmAdmissible, freeWeeklyFilmEligibility }) => {\n${bloco}\nreturn freeWeeklyAdmitted })`
-    const f = vm.runInNewContext(transpila(fn), { Date })
+    const fn = `(async ({ isPaidUser, trialActive, costQuality, duration, profile, req, supabase, user, writeServerEvent, cost, balance, paisDoRequest, createAdminClient, FREE_WEEKLY_FILM_ADMITTED_EVENT, FREE_WEEKLY_FILM_COUNTRY_EVENTS, FREE_WEEKLY_FILM_QUALITY, FREE_WEEKLY_FILM_SECONDS, FREE_WEEKLY_FILM_WINDOW_MS, freeWeeklyCountryMatches, freeWeeklyFilmAdmissible, freeWeeklyFilmEligibility }) => {\n${bloco}\nreturn freeWeeklyAdmitted })`
+    const f = vm.runInNewContext(transpila(fn), { Date, process: { env: semEnv ? {} : { NEXT_PUBLIC_SUPABASE_URL: 'https://x.invalid', SUPABASE_SERVICE_ROLE_KEY: 'k' } } })
     const eventos = []
-    const db = bancoFalso({ videosRecentes: recentes })
-    const adm = await f({ isPaidUser: pago, trialActive: trial, costQuality: quality, duration: duracao, profile: perfil, req: { headers: { get: (n) => (n === 'x-vercel-ip-country' ? pais : null) } }, supabase: db, user: { id: 'u-1' }, writeServerEvent: async (e) => { eventos.push(e) }, cost: 7, balance: 7, paisDoRequest: POL.paisDoRequest, ...FWM })
+    const db = bancoFalso({ videosRecentes: recentes, eventos: eventosAntes })
+    const adm = await f({ isPaidUser: pago, trialActive: trial, costQuality: quality, duration: duracao, profile: perfil, req: { headers: { get: (n) => (n === 'x-vercel-ip-country' ? pais : null) } }, supabase: db, user: { id: 'u-1' }, writeServerEvent: async (e) => { eventos.push(e) }, cost: 7, balance: 7, paisDoRequest: POL.paisDoRequest, createAdminClient: () => db, ...FWM })
     return { adm, eventos, db }
   }
   const prova = async (bloco) => {
@@ -270,11 +322,18 @@ console.log('== (c2) admissão semanal no /api/generate-video-cinematic (bloco r
     if ((await roda(bloco, { perfil: P(), quality: 'cinematic_kling' })).adm) p.push('Kling admitido')
     if ((await roda(bloco, { perfil: P(), recentes: 1 })).adm) p.push('2º filme na semana admitido')
     if ((await roda(bloco, { perfil: P(), recentes: null })).adm) p.push('contagem falha admitiu')
+    // achado 4: país desconhecido (Tor), país trocado desde a 1ª vez, ou leitura do país impossível → não admite
+    if ((await roda(bloco, { perfil: P(), pais: 'T1' })).adm) p.push('Tor (T1) admitido')
+    if ((await roda(bloco, { perfil: P(), pais: null })).adm) p.push('sem país admitido')
+    if ((await roda(bloco, { perfil: P(), pais: 'US', eventosAntes: [{ name: 'free_weekly_film_granted', created_at: '2026-09-01T00:00:00Z', metadata: { country: 'GB' } }] })).adm) p.push('país trocado (GB→US) admitido')
+    if (!(await roda(bloco, { perfil: P(), pais: 'US', eventosAntes: [{ name: 'free_weekly_film_admitted', created_at: '2026-09-01T00:00:00Z', metadata: { country: 'US' } }] })).adm) p.push('mesmo país da 1ª vez recusado')
+    if ((await roda(bloco, { perfil: P(), semEnv: true })).adm) p.push('sem service role (país da 1ª vez ilegível) admitiu')
     return p
   }
   const src = rd(CIN)
   const real = await prova(extraiAdmissao(src))
   checa(`bloco real: admite só conta grátis de país da lista, Seedance 15 s, 1ª da semana${real.length ? ' — ' + real.join(' | ') : ''}`, real.length === 0)
+  checa('mutante (país da 1ª vez ignorado) → vermelho', (await prova(extraiAdmissao(trocar(src, '        if (!freeWeeklyCountryMatches({ firstRead: !primeiraVez.error,', '        if (false && !freeWeeklyCountryMatches({ firstRead: !primeiraVez.error,')))).length > 0)
   checa('mutante (sem a contagem da semana) → vermelho', (await prova(extraiAdmissao(trocar(src, '      freeWeeklyAdmitted = freeWeeklyFilmAdmissible({ quality: costQuality, durationSeconds: duration, eligibility: semanal, recentSeedanceFilms: recentes })', '      freeWeeklyAdmitted = freeWeeklyFilmAdmissible({ quality: costQuality, durationSeconds: duration, eligibility: semanal, recentSeedanceFilms: 0 })')))).length > 0)
   const linhas = src.split('\n')
   const i = (l) => linhas.indexOf(l)
@@ -284,6 +343,38 @@ console.log('== (c2) admissão semanal no /api/generate-video-cinematic (bloco r
   const iStudio = linhas.findIndex((l) => l.startsWith('    if ((wantsKling || wantsVeo || hollywoodPath) && !isPaidUser && !(TRIAL_UNLOCKS_PREMIUM && trialActive)) {'))
   checa('o gate de plano honra a admissão; o gate dos motores Studio (Kling/Veo/Hollywood) vem antes e não a conhece', iAdm > 0 && iGate > iAdm && iPula === iGate + 3 && iStudio > 0 && iStudio < iAdm && !linhas[iStudio].includes('freeWeeklyAdmitted'))
   checa('a releitura fresca antes do débito também honra a admissão (o saldo continua cobrando)', src.includes('      PAID_PLANS.has(currentPlan) ||\n      freeWeeklyAdmitted || // KINEO-E4-SAIDA-B-2026-09-29') && src.includes('    if (!currentPaid || holds.totalHeld > currentBalance) {'))
+  // KINEO-E4-CONSERTO-2026-09-29 (revisão de dinheiro, achado 5) — a trava de pedidos simultâneos (bloco REAL executado).
+  const INI_EX = '    // ═══ KINEO-E4-CONSERTO-2026-09-29 [TRAVA 8.2 — "vai E4" do fundador] (revisão de dinheiro, achado 5) ═══\n'
+  const FIM_EX = '    // KINEO-CAPACITY-2026-08-08 — DISJUNTOR GLOBAL'
+  const extraiEx = (s2) => { const a = s2.indexOf(INI_EX), b = s2.indexOf(FIM_EX, a); if (a < 0 || b < 0) throw new Error('trava de simultâneos sumiu'); return s2.slice(a, b) }
+  async function rodaEx(bloco, { admitido = true, held = 7, debitos = 0 }) {
+    const FWM = L0('lib/freeWeeklyFilm.ts')
+    const fn = `(async ({ freeWeeklyAdmitted, cinematicAdmin, user, holds, cost, releaseBirthClaim, writeServerEvent, NextResponse, FREE_WEEKLY_FILM_WINDOW_MS, FREE_WEEKLY_FILM_EXCLUSIVE_REFUSED_EVENT, FREE_WEEKLY_FILM_IN_USE_MESSAGE, freeWeeklyFilmExclusive }) => {\n${bloco}\nreturn 'PASSOU' })`
+    const soltos = [], eventos = []
+    const r = await vm.runInNewContext(transpila(fn), { Date })({ freeWeeklyAdmitted: admitido, cinematicAdmin: bancoFalso({ debitosSemana: debitos }), user: { id: 'u-1' }, holds: { ok: true, totalHeld: held, currentSeen: true }, cost: 7, releaseBirthClaim: async (m) => { soltos.push(m) }, writeServerEvent: async (e) => { eventos.push(e) }, NextResponse: { json: (body, init) => ({ body, status: init?.status ?? 200 }) }, ...FWM })
+    return { r, soltos, eventos }
+  }
+  const provaEx = async (bloco) => {
+    const p = []
+    if ((await rodaEx(bloco, {})).r !== 'PASSOU') p.push('admitido sozinho foi barrado')
+    const dois = await rodaEx(bloco, { held: 14 })
+    if (!(dois.r?.status === 402 && dois.r.body.charged === false && dois.soltos.length === 1 && dois.eventos.some((e) => e.name === 'free_weekly_film_exclusive_refused'))) p.push('2º pedido simultâneo (hold alheio) passou ou não soltou o claim')
+    if ((await rodaEx(bloco, { debitos: 1 })).r === 'PASSOU') p.push('débito cinematic não estornado na semana e passou')
+    if ((await rodaEx(bloco, { debitos: null })).r === 'PASSOU') p.push('leitura de débitos falhou e passou')
+    if ((await rodaEx(bloco, { admitido: false, held: 14, debitos: 3 })).r !== 'PASSOU') p.push('trava atingiu quem não é da cota semanal')
+    return p
+  }
+  {
+    const realEx = await provaEx(extraiEx(src))
+    checa(`trava de simultâneos (bloco real executado): 2º pedido com hold alheio, débito da semana ou leitura falha → 402 sem cobrar e claim solto${realEx.length ? ' — ' + realEx.join(' | ') : ''}`, realEx.length === 0)
+    checa('mutante (hold alheio ignorado na rota) → vermelho', (await provaEx(extraiEx(trocar(src, '{ otherActiveHold: holds.totalHeld > cost,', '{ otherActiveHold: false,')))).length > 0)
+    const linhasEx = src.split('\n')
+    const iHolds = linhasEx.indexOf('    const holds = await inspectActiveComposeCreditHolds({')
+    const iEx = linhasEx.indexOf(INI_EX.slice(0, -1))
+    const iSaldo = linhasEx.indexOf('    if (!currentPaid || holds.totalHeld > currentBalance) {')
+    const iDebito = linhasEx.indexOf('    const upfrontDebit = await ensureCinematicDebit(cost)')
+    checa('a trava roda DEPOIS de gravar/auditar o próprio claim e ANTES do débito', iHolds > 0 && iSaldo > iHolds && iEx > iSaldo && iDebito > iEx)
+  }
   checa('region_paid_only no cinematic ouve a verdade (REGION_PAID_ONLY_REFUSAL), não "upgrade" seco', src.includes('      if (profile?.trial_status === REGION_PAID_ONLY_TRIAL_STATUS) {') && POL.REGION_PAID_ONLY_REFUSAL.includes('not available in your country') && POL.REGION_PAID_ONLY_REFUSAL.includes('Plans work normally'))
 }
 
@@ -311,11 +402,12 @@ checa('mutante (casa pelos padrões LIKE de isInternalEmail) → vermelho', !pro
   const INICIO = '    // ═══ KINEO-E4-SAIDA-B-2026-09-29 [TRAVA 8.2 — "vai E4" do fundador] — PORTÃO DO KINEO 1, ANTES DE QUALQUER FORNECEDOR ═══'
   const FIM = '    // ═══ FIM KINEO-E4-SAIDA-B (portão do Kineo 1) ═══'
   const extrai = (src) => { const a = src.indexOf(INICIO + '\n'), b = src.indexOf(FIM, a); if (a < 0 || b < 0) throw new Error('portão sumiu'); return src.slice(a, b) }
-  async function rodaPortao(bloco, { perfil, erro = null, servico = false, email = 'pessoa@gmail.com' }) {
+  async function rodaPortao(bloco, { perfil, erro = null, servico = false, email = 'pessoa@gmail.com', emailAuth = 'pessoa@gmail.com' }) {
     const fn = `(async ({ supabase, user, isServiceJob, retryOwnReadOnSkew, recordFastFailure, NextResponse, writeServerEvent, kineo1GateReason, KINEO1_RETIRED_EVENT, KINEO1_RETIRED_MESSAGE, KINEO1_RETIRED_REASON }) => {\n${bloco}\nreturn 'PASSOU' })`
     const f = vm.runInNewContext(transpila(fn), {})
     const eventos = [], falhasRegistradas = []
-    const db = { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => (erro ? { data: null, error: erro } : { data: perfil, error: null }) }) }) }) }
+    // KINEO-E4-CONSERTO-2026-09-29 — o cliente de serviço também responde auth.admin.getUserById (e-mail VERIFICADO).
+    const db = { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => (erro ? { data: null, error: erro } : { data: perfil, error: null }) }) }) }), auth: { admin: { getUserById: async () => ({ data: { user: { email: emailAuth } }, error: null }) } } }
     const r = await f({ supabase: db, user: { id: 'u-1', email }, isServiceJob: servico, retryOwnReadOnSkew: async () => null, recordFastFailure: (...a) => falhasRegistradas.push(a), NextResponse: { json: (body, init) => ({ body, status: init?.status ?? 200 }) }, writeServerEvent: async (e) => { eventos.push(e) }, ...G1 })
     return { r, eventos }
   }
@@ -330,6 +422,7 @@ checa('mutante (casa pelos padrões LIKE de isInternalEmail) → vermelho', !pro
     if ((await rodaPortao(bloco, { perfil: { plan: 'starter', has_paid: false } })).r !== 'PASSOU') p.push('assinante barrado')
     if ((await rodaPortao(bloco, { perfil: { plan: 'free', has_paid: false }, email: 'josephsskaf@gmail.com' })).r !== 'PASSOU') p.push('casa barrada')
     if ((await rodaPortao(bloco, { perfil: { plan: 'free', has_paid: false }, email: 'josephsskaf@gmail.com', servico: true })).r === 'PASSOU') p.push('modo serviço aceitou e-mail editável como casa')
+    if ((await rodaPortao(bloco, { perfil: { plan: 'free', has_paid: false }, email: 'editado@x.com', emailAuth: 'josephsskaf@gmail.com', servico: true })).r !== 'PASSOU') p.push('modo serviço barrou a casa pelo e-mail do auth')
     const falha = await rodaPortao(bloco, { perfil: null, erro: { message: 'x', code: 'X' } })
     if (!(falha.r?.status === 503 && falha.r.body.charged === false)) p.push('leitura falha não deu 503 sem gasto')
     return p
@@ -337,6 +430,7 @@ checa('mutante (casa pelos padrões LIKE de isInternalEmail) → vermelho', !pro
   const src = rd(FAST)
   const real = await prova(extrai(src))
   checa(`generate-video-fast (bloco real executado): trial e region_paid_only → 403 kineo1_retired sem gasto; pagante, Autopilot, assinante e casa passam; leitura falha → 503${real.length ? ' — ' + real.join(' | ') : ''}`, real.length === 0)
+  checa('a recusa do Kineo 1 grava o evento com await (void antes do return morre na Vercel)', src.includes('        await writeServerEvent({ name: KINEO1_RETIRED_EVENT,') && !src.includes('void writeServerEvent({ name: KINEO1_RETIRED_EVENT'))
   checa("mutante (portão sem o return) → vermelho", (await prova(extrai(trocar(src, "    if (portao === 'retired') {", '    if (false) {')))).length > 0)
   // posição: antes de todo fornecedor e do dry-run (linhas inteiras)
   const posicao = (s) => {
@@ -356,32 +450,63 @@ checa('mutante (casa pelos padrões LIKE de isInternalEmail) → vermelho', !pro
 {
   const COMP = 'app/api/compose/route.ts'
   const src = rd(COMP)
-  const A = "        if (isFreePlanFast && kineo1GateReason({ email: isServiceFinish ? null : user.email ?? null, plan: prof?.plan ?? null, hasPaid }) === 'retired') {\n"
+  // KINEO-E4-CONSERTO-2026-09-29 — reancorado com motivo (revisão de dinheiro, achados 1 e 2): o portão deixou de ficar
+  // preso ao free-plan-fast (trial ativo ia ao ramo de crédito e saía Kineo 1) e, em modo serviço, a casa se decide pelo
+  // e-mail do AUTH (o Studio Ads da conta da casa em plano grátis tomava 403).
+  const A = "        let kineo1Porta = kineo1GateReason({ email: isServiceFinish ? null : user.email ?? null, plan: prof?.plan ?? null, hasPaid })\n"
   const extrai = (s) => { const a = s.indexOf(A); if (a < 0) throw new Error('portão do compose sumiu'); const b = s.indexOf('        if (isFreePlanFast) {\n', a); return s.slice(a, b) }
-  async function rodaCompose(bloco, { livre = true, plano = 'free', pago = false, email = 'p@gmail.com', servico = false }) {
-    const fn = `(async ({ isFreePlanFast, kineo1GateReason, isServiceFinish, user, prof, hasPaid, logComposeRefusal, authenticatedUserId, quality, duration, NextResponse, KINEO1_RETIRED_EVENT, KINEO1_RETIRED_MESSAGE, KINEO1_RETIRED_REASON }) => {\n${bloco}\nreturn 'PASSOU' })`
+  async function rodaCompose(bloco, { livre = true, plano = 'free', pago = false, email = 'p@gmail.com', emailAuth = 'p@gmail.com', servico = false, trial = false }) {
+    const fn = `(async ({ isFreePlanFast, kineo1GateReason, isServiceFinish, user, prof, hasPaid, ent, supabase, logComposeRefusal, authenticatedUserId, quality, duration, NextResponse, KINEO1_RETIRED_EVENT, KINEO1_RETIRED_MESSAGE, KINEO1_RETIRED_REASON }) => {\n${bloco}\nreturn 'PASSOU' })`
     const recusas = []
-    const r = await vm.runInNewContext(transpila(fn), {})({ isFreePlanFast: livre, isServiceFinish: servico, user: { id: 'u', email }, prof: { plan: plano }, hasPaid: pago, logComposeRefusal: async (...a) => { recusas.push(a) }, authenticatedUserId: 'u', quality: 'fast', duration: 35, NextResponse: { json: (body, init) => ({ body, status: init?.status ?? 200 }) }, ...G1 })
+    const supabase = { auth: { admin: { getUserById: async () => ({ data: { user: { email: emailAuth } }, error: null }) } } }
+    const r = await vm.runInNewContext(transpila(fn), {})({ isFreePlanFast: livre, isServiceFinish: servico, user: { id: 'u', email }, prof: { plan: plano }, hasPaid: pago, ent: { isTrial: trial }, supabase, logComposeRefusal: async (...a) => { recusas.push(a) }, authenticatedUserId: 'u', quality: 'fast', duration: 35, NextResponse: { json: (body, init) => ({ body, status: init?.status ?? 200 }) }, ...G1 })
     return { r, recusas }
   }
   const prova = async (bloco) => {
     const p = []
     const g = await rodaCompose(bloco, {})
     if (!(g.r?.status === 403 && g.r.body.reason === 'kineo1_retired' && g.recusas.some((x) => x[0] === 'kineo1_retired'))) p.push('grátis no free-plan-fast não recusado')
-    if ((await rodaCompose(bloco, { livre: false })).r !== 'PASSOU') p.push('conta paga (não free-plan-fast) barrada')
+    const t = await rodaCompose(bloco, { livre: false, trial: true })
+    if (!(t.r?.status === 403 && t.r.body.reason === 'kineo1_retired')) p.push('trial ativo (ramo de crédito) gerou Kineo 1 pelo compose')
+    if ((await rodaCompose(bloco, { livre: false, plano: 'starter' })).r !== 'PASSOU') p.push('assinante barrado')
+    if ((await rodaCompose(bloco, { livre: false, pago: true })).r !== 'PASSOU') p.push('has_paid (pacote/passe) barrado')
     if ((await rodaCompose(bloco, { plano: 'autopilot' })).r !== 'PASSOU') p.push('Autopilot sem has_paid barrado')
     if ((await rodaCompose(bloco, { email: 'josephsskaf@gmail.com' })).r !== 'PASSOU') p.push('casa barrada')
+    if ((await rodaCompose(bloco, { servico: true, email: 'editado@x.com', emailAuth: 'josephsskaf@gmail.com' })).r !== 'PASSOU') p.push('Studio Ads (modo serviço) da casa barrado')
+    if ((await rodaCompose(bloco, { servico: true, email: 'josephsskaf@gmail.com', emailAuth: 'estranho@x.com' })).r === 'PASSOU') p.push('modo serviço aceitou o e-mail editável de profiles como casa')
     return p
   }
   const real = await prova(extrai(src))
-  checa(`compose free-plan-fast (bloco real executado): grátis → 403 kineo1_retired com compose_refused; pago/Autopilot/casa seguem${real.length ? ' — ' + real.join(' | ') : ''}`, real.length === 0)
-  checa('mutante (portão do compose desligado) → vermelho', (await prova(trocar(extrai(src), "hasPaid }) === 'retired') {", "hasPaid }) === 'NUNCA') {"))).length > 0)
+  checa(`compose fast (bloco real executado): grátis e TRIAL → 403 kineo1_retired; pago/has_paid/Autopilot/casa (inclusive Studio Ads em modo serviço, pelo e-mail do auth) seguem${real.length ? ' — ' + real.join(' | ') : ''}`, real.length === 0)
+  checa('mutante (portão do compose desligado) → vermelho', (await prova(trocar(extrai(src), "        if (kineo1Porta === 'retired') {", "        if (kineo1Porta === 'NUNCA') {"))).length > 0)
+  checa('mutante (portão preso de novo ao free-plan-fast) → vermelho', (await prova(trocar(extrai(src), "        if (kineo1Porta === 'retired') {", "        if (isFreePlanFast && kineo1Porta === 'retired') {"))).length > 0)
+  checa('mutante (modo serviço sem o e-mail do auth) → vermelho', (await prova(trocar(extrai(src), "        if (kineo1Porta === 'retired' && isServiceFinish) {", '        if (false) {'))).length > 0)
   const linhas = src.split('\n')
   const iDef = linhas.indexOf('        isFreePlanFast = isFreePlan && !hasPaid && !ent.isTrial')
   const iPortao = linhas.indexOf(A.slice(0, -1))
+  const iRamo = linhas.indexOf('        if (isFreePlanFast) {')
   const iClamp = linhas.indexOf('            freeDurationClamped = { from: duration, to: maxFreeSeconds }')
-  const iCota = linhas.indexOf('          const quotaResponse = await reserveFreeFastPreviewSlot()')
-  checa('no compose o portão vem depois de isFreePlanFast e antes do clamp e da reserva de cota', iDef > 0 && iPortao > iDef && iClamp > iPortao && iCota > iPortao)
+  const iCota = linhas.indexOf('            const quotaResponse = await reserveFreeFastPreviewSlot()')
+  const iCredito = linhas.indexOf("          const requiredCredits = creditCostForDuration('fast', true, duration)")
+  checa('no compose o portão vem depois de isFreePlanFast e ANTES da divisão free/crédito, do clamp e da reserva de cota', iDef > 0 && iPortao > iDef && iRamo > iPortao && iClamp > iPortao && iCota > iPortao && iCredito > iPortao)
+  // achado 2: casa/Autopilot em plano grátis não passam pela contagem da cota (limit 0), mas tomam o mesmo claim de custo 0
+  const INI_C = "          if (kineo1Porta === 'internal' || kineo1Porta === 'autopilot') {\n"
+  const extraiCota = (s2) => { const a = s2.indexOf(INI_C), b = s2.indexOf("        } else {\n          const requiredCredits = creditCostForDuration('fast', true, duration)", a); if (a < 0 || b < 0) throw new Error('reserva do compose sumiu'); return s2.slice(a, b) }
+  async function rodaCota(bloco, porta) {
+    const chamadas = []
+    const fn = `(async ({ kineo1Porta, claimGenerationSubmission, reserveFreeFastPreviewSlot }) => {\n${bloco}\nreturn 'SEGUIU' })`
+    const r = await vm.runInNewContext(transpila(fn), {})({ kineo1Porta: porta, claimGenerationSubmission: async (c) => { chamadas.push('claim:' + c); return { kind: 'acquired' } }, reserveFreeFastPreviewSlot: async () => { chamadas.push('cota'); return { status: 402 } } })
+    return { r, chamadas }
+  }
+  const provaCota = async (bloco) => {
+    const p = []
+    for (const porta of ['internal', 'autopilot']) { const x = await rodaCota(bloco, porta); if (!(x.r === 'SEGUIU' && x.chamadas.join() === 'claim:0')) p.push(porta + ' passou pela cota 0: ' + x.chamadas.join()) }
+    const y = await rodaCota(bloco, 'retired'); if (!(y.chamadas.join() === 'cota' && y.r?.status === 402)) p.push('conta comum pulou a cota')
+    return p
+  }
+  const realCota = await provaCota(extraiCota(src))
+  checa(`compose (bloco real executado): casa e Autopilot em plano grátis tomam o claim de custo 0 sem a contagem da cota; os demais seguem na cota${realCota.length ? ' — ' + realCota.join(' | ') : ''}`, realCota.length === 0)
+  checa('mutante (casa volta para a cota 0) → vermelho', (await provaCota(trocar(extraiCota(src), "          if (kineo1Porta === 'internal' || kineo1Porta === 'autopilot') {", '          if (false) {'))).length > 0)
   let intocados = false
   try {
     const d = execFileSync('git', ['diff', '--name-only', 'origin/main', '--', 'app/api/compose/status', 'app/api/compose/unlock'], { cwd: root, encoding: 'utf8' })
@@ -444,6 +569,32 @@ console.log('== (f) llms.txt e /api/facts executados; aviso da conta region_paid
   checa(`/llms.txt (${real.llms.length} car.) e /api/facts: filme grátis "in supported countries", derivado, sem lista e sem anunciar a cota${probs.length ? ' — ' + probs.join(' | ') : ''}`, probs.length === 0)
   const mut = honesto(await publica(muta('lib/freeFilmPolicy.ts', "export const FREE_FILM_POLICY: FreeFilmPolicy = 'pais_rico'", "export const FREE_FILM_POLICY: FreeFilmPolicy = 'todos'")))
   checa(`mutante (política 'todos') → a cláusula some sozinha → vermelho (${mut.length} problemas)`, mut.length > 0)
+  // KINEO-E4-CONSERTO-2026-09-29 (revisão de regressão, achado 1) — o GRANT (10 cr) só vale na lista: toda frase pública
+  // "every new account gets/starts free with N credits" diz onde vale. Executado: oferta, entrada, llms e facts.
+  const grantHonesto = (L) => {
+    const p = []
+    const cc = L('lib/freeFilmPolicy.ts').FREE_FILM_COUNTRY_CLAUSE
+    const copia = L('lib/freeTierOffer.ts').buildFreeTierOffer(true).copy
+    for (const k of ['headline', 'sentence', 'chip', 'chipLower', 'planCardBody', 'cmpKineoFree']) if (!copia[k].includes(cc)) p.push('oferta.' + k + ' sem a cláusula')
+    const EP = L('lib/entryPolicy.ts')
+    if (EP.FREE_ENTRY_COUNTRY_CLAUSE_MIRROR !== cc) p.push('espelho de lib/entryPolicy.ts difere da política')
+    for (const k of ['chip', 'headline', 'sentence', 'noFreeTier']) if (!EP.FREE_ENTRY_COPY[k].includes(cc)) p.push('entrada.' + k + ' sem a cláusula')
+    return { p, cc }
+  }
+  {
+    const g = grantHonesto(L0)
+    checa(`grant de 10 cr qualificado "${g.cc.trim()}" na oferta (headline/sentence/chip/plano/comparação) e na entrada (espelho = política)${g.p.length ? ' — ' + g.p.join(' | ') : ''}`, g.p.length === 0 && g.cc === ' in supported countries')
+    const gm = grantHonesto(criaLoader({ sobrescritas: muta('lib/freeFilmPolicy.ts', "export const FREE_FILM_POLICY: FreeFilmPolicy = 'pais_rico'", "export const FREE_FILM_POLICY: FreeFilmPolicy = 'todos'") }))
+    checa('mutante (política \'todos\' com o espelho da entrada esquecido) → vermelho', gm.p.length > 0)
+    checa('/llms.txt e /api/facts: "every new account in supported countries gets" e "free credits on signup in supported countries"', real.llms.includes('every new account in supported countries gets') && (real.facts.freeTier?.allowance ?? '').includes('free credits on signup in supported countries'))
+    // varredura: nenhuma frase de grant sem a cláusula em app/, lib/ e components/ (regra espalhada vive em vários arquivos)
+    let soltas = []
+    try {
+      const out = execFileSync('git', ['grep', '-n', '-E', '[Ee]very (new )?account (starts free|gets|receives|starts with (the free|a Creator) trial)', '--', 'app', 'lib', 'components'], { cwd: root, encoding: 'utf8' })
+      soltas = out.split('\n').filter(Boolean).filter((l) => !/COUNTRY_CLAUSE|\$\{CC\}|^[^:]+:\d+:\s*\/\/|canonicalCopySpanish/.test(l))
+    } catch (e) { soltas = e.status === 1 ? [] : ['git grep falhou'] }
+    checa(`varredura: toda frase "every new account gets/starts free…" em app/lib/components carrega a cláusula de país${soltas.length ? ' — ' + soltas.map((l) => l.slice(0, 90)).join(' | ') : ''}`, soltas.length === 0)
+  }
   const N = POL.REGION_PAID_ONLY_NOTICE
   checa('aviso em pt/en/es com título, texto e botão; pt diz "não está disponível no seu país" e "planos funcionam normalmente"', ['en', 'pt', 'es'].every((l) => N[l] && N[l].title && N[l].body && N[l].cta) && /não está disponível no seu país/.test(N.pt.title) && /planos funcionam normalmente/i.test(N.pt.body) && /not available in your country/.test(N.en.title) && /no está disponible en tu país/.test(N.es.title) && POL.REGION_PAID_ONLY_PLANS_HREF === '/pricing')
   const vis = (M) => M.regionPaidOnlyNoticeVisible({ trial_status: 'region_paid_only', has_paid: false, plan: 'free' }) === true && M.regionPaidOnlyNoticeVisible({ trial_status: 'region_paid_only', has_paid: true, plan: 'free' }) === false && M.regionPaidOnlyNoticeVisible({ trial_status: 'region_paid_only', has_paid: false, plan: 'starter' }) === false && M.regionPaidOnlyNoticeVisible({ trial_status: 'downgraded', has_paid: false, plan: 'free' }) === false && M.regionPaidOnlyNoticeVisible(null) === false
@@ -452,7 +603,7 @@ console.log('== (f) llms.txt e /api/facts executados; aviso da conta region_paid
   const banner = rd('components/RegionPaidOnlyBanner.tsx')
   checa('layout do painel monta o aviso por regionPaidOnlyNoticeVisible; o componente usa a língua da interface e o link dos planos', layout.includes('{user && regionPaidOnlyNoticeVisible(profile as') && layout.includes('<RegionPaidOnlyBanner />') && banner.includes('pickInterfaceCopy(REGION_PAID_ONLY_NOTICE, language)') && banner.includes('href={REGION_PAID_ONLY_PLANS_HREF}'))
   const sink = rd('app/api/events/route.ts')
-  checa('eventos novos só do servidor (kineo1_retired_refused, free_weekly_film_granted/admitted)', ['kineo1_retired_refused', 'free_weekly_film_granted', 'free_weekly_film_admitted'].every((n) => sink.includes(`  '${n}',\n`)))
+  checa('eventos novos só do servidor (kineo1_retired_refused, free_weekly_film_granted/admitted/grant_voided/exclusive_refused)', ['kineo1_retired_refused', 'free_weekly_film_granted', 'free_weekly_film_admitted'].every((n) => sink.includes(`  '${n}',\n`)) && ['free_weekly_film_grant_voided', 'free_weekly_film_exclusive_refused'].every((n) => sink.includes(`  '${n}', //`)))
 }
 
 console.log(`\n${ok}/${ok + falhas.length} verificações`)

@@ -19,6 +19,7 @@
 // que o gerou. Zero demo fabricado. Os previews são os mesmos da vitrine
 // (public/previews), então a página não custa banda nova.
 import type { Metadata } from 'next'
+import { FREE_FILM_COUNTRY_CLAUSE } from '@/lib/freeFilmPolicy' // KINEO-E4-CONSERTO-2026-09-29: o grant de 10 cr só vale na lista (saída B)
 import Link from 'next/link'
 import { creditCostFor } from '@/lib/credits/engineCost'
 import { formatCheckoutMoney, getTierPrice } from '@/lib/checkoutPricing'
@@ -147,7 +148,7 @@ const FAQ_JSONLD = {
       name: 'Can I compare AI video engines on the same script?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `Yes. Every clip on this page is a real Kineo render, labeled with the engine that actually generated it. You can render your own script on any engine from the same text box and compare the results yourself — every new account starts free with 10 credits, no card.`,
+        text: `Yes. Every clip on this page is a real Kineo render, labeled with the engine that actually generated it. You can render your own script on any engine from the same text box and compare the results yourself — every new account${FREE_FILM_COUNTRY_CLAUSE} starts free with 10 credits, no card.`,
       },
     },
     {
@@ -222,7 +223,7 @@ export default function ArenaPage() {
       <div style={{ padding: '22px 24px', borderRadius: 16, background: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.3)', textAlign: 'center' }}>
         <p style={{ fontSize: 18, fontWeight: 900, margin: '0 0 6px' }}>One subscription. All {ARENA_COUNT}.</p>
         <p style={{ color: '#a1a1a8', fontSize: 14, margin: '0 0 14px' }}>
-          You don&apos;t pick an engine when you subscribe — you pick it per video, from the same text box. Plans from {STARTER_PRICE_LABEL}/month; every new account starts free with 10 credits, no card.
+          You don&apos;t pick an engine when you subscribe — you pick it per video, from the same text box. Plans from {STARTER_PRICE_LABEL}/month; every new account{FREE_FILM_COUNTRY_CLAUSE} starts free with 10 credits, no card.
         </p>
         <Link
           href="/studio?intent_campaign=arena&utm_source=seo&utm_medium=arena&utm_campaign=engine_arena"

@@ -3,6 +3,11 @@
 
 import { creditCostForDuration, DURATION_REFERENCE_SECONDS } from './credits/engineCost'
 import { CARD_ENTRY_COPY, CARD_ENTRY_ONLY, CARD_ENTRY_TRIAL_CREDITS } from './entryPolicy'
+// KINEO-E4-CONSERTO-2026-09-29 (revisão de regressão, achado 1) — com a saída B ligada, conta de país fora da lista
+// nasce com 0 crédito: "every new account gets 10 free credits" virou mentira para ela. A cláusula ' in supported
+// countries' DERIVA de FREE_FILM_POLICY e qualifica o CRÉDITO (não só o filme) em toda frase pública do grant; 'todos'
+// a apaga sozinha. Nenhuma lista de país em texto público.
+import { FREE_FILM_COUNTRY_CLAUSE as CC } from './freeFilmPolicy'
 //
 //   KINEO_REVERSE_TRIAL_ENABLED === 'true'  (a MESMA flag de lib/reverseTrial.ts)
 //
@@ -277,7 +282,7 @@ const ON_COPY: FreeTierCopy = {
     // um estrangeiro lê do produto. O `tsc` não pega isso: gramática não é tipo.
     // É o mesmo gênero de defeito que a trava de compilação acima resolveu para
     // o NÚMERO; aqui a trava é derivar a palavra do número, na mesma expressão.
-    `Start with ${TRIAL_GRANT_CREDITS_COPY} free credits. The cost depends on your engine and duration. Trial videos are watermarked; upgrade for clean downloads.`,
+    `Start with ${TRIAL_GRANT_CREDITS_COPY} free credits${CC}. The cost depends on your engine and duration. Trial videos are watermarked; upgrade for clean downloads.`,
   // KINEO-FILME-GRATIS-15S-2026-09-29 — a cota semanal deixou de ser anunciada (o mecanismo segue até a E4). Revisão da
   // E2b: deixar de anunciar NÃO é negar — "no recurring free films" desmentia o limitHitError/limitResetLine abaixo.
   residual: 'your saved library',
@@ -288,11 +293,11 @@ const ON_COPY: FreeTierCopy = {
   // o grant COMPRA (Kineo 1, derivado) e onde os motores de IA começam
   // (Starter). Números de G e TRIAL_KINEO1_FILMS — nunca digitados.
   sentence:
-    `Every new account gets ${G} free credits = a ${FREE_FILM_LABEL}; longer films and the other AI engines (Veo, Kling) from Starter. Films come out watermarked; a plan removes the watermark and unlocks clean downloads.`,
-  chip: `${TRIAL_GRANT_CREDITS_COPY} free credits — every engine unlocked`,
-  chipLower: `${TRIAL_GRANT_CREDITS_COPY} free credits — every engine unlocked`,
+    `Every new account${CC} gets ${G} free credits = a ${FREE_FILM_LABEL}; longer films and the other AI engines (Veo, Kling) from Starter. Films come out watermarked; a plan removes the watermark and unlocks clean downloads.`,
+  chip: `${TRIAL_GRANT_CREDITS_COPY} free credits${CC} — every engine unlocked`,
+  chipLower: `${TRIAL_GRANT_CREDITS_COPY} free credits${CC} — every engine unlocked`,
   planCardBody:
-    `Free to start: ${G} free credits = a ${FREE_FILM_LABEL}; longer films and the other AI engines from Starter. Watermarked while you try; a plan makes them yours to keep.`,
+    `Free to start${CC}: ${G} free credits = a ${FREE_FILM_LABEL}; longer films and the other AI engines from Starter. Watermarked while you try; a plan makes them yours to keep.`,
   counterNoun: 'this week', // KINEO-COTA-SEMANAL
   planLimitLine: `one ${FREE_FILM_LABEL} with the trial credits`,
   // Texto da RECUSA do mecanismo antigo (compose free-plan-fast). KINEO-E4-SAIDA-B-2026-09-29: a cota de Kineo 1 morreu
@@ -301,7 +306,7 @@ const ON_COPY: FreeTierCopy = {
   limitHitError:
     'This engine is now on paid plans only. Keep creating now with Starter. Cancel anytime.',
   cmpKineoFree:
-    `Kineo: ${G} free credits on signup = a ${FREE_FILM_LABEL}; longer films and the other AI engines (Veo, Kling) from Starter. Trial films are watermarked; any paid plan unlocks clean downloads.`,
+    `Kineo: ${G} free credits on signup${CC} = a ${FREE_FILM_LABEL}; longer films and the other AI engines (Veo, Kling) from Starter. Trial films are watermarked; any paid plan unlocks clean downloads.`,
   // KINEO-E4-SAIDA-B-2026-09-29 — sem cota de Kineo 1 não existe "volta em 7 dias"; o send-cap-hit sai cedo com
   // limit 0 (quota_off) e estas linhas ficam só como texto coerente, nunca como promessa.
   limitHitEmailSubject: 'This engine is now on paid plans — Starter keeps you creating',

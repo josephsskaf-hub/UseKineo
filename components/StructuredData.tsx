@@ -1,4 +1,5 @@
 import { getFreeTierOffer, swapFreeTierCopy as ft , TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { FREE_FILM_COUNTRY_CLAUSE } from '@/lib/freeFilmPolicy' // KINEO-E4-CONSERTO-2026-09-29: o grant de 10 cr só vale na lista (saída B)
 import { VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, PAUSED_ENGINES_COPY, KINEO1_PUBLIC } from '@/lib/engineLaunch'
 import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
 import { CHECKOUT_CURRENCY_DISCLOSURE, formatResultCount, videosPerMonth } from '@/lib/marketingPrice'
@@ -280,7 +281,7 @@ const faqSchema = {
       name: 'How much does Kineo cost?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `Kineo has three monthly plans: Starter at $${usd(TIER_PRICES.starter.usd)} for ${TIER_CREDITS.starter} credits, Creator at $${usd(TIER_PRICES.basic.usd)} for ${TIER_CREDITS.basic} credits and Studio at $${usd(TIER_PRICES.pro.usd)} for ${TIER_CREDITS.pro} credits. Credits are spent per video and how many a video costs depends on the engine you pick, so a Fast render and a cinematic film come out of the same balance at very different rates. ${CHECKOUT_CURRENCY_DISCLOSURE} Every new account starts free with 10 credits and every engine unlocked, no card.`,
+        text: `Kineo has three monthly plans: Starter at $${usd(TIER_PRICES.starter.usd)} for ${TIER_CREDITS.starter} credits, Creator at $${usd(TIER_PRICES.basic.usd)} for ${TIER_CREDITS.basic} credits and Studio at $${usd(TIER_PRICES.pro.usd)} for ${TIER_CREDITS.pro} credits. Credits are spent per video and how many a video costs depends on the engine you pick, so a Fast render and a cinematic film come out of the same balance at very different rates. ${CHECKOUT_CURRENCY_DISCLOSURE} Every new account${FREE_FILM_COUNTRY_CLAUSE} starts free with 10 credits and every engine unlocked, no card.`,
       },
     },
     {

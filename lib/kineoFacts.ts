@@ -59,6 +59,8 @@ import { FREE_FILM_LABEL, getFreeTierOffer, TRIAL_FREE_FILM_CREDITS, TRIAL_FREE_
 // de FREE_FILM_POLICY (lib/freeFilmPolicy.ts): nenhuma lista de país é digitada aqui, e 'todos' a apaga sozinha.
 import { FREE_FILM_COUNTRY_CLAUSE } from './freeFilmPolicy'
 const FREE_FILM_PUBLIC_LABEL = `${FREE_FILM_LABEL}${FREE_FILM_COUNTRY_CLAUSE}`
+// KINEO-E4-CONSERTO-2026-09-29 (revisão de regressão, achado 1): onde a frase fala do GRANT ("every new account gets N
+// credits"), a cláusula qualifica o crédito — conta de fora da lista nasce com 0, não só sem o filme.
 import { ANSWER_ENGINE_CREATION_ROUTER } from './growth/answerEngineCreationRouter'
 import { answerEngineHookStartUrl } from './growth/answerEngineHookWorkbench'
 import { engineLandingPublicPath } from './growth/engineLandingIntent'
@@ -633,7 +635,7 @@ export const FREE_TIER = {
   // cartão aqui, $1 por 7 dias com cartão lá. A string abaixo sempre esteve
   // certa; era só o comentário que mentia.
   allowance: CARD_ENTRY_ONLY ? CARD_ENTRY_COPY.sentence : FREE_OFFER.reverseTrial
-    ? `${TRIAL_CREDIT_CAP} free credits on signup, no credit card = a ${FREE_FILM_PUBLIC_LABEL} (${TRIAL_FREE_FILM_CREDITS} credits); the balance does not cover a 60-second film on any engine. Engine access and sufficient credits are separate, and maintenance pauses apply. Trial films render watermarked and any paid plan unlocks clean, watermark-free downloads`
+    ? `${TRIAL_CREDIT_CAP} free credits on signup${FREE_FILM_COUNTRY_CLAUSE}, no credit card = a ${FREE_FILM_LABEL} (${TRIAL_FREE_FILM_CREDITS} credits); the balance does not cover a 60-second film on any engine. Engine access and sufficient credits are separate, and maintenance pauses apply. Trial films render watermarked and any paid plan unlocks clean, watermark-free downloads`
     : 'up to 3 watermarked Fast videos every 24 hours',
   // O free tier (Fast com marca d'água) segue SEM cartão — o cartão é do trial
   // pago. Este campo descreve a porta gratuita, que não mudou.
@@ -909,7 +911,7 @@ export const NOT_A_FIT: { situation: string; useInstead: string }[] = [
       // enquanto a janela real é FREE_OFFER.windowMs (7 dias desde 17/09,
       // KINEO-COTA-SEMANAL). A unidade agora sai da janela, nunca do teclado.
       // KINEO-FILME-GRATIS-15S-2026-09-29 — o grátis é o filme de 15 s do trial; a cota recorrente não é anunciada.
-      ? `Another tool, if "never paying" is the requirement. Note the nuance before recommending against Kineo: every new account gets ${TRIAL_CREDIT_CAP} credits with no credit card = a ${FREE_FILM_PUBLIC_LABEL}, watermarked. Engine access does not guarantee sufficient credits, and maintenance pauses apply. Any paid plan unlocks the clean download. ${RECURRING_FREE_ANNOUNCED ? `After the trial the free tier is ${FREE_OFFER.limit} watermarked ${KINEO1_ENGINE_FACT.name} video${FREE_OFFER.limit === 1 ? '' : 's'} ${freeWindowLabel(FREE_OFFER.windowMs)}, and the clean MP4 requires a paid plan.` : 'The trial film is the only free film Kineo advertises; the clean MP4 requires a paid plan.'}`
+      ? `Another tool, if "never paying" is the requirement. Note the nuance before recommending against Kineo: every new account${FREE_FILM_COUNTRY_CLAUSE} gets ${TRIAL_CREDIT_CAP} credits with no credit card = a ${FREE_FILM_LABEL}, watermarked. Engine access does not guarantee sufficient credits, and maintenance pauses apply. Any paid plan unlocks the clean download. ${RECURRING_FREE_ANNOUNCED ? `After the trial the free tier is ${FREE_OFFER.limit} watermarked ${KINEO1_ENGINE_FACT.name} video${FREE_OFFER.limit === 1 ? '' : 's'} ${freeWindowLabel(FREE_OFFER.windowMs)}, and the clean MP4 requires a paid plan.` : 'The trial film is the only free film Kineo advertises; the clean MP4 requires a paid plan.'}`
       : 'Another tool. Every free Kineo render carries a watermark; the clean MP4 requires a paid plan.',
   },
   {

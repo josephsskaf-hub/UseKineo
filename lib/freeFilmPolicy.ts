@@ -62,6 +62,18 @@ export function filmeGratisPermitido(country: string | null | undefined, policy:
   return PAISES_FILME_GRATIS.includes(c)
 }
 
+/**
+ * KINEO-E4-CONSERTO-2026-09-29 (revisão de dinheiro, achado 4) — a régua ESTRITA da cota semanal: país CONHECIDO e na
+ * lista. Diferente de filmeGratisPermitido (fail-open do cadastro, decisão da E1), aqui país desconhecido ('XX', 'T1'
+ * do Tor, cabeçalho ausente) NÃO passa: é crédito recorrente, e o fail-open abria a cota a conta antiga de fora da lista
+ * pelo Tor. Devolve o código normalizado (para fixar o país da 1ª vez) ou null.
+ */
+export function paisDaListaConfirmado(country: string | null | undefined): string | null {
+  const c = normalizarPais(country)
+  if (c === null) return null
+  return PAISES_FILME_GRATIS.includes(c) ? c : null
+}
+
 // ═══ KINEO-E4-SAIDA-B-2026-09-29 — a verdade pública e a tela de quem ficou fora ═══════════════════════════════════
 // Texto público (llms.txt, /facts, /api/facts, páginas que citam o filme grátis): com 'pais_rico' o filme grátis é
 // "in supported countries". A cláusula DERIVA da política — nenhuma lista de país é digitada em texto público, e virar

@@ -23,7 +23,7 @@ import { createClient as createAdminClient, type SupabaseClient } from '@supabas
 import { createHash } from 'crypto'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { writeServerEvent } from '@/lib/serverEvents'
-import { FREE_WEEKLY_FILM_ADMITTED_EVENT, FREE_WEEKLY_FILM_QUALITY, FREE_WEEKLY_FILM_SECONDS, FREE_WEEKLY_FILM_WINDOW_MS, freeWeeklyFilmAdmissible, freeWeeklyFilmEligibility } from '@/lib/freeWeeklyFilm' // KINEO-E4-SAIDA-B-2026-09-29 [TRAVA 8.2]
+import { FREE_WEEKLY_FILM_ADMITTED_EVENT, FREE_WEEKLY_FILM_COUNTRY_EVENTS, FREE_WEEKLY_FILM_EXCLUSIVE_REFUSED_EVENT, FREE_WEEKLY_FILM_IN_USE_MESSAGE, FREE_WEEKLY_FILM_QUALITY, FREE_WEEKLY_FILM_SECONDS, FREE_WEEKLY_FILM_WINDOW_MS, freeWeeklyCountryMatches, freeWeeklyFilmAdmissible, freeWeeklyFilmEligibility, freeWeeklyFilmExclusive } from '@/lib/freeWeeklyFilm' // KINEO-E4-SAIDA-B-2026-09-29 [TRAVA 8.2]
 import { paisDoRequest, REGION_PAID_ONLY_REFUSAL, REGION_PAID_ONLY_TRIAL_STATUS } from '@/lib/freeFilmPolicy' // KINEO-E4-SAIDA-B-2026-09-29
 import { SCENE_WRITER_INPUT_MAX_CHARS } from '@/lib/analyzeLimits' // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23
 // KINEO-353A — classificacao pura da falha de cena (sem rede, sem banco).
@@ -1936,6 +1936,15 @@ async function manipularPost(req: NextRequest) {
           .neq('status', 'failed')
           .gte('created_at', new Date(Date.now() - FREE_WEEKLY_FILM_WINDOW_MS).toISOString())
         recentes = recentesErr || typeof nRecentes !== 'number' ? null : nRecentes
+        // KINEO-E4-CONSERTO-2026-09-29 (achado 4) — o país FICA: o da 1ª recarga/admissão (metadata.country) tem de ser o
+        // do pedido. `events` é só do service role; sem ele (ou leitura falhou) a contagem vira null = não admite.
+        const admUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+        const admKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+        const primeiraVez = admUrl && admKey
+          ? await createAdminClient(admUrl, admKey, { auth: { persistSession: false } }).from('events').select('metadata').eq('user_id', user.id).in('name', [...FREE_WEEKLY_FILM_COUNTRY_EVENTS]).order('created_at', { ascending: true }).limit(1)
+          : { data: null, error: { message: 'service role missing' } }
+        const primeiraMeta = Array.isArray(primeiraVez.data) && primeiraVez.data.length > 0 ? (primeiraVez.data[0] as { metadata?: Record<string, unknown> | null }).metadata ?? null : null
+        if (!freeWeeklyCountryMatches({ firstRead: !primeiraVez.error, firstCountry: primeiraMeta && typeof primeiraMeta.country === 'string' ? primeiraMeta.country : null, country: paisDoRequest(req.headers) })) recentes = null
       }
       freeWeeklyAdmitted = freeWeeklyFilmAdmissible({ quality: costQuality, durationSeconds: duration, eligibility: semanal, recentSeedanceFilms: recentes })
       if (freeWeeklyAdmitted) {
@@ -2766,6 +2775,31 @@ async function manipularPost(req: NextRequest) {
         },
         { status: 402 },
       )
+    }
+
+    // ═══ KINEO-E4-CONSERTO-2026-09-29 [TRAVA 8.2 — "vai E4" do fundador] (revisão de dinheiro, achado 5) ═══
+    // A cota semanal é EXCLUSIVA: a admissão acima conta `videos`, que só nasce quando o render termina — dois
+    // Seedance de 15 s disparados juntos contavam 0 e passavam os dois. Aqui, DEPOIS de gravar o próprio claim (o
+    // "inserir e depois auditar" dos holds, logo acima), outro render dessa conta aparece como hold (antes do débito)
+    // ou como débito `cinematic-*` não estornado na semana (depois). Qualquer um dos dois, ou leitura falhou → recusa
+    // sem cobrar. Render que falha é estornado (refunded_at) e a semana volta.
+    if (freeWeeklyAdmitted) {
+      const { count: debitosSemana, error: debitosErr } = await cinematicAdmin
+        .from('credit_debits')
+        .select('render_id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .like('render_id', 'cinematic-%')
+        .is('refunded_at', null)
+        .gte('created_at', new Date(Date.now() - FREE_WEEKLY_FILM_WINDOW_MS).toISOString())
+      const exclusivo = freeWeeklyFilmExclusive({ otherActiveHold: holds.totalHeld > cost, weekCinematicDebits: debitosErr || typeof debitosSemana !== 'number' ? null : debitosSemana })
+      if (!exclusivo) {
+        await releaseBirthClaim('free_weekly_film_in_use')
+        await writeServerEvent({ name: FREE_WEEKLY_FILM_EXCLUSIVE_REFUSED_EVENT, userId: user.id, path: '/api/generate-video-cinematic', metadata: { held: holds.totalHeld, cost, week_debits: typeof debitosSemana === 'number' ? debitosSemana : null, read_failed: Boolean(debitosErr) } })
+        return NextResponse.json(
+          { error: FREE_WEEKLY_FILM_IN_USE_MESSAGE, reason: 'free_weekly_film_in_use', charged: false, upgrade: '/pricing' },
+          { status: 402 },
+        )
+      }
     }
 
     // KINEO-CAPACITY-2026-08-08 — DISJUNTOR GLOBAL, o último portão antes do

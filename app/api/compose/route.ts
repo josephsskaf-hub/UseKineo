@@ -1929,8 +1929,21 @@ export async function POST(req: NextRequest) {
         // nome, antes do clamp, da reserva de cota, do TTS e do Creatomate. Passa só a casa (lista exata) e o Autopilot sem
         // has_paid, que seguem para o caminho de sempre. compose/status e compose/unlock NÃO são tocados. Em modo serviço
         // o e-mail vem de profiles (editável): não vale como casa.
-        if (isFreePlanFast && kineo1GateReason({ email: isServiceFinish ? null : user.email ?? null, plan: prof?.plan ?? null, hasPaid }) === 'retired') {
-          await logComposeRefusal(KINEO1_RETIRED_REASON, authenticatedUserId, { plan: prof?.plan ?? null, quality, duration, event: KINEO1_RETIRED_EVENT })
+        // KINEO-E4-CONSERTO-2026-09-29 (revisão de dinheiro, achados 1 e 2):
+        //   (1) o portão vale para o ramo `fast` INTEIRO, não só para o free-plan-fast. Trial ativo tem
+        //       isFreePlanFast=false e caía no ramo de crédito: um POST direto com clipes de stock (ou o composePayload
+        //       guardado no estágio `submitting`) saía Kineo 1 com o crédito do trial — a mesma conta que toma 403 na
+        //       generate-video-fast. Duas réguas; agora uma.
+        //   (2) em modo serviço o e-mail que decide "casa" é o do AUTH (auth.admin.getUserById), nunca o de profiles
+        //       (editável). Anular o e-mail barrava o Studio Ads da conta da casa em plano grátis que o adsAccessReason
+        //       já tinha liberado pelo e-mail do auth. Só é lido quando o resto recusaria (custo zero no caso comum).
+        let kineo1Porta = kineo1GateReason({ email: isServiceFinish ? null : user.email ?? null, plan: prof?.plan ?? null, hasPaid })
+        if (kineo1Porta === 'retired' && isServiceFinish) {
+          const { data: authData, error: authErr } = await supabase.auth.admin.getUserById(user.id)
+          if (!authErr) kineo1Porta = kineo1GateReason({ email: authData?.user?.email ?? null, plan: prof?.plan ?? null, hasPaid })
+        }
+        if (kineo1Porta === 'retired') {
+          await logComposeRefusal(KINEO1_RETIRED_REASON, authenticatedUserId, { plan: prof?.plan ?? null, quality, duration, event: KINEO1_RETIRED_EVENT, trial: ent.isTrial })
           return NextResponse.json(
             { error: KINEO1_RETIRED_MESSAGE, reason: KINEO1_RETIRED_REASON, charged: false, retryable: false, upgrade: '/pricing', alternative_engine: 'seedance' },
             { status: 403 },
@@ -1986,8 +1999,18 @@ export async function POST(req: NextRequest) {
               metadata: freeDurationClamped,
             }).then(() => undefined, () => undefined)
           }
-          const quotaResponse = await reserveFreeFastPreviewSlot()
-          if (quotaResponse) return quotaResponse
+          // KINEO-E4-CONSERTO-2026-09-29 (achado 2) — com a cota de Kineo 1 em 0 (FREE_OFFER.limit), a reserva recusava
+          // TODO free-plan-fast, inclusive quem o portão acima deixou passar sem pagar: conta da casa em plano grátis
+          // (depois de a generate-video-fast já ter gasto OpenAI/Pixabay/fal) e Autopilot sem has_paid. Esses dois não
+          // passam mais pela contagem da cota (seguem com marca d'água e o corte acima), mas continuam tomando o MESMO
+          // claim de submissão de custo 0 que a reserva toma (mutex/dedupe do render); nenhum outro chega aqui (portão).
+          if (kineo1Porta === 'internal' || kineo1Porta === 'autopilot') {
+            const houseReservation = await claimGenerationSubmission(0)
+            if (houseReservation.kind !== 'acquired') return houseReservation.response
+          } else {
+            const quotaResponse = await reserveFreeFastPreviewSlot()
+            if (quotaResponse) return quotaResponse
+          }
         } else {
           const requiredCredits = creditCostForDuration('fast', true, duration)
           if (creditBalance < requiredCredits) {

@@ -12,6 +12,10 @@ export function canonicalCopySpanish(text: string): string | undefined {
   if ((match = text.match(/^every new account gets (\d+) free credits with every engine unlocked, Kling 3 included$/))) {
     return `cada cuenta nueva recibe ${match[1]} créditos gratuitos con todos los motores desbloqueados, incluido Kling 3`
   }
+  // KINEO-E4-CONSERTO-2026-09-29 — a mesma frase com a cláusula de país da saída B (lib/freeFilmPolicy.ts).
+  if ((match = text.match(/^every new account in supported countries gets (\d+) free credits with every engine unlocked, Kling 3 included$/))) {
+    return `cada cuenta nueva en los países disponibles recibe ${match[1]} créditos gratuitos con todos los motores desbloqueados, incluido Kling 3`
+  }
   if ((match = text.match(/^New accounts get (\d+) credits with every engine unlocked, watermarked; after it ends, free access gives 1 watermarked Fast video per month that you can download and share\.$/))) {
     return `Las cuentas nuevas reciben ${match[1]} créditos con todos los motores desbloqueados y marca de agua. Después, el acceso gratuito incluye 1 vídeo Fast al mes con marca de agua que puedes descargar y compartir.`
   }

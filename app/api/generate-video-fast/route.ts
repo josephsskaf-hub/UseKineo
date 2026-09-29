@@ -405,13 +405,22 @@ export async function POST(req: NextRequest) {
         recordFastFailure('generating', 'kineo1_gate_read_failed', 503, user.id)
         return NextResponse.json({ error: 'Your access could not be verified. Nothing was charged. Please retry.', charged: false }, { status: 503 })
       }
-      const portao = kineo1GateReason({
+      let portao = kineo1GateReason({
         email: isServiceJob ? null : user.email ?? null,
         plan: (portaoPerfil as { plan?: string | null } | null)?.plan ?? null,
         hasPaid: (portaoPerfil as { has_paid?: boolean | null } | null)?.has_paid ?? null,
       })
+      // KINEO-E4-CONSERTO-2026-09-29 — em modo serviço a "casa" se decide pelo e-mail do AUTH (nunca o de profiles,
+      // editável), lido só quando o resto recusaria. Mesma régua do compose.
+      if (portao === 'retired' && isServiceJob) {
+        const { data: authData, error: authErr } = await supabase.auth.admin.getUserById(user.id)
+        if (!authErr) portao = kineo1GateReason({ email: authData?.user?.email ?? null, plan: (portaoPerfil as { plan?: string | null } | null)?.plan ?? null, hasPaid: (portaoPerfil as { has_paid?: boolean | null } | null)?.has_paid ?? null })
+      }
       if (portao === 'retired') {
-        void writeServerEvent({ name: KINEO1_RETIRED_EVENT, userId: user.id, path: '/api/generate-video-fast', metadata: { route: 'generate-video-fast', plan: (portaoPerfil as { plan?: string | null } | null)?.plan ?? null, trial_status: (portaoPerfil as { trial_status?: string | null } | null)?.trial_status ?? null, service: isServiceJob, charged: false } })
+        // KINEO-E4-CONSERTO-2026-09-29 (revisão de regressão, achado 2) — `await`, não `void`: a Vercel congela a função
+        // ao responder e o evento com `void` antes do return grava ~1 em 10 (void-antes-do-return-morre-na-vercel,
+        // 16/09). Este evento É a prova pós-deploy ("recusas kineo1_retired sem fal no mesmo user_id").
+        await writeServerEvent({ name: KINEO1_RETIRED_EVENT, userId: user.id, path: '/api/generate-video-fast', metadata: { route: 'generate-video-fast', plan: (portaoPerfil as { plan?: string | null } | null)?.plan ?? null, trial_status: (portaoPerfil as { trial_status?: string | null } | null)?.trial_status ?? null, service: isServiceJob, charged: false } })
         return NextResponse.json({ error: KINEO1_RETIRED_MESSAGE, reason: KINEO1_RETIRED_REASON, charged: false, retryable: false, upgrade: '/pricing', alternative_engine: 'seedance' }, { status: 403 })
       }
     }

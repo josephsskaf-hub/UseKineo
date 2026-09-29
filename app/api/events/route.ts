@@ -186,6 +186,8 @@ const SERVER_ONLY_EVENTS = new Set([
   'kineo1_retired_refused',
   'free_weekly_film_granted',
   'free_weekly_film_admitted',
+  'free_weekly_film_grant_voided', // KINEO-E4-CONSERTO-2026-09-29: carimbo gravado sem crédito (lib/freeWeeklyFilmGrant.ts)
+  'free_weekly_film_exclusive_refused', // KINEO-E4-CONSERTO-2026-09-29: trava de pedidos simultâneos da cota semanal (cinematic)
   // KINEO-STRIPE-ATRASO-2026-09-28 — escritos SÓ pelo webhook da Stripe. `subscription_ended` é o churn (fim de
   // assinatura) e `renewal_ignored_non_access` o pagamento de renovação descartado; forjá-los mentiria no placar.
   'subscription_ended',

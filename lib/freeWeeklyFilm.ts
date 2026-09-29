@@ -18,13 +18,13 @@
 //
 // NÃO DÁ KINEO 1: o Kineo 1 de conta grátis é recusado pelo portão (lib/kineo1Gate.ts) antes de qualquer fornecedor,
 // com crédito ou sem. NÃO VAZA PARA PAÍS FORA DA LISTA: 'region_paid_only' é inelegível para sempre (marca de
-// cadastro), e o país do PEDIDO também tem de passar filmeGratisPermitido. NÃO É ANUNCIADA (item 4 da E4): nenhum
+// cadastro), e o país do PEDIDO tem de ser CONHECIDO e da lista (paisDaListaConfirmado) e o mesmo da 1ª vez. NÃO É ANUNCIADA (item 4 da E4): nenhum
 // texto público fala dela até funcionar em produção.
 //
 // Módulo PURO (sem env, sem banco): a rota /api/credits (recarga, lib/freeWeeklyFilmGrant.ts) e o cinematic
 // (admissão) decidem aqui; scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs executa as mesmas funções.
 import { creditCostForDuration } from './credits/engineCost'
-import { filmeGratisPermitido, REGION_PAID_ONLY_TRIAL_STATUS } from './freeFilmPolicy'
+import { paisDaListaConfirmado, REGION_PAID_ONLY_TRIAL_STATUS } from './freeFilmPolicy'
 
 export const FREE_WEEKLY_FILM_ENABLED = true
 export const FREE_WEEKLY_FILM_QUALITY = 'cinematic_ai' as const
@@ -36,6 +36,8 @@ export const FREE_WEEKLY_FILM_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 export const FREE_WEEKLY_FILM_MIN_ACCOUNT_AGE_MS = 48 * 60 * 60 * 1000
 export const FREE_WEEKLY_FILM_GRANTED_EVENT = 'free_weekly_film_granted'
 export const FREE_WEEKLY_FILM_ADMITTED_EVENT = 'free_weekly_film_admitted'
+/** Nomes que carregam `metadata.country` da 1ª vez que a conta usou a cota (o país fica FIXO a partir dela). */
+export const FREE_WEEKLY_FILM_COUNTRY_EVENTS: readonly string[] = [FREE_WEEKLY_FILM_GRANTED_EVENT, FREE_WEEKLY_FILM_ADMITTED_EVENT]
 
 /** Planos pagos + Autopilot: nunca são "conta grátis" (espelho das listas do compose/cinematic e do Autopilot). */
 const NON_FREE_PLANS: ReadonlySet<string> = new Set([
@@ -80,8 +82,23 @@ export function freeWeeklyFilmEligibility(
   } else if (!ELIGIBLE_TRIAL_STATUSES.has(status)) {
     return 'trial_status'
   }
-  if (!filmeGratisPermitido(country ?? null)) return 'country'
+  // KINEO-E4-CONSERTO-2026-09-29 (achado 4): país CONHECIDO e na lista — 'XX'/'T1'/sem cabeçalho não passam.
+  if (paisDaListaConfirmado(country ?? null) === null) return 'country'
   return 'eligible'
+}
+
+/**
+ * KINEO-E4-CONSERTO-2026-09-29 (revisão de dinheiro, achado 4) — o país FICA: a 1ª recarga/admissão grava o país do
+ * pedido no evento; as seguintes só valem do MESMO país. Conta antiga de fora da lista que entrou uma vez por VPN
+ * precisa da VPN no mesmo país para sempre; alternar de rede não reabre nada. `firstRead` false = a leitura do país
+ * fixado falhou → não concede (falha fechada: é crédito). Sem 1ª vez (firstCountry null) → este pedido fixa.
+ */
+export function freeWeeklyCountryMatches(input: { firstRead: boolean; firstCountry: string | null | undefined; country: string | null | undefined }): boolean {
+  if (!input.firstRead) return false
+  const atual = paisDaListaConfirmado(input.country ?? null)
+  if (atual === null) return false
+  const primeiro = typeof input.firstCountry === 'string' && input.firstCountry.trim() ? input.firstCountry.trim().toUpperCase() : null
+  return primeiro === null || primeiro === atual
 }
 
 /** Quanto a recarga soma: completa até o custo de UM filme, nunca além (saldo ≥ 7 → 0). */
@@ -107,3 +124,19 @@ export function freeWeeklyFilmAdmissible(input: {
     input.recentSeedanceFilms === 0
   )
 }
+
+/**
+ * KINEO-E4-CONSERTO-2026-09-29 (revisão de dinheiro, achado 5) — a TRAVA contra pedidos simultâneos. A contagem de
+ * `videos` da admissão só enxerga filme que já terminou; dois Seedance de 15 s disparados juntos contavam 0 e passavam.
+ * Por isso o cinematic repete a conferência DEPOIS de gravar o próprio claim assinado (o mesmo "inserir e depois
+ * auditar" dos holds de crédito): outro render em voo aparece como hold (antes do débito) ou como débito não estornado
+ * (depois). `otherActiveHold` = outro claim com crédito reservado; `weekCinematicDebits` = débitos `cinematic-*` não
+ * estornados nos últimos 7 dias (null = leitura falhou → recusa). Falha do render estorna → a semana volta.
+ */
+export function freeWeeklyFilmExclusive(input: { otherActiveHold: boolean; weekCinematicDebits: number | null }): boolean {
+  return input.otherActiveHold === false && input.weekCinematicDebits === 0
+}
+export const FREE_WEEKLY_FILM_EXCLUSIVE_REFUSED_EVENT = 'free_weekly_film_exclusive_refused'
+/** Recusa da trava (só chega a quem a cota admitiu): nada cobrado, onde seguir. Sem prometer data de volta. */
+export const FREE_WEEKLY_FILM_IN_USE_MESSAGE =
+  'Your free film for this week is already in progress or done. Nothing was charged — see the plans to keep creating.'
