@@ -183,7 +183,14 @@ checa('o teto cabe em 3 × 6 s (o planejador pede 6 s para 43 palavras) e o piso
   const mutTetoSemFolga = trocaUma(W_SRC, '  const cabe = seedanceShortSpeechCapacity(SEEDANCE_SHORT_CLIP_STEPS[0], KLING25_CLIP_LOSS_SECONDS)', '  const cabe = 3 * (SEEDANCE_SHORT_CLIP_STEPS[0] - KLING25_CLIP_LOSS_SECONDS)')
   checa('mutante: teto do escritor sem a folga (o 43 de 234e3593) fica VERMELHO pelo mesmo predicado', mutTetoSemFolga !== null && !provaEscritor(compilaW(mutTetoSemFolga)))
 }
-checa('o /api/generate-script continua lendo min/maxWordsFor da lib (fonte única; a rota dele não foi tocada aqui)', rd('app/api/generate-script/route.ts').includes("import { minWordsFor, maxWordsFor, writerRateFor } from '@/lib/scriptWriterRate'") && rd('app/api/generate-script/route.ts') === rdBase('app/api/generate-script/route.ts'))
+// Reancorado 29/09 (junção com a E2b): "igual byte a byte à base" valia na main, onde só o 3x6 mexia; na E2b a rota do
+// escritor ganhou o corte do filme curto (trava 8.2, "vai" do 15 s) e deixa de ser igual à base por OUTRO trabalho. O que
+// esta checagem protege continua exigido: a rota lê a faixa da lib (fonte única), o teto dela sai de maxWordsFor, e o 3x6
+// não escreveu nada na rota (nenhum marcador dele, nenhuma faixa digitada).
+{
+  const GS = rd('app/api/generate-script/route.ts')
+  checa('o /api/generate-script continua lendo min/maxWordsFor da lib (fonte única; a rota dele não foi tocada aqui)', GS.includes("import { minWordsFor, maxWordsFor, writerRateFor } from '@/lib/scriptWriterRate'") && GS.includes('    const tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage), maxWordsForShortFilm(alvoSegundos))') && !GS.includes('KINEO-SEEDANCE-15S-3X6') && !GS.includes('seedanceShortWriterWords'))
+}
 
 // ═══ 4. rota ═══
 console.log('4) rota do cinematic (fatias reais)')

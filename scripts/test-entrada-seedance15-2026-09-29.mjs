@@ -59,10 +59,14 @@ const regua = W.writerRateFor('cinematic_ai', 'Lake Nyos', 'en')
 const TETO = Math.min(W.maxWordsFor(CURTO, regua.wordsPerSecond, regua.coverage), D.maxWordsForShortFilm(CURTO))
 const PISO = Math.min(W.minWordsFor(CURTO, regua.wordsPerSecond, regua.coverage), TETO)
 const cabecalhos = (t) => t.split('\n').map((l) => (/^(HOOK|MICRO REWARD \d|ESCALATION|RHYTHM|PAYOFF)\b/.exec(l.trim()) || [])[1]).filter(Boolean)
-checa(`o ensaio tinha ${falaDaGuarda(EX)} palavras em ${cabecalhos(EX).length} blocos e a guarda o RECUSA (teto ${TETO}, derivado)`, falaDaGuarda(EX) === 64 && cabecalhos(EX).length === 7 && guarda(EX).ok === false && TETO === D.maxWordsForShortFilm(CURTO))
+checa(`o ensaio tinha ${falaDaGuarda(EX)} palavras em ${cabecalhos(EX).length} blocos e a guarda o RECUSA (teto ${TETO}, derivado)`, falaDaGuarda(EX) === 64 && cabecalhos(EX).length === 7 && guarda(EX).ok === false && TETO <= D.maxWordsForShortFilm(CURTO) && TETO === Math.min(W.maxWordsFor(CURTO, regua.wordsPerSecond, regua.coverage), D.maxWordsForShortFilm(CURTO)))
+// Reancorado 29/09 (junção com o 3x6 da main, 495c2821): o escritor do 15 s mira ~41 palavras (lib/scriptWriterRate
+// seedanceShortWriterWords), abaixo do teto da guarda (56). O teto do escritor deixou de ser IGUAL ao da guarda — é o MENOR
+// dos dois (a mesma linha da rota). Depois das 4 seções a guarda já aceita; o corte determinístico da rota leva ao teto.
 const so4 = SF.keepShortFilmSections(EX)
-checa(`depois do conserto: ${cabecalhos(so4.script).length} blocos (HOOK, MR1, MR2, PAYOFF na ordem), ${falaDaGuarda(so4.script)} palavras ≤ ${TETO}, e a guarda ACEITA`,
-  JSON.stringify(cabecalhos(so4.script)) === JSON.stringify(['HOOK', 'MICRO REWARD 1', 'MICRO REWARD 2', 'PAYOFF']) && falaDaGuarda(so4.script) <= TETO && guarda(so4.script).ok === true &&
+const so4Cortado = SF.fitShortFilmScript(so4.script, { maxWords: TETO, minWords: PISO, countWords: falaDaGuarda })
+checa(`depois do conserto: ${cabecalhos(so4.script).length} blocos (HOOK, MR1, MR2, PAYOFF na ordem), ${falaDaGuarda(so4.script)} palavras (a guarda ACEITA) e o corte da rota leva a ${so4Cortado.words} ≤ ${TETO}`,
+  JSON.stringify(cabecalhos(so4.script)) === JSON.stringify(['HOOK', 'MICRO REWARD 1', 'MICRO REWARD 2', 'PAYOFF']) && falaDaGuarda(so4.script) <= D.maxWordsForShortFilm(CURTO) && guarda(so4.script).ok === true && so4Cortado.words <= TETO && guarda(so4Cortado.script).ok === true &&
   JSON.stringify(so4.dropped) === JSON.stringify(['MICRO REWARD 3', 'ESCALATION', 'RHYTHM']) && so4.script.includes('[Pexels: deserted village aftermath]'))
 {
   const mut = roda(troca(SF_SRC, '  const kept: Block[] = [hook, ...mrs.slice(0, 2), payoff]', '  const kept: Block[] = blocks'))

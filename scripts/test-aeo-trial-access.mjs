@@ -99,7 +99,9 @@ ok(canonical.includes('engines: ENGINE_FACTS'), 'trial coverage uses the canonic
 // RECURRING_PUBLISHED = !reverseTrial || RECURRING_FREE_ANNOUNCED: o mundo legado (flag OFF) segue publicando a franquia.
 ok(/export const RECURRING_FREE_ACCESS = RECURRING_PUBLISHED\r?\n  \? buildRecurringFreeAccessFact\(\{/.test(canonical) && /^const RECURRING_PUBLISHED: boolean = !FREE_OFFER\.reverseTrial \|\| RECURRING_FREE_ANNOUNCED\r?$/m.test(canonical),'canonical facts build recurring access only when announced (or in the legacy flag-OFF world)')
 ok(canonical.includes('videosPerWindow: FREE_OFFER.limit'), 'recurring limit uses the offer')
-ok(/^const RECURRING_FREE_ANNOUNCED: boolean = false$/m.test(canonical), 'recurring access is not announced (29/09)')
+// Reancorado 29/09 (revisão da E2b, achado 4 de texto): a constante passou a ser EXPORTADA (a carta send-weekly-quota a lê para
+// devolver 409 enquanto a cota não é anunciada). O valor exigido continua false, na linha inteira.
+ok(/^export const RECURRING_FREE_ANNOUNCED: boolean = false$/m.test(canonical), 'recurring access is not announced (29/09)')
 ok(canonical.includes('trialAccess: TRIAL_ACCESS'), 'JSON payload exposes trialAccess')
 ok(canonical.includes('recurringFreeAccess: RECURRING_FREE_ACCESS'), 'JSON payload exposes recurringFreeAccess')
 // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o escopo recorrente e o nome do motor só saem com a cota anunciada;
