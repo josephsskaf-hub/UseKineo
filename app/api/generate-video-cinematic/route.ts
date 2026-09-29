@@ -47,6 +47,7 @@ import {
   type AttemptRecord,
 } from '@/lib/cinematic/dispatchScenes'
 import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
+import { seedanceShortMarkedScenes } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 15 s] KINEO-CONTAGEM-FALA-15S-2026-09-29 (linha própria: a rota só GANHA linhas)
 import { describeScenesCovered, completeSceneDescriptions, hasSpeechArtifacts, type DescriptionCoverage } from '@/lib/cinematic/sceneDescriptions' // [TRAVA 8.2] KLING25-DESCRICOES-2026-09-28
 import { kling25FootageNeeded, kling25ShotCount, kling25SceneSeconds, kling25ClipsUsd, kling25WriterBudget, kling25AlignBudget, kling25AverageShotSeconds, kling25VerbatimPlan, kling25VisualHint, kling25SceneWordStarts, kling25PlanPace, kling25WordsFit, KLING25_CLIP_LOSS_SECONDS, kling25ApplyShotAxis, kling25StripShotAxis } from '@/lib/cinematic/klingShots' // KINEO-KLING25-PLANOS-5S-2026-09-28 · KINEO-KLING25-VARIEDADE-2026-09-28
 import { resolveCharacterVoice } from '@/lib/hollywood/characterVoice'
@@ -3240,6 +3241,19 @@ async function manipularPost(req: NextRequest) {
       const blocos = resolveVerbatimSegments({ segments: [], narration: parsedScript.narration }, SEEDANCE_SHORT_CLIPS)
       if (blocos.length > scenes.length) {
         scenes = blocos.map((seg) => ({ description: seg.pexelsQuery, voiceover: seg.voiceover, caption: shortCaptionFromVoiceover(seg.voiceover || seg.pexelsQuery), stockSearchQuery: seg.pexelsQuery }))
+        clipCount = scenes.length
+      }
+    }
+    // [TRAVA 8.2 — "vai" do 15 s] KINEO-CONTAGEM-FALA-15S-2026-09-29 — roteiro marcado com MAIS blocos que os 3 clipes (o caso
+    // de sempre do "Let AI structure it": HOOK, MICRO REWARD 1, MICRO REWARD 2, PAYOFF): resolveVerbatimSegments, acima,
+    // sorteava 3 dos 4 (0, 2, 3) e o MICRO REWARD 1 sumia das cenas — o ensaio de $0 contava 29 das 40 palavras (FAIL falso,
+    // 29/09 08:05 UTC), a pista visual do bloco nunca virava imagem e o clipe do HOOK cobria a fala dele. Agora os blocos
+    // vizinhos se juntam em 3 cenas (lib/durationByEngine seedanceShortMarkedScenes): a soma das falas das cenas é a
+    // narração inteira, palavra por palavra — a mesma que a voz lê (voiceover_script), a guarda e o plano 3x6 medem.
+    if (seedanceShortFilm && verbatim && parsedScript.segments.length > SEEDANCE_SHORT_CLIPS) {
+      const juntos = seedanceShortMarkedScenes(parsedScript, SEEDANCE_SHORT_CLIPS)
+      if (juntos.length === SEEDANCE_SHORT_CLIPS) {
+        scenes = juntos.map((seg) => ({ description: seg.pexelsQuery, voiceover: seg.voiceover, caption: shortCaptionFromVoiceover(seg.voiceover || seg.pexelsQuery), stockSearchQuery: seg.pexelsQuery }))
         clipCount = scenes.length
       }
     }

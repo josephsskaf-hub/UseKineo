@@ -210,3 +210,84 @@ export function isSeedanceShortClaim(response: Record<string, unknown> | null | 
   const model = response.fal_model
   return response.duration === SEEDANCE_SHORT_SECONDS && typeof model === 'string' && model.includes('/seedance/')
 }
+
+// ═══ KINEO-CONTAGEM-FALA-15S-2026-09-29 [TRAVA 8.2 — "vai" do 15 s] — nenhum bloco do roteiro some das 3 cenas ═══
+// Medido em produção (d8bbbd6f, 29/09 ~08:05 UTC): o filme grátis de 15 s ("Let AI structure it") nasce com 4 blocos
+// (HOOK, MICRO REWARD 1, MICRO REWARD 2, PAYOFF) e vira 3 clipes. A rota montava as cenas com resolveVerbatimSegments
+// (lib/cinematic/verbatimBeats), que SORTEIA 3 dos 4 blocos por índice (round(i × 3 ÷ 2) = 0, 2, 3): o MICRO REWARD 1
+// saía das cenas. A voz ainda o lia (voiceover_script é a narração inteira do autor), mas o ensaio de $0 contava 29 das
+// 40 palavras ("FAIL — narração de 11.8s … 29 palavras contra 37"), a pista visual do bloco nunca virava imagem e o
+// clipe do HOOK cobria a fala dele. Aqui os blocos VIZINHOS se juntam, em ordem, até sobrarem `clips` cenas: a fala de
+// cada cena é a soma exata dos seus blocos (nenhuma palavra muda, nenhuma sai) e as pistas visuais viajam juntas.
+// O corte escolhido: nenhuma cena sem fala; a maior cena o menor possível (os 3 clipes têm os MESMOS segundos, e fala acima
+// do clipe faz a imagem correr na frente da voz); depois o PAYOFF sozinho no último clipe e o HOOK sozinho no 1º (a
+// política do #369); depois o mais equilibrado. Fala antes do 1º marcador vai para a 1ª cena. Com `clips` blocos ou
+// menos, devolve os blocos como estão (a rota nem chama). Puro, sem import (executado por
+// scripts/test-contagem-fala-15s-2026-09-29.mjs).
+export interface SeedanceShortBeat { voiceover: string; pexelsQuery: string }
+export function seedanceShortMarkedScenes(
+  parsed: { segments: ReadonlyArray<SeedanceShortBeat>; narration: string },
+  clips: number = SEEDANCE_SHORT_CLIPS,
+): SeedanceShortBeat[] {
+  const norm = (t: string) => String(t ?? '').trim().replace(/\s+/gu, ' ')
+  const segs = parsed.segments.map((s) => ({ voiceover: norm(s.voiceover), pexelsQuery: norm(s.pexelsQuery) }))
+  const count = Math.max(1, Math.trunc(Number.isFinite(clips) ? clips : SEEDANCE_SHORT_CLIPS))
+  const n = segs.length
+  if (n <= count) return segs
+  const words = segs.map((s) => s.voiceover.split(' ').filter(Boolean).length)
+  const soma = (a: number, b: number) => { let t = 0; for (let i = a; i < b; i++) t += words[i]; return t }
+  const chaveDe = (limites: number[]): number[] => {
+    const somas = limites.slice(0, -1).map((a, g) => soma(a, limites[g + 1]))
+    return [
+      somas.filter((x) => x === 0).length,
+      Math.max(...somas),
+      limites[count - 1] === n - 1 ? 0 : 1, // PAYOFF sozinho no último clipe
+      limites[1] === 1 ? 0 : 1, // HOOK sozinho no 1º
+      somas.reduce((a, x) => a + x * x, 0),
+    ]
+  }
+  const melhorQue = (k: number[], atual: number[]): boolean => {
+    if (atual.length === 0) return true
+    for (let i = 0; i < k.length; i++) if (k[i] !== atual[i]) return k[i] < atual[i]
+    return false
+  }
+  let escolhidos: number[] = []
+  let chave: number[] = []
+  let combinacoes = 1
+  for (let i = 1; i < count; i++) combinacoes = (combinacoes * (n - i)) / i
+  if (combinacoes <= 20000) {
+    const visita = (cortes: number[], de: number): void => {
+      if (cortes.length === count - 1) {
+        const limites = [0, ...cortes, n]
+        const k = chaveDe(limites)
+        if (melhorQue(k, chave)) { chave = k; escolhidos = limites }
+        return
+      }
+      const faltam = count - 1 - cortes.length - 1
+      for (let c = de; c <= n - 1 - faltam; c++) visita([...cortes, c], c + 1)
+    }
+    visita([], 1)
+  } else {
+    // Blocos demais para comparar todos os cortes: corta onde a fala acumulada cruza cada fatia igual.
+    const total = soma(0, n)
+    escolhidos = [0]
+    for (let g = 1; g < count; g++) {
+      let c = escolhidos[g - 1] + 1
+      while (c < n - (count - g) && soma(0, c) < (total * g) / count) c++
+      escolhidos.push(c)
+    }
+    escolhidos.push(n)
+  }
+  const cenas = escolhidos.slice(0, -1).map((a, g) => {
+    const grupo = segs.slice(a, escolhidos[g + 1])
+    const pistas = grupo.map((s) => s.pexelsQuery).filter((q, i, todas) => q && todas.indexOf(q) === i)
+    return { voiceover: grupo.map((s) => s.voiceover).filter(Boolean).join(' '), pexelsQuery: pistas.join(', ') }
+  })
+  const narracao = norm(parsed.narration)
+  const blocos = norm(segs.map((s) => s.voiceover).join(' '))
+  if (blocos && narracao !== blocos && narracao.endsWith(' ' + blocos)) {
+    const antes = narracao.slice(0, narracao.length - blocos.length).trim()
+    if (antes) cenas[0] = { ...cenas[0], voiceover: norm(`${antes} ${cenas[0].voiceover}`) }
+  }
+  return cenas
+}
