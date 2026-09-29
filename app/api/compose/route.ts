@@ -1333,6 +1333,7 @@ export async function POST(req: NextRequest) {
         cost,
         credit_hold: creditHold,
         duration,
+        language, // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29 — a língua da narração: é deste claim (o único que a busca por render_id acha) que o render_delivered_measured do /api/compose/status a lê (era null em 100 % das linhas)
         // ⚠️ KINEO-TITULO-SOBREVIVE-2026-08-22 — REPETIDOS AQUI DE PROPÓSITO.
         // Este objeto SUBSTITUI o metadata inteiro do claim (não faz merge),
         // então qualquer campo que não seja re-listado aqui é APAGADO no

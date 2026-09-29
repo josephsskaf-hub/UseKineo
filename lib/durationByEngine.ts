@@ -179,6 +179,19 @@ export function maxWordsForShortFilm(seconds: number, language?: string | null):
   return Math.floor(seconds * SHORT_FILM_SPEECH_FACTOR * ritmoDoFilmeCurto(language))
 }
 
+// ═══ KINEO-PONTAS-15S-IDIOMA-2026-09-29 [TRAVA 8.2 — "vai conserta" do fundador, 29/09] — o que o cinematic ACEITA no 15 s ═══
+// A faixa de palavras faladas que a rota do cinematic aceita no filme de 15 s do Seedance 1.5, na língua:
+//   · piso = o portão de 95 % (a cobertura vem do chamador — MIN_COVERAGE de lib/narrationFit; este módulo não importa nada)
+//     medido na voz MAIS RÁPIDA que o 15 s pode ter: a régua da casa no ritmo da língua (lib/vozDoFilmeCurto limita a voz a
+//     2,5 pal/s e a rota aplica ritmoDaVozNoIdioma). Com esse tanto de palavras o portão passa com qualquer voz do 15 s;
+//   · teto = a guarda de roteiro longo na língua (maxWordsForShortFilm).
+// tr 29–45 · de 31–47 · en/pt/es 36–56. Caso de 29/09 09:27 UTC (Turquia): entre 27 palavras (o portão recusa) e ~40 (a guarda
+// aceita), o escritor ficava com as 27 — ver app/api/generate-script (notaDoFilmeCurto).
+export function faixaAceitaNoFilmeCurto(seconds: number, coverage: number, language?: string | null): { min: number; max: number } {
+  const max = maxWordsForShortFilm(seconds, language)
+  return { min: Math.min(max, Math.ceil(seconds * coverage * ritmoDoFilmeCurto(language) - 1e-9)), max }
+}
+
 /**
  * Revisão E2a (29/09): a saída que CABE vem primeiro. O trial de 10 cr não paga 35 s — mandar "pick 35 s" levava o
  * próximo clique ao 402. Encurtar mantém o preço do filme curto; 35 s vem com o custo real (passado pela rota, que o

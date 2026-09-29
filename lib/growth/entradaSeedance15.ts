@@ -11,8 +11,10 @@
 // 10 cr sem NENHUM filme possível (o Seedance de 35 s custa 15). Ligar SEEDANCE_15S_PUBLIC (commit de junção) liga a
 // entrada inteira de uma vez.
 //
-// Módulo PURO (só importa lib/durationByEngine, também puro): executado por scripts/test-entrada-seedance15-2026-09-29.mjs.
+// Módulo PURO (só importa lib/durationByEngine e lib/textLanguage, as duas puras, zero import): executado por
+// scripts/test-entrada-seedance15-2026-09-29.mjs.
 import { SEEDANCE_SHORT_SECONDS, maxWordsForShortFilm } from '@/lib/durationByEngine'
+import { resolveNarrationLanguage } from '@/lib/textLanguage' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29
 
 export const ENTRADA_SEEDANCE15_VERSION = 'entrada_seedance15_v1' as const
 
@@ -116,7 +118,12 @@ export function rotuloDoFilmeGratis(f: {
  * Roteiro colado (verbatim) grande demais para o filme curto: abrir em modo IA a 15 s, como TEASER do roteiro, em vez
  * de verbatim (a guarda do cinematic recusaria com 422 'script_too_long_for_short_film'). Mesma régua da guarda.
  */
-export function roteiroCabeNoFilmeCurto(texto: string | null | undefined, segundos: number = SEEDANCE_SHORT_SECONDS): boolean {
+export function roteiroCabeNoFilmeCurto(texto: string | null | undefined, segundos: number = SEEDANCE_SHORT_SECONDS, language?: string | null): boolean {
   const palavras = String(texto ?? '').split(/\s+/).filter(Boolean).length
-  return palavras <= maxWordsForShortFilm(segundos)
+  // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29 — o teto na LÍNGUA, como a guarda do
+  // cinematic (checarFalaDoFilmeCurto com a língua: tr 45, de 47, en/pt/es 56), resolvida como a rota a resolve
+  // (resolveNarrationLanguage: a pedida; inglês/ausente → a detectada no texto). Sem a língua, 50 palavras turcas "cabiam" aqui,
+  // iam verbatim e a rota recusava com 422 — em vez de virar o teaser de 15 s em modo IA.
+  const idioma = resolveNarrationLanguage(language, String(texto ?? '')).language
+  return palavras <= maxWordsForShortFilm(segundos, idioma)
 }

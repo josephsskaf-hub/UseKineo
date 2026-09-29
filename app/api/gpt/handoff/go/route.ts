@@ -86,7 +86,9 @@ export async function GET(req: NextRequest) {
       const pedido = creditCostForDuration('cinematic_ai', true, Number(row.duration_sec) || 60)
       const curto = creditCostForDuration('cinematic_ai', true, SEEDANCE_SHORT_SECONDS)
       if (saldo !== null && podeSeedance && saldo < pedido && saldo >= curto) {
-        entradaCurta = { shortSeconds: SEEDANCE_SHORT_SECONDS, fitsShort: roteiroCabeNoFilmeCurto(row.script, SEEDANCE_SHORT_SECONDS) }
+        // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29 — o teto na língua que o link leva ao
+        // Studio (os 2 primeiros caracteres, como buildStudioDestination), a mesma que a guarda do cinematic vai medir.
+        entradaCurta = { shortSeconds: SEEDANCE_SHORT_SECONDS, fitsShort: roteiroCabeNoFilmeCurto(row.script, SEEDANCE_SHORT_SECONDS, String(row.language ?? '').slice(0, 2).toLowerCase()) }
       }
     }
   } catch {

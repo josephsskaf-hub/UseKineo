@@ -14,6 +14,7 @@ let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else falhas.push(n) }
 const roda = (src, globals = {}) => { const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText; const exp = {}; vm.runInNewContext(js, { exports: exp, console, require: () => ({}), ...globals }); return exp }
+const TL = roda(rd('lib/textLanguage.ts')) // KINEO-PONTAS-15S-IDIOMA-2026-09-29: folha pura (zero import) — a língua do evento de entrega
 
 console.log('== 1) lib/speechRate: uma fonte, duas famílias, velocidade, estimativa ==')
 const SR = roda(rd('lib/speechRate.ts'))
@@ -67,7 +68,10 @@ checa('persistRenderAssets devolve measuredSeconds + measureMethod; sem leitura 
 const st = rd('app/api/compose/status/[renderId]/route.ts')
 checa('o evento render_delivered_measured sai no ponto de entrega com pedido, planejado, medido e método', st.includes("name: 'render_delivered_measured'") && st.includes('requested_seconds: Number.isFinite(requested) && requested > 0 ? requested : null,') && st.includes('planned_seconds: duration,') && st.includes('measured_seconds: measuredDelivery.measuredSeconds,') && st.includes('measure_method: measuredDelivery.measureMethod,'))
 checa('medição ausente fica null/unknown — nunca preenchida com a duração pedida', st.includes("let measuredDelivery: { measuredSeconds: number | null; measureMethod: 'mvhd' | 'unknown' } = { measuredSeconds: null, measureMethod: 'unknown' }") && !/measured_seconds: duration/.test(st) && !/measured_seconds: requested/.test(st))
-checa('o que a rota não sabe vai como desconhecido (idioma/voz/velocidade/legenda/trilha/modo)', st.includes('language: null, voice: null, speed: null,') && st.includes('captions_configured: null, music_configured: null,') && st.includes('input_mode: null,'))
+// Reancorado 29/09 (KINEO-PONTAS-15S-IDIOMA-2026-09-29, [TRAVA 8.2 — "vai conserta" do fundador]): o idioma deixou de ser desconhecido — vem do claim
+// do /api/compose (null quando o claim não o tem); voz/velocidade/legenda/trilha/modo seguem desconhecidos. Prova executada em
+// scripts/test-pontas-15s-idioma-2026-09-29.mjs e na seção 7 abaixo.
+checa('o que a rota não sabe vai como desconhecido (voz/velocidade/legenda/trilha/modo); o idioma vem do claim', st.includes('language: idiomaDaNarracao, voice: null, speed: null,') && st.includes('captions_configured: null, music_configured: null,') && st.includes('input_mode: null,'))
 // a sonda em si, executada, sobre um MP4 sintético
 {
   const mp4 = roda(rd('lib/mp4Duration.ts'))
@@ -124,7 +128,7 @@ const base = (extra) => { const c = { verbatim: true, parsedScript: { segments: 
   const ex = rd('app/api/expand-script/route.ts')
   checa('expand-script mede na configuração real (motor + velocidade do roteiro), fórmulas intactas', ex.includes('const regua = speechRateForScript(body.engine, original)') && ex.includes('const WORDS_PER_SECOND = regua.wordsPerSecond') && ex.includes('Math.min(palavrasTeto, Math.ceil(target * WORDS_PER_SECOND) + 8)'))
   const gc = rd('app/(dashboard)/generate/GenerateClient.tsx')
-  checa('a tela: contador e checagem local medem a narração EXTRAÍDA (speechSecondsOfScript), preflight na mesma régua — nenhum speechSeconds() antigo sobrou', /* STUDIO-CONTADOR-VOZ 28/09: a checagem da análise mede a narração extraída na régua da VOZ prevista (lib/contadorVoz → narracaoDoContador + speechSecondsAt), não mais em speechSecondsOfScript(quality) */ gc.includes('const falaSeg = falaNaReguaDaTela(baseChecagem, reguaAnalise)') && gc.includes("reguaDoServidorNaTela({ engine: mode === 'fast' || mode === 'creator' ? 'fast' : aiEngine, script: baseChecagem, language, vertical: analysis?.niche ?? null })") && /return narration\.trim\(\) \? speechSecondsAt\(narration, regua\.rate\) : 0/.test(rd('lib/contadorVoz.ts')) && gc.includes('const medidaTela = speechSecondsOfScript(quality, prompt)') && gc.includes('* reguaTela.wordsPerSecond)') && gc.includes('autofitDownAt(falaServidor, duration, speechRateForScript(quality, baseChecagem))') && !/\bspeechSeconds\(/.test(gc))
+  checa('a tela: contador e checagem local medem a narração EXTRAÍDA (speechSecondsOfScript), preflight na mesma régua — nenhum speechSeconds() antigo sobrou', /* STUDIO-CONTADOR-VOZ 28/09: a checagem da análise mede a narração extraída na régua da VOZ prevista (lib/contadorVoz → narracaoDoContador + speechSecondsAt), não mais em speechSecondsOfScript(quality) */ gc.includes('const falaSeg = falaNaReguaDaTela(baseChecagem, reguaAnalise)') && gc.includes("reguaDoServidorNaTela({ engine: mode === 'fast' || mode === 'creator' ? 'fast' : aiEngine, script: baseChecagem, language, vertical: analysis?.niche ?? null, seconds: duration })") /* reancorado 29/09 (KINEO-PONTAS-15S-IDIOMA, [TRAVA 8.2 — "vai conserta" do fundador]): + seconds */ && /return narration\.trim\(\) \? speechSecondsAt\(narration, regua\.rate\) : 0/.test(rd('lib/contadorVoz.ts')) && gc.includes('const medidaTela = speechSecondsOfScript(quality, prompt)') && gc.includes('* reguaTela.wordsPerSecond)') && gc.includes('autofitDownAt(falaServidor, duration, speechRateForScript(quality, baseChecagem))') && !/\bspeechSeconds\(/.test(gc))
   checa('a tela trata a recusa do Kineo 1 na mesma caixa da cinematic, antes do erro genérico', gc.indexOf("if (res.status === 422 && data?.reason === 'narration_too_short') {") > 0 && gc.indexOf("if (res.status === 422 && data?.reason === 'narration_too_short') {") < gc.indexOf("console.error('[generate] fast-mode error:'") && gc.includes('engine: quality,'))
   checa('rota cinematic: o salvage só é pulado por ensaio AUTORIZADO', rc.includes('if (salvageDb && !(body.dry_run === true && isDryRunAccount(user.email))) {'))
 }
@@ -157,11 +161,15 @@ console.log('== 7) evento de entrega: executado no caminho real — uma emissão
   const executa = async ({ result, measuredDelivery, claim, falhaClaim, eventos }) => {
     const supabase = { from: () => ({ select: () => ({ eq: () => ({ eq: () => ({ order: () => ({ limit: () => ({ maybeSingle: async () => { if (falhaClaim) throw new Error('db down'); return { data: claim } } }) }) }) }) }) }) }
     const js = ts.transpileModule('export async function run() {' + bloco + '\n }', { compilerOptions: { module: 1, target: 9 } }).outputText
-    const exp = {}; vm.runInNewContext(js, { exports: exp, console: { warn: () => {}, log: () => {} }, supabase: { from: () => { throw new Error('cliente do usuario nao le events (RLS)') } }, createAdminClient: () => supabase, process: { env: { NEXT_PUBLIC_SUPABASE_URL: 'https://x', SUPABASE_SERVICE_ROLE_KEY: 'k' } }, COMPOSE_CLAIM_EVENT: 'compose_submission_claim', renderId: 'r1', user: { id: 'u1' }, quality: 'cinematic_h3', duration: 62, result, measuredDelivery, writeServerEvent: (e) => { eventos.push(e); return Promise.resolve(true) } })
+    const exp = {}; vm.runInNewContext(js, { exports: exp, console: { warn: () => {}, log: () => {} }, supabase: { from: () => { throw new Error('cliente do usuario nao le events (RLS)') } }, createAdminClient: () => supabase, process: { env: { NEXT_PUBLIC_SUPABASE_URL: 'https://x', SUPABASE_SERVICE_ROLE_KEY: 'k' } }, COMPOSE_CLAIM_EVENT: 'compose_submission_claim', renderId: 'r1', user: { id: 'u1' }, quality: 'cinematic_h3', duration: 62, result, measuredDelivery, writeServerEvent: (e) => { eventos.push(e); return Promise.resolve(true) }, /* reancorado 29/09 (KINEO-PONTAS-15S-IDIOMA, [TRAVA 8.2 — "vai conserta" do fundador]): o bloco lê a língua do claim com as funções puras de lib/textLanguage */ narrationLanguage: TL.narrationLanguage, resolveNarrationLanguage: TL.resolveNarrationLanguage })
     await exp.run()
   }
   const ev1 = []
   await executa({ result: { ok: true, id: 'v1' }, measuredDelivery: { measuredSeconds: 61.5, measureMethod: 'mvhd' }, claim: { metadata: { duration: 60, narration: 'one two three' } }, eventos: ev1 })
+  checa('claim sem a língua (anterior ao deploy): language null — desconhecido, nunca inventado', ev1.length === 1 && ev1[0].metadata.language === null)
+  const evL = []
+  await executa({ result: { ok: true, id: 'v1' }, measuredDelivery: { measuredSeconds: 15.4, measureMethod: 'mvhd' }, claim: { metadata: { duration: 15, language: 'tr', narration: 'Göl bir gecede bin yedi yüz kişiyi öldürdü.' } }, eventos: evL })
+  checa('claim com a língua: o evento grava language (tr)', evL.length === 1 && evL[0].metadata.language === 'tr')
   checa('o claim é lido com o cliente da CASA (service role), não com o do usuário (RLS de events): o pedido chega ao evento', st.includes('const leitor = leitorUrl && leitorKey ? createAdminClient(leitorUrl, leitorKey,') && st.includes('const { data: claimRow } = await leitor'))
   checa('linha nova: 1 evento com pedido 60, planejado 62, medido 61,5 (mvhd), 3 palavras, video_id', ev1.length === 1 && ev1[0].metadata.requested_seconds === 60 && ev1[0].metadata.planned_seconds === 62 && ev1[0].metadata.measured_seconds === 61.5 && ev1[0].metadata.measure_method === 'mvhd' && ev1[0].metadata.narration_words === 3 && ev1[0].metadata.video_id === 'v1')
   const ev2 = []

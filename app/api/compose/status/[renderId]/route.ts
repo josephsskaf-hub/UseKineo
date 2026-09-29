@@ -34,6 +34,7 @@ import { getRenderIntent } from '@/lib/credits/renderIntent'
 // leva campanha fechada para a origem ser distinguivel no pricing/checkout.
 import { videoReadyFooter } from '@/lib/lifecycle/videoReadyFooter'
 import { COMPOSE_CLAIM_EVENT } from '@/lib/composeClaim'
+import { narrationLanguage, resolveNarrationLanguage } from '@/lib/textLanguage' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29
 import {
   loadPrepaidAvatarClaimForRender,
   settleAvatarCreditHoldForRender,
@@ -1073,6 +1074,12 @@ export async function GET(
               const cm = ((claimRow as { metadata?: Record<string, unknown> } | null)?.metadata ?? {}) as Record<string, unknown>
               const requested = Number(cm.duration)
               const narrationWords = typeof cm.narration === 'string' ? cm.narration.trim().split(/\s+/).filter(Boolean).length : null
+              // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29 — a língua da narração: a do
+              // claim (o /api/compose passou a gravá-la), resolvida contra a fala como a rota do cinematic resolve (a pedida; se
+              // inglês, a detectada no texto — o cinematic troca sozinho e o cliente não fica sabendo). Claim sem a língua
+              // (anterior a este deploy, ou do /api/compose/unlock): null, como antes — desconhecido, nunca inventado.
+              const idiomaPedido = narrationLanguage(cm.language)
+              const idiomaDaNarracao = idiomaPedido ? resolveNarrationLanguage(idiomaPedido, typeof cm.narration === 'string' ? cm.narration : '').language : null
               void writeServerEvent({ name: 'render_delivered_measured', userId: user.id, path: '/api/compose/status', metadata: {
                 render_id: renderId, video_id: result.id ?? null,
                 engine: quality,
@@ -1082,7 +1089,7 @@ export async function GET(
                 measured_seconds: measuredDelivery.measuredSeconds,
                 measure_method: measuredDelivery.measureMethod,
                 narration_words: narrationWords,
-                language: null, voice: null, speed: null,
+                language: idiomaDaNarracao, voice: null, speed: null,
                 captions_configured: null, music_configured: null,
                 result: 'completed', failure_reason: null,
               } })

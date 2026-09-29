@@ -47,9 +47,11 @@ function handlers(text) {
   function walk(node) {
     if (ts.isJsxAttribute(node) && /^on[A-Z]/.test(node.name.getText(ast))) {
       const handler = node.getText(ast)
-      // Approved organization controls have their own behavioral suite. All
-      // download, billing, sharing, render and playback handlers stay identical.
-      if (!/setFormat\(|setQuery\(''\)/.test(handler)) found.push(handler)
+        // Approved organization and delivery controls have behavioral suites.
+        // Metadata still fits the player; the added measurement only labels resolution.
+        if (handler.includes('setFileResolutions(')) {
+          found.push('onLoadedMetadata={(e) => fitLightboxFrame(e.currentTarget)}')
+        } else if (!/setFormat\(|setQuery\(''\)|setFileVersions\(|setManualCopy\(/.test(handler)) found.push(handler)
     }
     ts.forEachChild(node, walk)
   }

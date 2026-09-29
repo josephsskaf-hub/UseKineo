@@ -4137,7 +4137,7 @@ export default function GenerateClient({
       seedanceCostAt: custoSeedance,
       entrada15,
       shortSeconds: SEEDANCE_SHORT_SECONDS,
-      promptFitsShort: roteiroCabeNoFilmeCurto(contratoPedido.prompt),
+      promptFitsShort: roteiroCabeNoFilmeCurto(contratoPedido.prompt, SEEDANCE_SHORT_SECONDS, language), // KINEO-PONTAS-15S-IDIOMA-2026-09-29: o teto na língua da fala
       kineo1: kineo1Visible,
     })
     const activationContract = activationDecision.engine === 'none'
@@ -7533,6 +7533,8 @@ export default function GenerateClient({
           targetSeconds: scriptTooShort.targetSeconds,
           // KINEO-REGUA-UNICA-2026-09-14 — a expansão mede na régua do motor escolhido
           engine: quality,
+          // KINEO-PONTAS-15S-IDIOMA-2026-09-29 — no 15 s do Seedance a expansão mede no ritmo da língua (a régua do portão).
+          language,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -8163,7 +8165,8 @@ export default function GenerateClient({
       if (scriptMode === 'verbatim' && baseChecagem) {
         // STUDIO-CONTADOR-VOZ-2026-09-28: a checagem da análise mede na MESMA régua do contador e do servidor — a voz
         // que vai narrar (persona por nicho no clássico, 2,3 no hollywood), não a da família. Antes, 3,1 aqui e 2,3 lá.
-        const reguaAnalise = reguaDoServidorNaTela({ engine: mode === 'fast' || mode === 'creator' ? 'fast' : aiEngine, script: baseChecagem, language, vertical: analysis?.niche ?? null })
+        // KINEO-PONTAS-15S-IDIOMA-2026-09-29: com `seconds`, o 15 s do Seedance mede na voz do portão, no ritmo da língua.
+        const reguaAnalise = reguaDoServidorNaTela({ engine: mode === 'fast' || mode === 'creator' ? 'fast' : aiEngine, script: baseChecagem, language, vertical: analysis?.niche ?? null, seconds: duration })
         const falaSeg = falaNaReguaDaTela(baseChecagem, reguaAnalise) // KINEO-REGUA-UNICA: narração extraída, agora na régua da voz
         const cobre = falaSeg >= duration * MIN_COVERAGE
         // KINEO-CONTRATO-DURACAO-2026-09-02 — o espelho do bloqueio acima, para
@@ -9046,7 +9049,8 @@ export default function GenerateClient({
     if (process.env.NODE_ENV === 'development') console.log(`[ux1] autoanalyze-effect -> handleAnalyze() key="${key.slice(0,40)}" phase=${phase} @${Date.now()}`)
     // Revisão da E2b (achado 5): a 15 s no Seedance, roteiro pronto longo demais (Viral Now, ~110 palavras) iria sem
     // estruturar e a guarda do cinematic recusaria (422) — vira o teaser de 15 s em modo IA, a régua do filme curto.
-    if (mode === 'cinematic_ai' && aiEngine === 'seedance' && duration === SEEDANCE_SHORT_SECONDS && !roteiroCabeNoFilmeCurto(sp)) {
+    // KINEO-PONTAS-15S-IDIOMA-2026-09-29 — o teto da guarda na língua da fala (tr 45, de 47, en/pt/es 56).
+    if (mode === 'cinematic_ai' && aiEngine === 'seedance' && duration === SEEDANCE_SHORT_SECONDS && !roteiroCabeNoFilmeCurto(sp, SEEDANCE_SHORT_SECONDS, language)) {
       handleAnalyze(sp, { fromTopic: true, skipPreview: true, structureFirst: true, scriptModeOverride: 'ai' })
       return
     }
@@ -12451,7 +12455,7 @@ export default function GenerateClient({
     if (
       seedanceNoEpisodio &&
       duracaoDoEpisodio === SEEDANCE_SHORT_SECONDS &&
-      !roteiroCabeNoFilmeCurto(s) &&
+      !roteiroCabeNoFilmeCurto(s, SEEDANCE_SHORT_SECONDS, language) &&
       (credits === null || credits < custoSeedance(60))
     ) {
       setScriptMode('ai')
@@ -14376,7 +14380,8 @@ export default function GenerateClient({
               setMode('cinematic_ai'); setAiEngine('seedance'); setDuration(SEEDANCE_SHORT_SECONDS)
               // Revisão da E2b (achado 3): roteiro colado longo demais para 15 s não vai verbatim (a guarda do cinematic
               // recusaria com 422) — vira o teaser em modo IA, a mesma régua do /go (roteiroCabeNoFilmeCurto).
-              if (scriptMode === 'verbatim' && !roteiroCabeNoFilmeCurto(prompt)) setScriptMode('ai')
+              // KINEO-PONTAS-15S-IDIOMA-2026-09-29 — o teto da guarda na língua da fala (a mesma do cinematic).
+              if (scriptMode === 'verbatim' && !roteiroCabeNoFilmeCurto(prompt, SEEDANCE_SHORT_SECONDS, language)) setScriptMode('ai')
               return
             }
             setMode('fast')
@@ -14930,7 +14935,8 @@ export default function GenerateClient({
             // funções (lib/contadorVoz), antes do clique — inclusive avisando quando o seletor vai mudar.
             if (scriptMode === 'verbatim') {
               const motorContador: ContadorMotor = mode === 'fast' || mode === 'creator' ? 'fast' : aiEngine
-              const reguaVoz = reguaDoServidorNaTela({ engine: motorContador, script: prompt, language, vertical: analysis?.niche ?? null })
+              // KINEO-PONTAS-15S-IDIOMA-2026-09-29: com `seconds`, o 15 s do Seedance mede na voz do portão, no ritmo da língua.
+              const reguaVoz = reguaDoServidorNaTela({ engine: motorContador, script: prompt, language, vertical: analysis?.niche ?? null, seconds: duration })
               const veredito = contadorVoz({ script: prompt, regua: reguaVoz, requestedSeconds: duration })
               if (!veredito) return null
               const frase = fraseDoContador(veredito, reguaVoz.persona ? reguaVoz.persona.name : null, motorContador)
