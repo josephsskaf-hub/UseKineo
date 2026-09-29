@@ -119,7 +119,9 @@ export function parseAlignReplyFull(raw: string, scenes: AlignScene[]): { rewrit
  */
 export async function alignShotsToSpeech(
   input: { topic: string; scenes: AlignScene[] },
-  opts?: { timeoutMs?: number; fetchImpl?: typeof fetch; model?: string },
+  // KINEO-KLING25-PLANOS-5S-2026-09-28 — `maxTokens`: o Kling 2.5 manda o dobro de cenas (até 12) e cada reescrita custa
+  // ~150 tokens; com o teto fixo de 1.400 o JSON sairia cortado e o supervisor inteiro cairia (falha aberta). Ausente = 1.400.
+  opts?: { timeoutMs?: number; fetchImpl?: typeof fetch; model?: string; maxTokens?: number },
 ): Promise<AlignResult | null> {
   if (!SPEECH_IMAGE_ALIGN_ENABLED) return null
   const started = Date.now()
@@ -139,7 +141,7 @@ export async function alignShotsToSpeech(
       body: JSON.stringify({
         model,
         temperature: 0.2,
-        max_tokens: 1400,
+        max_tokens: typeof opts?.maxTokens === 'number' && opts.maxTokens > 0 ? Math.round(opts.maxTokens) : 1400,
         response_format: { type: 'json_object' },
         messages: buildAlignMessages({ topic: input.topic, scenes }),
       }),
