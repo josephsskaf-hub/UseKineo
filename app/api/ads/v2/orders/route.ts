@@ -77,6 +77,23 @@ export async function POST(req: NextRequest) {
     const photos = (a.photos ?? []).map((p) => ({ footage_id: p.footage_id, kind: p.kind, url: own.get(p.footage_id)?.isImage ? own.get(p.footage_id)!.url : '' }))
     if (photos.some((p) => !p.url)) return v2Fail('media_not_owned', 400)
 
+    // KINEO-ADS-MODO-SIMPLES-2026-09-29 — o brief do modo simples leva o modo, as frases (liga/desliga), o preço e o
+    // contato que a PESSOA escreveu. research_from: rascunho anterior DESTA conta; se a frase for idêntica, a pesquisa
+    // gravada (status ok) é copiada — trocar voz, frases, preço, contato ou nível não paga outra pesquisa.
+    const brief: Record<string, unknown> = { sentence: o.sentence, link: o.link }
+    if (o.mode === 'simple') {
+      brief.mode = 'simple'
+      brief.overlays = o.overlays !== false
+      brief.price = o.price ?? null
+      brief.contact = o.contact ?? null
+      if (o.research_from) {
+        const prev = await admin.from('ads_v2_orders').select('brief').eq('id', o.research_from).eq('user_id', user.id).maybeSingle()
+        const pb = (prev.data as { brief: Record<string, unknown> | null } | null)?.brief ?? null
+        const pr = pb?.research as { status?: unknown } | undefined
+        if (pb && pb.sentence === o.sentence && pr && pr.status === 'ok') brief.research = { ...pr, copied_from: o.research_from, selected: undefined }
+      }
+    }
+
     const ins = await admin
       .from('ads_v2_orders')
       .insert({
@@ -85,7 +102,7 @@ export async function POST(req: NextRequest) {
         tier: o.tier,
         seconds: o.seconds,
         sector: o.sector,
-        brief: { sentence: o.sentence, link: o.link },
+        brief,
         language: o.language,
         narration: o.narration,
         logo_footage_id: a.logo_footage_id,
@@ -102,7 +119,10 @@ export async function POST(req: NextRequest) {
       name: 'ads_v2_order_created',
       userId: user.id,
       path: '/api/ads/v2/orders',
-      metadata: { order_id: orderId, tier: o.tier, seconds: o.seconds, sector: o.sector, has_link: Boolean(o.link), has_sentence: Boolean(o.sentence), narration: o.narration, photos: photos.length, credits },
+      metadata: {
+        order_id: orderId, tier: o.tier, seconds: o.seconds, sector: o.sector, has_link: Boolean(o.link), has_sentence: Boolean(o.sentence), narration: o.narration, photos: photos.length, credits,
+        mode: o.mode === 'simple' ? 'simple' : 'full', overlays: o.overlays !== false, has_price: Boolean(o.price), has_contact: Boolean(o.contact), research_copied: Boolean(brief.research),
+      },
     })
     return v2Json({ order_id: orderId, status: 'draft', credits }, 201)
   } catch (e) {

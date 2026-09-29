@@ -37,6 +37,32 @@ const obj = (raw: unknown): Record<string, unknown> | null =>
   raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>) : null
 const fail = <T>(error: string): AdsV2Sanitized<T> => ({ ok: false, error })
 
+// KINEO-ADS-MODO-SIMPLES-2026-09-29 — modo simples do /ads/v2 (pedido do fundador ao tentar anunciar o próprio imóvel:
+// "coloco os arquivos, falo mais ou menos o que quero, escolho o nível, e vocês fazem"). Os campos do modo simples SÓ
+// existem no valor devolvido quando o corpo diz mode:'simple'. Sem mode (ou mode:'full') o retorno é o de antes, chave
+// por chave — o guardião base (C1/C5) e o modo completo não mudam.
+export type AdsV2ContractMode = 'simple' | 'full'
+export const ADS_V2_CONTRACT_MODES: readonly AdsV2ContractMode[] = ['simple', 'full']
+export const ADS_V2_PRICE_MAX_CHARS = 60
+export const ADS_V2_CONTACT_MAX_CHARS = 80
+/** Fatos da pesquisa: ids f1..f6 (a pesquisa devolve no máximo 6). */
+export const ADS_V2_MAX_FACTS = 6
+const FACT_ID_RE = /^f[1-6]$/
+
+/** Lê `mode`: ausente = 'full'; valor fora do enum = null (a rota devolve bad_mode). */
+function readMode(b: Record<string, unknown>): AdsV2ContractMode | null {
+  if (b.mode === undefined || b.mode === null) return 'full'
+  return typeof b.mode === 'string' && (ADS_V2_CONTRACT_MODES as readonly string[]).includes(b.mode) ? (b.mode as AdsV2ContractMode) : null
+}
+/** Texto curto opcional: ausente/vazio = null; não-string ou longo demais = undefined (recusa). */
+function shortText(v: unknown, max: number): string | null | undefined {
+  if (v === undefined || v === null) return null
+  if (typeof v !== 'string') return undefined
+  const s = v.replace(/\s+/g, ' ').trim()
+  if (s.length > max) return undefined
+  return s || null
+}
+
 export interface AdsV2CreateOrderBody {
   tier: AdsV2ContractTier
   seconds: AdsV2ContractSeconds
@@ -45,12 +71,24 @@ export interface AdsV2CreateOrderBody {
   link: string | null
   language: string | null
   narration: boolean
+  /** Só no modo simples (mode:'simple'); ausentes no modo completo. */
+  mode?: 'simple'
+  /** Frases na tela (padrão ligadas). false = o anúncio sai sem nenhuma frase. */
+  overlays?: boolean
+  /** Preço que a PESSOA escreveu (vai ao texto do anúncio e ao cartão). Nunca vai à pesquisa. */
+  price?: string | null
+  /** Contato que a PESSOA escreveu. Nunca vai à pesquisa. */
+  contact?: string | null
+  /** Rascunho anterior da mesma conta: se a frase for idêntica, a pesquisa gravada é copiada (sem pesquisar de novo). */
+  research_from?: string | null
 }
 
 /** POST criar pedido: nível, duração (padrão 15), 1 frase OU o link do negócio, idioma e narração (padrão ligada). */
 export function sanitizeCreateOrderBody(raw: unknown): AdsV2Sanitized<AdsV2CreateOrderBody> {
   const b = obj(raw)
   if (!b) return fail('bad_body')
+  const mode = readMode(b)
+  if (!mode) return fail('bad_mode')
   const tier = b.tier
   if (typeof tier !== 'string' || !(ADS_V2_CONTRACT_TIERS as readonly string[]).includes(tier)) return fail('bad_tier')
   const seconds = b.seconds === undefined || b.seconds === null ? 15 : b.seconds
@@ -85,7 +123,23 @@ export function sanitizeCreateOrderBody(raw: unknown): AdsV2Sanitized<AdsV2Creat
     if (typeof b.narration !== 'boolean') return fail('bad_narration')
     narration = b.narration
   }
-  return { ok: true, value: { tier: tier as AdsV2ContractTier, seconds: seconds as AdsV2ContractSeconds, sector, sentence, link, language, narration } }
+  const value: AdsV2CreateOrderBody = { tier: tier as AdsV2ContractTier, seconds: seconds as AdsV2ContractSeconds, sector, sentence, link, language, narration }
+  if (mode !== 'simple') return { ok: true, value }
+  let overlays = true
+  if (b.overlays !== undefined && b.overlays !== null) {
+    if (typeof b.overlays !== 'boolean') return fail('bad_overlays')
+    overlays = b.overlays
+  }
+  const price = shortText(b.price, ADS_V2_PRICE_MAX_CHARS)
+  if (price === undefined) return fail('bad_price')
+  const contact = shortText(b.contact, ADS_V2_CONTACT_MAX_CHARS)
+  if (contact === undefined) return fail('bad_contact')
+  let researchFrom: string | null = null
+  if (b.research_from !== undefined && b.research_from !== null) {
+    if (!isUuid(b.research_from)) return fail('bad_research_from')
+    researchFrom = (b.research_from as string).toLowerCase()
+  }
+  return { ok: true, value: { ...value, mode: 'simple', overlays, price, contact, research_from: researchFrom } }
 }
 
 export interface AdsV2PlanPhoto {
@@ -95,17 +149,37 @@ export interface AdsV2PlanPhoto {
 export interface AdsV2PlanBody {
   order_id: string
   sector: AdsV2ContractSector
-  logo_footage_id: string
+  /** Obrigatório no modo completo; opcional (null) só com mode:'simple' — pessoa física não tem logo. */
+  logo_footage_id: string | null
   photos: AdsV2PlanPhoto[]
+  /** Só no modo simples. */
+  mode?: 'simple'
+  /** Ids dos fatos da pesquisa que a pessoa deixou marcados (f1..f6). O TEXTO do fato nunca vem do cliente. */
+  facts?: string[]
 }
 
 /** POST planejar: setor, logo e 3 a 7 fotos JÁ recortadas em 9:16 no navegador, cada uma com o tipo marcado. */
 export function sanitizePlanBody(raw: unknown): AdsV2Sanitized<AdsV2PlanBody> {
   const b = obj(raw)
   if (!b) return fail('bad_body')
+  const mode = readMode(b)
+  if (!mode) return fail('bad_mode')
+  const simple = mode === 'simple'
   if (!isUuid(b.order_id)) return fail('bad_order_id')
   if (typeof b.sector !== 'string' || !(ADS_V2_CONTRACT_SECTORS as readonly string[]).includes(b.sector)) return fail('bad_sector')
-  if (!isUuid(b.logo_footage_id)) return fail('bad_logo_footage_id')
+  const logoAbsent = b.logo_footage_id === undefined || b.logo_footage_id === null
+  if (!(simple && logoAbsent) && !isUuid(b.logo_footage_id)) return fail('bad_logo_footage_id')
+  const logoId = logoAbsent ? null : (b.logo_footage_id as string).toLowerCase()
+  let facts: string[] = []
+  if (simple && b.facts !== undefined && b.facts !== null) {
+    if (!Array.isArray(b.facts) || b.facts.length > ADS_V2_MAX_FACTS) return fail('bad_facts')
+    const seenFacts = new Set<string>()
+    for (const f of b.facts) {
+      if (typeof f !== 'string' || !FACT_ID_RE.test(f) || seenFacts.has(f)) return fail('bad_facts')
+      seenFacts.add(f)
+    }
+    facts = [...seenFacts]
+  }
   if (!Array.isArray(b.photos)) return fail('bad_photos')
   if (b.photos.length < ADS_V2_CONTRACT_MIN_PHOTOS) return fail('too_few_photos')
   if (b.photos.length > ADS_V2_CONTRACT_MAX_PHOTOS) return fail('too_many_photos')
@@ -117,19 +191,29 @@ export function sanitizePlanBody(raw: unknown): AdsV2Sanitized<AdsV2PlanBody> {
     if (typeof p.kind !== 'string' || !(ADS_V2_CONTRACT_PHOTO_KINDS as readonly string[]).includes(p.kind)) return fail('bad_photo_kind')
     const id = (p.footage_id as string).toLowerCase()
     if (seen.has(id)) return fail('duplicate_photo')
-    if (id === (b.logo_footage_id as string).toLowerCase()) return fail('logo_is_photo')
+    if (id === logoId) return fail('logo_is_photo')
     seen.add(id)
     photos.push({ footage_id: id, kind: p.kind as AdsV2ContractPhotoKind })
   }
-  return {
-    ok: true,
-    value: {
-      order_id: (b.order_id as string).toLowerCase(),
-      sector: b.sector as AdsV2ContractSector,
-      logo_footage_id: (b.logo_footage_id as string).toLowerCase(),
-      photos,
-    },
+  const value: AdsV2PlanBody = {
+    order_id: (b.order_id as string).toLowerCase(),
+    sector: b.sector as AdsV2ContractSector,
+    logo_footage_id: logoId,
+    photos,
   }
+  return { ok: true, value: simple ? { ...value, mode: 'simple', facts } : value }
+}
+
+export interface AdsV2ResearchBody {
+  order_id: string
+}
+
+/** POST pesquisar (modo simples): só o pedido. O que se pesquisa é a frase GRAVADA no pedido, nunca texto do corpo. */
+export function sanitizeResearchBody(raw: unknown): AdsV2Sanitized<AdsV2ResearchBody> {
+  const b = obj(raw)
+  if (!b) return fail('bad_body')
+  if (!isUuid(b.order_id)) return fail('bad_order_id')
+  return { ok: true, value: { order_id: (b.order_id as string).toLowerCase() } }
 }
 
 export interface AdsV2StartBody {
