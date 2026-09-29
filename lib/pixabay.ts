@@ -58,7 +58,7 @@ let ACTIVE_SUBJECT_CONTEXT = ''
 export function setActiveSubjectContext(hint?: unknown): void {
   ACTIVE_SUBJECT_CONTEXT = typeof hint === 'string' ? hint.toLowerCase().slice(0, 600) : ''
 }
-const SUBJECT_CONFLICTS: ReadonlyArray<{ subject: RegExp; context: RegExp; rejectTags: RegExp; label: string }> = [
+const SUBJECT_CONFLICTS: ReadonlyArray<{ subject: RegExp; context: RegExp; rejectTags: RegExp; label: string; unless?: RegExp }> = [
   { subject: /\b(mustang|jaguar|beetle|bronco|impala|cobra|viper|barracuda|stingray)\b/, context: /\b(car|cars|vehicle|ford|chevy|chevrolet|dodge|engine|drive|driving|model|sedan|coupe|drift|drifting|steering|wheel|horsepower|showroom|garage|road)\b/, rejectTags: /\b(horse|horses|stallion|mare|foal|colt|equine|gallop|galloping|rodeo|bronco|wild horse|animal|wildlife|mammal|leopard|beetle|insect|snake|fish|cat)\b/, label: 'car_not_animal' },
   { subject: /\bbullets?\b/, context: /\b(rifle|sniper|gun|guns|shot|shooting|shooter|trajectory|ammo|ammunition|target|caliber|firearm)\b/, rejectTags: /\b(train|trains|rail|railway|shinkansen|high speed|christmas|ornament|decoration|bauble)\b/, label: 'bullet_not_train' },
   { subject: /\b(python|java|ruby|swift|rust|go)\b/, context: /\b(code|coding|programming|software|developer|script|language)\b/, rejectTags: /\b(snake|reptile|coffee|gem|gemstone|bird|corrosion)\b/, label: 'language_not_thing' },
@@ -71,10 +71,12 @@ const SUBJECT_CONFLICTS: ReadonlyArray<{ subject: RegExp; context: RegExp; rejec
   // sujeito aceita prefixo); "lead" (cliente) virou munição; "tablet" (dispositivo) é remédio no Pixabay; "reads"
   // (software que lê contrato) trouxe o Alcorão — a fala real do eQMS ("reads, summarizes and delivers the precise
   // information you need") entra no contexto para a regra disparar no caso que aconteceu, não só no caso ideal.
-  { subject: /\b\w*tenders?\b/, context: /\b(bid|bids|bidding|procurement|proposal|proposals|contract|contracts|public|government|rfp|rfq|award|awarded|win|winning|supplier|suppliers|tendering|evaluation|evaluate|document|documents|platform|software|ai|business|compliance|submission|submissions)\b/, rejectTags: /\b(meat|steak|steaks|grill|grilled|grilling|beef|chicken|pork|lamb|barbecue|bbq|food|cooking|kitchen|dish|roast|rose|roses|flower|flowers)\b/, label: 'tender_not_meat' },
+  { subject: /\b(?!bartenders?\b)\w*tenders?\b/, context: /\b(bid|bids|bidding|procurement|proposal|proposals|contract|contracts|public|government|rfp|rfq|award|awarded|win|winning|supplier|suppliers|tendering|evaluation|evaluate|document|documents|platform|software|ai|business|compliance|submission|submissions)\b/, rejectTags: /\b(meat|steak|steaks|grill|grilled|grilling|beef|chicken|pork|lamb|barbecue|bbq|food|cooking|kitchen|dish|roast|rose|roses|flower|flowers)\b/, label: 'tender_not_meat' },
   { subject: /\bleads?\b/, context: /\b(sales|customer|customers|client|clients|business|marketing|funnel|pipeline|crm|conversion|conversions|generate|generating|prospect|prospects|website|campaign|campaigns|revenue|grow|growth|agency)\b/, rejectTags: /\b(bullet|bullets|ammunition|ammo|cartridge|cartridges|casing|gun|guns|rifle|pistol|metal|pencil|pencils|graphite|leash|dog)\b/, label: 'lead_not_ammo' },
   { subject: /\btablets?\b/, context: /\b(device|devices|screen|screens|app|apps|ipad|touch|touchscreen|digital|software|tech|technology|display|scroll|scrolling|browsing|smartphone|phone|laptop|document|documents|dashboard|online|website|data)\b/, rejectTags: /\b(pill|pills|medicine|medication|medications|drug|drugs|pharmacy|pharmaceutical|capsule|capsules|vitamin|vitamins|dose|dosage|prescription|painkiller|aspirin|supplement|supplements)\b/, label: 'tablet_not_pill' },
-  { subject: /\b(reads?|reading)\b/, context: /\b(contract|contracts|document|documents|line|lines|text|email|emails|report|reports|data|code|file|files|software|ai|screen|scan|scans|analyze|analyzes|analyse|analyses|clause|clauses|page|pages|information|summarize|summarizes|summary|deliver|delivers|precise|assistant|automation|automates|platform|tool)\b/, rejectTags: /\b(quran|koran|bible|scripture|scriptures|torah|holy book|prayer|praying|religious|religion|mosque|church|hijab)\b/, label: 'read_not_scripture' },
+  // KINEO1-TAGS-PROIBIDAS (revisão) — `unless`: se a FALA (ou a busca) já diz bíblia/alcorão/oração/igreja/mesquita/templo/
+  // holy, a leitura é religiosa de verdade e a recusa do 'reads' NÃO se aplica. E 'bartender' não é 'tender' (lookahead acima).
+  { subject: /\b(reads?|reading)\b/, context: /\b(contract|contracts|document|documents|line|lines|text|email|emails|report|reports|data|code|file|files|software|ai|screen|scan|scans|analyze|analyzes|analyse|analyses|clause|clauses|page|pages|information|summarize|summarizes|summary|deliver|delivers|precise|assistant|automation|automates|platform|tool)\b/, rejectTags: /\b(quran|koran|bible|scripture|scriptures|torah|holy book|prayer|praying|religious|religion|mosque|church|hijab)\b/, unless: /\b(bible|quran|koran|scripture|scriptures|torah|prayer|prayers|church|churches|mosque|mosques|temple|temples|holy)\b/, label: 'read_not_scripture' },
 ]
 // ═══ KINEO1-TAGS-PROIBIDAS-2026-09-28 — tags de marca/placa, religião e arma são CONTEXTUAIS ═══
 //
@@ -89,9 +91,14 @@ const FORBIDDEN_TAG_FAMILIES: ReadonlyArray<{ tags: RegExp; allow: RegExp; label
   { tags: /\b(quran|koran|bible|scripture|scriptures|torah|church|churches|mosque|mosques|temple|temples|cross|crucifix|prayer|prayers|praying|hijab|worship)\b/, allow: /\b(quran|koran|bible|scripture|scriptures|torah|church|churches|mosque|mosques|temple|temples|cross|crosses|crossing|crucifix|prayer|prayers|praying|pray|prays|worship|religion|religious|faith|god|gods|goddess|holy|sacred|spiritual|cathedral|cathedrals|monastery|monk|monks|priest|priests|pilgrim|pilgrims|pilgrimage|hindu|hinduism|buddhist|buddhism|buddha|islam|islamic|muslim|muslims|christian|christianity|christ|jesus|catholic|jewish|judaism|shrine|shrines|varanasi|ganges|ganga|mecca|vatican|jerusalem|angkor|kyoto|ritual|rituals|ceremony|wedding|funeral|hijab|ramadan|easter|christmas|diwali)\b/, label: 'religion' },
   { tags: /\b(gun|guns|rifle|rifles|pistol|pistols|ammunition|ammo|bullet|bullets|knife|knives|weapon|weapons|firearm|firearms|shotgun|handgun|revolver)\b/, allow: /\b(gun|guns|rifle|rifles|pistol|pistols|ammunition|ammo|bullet|bullets|knife|knives|weapon|weapons|firearm|firearms|shotgun|handgun|revolver|shooting|shooter|shot|sniper|soldier|soldiers|army|military|war|wars|battle|battles|combat|hunting|hunter|hunters|police|crime|criminal|murder|assassin|assassination|chef|chefs|cooking|cook|cutting|cut|slice|slicing|chopping|blade|blades|sword|swords|kitchen|butcher|surgeon|surgery|attack|defense|defence|self-defense|robbery|armed|violence|violent)\b/, label: 'weapon' },
 ]
+// KINEO1-TAGS-PROIBIDAS (revisão) 2026-09-28 — compostos que carregam a palavra da família sem SER a coisa: 'dollar sign'
+// (vertical Money Facts, a principal da casa) não é placa; 'cross country' e 'prayer flags' (Himalaia/Nepal) não são
+// religião. A família casa TAG A TAG (blob do Pixabay separado por vírgula) e pula estes compostos; 'street sign' segue
+// caindo (é placa) e, como antes, só entra quando a fala ou a busca falam de rua/loja/placa.
+const LIBERATED_COMPOUND_TAGS: ReadonlySet<string> = new Set(['dollar sign', 'dollar signs', 'cross country', 'cross-country', 'prayer flag', 'prayer flags', 'sign language', 'zodiac sign', 'zodiac signs', 'peace sign'])
 /** Tag proibida no contexto: família (marca/placa/religião/arma) presente nas tags sem a palavra correspondente na fala nem na busca. Exportado para o guardião. */
 export function forbiddenTagInContext(tagsBlob: string, query: string, context: string = ACTIVE_SUBJECT_CONTEXT): string | null {
-  const tags = (tagsBlob ?? '').toLowerCase()
+  const tags = (tagsBlob ?? '').toLowerCase().split(',').map((t) => t.trim()).filter((t) => t && !LIBERATED_COMPOUND_TAGS.has(t)).join(', ')
   const ctx = `${(query ?? '').toLowerCase()} ${context ?? ''}`
   for (const f of FORBIDDEN_TAG_FAMILIES) {
     if (f.tags.test(tags) && !f.allow.test(ctx)) return f.label
@@ -110,6 +117,7 @@ export function subjectConflictWithTags(query: string, tagsBlob: string, context
   const ctx = `${q} ${context}`
   const tags = tagsBlob.toLowerCase()
   for (const c of gate?.v2 ? [...SUBJECT_CONFLICTS, ...SUBJECT_CONFLICTS_V2] : SUBJECT_CONFLICTS) {
+    if (c.unless && c.unless.test(ctx)) continue // KINEO1-TAGS-PROIBIDAS (revisão) — a fala já diz que é leitura religiosa
     if (c.subject.test(q) && c.context.test(ctx) && c.rejectTags.test(tags)) return c.label
   }
   return null
