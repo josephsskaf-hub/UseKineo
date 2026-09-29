@@ -31,6 +31,7 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
 import { homeReferralCreationIntent } from '@/lib/growth/homeReferralBridge'
+import { SEEDANCE_15S_PUBLIC } from '@/lib/engineLaunch' // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — K6 revogada com a entrada nova
 
 const HOME_PROMPT_CAMPAIGN = 'push69_home_one_click_starters'
 const HOME_PROMPT_VIEW_MARKER = 'kineo_push69_home_one_click_starters_viewed'
@@ -126,7 +127,7 @@ export default function HomeTopicForm({
 
   const hasScript = lines.length > 0
   const activationPrompt = hasScript ? buildActivationPrompt(lines) : ''
-  const creationIntent = homeReferralCreationIntent(acquisitionSource)
+  const creationIntent = homeReferralCreationIntent(acquisitionSource, SEEDANCE_15S_PUBLIC)
   // Fallback destination when the free script cannot be written: degrade to the
   // pre-#101 behaviour (raw topic → signup) instead of leaving a dead end.
   const fallbackHref = signupHref(
@@ -367,7 +368,8 @@ export default function HomeTopicForm({
             )}
           </p>
         )}
-        {/* K6 (03/09) requires the TAAFT bridge to start on Kineo 1. The same
+        {/* K6 (03/09) requires the TAAFT bridge to start on Kineo 1 — REVOKED when the Seedance 15 s entry is on
+            (SEEDANCE_15S_PUBLIC; KINEO-ENTRADA-SEEDANCE15-2026-09-29): everyone starts on the free 15-second film. The same
             source-bounded policy also governs the JS handoff above; ChatGPT and
             ordinary homepage traffic retain the existing guarded trial_best
             rail. */}

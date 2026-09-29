@@ -55,6 +55,8 @@ export interface PlanFitCardProps {
   /** Re-check exact owner history immediately before an impression or sale. */
   verifyEligibility: () => Promise<boolean>
   onCheckout: (tier: CheckoutTier, metadata: PlanFitCheckoutMetadata) => boolean
+  /** Revisão da E2b: false = a conta não vê o Kineo 1 — o cartão não oferece "Keep N/month with Kineo 1". */
+  kineo1Allowed?: boolean
 }
 
 const IMPRESSION_THRESHOLD = 0.35
@@ -80,6 +82,7 @@ export default function PlanFitCard({
   onEvent,
   verifyEligibility,
   onCheckout,
+  kineo1Allowed,
 }: PlanFitCardProps) {
   const [monthlyFilms, setMonthlyFilms] = useState<number>(DEFAULT_PLAN_FIT_MONTHLY_FILMS)
   const [plannedQuality, setPlannedQuality] = useState<PlanFitQuality>(quality)
@@ -151,16 +154,16 @@ export default function PlanFitCard({
   )
 
   const probe = useMemo(
-    () => calculatePlanFit({ quality, seconds, monthlyFilms: 1, currency }),
-    [quality, seconds, currency],
+    () => calculatePlanFit({ quality, seconds, monthlyFilms: 1, currency, kineo1Allowed }),
+    [quality, seconds, currency, kineo1Allowed],
   )
   const defaultResult = useMemo(
-    () => calculatePlanFit({ quality, seconds, monthlyFilms: DEFAULT_PLAN_FIT_MONTHLY_FILMS, currency }),
-    [quality, seconds, currency],
+    () => calculatePlanFit({ quality, seconds, monthlyFilms: DEFAULT_PLAN_FIT_MONTHLY_FILMS, currency, kineo1Allowed }),
+    [quality, seconds, currency, kineo1Allowed],
   )
   const result = useMemo(
-    () => calculatePlanFit({ quality: plannedQuality, seconds, monthlyFilms, currency }),
-    [plannedQuality, seconds, monthlyFilms, currency],
+    () => calculatePlanFit({ quality: plannedQuality, seconds, monthlyFilms, currency, kineo1Allowed }),
+    [plannedQuality, seconds, monthlyFilms, currency, kineo1Allowed],
   )
 
   useEffect(() => {
@@ -317,7 +320,7 @@ export default function PlanFitCard({
     source: 'preset' | 'same_engine_capacity' | 'lower_plan_capacity' = 'preset',
   ) {
     setMonthlyFilms(value)
-    const next = calculatePlanFit({ quality: plannedQuality, seconds, monthlyFilms: value, currency })
+    const next = calculatePlanFit({ quality: plannedQuality, seconds, monthlyFilms: value, currency, kineo1Allowed })
     emit('plan_fit_monthly_target_selected', {
       selection_source: source,
       source_engine: quality,

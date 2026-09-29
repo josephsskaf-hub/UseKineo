@@ -36,6 +36,19 @@ export const TRIAL_RETURN_FAST_FULL_COST = creditCostForDuration(
   true,
   TRIAL_RETURN_FAST_FULL_DURATION,
 )
+// ═══ KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — o filme de 15 s (versões novas; as antigas continuam aceitas) ═══
+// Com a entrada nova ligada para a conta (flag seedance15; o chamador passa `shortFilm: true`), a primeira entrega e o
+// degrau de volta passam a ser o Seedance 1.5 de 15 s: custo derivado (creditCostForDuration), cabe no trial de 10. Sem
+// a flag, tudo como antes (35 s, versões v2) — links antigos com trial_first_seedance_35s_v2 seguem valendo.
+// 15 = espelho de SEEDANCE_SHORT_SECONDS (lib/durationByEngine.ts); scripts/test-entrada-seedance15-2026-09-29.mjs
+// confere a igualdade (este módulo não ganha import novo: os guardiões antigos o executam com um mock só).
+export const TRIAL_SHORT_FILM_DURATION = 15 as const
+export const TRIAL_SHORT_FILM_COST = creditCostForDuration(TRIAL_BALANCE_BRIDGE_ENGINE, true, TRIAL_SHORT_FILM_DURATION)
+export const TRIAL_FIRST_DELIVERY_SHORT_VERSION = 'trial_first_seedance_15s_v1' as const
+export const TRIAL_BALANCE_BRIDGE_SHORT_VERSION = 'trial_balance_seedance_15s_v1' as const
+/** As versões do contrato da primeira entrega que o Studio aceita (a nova e a antiga, para não quebrar link já enviado). */
+export const TRIAL_FIRST_DELIVERY_VERSIONS: readonly string[] = [TRIAL_FIRST_DELIVERY_SHORT_VERSION, TRIAL_FIRST_DELIVERY_VERSION]
+
 export type TrialFirstDeliveryStudioIntentInput = {
   intentCampaign: string
   engine: string
@@ -52,7 +65,7 @@ export type TrialFirstDeliveryStudioIntentInput = {
 export function trialFirstDeliveryStudioIntent(
   input: TrialFirstDeliveryStudioIntentInput,
 ): 'trial_best' | null {
-  return input.intentCampaign === TRIAL_FIRST_DELIVERY_VERSION && input.engine === 'seedance'
+  return TRIAL_FIRST_DELIVERY_VERSIONS.includes(input.intentCampaign) && input.engine === 'seedance'
     ? 'trial_best'
     : null
 }
@@ -62,6 +75,8 @@ export type TrialFirstDeliveryInput = {
   trialPhase: 'active' | 'ending' | null
   credits: number | null
   creditsUsed: number | null
+  /** KINEO-ENTRADA-SEEDANCE15 — entrada nova ligada para a conta: a entrega é o Seedance de 15 s, sem degrau Kineo 1. */
+  shortFilm?: boolean
 }
 
 export type TrialFirstDeliveryDecision = {
@@ -73,15 +88,15 @@ export type TrialFirstDeliveryDecision = {
   fastRepeatCost: number
   fastRepeatDuration: typeof TRIAL_FIRST_FAST_REPEAT_DURATION
   fastRepeatsAfterSuccess: number
-  duration: typeof TRIAL_FIRST_DELIVERY_DURATION
+  duration: typeof TRIAL_FIRST_DELIVERY_DURATION | typeof TRIAL_SHORT_FILM_DURATION
   engine: typeof TRIAL_BALANCE_BRIDGE_ENGINE
   engineLabel: typeof TRIAL_BALANCE_BRIDGE_ENGINE_LABEL
-  version: typeof TRIAL_FIRST_DELIVERY_VERSION
+  version: typeof TRIAL_FIRST_DELIVERY_VERSION | typeof TRIAL_FIRST_DELIVERY_SHORT_VERSION
 }
 
 export type TrialFirstDeliveryExposureMetadata = {
   first_delivery_eligible: boolean
-  first_delivery_version: typeof TRIAL_FIRST_DELIVERY_VERSION
+  first_delivery_version: TrialFirstDeliveryDecision['version']
   first_delivery_reason: TrialFirstDeliveryDecision['reason']
 }
 
@@ -113,17 +128,19 @@ export function trialFirstDeliveryExposureMetadata(
  * credit mutation, price change or checkout is allowed here.
  */
 export function decideTrialFirstDelivery(input: TrialFirstDeliveryInput): TrialFirstDeliveryDecision {
+  const curto = input.shortFilm === true
+  const deliveryCost = curto ? TRIAL_SHORT_FILM_COST : TRIAL_FIRST_DELIVERY_COST
   const base = {
     creditsBefore: input.credits,
     creditsAfterSuccess: null,
-    cost: TRIAL_FIRST_DELIVERY_COST,
+    cost: deliveryCost,
     fastRepeatCost: TRIAL_FIRST_FAST_REPEAT_COST,
     fastRepeatDuration: TRIAL_FIRST_FAST_REPEAT_DURATION,
     fastRepeatsAfterSuccess: 0,
-    duration: TRIAL_FIRST_DELIVERY_DURATION,
+    duration: curto ? TRIAL_SHORT_FILM_DURATION : TRIAL_FIRST_DELIVERY_DURATION,
     engine: TRIAL_BALANCE_BRIDGE_ENGINE,
     engineLabel: TRIAL_BALANCE_BRIDGE_ENGINE_LABEL,
-    version: TRIAL_FIRST_DELIVERY_VERSION,
+    version: curto ? TRIAL_FIRST_DELIVERY_SHORT_VERSION : TRIAL_FIRST_DELIVERY_VERSION,
   } as const
 
   if (input.trialPhase !== 'active') return { ...base, eligible: false, reason: 'not_active' }
@@ -134,7 +151,7 @@ export function decideTrialFirstDelivery(input: TrialFirstDeliveryInput): TrialF
   if (input.credits === null || !Number.isFinite(input.credits)) {
     return { ...base, eligible: false, reason: 'unknown_balance' }
   }
-  if (input.credits < TRIAL_FIRST_DELIVERY_COST) {
+  if (input.credits < deliveryCost) {
     return { ...base, eligible: false, reason: 'insufficient_balance' }
   }
 
@@ -142,10 +159,11 @@ export function decideTrialFirstDelivery(input: TrialFirstDeliveryInput): TrialF
     ...base,
     eligible: true,
     reason: 'eligible',
-    creditsAfterSuccess: input.credits - TRIAL_FIRST_DELIVERY_COST,
-    fastRepeatsAfterSuccess: Math.floor(
-      (input.credits - TRIAL_FIRST_DELIVERY_COST) / TRIAL_FIRST_FAST_REPEAT_COST,
-    ),
+    creditsAfterSuccess: input.credits - deliveryCost,
+    // KINEO-ENTRADA-SEEDANCE15 — conta nova não tem Kineo 1: a sobra não vira "N Fast episodes".
+    fastRepeatsAfterSuccess: curto
+      ? 0
+      : Math.floor((input.credits - deliveryCost) / TRIAL_FIRST_FAST_REPEAT_COST),
   }
 }
 
@@ -170,6 +188,10 @@ export type TrialBalanceBridgeDecision = {
 export type TrialReturnLadderInput = {
   trialPhase: 'active' | 'ending' | null
   credits: number | null
+  /** KINEO-ENTRADA-SEEDANCE15 — entrada nova ligada: o degrau do Seedance desce até 15 s. */
+  shortFilm?: boolean
+  /** KINEO-ENTRADA-SEEDANCE15 (M3) — false = sem degrau Kineo 1 (conta sem a flag kineo1). Ausente = como antes. */
+  kineo1Allowed?: boolean
 }
 
 export type TrialReturnLadderDecision = Omit<
@@ -177,10 +199,10 @@ export type TrialReturnLadderDecision = Omit<
   'reason' | 'duration' | 'engine' | 'engineLabel' | 'version'
 > & {
   reason: 'eligible' | 'not_active' | 'unknown_balance' | 'too_few_credits' | 'full_seedance_already_fits'
-  duration: typeof TRIAL_BALANCE_BRIDGE_DURATION | typeof TRIAL_RETURN_FAST_FULL_DURATION
+  duration: typeof TRIAL_BALANCE_BRIDGE_DURATION | typeof TRIAL_RETURN_FAST_FULL_DURATION | typeof TRIAL_SHORT_FILM_DURATION
   engine: typeof TRIAL_BALANCE_BRIDGE_ENGINE | 'fast'
   engineLabel: typeof TRIAL_BALANCE_BRIDGE_ENGINE_LABEL | 'Kineo 1'
-  version: typeof TRIAL_BALANCE_BRIDGE_VERSION | typeof TRIAL_RETURN_FAST_VERSION
+  version: typeof TRIAL_BALANCE_BRIDGE_VERSION | typeof TRIAL_RETURN_FAST_VERSION | typeof TRIAL_BALANCE_BRIDGE_SHORT_VERSION
 }
 
 /**
@@ -266,6 +288,26 @@ export function decideTrialReturnLadder(input: TrialReturnLadderInput): TrialRet
       reason: 'eligible',
       creditsAfterSuccess: input.credits - TRIAL_BALANCE_BRIDGE_COST,
     }
+  }
+  // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — com a entrada nova, o degrau que cabe no trial é o Seedance de 15 s.
+  const seedanceCurto = {
+    ...seedanceBase,
+    cost: TRIAL_SHORT_FILM_COST,
+    duration: TRIAL_SHORT_FILM_DURATION,
+    version: TRIAL_BALANCE_BRIDGE_SHORT_VERSION,
+  } as const
+  if (input.shortFilm === true && input.credits >= TRIAL_SHORT_FILM_COST) {
+    return {
+      ...seedanceCurto,
+      eligible: true,
+      reason: 'eligible',
+      creditsAfterSuccess: input.credits - TRIAL_SHORT_FILM_COST,
+    }
+  }
+  // M3 do cético: os 3 cr que sobram do filme de 15 s compravam um Kineo 1 de 35 s. Conta sem a flag kineo1 não tem
+  // esse degrau — a DECISÃO acaba aqui (não é só o banner que esconde).
+  if (input.kineo1Allowed === false) {
+    return { ...(input.shortFilm === true ? seedanceCurto : seedanceBase), eligible: false, reason: 'too_few_credits' }
   }
 
   // Active reverse-trial accounts are billed like paid accounts for Fast.

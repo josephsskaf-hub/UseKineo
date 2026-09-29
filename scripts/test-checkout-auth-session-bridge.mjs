@@ -208,6 +208,9 @@ const callbackModule = loadTs('app/auth/callback/route.ts', {
   '@/lib/serverEvents': { writeServerEvent: async (event) => { callbackEvents.push(event); return true } },
   '@/lib/reverseTrial': { maybeActivateReverseTrial: async () => ({}) },
   '@/lib/trialFingerprint': { trialFingerprintFromHeaders: () => null },
+  // 29/09 (KINEO-FILME-GRATIS-POR-PAIS-2026-09-29): o callback passa o país do request ao grant do trial; aqui o grant
+  // é mock, então o país também é (sem cabeçalho = null, o mesmo que a função real devolve neste Request).
+  '@/lib/freeFilmPolicy': { paisDoRequest: () => null },
   '@/lib/growth/checkoutOAuthFailureHandoff': {
     buildCheckoutOAuthFailureHandoff: (value) => {
       const isCheckout = typeof value === 'string' && /^\/api\/(?:stripe|paypal|mercadopago)\/checkout(?:\?|$)/.test(value)

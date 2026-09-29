@@ -58,16 +58,20 @@ const LIGA = (src) => src.replace('export const AVATAR_PUBLIC = false', 'export 
 console.log('== (a) interruptor único, executado ==')
 const launchSrc = rd('lib/engineLaunch.ts')
 const L = rodaLaunch(launchSrc)
-const provaA = (M) => M.AVATAR_PUBLIC === false && M.VIDEO_ENGINE_COUNT_WORD === 'Six' && M.VIDEO_ENGINE_COUNT_SENTENCE_START === 'Six' &&
-  M.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5 and Kineo 1' && !/Avatar/.test(M.VIDEO_ENGINE_LIST_COPY)
-checa('AVATAR_PUBLIC=false; contagem "Six" e lista pública sem Avatar', provaA(L))
+// Reancorado 29/09 (KINEO-KINEO1-FORA-2026-09-29): o Kineo 1 também saiu do catálogo (KINEO1_PUBLIC=false), então a
+// contagem é "Five" e ligar só o Avatar devolve "Six" com "... Seedance 1.5 and Avatar". O que se vigia é o mesmo:
+// Avatar fora, e o interruptor o traz de volta por derivação, nunca por número digitado.
+const provaA = (M) => M.AVATAR_PUBLIC === false && M.VIDEO_ENGINE_COUNT_WORD === 'Five' && M.VIDEO_ENGINE_COUNT_SENTENCE_START === 'Five' &&
+  M.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3 and Seedance 1.5' && !/Avatar/.test(M.VIDEO_ENGINE_LIST_COPY)
+checa('AVATAR_PUBLIC=false; contagem "Five" e lista pública sem Avatar', provaA(L))
 checa('avatarVisible: público e anônimo não veem; conta da casa vê', L.avatarVisible(PUBLICO) === false && L.avatarVisible(null) === false && L.avatarVisible(undefined) === false && L.avatarVisible(INTERNO) === true)
 checa('Avatar não virou pausa (pausa diria "manutenção", motivo falso) e S25 segue interno', !L.enginePaused('avatar') && !L.enginePaused('presenter') && !L.PAUSED_ENGINE_KEYS.includes('avatar') && L.S25_PUBLIC === false)
 {
   const ligado = LIGA(launchSrc)
   const V = rodaLaunch(ligado)
-  checa('virar o interruptor devolve "Seven" e "..., Kineo 1 and Avatar" (derivado, não digitado)', ligado !== launchSrc && V.AVATAR_PUBLIC === true && V.VIDEO_ENGINE_COUNT_WORD === 'Seven' && V.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5, Kineo 1 and Avatar' && V.avatarVisible(PUBLICO) === true)
-  const mutante = launchSrc.replace("AVATAR_PUBLIC ? 'Seven' : 'Six'", "'Seven'")
+  checa('virar o interruptor devolve "Six" e "... Seedance 1.5 and Avatar" (derivado, não digitado)', ligado !== launchSrc && V.AVATAR_PUBLIC === true && V.VIDEO_ENGINE_COUNT_WORD === 'Six' && V.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5 and Avatar' && V.avatarVisible(PUBLICO) === true)
+  // 29/09: a contagem virou o tamanho da lista derivada; o mutante crava a contagem na palavra antiga.
+  const mutante = launchSrc.replace('export const VIDEO_ENGINE_COUNT_WORD: string = ENGINE_COUNT_WORDS[PUBLIC_VIDEO_ENGINE_NAMES.length]', "export const VIDEO_ENGINE_COUNT_WORD: string = 'Seven'")
   checa('mutante (contagem cravada "Seven") → vermelho', mutante !== launchSrc && !provaA(rodaLaunch(mutante)))
   const mutante2 = launchSrc.replace('return AVATAR_PUBLIC || isInternalEmail(email)', 'return true')
   checa('mutante (avatarVisible sempre true) → vermelho', mutante2 !== launchSrc && rodaLaunch(mutante2).avatarVisible(PUBLICO) === true)
@@ -86,7 +90,12 @@ const provaFatos = (F) => {
 {
   const F = createOfflineLoader({ env: ENV })('lib/kineoFacts.ts')
   checa('ENGINE_FACTS, planos e "quando não usar" sem Avatar/Character Lock; frase honesta sobre apresentador', provaFatos(F))
-  checa('os 6 motores do catálogo seguem com URL e crédito (nada mais saiu)', ['Kineo 1', 'Seedance 1.5', 'Kling 2.5', 'Veo 3.1', 'MiniMax H3', 'Kling 3'].every((n) => F.ENGINE_FACTS.some((e) => e.name === n && e.credits > 0 && /^https:\/\//.test(e.url))))
+  // Reancorado 29/09 (revisão da E2b, texto achado 10): o Kineo 1 saiu do catálogo público com a E1 (KINEO1_PUBLIC=false,
+  // lido de lib/engineLaunch.ts) — ele entra na lista esperada só com o interruptor ligado. Os outros 5 seguem exigidos,
+  // e nada além deles pode ter saído; o Avatar continua proibido pela checagem de cima (provaFatos).
+  const kineo1PublicoAqui = /^export const KINEO1_PUBLIC = true\b/m.test(rd('lib/engineLaunch.ts'))
+  const esperadosNoCatalogo = [...(kineo1PublicoAqui ? ['Kineo 1'] : []), 'Seedance 1.5', 'Kling 2.5', 'Veo 3.1', 'MiniMax H3', 'Kling 3']
+  checa(`os ${esperadosNoCatalogo.length} motores do catálogo seguem com URL e crédito (nada mais saiu)`, esperadosNoCatalogo.every((n) => F.ENGINE_FACTS.some((e) => e.name === n && e.credits > 0 && /^https:\/\//.test(e.url))) && (kineo1PublicoAqui || !F.ENGINE_FACTS.some((e) => e.name === 'Kineo 1')))
   const Fliga = createOfflineLoader({ env: ENV, mocks: { './engineLaunch': { ...realLaunch, AVATAR_PUBLIC: true } } })('lib/kineoFacts.ts')
   const av = Fliga.ENGINE_FACTS.find((e) => e.name === 'Avatar')
   checa('mutante (AVATAR_PUBLIC=true no import) devolve o Avatar a 110 cr com /ai-avatar → o bloco acima fica vermelho', Boolean(av) && av.credits === 110 && /\/ai-avatar$/.test(av.url) && !provaFatos(Fliga))
@@ -98,7 +107,10 @@ const provaFatos = (F) => {
   const F = load('lib/kineoFacts.ts')
   const fixture = { ...F, TRIAL_ACCESS: { ...F.TRIAL_ACCESS, everyEngineUnlocked: false } }
   const dormente = await createOfflineLoader({ env: ENV, globals: { Response }, mocks: { '@/lib/kineoFacts': fixture } })('app/llms.txt/route.ts').GET().text()
-  checa('/llms.txt ramo dormente (trial sem todos os motores): Studio-plan sem Avatar', /Kineo 1 and Seedance 1\.5 are unlocked by plan \(Kling 2\.5, Veo 3\.1 and Kling 3 are Studio-plan engines\)/.test(dormente) && !/Kling 3 and Avatar/.test(dormente))
+  // Reancorado 29/09 (revisão da E2b, texto achado 10): a frase do ramo dormente perdeu o Kineo 1 (E1/E3: fora do catálogo
+  // público) — "Seedance 1.5 is unlocked by plan (...)". A parte que este guardião vigia (Studio-plan SEM Avatar) segue
+  // exigida literalmente, e o Kineo 1 não pode voltar a essa frase.
+  checa('/llms.txt ramo dormente (trial sem todos os motores): Studio-plan sem Avatar', /Seedance 1\.5 is unlocked by plan \(Kling 2\.5, Veo 3\.1 and Kling 3 are Studio-plan engines\)/.test(dormente) && !/Kling 3 and Avatar/.test(dormente) && !/Kineo 1 and Seedance 1\.5 are unlocked/.test(dormente))
 }
 
 console.log('== (c) home, Studio, pricing e rodapé renderizados com o JSX real ==')
@@ -109,8 +121,10 @@ const PORTAS = /href="\/avatar"|Talking Avatar|AI Presenter|Character Lock|Trans
 {
   const pub = home(null), casa = home(INTERNO)
   checa('home (visitante): 0 portas do Avatar — mega-menu, mobile, bento, 4 cards do toolkit e subtítulo', !PORTAS.test(pub))
-  checa('home (visitante): o bento renderizou (5 tiles de motor) e o toolkit ficou com 4 cards', conta(pub, 'class="tile') === 5 && conta(pub, 'class="tcard"') === 4 && pub.includes('href="/animate"'))
-  checa('home (visitante): FAQ diz "Six" e a lista sem Avatar', pub.includes('Six') && pub.includes('Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5 and Kineo 1') && !pub.includes('Kineo 1 and Avatar'))
+  // 29/09 (KINEO-KINEO1-FORA-2026-09-29): sem o tile do Kineo 1 o visitante vê 4 motores no bento.
+  checa('home (visitante): o bento renderizou (4 tiles de motor) e o toolkit ficou com 4 cards', conta(pub, 'class="tile') === 4 && conta(pub, 'class="tcard"') === 4 && pub.includes('href="/animate"'))
+  // 29/09 (KINEO-KINEO1-FORA): "Five" e a lista sem Kineo 1 nem Avatar.
+  checa('home (visitante): FAQ diz "Five" e a lista sem Avatar', pub.includes('Five') && pub.includes('Veo 3.1, Kling 3, Kling 2.5, MiniMax H3 and Seedance 1.5') && !pub.includes('and Avatar'))
   checa('home (conta da casa): as 7 portas do Avatar continuam (mega, mobile, tile, 4 cards)', conta(casa, 'href="/avatar"') === 7 && conta(casa, 'class="tcard"') === 8 && casa.includes('Talking Avatar'))
   checa('home (e-mail público logado): mesmas 0 portas', !PORTAS.test(home(PUBLICO)))
 }
@@ -124,7 +138,8 @@ const PORTAS = /href="\/avatar"|Talking Avatar|AI Presenter|Character Lock|Trans
 {
   const html = renderPage('app/pricing/PricingClient.tsx', false, { demoOffer: true, demoShell: true, displayCurrency: 'usd', signedIn: true })
   checa('pricing (render real): sem "AI Presenter", sem "Character Lock", sem ", Avatar" no Studio', !/AI Presenter|Character Lock|Kineo 1, Avatar/.test(html))
-  checa('pricing: o resultado do Studio segue, só sem o Avatar', html.includes('Every available engine — Kling 3, Veo 3.1, Kling 2.5, MiniMax H3, Seedance 1.5, Kineo 1 — plus 2 free HD enhances'))
+  // Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): o Kineo 1 também saiu da /pricing (trava j do E1); o Avatar segue fora.
+  checa('pricing: o resultado do Studio segue, só sem o Avatar', html.includes('Every available engine — Kling 3, Veo 3.1, Kling 2.5, MiniMax H3, Seedance 1.5 — plus 2 free HD enhances'))
   // A FAQ do Autopilot hoje nem renderiza (PRICING_SHOW_AUTOPILOT=false filtra a pergunta); a frase é conferida no fonte
   // para não voltar a vender o AI Presenter no dia em que o Autopilot reaparecer.
   const pcSrc = rd('app/pricing/PricingClient.tsx')
@@ -209,7 +224,9 @@ console.log('== (f) copy de SEO/comparação sem apresentador ==')
   }
   const C = carrega(compSrc)
   checa('comparisons (executado): régua de créditos, linha da Kineo e as 2 FAQs sem "AI Presenter"; respostas "Not today"', provaComp(C))
-  checa('comparisons: a régua segue com os motores vendidos (Kineo 1, Seedance, Kling 2.5, Kling 3)', /Kineo 1 \d+ credits, Seedance \d+, MiniMax H3 \d+, Kling 2\.5 \d+, Kling 3 \d+/.test(C.TOOLS.kineo.exportLimits))
+  // Reancorado 29/09 (revisão da E2b, texto achado 10): o Kineo 1 saiu da régua pública (E3 — fora do catálogo). A régua
+  // dos motores vendidos segue exigida na ordem, sem Kineo 1 e (checagem de cima) sem Avatar/Presenter.
+  checa('comparisons: a régua segue com os motores vendidos (Seedance, MiniMax H3, Kling 2.5, Kling 3)', /Seedance \d+ credits, MiniMax H3 \d+, Kling 2\.5 \d+, Kling 3 \d+/.test(C.TOOLS.kineo.exportLimits) && !/Kineo 1/.test(C.TOOLS.kineo.exportLimits))
   const mut = compSrc.split('`Kling 2.5 ${KINEO_KLING_COST}, ` +').join("`Kling 2.5 ${KINEO_KLING_COST}, AI Presenter 70, ` +")
   checa('mutante (régua volta a cobrar "AI Presenter 70") → vermelho', mut !== compSrc && !provaComp(carrega(mut)))
 }
@@ -525,10 +542,11 @@ console.log('== (g) bento da home completo: o JSX real, a cascata real, nenhuma 
   const regras = regrasDe(cssPub)
   const regrasCasa = regrasDe(cssDa(casaArv))
   const m1440 = mede(pubArv, regras, 1440)
-  checa(`denominador: o <style> real da home tem ${regras.length} regras (≥ 300) e o .bento tem 5 filhos .tile (visitante) / 6 (casa)`, regras.length >= 300 && m1440.tiles === 5 && m1440.todosTiles && mede(casaArv, regrasCasa, 1440).tiles === 6)
+  // 29/09 (KINEO-KINEO1-FORA-2026-09-29): o tile do Kineo 1 saiu para o visitante — 4 tiles; a casa segue com 6.
+  checa(`denominador: o <style> real da home tem ${regras.length} regras (≥ 300) e o .bento tem 4 filhos .tile (visitante) / 6 (casa)`, regras.length >= 300 && m1440.tiles === 4 && m1440.todosTiles && mede(casaArv, regrasCasa, 1440).tiles === 6)
   const colunasVistas = LARGURAS.map((w) => mede(pubArv, regras, w).cols)
   checa(`a cascata lê os três degraus do grid (colunas por largura: ${colunasVistas.join(',')}) e o bento é grid esparso`, LARGURAS.every((w, i) => colunasVistas[i] === esperado(w)) && LARGURAS.every((w) => { const m = mede(pubArv, regras, w); return m.display === 'grid' && (m.fluxo === null || m.fluxo === 'row') }))
-  for (const [quem, arv, rs] of [['visitante (5 motores)', pubArv, regras], ['conta da casa (6 motores)', casaArv, regrasCasa]]) {
+  for (const [quem, arv, rs] of [['visitante (4 motores)', pubArv, regras], ['conta da casa (6 motores)', casaArv, regrasCasa]]) {
     const ruins = LARGURAS.map((w) => ({ w, ...mede(arv, rs, w) })).filter((m) => m.vazias !== 0 || m.excesso !== 0)
     checa(`home ${quem}: nenhuma célula vazia e nenhuma coluna implícita em ${LARGURAS.length} larguras (falhas: ${ruins.map((m) => `${m.w}px ${m.cols}col spans ${m.spans.join('+')} → ${m.vazias} vazia(s)`).slice(0, 3).join(' | ') || 'nenhuma'})`, ruins.length === 0)
   }
@@ -538,7 +556,8 @@ console.log('== (g) bento da home completo: o JSX real, a cascata real, nenhuma 
   // MUTANTE: o CSS de antes (sem as regras do último tile) — o buraco tem de voltar nas duas larguras do revisor.
   const semConserto = cssPub.replace(/\.klp \.home-engines \.bento > \.tile:last-child:nth-child\([^)]*\) \{[^}]*\}/g, '')
   const rm = regrasDe(semConserto)
-  checa('mutante (CSS sem o conserto): o buraco volta — 1 célula vazia em 3 colunas (1440px) e em 2 colunas (700px)', semConserto !== cssPub && mede(pubArv, rm, 1440).vazias === 1 && mede(pubArv, rm, 700).vazias === 1)
+  // 29/09: o visitante tem 4 tiles (par em 2 colunas); o mutante mede a grade com 5 tiles, o caso do revisor.
+  checa('mutante (CSS sem o conserto): o buraco volta — 1 célula vazia em 3 colunas (1440px) e em 2 colunas (700px)', semConserto !== cssPub && mede(pubArv, rm, 1440, 5).vazias === 1 && mede(pubArv, rm, 700, 5).vazias === 1)
 }
 
 console.log(`${ok} ok · ${falhas.length} falhas`)

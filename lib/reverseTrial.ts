@@ -74,6 +74,7 @@ import {
 // recebe. lib/freeTierOffer.ts importa apenas engineCost (puro) — sem ciclo.
 import { getFreeTierOffer, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { CARD_ENTRY_ONLY, CARD_ENTRY_REQUIRED_EVENT, CARD_ENTRY_TRIAL_STATUS } from './entryPolicy'
+import { filmeGratisPermitido, REGION_PAID_ONLY_TRIAL_STATUS, TRIAL_REGION_EXCLUDED_EVENT } from './freeFilmPolicy'
 
 // Mesmo idioma de flag dos crons de lifecycle (KINEO_LIFECYCLE_EMAILS_ENABLED):
 // igualdade estrita com 'true'. Qualquer outro valor (ausente, '1', 'yes') = OFF.
@@ -814,6 +815,12 @@ export async function maybeActivateReverseTrial(args: {
    * mudança. Nenhum IP entra nesta função — ver lib/trialFingerprint.ts.
    */
   fingerprintHash?: string | null
+  /**
+   * KINEO-FILME-GRATIS-POR-PAIS-2026-09-29 — país do request (x-vercel-ip-country, via paisDoRequest). Opcional:
+   * ausente = sem sinal = concede. Só pesa com FREE_FILM_POLICY='pais_rico' (lib/freeFilmPolicy.ts), que nasce
+   * desligada e só liga depois da E4.
+   */
+  country?: string | null
 }): Promise<{ activated: boolean; reason: string }> {
   if (!REVERSE_TRIAL_ENABLED) return { activated: false, reason: 'flag_off' }
   try {
@@ -894,6 +901,33 @@ export async function maybeActivateReverseTrial(args: {
         metadata: { policy: 'card_entry_only', grant_credits: 0, marked: !portaErr },
       })
       return { activated: false, reason: 'card_entry_only' }
+    }
+
+    // ── KINEO-FILME-GRATIS-POR-PAIS-2026-09-29 — saída B do fundador ("vou sair na saída B"): filme grátis só para
+    // país rico. Com FREE_FILM_POLICY='todos' (padrão) filmeGratisPermitido é sempre true e este bloco não existe na
+    // prática — comportamento idêntico ao de antes. Sob 'pais_rico', o país fora da lista ganha a MARCA (mesma guarda
+    // `.is('trial_status', null)` dos ramos acima: idempotente, nunca sobrescreve trial real, e a varredura de órfão
+    // — que só lê trial_status NULL — não recredita) e um evento só na transição. Fica ANTES da digital de propósito:
+    // a recusa por país é mais barata que a query da digital e não deve consumir cota de ativação do aparelho.
+    if (!filmeGratisPermitido(args.country ?? null)) {
+      const { data: marcadasPais, error: paisErr } = await db
+        .from('profiles')
+        .update({ trial_status: REGION_PAID_ONLY_TRIAL_STATUS })
+        .eq('id', args.userId)
+        .is('trial_status', null)
+        .select('id')
+      if (paisErr) {
+        console.warn(`[reverse-trial] could not mark region_paid_only user=${args.userId.slice(0, 8)}:`, paisErr.message)
+      }
+      const markedPais = !paisErr && Array.isArray(marcadasPais) && marcadasPais.length > 0
+      if (markedPais || paisErr) {
+        await writeServerEvent({
+          name: TRIAL_REGION_EXCLUDED_EVENT,
+          userId: args.userId,
+          metadata: { country: args.country ?? null, marked: markedPais },
+        })
+      }
+      return { activated: false, reason: 'region_paid_only' }
     }
 
     // ── GUARDA 7 (KINEO-TRIAL-ABUSE-PMP-2026-08-07): DEVICE/IP ───────────────

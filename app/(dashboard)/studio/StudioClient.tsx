@@ -22,7 +22,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 // KINEO-H3-2026-08-19 — custo por motor vem da fonte única, nunca de string.
 import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
 import { NARRATION_LANGUAGES, narrationLanguage, isHollywoodLanguage, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
-import { enginePaused, AVATAR_PUBLIC } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 · KINEO-AVATAR-FORA-2026-09-28
+import { enginePaused, AVATAR_PUBLIC, SEEDANCE_15S_PUBLIC } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 · KINEO-AVATAR-FORA-2026-09-28 · KINEO-ENTRADA-SEEDANCE15-2026-09-29
+// KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — a régua única da entrada (quem vê o Kineo 1, a duração que o saldo paga, o
+// rótulo do filme grátis). Só age com a entrada nova ligada para a conta (flag seedance15).
+import { kineo1NaTela, duracaoDaUrlNaEntrada, rotuloDoFilmeGratis } from '@/lib/growth/entradaSeedance15'
 import { isBareStarter } from '@/lib/promptGuard' // KINEO-1-COERENCIA-2026-09-16
 import type { Quality } from '@/lib/credits/engineCost'
 // KINEO-MULTIFORMATO-2026-09-02 — os 4 enquadramentos, de uma fonte só.
@@ -48,7 +51,8 @@ import { CLIP_ASPECTS } from '@/lib/analyzeLimits' // VARREDURA-LIMITES-2026-09-
 import { formatLimitCounter, promptLimitState, trimPromptToLimit } from '@/lib/studioPromptLimit'
 import { buildStudioSeriesReviewHref, carryStudioSeriesReview, isStudioSeriesReview } from '@/lib/navigation/studioSeriesReview'
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
-import { STUDIO_ONLY_ENGINE_KEYS } from '@/lib/enginePlanGate'
+import { ENGINE_GATE_ACTIVE, STUDIO_ONLY_ENGINE_KEYS } from '@/lib/enginePlanGate'
+import { SEEDANCE_SHORT_SECONDS, MIN_DURATION_ALL_ENGINES } from '@/lib/durationByEngine' // KINEO-SEEDANCE-15S-2026-09-29
 import DiretorKineo from '@/components/DiretorKineo' // DIRETOR-KINEO-20260923
 import DfyOfferCard from '@/components/DfyOfferCard' // KINEO-EMPRESAS-COCKPIT-2026-09-24
 // KINEO-STUDIO-TILE-ADS-2026-09-27 — tile "Business ad" na fileira de miniaturas. Fato: 0 dos 10 assinantes tocaram /ads em
@@ -121,7 +125,11 @@ const ENGINES: { paused?: boolean; /* KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 */
   // Creator (90cr) não fecha um Kling 3 de 150, e fecha DOIS H3 de 45.
   { key: 'h3', paused: Boolean(enginePaused('h3')), icon: 'H3', name: 'MiniMax H3', tag: 'Fits your plan', desc: 'Cinematic film that fits your plan — 9-image consistency', res: '768p', credits: `${creditCostFor('cinematic_h3', true)} cr`, supportsRef: true },
   { key: 'kling', preview: '/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4', icon: 'K', name: 'Kling 2.5', tag: 'Best value', desc: 'Cinematic motion and camera work', res: '720p', credits: `${creditCostFor('cinematic_kling', true)} cr`, supportsRef: false },
-  { key: 'veo', preview: '/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4', icon: 'G', name: 'Veo 3.1', tag: 'Studio', desc: 'Google’s flagship cinematic engine', res: '720p', credits: `${creditCostFor('cinematic_veo', true)} cr`, supportsRef: false },
+  // KINEO-VEO-CARD-HONESTO-2026-09-29 — o Veo roda em 1080p pelo mesmo preço desde 16/08
+  // (KINEO-VEO-1080, fal cobra igual) e o card ainda dizia 720p. O selo 'Studio' digitado
+  // saiu: o gate está desligado na fonte (lib/enginePlanGate.ts) e a 35 s o filme cabe no
+  // Starter — o selo automático abaixo (ENGINE_GATE_ACTIVE) volta sozinho se o gate religar.
+  { key: 'veo', preview: '/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4', icon: 'G', name: 'Veo 3.1', desc: 'Google’s flagship cinematic engine · 1080p', res: '1080p', credits: `${creditCostFor('cinematic_veo', true)} cr`, supportsRef: false },
   { key: 'hollywood', preview: '/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4', icon: 'K3', name: 'Kling 3', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '720p', credits: `${creditCostFor('cinematic_hollywood', true)} cr`, supportsRef: true },
   // KINEO-OMNI-2026-08-25 — o #1 do ranking cego de agosto (1245 Elo,
   // Artificial Analysis arena) entra no topo do catálogo. Selo honesto: a
@@ -187,11 +195,15 @@ export default function StudioClient() {
   // video no motor bom") otimizava a beleza do 1o filme e cortava o combustivel
   // do 2o; com o Kineo 1 aprovado nota 9 pelo fundador em 02/09, o argumento
   // acabou. `?engine=` na URL continua vencendo isto.
-  const [engine, setEngine] = useState<EngineKey>('fast')
+  // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — com a entrada nova pública (SEEDANCE_15S_PUBLIC), o padrão é o Seedance:
+  // o Kineo 1 some para conta nova. Desligada, o de antes (Kineo 1). A duração vem da régua quando o saldo chega.
+  const [engine, setEngine] = useState<EngineKey>(SEEDANCE_15S_PUBLIC ? 'seedance' : 'fast')
   const [pickerOpen, setPickerOpen] = useState(false)
   // KINEO-DURACAO-FIX-2026-08-20 — o tipo ficou para trás dos botões (35/60/90)
   // e `setDuration(35)` só não explodia porque o TS não cobre este caminho.
-  const [duration, setDuration] = useState<35 | 60 | 90>(60)
+  // KINEO-SEEDANCE-15S-2026-09-29 — 15 = o filme curto do Seedance 1.5 (7 cr); o botão só aparece com o Seedance escolhido
+  // e com o interruptor SEEDANCE_15S_PUBLIC (flag `seedance15` do /api/me/credits). O padrão continua 60.
+  const [duration, setDuration] = useState<15 | 35 | 60 | 90>(60)
   // KINEO-MULTIFORMATO-2026-09-02 — quatro formatos reais; 9:16 continua o
   // padrão (é o produto de 100% dos primeiros vídeos da casa).
   const [aspect, setAspect] = useState<Aspect>('9:16')
@@ -215,6 +227,8 @@ export default function StudioClient() {
   const [balance, setBalance] = useState<number | null>(null)
   // KINEO-S25-CARD-2026-09-01 — so a casa ve o card do 2.5 durante o canario.
   const [internal, setInternal] = useState(false)
+  // KINEO-SEEDANCE-15S-2026-09-29 — o botão de 15 s do Seedance (SEEDANCE_15S_PUBLIC || casa). Falha fechada: sem a flag, sem botão.
+  const [seedance15Ok, setSeedance15Ok] = useState(false)
   // KINEO-AVATAR-FORA-2026-09-28 — fundador (27/09): "avatar sai por hora". O link "AI Presenter ↗" e o card Avatar
   // do seletor só aparecem com AVATAR_PUBLIC=true ou para conta da casa (flag `avatar` do /api/me/credits =
   // avatarVisible). Medido: 0 cliques em studio_avatar_card_clicked na história do evento. Flag própria, não
@@ -222,14 +236,60 @@ export default function StudioClient() {
   const [avatarOn, setAvatarOn] = useState<boolean>(AVATAR_PUBLIC)
   // KINEO-STUDIO-TILE-ADS-2026-09-27 — plano cru (profiles.plan) da mesma leitura; null até chegar = porta (falha fechada).
   const [plan, setPlan] = useState<string | null>(null)
+  // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — a flag kineo1 do /api/me/credits: true/false decididos, null = a leitura
+  // de legado falhou ('não sei'), undefined = ainda não chegou. `contaPaga` decide o 'não sei' (kineo1NaTela).
+  const [kineo1Flag, setKineo1Flag] = useState<boolean | null | undefined>(undefined)
+  const [contaPaga, setContaPaga] = useState<boolean | null>(null)
+  const [flagsProntas, setFlagsProntas] = useState(false)
+  // Trial ativo (do /api/credits, a mesma leitura do /generate) — só para o rótulo "Your free 15-second film". Só é lido
+  // quando a entrada nova existe para a conta (interruptor público ou flag seedance15): com ela desligada, zero leitura a mais.
+  const [trialOn, setTrialOn] = useState<boolean | null>(null)
+  const querTrial = SEEDANCE_15S_PUBLIC || seedance15Ok
+  useEffect(() => {
+    if (!querTrial) return
+    let alive = true
+    fetch('/api/credits', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (alive && typeof d?.trialActive === 'boolean') setTrialOn(d.trialActive) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [querTrial])
   useEffect(() => {
     let alive = true
     fetch('/api/me/credits', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true); if (alive && d?.avatar === true) setAvatarOn(true); if (alive && typeof d?.plan === 'string') setPlan(d.plan) })
+      .then((d) => { if (alive) { setKineo1Flag(d?.kineo1 === true ? true : d?.kineo1 === false ? false : null); if (typeof d?.hasPaid === 'boolean') setContaPaga(d.hasPaid) } return d }) // KINEO-ENTRADA-SEEDANCE15
+      .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true); if (alive && d?.avatar === true) setAvatarOn(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && typeof d?.plan === 'string') setPlan(d.plan) })
       .catch(() => {}) // saldo é enfeite: falhou, a tela segue como antes
+      .finally(() => { if (alive) setFlagsProntas(true) }) // KINEO-ENTRADA-SEEDANCE15
     return () => { alive = false }
   }, [])
+  // ═══ KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — a entrada do cliente novo no Studio ═══════════════════════════════
+  // entrada15: a flag seedance15 (antes de chegar, o interruptor público). kineo1Shown: a régua (card do Kineo 1, ?engine=
+  // fast e a nota de idiomas). custoSeedance: a MESMA função que cobra.
+  const entrada15 = seedance15Ok || SEEDANCE_15S_PUBLIC
+  const kineo1Shown = kineo1NaTela({ entrada15, kineo1: flagsProntas ? kineo1Flag ?? null : kineo1Flag, hasPaid: contaPaga })
+  const custoSeedance = (segundos: number) => creditCostForDuration('cinematic_ai', true, segundos)
+  // ?engine=fast (ou o card escolhido antes das flags) sem Kineo 1 na tela → Seedance.
+  useEffect(() => {
+    if (flagsProntas && entrada15 && engine === 'fast' && !kineo1Shown) setEngine('seedance')
+  }, [flagsProntas, entrada15, engine, kineo1Shown])
+  // Uma vez, quando saldo e flags chegam: sem ?duration e com a duração ainda no padrão, o Seedance abre na MAIOR
+  // duração que o saldo paga (B8 do cético) — o trial de 10 cr cai no filme de 15 s.
+  const entradaAplicadaRef = useRef(false)
+  useEffect(() => {
+    if (!flagsProntas || entradaAplicadaRef.current || !entrada15) return
+    entradaAplicadaRef.current = true
+    // (lê searchParams direto: o harness scripts/diagnose-studio-continuation.mjs acha o leitor de URL pelo texto)
+    // Revisão da E2b (achado 5): a ?duration= da URL vence só quando o saldo paga — um link com duration=60 abria o trial
+    // de 10 cr num Seedance de 25 cr. Sem ?duration e sem escolha manual, a régua de sempre. Mesma função do /generate.
+    const duracaoDaUrl = searchParams.get('duration') ? Number(searchParams.get('duration')) : null
+    if (duracaoDaUrl === null && duration !== 60) return
+    const motorFinal = engine === 'fast' && !kineo1Shown ? 'seedance' : engine
+    if (motorFinal !== 'seedance') return
+    const d = duracaoDaUrlNaEntrada({ durUrl: duracaoDaUrl, balance, autoStart: false, custoSeedance })
+    if (d !== null) setDuration(d)
+  }, [flagsProntas]) // eslint-disable-line react-hooks/exhaustive-deps
   // KINEO-STUDIO-TILE-ADS-2026-09-27 — o MESMO predicado que abre a porta no servidor (lib/ads/access.ts adsAccessReason →
   // 'subscriber'): plano de assinatura paga entra direto no /ads/new; free, trial e sem plano vão à porta /ads.
   const adsTileAccess = plan !== null && ADS_SUBSCRIBER_PLANS.includes(plan)
@@ -320,6 +380,9 @@ export default function StudioClient() {
     const requestedDuration = Number(sp.get('duration'))
     if (requestedDuration === 35 || requestedDuration === 60 || requestedDuration === 90) {
       setDuration(requestedDuration)
+    } else if (requestedDuration === SEEDANCE_SHORT_SECONDS && e === 'seedance') {
+      // KINEO-SEEDANCE-15S-2026-09-29 — ?duration=15 só com ?engine=seedance: o 15 s não existe nos outros motores.
+      setDuration(SEEDANCE_SHORT_SECONDS)
     }
     const quickstartChoice = sp.get('chatgpt_quickstart')
     if (isChatGptQuickstartChoice(quickstartChoice)) {
@@ -396,8 +459,12 @@ export default function StudioClient() {
   // nunca ao lado do saldo dentro do editor. Aqui a conta é feita para a pessoa,
   // na duração que ELA escolheu, motor a motor. Custo idêntico ao do servidor:
   // mesma função `creditCostForDuration` que debita.
+  // KINEO-SEEDANCE-15S-2026-09-29 (revisão E2a) — com o Seedance em 15 s, os OUTROS cards não existem a 15 s: ao clicar,
+  // o efeito abaixo sobe para 35. O card precifica na duração que o motor vai de fato receber (Kling 3 "38 cr" a 15 s
+  // virava 88 cr no clique).
+  const duracaoDoCard = (key: EngineKey): number => (key === 'seedance' ? duration : Math.max(duration, MIN_DURATION_ALL_ENGINES))
   const engineCost = (key: EngineKey) =>
-    creditCostForDuration(ENGINE_QUALITY[key] ?? 'cinematic_ai', true, duration)
+    creditCostForDuration(ENGINE_QUALITY[key] ?? 'cinematic_ai', true, duracaoDoCard(key))
   const engineCostLabel = (key: EngineKey) => {
     const c = engineCost(key)
     return c <= 0 ? 'free' : `${c} cr`
@@ -407,12 +474,14 @@ export default function StudioClient() {
   // trial de 10. O seletor precifica na duração escolhida (60 s por padrão) e dizia "not enough credits" — sem contar
   // que a 35 s (59 cr) o filme cabe. Fundador (22/09: "pode ir nas três primeiras"): mostrar o degrau que cabe, em
   // qualquer motor cujo custo na duração atual passa do saldo mas cabe numa duração menor do seletor.
-  const stepDownFor = (key: EngineKey): { seconds: 35 | 60; cost: number } | null => {
+  // KINEO-SEEDANCE-15S-2026-09-29 — no Seedance (com o interruptor) o degrau desce até 15 s (7 cr, cabe no trial de 10).
+  const stepDownFor = (key: EngineKey): { seconds: 15 | 35 | 60; cost: number } | null => {
     if (balance === null) return null
     const c = engineCost(key)
     if (c <= 0 || balance >= c) return null
-    for (const d of [60, 35] as const) {
-      if (d >= duration) continue
+    const degraus: readonly (15 | 35 | 60)[] = key === 'seedance' && seedance15Ok ? [60, 35, 15] : [60, 35]
+    for (const d of degraus) {
+      if (d >= duracaoDoCard(key)) continue
       const cost = creditCostForDuration(ENGINE_QUALITY[key] ?? 'cinematic_ai', true, d)
       if (cost > 0 && cost <= balance) return { seconds: d, cost }
     }
@@ -428,10 +497,16 @@ export default function StudioClient() {
     return `${n} film${n === 1 ? '' : 's'} with your ${balance} credits`
   }
 
+  // KINEO-SEEDANCE-15S-2026-09-29 — trocar de motor estando em 15 s volta para 35 s (o servidor recusaria o 15 fora do Seedance).
+  useEffect(() => {
+    if (engine !== 'seedance' && duration === SEEDANCE_SHORT_SECONDS) setDuration(MIN_DURATION_ALL_ENGINES as 35)
+  }, [engine]) // eslint-disable-line react-hooks/exhaustive-deps
+  const shortestDuration = engine === 'seedance' && seedance15Ok ? SEEDANCE_SHORT_SECONDS : MIN_DURATION_ALL_ENGINES
+
   // KINEO-DEGRAU-35S: impressão medida no mesmo gatilho do clique (picker aberto), com os degraus oferecidos.
   useEffect(() => {
     if (!pickerOpen || balance === null) return
-    const steps = ENGINES.filter((e) => !e.paused).map((e) => ({ engine: e.key, step: stepDownFor(e.key) })).filter((s) => s.step).map((s) => ({ engine: s.engine, to: s.step!.seconds, cost: s.step!.cost }))
+    const steps = ENGINES.filter((e) => !e.paused && (e.key !== 'fast' || kineo1Shown)).map((e) => ({ engine: e.key, step: stepDownFor(e.key) })).filter((s) => s.step).map((s) => ({ engine: s.engine, to: s.step!.seconds, cost: s.step!.cost }))
     if (steps.length) void trackEvent('studio_shorter_step_shown', { duration, balance, steps })
   }, [pickerOpen]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -687,7 +762,7 @@ export default function StudioClient() {
               </div>
             )}
             {kineo1Fit.show && !kineo1FitKept && (() => {
-              const copy = kineo1FitNoticeCopy(ENGINES.find((e) => e.key === 'seedance')?.credits ?? 'AI-generated scenes')
+              const copy = kineo1FitNoticeCopy(engineCostLabel('seedance')) // KINEO-SEEDANCE-15S-2026-09-29 (B8): custo do Seedance na duração escolhida, não o de 60 s fixo
               return (
                 <div data-kineo="aviso-desenho" data-version={kineo1Fit.version} style={{ marginTop: 8, padding: '10px 12px', borderRadius: 10, background: 'rgba(251,191,36,.08)', border: '1px solid rgba(251,191,36,.45)' }}>
                   <div style={{ fontWeight: 800, fontSize: '0.86rem', color: 'var(--text)' }}>{copy.title}</div>
@@ -736,14 +811,14 @@ export default function StudioClient() {
                 por esta mesma função (creditCostForDuration), então tela e
                 fatura nunca divergem. */}
             <div className="val">
-              <span><UiLabel>Estimated cost</UiLabel></span>
+              <span><UiLabel>{(scriptMode !== 'clip' && rotuloDoFilmeGratis({ entrada15, trialActive: trialOn, balance, engine, duration, custoSeedance })) || 'Estimated cost'}</UiLabel></span>
               <b style={balance !== null && (scriptMode === 'clip' ? CLIP_CREDITS : cost) > balance ? { color: '#fb923c' } : undefined}>{scriptMode === 'clip' ? CLIP_CREDITS : cost} cr</b>
             </div>
             {balance !== null && (scriptMode === 'clip' ? CLIP_CREDITS : cost) > balance && (
               // A verdade ANTES da ideia ser escrita, não depois do clique.
               <div className="val" style={{ color: '#fb923c', fontSize: '0.78rem' }}>
                 <span>You have {balance} cr</span>
-                <b style={{ fontWeight: 600 }}>{scriptMode === 'clip' ? `Need ${CLIP_CREDITS - balance} more credits` : duration > 35 ? 'try 35s, or another engine' : 'try another engine'}</b>
+                <b style={{ fontWeight: 600 }}>{scriptMode === 'clip' ? `Need ${CLIP_CREDITS - balance} more credits` : duration > shortestDuration ? `try ${shortestDuration}s, or another engine` : 'try another engine'}</b>
               </div>
             )}
             {/* Expectativa de tempo ANTES do clique: o cronômetro da tela de
@@ -834,7 +909,7 @@ export default function StudioClient() {
             </button>
             {pickerOpen && (
               <div className="picker">
-                {ENGINES.filter((e) => e.key !== 's25' || internal).map((e) => { const pausa = e.paused ? enginePaused(e.key) : null; return (
+                {ENGINES.filter((e) => (e.key !== 's25' || internal) && (e.key !== 'fast' || kineo1Shown)).map((e) => { const pausa = e.paused ? enginePaused(e.key) : null; return (
                   <button key={e.key} type="button" className={`pk${e.key === engine ? ' on' : ''}`} disabled={Boolean(pausa)} aria-disabled={Boolean(pausa)} title={pausa ? pausa.message : undefined} style={pausa ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}
                     onClick={() => { setEngine(e.key); setPickerOpen(false) }}>
                     <span className="eng-ic" aria-hidden="true"><KineoBoltText>{e.icon}</KineoBoltText></span>
@@ -852,7 +927,7 @@ export default function StudioClient() {
                           queimaram o trial inteiro no primeiro clique sem saber.
                           Agora cada card diz o custo E quantos filmes o saldo compra. */}
                       <span className="t">
-                        <b>{e.name}{pausa ? <span className="tag" style={{ background: 'rgba(255,180,84,.16)', color: '#ffb454' }}><UiLabel>Maintenance</UiLabel></span> : e.tag && <span className="tag"><UiLabel>{e.tag}</UiLabel></span>}{!pausa && STUDIO_ONLY_ENGINE_KEYS.has(e.key) && <span className="tag" title="Studio plan engine"><UiLabel>Studio</UiLabel></span>}</b>
+                        <b>{e.name}{pausa ? <span className="tag" style={{ background: 'rgba(255,180,84,.16)', color: '#ffb454' }}><UiLabel>Maintenance</UiLabel></span> : e.tag && <span className="tag"><UiLabel>{e.tag}</UiLabel></span>}{!pausa && ENGINE_GATE_ACTIVE && STUDIO_ONLY_ENGINE_KEYS.has(e.key) && <span className="tag" title="Studio plan engine"><UiLabel>Studio</UiLabel></span>}</b>
                         <i>{engineCostLabel(e.key)}</i>
                       </span>
                       <span className="d"><UiLabel>{pausa ? `Temporarily paused for maintenance · use ${pausa.alternative.label} meanwhile` : e.desc}</UiLabel></span>
@@ -916,6 +991,10 @@ export default function StudioClient() {
                   35s fica como o tier de volume (barato, para testar tema);
                   60s continua o padrão e o piso de monetização do TikTok;
                   90s é o tier de alcance. */}
+              {/* KINEO-SEEDANCE-15S-2026-09-29 — 15 s só no Seedance 1.5 e só com o interruptor (ou quando já veio em 15 pela URL). */}
+              {engine === 'seedance' && (seedance15Ok || duration === SEEDANCE_SHORT_SECONDS) && (
+                <button type="button" className={`pill${duration === SEEDANCE_SHORT_SECONDS ? ' on' : ''}`} onClick={() => setDuration(SEEDANCE_SHORT_SECONDS)} title="Seedance 1.5 only — a short AI film">{SEEDANCE_SHORT_SECONDS}s</button>
+              )}
               <button type="button" className={`pill${duration === 35 ? ' on' : ''}`} onClick={() => setDuration(35)}>35s</button>
               <button type="button" className={`pill${duration === 60 ? ' on' : ''}`} onClick={() => setDuration(60)}>60s ⭐</button>
               <button type="button" className={`pill${duration === 90 ? ' on' : ''}`} onClick={() => setDuration(90)} title="Mais alcance: no TikTok, 90s rende ~4x as views de um vídeo de 60s">90s 📈</button>
@@ -971,7 +1050,7 @@ export default function StudioClient() {
                 ))}
               </select>
               {!isHollywoodLanguage(language) && (
-                <span style={{ fontSize: 11, color: 'var(--muted2)' }}>Kineo 1, Seedance 1.5, Veo 3.1 and Kling 2.5 narrate in this language. Kling 3, H3, Omni and Seedance 2.5: English, Portuguese, Spanish only.</span>
+                <span style={{ fontSize: 11, color: 'var(--muted2)' }}>{kineo1Shown ? 'Kineo 1, ' : ''}Seedance 1.5, Veo 3.1 and Kling 2.5 narrate in this language. Kling 3, H3, Omni and Seedance 2.5: English, Portuguese, Spanish only.</span>
               )}
             </div>
             {/* ⚠️ KINEO-RES-HONESTA-2026-08-20 — a tela se contradizia.

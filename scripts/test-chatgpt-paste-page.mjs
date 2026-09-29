@@ -102,7 +102,9 @@ if (L) {
   // Math.round(d * WORDS_PER_SECOND_CLASSIC) — calculado AQUI, não lido da lib.
   const WPS = L.WORDS_PER_SECOND_CLASSIC
   ok(WPS === 3.1, `(A3) régua clássica = 3,1 pal/s (achado: ${WPS})`)
-  ok(Array.isArray(L.DURATIONS) && L.DURATIONS.length === 3, `(A3) DURATIONS = ${L.DURATIONS?.join('/')}`)
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o handoff aceita 15 s (só Seedance, o filme grátis de conta
+  // nova); a faixa do 15 s sai da MESMA régua (Math.round(15×3,1)=47), testada no laço abaixo.
+  ok(Array.isArray(L.DURATIONS) && L.DURATIONS.length === 4 && L.DURATIONS[0] === 15, `(A3) DURATIONS = ${L.DURATIONS?.join('/')}`)
   for (const d of L.DURATIONS) {
     const min = Math.round(d * WPS)
     const budget = L.pasteWordBudget(d)
@@ -157,7 +159,9 @@ console.log('\n(B) lib/gptHandoff.ts lida')
   // KINEO-GPT-VERDADE-2026-09-07: @/lib/narrationFit entrou (o cobrador; puro, zero import).
   const libImports = [...lib.matchAll(/^import (?:\{[^}]*\}|[^\n{]*) from '([^']+)'/gm)].map((m) => m[1])
   // GPT-LOJA-2026-09-24 — reancorado com motivo: @/lib/textLanguage entrou (idioma do roteiro vai ao Studio); folha pura, zero import.
-  ok(libImports.every((s) => s === '@/lib/aspect' || s === '@/lib/narrationFit' || s === '@/lib/textLanguage' || s === 'node:crypto'), `(B1) a lib continua importando só @/lib/aspect, @/lib/narrationFit, @/lib/textLanguage e node:crypto (achados: ${libImports.join(', ')})`)
+  // Reancorado 29/09 (revisão da E2b, achado 3): @/lib/scriptParser e @/lib/durationByEngine entraram (a régua e o teto de fala do
+  // filme de 15 s) — folhas puras, zero import (test-gpt-handoff A0 prova a pureza das duas).
+  ok(libImports.every((s) => s === '@/lib/aspect' || s === '@/lib/narrationFit' || s === '@/lib/textLanguage' || s === '@/lib/scriptParser' || s === '@/lib/durationByEngine' || s === 'node:crypto'), `(B1) a lib continua importando só @/lib/aspect, @/lib/narrationFit, @/lib/textLanguage, @/lib/scriptParser, @/lib/durationByEngine e node:crypto (achados: ${libImports.join(', ')})`)
   ok(/export const HANDOFF_CHANNELS = \['gpt_store', 'assistant_link', 'paste_page'\] as const/.test(libCode), "(B2) HANDOFF_CHANNELS = ['gpt_store', 'assistant_link', 'paste_page'] as const")
   ok(/paste_page: \{ utmSource: 'paste_page', intentCampaign: 'kineo_paste_page' \}/.test(libCode), '(B2) CHANNEL_TAGS.paste_page escrito uma vez, na lib')
   ok(/export const ASSISTANT_PASTE_PROMPT_MAX_CHARS = 1500/.test(libCode), '(B3) ASSISTANT_PASTE_PROMPT_MAX_CHARS = 1500 declarado')

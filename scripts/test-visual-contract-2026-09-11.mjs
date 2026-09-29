@@ -52,6 +52,11 @@ const aspect = load('lib/aspect.ts')
 const visualMode = load('lib/cinematic/visualMode.ts')
 const truth = load('lib/cinematic/sceneTruth.ts')
 const dispatch = load('lib/cinematic/dispatchScenes.ts')
+// GUARDIOES-EIXO-KLING25-2026-09-29: the executed route slice now prefixes a deterministic shot axis on Kling 2.5
+// (wantsKling ? kling25ApplyShotAxis(prompt, i) : prompt — TRAVA 8.2 ab29bff5) and stores the judge copy without it
+// (kling25StripShotAxis, 7b2838d5). The REAL functions run here (pure lib, no imports), not a stub, so the checks
+// below prove the actual caller with the actual axis.
+const klingShots = execute(read('lib/cinematic/klingShots.ts'))
 const routerNames = ['HOLLYWOOD_MODELS', 'KLING3_I2V_MODEL', 'H3_MODELS', 'H3_I2V_MODEL', 'H3_RESOLUTION',
   'OMNI_I2V_MODEL', 'S25_I2V_MODEL', 'S25_T2V_MODEL', 'S25_RESOLUTION',
   'CONTEMPORARY_FIGURE_RE', 'HISTORICAL_FIGURE_RE', 'HISTORICAL_TITLE_NAME_RE']
@@ -119,6 +124,7 @@ async function run({ look = 'photoreal', mode = 'character_story', frame = '16:9
     scenes, classicVisualPolicy: { mode, style: anchor, character: mode === 'documentary_faceless' ? null : 'Mira, a young woman', aspect: frame },
     classicVisualMode: mode, storyCharacter: mode === 'documentary_faceless' ? null : 'Mira, a young woman', styleAnchor: anchor,
     eraSuffix, aspectRequested: frame,
+    kling25ApplyShotAxis: klingShots.kling25ApplyShotAxis, kling25StripShotAxis: klingShots.kling25StripShotAxis, // GUARDIOES-EIXO-KLING25: real axis; wantsKling (= anchored) decides whether the slice calls it
     wantsKling: anchored, wantsVeo: false, wantsSora: false, CINEMATIC_ANCHOR_ENABLED: anchored, generationId: 'offline-generation', generationSeed: 17, // KINEO-ANCORA-3-MOTORES: a âncora vale para os três clássicos; o interruptor decide
     hd: false, KLING_CREDIT_COST: 50, ANCHORS_USD: anchors.ANCHORS_USD, providerSubmissionMayExist: false,
     generateCinematicSceneStill: anchors.generateCinematicSceneStill, FalQueueSubmitError: FakeSubmitError,
@@ -173,6 +179,10 @@ for (const frame of ['9:16', '16:9', '1:1', '4:5']) {
   check(r.stills[0].input.prompt.includes('Mira') && r.stills[0].input.prompt.includes('anime'), 'Still retains protagonist and anime')
   check(!/portrait, photorealistic|no people|empty scene/.test(r.stills[0].input.prompt), 'Still cannot overwrite story with old faceless photoreal suffix')
   check(r.calls[0].model === routeHelpers.KLING_I2V_MODEL && r.calls[0].input.image_url, 'Actual clip uses its still')
+  // GUARDIOES-EIXO-KLING25-2026-09-29: scene prompts carry the axis of their index (neighbours differ); the copy stored
+  // for the coherence judge (submitted_prompts, 240 chars) is the SAME prompt without the axis — never a raw camera line.
+  check(r.prepared.classicScenePrompts[0].startsWith(klingShots.kling25ShotAxis(0) + '. ') && r.prepared.classicScenePrompts[1].startsWith(klingShots.kling25ShotAxis(1) + '. ') && klingShots.kling25ShotAxis(0) !== klingShots.kling25ShotAxis(1), 'Kling 2.5 scene prompts are prefixed with the real shot axis of their index; neighbours differ')
+  check(r.context.submittedPrompts[0] === klingShots.kling25StripShotAxis(r.prepared.classicScenePrompts[0]).slice(0, 240) && !klingShots.KLING25_SHOT_AXES.some(a => r.context.submittedPrompts[0].startsWith(a)), 'Judge copy (submitted_prompts) is the final prompt WITHOUT the axis, 240 chars')
 }
 
 for (const status of [400, 422]) {
@@ -435,10 +445,12 @@ checkKlingPayload(brief.r.calls[0], 'Brief')
 
 // 4) The same idea with the anchor flag → i2v with still, t2v id kept as fallback
 const anchoredIdea = await entryToPayload({ prompt: LITUYA_IDEA, scriptMode: 'ai', anchored: true })
-// The actual anchor loop caps stills at MAX_ANCHORED_SCENES (6): a 60 s / 7-scene
-// film gets 6 anchored scenes and scene 7 goes t2v. Declared here, not hidden.
-const MAX_ANCHORED = Number(variable(route, 'MAX_ANCHORED_SCENES').initializer.getText(route))
-check(MAX_ANCHORED === 6 && anchoredIdea.scenes.length === 7 && anchoredIdea.r.stills.length === MAX_ANCHORED, 'Anchored idea: 7 planned scenes, 6 stills (actual MAX_ANCHORED_SCENES cap); scene 7 is unanchored t2v')
+// The actual anchor loop caps stills at MAX_ANCHORED_SCENES. Until 28/09 the cap was a flat 6 (a 60 s / 7-scene film
+// got 6 stills and scene 7 went t2v). KLING25-60S-ANCORA (b194830b, founder 28/09) lifts it to EVERY scene on Kling 2.5
+// only (anchorEngine === 'kling' ? scenes.length : 6); Seedance/Veo keep 6. Declared here, not hidden: the cap's actual
+// source is pinned and the anchored Kling run must produce one still per planned scene.
+const MAX_ANCHORED_SRC = variable(route, 'MAX_ANCHORED_SCENES').initializer.getText(route)
+check((MAX_ANCHORED_SRC === "anchorEngine === 'kling' ? scenes.length : 6" || MAX_ANCHORED_SRC === "anchorEngine === 'kling' || anchorEngine === 'veo' ? scenes.length : 6") /* VEO-ANCORA 29/09: o Veo entrou na mesma regra */ && anchoredIdea.scenes.length === 7 && anchoredIdea.r.stills.length === anchoredIdea.scenes.length, 'Anchored idea (Kling 2.5): 7 planned scenes, 7 stills — the 6-still cap is lifted for Kling only (actual MAX_ANCHORED_SCENES source pinned)')
 check(anchoredIdea.r.calls.length === 1 && anchoredIdea.r.calls[0].model === routeHelpers.KLING_I2V_MODEL, 'Anchored idea: scene 1 reaches Kling 2.5 i2v with its still')
 check(anchoredIdea.r.calls[0].input.image_url && anchoredIdea.r.calls[0].input.duration === '10' && !('aspect_ratio' in anchoredIdea.r.calls[0].input), 'Anchored idea: i2v payload follows the still (no aspect param), duration 10')
 check(/Lituya/.test(anchoredIdea.r.stills[0].input.prompt) && anchoredIdea.r.stills[0].input.image_size === aspect.aspectSpec('9:16').fluxImageSize, 'Anchored idea: still prompt keeps the subject and 9:16 dimensions')

@@ -96,11 +96,15 @@ equal(
 
 const home = read('app/HomeTopicForm.tsx')
 const generate = read('app/(dashboard)/generate/GenerateClient.tsx')
-check(home.includes('homeReferralCreationIntent(acquisitionSource)'), 'homepage delegates source-specific intent to the bounded policy')
+// Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): a política recebe o interruptor da entrada (K6 revogada quando ligado).
+check(home.includes('homeReferralCreationIntent(acquisitionSource, SEEDANCE_15S_PUBLIC)'), 'homepage delegates source-specific intent to the bounded policy')
 check(home.includes('name="create_intent" value={creationIntent}'), 'native no-JS and JS handoffs share the resolved source intent')
 check(home.includes('signupHref(activationPrompt, creationIntent)'), 'post-script CTA uses the same resolved source intent')
-check(generate.includes('resolveActivationRenderEngine({'), 'real caller executes the engine policy')
-check(generate.includes("seedanceCreditCost: creditCostFor('cinematic_ai')"), 'caller reads the canonical engine cost')
+// Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b/B1): o chamador real passou a executar resolveActivationRender (motor E
+// duração juntos; com a entrada desligada ela delega a resolveActivationRenderEngine, provada acima), com o custo da
+// duração que VAI ser disparada — a mesma função que cobra.
+check(generate.includes('resolveActivationRender({'), 'real caller executes the engine policy')
+check(generate.includes('      seedanceCostAt: custoSeedance,') && generate.includes("  const custoSeedance = (segundos: number) => creditCostForDuration('cinematic_ai', true, segundos)"), 'caller reads the canonical engine cost')
 check(
   /setMode\('cinematic_ai'\)\s+setAiEngine\('seedance'\)/.test(generate),
   'eligible intent commits Seedance before analysis',

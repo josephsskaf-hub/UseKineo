@@ -1,6 +1,6 @@
 'use client'
 
-import { S25_PUBLIC, VIDEO_ENGINE_COUNT_WORD } from '@/lib/engineLaunch'
+import { KINEO1_PUBLIC, S25_PUBLIC, VIDEO_ENGINE_COUNT_WORD } from '@/lib/engineLaunch'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
@@ -23,8 +23,11 @@ type PublicEngine = {
   detail: string
 }
 
+// KINEO-FILME-GRATIS-15S-2026-09-29 — o Kineo 1 ('fast') saiu do catálogo público (KINEO1_PUBLIC=false): a calculadora
+// pública abre no Seedance 1.5 e não oferece mais a saída "Keep N/month with Kineo 1".
+const PUBLIC_DEFAULT_QUALITY: PlanFitQuality = KINEO1_PUBLIC ? 'fast' : 'cinematic_ai'
 const PUBLIC_ENGINES: readonly PublicEngine[] = [
-  { quality: 'fast', detail: 'Matched stock footage + AI voiceover' },
+  ...(KINEO1_PUBLIC ? [{ quality: 'fast' as const, detail: 'Matched stock footage + AI voiceover' }] : []),
   { quality: 'cinematic_ai', detail: 'Seedance 1.5 generated scenes' },
   { quality: 'cinematic_kling', detail: 'Kling 2.5 cinematic scenes' },
   { quality: 'cinematic_veo', detail: 'Google Veo 3.1 cinematic scenes' },
@@ -46,7 +49,7 @@ function currentInternalSource(): string {
 }
 
 export default function ShortCostCalculator() {
-  const [quality, setQuality] = useState<PlanFitQuality>('fast')
+  const [quality, setQuality] = useState<PlanFitQuality>(PUBLIC_DEFAULT_QUALITY)
   const [seconds, setSeconds] = useState<(typeof PUBLIC_DURATIONS)[number]>(60)
   const [videos, setVideos] = useState(12)
   const [currency, setCurrency] = useState<CheckoutCurrency | null>(null)
@@ -59,7 +62,7 @@ export default function ShortCostCalculator() {
   useEffect(() => {
     let cancelled = false
     const handoff = readPublicPlanFitHandoff(window.location.search)
-    const initialQuality = handoff?.quality ?? 'fast'
+    const initialQuality = handoff?.quality ?? PUBLIC_DEFAULT_QUALITY
     const initialSeconds = handoff?.seconds ?? 60
     const initialVideos = handoff?.monthlyVideos ?? 12
     if (handoff) {
@@ -317,7 +320,7 @@ export default function ShortCostCalculator() {
                 Plan for {result.maximumSameEngineFilms}/month on {engineName(quality)}
               </button>
             )}
-            {result.fastAlternative && (
+            {KINEO1_PUBLIC && result.fastAlternative && (
               <button
                 type="button"
                 onClick={() => {

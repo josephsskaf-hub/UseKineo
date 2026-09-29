@@ -63,15 +63,23 @@ function priceSentence(p: PlanFact): string {
 
 // A porta de entrada, derivada da mesma oferta que o cobrador aplica. Com o
 // trial no ar a frase é a do trial; sem ele, é a franquia recorrente.
+// KINEO-FILME-GRATIS-15S-2026-09-29 — o saldo e o filme grátis vêm do TRIAL_ACCESS (era "10 credits" digitado), e a
+// cota recorrente só é citada se RECURRING_FREE_ACCESS for anunciado (hoje null).
 const START_SENTENCE = TRIAL_ACCESS
-  ? `A new account starts free with 10 credits and every engine unlocked, no card. ` +
+  ? `A new account starts free with ${TRIAL_ACCESS.credits} credits and every engine unlocked, no card` +
+    (TRIAL_ACCESS.freeFilm
+      ? ` — enough for one free ${TRIAL_ACCESS.freeFilm.seconds}-second film (${TRIAL_ACCESS.freeFilm.engine}). `
+      : '. ') +
     `Trial films are watermarked; any paid plan unlocks the clean download.`
-  : `A new account gets ${RECURRING_FREE_ACCESS.videosPerWindow} watermarked ${RECURRING_FREE_ACCESS.engine} video ` +
-    `per ${RECURRING_FREE_ACCESS.rollingWindowHours}-hour window on paid plans.`
+  : RECURRING_FREE_ACCESS
+    ? `A new account gets ${RECURRING_FREE_ACCESS.videosPerWindow} watermarked ${RECURRING_FREE_ACCESS.engine} video ` +
+      `per ${RECURRING_FREE_ACCESS.rollingWindowHours}-hour window on paid plans.`
+    : 'Episodes are made with a paid plan or a credit pack.'
 
-const RECURRING_SENTENCE =
-  `After the trial, recurring free access is ${RECURRING_FREE_ACCESS.videosPerWindow} watermarked ` +
-  `${RECURRING_FREE_ACCESS.engine} video per ${RECURRING_FREE_ACCESS.rollingWindowHours}-hour window.`
+const RECURRING_SENTENCE = RECURRING_FREE_ACCESS
+  ? `After the trial, recurring free access is ${RECURRING_FREE_ACCESS.videosPerWindow} watermarked ` +
+    `${RECURRING_FREE_ACCESS.engine} video per ${RECURRING_FREE_ACCESS.rollingWindowHours}-hour window.`
+  : 'The trial film is the only free film Kineo advertises; episodes need a paid plan or a credit pack.' // revisão E2b: não anunciar ≠ negar
 
 const ENGINE_PRICE_SENTENCE =
   `Each episode is charged like any other video, per engine: ` +

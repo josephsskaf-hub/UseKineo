@@ -1,13 +1,13 @@
 # TAAFT — pacote ATUAL da ficha Kineo
 
-**Revisado em:** 16/09/2026 · **Estado:** LOCAL, correção TRIAL-10-R1 · **Destino:** ficha existente em `https://theresanaiforthat.com/ai/kineo/`
+**Revisado em:** 29/09/2026 · **Estado:** LOCAL, correção FILME-GRATIS-15S (o fundador cola no painel do TAAFT) · **Destino:** ficha existente em `https://theresanaiforthat.com/ai/kineo/`
 
 **EVIDÊNCIA DE PRODUÇÃO — relato do fundador via Board, 16/09/2026:** a descrição externa já foi atualizada por ele para o trial atual. Esta tarefa não acessou o painel e não repetiu submissão. **QUESTÃO PENDENTE / DESCONHECIDO:** leitura independente da ficha atual bloqueada; não declarar validação pública. A release **v3.3.3** com a oferta anterior é histórico imutável, não oferta ativa e não deve ser reescrita nem republicada.
 
 ## 1. Fontes e limites da oferta atual
 
 - **FATO CONFIRMADO — IMPLEMENTADO:** cadastro novo recebe 10 créditos, sem cartão (`lib/entryPolicy.ts:33-36`, `lib/reverseTrial.ts:142`); o teto das concessões anteriores usa `trial_credits_granted`, preservando saldos concedidos antes (`lib/reverseTrial.ts:361-364`).
-- **FATO CONFIRMADO — IMPLEMENTADO:** Kineo 1 custa 5 créditos por 60 segundos no caminho com créditos; Seedance 1.5 custa 25 no mesmo referencial (`lib/credits/engineCost.ts`, `creditCostFor` e `creditCostForDuration`). Os 10 iniciais cobrem dois filmes Kineo 1 de 60 segundos; não anunciam um Seedance gratuito de 60 segundos.
+- **FATO CONFIRMADO — DECISÃO DO FUNDADOR 29/09 (KINEO-FILME-GRATIS-15S):** o filme grátis de quem chega é o Seedance 1.5 de 15 segundos: `creditCostForDuration('cinematic_ai', true, 15)` = 7 créditos, pago pelos 10 do trial (sobram 3), com marca d'água (`lib/freeTierOffer.ts` `TRIAL_SEEDANCE15_FILMS`, `FREE_FILM_LABEL`). O Kineo 1 saiu do catálogo público (`lib/engineLaunch.ts` `KINEO1_PUBLIC = false`) e a página dele virou 301 para a do Seedance; a ficha não cita mais o Kineo 1. Um Seedance de 60 segundos (25 créditos) continua fora do trial.
 - **FATO CONFIRMADO — IMPLEMENTADO:** primeiro filme premium desabilitado por padrão (`lib/primeiroFilme.ts:29`). **EVIDÊNCIA DE PRODUÇÃO — relato do fundador, 16/09/2026:** iniciativa pausada. Não anunciar o primeiro filme como premium gratuito.
 - **FATO CONFIRMADO — IMPLEMENTADO:** H3, Omni e S25 estão pausados (`lib/engineLaunch.ts:28`). **CONTRADIÇÃO:** as constantes desse arquivo ainda incluem Avatar na contagem, enquanto o handoff TRIAL10 do fundador manda anunciar apenas Kineo 1, Seedance 1.5, Kling 2.5, Kling 3 e Veo 3.1. O texto atual abaixo limita-se a esses motores e explicita disponibilidade, acesso e saldo.
 - **FATO CONFIRMADO — IMPLEMENTADO:** a data do gate por plano está no futuro (`lib/enginePlanGate.ts:19`); isso não substitui os controles de manutenção nem o saldo necessário. Não dizer que Studio é o único acesso aos motores caros, nem que Starter paga toda combinação de motor e duração.
@@ -28,11 +28,11 @@
 
 ### Short description
 
-`Create videos with narration, visuals, captions and music. Free to start: 10 credits, no card — enough for two Kineo 1 films of 60 seconds. Trial videos are watermarked.`
+`Create videos with narration, visuals, captions and music. Free to start: 10 credits, no card = one free 15-second Seedance film. Trial videos are watermarked.`
 
 ### Long description
 
-`Turn a topic or script into a video with narration, visuals, captions and music. Free to start: 10 credits, no card — enough for two Kineo 1 films of 60 seconds. Trial videos are watermarked. Available video options include Kineo 1, Seedance 1.5, Kling 2.5, Kling 3 and Veo 3.1. Credit use varies by engine and duration; generation requires an available engine, account access and sufficient credits. Plans start at $12.90/month USD. Check the displayed credit cost before generating.`
+`Turn a topic or script into a video with narration, visuals, captions and music. Free to start: 10 credits, no card = one free 15-second Seedance film. Trial videos are watermarked. Available video options include Seedance 1.5, Kling 2.5, Kling 3 and Veo 3.1. Credit use varies by engine and duration; generation requires an available engine, account access and sufficient credits. Plans start at $12.90/month USD. Check the displayed credit cost before generating.`
 
 ### Pricing field
 
@@ -49,8 +49,8 @@
 ### Feature bullets
 
 1. `Topics or scripts to videos with narration, visuals, captions and music.`
-2. `Kineo 1, Seedance 1.5, Kling 2.5, Kling 3 and Veo 3.1.`
-3. `Free to start: 10 credits, no card; two Kineo 1 films of 60 seconds.`
+2. `Seedance 1.5, Kling 2.5, Kling 3 and Veo 3.1.`
+3. `Free to start: 10 credits, no card = one free 15-second Seedance film.`
 4. `Trial videos are watermarked. Credit use varies by engine and duration.`
 5. `Check engine availability, account access and sufficient credits before generating.`
 
@@ -66,7 +66,7 @@
 
 | Superfície | Classificação e estado em 16/09/2026 | Ação |
 |---|---|---|
-| Este pacote de comunicação | SUGESTÃO — LOCAL, atualizado para TRIAL10 | Fonte atual de copy; valores conferidos pelo teste do pacote |
+| Este pacote de comunicação | SUGESTÃO — LOCAL, atualizado para FILME-GRATIS-15S (29/09); o fundador cola no painel | Fonte atual de copy; valores conferidos pelo teste do pacote |
 | Descrição pública TAAFT | EVIDÊNCIA DE PRODUÇÃO — atualização relatada pelo fundador; validação independente DESCONHECIDA | Não repetir submissão; não contornar bloqueio de leitura |
 | Release TAAFT v3.3.3 | EVIDÊNCIA DE PRODUÇÃO — histórico imutável informado pelo fundador | Preservar a oferta da época; não criar release paga |
 | Modelos, USP e galeria externos | QUESTÃO PENDENTE / DESCONHECIDO — sem leitura atual independente | Não afirmar que estão todos corrigidos |

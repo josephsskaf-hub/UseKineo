@@ -111,10 +111,16 @@ interface UnlockBody {
   quality?: string
   // LOTE2-EXPORT-LIMPO-FIEL-2026-09-23 — formato do filme original (ausente = 9:16, como sempre foi).
   aspect?: string
+  // KINEO-SEEDANCE-15S-2026-09-29 (revisão E2a) — o filme de IA saiu em verbatim (response.verbatim do cinematic, o
+  // MESMO campo que o /api/compose lê no claim assinado como claimVerbatim). Governa só se a narração é reescalada — o
+  // texto já vem do cliente em voiceover_script, então o campo não abre nada que o corpo já não abrisse.
+  verbatim?: boolean
 }
 
 // Keep the clean re-render identical to the just-created Fast preview.
-const SUPPORTED_DURATIONS = [10, 30, 35, 45, 50, 60, 90] as const
+// KINEO-SEEDANCE-15S-2026-09-29 (B6) — 15 entra: o export limpo pago de um filme de 15 s do Seedance é o MESMO filme
+// (sem o 15, virava 45 e a narração era reescrita para 45 s sobre 2 clipes de 10 s).
+const SUPPORTED_DURATIONS = [10, 15, 30, 35, 45, 50, 60, 90] as const
 
 // ═══ KINEO-TRIAL-WATERMARK-2026-09-07 — O REBUILD PRECISA DO MESMO RITMO ═══
 // Esta rota reconstruía SEMPRE com `quality: 'fast'` — e `quality` não é um
@@ -514,7 +520,11 @@ export async function POST(req: NextRequest) {
     // Mirror /api/compose scaling: verbatim (explicit speed) is used as-is; a
     // generated brief is scaled to the duration's word target. Falls back safely.
     let scaledScript: string
-    if (explicitSpeed != null) {
+    // KINEO-SEEDANCE-15S-2026-09-29 (B6, revisão E2a) — espelho EXATO do /api/compose: pula a reescala com velocidade
+    // explícita OU quando o filme de IA saiu em verbatim (lá: claimVerbatim). A versão anterior pulava por
+    // `duration === 15` — no modo IA o compose REESCALA (fora de 92-125% do alvo) e o export limpo narrava outro texto.
+    const unlockVerbatim = body.verbatim === true && rebuildQuality === 'cinematic_ai'
+    if (explicitSpeed != null || unlockVerbatim) {
       scaledScript = voiceoverScript
     } else {
       try {

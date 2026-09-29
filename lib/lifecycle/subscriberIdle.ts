@@ -12,7 +12,7 @@
 // Este modulo monta o e-mail (puro, testavel); a rota
 // app/api/admin/send-subscriber-idle decide QUEM recebe.
 import { emailFooterHtml, emailFooterText } from '@/lib/emailSuppression'
-import { creditCostFor } from '@/lib/credits/engineCost'
+import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
 
 export const STAMP = 'subscriber_idle_sent'
 export const IDLE_DAYS = 10
@@ -40,10 +40,13 @@ export type IdleTarget = {
   lastTitle: string | null
 }
 
-export function filmsFor(credits: number): { seedance: number; fast: number } {
+// KINEO-FILME-GRATIS-15S-2026-09-29 — `short` = filmes Seedance 1.5 de 15 s (a unidade barata depois que o Kineo 1 saiu
+// do catálogo público). `fast` fica no retorno para leitores antigos, mas a carta não cita mais o Kineo 1.
+export function filmsFor(credits: number): { seedance: number; fast: number; short: number } {
   const seed = Math.max(1, creditCostFor('cinematic_ai', true))
   const fast = Math.max(1, creditCostFor('fast', true))
-  return { seedance: Math.floor(credits / seed), fast: Math.floor(credits / fast) }
+  const short = Math.max(1, creditCostForDuration('cinematic_ai', true, 15))
+  return { seedance: Math.floor(credits / seed), fast: Math.floor(credits / fast), short: Math.floor(credits / short) }
 }
 
 export function studioUrl(prompt: string, idea: string): string {
@@ -82,8 +85,8 @@ export function buildEmail(t: IdleTarget): { subject: string; text: string; html
   const plan = PLAN_LABEL[t.plan] ?? 'Kineo'
   const films = filmsFor(t.credits)
   const filmsLine = films.seedance >= 1
-    ? `That's ${films.seedance} full AI film${films.seedance === 1 ? '' : 's'} on Seedance, or ${films.fast} quick Kineo 1 shorts.`
-    : `That's ${films.fast} quick Kineo 1 short${films.fast === 1 ? '' : 's'}.`
+    ? `That's ${films.seedance} full AI film${films.seedance === 1 ? '' : 's'} on Seedance, or ${films.short} short 15-second ones.`
+    : `That's ${films.short} short 15-second Seedance film${films.short === 1 ? '' : 's'}.`
   const idleLine = t.daysIdle == null
     ? `you haven't made a video yet`
     : `your last video was ${t.daysIdle} days ago`

@@ -262,6 +262,8 @@ export const INTERFACE_HI: Record<string, string> = {
   '⚡ Hook intro — you open, b-roll tells the story': '⚡ हुक से शुरुआत — आप शुरू करें, दृश्य कहानी सुनाएँ',
   'Short clips of your presenter waving, pointing, presenting — delivered as WebM with a REAL transparent background. Drop them straight into Storyline, Premiere, CapCut or any slide. No green screen, no keying.': 'आपके प्रस्तुतकर्ता की हाथ हिलाने, इशारा करने या प्रस्तुत करने वाली छोटी क्लिप — असली पारदर्शी पृष्ठभूमि के साथ WebM में। सीधे Storyline, Premiere, CapCut या स्लाइड में जोड़ें। ग्रीन स्क्रीन या कीइंग नहीं चाहिए।',
   "Google's flagship cinematic engine": 'Google का फ़्लैगशिप सिनेमाई इंजन',
+  'Google’s flagship cinematic engine · 1080p': 'Google का फ़्लैगशिप सिनेमाई इंजन · 1080p', // KINEO-VEO-CARD-HONESTO-2026-09-29
+  'Google’s flagship engine · 1080p': 'Google का फ़्लैगशिप इंजन · 1080p',
   'Cinematic film — 9-image consistency': 'सिनेमाई फ़िल्म — 9-चित्रों में निरंतरता',
   '#1-ranked video model — Aug 2026 arena': '#1 स्थान वाला वीडियो मॉडल — अगस्त 2026 एरीना',
   'Cinematic motion and camera work': 'सिनेमाई गति और कैमरा संचालन',

@@ -4,7 +4,8 @@ import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 // Kineo landing — new Apple-dark redesign (replaces the old HomePageClient on the homepage).
 // Self-contained, styles scoped under .klp so they don't leak into the rest of the app.
 // Marker: KINEO-LANDING-V3-2026-06-30
-import { s25Visible, S25_PUBLIC, VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, PAUSED_ENGINES_COPY, enginePaused, avatarVisible } from '@/lib/engineLaunch'
+import { s25Visible, S25_PUBLIC, VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, PAUSED_ENGINES_COPY, enginePaused, avatarVisible, kineo1Visible } from '@/lib/engineLaunch'
+import { enginePlanBadge } from '@/lib/enginePlanGate'
 import Link from 'next/link'
 import { InterfaceLanguageSelect, UiLabel, UiText } from '@/components/InterfaceLanguage'
 import { HOME_PRESENTATION_CSS } from '@/lib/ui/homePresentation'
@@ -866,6 +867,12 @@ export default function KineoLanding({
   // subtítulo que os vende). Medido: 0 cliques no card do /studio e o último filme de apresentador em 15/07.
   // Contas da casa (isInternalEmail) continuam vendo tudo; o /avatar segue no ar por link direto.
   const showAvatar = avatarVisible(initialEmail)
+  // KINEO-KINEO1-FORA-2026-09-29 — fundador (29/09): "quero tirar o kineo 1 do jogo, ele estraga a entrada". Mesmo
+  // desenho do showAvatar: um booleano decide as 3 portas do Kineo 1 nesta página (mega-menu, tile do bento, chip
+  // final). A vitrine é pública — aqui só a casa (isInternalEmail) continua vendo; o legado de quem já paga e usa é
+  // resolvido no servidor do Studio (lib/kineo1Access.ts, E2b). A grade do bento fecha sozinha para qualquer contagem
+  // (lib/ui/homePresentation.ts): visitante 4 tiles, casa 6.
+  const showKineo1 = kineo1Visible(initialEmail)
 
   return (
     <>
@@ -927,10 +934,12 @@ export default function KineoLanding({
                   {/* KINEO-MENU-ICONES-2026-08-17 (fundador, ref. Higgsfield):
                       SEM preco no menu (atrito antes da hora — preco mora na
                       pagina) + caixinha com monograma/glifo de cada produto. */}
-                  <NavEngineItem href="/studio?engine=fast&intent_campaign=nav_mega" name="Kineo 1" desc="Kineo’s own engine — fastest" icon="⚡" />
+                  {showKineo1 && <NavEngineItem href="/studio?engine=fast&intent_campaign=nav_mega" name="Kineo 1" desc="Kineo’s own engine — fastest" icon="⚡" />}
                   <NavEngineItem href="/studio?engine=seedance&intent_campaign=nav_mega" name="Seedance 1.5" desc="The workhorse AI engine" chip="TOP" icon="S" preview="/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4" />
                   <NavEngineItem href="/studio?engine=kling&intent_campaign=nav_mega" name="Kling 2.5" desc="Cinematic motion & camera" icon="K" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" />
-                  <NavEngineItem href="/studio?engine=veo&intent_campaign=nav_mega" name="Veo 3.1" desc="Google’s flagship engine" chip="STUDIO" icon="G" preview="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" />
+                  {/* KINEO-VEO-CARD-HONESTO-2026-09-29 — 1080p pelo mesmo preço desde 16/08; o chip
+                      STUDIO só volta se o gate religar na fonte (lib/enginePlanGate.ts). */}
+                  <NavEngineItem href="/studio?engine=veo&intent_campaign=nav_mega" name="Veo 3.1" desc="Google’s flagship engine · 1080p" chip={enginePlanBadge('veo') ? 'STUDIO' : undefined} icon="G" preview="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" />
                   {/* KINEO-OMNI-2026-08-25 — acima do Kling 3 de propósito: é o
                       #1 do ranking cego de agosto. Preview REAL do primeiro
                       render validado (Flight 19, narrador da praia) — selo
@@ -1176,7 +1185,7 @@ export default function KineoLanding({
               }
               return (
             <div className="bento">
-              <Link href="/studio?engine=fast&intent_campaign=engine_tile" className="tile">
+              {showKineo1 && <Link href="/studio?engine=fast&intent_campaign=engine_tile" className="tile">
                 {tileVid('fast')}
                 <span className="trow">
                   <span className="tic"><KineoBolt size={15} /></span>
@@ -1186,7 +1195,7 @@ export default function KineoLanding({
                   <p><UiLabel>Kineo&rsquo;s own engine &mdash; 3&ndash;7 min</UiLabel></p>
                   <span className="tcredits"><UiLabel>{creditLabel('fast')}</UiLabel></span>
                 </span>
-              </Link>
+              </Link>}
               <Link href="/studio?engine=seedance&intent_campaign=engine_tile" className="tile hot">
                 {tileVidLast('cinematic_ai')}
                 <span className="trow">
@@ -1543,8 +1552,8 @@ export default function KineoLanding({
                 dizia, em tres paragrafos seguidos, que o download gratis TEM e
                 NAO TEM marca d'agua. Flag OFF devolve as frases atuais byte a
                 byte; o texto fora do ft() nao mudou. */}
-            <details className="qa"><summary><h3><UiLabel>Is the video really mine to post?</UiLabel></h3></summary><p><UiLabel>{ft(OFFER, 'Yes. Never-paid free users can download, share and post the watermarked MP4.', 'Trial films carry a small watermark — you can download, share and post the MP4. After the trial, the free Fast video carries a watermark.')}</UiLabel><UiLabel> Paid plans unlock the clean, watermark-free MP4 for YouTube, TikTok or Reels.</UiLabel></p></details>
-            <details className="qa"><summary><h3><UiLabel>Do I need any editing skills?</UiLabel></h3></summary><p><UiLabel>None. You type one idea and the AI writes the script, records the voice, finds the footage and adds captions. </UiLabel><UiLabel>{ft(OFFER, 'Free downloads carry a watermark; paid plans unlock the clean MP4.', 'Trial downloads carry a watermark, and so does the free Fast video after the trial, and paid plans always export clean.')}</UiLabel></p></details>
+            <details className="qa"><summary><h3><UiLabel>Is the video really mine to post?</UiLabel></h3></summary><p><UiLabel>{ft(OFFER, 'Yes. Never-paid free users can download, share and post the watermarked MP4.', 'Yes. Never-paid free users can download, share and post the watermarked MP4.')}</UiLabel><UiLabel> Paid plans unlock the clean, watermark-free MP4 for YouTube, TikTok or Reels.</UiLabel></p></details>
+            <details className="qa"><summary><h3><UiLabel>Do I need any editing skills?</UiLabel></h3></summary><p><UiLabel>None. You type one idea and the AI writes the script, records the voice, finds the footage and adds captions. </UiLabel><UiLabel>{ft(OFFER, 'Free downloads carry a watermark; paid plans unlock the clean MP4.', 'Free downloads carry a watermark; paid plans unlock the clean MP4.')}</UiLabel></p></details>
             <details className="qa"><summary><h3><UiLabel>Is there a watermark?</UiLabel></h3></summary><p><UiLabel>{ft(OFFER, 'Free access gives new users up to 3 watermarked Fast videos every 24 hours, with no card. You can download and share them.', `New accounts get ${TRIAL_GRANT_CREDITS_COPY} credits with every engine unlocked, watermarked; after it ends, free access gives 1 watermarked Fast video per month that you can download and share.`)}</UiLabel><UiLabel> Paid plans export clean, watermark-free MP4s.</UiLabel></p></details>
             {/* KINEO-CEO-HOUR-2026-08-17 (#9) — os produtos novos entram no FAQ */}
             <details className="qa"><summary><h3><UiLabel>Can Kineo also generate images and voiceovers?</UiLabel></h3></summary><p><UiLabel>Yes — Kineo includes an AI image studio (6 engines including FLUX, Seedream and Nano Banana Pro, from 1 credit per image) and a voice studio with 4 text-to-speech engines (from 1 credit per 1000 characters). Everything you make lives in your Library.</UiLabel></p></details>
@@ -1592,7 +1601,7 @@ export default function KineoLanding({
                   motores clicaveis + Start free. O href antigo #try-kineo
                   apontava para o composer, que nao existe mais. */}
               <div className="fchips">
-                <Link href="/studio?engine=fast&intent_campaign=final_chip">Kineo 1</Link>
+                {showKineo1 && <Link href="/studio?engine=fast&intent_campaign=final_chip">Kineo 1</Link>}
                 <Link href="/studio?engine=seedance&intent_campaign=final_chip">Seedance 1.5</Link>
                 <Link href="/studio?engine=kling&intent_campaign=final_chip">Kling 2.5</Link>
                 <Link href="/studio?engine=veo&intent_campaign=final_chip">Veo 3.1</Link>

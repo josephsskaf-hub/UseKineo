@@ -28,7 +28,9 @@ export const ENGINE_LANDING_LABELS: Record<EngineLandingParam, string> = {
  * machine-readable catalog pointing at a guessed or stale slug.
  */
 export const ENGINE_LANDING_PUBLIC_PATHS: Record<EngineLandingParam, string> = {
-  fast: '/ai-video-generator/kineo-1',
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — /ai-video-generator/kineo-1 virou 301 para a página do Seedance (next.config.js);
+  // o caminho público de 'fast' aponta para o destino final, sem pular por um redirect.
+  fast: '/ai-video-generator/seedance',
   seedance: '/ai-video-generator/seedance',
   kling: '/ai-video-generator/kling',
   veo: '/ai-video-generator/veo',

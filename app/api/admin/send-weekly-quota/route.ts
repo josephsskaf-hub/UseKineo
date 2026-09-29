@@ -19,6 +19,7 @@ import { isInternalEmail } from '@/lib/internalAccounts'
 import { isDisposableEmail } from '@/lib/emailValidation'
 import { composerUrl } from '@/lib/lifecycle/composerUrl'
 import { getFreeTierOffer } from '@/lib/freeTierOffer'
+import { RECURRING_FREE_ANNOUNCED } from '@/lib/kineoFacts' // revisão da E2b: a carta É anúncio da cota
 import { TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing' // KINEO-PRECO-V8-A-2026-09-28 — a carta dizia "$9.90" digitado; o preco do Starter passa a sair da fonte unica
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression' // regra da casa: 1 e-mail por pessoa por 24 h, falha fechada
 
@@ -88,6 +89,12 @@ export async function GET(req: NextRequest) {
     const windowDays = Math.round(offer.windowMs / 86_400_000)
     if (!offer.reverseTrial || windowDays !== 7 || offer.limit !== 1) {
       return NextResponse.json({ error: 'free tier is not 1 per 7 days — the letter would lie', window_days: windowDays, limit: offer.limit, reverse_trial: offer.reverseTrial }, { status: 409 })
+    }
+    // Revisão da E2b (texto, achado 4, 29/09): a cota semanal deixou de ser ANUNCIADA (decisão do fundador; o mecanismo
+    // segue por dentro até a E4). Esta carta ("now it comes back every week") é o anúncio em pessoa — com o anúncio
+    // desligado ela não sai, nem em dry-run: um &confirm=SEND não pode contradizer o /llms.txt e o /facts.
+    if (!RECURRING_FREE_ANNOUNCED) {
+      return NextResponse.json({ error: 'the weekly free quota is not announced (RECURRING_FREE_ANNOUNCED=false) — the letter would advertise it', announced: false }, { status: 409 })
     }
 
     const confirm = req.nextUrl.searchParams.get('confirm') === 'SEND'

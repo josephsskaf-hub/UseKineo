@@ -133,9 +133,11 @@ const CARD_TRIAL_LINK_ENABLED = CARD_TRIAL_LIVE // KINEO-RESTAURACAO-2026-09-09
 const CARD_TRIAL_CHECKOUT_URL = '/api/stripe/checkout?tier=basic&billing=monthly&trial=1&intent_campaign=trial_1usd'
 
 // KINEO-PRICING-VERDADE-2026-09-27 — UM só texto de tempo de render para a FAQ e a tabela. "3–5 min" era o número
-// do Kineo 1 (stock + TTS); os motores de IA (Seedance, Kling, Veo, H3) levam 8–20 min e a página prometia menos
-// do que entrega. Mudou aqui, mudou nos dois lugares.
-const RENDER_TIME_COPY = 'Kineo 1 ~3–7 min · AI engines 8–20 min'
+// do motor de stock (ex-Fast, stock + TTS); os motores de IA (Seedance, Kling, Veo, H3) levam 8–20 min e a página
+// prometia menos do que entrega. Mudou aqui, mudou nos dois lugares.
+// KINEO-FILME-GRATIS-15S-2026-09-29 — o motor de stock saiu do catálogo público (KINEO1_PUBLIC=false, E1); esta página
+// vende só motores de IA e não cita o nome dele em lugar nenhum (trava (j) de scripts/test-kineo1-fora-vitrine-2026-09-29.mjs).
+const RENDER_TIME_COPY = 'AI engines 8–20 min'
 
 // Push #099 — FAQ entries shown below the pricing comparison table. Pure
 // content array so the accordion renders from one source of truth.
@@ -255,7 +257,9 @@ function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
       // duplicar a mesma informação em dois lugares é exatamente o que fez os
       // grants de crédito derivarem antes (ver KINEO-PRICING-V3D).
       // KINEO-PRICING-V5-2026-08-17 — 60cr: o card fala em RESULTADO.
-      outcome: `3 films a week — Kineo 1 and Seedance 1.5: ${videosPerMonth('starter', 'fast')} quick videos or ${videosPerMonth('starter', 'cinematic_ai')} Seedance films, voice, captions and score included.`,
+      // KINEO-FILME-GRATIS-15S-2026-09-29 — "3 films a week" era a conta do motor de stock; em Seedance o Starter faz
+      // videosPerMonth('starter','cinematic_ai') filmes de 60 s (derivado). A frase diz só o que o saldo compra.
+      outcome: `Seedance 1.5: ${videosPerMonth('starter', 'cinematic_ai')} AI films of 60 s a month (more if shorter), voice, captions and score included.`,
       videosPerMonth: filmsAndScenes('starter'),
       storageLine: '100 projects · 90-day storage',
       cta: { label: 'Get Started', href: '#checkout' },
@@ -275,7 +279,8 @@ function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
       // É esse salto que o usuário free já prova de graça no hook do 1º vídeo.
       // KINEO-PRICING-V5-2026-08-17 — 140cr a $19.90 (InVideo Plus cobra $25
       // sem NENHUM motor premium; Higgsfield entrega clipe cru sem edição).
-      outcome: `1 film a day — Kineo 1 and Seedance 1.5: ${videosPerMonth('basic', 'fast')} quick videos or ${videosPerMonth('basic', 'cinematic_ai')} Seedance films, finished with voice, karaoke captions and score.`,
+      // KINEO-FILME-GRATIS-15S-2026-09-29 — "1 film a day" era a conta do motor de stock; o número agora é o de Seedance.
+      outcome: `Seedance 1.5: ${videosPerMonth('basic', 'cinematic_ai')} AI films of 60 s a month (more if shorter), finished with voice, karaoke captions and score.`,
       videosPerMonth: filmsAndScenes('basic'),
       storageLine: '500 projects · forever storage',
       cta: { label: 'Get Started', href: '#checkout' },
@@ -299,7 +304,7 @@ function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
       // KINEO-PRICING-V5-2026-08-17 — 320cr: volume + Kling 3 todo mês +
       // 2 Enhance HD grátis (Topaz) + storage ilimitado.
       // KINEO-AVATAR-FORA-2026-09-28 — ', Avatar' saiu do resultado do Studio: o motor deixou o catálogo público em 27/09.
-      outcome: `Every available engine — Kling 3, Veo 3.1, Kling 2.5, MiniMax H3, Seedance 1.5, Kineo 1${AVATAR_PUBLIC ? ', Avatar' : ''} — plus 2 free HD enhances and unlimited forever storage.`, // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15: Omni pausado não se vende · KINEO-H3-DE-VOLTA-2026-09-22
+      outcome: `Every available engine — Kling 3, Veo 3.1, Kling 2.5, MiniMax H3, Seedance 1.5${AVATAR_PUBLIC ? ', Avatar' : ''} — plus 2 free HD enhances and unlimited forever storage.`, // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 · KINEO-FILME-GRATIS-15S-2026-09-29 (motor de stock fora do catálogo): Omni pausado não se vende · KINEO-H3-DE-VOLTA-2026-09-22
       videosPerMonth: filmsAndScenes('pro'),
       storageLine: 'Unlimited projects · forever storage',
       cta: { label: 'Get Started', href: '#checkout' },
@@ -1196,7 +1201,6 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                   // aparecem BLOQUEADAS com o plano que destrava (inveja
                   // vende; esconder o topo do catálogo não). Tudo derivado de
                   // TIER_CREDITS ÷ creditCostFor — régua do caixa, #296.
-                  const costFast = creditsPerReferenceVideo('fast')
                   const costSeed = creditsPerReferenceVideo('cinematic_ai')
                   const costH3 = creditsPerReferenceVideo('cinematic_h3')
                   const costKling25 = creditsPerReferenceVideo('cinematic_kling')
@@ -1207,7 +1211,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                   const costPres = creditsPerReferenceVideo('presenter')
                   const tierFor = (cost: number) => cost <= TIER_CREDITS.starter ? 'Starter' : cost <= TIER_CREDITS.basic ? 'Creator' : 'Studio'
                   const engineRows: { ic: string; name: string; cost: number; note?: string }[] = [
-                    { ic: '⚡', name: 'Kineo 1 quick videos', cost: costFast },
+                    // KINEO-FILME-GRATIS-15S-2026-09-29 — a linha do motor de stock saiu (fora do catálogo público).
                     { ic: '🎬', name: 'Seedance 1.5 films', cost: costSeed },
                     { ic: '🎞', name: 'Kling 2.5 films', cost: costKling25 },
                     ...(AVATAR_PUBLIC ? [{ ic: '🧑‍🎤', name: 'AI Presenter videos', cost: costPres }] : []),
@@ -1918,13 +1922,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                   // abre TODOS os motores (KINEO-TETO), então ela deixa de ser
                   // uma coluna de "—" e passa a dizer o que de fato acontece —
                   // roda tudo, sai com marca d'água.
-                  {
-                    label: 'Fast mode (smart stock)',
-                    free: ft(OFFER, 'Up to 3 / 24h · watermark', '✅ watermark'),
-                    starter: `✅ ${creditsPerReferenceVideo('fast')} cr`,
-                    basic: `✅ ${creditsPerReferenceVideo('fast')} cr`,
-                    pro: `✅ ${creditsPerReferenceVideo('fast')} cr`,
-                  },
+                  // KINEO-FILME-GRATIS-15S-2026-09-29 — a linha "Fast mode (smart stock)" saiu: motor fora do catálogo público.
                   {
                     label: `AI Generated videos (Seedance, ${creditsPerReferenceVideo('cinematic_ai')} cr)`,
                     free: ft(OFFER, '— Paid only', '✅ watermark'),
@@ -1993,7 +1991,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                   },
                   {
                     label: 'Render time',
-                    // KINEO-PRICING-VERDADE-2026-09-27 — "~3-5 min" era só o Kineo 1; os motores de IA levam 8–20 min.
+                    // KINEO-PRICING-VERDADE-2026-09-27 — "~3-5 min" era só o motor de stock; os motores de IA levam 8–20 min.
                     free: RENDER_TIME_COPY,
                     starter: RENDER_TIME_COPY,
                     basic: RENDER_TIME_COPY,

@@ -22,6 +22,9 @@ import { redirect } from 'next/navigation'
 import { cookies, headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { maybeActivateReverseTrial } from '@/lib/reverseTrial'
+import { paisDoRequest } from '@/lib/freeFilmPolicy'
+import { readKineo1Access } from '@/lib/kineo1Access'
+import { resolveKineo1Flag, seedance15sVisible } from '@/lib/engineLaunch' // KINEO-ENTRADA-SEEDANCE15-2026-09-29: seedance15 = a entrada nova
 import { trialFingerprintFromHeaders } from '@/lib/trialFingerprint'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { getViralTopicById } from '@/lib/viralTopics'
@@ -144,6 +147,7 @@ export default async function StudioCreatePage({ searchParams }: StudioCreatePag
       email: user.email ?? null,
       userCreatedAt: user.created_at ?? null,
       fingerprintHash: trialFingerprintFromHeaders(headers()),
+      country: paisDoRequest(headers()), // KINEO-FILME-GRATIS-POR-PAIS-2026-09-29
     })
   } catch {
     /* best-effort — a página nunca quebra por causa do trial */
@@ -225,12 +229,25 @@ export default async function StudioCreatePage({ searchParams }: StudioCreatePag
   // e-mail, nada de crédito, nada de render. Ver lib/entrega/refusalNotice.ts.
   const refusalNotice = await lerAvisoDeRecusa(user.id)
 
+  // KINEO-KINEO1-FORA-2026-09-29 — a régua de quem continua vendo o Kineo 1 (lib/engineLaunch.ts kineo1Visible),
+  // resolvida AQUI no servidor e entregue pronta. Nesta entrega (E1) o GenerateClient só recebe a prop; quem passa a
+  // esconder o motor com ela é a E2b. Best-effort: falha de leitura = sem legado (a casa segue vendo pelo e-mail).
+  // Composição única em resolveKineo1Flag (lib/engineLaunch.ts): só lê o legado para has_paid === true. O guardião
+  // scripts/test-kineo1-fora-vitrine-2026-09-29.mjs EXECUTA esta instrução, do `const kineo1` ao `.catch`.
+  const kineo1 = await resolveKineo1Flag(
+    user.email,
+    async () => ((await supabase.from('profiles').select('has_paid').eq('id', user.id).maybeSingle()).data as { has_paid?: boolean | null } | null)?.has_paid === true,
+    () => readKineo1Access(user.id).then((l) => { if (l.ok === false) throw new Error('kineo1_legacy_unreadable'); return l }),
+  ).catch(() => null) // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (pendência 5 da E1): falha = null ('não sei'), nunca "sem legado"
+
   return (
     <Suspense fallback={null}>
       <GenerateClient
         initialViralPrompt={seedPrompt}
         initialUserId={user.id}
         refusalNotice={refusalNotice}
+        kineo1Visible={kineo1}
+        seedance15={seedance15sVisible(user.email)}
       />
     </Suspense>
   )

@@ -31,7 +31,9 @@ cleanup();assert.equal(listeners.size,0)
 const home=renderPage('app/KineoLanding.tsx',false,{demoOffer:'current'})
 for(const href of ['/viral-now','/scripts']) assert.ok(!home.includes(`href="${href}"`))
 for(const href of ['/audio','/animate','/thumbnail-generator']) assert.ok(home.includes(`href="${href}"`))
-for(const engine of ['fast','seedance','kling','veo','hollywood','h3']) assert.ok(home.includes(`/studio?engine=${engine}&amp;intent_campaign=nav_mega`))
+// 29/09 (KINEO-KINEO1-FORA-2026-09-29): o Kineo 1 ('fast') saiu do mega-menu público; os demais destinos seguem vigiados.
+for(const engine of ['seedance','kling','veo','hollywood','h3']) assert.ok(home.includes(`/studio?engine=${engine}&amp;intent_campaign=nav_mega`))
+assert.ok(!home.includes('/studio?engine=fast&amp;intent_campaign=nav_mega'))
 for(const component of ['components/Sidebar.tsx','components/MobileNav.tsx']){
  const html=renderPage(component,false,{demoShell:true,demoOffer:'current'},{initialLoggedIn:true})
  for(const href of ['/viral-now','/scripts']) assert.ok(!html.includes(`href="${href}"`))

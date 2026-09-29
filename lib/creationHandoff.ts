@@ -1,5 +1,5 @@
 export type CreationScriptMode = 'ai' | 'verbatim'
-export type CreationDuration = 35 | 45 | 60 | 90
+export type CreationDuration = 15 | 35 | 45 | 60 | 90 // KINEO-SEEDANCE-15S-2026-09-29: 15 = Seedance 1.5 curto
 export type CreationIntent = 'fast' | 'trial_best' | null
 import type { NarrationLanguage } from './textLanguage'
 // KINEO-IDIOMAS-15-2026-09-17 — o handoff de cadastro carrega qualquer língua do catálogo.
@@ -75,6 +75,10 @@ export function readCreationHandoff(params: QueryReader): CreationHandoff {
   const rawCreateIntent = params.get('create_intent')
   const rawScriptMode = (params.get('script_mode') ?? '').toLowerCase()
   const rawDuration = Number(params.get('duration') ?? '')
+  // KINEO-SEEDANCE-15S-2026-09-29 (revisão E2a) — o 15 s só existe no Seedance 1.5: ?duration=15 só vale com
+  // ?engine=seedance. Sem isso, /generate?duration=15 levava o Kineo 1 a precificar 15 s na tela e cobrar 45 s na rota
+  // (generate-video-fast sobe 15→45), e Kling/Veo a precificar 15 s e levar 422. Sem motor, 15 cai no padrão (35).
+  const rawEngine = (params.get('engine') ?? '').trim().toLowerCase()
 
   return {
     prompt,
@@ -94,7 +98,7 @@ export function readCreationHandoff(params: QueryReader): CreationHandoff {
     duration:
       rawDuration === 45
         ? 35
-        : rawDuration === 35 || rawDuration === 60 || rawDuration === 90
+        : (rawDuration === 15 && rawEngine === 'seedance') || rawDuration === 35 || rawDuration === 60 || rawDuration === 90 // KINEO-SEEDANCE-15S-2026-09-29 (o padrão continua 35)
           ? rawDuration
           : null,
   }

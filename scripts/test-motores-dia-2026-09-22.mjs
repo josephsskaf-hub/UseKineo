@@ -54,7 +54,12 @@ checa('still da cena clássica também proíbe letras (i2v herda o still)', an.i
 
 console.log('2c) as três decisões do fundador (22/09): degrau de 35 s, selo do Omni, Avatar medido')
 const st = rd('app/(dashboard)/studio/StudioClient.tsx')
-checa('degrau: só quando o custo na duração atual passa do saldo e uma duração MENOR do seletor cabe', st.includes('const stepDownFor = (key: EngineKey): { seconds: 35 | 60; cost: number } | null => {') && st.includes('if (c <= 0 || balance >= c) return null') && st.includes('for (const d of [60, 35] as const) {') && st.includes('if (d >= duration) continue'))
+// REANCORADO KINEO-SEEDANCE-15S-2026-09-29 — o degrau ganhou o 15 s, SÓ no Seedance e SÓ com o interruptor SEEDANCE_15S_PUBLIC
+// (seedance15Ok); nos outros motores continua [60, 35]. O que esta linha vigia não mudou: degrau só quando o custo atual
+// passa do saldo e só para uma duração MENOR do seletor.
+// REANCORADO de novo (revisão E2a, 29/09) — a comparação usa duracaoDoCard(key): com o Seedance em 15 s, os outros cards
+// precificam na duração que o motor vai receber (35+), e o degrau só oferece duração MENOR que essa. Mesma vigilância.
+checa('degrau: só quando o custo na duração atual passa do saldo e uma duração MENOR do seletor cabe', st.includes('const stepDownFor = (key: EngineKey): { seconds: 15 | 35 | 60; cost: number } | null => {') && st.includes('if (c <= 0 || balance >= c) return null') && st.includes("const degraus: readonly (15 | 35 | 60)[] = key === 'seedance' && seedance15Ok ? [60, 35, 15] : [60, 35]") && st.includes('for (const d of degraus) {') && st.includes('if (d >= duracaoDoCard(key)) continue') && st.includes("const duracaoDoCard = (key: EngineKey): number => (key === 'seedance' ? duration : Math.max(duration, MIN_DURATION_ALL_ENGINES))"))
 checa('degrau: custo pela MESMA função do cobrador (creditCostForDuration na qualidade do motor)', st.includes("const cost = creditCostForDuration(ENGINE_QUALITY[key] ?? 'cinematic_ai', true, d)"))
 checa('degrau: clique troca duração + motor e grava studio_shorter_step_clicked com from/to/cost', st.includes("void trackEvent('studio_shorter_step_clicked', { engine: e.key, from: duration, to: st.seconds, cost: st.cost, balance }); setDuration(st.seconds); setEngine(e.key); setPickerOpen(false)"))
 checa('degrau: impressão medida no mesmo gatilho (picker aberto) com os degraus oferecidos', st.includes("void trackEvent('studio_shorter_step_shown', { duration, balance, steps })"))

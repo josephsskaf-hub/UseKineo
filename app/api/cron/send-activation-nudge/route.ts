@@ -375,7 +375,7 @@ export async function GET(req: NextRequest) {
           subject:
             episodiosDoLote.length > 0
               ? `Your first video: "${episodiosDoLote[0].titulo}"`
-              : 'Your first Fast video is a few minutes away',
+              : 'Your first film is a few minutes away', // KINEO-FILME-GRATIS-15S-2026-09-29 — "Fast video" era o Kineo 1
           text,
           html,
           headers: unsubscribeHeaders(u.id),

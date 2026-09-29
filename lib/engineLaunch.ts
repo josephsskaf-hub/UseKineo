@@ -64,6 +64,66 @@ export function avatarVisible(email?: string | null): boolean {
   return AVATAR_PUBLIC || isInternalEmail(email)
 }
 
+// ═══ KINEO-KINEO1-FORA-2026-09-29 — decisão do fundador (29/09): "quero tirar o kineo 1 do jogo, ele estraga a
+// entrada". O filme grátis passa a ser o Seedance (15 s, E2a/E2b); o Kineo 1 sai da VITRINE PÚBLICA (home, mega-menu,
+// bento, chip final, /arena, meta e esta contagem). Mesmo desenho do AVATAR_PUBLIC: nada é apagado — motor, custo,
+// rota, curadoria (CURATED/homeVideoCuration) e o dado do /arena (lib/publicExamples) ficam; só o catálogo público
+// para de oferecer. Quem continua vendo o motor (fundador: "deixar dentro do sistema dessas contas que já pagam esse
+// motor que eles usam"): a casa (isInternalEmail), quem já pagou E já tem filme Kineo 1 concluído (qualquer data), e
+// quem comprou pacote avulso (bulk*: BULK_PACKS é vendido em filmes Kineo 1) ou o passe do Studio Ads (recibo em minutos
+// de Kineo 1) — os dois no eixo `boughtPack`. A leitura desses fatos mora no servidor
+// (lib/kineo1Access.ts); aqui só a régua pura. NESTA entrega (E1) ninguém muda comportamento com ela — o Studio e o
+// /generate passam a ler na E2b. Para voltar: KINEO1_PUBLIC=true (contagem e lista voltam sozinhas).
+export const KINEO1_PUBLIC = false
+
+/** Fatos de legado lidos no servidor (lib/kineo1Access.ts). Ausente = sem legado. */
+export interface Kineo1Legacy {
+  hasPaid?: boolean | null
+  usedFast?: boolean | null
+  boughtPack?: boolean | null
+}
+
+/** O Kineo 1 aparece para esta conta? Público só com KINEO1_PUBLIC; senão a casa, o pagante que já usa, ou quem comprou pacote. */
+export function kineo1Visible(email?: string | null, legado?: Kineo1Legacy | null): boolean {
+  if (KINEO1_PUBLIC || isInternalEmail(email)) return true
+  const l = legado ?? {}
+  return (l.hasPaid === true && l.usedFast === true) || l.boughtPack === true
+}
+
+// KINEO-KINEO1-FORA-2026-09-29 (conserto da revisão E1) — a COMPOSIÇÃO única que o servidor usa para entregar a flag
+// (/api/me/credits e /studio/create). Antes cada rota montava a régua à mão e o guardião só procurava texto: trocar a
+// leitura de has_paid por `true` passava verde. Agora as duas chamam esta função e o guardião a EXECUTA.
+// Só lê o legado (3 consultas, service key) quando has_paid === true: pacote avulso e passe de anúncios gravam
+// has_paid:true no mesmo UPDATE dos créditos (app/api/stripe/webhook/route.ts; lib/payments/grant.ts), então para
+// quem nunca pagou (a maioria, trials) o resultado já é false e as leituras seriam custo puro.
+// Falha de leitura propaga (quem chama decide); o e-mail da casa nunca chega a ler nada.
+export async function resolveKineo1Flag(
+  email: string | null | undefined,
+  lerHasPaid: () => boolean | null | undefined | Promise<boolean | null | undefined>,
+  lerLegado: () => Promise<Kineo1Legacy>,
+): Promise<boolean> {
+  if (kineo1Visible(email)) return true
+  if ((await lerHasPaid()) !== true) return false
+  const l = await lerLegado()
+  return kineo1Visible(email, { hasPaid: true, usedFast: l.usedFast === true, boughtPack: l.boughtPack === true })
+}
+
+// ═══ KINEO-SEEDANCE-15S-2026-09-29 — "vai" nominal do fundador para o filme de 15 s no Seedance 1.5 (7 cr).
+// Mesmo desenho do S25_PUBLIC: SEEDANCE_15S_PUBLIC=false → só as contas da casa (isInternalEmail) veem o BOTÃO de
+// 15 s no /studio e no /generate (e o degrau "15 s cabe no seu saldo"), para o canário de
+// docs/CANARIO-SEEDANCE-15S-2026-09-29.md. O SERVIDOR aceita 15 s no Seedance para qualquer conta, com o custo certo
+// (creditCostForDuration('cinematic_ai', true, 15)), e recusa 15 s nos outros motores (lib/durationByEngine.ts).
+// Virar true só depois do canário aprovado pelo fundador.
+// LIGADO 29/09 (fundador): o filme grátis de quem chega é o Seedance 1.5 de 15 s. Vira JUNTO com a entrada (E2b —
+// auto-start, Studio/Generate, ponte do trial) e os textos (E3 — "free 15-second film (Seedance 1.5)"): um sem o outro
+// prometeria o que a conta nova não consegue apertar, ou esconderia o Kineo 1 sem dar filme ao trial.
+export const SEEDANCE_15S_PUBLIC = true
+
+/** O botão de 15 s do Seedance aparece para este e-mail? Mesma régua do s25Visible. */
+export function seedance15sVisible(email?: string | null): boolean {
+  return SEEDANCE_15S_PUBLIC || isInternalEmail(email)
+}
+
 /** Copy de contagem: 'Eight' hoje, 'Nine' no lancamento. Uma verdade, N telas. */
 // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 — a contagem e a lista públicas só falam dos motores que o público pode
 // apertar HOJE: Veo 3.1, Kling 3, Kling 2.5, Seedance 1.5, Kineo 1 e Avatar (H3/Omni/S25 pausados, S25 interno).
@@ -71,7 +131,15 @@ export function avatarVisible(email?: string | null): boolean {
 // KINEO-AVATAR-FORA-2026-09-28: seis — o Avatar saiu do catálogo público. Contagem e lista DERIVAM do interruptor,
 // para que virar AVATAR_PUBLIC=true devolva 'Seven' e '..., Kineo 1 and Avatar' nas 4 telas que leem daqui
 // (FAQ da home, FAQ/Organization do schema, /ph e a calculadora) sem ninguém redigitar número.
-export const VIDEO_ENGINE_COUNT_WORD = AVATAR_PUBLIC ? 'Seven' : 'Six'
+// KINEO-KINEO1-FORA-2026-09-29: cinco — o Kineo 1 saiu do catálogo público. A lista vira dado derivado dos DOIS
+// interruptores (KINEO1_PUBLIC, AVATAR_PUBLIC) e a contagem é o tamanho dela: nenhum número digitado.
+const PUBLIC_VIDEO_ENGINE_NAMES: readonly string[] = [
+  'Veo 3.1', 'Kling 3', 'Kling 2.5', 'MiniMax H3', 'Seedance 1.5',
+  ...(KINEO1_PUBLIC ? ['Kineo 1'] : []),
+  ...(AVATAR_PUBLIC ? ['Avatar'] : []),
+]
+const ENGINE_COUNT_WORDS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'] as const
+export const VIDEO_ENGINE_COUNT_WORD: string = ENGINE_COUNT_WORDS[PUBLIC_VIDEO_ENGINE_NAMES.length]
 export const VIDEO_ENGINE_COUNT_SENTENCE_START = VIDEO_ENGINE_COUNT_WORD
-export const VIDEO_ENGINE_LIST_COPY = 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5' + (AVATAR_PUBLIC ? ', Kineo 1 and Avatar' : ' and Kineo 1')
+export const VIDEO_ENGINE_LIST_COPY = PUBLIC_VIDEO_ENGINE_NAMES.slice(0, -1).join(', ') + ' and ' + PUBLIC_VIDEO_ENGINE_NAMES[PUBLIC_VIDEO_ENGINE_NAMES.length - 1]
 export const PAUSED_ENGINES_COPY = 'Omni Flash and Seedance 2.5 are temporarily paused for maintenance (since 15 September 2026); nothing is charged for a blocked attempt, and Kling 3 / Kling 2.5 cover the same jobs meanwhile.'

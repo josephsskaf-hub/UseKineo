@@ -171,7 +171,9 @@ check('(B4) o hash serializa as chaves em ORDEM FIXA (array de pares, não o obj
 check("(B5) ASSISTANT_LINK_PATH = '/make' na lib (única fonte)", /export const ASSISTANT_LINK_PATH = '\/make'/.test(libCode))
 // KINEO-GPT-VERDADE-2026-09-07: @/lib/narrationFit entrou (o cobrador; puro, zero import).
 // GPT-LOJA-2026-09-24 — reancorado com motivo: @/lib/textLanguage entrou (idioma do roteiro vai ao Studio); é folha pura, zero import.
-check('(B5) a lib importa só @/lib/aspect, @/lib/narrationFit, @/lib/textLanguage e node:crypto (continua sem banco/rede)', [...lib.matchAll(/^import (?:\{[^}]*\}|[^\n{]*) from '([^']+)'/gm)].map((m) => m[1]).every((s) => s === '@/lib/aspect' || s === '@/lib/narrationFit' || s === '@/lib/textLanguage' || s === 'node:crypto'))
+// Reancorado 29/09 (revisão da E2b, achado 3): @/lib/scriptParser e @/lib/durationByEngine entraram (a régua e o teto de
+// fala do filme de 15 s) — folhas puras, zero import (test-gpt-handoff A0 confere a pureza das duas).
+check('(B5) a lib importa só @/lib/aspect, @/lib/narrationFit, @/lib/textLanguage, @/lib/scriptParser, @/lib/durationByEngine e node:crypto (continua sem banco/rede)', [...lib.matchAll(/^import (?:\{[^}]*\}|[^\n{]*) from '([^']+)'/gm)].map((m) => m[1]).every((s) => s === '@/lib/aspect' || s === '@/lib/narrationFit' || s === '@/lib/textLanguage' || s === '@/lib/scriptParser' || s === '@/lib/durationByEngine' || s === 'node:crypto'))
 
 // ═══ (C) app/make/route.ts ══════════════════════════════════════════════════
 const makePath = path.join(ROOT, MAKE)

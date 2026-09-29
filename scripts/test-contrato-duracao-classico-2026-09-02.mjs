@@ -9,7 +9,8 @@ check('35s → 100-115 palavras (3,1 pal/s × 35 ≈ 108)', openai.includes("{ d
 check('45 (fantasma) cai em 35, nao em 45', !openai.includes('duration: 45,') && openai.includes('return { duration: 35'))
 check('analyze-idea aceita 35/60/90 e defaulta 35', analyze.includes('[35, 60, 90].includes(requestedDuration) ? requestedDuration : 35'))
 check('regua do compose continua 3,1 (mesma do plano)', compose.includes('const TTS_WORDS_PER_SECOND = 3.1'))
-check('roteiro longo verbatim: sobe o alvo para o botao que a fala enche', gen.includes("trackEvent('script_duration_autofit'") && gen.includes('falaSeg <= d * 1.15'))
+// STUDIO-CONTADOR-VOZ 28/09: a analise sobe pelo veredito do contador (contadorVoz → largestFittingDuration ≥ MIN_COVERAGE), nao mais por `falaSeg <= d * 1.15`
+check('roteiro longo verbatim: sobe o alvo para o botao que a fala enche (mesmo veredito do contador)', gen.includes("trackEvent('script_duration_autofit'") && gen.includes("const vereditoAnalise = contadorVoz({ script: baseChecagem, regua: reguaAnalise, requestedSeconds: duration })") && gen.includes('setDuration(sobePara)') && !gen.includes('falaSeg <= d * 1.15'))
 check('analise usa o alvo ajustado', gen.includes('duration: alvoAnalise, language, scriptMode'))
 check('fala que nao cabe em 90 fica registrada', gen.includes("trackEvent('script_duration_overflow'"))
 // aritmetica

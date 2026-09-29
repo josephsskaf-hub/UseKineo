@@ -9,6 +9,7 @@ import {
 // KINEO-TRIAL-GRANT-EMAIL-2026-09-04 — o mesmo remedio do a1fed16c, na porta
 // que ele nao cobriu (cadastro por e-mail e senha). Ver o bloco no handler.
 import { maybeActivateReverseTrial } from '@/lib/reverseTrial'
+import { paisDoRequest } from '@/lib/freeFilmPolicy'
 import { trialFingerprintFromHeaders } from '@/lib/trialFingerprint'
 
 export const dynamic = 'force-dynamic'
@@ -100,6 +101,7 @@ export async function POST(req: NextRequest) {
         email: user.email ?? null,
         userCreatedAt: user.created_at ?? null,
         fingerprintHash: trialFingerprintFromHeaders(req.headers),
+        country: paisDoRequest(req.headers), // KINEO-FILME-GRATIS-POR-PAIS-2026-09-29
       })
       trialActivated = outcome.activated
       trialReason = outcome.reason.slice(0, 40)
