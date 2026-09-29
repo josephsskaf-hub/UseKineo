@@ -1,4 +1,5 @@
 'use client'
+import MobileCreationShortcut from '@/components/MobileCreationShortcut'
 
 import { KineoBoltText } from '@/components/KineoBolt'
 
@@ -753,7 +754,7 @@ export default function StudioClient() {
             )}
             <DiretorKineo text={prompt} mode={scriptMode} engine={engine} engineName={eng.name} duration={duration} language={language} aspect={aspect} onApply={setPrompt} />
           </div>
-<div className="cost studio-generation-review" aria-label={t('Review and generate', 'Revisar y generar')}>
+<div id="studio-generation-review" tabIndex={-1} className="cost studio-generation-review" aria-label={t('Review and generate', 'Revisar y generar')}>
             <div className="sum" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className="eng-ic" style={{ width: 24, height: 24, borderRadius: 7, fontSize: 10.5 }} aria-hidden="true"><KineoBoltText>{eng.icon}</KineoBoltText></span>{scriptMode === 'clip' ? `Seedance 1.5 · ${clipSeconds}s · ${aspect}` : `${eng.name} · ${duration}s · 1080p · ${aspect}`}{preset ? ` · ${CAMERA_PRESETS.find((c) => c.key === preset)?.label}` : ''}</div>
             {/* O número tem de mudar junto com o seletor: preço que só
                 aparece DEPOIS do clique é cobrança-surpresa. O servidor cobra
@@ -1214,6 +1215,7 @@ export default function StudioClient() {
           )}
         </section>}
       </div>
+      <MobileCreationShortcut targetId="studio-generation-review" cost={`${eng.name} · ${scriptMode === 'clip' ? CLIP_CREDITS : cost} cr`} />
       <details className="composer-proposal-how">
         <summary><UiLabel>How it works</UiLabel></summary>
 <div className="steps">

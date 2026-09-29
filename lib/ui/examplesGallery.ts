@@ -33,8 +33,16 @@ export function expandExamples(existing: readonly WallVideo[]): WallVideo[] {
   return [...EXAMPLES_SELECTION_SEP24, ...Array.from(catalogue.values()).filter(v => !selectedIds.has(v.id))]
 }
 
-export function searchExamples(videos: readonly WallVideo[], query: string, engine: string): WallVideo[] {
+export const EXAMPLE_OBJECTIVES = ['Stories', 'Nature', 'History', 'Technology'] as const
+export function exampleObjective(video: Pick<WallVideo, 'title'>): typeof EXAMPLE_OBJECTIVES[number] {
+  if (/robot|face|channel|creator/i.test(video.title)) return 'Technology'
+  if (/tunguska|1942|castle|empire|siberia/i.test(video.title)) return 'History'
+  if (/bay|wave|volcano|ocean|nature|forest/i.test(video.title)) return 'Nature'
+  return 'Stories'
+}
+export function searchExamples(videos: readonly WallVideo[], query: string, engine: string, objective = 'all'): WallVideo[] {
   const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean)
   return videos.filter(v => (engine === 'all' || v.engine === engine)
+    && (objective === 'all' || exampleObjective(v) === objective)
     && terms.every(term => `${v.title} ${v.badge}`.toLocaleLowerCase().includes(term)))
 }

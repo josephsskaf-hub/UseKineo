@@ -1,7 +1,9 @@
 'use client'
 
 import { KineoBoltText } from '@/components/KineoBolt'
-import { UiLabel } from '@/components/InterfaceLanguage'
+import { UiLabel, useUiCopy } from '@/components/InterfaceLanguage'
+import { FavoriteButton, LibraryOrganization, libraryFormat, organizeAssets, useLibraryOrganization } from '@/components/LibraryOrganization'
+import ControlIcon from '@/components/ControlIcon'
 import PostFilmCreatorOffer from '@/components/PostFilmCreatorOffer'
 
 // Push #323 - My Videos: show first frame via preload=metadata; no more black cards
@@ -335,6 +337,7 @@ interface VideoSummary {
 }
 
 export default function MyVideosClient({ videos: initialVideos, snapshotTime, loadError = false, creatorTrialEligible = false, embedded = false }: Props) {
+  const ui = useUiCopy()
   // The server and first browser render must use the same clock and calendar.
   // Refresh display-only age after hydration; never change a stored job status.
   const [displayTime, setDisplayTime] = useState(snapshotTime)
@@ -370,11 +373,13 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
   // sprint-ui #9 (29-30/08) — busca por titulo/tema. O fundador tem 327 videos
   // e achar um era rolagem infinita; cliente com 20+ sofre igual. Client-side.
   const [query, setQuery] = useState('')
+  const organization = useLibraryOrganization()
+  const [format, setFormat] = useState('all')
   const visibleVideos = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return videos
-    return videos.filter((v) => `${extractTitle(v.topic)} ${v.topic ?? ''}`.toLowerCase().includes(q))
-  }, [videos, query])
+    const matching = videos.filter(v => (!q || `${extractTitle(v.topic)} ${v.topic ?? ''}`.toLowerCase().includes(q)) && (format === 'all' || libraryFormat(v.platform) === format))
+    return organizeAssets(matching, organization.favorites, organization.favoritesOnly, organization.sort, v => extractTitle(v.topic))
+  }, [videos, query, format, organization.favorites, organization.favoritesOnly, organization.sort])
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   // KINEO-ENHANCE-2026-08-17 — pos-producao Topaz por video (10cr): status e
   // URL final por id. 'processing' vira polling de 6s ate done/failed.
@@ -1343,9 +1348,14 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
         ))}
       </div>}
       {/* Embedded Library keeps search available for every non-empty collection. */}
+      <LibraryOrganization state={organization} />
+      <div className="library-format-filter" role="group" aria-label={ui('Format')}>
+        <button type="button" aria-pressed={format === 'all'} onClick={() => setFormat('all')}><UiLabel>All formats</UiLabel></button>
+        {Array.from(new Set(videos.map(v => libraryFormat(v.platform)).filter(Boolean))).map(p => <button key={p} type="button" aria-pressed={format === p} onClick={() => setFormat(p)}>{p}</button>)}
+      </div>
       {(embedded || videos.length >= 6) && (
         <div className="mb-5" style={{ position: 'relative', maxWidth: 420 }}>
-          <span aria-hidden="true" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, opacity: 0.55 }}>🔍</span>
+          <span aria-hidden="true" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, opacity: 0.55 }}><ControlIcon name="search" /></span>
           <input
             type="search"
             value={query}
@@ -1358,18 +1368,18 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
         </div>
       )}
 
-      {query.trim() && visibleVideos.length === 0 && (
+      {(query.trim() || organization.favoritesOnly || format !== 'all') && visibleVideos.length === 0 && (
         <div className="rounded-2xl p-8 text-center" style={{ background: 'var(--card)', border: '1px solid rgba(255,255,255,0.07)' }}>
           <p className="text-sm" style={{ color: 'var(--muted)', margin: 0 }}><UiLabel>
-            No videos match &ldquo;</UiLabel>{query.trim()}<UiLabel>&rdquo;.
+            No projects match these filters.
           </UiLabel></p>
           <button
             type="button"
-            onClick={() => setQuery('')}
+            onClick={() => { setQuery(''); organization.setFavoritesOnly(false); setFormat('all') }}
             className="mt-4 rounded-xl px-4 py-2 text-sm font-bold"
             style={{ background: 'rgba(41,151,255,.12)', border: '1px solid rgba(41,151,255,.4)', color: '#2997ff', cursor: 'pointer' }}
           ><UiLabel>
-            Clear search
+            Reset filters
           </UiLabel></button>
         </div>
       )}
@@ -1496,6 +1506,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
           return (
             <div
               key={video.id}
+              className="library-organized-card"
               style={{
                 background: 'var(--card)',
                 border: '1px solid rgba(255,255,255,0.08)',
@@ -1505,6 +1516,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
               }}
             >
               {/* 9:16 video area */}
+              <FavoriteButton id={video.id} state={organization} />
               <div
                 style={{
                   position: 'relative',
