@@ -89,7 +89,7 @@ const FREE_FEATURES = [
 ]
 
 const STARTER_FEATURES = [
-  `${videosPerMonth('starter', 'fast')} Kineo 1 videos/month`,
+  `${videosPerMonth('starter', 'cinematic_ai')} Seedance 1.5 films/month`, // KINEO-ENTRADA-SEEDANCE15-2026-09-29: o motor de stock saiu da venda
   'AI writes script + voiceover',
   'Auto-captions pipeline',
   'Download watermark-free MP4',
@@ -498,7 +498,7 @@ export default function PricingCards({
           price={priceFor('starter')}
           period="/ month"
           renewNote={introNoteFor('starter')}
-          tagline={`${PLANS.starter.credits} credits/month — up to ${videosPerMonth('starter', 'fast')} Kineo 1 videos from smart stock footage + AI voiceover.`}
+          tagline={`${PLANS.starter.credits} credits/month — up to ${videosPerMonth('starter', 'cinematic_ai')} Seedance 1.5 films with AI voiceover and captions.`} // KINEO-ENTRADA-SEEDANCE15-2026-09-29
           features={STARTER_FEATURES}
           selected={selectedPlan === 'starter'}
           onSelect={() => setSelectedPlan('starter')}

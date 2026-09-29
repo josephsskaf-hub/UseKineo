@@ -7,6 +7,7 @@ import {
   DEFAULT_DURATION,
   DURATIONS,
   ENGINE_LABELS,
+  HANDOFF_SHORT_DURATION,
   HANDOFF_TTL_DAYS,
   STUDIO_PROMPT_MAX_CHARS,
   aspectSpec,
@@ -184,7 +185,8 @@ export default async function GoPage({
   // e ela dizia "the story may end early" para roteiros que rendem 60s
   // redondos. A duração da linha passou por validateHandoffInput (só 35/60/90);
   // o estreitamento abaixo é para o tipo, com o padrão da lib como rede.
-  const duration: HandoffDuration = (DURATIONS as readonly number[]).includes(row.duration_sec)
+  // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — o GPT pode mandar 15 s (só Seedance): a página honra em vez de cair no padrão.
+  const duration: HandoffDuration = (DURATIONS as readonly number[]).includes(row.duration_sec) || (row.duration_sec === HANDOFF_SHORT_DURATION && engine === 'seedance')
     ? (row.duration_sec as HandoffDuration)
     : DEFAULT_DURATION
   const fitLine = describeOutcome(handoffOutcome(row.script, duration, engine))

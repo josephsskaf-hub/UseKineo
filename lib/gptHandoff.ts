@@ -70,6 +70,11 @@ export const SCRIPT_MAX_CHARS = 5000
 export const STUDIO_PROMPT_MAX_CHARS = 5000
 export const TOPIC_MAX_CHARS = 200
 export const DURATIONS = [35, 60, 90] as const
+/** KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b, B2 do cético) — o filme curto do Seedance 1.5, aceito SÓ com engineHint
+ *  seedance (a rota do cinematic recusa 15 s nos outros motores). Espelho de SEEDANCE_SHORT_SECONDS
+ *  (lib/durationByEngine.ts) — este módulo continua sem import; o guardião da entrada confere a igualdade. Fica FORA de
+ *  DURATIONS de propósito: DURATIONS alimenta o texto do prompt de colar e a lista pública (texto de marketing = E3). */
+export const HANDOFF_SHORT_DURATION = 15 as const
 export const DEFAULT_DURATION: HandoffDuration = 60
 export const DEFAULT_ENGINE: HandoffEngine = 'seedance'
 export const DEFAULT_LANGUAGE = 'en'
@@ -100,7 +105,7 @@ export const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000
 // até o interruptor virar.
 export const HANDOFF_ENGINES = ['fast', 'seedance', 'kling', 'veo', 'hollywood', 'h3', 'omni'] as const
 export type HandoffEngine = (typeof HANDOFF_ENGINES)[number]
-export type HandoffDuration = (typeof DURATIONS)[number]
+export type HandoffDuration = (typeof DURATIONS)[number] | typeof HANDOFF_SHORT_DURATION
 export type HandoffFamily = 'classic' | 'hollywood'
 export type HandoffFit = 'short' | 'ok' | 'long'
 
@@ -358,8 +363,8 @@ export function validateHandoffInput(body: unknown): HandoffValidation {
   let durationSec: HandoffDuration = DEFAULT_DURATION
   if (b.durationSec !== undefined && b.durationSec !== null) {
     const n = typeof b.durationSec === 'number' ? b.durationSec : Number(b.durationSec)
-    if (!(DURATIONS as readonly number[]).includes(n)) {
-      return { ok: false, error: `durationSec must be one of ${DURATIONS.join(', ')}.` }
+    if (!(DURATIONS as readonly number[]).includes(n) && n !== HANDOFF_SHORT_DURATION) {
+      return { ok: false, error: `durationSec must be one of ${DURATIONS.join(', ')} (or ${HANDOFF_SHORT_DURATION} with engineHint seedance).` }
     }
     durationSec = n as HandoffDuration
   }
@@ -383,6 +388,10 @@ export function validateHandoffInput(body: unknown): HandoffValidation {
       return { ok: false, error: `engineHint must be one of ${HANDOFF_ENGINES.join(', ')}.` }
     }
     engineHint = normalized
+  }
+  // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — o 15 s existe só no Seedance 1.5 (a rota recusaria nos outros motores).
+  if (durationSec === HANDOFF_SHORT_DURATION && engineHint !== 'seedance') {
+    return { ok: false, error: `durationSec ${HANDOFF_SHORT_DURATION} is only available with engineHint seedance.` }
   }
 
   let language = DEFAULT_LANGUAGE
@@ -530,6 +539,14 @@ export const LLMS_TXT_PATH = '/llms.txt'
  *  `channel` (06/09, KINEO-ASSISTANT-LINK): decide SÓ as duas etiquetas de
  *  medição, via CHANNEL_TAGS. Linha sem canal (ou com canal desconhecido) cai
  *  em DEFAULT_CHANNEL = 'gpt_store' — byte a byte o destino de antes. */
+/**
+ * KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b, B2) — decidido pela rota /api/gpt/handoff/go com a conta logada: o saldo
+ * (trial) não paga a duração pedida no Seedance, mas paga o filme curto. Então o Studio abre em Seedance a 15 s; se o
+ * roteiro do GPT for longo demais para 15 s (fitsShort=false), abre em modo IA — um TEASER do roteiro — em vez de
+ * verbatim (a guarda do cinematic recusaria o roteiro inteiro a 15 s com 422).
+ */
+export type EntradaCurtaDoHandoff = { shortSeconds: number; fitsShort: boolean }
+
 export function buildStudioDestination(row: {
   script: string
   duration_sec: number
@@ -538,12 +555,14 @@ export function buildStudioDestination(row: {
   /** GPT-LOJA-2026-09-24 — idioma do roteiro; antes era gravado e nunca chegava ao Studio (10 das 16 línguas abriam em inglês). */
   language?: string | null
   aspect: string
-}): string {
+}, entrada?: EntradaCurtaDoHandoff | null): string {
   const q = new URLSearchParams()
+  const engine = isHandoffEngine(row.engine_hint) ? row.engine_hint : DEFAULT_ENGINE
+  const curto = Boolean(entrada) && (engine === 'seedance' || engine === 'fast')
   q.set('prompt', row.script)
-  q.set('script_mode', 'verbatim')
-  q.set('duration', String(row.duration_sec))
-  q.set('engine', isHandoffEngine(row.engine_hint) ? row.engine_hint : DEFAULT_ENGINE)
+  q.set('script_mode', curto && !entrada!.fitsShort ? 'ai' : 'verbatim')
+  q.set('duration', String(curto ? entrada!.shortSeconds : row.duration_sec))
+  q.set('engine', curto ? 'seedance' : engine)
   const aspect = normalizeAspect(row.aspect)
   if (aspect !== DEFAULT_ASPECT) q.set('aspect', aspect)
   const lang = narrationLanguage(String(row.language ?? '').slice(0, 2).toLowerCase())

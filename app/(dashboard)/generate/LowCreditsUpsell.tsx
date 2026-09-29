@@ -22,6 +22,7 @@ import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPr
 // KINEO-PRICING-V6-2026-08-19 — quantos vídeos de IA o grant do Starter paga
 // de verdade. Ver lib/marketingPrice.ts.
 import { STARTER_AI_FILMS, videosPerMonth } from '@/lib/marketingPrice'
+import { KINEO1_PUBLIC } from '@/lib/engineLaunch' // KINEO-ENTRADA-SEEDANCE15-2026-09-29
 
 const DISMISSED_KEY = 'kineo_lowcredits_dismissed'
 const THRESHOLD = 5
@@ -108,8 +109,9 @@ export default function LowCreditsUpsell() {
           {/* KINEO-PRICING-V6-2026-08-19 — "or 1 AI Generated video" era um
               literal que subestimava o plano (40 créditos pagam 2 Seedance).
               Derivado, ele acompanha qualquer reprice de grant OU de motor. */}
-          Get {TIER_CREDITS.starter} credits every month — {videosPerMonth('starter', 'fast')} Kineo 1
-          videos, or {STARTER_AI_FILMS} AI Generated video{STARTER_AI_FILMS === 1 ? '' : 's'}.
+          {/* KINEO-ENTRADA-SEEDANCE15-2026-09-29 — o Kineo 1 saiu do catálogo público (KINEO1_PUBLIC): a linha só o cita
+              com o interruptor ligado; senão vende o que o plano novo de fato usa (AI Generated, derivado). */}
+          Get {TIER_CREDITS.starter} credits every month — {KINEO1_PUBLIC ? `${videosPerMonth('starter', 'fast')} Kineo 1 videos, or ` : ''}{STARTER_AI_FILMS} AI Generated video{STARTER_AI_FILMS === 1 ? '' : 's'}.
           {' '}{STARTER_USD}/mo. Cancel anytime.
         </span>
         {/* KINEO-ORDEM5-PROOF-2026-08-03 — Ordem 5, linha de prova no upsell.

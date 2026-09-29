@@ -130,7 +130,8 @@ const PORTAS = /href="\/avatar"|Talking Avatar|AI Presenter|Character Lock|Trans
 {
   const html = renderPage('app/pricing/PricingClient.tsx', false, { demoOffer: true, demoShell: true, displayCurrency: 'usd', signedIn: true })
   checa('pricing (render real): sem "AI Presenter", sem "Character Lock", sem ", Avatar" no Studio', !/AI Presenter|Character Lock|Kineo 1, Avatar/.test(html))
-  checa('pricing: o resultado do Studio segue, só sem o Avatar', html.includes('Every available engine — Kling 3, Veo 3.1, Kling 2.5, MiniMax H3, Seedance 1.5, Kineo 1 — plus 2 free HD enhances'))
+  // Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): o Kineo 1 também saiu da /pricing (trava j do E1); o Avatar segue fora.
+  checa('pricing: o resultado do Studio segue, só sem o Avatar', html.includes('Every available engine — Kling 3, Veo 3.1, Kling 2.5, MiniMax H3, Seedance 1.5 — plus 2 free HD enhances'))
   // A FAQ do Autopilot hoje nem renderiza (PRICING_SHOW_AUTOPILOT=false filtra a pergunta); a frase é conferida no fonte
   // para não voltar a vender o AI Presenter no dia em que o Autopilot reaparecer.
   const pcSrc = rd('app/pricing/PricingClient.tsx')

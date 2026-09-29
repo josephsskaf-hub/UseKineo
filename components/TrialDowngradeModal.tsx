@@ -40,6 +40,7 @@ import { trackClosedEvent, trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
 import { FREE_FAST_PREVIEW_LIMIT } from '@/lib/freeFastQuota'
+import { SEEDANCE_15S_PUBLIC } from '@/lib/engineLaunch' // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — o primeiro valor segue o interruptor da entrada
 // Import de TIPO apenas (apagado no build — nenhum código de servidor viaja).
 // O tipo vem da MESMA definição que o servidor serializa: renomear um campo lá
 // passa a quebrar o build aqui, em vez de fazer o modal sumir em silêncio numa
@@ -85,7 +86,7 @@ import {
 import {
   resolveTrialDowngradeJourney,
   trialDowngradeFirstValueClickMetadata,
-  TRIAL_DOWNGRADE_FIRST_VALUE_HREF,
+  trialDowngradeFirstValueHref,
   type TrialDowngradeJourneyState,
 } from '@/lib/growth/trialDowngradeFirstValue'
 
@@ -516,10 +517,10 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
     }
     void trackClosedEvent(
       'trial_downgrade_first_film_clicked',
-      trialDowngradeFirstValueClickMetadata(),
+      trialDowngradeFirstValueClickMetadata(SEEDANCE_15S_PUBLIC),
     )
     setOpen(false)
-    window.location.assign(TRIAL_DOWNGRADE_FIRST_VALUE_HREF)
+    window.location.assign(trialDowngradeFirstValueHref(SEEDANCE_15S_PUBLIC)) // KINEO-ENTRADA-SEEDANCE15: Seedance 15 s com a entrada nova
   }
 
   function goToCreator() {

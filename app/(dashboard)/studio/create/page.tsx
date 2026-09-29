@@ -24,7 +24,7 @@ import { createClient } from '@/lib/supabase/server'
 import { maybeActivateReverseTrial } from '@/lib/reverseTrial'
 import { paisDoRequest } from '@/lib/freeFilmPolicy'
 import { readKineo1Access } from '@/lib/kineo1Access'
-import { resolveKineo1Flag } from '@/lib/engineLaunch'
+import { resolveKineo1Flag, seedance15sVisible } from '@/lib/engineLaunch' // KINEO-ENTRADA-SEEDANCE15-2026-09-29: seedance15 = a entrada nova
 import { trialFingerprintFromHeaders } from '@/lib/trialFingerprint'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { getViralTopicById } from '@/lib/viralTopics'
@@ -237,8 +237,8 @@ export default async function StudioCreatePage({ searchParams }: StudioCreatePag
   const kineo1 = await resolveKineo1Flag(
     user.email,
     async () => ((await supabase.from('profiles').select('has_paid').eq('id', user.id).maybeSingle()).data as { has_paid?: boolean | null } | null)?.has_paid === true,
-    () => readKineo1Access(user.id),
-  ).catch(() => false) // best-effort — a tela de criar nunca quebra por causa desta régua
+    () => readKineo1Access(user.id).then((l) => { if (l.ok === false) throw new Error('kineo1_legacy_unreadable'); return l }),
+  ).catch(() => null) // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (pendência 5 da E1): falha = null ('não sei'), nunca "sem legado"
 
   return (
     <Suspense fallback={null}>
@@ -247,6 +247,7 @@ export default async function StudioCreatePage({ searchParams }: StudioCreatePag
         initialUserId={user.id}
         refusalNotice={refusalNotice}
         kineo1Visible={kineo1}
+        seedance15={seedance15sVisible(user.email)}
       />
     </Suspense>
   )

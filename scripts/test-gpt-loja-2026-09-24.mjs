@@ -90,7 +90,7 @@ ok((post.match(/if \(await refreshHandoffExpiry\(token, fresh(?:Again)?\)\) expi
 // ── 4. idioma chega ao Studio ─────────────────────────────────────────────────────────────────
 const lib = rd('lib/gptHandoff.ts')
 const dest = (lib.match(/export function buildStudioDestination[\s\S]*?\n\}\n/) || [''])[0]
-ok(/language\?: string \| null\n  aspect: string\n\}\): string \{/.test(dest) && /const lang = narrationLanguage\(String\(row\.language \?\? ''\)\.slice\(0, 2\)\.toLowerCase\(\)\)\n  if \(lang && lang !== 'en'\) q\.set\('language', lang\)/.test(dest),
+ok(/language\?: string \| null\n  aspect: string\n\}(, entrada\?: EntradaCurtaDoHandoff \| null)?\): string \{/.test(dest) /* reancorado 29/09 (E2b/B2): 2º argumento opcional */ && /const lang = narrationLanguage\(String\(row\.language \?\? ''\)\.slice\(0, 2\)\.toLowerCase\(\)\)\n  if \(lang && lang !== 'en'\) q\.set\('language', lang\)/.test(dest),
   '4a. buildStudioDestination manda ?language= (menos en, que é o padrão do Studio: link em inglês fica byte a byte igual)')
 ok(/searchParams\.get\('language'\)/.test(rd('app/(dashboard)/generate/GenerateClient.tsx')), '4b. o Studio lê ?language= (senão o parâmetro não serve a ninguém)')
 

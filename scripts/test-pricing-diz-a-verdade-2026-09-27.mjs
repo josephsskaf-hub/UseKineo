@@ -112,7 +112,9 @@ ok(charCell(charFree) === '—' && charCell(charPaid) === '3' && charCell(charPr
 ok(!/from '@\/lib\/characters'/.test(client), "PricingClient ('use client') NÃO importa lib/characters (node:crypto não entra no bundle do navegador)")
 
 // Tempo de render: um só texto, FAQ e tabela.
-ok(/const RENDER_TIME_COPY = 'Kineo 1 ~3–7 min · AI engines 8–20 min'/.test(client), 'RENDER_TIME_COPY = "Kineo 1 ~3–7 min · AI engines 8–20 min"')
+// Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): o Kineo 1 saiu da /pricing (trava j do E1 — quem assina não o recebe);
+// o texto único segue sendo o dos motores de IA, e o "~3-5 min" antigo continua proibido (linhas acima).
+ok(/const RENDER_TIME_COPY = 'AI engines 8–20 min'/.test(client), 'RENDER_TIME_COPY = "AI engines 8–20 min"')
 ok(/a: `\$\{RENDER_TIME_COPY\}\. We use AI to write, voice, and edit everything automatically\.`/.test(client), 'FAQ "How fast" usa RENDER_TIME_COPY')
 ok(/label: 'Render time',\n(?:\s*\/\/[^\n]*\n)*\s*free: RENDER_TIME_COPY,\n\s*starter: RENDER_TIME_COPY,\n\s*basic: RENDER_TIME_COPY,\n\s*pro: RENDER_TIME_COPY,/.test(tabela), 'as 4 células de Render time usam RENDER_TIME_COPY')
 

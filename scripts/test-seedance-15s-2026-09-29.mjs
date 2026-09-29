@@ -191,7 +191,9 @@ checa('SEEDANCE_15S_PUBLIC nasce false: público não vê o botão; a casa vê',
 const mutLigado = LAUNCH_SRC.replace('export const SEEDANCE_15S_PUBLIC = false', 'export const SEEDANCE_15S_PUBLIC = true')
 checa('mutante: interruptor ligado fica VERMELHO', mutLigado !== LAUNCH_SRC && !provaInterruptor(mutLigado))
 // Reancorado 29/09 na integração com a E1 (Kineo 1 fora): a mesma linha passou a devolver também `kineo1` (resolveKineo1Flag).
-const L_ME = '  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), internal: s25Visible(user.email), kineo1, plan })'
+// Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): a resposta ganhou `hasPaid` (régua do 'não sei' do Studio); a flag
+// seedance15 segue na mesma linha inteira, pelo interruptor.
+const L_ME = '  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), internal: s25Visible(user.email), hasPaid, kineo1, plan })'
 checa('/api/me/credits devolve a flag seedance15 pelo interruptor (linha inteira)', temLinha(ME, L_ME))
 const ANCORAS_STUDIO = [
   ['Studio: botão de 15 s só com Seedance escolhido e com o interruptor', "              {engine === 'seedance' && (seedance15Ok || duration === SEEDANCE_SHORT_SECONDS) && ("],

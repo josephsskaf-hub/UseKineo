@@ -115,7 +115,8 @@ export default function Creator30OfferModal() {
         </p>
         {/* UI#3 — os três fatos que vendem, em vez de prosa corrida. */}
         <ul style={{ color: '#c7c7cc', fontSize: 12.5, lineHeight: 1.7, margin: '0 0 14px', paddingLeft: 18 }}>
-          <li>{TIER_CREDITS.basic} credits — {videosPerMonth('basic', 'fast')} Kineo 1 videos, {videosPerMonth('basic', 'cinematic_ai')} Seedance films, or {videosPerMonth('basic', 'cinematic_h3')} MiniMax H3 films</li>
+          {/* KINEO-ENTRADA-SEEDANCE15-2026-09-29 — o motor de stock saiu da venda; a lista fala dos motores de IA. */}
+          <li>{TIER_CREDITS.basic} credits — {videosPerMonth('basic', 'cinematic_ai')} Seedance films, or {videosPerMonth('basic', 'cinematic_h3')} MiniMax H3 films</li>
           <li>Every engine, including Kling 3 &amp; MiniMax H3 (characters speak with lip sync)</li>
           <li>Watermark-free exports + AI images, audio studio and HD enhance</li>
         </ul>

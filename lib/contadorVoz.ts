@@ -21,6 +21,10 @@ import { speechRateFor, speechFamilyForQuality, speechSecondsAt, type SpeechRate
 import { parseSpeed, parseUserScript } from '@/lib/scriptParser'
 import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
 import type { NarrationLanguage } from '@/lib/textLanguage'
+// KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — o Seedance 1.5 tem o botão de 15 s: a lista de durações do contador é a
+// MESMA que a rota do cinematic usa para o Seedance (supportedDurationsFor, lib/durationByEngine.ts). Sem isto, 45
+// palavras a 15 s davam "too short — pick 35" num filme que o servidor renderiza.
+import { supportedDurationsFor } from '@/lib/durationByEngine'
 
 export type ContadorMotor = 'fast' | 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25'
 
@@ -33,6 +37,8 @@ export interface ReguaDaTela {
   /** persona que o servidor vai escolher (clássico) — null no hollywood (voz própria do modelo) ou se a seleção falhar */
   persona: { id: string; name: string; voice: string; defaultSpeed: number } | null
   floorSeconds: number
+  /** Botões de duração que o servidor considera para este motor (Seedance inclui 15). Ausente = lista global. */
+  supported?: readonly number[]
 }
 
 /**
@@ -47,7 +53,7 @@ export function reguaDoServidorNaTela(args: { engine: ContadorMotor; script: str
   const family = speechFamilyForQuality(args.engine)
   const speed = parseSpeed(script)
   if (family === 'hollywood') {
-    return { rate: speechRateFor({ family, speed, language: args.language }), persona: null, floorSeconds: AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD }
+    return { rate: speechRateFor({ family, speed, language: args.language }), persona: null, floorSeconds: AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD, supported: supportedDurationsFor(args.engine) }
   }
   const vertical = typeof args.vertical === 'string' && args.vertical.trim() ? args.vertical.trim().toLowerCase() : undefined
   const persona = (() => {
@@ -61,6 +67,7 @@ export function reguaDoServidorNaTela(args: { engine: ContadorMotor; script: str
     rate: speechRateFor({ family: 'classic', speed, language: args.language, voice: persona?.voice, personaSpeed: persona?.defaultSpeed }),
     persona: persona ? { id: persona.id, name: persona.name, voice: persona.voice, defaultSpeed: persona.defaultSpeed } : null,
     floorSeconds: args.engine === 'fast' ? CONTADOR_FLOOR_FAST_SECONDS : CONTADOR_FLOOR_CLASSIC_SECONDS,
+    supported: supportedDurationsFor(args.engine),
   }
 }
 
@@ -97,7 +104,7 @@ export function contadorVoz(args: { script: string; regua: ReguaDaTela; requeste
   if (words < (args.minWords ?? 8)) return null
   const requested = Number(args.requestedSeconds)
   if (!Number.isFinite(requested) || requested <= 0) return null
-  const supported = args.supported ?? SUPPORTED_DURATIONS
+  const supported = args.supported ?? args.regua.supported ?? SUPPORTED_DURATIONS
   const wps = args.regua.rate.wordsPerSecond
   const speechSeconds = speechSecondsAt(narration, args.regua.rate)
   if (!(speechSeconds > 0)) return null

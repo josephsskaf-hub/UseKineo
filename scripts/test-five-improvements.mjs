@@ -72,7 +72,8 @@ for(const language of ['en','es']) {
 }
 for(const [en,es] of Object.entries(labels))eq(es.match(/\d+/g),en.match(/\d+/g),'translation preserves every numeric claim')
 const history=fs.readFileSync('app/(dashboard)/history/HistoryClient.tsx','utf8')
-ok(history.includes('return reviewVideoRetryHref(video.topic)'),'real retry caller connected')
+// Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b/B9): o chamador real passa o filme original (motor e duração).
+ok(history.includes('return reviewVideoRetryHref(video.topic, { quality: video.quality_mode, durationSeconds: video.duration ?? null })'),'real retry caller connected')
 ok(fs.readFileSync('components/AvatarLaunchBanner.tsx','utf8').includes('href="/avatar"'),'avatar CTA goes to avatar workspace')
 const shell=fs.readFileSync('app/(dashboard)/DashboardShell.tsx','utf8'),layout=fs.readFileSync('app/(dashboard)/layout.tsx','utf8')
 ok(shell.includes('<WorkspaceSecondaryNotice><AffiliateFirstClickNudge'),'actual promotional caller uses policy')

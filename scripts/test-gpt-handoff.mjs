@@ -245,7 +245,12 @@ ok(/\} catch \(e\) \{[\s\S]*?return json\(\{ error: 'Kineo could not process[^\n
 const importsOf = (src) => [...src.matchAll(/from '([^']+)'/g)].map((m) => m[1])
 const PAID = /generate-video|\/compose|falQueue|fal\b|credit|debit|grant|hollywood\/|cinematic\/|broll\/|lyriaMusic|openai|stripe/i
 const allImports = [postRoute, goRoute, pricingRoute, store, page].flatMap(importsOf)
-ok(allImports.length >= 12 && allImports.every((i) => !PAID.test(i)), `(B9) nenhum import de pipeline/fornecedor/crédito nas 5 superfícies (${allImports.length} imports lidos)`)
+// Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b/B2): a rota /api/gpt/handoff/go passou a LER a tabela de preço
+// (lib/credits/engineCost — creditCostForDuration, função pura, sem banco nem fornecedor) para decidir se o trial abre no
+// filme de 15 s. É a única exceção, por nome exato; débito, grant, compose, fal, stripe e pipeline continuam proibidos.
+const TABELA_DE_PRECO = '@/lib/credits/engineCost'
+ok(allImports.length >= 12 && allImports.every((i) => i === TABELA_DE_PRECO || !PAID.test(i)), `(B9) nenhum import de pipeline/fornecedor/crédito nas 5 superfícies (${allImports.length} imports lidos; só a tabela de preço pura)`)
+ok(![postRoute, pricingRoute, store, page].flatMap(importsOf).includes(TABELA_DE_PRECO), '(B9) a exceção da tabela de preço vale SÓ para a rota do clique (/go), não para as outras 4 superfícies')
 ok(!/auth\.admin|signUp|createUser/.test(postRoute + store), '(B9) nunca cria conta')
 
 // ═══ (B) TEXTO REAL — rota GO (o clique) ════════════════════════════════════
@@ -260,7 +265,9 @@ ok(/const ROBO = \/\(bot\|crawler\|spider/.test(read('lib/requestIdentity.ts')) 
 ok(/const url = userId\s*\n\s*\? `\$\{origem\}\$\{destino\}`\s*\n\s*: `\$\{origem\}\$\{authPath\}\?redirect=\$\{encodeURIComponent\(`\$\{GO_PATH_PREFIX\}\$\{token\}`\)\}`/.test(goRoute), '(C3) userId ? Studio preenchido : conta com redirect=/go/<token>')
 ok(/userId = user\?\.id \?\? null/.test(goRoute), '(C3) userId vem de supabase.auth.getUser()')
 ok(/authPath = hasPriorSession \? '\/login' : '\/signup'/.test(goRoute) && /c\.name\.startsWith\('sb-'\) && c\.name\.includes\('auth-token'\)/.test(goRoute), '(C3) sem sessão: cookie antigo → /login, novo → /signup (critério do porteiro de /studio/create)')
-ok(/destino = normalizeInternalRedirect\(buildStudioDestination\(row\)\) \?\? STUDIO_CREATE_PATH/.test(goRoute), '(C3) destino passa por normalizeInternalRedirect; recusa → /studio/create pelado')
+// Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b/B2): o destino ganhou o 2º argumento (entrada curta decidida com a
+// conta logada); a prova continua a mesma — passa por normalizeInternalRedirect e cai em /studio/create pelado na recusa.
+ok(/destino = normalizeInternalRedirect\(buildStudioDestination\(row, entradaCurta\)\) \?\? STUDIO_CREATE_PATH/.test(goRoute), '(C3) destino passa por normalizeInternalRedirect; recusa → /studio/create pelado')
 ok(/if \(!isHandoffToken\(token\)\) \{\s*\n\s*return NextResponse\.redirect\(`\$\{origem\}\$\{FALLBACK\}`, 302\)/.test(goRoute), '(C4) token inválido → redirect, não 4xx')
 ok(/if \(found\.status !== 'ok' \|\| found\.expired\) \{\s*\n\s*return NextResponse\.redirect\(`\$\{origem\}\$\{GO_PATH_PREFIX\}\$\{token\}`, 302\)/.test(goRoute), '(C4) sem linha ou vencido → volta para /go/<token> (a página explica)')
 ok(/await findHandoff\(token\)\.catch\(\(\) => \(\{ status: 'unavailable' as const \}\)\)/.test(goRoute), '(C4) leitura do banco com catch → nunca lança')
@@ -836,7 +843,9 @@ console.log('\n(L) enquadramento: lib/aspect.ts é a fonte; nenhum formato digit
   ok(ASPECT_LIST.every((a) => !libCode.includes(`'${a}'`)), `(L1) nenhum dos ${ASPECT_LIST.length} formatos aparece como literal no CÓDIGO da lib (só em comentário) — uma cópia digitada reprova aqui`)
   // ── (L2) a emissão condicional, no texto, amarrada ao padrão da fonte.
   ok(/const aspect = normalizeAspect\(row\.aspect\)\s*\n\s*if \(aspect !== DEFAULT_ASPECT\) q\.set\('aspect', aspect\)/.test(lib), "(L2) buildStudioDestination: `if (aspect !== DEFAULT_ASPECT) q.set('aspect', aspect)` — emite só fora do padrão")
-  ok(/aspect: string\s*\n\s*\}\): string \{/.test(lib), '(L2) a assinatura de buildStudioDestination exige `aspect` na linha (a rota do clique passa a linha inteira)')
+  // Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b/B2): a assinatura ganhou o 2º argumento opcional (a entrada curta);
+  // a linha continua exigindo `aspect`.
+  ok(/aspect: string\s*\n\s*\}(, entrada\?: EntradaCurtaDoHandoff \| null)?\): string \{/.test(lib), '(L2) a assinatura de buildStudioDestination exige `aspect` na linha (a rota do clique passa a linha inteira)')
   // O Studio LÊ o parâmetro — a capacidade existe do outro lado (só leitura
   // do arquivo; o GenerateClient não é editado por este trabalho).
   const gen = read('app/(dashboard)/generate/GenerateClient.tsx')

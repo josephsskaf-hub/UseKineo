@@ -217,6 +217,16 @@ export const TRIAL_KINEO1_FILMS = trialFilmsForEngine(
 )
 const TRIAL_KINEO1_FILMS_NOUN = TRIAL_KINEO1_FILMS === 1 ? 'film' : 'films'
 
+// KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — O FILME GRÁTIS VIRA O SEEDANCE 1.5 DE 15 s. Com a entrada nova ligada
+// (SEEDANCE_15S_PUBLIC), o que o grant compra é o filme curto do Seedance, no custo PAGO de 15 s (é assim que o trial
+// debita — creditCostForDuration, a mesma função da rota). Derivado de G ÷ custo, nunca digitado: com o trial de 10 e o
+// 15 s a 7, dá 1. O 15 é o espelho de SEEDANCE_SHORT_SECONDS (lib/durationByEngine.ts) — este módulo não ganha import
+// novo (os guardiões o carregam com mocks contados); scripts/test-entrada-seedance15-2026-09-29.mjs confere a igualdade.
+export const TRIAL_SEEDANCE15_SECONDS = 15
+export const TRIAL_SEEDANCE15_FILMS = trialFilmsForEngine(
+  creditCostForDuration('cinematic_ai', true, TRIAL_SEEDANCE15_SECONDS),
+)
+
 // ⚠️ KINEO-TETO-COPY-2026-08-20 — A COPY DO MODELO NOVO (leia antes de mexer)
 // O modelo mudou DUAS VEZES em 20/08 e a segunda desfez a primeira. Registro
 // as duas para ninguém refazer o caminho:

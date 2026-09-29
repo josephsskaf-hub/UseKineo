@@ -91,8 +91,12 @@ import {
   decideTrialFirstDelivery,
   decideTrialReturnLadder,
   trialFirstDeliveryExposureMetadata,
-  TRIAL_FIRST_DELIVERY_VERSION,
 } from '@/lib/growth/trialBalanceBridge'
+// KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — o banner só aparece para conta em TRIAL, que nunca é conta da casa: para
+// ela a flag seedance15 (seedance15sVisible) é exatamente o interruptor público. Com ele ligado, a primeira entrega e o
+// degrau de volta são o Seedance de 15 s, e o degrau Kineo 1 some (M3: trial não tem a flag kineo1).
+import { SEEDANCE_15S_PUBLIC } from '@/lib/engineLaunch'
+const ENTRADA_CURTA = SEEDANCE_15S_PUBLIC
 import {
   buildOnboardingGoalStudioHref,
   DEFAULT_ONBOARDING_GOAL,
@@ -216,8 +220,8 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
   const dayRef = useRef(utcDayKey(Date.now()))
   const dismissKey = `${DISMISSED_PREFIX}:${userKey}:${dayRef.current}`
   const shownKey = `${SHOWN_PREFIX}:${userKey}:${dayRef.current}`
-  const firstDelivery = decideTrialFirstDelivery({ trialPhase: open ? 'active' : null, credits, creditsUsed: used })
-  const returnLadder = decideTrialReturnLadder({ trialPhase: open ? 'active' : null, credits })
+  const firstDelivery = decideTrialFirstDelivery({ trialPhase: open ? 'active' : null, credits, creditsUsed: used, shortFilm: ENTRADA_CURTA })
+  const returnLadder = decideTrialReturnLadder({ trialPhase: open ? 'active' : null, credits, shortFilm: ENTRADA_CURTA, kineo1Allowed: ENTRADA_CURTA ? false : undefined })
   // A mesma pessoa pode atravessar Seedance → Kineo 1 no mesmo dia. A chave
   // inclui o degrau real para cada ação humana ter seu próprio denominador.
   const returnLadderShownKey = `${RETURN_LADDER_SHOWN_PREFIX}:${userKey}:${dayRef.current}:${returnLadder.version}:${returnLadder.duration}`
@@ -311,6 +315,7 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
           creditsUsed: typeof trial.creditsUsedForDisplay === 'number'
             ? trial.creditsUsedForDisplay
             : null,
+          shortFilm: ENTRADA_CURTA, // KINEO-ENTRADA-SEEDANCE15 — o MESMO que o JSX decide
         })
         const firstDeliveryExposure = trialFirstDeliveryExposureMetadata(firstDeliveryAtImpression)
 
@@ -630,7 +635,7 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
     // boundary: no analysis, render, provider call or credit spend starts here.
     window.location.assign(buildOnboardingGoalStudioHref(DEFAULT_ONBOARDING_GOAL, {
       duration: firstDelivery.duration,
-      intentCampaign: TRIAL_FIRST_DELIVERY_VERSION,
+      intentCampaign: firstDelivery.version, // KINEO-ENTRADA-SEEDANCE15: a versão da decisão (15 s ou a antiga de 35 s)
     }))
   }
   const continueTrialWithReturnLadder = () => {

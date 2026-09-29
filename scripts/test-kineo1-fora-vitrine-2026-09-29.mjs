@@ -319,7 +319,9 @@ console.log('== (h) resolveKineo1Flag, GET /api/me/credits e /studio/create exec
   // (3) /studio/create: a instrução é extraída do arquivo e executada
   const pg = rd('app/(dashboard)/studio/create/page.tsx')
   const INI = '  const kineo1 = await resolveKineo1Flag(\n'
-  const FIM = '  ).catch(() => false)'
+  // Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b — pendência 5 da E1): falha de leitura deixou de virar "sem legado"
+  // (false) e virou null ('não sei'); a tela decide com kineo1NaTela (não esconde de quem paga, não dá a conta nova).
+  const FIM = '  ).catch(() => null)'
   const rodaPg = async (src, { email, hasPaid, legado, perfilFalha = false }) => {
     const i = src.indexOf(INI), j = src.indexOf(FIM, i)
     if (i < 0 || j < 0) return null
@@ -338,15 +340,18 @@ console.log('== (h) resolveKineo1Flag, GET /api/me/credits e /studio/create exec
     const c = await rodaPg(src, { email: PUBLICO, hasPaid: true, legado: {} })
     const d = await rodaPg(src, { email: PUBLICO, hasPaid: true, legado: {}, perfilFalha: true })
     const e = await rodaPg(src, { email: INTERNO, hasPaid: false, legado: {}, perfilFalha: true })
-    return !!a && a.v === false && a.n === 0 && b.v === true && c.v === false && d.v === false && e.v === true &&
+    const f = await rodaPg(src, { email: PUBLICO, hasPaid: true, legado: { usedFast: false, ok: false } }) // leitura do legado falhou
+    return !!a && a.v === false && a.n === 0 && b.v === true && c.v === false && d.v === null && e.v === true && f.v === null &&
       src.includes('        kineo1Visible={kineo1}\n') && (src.match(/\bkineo1 =/g) || []).length === 1
   }
-  checa('/studio/create EXECUTADO: trial → false sem ler legado; pagante que usou → true; pagante novo → false; falha de banco → false; casa → true; prop entregue', await provaPg(pg))
+  checa("/studio/create EXECUTADO: trial → false sem ler legado; pagante que usou → true; pagante novo → false; falha de banco ou do legado → null ('não sei'); casa → true; prop entregue", await provaPg(pg))
   checa('mutante (página lê has_paid como true) → vermelho', !(await provaPg(trocar(pg, "    async () => ((await supabase.from('profiles').select('has_paid').eq('id', user.id).maybeSingle()).data as { has_paid?: boolean | null } | null)?.has_paid === true,\n", '    async () => true,\n'))))
   checa('mutante (prop cravada em true) → vermelho', !(await provaPg(trocar(pg, '        kineo1Visible={kineo1}\n', '        kineo1Visible={true}\n'))))
 
   const gc = rd('app/(dashboard)/generate/GenerateClient.tsx')
-  checa('GenerateClient só declara a prop (E1 não muda comportamento; a E2b passa a usá-la)', gc.includes('  kineo1Visible?: boolean\n}) {') && conta(gc, 'kineo1Visible') === 2 && !gc.slice(gc.indexOf('export default function GenerateClient({'), gc.indexOf('}: {', gc.indexOf('export default function GenerateClient({'))).includes('kineo1Visible'))
+  // Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): a E2b É o consumidor anunciado. A prova passa a ser que ela consome
+  // SÓ pela régua kineo1NaTela (entrada nova + flag + 'não sei' de quem paga), nunca a flag crua num if solto.
+  checa('GenerateClient consome a prop SÓ pela régua kineo1NaTela (E2b)', gc.includes('  kineo1Visible?: boolean | null\n') && gc.includes('  const kineo1Shown = kineo1NaTela({ entrada15, kineo1: kineo1Visible, hasPaid })\n') && gc.includes('  const kineo1NaMontagem = kineo1NaTela({ entrada15: seedance15Prop === true, kineo1: kineo1Visible, hasPaid: null })\n') && !/if \(!?kineo1Visible\)/.test(gc))
 }
 
 // ── (i) JSON-LD de toda página sem Kineo 1 ──────────────────────────────────────────────────────────────────────────

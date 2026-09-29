@@ -42,7 +42,10 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { trackEvent as trackAnalyticsEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
-import { TRIAL_CREDITS_SHOWN, TRIAL_GRANT_CREDITS_COPY, TRIAL_KINEO1_FILMS } from '@/lib/freeTierOffer'
+import { TRIAL_CREDITS_SHOWN, TRIAL_GRANT_CREDITS_COPY, TRIAL_KINEO1_FILMS, TRIAL_SEEDANCE15_FILMS, TRIAL_SEEDANCE15_SECONDS } from '@/lib/freeTierOffer'
+// KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — com a entrada nova pública, o que o grant compra é o filme grátis de 15 s
+// do Seedance 1.5 (TRIAL_SEEDANCE15_FILMS, derivado); desligada, a frase de antes (Kineo 1). Nada digitado.
+import { SEEDANCE_15S_PUBLIC } from '@/lib/engineLaunch'
 import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 import { videosPerMonth } from '@/lib/marketingPrice'
 // KINEO-VITRINE-MOEDA-2026-08-19 — ver o bloco grande junto ao texto do modal.
@@ -411,7 +414,9 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
                   selos da porta de $1 só voltam se a porta voltar (CARD_ENTRY_ONLY). */}
               {(CARD_ENTRY_ONLY
                 ? [`${TRIAL_CREDITS_SHOWN} CREDITS FOR $1`, '7 DAYS', 'KINEO 1 + SEEDANCE']
-                : [`${TRIAL_CREDITS_SHOWN} FREE CREDITS`, `${TRIAL_KINEO1_FILMS} KINEO 1 ${TRIAL_KINEO1_FILMS === 1 ? 'FILM' : 'FILMS'}`, 'AI ENGINES FROM STARTER']
+                : SEEDANCE_15S_PUBLIC
+                  ? [`${TRIAL_CREDITS_SHOWN} FREE CREDITS`, `${TRIAL_SEEDANCE15_FILMS} FREE ${TRIAL_SEEDANCE15_SECONDS}-SECOND ${TRIAL_SEEDANCE15_FILMS === 1 ? 'FILM' : 'FILMS'} (SEEDANCE 1.5)`, 'AI ENGINES FROM STARTER']
+                  : [`${TRIAL_CREDITS_SHOWN} FREE CREDITS`, `${TRIAL_KINEO1_FILMS} KINEO 1 ${TRIAL_KINEO1_FILMS === 1 ? 'FILM' : 'FILMS'}`, 'AI ENGINES FROM STARTER']
               ).map((t) => (
                 <span key={t} style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.08em', padding: '4px 9px', borderRadius: 4, background: 'var(--card2)', border: '1px solid var(--border)', color: 'var(--text2)' }}>{t}</span>
               ))}
@@ -440,7 +445,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
               {/* KINEO-GRANT-COPY-UNICA — número derivado; ver lib/freeTierOffer.ts. */}
               <FreeTierCopy
                 legacy="3 free videos every day · no card needed."
-                on={`Signing up gets you the standard ${TRIAL_GRANT_CREDITS_COPY} free credits every new account receives — enough for ${TRIAL_KINEO1_FILMS} Kineo 1 ${TRIAL_KINEO1_FILMS === 1 ? 'film' : 'films'}. No card, no special deal for leaving: this is simply what a new account comes with.`}
+                on={`Signing up gets you the standard ${TRIAL_GRANT_CREDITS_COPY} free credits every new account receives — enough for ${SEEDANCE_15S_PUBLIC ? `${TRIAL_SEEDANCE15_FILMS === 1 ? 'a' : TRIAL_SEEDANCE15_FILMS} free ${TRIAL_SEEDANCE15_SECONDS}-second ${TRIAL_SEEDANCE15_FILMS === 1 ? 'film' : 'films'} (Seedance 1.5)` : `${TRIAL_KINEO1_FILMS} Kineo 1 ${TRIAL_KINEO1_FILMS === 1 ? 'film' : 'films'}`}. No card, no special deal for leaving: this is simply what a new account comes with.`}
               />
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 18 }}>

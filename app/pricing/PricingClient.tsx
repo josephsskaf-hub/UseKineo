@@ -133,9 +133,12 @@ const CARD_TRIAL_LINK_ENABLED = CARD_TRIAL_LIVE // KINEO-RESTAURACAO-2026-09-09
 const CARD_TRIAL_CHECKOUT_URL = '/api/stripe/checkout?tier=basic&billing=monthly&trial=1&intent_campaign=trial_1usd'
 
 // KINEO-PRICING-VERDADE-2026-09-27 — UM só texto de tempo de render para a FAQ e a tabela. "3–5 min" era o número
-// do Kineo 1 (stock + TTS); os motores de IA (Seedance, Kling, Veo, H3) levam 8–20 min e a página prometia menos
+// do motor de stock (stock + TTS); os motores de IA (Seedance, Kling, Veo, H3) levam 8–20 min e a página prometia menos
 // do que entrega. Mudou aqui, mudou nos dois lugares.
-const RENDER_TIME_COPY = 'Kineo 1 ~3–7 min · AI engines 8–20 min'
+// KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — o motor de stock saiu da venda (KINEO1_PUBLIC=false, decisão do fundador
+// 29/09): quem assina hoje não o recebe (a régua kineo1Visible exige uso prévio ou pacote). A página só fala dos motores
+// de IA — a trava (j) de scripts/test-kineo1-fora-vitrine-2026-09-29.mjs exige /pricing e modais sem o nome dele.
+const RENDER_TIME_COPY = 'AI engines 8–20 min'
 
 // Push #099 — FAQ entries shown below the pricing comparison table. Pure
 // content array so the accordion renders from one source of truth.
@@ -255,7 +258,8 @@ function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
       // duplicar a mesma informação em dois lugares é exatamente o que fez os
       // grants de crédito derivarem antes (ver KINEO-PRICING-V3D).
       // KINEO-PRICING-V5-2026-08-17 — 60cr: o card fala em RESULTADO.
-      outcome: `3 films a week — Kineo 1 and Seedance 1.5: ${videosPerMonth('starter', 'fast')} quick videos or ${videosPerMonth('starter', 'cinematic_ai')} Seedance films, voice, captions and score included.`,
+      // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — sem o motor de stock (fora da venda), o resultado fala em filmes Seedance (derivado).
+      outcome: `${videosPerMonth('starter', 'cinematic_ai')} Seedance 1.5 films a month — voice, captions and score included.`,
       videosPerMonth: filmsAndScenes('starter'),
       storageLine: '100 projects · 90-day storage',
       cta: { label: 'Get Started', href: '#checkout' },
@@ -275,7 +279,7 @@ function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
       // É esse salto que o usuário free já prova de graça no hook do 1º vídeo.
       // KINEO-PRICING-V5-2026-08-17 — 140cr a $19.90 (InVideo Plus cobra $25
       // sem NENHUM motor premium; Higgsfield entrega clipe cru sem edição).
-      outcome: `1 film a day — Kineo 1 and Seedance 1.5: ${videosPerMonth('basic', 'fast')} quick videos or ${videosPerMonth('basic', 'cinematic_ai')} Seedance films, finished with voice, karaoke captions and score.`,
+      outcome: `${videosPerMonth('basic', 'cinematic_ai')} Seedance 1.5 films a month, finished with voice, karaoke captions and score.`, // KINEO-ENTRADA-SEEDANCE15-2026-09-29
       videosPerMonth: filmsAndScenes('basic'),
       storageLine: '500 projects · forever storage',
       cta: { label: 'Get Started', href: '#checkout' },
@@ -299,7 +303,7 @@ function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
       // KINEO-PRICING-V5-2026-08-17 — 320cr: volume + Kling 3 todo mês +
       // 2 Enhance HD grátis (Topaz) + storage ilimitado.
       // KINEO-AVATAR-FORA-2026-09-28 — ', Avatar' saiu do resultado do Studio: o motor deixou o catálogo público em 27/09.
-      outcome: `Every available engine — Kling 3, Veo 3.1, Kling 2.5, MiniMax H3, Seedance 1.5, Kineo 1${AVATAR_PUBLIC ? ', Avatar' : ''} — plus 2 free HD enhances and unlimited forever storage.`, // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15: Omni pausado não se vende · KINEO-H3-DE-VOLTA-2026-09-22
+      outcome: `Every available engine — Kling 3, Veo 3.1, Kling 2.5, MiniMax H3, Seedance 1.5${AVATAR_PUBLIC ? ', Avatar' : ''} — plus 2 free HD enhances and unlimited forever storage.`, // KINEO-ENTRADA-SEEDANCE15-2026-09-29: o motor de stock saiu da venda // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15: Omni pausado não se vende · KINEO-H3-DE-VOLTA-2026-09-22
       videosPerMonth: filmsAndScenes('pro'),
       storageLine: 'Unlimited projects · forever storage',
       cta: { label: 'Get Started', href: '#checkout' },
@@ -1196,7 +1200,6 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                   // aparecem BLOQUEADAS com o plano que destrava (inveja
                   // vende; esconder o topo do catálogo não). Tudo derivado de
                   // TIER_CREDITS ÷ creditCostFor — régua do caixa, #296.
-                  const costFast = creditsPerReferenceVideo('fast')
                   const costSeed = creditsPerReferenceVideo('cinematic_ai')
                   const costH3 = creditsPerReferenceVideo('cinematic_h3')
                   const costKling25 = creditsPerReferenceVideo('cinematic_kling')
@@ -1207,7 +1210,6 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                   const costPres = creditsPerReferenceVideo('presenter')
                   const tierFor = (cost: number) => cost <= TIER_CREDITS.starter ? 'Starter' : cost <= TIER_CREDITS.basic ? 'Creator' : 'Studio'
                   const engineRows: { ic: string; name: string; cost: number; note?: string }[] = [
-                    { ic: '⚡', name: 'Kineo 1 quick videos', cost: costFast },
                     { ic: '🎬', name: 'Seedance 1.5 films', cost: costSeed },
                     { ic: '🎞', name: 'Kling 2.5 films', cost: costKling25 },
                     ...(AVATAR_PUBLIC ? [{ ic: '🧑‍🎤', name: 'AI Presenter videos', cost: costPres }] : []),
@@ -1993,7 +1995,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                   },
                   {
                     label: 'Render time',
-                    // KINEO-PRICING-VERDADE-2026-09-27 — "~3-5 min" era só o Kineo 1; os motores de IA levam 8–20 min.
+                    // KINEO-PRICING-VERDADE-2026-09-27 — "~3-5 min" era só o motor de stock; os motores de IA levam 8–20 min.
                     free: RENDER_TIME_COPY,
                     starter: RENDER_TIME_COPY,
                     basic: RENDER_TIME_COPY,

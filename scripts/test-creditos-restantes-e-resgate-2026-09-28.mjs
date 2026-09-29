@@ -174,7 +174,9 @@ function suiteA({ helperSrc, clienteSrc }) {
   checa('C2 bloco sem "per month", "60-second", seedanceReferenceCost nem "3 … 24h"', !/per month|60-second|seedanceReferenceCost|\b3\b[^\n]{0,80}24\s?h/i.test(blocoCodigo))
   checa(
     'C3 a frase é decidida pelo motor/duração usados (readyCreditsLine amarrado às variáveis)',
-    /\{credits !== null && \([\s\S]{0,600}readyCreditsLine\(\{\s*credits,\s*quality: planFitNormalizedQuality,\s*seconds: duration,\s*isPaidAccount,\s*freeOffer: \{ cardEntry: OFFER\.cardEntry, residual: OFFER\.copy\.residual, chip: OFFER\.copy\.chip \},\s*freeQuotaSpent: freeFastQuotaSpent,\s*\}\)/.test(blocoCodigo),
+    // Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): a chamada ganhou os 2 campos da entrada nova (kineo1Allowed,
+    // shortSeedanceSeconds) DEPOIS dos de sempre; motor/duração usados continuam amarrados às mesmas variáveis.
+    /\{credits !== null && \([\s\S]{0,600}readyCreditsLine\(\{\s*credits,\s*quality: planFitNormalizedQuality,\s*seconds: duration,\s*isPaidAccount,\s*freeOffer: \{ cardEntry: OFFER\.cardEntry, residual: OFFER\.copy\.residual, chip: OFFER\.copy\.chip \},\s*freeQuotaSpent: freeFastQuotaSpent,\s*(\/\/[^\n]*\s*)?kineo1Allowed: kineo1Shown,\s*shortSeedanceSeconds: entrada15 \? SEEDANCE_SHORT_SECONDS : null,\s*\}\)/.test(blocoCodigo),
   )
   checa(
     'C4 planFitNormalizedQuality = o ref do motor que rodou (restaurado na retomada)',

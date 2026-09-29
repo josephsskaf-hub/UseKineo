@@ -117,7 +117,8 @@ check(landing.includes("tileVidLast('cinematic_kling')"), 'Kling 2.5 middle-row 
 check(landing.includes("tileVidLast('cinematic_hollywood')"), 'distinct Kling 3 middle-row video remains connected')
 
 check(form.includes("const trackingPlacement = acquisitionSource ? 'home_referral_bridge' : 'home_hero'"), 'channel bridge has a distinct event placement')
-check(form.includes('homeReferralCreationIntent(acquisitionSource)'), 'form chooses creation intent from the canonical referral source')
+// Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): a política recebe o interruptor da entrada (K6 revogada quando ligado).
+check(form.includes('homeReferralCreationIntent(acquisitionSource, SEEDANCE_15S_PUBLIC)'), 'form chooses creation intent from the canonical referral source')
 check(form.includes('name="create_intent" value={creationIntent}'), 'native and JS handoffs share the selected intent')
 check(form.includes("'home_referral_bridge_script_result'"), 'script result has a distinct bridge placement')
 equal((form.match(/acquisition_source: acquisitionSource/g) ?? []).length, 10, 'every existing form event carries acquisition channel')
