@@ -84,7 +84,9 @@ const ev = roda(eventsSrc)
 const ADS_EVENTS_FORA_DO_PREFIXO = ['studio_tile_ads_clicked']
 // 29/09: +2 do 'começar do zero' no /ads/new (ads_started_from_scratch, ads_old_media_deleted — KINEO-ADS-COMECAR-DO-ZERO-2026-09-29), ambos do navegador;
 // +9 do anúncio v2 (ads_v2_* — docs/ESPEC-ANUNCIO-V2-2026-09-28.md), todos só de servidor. 32 + 2 + 9 = 43.
-check('43 eventos, únicos, todos com prefixo ads_ (salvo o tile do /studio, nominal)', ev.ADS_EVENTS.length === 43 && new Set(ev.ADS_EVENTS).size === 43 && ev.ADS_EVENTS.every((n) => n.startsWith('ads_') || ADS_EVENTS_FORA_DO_PREFIXO.includes(n)) && ADS_EVENTS_FORA_DO_PREFIXO.every((n) => ev.isAdsEvent(n) && !ev.ADS_SERVER_ONLY_EVENTS.includes(n)))
+// 29/09 (KINEO-ADS-MODO-SIMPLES-2026-09-29): +1 ads_v2_research_served (pesquisa na web do modo simples; só de servidor,
+// conta o teto diário). 43 + 1 = 44.
+check('44 eventos, únicos, todos com prefixo ads_ (salvo o tile do /studio, nominal)', ev.ADS_EVENTS.length === 44 && new Set(ev.ADS_EVENTS).size === 44 && ev.ADS_EVENTS.every((n) => n.startsWith('ads_') || ADS_EVENTS_FORA_DO_PREFIXO.includes(n)) && ADS_EVENTS_FORA_DO_PREFIXO.every((n) => ev.isAdsEvent(n) && !ev.ADS_SERVER_ONLY_EVENTS.includes(n)))
 check('os eventos do funil existem: viewed → cta → checkout → access_granted → brief → media → template → script → preview → render_requested → render_served → delivered → download', ['ads_page_viewed', 'ads_cta_clicked', 'ads_checkout_started', 'ads_access_granted', 'ads_brief_saved', 'ads_media_uploaded', 'ads_template_selected', 'ads_script_served', 'ads_preview_confirmed', 'ads_render_requested', 'ads_render_served', 'ads_delivered', 'ads_download_clicked', 'ads_qa_decided', 'ads_open_orders_capped'].every((n) => ev.isAdsEvent(n)))
 check('eventos só de servidor incluem grant/deny/render_served/delivered/qa', ['ads_access_granted', 'ads_access_denied', 'ads_render_served', 'ads_delivered', 'ads_qa_decided'].every((n) => ev.ADS_SERVER_ONLY_EVENTS.includes(n)) && ev.ADS_SERVER_ONLY_EVENTS.every((n) => ev.isAdsEvent(n)))
 check('teto de 5 revisões abertas (decisão 5)', ev.ADS_MAX_OPEN_REVIEWS === 5)

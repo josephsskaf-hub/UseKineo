@@ -679,7 +679,8 @@ await check('T5 /retake: v2_closed → text recusado → preço mostrado confere
   'adsV2Visible(user.email)', "'v2_closed'", "target.kind === 'text'", "'text_not_retakable'", "'price_changed'", 'deterministicUuid(', ".from('ads_v2_orders')", '.insert(', 'chargeAdsV2(', "from('ads_v2_shots').upsert(", 'dispatchAdsV2Shots('))
 await check('T6 /retake: a chave é adsv2redo-<id determinístico> (semente com as refações FECHADAS do plano: recusa/falha não trava o plano para sempre) e o motor recomeça na tentativa 1', /deterministicUuid\(`adsv2redo:\$\{parent\.id\}:\$\{idx\}:\$\{target\.id\}:\$\{closed\}`\)/.test(RETAKE) && /\.eq\('parent_order_id', parent\.id\)\s*\.eq\('retake_idx', idx\)/.test(RETAKE) && /r\.status === 'delivered' \|\| r\.status === 'failed' \|\| r\.status === 'cancelled'/.test(RETAKE) && ordem(RETAKE, 'const closed', 'deterministicUuid(', '.insert(', 'chargeAdsV2(') && /adsV2RetakeRef\(retakeId\)/.test(RETAKE) && /routeShot\(target\.kind, parent\.tier, 1\)/.test(RETAKE))
 await check('T7 rotas v2: runtime nodejs, tabela ausente = 503 not_ready, nenhum status 500; POST 60 s e status 300 s', () => {
-  const rotas = { orders: 60, plan: 60, start: 60, retake: 60, status: 300 }
+  // REANCORADO 29/09 (KINEO-ADS-MODO-SIMPLES-2026-09-29): + a rota de pesquisa do modo simples (mesmas regras: nodejs, 60 s, 503 not_ready, nenhum 500).
+  const rotas = { orders: 60, plan: 60, start: 60, retake: 60, status: 300, research: 60 }
   return Object.entries(rotas).every(([n, md]) => {
     const s = cod(`app/api/ads/v2/${n}/route.ts`)
     return /export const runtime = 'nodejs'/.test(s) && new RegExp(`export const maxDuration = ${md}\\b`).test(s) && /isMissingAdsTable\([^)]*\) \? v2Fail\('not_ready', 503\)/.test(s) && !/,\s*500\)/.test(s)
@@ -712,13 +713,15 @@ await check('C2 rota do cron: CRON_SECRET falha fechada, force-no-store, maxDura
 })
 await check('C3 status da tela chama o MESMO motor de avanço que o cron', /advanceAdsV2Order\(admin, order\.id/.test(cod('app/api/ads/v2/status/route.ts')))
 const EV = makeLoader({})('lib/ads/events.ts')
-const NOVOS = ['ads_v2_order_created', 'ads_v2_plan_served', 'ads_v2_dry_run_served', 'ads_v2_started', 'ads_v2_retake_started', 'ads_v2_shot_retried', 'ads_v2_assembling', 'ads_v2_delivered', 'ads_v2_failed']
+// REANCORADO 29/09 (KINEO-ADS-MODO-SIMPLES-2026-09-29): + ads_v2_research_served (pesquisa do modo simples; conta o teto diário, então é só-servidor).
+const NOVOS = ['ads_v2_order_created', 'ads_v2_plan_served', 'ads_v2_dry_run_served', 'ads_v2_started', 'ads_v2_retake_started', 'ads_v2_shot_retried', 'ads_v2_assembling', 'ads_v2_delivered', 'ads_v2_failed', 'ads_v2_research_served']
 await check('E1 os 9 eventos do v2 estão em ADS_EVENTS, são só-servidor e estão no SERVER_ONLY_EVENTS do sink', () => {
   const sink = (rd('app/api/events/route.ts').match(/const SERVER_ONLY_EVENTS = new Set\(\[([\s\S]*?)\]\)/) || ['', ''])[1]
   return NOVOS.every((n) => EV.isAdsEvent(n) && EV.ADS_SERVER_ONLY_EVENTS.includes(n) && sink.includes(`'${n}'`))
 })
 await check('E2 todo evento gravado pelo código do v2 está na lista fechada (nenhum nome solto)', () => {
-  const arquivos = ['lib/ads/v2Billing.ts', 'lib/ads/v2Advance.ts', 'app/api/ads/v2/orders/route.ts', 'app/api/ads/v2/plan/route.ts', 'app/api/ads/v2/start/route.ts', 'app/api/ads/v2/retake/route.ts']
+  // REANCORADO 29/09 (KINEO-ADS-MODO-SIMPLES-2026-09-29): + a rota de pesquisa do modo simples.
+  const arquivos = ['lib/ads/v2Billing.ts', 'lib/ads/v2Advance.ts', 'app/api/ads/v2/orders/route.ts', 'app/api/ads/v2/plan/route.ts', 'app/api/ads/v2/start/route.ts', 'app/api/ads/v2/retake/route.ts', 'app/api/ads/v2/research/route.ts']
   const nomes = arquivos.flatMap((f) => [...cod(f).matchAll(/name: '([a-z0-9_]+)'/g)].map((m) => m[1]))
   return nomes.length >= 8 && nomes.every((n) => EV.isAdsEvent(n))
 })
@@ -733,7 +736,9 @@ await check('E5 varredura genérica: a exclusão adsv2% mora DENTRO de sweepStuc
   return i > 0 && /\.not\('render_id', 'like', 'adsv2%'\)/.test(s.slice(i, j))
 })
 await check('E6 trava 8.2: nenhum arquivo do servidor v2 nasce em caminho travado', () => {
-  const novos = ['lib/ads/v2Access.ts', 'lib/ads/v2Billing.ts', 'lib/ads/v2Shots.ts', 'lib/ads/v2Images.ts', 'lib/ads/v2Brief.ts', 'lib/ads/v2Link.ts', 'lib/ads/v2Server.ts', 'lib/ads/v2Advance.ts', 'app/api/ads/v2/orders/route.ts', 'app/api/ads/v2/plan/route.ts', 'app/api/ads/v2/start/route.ts', 'app/api/ads/v2/status/route.ts', 'app/api/ads/v2/retake/route.ts', 'app/api/cron/ads-v2-advance/route.ts']
+  const novos = ['lib/ads/v2Access.ts', 'lib/ads/v2Billing.ts', 'lib/ads/v2Shots.ts', 'lib/ads/v2Images.ts', 'lib/ads/v2Brief.ts', 'lib/ads/v2Link.ts', 'lib/ads/v2Server.ts', 'lib/ads/v2Advance.ts', 'app/api/ads/v2/orders/route.ts', 'app/api/ads/v2/plan/route.ts', 'app/api/ads/v2/start/route.ts', 'app/api/ads/v2/status/route.ts', 'app/api/ads/v2/retake/route.ts', 'app/api/cron/ads-v2-advance/route.ts',
+    // REANCORADO 29/09 (KINEO-ADS-MODO-SIMPLES-2026-09-29): arquivos novos do modo simples, todos fora da trava 8.2.
+    'app/api/ads/v2/research/route.ts', 'lib/ads/v2Research.ts', 'lib/ads/v2Simple.ts', 'lib/ads/v2VideoFrames.ts']
   return novos.every((p) => existsSync(join(RAIZ, p)) && !/^(lib\/compose|lib\/hollywood\/|lib\/cinematic\/|lib\/broll\/|lib\/lyriaMusic|lib\/narrationFit|app\/api\/analyze-idea\/|app\/api\/generate-script\/|app\/api\/generate-video-)/.test(p))
 })
 await check('E7 migration: as colunas que o servidor lê e escreve existem', () => {

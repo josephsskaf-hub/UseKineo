@@ -9,7 +9,7 @@
 // Recusa → 1 correção com o motivo (como /api/ads/script); falhou de novo = a rota devolve 502 com o porquê, nada cobrado.
 import { openai } from '@/lib/openai'
 import { buildAutoBriefMessages, parseAutoBrief } from '@/lib/ads/autoBrief'
-import { contactOk, countWords, inventedClaims, inventedNumbers } from '@/lib/ads/scriptPrompt'
+import { briefFactsText, contactOk, countWords, inventedClaims, inventedNumbers } from '@/lib/ads/scriptPrompt'
 import type { AdsBrief } from '@/lib/ads/types'
 import { ADS_V2_OVERLAY_MAX_CHARS, ADS_V2_SECTORS, isAdsV2Sector, type AdsV2Sector } from '@/lib/ads/v2ShotLists'
 
@@ -35,8 +35,13 @@ export function brandName(brief: Pick<AdsBrief, 'business'>): string {
 const CONTACTISH = /(https?:\/\/|www\.|\b[a-z0-9-]+\.(com|net|org|io|app|co|br|jo|me|shop|store)\b|@[a-z0-9_.]{2,}|\d[\d\s().-]{6,}\d)/i
 const DECOR = /[[\]{}#*_]|[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]/u
 
-export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts: { maxWords: number; narration: boolean }): { system: string; user: string } {
+/**
+ * KINEO-ADS-MODO-SIMPLES-2026-09-29 — opts.overlays === false (modo simples, "sem frases na tela"): o pedido manda
+ * devolver overlays: [] e some a regra da marca. overlays ausente = o texto de sempre, byte a byte (guardião Z3).
+ */
+export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts: { maxWords: number; narration: boolean; overlays?: boolean }): { system: string; user: string } {
   const brand = brandName(brief)
+  const noOverlays = opts.overlays === false
   const system = [
     'You write the on-screen phrases and the short voice-over of a vertical video ad for a small business. The video shows the business\'s own real photos in motion.',
     'Use ONLY the facts of the brief. Never invent a price, number, discount, deadline, rating, award, customer count, product, dish, service or place.',
@@ -44,12 +49,16 @@ export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts:
     opts.narration
       ? `narration: one to three short spoken sentences, ${Math.ceil(opts.maxWords * 0.5)} to ${opts.maxWords} words in total (count them). Warm and natural. Say the business name once. No phone number, link or address unless copied exactly from the brief.`
       : 'narration: return "" (the customer turned the voice-over off).',
-    `overlays: 2 or 3 very short on-screen phrases, at most ${ADS_V2_OVERLAY_MAX_CHARS} characters each, no emojis, no hashtags, no quotes.`,
-    brand ? `  1st = the business name exactly as "${brand}" (you may add 2-3 words of what it sells).` : '  1st = what the business sells, in 2-4 words.',
-    '  2nd = the offer, or what makes it worth it, taken from the brief.',
-    '  3rd (optional) = the contact copied exactly from the brief, or where to find it. Omit it if the brief has no contact.',
+    ...(noOverlays
+      ? ['overlays: return [] (the customer turned the on-screen phrases off).']
+      : [
+          `overlays: 2 or 3 very short on-screen phrases, at most ${ADS_V2_OVERLAY_MAX_CHARS} characters each, no emojis, no hashtags, no quotes.`,
+          brand ? `  1st = the business name exactly as "${brand}" (you may add 2-3 words of what it sells).` : '  1st = what the business sells, in 2-4 words.',
+          '  2nd = the offer, or what makes it worth it, taken from the brief.',
+          '  3rd (optional) = the contact copied exactly from the brief, or where to find it. Omit it if the brief has no contact.',
+        ]),
     `sector: one of ${ADS_V2_SECTORS.join(', ')}.`,
-    'Answer with JSON only: {"narration":"","overlays":["",""],"sector":""}',
+    noOverlays ? 'Answer with JSON only: {"narration":"","overlays":[],"sector":""}' : 'Answer with JSON only: {"narration":"","overlays":["",""],"sector":""}',
   ].join('\n')
   const user = [
     'Brief (the only facts you may use):',
@@ -57,9 +66,45 @@ export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts:
     brief.offer ? `- Offer: ${brief.offer}` : '- Offer: (none — do not invent one)',
     brief.contact ? `- Contact: ${brief.contact}` : '- Contact: (none)',
     brief.audience ? `- Audience: ${brief.audience}` : '',
-    ...Object.entries(brief.extra ?? {}).map(([k, v]) => `- ${k}: ${v}`),
+    ...Object.entries(brief.extra ?? {}).filter(([k]) => !PUBLIC_FACT_KEY.test(k)).map(([k, v]) => `- ${k}: ${v}`),
+    ...publicFactsBlock(brief),
   ].filter(Boolean).join('\n')
   return { system, user }
+}
+
+/**
+ * KINEO-ADS-MODO-SIMPLES-2026-09-29 (revisão de honestidade) — os fatos públicos da pesquisa são do PRÉDIO, da rua ou do
+ * bairro, nunca do imóvel anunciado ("interiores assinados pela grife" é do prédio, não da loja à venda). Por isso vão
+ * num bloco próprio, com a ordem de nunca atribuí-los ao imóvel. Sem fatos = nenhuma linha (o pedido fica byte a byte o
+ * de antes; guardião Z3).
+ */
+const PUBLIC_FACT_KEY = /^public_fact_\d+$/
+export const ADS_V2_PUBLIC_FACTS_HEADER =
+  'Public facts found on the web about the BUILDING, the street or the neighborhood — NOT about the property or unit being advertised. Never describe them as features of the advertised property (its size, rooms, interiors, finishes, furniture, view or floor). If you use one, say it is about the building or the neighborhood ("the building has…", "the neighborhood has…"):'
+function publicFactsBlock(brief: AdsBrief): string[] {
+  const facts = Object.entries(brief.extra ?? {}).filter(([k]) => PUBLIC_FACT_KEY.test(k)).map(([, v]) => `- ${v}`)
+  return facts.length ? [ADS_V2_PUBLIC_FACTS_HEADER, ...facts] : []
+}
+
+/** Número seguido de medida/cômodo/andar do IMÓVEL ("300 m²", "3 quartos", "5º andar"). */
+const UNIT_AFTER_NUMBER = /^\s*(º|°|ª)?\s*(m²|m2|metros? quadrados?|metros? cuadrados?|sq\.?\s?ft|ft²|square (feet|foot|meters?|metres?)|quartos?|su[ií]tes?|dormit[oó]rios?|vagas?|banheiros?|bedrooms?|bathrooms?|beds?|baths?|habitaciones?|rec[aá]maras?|ba[ñn]os?|parking|garage|andar|floor|piso)(?![\p{L}\p{N}])/iu
+
+/**
+ * Números que só existem nos fatos públicos (não no que a PESSOA escreveu) usados como tamanho, cômodo, vaga ou andar
+ * do imóvel: o "300" de "a 300 metros do parque" virando "300 m²". Sem fatos públicos = [] (modo completo intocado). Pura.
+ */
+export function factNumberMisuse(text: string, brief: AdsBrief): string[] {
+  const entries = Object.entries(brief.extra ?? {})
+  if (!entries.some(([k]) => PUBLIC_FACT_KEY.test(k))) return []
+  const own: AdsBrief = { ...brief, extra: Object.fromEntries(entries.filter(([k]) => !PUBLIC_FACT_KEY.test(k))) }
+  const ownDigits = new Set(briefFactsText(own).replace(/[.,\s](?=\d{3}\b)/g, '').match(/\d+/g) ?? [])
+  const t = String(text ?? '').replace(/[.,\s](?=\d{3}\b)/g, '')
+  const out: string[] = []
+  for (const m of t.matchAll(/\d+/g)) {
+    if (ownDigits.has(m[0])) continue
+    if (UNIT_AFTER_NUMBER.test(t.slice((m.index ?? 0) + m[0].length))) out.push(m[0])
+  }
+  return [...new Set(out)]
 }
 
 /** Anti-invenção sobre um texto qualquer do anúncio (número, fama/urgência, contato). Devolve os motivos. */
@@ -69,6 +114,8 @@ export function textIssues(text: string, brief: AdsBrief, label: string): string
   if (nums.length) why.push(`${label}: remove these numbers that are not in the brief: ${[...new Set(nums)].join(', ')}.`)
   const claims = inventedClaims(text, brief)
   if (claims.length) why.push(`${label}: remove these claims that the brief does not support: ${claims.join('; ')}.`)
+  const misuse = factNumberMisuse(text, brief)
+  if (misuse.length) why.push(`${label}: ${misuse.join(', ')} comes from the public facts about the building or the neighborhood; never use it as the size, rooms, parking or floor of the advertised property.`)
   if (CONTACTISH.test(text) && !(brief.contact && contactOk(text, brief.contact))) {
     why.push(`${label}: a phone, link, @handle or address must be copied exactly from the brief${brief.contact ? ` (${brief.contact})` : ' — the brief has none, so remove it'}.`)
   }
@@ -76,7 +123,7 @@ export function textIssues(text: string, brief: AdsBrief, label: string): string
 }
 
 /** Valida a resposta do modelo. Pura; nunca lança. */
-export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: number; narration: boolean }): { ok: true; copy: AdsV2Copy } | { ok: false; why: string[] } {
+export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: number; narration: boolean; overlays?: boolean }): { ok: true; copy: AdsV2Copy } | { ok: false; why: string[] } {
   let p: Record<string, unknown>
   try {
     const j = JSON.parse(raw)
@@ -94,6 +141,11 @@ export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: numb
     if (words < min || words > opts.maxWords) why.push(`narration: write ${min} to ${opts.maxWords} words (you wrote ${words}).`)
     if (DECOR.test(narration)) why.push('narration: no brackets, markdown or emojis.')
     why.push(...textIssues(narration, brief, 'narration'))
+  }
+  // Modo simples com as frases desligadas: o que o modelo mandar em overlays é IGNORADO (nenhuma frase na tela).
+  if (opts.overlays === false) {
+    if (why.length) return { ok: false, why }
+    return { ok: true, copy: { narration, overlays: [], sectorHint: isAdsV2Sector(p.sector) ? p.sector : null } }
   }
   const rawOverlays = Array.isArray(p.overlays) ? p.overlays : []
   const overlays = rawOverlays.map((o) => (typeof o === 'string' ? o.replace(/\s+/g, ' ').trim() : '')).filter(Boolean)
@@ -140,6 +192,16 @@ export type AdsV2BriefResult =
   | { ok: true; brief: AdsBrief; copy: AdsV2Copy; dropped: string[]; attempts: number }
   | { ok: false; stage: 'brief' | 'copy'; why: string[]; attempts: number }
 
+/** Fatos públicos escolhidos (modo simples) entram no brief como extra.public_fact_N: o texto os enxerga e a régua
+ *  anti-invenção (briefFactsText lê extra) os trata como fato. Pura. */
+export function withPublicFacts(brief: AdsBrief, facts: readonly string[] | undefined): AdsBrief {
+  const list = (facts ?? []).map((f) => f.replace(/\s+/g, ' ').trim()).filter(Boolean)
+  if (!list.length) return brief
+  const extra: Record<string, string> = { ...(brief.extra ?? {}) }
+  list.forEach((f, i) => { extra[`public_fact_${i + 1}`] = f })
+  return { ...brief, extra }
+}
+
 /** Extrai o brief (1 chamada) e escreve o texto (1 chamada + no máximo 1 correção com o motivo). */
 export async function extractAdsV2Brief(args: {
   text: string
@@ -147,14 +209,18 @@ export async function extractAdsV2Brief(args: {
   languageName: string
   maxWords: number
   narration: boolean
+  /** Modo simples: false = sem frases na tela. Ausente = como sempre. */
+  overlays?: boolean
+  /** Modo simples: fatos públicos com fonte que a pessoa deixou marcados (texto resolvido NO SERVIDOR). */
+  facts?: string[]
 }): Promise<AdsV2BriefResult> {
   const briefMsgs = buildAutoBriefMessages(args.text, args.languageName)
   const briefRaw = await callJson([{ role: 'system', content: briefMsgs.system }, { role: 'user', content: briefMsgs.user }], 0.2, 900)
   const parsed = parseAutoBrief(briefRaw, args.text, args.language)
   let attempts = 1
   if (parsed.needs.includes('business')) return { ok: false, stage: 'brief', why: ['business_name_missing'], attempts }
-  const brief = parsed.brief
-  const opts = { maxWords: args.maxWords, narration: args.narration }
+  const brief = withPublicFacts(parsed.brief, args.facts)
+  const opts = args.overlays === false ? { maxWords: args.maxWords, narration: args.narration, overlays: false } : { maxWords: args.maxWords, narration: args.narration }
   const copyMsgs = buildV2CopyMessages(brief, args.languageName, opts)
   const base = [{ role: 'system' as const, content: copyMsgs.system }, { role: 'user' as const, content: copyMsgs.user }]
   let raw = await callJson(base, 0.6, 700)
