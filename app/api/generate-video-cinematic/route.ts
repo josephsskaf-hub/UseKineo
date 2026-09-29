@@ -5846,9 +5846,17 @@ async function manipularPost(req: NextRequest) {
       // generationId repeat provider spend) — same discipline as Hollywood 3.0.
       providerSubmissionMayExist = true
       const STILL_POOL = 3
-      const STILL_BUDGET_MS = 30_000 // leave the rest of the 60s budget for scene submits
+      // ═══ KINEO-KLING25-60S-ANCORA-2026-09-28 — still em TODAS as cenas do Kling 2.5 ═══
+      // Palavra do fundador (28/09): "melhore o Kling 2.5 … teste com 60 s para chegar em 65-70". Com os planos de 5 s
+      // (KINEO-KLING25-PLANOS-5S) um filme de 60 s tem 12 planos; o teto de 6 cenas ancoradas deixava a segunda metade
+      // do filme em t2v — outro mundo, outra paleta a partir da cena 7. Só o Kling 2.5 (anchorEngine 'kling'): o still
+      // existe em TODAS as cenas do plano (12-14) e o orçamento de tempo dos stills sobe para 60 s (maxDuration da rota
+      // é 300 s; o despacho serial do Kling leva 10-15 s). Pool de 3 e janela por imagem inalterados (a fila do FLUX
+      // não é o alias kling-video). CUSTO: +US$ 0,10 por still a mais (ANCHORS_USD) — 12 planos = +US$ 0,60, 14 = +US$ 0,80
+      // por filme; preço em créditos inalterado. Seedance 1.5 / Veo 3.1: 6 cenas e 30 s, exatamente como antes.
+      const STILL_BUDGET_MS = anchorEngine === 'kling' ? 60_000 : 30_000 // leave the rest of the route budget for scene submits
       const STILL_POLL_WINDOW_MS = 12_000 // per-image cap (schnell @4 steps is fast)
-      const MAX_ANCHORED_SCENES = 6
+      const MAX_ANCHORED_SCENES = anchorEngine === 'kling' ? scenes.length : 6
       const anchorCount = Math.min(scenes.length, MAX_ANCHORED_SCENES)
       const stillDeadline = Date.now() + STILL_BUDGET_MS
       let stillsMade = 0

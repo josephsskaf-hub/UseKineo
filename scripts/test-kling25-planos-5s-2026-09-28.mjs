@@ -573,7 +573,9 @@ if (DRb) {
   checa('escritor de cenas (função real): 12 cenas do Kling com teto e prazo proporcionais; opções de sempre = 1.800 tokens e 35 s', chamadas.length === 3 && chamadas[0].max === K.kling25WriterBudget(12).maxTokens && chamadas[0].timeout === 50000 && chamadas[1].max === 1800 && chamadas[1].timeout === 35000)
   checa('escritor de cenas (função real): Kling de 90 s ouve "~8-second scene", de 35 s "~5-second"; o Seedance continua "~10-second scene" (texto de sempre)', regra(0).includes('must fill its ~8-second scene when spoken') && regra(2).includes('must fill its ~5-second scene when spoken') && regra(1).includes('must fill its ~10-second scene when spoken') && !regra(1).includes('~5-second'))
 }
-checa('âncoras: o teto de stills FLUX por filme continua 6 (orçamento limitado; plano 7+ sai em t2v com a mesma seed)', rota.includes('      const MAX_ANCHORED_SCENES = 6\n'))
+// KINEO-KLING25-60S-ANCORA-2026-09-28 (palavra do fundador: "melhore o Kling 2.5 … 60 s para chegar em 65-70"): no Kling 2.5 o still
+// existe em TODAS as cenas do plano (orçamento de 60 s); Seedance/Veo seguem com 6 e 30 s. Guardião próprio: test-kling25-60s-ancora.
+checa('âncoras: no Kling 2.5 o teto de stills FLUX é todas as cenas do plano (60 s de orçamento); fora do Kling continua 6 (30 s)', rota.includes("      const MAX_ANCHORED_SCENES = anchorEngine === 'kling' ? scenes.length : 6\n") && rota.includes("      const STILL_BUDGET_MS = anchorEngine === 'kling' ? 60_000 : 30_000"))
 
 // ═══ (e) duração: o que o fundador perguntou ═══
 console.log('== (e) duração: imagem vs fala ==')
