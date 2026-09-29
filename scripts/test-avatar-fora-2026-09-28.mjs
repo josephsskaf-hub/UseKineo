@@ -155,8 +155,11 @@ const PORTAS = /href="\/avatar"|Talking Avatar|AI Presenter|Character Lock|Trans
 // Fundador 29/09: retirar toda a seção do print, inclusive UGC que levava ao /avatar.
 // A remoção é estrutural: não depende de idioma, tema ou conta interna.
 const semToolkit = (html) => !/id="toolkit"|class="tcard"|href="#toolkit"/.test(html)
-for (const language of ['en','pt','es','fr','de','it','nl','pl','ru','tr','ar','hi','ja','ko','zh','id']) {
-  checa('toolkit removido no JSX renderizado: '+language, semToolkit(renderPage('app/KineoLanding.tsx', false, {interfaceLanguage:language}, {initialEmail:INTERNO, engineWall:wall})))
+const languageLoader = createOfflineLoader()
+const { INTERFACE_LANGUAGE_OPTIONS, BUNDLED_INTERFACE_LANGUAGES } = languageLoader('lib/ui/interfaceLanguage.ts')
+for (const { code: language } of INTERFACE_LANGUAGE_OPTIONS) {
+  const interfaceDictionary = BUNDLED_INTERFACE_LANGUAGES.includes(language) ? null : languageLoader('lib/ui/interface/'+language+'.ts').DICT
+  checa('toolkit removido no JSX renderizado: '+language, semToolkit(renderPage('app/KineoLanding.tsx', false, {interfaceLanguage:language,interfaceDictionary}, {initialEmail:INTERNO, engineWall:wall})))
 }
 checa('regressão: a home anterior é rejeitada (seção + sete cards da conta interna)', !semToolkit(renderPage('app/KineoLanding.tsx', true, {}, {initialEmail:INTERNO,engineWall:wall}, '86c46047')))
 
