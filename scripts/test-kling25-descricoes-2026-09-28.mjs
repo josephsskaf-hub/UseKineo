@@ -32,6 +32,7 @@ import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { desfaz3x6KlingShots } from './test-support/desfaz-3x6-klingshots.mjs' // reancoragem de 29/09 ([TRAVA 8.2 — "vai" do 3x6])
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
@@ -306,7 +307,9 @@ checa('laço de 2 tentativas continua (vigia-descritor): let best / for tentativ
 checa('`await generateCinematicDescriptions(` aparece UMA vez, depois de styleAnchor (motores-r2-r6)', rota.split('await generateCinematicDescriptions(').length - 1 === 1 && rota.indexOf('const styleAnchor = deriveStyleAnchor(') < rota.indexOf('await generateCinematicDescriptions('))
 checa('≤ 12 cenas: o chamador NÃO passa lote (chamada de sempre); lote só quando parcial', /numeros\.length === scenes\.length \? undefined : \{ numeros: numeros\.map\(\(n\) => n \+ 1\), total: scenes\.length \}/.test(rota))
 checa('o bloco só roda no caminho clássico verbatim sem plano de b-roll (hollywood fora)', /const cenasSemDescricaoDoModelo = new Set<number>\(\)[^\n]*\n    if \(verbatim && planScenes\.length === 0 && !hollywoodPath\) \{/.test(rota))
-checa('hollywood intocado: klingShots.ts e speechImageAlign.ts idênticos à base; contagem de hollywoodPath igual; o align do hollywood (plan.scenes) igual', rdBase('lib/cinematic/klingShots.ts') === rd('lib/cinematic/klingShots.ts') && rdBase('lib/cinematic/speechImageAlign.ts') === rd('lib/cinematic/speechImageAlign.ts') && Boolean(rotaBase) && (rotaBase.split('hollywoodPath').length === rota.split('hollywoodPath').length) && rota.includes('const alinhado = await alignShotsToSpeech({ topic: prompt, scenes: idxs.map((i) => ({ voiceover: plan.scenes[i].voiceover ?? \'\', shot: plan.scenes[i].prompt })) })') && rotaBase.includes('const alinhado = await alignShotsToSpeech({ topic: prompt, scenes: idxs.map((i) => ({ voiceover: plan.scenes[i].voiceover ?? \'\', shot: plan.scenes[i].prompt })) })'))
+// Reancorado 29/09 ([TRAVA 8.2 — "vai" do 3x6], KINEO-SEEDANCE-15S-3X6): klingShots.ts comparado com a generalização do
+// alinhador assinado (passos como parâmetro, só para o Seedance 15 s) desfeita — qualquer outra alteração continua vermelha.
+checa('hollywood intocado: klingShots.ts (fora a generalização do alinhador do 3x6) e speechImageAlign.ts idênticos à base; contagem de hollywoodPath igual; o align do hollywood (plan.scenes) igual', rdBase('lib/cinematic/klingShots.ts') === desfaz3x6KlingShots(rd('lib/cinematic/klingShots.ts')) && rdBase('lib/cinematic/speechImageAlign.ts') === rd('lib/cinematic/speechImageAlign.ts') && Boolean(rotaBase) && (rotaBase.split('hollywoodPath').length === rota.split('hollywoodPath').length) && rota.includes('const alinhado = await alignShotsToSpeech({ topic: prompt, scenes: idxs.map((i) => ({ voiceover: plan.scenes[i].voiceover ?? \'\', shot: plan.scenes[i].prompt })) })') && rotaBase.includes('const alinhado = await alignShotsToSpeech({ topic: prompt, scenes: idxs.map((i) => ({ voiceover: plan.scenes[i].voiceover ?? \'\', shot: plan.scenes[i].prompt })) })'))
 checa('prosa Seedance/Veo tem a mesma origem de fala em pexelsQuery (o conserto é compartilhado, não só Kling)', /pexelsQuery: visualWords\.join\(' '\) \|\| 'cinematic documentary scene'/.test(rd('lib/cinematic/verbatimBeats.ts')))
 
 console.log(`\n${ok} ok · ${falhas.length} falhas`)

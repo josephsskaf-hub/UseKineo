@@ -8,6 +8,8 @@ import { isInternalEmail } from '@/lib/internalAccounts'
 import { S25_PUBLIC, enginePaused } from '@/lib/engineLaunch'
 import { seedance15sVisible } from '@/lib/engineLaunch' // KINEO-SEEDANCE-15S-2026-09-29
 import { checarDuracao, checarFalaDoFilmeCurto, supportedDurationsFor, mensagemDaRecusaDeDuracao, scriptTooLongForShortFilmMessage } from '@/lib/durationByEngine' // KINEO-SEEDANCE-15S-2026-09-29
+import { SEEDANCE_SHORT_SECONDS, SEEDANCE_SHORT_CLIPS, estimarFalaSegundos, seedanceShortClipSeconds, isSeedance15 } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29
+import { SEEDANCE_720P_USD_PER_SECOND } from '@/lib/fastAiClips' // [TRAVA 8.2 — "vai" do 3x6] preço por segundo do Seedance 720p sem áudio (só o ensaio de $0 o mostra)
 // sprint-v1v4 #27 — a MESMA funcao de resgate que o seletor usa desde a #13.
 // Gate de servidor e gate de UI sao um PAR (licao ja registrada no
 // GenerateClient): se a tela oferece um desvio ANTES do clique, a recusa
@@ -3119,6 +3121,16 @@ async function manipularPost(req: NextRequest) {
       clipCount = planos
     }
 
+    // ═══ [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29 — o filme de 15 s no Seedance 1.5 são 3 clipes ═══
+    // Fundador, 29/09: "3x6 gostei dessa opção bora fazer". Até aqui o 15 s pedia ⌈15/9⌉ = 2 clipes de 10 s (e o #442 acima
+    // subia para 3 com roteiro longo); o canário de 29/09 04:34 UTC (45 palavras, 2 × 10 s) saiu com o clipe 0 repetido
+    // nos últimos 2,9 s. Agora: EXATAMENTE 3 cenas, em verbatim e no modo IA; os segundos de cada clipe (6|7|8, pela fala)
+    // saem mais abaixo, quando as cenas existem (seedanceClipSeconds), e vão explícitos à fal no i2v e no t2v de reserva.
+    // Só duration 15 no Seedance 1.5 pelo MESMO predicado que autoriza o 15 s (isSeedance15, que checarDuracao usa acima —
+    // todo outro motor a 15 s já foi recusado com 422), e nunca Kling/Veo/Sora: 35/60/90 e os outros motores não passam aqui.
+    const seedanceShortFilm = duration === SEEDANCE_SHORT_SECONDS && isSeedance15(typeof body.engine === 'string' ? body.engine : null) && !wantsKling && !wantsVeo && !wantsSora
+    if (seedanceShortFilm) clipCount = SEEDANCE_SHORT_CLIPS
+
     // ═══ KINEO-ESCRITOR-CLASSICO-SABE-A-DURACAO-2026-09-12 — o pente fino de $0
     // (12/09) mostrou o Seedance em modo IA nascendo com 74 palavras para 60 s
     // (24 s de fala): o mesmo "10-22 palavras por cena" que o vigia consertou no
@@ -3132,6 +3144,8 @@ async function manipularPost(req: NextRequest) {
     // Revisão adversarial (28/09): no filme de 90 s 7 dos 12 planos são de 10 s e o escritor ouvia "~5-second scene" — o
     // escritor recebe a média REAL dos planos que a imagem vai ter (35/45 s → 5; 60 s → 6; 90 s → 8).
     if (wantsKling) Object.assign(classicWriterOptions, { sceneSeconds: kling25AverageShotSeconds(clipCount, kling25Footage) }, kling25WriterBudget(clipCount))
+    // [TRAVA 8.2 — "vai" do 3x6] no filme de 15 s o escritor de cenas ouve "~5-second scene" (15 s ÷ 3), não o "~10" de sempre.
+    if (seedanceShortFilm) Object.assign(classicWriterOptions, { sceneSeconds: duration / clipCount })
     // Build scenes
     // #441 — aiPrompt = the cinematic SHOT description fed to Seedance (prefer
     // it over the raw stock query). Set from generateScenes prose (non-verbatim)
@@ -3191,6 +3205,18 @@ async function manipularPost(req: NextRequest) {
           if (r.removidas.length || r2.removed.length) { sc.voiceover = texto; sc.caption = shortCaptionFromVoiceover(texto); tiradas.push(...r.removidas, ...r2.removed) }
         }
         if (tiradas.length) console.log(`[cinematic] KINEO-FALA-CLASSICA-FIEL: ${tiradas.length} data(s)/hora(s)/nome(s) fora do pedido removida(s) da fala: ${tiradas.map((t) => JSON.stringify(t)).join(', ')}`)
+      }
+    }
+
+    // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29 — roteiro marcado com menos blocos que os 3 clipes (ex.: só
+    // HOOK + PAYOFF): a prosa inteira é dividida nos 3 blocos de palavras equilibradas do divisor de sempre — nenhuma palavra
+    // muda, a narração continua a do autor (voiceover_script = parsedScript.narration). Prosa e roteiro com 3+ blocos já saem
+    // com 3 cenas de resolveVerbatimSegments(…, 3), acima.
+    if (seedanceShortFilm && verbatim && scenes.length > 0 && scenes.length < SEEDANCE_SHORT_CLIPS && parsedScript.narration) {
+      const blocos = resolveVerbatimSegments({ segments: [], narration: parsedScript.narration }, SEEDANCE_SHORT_CLIPS)
+      if (blocos.length > scenes.length) {
+        scenes = blocos.map((seg) => ({ description: seg.pexelsQuery, voiceover: seg.voiceover, caption: shortCaptionFromVoiceover(seg.voiceover || seg.pexelsQuery), stockSearchQuery: seg.pexelsQuery }))
+        clipCount = scenes.length
       }
     }
 
@@ -5762,6 +5788,27 @@ async function manipularPost(req: NextRequest) {
       console.log(`[cinematic] VEO-PLANOS: ${scenes.length} planos [${segundos.join(',')}] = ${segundos.reduce((a, b) => a + b, 0)}s de imagem ≈ US$ ${veoClipsUsd(segundos).toFixed(2)} de clipe (antes: ${scenes.length} × 8 s)`)
     }
 
+    // ═══ [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29 — os segundos de cada um dos 3 clipes do filme de 15 s ═══
+    // O menor passo s de {6, 7, 8} com 3 × s ≥ fala + 3 × 0,16 (o que o compose tira de cada clipe). Fala = a estimativa da
+    // guarda de roteiro longo (palavras ÷ 2,5 — estimarFalaSegundos), nunca menor que a fala na voz que VAI falar (persona
+    // mais lenta que 2,5 pal/s, ex. onyx × 0,92 = 2,3, pede mais imagem). Verbatim: a narração do autor; modo IA: as falas
+    // das cenas (≡ voiceoverScript da resposta). Viaja na cena (`clipSeconds`) até o payload (buildFalInput → duration
+    // '6'|'7'|'8' no i2v e no t2v de reserva), o claim assinado (`clip_seconds` e `clip_word_starts`, os campos que o Kling
+    // e o Veo já assinam) e o compose. Custo de clipe: 3 × 6 = 18 s ≈ US$ 0,47 (antes 2 × 10 = 20 s ≈ US$ 0,52); crédito
+    // inalterado (creditCostForDuration('cinematic_ai', true, 15) = 7).
+    let seedanceClipSeconds: number[] | null = null
+    if (seedanceShortFilm && scenes.length > 0) {
+      const narracaoDoFilme = verbatim && parsedScript.narration ? parsedScript.narration : scenes.map((s) => s.voiceover).filter(Boolean).join(' ')
+      const palavrasDoFilme = narracaoDoFilme.split(/\s+/).filter(Boolean).length
+      const falaNaVoz = narrationRate.wordsPerSecond > 0 ? palavrasDoFilme / narrationRate.wordsPerSecond : 0
+      const fala = Math.max(estimarFalaSegundos(narracaoDoFilme), falaNaVoz)
+      const segundos = seedanceShortClipSeconds(fala, KLING25_CLIP_LOSS_SECONDS)
+      seedanceClipSeconds = scenes.map(() => segundos)
+      scenes = scenes.map((s) => ({ ...s, clipSeconds: segundos }))
+      if (scenes.length !== SEEDANCE_SHORT_CLIPS) console.warn(`[cinematic] SEEDANCE-15S-3X6: plano com ${scenes.length} cena(s), esperado ${SEEDANCE_SHORT_CLIPS}`)
+      console.log(`[cinematic] SEEDANCE-15S-3X6: ${scenes.length} clipes de ${segundos} s = ${segundos * scenes.length}s de imagem ≈ US$ ${(segundos * scenes.length * SEEDANCE_720P_USD_PER_SECOND).toFixed(2)} (fala ≈ ${fala.toFixed(1)}s, ${palavrasDoFilme} palavras)`)
+    }
+
     // KINEO-VIGIA-CENARIO-2026-09-11 — antes de qualquer still ou clipe pago,
     // as TRÊS fontes de visual (descritor, GPT das cenas, plano de b-roll)
     // passam pelo filtro determinístico: nome próprio, ano/década e adjetivo
@@ -5909,6 +5956,11 @@ async function manipularPost(req: NextRequest) {
       const relatorioVeo = veoClipSeconds
         ? classicDryRunReport({ scenes: scenes.map((s, i) => ({ voiceover: s.voiceover, prompt: classicScenePrompts[i] })), targetSeconds: duration, secondsPerClip: 8, verbatim, wordsPerSecond: narrationRate.wordsPerSecond, sceneSeconds: veoClipSeconds, clipLossSeconds: KLING25_CLIP_LOSS_SECONDS, sceneFitWordsPerSecond: veoPasso, sceneFitStrict: verbatim })
         : null
+      // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29 — o ensaio do filme de 15 s mede a imagem pelos 3 clipes
+      // de 6|7|8 s que vão no payload (útil = segundos − 0,16), não por 10 s fixos; entra por spread próprio (Kling/Veo literais).
+      const relatorioSeedance = seedanceClipSeconds
+        ? classicDryRunReport({ scenes: scenes.map((s, i) => ({ voiceover: s.voiceover, prompt: classicScenePrompts[i] })), targetSeconds: duration, secondsPerClip: seedanceClipSeconds[0], verbatim, wordsPerSecond: narrationRate.wordsPerSecond, sceneSeconds: seedanceClipSeconds, clipLossSeconds: KLING25_CLIP_LOSS_SECONDS })
+        : null
       const refunded = await releaseBirthClaim('dry_run_no_charge')
       return NextResponse.json({
         dry_run: true,
@@ -5926,6 +5978,10 @@ async function manipularPost(req: NextRequest) {
         // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — o relatório do Veo (planos de 4/6/8 s), o custo de clipe (US$ 0,10/s) e o que custava a 8 s fixos
         ...(relatorioVeo ?? {}),
         ...(veoClipSeconds ? { clip_seconds: veoClipSeconds, clips_usd: veoClipsUsd(veoClipSeconds), clips_usd_before: veoClipsUsd(veoClipSeconds.map(() => 8)), plan_words_per_second: veoPasso } : {}),
+        // [TRAVA 8.2 — "vai" do 3x6] o filme de 15 s: relatório com os segundos REAIS de cada clipe (imagem útil = Σ − 0,16 por
+        // clipe) e o custo de clipe (720p sem áudio)
+        ...(relatorioSeedance ?? {}),
+        ...(seedanceClipSeconds ? { clip_seconds: seedanceClipSeconds, clips_usd: Math.round(seedanceClipSeconds.reduce((a, b) => a + b, 0) * SEEDANCE_720P_USD_PER_SECOND * 100) / 100 } : {}),
       })
     }
 
