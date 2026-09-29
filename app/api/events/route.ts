@@ -133,6 +133,11 @@ const SERVER_ONLY_EVENTS = new Set([
   // KINEO-ADS-MODO-SIMPLES-2026-09-29 — a pesquisa na web do modo simples conta o teto diário por este evento: se o
   // navegador pudesse cunhá-lo, travaria a pesquisa de qualquer conta.
   'ads_v2_research_served',
+  // KINEO-CLIPES-2026-09-29 — clipe avulso (/clips): pedido aceito na fal, entregue no nosso bucket, falhou (com estorno).
+  // Fatos do servidor; o navegador não cunha nenhum. clip_failed já era escrito só pelo servidor (Modo Clipe do Studio).
+  'clip_requested',
+  'clip_delivered',
+  'clip_failed',
   // KINEO-FLUXO-NOVO-2026-09-25 — pedido Kineo Empresas (Express/Pro). `dfy_order_paid` é escrito SÓ pelo webhook da
   // Stripe e `dfy_brief_submitted` SÓ por /api/dfy/brief depois de a Stripe confirmar a sessão paga; os dois viram
   // alerta ao fundador e fila do /admin/ads. Fora desta lista, qualquer navegador cunharia um "pedido pago" de mentira.

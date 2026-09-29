@@ -1,5 +1,7 @@
 {
   "en": {
+    "Clips": "Clips",
+    "One scene, 5–15 s, text or photo": "One scene, 5–15 s, text or photo",
     "Settings": "Settings",
     "Appearance": "Appearance",
     "Choose how Kineo looks on this device.": "Choose how Kineo looks on this device.",
@@ -112,6 +114,8 @@
     "Animated photo": "Animated photo"
   },
   "pt": {
+    "Clips": "Clipes",
+    "One scene, 5–15 s, text or photo": "Uma cena, 5–15 s, texto ou foto",
     "Settings": "Configurações",
     "Appearance": "Aparência",
     "Choose how Kineo looks on this device.": "Escolha a aparência da Kineo neste dispositivo.",
@@ -223,6 +227,8 @@
     "Animated photo": "Foto animada"
   },
   "es": {
+    "Clips": "Clips",
+    "One scene, 5–15 s, text or photo": "Una escena, 5–15 s, texto o foto",
     "Settings": "Configuración",
     "Appearance": "Apariencia",
     "Choose how Kineo looks on this device.": "Elige cómo se ve Kineo en este dispositivo.",
@@ -333,6 +339,8 @@
     "Animated photo": "Foto animada"
   },
   "fr": {
+    "Clips": "Clips",
+    "One scene, 5–15 s, text or photo": "Une scène, 5–15 s, texte ou photo",
     "Settings": "Paramètres",
     "Appearance": "Apparence",
     "Choose how Kineo looks on this device.": "Choisissez l’apparence de Kineo sur cet appareil.",
@@ -444,6 +452,8 @@
     "Animated photo": "Photo animée"
   },
   "de": {
+    "Clips": "Clips",
+    "One scene, 5–15 s, text or photo": "Eine Szene, 5–15 s, Text oder Foto",
     "Settings": "Einstellungen",
     "Appearance": "Erscheinungsbild",
     "Choose how Kineo looks on this device.": "Wähle, wie Kineo auf diesem Gerät aussieht.",
@@ -555,6 +565,8 @@
     "Animated photo": "Animiertes Foto"
   },
   "it": {
+    "Clips": "Clip",
+    "One scene, 5–15 s, text or photo": "Una scena, 5–15 s, testo o foto",
     "Settings": "Impostazioni",
     "Appearance": "Aspetto",
     "Choose how Kineo looks on this device.": "Scegli l’aspetto di Kineo su questo dispositivo.",
@@ -666,6 +678,8 @@
     "Animated photo": "Foto animata"
   },
   "nl": {
+    "Clips": "Clips",
+    "One scene, 5–15 s, text or photo": "Eén scène, 5–15 s, tekst of foto",
     "Settings": "Instellingen",
     "Appearance": "Uiterlijk",
     "Choose how Kineo looks on this device.": "Kies hoe Kineo eruitziet op dit apparaat.",
@@ -777,6 +791,8 @@
     "Animated photo": "Geanimeerde foto"
   },
   "pl": {
+    "Clips": "Klipy",
+    "One scene, 5–15 s, text or photo": "Jedna scena, 5–15 s, tekst lub zdjęcie",
     "Settings": "Ustawienia",
     "Appearance": "Wygląd",
     "Choose how Kineo looks on this device.": "Wybierz wygląd Kineo na tym urządzeniu.",
@@ -888,6 +904,8 @@
     "Animated photo": "Animowane zdjęcie"
   },
   "tr": {
+    "Clips": "Klipler",
+    "One scene, 5–15 s, text or photo": "Tek sahne, 5–15 sn, metin ya da fotoğraf",
     "Settings": "Ayarlar",
     "Appearance": "Görünüm",
     "Choose how Kineo looks on this device.": "Kineo’nun bu cihazda nasıl görüneceğini seçin.",
@@ -999,6 +1017,8 @@
     "Animated photo": "Hareketli fotoğraf"
   },
   "ru": {
+    "Clips": "Клипы",
+    "One scene, 5–15 s, text or photo": "Одна сцена, 5–15 с, текст или фото",
     "Settings": "Настройки",
     "Appearance": "Внешний вид",
     "Choose how Kineo looks on this device.": "Выберите, как Kineo будет выглядеть на этом устройстве.",
@@ -1110,6 +1130,8 @@
     "Animated photo": "Анимированное фото"
   },
   "uk": {
+    "Clips": "Кліпи",
+    "One scene, 5–15 s, text or photo": "Одна сцена, 5–15 с, текст або фото",
     "Settings": "Налаштування",
     "Appearance": "Вигляд",
     "Choose how Kineo looks on this device.": "Виберіть, як Kineo виглядатиме на цьому пристрої.",
@@ -1221,6 +1243,8 @@
     "Animated photo": "Анімоване фото"
   },
   "ar": {
+    "Clips": "مقاطع",
+    "One scene, 5–15 s, text or photo": "مشهد واحد، 5–15 ث، نص أو صورة",
     "Settings": "الإعدادات",
     "Appearance": "المظهر",
     "Choose how Kineo looks on this device.": "اختر مظهر Kineo على هذا الجهاز.",
@@ -1332,6 +1356,8 @@
     "Animated photo": "صورة متحركة"
   },
   "ur": {
+    "Clips": "کلپس",
+    "One scene, 5–15 s, text or photo": "ایک منظر، 5–15 سیکنڈ، متن یا تصویر",
     "Settings": "ترتیبات",
     "Appearance": "ظاہری شکل",
     "Choose how Kineo looks on this device.": "اس ڈیوائس پر Kineo کی ظاہری شکل منتخب کریں۔",
@@ -1443,6 +1469,8 @@
     "Animated photo": "متحرک تصویر"
   },
   "hi": {
+    "Clips": "क्लिप्स",
+    "One scene, 5–15 s, text or photo": "एक दृश्य, 5–15 सेकंड, टेक्स्ट या फ़ोटो",
     "Settings": "सेटिंग्स",
     "Appearance": "दिखावट",
     "Choose how Kineo looks on this device.": "इस डिवाइस पर Kineo की दिखावट चुनें।",
@@ -1552,6 +1580,8 @@
     "Animated photo": "एनिमेटेड फ़ोटो"
   },
   "id": {
+    "Clips": "Klip",
+    "One scene, 5–15 s, text or photo": "Satu adegan, 5–15 dtk, teks atau foto",
     "Settings": "Pengaturan",
     "Appearance": "Tampilan",
     "Choose how Kineo looks on this device.": "Pilih tampilan Kineo di perangkat ini.",
@@ -1663,6 +1693,8 @@
     "Animated photo": "Foto animasi"
   },
   "vi": {
+    "Clips": "Clip",
+    "One scene, 5–15 s, text or photo": "Một cảnh, 5–15 giây, chữ hoặc ảnh",
     "Settings": "Cài đặt",
     "Appearance": "Giao diện",
     "Choose how Kineo looks on this device.": "Chọn giao diện Kineo trên thiết bị này.",

@@ -31,6 +31,7 @@ const pageTitles: Record<string, string> = {
   '/create': 'Create Video',
   '/studio': 'Studio',
   '/images': 'Images',
+  '/clips': 'Clips',
   '/audio': 'Audio',
   '/library': 'Library',
   // KINEO-SEM-PORTEIRO-2026-09-02 b — o mapa de títulos não conhecia o

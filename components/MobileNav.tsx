@@ -49,6 +49,18 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
     label: 'Images',
     exact: false,
   },
+  // KINEO-CLIPES-2026-09-29 — par do Sidebar: Clipes no mobile, logo depois de Images.
+  {
+    href: '/clips',
+    icon: (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="3" y="9" width="18" height="11" rx="2.5" />
+        <path d="m3.5 9 16-4.5.8 3M8 7.6l2 2.9M13 6.2l2 2.9" />
+      </svg>
+    ),
+    label: 'Clips',
+    exact: false,
+  },
   // KINEO-AUDIO-2026-08-17 — par do Sidebar: Kineo Audio no mobile.
   {
     href: '/audio',
@@ -159,7 +171,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
     return () => document.removeEventListener('pointerdown', closeOutside)
   }, [])
 
-  const primary = NAV_ITEMS.filter((item) => ['/studio', '/images', '/library', '/ads/new', '/pricing'].includes(item.href)) // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25
+  const primary = NAV_ITEMS.filter((item) => ['/studio', '/images', '/clips', '/library', '/ads/new', '/pricing'].includes(item.href)) // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 · KINEO-CLIPES-2026-09-29
   const groups = [
     { label: 'More', links: MORE_LINKS.filter((item) => isLoggedIn || !item.signedIn) },
   ]
@@ -226,6 +238,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
       <div className="kineo-mobile-row">
         {primaryLink('/studio')}
         {primaryLink('/images')}
+        {primaryLink('/clips')}
         {primaryLink('/ads/new')}
         {primaryLink('/library')}
         {primaryLink('/pricing')}

@@ -100,6 +100,13 @@ const NAV_ICONS: Record<string, JSX.Element> = {
       <path d="M12 7v10M7 12h10" />
     </svg>
   ),
+  // KINEO-CLIPES-2026-09-29 — Clipes: claquete (uma cena curta)
+  clips: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="9" width="18" height="11" rx="2.5" />
+      <path d="m3.5 9 16-4.5.8 3M8 7.6l2 2.9M13 6.2l2 2.9" />
+    </svg>
+  ),
   // KINEO-AUDIO-2026-08-17 — [STAGE] Kineo Audio (texto→voz multi-motor)
   audio: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

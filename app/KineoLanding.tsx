@@ -855,6 +855,8 @@ export default function KineoLanding({
                 <span className="nm-col">
                   <span className="nm-h"><UiLabel>Create</UiLabel></span>
                   <Link href="/studio"><span className="nm-ic">🎬</span><span className="nm-tx"><b><UiLabel>Studio</UiLabel></b><i><UiLabel>Every control, one screen</UiLabel></i></span></Link>
+                  {/* KINEO-CLIPES-2026-09-29 — par do Sidebar/MobileNav: clipe avulso de 5–15 s. */}
+                  <Link href="/clips"><span className="nm-ic">🎞</span><span className="nm-tx"><b><UiLabel>Clips</UiLabel></b><i><UiLabel>One scene, 5–15 s, text or photo</UiLabel></i></span></Link>
                   <Link href="/examples" data-nav-item="examples"><span className="nm-ic">▦</span><span className="nm-tx"><b><UiLabel>Examples</UiLabel></b><i><UiLabel>Real renders, every engine</UiLabel></i></span></Link>
                 </span>
                 {/* KINEO-NAV-4-ITENS-2026-09-25 — coluna secundaria: so texto,
@@ -891,6 +893,7 @@ export default function KineoLanding({
               {/* KINEO-NAV-4-ITENS-2026-09-25 — par do topo: os 4 itens + Log in
                   ou Dashboard; o resto vai para "More tools", secundario. */}
               <Link href="/studio" data-nav-item="video"><UiLabel>Video</UiLabel></Link>
+              <Link href="/clips"><UiLabel>Clips</UiLabel></Link>
               <Link href="/images" data-nav-item="image"><UiLabel>Images</UiLabel></Link>
               <span className="nav-mobile-engines">
                 {IMG_ENGINES.map(engine => <Link key={engine.key} href={`/images?engine=${engine.key}`} data-nav-item="image"><span className="nm-ic" aria-hidden="true">{engine.icon}</span>{engine.name}</Link>)}

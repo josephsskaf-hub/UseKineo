@@ -110,6 +110,8 @@ export type FalAlertSource =
   | 'avatar_matte'
   // KINEO-ADS-V2-2026-09-28 — anúncio v2 (Studio Ads): planos Kling O3/Seedance 2.0/H3 e cenas Nano Banana na fal.
   | 'ads'
+  // KINEO-CLIPES-2026-09-29 — clipe avulso (/clips): um POST pago por clipe, nos 7 motores.
+  | 'clips'
 export type FalAlertOutcome = 'sent' | 'failed' | 'timeout' | 'duplicate' | 'error'
 export type DispatchDefectKind = 'EMPTY_PLAN' | 'ZERO_POSTS'
 
