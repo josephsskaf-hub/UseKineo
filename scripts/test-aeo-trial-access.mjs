@@ -38,9 +38,11 @@ equal(offer.TRIAL_GRANT_CREDITS_COPY, 10, 'test reads the canonical current gran
 equal(offer.buildFreeTierOffer(true).reverseTrial, true, 'reverse trial branch is executable')
 // 08/09 (VERSAO B): sob a porta unica nao ha franquia recorrente — limit 0 e a
 // politica, nao um defeito. Lido do mesmo seletor que o produto usa.
+// KINEO-E4-SAIDA-B-2026-09-29 — reancorado com motivo: a E4 desliga a cota de Kineo 1 (limit 0 tambem fora da porta
+// unica); a cota semanal nova (1 Seedance 15 s, so pais rico) mora em lib/freeWeeklyFilm.ts e nao e anunciada.
 equal(
   offer.buildFreeTierOffer(true).limit,
-  entryPolicy.CARD_ENTRY_ONLY ? 0 : 1,
+  0,
   'recurring post-trial limit comes from the offer',
 )
 

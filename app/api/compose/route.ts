@@ -113,6 +113,7 @@ import { quandoLiberaVaga, fraseDaVolta, minutosAteLiberar } from '@/lib/freeQuo
 //         do free Fast já existe — isFreePlanFast abaixo). 480p PENDENTE: o
 //         builder Creatomate não tem knob de resolução (ver docs/SPRINT do dia).
 import { getFreeTierOffer } from '@/lib/freeTierOffer'
+import { kineo1GateReason, KINEO1_RETIRED_EVENT, KINEO1_RETIRED_MESSAGE, KINEO1_RETIRED_REASON } from '@/lib/kineo1Gate' // KINEO-E4-SAIDA-B-2026-09-29
 import { RENDER_REJECTED_MESSAGE } from '@/lib/render/rejectionMessage'
 // KINEO-TRIAL-BLOCKERS-2026-08-07 — BLOQUEADORES #1 e #2 DO QA DE 07/08.
 // Esta rota decide marca d'água, clamp de duração, cota do free tier e o 402 do
@@ -1923,6 +1924,18 @@ export async function POST(req: NextRequest) {
         // predicado do cobrador não se redigita: `isPaidAccount` sai do mesmo
         // getEffectiveEntitlement que decide todo o resto desta rota.
         isTrialRender = ent.isTrial && !ent.isPaidAccount
+        // ═══ KINEO-E4-SAIDA-B-2026-09-29 — PORTÃO DO KINEO 1 no ramo free-plan-fast (a mesma régua da generate-video-fast,
+        // lib/kineo1Gate.ts). A cota de Kineo 1 morreu (FREE_OFFER.limit 0): a conta grátis comum é recusada AQUI, com
+        // nome, antes do clamp, da reserva de cota, do TTS e do Creatomate. Passa só a casa (lista exata) e o Autopilot sem
+        // has_paid, que seguem para o caminho de sempre. compose/status e compose/unlock NÃO são tocados. Em modo serviço
+        // o e-mail vem de profiles (editável): não vale como casa.
+        if (isFreePlanFast && kineo1GateReason({ email: isServiceFinish ? null : user.email ?? null, plan: prof?.plan ?? null, hasPaid }) === 'retired') {
+          await logComposeRefusal(KINEO1_RETIRED_REASON, authenticatedUserId, { plan: prof?.plan ?? null, quality, duration, event: KINEO1_RETIRED_EVENT })
+          return NextResponse.json(
+            { error: KINEO1_RETIRED_MESSAGE, reason: KINEO1_RETIRED_REASON, charged: false, retryable: false, upgrade: '/pricing', alternative_engine: 'seedance' },
+            { status: 403 },
+          )
+        }
         if (isFreePlanFast) {
           // The downloadable watermark + end card are the organic distribution
           // loop. Paid Starter/Creator/Studio and pack-credit renders stay clean.

@@ -14,6 +14,11 @@ export interface TrialFreeFilm {
   seconds: number
   creditsPerFilm: number
   filmsCovered: number
+  /**
+   * KINEO-E4-SAIDA-B-2026-09-29 — onde o filme grátis vale: 'supported countries' com a saída B ligada
+   * (lib/freeFilmPolicy.ts FREE_FILM_POLICY='pais_rico'); ausente = todo país. Nunca a lista: ela é decisão interna.
+   */
+  availableIn?: string
 }
 
 export interface TrialAccessFact {
@@ -59,7 +64,7 @@ export function buildTrialAccessFact(input: {
   entryFeeUsdMinor?: number | null
   trialDays?: number | null
   thenMonthlyUsdMinor?: number | null
-  freeFilm?: { engine: string; seconds: number; credits: number } | null
+  freeFilm?: { engine: string; seconds: number; credits: number; availableIn?: string | null } | null
 }): TrialAccessFact | null {
   if (!input.enabled) return null
   if (!Number.isFinite(input.credits) || input.credits < 0) {
@@ -94,7 +99,7 @@ export function buildTrialAccessFact(input: {
       const filmsCovered = Math.floor(input.credits / f.credits)
       // Filme que o saldo não paga não é publicado como grátis.
       return filmsCovered >= 1
-        ? { engine: f.engine, seconds: f.seconds, creditsPerFilm: f.credits, filmsCovered }
+        ? { engine: f.engine, seconds: f.seconds, creditsPerFilm: f.credits, filmsCovered, ...(f.availableIn ? { availableIn: f.availableIn } : {}) }
         : null
     })(),
   }

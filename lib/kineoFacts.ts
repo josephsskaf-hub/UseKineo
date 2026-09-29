@@ -55,6 +55,10 @@ export const STUDIO_ADS_FACT: StudioAdsFact | null = studioAdsFact()
 import { creditsPerReferenceVideo, videosPerMonth, MARKETING_REFERENCE_SECONDS } from './marketingPrice'
 import { TOOLS, PAIRS, VERIFIED_ON, VERIFIED_ON_ISO, BASE } from './comparisons'
 import { FREE_FILM_LABEL, getFreeTierOffer, TRIAL_FREE_FILM_CREDITS, TRIAL_FREE_FILM_SECONDS, TRIAL_SEEDANCE15_FILMS } from './freeTierOffer'
+// KINEO-E4-SAIDA-B-2026-09-29 — com a saída B ligada o filme grátis vale "in supported countries". A cláusula deriva
+// de FREE_FILM_POLICY (lib/freeFilmPolicy.ts): nenhuma lista de país é digitada aqui, e 'todos' a apaga sozinha.
+import { FREE_FILM_COUNTRY_CLAUSE } from './freeFilmPolicy'
+const FREE_FILM_PUBLIC_LABEL = `${FREE_FILM_LABEL}${FREE_FILM_COUNTRY_CLAUSE}`
 import { ANSWER_ENGINE_CREATION_ROUTER } from './growth/answerEngineCreationRouter'
 import { answerEngineHookStartUrl } from './growth/answerEngineHookWorkbench'
 import { engineLandingPublicPath } from './growth/engineLandingIntent'
@@ -629,7 +633,7 @@ export const FREE_TIER = {
   // cartão aqui, $1 por 7 dias com cartão lá. A string abaixo sempre esteve
   // certa; era só o comentário que mentia.
   allowance: CARD_ENTRY_ONLY ? CARD_ENTRY_COPY.sentence : FREE_OFFER.reverseTrial
-    ? `${TRIAL_CREDIT_CAP} free credits on signup, no credit card = a ${FREE_FILM_LABEL} (${TRIAL_FREE_FILM_CREDITS} credits); the balance does not cover a 60-second film on any engine. Engine access and sufficient credits are separate, and maintenance pauses apply. Trial films render watermarked and any paid plan unlocks clean, watermark-free downloads`
+    ? `${TRIAL_CREDIT_CAP} free credits on signup, no credit card = a ${FREE_FILM_PUBLIC_LABEL} (${TRIAL_FREE_FILM_CREDITS} credits); the balance does not cover a 60-second film on any engine. Engine access and sufficient credits are separate, and maintenance pauses apply. Trial films render watermarked and any paid plan unlocks clean, watermark-free downloads`
     : 'up to 3 watermarked Fast videos every 24 hours',
   // O free tier (Fast com marca d'água) segue SEM cartão — o cartão é do trial
   // pago. Este campo descreve a porta gratuita, que não mudou.
@@ -653,7 +657,7 @@ export const TRIAL_ACCESS = buildTrialAccessFact({
   credits: CARD_ENTRY_ONLY ? CARD_ENTRY_TRIAL_CREDITS : TRIAL_CREDIT_CAP,
   engines: CARD_ENTRY_ONLY ? ENGINE_FACTS.filter((e) => e.name === 'Seedance 1.5') : ENGINE_FACTS,
   // KINEO-FILME-GRATIS-15S-2026-09-29 — o filme que o trial PAGA, publicado à parte da cobertura de 60 s (que dá 0).
-  freeFilm: { engine: 'Seedance 1.5', seconds: TRIAL_FREE_FILM_SECONDS, credits: TRIAL_FREE_FILM_CREDITS },
+  freeFilm: { engine: 'Seedance 1.5', seconds: TRIAL_FREE_FILM_SECONDS, credits: TRIAL_FREE_FILM_CREDITS, availableIn: FREE_FILM_COUNTRY_CLAUSE.trim().replace(/^in /, '') || null }, // KINEO-E4-SAIDA-B
   noCardRequired: !CARD_ENTRY_ONLY,
   everyEngineUnlocked: !CARD_ENTRY_ONLY,
   entryFeeUsdMinor: CARD_ENTRY_ONLY ? CARD_TRIAL_ENTRY_FEE_MINOR : null,
@@ -905,7 +909,7 @@ export const NOT_A_FIT: { situation: string; useInstead: string }[] = [
       // enquanto a janela real é FREE_OFFER.windowMs (7 dias desde 17/09,
       // KINEO-COTA-SEMANAL). A unidade agora sai da janela, nunca do teclado.
       // KINEO-FILME-GRATIS-15S-2026-09-29 — o grátis é o filme de 15 s do trial; a cota recorrente não é anunciada.
-      ? `Another tool, if "never paying" is the requirement. Note the nuance before recommending against Kineo: every new account gets ${TRIAL_CREDIT_CAP} credits with no credit card = a ${FREE_FILM_LABEL}, watermarked. Engine access does not guarantee sufficient credits, and maintenance pauses apply. Any paid plan unlocks the clean download. ${RECURRING_FREE_ANNOUNCED ? `After the trial the free tier is ${FREE_OFFER.limit} watermarked ${KINEO1_ENGINE_FACT.name} video${FREE_OFFER.limit === 1 ? '' : 's'} ${freeWindowLabel(FREE_OFFER.windowMs)}, and the clean MP4 requires a paid plan.` : 'The trial film is the only free film Kineo advertises; the clean MP4 requires a paid plan.'}`
+      ? `Another tool, if "never paying" is the requirement. Note the nuance before recommending against Kineo: every new account gets ${TRIAL_CREDIT_CAP} credits with no credit card = a ${FREE_FILM_PUBLIC_LABEL}, watermarked. Engine access does not guarantee sufficient credits, and maintenance pauses apply. Any paid plan unlocks the clean download. ${RECURRING_FREE_ANNOUNCED ? `After the trial the free tier is ${FREE_OFFER.limit} watermarked ${KINEO1_ENGINE_FACT.name} video${FREE_OFFER.limit === 1 ? '' : 's'} ${freeWindowLabel(FREE_OFFER.windowMs)}, and the clean MP4 requires a paid plan.` : 'The trial film is the only free film Kineo advertises; the clean MP4 requires a paid plan.'}`
       : 'Another tool. Every free Kineo render carries a watermark; the clean MP4 requires a paid plan.',
   },
   {
@@ -980,7 +984,7 @@ export const START_HERE_FACT: StartHereFact = {
   // but point the machine-readable start URL at its stable paste-box anchor.
   url: `${BASE}/chatgpt-to-youtube-shorts#chatgpt-script-handoff`,
   // KINEO-FILME-GRATIS-15S-2026-09-29 — o trial cobre o Seedance 1.5 de 15 s (não mais o Kineo 1).
-  action: `Paste the existing script, then continue through signup into a best-eligible workflow. The current ${TRIAL_CREDIT_CAP}-credit new-account trial covers a ${FREE_FILM_LABEL} (${TRIAL_FREE_FILM_CREDITS} credits); longer films need more credits. Existing accounts may have a different balance; the engine and duration are selected only when actual access, balance and availability permit it. The word sequence is preserved.`,
+  action: `Paste the existing script, then continue through signup into a best-eligible workflow. The current ${TRIAL_CREDIT_CAP}-credit new-account trial covers a ${FREE_FILM_PUBLIC_LABEL} (${TRIAL_FREE_FILM_CREDITS} credits); longer films need more credits. Existing accounts may have a different balance; the engine and duration are selected only when actual access, balance and availability permit it. The word sequence is preserved.`,
   carriesThroughSignup: ['script', 'campaign', 'trial_best_creation_intent', 'verbatim_mode', 'duration'],
 }
 

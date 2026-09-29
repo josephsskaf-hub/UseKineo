@@ -214,7 +214,11 @@ console.log('== 9) terceira revisão do Board: dry-run não autorizado é rejeit
   const iBody = rf.indexOf('body = await req.json()')
   checa('a rejeição vem depois do body e ANTES de classifyEngineFit, generateScenes, expandVoiceoversToTargets, getPixabayClipsForScene, classicDryRunReport e do portão', iBody > 0 && iRej > iBody && ['classifyEngineFit(prompt)', 'await generateScenes(', 'expandVoiceoversToTargets(', 'getPixabayClipsForScene(', 'classicDryRunReport({', 'let portao: {'].every((s) => rf.indexOf(s, iRej) > 0 && rf.lastIndexOf(s, iRej) < rf.indexOf('} = await supabase.auth.getUser()') || rf.indexOf(s, iRej) > 0 && !rf.slice(rf.indexOf('} = await supabase.auth.getUser()'), iRej).includes(s)))
   const marcaAuth = '} = await supabase.auth.getUser()'
-  const entreAuthEReje = rf.slice(rf.indexOf(marcaAuth) + marcaAuth.length, iRej)
+  // KINEO-E4-SAIDA-B-2026-09-29 — reancorado com motivo: o portão do Kineo 1 (trava 8.2, "vai E4") lê o PRÓPRIO perfil no
+  // Supabase (plano/has_paid) entre a autenticação e o dry-run — leitura do nosso banco, não fornecedor pago — justamente
+  // para recusar ANTES de todo fornecedor. O bloco marcado sai da contagem; o resto da régua (1 await = o body) fica.
+  const portaoE4 = /    \/\/ ═══ KINEO-E4-SAIDA-B-2026-09-29 \[TRAVA 8\.2[\s\S]*?    \/\/ ═══ FIM KINEO-E4-SAIDA-B \(portão do Kineo 1\) ═══/
+  const entreAuthEReje = rf.slice(rf.indexOf(marcaAuth) + marcaAuth.length, iRej).replace(portaoE4, '')
   checa('entre a autenticação e a rejeição não há NENHUMA chamada a fornecedor (só a leitura do body)', (entreAuthEReje.match(/await /g) || []).length === 1 && entreAuthEReje.includes('await req.json()'))
   checa('a rejeição antiga (depois do planejamento) foi removida — existe uma só, na posição nova', (rf.match(/reason: 'dry_run_not_authorized'/g) || []).length === 1)
   const r3 = await run(g({ body: { dry_run: true }, isDryRunAccount: () => true, parsedScript: { segments: segs(12), speed: null } }))
