@@ -24,12 +24,98 @@ const hrefs=html=>[...html.matchAll(/href="([^"]*)"/g)].map(m=>m[1]).sort()
 const prices=html=>html.replace(/<[^>]*>/g,'').match(/\$[\d.]+/g)
 const author='My original story — Español हिन्दी <not markup> & 25 USD'
 const fixtureVideo={id:'demo-video',topic:author,title:author,video_url:'/fixture.mp4',status:'completed',credits_used:4,created_at:'2026-09-07T00:00:00Z'}
+const historyFile='app/(dashboard)/history/HistoryClient.tsx'
+const libraryFile='app/(dashboard)/library/LibraryClient.tsx'
+const libraryResetBefore="onClick={() => setQ('')}"
+const libraryResetAfter="onClick={() => { setQ(''); organization.setFavoritesOnly(false) }}"
+// Approved refinements 6efd499e/221a59ba: reset all visible filters and select
+// original/enhanced consistently. Reanchor only these three exact attributes and
+// the paired Library reset (65a49c30);
+// retain the historical baseline for every other handler, gate and media source.
+const historyReanchors=new Map([
+ ["onClick={() => setQuery('')}","onClick={() => { setQuery(''); organization.setFavoritesOnly(false); setFormat('all') }}"],
+ ['src={enhUrls[v.id] ?? v.video_url}','src={filmSource(v.video_url, enhUrls[v.id], fileVersions[v.id])!}'],
+ ['src={enhUrls[video.id] ?? video.video_url}','src={filmSource(video.video_url, enhUrls[video.id], fileVersions[video.id])!}'],
+])
+function handlers(code) {
+ const a=ts.createSourceFile('component.tsx',code,99,true,4),out=[]
+ function walk(n){if(ts.isJsxAttribute(n)&&['onClick','onChange','disabled','value','checked','src','poster'].includes(n.name.getText(a)))out.push(n.getText(a).replace(/\r\n/g,'\n'));ts.forEachChild(n,walk)}
+ walk(a);return out.sort()
+}
+function missingHandlers(file,code) {
+ const now=handlers(code)
+ const base=handlers(source(file,true,'6f6eca73')).map(h=>{
+  if(file===historyFile)return historyReanchors.get(h)??h
+  if(file===libraryFile)return h===libraryResetBefore?libraryResetAfter:h.replace('completed_video_count: vids.length','completed_video_count: completedCount')
+  return h
+ })
+ return base.filter(h=>!now.includes(h))
+}
 for(const file of ['app/(dashboard)/history/HistoryClient.tsx','app/(dashboard)/studio/StudioClient.tsx','app/(dashboard)/library/LibraryClient.tsx','app/tools/editor/VideoEditor.tsx']) {
- const handlers=before=>{const a=ts.createSourceFile(file,source(file,before,'6f6eca73'),99,true,4),out=[];function walk(n){if(ts.isJsxAttribute(n)&&['onClick','onChange','disabled','value','checked','src','poster'].includes(n.name.getText(a)))out.push(n.getText(a).replace(/\r\n/g,'\n'));ts.forEachChild(n,walk)}walk(a);return out.sort()}
  // KINEO-TRES-MODOS-2026-09-11 — acréscimo aprovado no Studio (modo clipe): a trava exige que todo handler da base continue presente; remoção/mudança segue reprovando.
  // The approved unified Library includes unfinished projects. Its completed
  // counter now uses Ready projects; the event and destination must stay intact.
- {const now=handlers(false),base=handlers(true).map(h=>file.endsWith('/library/LibraryClient.tsx')?h.replace('completed_video_count: vids.length','completed_video_count: completedCount'):h);eq(base.filter(h=>!now.includes(h)),[],'existing handlers, media, settings and submit gates preserved '+file)}
+ eq(missingHandlers(file,source(file)),[],'existing handlers, media, settings and submit gates preserved '+file)
+}
+// Execute the current reset handler and the actual source expressions, rather
+// than accepting changed strings without proving the behavior they represent.
+const historyCode=source(historyFile),historyAst=ts.createSourceFile(historyFile,historyCode,99,true,4)
+function jsxExpression(attribute,ast=historyAst) {
+ let expression
+ function walk(n){if(ts.isJsxAttribute(n)&&n.getText(ast).replace(/\r\n/g,'\n')===attribute)expression=n.initializer.expression.getText(ast);ts.forEachChild(n,walk)}
+ walk(ast);assert.ok(expression,'approved JSX attribute is wired');return expression
+}
+function execute(code,context={}) {
+ const box={...context,exports:{}}
+ vm.runInNewContext(ts.transpileModule(code,{compilerOptions:{module:1,target:9}}).outputText,box)
+ return box.exports
+}
+const resetExpression=jsxExpression(historyReanchors.get("onClick={() => setQuery('')}"))
+function resetWorks(expression) {
+ const calls=[]
+ execute(`(${expression})()`,{setQuery:v=>calls.push(['query',v]),organization:{setFavoritesOnly:v=>calls.push(['favoritesOnly',v])},setFormat:v=>calls.push(['format',v])})
+ return JSON.stringify(calls)===JSON.stringify([['query',''],['favoritesOnly',false],['format','all']])
+}
+ok(resetWorks(resetExpression),'reset clears query, favorites-only and format together')
+for(const call of ["setQuery('');",'organization.setFavoritesOnly(false);',"setFormat('all')"])ok(!resetWorks(resetExpression.replace(call,'')),'reset mutant rejected: '+call)
+const libraryCode=source(libraryFile),libraryAst=ts.createSourceFile(libraryFile,libraryCode,99,true,4)
+const libraryResetExpression=jsxExpression(libraryResetAfter,libraryAst)
+function libraryResetWorks(expression) {
+ const calls=[]
+ execute(`(${expression})()`,{setQ:v=>calls.push(['query',v]),organization:{setFavoritesOnly:v=>calls.push(['favoritesOnly',v])}})
+ return JSON.stringify(calls)===JSON.stringify([['query',''],['favoritesOnly',false]])
+}
+ok(libraryResetWorks(libraryResetExpression),'Library reset clears query and favorites-only together')
+for(const call of ["setQ('');",'organization.setFavoritesOnly(false)'])ok(!libraryResetWorks(libraryResetExpression.replace(call,'')),'Library reset mutant rejected: '+call)
+ok(missingHandlers(libraryFile,libraryCode.replace(libraryResetAfter,'onClick={() => {}}')).length>0,'guard rejects disconnected Library reset')
+const {filmSource}=pure('lib/ui/deliveryRefinement.ts')
+const mediaExpressions=[...historyReanchors.values()].filter(v=>v.startsWith('src=')).map(attribute=>jsxExpression(attribute))
+function mediaWorks(select) {
+ for(const expression of mediaExpressions)for(const choice of [undefined,'original','enhanced'])for(const enhanced of [undefined,'enhanced.mp4']) {
+  const film={id:'chosen-film',video_url:'original.mp4'}
+  const result=execute(`exports.url=${expression}`,{filmSource:select,v:film,video:film,enhUrls:{[film.id]:enhanced},fileVersions:{[film.id]:choice}})
+  if(result.url!==(choice==='original'?'original.mp4':enhanced??'original.mp4'))return false
+ }
+ return true
+}
+ok(mediaWorks(filmSource),'card and player select original/enhanced and fall back to original when enhancement is absent')
+ok(!mediaWorks((_original,enhanced)=>enhanced),'media mutant rejected: ignores original choice and missing enhancement')
+ok(!mediaWorks(original=>original),'media mutant rejected: ignores enhanced choice')
+const downloadFn=historyAst.statements.flatMap(function walk(n){return ts.isFunctionDeclaration(n)&&n.name?.text==='handleDownload'?[n.getText(historyAst)]:n.getChildren(historyAst).flatMap(walk)})[0]
+assert.ok(downloadFn,'real download handler exists')
+for(const choice of [undefined,'original','enhanced'])for(const enhanced of [undefined,'enhanced.mp4']) {
+ const calls=[],film={id:'chosen-film',video_url:'original.mp4',topic:author}
+ const {run}=execute(downloadFn+'\nexports.run=handleDownload',{filmSource,downloadingId:null,setDownloadingId:()=>{},setDownloadNotes:()=>{},extractTitle:x=>x,enhUrls:{[film.id]:enhanced},fileVersions:{[film.id]:choice},isWatermarkedFastAsset:()=>false,downloadVideoFile:async args=>{calls.push(args);return 'blob'},downloadOutcomeMessage:()=>'',ui:x=>x,showToast:()=>{}})
+ await run(film)
+ eq(calls.map(c=>c.url),[choice==='original'?'original.mp4':enhanced??'original.mp4'],'download matches preview selection '+choice+' / '+enhanced)
+}
+for(const [from,to] of [
+ ...[...historyReanchors.values()].map(attribute=>[attribute,attribute.startsWith('src=')?'src={"wrong.mp4"}':'onClick={() => {}}']),
+ ['onClick={() => handleDownload(video)}','onClick={() => {}}'],
+ ['onClick={() => handleEnhance(video)}','onClick={() => {}}'],
+]) {
+ ok(historyCode.includes(from),'mutation anchor exists: '+from)
+ ok(missingHandlers(historyFile,historyCode.replace(from,to)).length>0,'guard rejects changed approved or commercial wiring: '+from)
 }
 for(const [file,fixture,props] of [
  ['app/KineoLanding.tsx',{},{}], ['app/tools/page.tsx',{},{}],
