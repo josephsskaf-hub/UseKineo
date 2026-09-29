@@ -139,9 +139,10 @@ export function fraseDoContador(v: ContadorVoz, voz: string | null, motor?: Cont
     case 'down':
       return { text: `Your script makes a ~${s}-second film${comVoz} (${v.words} words). Want ${v.requested}s? Add ~${v.missingWords} words — or keep it: the length switches to ${v.to}s and you pay for ${v.to}s.`, tone: 'info', lengthWillChange: { from: v.requested, to: v.to } }
     case 'up':
-      return { text: `Your script makes a ~${s}-second film${comVoz} (${v.words} words) — longer than ${v.requested}s. We'll deliver the full script: the length switches to ${v.to}s.`, tone: 'info', lengthWillChange: { from: v.requested, to: v.to } }
+      // 2ª revisão (29/09): 'full script' só onde é verdade (clássico/Kineo 1); no hollywood a rota apara cenas para caber.
+      return { text: `Your script makes a ~${s}-second film${comVoz} (${v.words} words) — longer than ${v.requested}s. The length switches to ${v.to}s${narraTudoProvado ? ' and we narrate it all' : ''}.`, tone: 'info', lengthWillChange: { from: v.requested, to: v.to } }
     case 'too_long':
-      return { text: `Your script runs ~${s}s${comVoz} (${v.words} words) — films go up to ${v.maxSeconds}s. Trim ~${v.excessWords} words, or let AI structure it${recusaNoTeto ? '.' : ` — otherwise we cut the film at ${v.maxSeconds}s and the ending is lost.`}`, tone: 'warn', lengthWillChange: null }
+      return { text: `Your script runs ~${s}s${comVoz} (${v.words} words) — films go up to ${v.maxSeconds}s. Trim ~${v.excessWords} words, or let AI structure it${recusaNoTeto ? " — otherwise we can't generate it (nothing is charged)." : ` — otherwise we cut the film at ${v.maxSeconds}s and the ending is lost.`}`, tone: 'warn', lengthWillChange: null }
     case 'too_short':
       return { text: `Too short for a film — ${v.words} words ≈ ${s}s${comVoz}. Add ~${v.missingWords} words to reach ${v.minSeconds}s, or let AI structure it.`, tone: 'warn', lengthWillChange: null }
   }
