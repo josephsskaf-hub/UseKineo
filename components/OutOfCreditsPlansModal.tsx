@@ -65,8 +65,9 @@ export default function OutOfCreditsPlansModal({
   return (
     <div
       className="fixed inset-0 z-[90] flex items-center justify-center p-4"
-      style={{ background: 'rgba(8,8,15,.55)', backdropFilter: 'blur(6px)' }}
+      style={{ background: 'var(--modal-overlay)', backdropFilter: 'blur(6px)' }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
+      data-kineo-modal="OutOfCreditsPlansModal"
       role="dialog"
       aria-modal="true"
       aria-label="Out of credits"
@@ -74,21 +75,20 @@ export default function OutOfCreditsPlansModal({
     >
       <div
         className="w-full max-w-md rounded-2xl p-7 relative"
-        style={{ background: '#1d1d1f', border: '1px solid rgba(41,151,255,.45)', boxShadow: '0 0 80px rgba(0,0,0,.5), 0 0 40px rgba(41,151,255,.12)' }}
+        style={{ background: 'var(--card2)', border: '1px solid var(--border2)', boxShadow: 'var(--modal-shadow)' }}
       >
         <button
           onClick={onClose}
           aria-label="Close"
           className="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center text-sm"
-          style={{ background: 'rgba(255,255,255,.04)', border: '1px solid #2a2a2d', color: '#86868b', cursor: 'pointer' }}
+          style={{ background: 'var(--card2)', border: '1px solid var(--border)', color: 'var(--muted)', cursor: 'pointer' }}
         >
           <span aria-hidden="true">✕</span>
         </button>
-
-        <h2 className="text-xl font-black mb-1 tracking-tight" style={{ color: '#f5f5f7', paddingRight: 36 }}>
+        <h2 className="text-xl font-black mb-1 tracking-tight" style={{ color: 'var(--text)', paddingRight: 36 }}>
           {outOfCreditsHeadline(product, madeThisSession)}
         </h2>
-        <p className="text-sm mb-5" style={{ color: '#86868b', lineHeight: 1.5 }}>
+        <p className="text-sm mb-5" style={{ color: 'var(--muted)', lineHeight: 1.5 }}>
           {outOfCreditsBody({ product, destination: 'pricing', credits, unitCost })}
         </p>
 
@@ -100,14 +100,14 @@ export default function OutOfCreditsPlansModal({
               style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8,
                 padding: '9px 12px', borderRadius: 10, fontSize: 13,
-                background: r.highlighted ? 'rgba(41,151,255,.13)' : 'rgba(255,255,255,.03)',
-                border: r.highlighted ? '1px solid rgba(41,151,255,.55)' : '1px solid rgba(255,255,255,.08)',
-                color: '#f5f5f7',
+                background: r.highlighted ? 'var(--accent-soft)' : 'var(--card)',
+                border: r.highlighted ? '1px solid var(--border2)' : '1px solid var(--border)',
+                color: 'var(--text)',
               }}
             >
               <span style={{ fontWeight: 800 }}>{r.name}</span>
-              <span style={{ color: '#86868b' }}>
-                {r.credits} cr/mo = <b style={{ color: r.highlighted ? '#5cb3ff' : 'inherit' }}>{planRowLabel(product, r).split(' = ')[1]}</b>
+              <span style={{ color: 'var(--muted)' }}>
+                {r.credits} cr/mo = <b style={{ color: r.highlighted ? 'var(--accent)' : 'inherit' }}>{planRowLabel(product, r).split(' = ')[1]}</b>
               </span>
               <span style={{ fontWeight: 800 }}>{r.price}/mo</span>
             </div>
@@ -126,11 +126,11 @@ export default function OutOfCreditsPlansModal({
             })
           }}
           className="block w-full text-center rounded-xl py-3 font-black text-sm"
-          style={{ background: 'linear-gradient(135deg,#2997ff,#5cb3ff)', color: '#0b0b0f', textDecoration: 'none' }}
+          style={{ background: 'var(--indigo)', color: 'var(--on-accent)', textDecoration: 'none' }}
         >
           <KineoBolt /> See plans
         </a>
-        <p style={{ fontSize: '0.74rem', color: '#86868b', textAlign: 'center', margin: '12px 0 0' }}>
+        <p style={{ fontSize: '0.74rem', color: 'var(--muted)', textAlign: 'center', margin: '12px 0 0' }}>
           Every plan works across video, images and audio — one balance.
         </p>
       </div>

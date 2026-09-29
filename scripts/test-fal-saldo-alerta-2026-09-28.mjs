@@ -38,7 +38,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 
 // Vira true no commit "[TRAVA 8.2]" que liga a rota cinematic ao alarme único.
-const TRAVA_82_APLICADA = false
+const TRAVA_82_APLICADA = true
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
@@ -500,8 +500,8 @@ console.log('== 5. Kineo 1 (gancho + clipes do primeiro filme) ==')
   const erroSaldo = Object.assign(new Error('Forbidden'), { status: 403, body: { detail: FRASE_FAL } })
   const erroAcesso = Object.assign(new Error('Forbidden'), { status: 403, body: { detail: 'model is locked for your account' } })
   for (const [arquivo, fn, fonte, extra] of [
-    ['lib/fastAiHook.ts', 'submitAiHook', 'kineo1_hook', { '@supabase/supabase-js': { createClient: () => ({}) }, './clipVault': { vaultClipAsync() {} } }],
-    ['lib/fastAiClips.ts', 'submitSceneClip', 'kineo1_clip', { './fastAiHook': { persistHookClip: async () => null } }],
+    ['lib/fastAiHook.ts', 'submitAiHook', 'kineo1_hook', { '@supabase/supabase-js': { createClient: () => ({}) }, './clipVault': { vaultClipAsync() {} }, '@/lib/kineo1/aiClipPrompt': carrega('lib/kineo1/aiClipPrompt.ts', {}) }],
+    ['lib/fastAiClips.ts', 'submitSceneClip', 'kineo1_clip', { './fastAiHook': { persistHookClip: async () => null }, '@/lib/kineo1/aiClipPrompt': carrega('lib/kineo1/aiClipPrompt.ts', {}) }],
   ]) {
     const chamadas = []
     let libera
@@ -883,7 +883,7 @@ console.log(`== 9. rota cinematic — trava 8.2 ${TRAVA_82_APLICADA ? 'APLICADA'
   }
   // ═══ REVISÃO 2 (28/09) — o host do Hollywood (cena de diálogo por submitAvatarJob) não alarma por conta própria ═══
   // Vira true no commit "[TRAVA 8.2] FIX-REVISAO-2" que passa alertOnBalance:false e liga a flag do despacho no catch.
-  const HOST_UM_ALARME_APLICADO = false
+  const HOST_UM_ALARME_APLICADO = true
   const hostIni = rota.indexOf('const reqId = await submitAvatarJob({')
   const hostCall = hostIni >= 0 ? rota.slice(hostIni, rota.indexOf('})', hostIni) + 2) : ''
   checa('rota: uma chamada só de submitAvatarJob — a do host do Hollywood', (rota.match(/submitAvatarJob\(/g) ?? []).length === 1 && hostCall.includes("engine: 'presenter'"))

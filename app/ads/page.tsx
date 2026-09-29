@@ -42,7 +42,7 @@ import { Suspense } from 'react'
 import { redirect } from 'next/navigation' // KINEO-ADS-V2-VIRADA-2026-09-29 — go=maker
 import Footer from '@/components/Footer'
 import CreditMinutesSummary from '@/components/CreditMinutesSummary'
-import KineoBolt from '@/components/KineoBolt'
+import { KineoBrandIcon } from '@/components/KineoBolt'
 import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 import { InterfaceLanguageSelect } from '@/components/InterfaceLanguage'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
@@ -262,7 +262,7 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
       <style dangerouslySetInnerHTML={{ __html: ADS_DOOR_CSS }} />
       <div className="ads-wrap">
         <nav className="ads-nav" aria-label="Studio Ads navigation">
-          <a href="/" className="ads-brand"><KineoBolt size={26} />Kineo<span> / Studio Ads</span></a>
+          <a href="/" className="ads-brand"><KineoBrandIcon size={26} />Kineo<span> / Studio Ads</span></a>
           <div className="ads-nav-actions">
             <a href={DFY_HREF} className="ads-navlink">Have it made for you →</a>
             <InterfaceLanguageSelect />

@@ -29,7 +29,9 @@ chk('relinked aparece na resposta do cron', cron.includes('fastReady, relinked, 
 console.log('\nP3) Zero POSTs deixa de culpar o cliente (caso Joscha 6×)')
 const cin = ler('app/api/generate-video-cinematic/route.ts')
 chk('ramo zero-posts detectado', cin.includes('ctxDespacho().totalPosts === 0'))
-chk('alarme ao fundador dispara sozinho', cin.includes('ZERO_POSTS user='))
+// KINEO-FAL-SALDO-ALERTA-2026-09-28 — re-ancorado: o alarme do ramo zero-posts continua disparando sozinho, agora como
+// alarme de DEFEITO com assunto verdadeiro (antes ia pelo de saldo, 'fal.ai balance EXHAUSTED', e não era saldo).
+chk('alarme ao fundador dispara sozinho', cin.includes("await alertDispatchDefect({ kind: 'ZERO_POSTS'"))
 chk('mensagem honesta: nosso lado, não cobrado, avisados', cin.includes('this is on our side, not yours'))
 
 console.log('\nP4) O retry sai do dedo do cliente')

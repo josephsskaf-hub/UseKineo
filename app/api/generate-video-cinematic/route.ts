@@ -23,12 +23,14 @@ import { SCENE_WRITER_INPUT_MAX_CHARS } from '@/lib/analyzeLimits' // V3-ESCRITO
 // KINEO-353A — classificacao pura da falha de cena (sem rede, sem banco).
 import {
   classifyProviderFailure,
-  isBalanceExhausted,
   providerSpendPossible,
   safeLogFields,
   type ReasonClass,
   type SceneOutcome,
 } from '@/lib/cinematic/sceneDisposition'
+// KINEO-FAL-SALDO-ALERTA-2026-09-28 — o alarme de saldo é UM só, em lib/falAlert (a cópia local com o e-mail cravado
+// e o throttle na memória da lambda morreu). looksExhausted segue a classe de sceneDisposition.
+import { alertDispatchDefect, alertFalExhausted, looksExhausted } from '@/lib/falAlert'
 // KINEO-353A.1 — a orquestracao (retry, fallback de modelo, vetor por cena)
 // vive num modulo importavel para o teste de contrato exercitar ESTA logica.
 import {
@@ -41,6 +43,7 @@ import {
   type AttemptRecord,
 } from '@/lib/cinematic/dispatchScenes'
 import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
+import { kling25FootageNeeded, kling25ShotCount, kling25SceneSeconds, kling25ClipsUsd, kling25WriterBudget, kling25AlignBudget, kling25AverageShotSeconds, kling25VerbatimPlan, kling25VisualHint, kling25SceneWordStarts, kling25PlanPace, kling25WordsFit, KLING25_CLIP_LOSS_SECONDS, kling25ApplyShotAxis, kling25StripShotAxis } from '@/lib/cinematic/klingShots' // KINEO-KLING25-PLANOS-5S-2026-09-28 · KINEO-KLING25-VARIEDADE-2026-09-28
 import { resolveCharacterVoice } from '@/lib/hollywood/characterVoice'
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
@@ -353,6 +356,10 @@ function ctxDespacho(): DispatchContext {
 async function finalizarDespacho(ctx: DispatchContext, res: Response): Promise<void> {
   if (ctx.registrado) return
   ctx.registrado = true
+  // KINEO-FAL-SALDO-ALERTA-2026-09-28 — números do alarme, lidos do MESMO resumo que vai para o evento.
+  let saldoRecusadas: number | null = null
+  let aceitas: number | null = null
+  let planejadas: number | null = null
   try {
     const plano = {
       outcomes: ctx.outcomes,
@@ -362,6 +369,9 @@ async function finalizarDespacho(ctx: DispatchContext, res: Response): Promise<v
       totalPosts: ctx.totalPosts,
     }
     const resumo = resumirPlano(plano as never)
+    saldoRecusadas = resumo.reason_histogram.balance_quota ?? 0
+    aceitas = resumo.accepted
+    planejadas = ctx.planned || resumo.planned
     await writeServerEvent({
       name: 'cinematic_dispatch_result',
       userId: ctx.userId ?? undefined,
@@ -398,40 +408,29 @@ async function finalizarDespacho(ctx: DispatchContext, res: Response): Promise<v
     console.error('[cinematic] telemetria falhou (resposta do cliente preservada):',
       e instanceof Error ? e.name : 'unknown')
   }
-}
-// `looksExhausted` tratava QUALQUER 403 como saldo estourado. Um 403 de
-// "modelo sem acesso" virava alarme de saldo para o fundador e "alta demanda"
-// para o cliente — três mentiras numa resposta só. A classificação agora mora
-// em lib/cinematic/sceneDisposition e exige a CLASSE saldo, não o status.
-function looksExhausted(e: { status?: number; message?: string }): boolean {
-  return isBalanceExhausted(e?.status ?? null, e?.message)
-}
-// Fire-and-forget founder alert via Resend. Throttled to once per 30 min via a
-// module timestamp so a burst of failures doesn't spam the inbox.
-let LAST_FAL_ALERT = 0
-async function alertFalExhausted(context: string): Promise<void> {
-  try {
-    const key = process.env.RESEND_API_KEY
-    if (!key || key === 'your_resend_api_key_here') return
-    const now = Date.now()
-    if (now - LAST_FAL_ALERT < 30 * 60 * 1000) return
-    LAST_FAL_ALERT = now
-    const from = process.env.RESEND_FROM_EMAIL || 'Kineo <support@usekineo.com>'
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from,
-        to: ['josephsskaf@gmail.com'],
-        subject: '🚨 Kineo: fal.ai balance EXHAUSTED — AI videos are failing',
-        text: `The fal.ai balance is exhausted — AI (Seedance/Kling/Veo) renders are failing RIGHT NOW and users are seeing the "high demand" queue message instead of a video.\n\nContext: ${context}\nTime: ${new Date().toISOString()}\n\nRecharge fal.ai to restore AI generation: https://fal.ai/dashboard/billing`,
-      }),
+  // ═══ KINEO-FAL-SALDO-ALERTA-2026-09-28 — O ALARME DE SALDO MORA AQUI, E SÓ AQUI ═══
+  //
+  // Antes: três chamadas espalhadas (Hollywood FAILFAST, clássico parcial, clássico zero aceitas) e DUAS que não
+  // eram saldo (EMPTY_PLAN, ZERO_POSTS mandavam "balance EXHAUSTED"). E um buraco: Hollywood com recusa de saldo que
+  // ainda cobria ≥ 90% dos segundos seguia em frente SEM alarme. O finalizador roda em TODA resposta desta rota,
+  // com a flag que só a classe balance_quota liga — um lugar cobre os quatro caminhos. Fora do try: telemetria que
+  // cai não cala o alarme. alertFalExhausted nunca lança, tem teto de 3 s e manda um e-mail por janela de 6 h.
+  if (ctx.balanceExhausted) {
+    await alertFalExhausted({
+      source: 'cinematic',
+      engine: ctx.engine,
+      userId: ctx.userId,
+      generationId: ctx.generationId,
+      scenesRefused: saldoRecusadas,
+      context: `app_http=${res.status} claim=${ctx.claimAction} accepted=${aceitas ?? '?'}/${planejadas ?? '?'}`,
+      path: '/api/generate-video-cinematic',
     })
-    console.error('[cinematic] FAL BALANCE EXHAUSTED — founder alerted')
-  } catch (e) {
-    console.error('[cinematic] fal alert email failed:', e instanceof Error ? e.message : String(e))
   }
 }
+// KINEO-FAL-SALDO-ALERTA-2026-09-28 — aqui moravam `looksExhausted` e `alertFalExhausted` LOCAIS: e-mail do fundador
+// cravado em código, throttle de 30 min na memória da lambda e nenhuma linha no banco (12 despachos e 36 cenas
+// recusadas por saldo em 30 dias, e nenhum e-mail provável). Agora os dois vêm de lib/falAlert, e o alarme dispara
+// num lugar só: finalizarDespacho, quando ctx.balanceExhausted.
 
 // KINEO-SEEDANCE-720-CREATOR-2026-07-06 — margin fix. Seedance v1.5 pro at 1080p
 // runs ~$0.62-0.74/clip on fal; a Creator video is 6-9 clips, which breaks the
@@ -694,11 +693,15 @@ function buildFalInput(
       ...(typeof seed === 'number' ? { seed } : {}),
     }
   }
+  // KINEO-KLING25-PLANOS-5S-2026-09-28 — o Kling 2.5 (t2v e i2v) recebe os segundos do PLANO: '5' no plano de 5 s, '10' no
+  // plano longo e em todo chamador sem `seconds` (claim antigo, qualquer outro caminho) — exatamente o de antes. Schema da
+  // fal do 2.5 turbo: duration '5' | '10' (US$ 0,07/s, docs/PRECOS-MOTORES-V4.md). Espelho de kling25FalDuration
+  // (lib/cinematic/klingShots.ts): a regra fica escrita aqui porque guardiões executam este builder isolado, sem imports.
   if (model === KLING_I2V_MODEL) {
     return {
       image_url: imageUrl,
       prompt,
-      duration: '10',
+      duration: typeof seconds === 'number' && seconds > 0 && seconds <= 5 ? '5' : '10',
       negative_prompt: classicVisualNegativePrompt(visualMode, stylized === true),
       cfg_scale: 0.6,
       ...(typeof seed === 'number' ? { seed } : {}),
@@ -707,7 +710,7 @@ function buildFalInput(
   if (model === KLING_MODEL) {
     return {
       prompt,
-      duration: '10',
+      duration: typeof seconds === 'number' && seconds > 0 && seconds <= 5 ? '5' : '10', // KINEO-KLING25-PLANOS-5S-2026-09-28 (ver o ramo i2v acima)
       aspect_ratio: frame.falAspectRatio, // KINEO-MULTIFORMATO-2026-09-02 — '9:16' sem `aspect`
       negative_prompt: classicVisualNegativePrompt(visualMode, stylized === true),
       cfg_scale: 0.6,
@@ -3054,6 +3057,24 @@ async function manipularPost(req: NextRequest) {
       }
     }
 
+    // ═══ KINEO-KLING25-PLANOS-5S-2026-09-28 — Kling 2.5 em planos de 5 s (fundador 28/09: "mais variedade de cenas") ═══
+    // Até aqui: ⌈d/9⌉ planos de 10 s (35 s → 4; 60 s → 7; 90 s → 9) e, no verbatim, ⌈fala/10⌉ (#442). Agora a imagem ÚTIL
+    // necessária (o compose tira 0,16 s de cada plano) vira planos de 5 s (a fal cobra por segundo, US$ 0,07/s). Modo IA:
+    // o filme do botão + 3 s de folga. Verbatim: o roteiro no passo de planejamento (≤ 2,3 pal/s, a voz mais lenta medida
+    // nos filmes reais) — este número é provisório: o roteiro em prosa é dividido mais abaixo (kling25VerbatimPlan), com
+    // cortes e segundos decididos juntos para CADA plano caber a sua fala. Seedance/Veo/Sora: nada roda aqui.
+    // [TRAVA 8.2] KLING25-60S-TETO (28/09): teto de 12 planos só no modo IA (o escritor de cenas corta em 12); no roteiro
+    // pronto o teto acompanha a imagem que o filme pede (kling25MaxShots: 60 s → 14, 90 s → 18) — o ensaio de $0 de 203
+    // palavras batia no 12 e enchia com planos de 10 s; o fundador quer ~13-14 planos de 5 s num 60 s com 65-70 s de fala.
+    let kling25Footage = 0
+    if (wantsKling) {
+      const palavrasDoRoteiro = verbatim ? parsedScript.narration.split(/\s+/).filter(Boolean).length : 0
+      kling25Footage = kling25FootageNeeded({ durationSeconds: duration, verbatimWords: palavrasDoRoteiro, wordsPerSecond: narrationRate.wordsPerSecond })
+      const planos = kling25ShotCount(kling25Footage, { verbatim })
+      console.log(`[cinematic] KLING25-PLANOS-5S: ${clipCount} planos de 10 s → ${planos} planos de 5 s (imagem necessária ${kling25Footage}s${verbatim ? `, roteiro de ${palavrasDoRoteiro} palavras` : ''})`)
+      clipCount = planos
+    }
+
     // ═══ KINEO-ESCRITOR-CLASSICO-SABE-A-DURACAO-2026-09-12 — o pente fino de $0
     // (12/09) mostrou o Seedance em modo IA nascendo com 74 palavras para 60 s
     // (24 s de fala): o mesmo "10-22 palavras por cena" que o vigia consertou no
@@ -3061,6 +3082,12 @@ async function manipularPost(req: NextRequest) {
     // da fal escolhidos para outro texto. Mesma régua (targetWordCount, 3,1
     // pal/s) e a língua do texto; só no caminho clássico (o hollywood tem o seu).
     const classicWriterOptions = { wordsPerScene: wordsPerSceneFor(duration, clipCount, narrationRate.wordsPerSecond), language: narrationLanguage.language } // KINEO-RITMO-POR-VOZ-2026-09-15: a mesma régua do portão e do dry-run
+    // KINEO-KLING25-PLANOS-5S-2026-09-28 — no Kling 2.5 o escritor sabe que cada fala enche um plano de ~5 s (e não ~10), e
+    // acima de 9 cenas ganha teto de tokens e prazo proporcionais (12 cenas de 9 campos, ~150 tokens cada, não cabem nos
+    // 1.800 fixos — o JSON sairia cortado). Seedance/Veo: objeto idêntico, prompt idêntico.
+    // Revisão adversarial (28/09): no filme de 90 s 7 dos 12 planos são de 10 s e o escritor ouvia "~5-second scene" — o
+    // escritor recebe a média REAL dos planos que a imagem vai ter (35/45 s → 5; 60 s → 6; 90 s → 8).
+    if (wantsKling) Object.assign(classicWriterOptions, { sceneSeconds: kling25AverageShotSeconds(clipCount, kling25Footage) }, kling25WriterBudget(clipCount))
     // Build scenes
     // #441 — aiPrompt = the cinematic SHOT description fed to Seedance (prefer
     // it over the raw stock query). Set from generateScenes prose (non-verbatim)
@@ -3078,7 +3105,7 @@ async function manipularPost(req: NextRequest) {
     const classicVisualPolicy: VisualPromptPolicy = {
       mode: classicVisualMode, style: styleAnchor, character: storyCharacter, aspect: aspectRequested,
     }
-    let scenes: { description: string; voiceover: string; caption: string; stockSearchQuery?: string; aiPrompt?: string }[]
+    let scenes: { description: string; voiceover: string; caption: string; stockSearchQuery?: string; aiPrompt?: string; clipSeconds?: number }[] // clipSeconds: KINEO-KLING25-PLANOS-5S-2026-09-28 (só Kling 2.5)
 
     if (verbatim) {
       // #369 — pick `clipCount` beats EVENLY across all segments, ALWAYS
@@ -3120,6 +3147,25 @@ async function manipularPost(req: NextRequest) {
           if (r.removidas.length || r2.removed.length) { sc.voiceover = texto; sc.caption = shortCaptionFromVoiceover(texto); tiradas.push(...r.removidas, ...r2.removed) }
         }
         if (tiradas.length) console.log(`[cinematic] KINEO-FALA-CLASSICA-FIEL: ${tiradas.length} data(s)/hora(s)/nome(s) fora do pedido removida(s) da fala: ${tiradas.map((t) => JSON.stringify(t)).join(', ')}`)
+      }
+    }
+
+    // ═══ KINEO-KLING25-PLANOS-5S-2026-09-28 — no Kling 2.5 o roteiro verbatim em prosa vira planos que CABEM a própria fala
+    // (lib/cinematic/klingShots kling25VerbatimPlan). Revisão adversarial (28/09, 06fe798a): o divisor por frase fazia cenas
+    // de 6 a 23 palavras e dava 5 s a cenas de 15-20 (6-8 s de fala) — a imagem corria na frente da voz. Agora cortes e
+    // segundos saem juntos: cada bloco cabe na parte útil do seu plano no passo de planejamento (≤ 2,3 pal/s; 5 s → até 11
+    // palavras, 10 s → até 22), fim de frase quando o preço é o mesmo, vírgula dentro de frase que não cabe num plano,
+    // palavra só sem outro jeito. O divisor de palavras iguais logo acima continua sendo o de Seedance/Veo, byte a byte;
+    // roteiro com marcadores mantém os blocos do autor. Nenhuma palavra muda: a soma das cenas é o roteiro.
+    if (wantsKling && verbatim && parsedScript.segments.length === 0 && scenes.length > 0) {
+      const plano = kling25VerbatimPlan(parsedScript.narration, { durationSeconds: duration, wordsPerSecond: narrationRate.wordsPerSecond })
+      if (plano.chunks.length > 0) {
+        scenes = plano.chunks.map((fala, i) => {
+          const pista = kling25VisualHint(fala)
+          return { description: pista, voiceover: fala, caption: shortCaptionFromVoiceover(fala || pista), stockSearchQuery: pista, clipSeconds: plano.seconds[i] }
+        })
+        console.log(`[cinematic] KLING25-PLANOS-5S: verbatim em ${scenes.length} planos [${plano.seconds.join(',')}] (passo ${plano.pace} pal/s: 5 s ≤ ${plano.fitShort} palavras, 10 s ≤ ${plano.fitLong}; filme ≈ ${plano.needSeconds}s)`)
+        clipCount = scenes.length
       }
     }
 
@@ -4925,6 +4971,10 @@ async function manipularPost(req: NextRequest) {
       const hSubmittedPrompts: string[] = []
       // KINEO-ANCORA-REAL-NO-CLAIM-2026-09-15 — a image_url que REALMENTE foi ao fal, cena a cena (still FLUX incluído).
       const hSceneAnchors: (string | null)[] = []
+      // KINEO-OMNI-ANCORA-2026-09-28 — teto de tempo das 2ªs chances de still no filme inteiro (o laço é serial e a rota
+      // tem 300 s): com o FLUX lento em todas as cenas, 11 cenas × 15 s estourariam; 45 s cobrem 3 cenas no pior caso.
+      const OMNI_STILL_RETRY_BUDGET_MS = 45_000
+      let omniStillRetryMs = 0
       // Veredito do Contrato Cena Verdadeira, cena a cena. Vai para o claim
       // junto com o resto — sem isso o gate corrige no escuro e ninguem
       // consegue auditar depois se ele acertou ou estragou.
@@ -4989,6 +5039,9 @@ async function manipularPost(req: NextRequest) {
               audioUrl,
               engine: 'presenter',
               performancePrompt: hostPerformancePrompt,
+              // KINEO-FAL-UM-ALARME-POR-FILME-2026-09-28 — o alarme de saldo deste despacho é o do finalizador (um só,
+              // creditado ao filme). O veed alarmava 'avatar_submit' a cada cena de diálogo recusada.
+              alertOnBalance: false,
             })
             if (!reqId) throw new Error('presenter queue submit returned no request id')
             id = reqId
@@ -5002,6 +5055,10 @@ async function manipularPost(req: NextRequest) {
               `[cinematic] hollywood host scene ${hs.index}: TTS ${audioDur.toFixed(1)}s voice=${hostVoice.voice} → presenter submitted`,
             )
           } catch (e) {
+            // KINEO-FAL-UM-ALARME-POR-FILME-2026-09-28 — a recusa de SALDO do host vira a flag do despacho (a mesma classe
+            // de sempre: looksExhausted = espelho de sceneDisposition). finalizarDespacho alarma UMA vez, como 'cinematic',
+            // com motor, pessoa, geração e cenas. No S25 a cena retida (sem fallback O3) não ligava a flag sozinha.
+            if (e instanceof AvatarSubmitError && looksExhausted(e)) ctxDespacho().balanceExhausted = true
             if (e instanceof AvatarSubmitError && e.ambiguous) {
               cinematicSubmissionUncertain = true
               // The presenter POST may have been accepted. Falling back to O3
@@ -5114,9 +5171,38 @@ async function manipularPost(req: NextRequest) {
               })
             } catch { sceneStillUrl = null }
           }
+          // ═══ KINEO-OMNI-ANCORA-2026-09-28 — cena Omni sem imagem não vira Kling em silêncio ═══
+          // O fal só tem Omni em image-to-video (o t2v responde 404, conferido em 27/09); sem imagem a cena ia para o Kling
+          // v3 t2v (cinematicSceneModel) — US$ 0,168/s contra 0,13/s, outro look dentro de um filme vendido como Omni, e
+          // nenhum evento dizia isso: no render e7918140 (16/09, saldo normal) 2 de 11 cenas foram assim, e só se via pelo
+          // nome do modelo em cinematic_dispatch_result. Agora, SÓ na família omni e só em cena de apoio/cinemática: o still
+          // ganha UMA 2ª chance com janela de 15 s; se falhar de novo e o filme tem âncoras, a cena anima o still de ambiente
+          // (já pago, nenhum POST novo; o risco de repetição do KINEO-SPECTACLE só é aceito aqui, como penúltimo recurso).
+          // O Kling v3 continua como último recurso — e agora grava omni_scene_kling_fallback.
+          // O resultado mora em sceneStillUrl, então hSceneAnchors e o modelo leem a imagem FINAL (a retomada da cena recebe
+          // a image_url certa).
+          if (family === 'omni' && !anchorUrl && !sceneStillUrl && (hs.type === 'support' || hs.type === 'cinematic')) {
+            if (omniStillRetryMs < OMNI_STILL_RETRY_BUDGET_MS) {
+              const inicioStill = Date.now()
+              try {
+                sceneStillUrl = await generateCinematicSceneStill({
+                  scenePrompt: hs.prompt,
+                  styleSuffix: plan.styleSheet ?? '',
+                  seed: generationSeed,
+                  pollWindowMs: 15_000,
+                })
+              } catch { sceneStillUrl = null }
+              omniStillRetryMs += Date.now() - inicioStill
+            }
+            if (!sceneStillUrl && anchors?.environmentUrl) sceneStillUrl = anchors.environmentUrl
+          }
           const sceneAnchor = anchorUrl ?? sceneStillUrl ?? undefined
           hSceneAnchors[idx] = sceneAnchor ?? null // KINEO-ANCORA-REAL-NO-CLAIM-2026-09-15
           sceneModel = cinematicSceneModel(family, hs.type, Boolean(sceneAnchor))
+          if (family === 'omni' && !sceneAnchor) {
+            // KINEO-OMNI-ANCORA-2026-09-28 — o fallback agora tem nome no banco (diálogo sem retrato = no_anchors).
+            await writeServerEvent({ name: 'omni_scene_kling_fallback', userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { scene_index: idx, reason: hs.type === 'dialogue' ? 'no_anchors' : 'still_failed', scene_type: hs.type, model: sceneModel } })
+          }
           // KINEO-VOICEFIX-2026-08-17 (parte 2, em CODIGO): cena NAO-dialogo
           // nunca pode ter boca mexendo — a narracao TTS toca por cima e boca
           // + voz de outra pessoa = dublagem de terror (o bug que o fundador
@@ -5421,7 +5507,7 @@ async function manipularPost(req: NextRequest) {
           )
         }
         if (ctxDespacho().balanceExhausted) {
-          await alertFalExhausted(`user=${user.id.slice(0, 8)} engine=hollywood submitted=${hValid.length}/${plan.scenes.length}`)
+          // KINEO-FAL-SALDO-ALERTA-2026-09-28 — o fundador é avisado pelo finalizador único (finalizarDespacho).
           return NextResponse.json(
             {
               queued: true,
@@ -5561,6 +5647,28 @@ async function manipularPost(req: NextRequest) {
     }
     // ── end KINEO-HOLLYWOOD-2026-07-09 ──────────────────────────────────────
 
+    // ═══ KINEO-KLING25-PLANOS-5S-2026-09-28 — os segundos de CADA plano do Kling 2.5, agora que as cenas existem ═══
+    // Verbatim em prosa: o plano acima já decidiu (cada bloco cabe o seu plano). Roteiro marcado: a cena cuja fala
+    // ATRIBUÍDA (do início dela ao início da próxima na narração) não cabe em 4,84 s no passo de planejamento nasce com
+    // 10 s. Modo IA: 5 s por plano; se não cobre a imagem necessária, os planos com mais fala passam a 10 s. Viaja na cena
+    // (`clipSeconds`) até o payload (buildFalInput → duration '5'|'10'), o claim assinado (`clip_seconds` e
+    // `clip_word_starts`) e o compose (plano de 5 s nunca esticado; cada plano entra quando a sua fala começa).
+    let kling25ClipSeconds: number[] | null = null
+    let kling25Passo = 0
+    if (wantsKling && kling25Footage > 0 && scenes.length > 0) {
+      const narracaoDoFilme = verbatim && parsedScript.narration ? parsedScript.narration : scenes.map((s) => s.voiceover).filter(Boolean).join(' ') // ≡ voiceoverScript da resposta
+      const palavrasDoFilme = narracaoDoFilme.split(/\s+/).filter(Boolean).length
+      const inicios = kling25SceneWordStarts(narracaoDoFilme, scenes.map((s) => s.voiceover))
+      const atribuidas = inicios.map((a, i) => (i + 1 < inicios.length ? inicios[i + 1] : palavrasDoFilme) - a)
+      kling25Passo = kling25PlanPace(narrationRate.wordsPerSecond, palavrasDoFilme)
+      const segundos = scenes.every((s) => s.clipSeconds === 5 || s.clipSeconds === 10)
+        ? scenes.map((s) => s.clipSeconds as number)
+        : kling25SceneSeconds(scenes.map((s) => s.voiceover), kling25Footage, { wordCounts: atribuidas, fitFirst: verbatim, fitWords: kling25WordsFit(5, kling25Passo) })
+      kling25ClipSeconds = segundos
+      scenes = scenes.map((s, i) => ({ ...s, clipSeconds: segundos[i] }))
+      console.log(`[cinematic] KLING25-PLANOS-5S: ${scenes.length} planos [${segundos.join(',')}] = ${segundos.reduce((a, b) => a + b, 0)}s de imagem ≈ US$ ${kling25ClipsUsd(segundos).toFixed(2)} de clipe (necessário ${kling25Footage}s)`)
+    }
+
     // KINEO-VIGIA-CENARIO-2026-09-11 — antes de qualquer still ou clipe pago,
     // as TRÊS fontes de visual (descritor, GPT das cenas, plano de b-roll)
     // passam pelo filtro determinístico: nome próprio, ano/década e adjetivo
@@ -5619,7 +5727,7 @@ async function manipularPost(req: NextRequest) {
       const alinhado = await alignShotsToSpeech({
         topic: prompt,
         scenes: scenes.map((sc) => ({ voiceover: sc.voiceover ?? '', shot: sc.aiPrompt || sc.stockSearchQuery || sc.description || '' })),
-      })
+      }, wantsKling ? kling25AlignBudget(scenes.length) : undefined) // KINEO-KLING25-PLANOS-5S-2026-09-28: o dobro de cenas ganha teto de tokens e prazo proporcionais; Seedance/Veo: chamada idêntica
       if (alinhado) {
         const historiaAlinhada = `${prompt} ${scenes.map((sc) => sc.voiceover ?? '').join(' ')}`
         for (const c of alinhado.rewritten) {
@@ -5663,6 +5771,15 @@ async function manipularPost(req: NextRequest) {
         return cinematicBruto
       }
     })
+      // ═══ KINEO-KLING25-VARIEDADE-2026-09-28 — um eixo de enquadramento por plano, SÓ no Kling 2.5 ═══
+      // Fundador (28/09): "a única coisa é mais variedade de cenas" · "melhore o Kling 2.5 (...) foca em melhorar ele". Com 12
+      // planos de 5 s o descritor repete enquadramento e movimento nos vizinhos apesar do pedido "do not repeat the same shot
+      // type" (prompt do escritor, acima). Aqui cada plano ganha um eixo determinístico por índice (lib/cinematic/klingShots
+      // kling25ApplyShotAxis: escala + ângulo + movimento, vizinhos sempre diferentes), PREFIXADO ao prompt já corrigido pelo
+      // contrato de cena — nada do prompt é cortado (teto da fal 2.500 chars; corte só em fronteira de frase, cauda preservada).
+      // O mesmo prompt alimenta o still FLUX (o i2v segue o enquadramento do still) e o clipe t2v. Seedance/Veo/Sora: o
+      // ternário devolve o prompt de sempre, byte a byte. Guardião: scripts/test-kling25-variedade-2026-09-28.mjs.
+      .map((promptDaCena, sceneIndex) => (wantsKling ? kling25ApplyShotAxis(promptDaCena, sceneIndex) : promptDaCena))
 
     // ═══ KINEO-DRYRUN-CLASSICO-2026-09-12 — O VALIDADOR DE $0 COBRE OS CLÁSSICOS ═══
     // Até 11/09 `dry_run: true` só parava a família Kling 3/H3/Omni (bloco
@@ -5682,6 +5799,11 @@ async function manipularPost(req: NextRequest) {
         verbatim,
         wordsPerSecond: narrationRate.wordsPerSecond,
       })
+      // KINEO-KLING25-PLANOS-5S-2026-09-28 — no Kling 2.5 o ensaio refaz a conta com os segundos de CADA plano (5|10), os
+      // mesmos que vão no payload pago; Seedance/Veo/Sora seguem com o relatório acima, sem mudança.
+      const relatorioDoEnsaio = kling25ClipSeconds
+        ? classicDryRunReport({ scenes: scenes.map((s, i) => ({ voiceover: s.voiceover, prompt: classicScenePrompts[i] })), targetSeconds: duration, secondsPerClip: 5, verbatim, wordsPerSecond: narrationRate.wordsPerSecond, sceneSeconds: kling25ClipSeconds, clipLossSeconds: KLING25_CLIP_LOSS_SECONDS, sceneFitWordsPerSecond: kling25Passo, sceneFitStrict: verbatim })
+        : classicReport
       const refunded = await releaseBirthClaim('dry_run_no_charge')
       return NextResponse.json({
         dry_run: true,
@@ -5693,7 +5815,9 @@ async function manipularPost(req: NextRequest) {
         visual_mode_reason: formatoVisual.motivo,
         contrato_cena: contratoRelatoClassico,
         fala_x_imagem: alinhamentoFalaImagem, // KINEO-FALA-X-IMAGEM — o que o supervisor reescreveu, a $0
-        ...classicReport,
+        ...relatorioDoEnsaio,
+        // KINEO-KLING25-PLANOS-5S-2026-09-28 — os segundos de cada plano, o custo de clipe e a imagem necessária, como no pago
+        ...(kling25ClipSeconds ? { clip_seconds: kling25ClipSeconds, clips_usd: kling25ClipsUsd(kling25ClipSeconds), footage_needed_seconds: kling25Footage, plan_words_per_second: kling25Passo } : {}),
       })
     }
 
@@ -5721,15 +5845,30 @@ async function manipularPost(req: NextRequest) {
     const anchorI2vModel = anchorEngine === 'kling' ? KLING_I2V_MODEL : anchorEngine === 'veo' ? VEO_I2V_MODEL : SEEDANCE_I2V_MODEL
     const anchorActive = anchorEngine !== null && CINEMATIC_ANCHOR_ENABLED
     const sceneStills: (string | null)[] = new Array(scenes.length).fill(null)
+    // ═══ KINEO-CENA-CLASSICA-2026-09-28 — o payload que foi ao fal, cena a cena ═══
+    // 3ab8128c (externa, Seedance 60 s, 16/09): 1 de 7 cenas nunca voltou e o filme morreu no prazo; d6e8e8b3 (fundador,
+    // 15/09) saiu com 6 de 7, sem retentativa. A família hollywood refaz a cena em 2 rodadas via /api/retry-hollywood-scene;
+    // a clássica não tinha o que reenviar: a cena ancorada vai em i2v com still próprio e o claim não guardava nem o still
+    // nem o seed. Gravado ANTES de cada POST — a despachante para no primeiro aceite, então o último payload gravado é o
+    // aceito, no modelo de usedModels[i]; sem aceite, é o da última tentativa (mesmo modelo que o claim grava).
+    const classicSceneInputs: (Record<string, unknown> | null)[] = new Array(scenes.length).fill(null)
     if (anchorActive) {
       // FLUX stills are paid Fal work: once we start them, an unexpected throw
       // must keep the deterministic claim PENDING (never release + let a new
       // generationId repeat provider spend) — same discipline as Hollywood 3.0.
       providerSubmissionMayExist = true
       const STILL_POOL = 3
-      const STILL_BUDGET_MS = 30_000 // leave the rest of the 60s budget for scene submits
+      // ═══ KINEO-KLING25-60S-ANCORA-2026-09-28 — still em TODAS as cenas do Kling 2.5 ═══
+      // Palavra do fundador (28/09): "melhore o Kling 2.5 … teste com 60 s para chegar em 65-70". Com os planos de 5 s
+      // (KINEO-KLING25-PLANOS-5S) um filme de 60 s tem 12 planos; o teto de 6 cenas ancoradas deixava a segunda metade
+      // do filme em t2v — outro mundo, outra paleta a partir da cena 7. Só o Kling 2.5 (anchorEngine 'kling'): o still
+      // existe em TODAS as cenas do plano (12-14) e o orçamento de tempo dos stills sobe para 60 s (maxDuration da rota
+      // é 300 s; o despacho serial do Kling leva 10-15 s). Pool de 3 e janela por imagem inalterados (a fila do FLUX
+      // não é o alias kling-video). CUSTO: +US$ 0,10 por still a mais (ANCHORS_USD) — 12 planos = +US$ 0,60, 14 = +US$ 0,80
+      // por filme; preço em créditos inalterado. Seedance 1.5 / Veo 3.1: 6 cenas e 30 s, exatamente como antes.
+      const STILL_BUDGET_MS = anchorEngine === 'kling' ? 60_000 : 30_000 // leave the rest of the route budget for scene submits
       const STILL_POLL_WINDOW_MS = 12_000 // per-image cap (schnell @4 steps is fast)
-      const MAX_ANCHORED_SCENES = 6
+      const MAX_ANCHORED_SCENES = anchorEngine === 'kling' ? scenes.length : 6
       const anchorCount = Math.min(scenes.length, MAX_ANCHORED_SCENES)
       const stillDeadline = Date.now() + STILL_BUDGET_MS
       let stillsMade = 0
@@ -5785,7 +5924,7 @@ async function manipularPost(req: NextRequest) {
       // FALA com a IMAGEM. Ele ja existia no objeto (scenes[] o carrega desde
       // a linha ~2081) — so nao estava declarado aqui, entao o caminho
       // classico nao tinha como enxergar a narracao.
-      scene: { aiPrompt?: string; stockSearchQuery?: string; description: string; voiceover?: string },
+      scene: { aiPrompt?: string; stockSearchQuery?: string; description: string; voiceover?: string; clipSeconds?: number },
       model: string,
       // KINEO-353A.1 — o INDICE REAL da cena vem do chamador. Antes o vetor
       // usava `outcomes.length`, que e ordem de conclusao das promises: num
@@ -5815,18 +5954,26 @@ async function manipularPost(req: NextRequest) {
         models: modelos,
         visualPrompt: cinematic,
         safeVisualPrompt,
-        submit: async (m, promptForAttempt, onPost) => submitFalQueueOnce(
-          m,
+        submit: async (m, promptForAttempt, onPost) => {
           // KINEO-MULTIFORMATO-2026-09-02 — o caminho clássico (Seedance 1.5,
           // Kling 2.5, Veo) gera cada cena já no quadro pedido.
-          buildFalInput(m, promptForAttempt, hd, false, undefined, m === modelos[0] ? imageUrl : undefined, generationSeed, isStylizedLook(styleAnchor), aspectRequested, classicVisualMode),
-          onPost,
-        ),
+          // KINEO-KLING25-PLANOS-5S-2026-09-28 — `scene.clipSeconds` só existe no Kling 2.5 (5|10 → duration '5'|'10', no
+          // i2v e no t2v de reserva); em Seedance/Veo/Sora é undefined — o mesmo `undefined` de antes, payload byte a byte.
+          // KINEO-CENA-CLASSICA-2026-09-28 — o input assinado fica em classicSceneInputs para a retomada da cena.
+          const input = buildFalInput(m, promptForAttempt, hd, false, scene.clipSeconds, m === modelos[0] ? imageUrl : undefined, generationSeed, isStylizedLook(styleAnchor), aspectRequested, classicVisualMode)
+          classicSceneInputs[sceneIndex] = input // KINEO-CENA-CLASSICA-2026-09-28
+          return submitFalQueueOnce(m, input, onPost)
+        },
       })
       {
         const c = ctxDespacho()
         c.outcomes[sceneIndex] = despachoCena.outcome
-        c.submittedPrompts[sceneIndex] = cinematic.slice(0, 240)
+        // KINEO-KLING25-VARIEDADE-2026-09-28 (revisão) — o juiz de coerência (/admin/coerencia, lib/admin/fastCoherence lê
+        // `submitted_prompts`) só enxerga estes 240 chars. No Kling 2.5 o eixo de variedade (60-100 chars) é PREFIXADO ao
+        // prompt (classicScenePrompts, acima): gravado cru, o juiz veria a câmera no lugar do sujeito da cena e a nota visual
+        // sairia enviesada. Aqui o Kling grava o prompt SEM o eixo (kling25StripShotAxis só remove o prefixo exato; o payload
+        // da fal segue com ele). Seedance/Veo/Sora caem no ramo `: cinematic` — byte a byte o de sempre.
+        c.submittedPrompts[sceneIndex] = (wantsKling ? kling25StripShotAxis(cinematic) : cinematic).slice(0, 240)
         c.attempts[sceneIndex] = despachoCena.attempts
         c.totalPosts += despachoCena.posts
         if (despachoCena.outcome.reason_class === 'balance_quota') c.balanceExhausted = true
@@ -5963,7 +6110,7 @@ async function manipularPost(req: NextRequest) {
         c.refundConfirmed = released
       }
       console.error(`[cinematic] FAL BALANCE EXHAUSTED mid-dispatch: ${validIds.length}/${scenes.length} accepted — aborting user=${user.id.slice(0, 8)} gen=${generationId} refunded=${released}`)
-      await alertFalExhausted(`PARTIAL user=${user.id.slice(0, 8)} engine=${usedModel} accepted=${validIds.length}/${scenes.length} refunded=${released}`)
+      // KINEO-FAL-SALDO-ALERTA-2026-09-28 — alarme ao fundador sai do finalizador único, com accepted/planned do resumo.
       if (!released) {
         return NextResponse.json(
           { error: 'Our video provider ran out of capacity mid-way and your automatic refund is still being confirmed. Please retry this same generation in a few minutes.' },
@@ -6026,11 +6173,11 @@ async function manipularPost(req: NextRequest) {
         )
       }
       // KINEO-FAL-ALARM-2026-07-06 — if the failure was an exhausted fal balance,
-      // don't show a dead error: alert the founder and return a soft "queued"
-      // message so the user waits calmly instead of thinking the product broke.
-      // The deterministic upfront debit has already been refunded above.
+      // don't show a dead error: return a soft "queued" message so the user waits
+      // calmly instead of thinking the product broke. The deterministic upfront
+      // debit has already been refunded above. KINEO-FAL-SALDO-ALERTA-2026-09-28 —
+      // the founder is alerted once, by finalizarDespacho.
       if (ctxDespacho().balanceExhausted) {
-        await alertFalExhausted(`user=${user.id.slice(0, 8)} engine=${usedModel}`)
         return NextResponse.json(
           {
             queued: true,
@@ -6088,7 +6235,9 @@ async function manipularPost(req: NextRequest) {
               },
             })
           } catch { /* telemetria nunca derruba a resposta */ }
-          await alertFalExhausted(`EMPTY_PLAN user=${user.id.slice(0, 8)} engine=${usedModel} duration=${duration}`)
+          // KINEO-FAL-SALDO-ALERTA-2026-09-28 — plano vazio NÃO é saldo: ia como "fal.ai balance EXHAUSTED". Agora o
+          // alarme diz o que é (defeito nosso, nada foi enviado), um por janela de 6 h.
+          await alertDispatchDefect({ kind: 'EMPTY_PLAN', engine: usedModel, userId: user.id, generationId, context: `user=${user.id.slice(0, 8)} duration=${duration}` })
           return NextResponse.json(
             {
               queued: true,
@@ -6097,7 +6246,8 @@ async function manipularPost(req: NextRequest) {
             { status: 503 },
           )
         }
-        await alertFalExhausted(`ZERO_POSTS user=${user.id.slice(0, 8)} engine=${usedModel} planned=${ctxDespacho().planned}`)
+        // KINEO-FAL-SALDO-ALERTA-2026-09-28 — zero POSTs também não é saldo: alarme de defeito com assunto verdadeiro.
+        await alertDispatchDefect({ kind: 'ZERO_POSTS', engine: usedModel, userId: user.id, generationId, context: `user=${user.id.slice(0, 8)} planned=${ctxDespacho().planned}` })
         return NextResponse.json(
           {
             queued: true,
@@ -6135,10 +6285,26 @@ async function manipularPost(req: NextRequest) {
       voiceover_script: voiceoverScript,
       fal_request_ids: falRequestIds, // null for failed submissions
       fal_model: usedModel, // #401 — which engine ran (client passes it to clip-status)
-      // KINEO-CINEMATIC-ANCHOR-2026-07-24 — per-scene models ONLY when anchoring
-      // ran (some scenes i2v, some t2v-fallback), so the client polls each clip
-      // on its own endpoint. Omitted when OFF → response is byte-identical.
-      ...(anchorActive ? { fal_models: usedModels } : {}),
+      // KINEO-CINEMATIC-ANCHOR-2026-07-24 — per-scene models (i2v for anchored
+      // scenes, t2v otherwise), so the client polls each clip on its own endpoint.
+      // KINEO-CENA-CLASSICA-2026-09-28 — agora SEMPRE (antes só com âncora): é o
+      // modelo que o cliente manda na retomada da cena, e o claim já o assina
+      // (fal_models ≡ claim.falModels na amarração da resposta).
+      fal_models: usedModels,
+      // KINEO-CENA-CLASSICA-2026-09-28 — scene_prompts abre o portão de retomada do
+      // cliente (2 rodadas, como na família hollywood); scene_fal_inputs é o payload
+      // assinado que /api/retry-hollywood-scene reenvia (só o prompt troca, e só
+      // suavizado). O compose e o cron de resgate não leem nenhum dos dois: o
+      // cliente só manda scene_* ao compose nas qualidades hollywood, e o cron só
+      // quando há scene_engines (que o clássico não tem).
+      scene_prompts: classicSceneInputs.map((input) => (typeof input?.prompt === 'string' ? input.prompt : '')),
+      scene_fal_inputs: classicSceneInputs,
+      // KINEO-KLING25-PLANOS-5S-2026-09-28 — segundos pedidos à fal por cena (5|10), SÓ quando o plano os definiu (Kling 2.5).
+      // No claim assinado: o compose monta cada clipe dentro do próprio comprimento (plano de 5 s nunca ocupa 10 s de tela).
+      // Ausente (Seedance/Veo/Sora e claims de antes deste deploy) = montagem de hoje.
+      // Revisão adversarial (28/09): e onde a fala de CADA cena começa em voiceover_script (também assinado) — o compose
+      // corta cada plano no instante da 1ª palavra da própria cena, não numa fatia de tempo cega à cena.
+      ...(scenes.some((s) => typeof s.clipSeconds === 'number') ? { clip_seconds: scenes.map((s) => s.clipSeconds ?? null), clip_word_starts: kling25SceneWordStarts(voiceoverScript, scenes.map((s) => s.voiceover)) } : {}),
       quality: claimQuality,
       verbatim,
       speed: parsedScript.speed,

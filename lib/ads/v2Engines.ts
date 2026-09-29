@@ -10,7 +10,10 @@
 //                                              false; mandado explícito) · prompt ≤ 2500 · SEM aspect_ratio e SEM
 //                                              resolution (sai em 1080p e segue a foto, que chega recortada em 9:16).
 //   bytedance/seedance-2.0/fast/image-to-video duration enum string 'auto','4'..'15' · resolution '480p'|'720p' ·
-//                                              aspect_ratio inclui '9:16' (padrão 'auto') · generate_audio (padrão true).
+//                                              aspect_ratio inclui '9:16' (padrão 'auto') · generate_audio (padrão true) ·
+//                                              bitrate_mode 'standard'|'high' (padrão 'standard'; conferido de novo no
+//                                              OpenAPI em 28/09 — KINEO-ADS-V2-CORTES: o v2 manda 'high', sem custo extra
+//                                              anunciado; o campo existe no schema, não é invenção).
 //   minimax/h3/image-to-video                  duration INTEIRO 5..15 · resolution '480P'|'768P'|'2K'|'4K' (padrão
 //                                              '2K', o dobro do preço) · prompt_expansion_mode (padrão 'balanced',
 //                                              reescreve o pedido) · não tem campo de áudio (gera sempre).
@@ -34,6 +37,7 @@ export interface Seedance20FastI2vInput {
   resolution: '720p'
   aspect_ratio: '9:16'
   generate_audio: false
+  bitrate_mode: 'high'
 }
 export interface H3I2vInput {
   prompt: string
@@ -75,6 +79,7 @@ export function buildShotInput(engine: AdsV2EngineId, shot: { imageUrl: string; 
       resolution: '720p',
       aspect_ratio: '9:16',
       generate_audio: false,
+      bitrate_mode: 'high',
     }
     return input
   }

@@ -74,7 +74,10 @@ check('1.5 o ramo novo so dispara dentro de totalPosts === 0', (() => {
   return i > 0 && j > i && j - i < 1200
 })())
 check('1.6 a mensagem de plano vazio existe no route', route.includes(MSG_VAZIO))
-check('1.7 alarme proprio EMPTY_PLAN (nao reusa ZERO_POSTS)', /alertFalExhausted\(`EMPTY_PLAN /.test(route))
+// KINEO-FAL-SALDO-ALERTA-2026-09-28 — re-ancorado: a INTENCAO (alarme proprio do plano vazio, separado do
+// ZERO_POSTS) continua; o que mudou e o transporte. Ia pelo alarme de SALDO ('fal.ai balance EXHAUSTED') sobre
+// um fornecedor que nunca foi chamado; agora e alertDispatchDefect, com assunto verdadeiro.
+check('1.7 alarme proprio EMPTY_PLAN (nao reusa ZERO_POSTS)', /alertDispatchDefect\(\{ kind: 'EMPTY_PLAN'/.test(route))
 // A telemetria da sessao paralela (#21) mora DENTRO deste mesmo ramo e e a
 // unica coisa que pode achar a causa raiz (por que 60s da zero cena e 35s
 // nao). Duas sessoes editando o mesmo bloco em paralelo apagam trabalho uma
@@ -171,7 +174,8 @@ check('6.3 as deterministicas antigas continuam la', Boolean(mDet) && mDet[1].in
 
 console.log('7) O ramo do Joscha (planned>0) ficou intacto')
 check('7.1 a mensagem antiga continua no route', route.includes(MSG_FORNECEDOR))
-check('7.2 o alarme ZERO_POSTS continua existindo', /alertFalExhausted\(`ZERO_POSTS /.test(route))
+// KINEO-FAL-SALDO-ALERTA-2026-09-28 — re-ancorado: o alarme ZERO_POSTS continua, agora como defeito (nao saldo).
+check('7.2 o alarme ZERO_POSTS continua existindo', /alertDispatchDefect\(\{ kind: 'ZERO_POSTS'/.test(route))
 check('7.3 o comentario historico KINEO-ZERO-POSTS continua', route.includes('KINEO-ZERO-POSTS-2026-08-28'))
 check('7.4 a saida 502 final de submit continua', route.includes('Could not submit clips to AI generator'))
 check('7.5 a saida de refund nao confirmado continua', route.includes('your automatic refund is still being confirmed'))

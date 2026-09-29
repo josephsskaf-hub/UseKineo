@@ -1,6 +1,6 @@
 'use client'
 
-import KineoBolt from '@/components/KineoBolt'
+import { KineoBrandIcon } from '@/components/KineoBolt'
 
 // Push #423 — "Install app" banner. The PWA (#422) is installable, but
 // almost nobody knows about "Add to Home Screen", so the app offers
@@ -127,7 +127,7 @@ export default function InstallAppBanner() {
         margin: '0 auto',
       }}
     >
-      <KineoBolt size={32} />
+      <KineoBrandIcon size={32} />
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: '#e2e8f0', lineHeight: 1.3 }}>

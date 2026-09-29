@@ -39,6 +39,8 @@
 // toda superfície que anuncia RECEITA deve preferir stripeMrrUsd().
 import { PLANS } from '@/lib/pricing'
 import { stripe } from '@/lib/stripe'
+// KINEO-MRR-PRECO-PAGO-2026-09-28 — taxa FIXA da casa para fatura em reais (nunca o câmbio do dia).
+import { BRL_PER_USD_HOUSE } from '@/lib/settlementCurrency'
 
 // Monthly USD per stored plan value. Keys must cover every value the Stripe
 // webhook / checkout route / PayPal webhook can write to profiles.plan —
@@ -264,4 +266,183 @@ export function isNewSubscriberEvent(name: string, metadata: EventMeta): boolean
   const tier = typeof metadata?.tier === 'string' ? metadata.tier : null
   const pack = metadata?.pack
   return mode === 'subscription' || (tier !== null && !pack)
+}
+
+// ═══ KINEO-MRR-PRECO-PAGO-2026-09-28 ═════════════════════════════════════════
+// A V8-A (28/09) subiu a tabela para 12,90 / 29,90 / 54,90 e os ~11 assinantes
+// continuam pagando o que assinaram: 9,90 e 19,90 da V5, 7,00 e 29,00 da V6,
+// um cupom de 15,92. PLAN_PRICE_USD responde "quanto custa HOJE", e o painel
+// somava os antigos no preço novo: US$ 276,90 na tela contra ~US$ 170 que
+// entra de fato. stripeMrrUsd() existia para isso, mas devolve null ao menor
+// tropeço (uma assinatura que a Stripe não devolve derruba o lote inteiro) e
+// a tela caía na tabela em silêncio, com cara de número exato.
+//
+// A régua daqui em diante — a mesma para TODA superfície do admin:
+//   · cada assinante vale a ÚLTIMA fatura que pagou: `subscription_invoice_paid`
+//     (renovação ou conversão do trial) ou o `payment_success` do checkout de
+//     assinatura, o que for mais recente;
+//   · em USD; fatura em BRL ÷ taxa da casa (lib/settlementCurrency), nunca o
+//     câmbio do dia; anual ÷ 12;
+//   · só cai na TABELA quando não há valor recorrente conhecido: nenhum evento
+//     com valor, só o 1º mês com desconto (`intro`), ou o valor é de outra
+//     família de plano (trocou de plano e a fatura nova ainda não veio);
+//   · quem cai na tabela é CONTADO no rótulo (paidMrrSourceLabel), para o
+//     número nunca parecer exato sem ser.
+// stripeMrrUsd() fica como conferência ao vivo, no rótulo — não como o número.
+
+/** Os dois nomes de evento que carregam valor pago de assinatura (para os `fetchAllRows` das telas). */
+export const MRR_PAID_EVENT_NAMES = ['payment_success', 'subscription_invoice_paid'] as const
+
+export type PaidAmountEvent = {
+  user_id: string | null
+  name: string
+  created_at?: string | null
+  metadata?: Record<string, unknown> | null
+}
+
+export type PaidBilling = 'monthly' | 'annual'
+
+export type PaidMonthly = {
+  /** Mensalidade em USD (anual ÷ 12; BRL ÷ taxa da casa), arredondada ao centavo. */
+  usd: number
+  source: 'invoice' | 'checkout'
+  tier: string | null
+  billing: PaidBilling
+  amountMinor: number
+  currency: string
+  at: string
+}
+
+const metaNumber = (v: unknown): number => {
+  const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v) : NaN
+  return Number.isFinite(n) ? n : 0
+}
+const metaString = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim().toLowerCase() : null)
+
+/** Centavos na moeda da fatura → USD por mês. Outras moedas: aproximação honesta (hoje só usd/brl liquidam), mesma regra de _shared/revenue. */
+export function paidMinorToMonthlyUsd(amountMinor: number, currency: string | null | undefined, billing: PaidBilling): number {
+  const cur = (currency ?? 'usd').toLowerCase()
+  const usd = cur === 'brl' ? amountMinor / 100 / BRL_PER_USD_HOUSE : amountMinor / 100
+  const monthly = billing === 'annual' ? usd / 12 : usd
+  return Math.round(monthly * 100) / 100
+}
+
+/** Checkout de ASSINATURA que cobrou a mensalidade cheia: nem o $1 do trial, nem pacote, nem Empresas, nem 1º mês `intro`. */
+export function isRecurringCheckoutEvent(name: string, metadata: EventMeta): boolean {
+  if (name !== 'payment_success') return false
+  if (!isNewSubscriberEvent(name, metadata)) return false
+  if (metaTrue(metadata, 'intro')) return false
+  return metaNumber(metadata?.amount_total) > 0
+}
+
+/** Fatura de assinatura paga (renovação ou conversão do trial) com valor. Rateio de troca de plano não é mensalidade. */
+export function isPaidInvoiceEvent(name: string, metadata: EventMeta): boolean {
+  if (name !== 'subscription_invoice_paid') return false
+  if (metaString(metadata?.billing_reason) === 'subscription_update') return false
+  return metaNumber(metadata?.amount_paid) > 0
+}
+
+/**
+ * user_id → última mensalidade paga. Percorre em ordem cronológica; o mais
+ * recente vence. A fatura não diz se é anual: herda o `billing` do checkout da
+ * mesma assinatura (ou da mesma pessoa); sem nada, mensal.
+ */
+export function paidMonthlyUsdByUser(events: PaidAmountEvent[]): Map<string, PaidMonthly> {
+  const sorted = events
+    .filter((e): e is PaidAmountEvent & { user_id: string; created_at: string } => typeof e.user_id === 'string' && typeof e.created_at === 'string')
+    .sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0))
+  const billingBySub = new Map<string, PaidBilling>()
+  const billingByUser = new Map<string, PaidBilling>()
+  const out = new Map<string, PaidMonthly>()
+  for (const e of sorted) {
+    const m = e.metadata ?? null
+    const sub = metaString(m?.stripe_subscription_id)
+    if (isRecurringCheckoutEvent(e.name, m)) {
+      const billing: PaidBilling = metaString(m?.billing) === 'annual' ? 'annual' : 'monthly'
+      if (sub) billingBySub.set(sub, billing)
+      billingByUser.set(e.user_id, billing)
+      const amountMinor = metaNumber(m?.amount_total)
+      const currency = metaString(m?.currency) ?? 'usd'
+      out.set(e.user_id, { usd: paidMinorToMonthlyUsd(amountMinor, currency, billing), source: 'checkout', tier: metaString(m?.tier), billing, amountMinor, currency, at: e.created_at })
+    } else if (isPaidInvoiceEvent(e.name, m)) {
+      const billing: PaidBilling = (sub ? billingBySub.get(sub) : undefined) ?? billingByUser.get(e.user_id) ?? 'monthly'
+      const amountMinor = metaNumber(m?.amount_paid)
+      const currency = metaString(m?.currency) ?? 'usd'
+      out.set(e.user_id, { usd: paidMinorToMonthlyUsd(amountMinor, currency, billing), source: 'invoice', tier: metaString(m?.tier), billing, amountMinor, currency, at: e.created_at })
+    }
+  }
+  return out
+}
+
+export type MrrSource = 'invoice' | 'checkout' | 'table'
+
+export type SubscriberMrr = {
+  /** O que ESTA pessoa paga por mês (ou a tabela, quando `source === 'table'`). */
+  usd: number
+  source: MrrSource
+  /** Preço de tabela de hoje para o plano dela — a linha "no preço novo". */
+  tableUsd: number
+  paid: PaidMonthly | null
+}
+
+/**
+ * Mensalidade de UM assinante. Trial ($1) e piloto (avulso) valem 0 — não são
+ * MRR. Valor pago de outra família de plano (trocou de plano) não serve: a
+ * tabela entra até a fatura nova chegar.
+ */
+export function subscriberMrr(plan: string | null | undefined, paid: PaidMonthly | null | undefined): SubscriberMrr {
+  if (!isPayingPlan(plan)) return { usd: 0, source: 'table', tableUsd: 0, paid: null }
+  const tableUsd = mrrForPlan(plan)
+  if (tableUsd === 0) return { usd: 0, source: 'table', tableUsd: 0, paid: null }
+  const sameFamily = paid != null && (paid.tier === null || planBase(paid.tier) === planBase(plan))
+  if (paid != null && sameFamily && paid.usd > 0) return { usd: paid.usd, source: paid.source, tableUsd, paid }
+  return { usd: tableUsd, source: 'table', tableUsd, paid: paid ?? null }
+}
+
+export type PaidMrr = {
+  /** A soma do que cada pagante paga (tabela só para quem não tem valor conhecido). */
+  mrrUsd: number
+  /** O mesmo grupo no preço de tabela de hoje ("se todos pagassem o preço novo"). */
+  tableUsd: number
+  counted: number
+  fromInvoice: number
+  fromCheckout: number
+  fromTable: number
+  perUser: Map<string, SubscriberMrr>
+}
+
+/** MRR de um grupo de perfis (já sem contas internas — a exclusão é de quem chama, via lib/internalAccounts). */
+export function paidMrrForProfiles(profiles: Array<{ id: string; plan?: string | null }>, paidByUser: Map<string, PaidMonthly>): PaidMrr {
+  const perUser = new Map<string, SubscriberMrr>()
+  let mrrUsd = 0
+  let tableUsd = 0
+  let fromInvoice = 0
+  let fromCheckout = 0
+  let fromTable = 0
+  for (const p of profiles) {
+    if (!isPayingPlan(p.plan)) continue
+    const s = subscriberMrr(p.plan, paidByUser.get(p.id))
+    perUser.set(p.id, s)
+    if (s.tableUsd === 0) continue // piloto: relação paga, MRR 0, não entra no rótulo
+    mrrUsd += s.usd
+    tableUsd += s.tableUsd
+    if (s.source === 'invoice') fromInvoice += 1
+    else if (s.source === 'checkout') fromCheckout += 1
+    else fromTable += 1
+  }
+  return {
+    mrrUsd: Math.round(mrrUsd * 100) / 100,
+    tableUsd: Math.round(tableUsd * 100) / 100,
+    counted: fromInvoice + fromCheckout + fromTable,
+    fromInvoice,
+    fromCheckout,
+    fromTable,
+    perUser,
+  }
+}
+
+/** "11 pagantes · 2 por fatura · 8 por checkout · 1 pela tabela (sem valor pago conhecido)" — acompanha TODO número de MRR. */
+export function paidMrrSourceLabel(m: Pick<PaidMrr, 'counted' | 'fromInvoice' | 'fromCheckout' | 'fromTable'>): string {
+  const tabela = m.fromTable > 0 ? `${m.fromTable} pela tabela (sem valor pago conhecido)` : 'ninguém pela tabela'
+  return `${m.counted} pagantes · ${m.fromInvoice} por fatura · ${m.fromCheckout} por checkout · ${tabela}`
 }

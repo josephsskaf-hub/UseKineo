@@ -12,6 +12,11 @@ export default function KineoBolt({ size = '1.3em', className, style }: {
   }}>ϟ</span>
 }
 
+/** Keep the approved unboxed blue lightning mark on every brand surface. */
+export function KineoBrandIcon({ size = 28, className }: { size?: number; className?: string }) {
+  return <KineoBolt size={size} className={className} />
+}
+
 /** Keep authored copy/translation keys intact; only replace the decorative glyph. */
 export function KineoBoltText({ children, inheritColor = false }: { children: ReactNode; inheritColor?: boolean }) {
   if (typeof children !== 'string' || !children.includes('⚡')) return <>{children}</>

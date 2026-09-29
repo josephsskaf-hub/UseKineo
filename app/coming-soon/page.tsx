@@ -1,6 +1,6 @@
 'use client'
 
-import KineoBolt from '@/components/KineoBolt'
+import { KineoBrandIcon } from '@/components/KineoBolt'
 
 import Link from 'next/link'
 import { useState } from 'react'
@@ -89,7 +89,7 @@ export default function ComingSoonPage() {
             marginBottom: 36,
           }}
         >
-          <KineoBolt size={32} />
+          <KineoBrandIcon size={32} />
           <span
             style={{
               fontWeight: 900,

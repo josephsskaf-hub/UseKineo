@@ -149,7 +149,17 @@ check('S8 falta de foto (3 fotos, 6 vagas): todas as vagas preenchidas e a foto 
     return p.shots.length === 6 && p.shots.every((x) => x.sourceFootageId && x.imageUrl) && byPhoto.size === 3 && [...byPhoto.values()].every((ps) => new Set(ps).size === ps.length)
   })
 })
-check('S9 todo prompt de movimento é de 1 frase de movimento e termina em "Keep everything exactly as in the photo."', SECTORS.every((sector) => TIERS.every((tier) => S.planShots({ sector, tier, photos: FULL }).shots.every((x) => x.prompt === null || (x.prompt.endsWith('Keep everything exactly as in the photo.') && x.prompt.split('. ').length === 2)))))
+// REANCORADO 28/09 (KINEO-ADS-V2-CORTES): o herói leva UMA frase de travas de estado entre o movimento e o "Keep…"; os demais seguem com 1 frase de movimento.
+check('S9 todo prompt de movimento é de 1 frase de movimento e termina em "Keep everything exactly as in the photo." (herói: + 1 frase de travas)', SECTORS.every((sector) => TIERS.every((tier) => S.planShots({ sector, tier, photos: FULL }).shots.every((x) => x.prompt === null || (x.prompt.endsWith('Keep everything exactly as in the photo.') && x.prompt.split('. ').length === (x.kind === 'product_hero' ? 3 : 2))))))
+check('S9b travas do herói: frase EXATA, só no product_hero, entre o movimento e o "Keep…"; nunca proíbe mãos que já estão na foto', () => {
+  const LOCK = 'Natural real-time speed; nothing on the plate or product moves by itself; no new hands or objects enter the frame; text, labels and prices stay exactly as in the photo.'
+  if (S.ADS_V2_HERO_STATE_LOCKS !== LOCK) return false
+  const all = SECTORS.flatMap((sector) => TIERS.flatMap((tier) => [15, 20, 30].flatMap((seconds) => S.planShots({ sector, tier, photos: FULL, seconds }).shots)))
+  const heroes = all.filter((x) => x.kind === 'product_hero')
+  const others = all.filter((x) => x.kind !== 'product_hero' && x.prompt !== null)
+  return heroes.length > 0 && heroes.every((x) => x.prompt.includes(`. ${LOCK} Keep everything exactly as in the photo.`) && !x.prompt.toLowerCase().includes(' no hands') && x.prompt === `${S.ADS_V2_MOVEMENTS.product_hero[x.movementVariant % S.ADS_V2_MOVEMENTS.product_hero.length]}. ${LOCK} Keep everything exactly as in the photo.`) &&
+    others.every((x) => !x.prompt.includes('moves by itself')) && S.motionPrompt('product_hero', 0).includes(LOCK) && !S.motionPrompt('product', 0).includes(LOCK)
+})
 check('S10 cena criada: referência = fotos do cliente SEM as de texto; pedido proíbe acrescentar prato/decoração e escrever texto', () => {
   const withText = [...FULL, { id: U(8), url: url(8), kind: 'text' }]
   return SECTORS.every((sector) => {
@@ -183,7 +193,22 @@ check('S14 2-3 frases de tela: marca nos primeiros 5 s, todas dentro dos planos 
   const p = S.planShots({ sector, tier, photos: FULL })
   return p.overlays.length === 3 && p.overlays[0].role === 'brand' && p.overlays[0].start < 5 && p.overlays.every((o) => o.start >= 0 && o.end > o.start && o.end <= p.shotsSeconds) && p.overlays.filter((o) => o.required).length === 2
 })))
-check('S15 trecho usado cabe no menor clipe (Kling 3 s) com o dissolve: cutStart + corte + fade ≤ 2,9 s', SECTORS.every((sector) => TIERS.every((tier) => [15, 20, 30].every((seconds) => S.planShots({ sector, tier, photos: FULL, seconds }).shots.every((x) => x.kind === 'text' || x.cutStart + x.cutSeconds + S.ADS_V2_FADE_SECONDS <= T.ADS_V2_ENGINES.kling_o3.genSeconds - 0.1 + 1e-9)))))
+// REANCORADO 28/09 (KINEO-ADS-V2-CORTES): o herói (Seedance 2.0, 4 s) cabe no SEU clipe; os demais no Kling de 3 s. A margem de 0,1 s é constante nomeada.
+check('S15 trecho usado cabe no clipe do motor com o dissolve e a margem: Kling ≤ 2,9 s · herói ≤ 3,9 s', S.ADS_V2_CUT_MARGIN === 0.1 && SECTORS.every((sector) => TIERS.every((tier) => [15, 20, 30].every((seconds) => S.planShots({ sector, tier, photos: FULL, seconds }).shots.every((x) => x.kind === 'text' || x.cutStart + x.cutSeconds + S.ADS_V2_FADE_SECONDS <= (x.kind === 'product_hero' ? T.ADS_V2_ENGINES.seedance_20_fast.genSeconds : T.ADS_V2_ENGINES.kling_o3.genSeconds) - S.ADS_V2_CUT_MARGIN + 1e-9)))))
+check('S15b HERÓI começa em 1,5 s (meio do clipe): 1,5 + 2,0 + 0,25 = 3,75 ≤ 4,04 medidos − 0,1; espelho de genSeconds do Seedance 2.0', () => {
+  const heroes = SECTORS.flatMap((sector) => [15, 20, 30].flatMap((seconds) => S.planShots({ sector, tier: 'cinema', photos: FULL, seconds }).shots.filter((x) => x.kind === 'product_hero')))
+  return S.ADS_V2_CUT_START_HERO === 1.5 && S.ADS_V2_HERO_GEN_SECONDS === 4 && S.ADS_V2_HERO_GEN_SECONDS === T.ADS_V2_ENGINES.seedance_20_fast.genSeconds &&
+    heroes.length === SECTORS.length * 3 * 2 && heroes.every((x) => x.cutStart === 1.5 && x.cutSeconds === 2.0 && near(x.cutStart + x.cutSeconds + S.ADS_V2_FADE_SECONDS, 3.75) && 3.75 <= 4.04 - 0.1) &&
+    S.adsV2CutStart(2.0, 'product_hero') === 1.5 && S.adsV2CutStart(2.5, 'product_hero') === 1.15 && S.adsV2CutStart(3.65, 'product_hero') === 0
+})
+check('S15c Kling O3: teto 0,65 s SÓ com folga — corte de 2,0 s → 0,65 (0,65+2,0+0,25 = 2,9); corte de 2,5 s → 0,15 como antes; corte de 3 s → 0', () => {
+  const all = SECTORS.flatMap((sector) => TIERS.flatMap((tier) => [15, 20, 30].flatMap((seconds) => S.planShots({ sector, tier, photos: FULL, seconds }).shots.filter((x) => x.kind !== 'text' && x.kind !== 'product_hero'))))
+  const c20 = all.filter((x) => x.cutSeconds === 2.0)
+  const c25 = all.filter((x) => x.cutSeconds === 2.5)
+  return S.ADS_V2_CUT_START_MAX === 0.65 && c20.length > 0 && c25.length > 0 && c20.every((x) => x.cutStart === 0.65 && near(x.cutStart + x.cutSeconds + S.ADS_V2_FADE_SECONDS, 2.9)) && c25.every((x) => x.cutStart === 0.15 && near(x.cutStart + x.cutSeconds + S.ADS_V2_FADE_SECONDS, 2.9)) &&
+    ['people', 'place', 'product'].every((k) => S.adsV2CutStart(2.0, k) === 0.65 && S.adsV2CutStart(2.5, k) === 0.15 && S.adsV2CutStart(2.65, k) === 0 && S.adsV2CutStart(3, k) === 0) && S.adsV2CutStart(2.0, 'text') === 0 &&
+    !/0\.4\b/.test(semComentarios(rd(MOD.shots)).split('\n').filter((l) => /adsV2CutStart|Math\.min\(/.test(l)).join('\n'))
+})
 check('S16 ESPELHO de enums: tipos de plano = v2Tiers; dissolve = montador; setores/tipos de foto = contrato', eqSet([...S.ADS_V2_PHOTO_KINDS, 'product_hero'], T.ADS_V2_SHOT_KINDS) && S.ADS_V2_FADE_SECONDS === M.ADS_V2_MONTAGE_FADE && eqSet(S.ADS_V2_SECTORS, C.ADS_V2_CONTRACT_SECTORS) && eqSet(S.ADS_V2_PHOTO_KINDS, C.ADS_V2_CONTRACT_PHOTO_KINDS) && eqSet(S.ADS_V2_PLAN_TIERS, T.ADS_V2_TIER_IDS) && S.ADS_V2_MIN_GEN_SECONDS === T.ADS_V2_ENGINES.kling_o3.genSeconds)
 check('S17 recusa setor desconhecido e foto sem tipo válido', throws(() => S.planShots({ sector: 'bakery', tier: 'cinema', photos: FULL })) && throws(() => S.planShots({ sector: 'gym', tier: 'cinema', photos: [{ id: U(1), url: url(1), kind: 'logo' }] })))
 
@@ -195,10 +220,12 @@ check('E1 Kling O3 Pro i2v: exatamente prompt/image_url/duration/generate_audio 
   const i = E.buildShotInput('kling_o3', { imageUrl: IMG, prompt: PR })
   return keys(i) === 'duration,generate_audio,image_url,prompt' && i.duration === '3' && i.generate_audio === false && i.image_url === IMG && i.prompt === PR
 })
-check('E2 Seedance 2.0 Fast i2v: duration "4" · 720p · aspect 9:16 · áudio false · nada além disso', () => {
+// REANCORADO 28/09 (KINEO-ADS-V2-CORTES): bitrate_mode 'high' — campo conferido no OpenAPI da fal (enum standard|high, padrão standard).
+check('E2 Seedance 2.0 Fast i2v: duration "4" · 720p · aspect 9:16 · áudio false · bitrate_mode high · nada além disso', () => {
   const i = E.buildShotInput('seedance_20_fast', { imageUrl: IMG, prompt: PR })
-  return keys(i) === 'aspect_ratio,duration,generate_audio,image_url,prompt,resolution' && i.duration === '4' && i.resolution === '720p' && i.aspect_ratio === '9:16' && i.generate_audio === false
+  return keys(i) === 'aspect_ratio,bitrate_mode,duration,generate_audio,image_url,prompt,resolution' && i.duration === '4' && i.resolution === '720p' && i.aspect_ratio === '9:16' && i.generate_audio === false && i.bitrate_mode === 'high'
 })
+check('E2b bitrate_mode só no Seedance 2.0 (Kling O3 e H3 não têm o campo no schema) e é literal no builder', !('bitrate_mode' in E.buildShotInput('kling_o3', { imageUrl: IMG, prompt: PR })) && !('bitrate_mode' in E.buildShotInput('h3', { imageUrl: IMG, prompt: PR })) && (semComentarios(rd(MOD.engines)).match(/bitrate_mode: 'high'/g) || []).length === 2)
 check('E3 H3 i2v: duration 5 NÚMERO (schema pede integer) · resolution 768P · prompt_expansion_mode disabled', () => {
   const i = E.buildShotInput('h3', { imageUrl: IMG, prompt: PR })
   return keys(i) === 'duration,image_url,prompt,prompt_expansion_mode,resolution' && i.duration === 5 && typeof i.duration === 'number' && i.resolution === '768P' && i.prompt_expansion_mode === 'disabled'
@@ -222,7 +249,8 @@ const clip = (n) => `https://x.supabase.co/storage/v1/object/public/renders/u/ad
 const CARD = 'https://x.supabase.co/storage/v1/object/public/user-footage/u/card.png'
 const MUSIC = 'https://x.supabase.co/storage/v1/object/public/music/u/m.mp3'
 const VOICE = 'https://x.supabase.co/storage/v1/object/public/voiceovers/u/v.mp3'
-const fromPlan = (plan, measured = 3.0) => plan.shots.map((x, i) => ({ url: x.kind === 'text' ? url(i) : clip(i), kind: x.kind, cutStart: x.cutStart, cutSeconds: x.cutSeconds, measuredSeconds: x.kind === 'text' ? null : measured }))
+// REANCORADO 28/09 (KINEO-ADS-V2-CORTES): o herói (Seedance 2.0) mede 4,04 s no canário; os demais (Kling) 3,0 s. O trim do herói (1,5 + 2,25) só cabe no clipe do herói.
+const fromPlan = (plan, measured = 3.0, heroMeasured = 4.04) => plan.shots.map((x, i) => ({ url: x.kind === 'text' ? url(i) : clip(i), kind: x.kind, cutStart: x.cutStart, cutSeconds: x.cutSeconds, measuredSeconds: x.kind === 'text' ? null : x.kind === 'product_hero' ? heroMeasured : measured }))
 const plan15 = S.planShots({ sector: 'restaurant', tier: 'commercial', photos: FULL })
 const plan16 = S.planShots({ sector: 'restaurant', tier: 'cinema', photos: FULL })
 const ov = (p) => p.overlays.slice(0, 2).map((o, i) => ({ text: ['Casa Amman', 'Charcoal grill · fresh bread'][i], start: o.start, end: o.end }))
@@ -242,6 +270,12 @@ check('M3 cada plano de vídeo: trim_start + duração ≤ duração medida · v
   return v.length === 6 && v.every((e) => e.trim_start + e.duration <= 3.0 + 1e-9 && e.volume === '0%' && e.loop === false && e.fit === 'cover')
 })
 check('M4 RECUSA plano cujo trim passa do clipe medido (2,6 s medidos para corte de 2,5 s)', throws(() => build({ shots: fromPlan(plan15, 2.6) }), /trim_past_clip/) && throws(() => build({ shots: fromPlan(plan15).map((x, i) => (i === 0 ? { ...x, cutStart: 1.0 } : x)) }), /trim_past_clip/))
+check('M4b HERÓI no Cinema: trim_start 1,5 e 1,5 + 2,25 = 3,75 cabe nos 4,04 s medidos; com clipe de 3,0 s (Kling) o montador RECUSA', () => {
+  const heroMeasured = (m) => fromPlan(plan16).map((x) => (x.kind === 'product_hero' ? { ...x, measuredSeconds: m } : x))
+  const src = build({ shots: heroMeasured(4.04), overlays: ov(plan16) })
+  const heroVids = els(src, 'video', 2).filter((v) => v.trim_start === 1.5)
+  return plan16.shots.filter((x) => x.kind === 'product_hero').length === 2 && heroVids.length === 2 && heroVids.every((v) => near(v.trim_start + v.duration, 3.75)) && els(src, 'video', 2).filter((v) => v.trim_start === 0.65).length + heroVids.length === els(src, 'video', 2).length && throws(() => build({ shots: heroMeasured(3.0), overlays: ov(plan16) }), /trim_past_clip/)
+})
 check('M5 RECUSA clipe sem duração medida e URL que não é https', throws(() => build({ shots: fromPlan(plan15).map((x) => ({ ...x, measuredSeconds: null })) }), /unmeasured/) && throws(() => build({ shots: fromPlan(plan15).map((x, i) => (i === 1 ? { ...x, url: 'http://fal.media/x.mp4' } : x)) }), /bad_url/))
 check('M6 plano text = IMAGEM parada com zoom lento 100% → 108%, sem trim e sem vídeo', () => {
   const shots = fromPlan(plan15); shots[1] = { url: url(7), kind: 'text', cutStart: 0, cutSeconds: 2, measuredSeconds: null }

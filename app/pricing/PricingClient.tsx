@@ -1,6 +1,6 @@
 'use client'
 
-import KineoBolt, { KineoBoltText } from '@/components/KineoBolt'
+import KineoBolt, { KineoBoltText, KineoBrandIcon } from '@/components/KineoBolt'
 import CreditMinutesSummary from '@/components/CreditMinutesSummary'
 import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 
@@ -911,7 +911,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
       <nav className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--card)] backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2.5">
-            <KineoBolt size={32} />
+            <KineoBrandIcon size={32} />
             <div className="flex flex-col leading-none">
               <span className="text-[15px] font-extrabold tracking-tight text-[var(--text)]">
                 Kineo
@@ -1111,9 +1111,6 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                     Best Value
                   </div>
                 ) : null}
-                <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">
-                  {p.name}
-                </div>
                 {/* ONDA6 #10 (14/08) — o card abria direto no preco; agora tem
                     o nome grande como na landing (.nm). */}
                 <div className="mt-1.5 text-[1.34rem] font-semibold tracking-[-.018em] text-[var(--text)]">

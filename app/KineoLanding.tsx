@@ -1,5 +1,6 @@
+import PublicNavDropdown from '@/components/PublicNavDropdown'
 
-import KineoBolt from '@/components/KineoBolt'
+import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 // Kineo landing — new Apple-dark redesign (replaces the old HomePageClient on the homepage).
 // Self-contained, styles scoped under .klp so they don't leak into the rest of the app.
 // Marker: KINEO-LANDING-V3-2026-06-30
@@ -25,6 +26,7 @@ import type { WallVideo } from '@/lib/engineWall'
 import { creditCostFor } from '@/lib/credits/engineCost'
 import WallMedia from '@/components/WallMedia'
 import LiveStatsBadge from '@/components/LiveStatsBadge'
+import BusinessVisualReferences from '@/components/BusinessVisualReferences'
 import HomeFeaturedFilms from '@/components/HomeFeaturedFilms'
 import TrendingRow from '@/components/TrendingRow'
 // KINEO-VITRINE-MOEDA-2026-08-19 — LandingStarterPrice cobria SÓ o Starter, e
@@ -898,7 +900,7 @@ export default function KineoLanding({
       <div className="progress" aria-hidden="true" />
       <nav aria-label="Main"><div className="wrap nav-in">
         <Link href="/" className="logo">
-          <KineoBolt className="mk" size={30} />
+          <KineoBrandIcon className="mk" size={30} />
           Kineo
         </Link>
         <div className="nav-links" data-nav-surface="top" data-nav-area="public">
@@ -918,8 +920,7 @@ export default function KineoLanding({
             {/* KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 — decisão do fundador (25/09, "vídeo com submenu, podemos dar merge"):
                 topo = Vídeo (com submenu) · Imagem · Para empresas · Preços + Entrar. Exemplos mora dentro de Vídeo.
                 data-nav-item/surface/area = contrato de lib/navTelemetry (nav_item_clicked). */}
-            <span className="nd" data-nav-item="video">
-              <Link href="/studio" className="nav-primary"><UiLabel>Video</UiLabel><span className="nd-car" aria-hidden="true">▾</span></Link>
+            <PublicNavDropdown item="video" label="Video">
               <span className="nd-menu nd-mega">
                 <span className="nm-col">
                   <span className="nm-h"><UiLabel>Engines</UiLabel></span>
@@ -952,8 +953,6 @@ export default function KineoLanding({
                   <span className="nm-h"><UiLabel>Create</UiLabel></span>
                   <Link href="/studio"><span className="nm-ic">🎬</span><span className="nm-tx"><b><UiLabel>Studio</UiLabel></b><i><UiLabel>Every control, one screen</UiLabel></i></span></Link>
                   <Link href="/examples" data-nav-item="examples"><span className="nm-ic">▦</span><span className="nm-tx"><b><UiLabel>Examples</UiLabel></b><i><UiLabel>Real renders, every engine</UiLabel></i></span></Link>
-                  <Link href="/viral-now"><span className="nm-ic">🔥</span><span className="nm-tx"><b>Viral Now</b><i><UiLabel>Today’s trending topics</UiLabel></i></span></Link>
-                  <Link href="/scripts"><span className="nm-ic">✍️</span><span className="nm-tx"><b><UiLabel>Scripts</UiLabel></b><i><UiLabel>Ready-to-shoot viral scripts</UiLabel></i></span></Link>
                 </span>
                 {/* KINEO-NAV-4-ITENS-2026-09-25 — coluna secundaria: so texto,
                     menor e apagada, para o video continuar sendo a porta. */}
@@ -965,13 +964,12 @@ export default function KineoLanding({
                   {showAvatar && <Link href="/avatar"><UiLabel>Talking Avatar</UiLabel></Link>}
                 </span>
               </span>
-            </span>
-            <span className="nd" data-nav-item="image">
-              <Link href="/images"><UiLabel>Images</UiLabel><span className="nd-car" aria-hidden="true">▾</span></Link>
+            </PublicNavDropdown>
+            <PublicNavDropdown item="image" label="Images">
               <span className="nd-menu nd-images">
                 {IMG_ENGINES.map(engine => <NavEngineItem key={engine.key} href={`/images?engine=${engine.key}`} name={engine.name} desc={engine.desc} icon={engine.icon} />)}
               </span>
-            </span>
+            </PublicNavDropdown>
             <Link href="/ads" data-nav-item="business"><UiLabel>For businesses</UiLabel></Link>
             <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
           </div>
@@ -1005,8 +1003,6 @@ export default function KineoLanding({
               <Link className="nav-mobile-more" href="/animate"><UiLabel>Animate</UiLabel></Link>
               <Link className="nav-mobile-more" href="/thumbnail-generator"><UiLabel>Thumbnails</UiLabel></Link>
               {showAvatar && <Link className="nav-mobile-more" href="/avatar">Avatar</Link>}
-              <Link className="nav-mobile-more" href="/viral-now">Viral Now</Link>
-              <Link className="nav-mobile-more" href="/scripts"><UiLabel>Scripts</UiLabel></Link>
               {initialUser
                 ? null
                 : <Link className="btn btn-w" href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav-mobile'}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>}
@@ -1097,6 +1093,8 @@ export default function KineoLanding({
           </div>
         </div>
       </section>
+
+      <section className="home-business-showcase"><div className="wrap"><div className="home-business-heading"><h2><UiLabel>Videos for your business.</UiLabel></h2><Link href="/ads" className="btn btn-ghost"><UiLabel>For businesses</UiLabel> ↗</Link></div><BusinessVisualReferences /></div></section>
 
       <section className="home-proof" aria-label="Kineo reviews and recognition">
         <div className="wrap">
@@ -1405,12 +1403,6 @@ export default function KineoLanding({
               <h3><UiLabel>AI Thumbnails</UiLabel></h3>
               <p><UiLabel>Click-worthy thumbnails in the style of the biggest channels — from a prompt.</UiLabel></p>
               <span className="tlink"><UiLabel>Make a thumbnail →</UiLabel></span>
-            </Link>
-            <Link href="/viral-now" className="tcard">
-              <span className="tico">{TOOL_ICONS.viral}</span>
-              <h3>Viral Now</h3>
-              <p><UiLabel>Today&apos;s trending topics, ready to turn into a Short with one click.</UiLabel></p>
-              <span className="tlink"><UiLabel>See what&apos;s trending →</UiLabel></span>
             </Link>
             <Link href="/free-ai-shorts-generator" className="tcard">
               <span className="tico">{TOOL_ICONS.bolt}</span>

@@ -325,7 +325,7 @@ export default function ActiveRenderPill() {
 
   const isRendering = probe.state === 'rendering'
   const isFailed = probe.state === 'failed'
-  const accent = isRendering ? '#2997ff' : isFailed ? '#f59e0b' : '#22c55e'
+  const accent = isFailed ? 'var(--warning)' : 'var(--indigo)'
   // #9 — UMA decisao de destino para o clique, o rotulo e a medicao. Enquanto
   // eram tres decisoes soltas, o botao podia prometer uma porta que a tela de
   // destino nao sabia abrir.
@@ -416,14 +416,14 @@ export default function ActiveRenderPill() {
       <div
         role="status"
         aria-live="polite"
-        className="fixed z-40 right-3 md:right-6 bottom-20 md:bottom-6 flex flex-col gap-2"
+        className="kineo-render-notice fixed z-40 right-3 md:right-6 bottom-20 md:bottom-6 flex flex-col gap-2"
         style={{
           width: 'min(300px, calc(100vw - 24px))',
           padding: 14,
           borderRadius: 18,
-          background: 'rgba(11,17,32,0.97)',
-          border: '1px solid rgba(34,197,94,0.45)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          background: 'var(--card)',
+          border: '1px solid var(--border2)',
+          boxShadow: 'var(--sh-card-h)',
           backdropFilter: 'blur(10px)',
         }}
       >
@@ -432,12 +432,12 @@ export default function ActiveRenderPill() {
             🎉
           </span>
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-bold" style={{ color: '#fff' }}>
+            <div className="text-sm font-bold" style={{ color: 'var(--text)' }}>
               Your video is ready
             </div>
             <div
               className="text-xs truncate"
-              style={{ color: 'rgba(255,255,255,0.62)', marginTop: 2 }}
+              style={{ color: 'var(--muted)', marginTop: 2 }}
               title={filaVisivel && fila ? fila.seed : (nextSeed ?? undefined)}
             >
               {filaVisivel && fila ? `Next: ${fila.seed}` : nextSeed}
@@ -455,7 +455,7 @@ export default function ActiveRenderPill() {
               marginRight: -4,
               background: 'transparent',
               border: 'none',
-              color: 'rgba(255,255,255,0.72)',
+              color: 'var(--muted)',
               fontSize: 18,
               lineHeight: 1,
               cursor: 'pointer',
@@ -473,9 +473,9 @@ export default function ActiveRenderPill() {
             style={{
               minHeight: 40,
               padding: '0 14px',
-              background: 'rgba(255,255,255,0.10)',
-              border: '1px solid rgba(255,255,255,0.18)',
-              color: '#fff',
+              background: 'var(--card2)',
+              border: '1px solid var(--border)',
+              color: 'var(--text)',
               cursor: 'pointer',
             }}
           >
@@ -496,9 +496,9 @@ export default function ActiveRenderPill() {
               style={{
                 minHeight: 40,
                 padding: '0 12px',
-                background: '#22c55e',
+                background: 'var(--indigo)',
                 border: 'none',
-                color: '#06220f',
+                color: 'var(--on-accent)',
                 cursor: 'pointer',
               }}
             >
@@ -517,9 +517,9 @@ export default function ActiveRenderPill() {
               style={{
                 minHeight: 40,
                 padding: '0 12px',
-                background: 'rgba(255,255,255,0.10)',
-                border: '1px solid rgba(255,255,255,0.18)',
-                color: '#fff',
+                background: 'var(--card2)',
+                border: '1px solid var(--border)',
+                color: 'var(--text)',
                 cursor: 'pointer',
               }}
             >
@@ -534,9 +534,9 @@ export default function ActiveRenderPill() {
               style={{
                 minHeight: 40,
                 padding: '0 12px',
-                background: '#22c55e',
+                background: 'var(--indigo)',
                 border: 'none',
-                color: '#06220f',
+                color: 'var(--on-accent)',
                 cursor: 'pointer',
               }}
             >
@@ -554,14 +554,14 @@ export default function ActiveRenderPill() {
       aria-live="polite"
       // Mobile: sits ABOVE the 64px MobileNav so it never covers a primary
       // action. Desktop: bottom-right, clear of the content column.
-      className="fixed z-40 right-3 md:right-6 bottom-20 md:bottom-6 flex items-center gap-2"
+      className="kineo-render-notice fixed z-40 right-3 md:right-6 bottom-20 md:bottom-6 flex items-center gap-2"
       style={{
         maxWidth: 'calc(100vw - 24px)',
         padding: '8px 8px 8px 14px',
         borderRadius: 999,
-        background: 'rgba(11,17,32,0.97)',
-        border: `1px solid ${isRendering ? 'rgba(41,151,255,0.45)' : isFailed ? 'rgba(245,158,11,0.55)' : 'rgba(34,197,94,0.45)'}`,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+        background: 'var(--card)',
+        border: '1px solid var(--border2)',
+        boxShadow: 'var(--sh-card-h)',
         backdropFilter: 'blur(10px)',
       }}
     >
@@ -598,7 +598,7 @@ export default function ActiveRenderPill() {
       >
         <span
           className="text-sm font-bold truncate"
-          style={{ color: '#fff', maxWidth: '46vw' }}
+          style={{ color: 'var(--text)', maxWidth: '46vw' }}
         >
           {probe.state === 'rendering'
             ? `Rendering… ${formatElapsedShort(tick - probe.startedAtMs)}`
@@ -611,7 +611,7 @@ export default function ActiveRenderPill() {
           style={{
             minHeight: 32,
             background: accent,
-            color: isRendering ? '#fff' : '#06220f',
+            color: 'var(--on-accent)',
           }}
         >
           {alvo.badge}
@@ -629,7 +629,7 @@ export default function ActiveRenderPill() {
             height: 44,
             background: 'transparent',
             border: 'none',
-            color: 'rgba(255,255,255,0.72)',
+            color: 'var(--muted)',
             fontSize: 18,
             lineHeight: 1,
             cursor: 'pointer',
@@ -666,14 +666,14 @@ function FilaLinedUpPill({
     <div
       role="status"
       aria-live="polite"
-      className="fixed z-40 right-3 md:right-6 bottom-20 md:bottom-6 flex flex-col gap-2"
+      className="kineo-render-notice fixed z-40 right-3 md:right-6 bottom-20 md:bottom-6 flex flex-col gap-2"
       style={{
         width: 'min(300px, calc(100vw - 24px))',
         padding: 14,
         borderRadius: 18,
-        background: 'rgba(11,17,32,0.97)',
-        border: '1px solid rgba(34,197,94,0.45)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+        background: 'var(--card)',
+        border: '1px solid var(--border2)',
+        boxShadow: 'var(--sh-card-h)',
         backdropFilter: 'blur(10px)',
       }}
     >
@@ -682,12 +682,12 @@ function FilaLinedUpPill({
           📌
         </span>
         <div className="min-w-0 flex-1">
-          <div className="text-sm font-bold" style={{ color: '#fff' }}>
+          <div className="text-sm font-bold" style={{ color: 'var(--text)' }}>
             Video #2 is lined up
           </div>
           <div
             className="text-xs truncate"
-            style={{ color: 'rgba(255,255,255,0.62)', marginTop: 2 }}
+            style={{ color: 'var(--muted)', marginTop: 2 }}
             title={ideia.seed}
           >
             {ideia.seed}
@@ -705,7 +705,7 @@ function FilaLinedUpPill({
             marginRight: -4,
             background: 'transparent',
             border: 'none',
-            color: 'rgba(255,255,255,0.72)',
+            color: 'var(--muted)',
             fontSize: 18,
             lineHeight: 1,
             cursor: 'pointer',
@@ -722,9 +722,9 @@ function FilaLinedUpPill({
         style={{
           minHeight: 40,
           padding: '0 12px',
-          background: '#22c55e',
+          background: 'var(--indigo)',
           border: 'none',
-          color: '#06220f',
+          color: 'var(--on-accent)',
           cursor: 'pointer',
         }}
       >

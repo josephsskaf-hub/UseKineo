@@ -1,5 +1,5 @@
 
-import KineoBolt from '@/components/KineoBolt'
+import { KineoBrandIcon } from '@/components/KineoBolt'
 // Push #116 — global footer for public marketing surfaces (/, /start,
 // /pricing, /login, /signup, /terms, /privacy, /not-found). Stays out
 // of (dashboard)/* so signed-in surfaces don't pick up duplicated
@@ -84,7 +84,6 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       { href: '/images', label: 'AI image generator — 6 engines' },
       { href: '/audio', label: 'AI voice generator (text to speech)' },
       { href: '/ai-video-upscaler', label: 'AI video upscaler & enhancer' },
-      { href: '/viral-now', label: 'Trending Shorts ideas today' },
       // KINEO-AVATAR-FORA-2026-09-28 — o link sai com o Avatar fora do catálogo (fundador 27/09: "avatar sai por hora");
       // a página continua no ar (noindex) e o link volta sozinho com AVATAR_PUBLIC=true.
       ...(AVATAR_PUBLIC ? [{ href: '/ai-avatar', label: 'AI Avatar video — your face, any script' }] : []),
@@ -158,7 +157,6 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       // pages; putting it in the global footer means every public page on the
       // domain is one hop from the library, and the library is one hop from
       // every script. Without this the hub would itself be an orphan.
-      { href: '/scripts', label: 'Free YouTube Shorts scripts' },
       { href: '/free-script-generator', label: 'Free script generator' },
       { href: '/comment-to-video', label: 'Comment to Short script' },
       { href: '/product-to-video-script', label: 'Product video ad script' },
@@ -219,7 +217,7 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
           href="/"
           style={{ ...linkStyle, color: 'var(--text)', fontWeight: 800, fontSize: 15 }}
         >
-          <KineoBolt /> Kineo
+          <KineoBrandIcon size={20} /> Kineo
         </Link>
         <p style={{ margin: '6px auto 0', maxWidth: 460, color: 'var(--muted)' }}><UiLabel>
           Turn one idea into a ready-to-post faceless YouTube Short — script,
