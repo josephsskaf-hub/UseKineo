@@ -1111,9 +1111,6 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                     Best Value
                   </div>
                 ) : null}
-                <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">
-                  {p.name}
-                </div>
                 {/* ONDA6 #10 (14/08) — o card abria direto no preco; agora tem
                     o nome grande como na landing (.nm). */}
                 <div className="mt-1.5 text-[1.34rem] font-semibold tracking-[-.018em] text-[var(--text)]">

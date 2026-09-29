@@ -84,7 +84,6 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       { href: '/images', label: 'AI image generator — 6 engines' },
       { href: '/audio', label: 'AI voice generator (text to speech)' },
       { href: '/ai-video-upscaler', label: 'AI video upscaler & enhancer' },
-      { href: '/viral-now', label: 'Trending Shorts ideas today' },
       // KINEO-AVATAR-FORA-2026-09-28 — o link sai com o Avatar fora do catálogo (fundador 27/09: "avatar sai por hora");
       // a página continua no ar (noindex) e o link volta sozinho com AVATAR_PUBLIC=true.
       ...(AVATAR_PUBLIC ? [{ href: '/ai-avatar', label: 'AI Avatar video — your face, any script' }] : []),
@@ -158,7 +157,6 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       // pages; putting it in the global footer means every public page on the
       // domain is one hop from the library, and the library is one hop from
       // every script. Without this the hub would itself be an orphan.
-      { href: '/scripts', label: 'Free YouTube Shorts scripts' },
       { href: '/free-script-generator', label: 'Free script generator' },
       { href: '/comment-to-video', label: 'Comment to Short script' },
       { href: '/product-to-video-script', label: 'Product video ad script' },

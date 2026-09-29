@@ -5,8 +5,8 @@ import gallery from './examples/ExamplesGallery.module.css'
  */
 export const KINEO_LANDING_THEME_CSS = `
 .klp {
-  --bg:#e3e4e5; --s0:#e7e8e8; --card:#f4f4f3; --card2:#e7e8e8; --s3:#dce0e2;
-  --line:#c6cacd; --line2:#969da3; --line3:#75808a;
+  --bg:#d5d8dc; --s0:#dce0e2; --card:#eceeed; --card2:#dce0e2; --s3:#dce0e2;
+  --line:#b7bec4; --line2:#969da3; --line3:#75808a;
   --txt:#20252b; --txt2:#303b45; --muted:#495660; --muted2:#535f68;
   --blue:#29343f; --blue-soft:#dce0e2; --home-action:#29343f; --home-on-action:#fff;
   --home-nav:#20252b; --home-wash:#dce0e2;
@@ -52,6 +52,17 @@ html:not([data-theme=dark]) .klp .nav-appearance { background:#29343f; color:#f8
 html:not([data-theme=dark]) .klp .nav-login { color:#e3e7ec; }
 html:not([data-theme=dark]) .klp .nav-toggle-btn .bar { background:#f8fafc; }
 .klp .nd-menu { color:var(--txt); }
+.klp .nav-disclosure>summary{display:inline-flex;align-items:center;min-height:48px;cursor:pointer;list-style:none;font:inherit;color:inherit;position:relative}
+.klp .nav-disclosure>summary::-webkit-details-marker{display:none}
+.klp .nav-disclosure::after{display:none}
+.klp .nav-disclosure:not([open])>.nd-menu{display:none!important}
+.klp .nav-disclosure[open]>.nd-menu{opacity:1;visibility:visible;pointer-events:auto;transform:translate(-50%,0);transition:none}
+.klp .nav-disclosure>.nd-menu{max-height:calc(100dvh - 128px);overflow-y:auto;overscroll-behavior:contain;border-radius:14px}
+.klp .nav-disclosure .nd-menu::before{pointer-events:none}
+.klp .nav-disclosure .nvp{display:none}
+.klp .nav-disclosure .nm-col a{min-height:48px}
+.klp .nav-disclosure>summary:focus-visible{outline:2px solid #66b2ff;outline-offset:5px;border-radius:4px}
+html:not([data-theme=dark]) .klp .nav-disclosure>summary{color:#f8fafc}
 .klp .nd-menu::before { background:var(--card); border-color:var(--line); box-shadow:0 16px 44px #071b3026; }
 .klp .nd-menu { padding-top:9px; }
 .klp .nd-menu::before { top:9px; }

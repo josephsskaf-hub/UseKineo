@@ -22,6 +22,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import Link from 'next/link'
+import BusinessVisualReferences from '@/components/BusinessVisualReferences'
+import { UiLabel } from '@/components/InterfaceLanguage'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { ADS_WIZARD_THEME_CSS } from '../new/adsWizardTheme'
 import { downloadVideoFile } from '@/lib/videoDownload'
@@ -1316,8 +1318,9 @@ function AdsV2Session({
       </div>
 
       <aside className="adv2-aside" aria-label="How Studio Ads works">
+        <BusinessVisualReferences compact />
         <section className="adv2-card">
-          <h2>How it works</h2>
+          <details className="adv2-guide" open><summary><UiLabel>How it works</UiLabel></summary>
           <ol className="adv2-how">
             {ADS_V2_HOW_IT_WORKS.map((s, i) => (
               <li key={s.title}>
@@ -1326,19 +1329,20 @@ function AdsV2Session({
               </li>
             ))}
           </ol>
+          </details>
         </section>
         <section className="adv2-card">
-          <h2>The shape of your ad</h2>
+          <details className="adv2-guide"><summary><UiLabel>The shape of your ad</UiLabel></summary>
           <ol className="adv2-shape">{ADS_V2_AD_SHAPE.map((s) => <li key={s}>{s}</li>)}</ol>
-          <p className="adsw-hint" style={{ margin: 0 }}>Vertical 9:16, about {ADS_V2_SCREEN_SECONDS} seconds, music under a short voice-over you can turn off, and 2 or 3 short lines of text on screen.</p>
+          <p className="adsw-hint" style={{ margin: 0 }}>Vertical 9:16, about {ADS_V2_SCREEN_SECONDS} seconds, music under a short voice-over you can turn off, and 2 or 3 short lines of text on screen.</p></details>
         </section>
         <section className="adv2-card">
-          <h2>What makes a good photo</h2>
+          <details className="adv2-guide"><summary><UiLabel>What makes a good photo</UiLabel></summary>
           {sector ? <p className="adsw-hint" style={{ margin: '0 0 8px' }}>For {ADS_V2_SECTOR_OPTIONS.find((s) => s.id === sector)?.label.toLowerCase()}:</p> : null}
           <ul className="adv2-tips">
             {ADS_V2_PHOTO_TIPS[sector ?? 'other'].map((t) => <li key={t}>{t}</li>)}
             {ADS_V2_GENERAL_PHOTO_TIPS.map((t) => <li key={t}>{t}</li>)}
-          </ul>
+          </ul></details>
         </section>
       </aside>
     </div>

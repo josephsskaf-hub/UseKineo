@@ -31,6 +31,7 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
   // hooks use real SSR defaults; their call order must not shift page fixtures.
   const component=sf.statements.find(n=>ts.isFunctionDeclaration(n)&&n.modifiers?.some(m=>m.kind===ts.SyntaxKind.DefaultKeyword))
   if(component)walk(component)
+  for(const extra of fixture.previewFunctions??[]) { const fn=sf.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text===extra);if(fn)walk(fn) }
   let index=0
   const previewState=(name,value)=>{
     if(!names.includes(name))throw Error('Unmapped state in '+entry)
@@ -41,12 +42,13 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
   if(fixture.captureControls) react.createElement=(type,props,...children)=>{if(typeof type==='string' && (props?.onClick || props?.onChange))fixture.captureControls.push({type,props,children});return React.createElement(type,props,...children)}
   function load(file) {
     if(cache.has(file))return cache.get(file)
-    const historical=before && [entry,'components/studioKit.tsx',...(comparisonBase!==BASE?['app/kineoLandingTheme.ts','lib/ui/workspacePresentation.ts','lib/ui/homePresentation.ts','components/LibraryRecentProject.tsx','lib/freeTierOffer.ts']:[])].includes(file)
+    const historical=before && [entry,'components/studioKit.tsx',...(comparisonBase!==BASE?['app/kineoLandingTheme.ts','lib/ui/workspacePresentation.ts','lib/ui/homePresentation.ts','components/LibraryRecentProject.tsx','lib/freeTierOffer.ts','components/CreditMinutesSummary.tsx']:[])].includes(file)
     let code=source(file,historical,comparisonBase)
     if(file===entry)for(const [start,end,text] of [...stateCalls].sort((a,b)=>b[0]-a[0]))code=code.slice(0,start)+text+code.slice(end)
     const box={exports:{}}; cache.set(file,box.exports)
     const shim=id=>{
       if(file==='app/tools/editor/VideoEditor.tsx' && id==='./editor.css')return {}
+      if(id==='../new/adsWizardTheme')return load('app/(dashboard)/ads/new/adsWizardTheme.ts')
       if(id==='react')return react
       if(id==='react/jsx-runtime')return require(id)
       if(id.endsWith('.module.css'))return {__esModule:true,default:new Proxy({},{get:(_target,key)=>String(key)})}
@@ -55,7 +57,7 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
       if(id==='./BusinessAdsOffers')return load('app/business-video-ads/BusinessAdsOffers.tsx')
       if(id==='next/navigation')return {useSearchParams:()=>new URLSearchParams(),usePathname:()=>fixture.pathname??'/studio',useRouter:()=>({})}
       if(id==='@/lib/analytics')return {trackEvent:()=>{throw Error('Analytics forbidden')}}
-      if(id==='@/components/FreeTierOfferProvider' && fixture.demoOffer){const offer=load('lib/freeTierOffer.ts').buildFreeTierOffer(fixture.demoOffer !== 'current');return {useFreeTierOffer:()=>offer,FreeTierCopy:({children})=>children}}
+      if(id==='@/components/FreeTierOfferProvider' && fixture.demoOffer){const offer=load('lib/freeTierOffer.ts').buildFreeTierOffer(fixture.demoOffer !== 'current');return {useFreeTierOffer:()=>offer,FreeTierCopy:({legacy,on,onKey})=>load('lib/freeTierOffer.ts').swapFreeTierCopy(offer,legacy,on??(onKey?offer.copy[onKey]:undefined))}}
       if(id==='@/lib/supabase/client' && fixture.demoShell)return {createClient:()=>({auth:{signOut:()=>{throw Error('Auth mutation forbidden')}}})}
       if(id==='@/lib/supabase/client')return {createClient:()=>{throw Error('Database access forbidden in offline preview')}}
       if(id==='@/lib/seriesDoorImpressions')return {useSeriesDoorSeen:()=>({registrarPorta:()=>()=>{}})}
@@ -63,6 +65,7 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
       // Canonical public facts now import gptHandoff, whose hashing helper uses
       // Node crypto. Allow this built-in only; network, DB and env stay blocked.
       if(id==='node:crypto'||id==='crypto')return require(id)
+      if(['EngineVisualReference','BusinessVisualReferences','PublicNavDropdown'].some(name=>id==='@/components/'+name))return load(id.slice(2)+'.tsx')
       if(id==='@/components/studioKit')return load('components/studioKit.tsx')
       if(id==='@/components/InterfaceLanguage')return load('components/InterfaceLanguage.tsx')
       if(id==='@/components/KineoBolt')return load('components/KineoBolt.tsx')
