@@ -34,6 +34,12 @@ import {
   planBase,
   planLabel,
   type PlanBase,
+  // KINEO-MRR-PRECO-PAGO-2026-09-28 — o MRR é o que cada assinante PAGA (última fatura), não a tabela.
+  MRR_PAID_EVENT_NAMES,
+  paidMonthlyUsdByUser,
+  paidMrrSourceLabel,
+  subscriberMrr,
+  type PaidAmountEvent,
 } from '../_shared/mrr'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -80,6 +86,12 @@ export interface CeoData {
   arpu: number | null
   payingActive: number
   mrrByPlan: PlanRevenueRow[]
+  /** KINEO-MRR-PRECO-PAGO-2026-09-28 — o mesmo grupo no preço de tabela de hoje ("se todos pagassem o preço novo"). */
+  mrrTableUsd: number
+  /** "11 pagantes · 2 por fatura · 8 por checkout · 1 pela tabela (sem valor pago conhecido)". */
+  mrrSourceLabel: string
+  /** Conferência ao vivo (preço da assinatura na Stripe); null quando a Stripe não responde. */
+  mrrStripeUsd: number | null
   /** Legacy field kept so nothing that already reads CeoData breaks. */
   paidTotal: number
   proUsers: number
@@ -211,15 +223,21 @@ export async function computeCeoData(): Promise<CeoData | null> {
   const admin = serviceClient()
   if (!admin) return null
 
-  const [profiles, videos] = await Promise.all([
+  const [profiles, videos, paidEvents] = await Promise.all([
     fetchAllRows<ProfileRow>(
       admin,
       'profiles',
       'id, email, plan, created_at, stripe_customer_id, stripe_subscription_id, video_credits, has_paid',
     ),
     fetchAllRows<VideoRow>(admin, 'videos', 'user_id, created_at'),
+    // KINEO-MRR-PRECO-PAGO-2026-09-28 — os eventos com valor pago de assinatura (checkout + faturas).
+    fetchAllRows<PaidAmountEvent>(admin, 'events', 'id, user_id, name, created_at, metadata', {
+      column: 'name',
+      values: [...MRR_PAID_EVENT_NAMES],
+    }),
   ])
   if (profiles.length === 0) return null
+  const paidByUser = paidMonthlyUsdByUser(paidEvents)
 
   // Internal accounts (founder + family + test) are excluded from EVERY
   // aggregate. They are 5 of the 6 non-free plans in prod — leaving them in
@@ -248,16 +266,28 @@ export async function computeCeoData(): Promise<CeoData | null> {
   // ── revenue ───────────────────────────────────────────────────────────────
   const byPlan = new Map<PlanBase, PlanRevenueRow>()
   let mrr = 0
+  let mrrTableUsd = 0
   let payingActive = 0
   let hasPaidEver = 0
+  const mrrSources = { counted: 0, fromInvoice: 0, fromCheckout: 0, fromTable: 0 }
   const atRiskUsers: CeoData['atRiskUsers'] = []
 
   for (const p of external) {
     if (p.has_paid) hasPaidEver += 1
     if (!isPayingPlan(p.plan)) continue // KINEO-ADMIN-FONTE-UNICA: trial de $1 não é pagante
     payingActive += 1
-    const price = mrrForPlan(p.plan)
+    // KINEO-MRR-PRECO-PAGO-2026-09-28 — o que ESTA pessoa paga (última fatura);
+    // a tabela só quando não há valor conhecido, e isso vai contado no rótulo.
+    const sub = subscriberMrr(p.plan, paidByUser.get(p.id))
+    const price = sub.usd
     mrr += price
+    mrrTableUsd += sub.tableUsd
+    if (sub.tableUsd > 0) {
+      mrrSources.counted += 1
+      if (sub.source === 'invoice') mrrSources.fromInvoice += 1
+      else if (sub.source === 'checkout') mrrSources.fromCheckout += 1
+      else mrrSources.fromTable += 1
+    }
     const base = planBase(p.plan)
     const row = byPlan.get(base)
     if (row) {
@@ -268,7 +298,7 @@ export async function computeCeoData(): Promise<CeoData | null> {
         base,
         label: planLabel(p.plan),
         count: 1,
-        priceUsd: price,
+        priceUsd: mrrForPlan(p.plan),
         mrrUsd: price,
         accent: planAccent(p.plan),
       })
@@ -284,18 +314,20 @@ export async function computeCeoData(): Promise<CeoData | null> {
   atRiskUsers.sort((a, b) => a.credits - b.credits)
 
   // ⚠️ KINEO-MRR-STRIPE-2026-08-19 — A VERDADE SOBRE RECEITA MORA NA STRIPE.
-  // O laço acima soma pelo PREÇO DE TABELA, e isso deixou de ser a receita no
-  // instante em que a V6 mudou os preços: assinante antigo mantém o valor que
-  // assinou. Medido hoje: a tela dizia $66.00 e a receita real era $94.40.
-  // Aqui o total é substituído pela soma real das assinaturas; a quebra por
-  // plano fica com o preço de tabela de propósito (ela responde "quanto vale
-  // um Creator hoje", não "quanto o fulano paga").
+  // Assinante antigo mantém o valor que assinou; a tabela de hoje não sabe
+  // responder quanto ele paga. Medido em 19/08: $66.00 na tela, $94.40 reais.
+  // KINEO-MRR-PRECO-PAGO-2026-09-28 — a Stripe caía em null ao menor tropeço e a
+  // tela voltava à tabela em silêncio ($276,90 no preço V8 contra ~$170 pagos).
+  // O laço acima já soma o que cada um PAGA (última fatura, régua única em
+  // _shared/mrr); a Stripe fica como conferência ao vivo, no rótulo.
   const subIds = external
     .filter((p) => isPaidPlan(p.plan))
     .map((p) => (p as { stripe_subscription_id?: string | null }).stripe_subscription_id ?? '')
     .filter(Boolean)
   const stripeMrr = await stripeMrrUsd(subIds)
-  if (stripeMrr) mrr = stripeMrr.mrr
+  const mrrStripeUsd = stripeMrr ? Math.round(stripeMrr.mrr * 100) / 100 : null
+  mrr = Math.round(mrr * 100) / 100
+  mrrTableUsd = Math.round(mrrTableUsd * 100) / 100
 
   const mrrByPlan = [...byPlan.values()].sort((a, b) => b.mrrUsd - a.mrrUsd)
   const countFor = (b: PlanBase) => byPlan.get(b)?.count ?? 0
@@ -425,6 +457,9 @@ export async function computeCeoData(): Promise<CeoData | null> {
     arpu: payingActive > 0 ? mrr / payingActive : null,
     payingActive,
     mrrByPlan,
+    mrrTableUsd,
+    mrrSourceLabel: paidMrrSourceLabel(mrrSources),
+    mrrStripeUsd,
     paidTotal: payingActive,
     proUsers: countFor('studio'),
     basicUsers: countFor('creator'),

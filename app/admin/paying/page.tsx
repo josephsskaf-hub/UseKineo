@@ -30,6 +30,13 @@ import {
   planBase,
   planLabel,
   type PlanBase,
+  // KINEO-MRR-PRECO-PAGO-2026-09-28 — cada linha vale a última fatura PAGA; tabela só sem valor conhecido.
+  MRR_PAID_EVENT_NAMES,
+  paidMonthlyUsdByUser,
+  paidMrrSourceLabel,
+  subscriberMrr,
+  type MrrSource,
+  type PaidAmountEvent,
 } from '@/app/api/admin/_shared/mrr'
 
 export const dynamic = 'force-dynamic'
@@ -60,6 +67,8 @@ interface PayingRow {
   accent: string
   trial: boolean
   priceUsd: number
+  /** KINEO-MRR-PRECO-PAGO-2026-09-28 — de onde veio o valor da linha: fatura, checkout ou tabela (sem valor pago). */
+  priceSource: MrrSource
   createdAt: string | null
   paidAt: string | null
   country: string | null
@@ -75,6 +84,9 @@ interface PayingRow {
 interface PayingData {
   rows: PayingRow[]
   mrrUsd: number
+  /** KINEO-MRR-PRECO-PAGO-2026-09-28 — o mesmo grupo no preço de tabela de hoje, e o rótulo de origem. */
+  mrrTableUsd: number
+  mrrSourceLabel: string
   payingActive: number
   internalCount: number
   byPlan: Array<{ base: PlanBase; label: string; count: number; priceUsd: number; mrrUsd: number; accent: string }>
@@ -93,13 +105,16 @@ async function loadPaying(): Promise<PayingData | null> {
     fetchAllRows<{ user_id: string | null; created_at: string | null }>(admin, 'videos', 'user_id, created_at'),
     // events.payment_success is the only per-user payment timestamp we store;
     // Stripe would need one API call per customer to beat it.
-    fetchAllRows<{ user_id: string | null; created_at: string | null }>(
+    // KINEO-MRR-PRECO-PAGO-2026-09-28 — e a metadata (amount/currency/tier) das faturas e do
+    // checkout é o que diz quanto cada um PAGA; a tabela de hoje não sabe responder isso.
+    fetchAllRows<PaidAmountEvent & { created_at: string | null }>(
       admin,
       'events',
-      'user_id, created_at',
-      { column: 'name', values: ['payment_success'] },
+      'id, user_id, name, created_at, metadata',
+      { column: 'name', values: [...MRR_PAID_EVENT_NAMES] },
     ),
   ])
+  const paidByUser = paidMonthlyUsdByUser(payEvents)
 
   const videoCount = new Map<string, number>()
   const lastVideo = new Map<string, string>()
@@ -112,6 +127,7 @@ async function loadPaying(): Promise<PayingData | null> {
 
   const firstPayment = new Map<string, string>()
   for (const e of payEvents) {
+    if (e.name !== 'payment_success') continue
     if (!e.user_id || !e.created_at) continue
     const prev = firstPayment.get(e.user_id)
     if (!prev || e.created_at < prev) firstPayment.set(e.user_id, e.created_at)
@@ -123,6 +139,9 @@ async function loadPaying(): Promise<PayingData | null> {
     .map((p) => {
       const expires = p.plan_expires_at
       const active = !expires || new Date(expires).getTime() > now
+      // KINEO-MRR-PRECO-PAGO-2026-09-28 — pagante vale a última fatura paga (tabela só sem valor
+      // conhecido); trial de $1 segue mostrando a tabela, que é o que VIRA no dia 8.
+      const paid = isTrialPlan(p.plan) ? null : subscriberMrr(p.plan, paidByUser.get(p.id))
       return {
         email: p.email ?? '(no email)',
         name: p.name,
@@ -130,7 +149,8 @@ async function loadPaying(): Promise<PayingData | null> {
         planLabelText: planLabel(p.plan),
         accent: planAccent(p.plan),
         trial: isTrialPlan(p.plan),
-        priceUsd: mrrForPlan(p.plan),
+        priceUsd: paid ? paid.usd : mrrForPlan(p.plan),
+        priceSource: paid ? paid.source : 'table',
         createdAt: p.created_at,
         paidAt: firstPayment.get(p.id) ?? null,
         country: p.signup_country,
@@ -150,11 +170,21 @@ async function loadPaying(): Promise<PayingData | null> {
 
   const byPlanMap = new Map<PlanBase, PayingData['byPlan'][number]>()
   let mrrUsd = 0
+  let mrrTableUsd = 0
+  const mrrSources = { counted: 0, fromInvoice: 0, fromCheckout: 0, fromTable: 0 }
   let payingActive = 0
   for (const r of rows) {
     if (r.internal || !r.active) continue
     payingActive += 1
     mrrUsd += r.priceUsd
+    mrrTableUsd += mrrForPlan(r.plan)
+    // KINEO-MRR-PRECO-PAGO-2026-09-28 — o rótulo conta de onde veio cada pagante (trial não entra).
+    if (!r.trial && mrrForPlan(r.plan) > 0) {
+      mrrSources.counted += 1
+      if (r.priceSource === 'invoice') mrrSources.fromInvoice += 1
+      else if (r.priceSource === 'checkout') mrrSources.fromCheckout += 1
+      else mrrSources.fromTable += 1
+    }
     const base = planBase(r.plan)
     const existing = byPlanMap.get(base)
     if (existing) {
@@ -165,7 +195,7 @@ async function loadPaying(): Promise<PayingData | null> {
         base,
         label: r.planLabelText.replace(' · trial', '').replace(' · pilot', ''),
         count: 1,
-        priceUsd: r.priceUsd,
+        priceUsd: mrrForPlan(r.plan),
         mrrUsd: r.priceUsd,
         accent: r.accent,
       })
@@ -174,7 +204,9 @@ async function loadPaying(): Promise<PayingData | null> {
 
   return {
     rows,
-    mrrUsd,
+    mrrUsd: Math.round(mrrUsd * 100) / 100,
+    mrrTableUsd: Math.round(mrrTableUsd * 100) / 100,
+    mrrSourceLabel: paidMrrSourceLabel(mrrSources),
     payingActive,
     internalCount: rows.filter((r) => r.internal).length,
     byPlan: [...byPlanMap.values()].sort((a, b) => b.mrrUsd - a.mrrUsd),
@@ -236,7 +268,9 @@ export default async function AdminPayingPage() {
           Who pays us
         </h1>
         <p className="text-xs mt-1" style={{ color: '#86868b' }}>
-          Active paid plan is the official goal metric (docs/METAS.md). Prices come from lib/pricing.
+          Active paid plan is the official goal metric (docs/METAS.md). Each row is what that customer
+          actually pays (last paid invoice or subscription checkout; BRL at the house rate); the list
+          price from lib/pricing appears only when no paid amount is known, marked “tabela”.
           MRR excludes internal accounts ({INTERNAL_ACCOUNTS_LABEL}: {data.internalCount} shown below,
           badged).
         </p>
@@ -273,6 +307,10 @@ export default async function AdminPayingPage() {
             {data.payingActive} paying customer{data.payingActive === 1 ? '' : 's'} ·{' '}
             {data.payingActive > 0 ? `ARPU ${formatUsd(data.mrrUsd / data.payingActive)}` : 'no ARPU yet'}
           </p>
+          {/* KINEO-MRR-PRECO-PAGO-2026-09-28 — o número é o que cada um paga; a tabela nova fica ao lado, rotulada. */}
+          <p className="text-[11px] mt-1" style={{ color: '#86868b' }}>
+            pago · {data.mrrSourceLabel} · tabela nova {formatUsd(data.mrrTableUsd)}
+          </p>
         </div>
         {data.byPlan.length === 0 ? (
           <div className="rounded-xl p-4" style={CARD}>
@@ -290,7 +328,7 @@ export default async function AdminPayingPage() {
                 {p.count}
               </div>
               <p className="text-[11px] mt-1.5" style={{ color: '#86868b' }}>
-                {formatUsd(p.priceUsd)}/mo each → {formatUsd(p.mrrUsd)}
+                tabela {formatUsd(p.priceUsd)}/mo → pago {formatUsd(p.mrrUsd)}
               </p>
             </div>
           ))
@@ -349,6 +387,12 @@ export default async function AdminPayingPage() {
                   <span style={{ color: r.internal || !r.active ? '#86868b' : '#34d399', fontWeight: 700 }}>
                     {r.internal ? `(${formatUsd(r.priceUsd)})` : formatUsd(r.priceUsd)}
                   </span>
+                  {/* KINEO-MRR-PRECO-PAGO-2026-09-28 — pagante sem valor pago conhecido mostra a tabela, e diz isso. */}
+                  {!r.trial && r.priceSource === 'table' && r.priceUsd > 0 && (
+                    <span className="ml-1 text-[10px]" style={{ color: '#fbbf24' }} title="sem fatura nem checkout com valor: mostrando o preço de tabela">
+                      tabela
+                    </span>
+                  )}
                 </Td>
                 <Td>{fmtDate(r.createdAt)}</Td>
                 <Td>{fmtDate(r.paidAt)}</Td>
