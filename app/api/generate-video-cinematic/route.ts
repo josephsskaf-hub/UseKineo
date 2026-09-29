@@ -41,6 +41,7 @@ import {
   type AttemptRecord,
 } from '@/lib/cinematic/dispatchScenes'
 import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
+import { kling25FootageNeeded, kling25ShotCount, kling25SceneSeconds, kling25ClipsUsd, kling25WriterBudget, kling25AlignBudget, kling25AverageShotSeconds, kling25VerbatimPlan, kling25VisualHint, kling25SceneWordStarts, kling25PlanPace, kling25WordsFit, KLING25_CLIP_LOSS_SECONDS } from '@/lib/cinematic/klingShots' // KINEO-KLING25-PLANOS-5S-2026-09-28
 import { resolveCharacterVoice } from '@/lib/hollywood/characterVoice'
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
 import { classicDryRunReport, isDryRunAccount } from '@/lib/cinematic/classicDryRun'
@@ -694,11 +695,15 @@ function buildFalInput(
       ...(typeof seed === 'number' ? { seed } : {}),
     }
   }
+  // KINEO-KLING25-PLANOS-5S-2026-09-28 — o Kling 2.5 (t2v e i2v) recebe os segundos do PLANO: '5' no plano de 5 s, '10' no
+  // plano longo e em todo chamador sem `seconds` (claim antigo, qualquer outro caminho) — exatamente o de antes. Schema da
+  // fal do 2.5 turbo: duration '5' | '10' (US$ 0,07/s, docs/PRECOS-MOTORES-V4.md). Espelho de kling25FalDuration
+  // (lib/cinematic/klingShots.ts): a regra fica escrita aqui porque guardiões executam este builder isolado, sem imports.
   if (model === KLING_I2V_MODEL) {
     return {
       image_url: imageUrl,
       prompt,
-      duration: '10',
+      duration: typeof seconds === 'number' && seconds > 0 && seconds <= 5 ? '5' : '10',
       negative_prompt: classicVisualNegativePrompt(visualMode, stylized === true),
       cfg_scale: 0.6,
       ...(typeof seed === 'number' ? { seed } : {}),
@@ -707,7 +712,7 @@ function buildFalInput(
   if (model === KLING_MODEL) {
     return {
       prompt,
-      duration: '10',
+      duration: typeof seconds === 'number' && seconds > 0 && seconds <= 5 ? '5' : '10', // KINEO-KLING25-PLANOS-5S-2026-09-28 (ver o ramo i2v acima)
       aspect_ratio: frame.falAspectRatio, // KINEO-MULTIFORMATO-2026-09-02 — '9:16' sem `aspect`
       negative_prompt: classicVisualNegativePrompt(visualMode, stylized === true),
       cfg_scale: 0.6,
@@ -3054,6 +3059,21 @@ async function manipularPost(req: NextRequest) {
       }
     }
 
+    // ═══ KINEO-KLING25-PLANOS-5S-2026-09-28 — Kling 2.5 em planos de 5 s (fundador 28/09: "mais variedade de cenas") ═══
+    // Até aqui: ⌈d/9⌉ planos de 10 s (35 s → 4; 60 s → 7; 90 s → 9) e, no verbatim, ⌈fala/10⌉ (#442). Agora a imagem ÚTIL
+    // necessária (o compose tira 0,16 s de cada plano) vira planos de 5 s (a fal cobra por segundo, US$ 0,07/s). Modo IA:
+    // o filme do botão + 3 s de folga. Verbatim: o roteiro no passo de planejamento (≤ 2,3 pal/s, a voz mais lenta medida
+    // nos filmes reais) — este número é provisório: o roteiro em prosa é dividido mais abaixo (kling25VerbatimPlan), com
+    // cortes e segundos decididos juntos para CADA plano caber a sua fala. Teto de 12 planos. Seedance/Veo/Sora: nada roda aqui.
+    let kling25Footage = 0
+    if (wantsKling) {
+      const palavrasDoRoteiro = verbatim ? parsedScript.narration.split(/\s+/).filter(Boolean).length : 0
+      kling25Footage = kling25FootageNeeded({ durationSeconds: duration, verbatimWords: palavrasDoRoteiro, wordsPerSecond: narrationRate.wordsPerSecond })
+      const planos = kling25ShotCount(kling25Footage)
+      console.log(`[cinematic] KLING25-PLANOS-5S: ${clipCount} planos de 10 s → ${planos} planos de 5 s (imagem necessária ${kling25Footage}s${verbatim ? `, roteiro de ${palavrasDoRoteiro} palavras` : ''})`)
+      clipCount = planos
+    }
+
     // ═══ KINEO-ESCRITOR-CLASSICO-SABE-A-DURACAO-2026-09-12 — o pente fino de $0
     // (12/09) mostrou o Seedance em modo IA nascendo com 74 palavras para 60 s
     // (24 s de fala): o mesmo "10-22 palavras por cena" que o vigia consertou no
@@ -3061,6 +3081,12 @@ async function manipularPost(req: NextRequest) {
     // da fal escolhidos para outro texto. Mesma régua (targetWordCount, 3,1
     // pal/s) e a língua do texto; só no caminho clássico (o hollywood tem o seu).
     const classicWriterOptions = { wordsPerScene: wordsPerSceneFor(duration, clipCount, narrationRate.wordsPerSecond), language: narrationLanguage.language } // KINEO-RITMO-POR-VOZ-2026-09-15: a mesma régua do portão e do dry-run
+    // KINEO-KLING25-PLANOS-5S-2026-09-28 — no Kling 2.5 o escritor sabe que cada fala enche um plano de ~5 s (e não ~10), e
+    // acima de 9 cenas ganha teto de tokens e prazo proporcionais (12 cenas de 9 campos, ~150 tokens cada, não cabem nos
+    // 1.800 fixos — o JSON sairia cortado). Seedance/Veo: objeto idêntico, prompt idêntico.
+    // Revisão adversarial (28/09): no filme de 90 s 7 dos 12 planos são de 10 s e o escritor ouvia "~5-second scene" — o
+    // escritor recebe a média REAL dos planos que a imagem vai ter (35/45 s → 5; 60 s → 6; 90 s → 8).
+    if (wantsKling) Object.assign(classicWriterOptions, { sceneSeconds: kling25AverageShotSeconds(clipCount, kling25Footage) }, kling25WriterBudget(clipCount))
     // Build scenes
     // #441 — aiPrompt = the cinematic SHOT description fed to Seedance (prefer
     // it over the raw stock query). Set from generateScenes prose (non-verbatim)
@@ -3078,7 +3104,7 @@ async function manipularPost(req: NextRequest) {
     const classicVisualPolicy: VisualPromptPolicy = {
       mode: classicVisualMode, style: styleAnchor, character: storyCharacter, aspect: aspectRequested,
     }
-    let scenes: { description: string; voiceover: string; caption: string; stockSearchQuery?: string; aiPrompt?: string }[]
+    let scenes: { description: string; voiceover: string; caption: string; stockSearchQuery?: string; aiPrompt?: string; clipSeconds?: number }[] // clipSeconds: KINEO-KLING25-PLANOS-5S-2026-09-28 (só Kling 2.5)
 
     if (verbatim) {
       // #369 — pick `clipCount` beats EVENLY across all segments, ALWAYS
@@ -3120,6 +3146,25 @@ async function manipularPost(req: NextRequest) {
           if (r.removidas.length || r2.removed.length) { sc.voiceover = texto; sc.caption = shortCaptionFromVoiceover(texto); tiradas.push(...r.removidas, ...r2.removed) }
         }
         if (tiradas.length) console.log(`[cinematic] KINEO-FALA-CLASSICA-FIEL: ${tiradas.length} data(s)/hora(s)/nome(s) fora do pedido removida(s) da fala: ${tiradas.map((t) => JSON.stringify(t)).join(', ')}`)
+      }
+    }
+
+    // ═══ KINEO-KLING25-PLANOS-5S-2026-09-28 — no Kling 2.5 o roteiro verbatim em prosa vira planos que CABEM a própria fala
+    // (lib/cinematic/klingShots kling25VerbatimPlan). Revisão adversarial (28/09, 06fe798a): o divisor por frase fazia cenas
+    // de 6 a 23 palavras e dava 5 s a cenas de 15-20 (6-8 s de fala) — a imagem corria na frente da voz. Agora cortes e
+    // segundos saem juntos: cada bloco cabe na parte útil do seu plano no passo de planejamento (≤ 2,3 pal/s; 5 s → até 11
+    // palavras, 10 s → até 22), fim de frase quando o preço é o mesmo, vírgula dentro de frase que não cabe num plano,
+    // palavra só sem outro jeito. O divisor de palavras iguais logo acima continua sendo o de Seedance/Veo, byte a byte;
+    // roteiro com marcadores mantém os blocos do autor. Nenhuma palavra muda: a soma das cenas é o roteiro.
+    if (wantsKling && verbatim && parsedScript.segments.length === 0 && scenes.length > 0) {
+      const plano = kling25VerbatimPlan(parsedScript.narration, { durationSeconds: duration, wordsPerSecond: narrationRate.wordsPerSecond })
+      if (plano.chunks.length > 0) {
+        scenes = plano.chunks.map((fala, i) => {
+          const pista = kling25VisualHint(fala)
+          return { description: pista, voiceover: fala, caption: shortCaptionFromVoiceover(fala || pista), stockSearchQuery: pista, clipSeconds: plano.seconds[i] }
+        })
+        console.log(`[cinematic] KLING25-PLANOS-5S: verbatim em ${scenes.length} planos [${plano.seconds.join(',')}] (passo ${plano.pace} pal/s: 5 s ≤ ${plano.fitShort} palavras, 10 s ≤ ${plano.fitLong}; filme ≈ ${plano.needSeconds}s)`)
+        clipCount = scenes.length
       }
     }
 
@@ -5561,6 +5606,28 @@ async function manipularPost(req: NextRequest) {
     }
     // ── end KINEO-HOLLYWOOD-2026-07-09 ──────────────────────────────────────
 
+    // ═══ KINEO-KLING25-PLANOS-5S-2026-09-28 — os segundos de CADA plano do Kling 2.5, agora que as cenas existem ═══
+    // Verbatim em prosa: o plano acima já decidiu (cada bloco cabe o seu plano). Roteiro marcado: a cena cuja fala
+    // ATRIBUÍDA (do início dela ao início da próxima na narração) não cabe em 4,84 s no passo de planejamento nasce com
+    // 10 s. Modo IA: 5 s por plano; se não cobre a imagem necessária, os planos com mais fala passam a 10 s. Viaja na cena
+    // (`clipSeconds`) até o payload (buildFalInput → duration '5'|'10'), o claim assinado (`clip_seconds` e
+    // `clip_word_starts`) e o compose (plano de 5 s nunca esticado; cada plano entra quando a sua fala começa).
+    let kling25ClipSeconds: number[] | null = null
+    let kling25Passo = 0
+    if (wantsKling && kling25Footage > 0 && scenes.length > 0) {
+      const narracaoDoFilme = verbatim && parsedScript.narration ? parsedScript.narration : scenes.map((s) => s.voiceover).filter(Boolean).join(' ') // ≡ voiceoverScript da resposta
+      const palavrasDoFilme = narracaoDoFilme.split(/\s+/).filter(Boolean).length
+      const inicios = kling25SceneWordStarts(narracaoDoFilme, scenes.map((s) => s.voiceover))
+      const atribuidas = inicios.map((a, i) => (i + 1 < inicios.length ? inicios[i + 1] : palavrasDoFilme) - a)
+      kling25Passo = kling25PlanPace(narrationRate.wordsPerSecond, palavrasDoFilme)
+      const segundos = scenes.every((s) => s.clipSeconds === 5 || s.clipSeconds === 10)
+        ? scenes.map((s) => s.clipSeconds as number)
+        : kling25SceneSeconds(scenes.map((s) => s.voiceover), kling25Footage, { wordCounts: atribuidas, fitFirst: verbatim, fitWords: kling25WordsFit(5, kling25Passo) })
+      kling25ClipSeconds = segundos
+      scenes = scenes.map((s, i) => ({ ...s, clipSeconds: segundos[i] }))
+      console.log(`[cinematic] KLING25-PLANOS-5S: ${scenes.length} planos [${segundos.join(',')}] = ${segundos.reduce((a, b) => a + b, 0)}s de imagem ≈ US$ ${kling25ClipsUsd(segundos).toFixed(2)} de clipe (necessário ${kling25Footage}s)`)
+    }
+
     // KINEO-VIGIA-CENARIO-2026-09-11 — antes de qualquer still ou clipe pago,
     // as TRÊS fontes de visual (descritor, GPT das cenas, plano de b-roll)
     // passam pelo filtro determinístico: nome próprio, ano/década e adjetivo
@@ -5619,7 +5686,7 @@ async function manipularPost(req: NextRequest) {
       const alinhado = await alignShotsToSpeech({
         topic: prompt,
         scenes: scenes.map((sc) => ({ voiceover: sc.voiceover ?? '', shot: sc.aiPrompt || sc.stockSearchQuery || sc.description || '' })),
-      })
+      }, wantsKling ? kling25AlignBudget(scenes.length) : undefined) // KINEO-KLING25-PLANOS-5S-2026-09-28: o dobro de cenas ganha teto de tokens e prazo proporcionais; Seedance/Veo: chamada idêntica
       if (alinhado) {
         const historiaAlinhada = `${prompt} ${scenes.map((sc) => sc.voiceover ?? '').join(' ')}`
         for (const c of alinhado.rewritten) {
@@ -5682,6 +5749,11 @@ async function manipularPost(req: NextRequest) {
         verbatim,
         wordsPerSecond: narrationRate.wordsPerSecond,
       })
+      // KINEO-KLING25-PLANOS-5S-2026-09-28 — no Kling 2.5 o ensaio refaz a conta com os segundos de CADA plano (5|10), os
+      // mesmos que vão no payload pago; Seedance/Veo/Sora seguem com o relatório acima, sem mudança.
+      const relatorioDoEnsaio = kling25ClipSeconds
+        ? classicDryRunReport({ scenes: scenes.map((s, i) => ({ voiceover: s.voiceover, prompt: classicScenePrompts[i] })), targetSeconds: duration, secondsPerClip: 5, verbatim, wordsPerSecond: narrationRate.wordsPerSecond, sceneSeconds: kling25ClipSeconds, clipLossSeconds: KLING25_CLIP_LOSS_SECONDS, sceneFitWordsPerSecond: kling25Passo, sceneFitStrict: verbatim })
+        : classicReport
       const refunded = await releaseBirthClaim('dry_run_no_charge')
       return NextResponse.json({
         dry_run: true,
@@ -5693,7 +5765,9 @@ async function manipularPost(req: NextRequest) {
         visual_mode_reason: formatoVisual.motivo,
         contrato_cena: contratoRelatoClassico,
         fala_x_imagem: alinhamentoFalaImagem, // KINEO-FALA-X-IMAGEM — o que o supervisor reescreveu, a $0
-        ...classicReport,
+        ...relatorioDoEnsaio,
+        // KINEO-KLING25-PLANOS-5S-2026-09-28 — os segundos de cada plano, o custo de clipe e a imagem necessária, como no pago
+        ...(kling25ClipSeconds ? { clip_seconds: kling25ClipSeconds, clips_usd: kling25ClipsUsd(kling25ClipSeconds), footage_needed_seconds: kling25Footage, plan_words_per_second: kling25Passo } : {}),
       })
     }
 
@@ -5785,7 +5859,7 @@ async function manipularPost(req: NextRequest) {
       // FALA com a IMAGEM. Ele ja existia no objeto (scenes[] o carrega desde
       // a linha ~2081) — so nao estava declarado aqui, entao o caminho
       // classico nao tinha como enxergar a narracao.
-      scene: { aiPrompt?: string; stockSearchQuery?: string; description: string; voiceover?: string },
+      scene: { aiPrompt?: string; stockSearchQuery?: string; description: string; voiceover?: string; clipSeconds?: number },
       model: string,
       // KINEO-353A.1 — o INDICE REAL da cena vem do chamador. Antes o vetor
       // usava `outcomes.length`, que e ordem de conclusao das promises: num
@@ -5819,7 +5893,9 @@ async function manipularPost(req: NextRequest) {
           m,
           // KINEO-MULTIFORMATO-2026-09-02 — o caminho clássico (Seedance 1.5,
           // Kling 2.5, Veo) gera cada cena já no quadro pedido.
-          buildFalInput(m, promptForAttempt, hd, false, undefined, m === modelos[0] ? imageUrl : undefined, generationSeed, isStylizedLook(styleAnchor), aspectRequested, classicVisualMode),
+          // KINEO-KLING25-PLANOS-5S-2026-09-28 — `scene.clipSeconds` só existe no Kling 2.5 (5|10 → duration '5'|'10', no
+          // i2v e no t2v de reserva); em Seedance/Veo/Sora é undefined — o mesmo `undefined` de antes, payload byte a byte.
+          buildFalInput(m, promptForAttempt, hd, false, scene.clipSeconds, m === modelos[0] ? imageUrl : undefined, generationSeed, isStylizedLook(styleAnchor), aspectRequested, classicVisualMode),
           onPost,
         ),
       })
@@ -6139,6 +6215,12 @@ async function manipularPost(req: NextRequest) {
       // ran (some scenes i2v, some t2v-fallback), so the client polls each clip
       // on its own endpoint. Omitted when OFF → response is byte-identical.
       ...(anchorActive ? { fal_models: usedModels } : {}),
+      // KINEO-KLING25-PLANOS-5S-2026-09-28 — segundos pedidos à fal por cena (5|10), SÓ quando o plano os definiu (Kling 2.5).
+      // No claim assinado: o compose monta cada clipe dentro do próprio comprimento (plano de 5 s nunca ocupa 10 s de tela).
+      // Ausente (Seedance/Veo/Sora e claims de antes deste deploy) = montagem de hoje.
+      // Revisão adversarial (28/09): e onde a fala de CADA cena começa em voiceover_script (também assinado) — o compose
+      // corta cada plano no instante da 1ª palavra da própria cena, não numa fatia de tempo cega à cena.
+      ...(scenes.some((s) => typeof s.clipSeconds === 'number') ? { clip_seconds: scenes.map((s) => s.clipSeconds ?? null), clip_word_starts: kling25SceneWordStarts(voiceoverScript, scenes.map((s) => s.voiceover)) } : {}),
       quality: claimQuality,
       verbatim,
       speed: parsedScript.speed,

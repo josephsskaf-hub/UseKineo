@@ -73,6 +73,7 @@ import { inspectActiveComposeCreditHolds } from '@/lib/credits/composeHold'
 import { loadVerifiedCinematicClaim, cinematicJobsAreTerminal, type CinematicClaim } from '@/lib/cinematic/claim'
 import { readVerifiedSceneRetryHold, releaseSceneRetryMutex, type SceneRetryMutex } from '@/lib/cinematic/sceneRetry'
 import { classicSceneRetryHoldResolvable } from '@/lib/classicSceneRetry' // KINEO-CENA-CLASSICA-2026-09-28
+import { alignSignedClipPlan } from '@/lib/cinematic/klingShots' // KINEO-KLING25-PLANOS-5S-2026-09-28
 import { collectSceneNarrations, verifyObservedSpeech } from '@/lib/cinematic/speechContract'
 // KINEO-COMPOSE-REJECT-NOREFUND-2026-08-10 — ver o cabeçalho do arquivo: numa
 // recusa TERMINAL do fornecedor nenhum render_id nasce, logo /api/compose/status
@@ -769,6 +770,9 @@ export async function POST(req: NextRequest) {
       auth: { persistSession: false, autoRefreshToken: false },
     })
     let cinematicBirthClaim: CinematicClaim | null = null
+    // KINEO-KLING25-PLANOS-5S-2026-09-28 — segundos de cada clipe e onde a fala de cada um começa, SÓ do claim assinado
+    // (nunca do corpo): null = montagem de hoje
+    let signedClipPlan: ReturnType<typeof alignSignedClipPlan> = null
     let cinematicSceneMetadataInvalid = false
     let avatarBirthClaim: VerifiedAvatarBirthClaim | null = null
     const cinematicClaimLoad = await loadVerifiedCinematicClaim({
@@ -874,6 +878,11 @@ export async function POST(req: NextRequest) {
         )
       }
       quality = trustedQuality
+      // KINEO-KLING25-PLANOS-5S-2026-09-28 — o Kling 2.5 assina `clip_seconds` (5|10 por cena) e `clip_word_starts` (onde
+      // a fala de cada cena começa em `voiceover_script`, também assinado). Alinhados às URLs que acabaram de bater com
+      // authorized_completed_urls (cliente, cron de resgate e retomada passam todos por aqui). Claim sem o campo (Seedance,
+      // Veo, Sora e todo Kling de antes deste deploy) = null = a montagem de sempre.
+      signedClipPlan = alignSignedClipPlan(cinematicBirthClaim.response, cinematicBirthClaim.authorizedCompletedUrls, clipUrls)
       // Server recovery and browser submission must use the same original scene
       // indexes. A missing middle scene must not move its voice onto its neighbor.
       if (cinematicBirthClaim.response) {
@@ -3307,6 +3316,9 @@ export async function POST(req: NextRequest) {
       setActiveCaptionFont(language) // KINEO-IDIOMAS-15
       source = buildCreatomateSource({
         clipUrls: composeClipUrls, // KINEO1-PRIMEIRO-FILME-VIDEO — com os clipes Seedance encaixados (ou o original)
+        clipSeconds: composeClipUrls === clipUrls ? signedClipPlan?.seconds ?? null : null, // KINEO-KLING25-PLANOS-5S-2026-09-28 — plano de 5 s nunca ocupa mais de 5 s
+        // KINEO-KLING25-PLANOS-5S-2026-09-28 (revisão adversarial) — cada plano entra quando a SUA fala começa
+        clipSpeech: composeClipUrls === clipUrls && signedClipPlan?.wordStarts ? { narrationWords: signedClipPlan.narrationWords, wordStarts: signedClipPlan.wordStarts } : null,
         voiceoverUrl,
         voiceoverScript: scaledScript,
         sceneCaptions,

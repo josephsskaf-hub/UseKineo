@@ -975,6 +975,9 @@ type PixabayCandidate = {
    *  generic query rather than the scene's own narration-derived query. Generic
    *  candidates are ranked strictly below grounded ones (see the pool sort). */
   generic?: boolean
+  /** KINEO1-DIRETOR-VE-2026-09-28 — miniatura JPG que a Pixabay entrega em toda rendição
+   *  (videos.small.thumbnail); é o que o diretor OLHA antes de escolher. Ausente no cofre. */
+  thumbnail?: string
 }
 
 // Fast Mode v2 (02/07) — collection extracted from searchAndFilter so the new
@@ -1153,10 +1156,15 @@ async function collectCandidates(
     const score =
       matches * 4 + (coversScene ? 3 : 0) + orientationBonus - (tooShort ? 2 : 0) - lowRes +
       cohere + styleAlign + aesthetic.points
+    // KINEO1-DIRETOR-VE-2026-09-28 — a miniatura viaja com o candidato (small ≈ 640 px basta para detail 'low').
+    const thumbnail =
+      video.videos?.small?.thumbnail || video.videos?.medium?.thumbnail ||
+      video.videos?.tiny?.thumbnail || video.videos?.large?.thumbnail || undefined
     candidates.push({
       url, score, order, id: video.id, styleTags: sTags,
       tags: video.tags, durationSec: typeof video.duration === 'number' ? video.duration : undefined,
       ...(gate?.v2 && gate.headFallback && soPelaAncoraV2(video, query) ? { anchorOnly: true } : {}), // KINEO1-IMAGEM-V2 regra 5
+      ...(thumbnail ? { thumbnail } : {}),
     })
     console.log(
       `[pixabay] ${label} candidate id=${video.id} score=${score.toFixed(2)} (matches=${matches} dur=${video.duration ?? '?'}s/${neededSec}s portrait=${portrait} tooShort=${tooShort} lowRes=${lowRes} cohere=${cohere} styleAlign=${styleAlign} aesthetic=${aesthetic.score.toFixed(2)}→${aesthetic.points.toFixed(2)}pts/${AESTHETIC_MAX_SWING} [${formatAestheticBreakdown(aesthetic)}]) tags="${video.tags.slice(0, 60)}"`,
@@ -1494,6 +1502,116 @@ function noteGptDirectorFailure(reason: string, startedAt: number): void {
   )
 }
 
+// KINEO1-DIRETOR-VE-2026-09-28 — O DIRETOR PASSA A VER A MINIATURA. Até aqui o gpt-4o-mini escolhia entre os ~8
+// finalistas lendo SÓ as tags: foi assim que "tender" virou carne e um poster preto passou — ninguém olhava a imagem.
+// A Pixabay entrega uma miniatura JPG em toda rendição (hits[].videos.small.thumbnail); ela vai na MESMA chamada do
+// diretor como image_url com detail 'low' (≈ 2.833 tokens de entrada por imagem no 4o-mini ≈ US$ 0,0004 cada).
+// Custo estimado por filme: até 4 miniaturas × ~US$ 0,0004 = ~US$ 0,0017 por cena → filme de 9 cenas ≈ US$ 0,015
+// (hoje ≈ US$ 0,002). Teto de tempo do diretor NÃO muda (GPT_DIRECTOR_TIMEOUT_MS): a chamada com imagens tem até
+// GPT_DIRECTOR_VISION_TIMEOUT_MS; se estourar, falhar ou responder lixo, o que sobrar do teto vai para o caminho de
+// tags de sempre — a cena nunca fica sem decisão. Interruptor: FAST_GPT_DIRECTOR_VISION=false volta ao tags-only.
+export const GPT_DIRECTOR_MAX_IMAGES = 4
+const GPT_DIRECTOR_VISION_TIMEOUT_MS = 3500 // dentro dos 5.000 ms: sobra ≥ 1.500 ms para o caminho de tags
+export const GPT_DIRECTOR_REJECT_CRITERIA =
+  'readable text or captions, a logo or watermark, a sign or billboard, a religious symbol, a weapon, a black or blank frame, or a subject different from the narration'
+
+export type GptDirectorPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string; detail: 'low' } }
+
+/**
+ * Monta a mensagem do diretor. `withImages=false` reproduz EXATAMENTE o prompt de tags que roda em produção hoje;
+ * `withImages=true` anexa até GPT_DIRECTOR_MAX_IMAGES miniaturas (detail 'low') e pede PICK/REJECT.
+ * Pura e exportada para o guardião executar.
+ */
+export function buildGptDirectorMessages(
+  hint: string,
+  finalists: Array<{ tags: string; thumbnail?: string }>,
+  nPick: number,
+  withImages: boolean,
+): { messages: Array<{ role: 'user'; content: string | GptDirectorPart[] }>; imagesAttached: number; maxTokens: number } {
+  const narration = `Narration: "${hint.slice(0, 120)}"`
+  const listing = finalists.map((c, i) => `${i + 1}. tags: ${c.tags.slice(0, 90)}`).join('\n')
+  const n = Math.min(nPick, finalists.length)
+  if (!withImages) {
+    return {
+      messages: [{
+        role: 'user',
+        content: `${narration}\nStock clips (by tags):\n${listing}\nReply ONLY with the numbers of the ${n} clips that best match the narration's subject and a dark cinematic documentary look, comma-separated, best first.`,
+      }],
+      imagesAttached: 0,
+      maxTokens: 20,
+    }
+  }
+  const parts: GptDirectorPart[] = [{ type: 'text', text: `${narration}\nStock clips (by tags):\n${listing}` }]
+  let imagesAttached = 0
+  for (let i = 0; i < finalists.length && imagesAttached < GPT_DIRECTOR_MAX_IMAGES; i++) {
+    const url = finalists[i].thumbnail
+    if (!url) continue
+    parts.push({ type: 'text', text: `Thumbnail of clip ${i + 1}:` })
+    parts.push({ type: 'image_url', image_url: { url, detail: 'low' } })
+    imagesAttached++
+  }
+  parts.push({
+    type: 'text',
+    text: `Look at the thumbnails (each one is labeled with its clip number; clips without a thumbnail are judged by tags). REJECT any clip whose thumbnail shows ${GPT_DIRECTOR_REJECT_CRITERIA}.\nReply ONLY in this exact form: PICK: a,b REJECT: c — PICK = the numbers of the ${n} non-rejected clips that best match the narration's subject and a dark cinematic documentary look, best first; REJECT = the rejected numbers, or "none".`,
+  })
+  return { messages: [{ role: 'user', content: parts }], imagesAttached, maxTokens: 40 }
+}
+
+/** Lê a resposta do diretor: com "REJECT:" separa escolhas de reprovações; sem o rótulo, todo número é escolha (formato antigo). */
+export function parseGptDirectorReply(reply: string, count: number): { picks: number[]; rejects: number[] } {
+  const nums = (s: string): number[] =>
+    Array.from(new Set((s.match(/\d+/g) ?? []).map((n) => parseInt(n, 10) - 1).filter((n) => n >= 0 && n < count)))
+  const m = /reject\s*:/i.exec(reply)
+  if (!m) return { picks: nums(reply), rejects: [] }
+  const picks = nums(reply.slice(0, m.index))
+  const rejects = nums(reply.slice(m.index + m[0].length)).filter((n) => !picks.includes(n))
+  return { picks, rejects }
+}
+
+/** Uma chamada ao diretor com teto próprio; devolve a resposta ou a razão da falha (nunca lança). */
+async function askGptDirector(
+  body: Record<string, unknown>,
+  timeoutMs: number,
+): Promise<{ ok: true; reply: string } | { ok: false; reason: string }> {
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs)
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      signal: ctrl.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify(body),
+      // PUSH #93 (FIX 3) — clear the abort timer on the REJECTED path too;
+      // the old trailing clearTimeout was skipped whenever fetch threw, so a
+      // pending abort timer outlived the call (worse now the budget is 5s).
+    }).finally(() => clearTimeout(timer))
+    if (!res.ok) {
+      // PUSH #93 (FIX 3) — a non-2xx (401 bad key, 429 rate limit, 5xx) used
+      // to be discarded without a single line of log. Now it is diagnosable.
+      const text = await res.text().catch(() => '')
+      return { ok: false, reason: `api_error status=${res.status} body="${text.slice(0, 140).replace(/\s+/g, ' ')}"` }
+    }
+    const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> }
+    return { ok: true, reply: data.choices?.[0]?.message?.content ?? '' }
+  } catch (err) {
+    // PUSH #93 (FIX 3) — was `catch {}`: the abort (by far the most common
+    // outcome at the old 1.5s budget) left zero trace.
+    const name = err instanceof Error ? err.name : ''
+    return {
+      ok: false,
+      reason:
+        name === 'AbortError' || name === 'TimeoutError'
+          ? `timeout budget=${timeoutMs}ms`
+          : `fetch_error ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}`,
+    }
+  }
+}
+
 /**
  * Fast Mode v2 (02/07) — return up to `maxClips` RANKED clip URLs for one scene,
  * strongest first, pooled across the scene's query list.
@@ -1682,75 +1800,54 @@ export async function getPixabayClipsForScene(
       // generic over a narration-grounded clip.
       const grounded = pool.filter((c) => !c.generic)
       const finalists = (grounded.length >= 4 ? grounded : pool).slice(0, 8)
-      const listing = finalists
-        .map((c, i) => `${i + 1}. tags: ${c.tags.slice(0, 90)}`)
-        .join('\n')
-      const ctrl = new AbortController()
-      const timer = setTimeout(() => ctrl.abort(), GPT_DIRECTOR_TIMEOUT_MS)
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        signal: ctrl.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          temperature: 0,
-          max_tokens: 20,
-          messages: [
-            {
-              role: 'user',
-              content: `Narration: "${(hint ?? '').slice(0, 120)}"\nStock clips (by tags):\n${listing}\nReply ONLY with the numbers of the ${Math.min(maxClips, finalists.length)} clips that best match the narration's subject and a dark cinematic documentary look, comma-separated, best first.`,
-            },
-          ],
-        }),
-        // PUSH #93 (FIX 3) — clear the abort timer on the REJECTED path too;
-        // the old trailing clearTimeout was skipped whenever fetch threw, so a
-        // pending abort timer outlived the call (worse now the budget is 5s).
-      }).finally(() => clearTimeout(timer))
-      if (!res.ok) {
-        // PUSH #93 (FIX 3) — a non-2xx (401 bad key, 429 rate limit, 5xx) used
-        // to be discarded without a single line of log. Now it is diagnosable.
-        const body = await res.text().catch(() => '')
-        noteGptDirectorFailure(
-          `api_error status=${res.status} body="${body.slice(0, 140).replace(/\s+/g, ' ')}"`,
-          startedAt,
+      // KINEO1-DIRETOR-VE-2026-09-28 — 1ª tentativa VENDO as miniaturas (até GPT_DIRECTOR_VISION_TIMEOUT_MS);
+      // se estourar, falhar ou responder lixo, 2ª tentativa pelo caminho de tags de sempre com o que sobrar do
+      // teto de GPT_DIRECTOR_TIMEOUT_MS. O breaker só conta a falha quando as DUAS tentativas falham.
+      const visionOn =
+        process.env.FAST_GPT_DIRECTOR_VISION !== 'false' && finalists.some((c) => !!c.thumbnail)
+      const attempts: Array<'vision' | 'tags'> = visionOn ? ['vision', 'tags'] : ['tags']
+      const deadline = startedAt + GPT_DIRECTOR_TIMEOUT_MS
+      const reasons: string[] = []
+      let decided = false
+      for (const mode of attempts) {
+        const left = deadline - Date.now()
+        const budget = mode === 'vision' ? Math.min(GPT_DIRECTOR_VISION_TIMEOUT_MS, left) : left
+        if (budget < 500) {
+          reasons.push(`${mode}:no_time_left`)
+          continue
+        }
+        const built = buildGptDirectorMessages(hint ?? '', finalists, maxClips, mode === 'vision')
+        const out = await askGptDirector(
+          { model: 'gpt-4o-mini', temperature: 0, max_tokens: built.maxTokens, messages: built.messages },
+          budget,
         )
-      } else {
-        const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> }
-        const reply = data.choices?.[0]?.message?.content ?? ''
-        const nums = reply
-          .match(/\d+/g)
-          ?.map((n) => parseInt(n, 10) - 1)
-          .filter((n) => n >= 0 && n < finalists.length) ?? []
-        if (nums.length > 0) {
-          const chosen = Array.from(new Set(nums)).map((n) => finalists[n])
-          const rest = pool.filter((c) => !chosen.includes(c))
-          ranked = [...chosen, ...rest]
-          gptDirectorFailures = 0 // PUSH #93 — a success clears the breaker.
-          console.log(
-            `[gpt-director] reordered: picks=[${nums.map((n) => n + 1).join(',')}] of ${finalists.length} elapsed=${Date.now() - startedAt}ms`,
-          )
-        } else {
+        if (!out.ok) {
+          reasons.push(`${mode}:${out.reason}`)
+          continue
+        }
+        const { picks, rejects } = parseGptDirectorReply(out.reply, finalists.length)
+        if (picks.length === 0) {
           // PUSH #93 (FIX 3) — 200 OK but nothing usable in the reply is still a
           // silent degradation; name it so it can be told apart from a timeout.
-          noteGptDirectorFailure(
-            `unusable_reply reply="${reply.slice(0, 60).replace(/\s+/g, ' ')}"`,
-            startedAt,
-          )
+          reasons.push(`${mode}:unusable_reply reply="${out.reply.slice(0, 60).replace(/\s+/g, ' ')}"`)
+          continue
         }
+        const chosen = picks.map((n) => finalists[n])
+        // Reprovado pela imagem vai para o FIM do pool (nunca some: a cena não pode ficar vazia).
+        const rejected = rejects.map((n) => finalists[n])
+        const rest = pool.filter((c) => !chosen.includes(c) && !rejected.includes(c))
+        ranked = [...chosen, ...rest, ...rejected]
+        gptDirectorFailures = 0 // PUSH #93 — a success clears the breaker.
+        console.log(
+          `[gpt-director] reordered mode=${mode} images=${built.imagesAttached} picks=[${picks.map((n) => n + 1).join(',')}] rejects=[${rejects.map((n) => n + 1).join(',')}] of ${finalists.length} elapsed=${Date.now() - startedAt}ms${reasons.length ? ` after ${reasons.join(' | ')}` : ''}`,
+        )
+        decided = true
+        break
       }
+      if (!decided) noteGptDirectorFailure(reasons.join(' | ') || 'no_attempt', startedAt)
     } catch (err) {
-      // PUSH #93 (FIX 3) — was `catch {}`: the abort (by far the most common
-      // outcome at the old 1.5s budget) left zero trace. Non-blocking either
-      // way — `ranked` is still the heuristic order.
-      const name = err instanceof Error ? err.name : ''
-      const reason =
-        name === 'AbortError' || name === 'TimeoutError'
-          ? `timeout budget=${GPT_DIRECTOR_TIMEOUT_MS}ms`
-          : `fetch_error ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}`
-      noteGptDirectorFailure(reason, startedAt)
+      // Defesa em profundidade: askGptDirector já não lança, mas nada aqui pode derrubar o render.
+      noteGptDirectorFailure(`unexpected ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}`, startedAt)
     }
   }
 

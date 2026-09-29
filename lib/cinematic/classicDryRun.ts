@@ -31,6 +31,10 @@ export interface ClassicDryRunScene {
   speech_seconds: number
   speech: string
   prompt: string
+  /** KINEO-KLING25-PLANOS-5S-2026-09-28 — só com `sceneSeconds`: o que o compose mostra do plano (segundos − perda). */
+  useful_seconds?: number
+  /** KINEO-KLING25-PLANOS-5S-2026-09-28 — só com `sceneFitWordsPerSecond`: a fala da cena, nesse passo, cabe no útil. */
+  fits_plan?: boolean
 }
 
 export interface ClassicDryRunReport {
@@ -45,6 +49,10 @@ export interface ClassicDryRunReport {
   rescale_drift: number
   rescale_risk: boolean
   footage_seconds: number
+  /** KINEO-KLING25-PLANOS-5S-2026-09-28 — só com `sceneSeconds`: a imagem que o compose realmente usa (Σ segundos − perda). */
+  footage_useful_seconds?: number
+  /** KINEO-KLING25-PLANOS-5S-2026-09-28 — só com `sceneSeconds`: avisos que não reprovam (modo IA: o compose reescala a fala). */
+  notes?: string[]
   scenes: ClassicDryRunScene[]
 }
 
@@ -59,20 +67,45 @@ export function classicDryRunReport(input: {
   wordsPerSecond?: number
   /** Kineo 1: o footage (Pixabay) é cortado à medida da fala — não há teto de clipe. */
   elasticFootage?: boolean
+  /**
+   * KINEO-KLING25-PLANOS-5S-2026-09-28 — segundos de CADA plano (Kling 2.5: 5 ou 10), os mesmos que vão no payload da fal.
+   * Ausente, com tamanho diferente do de `scenes` ou com valor inválido = `secondsPerClip` para todas, como sempre.
+   */
+  sceneSeconds?: ReadonlyArray<number>
+  /**
+   * KINEO-KLING25-PLANOS-5S-2026-09-28 (revisão adversarial) — o que o compose tira de cada plano (Kling 2.5: 0,16 s =
+   * trim 0,1 + overlap 0,06). A cobertura passa a ser medida pelo ÚTIL, não pelo bruto (40 s brutos = 38,72 s úteis).
+   */
+  clipLossSeconds?: number
+  /**
+   * KINEO-KLING25-PLANOS-5S-2026-09-28 (revisão adversarial) — passo de planejamento (Kling 2.5: min(voz, 2,3)). Cada cena
+   * cuja fala, nesse passo, passa do útil do plano é apontada: a imagem dela correria na frente da voz.
+   */
+  sceneFitWordsPerSecond?: number
+  /** true (verbatim: o plano é desenhado para caber) = a cena que não cabe REPROVA; false (modo IA) = só avisa em `notes`. */
+  sceneFitStrict?: boolean
 }): ClassicDryRunReport {
   const wps = input.wordsPerSecond && input.wordsPerSecond > 0 ? input.wordsPerSecond : CLASSIC_WORDS_PER_SECOND
   const target = Math.max(0, Number(input.targetSeconds) || 0)
   const perClip = Math.max(1, Number(input.secondsPerClip) || 1)
+  const perScene = Array.isArray(input.sceneSeconds) && input.sceneSeconds.length === input.scenes.length && input.sceneSeconds.every((x) => Number.isFinite(x) && x > 0)
+    ? input.sceneSeconds
+    : null
+  const loss = perScene && typeof input.clipLossSeconds === 'number' && Number.isFinite(input.clipLossSeconds) && input.clipLossSeconds > 0 ? input.clipLossSeconds : 0
+  const fitWps = perScene && typeof input.sceneFitWordsPerSecond === 'number' && Number.isFinite(input.sceneFitWordsPerSecond) && input.sceneFitWordsPerSecond > 0 ? input.sceneFitWordsPerSecond : 0
   const scenes: ClassicDryRunScene[] = input.scenes.map((s, i) => {
     const words = wordsOf(s.voiceover)
-    return {
+    const base: ClassicDryRunScene = {
       scene: i + 1,
-      seconds: round1(perClip),
+      seconds: round1(perScene ? perScene[i] : perClip),
       words,
       speech_seconds: round1(words / wps),
       speech: String(s.voiceover ?? ''),
       prompt: String(s.prompt ?? '').slice(0, 400),
     }
+    if (!perScene) return base
+    const useful = Math.round(Math.max(0, perScene[i] - loss) * 100) / 100
+    return { ...base, useful_seconds: useful, ...(fitWps > 0 ? { fits_plan: words / fitWps <= useful + 1e-6 } : {}) }
   })
   const totalWords = scenes.reduce((a, s) => a + s.words, 0)
   const speechSeconds = round1(totalWords / wps)
@@ -81,6 +114,10 @@ export function classicDryRunReport(input: {
   // KINEO-VOZ-NAO-ARRASTA-2026-09-15 — o escalador expande abaixo de 92 % (lib/compose) e condensa acima de 115 %: o ensaio avisa nos dois limiares reais.
   const rescaleRisk = expectedWords > 0 && (totalWords / expectedWords - 1 > COMPOSE_RESCALE_TOLERANCE || 1 - totalWords / expectedWords > COMPOSE_RESCALE_FLOOR)
   const footageSeconds = round1(scenes.length * perClip)
+  // KINEO-KLING25-PLANOS-5S-2026-09-28 — com segundos por plano (Kling 2.5) a imagem é a soma dos planos; sem eles, a de sempre.
+  const footageTotal = perScene ? round1(perScene.reduce((a, b) => a + b, 0)) : footageSeconds
+  // Revisão adversarial (28/09): a cobertura se mede pelo que o compose MOSTRA (Σ segundos − perda por plano).
+  const footageUseful = perScene ? round1(perScene.reduce((a, b) => a + Math.max(0, b - loss), 0)) : footageSeconds
 
   const problems: string[] = []
   if (scenes.length === 0) problems.push('nenhuma cena planejada — o despacho sairia vazio')
@@ -93,8 +130,17 @@ export function classicDryRunReport(input: {
         (input.verbatim ? ' — e este roteiro é "Use my script as is"' : ''),
     )
   }
-  if (!input.elasticFootage && scenes.length > 0 && footageSeconds < speechSeconds) {
-    problems.push(`footage de ${footageSeconds}s para ${speechSeconds}s de fala: o compose repetiria cena para fechar o tempo`)
+  if (!input.elasticFootage && scenes.length > 0 && footageUseful < speechSeconds) {
+    problems.push(`footage de ${footageUseful}s${perScene && loss > 0 ? ` úteis (${footageTotal}s brutos)` : ''} para ${speechSeconds}s de fala: o compose repetiria cena para fechar o tempo`)
+  }
+  // KINEO-KLING25-PLANOS-5S-2026-09-28 (revisão adversarial) — "o ensaio de $0 deve reprovar cena com fala maior que os
+  // segundos do plano menos 0,16": cada cena, no passo de planejamento, tem de caber no útil do próprio plano.
+  const notes: string[] = []
+  const naoCabem = scenes.filter((s) => s.fits_plan === false)
+  if (naoCabem.length) {
+    const txt = `cena(s) com fala maior que o plano (passo ${fitWps} pal/s): ${naoCabem.map((s) => `${s.scene} (${round1(s.words / fitWps)}s de fala em ${s.useful_seconds}s úteis)`).join(', ')} — a imagem correria na frente da voz`
+    if (input.sceneFitStrict) problems.push(txt)
+    else notes.push(txt + ' (modo IA: o compose reescala a fala; aviso, não reprova)')
   }
   const mute = scenes.filter((s) => s.words === 0).map((s) => s.scene)
   if (mute.length) problems.push(`cena(s) sem fala: ${mute.join(', ')}`)
@@ -112,7 +158,8 @@ export function classicDryRunReport(input: {
     speech_seconds: speechSeconds,
     rescale_drift: drift,
     rescale_risk: rescaleRisk,
-    footage_seconds: footageSeconds,
+    footage_seconds: footageTotal,
+    ...(perScene ? { footage_useful_seconds: footageUseful, notes } : {}),
     scenes,
   }
 }

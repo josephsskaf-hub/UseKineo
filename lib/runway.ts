@@ -265,6 +265,14 @@ export interface SceneWriterOptions {
   wordsPerScene?: readonly [number, number]
   /** KINEO-IDIOMA-DO-TEXTO-2026-09-12 — língua da narração. Ausente/'en' = texto do prompt inalterado. */
   language?: NarrationLanguage
+  /**
+   * KINEO-KLING25-PLANOS-5S-2026-09-28 — teto de tokens e prazo do escritor. Só o Kling 2.5 manda (acima de 9 cenas: 12
+   * cenas × 9 campos ≈ 150 tokens cada não cabem em 1.800 e o JSON sairia cortado). Ausentes = 1.800 tokens e 35 s.
+   */
+  maxTokens?: number
+  timeoutMs?: number
+  /** KINEO-KLING25-PLANOS-5S-2026-09-28 — segundos do plano que a fala enche (Kling 2.5: 5). Ausente = "~10-second scene", o texto de sempre. */
+  sceneSeconds?: number
 }
 
 export async function generateScenes(prompt: string, count = 4, visualPolicy?: VisualPromptPolicy, writerOptions?: SceneWriterOptions): Promise<Scene[]> {
@@ -276,7 +284,7 @@ export async function generateScenes(prompt: string, count = 4, visualPolicy?: V
   const wps = writerOptions?.wordsPerScene
   const wpsLo = wps ? Math.max(6, Math.floor(wps[0])) : 0
   const voiceoverRule = wps
-    ? `${wpsLo}-${Math.max(wpsLo, Math.ceil(wps[1]))} words — this line alone must fill its ~10-second scene when spoken; two sentences are fine. Every event, place, clock time, date, name and number in this line must come from the idea text: never invent a character name, a time of day, a date or a statistic, and describe people exactly as the idea describes them` // KINEO-ESCRITOR-R2-2026-09-15: ensaio do Veo inventou "Dr. Emily Carter" e "4:17 AM"
+    ? `${wpsLo}-${Math.max(wpsLo, Math.ceil(wps[1]))} words — this line alone must fill its ~${typeof writerOptions?.sceneSeconds === 'number' && writerOptions.sceneSeconds > 0 ? Math.round(writerOptions.sceneSeconds) : 10}-second scene when spoken; two sentences are fine. Every event, place, clock time, date, name and number in this line must come from the idea text: never invent a character name, a time of day, a date or a statistic, and describe people exactly as the idea describes them` // KINEO-ESCRITOR-R2-2026-09-15: ensaio do Veo inventou "Dr. Emily Carter" e "4:17 AM"
     : '10-22 words'
   // KINEO-IDIOMA-DO-TEXTO-2026-09-12 — só entra no texto quando a língua não é
   // inglês (sem opção o prompt continua byte-idêntico: golden hash do Codex).
@@ -475,9 +483,9 @@ ${visualDescriptionDirection(visualPolicy)}
         { role: 'user', content: visualPolicy ? cinematicUserPrompt : userPrompt },
       ],
       temperature: 0.4,
-      max_tokens: 1800,
+      max_tokens: typeof writerOptions?.maxTokens === 'number' && writerOptions.maxTokens > 0 ? Math.round(writerOptions.maxTokens) : 1800, // KINEO-KLING25-PLANOS-5S-2026-09-28
     },
-    { timeout: 35000 }
+    { timeout: typeof writerOptions?.timeoutMs === 'number' && writerOptions.timeoutMs > 0 ? writerOptions.timeoutMs : 35000 }
   )
 
   const raw = completion.choices[0]?.message?.content?.trim() ?? ''
