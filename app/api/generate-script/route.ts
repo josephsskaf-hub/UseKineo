@@ -20,6 +20,11 @@ import { detectPastedScript, pastedScriptMinWords, PASTED_SCRIPT_RULE } from '@/
 // KINEO1-ROTEIRO-DA-COTA-2026-09-18 — a cota de duração do filme grátis, lida pelo predicado do cobrador.
 import { getEffectiveEntitlement, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/reverseTrial'
 import { looksLikeModelRefusal, MODEL_REFUSAL_MESSAGE } from '@/lib/modelRefusal' // KINEO1-JUIZ-HONESTO-2026-09-21
+// KINEO-ROTEIRO-CURTO-15S-2026-09-29 [TRAVA 8.2 — "vai" do 15 s] — o roteiro de ≤ 20 s nunca sai acima do teto que a guarda
+// do filme curto da rota do cinematic aceita (lib/durationByEngine.ts), contado na MESMA régua dela (parseUserScript).
+import { parseUserScript } from '@/lib/scriptParser'
+import { maxWordsForShortFilm } from '@/lib/durationByEngine'
+import { isShortFilmTarget, keepShortFilmSections, fitShortFilmScript, shortFilmRetryInstruction } from '@/lib/shortFilmScript'
 
 // KINEO-OPENAI-HANG-2026-08-05 — this route was the ONLY OpenAI-backed route in
 // the whole app with no maxDuration, so it silently inherited Vercel's short
@@ -394,6 +399,25 @@ export async function POST(req: NextRequest) {
       return await recusar(422, { error: MODEL_REFUSAL_MESSAGE, reason: 'model_refused_topic', retryable: false }, user.id, { reason: 'model_refused_topic', head: script.slice(0, 120) })
     }
 
+    // ═══ KINEO-ROTEIRO-CURTO-15S-2026-09-29 — o filme curto (≤ 20 s) sai do tamanho que a guarda do cinematic aceita ═══
+    // Ensaio real (29/09): 15 s pedidos, 64 palavras em 7 blocos devolvidas, 422 'script_too_long_for_short_film' na rota
+    // do cinematic. O prompt já pede 4 seções; nada conferia. Agora, em ordem: (1) só HOOK/MR1/MR2/PAYOFF ficam; (2) acima
+    // do teto, a ÚNICA nova tentativa leva o reforço "at most N spoken words, only these 4 sections"; (3) se ainda passar,
+    // corte determinístico até caber (lib/shortFilmScript.ts). O teto é o MENOR entre a régua do escritor e a da guarda
+    // (maxWordsForShortFilm), contado como a guarda conta. Alvos de 35/60/90 não passam por nada disto.
+    const filmeCurto = isShortFilmTarget(alvoSegundos)
+    const falaNaReguaDaGuarda = (t: string) => parseUserScript(t).narration.split(/\s+/).filter(Boolean).length
+    const palavrasDoFilmeCurto = (t: string) => Math.max(scriptWordCount(t), falaNaReguaDaGuarda(t))
+    const tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage), maxWordsForShortFilm(alvoSegundos))
+    const pisoFilmeCurto = Math.min(alvoPalavras, tetoFilmeCurto)
+    const secoesCortadas: string[] = []
+    if (filmeCurto) {
+      const so4 = keepShortFilmSections(script)
+      script = so4.script
+      secoesCortadas.push(...so4.dropped)
+    }
+    const longoParaOFilmeCurto = (t: string) => filmeCurto && palavrasDoFilmeCurto(t) > tetoFilmeCurto
+
     // #383b — QUALITY GUARDRAIL. The script must contain ALL 5 structural
     // elements (HOOK, MICRO REWARD, ESCALATION, RHYTHM, PAYOFF) AND a PAYOFF that
     // delivers (not a tease). If any of the 5 is missing OR the payoff is empty,
@@ -404,8 +428,10 @@ export async function POST(req: NextRequest) {
     const curtoParaOAlvo = (t: string) => scriptWordCount(t) < alvoPalavras
     // KINEO1-ROTEIRO-DA-COTA — o formato curto (≤ 20 s) dispensa ESCALATION/RHYTHM/MICRO REWARD 3 de propósito.
     let missing = alvoSegundos <= 20 ? missingElements(script).filter((m) => m === 'HOOK' || m === 'PAYOFF') : missingElements(script)
-    if (missing.length > 0 || payoffIsEmpty(script) || curtoParaOAlvo(script)) {
+    if (missing.length > 0 || payoffIsEmpty(script) || curtoParaOAlvo(script) || longoParaOFilmeCurto(script)) {
       const problems: string[] = []
+      // KINEO-ROTEIRO-CURTO-15S-2026-09-29 — o número vai no pedido, como no "curto": "escreva menos" não é instrução.
+      if (longoParaOFilmeCurto(script)) problems.push(`the script has ${palavrasDoFilmeCurto(script)} spoken words — a ${alvoSegundos}-second film allows at most ${tetoFilmeCurto}`)
       if (missing.length > 0) problems.push(`missing required section(s): ${missing.join(', ')}`)
       if (payoffIsEmpty(script)) problems.push('the PAYOFF teased instead of delivering a concrete answer')
       // KINEO-ROTEIRO-CURTO-2026-08-22 — o número vai no pedido de correção
@@ -430,7 +456,10 @@ export async function POST(req: NextRequest) {
             { role: 'assistant', content: script },
             {
               role: 'user',
-              content:
+              content: filmeCurto
+                // KINEO-ROTEIRO-CURTO-15S-2026-09-29 — o reforço de 7 cabeçalhos abaixo mandava o filme curto de volta a 7 blocos.
+                ? `Your script had problems: ${problems.join('; ')}. ${shortFilmRetryInstruction(tetoFilmeCurto, pisoFilmeCurto, alvoSegundos)}`
+                :
                 `Your script had problems: ${problems.join('; ')}. Rewrite the FULL script using EXACTLY the required headers, in order, each present and on its own line: HOOK, MICRO REWARD 1, MICRO REWARD 2, MICRO REWARD 3, ESCALATION, RHYTHM, PAYOFF. ESCALATION must raise the stakes above MICRO REWARD 3. RHYTHM must be 2-3 ultra-short 1-3 word punches. The PAYOFF MUST deliver the concrete answer the hook promised (a specific fact, number, name, mechanism, or the single most-accepted theory) — NO questions, NO "no one knows", NO "remains a mystery", NO teasing — with the follow CTA on a SEPARATE line after the reveal. Every fact (especially the PAYOFF) must be LESSER-KNOWN: never the single most famous fact about the topic. Respond with ONLY the script.`,
             },
           ],
@@ -440,17 +469,32 @@ export async function POST(req: NextRequest) {
         const retryScript = retry.choices[0]?.message?.content?.trim() ?? ''
         if (retryScript) {
           script = retryScript
-          missing = missingElements(retryScript)
-          if (missing.length > 0 || payoffIsEmpty(retryScript) || curtoParaOAlvo(retryScript)) {
+          if (filmeCurto) {
+            const so4 = keepShortFilmSections(script)
+            script = so4.script
+            for (const d of so4.dropped) if (!secoesCortadas.includes(d)) secoesCortadas.push(d)
+          }
+          missing = filmeCurto ? missingElements(script).filter((m) => m === 'HOOK' || m === 'PAYOFF') : missingElements(script)
+          if (missing.length > 0 || payoffIsEmpty(script) || curtoParaOAlvo(script) || longoParaOFilmeCurto(script)) {
             console.warn(
               `[generate-script] still imperfect after retry — using it anyway (degraded). ` +
-              `words=${scriptWordCount(retryScript)}/${alvoPalavras}`,
+              `words=${scriptWordCount(script)}/${alvoPalavras}`,
             )
           }
         }
       } catch (retryErr) {
         console.warn('[generate-script] regenerate failed:', retryErr instanceof Error ? retryErr.message : String(retryErr))
       }
+    }
+    // KINEO-ROTEIRO-CURTO-15S-2026-09-29 — a trava final: o roteiro curto NUNCA sai acima do teto (nunca abaixo do piso
+    // enquanto houver frase/palavra para escolher). Roda antes do forceAuthoring e do retorno normal: vale para os dois.
+    let corteDoFilmeCurto: 'none' | 'sentences' | 'words' = 'none'
+    if (filmeCurto && palavrasDoFilmeCurto(script) > tetoFilmeCurto) {
+      const antes = palavrasDoFilmeCurto(script)
+      const ajuste = fitShortFilmScript(script, { maxWords: tetoFilmeCurto, minWords: pisoFilmeCurto, countWords: palavrasDoFilmeCurto })
+      script = ajuste.script
+      corteDoFilmeCurto = ajuste.cut
+      console.warn(`[generate-script] KINEO-ROTEIRO-CURTO-15S corte ${ajuste.cut}: ${antes} → ${palavrasDoFilmeCurto(script)} palavras (teto ${tetoFilmeCurto}, piso ${pisoFilmeCurto}, alvo ${alvoSegundos}s)`)
     }
 
     // ═══ KINEO-351 — ESTADO HONESTO NO CAMINHO DA AUTORIA ═══════════════════
@@ -488,7 +532,7 @@ export async function POST(req: NextRequest) {
       name: 'script_written',
       userId: user.id,
       path: '/api/generate-script',
-      metadata: { engine: typeof body.engine === 'string' ? body.engine : null, family: regua.family, voice: regua.voice, words_per_second: regua.wordsPerSecond, target_seconds: alvoSegundos, quota_seconds: cotaSegundos, requested_seconds: Number.isFinite(pedido) ? pedido : null, min_words: alvoPalavras, words: scriptWordCount(script), fits: scriptWordCount(script) >= alvoPalavras, language },
+      metadata: { engine: typeof body.engine === 'string' ? body.engine : null, family: regua.family, voice: regua.voice, words_per_second: regua.wordsPerSecond, target_seconds: alvoSegundos, quota_seconds: cotaSegundos, requested_seconds: Number.isFinite(pedido) ? pedido : null, min_words: alvoPalavras, words: scriptWordCount(script), fits: scriptWordCount(script) >= alvoPalavras, language, ...(filmeCurto ? { short_film_ceiling: tetoFilmeCurto, short_film_words: palavrasDoFilmeCurto(script), short_film_sections_dropped: secoesCortadas, short_film_cut: corteDoFilmeCurto } : {}) },
     })
     return NextResponse.json({ script, alreadyStructured: false, wordsPerSecond: regua.wordsPerSecond, family: regua.family, targetSeconds: alvoSegundos, minWords: alvoPalavras, words: scriptWordCount(script), pastedScript: colado.pasted, pastedReason: colado.reason })
   } catch (err) {
