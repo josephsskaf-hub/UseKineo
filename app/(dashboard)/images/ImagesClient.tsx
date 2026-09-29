@@ -30,6 +30,37 @@ const SIZES: { key: ImgSize; label: string }[] = [
 
 type Item = { id?: string | null; url: string; model: ImgModelKey | string; upscaled?: string | null; upscaling?: boolean }
 
+// KINEO-IMAGENS-FOTO-REFERENCIA-2026-09-29 — foto de referência no Nano Banana Pro (pedido do fundador: "meu amigo
+// lutando na guerra de Troia como Aquiles", com o rosto do amigo). A foto sobe para a pasta da conta (/api/images/
+// reference, moderada antes de ser guardada) e volta só o CAMINHO; ao gerar, o servidor assina a URL e usa o endpoint
+// /edit do fal. A miniatura é local (object URL): a tela não pede a foto de volta ao servidor.
+type RefPhoto = { key: string; path: string | null; preview: string; uploading: boolean }
+const REF_MODEL: ImgModelKey = 'nanobanana'
+const REF_MAX = 3
+const REF_MAX_BYTES = 10 * 1024 * 1024
+const REF_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+
+// A Vercel corta corpo acima de ~4,5 MB: reduz para ≤ 2048 px em JPEG antes de enviar (rosto sobra; o motor sai a 1K).
+// Se o navegador não conseguir decodificar, manda o arquivo como veio e o servidor decide.
+async function shrinkPhoto(file: File): Promise<Blob> {
+  try {
+    const bmp = await createImageBitmap(file)
+    const scale = Math.min(1, 2048 / Math.max(bmp.width, bmp.height))
+    const w = Math.max(1, Math.round(bmp.width * scale))
+    const h = Math.max(1, Math.round(bmp.height * scale))
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('no canvas')
+    ctx.drawImage(bmp, 0, 0, w, h)
+    bmp.close()
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9))
+    if (blob) return blob
+  } catch {}
+  return file
+}
+
 export default function ImagesClient() {
   const ui = useUiCopy()
   const [model, setModel] = useState<ImgModelKey>('dev')
@@ -48,6 +79,8 @@ export default function ImagesClient() {
   const [balance, setBalance] = useState<number | null>(null)
   const [madeThisSession, setMadeThisSession] = useState(0)
   const [items, setItems] = useState<Item[]>([])
+  const [refs, setRefs] = useState<RefPhoto[]>([])
+  const [refConsent, setRefConsent] = useState(false)
   // KINEO-SPRINT-UI-5-2026-08-29 — falha de leitura da galeria NAO pode se
   // disfarcar de galeria vazia (mesma mascara do incidente JWT-skew).
   const [galleryFailed, setGalleryFailed] = useState(false)
@@ -104,16 +137,60 @@ export default function ImagesClient() {
 
   const eng = IMG_ENGINES.find((e) => e.key === model)!
   const unitCost = Number.parseInt(eng.credits, 10) || 1
+  // Referência só vai no Nano Banana Pro; nos outros motores as fotos ficam guardadas na tela mas não são enviadas.
+  const readyRefs = refs.filter((r) => r.path)
+  const refsUploading = model === REF_MODEL && refs.some((r) => r.uploading)
+  const sendRefs = model === REF_MODEL && readyRefs.length > 0
+  const needsConsent = sendRefs && !refConsent
+  const canGenerate = !!prompt.trim() && !busy && !refsUploading && !needsConsent
+
+  async function addRefPhotos(list: FileList | null) {
+    const files = Array.from(list ?? []).slice(0, Math.max(0, REF_MAX - refs.length))
+    if (!refConsent || files.length === 0) return
+    setError(null)
+    for (const file of files) {
+      if (!REF_TYPES.includes(file.type)) { setError(ui('Only JPG, PNG or WEBP photos.')); continue }
+      if (file.size > REF_MAX_BYTES) { setError(ui('Photo is too large — max 10 MB.')); continue }
+      const key = `${Date.now()}-${Math.random().toString(36).slice(2)}`
+      const preview = URL.createObjectURL(file)
+      setRefs((xs) => [...xs, { key, path: null, preview, uploading: true }])
+      try {
+        const blob = await shrinkPhoto(file)
+        const form = new FormData()
+        form.append('file', blob, blob === file ? file.name : 'reference.jpg')
+        form.append('rights', 'true')
+        const res = await fetch('/api/images/reference', { method: 'POST', body: form })
+        const data = await res.json().catch(() => null)
+        if (!res.ok || typeof data?.path !== 'string') throw new Error(data?.error ?? 'Photo upload failed. Please try again.')
+        setRefs((xs) => xs.map((x) => (x.key === key ? { ...x, path: data.path as string, uploading: false } : x)))
+      } catch (e) {
+        URL.revokeObjectURL(preview)
+        setRefs((xs) => xs.filter((x) => x.key !== key))
+        setError(e instanceof Error ? e.message : 'Photo upload failed. Please try again.')
+      }
+    }
+  }
+
+  function removeRefPhoto(key: string) {
+    setRefs((xs) => {
+      const gone = xs.find((x) => x.key === key)
+      if (gone) URL.revokeObjectURL(gone.preview)
+      return xs.filter((x) => x.key !== key)
+    })
+  }
 
   async function generate() {
-    if (!prompt.trim() || busy) return
+    if (!canGenerate) return
     setBusy(true)
     setError(null)
     try {
       const res = await fetch('/api/images/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt.trim(), model, size }),
+        body: JSON.stringify({
+          prompt: prompt.trim(), model, size,
+          ...(sendRefs ? { reference_paths: readyRefs.map((r) => r.path), reference_consent: refConsent } : {}),
+        }),
       })
       const data = await res.json()
       if (!res.ok || !data?.url) throw new Error(data?.error ?? 'Generation failed.')
@@ -236,6 +313,19 @@ export default function ImagesClient() {
         @container images-studio (min-width:1150px){.stu.images-workspace .image-engines{grid-template-columns:repeat(6,minmax(0,1fr))}}
         @container images-studio (max-width:700px){.stu.images-workspace .grid.creation-grid{grid-template-columns:minmax(0,1fr)}.stu.images-workspace .creation-input{padding:16px}}
         @container images-studio (max-width:550px){.stu.images-workspace .image-engines{grid-template-columns:repeat(2,minmax(0,1fr))}.stu.images-workspace .image-engine-card{padding:12px;min-height:126px;gap:8px}}
+        .stu.images-workspace .image-ref{margin-top:14px;padding:14px;border:1px solid var(--border);border-radius:var(--r-sm,13px);background:var(--card2)}
+        .stu.images-workspace .image-ref-head{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--text)}
+        .stu.images-workspace .image-ref-help,.stu.images-workspace .image-ref-limits{margin:6px 0 0;font-size:12px;line-height:1.45;color:var(--muted2)}
+        .stu.images-workspace .image-ref-consent{display:flex;align-items:flex-start;gap:8px;margin-top:10px;font-size:12.5px;line-height:1.45;color:var(--text2);cursor:pointer}
+        .stu.images-workspace .image-ref-consent input{margin-top:2px;accent-color:var(--indigo);flex-shrink:0}
+        .stu.images-workspace .image-ref-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px}
+        .stu.images-workspace .image-ref-thumb{position:relative;width:64px;height:64px;border-radius:10px;overflow:hidden;border:1px solid var(--border2);background:var(--card)}
+        .stu.images-workspace .image-ref-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+        .stu.images-workspace .image-ref-thumb.busy img{opacity:.45}
+        .stu.images-workspace .image-ref-x{position:absolute;top:3px;inset-inline-end:3px;width:22px;height:22px;border-radius:50%;border:0;background:rgba(0,0,0,.65);color:#fff;font-size:13px;line-height:22px;padding:0;cursor:pointer}
+        .stu.images-workspace .image-ref-add{cursor:pointer}
+        .stu.images-workspace .image-ref-add.off{opacity:.5;cursor:not-allowed}
+        .stu.images-workspace .image-ref-off{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted2)}
         @media(max-width:900px){.stu.images-workspace .grid.creation-grid{grid-template-columns:minmax(0,1fr);gap:18px}.stu.images-workspace .creation-input textarea{min-height:230px}}
       `}</style>
 
@@ -291,6 +381,38 @@ export default function ImagesClient() {
                 ))}
               </div>
             )}
+            {model === REF_MODEL ? (
+              <div className="image-ref">
+                <div className="image-ref-head"><ControlIcon name="image" /> <UiLabel>Reference photo (optional)</UiLabel></div>
+                <p className="image-ref-help"><UiLabel>The face and look of the person in the photo go into the image.</UiLabel></p>
+                <label className="image-ref-consent">
+                  <input type="checkbox" checked={refConsent} onChange={(e) => setRefConsent(e.target.checked)} />
+                  <span><UiLabel>I have permission from the person in the photo to use their image.</UiLabel></span>
+                </label>
+                <div className="row image-ref-row">
+                  {refs.map((r) => (
+                    <div key={r.key} className={`image-ref-thumb${r.uploading ? ' busy' : ''}`}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={r.preview} alt="" />
+                      <button type="button" className="image-ref-x" aria-label={ui('Remove photo')} onClick={() => removeRefPhoto(r.key)}>×</button>
+                    </div>
+                  ))}
+                  {refs.length < REF_MAX && (
+                    <label className={`pill image-ref-add${refConsent ? '' : ' off'}`} aria-disabled={!refConsent}>
+                      <input type="file" accept={REF_TYPES.join(',')} multiple hidden disabled={!refConsent}
+                        onChange={(e) => { void addRefPhotos(e.target.files); e.target.value = '' }} />
+                      + <UiLabel>Add photo</UiLabel>
+                    </label>
+                  )}
+                </div>
+                <p className="image-ref-limits"><UiLabel>{refConsent ? 'Up to 3 photos · JPG, PNG or WEBP · max 10 MB each' : 'Check the box above to add a photo.'}</UiLabel></p>
+              </div>
+            ) : (
+              <div className="image-ref image-ref-off">
+                <span><UiLabel>Reference photo · Available on Nano Banana Pro</UiLabel></span>
+                <button type="button" className="pill" onClick={() => setModel(REF_MODEL)}><UiLabel>Use Nano Banana Pro</UiLabel></button>
+              </div>
+            )}
             {showTopup && <CreditsTopupModal surface="images_402" onClose={() => setShowTopup(false)} />}
             {showPlans && (
               <OutOfCreditsPlansModal
@@ -328,10 +450,10 @@ export default function ImagesClient() {
           </div>
 
           <div className="cost" id="image-generation-review" tabIndex={-1}>
-            <div className="sum">{eng.name} · {SIZES.find((s) => s.key === size)?.label}</div>
+            <div className="sum">{eng.name} · {SIZES.find((s) => s.key === size)?.label}{sendRefs ? ` · 📷 ${readyRefs.length}` : ''}</div>
             <div className="val"><span><UiLabel>Cost per image</UiLabel></span><b>{eng.credits}</b></div>
-            <button type="button" onClick={generate} disabled={!prompt.trim() || busy} className={`go ${prompt.trim() && !busy ? 'ok' : 'no'}`}>
-              <UiLabel>{busy ? 'Creating…' : prompt.trim() ? 'Generate image →' : 'Describe your image first'}</UiLabel>
+            <button type="button" onClick={generate} disabled={!canGenerate} className={`go ${canGenerate ? 'ok' : 'no'}`}>
+              <UiLabel>{busy ? 'Creating…' : refsUploading ? 'Uploading photo…' : needsConsent ? 'Confirm permission for the photo first' : prompt.trim() ? 'Generate image →' : 'Describe your image first'}</UiLabel>
             </button>
             <details className="refine-details"><summary><UiLabel>Enhancement options</UiLabel></summary><div className="gnote"><UiLabel>Upscale any result to 2x for 1 credit.</UiLabel></div></details>
           </div>

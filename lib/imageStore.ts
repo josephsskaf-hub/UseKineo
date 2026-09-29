@@ -10,6 +10,7 @@
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { randomUUID } from 'crypto'
+import { QUARANTINE_BUCKET } from '@/lib/safety/quarantine'
 
 const BUCKET = 'renders'
 
@@ -81,4 +82,47 @@ export async function persistUpscale(args: {
     console.warn('[imageStore] upscale persist failed:', e instanceof Error ? e.message : String(e))
     return args.sourceUrl
   }
+}
+
+// ── KINEO-IMAGENS-FOTO-REFERENCIA-2026-09-29 — foto de referência do Nano Banana Pro ─────────────────────────────────
+// A foto aprovada pela moderação vai para a pasta da própria conta: renders/images/<uid>/refs/<uuid>.<ext> (caminho em
+// lib/imageReference.ts). Ela NÃO vira linha em `images` (não aparece na galeria). Para a moderação e a fal, o servidor
+// assina uma URL de curta duração pelo CAMINHO — o navegador nunca escolhe o endereço. A foto BARRADA não entra no bucket
+// público: vai para o bucket privado de quarentena (prova; apagar é decisão do fundador).
+
+/** Guarda a referência aprovada. Devolve o caminho (o que o navegador manda de volta ao gerar) ou null. */
+export async function storeReferencePhoto(args: { path: string; bytes: Uint8Array; contentType: string }): Promise<string | null> {
+  const supabase = svc()
+  if (!supabase) return null
+  const { error } = await supabase.storage.from(BUCKET).upload(args.path, args.bytes, { contentType: args.contentType, cacheControl: '3600', upsert: false })
+  if (error) {
+    console.warn('[imageStore] reference upload failed:', error.message)
+    return null
+  }
+  return args.path
+}
+
+/** URLs assinadas (curta duração) para caminhos JÁ validados como da conta. null se qualquer uma falhar (falha fechada). */
+export async function signReferencePhotos(paths: string[], seconds: number): Promise<string[] | null> {
+  const supabase = svc()
+  if (!supabase) return null
+  const urls: string[] = []
+  for (const path of paths) {
+    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, seconds)
+    if (error || !data?.signedUrl) {
+      console.warn('[imageStore] reference sign failed:', error?.message ?? 'no url')
+      return null
+    }
+    urls.push(data.signedUrl)
+  }
+  return urls
+}
+
+/** Foto barrada na moderação: guarda SÓ no bucket privado de quarentena (nunca no público). Best-effort. */
+export async function quarantineReferencePhoto(args: { quarantinePath: string; bytes: Uint8Array; contentType: string }): Promise<boolean> {
+  const supabase = svc()
+  if (!supabase) return false
+  const { error } = await supabase.storage.from(QUARANTINE_BUCKET).upload(args.quarantinePath, args.bytes, { contentType: args.contentType, upsert: false })
+  if (error) console.warn('[imageStore] reference quarantine failed:', error.message)
+  return !error
 }
