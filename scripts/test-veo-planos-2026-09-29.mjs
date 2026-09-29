@@ -21,6 +21,7 @@ import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { desfaz3x6KlingShots } from './test-support/desfaz-3x6-klingshots.mjs' // reancoragem de 29/09 ([TRAVA 8.2 — "vai" do 3x6])
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
@@ -155,7 +156,11 @@ if (Bb) {
   }
   checa(`família hollywood (inclusive o Veo hollywood a "8s"): payload JSON-idêntico à base em ${holly.length} combinações`, holly.length === 54 && holly.every(Boolean))
 }
-checa('lib/cinematic/klingShots.ts byte a byte igual à base', rdBase('lib/cinematic/klingShots.ts') === rd('lib/cinematic/klingShots.ts'))
+// Reancorado 29/09 ([TRAVA 8.2 — "vai" do 3x6], KINEO-SEEDANCE-15S-3X6): o 3x6 generalizou o alinhador do plano assinado
+// (passos como parâmetro, para o Seedance 15 s assinar 6|7|8; o Kling segue 5|10 pelos mesmos nomes). A comparação byte a
+// byte continua — contra o arquivo com ESSA mudança desfeita (scripts/test-support/desfaz-3x6-klingshots.mjs, cada troca
+// exatamente uma vez); qualquer outra alteração no arquivo continua vermelha.
+checa('lib/cinematic/klingShots.ts byte a byte igual à base (fora a generalização do alinhador feita pelo 3x6)', rdBase('lib/cinematic/klingShots.ts') === desfaz3x6KlingShots(rd('lib/cinematic/klingShots.ts')))
 checa('lib/compose.ts byte a byte igual à base', rdBase('lib/compose.ts') === rd('lib/compose.ts'))
 checa('lib/cinematic/classicDryRun.ts byte a byte igual à base', rdBase('lib/cinematic/classicDryRun.ts') === rd('lib/cinematic/classicDryRun.ts'))
 const fatiasKling = [

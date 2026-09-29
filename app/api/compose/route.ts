@@ -75,6 +75,8 @@ import { readVerifiedSceneRetryHold, releaseSceneRetryMutex, type SceneRetryMute
 import { classicSceneRetryHoldResolvable } from '@/lib/classicSceneRetry' // KINEO-CENA-CLASSICA-2026-09-28
 import { alignSignedClipPlan } from '@/lib/cinematic/klingShots' // KINEO-KLING25-PLANOS-5S-2026-09-28
 import { isVeoClaim, veoAlignSignedClipPlan } from '@/lib/cinematic/veoShots' // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — claim do Veo assina 4|6|8
+import { alignSignedClipPlanWith } from '@/lib/cinematic/klingShots' // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29
+import { isSeedanceShortClaim, SEEDANCE_SHORT_CLIP_STEPS } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 3x6] claim do Seedance a 15 s assina 6|7|8
 import { collectSceneNarrations, verifyObservedSpeech } from '@/lib/cinematic/speechContract'
 // KINEO-COMPOSE-REJECT-NOREFUND-2026-08-10 — ver o cabeçalho do arquivo: numa
 // recusa TERMINAL do fornecedor nenhum render_id nasce, logo /api/compose/status
@@ -890,6 +892,12 @@ export async function POST(req: NextRequest) {
       // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — o claim do Veo 3.1 (fal_model veo3.1/…) assina 4|6|8 por cena: o alinhador do Kling
       // (5|10) devolve null para ele, e só então o do Veo alinha. Todo outro claim para na linha acima, byte a byte.
       if (!signedClipPlan && isVeoClaim(cinematicBirthClaim.response)) signedClipPlan = veoAlignSignedClipPlan(cinematicBirthClaim.response, cinematicBirthClaim.authorizedCompletedUrls, clipUrls)
+      // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29 — o filme de 15 s do Seedance 1.5 assina 6|7|8 por clipe e
+      // o início da fala de cada cena (os mesmos campos do Kling e do Veo): o compose monta pela linha do tempo por nível
+      // d'água com corte no início da fala, sem reciclar o clipe 0 enquanto houver imagem não usada (canário de 29/09 04:34
+      // UTC: 2 × 10 s, 17,8 s de fala, o clipe 0 voltou nos últimos 2,9 s). Os alinhadores do Kling (5|10) e do Veo devolvem
+      // null para esse claim; todo outro claim para nas linhas acima, byte a byte.
+      if (!signedClipPlan && isSeedanceShortClaim(cinematicBirthClaim.response)) signedClipPlan = alignSignedClipPlanWith(cinematicBirthClaim.response, cinematicBirthClaim.authorizedCompletedUrls, clipUrls, SEEDANCE_SHORT_CLIP_STEPS)
       // Server recovery and browser submission must use the same original scene
       // indexes. A missing middle scene must not move its voice onto its neighbor.
       if (cinematicBirthClaim.response) {
