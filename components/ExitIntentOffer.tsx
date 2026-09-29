@@ -370,39 +370,39 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
     // Gatilhos, guards de sessão e telemetria: intactos.
     return (
       <div
-        className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-        style={{ background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(6px)' }}
+        className="exit-offer-overlay fixed inset-0 z-[100] flex items-center justify-center p-4"
+        style={{ background: 'var(--modal-overlay)', backdropFilter: 'blur(6px)' }}
         onClick={() => setOpen(false)}
       >
         <div
           ref={dialogRef}
+          data-kineo-modal="ExitIntentOffer"
           role="dialog"
           aria-modal="true"
           aria-labelledby="exit-free-title"
           tabIndex={-1}
-          className="relative w-full max-w-[880px] overflow-hidden text-left outline-none grid md:grid-cols-[1fr_1.15fr]"
-          style={{ background: '#131316', border: '1px solid #2a2a2d', borderRadius: 10, boxShadow: '0 24px 80px rgba(0,0,0,.55)' }}
+          className="exit-offer-dialog relative w-full text-left outline-none grid"
+          style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 20, boxShadow: 'var(--modal-shadow)' }}
           onClick={(e) => e.stopPropagation()}
         >
           <button
             type="button"
-            aria-label="Close"
+            className="exit-offer-close" aria-label="Close"
             onClick={() => setOpen(false)}
-            className="absolute right-4 top-3 text-xl font-bold z-10"
-            style={{ color: '#86868b', background: 'none', border: 'none', cursor: 'pointer' }}
+            style={{ color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}
           >
             ×
           </button>
           {/* ── Prova ─────────────────────────────────────────────────── */}
-          <div className="hidden md:flex flex-col gap-3" style={{ background: '#0d0d10', borderRight: '1px solid #2a2a2d', padding: 22 }}>
-            <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '16 / 10', background: '#111', border: '1px solid #2a2a2d' }}>
+          <div className="exit-offer-proof hidden md:flex flex-col gap-3" style={{ background: 'var(--card2)', borderRight: '1px solid var(--border)', padding: 22 }}>
+            <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '16 / 10', background: '#111', border: '1px solid var(--border)' }}>
               <video src="/previews/26d25419-6719-47ab-b24b-df214e007fbd.mp4" autoPlay muted loop playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
               <span style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,.72)', padding: '3px 8px', borderRadius: 4, fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', color: '#fff' }}>KLING 2.5</span>
               <span style={{ position: 'absolute', bottom: 8, left: 8, right: 8, fontSize: 11, fontWeight: 600, color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,.9)' }}>Made with Kineo</span>
             </div>
-            <div style={{ fontSize: 13, color: '#86868b', lineHeight: 1.65 }}>
+            <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.65 }}>
               One thing before you go:<br /><br />
-              Kineo writes the script, records the voiceover, cuts the scenes, captions and delivers the MP4. <b style={{ color: '#f5f5f7', fontWeight: 800 }}>You just type the topic.</b>
+              Kineo writes the script, records the voiceover, cuts the scenes, captions and delivers the MP4. <b style={{ color: 'var(--text)', fontWeight: 800 }}>You just type the topic.</b>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {/* KINEO-EXIT-INTENT-VERDADE-2026-09-27 — os selos são os MESMOS três
@@ -413,13 +413,13 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
                 ? [`${TRIAL_CREDITS_SHOWN} CREDITS FOR $1`, '7 DAYS', 'KINEO 1 + SEEDANCE']
                 : [`${TRIAL_CREDITS_SHOWN} FREE CREDITS`, `${TRIAL_KINEO1_FILMS} KINEO 1 ${TRIAL_KINEO1_FILMS === 1 ? 'FILM' : 'FILMS'}`, 'AI ENGINES FROM STARTER']
               ).map((t) => (
-                <span key={t} style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.08em', padding: '4px 9px', borderRadius: 4, background: '#1d1d1f', border: '1px solid #2a2a2d', color: '#a8a8ad' }}>{t}</span>
+                <span key={t} style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.08em', padding: '4px 9px', borderRadius: 4, background: 'var(--card2)', border: '1px solid var(--border)', color: 'var(--text2)' }}>{t}</span>
               ))}
             </div>
           </div>
           {/* ── Decisão ───────────────────────────────────────────────── */}
-          <div style={{ padding: '26px 26px 22px' }}>
-            <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#5cb3ff', marginBottom: 10 }}>Before you go</div>
+          <div className="exit-offer-decision" style={{ padding: '26px 26px 22px' }}>
+            <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 10 }}>Before you go</div>
             {/* KINEO-PROMESSA-GRATIS-2026-09-08 (M7) — a MANCHETE deste painel
                 era JSX cru: nunca passou por swapFreeTierCopy e por isso
                 sobreviveu à Versão B dizendo "trying it is free" ao lado do
@@ -430,13 +430,13 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
                 outras frases: sob a porta única cai na copy canônica de
                 lib/entryPolicy. `on` repete o `legacy` de propósito, para que
                 a versão A continue byte a byte o que era. */}
-            <h2 id="exit-free-title" style={{ fontSize: 26, lineHeight: 1.12, fontWeight: 900, letterSpacing: '-0.02em', color: '#f5f5f7', margin: 0, marginBottom: 10 }}>
+            <h2 id="exit-free-title" style={{ fontSize: 26, lineHeight: 1.12, fontWeight: 900, letterSpacing: '-0.02em', color: 'var(--text)', margin: 0, marginBottom: 10 }}>
               <FreeTierCopy
                 legacy={EXIT_FREE_HEADLINE}
                 on={EXIT_FREE_HEADLINE}
               />
             </h2>
-            <p style={{ fontSize: 13.5, color: '#86868b', lineHeight: 1.6, margin: 0, marginBottom: 18 }}>
+            <p style={{ fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.6, margin: 0, marginBottom: 18 }}>
               {/* KINEO-GRANT-COPY-UNICA — número derivado; ver lib/freeTierOffer.ts. */}
               <FreeTierCopy
                 legacy="3 free videos every day · no card needed."
@@ -454,9 +454,9 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
                 // lidos do cobrador (getTierPrice/formatCheckoutMoney/TIER_CREDITS).
                 [`${exitPrice('starter')}/mo`, `Starter · ${TIER_CREDITS.starter} credits a month · cancel anytime`],
               ].map(([n, d]) => (
-                <div key={n} style={{ background: '#1d1d1f', border: '1px solid #2a2a2d', borderRadius: 8, padding: '12px 13px' }}>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: '#f5f5f7' }}>{n}</div>
-                  <div style={{ fontSize: 10.5, color: '#86868b', marginTop: 3, lineHeight: 1.45 }}>{d}</div>
+                <div key={n} style={{ background: 'var(--card2)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 13px' }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)' }}>{n}</div>
+                  <div style={{ fontSize: 10.5, color: 'var(--muted)', marginTop: 3, lineHeight: 1.45 }}>{d}</div>
                 </div>
               ))}
             </div>
@@ -470,11 +470,11 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
                 if (signedIn) trackEvent('exit_intent_back_to_studio_clicked', variant)
                 else trackEvent('exit_intent_free_clicked', variant)
               }}
-              style={{ display: 'block', width: '100%', textAlign: 'center', background: '#2997ff', color: '#fff', borderRadius: 8, padding: 15, fontSize: 15, fontWeight: 800, textDecoration: 'none' }}
+              style={{ display: 'block', width: '100%', textAlign: 'center', background: 'var(--indigo)', color: 'var(--on-accent)', borderRadius: 8, padding: 15, fontSize: 15, fontWeight: 800, textDecoration: 'none' }}
             >
               {signedIn ? 'Back to Studio' : 'Sign up and make my first video'}
             </a>
-            <p style={{ fontSize: 11, color: '#6e6e73', textAlign: 'center', marginTop: 14, lineHeight: 1.5 }}>
+            <p style={{ fontSize: 11, color: 'var(--muted2)', textAlign: 'center', marginTop: 14, lineHeight: 1.5 }}>
               {signedIn ? 'You are already signed in — pick up where you left off.' : 'Creating an account takes under a minute.'}
             </p>
           </div>
@@ -485,23 +485,24 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(6px)' }}
+      className="exit-offer-overlay fixed inset-0 z-[100] flex items-center justify-center p-4"
+      style={{ background: 'var(--modal-overlay)', backdropFilter: 'blur(6px)' }}
       onClick={() => setOpen(false)}
     >
       <div
         ref={dialogRef}
+        data-kineo-modal="ExitIntentOffer"
         role="dialog"
         aria-modal="true"
         aria-labelledby="exit-offer-title"
         aria-describedby="exit-offer-desc"
         tabIndex={-1}
-        className="relative w-full max-w-[880px] overflow-hidden text-left outline-none grid md:grid-cols-[1fr_1.15fr]"
+        className="exit-offer-dialog relative w-full text-left outline-none grid"
         style={{
-          background: '#131316',
-          border: '1px solid #2a2a2d',
-          borderRadius: 10,
-          boxShadow: '0 24px 80px rgba(0,0,0,.55)',
+          background: 'var(--card)',
+          border: '1px solid var(--border)',
+          borderRadius: 20,
+          boxShadow: 'var(--modal-shadow)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -509,8 +510,8 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
             superfície de VENDA no visual velho (card 512px centrado). Mesma
             casca aprovada; os preços já eram derivados desde o
             KINEO-VITRINE-MOEDA-2026-08-19, então aqui só a moldura muda. */}
-        <div className="hidden md:flex flex-col gap-3" style={{ background: '#0d0d10', borderRight: '1px solid #2a2a2d', padding: 22 }}>
-          <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '16 / 10', background: '#111', border: '1px solid #2a2a2d' }}>
+        <div className="exit-offer-proof hidden md:flex flex-col gap-3" style={{ background: 'var(--card2)', borderRight: '1px solid var(--border)', padding: 22 }}>
+          <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '16 / 10', background: '#111', border: '1px solid var(--border)' }}>
             <video src="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" autoPlay muted loop playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
             <span style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,.72)', padding: '3px 8px', borderRadius: 4, fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', color: '#fff' }}>VEO 3.1</span>
             <span style={{ position: 'absolute', bottom: 8, left: 8, right: 8, fontSize: 11, fontWeight: 600, color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,.9)' }}>Made with Kineo</span>
@@ -521,26 +522,25 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
                 superfície de venda antes da pessoa ir embora mostrava um
                 catálogo menor do que o real. Abre a lista, como na vitrine. */}
             {['OMNI FLASH · #1', 'VEO 3.1', 'KLING 3', 'MINIMAX H3', 'KLING 2.5', 'SEEDANCE 1.5', 'KINEO 1'].map((e) => (
-              <span key={e} style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.08em', padding: '4px 9px', borderRadius: 4, background: '#1d1d1f', border: '1px solid #2a2a2d', color: '#a8a8ad' }}>{e}</span>
+              <span key={e} style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.08em', padding: '4px 9px', borderRadius: 4, background: 'var(--card2)', border: '1px solid var(--border)', color: 'var(--text2)' }}>{e}</span>
             ))}
           </div>
-          <div style={{ fontSize: 12, color: '#86868b', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
             Every film above was made with Kineo, labeled with the real engine that rendered it.
           </div>
         </div>
-        <div style={{ padding: '26px 26px 22px' }}>
+        <div className="exit-offer-decision" style={{ padding: '26px 26px 22px' }}>
         <button
           type="button"
           onClick={() => setOpen(false)}
           aria-label="Close offer"
-          className="absolute top-2 right-2 flex items-center justify-center rounded-lg text-[#86868b] hover:text-white hover:bg-white/[.06] transition"
+          className="exit-offer-close"
           style={{ width: 44, height: 44, fontSize: 20, fontWeight: 700, lineHeight: 1 }}
         >
           ×
         </button>
-
-        <h2 id="exit-offer-title" className="font-black text-[#f5f5f7] mb-2" style={{ fontSize: 26, lineHeight: 1.12, letterSpacing: '-0.02em' }}>
-          Wait — pick your <span style={{ color: '#2997ff' }}>deal</span> before you go
+        <h2 id="exit-offer-title" className="font-black text-[var(--text)] mb-2" style={{ fontSize: 26, lineHeight: 1.12, letterSpacing: '-0.02em' }}>
+          Wait — pick your <span style={{ color: 'var(--accent)' }}>deal</span> before you go
         </h2>
         {/* KINEO-SPRINT-OFFER-2026-07-14 — copy no longer implies a one-time
             option ("try it once" was the pack); both cards are subscriptions. */}
@@ -567,43 +567,43 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
             Agora: preço de getTierPrice() na moeda+região do visitante, sem
             NENHUMA afirmação de desconto — o que a gente tem de verdade para
             oferecer aqui é a escada (o degrau barato), não um desconto. */}
-        <p id="exit-offer-desc" className="text-[13.5px] text-[#86868b] mb-5 leading-relaxed">
+        <p id="exit-offer-desc" className="text-[13.5px] text-[var(--muted)] mb-5 leading-relaxed">
           A monthly balance for finished films. Every engine unlocked. Cancel anytime.
         </p>
 
         {/* KINEO-INTRO-MONTH-2026-07-13 — v3 ladder: intro Starter (left) vs
             intro Creator (right, highlighted). Ambos assinaturas → MRR. */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 text-left">
+        <div className="exit-offer-plans grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 text-left">
           {/* Left — Starter (KINEO-PRICING-V6-2026-08-19: preço único, sem 1º
               mês; o rótulo sai de exitPrice() → getTierPrice()). */}
           <div
             className="rounded-xl p-4 flex flex-col"
             style={{
-              background: 'rgba(255,255,255,.04)',
-              border: '1px solid rgba(255,255,255,.14)',
+              background: 'var(--card2)',
+              border: '1px solid var(--border)',
             }}
           >
-            <span className="text-[10px] font-black uppercase tracking-[.12em] text-[#86868b] mb-1.5">
+            <span className="text-[10px] font-black uppercase tracking-[.12em] text-[var(--muted)] mb-1.5">
               Starter · {formatPlanFilmCapacity(
                 videosPerMonth('starter', 'fast'),
                 'Kineo 1 film',
                 TIER_CREDITS.starter,
               )}
             </span>
-            <span className="text-xl font-black text-[#f5f5f7]">
-              {exitPrice('starter')} <span className="text-[12px] font-bold text-[#86868b]">/month</span>
+            <span className="text-xl font-black text-[var(--text)]">
+              {exitPrice('starter')} <span className="text-[12px] font-bold text-[var(--muted)]">/month</span>
             </span>
-            <span className="text-[12.5px] text-[#a1a1a6] mt-1 mb-3 leading-relaxed">
+            <span className="text-[12.5px] text-[var(--text2)] mt-1 mb-3 leading-relaxed">
               every engine · no watermark · cancel anytime
             </span>
             <button
               type="button"
               onClick={handleIntroStarter}
               disabled={buying !== null}
-              className="mt-auto w-full rounded-lg py-2.5 text-[13.5px] font-extrabold text-[#f5f5f7] transition hover:bg-white/[.10] disabled:opacity-60"
+              className="mt-auto w-full rounded-lg py-2.5 text-[13.5px] font-extrabold text-[var(--text)] transition hover:bg-white/[.10] disabled:opacity-60"
               style={{
-                background: 'rgba(255,255,255,.08)',
-                border: '1px solid rgba(255,255,255,.18)',
+                background: 'var(--card2)',
+                border: '1px solid var(--border2)',
                 minHeight: 44,
                 cursor: 'pointer',
               }}
@@ -617,38 +617,39 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
           <div
             className="relative rounded-xl p-4 flex flex-col"
             style={{
-              background: 'rgba(41,151,255,.08)',
-              border: '1.5px solid #2997ff',
-              boxShadow: '0 0 26px rgba(41,151,255,.22)',
+              background: 'var(--accent-soft)',
+              border: '1.5px solid var(--accent)',
+              boxShadow: 'none',
             }}
           >
             <span
               className="absolute -top-2.5 right-3 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[.12em]"
-              style={{ background: '#2997ff', color: '#fff' }}
+              style={{ background: 'var(--indigo)', color: 'var(--on-accent)' }}
             >
               Best value
             </span>
-            <span className="text-[10px] font-black uppercase tracking-[.12em] mb-1.5" style={{ color: '#7cc0ff' }}>
+            <span className="text-[10px] font-black uppercase tracking-[.12em] mb-1.5" style={{ color: 'var(--accent)' }}>
               Creator · {formatPlanFilmCapacity(
                 videosPerMonth('basic', 'cinematic_ai'),
                 'Seedance film',
                 TIER_CREDITS.basic,
               )}
             </span>
-            <span className="text-xl font-black text-[#f5f5f7]">
-              {exitPrice('basic')} <span className="text-[12px] font-bold text-[#86868b]">/month</span>
+            <span className="text-xl font-black text-[var(--text)]">
+              {exitPrice('basic')} <span className="text-[12px] font-bold text-[var(--muted)]">/month</span>
             </span>
-            <span className="text-[12.5px] text-[#cfe7ff] mt-1 mb-3 leading-relaxed">
+            <span className="text-[12.5px] text-[var(--text2)] mt-1 mb-3 leading-relaxed">
               Voice, captions and score included
             </span>
             <button
               type="button"
               onClick={handleIntroCreator}
               disabled={buying !== null}
-              className="mt-auto w-full rounded-lg py-2.5 text-[13.5px] font-extrabold text-white transition disabled:opacity-60"
+              className="mt-auto w-full rounded-lg py-2.5 text-[13.5px] font-extrabold text-[var(--on-accent)] transition disabled:opacity-60"
               style={{
-                background: '#2997ff',
-                boxShadow: '0 8px 24px rgba(41,151,255,.4)',
+                background: 'var(--indigo)',
+                color: 'var(--on-accent)',
+                boxShadow: 'var(--sh-cta)',
                 minHeight: 44,
                 cursor: 'pointer',
               }}
@@ -665,7 +666,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
             style={{
               background: 'rgba(255,107,107,.08)',
               border: '1px solid rgba(255,107,107,.35)',
-              color: '#f5f5f7',
+              color: 'var(--text)',
             }}
           >
             {checkout.error}
@@ -678,7 +679,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
             A letra miúda contradizia os dois cards logo acima, que já mostram
             o preço cheio. Trocada pelo que é verdade e é argumento de venda:
             o valor não muda depois. */}
-        <p className="text-[11px] text-[#6e6e73]">
+        <p className="text-[11px] text-[var(--muted2)]">
           7-day money-back guarantee · cancel anytime · same price every month
         </p>
         </div>{/* fim da coluna de decisão (KINEO-MODAL-VITRINE) */}

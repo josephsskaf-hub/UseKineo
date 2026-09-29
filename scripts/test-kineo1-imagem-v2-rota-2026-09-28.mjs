@@ -46,6 +46,9 @@ const ALIAS = {
   './clipVault': 'lib/clipVault.ts', '@/lib/clipVault': 'lib/clipVault.ts',
   './pixabay': 'lib/pixabay.ts', '@/lib/pixabay': 'lib/pixabay.ts',
   '@/lib/aspect': 'lib/aspect.ts', './broll/aesthetic-score': 'lib/broll/aesthetic-score.ts',
+  // Re-âncora (28/09): lib/fastAiClips.ts delega o prompt do clipe de IA a lib/kineo1/aiClipPrompt.ts (KINEO1-CLIPE-IA-PROMPT,
+  // main 77843a5e). Módulo REAL (lib pura, sem import) — não um stub: o que o guardião prova sobre o prompt é o de produção.
+  '@/lib/kineo1/aiClipPrompt': 'lib/kineo1/aiClipPrompt.ts',
 }
 function mundo({ stubs = {}, env = {} } = {}) {
   const cache = new Map()
@@ -63,6 +66,11 @@ function mundo({ stubs = {}, env = {} } = {}) {
 }
 const Q = mundo({ stubs: { '@/lib/openai': { openai: {} }, './clipVault': { vaultClipAsync: () => {} } } }).carregar('lib/kineo1/sceneQueries.ts')
 const C = mundo({ stubs: { '@fal-ai/client': { fal: { config() {} } }, './fastAiHook': {} } }).carregar('lib/fastAiClips.ts')
+{
+  const AP = mundo().carregar('lib/kineo1/aiClipPrompt.ts')
+  const importados = rd('lib/fastAiClips.ts').match(/import \{ ([^}]+) \} from '@\/lib\/kineo1\/aiClipPrompt'/)?.[1]?.split(',').map((s) => s.trim()).filter(Boolean) ?? []
+  checa('lib/fastAiClips.ts importa de @/lib/kineo1/aiClipPrompt, e o módulo REAL (não stub) exporta cada nome importado como função', importados.length >= 3 && importados.includes('buildFacelessClipPrompt') && importados.every((n) => typeof AP[n] === 'function'))
+}
 const S = mundo().carregar('lib/fastAiScene.ts')
 const PB = mundo().carregar('lib/kineo1/pastedBrief.ts')
 const SP = mundo().carregar('lib/scriptParser.ts')

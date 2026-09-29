@@ -27,6 +27,8 @@ import { isInternalEmail, INTERNAL_ACCOUNTS_LABEL } from '@/lib/internalAccounts
 import { stripeMrrUsd } from '@/app/api/admin/_shared/mrr'
 import { stripeNetRevenue, type NetRevenue } from '@/app/api/admin/_shared/revenue'
 import { PAID_PLANS, PLAN_PRICE_USD, isTrialPlan } from '@/app/api/admin/_shared/mrr'
+// KINEO-MRR-PRECO-PAGO-2026-09-28 — o MRR é o que cada assinante PAGA (última fatura), não a tabela de hoje.
+import { paidMonthlyUsdByUser, paidMrrForProfiles, paidMrrSourceLabel, type PaidAmountEvent } from '@/app/api/admin/_shared/mrr'
 
 import { funilVersaoB, VERSAO_B_SINCE, metaTrue, type EventRow, type FunilB } from '@/lib/admin/versaoBFunnel'
 
@@ -93,12 +95,18 @@ type Metrics = {
   // revenue
   payingTotal: number
   payingByPlan: { starter: number; creator: number; studio: number }
-  mrrUsd: number
+  /** KINEO-MRR-PRECO-PAGO-2026-09-28 — o grupo no preço de TABELA de hoje ("se todos pagassem o preço novo"); nunca o número do card. */
+  mrrTableUsd: number
   // KINEO-PLACAR-TRIAL-2026-09-08 — trial de $1 NAO e pagante nem MRR ate o dia 8.
   trialsActive: number
   trialPotentialMrrUsd: number
   mrrStripeUsd: number | null
   mrrStripeCounted: number
+  // KINEO-MRR-PRECO-PAGO-2026-09-28 — o número: soma da última fatura paga por assinante
+  // (tabela só para quem não tem valor conhecido, e o rótulo diz quantos são).
+  mrrPaidUsd: number
+  mrrPaidLabel: string
+  mrrPaidFromTable: number
   // KINEO-RECEITA-LIQUIDA-2026-09-21 — dinheiro cobrado (Stripe), assinaturas × avulsos, líquido após taxa.
   revenue: NetRevenue | null
   arpuUsd: number | null
@@ -206,7 +214,7 @@ async function loadMetrics(): Promise<Metrics | null> {
 
   // ── revenue ────────────────────────────────────────────────────────────────
   const payingByPlan = { starter: 0, creator: 0, studio: 0 }
-  let mrrUsd = 0
+  let mrrTableUsd = 0 // tabela de hoje — referência rotulada, não o MRR
   let trialsActive = 0
   let trialPotentialMrrUsd = 0
   const payingSubscriptionIds: string[] = []
@@ -226,16 +234,25 @@ async function loadMetrics(): Promise<Metrics | null> {
     if (key === 'starter') payingByPlan.starter += 1
     else if (key === 'basic') payingByPlan.creator += 1
     else if (key === 'pro') payingByPlan.studio += 1
-    mrrUsd += PLAN_PRICE_USD[plan] ?? 0
+    mrrTableUsd += PLAN_PRICE_USD[plan] ?? 0
   }
   const payingTotal = payingByPlan.starter + payingByPlan.creator + payingByPlan.studio
-  // KINEO-PLACAR-TRIAL-2026-09-08 — a tabela usa o preco NOVO ($9/$19/$29); os 12
-  // pagantes antigos seguem no preco antigo na Stripe. O MRR real vem da Stripe;
-  // a tabela fica como fallback e como "MRR se todos estivessem no preco novo".
+  // KINEO-MRR-PRECO-PAGO-2026-09-28 — `mrrTableUsd` acima é a TABELA de hoje ("se todos
+  // pagassem o preço novo"). O número que a tela anuncia é o que cada assinante
+  // paga de fato: última fatura (subscription_invoice_paid) ou o checkout de
+  // assinatura, BRL pela taxa da casa, anual ÷ 12; tabela só para quem não tem
+  // valor conhecido — e o rótulo conta quantos são. Régua única: _shared/mrr.
+  const paidByUser = paidMonthlyUsdByUser((eventsQ.data ?? []) as PaidAmountEvent[])
+  const paidMrr = paidMrrForProfiles(external, paidByUser)
+  const mrrPaidUsd = paidMrr.mrrUsd
+  const mrrPaidLabel = paidMrrSourceLabel(paidMrr)
+  const mrrPaidFromTable = paidMrr.fromTable
+  // KINEO-PLACAR-TRIAL-2026-09-08 — a Stripe (preço da assinatura) fica como conferência
+  // ao vivo no rótulo; quando não responde, a tela diz isso em vez de inventar.
   const [stripeMrr, revenue] = await Promise.all([stripeMrrUsd(payingSubscriptionIds), stripeNetRevenue()])
   const mrrStripeUsd = stripeMrr ? Math.round(stripeMrr.mrr * 100) / 100 : null
   const mrrStripeCounted = stripeMrr?.counted ?? 0
-  const arpuUsd = payingTotal > 0 ? (mrrStripeUsd ?? mrrUsd) / payingTotal : null
+  const arpuUsd = payingTotal > 0 ? mrrPaidUsd / payingTotal : null
 
   const eventRows = (eventsQ.data ?? []) as EventRow[]
   const oneTimePurchases = eventRows.filter(
@@ -393,12 +410,15 @@ async function loadMetrics(): Promise<Metrics | null> {
     externalUsers: external.length,
     payingTotal,
     payingByPlan,
-    mrrUsd: Math.round(mrrUsd * 100) / 100,
+    mrrTableUsd: Math.round(mrrTableUsd * 100) / 100,
     trialsActive,
     trialPotentialMrrUsd: Math.round(trialPotentialMrrUsd * 100) / 100,
     mrrStripeUsd,
     revenue,
     mrrStripeCounted,
+    mrrPaidUsd,
+    mrrPaidLabel,
+    mrrPaidFromTable,
     arpuUsd,
     oneTimePurchases,
     versaoB,
@@ -663,10 +683,12 @@ export default async function AdminOverviewPage() {
         {/* 💰 Revenue */}
         <Section emoji="💰" title="Revenue">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {/* KINEO-MRR-PRECO-PAGO-2026-09-28 — o valor é o que cada assinante paga (última fatura);
+                a tabela nova e a Stripe ao vivo ficam no rótulo, e o rótulo diz quantos caíram na tabela. */}
             <Kpi
               label="MRR"
-              value={fmtMoney(m.mrrStripeUsd ?? m.mrrUsd)}
-              sub={m.mrrStripeUsd != null ? `Stripe · ${m.mrrStripeCounted} subs cobradas · tabela ${fmtMoney(m.mrrUsd)} no preço novo` : `${m.payingTotal} active external subs (tabela)`}
+              value={fmtMoney(m.mrrPaidUsd)}
+              sub={`pago · ${m.mrrPaidLabel} · tabela nova ${fmtMoney(m.mrrTableUsd)}${m.mrrStripeUsd != null ? ` · Stripe ao vivo ${fmtMoney(m.mrrStripeUsd)} (${m.mrrStripeCounted} subs)` : ' · Stripe indisponível agora'}`}
               accent="245,245,247"
             />
             {/* KINEO-RECEITA-LIQUIDA-2026-09-21 — fundador: "tem gente que faz top-up e fica comprando; o admin só mostra MRR".
