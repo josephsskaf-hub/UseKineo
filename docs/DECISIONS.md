@@ -2,6 +2,19 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
+## 2026-09-29 — Kineo 1 fora do jogo; filme grátis = Seedance 15 s; saída B (só país rico)
+
+**QUEM DECIDIU:** o fundador, 29/09, literal: "quero tirar o kineo 1 do jogo, ele estraga a entrada"; "vou sair na saída B"; e, sobre quem já usa, "deixar dentro do sistema dessas contas que já pagam esse motor que eles usam".
+**OBJETIVO:** quem chega pelo GPT (a fonte que mais cresce) ter um primeiro filme MUITO bom. O primeiro vídeo é o produto: o Kineo 1 (filmagem de banco) como primeira impressão entrega menos do que um filme de IA de verdade, e o trial de 10 créditos só cabia nele.
+**O QUE MUDA, em cinco entregas nesta ordem (cada uma só sobe depois da anterior):**
+- **E1 (esta):** o Kineo 1 sai da VITRINE PÚBLICA — home (mega-menu, tile do bento, chip final, parede e trending), /arena, meta description e a contagem pública de motores ("Five", derivada dos interruptores). Interruptor único `KINEO1_PUBLIC=false` em lib/engineLaunch.ts, com `kineo1Visible(email, { hasPaid, usedFast, boughtPack })` = conta da casa, ou quem já pagou E tem filme Kineo 1 concluído (qualquer data), ou quem comprou pacote avulso (bulk*, vendido em filmes Kineo 1). A leitura desse legado mora em lib/kineo1Access.ts e já é entregue pronta em /api/me/credits (`kineo1`) e no /studio/create (prop `kineo1Visible`) — nesta entrega ninguém muda comportamento com ela. Interruptor de país em lib/freeFilmPolicy.ts (`FREE_FILM_POLICY` 'todos' | 'pais_rico', lista de país rico; BR e MX fora — 0 pagantes em 30 dias), ligado no grant do trial (lib/reverseTrial.ts): sob 'pais_rico', país fora da lista nasce com `trial_status='region_paid_only'`, 0 crédito e evento `trial_region_excluded { country }`. **Nasce em 'todos': comportamento idêntico ao de hoje.** Curadoria (CURATED, homeVideoCuration) e o dado do /arena (lib/publicExamples) ficam intactos.
+- **E2a:** duração de 15 s no Seedance 1.5 (7 cr, cabe nos 10 do trial), só no Seedance.
+- **E2b:** a entrada do trial troca de motor — o primeiro filme passa a ser o Seedance de 15 s; o Kineo 1 sai do Studio e do /generate para quem não tem legado (lendo `kineo1Visible`).
+- **E3:** textos públicos (llms.txt, /facts, GPT, pricing, /ph, calculadora, e-mails) param de citar o Kineo 1 como grátis ou padrão.
+- **E4:** fim da cota semanal de Kineo 1 grátis, com guarda de servidor na generate-video-fast (trava 8.2, "vai" nominal separado). **Só depois da E4 a saída B pode ligar** (`FREE_FILM_POLICY='pais_rico'`): antes disso uma conta 'region_paid_only' ainda pegaria Kineo 1 grátis e o "1º filme" com clipes de IA pagos pela casa.
+**GUARDIÕES:** scripts/test-kineo1-fora-vitrine-2026-09-29.mjs e scripts/test-filme-gratis-por-pais-2026-09-29.mjs (este trava a política em 'todos' enquanto a cota semanal existir).
+**COMO MEDIR (E1):** `curl -s -A 'kineo-sonda/1.0' https://www.usekineo.com/ | grep -c 'Kineo 1'` = 0, com controle `grep -c 'Seedance'` ≥ 1 na mesma rodada; idem em /arena. Com 'todos', `select count(*) from events where name='trial_region_excluded' and created_at > <carimbo do deploy>` = 0 e os cadastros novos seguem com trial_credits_granted = 10.
+
 ## 2026-09-28 (noite) — Preço V8, opção A: Starter US$12,90 · Creator US$29,90 · Studio US$54,90; barra de créditos mais cara
 
 **QUEM DECIDIU:** o fundador, 28/09 ~20h30 BRT: "Preço A" e "Barra de crédito mais cara". Antecipa a mesa de preço de 09/10 (o congelamento de 09/09 acabou aqui).

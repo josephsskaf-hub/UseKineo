@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 // KINEO-S25-CARD-2026-09-01 — a flag `internal` existe para o /studio poder
 // mostrar o card do Seedance 2.5 SO para contas da casa enquanto o motor
 // esta no periodo de canario (o gate de verdade continua no servidor).
-import { s25Visible, avatarVisible } from '@/lib/engineLaunch'
+import { s25Visible, avatarVisible, kineo1Visible } from '@/lib/engineLaunch'
+import { readKineo1Access } from '@/lib/kineo1Access'
 
 // KINEO-CABE-2026-08-21 — saldo do usuário logado, para a tela poder dizer a
 // verdade ANTES do clique. Existe porque o /studio oferecia motores que o
@@ -30,7 +31,7 @@ export async function GET() {
   if (!user) return NextResponse.json({ credits: null }, { status: 401 })
   const { data } = await supabase
     .from('profiles')
-    .select('video_credits, plan')
+    .select('video_credits, plan, has_paid')
     .eq('id', user.id)
     .maybeSingle()
   // KINEO-STUDIO-TILE-ADS-2026-09-27 — `plan` cru (profiles.plan, minúsculo) para o tile "Business ad" do /studio decidir
@@ -39,5 +40,13 @@ export async function GET() {
   const plan = typeof data?.plan === 'string' ? data.plan.trim().toLowerCase() : null
   // KINEO-AVATAR-FORA-2026-09-28 — `avatar` separado de `internal`: `internal` é s25Visible (vira true para todos no
   // dia do S25_PUBLIC=true) e não pode arrastar o Avatar de volta ao catálogo junto. Cada interruptor, sua flag.
-  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), internal: s25Visible(user.email), plan })
+  // KINEO-KINEO1-FORA-2026-09-29 — `kineo1` já resolvido (kineo1Visible): a casa, o pagante que já tem filme Kineo 1
+  // concluído, ou quem comprou pacote avulso. Só lê o legado quando a régua barata não basta. E1 só expõe; o /studio
+  // passa a esconder o card com esta flag na E2b.
+  let kineo1 = kineo1Visible(user.email)
+  if (!kineo1) {
+    const legado = await readKineo1Access(user.id)
+    kineo1 = kineo1Visible(user.email, { hasPaid: (data as { has_paid?: boolean | null } | null)?.has_paid === true, usedFast: legado.usedFast, boughtPack: legado.boughtPack })
+  }
+  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), internal: s25Visible(user.email), kineo1, plan })
 }

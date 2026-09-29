@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { resolveAuthRedirect } from '@/lib/authRedirect'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { maybeActivateReverseTrial } from '@/lib/reverseTrial'
+import { paisDoRequest } from '@/lib/freeFilmPolicy'
 import { trialFingerprintFromHeaders } from '@/lib/trialFingerprint'
 import { buildCheckoutOAuthFailureHandoff } from '@/lib/growth/checkoutOAuthFailureHandoff'
 import type { CreationOAuthFailureTelemetry } from '@/lib/growth/creationOAuthFailureHandoff'
@@ -157,6 +158,7 @@ export async function GET(request: Request) {
             email: data.user.email ?? null,
             userCreatedAt: data.user.created_at ?? null,
             fingerprintHash: trialFingerprintFromHeaders(request.headers),
+            country: paisDoRequest(request.headers), // KINEO-FILME-GRATIS-POR-PAIS-2026-09-29
           })
         } catch (e) {
           console.error('[auth/callback] reverse-trial non-fatal:', e instanceof Error ? e.message : String(e))

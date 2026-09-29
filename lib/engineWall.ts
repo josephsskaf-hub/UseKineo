@@ -292,7 +292,10 @@ const HERO_CAPS: Record<string, number> = {
   // 5o fica exclusivo do tile do bento (tileVidLast).
   cinematic_h3: 4,
   cinematic_omni: 5,
-  fast: 4,
+  // KINEO-KINEO1-FORA-2026-09-29 — fundador (29/09): "quero tirar o kineo 1 do jogo, ele estraga a entrada". O cap
+  // zera e o Kineo 1 some da vitrine pública; a curadoria (CURATED, lib/homeVideoCuration.ts) fica intacta — voltar
+  // é devolver o 4 (junto com KINEO1_PUBLIC=true em lib/engineLaunch.ts).
+  fast: 0,
   presenter: 1,
 }
 
@@ -446,7 +449,10 @@ const TRENDING_CAPS: Record<string, number> = {
   cinematic_ai: 4,
   cinematic_h3: 2,
   cinematic_omni: 5,
-  fast: 4,
+  // KINEO-KINEO1-FORA-2026-09-29 — fundador (29/09): "quero tirar o kineo 1 do jogo, ele estraga a entrada". O cap
+  // zera e o Kineo 1 some da vitrine pública; a curadoria (CURATED, lib/homeVideoCuration.ts) fica intacta — voltar
+  // é devolver o 4 (junto com KINEO1_PUBLIC=true em lib/engineLaunch.ts).
+  fast: 0,
   presenter: 1,
 }
 

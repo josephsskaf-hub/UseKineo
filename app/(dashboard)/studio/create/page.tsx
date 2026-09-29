@@ -22,6 +22,9 @@ import { redirect } from 'next/navigation'
 import { cookies, headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { maybeActivateReverseTrial } from '@/lib/reverseTrial'
+import { paisDoRequest } from '@/lib/freeFilmPolicy'
+import { readKineo1Access } from '@/lib/kineo1Access'
+import { kineo1Visible } from '@/lib/engineLaunch'
 import { trialFingerprintFromHeaders } from '@/lib/trialFingerprint'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { getViralTopicById } from '@/lib/viralTopics'
@@ -144,6 +147,7 @@ export default async function StudioCreatePage({ searchParams }: StudioCreatePag
       email: user.email ?? null,
       userCreatedAt: user.created_at ?? null,
       fingerprintHash: trialFingerprintFromHeaders(headers()),
+      country: paisDoRequest(headers()), // KINEO-FILME-GRATIS-POR-PAIS-2026-09-29
     })
   } catch {
     /* best-effort — a página nunca quebra por causa do trial */
@@ -225,12 +229,33 @@ export default async function StudioCreatePage({ searchParams }: StudioCreatePag
   // e-mail, nada de crédito, nada de render. Ver lib/entrega/refusalNotice.ts.
   const refusalNotice = await lerAvisoDeRecusa(user.id)
 
+  // KINEO-KINEO1-FORA-2026-09-29 — a régua de quem continua vendo o Kineo 1 (lib/engineLaunch.ts kineo1Visible),
+  // resolvida AQUI no servidor e entregue pronta. Nesta entrega (E1) o GenerateClient só recebe a prop; quem passa a
+  // esconder o motor com ela é a E2b. Best-effort: falha de leitura = sem legado (a casa segue vendo pelo e-mail).
+  let kineo1 = kineo1Visible(user.email)
+  if (!kineo1) {
+    try {
+      const [{ data: perfilK1 }, legadoK1] = await Promise.all([
+        supabase.from('profiles').select('has_paid').eq('id', user.id).maybeSingle(),
+        readKineo1Access(user.id),
+      ])
+      kineo1 = kineo1Visible(user.email, {
+        hasPaid: (perfilK1 as { has_paid?: boolean | null } | null)?.has_paid === true,
+        usedFast: legadoK1.usedFast,
+        boughtPack: legadoK1.boughtPack,
+      })
+    } catch {
+      /* best-effort — a tela de criar nunca quebra por causa desta régua */
+    }
+  }
+
   return (
     <Suspense fallback={null}>
       <GenerateClient
         initialViralPrompt={seedPrompt}
         initialUserId={user.id}
         refusalNotice={refusalNotice}
+        kineo1Visible={kineo1}
       />
     </Suspense>
   )

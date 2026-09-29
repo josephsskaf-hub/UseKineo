@@ -55,9 +55,12 @@ const wall = executeTs('lib/engineWall.ts', {
 })
 
 const hero = await wall.getEngineHero()
-const expectedEngines = ['fast', 'cinematic_ai', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni', 'presenter']
+// Reancorado 29/09 (KINEO-KINEO1-FORA-2026-09-29, fundador: "quero tirar o kineo 1 do jogo, ele estraga a entrada"):
+// o Kineo 1 saiu da vitrine pública (HERO_CAPS/TRENDING_CAPS.fast = 0); a curadoria dele fica intacta em
+// lib/homeVideoCuration.ts. A parede passa a ter as sete famílias restantes e 0 clipe 'fast'.
+const expectedEngines = ['cinematic_ai', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni', 'presenter']
 equal(databaseCalls, 0, 'privacy-contained home does not open Supabase')
-equal(new Set(hero.map((video) => video.engine)).size, 8, 'middle wall receives all eight engine families')
+equal(new Set(hero.map((video) => video.engine)).size, 7, 'middle wall receives the seven public engine families (Kineo 1 off since 29/09)')
 // reancorado 16/09: a vitrine do fundador de 07/09 (KINEO-VITRINE-FUNDADOR) somou 11 renders aos 26 — o guardião estava parado e não viu.
 equal(publicEngineExamples.length, 37, 'engine allowlist contains the thirty-seven founder-confirmed curated renders (26 + 11 of 07/09)')
 equal(new Set(publicEngineExamples.map((video) => video.id)).size, publicEngineExamples.length, 'engine allowlist has no duplicate IDs')
@@ -78,7 +81,8 @@ equal(heroCounts.cinematic_omni, 5, 'Omni Flash keeps robot + four presenters on
 for (const [engine, id] of [['cinematic_ai', 'b5434412-62b9-48f5-9a10-c36e2e725c9f'], ['cinematic_kling', 'ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb'], ['cinematic_veo', '6b9b363c-3185-4db7-a877-46b77e334f06'], ['cinematic_hollywood', 'd6d73a90-9bd7-46a3-826a-9a4a72549e05']]) {
   equal(hero.find((video) => video.engine === engine)?.id, id, `${engine} opens with the film the founder approved on 16/09`)
 }
-equal(hero.filter((video) => video.engine === 'fast').length, 3, 'Kineo 1 shows the three renders the founder approved on 07/09 (reanchored 16/09)')
+// 29/09: os três aprovados de 07/09 do Kineo 1 seguem na curadoria, fora da vitrine pública.
+equal(hero.filter((video) => video.engine === 'fast').length, 0, 'Kineo 1 is off the public hero (KINEO-KINEO1-FORA-2026-09-29)')
 check(hero.some((video) => video.id === '36a04f7b-65f7-42d9-a2ab-198b5a7f115e'), 'robot harbor clip is restored')
 // reancorado 16/09: desde 07/09 o Omni da home é robô + 4 apresentadores aprovados (Mariana Trench saiu por decisão do fundador).
 check(hero.some((video) => video.id === 'a66e975a-3f6c-4bf4-9510-cd15b895b58b'), 'Omni presenter approved on 07/09 is on the wall')
@@ -103,12 +107,15 @@ for (const video of hero) {
 const trending = await wall.getTrending()
 equal(databaseCalls, 0, 'trending also stays database-free')
 // reancorado 16/09: a curadoria de 07/09 (3 Kineo 1 + 4 Seedance + Omni robô e 4 apresentadores…) levou a fileira de 14 a 23.
-equal(trending.length, 24, 'third row keeps the dense twenty-four-video rail (07/09 curation + Kling 2.5 back to four clips on 16/09)')
+// 29/09 (KINEO-KINEO1-FORA-2026-09-29): os 3 Kineo 1 saíram da fileira; 24 − 3 = 21.
+equal(trending.length, 21, 'third row keeps the dense rail minus the three Kineo 1 clips (07/09 curation + Kling 2.5 four clips on 16/09; Kineo 1 off since 29/09)')
 check(new Set(trending.map((video) => video.engine)).size >= 7, 'third row spans at least seven engine families')
-equal(trending[0].engine, 'fast', 'trending interleave starts with everyday output')
-equal(trending[1].engine, 'cinematic_ai', 'trending interleave avoids same-engine clumps')
-equal(trending[5].engine, 'cinematic_h3', 'MiniMax appears in the first visible pass')
-equal(trending[6].engine, 'cinematic_omni', 'Omni appears in the first visible pass')
+// 29/09: sem o Kineo 1 a intercalação abre no Seedance e o primeiro passe anda uma casa (H3 na 5ª, Omni na 6ª).
+check(trending.every((video) => video.engine !== 'fast'), 'trending carries no Kineo 1 clip (KINEO-KINEO1-FORA-2026-09-29)')
+equal(trending[0].engine, 'cinematic_ai', 'trending interleave starts with the Seedance output')
+check(trending[1].engine !== trending[0].engine, 'trending interleave avoids same-engine clumps')
+equal(trending[4].engine, 'cinematic_h3', 'MiniMax appears in the first visible pass')
+equal(trending[5].engine, 'cinematic_omni', 'Omni appears in the first visible pass')
 for (const video of trending) {
   check(video.href && !video.href.startsWith('/v/'), `${video.id} trending destination is explicit and safe`)
 }

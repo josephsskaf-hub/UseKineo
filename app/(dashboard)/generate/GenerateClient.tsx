@@ -1113,6 +1113,11 @@ export default function GenerateClient({
    * servidor (lib/entrega/refusalNotice.ts); aqui só se desenha.
    */
   refusalNotice?: RefusalNotice | null
+  /**
+   * KINEO-KINEO1-FORA-2026-09-29 — o Kineo 1 aparece para esta conta? Resolvido no servidor (studio/create/page.tsx
+   * com lib/engineLaunch.ts kineo1Visible + lib/kineo1Access.ts). E1 só entrega a prop; a E2b passa a usá-la.
+   */
+  kineo1Visible?: boolean
 }) {
   // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
   const OFFER = useFreeTierOffer()

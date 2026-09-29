@@ -58,16 +58,20 @@ const LIGA = (src) => src.replace('export const AVATAR_PUBLIC = false', 'export 
 console.log('== (a) interruptor único, executado ==')
 const launchSrc = rd('lib/engineLaunch.ts')
 const L = rodaLaunch(launchSrc)
-const provaA = (M) => M.AVATAR_PUBLIC === false && M.VIDEO_ENGINE_COUNT_WORD === 'Six' && M.VIDEO_ENGINE_COUNT_SENTENCE_START === 'Six' &&
-  M.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5 and Kineo 1' && !/Avatar/.test(M.VIDEO_ENGINE_LIST_COPY)
+// Reancorado 29/09 (KINEO-KINEO1-FORA-2026-09-29): o Kineo 1 também saiu do catálogo (KINEO1_PUBLIC=false), então a
+// contagem é "Five" e ligar só o Avatar devolve "Six" com "... Seedance 1.5 and Avatar". O que se vigia é o mesmo:
+// Avatar fora, e o interruptor o traz de volta por derivação, nunca por número digitado.
+const provaA = (M) => M.AVATAR_PUBLIC === false && M.VIDEO_ENGINE_COUNT_WORD === 'Five' && M.VIDEO_ENGINE_COUNT_SENTENCE_START === 'Five' &&
+  M.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3 and Seedance 1.5' && !/Avatar/.test(M.VIDEO_ENGINE_LIST_COPY)
 checa('AVATAR_PUBLIC=false; contagem "Six" e lista pública sem Avatar', provaA(L))
 checa('avatarVisible: público e anônimo não veem; conta da casa vê', L.avatarVisible(PUBLICO) === false && L.avatarVisible(null) === false && L.avatarVisible(undefined) === false && L.avatarVisible(INTERNO) === true)
 checa('Avatar não virou pausa (pausa diria "manutenção", motivo falso) e S25 segue interno', !L.enginePaused('avatar') && !L.enginePaused('presenter') && !L.PAUSED_ENGINE_KEYS.includes('avatar') && L.S25_PUBLIC === false)
 {
   const ligado = LIGA(launchSrc)
   const V = rodaLaunch(ligado)
-  checa('virar o interruptor devolve "Seven" e "..., Kineo 1 and Avatar" (derivado, não digitado)', ligado !== launchSrc && V.AVATAR_PUBLIC === true && V.VIDEO_ENGINE_COUNT_WORD === 'Seven' && V.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5, Kineo 1 and Avatar' && V.avatarVisible(PUBLICO) === true)
-  const mutante = launchSrc.replace("AVATAR_PUBLIC ? 'Seven' : 'Six'", "'Seven'")
+  checa('virar o interruptor devolve "Six" e "... Seedance 1.5 and Avatar" (derivado, não digitado)', ligado !== launchSrc && V.AVATAR_PUBLIC === true && V.VIDEO_ENGINE_COUNT_WORD === 'Six' && V.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5 and Avatar' && V.avatarVisible(PUBLICO) === true)
+  // 29/09: a contagem virou o tamanho da lista derivada; o mutante crava a contagem na palavra antiga.
+  const mutante = launchSrc.replace('export const VIDEO_ENGINE_COUNT_WORD: string = ENGINE_COUNT_WORDS[PUBLIC_VIDEO_ENGINE_NAMES.length]', "export const VIDEO_ENGINE_COUNT_WORD: string = 'Seven'")
   checa('mutante (contagem cravada "Seven") → vermelho', mutante !== launchSrc && !provaA(rodaLaunch(mutante)))
   const mutante2 = launchSrc.replace('return AVATAR_PUBLIC || isInternalEmail(email)', 'return true')
   checa('mutante (avatarVisible sempre true) → vermelho', mutante2 !== launchSrc && rodaLaunch(mutante2).avatarVisible(PUBLICO) === true)
@@ -109,8 +113,10 @@ const PORTAS = /href="\/avatar"|Talking Avatar|AI Presenter|Character Lock|Trans
 {
   const pub = home(null), casa = home(INTERNO)
   checa('home (visitante): 0 portas do Avatar — mega-menu, mobile, bento, 4 cards do toolkit e subtítulo', !PORTAS.test(pub))
-  checa('home (visitante): o bento renderizou (5 tiles de motor) e o toolkit ficou com 4 cards', conta(pub, 'class="tile') === 5 && conta(pub, 'class="tcard"') === 4 && pub.includes('href="/animate"'))
-  checa('home (visitante): FAQ diz "Six" e a lista sem Avatar', pub.includes('Six') && pub.includes('Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5 and Kineo 1') && !pub.includes('Kineo 1 and Avatar'))
+  // 29/09 (KINEO-KINEO1-FORA-2026-09-29): sem o tile do Kineo 1 o visitante vê 4 motores no bento.
+  checa('home (visitante): o bento renderizou (4 tiles de motor) e o toolkit ficou com 4 cards', conta(pub, 'class="tile') === 4 && conta(pub, 'class="tcard"') === 4 && pub.includes('href="/animate"'))
+  // 29/09 (KINEO-KINEO1-FORA): "Five" e a lista sem Kineo 1 nem Avatar.
+  checa('home (visitante): FAQ diz "Five" e a lista sem Avatar', pub.includes('Five') && pub.includes('Veo 3.1, Kling 3, Kling 2.5, MiniMax H3 and Seedance 1.5') && !pub.includes('and Avatar'))
   checa('home (conta da casa): as 7 portas do Avatar continuam (mega, mobile, tile, 4 cards)', conta(casa, 'href="/avatar"') === 7 && conta(casa, 'class="tcard"') === 8 && casa.includes('Talking Avatar'))
   checa('home (e-mail público logado): mesmas 0 portas', !PORTAS.test(home(PUBLICO)))
 }
@@ -525,10 +531,11 @@ console.log('== (g) bento da home completo: o JSX real, a cascata real, nenhuma 
   const regras = regrasDe(cssPub)
   const regrasCasa = regrasDe(cssDa(casaArv))
   const m1440 = mede(pubArv, regras, 1440)
-  checa(`denominador: o <style> real da home tem ${regras.length} regras (≥ 300) e o .bento tem 5 filhos .tile (visitante) / 6 (casa)`, regras.length >= 300 && m1440.tiles === 5 && m1440.todosTiles && mede(casaArv, regrasCasa, 1440).tiles === 6)
+  // 29/09 (KINEO-KINEO1-FORA-2026-09-29): o tile do Kineo 1 saiu para o visitante — 4 tiles; a casa segue com 6.
+  checa(`denominador: o <style> real da home tem ${regras.length} regras (≥ 300) e o .bento tem 4 filhos .tile (visitante) / 6 (casa)`, regras.length >= 300 && m1440.tiles === 4 && m1440.todosTiles && mede(casaArv, regrasCasa, 1440).tiles === 6)
   const colunasVistas = LARGURAS.map((w) => mede(pubArv, regras, w).cols)
   checa(`a cascata lê os três degraus do grid (colunas por largura: ${colunasVistas.join(',')}) e o bento é grid esparso`, LARGURAS.every((w, i) => colunasVistas[i] === esperado(w)) && LARGURAS.every((w) => { const m = mede(pubArv, regras, w); return m.display === 'grid' && (m.fluxo === null || m.fluxo === 'row') }))
-  for (const [quem, arv, rs] of [['visitante (5 motores)', pubArv, regras], ['conta da casa (6 motores)', casaArv, regrasCasa]]) {
+  for (const [quem, arv, rs] of [['visitante (4 motores)', pubArv, regras], ['conta da casa (6 motores)', casaArv, regrasCasa]]) {
     const ruins = LARGURAS.map((w) => ({ w, ...mede(arv, rs, w) })).filter((m) => m.vazias !== 0 || m.excesso !== 0)
     checa(`home ${quem}: nenhuma célula vazia e nenhuma coluna implícita em ${LARGURAS.length} larguras (falhas: ${ruins.map((m) => `${m.w}px ${m.cols}col spans ${m.spans.join('+')} → ${m.vazias} vazia(s)`).slice(0, 3).join(' | ') || 'nenhuma'})`, ruins.length === 0)
   }
@@ -538,7 +545,8 @@ console.log('== (g) bento da home completo: o JSX real, a cascata real, nenhuma 
   // MUTANTE: o CSS de antes (sem as regras do último tile) — o buraco tem de voltar nas duas larguras do revisor.
   const semConserto = cssPub.replace(/\.klp \.home-engines \.bento > \.tile:last-child:nth-child\([^)]*\) \{[^}]*\}/g, '')
   const rm = regrasDe(semConserto)
-  checa('mutante (CSS sem o conserto): o buraco volta — 1 célula vazia em 3 colunas (1440px) e em 2 colunas (700px)', semConserto !== cssPub && mede(pubArv, rm, 1440).vazias === 1 && mede(pubArv, rm, 700).vazias === 1)
+  // 29/09: o visitante tem 4 tiles (par em 2 colunas); o mutante mede a grade com 5 tiles, o caso do revisor.
+  checa('mutante (CSS sem o conserto): o buraco volta — 1 célula vazia em 3 colunas (1440px) e em 2 colunas (700px)', semConserto !== cssPub && mede(pubArv, rm, 1440, 5).vazias === 1 && mede(pubArv, rm, 700, 5).vazias === 1)
 }
 
 console.log(`${ok} ok · ${falhas.length} falhas`)

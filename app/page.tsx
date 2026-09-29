@@ -17,7 +17,8 @@ export const metadata: Metadata = {
   // a vitrine de motores. Antes vendiam o composer, que saiu da home.
   title: 'Kineo — AI Shorts Engines: Veo 3.1, Kling 3, Seedance | Faceless YouTube Shorts',
   description:
-    'Pick an engine — Veo 3.1, Kling 3, Kling 2.5, Seedance 1.5 or Kineo 1 — type a topic and get a finished faceless YouTube Short with script, voice and captions. Real renders on every card.',
+    // KINEO-KINEO1-FORA-2026-09-29 — sem "or Kineo 1": o motor saiu da vitrine pública (lib/engineLaunch.ts KINEO1_PUBLIC).
+    'Pick an engine — Veo 3.1, Kling 3, Kling 2.5 or Seedance 1.5 — type a topic and get a finished faceless YouTube Short with script, voice and captions. Real renders on every card.',
   alternates: { canonical: 'https://www.usekineo.com/' },
 }
 

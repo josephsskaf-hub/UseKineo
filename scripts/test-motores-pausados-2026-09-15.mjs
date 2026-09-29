@@ -27,7 +27,9 @@ checa('qualityPaused espelha pela quality do biller', !L.qualityPaused('cinemati
 // Avatar do catálogo público em 27/09 ("avatar sai por hora"): com AVATAR_PUBLIC=false a contagem é 'Six' e a lista
 // termina em 'Kineo 1'. A intenção original (contagem/lista só com o que o público pode apertar) segue a mesma;
 // o guardião test-avatar-fora-2026-09-28.mjs prova que virar o interruptor devolve 'Seven' e o Avatar.
-checa('contagem e lista públicas só com os disponíveis (Six: H3 de volta, sem Omni/S25, Avatar fora do catálogo) e a frase de pausa nomeia os dois', L.AVATAR_PUBLIC === false && L.VIDEO_ENGINE_COUNT_WORD === 'Six' && L.VIDEO_ENGINE_COUNT_SENTENCE_START === 'Six' && !/Omni|Seedance 2.5|Avatar/.test(L.VIDEO_ENGINE_LIST_COPY) && /^Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5 and Kineo 1$/.test(L.VIDEO_ENGINE_LIST_COPY) && /^Omni Flash and Seedance 2.5 are temporarily paused/.test(L.PAUSED_ENGINES_COPY) && /nothing is charged/i.test(L.PAUSED_ENGINES_COPY)) // KINEO-H3-DE-VOLTA-2026-09-22 · KINEO-AVATAR-FORA-2026-09-28
+// Reancorado 29/09 (KINEO-KINEO1-FORA-2026-09-29): o Kineo 1 também saiu do catálogo público (KINEO1_PUBLIC=false) —
+// "Five" e a lista termina em 'Seedance 1.5'. A intenção (só o que o público pode apertar, sem Omni/S25) é a mesma.
+checa('contagem e lista públicas só com os disponíveis (Five: H3 de volta, sem Omni/S25, Avatar e Kineo 1 fora do catálogo) e a frase de pausa nomeia os dois', L.AVATAR_PUBLIC === false && L.KINEO1_PUBLIC === false && L.VIDEO_ENGINE_COUNT_WORD === 'Five' && L.VIDEO_ENGINE_COUNT_SENTENCE_START === 'Five' && !/Omni|Seedance 2.5|Avatar|Kineo 1/.test(L.VIDEO_ENGINE_LIST_COPY) && /^Veo 3.1, Kling 3, Kling 2.5, MiniMax H3 and Seedance 1.5$/.test(L.VIDEO_ENGINE_LIST_COPY) && /^Omni Flash and Seedance 2.5 are temporarily paused/.test(L.PAUSED_ENGINES_COPY) && /nothing is charged/i.test(L.PAUSED_ENGINES_COPY)) // KINEO-H3-DE-VOLTA-2026-09-22 · KINEO-AVATAR-FORA-2026-09-28
 checa('S25 continua interno (S25_PUBLIC=false) — nada foi apagado', L.S25_PUBLIC === false)
 
 console.log('== (b) servidor: recusa antes do débito, ensaio interno passa ==')
