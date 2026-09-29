@@ -46,7 +46,7 @@ import {
   narrationFit,
 } from '@/lib/narrationFit'
 import { createHash } from 'node:crypto'
-import { narrationLanguage } from '@/lib/textLanguage' // GPT-LOJA-2026-09-24
+import { narrationLanguage, resolveNarrationLanguage } from '@/lib/textLanguage' // GPT-LOJA-2026-09-24 · KINEO-PONTAS-15S-IDIOMA: a língua da fala do 15 s
 import { parseUserScript } from '@/lib/scriptParser' // revisão E2b: a régua de fala da guarda do filme curto
 import { maxWordsForShortFilm } from '@/lib/durationByEngine' // revisão E2b: o teto de 15 s (puro)
 
@@ -409,7 +409,13 @@ export function validateHandoffInput(body: unknown): HandoffValidation {
   // sabe aparar. Mesma régua, mesma função: nada digitado.
   if (durationSec === SEEDANCE_ONLY_DURATION) {
     const palavrasFaladas = parseUserScript(script).narration.split(/\s+/).filter(Boolean).length
-    const tetoCurto = maxWordsForShortFilm(SEEDANCE_ONLY_DURATION)
+    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29 — o teto na LÍNGUA da fala, como a
+    // guarda do cinematic o mede (checarFalaDoFilmeCurto com a língua: tr 45, de 47, en/pt/es 56). A língua é a que o link
+    // leva ao Studio (buildStudioDestination: os 2 primeiros caracteres do `language`) resolvida contra o texto como a rota
+    // resolve (resolveNarrationLanguage: a pedida; se inglês/ausente, a detectada). Sem isto, 50 palavras turcas passavam aqui
+    // e morriam no Studio com 422 'script_too_long_for_short_film'.
+    const idiomaDaFala = resolveNarrationLanguage(narrationLanguage(typeof b.language === 'string' ? b.language.slice(0, 2).toLowerCase() : null), script).language
+    const tetoCurto = maxWordsForShortFilm(SEEDANCE_ONLY_DURATION, idiomaDaFala)
     if (palavrasFaladas > tetoCurto) {
       return { ok: false, error: `A ${SEEDANCE_ONLY_DURATION}-second film fits at most ${tetoCurto} spoken words; this script has ${palavrasFaladas}. Trim the narration to ${tetoCurto} words or fewer and send it again, or send durationSec 35, 60 or 90 for the full script.` }
     }

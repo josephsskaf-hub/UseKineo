@@ -82,7 +82,12 @@ check('R5 página dinâmica e saldo que falha vira null (nunca 0)', /export cons
 
 // ── I. fronteira servidor/cliente ───────────────────────────────────────────────────────────────
 const importsClient = [...rd(F.client).matchAll(/^import[\s\S]*?from '([^']+)'/gm)].map((m) => m[1])
-const PERMITIDOS = ['react', 'next/link', '@/components/studioKit', '../new/adsWizardTheme', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2ShotLists', '@/lib/ads/v2Screen']
+// REANCORADO 29/09 (KINEO-ADS-MODO-SIMPLES-2026-09-29): (1) '@/components/BusinessVisualReferences' e
+// '@/components/InterfaceLanguage' entraram no commit 0449de76 (Codex) sem atualizar esta lista — o I1 já estava VERMELHO
+// na base c55bab53; ambos são componentes de navegador. (2) O modo simples: './AdsV2Simple' (cliente), '@/lib/ads/v2Simple'
+// (pura, sem import) e '@/lib/ui/interfaceLanguage' (pura). A intenção do I1 continua: nenhum módulo de servidor.
+const PERMITIDOS = ['react', 'next/link', '@/components/studioKit', '../new/adsWizardTheme', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2ShotLists', '@/lib/ads/v2Screen',
+  '@/components/BusinessVisualReferences', '@/components/InterfaceLanguage', './AdsV2Simple', '@/lib/ads/v2Simple', '@/lib/ui/interfaceLanguage']
 check("I1 o cliente começa com 'use client' e só importa módulos de navegador/puros (nada de v2Advance, v2Billing, serverAccess…)", /^'use client'/.test(rd(F.client)) && importsClient.length >= 8 && importsClient.every((m) => PERMITIDOS.includes(m)))
 check('I2 lib/ads/v2Screen.ts é puro (nenhum import/require) e fora da trava 8.2', !/^\s*import\s/m.test(screenSrc) && !/\brequire\(/.test(semComentarios(screenSrc)))
 check('I3 o cliente não grava evento de cliente (eventos do v2 são só-servidor)', !/trackEvent\(/.test(client))
@@ -92,18 +97,25 @@ check('I4 o v1 não foi tocado pela tela nova: o cliente só LÊ o tema do assis
 const wrapper = bloco(client, 'export default function AdsV2Client')
 const sessionBody = bloco(client.slice(client.indexOf('function AdsV2Session(')), '}) {')
 const startOver = bloco(wrapper, 'function startOver()')
+// REANCORADO 29/09 (KINEO-ADS-MODO-SIMPLES-2026-09-29): os textos do cabeçalho e da confirmação saíram do JSX para a tabela
+// ADS_V2_SIMPLE_COPY.shell (lib/ads/v2Simple.ts) — no modo completo vale a tabela en, o MESMO inglês de antes (conferido
+// aqui, executado); no simples, a língua da interface. S1/S2/V6/V10 continuam provando a mesma coisa: o botão fica no
+// cabeçalho, a confirmação existe, o "sim" zera, o aviso do anúncio em andamento aparece e o foco vai para a opção segura.
+const SIMPLE = await imp('lib/ads/v2Simple.ts')
+const SHELL_EN = SIMPLE.ADS_V2_SIMPLE_COPY.en.shell
 check('S1 botão "Start over" no cabeçalho da página, FORA de qualquer fase (desenhado antes da sessão, sem condição)', () => {
   const ret = wrapper.slice(wrapper.lastIndexOf('return ('))
-  const btn = ret.indexOf('>\n          Start over\n        </button>')
+  const btn = ret.indexOf('>\n          {shell.startOver}\n        </button>')
   const head = ret.indexOf('<header'), headEnd = ret.indexOf('</header>')
-  return btn > head && btn < headEnd && ret.indexOf('<AdsV2Session') > headEnd && !/phase/.test(ret.slice(head, headEnd))
+  return SHELL_EN.startOver === 'Start over' && btn > head && btn < headEnd && ret.indexOf('<AdsV2Session') > headEnd && !/phase/.test(ret.slice(head, headEnd))
 })
-check('S2 Start over pede confirmação (alertdialog) e só o "Yes, start over" zera', () => /role="alertdialog"/.test(wrapper) && /onClick=\{startOver\}>Yes, start over</.test(wrapper) && /onClick=\{\(\) => setConfirmingReset\(true\)\}/.test(wrapper) && /Keep working/.test(wrapper))
+check('S2 Start over pede confirmação (alertdialog) e só o "Yes, start over" zera', () => /role="alertdialog"/.test(wrapper) && /onClick=\{startOver\}>\{shell\.yes\}</.test(wrapper) && SHELL_EN.yes === 'Yes, start over' && /onClick=\{\(\) => setConfirmingReset\(true\)\}/.test(wrapper) && SHELL_EN.keep === 'Keep working' && /\{shell\.keep\}/.test(wrapper) && /const shell = mode === 'full' \? ADS_V2_SIMPLE_COPY\.en\.shell :/.test(wrapper))
 check('S3 Start over REMONTA a sessão: soma 1 em session, limpa ?order da URL e fecha a confirmação', /setSession\(\(s\) => s \+ 1\)/.test(startOver) && /clearOrderParam\(\)/.test(startOver) && /setConfirmingReset\(false\)/.test(startOver) && /setActiveWork\(false\)/.test(startOver))
 check('S4 a sessão é desenhada com key={session} e só a PRIMEIRA retoma pedido (resume={session === 0})', /<AdsV2Session\s+key=\{session\}\s+resume=\{session === 0\}/.test(wrapper))
 check('S5 nenhum dado do pedido mora fora da sessão: o invólucro só tem session, saldo, confirmação e "tem anúncio andando"', () => {
+  // REANCORADO 29/09 (KINEO-ADS-MODO-SIMPLES-2026-09-29): + `mode` (simples/completo), que é escolha de tela, não dado do pedido.
   const nomes = [...wrapper.matchAll(/const \[(\w+), set\w+\] = useState/g)].map((m) => m[1])
-  return eqSet(nomes, ['session', 'balance', 'confirmingReset', 'activeWork'])
+  return eqSet(nomes, ['session', 'balance', 'confirmingReset', 'activeWork', 'mode'])
 })
 check('S6 o estado do anúncio (nível, texto, logo, fotos, cartão, rascunho, plano, pedido, vídeo) nasce VAZIO dentro da sessão', () =>
   [
@@ -272,7 +284,7 @@ check('V5 "Get credits" abre OUTRA aba (fotos e plano só existem na memória de
 check('V6 "Start over" com /start ou /retake no ar AVISA que o anúncio continua (onActive antes da chamada paga; desfeito se falhar)', () =>
   ordem(makeBody, 'onActive(true)', "'/api/ads/v2/start'", 'if (!r.ok) {', 'onActive(false)') &&
   ordem(redoBody, 'onActive(true)', "'/api/ads/v2/retake'", 'if (!r.ok) {', 'onActive(false)') &&
-  /\{activeWork \? ' The ad being made right now keeps going and will appear in My Videos\.' : ''\}/.test(wrapper))
+  /\{activeWork \? shell\.activeNote : ''\}/.test(wrapper) && SHELL_EN.activeNote === ' The ad being made right now keeps going and will appear in My Videos.')
 check('V7 refação que falha: não diz "this ad did not work", diz que o anúncio segue em My Videos e volta ao anúncio do pai', () => {
   const m1 = SC.failedOrderMessage('fal_503', true), m2 = SC.failedOrderMessage('charge_debit_unconfirmed', true), m0 = SC.failedOrderMessage('fal_503')
   return /still in My Videos/.test(m1) && /still in My Videos/.test(m2) && !/this ad/i.test(m1) && /redo/i.test(m1) && !/still in My Videos/.test(m0) &&
@@ -294,7 +306,7 @@ check('V9 celular: a moldura só prende o eixo que enquadra (paisagem pan-y, pri
   SC.frameTouchAction(1080, 2340) === 'pan-x' && SC.frameTouchAction(1080, 1920) === 'auto' && SC.frameTouchAction(0, 10) === 'auto' &&
   /const touchAction = frameTouchAction\(photo\.w, photo\.h\)/.test(client) && /style=\{\{ touchAction \}\}/.test(client))
 check('V10 confirmação do "Start over" foca a opção SEGURA ("Keep working") e devolve o foco ao botão ao cancelar', () =>
-  /<button ref=\{confirmRef\} type="button" className="adsw-btn ghost small" onClick=\{\(\) => \{ setConfirmingReset\(false\); resetBtnRef\.current\?\.focus\(\) \}\}>Keep working<\/button>/.test(wrapper) &&
+  /<button ref=\{confirmRef\} type="button" className="adsw-btn ghost small" onClick=\{\(\) => \{ setConfirmingReset\(false\); resetBtnRef\.current\?\.focus\(\) \}\}>\{shell\.keep\}<\/button>/.test(wrapper) &&
   !/ref=\{confirmRef\}[^>]*onClick=\{startOver\}/.test(wrapper))
 check('V11 "No logo" legível no ladrilho escuro (cor clara própria, não o cinza do tema)', /\.adv2 \.adv2-logo \.tile \.ph\{[^}]*color:#dbe4ef/.test(clientRaw) && /<span className="ph">No logo<\/span>/.test(client))
 

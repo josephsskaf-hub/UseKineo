@@ -23,8 +23,9 @@ import { looksLikeModelRefusal, MODEL_REFUSAL_MESSAGE } from '@/lib/modelRefusal
 // KINEO-ROTEIRO-CURTO-15S-2026-09-29 [TRAVA 8.2 — "vai" do 15 s] — o roteiro de ≤ 20 s nunca sai acima do teto que a guarda
 // do filme curto da rota do cinematic aceita (lib/durationByEngine.ts), contado na MESMA régua dela (parseUserScript).
 import { parseUserScript } from '@/lib/scriptParser'
-import { maxWordsForShortFilm } from '@/lib/durationByEngine'
-import { isShortFilmTarget, keepShortFilmSections, fitShortFilmScript, shortFilmRetryInstruction } from '@/lib/shortFilmScript'
+import { maxWordsForShortFilm, isSeedance15 } from '@/lib/durationByEngine'
+import { faixaAceitaNoFilmeCurto } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29
+import { isShortFilmTarget, keepShortFilmSections, fitShortFilmScript, shortFilmRetryInstruction, finishShortFilmScript, stripSocialCta, truncatedSentences } from '@/lib/shortFilmScript'
 
 // KINEO-OPENAI-HANG-2026-08-05 — this route was the ONLY OpenAI-backed route in
 // the whole app with no maxDuration, so it silently inherited Vercel's short
@@ -89,7 +90,9 @@ const SUPPORTED_TARGETS = [15, 35, 60, 90] as const
 const WRITER_PAID_PLANS = new Set(['starter', 'starter_trial', 'basic', 'basic_trial', 'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial'])
 // KINEO-REGUA-DO-ESCRITOR-2026-09-17 — o roteiro nasce na régua da voz que vai falar (lib/scriptWriterRate:
 // a mesma função de régua do portão do Kineo 1). Sem `engine` no corpo, tudo como antes (2,3 pal/s, 0,95).
-function buildSystemPrompt(language: Language, targetSeconds: number = 60, wordsPerSecond: number = WORDS_PER_SECOND, coverage: number = MIN_COVERAGE): string {
+// KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 — `ritmoLanguage`: a língua da régua do filme curto do Seedance (a rota passa
+// idiomaDoRitmo; undefined fora dele = o prompt de sempre).
+function buildSystemPrompt(language: Language, targetSeconds: number = 60, wordsPerSecond: number = WORDS_PER_SECOND, coverage: number = MIN_COVERAGE, ritmoLanguage?: string): string {
   // KINEO-IDIOMAS-15-2026-09-17 — uma instrução para todas as línguas do catálogo (antes: três literais).
   const langInstruction =
     language === 'en'
@@ -114,7 +117,7 @@ ESCALATION: [Pexels: FOOTAGE_CUE] One sentence raising the stakes. More intense 
 
 RHYTHM: [Pexels: FOOTAGE_CUE] A rapid-fire accelerator right before the payoff — 2 or 3 ultra-short punches (1-3 words each), each its own beat. Example: "Faster. Bigger. Unstoppable." This SPEEDS the listener up so the payoff can slam the brakes.
 
-PAYOFF: [Pexels: FOOTAGE_CUE] The MANDATORY reward. DELIVER the concrete answer/discovery the HOOK promised — a specific fact, number, name, mechanism, or (for unsolved topics) the single most-accepted theory. Slow, deliberate, weighty, with a "..." pause before the reveal and a callback to the HOOK. This is what the viewer stayed for — it MUST deliver, never tease. Then, on its OWN line, a short follow CTA in the chosen language.
+PAYOFF: [Pexels: FOOTAGE_CUE] The MANDATORY reward. DELIVER the concrete answer/discovery the HOOK promised — a specific fact, number, name, mechanism, or (for unsolved topics) the single most-accepted theory. Slow, deliberate, weighty, with a "..." pause before the reveal and a callback to the HOOK. This is what the viewer stayed for — it MUST deliver, never tease.${targetSeconds <= 20 ? ' Do NOT add any follow/subscribe/like call to action — this film ends on the reveal.' : ' Then, on its OWN line, a short follow CTA in the chosen language.'}
 
 FOOTAGE CUE RULES (critical — this directly controls what video clip plays):
 - 2-5 lowercase words describing what should be ON SCREEN during this beat
@@ -134,10 +137,10 @@ FACT SELECTION RULES (#407 — this is what separates "huh, cool" from "WAIT, WH
 - Never sacrifice accuracy for surprise: every fact must still be real and verifiable. Do not invent or exaggerate.
 
 VOICEOVER RULES:
-${targetSeconds <= 20 ? `- SHORT FILM (${targetSeconds} seconds): use ONLY these sections, in this order: HOOK, MICRO REWARD 1, MICRO REWARD 2, PAYOFF. Skip MICRO REWARD 3, ESCALATION and RHYTHM entirely. Every sentence must be short and the PAYOFF must still deliver the answer — the film ends when the narration ends, so the story must be COMPLETE in ${maxWordsFor(targetSeconds, wordsPerSecond, coverage)} words.
-` : ''}- Total script: ${minWordsFor(targetSeconds, wordsPerSecond, coverage)}-${maxWordsFor(targetSeconds, wordsPerSecond, coverage)} spoken words. This is a HARD FLOOR, not a style note:
-  at the measured narration rate of ${wordsPerSecond} words per second, ${minWordsFor(targetSeconds, wordsPerSecond, coverage)} words is about
-  ${Math.round(minWordsFor(targetSeconds, wordsPerSecond, coverage) / wordsPerSecond)} seconds of speech, and this video is ${targetSeconds} seconds long.
+${targetSeconds <= 20 ? `- SHORT FILM (${targetSeconds} seconds): use ONLY these sections, in this order: HOOK, MICRO REWARD 1, MICRO REWARD 2, PAYOFF. Skip MICRO REWARD 3, ESCALATION and RHYTHM entirely. NO follow/subscribe/like call to action anywhere. Every sentence must be short and complete, and the PAYOFF must still deliver the answer — the film ends when the narration ends, so the story must be COMPLETE in ${maxWordsFor(targetSeconds, wordsPerSecond, coverage, ritmoLanguage)} words.
+` : ''}- Total script: ${minWordsFor(targetSeconds, wordsPerSecond, coverage, ritmoLanguage)}-${maxWordsFor(targetSeconds, wordsPerSecond, coverage, ritmoLanguage)} spoken words. This is a HARD FLOOR, not a style note:
+  at the measured narration rate of ${wordsPerSecond} words per second, ${minWordsFor(targetSeconds, wordsPerSecond, coverage, ritmoLanguage)} words is about
+  ${Math.round(minWordsFor(targetSeconds, wordsPerSecond, coverage, ritmoLanguage) / wordsPerSecond)} seconds of speech, and this video is ${targetSeconds} seconds long.
   Anything shorter leaves the film running on music with no story being told,
   and the video is rejected before it renders. Anything much longer gets cut off.
   (Do not count the [Pexels: ...] cues or the section headers as words.)
@@ -145,7 +148,7 @@ ${targetSeconds <= 20 ? `- SHORT FILM (${targetSeconds} seconds): use ONLY these
 - Every fact must be specific: names, numbers, dates, places — never vague
 - ESCALATION must feel more intense than MICRO REWARD 3
 - RHYTHM is the fastest beat after the HOOK: stacked 1-3 word punches, no filler. It exists to accelerate before the payoff.
-- PAYOFF must feel like a revelation, not a summary — and must CALL BACK to the HOOK (close the loop). Keep the revelation and the CTA as two separate sentences so the revelation lands first.
+- PAYOFF must feel like a revelation, not a summary — and must CALL BACK to the HOOK (close the loop).${targetSeconds <= 20 ? ' The reveal is the LAST sentence of the film.' : ' Keep the revelation and the CTA as two separate sentences so the revelation lands first.'}
 - Do NOT invent quotes from real people
 - Do NOT use the word "millionaire" — use "billionaire" or a different word
 
@@ -154,7 +157,7 @@ PAYOFF RULES (NON-NEGOTIABLE — a Short without a real payoff feels like clickb
 - The PAYOFF must also be a fact the viewer did NOT already know (see FACT SELECTION RULES). Revealing something famous (e.g. "it was Zidane's headbutt") is a FAILED payoff even if it's concrete.
 - NEVER end on a question, a tease, or a promise. These endings are BANNED — do NOT write them: "what if I told you...", "no one knows / no one knew", "the truth remains a mystery", "we may never know", "stay to find out", "you won't believe what happened" (without then telling it), "or something worse?", "the answer will shock you" (without giving the answer).
 - UNSOLVED mysteries are NOT an excuse to skip the payoff: deliver the single most-accepted theory or the most concrete known fact as the reward (e.g. Mary Celeste -> "The leading theory: alcohol fumes from the cargo sparked a panicked evacuation."). The viewer must always leave with something concrete.
-- The follow/save CTA is SEPARATE and comes AFTER the payoff reveal — it never replaces it.
+${targetSeconds <= 20 ? '- SHORT FILM: no follow/save CTA at all — the payoff reveal is the last thing the viewer hears.' : '- The follow/save CTA is SEPARATE and comes AFTER the payoff reveal — it never replaces it.'}
 
 CINEMATIC NARRATION RULES (this is what separates premium from generic AI videos):
 - HOOK must be the most energetic, fastest-paced line in the entire script. Short sentences. Punchy.
@@ -340,12 +343,17 @@ export async function POST(req: NextRequest) {
       return await recusar(400, { error: sexualContentRefusalMessage(sexual.namedPerson), reason: sexual.reason }, user.id, { reason: sexual.reason, named_person: sexual.namedPerson, version: sexual.version })
     }
     const regua = writerRateFor(body.engine, topic, language)
+    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 — a língua entra na régua do escritor
+    // SÓ no filme curto do Seedance 1.5 (o motor que a rota do cinematic trata como Seedance, inclusive sem `engine` — o mesmo
+    // predicado do teto duro abaixo): faixa, teto duro e prompt no ritmo dela (lib/durationByEngine ritmoDoFilmeCurto: tr 29–34
+    // e 45 palavras; en/pt/es 36–41 e 56, como antes). Kineo 1, Kling 2.5, Veo, a estrada de voz própria e 35/60/90: undefined.
+    const idiomaDoRitmo = isShortFilmTarget(alvoSegundos) && isSeedance15(typeof body.engine === 'string' ? body.engine : null) ? language : undefined
     // KINEO-ROTEIRO-COLADO-NAO-ENGORDA-2026-09-18 — roteiro colado: o piso de palavras é o da própria pessoa,
     // e o escritor só estrutura. Ver lib/pastedScript.ts.
     const colado = detectPastedScript(topic)
     const alvoPalavras = colado.pasted
       ? pastedScriptMinWords(colado.words)
-      : minWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage)
+      : minWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo) // KINEO-RITMO-POR-IDIOMA-15S: só o 15 s do Seedance lê a língua
     if (colado.pasted) console.log(`[generate-script] KINEO-ROTEIRO-COLADO reason=${colado.reason} words=${colado.words} dialogue_lines=${colado.dialogueLines} → min ${alvoPalavras} words (no padding)`)
     console.log(`[generate-script] KINEO-REGUA-DO-ESCRITOR engine=${typeof body.engine === 'string' ? body.engine : '-'} family=${regua.family} voice=${regua.voice ?? '-'} rate=${regua.wordsPerSecond} target=${alvoSegundos}s${cotaSegundos ? ` (cota grátis: ${cotaSegundos}s, pedido ${pedido}s)` : ''} → min ${alvoPalavras} words`)
     /** Só o CTA "Turn this idea into a full script" manda isto. */
@@ -360,8 +368,26 @@ export async function POST(req: NextRequest) {
     const filmeCurto = isShortFilmTarget(alvoSegundos)
     const falaNaReguaDaGuarda = (t: string) => parseUserScript(t).narration.split(/\s+/).filter(Boolean).length
     const palavrasDoFilmeCurto = (t: string) => Math.max(scriptWordCount(t), falaNaReguaDaGuarda(t))
-    const tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage), maxWordsForShortFilm(alvoSegundos))
+    // KINEO-RITMO-POR-IDIOMA-15S — a faixa e o teto duro (idiomaDoRitmo, acima) correm no MESMO ritmo da guarda de roteiro longo,
+    // do plano 3x6 e do portão da rota do cinematic. O maxWordsForShortFilm do teto da faixa segue sem língua: no Seedance o
+    // teto da faixa (16,75 s) já é menor que o da guarda (22,5 s) em qualquer ritmo, e o Kineo 1 a 15 s (a cota grátis) não muda.
+    const tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo), maxWordsForShortFilm(alvoSegundos))
     const pisoFilmeCurto = Math.min(alvoPalavras, tetoFilmeCurto)
+    // KINEO-ROTEIRO-15S-FRASE-INTEIRA-2026-09-29 — teto DURO do corte por frases: no Seedance, o que a guarda do cinematic
+    // ainda aceita (22,5 s = 56 palavras, 3 × 8 s). Sem combinação de frases inteiras dentro de [piso, teto], passar do
+    // teto até aqui vence ficar abaixo do piso ("passar do alvo é bom; ficar abaixo é defeito"). Kineo 1: sem folga.
+    const tetoDuroFilmeCurto = isSeedance15(typeof body.engine === 'string' ? body.engine : null) ? Math.max(tetoFilmeCurto, maxWordsForShortFilm(alvoSegundos, idiomaDoRitmo)) : tetoFilmeCurto
+    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29 — o que a rota do cinematic ACEITA no
+    // filme curto do Seedance 1.5, na língua (lib/durationByEngine faixaAceitaNoFilmeCurto: o portão de 95 % na voz mais rápida
+    // do 15 s e a guarda de roteiro longo; tr 29–45, en/pt/es 36–56). Entre as duas versões do escritor, a que o cinematic aceita
+    // vence a que ele recusa (notaDoFilmeCurto, abaixo). Caso de 29/09 09:27 UTC (Turquia): 27 palavras (o portão recusa) ficavam
+    // no lugar de ~40 (a guarda aceita) porque "cabe no teto da faixa" pesava mais — e o 1º filme morria em 'narration_too_short'.
+    // Fora do 15 s do Seedance (Kineo 1, 35/60/90): null — a escolha entre as versões fica como sempre.
+    const faixaDoCinematic = idiomaDoRitmo !== undefined ? faixaAceitaNoFilmeCurto(alvoSegundos, MIN_COVERAGE, idiomaDoRitmo) : null
+    const oCinematicAceita = (t: string): boolean => faixaDoCinematic !== null && falaNaReguaDaGuarda(t) >= faixaDoCinematic.min && palavrasDoFilmeCurto(t) <= faixaDoCinematic.max
+    /** O rastro de uma versão do filme curto (log e script_written): palavras na régua da guarda e se o cinematic a aceita. */
+    const versaoDoFilmeCurto = (t: string): { words: number; cinematic_accepts: boolean | null } => ({ words: palavrasDoFilmeCurto(t), cinematic_accepts: faixaDoCinematic ? oCinematicAceita(t) : null })
+    const versoesDoFilmeCurto: { words: number; cinematic_accepts: boolean | null }[] = []
     // Revisão da E2b (achado 7): estas réguas subiram para ANTES do retorno antecipado dos marcadores — o texto que já
     // chega estruturado (o roteiro de 35/60 s guardado em structuredScriptRef, o episódio da série) também é filme curto.
     // Se o tópico já tem os marcadores virais, devolve como está — sem GPT.
@@ -381,15 +407,20 @@ export async function POST(req: NextRequest) {
       // intacto — ia verbatim pelos marcadores e a guarda do cinematic recusava (422 'script_too_long_for_short_film').
       // Mesmo conserto determinístico da geração, sem GPT: só as 4 seções e o corte até caber (as palavras do autor).
       if (filmeCurto && palavrasDoFilmeCurto(topic) > tetoFilmeCurto) {
-        const so4Pronto = keepShortFilmSections(topic)
-        const ajustePronto = fitShortFilmScript(so4Pronto.script, { maxWords: tetoFilmeCurto, minWords: pisoFilmeCurto, countWords: palavrasDoFilmeCurto })
+        const so4Pronto = keepShortFilmSections(stripSocialCta(topic).script) // KINEO-ROTEIRO-15S-FRASE-INTEIRA: sem "Follow for more"
+        const ajustePronto = fitShortFilmScript(so4Pronto.script, { maxWords: tetoFilmeCurto, minWords: pisoFilmeCurto, countWords: palavrasDoFilmeCurto, hardMaxWords: tetoDuroFilmeCurto })
         console.warn(`[generate-script] KINEO-ROTEIRO-CURTO-15S texto pronto: ${palavrasDoFilmeCurto(topic)} → ${ajustePronto.words} palavras (teto ${tetoFilmeCurto}, corte ${ajustePronto.cut}, alvo ${alvoSegundos}s)`)
         return NextResponse.json({ script: ajustePronto.script, alreadyStructured: true, shortFilmCut: ajustePronto.cut, droppedSections: so4Pronto.dropped })
+      }
+      // KINEO-ROTEIRO-15S-FRASE-INTEIRA-2026-09-29 — o filme curto não leva CTA de rede social nem no texto que cabe.
+      if (filmeCurto) {
+        const semCtaPronto = stripSocialCta(topic)
+        if (semCtaPronto.removed.length > 0) return NextResponse.json({ script: semCtaPronto.script, alreadyStructured: true, ctaRemoved: semCtaPronto.removed })
       }
       return NextResponse.json({ script: topic, alreadyStructured: true })
     }
 
-    const SYSTEM_PROMPT = buildSystemPrompt(language, alvoSegundos, regua.wordsPerSecond, regua.coverage) // KINEO-REGUA-DO-ESCRITOR
+    const SYSTEM_PROMPT = buildSystemPrompt(language, alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo) // KINEO-REGUA-DO-ESCRITOR
       + (colado.pasted ? `\n\n${PASTED_SCRIPT_RULE}` : '') // KINEO-ROTEIRO-COLADO-NAO-ENGORDA
 
     const completion = await openai.chat.completions.create(
@@ -422,12 +453,40 @@ export async function POST(req: NextRequest) {
     }
 
     const secoesCortadas: string[] = []
+    // ═══ KINEO-ROTEIRO-15S-FRASE-INTEIRA-2026-09-29 [TRAVA 8.2 — "vai" do 15 s] — nunca cortar dentro de uma frase ═══
+    // Defeito no ar (29/09 ~06:55 UTC): "…do metrô em São." / "…perfeito para." / "Seguir para mais!". Agora o filme curto
+    // passa, logo depois de CADA geração, por 4 seções → sem CTA de rede social → corte por FRASES inteiras até o teto
+    // (lib/shortFilmScript finishShortFilmScript). A nova tentativa só acontece se, depois disso, faltar estrutura ou
+    // ficar abaixo do piso (curtoParaOAlvo) — e, se a 2ª versão não for melhor, fica a 1ª. Abaixo do piso depois das duas,
+    // o roteiro de frases inteiras segue assim mesmo: nunca se pica palavra.
+    let fimDoFilmeCurto: ReturnType<typeof finishShortFilmScript> | null = null
+    const fecharFilmeCurto = (t: string): ReturnType<typeof finishShortFilmScript> => {
+      const fim = finishShortFilmScript(t, { maxWords: tetoFilmeCurto, minWords: pisoFilmeCurto, countWords: palavrasDoFilmeCurto, hardMaxWords: tetoDuroFilmeCurto })
+      for (const d of fim.droppedSections) if (!secoesCortadas.includes(d)) secoesCortadas.push(d)
+      return fim
+    }
     if (filmeCurto) {
       const so4 = keepShortFilmSections(script)
-      script = so4.script
       secoesCortadas.push(...so4.dropped)
+      fimDoFilmeCurto = fecharFilmeCurto(so4.script)
+      script = fimDoFilmeCurto.script
+      versoesDoFilmeCurto.push(versaoDoFilmeCurto(script)) // KINEO-PONTAS-15S-IDIOMA: a 1ª versão, já fechada
     }
     const longoParaOFilmeCurto = (t: string) => filmeCurto && palavrasDoFilmeCurto(t) > tetoFilmeCurto
+    /**
+     * Qual das duas versões do filme curto fica: estrutura > o cinematic ACEITA > cabe no teto > chega ao piso > mais palavras
+     * dentro do teto. KINEO-PONTAS-15S-IDIOMA-2026-09-29: o 2º critério só separa no 15 s do Seedance (fora dele é 0 nas duas).
+     */
+    const notaDoFilmeCurto = (t: string): number[] => {
+      const n = palavrasDoFilmeCurto(t)
+      const estrutura = missingElements(t).filter((m) => m === 'HOOK' || m === 'PAYOFF').length === 0 && !payoffIsEmpty(t) ? 1 : 0
+      return [estrutura, oCinematicAceita(t) ? 1 : 0, n <= tetoFilmeCurto ? 1 : 0, n >= pisoFilmeCurto ? 1 : 0, n <= tetoFilmeCurto ? n : -n]
+    }
+    const segundaEMelhor = (primeira: string, segunda: string): boolean => {
+      const a = notaDoFilmeCurto(primeira), b = notaDoFilmeCurto(segunda)
+      for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return b[i] > a[i]
+      return true
+    }
 
     // #383b — QUALITY GUARDRAIL. The script must contain ALL 5 structural
     // elements (HOOK, MICRO REWARD, ESCALATION, RHYTHM, PAYOFF) AND a PAYOFF that
@@ -479,11 +538,15 @@ export async function POST(req: NextRequest) {
         { timeout: OPENAI_SCRIPT_TIMEOUT_MS, maxRetries: 0 })
         const retryScript = retry.choices[0]?.message?.content?.trim() ?? ''
         if (retryScript) {
-          script = retryScript
           if (filmeCurto) {
-            const so4 = keepShortFilmSections(script)
-            script = so4.script
-            for (const d of so4.dropped) if (!secoesCortadas.includes(d)) secoesCortadas.push(d)
+            // KINEO-ROTEIRO-15S-FRASE-INTEIRA — a 2ª versão passa pelo MESMO fecho; fica a melhor das duas.
+            const fimDaTentativa = fecharFilmeCurto(retryScript)
+            // KINEO-PONTAS-15S-IDIOMA-2026-09-29 — o tamanho das duas versões vai para o log (e para o script_written).
+            versoesDoFilmeCurto.push(versaoDoFilmeCurto(fimDaTentativa.script))
+            console.log(`[generate-script] KINEO-PONTAS-15S-IDIOMA duas versões do filme curto: 1ª ${palavrasDoFilmeCurto(script)} palavras${faixaDoCinematic ? ` (o cinematic ${oCinematicAceita(script) ? 'aceita' : 'recusa'})` : ''}, 2ª ${palavrasDoFilmeCurto(fimDaTentativa.script)}${faixaDoCinematic ? ` (o cinematic ${oCinematicAceita(fimDaTentativa.script) ? 'aceita' : 'recusa'})` : ''} → fica a ${segundaEMelhor(script, fimDaTentativa.script) ? '2ª' : '1ª'} (faixa ${pisoFilmeCurto}-${tetoFilmeCurto}${faixaDoCinematic ? `, o cinematic aceita ${faixaDoCinematic.min}-${faixaDoCinematic.max}` : ''}, língua ${idiomaDoRitmo ?? '-'}, alvo ${alvoSegundos}s)`)
+            if (segundaEMelhor(script, fimDaTentativa.script)) { script = fimDaTentativa.script; fimDoFilmeCurto = fimDaTentativa }
+          } else {
+            script = retryScript
           }
           missing = filmeCurto ? missingElements(script).filter((m) => m === 'HOOK' || m === 'PAYOFF') : missingElements(script)
           if (missing.length > 0 || payoffIsEmpty(script) || curtoParaOAlvo(script) || longoParaOFilmeCurto(script)) {
@@ -497,14 +560,15 @@ export async function POST(req: NextRequest) {
         console.warn('[generate-script] regenerate failed:', retryErr instanceof Error ? retryErr.message : String(retryErr))
       }
     }
-    // KINEO-ROTEIRO-CURTO-15S-2026-09-29 — a trava final: o roteiro curto NUNCA sai acima do teto (nunca abaixo do piso
-    // enquanto houver frase/palavra para escolher). Roda antes do forceAuthoring e do retorno normal: vale para os dois.
-    let corteDoFilmeCurto: 'none' | 'sentences' | 'words' = 'none'
+    // KINEO-ROTEIRO-CURTO-15S-2026-09-29 — a trava final, antes do forceAuthoring e do retorno normal (vale para os dois).
+    // KINEO-ROTEIRO-15S-FRASE-INTEIRA-2026-09-29: é o MESMO corte por frases (idempotente sobre o que o fecho já cortou);
+    // acima do teto duro (frases gigantes) o texto segue e a guarda do cinematic recusa com "encurte", sem cobrar.
+    let corteDoFilmeCurto: 'none' | 'sentences' = fimDoFilmeCurto?.cut ?? 'none'
     if (filmeCurto && palavrasDoFilmeCurto(script) > tetoFilmeCurto) {
       const antes = palavrasDoFilmeCurto(script)
-      const ajuste = fitShortFilmScript(script, { maxWords: tetoFilmeCurto, minWords: pisoFilmeCurto, countWords: palavrasDoFilmeCurto })
+      const ajuste = fitShortFilmScript(script, { maxWords: tetoFilmeCurto, minWords: pisoFilmeCurto, countWords: palavrasDoFilmeCurto, hardMaxWords: tetoDuroFilmeCurto })
       script = ajuste.script
-      corteDoFilmeCurto = ajuste.cut
+      if (ajuste.cut !== 'none') corteDoFilmeCurto = ajuste.cut
       console.warn(`[generate-script] KINEO-ROTEIRO-CURTO-15S corte ${ajuste.cut}: ${antes} → ${palavrasDoFilmeCurto(script)} palavras (teto ${tetoFilmeCurto}, piso ${pisoFilmeCurto}, alvo ${alvoSegundos}s)`)
     }
 
@@ -543,7 +607,7 @@ export async function POST(req: NextRequest) {
       name: 'script_written',
       userId: user.id,
       path: '/api/generate-script',
-      metadata: { engine: typeof body.engine === 'string' ? body.engine : null, family: regua.family, voice: regua.voice, words_per_second: regua.wordsPerSecond, target_seconds: alvoSegundos, quota_seconds: cotaSegundos, requested_seconds: Number.isFinite(pedido) ? pedido : null, min_words: alvoPalavras, words: scriptWordCount(script), fits: scriptWordCount(script) >= alvoPalavras, language, ...(filmeCurto ? { short_film_ceiling: tetoFilmeCurto, short_film_words: palavrasDoFilmeCurto(script), short_film_sections_dropped: secoesCortadas, short_film_cut: corteDoFilmeCurto } : {}) },
+      metadata: { engine: typeof body.engine === 'string' ? body.engine : null, family: regua.family, voice: regua.voice, words_per_second: regua.wordsPerSecond, target_seconds: alvoSegundos, quota_seconds: cotaSegundos, requested_seconds: Number.isFinite(pedido) ? pedido : null, min_words: alvoPalavras, words: scriptWordCount(script), fits: scriptWordCount(script) >= alvoPalavras, language, ...(filmeCurto ? { short_film_ceiling: tetoFilmeCurto, short_film_words: palavrasDoFilmeCurto(script), short_film_sections_dropped: secoesCortadas, short_film_cut: corteDoFilmeCurto, short_film_floor: pisoFilmeCurto, short_film_below_floor: palavrasDoFilmeCurto(script) < pisoFilmeCurto, short_film_blocks_dropped: fimDoFilmeCurto?.droppedBlocks ?? [], short_film_cta_removed: fimDoFilmeCurto?.ctaRemoved.length ?? 0, short_film_truncated_sentences: truncatedSentences(script).length, short_film_versions: versoesDoFilmeCurto, short_film_cinematic_range: faixaDoCinematic } : {}) },
     })
     return NextResponse.json({ script, alreadyStructured: false, wordsPerSecond: regua.wordsPerSecond, family: regua.family, targetSeconds: alvoSegundos, minWords: alvoPalavras, words: scriptWordCount(script), pastedScript: colado.pasted, pastedReason: colado.reason })
   } catch (err) {

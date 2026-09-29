@@ -19,13 +19,17 @@ export const ADS_V2_PUBLIC = true
 
 export type AdsV2Tier = 'photo_motion' | 'commercial' | 'cinema'
 export type AdsV2Seconds = 15 | 20 | 30
-export type AdsV2ShotKind = 'people' | 'place' | 'product' | 'product_hero' | 'text'
+// KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — 'user_video' = o vídeo do próprio cliente, montado como vídeo (mudo, trecho
+// escolhido): NUNCA vai à fal (routeShot devolve null em toda tentativa), igual ao `text`. Ocupa vaga de foto do molde.
+export type AdsV2ShotKind = 'people' | 'place' | 'product' | 'product_hero' | 'text' | 'user_video'
 export type AdsV2ShotSource = 'client_photo' | 'generated_scene'
 export type AdsV2Engine = 'kling_o3' | 'seedance_20_fast' | 'h3'
 
 export const ADS_V2_TIER_IDS: readonly AdsV2Tier[] = ['photo_motion', 'commercial', 'cinema']
 export const ADS_V2_SECONDS: readonly AdsV2Seconds[] = [15, 20, 30]
-export const ADS_V2_SHOT_KINDS: readonly AdsV2ShotKind[] = ['people', 'place', 'product', 'product_hero', 'text']
+export const ADS_V2_SHOT_KINDS: readonly AdsV2ShotKind[] = ['people', 'place', 'product', 'product_hero', 'text', 'user_video']
+/** Tipos de plano que NUNCA passam por IA de vídeo (sem motor, sem request_id, em nenhuma tentativa). */
+export const ADS_V2_NO_AI_KINDS: readonly AdsV2ShotKind[] = ['text', 'user_video']
 export const ADS_V2_ENGINE_IDS: readonly AdsV2Engine[] = ['kling_o3', 'seedance_20_fast', 'h3']
 
 export interface AdsV2TierSpec {
@@ -138,6 +142,8 @@ export const ADS_V2_FALLBACK_FROM_ATTEMPT = 3
  */
 export function routeShot(kind: AdsV2ShotKind, tier: AdsV2Tier, attempt: number): AdsV2Engine | null {
   if (kind === 'text') return null
+  // O vídeo do cliente é montado como ele gravou: nenhum motor em tentativa nenhuma (custo zero de fornecedor).
+  if (kind === 'user_video') return null
   if (!(ADS_V2_SHOT_KINDS as readonly string[]).includes(kind)) throw new Error(`ads_v2_unknown_kind:${String(kind)}`)
   if (!isAdsV2Tier(tier)) throw new Error(`ads_v2_unknown_tier:${String(tier)}`)
   if (!Number.isInteger(attempt) || attempt < 1) throw new Error(`ads_v2_bad_attempt:${String(attempt)}`)

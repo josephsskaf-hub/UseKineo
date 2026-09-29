@@ -167,6 +167,31 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
  */
 export function buildInitialShotRows(orderId: string, tier: AdsV2Tier, plan: Pick<AdsV2ShotPlan, 'shots'>): Record<string, unknown>[] {
   return plan.shots.map((s) => {
+    // KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — o vídeo do cliente nasce 'done': sem motor, sem prompt, sem imagem, com o
+    // próprio arquivo como stored_url e a duração MEDIDA pelo servidor. Nunca vai à fal (o CHECK
+    // ads_v2_shots_user_video_never_ai, migrations_pending/2026-09-29_ads_v2_user_video.sql, repete a regra no banco).
+    if (s.kind === 'user_video') {
+      return {
+        order_id: orderId,
+        idx: s.idx,
+        attempt: 1,
+        role: s.role,
+        kind: 'user_video',
+        source: 'client_photo',
+        source_footage_id: s.sourceFootageId,
+        image_url: null,
+        engine: null,
+        prompt: null,
+        gen_seconds: null,
+        cut_start: s.cutStart,
+        cut_seconds: s.cutSeconds,
+        movement_variant: 0,
+        status: 'done',
+        stored_url: s.videoUrl ?? null,
+        measured_seconds: s.videoSeconds ?? null,
+        usd: 0,
+      }
+    }
     const isText = s.kind === 'text'
     const engine = isText ? null : routeShot(s.kind, tier, 1)
     return {
@@ -228,11 +253,15 @@ function failShot(admin: SupabaseClient, row: AdsV2ShotRow, from: readonly strin
 }
 
 // ── envio (tela, cron e /start) ───────────────────────────────────────────────────────────────────────────────────
+/** Plano que nunca passa por IA: `text` (foto parada com zoom) e `user_video` (o vídeo do próprio cliente). */
+function neverAi(r: Pick<AdsV2ShotRow, 'kind'>): boolean {
+  return r.kind === 'text' || r.kind === 'user_video'
+}
 function needsImage(r: AdsV2ShotRow): boolean {
-  return r.kind !== 'text' && r.source === 'generated_scene' && !r.image_url && r.status === 'pending' && !r.image_submit_claimed_at
+  return !neverAi(r) && r.source === 'generated_scene' && !r.image_url && r.status === 'pending' && !r.image_submit_claimed_at
 }
 function needsVideo(r: AdsV2ShotRow): boolean {
-  return r.kind !== 'text' && !!r.engine && !!r.image_url && (r.status === 'pending' || r.status === 'image_done') && !r.submit_claimed_at
+  return !neverAi(r) && !!r.engine && !!r.image_url && (r.status === 'pending' || r.status === 'image_done') && !r.submit_claimed_at
 }
 
 async function submitImageFor(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow): Promise<void> {
@@ -268,8 +297,8 @@ async function submitImageFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
 }
 
 async function submitVideoFor(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow): Promise<void> {
-  // REGRA DURA: texto nunca passa por IA de vídeo — nem por engano de linha (engine nulo também não sai).
-  if (row.kind === 'text' || !row.engine) return
+  // REGRA DURA: texto e o vídeo do cliente nunca passam por IA de vídeo — nem por engano de linha (engine nulo também não sai).
+  if (neverAi(row) || !row.engine) return
   const engine = row.engine
   const claimed = await markShot(admin, row, ['pending', 'image_done'], { submit_claimed_at: nowIso() }, 'submit_claimed_at')
   if (!claimed) return
@@ -401,6 +430,7 @@ async function pollOne(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2Sh
  */
 async function retryOrTerminal(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow): Promise<string | null> {
   if (row.kind === 'text') return `text_shot_${row.idx}_${row.status}` // nunca acontece: text nasce skipped_text
+  if (row.kind === 'user_video') return `user_video_shot_${row.idx}_${row.status}` // nunca acontece: nasce 'done', sem IA
   if (row.reason_class && ADS_V2_NON_RETRY_CLASSES.includes(row.reason_class)) return `shot_${row.idx}_${row.reason_class}`
   if (row.attempt >= ADS_V2_MAX_AUTO_ATTEMPTS) return `shot_${row.idx}_exhausted:${row.reason ?? row.status}`
   const attempt = row.attempt + 1
@@ -481,13 +511,19 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
   if (!narration) { voiceUrl = null; voiceSeconds = null }
   // 3. Linha do tempo: planos na ordem; o cartão cresce se a voz passar do fim (passar do alvo é bom; cortar, nunca).
   const latest = latestShots(shots)
-  const montageShots: AdV2MontageShot[] = latest.map((r) => ({
-    url: (r.stored_url ?? '').trim(),
-    kind: r.kind,
-    cutStart: num(r.cut_start) ?? 0,
-    cutSeconds: num(r.cut_seconds) ?? 0,
-    measuredSeconds: r.kind === 'text' ? null : num(r.measured_seconds),
-  }))
+  const montageShots: AdV2MontageShot[] = latest.map((r) => {
+    const base: AdV2MontageShot = {
+      url: (r.stored_url ?? '').trim(),
+      kind: r.kind,
+      cutStart: num(r.cut_start) ?? 0,
+      cutSeconds: num(r.cut_seconds) ?? 0,
+      measuredSeconds: r.kind === 'text' ? null : num(r.measured_seconds),
+    }
+    if (r.kind !== 'user_video') return base
+    // Vídeo do cliente: o enquadramento (foco e dimensões) mora no plano gravado.
+    const p = plan.shots?.find((s) => s.idx === r.idx)
+    return { ...base, focusX: p?.focusX ?? 0.5, focusY: p?.focusY ?? 0.5, videoWidth: p?.videoWidth ?? null, videoHeight: p?.videoHeight ?? null }
+  })
   const shotsSeconds = montageShots.reduce((s, x) => s + x.cutSeconds, 0)
   let cardSeconds = ADS_V2_CARD_SECONDS
   if (voiceSeconds) {
@@ -707,7 +743,7 @@ export function adsV2View(order: AdsV2OrderRow, shots: readonly AdsV2ShotRow[]):
       state: READY.has(r.status) ? 'ready' : r.status === 'failed' || r.status === 'stuck' ? 'failed' : 'working',
       status: r.status,
       url: READY.has(r.status) ? r.stored_url : null,
-      retake_credits: r.kind === 'text' ? 0 : adsV2RetakeCredits(r.kind, order.tier),
+      retake_credits: r.kind === 'text' || r.kind === 'user_video' ? 0 : adsV2RetakeCredits(r.kind, order.tier),
     })),
   }
 }
