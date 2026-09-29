@@ -99,3 +99,15 @@ export function engineGateMessage(engine: string): string {
   // o guardião scripts/test-preco-v8-A-2026-09-28.mjs confere a igualdade lendo os dois arquivos.
   return `${engineDisplayName(engine)} is a Studio engine ($54.90/mo, every engine). Starter and Creator include Kineo 1 and Seedance 1.5.`
 }
+
+// KINEO-VEO-CARD-HONESTO-2026-09-29 — o selo "Studio" nas superfícies (card do
+// /studio, chip do mega-menu) só existe enquanto o gate estiver LIGADO na fonte.
+// Com ENGINE_GATE_SINCE no futuro (restauração 09/09) toda conta roda todo motor:
+// um selo "Studio" no card do Veo era promessa de restrição que a rota não cumpre
+// (e o Veo a 35 s cabe no Starter). Puro: derivado da constante, sem env.
+export const ENGINE_GATE_ACTIVE: boolean = Date.parse(ENGINE_GATE_SINCE) <= Date.now()
+
+/** Selo de plano que a superfície mostra para o motor; null = nenhum selo. */
+export function enginePlanBadge(engine: string): 'Studio' | null {
+  return ENGINE_GATE_ACTIVE && isStudioOnlyEngine(engine) ? 'Studio' : null
+}
