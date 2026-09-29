@@ -18,8 +18,9 @@
 //       (medido no guardião irmão, seção h1; com o teto 12 era 1,65 s). Com a folga: 0,43 s. Uma voz a 2,07 pal/s ainda
 //       cabe em todo plano de 5 s;
 //   (e) modo IA intocado: 60 s → 12 e 90 s → 12 planos, na lib e na fatia real da rota;
-//   (f) rota: só o ramo do Kling mudou — cada linha do diff de route.ts contra a base fala de Kling; Seedance/Veo/Sora
-//       dimensionam idêntico à base em 24 combinações; a rota não aperta o teto por opção;
+//   (f) rota: só o ramo do Kling mudou — cada linha do diff de route.ts do COMMIT INTRODUTOR contra o seu pai fala de
+//       Kling (nunca a worktree: depois do merge ela carrega os irmãos); Seedance/Veo/Sora dimensionam idêntico à base em
+//       24 combinações; a rota não aperta o teto por opção;
 //   (g) 240 roteiros aleatórios de 60/90 s: nunca acima do teto do filme nem do físico, só 5|10 s, cabe, cobre, nunca
 //       MENOS planos nem MAIS planos de 10 s do que a base, custo de clipe nunca acima da base;
 //   (h) mutantes: teto de volta a 12 → (b) e (c) vermelhos; teto do modo IA solto → (e) vermelho; rota sem `{ verbatim }`
@@ -47,19 +48,29 @@ const eqJ = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 const palavras = (t) => String(t ?? '').trim().split(/\s+/).filter(Boolean)
 const git = (args) => execFileSync('git', args, { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()
 
-// BASE = o "antes" deste trabalho (teto 12): o pai do commit mais antigo "KLING25-60S-TETO" na história de HEAD; antes do
-// commit existir, o próprio HEAD; senão origin/main. A base escolhida NÃO pode conter o marcador.
+// BASE = o "antes" deste trabalho (teto 12) e CANDIDATO = o commit que o introduziu. Memória "trava por diff fica verde ao
+// mergear / medir vs pai do commit": depois do merge com a main e a fila, HEAD é um merge — o diff da base contra a WORKTREE
+// (ou contra o pai de HEAD) carrega o trabalho dos IRMÃOS (a âncora KLING25-60S-ANCORA, a pilha da trava) e fica vermelho
+// à toa. Por isso, como no guardião dos planos de 5 s (base 3519a0b0^ resolvida pela mensagem):
+//   (1) o commit "[TRAVA 8.2] KLING25-60S-TETO" mais antigo na história de HEAD → base = <sha>^ e candidato = <sha>. As
+//       asserções de DIFF leem `git show <sha>:<arquivo>`; as que EXECUTAM a lógica leem o arquivo ATUAL da worktree, para
+//       provar que o comportamento continua no HEAD;
+//   (2) antes do commit existir (worktree pristina): base = HEAD (senão origin/main) e candidato = a worktree, como antes.
+// A base escolhida NÃO pode conter o marcador; o candidato TEM de conter.
 let BASE = null
+let SHA = null // o commit introdutor; null = o candidato é a worktree
 {
-  const candidatos = []
-  try { const shas = git(['log', '--format=%H', '--grep=KLING25-60S-TETO', 'HEAD']).trim().split('\n').filter(Boolean); if (shas.length) candidatos.push(shas[shas.length - 1] + '^') } catch { /* sem commit ainda */ }
+  try { const shas = git(['log', '--basic-regexp', '--format=%H', '--grep=^\\[TRAVA 8.2\\] KLING25-60S-TETO', 'HEAD']).trim().split('\n').filter(Boolean); if (shas.length) SHA = shas[shas.length - 1] } catch { /* sem commit ainda */ }
+  const candidatos = SHA ? [SHA + '^'] : []
   candidatos.push('HEAD', 'origin/main')
   for (const ref of candidatos) {
     try { if (!git(['show', `${ref}:lib/cinematic/klingShots.ts`]).includes('KLING25-60S-TETO')) { BASE = ref; break } } catch { /* tenta o próximo */ }
   }
+  if (SHA && BASE !== SHA + '^') SHA = null // o pai do commit já tinha o marcador: não é o introdutor — o candidato volta a ser a worktree
 }
-console.log(`   base de comparação: ${BASE ?? '(nenhuma)'}`)
+console.log(`   base de comparação: ${BASE ?? '(nenhuma)'} · candidato do diff: ${SHA ?? 'worktree (sem o commit na história)'}`)
 const rdBase = (p) => { if (!BASE) return null; try { return git(['show', `${BASE}:${p}`]).replace(/\r\n/g, '\n') } catch { return null } }
+const rdCand = (p) => { if (!SHA) return rd(p); try { return git(['show', `${SHA}:${p}`]).replace(/\r\n/g, '\n') } catch { return null } }
 checa('a base (teto 12) está disponível para as comparações', Boolean(BASE))
 
 const LIB = 'lib/cinematic/klingShots.ts'
@@ -68,9 +79,12 @@ const libSrc = rd(LIB)
 const rota = rd(ROTA)
 const libBaseSrc = rdBase(LIB)
 const rotaBase = rdBase(ROTA)
+const libCandSrc = rdCand(LIB)
+const rotaCand = rdCand(ROTA)
 const K = roda(libSrc)
 const KB = libBaseSrc ? roda(libBaseSrc) : null
 checa('a base não tem kling25MaxShots e o novo tem (a prova compara antes × depois de verdade)', KB && typeof KB.kling25MaxShots !== 'function' && typeof K.kling25MaxShots === 'function')
+checa('o candidato do diff (o commit introdutor, ou a worktree antes dele existir) carrega o marcador na lib e a base não — o commit resolvido é o introdutor, não um irmão', String(libCandSrc).includes('KLING25-60S-TETO') && !String(libBaseSrc).includes('KLING25-60S-TETO') && typeof roda(String(libCandSrc)).kling25MaxShots === 'function')
 
 // ═══ roteiros ═══
 // ~150 palavras (65-67 s a 2,3 pal/s) — o filme de 60 s que o fundador quer "com 65 ou 70" de fala.
@@ -192,10 +206,13 @@ console.log('== (f) rota: só o Kling 2.5 mudou ==')
 checa('a rota dimensiona com `kling25ShotCount(kling25Footage, { verbatim })` e não aperta o teto do divisor por opção', rota.includes('const planos = kling25ShotCount(kling25Footage, { verbatim })') && /kling25VerbatimPlan\(parsedScript\.narration, \{ durationSeconds: duration, wordsPerSecond: narrationRate\.wordsPerSecond \}\)/.test(rota) && !/kling25VerbatimPlan\([^)]*maxShots/.test(rota))
 checa('a rota não precisa importar nada novo (kling25ShotCount já vinha da lib) e não chama o escritor de cenas com teto novo', rota.includes("kling25ShotCount, kling25SceneSeconds, kling25ClipsUsd, kling25WriterBudget, kling25AlignBudget") && !rota.includes('maxScenes'))
 if (rotaBase) {
+  // O diff é do CANDIDATO contra a base (commit × commit). Contra a worktree, depois do merge, ele carregaria os irmãos
+  // (a âncora KLING25-60S-ANCORA e a pilha) — 19 linhas, 6 de código, algumas sem Kling: vermelho falso (visto em 28/09).
+  checa('candidato: o commit introdutor tem `kling25ShotCount(kling25Footage, { verbatim })` e a base tem a chamada sem opção (o diff abaixo mede ESTE trabalho)', String(rotaCand).includes('const planos = kling25ShotCount(kling25Footage, { verbatim })') && rotaBase.includes('const planos = kling25ShotCount(kling25Footage)') && !rotaBase.includes('{ verbatim })'))
   let linhas = []
-  try { linhas = git(['diff', BASE, '--', ROTA]).split('\n').filter((l) => (l.startsWith('+') || l.startsWith('-')) && !l.startsWith('+++') && !l.startsWith('---')) } catch { linhas = null }
+  try { linhas = git(SHA ? ['diff', BASE, SHA, '--', ROTA] : ['diff', BASE, '--', ROTA]).split('\n').filter((l) => (l.startsWith('+') || l.startsWith('-')) && !l.startsWith('+++') && !l.startsWith('---')) } catch { linhas = null }
   const codigo = Array.isArray(linhas) ? linhas.filter((l) => !/^[+-]\s*\/\//.test(l)) : null
-  checa(`diff de route.ts contra a base: ${linhas?.length ?? '?'} linhas mudadas (${codigo?.length ?? '?'} de código), toda linha de código fala do Kling 2.5 e nenhuma linha toca Seedance/Veo/Sora/hollywood em código`, Array.isArray(linhas) && linhas.length > 0 && linhas.length <= 12 && codigo.length > 0 && codigo.every((l) => /kling/i.test(l)) && codigo.every((l) => !/wantsVeo|wantsSora|seedance|hollywood/i.test(l)))
+  checa(`diff de route.ts do candidato (${SHA ? SHA.slice(0, 8) : 'worktree'}) contra a base: ${linhas?.length ?? '?'} linhas mudadas (${codigo?.length ?? '?'} de código), toda linha de código fala do Kling 2.5 e nenhuma linha toca Seedance/Veo/Sora/hollywood em código`, Array.isArray(linhas) && linhas.length > 0 && linhas.length <= 12 && codigo.length > 0 && codigo.every((l) => /kling/i.test(l)) && codigo.every((l) => !/wantsVeo|wantsSora|seedance|hollywood/i.test(l)))
   const iguais = []
   for (const engine of ['seedance', 'veo', 'sora']) for (const duration of [35, 45, 60, 90]) for (const verbatim of [false, true]) {
     const a = dimensiona(rota, { engine, duration, verbatim, narration: verbatim ? S203 : '' }, K)
