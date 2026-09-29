@@ -2,6 +2,20 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
+
+## 2026-09-29 — Padrão de e-mails da Kineo (remetente por tipo de conversa)
+**QUEM DECIDIU:** o fundador, 29/09, depois de notar que conversas comerciais saíam de uma caixa antiga ("estamos falando com algumas pessoas de um jeito meio errado").
+**CONTEXTO TÉCNICO (29/09):** usekineo.com é domínio de alias do Workspace shortsforgeai.com; SPF (`include:_spf.google.com`), DKIM (`google._domainkey`, 2048) e DMARC (`p=none`) publicados e ativos. Os e-mails automáticos do app (Resend) já saem de @usekineo.com (support@, hello@, joseph@) e não mudam.
+**A REGRA:**
+1. **Conversa comercial e de parceria NOVA:** remetente e Reply-To = `joseph@usekineo.com`.
+2. **Atendimento:** `hello@usekineo.com` e `support@usekineo.com`.
+3. **Conversa já iniciada pelo Gmail pessoal do fundador** continua lá, na mesma thread, com o histórico preservado — inclusive os rascunhos já preparados. Não reenviar nem migrar automaticamente.
+4. **`support@shortsforgeai.com` não é remetente de contato comercial novo.** A caixa e o histórico ficam preservados.
+5. **Antes de preparar qualquer mensagem nova:** conferir a conta conectada, o From, o Reply-To, o destinatário e o histórico de contato com a pessoa. Se `joseph@usekineo.com` não estiver disponível, **informar o bloqueio** — nunca trocar em silêncio pelo Gmail pessoal nem pela caixa de suporte.
+6. **Esta decisão não autoriza** envio, criação de alias, mudança de SMTP, encaminhamento, credencial nem permissão. Nesta frente o agente prepara RASCUNHO; o fundador revisa e envia.
+**PRIVACIDADE:** nomes e endereços de contatos não entram no Git.
+
+
 ## 2026-09-29 — Kineo 1 fora do jogo; filme grátis = Seedance 15 s; saída B (só país rico)
 
 **QUEM DECIDIU:** o fundador, 29/09, literal: "quero tirar o kineo 1 do jogo, ele estraga a entrada"; "vou sair na saída B"; e, sobre quem já usa, "deixar dentro do sistema dessas contas que já pagam esse motor que eles usam".

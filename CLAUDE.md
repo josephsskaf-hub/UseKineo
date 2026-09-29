@@ -326,6 +326,16 @@ fundador copia as configurações junto para a caixa de texto do Studio.
 A config vem FORA do bloco, logo embaixo, em uma linha compacta:
 ⚙ Config: usekineo.com/studio · motor (custo) · duração · script mode · avisos.
 
+## ⚠ REGRA FIXA — REMETENTE POR TIPO DE CONVERSA (fundador 29/09; detalhe em docs/DECISIONS.md)
+Comercial/parceria NOVA sai de joseph@usekineo.com (From e Reply-To); atendimento
+em hello@ / support@usekineo.com; conversa já começada no Gmail pessoal continua
+na mesma thread (sem reenviar nem migrar); support@shortsforgeai.com nunca é
+remetente comercial novo. Antes de cada rascunho: conferir conta, From, Reply-To,
+destinatário e histórico. Sem joseph@usekineo.com disponível = AVISAR o bloqueio,
+nunca trocar de remetente em silêncio. Não autoriza envio, alias, SMTP nem
+encaminhamento — rascunho sempre; o fundador envia.
+
+
 ## ⚠ REGRA FIXA — respostas de e-mail vão para o RASCUNHO (fundador 24/08)
 Toda resposta que eu preparar para um cliente/parceiro vai DIRETO para os
 rascunhos do Gmail dele, na thread certa (create_draft com replyToMessageId).
