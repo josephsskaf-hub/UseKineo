@@ -9,6 +9,8 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { fetchAllRows } from '@/app/api/admin/_shared/db'
 import { PAID_PLANS, PLAN_PRICE_USD, isTrialPlan } from '@/app/api/admin/_shared/mrr'
+// KINEO-MRR-PRECO-PAGO-2026-09-28 — o MRR é o que cada assinante PAGA (última fatura), não a tabela de hoje.
+import { MRR_PAID_EVENT_NAMES, paidMonthlyUsdByUser, paidMrrSourceLabel, subscriberMrr, type PaidAmountEvent, type PaidMonthly } from '@/app/api/admin/_shared/mrr'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -221,16 +223,40 @@ export async function GET() {
       (u) => ((u as { last_sign_in_at?: string | null }).last_sign_in_at ?? '') >= since24h
     ).length
 
+    // KINEO-MRR-PRECO-PAGO-2026-09-28 — o valor que cada assinante paga vem dos eventos com
+    // valor (checkout de assinatura + faturas); a tabela de hoje só para quem não tem valor
+    // conhecido, e o rótulo diz quantos são. Mesma régua de _shared/mrr em todo o admin.
+    let paidByUser = new Map<string, PaidMonthly>()
+    try {
+      const paidEvents = await fetchAllRows<PaidAmountEvent>(admin, 'events', 'id, user_id, name, created_at, metadata', {
+        column: 'name',
+        values: [...MRR_PAID_EVENT_NAMES],
+      })
+      paidByUser = paidMonthlyUsdByUser(paidEvents)
+    } catch (e) {
+      console.warn('[admin/overview] paid events query failed (MRR falls back to table, labelled):', e)
+    }
+
     let payingByPlan: Record<string, number> = {}
     let mrrUsd = 0
+    let mrrTableUsd = 0
+    const mrrSources = { counted: 0, fromInvoice: 0, fromCheckout: 0, fromTable: 0 }
     let trialsActive = 0
     let trialPotentialMrrUsd = 0
-    for (const [, plan] of planById) {
+    for (const [id, plan] of planById) {
       if (PAID_PLANS.has(plan)) {
         if (isTrialPlan(plan)) { trialsActive += 1; trialPotentialMrrUsd += PLAN_PRICE_USD[plan] ?? 0; continue }
         const key = plan.replace('_trial', '')
         payingByPlan[key] = (payingByPlan[key] ?? 0) + 1
-        mrrUsd += PLAN_PRICE_USD[plan] ?? 0
+        const sub = subscriberMrr(plan, paidByUser.get(id))
+        mrrUsd += sub.usd
+        mrrTableUsd += sub.tableUsd
+        if (sub.tableUsd > 0) {
+          mrrSources.counted += 1
+          if (sub.source === 'invoice') mrrSources.fromInvoice += 1
+          else if (sub.source === 'checkout') mrrSources.fromCheckout += 1
+          else mrrSources.fromTable += 1
+        }
       }
     }
     const payingTotal = Object.values(payingByPlan).reduce((a, b) => a + b, 0)
@@ -340,6 +366,10 @@ export async function GET() {
         trialsActive,
         trialPotentialMrrUsd,
         mrrUsd: Math.round(mrrUsd * 100) / 100,
+        // KINEO-MRR-PRECO-PAGO-2026-09-28 — a tabela nova ao lado, e de onde veio cada pagante.
+        mrrTableUsd: Math.round(mrrTableUsd * 100) / 100,
+        mrrSourceLabel: paidMrrSourceLabel(mrrSources),
+        mrrSources,
         videosTotal,
         videos7d,
         purchaseIntent: intent.length,

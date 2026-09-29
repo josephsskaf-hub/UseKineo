@@ -39,6 +39,7 @@ vm.runInNewContext(src, {
   require: (id) => {
     if (id === '@/lib/pricing') return { PLANS: { starter: { price: 9 }, basic: { price: 19 }, pro: { price: 29 }, autopilot: { price: 299 }, autopilot_lite: { price: 59 } } } // KINEO-AUTOPILOT-LITE-2026-09-16
     if (id === '@/lib/stripe') return { stripe: {} }
+    if (id === '@/lib/settlementCurrency') return { BRL_PER_USD_HOUSE: 5 } // KINEO-MRR-PRECO-PAGO-2026-09-28
     throw new Error('dependencia inesperada ' + id)
   },
   console, Date, Map,

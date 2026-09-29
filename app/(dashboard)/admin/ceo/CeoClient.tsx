@@ -147,12 +147,16 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
 
       {/* ── Row 1: Revenue ───────────────────────────────────────────────── */}
       <Section title="💰 Revenue — active paid plans">
+        {/* KINEO-MRR-PRECO-PAGO-2026-09-28 — o valor é o que cada assinante paga (última fatura);
+            o rótulo diz de onde veio cada um, quantos caíram na tabela, e a tabela nova ao lado. */}
         <BigCard
           label="Monthly Recurring Revenue"
           value={money(data.mrr)}
           accent="#34d399"
           sub={`${fmt(data.payingActive)} paying customer${data.payingActive === 1 ? '' : 's'}${
             data.arpu ? ` · ARPU ${money(data.arpu)}` : ''
+          } · pago: ${data.mrrSourceLabel} · tabela nova ${money(data.mrrTableUsd)}${
+            data.mrrStripeUsd != null ? ` · Stripe ao vivo ${money(data.mrrStripeUsd)}` : ' · Stripe indisponível agora'
           }`}
         />
         {data.mrrByPlan.length === 0 ? (
@@ -164,7 +168,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
               label={p.label}
               value={fmt(p.count)}
               accent={p.accent}
-              hint={`${money(p.priceUsd)}/mo each → ${money(p.mrrUsd)}`}
+              hint={`tabela ${money(p.priceUsd)}/mo → pago ${money(p.mrrUsd)}`}
             />
           ))
         )}

@@ -267,12 +267,13 @@ export default function WelcomeOfferModal({
 
   return (
     <div
+      data-kineo-modal="WelcomeOfferModal"
       role="dialog"
       aria-modal="true"
       aria-label="Welcome offer — 20% off your first month"
       style={{
         position: 'fixed', inset: 0, zIndex: 95,
-        background: 'rgba(6,6,10,.82)', backdropFilter: 'blur(18px)',
+        background: 'var(--modal-overlay)', backdropFilter: 'blur(18px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
       }}
       onClick={dismiss}
@@ -282,36 +283,34 @@ export default function WelcomeOfferModal({
         onClick={(e) => e.stopPropagation()}
         style={{
           padding: 1, borderRadius: 18, width: 560, maxWidth: '96vw',
-          background: 'linear-gradient(135deg, rgba(41,151,255,.55), rgba(167,139,250,.35) 45%, rgba(41,151,255,.12))',
-          boxShadow: '0 0 90px rgba(41,151,255,.14), 0 30px 80px rgba(0,0,0,.6)',
+          background: 'var(--border2)',
+          boxShadow: 'var(--modal-shadow)',
           // KINEO-MOBILE-2026-08-29 — em tela baixa o modal precisa rolar por
           // dentro; sem isto o card Studio ficava CORTADO e inclicável no
           // celular (visto na auditoria mobile do fundador).
           maxHeight: '92vh', overflowY: 'auto',
         }}
       >
-        <div style={{ background: '#101013', borderRadius: 17, padding: '26px 28px 24px', position: 'relative' }}>
+        <div style={{ background: 'var(--card)', borderRadius: 17, padding: '26px 28px 24px', position: 'relative' }}>
           <button
             onClick={dismiss}
             aria-label="Close"
             style={{
-              position: 'absolute', top: 14, right: 14, width: 30, height: 30, borderRadius: 9,
-              background: 'rgba(255,255,255,.05)', border: '1px solid #2a2a2d', color: '#86868b',
+              position: 'absolute', top: 14, right: 14, width: 44, height: 44, borderRadius: 9,
+              background: 'var(--card2)', border: '1px solid var(--border)', color: 'var(--muted)',
               cursor: 'pointer', fontSize: 13, lineHeight: 1,
             }}
           >
             ✕
           </button>
-
-          <p style={{ color: '#2997ff', fontSize: 11, fontWeight: 900, letterSpacing: '.14em', textTransform: 'uppercase', margin: '0 0 10px' }}>
+          <p style={{ color: 'var(--accent)', fontSize: 11, fontWeight: 900, letterSpacing: '.14em', textTransform: 'uppercase', margin: '0 0 10px' }}>
             <KineoBolt /> Welcome offer
           </p>
-
-          <h2 style={{ color: '#f5f5f7', fontSize: 26, fontWeight: 900, lineHeight: 1.15, letterSpacing: '-0.02em', margin: '0 0 6px' }}>
+          <h2 style={{ color: 'var(--text)', fontSize: 26, fontWeight: 900, lineHeight: 1.15, letterSpacing: '-0.02em', margin: '0 0 6px' }}>
             {firstName ? `${firstName}, your first month is ` : 'Your first month is '}
             <span className="grad-text">20% off.</span>
           </h2>
-          <p style={{ color: '#a1a1a8', fontSize: 13.5, lineHeight: 1.55, margin: '0 0 14px' }}>
+          <p style={{ color: 'var(--text2)', fontSize: 13.5, lineHeight: 1.55, margin: '0 0 14px' }}>
             Pick Creator or Studio below — the discount applies itself at checkout. Films like this one, from a text box:
           </p>
 
@@ -319,7 +318,7 @@ export default function WelcomeOfferModal({
           <video
             src="/previews/36a04f7b-65f7-42d9-a2ab-198b5a7f115e.mp4"
             muted loop autoPlay playsInline preload="metadata"
-            style={{ width: '100%', borderRadius: 12, border: '1px solid #2a2a2d', maxHeight: 170, objectFit: 'cover', marginBottom: 16 }}
+            style={{ width: '100%', borderRadius: 12, border: '1px solid var(--border)', maxHeight: 170, objectFit: 'cover', marginBottom: 16 }}
           />
 
           {/* KINEO-MOBILE-2026-08-29 — flexWrap + base 230px: no celular os
@@ -361,8 +360,8 @@ export default function WelcomeOfferModal({
                   style={{
                     flex: '1 1 230px', minWidth: 0, display: 'block', textDecoration: 'none',
                     borderRadius: 14, padding: '16px 16px 14px', position: 'relative',
-                    background: p.highlight ? 'rgba(41,151,255,.10)' : 'rgba(255,255,255,.03)',
-                    border: p.highlight ? '1px solid rgba(41,151,255,.55)' : '1px solid rgba(255,255,255,.10)',
+                    background: p.highlight ? 'var(--accent-soft)' : 'var(--card)',
+                    border: p.highlight ? '1px solid var(--border2)' : '1px solid var(--border)',
                     opacity: pending && pending !== p.tier ? 0.55 : 1,
                     transition: 'transform .15s ease, border-color .15s ease',
                   }}
@@ -373,25 +372,25 @@ export default function WelcomeOfferModal({
                     <span style={{
                       position: 'absolute', top: -9, left: '50%', transform: 'translateX(-50%)',
                       whiteSpace: 'nowrap', fontSize: 10, fontWeight: 900, letterSpacing: '.08em',
-                      textTransform: 'uppercase', color: '#0a0a0b', background: '#2997ff',
+                      textTransform: 'uppercase', color: 'var(--on-accent)', background: 'var(--indigo)',
                       borderRadius: 999, padding: '2px 10px',
                     }}>
                       ⭐ Best deal
                     </span>
                   )}
-                  <span style={{ display: 'block', color: '#f5f5f7', fontSize: 15, fontWeight: 900 }}>{p.name}</span>
-                  <span style={{ display: 'block', color: '#86868b', fontSize: 11.5, fontWeight: 700, margin: '1px 0 8px' }}>{p.capacity}</span>
+                  <span style={{ display: 'block', color: 'var(--text)', fontSize: 15, fontWeight: 900 }}>{p.name}</span>
+                  <span style={{ display: 'block', color: 'var(--muted)', fontSize: 11.5, fontWeight: 700, margin: '1px 0 8px' }}>{p.capacity}</span>
                   <span style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 9 }}>
-                    <span style={{ color: p.highlight ? '#5cb3ff' : '#f5f5f7', fontSize: 24, fontWeight: 900, letterSpacing: '-0.02em' }}>
+                    <span style={{ color: p.highlight ? 'var(--accent)' : 'var(--text)', fontSize: 24, fontWeight: 900, letterSpacing: '-0.02em' }}>
                       {pending === p.tier ? '…' : now}
                     </span>
-                    <s style={{ color: '#5a5a60', fontSize: 13, fontWeight: 700 }}>{full}</s>
-                    <span style={{ color: '#86868b', fontSize: 11 }}>first month</span>
+                    <s style={{ color: 'var(--muted2)', fontSize: 13, fontWeight: 700 }}>{full}</s>
+                    <span style={{ color: 'var(--muted)', fontSize: 11 }}>first month</span>
                   </span>
                   <span style={{ display: 'block' }}>
                     {p.perks.map((perk) => (
-                      <span key={perk} style={{ display: 'flex', gap: 6, color: '#c7c7cc', fontSize: 11.5, lineHeight: 1.55 }}>
-                        <span style={{ color: '#34d399' }}>✓</span>
+                      <span key={perk} style={{ display: 'flex', gap: 6, color: 'var(--text2)', fontSize: 11.5, lineHeight: 1.55 }}>
+                        <span style={{ color: 'var(--success)' }}>✓</span>
                         <span>{perk}</span>
                       </span>
                     ))}
@@ -399,9 +398,9 @@ export default function WelcomeOfferModal({
                   <span style={{
                     display: 'block', textAlign: 'center', marginTop: 12, padding: '9px 0',
                     borderRadius: 10, fontSize: 12.5, fontWeight: 900,
-                    background: p.highlight ? '#2997ff' : 'rgba(255,255,255,.07)',
-                    color: p.highlight ? '#fff' : '#f5f5f7',
-                    border: p.highlight ? 'none' : '1px solid rgba(255,255,255,.12)',
+                    background: p.highlight ? 'var(--indigo)' : 'var(--card2)',
+                    color: p.highlight ? 'var(--on-accent)' : 'var(--text)',
+                    border: p.highlight ? 'none' : '1px solid var(--border)',
                   }}>
                     {pending === p.tier ? 'Opening checkout…' : `Claim 20% off ${p.name} →`}
                   </span>
@@ -409,8 +408,7 @@ export default function WelcomeOfferModal({
               )
             })}
           </div>
-
-          <p style={{ color: '#5a5a60', fontSize: 10.5, textAlign: 'center', margin: '13px 0 0' }}>
+          <p style={{ color: 'var(--muted2)', fontSize: 10.5, textAlign: 'center', margin: '13px 0 0' }}>
             Applies to your first month · cancel anytime · renews at the regular price
           </p>
         </div>
