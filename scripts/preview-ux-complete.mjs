@@ -65,7 +65,8 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
       // Canonical public facts now import gptHandoff, whose hashing helper uses
       // Node crypto. Allow this built-in only; network, DB and env stay blocked.
       if(id==='node:crypto'||id==='crypto')return require(id)
-      if(['EngineVisualReference','BusinessVisualReferences','PublicNavDropdown'].some(name=>id==='@/components/'+name))return load(id.slice(2)+'.tsx')
+      if(['EngineVisualReference','BusinessVisualReferences','PublicNavDropdown','ControlIcon','LibraryOrganization','ImageResultPreview','MobileCreationShortcut'].some(name=>id==='@/components/'+name))return load(id.slice(2)+'.tsx')
+      if(['./ControlIcon','./InterfaceLanguage'].includes(id))return load('components/'+id.slice(2)+'.tsx')
       if(id==='@/components/studioKit')return load('components/studioKit.tsx')
       if(id==='@/components/InterfaceLanguage')return load('components/InterfaceLanguage.tsx')
       if(id==='@/components/KineoBolt')return load('components/KineoBolt.tsx')

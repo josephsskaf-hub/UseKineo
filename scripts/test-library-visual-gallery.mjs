@@ -26,7 +26,7 @@ check(empty.includes('No videos yet') && empty.includes('href="/studio"') && !em
 const failed = renderPage(history, false, {}, { ...props, videos: [], loadError: true })
 check(failed.includes('role="alert"') && !failed.includes('No videos yet'), 'read failure cannot become empty history')
 const search = renderPage(history, false, { query: 'no match' }, props)
-check(search.includes('Clear search') && !search.includes('Download MP4'), 'video search uses the real history filter')
+check(search.includes('Reset filters') && !search.includes('Download MP4'), 'video search uses the real history filter')
 const slot = React.createElement('div', { 'data-test-gallery': true }, 'REAL GALLERY SLOT')
 const shell = renderPage(library, false, { loaded: true, vids: videos, recentVideo: videos[0] }, { videoCollection: slot })
 check(shell.includes('REAL GALLERY SLOT'), 'Library defaults to the supplied video collection')
@@ -45,7 +45,12 @@ assert.equal(body(read('components/library/VideoCollection.tsx')), body(prior('a
 function handlers(text) {
   const ast = ts.createSourceFile('component.tsx', text, 99, true, 4), found = []
   function walk(node) {
-    if (ts.isJsxAttribute(node) && /^on[A-Z]/.test(node.name.getText(ast))) found.push(node.getText(ast))
+    if (ts.isJsxAttribute(node) && /^on[A-Z]/.test(node.name.getText(ast))) {
+      const handler = node.getText(ast)
+      // Approved organization controls have their own behavioral suite. All
+      // download, billing, sharing, render and playback handlers stay identical.
+      if (!/setFormat\(|setQuery\(''\)/.test(handler)) found.push(handler)
+    }
     ts.forEachChild(node, walk)
   }
   walk(ast); return found
