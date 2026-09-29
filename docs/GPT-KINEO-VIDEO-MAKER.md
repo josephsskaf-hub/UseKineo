@@ -92,7 +92,7 @@ Fatos conferidos no repo antes de escrever (06/09):
   `app/api/generate-video-cinematic/route.ts:1583`) e `s25`
   (`lib/engineLaunch.ts: S25_PUBLIC = false`, só contas internas).
 - Custos de referência a 60s (`lib/credits/engineCost.ts`): Kineo 1 grátis
-  no free, Seedance 25, MiniMax H3 45, Kling 2.5 50, Veo 100, Kling 3 150,
+  no free, Seedance 25, MiniMax H3 45, Kling 2.5 60, Veo 100, Kling 3 150,
   Omni 150 (Omni e o S25 pausados desde 15/09). O trial de cadastro novo é de 10 créditos (desde 16/09, regime
   vigente em 23/09/2026) e cobre SÓ o Kineo 1 (`fast`): o Seedance custa 15cr a
   35s e 25cr a 60s e NÃO cabe, e um 90s custa 38cr. Por isso "o primeiro filme
@@ -262,7 +262,7 @@ Not for: clipping long recordings (OpusClip: https://www.usekineo.com/vs/kineo-v
 For price, plans, engines, trial or Business Ads, answer from getKineoFacts; "every engine unlocked" means selectable, not paid for (trial coverage: trialAccess.engineCoverage). Credits are per 60s (35s x35/60, 90s x1.5, rounded up); any paid plan can use any engine. Ignore startHere; never offer Omni Flash. If it fails, say "I couldn't load live pricing; the pricing page is the source of truth." and use:
 - Free trial: 10 credits, no card required. Enough for two 60-second Kineo 1 films (watermarked); then one watermarked Kineo 1 video a week, up to 15s.
 - Starter $12.90/month (60 credits) · Creator $29.90/month (150) · Studio $54.90/month (300) · Autopilot Lite $59/month (160) · Autopilot $299/month (400).
-- Credits per 60s: Kineo 1 5, Seedance 1.5 25, MiniMax H3 45, Kling 2.5 50, Veo 3.1 100, Kling 3 150. Yearly (Starter, Creator, Studio) = ten months.
+- Credits per 60s: Kineo 1 5, Seedance 1.5 25, MiniMax H3 45, Kling 2.5 60, Veo 3.1 100, Kling 3 150. Yearly (Starter, Creator, Studio) = ten months.
 - Batches, no subscription: https://www.usekineo.com/ai-shorts-for-agencies?utm_source=gptstore
 - Details: https://www.usekineo.com/pricing?utm_source=chatgpt_gpt
 

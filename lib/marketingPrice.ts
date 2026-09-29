@@ -159,7 +159,8 @@ export const STARTER_AI_FILMS = videosPerMonth('starter', 'cinematic_ai')
 export const CREATOR_AI_FILMS = videosPerMonth('basic', 'cinematic_ai')
 export const STUDIO_AI_FILMS = videosPerMonth('pro', 'cinematic_ai')
 
-/** Kling 2.5 (50 cr) — o cinematográfico. Creator 1 · Studio 3. */
+/** Kling 2.5 (60 cr desde KINEO-KLING25-60CR-2026-09-29; era 50) — o cinematográfico.
+ *  Com TIER_CREDITS 60/150/300: Starter 1 · Creator 2 · Studio 5. Derivado, nunca digitado. */
 export const CREATOR_CINEMATIC_FILMS = videosPerMonth('basic', 'cinematic_kling')
 export const STUDIO_CINEMATIC_FILMS = videosPerMonth('pro', 'cinematic_kling')
 

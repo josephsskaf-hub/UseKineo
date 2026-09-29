@@ -1465,7 +1465,7 @@ export default function GenerateClient({
   // #404 — once we know the plan, default the mode/engine to that plan's engine.
   const planDefaultedRef = useRef<boolean>(false)
   // #402 — which AI engine the user picked: 'seedance' (AI Generated, 30 cr, all
-  // plans) or 'kling' (Cinematic AI, 50 cr — KINEO-PRICING-V3B-2026-07-10).
+  // plans) or 'kling' (Cinematic AI, 60 cr desde KINEO-KLING25-60CR-2026-09-29; era 50).
   // KINEO-HOLLYWOOD-2026-07-09 — 'hollywood' engine added (per-scene routing).
   const [aiEngine, setAiEngine] = useState<'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25'>('seedance')
   // KINEO-S25-LAUNCH-2026-09-01 — o 2.5 so aparece para quem s25Visible()
@@ -2705,7 +2705,7 @@ export default function GenerateClient({
   // generate-video-cinematic response into the ?model= query param.
   const falModelRef = useRef<string>('')
   // #402 — quality returned by the cinematic route ('cinematic_ai' = Seedance/30
-  // or 'cinematic_kling' = Kling/50). Drives the credit cost in compose/status.
+  // or 'cinematic_kling' = Kling/60 desde 29/09). Drives the credit cost in compose/status.
   const falQualityRef = useRef<string>('cinematic_ai')
   // KINEO-HOLLYWOOD-2026-07-09 — Hollywood Mode per-scene metadata from the
   // generate-video-cinematic response. falModelsRef is PARALLEL to the request

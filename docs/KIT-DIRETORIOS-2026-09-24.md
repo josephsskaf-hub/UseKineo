@@ -29,7 +29,7 @@ Por quê: as tarefas 1-3 de 24/09 (diretórios que o ChatGPT lê · GPT Store ·
 | Creator | US$19.90 | 150 | US$199 |
 | Studio | US$39.90 | 300 | US$399 |
 
-- Custo por filme de 60 s (para "pricing details"): Kineo 1 = 5 créditos · Seedance 1.5 = 25 · MiniMax H3 = 45 · Kling 2.5 = 50 · Veo 3.1 = 100 · Kling 3 = 150. Omni Flash e Seedance 2.5 estão PAUSADOS desde 15/09: não listar como motor. Frase segura: `From under one cent per second on Kineo 1 to cinematic engines at a fixed credit price per film.`
+- Custo por filme de 60 s (para "pricing details"): Kineo 1 = 5 créditos · Seedance 1.5 = 25 · MiniMax H3 = 45 · Kling 2.5 = 60 · Veo 3.1 = 100 · Kling 3 = 150. Omni Flash e Seedance 2.5 estão PAUSADOS desde 15/09: não listar como motor. Frase segura: `From under one cent per second on Kineo 1 to cinematic engines at a fixed credit price per film.`
 - **Feito para você (empresas):** `Kineo Business Ads: a human editor makes your vertical ad from your brief. Express US$35 (48 h, 1 revision) or Pro US$75 (72 h, 2 revisions). Offered inside the Studio.` Não prometer self-service de anúncios (Studio Ads é 25/09 e sobe desligado).
 
 ## 4. Links com UTM (um por diretório; nunca link pelado)
