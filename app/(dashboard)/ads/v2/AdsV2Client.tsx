@@ -1,5 +1,7 @@
 'use client'
 
+import AdsPlanChanges, { usePlanComparison } from '@/components/AdsPlanChanges'
+
 // KINEO-ADS-V2-2026-09-28 — ETAPA 3: a tela do anúncio v2 (/ads/v2). O montador em primeiro plano, numa página só.
 //
 // Pedidos do fundador (28/09): a pessoa ENTRA direto na parte de fazer o anúncio; um botão "Start over" em todas as fases
@@ -532,6 +534,7 @@ function AdsV2Session({
   const [cardUpload, setCardUpload] = useState<{ sig: string; footageId: string } | null>(null)
   const [draft, setDraft] = useState<{ id: string; key: string } | null>(null)
   const [plan, setPlan] = useState<Plan | null>(null)
+  const { previousPlan, rememberPlan } = usePlanComparison()
   const [narrationOn, setNarrationOn] = useState(true)
   const [busy, setBusy] = useState<null | 'plan' | 'start' | 'check' | 'voice' | 'redo'>(null)
   const [busyNote, setBusyNote] = useState<string | null>(null)
@@ -1059,6 +1062,7 @@ function AdsV2Session({
         setPlanError(apiError(r))
         return
       }
+      rememberPlan(r.data)
       setPlan({ ...r.data, sig: sigAtStart, cardSig: cardDone.sig })
       window.setTimeout(() => planHeadingRef.current?.focus(), 30)
     } finally {
@@ -1403,6 +1407,8 @@ function AdsV2Session({
                   </div>
                 </>
               ) : (
+                <>
+                <AdsPlanChanges before={previousPlan} after={plan as Plan} />
                 <PlanPreview
                   plan={plan as Plan}
                   cost={cost}
@@ -1414,6 +1420,7 @@ function AdsV2Session({
                   onMake={() => void makeAd()}
                   onCheck={() => void freeCheck()}
                 />
+                </>
               )}
               {busyNote ? <p className="adsw-hint" role="status">{busyNote}</p> : null}
               {checkNote ? <p className="adsw-good adsw-hint" role="status">{checkNote}</p> : null}

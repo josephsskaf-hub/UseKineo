@@ -1,5 +1,7 @@
 'use client'
 
+import AdsPlanChanges, { usePlanComparison } from '@/components/AdsPlanChanges'
+
 // KINEO-ADS-MODO-SIMPLES-2026-09-29 — MODO SIMPLES do /ads/v2 (a entrada padrão). Pedido do fundador, 29/09, depois de
 // tentar anunciar o próprio imóvel: "a pessoa coloca os arquivos que ela quer, fala mais ou menos o que ela quer que
 // aconteça, escolhe premium, comercial ou normal, e a gente faz". "Sem legenda, com a fala em português."
@@ -360,6 +362,7 @@ export function AdsV2SimpleSession({
   const [research, setResearch] = useState<Research | null>(null)
   const [factOn, setFactOn] = useState<Record<string, boolean>>({})
   const [plan, setPlan] = useState<Plan | null>(null)
+  const { previousPlan, rememberPlan } = usePlanComparison()
   const [busy, setBusy] = useState<null | 'plan' | 'start'>(null)
   const [busyNote, setBusyNote] = useState<string | null>(null)
   const [planError, setPlanError] = useState<string | null>(null)
@@ -962,6 +965,7 @@ export function AdsV2SimpleSession({
         setPlanError(errorText(lang, r))
         return
       }
+      rememberPlan(r.data)
       setPlan({ ...r.data, sig: JSON.stringify({ base: baseAtStart, facts: chosen }), cardSig: card.sig })
       window.setTimeout(() => planHeadingRef.current?.focus(), 30)
     } finally {
@@ -1239,6 +1243,8 @@ export function AdsV2SimpleSession({
                   </div>
                 </>
               ) : (
+                <>
+                <AdsPlanChanges before={previousPlan} after={plan as Plan} />
                 <SimplePlanPreview
                   plan={plan as Plan}
                   copy={copy}
@@ -1249,6 +1255,7 @@ export function AdsV2SimpleSession({
                   itemByFootage={itemByFootage}
                   onMake={() => void makeAd()}
                 />
+                </>
               )}
               {busyNote ? <p className="adsw-hint" role="status">{busyNote}</p> : null}
               {planError ? <p className="adsw-err" role="alert">{planError}</p> : null}

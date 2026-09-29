@@ -86,7 +86,8 @@ const importsClient = [...rd(F.client).matchAll(/^import[\s\S]*?from '([^']+)'/g
 // '@/components/InterfaceLanguage' entraram no commit 0449de76 (Codex) sem atualizar esta lista — o I1 já estava VERMELHO
 // na base c55bab53; ambos são componentes de navegador. (2) O modo simples: './AdsV2Simple' (cliente), '@/lib/ads/v2Simple'
 // (pura, sem import) e '@/lib/ui/interfaceLanguage' (pura). A intenção do I1 continua: nenhum módulo de servidor.
-const PERMITIDOS = ['react', 'next/link', '@/components/studioKit', '../new/adsWizardTheme', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2ShotLists', '@/lib/ads/v2Screen',
+// Approved delivery refinement: browser-only plan comparison; no request or persistence.
+const PERMITIDOS = ['@/components/AdsPlanChanges', 'react', 'next/link', '@/components/studioKit', '../new/adsWizardTheme', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2ShotLists', '@/lib/ads/v2Screen',
   '@/components/BusinessVisualReferences', '@/components/InterfaceLanguage', './AdsV2Simple', '@/lib/ads/v2Simple', '@/lib/ui/interfaceLanguage']
 check("I1 o cliente começa com 'use client' e só importa módulos de navegador/puros (nada de v2Advance, v2Billing, serverAccess…)", /^'use client'/.test(rd(F.client)) && importsClient.length >= 8 && importsClient.every((m) => PERMITIDOS.includes(m)))
 check('I2 lib/ads/v2Screen.ts é puro (nenhum import/require) e fora da trava 8.2', !/^\s*import\s/m.test(screenSrc) && !/\brequire\(/.test(semComentarios(screenSrc)))
