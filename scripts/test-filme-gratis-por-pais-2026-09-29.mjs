@@ -152,6 +152,18 @@ console.log('== (d) posição da guarda e os 4 chamadores ==')
   }
 }
 
+// ── (e) o evento da recusa é só do servidor ─────────────────────────────────────────────────────────────────────────
+// Conserto da revisão E1 (A3): trial_region_excluded estava fora de SERVER_ONLY_EVENTS e qualquer navegador podia
+// gravá-lo em POST /api/events — a prova "= 0 com 'todos'" e a contagem de excluídos ficavam falsificáveis.
+console.log('== (e) trial_region_excluded só do servidor ==')
+{
+  const sink = rd('app/api/events/route.ts')
+  const nomes = (src) => new Set([...((src.match(/const SERVER_ONLY_EVENTS = new Set\(\[([\s\S]*?)\n\]\)/) || ['', ''])[1].matchAll(/^\s*'([a-z0-9_]+)',/gm))].map((m) => m[1]))
+  const prova = (src) => { const n = nomes(src); return n.size > 20 && n.has('payment_success') && n.has(P.TRIAL_REGION_EXCLUDED_EVENT) }
+  checa(`SERVER_ONLY_EVENTS (${nomes(sink).size} nomes) inclui ${P.TRIAL_REGION_EXCLUDED_EVENT} (nome derivado de lib/freeFilmPolicy.ts)`, P.TRIAL_REGION_EXCLUDED_EVENT === 'trial_region_excluded' && prova(sink))
+  checa('mutante (nome fora da lista do servidor) → vermelho', !prova(trocar(sink, "  'trial_region_excluded',\n", '')))
+}
+
 console.log(`\n${ok}/${ok + falhas.length} verificações`)
 if (falhas.length) { for (const f of falhas) console.log('FALHOU:', f); process.exit(1) }
 console.log("PASS — interruptor de país pronto em 'todos'; a saída B só liga depois da E4.")

@@ -173,6 +173,10 @@ const SERVER_ONLY_EVENTS = new Set([
   // (lib/reverseTrial.ts) quando o e-mail é descartável. É a contagem do bloqueio;
   // se o sink do browser pudesse cunhá-lo, o "abuso barrado" viraria ficção.
   'trial_blocked_disposable_email',
+  // KINEO-FILME-GRATIS-POR-PAIS-2026-09-29 — escrito SÓ por maybeActivateReverseTrial (lib/reverseTrial.ts) quando a
+  // saída B recusa o filme grátis por país (nome = TRIAL_REGION_EXCLUDED_EVENT em lib/freeFilmPolicy.ts). É a prova
+  // pós-deploy (= 0 com a política 'todos') e a contagem de excluídos: se o navegador pudesse cunhá-lo, as duas mentiriam.
+  'trial_region_excluded',
   // KINEO-STRIPE-ATRASO-2026-09-28 — escritos SÓ pelo webhook da Stripe. `subscription_ended` é o churn (fim de
   // assinatura) e `renewal_ignored_non_access` o pagamento de renovação descartado; forjá-los mentiria no placar.
   'subscription_ended',

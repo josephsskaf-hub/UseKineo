@@ -70,7 +70,8 @@ export function avatarVisible(email?: string | null): boolean {
 // rota, curadoria (CURATED/homeVideoCuration) e o dado do /arena (lib/publicExamples) ficam; só o catálogo público
 // para de oferecer. Quem continua vendo o motor (fundador: "deixar dentro do sistema dessas contas que já pagam esse
 // motor que eles usam"): a casa (isInternalEmail), quem já pagou E já tem filme Kineo 1 concluído (qualquer data), e
-// quem comprou pacote avulso (bulk*: BULK_PACKS é vendido em filmes Kineo 1). A leitura desses fatos mora no servidor
+// quem comprou pacote avulso (bulk*: BULK_PACKS é vendido em filmes Kineo 1) ou o passe do Studio Ads (recibo em minutos
+// de Kineo 1) — os dois no eixo `boughtPack`. A leitura desses fatos mora no servidor
 // (lib/kineo1Access.ts); aqui só a régua pura. NESTA entrega (E1) ninguém muda comportamento com ela — o Studio e o
 // /generate passam a ler na E2b. Para voltar: KINEO1_PUBLIC=true (contagem e lista voltam sozinhas).
 export const KINEO1_PUBLIC = false
@@ -87,6 +88,24 @@ export function kineo1Visible(email?: string | null, legado?: Kineo1Legacy | nul
   if (KINEO1_PUBLIC || isInternalEmail(email)) return true
   const l = legado ?? {}
   return (l.hasPaid === true && l.usedFast === true) || l.boughtPack === true
+}
+
+// KINEO-KINEO1-FORA-2026-09-29 (conserto da revisão E1) — a COMPOSIÇÃO única que o servidor usa para entregar a flag
+// (/api/me/credits e /studio/create). Antes cada rota montava a régua à mão e o guardião só procurava texto: trocar a
+// leitura de has_paid por `true` passava verde. Agora as duas chamam esta função e o guardião a EXECUTA.
+// Só lê o legado (3 consultas, service key) quando has_paid === true: pacote avulso e passe de anúncios gravam
+// has_paid:true no mesmo UPDATE dos créditos (app/api/stripe/webhook/route.ts; lib/payments/grant.ts), então para
+// quem nunca pagou (a maioria, trials) o resultado já é false e as leituras seriam custo puro.
+// Falha de leitura propaga (quem chama decide); o e-mail da casa nunca chega a ler nada.
+export async function resolveKineo1Flag(
+  email: string | null | undefined,
+  lerHasPaid: () => boolean | null | undefined | Promise<boolean | null | undefined>,
+  lerLegado: () => Promise<Kineo1Legacy>,
+): Promise<boolean> {
+  if (kineo1Visible(email)) return true
+  if ((await lerHasPaid()) !== true) return false
+  const l = await lerLegado()
+  return kineo1Visible(email, { hasPaid: true, usedFast: l.usedFast === true, boughtPack: l.boughtPack === true })
 }
 
 /** Copy de contagem: 'Eight' hoje, 'Nine' no lancamento. Uma verdade, N telas. */

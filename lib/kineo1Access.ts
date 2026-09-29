@@ -7,12 +7,16 @@
 //   usedFast   = a conta tem ≥ 1 filme 'fast' CONCLUÍDO, em qualquer data (sem janela de 90 d: o fundador quer
 //                manter para quem usa, e um pagante que usou em junho continua sendo quem usa);
 //   boughtPack = a conta tem payment_success com metadata.pack começando por 'bulk' (BULK_PACKS é vendido em filmes
-//                Kineo 1 — lib/checkoutPricing.ts, metadata.pack gravado pelo webhook da Stripe).
+//                Kineo 1 — lib/checkoutPricing.ts, metadata.pack gravado pelo webhook da Stripe) OU igual ao passe do
+//                Studio Ads (ADS_PASS_ID, lib/ads/offer.ts): o recibo da Stripe do passe usa minutesLine, que lista o
+//                Kineo 1 primeiro (lib/credits/creditMinutes.ts) — correção M5 do cético, conserto da revisão E1.
+// Quem chama (resolveKineo1Flag, lib/engineLaunch.ts) só chega aqui com has_paid === true.
 // Falha de leitura NÃO vira "tem legado": devolve false nos dois eixos e ok=false, para quem consumir (E2b) poder
 // distinguir "não tem" de "não consegui ler" em vez de esconder o erro como vazio (lição do JWT-skew, 28/08).
 // NESTA entrega (E1) os consumidores (/api/me/credits e /studio/create) só expõem o resultado; ninguém muda
 // comportamento com ele ainda.
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
+import { ADS_PASS_ID } from '@/lib/ads/offer'
 
 export interface Kineo1AccessFacts {
   usedFast: boolean
@@ -41,7 +45,7 @@ function kineo1AdminClient(): SupabaseClient | null {
 export async function resolveKineo1Access(db: SupabaseClient | null, userId: string | null | undefined): Promise<Kineo1AccessFacts> {
   if (!db || typeof userId !== 'string' || userId.length === 0) return KINEO1_ACCESS_NONE
   try {
-    const [films, packs] = await Promise.all([
+    const [films, packs, adsPass] = await Promise.all([
       db
         .from('videos')
         .select('id')
@@ -56,13 +60,22 @@ export async function resolveKineo1Access(db: SupabaseClient | null, userId: str
         .eq('name', 'payment_success')
         .like('metadata->>pack', `${KINEO1_BULK_PACK_PREFIX}%`)
         .limit(1),
+      db
+        .from('events')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('name', 'payment_success')
+        .eq('metadata->>pack', ADS_PASS_ID)
+        .limit(1),
     ])
     const usedFast = !films.error && Array.isArray(films.data) && films.data.length > 0
-    const boughtPack = !packs.error && Array.isArray(packs.data) && packs.data.length > 0
-    if (films.error || packs.error) {
-      console.warn(`[kineo1-access] read failed user=${userId.slice(0, 8)}:`, films.error?.message ?? packs.error?.message)
+    const boughtPack =
+      (!packs.error && Array.isArray(packs.data) && packs.data.length > 0) ||
+      (!adsPass.error && Array.isArray(adsPass.data) && adsPass.data.length > 0)
+    if (films.error || packs.error || adsPass.error) {
+      console.warn(`[kineo1-access] read failed user=${userId.slice(0, 8)}:`, films.error?.message ?? packs.error?.message ?? adsPass.error?.message)
     }
-    return { usedFast, boughtPack, ok: !films.error && !packs.error }
+    return { usedFast, boughtPack, ok: !films.error && !packs.error && !adsPass.error }
   } catch (e) {
     console.warn(`[kineo1-access] read threw user=${userId.slice(0, 8)}:`, e instanceof Error ? e.message : String(e))
     return KINEO1_ACCESS_NONE

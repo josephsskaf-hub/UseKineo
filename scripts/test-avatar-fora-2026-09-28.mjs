@@ -63,7 +63,7 @@ const L = rodaLaunch(launchSrc)
 // Avatar fora, e o interruptor o traz de volta por derivação, nunca por número digitado.
 const provaA = (M) => M.AVATAR_PUBLIC === false && M.VIDEO_ENGINE_COUNT_WORD === 'Five' && M.VIDEO_ENGINE_COUNT_SENTENCE_START === 'Five' &&
   M.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3 and Seedance 1.5' && !/Avatar/.test(M.VIDEO_ENGINE_LIST_COPY)
-checa('AVATAR_PUBLIC=false; contagem "Six" e lista pública sem Avatar', provaA(L))
+checa('AVATAR_PUBLIC=false; contagem "Five" e lista pública sem Avatar', provaA(L))
 checa('avatarVisible: público e anônimo não veem; conta da casa vê', L.avatarVisible(PUBLICO) === false && L.avatarVisible(null) === false && L.avatarVisible(undefined) === false && L.avatarVisible(INTERNO) === true)
 checa('Avatar não virou pausa (pausa diria "manutenção", motivo falso) e S25 segue interno', !L.enginePaused('avatar') && !L.enginePaused('presenter') && !L.PAUSED_ENGINE_KEYS.includes('avatar') && L.S25_PUBLIC === false)
 {

@@ -24,7 +24,7 @@ import { createClient } from '@/lib/supabase/server'
 import { maybeActivateReverseTrial } from '@/lib/reverseTrial'
 import { paisDoRequest } from '@/lib/freeFilmPolicy'
 import { readKineo1Access } from '@/lib/kineo1Access'
-import { kineo1Visible } from '@/lib/engineLaunch'
+import { resolveKineo1Flag } from '@/lib/engineLaunch'
 import { trialFingerprintFromHeaders } from '@/lib/trialFingerprint'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { getViralTopicById } from '@/lib/viralTopics'
@@ -232,22 +232,13 @@ export default async function StudioCreatePage({ searchParams }: StudioCreatePag
   // KINEO-KINEO1-FORA-2026-09-29 — a régua de quem continua vendo o Kineo 1 (lib/engineLaunch.ts kineo1Visible),
   // resolvida AQUI no servidor e entregue pronta. Nesta entrega (E1) o GenerateClient só recebe a prop; quem passa a
   // esconder o motor com ela é a E2b. Best-effort: falha de leitura = sem legado (a casa segue vendo pelo e-mail).
-  let kineo1 = kineo1Visible(user.email)
-  if (!kineo1) {
-    try {
-      const [{ data: perfilK1 }, legadoK1] = await Promise.all([
-        supabase.from('profiles').select('has_paid').eq('id', user.id).maybeSingle(),
-        readKineo1Access(user.id),
-      ])
-      kineo1 = kineo1Visible(user.email, {
-        hasPaid: (perfilK1 as { has_paid?: boolean | null } | null)?.has_paid === true,
-        usedFast: legadoK1.usedFast,
-        boughtPack: legadoK1.boughtPack,
-      })
-    } catch {
-      /* best-effort — a tela de criar nunca quebra por causa desta régua */
-    }
-  }
+  // Composição única em resolveKineo1Flag (lib/engineLaunch.ts): só lê o legado para has_paid === true. O guardião
+  // scripts/test-kineo1-fora-vitrine-2026-09-29.mjs EXECUTA esta instrução, do `const kineo1` ao `.catch`.
+  const kineo1 = await resolveKineo1Flag(
+    user.email,
+    async () => ((await supabase.from('profiles').select('has_paid').eq('id', user.id).maybeSingle()).data as { has_paid?: boolean | null } | null)?.has_paid === true,
+    () => readKineo1Access(user.id),
+  ).catch(() => false) // best-effort — a tela de criar nunca quebra por causa desta régua
 
   return (
     <Suspense fallback={null}>

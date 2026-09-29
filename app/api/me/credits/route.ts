@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 // KINEO-S25-CARD-2026-09-01 — a flag `internal` existe para o /studio poder
 // mostrar o card do Seedance 2.5 SO para contas da casa enquanto o motor
 // esta no periodo de canario (o gate de verdade continua no servidor).
-import { s25Visible, avatarVisible, kineo1Visible } from '@/lib/engineLaunch'
+import { s25Visible, avatarVisible, resolveKineo1Flag } from '@/lib/engineLaunch'
 import { readKineo1Access } from '@/lib/kineo1Access'
 
 // KINEO-CABE-2026-08-21 — saldo do usuário logado, para a tela poder dizer a
@@ -41,12 +41,9 @@ export async function GET() {
   // KINEO-AVATAR-FORA-2026-09-28 — `avatar` separado de `internal`: `internal` é s25Visible (vira true para todos no
   // dia do S25_PUBLIC=true) e não pode arrastar o Avatar de volta ao catálogo junto. Cada interruptor, sua flag.
   // KINEO-KINEO1-FORA-2026-09-29 — `kineo1` já resolvido (kineo1Visible): a casa, o pagante que já tem filme Kineo 1
-  // concluído, ou quem comprou pacote avulso. Só lê o legado quando a régua barata não basta. E1 só expõe; o /studio
-  // passa a esconder o card com esta flag na E2b.
-  let kineo1 = kineo1Visible(user.email)
-  if (!kineo1) {
-    const legado = await readKineo1Access(user.id)
-    kineo1 = kineo1Visible(user.email, { hasPaid: (data as { has_paid?: boolean | null } | null)?.has_paid === true, usedFast: legado.usedFast, boughtPack: legado.boughtPack })
-  }
+  // concluído, ou quem comprou pacote avulso/passe de anúncios. Composição única em resolveKineo1Flag (lib/engineLaunch.ts),
+  // que só lê o legado para has_paid === true (trial não paga as consultas). E1 só expõe; o /studio passa a esconder o
+  // card com esta flag na E2b. scripts/test-kineo1-fora-vitrine-2026-09-29.mjs EXECUTA este GET com banco falso.
+  const kineo1 = await resolveKineo1Flag(user.email, () => (data as { has_paid?: boolean | null } | null)?.has_paid === true, () => readKineo1Access(user.id))
   return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), internal: s25Visible(user.email), kineo1, plan })
 }
