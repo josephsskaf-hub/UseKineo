@@ -66,7 +66,38 @@ const SUBJECT_CONFLICTS: ReadonlyArray<{ subject: RegExp; context: RegExp; rejec
   { subject: /\b(mercury|saturn|jupiter|mars)\b/, context: /\b(planet|space|orbit|nasa|astronomy|solar)\b/, rejectTags: /\b(car|cars|vehicle|chocolate|candy|thermometer)\b/, label: 'planet_not_brand' },
   { subject: /\b(crane|cranes)\b/, context: /\b(construction|building|site|lift|lifting|tower)\b/, rejectTags: /\b(bird|birds|wildlife|marsh|wading)\b/, label: 'crane_not_bird' },
   { subject: /\bbat\b/, context: /\b(baseball|cricket|bat swing|batter)\b/, rejectTags: /\b(animal|cave|wing|wings|nocturnal|mammal)\b/, label: 'bat_not_animal' },
+  // KINEO1-TAGS-PROIBIDAS-2026-09-28 — 4 homônimos dos 10 anúncios de 27-28/09 (docs/DEFEITOS-KINEO1-10-ANUNCIOS):
+  // "tender" (licitação) virou carne grelhada (tag 'tender' do bife; 'smarttender' casa por substring ≥5, por isso o
+  // sujeito aceita prefixo); "lead" (cliente) virou munição; "tablet" (dispositivo) é remédio no Pixabay; "reads"
+  // (software que lê contrato) trouxe o Alcorão — a fala real do eQMS ("reads, summarizes and delivers the precise
+  // information you need") entra no contexto para a regra disparar no caso que aconteceu, não só no caso ideal.
+  { subject: /\b\w*tenders?\b/, context: /\b(bid|bids|bidding|procurement|proposal|proposals|contract|contracts|public|government|rfp|rfq|award|awarded|win|winning|supplier|suppliers|tendering|evaluation|evaluate|document|documents|platform|software|ai|business|compliance|submission|submissions)\b/, rejectTags: /\b(meat|steak|steaks|grill|grilled|grilling|beef|chicken|pork|lamb|barbecue|bbq|food|cooking|kitchen|dish|roast|rose|roses|flower|flowers)\b/, label: 'tender_not_meat' },
+  { subject: /\bleads?\b/, context: /\b(sales|customer|customers|client|clients|business|marketing|funnel|pipeline|crm|conversion|conversions|generate|generating|prospect|prospects|website|campaign|campaigns|revenue|grow|growth|agency)\b/, rejectTags: /\b(bullet|bullets|ammunition|ammo|cartridge|cartridges|casing|gun|guns|rifle|pistol|metal|pencil|pencils|graphite|leash|dog)\b/, label: 'lead_not_ammo' },
+  { subject: /\btablets?\b/, context: /\b(device|devices|screen|screens|app|apps|ipad|touch|touchscreen|digital|software|tech|technology|display|scroll|scrolling|browsing|smartphone|phone|laptop|document|documents|dashboard|online|website|data)\b/, rejectTags: /\b(pill|pills|medicine|medication|medications|drug|drugs|pharmacy|pharmaceutical|capsule|capsules|vitamin|vitamins|dose|dosage|prescription|painkiller|aspirin|supplement|supplements)\b/, label: 'tablet_not_pill' },
+  { subject: /\b(reads?|reading)\b/, context: /\b(contract|contracts|document|documents|line|lines|text|email|emails|report|reports|data|code|file|files|software|ai|screen|scan|scans|analyze|analyzes|analyse|analyses|clause|clauses|page|pages|information|summarize|summarizes|summary|deliver|delivers|precise|assistant|automation|automates|platform|tool)\b/, rejectTags: /\b(quran|koran|bible|scripture|scriptures|torah|holy book|prayer|praying|religious|religion|mosque|church|hijab)\b/, label: 'read_not_scripture' },
 ]
+// ═══ KINEO1-TAGS-PROIBIDAS-2026-09-28 — tags de marca/placa, religião e arma são CONTEXTUAIS ═══
+//
+// Os 10 anúncios de 27-28/09: hijab lendo o Alcorão no eQMS (software), fachada com placa no restaurante, logo da
+// Apple no MadLabs. O portão só recusava lifestyle e kitsch; não havia lista para logo, placa, religião ou arma.
+// REGRA: um candidato com tag de uma dessas famílias só entra quando a fala da cena OU a busca fala do assunto
+// ("the ghats of Varanasi and its temples" → tag 'temple' passa; 'church' numa fala sobre software cai). Aplicado
+// nos dois portões (pool do Pixabay em collectCandidates e cofre v2 em clipTagsGate), depois do homônimo.
+const FORBIDDEN_TAG_FAMILIES: ReadonlyArray<{ tags: RegExp; allow: RegExp; label: string }> = [
+  { tags: /\b(logo|logos|brand|brands|branding|trademark|billboard|billboards|advertisement|advertisements|advertising|advert|adverts)\b/, allow: /\b(logo|logos|brand|brands|branding|branded|trademark|billboard|billboards|advertisement|advertisements|advertising|advert|adverts|ad|ads|marketing|campaign|campaigns|commercial|commercials|times square|neon|sponsor|sponsors)\b/, label: 'brand' },
+  { tags: /\b(sign|signs|signage|signboard|signboards|signpost|signposts)\b/, allow: /\b(sign|signs|signage|signboard|signboards|signpost|signposts|billboard|billboards|street|streets|road|roads|highway|highways|traffic|neon|shop|shops|store|stores|storefront|direction|directions|warning|warnings|route|exit|entrance|airport|station|city|downtown|town)\b/, label: 'sign' },
+  { tags: /\b(quran|koran|bible|scripture|scriptures|torah|church|churches|mosque|mosques|temple|temples|cross|crucifix|prayer|prayers|praying|hijab|worship)\b/, allow: /\b(quran|koran|bible|scripture|scriptures|torah|church|churches|mosque|mosques|temple|temples|cross|crosses|crossing|crucifix|prayer|prayers|praying|pray|prays|worship|religion|religious|faith|god|gods|goddess|holy|sacred|spiritual|cathedral|cathedrals|monastery|monk|monks|priest|priests|pilgrim|pilgrims|pilgrimage|hindu|hinduism|buddhist|buddhism|buddha|islam|islamic|muslim|muslims|christian|christianity|christ|jesus|catholic|jewish|judaism|shrine|shrines|varanasi|ganges|ganga|mecca|vatican|jerusalem|angkor|kyoto|ritual|rituals|ceremony|wedding|funeral|hijab|ramadan|easter|christmas|diwali)\b/, label: 'religion' },
+  { tags: /\b(gun|guns|rifle|rifles|pistol|pistols|ammunition|ammo|bullet|bullets|knife|knives|weapon|weapons|firearm|firearms|shotgun|handgun|revolver)\b/, allow: /\b(gun|guns|rifle|rifles|pistol|pistols|ammunition|ammo|bullet|bullets|knife|knives|weapon|weapons|firearm|firearms|shotgun|handgun|revolver|shooting|shooter|shot|sniper|soldier|soldiers|army|military|war|wars|battle|battles|combat|hunting|hunter|hunters|police|crime|criminal|murder|assassin|assassination|chef|chefs|cooking|cook|cutting|cut|slice|slicing|chopping|blade|blades|sword|swords|kitchen|butcher|surgeon|surgery|attack|defense|defence|self-defense|robbery|armed|violence|violent)\b/, label: 'weapon' },
+]
+/** Tag proibida no contexto: família (marca/placa/religião/arma) presente nas tags sem a palavra correspondente na fala nem na busca. Exportado para o guardião. */
+export function forbiddenTagInContext(tagsBlob: string, query: string, context: string = ACTIVE_SUBJECT_CONTEXT): string | null {
+  const tags = (tagsBlob ?? '').toLowerCase()
+  const ctx = `${(query ?? '').toLowerCase()} ${context ?? ''}`
+  for (const f of FORBIDDEN_TAG_FAMILIES) {
+    if (f.tags.test(tags) && !f.allow.test(ctx)) return f.label
+  }
+  return null
+}
 // KINEO1-IMAGEM-V2-2026-09-28 — homônimo que só o v2 recusa: "historical players" (7c0a2023, cena 3, "Players originally
 // hit the ball with their bare hands") recebeu uma vitrola ("record, record player, vinyl, turntable"). O plural simples
 // da regra 3 ainda casa "players" com a palavra "player" — quem separa as acepções é o contexto (bola, jogo, quadra).
@@ -425,13 +456,15 @@ export function clipTagsGate(
   tags: string,
   query: string,
   opts?: SubjectGateOptions & { sceneNeedsPeople?: boolean },
-): { ok: boolean; reason: 'lifestyle' | 'irrelevant' | 'homonym' | null } {
+): { ok: boolean; reason: 'lifestyle' | 'irrelevant' | 'homonym' | 'forbidden' | null } {
   const video = { id: 0, pageURL: '', type: 'film', tags: tags ?? '', duration: 0, videos: {} } as unknown as PixabayVideo
   const gate: SubjectGateOptions | undefined = opts?.v2 ? { v2: true, sceneText: opts.sceneText ?? '', strict: opts.strict === true, headFallback: opts.headFallback === true } : undefined
   if (hasLifestylePollution(video, opts?.sceneNeedsPeople ?? true, gate, query)) return { ok: false, reason: 'lifestyle' }
   if (!tagsRelevantToQuery(video, query, gate)) return { ok: false, reason: 'irrelevant' }
   const ctx = typeof opts?.sceneText === 'string' ? opts.sceneText.toLowerCase().slice(0, 600) : ACTIVE_SUBJECT_CONTEXT
   if (subjectConflictWithTags(query, tags ?? '', ctx, gate)) return { ok: false, reason: 'homonym' }
+  // KINEO1-TAGS-PROIBIDAS-2026-09-28 — o cofre também não devolve marca/religião/arma fora de contexto (o bife tinha 3 usos no clip_vault).
+  if (forbiddenTagInContext(tags ?? '', query, ctx)) return { ok: false, reason: 'forbidden' }
   return { ok: true, reason: null }
 }
 
@@ -1001,6 +1034,12 @@ async function collectCandidates(
     const conflito = subjectConflictWithTags(query, video.tags) ?? (gate?.v2 ? subjectConflictWithTags(query, video.tags, ACTIVE_SUBJECT_CONTEXT, gate) : null)
     if (conflito) {
       console.log(`[pixabay] ${label} rejected id=${video.id} tags="${video.tags.slice(0, 60)}" reason=homonym:${conflito} query="${query.slice(0, 50)}"`)
+      continue
+    }
+    // KINEO1-TAGS-PROIBIDAS-2026-09-28 — marca/placa, religião e arma só entram quando a fala ou a busca falam disso.
+    const proibida = forbiddenTagInContext(video.tags, query)
+    if (proibida) {
+      console.log(`[pixabay] ${label} rejected id=${video.id} tags="${video.tags.slice(0, 60)}" reason=forbidden:${proibida} query="${query.slice(0, 50)}"`)
       continue
     }
     const url = pickBestUrl(video)
