@@ -144,7 +144,7 @@ export interface VeoVerbatimPlan {
 
 export function veoVerbatimPlan(
   narration: string,
-  opts: { durationSeconds: number; wordsPerSecond?: number; maxShots?: number },
+  opts: { durationSeconds: number; wordsPerSecond?: number; maxShots?: number; footageSeconds?: number }, // footageSeconds: [TRAVA 8.2] VEO-MARCADO-2026-09-29 — cobertura explícita (0 = nenhuma; a divisão de um bloco marcado não promove sozinha)
 ): VeoVerbatimPlan {
   const words = String(narration ?? '').trim().replace(/\s+/gu, ' ').split(' ').filter(Boolean)
   const W = words.length
@@ -152,7 +152,7 @@ export function veoVerbatimPlan(
   const fit = veoFitWords(pace)
   const fitShort = fit[0]
   const fitLong = fit[fit.length - 1]
-  const needSeconds = W > 0 ? kling25FilmSeconds({ durationSeconds: opts.durationSeconds, verbatimWords: W, wordsPerSecond: opts.wordsPerSecond }) : 0
+  const needSeconds = W === 0 ? 0 : typeof opts.footageSeconds === 'number' && Number.isFinite(opts.footageSeconds) && opts.footageSeconds >= 0 ? opts.footageSeconds : kling25FilmSeconds({ durationSeconds: opts.durationSeconds, verbatimWords: W, wordsPerSecond: opts.wordsPerSecond }) // [TRAVA 8.2] VEO-MARCADO-2026-09-29: sem footageSeconds, a régua de sempre
   const empty: VeoVerbatimPlan = { chunks: [], seconds: [], pace, fit, needSeconds }
   if (W === 0) return empty
   const tetoDoFilme = veoMaxShots({ verbatim: true, footageSeconds: needSeconds })
@@ -429,4 +429,113 @@ export function veoAiPlan(
   const seconds = veoSceneSeconds(shots.map((s) => splitWords(s.voiceover).length), needSeconds, pace)
   shots.forEach((s, k) => { s.seconds = seconds[k] })
   return { shots, seconds, pace, fit, needSeconds, divididas: [...cortes.keys()].sort((a, b) => a - b), transbordam: transbordam.sort((a, b) => a - b) }
+}
+
+// ═══ [TRAVA 8.2] VEO-MARCADO-2026-09-29 — roteiro MARCADO ([Pexels: …] por bloco: o formato da casa HOOK/MICRO REWARD/ESCALATION/PAYOFF) ═══
+// Palavra do fundador (29/09): "quero o Veo pronto pra amanhã". Auditoria de 29/09, dois furos no roteiro marcado do Veo 3.1:
+//   (1) TETO 9 DESCARTA BLOCOS: a rota dimensiona o verbatim em min(9, ⌈fala ÷ 8 s⌉) (#442) e lib/cinematic/verbatimBeats
+//       resolveVerbatimSegments(parsed, count) AMOSTRA `count` blocos por índice quando há mais blocos que `count` (#369: o
+//       primeiro, o último e os do meio em passos iguais — não funde, DESCARTA). Um roteiro de 12 blocos em 60 s virava 9 cenas:
+//       o texto dos 3 blocos pulados continua NARRADO (voiceover_script = a narração inteira do autor), mas some da lista de
+//       cenas — nenhum plano nasce para ele, e as suas palavras são atribuídas à cena anterior (kling25SceneWordStarts), que
+//       então transborda por cima do plano seguinte.
+//   (2) BLOCO ACIMA DE fit8 TRANSBORDA: veoStepFor devolve 8 s para qualquer bloco acima de fit8 (17 palavras a 2,3 pal/s): um
+//       HOOK de 25 palavras = 10,9 s de fala em 7,84 s úteis → o compose corta no teto do plano e o plano seguinte entra ~3 s
+//       antes da própria frase.
+// Conserto, SÓ no Veo 3.1 com roteiro marcado (route.ts: wantsVeo && verbatim && parsedScript.segments.length > 0):
+//   · o teto de cenas passa a ser veoMaxShots (12-18, pela imagem que o filme pede — o que o Kling fez em KLING25-60S-TETO,
+//     860b8485); acima do teto os blocos vizinhos são FUNDIDOS (veoMarkedBeats), nunca descartados;
+//   · o bloco cujas palavras ATRIBUÍDAS passam de fit8 é dividido em 2-3 planos pelo divisor do verbatim em prosa
+//     (veoVerbatimPlan, fronteira de frase/vírgula, sem cobertura própria — a cobertura do filme é promovida no fim, sobre os
+//     planos finais), enquanto o teto permitir — os que mais transbordam primeiro; senão fica com 8 s e vai a `transbordam`.
+//     Nenhuma palavra muda: os planos unidos = os blocos unidos = a narração do autor;
+//   · a descrição visual ([Pexels: …]) é herdada pelos sub-planos; o eixo por índice (veoApplyShotAxis) dá o enquadramento
+//     diferente; clip_word_starts nasce de kling25SceneWordStarts sobre os planos finais (a linha do claim, intocada).
+// Seedance/Kling/Sora/hollywood: seguem em resolveVerbatimSegments com o teto 9 de sempre (verbatimBeats.ts byte a byte).
+// Guardião: scripts/test-veo-marcado-2026-09-29.mjs.
+
+/** Em quantos planos, no máximo, um bloco marcado longo é dividido (2 ou 3 — o que o teto de planos permitir). */
+export const VEO_MARKED_MAX_SPLIT = 3
+
+export interface VeoMarkedBeat { voiceover: string; pexelsQuery: string }
+
+/**
+ * Os blocos do autor até `maxShots`; acima disso, blocos VIZINHOS fundidos em `maxShots` grupos (por índice, ordem intacta,
+ * fala unida por espaço, pistas visuais unidas por espaço). Nunca descarta um bloco — o que resolveVerbatimSegments faz.
+ */
+export function veoMarkedBeats(segments: ReadonlyArray<VeoMarkedBeat>, maxShots: number): VeoMarkedBeat[] {
+  const n = segments.length
+  const teto = Math.max(1, Math.trunc(maxShots) || 1)
+  if (n <= teto) return segments.map((s) => ({ voiceover: s.voiceover, pexelsQuery: s.pexelsQuery }))
+  const grupos: VeoMarkedBeat[] = []
+  for (let g = 0; g < teto; g++) {
+    const a = Math.floor((g * n) / teto)
+    const b = Math.floor(((g + 1) * n) / teto)
+    const parte = segments.slice(a, b)
+    grupos.push({
+      voiceover: parte.map((s) => String(s.voiceover ?? '').trim()).filter(Boolean).join(' '),
+      pexelsQuery: parte.map((s) => String(s.pexelsQuery ?? '').trim()).filter(Boolean).join(' '),
+    })
+  }
+  return grupos
+}
+
+export interface VeoMarkedPlan {
+  shots: VeoAiShot[]
+  seconds: number[]
+  pace: number
+  /** Palavras que cabem em 4 / 6 / 8 s no passo. */
+  fit: number[]
+  needSeconds: number
+  /** Palavras ATRIBUÍDAS a cada plano final (do início dele ao início do seguinte na narração). */
+  assigned: number[]
+  /** Índices (0-based) dos blocos divididos em 2-3 planos. */
+  divididas: number[]
+  /** Índices (0-based) dos blocos cuja fala ainda passa de fit8 depois de tudo (teto de planos, sem corte que caiba, ou bloco de uma palavra): ficam com 8 s. */
+  transbordam: number[]
+}
+
+/**
+ * O plano do roteiro marcado do Veo 3.1: cada bloco no menor passo 4|6|8 em que as suas palavras ATRIBUÍDAS cabem; bloco acima de
+ * fit8 dividido em 2-3 planos (veoVerbatimPlan na fala do bloco, fronteira de frase/vírgula) enquanto `maxShots` permitir — os
+ * que mais transbordam primeiro; senão 8 s e `transbordam`. Cobertura que faltar promove do fim para trás, sobre os planos finais.
+ * Nenhuma palavra some nem muda de ordem: os planos unidos = os blocos unidos.
+ */
+export function veoMarkedPlan(
+  narration: string,
+  voiceovers: ReadonlyArray<string | null | undefined>,
+  opts: { durationSeconds: number; wordsPerSecond?: number | null; maxShots?: number },
+): VeoMarkedPlan {
+  const falas = voiceovers.map((v) => String(v ?? '').trim().replace(/\s+/gu, ' '))
+  const narracao = String(narration ?? '').trim() || falas.filter(Boolean).join(' ')
+  const wps = positive(opts.wordsPerSecond) ? opts.wordsPerSecond : undefined
+  const atrib = veoAssignedWords(narracao, falas)
+  const pace = kling25PlanPace(wps, atrib.total)
+  const fit = veoFitWords(pace)
+  const fitLong = fit[fit.length - 1]
+  const needSeconds = atrib.total > 0 ? veoFilmSeconds({ durationSeconds: opts.durationSeconds, verbatimWords: atrib.total, wordsPerSecond: wps }) : 0
+  const maxShots = Math.max(falas.length, Math.trunc(opts.maxShots ?? VEO_MAX_SHOTS) || VEO_MAX_SHOTS)
+  const cortes = new Map<number, string[]>()
+  const transbordam = new Set<number>()
+  let vagas = maxShots - falas.length
+  const candidatas = falas.map((_, i) => i).filter((i) => atrib.words[i] > fitLong).sort((a, b) => atrib.words[b] - atrib.words[a] || a - b)
+  for (const i of candidatas) {
+    const partes = vagas > 0 && splitWords(falas[i]).length >= 2
+      ? veoVerbatimPlan(falas[i], { durationSeconds: opts.durationSeconds, wordsPerSecond: wps, footageSeconds: 0, maxShots: Math.min(VEO_MARKED_MAX_SPLIT, 1 + vagas) }).chunks
+      : []
+    if (partes.length < 2) { transbordam.add(i); continue }
+    cortes.set(i, partes)
+    vagas -= partes.length - 1
+  }
+  const shots: VeoAiShot[] = []
+  falas.forEach((fala, i) => {
+    const partes = cortes.get(i)
+    if (!partes) { shots.push({ scene: i, voiceover: fala, seconds: 0, split: false }); return }
+    for (const p of partes) shots.push({ scene: i, voiceover: p, seconds: 0, split: true })
+  })
+  const finais = veoAssignedWords(narracao, shots.map((s) => s.voiceover))
+  shots.forEach((s, k) => { if (finais.words[k] > fitLong) transbordam.add(s.scene) })
+  const seconds = veoSceneSeconds(finais.words, needSeconds, pace)
+  shots.forEach((s, k) => { s.seconds = seconds[k] })
+  return { shots, seconds, pace, fit, needSeconds, assigned: finais.words, divididas: [...cortes.keys()].sort((a, b) => a - b), transbordam: [...transbordam].sort((a, b) => a - b) }
 }
