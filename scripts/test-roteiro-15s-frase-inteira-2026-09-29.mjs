@@ -20,6 +20,11 @@
 //   5. a rota: o fecho corre logo depois da 1ª geração e depois da nova tentativa (fica a melhor), com o teto duro;
 //   6. mutantes, todos VERMELHOS: de volta ao corte por palavra (a base e um mutante em memória); piso = teto; CTA de
 //      volta (no fecho e no prompt).
+//   8. KINEO-ROTEIRO-15S-REVISAO-2026-09-29 — os 5 achados da revisão adversarial do 844e5107, com texto de imóvel:
+//      abreviação ("Fica na Av.", "Dr.", "U.S.") não fecha frase; PAYOFF "pergunta? revelação." nunca termina na
+//      pergunta e fica inteiro; "Siga-me…"/"Follow me inside…" não são CTA e o HOOK nunca é apagado; CTA com emoji ou
+//      rótulo ("👉 Follow for more!", "CTA: …") sai; acima do teto, o corte chega o mais perto do teto. Um mutante
+//      VERMELHO por conserto.
 import { readFileSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -276,10 +281,75 @@ console.log('7) mutantes (todos precisam ficar VERMELHOS)')
   const mutCta = trocaUma(SF_SRC, '  const semCta = stripSocialCta(so4.script)', '  const semCta = { script: so4.script, removed: [] as string[] }')
   checa('mutante: o fecho sem tirar o CTA → VERMELHO (o CTA volta em algum exemplo — o corte por frases só o tira quando precisa caber)', mutCta !== null && (() => { const M = roda(mutCta); return EXEMPLOS.some((ex) => !provaExemplo((t) => M.finishShortFilmScript(t, ARGS), ex).semCta) })())
   // e) sem a combinação que prefere a faixa: o fecho escolhe o menor texto (tira tudo o que pode)
-  const mutMinimo = trocaUma(SF_SRC, "    return { tirar, faixa, chave: [RANK[faixa], payoffInteiro, vivos, faixa === 'acima' ? -palavras : palavras, -quantas, tarde] }", '    return { tirar, faixa, chave: [quantas] }')
+  const mutMinimo = trocaUma(SF_SRC, "    return { tirar, faixa, chave: [faixa === 'abaixo' ? 0 : 1, payoffInteiro, RANK[faixa], ...porTamanho, -quantas, tarde] }", '    return { tirar, faixa, chave: [quantas] }')
   checa('mutante: o corte que tira o máximo de frases (sem preferir a faixa) → VERMELHO', mutMinimo !== null && (() => { const M = roda(mutMinimo); return EXEMPLOS.some((ex) => { const p = provaExemplo((t) => M.finishShortFilmScript(t, ARGS), ex); return !p.faixa || !p.blocos }) })())
+}
+
+// ═══ 8. revisão adversarial (KINEO-ROTEIRO-15S-REVISAO-2026-09-29) ═══
+console.log('8) revisão adversarial do 844e5107: abreviação, PAYOFF pergunta+revelação, falso CTA, CTA com emoji, acima do teto')
+{
+  const BLOCO = (t, cab) => { const l = t.split(LF).find((x) => x.startsWith(cab)); return l ? l.replace(/^[^\]]*\]\s*/, '').trim() : null }
+  const R = {
+    abrev: 'HOOK (0-2s): [Pexels: luxury tower] Fica na Av. Ibirapuera, em Moema, o prédio mais icônico da Zona Sul.\n\nMICRO REWARD 1: [Pexels: facade] O Edifício Versace foi o primeiro do Brasil assinado por uma grife de moda.\n\nMICRO REWARD 2: [Pexels: living room] O apartamento tem 120 m², três suítes e varanda gourmet com churrasqueira.\n\nPAYOFF: [Pexels: balcony view] E está disponível agora, para venda ou aluguel, direto com o proprietário.',
+    dr: 'HOOK (0-2s): [Pexels: lab] In 1952, Dr. Jonas Salk tested a vaccine on himself and his own family.\n\nMICRO REWARD 1: [Pexels: newspaper] The U.S. was losing thousands of children to polio every single summer.\n\nMICRO REWARD 2: [Pexels: crowd] Almost two million kids joined the trial, the largest in history.\n\nPAYOFF: [Pexels: vaccine vial] And Salk refused to patent it... he said you could not patent the sun.',
+    pergunta: 'HOOK (0-2s): [Pexels: luxury tower] Este apartamento em Moema guarda um detalhe que ninguém anuncia.\n\nMICRO REWARD 1: [Pexels: facade] O Edifício Versace foi o primeiro prédio do Brasil assinado por uma grife.\n\nMICRO REWARD 2: [Pexels: marble lobby] O lobby tem mármore de Carrara e detalhes dourados desenhados pela própria Versace.\n\nPAYOFF: [Pexels: sunset balcony] Qual é o detalhe? Da varanda de cada suíte, o pôr do sol cai exatamente atrás do Obelisco do Parque Ibirapuera.',
+    sigaMe: 'HOOK (0-2s): [Pexels: luxury tower] Siga-me até a cobertura mais icônica de Moema.\n\nMICRO REWARD 1: [Pexels: facade] O Edifício Versace foi o primeiro prédio do Brasil assinado por uma grife de moda.\n\nMICRO REWARD 2: [Pexels: living room] São 120 m², três suítes e uma varanda gourmet com vista para o parque.\n\nPAYOFF: [Pexels: balcony] E ela está disponível agora, para venda ou aluguel, direto com o dono.',
+    emoji: 'HOOK (0-2s): [Pexels: gold vault] There is a vault under Manhattan holding more gold than Fort Knox.\n\nMICRO REWARD 1: [Pexels: bank facade] It sits five stories below the Federal Reserve Bank on Liberty Street.\n\nMICRO REWARD 2: [Pexels: steel door] Its steel door weighs ninety tons and turns inside a single steel frame.\n\nPAYOFF: [Pexels: gold bars] Inside... about 6,300 tons of gold, most of it owned by foreign countries.\n👉 Follow for more!',
+    acima: 'HOOK (0-2s): [Pexels: skyline] R$ 1.700 por metro quadrado a menos que a média de Moema... e ninguém percebeu.\n\nMICRO REWARD 1: [Pexels: living room] São 120 m² no Edifício Versace, com pé-direito de 3,2 m e três vagas.\n\nMICRO REWARD 2: [Pexels: pool] A área comum tem piscina aquecida de 25 m, spa e academia 24 h.\n\nPAYOFF: [Pexels: sunset] O motivo? O proprietário quer vender rápido... e aceita proposta ainda esta semana.',
+    hookCta: 'HOOK (0-2s): [Pexels: tower] Siga para mais!\n\nMICRO REWARD 1: [Pexels: facade] O Edifício Versace fica em Moema.\n\nMICRO REWARD 2: [Pexels: salt] Sígueme para más datos.\n\nPAYOFF: [Pexels: balcony] E está à venda.',
+  }
+  const provas = {
+    abrev: (M) => { const r = M.finishShortFilmScript(R.abrev, ARGS); return BLOCO(r.script, 'HOOK') === 'Fica na Av. Ibirapuera, em Moema, o prédio mais icônico da Zona Sul.' && M.truncatedSentences(r.script).length === 0 && r.words >= PISO && r.words <= TETO },
+    dr: (M) => { const r = M.finishShortFilmScript(R.dr, ARGS); return BLOCO(r.script, 'HOOK') === 'In 1952, Dr. Jonas Salk tested a vaccine on himself and his own family.' && !r.script.includes('MICRO REWARD 1: [Pexels: newspaper] The U.S.' + LF) && M.truncatedSentences(r.script).length === 0 },
+    detector: (M) => ['Fica na Av.', 'In 1952, Dr.', 'It happened in the U.S.'].every((f) => M.truncatedSentences('HOOK: [Pexels: a] ' + f).length === 1) && ['Quem vende é o Sr. Joseph.', 'Plano B é outra coisa.'].every((f) => M.truncatedSentences('HOOK: [Pexels: a] ' + f).length === 0),
+    pergunta: (M) => { const r = M.finishShortFilmScript(R.pergunta, ARGS); return BLOCO(r.script, 'PAYOFF') === BLOCO(R.pergunta, 'PAYOFF') && r.words <= DURO && !r.belowFloor },
+    fimNaoPergunta: (M) => { const PAY = 'PAYOFF: [Pexels: sunset balcony] Qual é o detalhe? Da varanda de cada suíte, o pôr do sol cai exatamente atrás do Obelisco do Parque Ibirapuera, alinhado com a janela da sala, da cozinha e dos três quartos, todos os dias do ano, sem exceção nenhuma, do inverno ao verão, com chuva ou com sol.'; const t = R.pergunta.split(LF).filter((l) => !l.startsWith('PAYOFF')).join(LF) + PAY; const r = M.finishShortFilmScript(t, ARGS); const p = BLOCO(r.script, 'PAYOFF') ?? ''; return !/\?\s*$/.test(p) && p.includes('Obelisco') },
+    sigaMe: (M) => { const r = M.finishShortFilmScript(R.sigaMe, ARGS); return BLOCO(r.script, 'HOOK') === 'Siga-me até a cobertura mais icônica de Moema.' && r.ctaRemoved.length === 0 },
+    falsoCta: (M) => ['Siga-me até a cobertura mais icônica de Moema.', 'Siga-me pela sala de 120 m².', 'Follow me inside the penthouse.', 'Follow us into the vault where 6,300 tons of gold sit.', 'Follow more than 300 steps down into the dark.', 'Sigue más de 300 escalones hasta el fondo.', 'Siga comigo para mais um andar.'].every((f) => !M.isSocialCta(f)),
+    ctaEmoji: (M) => ['👉 Follow for more!', '🔔 Inscreva-se para mais!', '➡️ Siga para mais dicas!', 'CTA: Follow for more!', '— Follow for more!'].every((f) => M.isSocialCta(f)),
+    emoji: (M) => { const r = M.finishShortFilmScript(R.emoji, ARGS); return !r.script.includes('Follow for more') && r.ctaRemoved.includes('👉 Follow for more!') && BLOCO(r.script, 'PAYOFF') === 'Inside... about 6,300 tons of gold, most of it owned by foreign countries.' },
+    acima: (M) => { const r = M.finishShortFilmScript(R.acima, ARGS); return r.words < conta(R.acima) && r.words <= TETO + 2 && M.truncatedSentences(r.script).length === 0 && BLOCO(r.script, 'PAYOFF') === BLOCO(R.acima, 'PAYOFF') },
+    protege: (M) => { const r = M.stripSocialCta(R.hookCta); return BLOCO(r.script, 'HOOK') === 'Siga para mais!' && r.removed.length === 1 && r.removed[0] === 'Sígueme para más datos.' },
+    semBlocoMudo: (M) => { const r = M.stripSocialCta(R.hookCta); return !r.script.includes('MICRO REWARD 2') && !/\]\s*$/m.test(r.script) },
+    idempotente: (M) => Object.values(R).every((t) => { const a = M.finishShortFilmScript(t, ARGS); const b = M.fitShortFilmScript(a.script, ARGS); return b.script === a.script }),
+  }
+  const nomes = {
+    abrev: 'achado 1 · "Fica na Av. Ibirapuera…" sai inteira no HOOK (não "Fica na Av."), dentro da faixa, detector limpo',
+    dr: 'achado 1 · "Dr. Jonas Salk" e "The U.S." não quebram frase',
+    detector: 'achado 1 · o detector acusa frase terminada em abreviação/iniciais ("Fica na Av.", "Dr.", "U.S.") e não acusa "Sr. Joseph." nem "Plano B…"',
+    pergunta: 'achado 2 · PAYOFF "Qual é o detalhe? <revelação>" sai INTEIRO (passar do teto até o duro vence perder a revelação)',
+    fimNaoPergunta: 'achado 2 · PAYOFF que não cabe inteiro nem no teto duro (HOOK + pergunta + revelação de 46 = 60): a frase que fica é a revelação, nunca só a pergunta',
+    sigaMe: 'achado 3 · HOOK "Siga-me até a cobertura…" não é CTA e não é apagado',
+    falsoCta: 'achado 3 · frases de tour com "me/us/more/más de/mais um" não são CTA (7 casos, pt/en/es)',
+    ctaEmoji: 'achado 4 · CTA com emoji, traço ou rótulo "CTA:" é reconhecido (5 casos)',
+    emoji: 'achado 4 · "👉 Follow for more!" na linha do PAYOFF sai do roteiro e o PAYOFF fica com a revelação',
+    acima: 'achado 5 · acima do teto, o corte chega perto do teto (56 → ≤ ' + (TETO + 2) + ') em vez de manter os 56, PAYOFF inteiro',
+    protege: 'achado 3 · o HOOK nunca é esvaziado pelo filtro de CTA (única frase fica); o CTA do bloco do meio sai',
+    semBlocoMudo: 'bloco do meio que só tinha CTA sai inteiro (sem cabeçalho sem fala)',
+    idempotente: 'a trava final da rota, rodada de novo sobre o texto já fechado, não muda nada (7 roteiros)',
+  }
+  for (const k of Object.keys(provas)) checa(nomes[k], provas[k](SF))
+  const B = (t) => t.split('§').join(String.fromCharCode(92)) // § = barra invertida (a fonte do mutante é texto)
+  const P1 = B('(?<!(?:^|[^§p{L}§p{N}])(?:') + '$' + B('{ABREV_ALT}|§p{L})§.)')
+  const mutantes = [
+    ['sem a exceção de abreviação na divisão de frases', trocaUma(SF_SRC, P1 + B('§s+(?='), B('§s+(?=')), ['abrev', 'dr']],
+    ['o detector sem a regra de abreviação', trocaUma(SF_SRC, '      if (FIM_EM_ABREVIACAO.test(s)) { ruins.push(s); continue } // "Fica na Av.", "In 1952, Dr."', ''), ['detector']],
+    ['a frase fixa do PAYOFF volta a ser a 1ª (a pergunta)', trocaUma(SF_SRC, '  const fixaDoFim = fim === inicio ? 0 : Math.max(0, frases[fim]?.findIndex((f) => !pergunta(f)) ?? 0)', '  const fixaDoFim = 0'), ['fimNaoPergunta']],
+    ['a faixa volta a vir antes do PAYOFF inteiro', trocaUma(SF_SRC, "    return { tirar, faixa, chave: [faixa === 'abaixo' ? 0 : 1, payoffInteiro, RANK[faixa], ...porTamanho, -quantas, tarde] }", '    return { tirar, faixa, chave: [RANK[faixa], payoffInteiro, ...porTamanho, -quantas, tarde] }'), ['pergunta']],
+    ['me/us/nos/more voltam a ser objeto de CTA', trocaUma(SF_SRC, B('const CTA_OBJECT = /§b(?:(?:for'), B('const CTA_OBJECT = /§b(?:me|us|nos|more|mais|mas|(?:for')), ['falsoCta']],
+    ['sem a proteção do HOOK/PAYOFF no filtro de CTA', trocaUma(SF_SRC, "    if (ctas.length === ss.length && (b.kind === 'HOOK' || b.kind === 'PAYOFF')) continue", ''), ['protege']],
+    ['o início do CTA volta a aceitar só espaço/aspas', trocaUma(SF_SRC, B('^[^§p{L}§p{N}]*(?:cta§s*[:§-–—]§s*[^§p{L}§p{N}]*)?'), B('^[§s"\'“¡¿(]*')), ['ctaEmoji', 'emoji']],
+    ['a divisão de frases volta a exigir maiúscula logo depois do espaço (emoji gruda)', trocaUma(SF_SRC, B('(?=[§p{Extended_Pictographic}§p{So}§uFE0F§u200D—–-]*§s*[§p{Lu}'), B('(?=[§p{Lu}')), ['emoji']],
+    ['acima do teto, mais blocos volta a vir antes de menos palavras', trocaUma(SF_SRC, "    const porTamanho = faixa === 'acima' ? [-palavras, vivos] : [vivos, palavras]", "    const porTamanho = faixa === 'acima' ? [vivos, -palavras] : [vivos, palavras]"), ['acima']],
+    ['bloco do meio esvaziado pelo CTA fica como cabeçalho sem fala', trocaUma(SF_SRC, '    if (!b.body) vazios.add(b)', ''), ['semBlocoMudo']],
+  ]
+  for (const [nome, src, alvos] of mutantes) {
+    let vermelho = false
+    if (src !== null) { try { const M = roda(src); vermelho = alvos.every((k) => { try { return !provas[k](M) } catch { return true } }) } catch { vermelho = false } }
+    checa('mutante: ' + nome + ' → VERMELHO em ' + alvos.join(', '), src !== null && vermelho)
+  }
 }
 
 console.log(`\n${ok} ok · ${falhas.length} falhas`)
 if (falhas.length) { console.log('FALHOU:\n - ' + falhas.join('\n - ')); process.exit(1) }
-console.log('PASS — o roteiro do filme de 15 s sai com frases inteiras, sem CTA de rede social, dentro da faixa 36–41.')
+console.log('PASS — o roteiro do filme de 15 s sai com frases inteiras (abreviação não fecha frase), sem CTA de rede social (e sem falso CTA), PAYOFF com a revelação, dentro da faixa 36–41.')

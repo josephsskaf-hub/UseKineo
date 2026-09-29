@@ -106,8 +106,22 @@ export function keepShortFilmSections(script: string): { script: string; dropped
   return { script: render(kept), dropped }
 }
 
-// Frase termina em . ! ? (não em reticências "..."), e a próxima começa em maiúscula/número/aspas.
-const SENTENCE_SPLIT = /(?<=[^.][.!?])\s+(?=[\p{Lu}\p{N}"'“¿¡])/u
+// Frase termina em . ! ? (não em reticências "..."), e a próxima começa em maiúscula/número/aspas — ou em emoji/traço
+// seguido de maiúscula ("👉 Follow for more!", "— Siga…"), senão o CTA com emoji grudava na frase anterior.
+// KINEO-ROTEIRO-15S-REVISAO-2026-09-29 (achado 1): abreviação NÃO fecha frase. "Fica na Av. Ibirapuera" virava a frase
+// "Fica na Av." e o corte por frases a entregava sozinha; "In 1952, Dr. Jonas Salk" virava "In 1952, Dr.". Também não
+// fecha frase uma letra solta com ponto ("U.S.", "R. Augusta", iniciais). Errar para o lado de NÃO dividir só junta duas
+// frases numa unidade maior — nunca produz frase amputada.
+export const ABREVIACOES = [
+  'Av', 'av', 'Avs', 'Al', 'Pça', 'Trav', 'Rod', 'Estr', 'Dr', 'dr', 'Dra', 'dra', 'Drs', 'Dras', 'Sr', 'sr', 'Sra', 'sra', 'Srs', 'Sras', 'Srta',
+  'Prof', 'prof', 'Profa', 'profa', 'Eng', 'Arq', 'Ilmo', 'Exmo', 'Sto', 'Nº', 'N°', 'nº', 'Mr', 'Mrs', 'Ms', 'Jr', 'St', 'Ave', 'Blvd', 'Rd',
+  'Mt', 'Ft', 'Gen', 'Col', 'Capt', 'Lt', 'Sgt', 'Gov', 'Sen', 'Rep', 'Pres', 'Rev', 'Fr', 'Vol', 'Fig', 'vs', 'Ud', 'Uds', 'Dña', 'Lic', 'Ing',
+  'aprox', 'approx', 'tel', 'pág', 'Pág',
+]
+const ABREV_ALT = ABREVIACOES.join('|')
+const SENTENCE_SPLIT = new RegExp(String.raw`(?<=[^.][.!?])(?<!(?:^|[^\p{L}\p{N}])(?:${ABREV_ALT}|\p{L})\.)\s+(?=[\p{Extended_Pictographic}\p{So}\uFE0F\u200D—–-]*\s*[\p{Lu}\p{N}"'“¿¡])`, 'u')
+// O detector de frase truncada: a frase termina numa abreviação ("Fica na Av.") ou em iniciais ("the U.S.").
+const FIM_EM_ABREVIACAO = new RegExp(String.raw`(?:^|[^\p{L}\p{N}])(?:${ABREV_ALT}|R|(?:\p{L}\.)+\p{L})\.["'”’)\]]*$`, 'u')
 
 function sentencesOf(body: string): string[] {
   return body.split(SENTENCE_SPLIT).map((s) => s.trim()).filter(Boolean)
@@ -118,13 +132,17 @@ const wordsOf = (t: string): number => t.split(/\s+/).filter(Boolean).length
 // ─── CTA de rede social ─────────────────────────────────────────────────────────────────────────────────────────────
 // O filme de 15 s acaba quando a narração acaba: "Seguir para mais!" gasta 1,2 s de um filme de 15 e não é história.
 // O prompt de ≤ 20 s já não pede CTA; se vier, sai aqui. Só é CTA a frase IMPERATIVA de seguir/inscrever (o verbo abre
-// a frase, depois de um conectivo opcional) com objeto de CTA (mais/more/más, me/us/nos, canal, parte, dicas…) ou de no
-// máximo 2 palavras ("Follow now!", "Inscreva-se já!"). "Siga pela Avenida Ibirapuera" e "Follow the money." ficam.
+// a frase, depois de emoji/traço/rótulo "CTA:" e de um conectivo opcionais) com objeto de CTA ("para mais"/"for more"/
+// "para más" sem "than/de/que" depois, "mais dicas", canal, parte, dicas…) ou de no máximo 2 palavras ("Follow now!",
+// "Inscreva-se já!"). "Siga pela Avenida Ibirapuera", "Follow the money." ficam.
+// KINEO-ROTEIRO-15S-REVISAO-2026-09-29 (achados 3 e 4): "me/us/nos/more" SOZINHOS não fazem CTA — "Siga-me até a
+// cobertura…", "Follow me inside the penthouse.", "Follow more than 300 steps…" são frases de tour, e a 1ª apagava o
+// HOOK inteiro. E "👉 Follow for more!", "🔔 Inscreva-se para mais!", "CTA: Follow for more!" passavam.
 const semAcento = (t: string): string => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 const CTA_LEAD = String.raw`(?:(?:and|e|y|so|entao|entonces|now|agora|ahora|please|por favor|don'?t forget to|dont forget to|nao esqueca de|no olvides|like and|curta e|dale like y|deixe seu like e)\s+)*`
 const CTA_VERB = String.raw`(?:follow|subscribe|siga|sigam|segue|seguir|sigue|siguenos|sigueme|siganos|seguinos|inscreva|inscrevam|inscrevase|suscribete|suscribanse|suscribase)`
-const CTA_START = new RegExp(`^[\\s"'“¡¿(]*${CTA_LEAD}${CTA_VERB}\\b`)
-const CTA_OBJECT = /\b(?:more|mais|mas|me|us|nos|channel|canal|page|pagina|perfil|profile|part|parte|daily|diario|diaria|tips|dicas|consejos|like|likes|curtir|sininho|notifications|notificacoes|notificaciones|kineo)\b/
+const CTA_START = new RegExp(String.raw`^[^\p{L}\p{N}]*(?:cta\s*[:\-–—]\s*[^\p{L}\p{N}]*)?${CTA_LEAD}${CTA_VERB}\b`, 'u')
+const CTA_OBJECT = /\b(?:(?:for|para|pra|por)\s+(?:more|mais|mas)\b(?!\s+(?:than|de|do|da|que|of|del|um|uma|uns|umas|one|an?|uno|una))|(?:more|mais|mas)\s+(?:facts|videos|content|stories|fatos|conteudos?|historias|curiosidades|datos|dicas|tips|consejos)|channel|canal|page|pagina|perfil|profile|part|parte|daily|diario|diaria|tips|dicas|consejos|like|likes|curtir|sininho|notifications|notificacoes|notificaciones|kineo)\b/
 
 /** A frase é um CTA de rede social ("Follow for more", "Seguir para mais!", "Sígueme para más")? */
 export function isSocialCta(sentence: string): boolean {
@@ -135,7 +153,11 @@ export function isSocialCta(sentence: string): boolean {
   return CTA_OBJECT.test(n) || palavras <= 2
 }
 
-/** Tira do roteiro as frases de CTA de rede social (qualquer bloco). Sem nada a tirar, devolve o texto intacto. */
+/**
+ * Tira do roteiro as frases de CTA de rede social (qualquer bloco). Sem nada a tirar, devolve o texto intacto.
+ * Nunca esvazia o HOOK nem o PAYOFF (se a única frase dele "parece" CTA, fica — sem gancho ou sem revelação não há
+ * filme); um bloco do meio que só tinha CTA sai inteiro, em vez de virar cabeçalho sem fala.
+ */
 export function stripSocialCta(script: string): { script: string; removed: string[] } {
   const original = String(script ?? '')
   const { blocks } = parseBlocks(original)
@@ -145,12 +167,17 @@ export function stripSocialCta(script: string): { script: string; removed: strin
     const kept = ss.filter((s) => { if (isSocialCta(s)) { removed.push(s); return false } return true })
     return removed.length ? { script: kept.join(' '), removed } : { script: original, removed }
   }
+  const vazios = new Set<Block>()
   for (const b of blocks) {
     const ss = sentencesOf(b.body)
-    const kept = ss.filter((s) => { if (isSocialCta(s)) { removed.push(s); return false } return true })
-    if (kept.length !== ss.length) b.body = kept.join(' ')
+    const ctas = ss.filter((s) => isSocialCta(s))
+    if (ctas.length === 0) continue
+    if (ctas.length === ss.length && (b.kind === 'HOOK' || b.kind === 'PAYOFF')) continue
+    removed.push(...ctas)
+    b.body = ss.filter((s) => !isSocialCta(s)).join(' ')
+    if (!b.body) vazios.add(b)
   }
-  return removed.length ? { script: render(blocks), removed } : { script: original, removed }
+  return removed.length ? { script: render(blocks.filter((b) => !vazios.has(b))), removed } : { script: original, removed }
 }
 
 // ─── Frase truncada ─────────────────────────────────────────────────────────────────────────────────────────────────
@@ -174,6 +201,7 @@ export function truncatedSentences(script: string): string[] {
   for (const corpo of corpos) {
     for (const s of sentencesOf(corpo)) {
       if (!FIM_DE_FRASE.test(s)) { ruins.push(s); continue }
+      if (FIM_EM_ABREVIACAO.test(s)) { ruins.push(s); continue } // "Fica na Av.", "In 1952, Dr."
       if (/\?["'”’)\]]*$/.test(s)) continue
       const ultima = semAcento(s.replace(/[.!?…"'”’)\]]+$/, '')).split(/\s+/).filter(Boolean).pop() ?? ''
       if (PENDURADAS.has(ultima.replace(/[,;:\-–—]+$/, ''))) ruins.push(s)
@@ -214,8 +242,10 @@ interface Unit { key: string; block: number; words: number; order: number; payof
 /**
  * Corta o roteiro curto até caber em maxWords, SEM NUNCA CORTAR DENTRO DE UMA FRASE. Fixas: a 1ª frase do HOOK e a 1ª do
  * PAYOFF; todo o resto pode sair em frases inteiras (um bloco MICRO REWARD pode sair inteiro). Entre as combinações:
- *   1º dentro da faixa [minWords, maxWords]; 2º acima do teto até hardMaxWords (o mais perto do teto); 3º abaixo do piso;
- *   em cada faixa: PAYOFF inteiro > mais blocos > mais palavras (na 2ª, menos) > menos frases tiradas > tirar as do fim.
+ *   1º não ficar abaixo do piso; 2º PAYOFF inteiro (a revelação vale mais que caber no teto: passar até hardMaxWords é
+ *   aceito); 3º dentro da faixa [minWords, maxWords] > acima do teto até hardMaxWords > abaixo do piso; depois, dentro
+ *   da faixa: mais blocos > mais palavras; acima do teto: MENOS palavras (o mais perto do teto) > mais blocos; por fim
+ *   menos frases tiradas > tirar as do fim. (KINEO-ROTEIRO-15S-REVISAO-2026-09-29, achados 2 e 5.)
  * Se nada couber nem em hardMaxWords, sai o mínimo de frases inteiras (1ª do HOOK + 1ª do PAYOFF + blocos sem frase
  * removível) com overCeiling — a guarda do cinematic decide, com mensagem honesta. Determinístico.
  */
@@ -236,11 +266,16 @@ export function fitShortFilmScript(script: string, args: FitShortFilmArgs): FitS
   const inicio = hookAt >= 0 ? hookAt : 0
   const fim = payoffAt >= 0 ? payoffAt : blocks.length - 1
 
+  // KINEO-ROTEIRO-15S-REVISAO-2026-09-29 (achado 2): a frase fixa do PAYOFF é a 1ª que NÃO é pergunta — em "Qual é o
+  // detalhe? Da varanda de cada suíte…" a fixa é a revelação; fixar a pergunta deixava o filme terminar em "Qual é o
+  // detalhe?".
+  const pergunta = (f: string) => /\?["'”’)\]]*$/.test(f)
+  const fixaDoFim = fim === inicio ? 0 : Math.max(0, frases[fim]?.findIndex((f) => !pergunta(f)) ?? 0)
   const units: Unit[] = []
   let ordem = 0
   frases.forEach((ss, i) => ss.forEach((s, j) => {
     ordem += 1
-    if ((i === inicio || i === fim) && j === 0) return
+    if ((i === inicio && j === 0) || (i === fim && j === fixaDoFim)) return
     units.push({ key: `${i}:${j}`, block: i, words: wordsOf(s), order: ordem, payoffTail: i === fim })
   }))
   const renderMask = (removed: Set<string>): string => render(
@@ -299,7 +334,8 @@ function melhorMascara(units: Unit[], frasesPorBloco: number[], base: number, li
     if (palavras > lim.duro) return null
     const faixa: Faixa = palavras > lim.teto ? 'acima' : palavras >= lim.piso ? 'dentro' : 'abaixo'
     const vivos = frasesPorBloco.reduce((a, k, i) => a + (k > 0 && tiradas[i] < k ? 1 : 0), 0)
-    return { tirar, faixa, chave: [RANK[faixa], payoffInteiro, vivos, faixa === 'acima' ? -palavras : palavras, -quantas, tarde] }
+    const porTamanho = faixa === 'acima' ? [-palavras, vivos] : [vivos, palavras]
+    return { tirar, faixa, chave: [faixa === 'abaixo' ? 0 : 1, payoffInteiro, RANK[faixa], ...porTamanho, -quantas, tarde] }
   }
   let best: Cand | null = null
   const considera = (c: Cand | null) => {
