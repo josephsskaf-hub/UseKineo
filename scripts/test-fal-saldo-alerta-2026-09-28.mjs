@@ -500,8 +500,8 @@ console.log('== 5. Kineo 1 (gancho + clipes do primeiro filme) ==')
   const erroSaldo = Object.assign(new Error('Forbidden'), { status: 403, body: { detail: FRASE_FAL } })
   const erroAcesso = Object.assign(new Error('Forbidden'), { status: 403, body: { detail: 'model is locked for your account' } })
   for (const [arquivo, fn, fonte, extra] of [
-    ['lib/fastAiHook.ts', 'submitAiHook', 'kineo1_hook', { '@supabase/supabase-js': { createClient: () => ({}) }, './clipVault': { vaultClipAsync() {} } }],
-    ['lib/fastAiClips.ts', 'submitSceneClip', 'kineo1_clip', { './fastAiHook': { persistHookClip: async () => null } }],
+    ['lib/fastAiHook.ts', 'submitAiHook', 'kineo1_hook', { '@supabase/supabase-js': { createClient: () => ({}) }, './clipVault': { vaultClipAsync() {} }, '@/lib/kineo1/aiClipPrompt': carrega('lib/kineo1/aiClipPrompt.ts', {}) }],
+    ['lib/fastAiClips.ts', 'submitSceneClip', 'kineo1_clip', { './fastAiHook': { persistHookClip: async () => null }, '@/lib/kineo1/aiClipPrompt': carrega('lib/kineo1/aiClipPrompt.ts', {}) }],
   ]) {
     const chamadas = []
     let libera

@@ -42,6 +42,7 @@ const ALIAS = {
   './pixabay': 'lib/pixabay.ts', '@/lib/pixabay': 'lib/pixabay.ts',
   '@/lib/aspect': 'lib/aspect.ts', './broll/aesthetic-score': 'lib/broll/aesthetic-score.ts',
   './sceneQueries': 'lib/kineo1/sceneQueries.ts', '@/lib/kineo1/sceneQueries': 'lib/kineo1/sceneQueries.ts',
+  '@/lib/kineo1/aiClipPrompt': 'lib/kineo1/aiClipPrompt.ts', // KINEO1-CLIPE-IA-PROMPT-2026-09-28
 }
 function mundo({ fontes = {}, stubs = {}, env = {}, globals = {} } = {}) {
   const cache = new Map()

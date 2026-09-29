@@ -18,6 +18,7 @@ import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { vaultClipAsync } from './clipVault'
 import { alertFalExhausted, looksExhausted } from '@/lib/falAlert' // KINEO-FAL-SALDO-ALERTA-2026-09-28
 import type { StyleAnchor } from '@/lib/cinematic/sceneStyle' // KINEO1-FILME-DESENHADO-2026-09-21 (só tipo)
+import { buildFacelessClipPrompt, buildDrawnClipPrompt, aiClipSeedFromPrompt } from '@/lib/kineo1/aiClipPrompt' // KINEO1-CLIPE-IA-PROMPT-2026-09-28
 
 const SEEDANCE_MODEL = 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
 const POLL_INTERVAL_MS = 2500
@@ -34,28 +35,27 @@ export interface AiHookHandle {
   prompt: string
 }
 
-/** Build a faceless, era-safe cinematic prompt from the hook scene's text. */
+/**
+ * Build a faceless, era-safe cinematic prompt from the hook scene's text.
+ * KINEO1-CLIPE-IA-PROMPT-2026-09-28 — delega a lib/kineo1/aiClipPrompt.ts (sujeito/ação, sem marca/domínio/URL,
+ * sufixo negativo único, sem rosto). A rota (trava 8.2) passa scenes[0].description e o tópico: quando a descrição é a
+ * própria fala (prosa verbatim), a base vira a frase descritiva da fala, sem a marca. Assinatura intocada.
+ */
 export function buildHookPrompt(sceneDescription: string, topic: string, look?: StyleAnchor | null): string {
   // KINEO1-FILME-DESENHADO-2026-09-21 — pedido de desenho: o gancho abre no look pedido, não em "photorealistic".
+  const chosen = sceneDescription?.trim() ? { description: sceneDescription, voiceover: '', query: '' } : { description: '', voiceover: topic, query: '' }
   if (look && look.look !== 'photoreal' && look.look !== 'noir') {
-    const drawn = `${sceneDescription || topic}`.replace(/\s+/g, ' ').trim().slice(0, 300)
-    return (
-      `${drawn}, ${look.lookPhrase}, establishing shot, gentle camera movement, soft lighting, high detail, ` +
-      `no text, no captions, no logos, no real person's likeness${look.suffix}`
-    )
+    return buildDrawnClipPrompt(chosen, look, 'hook')
   }
-  const base = `${sceneDescription || topic}`
-    .replace(/\b(man|woman|person|people|guy|girl|influencer|model)\b/gi, 'distant silhouetted figure')
-    .slice(0, 300)
-  return (
-    `${base}, cinematic establishing shot, photorealistic, dramatic lighting, ` +
-    `dark moody atmosphere, high detail, no text, no captions, no logos, ` +
-    `no recognizable human faces`
-  )
+  return buildFacelessClipPrompt(chosen, 'hook')
 }
 
-/** Submit the hook generation. Returns null when disabled/unconfigured. Never throws. */
-export async function submitAiHook(prompt: string): Promise<AiHookHandle | null> {
+/**
+ * Submit the hook generation. Returns null when disabled/unconfigured. Never throws.
+ * KINEO1-CLIPE-IA-PROMPT-2026-09-28 — `seed` (opcional) determinística; sem ela, nasce do prompt + discriminador por
+ * chamada (aiClipSeedFromPrompt, revisão 28/09: o gancho e uma cena com a mesma fala não repetem o clipe).
+ */
+export async function submitAiHook(prompt: string, seed?: number): Promise<AiHookHandle | null> {
   try {
     if (process.env.FAST_AI_HOOK === 'false') return null
     const falKey = process.env.FAL_KEY
@@ -68,6 +68,7 @@ export async function submitAiHook(prompt: string): Promise<AiHookHandle | null>
         resolution: '720p', // fastest + cheapest; a 9:16 phone hook hides the difference
         duration: '5',
         generate_audio: false,
+        seed: Number.isInteger(seed) ? (seed as number) : aiClipSeedFromPrompt(prompt),
       },
     })
     if (!request_id) return null
