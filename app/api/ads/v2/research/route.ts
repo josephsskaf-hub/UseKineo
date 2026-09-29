@@ -2,8 +2,8 @@
 // descubra" — fundador, 29/09). NÃO COBRA crédito do cliente e o /start não depende dela.
 //
 // Ordem das travas: login → acesso ao Studio Ads → v2 → corpo → pedido DO DONO em rascunho/planejado e no modo simples →
-// pesquisa já gravada volta SEM chamar a OpenAI → teto diário (evento ads_v2_research_served, ANTES do modelo) →
-// moderação da consulta → TRAVA condicional no pedido (brief.research nulo; quem perde a corrida recebe o gravado) →
+// pesquisa já gravada volta SEM chamar a OpenAI → moderação da consulta → TRAVA condicional no pedido (brief.research
+// nulo; quem perde a corrida recebe o gravado) → teto diário contado nos PEDIDOS, depois da trava (falha fechada) →
 // OpenAI Responses com web_search_preview forçada, store:false, sem localização nem id do usuário → fatos só com a
 // anotação url_citation como fonte (lib/ads/v2Research.ts) → grava no pedido → evento só com contagens.
 // Enquanto a pesquisa roda, o /plan recusa com 409 research_running: não existe plano (nem cobrança) antes dela acabar.
@@ -82,20 +82,16 @@ export async function POST(req: NextRequest) {
     const query = researchQuery(sentence)
     if (query.length < 3) return v2Fail('research_needs_text', 400)
 
-    // Teto diário ANTES do modelo.
-    const since = new Date(Date.now() - 24 * 3600_000).toISOString()
-    const cap = await admin.from('events').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('name', 'ads_v2_research_served').gte('created_at', since)
-    if (!cap.error && (cap.count ?? 0) >= ADS_V2_RESEARCH_DAILY_CAP) return v2Fail('daily_limit_research', 429)
-
     const safety = await moderateContent({ surface: 'ads_brief', stage: 'input', userId: user.id, text: query, meta: { order_id: order.id, v2: true, research: true } })
     if (!safety.ok) {
       return v2Fail(safety.reason === 'blocked' ? 'moderation' : `moderation_${safety.reason}`, moderationRefusalStatus(safety.reason), { message: moderationRefusalMessage(safety.reason) })
     }
 
     // TRAVA: só uma pesquisa por pedido. Condicional (dono + rascunho/planejado + research nulo); quem perde, lê o gravado.
+    const lockAt = new Date().toISOString()
     const lock = await admin
       .from('ads_v2_orders')
-      .update({ brief: { ...brief0, research: { status: 'running', at: new Date().toISOString() } } })
+      .update({ brief: { ...brief0, research: { status: 'running', at: lockAt } } })
       .eq('id', order.id)
       .eq('user_id', user.id)
       .in('status', ['draft', 'planned'])
@@ -106,6 +102,27 @@ export async function POST(req: NextRequest) {
     if (!lock.data) {
       const again = await loadAdsV2Order(admin, order.id, user.id)
       return view(order.id, (again.order?.brief as Record<string, unknown> | null)?.research ?? null, Date.now())
+    }
+
+    // Teto diário DEPOIS da trava e ANTES do modelo (revisão 29/09: o evento só era gravado depois dos 5-25 s do modelo,
+    // e N pedidos simultâneos passavam todos com a contagem em 0). Conta os PEDIDOS desta conta com pesquisa própria
+    // (brief.research.at nas últimas 24 h, sem copied_from) — este já conta, e os simultâneos já travaram. Leitura falhou
+    // ou passou do teto = desfaz a trava (o /plan segue sem fatos) e NÃO chama o modelo.
+    const since = new Date(Date.now() - 24 * 3600_000).toISOString()
+    const cap = await admin
+      .from('ads_v2_orders')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('brief->research->>at', since)
+      .is('brief->research->>copied_from', null)
+    if (cap.error || (cap.count ?? 0) > ADS_V2_RESEARCH_DAILY_CAP) {
+      await admin
+        .from('ads_v2_orders')
+        .update({ brief: { ...brief0, research: null } })
+        .eq('id', order.id)
+        .eq('user_id', user.id)
+        .eq('brief->research->>at', lockAt)
+      return cap.error ? v2Fail('research_failed', 502) : v2Fail('daily_limit_research', 429)
     }
 
     const language = narrationLanguage(order.language) ?? resolveNarrationLanguage(undefined, sentence).language

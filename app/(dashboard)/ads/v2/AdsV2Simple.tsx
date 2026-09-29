@@ -58,6 +58,7 @@ import {
   simpleCtaKind,
   simpleErrorMessage,
   simpleLabel,
+  simpleUploadErrorMessage,
   simpleTitle,
   videoFrameTimes,
   type AdsV2SimpleCopy,
@@ -349,9 +350,14 @@ export function AdsV2SimpleSession({
   /** Chave do rascunho: mudou texto, preço, contato, frases, voz, língua ou nível = rascunho novo (a pesquisa é copiada). */
   const draftKey = JSON.stringify({ text: sentence, price: priceT, contact: contactT, overlays: overlaysOn, voice: narrationOn, lang: spoken, tier })
   const baseSig = JSON.stringify({ draftKey, sector, items: inAd.map((p) => [p.key, focalSig(p)]) })
-  const isFactOn = (id: string) => factOn[id] ?? ADS_V2_SIMPLE_FACTS_DEFAULT_ON
+  // A marca de um fato é presa ao CONTEÚDO (fonte + texto), nunca ao id f1..f6: uma pesquisa nova tem outro f1 e não herda
+  // a marca do anterior; a mesma pesquisa copiada para um rascunho novo (troca de nível) mantém a marca.
+  const factKey = (f: Fact) => JSON.stringify([f.url, f.text])
+  const isFactOn = (f: Fact) => factOn[factKey(f)] ?? ADS_V2_SIMPLE_FACTS_DEFAULT_ON
+  // Erro de envio na língua da tela (a lib de envio só fala inglês).
+  const uploadError = (e: unknown, fallback: string) => (e instanceof AdsUploadError ? simpleUploadErrorMessage(e.reason, lang) ?? e.message : fallback)
   const factsNow = research && draft && research.orderId === draft.id ? research.facts : []
-  const planSig = JSON.stringify({ base: baseSig, facts: factsNow.filter((f) => isFactOn(f.id)).map((f) => f.id) })
+  const planSig = JSON.stringify({ base: baseSig, facts: factsNow.filter((f) => isFactOn(f)).map((f) => f.id) })
   const cardSig = JSON.stringify({ title: cardTitleFinal, price: priceT, contact: contactT, color: cardColor, logo: logo?.footageId ?? null, lang: spoken })
   const planFresh = !!plan && plan.sig === planSig
 
@@ -628,7 +634,7 @@ export function AdsV2SimpleSession({
       setLogo({ footageId: up.footageId, localUrl: up.localUrl ? trackUrl(up.localUrl) : up.url, busy: false, error: null })
     } catch (e) {
       if (!aliveRef.current) return
-      setLogo({ footageId: null, localUrl: null, busy: false, error: e instanceof AdsUploadError ? e.message : copy.plan.logoFailed })
+      setLogo({ footageId: null, localUrl: null, busy: false, error: uploadError(e, copy.plan.logoFailed) })
     }
   }
 
@@ -653,7 +659,7 @@ export function AdsV2SimpleSession({
         out.push({ footage_id: up.footageId, kind: photoKind })
       } catch (e) {
         if (!aliveRef.current) return null
-        const msg = e instanceof AdsUploadError ? e.message : copy.plan.uploadFailed
+        const msg = uploadError(e, copy.plan.uploadFailed)
         updateItem(p.key, { busy: false, error: msg })
         setPlanError(fill(copy.plan.photoError, { n, msg }))
         return null
@@ -681,7 +687,7 @@ export function AdsV2SimpleSession({
       return done
     } catch (e) {
       if (!aliveRef.current) return null
-      setPlanError(e instanceof AdsUploadError ? e.message : copy.plan.cardFailed)
+      setPlanError(uploadError(e, copy.plan.cardFailed))
       return null
     }
   }
@@ -754,7 +760,7 @@ export function AdsV2SimpleSession({
       if (!orderId || !aliveRef.current) return
       const facts = await ensureResearch(orderId)
       if (!aliveRef.current) return
-      const chosen = facts.filter((f) => isFactOn(f.id)).map((f) => f.id)
+      const chosen = facts.filter((f) => isFactOn(f)).map((f) => f.id)
       setBusyNote(copy.plan.notePlan)
       const r = await api<PlanResponse>('/api/ads/v2/plan', {
         method: 'POST',
@@ -1015,7 +1021,7 @@ export function AdsV2SimpleSession({
                   <ul className="adv2s-facts">
                     {factsNow.map((f) => (
                       <li key={f.id}>
-                        <input type="checkbox" id={`adv2s-${f.id}`} checked={isFactOn(f.id)} disabled={locked} onChange={(e) => setFactOn((m) => ({ ...m, [f.id]: e.target.checked }))} />
+                        <input type="checkbox" id={`adv2s-${f.id}`} checked={isFactOn(f)} disabled={locked} onChange={(e) => setFactOn((m) => ({ ...m, [factKey(f)]: e.target.checked }))} />
                         <span className="tx">
                           <label htmlFor={`adv2s-${f.id}`}>{f.text}</label>
                           <a href={f.url} target="_blank" rel="noopener noreferrer nofollow">{copy.plan.source}: {f.host}</a>

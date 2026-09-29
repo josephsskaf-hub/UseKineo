@@ -9,7 +9,7 @@
 // Recusa → 1 correção com o motivo (como /api/ads/script); falhou de novo = a rota devolve 502 com o porquê, nada cobrado.
 import { openai } from '@/lib/openai'
 import { buildAutoBriefMessages, parseAutoBrief } from '@/lib/ads/autoBrief'
-import { contactOk, countWords, inventedClaims, inventedNumbers } from '@/lib/ads/scriptPrompt'
+import { briefFactsText, contactOk, countWords, inventedClaims, inventedNumbers } from '@/lib/ads/scriptPrompt'
 import type { AdsBrief } from '@/lib/ads/types'
 import { ADS_V2_OVERLAY_MAX_CHARS, ADS_V2_SECTORS, isAdsV2Sector, type AdsV2Sector } from '@/lib/ads/v2ShotLists'
 
@@ -66,9 +66,45 @@ export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts:
     brief.offer ? `- Offer: ${brief.offer}` : '- Offer: (none — do not invent one)',
     brief.contact ? `- Contact: ${brief.contact}` : '- Contact: (none)',
     brief.audience ? `- Audience: ${brief.audience}` : '',
-    ...Object.entries(brief.extra ?? {}).map(([k, v]) => `- ${k}: ${v}`),
+    ...Object.entries(brief.extra ?? {}).filter(([k]) => !PUBLIC_FACT_KEY.test(k)).map(([k, v]) => `- ${k}: ${v}`),
+    ...publicFactsBlock(brief),
   ].filter(Boolean).join('\n')
   return { system, user }
+}
+
+/**
+ * KINEO-ADS-MODO-SIMPLES-2026-09-29 (revisão de honestidade) — os fatos públicos da pesquisa são do PRÉDIO, da rua ou do
+ * bairro, nunca do imóvel anunciado ("interiores assinados pela grife" é do prédio, não da loja à venda). Por isso vão
+ * num bloco próprio, com a ordem de nunca atribuí-los ao imóvel. Sem fatos = nenhuma linha (o pedido fica byte a byte o
+ * de antes; guardião Z3).
+ */
+const PUBLIC_FACT_KEY = /^public_fact_\d+$/
+export const ADS_V2_PUBLIC_FACTS_HEADER =
+  'Public facts found on the web about the BUILDING, the street or the neighborhood — NOT about the property or unit being advertised. Never describe them as features of the advertised property (its size, rooms, interiors, finishes, furniture, view or floor). If you use one, say it is about the building or the neighborhood ("the building has…", "the neighborhood has…"):'
+function publicFactsBlock(brief: AdsBrief): string[] {
+  const facts = Object.entries(brief.extra ?? {}).filter(([k]) => PUBLIC_FACT_KEY.test(k)).map(([, v]) => `- ${v}`)
+  return facts.length ? [ADS_V2_PUBLIC_FACTS_HEADER, ...facts] : []
+}
+
+/** Número seguido de medida/cômodo/andar do IMÓVEL ("300 m²", "3 quartos", "5º andar"). */
+const UNIT_AFTER_NUMBER = /^\s*(º|°|ª)?\s*(m²|m2|metros? quadrados?|metros? cuadrados?|sq\.?\s?ft|ft²|square (feet|foot|meters?|metres?)|quartos?|su[ií]tes?|dormit[oó]rios?|vagas?|banheiros?|bedrooms?|bathrooms?|beds?|baths?|habitaciones?|rec[aá]maras?|ba[ñn]os?|parking|garage|andar|floor|piso)(?![\p{L}\p{N}])/iu
+
+/**
+ * Números que só existem nos fatos públicos (não no que a PESSOA escreveu) usados como tamanho, cômodo, vaga ou andar
+ * do imóvel: o "300" de "a 300 metros do parque" virando "300 m²". Sem fatos públicos = [] (modo completo intocado). Pura.
+ */
+export function factNumberMisuse(text: string, brief: AdsBrief): string[] {
+  const entries = Object.entries(brief.extra ?? {})
+  if (!entries.some(([k]) => PUBLIC_FACT_KEY.test(k))) return []
+  const own: AdsBrief = { ...brief, extra: Object.fromEntries(entries.filter(([k]) => !PUBLIC_FACT_KEY.test(k))) }
+  const ownDigits = new Set(briefFactsText(own).replace(/[.,\s](?=\d{3}\b)/g, '').match(/\d+/g) ?? [])
+  const t = String(text ?? '').replace(/[.,\s](?=\d{3}\b)/g, '')
+  const out: string[] = []
+  for (const m of t.matchAll(/\d+/g)) {
+    if (ownDigits.has(m[0])) continue
+    if (UNIT_AFTER_NUMBER.test(t.slice((m.index ?? 0) + m[0].length))) out.push(m[0])
+  }
+  return [...new Set(out)]
 }
 
 /** Anti-invenção sobre um texto qualquer do anúncio (número, fama/urgência, contato). Devolve os motivos. */
@@ -78,6 +114,8 @@ export function textIssues(text: string, brief: AdsBrief, label: string): string
   if (nums.length) why.push(`${label}: remove these numbers that are not in the brief: ${[...new Set(nums)].join(', ')}.`)
   const claims = inventedClaims(text, brief)
   if (claims.length) why.push(`${label}: remove these claims that the brief does not support: ${claims.join('; ')}.`)
+  const misuse = factNumberMisuse(text, brief)
+  if (misuse.length) why.push(`${label}: ${misuse.join(', ')} comes from the public facts about the building or the neighborhood; never use it as the size, rooms, parking or floor of the advertised property.`)
   if (CONTACTISH.test(text) && !(brief.contact && contactOk(text, brief.contact))) {
     why.push(`${label}: a phone, link, @handle or address must be copied exactly from the brief${brief.contact ? ` (${brief.contact})` : ' — the brief has none, so remove it'}.`)
   }

@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
 
     // KINEO-ADS-MODO-SIMPLES-2026-09-29 — o brief do modo simples leva o modo, as frases (liga/desliga), o preço e o
     // contato que a PESSOA escreveu. research_from: rascunho anterior DESTA conta; se a frase for idêntica, a pesquisa
-    // gravada (status ok) é copiada — trocar voz, frases, preço, contato ou nível não paga outra pesquisa.
+    // gravada (ok, ou "nada achado") é copiada — trocar voz, frases, preço, contato ou nível não paga outra pesquisa.
     const brief: Record<string, unknown> = { sentence: o.sentence, link: o.link }
     if (o.mode === 'simple') {
       brief.mode = 'simple'
@@ -89,8 +89,11 @@ export async function POST(req: NextRequest) {
       if (o.research_from) {
         const prev = await admin.from('ads_v2_orders').select('brief').eq('id', o.research_from).eq('user_id', user.id).maybeSingle()
         const pb = (prev.data as { brief: Record<string, unknown> | null } | null)?.brief ?? null
-        const pr = pb?.research as { status?: unknown } | undefined
-        if (pb && pb.sentence === o.sentence && pr && pr.status === 'ok') brief.research = { ...pr, copied_from: o.research_from, selected: undefined }
+        const pr = pb?.research as { status?: unknown; why?: unknown } | undefined
+        // Revisão 29/09: "nada achado" / "tudo descartado" também é resultado da MESMA frase — trocar o nível não paga
+        // outra busca. Falha de fornecedor (timeout, openai_5xx) não é copiada: aí vale tentar de novo.
+        const reusable = !!pr && (pr.status === 'ok' || (pr.status === 'failed' && (pr.why === 'nothing_found' || pr.why === 'all_dropped')))
+        if (pb && pb.sentence === o.sentence && reusable) brief.research = { ...pr, copied_from: o.research_from, selected: undefined }
       }
     }
 

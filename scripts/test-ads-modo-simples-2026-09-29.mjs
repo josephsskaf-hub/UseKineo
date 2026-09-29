@@ -126,19 +126,27 @@ const entradaSimples = (src) => {
   return /let m: 'simple' \| 'full' = 'simple'/.test(eff) && /if \(new URLSearchParams\(window\.location\.search\)\.get\('mode'\) === 'full'\) m = 'full'/.test(eff) &&
     /\{mode === 'full' \? \(\n\s*<AdsV2Session\n\s*key=\{session\}\n\s*resume=\{session === 0\}/.test(w) &&
     /\) : mode === 'simple' \? \(\n\s*<AdsV2SimpleSession\n\s*key=\{session\}\n\s*resume=\{session === 0\}\n\s*lang=\{lang\}/.test(w) &&
-    /function startOver\(\) \{[\s\S]*?setMode\('simple'\)/.test(w)
+    /function startOver\(\) \{[\s\S]*?setMode\('simple'\)/.test(w) &&
+    // Revisão da tela 29/09 (mutante B sobrevivia): "Start over" tem de LIMPAR o ?mode=full do endereço, senão recarregar
+    // a página volta ao completo com a tela mostrando o simples.
+    /clearOrderParam\(\)\n\s*setModeParam\(null\)/.test(bloco(w, 'function startOver()')) &&
+    /if \(mode\) u\.searchParams\.set\('mode', mode\)\n\s*else u\.searchParams\.delete\('mode'\)/.test(bloco(semComentarios(src), 'function setModeParam('))
 }
 await check('A1 entrada padrão é o modo SIMPLES; o completo só com ?mode=full; "Start over" volta ao simples', entradaSimples(SRC.client))
 await check('A1-mutante: padrão virando "full" fica vermelho', () => !entradaSimples(trocar(SRC.client, "let m: 'simple' | 'full' = 'simple'", "let m: 'simple' | 'full' = 'full'")))
+await check('A1-mutante (revisão da tela, B): "Start over" sem setModeParam(null) fica vermelho', () => !entradaSimples(trocar(SRC.client.replace(/\r\n/g, '\n'), '    clearOrderParam()\n    setModeParam(null)\n', '    clearOrderParam()\n')))
 await check('A2 o link do assistente clássico aparece só no modo completo; o page.tsx continua sem modo', /classicCredits !== null && mode === 'full' \?/.test(wrapperOf(SRC.client)) && !/mode/.test(semComentarios(SRC.page)))
 await check('A3 trocar de modo é link de página inteira (o anúncio em andamento é retomado na troca)', /<a href=\{mode === 'simple' \? '\/ads\/v2\?mode=full' : '\/ads\/v2'\}>/.test(wrapperOf(SRC.client)))
 
 // ═══ Z. O MODO COMPLETO CONTINUA IDÊNTICO ═════════════════════════════════════════════════════════════════════════════
 // sha256 do trecho `function AdsV2Session(` … fim do arquivo (sessão, PhotoRow, PlanPreview, ShotGrid), sem comentários,
-// com \r\n normalizado — calculado na base c55bab53 (origin/main de 29/09) antes do modo simples.
-const Z1_BASE = '8439420bd7679933993fb134f4db5501c8d2e818f807496f5bde98d3e39e848a'
+// com \r\n normalizado. REANCORADO 29/09 (consertador): a base era c55bab53 (8439420b…); a main andou para 06bc9d6f e o
+// commit 65a49c30 ("Refine creation previews") mexeu no AdsV2Session (previewPhotoKey + coluna lateral). Na junção o
+// trecho do HEAD é BYTE A BYTE o de origin/main 06bc9d6f (conferido: os dois dão 2e1d8881…) — o modo simples continua
+// sem tocar no completo; só a referência mudou.
+const Z1_BASE = '2e1d888136b1f7bc7996c03a86edda223fdf8faf7bc0078c340b69d3b37ab945'
 const trechoCompleto = (src) => { const s = src.replace(/\r\n/g, '\n'); const i = s.indexOf('function AdsV2Session('); return i < 0 ? '' : semComentarios(s.slice(i)) }
-await check('Z1 impressão digital do modo completo (AdsV2Session, PhotoRow, PlanPreview, ShotGrid) = a da base c55bab53', sha(trechoCompleto(SRC.client)) === Z1_BASE)
+await check('Z1 impressão digital do modo completo (AdsV2Session, PhotoRow, PlanPreview, ShotGrid) = a de origin/main 06bc9d6f', sha(trechoCompleto(SRC.client)) === Z1_BASE)
 await check('Z1-mutante: 1 caractere trocado no modo completo fica vermelho', () => sha(trechoCompleto(trocar(SRC.client, "const POLL_RETRY_MS = 20_000", "const POLL_RETRY_MS = 20_001").replace('Plan my ad (free)', 'Plan my ad (freE)'))) !== Z1_BASE)
 
 const keys = (o) => Object.keys(o).sort().join(',')
@@ -196,12 +204,13 @@ function db(tables) {
   const base = { tables }
   base.from = (name) => {
     tables[name] ??= []
-    const get = (r, k) => (k.includes('->') ? k.split('->').reduce((o, p) => (o && typeof o === 'object' ? o[p] : undefined), r) : r[k])
+    const get = (r, k) => (k.includes('->') ? k.split(/->>?/).reduce((o, p) => (o && typeof o === 'object' ? o[p] : undefined), r) : r[k])
     const ctx = { op: 'select', filters: [], patch: null, rows: null, head: false }
     const run = (single) => {
       const t = tables[name]
       const hit = t.filter((r) => ctx.filters.every((f) => f(r)))
       if (ctx.op === 'select') {
+        if (ctx.head && base.countError) return { data: null, count: null, error: { code: 'XX000', message: 'contagem falhou' } }
         if (ctx.head) return { data: null, count: hit.length, error: null }
         const rows = hit.map((r) => structuredClone(r))
         return single ? { data: rows[0] ?? null, error: null } : { data: rows, error: null }
@@ -235,8 +244,9 @@ function db(tables) {
 const USER = U(9)
 const ORDER = U(1)
 function mundo(order, extra = {}) {
-  const tables = { ads_v2_orders: [structuredClone(order)], events: [...(extra.events ?? [])] }
+  const tables = { ads_v2_orders: [structuredClone(order), ...(extra.orders ?? []).map((o) => structuredClone(o))], events: [...(extra.events ?? [])] }
   const admin = db(tables)
+  if (extra.countError) admin.countError = true
   const log = { extract: [], moderation: [], events: [], openai: [], charges: 0 }
   const stubs = {
     '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: { id: USER, email: 'teste@exemplo.com' } } }) } }) },
@@ -245,7 +255,7 @@ function mundo(order, extra = {}) {
     '@/lib/safety/moderationPolicy': { moderationRefusalMessage: () => 'blocked', moderationRefusalStatus: () => 422 },
     '@/lib/ads/serverAccess': { adsGate: () => 'ok', isMissingAdsTable: () => false, loadAdsAccess: async () => ({ admin, reason: 'internal' }) },
     '@/lib/ads/v2Access': { adsV2Visible: () => true },
-    '@/lib/ads/v2Advance': { loadAdsV2Order: async (_a, id, uid) => { const o = tables.ads_v2_orders.find((r) => r.id === id && r.user_id === uid); return { order: o ? structuredClone(o) : null, error: null } } },
+    '@/lib/ads/v2Advance': { loadAdsV2Order: async (_a, id, uid) => { const o = tables.ads_v2_orders.find((r) => r.id === id && r.user_id === uid); return { order: o ? structuredClone(o) : null, error: null } }, adsV2View: () => ({}), loadAdsV2Shots: async () => ({ shots: [], error: null }) },
     '@/lib/ads/v2Server': {
       ownedFootage: async (_a, _u, ids) => new Map(ids.map((id) => [id, { url: `https://x.supabase.co/storage/v1/object/public/user-footage/${USER}/${id}.png`, isImage: true, isPng: true }])),
       v2Fail: (error, status, more = {}) => ({ status, body: { error, ...more } }),
@@ -389,10 +399,12 @@ const pesquisaHonesta = async (src) => {
     !JSON.stringify(ev.metadata).includes('Aurora')
 }
 await check('R5 /research EXECUTADO: só fatos com a fonte da ANOTAÇÃO (https, sem utm); preço/unidade/promessa/sem-fonte fora; consulta sem preço, contato, @ ou telefone; store:false, busca forçada, sem id nem localização; evento só com contagens', pesquisaHonesta())
+// REANCORADO 29/09: o exemplo era "Apartamentos custam…" e, com a régua nova de palavras de unidade, o fato caía como
+// "unit" mesmo sem o filtro de preço — o mutante deixava de provar o PREÇO. O sujeito virou o prédio.
 await check('R5-mutante (M1): filtro de preço desligado fica vermelho', async () => {
   const mod = pura(F.research, trocar(SRC.research, "if (PRICE_RE.test(text)) return 'price'", ''))
-  return mod.parseResearchOutput('- Apartamentos custam R$ 900 mil. ([x](https://x.test/a))', [{ type: 'url_citation', url: 'https://x.test/a', start_index: 30, end_index: 55 }]).facts.length === 1 &&
-    R.parseResearchOutput('- Apartamentos custam R$ 900 mil. ([x](https://x.test/a))', [{ type: 'url_citation', url: 'https://x.test/a', start_index: 30, end_index: 55 }]).facts.length === 0
+  return mod.parseResearchOutput('- O prédio inteiro custa R$ 900 mil. ([x](https://x.test/a))', [{ type: 'url_citation', url: 'https://x.test/a', start_index: 30, end_index: 55 }]).facts.length === 1 &&
+    R.parseResearchOutput('- O prédio inteiro custa R$ 900 mil. ([x](https://x.test/a))', [{ type: 'url_citation', url: 'https://x.test/a', start_index: 30, end_index: 55 }]).facts.length === 0
 })
 const fonteDaAnotacao = (M) => {
   const semAnot = M.parseResearchOutput('- A estação Jardim fica perto. https://inventado.test/x', [])
@@ -405,9 +417,41 @@ await check('R6-mutante: fato sem citação aceito (fonte tirada do texto) fica 
 const semUnidade = (M) => M.factRefusal('Unidade com 3 suítes e varanda') === 'unit' && M.factRefusal('Apartamento de 80 m²') === 'unit' && M.factRefusal('2 vagas na garagem') === 'unit' && M.factRefusal('Valorização de 20% ao ano') !== null && M.factRefusal('Um ícone do bairro') === 'promise' && M.factRefusal('Perto do Parque Central') === null
 await check('R7 (M3) característica de unidade (suítes, m², vagas), valorização e fama nunca viram fato', semUnidade(R))
 await check('R7-mutante: "3 suítes" passando fica vermelho', () => !semUnidade(pura(F.research, trocar(SRC.research, "if (UNIT_RE.test(text)) return 'unit'", ''))))
+// Revisão de honestidade 29/09, achado 1 (o caso "interiores assinados"): fato do PRÉDIO que descreve a UNIDADE. Exemplos
+// inventados. E o que tem de continuar passando: rua sem número, bairro, estação, andares do prédio, distância.
+const predioNaoEUnidade = (M) =>
+  ['O Edifício Aurora tem interiores assinados pela Grife Nova Home.', 'Os apartamentos do Edifício Aurora têm acabamento em mármore italiano.', 'Unidades com varanda gourmet e pé-direito duplo.', 'Cobertura com vista para o parque.', 'Apartamentos decorados e mobiliados pela grife.', 'The units have designer interiors.']
+    .every((f) => M.factRefusal(f) === 'unit') &&
+  ['O Edifício Aurora fica na Rua das Flores, no bairro Jardim.', 'A estação Jardim do metrô fica a poucos minutos a pé.', 'O prédio tem 20 andares e piscina.', 'Fica a 300 metros do Parque Central.', 'A Avenida Central, a 5 minutos, tem comércio.']
+    .every((f) => M.factRefusal(f) === null)
+await check('R7b (honestidade 1) interiores/acabamento/decorado/mobiliado/assinado/vista/varanda/cobertura/apartamentos = unit; prédio, rua, bairro e distância passam', predioNaoEUnidade(R))
+await check('R7b-mutante: sem a régua de palavras de unidade ("interiores assinados" passando) fica vermelho', () => !predioNaoEUnidade(pura(F.research, trocar(SRC.research, "if (UNIT_WORDS_RE.test(text)) return 'unit'", ''))))
+const semEndereco = (M) => M.factRefusal('O Edifício Aurora fica na Rua das Flores, 55.') === 'address' && M.factRefusal('Fica na Alameda Exemplo 1200, no bairro Jardim.') === 'address' &&
+  M.factRefusal('Número 55 da rua.') === 'address' && M.factRefusal('CEP 01234-567.') !== null && M.factRefusal('Fica na Rua das Flores, no bairro Jardim.') === null
+await check('R7c (honestidade 2) endereço com NÚMERO (rua + nº, "número 55", CEP) nunca vira fato; rua e bairro sem número passam', semEndereco(R))
+await check('R7c-mutante: "Rua das Flores, 55" passando fica vermelho', () => !semEndereco(pura(F.research, trocar(SRC.research, "if (ADDRESS_RE.test(text)) return 'address'", ''))))
+const semPortal = (M) => {
+  const t = '- A estação Jardim do metrô fica perto. ([z](https://www.zapimoveis.com.br/imovel/x))'
+  const a = M.parseResearchOutput(t, [{ type: 'url_citation', url: 'https://www.zapimoveis.com.br/imovel/x', start_index: 2, end_index: t.length }])
+  const b = M.parseResearchOutput(t, [{ type: 'url_citation', url: 'https://mapa.test/jardim', start_index: 2, end_index: t.length }])
+  return a.facts.length === 0 && a.dropped.portal === 1 && b.facts.length === 1 && M.isListingPortal('vivareal.com.br') && M.isListingPortal('quintoandar.com.br') && !M.isListingPortal('pt.wikipedia.org')
+}
+await check('R7d (honestidade 1) fonte de PORTAL de anúncio (zap, vivareal, quintoandar…) é descartada: descreve outra unidade', semPortal(R))
+await check('R7d-mutante: portal aceito como fonte fica vermelho', () => !semPortal(pura(F.research, trocar(SRC.research, '    if (isListingPortal(src.host)) { dropped.portal += 1; continue }\n', ''))))
 const researchCod = semComentarios(SRC.researchRoute)
-const travaAntes = (src) => ordem(src, 'adsV2Visible(user.email)', "researchState(brief0.research, Date.now()) !== 'none'", "'ads_v2_research_served').gte(", 'moderateContent(', ".is('brief->research', null)", 'openai.responses.create(', 'parseResearchOutput(', "name: 'ads_v2_research_served'")
-await check('R8 (M4) ordem das travas da pesquisa: v2 → gravada volta sem modelo → teto diário → moderação → TRAVA no pedido → OpenAI → fatos → evento', travaAntes(researchCod))
+// REANCORADO 29/09 (revisão de honestidade, achado 4): o teto diário saiu de ANTES da moderação (contado pelo evento, que
+// só era gravado depois do modelo) para DEPOIS da trava, contado nos pedidos. Nova ordem abaixo.
+const travaAntes = (src) => ordem(src, 'adsV2Visible(user.email)', "researchState(brief0.research, Date.now()) !== 'none'", 'moderateContent(', ".is('brief->research', null)", ".gte('brief->research->>at', since)", 'openai.responses.create(', 'parseResearchOutput(', "name: 'ads_v2_research_served'") &&
+  !/from\('events'\)/.test(src)
+await check('R8 (M4) ordem das travas da pesquisa: v2 → gravada volta sem modelo → moderação → TRAVA no pedido → teto diário (pedidos) → OpenAI → fatos → evento', travaAntes(researchCod))
+await check('R8-mutante: teto contado ANTES da trava (a ordem velha) fica vermelho', () => {
+  const capIdx = researchCod.indexOf('    const since = new Date(')
+  const capEnd = researchCod.indexOf('    const language =', capIdx)
+  const modIdx = researchCod.indexOf('    const safety = await moderateContent(')
+  const capTxt = researchCod.slice(capIdx, capEnd)
+  const mut = researchCod.slice(0, modIdx) + capTxt + researchCod.slice(modIdx, capIdx) + researchCod.slice(capEnd)
+  return capIdx > 0 && modIdx > 0 && !travaAntes(mut)
+})
 await check('R8-mutante: a trava depois da chamada à OpenAI fica vermelho', () => {
   const lockIdx = researchCod.indexOf('    const lock = await admin')
   const lockEnd = researchCod.indexOf('    const language =', lockIdx)
@@ -416,29 +460,105 @@ await check('R8-mutante: a trava depois da chamada à OpenAI fica vermelho', () 
   const mut = researchCod.slice(0, lockIdx) + researchCod.slice(lockEnd, callIdx) + researchCod.slice(callIdx).replace('    const ms = Date.now() - started', lockTxt + '    const ms = Date.now() - started')
   return lockIdx > 0 && !travaAntes(mut)
 })
-await check('R9 /research EXECUTADO: na hora da chamada à OpenAI o pedido JÁ está travado (running); a 2ª chamada devolve o gravado sem modelo; teto diário antes do modelo', async () => {
+await check('R9 /research EXECUTADO: na hora da chamada à OpenAI o pedido JÁ está travado (running); a 2ª chamada devolve o gravado sem modelo', async () => {
   const w = mundo(semPesquisa(), { openaiResponse: RESPOSTA })
   const route = loadRoute(F.researchRoute, w.stubs)
   const a = await route.POST(req({ order_id: ORDER }))
   const b = await route.POST(req({ order_id: ORDER }))
-  const cheio = mundo(semPesquisa(), { openaiResponse: RESPOSTA, events: Array.from({ length: 6 }, (_, i) => ({ id: `e${i}`, user_id: USER, name: 'ads_v2_research_served', created_at: new Date().toISOString() })) })
-  const c = await loadRoute(F.researchRoute, cheio.stubs).POST(req({ order_id: ORDER }))
-  return w.log.openai.length === 1 && w.log.openai[0].lockState === 'running' && a.status === 200 && b.status === 200 && b.body.facts.length === a.body.facts.length &&
-    c.status === 429 && c.body.error === 'daily_limit_research' && cheio.log.openai.length === 0 && w.log.moderation[0].lockState === null
+  return w.log.openai.length === 1 && w.log.openai[0].lockState === 'running' && a.status === 200 && b.status === 200 && b.body.facts.length === a.body.facts.length && w.log.moderation[0].lockState === null
 })
+// Revisão de honestidade 29/09, achado 4: o teto é contado nos PEDIDOS (brief.research.at em 24 h, sem copied_from), depois
+// da trava; leitura falhou = NÃO pesquisa. Recusou = a trava é desfeita (research volta a nulo) e o /plan segue sem fatos.
+const outroPedido = (i, research) => ({ id: U(100 + i), user_id: USER, status: 'draft', brief: { mode: 'simple', sentence: 'x', research } })
+const tetoFechado = async (src) => {
+  const agora = new Date().toISOString()
+  const cheio = mundo(semPesquisa(), { openaiResponse: RESPOSTA, orders: Array.from({ length: 6 }, (_, i) => outroPedido(i, { status: 'ok', at: agora, facts: [] })) })
+  const c = await loadRoute(F.researchRoute, cheio.stubs, src).POST(req({ order_id: ORDER }))
+  const copiados = mundo(semPesquisa(), { openaiResponse: RESPOSTA, orders: Array.from({ length: 6 }, (_, i) => outroPedido(i, { status: 'ok', at: agora, facts: [], copied_from: U(200) })) })
+  const d = await loadRoute(F.researchRoute, copiados.stubs, src).POST(req({ order_id: ORDER }))
+  const velhos = mundo(semPesquisa(), { openaiResponse: RESPOSTA, orders: Array.from({ length: 6 }, (_, i) => outroPedido(i, { status: 'ok', at: new Date(Date.now() - 25 * 3600_000).toISOString(), facts: [] })) })
+  const v = await loadRoute(F.researchRoute, velhos.stubs, src).POST(req({ order_id: ORDER }))
+  const cego = mundo(semPesquisa(), { openaiResponse: RESPOSTA, countError: true })
+  const e = await loadRoute(F.researchRoute, cego.stubs, src).POST(req({ order_id: ORDER }))
+  const cinco = mundo(semPesquisa(), { openaiResponse: RESPOSTA, orders: Array.from({ length: 5 }, (_, i) => outroPedido(i, { status: 'failed', at: agora, facts: [], why: 'timeout' })) })
+  const f = await loadRoute(F.researchRoute, cinco.stubs, src).POST(req({ order_id: ORDER }))
+  return c.status === 429 && c.body.error === 'daily_limit_research' && cheio.log.openai.length === 0 && (cheio.tables.ads_v2_orders[0].brief.research ?? null) === null &&
+    d.status === 200 && copiados.log.openai.length === 1 && v.status === 200 && velhos.log.openai.length === 1 &&
+    e.status === 502 && e.body.error === 'research_failed' && cego.log.openai.length === 0 && (cego.tables.ads_v2_orders[0].brief.research ?? null) === null &&
+    f.status === 200 && cinco.log.openai.length === 1
+}
+await check('R9b (honestidade 4) teto de 6/24 h EXECUTADO: 6 pesquisas próprias = 429 sem modelo e a trava desfeita; copiadas e velhas não contam; a 6ª passa; contagem falhou = 502 sem modelo', tetoFechado())
+await check('R9b-mutante: contagem falhou liberando a pesquisa (o furo antigo) fica vermelho', async () => !(await tetoFechado(trocar(SRC.researchRoute, 'if (cap.error || (cap.count ?? 0) > ADS_V2_RESEARCH_DAILY_CAP) {', 'if (!cap.error && (cap.count ?? 0) > ADS_V2_RESEARCH_DAILY_CAP) {'))))
+await check('R9b-mutante: pesquisa copiada contando no teto fica vermelho', async () => !(await tetoFechado(trocar(SRC.researchRoute, "      .is('brief->research->>copied_from', null)\n", ''))))
 await check('R10 (M5) a consulta lê SÓ brief.sentence: preço e contato do pedido nunca aparecem na rota de pesquisa', !/\.price\b|\.contact\b/.test(researchCod) && /const sentence = typeof brief0\.sentence === 'string' \? brief0\.sentence : ''/.test(researchCod) && /const query = researchQuery\(sentence\)/.test(researchCod))
 await check('R10-mutante: consulta lendo o preço fica vermelho', () => {
   const mut = trocar(researchCod, 'const query = researchQuery(sentence)', 'const query = researchQuery(`${sentence} ${brief0.price}`)')
   return !(!/\.price\b|\.contact\b/.test(mut) && /const query = researchQuery\(sentence\)/.test(mut))
 })
-await check('R11 researchQuery tira telefone, e-mail, @perfil, link e dinheiro, e corta em 200', () => {
+// REANCORADO 29/09 (revisão de honestidade, achado 1): "à venda" agora SAI da consulta (puxava anúncio de portal, que
+// descreve outra unidade) — por isso o começo esperado é "Loja no Edifício Aurora".
+await check('R11 researchQuery tira telefone, e-mail, @perfil, link, dinheiro e as palavras de venda, e corta em 200', () => {
   const q = R.researchQuery('Loja à venda no Edifício Aurora, R$ 450.000, fale 11 91234-5678 ou ana@exemplo.com @ana.imoveis https://exemplo.com/x ' + 'palavra '.repeat(60))
-  return !/450|91234|ana@|@ana|https|exemplo\.com/.test(q) && q.startsWith('Loja à venda no Edifício Aurora') && q.length <= 200
+  return !/450|91234|ana@|@ana|https|exemplo\.com|venda/.test(q) && q.startsWith('Loja no Edifício Aurora') && q.length <= 200
 })
-await check('R12 rascunho novo copia a pesquisa do anterior SÓ da mesma conta e com a frase idêntica (e só status ok)', () => {
-  const o = semComentarios(SRC.ordersRoute)
-  return /\.select\('brief'\)\.eq\('id', o\.research_from\)\.eq\('user_id', user\.id\)\.maybeSingle\(\)/.test(o) && /if \(pb && pb\.sentence === o\.sentence && pr && pr\.status === 'ok'\)/.test(o)
+// Revisão de honestidade 29/09, achado 3: dado pessoal ia para a busca na web. Exemplos INVENTADOS.
+const consultaSemPessoa = (M) => {
+  const a = M.researchQuery('Apartamento 142 do Edifício Aurora, Rua das Flores 55, falar com Maria Souza CPF 123.456.789-00')
+  const b = M.researchQuery('Vendo sala 12 no 9º andar do Edifício Aurora, CEP 01234-567, sou João da Silva, corretora Ana Lima CRECI 12345-F, bairro Jardim')
+  return !/142|55|Maria|Souza|CPF|123/.test(a) && /Edifício Aurora/.test(a) && /Rua das Flores/.test(a) &&
+    !/\b12\b|9º|andar|01234|CEP|João|Silva|Ana|Lima|CRECI|12345|Vendo/.test(b) && /Edifício Aurora/.test(b) && /bairro Jardim/.test(b)
+}
+await check('R11b (honestidade 3) a consulta perde número da unidade e da rua, nome depois de "falar com/sou/corretora", CPF, CRECI e CEP; fica o lugar', consultaSemPessoa(R))
+await check('R11b-mutante: nome depois de "falar com" indo à busca fica vermelho', () => !consultaSemPessoa(pura(F.research, trocar(SRC.research, '  q = dropNamesAfterIntro(q)\n', ''))))
+await check('R11b-mutante: número da rua indo à busca fica vermelho', () => !consultaSemPessoa(pura(F.research, trocar(SRC.research, '(_m, rua: string) => rua)', '(m) => m)'))))
+await check('R11c o pedido à busca proíbe número da rua, endereço exato, unidade (interiores, acabamento, vista…) e portal de anúncio', () => {
+  const m = R.buildResearchMessages('Loja no Edifício Aurora', 'Portuguese').instructions
+  return /street name \(never the street number\)/.test(m) && /the street number, the exact address or the postal code/.test(m) && /interiors, finishes, decoration, furniture, view, balcony/.test(m) && /real-estate listing portals/.test(m) && !/Allowed: the address/.test(m)
 })
+// Revisão de honestidade 29/09, achado 5: "nada achado" também é copiado (trocar o nível não paga outra busca); falha de
+// fornecedor não. EXECUTADO na rota /orders.
+const rodaPedido = async (prevResearch, src, sentence = 'Loja à venda no Edifício Aurora, bairro Jardim') => {
+  const prev = { id: U(50), user_id: USER, status: 'draft', brief: { mode: 'simple', sentence: 'Loja à venda no Edifício Aurora, bairro Jardim', research: prevResearch } }
+  const w = mundo(prev)
+  const res = await loadRoute(F.ordersRoute, w.stubs, src).POST(req({ mode: 'simple', tier: 'commercial', seconds: 15, sector: 'real_estate', sentence, language: 'pt', narration: true, overlays: true, research_from: U(50) }))
+  const novo = w.tables.ads_v2_orders.find((r) => r.id !== U(50))
+  return { res, research: novo?.brief?.research ?? null }
+}
+const copiaCerta = async (src) => {
+  const at = new Date().toISOString()
+  const ok = await rodaPedido({ status: 'ok', at, facts: FATOS }, src)
+  const nada = await rodaPedido({ status: 'failed', at, facts: [], why: 'nothing_found' }, src)
+  const tudoFora = await rodaPedido({ status: 'failed', at, facts: [], why: 'all_dropped' }, src)
+  const caiu = await rodaPedido({ status: 'failed', at, facts: [], why: 'openai_503' }, src)
+  const outraFrase = await rodaPedido({ status: 'ok', at, facts: FATOS }, src, 'Outra frase qualquer')
+  return ok.res.status === 201 && ok.research?.status === 'ok' && ok.research.copied_from === U(50) &&
+    nada.research?.why === 'nothing_found' && nada.research.copied_from === U(50) && tudoFora.research?.why === 'all_dropped' &&
+    caiu.research === null && outraFrase.research === null
+}
+await check('R12 (honestidade 5) /orders EXECUTADO: rascunho novo copia a pesquisa da mesma frase — ok, "nada achado" e "tudo descartado"; falha de fornecedor e frase diferente não', copiaCerta())
+await check('R12-mutante: "nada achado" pago de novo a cada troca de nível fica vermelho', async () => !(await copiaCerta(trocar(SRC.ordersRoute, "(pr.status === 'ok' || (pr.status === 'failed' && (pr.why === 'nothing_found' || pr.why === 'all_dropped')))", "pr.status === 'ok'"))))
+await check('R12b a cópia só lê rascunho DESTA conta', /\.select\('brief'\)\.eq\('id', o\.research_from\)\.eq\('user_id', user\.id\)\.maybeSingle\(\)/.test(semComentarios(SRC.ordersRoute)))
+
+// Revisão de honestidade 29/09, achado 1 (parte do texto): fatos públicos num bloco próprio "do prédio/bairro, nunca do
+// imóvel", e número que só existe nos fatos não vira tamanho/cômodo/andar do imóvel.
+const BRIEF_FATO = { ...BRIEF, business: 'Loja no Edifício Aurora — espaço comercial', extra: { public_fact_1: 'Fica a 300 metros do Parque Central.', public_fact_2: 'O prédio tem 20 andares.' } }
+const fatoNoBloco = (M) => {
+  const m = M.buildV2CopyMessages(BRIEF_FATO, 'Brazilian Portuguese (pt-BR)', { maxWords: 30, narration: true })
+  const i = m.user.indexOf(M.ADS_V2_PUBLIC_FACTS_HEADER)
+  return i > 0 && m.user.indexOf('- Fica a 300 metros do Parque Central.') > i && !/public_fact_/.test(m.user) && /NOT about the property or unit being advertised/.test(M.ADS_V2_PUBLIC_FACTS_HEADER)
+}
+await check('B1 fatos públicos vão num bloco próprio "do prédio ou do bairro — NÃO do imóvel anunciado", nunca como "- public_fact_N:"', fatoNoBloco(BR))
+await check('B1-mutante: fatos de volta no meio do brief como public_fact_N fica vermelho', () => !fatoNoBloco(briefLoader(trocar(SRC.brief, '.filter(([k]) => !PUBLIC_FACT_KEY.test(k)).map(([k, v]) => `- ${k}: ${v}`)', '.map(([k, v]) => `- ${k}: ${v}`)'))))
+const numeroDoFato = (M) => {
+  const o = { maxWords: 30, narration: true, overlays: false }
+  const ruim = M.checkV2Copy(JSON.stringify({ narration: 'Loja no Edifício Aurora com 300 m² de espaço comercial para o seu negócio crescer aqui.', overlays: [], sector: 'real_estate' }), BRIEF_FATO, o)
+  const andar = M.factNumberMisuse('Loja no 20º andar.', BRIEF_FATO)
+  const bom = M.checkV2Copy(JSON.stringify({ narration: 'Conheça a loja no Edifício Aurora, a 300 metros do Parque Central, num prédio de 20 andares, pronta para o seu negócio.', overlays: [], sector: 'real_estate' }), BRIEF_FATO, o)
+  const dono = M.factNumberMisuse('Loja de 300 m².', { ...BRIEF_FATO, offer: 'Loja de 300 m²' })
+  return !ruim.ok && ruim.why.some((w) => /public facts about the building/.test(w)) && andar.includes('20') && bom.ok && dono.length === 0 && M.factNumberMisuse('Loja de 300 m².', BRIEF).length === 0
+}
+await check('B2 o "300" de "a 300 metros do parque" não vira "300 m²" (nem o 20 de "20 andares" vira "20º andar"); número que a PESSOA escreveu vale; sem fatos = nada muda', numeroDoFato(BR))
+await check('B2-mutante: sem a régua de número do fato fica vermelho', () => !numeroDoFato(briefLoader(trocar(SRC.brief, '  if (misuse.length) why.push(', '  if (false) why.push('))))
 await check('R13 evento ads_v2_research_served: na lista fechada, só-servidor e no sink', () => {
   const EV = pura(F.events)
   const sink = (SRC.sink.match(/const SERVER_ONLY_EVENTS = new Set\(\[([\s\S]*?)\]\)/) || ['', ''])[1]
@@ -560,7 +680,41 @@ await check('E4 trava 8.2: nenhum arquivo do modo simples mora em caminho travad
   const novos = [F.simple, F.simpleLib, F.research, F.frames, F.researchRoute, F.contract, F.brief, F.planRoute, F.ordersRoute, F.client]
   return novos.every((p) => !/^(lib\/compose|lib\/hollywood\/|lib\/cinematic\/|lib\/broll\/|lib\/lyriaMusic|lib\/narrationFit|app\/api\/analyze-idea\/|app\/api\/generate-script\/|app\/api\/generate-video-)/.test(p))
 })
-await check('E5 fatos marcados por padrão numa constante só (ADS_V2_SIMPLE_FACTS_DEFAULT_ON) — a decisão do fundador vira 1 linha', typeof S.ADS_V2_SIMPLE_FACTS_DEFAULT_ON === 'boolean' && /const isFactOn = \(id: string\) => factOn\[id\] \?\? ADS_V2_SIMPLE_FACTS_DEFAULT_ON/.test(SRC.simple))
+// REANCORADO 29/09 (revisão de honestidade, achado 2): o padrão virou DESMARCADO — nenhum fato da internet (nem o endereço)
+// entra sem a pessoa marcar — e a marca é presa ao CONTEÚDO do fato (fonte + texto), não ao id f1..f6 (o f1 de uma
+// pesquisa nova herdava a marca do f1 anterior). Virar para true é decisão do fundador e reancora este item.
+const padraoFatos = (lib, tsx) => lib.ADS_V2_SIMPLE_FACTS_DEFAULT_ON === false &&
+  /const factKey = \(f: Fact\) => JSON\.stringify\(\[f\.url, f\.text\]\)/.test(tsx) && /const isFactOn = \(f: Fact\) => factOn\[factKey\(f\)\] \?\? ADS_V2_SIMPLE_FACTS_DEFAULT_ON/.test(tsx) &&
+  /checked=\{isFactOn\(f\)\} disabled=\{locked\} onChange=\{\(e\) => setFactOn\(\(m\) => \(\{ \.\.\.m, \[factKey\(f\)\]: e\.target\.checked \}\)\)\}/.test(tsx)
+await check('E5 (honestidade 2) fatos DESMARCADOS por padrão (1 constante); a marca é presa à fonte + texto do fato, nunca ao id', padraoFatos(S, SRC.simple))
+await check('E5-mutante: fatos marcados por padrão fica vermelho', () => !padraoFatos(pura(F.simpleLib, trocar(SRC.simpleLib, 'export const ADS_V2_SIMPLE_FACTS_DEFAULT_ON = false', 'export const ADS_V2_SIMPLE_FACTS_DEFAULT_ON = true')), SRC.simple))
+await check('E5-mutante: marca presa ao id f1..f6 fica vermelho', () => !padraoFatos(S, trocar(SRC.simple, 'const factKey = (f: Fact) => JSON.stringify([f.url, f.text])', 'const factKey = (f: Fact) => f.id')))
+// Revisão da tela 29/09, mutante A (sobrevivia com 89/0): o /plan tem de receber SÓ os fatos que a pessoa deixou marcados,
+// e a assinatura do plano tem de usar a MESMA escolha (senão a tela diz "plano atual" com outra lista de fatos).
+const soOsMarcadosNaTela = (src) => {
+  const s = semComentarios(src)
+  const plan = bloco(s, 'async function planAd()')
+  return /const chosen = facts\.filter\(\(f\) => isFactOn\(f\)\)\.map\(\(f\) => f\.id\)/.test(plan) &&
+    /body: \{ mode: 'simple', order_id: orderId, sector, logo_footage_id: logo\?\.footageId \?\? null, photos: uploaded, card_footage_id: card\.footageId, facts: chosen \},/.test(plan) &&
+    (plan.match(/facts:/g) || []).length === 2 && /setPlan\(\{ \.\.\.r\.data, sig: JSON\.stringify\(\{ base: baseAtStart, facts: chosen \}\), cardSig: card\.sig \}\)/.test(plan) &&
+    (s.match(/'\/api\/ads\/v2\/plan'/g) || []).length === 1 &&
+    /const planSig = JSON\.stringify\(\{ base: baseSig, facts: factsNow\.filter\(\(f\) => isFactOn\(f\)\)\.map\(\(f\) => f\.id\) \}\)/.test(s)
+}
+await check('F4 (revisão da tela A) tela: o /plan recebe SÓ os fatos marcados (chosen) e a assinatura do plano usa a mesma escolha', soOsMarcadosNaTela(SRC.simple))
+await check('F4-mutante A: todos os fatos indo ao /plan (facts.map) fica vermelho', () => !soOsMarcadosNaTela(trocar(SRC.simple, 'card_footage_id: card.footageId, facts: chosen },', 'card_footage_id: card.footageId, facts: facts.map((f) => f.id) },')))
+await check('F4-mutante A2: "chosen" = todos os ids fica vermelho', () => !soOsMarcadosNaTela(trocar(SRC.simple, 'const chosen = facts.filter((f) => isFactOn(f)).map((f) => f.id)', 'const chosen = facts.map((f) => f.id)')))
+// Revisão da tela 29/09, achado 3: erro de envio em inglês numa tela em português.
+const REASONS = [...((rd('lib/ads/uploadFootage.ts').match(/export type AdsUploadRefusal =([\s\S]*?)\n\n/) || ['', ''])[1].matchAll(/'([a-z_]+)'/g))].map((m) => m[1])
+const envioTraduzido = (lib, tsx) => {
+  const s = semComentarios(tsx)
+  return REASONS.length >= 8 && ['pt', 'es'].every((l) => REASONS.every((r) => { const t = lib.ADS_V2_SIMPLE_UPLOAD_ERRORS[l][r]; return typeof t === 'string' && t.length > 15 && lib.simpleUploadErrorMessage(r, l) === t })) &&
+    lib.simpleUploadErrorMessage('upload_failed', 'en') === null && lib.simpleUploadErrorMessage('algo_novo', 'pt') === lib.ADS_V2_SIMPLE_UPLOAD_ERRORS.pt.upload_failed &&
+    /const uploadError = \(e: unknown, fallback: string\) => \(e instanceof AdsUploadError \? simpleUploadErrorMessage\(e\.reason, lang\) \?\? e\.message : fallback\)/.test(s) &&
+    (s.match(/uploadError\(e, copy\.plan\.(logoFailed|uploadFailed|cardFailed)\)/g) || []).length === 3 && !/AdsUploadError \? e\.message/.test(s)
+}
+await check('T7 (revisão da tela 3) erro de envio na língua da tela: todo motivo de AdsUploadError tem frase em pt e es; logo, foto e quadro final usam a tradução', envioTraduzido(S, SRC.simple))
+await check('T7-mutante: o logo de volta com e.message cru fica vermelho', () => !envioTraduzido(S, trocar(SRC.simple, 'error: uploadError(e, copy.plan.logoFailed) })', 'error: e instanceof AdsUploadError ? e.message : copy.plan.logoFailed })')))
+await check('T7-mutante: motivo "quota" sem frase em pt fica vermelho', () => !envioTraduzido(pura(F.simpleLib, trocar(SRC.simpleLib, "  quota: 'O seu espaço de arquivos está cheio. Apague algo para enviar mais.',\n", '')), SRC.simple))
 
 console.log(`test-ads-modo-simples-2026-09-29: ${ok} verdes, ${falhas.length} vermelhos`)
 for (const f of falhas) console.log('  ✗ ' + f)

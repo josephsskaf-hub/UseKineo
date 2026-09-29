@@ -12,9 +12,19 @@
 //     Preço e contato digitados nos campos próprios nunca chegam aqui.
 //   · fato com preço/aluguel/valor, com característica de unidade (m², quartos, suítes, vagas…), com promessa ou fama
 //     ("valoriza", "melhor", "icônico", "#1") ou com cara de contato é descartado, mesmo com fonte.
+//   · REVISÃO DE HONESTIDADE 29/09 (o caso "interiores assinados" do próprio fundador): fato do PRÉDIO que descreve a
+//     UNIDADE (apartamentos, interiores, acabamento, decorado/mobiliado, assinado, vista, varanda, cobertura, planta,
+//     andar, "alto padrão") é descartado como 'unit'; endereço com NÚMERO (rua + número, nº, CEP) é descartado como
+//     'address' (é o endereço de quem vende e ele não escreveu); fonte de PORTAL DE ANÚNCIO (zap, vivareal, quintoandar,
+//     olx…) é descartada como 'portal' (descreve OUTRA unidade). A consulta perde as palavras de venda/aluguel, os números
+//     de unidade e de rua, CPF/CNPJ/CRECI/CEP e o nome depois de "sou", "falar com" etc.
 
 export const ADS_V2_RESEARCH_MODEL = 'gpt-4.1-mini'
-/** Pesquisas pagas por conta em 24 h (evento ads_v2_research_served, contado ANTES do modelo). */
+/**
+ * Pesquisas pagas por conta em 24 h. Contadas DEPOIS da trava e ANTES do modelo, pelos PEDIDOS da conta com
+ * brief.research.at nas últimas 24 h e sem copied_from (o próprio pedido já conta; pedidos simultâneos se veem).
+ * Leitura da contagem falhou = NÃO pesquisa (falha fechada).
+ */
 export const ADS_V2_RESEARCH_DAILY_CAP = 6
 export const ADS_V2_RESEARCH_TIMEOUT_MS = 25_000
 export const ADS_V2_RESEARCH_MAX_FACTS = 6
@@ -40,6 +50,8 @@ export interface AdsV2ResearchDropped {
   no_source: number
   price: number
   unit: number
+  address: number
+  portal: number
   promise: number
   contact: number
   long: number
@@ -54,7 +66,7 @@ export interface AdsV2ResearchAnnotation {
 }
 export type AdsV2ResearchStatus = 'none' | 'running' | 'ok' | 'failed'
 
-const emptyDropped = (): AdsV2ResearchDropped => ({ no_source: 0, price: 0, unit: 0, promise: 0, contact: 0, long: 0, duplicate: 0, over: 0 })
+const emptyDropped = (): AdsV2ResearchDropped => ({ no_source: 0, price: 0, unit: 0, address: 0, portal: 0, promise: 0, contact: 0, long: 0, duplicate: 0, over: 0 })
 
 // ── filtros de fato (regex literais; fronteira de palavra Unicode por lookaround, porque \b não vê letra acentuada) ──
 const PRICE_RE = /(R\$|US\$|U\$|€|£|¥|\$\s?\d|(?<![\p{L}\p{N}])(\d[\d.,]*\s?(reais|real|d[oó]lares|dollars?|euros?|milh[oõ]es|million|bilh[oõ]es|billion)|pre[çc]os?|prices?|priced|precios?|aluguel|alugu[eé]is|alugar|aluga-se|rent|rents|rental|alquiler(es)?|alquila|custa|custam|cost|costs|cuesta|cuestan|iptu|taxa|taxas|fee|fees|valor|valores|value|worth|vendido por|sold for)(?![\p{L}\p{N}]))/iu
@@ -63,19 +75,65 @@ const PROMISE_RE = /((?<![\p{L}\p{N}])(valoriz\p{L}*|investimentos?|investments?
 /** ESPELHO de CONTACTISH (lib/ads/v2Brief.ts): o guardião confere que é o mesmo texto. */
 const CONTACTISH = /(https?:\/\/|www\.|\b[a-z0-9-]+\.(com|net|org|io|app|co|br|jo|me|shop|store)\b|@[a-z0-9_.]{2,}|\d[\d\s().-]{6,}\d)/i
 
+/** Característica da UNIDADE dita sobre o prédio ("os apartamentos têm…", "interiores assinados", "vista para…"). */
+const UNIT_WORDS_RE = /(?<![\p{L}\p{N}])(apartamentos?|aptos?|unidades?|sala|loja|coberturas?|interiores?|decorad\p{L}*|mobiliad\p{L}*|mob[ií]lia|acabamentos?|assinad\p{L}*|plantas?|andar|vistas?|varandas?|sacadas?|p[eé][- ]direito|alto padr[aã]o|apartments?|units?|penthouses?|interiors?|furnished|furniture|decorated|finish(es|ings)?|signed|floor ?plans?|views?|balcon(y|ies)|high[- ]end|departamentos?|unidad(es)?|[aá]ticos?|amueblad\p{L}*|acabados?|firmad\p{L}*|balc[oó]n(es)?|terrazas?)(?![\p{L}\p{N}])/iu
+/** Endereço com NÚMERO: tipo de via + nome + número (não "a 5 minutos"), "nº 55" ou CEP. Rua e bairro sem número passam. */
+const ADDRESS_RE = /((?<![\p{L}\p{N}])(rua|r\.|avenida|av\.|alameda|al\.|travessa|pra[çc]a|estrada|rodovia|largo|street|st\.|avenue|ave\.|road|calle|avda\.?|carrera)\s+[^\d\n,]{2,60}?(,\s*|\s+)(n[º°o.]?\s*)?\d{1,5}(?![\p{L}\p{N}])(?!\s*(min|minutos?|minutes?|km|metros?|meters?|quadras?|blocks?|m)(?![\p{L}\p{N}]))|(?<![\p{L}\p{N}])(n[º°]|n[uú]mero|nro\.?)\s*\d+|(?<!\d)\d{5}-?\d{3}(?!\d))/iu
+/** Portais de anúncio: a página descreve OUTRA unidade (m², andar, acabamento), nunca o prédio. */
+const PORTAL_HOST_RE = /(^|\.)(zapimoveis|vivareal|imovelweb|quintoandar|olx|chavesnamao|lopes|loft|wimoveis|netimoveis|123i|casamineira|imoveis\.mercadolivre|mercadolivre|mercadolibre|zillow|realtor|trulia|redfin|apartments|idealista|fotocasa|habitaclia|inmuebles24|lamudi|properati)\.[a-z.]+$/i
+
+/** A fonte é um portal de anúncio? Pura. */
+export function isListingPortal(host: string): boolean {
+  return PORTAL_HOST_RE.test(String(host ?? '').toLowerCase())
+}
+
 /** Por que um fato não pode entrar (null = pode). Mesma régua para a pesquisa e para o plano B do link. */
-export function factRefusal(text: string): 'price' | 'unit' | 'promise' | 'contact' | 'long' | null {
+export function factRefusal(text: string): 'price' | 'unit' | 'address' | 'promise' | 'contact' | 'long' | null {
   if (PRICE_RE.test(text)) return 'price'
   if (UNIT_RE.test(text)) return 'unit'
+  if (UNIT_WORDS_RE.test(text)) return 'unit'
+  if (ADDRESS_RE.test(text)) return 'address'
   if (PROMISE_RE.test(text)) return 'promise'
   if (CONTACTISH.test(text)) return 'contact'
   if (text.length > ADS_V2_RESEARCH_FACT_MAX_CHARS) return 'long'
   return null
 }
 
+/** Quem fala de si ou do contato: o NOME que vem depois (palavras com inicial maiúscula) nunca vai à busca. */
+const PERSON_INTRO_RE = /(?<![\p{L}\p{N}])(eu sou|sou|me chamo|chamo-me|meu nome [ée]|falar com|fale com|falar c\/|tratar com|trate com|contato com|contato|corretora?|propriet[aá]ri[oa]|dono|dona|i am|i'm|my name is|contact|call|ask for|soy|me llamo|mi nombre es|hablar con|habla con|contactar a|due[ñn]o|due[ñn]a)(?![\p{L}\p{N}])[\s:,-]*/giu
+const NAME_WORD_RE = /^(\p{Lu}[\p{L}'’.-]*|d[aeo]s?|de|del|la|van|von|e)(?![\p{L}\p{N}])\s*/u
+
+function dropNamesAfterIntro(q: string): string {
+  let out = ''
+  let last = 0
+  for (const m of q.matchAll(PERSON_INTRO_RE)) {
+    const at = m.index ?? 0
+    if (at < last) continue
+    out += q.slice(last, at) + ' '
+    let rest = q.slice(at + m[0].length)
+    let eaten = m[0].length
+    let words = 0
+    let capitals = 0
+    while (words < 5) {
+      const w = NAME_WORD_RE.exec(rest)
+      if (!w) break
+      const isCap = /^\p{Lu}/u.test(w[1])
+      if (!isCap && capitals === 0) break
+      if (isCap) capitals += 1
+      rest = rest.slice(w[0].length)
+      eaten += w[0].length
+      words += 1
+    }
+    last = at + eaten
+  }
+  return out + q.slice(last)
+}
+
 /**
- * O que vai para a busca: SÓ a frase da pessoa, sem telefone, e-mail, @perfil, link nem valor em dinheiro, até 200
- * caracteres (corte em fronteira de palavra). Pura.
+ * O que vai para a busca: SÓ o lugar da frase da pessoa, até 200 caracteres (corte em fronteira de palavra). Sai:
+ * telefone, e-mail, @perfil, link, dinheiro, CPF/CNPJ/RG/CRECI, CEP, número da unidade (apto 142, sala 3, 12º andar),
+ * número da rua ("Rua das Flores, 55"), o nome depois de "sou"/"falar com"/"corretor" e as palavras de venda e aluguel
+ * (elas puxam anúncio de portal, que descreve OUTRA unidade). Pura.
  */
 export function researchQuery(sentence: string): string {
   let q = String(sentence ?? '')
@@ -84,8 +142,15 @@ export function researchQuery(sentence: string): string {
   q = q.replace(/@[\w.]{2,}/g, ' ')
   q = q.replace(/(R\$|US\$|U\$|€|£|\$)\s?\d[\d.,]*(\s?(mil|k|mi|milh[oõ]es|million|bi|bilh[oõ]es|billion)(?![\p{L}\p{N}]))?/giu, ' ')
   q = q.replace(/\d[\d.,]*\s?(mil\s)?(reais|d[oó]lares|dollars?|euros?)(?![\p{L}\p{N}])/giu, ' ')
+  q = q.replace(/(?<![\p{L}\p{N}])(cpf|cnpj|rg|creci|cep|dni|nif|ssn)(?![\p{L}\p{N}])[\s:nº°.-]*[\d./-]*\d?[a-z]?/giu, ' ')
+  q = q.replace(/(?<!\d)\d{5}-?\d{3}(?!\d)/g, ' ')
   q = q.replace(/\+?\d[\d\s().-]{6,}\d/g, ' ')
-  q = q.replace(/\s+/g, ' ').replace(/\s+([,.;:])/g, '$1').replace(/^[\s,.;:-]+|[\s,;:-]+$/g, '').trim()
+  q = dropNamesAfterIntro(q)
+  q = q.replace(/\d{1,3}\s*[º°ªo]?\s*(andar|piso|floor)(?![\p{L}\p{N}])/giu, ' ')
+  q = q.replace(/(?<![\p{L}\p{N}])(apartamento|apto|ap|apt|unidade|unit|sala|conjunto|cj|bloco|torre|casa|lote|loja|suite|andar|piso|depto|departamento|n[º°o]|nro|n[uú]mero|number)\.?\s*(n[º°o.]?\s*)?\d+[a-z]?(?![\p{L}\p{N}])/giu, (_m, w: string) => ` ${/^(n[º°o]|nro|n[uú]mero|number)$/iu.test(w) ? '' : w} `)
+  q = q.replace(/((?<![\p{L}\p{N}])(rua|r\.|avenida|av\.|alameda|al\.|travessa|pra[çc]a|estrada|rodovia|largo|street|st\.|avenue|ave\.|road|calle|avda\.?|carrera)\s+[^\d\n,]{2,60}?)(,\s*|\s+)\d{1,5}[a-z]?(?![\p{L}\p{N}])/giu, (_m, rua: string) => rua)
+  q = q.replace(/(?<![\p{L}\p{N}])([àa] venda|para vender|pra vender|vende-se|vendo|para alugar|pra alugar|aluga-se|alugo|for sale|for rent|to rent|to let|se vende|en venta|se alquila|alquilo|en alquiler)(?![\p{L}\p{N}])/giu, ' ')
+  q = q.replace(/\s+/g, ' ').replace(/\s+([,.;:])/g, '$1').replace(/([,;:])(\s*[,.;:])+/g, (_m, p: string) => p).replace(/^[\s,.;:-]+|[\s,;:-]+$/g, '').trim()
   if (q.length <= ADS_V2_RESEARCH_QUERY_MAX_CHARS) return q
   const cut = q.slice(0, ADS_V2_RESEARCH_QUERY_MAX_CHARS)
   const sp = cut.lastIndexOf(' ')
@@ -98,8 +163,8 @@ export function buildResearchMessages(query: string, languageName: string): { in
     'You look up PUBLIC facts on the web about a place or a business that someone wants to show in a short video ad.',
     'Search the web first. Then answer ONLY with 3 to 6 lines. Each line starts with "- " and is one short fact (under 20 words) with its source cited.',
     `Write every line in ${languageName}.`,
-    'Allowed: the address, the street and the neighborhood; what is nearby (parks, stations, schools, shops, landmarks); public facts about the building or the business (name, year it was built, architect, number of floors, shared amenities).',
-    'Forbidden: any price, rent, fee, cost or appreciation; any promise or opinion (for example "best", "iconic", "great investment"); anything about one specific unit or apartment (size, square meters, bedrooms, suites, which floor, parking spaces); any data about people (owners, residents, names, phone numbers, e-mails).',
+    'Allowed: the street name (never the street number) and the neighborhood; what is nearby (parks, stations, schools, shops, landmarks); public facts about the building as a whole or the business (name, year it was built, architect, number of floors, shared amenities).',
+    'Forbidden: any price, rent, fee, cost or appreciation; any promise or opinion (for example "best", "iconic", "great investment"); the street number, the exact address or the postal code; anything about the units or apartments, even if every unit has it (size, square meters, bedrooms, suites, floor, parking spaces, interiors, finishes, decoration, furniture, view, balcony, floor plan); facts taken from real-estate listing portals; any data about people (owners, residents, names, phone numbers, e-mails).',
     'Never invent. Never write a fact without a source. If you find nothing reliable, answer with the single line: - none',
   ].join('\n')
   return { instructions, input: `Place or business to look up: ${query}` }
@@ -196,6 +261,7 @@ export function parseResearchOutput(outputText: string, annotations: readonly Ad
     const cite = cites.find((a) => (a.start_index as number) < end && (a.end_index as number) > start)
     const src = cite ? cleanSourceUrl(cite.url) : null
     if (!src) { dropped.no_source += 1; continue }
+    if (isListingPortal(src.host)) { dropped.portal += 1; continue }
     const why = factRefusal(body)
     if (why) { dropped[why] += 1; continue }
     const key = body.toLowerCase()

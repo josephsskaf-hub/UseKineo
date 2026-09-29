@@ -26,8 +26,9 @@ export const ADS_V2_SIMPLE_ACCEPT = 'image/jpeg,image/png,image/webp,video/mp4,v
 /** Vídeo é lido SÓ no navegador (nada sobe ao servidor): limites locais. */
 export const ADS_V2_SIMPLE_VIDEO_MAX_BYTES = 500 * 1024 * 1024
 export const ADS_V2_SIMPLE_VIDEO_MAX_SECONDS = 600
-/** DECISÃO PENDENTE DO FUNDADOR: fatos da pesquisa marcados por padrão (piloto automático) ou desmarcados (cautela). */
-export const ADS_V2_SIMPLE_FACTS_DEFAULT_ON = true
+/** Fatos da pesquisa DESMARCADOS por padrão (revisão de honestidade 29/09): nenhum fato da internet — nem o endereço — entra
+ *  no anúncio sem a pessoa marcar. Virar para true é decisão do fundador (e reancora o guardião E5 com o motivo). */
+export const ADS_V2_SIMPLE_FACTS_DEFAULT_ON = false
 
 /**
  * Tempos (s) dos quadros de um vídeo: até `room` (máx. 3) das frações 0,2/0,5/0,8. Vídeo com menos de 1,5 s dá só o
@@ -194,7 +195,7 @@ const EN = {
     noteResearch: 'Looking up public facts about the place…',
     notePlan: 'Writing your plan: shots, voice-over and words on screen…',
     factsTitle: 'What we found on the internet — check it',
-    factsHint: 'Only ticked facts go into the ad. Untick anything that is wrong.',
+    factsHint: 'Nothing here goes into the ad unless you tick it. Tick only what is right about the building or the area, then plan again.',
     source: 'source',
     factsNone: 'We did not find public facts with a source; we go on with your text only.',
     title: 'Your ad plan',
@@ -378,7 +379,7 @@ const PT: AdsV2SimpleCopy = {
     noteResearch: 'Procurando fatos públicos sobre o lugar…',
     notePlan: 'Escrevendo o plano: cenas, narração e frases na tela…',
     factsTitle: 'O que achamos na internet — confira',
-    factsHint: 'Só os fatos marcados entram no anúncio. Desmarque o que estiver errado.',
+    factsHint: 'Nada daqui entra no anúncio sem a sua marca. Marque só o que estiver certo sobre o prédio ou o bairro e planeje de novo.',
     source: 'fonte',
     factsNone: 'Não achamos fatos públicos com fonte; seguimos só com o seu texto.',
     title: 'O plano do seu anúncio',
@@ -560,7 +561,7 @@ const ES: AdsV2SimpleCopy = {
     noteResearch: 'Buscando datos públicos del lugar…',
     notePlan: 'Escribiendo el plan: escenas, narración y frases en pantalla…',
     factsTitle: 'Lo que encontramos en internet — revísalo',
-    factsHint: 'Solo los datos marcados entran en el anuncio. Desmarca lo que esté mal.',
+    factsHint: 'Nada de esto entra en el anuncio sin tu marca. Marca solo lo que sea correcto sobre el edificio o la zona y planifica de nuevo.',
     source: 'fuente',
     factsNone: 'No encontramos datos públicos con fuente; seguimos solo con tu texto.',
     title: 'El plan de tu anuncio',
@@ -780,4 +781,37 @@ export function simpleErrorMessage(code: string | null | undefined, lang: string
     return typeof extra.needed === 'number' && typeof extra.balance === 'number' ? fill(table.out_of_credits, { needed: extra.needed, balance: extra.balance }) : table.out_of_credits_plain
   }
   return table[c] ?? (c.startsWith('moderation_') ? table.moderation_unavailable : table.default)
+}
+
+// ── erros de envio (AdsUploadError, lib/ads/uploadFootage.ts) na língua da tela ─────────────────────────────────────
+// Revisão da tela 29/09: a lib de envio só fala inglês e a tela simples mostrava e.message cru ("Foto 2: No connection…").
+// Chave = o MOTIVO (e.reason), nunca o texto: a frase em inglês pode mudar sem quebrar a tradução.
+const UPLOAD_PT: Record<string, string> = {
+  unsupported_type: 'Use fotos JPG ou PNG, ou vídeos MP4, MOV ou WebM.',
+  file_too_large: 'Cada arquivo precisa ter menos de 50 MB.',
+  logo_must_be_image: 'O logo precisa ser uma imagem: PNG ou JPG.',
+  convert_failed: 'Seu navegador não conseguiu abrir esta foto. Salve como JPG (no iPhone: Ajustes → Câmera → Formatos → Mais Compatível) e envie de novo.',
+  unauthenticated: 'Entre de novo na sua conta para enviar os arquivos.',
+  paid_feature: 'Enviar os seus próprios arquivos precisa do passe do Studio Ads ou de um plano pago.',
+  quota: 'O seu espaço de arquivos está cheio. Apague algo para enviar mais.',
+  upload_failed: 'O envio não terminou. Confira a internet e tente de novo.',
+}
+const UPLOAD_ES: Record<string, string> = {
+  unsupported_type: 'Usa fotos JPG o PNG, o videos MP4, MOV o WebM.',
+  file_too_large: 'Cada archivo debe pesar menos de 50 MB.',
+  logo_must_be_image: 'El logo debe ser una imagen: PNG o JPG.',
+  convert_failed: 'Tu navegador no pudo abrir esta foto. Guárdala como JPG (en iPhone: Ajustes → Cámara → Formatos → Más compatible) y súbela de nuevo.',
+  unauthenticated: 'Inicia sesión de nuevo para subir tus archivos.',
+  paid_feature: 'Subir tus propios archivos necesita el pase de Studio Ads o un plan de pago.',
+  quota: 'Tu espacio de archivos está lleno. Borra algo para subir más.',
+  upload_failed: 'La subida no terminó. Revisa tu conexión e inténtalo de nuevo.',
+}
+export const ADS_V2_SIMPLE_UPLOAD_ERRORS: { pt: Record<string, string>; es: Record<string, string> } = { pt: UPLOAD_PT, es: UPLOAD_ES }
+
+/** Erro de envio na língua da tela (pt/es) pelo MOTIVO. null = inglês/outras (quem chama usa a frase da lib). Motivo
+ *  desconhecido em pt/es = a frase genérica de envio da própria língua (nunca inglês). Pura. */
+export function simpleUploadErrorMessage(reason: string | null | undefined, lang: string): string | null {
+  const table = lang === 'pt' ? UPLOAD_PT : lang === 'es' ? UPLOAD_ES : null
+  if (!table) return null
+  return table[String(reason ?? '')] ?? table.upload_failed
 }
