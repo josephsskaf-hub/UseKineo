@@ -45,6 +45,7 @@ import {
   type AttemptRecord,
 } from '@/lib/cinematic/dispatchScenes'
 import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
+import { describeScenesCovered, completeSceneDescriptions, hasSpeechArtifacts, type DescriptionCoverage } from '@/lib/cinematic/sceneDescriptions' // [TRAVA 8.2] KLING25-DESCRICOES-2026-09-28
 import { kling25FootageNeeded, kling25ShotCount, kling25SceneSeconds, kling25ClipsUsd, kling25WriterBudget, kling25AlignBudget, kling25AverageShotSeconds, kling25VerbatimPlan, kling25VisualHint, kling25SceneWordStarts, kling25PlanPace, kling25WordsFit, KLING25_CLIP_LOSS_SECONDS, kling25ApplyShotAxis, kling25StripShotAxis } from '@/lib/cinematic/klingShots' // KINEO-KLING25-PLANOS-5S-2026-09-28 · KINEO-KLING25-VARIEDADE-2026-09-28
 import { resolveCharacterVoice } from '@/lib/hollywood/characterVoice'
 import { detectShotSpec } from '@/lib/cinematic/shotSpec'
@@ -826,16 +827,22 @@ function eraLockSuffix(context: string): string {
 // the model gets a shot to direct instead of keyword soup. One gpt-4o-mini call
 // for all scenes; on failure the caller uses the existing visual hint.
 // The same approved mode/style governs descriptions, stills and video prompts.
+// [TRAVA 8.2] KLING25-DESCRICOES-2026-09-28 — render real (Kling 2.5, 18 planos): o modelo devolveu 17 descrições e a cena 18
+// subiu com a FALA crua ("a monster like this… Follow for the next one") → dinossauro num filme de furacão. Esta função
+// continua sendo UMA chamada (o laço de 2 tentativas abaixo é o de sempre); quem a chama acima de 12 cenas é
+// describeScenesCovered (lib/cinematic/sceneDescriptions): 2 lotes em paralelo + re-pedido só das faltantes. `lote` traz
+// os números REAIS das cenas (1-based) e o total do filme — sem ele, a chamada é a de sempre, byte a byte.
 async function generateCinematicDescriptions(
   scenes: { voiceover: string; stockSearchQuery?: string; description: string }[],
   topic: string,
   visualPolicy: VisualPromptPolicy,
+  lote?: { numeros: number[]; total: number },
 ): Promise<string[]> {
   const list = scenes
     .map((s, i) => {
       const vo = (s.voiceover || '').trim()
       const hint = (s.stockSearchQuery || s.description || '').trim()
-      return `Scene ${i + 1}:\n  narration: ${vo || '(none)'}\n  visual hint: ${hint || '(none)'}`
+      return `Scene ${lote?.numeros[i] ?? i + 1}:\n  narration: ${vo || '(none)'}\n  visual hint: ${hint || '(none)'}`
     })
     .join('\n\n')
 
@@ -854,7 +861,7 @@ RULES:
 - ${NO_TEXT_OBJECT_DIRECTION}
 - Output ONLY valid JSON: { "descriptions": ["...", "..."] } with EXACTLY ${scenes.length} items, in scene order.`
 
-  const userMsg = `Topic: ${topic.slice(0, 200)}\n\nScenes:\n${list}`
+  const userMsg = `Topic: ${topic.slice(0, 200)}\n\nScenes:\n${list}${lote ? `\n\n(These are scenes ${lote.numeros.join(', ')} of a ${lote.total}-scene film; the other scenes are described in a separate call — keep the same look and vary the framing within this set.)` : ''}`
 
   // KINEO-VIGIA-DESCRICAO-2026-09-11 — render 802f024e: o modelo devolveu 2
   // descrições para 5 cenas e as cenas 3-5 subiram para a fal com o pedaço
@@ -871,7 +878,7 @@ RULES:
           { role: 'user', content: tentativa === 0 ? userMsg : `${userMsg}\n\nYour previous answer had ${best.length} descriptions. Return EXACTLY ${scenes.length} descriptions, one per scene, in order.` },
         ],
         temperature: 0.6,
-        max_tokens: 1000,
+        max_tokens: Math.max(1000, 90 * scenes.length + 200), // [TRAVA 8.2] KLING25-DESCRICOES: espelho de descriptionTokenBudget (lib/cinematic/sceneDescriptions) — era 1000 fixo
         response_format: { type: 'json_object' },
       },
       // KINEO-DESC-RETRY-2026-07-24 — one retry so a single transient failure
@@ -3315,18 +3322,30 @@ async function manipularPost(req: NextRequest) {
     // KINEO-HOLLYWOOD-2026-07-09 — skipped for hollywood: planHollywoodScenes
     // writes its own per-scene prompts (people allowed), so the faceless
     // description pass would be wasted work.
+    // [TRAVA 8.2] KLING25-DESCRICOES-2026-09-28 — cobertura TOTAL e fallback que nunca é a fala. Render real 28/09 02:35 UTC
+    // (Kling 2.5, 18 planos, 17 descrições): a cena 18 caía em `stockSearchQuery`, que no verbatim são as PALAVRAS FALADAS
+    // (kling25VisualHint / verbatimBeats.pexelsQuery) — "a monster like this… Follow for the next one" virou dinossauro.
+    // Agora: acima de 12 cenas o descritor vai em 2 lotes paralelos, as faltantes são re-pedidas uma vez, e a cena que
+    // AINDA ficar sem descrição nasce do SUJEITO da vizinha válida com outro enquadramento (completeSceneDescriptions);
+    // fala que é só CTA repete o assunto do filme. Caminho clássico (Seedance/Kling/Veo/Sora); hollywood intocado.
+    const cenasSemDescricaoDoModelo = new Set<number>() // índices 0-based cujo plano veio do fallback: o supervisor fala×imagem não pode devolvê-los à criatura/CTA literal
     if (verbatim && planScenes.length === 0 && !hollywoodPath) {
+      let cobertura: DescriptionCoverage = { descriptions: scenes.map(() => null), lotes: 0, repedidas: [], recuperadas: [], erros: [] }
       try {
-        const aiPrompts = await generateCinematicDescriptions(scenes, prompt, classicVisualPolicy)
-        scenes = scenes.map((s, i) => ({
-          ...s,
-          aiPrompt: aiPrompts[i] && aiPrompts[i].length > 3 ? aiPrompts[i] : s.aiPrompt,
-        }))
-        const got = scenes.filter((s) => s.aiPrompt).length
-        console.log(`[cinematic] #441 cinematic descriptions: ${got}/${scenes.length} scenes`)
+        cobertura = await describeScenesCovered(scenes.length, async (numeros) => await generateCinematicDescriptions(numeros.map((n) => scenes[n]), prompt, classicVisualPolicy, numeros.length === scenes.length ? undefined : { numeros: numeros.map((n) => n + 1), total: scenes.length })) // ≤ 12 cenas: sem `lote` — mensagens byte-idênticas às de hoje
       } catch (e) {
         console.warn('[cinematic] #441 description generation skipped:', e instanceof Error ? e.message : String(e))
       }
+      const completas = completeSceneDescriptions({
+        descriptions: cobertura.descriptions.map((d, i) => d ?? scenes[i].aiPrompt ?? null), // prosa já existente (planner do zero-scenes) vale como descrição
+        scenes: scenes.map((s) => ({ voiceover: s.voiceover, hint: s.stockSearchQuery || s.description })),
+        topic: prompt,
+      })
+      scenes = scenes.map((s, i) => ({ ...s, aiPrompt: completas.descriptions[i] }))
+      for (const f of completas.fallbacks) cenasSemDescricaoDoModelo.add(f.index)
+      const got = cobertura.descriptions.filter(Boolean).length
+      console.log(`[cinematic] #441 cinematic descriptions: ${got}/${scenes.length} scenes (${cobertura.lotes} lote(s)${cobertura.repedidas.length ? `; re-pedidas ${cobertura.repedidas.map((i) => i + 1).join(',')} → ${cobertura.recuperadas.length} recuperada(s)` : ''}${cobertura.erros.length ? `; erros: ${cobertura.erros.join(' | ')}` : ''})`)
+      if (completas.fallbacks.length) console.warn(`[cinematic] KLING25-DESCRICOES: ${completas.fallbacks.length} cena(s) sem descrição do modelo — prompt visual nasceu do sujeito, nunca da fala: ${completas.fallbacks.map((f) => `cena ${f.index + 1} (${f.source})`).join(', ')}`)
     }
 
     // #370 — Submit strategy is per-engine (see submitAllScenes below):
@@ -5762,6 +5781,9 @@ async function manipularPost(req: NextRequest) {
       if (alinhado) {
         const historiaAlinhada = `${prompt} ${scenes.map((sc) => sc.voiceover ?? '').join(' ')}`
         for (const c of alinhado.rewritten) {
+          // [TRAVA 8.2] KLING25-DESCRICOES: cena cujo plano nasceu do fallback (sem descrição do modelo) tem fala com metáfora/CTA —
+          // a reescrita do supervisor (lib compartilhada com o hollywood, por isso intocada) não pode trazê-la de volta como criatura/CTA literal.
+          if (cenasSemDescricaoDoModelo.has(c.index) && hasSpeechArtifacts(c.shot)) { console.warn(`[fala-x-imagem] KLING25-DESCRICOES: reescrita da cena ${c.index + 1} recusada (criatura/CTA literal): ${c.shot.slice(0, 120)}`); continue }
           // O plano reescrito passa pelo mesmo scrub determinístico: ano/nome fora da história não sobe.
           scenes[c.index].aiPrompt = scrubInventedSetting(c.shot, historiaAlinhada).text
         }

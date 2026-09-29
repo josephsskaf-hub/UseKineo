@@ -320,6 +320,7 @@ import useWaitAbandon from '@/components/video/useWaitAbandon'
 // produto nao tem.
 import { MIN_COVERAGE, autofitDown } from '@/lib/narrationFit'
 import { speechRateForScript, speechSecondsOfScript, autofitDownAt } from '@/lib/speechRate'
+import { reguaDoServidorNaTela, contadorVoz, fraseDoContador, falaNaReguaDaTela, type ContadorMotor } from '@/lib/contadorVoz' // STUDIO-CONTADOR-VOZ-2026-09-28
 // KINEO-PREFLIGHT-QUE-NAO-ACUSA-2026-09-08 — o preflight desta tela precisa
 // medir a MESMA narração que o servidor mede. Ler o texto cru conta bullets e
 // `Voice:` como fala e infla o número: era metade da razão de ele prever uma
@@ -8051,7 +8052,10 @@ export default function GenerateClient({
     {
       const baseChecagem = expandBaseRef.current
       if (scriptMode === 'verbatim' && baseChecagem) {
-        const falaSeg = speechSecondsOfScript(quality, baseChecagem).seconds // KINEO-REGUA-UNICA: narração extraída, motor + velocidade do texto original
+        // STUDIO-CONTADOR-VOZ-2026-09-28: a checagem da análise mede na MESMA régua do contador e do servidor — a voz
+        // que vai narrar (persona por nicho no clássico, 2,3 no hollywood), não a da família. Antes, 3,1 aqui e 2,3 lá.
+        const reguaAnalise = reguaDoServidorNaTela({ engine: mode === 'fast' || mode === 'creator' ? 'fast' : aiEngine, script: baseChecagem, language, vertical: analysis?.niche ?? null })
+        const falaSeg = falaNaReguaDaTela(baseChecagem, reguaAnalise) // KINEO-REGUA-UNICA: narração extraída, agora na régua da voz
         const cobre = falaSeg >= duration * MIN_COVERAGE
         // KINEO-CONTRATO-DURACAO-2026-09-02 — o espelho do bloqueio acima, para
         // roteiro LONGO: "Use my script as is" com ~80s de fala e 60s no botao
@@ -8059,38 +8063,51 @@ export default function GenerateClient({
         // — pedido 60 → entregue 30..90 medido em 14d. Como o texto e do
         // autor (C1) e o credito nao depende da duracao, a saida honesta e
         // subir o alvo para o menor botao que a fala enche, antes de gastar.
-        // Fala maior que 90×1,15 nao cabe em botao nenhum: segue como esta
-        // (o compose corta no teto) e fica registrado.
-        if (cobre && falaSeg > duration * 1.2) {
-          const cabe = DURATION_OPTIONS.map((o) => o.value).filter((d) => d > duration && falaSeg <= d * 1.15).sort((a, b) => a - b)[0]
-          // KINEO-SEEDANCE-15S-2026-09-29 (B3) — o crédito DEPENDE da duração desde KINEO-DURACAO (a nota acima envelheceu):
-          // subir 15 → 35 no trial de 10 cr trocava um filme que cabe (7 cr) por um que não sai (15 cr). Só sobe se o
-          // saldo pagar a nova duração; senão mantém, e a rota recusa o roteiro longo antes do débito sugerindo 35 s.
-          const cabeNoSaldo = !cabe || credits === null || costForDurationOption(cabe) <= credits
-          if (cabe && cabeNoSaldo) {
-            setDuration(cabe)
-            alvoAnalise = cabe
-            void trackEvent('script_duration_autofit', {
-              speech_seconds: Math.round(falaSeg),
-              from_seconds: duration,
-              to_seconds: cabe,
-              from_topic: opts?.fromTopic === true,
-            })
-          } else if (cabe) {
-            void trackEvent('script_duration_autofit_unaffordable', {
-              speech_seconds: Math.round(falaSeg),
-              from_seconds: duration,
-              to_seconds: cabe,
-              needed: costForDurationOption(cabe),
-              credits,
-            })
-          } else {
-            void trackEvent('script_duration_overflow', {
-              speech_seconds: Math.round(falaSeg),
-              target_seconds: duration,
-              from_topic: opts?.fromTopic === true,
-            })
-          }
+        // Fala maior que o teto × tolerância nao cabe em botao nenhum: segue como esta
+        // (o compose corta no teto; o Kineo 1 recusa sem cobrar) e fica registrado.
+        //
+        // STUDIO-CONTADOR-VOZ-2026-09-28 (revisão): este bloco tinha réguas DIGITADAS (sobe acima de 1,2× do
+        // seletor, para o botão que a fala cabe em 1,15×) enquanto o contador e o servidor sobem por COBERTURA
+        // (largestFittingDuration ≥ MIN_COVERAGE). Medido com o roteiro do fundador: 109 palavras no Kling 2.5 a
+        // 2,45 pal/s = 45 s com o seletor em 35 → o contador dizia "✓ fills your 35s film", o clique virava o
+        // seletor para 60 aqui, e o servidor descia para 35 e devolvia a diferença — três frases para o mesmo
+        // texto. Agora o veredito é o MESMO do contador (contadorVoz): sobe só quando a fala ENCHE um botão maior.
+        const vereditoAnalise = contadorVoz({ script: baseChecagem, regua: reguaAnalise, requestedSeconds: duration })
+        const sobeParaBruto = vereditoAnalise?.kind === 'up' ? DURATION_OPTIONS.find((o) => o.value === vereditoAnalise.to)?.value : undefined
+        // KINEO-SEEDANCE-15S-2026-09-29 (B3, reaplicado sobre o STUDIO-CONTADOR-VOZ no merge de 29/09) — o crédito DEPENDE da
+        // duração: subir 15 → 35 no trial de 10 cr trocava um filme que cabe (7 cr) por um que não sai (15 cr). A partir de
+        // 15 s só sobe se o saldo pagar a nova duração; senão mantém, e a rota do cinematic recusa o roteiro longo antes do
+        // débito (checarFalaDoFilmeCurto). SÓ no 15: em 35/60/90 a subida continua como na main — manter 35 com fala de 60 s
+        // renderia o filme longo pelo preço de 35 (o compose deixa o áudio ir a 90), e lá não há guarda de fala curta.
+        const sobeCabeNoSaldo = sobeParaBruto === undefined || duration !== SEEDANCE_SHORT_SECONDS || credits === null || costForDurationOption(sobeParaBruto) <= credits
+        const sobePara = sobeCabeNoSaldo ? sobeParaBruto : undefined
+        if (sobePara !== undefined) {
+          setDuration(sobePara)
+          alvoAnalise = sobePara
+          void trackEvent('script_duration_autofit', {
+            speech_seconds: Math.round(falaSeg),
+            from_seconds: duration,
+            to_seconds: sobePara,
+            words_per_second: reguaAnalise.rate.wordsPerSecond,
+            from_topic: opts?.fromTopic === true,
+          })
+        } else if (sobeParaBruto !== undefined) {
+          void trackEvent('script_duration_autofit_unaffordable', {
+            speech_seconds: Math.round(falaSeg),
+            from_seconds: duration,
+            to_seconds: sobeParaBruto,
+            needed: costForDurationOption(sobeParaBruto),
+            credits,
+            words_per_second: reguaAnalise.rate.wordsPerSecond,
+          })
+        } else if (vereditoAnalise?.kind === 'too_long') {
+          void trackEvent('script_duration_overflow', {
+            speech_seconds: Math.round(falaSeg),
+            target_seconds: duration,
+            max_seconds: vereditoAnalise.maxSeconds,
+            words_per_second: reguaAnalise.rate.wordsPerSecond,
+            from_topic: opts?.fromTopic === true,
+          })
         }
         if (!cobre && falaSeg > 12) {
           // ═══ KINEO-PREFLIGHT-QUE-NAO-ACUSA-2026-09-08 ═════════════════════
@@ -14736,6 +14753,25 @@ export default function GenerateClient({
               Só aparece com 8+ palavras: contador em cima de campo vazio é
               ruído, não guia. */}
           {(() => {
+            // ═══ STUDIO-CONTADOR-VOZ-2026-09-28 — em "Use my script as is" o contador diz o RESULTADO ═══
+            // Fundador (28/09): quem escolhe Kling 2.5 não sabe que precisa de N palavras; faz 110 e "vira confusão
+            // de tempo". O servidor mede a fala na régua da VOZ que vai narrar (persona por nicho, 2,3-2,8 pal/s) e,
+            // com roteiro próprio, o filme SEGUE O ROTEIRO (desce para a duração que a fala enche e cobra essa; sobe
+            // até o teto; recusa sem cobrar abaixo do menor botão). Esta linha prevê exatamente isso, com as mesmas
+            // funções (lib/contadorVoz), antes do clique — inclusive avisando quando o seletor vai mudar.
+            if (scriptMode === 'verbatim') {
+              const motorContador: ContadorMotor = mode === 'fast' || mode === 'creator' ? 'fast' : aiEngine
+              const reguaVoz = reguaDoServidorNaTela({ engine: motorContador, script: prompt, language, vertical: analysis?.niche ?? null })
+              const veredito = contadorVoz({ script: prompt, regua: reguaVoz, requestedSeconds: duration })
+              if (!veredito) return null
+              const frase = fraseDoContador(veredito, reguaVoz.persona ? reguaVoz.persona.name : null, motorContador)
+              return (
+                <p className="text-xs mt-1.5" data-contador-voz={veredito.kind} style={{ color: frase.tone === 'ok' ? '#4ade80' : frase.tone === 'warn' ? '#fbbf24' : '#5cb3ff', fontWeight: 700, maxWidth: 830 }}>
+                  {frase.text}
+                  {frase.lengthWillChange ? ` (${frase.lengthWillChange.from}s → ${frase.lengthWillChange.to}s happens automatically when you generate.)` : ''}
+                </p>
+              )
+            }
             const medidaTela = speechSecondsOfScript(quality, prompt) // KINEO-REGUA-UNICA: o contador mede a narração EXTRAÍDA, como o servidor
             const reguaTela = medidaTela.rate
             const fala = medidaTela.seconds
