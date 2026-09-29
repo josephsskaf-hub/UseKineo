@@ -280,7 +280,9 @@ if (rotaBase) {
   const d = worktreeDiff.length ? worktreeDiff : diff
   const adicionadas = d.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).map((l) => l.slice(1))
   const removidas = d.split('\n').filter((l) => l.startsWith('-') && !l.startsWith('---')).map((l) => l.slice(1))
-  const permitidas = [blocoMarcado(rota), fatia(rota, '        // [TRAVA 8.2] VEO-MARCADO-2026-09-29 — roteiro marcado: blocos do autor', LINHA_RELATO), IMPORT_MARCADO].filter(Boolean).join('\n').split('\n')
+  const permitidas = [blocoMarcado(rota), fatia(rota, '        // [TRAVA 8.2] VEO-MARCADO-2026-09-29 — roteiro marcado: blocos do autor', LINHA_RELATO), IMPORT_MARCADO,
+    // [TRAVA 8.2 — "vai" do 15 s] KINEO-CONTAGEM-FALA-15S-2026-09-29 — o bloco do filme de 15 s do Seedance (roteiro marcado com mais de 3 blocos) mora em bloco próprio, marcado, com import em linha própria; este guardião os aceita
+    fatia(rota, '    // [TRAVA 8.2 — "vai" do 15 s] KINEO-CONTAGEM-FALA-15S-2026-09-29 — roteiro marcado', FIM_BLOCO), rota.split('\n').find((l) => l.startsWith('import {') && l.includes("from '@/lib/durationByEngine'") && l.includes('KINEO-CONTAGEM-FALA-15S-2026-09-29'))].filter(Boolean).join('\n').split('\n')
   const foraDoLugar = adicionadas.filter((l) => l.trim() && !permitidas.includes(l))
   checa(`diff da rota contra a base: ${adicionadas.length} linhas novas, todas dentro do bloco do roteiro marcado, do import e do relato (${foraDoLugar.length} fora: ${foraDoLugar.slice(0, 2).map((l) => l.trim().slice(0, 60)).join(' | ')})`, adicionadas.length > 0 && foraDoLugar.length === 0)
   checa(`diff da rota contra a base: NENHUMA linha da base alterada ou apagada — a rota só ganhou linhas (${removidas.length} removida(s))`, removidas.length === 0)
