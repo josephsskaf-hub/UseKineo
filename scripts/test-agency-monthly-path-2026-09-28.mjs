@@ -33,7 +33,11 @@ assert.deepEqual(newJson, oldJson, 'all offers and prior FAQ data unchanged')
 const details = [...html.matchAll(/<details\b[^>]*>[\s\S]*?<\/details>/g)].filter(m => m[0].includes(question))
 assert.equal(details.length, 1)
 assert.ok(details[0][0].includes(answer), 'visible answer and JSON-LD agree')
-assert.equal(html.replace(row, '').replace(details[0][0], '').replace(jsonPattern, ''), oldHtml.replace(jsonPattern, ''), 'entire page unchanged outside monthly path and its FAQ')
+// 29/09: Joseph requested the canonical Light/Dark palette for this page.
+// Compare all content/attributes, excluding only presentation approved for this
+// correction. The separate appearance guard freezes all five component ASTs.
+const content = value => value.replace(/ style="[^"]*"/g, '').replace(/ class="agency-page"/g, '').replace(/<style>[\s\S]*?<\/style>/g, '')
+assert.equal(content(html.replace(row, '').replace(details[0][0], '').replace(jsonPattern, '')), content(oldHtml.replace(jsonPattern, '')), 'entire page content unchanged outside monthly path and its FAQ')
 assert.deepEqual(JSON.parse(JSON.stringify(after(path).metadata)), JSON.parse(JSON.stringify(before(path).metadata)), 'canonical and pack metadata preserved')
 const Organic = after('components/OrganicCtaLink.tsx').default
 const links = []
