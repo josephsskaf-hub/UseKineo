@@ -54,7 +54,7 @@ export const ONBOARDING_GOALS: readonly OnboardingGoal[] = [
 export const DEFAULT_ONBOARDING_GOAL = ONBOARDING_GOALS[0]
 
 export type OnboardingGoalStudioOptions = {
-  duration?: 35 | 60 | 90
+  duration?: 15 | 35 | 60 | 90 // KINEO-SEEDANCE-15S-2026-09-29 (M9): tipo aceita o 15 do Seedance; padrão intocado
   intentCampaign?: string
 }
 

@@ -114,7 +114,10 @@ for (const q of ['cinematic_kling', 'cinematic_veo', 'cinematic_h3', 'cinematic_
 const usos = (compose.match(/isFreePlanCinematic/g) || []).length
 const usosEmComentario = (compose.match(/\/\/[^\n]*isFreePlanCinematic/g) || []).length
 eq('isFreePlanCinematic aparece 3x em codigo (declara, atribui, le)', usos - usosEmComentario, 3)
-ok('o custo do cinematic_ai nao mudou', compose.includes("const requiredCredits = creditCostFor('cinematic_ai', true)"))
+// REANCORADO KINEO-SEEDANCE-15S-2026-09-29 — o piso de saldo do cinematic_ai passou a escalar pela duração (filme de 15 s
+// pede 7 cr, não o preço de 60 s). O preço em si não mudou: continua a MESMA função do cobrador (creditCostForDuration
+// sobre a base de creditCostFor('cinematic_ai', true)), e nenhum número foi digitado.
+ok('o custo do cinematic_ai nao mudou', compose.includes("const requiredCredits = creditCostForDuration('cinematic_ai', true, duration)"))
 ok('o preco do render nao mudou', compose.includes("creditCostForDuration(quality, quality === 'fast' ? !isFreePlanFast : false, duration)"))
 ok('isFreePlanFast nao mudou', compose.includes('isFreePlanFast = isFreePlan && !hasPaid && !ent.isTrial'))
 ok('isTrialRender do ramo cinematic_ai nao mudou', aiBranch.includes('isTrialRender = ent.isTrial && !ent.isPaidAccount'))

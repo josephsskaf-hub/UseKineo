@@ -64,6 +64,19 @@ export function avatarVisible(email?: string | null): boolean {
   return AVATAR_PUBLIC || isInternalEmail(email)
 }
 
+// ═══ KINEO-SEEDANCE-15S-2026-09-29 — "vai" nominal do fundador para o filme de 15 s no Seedance 1.5 (7 cr).
+// Mesmo desenho do S25_PUBLIC: SEEDANCE_15S_PUBLIC=false → só as contas da casa (isInternalEmail) veem o BOTÃO de
+// 15 s no /studio e no /generate (e o degrau "15 s cabe no seu saldo"), para o canário de
+// docs/CANARIO-SEEDANCE-15S-2026-09-29.md. O SERVIDOR aceita 15 s no Seedance para qualquer conta, com o custo certo
+// (creditCostForDuration('cinematic_ai', true, 15)), e recusa 15 s nos outros motores (lib/durationByEngine.ts).
+// Virar true só depois do canário aprovado pelo fundador.
+export const SEEDANCE_15S_PUBLIC = false
+
+/** O botão de 15 s do Seedance aparece para este e-mail? Mesma régua do s25Visible. */
+export function seedance15sVisible(email?: string | null): boolean {
+  return SEEDANCE_15S_PUBLIC || isInternalEmail(email)
+}
+
 /** Copy de contagem: 'Eight' hoje, 'Nine' no lancamento. Uma verdade, N telas. */
 // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 — a contagem e a lista públicas só falam dos motores que o público pode
 // apertar HOJE: Veo 3.1, Kling 3, Kling 2.5, Seedance 1.5, Kineo 1 e Avatar (H3/Omni/S25 pausados, S25 interno).

@@ -156,7 +156,10 @@ const FORCE_WATERMARK_EMAILS = new Set<string>([
 // final video came out ~half the requested length.
 // KINEO-DURACAO-2026-08-20 — 35 entra como tier curto oficial do /studio.
 // Os demais ficam por compatibilidade com links e clientes antigos.
-const SUPPORTED_DURATIONS = [10, 30, 35, 45, 50, 60, 90] as const
+// KINEO-SEEDANCE-15S-2026-09-29 (B7) — 15 entra: o filme de 15 s do Seedance 1.5. Sem ele, o 15 virava 45 aqui e o
+// filme só compunha a 15 s pendurado na ponte do claim (que NÃO age no resgate do finish-stranded-renders: o filme
+// resgatado era montado a 45 s).
+const SUPPORTED_DURATIONS = [10, 15, 30, 35, 45, 50, 60, 90] as const
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — resolvido no módulo (runtime de servidor; na
 // Vercel a env é fixa por deployment, então isto nunca muda no meio da vida do
@@ -1858,7 +1861,9 @@ export async function POST(req: NextRequest) {
         // linha faz aparecer é entregável. Não estou criando um caso de unlock
         // novo; estou pondo mais gente num caso que já foi construído e testado.
         isFreePlanCinematic = isFreePlan && !hasPaid && !ent.isPaidAccount
-        const requiredCredits = creditCostFor('cinematic_ai', true)
+        // KINEO-SEEDANCE-15S-2026-09-29 — o piso de saldo escala pela duração, com a MESMA função que o cinematic cobra
+        // (creditCostForDuration): o filme de 15 s pede 7 cr, não o preço de 60 s.
+        const requiredCredits = creditCostForDuration('cinematic_ai', true, duration)
         if (!hasPaidCreditAccess) {
           return NextResponse.json(
             { error: 'AI Generated videos are available on paid plans. Upgrade to continue.', upgrade: '/pricing' },

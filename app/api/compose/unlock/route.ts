@@ -114,7 +114,9 @@ interface UnlockBody {
 }
 
 // Keep the clean re-render identical to the just-created Fast preview.
-const SUPPORTED_DURATIONS = [10, 30, 35, 45, 50, 60, 90] as const
+// KINEO-SEEDANCE-15S-2026-09-29 (B6) — 15 entra: o export limpo pago de um filme de 15 s do Seedance é o MESMO filme
+// (sem o 15, virava 45 e a narração era reescrita para 45 s sobre 2 clipes de 10 s).
+const SUPPORTED_DURATIONS = [10, 15, 30, 35, 45, 50, 60, 90] as const
 
 // ═══ KINEO-TRIAL-WATERMARK-2026-09-07 — O REBUILD PRECISA DO MESMO RITMO ═══
 // Esta rota reconstruía SEMPRE com `quality: 'fast'` — e `quality` não é um
@@ -514,7 +516,9 @@ export async function POST(req: NextRequest) {
     // Mirror /api/compose scaling: verbatim (explicit speed) is used as-is; a
     // generated brief is scaled to the duration's word target. Falls back safely.
     let scaledScript: string
-    if (explicitSpeed != null) {
+    // KINEO-SEEDANCE-15S-2026-09-29 (B6) — filme de 15 s: a narração é a que foi falada, nunca reescalada (o roteiro de
+    // 15 s já nasce no tamanho; reescalar reescreveria a fala por cima dos 2 clipes do filme original).
+    if (explicitSpeed != null || duration === 15) {
       scaledScript = voiceoverScript
     } else {
       try {

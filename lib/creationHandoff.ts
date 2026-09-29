@@ -1,5 +1,5 @@
 export type CreationScriptMode = 'ai' | 'verbatim'
-export type CreationDuration = 35 | 45 | 60 | 90
+export type CreationDuration = 15 | 35 | 45 | 60 | 90 // KINEO-SEEDANCE-15S-2026-09-29: 15 = Seedance 1.5 curto
 export type CreationIntent = 'fast' | 'trial_best' | null
 import type { NarrationLanguage } from './textLanguage'
 // KINEO-IDIOMAS-15-2026-09-17 — o handoff de cadastro carrega qualquer língua do catálogo.
@@ -94,7 +94,7 @@ export function readCreationHandoff(params: QueryReader): CreationHandoff {
     duration:
       rawDuration === 45
         ? 35
-        : rawDuration === 35 || rawDuration === 60 || rawDuration === 90
+        : rawDuration === 15 || rawDuration === 35 || rawDuration === 60 || rawDuration === 90 // KINEO-SEEDANCE-15S-2026-09-29 (o padrão continua 35)
           ? rawDuration
           : null,
   }

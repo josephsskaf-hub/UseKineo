@@ -49,6 +49,7 @@ import { formatLimitCounter, promptLimitState, trimPromptToLimit } from '@/lib/s
 import { buildStudioSeriesReviewHref, carryStudioSeriesReview, isStudioSeriesReview } from '@/lib/navigation/studioSeriesReview'
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 import { STUDIO_ONLY_ENGINE_KEYS } from '@/lib/enginePlanGate'
+import { SEEDANCE_SHORT_SECONDS, MIN_DURATION_ALL_ENGINES } from '@/lib/durationByEngine' // KINEO-SEEDANCE-15S-2026-09-29
 import DiretorKineo from '@/components/DiretorKineo' // DIRETOR-KINEO-20260923
 import DfyOfferCard from '@/components/DfyOfferCard' // KINEO-EMPRESAS-COCKPIT-2026-09-24
 // KINEO-STUDIO-TILE-ADS-2026-09-27 — tile "Business ad" na fileira de miniaturas. Fato: 0 dos 10 assinantes tocaram /ads em
@@ -191,7 +192,9 @@ export default function StudioClient() {
   const [pickerOpen, setPickerOpen] = useState(false)
   // KINEO-DURACAO-FIX-2026-08-20 — o tipo ficou para trás dos botões (35/60/90)
   // e `setDuration(35)` só não explodia porque o TS não cobre este caminho.
-  const [duration, setDuration] = useState<35 | 60 | 90>(60)
+  // KINEO-SEEDANCE-15S-2026-09-29 — 15 = o filme curto do Seedance 1.5 (7 cr); o botão só aparece com o Seedance escolhido
+  // e com o interruptor SEEDANCE_15S_PUBLIC (flag `seedance15` do /api/me/credits). O padrão continua 60.
+  const [duration, setDuration] = useState<15 | 35 | 60 | 90>(60)
   // KINEO-MULTIFORMATO-2026-09-02 — quatro formatos reais; 9:16 continua o
   // padrão (é o produto de 100% dos primeiros vídeos da casa).
   const [aspect, setAspect] = useState<Aspect>('9:16')
@@ -215,6 +218,8 @@ export default function StudioClient() {
   const [balance, setBalance] = useState<number | null>(null)
   // KINEO-S25-CARD-2026-09-01 — so a casa ve o card do 2.5 durante o canario.
   const [internal, setInternal] = useState(false)
+  // KINEO-SEEDANCE-15S-2026-09-29 — o botão de 15 s do Seedance (SEEDANCE_15S_PUBLIC || casa). Falha fechada: sem a flag, sem botão.
+  const [seedance15Ok, setSeedance15Ok] = useState(false)
   // KINEO-AVATAR-FORA-2026-09-28 — fundador (27/09): "avatar sai por hora". O link "AI Presenter ↗" e o card Avatar
   // do seletor só aparecem com AVATAR_PUBLIC=true ou para conta da casa (flag `avatar` do /api/me/credits =
   // avatarVisible). Medido: 0 cliques em studio_avatar_card_clicked na história do evento. Flag própria, não
@@ -226,7 +231,7 @@ export default function StudioClient() {
     let alive = true
     fetch('/api/me/credits', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true); if (alive && d?.avatar === true) setAvatarOn(true); if (alive && typeof d?.plan === 'string') setPlan(d.plan) })
+      .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true); if (alive && d?.avatar === true) setAvatarOn(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && typeof d?.plan === 'string') setPlan(d.plan) })
       .catch(() => {}) // saldo é enfeite: falhou, a tela segue como antes
     return () => { alive = false }
   }, [])
@@ -320,6 +325,9 @@ export default function StudioClient() {
     const requestedDuration = Number(sp.get('duration'))
     if (requestedDuration === 35 || requestedDuration === 60 || requestedDuration === 90) {
       setDuration(requestedDuration)
+    } else if (requestedDuration === SEEDANCE_SHORT_SECONDS && e === 'seedance') {
+      // KINEO-SEEDANCE-15S-2026-09-29 — ?duration=15 só com ?engine=seedance: o 15 s não existe nos outros motores.
+      setDuration(SEEDANCE_SHORT_SECONDS)
     }
     const quickstartChoice = sp.get('chatgpt_quickstart')
     if (isChatGptQuickstartChoice(quickstartChoice)) {
@@ -407,11 +415,13 @@ export default function StudioClient() {
   // trial de 10. O seletor precifica na duração escolhida (60 s por padrão) e dizia "not enough credits" — sem contar
   // que a 35 s (59 cr) o filme cabe. Fundador (22/09: "pode ir nas três primeiras"): mostrar o degrau que cabe, em
   // qualquer motor cujo custo na duração atual passa do saldo mas cabe numa duração menor do seletor.
-  const stepDownFor = (key: EngineKey): { seconds: 35 | 60; cost: number } | null => {
+  // KINEO-SEEDANCE-15S-2026-09-29 — no Seedance (com o interruptor) o degrau desce até 15 s (7 cr, cabe no trial de 10).
+  const stepDownFor = (key: EngineKey): { seconds: 15 | 35 | 60; cost: number } | null => {
     if (balance === null) return null
     const c = engineCost(key)
     if (c <= 0 || balance >= c) return null
-    for (const d of [60, 35] as const) {
+    const degraus: readonly (15 | 35 | 60)[] = key === 'seedance' && seedance15Ok ? [60, 35, 15] : [60, 35]
+    for (const d of degraus) {
       if (d >= duration) continue
       const cost = creditCostForDuration(ENGINE_QUALITY[key] ?? 'cinematic_ai', true, d)
       if (cost > 0 && cost <= balance) return { seconds: d, cost }
@@ -427,6 +437,12 @@ export default function StudioClient() {
     if (n <= 0) return `not enough credits — you have ${balance}`
     return `${n} film${n === 1 ? '' : 's'} with your ${balance} credits`
   }
+
+  // KINEO-SEEDANCE-15S-2026-09-29 — trocar de motor estando em 15 s volta para 35 s (o servidor recusaria o 15 fora do Seedance).
+  useEffect(() => {
+    if (engine !== 'seedance' && duration === SEEDANCE_SHORT_SECONDS) setDuration(MIN_DURATION_ALL_ENGINES as 35)
+  }, [engine]) // eslint-disable-line react-hooks/exhaustive-deps
+  const shortestDuration = engine === 'seedance' && seedance15Ok ? SEEDANCE_SHORT_SECONDS : MIN_DURATION_ALL_ENGINES
 
   // KINEO-DEGRAU-35S: impressão medida no mesmo gatilho do clique (picker aberto), com os degraus oferecidos.
   useEffect(() => {
@@ -687,7 +703,7 @@ export default function StudioClient() {
               </div>
             )}
             {kineo1Fit.show && !kineo1FitKept && (() => {
-              const copy = kineo1FitNoticeCopy(ENGINES.find((e) => e.key === 'seedance')?.credits ?? 'AI-generated scenes')
+              const copy = kineo1FitNoticeCopy(engineCostLabel('seedance')) // KINEO-SEEDANCE-15S-2026-09-29 (B8): custo do Seedance na duração escolhida, não o de 60 s fixo
               return (
                 <div data-kineo="aviso-desenho" data-version={kineo1Fit.version} style={{ marginTop: 8, padding: '10px 12px', borderRadius: 10, background: 'rgba(251,191,36,.08)', border: '1px solid rgba(251,191,36,.45)' }}>
                   <div style={{ fontWeight: 800, fontSize: '0.86rem', color: 'var(--text)' }}>{copy.title}</div>
@@ -743,7 +759,7 @@ export default function StudioClient() {
               // A verdade ANTES da ideia ser escrita, não depois do clique.
               <div className="val" style={{ color: '#fb923c', fontSize: '0.78rem' }}>
                 <span>You have {balance} cr</span>
-                <b style={{ fontWeight: 600 }}>{scriptMode === 'clip' ? `Need ${CLIP_CREDITS - balance} more credits` : duration > 35 ? 'try 35s, or another engine' : 'try another engine'}</b>
+                <b style={{ fontWeight: 600 }}>{scriptMode === 'clip' ? `Need ${CLIP_CREDITS - balance} more credits` : duration > shortestDuration ? `try ${shortestDuration}s, or another engine` : 'try another engine'}</b>
               </div>
             )}
             {/* Expectativa de tempo ANTES do clique: o cronômetro da tela de
@@ -916,6 +932,10 @@ export default function StudioClient() {
                   35s fica como o tier de volume (barato, para testar tema);
                   60s continua o padrão e o piso de monetização do TikTok;
                   90s é o tier de alcance. */}
+              {/* KINEO-SEEDANCE-15S-2026-09-29 — 15 s só no Seedance 1.5 e só com o interruptor (ou quando já veio em 15 pela URL). */}
+              {engine === 'seedance' && (seedance15Ok || duration === SEEDANCE_SHORT_SECONDS) && (
+                <button type="button" className={`pill${duration === SEEDANCE_SHORT_SECONDS ? ' on' : ''}`} onClick={() => setDuration(SEEDANCE_SHORT_SECONDS)} title="Seedance 1.5 only — a short AI film">{SEEDANCE_SHORT_SECONDS}s</button>
+              )}
               <button type="button" className={`pill${duration === 35 ? ' on' : ''}`} onClick={() => setDuration(35)}>35s</button>
               <button type="button" className={`pill${duration === 60 ? ' on' : ''}`} onClick={() => setDuration(60)}>60s ⭐</button>
               <button type="button" className={`pill${duration === 90 ? ' on' : ''}`} onClick={() => setDuration(90)} title="Mais alcance: no TikTok, 90s rende ~4x as views de um vídeo de 60s">90s 📈</button>

@@ -96,6 +96,7 @@ import {
   normalizeQuality,
 } from '@/lib/credits/engineCost'
 import { enginePaused } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
+import { SEEDANCE_SHORT_SECONDS, supportedDurationsFor } from '@/lib/durationByEngine' // KINEO-SEEDANCE-15S-2026-09-29
 // sprint-v1v4 #13 — o cardápio de motores passa a saber quanto a pessoa tem
 // no bolso. Módulo puro: só compara custo × saldo, não conhece plano nem preço.
 import {
@@ -499,7 +500,8 @@ function isProcessingPhase(p: Phase): boolean {
 // KINEO-DURACAO-FIX-2026-08-20 — 35 entrou como tier oficial do /studio e
 // este tipo não sabia. Todo `35` que chegava por URL caía no fallback 45: a
 // pessoa clicava 35s e recebia (e pagava) 45s.
-type Duration = 35 | 45 | 60 | 90
+// KINEO-SEEDANCE-15S-2026-09-29 — 15 = o filme curto do Seedance 1.5 (7 cr). Só existe nesse motor (lib/durationByEngine.ts).
+type Duration = 15 | 35 | 45 | 60 | 90
 // Push #084 — added 'fast' for the Pexels + TTS cheap pipeline (1 credit).
 // Cinematic quality tiers (basic / basic_ai / pro) still flow through Runway.
 // Push #315 — added 'cinematic_ai' for fal.ai Wan 2.1 mode.
@@ -543,6 +545,17 @@ const DURATION_OPTIONS: { value: Duration; label: string }[] = [
 // A TRAVA para isto nao voltar: DEFAULT_DURATION sai da propria lista. Nao ha
 // como escrever um numero que o seletor nao tenha.
 const DEFAULT_DURATION: Duration = DURATION_OPTIONS[0].value
+
+// ═══ KINEO-SEEDANCE-15S-2026-09-29 — o botão de 15 s, SÓ no Seedance 1.5 e SÓ para quem o interruptor deixa ═══
+// Fica FORA de DURATION_OPTIONS de propósito (M1 do cético): DEFAULT_DURATION é o primeiro item daquela lista, e o
+// 15 lá dentro viraria o padrão de todos os motores. A lista global (35/60/90 = lib/expandPolicy SUPPORTED_DURATIONS)
+// continua intacta; o Seedance ganha um botão a mais na frente, derivado de lib/durationByEngine (nada digitado).
+const SEEDANCE_SHORT_OPTION: { value: Duration; label: string } = { value: SEEDANCE_SHORT_SECONDS as Duration, label: `${SEEDANCE_SHORT_SECONDS}s — Teaser` }
+function durationOptionsFor(mode: GenerationMode, aiEngine: string, seedance15Ok: boolean, current: Duration): { value: Duration; label: string }[] {
+  const seedance = mode === 'cinematic_ai' && supportedDurationsFor(aiEngine).includes(SEEDANCE_SHORT_SECONDS)
+  // Quem já está em 15 (link do Studio da casa) continua vendo o botão aceso, mesmo antes da flag chegar.
+  return seedance && (seedance15Ok || current === SEEDANCE_SHORT_SECONDS) ? [SEEDANCE_SHORT_OPTION, ...DURATION_OPTIONS] : DURATION_OPTIONS
+}
 
 const POLL_GENERATING_MS = 4000
 const POLL_COMPOSING_MS = 5000
@@ -850,7 +863,7 @@ function readLastSetup(userId: string | null | undefined): LastSetup | null {
     const parsed = JSON.parse(raw) as Partial<LastSetup> | null
     if (!parsed || typeof parsed !== 'object') return null
     const qualities: Quality[] = ['fast', 'basic', 'basic_ai', 'pro', 'cinematic_ai']
-    const durations: Duration[] = [35, 45, 60, 90]
+    const durations: Duration[] = [15, 35, 45, 60, 90] // KINEO-SEEDANCE-15S-2026-09-29 (M2) — o filme de 15 s do Seedance é "última configuração" válida
     if (!qualities.includes(parsed.quality as Quality)) return null
     if (!durations.includes(parsed.duration as Duration)) return null
     const mode: 'ai' | 'verbatim' = parsed.scriptMode === 'verbatim' ? 'verbatim' : 'ai'
@@ -932,7 +945,8 @@ function normalizeFastRenderInputs(value: unknown): FastRenderInputs | undefined
   if (clipUrls.length === 0 || !voiceover.trim()) return undefined
   const requestedDuration = Number(input.duration)
   // LOTE2-EXPORT-LIMPO-FIEL-2026-09-23 — 45 s existe (a rota do Kineo 1 sobe 35→45 para caber no roteiro): virava 35 no export limpo.
-  const safeDuration = requestedDuration === 45 || requestedDuration === 60 || requestedDuration === 90 ? requestedDuration : 35 // KINEO-PRIMEIRO-VIDEO-2026-09-02 — era 45
+  // KINEO-SEEDANCE-15S-2026-09-29 (B6) — o export limpo de um filme de 15 s do Seedance é montado a 15 s, não a 35.
+  const safeDuration = requestedDuration === 15 || requestedDuration === 45 || requestedDuration === 60 || requestedDuration === 90 ? requestedDuration : 35 // KINEO-PRIMEIRO-VIDEO-2026-09-02 — era 45
   const language = narrationLanguage(input.language) ?? 'en' // KINEO-IDIOMAS-15
   return {
     clip_urls: clipUrls,
@@ -1470,9 +1484,11 @@ export default function GenerateClient({
   // KINEO-S25-LAUNCH-2026-09-01 — o 2.5 so aparece para quem s25Visible()
   // aprova (a casa hoje; todos apos S25_PUBLIC). Vem do /api/me/credits.
   const [s25Ok, setS25Ok] = useState(false)
+  // KINEO-SEEDANCE-15S-2026-09-29 — o botão de 15 s do Seedance (SEEDANCE_15S_PUBLIC || casa), flag `seedance15` do /api/me/credits.
+  const [seedance15Ok, setSeedance15Ok] = useState(false)
   useEffect(() => {
     let alive = true
-    fetch('/api/me/credits', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive && d?.internal === true) setS25Ok(true) }).catch(() => {})
+    fetch('/api/me/credits', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive && d?.internal === true) setS25Ok(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true) }).catch(() => {})
     return () => { alive = false }
   }, [])
 
@@ -1889,6 +1905,16 @@ export default function GenerateClient({
   // session here; paid Creator/Studio accounts are defaulted to AI after their
   // plan loads below.
   const [mode, setMode] = useState<GenerationMode>('fast')
+  // KINEO-SEEDANCE-15S-2026-09-29 — os botões de duração do motor escolhido (15 s só no Seedance, só com o interruptor).
+  const opcoesDeDuracao = durationOptionsFor(mode, aiEngine, seedance15Ok, duration)
+  // Trocar de motor estando em 15 s volta para 35 s: o 15 não existe fora do Seedance e o servidor recusaria (422).
+  const motorDaDuracaoRef = useRef<string>('')
+  useEffect(() => {
+    const motor = mode === 'cinematic_ai' ? aiEngine : mode
+    const antes = motorDaDuracaoRef.current
+    motorDaDuracaoRef.current = motor
+    if (antes === 'seedance' && motor !== 'seedance' && duration === SEEDANCE_SHORT_SECONDS) setDuration(35)
+  }, [mode, aiEngine]) // eslint-disable-line react-hooks/exhaustive-deps
   // Push #316 — output language selector (en | pt | es). PUSH #36 preserves
   // the language promised by localized acquisition pages through auth.
   const [language, setLanguage] = useState<NarrationLanguage>(initialLanguage)
@@ -3046,7 +3072,7 @@ export default function GenerateClient({
           return
         }
 
-        const restoredDuration: Duration = stored.duration === 60 || stored.duration === 90 ? stored.duration : 35 // KINEO-PRIMEIRO-VIDEO-2026-09-02 — era 45
+        const restoredDuration: Duration = stored.duration === 15 || stored.duration === 60 || stored.duration === 90 ? stored.duration : 35 // KINEO-PRIMEIRO-VIDEO-2026-09-02 — era 45 · KINEO-SEEDANCE-15S-2026-09-29: o render de 15 s volta como 15
         const restoredQuality = typeof stored.quality === 'string' ? stored.quality : 'basic_ai'
         const restoredMode: GenerationMode =
           stored.mode === 'fast' || stored.mode === 'creator' || stored.mode === 'cinematic' || stored.mode === 'cinematic_ai'
@@ -7956,7 +7982,7 @@ export default function GenerateClient({
     // TRAVA DE QUALIDADE (fundador 03/09): nada aqui toca motor, prompt de
     // cena, regua de palavras por segundo ou gerador de roteiro. So o botao de
     // duracao — o mesmo que o autofit logo abaixo ja movia — e um aviso.
-    const leituraColada = readPastedDirectives(expandBaseRef.current)
+    const leituraColada = readPastedDirectives(expandBaseRef.current, opcoesDeDuracao.map((o) => o.value)) // KINEO-SEEDANCE-15S-2026-09-29: "15-second" fica em 15 no Seedance
     if (leituraColada.directives.length > 0) {
       const aplicou = leituraColada.suggestedDuration !== null && leituraColada.suggestedDuration !== duration
       if (leituraColada.suggestedDuration !== null && aplicou) {
@@ -8037,7 +8063,11 @@ export default function GenerateClient({
         // (o compose corta no teto) e fica registrado.
         if (cobre && falaSeg > duration * 1.2) {
           const cabe = DURATION_OPTIONS.map((o) => o.value).filter((d) => d > duration && falaSeg <= d * 1.15).sort((a, b) => a - b)[0]
-          if (cabe) {
+          // KINEO-SEEDANCE-15S-2026-09-29 (B3) — o crédito DEPENDE da duração desde KINEO-DURACAO (a nota acima envelheceu):
+          // subir 15 → 35 no trial de 10 cr trocava um filme que cabe (7 cr) por um que não sai (15 cr). Só sobe se o
+          // saldo pagar a nova duração; senão mantém, e a rota recusa o roteiro longo antes do débito sugerindo 35 s.
+          const cabeNoSaldo = !cabe || credits === null || costForDurationOption(cabe) <= credits
+          if (cabe && cabeNoSaldo) {
             setDuration(cabe)
             alvoAnalise = cabe
             void trackEvent('script_duration_autofit', {
@@ -8045,6 +8075,14 @@ export default function GenerateClient({
               from_seconds: duration,
               to_seconds: cabe,
               from_topic: opts?.fromTopic === true,
+            })
+          } else if (cabe) {
+            void trackEvent('script_duration_autofit_unaffordable', {
+              speech_seconds: Math.round(falaSeg),
+              from_seconds: duration,
+              to_seconds: cabe,
+              needed: costForDurationOption(cabe),
+              credits,
             })
           } else {
             void trackEvent('script_duration_overflow', {
@@ -8924,7 +8962,7 @@ export default function GenerateClient({
       if (aiEngine !== uEng) { setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni' | 's25'); return }
     }
     const uDur = Number(searchParams?.get('duration') ?? '')
-    if ((uDur === 35 || uDur === 45 || uDur === 60 || uDur === 90) && duration !== uDur) { setDuration(uDur); return }
+    if ((uDur === 35 || uDur === 45 || uDur === 60 || uDur === 90 || (uDur === SEEDANCE_SHORT_SECONDS && uEng === 'seedance')) && duration !== uDur) { setDuration(uDur); return } // KINEO-SEEDANCE-15S-2026-09-29: 15 s do Studio (só Seedance)
     try {
       const raw = sessionStorage.getItem('kineo:studio:go:v1')
       if (!raw) { studioAutoFirePendingRef.current = false; return }
@@ -9283,7 +9321,7 @@ export default function GenerateClient({
       try {
         const cr = await fetch('/api/diretor/suggest', {
           method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ text: trimmed, mode: 'ai', engine: motorDoEnvio, duration: duration === 35 || duration === 90 ? duration : 60, language, aspect: aspectRequested, rewriteConsent: false }),
+          body: JSON.stringify({ text: trimmed, mode: 'ai', engine: motorDoEnvio, duration: duration === 15 || duration === 35 || duration === 90 ? duration : 60, language, aspect: aspectRequested, rewriteConsent: false }),
         })
         const cd = (await cr.json().catch(() => ({}))) as { suggestion?: { text?: string } }
         const condensado = typeof cd.suggestion?.text === 'string' ? cd.suggestion.text.trim() : ''
@@ -11942,7 +11980,7 @@ export default function GenerateClient({
   /** A maior duração que o saldo atual paga. null = nem a menor cabe. */
   const maxAffordableDuration = ((): Duration | null => {
     if (credits === null) return null
-    const cabiveis = DURATION_OPTIONS.map((o) => o.value).filter((d) => costForDurationOption(d) <= credits)
+    const cabiveis = opcoesDeDuracao.map((o) => o.value).filter((d) => costForDurationOption(d) <= credits) // KINEO-SEEDANCE-15S-2026-09-29
     return cabiveis.length ? (Math.max(...cabiveis) as Duration) : null
   })()
   const selectedUnaffordable =
@@ -15011,6 +15049,7 @@ export default function GenerateClient({
             freeAiUsed={freeAiUsed}
             aiEngine={aiEngine}
             s25Ok={s25Ok}
+            seedance15Ok={seedance15Ok}
             setAiEngine={setAiEngine}
             isStarter={isStarter}
             isCreator={isCreator}
@@ -15069,7 +15108,7 @@ export default function GenerateClient({
               Duration
             </div>
             <div className="flex gap-2 flex-wrap">
-              {DURATION_OPTIONS.map((opt) => {
+              {opcoesDeDuracao.map((opt) => {
                 const custo = costForDurationOption(opt.value)
                 const naoCabe = credits !== null && custo > 0 && custo > credits
                 return (
@@ -20803,6 +20842,7 @@ function ModeSelector({
   freeAiUsed,
   aiEngine,
   s25Ok,
+  seedance15Ok,
   setAiEngine,
   isStarter,
   isCreator,
@@ -20823,6 +20863,8 @@ function ModeSelector({
   // KINEO-HOLLYWOOD-2026-07-09 — 'hollywood' added.
   aiEngine: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25'
   s25Ok: boolean
+  // KINEO-SEEDANCE-15S-2026-09-29 — o resgate por saldo oferece o 15 s do Seedance só com o interruptor (espelho da rota).
+  seedance15Ok?: boolean
   setAiEngine: (e: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25') => void
   isStarter: boolean
   isCreator: boolean
@@ -20924,7 +20966,11 @@ function ModeSelector({
     ...(seedanceUnlocked ? ['seedance'] : []),
     ...(cinematicUnlocked ? ['hollywood', 'veo', 'kling', 'h3'] : []),
   ]
-  const duracoesDoSeletor = DURATION_OPTIONS.map((o) => o.value)
+  // KINEO-SEEDANCE-15S-2026-09-29 (B10) — espelho de `duracoesDoResgate` na rota do cinematic: 15 s só no Seedance e só
+  // para quem o interruptor SEEDANCE_15S_PUBLIC mostra o botão.
+  const duracoesDoSeletor: Duration[] = aiEngine === 'seedance' && seedance15Ok
+    ? (supportedDurationsFor('seedance') as readonly number[]).map((d) => d as Duration)
+    : DURATION_OPTIONS.map((o) => o.value)
   const resgateDeMotor =
     mode === 'cinematic_ai'
       ? planoDeResgate({
