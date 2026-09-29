@@ -66,15 +66,17 @@ check('B2 o tile do Starter lê preço do cobrador (getTierPrice+formatCheckoutM
   tile.includes("exitPrice('starter')") && tile.includes('TIER_CREDITS.starter') && tile.includes('Starter ·'), tile.trim().slice(0, 120))
 check('B3 o tile do Starter não digita preço nem crédito',
   tile !== '' && !/\$\d|\b\d{2,}\b/.test(tile.replace(/\$\{[^}]*\}/g, '')))
-// Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): a frase ganhou o ramo da entrada nova (SEEDANCE_15S_PUBLIC →
-// TRIAL_SEEDANCE15_FILMS, filme grátis de 15 s); o ramo de hoje segue vindo de TRIAL_KINEO1_FILMS, derivado.
-check('B4 "enough for N Kineo 1 film(s)" vem de TRIAL_KINEO1_FILMS (trialFilmsForEngine)',
-  /enough for \$\{SEEDANCE_15S_PUBLIC \? /.test(EXIT) && /: `\$\{TRIAL_KINEO1_FILMS\} Kineo 1 \$\{TRIAL_KINEO1_FILMS === 1 \? 'film' : 'films'\}`\}/.test(EXIT))
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o grant passou a comprar o Seedance 1.5 de 15 s (decisão do fundador, 29/09) e o
+// Kineo 1 saiu do catálogo público. A frase continua DERIVADA (TRIAL_SEEDANCE15_FILMS = trialFilmsForEngine do custo do
+// 15 s; FREE_FILM_LABEL) e o painel não cita mais "Kineo 1".
+check('B4 "enough for N free 15-second film(s) (Seedance 1.5)" vem de TRIAL_SEEDANCE15_FILMS e FREE_FILM_LABEL, sem Kineo 1',
+  /enough for \$\{TRIAL_SEEDANCE15_FILMS === 1 \? 'one' : TRIAL_SEEDANCE15_FILMS\} \$\{FREE_FILM_LABEL\}/.test(EXIT) && !/Kineo 1|KINEO 1/.test(EXIT.replace(/\/\/.*$|\{\/\*[\s\S]*?\*\/\}/gm, '')))
 check('B5 TRIAL_KINEO1_FILMS nasce de trialFilmsForEngine(creditCostForDuration(\'fast\', true, DURATION_REFERENCE_SECONDS))',
   /export const TRIAL_KINEO1_FILMS = trialFilmsForEngine\(\s*creditCostForDuration\('fast', true, DURATION_REFERENCE_SECONDS\),?\s*\)/.test(FTO))
 check('B6 TRIAL_FILMS (Seedance) segue intacto — a constante não foi tocada',
   /export const TRIAL_FILMS = Math\.floor\(\s*G \/ creditCostForDuration\('cinematic_ai', true, 60\),?\s*\)/.test(FTO))
-const NOVA = "free credits = ${TRIAL_KINEO1_FILMS} Kineo 1 ${TRIAL_KINEO1_FILMS_NOUN}; AI engines (Seedance, Veo, Kling) from Starter."
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: a frase canônica agora é a do filme grátis de 15 s (FREE_FILM_LABEL, derivado).
+const NOVA = "free credits = a ${FREE_FILM_LABEL}; longer films and the other AI engines … from Starter."
 for (const campo of ['sentence', 'planCardBody', 'cmpKineoFree']) {
   // O campo aparece 3x no arquivo (interface, ON_COPY, CARD_ENTRY_TIER_COPY):
   // o valor é a própria linha (quando já abre o template) ou a seguinte. Só a
@@ -86,7 +88,7 @@ for (const campo of ['sentence', 'planCardBody', 'cmpKineoFree']) {
   const corpo = candidatos.find((l) => l.includes('${G}')) ?? (candidatos[0] ?? '')
   // cmpKineoFree diz "on signup" entre o grant e o "=" (é assim que as páginas
   // de comparação a leem); os outros dois campos não. A frase é a mesma.
-  const novaRe = /\$\{G\} free credits( on signup)? = \$\{TRIAL_KINEO1_FILMS\} Kineo 1 \$\{TRIAL_KINEO1_FILMS_NOUN\}; AI engines \(Seedance, Veo, Kling\) from Starter\./
+  const novaRe = /\$\{G\} free credits( on signup)? = a \$\{FREE_FILM_LABEL\}; longer films and the other AI engines( \(Veo, Kling\))? from Starter\./
   check(`B7 ON_COPY.${campo} publica "\${G} ${NOVA}"`, novaRe.test(corpo), corpo.trim().slice(0, 140))
   check(`B8 ON_COPY.${campo} não digita número (fora de \${…} e do nome "Kineo 1")`,
     !/\d/.test(corpo.replace(/\$\{[^}]*\}/g, '').replace(/Kineo 1/g, '')), corpo.trim().slice(0, 140))
@@ -116,7 +118,10 @@ notas.push(`grant mostrado G=${G} · Kineo 1 de referência=${cost.creditCostFor
 const on = fto.buildFreeTierOffer(true).copy
 // cmpKineoFree diz "on signup" entre o grant e o "=": a frase é a mesma, com o
 // aposto no lugar em que as páginas de comparação a leem.
-const esperado = new RegExp(`${G} free credits( on signup)? = ${k1} Kineo 1 ${k1 === 1 ? 'film' : 'films'}; AI engines \\(Seedance, Veo, Kling\\) from Starter\\.`)
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: a copy servida publica o filme grátis de 15 s, com segundos e custo lidos do código.
+const s15 = fto.TRIAL_FREE_FILM_SECONDS
+check('C1b o grant compra ≥ 1 filme Seedance de 15 s (custo = creditCostForDuration)', s15 === 15 && fto.TRIAL_FREE_FILM_CREDITS === cost.creditCostForDuration('cinematic_ai', true, s15) && fto.TRIAL_SEEDANCE15_FILMS === Math.floor(G / fto.TRIAL_FREE_FILM_CREDITS) && fto.TRIAL_SEEDANCE15_FILMS >= 1)
+const esperado = new RegExp(`${G} free credits( on signup)? = a free ${s15}-second film \\(Seedance 1\\.5\\); longer films and the other AI engines( \\(Veo, Kling\\))? from Starter\\.`)
 if (policy.CARD_ENTRY_ONLY) {
   notas.push('CARD_ENTRY_ONLY = true: a copy servida é a da porta de $1; C3/C4 medem a versão A só pelo texto (B7)')
 } else {

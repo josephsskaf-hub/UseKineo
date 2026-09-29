@@ -186,7 +186,8 @@ export default async function GoPage({
   // redondos. A duração da linha passou por validateHandoffInput (só 35/60/90);
   // o estreitamento abaixo é para o tipo, com o padrão da lib como rede.
   // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — o GPT pode mandar 15 s (só Seedance): a página honra em vez de cair no padrão.
-  const duration: HandoffDuration = (DURATIONS as readonly number[]).includes(row.duration_sec) || (row.duration_sec === HANDOFF_SHORT_DURATION && engine === 'seedance')
+  // Junção E2b+E3: DURATIONS passou a conter o 15 (E3); a exclusão explícita mantém o 15 SÓ no Seedance.
+  const duration: HandoffDuration = ((DURATIONS as readonly number[]).includes(row.duration_sec) && row.duration_sec !== HANDOFF_SHORT_DURATION) || (row.duration_sec === HANDOFF_SHORT_DURATION && engine === 'seedance')
     ? (row.duration_sec as HandoffDuration)
     : DEFAULT_DURATION
   const fitLine = describeOutcome(handoffOutcome(row.script, duration, engine))

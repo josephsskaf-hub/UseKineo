@@ -19,7 +19,8 @@ check(credits === cap, 'entry agrees with grant')
 check(/CARD_ENTRY_ONLY\s*=\s*false/.test(entry), 'no-card entry active')
 check(ready.includes(credits + ' credits'), 'canonical grant')
 check(ready.includes('$' + starter.toFixed(2) + '/month'), 'canonical price')
-for (const text of ['USD','Free to start','no card','two Kineo 1 films of 60 seconds',
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o filme grátis passou a ser o Seedance 1.5 de 15 s (7 cr ≤ 10); a ficha não cita mais o Kineo 1.
+for (const text of ['USD','Free to start','no card','10 credits, no card = one free 15-second Seedance film',
  'watermarked','engine and duration','available engine','account access','sufficient credits']) {
  check(ready.includes(text), 'current copy carries: ' + text)
 }
@@ -28,10 +29,10 @@ for (const stale of ['30 credits','40 credits','50 credits','25 free credits',
  'eight video engines','six video engines','every engine unlocked','every engine on every plan',
  'Studio unlocks every engine','Starter and Creator include','first film is premium',
  'first film is free and premium','Seedance free','free Seedance','Avatar',
- 'MiniMax H3','Omni Flash','Seedance 2.5']) {
+ 'MiniMax H3','Omni Flash','Seedance 2.5','Kineo 1','two Kineo 1','every week']) {
  check(!ready.toLowerCase().includes(stale.toLowerCase()), 'excludes: ' + stale)
 }
-for (const engine of ['Kineo 1','Seedance 1.5','Kling 2.5','Kling 3','Veo 3.1']) {
+for (const engine of ['Seedance 1.5','Kling 2.5','Kling 3','Veo 3.1']) {
  check(ready.includes(engine), 'current engine: ' + engine)
 }
 check(/PAUSED_ENGINE_KEYS[^\n]*\['omni', 's25'\]/.test(engines), 'maintenance reconciled') // KINEO-H3-DE-VOLTA-2026-09-22: o H3 voltou ao site; o pacote do TAAFT segue sem o H3 até o fundador editar a listagem lá

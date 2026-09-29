@@ -69,12 +69,16 @@ export const SCRIPT_MAX_CHARS = 5000
  *  importado para manter este módulo sem import; o guardião confere o espelho. */
 export const STUDIO_PROMPT_MAX_CHARS = 5000
 export const TOPIC_MAX_CHARS = 200
-export const DURATIONS = [35, 60, 90] as const
-/** KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b, B2 do cético) — o filme curto do Seedance 1.5, aceito SÓ com engineHint
- *  seedance (a rota do cinematic recusa 15 s nos outros motores). Espelho de SEEDANCE_SHORT_SECONDS
- *  (lib/durationByEngine.ts) — este módulo continua sem import; o guardião da entrada confere a igualdade. Fica FORA de
- *  DURATIONS de propósito: DURATIONS alimenta o texto do prompt de colar e a lista pública (texto de marketing = E3). */
-export const HANDOFF_SHORT_DURATION = 15 as const
+// KINEO-FILME-GRATIS-15S-2026-09-29 — 15 entra para o filme grátis de conta nova (Seedance 1.5 de 15 s = 7 cr, cabe
+// nos 10 do trial). Só vale com engineHint 'seedance' (validateHandoffInput recusa 15 nos outros motores, o mesmo
+// contrato de lib/durationByEngine.ts — espelhado aqui para manter o módulo sem import novo). O padrão segue 60.
+export const DURATIONS = [15, 35, 60, 90] as const
+/** A duração que só existe no Seedance 1.5 (espelho de lib/durationByEngine SEEDANCE_SHORT_SECONDS). */
+export const SEEDANCE_ONLY_DURATION = 15
+/** KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b, B2 do cético) — o nome que a E2b usa (app/go/[token], guardião da entrada)
+ *  para a mesma duração curta. Junção E2b+E3: a fonte é SEEDANCE_ONLY_DURATION acima (a E3 pôs o 15 em DURATIONS); este
+ *  é só o apelido tipado (literal 15), não um segundo número. */
+export const HANDOFF_SHORT_DURATION = SEEDANCE_ONLY_DURATION
 export const DEFAULT_DURATION: HandoffDuration = 60
 export const DEFAULT_ENGINE: HandoffEngine = 'seedance'
 export const DEFAULT_LANGUAGE = 'en'
@@ -105,7 +109,7 @@ export const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000
 // até o interruptor virar.
 export const HANDOFF_ENGINES = ['fast', 'seedance', 'kling', 'veo', 'hollywood', 'h3', 'omni'] as const
 export type HandoffEngine = (typeof HANDOFF_ENGINES)[number]
-export type HandoffDuration = (typeof DURATIONS)[number] | typeof HANDOFF_SHORT_DURATION
+export type HandoffDuration = (typeof DURATIONS)[number]
 export type HandoffFamily = 'classic' | 'hollywood'
 export type HandoffFit = 'short' | 'ok' | 'long'
 
@@ -363,8 +367,8 @@ export function validateHandoffInput(body: unknown): HandoffValidation {
   let durationSec: HandoffDuration = DEFAULT_DURATION
   if (b.durationSec !== undefined && b.durationSec !== null) {
     const n = typeof b.durationSec === 'number' ? b.durationSec : Number(b.durationSec)
-    if (!(DURATIONS as readonly number[]).includes(n) && n !== HANDOFF_SHORT_DURATION) {
-      return { ok: false, error: `durationSec must be one of ${DURATIONS.join(', ')} (or ${HANDOFF_SHORT_DURATION} with engineHint seedance).` }
+    if (!(DURATIONS as readonly number[]).includes(n)) {
+      return { ok: false, error: `durationSec must be one of ${DURATIONS.join(', ')}.` }
     }
     durationSec = n as HandoffDuration
   }
@@ -389,9 +393,12 @@ export function validateHandoffInput(body: unknown): HandoffValidation {
     }
     engineHint = normalized
   }
-  // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — o 15 s existe só no Seedance 1.5 (a rota recusaria nos outros motores).
-  if (durationSec === HANDOFF_SHORT_DURATION && engineHint !== 'seedance') {
-    return { ok: false, error: `durationSec ${HANDOFF_SHORT_DURATION} is only available with engineHint seedance.` }
+  // Junção E2b+E3 (29/09): a E2b tinha aqui a mesma recusa com HANDOFF_SHORT_DURATION; ficou UMA só (a de baixo),
+  // senão o mutante que desliga a recusa no guardião da E3 nunca fica vermelho.
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — 15 s só no Seedance 1.5: recusa honesta aqui, na conversa com o GPT, em vez de
+  // um link que o Studio trocaria para 35 s (15 cr, fora do trial).
+  if (durationSec === SEEDANCE_ONLY_DURATION && engineHint !== 'seedance') {
+    return { ok: false, error: `durationSec ${SEEDANCE_ONLY_DURATION} is only available with engineHint seedance (Seedance 1.5). Send engineHint seedance, or durationSec 35, 60 or 90 for ${engineHint}.` }
   }
 
   let language = DEFAULT_LANGUAGE

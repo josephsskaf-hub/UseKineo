@@ -534,7 +534,10 @@ console.log('\n(J) public/gpt/openapi.json amarrado ao servidor')
     // no regime sem Seedance grátis a regra de custo é "trial cobre fast, o resto
     // é plano pago", não "35/60 grátis, 90 paga".
     const d200 = op?.responses?.['200']?.description ?? ''
-    ok(new RegExp(`${TRIAL_CAP}-credit trial`).test(d200) && (noSeedanceFitsTrial ? /paid plan/i.test(d200) && /\`fast\`/.test(d200) : /durationSec (is )?90/.test(d200)), `(J9) a regra de custo (${noSeedanceFitsTrial ? `trial de ${TRIAL_CAP} cobre o fast; Seedance é plano pago` : '35/60 grátis, 90 paga'}) mora na description do 200, que não tem limite`)
+    // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: com o 15 s no handoff o regime voltou a ter Seedance grátis
+    // (freeDur = [15], decidido pelo custo real). A regra de custo do 200 passa a ser derivada: cita "durationSec N" para
+    // cada duração que cabe, cita cada duração que NÃO cabe e diz "paid plan" (era o literal "durationSec 90" de 35/60 grátis).
+    ok(new RegExp(`${TRIAL_CAP}-credit trial`).test(d200) && (noSeedanceFitsTrial ? /paid plan/i.test(d200) && /\`fast\`/.test(d200) : freeDur.every((d) => new RegExp(`durationSec ${d}\\b`).test(d200)) && paidDur.every((d) => mentions(d200, d)) && /paid plan/i.test(d200)), `(J9) a regra de custo (${noSeedanceFitsTrial ? `trial de ${TRIAL_CAP} cobre o fast; Seedance é plano pago` : '35/60 grátis, 90 paga'}) mora na description do 200, que não tem limite`)
     const trialMentions = strings.flatMap((s) => [...s.matchAll(/(\d+)-credit trial/g)].map((m) => Number(m[1])))
     ok(trialMentions.length >= 1 && trialMentions.every((n) => n === TRIAL_CAP), `(J8) todo "N-credit trial" do schema (${[...new Set(trialMentions)]}) === TRIAL_CREDIT_CAP (${TRIAL_CAP})`)
     const hwMentions = strings.flatMap((s) => [...s.matchAll(/(\d+) credits at 60s/g)].map((m) => Number(m[1])))
@@ -667,11 +670,14 @@ console.log('\n(K) docs/GPT-KINEO-VIDEO-MAKER.md amarrado ao servidor e ao schem
   // "Try Kineo 1 free (N credits, no card)." — N lido de TRIAL_CAP — e é ELA o literal preso aqui. Essa frase não é promessa
   // de FILME grátis (o CLAIM não casa: nomeia o motor e o saldo), então a contagem de exceções passa a ser só a dos blurbs
   // que o CLAIM pega (a longa), e o piso de parágrafos com promessa cai de 5 para 4 pela mesma razão.
-  const STORE_BLURBS = [`Try Kineo 1 free (${TRIAL_CAP} credits, no card).`, `Your first film is free on Kineo 1: ${TRIAL_CAP} trial credits, no card; Seedance and premium engines need a paid plan.`]
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o filme grátis de conta nova passou a ser o Seedance 1.5 de
+  // 15 s (decisão do fundador) e o Kineo 1 saiu do catálogo; os dois blurbs da loja dizem isso, com N lido de TRIAL_CAP. As
+  // travas do resto do .md seguem: todo outro parágrafo que promete grátis cita 15 (o que cabe) E 35/60/90 (o que não cabe).
+  const STORE_BLURBS = [`Your first 15-second film is free (Seedance 1.5, ${TRIAL_CAP} credits, no card).`, `Your first film is free: a 15-second Seedance 1.5 film on the ${TRIAL_CAP} trial credits, no card; longer films and premium engines need a paid plan.`]
   const blurbsInB = STORE_BLURBS.filter((b) => secB.includes(b))
   ok(blurbsInB.length === STORE_BLURBS.length, `(K2) as ${STORE_BLURBS.length} frases da exceção existem na seção B, literalmente (${blurbsInB.length} achadas)`)
   ok(STORE_BLURBS.every((b) => !secC.includes(b) && !secG.includes(b)), '(K2) a exceção não vaza: os blurbs da seção B não aparecem em C nem em G')
-  ok(!secB.includes('First film free.') && /\. Try Kineo 1 free \(\d+ credits, no card\)\.\n```/.test(secB), '(K2) a descrição curta da loja não diz mais "First film free." e TERMINA na frase do Kineo 1')
+  ok(!secB.includes('First film free.') && !secB.includes('Try Kineo 1 free') && /\. Your first 15-second film is free \(Seedance 1\.5, \d+ credits, no card\)\.\n```/.test(secB), '(K2) a descrição curta da loja não diz "First film free." nem "Try Kineo 1 free" e TERMINA na frase do Seedance de 15 s')
   const secBStart = md.indexOf('## B. ')
   const secBEnd = md.indexOf('## C. ')
   const isStoreBlurb = (p, idx) => idx >= secBStart && idx < secBEnd && STORE_BLURBS.some((b) => p.includes(b))
@@ -729,15 +735,19 @@ console.log('\n(K) docs/GPT-KINEO-VIDEO-MAKER.md amarrado ao servidor e ao schem
       const block = (instructions.match(new RegExp(`${header}[^\\n]*\\n([\\s\\S]*?)\\n\\n`)) || [])[1] || ''
       return [...block.matchAll(/^- (\d+)s: (\d+)-(\d+) words/gm)].map((m) => ({ d: Number(m[1]), lo: Number(m[2]), hi: Number(m[3]) }))
     }
+    // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: DURATIONS ganhou o 15, que só existe no Seedance
+    // (L.SEEDANCE_ONLY_DURATION; o handoff recusa 15 fora do seedance). A linha premium cobre DURATIONS sem o 15; a
+    // standard cobre todas, e o 15 dela é executado contra o estimador como as outras.
     for (const [header, ids] of [['Standard engines', stdIds], ['Premium engines', premIds]]) {
       const r = rows(header)
-      ok(sameSet(r.map((x) => x.d), DUR), `(K4) ${header}: linhas de orçamento para [${r.map((x) => x.d)}] === DURATIONS`)
+      const durs = header === 'Premium engines' ? DUR.filter((d) => d !== L.SEEDANCE_ONLY_DURATION) : DUR
+      ok(sameSet(r.map((x) => x.d), durs), `(K4) ${header}: linhas de orçamento para [${r.map((x) => x.d)}] === DURATIONS${header === 'Premium engines' ? ' sem o 15 (só Seedance)' : ''}`)
       const bad = r.flatMap((x) => ids.flatMap((e) => {
         const lo = L.estimateHandoff(mk(x.lo), x.d, e).fit
         const hi = L.estimateHandoff(mk(x.hi), x.d, e).fit
         return lo === 'short' || hi === 'long' ? [`${e}@${x.d}s ${x.lo}-${x.hi} → ${lo}/${hi}`] : []
       }))
-      ok(r.length === DUR.length && bad.length === 0, bad.length ? `(K4) faixa de palavras que o servidor reprovaria: ${bad.join('; ')}` : `(K4) ${header}: piso nunca dá "short", teto nunca dá "long" (estimateHandoff real)`)
+      ok(r.length === durs.length && bad.length === 0, bad.length ? `(K4) faixa de palavras que o servidor reprovaria: ${bad.join('; ')}` : `(K4) ${header}: piso nunca dá "short", teto nunca dá "long" (estimateHandoff real)`)
     }
   }
   const step1 = (instructions.match(/Duration: [^\n]*/) || [''])[0]
@@ -792,7 +802,9 @@ console.log('\n(K) docs/GPT-KINEO-VIDEO-MAKER.md amarrado ao servidor e ao schem
   // KINEO-GPT-INSTRUCOES-V3-2026-09-24 — reancorado com motivo: "one 60-second" era o trial de 25 (um Seedance). Com o
   // trial de 10 o saldo paga DOIS Kineo 1 de 60 s (llms.txt: "Kineo 1 (2 full reference videos)"); a trava aceita one|two
   // e segue exigindo o TRIAL_CAP lido da fonte, "no card required" e a duração de referência.
-  ok(new RegExp(`Free trial: ${TRIAL_CAP} credits, no card required\\. Enough for (?:one|two) ${REF_SEC}-second`).test(instructions), `(K7) o Step "Pricing" diz o trial certo e o que ele compra (filme(s) de ${REF_SEC}s)`)
+  // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o trial de TRIAL_CAP passou a comprar UM Seedance 1.5 de
+  // SEEDANCE_ONLY_DURATION s (decisão do fundador); a trava segue exigindo o TRIAL_CAP da fonte, "no card" e a duração lida da lib.
+  ok(L && new RegExp(`Free trial: ${TRIAL_CAP} credits, no card = one free ${L.SEEDANCE_ONLY_DURATION}s Seedance 1\\.5 film`).test(instructions), `(K7) o Step "Pricing" diz o trial certo e o que ele compra (1 filme Seedance de ${L?.SEEDANCE_ONLY_DURATION}s)`)
 
   // (K8) CUSTOS. Os créditos por motor a 60s (cabeçalho "Fatos conferidos")
   // e os custos do Seedance por duração (15/25/38 em G) vêm de engineCost.ts.

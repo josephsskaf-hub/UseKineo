@@ -129,8 +129,14 @@ check(
 )
 check('ENGINE_SLUGS nasce das chaves de ENGINES', /export const ENGINE_SLUGS = Object\.keys\(ENGINES\)/.test(enginePage))
 
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: /ai-video-generator/kineo-1 virou 301 para a página do
+// Seedance (Kineo 1 fora do catálogo público, decisão do fundador 29/09). A página citável de motor passa a ser só a do
+// Seedance; o Kineo 1 some do "## Key pages" enquanto KINEO1_PUBLIC for false, e 'fast' aponta direto para o Seedance.
+check(
+  "/ai-video-generator/kineo-1 aposentado: 'fast' mapeia para a página do Seedance e a linha do Kineo 1 só existe atrás de KINEO1_PUBLIC",
+  /\n\s*fast:\s*'\/ai-video-generator\/seedance'/.test(engineIntent) && /\$\{KINEO1_PUBLIC \? `\\n- \[Kineo 1 engine\]/.test(llms) && /^export const KINEO1_PUBLIC = false$/m.test(readFileSync('lib/engineLaunch.ts', 'utf8').replace(/\r\n/g, '\n')),
+)
 const ENGINE_ROUTES = [
-  { param: 'fast', slug: 'kineo-1', label: 'Kineo 1' },
   { param: 'seedance', slug: 'seedance', label: 'Seedance 1.5' },
 ]
 for (const e of ENGINE_ROUTES) {

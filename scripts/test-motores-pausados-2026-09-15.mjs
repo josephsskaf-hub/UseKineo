@@ -75,7 +75,9 @@ checa('tabela de preços: linhas pausadas filtradas (qualityPaused) e a nota de 
 const pc = rd('app/pricing/PricingClient.tsx')
 // KINEO-AVATAR-FORA-2026-09-28 — re-ancorada: o resultado do Studio terminava em ', Avatar' fixo; agora ', Avatar' só
 // entra com AVATAR_PUBLIC=true (Avatar fora do catálogo público desde 27/09). Omni continua fora da frase.
-checa('pricing: Studio não promete H3/Omni; linha do H3 fora do calculador; flagship = Kling 3', /* reancorado 29/09 (E2b): o Kineo 1 saiu da /pricing (trava j do E1) */ pc.includes("outcome: `Every available engine — Kling 3, Veo 3.1, Kling 2.5, MiniMax H3, Seedance 1.5${AVATAR_PUBLIC ? ', Avatar' : ''} — plus") && !pc.includes("name: 'MiniMax H3 films · lip-sync'") && pc.includes("{ ic: '🏆', name: 'Kling 3 films · native voice & lip sync', cost: costFlag }") && pc.includes('lip sync (Kling 3)</span>'))
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o Kineo 1 saiu do resultado do Studio (fora do catálogo
+// público; trava (j) da E1 exige /pricing sem "Kineo 1"). O resto da trava (H3/Omni/flagship) segue igual.
+checa('pricing: Studio não promete H3/Omni; linha do H3 fora do calculador; flagship = Kling 3', pc.includes("outcome: `Every available engine — Kling 3, Veo 3.1, Kling 2.5, MiniMax H3, Seedance 1.5${AVATAR_PUBLIC ? ', Avatar' : ''} — plus") && !pc.includes("name: 'MiniMax H3 films · lip-sync'") && pc.includes("{ ic: '🏆', name: 'Kling 3 films · native voice & lip sync', cost: costFlag }") && pc.includes('lip sync (Kling 3)</span>'))
 const calc = rd('app/cheapest-ai-shorts-maker/ShortCostCalculator.tsx')
 checa('calculadora: sem H3 e sem Omni', !/cinematic_h3/.test(calc) && !/cinematic_omni/.test(calc))
 const ep = rd('app/ai-video-generator/[engine]/page.tsx')

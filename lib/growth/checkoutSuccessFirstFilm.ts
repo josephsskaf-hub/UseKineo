@@ -16,7 +16,7 @@ export const CHECKOUT_SUCCESS_FIRST_FILM_VERSION = 'checkout_success_no_autostar
 export function checkoutSuccessFirstFilmCopy(): { eyebrow: string; body: string; cta: string; href: string } {
   return {
     eyebrow: 'Your first film',
-    body: 'Open the Studio, pick the engine you want (Kineo 1, Seedance, Kling, Veo…) and type your idea or paste your script. Keep the tab open until you see "Your film is ready".',
+    body: 'Open the Studio, pick the engine you want (Seedance, Kling, Veo…) and type your idea or paste your script. Keep the tab open until you see "Your film is ready".',
     cta: 'Open the Studio →',
     href: '/studio?intent_campaign=checkout_success_studio_v1',
   }

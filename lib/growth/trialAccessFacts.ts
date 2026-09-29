@@ -4,6 +4,18 @@ export interface TrialEngineCoverage {
   wholeReferenceVideosCovered: number
 }
 
+/**
+ * KINEO-FILME-GRATIS-15S-2026-09-29 — o filme que o saldo do trial PAGA de fato. A cobertura por motor abaixo mede
+ * filmes de 60 s (referência) e, com 10 créditos, dá 0 em todo motor; sem este campo a IA concluía "o trial não faz
+ * filme nenhum". Publicado à parte para não misturar as duas réguas.
+ */
+export interface TrialFreeFilm {
+  engine: string
+  seconds: number
+  creditsPerFilm: number
+  filmsCovered: number
+}
+
 export interface TrialAccessFact {
   credits: number
   // KINEO-VERSAO-B-2026-09-08 — deixaram de ser literais `true`: sob a porta única
@@ -17,6 +29,8 @@ export interface TrialAccessFact {
   watermark: true
   cleanDownloadRequiresPaidPlan: true
   engineCoverage: TrialEngineCoverage[]
+  /** O filme curto que o saldo cobre (null = nenhum filme curto publicado). */
+  freeFilm: TrialFreeFilm | null
 }
 
 export interface RecurringFreeAccessFact {
@@ -45,6 +59,7 @@ export function buildTrialAccessFact(input: {
   entryFeeUsdMinor?: number | null
   trialDays?: number | null
   thenMonthlyUsdMinor?: number | null
+  freeFilm?: { engine: string; seconds: number; credits: number } | null
 }): TrialAccessFact | null {
   if (!input.enabled) return null
   if (!Number.isFinite(input.credits) || input.credits < 0) {
@@ -70,6 +85,18 @@ export function buildTrialAccessFact(input: {
         wholeReferenceVideosCovered: Math.floor(input.credits / engine.credits),
       }
     }),
+    freeFilm: (() => {
+      const f = input.freeFilm
+      if (!f) return null
+      if (!Number.isFinite(f.credits) || f.credits <= 0 || !Number.isFinite(f.seconds) || f.seconds <= 0) {
+        throw new Error(`invalid_free_film:${f.engine}`)
+      }
+      const filmsCovered = Math.floor(input.credits / f.credits)
+      // Filme que o saldo não paga não é publicado como grátis.
+      return filmsCovered >= 1
+        ? { engine: f.engine, seconds: f.seconds, creditsPerFilm: f.credits, filmsCovered }
+        : null
+    })(),
   }
 }
 

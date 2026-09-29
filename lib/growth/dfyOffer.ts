@@ -65,7 +65,7 @@ export const DFY_TIERS: Record<DfyTier, DfyTierSpec> = {
     linkId: 'plink_1UJ4BgIah5dxzSBf8RGTiutr',
     hours: 48,
     revisions: 1,
-    engines: 'Kineo 1 or Seedance',
+    engines: 'Seedance 1.5', // KINEO-FILME-GRATIS-15S-2026-09-29 — Kineo 1 fora do catálogo público
     detail: 'Script from your brief, narration in your language, captions, music, your logo and photos where the format allows. 1 revision, 48 h.',
   },
   pro: {

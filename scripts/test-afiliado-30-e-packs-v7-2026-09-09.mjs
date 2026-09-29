@@ -55,7 +55,10 @@ checa('nenhum pack a $99 (e a lista de ambíguos ficou vazia: Starter anual = 12
   checa('bulk10 = 10 filmes × 5 + folga de 10 = 60 créditos', packs.bulk10.credits === 60)
 }
 checa('página de agência fala em filmes Kineo 1 de 60 s, não "Fast videos"', /30 Kineo 1 films of 60 seconds/.test(rd('app/ai-shorts-for-agencies/page.tsx')) && !/30 Fast videos/.test(rd('app/ai-shorts-for-agencies/page.tsx')))
-checa('ponte de agência fala em filme Kineo 1 de 60 s', /per finished 60-second Kineo 1 film/.test(rd('components/AgencyVolumeBridge.tsx')))
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: a ponte aparece na home, no /pricing e em páginas de SEO (fora
+// da página de agências); com o Kineo 1 fora do catálogo público, o nome do motor do pacote fica só em /ai-shorts-for-agencies
+// (compra paga, verificada acima). A ponte segue falando em filme finalizado de 60 s, nunca em "Fast".
+checa('ponte de agência fala em filme finalizado de 60 s (sem "Fast" e sem Kineo 1 fora da página de agências)', /per finished 60-second film\./.test(rd('components/AgencyVolumeBridge.tsx')) && !/Fast video|Kineo 1 film/.test(rd('components/AgencyVolumeBridge.tsx')))
 
 console.log('== porta v2 no funil e entrantes no admin ==')
 const fun = rd('lib/admin/versaoBFunnel.ts')

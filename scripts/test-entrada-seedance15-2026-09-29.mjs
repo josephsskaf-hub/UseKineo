@@ -215,7 +215,10 @@ const FT = carregar('lib/freeTierOffer.ts')
 checa(`TRIAL_SEEDANCE15_FILMS derivado (${FT.TRIAL_SEEDANCE15_FILMS}) = floor(grant ÷ custo de 15 s) e o 15 espelha SEEDANCE_SHORT_SECONDS`, FT.TRIAL_SEEDANCE15_SECONDS === CURTO && FT.TRIAL_SEEDANCE15_FILMS === Math.floor(CAP / custo(CURTO)) && FT.TRIAL_SEEDANCE15_FILMS >= 1)
 checa('TRIAL_CREDIT_CAP intocado em 10 (a entrada nova não mexe no trial)', CAP === 10)
 const EXIT = rd('components/ExitIntentOffer.tsx')
-checa('ExitIntentOffer: com a entrada pública, "free 15-second film (Seedance 1.5)" pela constante derivada; nenhum "free Kineo 1 video"', EXIT.includes('TRIAL_SEEDANCE15_FILMS') && EXIT.includes('free ${TRIAL_SEEDANCE15_SECONDS}-second') && EXIT.includes('(Seedance 1.5)') && !/free Kineo 1 video|two Kineo 1 films/i.test(EXIT))
+// Reancorado na junção E2b+E3 (29/09): a E3 é dona do texto e o ExitIntentOffer passou a usar a frase única
+// FREE_FILM_LABEL (lib/freeTierOffer) em vez de montar "free ${TRIAL_SEEDANCE15_SECONDS}-second … (Seedance 1.5)" à mão.
+// Mesma força: a contagem segue vindo de TRIAL_SEEDANCE15_FILMS, e a frase da constante é conferida EXECUTANDO o módulo.
+checa('ExitIntentOffer: com a entrada pública, "free 15-second film (Seedance 1.5)" pela constante derivada; nenhum "free Kineo 1 video"', EXIT.includes('TRIAL_SEEDANCE15_FILMS') && EXIT.includes('${FREE_FILM_LABEL}') && FT.FREE_FILM_LABEL === `free ${CURTO}-second film (Seedance 1.5)` && !/free Kineo 1 video|two Kineo 1 films/i.test(EXIT))
 
 console.log(`\n${ok}/${ok + falhas.length} verificações`)
 if (falhas.length) { for (const f of falhas) console.log('FALHOU:', f); process.exit(1) }

@@ -126,8 +126,8 @@ export default function UpgradeModal({ onClose }: UpgradeModalProps) {
             // nenhum da V5 (60–320) nem da V6 (40–160). Fast custa 1 crédito
             // para conta paga, então a faixa é literalmente o menor e o maior
             // grant do catálogo — e agora ela sai deles.
-            // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — o motor de stock saiu da venda: a faixa é em filmes Seedance (derivada).
-            `🎬 ${videosPerMonth('starter', 'cinematic_ai')}–${videosPerMonth('pro', 'cinematic_ai')} Seedance 1.5 films / month`,
+            // KINEO-FILME-GRATIS-15S-2026-09-29 — faixa em Seedance 1.5 (o motor de stock saiu do catálogo público).
+            `🎬 ${videosPerMonth('starter', 'cinematic_ai')}–${videosPerMonth('pro', 'cinematic_ai')} Seedance 1.5 AI films / month`,
             '🎬 AI script + voiceover pipeline',
             '🔤 Auto-captions engine',
             '📥 Watermark-free MP4 output',

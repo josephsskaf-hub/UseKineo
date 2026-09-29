@@ -19,7 +19,7 @@ const CONTEXT: Record<AgencyDistributionEntry, string> = {
   content_plan: 'Turning a weekly business content plan into a production batch?',
   real_estate: 'Turning a real estate content calendar into a production batch?',
   client_brief: 'Turning approved client briefs into a production batch?',
-  kineo1_engine: 'Need Kineo 1 volume for your company or paying clients?',
+  kineo1_engine: 'Need stock-footage Short volume for your company or paying clients?', // KINEO-FILME-GRATIS-15S-2026-09-29
   text_to_video: 'Turning client scripts into a repeatable delivery batch?',
   heygen_alternative: 'Need finished Shorts for clients instead of an enterprise avatar workspace?',
 }
@@ -66,7 +66,8 @@ export default function AgencyVolumeBridge({ entry }: { entry: AgencyDistributio
         </h2>
         <p style={{ color: '#aaaab1', fontSize: 14, lineHeight: 1.62, margin: '10px 0 0' }}>
           Buy 10–50 Fast Shorts once, download clean commercial-use MP4s and keep the margin.
-          Packs start at {formatCheckoutMoney('usd', LOWEST_UNIT_PRICE_MINOR)} per finished 60-second Kineo 1 film.
+          {/* KINEO-FILME-GRATIS-15S-2026-09-29 — o nome do motor do pacote fica só na página de agências (compra paga). */}
+          Packs start at {formatCheckoutMoney('usd', LOWEST_UNIT_PRICE_MINOR)} per finished 60-second film.
         </p>
       </div>
 

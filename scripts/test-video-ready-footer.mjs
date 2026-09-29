@@ -75,7 +75,11 @@ ok(tr.html.includes(`Plans from ${starter}/month`), 'preco vem de TIER_PRICES/fo
 ok(tr.html.includes('intent_campaign=video_ready_email_plan_truth_v1'), 'intent_campaign do Codex preservado no link de preco')
 ok(!/clean export/.test(tr.html), 'trial com saldo: nao vende "clean export" antes do 2o video')
 const edge = videoReadyFooter({ ...base, isSubscriber: false, creditsRemaining: NEXT_VIDEO_MIN_CREDITS })
-ok(edge.kind === 'trial_episode2' && NEXT_VIDEO_MIN_CREDITS === 5, 'exatamente 5cr (Kineo 1) ainda compra o proximo → episodio 2')
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o piso do próximo filme deixou de ser o Kineo 1 (5 cr, fora do
+// catálogo público) e passou a ser o Seedance 1.5 de 15 s, lido de lib/marketingPrice (SEEDANCE_SHORT_FILM_CREDITS, derivado
+// de creditCostForDuration). A borda continua: exatamente o piso compra o próximo; um crédito a menos não.
+ok(edge.kind === 'trial_episode2' && NEXT_VIDEO_MIN_CREDITS === marketing.SEEDANCE_SHORT_FILM_CREDITS && NEXT_VIDEO_MIN_CREDITS === 7, 'exatamente o piso (Seedance 15 s, 7cr) ainda compra o proximo → episodio 2')
+ok(videoReadyFooter({ ...base, isSubscriber: false, creditsRemaining: NEXT_VIDEO_MIN_CREDITS - 1 }).kind !== 'trial_episode2', 'um credito abaixo do piso nao promete o proximo filme')
 ok(videoReadyFooter({ ...base, isSubscriber: false, creditsRemaining: 4.9 }).kind === 'plan_films', '4.9cr → floor 4 → nao compra → plano')
 
 // 3) sem saldo

@@ -114,7 +114,8 @@ const scriptDesc = JSON.stringify(oa)
 const faixaOa = scriptDesc.match(/except `fast` \(Kineo 1\) at 90s: (\d+)-(\d+) words, never more/)
 // GPT-COWORK-FOLLOWUP-2026-09-24 — reancorado com motivo: 1.3.3 só muda descriptions: getKineoFacts 532 → 281 caracteres (o ChatGPT recusa operação > 300), "fast" a 90 s 230-240 e `words` manda confiar na contagem do servidor.
 // 1.3.5: acesso Studio Ads por plano e passe; limites do handoff preservados.
-ok(Boolean(faixa && faixaOa) && faixa[1] === faixaOa[1] && faixa[2] === faixaOa[2] && oa.info.version === '1.3.5', `6b. seção C e openapi (v${oa.info.version}) dizem a MESMA faixa do Kineo 1 a 90 s (${faixa?.slice(1).join('-')})`)
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: 1.4.0 = durationSec 15 (Seedance, filme grátis de conta nova); a faixa do Kineo 1 a 90 s não mudou.
+ok(Boolean(faixa && faixaOa) && faixa[1] === faixaOa[1] && faixa[2] === faixaOa[2] && oa.info.version === '1.4.0', `6b. seção C e openapi (v${oa.info.version}) dizem a MESMA faixa do Kineo 1 a 90 s (${faixa?.slice(1).join('-')})`)
 if (faixa) {
   const lo = Number(faixa[1]), hi = Number(faixa[2])
   // GPT-COWORK-FOLLOWUP-2026-09-24 — o GPT conta palavras para BAIXO. O Cowork mediu no Preview: declarou 192 e o servidor
@@ -136,7 +137,9 @@ ok(/- "hollywood" \(Kling 3\) or "h3" \(MiniMax H3\): only if named and the scri
   '6e. seção C e schema dizem que Kling 3/H3 narram só en/es/pt e mandam o resto para seedance')
 const HL = carrega('lib/textLanguage').HOLLYWOOD_LANGUAGES
 ok(JSON.stringify([...HL].sort()) === JSON.stringify(['en', 'es', 'pt']), `6f. a lista de idiomas do texto é a do código (HOLLYWOOD_LANGUAGES = ${[...HL]})`)
-ok(/A new account's first film is free on Kineo 1 \(10-credit trial, no card; watermarked\)/.test(instr) && /Credits are per 60s \(35s x35\/60, 90s x1\.5, rounded up\)/.test(instr) && /Yearly \(Starter, Creator, Studio\) = ten months\./.test(instr) && /money-back: 7 days after the first charge only/.test(instr),
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o primeiro filme grátis de conta nova passou a ser o Seedance 1.5 de 15 s (decisão do fundador);
+// o Kineo 1 não é mais oferecido a conta nova. Os outros 3 acertos seguem iguais.
+ok(/A new account's first film is free on Seedance 1\.5 at 15s \(10-credit trial, no card; watermarked\)/.test(instr) && !/first film is free on Kineo 1/.test(instr) && /- 15s: 47-56 words \("seedance" only\)/.test(instr) && /Credits are per 60s \(35s x35\/60, 90s x1\.5, rounded up\)/.test(instr) && /Yearly \(Starter, Creator, Studio\) = ten months\./.test(instr) && /money-back: 7 days after the first charge only/.test(instr),
   '6g. os 4 acertos de texto: conta nova, 35/60, anual sem Autopilot, reembolso só na 1ª cobrança')
 // COWORK-RELATORIO-2026-09-24 (achado 1) — o arquivo de colar vivia só no disco do fundador (C:/kineo/docs, fora do git) e
 // esta checagem PULAVA em silêncio em qualquer outra máquina. Agora ele mora no repo e a igualdade é obrigatória: quem

@@ -133,7 +133,9 @@ check('20. episodiosProntos tem try/catch e devolve [] no erro', /function episo
 check('21. ou os TRES, ou nenhum (nao sai carta com 1 exemplo torto)', /return out\.length === 3 \? out : \[\]/.test(atual))
 check('22. o pool e calculado UMA vez por execucao, fora do laco', /const episodiosDoLote = episodiosProntos\(\)/.test(atual) && atual.indexOf('const episodiosDoLote') < atual.indexOf('buildEmail(u.id, episodiosDoLote)'))
 check('23. o assunto nomeia o primeiro episodio quando ele existe', /episodiosDoLote\.length > 0\n\s*\? `Your first video: "\$\{episodiosDoLote\[0\]\.titulo\}"`/.test(atual))
-check('24. e volta ao assunto de hoje quando nao existe', atual.includes("'Your first Fast video is a few minutes away'"))
+// KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: "Fast video" era o Kineo 1 (fora do catálogo público; o
+// primeiro filme de conta nova é o Seedance de 15 s). O assunto de hoje continua o mesmo, só sem o nome do motor.
+check('24. e volta ao assunto de hoje quando nao existe', atual.includes("'Your first film is a few minutes away'") && !atual.includes('Your first Fast video'))
 // As travas que ja existiam na rota nao podem ter sumido.
 check('25. o portao de cron continua FAIL-CLOSED', /if \(!cronSecret\) return false/.test(atual))
 check('26. o interruptor de ciclo de vida continua respeitado', /if \(!LIFECYCLE_EMAILS_ENABLED\)/.test(atual))
