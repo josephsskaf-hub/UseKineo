@@ -150,7 +150,15 @@ checa('HEAD: mesmo com cada still esgotando a janela de 12 s, 12 planos → 12 s
 const piorBaseSemTeto = await simula(blocoBase.replace('const MAX_ANCHORED_SCENES = 6', 'const MAX_ANCHORED_SCENES = scenes.length'), { anchorEngine: 'kling', planos: 12, msPorStill: 12_000 })
 checa('só subir o teto sem subir o orçamento (30 s) NÃO bastaria: no pior caso 12 planos parariam em 9 stills', piorBaseSemTeto.stills === 9)
 
-for (const [motor, planos] of [['seedance', 12], ['seedance', 9], ['veo', 9], ['veo', 12]]) {
+// [TRAVA 8.2] VEO-PLANOS-2026-09-29 — palavra do fundador ("foco total no Veo"): o Veo 3.1 ganhou o padrão do Kling (still em
+// todas as cenas, 60 s). Só o Seedance segue com 6 stills e 30 s como antes; o Veo é medido logo abaixo.
+if (blocoNovo?.includes('VEO-PLANOS-2026-09-29')) {
+  const v12 = await simula(blocoNovo, { anchorEngine: 'veo', planos: 12 })
+  const v12pior = await simula(blocoNovo, { anchorEngine: 'veo', planos: 12, msPorStill: 12_000 })
+  checa('veo com 12 cenas (VEO-PLANOS): 12 stills, como o Kling', v12.stills === 12)
+  checa('veo com 12 cenas no pior caso (12 s por still): orçamento de 60 s → 12 stills, como o Kling', v12pior.stills === 12)
+}
+for (const [motor, planos] of blocoNovo?.includes('VEO-PLANOS-2026-09-29') ? [['seedance', 12], ['seedance', 9]] : [['seedance', 12], ['seedance', 9], ['veo', 9], ['veo', 12]]) {
   const n = await simula(blocoNovo, { anchorEngine: motor, planos })
   const b = await simula(blocoBase, { anchorEngine: motor, planos })
   checa(`${motor} com ${planos} cenas: 6 stills como antes e o MESMO vetor de stills da base (byte a byte)`, n.stills === 6 && b.stills === 6 && eqJ(n.sceneStills, b.sceneStills) && eqJ(n.chamadas, b.chamadas))
