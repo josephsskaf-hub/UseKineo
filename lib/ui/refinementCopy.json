@@ -124,7 +124,12 @@
     "Uploading photo…": "Uploading photo…",
     "Confirm permission for the photo first": "Confirm permission for the photo first",
     "Only JPG, PNG or WEBP photos.": "Only JPG, PNG or WEBP photos.",
-    "Photo is too large — max 10 MB.": "Photo is too large — max 10 MB."
+    "Photo is too large — max 10 MB.": "Photo is too large — max 10 MB.",
+    "One scene, 5 to 15 seconds — from text or a photo": "One scene, 5 to 15 seconds — from text or a photo",
+    "NEW": "NEW",
+    "New at Kineo": "New at Kineo",
+    "One product in, three ads out, ready to A/B test": "One product in, three ads out, ready to A/B test",
+    "Write your video in Claude, render it in Kineo Studio": "Write your video in Claude, render it in Kineo Studio"
   },
   "pt": {
     "Clips": "Clipes",
@@ -250,7 +255,12 @@
     "Uploading photo…": "Enviando foto…",
     "Confirm permission for the photo first": "Confirme a autorização da foto primeiro",
     "Only JPG, PNG or WEBP photos.": "Só fotos JPG, PNG ou WEBP.",
-    "Photo is too large — max 10 MB.": "Foto grande demais — máx. 10 MB."
+    "Photo is too large — max 10 MB.": "Foto grande demais — máx. 10 MB.",
+    "One scene, 5 to 15 seconds — from text or a photo": "Uma cena, de 5 a 15 segundos — a partir de texto ou foto",
+    "NEW": "NOVO",
+    "New at Kineo": "Novidades da Kineo",
+    "One product in, three ads out, ready to A/B test": "Um produto entra, três anúncios saem, prontos para teste A/B",
+    "Write your video in Claude, render it in Kineo Studio": "Escreva o vídeo no Claude, renderize no Kineo Studio"
   },
   "es": {
     "Clips": "Clips",
@@ -375,7 +385,12 @@
     "Uploading photo…": "Subiendo foto…",
     "Confirm permission for the photo first": "Primero confirma el permiso de la foto",
     "Only JPG, PNG or WEBP photos.": "Solo fotos JPG, PNG o WEBP.",
-    "Photo is too large — max 10 MB.": "La foto es demasiado grande — máx. 10 MB."
+    "Photo is too large — max 10 MB.": "La foto es demasiado grande — máx. 10 MB.",
+    "One scene, 5 to 15 seconds — from text or a photo": "Una escena, de 5 a 15 segundos — a partir de texto o una foto",
+    "NEW": "NUEVO",
+    "New at Kineo": "Novedades de Kineo",
+    "One product in, three ads out, ready to A/B test": "Entra un producto, salen tres anuncios, listos para test A/B",
+    "Write your video in Claude, render it in Kineo Studio": "Escribe tu vídeo en Claude y renderízalo en Kineo Studio"
   },
   "fr": {
     "Clips": "Clips",
@@ -501,7 +516,12 @@
     "Uploading photo…": "Envoi de la photo…",
     "Confirm permission for the photo first": "Confirmez d’abord l’autorisation pour la photo",
     "Only JPG, PNG or WEBP photos.": "Photos JPG, PNG ou WEBP uniquement.",
-    "Photo is too large — max 10 MB.": "Photo trop lourde — 10 Mo max."
+    "Photo is too large — max 10 MB.": "Photo trop lourde — 10 Mo max.",
+    "One scene, 5 to 15 seconds — from text or a photo": "Une scène, de 5 à 15 secondes — à partir d’un texte ou d’une photo",
+    "NEW": "NOUVEAU",
+    "New at Kineo": "Nouveautés Kineo",
+    "One product in, three ads out, ready to A/B test": "Un produit en entrée, trois pubs en sortie, prêtes pour l’A/B test",
+    "Write your video in Claude, render it in Kineo Studio": "Écrivez votre vidéo dans Claude, générez-la dans Kineo Studio"
   },
   "de": {
     "Clips": "Clips",
@@ -627,7 +647,12 @@
     "Uploading photo…": "Foto wird hochgeladen…",
     "Confirm permission for the photo first": "Bestätige zuerst die Erlaubnis für das Foto",
     "Only JPG, PNG or WEBP photos.": "Nur JPG-, PNG- oder WEBP-Fotos.",
-    "Photo is too large — max 10 MB.": "Foto zu groß — max. 10 MB."
+    "Photo is too large — max 10 MB.": "Foto zu groß — max. 10 MB.",
+    "One scene, 5 to 15 seconds — from text or a photo": "Eine Szene, 5 bis 15 Sekunden — aus Text oder einem Foto",
+    "NEW": "NEU",
+    "New at Kineo": "Neu bei Kineo",
+    "One product in, three ads out, ready to A/B test": "Ein Produkt rein, drei Anzeigen raus, bereit für A/B-Tests",
+    "Write your video in Claude, render it in Kineo Studio": "Schreib dein Video in Claude, rendere es im Kineo Studio"
   },
   "it": {
     "Clips": "Clip",
@@ -753,7 +778,12 @@
     "Uploading photo…": "Caricamento foto…",
     "Confirm permission for the photo first": "Prima conferma il permesso per la foto",
     "Only JPG, PNG or WEBP photos.": "Solo foto JPG, PNG o WEBP.",
-    "Photo is too large — max 10 MB.": "Foto troppo grande — max 10 MB."
+    "Photo is too large — max 10 MB.": "Foto troppo grande — max 10 MB.",
+    "One scene, 5 to 15 seconds — from text or a photo": "Una scena, da 5 a 15 secondi — da testo o da una foto",
+    "NEW": "NOVITÀ",
+    "New at Kineo": "Novità di Kineo",
+    "One product in, three ads out, ready to A/B test": "Entra un prodotto, escono tre annunci, pronti per l’A/B test",
+    "Write your video in Claude, render it in Kineo Studio": "Scrivi il video in Claude, generalo in Kineo Studio"
   },
   "nl": {
     "Clips": "Clips",
@@ -879,7 +909,12 @@
     "Uploading photo…": "Foto uploaden…",
     "Confirm permission for the photo first": "Bevestig eerst de toestemming voor de foto",
     "Only JPG, PNG or WEBP photos.": "Alleen JPG-, PNG- of WEBP-foto’s.",
-    "Photo is too large — max 10 MB.": "Foto te groot — max. 10 MB."
+    "Photo is too large — max 10 MB.": "Foto te groot — max. 10 MB.",
+    "One scene, 5 to 15 seconds — from text or a photo": "Eén scène, 5 tot 15 seconden — van tekst of een foto",
+    "NEW": "NIEUW",
+    "New at Kineo": "Nieuw bij Kineo",
+    "One product in, three ads out, ready to A/B test": "Eén product erin, drie advertenties eruit, klaar voor A/B-tests",
+    "Write your video in Claude, render it in Kineo Studio": "Schrijf je video in Claude, render hem in Kineo Studio"
   },
   "pl": {
     "Clips": "Klipy",
@@ -1005,7 +1040,12 @@
     "Uploading photo…": "Wysyłanie zdjęcia…",
     "Confirm permission for the photo first": "Najpierw potwierdź zgodę na zdjęcie",
     "Only JPG, PNG or WEBP photos.": "Tylko zdjęcia JPG, PNG lub WEBP.",
-    "Photo is too large — max 10 MB.": "Zdjęcie jest za duże — maks. 10 MB."
+    "Photo is too large — max 10 MB.": "Zdjęcie jest za duże — maks. 10 MB.",
+    "One scene, 5 to 15 seconds — from text or a photo": "Jedna scena, od 5 do 15 sekund — z tekstu lub zdjęcia",
+    "NEW": "NOWOŚĆ",
+    "New at Kineo": "Nowości w Kineo",
+    "One product in, three ads out, ready to A/B test": "Jeden produkt na wejściu, trzy reklamy na wyjściu, gotowe do testów A/B",
+    "Write your video in Claude, render it in Kineo Studio": "Napisz film w Claude, wyrenderuj go w Kineo Studio"
   },
   "tr": {
     "Clips": "Klipler",
@@ -1131,7 +1171,12 @@
     "Uploading photo…": "Fotoğraf yükleniyor…",
     "Confirm permission for the photo first": "Önce fotoğraf iznini onayla",
     "Only JPG, PNG or WEBP photos.": "Yalnızca JPG, PNG veya WEBP fotoğraflar.",
-    "Photo is too large — max 10 MB.": "Fotoğraf çok büyük — en fazla 10 MB."
+    "Photo is too large — max 10 MB.": "Fotoğraf çok büyük — en fazla 10 MB.",
+    "One scene, 5 to 15 seconds — from text or a photo": "Tek sahne, 5 ila 15 saniye — metinden ya da fotoğraftan",
+    "NEW": "YENİ",
+    "New at Kineo": "Kineo’da yeni",
+    "One product in, three ads out, ready to A/B test": "Bir ürün girer, üç reklam çıkar, A/B testine hazır",
+    "Write your video in Claude, render it in Kineo Studio": "Videonu Claude’da yaz, Kineo Studio’da oluştur"
   },
   "ru": {
     "Clips": "Клипы",
@@ -1257,7 +1302,12 @@
     "Uploading photo…": "Загрузка фото…",
     "Confirm permission for the photo first": "Сначала подтвердите разрешение на фото",
     "Only JPG, PNG or WEBP photos.": "Только фото JPG, PNG или WEBP.",
-    "Photo is too large — max 10 MB.": "Фото слишком большое — до 10 МБ."
+    "Photo is too large — max 10 MB.": "Фото слишком большое — до 10 МБ.",
+    "One scene, 5 to 15 seconds — from text or a photo": "Одна сцена, от 5 до 15 секунд — из текста или фото",
+    "NEW": "НОВОЕ",
+    "New at Kineo": "Новое в Kineo",
+    "One product in, three ads out, ready to A/B test": "Один товар на входе, три рекламы на выходе — готово к A/B-тесту",
+    "Write your video in Claude, render it in Kineo Studio": "Напишите видео в Claude, соберите его в Kineo Studio"
   },
   "uk": {
     "Clips": "Кліпи",
@@ -1383,7 +1433,12 @@
     "Uploading photo…": "Завантаження фото…",
     "Confirm permission for the photo first": "Спершу підтвердьте дозвіл на фото",
     "Only JPG, PNG or WEBP photos.": "Лише фото JPG, PNG або WEBP.",
-    "Photo is too large — max 10 MB.": "Фото завелике — до 10 МБ."
+    "Photo is too large — max 10 MB.": "Фото завелике — до 10 МБ.",
+    "One scene, 5 to 15 seconds — from text or a photo": "Одна сцена, від 5 до 15 секунд — з тексту або фото",
+    "NEW": "НОВЕ",
+    "New at Kineo": "Нове в Kineo",
+    "One product in, three ads out, ready to A/B test": "Один товар на вході, три реклами на виході — готово до A/B-тесту",
+    "Write your video in Claude, render it in Kineo Studio": "Напишіть відео в Claude, зберіть його в Kineo Studio"
   },
   "ar": {
     "Clips": "مقاطع",
@@ -1509,7 +1564,12 @@
     "Uploading photo…": "جارٍ رفع الصورة…",
     "Confirm permission for the photo first": "أكّد إذن استخدام الصورة أولًا",
     "Only JPG, PNG or WEBP photos.": "صور JPG أو PNG أو WEBP فقط.",
-    "Photo is too large — max 10 MB.": "الصورة كبيرة جدًا — الحد الأقصى 10 ميغابايت."
+    "Photo is too large — max 10 MB.": "الصورة كبيرة جدًا — الحد الأقصى 10 ميغابايت.",
+    "One scene, 5 to 15 seconds — from text or a photo": "مشهد واحد من 5 إلى 15 ثانية — من نص أو صورة",
+    "NEW": "جديد",
+    "New at Kineo": "الجديد في Kineo",
+    "One product in, three ads out, ready to A/B test": "منتج واحد يدخل، وثلاثة إعلانات تخرج، جاهزة لاختبار A/B",
+    "Write your video in Claude, render it in Kineo Studio": "اكتب الفيديو في Claude، وأنتجه في Kineo Studio"
   },
   "ur": {
     "Clips": "کلپس",
@@ -1635,7 +1695,12 @@
     "Uploading photo…": "تصویر اپ لوڈ ہو رہی ہے…",
     "Confirm permission for the photo first": "پہلے تصویر کی اجازت کی تصدیق کریں",
     "Only JPG, PNG or WEBP photos.": "صرف JPG، PNG یا WEBP تصاویر۔",
-    "Photo is too large — max 10 MB.": "تصویر بہت بڑی ہے — زیادہ سے زیادہ 10 MB۔"
+    "Photo is too large — max 10 MB.": "تصویر بہت بڑی ہے — زیادہ سے زیادہ 10 MB۔",
+    "One scene, 5 to 15 seconds — from text or a photo": "ایک منظر، 5 سے 15 سیکنڈ — متن یا تصویر سے",
+    "NEW": "نیا",
+    "New at Kineo": "Kineo میں نیا",
+    "One product in, three ads out, ready to A/B test": "ایک پروڈکٹ اندر، تین اشتہار باہر، A/B ٹیسٹ کے لیے تیار",
+    "Write your video in Claude, render it in Kineo Studio": "ویڈیو Claude میں لکھیں، Kineo Studio میں تیار کریں"
   },
   "hi": {
     "Clips": "क्लिप्स",
@@ -1759,7 +1824,12 @@
     "Uploading photo…": "फ़ोटो अपलोड हो रही है…",
     "Confirm permission for the photo first": "पहले फ़ोटो की अनुमति की पुष्टि करें",
     "Only JPG, PNG or WEBP photos.": "केवल JPG, PNG या WEBP फ़ोटो।",
-    "Photo is too large — max 10 MB.": "फ़ोटो बहुत बड़ी है — अधिकतम 10 MB।"
+    "Photo is too large — max 10 MB.": "फ़ोटो बहुत बड़ी है — अधिकतम 10 MB।",
+    "One scene, 5 to 15 seconds — from text or a photo": "एक सीन, 5 से 15 सेकंड — टेक्स्ट या फ़ोटो से",
+    "NEW": "नया",
+    "New at Kineo": "Kineo में नया",
+    "One product in, three ads out, ready to A/B test": "एक प्रोडक्ट डालिए, तीन विज्ञापन पाइए, A/B टेस्ट के लिए तैयार",
+    "Write your video in Claude, render it in Kineo Studio": "वीडियो Claude में लिखिए, Kineo Studio में रेंडर कीजिए"
   },
   "id": {
     "Clips": "Klip",
@@ -1885,7 +1955,12 @@
     "Uploading photo…": "Mengunggah foto…",
     "Confirm permission for the photo first": "Konfirmasi izin foto terlebih dahulu",
     "Only JPG, PNG or WEBP photos.": "Hanya foto JPG, PNG, atau WEBP.",
-    "Photo is too large — max 10 MB.": "Foto terlalu besar — maks. 10 MB."
+    "Photo is too large — max 10 MB.": "Foto terlalu besar — maks. 10 MB.",
+    "One scene, 5 to 15 seconds — from text or a photo": "Satu adegan, 5 hingga 15 detik — dari teks atau foto",
+    "NEW": "BARU",
+    "New at Kineo": "Baru di Kineo",
+    "One product in, three ads out, ready to A/B test": "Satu produk masuk, tiga iklan keluar, siap untuk uji A/B",
+    "Write your video in Claude, render it in Kineo Studio": "Tulis videomu di Claude, render di Kineo Studio"
   },
   "vi": {
     "Clips": "Clip",
@@ -2011,6 +2086,11 @@
     "Uploading photo…": "Đang tải ảnh lên…",
     "Confirm permission for the photo first": "Hãy xác nhận quyền sử dụng ảnh trước",
     "Only JPG, PNG or WEBP photos.": "Chỉ ảnh JPG, PNG hoặc WEBP.",
-    "Photo is too large — max 10 MB.": "Ảnh quá lớn — tối đa 10 MB."
+    "Photo is too large — max 10 MB.": "Ảnh quá lớn — tối đa 10 MB.",
+    "One scene, 5 to 15 seconds — from text or a photo": "Một cảnh, 5 đến 15 giây — từ văn bản hoặc ảnh",
+    "NEW": "MỚI",
+    "New at Kineo": "Mới tại Kineo",
+    "One product in, three ads out, ready to A/B test": "Một sản phẩm vào, ba quảng cáo ra, sẵn sàng thử nghiệm A/B",
+    "Write your video in Claude, render it in Kineo Studio": "Viết video trong Claude, dựng video trong Kineo Studio"
   }
 }

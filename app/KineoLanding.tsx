@@ -31,6 +31,9 @@ import LiveStatsBadge from '@/components/LiveStatsBadge'
 import BusinessVisualReferences from '@/components/BusinessVisualReferences'
 import HomeFeaturedFilms from '@/components/HomeFeaturedFilms'
 import TrendingRow from '@/components/TrendingRow'
+// KINEO-PROMO-CARDS-2026-09-30 — fileira de cards grandes logo abaixo do menu (Kineo for Claude + Clips).
+import PromoCards from '@/components/PromoCards'
+import { promoCardsFor } from '@/lib/ui/promoCards'
 // KINEO-VITRINE-MOEDA-2026-08-19 — LandingStarterPrice cobria SÓ o Starter, e
 // por isso a home mostrava R$24,90 (regional) ao lado de $19.90 e $39.90
 // (chumbados). Agora os TRÊS planos falam a moeda do visitante.
@@ -917,6 +920,11 @@ export default function KineoLanding({
           </div>
         </div>
       </div></nav>
+
+      {/* KINEO-PROMO-CARDS-2026-09-30 — fundador (30/09): "quero esses cards no Kineo também, com essas edições legais".
+          Fileira logo abaixo do menu; entra ANTES do hero sem tirar nada da curadoria (hero, motores, engineWall intactos).
+          O card do Clips segue o mesmo interruptor do mega-menu (clipsVisible). */}
+      <PromoCards cards={promoCardsFor({ clips: clipsVisible(initialEmail) })} />
 
       <header className="hero">
         <div className="glow" />
