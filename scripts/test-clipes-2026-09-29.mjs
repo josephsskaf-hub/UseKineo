@@ -354,9 +354,13 @@ ok(server.includes('debitVideoCredits(userSupabase') && server.includes('refundR
 ok(server.includes("storage.from(CLIPS_BUCKET).upload(path, buf, { contentType: 'video/mp4', upsert: true })") && server.includes("CLIPS_BUCKET = 'renders'"), 'MP4 no bucket renders (nenhum bucket novo)')
 ok(server.includes("video_url: row.status === 'done' ? row.video_url : null"), 'resposta pública nunca expõe URL antes de pronto')
 ok(server.includes('decideEngineGate(') && server.includes('enginePaused(engine)') && server.includes('s25Visible(account.email)'), 'visibilidade lê os interruptores da casa')
+// REANCORADO 29/09 (KINEO-ESTORNO-INDEVIDO-2026-09-29): as exclusões da varredura genérica saíram dos .not() soltos de
+// refund.ts para a lista GENERIC_SWEEP_EXCLUDED_PATTERNS (lib/credits/sweepScope.ts), que refund.ts aplica em laço. A
+// intenção é a mesma: clips-% fora, clip-% dentro. O comportamento executado está em scripts/test-estorno-indevido-2026-09-29.mjs.
 const refund = read('lib/credits/refund.ts')
-ok(refund.includes(".not('render_id', 'like', 'clips-%')"), 'varredura genérica pula clips-% (clipe entregue não tem linha em videos)')
-ok(!refund.includes(".not('render_id', 'like', 'clip-%')"), 'Modo Clipe do Studio (clip-%) continua na varredura genérica')
+const sweepScope = read('lib/credits/sweepScope.ts')
+ok(/^\s*'clips-%',/m.test(sweepScope) && /for \(const pattern of GENERIC_SWEEP_EXCLUDED_PATTERNS\) query = query\.not\('render_id', 'like', pattern\)/.test(refund), 'varredura genérica pula clips-% (clipe entregue não tem linha em videos)')
+ok(!/^\s*'clip-%',/m.test(sweepScope) && !refund.includes(".not('render_id', 'like', 'clip-%')"), 'Modo Clipe do Studio (clip-%) continua na varredura genérica')
 const cron = read('app/api/cron/refund-sweep/route.ts')
 ok(cron.includes("import { sweepClipJobs } from '@/lib/clips/clipServer'") && cron.includes('await sweepClipJobs()'), 'cron horário roda a rede do clipe')
 const events = read('app/api/events/route.ts')

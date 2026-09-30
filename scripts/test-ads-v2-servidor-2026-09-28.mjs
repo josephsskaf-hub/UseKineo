@@ -603,7 +603,9 @@ await check('A20 id que chega TARDE só grava em plano ainda ambíguo: plano que
     '@/lib/cinematic/claim': { CINEMATIC_CLAIM_EVENT: 'cinematic_submission_claim', releaseCinematicClaim: async () => null },
     '@/lib/reverseTrial': { recordReverseTrialRefundForRender: async () => null },
     '@/lib/avatar/reservation': { refundAvatarBirthDebitForFailedRequest: async () => ({ ok: true, credits: 0 }) },
-  })('lib/credits/refund.ts')
+    // REANCORADO 29/09 (KINEO-ESTORNO-INDEVIDO-2026-09-29): refund.ts passou a importar a lista de exclusão da lib PURA
+    // lib/credits/sweepScope.ts — carregada de verdade (real), não stub: R1 continua provando 'adsv2%' fora pela lista real.
+  }, { real: ['lib/credits/sweepScope.ts'] })('lib/credits/refund.ts')
   const old = new Date(Date.now() - 3 * 3600_000).toISOString()
   const deb = (id, extra = {}) => ({ render_id: id, user_id: USER, amount: 34, refunded_at: null, kind: 'video', created_at: old, ...extra })
   await check('R1 varredura GENÉRICA não toca adsv2-/adsv2redo- (sem linha em videos por horas é o normal do pedido em andamento)', async () => {
@@ -733,10 +735,13 @@ await check('E4 carta genérica "seu vídeo ficou pronto" pula o anúncio v2 (fi
   const s = cod('app/api/cron/send-video-ready/route.ts')
   return /thumbnail_url, thumb_url, created_at, credits_used, duration, quality_mode'\)/.test(s) && /quality_mode === 'ads_v2'\) continue/.test(s) && !/\.neq\('quality_mode'/.test(s)
 })
+// REANCORADO 29/09 (KINEO-ESTORNO-INDEVIDO-2026-09-29): a exclusão mora na lista GENERIC_SWEEP_EXCLUDED_PATTERNS
+// (lib/credits/sweepScope.ts), aplicada em laço DENTRO de sweepStuckRenderDebits. Mesma intenção: adsv2% fora da genérica.
 await check('E5 varredura genérica: a exclusão adsv2% mora DENTRO de sweepStuckRenderDebits', () => {
   const s = cod('lib/credits/refund.ts')
   const i = s.indexOf('export async function sweepStuckRenderDebits'); const j = s.indexOf('export', i + 10)
-  return i > 0 && /\.not\('render_id', 'like', 'adsv2%'\)/.test(s.slice(i, j))
+  return i > 0 && /for \(const pattern of GENERIC_SWEEP_EXCLUDED_PATTERNS\) query = query\.not\('render_id', 'like', pattern\)/.test(s.slice(i, j)) &&
+    /^\s*'adsv2%',/m.test(cod('lib/credits/sweepScope.ts'))
 })
 await check('E6 trava 8.2: nenhum arquivo do servidor v2 nasce em caminho travado', () => {
   const novos = ['lib/ads/v2Access.ts', 'lib/ads/v2Billing.ts', 'lib/ads/v2Shots.ts', 'lib/ads/v2Images.ts', 'lib/ads/v2Brief.ts', 'lib/ads/v2Link.ts', 'lib/ads/v2Server.ts', 'lib/ads/v2Advance.ts', 'app/api/ads/v2/orders/route.ts', 'app/api/ads/v2/plan/route.ts', 'app/api/ads/v2/start/route.ts', 'app/api/ads/v2/status/route.ts', 'app/api/ads/v2/retake/route.ts', 'app/api/cron/ads-v2-advance/route.ts',

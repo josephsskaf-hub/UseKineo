@@ -60,7 +60,7 @@
 // (:05/:35 winback, :10/:40 video-ready, :15/:45 cap-hit, :40 activation,
 // :50 post-nudge, :55 trial-downgrade, :00 autopilot).
 import { NextRequest, NextResponse } from 'next/server'
-import { sweepAbandonedAdsV2Debits, sweepAbandonedAvatarDebits, sweepAbandonedCinematicDebits, sweepStuckRenderDebits } from '@/lib/credits/refund'
+import { sweepAbandonedAdsV2Debits, sweepAbandonedAvatarDebits, sweepAbandonedCinematicDebits, sweepAbandonedEnhanceDebits, sweepAbandonedMediaDebits, sweepStuckRenderDebits } from '@/lib/credits/refund'
 import { sweepPublishedAnimateJobs, sweepStaleAnimateClaims } from '@/lib/animate/service'
 import { sweepClipJobs } from '@/lib/clips/clipServer'
 
@@ -185,9 +185,30 @@ export async function GET(req: NextRequest) {
     console.error('[cron/refund-sweep] clips sweep failed:', msg)
   }
   console.log('[cron/refund-sweep] clips', JSON.stringify(clips))
+
+  // KINEO-ESTORNO-INDEVIDO-2026-09-29 — imagem/áudio (image-/imgedit-/audio-) e enhance (enhance-/enhance4k-) saíram
+  // da varredura genérica, que os estornava SEMPRE (prova errada: linha em `videos`). Cada um é julgado pela prova do
+  // próprio produto: linha em images/audios até 3 min após o débito; videos.enhanced_url. Ver lib/credits/sweepScope.ts.
+  const media = { scanned: 0, delivered: 0, refunded: 0, creditsReturned: 0 }
+  try {
+    Object.assign(media, await sweepAbandonedMediaDebits())
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    errors.push(`abandoned_media: ${msg}`)
+    console.error('[cron/refund-sweep] abandoned-media sweep failed:', msg)
+  }
+  const enhance = { scanned: 0, delivered: 0, noVideoRow: 0, refunded: 0, creditsReturned: 0 }
+  try {
+    Object.assign(enhance, await sweepAbandonedEnhanceDebits())
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    errors.push(`abandoned_enhance: ${msg}`)
+    console.error('[cron/refund-sweep] abandoned-enhance sweep failed:', msg)
+  }
+  console.log('[cron/refund-sweep] media', JSON.stringify(media), 'enhance', JSON.stringify(enhance))
   console.log('[cron/refund-sweep]', JSON.stringify({ renders, animate, cinematic, animatePublished, avatar, errors }))
 
   // 200 mesmo com erro parcial: as três varreduras são idempotentes e rodam de
   // novo na hora seguinte. Um 5xx aqui só produziria ruído sem ação possível.
-  return NextResponse.json({ ok: errors.length === 0, renders, animate, cinematic, animatePublished, adsV2, clips, errors })
+  return NextResponse.json({ ok: errors.length === 0, renders, animate, cinematic, animatePublished, adsV2, clips, media, enhance, errors })
 }
