@@ -3,6 +3,12 @@
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
 
+## 2026-09-30 (madrugada) — Home sem o bloco "Make room for your next big idea"; menu e vídeos mais perto da borda
+
+**QUEM DECIDIU:** o fundador, 30/09: "já quero tirar make room for your next big idea, create video. Já pode aproximar os dois vídeos" e "o menu não está colado 100% na lateral".
+**O QUE:** some o bloco título + frases + botão do hero; a fileira de novidades e a "Kineo Selection" ficam coladas (18 px). A margem lateral da home cai de clamp(24px,4vw,76px) para clamp(16px,1.6vw,28px), sem teto de 1800 px. O h1 continua existindo só para leitor de tela e busca. A ação principal fica no "Start free"/Studio do menu (mesma regra de sessão e indicação).
+**EM TESTE:** ordem A (novidades em cima, Selection embaixo — publicada) × ordem B (invertida), escolha do fundador pelos prints.
+
 ## 2026-09-30 (madrugada) — Fileira de novidades com 4 cards, 3 vídeos girando em cada
 
 **QUEM DECIDIU:** o fundador, 30/09: "em vez de três cards, eu quero quatro cards na primeira fileira… 3 vídeos rodando igual a gente tinha anteriormente… pode fazer isso aí".

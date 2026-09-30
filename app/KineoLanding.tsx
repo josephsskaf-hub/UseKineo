@@ -929,18 +929,8 @@ export default function KineoLanding({
       <header className="hero">
         <div className="glow" />
         <div className="wrap">
-          <div className="home-intro">
-            <div className="home-intro-copy">
-              <p className="home-eyebrow"><UiLabel>YOUR CREATIVE HOME</UiLabel></p>
-              <h1 className="home-title"><UiLabel>Make room for</UiLabel><br /><em><UiLabel>your next big idea.</UiLabel></em></h1>
-            </div>
-            <div className="home-intro-side">
-              <p><UiLabel>Original stories. Everyday content.</UiLabel><br /><UiLabel>Videos for your business.</UiLabel><br /><UiLabel>Bring your ideas to life with Kineo.</UiLabel></p>
-              <Link className="btn btn-blue" href={isSignedIn ? '/studio' : referralBridge ? '#try-kineo' : '/signup?utm_source=hero'}>
-                <UiLabel>{isSignedIn ? 'Create a video' : CARD_ENTRY_COPY.ctaShort}</UiLabel><span aria-hidden="true">↗</span>
-              </Link>
-            </div>
-          </div>
+          {/* Fundador 30/09: "já quero tirar make room for your next big idea, create video… aproximar os dois vídeos". */}
+          <h1 style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}><UiLabel>Make room for</UiLabel> <UiLabel>your next big idea.</UiLabel></h1>
           <div id="samples" aria-label="Films made with Kineo">
             <HomeFeaturedFilms />
           </div>

@@ -26,7 +26,7 @@ html[data-theme=dark] .klp {
   --sh-cta:0 5px 18px #4D8DFF2e;
   color-scheme:dark;
 }
-.klp .wrap,.klp .ew-wrap { width:100%; max-width:1800px; padding-inline:clamp(24px,4vw,76px); }
+.klp .wrap,.klp .ew-wrap { width:100%; max-width:none; padding-inline:clamp(16px,1.6vw,28px); }
 .klp nav { background:var(--home-nav); border-color:var(--line); }
 .klp .nav-in { height:88px; display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:28px; }
 .klp .logo { font-size:26px; gap:10px; width:max-content; letter-spacing:-1px; }
@@ -169,4 +169,7 @@ html:not([data-theme=dark]) .klp .nav-disclosure>summary{color:#0E1116}
   .klp .home-create { padding-top:24px; }
   .klp .home-create-card { padding:20px; }
 }
+/* Fundador 30/09: sem o bloco "Make room…", as duas fileiras de vídeo ficam juntas. */
+.klp .hero { padding-top:18px; }
+.klp .kpc { padding-bottom:0; }
 `

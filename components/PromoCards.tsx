@@ -45,7 +45,7 @@ export const PROMO_CARDS_CSS = `
 }
 @media (max-width:760px){
 .klp .kpc{padding-top:16px}
-.kpc-track{margin-inline:calc(-1 * clamp(24px,4vw,76px));padding-inline:clamp(24px,4vw,76px);scroll-padding-inline:clamp(24px,4vw,76px);gap:12px}
+.kpc-track{margin-inline:calc(-1 * clamp(16px,1.6vw,28px));padding-inline:clamp(16px,1.6vw,28px);scroll-padding-inline:clamp(16px,1.6vw,28px);gap:12px}
 .kpc-card{flex-basis:82vw;max-width:420px}
 .kpc-title{font-size:14px}
 .kpc-sub{font-size:13px}
