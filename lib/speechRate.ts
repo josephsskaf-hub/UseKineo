@@ -8,7 +8,7 @@
 // lib/narrationFit.ts está sob a trava 8.2 e NÃO é tocado: as funções abaixo
 // envolvem a régua de lá (mesma aritmética, mesmas constantes exportadas).
 import {
-  narrationFit, autofitDown, WORDS_PER_SECOND, MIN_COVERAGE, MIN_AUTOFIT_DOWN_COVERAGE,
+  narrationFit, autofitDown, WORDS_PER_SECOND, MIN_COVERAGE, MIN_AUTOFIT_DOWN_COVERAGE, minCoverageFor,
   AUTOFIT_DOWN_FLOOR_SECONDS, AUTOFIT_DOWN_STEP_SECONDS, type NarrationFit, type AutofitDown,
 } from '@/lib/narrationFit'
 import { parseSpeed, parseUserScript } from '@/lib/scriptParser'
@@ -58,8 +58,8 @@ export function narrationFitAt(script: string, targetSeconds: number, rate: Spee
   const target = base.target
   if (target === 0) return { ...base, speech }
   const coverage = speech / target
-  const ok = coverage >= MIN_COVERAGE
-  return { speech, target, silence: target - speech, coverage, ok, missingWords: ok ? 0 : Math.ceil((target * MIN_COVERAGE - speech) * rate.wordsPerSecond) }
+  const ok = coverage >= minCoverageFor(target) // KINEO-COBERTURA-15S-2026-09-30
+  return { speech, target, silence: target - speech, coverage, ok, missingWords: ok ? 0 : Math.ceil((target * minCoverageFor(target) - speech) * rate.wordsPerSecond) }
 }
 
 /** autofitDown na régua da configuração. Com 2,3 delega à própria autofitDown; senão, a mesma aritmética. */

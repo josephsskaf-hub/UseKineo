@@ -321,7 +321,7 @@ import useWaitAbandon from '@/components/video/useWaitAbandon'
 // para recusar. A tela precisa dela para encaixar a sugestao de duracao nas
 // opcoes reais do seletor (35|45|60|90), em vez de oferecer um valor que o
 // produto nao tem.
-import { MIN_COVERAGE, autofitDown } from '@/lib/narrationFit'
+import { MIN_COVERAGE, minCoverageFor, autofitDown } from '@/lib/narrationFit'
 import { speechRateForScript, speechSecondsOfScript, autofitDownAt } from '@/lib/speechRate'
 import { reguaDoServidorNaTela, contadorVoz, fraseDoContador, falaNaReguaDaTela, type ContadorMotor } from '@/lib/contadorVoz' // STUDIO-CONTADOR-VOZ-2026-09-28
 // KINEO-PREFLIGHT-QUE-NAO-ACUSA-2026-09-08 — o preflight desta tela precisa
@@ -8202,7 +8202,7 @@ export default function GenerateClient({
         // KINEO-PONTAS-15S-IDIOMA-2026-09-29: com `seconds`, o 15 s do Seedance mede na voz do portão, no ritmo da língua.
         const reguaAnalise = reguaDoServidorNaTela({ engine: mode === 'fast' || mode === 'creator' ? 'fast' : aiEngine, script: baseChecagem, language, vertical: analysis?.niche ?? null, seconds: duration, curtas: curtasOk }) // KINEO-DURACOES-CURTAS-2026-09-29: + curtas
         const falaSeg = falaNaReguaDaTela(baseChecagem, reguaAnalise) // KINEO-REGUA-UNICA: narração extraída, agora na régua da voz
-        const cobre = falaSeg >= duration * MIN_COVERAGE
+        const cobre = falaSeg >= duration * minCoverageFor(duration)
         // KINEO-CONTRATO-DURACAO-2026-09-02 — o espelho do bloqueio acima, para
         // roteiro LONGO: "Use my script as is" com ~80s de fala e 60s no botao
         // entregava 80-90s (o compose deixa o audio mandar ate o teto de 90)
@@ -14990,8 +14990,8 @@ export default function GenerateClient({
             const fala = medidaTela.seconds
             const palavras = prompt.trim() ? prompt.trim().replace(/\[[^\]]*\]/g, ' ').split(/\s+/).filter(Boolean).length : 0
             if (palavras < 8) return null
-            const cobre = fala >= duration * MIN_COVERAGE
-            const faltam = cobre ? 0 : Math.ceil((duration * MIN_COVERAGE - fala) * reguaTela.wordsPerSecond)
+            const cobre = fala >= duration * minCoverageFor(duration)
+            const faltam = cobre ? 0 : Math.ceil((duration * minCoverageFor(duration) - fala) * reguaTela.wordsPerSecond)
             return (
               <p className="text-xs mt-1.5" style={{ color: cobre ? '#4ade80' : '#5cb3ff', fontWeight: 700, maxWidth: 830 }}>
                 {palavras} words ≈ {Math.round(fala)}s of narration{' '}

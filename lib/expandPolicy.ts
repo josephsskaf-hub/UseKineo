@@ -28,6 +28,7 @@
 
 import {
   MIN_COVERAGE,
+  minCoverageFor,
   WORDS_PER_SECOND,
   speechSeconds,
   narrationFit,
@@ -63,7 +64,7 @@ export type ExpandOutcome =
 
 /** Fala mínima (em segundos) que um vídeo de `target` segundos exige. */
 export function minimumSpeech(targetSeconds: number): number {
-  return targetSeconds * MIN_COVERAGE
+  return targetSeconds * minCoverageFor(targetSeconds) // KINEO-COBERTURA-15S-2026-09-30
 }
 
 /**
@@ -155,8 +156,8 @@ export function largestFittingDuration(
   currentSpeech: number,
   supported: readonly number[] = SUPPORTED_DURATIONS,
 ): number | null {
-  const teto = maximumFittingDuration(currentSpeech)
-  const cabem = supported.filter((d) => d <= teto + 1e-9).sort((a, b) => b - a)
+  // KINEO-COBERTURA-15S-2026-09-30 — cada duração com a SUA régua (15 s aceita 75 %).
+  const cabem = supported.filter((d) => currentSpeech >= d * minCoverageFor(d) - 1e-9).sort((a, b) => b - a)
   return cabem.length > 0 ? cabem[0] : null
 }
 

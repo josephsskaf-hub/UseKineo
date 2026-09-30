@@ -147,6 +147,20 @@ export interface NarrationFit {
  */
 export const MIN_COVERAGE = 0.95
 
+/**
+ * [TRAVA 8.2 — vai do fundador 30/09 "Vai tenta puxar ele pra gente"] KINEO-COBERTURA-15S-2026-09-30.
+ * O filme de 15 s é o PISO do seletor clássico (desde 29/09): abaixo dele não há duração para "descer", então a
+ * régua de 95 % (0,75 s de folga) virava recusa seca. Medido 29-30/09: 10 tentativas de Seedance 15 s, 3 barradas
+ * (2 pessoas, fala média 11,7 s) — a última, um cadastro novo do ChatGPT, tentou 3 vezes com o mesmo texto.
+ * Até 15 s a régua aceita 75 %: no máximo ~3,75 s de cena final com música, o mesmo "poucos segundos sem voz"
+ * que fundou os 95 % dos filmes de 60 s. Acima de 15 s, nada muda.
+ */
+export const SHORT_FILM_MAX_SECONDS = 15
+export const SHORT_FILM_MIN_COVERAGE = 0.75
+export function minCoverageFor(targetSeconds: number): number {
+  return Number.isFinite(targetSeconds) && targetSeconds > 0 && targetSeconds <= SHORT_FILM_MAX_SECONDS ? SHORT_FILM_MIN_COVERAGE : MIN_COVERAGE
+}
+
 export function narrationFit(script: string, targetSeconds: number): NarrationFit {
   const speech = speechSeconds(script)
   const target = Number.isFinite(targetSeconds) && targetSeconds > 0 ? targetSeconds : 0
@@ -155,8 +169,8 @@ export function narrationFit(script: string, targetSeconds: number): NarrationFi
   }
   const coverage = speech / target
   const silence = target - speech
-  const ok = coverage >= MIN_COVERAGE
-  const missingWords = ok ? 0 : Math.ceil((target * MIN_COVERAGE - speech) * WORDS_PER_SECOND)
+  const ok = coverage >= minCoverageFor(target)
+  const missingWords = ok ? 0 : Math.ceil((target * minCoverageFor(target) - speech) * WORDS_PER_SECOND)
   return { speech, target, silence, coverage, ok, missingWords }
 }
 
@@ -196,9 +210,9 @@ export function narrationTooShortMessage(
   // A maior duração DO SELETOR que esta fala realmente enche. `null` = nenhuma.
   // Mesma conta de `expandPolicy.largestFittingDuration`, repetida aqui (e
   // travada por teste) só para manter este módulo na base da pilha de imports.
-  const teto = fit.speech / MIN_COVERAGE
+  // KINEO-COBERTURA-15S-2026-09-30 — cada duração com a SUA régua (15 s aceita 75 %).
   const cabem = supportedDurations
-    .filter((d) => Number.isFinite(d) && d > 0 && d <= teto + 1e-9)
+    .filter((d) => Number.isFinite(d) && d > 0 && fit.speech >= d * minCoverageFor(d) - 1e-9)
     .sort((a, b) => b - a)
   const sugerida: number | null = cabem.length > 0 ? cabem[0] : null
 

@@ -5,7 +5,9 @@ import vm from 'node:vm'
 import ts from 'typescript'
 import crypto from 'node:crypto'
 
-export function createOfflineLoader({ mocks = {}, env = {}, globals = {} } = {}) {
+// `source(relPath, text)` (opcional) transforma a fonte antes de transpilar — ex.: um guardião histórico que precisa da
+// régua da época (scripts/test-support/desfaz-cobertura-15s.mjs). Sem ele, a fonte real, como sempre.
+export function createOfflineLoader({ mocks = {}, env = {}, globals = {}, source: transformSource = null } = {}) {
   const root = process.cwd(), cache = new Map()
   const unavailable = name => { throw new Error(`Offline test forbids ${name}`) }
   const external = {
@@ -32,7 +34,8 @@ export function createOfflineLoader({ mocks = {}, env = {}, globals = {} } = {})
     if (cache.has(filename)) return cache.get(filename)
     const exports = {}
     cache.set(filename, exports)
-    const source = fs.readFileSync(filename, 'utf8')
+    const raw = fs.readFileSync(filename, 'utf8')
+    const source = transformSource ? transformSource(path.relative(root, filename).split(path.sep).join('/'), raw.replace(/\r\n/g, '\n')) : raw
     const code = ts.transpileModule(source, {
       compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
     }).outputText

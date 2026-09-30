@@ -26,6 +26,7 @@ import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { desfazCobertura15s } from './test-support/desfaz-cobertura-15s.mjs' // reancorado 30/09 (KINEO-COBERTURA-15S): a régua de 15 s é desfeita em memória antes do byte a byte
 // ═══ Reancorado KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] ═══
 // A entrega das durações curtas (15 s em todo motor de IA, 30 s na estrada hollywood) marca TODA linha que acrescenta à rota do
 // cinematic (e às outras rotas travadas) com KINEO-DURACOES-CURTAS-2026-09-29, e troca de propósito SEIS linhas da base (a frase da
@@ -285,7 +286,7 @@ checa('o plano viaja pelo builder da fal do Veo (scene.clipSeconds → duration 
 // ═══ (c) Seedance / Kling 2.5 / Sora / hollywood byte a byte ═══
 console.log('== (c) Seedance / Kling 2.5 / Sora / hollywood byte a byte ==')
 for (const p of ['lib/cinematic/verbatimBeats.ts', 'lib/cinematic/klingShots.ts', 'lib/scriptParser.ts', 'lib/compose.ts', 'lib/cinematic/classicDryRun.ts', 'lib/runway.ts', 'lib/cinematic/sceneWords.ts', 'lib/speechRate.ts', 'app/api/compose/route.ts', 'lib/cinematic/speechImageAlign.ts']) {
-  checa(`${p} byte a byte igual à base${p === 'app/api/compose/route.ts' ? ' (fora o import e o bloco marcados KINEO-VOZ-15S-MESMA-DA-MONTAGEM, só acrescentados)' : ''}`, rdBase(p) !== null && rdBase(p) === semVoz15(p, rd(p)))
+  checa(`${p} byte a byte igual à base${p === 'app/api/compose/route.ts' ? ' (fora o import e o bloco marcados KINEO-VOZ-15S-MESMA-DA-MONTAGEM, só acrescentados)' : ''}`, rdBase(p) !== null && rdBase(p) === semVoz15(p, desfazCobertura15s(p, rd(p))))
 }
 if (libBase) {
   const VBbase = rodaLib(libBase) // só para provar o carregador; a lib de verbatimBeats da base vem abaixo
