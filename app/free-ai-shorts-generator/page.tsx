@@ -67,7 +67,7 @@ const FAQ = [
 export const metadata: Metadata = {
   title: 'Free AI Shorts Generator - Create Faceless Shorts With No Card | Kineo',
   description:
-    `Create faceless Shorts with script, AI voiceover, visuals and captions. ${OFFER.copy.planLimitLine}. Compare films and plans before you choose.`,
+    `Create faceless Shorts with script, AI voiceover, visuals and captions. Trial: ${OFFER.copy.planLimitLine}. Compare films and plans before you choose.`,
   alternates: {
     canonical: `${BASE}/free-ai-shorts-generator`,
     // KINEO-PORTAS-16-LINGUAS-2026-09-20 — hreflang das 16 portas (en/pt/es + 13 em /free-shorts-generator/<lang>).
@@ -85,7 +85,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Free AI Shorts Generator | Kineo',
-    description: `Create a faceless AI Short from one idea. ${OFFER.copy.planLimitLine}.`,
+    description: `Create a faceless AI Short from one idea. Trial: ${OFFER.copy.planLimitLine}.`,
     images: [FEATURED_EXAMPLE.posterPath],
   },
 }

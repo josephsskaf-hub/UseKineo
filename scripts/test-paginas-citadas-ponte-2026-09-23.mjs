@@ -114,8 +114,8 @@ const metaBlock = (src) => {
 // 30/09, ampliação pedida pelo fundador: descriptions das duas portas passam a derivar
 // a oferta atual. A base dizia Fast grátis; título/canonical/OG e todo o resto ficam congelados.
 const currentDescriptions = {
-  'app/free-ai-shorts-generator/page.tsx': [`\`Create faceless Shorts with script, AI voiceover, visuals and captions. \${OFFER.copy.planLimitLine}. Compare films and plans before you choose.\``, "'Use Kineo as a free AI Shorts generator. Type one idea and create a faceless YouTube Short with script, AI voiceover, visuals, captions, and MP4 export. No card for the Fast test.'"],
-  'app/text-to-video-shorts/page.tsx': [`\`Turn a topic or script into a narrated vertical Short with visuals and captions. \${OFFER.copy.planLimitLine}. Compare films and plans before you choose.\``, "'Turn text, a topic, or a script into a finished faceless YouTube Short with AI voiceover, vertical visuals, captions, and MP4 export. Try Fast free with no card.'"],
+  'app/free-ai-shorts-generator/page.tsx': [`\`Create faceless Shorts with script, AI voiceover, visuals and captions. Trial: \${OFFER.copy.planLimitLine}. Compare films and plans before you choose.\``, "'Use Kineo as a free AI Shorts generator. Type one idea and create a faceless YouTube Short with script, AI voiceover, visuals, captions, and MP4 export. No card for the Fast test.'"],
+  'app/text-to-video-shorts/page.tsx': [`\`Turn a topic or script into a narrated vertical Short with visuals and captions. Trial: \${OFFER.copy.planLimitLine}. Compare films and plans before you choose.\``, "'Turn text, a topic, or a script into a finished faceless YouTube Short with AI voiceover, vertical visuals, captions, and MP4 export. Try Fast free with no card.'"],
 }
 for (const f of ['app/free-ai-shorts-generator/page.tsx', 'app/text-to-video-shorts/page.tsx', 'app/state-of-ai-shorts-2026/page.tsx']) {
   const cur = read(f), base = atBase(f)
@@ -123,7 +123,7 @@ for (const f of ['app/free-ai-shorts-generator/page.tsx', 'app/text-to-video-sho
   const approvedDescription = currentDescriptions[f]
   let normalizedMeta = approvedDescription ? metaBlock(cur)?.replace(approvedDescription[0], approvedDescription[1]) : metaBlock(cur)
   if (f === 'app/free-ai-shorts-generator/page.tsx') {
-    const twitterDescription = '`Create a faceless AI Short from one idea. ${OFFER.copy.planLimitLine}.`'
+    const twitterDescription = '`Create a faceless AI Short from one idea. Trial: ${OFFER.copy.planLimitLine}.`'
     check(metaBlock(cur).includes(twitterDescription), 'free: descrição social também deriva a oferta atual')
     normalizedMeta = normalizedMeta?.replace(twitterDescription, "'Create a faceless AI Short from one idea. No card for the free Fast test.'")
   }
