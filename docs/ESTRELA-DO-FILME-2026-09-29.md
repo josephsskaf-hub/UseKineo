@@ -25,7 +25,7 @@ somada ao preço mostrado no /studio. Mesma sobretaxa em todos os motores com â
 |---|---|---|
 | 15 s | +15 cr | 3 → US$ 0,45 |
 | 30 s | +25 cr | 5-6 → US$ 0,90 |
-| 35 s | +30 cr | 5-7 → US$ 1,05 |
+| 35 s | +12 cr (preço B) | 5-7 → US$ 1,05 |
 | 60 s | +50 cr | 9-14 → US$ 2,10 |
 | 90 s | +75 cr | 12-20 → US$ 3,00 |
 
@@ -34,3 +34,5 @@ somada ao preço mostrado no /studio. Mesma sobretaxa em todos os motores com â
 - Canário sugerido: Kling 2.5 · 35 s · "Use my script as is" (roteiro Aquiles da prova) — 35 cr do motor + 30 cr da estrela = 65 cr.
 
 Peso da sobretaxa a 35 s: Seedance 1.5 15→45 cr (3×) · H3 27→57 · Kling 2.5 35→65 · Veo 3.1 59→89 · Kling 3/Omni 88→118.
+
+**DECIDIDO 29/09 (fundador, "2B"):** preço B — +2 cr a cada 6 s de filme (15 s +6 · 30 s +10 · 35 s +12 · 60 s +20 · 90 s +30).

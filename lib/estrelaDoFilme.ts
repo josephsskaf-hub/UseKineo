@@ -52,10 +52,10 @@ export function estrelaDisponivelNoMotor(engine: unknown): boolean {
 
 // ═══ Preço — calculado ANTES do débito, igual na tela e no servidor ═══════════════════════════════════════════════
 // Custo real: um Nano Banana Pro por cena com protagonista (US$ 0,15/imagem na fal = os 5 cr do /images). O número de cenas
-// só existe depois do planejador — e a tela precisa do preço ANTES do clique. Regra simples e honesta: 5 cr a cada 6 s de
+// só existe depois do planejador — e a tela precisa do preço ANTES do clique. Regra simples e honesta: 2 cr a cada 6 s de
 // filme (≈ uma cena), arredondado para cima. Nunca muda depois do clique; se o filme encurtar, a diferença volta junto
 // com a do motor (V2-PRECO-DA-DURACAO-ENTREGUE). Motor sem âncora = 0 (e o servidor recusa).
-export const ESTRELA_CR_POR_BLOCO = 5
+export const ESTRELA_CR_POR_BLOCO = 2 // PREÇO B, decisão do fundador 29/09 ("2B"): +2 cr a cada 6 s (era a proposta A, 5)
 export const ESTRELA_SEGUNDOS_POR_BLOCO = 6
 /** Teto de stills da estrela por filme (proteção de custo: 90 s no Veo planeja até ~20 planos). */
 export const ESTRELA_MAX_STILLS = 24

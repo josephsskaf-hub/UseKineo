@@ -92,9 +92,9 @@ function verificaLib(src = SRC) {
   c('A12 os 6 motores com âncora aceitam (Seedance 1.5 = engine ausente)', ['seedance', 'kling', 'veo', 'hollywood', 'h3', 'omni', undefined].every((engine) => { const d = dec(pedido, { engine }); return d.ok && d.ativa }))
   // sobretaxa
   const tab = [15, 30, 35, 60, 90].map((s) => L.estrelaSobretaxa('kling', s))
-  c(`A13 sobretaxa = 5 cr a cada 6 s (15→15, 30→25, 35→30, 60→50, 90→75): ${tab.join('/')}`, JSON.stringify(tab) === '[15,25,30,50,75]')
+  c(`A13 sobretaxa = 2 cr a cada 6 s — preço B do fundador 29/09 (15→6, 30→10, 35→12, 60→20, 90→30): ${tab.join('/')}`, JSON.stringify(tab) === '[6,10,12,20,30]')
   c('A14 sobretaxa 0 em motor sem âncora e em duração inválida', L.estrelaSobretaxa('fast', 60) === 0 && L.estrelaSobretaxa('s25', 60) === 0 && L.estrelaSobretaxa('kling', NaN) === 0 && L.estrelaSobretaxa('kling', 0) === 0)
-  c('A15 sobretaxa igual em todos os motores com âncora (mesma régua para tela e servidor)', ['seedance', 'veo', 'hollywood', 'h3', 'omni', undefined].every((e) => L.estrelaSobretaxa(e, 35) === 30))
+  c('A15 sobretaxa igual em todos os motores com âncora (mesma régua para tela e servidor)', ['seedance', 'veo', 'hollywood', 'h3', 'omni', undefined].every((e) => L.estrelaSobretaxa(e, 35) === 12))
   // impressão digital do claim
   c('A16 impressão do claim: sem estrela = "" (a de sempre); com estrela muda', L.estrelaFingerprintSuffix({ ok: true, ativa: false }) === '' && L.estrelaFingerprintSuffix(d1).startsWith('|estrela:'))
   // formato
@@ -335,7 +335,7 @@ function verificaRota(r = SRC.rota) {
   const marks = (t) => (t.match(/\{(n|s)\}/g) || []).sort().join(',')
   const LANGS = ['pt', 'es', 'fr', 'de', 'it', 'nl', 'pl', 'tr', 'ru', 'uk', 'ar', 'ur', 'hi', 'id', 'vi']
   checa('D17 textos novos nas 15 línguas + inglês, todas as chaves, mesmos marcadores {n} {s}', JSON.stringify(Object.keys(C.ESTRELA_COPY).sort()) === JSON.stringify([...LANGS].sort()) && LANGS.every((l) => JSON.stringify(Object.keys(C.ESTRELA_COPY[l]).sort()) === JSON.stringify([...EN].sort()) && EN.every((k) => C.ESTRELA_COPY[l][k].trim() && marks(C.ESTRELA_COPY[l][k]) === marks(C.ESTRELA_COPY_EN[k]))))
-  checa('D18 pt: "Estrela do filme (opcional)" e o preço preenchido', C.estrelaCopy('pt', 'title') === 'Estrela do filme (opcional)' && C.estrelaCopy('pt', 'price', { n: 30, s: 35 }) === '+30 cr pela estrela em 35 s · 5 cr a cada 6 s de filme')
+  checa('D18 pt: "Estrela do filme (opcional)" e o preço preenchido', C.estrelaCopy('pt', 'title') === 'Estrela do filme (opcional)' && C.estrelaCopy('pt', 'price', { n: 12, s: 35 }) === '+12 cr pela estrela em 35 s · 2 cr a cada 6 s de filme')
   const refine = JSON.parse(rd('lib/ui/refinementCopy.json'))
   checa('D19 frases reaproveitadas do /images seguem traduzidas nas 16 línguas', ['I have permission from the person in the photo to use their image.', 'Add photo', 'Remove photo', 'Up to 3 photos · JPG, PNG or WEBP · max 10 MB each', 'Check the box above to add a photo.', 'Only JPG, PNG or WEBP photos.', 'Photo is too large — max 10 MB.'].every((k) => Object.values(refine).every((d) => typeof d[k] === 'string' && d[k].trim().length > 0)))
 }

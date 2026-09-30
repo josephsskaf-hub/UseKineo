@@ -139,7 +139,7 @@ export function duracoesCurtasVisible(email?: string | null): boolean {
 
 // ═══ KINEO-ESTRELA-DO-FILME-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] ═══
 // "Estrela do filme": 1–3 fotos do rosto de uma pessoa (com autorização) viram o protagonista de toda cena com gente
-// (lib/estrelaDoFilme.ts). A sobretaxa (5 cr a cada 6 s de filme) é PROPOSTA — preço público é decisão do fundador. Mesmo
+// (lib/estrelaDoFilme.ts). A sobretaxa é o PREÇO B do fundador (29/09, "2B"): 2 cr a cada 6 s de filme. Mesmo
 // desenho do DURACOES_CURTAS_PUBLIC: false → só as contas da casa (isInternalEmail) veem o bloco no /studio, e o SERVIDOR
 // recusa (403, antes do débito) a estrela de conta de fora. Virar true depois do canário aprovado (um commit de uma linha).
 export const ESTRELA_PUBLIC = false
