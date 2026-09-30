@@ -21,8 +21,10 @@ export function citationAnswerMetadata(answer: CitationAnswer): Metadata {
   }
 }
 
-export default function CitationAnswerPage({ answer, heroSecondaryAction, planComparison, comparisonSection, reviewDate = CITATION_REVIEW_DATE }: {
+export default function CitationAnswerPage({ answer, heroActions, heroSecondaryAction, planComparison, comparisonSection, reviewDate = CITATION_REVIEW_DATE }: {
   answer: CitationAnswer
+  /** Page-specific purchase/review choice; omitted callers keep the original CTA. */
+  heroActions?: ReactNode
   heroSecondaryAction?: ReactNode
   planComparison?: ReactNode
   comparisonSection?: ReactNode
@@ -53,7 +55,7 @@ export default function CitationAnswerPage({ answer, heroSecondaryAction, planCo
           <div className="kc-eyebrow">A practical video guide · Reviewed {reviewDate}</div>
           <h1>{answer.question}</h1>
           <div className="kc-direct">{answer.answer.map((sentence) => <p key={sentence}>{sentence}</p>)}</div>
-          {heroSecondaryAction ? <div className="kccd-actions">{trialCta}{heroSecondaryAction}</div> : trialCta}
+          {heroActions ?? (heroSecondaryAction ? <div className="kccd-actions">{trialCta}{heroSecondaryAction}</div> : trialCta)}
           <p className="kc-note">Trial videos are watermarked. A paid plan unlocks clean downloads.</p>
         </header>
         <hr className="kc-divider" />
