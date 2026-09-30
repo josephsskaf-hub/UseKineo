@@ -368,8 +368,11 @@ ok(/unique \(user_id, idempotency_key\)/.test(mig) && /billing_reference text no
 // Nenhuma rota nova sob generate-video-* nem mexida na trava 8.2.
 let changed = []
 try {
-  const base = execSync('git merge-base HEAD origin/main', { cwd: root, encoding: 'utf8' }).trim()
-  changed = execSync(`git diff --name-only ${base}`, { cwd: root, encoding: 'utf8' }).split('\n')
+  // Reancorado 29/09 (CEO): o diff contra a base pegava a trava 8.2 ALHEIA assim que a entrega das durações curtas
+  // (vai nominal do fundador) entrou na mesma fila. A prova passa a ser dos COMMITS DO CLIPE: os que tocam lib/clips/,
+  // sem merges, cada um contra o próprio pai.
+  const shas = execSync('git log --no-merges --format=%H -- lib/clips', { cwd: root, encoding: 'utf8' }).split('\n').filter(Boolean)
+  changed = shas.flatMap((h) => execSync(`git diff-tree --no-commit-id --name-only -r ${h}`, { cwd: root, encoding: 'utf8' }).split('\n'))
     .concat(execSync('git ls-files --others --exclude-standard', { cwd: root, encoding: 'utf8' }).split('\n'))
     .map((s) => s.trim()).filter(Boolean)
 } catch { changed = [] }
