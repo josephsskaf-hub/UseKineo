@@ -168,7 +168,8 @@ function landingProblems(src) {
   else if (!(nav < row && row < hero)) probs.push('fileira fora do lugar (tem de vir logo abaixo do menu, antes do hero)')
   if (!src.includes("import PromoCards from '@/components/PromoCards'")) probs.push('import do componente ausente')
   // Curadoria do fundador intocada: hero de filmes e vitrine de motores seguem na página.
-  for (const keep of ['<HomeFeaturedFilms />', 'id="engines"', 'engineWall']) if (!src.includes(keep)) probs.push(`curadoria mexida: sumiu ${keep}`)
+  // REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles de motor saiu da home; os motores seguem no mega-menu e no /studio).
+  for (const keep of ['<HomeFeaturedFilms />', 'engineWall']) if (!src.includes(keep)) probs.push(`curadoria mexida: sumiu ${keep}`)
   return probs
 }
 

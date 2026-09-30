@@ -122,10 +122,12 @@ const PORTAS = /href="\/avatar"|Talking Avatar|AI Presenter|Character Lock|Trans
   const pub = home(null), casa = home(INTERNO)
   checa('home (visitante): 0 portas do Avatar — mega-menu, mobile, bento, 4 cards do toolkit e subtítulo', !PORTAS.test(pub))
   // 29/09 (KINEO-KINEO1-FORA-2026-09-29): sem o tile do Kineo 1 o visitante vê 4 motores no bento.
-  checa('home (visitante): os 4 tiles de motor continuam e o toolkit removido não reaparece', conta(pub, 'class="tile') === 4 && !pub.includes('id="toolkit"') && conta(pub, 'class="tcard"') === 0)
+  // REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles de motor saiu da home; os motores seguem no mega-menu e no /studio).
+  checa('home (visitante): a grade de tiles de motor saiu e o toolkit removido não reaparece', conta(pub, 'class="tile') === 0 && !pub.includes('id="toolkit"') && conta(pub, 'class="tcard"') === 0)
   // 29/09 (KINEO-KINEO1-FORA): "Five" e a lista sem Kineo 1 nem Avatar.
   checa('home (visitante): FAQ diz "Five" e a lista sem Avatar', pub.includes('Five') && pub.includes('Veo 3.1, Kling 3, Kling 2.5, MiniMax H3 and Seedance 1.5') && !pub.includes('and Avatar'))
-  checa('home (conta da casa): as 3 portas internas do Avatar continuam; os cards retirados também saem para a casa', conta(casa, 'href="/avatar"') === 3 && conta(casa, 'class="tcard"') === 0 && !casa.includes('id="toolkit"') && casa.includes('Talking Avatar'))
+  // REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles de motor saiu da home; os motores seguem no mega-menu e no /studio). O tile do Avatar saiu junto: sobram 2 portas internas (mega-menu e menu mobile).
+  checa('home (conta da casa): as 2 portas internas do Avatar continuam; os cards retirados também saem para a casa', conta(casa, 'href="/avatar"') === 2 && conta(casa, 'class="tcard"') === 0 && !casa.includes('id="toolkit"') && casa.includes('Talking Avatar'))
   checa('home (e-mail público logado): mesmas 0 portas', !PORTAS.test(home(PUBLICO)))
 }
 {
@@ -323,7 +325,10 @@ console.log('== (f2) sobras públicas do apresentador: /best-ai-shorts-generator
 }
 
 console.log('== (g) bento da home completo: o JSX real, a cascata real, nenhuma célula vazia em nenhuma largura ==')
-{
+// REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles de motor saiu da home; os motores seguem no mega-menu e no /studio). Sem bento na home não há grade para medir: o bloco (g) prova só que ele saiu de verdade.
+if (!/className="bento"/.test(rd('app/KineoLanding.tsx'))) {
+  checa('bento da home removido por ordem do fundador (30/09): nenhuma grade de motores para medir', !/home-engines/.test(rd('app/KineoLanding.tsx')))
+} else {
   // O CASO (revisão 2): sem o tile do Avatar, o visitante vê 5 motores num grid de 3 colunas (e de 2 até 700px) — a
   // última fileira ficava com um buraco. Contar "5 tiles" (bloco c) ficava verde com o buraco na tela.
   // A PROVA: renderiza a home com o JSX real, lê o <style> que a própria página injeta, monta a cascata (postcss +

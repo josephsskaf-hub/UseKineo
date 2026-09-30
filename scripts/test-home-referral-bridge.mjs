@@ -96,7 +96,8 @@ check(landing.includes('const referralBridge = !isSignedIn && initialAcquisition
 check(landing.includes('data-acquisition-source={initialAcquisitionSource}'), 'bridge labels its acquisition source')
 check(landing.includes('acquisitionSource={initialAcquisitionSource}'), 'form receives source for measurement')
 check(landing.indexOf('{referralBridge ? (') > landing.indexOf('</header>'), 'bridge follows the founder-approved hero samples')
-check(landing.indexOf('{referralBridge ? (') < landing.indexOf('{engineWall.length >= 4 && ('), 'bridge appears before the next general engine section')
+// REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles de motor saiu da home; os motores seguem no mega-menu e no /studio).
+check(!landing.includes('{engineWall.length >= 4 && ('), 'engine grid section removed from the home (founder 30/09)')
 
 const referralAnchors = landing.match(/referralBridge \? '#try-kineo' :/g) ?? []
 // 30/09: o botão do hero saiu com o bloco "Make room…" (fundador) — sobram cinco, todos ainda levando o indicado ao valor primeiro.
@@ -112,9 +113,8 @@ for (const originalDestination of [
 }
 
 check(landing.includes('<HomeFeaturedFilms />'), 'founder-approved September 24 film showcase opens the home')
-check(landing.includes("tileVidLast('cinematic_ai')"), 'Seedance middle-row video remains connected')
-check(landing.includes("tileVidLast('cinematic_kling')"), 'Kling 2.5 middle-row video remains connected')
-check(landing.includes("tileVidLast('cinematic_hollywood')"), 'distinct Kling 3 middle-row video remains connected')
+// REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles de motor, e os vídeos do meio dela, saiu da home).
+check(!landing.includes('tileVidLast('), 'engine tile grid (and its middle-row videos) removed from the home by the founder')
 
 check(form.includes("const trackingPlacement = acquisitionSource ? 'home_referral_bridge' : 'home_hero'"), 'channel bridge has a distinct event placement')
 // Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): a política recebe o interruptor da entrada (K6 revogada quando ligado).

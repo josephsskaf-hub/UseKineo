@@ -50,7 +50,9 @@ const semComentarios = landing.replace(/\/\*[\s\S]*?\*\//g, '')
 // wrapper novo amanhã não volta a produzir falso vermelho — mas trocar
 // `creditLabel` por um literal continua reprovando.
 const etiquetas = semComentarios.match(/<span className="tcredits">[\s\S]*?<\/span>/g) ?? []
-checa('as 6 etiquetas de motor existem na vitrine', etiquetas.length === 6, `achei ${etiquetas.length}`)
+// REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles e suas etiquetas de crédito saiu da home).
+// A invariante que sobra: nenhuma etiqueta de crédito chumbada volta a aparecer na home.
+checa('a grade de etiquetas de motor saiu da home (0 etiquetas)', etiquetas.length === 0, `achei ${etiquetas.length}`)
 
 const chumbados = etiquetas.filter((e) => !/creditLabel\('[a-z_0-9]+'\)/.test(e))
 checa('nenhuma etiqueta de credito chumbada', chumbados.length === 0, JSON.stringify(chumbados))

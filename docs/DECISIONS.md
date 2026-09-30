@@ -3,6 +3,12 @@
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
 
+## 2026-09-30 (madrugada) — Sai da home a grade "Video" com os 6 motores
+
+**QUEM DECIDIU:** o fundador, 30/09, com print da seção: "tira essa parte".
+**O QUE:** sai a seção #engines (título "Video", "Open the generator" e os tiles Kineo 1 · Seedance 1.5 · Kling 2.5 · Veo 3.1 · Kling 3 · Avatar com créditos). Os motores seguem no mega-menu, no /studio e nas páginas /ai-video-generator/*. A curadoria lib/engineWall.ts não foi tocada (continua alimentando a fileira de filmes).
+**GUARDIÕES REANCORADOS (com o motivo):** avatar-fora, kineo1-fora-vitrine (portas 3→2), home-referral-bridge, home-b2b-bridge, credito-vitrine, promo-cards.
+
 ## 2026-09-30 (madrugada) — Home sem o bloco "Make room for your next big idea"; menu e vídeos mais perto da borda
 
 **QUEM DECIDIU:** o fundador, 30/09: "já quero tirar make room for your next big idea, create video. Já pode aproximar os dois vídeos" e "o menu não está colado 100% na lateral".
