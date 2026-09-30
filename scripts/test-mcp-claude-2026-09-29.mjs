@@ -233,5 +233,18 @@ ok(creditProblems(docText + '\nNew accounts get 10 free credits.').length > 0, '
 // M9: seção de orientação vazando nos fatos
 ok('startHere' in M.selectFacts(FAKE_FACTS, 'all') === false && ('startHere' in { ...M.selectFacts(FAKE_FACTS, 'all'), startHere: 1 }), '(M9) o verificador de (A20) enxerga uma chave de orientação quando ela aparece')
 
+// ─── (D) KINEO-GO-ROTULO-CANAL-2026-09-30 — o que o revisor vê depois do link ──
+// O teste do Cowork no claude.ai (30/09) achou a página /go dizendo "Script from ChatGPT" para um roteiro do Claude.
+const goCode = read('app/go/[token]/page.tsx')
+ok(G.handoffSourceLabel('claude_connector') === 'Script from Claude', '(D1) canal claude_connector → "Script from Claude"')
+ok(G.handoffSourceLabel('gpt_store') === 'Script from ChatGPT' && G.handoffSourceLabel(null) === 'Script from ChatGPT' && G.handoffSourceLabel('xyz') === 'Script from ChatGPT', '(D2) loja do GPT e linha antiga sem canal continuam "Script from ChatGPT"')
+ok(G.HANDOFF_CHANNELS.every((c) => typeof G.CHANNEL_SOURCE_LABELS[c] === 'string' && G.CHANNEL_SOURCE_LABELS[c].length > 0), '(D3) todo canal tem rótulo de origem')
+const labelFromChannel = (code) => /\{handoffSourceLabel\(row\.channel\)\} · ready for Kineo Studio/.test(code) && !/Script from ChatGPT/.test(code)
+ok(labelFromChannel(goCode), '(D4) /go tira a origem do canal da linha, sem "Script from ChatGPT" fixo')
+ok(!labelFromChannel(goCode.replace('{handoffSourceLabel(row.channel)} · ready', 'Script from ChatGPT · ready')), '(M10) /go com o rótulo fixo de volta → vermelho')
+ok(/&ldquo;Make this video&rdquo; opens the Studio/.test(goCode) && /until you press Generate there/.test(goCode), '(D5) rodapé liga o botão desta página ("Make this video") ao botão do Studio ("Generate")')
+const icon = fs.readFileSync(path.join(ROOT, 'public/kineo-icon-512.png'))
+ok(icon.readUInt32BE(16) === 512 && icon.readUInt32BE(20) === 512 && icon[25] === 6, '(D6) public/kineo-icon-512.png = PNG 512×512 com alfa (URL de ícone da listagem)')
+
 console.log(`\n${pass} verificações ok, ${fail} falhas`)
 process.exit(fail ? 1 : 0)

@@ -486,6 +486,22 @@ export const CHANNEL_TAGS: Readonly<Record<HandoffChannel, { utmSource: string; 
   claude_connector: { utmSource: 'claude_connector', intentCampaign: 'kineo_claude_connector' },
 }
 
+/** KINEO-GO-ROTULO-CANAL-2026-09-30 — de onde veio o roteiro, dito na página
+ *  /go. Era "Script from ChatGPT" fixo: o teste do conector no Claude (30/09)
+ *  mostrou o rótulo errado na tela que o revisor da Anthropic vai abrir. Selo
+ *  honesto: a origem vem do canal da linha; canal desconhecido/ausente cai no
+ *  DEFAULT_CHANNEL, como as etiquetas. */
+export const CHANNEL_SOURCE_LABELS: Readonly<Record<HandoffChannel, string>> = {
+  gpt_store: 'Script from ChatGPT',
+  assistant_link: 'Script from your AI assistant',
+  paste_page: 'Your pasted script',
+  claude_connector: 'Script from Claude',
+}
+
+export function handoffSourceLabel(channel: unknown): string {
+  return CHANNEL_SOURCE_LABELS[isHandoffChannel(channel) ? channel : DEFAULT_CHANNEL]
+}
+
 // ─── A página de colar (KINEO-PASTE-PAGE-2026-09-07) ────────────────────────
 /** Qual assistente escreveu o roteiro colado. Lista FECHADA: é o número que
  *  diz se vale a pena escrever documentação para Claude/Gemini além do
