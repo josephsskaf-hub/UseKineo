@@ -3,6 +3,15 @@
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
 
+## 2026-09-30 — Studio Ads: "3 variações" a 2,5 × o preço do nível
+
+**QUEM DECIDIU:** o fundador, 30/09, literal: "3 variações sim" e, sobre o preço proposto, "preço aprovado".
+**O QUE:** no /ads/v2 (modo simples e completo) o cliente liga "3 variações" e recebe 3 anúncios irmãos do mesmo pedido: mesmo produto, mesmas fotos/vídeos, mesma narração e frases; cada um com um look fixo (A · Luz do dia azul, B · Interior quente laranja, C · Pôr do sol rosa: luz, paleta, câmera, abertura, grade de cor; cenário novo só em loja/app). Pessoa criada por IA: B e C usam o still da A como referência (a mesma pessoa nas 3). Cada variação é um pedido v2 normal (status, refação e montagem próprios).
+**PREÇO:** 3 variações = 2,5 × o preço do nível, arredondado para cima: 34→85 · 41→103 · 51→128 cr (15 s). Mostrado antes do clique; UM débito antes de começar, em 3 partes no ledger (85 = 29+28+28 · 103 = 35+34+34 · 128 = 43+43+42); variação que falha devolve só a parte dela (estorno idempotente de sempre). Refação continua cobrada à parte, por plano.
+**INTERRUPTOR:** ADS_VARIACOES_PUBLIC = true em lib/ads/v2Variations.ts (nasce aberto por decisão do fundador). Desligado, só contas da casa veem a opção e a rota responde 404 antes de cobrar.
+**PRÉ-REQUISITO:** migrations_pending/2026-09-30_ads_v2_variacoes.sql aplicada ANTES do deploy (sem ela a rota responde 503 'not_ready' sem cobrar).
+**GUARDIÃO:** scripts/test-ads-3-variacoes-2026-09-30.mjs.
+
 ## 2026-09-29 (noite) — Quatro entregas: foto de referência, Clipes 5/7/10/15 s, filmes de 15/30 s em todos os motores, "Estrela do filme"
 
 **QUEM DECIDIU:** o fundador, 29/09, literal: "vai pra todas as 4 … é muito mais público que podemos alcançar", e depois "clipes de 5, 7, 10 e 15 segundos, além dos que a gente já tem". Este "vai" é a autorização nominal da trava 8.2 para as entregas que mexem nas rotas travadas (durações curtas nos filmes); os commits levam a marca [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'].

@@ -56,6 +56,12 @@ export const ADS_EVENTS = [
   'ads_v2_failed',
   // KINEO-ADS-MODO-SIMPLES-2026-09-29 — pesquisa na web do modo simples (1 por chamada paga à OpenAI; conta o teto diário).
   'ads_v2_research_served',
+  // KINEO-ADS-3-VARIACOES-2026-09-30 — "3 variações": começou (débito único, 3 partes), ensaio de US$ 0, escolha da
+  // variação e o desfecho da referência da mesma pessoa (still da A usado/pulado). Fatos do servidor.
+  'ads_v2_variations_started',
+  'ads_v2_variations_dry_run_served',
+  'ads_v2_variation_chosen',
+  'ads_v2_variation_anchor',
 ] as const
 
 export type AdsEventName = (typeof ADS_EVENTS)[number]
@@ -85,6 +91,12 @@ export const ADS_SERVER_ONLY_EVENTS: readonly AdsEventName[] = [
   'ads_v2_delivered',
   'ads_v2_failed',
   'ads_v2_research_served',
+  // KINEO-ADS-3-VARIACOES-2026-09-30 — "3 variações": começou (débito único, 3 partes), ensaio de US$ 0, escolha da
+  // variação e o desfecho da referência da mesma pessoa (still da A usado/pulado). Fatos do servidor.
+  'ads_v2_variations_started',
+  'ads_v2_variations_dry_run_served',
+  'ads_v2_variation_chosen',
+  'ads_v2_variation_anchor',
 ]
 
 export function isAdsEvent(name: string): name is AdsEventName {

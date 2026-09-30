@@ -18,6 +18,7 @@ import { motionPrompt, type AdsV2MotionKind } from '@/lib/ads/v2ShotLists'
 import { adsV2RetakeRef, chargeAdsV2, deterministicUuid, failAdsV2Order } from '@/lib/ads/v2Billing'
 import { adsV2View, dispatchAdsV2Shots, latestShots, loadAdsV2Order, loadAdsV2Shots } from '@/lib/ads/v2Advance'
 import { v2Fail, v2Json } from '@/lib/ads/v2Server'
+import { adsV2RetakePrompt, variationTagOf } from '@/lib/ads/v2Variations'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -136,6 +137,9 @@ export async function POST(req: NextRequest) {
     // Planos: os prontos do pai copiados (sem fal); o refeito com o motor principal e OUTRO movimento.
     const engine = routeShot(target.kind, parent.tier, 1)
     const variant = target.movement_variant + 1
+    // KINEO-ADS-3-VARIACOES-2026-09-30 — refação de uma variação mantém o LOOK dela (grade de cor); pedido comum = o
+    // prompt de sempre, byte a byte (adsV2RetakePrompt com slot nulo devolve a base intocada).
+    const look = variationTagOf(parent.brief)?.slot ?? null
     const rows = latest.map((r) => {
       if (r.idx !== idx) {
         return {
@@ -146,7 +150,7 @@ export async function POST(req: NextRequest) {
       }
       return {
         order_id: retakeId, idx: r.idx, attempt: 1, role: r.role, kind: r.kind, source: r.source, source_footage_id: r.source_footage_id,
-        image_url: r.image_url, engine, prompt: motionPrompt(r.kind as AdsV2MotionKind, variant),
+        image_url: r.image_url, engine, prompt: adsV2RetakePrompt(motionPrompt(r.kind as AdsV2MotionKind, variant), look),
         gen_seconds: engine ? ADS_V2_ENGINES[engine].genSeconds : null, cut_start: r.cut_start, cut_seconds: r.cut_seconds,
         movement_variant: variant, status: r.source === 'generated_scene' ? 'image_done' : 'pending', reason: 'paid_retake',
       }

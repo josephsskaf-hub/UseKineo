@@ -133,6 +133,12 @@ const SERVER_ONLY_EVENTS = new Set([
   // KINEO-ADS-MODO-SIMPLES-2026-09-29 — a pesquisa na web do modo simples conta o teto diário por este evento: se o
   // navegador pudesse cunhá-lo, travaria a pesquisa de qualquer conta.
   'ads_v2_research_served',
+  // KINEO-ADS-3-VARIACOES-2026-09-30 — "3 variações": começou (débito único, 3 partes), ensaio de US$ 0, escolha da
+  // variação e o desfecho da referência da mesma pessoa (still da A usado/pulado). Fatos do servidor.
+  'ads_v2_variations_started',
+  'ads_v2_variations_dry_run_served',
+  'ads_v2_variation_chosen',
+  'ads_v2_variation_anchor',
   // KINEO-CLIPES-2026-09-29 — clipe avulso (/clips): pedido aceito na fal, entregue no nosso bucket, falhou (com estorno).
   // Fatos do servidor; o navegador não cunha nenhum. clip_failed já era escrito só pelo servidor (Modo Clipe do Studio).
   'clip_requested',
