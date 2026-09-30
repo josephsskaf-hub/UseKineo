@@ -86,6 +86,9 @@ const avatarOffCatalogue=/^export const AVATAR_PUBLIC = false$/m.test(source('li
 // for old links; this language test must not restore retired navigation entries.
 // Keep the exact multiset comparison so unrelated missing/extra links still fail.
 const retiredNavigationLinks=new Set(['/scripts','/viral-now'])
-equal(links(footerAfter),[...links(footerBefore).map(h=>h==='/business-video-ads'?'/ads':h).filter(h=>!retiredNavigationLinks.has(h)&&!(avatarOffCatalogue&&h==='/ai-avatar')),...segmentLinks].sort(),'footer preserves all destinations except documented navigation removals and off-catalogue Avatar, with direct Ads and derived segment doors')
+// 30/09 (KINEO-WORKS-WITH-CLAUDE, fundador "vai"): one documented ADDITION — the Claude connector page. Any other
+// extra or missing link still fails the exact multiset comparison.
+const addedNavigationLinks=['/claude-connector']
+equal(links(footerAfter),[...links(footerBefore).map(h=>h==='/business-video-ads'?'/ads':h).filter(h=>!retiredNavigationLinks.has(h)&&!(avatarOffCatalogue&&h==='/ai-avatar')),...segmentLinks,...addedNavigationLinks].sort(),'footer preserves all destinations except documented navigation removals and off-catalogue Avatar, with direct Ads, derived segment doors and the documented Claude connector addition')
 equal((footerAfter.match(/<details /g)||[]).length,4,'four footer navigation groups')
 console.log(`PASS ${checks} locale and workspace checks; no network, database, email or generation`)

@@ -1358,6 +1358,23 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           })}
         </div>
 
+        {/* KINEO-WORKS-WITH-CLAUDE-2026-09-30 — selo de confiança verdadeiro: o conector MCP (/api/mcp) funciona hoje
+            como conector personalizado no Claude. Fica LOGO ABAIXO dos planos (perto do botão de compra): o topo da
+            página esconde de propósito todo <p> solto (.pricing-blue .pricing-intro>p). Texto, sem logo da Anthropic,
+            e sem "official/partner/directory" enquanto a listagem estiver em revisão (guardião
+            test-works-with-claude-2026-09-30). Aba nova: o link não tira o comprador da página de preços. */}
+        <p className="mt-5 text-center text-[12.5px] font-semibold text-[var(--muted)]">
+          <a
+            href="/claude-connector?utm_source=pricing_badge"
+            target="_blank"
+            rel="noopener"
+            className="underline-offset-2 hover:underline"
+            style={{ color: 'var(--muted)' }}
+          >
+            ✦ Works with Claude · add Kineo as a connector →
+          </a>
+        </p>
+
         {/* ONDA1 #11 (13/08) — o erro de checkout aparece ONDE a pessoa esta
             olhando (logo abaixo dos planos), nao 250 linhas depois. */}
         {checkoutError && checkoutSetupFailure ? (
