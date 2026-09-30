@@ -17,7 +17,7 @@ import KineoBolt from '@/components/KineoBolt'
 //   · DOIS CARTÕES (Creator/Studio), Studio destacado — o fundador pediu
 //     "fechando um dos 2", então a escolha mora DENTRO do modal: um clique
 //     leva direto ao Stripe com o promo aplicado, sem escala em /pricing.
-//   · VITRINE DENTRO DO MODAL: o clipe dos robôs (Omni #1, render de hoje) —
+//   · VITRINE DENTRO DO MODAL: o clipe dos robôs (render real do Omni Flash) —
 //     regra #273: a pessoa vê O QUE está comprando no quadro em que decide.
 //   · FREQUÊNCIA: 1× a cada 72h por browser (localStorage com timestamp);
 //     assinante pagante NUNCA vê (checa /api/me/plan). Delay de 5s — a pessoa
@@ -45,6 +45,17 @@ import {
   formatPlanFilmCapacity,
   planFilmLanguageMetadata,
 } from '@/lib/growth/planFilmLanguage'
+import { enginePaused } from '@/lib/engineLaunch'
+
+// ═══ KINEO-SELO-OMNI-POPUP-2026-09-30 — o cartão Studio prometia "N films on Omni Flash — the #1 model — plus
+// change" com o Omni PAUSADO desde 15/09 (PAUSED_ENGINE_KEYS em lib/engineLaunch.ts): o comprador pagava por um
+// motor que não podia apertar, com um superlativo sem prova e um "plus change" falso (300cr ÷ 150cr = 2, sobra 0).
+// Agora o motor-âncora do Studio LÊ o interruptor: pausado → Kling 3 (a alternativa que o próprio ENGINE_PAUSE
+// indica, mesma etiqueta de 150cr); de volta ao ar → Omni Flash, sozinho, sem ninguém redigitar a linha.
+// Guardião: scripts/test-selo-omni-pausado-2026-09-30.mjs.
+const KLING3_LEAD = { quality: 'cinematic_hollywood', film: 'Kling 3 film' } as const
+const OMNI_LEAD = { quality: 'cinematic_omni', film: 'Omni Flash film' } as const
+const studioLead = enginePaused('omni') ? KLING3_LEAD : OMNI_LEAD
 
 let memorySeenAt: number | null = null
 let memoryDashboardSuppressed = false
@@ -260,7 +271,7 @@ export default function WelcomeOfferModal({
         'Seedance film',
         TIER_CREDITS.pro,
       ),
-      perks: [`${formatResultCount(videosPerMonth('pro', 'cinematic_omni'), 'film')} on Omni Flash — the #1 model — plus change`, 'Kling 3 film scenes with native voice & lip sync', '2 free HD Enhance upscales / month'],
+      perks: [`${formatResultCount(videosPerMonth('pro', studioLead.quality), studioLead.film)} or ${formatResultCount(videosPerMonth('pro', 'cinematic_h3'), 'MiniMax H3 film')}`, 'Kling 3 film scenes with native voice & lip sync', '2 free HD Enhance upscales / month'],
       highlight: true,
     },
   ]
@@ -314,7 +325,7 @@ export default function WelcomeOfferModal({
             Pick Creator or Studio below — the discount applies itself at checkout. Films like this one, from a text box:
           </p>
 
-          {/* A prova: batalha de robôs, Omni Flash (#1 ranked), render real de hoje. */}
+          {/* A prova: batalha de robôs, render real (Omni Flash, 25/08) — sem selo de motor na tela. */}
           <video
             src="/previews/36a04f7b-65f7-42d9-a2ab-198b5a7f115e.mp4"
             muted loop autoPlay playsInline preload="metadata"

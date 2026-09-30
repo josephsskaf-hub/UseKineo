@@ -13,6 +13,11 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { TIER_PRICES, TIER_CREDITS } from '@/lib/checkoutPricing'
 import { filmsAndScenes } from '@/lib/marketingPrice'
+// KINEO-SELO-OMNI-POPUP-2026-09-30 — a página dizia "six engines including Omni Flash (#1)" na FAQ e "seven, incl.
+// Omni Flash (#1, Aug 2026)" na tabela: contagem errada (duas vezes, diferente em cada lugar) e um motor pausado
+// desde 15/09 vendido como diferencial. Contagem e lista agora são as derivadas dos interruptores.
+import { VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY } from '@/lib/engineLaunch'
+const ENGINE_COUNT = VIDEO_ENGINE_COUNT_WORD.toLowerCase()
 
 export const dynamic = 'force-static'
 
@@ -57,7 +62,7 @@ const FAQ_JSONLD = {
       name: 'Does Kineo have the same AI models?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Kineo runs six engines including Omni Flash (ranked #1 in the August 2026 blind arena), Veo 3.1, Kling 3 with native voice and lip sync, MiniMax H3, Kling 2.5 and Seedance 1.5 — all inside one subscription, selectable per video.', // KINEO-FILME-GRATIS-15S-2026-09-29 — Kineo 1 fora do catálogo público
+        text: `Kineo runs ${ENGINE_COUNT} engines you can use today — ${VIDEO_ENGINE_LIST_COPY}, with Kling 3 adding native voice and lip sync — all inside one subscription, selectable per video.`, // KINEO-FILME-GRATIS-15S-2026-09-29 — Kineo 1 fora do catálogo público
       },
     },
   ],
@@ -70,7 +75,7 @@ const ROWS: Array<[string, string, string]> = [
   ['Captions', 'Add them yourself', 'Included — karaoke word-by-word'],
   ['Soundtrack', 'Add it yourself', 'Included — mood-matched per genre'],
   ['Character/world consistency', 'Per generation', 'Anchored across every scene of the film'],
-  ['Top engines', 'Yes — several', 'Yes — seven, incl. Omni Flash (#1, Aug 2026)'],
+  ['Top engines', 'Yes — several', `Yes — ${ENGINE_COUNT}: ${VIDEO_ENGINE_LIST_COPY}`],
   ['Talking character with lip sync', 'Limited', 'Kling 3 renders a character speaking your line'],
   ['Entry', 'Limited free tier', 'Free — 10 credits, every engine, no card'],
 ]

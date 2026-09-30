@@ -14,7 +14,7 @@ import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 // launch offer.
 
 import { PLAN_SWITCH_EMPTY, fetchPlanSwitchState, planSwitchConfirmText, planSwitchErrorText, planSwitchLabel, switchPlan, type PlanSwitchState, type SwitchableTier } from '@/lib/growth/planSwitch'
-import { S25_PUBLIC, AVATAR_PUBLIC } from '@/lib/engineLaunch' // KINEO-AVATAR-FORA-2026-09-28
+import { S25_PUBLIC, AVATAR_PUBLIC, enginePaused } from '@/lib/engineLaunch' // KINEO-AVATAR-FORA-2026-09-28
 import Link from 'next/link'
 import React, { useEffect, useRef, useState } from 'react'
 import { trackCheckoutClick } from '@/lib/trackClick'
@@ -199,7 +199,8 @@ const buildFaqs = (OFFER: FreeTierOffer): { q: string; a: string }[] => [
     // KINEO-PRICING-V3D-2026-07-26 — the discounted first month of Creator
     // grants 50 credits, not 150. Stating it here as well as on the card is
     // the difference between a discount and a bait-and-switch.
-    a: `Think in 60-second films: Seedance = ${creditsPerReferenceVideo('cinematic_ai')} credits, Kling 2.5 = ${creditsPerReferenceVideo('cinematic_kling')}, Veo 3.1 = ${creditsPerReferenceVideo('cinematic_veo')}, Kling 3 or Omni Flash = ${creditsPerReferenceVideo('cinematic_hollywood')}. One image = 1-5 credits, one voiceover = 1-2, one HD enhance = 10. Starter includes ${TIER_CREDITS.starter} credits/month (≈${formatResultCount(videosPerMonth('starter', 'cinematic_ai'), 'Seedance film')}), Creator includes ${TIER_CREDITS.basic} (≈${formatResultCount(videosPerMonth('basic', 'cinematic_ai'), 'Seedance film')}), Studio includes ${TIER_CREDITS.pro} (≈${formatResultCount(videosPerMonth('pro', 'cinematic_ai'), 'Seedance film')}, or ${formatResultCount(videosPerMonth('pro', 'cinematic_hollywood'), 'Kling 3 film')}); Autopilot includes ${TIER_CREDITS.autopilot} on top of the daily Short we publish for you. Credits reset each month (no rollover).`,
+    // KINEO-SELO-OMNI-POPUP-2026-09-30 — "or Omni Flash" só enquanto o motor não estiver pausado (enginePaused).
+    a: `Think in 60-second films: Seedance = ${creditsPerReferenceVideo('cinematic_ai')} credits, Kling 2.5 = ${creditsPerReferenceVideo('cinematic_kling')}, Veo 3.1 = ${creditsPerReferenceVideo('cinematic_veo')}, Kling 3${enginePaused('omni') ? '' : ' or Omni Flash'} = ${creditsPerReferenceVideo('cinematic_hollywood')}. One image = 1-5 credits, one voiceover = 1-2, one HD enhance = 10. Starter includes ${TIER_CREDITS.starter} credits/month (≈${formatResultCount(videosPerMonth('starter', 'cinematic_ai'), 'Seedance film')}), Creator includes ${TIER_CREDITS.basic} (≈${formatResultCount(videosPerMonth('basic', 'cinematic_ai'), 'Seedance film')}), Studio includes ${TIER_CREDITS.pro} (≈${formatResultCount(videosPerMonth('pro', 'cinematic_ai'), 'Seedance film')}, or ${formatResultCount(videosPerMonth('pro', 'cinematic_hollywood'), 'Kling 3 film')}); Autopilot includes ${TIER_CREDITS.autopilot} on top of the daily Short we publish for you. Credits reset each month (no rollover).`,
   },
   {
     // KINEO-AUTOPILOT-299-2026-07-26
