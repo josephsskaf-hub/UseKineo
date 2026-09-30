@@ -51,6 +51,6 @@ const lum=rgb=>rgb.map(c=>c<=.04045?c/12.92:((c+.055)/1.055)**2.4).reduce((sum,c
 const contrast=(a,b)=>{const x=lum(rgb(a)),y=lum(rgb(b));return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)}
 for(const selector of [':root',"html[data-theme='dark'], .kineo-admin-theme"]){
  const p=palette(selector)
- for(const [fg,bg] of [['--text','--card'],['--muted','--card'],['--accent','--accent-soft'],['--on-accent','--indigo']])ok(contrast(p[fg],p[bg])>=4.5,selector+' readable '+fg+' on '+bg)
+ for(const [fg,bg] of [['--text','--card'],['--muted','--card'],['--accent','--accent-soft'],['--on-accent','--indigo'],['--text2','--card'],['--text','--card2'],['--muted','--card2']])ok(contrast(p[fg],p[bg])>=4.5,selector+' readable '+fg+' on '+bg)
 }
 console.log(`Avatar appearance: ${checks} checks passed; offline, no generation or billing.`)
