@@ -7,12 +7,35 @@
 // enquanto o card está visível. prefers-reduced-motion: nenhuma animação e o vídeo fica parado no pôster.
 // Sem layout shift: a mídia tem altura fixa por aspect-ratio.
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import { UiLabel, useUiCopy } from '@/components/InterfaceLanguage'
 import { PROMO_CLICK_EVENT, promoClickMetadata, type PromoCard } from '@/lib/ui/promoCards'
 import { trackEvent } from '@/lib/analytics'
+import { CLAUDE_CONNECT_EVENTS, claudeConnectorHref, isMobileClient } from '@/lib/claudeConnect'
+import { copyUrlAndOpenClaude } from '@/lib/claudeConnectClient'
 
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)'
+
+/**
+ * KINEO-CLAUDE-1CLIQUE-2026-09-30 — o card "KINEO FOR CLAUDE" num clique: copia a URL do servidor, abre o modal
+ * "Adicionar conector personalizado" do claude.ai numa aba nova e leva ESTA aba para /claude-connector?copied=1#connect,
+ * onde os 3 passos do Claude (Continuar → Adicionar → Vincular) esperam. Tudo dentro do gesto (senão o navegador
+ * bloqueia cópia e aba nova). Ctrl/⌘/Shift/botão do meio: deixa o link fazer o de sempre. Celular: não abre o
+ * claude.ai (modal de conector no app móvel não confirmado) — só vai para a página, que avisa para usar web/desktop.
+ */
+function connectFromCard(e: MouseEvent<HTMLAnchorElement>, go: (href: string) => void) {
+  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
+  e.preventDefault()
+  if (isMobileClient(window.innerWidth, navigator.userAgent)) {
+    go(claudeConnectorHref('home_card'))
+    return
+  }
+  void copyUrlAndOpenClaude({ open: true }).then((copied) => {
+    void trackEvent(CLAUDE_CONNECT_EVENTS.copyOpen, { source: 'home_card', copied })
+    go(claudeConnectorHref('home_card', copied))
+  })
+}
 
 export const PROMO_CARDS_CSS = `
 .klp .kpc{padding:22px 0 4px}
@@ -106,6 +129,7 @@ function PromoArt({ card }: { card: PromoCard }) {
 export default function PromoCards({ cards }: { cards: PromoCard[] }) {
   const rootRef = useRef<HTMLDivElement>(null)
   const copy = useUiCopy()
+  const router = useRouter()
 
   useEffect(() => {
     const root = rootRef.current
@@ -152,7 +176,10 @@ export default function PromoCards({ cards }: { cards: PromoCard[] }) {
               data-promo-card={card.id}
               // Decisão do fundador 30/09 ("concordo com as 2 faixas"): medir cliques por card em 7 dias.
               // keepalive do trackEvent entrega o POST mesmo com a página saindo pelo link.
-              onClick={() => { void trackEvent(PROMO_CLICK_EVENT, promoClickMetadata(card, i)) }}
+              onClick={(e) => {
+                void trackEvent(PROMO_CLICK_EVENT, promoClickMetadata(card, i))
+                if (card.action === 'claude_connect') connectFromCard(e, (href) => router.push(href))
+              }}
             >
               <PromoArt card={card} />
               <span className="kpc-text">

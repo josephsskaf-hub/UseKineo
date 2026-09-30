@@ -4,7 +4,13 @@
 // Higgsfield (abas por cliente, botão que abre o modal de conector do claude.ai, URL com Copy). Só a mecânica: a
 // marca, o texto e as promessas são nossos, e cada aba diz só o que funciona hoje. A aba ChatGPT é "em breve" —
 // não existe app da Kineo no ChatGPT ainda, e dizer o contrário seria selo desonesto.
-import { useState, type CSSProperties } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
+import { trackEvent } from '@/lib/analytics'
+import { CLAUDE_CONNECT_ANCHOR, CLAUDE_CONNECT_EVENTS, claudeConnectSource, isMobileClient, type ClaudeConnectSource } from '@/lib/claudeConnect'
+import { copyUrlAndOpenClaude } from '@/lib/claudeConnectClient'
+
+/** KINEO-CLAUDE-1CLIQUE-2026-09-30 — estado do botão principal: nada ainda, URL copiada, ou a cópia falhou. */
+type CopyStatus = 'idle' | 'copied' | 'copy_failed'
 
 type TabKey = 'claude' | 'claude_code' | 'other' | 'chatgpt'
 
@@ -57,15 +63,40 @@ function CopyField({ value, accent, label }: { value: string; accent: string; la
   )
 }
 
-export default function ConnectPanel({ serverUrl, connectUrl, accent, muted }: { serverUrl: string; connectUrl: string; accent: string; muted: string }) {
+export default function ConnectPanel({ serverUrl, startHref, accent, muted }: { serverUrl: string; startHref: string; accent: string; muted: string }) {
   const [tab, setTab] = useState<TabKey>('claude')
+  const [status, setStatus] = useState<CopyStatus>('idle')
+  const [mobile, setMobile] = useState(false)
+  const [source, setSource] = useState<ClaudeConnectSource>('page')
+
+  // Quem chega do card da home já com a URL copiada (?copied=1) vê o estado "copiado" sem clicar de novo.
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search)
+    const src = claudeConnectSource(sp.get('src'))
+    setSource(src)
+    setMobile(isMobileClient(window.innerWidth, navigator.userAgent))
+    if (sp.get('copied') === '1') {
+      setStatus('copied')
+      void trackEvent(CLAUDE_CONNECT_EVENTS.copiedStateView, { source: src, via: 'arrival' })
+    } else if (sp.get('copied') === '0') {
+      setStatus('copy_failed')
+    }
+  }, [])
+
+  // Dentro do gesto: copia e (no computador) abre o modal de conector do claude.ai numa aba nova.
+  const copyAndOpen = async () => {
+    const copied = await copyUrlAndOpenClaude({ open: !mobile })
+    setStatus(copied ? 'copied' : 'copy_failed')
+    void trackEvent(CLAUDE_CONNECT_EVENTS.copyOpen, { source, copied, mobile })
+    if (copied) void trackEvent(CLAUDE_CONNECT_EVENTS.copiedStateView, { source, via: 'click' })
+  }
   const p: CSSProperties = { fontSize: '0.98rem', color: '#d2d2d7', lineHeight: 1.65, margin: '0 0 12px' }
   const small: CSSProperties = { fontSize: '0.88rem', color: muted, lineHeight: 1.6, margin: '10px 0 0' }
   const cliCommand = `claude mcp add --transport http kineo ${serverUrl}`
   const jsonConfig = JSON.stringify({ mcpServers: { kineo: { type: 'http', url: serverUrl } } }, null, 2)
 
   return (
-    <div style={{ background: '#161618', border: '1px solid #2a2a2d', borderRadius: 18, padding: '18px 18px 20px' }}>
+    <div id={CLAUDE_CONNECT_ANCHOR} style={{ background: '#161618', border: '1px solid #2a2a2d', borderRadius: 18, padding: '18px 18px 20px', scrollMarginTop: 24 }}>
       <div role="tablist" aria-label="Where to use Kineo" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18 }}>
         {TABS.map((t) => {
           const on = t.key === tab
@@ -96,24 +127,41 @@ export default function ConnectPanel({ serverUrl, connectUrl, accent, muted }: {
 
       {tab === 'claude' && (
         <div role="tabpanel">
+          <button
+            type="button"
+            onClick={copyAndOpen}
+            style={{ background: accent, color: '#fff', fontWeight: 800, fontSize: '1rem', border: 0, borderRadius: 999, padding: '12px 22px', cursor: 'pointer', minHeight: 44 }}
+          >
+            {mobile ? 'Copy URL' : 'Copy URL & open Claude →'}
+          </button>
+          {mobile && (
+            <p style={small}>Add the connector from Claude on the web or desktop.</p>
+          )}
+          {status === 'copied' && (
+            <p role="status" style={{ ...p, margin: '12px 0 0', color: '#30d158', fontWeight: 700 }}>
+              ✓ URL copied. In Claude: type Kineo as the name, paste the URL (Ctrl+V / ⌘V), click Continue → Add → Connect.
+            </p>
+          )}
+          {status === 'copy_failed' && (
+            <p role="status" style={{ ...p, margin: '12px 0 0', color: '#ffb340', fontWeight: 700 }}>
+              Copy did not work in this browser — use the Copy button below, then paste the URL in Claude.
+            </p>
+          )}
+          <ol style={{ ...p, paddingLeft: 22, margin: '14px 0 0', listStyle: 'decimal' }}>
+            <li>Name: <strong>Kineo</strong>. URL: paste it. Click <strong>Continue</strong>.</li>
+            <li>Claude detects that no login is needed. Click <strong>Add</strong>.</li>
+            <li>On the Kineo connector page, click <strong>Connect</strong>. Done.</li>
+          </ol>
+          <CopyField value={serverUrl} accent={accent} label="Kineo MCP server URL" />
           <a
-            href={connectUrl}
+            href={startHref}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ display: 'inline-block', background: accent, color: '#fff', fontWeight: 800, fontSize: '1rem', borderRadius: 999, padding: '12px 22px', textDecoration: 'none' }}
+            onClick={() => { void trackEvent(CLAUDE_CONNECT_EVENTS.openPrompt, { source, preset: 'start' }) }}
+            style={{ display: 'inline-block', marginTop: 14, color: accent, border: `1px solid ${accent}66`, borderRadius: 999, padding: '10px 18px', fontWeight: 800, fontSize: '0.95rem', textDecoration: 'none' }}
           >
-            Connect Kineo to Claude →
+            Already connected? Start in Claude →
           </a>
-          <p style={small}>Opens Claude&apos;s &ldquo;Add custom connector&rdquo; window. Name it Kineo and paste this URL; leave the authentication fields empty.</p>
-          <CopyField value={serverUrl} accent={accent} label="Kineo MCP server URL" />
-          <details style={{ marginTop: 14 }}>
-            <summary style={{ cursor: 'pointer', color: accent, fontWeight: 700, minHeight: 32 }}>How to connect?</summary>
-            <ol style={{ ...p, paddingLeft: 22, marginTop: 10, listStyle: 'decimal' }}>
-              <li>In Claude (web or desktop), open <strong>Settings → Connectors</strong>, or use the button above.</li>
-              <li>Choose <strong>Add custom connector</strong>, name it <strong>Kineo</strong> and paste the URL. No login is needed.</li>
-              <li>In a chat, turn Kineo on from the tools menu, then try one of the requests below.</li>
-            </ol>
-          </details>
         </div>
       )}
 

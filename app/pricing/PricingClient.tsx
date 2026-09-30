@@ -1366,7 +1366,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             test-works-with-claude-2026-09-30). Aba nova: o link não tira o comprador da página de preços. */}
         <p className="mt-5 text-center text-[12.5px] font-semibold text-[var(--muted)]">
           <a
-            href="/claude-connector?utm_source=pricing_badge"
+            href="/claude-connector?src=pricing_badge#connect"
             target="_blank"
             rel="noopener"
             className="underline-offset-2 hover:underline"

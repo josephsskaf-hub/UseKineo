@@ -23,19 +23,17 @@ import Footer from '@/components/Footer'
 import { PAUSED_ENGINE_KEYS } from '@/lib/engineLaunch'
 import { ENGINE_LABELS, HANDOFF_TTL_DAYS, SCRIPT_MAX_CHARS, type HandoffEngine } from '@/lib/gptHandoff'
 import { MCP_SERVER_VERSION, buildTools } from '@/lib/mcp/kineoMcp'
+import { CLAUDE_MCP_SERVER_URL, CLAUDE_START_PROMPT, claudePromptHref } from '@/lib/claudeConnect'
 import ConnectPanel from './ConnectPanel'
+import ClaudePromptLink from './ClaudePromptLink'
 
 export const dynamic = 'force-static'
 
 const BASE = 'https://www.usekineo.com'
-const SERVER_URL = `${BASE}/api/mcp`
+// KINEO-CLAUDE-1CLIQUE-2026-09-30 — URL do servidor, modal de conector, chat novo e o fecho "If Kineo is not
+// connected…" vêm da fonte única lib/claudeConnect.ts (card da home, painel e página usam os mesmos).
+const SERVER_URL = CLAUDE_MCP_SERVER_URL
 const PRICING_HREF = '/pricing?utm_source=claude_connector'
-/** O modal "Add custom connector" do claude.ai (o mesmo destino que a Higgsfield usa). */
-const CONNECT_URL = 'https://claude.ai/customize/connectors?modal=add-custom-connector'
-const CLAUDE_NEW_CHAT = 'https://claude.ai/new?q='
-/** Fecho de todo pedido: quem ainda não conectou é guiado pelo próprio Claude. */
-const CONNECT_SENTENCE = `If Kineo is not connected, ask me to [connect Kineo](${CONNECT_URL}) using ${SERVER_URL} before continuing.`
-const openInClaude = (prompt: string) => CLAUDE_NEW_CHAT + encodeURIComponent(`${prompt} ${CONNECT_SENTENCE}`)
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE),
@@ -60,6 +58,7 @@ const CARD: CSSProperties = { background: '#161618', border: '1px solid #2a2a2d'
 // fatos) — nenhum promete que o vídeo sai dentro do Claude. `clip` = filme real da vitrine (public/previews), com o
 // motor que o gerou; o texto do card diz que é uma amostra.
 const PRESETS: readonly {
+  id: 'clip' | 'film' | 'ad' | 'plans'
   title: string
   line: string
   clip: string | null
@@ -68,6 +67,7 @@ const PRESETS: readonly {
   prompt: string
 }[] = [
   {
+    id: 'clip',
     title: 'Clip from an idea',
     line: 'One sentence becomes a 15-second clip script, saved to Kineo Studio.',
     clip: '75728dfb-3b29-47fa-aea8-b806d549a2b9',
@@ -76,6 +76,7 @@ const PRESETS: readonly {
     prompt: 'Using the Kineo connector, turn this idea into a 15-second narration script and send it to Kineo Studio: a giant wave rolling in from the open sea.',
   },
   {
+    id: 'film',
     title: 'Narrated 35-second film',
     line: 'From one line to a narrated Short with a hook, a build and a twist.',
     clip: '4b12925e-16e6-4b56-af5a-7047f9ae7a28',
@@ -84,6 +85,7 @@ const PRESETS: readonly {
     prompt: 'Using the Kineo connector, write a 35-second narrated YouTube Short from this one line and send it to Kineo Studio: the lake where lightning almost never stops.',
   },
   {
+    id: 'ad',
     title: 'Product ad in 3 variations',
     line: 'Three angles on the same offer, each saved as its own Studio link.',
     clip: '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba',
@@ -92,6 +94,7 @@ const PRESETS: readonly {
     prompt: 'Using the Kineo connector, write 3 variations of a 15-second ad script for my product and send each one to Kineo Studio. My product is: [describe your product].',
   },
   {
+    id: 'plans',
     title: 'Kineo plans & prices',
     line: 'Live plans, free trial and credits per engine, straight from Kineo.',
     clip: null,
@@ -142,7 +145,7 @@ export default function ClaudeConnectorPage() {
               renders a video, never creates an account and never charges anything — you press Generate in Studio.
             </p>
           </div>
-          <ConnectPanel serverUrl={SERVER_URL} connectUrl={CONNECT_URL} accent={ACCENT} muted={MUTED} />
+          <ConnectPanel serverUrl={SERVER_URL} startHref={claudePromptHref(CLAUDE_START_PROMPT)} accent={ACCENT} muted={MUTED} />
         </div>
 
         <h2 style={h2}>Try it in Claude</h2>
@@ -181,9 +184,9 @@ export default function ClaudeConnectorPage() {
                 <p style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem' }}>{pr.title}</p>
                 <p style={{ ...small, margin: 0, flex: 1 }}>{pr.line}</p>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 4 }}>
-                  <a href={openInClaude(pr.prompt)} target="_blank" rel="noopener noreferrer" title={pr.prompt} style={{ background: ACCENT, color: '#fff', borderRadius: 999, padding: '9px 16px', fontSize: '0.92rem', fontWeight: 800, textDecoration: 'none' }}>
+                  <ClaudePromptLink href={claudePromptHref(pr.prompt)} preset={pr.id} title={pr.prompt} style={{ background: ACCENT, color: '#fff', borderRadius: 999, padding: '9px 16px', fontSize: '0.92rem', fontWeight: 800, textDecoration: 'none' }}>
                     Try in Claude ↗
-                  </a>
+                  </ClaudePromptLink>
                   <Link href={pr.learnMore} style={{ ...link, fontSize: '0.9rem', fontWeight: 700 }}>Learn more</Link>
                 </div>
               </div>

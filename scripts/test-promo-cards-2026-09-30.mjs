@@ -152,7 +152,10 @@ function telemetryProblems(compCode, dataCode, eventsRoute) {
   const m = mod.promoClickMetadata ? mod.promoClickMetadata(mod.PROMO_CARDS[1], 1) : null
   if (!m || m.card !== 'ads' || m.position !== 2 || m.href !== '/ads' || m.promo_v !== mod.PROMO_TELEMETRY_VERSION) probs.push('metadados do clique errados (card/posição/href/versão)')
   if (m && Object.values(m).some((v) => typeof v === 'string' && /[A-Z]{3,}|\s/.test(v))) probs.push('metadados carregam texto (título/tradução) em vez do id')
-  if (!compCode.includes('onClick={() => { void trackEvent(PROMO_CLICK_EVENT, promoClickMetadata(card, i)) }}')) probs.push('card sem onClick que grava promo_card_clicked')
+  // REANCORADO 30/09 (KINEO-CLAUDE-1CLIQUE, brief do fundador): o onClick do card também dispara o "copiar + abrir o
+  // Claude" do card do Claude — o registro de promo_card_clicked continua PRIMEIRO, para todo card, antes de qualquer desvio.
+  const onClick = (compCode.match(/onClick=\{\(e\) => \{\n\s+void trackEvent\(PROMO_CLICK_EVENT, promoClickMetadata\(card, i\)\)\n[\s\S]*?\n\s+\}\}/) || [''])[0]
+  if (!onClick) probs.push('card sem onClick que grava promo_card_clicked')
   if (!compCode.includes("import { trackEvent } from '@/lib/analytics'")) probs.push('trackEvent não importado')
   const serverOnly = (eventsRoute.match(/const SERVER_ONLY_EVENTS = new Set\(\[([\s\S]*?)\]\)/) || [, ''])[1]
   if (serverOnly.includes("'promo_card_clicked'")) probs.push('promo_card_clicked na lista SERVER_ONLY (o navegador não grava)')
@@ -265,7 +268,10 @@ ok(dataProblems(dataSrc.replace("id: 'ads',", "id: 'ads-x',")).length > 0, '(M17
 
 const yp = telemetryProblems(compSrc, dataSrc, eventsRoute)
 ok(yp.length === 0, `(7) clique por card grava promo_card_clicked {card, position, href, promo_v} (${yp.join('; ') || 'ok'})`)
-ok(telemetryProblems(compSrc.replace('onClick={() => { void trackEvent(PROMO_CLICK_EVENT, promoClickMetadata(card, i)) }}', ''), dataSrc, eventsRoute).length > 0, '(M20) card sem medição de clique → vermelho')
+{
+  const semMedicao = compSrc.replace('void trackEvent(PROMO_CLICK_EVENT, promoClickMetadata(card, i))\n', '')
+  ok(semMedicao !== compSrc && telemetryProblems(semMedicao, dataSrc, eventsRoute).length > 0, '(M20) card sem medição de clique → vermelho (mutante aplicado)')
+}
 ok(telemetryProblems(compSrc, dataSrc.replace('card: card.id,', 'card: card.title,'), eventsRoute).length > 0, '(M21) clique gravando o título em vez do id → vermelho')
 ok(telemetryProblems(compSrc, dataSrc, eventsRoute.replace('const SERVER_ONLY_EVENTS = new Set([', "const SERVER_ONLY_EVENTS = new Set([\n  'promo_card_clicked',")).length > 0, '(M22) evento bloqueado no sink do navegador → vermelho')
 ok(dataProblems(dataSrc.replace("'Write your video in Claude, render it in Kineo Studio'", "'Make videos in Claude'")).length > 0, '(M23) "Make videos in Claude" → vermelho')

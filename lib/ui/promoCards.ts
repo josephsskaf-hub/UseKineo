@@ -46,6 +46,10 @@ export type PromoCard = {
   art: PromoCardArt
   /** Só aparece quando o interruptor do produto está aberto para quem vê. */
   gate?: 'clips'
+  /** KINEO-CLAUDE-1CLIQUE-2026-09-30 (brief do fundador): no clique, o card do Claude COPIA a URL do servidor e ABRE o
+   *  modal de conector do claude.ai, e leva esta aba para a página (components/PromoCards.tsx + lib/claudeConnect.ts).
+   *  O href continua sendo o destino sem JavaScript. No celular não abre o claude.ai: só vai para a página. */
+  action?: 'claude_connect'
 }
 
 const clip = (name: string): PromoClip => ({ src: `/previews/${name}.mp4`, poster: `/posters/${name}.webp` })
@@ -54,6 +58,7 @@ export const PROMO_CARDS: readonly PromoCard[] = [
   {
     id: 'claude',
     href: CLAUDE_CARD_HREF,
+    action: 'claude_connect',
     title: 'KINEO FOR CLAUDE',
     // Selo honesto (sessão Loja Claude, 30/09): o conector NÃO gera mídia dentro do Claude (regra do diretório) — ele
     // escreve o roteiro e manda para o Kineo Studio, onde o vídeo é renderizado. Nada de "make videos in Claude".
