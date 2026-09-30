@@ -36,7 +36,11 @@ for(const [file,from] of [['app/free-ai-shorts-generator/page.tsx','free_ai_shor
   check(`${from}: pause condition retained`,src.includes("!enginePaused(ENGINES.seedance.param)"))
 }
 check('curation file unmodified',execFileSync('git',['diff','--','lib/publicExamples.ts'],{cwd:root,encoding:'utf8'}).trim()==='')
-check('superseded Kineo1 page has no candidate delta', source('app/ai-video-generator/[engine]/page.tsx').replace(/\r\n/g,'\n').trim()===execFileSync('git',['show','c55bab53:app/ai-video-generator/[engine]/page.tsx'],{cwd:root,encoding:'utf8'}).replace(/\r\n/g,'\n').trim())
+// Integration 30/09: S24-01 does not change this page. Its old c55bab53 freeze
+// predates the independently tested A30-01 Veo hero. Keep an exact whole-file
+// comparison against that tested code, not a broad exception for engine edits.
+// Veo's own behavioral guard separately freezes siblings, metadata and CTA intent.
+check('S24-01 preserves the entire separately tested Veo engine page', source('app/ai-video-generator/[engine]/page.tsx').replace(/\r\n/g,'\n').trim()===execFileSync('git',['show','cdb154e2:app/ai-video-generator/[engine]/page.tsx'],{cwd:root,encoding:'utf8'}).replace(/\r\n/g,'\n').trim())
 check('owner permanent Kineo1 redirect retained', source('next.config.js').includes("{ source: '/ai-video-generator/kineo-1', destination: '/ai-video-generator/seedance', statusCode: 301 }"))
 check('server-only curation selection', !source('components/ScriptToSeedanceBridge.tsx').includes("@/lib/publicExamples"))
 check('no effects during static preview',events.length===0)
