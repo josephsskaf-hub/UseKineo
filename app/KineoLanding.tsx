@@ -1344,7 +1344,9 @@ export default function KineoLanding({
               <div className="pr"><LandingPlanPrice tier="pro" variant="big" /></div>
               <ul>
                 <li><span className="ck">✓</span> <b><UiLabel>{filmsAndScenes('pro')}</UiLabel></b></li>
-                <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('pro', 'cinematic_omni')}<UiLabel> films on Omni Flash</UiLabel></b><UiLabel> — Google’s Gemini engine</UiLabel></li>
+                {/* KINEO-SELO-OMNI-POPUP-2026-09-30 — o cartão Studio vendia "Or N films on Omni Flash" com o Omni pausado
+                    desde 15/09; a linha agora lê o interruptor (enginePaused) e volta sozinha quando o motor voltar. */}
+                {enginePaused('omni') ? <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('pro', 'cinematic_hollywood')}<UiLabel> Kling 3 films</UiLabel></b><UiLabel> — native voice & lip sync</UiLabel></li> : <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('pro', 'cinematic_omni')}<UiLabel> films on Omni Flash</UiLabel></b><UiLabel> — Google’s Gemini engine</UiLabel></li>}
                 <li><span className="ck">✓</span><UiLabel> Up to </UiLabel><b>{imagesFor('pro')}<UiLabel> AI images</UiLabel></b> — {nanoBananasFor('pro')}<UiLabel> on Nano Banana</UiLabel></li>
                 <li><span className="ck">✓</span> <b>{voiceoversFor('pro')}<UiLabel> AI voiceovers</UiLabel></b><UiLabel> · 2 free HD enhances / month</UiLabel></li>
                 <li><span className="ck">✓</span><UiLabel> Unlimited projects · forever storage</UiLabel></li>

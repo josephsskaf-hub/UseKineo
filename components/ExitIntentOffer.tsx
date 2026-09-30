@@ -45,6 +45,7 @@ import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 import { FREE_FILM_LABEL, TRIAL_CREDITS_SHOWN, TRIAL_FREE_FILM_SECONDS, TRIAL_GRANT_CREDITS_COPY, TRIAL_SEEDANCE15_FILMS, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer' // KINEO-FILME-GRATIS-15S-2026-09-29
 import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 import { videosPerMonth } from '@/lib/marketingPrice'
+import { enginePaused } from '@/lib/engineLaunch' // KINEO-SELO-OMNI-POPUP-2026-09-30
 // KINEO-VITRINE-MOEDA-2026-08-19 — ver o bloco grande junto ao texto do modal.
 import {
   coercePriceRegion,
@@ -523,7 +524,9 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
                 superfície de venda antes da pessoa ir embora mostrava um
                 catálogo menor do que o real. Abre a lista, como na vitrine. */}
             {/* KINEO-FILME-GRATIS-15S-2026-09-29 — Kineo 1 saiu do catálogo público. */}
-            {['OMNI FLASH · #1', 'VEO 3.1', 'KLING 3', 'MINIMAX H3', 'KLING 2.5', 'SEEDANCE 1.5'].map((e) => (
+            {/* KINEO-SELO-OMNI-POPUP-2026-09-30 — o chip "OMNI FLASH · #1" vendia um motor pausado desde 15/09, com
+                superlativo sem prova. Agora o chip lê o interruptor e volta sozinho (sem "#1") quando o motor voltar. */}
+            {[...(enginePaused('omni') ? [] : ['OMNI FLASH']), 'VEO 3.1', 'KLING 3', 'MINIMAX H3', 'KLING 2.5', 'SEEDANCE 1.5'].map((e) => (
               <span key={e} style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.08em', padding: '4px 9px', borderRadius: 4, background: 'var(--card2)', border: '1px solid var(--border)', color: 'var(--text2)' }}>{e}</span>
             ))}
           </div>

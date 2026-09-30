@@ -187,7 +187,9 @@ const metadataDe = (src, avatarPublic) => {
 console.log('== (c2) superfícies lidas no fonte ==')
 {
   const ph = rd('app/ph/page.tsx')
-  checa('/ph: linha do Studio sem Avatar fixo (só com AVATAR_PUBLIC)', ph.includes("`Kling 3, Veo 3.1, MiniMax H3, Omni Flash${AVATAR_PUBLIC ? ', Avatar' : ''}`") && !ph.includes("'Kling 3, Veo 3.1, MiniMax H3, Omni Flash, Avatar'"))
+  // KINEO-SELO-OMNI-POPUP-2026-09-30 — reancorado: o ', Omni Flash' da mesma linha passou a ler enginePaused('omni')
+  // (scripts/test-selo-omni-pausado-2026-09-30.mjs). A intenção deste item não muda: Avatar só com AVATAR_PUBLIC.
+  checa('/ph: linha do Studio sem Avatar fixo (só com AVATAR_PUBLIC)', ph.includes("`Kling 3, Veo 3.1, MiniMax H3${enginePaused('omni') ? '' : ', Omni Flash'}${AVATAR_PUBLIC ? ', Avatar' : ''}`") && !/MiniMax H3[^`'\n]*, Avatar['`]/.test(ph))
   const shell = rd('app/(dashboard)/DashboardShell.tsx')
   checa('painel: banner "NEW — AI Avatar Video" atrás do interruptor; o componente continua existindo', shell.includes('{AVATAR_PUBLIC && <WorkspaceSecondaryNotice><AvatarLaunchBanner /></WorkspaceSecondaryNotice>}') && existsSync(join(RAIZ, 'components/AvatarLaunchBanner.tsx')))
   const gc = rd('app/(dashboard)/generate/GenerateClient.tsx')
