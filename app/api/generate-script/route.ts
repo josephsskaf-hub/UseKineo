@@ -349,7 +349,7 @@ export async function POST(req: NextRequest) {
     // predicado do teto duro abaixo): faixa, teto duro e prompt no ritmo dela (lib/durationByEngine ritmoDoFilmeCurto: tr 29–34
     // e 45 palavras; en/pt/es 36–41 e 56, como antes). Kineo 1, Kling 2.5, Veo, a estrada de voz própria e 35/60/90: undefined.
     // KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4']: desde este bloco o Kling 2.5 e o Veo 3.1 a 15 s entram
-    // aqui também (a mesma voz do 15 s — lib/vozDoFilmeCurto —, a mesma guarda e o mesmo portão na rota do cinematic).
+    // [KINEO-DURACOES-CURTAS-2026-09-29] aqui também (a mesma voz do 15 s — lib/vozDoFilmeCurto —, a mesma guarda e o mesmo portão na rota do cinematic).
     const idiomaDoRitmo = isShortFilmTarget(alvoSegundos) && isClassicShortEngine(typeof body.engine === 'string' ? body.engine : null) ? language : undefined // KINEO-DURACOES-CURTAS-2026-09-29: + Kling 2.5 e Veo 3.1
     // KINEO-ROTEIRO-COLADO-NAO-ENGORDA-2026-09-18 — roteiro colado: o piso de palavras é o da própria pessoa,
     // e o escritor só estrutura. Ver lib/pastedScript.ts.

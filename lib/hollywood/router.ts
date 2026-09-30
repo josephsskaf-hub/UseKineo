@@ -478,17 +478,17 @@ function trimNarrationToWords(text: string, maxWords: number): string {
 // ── Planner ──────────────────────────────────────────────────────────────────
 import { aplicarFidelidadeAoPlano, removerDatasInventadas, fichaDoPedido, trocarFichaNosPrompts } from '@/lib/hollywood/fidelidade'
 
-/**
+/** // KINEO-DURACOES-CURTAS-2026-09-29
  * KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] (entrega 3) — a instrução do filme curto
- * (alvo < 35 s: os pedidos de 15 e 30 s chegam como 17 e 34). O prompt de sistema fala em filmes de 45-70 s e "4 a 6 cenas"; aqui
- * o alvo curto ganha o número de cenas e a soma de segundos que cabem nele (e o mínimo de fala: 2,3 pal/s × alvo × 0,92, a régua
- * da coerência da rota). Alvo ≥ 35: string vazia — o pedido ao planejador fica byte a byte o de sempre.
- */
-export function instrucaoDoFilmeCurto(alvo: number): string {
-  if (!(Number.isFinite(alvo) && alvo > 0 && alvo < 35)) return ''
-  const cenas = alvo < 25 ? '2 to 3' : '3 to 5'
-  return `\n\nSHORT FILM (STRICT — this overrides the 4-to-6-scene and 45-70-second rules above): this film is only ${alvo} seconds. Use ${cenas} scenes whose "seconds" SUM to ${alvo - 2}-${alvo + 3}, with at least ${Math.ceil(alvo * 2.3 * 0.92)} spoken words in total (~2.3 words per second: a 5-second scene = 11-13 words). Scene 1 is still the HOOK and the last scene is still the spoken PAYOFF — the story must end.`
-}
+ * (alvo < 35 s: os pedidos de 15 e 30 s chegam como 17 e 34). O prompt de sistema fala em filmes de 45-70 s e "4 a 6 cenas"; aqui // KINEO-DURACOES-CURTAS-2026-09-29
+ * o alvo curto ganha o número de cenas e a soma de segundos que cabem nele (e o mínimo de fala: 2,3 pal/s × alvo × 0,92, a régua // KINEO-DURACOES-CURTAS-2026-09-29
+ * da coerência da rota). Alvo ≥ 35: string vazia — o pedido ao planejador fica byte a byte o de sempre. // KINEO-DURACOES-CURTAS-2026-09-29
+ */ // KINEO-DURACOES-CURTAS-2026-09-29
+export function instrucaoDoFilmeCurto(alvo: number): string { // KINEO-DURACOES-CURTAS-2026-09-29
+  if (!(Number.isFinite(alvo) && alvo > 0 && alvo < 35)) return '' // KINEO-DURACOES-CURTAS-2026-09-29
+  const cenas = alvo < 25 ? '2 to 3' : '3 to 5' // KINEO-DURACOES-CURTAS-2026-09-29
+  return `\n\nSHORT FILM (STRICT — this overrides the 4-to-6-scene and 45-70-second rules above): this film is only ${alvo} seconds. Use ${cenas} scenes whose "seconds" SUM to ${alvo - 2}-${alvo + 3}, with at least ${Math.ceil(alvo * 2.3 * 0.92)} spoken words in total (~2.3 words per second: a 5-second scene = 11-13 words). Scene 1 is still the HOOK and the last scene is still the spoken PAYOFF — the story must end.` // KINEO-DURACOES-CURTAS-2026-09-29
+} // KINEO-DURACOES-CURTAS-2026-09-29
 
 /** Nome da língua da narração para o planejador (espelho de LANGUAGE_NAMES em lib/textLanguage — sem import: guardiões carregam este arquivo cru). */
 const NARRATION_LANGUAGE_NAME: Record<string, string> = { pt: 'Brazilian Portuguese (pt-BR)', es: 'Spanish (es-419, Latin American)', hi: 'Hindi (Devanagari script)', fr: 'French', de: 'German', it: 'Italian', nl: 'Dutch', pl: 'Polish', tr: 'Turkish', ru: 'Russian', uk: 'Ukrainian', ar: 'Arabic (Modern Standard)', ur: 'Urdu', id: 'Indonesian', vi: 'Vietnamese' } // KINEO-IDIOMAS-15: espelho do catálogo (a rota só deixa en/pt/es chegar aqui)
@@ -583,13 +583,13 @@ Output JSON shape ("demo" is optional, only on demo/showcase support scenes):
 {"genre":"documentary","hostFits":true,"stylized":false,"characterSheet":"...","environmentSheet":"...","styleSheet":"...","scenes":[{"index":1,"type":"dialogue","beat":"HOOK","seconds":10,"prompt":"...","dialogueLine":"...","caption":"..."},{"index":2,"type":"support","beat":"MICRO_REWARD","seconds":10,"prompt":"...","voiceover":"...","caption":"...","demo":true}]}`
 
   // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 (entrega 3) — o alvo tinha piso de 30 (15 s pedidos
-  // planejavam 34); agora o piso é 15 e o alvo curto (< 35: os pedidos de 15 e 30 s, alvos 17 e 34) ganha a instrução de filme curto.
+  // [KINEO-DURACOES-CURTAS-2026-09-29] planejavam 34); agora o piso é 15 e o alvo curto (< 35: os pedidos de 15 e 30 s, alvos 17 e 34) ganha a instrução de filme curto.
   const alvoDoPlano = Math.max(15, Math.min(100, Math.round(durationSeconds || 60))) // KINEO-DURACOES-CURTAS-2026-09-29: piso 30 → 15
   // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23 — o planejador lia 600 caracteres da ideia e 1.500 da narração (fonte única em lib/analyzeLimits).
   const userMsg = `Idea/topic: ${String(idea ?? '').slice(0, SCENE_WRITER_INPUT_MAX_CHARS)}
 
 ${voiceoverScript ? `Existing narration script (reuse its facts and beats):\n${String(voiceoverScript).slice(0, SCENE_WRITER_INPUT_MAX_CHARS)}\n` : ''}${sceneCtx ? `Existing scene beats:\n${sceneCtx}\n` : ''}
-Target total duration: ${alvoDoPlano} seconds.${instrucaoDoFilmeCurto(alvoDoPlano)}${args.shortRetryFeedback ? `\n\nIMPORTANT — YOUR PREVIOUS PLAN WAS REJECTED: ${args.shortRetryFeedback}` : ''}`
+Target total duration: ${alvoDoPlano} seconds.${instrucaoDoFilmeCurto(alvoDoPlano)}${args.shortRetryFeedback ? `\n\nIMPORTANT — YOUR PREVIOUS PLAN WAS REJECTED: ${args.shortRetryFeedback}` : ''}` // KINEO-DURACOES-CURTAS-2026-09-29
 
   // KINEO-OMNI-PLANEJADOR-4O-2026-09-15 — 6 ensaios do Omni a $0 (R8…R14): o gpt-4o-mini escreve 86-110 palavras para 144 pedidas
   // e cada reescrita entrega ~85 % do alvo; a régua de silêncio (8 s no total) reprovava por 1,6 s com a fala já limpa.
@@ -771,7 +771,7 @@ Target total duration: ${alvoDoPlano} seconds.${instrucaoDoFilmeCurto(alvoDoPlan
   // de completar". Agora o teto acompanha o alvo (+6s de folga) e, quando
   // ainda precisa cortar, sai a PENULTIMA cena — o PAYOFF fica.
   // KINEO-DURACOES-CURTAS-2026-09-29 (entrega 3) — alvo curto (< 35 s: pedidos de 15 e 30 s) tem teto alvo + 6 (23 e 40), não 60: a 60 um plano de
-  // 40 s para um filme de 15 s passava inteiro (40 s de Kling 3 ≈ US$ 6,70 contra os US$ 6,95 dos 38 cr). 35/60/90: o teto de sempre.
+  // [KINEO-DURACOES-CURTAS-2026-09-29] 40 s para um filme de 15 s passava inteiro (40 s de Kling 3 ≈ US$ 6,70 contra os US$ 6,95 dos 38 cr). 35/60/90: o teto de sempre.
   const ceiling = (durationSeconds || 60) < 35 ? Math.round(durationSeconds) + 6 : Math.max(60, Math.round(durationSeconds || 60) + 6) // KINEO-DURACOES-CURTAS-2026-09-29
   let total = outScenes.reduce((s, sc) => s + sc.seconds, 0)
   while (total > ceiling && outScenes.length > 2) {

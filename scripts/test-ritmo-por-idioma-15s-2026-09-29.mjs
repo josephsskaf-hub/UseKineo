@@ -118,7 +118,9 @@ function fatiasDoEscritor(src) {
     alvo: deAte(src, '    const alvoPalavras = colado.pasted', ': minWordsFor(alvoSegundos'),
     teto: linhaCom(src, '    const tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos'),
     piso: linhaCom(src, '    const pisoFilmeCurto = Math.min(alvoPalavras, tetoFilmeCurto)'),
-    duro: linhaCom(src, '    const tetoDuroFilmeCurto = isSeedance15('),
+    // reancorado KINEO-DURACOES-CURTAS-2026-09-29 [vai do fundador 29/09 'vai pra todas as 4']: o teto duro vale também no Kling 2.5 e no Veo a 15 s
+    // (isClassicShortEngine + maxWordsCurtoDoMotor; no Seedance o MESMO maxWordsForShortFilm de antes) — a fatia é achada pelo nome da variável.
+    duro: linhaCom(src, '    const tetoDuroFilmeCurto = '),
     sistema: linhaCom(src, '    const SYSTEM_PROMPT = buildSystemPrompt('),
     prompt: a < 0 || b < 0 ? null : src.slice(a + 1, b + 2),
   }
@@ -167,6 +169,7 @@ function mundo({ rota, gs, D, W }) {
       writerRateFor: W.writerRateFor, minWordsFor: W.minWordsFor, maxWordsFor: W.maxWordsFor,
       detectPastedScript: PS.detectPastedScript, pastedScriptMinWords: PS.pastedScriptMinWords,
       maxWordsForShortFilm: D.maxWordsForShortFilm, isSeedance15: D.isSeedance15, isShortFilmTarget: SF.isShortFilmTarget,
+      isClassicShortEngine: D.isClassicShortEngine, maxWordsCurtoDoMotor: D.maxWordsCurtoDoMotor, // KINEO-DURACOES-CURTAS-2026-09-29 (ausentes na base: a linha da base não as usa)
       LANGUAGE_NAMES: TL.LANGUAGE_NAMES, WORDS_PER_SECOND: NF.WORDS_PER_SECOND, MIN_COVERAGE: NF.MIN_COVERAGE,
     }
     return runRota(`${fe.prompt}\n${fe.regua}\n${fe.idioma}\n${fe.colado}\n${fe.alvo}\n${fe.teto}\n${fe.piso}\n${fe.duro}\n${fe.sistema}\nglobalThis.__o = { regua, alvoPalavras, tetoFilmeCurto, pisoFilmeCurto, tetoDuroFilmeCurto, SYSTEM_PROMPT }`, ctx)
@@ -371,6 +374,9 @@ function provaIntocado(M) {
     for (const alvoSegundos of [15, 35, 60, 90]) {
       for (const engine of motores) {
         const conserto = alvoSegundos === 15 && M.D.fatorDoRitmoDoIdioma(lang) < 1 && ['cinematic_ai', 'seedance', ''].includes(engine)
+        // reancorado KINEO-DURACOES-CURTAS-2026-09-29: Kling 2.5 e Veo a 15 s entram no regime do 15 s (faixa na língua e teto duro da guarda
+        // DO MOTOR, 46 em en) — fora desta comparação, provados em scripts/test-duracoes-curtas-todos-motores-2026-09-29.mjs
+        if (alvoSegundos === 15 && ['cinematic_kling', 'cinematic_veo'].includes(engine)) continue
         for (const topic of ['tema curto', 'k '.repeat(45), 'k '.repeat(80)]) {
           const a = ANTES.faixa({ engine, language: lang, topic, alvoSegundos }), b = M.faixa({ engine, language: lang, topic, alvoSegundos })
           if (!conserto && !eqJ(a, b)) { erros.push(`escritor ${lang} ${engine || '(sem motor)'} ${alvoSegundos}s`); break }
@@ -447,12 +453,15 @@ vermelho('guarda de roteiro longo da língua ligada em todas (en/pt/es passariam
 vermelho('mensagem da recusa sem a língua (mandaria encurtar para 56 palavras turcas)', mundoCom({ rota: trocaUma(SRC.rota, "creditCostForDuration('cinematic_ai', true, falaCurtaNaLingua.sugestao), narrationLanguage.language)", "creditCostForDuration('cinematic_ai', true, falaCurtaNaLingua.sugestao))") }), quatroOk)
 vermelho('escritor (lib) com a faixa sem a língua (turco volta a 36–41)', mundoCom({ w: trocaUma(SRC.w, 'return seedanceShortWriterWords(language).min', 'return seedanceShortWriterWords().min') }), quatroOk)
 vermelho('/api/generate-script com o alvo sem a língua (piso turco 36)', mundoCom({ gs: trocaUma(SRC.gs, ': minWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo)', ': minWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage)') }), quatroOk)
-vermelho('/api/generate-script com o teto duro sem a língua (56, não 45)', mundoCom({ gs: trocaUma(SRC.gs, 'maxWordsForShortFilm(alvoSegundos, idiomaDoRitmo)) : tetoFilmeCurto', 'maxWordsForShortFilm(alvoSegundos)) : tetoFilmeCurto') }), quatroOk)
+// reancorado KINEO-DURACOES-CURTAS-2026-09-29: o teto duro agora é maxWordsCurtoDoMotor (no Seedance, o MESMO maxWordsForShortFilm) — o mutante bate na linha nova
+vermelho('/api/generate-script com o teto duro sem a língua (56, não 45)', mundoCom({ gs: trocaUma(SRC.gs, "maxWordsCurtoDoMotor(typeof body.engine === 'string' ? body.engine : null, alvoSegundos, idiomaDoRitmo)) : tetoFilmeCurto", "maxWordsCurtoDoMotor(typeof body.engine === 'string' ? body.engine : null, alvoSegundos)) : tetoFilmeCurto") }), quatroOk)
 {
   const Dm = mutD('  return Math.floor(voiceWordsPerSecond * (ritmo / VERBATIM_EST_WORDS_PER_SECOND) * 100 + 1e-9) / 100', '  return ritmo')
   vermelho('portão no ritmo da língua ignorando a voz (a persona documentary do caso mediria 2,03, não 1,98)', Dm ? mundoCom({ d: Dm }) : null, casoOk)
 }
-vermelho('/api/generate-script com a língua em todo motor e duração (Kling 2.5 e Veo a 15 s mudariam)', mundoCom({ gs: trocaUma(SRC.gs, "    const idiomaDoRitmo = isShortFilmTarget(alvoSegundos) && isSeedance15(typeof body.engine === 'string' ? body.engine : null) ? language : undefined", '    const idiomaDoRitmo = language') }), intocadoOk)
+// reancorado KINEO-DURACOES-CURTAS-2026-09-29: o predicado passou a ser isClassicShortEngine (Kling 2.5 e Veo a 15 s entraram, de propósito);
+// o mutante continua provando que a língua NÃO vaza para 35/60/90, Kineo 1 e a estrada hollywood.
+vermelho('/api/generate-script com a língua em todo motor e duração (35/60/90, Kineo 1 e hollywood mudariam)', mundoCom({ gs: trocaUma(SRC.gs, "    const idiomaDoRitmo = isShortFilmTarget(alvoSegundos) && isClassicShortEngine(typeof body.engine === 'string' ? body.engine : null) ? language : undefined // KINEO-DURACOES-CURTAS-2026-09-29: + Kling 2.5 e Veo 3.1", '    const idiomaDoRitmo = language') }), intocadoOk)
 vermelho('prompt do escritor sem a língua (turco a 15 s ouviria "36-41 words")', mundoCom({ gs: trocaUma(SRC.gs, '${minWordsFor(targetSeconds, wordsPerSecond, coverage, ritmoLanguage)}-${maxWordsFor(targetSeconds, wordsPerSecond, coverage, ritmoLanguage)}', '${minWordsFor(targetSeconds, wordsPerSecond, coverage)}-${maxWordsFor(targetSeconds, wordsPerSecond, coverage)}') }), provaPrompt)
 {
   const Dm = mutD('tr: 5.65 }', 'tr: 5.0 }')

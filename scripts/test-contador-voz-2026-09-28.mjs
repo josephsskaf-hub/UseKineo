@@ -124,12 +124,12 @@ console.log('== E) a tela (GenerateClient) usa o contador novo só em "Use my sc
   checa('o ramo verbatim vem ANTES do contador antigo e é guardado por scriptMode === \'verbatim\'', bloco.length > 0 && /if \(scriptMode === 'verbatim'\) \{/.test(bloco))
   checa('motor do contador = fast (Kineo 1/creator) ou o aiEngine da tela — nunca `quality` (cinematic_ai virava 3,1 no Kling 3)', /const motorContador: ContadorMotor = mode === 'fast' \|\| mode === 'creator' \? 'fast' : aiEngine/.test(bloco) && !/speechSecondsOfScript\(quality/.test(bloco))
   // Reancorado 29/09 (KINEO-PONTAS-15S-IDIOMA-2026-09-29, [TRAVA 8.2 — "vai conserta" do fundador]): a chamada ganhou `seconds: duration` (o 15 s do Seedance mede na voz do portão, no ritmo da língua); o que ela protege não muda.
-  checa('régua prevista com roteiro, idioma e vertical da análise (a mesma entrada do servidor)', /reguaDoServidorNaTela\(\{ engine: motorContador, script: prompt, language, vertical: analysis\?\.niche \?\? null, seconds: duration \}\)/.test(bloco))
+  checa('régua prevista com roteiro, idioma e vertical da análise (a mesma entrada do servidor)', /reguaDoServidorNaTela\(\{ engine: motorContador, script: prompt, language, vertical: analysis\?\.niche \?\? null, seconds: duration, curtas: curtasOk \}\)/.test(bloco)) // reancorado KINEO-DURACOES-CURTAS-2026-09-29: + curtas (o interruptor dos botões curtos novos; a régua é a mesma)
   checa('veredito e frase vêm das funções puras; o nome da persona e o motor entram na frase', /contadorVoz\(\{ script: prompt, regua: reguaVoz, requestedSeconds: duration \}\)/.test(bloco) && /fraseDoContador\(veredito, reguaVoz\.persona \? reguaVoz\.persona\.name : null, motorContador\)/.test(bloco))
   checa('quando o seletor vai mudar, a linha avisa ANTES do clique', /lengthWillChange\.from\}s → \$\{frase\.lengthWillChange\.to\}s happens automatically when you generate/.test(bloco) && /data-contador-voz=\{veredito\.kind\}/.test(bloco))
   checa('modo "Let AI structure" intocado: o contador antigo continua (speechSecondsOfScript(quality, prompt) + "add ~N words")', gc.includes('const medidaTela = speechSecondsOfScript(quality, prompt)') && /— add ~\$\{faltam\} words to fill \$\{duration\}s/.test(gc))
   // Reancorado 29/09 (KINEO-PONTAS-15S-IDIOMA-2026-09-29, [TRAVA 8.2 — "vai conserta" do fundador]): + `seconds: duration`, como o contador.
-  checa('a checagem da análise (sobe o seletor em verbatim) mede na MESMA régua da voz', /const reguaAnalise = reguaDoServidorNaTela\(\{ engine: mode === 'fast' \|\| mode === 'creator' \? 'fast' : aiEngine, script: baseChecagem, language, vertical: analysis\?\.niche \?\? null, seconds: duration \}\)/.test(gc) && /const falaSeg = falaNaReguaDaTela\(baseChecagem, reguaAnalise\)/.test(gc) && !/speechSecondsOfScript\(quality, baseChecagem\)\.seconds/.test(gc))
+  checa('a checagem da análise (sobe o seletor em verbatim) mede na MESMA régua da voz', /const reguaAnalise = reguaDoServidorNaTela\(\{ engine: mode === 'fast' \|\| mode === 'creator' \? 'fast' : aiEngine, script: baseChecagem, language, vertical: analysis\?\.niche \?\? null, seconds: duration, curtas: curtasOk \}\)/.test(gc) /* reancorado KINEO-DURACOES-CURTAS-2026-09-29: + curtas */ && /const falaSeg = falaNaReguaDaTela\(baseChecagem, reguaAnalise\)/.test(gc) && !/speechSecondsOfScript\(quality, baseChecagem\)\.seconds/.test(gc))
 }
 
 console.log('== F) revisão 28/09: a checagem da análise decide pelo MESMO veredito do contador (sem 1,2×/1,15× digitados) ==')
@@ -172,7 +172,10 @@ console.log('== G) revisão 28/09: promessas por motor — "we narrate it all" s
 // ── KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — o filme de 15 s do Seedance no contador ──────────────────────────────
 console.log('== H) Seedance a 15 s: o contador usa a lista do Seedance (15/35/60/90), os outros motores seguem em 35/60/90 ==')
 {
-  const reg = (engine) => CV.reguaDoServidorNaTela({ engine, script: palavras(45), language: 'en' })
+  // Reancorado KINEO-DURACOES-CURTAS-2026-09-29 [vai do fundador 29/09 'vai pra todas as 4']: o Kling 2.5 passou a ter 15 s (tabela do
+  // servidor). O que este bloco protege continua: o 15 não aparece no contador de quem NÃO vê o botão — agora pelo interruptor
+  // DURACOES_CURTAS_PUBLIC (a tela passa curtas: false) — e o Seedance traz o 15 dele sempre.
+  const reg = (engine, curtas = false) => CV.reguaDoServidorNaTela({ engine, script: palavras(45), language: 'en', curtas })
   const rs = reg('seedance'), rk = reg('kling'), rf = reg('fast')
   checa('régua do Seedance traz [15, 35, 60, 90] (supportedDurationsFor, não digitado); Kling e Kineo 1 seguem [35, 60, 90]', JSON.stringify(rs.supported) === JSON.stringify(DBE.SEEDANCE_DURATIONS) && JSON.stringify(rk.supported) === JSON.stringify(DBE.DEFAULT_ENGINE_DURATIONS) && JSON.stringify(rf.supported) === JSON.stringify(DBE.DEFAULT_ENGINE_DURATIONS))
   const palavras15 = Math.ceil(DBE.SEEDANCE_SHORT_SECONDS * rs.rate.wordsPerSecond) // enche os 15 s na voz prevista
@@ -182,7 +185,9 @@ console.log('== H) Seedance a 15 s: o contador usa a lista do Seedance (15/35/60
   const mut = CV.contadorVoz({ script: palavras(palavras15), regua: semLista, requestedSeconds: DBE.SEEDANCE_SHORT_SECONDS })
   checa('mutante (régua sem a lista do Seedance) → vermelho: volta a dizer "too short" para o filme de 15 s', mut?.kind === 'too_short')
   const k15 = CV.contadorVoz({ script: palavras(palavras15), regua: rk, requestedSeconds: DBE.SEEDANCE_SHORT_SECONDS })
-  checa('Kling a 15 s continua "too short" (o 15 s não vaza para outro motor)', k15?.kind === 'too_short')
+  checa('Kling a 15 s continua "too short" para quem não vê o botão curto (curtas: false — o 15 s não vaza pela tela)', k15?.kind === 'too_short')
+  const rkCurtas = reg('kling', true)
+  checa('Kling com o botão curto visível (curtas: true) traz [15, 35, 60, 90] — a tabela do servidor (KINEO-DURACOES-CURTAS)', JSON.stringify(rkCurtas.supported) === JSON.stringify([15, 35, 60, 90]))
 }
 
 console.log(`\n${ok} verificações passaram · ${falhas.length} falharam`)

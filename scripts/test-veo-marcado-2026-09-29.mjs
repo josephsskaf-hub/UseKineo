@@ -26,6 +26,24 @@ import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+// ═══ Reancorado KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] ═══
+// A entrega das durações curtas (15 s em todo motor de IA, 30 s na estrada hollywood) marca TODA linha que acrescenta à rota do
+// cinematic (e às outras rotas travadas) com KINEO-DURACOES-CURTAS-2026-09-29, e troca de propósito SEIS linhas da base (a frase da
+// recusa pelo motor, o resgate com as curtas, o "alvo fantasma" nas duas chamadas do portão, o piso 30 → 15 do alvo hollywood e o C1
+// para roteiro curto). Este guardião aceita exatamente isso — nada fora do marcador, nenhuma outra linha da base trocada — e segue
+// travando o que protegia. Prova das mudanças: scripts/test-duracoes-curtas-todos-motores-2026-09-29.mjs.
+const MARCA_CURTAS = 'KINEO-DURACOES-CURTAS-2026-09-29'
+const TROCADAS_CURTAS = [
+  "        return NextResponse.json({ error: mensagemDaRecusaDeDuracao(checagemDuracao), reason: checagemDuracao.recusa, engine: typeof body.engine === 'string' ? body.engine : null, requested_seconds: duration, suggested_seconds: checagemDuracao.sugestao, retryable: false, charged: false, refunded: false }, { status: 422 })",
+  '            duracoes: duracoesDoResgate,',
+  '        oferecidas: SUPPORTED_DURATIONS,',
+  '          oferecidas: SUPPORTED_DURATIONS,',
+  '        const req = Math.max(30, Math.min(90, Math.round(duration || 60)))',
+  '        if (totalWords >= 40 && sentences.length >= 3) {',
+]
+const semCurtas = (t) => (t == null ? t : t.split('\n').filter((l) => !l.includes(MARCA_CURTAS)).join('\n'))
+const semTrocadas = (t) => (t == null ? t : t.split('\n').filter((l) => !TROCADAS_CURTAS.includes(l.replace(/\r$/, ''))).join('\n'))
+
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
@@ -224,7 +242,7 @@ checa('o bloco do roteiro marcado existe sob `wantsVeo && verbatim && parsedScri
   return b && b.includes('if (wantsVeo && verbatim && parsedScript.segments.length > 0 && scenes.length > 0) {') && rota.indexOf(blocoVeoProsa(rota)) < rota.indexOf(INI_BLOCO) && rota.indexOf(INI_BLOCO) < rota.indexOf('if (wantsKling && verbatim && parsedScript.segments.length === 0 && scenes.length > 0) {') && rota.indexOf(INI_BLOCO) < rota.indexOf('KINEO-ZERO-SCENES-FALLBACK-2026-09-04')
 })())
 checa('o ensaio de $0 traz veo_marked_plan logo depois de veo_ai_plan', rota.includes(LINHA_RELATO) && rota.indexOf(LINHA_RELATO) > rota.indexOf('...(veoAiRelato ? { veo_ai_plan: veoAiRelato } : {}),\n'))
-checa('a rota chama veoVerbatimPlan e veoSceneSeconds UMA vez cada (a trava de test-veo-planos), veoMarkedPlan, veoMarkedBeats e veoMaxShots uma vez cada, todas dentro do bloco novo', conta(rota, /veoVerbatimPlan\(/g) === 1 && conta(rota, /veoSceneSeconds\(/g) === 1 && conta(rota, /veoMarkedPlan\(/g) === 1 && conta(rota, /veoMarkedBeats\(/g) === 1 && conta(rota, /veoMaxShots\(/g) === 1 && blocoMarcado(rota).includes('veoMarkedPlan(') && blocoMarcado(rota).includes('veoMarkedBeats(') && blocoMarcado(rota).includes('veoMaxShots('))
+checa('a rota chama veoVerbatimPlan e veoSceneSeconds UMA vez cada (a trava de test-veo-planos), veoMarkedPlan, veoMarkedBeats e veoMaxShots uma vez cada, todas dentro do bloco novo', conta(semCurtas(rota), /veoVerbatimPlan\(/g) === 1 && conta(semCurtas(rota), /veoSceneSeconds\(/g) === 1 && conta(semCurtas(rota), /veoMarkedPlan\(/g) === 1 && conta(semCurtas(rota), /veoMarkedBeats\(/g) === 1 && conta(semCurtas(rota), /veoMaxShots\(/g) === 1 /* reancorado KINEO-DURACOES-CURTAS: o 15 s marcado do Veo chama veoVerbatimPlan numa linha marcada */ && blocoMarcado(rota).includes('veoMarkedPlan(') && blocoMarcado(rota).includes('veoMarkedBeats(') && blocoMarcado(rota).includes('veoMaxShots('))
 const cenasDaBase = () => VB.resolveVerbatimSegments(parsed, 9).map((seg) => ({ description: seg.pexelsQuery, voiceover: seg.voiceover, caption: palavras(seg.voiceover).slice(0, 8).join(' '), stockSearchQuery: seg.pexelsQuery }))
 function rodaBloco(src, { wantsVeo = true, verbatim = true, parsedScript = parsed, duration = 60, wps = WPS, lib = V } = {}) {
   const b = corpoMarcado(src)
@@ -285,7 +303,7 @@ const fatiasIntocadas = [
   ['    if (hollywoodPath) {', '    // ── end KINEO-HOLLYWOOD-2026-07-09'],
 ]
 for (const [ini, fim] of fatiasIntocadas) {
-  const a = fatia(rota, ini, fim), b = rotaBase ? fatia(rotaBase, ini, fim) : null
+  const a = fatia(semCurtas(rota), ini, fim), b = rotaBase ? fatia(semTrocadas(rotaBase), ini, fim) : null // reancorado KINEO-DURACOES-CURTAS
   checa(`fatia da rota "${ini.slice(0, 48).replace(/\n/g, ' ').trim()}…" idêntica à base`, a !== null && a === b)
 }
 checa('buildFalInput (Seedance, Kling, Sora, Veo t2v/i2v, hollywood) byte a byte igual à base', rotaBase !== null && funcaoDe(rota, 'buildFalInput') === funcaoDe(rotaBase, 'buildFalInput'))
@@ -304,9 +322,9 @@ if (rotaBase) {
     fatia(rota, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29 — no filme de 15 s do', '      if (vozCurta) return vozCurta\n'), fatia(rota, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29 — só no filme de 15 s do', 'response.narration_voice = campoDaVozAssinada(vozCurta)\n'), rota.split('\n').find((l) => l.startsWith('import {') && l.includes("from '@/lib/vozDoFilmeCurto'")),
     // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 — o ritmo da língua do filme de 15 s do Seedance (a régua do portão e a guarda de roteiro longo da língua) mora em linhas próprias, marcadas, só ACRESCENTADAS, com import em linha própria; este guardião as aceita
     fatia(rota, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 — no filme de 15 s do', 'narrationRate.wordsPerSecond = ritmoDaVozNoIdioma(narrationRate.wordsPerSecond, narrationLanguage.language)\n'), fatia(rota, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 — a guarda de roteiro longo', '    // ═══ KINEO-SEEDANCE-15S-2026-09-29 [TRAVA 8.2 — "vai" do 15 s] — roteiro longo pedido como filme curto ═══'), rota.split('\n').find((l) => l.startsWith('import {') && l.includes("from '@/lib/durationByEngine'") && l.includes('KINEO-RITMO-POR-IDIOMA-15S-2026-09-29')), ...blocosE4Rota(rota)].filter(Boolean).join('\n').split('\n')
-  const foraDoLugar = adicionadas.filter((l) => l.trim() && !permitidas.includes(l))
+  const foraDoLugar = adicionadas.filter((l) => l.trim() && !permitidas.includes(l) && !l.includes(MARCA_CURTAS)) // reancorado KINEO-DURACOES-CURTAS
   checa(`diff da rota contra a base: ${adicionadas.length} linhas novas, todas dentro do bloco do roteiro marcado, do import e do relato (${foraDoLugar.length} fora: ${foraDoLugar.slice(0, 2).map((l) => l.trim().slice(0, 60)).join(' | ')})`, adicionadas.length > 0 && foraDoLugar.length === 0)
-  checa(`diff da rota contra a base: NENHUMA linha da base alterada ou apagada — a rota só ganhou linhas (${removidas.length} removida(s))`, removidas.length === 0)
+  checa(`diff da rota contra a base: NENHUMA linha da base alterada ou apagada fora das 6 trocas marcadas das durações curtas — a rota só ganhou linhas (${removidas.filter((l) => !TROCADAS_CURTAS.includes(l)).length} removida(s))`, removidas.filter((l) => !TROCADAS_CURTAS.includes(l)).length === 0)
 }
 
 // ═══ (d) custo ═══

@@ -28,6 +28,24 @@ import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+// ═══ Reancorado KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] ═══
+// A entrega das durações curtas (15 s em todo motor de IA, 30 s na estrada hollywood) marca TODA linha que acrescenta à rota do
+// cinematic (e às outras rotas travadas) com KINEO-DURACOES-CURTAS-2026-09-29, e troca de propósito SEIS linhas da base (a frase da
+// recusa pelo motor, o resgate com as curtas, o "alvo fantasma" nas duas chamadas do portão, o piso 30 → 15 do alvo hollywood e o C1
+// para roteiro curto). Este guardião aceita exatamente isso — nada fora do marcador, nenhuma outra linha da base trocada — e segue
+// travando o que protegia. Prova das mudanças: scripts/test-duracoes-curtas-todos-motores-2026-09-29.mjs.
+const MARCA_CURTAS = 'KINEO-DURACOES-CURTAS-2026-09-29'
+const TROCADAS_CURTAS = [
+  "        return NextResponse.json({ error: mensagemDaRecusaDeDuracao(checagemDuracao), reason: checagemDuracao.recusa, engine: typeof body.engine === 'string' ? body.engine : null, requested_seconds: duration, suggested_seconds: checagemDuracao.sugestao, retryable: false, charged: false, refunded: false }, { status: 422 })",
+  '            duracoes: duracoesDoResgate,',
+  '        oferecidas: SUPPORTED_DURATIONS,',
+  '          oferecidas: SUPPORTED_DURATIONS,',
+  '        const req = Math.max(30, Math.min(90, Math.round(duration || 60)))',
+  '        if (totalWords >= 40 && sentences.length >= 3) {',
+]
+const semCurtas = (t) => (t == null ? t : t.split('\n').filter((l) => !l.includes(MARCA_CURTAS)).join('\n'))
+const semTrocadas = (t) => (t == null ? t : t.split('\n').filter((l) => !TROCADAS_CURTAS.includes(l.replace(/\r$/, ''))).join('\n'))
+
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ) // o loader offline resolve '@/...' a partir do cwd
@@ -99,7 +117,7 @@ function fatiasDaRota(src) {
   return {
     persona: deAte(src, iniVoz, '    const narrationRate = speechRateFor('),
     predicado15: linhaCom(src, '    const seedanceShortFilm = duration === SEEDANCE_SHORT_SECONDS'),
-    campo: linhaCom(src, 'response.narration_voice = campoDaVozAssinada('), // ausente na base
+    campo: linhaCom(src, '    if (seedanceShortFilm && vozCurta) response.narration_voice = campoDaVozAssinada('), // reancorado KINEO-DURACOES-CURTAS-2026-09-29: agora há uma 2ª linha (Kling 2.5/Veo 15 s, marcada) — esta é a do Seedance // ausente na base
     portao: linhaCom(src, '      let fit = narrationFitAt(parsedScript.narration, duration, narrationRate)'),
     vozDaResposta: deAte(src, '    const voiceoverScript = verbatim && parsedScript.narration', '      : scenes.map((s) => s.voiceover).filter(Boolean).join'),
   }
@@ -320,6 +338,7 @@ console.log('4) 35/60/90 e os outros motores (e o 15 s fora do Seedance): rota e
   const difsRota = [], difsCompose = []
   for (const engine of MOTORES) for (const duration of [15, 35, 60, 90]) for (const prompt of PROMPTS) for (const vertical of ['Technology', 'History', '', undefined]) for (const language of ['en', 'pt']) {
     if (duration === 15 && DBE.isSeedance15(engine ?? null)) continue // o único pedido que muda
+    if (duration === 15 && (engine === 'kling' || engine === 'veo')) continue // reancorado KINEO-DURACOES-CURTAS-2026-09-29 [vai do fundador 29/09 'vai pra todas as 4']: o Kling 2.5 e o Veo a 15 s falam a MESMA voz do 15 s (provado em scripts/test-duracoes-curtas-todos-motores-2026-09-29.mjs)
     casos++
     const a = ANTES.rota({ prompt, engine, duration, vertical, language })
     const g = AGORA.rota({ prompt, engine, duration, vertical, language })
@@ -344,7 +363,7 @@ console.log('4) 35/60/90 e os outros motores (e o 15 s fora do Seedance): rota e
   checa('campo narration_voice inválido (vertical não-texto ou longo, fator fora de (0, 1], tipo errado): ignorado — o corpo do cliente intacto', todosIguais.every(Boolean))
   checa('sem claim (Kineo 1 / fast): nenhuma voz assinada, TTS igual à base', await (async () => { const g = await AGORA.compose({ response: null, bodyVertical: 'History', quality: 'fast' }); const a = await ANTES.compose({ response: null, bodyVertical: 'History', quality: 'fast' }); return g.vozAssinada === null && eqJ(g.tts, a.tts) && eqJ(g.bodyDepois, a.bodyDepois) })())
   // as duas rotas só GANHARAM linhas (a trava do 3x6 exige; e nenhuma chamada de TTS do compose mudou)
-  const soAcrescimos = (p) => { try { const d = semCR(execFileSync('git', ['diff', '--unified=0', '--no-color', BASE, '--', p], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024 }).toString()); return d.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---')).length === 0 } catch { return false } }
+  const soAcrescimos = (p) => { try { const d = semCR(execFileSync('git', ['diff', '--unified=0', '--no-color', BASE, '--', p], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024 }).toString()); return d.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---') && !TROCADAS_CURTAS.includes(l.slice(1))).length === 0 } /* reancorado KINEO-DURACOES-CURTAS: as 6 trocas marcadas */ catch { return false } }
   checa('rota do cinematic e /api/compose: nenhuma linha da base alterada ou apagada — só acréscimos', Boolean(BASE) && soAcrescimos(ROTA_P) && soAcrescimos(COMPOSE_P))
 }
 
@@ -395,7 +414,7 @@ console.log('5) mutantes (cada um tem de ficar VERMELHO)')
     ['vozDoFilmeCurto: sem o limite de 2,5 pal/s (a futuristic-ai volta a 2,65)', 'voz', '  if (base.defaultSpeed <= teto + 1e-9) return { ...base, vertical, speedFactor: 1 }', '  return { ...base, vertical, speedFactor: 1 }'],
     ['vozDoFilmeCurto: arredonda para CIMA (0,99 → 2,52 pal/s, acima da régua)', 'voz', 'Math.floor(teto * 100 + 1e-9) / 100', 'Math.ceil(teto * 100) / 100'],
     ['vozDoFilmeCurto: o fator assinado não é o da voz medida (velocidade limitada em vez de limitada ÷ persona)', 'voz', 'speedFactor: limitada / base.defaultSpeed', 'speedFactor: limitada'],
-    ['vozDoFilmeCurto: vale para toda duração', 'voz', 'if (args.seconds !== SEEDANCE_SHORT_SECONDS || !isSeedance15(', 'if (!isSeedance15('],
+    ['vozDoFilmeCurto: vale para toda duração', 'voz', 'if (args.seconds !== SEEDANCE_SHORT_SECONDS || !isClassicShortEngine(', 'if (!isClassicShortEngine('], // reancorado KINEO-DURACOES-CURTAS: o predicado virou isClassicShortEngine (Seedance, Kling 2.5, Veo)
     ['vozDoFilmeCurto: assina o vertical cru (o compose deriva aparado/minúsculo)', 'voz', '  const vertical = verticalComoOCompose(args.vertical) ?? null\n', '  const vertical = typeof args.vertical === \'string\' && args.vertical ? args.vertical : null\n'],
     ['vozQueOComposeEscolhe: sem vertical escolhe por palavra-chave (não é o legado onyx do compose)', 'voz', '  if (vertical) {\n    try {', '  {\n    try {'],
     ['verticalComoOCompose: vertical só de espaços vira persona (o compose o trata como ausente → onyx)', 'voz', "return typeof vertical === 'string' && vertical.trim() ? vertical.trim().toLowerCase() : undefined", "return typeof vertical === 'string' && vertical ? vertical : undefined"],

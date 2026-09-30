@@ -177,7 +177,7 @@ for (const [ini, fim] of fatiasKling) {
   checa(`fatia da rota "${ini.slice(0, 40).replace(/\n/g, ' ')}…" idêntica à base`, a !== null && a === b)
 }
 checa('a rota só chama o novo módulo sob wantsVeo (veoVerbatimPlan, veoSceneSeconds, veoApplyShotAxis, veoStripShotAxis, uma vez cada)', (() => {
-  const conta = (re) => (rota.match(re) || []).length
+  const conta = (re) => (rota.split('\n').filter((l) => !l.includes('KINEO-DURACOES-CURTAS-2026-09-29')).join('\n').match(re) || []).length // reancorado KINEO-DURACOES-CURTAS-2026-09-29 [vai do fundador 29/09 'vai pra todas as 4']: o 15 s marcado do Kling/Veo chama veoVerbatimPlan numa linha própria, marcada (sob wantsKling || wantsVeo, duração 15)
   const bloco1 = fatia(rota, 'if (wantsVeo && verbatim && parsedScript.segments.length === 0 && scenes.length > 0) {', 'clipCount = scenes.length\n      }\n    }')
   const bloco2 = fatia(rota, 'if (wantsVeo && verbatim && scenes.length > 0) {', '(antes: ${scenes.length} × 8 s)`)\n    }')
   return conta(/veoVerbatimPlan\(/g) === 1 && bloco1 && bloco1.includes('veoVerbatimPlan(') && conta(/veoSceneSeconds\(/g) === 1 && bloco2 && bloco2.includes('veoSceneSeconds(') &&

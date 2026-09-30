@@ -568,6 +568,19 @@ for (const familia of HW) for (const duracao of [15, 30]) for (const idioma of [
   if (excecaoOmni) excecoesHW.push(`${familia} ${duracao} s ${idioma}`)
   checa(`${familia} ${duracao} s ${idioma} ${host ? 'apresentador' : 'narrado'} voz ×${ritmo}: cenas ${o.tipos} [${o.segundos}] = ${o.total}s · ≥${duracao} ${o.alvoOk} · silêncio ${o.silencio}s (pior ${o.pior}) · mudo ${o.mudo}s · schema ${o.noSchema} · fala do autor inteira ${o.falaInteira} · margem ${o.margem}%${o.rejeitado ? ` · RECUSA HONESTA (sem débito) ${o.rejeitado}` : ''}`, o.ok || excecaoOmni)
 }
+{
+  // O pior caso de custo que a guarda aceita (1,25 × alvo a 2,3 pal/s: 43 palavras a 15 s, 86 a 30 s): margem ainda positiva
+  const TETO_HW = { 15: `${HW15.en} Scientists still watch it closely every single day.`, 30: `${HW30.en} Engineers built a new wall to keep the deep lake from ever spilling over.` }
+  for (const familia of HW) for (const duracao of [15, 30]) {
+    const roteiro = TETO_HW[duracao]
+    const salvo = duracao === 15 ? HW15.en : HW30.en
+    if (duracao === 15) HW15.en = roteiro; else HW30.en = roteiro
+    const o = await provaHollywood(executarHW, { familia, duracao, idioma: 'en', host: false, ritmo: 1.0 })
+    if (duracao === 15) HW15.en = salvo; else HW30.en = salvo
+    relatoriosHW.push({ familia, duracao, idioma: 'en', host: false, teto: true, ...o })
+    checa(`${familia} ${duracao} s no teto da guarda (${palavras(roteiro).length} palavras): [${o.segundos}] = ${o.total}s · margem ${o.margem}%`, palavras(roteiro).length === D.maxWordsCurtoDoMotor(familia, duracao, 'en') && o.ok)
+  }
+}
 checa(`recusas honestas da exceção declarada do Omni: ${excecoesHW.length} de ${HW.length * 2 * 3 * 2 * 2} casos (${excecoesHW.join('; ') || 'nenhuma'}) — no máximo 2`, excecoesHW.length <= 2)
 {
   // Mutante: o C1 volta a exigir 40 palavras e 3 frases — o roteiro de 15 s cai fora do contrato (a fala seria a do GPT)
@@ -628,7 +641,7 @@ console.log('B5) preço e telas da estrada hollywood')
 }
 
 console.log('\nTabela motor × duração (hollywood — plano final da fatia REAL da rota, voz ×1,0, apresentador/narrado, Studio US$ 0,183/cr):')
-for (const r of relatoriosHW.filter((x) => x.idioma === 'en')) console.log(`   ${r.familia.padEnd(9)} ${String(r.duracao).padStart(2)} s ${r.host ? 'apresentador' : 'narrado     '} cenas ${r.tipos.padEnd(5)} [${r.segundos.join(',')}] = ${r.total}s · ${E.creditCostForDuration(QUALIDADE[r.familia], true, r.duracao)} cr = US$ ${r.receita} · fal+âncoras+voz ≈ US$ ${r.usd} · margem ${r.margem}%`)
+for (const r of relatoriosHW.filter((x) => x.idioma === 'en')) console.log(`   ${r.familia.padEnd(9)} ${String(r.duracao).padStart(2)} s ${r.teto ? 'TETO-GUARDA ' : r.host ? 'apresentador' : 'narrado     '} cenas ${r.tipos.padEnd(5)} [${r.segundos.join(',')}] = ${r.total}s · ${E.creditCostForDuration(QUALIDADE[r.familia], true, r.duracao)} cr = US$ ${r.receita} · fal+âncoras+voz ≈ US$ ${r.usd} · margem ${r.margem}%`)
 
 console.log('\nTabela motor × duração (clássico, 15 s — clipes PLANEJADOS pela rota, voz 2,5 pal/s, Studio US$ 0,183/cr):')
 for (const r of relatorios.filter((x) => x.wps === 2.5)) console.log(`   ${r.motor.padEnd(6)} ${r.idioma} ${r.forma.padEnd(8)} clipes [${r.segundos.join(',')}] = ${r.bruto}s · ${E.creditCostForDuration(QUALIDADE[r.motor], true, 15)} cr = US$ ${r.receita} · fal+still+tts ≈ US$ ${r.usd} · margem ${r.margem}%`)

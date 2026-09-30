@@ -282,9 +282,9 @@ export const AUTOFIT_DOWN_FLOOR_SECONDS = 20
  * não encher. A rota passa este piso quando `hollywoodPath` é verdadeiro.
  */
 // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 (entrega 3) — o motivo acima envelheceu: o alvo
-// do planner hollywood passou a ter piso 15 (15 → 17, 30 → 34). O valor 30 FICA de propósito: a descida é para múltiplos de 5
-// (20, 25…) e só 15 e 30 existem no seletor da estrada (lib/durationByEngine HOLLYWOOD_ENGINE_DURATIONS) — descer abaixo de 30
-// criaria filmes de 20/25 s que ninguém pediu nem vê na tela. Quem quer 15 s pede 15 s.
+// [KINEO-DURACOES-CURTAS-2026-09-29] do planner hollywood passou a ter piso 15 (15 → 17, 30 → 34). O valor 30 FICA de propósito: a descida é para múltiplos de 5
+// [KINEO-DURACOES-CURTAS-2026-09-29] (20, 25…) e só 15 e 30 existem no seletor da estrada (lib/durationByEngine HOLLYWOOD_ENGINE_DURATIONS) — descer abaixo de 30
+// [KINEO-DURACOES-CURTAS-2026-09-29] criaria filmes de 20/25 s que ninguém pediu nem vê na tela. Quem quer 15 s pede 15 s.
 export const AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD = 30
 
 /** O alvo descido é sempre múltiplo disto (mesma grade do seletor: 35/60/90

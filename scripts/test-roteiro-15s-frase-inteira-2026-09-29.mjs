@@ -249,7 +249,9 @@ console.log('5) CTA de rede social: detector, prompt de ≤ 20 s, reforço da no
 console.log('6) /api/generate-script: o fecho corre depois da 1ª geração e da nova tentativa, com o teto duro')
 {
   // Reancorado 29/09 (KINEO-RITMO-POR-IDIOMA-15S-2026-09-29, [TRAVA 8.2 — "vai conserta" do fundador]): a linha ganhou a língua do filme curto do Seedance (idiomaDoRitmo / ritmo); o que ela protege não muda.
-  const L_DURO = "    const tetoDuroFilmeCurto = isSeedance15(typeof body.engine === 'string' ? body.engine : null) ? Math.max(tetoFilmeCurto, maxWordsForShortFilm(alvoSegundos, idiomaDoRitmo)) : tetoFilmeCurto"
+  // Reancorado 29/09 (KINEO-DURACOES-CURTAS-2026-09-29, [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4']): o teto duro vale também no
+  // Kling 2.5 e no Veo a 15 s, com a guarda DO MOTOR (maxWordsCurtoDoMotor — no Seedance, o mesmo maxWordsForShortFilm; Kineo 1 continua sem folga).
+  const L_DURO = "    const tetoDuroFilmeCurto = isClassicShortEngine(typeof body.engine === 'string' ? body.engine : null) ? Math.max(tetoFilmeCurto, maxWordsCurtoDoMotor(typeof body.engine === 'string' ? body.engine : null, alvoSegundos, idiomaDoRitmo)) : tetoFilmeCurto // KINEO-DURACOES-CURTAS-2026-09-29: + Kling 2.5 e Veo 3.1 (teto da guarda DO MOTOR; no Seedance, o mesmo maxWordsForShortFilm)"
   const L_FECHO = '      const fim = finishShortFilmScript(t, { maxWords: tetoFilmeCurto, minWords: pisoFilmeCurto, countWords: palavrasDoFilmeCurto, hardMaxWords: tetoDuroFilmeCurto })'
   const L_1A = '      fimDoFilmeCurto = fecharFilmeCurto(so4.script)'
   const L_DECIDE = '    if (missing.length > 0 || payoffIsEmpty(script) || curtoParaOAlvo(script) || longoParaOFilmeCurto(script)) {'
