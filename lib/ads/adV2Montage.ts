@@ -105,7 +105,17 @@ export interface AdV2MontageInput {
   musicTrimStart?: number
   voiceUrl?: string | null
   voiceSeconds?: number | null
+  /**
+   * KINEO-ADS-3VAR-COR-2026-09-30 — véu de cor das 3 variações ('rgba(r,g,b,a)', lib/ads/v2Variations.ts ADS_V2_LOOKS.tint).
+   * Ausente/null = anúncio comum, source idêntico ao de antes.
+   */
+  tint?: string | null
 }
+
+/** Véu aceito: rgba com alfa entre 0,05 e 0,3 (mais que isso lava a foto). */
+export const ADS_V2_TINT_RE = /^rgba\(\d{1,3},\d{1,3},\d{1,3},0\.(?:0[5-9]|[12]\d?|30?)\)$/
+/** Trilha do véu: acima de tudo o que é visual (1 fundo · 2 planos · 3 cartão · 4 frases), abaixo de nada. */
+export const ADS_V2_TINT_TRACK = 7
 
 /** A música sobe quando a voz acaba: começa a subir este tempo depois do fim da voz. */
 export const ADS_V2_MUSIC_RISE_AFTER_VOICE = 0.2
@@ -199,6 +209,19 @@ export function buildAdV2Source(input: AdV2MontageInput): Record<string, unknown
     x: '50%', y: '50%', width: '100%', height: '100%',
     enter_transition: { type: 'fade', duration: ADS_V2_MONTAGE_FADE },
   })
+
+  // KINEO-ADS-3VAR-COR-2026-09-30 — véu de cor da variação: SÓ durante os planos (o cartão do fim fica com a cor da marca).
+  // Mesmas propriedades que o fundo preto acima já usa em produção (shape + path + fill_color; rgba como nas frases):
+  // nada de propriedade nunca exercitada (color_overlay/blend_mode ficam de fora de propósito).
+  const tint = input.tint ?? null
+  if (tint !== null) {
+    if (typeof tint !== 'string' || !ADS_V2_TINT_RE.test(tint)) throw new Error('ads_v2_montage_bad_tint')
+    elements.push({
+      type: 'shape', track: ADS_V2_TINT_TRACK, time: 0, duration: shotsSeconds,
+      x: '50%', y: '50%', width: '100%', height: '100%',
+      path: ADS_V2_RECT_PATH, fill_color: tint,
+    })
+  }
 
   // Frases de tela (2-3), no terço do meio, só sobre os planos (nunca sobre o cartão).
   const overlays = Array.isArray(input.overlays) ? input.overlays : []

@@ -64,6 +64,12 @@ export interface AdsV2Look {
   opening: string
   /** Abertura quando o 1º plano é o close-herói do Cinema (continua macro; as travas do herói ficam). */
   heroOpening: string
+  /**
+   * KINEO-ADS-3VAR-COR-2026-09-30 — véu de cor aplicado NA MONTAGEM, por cima dos planos (nunca do cartão). 1º teste real
+   * (30/09, Photo Motion, Villa Versace): a `grade` no prompt NÃO aparece — "Keep everything exactly as in the photo"
+   * vence — e as 3 variações saíram quase iguais. O véu é determinístico: a cor do look aparece sempre, em qualquer nível.
+   */
+  tint: string
   /** Deslocamento da variante de movimento (0/1/2): o mesmo plano ganha OUTRO movimento em cada variação. */
   movementOffset: number
 }
@@ -82,6 +88,7 @@ export const ADS_V2_LOOKS: Readonly<Record<AdsV2VariationSlot, AdsV2Look>> = {
     grade: 'clean, bright, cool color grade with blue accents',
     opening: 'Quick smooth push-in from a wider view toward the subject',
     heroOpening: 'Macro close-up, slow push-in; soft bright light glides across the surface and reveals the texture',
+    tint: 'rgba(30,110,255,0.14)',
     movementOffset: 0,
   },
   B: {
@@ -96,6 +103,7 @@ export const ADS_V2_LOOKS: Readonly<Record<AdsV2VariationSlot, AdsV2Look>> = {
     grade: 'warm amber color grade with rich orange tones',
     opening: 'Slow low-angle rise that reveals the subject',
     heroOpening: 'Macro close-up, slow low-angle orbit; warm light catches the texture',
+    tint: 'rgba(255,120,20,0.18)',
     movementOffset: 1,
   },
   C: {
@@ -110,6 +118,7 @@ export const ADS_V2_LOOKS: Readonly<Record<AdsV2VariationSlot, AdsV2Look>> = {
     grade: 'vibrant pink and coral sunset color grade',
     opening: 'Energetic handheld move with a short arc around the subject',
     heroOpening: 'Macro close-up, slow rise from the texture to the whole product; a lively glow catches the surface',
+    tint: 'rgba(255,40,140,0.16)',
     movementOffset: 2,
   },
 }
@@ -255,6 +264,12 @@ export interface AdsV2VariationTag {
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /** Lê brief.variation com a mesma desconfiança de qualquer jsonb. null = pedido comum. */
+/** KINEO-ADS-3VAR-COR-2026-09-30 — o véu de cor da variação (null fora das 3 variações: o anúncio comum não muda). */
+export function variationTintOf(brief: unknown): string | null {
+  const tag = variationTagOf(brief)
+  return tag ? ADS_V2_LOOKS[tag.slot].tint : null
+}
+
 export function variationTagOf(brief: unknown): AdsV2VariationTag | null {
   if (!brief || typeof brief !== 'object') return null
   const v = (brief as { variation?: unknown }).variation
@@ -393,7 +408,7 @@ export function sanitizeVariationsBody(raw: unknown): { ok: true; value: AdsV2Va
 // ── textos da tela (pt/en/es, como o resto do modo simples; o completo usa o inglês) ────────────────────────────────
 const V_EN = {
   toggle: 'Make 3 variations',
-  toggleHint: 'Same product, photos and voice — three different looks (scene, colors, camera and opening) to test which one sells more.',
+  toggleHint: 'Same product, photos and voice — three different looks (colors, camera and opening) to test which one sells more.',
   price: '3 variations · {c} credits (instead of 3 × {one})',
   make: 'Make 3 variations · {c} credits',
   starting: 'Starting your 3 variations…',
@@ -417,7 +432,7 @@ const V_EN = {
 export type AdsV2VariationsCopy = typeof V_EN
 const V_PT: AdsV2VariationsCopy = {
   toggle: 'Fazer 3 variações',
-  toggleHint: 'Mesmo produto, fotos e voz — três looks diferentes (cenário, cores, câmera e abertura) para testar qual vende mais.',
+  toggleHint: 'Mesmo produto, fotos e voz — três looks diferentes (cores, câmera e abertura) para testar qual vende mais.',
   price: '3 variações · {c} créditos (em vez de 3 × {one})',
   make: 'Fazer 3 variações · {c} créditos',
   starting: 'Começando as 3 variações…',
@@ -440,7 +455,7 @@ const V_PT: AdsV2VariationsCopy = {
 }
 const V_ES: AdsV2VariationsCopy = {
   toggle: 'Hacer 3 variaciones',
-  toggleHint: 'Mismo producto, fotos y voz — tres looks distintos (escenario, colores, cámara y apertura) para probar cuál vende más.',
+  toggleHint: 'Mismo producto, fotos y voz — tres looks distintos (colores, cámara y apertura) para probar cuál vende más.',
   price: '3 variaciones · {c} créditos (en vez de 3 × {one})',
   make: 'Hacer 3 variaciones · {c} créditos',
   starting: 'Empezando las 3 variaciones…',

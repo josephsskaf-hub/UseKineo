@@ -49,7 +49,7 @@ import {
   submitShotOnce,
 } from '@/lib/ads/v2Shots'
 import { persistAudioCopy, persistSceneImage, pollSceneImage, submitSceneImage } from '@/lib/ads/v2Images'
-import { ADS_V2_SAME_PERSON_LINE, adsV2AnchorDecision, variationTagOf } from '@/lib/ads/v2Variations'
+import { ADS_V2_SAME_PERSON_LINE, adsV2AnchorDecision, variationTagOf, variationTintOf } from '@/lib/ads/v2Variations'
 
 /** Tentativas por plano dentro de UMA geração paga: 1ª + refação automática no principal + reserva H3. */
 export const ADS_V2_MAX_AUTO_ATTEMPTS = 3
@@ -583,6 +583,8 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
       musicTrimStart: adsV2MusicTrimStart(musicUrl),
       voiceUrl,
       voiceSeconds,
+      // KINEO-ADS-3VAR-COR-2026-09-30 — a cor do look na montagem (null fora das 3 variações).
+      tint: variationTintOf(order.brief),
     })
   } catch (e) {
     await failAdsV2Order(admin, order, `montage_invalid:${e instanceof Error ? e.message : String(e)}`, '/lib/ads/v2Advance')

@@ -623,3 +623,9 @@ Slug do X confirmado: utm_source=x.
 **DECISÃO APROVADA (fluxo):** Para empresas abre `/ads/new` diretamente, para a pessoa criar o próprio anúncio. O gate de sessão/acesso permanece no servidor; não se remove compra exigida para quem ainda não tem acesso. Serviços/pedidos/checkout legados não são apagados.
 
 **DECISÃO APROVADA (preços):** ao esclarecer se “9, 19, 39” seriam valores inteiros, o fundador respondeu **“Manter US$ 9,90 / 19,90 / 39,90”**. Não alterar as fontes únicas de preço nem o cálculo da recarga. Idiomas seguem inglês canônico e preferência explícita existente. Handoff: `docs/HANDOFF-CLAUDE-PALETAS-SELF-SERVICE-2026-09-25.md`.
+
+## 2026-09-30 — Card de Ads em trio + cor das 3 variações na montagem (KINEO-CARD-ADS-3VAR / KINEO-ADS-3VAR-COR)
+- Fundador: "vai quero as 3 variações no card ads". Cada vídeo do card de Ads da home agora é UM quadro com as 3 variações lado a lado (mesma pessoa fictícia, mesmo produto, 3 looks), e o card gira por 3 produtos: garrafa (as 3 meninas), fone de ouvido e tênis. Tudo feito na própria Kineo (Nano Banana Pro com foto de referência + Kling 2.5, conta do fundador). Sem rótulo A/B/C (cards limpos).
+- Motivo da cor: o 1º teste pago das 3 variações (30/09, Photo Motion, 85 cr, Villa Versace) entregou 3 vídeos quase iguais — a grade de cor no prompt some porque "Keep everything exactly as in the photo" vence. Agora cada variação ganha um véu de cor (azul / âmbar / rosa, alfa 0,14-0,18) na MONTAGEM, só sobre os planos (o cartão final fica com a cor da marca). Anúncio comum: source idêntico ao de antes.
+- Só propriedades já usadas em produção (shape + path + fill_color rgba); color_overlay/blend_mode ficam de fora. A tela deixou de prometer "cenário" em toda variação (foto do cliente não troca de lugar).
+- Guardião: scripts/test-ads-3var-cor-2026-09-30.mjs (10 ok, 6 mutantes). Reancorado: test-promo-cards (quadros promo-ads-3var-1..3).

@@ -73,7 +73,10 @@ export const PROMO_CARDS: readonly PromoCard[] = [
     },
   },
   {
-    // Os 3 anúncios da mesma modelo fictícia (A piscina, B cozinha, C terraço), feitos pela própria Kineo, um por vez.
+    // KINEO-CARD-ADS-3VAR-2026-09-30 (fundador: "quero as 3 variações no card ads"): cada vídeo é UM quadro com as 3
+    // variações lado a lado (mesma pessoa fictícia, mesmo produto, 3 looks: dia azul · interior quente · pôr do sol rosa),
+    // e o card gira por 3 produtos: garrafa, fone e tênis. Tudo feito na própria Kineo (Nano Banana Pro + Kling 2.5, conta
+    // do fundador). Sem rótulo A/B/C no quadro (cards limpos).
     // Link = a porta de Ads que a home já usa (/ads).
     id: 'ads',
     href: '/ads',
@@ -81,7 +84,7 @@ export const PROMO_CARDS: readonly PromoCard[] = [
     subtitle: 'One product in, three ads out, ready to A/B test',
     art: {
       kind: 'reel',
-      clips: [clip('promo-ads-a'), clip('promo-ads-b'), clip('promo-ads-c')],
+      clips: [clip('promo-ads-3var-1'), clip('promo-ads-3var-2'), clip('promo-ads-3var-3')],
     },
   },
   {

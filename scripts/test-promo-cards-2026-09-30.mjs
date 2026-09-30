@@ -61,7 +61,7 @@ function dataProblems(src) {
   if (!ads || ads.href !== '/ads') probs.push('card de Ads não aponta para /ads (a porta pública que a home já usa)')
   if (ads) {
     if (ads.title !== 'ADS: 3 VARIATIONS') probs.push('título do card de Ads mudou')
-    if ((ads.art.clips || []).map((v) => v.src).join(',') !== '/previews/promo-ads-a.mp4,/previews/promo-ads-b.mp4,/previews/promo-ads-c.mp4') probs.push('card de Ads sem os 3 anúncios A/B/C')
+    if ((ads.art.clips || []).map((v) => v.src).join(',') !== '/previews/promo-ads-3var-1.mp4,/previews/promo-ads-3var-2.mp4,/previews/promo-ads-3var-3.mp4') probs.push('card de Ads sem os 3 quadros de 3 variações') // reancorado 30/09 (KINEO-CARD-ADS-3VAR): cada vídeo agora é o trio lado a lado
     // Fundador 30/09: "deixar os cards limpos… sem 5 s, 7 s, 10, 15… sem ABC".
     if (ads.gate) probs.push('card de Ads com interruptor inesperado')
   }
@@ -243,7 +243,7 @@ ok(dataProblems(dataSrc.replace("bandTone: 'cobalt',", "bandTone: 'cobalt',\n   
 ok(dataProblems(dataSrc.replace("clip('promo-clips-surf')],", "clip('promo-clips-surf')],\n      chips: ['5', '7', '10', '15'],")).length > 0, '(M29) chips de duração de volta no Clips → vermelho')
 ok(dataProblems(dataSrc.replace("clip('promo-clips-surf')],", "clip('promo-clips-surf')],\n      badge: 'NEW',")).length > 0, '(M30) selo NEW de volta no Clips → vermelho')
 ok(dataProblems(dataSrc.replace("'Pro images from a sentence", "'4K images from a sentence")).length > 0, '(M26) card de Images prometendo 4K → vermelho')
-ok(dataProblems(dataSrc.replace("clip('promo-ads-c')]", "clip('promo-ads-a')]")).length > 0, '(M27) Ads sem a variação C → vermelho')
+ok(dataProblems(dataSrc.replace("clip('promo-ads-3var-3')]", "clip('promo-ads-3var-1')]")).length > 0, '(M27) Ads sem o 3º quadro de variações → vermelho')
 ok(dataProblems(dataSrc.replace(", clip('promo-clips-surf')]", ']')).length > 0, '(M28) card com 2 vídeos em vez de 3 → vermelho')
 ok(dataProblems(dataSrc.replace("CLAUDE_CARD_HREF = '/claude-connector'", "CLAUDE_CARD_HREF = '/mcp'")).length > 0, '(M5) link do Claude errado → vermelho')
 ok(dataProblems(dataSrc.replace("CLAUDE_CARD_HREF = '/claude-connector'", "CLAUDE_CARD_HREF = 'https://claude.ai/directory/kineo'")).length > 0, '(M18) URL do diretório antes da aprovação → vermelho')
