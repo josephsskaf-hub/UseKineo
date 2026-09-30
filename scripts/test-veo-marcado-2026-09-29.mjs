@@ -41,7 +41,14 @@ const TROCADAS_CURTAS = [
   '        const req = Math.max(30, Math.min(90, Math.round(duration || 60)))',
   '        if (totalWords >= 40 && sentences.length >= 3) {',
 ]
-const semCurtas = (t) => (t == null ? t : t.split('\n').filter((l) => !l.includes(MARCA_CURTAS)).join('\n'))
+// ═══ Reancorado KINEO-ESTRELA-DO-FILME-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] ═══
+// A entrega da "Estrela do filme" marca TODA linha que acrescenta à rota do cinematic com KINEO-ESTRELA-DO-FILME-2026-09-29 e troca
+// de propósito SETE linhas da base (o formato com estrela, o custo + sobretaxa, o resgate por saldo com a sobretaxa, a impressão do
+// claim, o preço da duração entregue, a ficha do planejador hollywood e a âncora da cena hollywood). Este guardião aceita exatamente
+// isso — nada fora do marcador, nenhuma outra linha da base trocada. Prova: scripts/test-estrela-do-filme-2026-09-29.mjs.
+const MARCA_ESTRELA = 'KINEO-ESTRELA-DO-FILME-2026-09-29'
+TROCADAS_CURTAS.push("    const formatoVisual = decidirFormato(prompt, tagFacelessPresente)", "    const cost = creditCostForDuration(costQuality, true, duration)", "        creditCostForDuration(MOTOR_PARA_QUALIDADE[m] ?? 'cinematic_ai', true, d)", "      characterId: typeof body.characterId === 'string' ? body.characterId.trim() : '',", "      const precoEntregue = creditCostForDuration(costQuality, true, duration)", "      const fichaDoPedidoTexto = deriveExplicitCharacter(prompt)", "          const anchorUrl = anchors")
+const semCurtas = (t) => (t == null ? t : t.split('\n').filter((l) => !l.includes(MARCA_CURTAS) && !l.includes(MARCA_ESTRELA)).join('\n'))
 const semTrocadas = (t) => (t == null ? t : t.split('\n').filter((l) => !TROCADAS_CURTAS.includes(l.replace(/\r$/, ''))).join('\n'))
 
 
@@ -322,7 +329,7 @@ if (rotaBase) {
     fatia(rota, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29 — no filme de 15 s do', '      if (vozCurta) return vozCurta\n'), fatia(rota, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29 — só no filme de 15 s do', 'response.narration_voice = campoDaVozAssinada(vozCurta)\n'), rota.split('\n').find((l) => l.startsWith('import {') && l.includes("from '@/lib/vozDoFilmeCurto'")),
     // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 — o ritmo da língua do filme de 15 s do Seedance (a régua do portão e a guarda de roteiro longo da língua) mora em linhas próprias, marcadas, só ACRESCENTADAS, com import em linha própria; este guardião as aceita
     fatia(rota, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 — no filme de 15 s do', 'narrationRate.wordsPerSecond = ritmoDaVozNoIdioma(narrationRate.wordsPerSecond, narrationLanguage.language)\n'), fatia(rota, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 — a guarda de roteiro longo', '    // ═══ KINEO-SEEDANCE-15S-2026-09-29 [TRAVA 8.2 — "vai" do 15 s] — roteiro longo pedido como filme curto ═══'), rota.split('\n').find((l) => l.startsWith('import {') && l.includes("from '@/lib/durationByEngine'") && l.includes('KINEO-RITMO-POR-IDIOMA-15S-2026-09-29')), ...blocosE4Rota(rota)].filter(Boolean).join('\n').split('\n')
-  const foraDoLugar = adicionadas.filter((l) => l.trim() && !permitidas.includes(l) && !l.includes(MARCA_CURTAS)) // reancorado KINEO-DURACOES-CURTAS
+  const foraDoLugar = adicionadas.filter((l) => l.trim() && !permitidas.includes(l) && !l.includes(MARCA_CURTAS) && !l.includes(MARCA_ESTRELA)) // reancorado KINEO-DURACOES-CURTAS · KINEO-ESTRELA-DO-FILME
   checa(`diff da rota contra a base: ${adicionadas.length} linhas novas, todas dentro do bloco do roteiro marcado, do import e do relato (${foraDoLugar.length} fora: ${foraDoLugar.slice(0, 2).map((l) => l.trim().slice(0, 60)).join(' | ')})`, adicionadas.length > 0 && foraDoLugar.length === 0)
   checa(`diff da rota contra a base: NENHUMA linha da base alterada ou apagada fora das 6 trocas marcadas das durações curtas — a rota só ganhou linhas (${removidas.filter((l) => !TROCADAS_CURTAS.includes(l)).length} removida(s))`, removidas.filter((l) => !TROCADAS_CURTAS.includes(l)).length === 0)
 }

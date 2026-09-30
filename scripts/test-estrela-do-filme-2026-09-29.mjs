@@ -265,7 +265,7 @@ function verificaRota(r = SRC.rota) {
   const iCeleb = i('if (estrelaAtiva && mentionsContemporaryFigure(prompt)) {')
   const iAssina = i('const assinadas = await assinarFotosDaEstrela(estrelaDecisao.paths)')
   c('C10 o pedido da estrela é decidido ANTES do custo, do claim e do débito', iDec > 0 && iDec < iCusto && iCusto < iClaim && iClaim < iDebito)
-  c('C11 interruptor: visible = estrelaVisible(user.email); âncora: hollywoodPath || CINEMATIC_ANCHOR_ENABLED', r.includes('visible: estrelaVisible(user.email),') && r.includes('anchorEnabled: hollywoodPath || CINEMATIC_ANCHOR_ENABLED,'))
+  c('C11 interruptor: visible = estrelaVisible(user.email); âncora: estrada hollywood || CINEMATIC_ANCHOR_ENABLED', r.includes('visible: estrelaVisible(user.email),') && r.includes('anchorEnabled: wantsHollywood || wantsH3 || wantsOmni || wantsS25 || CINEMATIC_ANCHOR_ENABLED,'))
   c('C12 recusa da estrela sai com o status da régua e charged:false, antes de tudo', /if \(!estrelaDecisao\.ok\) \{[\s\S]{0,400}return NextResponse\.json\(\{ error: estrelaDecisao\.error, reason: estrelaDecisao\.code, retryable: false, charged: false, refunded: false \}, \{ status: estrelaDecisao\.status \}\)/.test(r))
   c('C13 sobretaxa definida ANTES do custo, somada no MESMO `cost` que vai ao claim e ao débito (nunca depois)', iSobre > 0 && iSobre < iCusto && iCusto < iDebito && !/ensureCinematicDebit\((?!cost\))/.test(r.slice(iDebito)) && !/\n\s+cost = /.test(r))
   c('C14 o preço da duração entregue também leva a estrela (a diferença volta junto)', r.includes('const precoEntregue = creditCostForDuration(costQuality, true, duration) + estrelaSobretaxaDe(duration)'))

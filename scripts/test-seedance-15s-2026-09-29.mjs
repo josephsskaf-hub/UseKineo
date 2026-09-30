@@ -147,7 +147,9 @@ const L_DUR = "      const checagemDuracao = checarDuracao(typeof body.engine ==
 const L_FALA = "      const falaCurta = checarFalaDoFilmeCurto({ engine: typeof body.engine === 'string' ? body.engine : null, seconds: duration, verbatim, narration: parsedScript.narration })"
 const L_HOLLY = '    const hollywoodPath = wantsHollywood || wantsH3 || wantsOmni || wantsS25'
 const L_VERB = '    const verbatim = (parsedScript.hasMarkers && parsedScript.segments.length > 0) || (userSaysVerbatim && !briefDetected)'
-const L_COST = '    const cost = creditCostForDuration(costQuality, true, duration)'
+// Reancorado KINEO-ESTRELA-DO-FILME-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4']: a linha do custo ganhou, NA MESMA
+// linha, a sobretaxa da estrela (+ estrelaSobretaxaDe(duration), 0 sem estrela). Continua o `const cost` único, antes do claim e do débito.
+const L_COST = "    const cost = creditCostForDuration(costQuality, true, duration) + estrelaSobretaxaDe(duration) // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29: + a sobretaxa da estrela (0 sem estrela), ANTES do claim e do débito"
 const L_CLAIM = '    activeBirthClaim = {'
 const L_DEBIT = '    const upfrontDebit = await ensureCinematicDebit(cost)'
 function provaOrdem(src) {
@@ -223,7 +225,9 @@ checa('mutante: régua chumbada em true fica VERMELHO', mutReguaChumbada !== LAU
 // Reancorado 29/09 na integração com a E1 (Kineo 1 fora): a mesma linha passou a devolver também `kineo1` (resolveKineo1Flag).
 // Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): a resposta ganhou `hasPaid` (régua do 'não sei' do Studio); a flag
 // seedance15 segue na mesma linha inteira, pelo interruptor.
-const L_ME = '  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), curtas: duracoesCurtasVisible(user.email), internal: s25Visible(user.email), hasPaid, kineo1, plan })'
+// Reancorado KINEO-ESTRELA-DO-FILME-2026-09-29: a resposta ganhou `estrela` (flag do bloco "Estrela do filme" no /studio, estrelaVisible);
+// a flag seedance15 segue na mesma linha inteira, pelo interruptor.
+const L_ME = "  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), curtas: duracoesCurtasVisible(user.email), estrela: estrelaVisible(user.email), internal: s25Visible(user.email), hasPaid, kineo1, plan })"
 checa('/api/me/credits devolve a flag seedance15 pelo interruptor (linha inteira)', temLinha(ME, L_ME))
 const ANCORAS_STUDIO = [
   ['Studio: botão de 15 s só com Seedance escolhido e com o interruptor', "              {engine === 'seedance' && (seedance15Ok || duration === SEEDANCE_SHORT_SECONDS) && ("],

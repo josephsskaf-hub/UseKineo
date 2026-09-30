@@ -402,6 +402,18 @@ function soAcrescimos(p) {
     '          oferecidas: SUPPORTED_DURATIONS,',
     '        const req = Math.max(30, Math.min(90, Math.round(duration || 60)))',
     '        if (totalWords >= 40 && sentences.length >= 3) {',
+    // ═══ Reancorado KINEO-ESTRELA-DO-FILME-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] ═══
+    // A entrega da "Estrela do filme" marca TODA linha que acrescenta à rota do cinematic com KINEO-ESTRELA-DO-FILME-2026-09-29 e troca
+    // de propósito SETE linhas da base (o formato com estrela, o custo + sobretaxa, o resgate por saldo com a sobretaxa, a impressão do
+    // claim, o preço da duração entregue, a ficha do planejador hollywood e a âncora da cena hollywood). Este guardião aceita exatamente
+    // isso — nada fora do marcador, nenhuma outra linha da base trocada. Prova: scripts/test-estrela-do-filme-2026-09-29.mjs.
+    "    const formatoVisual = decidirFormato(prompt, tagFacelessPresente)",
+    "    const cost = creditCostForDuration(costQuality, true, duration)",
+    "        creditCostForDuration(MOTOR_PARA_QUALIDADE[m] ?? 'cinematic_ai', true, d)",
+    "      characterId: typeof body.characterId === 'string' ? body.characterId.trim() : '',",
+    "      const precoEntregue = creditCostForDuration(costQuality, true, duration)",
+    "      const fichaDoPedidoTexto = deriveExplicitCharacter(prompt)",
+    "          const anchorUrl = anchors",
   ])
   const tiradas = diff.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---') && !(p.endsWith('generate-video-cinematic/route.ts') && TROCADAS.has(l.slice(1))))
   return { ok: tiradas.length === 0, n: diff.split(LF).filter((l) => l.startsWith('+') && !l.startsWith('+++')).length }

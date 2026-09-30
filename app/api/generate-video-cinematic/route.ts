@@ -1566,7 +1566,7 @@ async function manipularPost(req: NextRequest) {
       engine: body.engine, // KINEO-ESTRELA-DO-FILME-2026-09-29
       userId: user.id, // KINEO-ESTRELA-DO-FILME-2026-09-29
       visible: estrelaVisible(user.email), // KINEO-ESTRELA-DO-FILME-2026-09-29
-      anchorEnabled: hollywoodPath || CINEMATIC_ANCHOR_ENABLED, // KINEO-ESTRELA-DO-FILME-2026-09-29
+      anchorEnabled: wantsHollywood || wantsH3 || wantsOmni || wantsS25 || CINEMATIC_ANCHOR_ENABLED, // KINEO-ESTRELA-DO-FILME-2026-09-29 (estrada hollywood = âncora sempre; clássicos = o interruptor)
     }) // KINEO-ESTRELA-DO-FILME-2026-09-29
     if (!estrelaDecisao.ok) { // KINEO-ESTRELA-DO-FILME-2026-09-29
       void writeServerEvent({ name: 'estrela_requested', userId: user.id, path: '/api/generate-video-cinematic', metadata: { outcome: 'refused', code: estrelaDecisao.code, engine: motorDaEstrela(body.engine), charged: false, version: ESTRELA_VERSION } }) // KINEO-ESTRELA-DO-FILME-2026-09-29
