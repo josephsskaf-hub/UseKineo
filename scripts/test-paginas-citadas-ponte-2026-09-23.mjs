@@ -36,8 +36,8 @@ console.log('1) componente')
 const COMP = 'components/ScriptToSeedanceBridge.tsx'
 const comp = fs.existsSync(COMP) ? read(COMP) : ''
 check(comp.startsWith("'use client'"), 'componente existe e é client')
-check(/trackEvent\('engine_bridge_shown', \{ from, to: 'seedance', version: SCRIPT_BRIDGE_VERSION \}\)/.test(comp), 'impressão engine_bridge_shown com from/to/version')
-check(/trackEvent\('engine_bridge_clicked', \{ from, to: 'seedance', version: SCRIPT_BRIDGE_VERSION \}\)/.test(comp), 'clique engine_bridge_clicked com from/to/version')
+check(/trackEvent\('engine_bridge_shown', \{ from, to: 'seedance', version \}\)/.test(comp), 'impressão engine_bridge_shown com from/to/version')
+check(/trackEvent\('engine_bridge_clicked', \{ from, to: 'seedance', version \}\)/.test(comp), 'clique engine_bridge_clicked com from/to/version')
 check(comp.includes("export const SCRIPT_BRIDGE_VERSION = 'bridge_v1'"), 'versão bridge_v1')
 check(/if \(shownRef\.current\) return\s+shownRef\.current = true/.test(comp), 'impressão uma vez por montagem (ref)')
 check(/<Link\s+href=\{href\}\s+onClick=\{onClick\}/.test(comp), 'o clique do CTA dispara o evento')
@@ -67,9 +67,11 @@ const PAGES = [
 ]
 for (const p of PAGES) {
   const src = read(p.file)
-  const tag = `<ScriptToSeedanceBridge from="${p.from}"`
-  check(src.includes("import ScriptToSeedanceBridge from '@/components/ScriptToSeedanceBridge'"), `${p.file}: importa a ponte`)
-  check((src.match(/<ScriptToSeedanceBridge /g) ?? []).length === 1, `${p.file}: uma ponte só`)
+  // S24-01 after E3: paid proof on free/text; state and redirected engine body keep v1.
+  const component = ['state_of_ai', 'kineo1'].includes(p.from) ? 'ScriptToSeedanceBridge' : 'PaidSeedanceBridge'
+  const tag = `<${component} from="${p.from}"`
+  check(src.includes(`import ${component} from '@/components/${component}'`), `${p.file}: importa a ponte`)
+  check((src.match(new RegExp(`<${component} `, 'g')) ?? []).length === 1, `${p.file}: uma ponte só`)
   const at = src.indexOf(tag), form = src.indexOf(p.form)
   check(at > 0 && form > 0 && at < form, `${p.file}: ponte (from=${p.from}) antes do formulário`)
 }
@@ -77,8 +79,8 @@ for (const p of PAGES) {
   const free = read('app/free-ai-shorts-generator/page.tsx')
   const text = read('app/text-to-video-shorts/page.tsx')
   const state = read('app/state-of-ai-shorts-2026/page.tsx')
-  check(free.includes(`{${PAUSE_GUARD} && <ScriptToSeedanceBridge from="free_ai_shorts_generator" compact />}`), 'free: some quando o Seedance pausa')
-  check(text.includes(`{${PAUSE_GUARD} && <ScriptToSeedanceBridge from="text_to_video_shorts" compact />}`), 'text-to-video: some quando o Seedance pausa')
+  check(free.includes(`{${PAUSE_GUARD} && <PaidSeedanceBridge from="free_ai_shorts_generator" compact />}`), 'free: some quando o Seedance pausa')
+  check(text.includes(`{${PAUSE_GUARD} && <PaidSeedanceBridge from="text_to_video_shorts" compact />}`), 'text-to-video: some quando o Seedance pausa')
   check(state.includes(`const seedanceBridge = ${PAUSE_GUARD} ? <ScriptToSeedanceBridge from="state_of_ai" /> : null`), 'state: some quando o Seedance pausa')
   for (const [name, src] of [['free', free], ['text', text], ['state', state]]) {
     check(src.includes("import { ENGINES } from '@/lib/growth/enginePageCatalog'") && src.includes("import { enginePaused } from '@/lib/engineLaunch'"), `${name}: pausa pelo mesmo helper da página do motor`)
@@ -93,9 +95,9 @@ console.log('3) página do motor')
 {
   const src = read(ENGINE_PAGE)
   check(src.includes("const showSeedanceBridge = params.engine === 'kineo-1' && !enginePaused(ENGINES.seedance.param)"), 'engine: condição kineo-1 + Seedance não pausado')
-  check(src.includes('{showSeedanceBridge && <ScriptToSeedanceBridge from="kineo1" />}'), 'engine: a ponte renderiza só sob a condição')
+  check(src.includes('{showSeedanceBridge && <ScriptToSeedanceBridge from="kineo1" />}'), 'engine: ponte histórica preservada; rota pública redirecionada pela E3')
   const at = src.indexOf('<ScriptToSeedanceBridge from="kineo1"')
-  check(at > src.indexOf('{tierNote}</p>') && at < src.indexOf('<TopicGeneratorForm'), 'engine: ponte entre o hero e o formulário (acima da dobra)')
+  check(at > src.indexOf('{tierNote}</p>') && at < src.indexOf('<TopicGeneratorForm'), 'engine: corpo histórico preservado entre hero e formulário')
   check(!src.includes('kineo1_bridge') && !src.includes('seedanceBridge.map'), 'engine: a ponte antiga abaixo da dobra sumiu')
 }
 
@@ -109,10 +111,23 @@ const metaBlock = (src) => {
   const b = src.indexOf('export async function generateMetadata')
   return b >= 0 ? src.slice(b, src.indexOf('\n}\n', b)) : null
 }
+// 30/09, ampliação pedida pelo fundador: descriptions das duas portas passam a derivar
+// a oferta atual. A base dizia Fast grátis; título/canonical/OG e todo o resto ficam congelados.
+const currentDescriptions = {
+  'app/free-ai-shorts-generator/page.tsx': [`\`Create faceless Shorts with script, AI voiceover, visuals and captions. Trial: \${OFFER.copy.planLimitLine}. Compare films and plans before you choose.\``, "'Use Kineo as a free AI Shorts generator. Type one idea and create a faceless YouTube Short with script, AI voiceover, visuals, captions, and MP4 export. No card for the Fast test.'"],
+  'app/text-to-video-shorts/page.tsx': [`\`Turn a topic or script into a narrated vertical Short with visuals and captions. Trial: \${OFFER.copy.planLimitLine}. Compare films and plans before you choose.\``, "'Turn text, a topic, or a script into a finished faceless YouTube Short with AI voiceover, vertical visuals, captions, and MP4 export. Try Fast free with no card.'"],
+}
 for (const f of ['app/free-ai-shorts-generator/page.tsx', 'app/text-to-video-shorts/page.tsx', 'app/state-of-ai-shorts-2026/page.tsx']) {
   const cur = read(f), base = atBase(f)
   check(h1Of(cur) !== null && h1Of(cur) === h1Of(base), `${f}: <h1> igual à base`)
-  check(metaBlock(cur) !== null && metaBlock(cur) === metaBlock(base), `${f}: title/description iguais à base`)
+  const approvedDescription = currentDescriptions[f]
+  let normalizedMeta = approvedDescription ? metaBlock(cur)?.replace(approvedDescription[0], approvedDescription[1]) : metaBlock(cur)
+  if (f === 'app/free-ai-shorts-generator/page.tsx') {
+    const twitterDescription = '`Create a faceless AI Short from one idea. Trial: ${OFFER.copy.planLimitLine}.`'
+    check(metaBlock(cur).includes(twitterDescription), 'free: descrição social também deriva a oferta atual')
+    normalizedMeta = normalizedMeta?.replace(twitterDescription, "'Create a faceless AI Short from one idea. No card for the free Fast test.'")
+  }
+  check(metaBlock(cur) !== null && (!approvedDescription || metaBlock(cur).includes(approvedDescription[0])) && normalizedMeta === metaBlock(base), `${f}: metadados preservados com apenas description derivada da oferta nas duas portas`)
   check(ldLines(cur).length > 0 && ldLines(cur) === ldLines(base), `${f}: JSON-LD igual à base`)
 }
 
