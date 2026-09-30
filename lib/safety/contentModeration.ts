@@ -20,6 +20,7 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { decideModeration, type ModerationDecision } from './moderationPolicy'
 
 export type ModerationSurface =
+  | 'chatgpt_plugin'
   | 'images' | 'images_edit' | 'images_upscale' | 'animate' | 'gesture' | 'avatar' | 'avatar_scene' | 'clip' | 'character'
   | 'footage' | 'ads_brief' | 'ads_render' | 'images_reference'
   | 'estrela' // KINEO-ESTRELA-DO-FILME-2026-09-29 — still da estrela (Nano Banana Pro edit) conferido ANTES de virar âncora de cena
@@ -71,6 +72,7 @@ export async function moderateContent(args: {
   text?: string | null
   imageUrls?: string[]
   meta?: Record<string, unknown>
+  omitEvidenceText?: boolean
 }): Promise<ModerationVerdict> {
   const text = (args.text ?? '').trim()
   const images = (args.imageUrls ?? []).filter((u) => typeof u === 'string' && u.length > 0)
@@ -121,7 +123,7 @@ export async function moderateContent(args: {
       minors: worst.minors,
       sexual_minors_score: Number(worst.sexualMinorsScore.toFixed(4)),
       sexual_score: Number(worst.sexualScore.toFixed(4)),
-      text: text ? text.slice(0, 500) : null,
+      text: args.omitEvidenceText ? null : text ? text.slice(0, 500) : null,
       image_count: images.length,
       // Referência do arquivo barrado (URL ou caminho), para o fundador achar a prova sem que a porta a apague.
       evidence: images.filter((u) => !u.startsWith('data:')).slice(0, 4),

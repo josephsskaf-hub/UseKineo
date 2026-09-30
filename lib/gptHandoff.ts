@@ -470,7 +470,7 @@ export function isHandoffToken(value: unknown): value is string {
 // `claude_connector` (KINEO-MCP-CLAUDE-2026-09-29): a tool create_video_handoff
 // do servidor MCP remoto (app/api/mcp) — o conector da Kineo dentro do Claude.
 // Quarto canal, quarta etiqueta; as três antigas continuam byte a byte.
-export const HANDOFF_CHANNELS = ['gpt_store', 'assistant_link', 'paste_page', 'claude_connector'] as const
+export const HANDOFF_CHANNELS = ['gpt_store', 'assistant_link', 'paste_page', 'claude_connector', 'chatgpt_plugin'] as const
 export type HandoffChannel = (typeof HANDOFF_CHANNELS)[number]
 /** Linha sem `channel` (as que já existem no banco) é da loja. */
 export const DEFAULT_CHANNEL: HandoffChannel = 'gpt_store'
@@ -484,6 +484,7 @@ export const CHANNEL_TAGS: Readonly<Record<HandoffChannel, { utmSource: string; 
   assistant_link: { utmSource: 'assistant_link', intentCampaign: 'kineo_assistant_link' },
   paste_page: { utmSource: 'paste_page', intentCampaign: 'kineo_paste_page' },
   claude_connector: { utmSource: 'claude_connector', intentCampaign: 'kineo_claude_connector' },
+  chatgpt_plugin: { utmSource: 'chatgpt_plugin', intentCampaign: 'kineo_chatgpt_plugin' },
 }
 
 /** KINEO-GO-ROTULO-CANAL-2026-09-30 — de onde veio o roteiro, dito na página
@@ -496,6 +497,7 @@ export const CHANNEL_SOURCE_LABELS: Readonly<Record<HandoffChannel, string>> = {
   assistant_link: 'Script from your AI assistant',
   paste_page: 'Your pasted script',
   claude_connector: 'Script from Claude',
+  chatgpt_plugin: 'Script from ChatGPT',
 }
 
 export function handoffSourceLabel(channel: unknown): string {

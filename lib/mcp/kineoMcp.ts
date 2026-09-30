@@ -45,6 +45,7 @@ import {
   engineFamily,
   normalizeEngineHint,
 } from '@/lib/gptHandoff'
+import { CHATGPT_MCP_INSTRUCTIONS, chatgptCapabilities, chatgptTools } from '@/lib/mcp/chatgptContract'
 
 // ─── Identidade e protocolo ─────────────────────────────────────────────────
 export const MCP_SERVER_NAME = 'kineo'
@@ -137,6 +138,9 @@ export type McpTool = {
   title: string
   description: string
   inputSchema: Record<string, unknown>
+  outputSchema?: Record<string, unknown>
+  securitySchemes?: { type: 'noauth' }[]
+  _meta?: Record<string, unknown>
   annotations: McpToolAnnotations
 }
 
@@ -251,8 +255,9 @@ export type HandoffToolResult =
 
 export type McpDeps = {
   facts: () => Record<string, unknown>
-  createHandoff: (args: Record<string, unknown>) => Promise<HandoffToolResult>
+  createHandoff: (args: Record<string, unknown>, meta?: Record<string, unknown>) => Promise<HandoffToolResult>
   pausedEngines: readonly string[]
+  profile?: 'chatgpt'
 }
 
 export type JsonRpcId = string | number | null
@@ -285,8 +290,12 @@ function toolError(message: string, details?: Record<string, unknown>): Record<s
   return toolText({ error: message, ...(details ?? {}) }, true, message)
 }
 
-async function callTool(name: string, args: Record<string, unknown>, deps: McpDeps): Promise<{ result: Record<string, unknown>; ok: boolean }> {
+async function callTool(name: string, args: Record<string, unknown>, deps: McpDeps, meta?: Record<string, unknown>): Promise<{ result: Record<string, unknown>; ok: boolean }> {
   if (name === TOOL_FACTS) {
+    if (deps.profile === 'chatgpt') {
+      if (Object.keys(args).length) return { ok: false, result: toolError('This tool accepts no arguments.') }
+      return { ok: true, result: toolText(chatgptCapabilities(deps.pausedEngines), false) }
+    }
     const topic = args.topic
     if (topic !== undefined && topic !== FACTS_TOPIC_ALL && !(typeof topic === 'string' && topic in FACTS_TOPICS)) {
       return { ok: false, result: toolError(`topic must be one of ${[...Object.keys(FACTS_TOPICS), FACTS_TOPIC_ALL].join(', ')}.`) }
@@ -311,7 +320,7 @@ async function callTool(name: string, args: Record<string, unknown>, deps: McpDe
   }
   let r: HandoffToolResult
   try {
-    r = await deps.createHandoff(args)
+    r = await deps.createHandoff(args, meta)
   } catch {
     r = { ok: false, error: 'Kineo could not save the script right now. Try again in a minute.' }
   }
@@ -328,7 +337,10 @@ export async function handleMcpMessage(msg: unknown, deps: McpDeps): Promise<{ r
     return { response: jsonRpcError(null, JSONRPC_INVALID_REQUEST, 'Invalid request: expected a JSON-RPC 2.0 object.'), trace: { method: null } }
   }
   const m = msg as Record<string, unknown>
-  const hasId = 'id' in m && (typeof m.id === 'string' || typeof m.id === 'number')
+  if (deps.profile === 'chatgpt' && (m.jsonrpc !== '2.0' || ('id' in m && m.id !== null && typeof m.id !== 'string' && typeof m.id !== 'number'))) {
+    return { response: jsonRpcError(null, JSONRPC_INVALID_REQUEST, 'Invalid JSON-RPC version or request id.'), trace: { method: null } }
+  }
+  const hasId = 'id' in m && (typeof m.id === 'string' || typeof m.id === 'number' || (deps.profile === 'chatgpt' && m.id === null))
   const id: JsonRpcId = hasId ? (m.id as string | number) : null
   const method = typeof m.method === 'string' ? m.method : null
 
@@ -356,7 +368,7 @@ export async function handleMcpMessage(msg: unknown, deps: McpDeps): Promise<{ r
             protocolVersion,
             capabilities: { tools: { listChanged: false } },
             serverInfo: { name: MCP_SERVER_NAME, title: MCP_SERVER_TITLE, version: MCP_SERVER_VERSION },
-            instructions: MCP_INSTRUCTIONS,
+            instructions: deps.profile === 'chatgpt' ? CHATGPT_MCP_INSTRUCTIONS : MCP_INSTRUCTIONS,
           },
         },
         trace: { method, client, protocol: protocolVersion },
@@ -365,14 +377,18 @@ export async function handleMcpMessage(msg: unknown, deps: McpDeps): Promise<{ r
     case 'ping':
       return { response: { jsonrpc: '2.0', id, result: {} }, trace: { method } }
     case 'tools/list':
-      return { response: { jsonrpc: '2.0', id, result: { tools: buildTools({ pausedEngines: deps.pausedEngines }) } }, trace: { method } }
+      return { response: { jsonrpc: '2.0', id, result: { tools: deps.profile === 'chatgpt' ? chatgptTools(buildTools({ pausedEngines: deps.pausedEngines })) : buildTools({ pausedEngines: deps.pausedEngines }) } }, trace: { method } }
     case 'tools/call': {
       const name = typeof params.name === 'string' ? params.name : ''
       if (name !== TOOL_FACTS && name !== TOOL_HANDOFF) {
         return { response: jsonRpcError(id, JSONRPC_INVALID_PARAMS, `Unknown tool: ${name.slice(0, 64) || '(none)'}. Available: ${TOOL_FACTS}, ${TOOL_HANDOFF}.`), trace: { method, tool: name.slice(0, 64) } }
       }
+      if (deps.profile === 'chatgpt' && params.arguments !== undefined && (!params.arguments || typeof params.arguments !== 'object' || Array.isArray(params.arguments))) {
+        return { response: jsonRpcError(id, JSONRPC_INVALID_PARAMS, 'Tool arguments must be an object.'), trace: { method, tool: name, ok: false } }
+      }
       const args = (params.arguments && typeof params.arguments === 'object' && !Array.isArray(params.arguments) ? params.arguments : {}) as Record<string, unknown>
-      const { result, ok } = await callTool(name, args, deps)
+      const meta = params._meta && typeof params._meta === 'object' && !Array.isArray(params._meta) ? params._meta as Record<string, unknown> : undefined
+      const { result, ok } = await callTool(name, args, deps, meta)
       return { response: { jsonrpc: '2.0', id, result }, trace: { method, tool: name, ok } }
     }
     // Capacidades que não temos: lista vazia é mais honesta que "method not found"

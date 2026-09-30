@@ -48,7 +48,9 @@ export const runtime = 'nodejs'
 
 export const metadata: Metadata = {
   title: 'Your script is ready · Kineo',
-  description: 'A script written with ChatGPT, ready to become a video in Kineo Studio.',
+  description: 'Review your saved narration script and open it in Kineo Studio.',
+  openGraph: { title: 'Your script is ready · Kineo', description: 'Review your saved narration script and its duration assessment.' },
+  twitter: { title: 'Your script is ready · Kineo', description: 'Review your saved narration script and its duration assessment.' },
   robots: { index: false, follow: false, nocache: true, googleBot: { index: false, follow: false } },
 }
 
@@ -79,6 +81,7 @@ export default async function GoPage({
   if (found.status === 'missing') notFound()
   if (found.expired) return <Expired reason="expired" />
   const row: GptHandoffRow = found.row
+  const chatgptPlugin = row.channel === 'chatgpt_plugin'
 
   // ── Quem está olhando (só para a frase do botão; a porta é decidida na rota).
   let signedIn = false
@@ -89,7 +92,7 @@ export default async function GoPage({
       data: { user },
     } = await supabase.auth.getUser()
     signedIn = Boolean(user?.id)
-    if (user) {
+    if (user && !chatgptPlugin) {
       const profile = await supabase.from('profiles').select(CREATOR_OFFER_PROFILE_COLUMNS).eq('id', user.id).maybeSingle()
       creatorTrialEligible = !profile.error && isPostFilmCreatorEligible(profile.data)
     } else {
@@ -198,11 +201,11 @@ export default async function GoPage({
   return (
     <Shell>
       <header style={{ marginBottom: 26, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Wordmark />
+        {chatgptPlugin ? <strong style={{ fontSize: '1.25rem' }}>Kineo</strong> : <Wordmark />}
         {/* K1 — "See plans" contado no servidor (rota irmã). */}
-        <a href={pricingHref} style={{ color: MUTED, fontSize: '0.92rem', textDecoration: 'none' }}>
+        {!chatgptPlugin && <a href={pricingHref} style={{ color: MUTED, fontSize: '0.92rem', textDecoration: 'none' }}>
           See plans →
-        </a>
+        </a>}
       </header>
 
       <p style={{ color: MUTED, fontSize: '0.85rem', margin: '0 0 12px', letterSpacing: '0.01em' }}>
@@ -232,11 +235,13 @@ export default async function GoPage({
 
       <div style={{ margin: '0 0 26px' }}>
         <a href={goHref} style={BUTTON}>
-          Make this video
+          {chatgptPlugin ? 'Open in Kineo Studio' : 'Make this video'}
         </a>
         <p style={{ color: MUTED, fontSize: '0.88rem', lineHeight: 1.5, margin: '10px 0 0' }}>
           {signedIn
             ? 'Opens your Studio with this script loaded, exactly as written.'
+            : chatgptPlugin
+              ? 'Sign in to your existing Kineo account to open this script in Studio.'
             : CARD_ENTRY_ONLY
               ? 'Create your account to open this script in Studio. The Creator trial requires a payment method.'
               : `Sign up free (${TRIAL_CREDITS_SHOWN} credits, no card) to open this script in Studio.`}
@@ -252,13 +257,14 @@ export default async function GoPage({
         </div>
       </section>
 
-      <div style={{ marginTop: 28 }}>
+      {!chatgptPlugin && <div style={{ marginTop: 28 }}>
         <PostFilmCreatorOffer surface="gpt_handoff" eligible={creatorTrialEligible && !bot} firstPurchaseOnly={!signedIn} handoffHref={goHref} />
-      </div>
+      </div>}
 
       <p style={{ color: MUTED, fontSize: '0.8rem', lineHeight: 1.5, marginTop: 28 }}>
-        Kineo directs, narrates and edits the film from this text. &ldquo;Make this video&rdquo; opens the Studio with it loaded;
-        nothing is generated or charged until you press Generate there.
+        {chatgptPlugin
+          ? 'Opening the Studio loads this script. Rendering is a separate action in your account. Anyone with this link can read the script. '
+          : 'Kineo directs, narrates and edits the film from this text. “Make this video” opens the Studio with it loaded; nothing is generated or charged until you press Generate there. '}
         This link stays open for {HANDOFF_TTL_DAYS} days.
       </p>
     </Shell>

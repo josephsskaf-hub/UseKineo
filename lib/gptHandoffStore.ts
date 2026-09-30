@@ -119,6 +119,15 @@ export async function insertHandoff(
   const db = serviceClient()
   if (!db) return { ok: false, error: 'service role not configured', duplicate: false }
   try {
+    // Expiration does not remove the unique payload hash. Release only an
+    // expired row's hash so a resend gets a NEW token; old links stay expired.
+    // The conditional UPDATE serializes races against renewal at row level.
+    if (row.payload_hash) {
+      const { error: releaseError } = await db.from(GPT_HANDOFFS_TABLE)
+        .update({ payload_hash: null }).eq('payload_hash', row.payload_hash)
+        .lte('expires_at', new Date().toISOString())
+      if (releaseError) return { ok: false, error: releaseError.message, duplicate: false }
+    }
     const { error } = await db.from(GPT_HANDOFFS_TABLE).insert(row)
     if (error) return { ok: false, error: error.message, duplicate: error.code === UNIQUE_VIOLATION }
     return { ok: true }

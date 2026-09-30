@@ -68,14 +68,21 @@ export default function PrivacyPage() {
 
           <Section title="Scripts sent from AI assistants">
             When you send a script to Kineo from an AI assistant (the Kineo
-            connector for Claude, the Kineo GPT, a Kineo link or the paste
+            connector for Claude, the Kineo plugin for ChatGPT, the Kineo GPT, a Kineo link or the paste
             page), we store only what is sent: the script, the chosen length,
             frame, engine, language and optional title, plus a one-way hash of
-            the calling IP address and the user agent, used for rate limiting
-            and abuse prevention. We never receive or store your conversation
-            with the assistant, its memory or your files. The link to the
-            saved script works for {HANDOFF_TTL_DAYS} days; to have a saved script deleted,
-            email support@usekineo.com.
+            the calling IP address (or of the anonymized ChatGPT user identifier
+            when it comes from a recognized OpenAI connection) and the user agent,
+            used for rate limiting and abuse prevention. We do not request your
+            conversation history, assistant memory or files; we receive the fields
+            submitted to the tool. ChatGPT scripts are sent to OpenAI for a safety
+            check before saving. Supabase stores the saved script and Vercel hosts
+            the service. Anyone with the saved-script link can read its contents.
+            The link works for {HANDOFF_TTL_DAYS} days and resending an unexpired script
+            renews that period. Expiration disables the link; it does not delete
+            the database record. Saved scripts and associated usage records have
+            no automatic deletion schedule and remain until deleted. To request
+            access or deletion, email support@usekineo.com with the saved-script link.
           </Section>
 
           <Section title="How we use it">

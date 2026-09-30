@@ -37,24 +37,28 @@ import {
 import { describeEngineRefusal, handoffEngineRefusal } from '@/lib/gptHandoffEngineGuard'
 import { isAnthropicEgressIp, type HandoffToolResult } from '@/lib/mcp/kineoMcp'
 
-const CHANNEL: HandoffChannel = 'claude_connector'
-const EVENT_PATH = '/api/mcp'
-
 export type ConnectorContext = {
   ip: string | null
   userAgent: string | null
   /** Origem pública (handoffPublicOrigin) — o link sai no domínio canônico. */
   origin: string
+  channel?: Extract<HandoffChannel, 'claude_connector' | 'chatgpt_plugin'>
+  rateLimitKey?: string
+  checkContent?: (script: string) => Promise<string | null>
 }
 
 export async function createConnectorHandoff(args: Record<string, unknown>, ctx: ConnectorContext): Promise<HandoffToolResult> {
+  const CHANNEL = ctx.channel ?? 'claude_connector'
+  const chatgpt = CHANNEL === 'chatgpt_plugin'
+  const EVENT_PATH = chatgpt ? '/api/mcp/chatgpt' : '/api/mcp'
   const validated = validateHandoffInput(args)
   if (!validated.ok) return { ok: false, error: validated.error }
   const input = validated.value
 
-  const ipHash = hashIp(ctx.ip)
-  const viaAnthropic = isAnthropicEgressIp(ctx.ip)
+  const ipHash = hashIp(chatgpt ? ctx.rateLimitKey ?? 'chatgpt:unknown' : ctx.ip)
+  const viaAnthropic = !chatgpt && isAnthropicEgressIp(ctx.ip)
   const counts = await countRecentHandoffs(viaAnthropic ? null : ipHash)
+  if (chatgpt && !counts) return { ok: false, error: 'Kineo could not check script limits. Try again in a minute.' }
   if (counts && !viaAnthropic && ipHash && counts.ip >= RATE_LIMIT_PER_IP_PER_HOUR) {
     return { ok: false, error: 'Too many scripts from this connection in the last hour. Try again in a few minutes.' }
   }
@@ -71,6 +75,12 @@ export async function createConnectorHandoff(args: Record<string, unknown>, ctx:
   if (engineRefusal) {
     await writeServerEvent({ name: 'gpt_handoff_refused', path: EVENT_PATH, metadata: { channel: CHANNEL, ...engineRefusal, engine_hint: input.engineHint, duration_sec: input.durationSec } })
     return { ok: false, error: describeEngineRefusal(engineRefusal), details: { refusal: engineRefusal } }
+  }
+
+  if (chatgpt) {
+    if (!ctx.checkContent) return { ok: false, error: 'Script safety review is unavailable. Try again in a minute.' }
+    const refusal = await ctx.checkContent(input.topic ? `${input.topic}\n\n${input.script}` : input.script)
+    if (refusal) return { ok: false, error: refusal }
   }
 
   const payloadHash = handoffPayloadHash(input, CHANNEL)
@@ -148,6 +158,7 @@ export async function createConnectorHandoff(args: Record<string, unknown>, ctx:
     data: {
       url: `${ctx.origin}${GO_PATH_PREFIX}${token}`,
       expiresAt,
+      ...(chatgpt ? { script: input.script } : {}),
       words: est.words,
       seconds: est.seconds,
       fitMessage: describeFit(est, input.durationSec),

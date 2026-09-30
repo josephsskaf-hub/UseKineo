@@ -1,0 +1,36 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "kineo-script-studio",
+  "version": "0.1.0",
+  "description": "Prepare video narration, review its duration assessment, and save an approved script for Kineo Studio.",
+  "author": {
+    "name": "Joseph Skaf",
+    "email": "support@usekineo.com",
+    "url": "https://www.usekineo.com/support"
+  },
+  "homepage": "https://www.usekineo.com/support",
+  "keywords": ["video", "narration", "scripts"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Kineo Script Studio",
+        "shortDescription": "Prepare video narration",
+        "longDescription": "Prepare narration for short videos using Kineo's supported engines, durations and frame shapes. Review the server's word count and duration assessment, and save a script you approve. The tool returns the full script and a shareable link that existing Kineo users can open in Studio. Anyone with the link can read the saved script. Links expire after seven days and can be renewed by resending an unexpired script. These tools do not render or publish videos. Saved records are retained until deleted; see the privacy policy for access and deletion requests.",
+        "developerName": "Joseph Skaf",
+        "category": "Productivity",
+        "capabilities": ["Read", "Write"],
+        "websiteURL": "https://www.usekineo.com/support",
+        "privacyPolicyURL": "https://www.usekineo.com/privacy",
+        "termsOfServiceURL": "https://www.usekineo.com/terms",
+        "defaultPrompt": [
+          "Help me prepare a short video narration about urban gardens.",
+          "What durations and frame shapes can I use for my video script?",
+          "Review my narration, then ask before saving it to Kineo."
+        ],
+        "brandColor": "#2997ff",
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/icon.png"
+      }
+    }
+  }
+}

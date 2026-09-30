@@ -37,6 +37,8 @@
 //      que cria/reusa uma sessão válida no servidor.
 
 import { useEffect, useRef } from 'react'
+import { usePathname } from 'next/navigation'
+import { isNonCommercialSurface } from '@/lib/nonCommercialSurface'
 import { trackEvent } from '@/lib/analytics'
 import { clearStalledCheckout, useStalledCheckout, type StalledCheckoutKind } from '@/lib/checkoutTelemetry'
 import {
@@ -48,8 +50,8 @@ export default function CheckoutStalledCta() {
   const stalled = useStalledCheckout()
   // ONDA4 #16 (14/08) — mesmo racional do CheckoutResumeBanner: /v/[id] e
   // superficie de aquisicao anonima, nao de resgate de checkout.
-  const onPublicVideoPage =
-    typeof window !== 'undefined' && window.location.pathname.startsWith('/v/')
+  const pathname = usePathname()
+  const hideCheckout = pathname.startsWith('/v/') || pathname === '/login' || isNonCommercialSurface(pathname)
   const shownKeyRef = useRef<string | null>(null)
   // Tipo do link NO MOMENTO DA IMPRESSÃO. Sem ele, um card impresso como
   // `server_retry` e promovido a `stripe_direct` antes do clique daria 1
@@ -59,7 +61,7 @@ export default function CheckoutStalledCta() {
   const shownKindRef = useRef<StalledCheckoutKind | null>(null)
 
   useEffect(() => {
-    if (!stalled) {
+    if (!stalled || hideCheckout) {
       shownKeyRef.current = null
       shownKindRef.current = null
       return
@@ -85,9 +87,9 @@ export default function CheckoutStalledCta() {
     } catch {
       // A recuperação nunca pode quebrar por causa de telemetria.
     }
-  }, [stalled])
+  }, [stalled, hideCheckout])
 
-  if (!stalled || onPublicVideoPage) return null
+  if (!stalled || hideCheckout) return null
 
   const copy = checkoutFallbackCopy({
     kind: stalled.kind,

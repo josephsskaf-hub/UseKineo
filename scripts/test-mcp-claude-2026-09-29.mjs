@@ -188,12 +188,13 @@ ok(creditProblems(docText).length === 0, `(B5) o pacote não digita número de c
 
 // ─── (C) texto ──────────────────────────────────────────────────────────────
 const importsOf = (code) => [...code.matchAll(/^import[^'"]*['"]([^'"]+)['"]/gm)].map((m) => m[1])
-ok(JSON.stringify(importsOf(mcpCode)) === JSON.stringify(['@/lib/gptHandoff']), `(C1) kineoMcp.ts é puro: um import só, @/lib/gptHandoff (achados: ${importsOf(mcpCode).join(', ')})`)
+// ChatGPT has a separate pure presentation contract; no database/network dependency is permitted here.
+ok(JSON.stringify(importsOf(mcpCode)) === JSON.stringify(['@/lib/gptHandoff', '@/lib/mcp/chatgptContract']), `(C1) dispatcher mantém apenas imports dos contratos puros (achados: ${importsOf(mcpCode).join(', ')})`)
 const TRAVA = /^@\/(lib\/(compose|hollywood\/|cinematic\/|broll\/|lyriaMusic|narrationFit)|app\/api\/(analyze-idea|generate-script|generate-video-))/
 const newImports = [...importsOf(mcpCode), ...importsOf(handoffCode), ...importsOf(routeCode)]
 ok(newImports.every((i) => !TRAVA.test(i)), '(C2) nenhum import direto da trava 8.2')
 ok(![mcpCode, handoffCode, routeCode].some((c) => /generate-video|creatomate|fal\.ai|@fal-ai|runway/i.test(c.replace(/^\s*\/\/.*$/gm, ''))), '(C3) nenhuma chamada de render/fornecedor no conector (o link espera o clique)')
-ok(/const CHANNEL: HandoffChannel = 'claude_connector'/.test(handoffCode), "(C4) canal próprio 'claude_connector'")
+ok(/const CHANNEL = ctx\.channel \?\? 'claude_connector'/.test(handoffCode), "(C4) canal padrão continua 'claude_connector'; ChatGPT precisa de contexto explícito")
 ok(/const validated = validateHandoffInput\(args\)/.test(handoffCode) && /handoffOutcome\(input\.script, input\.durationSec, input\.engineHint\)/.test(handoffCode) && /handoffEngineRefusal\(\{/.test(handoffCode), '(C5) mesma validação, veredito e recusa por motor da ação do GPT')
 ok(/if \(outcome\.kind === 'too_short'\) \{\n\s+return \{ ok: false/.test(handoffCode), '(C6) too_short recusa sem gravar linha')
 ok(/counts && !viaAnthropic && ipHash && counts\.ip >= RATE_LIMIT_PER_IP_PER_HOUR/.test(handoffCode) && /counts && counts\.global >= RATE_LIMIT_GLOBAL_PER_HOUR/.test(handoffCode), '(C7) teto por IP fora da Anthropic + teto global para todos')
@@ -242,7 +243,7 @@ ok(G.HANDOFF_CHANNELS.every((c) => typeof G.CHANNEL_SOURCE_LABELS[c] === 'string
 const labelFromChannel = (code) => /\{handoffSourceLabel\(row\.channel\)\} · ready for Kineo Studio/.test(code) && !/Script from ChatGPT/.test(code)
 ok(labelFromChannel(goCode), '(D4) /go tira a origem do canal da linha, sem "Script from ChatGPT" fixo')
 ok(!labelFromChannel(goCode.replace('{handoffSourceLabel(row.channel)} · ready', 'Script from ChatGPT · ready')), '(M10) /go com o rótulo fixo de volta → vermelho')
-ok(/&ldquo;Make this video&rdquo; opens the Studio/.test(goCode) && /until you press Generate there/.test(goCode), '(D5) rodapé liga o botão desta página ("Make this video") ao botão do Studio ("Generate")')
+ok(/“Make this video” opens the Studio/.test(goCode) && /until you press Generate there/.test(goCode), '(D5) rodapé do Claude mantém a distinção entre abrir Studio e Generate')
 const icon = fs.readFileSync(path.join(ROOT, 'public/kineo-icon-512.png'))
 ok(icon.readUInt32BE(16) === 512 && icon.readUInt32BE(20) === 512 && icon[25] === 6, '(D6) public/kineo-icon-512.png = PNG 512×512 com alfa (URL de ícone da listagem)')
 

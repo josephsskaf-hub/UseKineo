@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
+import { isNonCommercialSurface } from '@/lib/nonCommercialSurface'
 import { trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch, useStalledCheckout } from '@/lib/checkoutTelemetry'
 import { formatCheckoutResumeMoney } from '@/lib/checkoutResumeSurface'
@@ -41,7 +42,7 @@ const recorded = new Set<string>()
 const inFlight = new Set<string>()
 
 function shouldHide(pathname: string): boolean {
-  return HIDDEN_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))
+  return isNonCommercialSurface(pathname) || HIDDEN_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))
 }
 
 function hasPilotResumeHint(): boolean {

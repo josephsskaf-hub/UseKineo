@@ -70,6 +70,7 @@ export default function LoginPage() {
   // Query string forwarded to /signup so the pending checkout survives the hop
   // (state, not inline window read, to avoid an SSR hydration mismatch).
   const [authSearch, setAuthSearch] = useState('')
+  const chatgptPlugin = new URLSearchParams(authSearch).get('source') === 'chatgpt_plugin'
   const savedCreation = useMemo(() => {
     const params = new URLSearchParams(authSearch)
     return buildLoginCreationPreviewFromAuthParams(params)
@@ -190,7 +191,7 @@ export default function LoginPage() {
             {[
               'AI writes the script',
               'Films · images · voices',
-              ft(OFFER, '3 free videos / 24h', `Free trial — ${TRIAL_GRANT_CREDITS_COPY} credits`),
+              ...(chatgptPlugin ? [] : [ft(OFFER, '3 free videos / 24h', `Free trial — ${TRIAL_GRANT_CREDITS_COPY} credits`)]),
             ].map((line) => (
               <li key={line} className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'var(--text2)' }}>
                 <span
@@ -463,7 +464,7 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <p className="text-center text-sm mt-6" style={{ color: 'var(--muted)' }}>
+            {!chatgptPlugin && <p className="text-center text-sm mt-6" style={{ color: 'var(--muted)' }}>
               Don&apos;t have an account?{' '}
               {/* KINEO-CHECKOUT-RESUME-2026-07-07 — carry the pending checkout
                   redirect into signup so new buyers also resume the purchase. */}
@@ -474,7 +475,7 @@ export default function LoginPage() {
               >
                 Sign up free
               </Link>
-            </p>
+            </p>}
         </div>
       </div>
       {/* ONDA3 #17 (14/08) — Footer de marketing removido da tela de auth:

@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser()
     userId = user?.id ?? null
-    if (user && seedance15sVisible(user.email)) {
+    if (user && row.channel !== 'chatgpt_plugin' && seedance15sVisible(user.email)) {
       const { data: prof } = await supabase
         .from('profiles')
         .select('video_credits, has_paid, trial_status, trial_ends_at, trial_credits_used, trial_credits_granted')
@@ -145,8 +145,9 @@ export async function GET(req: NextRequest) {
   } catch {
     authPath = '/signup'
   }
+  if (row.channel === 'chatgpt_plugin') authPath = '/login'
   const url = userId
     ? `${origem}${destino}`
-    : `${origem}${authPath}?redirect=${encodeURIComponent(`${GO_PATH_PREFIX}${token}`)}`
+    : `${origem}${authPath}?redirect=${encodeURIComponent(`${GO_PATH_PREFIX}${token}`)}${row.channel === 'chatgpt_plugin' ? '&source=chatgpt_plugin' : ''}`
   return NextResponse.redirect(url, 302)
 }
