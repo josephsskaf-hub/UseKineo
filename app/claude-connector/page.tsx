@@ -42,12 +42,30 @@ const ACCENT = '#2997ff'
 const MUTED = '#86868b'
 const CARD: CSSProperties = { background: '#161618', border: '1px solid #2a2a2d', borderRadius: 14, padding: '18px 20px' }
 
-const EXAMPLES: readonly string[] = [
-  'Write a 60-second YouTube Short script about why octopuses have three hearts, then send it to Kineo Studio.',
-  'Which Kineo plan covers four 60-second Seedance films a month?',
-  'Turn this product description into a 35-second 1:1 ad script for our bakery and give me the Kineo link.',
-  'What video engines does Kineo have, and how many credits does each one use?',
+// KINEO-OPEN-IN-CLAUDE-2026-09-30 (sessão CEO, fundador aprovou) — pedidos prontos que abrem um chat novo no
+// claude.ai já com o texto na caixa (claude.ai/new?q=…; deslogado, o login devolve para o mesmo pedido via
+// returnTo). Cada pedido diz o que a Kineo FAZ: o Claude escreve o roteiro e o conector o manda ao Studio — nenhum
+// promete que o vídeo sai dentro do Claude. A primeira entrada é o botão principal.
+const TRY_IN_CLAUDE: readonly { label: string; prompt: string }[] = [
+  {
+    label: '15-second clip: a lightning storm over the sea',
+    prompt: 'Using the Kineo connector, write a 15-second narration script about a lightning storm over the sea, then send it to Kineo Studio.',
+  },
+  {
+    label: 'A product ad in 3 variations',
+    prompt: 'Using the Kineo connector, write 3 variations of a 15-second ad script for my product and send each one to Kineo Studio. My product is: ',
+  },
+  {
+    label: 'A 35-second narrated film',
+    prompt: 'Using the Kineo connector, write a 35-second narrated YouTube Short about why octopuses have three hearts, then send it to Kineo Studio.',
+  },
+  {
+    label: 'Which Kineo plan fits me?',
+    prompt: 'Using the Kineo connector, tell me which Kineo plan covers four 60-second Seedance films a month.',
+  },
 ]
+const CLAUDE_NEW_CHAT = 'https://claude.ai/new?q='
+const openInClaude = (prompt: string) => CLAUDE_NEW_CHAT + encodeURIComponent(prompt)
 
 export default function ClaudeConnectorPage() {
   const tools = buildTools({ pausedEngines: PAUSED_ENGINE_KEYS })
@@ -115,6 +133,24 @@ export default function ClaudeConnectorPage() {
           HTTP. Use the <code>www</code> address exactly as shown.
         </p>
 
+        <h2 style={h2}>Try it in Claude</h2>
+        <p style={p}>
+          Each button opens a new Claude chat with the request already typed in. Review it and press send. Claude uses
+          Kineo only if you have added the connector with the steps above and turned it on in that chat; otherwise it
+          answers without Kineo.
+        </p>
+        <a href={openInClaude(TRY_IN_CLAUDE[0].prompt)} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', background: ACCENT, color: '#fff', fontWeight: 800, fontSize: '1rem', borderRadius: 999, padding: '12px 22px', textDecoration: 'none' }}>
+          Open in Claude →
+        </a>
+        <p style={{ ...small, margin: '8px 0 18px' }}>&ldquo;{TRY_IN_CLAUDE[0].prompt}&rdquo;</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+          {TRY_IN_CLAUDE.slice(1).map((t) => (
+            <a key={t.label} href={openInClaude(t.prompt)} target="_blank" rel="noopener noreferrer" title={t.prompt} style={{ color: ACCENT, border: '1px solid rgba(41,151,255,0.4)', borderRadius: 999, padding: '8px 14px', fontSize: '0.92rem', fontWeight: 700, textDecoration: 'none' }}>
+              {t.label} ↗
+            </a>
+          ))}
+        </div>
+
         <h2 style={h2}>The tools</h2>
         {tools.map((t) => (
           <div key={t.name} style={{ ...CARD, marginBottom: 14 }}>
@@ -134,13 +170,6 @@ export default function ClaudeConnectorPage() {
             <p style={{ ...p, margin: 0, fontSize: '0.95rem' }}>{t.description}</p>
           </div>
         ))}
-
-        <h2 style={h2}>Things to ask</h2>
-        <ul style={{ ...p, paddingLeft: 22, listStyle: 'disc' }}>
-          {EXAMPLES.map((e) => (
-            <li key={e} style={{ marginBottom: 6 }}>&ldquo;{e}&rdquo;</li>
-          ))}
-        </ul>
 
         <h2 style={h2}>What happens after the link</h2>
         <p style={p}>
