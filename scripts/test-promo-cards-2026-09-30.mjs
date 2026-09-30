@@ -206,7 +206,7 @@ ok(!/lib\/engineWall/.test(compSrc + dataSrc), '(6) a fileira não lê nem mexe 
 ok(componentProblems(compSrc.replace(/^\s+muted\n/m, '\n')).length > 0, '(M1) <video> sem muted → vermelho')
 ok(dataProblems(dataSrc.replace("title: 'KINEO FOR CLAUDE'", "title: 'OFFICIAL KINEO FOR CLAUDE'")).length > 0, '(M2) "official" no título do Claude → vermelho')
 ok(dataProblems(dataSrc.replace("'Write your video in Claude, render it in Kineo Studio'", "'Official Claude partner for videos'")).length > 0, '(M3) "partner" no subtítulo → vermelho')
-ok(dataProblems(dataSrc.replace("['KINEO ×', 'CLAUDE', 'SCRIPT → STUDIO']", "['KINEO ×', 'CLAUDE', 'BY ANTHROPIC']")).length > 0, '(M4) "by Anthropic" no pôster → vermelho')
+ok(dataProblems(dataSrc.replace("['KINEO IN', 'CLAUDE', 'SCRIPT → STUDIO']", "['KINEO IN', 'CLAUDE', 'BY ANTHROPIC']")).length > 0, '(M4) "by Anthropic" no pôster → vermelho')
 ok(dataProblems(dataSrc.replace("CLAUDE_CARD_HREF = '/claude-connector'", "CLAUDE_CARD_HREF = '/mcp'")).length > 0, '(M5) link do Claude errado → vermelho')
 ok(dataProblems(dataSrc.replace("CLAUDE_CARD_HREF = '/claude-connector'", "CLAUDE_CARD_HREF = 'https://claude.ai/directory/kineo'")).length > 0, '(M18) URL do diretório antes da aprovação → vermelho')
 ok(dataProblems(dataSrc.replace('href: CLAUDE_CARD_HREF,', "href: '/claude-connector',")).length > 0, '(M19) destino digitado fora da constante única → vermelho')

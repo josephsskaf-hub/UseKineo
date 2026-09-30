@@ -45,7 +45,7 @@ export const PROMO_CARDS: readonly PromoCard[] = [
     // Selo honesto (sessão Loja Claude, 30/09): o conector NÃO gera mídia dentro do Claude (regra do diretório) — ele
     // escreve o roteiro e manda para o Kineo Studio, onde o vídeo é renderizado. Nada de "make videos in Claude".
     subtitle: 'Write your video in Claude, render it in Kineo Studio',
-    art: { kind: 'poster', bands: ['KINEO ×', 'CLAUDE', 'SCRIPT → STUDIO'] },
+    art: { kind: 'poster', bands: ['KINEO IN', 'CLAUDE', 'SCRIPT → STUDIO'] }, // 'IN', não '×': o '×' sugere parceria entre marcas enquanto a listagem está em revisão (selo honesto)
   },
   {
     // Acréscimo do fundador (30/09): 3º card, entre o Claude e o Clips. Vídeo feito pela própria Kineo (mesma modelo
