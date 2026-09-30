@@ -166,7 +166,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
             </div>
           )}
           <p style={{ fontSize: '1.02rem', color: '#86868b', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{e.intro}</p>
-          {params.engine === 'seedance' ? (
+          {params.engine === 'seedance' || params.engine === 'veo' ? (
             <SeedanceHeroActions signupHref={signupUrl} campaign={campaign} />
           ) : <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 22 }}>
             <OrganicCtaLink

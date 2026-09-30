@@ -1,6 +1,6 @@
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 
-/** English Seedance hero only; keep both existing destinations intact. */
+/** English Seedance and Veo heroes; keep both existing destinations intact. */
 export default function SeedanceHeroActions({ signupHref, campaign }: {
   signupHref: string
   campaign: string

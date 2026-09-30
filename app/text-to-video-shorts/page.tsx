@@ -11,7 +11,7 @@ import { TEXT_TO_VIDEO_CAMPAIGN } from '@/lib/growth/textToVideoIntent'
 import { buildBlankStudioSignupHref } from '@/lib/growth/publicCreationIntent'
 import TextToVideoIntentForm from './TextToVideoIntentForm'
 // KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — ponte roteiro → Seedance acima da dobra (fundador 23/09, jogada 3).
-import ScriptToSeedanceBridge from '@/components/ScriptToSeedanceBridge'
+import PaidSeedanceBridge from '@/components/PaidSeedanceBridge'
 import { ENGINES } from '@/lib/growth/enginePageCatalog'
 import { enginePaused } from '@/lib/engineLaunch'
 
@@ -64,7 +64,7 @@ const FAQ = [
 export const metadata: Metadata = {
   title: 'Text to Video Shorts Generator - AI YouTube Shorts From Text | Kineo',
   description:
-    'Turn text, a topic, or a script into a finished faceless YouTube Short with AI voiceover, vertical visuals, captions, and MP4 export. Try Fast free with no card.',
+    `Turn a topic or script into a narrated vertical Short with visuals and captions. Trial: ${OFFER.copy.planLimitLine}. Compare films and plans before you choose.`,
   alternates: { canonical: `${BASE}/text-to-video-shorts` },
   openGraph: {
     title: 'Text to Video Shorts Generator - Kineo',
@@ -134,6 +134,7 @@ export default function TextToVideoShortsPage() {
         <p style={{ fontSize: '1.08rem', color: '#86868b', lineHeight: 1.6, margin: '16px 0 0' }}>
           Paste a topic, prompt, or full script. Kineo turns it into a faceless vertical video with AI voiceover, visuals, captions, and an MP4 export for YouTube Shorts, TikTok, and Reels.
         </p>
+        {!enginePaused(ENGINES.seedance.param) && <PaidSeedanceBridge from="text_to_video_shorts" compact />}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '26px 0 0' }}>
           <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 850, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>
             Try text to video free
@@ -145,10 +146,6 @@ export default function TextToVideoShortsPage() {
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 750, margin: '12px 0 0' }}>
           {ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card required.', OFFER.copy.headline)}
         </p>
-
-        {/* KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — medido 23/09: 130 sessões do ChatGPT → 54 contas → 0 pagantes em 60 d.
-            Quem chega com roteiro pronto vê o Seedance antes do formulário grátis. Some se o Seedance estiver pausado. */}
-        {!enginePaused(ENGINES.seedance.param) && <ScriptToSeedanceBridge from="text_to_video_shorts" compact />}
 
         <TextToVideoIntentForm formId={FORM_ID} />
 
@@ -208,7 +205,7 @@ export default function TextToVideoShortsPage() {
 
         <div style={{ marginTop: 44, textAlign: 'center', background: 'radial-gradient(circle at 50% 0%, rgba(41,151,255,0.14), #0c0c0e 70%)', border: '1px solid rgba(41,151,255,0.25)', borderRadius: 18, padding: '34px 22px' }}>
           <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.85rem)', fontWeight: 900 }}>Paste text. Get a Short.</div>
-          <p style={{ color: '#86868b', margin: '8px 0 18px' }}>No camera, no editing timeline. Free to start: 10 credits, no card.</p>
+          <p style={{ color: '#86868b', margin: '8px 0 18px' }}>{OFFER.copy.headline}</p>
           <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="final" style={{ background: '#f5f5f7', color: '#000', fontWeight: 850, padding: '14px 30px', borderRadius: 980, textDecoration: 'none' }}>
             Try my text
           </OrganicCtaLink>

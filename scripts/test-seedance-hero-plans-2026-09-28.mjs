@@ -13,7 +13,9 @@ let tested = 0
 for (const engine of ENGINE_SLUGS) {
   const old = renderToStaticMarkup(await before(path).default({ params: { engine } }))
   const current = renderToStaticMarkup(await after(path).default({ params: { engine } }))
-  if (engine !== 'seedance') assert.equal(current, old, engine + ': entire rendered page unchanged')
+  //30/09: founder increased acquisition work; Veo adopts the same actions.
+  // Its entire non-action content remains byte-locked, as do all other pages.
+  if (engine !== 'seedance' && engine !== 'veo') assert.equal(current, old, engine + ': entire rendered page unchanged')
   else {
     assert.ok(hero(old) && hero(current), 'both heroes exist')
     assert.equal(current.replace(hero(current), ''), old.replace(hero(old), ''), 'all content outside hero unchanged')
@@ -25,7 +27,7 @@ for (const engine of ENGINE_SLUGS) {
     const account = links.findIndex(link => link[2] === 'Create your account')
     assert.ok(plan >= 0 && account === plan + 1, 'plans immediately precedes account')
     assert.equal(links[plan][1], '/pricing')
-    const signup = '/signup?intent_campaign=seo_engine_seedance&amp;redirect=%2Fstudio%3Fengine%3Dseedance%26intent_campaign%3Dseo_engine_seedance'
+    const signup = `/signup?intent_campaign=seo_engine_${engine}&amp;redirect=%2Fstudio%3Fengine%3D${engine}%26intent_campaign%3Dseo_engine_${engine}`
     assert.equal(links[account][1], signup, 'original engine and intent survive signup')
     assert.ok(hero(old).includes('href="' + signup + '"'), 'signup destination existed in base')
     assert.match(links[plan][0], /background:#f5f5f7/)
