@@ -64,7 +64,7 @@ const FAQ = [
 export const metadata: Metadata = {
   title: 'Text to Video Shorts Generator - AI YouTube Shorts From Text | Kineo',
   description:
-    'Turn text, a topic, or a script into a finished faceless YouTube Short with AI voiceover, vertical visuals, captions, and MP4 export. Try Fast free with no card.',
+    `Turn a topic or script into a narrated vertical Short with visuals and captions. ${OFFER.copy.planLimitLine}. Compare films and plans before you choose.`,
   alternates: { canonical: `${BASE}/text-to-video-shorts` },
   openGraph: {
     title: 'Text to Video Shorts Generator - Kineo',

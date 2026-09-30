@@ -60,14 +60,14 @@ const FAQ = [
   },
   {
     q: 'What happens after the free videos?',
-    a: 'You can keep testing with watermarked Fast videos within the free daily limit, or upgrade when you want watermark-free exports and premium AI engines.',
+    a: `${OFFER.copy.sentence} For recurring production, compare the monthly plans and the credits required by your chosen engine and duration. You can choose a plan before making your first film.`,
   },
 ] as const
 
 export const metadata: Metadata = {
   title: 'Free AI Shorts Generator - Create Faceless Shorts With No Card | Kineo',
   description:
-    'Use Kineo as a free AI Shorts generator. Type one idea and create a faceless YouTube Short with script, AI voiceover, visuals, captions, and MP4 export. No card for the Fast test.',
+    `Create faceless Shorts with script, AI voiceover, visuals and captions. ${OFFER.copy.planLimitLine}. Compare films and plans before you choose.`,
   alternates: {
     canonical: `${BASE}/free-ai-shorts-generator`,
     // KINEO-PORTAS-16-LINGUAS-2026-09-20 — hreflang das 16 portas (en/pt/es + 13 em /free-shorts-generator/<lang>).

@@ -111,10 +111,18 @@ const metaBlock = (src) => {
   const b = src.indexOf('export async function generateMetadata')
   return b >= 0 ? src.slice(b, src.indexOf('\n}\n', b)) : null
 }
+// 30/09, ampliação pedida pelo fundador: descriptions das duas portas passam a derivar
+// a oferta atual. A base dizia Fast grátis; título/canonical/OG e todo o resto ficam congelados.
+const currentDescriptions = {
+  'app/free-ai-shorts-generator/page.tsx': [`\`Create faceless Shorts with script, AI voiceover, visuals and captions. \${OFFER.copy.planLimitLine}. Compare films and plans before you choose.\``, "'Use Kineo as a free AI Shorts generator. Type one idea and create a faceless YouTube Short with script, AI voiceover, visuals, captions, and MP4 export. No card for the Fast test.'"],
+  'app/text-to-video-shorts/page.tsx': [`\`Turn a topic or script into a narrated vertical Short with visuals and captions. \${OFFER.copy.planLimitLine}. Compare films and plans before you choose.\``, "'Turn text, a topic, or a script into a finished faceless YouTube Short with AI voiceover, vertical visuals, captions, and MP4 export. Try Fast free with no card.'"],
+}
 for (const f of ['app/free-ai-shorts-generator/page.tsx', 'app/text-to-video-shorts/page.tsx', 'app/state-of-ai-shorts-2026/page.tsx']) {
   const cur = read(f), base = atBase(f)
   check(h1Of(cur) !== null && h1Of(cur) === h1Of(base), `${f}: <h1> igual à base`)
-  check(metaBlock(cur) !== null && metaBlock(cur) === metaBlock(base), `${f}: title/description iguais à base`)
+  const approvedDescription = currentDescriptions[f]
+  const normalizedMeta = approvedDescription ? metaBlock(cur)?.replace(approvedDescription[0], approvedDescription[1]) : metaBlock(cur)
+  check(metaBlock(cur) !== null && (!approvedDescription || metaBlock(cur).includes(approvedDescription[0])) && normalizedMeta === metaBlock(base), `${f}: metadados preservados com apenas description derivada da oferta nas duas portas`)
   check(ldLines(cur).length > 0 && ldLines(cur) === ldLines(base), `${f}: JSON-LD igual à base`)
 }
 

@@ -22,7 +22,7 @@ import { useEffect, useRef } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { creditCostForDuration } from '@/lib/credits/engineCost'
-import { TRIAL_CREDITS_SHOWN, FREE_FILM_LABEL } from '@/lib/freeTierOffer'
+import { TRIAL_CREDITS_SHOWN, FREE_FILM_LABEL, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer'
 
 export const SCRIPT_BRIDGE_VERSION = 'bridge_v1'
 const BRIDGE_FILM_SECONDS = 35
@@ -100,7 +100,7 @@ export default function ScriptToSeedanceBridge({ from, compact = false, proof }:
           <h2 style={{ fontSize: '1.2rem', lineHeight: 1.3, margin: '0 0 8px', color: '#f5f5f7' }}>Make your next story with generated scenes.</h2>
           <p style={{ margin: '0 0 8px', color: '#f5f5f7', lineHeight: 1.6 }}><strong>Starter {starter} USD/month</strong> · {TIER_CREDITS.starter} credits per billing month.</p>
           <p style={{ margin: '0 0 8px', color: '#a1a1a6', fontSize: '.92rem', lineHeight: 1.6 }}>A {BRIDGE_FILM_SECONDS}-second film costs {shortCost} credits; a 60-second film costs {minuteCost}. The plan covers {films} films of {BRIDGE_FILM_SECONDS} s if you spend its whole balance on this engine and duration. Other creations share that balance.</p>
-          <p style={{ margin: '0 0 14px', color: '#a1a1a6', fontSize: '.85rem', lineHeight: 1.5 }}>New accounts can try one {FREE_FILM_LABEL}, watermarked. The {TRIAL_CREDITS_SHOWN}-credit trial {TRIAL_CREDITS_SHOWN >= shortCost ? 'also covers the 35-second reference' : 'does not cover the longer 35-second reference above'}. Choose a paid plan for clean downloads and recurring production; trying a film first is optional. Review the prepared script and settings before generating.</p>
+          <p style={{ margin: '0 0 14px', color: '#a1a1a6', fontSize: '.85rem', lineHeight: 1.5 }}>New accounts{GRANT_COUNTRY_CLAUSE} can try one {FREE_FILM_LABEL}, watermarked. The {TRIAL_CREDITS_SHOWN}-credit trial {TRIAL_CREDITS_SHOWN >= shortCost ? 'also covers the 35-second reference' : 'does not cover the longer 35-second reference above'}. Choose a paid plan for clean downloads and recurring production; trying a film first is optional. Review the prepared script and settings before generating.</p>
           <Link href={href} onClick={onClick} style={{ display: 'inline-block', background: '#2997ff', color: '#001b33', fontWeight: 900, padding: '12px 20px', borderRadius: 980, textDecoration: 'none', fontSize: '.95rem' }}>See Seedance films & plans →</Link>
         </div>
       </div> : <>
