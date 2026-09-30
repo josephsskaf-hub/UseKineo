@@ -153,6 +153,7 @@ export default function InstallAppBanner() {
           onClick={install}
           style={{
             padding: '9px 16px',
+            minHeight: 44,
             borderRadius: 11,
             border: 'none',
             background: 'var(--indigo)',

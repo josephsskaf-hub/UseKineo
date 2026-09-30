@@ -58,6 +58,7 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
       if(id==='./BusinessAdsOffers')return load('app/business-video-ads/BusinessAdsOffers.tsx')
       if(id==='next/navigation')return {useSearchParams:()=>new URLSearchParams(),usePathname:()=>fixture.pathname??'/studio',useRouter:()=>({})}
       if(id==='@/lib/analytics')return {trackEvent:()=>{throw Error('Analytics forbidden')}}
+      if(fixture.previewAffiliates && id==='@/lib/push')return {VAPID_PUBLIC_KEY:'preview-only-effects-disabled'}
       if(id==='@/components/FreeTierOfferProvider' && fixture.demoOffer){const offer=load('lib/freeTierOffer.ts').buildFreeTierOffer(fixture.demoOffer !== 'current');return {useFreeTierOffer:()=>offer,FreeTierCopy:({legacy,on,onKey})=>load('lib/freeTierOffer.ts').swapFreeTierCopy(offer,legacy,on??(onKey?offer.copy[onKey]:undefined))}}
       if(id==='@/lib/supabase/client' && fixture.demoShell)return {createClient:()=>({auth:{signOut:()=>{throw Error('Auth mutation forbidden')}}})}
       if(id==='@/lib/supabase/client')return {createClient:()=>{throw Error('Database access forbidden in offline preview')}}

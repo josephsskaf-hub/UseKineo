@@ -121,9 +121,9 @@ export default function EnablePushBanner() {
         gap: 12,
         padding: '12px 14px',
         borderRadius: 16,
-        background: 'rgba(22,22,24,0.97)',
-        border: '1px solid #2a2a2d',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+        background: 'var(--card)',
+        border: '1px solid var(--border)',
+        boxShadow: 'var(--sh-card-h)',
         backdropFilter: 'blur(10px)',
         maxWidth: 480,
         margin: '0 auto',
@@ -134,7 +134,7 @@ export default function EnablePushBanner() {
           width: 40,
           height: 40,
           borderRadius: 11,
-          background: '#2997ff',
+          background: 'var(--accent-soft)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -146,10 +146,10 @@ export default function EnablePushBanner() {
       </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: '#f5f5f7', lineHeight: 1.3 }}>
+        <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 650, color: 'var(--text)', lineHeight: 1.3 }}>
           Know when your video is ready
         </p>
-        <p style={{ margin: '2px 0 0', fontSize: '0.68rem', color: '#86868b', lineHeight: 1.4 }}>
+        <p style={{ margin: '2px 0 0', fontSize: '0.68rem', color: 'var(--muted)', lineHeight: 1.4 }}>
           Renders take a few minutes — we&apos;ll ping you the second it&apos;s done
         </p>
       </div>
@@ -159,12 +159,13 @@ export default function EnablePushBanner() {
         disabled={busy}
         style={{
           padding: '9px 16px',
+          minHeight: 44,
           borderRadius: 11,
           border: 'none',
-          background: '#2997ff',
-          color: '#fff',
+          background: 'var(--indigo)',
+          color: 'var(--on-accent)',
           fontSize: '0.75rem',
-          fontWeight: 900,
+          fontWeight: 650,
           cursor: busy ? 'wait' : 'pointer',
           flexShrink: 0,
         }}
@@ -176,12 +177,12 @@ export default function EnablePushBanner() {
         onClick={dismiss}
         aria-label="Dismiss"
         style={{
-          width: 28,
-          height: 28,
+          width: 44,
+          height: 44,
           borderRadius: 8,
           border: 'none',
-          background: 'rgba(255,255,255,0.06)',
-          color: '#86868b',
+          background: 'var(--card2)',
+          color: 'var(--muted)',
           fontSize: '0.8rem',
           fontWeight: 700,
           cursor: 'pointer',
