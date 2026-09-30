@@ -12,6 +12,16 @@ Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aq
 **PRÉ-REQUISITO:** migrations_pending/2026-09-30_ads_v2_variacoes.sql aplicada ANTES do deploy (sem ela a rota responde 503 'not_ready' sem cobrar).
 **GUARDIÃO:** scripts/test-ads-3-variacoes-2026-09-30.mjs.
 
+## 2026-09-30 — Home em 2 faixas: cards de novidade no topo, motores intocados logo abaixo
+
+**QUEM DECIDIU:** o fundador, 30/09. Pedido: "quero esses cards no Kineo também, com essas edições legais" (referência: a fileira do topo do higgsfield.ai, sem copiar marca, cor nem texto). Decisão de layout, literal: **"concordo com as 2 faixas"**.
+**O QUE MUDA:**
+1. **FAIXA 1 (topo, logo abaixo do menu):** fileira de cards grandes de novidade, nesta ordem — **Kineo for Claude** → `/claude-connector` (pôster animado em CSS) · **Ads: 3 variations** → `/ads` (vídeo do fundador) · **Clips** → `/clips` (tempestade Seedance 1.5, rótulos "NEW" e "5 · 7 · 10 · 15 s"). Dados em `lib/ui/promoCards.ts`, componente `components/PromoCards.tsx`.
+2. **FAIXA 2 (logo abaixo):** os cards de motor e a curadoria que já existem (hero de filmes, `lib/engineWall.ts`), **intocados** — não remover nem reordenar.
+3. **Selo honesto do card do Claude:** o conector NÃO gera mídia dentro do Claude; ele escreve o roteiro e manda para o Kineo Studio. Subtítulo: "Write your video in Claude, render it in Kineo Studio". Proibido: "make videos (in Claude)", official/partner/approved/certified/"by Anthropic", diretório e logo da Anthropic, enquanto a listagem estiver em revisão. O destino mora numa constante única (`CLAUDE_CARD_HREF`) para virar a página do diretório em UMA linha quando a Anthropic aprovar.
+**MEDIR (7 dias):** evento de navegador `promo_card_clicked` com `{card, position, href, surface:'home', promo_v:1}`; a leitura corta por `metadata->>'promo_v'`, não pelo relógio do deploy. Guardião: `scripts/test-promo-cards-2026-09-30.mjs`.
+
+
 ## 2026-09-29 (noite) — Quatro entregas: foto de referência, Clipes 5/7/10/15 s, filmes de 15/30 s em todos os motores, "Estrela do filme"
 
 **QUEM DECIDIU:** o fundador, 29/09, literal: "vai pra todas as 4 … é muito mais público que podemos alcançar", e depois "clipes de 5, 7, 10 e 15 segundos, além dos que a gente já tem". Este "vai" é a autorização nominal da trava 8.2 para as entregas que mexem nas rotas travadas (durações curtas nos filmes); os commits levam a marca [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'].
