@@ -320,6 +320,13 @@ export function mentionsRealPerson(text: string): boolean {
   return HISTORICAL_TITLE_NAME_RE.test(t)
 }
 
+/** [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29 — só a lista de figuras ATUAIS
+ * (celebridades, políticos, atletas). A rota do filme recusa a "Estrela do filme" quando o texto nomeia uma delas. [KINEO-ESTRELA-DO-FILME-2026-09-29] */
+export function mentionsContemporaryFigure(text: string): boolean { // KINEO-ESTRELA-DO-FILME-2026-09-29
+  CONTEMPORARY_FIGURE_RE.lastIndex = 0 // KINEO-ESTRELA-DO-FILME-2026-09-29
+  return CONTEMPORARY_FIGURE_RE.test(text ?? '') // KINEO-ESTRELA-DO-FILME-2026-09-29
+} // KINEO-ESTRELA-DO-FILME-2026-09-29
+
 /** Replace any real-person name with a generic fictional description. */
 export function sanitizeRealPeople(text: string): string {
   CONTEMPORARY_FIGURE_RE.lastIndex = 0

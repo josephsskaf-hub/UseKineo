@@ -137,6 +137,18 @@ export function duracoesCurtasVisible(email?: string | null): boolean {
   return DURACOES_CURTAS_PUBLIC || isInternalEmail(email)
 }
 
+// ═══ KINEO-ESTRELA-DO-FILME-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] ═══
+// "Estrela do filme": 1–3 fotos do rosto de uma pessoa (com autorização) viram o protagonista de toda cena com gente
+// (lib/estrelaDoFilme.ts). A sobretaxa (5 cr a cada 6 s de filme) é PROPOSTA — preço público é decisão do fundador. Mesmo
+// desenho do DURACOES_CURTAS_PUBLIC: false → só as contas da casa (isInternalEmail) veem o bloco no /studio, e o SERVIDOR
+// recusa (403, antes do débito) a estrela de conta de fora. Virar true depois do canário aprovado (um commit de uma linha).
+export const ESTRELA_PUBLIC = false
+
+/** O bloco "Estrela do filme" aparece (e o servidor aceita) para este e-mail? */
+export function estrelaVisible(email?: string | null): boolean {
+  return ESTRELA_PUBLIC || isInternalEmail(email)
+}
+
 /** Copy de contagem: 'Eight' hoje, 'Nine' no lancamento. Uma verdade, N telas. */
 // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 — a contagem e a lista públicas só falam dos motores que o público pode
 // apertar HOJE: Veo 3.1, Kling 3, Kling 2.5, Seedance 1.5, Kineo 1 e Avatar (H3/Omni/S25 pausados, S25 interno).

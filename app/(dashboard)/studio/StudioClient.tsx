@@ -15,6 +15,12 @@ import { KineoBoltText } from '@/components/KineoBolt'
 //   · pills com estado selecionado em glow, hover com lift de 1px
 //   · resumo vivo no card de custo: motor · duração · resolução · aspecto
 import { UiLabel, useUiCopy } from '@/components/InterfaceLanguage'
+// KINEO-ESTRELA-DO-FILME-2026-09-29 — o bloco "Estrela do filme": interruptor, régua pura (motor com âncora + sobretaxa, a MESMA função
+// que o servidor soma ao preço) e os textos novos nas 16 línguas.
+import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
+import { ESTRELA_PUBLIC } from '@/lib/engineLaunch'
+import { estrelaDisponivelNoMotor, estrelaSobretaxa } from '@/lib/estrelaDoFilme'
+import { estrelaCopy } from '@/lib/estrelaCopy'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { CLIP_CREDITS } from '@/lib/cinematic/shotSpec'
@@ -236,6 +242,14 @@ export default function StudioClient() {
   // KINEO-DURACOES-CURTAS-2026-09-29 — os botões curtos NOVOS (Kling 2.5/Veo 15 s; hollywood 15/30 s): flag `curtas` do /api/me/credits
   // (DURACOES_CURTAS_PUBLIC || casa). Falha fechada: sem a flag, sem botão (o servidor aceita, a tela só não oferece).
   const [curtasOk, setCurtasOk] = useState(false)
+  // KINEO-ESTRELA-DO-FILME-2026-09-29 — "Estrela do filme": 1–3 fotos do rosto viram o protagonista (lib/estrelaDoFilme.ts). Flag `estrela`
+  // do /api/me/credits (ESTRELA_PUBLIC || casa); falha fechada: sem a flag, sem bloco. As fotos sobem pela MESMA rota do /images
+  // (/api/images/reference: moderada, pasta da conta, só o CAMINHO volta); a miniatura é local (object URL).
+  const [estrelaOk, setEstrelaOk] = useState<boolean>(ESTRELA_PUBLIC)
+  const [estrelaFotos, setEstrelaFotos] = useState<{ key: string; path: string | null; preview: string; uploading: boolean }[]>([])
+  const [estrelaConsent, setEstrelaConsent] = useState(false)
+  const [estrelaErro, setEstrelaErro] = useState<string | null>(null)
+  const idiomaDaTela = useInterfaceLanguage()
   // KINEO-AVATAR-FORA-2026-09-28 — fundador (27/09): "avatar sai por hora". O link "AI Presenter ↗" e o card Avatar
   // do seletor só aparecem com AVATAR_PUBLIC=true ou para conta da casa (flag `avatar` do /api/me/credits =
   // avatarVisible). Medido: 0 cliques em studio_avatar_card_clicked na história do evento. Flag própria, não
@@ -265,7 +279,7 @@ export default function StudioClient() {
     let alive = true
     fetch('/api/me/credits', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (alive) { setKineo1Flag(d?.kineo1 === true ? true : d?.kineo1 === false ? false : null); if (typeof d?.hasPaid === 'boolean') setContaPaga(d.hasPaid) } return d }) // KINEO-ENTRADA-SEEDANCE15
+      .then((d) => { if (alive) { setKineo1Flag(d?.kineo1 === true ? true : d?.kineo1 === false ? false : null); if (typeof d?.hasPaid === 'boolean') setContaPaga(d.hasPaid); if (d?.estrela === true) setEstrelaOk(true) } return d }) // KINEO-ENTRADA-SEEDANCE15 · KINEO-ESTRELA-DO-FILME-2026-09-29 (flag estrela)
       .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true); if (alive && d?.avatar === true) setAvatarOn(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && d?.curtas === true) setCurtasOk(true); if (alive && typeof d?.plan === 'string') setPlan(d.plan) })
       .catch(() => {}) // saldo é enfeite: falhou, a tela segue como antes
       .finally(() => { if (alive) setFlagsProntas(true) }) // KINEO-ENTRADA-SEEDANCE15
@@ -461,7 +475,14 @@ export default function StudioClient() {
   }, [kineo1Fit.show, kineo1Fit.version, kineo1Fit.reason, kineo1FitKept])
   // Um cálculo só, usado no preço, no botão e no aviso — para os três nunca
   // discordarem entre si (foi assim que a tela e o servidor divergiram ontem).
-  const cost = creditCostForDuration(ENGINE_QUALITY[eng.key] ?? 'cinematic_ai', true, duration)
+  // KINEO-ESTRELA-DO-FILME-2026-09-29 — com a estrela ligada (flag + motor com âncora + ≥1 foto pronta + autorização), a sobretaxa
+  // entra NO MESMO número do preço, do botão e do aviso de saldo: é a MESMA função (estrelaSobretaxa) que o servidor soma antes do débito.
+  const estrelaFotosProntas = estrelaFotos.filter((f) => f.path).map((f) => f.path as string)
+  const estrelaNoMotor = estrelaDisponivelNoMotor(eng.key)
+  const estrelaLigada = estrelaOk && scriptMode !== 'clip' && estrelaNoMotor && estrelaConsent && estrelaFotosProntas.length > 0
+  const estrelaCr = estrelaLigada ? estrelaSobretaxa(eng.key, duration) : 0
+  const estrelaEnviando = estrelaFotos.some((f) => f.uploading)
+  const cost = creditCostForDuration(ENGINE_QUALITY[eng.key] ?? 'cinematic_ai', true, duration) + estrelaCr
 
   // ═══ KINEO-PRECO-VISIVEL-2026-09-02 — O SALDO EM FILMES ═══════════════════
   // O buraco que nenhum dos nove concorrentes auditados preenche: Higgsfield e
@@ -621,6 +642,65 @@ export default function StudioClient() {
   useEffect(() => () => { if (clipPollRef.current) clearTimeout(clipPollRef.current) }, [])
   // VARREDURA-LIMITES-2026-09-23 — entrou no modo clipe com 4:5 escolhido: volta ao 9:16 VISÍVEL em vez de trocar escondido no servidor.
   useEffect(() => { if (scriptMode === 'clip' && !(CLIP_ASPECTS as readonly string[]).includes(aspect)) setAspect('9:16') }, [scriptMode, aspect])
+
+  // ═══ KINEO-ESTRELA-DO-FILME-2026-09-29 — upload das fotos da estrela: a MESMA rota e as mesmas regras da foto de referência do /images
+  // (JPG/PNG/WEBP, ≤ 10 MB, reduzida a ≤ 2048 px no navegador, `rights=true` só com a caixa marcada; o servidor modera e guarda na pasta
+  // da conta e devolve só o caminho). Até 3 fotos.
+  const addEstrelaFotos = async (list: FileList | null) => {
+    const files = Array.from(list ?? []).slice(0, Math.max(0, 3 - estrelaFotos.length))
+    if (!estrelaConsent || files.length === 0) return
+    setEstrelaErro(null)
+    for (const file of files) {
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setEstrelaErro(t('Only JPG, PNG or WEBP photos.')); continue }
+      if (file.size > 10 * 1024 * 1024) { setEstrelaErro(t('Photo is too large — max 10 MB.')); continue }
+      const key = `${Date.now()}-${Math.random().toString(36).slice(2)}`
+      const preview = URL.createObjectURL(file)
+      setEstrelaFotos((xs) => [...xs, { key, path: null, preview, uploading: true }])
+      try {
+        let blob: Blob = file
+        try {
+          const bmp = await createImageBitmap(file)
+          const scale = Math.min(1, 2048 / Math.max(bmp.width, bmp.height))
+          const canvas = document.createElement('canvas')
+          canvas.width = Math.max(1, Math.round(bmp.width * scale))
+          canvas.height = Math.max(1, Math.round(bmp.height * scale))
+          canvas.getContext('2d')?.drawImage(bmp, 0, 0, canvas.width, canvas.height)
+          bmp.close()
+          blob = (await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9))) ?? file
+        } catch {}
+        const form = new FormData()
+        form.append('file', blob, blob === file ? file.name : 'reference.jpg')
+        form.append('rights', 'true')
+        const res = await fetch('/api/images/reference', { method: 'POST', body: form })
+        const data = await res.json().catch(() => null)
+        if (!res.ok || typeof data?.path !== 'string') throw new Error(typeof data?.error === 'string' ? data.error : estrelaCopy(idiomaDaTela, 'uploadFailed'))
+        setEstrelaFotos((xs) => xs.map((x) => (x.key === key ? { ...x, path: data.path as string, uploading: false } : x)))
+        void trackEvent('studio_estrela_photo_added', { count: estrelaFotos.length + 1 })
+      } catch (e) {
+        URL.revokeObjectURL(preview)
+        setEstrelaFotos((xs) => xs.filter((x) => x.key !== key))
+        setEstrelaErro(e instanceof Error ? e.message : estrelaCopy(idiomaDaTela, 'uploadFailed'))
+      }
+    }
+  }
+  // KINEO-ESTRELA-DO-FILME-2026-09-29 — o pedido da estrela viaja pela sessionStorage (mesma origem), NUNCA pela URL, sempre em
+  // sincronia com a tela: com a estrela ligada, os CAMINHOS prontos + a autorização + o motor/duração/texto que o preço mostrou;
+  // desligada, a chave some. O generate() de sempre fica intocado. O /studio/create só usa o pedido se motor, duração e texto
+  // da URL forem os mesmos, apaga ao ler, e o servidor confere dono, autorização, interruptor e motor de novo.
+  const estrelaAssinatura = estrelaFotosProntas.join('|')
+  useEffect(() => {
+    try {
+      if (estrelaLigada) sessionStorage.setItem('kineo:studio:estrela:v1', JSON.stringify({ t: Date.now(), engine, duration, prompt: finalPrompt, paths: estrelaFotosProntas, consent: true }))
+      else sessionStorage.removeItem('kineo:studio:estrela:v1')
+    } catch {}
+  }, [estrelaLigada, engine, duration, finalPrompt, estrelaAssinatura]) // eslint-disable-line react-hooks/exhaustive-deps
+  const removeEstrelaFoto = (key: string) => {
+    setEstrelaFotos((xs) => {
+      const gone = xs.find((x) => x.key === key)
+      if (gone) URL.revokeObjectURL(gone.preview)
+      return xs.filter((x) => x.key !== key)
+    })
+  }
 
   const generate = () => {
     // VARREDURA-LIMITES-2026-09-23 — o clipe também respeita o teto (6.000, o da rota do clipe) antes de gastar.
@@ -822,6 +902,45 @@ export default function StudioClient() {
               </div>
             )}
             <DiretorKineo text={prompt} mode={scriptMode} engine={engine} engineName={eng.name} duration={duration} language={language} aspect={aspect} onApply={setPrompt} />
+            {/* KINEO-ESTRELA-DO-FILME-2026-09-29 — "Estrela do filme": o mesmo desenho da foto de referência do /images (caixa de
+                autorização antes de subir, até 3 miniaturas com X). Só com a flag `estrela` e fora do modo clipe; em motor sem âncora
+                (Kineo 1 / Seedance 2.5) o bloco vira aviso — e o servidor recusa antes do débito se alguém mandar mesmo assim. */}
+            {estrelaOk && scriptMode !== 'clip' && (
+              <div data-kineo="estrela-do-filme" style={{ marginTop: 12, padding: 14, border: '1px solid var(--border)', borderRadius: 13, background: 'var(--card2)' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>⭐ {estrelaCopy(idiomaDaTela, 'title')}</div>
+                {estrelaNoMotor ? (
+                  <>
+                    <p className="val" style={{ margin: '6px 0 0', fontSize: 12, lineHeight: 1.45 }}>{estrelaCopy(idiomaDaTela, 'help')}</p>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 10, fontSize: 12.5, lineHeight: 1.45, color: 'var(--text2)', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={estrelaConsent} onChange={(e) => setEstrelaConsent(e.target.checked)} style={{ marginTop: 2, flexShrink: 0 }} />
+                      <span><UiLabel>I have permission from the person in the photo to use their image.</UiLabel></span>
+                    </label>
+                    <div className="row" style={{ marginTop: 10, gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      {estrelaFotos.map((f) => (
+                        <div key={f.key} style={{ position: 'relative', width: 64, height: 64, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border2)', opacity: f.uploading ? 0.45 : 1 }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={f.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                          <button type="button" aria-label={t('Remove photo')} onClick={() => removeEstrelaFoto(f.key)} style={{ position: 'absolute', top: 3, insetInlineEnd: 3, width: 22, height: 22, borderRadius: '50%', border: 0, background: 'rgba(0,0,0,.65)', color: '#fff', fontSize: 13, lineHeight: '22px', padding: 0, cursor: 'pointer' }}>×</button>
+                        </div>
+                      ))}
+                      {estrelaFotos.length < 3 && (
+                        <label className="pill" aria-disabled={!estrelaConsent} style={{ cursor: estrelaConsent ? 'pointer' : 'not-allowed', opacity: estrelaConsent ? 1 : 0.5 }}>
+                          <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden disabled={!estrelaConsent}
+                            onChange={(e) => { void addEstrelaFotos(e.target.files); e.target.value = '' }} />
+                          + <UiLabel>Add photo</UiLabel>
+                        </label>
+                      )}
+                    </div>
+                    <p className="val" style={{ margin: '6px 0 0', fontSize: 12, opacity: 0.8 }}><UiLabel>{estrelaConsent ? 'Up to 3 photos · JPG, PNG or WEBP · max 10 MB each' : 'Check the box above to add a photo.'}</UiLabel></p>
+                    {estrelaEnviando && <p className="val" style={{ margin: '6px 0 0', fontSize: 12 }}><UiLabel>Uploading photo…</UiLabel></p>}
+                    {estrelaLigada && <p className="val" data-kineo="estrela-preco" style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--accent)' }}>{estrelaCopy(idiomaDaTela, 'price', { n: estrelaCr, s: duration })}</p>}
+                    {estrelaErro && <p role="alert" style={{ margin: '6px 0 0', fontSize: 12, color: '#fb923c' }}>{estrelaErro}</p>}
+                  </>
+                ) : (
+                  <p className="val" style={{ margin: '6px 0 0', fontSize: 12, lineHeight: 1.45 }}>{estrelaCopy(idiomaDaTela, 'off')}</p>
+                )}
+              </div>
+            )}
           </div>
 <div id="studio-generation-review" tabIndex={-1} className="cost studio-generation-review" aria-label={t('Review and generate', 'Revisar y generar')}>
             <div className="sum" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className="eng-ic" style={{ width: 24, height: 24, borderRadius: 7, fontSize: 10.5 }} aria-hidden="true"><KineoBoltText>{eng.icon}</KineoBoltText></span>{scriptMode === 'clip' ? `Seedance 1.5 · ${clipSeconds}s · ${aspect}` : `${eng.name} · ${duration}s · 1080p · ${aspect}`}{preset ? ` · ${CAMERA_PRESETS.find((c) => c.key === preset)?.label}` : ''}</div>
@@ -833,6 +952,13 @@ export default function StudioClient() {
               <span><UiLabel>{(scriptMode !== 'clip' && rotuloDoFilmeGratis({ entrada15, trialActive: trialOn, balance, engine, duration, custoSeedance })) || 'Estimated cost'}</UiLabel></span>
               <b style={balance !== null && (scriptMode === 'clip' ? CLIP_CREDITS : cost) > balance ? { color: '#fb923c' } : undefined}>{scriptMode === 'clip' ? CLIP_CREDITS : cost} cr</b>
             </div>
+            {/* KINEO-ESTRELA-DO-FILME-2026-09-29 — a sobretaxa aparece ANTES do clique e já está dentro do número acima e do botão. */}
+            {estrelaCr > 0 && (
+              <div className="val" data-kineo="estrela-linha-do-custo" style={{ opacity: 0.85 }}>
+                <span>⭐ {estrelaCopy(idiomaDaTela, 'row')}</span>
+                <b style={{ fontWeight: 600 }}>+{estrelaCr} cr</b>
+              </div>
+            )}
             {balance !== null && (scriptMode === 'clip' ? CLIP_CREDITS : cost) > balance && (
               // A verdade ANTES da ideia ser escrita, não depois do clique.
               <div className="val" style={{ color: '#fb923c', fontSize: '0.78rem' }}>

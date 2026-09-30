@@ -22,6 +22,7 @@ import { decideModeration, type ModerationDecision } from './moderationPolicy'
 export type ModerationSurface =
   | 'images' | 'images_edit' | 'images_upscale' | 'animate' | 'gesture' | 'avatar' | 'avatar_scene' | 'clip' | 'character'
   | 'footage' | 'ads_brief' | 'ads_render' | 'images_reference'
+  | 'estrela' // KINEO-ESTRELA-DO-FILME-2026-09-29 — still da estrela (Nano Banana Pro edit) conferido ANTES de virar âncora de cena
 export type ModerationStage = 'input' | 'output' | 'upload'
 
 export type ModerationVerdict =

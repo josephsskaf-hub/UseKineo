@@ -64,6 +64,7 @@ import {
 // sides asking a human to keep them in sync. It is now derived from
 // PEOPLE_LIFESTYLE_WORDS in one place.
 import { PEOPLE_LIFESTYLE_RE } from '@/lib/broll/aesthetic-packs'
+import { estrelaMotorSemAncoraMensagem } from '@/lib/estrelaDoFilme' // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29
 // KINEO-VIGIA-PALAVRAS-POR-CENA-2026-09-11 — a MESMA régua que o /api/compose
 // usa para escalar a narração (3,1 pal/s × duração). Fonte única: se o roteiro
 // já nasce nessa conta, o escalador fica dentro da tolerância (±15%) e NÃO
@@ -476,6 +477,11 @@ export async function POST(req: NextRequest) {
       recordFastFailure('generating', 'invalid_request_body', 400, user.id)
       return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 })
     }
+    // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29 — o Kineo 1 monta footage de banco:
+    // não há still gerado para pôr o rosto. A estrela é recusada AQUI, antes de qualquer débito (a tela já não oferece). [KINEO-ESTRELA-DO-FILME-2026-09-29]
+    if ((body as { estrela?: unknown }).estrela != null && (body as { estrela?: unknown }).estrela !== false) { // KINEO-ESTRELA-DO-FILME-2026-09-29
+      return NextResponse.json({ error: estrelaMotorSemAncoraMensagem('fast'), reason: 'estrela_engine', retryable: false, charged: false, refunded: false }, { status: 422 }) // KINEO-ESTRELA-DO-FILME-2026-09-29
+    } // KINEO-ESTRELA-DO-FILME-2026-09-29
 
     // KINEO-IDEIA-COLADA-2026-09-12 — ideia de 1 clique colada na frente do texto
     // da pessoa não é o tema (fichas 7/9/10 do diário dos 20 filmes).

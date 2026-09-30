@@ -383,6 +383,7 @@ import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 // da porta de $1. Ver o cabeçalho do componente: medido em 08/09, a porta de $1
 // estava VISÍVEL dentro do modal e perdeu para a grade de planos da mesma caixa.
 import CardEntryDoor from '@/components/CardEntryDoor'
+import { estrelaDisponivelNoMotor } from '@/lib/estrelaDoFilme' // KINEO-ESTRELA-DO-FILME-2026-09-29
 // KINEO-LOWCREDITS-UPSELL import removed 09/07 — banner retired (see note at
 // the old render site; 0 credits is the normal free state now).
 
@@ -1162,6 +1163,25 @@ export default function GenerateClient({
   const OFFER = useFreeTierOffer()
   const router = useRouter()
   const searchParams = useSearchParams()
+  // ═══ KINEO-ESTRELA-DO-FILME-2026-09-29 — a "Estrela do filme" escolhida no /studio ═══
+  // A URL não carrega nada da estrela: os CAMINHOS das fotos (pasta da conta) e a autorização vêm da sessionStorage da mesma
+  // origem, que o /studio mantém em sincronia com a tela. Só valem se o motor, a duração e o texto da URL forem os MESMOS que o
+  // preço do /studio mostrou (senão é outro pedido), por até 2 h; lidos UMA vez e apagados. Vão no payload do
+  // /api/generate-video-cinematic só num motor com âncora (lib/estrelaDoFilme ESTRELA_MOTORES); o servidor confere dono,
+  // autorização, interruptor e motor de novo.
+  const estrelaRef = useRef<{ paths: string[]; consent: true } | null>(null)
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('kineo:studio:estrela:v1')
+      if (!raw) return
+      sessionStorage.removeItem('kineo:studio:estrela:v1')
+      const tok = JSON.parse(raw) as { t?: number; engine?: unknown; duration?: unknown; prompt?: unknown; paths?: unknown; consent?: unknown }
+      const mesmoPedido = tok.engine === searchParams?.get('engine') && String(tok.duration) === searchParams?.get('duration') && tok.prompt === searchParams?.get('prompt')
+      if (mesmoPedido && typeof tok.t === 'number' && Date.now() - tok.t < 2 * 60 * 60_000 && tok.consent === true && Array.isArray(tok.paths) && tok.paths.length > 0 && tok.paths.length <= 3 && tok.paths.every((p) => typeof p === 'string')) {
+        estrelaRef.current = { paths: tok.paths as string[], consent: true }
+      }
+    } catch {}
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — na montagem (antes de /api/credits dizer se a conta paga): com a entrada
   // nova, o Kineo 1 só existe para quem tem a flag kineo1 === true. 'Não sei' vira "pagante?" depois (kineo1Shown).
   const kineo1NaMontagem = kineo1NaTela({ entrada15: seedance15Prop === true, kineo1: kineo1Visible, hasPaid: null })
@@ -8600,7 +8620,8 @@ export default function GenerateClient({
           // Push #411 — pass scriptMode so 'Use my script as is' keeps the
           // user's words VERBATIM in the AI engines too (server splits scenes
           // in code; GPT only generates the visual layer).
-          body: analyzeBody,
+          // KINEO-ESTRELA-DO-FILME-2026-09-29 — com a estrela, só a MARCA estrela:true (liga a exceção estreita da regra REAL PEOPLE), nunca as fotos.
+          body: estrelaRef.current ? JSON.stringify({ ...JSON.parse(analyzeBody), estrela: true }) : analyzeBody,
           signal: controller.signal,
         })
       let res: Response
@@ -9677,6 +9698,8 @@ export default function GenerateClient({
           brollScenes: cineBrollScenes,
           globalStyle: cineUsable ? cinePlan!.globalStyle : undefined,
           ...(aiEngine === 'hollywood' && selectedCharacterId ? { characterId: selectedCharacterId } : {}),
+          // KINEO-ESTRELA-DO-FILME-2026-09-29 — as fotos da estrela (caminhos + autorização) só num motor com âncora.
+          ...(estrelaRef.current && estrelaDisponivelNoMotor(aiEngine) ? { estrela: estrelaRef.current } : {}),
         }
         let res: Response
         let data: Record<string, unknown>

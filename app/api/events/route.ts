@@ -217,6 +217,10 @@ const SERVER_ONLY_EVENTS = new Set([
   // /api/images/generate (geração com foto de referência, com o desfecho). São a métrica da peça nova; o navegador não cunha.
   'images_reference_uploaded',
   'images_reference_used',
+  // KINEO-ESTRELA-DO-FILME-2026-09-29 — escritos SÓ por /api/generate-video-cinematic (pedido aceito/recusado, com a
+  // sobretaxa; e o desfecho dos stills: cenas, ancoradas, fallback). Contagens, sem caminho nem URL. O navegador não cunha.
+  'estrela_requested',
+  'estrela_scene_anchored',
 ])
 
 export async function POST(req: NextRequest) {
