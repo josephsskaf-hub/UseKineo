@@ -3,6 +3,13 @@
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
 
+## 2026-09-30 — Paleta "Porcelana" no site inteiro (claro e escuro)
+
+**QUEM DECIDIU:** o fundador, 30/09: "o branco reflete um pouco o que está mal acabado", "to cogitando escolher a porcelana mesmo" e "sim subimos por aqui… só subir a interface nova e aos poucos ir corrigindo".
+**O QUE:** tema claro = branco de papel #F7F7F5, cards #FFFFFF, linha #E4E4E0, texto #0E1116, destaque cobalto #0A5CFF; menu da home branco translúcido, botão "Start free" preto. Tema escuro = #07090D, cards #10141B, linha #1F2530, destaque #4D8DFF. Substitui o White + Graphite de 25/09 e o marinho #0c1521/#2997ff.
+**ONDE:** app/appearance.css (app) e app/kineoLandingTheme.ts (home). Azuis #2997ff cravados em telas antigas e a página /claude-connector (escura própria) ficam para ajuste gradual.
+**EM ABERTO:** o fundador pediu ao GPT uma segunda opinião sobre contraste e detalhes; ajustes finos entram depois, sem trocar a essência (branco limpo + cobalto).
+
 ## 2026-09-30 — Studio Ads: "3 variações" a 2,5 × o preço do nível
 
 **QUEM DECIDIU:** o fundador, 30/09, literal: "3 variações sim" e, sobre o preço proposto, "preço aprovado".
