@@ -62,7 +62,7 @@ function dataProblems(src) {
   if (ads) {
     if (ads.title !== 'ADS: 3 VARIATIONS') probs.push('título do card de Ads mudou')
     if ((ads.art.clips || []).map((v) => v.src).join(',') !== '/previews/promo-ads-a.mp4,/previews/promo-ads-b.mp4,/previews/promo-ads-c.mp4') probs.push('card de Ads sem os 3 anúncios A/B/C')
-    if (JSON.stringify(ads.art.chips) !== '["A","B","C"]' || ads.art.chipsFollowClip !== true) probs.push('chips A/B/C do Ads não acompanham o vídeo')
+    // Fundador 30/09: "deixar os cards limpos… sem 5 s, 7 s, 10, 15… sem ABC".
     if (ads.gate) probs.push('card de Ads com interruptor inesperado')
   }
   if (!claude || claude.href !== '/claude-connector') probs.push('card do Claude não aponta para /claude-connector')
@@ -78,15 +78,17 @@ function dataProblems(src) {
     if (MEDIA_IN_CLAUDE.test(visible)) probs.push(`card do Claude diz que a mídia nasce no Claude: ${visible.match(MEDIA_IN_CLAUDE)[0]}`)
     if (!/in Claude/.test(claude.subtitle) || !/Kineo Studio/.test(claude.subtitle)) probs.push('subtítulo do Claude não diz onde cada parte acontece (roteiro no Claude, render no Kineo Studio)')
     if ((claude.art.clips || []).some((v) => !/^\/previews\/promo-claude-\d\.mp4$/.test(v.src))) probs.push('card do Claude com vídeo fora das amostras Kineo (promo-claude-N)')
-    if (JSON.stringify(claude.art.bands) !== '["KINEO IN","CLAUDE"]') probs.push('letreiro do Claude ≠ KINEO IN / CLAUDE')
+    if (JSON.stringify(claude.art.bands) !== '["KINEO IN CLAUDE"]') probs.push('letreiro do Claude ≠ "KINEO IN CLAUDE" (uma linha, pequeno)')
+    if (!['cobalt', 'glass', 'paper'].includes(claude.art.bandTone)) probs.push('cor do letreiro do Claude fora das 3 aprovadas')
     if (OVERCLAIM.test(claude.art.tag || '')) probs.push('etiqueta do Claude promete demais')
     if (claude.title !== 'KINEO FOR CLAUDE') probs.push('título do card do Claude mudou')
   }
   if (clips) {
     if (clips.title !== 'CLIPS') probs.push('título do card do Clips mudou')
     if (clips.gate !== 'clips') probs.push('card do Clips sem o interruptor do produto')
-    if (JSON.stringify(clips.art.chips) !== '["5","7","10","15"]') probs.push('durações do Clips ≠ 5·7·10·15 (as que o produto faz)')
+
   }
+  if (cards.some((c) => 'chips' in c.art || 'tag' in c.art)) probs.push('card com chips/etiqueta por cima do vídeo (fundador 30/09: cards limpos)')
   if (!images || images.href !== '/images') probs.push('card de Images não aponta para /images')
   if (images) {
     if (images.title !== 'NANO BANANA PRO') probs.push('título do card de Images mudou')
@@ -217,7 +219,7 @@ function fileProblems() {
 // ─── o real ────────────────────────────────────────────────────────────────
 const dp = dataProblems(dataSrc)
 const eventsRoute = read('app/api/events/route.ts')
-ok(dp.length === 0, `(1) dados: /claude-connector + /ads + /clips + /images na ordem, 3 vídeos por card, títulos, durações, interruptor, selo honesto (${dp.join('; ') || 'ok'})`)
+ok(dp.length === 0, `(1) dados: /claude-connector + /ads + /clips + /images na ordem, 3 vídeos por card, títulos, cards limpos, interruptor, selo honesto (${dp.join('; ') || 'ok'})`)
 const cp = componentProblems(compSrc)
 ok(cp.length === 0, `(2) componente: carrossel mudo+playsInline+pôster, troca no fim do vídeo, IO, reduced-motion, aspect-ratio, snap sem barra (${cp.join('; ') || 'ok'})`)
 const lp = landingProblems(landing)
@@ -232,8 +234,9 @@ ok(!/lib\/engineWall/.test(compSrc + dataSrc), '(6) a fileira não lê nem mexe 
 ok(componentProblems(compSrc.replace(/^\s+muted\n/m, '\n')).length > 0, '(M1) <video> sem muted → vermelho')
 ok(dataProblems(dataSrc.replace("title: 'KINEO FOR CLAUDE'", "title: 'OFFICIAL KINEO FOR CLAUDE'")).length > 0, '(M2) "official" no título do Claude → vermelho')
 ok(dataProblems(dataSrc.replace("'Write your video in Claude, render it in Kineo Studio'", "'Official Claude partner for videos'")).length > 0, '(M3) "partner" no subtítulo → vermelho')
-ok(dataProblems(dataSrc.replace("bands: ['KINEO IN', 'CLAUDE'],", "bands: ['KINEO IN', 'CLAUDE', 'BY ANTHROPIC'],")).length > 0, '(M4) "by Anthropic" no letreiro → vermelho')
-ok(dataProblems(dataSrc.replace("tag: 'Connector · MCP',", "tag: 'Official connector',")).length > 0, '(M4b) "official" na etiqueta do Claude → vermelho')
+ok(dataProblems(dataSrc.replace("bands: ['KINEO IN CLAUDE'],", "bands: ['KINEO IN CLAUDE BY ANTHROPIC'],")).length > 0, '(M4) "by Anthropic" no letreiro → vermelho')
+ok(dataProblems(dataSrc.replace("bandTone: 'cobalt',", "bandTone: 'cobalt',\n      tag: 'Connector · MCP',")).length > 0, '(M4b) etiqueta de volta por cima do vídeo → vermelho')
+ok(dataProblems(dataSrc.replace("      badge: 'NEW',", "      badge: 'NEW',\n      chips: ['5', '7', '10', '15'],")).length > 0, '(M29) chips de duração de volta no Clips → vermelho')
 ok(dataProblems(dataSrc.replace("'Pro images from a sentence", "'4K images from a sentence")).length > 0, '(M26) card de Images prometendo 4K → vermelho')
 ok(dataProblems(dataSrc.replace("clip('promo-ads-c')]", "clip('promo-ads-a')]")).length > 0, '(M27) Ads sem a variação C → vermelho')
 ok(dataProblems(dataSrc.replace(", clip('promo-clips-surf')]", ']')).length > 0, '(M28) card com 2 vídeos em vez de 3 → vermelho')

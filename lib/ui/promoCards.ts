@@ -29,16 +29,13 @@ export type PromoClip = { src: string; poster: string }
 export type PromoCardArt = {
   kind: 'reel'
   clips: readonly PromoClip[]
-  /** Tipografia em faixas por cima dos vídeos (card do Claude). */
+  /** Letreiro pequeno por cima dos vídeos (card do Claude), numa linha só. */
   bands?: readonly string[]
-  /** Etiqueta pequena no canto inferior direito (sem tradução: nome técnico). */
-  tag?: string
+  /** Cor do letreiro: cobalto (cor da marca), vidro (translúcido) ou papel (branco). */
+  bandTone?: 'cobalt' | 'glass' | 'paper'
   badge?: string
-  chips?: readonly string[]
-  chipUnit?: string
-  /** true = o chip i acende junto com o vídeo i (A/B/C do Ads); false = os chips piscam em sequência própria. */
-  chipsFollowClip?: boolean
 }
+// Fundador 30/09: "deixar os cards limpos… sem 5 s, 7 s, 10, 15… sem ABC" — nada de chips nem etiquetas por cima do vídeo.
 
 export type PromoCard = {
   id: string
@@ -62,18 +59,18 @@ export const PROMO_CARDS: readonly PromoCard[] = [
     // Selo honesto (sessão Loja Claude, 30/09): o conector NÃO gera mídia dentro do Claude (regra do diretório) — ele
     // escreve o roteiro e manda para o Kineo Studio, onde o vídeo é renderizado. Nada de "make videos in Claude".
     subtitle: 'Write your video in Claude, render it in Kineo Studio',
-    // Os 3 vídeos são as amostras feitas NA Kineo que a própria /claude-connector mostra (Seedance 1.5, Kling 3,
-    // Veo 3.1) — nenhum logo da Anthropic. 'IN', não '×': o '×' sugere parceria entre marcas (selo honesto).
+    // Fundador 30/09: "clips melhores no fundo… de mar, de coisas bonitas" — praia ao amanhecer, golfinhos e aurora,
+    // Seedance 1.5 feitos na Kineo (conta do fundador, 15 cr); nenhum logo da Anthropic. Letreiro pequeno "KINEO IN CLAUDE": "IN", não "×" (selo honesto).
     art: {
       kind: 'reel',
       clips: [clip('promo-claude-1'), clip('promo-claude-2'), clip('promo-claude-3')],
-      bands: ['KINEO IN', 'CLAUDE'],
-      tag: 'Connector · MCP',
+      bands: ['KINEO IN CLAUDE'],
+      bandTone: 'cobalt',
     },
   },
   {
-    // Os 3 anúncios da mesma modelo fictícia (A piscina, B cozinha, C terraço), feitos pela própria Kineo, um por vez,
-    // com o chip da letra acendendo junto. Link = a porta de Ads que a home já usa (/ads).
+    // Os 3 anúncios da mesma modelo fictícia (A piscina, B cozinha, C terraço), feitos pela própria Kineo, um por vez.
+    // Link = a porta de Ads que a home já usa (/ads).
     id: 'ads',
     href: '/ads',
     title: 'ADS: 3 VARIATIONS',
@@ -81,8 +78,6 @@ export const PROMO_CARDS: readonly PromoCard[] = [
     art: {
       kind: 'reel',
       clips: [clip('promo-ads-a'), clip('promo-ads-b'), clip('promo-ads-c')],
-      chips: ['A', 'B', 'C'],
-      chipsFollowClip: true,
     },
   },
   {
@@ -96,8 +91,6 @@ export const PROMO_CARDS: readonly PromoCard[] = [
       kind: 'reel',
       clips: [clip('promo-clips-storm'), clip('promo-clips-glacier'), clip('promo-clips-surf')],
       badge: 'NEW',
-      chips: ['5', '7', '10', '15'],
-      chipUnit: 's',
     },
     gate: 'clips',
   },
@@ -111,7 +104,6 @@ export const PROMO_CARDS: readonly PromoCard[] = [
     art: {
       kind: 'reel',
       clips: [clip('promo-images-1'), clip('promo-images-2'), clip('promo-images-3')],
-      tag: 'Images',
     },
   },
 ]

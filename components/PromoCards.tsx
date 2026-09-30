@@ -28,39 +28,22 @@ export const PROMO_CARDS_CSS = `
 .kpc-video video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .7s ease}
 .kpc-video video[data-on]{opacity:1}
 .kpc-scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,9,13,.30) 0%,transparent 30%,transparent 52%,rgba(7,9,13,.74) 100%);pointer-events:none}
-.kpc-lower{position:absolute;left:0;bottom:4.2cqw;display:flex;flex-direction:column;align-items:flex-start;gap:1.2cqw;transform:rotate(-4deg);transform-origin:left bottom}
-.kpc-band{display:block;white-space:nowrap;font-weight:820;letter-spacing:-.04em;line-height:.9;padding:1.4cqw 4cqw 1.1cqw 4.2cqw}
-.kpc-band--1{background:var(--home-action,#0A5CFF);color:#fff;font-size:9.5cqw}
-.kpc-band--2{background:#F2F4F7;color:#07090D;font-size:13cqw}
-.kpc-tag{position:absolute;right:3.6cqw;bottom:3.6cqw;font-size:max(10px,2.3cqw);font-weight:700;letter-spacing:.14em;color:#E6EAF0;text-transform:uppercase;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+.kpc-lower{position:absolute;left:3.6cqw;bottom:3.6cqw;display:flex}
+.kpc-band{display:block;white-space:nowrap;font-weight:780;letter-spacing:-.01em;line-height:1;font-size:max(12px,4.4cqw);padding:1.5cqw 2.6cqw;border-radius:8px}
+.kpc-lower[data-tone=cobalt] .kpc-band{background:var(--home-action,#0A5CFF);color:#fff;box-shadow:0 8px 22px -10px rgba(10,92,255,.7)}
+.kpc-lower[data-tone=glass] .kpc-band{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.38);backdrop-filter:blur(10px) saturate(160%);-webkit-backdrop-filter:blur(10px) saturate(160%)}
+.kpc-lower[data-tone=paper] .kpc-band{background:#F7F7F5;color:#0E1116;box-shadow:0 8px 22px -12px rgba(7,9,13,.6)}
 .kpc-new{position:absolute;left:3.6cqw;top:3.6cqw;padding:5px 10px;border-radius:999px;background:var(--home-action,#0A5CFF);color:#fff;font-size:11px;font-weight:800;letter-spacing:.12em;box-shadow:0 6px 18px -6px rgba(10,92,255,.8)}
-.kpc-durs{position:absolute;left:3.6cqw;bottom:3.6cqw;display:flex;align-items:center;gap:6px}
-.kpc-dur{display:inline-flex;align-items:baseline;gap:1px;padding:6px 11px;border-radius:999px;background:rgba(7,9,13,.52);border:1px solid rgba(242,244,247,.28);color:#F2F4F7;font-size:max(12px,3.4cqw);font-weight:780;letter-spacing:-.01em;line-height:1;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background .35s ease,border-color .35s ease}
-.kpc-dur small{font-size:.72em;font-weight:650;opacity:.85}
-.kpc-durs--follow .kpc-dur[data-on]{background:var(--home-action,#0A5CFF);border-color:var(--home-action,#0A5CFF)}
 @media (prefers-reduced-motion: no-preference){
-.kpc-card:not([data-play]) .kpc-band--1{transform:translateX(-115%)}
-.kpc-card:not([data-play]) .kpc-band--2{transform:translateX(-115%)}
-.kpc-card:not([data-play]) .kpc-tag{opacity:0}
 .kpc-card:not([data-play]) .kpc-new{opacity:0;transform:scale(.6)}
-.kpc-card:not([data-play]) .kpc-dur{opacity:0;transform:translateY(10px)}
-.kpc-card[data-play] .kpc-band--1{animation:kpcInL .9s cubic-bezier(.16,1,.3,1) .15s both}
-.kpc-card[data-play] .kpc-band--2{animation:kpcInL .9s cubic-bezier(.16,1,.3,1) .32s both}
-.kpc-card[data-play] .kpc-tag{animation:kpcUp .7s ease .8s both}
+.kpc-card:not([data-play]) .kpc-band{opacity:0;transform:translateY(8px)}
+.kpc-card[data-play] .kpc-band{animation:kpcUp .7s cubic-bezier(.16,1,.3,1) .2s both}
 .kpc-card[data-play] .kpc-new{animation:kpcPop .55s cubic-bezier(.34,1.56,.64,1) .2s both}
-.kpc-card[data-play] .kpc-dur{animation:kpcUp .6s cubic-bezier(.16,1,.3,1) both,kpcPick 4.8s ease-in-out infinite}
-.kpc-card[data-play] .kpc-durs--follow .kpc-dur{animation:kpcUp .6s cubic-bezier(.16,1,.3,1) both}
-.kpc-card[data-play] .kpc-dur:nth-child(1){animation-delay:.45s,1.6s}
-.kpc-card[data-play] .kpc-dur:nth-child(2){animation-delay:.57s,2.8s}
-.kpc-card[data-play] .kpc-dur:nth-child(3){animation-delay:.69s,4s}
-.kpc-card[data-play] .kpc-dur:nth-child(4){animation-delay:.81s,5.2s}
 .kpc-card:hover .kpc-video video[data-on]{transform:scale(1.03)}
 .kpc-video video{transition:opacity .7s ease,transform .6s cubic-bezier(.16,1,.3,1)}
 }
-@keyframes kpcInL{from{transform:translateX(-115%)}to{transform:none}}
 @keyframes kpcUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes kpcPop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
-@keyframes kpcPick{0%,18%,100%{background:rgba(7,9,13,.52);border-color:rgba(242,244,247,.28)}6%,12%{background:var(--home-action,#0A5CFF);border-color:var(--home-action,#0A5CFF)}}
 @media (max-width:1100px){
 .kpc-card{flex-basis:clamp(200px,calc((100% - 32px) / 3),420px)}
 }
@@ -116,24 +99,11 @@ function PromoArt({ card }: { card: PromoCard }) {
       ))}
       <span className="kpc-scrim" aria-hidden="true" />
       {art.bands?.length ? (
-        <span className="kpc-lower" aria-hidden="true">
-          {art.bands.map((band, i) => (
-            <span key={band} className={`kpc-band kpc-band--${Math.min(i + 1, 2)}`}>{band}</span>
-          ))}
+        <span className="kpc-lower" data-tone={art.bandTone ?? 'cobalt'} aria-hidden="true">
+          {art.bands.map((band) => <span key={band} className="kpc-band">{band}</span>)}
         </span>
       ) : null}
-      {art.tag ? <span className="kpc-tag" aria-hidden="true">{art.tag}</span> : null}
       {art.badge ? <span className="kpc-new"><UiLabel>{art.badge}</UiLabel></span> : null}
-      {art.chips?.length ? (
-        <span className={`kpc-durs${art.chipsFollowClip ? ' kpc-durs--follow' : ''}`} aria-hidden="true">
-          {art.chips.map((chip, i) => (
-            <span key={chip} className="kpc-dur" data-on={art.chipsFollowClip && i === active ? '' : undefined}>
-              {chip}
-              {i === art.chips!.length - 1 && art.chipUnit ? <small>&nbsp;{art.chipUnit}</small> : null}
-            </span>
-          ))}
-        </span>
-      ) : null}
     </div>
   )
 }
