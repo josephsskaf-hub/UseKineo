@@ -42,7 +42,7 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
   if(fixture.captureControls) react.createElement=(type,props,...children)=>{if(typeof type==='string' && (props?.onClick || props?.onChange))fixture.captureControls.push({type,props,children});return React.createElement(type,props,...children)}
   function load(file) {
     if(cache.has(file))return cache.get(file)
-    const historical=before && [entry,'components/studioKit.tsx',...(comparisonBase!==BASE?['app/kineoLandingTheme.ts','lib/ui/workspacePresentation.ts','lib/ui/homePresentation.ts','components/LibraryRecentProject.tsx','lib/freeTierOffer.ts','components/CreditMinutesSummary.tsx']:[])].includes(file)
+    const historical=before && [entry,'components/studioKit.tsx',...(fixture.previewAffiliates?['components/AffiliateBusinessRecruitmentCard.tsx']:[]),...(comparisonBase!==BASE?['app/kineoLandingTheme.ts','lib/ui/workspacePresentation.ts','lib/ui/homePresentation.ts','components/LibraryRecentProject.tsx','lib/freeTierOffer.ts','components/CreditMinutesSummary.tsx']:[])].includes(file)
     let code=source(file,historical,comparisonBase)
     if(file===entry)for(const [start,end,text] of [...stateCalls].sort((a,b)=>b[0]-a[0]))code=code.slice(0,start)+text+code.slice(end)
     const box={exports:{}}; cache.set(file,box.exports)
@@ -66,6 +66,7 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
       // Canonical public facts now import gptHandoff, whose hashing helper uses
       // Node crypto. Allow this built-in only; network, DB and env stay blocked.
       if(id==='node:crypto'||id==='crypto')return require(id)
+      if(fixture.previewAffiliates && ['OrganicCtaLink','AffiliateBusinessRecruitmentCard','Footer'].some(name=>id==='@/components/'+name))return load(id.slice(2)+'.tsx')
       if(['EngineVisualReference','BusinessVisualReferences','PublicNavDropdown','ControlIcon','LibraryOrganization','ImageResultPreview','MobileCreationShortcut','DeliveryControls','AdsPlanChanges'].some(name=>id==='@/components/'+name))return load(id.slice(2)+'.tsx')
       if(['./ControlIcon','./InterfaceLanguage'].includes(id))return load('components/'+id.slice(2)+'.tsx')
       if(id==='@/components/studioKit')return load('components/studioKit.tsx')

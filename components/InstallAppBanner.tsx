@@ -119,9 +119,9 @@ export default function InstallAppBanner() {
         gap: 12,
         padding: '12px 14px',
         borderRadius: 16,
-        background: 'rgba(11,17,32,0.97)',
-        border: '1px solid rgba(41,151,255,0.35)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+        background: 'var(--card)',
+        border: '1px solid var(--border)',
+        boxShadow: 'var(--sh-card-h)',
         backdropFilter: 'blur(10px)',
         maxWidth: 480,
         margin: '0 auto',
@@ -130,19 +130,19 @@ export default function InstallAppBanner() {
       <KineoBrandIcon size={32} />
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: '#e2e8f0', lineHeight: 1.3 }}>
+        <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: 'var(--text)', lineHeight: 1.3 }}>
           Get the Kineo app
         </p>
         {mode === 'ios' ? (
-          <p style={{ margin: '2px 0 0', fontSize: '0.68rem', color: '#86868b', lineHeight: 1.4 }}>
-            Tap <span style={{ color: '#2997ff', fontWeight: 700 }}>Share</span>{' '}
+          <p style={{ margin: '2px 0 0', fontSize: '0.68rem', color: 'var(--muted)', lineHeight: 1.4 }}>
+            Tap <span style={{ color: 'var(--accent)', fontWeight: 700 }}>Share</span>{' '}
             <span aria-hidden>⎙</span> then{' '}
-            <span style={{ color: '#2997ff', fontWeight: 700 }}>
+            <span style={{ color: 'var(--accent)', fontWeight: 700 }}>
               Add to Home Screen
             </span>
           </p>
         ) : (
-          <p style={{ margin: '2px 0 0', fontSize: '0.68rem', color: '#86868b', lineHeight: 1.4 }}>
+          <p style={{ margin: '2px 0 0', fontSize: '0.68rem', color: 'var(--muted)', lineHeight: 1.4 }}>
             Full screen, faster, one tap away
           </p>
         )}
@@ -155,8 +155,8 @@ export default function InstallAppBanner() {
             padding: '9px 16px',
             borderRadius: 11,
             border: 'none',
-            background: 'linear-gradient(135deg,#2997ff,#2997ff)',
-            color: '#fff',
+            background: 'var(--indigo)',
+            color: 'var(--on-accent)',
             fontSize: '0.75rem',
             fontWeight: 900,
             cursor: 'pointer',
@@ -171,12 +171,12 @@ export default function InstallAppBanner() {
         onClick={dismiss}
         aria-label="Dismiss"
         style={{
-          width: 28,
-          height: 28,
+          width: 44,
+          height: 44,
           borderRadius: 8,
           border: 'none',
-          background: 'rgba(255,255,255,0.06)',
-          color: '#64748b',
+          background: 'var(--card2)',
+          color: 'var(--muted)',
           fontSize: '0.8rem',
           fontWeight: 700,
           cursor: 'pointer',
