@@ -629,3 +629,10 @@ Slug do X confirmado: utm_source=x.
 - Motivo da cor: o 1º teste pago das 3 variações (30/09, Photo Motion, 85 cr, Villa Versace) entregou 3 vídeos quase iguais — a grade de cor no prompt some porque "Keep everything exactly as in the photo" vence. Agora cada variação ganha um véu de cor (azul / âmbar / rosa, alfa 0,14-0,18) na MONTAGEM, só sobre os planos (o cartão final fica com a cor da marca). Anúncio comum: source idêntico ao de antes.
 - Só propriedades já usadas em produção (shape + path + fill_color rgba); color_overlay/blend_mode ficam de fora. A tela deixou de prometer "cenário" em toda variação (foto do cliente não troca de lugar).
 - Guardião: scripts/test-ads-3var-cor-2026-09-30.mjs (10 ok, 6 mutantes). Reancorado: test-promo-cards (quadros promo-ads-3var-1..3).
+
+## 2026-09-30 — /admin/affiliates reconstruída (KINEO-ADMIN-AFILIADOS)
+- Fundador: "reconstruir a página dos afiliados… pra eu conseguir enxergar os dados melhor". Antes: só totais da vida inteira, tema escuro com cores fixas, select sem paginação (corte silencioso em 1000).
+- Agora: 6 números (afiliados trazendo gente em 30 d, cliques 7 d vs semana anterior, 30 d, cadastros, pagantes, vendas por moeda), gráfico de 30 dias, funil, destinos, tabela com busca/filtros/ordenação, sparkline de 14 d e, ao abrir a linha, últimos cliques (destino + origem), indicações, link copiável e os controles de antes. Conta pura em lib/admin/affiliateDashboard.ts; rota paginada.
+- A conta de afiliado do fundador (e-mails de admin) aparece com selo "Casa" e fica FORA dos totais: o único "pagante" da história era o teste dele pelo próprio código. Sem ela: 21 afiliados, 72 cliques, 0 cadastros, 0 vendas (30/09).
+- "Pessoas únicas" só aparece com IP anonimizado em ≥ 90% dos cliques: desde 27/08 o link não grava ip_hash sem a env AFFILIATE_IP_SALT (hoje 23,6%).
+- Guardião: scripts/test-admin-afiliados-2026-09-30.mjs (16 ok, 8 mutantes). Reancorado: test-affiliate-destinations (leitura paginada).

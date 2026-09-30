@@ -1,49 +1,34 @@
-// Admin — affiliates list.
-// GET, admin-gated, service-role. Returns every affiliate with their lifetime
-// click/signup/paid counts and `owed` (sum of commission_amount that's still
-// pending or approved, in CENTS). Sorted newest-first by created_at.
+// Admin — affiliates dashboard.
+// GET, admin-gated, service-role. KINEO-ADMIN-AFILIADOS-2026-09-30 (fundador: "reconstruir a página dos afiliados…
+// pra eu conseguir enxergar os dados melhor"): além da lista de antes (clicks/signups/paid/owed, que a tela e o CSV
+// continuam lendo), devolve janelas de 7/30 dias, visitantes únicos, série diária de 30 dias, receita e comissão por
+// moeda, últimos cliques e indicações de cada afiliado. A conta mora em lib/admin/affiliateDashboard.ts (pura).
+// Leitura PAGINADA (fetchAllRows): o select simples de antes cortava em 1000 linhas sem erro.
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
+import { ADMIN_EMAILS, fetchAllRows, isAdminEmail, serviceClient } from '@/app/api/admin/_shared/db'
 import {
   AFFILIATE_DESTINATIONS,
   affiliateDestinationBucket,
-  type AffiliateDestinationBucket,
 } from '@/lib/affiliateDestinations'
+import {
+  buildAffiliateDashboard,
+  type DashAffiliateRow,
+  type DashClickRow,
+  type DashCommissionRow,
+  type DashReferralRow,
+} from '@/lib/admin/affiliateDashboard'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
 // Rota SO-GET no Next 14.2: sem POST no modulo, o store nasce com
-// revalidate=false, e `dynamic='force-dynamic'` NAO muda isso (so pula o proxy
-// que marcaria a rota como dinamica). Resultado: todo GET do supabase-js (e da
-// fal/Creatomate) com URL estavel ia para o Data Cache da Vercel PARA SEMPRE —
-// a rota lia o banco como ele estava na PRIMEIRA vez que aquela URL foi pedida.
-// Provado em producao 02/09: cron de resgate contando 1 tentativa com 3 no
-// banco, marcador stranded_composed invisivel 13 min depois de gravado,
-// "claim row missing" logo apos 23505 no MESMO id, e-mail de video pronto
-// repetido 15 min depois (be9c6314). Esta linha e o unico interruptor que
-// zera o revalidate ANTES do primeiro fetch. Nao remover.
+// revalidate=false, e `dynamic='force-dynamic'` NAO muda isso. Todo GET do
+// supabase-js com URL estavel ia para o Data Cache da Vercel PARA SEMPRE.
+// Esta linha e o unico interruptor que zera o revalidate ANTES do primeiro
+// fetch. Nao remover.
 export const fetchCache = 'force-no-store'
 export const runtime = 'nodejs'
-
-const ADMIN_EMAILS = new Set([
-  'josephsskaf@gmail.com',
-  'josephskaf@gmail.com',
-  'joseph-test@shortsforgeai.com',
-])
-
-interface AffiliateRow {
-  id: string
-  user_id: string | null
-  name: string | null
-  email: string | null
-  code: string
-  status: string | null
-  commission_rate: number | null
-  coupon_code: string | null
-  created_at: string | null
-}
 
 export async function GET() {
   try {
@@ -51,85 +36,43 @@ export async function GET() {
     const {
       data: { user },
     } = await supabase.auth.getUser()
-
-    const email = user?.email?.toLowerCase() ?? ''
-    if (!user || !ADMIN_EMAILS.has(email)) {
+    if (!user || !isAdminEmail(user.email)) {
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (!supabaseUrl || !serviceKey) {
+    const admin = serviceClient()
+    if (!admin) {
       return NextResponse.json({ error: 'Service role not configured', affiliates: [] }, { status: 500 })
     }
 
-    const admin = createSupabaseAdmin(supabaseUrl, serviceKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    })
-
-    const { data: affiliates } = await admin
-      .from('affiliates')
-      .select('id, user_id, name, email, code, status, commission_rate, coupon_code, created_at')
-      .order('created_at', { ascending: false })
-
-    const list = (affiliates ?? []) as AffiliateRow[]
-
-    // Aggregate clicks, referrals and owed commissions in three table scans,
-    // then collapse per affiliate_id client-side (cheaper than N round-trips).
-    const clicksByAff = new Map<string, number>()
-    const signupsByAff = new Map<string, number>()
-    const paidByAff = new Map<string, number>()
-    const owedByAff = new Map<string, number>()
-    const destinationClicks = Object.fromEntries([
-      ...AFFILIATE_DESTINATIONS.map((destination) => [destination.key, 0] as const),
-      ['legacy', 0] as const,
-    ]) as Record<AffiliateDestinationBucket, number>
-
-    const [{ data: clicks }, { data: referrals }, { data: commissions }] = await Promise.all([
-      admin.from('affiliate_clicks').select('affiliate_id, landing_path'),
-      admin.from('affiliate_referrals').select('affiliate_id, status'),
-      admin.from('affiliate_commissions').select('affiliate_id, commission_amount, status'),
+    const [affiliates, clicks, referrals, commissions] = await Promise.all([
+      fetchAllRows<DashAffiliateRow>(admin, 'affiliates', 'id, name, email, code, status, commission_rate, coupon_code, created_at'),
+      // landing_path é o campo canônico do destino (affiliateDestinationBucket(row.landing_path) na conta pura).
+      fetchAllRows<DashClickRow>(admin, 'affiliate_clicks', 'affiliate_id, landing_path, referrer, ip_hash, created_at'),
+      fetchAllRows<DashReferralRow>(admin, 'affiliate_referrals', 'affiliate_id, email, status, first_touch_at, converted_at'),
+      fetchAllRows<DashCommissionRow>(admin, 'affiliate_commissions', 'affiliate_id, amount_gross, commission_amount, currency, status, created_at'),
     ])
 
-    for (const row of (clicks ?? []) as Array<{ affiliate_id: string | null; landing_path: string | null }>) {
-      if (!row.affiliate_id) continue
-      clicksByAff.set(row.affiliate_id, (clicksByAff.get(row.affiliate_id) ?? 0) + 1)
-      const bucket = affiliateDestinationBucket(row.landing_path)
-      destinationClicks[bucket] += 1
-    }
-    for (const row of (referrals ?? []) as Array<{ affiliate_id: string | null; status: string | null }>) {
-      if (!row.affiliate_id) continue
-      signupsByAff.set(row.affiliate_id, (signupsByAff.get(row.affiliate_id) ?? 0) + 1)
-      if (row.status === 'paid') {
-        paidByAff.set(row.affiliate_id, (paidByAff.get(row.affiliate_id) ?? 0) + 1)
-      }
-    }
-    for (const row of (commissions ?? []) as Array<{
-      affiliate_id: string | null
-      commission_amount: number | null
-      status: string | null
-    }>) {
-      if (!row.affiliate_id) continue
-      if (row.status === 'pending' || row.status === 'approved') {
-        owedByAff.set(row.affiliate_id, (owedByAff.get(row.affiliate_id) ?? 0) + (row.commission_amount ?? 0))
-      }
-    }
+    const dashboard = buildAffiliateDashboard({
+      affiliates,
+      clicks,
+      referrals,
+      commissions,
+      bucketOf: (landingPath) => affiliateDestinationBucket(landingPath),
+      buckets: [...AFFILIATE_DESTINATIONS.map((d) => d.key), 'legacy'],
+      // A conta de afiliado do próprio fundador (testes de compra) fica fora dos totais.
+      internalEmails: [...ADMIN_EMAILS],
+      nowMs: Date.now(),
+    })
 
-    const result = list.map((aff) => ({
-      id: aff.id,
-      name: aff.name,
-      email: aff.email,
-      code: aff.code,
-      status: aff.status,
-      commission_rate: aff.commission_rate,
-      coupon_code: aff.coupon_code,
-      clicks: clicksByAff.get(aff.id) ?? 0,
-      signups: signupsByAff.get(aff.id) ?? 0,
-      paid: paidByAff.get(aff.id) ?? 0,
-      owed: owedByAff.get(aff.id) ?? 0,
-    }))
+    const destinationLabels: Record<string, string> = Object.fromEntries([
+      ...AFFILIATE_DESTINATIONS.map((d) => [d.key, d.label] as const),
+      ['legacy', 'Home (link simples)'] as const,
+    ])
 
-    return NextResponse.json({ affiliates: result, destinationClicks })
+    // Campos antigos (clicks/signups/paid/owed em centavos USD) seguem na mesma forma para quem já lê a rota.
+    const legacy = dashboard.affiliates.map((a) => ({ ...a, owed: a.owed.usd ?? 0, owedByCurrency: a.owed }))
+    return NextResponse.json({ ...dashboard, affiliates: legacy, destinationClicks: dashboard.destinationClicks, destinationLabels })
   } catch (err) {
     console.error('[admin/affiliates] unexpected:', err)
     return NextResponse.json({ error: 'Failed to load affiliates', affiliates: [] }, { status: 500 })

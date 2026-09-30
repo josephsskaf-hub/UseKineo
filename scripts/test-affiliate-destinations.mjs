@@ -402,8 +402,8 @@ check(partners.includes('Ready to test video'), 'public recruiting page names th
 check(partners.includes('Faceless creators'), 'public recruiting page names the faceless audience')
 
 const adminRoute = read('app/api/admin/affiliates/route.ts')
-check(adminRoute.includes("select('affiliate_id, landing_path')"), 'admin reads the canonical click destination field')
-check(adminRoute.includes('affiliateDestinationBucket(row.landing_path)'), 'admin classifies every click through the allowlist helper')
+check(adminRoute.includes("'affiliate_clicks', 'affiliate_id, landing_path"), 'admin reads the canonical click destination field') // reancorado 30/09 (KINEO-ADMIN-AFILIADOS): leitura paginada por fetchAllRows
+check(adminRoute.includes('bucketOf: (landingPath) => affiliateDestinationBucket(landingPath)'), 'admin classifies every click through the allowlist helper') // reancorado 30/09 (KINEO-ADMIN-AFILIADOS): a conta mora em lib/admin/affiliateDashboard.ts
 check(adminRoute.includes('destinationClicks'), 'admin response exposes destination totals')
 
 const adminPage = read('app/(dashboard)/admin/affiliates/page.tsx')
