@@ -467,7 +467,10 @@ export function isHandoffToken(value: unknown): value is string {
 // ChatGPT/Claude/Gemini e uma caixa para colar de volta o roteiro que a IA
 // escreveu — que vira a MESMA linha e o MESMO /go/<token>. Terceiro canal,
 // terceira etiqueta; as duas antigas continuam byte a byte.
-export const HANDOFF_CHANNELS = ['gpt_store', 'assistant_link', 'paste_page'] as const
+// `claude_connector` (KINEO-MCP-CLAUDE-2026-09-29): a tool create_video_handoff
+// do servidor MCP remoto (app/api/mcp) — o conector da Kineo dentro do Claude.
+// Quarto canal, quarta etiqueta; as três antigas continuam byte a byte.
+export const HANDOFF_CHANNELS = ['gpt_store', 'assistant_link', 'paste_page', 'claude_connector'] as const
 export type HandoffChannel = (typeof HANDOFF_CHANNELS)[number]
 /** Linha sem `channel` (as que já existem no banco) é da loja. */
 export const DEFAULT_CHANNEL: HandoffChannel = 'gpt_store'
@@ -480,6 +483,7 @@ export const CHANNEL_TAGS: Readonly<Record<HandoffChannel, { utmSource: string; 
   gpt_store: { utmSource: HANDOFF_UTM_SOURCE, intentCampaign: HANDOFF_INTENT_CAMPAIGN },
   assistant_link: { utmSource: 'assistant_link', intentCampaign: 'kineo_assistant_link' },
   paste_page: { utmSource: 'paste_page', intentCampaign: 'kineo_paste_page' },
+  claude_connector: { utmSource: 'claude_connector', intentCampaign: 'kineo_claude_connector' },
 }
 
 // ─── A página de colar (KINEO-PASTE-PAGE-2026-09-07) ────────────────────────
