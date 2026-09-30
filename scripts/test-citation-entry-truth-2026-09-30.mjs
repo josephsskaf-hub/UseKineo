@@ -11,6 +11,8 @@ for(const route of ['free-ai-shorts-generator','text-to-video-shorts']){
   const file=`app/${route}/page.tsx`,page=load(file),html=renderToStaticMarkup(React.createElement(page.default,{searchParams:{}}))
   assert.ok(page.metadata.description.includes(offer.copy.planLimitLine));count++
   assert.ok(!/Fast free|free Fast|Fast test/.test(page.metadata.description));count++
+  assert.ok(!/free Fast test/.test(page.metadata.twitter.description));count++
+  assert.ok(html.split(offer.copy.headline).length >= 3);count++
   assert.equal(page.metadata.alternates.canonical,`https://www.usekineo.com/${route}`);count++
   const faq=JSON.parse([...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(m=>m[1]).find(s=>s.includes('FAQPage')))
   assert.ok(faq.mainEntity.every(q=>html.includes(q.name)&&html.includes(q.acceptedAnswer.text.replace(/&/g,'&amp;'))));count++

@@ -121,7 +121,12 @@ for (const f of ['app/free-ai-shorts-generator/page.tsx', 'app/text-to-video-sho
   const cur = read(f), base = atBase(f)
   check(h1Of(cur) !== null && h1Of(cur) === h1Of(base), `${f}: <h1> igual à base`)
   const approvedDescription = currentDescriptions[f]
-  const normalizedMeta = approvedDescription ? metaBlock(cur)?.replace(approvedDescription[0], approvedDescription[1]) : metaBlock(cur)
+  let normalizedMeta = approvedDescription ? metaBlock(cur)?.replace(approvedDescription[0], approvedDescription[1]) : metaBlock(cur)
+  if (f === 'app/free-ai-shorts-generator/page.tsx') {
+    const twitterDescription = '`Create a faceless AI Short from one idea. ${OFFER.copy.planLimitLine}.`'
+    check(metaBlock(cur).includes(twitterDescription), 'free: descrição social também deriva a oferta atual')
+    normalizedMeta = normalizedMeta?.replace(twitterDescription, "'Create a faceless AI Short from one idea. No card for the free Fast test.'")
+  }
   check(metaBlock(cur) !== null && (!approvedDescription || metaBlock(cur).includes(approvedDescription[0])) && normalizedMeta === metaBlock(base), `${f}: metadados preservados com apenas description derivada da oferta nas duas portas`)
   check(ldLines(cur).length > 0 && ldLines(cur) === ldLines(base), `${f}: JSON-LD igual à base`)
 }

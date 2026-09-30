@@ -85,7 +85,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Free AI Shorts Generator | Kineo',
-    description: 'Create a faceless AI Short from one idea. No card for the free Fast test.',
+    description: `Create a faceless AI Short from one idea. ${OFFER.copy.planLimitLine}.`,
     images: [FEATURED_EXAMPLE.posterPath],
   },
 }
@@ -236,7 +236,7 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
 
         <div style={{ marginTop: 44, textAlign: 'center', background: 'radial-gradient(circle at 50% 0%, rgba(41,151,255,0.14), #0c0c0e 70%)', border: '1px solid rgba(41,151,255,0.25)', borderRadius: 18, padding: '34px 22px' }}>
           <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.85rem)', fontWeight: 900 }}>Generate the first Short now.</div>
-          <p style={{ color: '#86868b', margin: '8px 0 18px' }}>Use a watermarked Fast video to test the workflow before paying.</p>
+          <p style={{ color: '#86868b', margin: '8px 0 18px' }}>{OFFER.copy.headline}</p>
           <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="final" style={{ background: '#f5f5f7', color: '#000', fontWeight: 850, padding: '14px 30px', borderRadius: 980, textDecoration: 'none' }}>
             Try the free generator
           </OrganicCtaLink>
