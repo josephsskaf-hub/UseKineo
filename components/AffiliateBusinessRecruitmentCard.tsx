@@ -76,17 +76,18 @@ export default function AffiliateBusinessRecruitmentCard({ href }: Props) {
     <div
       ref={cardRef}
       data-experiment={AFFILIATE_BUSINESS_RECRUITMENT_VERSION}
+      className="partners-card"
       style={{
-        background: 'linear-gradient(145deg,rgba(41,151,255,.13),rgba(11,17,32,.9))',
-        border: '1px solid rgba(41,151,255,.34)',
+        background: 'var(--card)',
+        border: '1px solid var(--border)',
         borderRadius: 14,
         padding: 17,
       }}
     >
-      <div style={{ color: '#7cc0ff', fontWeight: 900, marginBottom: 6 }}>
+      <div style={{ color: 'var(--accent)', fontWeight: 650, marginBottom: 6 }}>
         Businesses &amp; freelancers
       </div>
-      <p style={{ margin: 0, color: '#a4a4aa', fontSize: '0.84rem', lineHeight: 1.55 }}>
+      <p style={{ margin: 0, color: 'var(--muted)', fontSize: '0.84rem', lineHeight: 1.55 }}>
         Send business owners, freelancers and agencies to a free weekly content plan before they choose a video workflow.
       </p>
       <Link
@@ -106,9 +107,9 @@ export default function AffiliateBusinessRecruitmentCard({ href }: Props) {
         style={{
           display: 'inline-block',
           marginTop: 13,
-          color: '#7cc0ff',
+          color: 'var(--accent)',
           fontSize: '0.8rem',
-          fontWeight: 900,
+          fontWeight: 650,
           textDecoration: 'none',
         }}
       >

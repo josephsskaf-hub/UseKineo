@@ -2,8 +2,8 @@
 
 // Affiliate self-serve page. Fetches /api/affiliate/me and renders one of four
 // states: not-an-affiliate (apply CTA), pending, active (link + KPIs + recent
-// commissions), or suspended. Dark premium styling to match /referral and
-// /admin/funnel. Amounts arrive in CENTS and are divided by 100 for display.
+// commissions), or suspended. Presentation follows the active site theme.
+// Amounts arrive in CENTS and are divided by 100 for display.
 //
 // PUSH #101 — two changes:
 // 1. TELEMETRY. Applying was a completely blind funnel step on the client.
@@ -21,6 +21,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AFFILIATE_BONUS_TERMS, AFFILIATE_PAYOUT_TERMS } from '@/lib/affiliateCommission'
 import Link from 'next/link'
+import { AFFILIATE_PRESENTATION_CSS } from '@/lib/ui/affiliatePresentation'
 import { trackEvent } from '@/lib/analytics'
 import {
   AFFILIATE_DESTINATIONS,
@@ -76,12 +77,12 @@ interface AffiliateMe {
   recent?: Commission[]
 }
 
-const CYAN = '#2997ff'
-const TEXT = '#F1F5F9'
-const MUTED = '#86868b'
-const GREEN = '#2997ff'
-const CARD = '#161618'
-const BORDER = '1px solid rgba(255,255,255,0.08)'
+const CYAN = 'var(--accent)'
+const TEXT = 'var(--text)'
+const MUTED = 'var(--muted)'
+const GREEN = 'var(--accent)'
+const CARD = 'var(--card)'
+const BORDER = '1px solid var(--border)'
 function dollars(cents: number, currency = 'usd'): string {
   const sym = currency && currency.toLowerCase() !== 'usd' ? '' : '$'
   const amount = (cents / 100).toFixed(2)
@@ -98,15 +99,15 @@ function fmtDate(iso: string | null): string {
 }
 
 const STATUS_BADGE: Record<string, { bg: string; color: string }> = {
-  pending: { bg: 'rgba(251,191,36,0.14)', color: '#fbbf24' },
-  approved: { bg: 'rgba(41,151,255,0.14)', color: GREEN },
-  paid: { bg: 'rgba(41,151,255,0.14)', color: CYAN },
-  clawed_back: { bg: 'rgba(239,68,68,0.14)', color: '#ef4444' },
+  pending: { bg: 'color-mix(in srgb,var(--warning) 10%,var(--card))', color: 'var(--warning)' },
+  approved: { bg: 'var(--accent-soft)', color: GREEN },
+  paid: { bg: 'var(--accent-soft)', color: CYAN },
+  clawed_back: { bg: 'color-mix(in srgb,var(--danger) 10%,var(--card))', color: 'var(--danger)' },
 }
 
 function StatusBadge({ status }: { status: string | null }) {
   const s = (status ?? '').toLowerCase()
-  const style = STATUS_BADGE[s] ?? { bg: 'rgba(148,163,184,0.14)', color: MUTED }
+  const style = STATUS_BADGE[s] ?? { bg: 'var(--card2)', color: MUTED }
   return (
     <span
       className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full"
@@ -242,11 +243,12 @@ export default function AffiliatePage() {
     }
   }
 
-  const wrap = 'px-4 sm:px-6 py-7 pb-28 md:pb-20 max-w-3xl mx-auto'
+  const wrap = 'affiliate-workspace px-4 sm:px-6 py-7 pb-28 md:pb-20 mx-auto'
 
   if (loading) {
     return (
       <div className={wrap}>
+        <style dangerouslySetInnerHTML={{ __html: AFFILIATE_PRESENTATION_CSS }} />
         <div className="rounded-2xl" style={{ background: CARD, border: BORDER, height: 180 }} />
       </div>
     )
@@ -255,9 +257,10 @@ export default function AffiliatePage() {
   if (authRequired) {
     return (
       <div className={wrap}>
+        <style dangerouslySetInnerHTML={{ __html: AFFILIATE_PRESENTATION_CSS }} />
         <div
           className="rounded-2xl p-8 text-center"
-          style={{ background: CARD, border: '1px solid rgba(41,151,255,.28)' }}
+          style={{ background: CARD, border: '1px solid var(--border)' }}
         >
           <div className="text-5xl mb-4">🤝</div>
           <h1 className="font-black tracking-tight mb-3" style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', color: TEXT }}>
@@ -268,8 +271,8 @@ export default function AffiliatePage() {
           </p>
           <Link
             href="/signup?redirect=%2Faffiliate&utm_source=affiliate_dashboard&utm_medium=organic&utm_campaign=push33_partner_program"
-            className="inline-block rounded-xl px-7 py-3 text-sm font-black text-white"
-            style={{ background: 'linear-gradient(135deg, #2997ff, #2997ff)', textDecoration: 'none' }}
+            className="inline-block rounded-xl px-7 py-3 text-sm font-black"
+            style={{ background: 'var(--indigo)', color: 'var(--on-accent)', textDecoration: 'none' }}
           >
             Create account and continue →
           </Link>
@@ -285,19 +288,17 @@ export default function AffiliatePage() {
   if (!data || !data.isAffiliate) {
     return (
       <div className={wrap}>
+        <style dangerouslySetInnerHTML={{ __html: AFFILIATE_PRESENTATION_CSS }} />
         <div
           className="rounded-2xl p-8 text-center"
-          style={{ background: CARD, border: '1px solid rgba(41,151,255,.28)', boxShadow: '0 0 40px rgba(41,151,255,.08)' }}
+          style={{ background: CARD, border: '1px solid var(--border)', boxShadow: 'var(--sh-card)' }}
         >
           <div className="text-5xl mb-4">🤝</div>
           <h1 className="font-black tracking-tight mb-3" style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', color: TEXT }}>
             Become an affiliate —{' '}
             <span
               style={{
-                background: 'linear-gradient(135deg, #2997ff 0%, #2997ff 60%, #2997ff 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
+                color: CYAN,
               }}
             >
               earn 30% recurring
@@ -313,10 +314,11 @@ export default function AffiliatePage() {
             type="button"
             onClick={apply}
             disabled={applying}
-            className="rounded-xl px-7 py-3 text-sm font-black text-white"
+            className="rounded-xl px-7 py-3 text-sm font-black"
             style={{
-              background: 'linear-gradient(135deg, #2997ff, #2997ff)',
-              boxShadow: '0 4px 18px rgba(41,151,255,.35)',
+              background: 'var(--indigo)',
+              color: 'var(--on-accent)',
+              boxShadow: 'var(--sh-cta)',
               border: 'none',
               cursor: applying ? 'default' : 'pointer',
               opacity: applying ? 0.7 : 1,
@@ -343,6 +345,7 @@ export default function AffiliatePage() {
   if (status === 'pending') {
     return (
       <div className={wrap}>
+      <style dangerouslySetInnerHTML={{ __html: AFFILIATE_PRESENTATION_CSS }} />
         <div className="rounded-2xl p-8 text-center" style={{ background: CARD, border: BORDER }}>
           <div className="text-5xl mb-4">⏳</div>
           <h1 className="font-black tracking-tight mb-2" style={{ fontSize: '1.5rem', color: TEXT }}>
@@ -361,9 +364,10 @@ export default function AffiliatePage() {
   if (status === 'suspended') {
     return (
       <div className={wrap}>
+        <style dangerouslySetInnerHTML={{ __html: AFFILIATE_PRESENTATION_CSS }} />
         <div
           className="rounded-2xl p-8 text-center"
-          style={{ background: CARD, border: '1px solid rgba(239,68,68,.35)' }}
+          style={{ background: CARD, border: '1px solid var(--danger)' }}
         >
           <div className="text-5xl mb-4">🚫</div>
           <h1 className="font-black tracking-tight mb-2" style={{ fontSize: '1.5rem', color: TEXT }}>
@@ -464,6 +468,7 @@ export default function AffiliatePage() {
 
   return (
     <div className={wrap}>
+        <style dangerouslySetInnerHTML={{ __html: AFFILIATE_PRESENTATION_CSS }} />
       <header className="mb-6">
         <div className="font-black uppercase tracking-[.18em] mb-2" style={{ fontSize: '0.62rem', color: CYAN }}>
           Affiliate
@@ -483,7 +488,7 @@ export default function AffiliatePage() {
       {nextMission ? (
         <div
           className="rounded-2xl p-5 mb-4"
-          style={{ background: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.35)' }}
+          style={{ background: 'var(--card2)', border: '1px solid var(--border)' }}
         >
           <div className="text-[10px] font-black uppercase tracking-[.16em] mb-2" style={{ color: CYAN }}>
             {nextMission.eyebrow}
@@ -497,16 +502,16 @@ export default function AffiliatePage() {
             {nextMission.description}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4 text-xs font-bold">
-            <div className="rounded-lg px-3 py-2" style={{ color: '#86efac', background: 'rgba(16,185,129,.1)' }}>✓ {nextMission.steps[0]}</div>
-            <div className="rounded-lg px-3 py-2" style={{ color: CYAN, background: 'rgba(41,151,255,.12)' }}>2 · {nextMission.steps[1]}</div>
-            <div className="rounded-lg px-3 py-2" style={{ color: MUTED, background: 'rgba(255,255,255,.035)' }}>3 · {nextMission.steps[2]}</div>
+            <div className="rounded-lg px-3 py-2" style={{ color: 'var(--success)', background: 'color-mix(in srgb,var(--success) 10%,var(--card))' }}>✓ {nextMission.steps[0]}</div>
+            <div className="rounded-lg px-3 py-2" style={{ color: CYAN, background: 'var(--accent-soft)' }}>2 · {nextMission.steps[1]}</div>
+            <div className="rounded-lg px-3 py-2" style={{ color: MUTED, background: 'var(--card2)' }}>3 · {nextMission.steps[2]}</div>
           </div>
           <button
             type="button"
             onClick={() => void copyNextMissionAsset()}
             aria-live="polite"
             className="w-full sm:w-auto rounded-xl px-5 py-2.5 mt-4 text-xs font-black"
-            style={{ background: '#2997ff', border: 'none', color: '#fff', cursor: 'pointer' }}
+            style={{ background: 'var(--indigo)', border: 'none', color: 'var(--on-accent)', cursor: 'pointer' }}
           >
             {missionCopied ? '✓ Copied — publish it where your audience already is' : nextMission.cta}
           </button>
@@ -519,7 +524,7 @@ export default function AffiliatePage() {
       <div
         id="partner-campaign-kit"
         className="rounded-2xl p-5 mb-5"
-        style={{ background: CARD, border: '1px solid rgba(41,151,255,.28)', boxShadow: '0 0 30px rgba(41,151,255,.08)' }}
+        style={{ background: CARD, border: '1px solid var(--border)', boxShadow: 'var(--sh-card)' }}
       >
         <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: CYAN }}>
           Partner campaign kit
@@ -552,8 +557,8 @@ export default function AffiliatePage() {
                 }}
                 className="rounded-xl p-3 text-left"
                 style={{
-                  background: selected ? 'rgba(41,151,255,.14)' : 'rgba(255,255,255,.035)',
-                  border: selected ? '1px solid rgba(41,151,255,.52)' : BORDER,
+                  background: selected ? 'var(--accent-soft)' : 'var(--card2)',
+                  border: selected ? '1px solid var(--accent)' : BORDER,
                   color: TEXT,
                   cursor: 'pointer',
                 }}
@@ -575,7 +580,7 @@ export default function AffiliatePage() {
         </label>
         <div
           className="inline-block rounded-full px-2.5 py-1 mb-2 text-[9px] font-black uppercase tracking-widest"
-          style={{ color: CYAN, background: 'rgba(41,151,255,.12)', border: '1px solid rgba(41,151,255,.28)' }}
+          style={{ color: CYAN, background: 'var(--accent-soft)', border: '1px solid var(--border)' }}
         >
           Free value before signup
         </div>
@@ -592,8 +597,8 @@ export default function AffiliatePage() {
             onFocus={(e) => e.currentTarget.select()}
             className="flex-1 rounded-xl px-3 py-2.5 text-xs"
             style={{
-              background: 'rgba(13,13,28,.85)',
-              border: '1px solid rgba(41,151,255,.3)',
+              background: 'var(--card2)',
+              border: '1px solid var(--border)',
               color: TEXT,
               outline: 'none',
               fontFamily: 'inherit',
@@ -603,10 +608,11 @@ export default function AffiliatePage() {
             type="button"
             onClick={copyLink}
             aria-live="polite"
-            className="rounded-xl px-5 py-2.5 text-sm font-black text-white"
+            className="rounded-xl px-5 py-2.5 text-sm font-black"
             style={{
-              background: 'linear-gradient(135deg, #2997ff, #2997ff)',
-              boxShadow: '0 4px 18px rgba(41,151,255,.35)',
+              background: 'var(--indigo)',
+              color: 'var(--on-accent)',
+              boxShadow: 'var(--sh-cta)',
               whiteSpace: 'nowrap',
               cursor: 'pointer',
               border: 'none',
@@ -636,8 +642,8 @@ export default function AffiliatePage() {
                 }
                 className="rounded-lg px-3 py-1.5 text-xs font-extrabold"
                 style={{
-                  background: 'rgba(41,151,255,.12)',
-                  border: '1px solid rgba(41,151,255,.28)',
+                  background: 'var(--accent-soft)',
+                  border: '1px solid var(--border)',
                   color: CYAN,
                   textDecoration: 'none',
                 }}
@@ -669,14 +675,14 @@ export default function AffiliatePage() {
               onFocus={(event) => event.currentTarget.select()}
               rows={5}
               className="w-full rounded-xl p-3 text-xs leading-relaxed resize-none"
-              style={{ background: 'rgba(13,13,28,.85)', border: BORDER, color: TEXT, outline: 'none' }}
+              style={{ background: 'var(--card2)', border: BORDER, color: TEXT, outline: 'none' }}
             />
             <button
               type="button"
               onClick={() => void copyCampaignAsset(asset.key, asset.value)}
               aria-live="polite"
               className="w-full rounded-xl px-4 py-2.5 mt-2 text-xs font-black"
-              style={{ background: 'rgba(41,151,255,.14)', border: '1px solid rgba(41,151,255,.3)', color: CYAN }}
+              style={{ background: 'var(--accent-soft)', border: '1px solid var(--border)', color: CYAN }}
             >
               {copiedAsset === asset.key ? '✓ Copied' : `Copy ${asset.key === 'caption' ? 'caption' : 'speaking script'}`}
             </button>
@@ -688,7 +694,7 @@ export default function AffiliatePage() {
         <section
           className="rounded-2xl p-5 mb-5"
           aria-labelledby="affiliate-widget-heading"
-          style={{ background: CARD, border: '1px solid rgba(41,151,255,.28)', boxShadow: '0 0 30px rgba(41,151,255,.08)' }}
+          style={{ background: CARD, border: '1px solid var(--border)', boxShadow: 'var(--sh-card)' }}
         >
           <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: CYAN }}>
             Website traffic that keeps working
@@ -702,7 +708,7 @@ export default function AffiliatePage() {
           </p>
           <div
             className="rounded-xl p-3 mb-3 flex justify-center"
-            style={{ background: '#000', border: BORDER }}
+            style={{ background: 'var(--card2)', border: BORDER }}
           >
             <iframe
               src={widgetEmbedUrl}
@@ -726,14 +732,14 @@ export default function AffiliatePage() {
             onFocus={(event) => event.currentTarget.select()}
             rows={4}
             className="w-full rounded-xl p-3 text-xs leading-relaxed resize-none"
-            style={{ background: 'rgba(13,13,28,.85)', border: BORDER, color: TEXT, outline: 'none' }}
+            style={{ background: 'var(--card2)', border: BORDER, color: TEXT, outline: 'none' }}
           />
           <button
             type="button"
             onClick={() => void copyCampaignAsset('widget', widgetSnippet)}
             aria-live="polite"
             className="w-full rounded-xl px-4 py-2.5 mt-2 text-xs font-black"
-            style={{ background: 'rgba(41,151,255,.14)', border: '1px solid rgba(41,151,255,.3)', color: CYAN }}
+            style={{ background: 'var(--accent-soft)', border: '1px solid var(--border)', color: CYAN }}
           >
             {copiedAsset === 'widget' ? '✓ Embed code copied' : 'Copy attributed widget'}
           </button>
@@ -751,7 +757,7 @@ export default function AffiliatePage() {
       {a.coupon_code ? (
         <div
           className="rounded-2xl p-5 mb-5"
-          style={{ background: CARD, border: '1px solid rgba(41,151,255,.28)', boxShadow: '0 0 30px rgba(41,151,255,.08)' }}
+          style={{ background: CARD, border: '1px solid var(--border)', boxShadow: 'var(--sh-card)' }}
         >
           <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: MUTED }}>
             Your coupon — for video, where links don&apos;t work
@@ -763,8 +769,8 @@ export default function AffiliatePage() {
               onFocus={(e) => e.currentTarget.select()}
               className="flex-1 rounded-xl px-3 py-2.5 text-lg font-black tracking-widest"
               style={{
-                background: 'rgba(13,13,28,.85)',
-                border: '1px solid rgba(41,151,255,.3)',
+                background: 'var(--card2)',
+                border: '1px solid var(--border)',
                 color: GREEN,
                 outline: 'none',
                 fontFamily: 'inherit',
@@ -784,12 +790,12 @@ export default function AffiliatePage() {
               }}
               className="rounded-xl px-5 py-2.5 text-sm font-black"
               style={{
-                background: 'linear-gradient(135deg, #2997ff, #2997ff)',
-                boxShadow: '0 4px 18px rgba(41,151,255,.35)',
+                background: 'var(--indigo)',
+                boxShadow: 'var(--sh-cta)',
                 whiteSpace: 'nowrap',
                 cursor: 'pointer',
                 border: 'none',
-                color: '#fff',
+                color: 'var(--on-accent)',
               }}
             >
               {couponCopied ? '✓ Copied!' : 'Copy coupon'}
@@ -810,14 +816,14 @@ export default function AffiliatePage() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
         <Kpi label="Link visits" value={stats.clicks.toLocaleString('en-US')} accent={CYAN} />
-        <Kpi label="Signups" value={stats.signups.toLocaleString('en-US')} accent="#2997ff" />
+        <Kpi label="Signups" value={stats.signups.toLocaleString('en-US')} accent={CYAN} />
         <Kpi label="Paid customers" value={stats.paid.toLocaleString('en-US')} accent={GREEN} />
-        <Kpi label="Pending $" value={dollars(earnings.pending)} accent="#fbbf24" />
+        <Kpi label="Pending $" value={dollars(earnings.pending)} accent="var(--warning)" />
         <Kpi label="Approved $" value={dollars(earnings.approved)} accent={GREEN} />
         <Kpi label="Total earned" value={dollars(earnings.total)} accent={CYAN} />
       </div>
       {/* KINEO-AFILIADO-TERMOS-2026-09-09 — os termos de repasse ao lado dos números, da fonte única. */}
-      <p data-testid="affiliate-payout-terms" className="text-xs mb-6" style={{ color: '#8d9aab', lineHeight: 1.5 }}>
+      <p data-testid="affiliate-payout-terms" className="text-xs mb-6" style={{ color: 'var(--muted)', lineHeight: 1.5 }}>
         {AFFILIATE_PAYOUT_TERMS} {AFFILIATE_BONUS_TERMS}
       </p>
 
