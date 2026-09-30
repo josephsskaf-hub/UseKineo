@@ -7,7 +7,7 @@
 // REVISÃO — nada de official/partner/approved/certified/"by Anthropic", nem logo da Anthropic, em nenhum card.
 // Quando a listagem for APROVADA E PUBLICADA, reancorar o guardião com motivo.
 //
-// Ordem na fileira (fundador 30/09): Kineo for Claude · Ads: 3 variations · Clips.
+// Ordem na fileira (fundador 30/09): Kineo for Claude · Ads: 3 variations · Clips · Nano Banana Pro (4 cards, 3 vídeos cada).
 // Para um card novo: acrescente um item aqui (a fileira rola na horizontal, com snap no celular) e, se tiver vídeo,
 // uma prévia leve em public/previews/ (≤ 1,5 MB, sem áudio, faststart) com pôster .webp em public/posters/.
 
@@ -19,11 +19,26 @@
  */
 export const CLAUDE_CARD_HREF = '/claude-connector'
 
-export type PromoCardArt =
-  /** Pôster animado em CSS/HTML (sem vídeo): faixas de tipografia inclinadas. */
-  | { kind: 'poster'; bands: readonly string[] }
-  /** Vídeo curto em loop, mudo, com pôster; rótulos animados por cima. */
-  | { kind: 'video'; src: string; poster: string; badge?: string; chips?: readonly string[]; chipUnit?: string }
+/** Um vídeo do carrossel do card: prévia leve em public/previews/ (≤ 1,5 MB, sem áudio, faststart) + pôster .webp. */
+export type PromoClip = { src: string; poster: string }
+
+/**
+ * Fundador 30/09: "quatro cards na primeira fileira… 3 vídeos rodando igual a gente tinha anteriormente" — cada card
+ * troca de vídeo quando o anterior TERMINA (onEnded, nunca timer fixo — mesma regra do AuthReel), com fade.
+ */
+export type PromoCardArt = {
+  kind: 'reel'
+  clips: readonly PromoClip[]
+  /** Tipografia em faixas por cima dos vídeos (card do Claude). */
+  bands?: readonly string[]
+  /** Etiqueta pequena no canto inferior direito (sem tradução: nome técnico). */
+  tag?: string
+  badge?: string
+  chips?: readonly string[]
+  chipUnit?: string
+  /** true = o chip i acende junto com o vídeo i (A/B/C do Ads); false = os chips piscam em sequência própria. */
+  chipsFollowClip?: boolean
+}
 
 export type PromoCard = {
   id: string
@@ -37,6 +52,8 @@ export type PromoCard = {
   gate?: 'clips'
 }
 
+const clip = (name: string): PromoClip => ({ src: `/previews/${name}.mp4`, poster: `/posters/${name}.webp` })
+
 export const PROMO_CARDS: readonly PromoCard[] = [
   {
     id: 'claude',
@@ -45,35 +62,57 @@ export const PROMO_CARDS: readonly PromoCard[] = [
     // Selo honesto (sessão Loja Claude, 30/09): o conector NÃO gera mídia dentro do Claude (regra do diretório) — ele
     // escreve o roteiro e manda para o Kineo Studio, onde o vídeo é renderizado. Nada de "make videos in Claude".
     subtitle: 'Write your video in Claude, render it in Kineo Studio',
-    art: { kind: 'poster', bands: ['KINEO IN', 'CLAUDE', 'SCRIPT → STUDIO'] }, // 'IN', não '×': o '×' sugere parceria entre marcas enquanto a listagem está em revisão (selo honesto)
+    // Os 3 vídeos são as amostras feitas NA Kineo que a própria /claude-connector mostra (Seedance 1.5, Kling 3,
+    // Veo 3.1) — nenhum logo da Anthropic. 'IN', não '×': o '×' sugere parceria entre marcas (selo honesto).
+    art: {
+      kind: 'reel',
+      clips: [clip('promo-claude-1'), clip('promo-claude-2'), clip('promo-claude-3')],
+      bands: ['KINEO IN', 'CLAUDE'],
+      tag: 'Connector · MCP',
+    },
   },
   {
-    // Acréscimo do fundador (30/09): 3º card, entre o Claude e o Clips. Vídeo feito pela própria Kineo (mesma modelo
-    // fictícia em 3 anúncios: piscina, cozinha, terraço), 1280×870, 5 s, sem áudio. O título já vem no vídeo; nada
-    // por cima. Link = a porta de Ads que a home já usa (/ads): o /ads/v2 manda visitante sem login para /login e
-    // quem não tem acesso para /ads?from=v2 — a porta pública é o degrau certo para quem chega pela home.
+    // Os 3 anúncios da mesma modelo fictícia (A piscina, B cozinha, C terraço), feitos pela própria Kineo, um por vez,
+    // com o chip da letra acendendo junto. Link = a porta de Ads que a home já usa (/ads).
     id: 'ads',
     href: '/ads',
     title: 'ADS: 3 VARIATIONS',
     subtitle: 'One product in, three ads out, ready to A/B test',
-    art: { kind: 'video', src: '/previews/promo-ads-3-variacoes.mp4', poster: '/posters/promo-ads-3-variacoes.webp' },
+    art: {
+      kind: 'reel',
+      clips: [clip('promo-ads-a'), clip('promo-ads-b'), clip('promo-ads-c')],
+      chips: ['A', 'B', 'C'],
+      chipsFollowClip: true,
+    },
   },
   {
     id: 'clips',
     href: '/clips',
     title: 'CLIPS',
     subtitle: 'One scene, 5 to 15 seconds — from text or a photo',
-    // Clipe real da casa: tempestade com raios sobre o mar, Seedance 1.5, 5 s (conta do fundador, 29/09),
-    // recortado 720×490 para o formato do card.
+    // Clipes reais da casa, Seedance 1.5, 5 s (conta do fundador): tempestade no mar (29/09), rio de geleira e
+    // surfista (30/09). Natureza, sem fogo (curadoria do fundador).
     art: {
-      kind: 'video',
-      src: '/previews/promo-clips-storm.mp4',
-      poster: '/posters/promo-clips-storm.webp',
+      kind: 'reel',
+      clips: [clip('promo-clips-storm'), clip('promo-clips-glacier'), clip('promo-clips-surf')],
       badge: 'NEW',
       chips: ['5', '7', '10', '15'],
       chipUnit: 's',
     },
     gate: 'clips',
+  },
+  {
+    // 4º card (fundador 30/09). Imagens reais do Nano Banana Pro (conta do fundador, 30/09): perfume, astronauta,
+    // farol. São fotos: o movimento é só uma aproximação lenta da prévia, não animação do produto.
+    id: 'images',
+    href: '/images',
+    title: 'NANO BANANA PRO',
+    subtitle: 'Pro images from a sentence — or keep a face from your own photo',
+    art: {
+      kind: 'reel',
+      clips: [clip('promo-images-1'), clip('promo-images-2'), clip('promo-images-3')],
+      tag: 'Images',
+    },
   },
 ]
 
@@ -86,7 +125,7 @@ export function promoCardsFor(open: { clips: boolean }): PromoCard[] {
 // intocados. Clique por card vira evento de navegador para ler em 7 dias. A leitura corta por metadata->>'promo_v'
 // (sobe quando o contrato mudar), nunca pelo relógio do deploy.
 export const PROMO_CLICK_EVENT = 'promo_card_clicked' as const
-export const PROMO_TELEMETRY_VERSION = 1
+export const PROMO_TELEMETRY_VERSION = 2 // 2 = fileira de 4 cards com carrossel (30/09); 1 = 3 cards
 
 /** Metadados FECHADOS do clique: id do card (nunca o texto traduzido), posição 1-based, destino e versão. */
 export function promoClickMetadata(card: PromoCard, index: number): { card: string; position: number; href: string; surface: 'home'; promo_v: number } {

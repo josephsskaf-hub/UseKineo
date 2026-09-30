@@ -1,6 +1,10 @@
 // KINEO-PROMO-CARDS-2026-09-30 — guardião da fileira de cards grandes logo abaixo do menu da home.
 //
-// Prova: (1) os 3 links certos (/claude-connector, /ads e /clips), na ordem do fundador (Claude · Ads · Clips), e a fileira DEPOIS do menu e ANTES do hero;
+// Prova: (1) os 4 links certos (/claude-connector, /ads, /clips e /images), na ordem do fundador (Claude · Ads · Clips · Nano Banana Pro), e a fileira DEPOIS do menu e ANTES do hero;
+// REANCORADO 30/09 (fundador: "quatro cards na primeira fileira… 3 vídeos rodando igual a gente tinha anteriormente"): cada card é um
+// carrossel de 3 vídeos que troca no onEnded; o do Claude deixou de ser pôster em CSS — as faixas viraram letreiro por cima das
+// amostras feitas NA Kineo que a /claude-connector já mostra (sem logo da Anthropic), e o card de Images não promete 4K (o gerador
+// não pede resolução ao fornecedor: sai 1376×768).
 // (2) o card do Claude não promete o que ainda não é verdade (official/partner/approved/certified/"by Anthropic",
 // diretório, logo) — mesma régua do test-works-with-claude-2026-09-30; (3) vídeo mudo + loop + playsInline + pôster,
 // sem autoplay nem preload pesado, tocando só quando visível; (4) prefers-reduced-motion respeitado no CSS e no JS;
@@ -47,11 +51,18 @@ function dataProblems(src) {
   const claude = cards.find((c) => c.id === 'claude')
   const clips = cards.find((c) => c.id === 'clips')
   const ads = cards.find((c) => c.id === 'ads')
-  if (cards.map((c) => c.id).join(',') !== 'claude,ads,clips') probs.push(`ordem da fileira ≠ Claude · Ads · Clips (${cards.map((c) => c.id).join(',')})`)
+  const images = cards.find((c) => c.id === 'images')
+  if (cards.map((c) => c.id).join(',') !== 'claude,ads,clips,images') probs.push(`ordem da fileira ≠ Claude · Ads · Clips · Images (${cards.map((c) => c.id).join(',')})`)
+  for (const c of cards) {
+    const clipsOk = c.art && c.art.kind === 'reel' && Array.isArray(c.art.clips) && c.art.clips.length === 3
+      && c.art.clips.every((v) => /^\/previews\/promo-[\w-]+\.mp4$/.test(v.src) && /^\/posters\/promo-[\w-]+\.webp$/.test(v.poster))
+    if (!clipsOk) probs.push('card ' + c.id + ' sem os 3 vídeos (/previews/promo-*.mp4 + /posters/promo-*.webp)')
+  }
   if (!ads || ads.href !== '/ads') probs.push('card de Ads não aponta para /ads (a porta pública que a home já usa)')
   if (ads) {
     if (ads.title !== 'ADS: 3 VARIATIONS') probs.push('título do card de Ads mudou')
-    if (ads.art.kind !== 'video' || ads.art.src !== '/previews/promo-ads-3-variacoes.mp4' || ads.art.poster !== '/posters/promo-ads-3-variacoes.webp') probs.push('card de Ads sem o vídeo/pôster do fundador')
+    if ((ads.art.clips || []).map((v) => v.src).join(',') !== '/previews/promo-ads-a.mp4,/previews/promo-ads-b.mp4,/previews/promo-ads-c.mp4') probs.push('card de Ads sem os 3 anúncios A/B/C')
+    if (JSON.stringify(ads.art.chips) !== '["A","B","C"]' || ads.art.chipsFollowClip !== true) probs.push('chips A/B/C do Ads não acompanham o vídeo')
     if (ads.gate) probs.push('card de Ads com interruptor inesperado')
   }
   if (!claude || claude.href !== '/claude-connector') probs.push('card do Claude não aponta para /claude-connector')
@@ -66,22 +77,27 @@ function dataProblems(src) {
     if (OVERCLAIM.test(visible)) probs.push(`card do Claude promete demais: ${visible.match(OVERCLAIM)[0]}`)
     if (MEDIA_IN_CLAUDE.test(visible)) probs.push(`card do Claude diz que a mídia nasce no Claude: ${visible.match(MEDIA_IN_CLAUDE)[0]}`)
     if (!/in Claude/.test(claude.subtitle) || !/Kineo Studio/.test(claude.subtitle)) probs.push('subtítulo do Claude não diz onde cada parte acontece (roteiro no Claude, render no Kineo Studio)')
-    if (claude.art.kind !== 'poster') probs.push('card do Claude deixou de ser pôster em CSS (vídeo/imagem pode carregar logo)')
+    if ((claude.art.clips || []).some((v) => !/^\/previews\/promo-claude-\d\.mp4$/.test(v.src))) probs.push('card do Claude com vídeo fora das amostras Kineo (promo-claude-N)')
+    if (JSON.stringify(claude.art.bands) !== '["KINEO IN","CLAUDE"]') probs.push('letreiro do Claude ≠ KINEO IN / CLAUDE')
+    if (OVERCLAIM.test(claude.art.tag || '')) probs.push('etiqueta do Claude promete demais')
     if (claude.title !== 'KINEO FOR CLAUDE') probs.push('título do card do Claude mudou')
   }
   if (clips) {
-    if (clips.art.kind !== 'video') probs.push('card do Clips sem vídeo')
     if (clips.title !== 'CLIPS') probs.push('título do card do Clips mudou')
-    if (!/^\/previews\/[\w-]+\.mp4$/.test(clips.art.src || '')) probs.push('vídeo do Clips fora de /previews/*.mp4')
-    if (!/^\/posters\/[\w-]+\.webp$/.test(clips.art.poster || '')) probs.push('pôster do Clips fora de /posters/*.webp')
     if (clips.gate !== 'clips') probs.push('card do Clips sem o interruptor do produto')
     if (JSON.stringify(clips.art.chips) !== '["5","7","10","15"]') probs.push('durações do Clips ≠ 5·7·10·15 (as que o produto faz)')
+  }
+  if (!images || images.href !== '/images') probs.push('card de Images não aponta para /images')
+  if (images) {
+    if (images.title !== 'NANO BANANA PRO') probs.push('título do card de Images mudou')
+    if (/\b[248]K\b|ultra ?hd/i.test([images.title, images.subtitle, images.art.tag || ''].join(' '))) probs.push('card de Images promete resolução que o gerador não pede (sai 1376×768)')
+    if (images.gate) probs.push('card de Images com interruptor inesperado')
   }
   // O card do Clips some quando o interruptor está fechado; o do Claude fica.
   if (mod.promoCardsFor) {
     const closed = mod.promoCardsFor({ clips: false }).map((c) => c.id).join(',')
     const open = mod.promoCardsFor({ clips: true }).map((c) => c.id).join(',')
-    if (closed !== 'claude,ads' || open !== 'claude,ads,clips') probs.push(`promoCardsFor errado (fechado=${closed} aberto=${open})`)
+    if (closed !== 'claude,ads,images' || open !== 'claude,ads,clips,images') probs.push(`promoCardsFor errado (fechado=${closed} aberto=${open})`)
   } else probs.push('promoCardsFor ausente')
   return probs
 }
@@ -90,15 +106,21 @@ function componentProblems(src) {
   const probs = []
   const video = (src.match(/<video[\s\S]*?\/>/) || [''])[0]
   if (!video) probs.push('sem <video>')
-  for (const attr of ['muted', 'playsInline', 'loop']) {
+  for (const attr of ['muted', 'playsInline']) {
     if (!new RegExp(`^\\s+${attr}\\s*$`, 'm').test(video)) probs.push(`<video> sem ${attr}`)
   }
-  if (!/poster=\{art\.poster\}/.test(video)) probs.push('<video> sem pôster')
+  // Carrossel: troca no FIM do vídeo (nunca timer fixo) e só repete sozinho quando o card tem 1 vídeo.
+  if (!/onEnded=\{\(\) => setActive\(\(i \+ 1\) % count\)\}/.test(video)) probs.push('<video> não passa para o próximo no onEnded')
+  if (!/loop=\{count === 1\}/.test(video)) probs.push('<video> sem loop para card de 1 vídeo (ou com loop que trava o carrossel)')
+  if (/setInterval|setTimeout\(\s*\(\)\s*=>\s*setActive/.test(src)) probs.push('carrossel com timer fixo')
+  if (!/poster=\{clip\.poster\}/.test(video)) probs.push('<video> sem pôster')
   if (/\bautoPlay\b/.test(video)) probs.push('<video> com autoPlay (toca fora da tela e ignora reduced-motion)')
   if (!/preload="(none|metadata)"/.test(video)) probs.push('<video> sem preload leve')
   if (/<audio|controls/.test(video)) probs.push('<video> com controles/áudio')
   // Toca só quando visível.
   if (!/new IntersectionObserver\(/.test(src) || !/video\.play\(\)/.test(src) || !/video\.pause\(\)/.test(src)) probs.push('vídeo não é ligado/desligado por IntersectionObserver')
+  if (!/querySelector<HTMLVideoElement>\('video\[data-on\]'\)/.test(src)) probs.push('IntersectionObserver não mira só o vídeo ativo do carrossel')
+  if (!/dataset\.visible === '1' && !reduce/.test(src)) probs.push('próximo vídeo toca fora da tela ou com reduced-motion')
   // reduced-motion no JS (não toca) e no CSS (animações só em no-preference).
   if (!/matchMedia\(REDUCED_MOTION\)/.test(src) || !/const REDUCED_MOTION = '\(prefers-reduced-motion: reduce\)'/.test(src)) probs.push('JS não consulta prefers-reduced-motion')
   if (!/if \(visible && !reduce\)/.test(src)) probs.push('vídeo toca mesmo com reduced-motion')
@@ -170,14 +192,18 @@ function copyProblems(dict, src) {
 function fileProblems() {
   const probs = []
   const MAX = 1.5 * 1024 * 1024
-  for (const rel of ['public/previews/promo-clips-storm.mp4', 'public/posters/promo-clips-storm.webp', 'public/previews/promo-ads-3-variacoes.mp4', 'public/posters/promo-ads-3-variacoes.webp']) {
+  // Todas as prévias e pôsteres que os cards citam (12 vídeos + 12 pôsteres em 30/09), lidos do próprio arquivo de dados.
+  const clips = roda(dataSrc).PROMO_CARDS.flatMap((c) => c.art.clips || [])
+  const mp4s = clips.map((v) => 'public' + v.src)
+  for (const rel of [...mp4s, ...clips.map((v) => 'public' + v.poster)]) {
     const p = path.join(ROOT, rel)
     if (!fs.existsSync(p)) { probs.push(`${rel} não existe`); continue }
     const size = fs.statSync(p).size
     if (size > MAX) probs.push(`${rel} tem ${(size / 1048576).toFixed(2)} MB (> 1,5 MB)`)
     if (size < 1024) probs.push(`${rel} vazio (${size} B)`)
   }
-  for (const rel of ['public/previews/promo-clips-storm.mp4', 'public/previews/promo-ads-3-variacoes.mp4']) {
+  if (mp4s.length !== 12) probs.push(`${mp4s.length} vídeos nos cards (esperado 4 × 3 = 12)`)
+  for (const rel of mp4s) {
     const p = path.join(ROOT, rel)
     const mp4 = fs.existsSync(p) ? fs.readFileSync(p) : Buffer.alloc(0)
     const moov = mp4.indexOf('moov')
@@ -191,9 +217,9 @@ function fileProblems() {
 // ─── o real ────────────────────────────────────────────────────────────────
 const dp = dataProblems(dataSrc)
 const eventsRoute = read('app/api/events/route.ts')
-ok(dp.length === 0, `(1) dados: /claude-connector + /ads + /clips na ordem, títulos, durações, interruptor, selo honesto (${dp.join('; ') || 'ok'})`)
+ok(dp.length === 0, `(1) dados: /claude-connector + /ads + /clips + /images na ordem, 3 vídeos por card, títulos, durações, interruptor, selo honesto (${dp.join('; ') || 'ok'})`)
 const cp = componentProblems(compSrc)
-ok(cp.length === 0, `(2) componente: vídeo mudo+loop+playsInline+pôster, IO, reduced-motion, aspect-ratio, snap sem barra (${cp.join('; ') || 'ok'})`)
+ok(cp.length === 0, `(2) componente: carrossel mudo+playsInline+pôster, troca no fim do vídeo, IO, reduced-motion, aspect-ratio, snap sem barra (${cp.join('; ') || 'ok'})`)
 const lp = landingProblems(landing)
 ok(lp.length === 0, `(3) home: fileira logo abaixo do menu, antes do hero, curadoria intacta (${lp.join('; ') || 'ok'})`)
 const tp = copyProblems(refine, dataSrc)
@@ -206,14 +232,20 @@ ok(!/lib\/engineWall/.test(compSrc + dataSrc), '(6) a fileira não lê nem mexe 
 ok(componentProblems(compSrc.replace(/^\s+muted\n/m, '\n')).length > 0, '(M1) <video> sem muted → vermelho')
 ok(dataProblems(dataSrc.replace("title: 'KINEO FOR CLAUDE'", "title: 'OFFICIAL KINEO FOR CLAUDE'")).length > 0, '(M2) "official" no título do Claude → vermelho')
 ok(dataProblems(dataSrc.replace("'Write your video in Claude, render it in Kineo Studio'", "'Official Claude partner for videos'")).length > 0, '(M3) "partner" no subtítulo → vermelho')
-ok(dataProblems(dataSrc.replace("['KINEO IN', 'CLAUDE', 'SCRIPT → STUDIO']", "['KINEO IN', 'CLAUDE', 'BY ANTHROPIC']")).length > 0, '(M4) "by Anthropic" no pôster → vermelho')
+ok(dataProblems(dataSrc.replace("bands: ['KINEO IN', 'CLAUDE'],", "bands: ['KINEO IN', 'CLAUDE', 'BY ANTHROPIC'],")).length > 0, '(M4) "by Anthropic" no letreiro → vermelho')
+ok(dataProblems(dataSrc.replace("tag: 'Connector · MCP',", "tag: 'Official connector',")).length > 0, '(M4b) "official" na etiqueta do Claude → vermelho')
+ok(dataProblems(dataSrc.replace("'Pro images from a sentence", "'4K images from a sentence")).length > 0, '(M26) card de Images prometendo 4K → vermelho')
+ok(dataProblems(dataSrc.replace("clip('promo-ads-c')]", "clip('promo-ads-a')]")).length > 0, '(M27) Ads sem a variação C → vermelho')
+ok(dataProblems(dataSrc.replace(", clip('promo-clips-surf')]", ']')).length > 0, '(M28) card com 2 vídeos em vez de 3 → vermelho')
 ok(dataProblems(dataSrc.replace("CLAUDE_CARD_HREF = '/claude-connector'", "CLAUDE_CARD_HREF = '/mcp'")).length > 0, '(M5) link do Claude errado → vermelho')
 ok(dataProblems(dataSrc.replace("CLAUDE_CARD_HREF = '/claude-connector'", "CLAUDE_CARD_HREF = 'https://claude.ai/directory/kineo'")).length > 0, '(M18) URL do diretório antes da aprovação → vermelho')
 ok(dataProblems(dataSrc.replace('href: CLAUDE_CARD_HREF,', "href: '/claude-connector',")).length > 0, '(M19) destino digitado fora da constante única → vermelho')
 ok(dataProblems(dataSrc.replace("href: '/clips'", "href: '/studio'")).length > 0, '(M6) link do Clips errado → vermelho')
-ok(componentProblems(compSrc.replace(/^\s+loop\n/m, '\n')).length > 0, '(M7) <video> sem loop → vermelho')
+ok(componentProblems(compSrc.replace('loop={count === 1}', 'loop')).length > 0, '(M7) <video> em loop eterno (carrossel nunca troca) → vermelho')
+ok(componentProblems(compSrc.replace('onEnded={() => setActive((i + 1) % count)}', '')).length > 0, '(M7b) carrossel sem troca no fim do vídeo → vermelho')
+ok(componentProblems(compSrc.replace("querySelector<HTMLVideoElement>('video[data-on]')", "querySelector<HTMLVideoElement>('video')")).length > 0, '(M7c) IO tocando o 1º vídeo em vez do ativo → vermelho')
 ok(componentProblems(compSrc.replace(/^\s+playsInline\n/m, '\n')).length > 0, '(M8) <video> sem playsInline → vermelho')
-ok(componentProblems(compSrc.replace('poster={art.poster}', '')).length > 0, '(M9) <video> sem pôster → vermelho')
+ok(componentProblems(compSrc.replace('poster={clip.poster}', '')).length > 0, '(M9) <video> sem pôster → vermelho')
 ok(componentProblems(compSrc.replace('if (visible && !reduce)', 'if (visible)')).length > 0, '(M10) vídeo toca com reduced-motion → vermelho')
 ok(componentProblems(compSrc.replace('@media (prefers-reduced-motion: no-preference){\n', '')).length > 0, '(M11) animação sem guarda de reduced-motion → vermelho')
 ok(componentProblems(compSrc.replace('preload="none"', 'autoPlay preload="auto"')).length > 0, '(M12) autoPlay + preload pesado → vermelho')

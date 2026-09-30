@@ -3,6 +3,14 @@
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
 
+## 2026-09-30 (madrugada) — Fileira de novidades com 4 cards, 3 vídeos girando em cada
+
+**QUEM DECIDIU:** o fundador, 30/09: "em vez de três cards, eu quero quatro cards na primeira fileira… 3 vídeos rodando igual a gente tinha anteriormente… pode fazer isso aí".
+**O QUE:** Claude · Ads: 3 variations · Clips · **Nano Banana Pro** (novo, → /images). Cada card troca de vídeo quando o anterior termina (onEnded, sem timer), com fade; só toca na tela e respeita reduced-motion. Ads acende o chip A/B/C junto com a variação.
+**MÍDIA:** Claude = as 3 amostras Kineo da /claude-connector; Ads = os 3 anúncios da modelo fictícia; Clips = tempestade + geleira + surfista (Seedance 1.5, conta do fundador, 10 cr); Nano Banana = perfume, astronauta, farol (15 cr). Sem "4K" no card: o gerador não pede resolução (sai 1376×768).
+**MEDIR:** promo_card_clicked com promo_v=2 (1 = fileira de 3 cards).
+**EM ABERTO:** o fundador cogita trocar o "Make room for your next big idea" do meio por outra coisa — decisão dele.
+
 ## 2026-09-30 — Paleta "Porcelana" no site inteiro (claro e escuro)
 
 **QUEM DECIDIU:** o fundador, 30/09: "o branco reflete um pouco o que está mal acabado", "to cogitando escolher a porcelana mesmo" e "sim subimos por aqui… só subir a interface nova e aos poucos ir corrigindo".
