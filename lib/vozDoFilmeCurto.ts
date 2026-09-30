@@ -24,7 +24,7 @@ import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
 import type { OpenAIVoice } from '@/lib/narration/personas'
 import { stripScriptMarkers } from '@/lib/scriptParser'
 import { CLASSIC_VOICE_WORDS_PER_SECOND } from '@/lib/speechRate'
-import { SEEDANCE_SHORT_SECONDS, VERBATIM_EST_WORDS_PER_SECOND, isSeedance15 } from '@/lib/durationByEngine'
+import { SEEDANCE_SHORT_SECONDS, VERBATIM_EST_WORDS_PER_SECOND, isClassicShortEngine } from '@/lib/durationByEngine' // KINEO-DURACOES-CURTAS-2026-09-29: Seedance 1.5, Kling 2.5 e Veo 3.1
 import type { NarrationLanguage } from '@/lib/textLanguage'
 
 /** A voz de uma narração clássica no nível da persona: voz do tts-1-hd e velocidade base (o `speed` do roteiro multiplica por cima). */
@@ -60,12 +60,13 @@ export function vozQueOComposeEscolhe(args: { narration: string; vertical?: stri
 }
 
 /**
- * A voz do filme de 15 s do Seedance 1.5 (null em qualquer outro pedido): a do compose, com a velocidade base limitada
+ * A voz do filme de 15 s da estrada clássica — Seedance 1.5 e, desde KINEO-DURACOES-CURTAS-2026-09-29, Kling 2.5 e Veo 3.1 (null em
+ * qualquer outro pedido; os três falam a MESMA voz tts-1-hd do compose e o portão mede nela): a do compose, com a velocidade base limitada
  * para a voz não passar da régua da casa (2,5 pal/s). Arredonda para BAIXO (0,98, não 0,9804): o passo real nunca fica
  * acima da régua que o escritor e o portão usam.
  */
 export function vozDoFilmeCurto(args: { engine: unknown; seconds: number; narration: string; vertical?: string | null; language: NarrationLanguage }): VozDoFilmeCurto | null {
-  if (args.seconds !== SEEDANCE_SHORT_SECONDS || !isSeedance15(typeof args.engine === 'string' ? args.engine : null)) return null
+  if (args.seconds !== SEEDANCE_SHORT_SECONDS || !isClassicShortEngine(typeof args.engine === 'string' ? args.engine : null)) return null
   const vertical = verticalComoOCompose(args.vertical) ?? null
   const base = vozQueOComposeEscolhe({ narration: args.narration, vertical, tier: 'cinematic', language: args.language })
   const passo = CLASSIC_VOICE_WORDS_PER_SECOND[base.voice]

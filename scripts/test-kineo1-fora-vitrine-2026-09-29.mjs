@@ -118,7 +118,7 @@ const mede = async (src) => { const W = executeTs('lib/engineWall.ts', wallMocks
 }
 
 // ── (d) home renderizada ────────────────────────────────────────────────────────────────────────────────────────────
-console.log('== (d) home: visitante sem Kineo 1, casa com as 3 portas ==')
+console.log('== (d) home: visitante sem Kineo 1, casa com as 2 portas ==')
 const wall = ['fast', 'cinematic_ai', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood'].map((engine, i) => ({ id: 'w' + i, title: 'Demo ' + i, videoUrl: '/demo.mp4', engine, badge: engine.toUpperCase() }))
 const homeDe = (entry, email) => renderPage(entry, false, {}, { initialEmail: email, engineWall: wall })
 const semKineo1 = (html) => !html.includes('Kineo 1') && !html.includes('engine=fast')
@@ -126,11 +126,13 @@ const semKineo1 = (html) => !html.includes('Kineo 1') && !html.includes('engine=
   const pub = homeDe('app/KineoLanding.tsx', null), logado = homeDe('app/KineoLanding.tsx', PUBLICO), casa = homeDe('app/KineoLanding.tsx', INTERNO)
   checa('home (visitante): 0 "Kineo 1" e 0 link engine=fast', semKineo1(pub))
   checa('home (e-mail público logado): idem', semKineo1(logado))
-  checa('home (visitante): bento com 4 tiles e FAQ "Five ... and Seedance 1.5"', conta(pub, 'class="tile') === 4 && pub.includes('Veo 3.1, Kling 3, Kling 2.5, MiniMax H3 and Seedance 1.5'))
-  checa('home (casa): as 3 portas do Kineo 1 continuam (mega-menu, tile, chip)', conta(casa, 'engine=fast&amp;intent_campaign=nav_mega') === 1 && conta(casa, 'engine=fast&amp;intent_campaign=engine_tile') === 1 && conta(casa, 'engine=fast&amp;intent_campaign=final_chip') === 1)
+  // REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles de motor saiu da home). Some a porta do tile;
+  // ficam 2 portas do Kineo 1 para a casa (mega-menu e chip final), ainda atrás de showKineo1.
+  checa('home (visitante): sem grade de tiles e FAQ "Five ... and Seedance 1.5"', conta(pub, 'class="tile') === 0 && pub.includes('Veo 3.1, Kling 3, Kling 2.5, MiniMax H3 and Seedance 1.5'))
+  checa('home (casa): as 2 portas do Kineo 1 continuam (mega-menu, chip) e o tile saiu', conta(casa, 'engine=fast&amp;intent_campaign=nav_mega') === 1 && conta(casa, 'engine=fast&amp;intent_campaign=engine_tile') === 0 && conta(casa, 'engine=fast&amp;intent_campaign=final_chip') === 1)
   checa('mutante (predicado aplicado à casa, que vê as portas) → vermelho', !semKineo1(casa))
   const land = rd('app/KineoLanding.tsx')
-  checa('as 3 portas estão atrás de showKineo1 = kineo1Visible(initialEmail)', land.includes('  const showKineo1 = kineo1Visible(initialEmail)\n') && conta(land, '{showKineo1 && <') === 3 && conta(land, 'engine=fast') === 3)
+  checa('as 2 portas estão atrás de showKineo1 = kineo1Visible(initialEmail)', land.includes('  const showKineo1 = kineo1Visible(initialEmail)\n') && conta(land, '{showKineo1 && <') === 2 && conta(land, 'engine=fast') === 2)
   // Mutante no JSX real: sem a guarda, o visitante volta a ver o Kineo 1.
   const tmp = tmpRel('k1-home-mutante.tsx')
   try {

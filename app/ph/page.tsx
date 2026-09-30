@@ -25,7 +25,7 @@ import { videosPerMonth } from '@/lib/marketingPrice' // KINEO-FILME-GRATIS-15S-
 // desses três lugares são a METADATA, ou seja, o texto que o Product Hunt e o
 // X puxam como prévia do link. O site dizia oito e o cartão de compartilhamento
 // do lançamento dizia nove.
-import { VIDEO_ENGINE_COUNT_WORD, AVATAR_PUBLIC } from '@/lib/engineLaunch'
+import { VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, AVATAR_PUBLIC, enginePaused } from '@/lib/engineLaunch'
 
 export const dynamic = 'force-static'
 
@@ -141,7 +141,9 @@ export default function PhPage() {
             <p style={{ marginTop: 12, fontSize: 13, color: 'rgba(255,255,255,.5)' }}>{CARD_ENTRY_COPY.noFreeTier}</p>
             <p style={{ marginTop: 16, fontSize: 17, color: 'rgba(255,255,255,.78)', lineHeight: 1.5, maxWidth: 520 }}>
               Kineo writes the script, directs every shot, narrates, scores and edits — {ENGINES} video engines behind one
-              button (Veo 3.1, Kling 3, Seedance, MiniMax H3, Omni Flash). Every clip on this page was made this way,
+              {/* KINEO-SELO-OMNI-POPUP-2026-09-30 — a lista digitada citava o Omni Flash (pausado desde 15/09) e não o
+                  Kling 2.5; agora é a MESMA lista derivada que dá a contagem {ENGINES}. */}
+              button ({VIDEO_ENGINE_LIST_COPY}). Every clip on this page was made this way,
               from one paragraph of text.
             </p>
           </div>
@@ -179,7 +181,8 @@ export default function PhPage() {
             ['Starter', TIER_PRICES.starter.usd, `${videosPerMonth('starter', 'cinematic_ai')} AI films a month`, 'Seedance 1.5'],
             ['Creator', TIER_PRICES.basic.usd, `${videosPerMonth('basic', 'cinematic_ai')} AI films a month`, 'Seedance 1.5'],
             // KINEO-AVATAR-FORA-2026-09-28 — ', Avatar' só com AVATAR_PUBLIC=true (Avatar fora do catálogo desde 27/09).
-            ['Studio', TIER_PRICES.pro.usd, 'Every engine', `Kling 3, Veo 3.1, MiniMax H3, Omni Flash${AVATAR_PUBLIC ? ', Avatar' : ''}`],
+            // KINEO-SELO-OMNI-POPUP-2026-09-30 — ', Omni Flash' só enquanto o motor não estiver pausado.
+            ['Studio', TIER_PRICES.pro.usd, 'Every engine', `Kling 3, Veo 3.1, MiniMax H3${enginePaused('omni') ? '' : ', Omni Flash'}${AVATAR_PUBLIC ? ', Avatar' : ''}`],
           ] as Array<[string, number, string, string]>).map(([name, minor, promise, engines]) => (
             <div key={name} style={{ border: '1px solid rgba(255,255,255,.12)', borderRadius: 14, padding: '16px 18px' }}>
               <div style={{ fontSize: 13, fontWeight: 800, color: 'rgba(255,255,255,.6)', letterSpacing: '.06em', textTransform: 'uppercase' }}>{name}</div>

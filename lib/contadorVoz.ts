@@ -59,12 +59,12 @@ export interface ReguaDaTela {
  * cinematic (~1581-1594): vozDoFilmeCurto(narração, vertical, língua) → speechRateFor → ritmoDaVozNoIdioma. Sem `seconds`
  * (ou fora do 15 s do Seedance), tudo como antes.
  */
-export function reguaDoServidorNaTela(args: { engine: ContadorMotor; script: string; language: NarrationLanguage; vertical?: string | null; seconds?: number | null }): ReguaDaTela {
+export function reguaDoServidorNaTela(args: { engine: ContadorMotor; script: string; language: NarrationLanguage; vertical?: string | null; seconds?: number | null; curtas?: boolean }): ReguaDaTela { // KINEO-DURACOES-CURTAS-2026-09-29: + curtas (o interruptor da tela)
   const script = args.script ?? ''
   const family = speechFamilyForQuality(args.engine)
   const speed = parseSpeed(script)
   if (family === 'hollywood') {
-    return { rate: speechRateFor({ family, speed, language: args.language }), persona: null, floorSeconds: AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD, supported: supportedDurationsFor(args.engine) }
+    return { rate: speechRateFor({ family, speed, language: args.language }), persona: null, floorSeconds: AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD, supported: supportedDurationsFor(args.engine, { curtas: args.curtas }) }
   }
   const vertical = typeof args.vertical === 'string' && args.vertical.trim() ? args.vertical.trim().toLowerCase() : undefined
   // KINEO-PONTAS-15S-IDIOMA-2026-09-29 — vozDoFilmeCurto é null fora do 15 s do Seedance 1.5 (confere motor e segundos), como na rota.
@@ -78,7 +78,7 @@ export function reguaDoServidorNaTela(args: { engine: ContadorMotor; script: str
       rate: { ...rate, wordsPerSecond: ritmoDaVozNoIdioma(rate.wordsPerSecond, args.language) },
       persona: nome ? { id: vozCurta.id, name: nome, voice: vozCurta.voice, defaultSpeed: vozCurta.defaultSpeed } : null,
       floorSeconds: CONTADOR_FLOOR_CLASSIC_SECONDS,
-      supported: supportedDurationsFor(args.engine),
+      supported: supportedDurationsFor(args.engine, { curtas: args.curtas }),
     }
   }
   const persona = (() => {
@@ -92,7 +92,7 @@ export function reguaDoServidorNaTela(args: { engine: ContadorMotor; script: str
     rate: speechRateFor({ family: 'classic', speed, language: args.language, voice: persona?.voice, personaSpeed: persona?.defaultSpeed }),
     persona: persona ? { id: persona.id, name: persona.name, voice: persona.voice, defaultSpeed: persona.defaultSpeed } : null,
     floorSeconds: args.engine === 'fast' ? CONTADOR_FLOOR_FAST_SECONDS : CONTADOR_FLOOR_CLASSIC_SECONDS,
-    supported: supportedDurationsFor(args.engine),
+    supported: supportedDurationsFor(args.engine, { curtas: args.curtas }),
   }
 }
 

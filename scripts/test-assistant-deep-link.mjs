@@ -113,7 +113,9 @@ if (L) {
   // (A3) constantes do canal
   // KINEO-PASTE-PAGE-2026-09-07: o terceiro canal (paste_page, a página
   // /chatgpt) entrou; os dois primeiros continuam nas MESMAS posições.
-  check('(A3) HANDOFF_CHANNELS = gpt_store, assistant_link, paste_page', Array.isArray(L.HANDOFF_CHANNELS) && L.HANDOFF_CHANNELS.length === 3 && L.HANDOFF_CHANNELS[0] === 'gpt_store' && L.HANDOFF_CHANNELS[1] === 'assistant_link' && L.HANDOFF_CHANNELS[2] === 'paste_page')
+  // Reancorado 29/09 (KINEO-MCP-CLAUDE-2026-09-29): o quarto canal (claude_connector, a tool do conector MCP do
+  // Claude) entrou no FIM; os três antigos continuam nas MESMAS posições — é isso que esta âncora protege.
+  check('(A3) HANDOFF_CHANNELS = gpt_store, assistant_link, paste_page, claude_connector', Array.isArray(L.HANDOFF_CHANNELS) && L.HANDOFF_CHANNELS.length === 4 && L.HANDOFF_CHANNELS[0] === 'gpt_store' && L.HANDOFF_CHANNELS[1] === 'assistant_link' && L.HANDOFF_CHANNELS[2] === 'paste_page' && L.HANDOFF_CHANNELS[3] === 'claude_connector')
   check('(A3) DEFAULT_CHANNEL executado = gpt_store', L.DEFAULT_CHANNEL === 'gpt_store', String(L.DEFAULT_CHANNEL))
   check('(A3) isHandoffChannel aceita os dois e recusa o resto', L.isHandoffChannel('gpt_store') && L.isHandoffChannel('assistant_link') && !L.isHandoffChannel('chatgpt_gpt') && !L.isHandoffChannel(null))
   check('(A3) CHANNEL_TAGS.gpt_store == constantes de sempre', L.CHANNEL_TAGS.gpt_store.utmSource === L.HANDOFF_UTM_SOURCE && L.CHANNEL_TAGS.gpt_store.intentCampaign === L.HANDOFF_INTENT_CAMPAIGN)

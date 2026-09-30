@@ -100,6 +100,8 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       // internos em vez de 0. O canal `chatgpt` virou o maior de entrada
       // externa em 09/08 e não havia superfície falando com ele.
       { href: '/chatgpt-to-youtube-shorts', label: 'ChatGPT script to YouTube Short' },
+      // KINEO-WORKS-WITH-CLAUDE-2026-09-30 — o conector da Kineo no Claude (/claude-connector), em todo rodapé.
+      { href: '/claude-connector', label: 'Use Kineo in Claude' },
       { href: '/cheapest-ai-shorts-maker', label: 'Cheapest AI Shorts maker', costCalculator: true },
       { href: '/ai-shorts-without-filming', label: 'Shorts without filming' },
       { href: '/faceless-channel-ideas', label: 'Faceless channel ideas (2026)' },

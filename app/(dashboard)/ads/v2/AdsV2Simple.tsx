@@ -71,6 +71,7 @@ import { VideoFramesError, grabVideoFrames, pageHidden, readUserVideo } from '@/
 import { ADS_V2_MAX_USER_VIDEOS, ADS_V2_USER_VIDEO_MIN_SECONDS, pickLivelyStart, userVideoSampleTimes, userVideoVerdict, type AdsV2UserVideoVerdict } from '@/lib/ads/v2UserVideo'
 import { NARRATION_LANGUAGES, detectNarrationLanguage, narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage'
 import { pickInterfaceCopy, type InterfaceLanguage } from '@/lib/ui/interfaceLanguage'
+import { VariationToggle, variationsCopy, variationsPrice } from './AdsV2Variations'
 
 // ─── tipos ────────────────────────────────────────────────────────────────────────────────────
 
@@ -327,6 +328,8 @@ export function AdsV2SimpleSession({
   onBalance,
   onActive,
   onAskStartOver,
+  variations = false,
+  onVariationsStarted,
 }: {
   resume: boolean
   lang: InterfaceLanguage
@@ -334,8 +337,13 @@ export function AdsV2SimpleSession({
   onBalance: () => Promise<void>
   onActive: (active: boolean) => void
   onAskStartOver: () => void
+  /** KINEO-ADS-3-VARIACOES-2026-09-30 — a opção "3 variações" liberada para a conta (page.tsx → AdsV2Client). */
+  variations?: boolean
+  onVariationsStarted?: (groupId: string) => void
 }) {
   const copy: AdsV2SimpleCopy = pickInterfaceCopy(ADS_V2_SIMPLE_COPY, lang)
+  const vcopy = variationsCopy(lang)
+  const [three, setThree] = useState(false)
   const [phase, setPhase] = useState<Phase>(resume ? 'loading' : 'build')
   const [items, setItems] = useState<SimpleItem[]>([])
   // Leitura fresca dos itens para quem roda no fim de um await longo (o planAd): o `items` do fechamento é o da renderização.
@@ -997,6 +1005,11 @@ export function AdsV2SimpleSession({
       setPlanError(copy.plan.priceChanged)
       return
     }
+    // KINEO-ADS-3-VARIACOES-2026-09-30 — 3 variações: outra rota, com o preço do GRUPO que a tela mostrou.
+    if (variations && three && onVariationsStarted) {
+      void makeVariations()
+      return
+    }
     setBusy('start')
     setPlanError(null)
     try {
@@ -1019,6 +1032,38 @@ export function AdsV2SimpleSession({
       void onBalance()
       const v = r.data.order_id ? r.data : ({ ...r.data, order_id: plan.order_id } as StatusView)
       adoptOrder({ ...v, shots: Array.isArray(v.shots) ? v.shots : [] })
+    } finally {
+      if (aliveRef.current) {
+        setBusy(null)
+        setBusyNote(null)
+      }
+    }
+  }
+
+  async function makeVariations() {
+    const group = variationsPrice(cost)
+    if (!plan || group === null || !onVariationsStarted) return
+    setBusy('start')
+    setPlanError(null)
+    try {
+      if (!(await syncCard(plan))) return
+      setBusyNote(vcopy.starting)
+      onActive(true)
+      const r = await api<{ group_id?: string }>('/api/ads/v2/variations', { method: 'POST', body: { order_id: plan.order_id, expected_credits: group } })
+      if (!aliveRef.current) return
+      if (!r.ok || typeof r.data.group_id !== 'string') {
+        onActive(false)
+        if (!r.ok && r.code === 'not_startable') {
+          setDraft(null)
+          setPlan(null)
+        }
+        setPlanError(r.ok ? copy.progress.lost : errorText(lang, r))
+        void onBalance()
+        return
+      }
+      setDraft(null)
+      void onBalance()
+      onVariationsStarted(r.data.group_id)
     } finally {
       if (aliveRef.current) {
         setBusy(null)
@@ -1054,7 +1099,9 @@ export function AdsV2SimpleSession({
   const locked = busy !== null
   const itemByFootage = new Map<string, SimpleItem>()
   for (const p of items) if (p.uploaded) itemByFootage.set(p.uploaded.footageId.toLowerCase(), p)
-  const short = cost !== null && balance !== null && balance < cost ? cost - balance : 0
+  // KINEO-ADS-3-VARIACOES-2026-09-30 — com "3 variações" ligada, o saldo conferido é o do GRUPO.
+  const shownCost = variations && three ? variationsPrice(cost) : cost
+  const short = shownCost !== null && balance !== null && balance < shownCost ? shownCost - balance : 0
 
   return (
     <div className="adv2-layout">
@@ -1249,6 +1296,7 @@ export function AdsV2SimpleSession({
                   plan={plan as Plan}
                   copy={copy}
                   cost={cost}
+                  three={variations ? { on: three, onChange: setThree, copy: vcopy } : null}
                   short={short}
                   busy={busy}
                   narrationOn={narrationOn}
@@ -1433,7 +1481,8 @@ function ItemCard({
 function SimplePlanPreview({
   plan,
   copy,
-  cost,
+  cost: single,
+  three,
   short,
   busy,
   narrationOn,
@@ -1443,12 +1492,14 @@ function SimplePlanPreview({
   plan: Plan
   copy: AdsV2SimpleCopy
   cost: number | null
+  three: { on: boolean; onChange: (on: boolean) => void; copy: ReturnType<typeof variationsCopy> } | null
   short: number
   busy: string | null
   narrationOn: boolean
   itemByFootage: Map<string, SimpleItem>
   onMake: () => void
 }) {
+  const cost = three?.on ? variationsPrice(single) : single
   return (
     <>
       <p className="adsw-lead">{copy.plan.lead}</p>
@@ -1491,9 +1542,10 @@ function SimplePlanPreview({
       {short > 0 ? (
         <p className="adsw-warn">{fill(copy.tiers.needMore, { n: short })} <Link className="adsw-link" href="/pricing" target="_blank" rel="noopener">{copy.tiers.getCredits}</Link></p>
       ) : null}
+      {three ? <VariationToggle on={three.on} onChange={three.onChange} single={single} copy={three.copy} disabled={busy !== null} /> : null}
       <div className="adv2-actions">
         <button type="button" className="adsw-btn" disabled={busy !== null || cost === null || short > 0} onClick={onMake}>
-          {busy === 'start' ? copy.plan.starting : fill(copy.plan.make, { c: cost ?? '' })}
+          {busy === 'start' ? copy.plan.starting : three?.on ? fill(three.copy.make, { c: cost ?? '' }) : fill(copy.plan.make, { c: cost ?? '' })}
         </button>
       </div>
     </>

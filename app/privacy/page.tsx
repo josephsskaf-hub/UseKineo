@@ -4,6 +4,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
+import { HANDOFF_TTL_DAYS } from '@/lib/gptHandoff'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy — Kineo',
@@ -53,7 +54,7 @@ export default function PrivacyPage() {
             Privacy Policy
           </h1>
           <p style={{ color: '#86868b', fontSize: 13, margin: 0, marginBottom: 28 }}>
-            Last updated: May 2026
+            Last updated: September 2026
           </p>
 
           <Section title="What we collect">
@@ -63,6 +64,18 @@ export default function PrivacyPage() {
             credit balance on your account, and basic usage events (page
             views, generation outcomes) so we can keep the product
             working and improving.
+          </Section>
+
+          <Section title="Scripts sent from AI assistants">
+            When you send a script to Kineo from an AI assistant (the Kineo
+            connector for Claude, the Kineo GPT, a Kineo link or the paste
+            page), we store only what is sent: the script, the chosen length,
+            frame, engine, language and optional title, plus a one-way hash of
+            the calling IP address and the user agent, used for rate limiting
+            and abuse prevention. We never receive or store your conversation
+            with the assistant, its memory or your files. The link to the
+            saved script works for {HANDOFF_TTL_DAYS} days; to have a saved script deleted,
+            email support@usekineo.com.
           </Section>
 
           <Section title="How we use it">

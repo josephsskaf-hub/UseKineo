@@ -9,6 +9,7 @@ import { speechRateForScript, narrationFitAt, speechSecondsAt } from '@/lib/spee
 import { parseUserScript } from '@/lib/scriptParser'
 // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29 — a régua do 15 s do Seedance na língua.
 import { SEEDANCE_SHORT_SECONDS, VERBATIM_EST_WORDS_PER_SECOND, isSeedance15, ritmoDaVozNoIdioma } from '@/lib/durationByEngine'
+import { isClassicShortEngine } from '@/lib/durationByEngine' // KINEO-DURACOES-CURTAS-2026-09-29
 import { resolveNarrationLanguage } from '@/lib/textLanguage'
 // KINEO-350-POLITICA — as regras puras (teto, preflight, preservação do autor,
 // duração sugerida) moram em lib/expandPolicy para serem testáveis de verdade.
@@ -119,7 +120,7 @@ export async function POST(req: NextRequest) {
     // mirava 47 palavras para 15 s — 23 s de fala turca, acima do teto de 45 da guarda (422 'script_too_long_for_short_film').
     // Aqui ela mira a voz MAIS RÁPIDA do 15 s na língua: o texto expandido passa no portão com qualquer voz e cabe na guarda.
     // Língua: a que o cliente manda, resolvida contra o texto como a rota resolve. Fora do 15 s do Seedance: nada muda.
-    if (target === SEEDANCE_SHORT_SECONDS && typeof body.engine === 'string' && body.engine.trim() !== '' && isSeedance15(body.engine)) {
+    if (target === SEEDANCE_SHORT_SECONDS && typeof body.engine === 'string' && body.engine.trim() !== '' && (isSeedance15(body.engine) || isClassicShortEngine(body.engine))) { // KINEO-DURACOES-CURTAS-2026-09-29: + Kling 2.5 e Veo 3.1 (a mesma voz do 15 s)
       regua.wordsPerSecond = ritmoDaVozNoIdioma(Math.round(VERBATIM_EST_WORDS_PER_SECOND * regua.speed * 100) / 100, resolveNarrationLanguage(body.language, parseUserScript(original).narration || original).language)
     }
     const WORDS_PER_SECOND = regua.wordsPerSecond

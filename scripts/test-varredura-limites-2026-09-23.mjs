@@ -108,7 +108,10 @@ for (const [nome, de, para] of [
 // Autorização nominal do fundador ("vai v2 e v3", 23/09) — trava 8.2.
 const COST = roda(rd('lib/credits/engineCost.ts'))
 checa('(V2) caso real axel.dickburt: Veo 60→35 s devolve 41 (100 − 59)', COST.creditCostForDuration('cinematic_veo', true, 60) - COST.creditCostForDuration('cinematic_veo', true, 35) === 41)
-checa('(V2) o preço assinado continua sendo o da duração pedida (claim intacto)', CIN.includes('    const cost = creditCostForDuration(costQuality, true, duration)\n    const duracaoCobrada = duration') && CIN.includes('const upfrontDebit = await ensureCinematicDebit(cost)') && !/\n\s+cost = /.test(CIN))
+// Reancorado KINEO-ESTRELA-DO-FILME-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4']: o `cost` ganhou, NA MESMA LINHA, a
+// sobretaxa da estrela (+ estrelaSobretaxaDe(duration), 0 sem estrela) — continua um `const` só, antes do claim e do débito; a
+// linha seguinte segue sendo `const duracaoCobrada = duration`. O preço entregue (V2) soma a mesma sobretaxa da duração entregue.
+checa('(V2) o preço assinado continua sendo o da duração pedida (claim intacto)', /    const cost = creditCostForDuration\(costQuality, true, duration\)(?: \+ estrelaSobretaxaDe\(duration\) \/\/ [^\n]*KINEO-ESTRELA-DO-FILME-2026-09-29[^\n]*)?\n    const duracaoCobrada = duration/.test(CIN) && CIN.includes('const upfrontDebit = await ensureCinematicDebit(cost)') && !/\n\s+cost = /.test(CIN))
 const iV2 = CIN.indexOf('V2-PRECO-DA-DURACAO-ENTREGUE-2026-09-23 — autorização nominal')
 checa('(V2) o ajuste roda DEPOIS do débito e DEPOIS de a duração poder mudar', iV2 > CIN.indexOf('const upfrontDebit = await ensureCinematicDebit(cost)') && iV2 > CIN.indexOf('const seguir = decideDurationFollowsScript({'))
 const blocoV2 = CIN.slice(iV2, CIN.indexOf('// #442 — in verbatim mode', iV2))

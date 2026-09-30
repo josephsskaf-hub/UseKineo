@@ -2,6 +2,76 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
+
+## 2026-09-30 (madrugada) — Sai da home a grade "Video" com os 6 motores
+
+**QUEM DECIDIU:** o fundador, 30/09, com print da seção: "tira essa parte".
+**O QUE:** sai a seção #engines (título "Video", "Open the generator" e os tiles Kineo 1 · Seedance 1.5 · Kling 2.5 · Veo 3.1 · Kling 3 · Avatar com créditos). Os motores seguem no mega-menu, no /studio e nas páginas /ai-video-generator/*. A curadoria lib/engineWall.ts não foi tocada (continua alimentando a fileira de filmes).
+**GUARDIÕES REANCORADOS (com o motivo):** avatar-fora, kineo1-fora-vitrine (portas 3→2), home-referral-bridge, home-b2b-bridge, credito-vitrine, promo-cards.
+
+## 2026-09-30 (madrugada) — Home sem o bloco "Make room for your next big idea"; menu e vídeos mais perto da borda
+
+**QUEM DECIDIU:** o fundador, 30/09: "já quero tirar make room for your next big idea, create video. Já pode aproximar os dois vídeos" e "o menu não está colado 100% na lateral".
+**O QUE:** some o bloco título + frases + botão do hero; a fileira de novidades e a "Kineo Selection" ficam coladas (18 px). A margem lateral da home cai de clamp(24px,4vw,76px) para clamp(16px,1.6vw,28px), sem teto de 1800 px. O h1 continua existindo só para leitor de tela e busca. A ação principal fica no "Start free"/Studio do menu (mesma regra de sessão e indicação).
+**EM TESTE:** ordem A (novidades em cima, Selection embaixo — publicada) × ordem B (invertida), escolha do fundador pelos prints.
+
+## 2026-09-30 (madrugada) — Fileira de novidades com 4 cards, 3 vídeos girando em cada
+
+**QUEM DECIDIU:** o fundador, 30/09: "em vez de três cards, eu quero quatro cards na primeira fileira… 3 vídeos rodando igual a gente tinha anteriormente… pode fazer isso aí".
+**O QUE:** Claude · Ads: 3 variations · Clips · **Nano Banana Pro** (novo, → /images). Cada card troca de vídeo quando o anterior termina (onEnded, sem timer), com fade; só toca na tela e respeita reduced-motion. Ads acende o chip A/B/C junto com a variação.
+**MÍDIA:** Claude = as 3 amostras Kineo da /claude-connector; Ads = os 3 anúncios da modelo fictícia; Clips = tempestade + geleira + surfista (Seedance 1.5, conta do fundador, 10 cr); Nano Banana = perfume, astronauta, farol (15 cr). Sem "4K" no card: o gerador não pede resolução (sai 1376×768).
+**MEDIR:** promo_card_clicked com promo_v=2 (1 = fileira de 3 cards).
+**EM ABERTO:** o fundador cogita trocar o "Make room for your next big idea" do meio por outra coisa — decisão dele.
+
+## 2026-09-30 — Paleta "Porcelana" no site inteiro (claro e escuro)
+
+**QUEM DECIDIU:** o fundador, 30/09: "o branco reflete um pouco o que está mal acabado", "to cogitando escolher a porcelana mesmo" e "sim subimos por aqui… só subir a interface nova e aos poucos ir corrigindo".
+**O QUE:** tema claro = branco de papel #F7F7F5, cards #FFFFFF, linha #E4E4E0, texto #0E1116, destaque cobalto #0A5CFF; menu da home branco translúcido, botão "Start free" preto. Tema escuro = #07090D, cards #10141B, linha #1F2530, destaque #4D8DFF. Substitui o White + Graphite de 25/09 e o marinho #0c1521/#2997ff.
+**ONDE:** app/appearance.css (app) e app/kineoLandingTheme.ts (home). Azuis #2997ff cravados em telas antigas e a página /claude-connector (escura própria) ficam para ajuste gradual.
+**EM ABERTO:** o fundador pediu ao GPT uma segunda opinião sobre contraste e detalhes; ajustes finos entram depois, sem trocar a essência (branco limpo + cobalto).
+
+## 2026-09-30 — Studio Ads: "3 variações" a 2,5 × o preço do nível
+
+**QUEM DECIDIU:** o fundador, 30/09, literal: "3 variações sim" e, sobre o preço proposto, "preço aprovado".
+**O QUE:** no /ads/v2 (modo simples e completo) o cliente liga "3 variações" e recebe 3 anúncios irmãos do mesmo pedido: mesmo produto, mesmas fotos/vídeos, mesma narração e frases; cada um com um look fixo (A · Luz do dia azul, B · Interior quente laranja, C · Pôr do sol rosa: luz, paleta, câmera, abertura, grade de cor; cenário novo só em loja/app). Pessoa criada por IA: B e C usam o still da A como referência (a mesma pessoa nas 3). Cada variação é um pedido v2 normal (status, refação e montagem próprios).
+**PREÇO:** 3 variações = 2,5 × o preço do nível, arredondado para cima: 34→85 · 41→103 · 51→128 cr (15 s). Mostrado antes do clique; UM débito antes de começar, em 3 partes no ledger (85 = 29+28+28 · 103 = 35+34+34 · 128 = 43+43+42); variação que falha devolve só a parte dela (estorno idempotente de sempre). Refação continua cobrada à parte, por plano.
+**INTERRUPTOR:** ADS_VARIACOES_PUBLIC = true em lib/ads/v2Variations.ts (nasce aberto por decisão do fundador). Desligado, só contas da casa veem a opção e a rota responde 404 antes de cobrar.
+**PRÉ-REQUISITO:** migrations_pending/2026-09-30_ads_v2_variacoes.sql aplicada ANTES do deploy (sem ela a rota responde 503 'not_ready' sem cobrar).
+**GUARDIÃO:** scripts/test-ads-3-variacoes-2026-09-30.mjs.
+
+## 2026-09-30 — Home em 2 faixas: cards de novidade no topo, motores intocados logo abaixo
+
+**QUEM DECIDIU:** o fundador, 30/09. Pedido: "quero esses cards no Kineo também, com essas edições legais" (referência: a fileira do topo do higgsfield.ai, sem copiar marca, cor nem texto). Decisão de layout, literal: **"concordo com as 2 faixas"**.
+**O QUE MUDA:**
+1. **FAIXA 1 (topo, logo abaixo do menu):** fileira de cards grandes de novidade, nesta ordem — **Kineo for Claude** → `/claude-connector` (pôster animado em CSS) · **Ads: 3 variations** → `/ads` (vídeo do fundador) · **Clips** → `/clips` (tempestade Seedance 1.5, rótulos "NEW" e "5 · 7 · 10 · 15 s"). Dados em `lib/ui/promoCards.ts`, componente `components/PromoCards.tsx`.
+2. **FAIXA 2 (logo abaixo):** os cards de motor e a curadoria que já existem (hero de filmes, `lib/engineWall.ts`), **intocados** — não remover nem reordenar.
+3. **Selo honesto do card do Claude:** o conector NÃO gera mídia dentro do Claude; ele escreve o roteiro e manda para o Kineo Studio. Subtítulo: "Write your video in Claude, render it in Kineo Studio". Proibido: "make videos (in Claude)", official/partner/approved/certified/"by Anthropic", diretório e logo da Anthropic, enquanto a listagem estiver em revisão. O destino mora numa constante única (`CLAUDE_CARD_HREF`) para virar a página do diretório em UMA linha quando a Anthropic aprovar.
+**MEDIR (7 dias):** evento de navegador `promo_card_clicked` com `{card, position, href, surface:'home', promo_v:1}`; a leitura corta por `metadata->>'promo_v'`, não pelo relógio do deploy. Guardião: `scripts/test-promo-cards-2026-09-30.mjs`.
+
+
+## 2026-09-29 (noite) — Quatro entregas: foto de referência, Clipes 5/7/10/15 s, filmes de 15/30 s em todos os motores, "Estrela do filme"
+
+**QUEM DECIDIU:** o fundador, 29/09, literal: "vai pra todas as 4 … é muito mais público que podemos alcançar", e depois "clipes de 5, 7, 10 e 15 segundos, além dos que a gente já tem". Este "vai" é a autorização nominal da trava 8.2 para as entregas que mexem nas rotas travadas (durações curtas nos filmes); os commits levam a marca [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'].
+**O QUE MUDA:**
+1. **Foto de referência no /images** (Nano Banana Pro, `fal-ai/nano-banana-pro/edit`): 1 a 3 fotos da própria conta, consentimento obrigatório conferido no servidor, moderação antes de guardar e antes de cobrar, mesmo preço (5 cr). Guardião: scripts/test-images-foto-referencia-2026-09-29.mjs.
+2. **Clipes** (/clips): uma cena, sem narração, a partir de texto ou de uma foto, em 5/7/10/15 s — cada motor mostra SÓ as durações que entrega nativamente, com o número real; se o motor não faz a duração pedida, a tela aponta os que fazem (nunca troca em silêncio). Preço por proposta do CEO com margem ≥ a do filme do mesmo motor, aprovado pelo fundador antes de publicar.
+3. **Filmes narrados curtos:** 15 s no Kling 2.5 e no Veo (receita do Seedance 15 s); 15 e 30 s no Kling 3, H3, Omni e Seedance 2.5. Nenhum filme sai mais curto que o pedido; preço por creditCostForDuration.
+4. **"Estrela do filme":** o rosto da foto (com consentimento) em todas as cenas do filme narrado. Começa depois de 1 e 3.
+**CANÁRIOS PAGOS:** só com o ok do fundador, um motor por vez.
+
+## 2026-09-29 — Padrão de e-mails da Kineo (remetente por tipo de conversa)
+**QUEM DECIDIU:** o fundador, 29/09, depois de notar que conversas comerciais saíam de uma caixa antiga ("estamos falando com algumas pessoas de um jeito meio errado").
+**CONTEXTO TÉCNICO (29/09):** usekineo.com é domínio de alias do Workspace shortsforgeai.com; SPF (`include:_spf.google.com`), DKIM (`google._domainkey`, 2048) e DMARC (`p=none`) publicados e ativos. Os e-mails automáticos do app (Resend) já saem de @usekineo.com (support@, hello@, joseph@) e não mudam.
+**A REGRA:**
+1. **Conversa comercial e de parceria NOVA:** remetente e Reply-To = `joseph@usekineo.com`.
+2. **Atendimento:** `hello@usekineo.com` e `support@usekineo.com`.
+3. **Conversa já iniciada pelo Gmail pessoal do fundador** continua lá, na mesma thread, com o histórico preservado — inclusive os rascunhos já preparados. Não reenviar nem migrar automaticamente.
+4. **`support@shortsforgeai.com` não é remetente de contato comercial novo.** A caixa e o histórico ficam preservados.
+5. **Antes de preparar qualquer mensagem nova:** conferir a conta conectada, o From, o Reply-To, o destinatário e o histórico de contato com a pessoa. Se `joseph@usekineo.com` não estiver disponível, **informar o bloqueio** — nunca trocar em silêncio pelo Gmail pessoal nem pela caixa de suporte.
+6. **Esta decisão não autoriza** envio, criação de alias, mudança de SMTP, encaminhamento, credencial nem permissão. Nesta frente o agente prepara RASCUNHO; o fundador revisa e envia.
+**PRIVACIDADE:** nomes e endereços de contatos não entram no Git.
+
+
 ## 2026-09-29 — Kineo 1 fora do jogo; filme grátis = Seedance 15 s; saída B (só país rico)
 
 **QUEM DECIDIU:** o fundador, 29/09, literal: "quero tirar o kineo 1 do jogo, ele estraga a entrada"; "vou sair na saída B"; e, sobre quem já usa, "deixar dentro do sistema dessas contas que já pagam esse motor que eles usam".

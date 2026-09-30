@@ -27,6 +27,7 @@ import Link from 'next/link'
 import BusinessVisualReferences from '@/components/BusinessVisualReferences'
 import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { AdsV2SimpleSession, readVideoForAd, videoFramesForAd } from './AdsV2Simple'
+import { ADS_V2_VARIATIONS_CSS, VariationToggle, VariationsBoard, variationsCopy, variationsPrice } from './AdsV2Variations'
 import { ADS_V2_SIMPLE_COPY } from '@/lib/ads/v2Simple'
 import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
@@ -384,10 +385,26 @@ function setModeParam(mode: 'full' | null) {
   }
 }
 
+// KINEO-ADS-3-VARIACOES-2026-09-30 — ?group=<id> = o painel das 3 variações (retomado ao recarregar).
+function setGroupParam(id: string | null) {
+  try {
+    const u = new URL(window.location.href)
+    if (id) u.searchParams.set('group', id)
+    else u.searchParams.delete('group')
+    window.history.replaceState(null, '', u.toString())
+  } catch {
+    /* ignore */
+  }
+}
+
 // KINEO-ADS-V2-VIRADA-2026-09-29 — classicCredits: o custo do anúncio clássico (KINEO1_35S_CREDITS) vem do servidor
 // (page.tsx lê lib/ads/offer) — o cliente não ganha import novo e nunca digita o número.
-export default function AdsV2Client({ initialBalance, classicCredits = null }: { initialBalance: number | null; classicCredits?: number | null }) {
+// KINEO-ADS-3-VARIACOES-2026-09-30 — variations: a opção "3 variações" (adsVariationsVisible, decidido no page.tsx).
+// Com ela, ?group=<id> (ou o grupo em andamento mais novo) abre o painel das 3 no lugar da sessão; sem ela, nada muda.
+export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean }) {
   const [session, setSession] = useState(0)
+  const [groupId, setGroupId] = useState<string | null>(null)
+  const [groupChecked, setGroupChecked] = useState(!variations)
   const [balance, setBalance] = useState<number | null>(initialBalance)
   const [confirmingReset, setConfirmingReset] = useState(false)
   const [activeWork, setActiveWork] = useState(false)
@@ -411,6 +428,43 @@ export default function AdsV2Client({ initialBalance, classicCredits = null }: {
     setMode(m)
   }, [])
 
+  // KINEO-ADS-3-VARIACOES-2026-09-30 — retomar o painel das 3: ?group=<id>, ou (sem ?order=) o grupo em andamento mais novo.
+  useEffect(() => {
+    if (!variations) return
+    let cancelled = false
+    ;(async () => {
+      let wanted: string | null = null
+      let hasOrder = false
+      try {
+        const q = new URLSearchParams(window.location.search)
+        const g = q.get('group')
+        if (g && /^[0-9a-f-]{36}$/i.test(g)) wanted = g.toLowerCase()
+        hasOrder = !!q.get('order')
+      } catch {
+        wanted = null
+      }
+      if (!wanted && !hasOrder) {
+        const r = await api<{ group?: { group_id?: string } | null }>('/api/ads/v2/variations?latest=1')
+        if (r.ok && r.data.group && typeof r.data.group.group_id === 'string') wanted = r.data.group.group_id
+      }
+      if (cancelled) return
+      if (wanted) setGroupParam(wanted)
+      setGroupId(wanted)
+      setGroupChecked(true)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [variations])
+
+  function openGroup(id: string) {
+    clearOrderParam()
+    setGroupParam(id)
+    setGroupId(id)
+    setActiveWork(false)
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0 })
+  }
+
   const refreshBalance = useCallback(async () => {
     const r = await api<{ credits?: unknown }>('/api/credits')
     if (r.ok && typeof r.data.credits === 'number' && Number.isFinite(r.data.credits)) setBalance(r.data.credits)
@@ -433,6 +487,8 @@ export default function AdsV2Client({ initialBalance, classicCredits = null }: {
   function startOver() {
     clearOrderParam()
     setModeParam(null)
+    setGroupParam(null)
+    setGroupId(null)
     setConfirmingReset(false)
     setActiveWork(false)
     setMode('simple')
@@ -444,7 +500,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null }: {
   return (
     <div className="stu adsw adv2">
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
-      <style dangerouslySetInnerHTML={{ __html: ADS_WIZARD_THEME_CSS + ADS_V2_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: ADS_WIZARD_THEME_CSS + ADS_V2_CSS + ADS_V2_VARIATIONS_CSS }} />
       <header className="adsw-header adv2-head">
         <div>
           <h1>{shell.title}</h1>
@@ -478,6 +534,11 @@ export default function AdsV2Client({ initialBalance, classicCredits = null }: {
           </div>
         </div>
       ) : null}
+      {groupId && mode ? (
+        <VariationsBoard key={groupId} groupId={groupId} lang={mode === 'full' ? 'en' : lang} onBalance={refreshBalance} onAnother={startOver} />
+      ) : null}
+      {groupId || !groupChecked ? null : (
+      <>
       {mode === 'full' ? (
         <AdsV2Session
           key={session}
@@ -486,6 +547,8 @@ export default function AdsV2Client({ initialBalance, classicCredits = null }: {
           onBalance={refreshBalance}
           onActive={setActiveWork}
           onAskStartOver={() => setConfirmingReset(true)}
+          variations={variations}
+          onVariationsStarted={openGroup}
         />
       ) : mode === 'simple' ? (
         <AdsV2SimpleSession
@@ -496,8 +559,12 @@ export default function AdsV2Client({ initialBalance, classicCredits = null }: {
           onBalance={refreshBalance}
           onActive={setActiveWork}
           onAskStartOver={() => setConfirmingReset(true)}
+          variations={variations}
+          onVariationsStarted={openGroup}
         />
       ) : null}
+      </>
+      )}
     </div>
   )
 }
@@ -510,15 +577,21 @@ function AdsV2Session({
   onBalance,
   onActive,
   onAskStartOver,
+  variations = false,
+  onVariationsStarted,
 }: {
   resume: boolean
   balance: number | null
   onBalance: () => Promise<void>
   onActive: (active: boolean) => void
   onAskStartOver: () => void
+  variations?: boolean
+  onVariationsStarted?: (groupId: string) => void
 }) {
   const [phase, setPhase] = useState<Phase>(resume ? 'loading' : 'build')
   const [tier, setTier] = useState<AdsV2Tier | null>(null)
+  // KINEO-ADS-3-VARIACOES-2026-09-30 — "3 variações" ligada (só aparece com a opção liberada para a conta).
+  const [three, setThree] = useState(false)
   const [business, setBusiness] = useState('')
   const [sentence, setSentence] = useState('')
   const [link, setLink] = useState('')
@@ -1139,6 +1212,11 @@ function AdsV2Session({
       setPlanError('The price of this plan changed. Plan again to see the current price.')
       return
     }
+    // KINEO-ADS-3-VARIACOES-2026-09-30 — 3 variações: outra rota, o preço do GRUPO que a tela mostrou vai junto.
+    if (variations && three && onVariationsStarted) {
+      void makeVariations()
+      return
+    }
     setBusy('start')
     setPlanError(null)
     setCheckNote(null)
@@ -1163,6 +1241,39 @@ function AdsV2Session({
       void onBalance()
       const v = r.data.order_id ? r.data : ({ ...r.data, order_id: plan.order_id } as StatusView)
       adoptOrder({ ...v, shots: Array.isArray(v.shots) ? v.shots : [] })
+    } finally {
+      if (aliveRef.current) {
+        setBusy(null)
+        setBusyNote(null)
+      }
+    }
+  }
+
+  async function makeVariations() {
+    const group = variationsPrice(cost)
+    if (!plan || group === null || !onVariationsStarted) return
+    setBusy('start')
+    setPlanError(null)
+    setCheckNote(null)
+    try {
+      if (!(await syncCard(plan))) return
+      setBusyNote(variationsCopy('en').starting)
+      onActive(true)
+      const r = await api<{ group_id?: string }>('/api/ads/v2/variations', { method: 'POST', body: { order_id: plan.order_id, expected_credits: group } })
+      if (!aliveRef.current) return
+      if (!r.ok || typeof r.data.group_id !== 'string') {
+        onActive(false)
+        if (!r.ok && r.code === 'not_startable') {
+          setDraft(null)
+          setPlan(null)
+        }
+        setPlanError(r.ok ? 'Something went wrong. Please try again.' : apiError(r))
+        void onBalance()
+        return
+      }
+      setDraft(null)
+      void onBalance()
+      onVariationsStarted(r.data.group_id)
     } finally {
       if (aliveRef.current) {
         setBusy(null)
@@ -1412,6 +1523,7 @@ function AdsV2Session({
                 <PlanPreview
                   plan={plan as Plan}
                   cost={cost}
+                  three={variations ? { on: three, onChange: setThree } : null}
                   balance={balance}
                   narrationOn={narrationOn}
                   busy={busy}
@@ -1647,7 +1759,8 @@ function PhotoRow({
 
 function PlanPreview({
   plan,
-  cost,
+  cost: single,
+  three,
   balance,
   narrationOn,
   busy,
@@ -1658,6 +1771,7 @@ function PlanPreview({
 }: {
   plan: Plan
   cost: number | null
+  three: { on: boolean; onChange: (on: boolean) => void } | null
   balance: number | null
   narrationOn: boolean
   busy: string | null
@@ -1666,6 +1780,8 @@ function PlanPreview({
   onMake: () => void
   onCheck: () => void
 }) {
+  // KINEO-ADS-3-VARIACOES-2026-09-30 — com "3 variações" ligada, o preço mostrado e o saldo conferido são os do GRUPO.
+  const cost = three?.on ? variationsPrice(single) : single
   const short = cost !== null && balance !== null && balance < cost ? cost - balance : 0
   return (
     <>
@@ -1716,9 +1832,10 @@ function PlanPreview({
       {short > 0 ? (
         <p className="adsw-warn">You need {short} more credits for this ad. <Link className="adsw-link" href="/pricing" target="_blank" rel="noopener">Get credits (opens a new tab)</Link> and come back: your plan stays on this page.</p>
       ) : null}
+      {three ? <VariationToggle on={three.on} onChange={three.onChange} single={single} copy={variationsCopy('en')} disabled={busy !== null} /> : null}
       <div className="adv2-actions">
         <button type="button" className="adsw-btn" disabled={busy !== null || cost === null || short > 0} onClick={onMake}>
-          {busy === 'start' ? 'Starting…' : `Make my ad · ${cost} credits`}
+          {busy === 'start' ? 'Starting…' : three?.on ? variationsCopy('en').make.replace('{c}', String(cost ?? '')) : `Make my ad · ${cost} credits`}
         </button>
         <button type="button" className="adsw-btn ghost small" disabled={busy !== null} onClick={onCheck}>
           {busy === 'check' ? 'Checking…' : 'Run a free check'}

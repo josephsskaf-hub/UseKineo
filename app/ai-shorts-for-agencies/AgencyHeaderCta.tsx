@@ -23,12 +23,12 @@ import {
 } from '@/lib/growth/agencyHeaderJourney'
 
 const PILL: React.CSSProperties = {
-  color: '#fff',
+  color: 'var(--text)',
   textDecoration: 'none',
   fontSize: 13,
   fontWeight: 850,
-  background: '#24262c',
-  border: '1px solid rgba(255,255,255,.12)',
+  background: 'var(--card)',
+  border: '1px solid var(--border)',
   borderRadius: 999,
   padding: '9px 15px',
 }
@@ -57,7 +57,7 @@ export default function AgencyHeaderCta() {
         AGENCY_HEADER_STUDIO_EVENT,
         agencyHeaderStudioMetadata(),
       )}
-      style={{ ...PILL, background: '#2997ff', border: '1px solid rgba(120,190,255,.8)' }}
+      style={{ ...PILL, background: 'var(--accent)', color: 'var(--on-accent)', border: '1px solid var(--accent)' }}
     >
       Open Studio →
     </Link>

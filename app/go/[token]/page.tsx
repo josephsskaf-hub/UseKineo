@@ -15,6 +15,7 @@ import {
   engineFamily,
   handoffHeadline,
   handoffOutcome,
+  handoffSourceLabel,
   isHandoffEngine,
   isHandoffToken,
   type HandoffDuration,
@@ -205,7 +206,8 @@ export default async function GoPage({
       </header>
 
       <p style={{ color: MUTED, fontSize: '0.85rem', margin: '0 0 12px', letterSpacing: '0.01em' }}>
-        Script from ChatGPT · ready for Kineo Studio
+        {/* KINEO-GO-ROTULO-CANAL-2026-09-30 — a origem vem do canal da linha (lib/gptHandoff CHANNEL_SOURCE_LABELS). */}
+        {handoffSourceLabel(row.channel)} · ready for Kineo Studio
       </p>
       <h1 style={{ fontSize: 'clamp(1.6rem, 6vw, 2.3rem)', fontWeight: 800, lineHeight: 1.14, letterSpacing: '-0.02em', margin: '0 0 14px' }}>
         {headline}
@@ -255,7 +257,8 @@ export default async function GoPage({
       </div>
 
       <p style={{ color: MUTED, fontSize: '0.8rem', lineHeight: 1.5, marginTop: 28 }}>
-        Kineo directs, narrates and edits the film from this text. Nothing is generated until you press Generate in the Studio.
+        Kineo directs, narrates and edits the film from this text. &ldquo;Make this video&rdquo; opens the Studio with it loaded;
+        nothing is generated or charged until you press Generate there.
         This link stays open for {HANDOFF_TTL_DAYS} days.
       </p>
     </Shell>

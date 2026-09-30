@@ -9,6 +9,7 @@ import { BULK_PACK_IDS, BULK_PACKS, formatCheckoutMoney } from '@/lib/checkoutPr
 import AgencyPacksClient, { type AgencyPackView } from './AgencyPacksClient'
 import AgencyMarginCalculator from './AgencyMarginCalculator'
 import AgencyBriefClient from './AgencyBriefClient'
+import OrganicCtaLink from '@/components/OrganicCtaLink'
 
 const CANONICAL = 'https://www.usekineo.com/ai-shorts-for-agencies'
 
@@ -53,6 +54,10 @@ const FAQ = [
   {
     q: 'Is this a subscription?',
     a: 'No. Agency packs are one-time purchases in USD. The credits remain in your account until you use them.',
+  },
+  {
+    q: 'Can I choose a monthly plan instead?',
+    a: 'Yes. Monthly subscriptions are available separately on the pricing page. Choose a plan for recurring production or a one-time pack for a fixed batch. Agency packs do not start a subscription.',
   },
   {
     q: 'Does a 30-video pack always create exactly 30 videos?',
@@ -101,7 +106,7 @@ export default function AiShortsForAgenciesPage() {
   ]
 
   const sectionTitle: CSSProperties = {
-    color: '#f5f5f7',
+    color: 'var(--text)',
     fontSize: 'clamp(1.55rem, 4vw, 2.2rem)',
     lineHeight: 1.12,
     fontWeight: 900,
@@ -109,16 +114,17 @@ export default function AiShortsForAgenciesPage() {
   }
 
   return (
-    <main style={{ minHeight: '100vh', background: '#050608', color: '#f5f5f7', fontFamily: 'var(--font-inter), system-ui, sans-serif' }}>
+    <main className="agency-page" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'var(--font-inter), system-ui, sans-serif' }}>
+      <style>{` .agency-page :is(a,button,input,select,summary):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; } .agency-page input::placeholder { color: var(--muted); opacity: 1; } `}</style>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
 
-      <header style={{ borderBottom: '1px solid rgba(255,255,255,.07)', background: 'rgba(5,6,8,.9)' }}>
+      <header style={{ borderBottom: '1px solid var(--border)', background: 'var(--header-bg)' }}>
         <div style={{ maxWidth: 1160, margin: '0 auto', padding: '17px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 18 }}>
-          <Link href="/" style={{ color: '#fff', textDecoration: 'none', fontSize: 18, fontWeight: 900 }}>
+          <Link href="/" style={{ color: 'var(--text)', textDecoration: 'none', fontSize: 18, fontWeight: 900 }}>
             <KineoBolt /> Kineo
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <Link href="/examples" style={{ color: '#a5a5ac', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>Examples</Link>
+            <Link href="/examples" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>Examples</Link>
             {/* KINEO-CTA-LOGADO-2026-09-01 — o botão sabia só "Sign in";
                 logado agora vê "Open Studio →" (ver AgencyHeaderCta). */}
             <AgencyHeaderCta />
@@ -129,30 +135,36 @@ export default function AiShortsForAgenciesPage() {
       <div style={{ maxWidth: 1160, margin: '0 auto', padding: '68px 20px 88px' }}>
         <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))', gap: 38, alignItems: 'center' }}>
           <div>
-            <span style={{ display: 'inline-flex', color: '#34d399', background: 'rgba(52,211,153,.1)', border: '1px solid rgba(52,211,153,.35)', borderRadius: 999, padding: '7px 12px', fontSize: 11, fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase' }}>
+            <span style={{ display: 'inline-flex', color: 'var(--accent)', background: 'var(--card2)', border: '1px solid var(--border)', borderRadius: 999, padding: '7px 12px', fontSize: 11, fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase' }}>
               Commercial video production · one payment
             </span>
             <h1 style={{ fontSize: 'clamp(2.35rem, 6vw, 4.6rem)', letterSpacing: '-.045em', lineHeight: .98, margin: '20px 0 18px', fontWeight: 950 }}>
               Ship 10–50 client Shorts without an agency retainer
             </h1>
-            <p style={{ color: '#aaaab1', fontSize: 'clamp(1rem, 2.2vw, 1.2rem)', lineHeight: 1.63, maxWidth: 650, margin: 0 }}>
+            <p style={{ color: 'var(--muted)', fontSize: 'clamp(1rem, 2.2vw, 1.2rem)', lineHeight: 1.63, maxWidth: 650, margin: 0 }}>
               Kineo turns a topic or script into a finished 9:16 video — script, AI voiceover, matched visuals and burned-in captions. Buy the batch once, deliver clean MP4s commercially and keep the margin.
             </p>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 26 }}>
-              <a href="#agency-pack-heading" style={{ color: '#04110c', background: '#34d399', borderRadius: 999, padding: '13px 20px', fontSize: 14, fontWeight: 900, textDecoration: 'none' }}>
+              <a href="#agency-pack-heading" style={{ color: 'var(--on-accent)', background: 'var(--accent)', borderRadius: 999, padding: '13px 20px', fontSize: 14, fontWeight: 900, textDecoration: 'none' }}>
                 See one-time packs ↓
               </a>
-              <Link href="/examples" style={{ color: '#fff', border: '1px solid rgba(255,255,255,.16)', borderRadius: 999, padding: '13px 20px', fontSize: 14, fontWeight: 800, textDecoration: 'none' }}>
+              <Link href="/examples" style={{ color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 999, padding: '13px 20px', fontSize: 14, fontWeight: 800, textDecoration: 'none' }}>
                 Watch real outputs
               </Link>
-              <Link href="/business-video-content-plan" style={{ color: '#c4b5fd', border: '1px solid rgba(167,139,250,.32)', background: 'rgba(167,139,250,.08)', borderRadius: 999, padding: '13px 20px', fontSize: 14, fontWeight: 850, textDecoration: 'none' }}>
+              <Link href="/business-video-content-plan" style={{ color: 'var(--accent)', border: '1px solid var(--border)', background: 'var(--card2)', borderRadius: 999, padding: '13px 20px', fontSize: 14, fontWeight: 850, textDecoration: 'none' }}>
                 Plan the week free
               </Link>
             </div>
+            <p data-agency-monthly-plans style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.65, margin: '18px 0 0' }}>
+              Producing Shorts every month?{' '}
+              <OrganicCtaLink href="/pricing" source="ai_shorts_for_agencies" placement="hero_monthly_plans" style={{ color: 'var(--accent)', fontWeight: 800, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                See monthly plans →
+              </OrganicCtaLink>
+            </p>
           </div>
 
-          <div style={{ borderRadius: 24, padding: 24, border: '1px solid rgba(41,151,255,.25)', background: 'radial-gradient(circle at 100% 0%, rgba(41,151,255,.2), transparent 42%), #101116' }}>
-            <div style={{ color: '#5cb3ff', fontWeight: 900, fontSize: 11, letterSpacing: '.13em', textTransform: 'uppercase' }}>What each file includes</div>
+          <div style={{ borderRadius: 24, padding: 24, border: '1px solid var(--border)', background: 'var(--card)' }}>
+            <div style={{ color: 'var(--accent)', fontWeight: 900, fontSize: 11, letterSpacing: '.13em', textTransform: 'uppercase' }}>What each file includes</div>
             <div style={{ display: 'grid', gap: 12, marginTop: 18 }}>
               {[
                 ['01', 'Hook and complete short-form script'],
@@ -160,13 +172,13 @@ export default function AiShortsForAgenciesPage() {
                 ['03', 'Visuals matched scene by scene'],
                 ['04', 'Burned-in captions and vertical MP4'],
               ].map(([number, label]) => (
-                <div key={number} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '12px 13px', borderRadius: 13, background: 'rgba(255,255,255,.045)', border: '1px solid rgba(255,255,255,.07)' }}>
-                  <span style={{ color: '#34d399', fontWeight: 900, fontSize: 12 }}>{number}</span>
-                  <span style={{ color: '#dedee2', fontSize: 14, fontWeight: 720 }}>{label}</span>
+                <div key={number} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '12px 13px', borderRadius: 13, background: 'var(--card2)', border: '1px solid var(--border)' }}>
+                  <span style={{ color: 'var(--accent)', fontWeight: 900, fontSize: 12 }}>{number}</span>
+                  <span style={{ color: 'var(--text2)', fontSize: 14, fontWeight: 720 }}>{label}</span>
                 </div>
               ))}
             </div>
-            <p style={{ color: '#85858c', fontSize: 12, lineHeight: 1.55, margin: '16px 2px 0' }}>
+            <p style={{ color: 'var(--muted)', fontSize: 12, lineHeight: 1.55, margin: '16px 2px 0' }}>
               Self-service production, not a human editing service. You choose the topics, review the outputs and deliver the final files.
             </p>
           </div>
@@ -180,14 +192,14 @@ export default function AiShortsForAgenciesPage() {
 
         <section style={{ marginTop: 76 }}>
           <h2 style={sectionTitle}>Built for the person responsible for publishing</h2>
-          <p style={{ color: '#929299', lineHeight: 1.65, margin: '12px 0 22px', maxWidth: 760 }}>
+          <p style={{ color: 'var(--muted)', lineHeight: 1.65, margin: '12px 0 22px', maxWidth: 760 }}>
             This is not a seat-based enterprise suite. It is a direct production budget for people who already know how many Shorts they need to ship.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(235px, 1fr))', gap: 13 }}>
             {WHO.map((item) => (
-              <article key={item.title} style={{ padding: 20, borderRadius: 17, background: '#111216', border: '1px solid rgba(255,255,255,.09)' }}>
-                <h3 style={{ color: '#f5f5f7', fontSize: 17, margin: 0, fontWeight: 850 }}>{item.title}</h3>
-                <p style={{ color: '#929299', fontSize: 14, lineHeight: 1.6, margin: '8px 0 0' }}>{item.copy}</p>
+              <article key={item.title} style={{ padding: 20, borderRadius: 17, background: 'var(--card)', border: '1px solid var(--border)' }}>
+                <h3 style={{ color: 'var(--text)', fontSize: 17, margin: 0, fontWeight: 850 }}>{item.title}</h3>
+                <p style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.6, margin: '8px 0 0' }}>{item.copy}</p>
               </article>
             ))}
           </div>
@@ -195,16 +207,16 @@ export default function AiShortsForAgenciesPage() {
 
         <section style={{ marginTop: 76, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))', gap: 28, alignItems: 'start' }}>
           <div>
-            <span style={{ color: '#5cb3ff', fontWeight: 850, fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase' }}>Know the boundary before buying</span>
+            <span style={{ color: 'var(--accent)', fontWeight: 850, fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase' }}>Know the boundary before buying</span>
             <h2 style={{ ...sectionTitle, marginTop: 9 }}>Commercial output, without fake enterprise promises</h2>
-            <p style={{ color: '#929299', lineHeight: 1.65, margin: '13px 0 0' }}>
+            <p style={{ color: 'var(--muted)', lineHeight: 1.65, margin: '13px 0 0' }}>
               You can sell and deliver the finished videos. Kineo does not currently include team seats, separate client workspaces, approval routing or a white-label portal. One account owns the balance and the library.
             </p>
-            <Link href="/terms" style={{ display: 'inline-block', marginTop: 14, color: '#5cb3ff', fontWeight: 800, textDecoration: 'none' }}>Read the commercial-use terms →</Link>
+            <Link href="/terms" style={{ display: 'inline-block', marginTop: 14, color: 'var(--accent)', fontWeight: 800, textDecoration: 'none' }}>Read the commercial-use terms →</Link>
           </div>
-          <div style={{ padding: 22, borderRadius: 18, background: 'rgba(245,158,11,.07)', border: '1px solid rgba(245,158,11,.25)' }}>
-            <div style={{ color: '#fbbf24', fontWeight: 900, fontSize: 12, textTransform: 'uppercase', letterSpacing: '.12em' }}>Not a fit when</div>
-            <ul style={{ margin: '14px 0 0', paddingLeft: 20, color: '#bcbcc2', fontSize: 14, lineHeight: 1.75 }}>
+          <div style={{ padding: 22, borderRadius: 18, background: 'var(--card2)', border: '1px solid var(--border)' }}>
+            <div style={{ color: 'var(--warning)', fontWeight: 900, fontSize: 12, textTransform: 'uppercase', letterSpacing: '.12em' }}>Not a fit when</div>
+            <ul style={{ margin: '14px 0 0', paddingLeft: 20, color: 'var(--text2)', fontSize: 14, lineHeight: 1.75 }}>
               <li>several teammates need separate logins;</li>
               <li>your customer must approve inside the platform;</li>
               <li>you need landscape, long-form or source-footage editing;</li>
@@ -217,20 +229,20 @@ export default function AiShortsForAgenciesPage() {
           <h2 style={sectionTitle}>Questions before you put client work through Kineo</h2>
           <div style={{ display: 'grid', gap: 11, marginTop: 20 }}>
             {FAQ.map((item) => (
-              <details key={item.q} style={{ borderRadius: 15, background: '#111216', border: '1px solid rgba(255,255,255,.09)', padding: '16px 18px' }}>
-                <summary style={{ cursor: 'pointer', color: '#f5f5f7', fontWeight: 820, fontSize: 15 }}>{item.q}</summary>
-                <p style={{ color: '#929299', fontSize: 14, lineHeight: 1.65, margin: '10px 0 0' }}>{item.a}</p>
+              <details key={item.q} style={{ borderRadius: 15, background: 'var(--card)', border: '1px solid var(--border)', padding: '16px 18px' }}>
+                <summary style={{ cursor: 'pointer', color: 'var(--text)', fontWeight: 820, fontSize: 15 }}>{item.q}</summary>
+                <p style={{ color: 'var(--muted)', fontSize: 14, lineHeight: 1.65, margin: '10px 0 0' }}>{item.a}</p>
               </details>
             ))}
           </div>
         </section>
 
-        <section style={{ marginTop: 76, textAlign: 'center', borderRadius: 24, padding: '38px 22px', background: 'linear-gradient(135deg, rgba(52,211,153,.13), rgba(41,151,255,.1))', border: '1px solid rgba(52,211,153,.3)' }}>
+        <section style={{ marginTop: 76, textAlign: 'center', borderRadius: 24, padding: '38px 22px', background: 'var(--card)', border: '1px solid var(--border)' }}>
           <h2 style={{ ...sectionTitle, margin: '0 auto' }}>Start with the batch you can deliver this month</h2>
-          <p style={{ color: '#aaaab1', lineHeight: 1.6, margin: '11px auto 20px', maxWidth: 660 }}>
+          <p style={{ color: 'var(--muted)', lineHeight: 1.6, margin: '11px auto 20px', maxWidth: 660 }}>
             No sales call and no recurring contract. Choose a one-time pack above; sign-in is handled before secure Stripe checkout.
           </p>
-          <a href="#agency-pack-heading" style={{ display: 'inline-flex', color: '#04110c', background: '#34d399', borderRadius: 999, padding: '13px 21px', fontSize: 14, fontWeight: 900, textDecoration: 'none' }}>Compare the four packs ↑</a>
+          <a href="#agency-pack-heading" style={{ display: 'inline-flex', color: 'var(--on-accent)', background: 'var(--accent)', borderRadius: 999, padding: '13px 21px', fontSize: 14, fontWeight: 900, textDecoration: 'none' }}>Compare the four packs ↑</a>
         </section>
       </div>
 

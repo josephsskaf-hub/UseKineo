@@ -15,6 +15,12 @@ import { KineoBoltText } from '@/components/KineoBolt'
 //   · pills com estado selecionado em glow, hover com lift de 1px
 //   · resumo vivo no card de custo: motor · duração · resolução · aspecto
 import { UiLabel, useUiCopy } from '@/components/InterfaceLanguage'
+// KINEO-ESTRELA-DO-FILME-2026-09-29 — o bloco "Estrela do filme": interruptor, régua pura (motor com âncora + sobretaxa, a MESMA função
+// que o servidor soma ao preço) e os textos novos nas 16 línguas.
+import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
+import { ESTRELA_PUBLIC } from '@/lib/engineLaunch'
+import { estrelaDisponivelNoMotor, estrelaSobretaxa } from '@/lib/estrelaDoFilme'
+import { estrelaCopy } from '@/lib/estrelaCopy'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { CLIP_CREDITS } from '@/lib/cinematic/shotSpec'
@@ -54,6 +60,7 @@ import { buildStudioSeriesReviewHref, carryStudioSeriesReview, isStudioSeriesRev
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 import { ENGINE_GATE_ACTIVE, STUDIO_ONLY_ENGINE_KEYS } from '@/lib/enginePlanGate'
 import { SEEDANCE_SHORT_SECONDS, MIN_DURATION_ALL_ENGINES } from '@/lib/durationByEngine' // KINEO-SEEDANCE-15S-2026-09-29
+import { supportedDurationsFor } from '@/lib/durationByEngine' // KINEO-DURACOES-CURTAS-2026-09-29 — a tabela motor × durações (fonte única do servidor)
 import DiretorKineo from '@/components/DiretorKineo' // DIRETOR-KINEO-20260923
 import DfyOfferCard from '@/components/DfyOfferCard' // KINEO-EMPRESAS-COCKPIT-2026-09-24
 // KINEO-STUDIO-TILE-ADS-2026-09-27 — tile "Business ad" na fileira de miniaturas. Fato: 0 dos 10 assinantes tocaram /ads em
@@ -88,6 +95,8 @@ const ENGINE_QUALITY: Record<string, Quality> = {
 // morando em dois lugares. Unificar os dois fica no backlog; hoje o conserto é
 // o motor existir nos dois.
 type EngineKey = 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni' | 's25'
+// KINEO-DURACOES-CURTAS-2026-09-29 — as durações do seletor (a curta depende do motor: lib/durationByEngine supportedDurationsFor).
+type StudioDuration = 15 | 30 | 35 | 60 | 90 // 30: estrada hollywood (entrega 3)
 
 // KINEO-STUDIO-SPECS-2026-08-17 (fundador: 'so 1080p — as pessoas nao
 // precisam saber a quantidade de clips'): a ficha tecnica interna
@@ -204,7 +213,7 @@ export default function StudioClient() {
   // e `setDuration(35)` só não explodia porque o TS não cobre este caminho.
   // KINEO-SEEDANCE-15S-2026-09-29 — 15 = o filme curto do Seedance 1.5 (7 cr); o botão só aparece com o Seedance escolhido
   // e com o interruptor SEEDANCE_15S_PUBLIC (flag `seedance15` do /api/me/credits). O padrão continua 60.
-  const [duration, setDuration] = useState<15 | 35 | 60 | 90>(60)
+  const [duration, setDuration] = useState<StudioDuration>(60) // KINEO-DURACOES-CURTAS-2026-09-29: StudioDuration (15/35/60/90 + as curtas por motor)
   // KINEO-MULTIFORMATO-2026-09-02 — quatro formatos reais; 9:16 continua o
   // padrão (é o produto de 100% dos primeiros vídeos da casa).
   const [aspect, setAspect] = useState<Aspect>('9:16')
@@ -230,6 +239,17 @@ export default function StudioClient() {
   const [internal, setInternal] = useState(false)
   // KINEO-SEEDANCE-15S-2026-09-29 — o botão de 15 s do Seedance (SEEDANCE_15S_PUBLIC || casa). Falha fechada: sem a flag, sem botão.
   const [seedance15Ok, setSeedance15Ok] = useState(false)
+  // KINEO-DURACOES-CURTAS-2026-09-29 — os botões curtos NOVOS (Kling 2.5/Veo 15 s; hollywood 15/30 s): flag `curtas` do /api/me/credits
+  // (DURACOES_CURTAS_PUBLIC || casa). Falha fechada: sem a flag, sem botão (o servidor aceita, a tela só não oferece).
+  const [curtasOk, setCurtasOk] = useState(false)
+  // KINEO-ESTRELA-DO-FILME-2026-09-29 — "Estrela do filme": 1–3 fotos do rosto viram o protagonista (lib/estrelaDoFilme.ts). Flag `estrela`
+  // do /api/me/credits (ESTRELA_PUBLIC || casa); falha fechada: sem a flag, sem bloco. As fotos sobem pela MESMA rota do /images
+  // (/api/images/reference: moderada, pasta da conta, só o CAMINHO volta); a miniatura é local (object URL).
+  const [estrelaOk, setEstrelaOk] = useState<boolean>(ESTRELA_PUBLIC)
+  const [estrelaFotos, setEstrelaFotos] = useState<{ key: string; path: string | null; preview: string; uploading: boolean }[]>([])
+  const [estrelaConsent, setEstrelaConsent] = useState(false)
+  const [estrelaErro, setEstrelaErro] = useState<string | null>(null)
+  const idiomaDaTela = useInterfaceLanguage()
   // KINEO-AVATAR-FORA-2026-09-28 — fundador (27/09): "avatar sai por hora". O link "AI Presenter ↗" e o card Avatar
   // do seletor só aparecem com AVATAR_PUBLIC=true ou para conta da casa (flag `avatar` do /api/me/credits =
   // avatarVisible). Medido: 0 cliques em studio_avatar_card_clicked na história do evento. Flag própria, não
@@ -259,8 +279,8 @@ export default function StudioClient() {
     let alive = true
     fetch('/api/me/credits', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (alive) { setKineo1Flag(d?.kineo1 === true ? true : d?.kineo1 === false ? false : null); if (typeof d?.hasPaid === 'boolean') setContaPaga(d.hasPaid) } return d }) // KINEO-ENTRADA-SEEDANCE15
-      .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true); if (alive && d?.avatar === true) setAvatarOn(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && typeof d?.plan === 'string') setPlan(d.plan) })
+      .then((d) => { if (alive) { setKineo1Flag(d?.kineo1 === true ? true : d?.kineo1 === false ? false : null); if (typeof d?.hasPaid === 'boolean') setContaPaga(d.hasPaid); if (d?.estrela === true) setEstrelaOk(true) } return d }) // KINEO-ENTRADA-SEEDANCE15 · KINEO-ESTRELA-DO-FILME-2026-09-29 (flag estrela)
+      .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true); if (alive && d?.avatar === true) setAvatarOn(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && d?.curtas === true) setCurtasOk(true); if (alive && typeof d?.plan === 'string') setPlan(d.plan) })
       .catch(() => {}) // saldo é enfeite: falhou, a tela segue como antes
       .finally(() => { if (alive) setFlagsProntas(true) }) // KINEO-ENTRADA-SEEDANCE15
     return () => { alive = false }
@@ -384,6 +404,9 @@ export default function StudioClient() {
     } else if (requestedDuration === SEEDANCE_SHORT_SECONDS && e === 'seedance') {
       // KINEO-SEEDANCE-15S-2026-09-29 — ?duration=15 só com ?engine=seedance: o 15 s não existe nos outros motores.
       setDuration(SEEDANCE_SHORT_SECONDS)
+    } else if (e && e !== 'seedance' && requestedDuration < MIN_DURATION_ALL_ENGINES && supportedDurationsFor(e).includes(requestedDuration)) {
+      // KINEO-DURACOES-CURTAS-2026-09-29 — ?duration= curta com um motor que a oferece (Kling 2.5/Veo 15; hollywood 15/30).
+      setDuration(requestedDuration as StudioDuration)
     }
     const quickstartChoice = sp.get('chatgpt_quickstart')
     if (isChatGptQuickstartChoice(quickstartChoice)) {
@@ -452,7 +475,14 @@ export default function StudioClient() {
   }, [kineo1Fit.show, kineo1Fit.version, kineo1Fit.reason, kineo1FitKept])
   // Um cálculo só, usado no preço, no botão e no aviso — para os três nunca
   // discordarem entre si (foi assim que a tela e o servidor divergiram ontem).
-  const cost = creditCostForDuration(ENGINE_QUALITY[eng.key] ?? 'cinematic_ai', true, duration)
+  // KINEO-ESTRELA-DO-FILME-2026-09-29 — com a estrela ligada (flag + motor com âncora + ≥1 foto pronta + autorização), a sobretaxa
+  // entra NO MESMO número do preço, do botão e do aviso de saldo: é a MESMA função (estrelaSobretaxa) que o servidor soma antes do débito.
+  const estrelaFotosProntas = estrelaFotos.filter((f) => f.path).map((f) => f.path as string)
+  const estrelaNoMotor = estrelaDisponivelNoMotor(eng.key)
+  const estrelaLigada = estrelaOk && scriptMode !== 'clip' && estrelaNoMotor && estrelaConsent && estrelaFotosProntas.length > 0
+  const estrelaCr = estrelaLigada ? estrelaSobretaxa(eng.key, duration) : 0
+  const estrelaEnviando = estrelaFotos.some((f) => f.uploading)
+  const cost = creditCostForDuration(ENGINE_QUALITY[eng.key] ?? 'cinematic_ai', true, duration) + estrelaCr
 
   // ═══ KINEO-PRECO-VISIVEL-2026-09-02 — O SALDO EM FILMES ═══════════════════
   // O buraco que nenhum dos nove concorrentes auditados preenche: Higgsfield e
@@ -463,7 +493,12 @@ export default function StudioClient() {
   // KINEO-SEEDANCE-15S-2026-09-29 (revisão E2a) — com o Seedance em 15 s, os OUTROS cards não existem a 15 s: ao clicar,
   // o efeito abaixo sobe para 35. O card precifica na duração que o motor vai de fato receber (Kling 3 "38 cr" a 15 s
   // virava 88 cr no clique).
-  const duracaoDoCard = (key: EngineKey): number => (key === 'seedance' ? duration : Math.max(duration, MIN_DURATION_ALL_ENGINES))
+  // KINEO-DURACOES-CURTAS-2026-09-29 — as durações CURTAS (abaixo de 35) que este card oferece: o Seedance com o interruptor dele
+  // (SEEDANCE_15S_PUBLIC), os outros pela tabela do servidor (lib/durationByEngine supportedDurationsFor) com DURACOES_CURTAS_PUBLIC.
+  const curtasDoMotor = (key: EngineKey): number[] =>
+    (key === 'seedance' ? (seedance15Ok ? [...supportedDurationsFor('seedance')] : []) : [...supportedDurationsFor(key, { curtas: curtasOk })]).filter((d) => d < MIN_DURATION_ALL_ENGINES)
+  // KINEO-DURACOES-CURTAS-2026-09-29 — o card precifica na duração que o motor vai de fato receber: a curta que ele oferece, ou 35+.
+  const duracaoDoCard = (key: EngineKey): number => (key === 'seedance' || curtasDoMotor(key).includes(duration) ? duration : Math.max(duration, MIN_DURATION_ALL_ENGINES))
   const engineCost = (key: EngineKey) =>
     creditCostForDuration(ENGINE_QUALITY[key] ?? 'cinematic_ai', true, duracaoDoCard(key))
   const engineCostLabel = (key: EngineKey) => {
@@ -476,11 +511,13 @@ export default function StudioClient() {
   // que a 35 s (59 cr) o filme cabe. Fundador (22/09: "pode ir nas três primeiras"): mostrar o degrau que cabe, em
   // qualquer motor cujo custo na duração atual passa do saldo mas cabe numa duração menor do seletor.
   // KINEO-SEEDANCE-15S-2026-09-29 — no Seedance (com o interruptor) o degrau desce até 15 s (7 cr, cabe no trial de 10).
-  const stepDownFor = (key: EngineKey): { seconds: 15 | 35 | 60; cost: number } | null => {
+  const stepDownFor = (key: EngineKey): { seconds: StudioDuration; cost: number } | null => {
     if (balance === null) return null
     const c = engineCost(key)
     if (c <= 0 || balance >= c) return null
-    const degraus: readonly (15 | 35 | 60)[] = key === 'seedance' && seedance15Ok ? [60, 35, 15] : [60, 35]
+    // KINEO-DURACOES-CURTAS-2026-09-29 — o degrau desce até as curtas que o card oferece (Seedance 15 com o interruptor dele;
+    // Kling 2.5/Veo 15 e hollywood 30/15 com DURACOES_CURTAS_PUBLIC), da maior para a menor.
+    const degraus: readonly StudioDuration[] = [60, 35, ...curtasDoMotor(key).sort((a, b) => b - a)] as StudioDuration[]
     for (const d of degraus) {
       if (d >= duracaoDoCard(key)) continue
       const cost = creditCostForDuration(ENGINE_QUALITY[key] ?? 'cinematic_ai', true, d)
@@ -499,10 +536,12 @@ export default function StudioClient() {
   }
 
   // KINEO-SEEDANCE-15S-2026-09-29 — trocar de motor estando em 15 s volta para 35 s (o servidor recusaria o 15 fora do Seedance).
+  // KINEO-DURACOES-CURTAS-2026-09-29 — agora: volta para 35 s só se o motor novo NÃO oferece a duração curta atual (Kling 2.5/Veo
+  // guardam o 15; hollywood guarda 15 e 30).
   useEffect(() => {
-    if (engine !== 'seedance' && duration === SEEDANCE_SHORT_SECONDS) setDuration(MIN_DURATION_ALL_ENGINES as 35)
+    if (engine !== 'seedance' && duration < MIN_DURATION_ALL_ENGINES && !curtasDoMotor(engine).includes(duration)) setDuration(MIN_DURATION_ALL_ENGINES as 35)
   }, [engine]) // eslint-disable-line react-hooks/exhaustive-deps
-  const shortestDuration = engine === 'seedance' && seedance15Ok ? SEEDANCE_SHORT_SECONDS : MIN_DURATION_ALL_ENGINES
+  const shortestDuration = engine === 'seedance' && seedance15Ok ? SEEDANCE_SHORT_SECONDS : Math.min(MIN_DURATION_ALL_ENGINES, ...curtasDoMotor(engine)) // KINEO-DURACOES-CURTAS-2026-09-29
 
   // KINEO-DEGRAU-35S: impressão medida no mesmo gatilho do clique (picker aberto), com os degraus oferecidos.
   useEffect(() => {
@@ -603,6 +642,65 @@ export default function StudioClient() {
   useEffect(() => () => { if (clipPollRef.current) clearTimeout(clipPollRef.current) }, [])
   // VARREDURA-LIMITES-2026-09-23 — entrou no modo clipe com 4:5 escolhido: volta ao 9:16 VISÍVEL em vez de trocar escondido no servidor.
   useEffect(() => { if (scriptMode === 'clip' && !(CLIP_ASPECTS as readonly string[]).includes(aspect)) setAspect('9:16') }, [scriptMode, aspect])
+
+  // ═══ KINEO-ESTRELA-DO-FILME-2026-09-29 — upload das fotos da estrela: a MESMA rota e as mesmas regras da foto de referência do /images
+  // (JPG/PNG/WEBP, ≤ 10 MB, reduzida a ≤ 2048 px no navegador, `rights=true` só com a caixa marcada; o servidor modera e guarda na pasta
+  // da conta e devolve só o caminho). Até 3 fotos.
+  const addEstrelaFotos = async (list: FileList | null) => {
+    const files = Array.from(list ?? []).slice(0, Math.max(0, 3 - estrelaFotos.length))
+    if (!estrelaConsent || files.length === 0) return
+    setEstrelaErro(null)
+    for (const file of files) {
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { setEstrelaErro(t('Only JPG, PNG or WEBP photos.')); continue }
+      if (file.size > 10 * 1024 * 1024) { setEstrelaErro(t('Photo is too large — max 10 MB.')); continue }
+      const key = `${Date.now()}-${Math.random().toString(36).slice(2)}`
+      const preview = URL.createObjectURL(file)
+      setEstrelaFotos((xs) => [...xs, { key, path: null, preview, uploading: true }])
+      try {
+        let blob: Blob = file
+        try {
+          const bmp = await createImageBitmap(file)
+          const scale = Math.min(1, 2048 / Math.max(bmp.width, bmp.height))
+          const canvas = document.createElement('canvas')
+          canvas.width = Math.max(1, Math.round(bmp.width * scale))
+          canvas.height = Math.max(1, Math.round(bmp.height * scale))
+          canvas.getContext('2d')?.drawImage(bmp, 0, 0, canvas.width, canvas.height)
+          bmp.close()
+          blob = (await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9))) ?? file
+        } catch {}
+        const form = new FormData()
+        form.append('file', blob, blob === file ? file.name : 'reference.jpg')
+        form.append('rights', 'true')
+        const res = await fetch('/api/images/reference', { method: 'POST', body: form })
+        const data = await res.json().catch(() => null)
+        if (!res.ok || typeof data?.path !== 'string') throw new Error(typeof data?.error === 'string' ? data.error : estrelaCopy(idiomaDaTela, 'uploadFailed'))
+        setEstrelaFotos((xs) => xs.map((x) => (x.key === key ? { ...x, path: data.path as string, uploading: false } : x)))
+        void trackEvent('studio_estrela_photo_added', { count: estrelaFotos.length + 1 })
+      } catch (e) {
+        URL.revokeObjectURL(preview)
+        setEstrelaFotos((xs) => xs.filter((x) => x.key !== key))
+        setEstrelaErro(e instanceof Error ? e.message : estrelaCopy(idiomaDaTela, 'uploadFailed'))
+      }
+    }
+  }
+  // KINEO-ESTRELA-DO-FILME-2026-09-29 — o pedido da estrela viaja pela sessionStorage (mesma origem), NUNCA pela URL, sempre em
+  // sincronia com a tela: com a estrela ligada, os CAMINHOS prontos + a autorização + o motor/duração/texto que o preço mostrou;
+  // desligada, a chave some. O generate() de sempre fica intocado. O /studio/create só usa o pedido se motor, duração e texto
+  // da URL forem os mesmos, apaga ao ler, e o servidor confere dono, autorização, interruptor e motor de novo.
+  const estrelaAssinatura = estrelaFotosProntas.join('|')
+  useEffect(() => {
+    try {
+      if (estrelaLigada) sessionStorage.setItem('kineo:studio:estrela:v1', JSON.stringify({ t: Date.now(), engine, duration, prompt: finalPrompt, paths: estrelaFotosProntas, consent: true }))
+      else sessionStorage.removeItem('kineo:studio:estrela:v1')
+    } catch {}
+  }, [estrelaLigada, engine, duration, finalPrompt, estrelaAssinatura]) // eslint-disable-line react-hooks/exhaustive-deps
+  const removeEstrelaFoto = (key: string) => {
+    setEstrelaFotos((xs) => {
+      const gone = xs.find((x) => x.key === key)
+      if (gone) URL.revokeObjectURL(gone.preview)
+      return xs.filter((x) => x.key !== key)
+    })
+  }
 
   const generate = () => {
     // VARREDURA-LIMITES-2026-09-23 — o clipe também respeita o teto (6.000, o da rota do clipe) antes de gastar.
@@ -804,6 +902,45 @@ export default function StudioClient() {
               </div>
             )}
             <DiretorKineo text={prompt} mode={scriptMode} engine={engine} engineName={eng.name} duration={duration} language={language} aspect={aspect} onApply={setPrompt} />
+            {/* KINEO-ESTRELA-DO-FILME-2026-09-29 — "Estrela do filme": o mesmo desenho da foto de referência do /images (caixa de
+                autorização antes de subir, até 3 miniaturas com X). Só com a flag `estrela` e fora do modo clipe; em motor sem âncora
+                (Kineo 1 / Seedance 2.5) o bloco vira aviso — e o servidor recusa antes do débito se alguém mandar mesmo assim. */}
+            {estrelaOk && scriptMode !== 'clip' && (
+              <div data-kineo="estrela-do-filme" style={{ marginTop: 12, padding: 14, border: '1px solid var(--border)', borderRadius: 13, background: 'var(--card2)' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>⭐ {estrelaCopy(idiomaDaTela, 'title')}</div>
+                {estrelaNoMotor ? (
+                  <>
+                    <p className="val" style={{ margin: '6px 0 0', fontSize: 12, lineHeight: 1.45 }}>{estrelaCopy(idiomaDaTela, 'help')}</p>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 10, fontSize: 12.5, lineHeight: 1.45, color: 'var(--text2)', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={estrelaConsent} onChange={(e) => setEstrelaConsent(e.target.checked)} style={{ marginTop: 2, flexShrink: 0 }} />
+                      <span><UiLabel>I have permission from the person in the photo to use their image.</UiLabel></span>
+                    </label>
+                    <div className="row" style={{ marginTop: 10, gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      {estrelaFotos.map((f) => (
+                        <div key={f.key} style={{ position: 'relative', width: 64, height: 64, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border2)', opacity: f.uploading ? 0.45 : 1 }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={f.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                          <button type="button" aria-label={t('Remove photo')} onClick={() => removeEstrelaFoto(f.key)} style={{ position: 'absolute', top: 3, insetInlineEnd: 3, width: 22, height: 22, borderRadius: '50%', border: 0, background: 'rgba(0,0,0,.65)', color: '#fff', fontSize: 13, lineHeight: '22px', padding: 0, cursor: 'pointer' }}>×</button>
+                        </div>
+                      ))}
+                      {estrelaFotos.length < 3 && (
+                        <label className="pill" aria-disabled={!estrelaConsent} style={{ cursor: estrelaConsent ? 'pointer' : 'not-allowed', opacity: estrelaConsent ? 1 : 0.5 }}>
+                          <input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden disabled={!estrelaConsent}
+                            onChange={(e) => { void addEstrelaFotos(e.target.files); e.target.value = '' }} />
+                          + <UiLabel>Add photo</UiLabel>
+                        </label>
+                      )}
+                    </div>
+                    <p className="val" style={{ margin: '6px 0 0', fontSize: 12, opacity: 0.8 }}><UiLabel>{estrelaConsent ? 'Up to 3 photos · JPG, PNG or WEBP · max 10 MB each' : 'Check the box above to add a photo.'}</UiLabel></p>
+                    {estrelaEnviando && <p className="val" style={{ margin: '6px 0 0', fontSize: 12 }}><UiLabel>Uploading photo…</UiLabel></p>}
+                    {estrelaLigada && <p className="val" data-kineo="estrela-preco" style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--accent)' }}>{estrelaCopy(idiomaDaTela, 'price', { n: estrelaCr, s: duration })}</p>}
+                    {estrelaErro && <p role="alert" style={{ margin: '6px 0 0', fontSize: 12, color: '#fb923c' }}>{estrelaErro}</p>}
+                  </>
+                ) : (
+                  <p className="val" style={{ margin: '6px 0 0', fontSize: 12, lineHeight: 1.45 }}>{estrelaCopy(idiomaDaTela, 'off')}</p>
+                )}
+              </div>
+            )}
           </div>
 <div id="studio-generation-review" tabIndex={-1} className="cost studio-generation-review" aria-label={t('Review and generate', 'Revisar y generar')}>
             <div className="sum" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className="eng-ic" style={{ width: 24, height: 24, borderRadius: 7, fontSize: 10.5 }} aria-hidden="true"><KineoBoltText>{eng.icon}</KineoBoltText></span>{scriptMode === 'clip' ? `Seedance 1.5 · ${clipSeconds}s · ${aspect}` : `${eng.name} · ${duration}s · 1080p · ${aspect}`}{preset ? ` · ${CAMERA_PRESETS.find((c) => c.key === preset)?.label}` : ''}</div>
@@ -815,6 +952,13 @@ export default function StudioClient() {
               <span><UiLabel>{(scriptMode !== 'clip' && rotuloDoFilmeGratis({ entrada15, trialActive: trialOn, balance, engine, duration, custoSeedance })) || 'Estimated cost'}</UiLabel></span>
               <b style={balance !== null && (scriptMode === 'clip' ? CLIP_CREDITS : cost) > balance ? { color: '#fb923c' } : undefined}>{scriptMode === 'clip' ? CLIP_CREDITS : cost} cr</b>
             </div>
+            {/* KINEO-ESTRELA-DO-FILME-2026-09-29 — a sobretaxa aparece ANTES do clique e já está dentro do número acima e do botão. */}
+            {estrelaCr > 0 && (
+              <div className="val" data-kineo="estrela-linha-do-custo" style={{ opacity: 0.85 }}>
+                <span>⭐ {estrelaCopy(idiomaDaTela, 'row')}</span>
+                <b style={{ fontWeight: 600 }}>+{estrelaCr} cr</b>
+              </div>
+            )}
             {balance !== null && (scriptMode === 'clip' ? CLIP_CREDITS : cost) > balance && (
               // A verdade ANTES da ideia ser escrita, não depois do clique.
               <div className="val" style={{ color: '#fb923c', fontSize: '0.78rem' }}>
@@ -996,6 +1140,11 @@ export default function StudioClient() {
               {engine === 'seedance' && (seedance15Ok || duration === SEEDANCE_SHORT_SECONDS) && (
                 <button type="button" className={`pill${duration === SEEDANCE_SHORT_SECONDS ? ' on' : ''}`} onClick={() => setDuration(SEEDANCE_SHORT_SECONDS)} title="Seedance 1.5 only — a short AI film">{SEEDANCE_SHORT_SECONDS}s</button>
               )}
+              {/* KINEO-DURACOES-CURTAS-2026-09-29 — as curtas dos outros motores (Kling 2.5/Veo 15 s; hollywood 15/30 s), da tabela do servidor,
+                  com o interruptor DURACOES_CURTAS_PUBLIC (ou quando já veio numa curta que o motor oferece). */}
+              {engine !== 'seedance' && [...new Set([...curtasDoMotor(engine), ...(duration < MIN_DURATION_ALL_ENGINES && supportedDurationsFor(engine).includes(duration) ? [duration] : [])])].sort((a, b) => a - b).map((d) => (
+                <button key={`curta-${d}`} type="button" className={`pill${duration === d ? ' on' : ''}`} onClick={() => setDuration(d as StudioDuration)} title="A short film on this engine">{d}s</button>
+              ))}
               <button type="button" className={`pill${duration === 35 ? ' on' : ''}`} onClick={() => setDuration(35)}>35s</button>
               <button type="button" className={`pill${duration === 60 ? ' on' : ''}`} onClick={() => setDuration(60)}>60s ⭐</button>
               <button type="button" className={`pill${duration === 90 ? ' on' : ''}`} onClick={() => setDuration(90)} title="Mais alcance: no TikTok, 90s rende ~4x as views de um vídeo de 60s">90s 📈</button>

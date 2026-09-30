@@ -124,6 +124,31 @@ export function seedance15sVisible(email?: string | null): boolean {
   return SEEDANCE_15S_PUBLIC || isInternalEmail(email)
 }
 
+// ═══ KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] ═══
+// Os BOTÕES novos de duração curta — 15 s no Kling 2.5 e no Veo 3.1, 15 s e 30 s no Kling 3 / MiniMax H3 / Omni / Seedance 2.5
+// (tabela em lib/durationByEngine.ts supportedDurationsFor). Mesmo desenho do SEEDANCE_15S_PUBLIC na E2a: false → só as contas
+// da casa (isInternalEmail) veem os botões no /studio e no /generate, para os canários; o SERVIDOR aceita as durações da tabela
+// para qualquer conta, com o custo certo (creditCostForDuration do motor). Virar true só depois dos canários aprovados pelo
+// fundador (um commit de uma linha).
+export const DURACOES_CURTAS_PUBLIC = true
+
+/** Os botões curtos novos (Kling 2.5/Veo 15 s; hollywood 15/30 s) aparecem para este e-mail? */
+export function duracoesCurtasVisible(email?: string | null): boolean {
+  return DURACOES_CURTAS_PUBLIC || isInternalEmail(email)
+}
+
+// ═══ KINEO-ESTRELA-DO-FILME-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] ═══
+// "Estrela do filme": 1–3 fotos do rosto de uma pessoa (com autorização) viram o protagonista de toda cena com gente
+// (lib/estrelaDoFilme.ts). A sobretaxa é o PREÇO B do fundador (29/09, "2B"): 2 cr a cada 6 s de filme. Mesmo
+// desenho do DURACOES_CURTAS_PUBLIC: false → só as contas da casa (isInternalEmail) veem o bloco no /studio, e o SERVIDOR
+// recusa (403, antes do débito) a estrela de conta de fora. Virar true depois do canário aprovado (um commit de uma linha).
+export const ESTRELA_PUBLIC = false
+
+/** O bloco "Estrela do filme" aparece (e o servidor aceita) para este e-mail? */
+export function estrelaVisible(email?: string | null): boolean {
+  return ESTRELA_PUBLIC || isInternalEmail(email)
+}
+
 /** Copy de contagem: 'Eight' hoje, 'Nine' no lancamento. Uma verdade, N telas. */
 // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 — a contagem e a lista públicas só falam dos motores que o público pode
 // apertar HOJE: Veo 3.1, Kling 3, Kling 2.5, Seedance 1.5, Kineo 1 e Avatar (H3/Omni/S25 pausados, S25 interno).

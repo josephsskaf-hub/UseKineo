@@ -122,10 +122,12 @@ const PORTAS = /href="\/avatar"|Talking Avatar|AI Presenter|Character Lock|Trans
   const pub = home(null), casa = home(INTERNO)
   checa('home (visitante): 0 portas do Avatar — mega-menu, mobile, bento, 4 cards do toolkit e subtítulo', !PORTAS.test(pub))
   // 29/09 (KINEO-KINEO1-FORA-2026-09-29): sem o tile do Kineo 1 o visitante vê 4 motores no bento.
-  checa('home (visitante): o bento renderizou (4 tiles de motor) e o toolkit ficou com 4 cards', conta(pub, 'class="tile') === 4 && conta(pub, 'class="tcard"') === 4 && pub.includes('href="/animate"'))
+  // REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles de motor saiu da home; os motores seguem no mega-menu e no /studio).
+  checa('home (visitante): a grade de tiles de motor saiu e o toolkit removido não reaparece', conta(pub, 'class="tile') === 0 && !pub.includes('id="toolkit"') && conta(pub, 'class="tcard"') === 0)
   // 29/09 (KINEO-KINEO1-FORA): "Five" e a lista sem Kineo 1 nem Avatar.
   checa('home (visitante): FAQ diz "Five" e a lista sem Avatar', pub.includes('Five') && pub.includes('Veo 3.1, Kling 3, Kling 2.5, MiniMax H3 and Seedance 1.5') && !pub.includes('and Avatar'))
-  checa('home (conta da casa): as 7 portas do Avatar continuam (mega, mobile, tile, 4 cards)', conta(casa, 'href="/avatar"') === 7 && conta(casa, 'class="tcard"') === 8 && casa.includes('Talking Avatar'))
+  // REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles de motor saiu da home; os motores seguem no mega-menu e no /studio). O tile do Avatar saiu junto: sobram 2 portas internas (mega-menu e menu mobile).
+  checa('home (conta da casa): as 2 portas internas do Avatar continuam; os cards retirados também saem para a casa', conta(casa, 'href="/avatar"') === 2 && conta(casa, 'class="tcard"') === 0 && !casa.includes('id="toolkit"') && casa.includes('Talking Avatar'))
   checa('home (e-mail público logado): mesmas 0 portas', !PORTAS.test(home(PUBLICO)))
 }
 {
@@ -148,8 +150,20 @@ const PORTAS = /href="\/avatar"|Talking Avatar|AI Presenter|Character Lock|Trans
 }
 {
   const ft = renderPage('components/Footer.tsx', false, {}, {})
-  checa('rodapé (render real): sem link /ai-avatar; o resto do grupo Produto fica', !ft.includes('href="/ai-avatar"') && ft.includes('href="/facts"') && ft.includes('href="/viral-now"'))
+  // Viral Now saiu do rodapé na remoção aprovada de 28/09; preservar Ads e Facts.
+  checa('rodapé (render real): sem link /ai-avatar; Ads e Facts continuam', !ft.includes('href="/ai-avatar"') && ft.includes('href="/facts"') && ft.includes('href="/ads"'))
 }
+
+// Fundador 29/09: retirar toda a seção do print, inclusive UGC que levava ao /avatar.
+// A remoção é estrutural: não depende de idioma, tema ou conta interna.
+const semToolkit = (html) => !/id="toolkit"|class="tcard"|href="#toolkit"/.test(html)
+const languageLoader = createOfflineLoader()
+const { INTERFACE_LANGUAGE_OPTIONS, BUNDLED_INTERFACE_LANGUAGES } = languageLoader('lib/ui/interfaceLanguage.ts')
+for (const { code: language } of INTERFACE_LANGUAGE_OPTIONS) {
+  const interfaceDictionary = BUNDLED_INTERFACE_LANGUAGES.includes(language) ? null : languageLoader('lib/ui/interface/'+language+'.ts').DICT
+  checa('toolkit removido no JSX renderizado: '+language, semToolkit(renderPage('app/KineoLanding.tsx', false, {interfaceLanguage:language,interfaceDictionary}, {initialEmail:INTERNO, engineWall:wall})))
+}
+checa('regressão: a home anterior é rejeitada (seção + sete cards da conta interna)', !semToolkit(renderPage('app/KineoLanding.tsx', true, {}, {initialEmail:INTERNO,engineWall:wall}, '86c46047')))
 
 console.log('== (d) /ai-avatar fora do índice, fora do sitemap ==')
 const metadataDe = (src, avatarPublic) => {
@@ -175,7 +189,9 @@ const metadataDe = (src, avatarPublic) => {
 console.log('== (c2) superfícies lidas no fonte ==')
 {
   const ph = rd('app/ph/page.tsx')
-  checa('/ph: linha do Studio sem Avatar fixo (só com AVATAR_PUBLIC)', ph.includes("`Kling 3, Veo 3.1, MiniMax H3, Omni Flash${AVATAR_PUBLIC ? ', Avatar' : ''}`") && !ph.includes("'Kling 3, Veo 3.1, MiniMax H3, Omni Flash, Avatar'"))
+  // KINEO-SELO-OMNI-POPUP-2026-09-30 — reancorado: o ', Omni Flash' da mesma linha passou a ler enginePaused('omni')
+  // (scripts/test-selo-omni-pausado-2026-09-30.mjs). A intenção deste item não muda: Avatar só com AVATAR_PUBLIC.
+  checa('/ph: linha do Studio sem Avatar fixo (só com AVATAR_PUBLIC)', ph.includes("`Kling 3, Veo 3.1, MiniMax H3${enginePaused('omni') ? '' : ', Omni Flash'}${AVATAR_PUBLIC ? ', Avatar' : ''}`") && !/MiniMax H3[^`'\n]*, Avatar['`]/.test(ph))
   const shell = rd('app/(dashboard)/DashboardShell.tsx')
   checa('painel: banner "NEW — AI Avatar Video" atrás do interruptor; o componente continua existindo', shell.includes('{AVATAR_PUBLIC && <WorkspaceSecondaryNotice><AvatarLaunchBanner /></WorkspaceSecondaryNotice>}') && existsSync(join(RAIZ, 'components/AvatarLaunchBanner.tsx')))
   const gc = rd('app/(dashboard)/generate/GenerateClient.tsx')
@@ -309,7 +325,10 @@ console.log('== (f2) sobras públicas do apresentador: /best-ai-shorts-generator
 }
 
 console.log('== (g) bento da home completo: o JSX real, a cascata real, nenhuma célula vazia em nenhuma largura ==')
-{
+// REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles de motor saiu da home; os motores seguem no mega-menu e no /studio). Sem bento na home não há grade para medir: o bloco (g) prova só que ele saiu de verdade.
+if (!/className="bento"/.test(rd('app/KineoLanding.tsx'))) {
+  checa('bento da home removido por ordem do fundador (30/09): nenhuma grade de motores para medir', !/home-engines/.test(rd('app/KineoLanding.tsx')))
+} else {
   // O CASO (revisão 2): sem o tile do Avatar, o visitante vê 5 motores num grid de 3 colunas (e de 2 até 700px) — a
   // última fileira ficava com um buraco. Contar "5 tiles" (bloco c) ficava verde com o buraco na tela.
   // A PROVA: renderiza a home com o JSX real, lê o <style> que a própria página injeta, monta a cascata (postcss +

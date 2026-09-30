@@ -383,6 +383,7 @@ import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 // da porta de $1. Ver o cabeçalho do componente: medido em 08/09, a porta de $1
 // estava VISÍVEL dentro do modal e perdeu para a grade de planos da mesma caixa.
 import CardEntryDoor from '@/components/CardEntryDoor'
+import { estrelaDisponivelNoMotor } from '@/lib/estrelaDoFilme' // KINEO-ESTRELA-DO-FILME-2026-09-29
 // KINEO-LOWCREDITS-UPSELL import removed 09/07 — banner retired (see note at
 // the old render site; 0 credits is the normal free state now).
 
@@ -505,7 +506,7 @@ function isProcessingPhase(p: Phase): boolean {
 // este tipo não sabia. Todo `35` que chegava por URL caía no fallback 45: a
 // pessoa clicava 35s e recebia (e pagava) 45s.
 // KINEO-SEEDANCE-15S-2026-09-29 — 15 = o filme curto do Seedance 1.5 (7 cr). Só existe nesse motor (lib/durationByEngine.ts).
-type Duration = 15 | 35 | 45 | 60 | 90
+type Duration = 15 | 30 | 35 | 45 | 60 | 90 // KINEO-DURACOES-CURTAS-2026-09-29: 30 = estrada hollywood
 // Push #084 — added 'fast' for the Pexels + TTS cheap pipeline (1 credit).
 // Cinematic quality tiers (basic / basic_ai / pro) still flow through Runway.
 // Push #315 — added 'cinematic_ai' for fal.ai Wan 2.1 mode.
@@ -555,10 +556,21 @@ const DEFAULT_DURATION: Duration = DURATION_OPTIONS[0].value
 // 15 lá dentro viraria o padrão de todos os motores. A lista global (35/60/90 = lib/expandPolicy SUPPORTED_DURATIONS)
 // continua intacta; o Seedance ganha um botão a mais na frente, derivado de lib/durationByEngine (nada digitado).
 const SEEDANCE_SHORT_OPTION: { value: Duration; label: string } = { value: SEEDANCE_SHORT_SECONDS as Duration, label: `${SEEDANCE_SHORT_SECONDS}s — Teaser` }
-function durationOptionsFor(mode: GenerationMode, aiEngine: string, seedance15Ok: boolean, current: Duration): { value: Duration; label: string }[] {
+function durationOptionsFor(mode: GenerationMode, aiEngine: string, seedance15Ok: boolean, current: Duration, curtasOk: boolean = false): { value: Duration; label: string }[] {
+  // KINEO-DURACOES-CURTAS-2026-09-29 — Kling 2.5/Veo 15 s e hollywood 15/30 s: da tabela do servidor (supportedDurationsFor), com o
+  // interruptor DURACOES_CURTAS_PUBLIC (flag `curtas`); quem já está numa curta que o motor oferece continua vendo o botão aceso.
+  if (mode === 'cinematic_ai' && aiEngine !== 'seedance') {
+    const curtas = supportedDurationsFor(aiEngine).filter((d) => d < DURATION_OPTIONS[0].value && (curtasOk || d === current))
+    return curtas.length ? [...curtas.map((d) => SHORT_OPTION_BY_SECONDS[d] ?? { value: d as Duration, label: `${d}s` }), ...DURATION_OPTIONS] : DURATION_OPTIONS
+  }
   const seedance = mode === 'cinematic_ai' && supportedDurationsFor(aiEngine).includes(SEEDANCE_SHORT_SECONDS)
   // Quem já está em 15 (link do Studio da casa) continua vendo o botão aceso, mesmo antes da flag chegar.
   return seedance && (seedance15Ok || current === SEEDANCE_SHORT_SECONDS) ? [SEEDANCE_SHORT_OPTION, ...DURATION_OPTIONS] : DURATION_OPTIONS
+}
+/** KINEO-DURACOES-CURTAS-2026-09-29 — o rótulo de cada duração curta dos outros motores (o valor vem da tabela do servidor). */
+const SHORT_OPTION_BY_SECONDS: Record<number, { value: Duration; label: string }> = {
+  15: { value: 15 as Duration, label: '15s — Teaser' },
+  30: { value: 30 as Duration, label: '30s — Short' },
 }
 
 const POLL_GENERATING_MS = 4000
@@ -1151,6 +1163,25 @@ export default function GenerateClient({
   const OFFER = useFreeTierOffer()
   const router = useRouter()
   const searchParams = useSearchParams()
+  // ═══ KINEO-ESTRELA-DO-FILME-2026-09-29 — a "Estrela do filme" escolhida no /studio ═══
+  // A URL não carrega nada da estrela: os CAMINHOS das fotos (pasta da conta) e a autorização vêm da sessionStorage da mesma
+  // origem, que o /studio mantém em sincronia com a tela. Só valem se o motor, a duração e o texto da URL forem os MESMOS que o
+  // preço do /studio mostrou (senão é outro pedido), por até 2 h; lidos UMA vez e apagados. Vão no payload do
+  // /api/generate-video-cinematic só num motor com âncora (lib/estrelaDoFilme ESTRELA_MOTORES); o servidor confere dono,
+  // autorização, interruptor e motor de novo.
+  const estrelaRef = useRef<{ paths: string[]; consent: true } | null>(null)
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('kineo:studio:estrela:v1')
+      if (!raw) return
+      sessionStorage.removeItem('kineo:studio:estrela:v1')
+      const tok = JSON.parse(raw) as { t?: number; engine?: unknown; duration?: unknown; prompt?: unknown; paths?: unknown; consent?: unknown }
+      const mesmoPedido = tok.engine === searchParams?.get('engine') && String(tok.duration) === searchParams?.get('duration') && tok.prompt === searchParams?.get('prompt')
+      if (mesmoPedido && typeof tok.t === 'number' && Date.now() - tok.t < 2 * 60 * 60_000 && tok.consent === true && Array.isArray(tok.paths) && tok.paths.length > 0 && tok.paths.length <= 3 && tok.paths.every((p) => typeof p === 'string')) {
+        estrelaRef.current = { paths: tok.paths as string[], consent: true }
+      }
+    } catch {}
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — na montagem (antes de /api/credits dizer se a conta paga): com a entrada
   // nova, o Kineo 1 só existe para quem tem a flag kineo1 === true. 'Não sei' vira "pagante?" depois (kineo1Shown).
   const kineo1NaMontagem = kineo1NaTela({ entrada15: seedance15Prop === true, kineo1: kineo1Visible, hasPaid: null })
@@ -1522,9 +1553,11 @@ export default function GenerateClient({
   const [s25Ok, setS25Ok] = useState(false)
   // KINEO-SEEDANCE-15S-2026-09-29 — o botão de 15 s do Seedance (SEEDANCE_15S_PUBLIC || casa), flag `seedance15` do /api/me/credits.
   const [seedance15Ok, setSeedance15Ok] = useState(seedance15Prop === true) // KINEO-ENTRADA-SEEDANCE15: o servidor já sabe na montagem
+  // KINEO-DURACOES-CURTAS-2026-09-29 — os botões curtos novos (Kling 2.5/Veo 15 s; hollywood 15/30 s), flag `curtas` do /api/me/credits.
+  const [curtasOk, setCurtasOk] = useState(false)
   useEffect(() => {
     let alive = true
-    fetch('/api/me/credits', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive && d?.internal === true) setS25Ok(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true) }).catch(() => {})
+    fetch('/api/me/credits', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive && d?.internal === true) setS25Ok(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && d?.curtas === true) setCurtasOk(true) }).catch(() => {}) // KINEO-DURACOES-CURTAS-2026-09-29: + curtas
     return () => { alive = false }
   }, [])
 
@@ -1943,14 +1976,15 @@ export default function GenerateClient({
   // plan loads below.
   const [mode, setMode] = useState<GenerationMode>(kineo1NaMontagem ? 'fast' : 'cinematic_ai') // KINEO-ENTRADA-SEEDANCE15-2026-09-29
   // KINEO-SEEDANCE-15S-2026-09-29 — os botões de duração do motor escolhido (15 s só no Seedance, só com o interruptor).
-  const opcoesDeDuracao = durationOptionsFor(mode, aiEngine, seedance15Ok, duration)
+  const opcoesDeDuracao = durationOptionsFor(mode, aiEngine, seedance15Ok, duration, curtasOk) // KINEO-DURACOES-CURTAS-2026-09-29: + curtasOk
   // Trocar de motor estando em 15 s volta para 35 s: o 15 não existe fora do Seedance e o servidor recusaria (422).
+  // KINEO-DURACOES-CURTAS-2026-09-29 — agora: volta para 35 s quando o motor novo NÃO oferece a duração curta atual (tabela do servidor).
   const motorDaDuracaoRef = useRef<string>('')
   useEffect(() => {
     const motor = mode === 'cinematic_ai' ? aiEngine : mode
     const antes = motorDaDuracaoRef.current
     motorDaDuracaoRef.current = motor
-    if (antes === 'seedance' && motor !== 'seedance' && duration === SEEDANCE_SHORT_SECONDS) setDuration(35)
+    if (antes !== '' && antes !== motor && duration < 35 && !supportedDurationsFor(motor).includes(duration)) setDuration(35) // KINEO-DURACOES-CURTAS-2026-09-29
   }, [mode, aiEngine]) // eslint-disable-line react-hooks/exhaustive-deps
   // Push #316 — output language selector (en | pt | es). PUSH #36 preserves
   // the language promised by localized acquisition pages through auth.
@@ -8166,7 +8200,7 @@ export default function GenerateClient({
         // STUDIO-CONTADOR-VOZ-2026-09-28: a checagem da análise mede na MESMA régua do contador e do servidor — a voz
         // que vai narrar (persona por nicho no clássico, 2,3 no hollywood), não a da família. Antes, 3,1 aqui e 2,3 lá.
         // KINEO-PONTAS-15S-IDIOMA-2026-09-29: com `seconds`, o 15 s do Seedance mede na voz do portão, no ritmo da língua.
-        const reguaAnalise = reguaDoServidorNaTela({ engine: mode === 'fast' || mode === 'creator' ? 'fast' : aiEngine, script: baseChecagem, language, vertical: analysis?.niche ?? null, seconds: duration })
+        const reguaAnalise = reguaDoServidorNaTela({ engine: mode === 'fast' || mode === 'creator' ? 'fast' : aiEngine, script: baseChecagem, language, vertical: analysis?.niche ?? null, seconds: duration, curtas: curtasOk }) // KINEO-DURACOES-CURTAS-2026-09-29: + curtas
         const falaSeg = falaNaReguaDaTela(baseChecagem, reguaAnalise) // KINEO-REGUA-UNICA: narração extraída, agora na régua da voz
         const cobre = falaSeg >= duration * MIN_COVERAGE
         // KINEO-CONTRATO-DURACAO-2026-09-02 — o espelho do bloqueio acima, para
@@ -8586,7 +8620,8 @@ export default function GenerateClient({
           // Push #411 — pass scriptMode so 'Use my script as is' keeps the
           // user's words VERBATIM in the AI engines too (server splits scenes
           // in code; GPT only generates the visual layer).
-          body: analyzeBody,
+          // KINEO-ESTRELA-DO-FILME-2026-09-29 — com a estrela, só a MARCA estrela:true (liga a exceção estreita da regra REAL PEOPLE), nunca as fotos.
+          body: estrelaRef.current ? JSON.stringify({ ...JSON.parse(analyzeBody), estrela: true }) : analyzeBody,
           signal: controller.signal,
         })
       let res: Response
@@ -9099,6 +9134,7 @@ export default function GenerateClient({
     }
     const uDur = Number(searchParams?.get('duration') ?? '')
     if ((uDur === 35 || uDur === 45 || uDur === 60 || uDur === 90 || (uDur === SEEDANCE_SHORT_SECONDS && uEng === 'seedance')) && duration !== uDur) { setDuration(uDur); return } // KINEO-SEEDANCE-15S-2026-09-29: 15 s do Studio (só Seedance)
+    if (uDur > 0 && uDur < 35 && uEng !== '' && uEng !== 'seedance' && supportedDurationsFor(uEng).includes(uDur) && duration !== uDur) { setDuration(uDur as Duration); return } // KINEO-DURACOES-CURTAS-2026-09-29: a curta do Studio nos outros motores (tabela do servidor)
     try {
       const raw = sessionStorage.getItem('kineo:studio:go:v1')
       if (!raw) { studioAutoFirePendingRef.current = false; return }
@@ -9662,6 +9698,8 @@ export default function GenerateClient({
           brollScenes: cineBrollScenes,
           globalStyle: cineUsable ? cinePlan!.globalStyle : undefined,
           ...(aiEngine === 'hollywood' && selectedCharacterId ? { characterId: selectedCharacterId } : {}),
+          // KINEO-ESTRELA-DO-FILME-2026-09-29 — as fotos da estrela (caminhos + autorização) só num motor com âncora.
+          ...(estrelaRef.current && estrelaDisponivelNoMotor(aiEngine) ? { estrela: estrelaRef.current } : {}),
         }
         let res: Response
         let data: Record<string, unknown>
@@ -14936,7 +14974,7 @@ export default function GenerateClient({
             if (scriptMode === 'verbatim') {
               const motorContador: ContadorMotor = mode === 'fast' || mode === 'creator' ? 'fast' : aiEngine
               // KINEO-PONTAS-15S-IDIOMA-2026-09-29: com `seconds`, o 15 s do Seedance mede na voz do portão, no ritmo da língua.
-              const reguaVoz = reguaDoServidorNaTela({ engine: motorContador, script: prompt, language, vertical: analysis?.niche ?? null, seconds: duration })
+              const reguaVoz = reguaDoServidorNaTela({ engine: motorContador, script: prompt, language, vertical: analysis?.niche ?? null, seconds: duration, curtas: curtasOk }) // KINEO-DURACOES-CURTAS-2026-09-29: + curtas
               const veredito = contadorVoz({ script: prompt, regua: reguaVoz, requestedSeconds: duration })
               if (!veredito) return null
               const frase = fraseDoContador(veredito, reguaVoz.persona ? reguaVoz.persona.name : null, motorContador)
@@ -15261,6 +15299,7 @@ export default function GenerateClient({
             aiEngine={aiEngine}
             s25Ok={s25Ok}
             seedance15Ok={seedance15Ok}
+            curtasOk={curtasOk} // KINEO-DURACOES-CURTAS-2026-09-29
             kineo1Shown={kineo1Shown}
             setAiEngine={setAiEngine}
             isStarter={isStarter}
@@ -21059,6 +21098,7 @@ function ModeSelector({
   aiEngine,
   s25Ok,
   seedance15Ok,
+  curtasOk = false, // KINEO-DURACOES-CURTAS-2026-09-29
   kineo1Shown = true,
   setAiEngine,
   isStarter,
@@ -21082,6 +21122,8 @@ function ModeSelector({
   s25Ok: boolean
   // KINEO-SEEDANCE-15S-2026-09-29 — o resgate por saldo oferece o 15 s do Seedance só com o interruptor (espelho da rota).
   seedance15Ok?: boolean
+  /** KINEO-DURACOES-CURTAS-2026-09-29 — o resgate por saldo oferece as curtas dos outros motores só com DURACOES_CURTAS_PUBLIC (espelho da rota). */
+  curtasOk?: boolean
   /** KINEO-ENTRADA-SEEDANCE15-2026-09-29 — o card "Fast Mode" (Kineo 1) só aparece para quem o tem (kineo1NaTela). */
   kineo1Shown?: boolean
   setAiEngine: (e: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25') => void
@@ -21189,6 +21231,7 @@ function ModeSelector({
   // para quem o interruptor SEEDANCE_15S_PUBLIC mostra o botão.
   const duracoesDoSeletor: Duration[] = aiEngine === 'seedance' && seedance15Ok
     ? (supportedDurationsFor('seedance') as readonly number[]).map((d) => d as Duration)
+    : aiEngine !== 'seedance' && curtasOk ? (supportedDurationsFor(aiEngine) as readonly number[]).map((d) => d as Duration) // KINEO-DURACOES-CURTAS-2026-09-29: espelho de duracoesDoResgateCurtas na rota
     : DURATION_OPTIONS.map((o) => o.value)
   const resgateDeMotor =
     mode === 'cinematic_ai'

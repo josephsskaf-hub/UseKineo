@@ -7,6 +7,8 @@ export const WORKSPACE_NAV = [
   { href: '/studio', label: 'Studio', icon: 'generate' },
   // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 — Imagem é porta do topo (fundador 25/09); espelha na lateral e no mobile.
   { href: '/images', label: 'Images', icon: 'images' },
+  // KINEO-CLIPES-2026-09-29 — Clipes (5–15 s, uma cena, sem narração) ao lado de Imagem; par no MobileNav e no mega-menu.
+  { href: '/clips', label: 'Clips', icon: 'clips' },
   { href: '/ads/new', label: 'Ads', icon: 'ads' },
   { href: '/library', label: 'Library', icon: 'videos' },
   { href: '/pricing', label: 'Pricing', icon: 'pricing' },

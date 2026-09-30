@@ -66,6 +66,13 @@ Ler arquivo · inspecionar código · `git log` / `git show` / `git status` / `g
 - Ler ou expor `.env.local`.
 - Iniciar comunicação externa por conta própria.
 
+### 3.4 Remetente de e-mail (decisão do fundador, 29/09 — detalhe em `docs/DECISIONS.md`)
+- Comercial/parceria NOVA: From e Reply-To = `joseph@usekineo.com`. Atendimento: `hello@usekineo.com` / `support@usekineo.com`.
+- Conversa que já começou no Gmail pessoal do fundador continua lá, na mesma thread; nada é reenviado nem migrado.
+- `support@shortsforgeai.com` nunca é remetente de contato comercial novo (caixa e histórico preservados).
+- Antes de cada mensagem: conferir conta conectada, From, Reply-To, destinatário e histórico. Sem `joseph@usekineo.com` disponível → informar o bloqueio, nunca trocar de remetente em silêncio.
+- Nada disso autoriza envio, alias, SMTP, encaminhamento, credencial ou permissão: o agente prepara rascunho; o fundador envia.
+
 ---
 
 ## 4. VOCABULÁRIO OBRIGATÓRIO DE CLASSIFICAÇÃO

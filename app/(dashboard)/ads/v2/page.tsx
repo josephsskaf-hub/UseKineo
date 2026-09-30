@@ -13,6 +13,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { adsGate, loadAdsAccess } from '@/lib/ads/serverAccess'
 import { adsV2Visible } from '@/lib/ads/v2Access'
+import { adsVariationsVisible } from '@/lib/ads/v2VariationsAccess' // KINEO-ADS-3-VARIACOES-2026-09-30 — a opção "3 variações"
 import { writeServerEvent } from '@/lib/serverEvents'
 import { KINEO1_35S_CREDITS } from '@/lib/ads/offer' // KINEO-ADS-V2-VIRADA-2026-09-29 — o preço do link "classic maker"
 import AdsV2Client from './AdsV2Client'
@@ -45,5 +46,5 @@ export default async function AdsV2Page() {
     balance = null
   }
 
-  return <AdsV2Client initialBalance={balance} classicCredits={KINEO1_35S_CREDITS} />
+  return <AdsV2Client initialBalance={balance} classicCredits={KINEO1_35S_CREDITS} variations={adsVariationsVisible(user.email)} />
 }

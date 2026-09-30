@@ -4,6 +4,7 @@ import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 // Kineo landing — new Apple-dark redesign (replaces the old HomePageClient on the homepage).
 // Self-contained, styles scoped under .klp so they don't leak into the rest of the app.
 // Marker: KINEO-LANDING-V3-2026-06-30
+import { clipsVisible } from '@/lib/clips/clipLaunch'
 import { s25Visible, S25_PUBLIC, VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, PAUSED_ENGINES_COPY, enginePaused, avatarVisible, kineo1Visible } from '@/lib/engineLaunch'
 import { enginePlanBadge } from '@/lib/enginePlanGate'
 import Link from 'next/link'
@@ -30,6 +31,9 @@ import LiveStatsBadge from '@/components/LiveStatsBadge'
 import BusinessVisualReferences from '@/components/BusinessVisualReferences'
 import HomeFeaturedFilms from '@/components/HomeFeaturedFilms'
 import TrendingRow from '@/components/TrendingRow'
+// KINEO-PROMO-CARDS-2026-09-30 — fileira de cards grandes logo abaixo do menu (Kineo for Claude + Clips).
+import PromoCards from '@/components/PromoCards'
+import { promoCardsFor } from '@/lib/ui/promoCards'
 // KINEO-VITRINE-MOEDA-2026-08-19 — LandingStarterPrice cobria SÓ o Starter, e
 // por isso a home mostrava R$24,90 (regional) ao lado de $19.90 e $39.90
 // (chumbados). Agora os TRÊS planos falam a moeda do visitante.
@@ -139,7 +143,7 @@ html{scroll-behavior:smooth}
    deixava a segunda linha do h1 visivelmente lavada. Agora fica solido ate
    58% e para em #c7c7cd — mesma sensacao, muito mais presenca. */
 .klp .gtxt{background:linear-gradient(180deg,#fff 0%,#fff 64%,var(--txt2) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.klp section[id],.klp #pricing,.klp #how,.klp #toolkit,.klp #faq,.klp #compare{scroll-margin-top:78px}
+.klp section[id],.klp #pricing,.klp #how,.klp #faq,.klp #compare{scroll-margin-top:78px}
 .klp .progress{position:fixed;top:0;left:0;height:2px;width:calc(var(--scroll-p,0)*100%);background:var(--blue);z-index:60;pointer-events:none;transition:width 80ms linear}
 .klp nav{position:sticky;top:0;z-index:50;background:rgba(0,0,0,.7);backdrop-filter:blur(20px);border-bottom:1px solid var(--line)}
 .klp .nav-in{display:flex;align-items:center;justify-content:space-between;height:62px}
@@ -263,7 +267,7 @@ html{scroll-behavior:smooth}
 /* ONDA7 (14/08): eyebrow de secao — o rotulo pequeno acima do h2 da estrutura de leitura (padrao Higgsfield) sem pedir um pixel a mais. */
 .klp .hero a[target]{transition:border-color var(--dur-fast) ease,color var(--dur-fast) ease}
 .klp .hero a[target]:hover{border-color:rgba(41,151,255,.5)!important;color:var(--txt)!important}
-.klp #compare::before,.klp #toolkit::before,.klp #pricing::before,.klp #faq::before{content:'';display:block;width:min(560px,72%);height:1px;margin:0 auto clamp(48px,7vh,84px);background:linear-gradient(90deg,transparent,var(--line2),transparent)}
+.klp #compare::before,.klp #pricing::before,.klp #faq::before{content:'';display:block;width:min(560px,72%);height:1px;margin:0 auto clamp(48px,7vh,84px);background:linear-gradient(90deg,transparent,var(--line2),transparent)}
 /* KINEO-CONCORRENTES-2026-08-15 — 4 blocos da analise de concorrentes:
    statband (numeros reais), niches (29 paginas viram chips), sv (mini-visual
    por passo), fnote (nota do fundador — o toque humano que nenhum template tem). */
@@ -730,111 +734,6 @@ a.pl-badge:hover{color:var(--txt);border-color:rgba(41,151,255,.5)}
 }
 `
 
-// KINEO-HOME-POLISH-R2-2026-07-27 — set de icones proprio do toolkit.
-// Regras que TODOS os oito obedecem, e que sao a razao de eles lerem como um
-// conjunto e nao como oito desenhos avulsos:
-//   · mesmo viewBox 24x24, mesma area optica (nada encostando na borda)
-//   · fill="none", stroke="currentColor", strokeWidth 1.6, cantos e pontas
-//     arredondados — a placa .tico define a cor, o SVG nunca a repete
-//   · aria-hidden: o significado ja esta no <h3> do card, entao para um leitor
-//     de tela estes sao puramente decorativos
-// O icone de Viral Now e deliberadamente o MESMO desenho ja usado em
-// components/Sidebar.tsx e components/MobileNav.tsx, para que o item nao mude
-// de cara entre o site publico e o app.
-const ICON_BASE = {
-  width: 23,
-  height: 23,
-  viewBox: '0 0 24 24',
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 1.6,
-  strokeLinecap: 'round',
-  strokeLinejoin: 'round',
-} as const
-
-const TOOL_ICONS = {
-  // Apresentador: figura enquadrada — o rosto que fala na tela.
-  presenter: (
-    <svg {...ICON_BASE} aria-hidden="true">
-      <rect x="3" y="3" width="18" height="18" rx="5.2" />
-      <circle cx="12" cy="10" r="2.6" />
-      <path d="M7.6 17.8a4.6 4.6 0 0 1 8.8 0" />
-    </svg>
-  ),
-  // Character Lock: a mesma figura, agora com cadeado — "trancada".
-  lock: (
-    <svg {...ICON_BASE} aria-hidden="true">
-      <circle cx="9.6" cy="8.2" r="3.3" />
-      <path d="M3.4 19.4a6.3 6.3 0 0 1 9-5.7" />
-      <rect x="14.3" y="14.4" width="6.9" height="5.8" rx="1.6" />
-      <path d="M16.2 14.4v-1.3a1.6 1.6 0 0 1 3.1 0v1.3" />
-    </svg>
-  ),
-  // Transparente: o mesmo enquadramento do apresentador, mas com a moldura
-  // tracejada — a convencao universal de "sem fundo".
-  transparent: (
-    <svg {...ICON_BASE} aria-hidden="true">
-      <rect x="3" y="3" width="18" height="18" rx="5.2" strokeDasharray="3.4 3" />
-      <circle cx="12" cy="10" r="2.4" />
-      <path d="M8 17.6a4.1 4.1 0 0 1 8 0" />
-    </svg>
-  ),
-  // Anuncio de produto: caixa isometrica.
-  product: (
-    <svg {...ICON_BASE} aria-hidden="true">
-      <path d="m12 2.7 8.1 4.4v9.8L12 21.3 3.9 16.9V7.1z" />
-      <path d="M3.9 7.1 12 11.5l8.1-4.4M12 11.5v9.8" />
-    </svg>
-  ),
-  // Animar foto: foto parada + ondas de movimento saindo dela.
-  // O <g> so recentra (medido: o desenho caia em 12.7/11.0 em vez de 12/12,
-  // porque as ondas puxam massa para a direita e nao somam altura). Translate
-  // puro, sem escala — o traco continua identico ao dos outros sete.
-  animate: (
-    <svg {...ICON_BASE} aria-hidden="true">
-      <g transform="translate(-0.7 1)">
-        <rect x="2.8" y="4.4" width="13.2" height="13.2" rx="3.4" />
-        <circle cx="7.3" cy="9" r="1.4" />
-        <path d="m3.2 14.9 4-3.5 3.5 3" />
-        <path d="M18.9 9.5a6.4 6.4 0 0 1 0 5.2M21.5 7.6a9.8 9.8 0 0 1 0 9" />
-      </g>
-    </svg>
-  ),
-  // Thumbnail: imagem cheia + brilho, o "clique" da miniatura.
-  // Mesmo caso do anterior: o brilho no canto superior puxava o centro optico
-  // para cima (cy 10.8). Translate puro.
-  thumbnail: (
-    <svg {...ICON_BASE} aria-hidden="true">
-      <g transform="translate(0 1.2)">
-        <rect x="2.8" y="5" width="18.4" height="14.4" rx="3.4" />
-        <circle cx="8.4" cy="10.4" r="1.5" />
-        <path d="m3.4 17 4.9-4.3 4.1 3.5 2.9-2.5 4.5 3.9" />
-        <path d="m18.6 2.2.62 1.58 1.58.62-1.58.62-.62 1.58-.62-1.58-1.58-.62 1.58-.62z" />
-      </g>
-    </svg>
-  ),
-  // Viral: chama. O desenho e o MESMO path do Sidebar/MobileNav — nao vale
-  // redesenhar um simbolo que o usuario ja aprendeu a reconhecer dentro do app.
-  // Mas aquele path foi desenhado para uma caixa de 19px na nav e transborda a
-  // viewBox aqui: medido, ele ocupa y 3 -> 24.6 (a base da chama era CORTADA)
-  // e o centro optico caia em 13.4/13.8 em vez de 12/12, o que o deixava baixo
-  // e a direita ao lado dos outros sete. O <g> reenquadra sem tocar no desenho;
-  // strokeWidth 1.93 e 1.6 / 0.83, entao depois da escala o traco volta a ser
-  // exatamente 1.6 como o dos demais.
-  viral: (
-    <svg {...ICON_BASE} aria-hidden="true">
-      <g transform="translate(0.9 0.55) scale(0.83)" strokeWidth={1.93}>
-        <path d="M12 3c1 3-3 5-3 8.5a3.5 3.5 0 0 0 7 0c0-1-.4-2-1-2.8.2 2-1 2.6-1 1.3 0-2.5-1-5.5-2-7Z" />
-        <path d="M8 14.5A6.5 6.5 0 1 0 18.5 14" />
-      </g>
-    </svg>
-  ),
-  // Gratis / Fast: raio — o mesmo simbolo do logo no topo da pagina.
-  bolt: (
-    <KineoBolt size={20} />
-  ),
-} as const
-
 function pricingCheckoutHref(checkoutPath: string, isSignedIn: boolean): string {
   if (isSignedIn) return checkoutPath
 
@@ -862,9 +761,8 @@ export default function KineoLanding({
   const starterCheckoutHref = pricingCheckoutHref('/api/stripe/checkout?tier=starter&intro=1', isSignedIn)
   const creatorCheckoutHref = pricingCheckoutHref('/api/stripe/checkout?tier=basic&intro=1', isSignedIn)
   const studioCheckoutHref = pricingCheckoutHref('/api/stripe/checkout?tier=pro', isSignedIn)
-  // KINEO-AVATAR-FORA-2026-09-28 — fundador (27/09): "avatar sai por hora". Um único booleano decide as 5 portas do
-  // Avatar nesta página (mega-menu, menu mobile, tile do bento, os 4 cards do toolkit que levam ao /avatar e o
-  // subtítulo que os vende). Medido: 0 cliques no card do /studio e o último filme de apresentador em 15/07.
+  // KINEO-AVATAR-FORA-2026-09-28 — fundador (27/09): "avatar sai por hora". Um único booleano decide as 3 portas do
+  // Avatar nesta página (mega-menu, menu mobile e tile do bento). Medido: 0 cliques no card do /studio e o último filme de apresentador em 15/07.
   // Contas da casa (isInternalEmail) continuam vendo tudo; o /avatar segue no ar por link direto.
   const showAvatar = avatarVisible(initialEmail)
   // KINEO-KINEO1-FORA-2026-09-29 — fundador (29/09): "quero tirar o kineo 1 do jogo, ele estraga a entrada". Mesmo
@@ -961,6 +859,8 @@ export default function KineoLanding({
                 <span className="nm-col">
                   <span className="nm-h"><UiLabel>Create</UiLabel></span>
                   <Link href="/studio"><span className="nm-ic">🎬</span><span className="nm-tx"><b><UiLabel>Studio</UiLabel></b><i><UiLabel>Every control, one screen</UiLabel></i></span></Link>
+                  {/* KINEO-CLIPES-2026-09-29 — par do Sidebar/MobileNav: clipe avulso de 5–15 s. */}
+                  {clipsVisible(initialEmail) && <Link href="/clips"><span className="nm-ic">🎞</span><span className="nm-tx"><b><UiLabel>Clips</UiLabel></b><i><UiLabel>One scene, 5–15 s, text or photo</UiLabel></i></span></Link>}
                   <Link href="/examples" data-nav-item="examples"><span className="nm-ic">▦</span><span className="nm-tx"><b><UiLabel>Examples</UiLabel></b><i><UiLabel>Real renders, every engine</UiLabel></i></span></Link>
                 </span>
                 {/* KINEO-NAV-4-ITENS-2026-09-25 — coluna secundaria: so texto,
@@ -997,6 +897,7 @@ export default function KineoLanding({
               {/* KINEO-NAV-4-ITENS-2026-09-25 — par do topo: os 4 itens + Log in
                   ou Dashboard; o resto vai para "More tools", secundario. */}
               <Link href="/studio" data-nav-item="video"><UiLabel>Video</UiLabel></Link>
+              {clipsVisible(initialEmail) && <Link href="/clips"><UiLabel>Clips</UiLabel></Link>}
               <Link href="/images" data-nav-item="image"><UiLabel>Images</UiLabel></Link>
               <span className="nav-mobile-engines">
                 {IMG_ENGINES.map(engine => <Link key={engine.key} href={`/images?engine=${engine.key}`} data-nav-item="image"><span className="nm-ic" aria-hidden="true">{engine.icon}</span>{engine.name}</Link>)}
@@ -1020,21 +921,16 @@ export default function KineoLanding({
         </div>
       </div></nav>
 
+      {/* KINEO-PROMO-CARDS-2026-09-30 — fundador (30/09): "quero esses cards no Kineo também, com essas edições legais".
+          Fileira logo abaixo do menu; entra ANTES do hero sem tirar nada da curadoria (hero, motores, engineWall intactos).
+          O card do Clips segue o mesmo interruptor do mega-menu (clipsVisible). */}
+      <PromoCards cards={promoCardsFor({ clips: clipsVisible(initialEmail) })} />
+
       <header className="hero">
         <div className="glow" />
         <div className="wrap">
-          <div className="home-intro">
-            <div className="home-intro-copy">
-              <p className="home-eyebrow"><UiLabel>YOUR CREATIVE HOME</UiLabel></p>
-              <h1 className="home-title"><UiLabel>Make room for</UiLabel><br /><em><UiLabel>your next big idea.</UiLabel></em></h1>
-            </div>
-            <div className="home-intro-side">
-              <p><UiLabel>Original stories. Everyday content.</UiLabel><br /><UiLabel>Videos for your business.</UiLabel><br /><UiLabel>Bring your ideas to life with Kineo.</UiLabel></p>
-              <Link className="btn btn-blue" href={isSignedIn ? '/studio' : referralBridge ? '#try-kineo' : '/signup?utm_source=hero'}>
-                <UiLabel>{isSignedIn ? 'Create a video' : CARD_ENTRY_COPY.ctaShort}</UiLabel><span aria-hidden="true">↗</span>
-              </Link>
-            </div>
-          </div>
+          {/* Fundador 30/09: "já quero tirar make room for your next big idea, create video… aproximar os dois vídeos". */}
+          <h1 style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}><UiLabel>Make room for</UiLabel> <UiLabel>your next big idea.</UiLabel></h1>
           <div id="samples" aria-label="Films made with Kineo">
             <HomeFeaturedFilms />
           </div>
@@ -1159,109 +1055,7 @@ export default function KineoLanding({
         </div>
       </section>
 
-      {/* KINEO-ENGINE-WALL-2026-08-15 v2 — o layout do print do fundador:
-          featured row (cards largos, titulo caps abaixo da midia) + bento dos
-          motores (promo + 6 tiles). Videos e selos 100% reais do banco. */}
-      {engineWall.length >= 4 && (
-        <section id="engines" className="home-engines">
-          <div className="ew-wrap">
-            <div className="home-catalog-heading"><h2><UiLabel>Video</UiLabel></h2><Link href="/studio"><UiLabel>Open the generator</UiLabel> <span aria-hidden="true">↗</span></Link></div>
-            {(() => {
-              const wallByEngine = (eng: string) => engineWall.find((v) => v.engine === eng)
-              const tileVid = (eng: string) => {
-                const v = wallByEngine(eng)
-                return v ? <span className="tvid" aria-hidden="true"><WallMedia src={v.previewUrl ?? v.videoUrl} /></span> : null
-              }
-              // KINEO-BENTO-DISTINCT-2026-08-17 (fundador: "ta repetindo... me
-              // surpreende") — o tile do bento pega o ULTIMO video do motor na
-              // parede, nao o primeiro: o hero mostra os 4 primeiros, entao o
-              // 5o curado (megatsunami de Lituya Bay 1958 — deslizamento
-              // explodindo na baia, com o karaoke novo em acao) e EXCLUSIVO do
-              // bento. Fallback: so 1 video no motor → usa ele mesmo.
-              const tileVidLast = (eng: string) => {
-                const list = engineWall.filter((v) => v.engine === eng)
-                const v = list.length > 0 ? list[list.length - 1] : undefined
-                return v ? <span className="tvid" aria-hidden="true"><WallMedia src={v.previewUrl ?? v.videoUrl} /></span> : null
-              }
-              return (
-            <div className="bento">
-              {showKineo1 && <Link href="/studio?engine=fast&intent_campaign=engine_tile" className="tile">
-                {tileVid('fast')}
-                <span className="trow">
-                  <span className="tic"><KineoBolt size={15} /></span>
-                </span>
-                <span className="tbody">
-                  <h3>Kineo 1</h3>
-                  <p><UiLabel>Kineo&rsquo;s own engine &mdash; 3&ndash;7 min</UiLabel></p>
-                  <span className="tcredits"><UiLabel>{creditLabel('fast')}</UiLabel></span>
-                </span>
-              </Link>}
-              <Link href="/studio?engine=seedance&intent_campaign=engine_tile" className="tile hot">
-                {tileVidLast('cinematic_ai')}
-                <span className="trow">
-                  <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 10h4M3 14h4M17 10h4M17 14h4"/></svg></span>
-                  <span className="tb"><UiLabel>Popular</UiLabel></span>
-                </span>
-                <span className="tbody">
-                  <h3>Seedance 1.5</h3>
-                  <p><UiLabel>The workhorse AI video engine</UiLabel></p>
-                  <span className="tcredits"><UiLabel>{creditLabel('cinematic_ai')}</UiLabel></span>
-                </span>
-              </Link>
-              <Link href="/studio?engine=kling&intent_campaign=engine_tile" className="tile">
-                {tileVidLast('cinematic_kling')}
-                <span className="trow">
-                  <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 8l6-3v14l-6-3"/><rect x="3" y="6" width="12" height="12" rx="2"/></svg></span>
-                  <span className="tb"><UiLabel>Studio</UiLabel></span>
-                </span>
-                <span className="tbody">
-                  <h3>Kling 2.5</h3>
-                  <p><UiLabel>Cinematic motion &amp; camera</UiLabel></p>
-                  <span className="tcredits"><UiLabel>{creditLabel('cinematic_kling')}</UiLabel></span>
-                </span>
-              </Link>
-              <Link href="/studio?engine=veo&intent_campaign=engine_tile" className="tile">
-                {tileVidLast('cinematic_veo')}
-                <span className="trow">
-                  <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9L12 2z"/><path d="M19 15l.9 2.6L22.5 18.5l-2.6.9L19 22l-.9-2.6-2.6-.9 2.6-.9L19 15z" opacity=".7"/></svg></span>
-                  <span className="tb"><UiLabel>Studio</UiLabel></span>
-                </span>
-                <span className="tbody">
-                  <h3>Veo 3.1</h3>
-                  <p><UiLabel>Google&rsquo;s flagship, on Studio</UiLabel></p>
-                  <span className="tcredits"><UiLabel>{creditLabel('cinematic_veo')}</UiLabel></span>
-                </span>
-              </Link>
-              <Link href="/studio?engine=hollywood&intent_campaign=engine_tile" className="tile">
-                {tileVidLast('cinematic_hollywood')}
-                <span className="trow">
-                  <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 11l16-4-1-4L3 7l1 4z"/><path d="M4 11h16v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9z"/><path d="M8 7l2 4M13 5.7l2 4M18 4.4l2 4"/></svg></span>
-                  <span className="tb"><UiLabel>Studio</UiLabel></span>
-                </span>
-                <span className="tbody">
-                  <h3>Kling 3</h3>
-                  <p><UiLabel>Film scenes, native voice &amp; lip sync</UiLabel></p>
-                  <span className="tcredits"><UiLabel>{creditLabel('cinematic_hollywood')}</UiLabel></span>
-                </span>
-              </Link>
-              {showAvatar && <Link href="/avatar" className="tile">
-                {tileVid('presenter')}
-                <span className="trow">
-                  <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="4"/><path d="M3 21c0-3.9 3.1-7 7-7 1.6 0 3.1.5 4.3 1.4"/><path d="M18 8c1 1.2 1 3 0 4.2M21 6c2 2.4 2 6 0 8.4"/></svg></span>
-                  <span className="tb"><UiLabel>New</UiLabel></span>
-                </span>
-                <span className="tbody">
-                  <h3>Avatar</h3>
-                  <p><UiLabel>Talking video from one photo</UiLabel></p>
-                  <span className="tcredits"><UiLabel>{creditLabel('avatar')}</UiLabel></span>
-                </span>
-              </Link>}
-            </div>
-              )
-            })()}
-          </div>
-        </section>
-      )}
+      {/* Fundador 30/09: "tira essa parte" — a grade "Video" com os 6 motores (Kineo 1 · Seedance · Kling 2.5 · Veo · Kling 3 · Avatar) saiu da home; os motores seguem no mega-menu e no /studio. */}
 
       {/* Quando o catálogo de clientes está fechado, esta fileira recebe só a
           allowlist estática de renders cuja exibição o fundador autorizou. Não a
@@ -1364,65 +1158,6 @@ export default function KineoLanding({
         </div>
       </section>
 
-      <section id="toolkit">
-        <div className="wrap">
-          {/* KINEO-SHOWCASE-2026-07-10 — toolkit expanded to 8 cards (2 rows):
-              the 4 new avatar-suite features on top, evergreen tools below. */}
-          {/* KINEO-AVATAR-FORA-2026-09-28 — o subtítulo vendia as 4 ferramentas do Avatar Studio; sem o Avatar ele some
-              (texto novo não entra: os 16 dicionários da interface ficam intocados nesta mudança). */}
-          <div className="sec-h"><span className="sec-eyebrow"><UiLabel>The toolkit</UiLabel></span><h2><UiLabel>One idea — or a whole toolkit.</UiLabel></h2>{showAvatar && <p><UiLabel>Talking presenters, reusable characters, transparent clips, product ads — plus everything to find and ride a trend.</UiLabel></p>}</div>
-          <div className="tools">
-            {/* KINEO-AVATAR-FORA-2026-09-28 — os 4 cards abaixo levam ao /avatar (AI Presenter, Character Lock,
-                Transparent Clips, UGC Product Ads): saem juntos do catálogo público; ficam Animate, Thumbnails,
-                Viral Now e Free AI Shorts (uma fileira de 4 na grade de 4 colunas). */}
-            {showAvatar && <>
-            <Link href="/avatar" className="tcard">
-              <span className="tico">{TOOL_ICONS.presenter}</span>
-              <h3><UiLabel>AI Presenter </UiLabel><span className="badge"><UiLabel>New</UiLabel></span></h3>
-              <p><UiLabel>One photo + your script — a talking video with studio-grade lip-sync, HeyGen-style.</UiLabel></p>
-              <span className="tlink"><UiLabel>Try AI Presenter →</UiLabel></span>
-            </Link>
-            <Link href="/avatar" className="tcard">
-              <span className="tico">{TOOL_ICONS.lock}</span>
-              <h3>Character Lock</h3>
-              <p><UiLabel>Save a character once — the exact same face in every video and thumbnail you make.</UiLabel></p>
-              <span className="tlink"><UiLabel>Lock a character →</UiLabel></span>
-            </Link>
-            <Link href="/avatar" className="tcard">
-              <span className="tico">{TOOL_ICONS.transparent}</span>
-              <h3><UiLabel>Transparent Clips</UiLabel></h3>
-              <p><UiLabel>Presenter gestures — wave, point, present — as WebM with a real transparent background.</UiLabel></p>
-              <span className="tlink"><UiLabel>Make a clip →</UiLabel></span>
-            </Link>
-            <Link href="/avatar" className="tcard">
-              <span className="tico">{TOOL_ICONS.product}</span>
-              <h3><UiLabel>UGC Product Ads</UiLabel></h3>
-              <p><UiLabel>Paste any product — get a 15-30s creator-style ad, scripted and spoken for you.</UiLabel></p>
-              <span className="tlink"><UiLabel>Make an ad →</UiLabel></span>
-            </Link>
-            </>}
-            <Link href="/animate" className="tcard">
-              <span className="tico">{TOOL_ICONS.animate}</span>
-              <h3><UiLabel>Animate a Photo</UiLabel></h3>
-              <p><UiLabel>Bring any still photo to life as a moving, postable video.</UiLabel></p>
-              <span className="tlink"><UiLabel>Animate a photo →</UiLabel></span>
-            </Link>
-            <Link href="/thumbnail-generator" className="tcard">
-              <span className="tico">{TOOL_ICONS.thumbnail}</span>
-              <h3><UiLabel>AI Thumbnails</UiLabel></h3>
-              <p><UiLabel>Click-worthy thumbnails in the style of the biggest channels — from a prompt.</UiLabel></p>
-              <span className="tlink"><UiLabel>Make a thumbnail →</UiLabel></span>
-            </Link>
-            <Link href="/free-ai-shorts-generator" className="tcard">
-              <span className="tico">{TOOL_ICONS.bolt}</span>
-              <h3><UiLabel>Free AI Shorts</UiLabel></h3>
-              <p><UiLabel>{CARD_ENTRY_ONLY ? 'Type one idea, start your $1 trial and make the film.' : 'Type one idea and make your first film free — every engine unlocked, no card.'}</UiLabel></p>
-              <span className="tlink"><UiLabel>Generate free →</UiLabel></span>
-            </Link>
-          </div>
-        </div>
-      </section>
-
       <section id="niches">
         <div className="wrap">
           <div className="sec-h"><span className="sec-eyebrow"><UiLabel>Pick a lane</UiLabel></span><h2><UiLabel>Start with a niche that already works.</UiLabel></h2><p><UiLabel>Every niche below has its own generator page, tuned prompts and real examples.</UiLabel></p></div>
@@ -1505,7 +1240,9 @@ export default function KineoLanding({
               <div className="pr"><LandingPlanPrice tier="pro" variant="big" /></div>
               <ul>
                 <li><span className="ck">✓</span> <b><UiLabel>{filmsAndScenes('pro')}</UiLabel></b></li>
-                <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('pro', 'cinematic_omni')}<UiLabel> films on Omni Flash</UiLabel></b><UiLabel> — Google’s Gemini engine</UiLabel></li>
+                {/* KINEO-SELO-OMNI-POPUP-2026-09-30 — o cartão Studio vendia "Or N films on Omni Flash" com o Omni pausado
+                    desde 15/09; a linha agora lê o interruptor (enginePaused) e volta sozinha quando o motor voltar. */}
+                {enginePaused('omni') ? <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('pro', 'cinematic_hollywood')}<UiLabel> Kling 3 films</UiLabel></b><UiLabel> — native voice & lip sync</UiLabel></li> : <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('pro', 'cinematic_omni')}<UiLabel> films on Omni Flash</UiLabel></b><UiLabel> — Google’s Gemini engine</UiLabel></li>}
                 <li><span className="ck">✓</span><UiLabel> Up to </UiLabel><b>{imagesFor('pro')}<UiLabel> AI images</UiLabel></b> — {nanoBananasFor('pro')}<UiLabel> on Nano Banana</UiLabel></li>
                 <li><span className="ck">✓</span> <b>{voiceoversFor('pro')}<UiLabel> AI voiceovers</UiLabel></b><UiLabel> · 2 free HD enhances / month</UiLabel></li>
                 <li><span className="ck">✓</span><UiLabel> Unlimited projects · forever storage</UiLabel></li>

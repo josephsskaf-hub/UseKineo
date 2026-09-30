@@ -13,8 +13,16 @@ import {
   STUDIO_CREDITS,
   STUDIO_MONTH,
   creditsPerReferenceVideo,
+  formatResultCount,
   videosPerMonth,
 } from '@/lib/marketingPrice'
+// KINEO-SELO-OMNI-POPUP-2026-09-30 — o filme desta página continua sendo o render real do Omni Flash (atribuição
+// honesta), mas a PROMESSA DE COMPRA ("the Studio plan fits N flagship film a month plus change") vendia um motor
+// pausado desde 15/09 — e o "plus change" era falso (300cr ÷ 150cr = 2, sobra 0). Com o motor pausado, a página
+// avisa e o custo passa a ser o do Kling 3, a alternativa do ENGINE_PAUSE; quando o Omni voltar, volta sozinha.
+import { enginePaused } from '@/lib/engineLaunch'
+const OMNI_PAUSED = Boolean(enginePaused('omni'))
+const PLAN_ENGINE = OMNI_PAUSED ? { quality: 'cinematic_hollywood', name: 'Kling 3' } as const : { quality: 'cinematic_omni', name: 'Omni Flash' } as const
 
 export const dynamic = 'force-static'
 
@@ -43,7 +51,7 @@ Machines built to protect us. This is what it costs when they disagree.`
 export const metadata: Metadata = {
   title: 'AI Robot Video Generator — type the battle, get the whole film | Kineo',
   description:
-    'Type a 150-word script and get a finished giant-robot battle film: scenes, voiceover, captions and soundtrack, rendered by Omni Flash — the #1-ranked video model (Aug 2026). Watch the real film and the exact text that made it.',
+    `Type a 150-word script and get a finished giant-robot battle film: scenes, voiceover, captions and soundtrack${OMNI_PAUSED ? '' : ', rendered by Omni Flash — the #1-ranked video model (Aug 2026)'}. Watch the real film and the exact text that made it.`,
   alternates: { canonical: `${BASE}/ai-robot-video-generator` },
   openGraph: {
     title: 'AI Robot Video Generator — type the battle, get the whole film',
@@ -78,7 +86,7 @@ const FAQ_JSONLD = {
       name: 'How much does a robot battle film cost?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `On Omni Flash, a full 60-second multi-scene film costs ${creditsPerReferenceVideo('cinematic_omni')} credits — the Studio plan (${STUDIO_MONTH}, ${STUDIO_CREDITS} credits) fits ${videosPerMonth('pro', 'cinematic_omni')} flagship film a month plus change. Cheaper engines start at ${creditsPerReferenceVideo('cinematic_ai')} credits per 60-second film, and every new account${GRANT_COUNTRY_CLAUSE} starts free with 10 credits, no card.`,
+        text: `${OMNI_PAUSED ? 'Omni Flash, the engine that rendered this film, is paused for maintenance right now. ' : ''}On ${PLAN_ENGINE.name}${OMNI_PAUSED ? ', the closest engine available today' : ''}, a full 60-second multi-scene film costs ${creditsPerReferenceVideo(PLAN_ENGINE.quality)} credits — the Studio plan (${STUDIO_MONTH}, ${STUDIO_CREDITS} credits) fits ${formatResultCount(videosPerMonth('pro', PLAN_ENGINE.quality), 'flagship film')} a month. Cheaper engines start at ${creditsPerReferenceVideo('cinematic_ai')} credits per 60-second film, and every new account${GRANT_COUNTRY_CLAUSE} starts free with 10 credits, no card.`,
       },
     },
   ],
@@ -100,6 +108,11 @@ export default function RobotVideoPage() {
         <b>Omni Flash</b> (Google’s #1-ranked video model, Aug 2026 arena), and returns a finished vertical film
         with narration, captions and soundtrack.
       </p>
+      {OMNI_PAUSED && (
+        <p style={{ color: '#ffb454', fontSize: 14, margin: '-14px 0 26px' }}>
+          Omni Flash is paused for maintenance right now. Kling 3 is the closest engine available today — same text box, same finished film.
+        </p>
+      )}
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start' }}>
         <video

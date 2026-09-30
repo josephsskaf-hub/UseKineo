@@ -87,7 +87,9 @@ const importsClient = [...rd(F.client).matchAll(/^import[\s\S]*?from '([^']+)'/g
 // na base c55bab53; ambos são componentes de navegador. (2) O modo simples: './AdsV2Simple' (cliente), '@/lib/ads/v2Simple'
 // (pura, sem import) e '@/lib/ui/interfaceLanguage' (pura). A intenção do I1 continua: nenhum módulo de servidor.
 // Approved delivery refinement: browser-only plan comparison; no request or persistence.
-const PERMITIDOS = ['@/components/AdsPlanChanges', 'react', 'next/link', '@/components/studioKit', '../new/adsWizardTheme', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2ShotLists', '@/lib/ads/v2Screen',
+// REANCORADO 30/09 (KINEO-ADS-3-VARIACOES-2026-09-30): + './AdsV2Variations' — a opção "3 variações" e o painel das 3
+// (cliente; importa só react, next/link, videoDownload e as libs puras v2Screen/v2Variations/interfaceLanguage).
+const PERMITIDOS = ['./AdsV2Variations', '@/components/AdsPlanChanges', 'react', 'next/link', '@/components/studioKit', '../new/adsWizardTheme', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2ShotLists', '@/lib/ads/v2Screen',
   '@/components/BusinessVisualReferences', '@/components/InterfaceLanguage', './AdsV2Simple', '@/lib/ads/v2Simple', '@/lib/ui/interfaceLanguage']
 check("I1 o cliente começa com 'use client' e só importa módulos de navegador/puros (nada de v2Advance, v2Billing, serverAccess…)", /^'use client'/.test(rd(F.client)) && importsClient.length >= 8 && importsClient.every((m) => PERMITIDOS.includes(m)))
 check('I2 lib/ads/v2Screen.ts é puro (nenhum import/require) e fora da trava 8.2', !/^\s*import\s/m.test(screenSrc) && !/\brequire\(/.test(semComentarios(screenSrc)))
@@ -116,7 +118,9 @@ check('S4 a sessão é desenhada com key={session} e só a PRIMEIRA retoma pedid
 check('S5 nenhum dado do pedido mora fora da sessão: o invólucro só tem session, saldo, confirmação e "tem anúncio andando"', () => {
   // REANCORADO 29/09 (KINEO-ADS-MODO-SIMPLES-2026-09-29): + `mode` (simples/completo), que é escolha de tela, não dado do pedido.
   const nomes = [...wrapper.matchAll(/const \[(\w+), set\w+\] = useState/g)].map((m) => m[1])
-  return eqSet(nomes, ['session', 'balance', 'confirmingReset', 'activeWork', 'mode'])
+  // REANCORADO 30/09 (KINEO-ADS-3-VARIACOES-2026-09-30): + `groupId`/`groupChecked` — o ENDEREÇO do painel das 3 variações
+  // (?group=), que é escolha de tela; os pedidos e o dinheiro continuam no servidor e na sessão.
+  return eqSet(nomes, ['session', 'balance', 'confirmingReset', 'activeWork', 'mode', 'groupId', 'groupChecked'])
 })
 check('S6 o estado do anúncio (nível, texto, logo, fotos, cartão, rascunho, plano, pedido, vídeo) nasce VAZIO dentro da sessão', () =>
   [

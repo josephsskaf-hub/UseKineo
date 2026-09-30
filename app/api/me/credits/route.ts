@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 // mostrar o card do Seedance 2.5 SO para contas da casa enquanto o motor
 // esta no periodo de canario (o gate de verdade continua no servidor).
 import { s25Visible, avatarVisible, resolveKineo1Flag, seedance15sVisible } from '@/lib/engineLaunch'
+import { duracoesCurtasVisible } from '@/lib/engineLaunch' // KINEO-DURACOES-CURTAS-2026-09-29
+import { estrelaVisible } from '@/lib/engineLaunch' // KINEO-ESTRELA-DO-FILME-2026-09-29
 import { readKineo1Access } from '@/lib/kineo1Access'
 
 // KINEO-CABE-2026-08-21 — saldo do usuário logado, para a tela poder dizer a
@@ -52,5 +54,6 @@ export async function GET() {
   // pelo mesmo motivo do `avatar`: cada interruptor vira sozinho.
   // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — `hasPaid` para a régua do 'não sei' do Studio (kineo1NaTela).
   const hasPaid = (data as { has_paid?: boolean | null } | null)?.has_paid === true
-  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), internal: s25Visible(user.email), hasPaid, kineo1, plan })
+  // KINEO-DURACOES-CURTAS-2026-09-29 — `curtas` = os botões curtos novos (Kling 2.5/Veo 15 s; hollywood 15/30 s): DURACOES_CURTAS_PUBLIC || casa.
+  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), curtas: duracoesCurtasVisible(user.email), estrela: estrelaVisible(user.email), internal: s25Visible(user.email), hasPaid, kineo1, plan })
 }

@@ -24,6 +24,8 @@ type Tab = 'all' | 'videos' | 'images' | 'audio'
 type Vid = { id: string; status?: string; title: string | null; video_url: string | null; thumbnail_url: string | null; enhanced_url?: string | null; quality_mode?: string | null }
 type Img = { id: string; url: string; upscaled_url?: string | null; model?: string }
 type Aud = { id: string; url: string; model?: string; voice?: string | null; text?: string | null }
+// KINEO-CLIPES-2026-09-29 — clipe avulso do /clips (tabela `clips`, MP4 no nosso bucket). Só os prontos aparecem aqui.
+type Clp = { id: string; label: string; seconds: number; status: string; video_url: string | null }
 
 export default function LibraryClient({ videoCollection }: { videoCollection?: ReactNode } = {}) {
   const unifiedGallery = videoCollection != null
@@ -35,6 +37,7 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
   const [vids, setVids] = useState<Vid[]>([])
   const [imgs, setImgs] = useState<Img[]>([])
   const [auds, setAuds] = useState<Aud[]>([])
+  const [clps, setClps] = useState<Clp[]>([])
   const [loaded, setLoaded] = useState(false)
   // KINEO-SPRINT-UI3-2026-08-29 — licao do incidente JWT-skew (28/08): a
   // Library mostrava "No videos yet" quando a LEITURA falhava, com os videos
@@ -67,6 +70,12 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
   const loadAll = useCallback(() => {
     setLoaded(false)
     setLoadFailed(false)
+    // KINEO-CLIPES-2026-09-29 — fora do Promise.all de propósito: a estante de clipes é nova (tabela depende de migration);
+    // se ela falhar, some só a seção de clipes — os filmes, imagens e áudios não ganham o aviso de leitura falha.
+    fetch('/api/clips', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (Array.isArray(d?.clips)) setClps((d.clips as Clp[]).filter((c) => c.status === 'done' && !!c.video_url)) })
+      .catch(() => {})
     Promise.all([
       fetch('/api/videos?limit=300', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
       fetch('/api/images', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
@@ -207,6 +216,20 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
       </div>
 
       {unifiedGallery && tab === 'videos' && videoCollection}
+      {tab === 'videos' && clps.length > 0 && (
+        <div className="library-asset-section"><h2><UiLabel>Clips</UiLabel></h2><div className="library-collection">
+          {clps.map((c) => (
+            <div key={c.id} className="card library-organized-card" style={{ padding: 8 }}>
+              <video src={c.video_url ?? undefined} controls playsInline preload="metadata" style={{ width: '100%', borderRadius: 10, display: 'block', background: '#000' }} />
+              <p className="library-asset-model">{c.label} · {c.seconds} s</p>
+              <div className="row library-asset-actions" style={{ marginTop: 8 }}>
+                <button type="button" className="pill" onClick={() => dl(c.video_url!, `kineo-clip-${c.id.slice(0, 6)}.mp4`)}><ControlIcon name="download" /> <UiLabel>Download</UiLabel></button>
+                <Link className="pill" style={{ textDecoration: 'none' }} href="/clips"><UiLabel>Clips</UiLabel> ↗</Link>
+              </div>
+            </div>
+          ))}
+        </div></div>
+      )}
       {!(unifiedGallery && tab === 'videos') && <LibraryOrganization state={organization} />}
 
       {!(unifiedGallery && tab === 'videos') && !loaded && (

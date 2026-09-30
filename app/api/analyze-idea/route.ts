@@ -1,3 +1,4 @@
+import { ESTRELA_REAL_PEOPLE_EXCEPTION, regraDePessoasReais } from '@/lib/estrelaDoFilme' // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai, durationPlanFor, MICRO_KNOWLEDGE_SYSTEM_RULES, SAFE_COMPOSITION_RULES } from '@/lib/openai'
@@ -282,7 +283,9 @@ function languageInstruction(language: AnalyzeLanguage): string {
   return `\nLANGUAGE: Generate all voiceover text, title, description, hashtags, and captions in ${LANGUAGE_NAMES[language]}. Visual prompts must stay in English (Pexels/Runway search requires English). JSON field names stay in English.`
 }
 
-function buildSystemPrompt(duration: number, language: AnalyzeLanguage = 'en'): string {
+// [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29 — `estrela` (padrão false = o prompt de sempre, byte a byte): a exceção
+// ESTREITA da regra REAL PEOPLE para o protagonista SEM nome que deu fotos com autorização (lib/estrelaDoFilme regraDePessoasReais).
+function buildSystemPrompt(duration: number, language: AnalyzeLanguage = 'en', estrela = false): string {
   const plan = durationPlanFor(duration)
   const [minWords, maxWords] = plan.wordCountRange
   return `You are a YouTube Shorts creative director specializing in addictive micro-knowledge content. Every script must feel like Netflix knowledge dopamine — short, real, surprising, and satisfying. Your job is to produce a complete creative brief for a ${plan.duration} second Short built around real, verifiable facts that escalate to a satisfying payoff.${languageInstruction(language)}
@@ -302,7 +305,7 @@ QUALITY RULES (non-negotiable):
 - Visual prompts must be EXTREMELY cinematic and specific. Describe camera angle, lighting, color palette, subject, atmosphere, lens feel. BAD: "ocean waves" or "historical ruins". GOOD: "extreme close-up of a sonar screen pulsing with an unknown signal, deep blue glow, underwater facility in soft focus behind, ominous teal atmosphere, slow push-in on the screen". Every visual_prompt should read like a shot list for a cinematographer.
 - Every visual_prompt MUST embed the safe-composition constraints above: keep the main subject centered, fully visible, within the inner 80% of the frame, in the upper 65-75% so the bottom caption strip never covers it. Landmarks must be readable end-to-end without cropping.
 - PERIOD ACCURACY (KINEO-ERA-LOCK-2026-07-09): if the script is set in a specific era or historical event, EVERY visual_prompt must state the year/era and use ONLY period-accurate technology, clothing, weapons and architecture — and must explicitly append "no modern objects, no modern vehicles, no tanks, no modern weapons, no modern clothing" as a constraint inside the prompt. Example for 1815: muskets, bayonets, cavalry horses, shako hats, smoke-covered fields — NEVER tanks, cars, helicopters or modern uniforms.
-- REAL PEOPLE (KINEO-ERA-LOCK-2026-07-09): NEVER prompt a recognizable close-up face of a named real person (historical or living) — AI cannot match likeness and it breaks immersion. Show such figures from behind, in silhouette, at a distance, or imply them through details (a bicorne hat, a hand on a map, boots in mud). Write the visual_prompt so no identifiable face is the focal point.
+${regraDePessoasReais('- REAL PEOPLE (KINEO-ERA-LOCK-2026-07-09): NEVER prompt a recognizable close-up face of a named real person (historical or living) — AI cannot match likeness and it breaks immersion. Show such figures from behind, in silhouette, at a distance, or imply them through details (a bicorne hat, a hand on a map, boots in mud). Write the visual_prompt so no identifiable face is the focal point.', estrela)}
 - Every scene is visually distinct from the others — different camera angle, different lighting, different subject framing. No two scenes should feel like the same shot.
 - The closing voiceover MUST land a payoff — a comparison, twist, statistic, or definitive conclusion. The voiceover MUST NOT trail off and MUST NOT end on a vague cliffhanger.
 - Output is in English.
@@ -633,7 +636,7 @@ export async function POST(req: NextRequest) {
       return await recusarAnalise(401, { error: 'You must be signed in.' }, null)
     }
 
-    let body: { prompt?: string; duration?: number; language?: string; scriptMode?: string }
+    let body: { prompt?: string; duration?: number; language?: string; scriptMode?: string; estrela?: unknown } // KINEO-ESTRELA-DO-FILME-2026-09-29: + estrela (marca booleana)
     let bodyCru: unknown = null
     try {
       body = await req.json()
@@ -650,6 +653,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // KINEO-ESTRELA-DO-FILME-2026-09-29 — o /studio escolheu a "Estrela do filme": só a MARCA chega aqui (as fotos vão direto à rota do filme). Liga a
+    // exceção estreita da regra REAL PEOPLE para o protagonista sem nome; pessoa real nomeada segue a regra de sempre.
+    const estrelaNoPedido = body.estrela === true
     const promptRaw = (body.prompt ?? '').trim()
     if (!promptRaw) {
       // KINEO-PRIMEIRA-PORTA-2026-09-01 — a unica recusa de porta que um
@@ -785,7 +791,7 @@ For each scene return a JSON object with exactly:
 - scene_number (int)
 - caption (max 6 words, punchy fragment, no period — summarize the voiceover in 6 words)
 - highlight (the single most striking word in the caption)
-- visual_prompt (150-350 chars, cinematic 9:16 vertical, describe camera angle + lighting + subject specific to the voiceover content. PERIOD ACCURACY: if the voiceover is set in a specific era, state the year/era and use ONLY period-accurate tech/clothing/weapons, appending "no modern objects, no modern vehicles, no tanks" inside the prompt. REAL PEOPLE: never make a recognizable face of a named real person the focal point — show them from behind, in silhouette, at distance, or via details like a hat or hands)
+- visual_prompt (150-350 chars, cinematic 9:16 vertical, describe camera angle + lighting + subject specific to the voiceover content. PERIOD ACCURACY: if the voiceover is set in a specific era, state the year/era and use ONLY period-accurate tech/clothing/weapons, appending "no modern objects, no modern vehicles, no tanks" inside the prompt. REAL PEOPLE: never make a recognizable face of a named real person the focal point — show them from behind, in silhouette, at distance, or via details like a hat or hands)${estrelaNoPedido ? `\n- ${ESTRELA_REAL_PEOPLE_EXCEPTION}` : ''}
 - duration_seconds (int)
 
 Also return at the top level:
@@ -902,7 +908,7 @@ For each scene return a JSON object with exactly:
 - scene_number (int)
 - caption (max 6 words, punchy fragment, no period — summarize the voiceover in 6 words)
 - highlight (the single most striking word in the caption)
-- visual_prompt (150-350 chars, cinematic 9:16 vertical, describe camera angle + lighting + subject specific to the voiceover content. PERIOD ACCURACY: if the voiceover is set in a specific era, state the year/era and use ONLY period-accurate tech/clothing/weapons, appending "no modern objects, no modern vehicles, no tanks" inside the prompt. REAL PEOPLE: never make a recognizable face of a named real person the focal point — show them from behind, in silhouette, at distance, or via details like a hat or hands)
+- visual_prompt (150-350 chars, cinematic 9:16 vertical, describe camera angle + lighting + subject specific to the voiceover content. PERIOD ACCURACY: if the voiceover is set in a specific era, state the year/era and use ONLY period-accurate tech/clothing/weapons, appending "no modern objects, no modern vehicles, no tanks" inside the prompt. REAL PEOPLE: never make a recognizable face of a named real person the focal point — show them from behind, in silhouette, at distance, or via details like a hat or hands)${estrelaNoPedido ? `\n- ${ESTRELA_REAL_PEOPLE_EXCEPTION}` : ''}
 - duration_seconds (int)
 
 Also return at the top level:
@@ -1036,7 +1042,7 @@ Return ONLY the JSON object — no markdown, no commentary.`
         {
           model: 'gpt-4o-mini',
           messages: [
-            { role: 'system', content: buildSystemPrompt(duration, language) },
+            { role: 'system', content: buildSystemPrompt(duration, language, estrelaNoPedido) }, // KINEO-ESTRELA-DO-FILME-2026-09-29
             { role: 'user', content: userMsg },
           ],
           temperature: 0.85,

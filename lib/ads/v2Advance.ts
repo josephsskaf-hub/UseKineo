@@ -49,6 +49,7 @@ import {
   submitShotOnce,
 } from '@/lib/ads/v2Shots'
 import { persistAudioCopy, persistSceneImage, pollSceneImage, submitSceneImage } from '@/lib/ads/v2Images'
+import { ADS_V2_SAME_PERSON_LINE, adsV2AnchorDecision, variationTagOf } from '@/lib/ads/v2Variations'
 
 /** Tentativas por plano dentro de UMA geração paga: 1ª + refação automática no principal + reserva H3. */
 export const ADS_V2_MAX_AUTO_ATTEMPTS = 3
@@ -264,13 +265,46 @@ function needsVideo(r: AdsV2ShotRow): boolean {
   return !neverAi(r) && !!r.engine && !!r.image_url && (r.status === 'pending' || r.status === 'image_done') && !r.submit_claimed_at
 }
 
+/**
+ * KINEO-ADS-3-VARIACOES-2026-09-30 — o still da MESMA cena (mesmo idx) na variação A: o estado do pedido A e a imagem
+ * mais nova já copiada para o nosso bucket. Leitura que falha = 'unknown' (espera, nunca "a A morreu").
+ */
+async function loadAnchorStill(admin: SupabaseClient, anchorOrderId: string, userId: string, idx: number): Promise<{ status: string | null; imageUrl: string | null }> {
+  const o = await admin.from('ads_v2_orders').select('status').eq('id', anchorOrderId).eq('user_id', userId).maybeSingle()
+  if (o.error) return { status: 'unknown', imageUrl: null }
+  if (!o.data) return { status: null, imageUrl: null }
+  const status = String((o.data as { status: string }).status)
+  const s = await admin.from('ads_v2_shots').select('image_url, attempt').eq('order_id', anchorOrderId).eq('idx', idx).not('image_url', 'is', null).order('attempt', { ascending: false }).limit(1)
+  if (s.error) return { status: 'unknown', imageUrl: null }
+  const url = ((s.data ?? []) as { image_url: string | null }[])[0]?.image_url ?? null
+  return { status, imageUrl: url }
+}
+
 async function submitImageFor(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow): Promise<void> {
+  // KINEO-ADS-3-VARIACOES-2026-09-30 — variação B/C com gente: a MESMA gente da A. Espera o still da A (ANTES de
+  // carimbar: esperar não gasta nada); pedido comum e variação A nunca entram aqui (tag nula ou slot 'A').
+  const tag = variationTagOf(order.brief)
+  let anchorUrl: string | null = null
+  let anchorOutcome: string | null = null
+  if (tag && tag.slot !== 'A' && row.kind === 'people' && row.source === 'generated_scene') {
+    const anchor = await loadAnchorStill(admin, tag.anchor_order_id, order.user_id, row.idx)
+    const d = adsV2AnchorDecision({ slot: tag.slot, shotKind: row.kind, shotSource: row.source, anchorOrderStatus: anchor.status, anchorImageUrl: anchor.imageUrl, waitedMs: ageMs(order.started_at) })
+    if (d.kind === 'wait') return
+    if (d.kind === 'use') anchorUrl = d.url
+    anchorOutcome = d.kind === 'use' ? 'used' : `skipped:${d.reason}`
+  }
   // Trava: só quem grava o carimbo envia (tela e cron juntos nunca mandam a mesma cena duas vezes).
   const claimed = await markShot(admin, row, ['pending'], { image_submit_claimed_at: nowIso() }, 'image_submit_claimed_at')
   if (!claimed) return
   const planned = order.plan?.shots?.find((s) => s.idx === row.idx)
-  const prompt = planned?.scenePrompt ?? null
-  const refs = planned?.referenceUrls ?? []
+  const basePrompt = planned?.scenePrompt ?? null
+  const baseRefs = planned?.referenceUrls ?? []
+  // O still da A entra como ÚLTIMA referência (as fotos do cliente continuam sendo a referência do lugar e do produto).
+  const prompt = basePrompt && anchorUrl ? `${basePrompt} ${ADS_V2_SAME_PERSON_LINE}` : basePrompt
+  const refs = anchorUrl && baseRefs.length > 0 ? [...baseRefs, anchorUrl] : baseRefs
+  if (anchorOutcome) {
+    await writeServerEvent({ name: 'ads_v2_variation_anchor', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, group_id: tag?.group_id ?? null, slot: tag?.slot ?? null, idx: row.idx, outcome: anchorOutcome } })
+  }
   if (!prompt || refs.length === 0) {
     await failShot(admin, row, ['pending'], 'scene_without_prompt_or_reference', 'local_policy_gate')
     return

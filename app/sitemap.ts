@@ -195,6 +195,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // irmã acima é a guia longa de quem já chega com o roteiro pronto. 0.9 como
     // ela: chatgpt.com são 57% dos cadastros externos dos últimos 14 dias.
     { path: '/chatgpt', priority: 0.9, freq: 'weekly' },
+    // KINEO-MCP-CLAUDE-2026-09-29 — a documentação pública do conector da Kineo
+    // no Claude (URL exigida pelo Connectors Directory). Página viva fora do
+    // mapa mede zero (peça-sem-superfície).
+    { path: '/claude-connector', priority: 0.7, freq: 'monthly' },
     // KINEO-B2B-BULK-2026-08-27 — the checkout and four approved one-time
     // agency packs existed without a single public caller. This is the first
     // indexable door for freelancers, agencies and businesses buying batches.

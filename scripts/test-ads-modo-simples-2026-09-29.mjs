@@ -154,7 +154,11 @@ await check('A3 trocar de modo é link de página inteira (o anúncio em andamen
 // Provado em scripts/test-ads-video-do-cliente-2026-09-29.mjs (V5-V7, com mutantes). Preço/voz/cartão/refação intocados.
 // Reanchored 29/09: approved comparison hook + successful-plan memory + JSX only.
 // Payloads, paid actions and the complete review remain unchanged; test-delivery-refinement covers the comparison.
-const Z1_BASE = "fbed22df940da2857f476b91c288d2be88fbc184ca3c1dec27240480ba2f5484"
+// REANCORADO 30/09 (KINEO-ADS-3-VARIACOES-2026-09-30, pedido do fundador "3 variações sim"): o completo ganhou SÓ a opção
+// "3 variações" — props variations/onVariationsStarted, o estado three, makeVariations (outra rota, preço do grupo
+// mostrado antes do clique) e o VariationToggle no PlanPreview. Sem a opção ligada o botão, o preço e o /start são os de
+// antes; provado em scripts/test-ads-3-variacoes-2026-09-30.mjs (S4, com mutantes). Base anterior: fbed22df….
+const Z1_BASE = "14c118ff2d68c04430579452e48d0f1ddfe3549c2e27c66ec345d042f92e752b"
 const trechoCompleto = (src) => { const s = src.replace(/\r\n/g, '\n'); const i = s.indexOf('function AdsV2Session('); return i < 0 ? '' : semComentarios(s.slice(i)) }
 await check('Z1 impressão digital do modo completo (AdsV2Session, PhotoRow, PlanPreview, ShotGrid) = a do vídeo do cliente (29/09)', sha(trechoCompleto(SRC.client)) === Z1_BASE)
 await check('Z1-mutante: 1 caractere trocado no modo completo fica vermelho', () => sha(trechoCompleto(trocar(SRC.client, "const POLL_RETRY_MS = 20_000", "const POLL_RETRY_MS = 20_001").replace('Plan my ad (free)', 'Plan my ad (freE)'))) !== Z1_BASE)
@@ -691,7 +695,9 @@ await check('E2 CONTACTISH da pesquisa = o da régua do texto (v2Brief)', () => 
 })
 // REANCORADO 29/09 (KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29): + '@/lib/ads/v2UserVideo' (regra pura do vídeo do cliente, sem import).
 // Approved delivery refinement: browser-only plan comparison; no request or persistence.
-const IMPORTS_OK = ['@/components/AdsPlanChanges', 'react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage']
+// REANCORADO 30/09 (KINEO-ADS-3-VARIACOES-2026-09-30): + './AdsV2Variations' (a opção e o painel das 3 variações; cliente,
+// só importa react/next/link/videoDownload e libs puras — v2Screen, v2Variations, interfaceLanguage).
+const IMPORTS_OK = ['./AdsV2Variations', '@/components/AdsPlanChanges', 'react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage']
 await check('E3 a tela simples é cliente e só importa módulos de navegador/puros; v2Simple, v2Research e v2VideoFrames não têm import; textLanguage é pura', () => {
   const imps = [...SRC.simple.matchAll(/^import[\s\S]*?from '([^']+)'/gm)].map((m) => m[1])
   return /^'use client'/.test(SRC.simple) && imps.length >= 8 && imps.every((m) => IMPORTS_OK.includes(m)) &&

@@ -355,7 +355,9 @@ const advStubs = {
     submitSceneImage: async (scene) => { prov.submits.push({ model: 'nano-banana', input: scene }); return { kind: 'accepted', requestId: 'img-1', posts: 1 } },
   },
 }
-const REAL = ['lib/ads/v2Engines.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/adV2Montage.ts', 'lib/ads/v2Music.ts']
+// REANCORADO 30/09 (KINEO-ADS-3-VARIACOES-2026-09-30): o v2Advance importa a lib PURA lib/ads/v2Variations.ts (marca da
+// variação e espera pelo still da A); carregada de verdade. Pedido sem marca = caminho de sempre.
+const REAL = ['lib/ads/v2Engines.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/adV2Montage.ts', 'lib/ads/v2Music.ts', 'lib/ads/v2Variations.ts']
 const avanco = (src) => makeLoader(advStubs, { real: REAL, over: src === undefined ? {} : { [F.advance]: src } })(F.advance)
 const A = avanco()
 const ORDER = U(1), USER = U(9)

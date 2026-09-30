@@ -66,19 +66,32 @@ checa(`15 s cabe no crédito do trial (${custo15} ≤ ${cap})`, Number.isFinite(
 checa('35 s continua NÃO cabendo no trial (o motivo do 15 s existir)', E.creditCostForDuration('cinematic_ai', true, 35) > cap)
 checa('o furo que a recusa < 15 fecha existe na função que cobra: Seedance a 10 s custaria menos que a 15 s', E.creditCostForDuration('cinematic_ai', true, 10) < custo15)
 
+// ═══ REANCORADO KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] ═══
+// Este guardião travava "15 s só no Seedance". O fundador mandou abrir as durações curtas em TODOS os motores de IA (29/09):
+// Kling 2.5 e Veo 3.1 ganham 15 s; Kling 3 / MiniMax H3 / Omni / Seedance 2.5 ganham 15 e 30 s (lib/durationByEngine
+// supportedDurationsFor). O que ele protege CONTINUA protegido, com a régua nova:
+//   · fora da tabela do motor (Sora a 15; Kling a 20/30; hollywood a 20/25) é recusa honesta antes do custo, nunca troca silenciosa;
+//   · Seedance: piso de 15, guarda de roteiro longo, 3x6, voz e preço byte a byte;
+//   · os botões novos seguem um interruptor (DURACOES_CURTAS_PUBLIC; flag `curtas`) — o do Seedance continua o SEEDANCE_15S_PUBLIC;
+//   · as provas executadas dos motores novos estão em scripts/test-duracoes-curtas-todos-motores-2026-09-29.mjs.
 console.log('2) checarDuracao / supportedDurationsFor')
 function provaDuracao(M) {
   const r = []
-  for (const eng of ['hollywood', 'h3', 's25', 'omni', 'kling', 'veo', 'sora']) {
-    const c = M.checarDuracao(eng, 15)
-    r.push(c.ok === false && c.recusa === 'only_seedance_15s' && c.sugestao === 35)
-    r.push(M.checarDuracao(eng, 35).ok === true)
+  // motor sem duração curta (Sora): 15 recusa com a razão de sempre
+  const sora = M.checarDuracao('sora', 15)
+  r.push(sora.ok === false && sora.recusa === 'only_seedance_15s' && sora.sugestao === 35 && M.checarDuracao('sora', 35).ok === true)
+  // motores com duração curta: a tabela é a porta — 15 passa; fora dela (Kling/Veo a 30; hollywood a 20) recusa sem trocar
+  for (const eng of ['hollywood', 'h3', 's25', 'omni', 'kling', 'veo']) {
+    r.push(M.checarDuracao(eng, 15).ok === true && M.checarDuracao(eng, 35).ok === true)
+    const c20 = M.checarDuracao(eng, 20)
+    r.push(c20.ok === false && c20.recusa === 'duration_not_offered' && c20.sugestao >= 20)
   }
-  r.push(M.checarDuracao('hollywood', 30).ok === false) // qualquer alvo < 35 fora do Seedance
+  r.push(M.checarDuracao('hollywood', 30).ok === true && M.checarDuracao('kling', 30).ok === false && M.checarDuracao('veo', 30).ok === false)
   for (const eng of ['seedance', 'cinematic_ai', null, undefined]) r.push(M.checarDuracao(eng, 15).ok === true)
   r.push(JSON.stringify([...M.supportedDurationsFor('seedance')]) === '[15,35,60,90]')
-  r.push(JSON.stringify([...M.supportedDurationsFor('kling')]) === '[35,60,90]')
-  r.push(JSON.stringify([...M.supportedDurationsFor('hollywood')]) === '[35,60,90]')
+  r.push(JSON.stringify([...M.supportedDurationsFor('kling')]) === '[15,35,60,90]' && JSON.stringify([...M.supportedDurationsFor('kling', { curtas: false })]) === '[35,60,90]')
+  r.push(JSON.stringify([...M.supportedDurationsFor('hollywood')]) === '[15,30,35,60,90]' && JSON.stringify([...M.supportedDurationsFor('hollywood', { curtas: false })]) === '[35,60,90]')
+  r.push(JSON.stringify([...M.supportedDurationsFor('sora')]) === '[35,60,90]')
   return r.every(Boolean)
 }
 function provaPisoSeedance(M) {
@@ -90,13 +103,13 @@ function provaPisoSeedance(M) {
     }
     for (const s of [15, 35, 60, 90]) r.push(M.checarDuracao(eng, s).ok === true)
   }
-  const inf = M.checarDuracao('kling', Infinity)
+  const inf = M.checarDuracao('sora', Infinity)
   r.push(inf.ok === false && inf.sugestao === 35)
   const rec = M.checarDuracao('seedance', 10)
-  r.push(typeof M.mensagemDaRecusaDeDuracao === 'function' && M.mensagemDaRecusaDeDuracao(rec).includes('15, 35, 60, 90') && M.mensagemDaRecusaDeDuracao(M.checarDuracao('kling', 15)) === M.ONLY_SEEDANCE_15S_MESSAGE)
+  r.push(typeof M.mensagemDaRecusaDeDuracao === 'function' && M.mensagemDaRecusaDeDuracao(rec).includes('15, 35, 60, 90') && M.mensagemDaRecusaDeDuracao(M.checarDuracao('sora', 15)) === M.ONLY_SEEDANCE_15S_MESSAGE)
   return r.every(Boolean)
 }
-checa('15 s fora do Seedance recusa (hollywood/h3/s25/omni/kling/veo/sora); no Seedance aceita', provaDuracao(D))
+checa('15 s: a tabela do motor decide — Sora recusa; Kling 2.5/Veo/hollywood aceitam 15 (hollywood também 30); fora da tabela recusa; no Seedance aceita', provaDuracao(D))
 checa('Seedance abaixo de 15 s (10, 1, 0, negativo) ou não finito recusa "duration_not_offered" sugerindo 15; 15/35/60/90 passam', provaPisoSeedance(D))
 const mutIdentidade = DUR_SRC.replace(/export function checarDuracao\(([^)]*)\): ChecagemDeDuracao \{/, 'export function checarDuracao($1): ChecagemDeDuracao {\n  return { ok: true }')
 checa('mutante: checarDuracao que sempre aprova fica VERMELHO', mutIdentidade !== DUR_SRC && !provaDuracao(roda(mutIdentidade)))
@@ -134,7 +147,9 @@ const L_DUR = "      const checagemDuracao = checarDuracao(typeof body.engine ==
 const L_FALA = "      const falaCurta = checarFalaDoFilmeCurto({ engine: typeof body.engine === 'string' ? body.engine : null, seconds: duration, verbatim, narration: parsedScript.narration })"
 const L_HOLLY = '    const hollywoodPath = wantsHollywood || wantsH3 || wantsOmni || wantsS25'
 const L_VERB = '    const verbatim = (parsedScript.hasMarkers && parsedScript.segments.length > 0) || (userSaysVerbatim && !briefDetected)'
-const L_COST = '    const cost = creditCostForDuration(costQuality, true, duration)'
+// Reancorado KINEO-ESTRELA-DO-FILME-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4']: a linha do custo ganhou, NA MESMA
+// linha, a sobretaxa da estrela (+ estrelaSobretaxaDe(duration), 0 sem estrela). Continua o `const cost` único, antes do claim e do débito.
+const L_COST = "    const cost = creditCostForDuration(costQuality, true, duration) + estrelaSobretaxaDe(duration) // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29: + a sobretaxa da estrela (0 sem estrela), ANTES do claim e do débito"
 const L_CLAIM = '    activeBirthClaim = {'
 const L_DEBIT = '    const upfrontDebit = await ensureCinematicDebit(cost)'
 function provaOrdem(src) {
@@ -150,16 +165,16 @@ checa('recusa de 15 s fora do Seedance e guarda de roteiro longo: depois do holl
 const mover = (src, linha) => { const L = linhas(src); const a = L.indexOf(linha); if (a < 0) return src; L.splice(a, 1); const d = L.indexOf(L_DEBIT); L.splice(d + 1, 0, linha); return L.join('\n') }
 checa('mutante: recusa de duração movida para depois do débito fica VERMELHO', !provaOrdem(mover(ROTA, L_DUR)))
 checa('mutante: guarda de roteiro longo movida para depois do débito fica VERMELHO', !provaOrdem(mover(ROTA, L_FALA)))
-const L_ROTA_RECUSA = "        return NextResponse.json({ error: mensagemDaRecusaDeDuracao(checagemDuracao), reason: checagemDuracao.recusa, engine: typeof body.engine === 'string' ? body.engine : null, requested_seconds: duration, suggested_seconds: checagemDuracao.sugestao, retryable: false, charged: false, refunded: false }, { status: 422 })"
+const L_ROTA_RECUSA = "        return NextResponse.json({ error: mensagemDaRecusaDeDuracao(checagemDuracao, typeof body.engine === 'string' ? body.engine : null), reason: checagemDuracao.recusa, engine: typeof body.engine === 'string' ? body.engine : null, requested_seconds: duration, suggested_seconds: checagemDuracao.sugestao, retryable: false, charged: false, refunded: false }, { status: 422 }) // KINEO-DURACOES-CURTAS-2026-09-29"
 const L_ROTA_LONGA = "        return NextResponse.json({ error: scriptTooLongForShortFilmMessage(duration, falaCurta.estSeconds, creditCostForDuration('cinematic_ai', true, falaCurta.sugestao)), reason: falaCurta.recusa, requested_seconds: duration, est_speech_seconds: Math.round(falaCurta.estSeconds), suggested_seconds: falaCurta.sugestao, retryable: false, charged: false, refunded: false }, { status: 422 })"
-checa('a recusa usa a frase do módulo pela razão (sem subir para 35 em silêncio)', temLinha(ROTA, L_ROTA_RECUSA) && D.ONLY_SEEDANCE_15S_MESSAGE.startsWith('15-second films are available on Seedance 1.5; pick 35 s for this engine'))
+checa('a recusa usa a frase do módulo pela razão (sem subir para 35 em silêncio)', temLinha(ROTA, L_ROTA_RECUSA) && D.ONLY_SEEDANCE_15S_MESSAGE.startsWith('Short films are available on Seedance 1.5, Kling 2.5, Veo 3.1') && D.ONLY_SEEDANCE_15S_MESSAGE.endsWith('pick 35 s for this engine.'))
 checa('a recusa do roteiro longo passa o custo de 35 s calculado pela função que debita', temLinha(ROTA, L_ROTA_LONGA))
 checa('nenhuma troca silenciosa de duração pelo módulo na rota (duration = …checarDuracao)', !/duration = [^\n]*checarDuracao/.test(ROTA))
 const L_B10 = [
   "      const duracoesDoResgate: readonly number[] = motorPedido === 'seedance' && seedance15sVisible(user.email)",
   "        ? supportedDurationsFor('seedance')",
   '        : DURACOES_DO_SELETOR',
-  '            duracoes: duracoesDoResgate,',
+  '            duracoes: duracoesDoResgateCurtas ?? duracoesDoResgate, // KINEO-DURACOES-CURTAS-2026-09-29',
   '      const DURACOES_DO_SELETOR = [35, 60, 90] as const',
 ]
 const provaB10 = (src) => L_B10.every((l) => temLinha(src, l)) && idx(src, L_B10[0]) + 1 === idx(src, L_B10[1]) && idx(src, L_B10[1]) + 1 === idx(src, L_B10[2])
@@ -210,24 +225,27 @@ checa('mutante: régua chumbada em true fica VERMELHO', mutReguaChumbada !== LAU
 // Reancorado 29/09 na integração com a E1 (Kineo 1 fora): a mesma linha passou a devolver também `kineo1` (resolveKineo1Flag).
 // Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): a resposta ganhou `hasPaid` (régua do 'não sei' do Studio); a flag
 // seedance15 segue na mesma linha inteira, pelo interruptor.
-const L_ME = '  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), internal: s25Visible(user.email), hasPaid, kineo1, plan })'
+// Reancorado KINEO-ESTRELA-DO-FILME-2026-09-29: a resposta ganhou `estrela` (flag do bloco "Estrela do filme" no /studio, estrelaVisible);
+// a flag seedance15 segue na mesma linha inteira, pelo interruptor.
+const L_ME = "  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), curtas: duracoesCurtasVisible(user.email), estrela: estrelaVisible(user.email), internal: s25Visible(user.email), hasPaid, kineo1, plan })"
 checa('/api/me/credits devolve a flag seedance15 pelo interruptor (linha inteira)', temLinha(ME, L_ME))
 const ANCORAS_STUDIO = [
   ['Studio: botão de 15 s só com Seedance escolhido e com o interruptor', "              {engine === 'seedance' && (seedance15Ok || duration === SEEDANCE_SHORT_SECONDS) && ("],
-  ['Studio: trocar de motor estando em 15 volta para 35', "    if (engine !== 'seedance' && duration === SEEDANCE_SHORT_SECONDS) setDuration(MIN_DURATION_ALL_ENGINES as 35)"],
+  ['Studio: trocar de motor estando numa curta que o motor novo não oferece volta para 35', "    if (engine !== 'seedance' && duration < MIN_DURATION_ALL_ENGINES && !curtasDoMotor(engine).includes(duration)) setDuration(MIN_DURATION_ALL_ENGINES as 35)"],
   ['Studio: ?duration=15 só com ?engine=seedance', "    } else if (requestedDuration === SEEDANCE_SHORT_SECONDS && e === 'seedance') {"],
   ['Studio: aviso do Kineo 1 mostra o custo do Seedance na duração (não 25 fixo)', "              const copy = kineo1FitNoticeCopy(engineCostLabel('seedance')) // KINEO-SEEDANCE-15S-2026-09-29 (B8): custo do Seedance na duração escolhida, não o de 60 s fixo"],
-  ['Studio: a flag seedance15 vem do /api/me/credits', "      .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true); if (alive && d?.avatar === true) setAvatarOn(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && typeof d?.plan === 'string') setPlan(d.plan) })"],
-  ['Studio: degrau de 15 s só no Seedance e com o interruptor', "    const degraus: readonly (15 | 35 | 60)[] = key === 'seedance' && seedance15Ok ? [60, 35, 15] : [60, 35]"],
-  ['Studio: os outros cards precificam em 35+ quando o Seedance está em 15 (revisão E2a)', "  const duracaoDoCard = (key: EngineKey): number => (key === 'seedance' ? duration : Math.max(duration, MIN_DURATION_ALL_ENGINES))"],
+  ['Studio: a flag seedance15 vem do /api/me/credits', "      .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true); if (alive && d?.avatar === true) setAvatarOn(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && d?.curtas === true) setCurtasOk(true); if (alive && typeof d?.plan === 'string') setPlan(d.plan) })"],
+  ['Studio: degraus curtos pela tabela do card (Seedance com o interruptor dele; os outros com DURACOES_CURTAS_PUBLIC)', "    const degraus: readonly StudioDuration[] = [60, 35, ...curtasDoMotor(key).sort((a, b) => b - a)] as StudioDuration[]"],
+  ['Studio: as curtas de cada card saem da tabela e dos dois interruptores', "    (key === 'seedance' ? (seedance15Ok ? [...supportedDurationsFor('seedance')] : []) : [...supportedDurationsFor(key, { curtas: curtasOk })]).filter((d) => d < MIN_DURATION_ALL_ENGINES)"],
+  ['Studio: cada card precifica na duração que o motor recebe — a curta que ele oferece, ou 35+ (revisão E2a)', "  const duracaoDoCard = (key: EngineKey): number => (key === 'seedance' || curtasDoMotor(key).includes(duration) ? duration : Math.max(duration, MIN_DURATION_ALL_ENGINES))"],
   ['Studio: o custo do card usa a duração do card', "    creditCostForDuration(ENGINE_QUALITY[key] ?? 'cinematic_ai', true, duracaoDoCard(key))"],
   ['Studio: o degrau compara com a duração do card', '      if (d >= duracaoDoCard(key)) continue'],
 ]
 for (const [nome, l] of ANCORAS_STUDIO) checa(nome, temLinha(STUDIO, l))
 const ANCORAS_GEN = [
   ['/generate: botão de 15 s só com o interruptor (ou já em 15) — M-D', '  return seedance && (seedance15Ok || current === SEEDANCE_SHORT_SECONDS) ? [SEEDANCE_SHORT_OPTION, ...DURATION_OPTIONS] : DURATION_OPTIONS'],
-  ['/generate: a flag vem de d?.seedance15, não de d?.internal — M-L', "    fetch('/api/me/credits', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive && d?.internal === true) setS25Ok(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true) }).catch(() => {})"],
-  ['/generate: trocar de motor estando em 15 volta para 35 — M-K', "    if (antes === 'seedance' && motor !== 'seedance' && duration === SEEDANCE_SHORT_SECONDS) setDuration(35)"],
+  ['/generate: a flag vem de d?.seedance15, não de d?.internal — M-L', "    fetch('/api/me/credits', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive && d?.internal === true) setS25Ok(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && d?.curtas === true) setCurtasOk(true) }).catch(() => {}) // KINEO-DURACOES-CURTAS-2026-09-29: + curtas"],
+  ['/generate: trocar de motor estando numa curta que o motor novo não oferece volta para 35 — M-K', "    if (antes !== '' && antes !== motor && duration < 35 && !supportedDurationsFor(motor).includes(duration)) setDuration(35) // KINEO-DURACOES-CURTAS-2026-09-29"],
   ['/generate: resgate por saldo oferece 15 só no Seedance e com o interruptor — M-J', "  const duracoesDoSeletor: Duration[] = aiEngine === 'seedance' && seedance15Ok"],
   ['/generate: fora disso, a lista global', '    : DURATION_OPTIONS.map((o) => o.value)'],
   ['/generate: cinto do auto-disparo aceita 15 só com engine=seedance', "    if ((uDur === 35 || uDur === 45 || uDur === 60 || uDur === 90 || (uDur === SEEDANCE_SHORT_SECONDS && uEng === 'seedance')) && duration !== uDur) { setDuration(uDur); return } // KINEO-SEEDANCE-15S-2026-09-29: 15 s do Studio (só Seedance)"],
@@ -245,17 +263,17 @@ const valores = [...opcoes.matchAll(/value: (\d+)/g)].map((m) => Number(m[1]))
 checa(`DURATION_OPTIONS continua 35/60/90 (lido: ${JSON.stringify(valores)})`, JSON.stringify(valores) === '[35,60,90]')
 checa('DEFAULT_DURATION = primeiro botão da lista global, que não é 15', temLinha(GEN, 'const DEFAULT_DURATION: Duration = DURATION_OPTIONS[0].value') && valores[0] !== 15)
 checa('o 15 entra só pela opção do Seedance (derivada do módulo, nada digitado)', GEN.includes('const SEEDANCE_SHORT_OPTION: { value: Duration; label: string } = { value: SEEDANCE_SHORT_SECONDS as Duration,'))
-checa('Studio: padrão continua 60 s', temLinha(STUDIO, '  const [duration, setDuration] = useState<15 | 35 | 60 | 90>(60)'))
+checa('Studio: padrão continua 60 s', temLinha(STUDIO, '  const [duration, setDuration] = useState<StudioDuration>(60) // KINEO-DURACOES-CURTAS-2026-09-29: StudioDuration (15/35/60/90 + as curtas por motor)'))
 
 console.log('8) handoff: ?duration=15 só com ?engine=seedance (executado)')
 function provaHandoff(src) {
   const H = roda(src)
   const q = (s) => H.readCreationHandoff(new URLSearchParams(s)).duration
-  return q('duration=15') === null && q('duration=15&engine=kling') === null && q('duration=15&engine=fast') === null &&
+  return q('duration=15') === null && q('duration=15&engine=sora') === null && q('duration=15&engine=fast') === null && q('duration=15&engine=kling') === 15 && q('duration=30&engine=kling') === null &&
     q('duration=15&engine=seedance') === 15 && q('duration=15&engine=Seedance') === 15 &&
     q('duration=35') === 35 && q('duration=45') === 35 && q('duration=60') === 60 && q('duration=90') === 90 && q('duration=10') === null
 }
-checa('handoff: 15 sem motor / com Kling / com Kineo 1 cai no padrão; 15 com Seedance fica 15; 35/45/60/90 como antes', provaHandoff(HANDOFF_SRC))
+checa('handoff: 15 sem motor / com Sora / com Kineo 1 cai no padrão; 15 com Seedance ou Kling fica 15 (a tabela); 35/45/60/90 como antes', provaHandoff(HANDOFF_SRC))
 const mutHandoff = HANDOFF_SRC.replace("(rawDuration === 15 && rawEngine === 'seedance')", 'rawDuration === 15')
 checa('mutante: handoff aceita 15 para qualquer motor fica VERMELHO', mutHandoff !== HANDOFF_SRC && !provaHandoff(mutHandoff))
 

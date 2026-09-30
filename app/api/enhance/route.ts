@@ -18,6 +18,9 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { fal } from '@fal-ai/client'
 import { debitVideoCredits } from '@/lib/credits/debit'
 import { refundRenderCredits } from '@/lib/credits/refund'
+// KINEO-ESTORNO-INDEVIDO-2026-09-29 — a chave do débito (enhance-/enhance4k-) sai de UM lugar: o estorno
+// usava sempre enhance-<id>, e a falha do 4K nunca era estornada aqui (só a varredura devolvia, 2 h depois).
+import { enhanceBillingKey, enhanceBillingKeys } from '@/lib/credits/sweepScope'
 
 export const maxDuration = 300
 
@@ -126,7 +129,7 @@ export async function POST(req: NextRequest) {
   // = sem cobrança dupla. Com o grant gratis do Studio, o debito e pulado.
   if (!freeGrant || is4k) {
     // grant grátis do Studio vale só pro HD; 4K é sempre pago.
-    const debit = await debitVideoCredits(supabase, { userId: user.id, renderId: is4k ? `enhance4k-${videoId}` : `enhance-${videoId}`, cost: is4k ? ENHANCE_4K_COST : ENHANCE_COST })
+    const debit = await debitVideoCredits(supabase, { userId: user.id, renderId: enhanceBillingKey(videoId, is4k), cost: is4k ? ENHANCE_4K_COST : ENHANCE_COST })
     if (debit.error || debit.data === null) {
       return NextResponse.json({ error: 'Not enough credits.', code: 'credits' }, { status: 402 })
     }
@@ -150,7 +153,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ status: 'processing' })
   } catch (e) {
     console.error('[enhance] submit failed — refunding:', e instanceof Error ? e.message : String(e))
-    await refundRenderCredits(`enhance-${videoId}`).catch(() => {})
+    await refundRenderCredits(enhanceBillingKey(videoId, is4k)).catch(() => {})
     return NextResponse.json({ error: 'Enhance failed to start. Credits refunded.' }, { status: 502 })
   }
 }
@@ -259,7 +262,8 @@ export async function GET(req: NextRequest) {
     // 4xx/falha real do job → estorna e limpa; erro transitorio de rede segue "processing".
     if (/unexpected status|not found|4\d\d/i.test(msg)) {
       console.error('[enhance] job failed — refunding:', msg)
-      await refundRenderCredits(`enhance-${videoId}`).catch(() => {})
+      // O GET não sabe se o job é HD ou 4K: estorna as duas chaves (RPC idempotente; chave sem débito devolve 0).
+      for (const key of enhanceBillingKeys(videoId)) await refundRenderCredits(key).catch(() => 0)
       const admin = svc()
       if (admin) await admin.from('videos').update({ enhance_request_id: null }).eq('id', videoId)
       return NextResponse.json({ status: 'failed', error: 'Enhance failed. Credits refunded — try again.' })

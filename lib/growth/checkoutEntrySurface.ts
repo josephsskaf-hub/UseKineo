@@ -21,6 +21,7 @@ const DASHBOARD_TOOLS = new Set([
   '/animate',
   '/audio',
   '/avatar',
+  '/clips',
   '/images',
   '/library',
   '/viral-now',

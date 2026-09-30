@@ -150,7 +150,10 @@ function escritor(gs) {
     palavras: linhaCom(gs, '    const palavrasDoFilmeCurto = '),
     teto: linhaCom(gs, '    const tetoFilmeCurto = Math.min(maxWordsFor(alvoSegundos'),
     piso: linhaCom(gs, '    const pisoFilmeCurto = Math.min(alvoPalavras, tetoFilmeCurto)'),
-    duro: linhaCom(gs, '    const tetoDuroFilmeCurto = isSeedance15('),
+    // reancorado KINEO-DURACOES-CURTAS-2026-09-29 [vai do fundador 29/09 'vai pra todas as 4']: o teto duro e a faixa do cinematic passaram a valer
+    // também no Kling 2.5 e no Veo a 15 s (isClassicShortEngine / maxWordsCurtoDoMotor / faixaAceitaNoFilmeCurtoDoMotor — no Seedance, os mesmos
+    // números de antes, executado abaixo): a fatia passa a ser achada pelo nome da variável, e as funções novas entram no contexto.
+    duro: linhaCom(gs, '    const tetoDuroFilmeCurto = '),
     fechar: ateFecho(gs, '    const fecharFilmeCurto = ', LF + '    }' + LF),
     nota: ateFecho(gs, '    const notaDoFilmeCurto = ', LF + '    }' + LF),
     melhor: ateFecho(gs, '    const segundaEMelhor = ', LF + '    }' + LF),
@@ -175,6 +178,7 @@ function escritor(gs) {
       globalThis: {}, console: { log: (m) => logs.push(String(m)), warn() {}, error() {} }, body: { engine }, topic, language, alvoSegundos, v1, v2, fecharTudo: fechar,
       writerRateFor: W.writerRateFor, minWordsFor: W.minWordsFor, maxWordsFor: W.maxWordsFor, detectPastedScript: PS.detectPastedScript, pastedScriptMinWords: PS.pastedScriptMinWords,
       maxWordsForShortFilm: D.maxWordsForShortFilm, isSeedance15: D.isSeedance15, faixaAceitaNoFilmeCurto: D.faixaAceitaNoFilmeCurto, isShortFilmTarget: SF.isShortFilmTarget,
+      isClassicShortEngine: D.isClassicShortEngine, maxWordsCurtoDoMotor: D.maxWordsCurtoDoMotor, faixaAceitaNoFilmeCurtoDoMotor: D.faixaAceitaNoFilmeCurtoDoMotor, // KINEO-DURACOES-CURTAS-2026-09-29
       finishShortFilmScript: SF.finishShortFilmScript, parseUserScript: SP.parseUserScript, MIN_COVERAGE: NF.MIN_COVERAGE, idiomaDoRitmo: undefined,
     }
     const o = roda(codigo, ctx)
@@ -264,9 +268,10 @@ function grade(E, { language, engine = 'cinematic_ai', alvoSegundos = 15, topic 
   const s35 = grade(ESC, { language: 'tr', alvoSegundos: 35 })
   checa(`Seedance a 35 s: a escolha é a da base em todos os pares (${s35.difereDaBase} diferenças; o escritor de 35/60/90 nem passa por ela)`, s35.difereDaBase === 0)
   const mut = (a, b) => { const s = trocaUma(SRC.gs, a, b); return s ? escritor(s) : null }
-  const M3 = mut('const faixaDoCinematic = idiomaDoRitmo !== undefined ? faixaAceitaNoFilmeCurto(alvoSegundos, MIN_COVERAGE, idiomaDoRitmo) : null', 'const faixaDoCinematic = faixaAceitaNoFilmeCurto(alvoSegundos, MIN_COVERAGE, idiomaDoRitmo)')
+  // reancorado KINEO-DURACOES-CURTAS-2026-09-29: a faixa agora vem de faixaAceitaNoFilmeCurtoDoMotor (a do motor; no Seedance, a mesma de antes) — os dois mutantes batem na linha nova
+  const M3 = mut("const faixaDoCinematic = idiomaDoRitmo !== undefined ? faixaAceitaNoFilmeCurtoDoMotor(typeof body.engine === 'string' ? body.engine : null, alvoSegundos, MIN_COVERAGE, idiomaDoRitmo) : null", "const faixaDoCinematic = faixaAceitaNoFilmeCurtoDoMotor(typeof body.engine === 'string' ? body.engine : null, alvoSegundos, MIN_COVERAGE, idiomaDoRitmo)")
   checa('mutante: a faixa do cinematic vale para todo motor → VERMELHO (o Kineo 1 a 15 s muda de escolha)', M3 !== null && grade(M3, { language: 'en', engine: 'fast' }).difereDaBase > 0)
-  const M4 = mut('faixaAceitaNoFilmeCurto(alvoSegundos, MIN_COVERAGE, idiomaDoRitmo) : null', 'faixaAceitaNoFilmeCurto(alvoSegundos, MIN_COVERAGE) : null')
+  const M4 = mut('faixaAceitaNoFilmeCurtoDoMotor(typeof body.engine === \'string\' ? body.engine : null, alvoSegundos, MIN_COVERAGE, idiomaDoRitmo) : null', 'faixaAceitaNoFilmeCurtoDoMotor(typeof body.engine === \'string\' ? body.engine : null, alvoSegundos, MIN_COVERAGE) : null')
   checa('mutante: a faixa do cinematic sem a língua → VERMELHO (em turco fica a versão que a guarda da língua recusa)', M4 !== null && (() => { const g = grade(M4, { language: 'tr' }); return g.soUmaCerta < g.soUma || g.iguaisComoBase < g.iguais })())
 }
 
@@ -345,6 +350,7 @@ console.log('4) a tela: o contador diz o que o portão da rota vai dizer; a expa
   let iguais = 0, total = 0
   for (const engine of ['seedance', 'fast', 'kling', 'veo', 'hollywood', 'h3']) for (const seconds of [15, 35, 60, 90]) for (const language of ['tr', 'en', 'pt']) for (const n of [30, 90, 160]) {
     if (engine === 'seedance' && seconds === 15) continue
+    if ((engine === 'kling' || engine === 'veo') && seconds === 15) continue // reancorado KINEO-DURACOES-CURTAS-2026-09-29: Kling 2.5 e Veo a 15 s entraram no regime do 15 s (a mesma voz/ritmo do Seedance) — provado em scripts/test-duracoes-curtas-todos-motores-2026-09-29.mjs
     const script = nPalavras(n)
     const a = CV.reguaDoServidorNaTela({ engine, script, language, vertical: 'Culture', seconds }), b = CV_B.reguaDoServidorNaTela({ engine, script, language, vertical: 'Culture' })
     total++; if (JSON.stringify(a) === JSON.stringify(b) && JSON.stringify(CV.contadorVoz({ script, regua: a, requestedSeconds: seconds })) === JSON.stringify(CV_B.contadorVoz({ script, regua: b, requestedSeconds: seconds }))) iguais++
@@ -358,13 +364,14 @@ console.log('4) a tela: o contador diz o que o portão da rota vai dizer; a expa
   const CVm2 = compila(trocaUma(SRC.cv, '  if (vozCurta) {', '  if (false) {') ?? '')
   checa('mutante: o contador sem a voz do 15 s (persona sem língua, como antes) → VERMELHO', typeof CVm2.contadorVoz === 'function' && (!coerente(CVm2, 'tr') || !coerente(CVm2, 'en')))
   const GEN = SRC.gen
-  checa('a tela passa `seconds: duration` ao contador e à checagem da análise', GEN.includes('const reguaVoz = reguaDoServidorNaTela({ engine: motorContador, script: prompt, language, vertical: analysis?.niche ?? null, seconds: duration })') && GEN.includes("const reguaAnalise = reguaDoServidorNaTela({ engine: mode === 'fast' || mode === 'creator' ? 'fast' : aiEngine, script: baseChecagem, language, vertical: analysis?.niche ?? null, seconds: duration })"))
+  checa('a tela passa `seconds: duration` ao contador e à checagem da análise', GEN.includes('const reguaVoz = reguaDoServidorNaTela({ engine: motorContador, script: prompt, language, vertical: analysis?.niche ?? null, seconds: duration, curtas: curtasOk })') && GEN.includes("const reguaAnalise = reguaDoServidorNaTela({ engine: mode === 'fast' || mode === 'creator' ? 'fast' : aiEngine, script: baseChecagem, language, vertical: analysis?.niche ?? null, seconds: duration, curtas: curtasOk })")) // reancorado KINEO-DURACOES-CURTAS-2026-09-29: + curtas (o interruptor)
 
   // a expansão automática (/api/expand-script): a régua que entra nas fórmulas da rota
   const reguaEx = (src) => deAte(src, '    const regua = speechRateForScript(body.engine, original)', '    const WORDS_PER_SECOND = regua.wordsPerSecond')
   const exRoda = (src, { engine, target, language, original }) => roda(`${reguaEx(src)}\nglobalThis.__o = WORDS_PER_SECOND`, {
     globalThis: {}, console: SILENCIO, body: { engine, language }, target, original, speechRateForScript: SR.speechRateForScript,
     SEEDANCE_SHORT_SECONDS: D.SEEDANCE_SHORT_SECONDS, VERBATIM_EST_WORDS_PER_SECOND: D.VERBATIM_EST_WORDS_PER_SECOND, isSeedance15: D.isSeedance15, ritmoDaVozNoIdioma: D.ritmoDaVozNoIdioma,
+    isClassicShortEngine: D.isClassicShortEngine, // reancorado KINEO-DURACOES-CURTAS-2026-09-29: a expansão do 15 s vale também no Kling 2.5 e no Veo
     resolveNarrationLanguage: TL.resolveNarrationLanguage, parseUserScript: SP.parseUserScript,
   })
   checa('as fatias da régua da expansão foram achadas (agora e na base)', Boolean(reguaEx(SRC.ex)) && Boolean(reguaEx(SRC_BASE.ex)))
@@ -381,7 +388,7 @@ console.log('4) a tela: o contador diz o que o portão da rota vai dizer; a expa
   checa('texto alemão com language "en": a língua resolvida como na rota (de → 2,12)', exRoda(SRC.ex, { engine: 'cinematic_ai', target: 15, language: 'en', original: alemao(30) }) === 2.12)
   let iguaisEx = 0, totalEx = 0
   for (const engine of ['fast', 'cinematic_ai', 'cinematic_kling', 'cinematic_veo', 'cinematic_h3', '', undefined]) for (const target of [15, 35, 60, 90]) for (const language of ['tr', 'en']) {
-    if (target === 15 && (engine === 'cinematic_ai')) continue
+    if (target === 15 && (engine === 'cinematic_ai' || engine === 'cinematic_kling' || engine === 'cinematic_veo')) continue // reancorado KINEO-DURACOES-CURTAS-2026-09-29: a expansão do Kling 2.5/Veo a 15 s mede na voz do 15 s (test-duracoes-curtas-todos-motores)
     totalEx++; if (exRoda(SRC.ex, { engine, target, language, original: nPalavras(40) }) === exRoda(SRC_BASE.ex, { engine, target, language, original: nPalavras(40) })) iguaisEx++
   }
   checa(`fora do 15 s do Seedance (35/60/90, Kineo 1, Kling, Veo, hollywood, motor ausente): a régua da expansão é a da base em ${iguaisEx}/${totalEx} casos`, iguaisEx === totalEx)

@@ -1,32 +1,33 @@
 
 
-/* Founder-approved White + Graphite, 25 September. Dark remains unchanged. */
+/* PORCELANA — fundador 30/09: branco de papel + cobalto profundo (claro) e quase-preto azulado + cobalto (escuro).
+   Substitui o White + Graphite de 25/09 e o marinho #0c1521/#2997ff. */
 :root {
   color-scheme: light;
-  --bg:#d5d8dc; --sidebar-bg:#e3e5e7; --card:#eceeed; --card2:#dce0e2;
-  --text:#20252b; --text2:#303b45; --muted:#495660; --muted2:#535f68;
-  --border:#b7bec4; --border2:#969da3; --indigo:#29343f; --indigo-light:#29343f;
-  --purple:#29343f; --purple-light:#29343f;
-  --surface:var(--card); --surface-soft:var(--card2); --accent:#29343f;
-  --accent-soft:#dce0e2; --on-accent:#fff; --header-bg:#e3e5e7f5;
-  --public-nav:#20252b; --public-nav-text:#f8fafc; --brand:#66b2ff;
-  --danger:#b42318; --warning:#915300; --success:#137451;
-  --modal-overlay:rgba(32,37,43,.38); --modal-shadow:0 24px 80px #20252b30;
-  --sh-card:0 1px 2px #20252b08,0 5px 18px #20252b06; --sh-card-h:0 8px 24px #20252b12;
-  --sh-cta:0 2px 4px #20252b14;
+  --bg:#F7F7F5; --sidebar-bg:#FFFFFF; --card:#FFFFFF; --card2:#F1F1EE;
+  --text:#0E1116; --text2:#2A2F37; --muted:#5A5F67; --muted2:#6B6F76;
+  --border:#E4E4E0; --border2:#BFC2C6; --indigo:#0A5CFF; --indigo-light:#0A5CFF;
+  --purple:#0A5CFF; --purple-light:#0A5CFF;
+  --surface:var(--card); --surface-soft:var(--card2); --accent:#0A5CFF;
+  --accent-soft:#E8EFFF; --on-accent:#fff; --header-bg:#FFFFFFF0;
+  --public-nav:#FFFFFF; --public-nav-text:#0E1116; --brand:#0A5CFF;
+  --danger:#B42318; --warning:#8A4B00; --success:#0F7A55;
+  --modal-overlay:rgba(14,17,22,.32); --modal-shadow:0 24px 80px #0E111626;
+  --sh-card:0 1px 2px #0E111608,0 8px 24px -12px #0E111614; --sh-card-h:0 14px 34px -12px #0E111624;
+  --sh-cta:0 1px 2px #0A5CFF33,0 6px 16px -6px #0A5CFF55;
 }
 html[data-theme='dark'], .kineo-admin-theme {
   color-scheme:dark;
-  --bg:#0c1521; --sidebar-bg:#121f2e; --card:#121f2e; --card2:#192b3f;
-  --text:#eef5fe; --text2:#d6e5f5; --muted:#a8bad0; --muted2:#91a8c2;
-  --border:#2d425a; --border2:#42617f; --indigo:#2997ff; --indigo-light:#91c9ff;
-  --purple:#2997ff; --purple-light:#91c9ff; --accent:#91c9ff;
-  --accent-soft:#1b3754; --on-accent:#062341; --header-bg:#121f2eed;
-  --danger:#ff8787; --warning:#ffbf58; --success:#62d9aa;
-  --modal-overlay:rgba(2,8,18,.72); --modal-shadow:0 24px 80px #0008;
-  --public-nav:#0c1521; --public-nav-text:#eef5fe;
-  --sh-card:0 12px 36px #02081225; --sh-card-h:0 18px 48px #02081240;
-  --sh-cta:0 6px 22px #2997ff26;
+  --bg:#07090D; --sidebar-bg:#0B0E13; --card:#10141B; --card2:#161B24;
+  --text:#F2F4F7; --text2:#C9CFD8; --muted:#9AA3B2; --muted2:#8A93A3;
+  --border:#1F2530; --border2:#2E3644; --indigo:#4D8DFF; --indigo-light:#8DB4FF;
+  --purple:#4D8DFF; --purple-light:#8DB4FF; --accent:#8DB4FF;
+  --accent-soft:#12203A; --on-accent:#04122E; --header-bg:#0B0E13ED;
+  --danger:#FF8787; --warning:#FFBF58; --success:#5FD4A4;
+  --modal-overlay:rgba(3,5,9,.74); --modal-shadow:0 24px 80px #000a;
+  --public-nav:#07090D; --public-nav-text:#F2F4F7;
+  --sh-card:inset 0 1px 0 #ffffff08,0 12px 36px #00000040; --sh-card-h:inset 0 1px 0 #ffffff0d,0 18px 48px #00000059;
+  --sh-cta:0 6px 22px #4D8DFF2e;
   --surface:var(--card); --surface-soft:var(--card2);
 }
 /* Admin screens deliberately use dark charts and status colors. Scope all
@@ -123,12 +124,12 @@ html:not([data-theme='dark']) main.done-workspace::before{display:none}
 .appearance-label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:14px 4px 5px;font-size:14px}
 .appearance-label input{accent-color:var(--indigo);width:15px;height:15px;margin:0;flex-shrink:0}
 .appearance-option small{display:block;margin:0 4px 7px;color:var(--muted);font-size:10px;line-height:1.5}
-.appearance-mini{height:106px;border:1px solid #cbcdd0;border-radius:7px;display:flex;background:#d5d8dc;overflow:hidden}
-.appearance-mini>i{width:23%;border-inline-end:1px solid #cbcdd0;background:#20252b}
+.appearance-mini{height:106px;border:1px solid #E4E4E0;border-radius:7px;display:flex;background:#F7F7F5;overflow:hidden}
+.appearance-mini>i{width:23%;border-inline-end:1px solid #E4E4E0;background:#FFFFFF}
 .appearance-mini>span{flex:1;padding:14px 9px;display:grid;grid-template-columns:repeat(3,1fr);gap:5px;align-content:start}
-.appearance-mini b{height:6px;grid-column:1/-1;background:#aebdd0;border-radius:2px;max-width:65%;margin-bottom:8px}
-.appearance-mini em{height:46px;background:#eceeed;border:1px solid #b7bec4;border-radius:4px}
-.appearance-mini-dark{background:#0c1521;border-color:#2d425a}.appearance-mini-dark>i{background:#121f2e;border-color:#2d425a}.appearance-mini-dark b{background:#91c9ff}.appearance-mini-dark em{background:#203b56;border-color:#375470}
+.appearance-mini b{height:6px;grid-column:1/-1;background:#0A5CFF;border-radius:2px;max-width:65%;margin-bottom:8px}
+.appearance-mini em{height:46px;background:#FFFFFF;border:1px solid #E4E4E0;border-radius:4px}
+.appearance-mini-dark{background:#07090D;border-color:#1F2530}.appearance-mini-dark>i{background:#10141B;border-color:#1F2530}.appearance-mini-dark b{background:#4D8DFF}.appearance-mini-dark em{background:#161B24;border-color:#2E3644}
 .kineo-appearance .appearance-save{font-size:11px;padding-top:17px;border-top:1px solid var(--border)}
 @media(max-width:760px){.kineo-appearance{padding:24px 20px}.appearance-options{gap:11px}.appearance-option{padding:8px}.appearance-mini{height:94px}.appearance-mini>span{padding:13px 6px}.appearance-mini em{height:38px}.kineo-appearance h2{font-size:27px}.appearance-icon{width:34px;height:34px}}
 

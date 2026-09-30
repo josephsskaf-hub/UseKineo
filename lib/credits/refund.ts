@@ -16,6 +16,15 @@ import { CINEMATIC_CLAIM_EVENT, releaseCinematicClaim } from '@/lib/cinematic/cl
 // KINEO-TRIAL-DOUBLECOUNT-2026-08-07 — ver o bloco do estorno em lib/reverseTrial.ts.
 import { recordReverseTrialRefundForRender } from '@/lib/reverseTrial'
 import { refundAvatarBirthDebitForFailedRequest } from '@/lib/avatar/reservation'
+import {
+  GENERIC_SWEEP_EXCLUDED_PATTERNS,
+  SYNC_MEDIA_DELIVERY_WINDOW_MS,
+  SYNC_MEDIA_PRODUCTS,
+  enhanceRefundDecision,
+  enhanceVideoIdFromRenderId,
+  hasDeliveryInWindow,
+  isGenericSweepCandidate,
+} from '@/lib/credits/sweepScope'
 
 function adminClient(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -94,6 +103,10 @@ export async function refundRenderCredits(renderId: string): Promise<number> {
  *   avatar-% — avatar birth jobs also debit before authenticated Fal polling;
  *              their final compose uses another render id. Fal failures are
  *              refunded live by /api/avatar-status.
+ *   KINEO-ESTORNO-INDEVIDO-2026-09-29 — a lista inteira (com adsv2%, clips-%,
+ *   image-/imgedit-/audio-/upscale-/voice-clone-/scene-gen-/enhance%) mora em
+ *   lib/credits/sweepScope.ts GENERIC_SWEEP_EXCLUDED_PATTERNS. Chave nova cuja
+ *   entrega NÃO vira linha em `videos` = entra na lista NO MESMO commit.
  */
 export async function sweepStuckRenderDebits(): Promise<{
   scanned: number
@@ -105,28 +118,27 @@ export async function sweepStuckRenderDebits(): Promise<{
   if (!db) return result
 
   const cutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-  const { data: debits, error } = await db
+  let query = db
     .from('credit_debits')
     .select('render_id, amount')
     .eq('kind', 'video')
     .is('refunded_at', null)
     .lt('created_at', cutoff)
-    .not('render_id', 'like', 'animate-%')
-    .not('render_id', 'like', 'legacy-%')
-    // KINEO-GESTURE-2026-07-10 — success = no videos row (normal); live
-    // failure refunds happen in /api/gesture-clip-status.
-    .not('render_id', 'like', 'gesture-%')
-    .not('render_id', 'like', 'cinematic-%')
-    .not('render_id', 'like', 'avatar-%')
-    .not('render_id', 'like', 'adsv2%') // KINEO-ADS-V2-2026-09-28: adsv2-/adsv2redo- são varridos por sweepAbandonedAdsV2Debits (abaixo)
-    .order('created_at', { ascending: false })
-    .limit(200)
+  // KINEO-ESTORNO-INDEVIDO-2026-09-29 — a lista de exclusão mora em lib/credits/sweepScope.ts (lib pura,
+  // guardada por scripts/test-estorno-indevido-2026-09-29.mjs), com o porquê de cada chave. Antes eram
+  // .not() soltos aqui, e image-/imgedit-/audio-/upscale-/enhance-/enhance4k-/voice-clone-/scene-gen-
+  // ficaram de fora: todo sucesso desses produtos (que não grava linha em `videos`) era estornado 2-3 h
+  // depois. ATENÇÃO (herdado do KINEO-CLIPES-2026-09-29): 'clips-%' não casa com 'clip-%' — o Modo Clipe
+  // do Studio (clip-<uuid>) grava linha em `videos` e CONTINUA nesta varredura.
+  for (const pattern of GENERIC_SWEEP_EXCLUDED_PATTERNS) query = query.not('render_id', 'like', pattern)
+  const { data: debits, error } = await query.order('created_at', { ascending: false }).limit(200)
 
   if (error) {
     console.error('[refund/sweep] debit query failed:', error.message)
     return result
   }
-  const candidates = debits ?? []
+  // Segunda camada, MESMA lista: se um .not() se perder no builder, o JS ainda recusa a chave.
+  const candidates = (debits ?? []).filter((d) => isGenericSweepCandidate(d.render_id as string))
   result.scanned = candidates.length
   if (candidates.length === 0) return result
 
@@ -674,6 +686,165 @@ export async function sweepAbandonedAdsV2Debits(): Promise<{
         metadata: { billing_reference: d.render_id, order_id: order.id, amount, reason: 'abandoned_ads_v2' },
       })
     }
+  }
+  return result
+}
+
+// ═══ KINEO-ESTORNO-INDEVIDO-2026-09-29 — redes com a prova CERTA ═══════════════
+// A varredura genérica acima julga "entregou" por linha em `videos`; imagem,
+// áudio e enhance nunca gravam essa linha e eram estornados SEMPRE (medido em
+// 29/09: 32 imagens, 22 áudios e 11 enhances ENTREGUES e devolvidos). Agora
+// saem dela (lib/credits/sweepScope.ts) e cada um tem a sua rede, que só
+// estorna quando a prova DO PRODUTO falta:
+//   image-/imgedit-/audio- → linha em `images`/`audios` do mesmo dono até 3 min
+//     depois do débito (rota síncrona de 60 s: a falha comum já estorna na hora;
+//     aqui só sobra a requisição que morreu no meio);
+//   enhance-/enhance4k-    → videos.enhanced_url do vídeo da chave.
+// upscale-/voice-clone-/scene-gen- não gravam prova por débito: ficam só com o
+// estorno da própria rota (que existe em todos os caminhos de falha).
+// Todo estorno daqui grava `credits_refunded` com o motivo — rastro por pessoa.
+// Janela de revisão: débitos entre 24 h e 2 h atrás (o cron roda de hora em hora,
+// cada débito é julgado ~22 vezes; sem piso, todo sucesso seria relido para sempre).
+// ═══════════════════════════════════════════════════════════════════════════
+const PRODUCT_SWEEP_MIN_AGE_MS = 2 * 60 * 60 * 1000
+const PRODUCT_SWEEP_MAX_AGE_MS = 24 * 60 * 60 * 1000
+
+type ProductDebit = { render_id: string; user_id: string; amount: number; created_at: string }
+
+async function logProductRefund(db: SupabaseClient, d: ProductDebit, amount: number, reason: string, extra?: Record<string, unknown>) {
+  const { error } = await db.from('events').insert({
+    user_id: d.user_id,
+    name: 'credits_refunded',
+    path: '/api/cron/refund-sweep',
+    metadata: { billing_reference: d.render_id, amount, reason, debited_at: d.created_at, ...(extra ?? {}) },
+  })
+  if (error) console.warn(`[refund/product-sweep] event insert failed ref=${d.render_id}:`, error.message)
+}
+
+export async function sweepAbandonedMediaDebits(): Promise<{
+  scanned: number
+  delivered: number
+  refunded: number
+  creditsReturned: number
+}> {
+  const result = { scanned: 0, delivered: 0, refunded: 0, creditsReturned: 0 }
+  const db = adminClient()
+  if (!db) return result
+  const newest = new Date(Date.now() - PRODUCT_SWEEP_MIN_AGE_MS).toISOString()
+  const oldest = new Date(Date.now() - PRODUCT_SWEEP_MAX_AGE_MS).toISOString()
+
+  for (const product of SYNC_MEDIA_PRODUCTS) {
+    const { data: debits, error } = await db
+      .from('credit_debits')
+      .select('render_id, user_id, amount, created_at')
+      .eq('kind', 'video')
+      .is('refunded_at', null)
+      .like('render_id', product.pattern)
+      .lt('created_at', newest)
+      .gt('created_at', oldest)
+      .order('created_at', { ascending: true })
+      .limit(200)
+    if (error) {
+      console.error(`[refund/media-sweep] ${product.prefix} debit query failed:`, error.message)
+      continue
+    }
+    const candidates = (debits ?? []) as ProductDebit[]
+    result.scanned += candidates.length
+    if (candidates.length === 0) continue
+
+    // Uma leitura por produto: linhas dos donos na faixa [1º débito, último débito + janela].
+    const users = Array.from(new Set(candidates.map((d) => d.user_id)))
+    // min/max calculados (não candidates[0]/[n-1]): a faixa não pode depender da ordem que o banco devolveu.
+    const times = candidates.map((d) => Date.parse(d.created_at)).filter((t) => Number.isFinite(t))
+    if (times.length === 0) continue
+    const from = new Date(Math.min(...times) - 5000).toISOString()
+    const to = new Date(Math.max(...times) + SYNC_MEDIA_DELIVERY_WINDOW_MS).toISOString()
+    const { data: rows, error: rowsErr } = await db
+      .from(product.table)
+      .select('user_id, created_at')
+      .in('user_id', users)
+      .gte('created_at', from)
+      .lte('created_at', to)
+      .limit(5000)
+    if (rowsErr) {
+      // Fail CLOSED: sem a prova lida, nada é estornado.
+      console.error(`[refund/media-sweep] ${product.table} lookup failed — skipping ${product.prefix}:`, rowsErr.message)
+      continue
+    }
+    const deliveries = (rows ?? []) as { user_id: string; created_at: string }[]
+    if (deliveries.length >= 5000) {
+      // Leitura possivelmente truncada = prova incompleta: não estorna nada deste produto nesta rodada.
+      console.error(`[refund/media-sweep] ${product.table} lookup hit the 5000-row cap — skipping ${product.prefix}`)
+      continue
+    }
+    for (const d of candidates) {
+      if (hasDeliveryInWindow(d, deliveries)) { result.delivered += 1; continue }
+      const amount = await refundRenderCredits(d.render_id)
+      if (amount > 0) {
+        result.refunded += 1
+        result.creditsReturned += amount
+        await logProductRefund(db, d, amount, 'abandoned_sync_media', { table: product.table })
+      }
+    }
+  }
+  if (result.refunded > 0) {
+    console.log(`[refund/media-sweep] refunded ${result.refunded} abandoned media debit(s), ${result.creditsReturned} credits`)
+  }
+  return result
+}
+
+export async function sweepAbandonedEnhanceDebits(): Promise<{
+  scanned: number
+  delivered: number
+  noVideoRow: number
+  refunded: number
+  creditsReturned: number
+}> {
+  const result = { scanned: 0, delivered: 0, noVideoRow: 0, refunded: 0, creditsReturned: 0 }
+  const db = adminClient()
+  if (!db) return result
+  const newest = new Date(Date.now() - PRODUCT_SWEEP_MIN_AGE_MS).toISOString()
+  const oldest = new Date(Date.now() - PRODUCT_SWEEP_MAX_AGE_MS).toISOString()
+  const { data: debits, error } = await db
+    .from('credit_debits')
+    .select('render_id, user_id, amount, created_at')
+    .eq('kind', 'video')
+    .is('refunded_at', null)
+    .like('render_id', 'enhance%')
+    .lt('created_at', newest)
+    .gt('created_at', oldest)
+    .order('created_at', { ascending: true })
+    .limit(200)
+  if (error) {
+    console.error('[refund/enhance-sweep] debit query failed:', error.message)
+    return result
+  }
+  const candidates = ((debits ?? []) as ProductDebit[]).filter((d) => enhanceVideoIdFromRenderId(d.render_id))
+  result.scanned = candidates.length
+  if (candidates.length === 0) return result
+  const ids = Array.from(new Set(candidates.map((d) => enhanceVideoIdFromRenderId(d.render_id) as string)))
+  const { data: vids, error: vidErr } = await db.from('videos').select('id, user_id, enhanced_url').in('id', ids)
+  if (vidErr) {
+    console.error('[refund/enhance-sweep] videos lookup failed — skipping:', vidErr.message)
+    return result
+  }
+  const byId = new Map<string, { id: string; user_id: string; enhanced_url: string | null }>()
+  for (const v of (vids ?? []) as { id: string; user_id: string; enhanced_url: string | null }[]) byId.set(String(v.id), v)
+
+  for (const d of candidates) {
+    const video = byId.get(enhanceVideoIdFromRenderId(d.render_id) as string)
+    const decision = enhanceRefundDecision(video && video.user_id === d.user_id ? video : null)
+    if (decision === 'delivered') { result.delivered += 1; continue }
+    if (decision === 'no_video_row') { result.noVideoRow += 1; continue }
+    const amount = await refundRenderCredits(d.render_id)
+    if (amount > 0) {
+      result.refunded += 1
+      result.creditsReturned += amount
+      await logProductRefund(db, d, amount, 'abandoned_enhance')
+    }
+  }
+  if (result.refunded > 0) {
+    console.log(`[refund/enhance-sweep] refunded ${result.refunded} undelivered enhance(s), ${result.creditsReturned} credits`)
   }
   return result
 }

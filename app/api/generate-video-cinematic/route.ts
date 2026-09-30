@@ -7,6 +7,13 @@ import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credit
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { S25_PUBLIC, enginePaused } from '@/lib/engineLaunch'
 import { seedance15sVisible } from '@/lib/engineLaunch' // KINEO-SEEDANCE-15S-2026-09-29
+import { duracoesCurtasVisible } from '@/lib/engineLaunch' // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29
+// [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29 — as fotos do rosto viram o protagonista:
+// a régua pura (quem, motor, preço ANTES do débito, quais cenas, o pedido ao edit) e o servidor (assinar, gerar, moderar). [KINEO-ESTRELA-DO-FILME-2026-09-29]
+import { estrelaVisible } from '@/lib/engineLaunch' // KINEO-ESTRELA-DO-FILME-2026-09-29
+import { decideEstrelaRequest, estrelaPedida, estrelaSobretaxa, estrelaFingerprintSuffix, formatoComEstrela, fichaDaEstrela, planoDaEstrela, promptRetratoEstrela, relatoDaEstrela, motorDaEstrela, ESTRELA_VERSION } from '@/lib/estrelaDoFilme' // KINEO-ESTRELA-DO-FILME-2026-09-29
+import { assinarFotosDaEstrela, gerarStillsDaEstrela, ESTRELA_STILL_USD } from '@/lib/estrelaServer' // KINEO-ESTRELA-DO-FILME-2026-09-29
+import { mentionsContemporaryFigure } from '@/lib/hollywood/router' // KINEO-ESTRELA-DO-FILME-2026-09-29 — celebridade atual nomeada + estrela = recusa
 import { checarDuracao, checarFalaDoFilmeCurto, supportedDurationsFor, mensagemDaRecusaDeDuracao, scriptTooLongForShortFilmMessage } from '@/lib/durationByEngine' // KINEO-SEEDANCE-15S-2026-09-29
 import { SEEDANCE_SHORT_SECONDS, SEEDANCE_SHORT_CLIPS, seedanceShortSpeechSeconds, seedanceShortClipSeconds, isSeedance15 } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29
 import { ritmoDaVozNoIdioma, fatorDoRitmoDoIdioma, ritmoDoFilmeCurto } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29
@@ -51,6 +58,7 @@ import {
 } from '@/lib/cinematic/dispatchScenes'
 import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
 import { seedanceShortMarkedScenes } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 15 s] KINEO-CONTAGEM-FALA-15S-2026-09-29 (linha própria: a rota só GANHA linhas)
+import { checarFalaCurtaDoMotor, scriptTooLongForShortFilmMessageDoMotor, pistasDosTrechos } from '@/lib/durationByEngine' // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 (linha própria)
 import { describeScenesCovered, completeSceneDescriptions, hasSpeechArtifacts, type DescriptionCoverage } from '@/lib/cinematic/sceneDescriptions' // [TRAVA 8.2] KLING25-DESCRICOES-2026-09-28
 import { kling25FootageNeeded, kling25ShotCount, kling25SceneSeconds, kling25ClipsUsd, kling25WriterBudget, kling25AlignBudget, kling25AverageShotSeconds, kling25VerbatimPlan, kling25VisualHint, kling25SceneWordStarts, kling25PlanPace, kling25WordsFit, KLING25_CLIP_LOSS_SECONDS, kling25ApplyShotAxis, kling25StripShotAxis } from '@/lib/cinematic/klingShots' // KINEO-KLING25-PLANOS-5S-2026-09-28 · KINEO-KLING25-VARIEDADE-2026-09-28
 import { resolveCharacterVoice } from '@/lib/hollywood/characterVoice'
@@ -1390,7 +1398,10 @@ async function manipularPost(req: NextRequest) {
     // AGORA: o formato e inferido do CONTEUDO. Documentario, misterio,
     // ciencia e noticia nascem faceless; apresentador so por pedido
     // explicito. A tag antiga continua valendo para quem ja a usa.
-    const formatoVisual = decidirFormato(prompt, tagFacelessPresente)
+    // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29 — com a estrela o filme MOSTRA a pessoa:
+    // documentary_faceless vira character_story (pessoa muda em cena). Pedido de estrela recusado mais abaixo volta antes de [KINEO-ESTRELA-DO-FILME-2026-09-29]
+    // qualquer trabalho; sem `estrela` no corpo, formatoComEstrela devolve a decisão de sempre (o mesmo objeto). [KINEO-ESTRELA-DO-FILME-2026-09-29]
+    const formatoVisual = formatoComEstrela(decidirFormato(prompt, tagFacelessPresente), estrelaPedida((body as { estrela?: unknown }).estrela)) // KINEO-ESTRELA-DO-FILME-2026-09-29
     const facelessRequested = !permiteApresentador(formatoVisual.modo)
     console.log(`[formato] visual_mode=${formatoVisual.modo} — ${formatoVisual.motivo}`)
     if (!prompt) {
@@ -1546,17 +1557,52 @@ async function manipularPost(req: NextRequest) {
         reason: 'language_not_supported_by_engine', language: narrationLanguage.language, retryable: false,
       }, { status: 422 })
     }
+    // ═══ KINEO-ESTRELA-DO-FILME-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] — o pedido da estrela ═══
+    // Tudo ANTES do custo, do claim e do débito: interruptor (conta de fora = 403), motor com âncora (Kineo 1/Sora/S25 = 422), [KINEO-ESTRELA-DO-FILME-2026-09-29]
+    // consentimento do servidor, 1-3 fotos da pasta da PRÓPRIA conta (lib/imageReference isOwnReferencePath) e as URLs [KINEO-ESTRELA-DO-FILME-2026-09-29]
+    // assinadas (15 min) já na mão — foto sumida = 400, nada cobrado. Sem `estrela` no corpo: inativa, nada muda. [KINEO-ESTRELA-DO-FILME-2026-09-29]
+    const estrelaDecisao = decideEstrelaRequest({ // KINEO-ESTRELA-DO-FILME-2026-09-29
+      raw: (body as { estrela?: unknown }).estrela, // KINEO-ESTRELA-DO-FILME-2026-09-29
+      engine: body.engine, // KINEO-ESTRELA-DO-FILME-2026-09-29
+      userId: user.id, // KINEO-ESTRELA-DO-FILME-2026-09-29
+      visible: estrelaVisible(user.email), // KINEO-ESTRELA-DO-FILME-2026-09-29
+      anchorEnabled: wantsHollywood || wantsH3 || wantsOmni || wantsS25 || CINEMATIC_ANCHOR_ENABLED, // KINEO-ESTRELA-DO-FILME-2026-09-29 (estrada hollywood = âncora sempre; clássicos = o interruptor)
+    }) // KINEO-ESTRELA-DO-FILME-2026-09-29
+    if (!estrelaDecisao.ok) { // KINEO-ESTRELA-DO-FILME-2026-09-29
+      void writeServerEvent({ name: 'estrela_requested', userId: user.id, path: '/api/generate-video-cinematic', metadata: { outcome: 'refused', code: estrelaDecisao.code, engine: motorDaEstrela(body.engine), charged: false, version: ESTRELA_VERSION } }) // KINEO-ESTRELA-DO-FILME-2026-09-29
+      return NextResponse.json({ error: estrelaDecisao.error, reason: estrelaDecisao.code, retryable: false, charged: false, refunded: false }, { status: estrelaDecisao.status }) // KINEO-ESTRELA-DO-FILME-2026-09-29
+    } // KINEO-ESTRELA-DO-FILME-2026-09-29
+    const estrelaAtiva = estrelaDecisao.ativa // KINEO-ESTRELA-DO-FILME-2026-09-29
+    // A exceção da regra REAL PEOPLE é só do protagonista SEM nome. Celebridade atual nomeada no texto + fotos de rosto = o [KINEO-ESTRELA-DO-FILME-2026-09-29]
+    // caminho de um deepfake: recusa aqui, em QUALQUER motor (o portão anti-deepfake de sempre só cobre a estrada hollywood). [KINEO-ESTRELA-DO-FILME-2026-09-29]
+    if (estrelaAtiva && mentionsContemporaryFigure(prompt)) { // KINEO-ESTRELA-DO-FILME-2026-09-29
+      void writeServerEvent({ name: 'estrela_requested', userId: user.id, path: '/api/generate-video-cinematic', metadata: { outcome: 'refused', code: 'estrela_real_person', engine: motorDaEstrela(body.engine), charged: false, version: ESTRELA_VERSION } }) // KINEO-ESTRELA-DO-FILME-2026-09-29
+      return NextResponse.json({ error: 'Star of the film is for a private person with their permission — your text names a public figure. Remove the name or turn off Star of the film. Nothing was charged.', reason: 'estrela_real_person', sanitized_prompt: sanitizeRealPeople(prompt), retryable: false, charged: false, refunded: false }, { status: 400 }) // KINEO-ESTRELA-DO-FILME-2026-09-29
+    } // KINEO-ESTRELA-DO-FILME-2026-09-29
+    let estrelaFotos: string[] = [] // KINEO-ESTRELA-DO-FILME-2026-09-29
+    if (estrelaDecisao.ativa) { // KINEO-ESTRELA-DO-FILME-2026-09-29
+      const assinadas = await assinarFotosDaEstrela(estrelaDecisao.paths) // KINEO-ESTRELA-DO-FILME-2026-09-29
+      if (!assinadas || assinadas.length !== estrelaDecisao.paths.length) { // KINEO-ESTRELA-DO-FILME-2026-09-29
+        void writeServerEvent({ name: 'estrela_requested', userId: user.id, path: '/api/generate-video-cinematic', metadata: { outcome: 'refused', code: 'estrela_missing', engine: estrelaDecisao.engine, charged: false, version: ESTRELA_VERSION } }) // KINEO-ESTRELA-DO-FILME-2026-09-29
+        return NextResponse.json({ error: 'Star photo not found — upload it again. Nothing was charged.', reason: 'estrela_missing', retryable: false, charged: false, refunded: false }, { status: 400 }) // KINEO-ESTRELA-DO-FILME-2026-09-29
+      } // KINEO-ESTRELA-DO-FILME-2026-09-29
+      estrelaFotos = assinadas // KINEO-ESTRELA-DO-FILME-2026-09-29
+    } // KINEO-ESTRELA-DO-FILME-2026-09-29
+    /** A sobretaxa da estrela nesta duração (0 sem estrela). A MESMA função que a tela do /studio soma ao preço. [KINEO-ESTRELA-DO-FILME-2026-09-29] */
+    const estrelaSobretaxaDe = (segundos: number): number => (estrelaAtiva ? estrelaSobretaxa(body.engine, segundos) : 0) // KINEO-ESTRELA-DO-FILME-2026-09-29
     // ═══ KINEO-SEEDANCE-15S-2026-09-29 [TRAVA 8.2 — "vai" nominal do fundador para o 15 s] ═══
     // 15 s é só do Seedance 1.5. Nos outros motores um alvo abaixo de 35 é RECUSADO aqui — antes do custo (mais abaixo,
     // `const cost = creditCostForDuration(`), do claim e do débito —, nunca trocado por 35 em silêncio (a tela mostrou o
     // preço de 15 s; subir depois do clique é cobrança-surpresa). Fecha também o furo antigo: Kling 3 pedido a 15 s
     // planejava ~34 s (Math.max(30, …)+4) e cobrava 15 s. Revisão E2a: no Seedance, alvo < 15 (ou não finito) também é
     // recusa ('duration_not_offered') — duration 10 pagava 5 cr (piso de 10 s da conta) por 2 clipes de IA.
+    // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 — desde este bloco o 15 s vale também no Kling 2.5 e no
+    // [KINEO-DURACOES-CURTAS-2026-09-29] Veo 3.1 (e 15/30 s na estrada hollywood): a tabela motor × durações é lib/durationByEngine supportedDurationsFor; fora dela, a mesma recusa.
     {
       const checagemDuracao = checarDuracao(typeof body.engine === 'string' ? body.engine : null, duration)
       if (!checagemDuracao.ok) {
         await writeServerEvent({ name: 'duration_engine_refused', userId: user.id, path: '/api/generate-video-cinematic', metadata: { engine: typeof body.engine === 'string' ? body.engine : null, requested_seconds: duration, suggested_seconds: checagemDuracao.sugestao, charged: false, version: 'seedance_15s_20260929' } })
-        return NextResponse.json({ error: mensagemDaRecusaDeDuracao(checagemDuracao), reason: checagemDuracao.recusa, engine: typeof body.engine === 'string' ? body.engine : null, requested_seconds: duration, suggested_seconds: checagemDuracao.sugestao, retryable: false, charged: false, refunded: false }, { status: 422 })
+        return NextResponse.json({ error: mensagemDaRecusaDeDuracao(checagemDuracao, typeof body.engine === 'string' ? body.engine : null), reason: checagemDuracao.recusa, engine: typeof body.engine === 'string' ? body.engine : null, requested_seconds: duration, suggested_seconds: checagemDuracao.sugestao, retryable: false, charged: false, refunded: false }, { status: 422 }) // KINEO-DURACOES-CURTAS-2026-09-29
       }
     }
     const family: CinematicFamily = wantsH3 ? 'h3' : wantsOmni ? 'omni' : wantsS25 ? 's25' : 'hollywood'
@@ -1669,6 +1715,7 @@ async function manipularPost(req: NextRequest) {
       ? autofitDownAt(parsedScript.narration, requestedDuration, narrationRate, {
           // O planner hollywood trava o alvo em `Math.max(30, …)` — descer
           // abaixo de 30 ali seria puxado de volta e a fala voltaria a faltar.
+          // KINEO-DURACOES-CURTAS-2026-09-29 (entrega 3): o piso do alvo virou 15, mas o do degrau fica 30 — 20/25 s não existem no seletor (lib/narrationFit).
           floorSeconds: hollywoodPath ? AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD : AUTOFIT_DOWN_FLOOR_SECONDS,
         })
       : null
@@ -1936,9 +1983,22 @@ async function manipularPost(req: NextRequest) {
           : wantsVeo
             ? 'cinematic_veo'
             : 'cinematic_ai'
-    const cost = creditCostForDuration(costQuality, true, duration)
+    const cost = creditCostForDuration(costQuality, true, duration) + estrelaSobretaxaDe(duration) // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29: + a sobretaxa da estrela (0 sem estrela), ANTES do claim e do débito
     const duracaoCobrada = duration // V2-PRECO-DA-DURACAO-ENTREGUE-2026-09-23: a duração que o `cost` precifica
     void baseCost // mantido para leitura: é o valor de referência a 60s
+    // KINEO-ESTRELA-DO-FILME-2026-09-29 — o pedido aceito, com a sobretaxa já dentro do `cost` (contagens; nunca caminho ou URL).
+    if (estrelaDecisao.ok && estrelaDecisao.ativa) void writeServerEvent({ name: 'estrela_requested', userId: user.id, path: '/api/generate-video-cinematic', metadata: { outcome: 'accepted', engine: estrelaDecisao.engine, seconds: duration, photos: estrelaDecisao.paths.length, surcharge_cr: estrelaSobretaxaDe(duration), cost, dry_run: body.dry_run === true, version: ESTRELA_VERSION } }) // KINEO-ESTRELA-DO-FILME-2026-09-29
+    // ═══ KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] — roteiro longo pedido como filme curto ═══
+    // [KINEO-DURACOES-CURTAS-2026-09-29] A guarda do Seedance 15 s (acima, byte a byte) nos outros motores com duração curta (Kling 2.5 e Veo 3.1 a 15 s; a estrada
+    // [KINEO-DURACOES-CURTAS-2026-09-29] hollywood a 15/30 s): em verbatim o filme segue a fala, o preço fica selado na duração pedida. Fala estimada > alvo × 1,25 =
+    // [KINEO-DURACOES-CURTAS-2026-09-29] recusa AQUI, antes do claim e do débito, com o custo real da duração sugerida (creditCostForDuration do MESMO motor).
+    { // KINEO-DURACOES-CURTAS-2026-09-29
+      const falaCurtaDoMotor = checarFalaCurtaDoMotor({ engine: typeof body.engine === 'string' ? body.engine : null, seconds: duration, verbatim, language: narrationLanguage.language, narration: parsedScript.narration }) // KINEO-DURACOES-CURTAS-2026-09-29
+      if (!falaCurtaDoMotor.ok) { // KINEO-DURACOES-CURTAS-2026-09-29
+        await writeServerEvent({ name: 'short_film_script_too_long_refused', userId: user.id, path: '/api/generate-video-cinematic', metadata: { engine: typeof body.engine === 'string' ? body.engine : null, requested_seconds: duration, est_speech_seconds: Math.round(falaCurtaDoMotor.estSeconds), limit_seconds: falaCurtaDoMotor.limitSeconds, suggested_seconds: falaCurtaDoMotor.sugestao, words_per_second: falaCurtaDoMotor.wordsPerSecond, charged: false, version: 'duracoes_curtas_20260929' } }) // KINEO-DURACOES-CURTAS-2026-09-29
+        return NextResponse.json({ error: scriptTooLongForShortFilmMessageDoMotor(falaCurtaDoMotor, duration, creditCostForDuration(costQuality, true, falaCurtaDoMotor.sugestao)), reason: falaCurtaDoMotor.recusa, requested_seconds: duration, est_speech_seconds: Math.round(falaCurtaDoMotor.estSeconds), suggested_seconds: falaCurtaDoMotor.sugestao, retryable: false, charged: false, refunded: false }, { status: 422 }) // KINEO-DURACOES-CURTAS-2026-09-29
+      } // KINEO-DURACOES-CURTAS-2026-09-29
+    } // KINEO-DURACOES-CURTAS-2026-09-29
 
     // ═══ KINEO-E4-SAIDA-B-2026-09-29 [TRAVA 8.2 — "vai E4" do fundador] — ADMISSÃO DA COTA SEMANAL NOVA ═══
     // 1 Seedance 1.5 de 15 s por semana para conta grátis de país da lista (lib/freeWeeklyFilm.ts). ESTREITA de
@@ -2186,19 +2246,22 @@ async function manipularPost(req: NextRequest) {
       // A MESMA funcao que COBRA, nunca uma tabela local (a licao do
       // "Generate · 20 credits" que debitava 30).
       const custoDe = (m: string, d: number): number =>
-        creditCostForDuration(MOTOR_PARA_QUALIDADE[m] ?? 'cinematic_ai', true, d)
+        creditCostForDuration(MOTOR_PARA_QUALIDADE[m] ?? 'cinematic_ai', true, d) + (estrelaAtiva ? estrelaSobretaxa(m, d) : 0) // KINEO-ESTRELA-DO-FILME-2026-09-29: o resgate por saldo precifica com a estrela
       // KINEO-SEEDANCE-15S-2026-09-29 (B10) — no Seedance, a recusa por saldo também oferece o 15 s (7 cr), mas só para
       // quem o interruptor SEEDANCE_15S_PUBLIC já mostra o botão (a casa, até o canário). Nos outros motores o 15 s não existe.
       const duracoesDoResgate: readonly number[] = motorPedido === 'seedance' && seedance15sVisible(user.email)
         ? supportedDurationsFor('seedance')
         : DURACOES_DO_SELETOR
+      // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 — nos outros motores a recusa por saldo também
+      // [KINEO-DURACOES-CURTAS-2026-09-29] oferece as durações curtas do motor (Kling 2.5/Veo 15 s; hollywood 15/30 s), para quem o interruptor DURACOES_CURTAS_PUBLIC mostra os botões.
+      const duracoesDoResgateCurtas: readonly number[] | null = motorPedido !== 'seedance' && duracoesCurtasVisible(user.email) ? supportedDurationsFor(motorPedido) : null // KINEO-DURACOES-CURTAS-2026-09-29
       const resgateDoSaldo = heldExplainsGap
         ? ({ tipo: 'cabe' } as const)
         : planoDeResgate({
             motorAtual: motorPedido,
             duracaoAtual: duration,
             saldo: balance,
-            duracoes: duracoesDoResgate,
+            duracoes: duracoesDoResgateCurtas ?? duracoesDoResgate, // KINEO-DURACOES-CURTAS-2026-09-29
             custoDe,
             motoresDisponiveis: premiumLiberado
               ? ['seedance', 'h3', 'kling', 'veo', 'hollywood', 'omni']
@@ -2339,7 +2402,7 @@ async function manipularPost(req: NextRequest) {
       engine: claimEngine,
       language: narrationLanguageCode(body.language) ?? 'en', // KINEO-IDIOMAS-15
       vertical: typeof body.vertical === 'string' ? body.vertical.trim().toLowerCase() : '',
-      characterId: typeof body.characterId === 'string' ? body.characterId.trim() : '',
+      characterId: (typeof body.characterId === 'string' ? body.characterId.trim() : '') + estrelaFingerprintSuffix(estrelaDecisao), // KINEO-ESTRELA-DO-FILME-2026-09-29: com e sem estrela não são o mesmo pedido ('' sem estrela = impressão de sempre)
       brollScenes: planScenes,
       globalStyle: gStyle ?? null,
     })
@@ -2927,6 +2990,10 @@ async function manipularPost(req: NextRequest) {
     // é ele produzir o tamanho certo, não recusar o pedido da pessoa.
     if (verbatim && parsedScript.narration) {
       let fit = narrationFitAt(parsedScript.narration, duration, narrationRate)
+      // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 — a duração curta que o MOTOR oferece (15 s; 30 s na
+      // [KINEO-DURACOES-CURTAS-2026-09-29] hollywood — lib/durationByEngine supportedDurationsFor) não é "alvo fantasma": sem isto o resgate/aterrissagem abaixo trocava o
+      // [KINEO-DURACOES-CURTAS-2026-09-29] 15 pedido por 35 só para escrever a recusa ("you asked for a 35-second video" a quem pediu 15). Fora dos curtos, a lista de sempre.
+      const oferecidasDoPortao: readonly number[] = !SUPPORTED_DURATIONS.includes(duration as (typeof SUPPORTED_DURATIONS)[number]) && supportedDurationsFor(typeof body.engine === 'string' ? body.engine : null).includes(duration) ? [...SUPPORTED_DURATIONS, duration] : SUPPORTED_DURATIONS // KINEO-DURACOES-CURTAS-2026-09-29
       // ═══ sprint-v1v4 #20 — NAO RECUSE POR UM NUMERO QUE ELA NAO ESCOLHEU ═══
       // 11 das 15 recusas de narracao em 14 dias mediram o roteiro contra 45s,
       // e 45 nao existe no seletor (35/60/90) desde 20/08. Antes de recusar, o
@@ -2938,7 +3005,7 @@ async function manipularPost(req: NextRequest) {
         fitOk: fit.ok,
         alvoPedido: duration,
         falaSegundos: fit.speech,
-        oferecidas: SUPPORTED_DURATIONS,
+        oferecidas: oferecidasDoPortao, // KINEO-DURACOES-CURTAS-2026-09-29
         maiorQueCabe: largestFittingDuration(fit.speech),
       })
       if (resgate) {
@@ -2977,7 +3044,7 @@ async function manipularPost(req: NextRequest) {
           fitOk: fit.ok,
           alvoPedido: duration,
           falaSegundos: fit.speech,
-          oferecidas: SUPPORTED_DURATIONS,
+          oferecidas: oferecidasDoPortao, // KINEO-DURACOES-CURTAS-2026-09-29
           maiorQueCabe: largestFittingDuration(fit.speech),
         })
         if (pouso) {
@@ -3168,7 +3235,7 @@ async function manipularPost(req: NextRequest) {
     // Limite conhecido e aceito: se este render ainda falhar depois e for estornado INTEIRO, a pessoa fica com a diferença
     // a mais (a favor dela, só no caso raro de filme encurtado + falha).
     if (duration < duracaoCobrada) {
-      const precoEntregue = creditCostForDuration(costQuality, true, duration)
+      const precoEntregue = creditCostForDuration(costQuality, true, duration) + estrelaSobretaxaDe(duration) // KINEO-ESTRELA-DO-FILME-2026-09-29: a estrela da duração entregue (a diferença dela volta junto)
       const diferenca = cost - precoEntregue
       if (diferenca > 0) {
         try {
@@ -3293,6 +3360,12 @@ async function manipularPost(req: NextRequest) {
     const classicVisualPolicy: VisualPromptPolicy = {
       mode: classicVisualMode, style: styleAnchor, character: storyCharacter, aspect: aspectRequested,
     }
+    // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29 — com a estrela, o personagem de TODA cena é a pessoa
+    // das fotos, com UM figurino escrito (a ficha do autor, a do cenário reconhecido ou uma genérica) — o still de cada cena é um [KINEO-ESTRELA-DO-FILME-2026-09-29]
+    // pedido independente, então a continuidade de roupa/idade tem de estar no texto. Sem estrela: a ficha de sempre. [KINEO-ESTRELA-DO-FILME-2026-09-29]
+    const estrelaFicha: string | null = estrelaAtiva ? fichaDaEstrela(prompt, storyCharacter) : null // KINEO-ESTRELA-DO-FILME-2026-09-29
+    // A política da estrada clássica passa a carregar a ficha da estrela (o escritor de cenas e o prompt de cada cena a repetem). [KINEO-ESTRELA-DO-FILME-2026-09-29]
+    if (estrelaFicha) classicVisualPolicy.character = estrelaFicha // KINEO-ESTRELA-DO-FILME-2026-09-29
     let scenes: { description: string; voiceover: string; caption: string; stockSearchQuery?: string; aiPrompt?: string; clipSeconds?: number }[] // clipSeconds: KINEO-KLING25-PLANOS-5S-2026-09-28 (só Kling 2.5)
 
     if (verbatim) {
@@ -3431,6 +3504,25 @@ async function manipularPost(req: NextRequest) {
         clipCount = scenes.length
       }
     }
+
+    // ═══ [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 — Kling 2.5 e Veo 3.1 a 15 s com roteiro MARCADO ═══
+    // [KINEO-DURACOES-CURTAS-2026-09-29] No filme de 15 s o roteiro marcado (o "Let AI structure it" devolve 4 blocos; colado, até 7) planeja pelo divisor da PROSA do
+    // [KINEO-DURACOES-CURTAS-2026-09-29] motor (kling25VerbatimPlan / veoVerbatimPlan: cada plano cabe a sua fala, o mais barato) e cada plano herda as pistas
+    // [KINEO-DURACOES-CURTAS-2026-09-29] [Pexels: …] de todos os blocos que a sua fala toca (lib/durationByEngine pistasDosTrechos). Motivo — dinheiro e bloco: bloco a
+    // [KINEO-DURACOES-CURTAS-2026-09-29] bloco, um HOOK de 13 palavras pedia 10 s de Kling (11 cabem em 5 s) e 4 blocos viravam 25-30 s de imagem para ~16 s de fala
+    // [KINEO-DURACOES-CURTAS-2026-09-29] (15 cr ≈ US$ 2,75 contra ≈ US$ 2,80 de fal+still+voz: margem NEGATIVA, executado no guardião); pelo divisor são 20 s. E
+    // [KINEO-DURACOES-CURTAS-2026-09-29] nenhum bloco some (resolveVerbatimSegments sorteava blocos quando havia mais blocos que planos). Nenhuma palavra muda: as
+    // [KINEO-DURACOES-CURTAS-2026-09-29] falas dos planos somam a narração. 35/60/90, Seedance e hollywood: nada roda aqui.
+    if ((wantsKling || wantsVeo) && duration === SEEDANCE_SHORT_SECONDS && verbatim && parsedScript.segments.length > 0 && parsedScript.narration) { // KINEO-DURACOES-CURTAS-2026-09-29
+      const planoCurto = wantsKling ? kling25VerbatimPlan(parsedScript.narration, { durationSeconds: duration, wordsPerSecond: narrationRate.wordsPerSecond }) : veoVerbatimPlan(parsedScript.narration, { durationSeconds: duration, wordsPerSecond: narrationRate.wordsPerSecond }) // KINEO-DURACOES-CURTAS-2026-09-29
+      if (planoCurto.chunks.length > 0) { // KINEO-DURACOES-CURTAS-2026-09-29
+        const pistasCurtas = pistasDosTrechos(parsedScript.segments, planoCurto.chunks) // KINEO-DURACOES-CURTAS-2026-09-29
+        scenes = planoCurto.chunks.map((fala, i) => ({ description: pistasCurtas[i] || fala, voiceover: fala, caption: shortCaptionFromVoiceover(fala), stockSearchQuery: pistasCurtas[i] || fala, clipSeconds: planoCurto.seconds[i] })) // KINEO-DURACOES-CURTAS-2026-09-29
+        console.log(`[cinematic] KINEO-DURACOES-CURTAS: 15 s ${wantsKling ? 'Kling 2.5' : 'Veo 3.1'} marcado (${parsedScript.segments.length} blocos) em ${scenes.length} planos [${planoCurto.seconds.join(',')}] pelo divisor da fala, pistas herdadas`) // KINEO-DURACOES-CURTAS-2026-09-29
+        clipCount = scenes.length // KINEO-DURACOES-CURTAS-2026-09-29
+        if (wantsVeo) veoMarcadoRelato = null // KINEO-DURACOES-CURTAS-2026-09-29: o relato do VEO-MARCADO descrevia os planos substituídos
+      } // KINEO-DURACOES-CURTAS-2026-09-29
+    } // KINEO-DURACOES-CURTAS-2026-09-29
 
     // ═══ KINEO-KLING25-PLANOS-5S-2026-09-28 — no Kling 2.5 o roteiro verbatim em prosa vira planos que CABEM a própria fala
     // (lib/cinematic/klingShots kling25VerbatimPlan). Revisão adversarial (28/09, 06fe798a): o divisor por frase fazia cenas
@@ -3843,16 +3935,21 @@ async function manipularPost(req: NextRequest) {
       //              qualquer diferença de encoding derruba a elegibilidade.
       //              O piso operacional real é 63-65s, e 68 dá folga a isso)
       //   90s → 98  (mesma proporção de folga)
+      // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 (entrega 3) — o piso do alvo era 30
+      // [KINEO-DURACOES-CURTAS-2026-09-29] (Math.max(30, …)): 15 s pedidos planejavam 34 s (o furo que a rota recusava). Agora o piso é o menor alvo que a estrada
+      // [KINEO-DURACOES-CURTAS-2026-09-29] oferece (15 — lib/durationByEngine HOLLYWOOD_ENGINE_DURATIONS): 15 → 17 (+2: a entrega encolhe ~10 %, 1,5 s num filme de
+      // [KINEO-DURACOES-CURTAS-2026-09-29] 15; +4 seria 27 % de imagem paga a mais), 30 → 34 (+4, o tier curto de sempre). 35/60/90 → 39/68/98, byte a byte.
       const hollywoodTarget = (() => {
-        const req = Math.max(30, Math.min(90, Math.round(duration || 60)))
+        const req = Math.max(15, Math.min(90, Math.round(duration || 60))) // KINEO-DURACOES-CURTAS-2026-09-29: piso 30 → 15
         if (req >= 85) return req + 8   // tier 90s
         if (req >= 55) return req + 8   // tier 60s — piso do TikTok Rewards
+        if (req < 30) return req + 2    // KINEO-DURACOES-CURTAS-2026-09-29: tier 15 s
         return req + 4                  // tier curto
       })()
 
       // KINEO-FICHA-DO-PEDIDO-2026-09-15 — ensaio do Omni no deploy 0833bdd2: a ficha ia só na 1ª chamada e o plano final
       // vinha de um REPLAN (coerência/duração) sem ela → "25 years old, Hispanic descent". Uma constante, todas as chamadas.
-      const fichaDoPedidoTexto = deriveExplicitCharacter(prompt)
+      const fichaDoPedidoTexto = deriveExplicitCharacter(prompt) ?? (estrelaAtiva ? fichaDaEstrela(prompt, null) : null) // KINEO-ESTRELA-DO-FILME-2026-09-29: sem ficha do autor, a da estrela (figurino + continuidade) vai ao planejador
       let plan: HollywoodPlan
       try {
         plan = await planHollywoodScenes({
@@ -4140,7 +4237,11 @@ async function manipularPost(req: NextRequest) {
         }
         // ═══ END MIRROR ═══
         const sentences = sentencesRaw.flatMap(splitLongSentence)
-        if (totalWords >= 40 && sentences.length >= 3) {
+        // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 (entrega 3) — o C1 só redistribuía roteiro de
+        // [KINEO-DURACOES-CURTAS-2026-09-29] 40+ palavras em 3+ frases: um roteiro pronto de 15 s (33-42 palavras) caía FORA do contrato e o GPT escreveria a fala.
+        // [KINEO-DURACOES-CURTAS-2026-09-29] Nos alvos curtos da estrada (15/30 s) o C1 vale a partir de 12 palavras e 1 frase (o teto-rede divide a frase longa).
+        const c1Curto = duration < 35 && totalWords >= 12 && sentences.length >= 1 // KINEO-DURACOES-CURTAS-2026-09-29
+        if ((totalWords >= 40 && sentences.length >= 3) || c1Curto) { // KINEO-DURACOES-CURTAS-2026-09-29: + c1Curto
           type PlanScene = (typeof plan.scenes)[number]
           // KINEO-CENA-MUDA-2026-08-22 — índices das cenas que ficaram SEM
           // texto porque o roteiro acabou antes. Elas são PODADAS logo abaixo,
@@ -4970,6 +5071,8 @@ async function manipularPost(req: NextRequest) {
             character_sheet: plan.characterSheet ?? null,
             character_voice: resolveCharacterVoice(plan.characterSheet ?? ''),
             dialogue_scenes: plan.scenes.filter((sc) => sc.type === 'dialogue').length,
+            // KINEO-ESTRELA-DO-FILME-2026-09-29 — o ensaio de $0 mostra, cena a cena, qual still iria ao edit com o rosto (nada é gerado)
+            ...(estrelaAtiva ? { estrela: { ficha: fichaDaEstrela(prompt, plan.characterSheet), sobretaxa_cr: estrelaSobretaxaDe(duration), cenas: planoDaEstrela(plan.scenes.map((s) => ({ prompt: s.prompt, visual: s.prompt, tipo: s.type })), fichaDaEstrela(prompt, plan.characterSheet), true, prompt).map((p) => ({ cena: p.indice + 1, estrela: p.protagonista })) } } : {}), // KINEO-ESTRELA-DO-FILME-2026-09-29
             target_seconds: hollywoodTarget,
             // KINEO-DEGRAU-2026-09-03 — o plano de $0 reporta a duração que o
             // render pago realmente usaria (já descida) e de onde ela veio.
@@ -5303,6 +5406,29 @@ async function manipularPost(req: NextRequest) {
       } catch (e) {
         console.warn('[fala-x-imagem] hollywood falhou, planos originais seguem:', e instanceof Error ? e.message : String(e))
       }
+      // ═══ KINEO-ESTRELA-DO-FILME-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] — a ESTRELA na estrada hollywood ═══
+      // Kling 3 / MiniMax H3 / Omni Flash. Depois do supervisor fala×imagem (os prompts já são os finais) e ANTES do primeiro [KINEO-ESTRELA-DO-FILME-2026-09-29]
+      // POST de cena: (1) o retrato-âncora das cenas de diálogo passa a ser a estrela (edit com a ficha do plano), no lugar do [KINEO-ESTRELA-DO-FILME-2026-09-29]
+      // retrato FLUX — como o character-lock faz com o personagem salvo; (2) cada cena de apoio/cinemática COM protagonista [KINEO-ESTRELA-DO-FILME-2026-09-29]
+      // recebe o seu still da estrela, que vira a image_url da cena (vence a âncora de ambiente e o still FLUX). Tudo em paralelo [KINEO-ESTRELA-DO-FILME-2026-09-29]
+      // (4 por vez, 75 s no total); still que falha/é barrado = a cena segue exatamente o caminho de hoje. Sem estrela: nada roda. [KINEO-ESTRELA-DO-FILME-2026-09-29]
+      const estrelaHollywood: (string | null)[] = new Array(plan.scenes.length).fill(null) // KINEO-ESTRELA-DO-FILME-2026-09-29
+      if (estrelaAtiva && estrelaDecisao.ok && estrelaDecisao.ativa) { // KINEO-ESTRELA-DO-FILME-2026-09-29
+        providerSubmissionMayExist = true // KINEO-ESTRELA-DO-FILME-2026-09-29
+        const fichaH = fichaDaEstrela(prompt, plan.characterSheet) // KINEO-ESTRELA-DO-FILME-2026-09-29
+        const planoH = planoDaEstrela(plan.scenes.map((s) => ({ prompt: `${s.prompt}${eraSuffix}`, visual: s.prompt, tipo: s.type })), fichaH, true, prompt) // KINEO-ESTRELA-DO-FILME-2026-09-29
+        const querRetrato = Boolean(anchors) && plan.scenes.some((s) => s.type === 'dialogue') // KINEO-ESTRELA-DO-FILME-2026-09-29
+        const itensH = planoH.flatMap((p) => (p.protagonista && p.prompt && plan.scenes[p.indice].type !== 'dialogue' ? [{ indice: p.indice, prompt: p.prompt }] : [])) // KINEO-ESTRELA-DO-FILME-2026-09-29
+        if (querRetrato) itensH.unshift({ indice: plan.scenes.length, prompt: promptRetratoEstrela({ characterSheet: plan.characterSheet, environmentSheet: plan.environmentSheet, styleSheet: plan.styleSheet, ficha: fichaH }) }) // KINEO-ESTRELA-DO-FILME-2026-09-29
+        const r = await gerarStillsDaEstrela({ itens: itensH, total: plan.scenes.length + 1, imageUrls: estrelaFotos, aspect: aspectRequested, userId: user.id, engine: estrelaDecisao.engine, pool: 4, budgetMs: 75_000, pollWindowMs: 45_000 }) // KINEO-ESTRELA-DO-FILME-2026-09-29
+        for (let i = 0; i < plan.scenes.length; i++) estrelaHollywood[i] = r.urls[i] ?? null // KINEO-ESTRELA-DO-FILME-2026-09-29
+        const retratoEstrela = r.urls[plan.scenes.length] ?? null // KINEO-ESTRELA-DO-FILME-2026-09-29
+        if (retratoEstrela && anchors) anchors = { ...anchors, portraitUrl: retratoEstrela } // KINEO-ESTRELA-DO-FILME-2026-09-29
+        const dialogos = plan.scenes.filter((s) => s.type === 'dialogue').length // KINEO-ESTRELA-DO-FILME-2026-09-29
+        const relato = relatoDaEstrela(estrelaDecisao.engine, planoH, estrelaHollywood.filter(Boolean).length + (retratoEstrela ? dialogos : 0)) // KINEO-ESTRELA-DO-FILME-2026-09-29
+        console.log(`[estrela] gen=${generationId} engine=${estrelaDecisao.engine} cenas=${relato.scenes} ancoradas=${relato.anchored} fallback=${relato.fallback} retrato=${retratoEstrela ? 'estrela' : 'flux'} extra_usd=${(r.feitos * ESTRELA_STILL_USD).toFixed(2)}`) // KINEO-ESTRELA-DO-FILME-2026-09-29
+        void writeServerEvent({ name: 'estrela_scene_anchored', userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { ...relato, portrait: retratoEstrela ? 'estrela' : querRetrato ? 'fallback' : 'none', reasons: r.motivos, extra_usd: Math.round(r.feitos * ESTRELA_STILL_USD * 100) / 100 } }) // KINEO-ESTRELA-DO-FILME-2026-09-29
+      } // KINEO-ESTRELA-DO-FILME-2026-09-29
       for (const [idx, hs] of plan.scenes.entries()) {
         // `sceneModel`/`sceneEngine` (NOT `usedModel` — that name belongs to
         // the classic single-model path below and must not be shadowed).
@@ -5436,7 +5562,9 @@ async function manipularPost(req: NextRequest) {
           // lugares/eventos vai de t2v e ganha visual proprio.
           const envSig = (plan.environmentSheet ?? '').trim().toLowerCase().slice(0, 24)
           const inNarratorWorld = envSig.length > 8 && hs.prompt.toLowerCase().includes(envSig)
-          const anchorUrl = anchors
+          // KINEO-ESTRELA-DO-FILME-2026-09-29 — cena com protagonista e still da estrela pronto: a estrela é a âncora (vence a de
+          // ambiente e dispensa o still FLUX). Sem estrela, estrelaHollywood é todo null e a escolha é a de sempre. [KINEO-ESTRELA-DO-FILME-2026-09-29]
+          const anchorUrl = estrelaHollywood[idx] ? estrelaHollywood[idx] : anchors // KINEO-ESTRELA-DO-FILME-2026-09-29
             ? hs.type === 'dialogue'
               ? anchors.portraitUrl
               : inNarratorWorld ? anchors.environmentUrl : undefined
@@ -6202,6 +6330,8 @@ async function manipularPost(req: NextRequest) {
         visual_mode_reason: formatoVisual.motivo,
         contrato_cena: contratoRelatoClassico,
         fala_x_imagem: alinhamentoFalaImagem, // KINEO-FALA-X-IMAGEM — o que o supervisor reescreveu, a $0
+        // KINEO-ESTRELA-DO-FILME-2026-09-29 — o ensaio de $0 mostra, cena a cena, qual still iria ao edit com o rosto (nada é gerado)
+        ...(estrelaAtiva ? { estrela: { ficha: estrelaFicha, sobretaxa_cr: estrelaSobretaxaDe(duration), cenas: planoDaEstrela(scenes.map((s, i) => ({ prompt: classicScenePrompts[i], visual: s.aiPrompt || s.stockSearchQuery || s.description })), estrelaFicha ?? fichaDaEstrela(prompt, null), true, prompt).map((p) => ({ cena: p.indice + 1, estrela: p.protagonista })) } } : {}), // KINEO-ESTRELA-DO-FILME-2026-09-29
         ...relatorioDoEnsaio,
         // KINEO-KLING25-PLANOS-5S-2026-09-28 — os segundos de cada plano, o custo de clipe e a imagem necessária, como no pago
         ...(kling25ClipSeconds ? { clip_seconds: kling25ClipSeconds, clips_usd: kling25ClipsUsd(kling25ClipSeconds), footage_needed_seconds: kling25Footage, plan_words_per_second: kling25Passo } : {}),
@@ -6403,6 +6533,27 @@ async function manipularPost(req: NextRequest) {
       }
       return { kind: 'id', id: null, model: despachoCena.model }
     }
+
+    // ═══ KINEO-ESTRELA-DO-FILME-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] — a ESTRELA nas cenas com protagonista ═══
+    // Estrada clássica (Seedance 1.5, Kling 2.5, Veo 3.1). Depois do pool FLUX (que fica byte a byte o de sempre) e antes de [KINEO-ESTRELA-DO-FILME-2026-09-29]
+    // qualquer POST de clipe: cada cena com protagonista (lib/estrelaDoFilme planoDaEstrela, lido no plano cru da cena) ganha UM [KINEO-ESTRELA-DO-FILME-2026-09-29]
+    // pedido ao Nano Banana Pro edit com as fotos da conta + o prompt final da cena + a ficha + a instrução de identidade; o still [KINEO-ESTRELA-DO-FILME-2026-09-29]
+    // que volta aprovado pela moderação SUBSTITUI o FLUX daquela cena. O FLUX fica de reserva: still da estrela que falha, estoura [KINEO-ESTRELA-DO-FILME-2026-09-29]
+    // o prazo ou é barrado = a cena sai com o still de hoje (e o evento conta o fallback). No Seedance o teto de 6 stills FLUX [KINEO-ESTRELA-DO-FILME-2026-09-29]
+    // não vale para a estrela: cena 7+ com protagonista também vai em i2v com o rosto. Sem estrela: nada disto roda. [KINEO-ESTRELA-DO-FILME-2026-09-29]
+    // Fica FORA das fatias que os guardiões executam (política → submitScene), para elas continuarem sendo as da base. [KINEO-ESTRELA-DO-FILME-2026-09-29]
+    const estrelaMotor = estrelaDecisao.ok && estrelaDecisao.ativa ? estrelaDecisao.engine : motorDaEstrela(body.engine) // KINEO-ESTRELA-DO-FILME-2026-09-29
+    const estrelaPlanoClassico = estrelaAtiva && anchorActive // KINEO-ESTRELA-DO-FILME-2026-09-29
+      ? planoDaEstrela(scenes.map((s, i) => ({ prompt: classicScenePrompts[i], visual: s.aiPrompt || s.stockSearchQuery || s.description })), estrelaFicha ?? fichaDaEstrela(prompt, null), true, prompt) // KINEO-ESTRELA-DO-FILME-2026-09-29
+      : null // KINEO-ESTRELA-DO-FILME-2026-09-29
+    if (estrelaPlanoClassico) { // KINEO-ESTRELA-DO-FILME-2026-09-29
+      providerSubmissionMayExist = true // still da estrela é trabalho pago da fal: o claim fica protegido, como no FLUX // KINEO-ESTRELA-DO-FILME-2026-09-29
+      const estrelaResultado = await gerarStillsDaEstrela({ itens: estrelaPlanoClassico.flatMap((p) => (p.protagonista && p.prompt ? [{ indice: p.indice, prompt: p.prompt }] : [])), total: scenes.length, imageUrls: estrelaFotos, aspect: aspectRequested, userId: user.id, engine: estrelaMotor, pool: 4, budgetMs: 100_000, pollWindowMs: 45_000 }) // KINEO-ESTRELA-DO-FILME-2026-09-29
+      for (let i = 0; i < scenes.length; i++) if (estrelaResultado.urls[i]) sceneStills[i] = estrelaResultado.urls[i] // KINEO-ESTRELA-DO-FILME-2026-09-29
+      const relato = relatoDaEstrela(estrelaMotor, estrelaPlanoClassico, estrelaResultado.feitos) // KINEO-ESTRELA-DO-FILME-2026-09-29
+      console.log(`[estrela] gen=${generationId} engine=${estrelaMotor} cenas=${relato.scenes} protagonista=${relato.anchored + relato.fallback} ancoradas=${relato.anchored} fallback=${relato.fallback} extra_usd=${(estrelaResultado.feitos * ESTRELA_STILL_USD).toFixed(2)}`) // KINEO-ESTRELA-DO-FILME-2026-09-29
+      void writeServerEvent({ name: 'estrela_scene_anchored', userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { ...relato, reasons: estrelaResultado.motivos, extra_usd: Math.round(estrelaResultado.feitos * ESTRELA_STILL_USD * 100) / 100 } }) // KINEO-ESTRELA-DO-FILME-2026-09-29
+    } // KINEO-ESTRELA-DO-FILME-2026-09-29
 
     // KINEO-CINEMATIC-ANCHOR-2026-07-24 — returns per-scene ids AND the model
     // each scene actually ran on (i2v for anchored scenes, t2v otherwise), both
@@ -6735,6 +6886,9 @@ async function manipularPost(req: NextRequest) {
     // persona ficam de rastro); o /api/compose os põe no corpo antes de escolher a voz, em vez do `vertical` do navegador (que
     // o resgate do cron nem manda). Todo outro filme: resposta intacta.
     if (seedanceShortFilm && vozCurta) response.narration_voice = campoDaVozAssinada(vozCurta)
+    // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 — o filme de 15 s do Kling 2.5 e do Veo 3.1 fala a MESMA voz
+    // [KINEO-DURACOES-CURTAS-2026-09-29] do 15 s (lib/vozDoFilmeCurto — o portão acima mediu nela): vai assinada no claim do mesmo jeito, e o /api/compose a usa.
+    if (vozCurta && (wantsKling || wantsVeo)) response.narration_voice = campoDaVozAssinada(vozCurta) // KINEO-DURACOES-CURTAS-2026-09-29
     // The signed claim records the ACTUAL per-scene model (usedModels). When
     // anchoring is OFF these are all `usedModel`, identical to the previous
     // `falRequestIds.map(() => usedModel)`.

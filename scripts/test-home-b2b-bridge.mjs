@@ -50,7 +50,9 @@ const destination = read('app/ai-shorts-for-agencies/AgencyPacksClient.tsx')
 check(destination.includes('readAgencyDistributionEntry(window.location.search)'), 'destination reads the home entry')
 check(destination.includes("entry: entry ?? 'direct'"), 'destination measures actual arrival instead of the static link')
 
-const engineWallStart = landing.indexOf('{engineWall.length >= 4 && (')
+// REANCORADO 30/09 — fundador: "tira essa parte" (a grade de tiles de motor saiu). A vitrine aprovada que abre a home
+// agora é a fileira de filmes do hero (<HomeFeaturedFilms />); ela continua antes da ponte B2B.
+const engineWallStart = landing.indexOf('<HomeFeaturedFilms />')
 const howStart = landing.indexOf('<section id="how">')
 check(engineWallStart >= 0 && engineWallStart < howStart, 'approved engine wall remains before the new bridge')
 check(landing.includes('<TrendingRow videos={trending} />'), 'approved multi-engine row remains mounted')
