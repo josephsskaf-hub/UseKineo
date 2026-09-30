@@ -10,7 +10,7 @@
 // carregar" e o pedido recusa sem cobrar — seguro, mas feio).
 import { isInternalEmail } from '@/lib/internalAccounts'
 
-export const CLIPS_PUBLIC = false
+export const CLIPS_PUBLIC = true // LIGADO 29/09 (fundador: tabela aprovada + "ok para os testes"; clipe Seedance 5 s real entregue e persistido)
 
 /** O clipe aparece e funciona para este e-mail? Público depois do "vai"; antes, só a casa. */
 export function clipsVisible(email?: string | null): boolean {

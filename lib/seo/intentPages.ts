@@ -205,7 +205,7 @@ function formatPage(f: FormatSeed): IntentPage {
     engineWhy: f.why ?? 'Seedance 1.5 generates a scene for every line of the script.',
     faq: [
       { q: `How long does a ${f.name.replace(/s$/, '')} take?`, a: 'Every scene is rendered from your text, so it takes a few minutes; the screen shows the estimate before you start.' },
-      { q: 'Can I pick the length and the format?', a: 'Yes: 15 seconds (Seedance 1.5), 35, 60 or 90 seconds, and 9:16, 16:9, 1:1 or 4:5.' },
+      { q: 'Can I pick the length and the format?', a: 'Yes: 15, 35, 60 or 90 seconds (30 seconds on Kling 3 and MiniMax H3), and 9:16, 16:9, 1:1 or 4:5.' },
       { q: 'Are captions included?', a: 'Yes. Every word is on screen, timed to the voice, so the video works with the sound off.' },
     ],
   }
