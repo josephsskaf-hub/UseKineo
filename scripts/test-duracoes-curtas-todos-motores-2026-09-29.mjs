@@ -368,7 +368,7 @@ console.log('A8) as telas: os botões leem a tabela (interruptor DURACOES_CURTAS
   checa('/studio: os botões curtos de cada motor vêm de supportedDurationsFor(motor, { curtas }) e o card precifica na duração que o motor recebe', STUDIO.includes('[...supportedDurationsFor(key, { curtas: curtasOk })]') && STUDIO.includes("  const duracaoDoCard = (key: EngineKey): number => (key === 'seedance' || curtasDoMotor(key).includes(duration) ? duration : Math.max(duration, MIN_DURATION_ALL_ENGINES))") && STUDIO.includes('const cost = creditCostForDuration(ENGINE_QUALITY[eng.key] ?? \'cinematic_ai\', true, duration)'))
   checa('/studio: trocar de motor só volta a 35 s quando o motor novo não oferece a curta', STUDIO.includes('    if (engine !== \'seedance\' && duration < MIN_DURATION_ALL_ENGINES && !curtasDoMotor(engine).includes(duration)) setDuration(MIN_DURATION_ALL_ENGINES as 35)'))
   const GEN = rd('app/(dashboard)/generate/GenerateClient.tsx')
-  const fn = fatia(GEN, 'function durationOptionsFor(', "  15: { value: 15 as Duration, label: '15s — Teaser' },\n}") ?? ''
+  const fn = fatia(GEN, 'function durationOptionsFor(', "  30: { value: 30 as Duration, label: '30s — Short' },\n}") ?? ''
   const opcoes = fatia(GEN, 'const DURATION_OPTIONS: { value: Duration; label: string }[] = [', '\n]') ?? ''
   const seedOpt = (GEN.match(/\nconst SEEDANCE_SHORT_OPTION: [^\n]*/) ?? [''])[0]
   let G = null
@@ -382,7 +382,8 @@ console.log('A8) as telas: os botões leem a tabela (interruptor DURACOES_CURTAS
   const v = (m, e, s15, cur, c) => (G ? G(m, e, s15, cur, c).map((o) => o.value) : null)
   checa('/generate (executado): Kling/Veo com curtas → 15/35/60/90; sem → 35/60/90 (15 só se já está nele); Seedance e Kineo 1 como antes',
     Boolean(G) && eqJ(v('cinematic_ai', 'kling', false, 60, true), [15, 35, 60, 90]) && eqJ(v('cinematic_ai', 'veo', true, 60, false), [35, 60, 90]) && eqJ(v('cinematic_ai', 'veo', false, 15, false), [15, 35, 60, 90]) &&
-    eqJ(v('cinematic_ai', 'seedance', true, 60, false), [15, 35, 60, 90]) && eqJ(v('cinematic_ai', 'seedance', false, 60, true), [35, 60, 90]) && eqJ(v('fast', 'kling', true, 60, true), [35, 60, 90]))
+    eqJ(v('cinematic_ai', 'seedance', true, 60, false), [15, 35, 60, 90]) && eqJ(v('cinematic_ai', 'seedance', false, 60, true), [35, 60, 90]) && eqJ(v('fast', 'kling', true, 60, true), [35, 60, 90]) &&
+    eqJ(v('cinematic_ai', 'h3', false, 60, true), [15, 30, 35, 60, 90]) && eqJ(v('cinematic_ai', 'hollywood', false, 30, false), [30, 35, 60, 90]) && eqJ(v('cinematic_ai', 's25', false, 60, false), [35, 60, 90]))
   checa('/generate: o cinto do auto-disparo aceita a curta do Studio nos outros motores pela tabela', GEN.includes("    if (uDur > 0 && uDur < 35 && uEng !== '' && uEng !== 'seedance' && supportedDurationsFor(uEng).includes(uDur) && duration !== uDur) { setDuration(uDur as Duration); return }"))
   // handoff (executado): ?duration=15 com Kling/Veo fica 15; sem motor / Kineo 1 / Sora cai no padrão
   const H_SRC = rd('lib/creationHandoff.ts')
@@ -397,7 +398,237 @@ console.log('A8) as telas: os botões leem a tabela (interruptor DURACOES_CURTAS
   checa('handoff: o espelho CURTAS_DO_HANDOFF é a tabela do servidor (as curtas novas de cada motor)', Object.entries(tabelaHandoff).every(([m, ds]) => eqJ(ds, [...D.supportedDurationsFor(m)].filter((d) => d < 35))) && ['kling', 'veo'].every((m) => m in tabelaHandoff))
 }
 
-// ═══ SEÇÃO B — estrada HOLLYWOOD (15 e 30 s) — no commit seguinte ═══
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+// ═══ SEÇÃO B — estrada HOLLYWOOD (Kling 3, MiniMax H3, Omni, Seedance 2.5) a 15 e 30 s, voz própria a 2,3 pal/s ═══
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+const HW = ['hollywood', 'h3', 'omni', 's25']
+console.log('B0) a tabela e a porta da estrada hollywood')
+function provaTabelaHollywood(M) {
+  const r = []
+  for (const e of [...HW, 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni', 'cinematic_s25']) {
+    r.push(eqJ([...M.supportedDurationsFor(e)], [15, 30, 35, 60, 90]))
+    r.push(eqJ([...M.supportedDurationsFor(e, { curtas: false })], [35, 60, 90]))
+    for (const s of [15, 30, 35, 60, 90]) r.push(M.checarDuracao(e, s).ok === true)
+    const c20 = M.checarDuracao(e, 20); r.push(c20.ok === false && c20.recusa === 'duration_not_offered' && c20.sugestao === 30)
+    const c10 = M.checarDuracao(e, 10); r.push(c10.ok === false && c10.sugestao === 15)
+  }
+  r.push(M.mensagemDaRecusaDeDuracao(M.checarDuracao('h3', 25), 'h3') === 'MiniMax H3 films are 15, 30, 35, 60 or 90 seconds long; pick one of those. Nothing was charged.')
+  r.push(M.mensagemDaRecusaDeDuracao(M.checarDuracao('hollywood', 20), 'hollywood').startsWith('Kling 3 films are 15, 30, 35'))
+  return r.every(Boolean)
+}
+checa('Kling 3 / H3 / Omni / Seedance 2.5: 15/30/35/60/90 passam; 20/25 → sugere 30, 10 → 15; curtas:false esconde 15/30; frase pelo motor', provaTabelaHollywood(D))
+
+console.log('B1) o alvo do planejador: piso 30 → 15 (15 → 17, 30 → 34; 35/60/90 intactos) — a expressão REAL da rota, executada')
+const alvoHollywood = (rota) => {
+  const expr = fatia(rota, '      const hollywoodTarget = (() => {', '      })()')
+  if (!expr) return null
+  return (duration) => vm.runInNewContext(`(${expr.replace('      const hollywoodTarget = ', '')})`, { duration, Math })
+}
+const ALVO = alvoHollywood(ROTA)
+checa(`hollywoodTarget: 15 → ${ALVO?.(15)}, 30 → ${ALVO?.(30)}, 35 → ${ALVO?.(35)}, 60 → ${ALVO?.(60)}, 90 → ${ALVO?.(90)}`, Boolean(ALVO) && ALVO(15) === 17 && ALVO(30) === 34 && ALVO(35) === 39 && ALVO(60) === 68 && ALVO(90) === 98)
+const mutPiso = ROTA.replace('        const req = Math.max(15, Math.min(90, Math.round(duration || 60))) // KINEO-DURACOES-CURTAS-2026-09-29: piso 30 → 15', '        const req = Math.max(30, Math.min(90, Math.round(duration || 60)))')
+checa(`mutante: piso do alvo de volta a 30 (15 s pedidos planejam ${alvoHollywood(mutPiso)?.(15)} s — o "34 s" de antes) fica VERMELHO`, mutPiso !== ROTA && alvoHollywood(mutPiso)(15) === 34 && alvoHollywood(mutPiso)(15) !== 17)
+
+console.log('B2) o planejador hollywood (lib/hollywood/router.ts) executado com um GPT de mentira: alvo, instrução curta e teto')
+const ROUTER_P = 'lib/hollywood/router.ts'
+const ROUTER_SRC = rd(ROUTER_P)
+const FAKE_OPENAI = `export const gancho: any = { f: null }
+export const openai: any = { chat: { completions: { create: async (req: any) => gancho.f(req) } } }`
+const FAKE_VEED = `export const PRESENTER_MODEL = 'presenter'\nexport const PRESENTER_USD_PER_SECOND = 0.0562`
+function roteador(routerSrc) {
+  const Lr = carregador({ 'lib/openai.ts': FAKE_OPENAI, 'lib/avatar/veed.ts': FAKE_VEED, [ROUTER_P]: routerSrc })
+  const R = Lr('lib/hollywood/router')
+  R.__gancho = Lr('lib/openai').gancho
+  return R
+}
+const LINHA_LONGA = 'The narration keeps telling this story over the shot with concrete facts from the input, one clear sentence after another, until the scene ends.' // 25 palavras: sustenta 10 s
+const cenaGPT = (i, type, seconds, beat) => ({ index: i + 1, type, beat, seconds, prompt: `A wide cinematic shot number ${i + 1} of the story, handheld, film grain`, ...(type === 'dialogue' ? { dialogueLine: LINHA_LONGA } : { voiceover: LINHA_LONGA }), caption: `Scene ${i + 1}` })
+async function planejar(R, alvo, cenas, hostFits = false) {
+  const pedidos = []
+  R.__gancho.f = async (req) => { pedidos.push(req); return { choices: [{ message: { content: JSON.stringify({ genre: 'history', hostFits, stylized: false, characterSheet: 'a fictional woman in her forties with short gray hair and a green coat', environmentSheet: 'a quiet lakeside village at dawn', styleSheet: 'shot on 35mm, teal-orange grade, soft golden backlight, light film grain', scenes: cenas }) } }] } }
+  const plan = await R.planHollywoodScenes({ idea: 'A lake in Cameroon that killed a village in one night', durationSeconds: alvo, voiceoverScript: PROSA.en, language: 'en', faceless: !hostFits })
+  const user = pedidos[0]?.messages?.find((m) => m.role === 'user')?.content ?? ''
+  return { plan, user, total: plan.scenes.reduce((a, s) => a + s.seconds, 0) }
+}
+{
+  const R = roteador(ROUTER_SRC)
+  // GPT que ignora o alvo curto e devolve 5 cenas de 10 s (50 s) para um filme de 15 s
+  const gordo = Array.from({ length: 5 }, (_, i) => cenaGPT(i, i === 0 || i === 4 ? 'dialogue' : 'support', 10, i === 0 ? 'HOOK' : i === 4 ? 'PAYOFF' : 'ESCALATION'))
+  const p17 = await planejar(R, 17, gordo, true)
+  checa(`15 s (alvo 17): o pedido ao GPT diz "Target total duration: 17 seconds." + instrução de filme curto; plano de 50 s aparado a ${p17.total} s (teto 23), HOOK e PAYOFF nas pontas`, p17.user.includes('Target total duration: 17 seconds.') && p17.user.includes('SHORT FILM (STRICT') && p17.user.includes('Use 2 to 3 scenes') && p17.total <= 23 && p17.plan.scenes[0].beat === 'HOOK' && p17.plan.scenes[p17.plan.scenes.length - 1].beat === 'PAYOFF')
+  const p34 = await planejar(R, 34, gordo, true)
+  checa(`30 s (alvo 34): "Target total duration: 34 seconds." + instrução curta (3 a 5 cenas); teto 40 (plano ${p34.total} s)`, p34.user.includes('Target total duration: 34 seconds.') && p34.user.includes('Use 3 to 5 scenes') && p34.total <= 40)
+  const p39 = await planejar(R, 39, gordo, true)
+  checa(`35 s (alvo 39): pedido SEM instrução curta e teto de sempre (60 — o plano do GPT passa sem o teto curto: ${p39.total} s)`, p39.user.includes('Target total duration: 39 seconds.') && !p39.user.includes('SHORT FILM') && p39.total > 40)
+  checa('instrucaoDoFilmeCurto: vazia a partir de 35 (o prompt dos 35/60/90 fica byte a byte)', R.instrucaoDoFilmeCurto(39) === '' && R.instrucaoDoFilmeCurto(68) === '' && R.instrucaoDoFilmeCurto(98) === '' && R.instrucaoDoFilmeCurto(17).length > 0)
+  const mutRouter = ROUTER_SRC.replace('  const alvoDoPlano = Math.max(15, Math.min(100, Math.round(durationSeconds || 60))) // KINEO-DURACOES-CURTAS-2026-09-29: piso 30 → 15', '  const alvoDoPlano = Math.max(30, Math.min(100, Math.round(durationSeconds || 60)))')
+  const pm = await planejar(roteador(mutRouter), 17, gordo, true)
+  checa('mutante: piso de 30 de volta no planejador (o GPT ouve "30 seconds" para um filme de 15) fica VERMELHO', mutRouter !== ROUTER_SRC && !pm.user.includes('Target total duration: 17 seconds.'))
+  const mutTeto = ROUTER_SRC.replace('  const ceiling = (durationSeconds || 60) < 35 ? Math.round(durationSeconds) + 6 : Math.max(60, Math.round(durationSeconds || 60) + 6) // KINEO-DURACOES-CURTAS-2026-09-29', '  const ceiling = Math.max(60, Math.round(durationSeconds || 60) + 6)')
+  const pt = await planejar(roteador(mutTeto), 17, gordo, true)
+  checa(`mutante: teto do plano de volta a 60 no alvo curto (15 s pagaria ${pt.total} s de clipe) fica VERMELHO`, mutTeto !== ROUTER_SRC && pt.total > 23)
+}
+
+console.log('B3) o C1 e as passadas do verbatim (fatia REAL da rota) a 15 e 30 s: 4 famílias × en/pt/es × planos do GPT')
+const INI_HW = '      let verbatimOverflowWords = 0 // KINEO-FALA-MAIOR-QUE-A-CENA — sobra que não coube em cena nenhuma'
+const FIM_HW = "            sceneMax: SILENCE_SCENE_MAX_SECONDS, totalMax: silence.totalMax,\n          }, { status: 422 })\n        }\n      }"
+const TL = L('lib/cinematic/timelineContract')
+const FID = L('lib/hollywood/fidelidade')
+function montarHollywood(rota) {
+  const s = fatia(rota, INI_HW, FIM_HW)
+  if (!s) return null
+  const nomes = ['plan', 'verbatim', 'duration', 'DIALOGUE_CAP', 'SCENE_CAP', 'FILLER_LINE_RE', 'expandVoiceoversToTargets', 'appendNarrationToTargets', 'hollywoodLanguage', 'prompt', 'apararComFolga', 'removerDatasInventadas', 'scrubInventedSetting', 'planSilenceReport', 'writeServerEvent', 'user', 'generationId', 'family', 'MAX_VERBATIM_SCENES', 'hollywoodVoiceover', 'releaseBirthClaim', 'cinematicAdmin', 'body', 'NextResponse', 'hollywoodTarget', 'requestedDuration', 'degrau', 'formatoVisual', 'resolveCharacterVoice', 'cinematicSceneModel', 'buildFalInput', 'confirmCinematicRefund', 'SILENCE_SCENE_MAX_SECONDS', 'SILENCE_TOTAL_MAX_SECONDS', 'fitCinematicPlanFloor', 'console', 'resolveHollywoodVoice', 'hollywoodVertical', 'sceneNarrationsForPlan']
+  const src = `export async function rodar(ctx: any) {\n  const { ${nomes.join(', ')} } = ctx\n${s}\n  return { plan, rejeitado: null }\n}`
+  const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText
+  const exp = {}
+  vm.runInNewContext(js, { exports: exp, console: silencio, JSON, Math, Number, Array, Object, Set, Map, String })
+  return exp.rodar
+}
+const CAPS = { hollywood: [12, 15], h3: [12, 15], s25: [12, 15], omni: [10, 10] }
+const SCHEMA_HW = { hollywood: [3, 15], h3: [5, 15], omni: [3, 10], s25: [4, 30] } // buildFalInput: Kling O3 3-15 · H3 5-15 · Omni 3-10 · S25 '4'-'30'
+const USD_S_HW = { hollywood: 0.168, h3: 0.06, omni: 0.13, s25: 0.208 } // lib/hollywood/router *_USD_PER_SECOND
+const ENHANCE_S25 = 0.02 // Topaz Proteus fator 1 por segundo de filme (o S25 sai em 480p + Enhance)
+const ANCORAS_HW = 0.1 // ANCHORS_USD (as duas âncoras do Hollywood 3.0, régua conservadora)
+function ctxHollywood({ plan, familia, duracao, roteiro, ritmo = 1.0, idioma = 'en' }) {
+  const [SCENE_CAP, DIALOGUE_CAP] = CAPS[familia]
+  const NextResponse = { json: (b, init) => ({ rejeitado: b, status: init?.status ?? 200 }) }
+  const proibido = async () => { throw new Error('modelo de texto chamado em verbatim') }
+  return {
+    plan, verbatim: true, duration: duracao, DIALOGUE_CAP, SCENE_CAP, FILLER_LINE_RE: /^(imagine|what if)/i, expandVoiceoversToTargets: proibido, appendNarrationToTargets: proibido,
+    hollywoodLanguage: idioma, prompt: roteiro, apararComFolga: FID.apararComFolga, removerDatasInventadas: (t) => ({ texto: t, removidas: [] }), scrubInventedSetting: (t) => ({ text: t, removed: [] }),
+    planSilenceReport: TL.planSilenceReport, writeServerEvent: async () => true, user: { id: 'u1', email: 'cliente@example.com' }, generationId: 'g1', family: familia, MAX_VERBATIM_SCENES: 12,
+    hollywoodVoiceover: roteiro, releaseBirthClaim: async () => true, cinematicAdmin: { from: () => ({ insert: async () => ({}) }) }, body: {}, NextResponse, hollywoodTarget: ALVO(duracao), requestedDuration: duracao, degrau: null,
+    formatoVisual: { modo: 'documentary_faceless' }, resolveCharacterVoice: () => null, cinematicSceneModel: () => 'x', buildFalInput: () => ({}), confirmCinematicRefund: async () => true,
+    SILENCE_SCENE_MAX_SECONDS: 1.5, SILENCE_TOTAL_MAX_SECONDS: 8, fitCinematicPlanFloor: TL.fitCinematicPlanFloor, console: silencio,
+    resolveHollywoodVoice: () => ({ personaId: 'p', voice: 'onyx', defaultSpeed: ritmo }), hollywoodVertical: 'history', sceneNarrationsForPlan: (scenes) => scenes.map((sc) => (sc.type === 'dialogue' ? sc.dialogueLine : sc.voiceover) ?? null),
+  }
+}
+// Roteiros prontos (verbatim) no alvo do escritor da estrada: 15 s ≈ 33-42 palavras; 30 s ≈ 69-83 (2,3 pal/s × alvo × 0,95-1,2).
+const HW15 = {
+  en: 'In 1986, a quiet lake in Cameroon killed almost two thousand people in one night. The water hid a giant bubble of gas. It rolled downhill faster than anyone could run. Today, pipes vent it.',
+  pt: 'Em 1986, um lago tranquilo em Camarões matou quase duas mil pessoas numa só noite. A água escondia uma bolha gigante de gás. Ele desceu o vale mais rápido que qualquer pessoa. Hoje, canos soltam o gás.',
+  es: 'En 1986, un lago tranquilo de Camerún mató a casi dos mil personas en una noche. El agua escondía una burbuja gigante de gas. Bajó por el valle más rápido que nadie. Hoy, unos tubos lo liberan.',
+}
+const HW30 = {
+  en: `${HW15.en} Scientists learned the lake sits on a volcano that leaks gas into its deep water. For years the gas built up like a shaken soda. One landslide was enough to release it. Now alarms protect the villages.`,
+  pt: `${HW15.pt} Os cientistas descobriram que o lago fica sobre um vulcão que solta gás na água funda. Por anos o gás se acumulou como um refrigerante sacudido. Um deslizamento bastou para liberar tudo. Hoje, alarmes protegem as aldeias.`,
+  es: `${HW15.es} Los científicos descubrieron que el lago está sobre un volcán que suelta gas en el agua profunda. Durante años el gas se acumuló como un refresco agitado. Un deslizamiento bastó para liberarlo. Hoy, alarmas protegen las aldeas.`,
+}
+checa(`roteiros hollywood na faixa do escritor: 15 s ${Object.values(HW15).map((t) => palavras(t).length)} palavras (35–42), 30 s ${Object.values(HW30).map((t) => palavras(t).length)} (69–83)`, Object.values(HW15).every((t) => palavras(t).length >= 35 && palavras(t).length <= 42) && Object.values(HW30).every((t) => palavras(t).length >= 69 && palavras(t).length <= 83))
+// Planos que o GPT devolve (depois do teto do planejador): com apresentador (diálogo nas pontas) e sem (tudo narrado).
+const planoGPT = (duracao, host) => {
+  const forma = duracao === 15
+    ? (host ? [['dialogue', 5], ['support', 5], ['dialogue', 5]] : [['support', 5], ['support', 8], ['support', 5]])
+    : (host ? [['dialogue', 5], ['support', 10], ['cinematic', 8], ['support', 5], ['dialogue', 5]] : [['support', 8], ['support', 8], ['cinematic', 8], ['support', 8]])
+  return { characterSheet: 'a fictional woman', environmentSheet: 'a lakeside village', styleSheet: 'documentary', scenes: forma.map(([type, seconds], i) => cenaGPT(i, type, seconds, i === 0 ? 'HOOK' : i === forma.length - 1 ? 'PAYOFF' : 'ESCALATION')) }
+}
+const relatoriosHW = []
+const excecoesHW = []
+async function provaHollywood(rodar, caso) {
+  const plan = planoGPT(caso.duracao, caso.host)
+  const roteiro = (caso.duracao === 15 ? HW15 : HW30)[caso.idioma]
+  const r = await rodar(ctxHollywood({ plan, familia: caso.familia, duracao: caso.duracao, roteiro, ritmo: caso.ritmo, idioma: caso.idioma }))
+  if (!r.plan) { console.log('   (recusado: ' + JSON.stringify(r.rejeitado).slice(0, 300) + ')'); return { ok: false, rejeitado: r.rejeitado?.reason ?? 'sem plano', segundos: [], tipos: '', total: 0, silencio: 0, pior: 0, mudo: 0, margem: 0 } }
+  const cenas = r.plan.scenes
+  const falaDe = (sc) => (sc.type === 'dialogue' ? sc.dialogueLine : sc.voiceover) ?? ''
+  const total = cenas.reduce((a, sc) => a + (sc.seconds || 0), 0)
+  const ritmoVoz = Math.round(2.3 * Math.max(0.85, Math.min(1.1, caso.ritmo)) * 100) / 100
+  const reg = TL.planSilenceReport(cenas, ritmoVoz)
+  const totalMax = Math.round(8 * Math.max(1, total / 60) * 10) / 10
+  const mudo = cenas.filter((sc) => palavras(falaDe(sc)).length === 0).reduce((a, sc) => a + sc.seconds, 0)
+  const [cap, capD] = CAPS[caso.familia]
+  const [smin, smax] = SCHEMA_HW[caso.familia]
+  const enviados = cenas.map((sc) => Math.max(smin, Math.min(smax, Math.round(sc.seconds))))
+  const noSchema = cenas.every((sc, i) => sc.seconds <= (sc.type === 'dialogue' ? capD : sc.type === 'cinematic' ? 8 : cap) && enviados[i] >= sc.seconds - 1e-9 && enviados[i] >= smin && enviados[i] <= smax)
+  const juntas = cenas.map(falaDe).join(' ').replace(/'/g, '"').replace(/\s+/g, ' ').trim()
+  const falaInteira = juntas.replace(/"/g, "'") === roteiro.replace(/"/g, "'").replace(/\s+/g, ' ').trim()
+  const segundosFal = enviados.reduce((a, b) => a + b, 0)
+  const usd = segundosFal * USD_S_HW[caso.familia] + ANCORAS_HW + USD_TTS_COMPOSE + (caso.familia === 's25' ? total * ENHANCE_S25 : 0)
+  const receita = E.creditCostForDuration(QUALIDADE[caso.familia], true, caso.duracao) * USD_POR_CREDITO_STUDIO
+  const o = {
+    segundos: cenas.map((sc) => sc.seconds), tipos: cenas.map((sc) => sc.type[0]).join(''), total, rejeitado: r.rejeitado?.reason ?? null,
+    alvoOk: total >= caso.duracao, silencioOk: reg.worst <= 1.5 && reg.total <= totalMax, mudo, noSchema, falaInteira,
+    semRepetido: new Set(cenas.map(falaDe)).size === cenas.length,
+    usd: Math.round(usd * 100) / 100, receita: Math.round(receita * 100) / 100, margem: Math.round((1 - usd / receita) * 100), silencio: reg.total, pior: reg.worst,
+  }
+  o.ok = !o.rejeitado && o.alvoOk && o.silencioOk && o.mudo <= 6 && o.noSchema && o.falaInteira && o.semRepetido && o.margem > 0
+  return o
+}
+const executarHW = montarHollywood(ROTA)
+checa('a fatia do verbatim hollywood (C1 → teto-rede → apara → régua de silêncio) existe na rota', Boolean(executarHW))
+for (const familia of HW) for (const duracao of [15, 30]) for (const idioma of ['en', 'pt', 'es']) for (const host of [true, false]) for (const ritmo of [1.0, 0.94]) {
+  const caso = { familia, duracao, idioma, host, ritmo }
+  const o = await provaHollywood(executarHW, caso)
+  if (ritmo === 1.0) relatoriosHW.push({ ...caso, ...o })
+  // Exceção DECLARADA (não é do alvo curto): Omni (teto de diálogo 10 s) com o PAYOFF em diálogo de 21 palavras e voz lenta (×0,94 =
+  // 2,16 pal/s) — o teto-rede corta a cauda de 5 palavras numa cena de apoio de 4 s (piso do clipe) que não tem vizinha narrada para
+  // juntar: 1,7 s mudos e a régua de silêncio RECUSA antes de qualquer POST, com estorno (plan_silence_inside_scenes). É o caminho de
+  // sempre do Omni em qualquer duração (a cauda depois de um diálogo final); aqui fica registrado como recusa honesta, não aprovado.
+  const excecaoOmni = familia === 'omni' && ritmo === 0.94 && host && o.rejeitado === 'plan_silence_inside_scenes'
+  if (excecaoOmni) excecoesHW.push(`${familia} ${duracao} s ${idioma}`)
+  checa(`${familia} ${duracao} s ${idioma} ${host ? 'apresentador' : 'narrado'} voz ×${ritmo}: cenas ${o.tipos} [${o.segundos}] = ${o.total}s · ≥${duracao} ${o.alvoOk} · silêncio ${o.silencio}s (pior ${o.pior}) · mudo ${o.mudo}s · schema ${o.noSchema} · fala do autor inteira ${o.falaInteira} · margem ${o.margem}%${o.rejeitado ? ` · RECUSA HONESTA (sem débito) ${o.rejeitado}` : ''}`, o.ok || excecaoOmni)
+}
+checa(`recusas honestas da exceção declarada do Omni: ${excecoesHW.length} de ${HW.length * 2 * 3 * 2 * 2} casos (${excecoesHW.join('; ') || 'nenhuma'}) — no máximo 2`, excecoesHW.length <= 2)
+{
+  // Mutante: o C1 volta a exigir 40 palavras e 3 frases — o roteiro de 15 s cai fora do contrato (a fala seria a do GPT)
+  const mutC1 = ROTA.replace('        const c1Curto = duration < 35 && totalWords >= 12 && sentences.length >= 1 // KINEO-DURACOES-CURTAS-2026-09-29', '        const c1Curto = false')
+  const o = await provaHollywood(montarHollywood(mutC1), { familia: 'hollywood', duracao: 15, idioma: 'en', host: true, ritmo: 1.0 })
+  checa('mutante: C1 só a partir de 40 palavras (o roteiro de 15 s vira fala do GPT) fica VERMELHO', mutC1 !== ROTA && !o.falaInteira)
+}
+
+console.log('B4) roteiro longo pedido a 15/30 s na estrada hollywood: recusa antes do débito')
+function provaGuardaHW(M) {
+  const t = (n) => Array.from({ length: n }, (_, i) => `w${i}`).join(' ')
+  const g = (engine, seconds, n) => M.checarFalaCurtaDoMotor({ engine, seconds, verbatim: true, narration: t(n), language: 'en' })
+  const r = []
+  for (const e of HW) {
+    r.push(g(e, 15, 43).ok === true)
+    const x = g(e, 15, 44); r.push(x.ok === false && x.sugestao === 30 && x.maxWords === 43 && x.wordsPerSecond === 2.3)
+    r.push(g(e, 30, 86).ok === true)
+    const y = g(e, 30, 87); r.push(y.ok === false && y.sugestao === 35 && y.maxWords === 86)
+    r.push(g(e, 35, 300).ok === true)
+  }
+  return r.every(Boolean)
+}
+checa('hollywood: 15 s aceita até 43 palavras (44 → sugere 30 s), 30 s até 86 (87 → sugere 35 s); 35 s fora da guarda', provaGuardaHW(D))
+{
+  const r = []
+  for (const q of ['cinematic_hollywood', 'cinematic_h3', 'cinematic_omni', 'cinematic_s25']) {
+    const reg = W.writerRateFor(q, 'x', 'en')
+    const min15 = W.minWordsFor(15, reg.wordsPerSecond, reg.coverage), max15 = W.maxWordsFor(15, reg.wordsPerSecond, reg.coverage)
+    const min30 = W.minWordsFor(30, reg.wordsPerSecond, reg.coverage), max30 = W.maxWordsFor(30, reg.wordsPerSecond, reg.coverage)
+    r.push(min15 === 35 && max15 === 42 && min30 === 69 && max30 === 83)
+    r.push(max15 <= D.maxWordsCurtoDoMotor(q, 15, 'en') && max30 <= D.maxWordsCurtoDoMotor(q, 30, 'en')) // o escritor nunca escreve o que a guarda recusa
+    r.push(min15 / 2.3 >= 15 * 0.95 - 1e-9 && min30 / 2.3 >= 30 * 0.95 - 1e-9) // o piso do escritor passa no portão de 95 % (2,3 pal/s)
+  }
+  const GS = rd('app/api/generate-script/route.ts')
+  r.push(GS.includes('const SUPPORTED_TARGETS = [15, 30, 35, 60, 90] as const'))
+  checa('escritor hollywood: 15 s → 35–42 palavras, 30 s → 69–83 (o 30 entra em SUPPORTED_TARGETS); o teto cabe na guarda e o piso passa no portão', r.every(Boolean))
+}
+
+console.log('B5) preço e telas da estrada hollywood')
+{
+  const r = []
+  for (const m of HW) {
+    const base = E.creditCostFor(QUALIDADE[m], true)
+    for (const s of [15, 30]) r.push(E.creditCostForDuration(QUALIDADE[m], true, s) === Math.ceil(base * s / 60))
+    r.push(E.creditCostForDuration(QUALIDADE[m], true, 15) < E.creditCostForDuration(QUALIDADE[m], true, 30) && E.creditCostForDuration(QUALIDADE[m], true, 30) < E.creditCostForDuration(QUALIDADE[m], true, 35))
+  }
+  checa('preço hollywood a 15/30 s = ⌈base × s/60⌉ (Kling 3/Omni/S25 38 e 75 cr; H3 12 e 23), em ordem crescente até os 35 s', r.every(Boolean) && E.creditCostForDuration('cinematic_hollywood', true, 15) === 38 && E.creditCostForDuration('cinematic_h3', true, 30) === 23)
+  const GEN = rd('app/(dashboard)/generate/GenerateClient.tsx')
+  const STUDIO = rd('app/(dashboard)/studio/StudioClient.tsx')
+  checa('/generate e /studio conhecem o 30 (tipo da duração e rótulo); o Diretor aceita 15/30', GEN.includes("  30: { value: 30 as Duration, label: '30s — Short' },") && /\ntype Duration = 15 \| 30 \| 35 \| 45 \| 60 \| 90\b/.test(GEN) && /\ntype StudioDuration = 15 \| 30 \| 35 \| 60 \| 90\b/.test(STUDIO) && rd('lib/diretor/suggest.ts').includes('export const DIRETOR_DURATIONS = [15, 30, 35, 60, 90] as const'))
+  const H_SRC = rd('lib/creationHandoff.ts')
+  const Hexp = {}
+  vm.runInNewContext(ts.transpileModule(H_SRC, { compilerOptions: { module: 1, target: 9 } }).outputText, { exports: Hexp, require: () => ({}) })
+  const q = (s) => Hexp.readCreationHandoff(new URLSearchParams(s)).duration
+  checa('handoff: 30 com H3/Kling 3/Omni/S25 fica 30; 30 com Kling 2.5/Seedance/sem motor cai no padrão', q('duration=30&engine=h3') === 30 && q('duration=30&engine=hollywood') === 30 && q('duration=15&engine=s25') === 15 && q('duration=30&engine=kling') === null && q('duration=30&engine=seedance') === null && q('duration=30') === null)
+  const CV = rd('lib/contadorVoz.ts')
+  checa('contador da tela usa a MESMA tabela com o interruptor (curtas) — sem prometer duração que a tela esconde', (CV.match(/supportedDurationsFor\(args\.engine, \{ curtas: args\.curtas \}\)/g) ?? []).length === 3 && (GEN.match(/seconds: duration, curtas: curtasOk \}\)/g) ?? []).length === 2)
+}
+
+console.log('\nTabela motor × duração (hollywood — plano final da fatia REAL da rota, voz ×1,0, apresentador/narrado, Studio US$ 0,183/cr):')
+for (const r of relatoriosHW.filter((x) => x.idioma === 'en')) console.log(`   ${r.familia.padEnd(9)} ${String(r.duracao).padStart(2)} s ${r.host ? 'apresentador' : 'narrado     '} cenas ${r.tipos.padEnd(5)} [${r.segundos.join(',')}] = ${r.total}s · ${E.creditCostForDuration(QUALIDADE[r.familia], true, r.duracao)} cr = US$ ${r.receita} · fal+âncoras+voz ≈ US$ ${r.usd} · margem ${r.margem}%`)
 
 console.log('\nTabela motor × duração (clássico, 15 s — clipes PLANEJADOS pela rota, voz 2,5 pal/s, Studio US$ 0,183/cr):')
 for (const r of relatorios.filter((x) => x.wps === 2.5)) console.log(`   ${r.motor.padEnd(6)} ${r.idioma} ${r.forma.padEnd(8)} clipes [${r.segundos.join(',')}] = ${r.bruto}s · ${E.creditCostForDuration(QUALIDADE[r.motor], true, 15)} cr = US$ ${r.receita} · fal+still+tts ≈ US$ ${r.usd} · margem ${r.margem}%`)

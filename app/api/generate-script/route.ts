@@ -86,7 +86,7 @@ type Language = NarrationLanguage // KINEO-IDIOMAS-15: 16 códigos do catálogo 
 // `targetSeconds` no corpo, TUDO se comporta exatamente como antes (60s), para
 // os outros chamadores não mudarem de comportamento.
 // KINEO1-ROTEIRO-DA-COTA-2026-09-18 — 15 = a cota do filme grátis (não é opção do seletor; só o servidor a impõe).
-const SUPPORTED_TARGETS = [15, 35, 60, 90] as const
+const SUPPORTED_TARGETS = [15, 30, 35, 60, 90] as const // KINEO-DURACOES-CURTAS-2026-09-29 (entrega 3): + 30 (estrada hollywood: Kling 3, H3, Omni, Seedance 2.5)
 // Espelho de PAID_PLANS de app/api/compose/route.ts (o cobrador): mesmo predicado, mesma lista.
 const WRITER_PAID_PLANS = new Set(['starter', 'starter_trial', 'basic', 'basic_trial', 'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial'])
 // KINEO-REGUA-DO-ESCRITOR-2026-09-17 — o roteiro nasce na régua da voz que vai falar (lib/scriptWriterRate:

@@ -90,7 +90,7 @@ const ENGINE_QUALITY: Record<string, Quality> = {
 // o motor existir nos dois.
 type EngineKey = 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni' | 's25'
 // KINEO-DURACOES-CURTAS-2026-09-29 — as durações do seletor (a curta depende do motor: lib/durationByEngine supportedDurationsFor).
-type StudioDuration = 15 | 35 | 60 | 90
+type StudioDuration = 15 | 30 | 35 | 60 | 90 // 30: estrada hollywood (entrega 3)
 
 // KINEO-STUDIO-SPECS-2026-08-17 (fundador: 'so 1080p — as pessoas nao
 // precisam saber a quantidade de clips'): a ficha tecnica interna

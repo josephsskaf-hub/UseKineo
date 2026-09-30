@@ -505,7 +505,7 @@ function isProcessingPhase(p: Phase): boolean {
 // este tipo não sabia. Todo `35` que chegava por URL caía no fallback 45: a
 // pessoa clicava 35s e recebia (e pagava) 45s.
 // KINEO-SEEDANCE-15S-2026-09-29 — 15 = o filme curto do Seedance 1.5 (7 cr). Só existe nesse motor (lib/durationByEngine.ts).
-type Duration = 15 | 35 | 45 | 60 | 90
+type Duration = 15 | 30 | 35 | 45 | 60 | 90 // KINEO-DURACOES-CURTAS-2026-09-29: 30 = estrada hollywood
 // Push #084 — added 'fast' for the Pexels + TTS cheap pipeline (1 credit).
 // Cinematic quality tiers (basic / basic_ai / pro) still flow through Runway.
 // Push #315 — added 'cinematic_ai' for fal.ai Wan 2.1 mode.
@@ -569,6 +569,7 @@ function durationOptionsFor(mode: GenerationMode, aiEngine: string, seedance15Ok
 /** KINEO-DURACOES-CURTAS-2026-09-29 — o rótulo de cada duração curta dos outros motores (o valor vem da tabela do servidor). */
 const SHORT_OPTION_BY_SECONDS: Record<number, { value: Duration; label: string }> = {
   15: { value: 15 as Duration, label: '15s — Teaser' },
+  30: { value: 30 as Duration, label: '30s — Short' },
 }
 
 const POLL_GENERATING_MS = 4000
@@ -8179,7 +8180,7 @@ export default function GenerateClient({
         // STUDIO-CONTADOR-VOZ-2026-09-28: a checagem da análise mede na MESMA régua do contador e do servidor — a voz
         // que vai narrar (persona por nicho no clássico, 2,3 no hollywood), não a da família. Antes, 3,1 aqui e 2,3 lá.
         // KINEO-PONTAS-15S-IDIOMA-2026-09-29: com `seconds`, o 15 s do Seedance mede na voz do portão, no ritmo da língua.
-        const reguaAnalise = reguaDoServidorNaTela({ engine: mode === 'fast' || mode === 'creator' ? 'fast' : aiEngine, script: baseChecagem, language, vertical: analysis?.niche ?? null, seconds: duration })
+        const reguaAnalise = reguaDoServidorNaTela({ engine: mode === 'fast' || mode === 'creator' ? 'fast' : aiEngine, script: baseChecagem, language, vertical: analysis?.niche ?? null, seconds: duration, curtas: curtasOk }) // KINEO-DURACOES-CURTAS-2026-09-29: + curtas
         const falaSeg = falaNaReguaDaTela(baseChecagem, reguaAnalise) // KINEO-REGUA-UNICA: narração extraída, agora na régua da voz
         const cobre = falaSeg >= duration * MIN_COVERAGE
         // KINEO-CONTRATO-DURACAO-2026-09-02 — o espelho do bloqueio acima, para
@@ -14950,7 +14951,7 @@ export default function GenerateClient({
             if (scriptMode === 'verbatim') {
               const motorContador: ContadorMotor = mode === 'fast' || mode === 'creator' ? 'fast' : aiEngine
               // KINEO-PONTAS-15S-IDIOMA-2026-09-29: com `seconds`, o 15 s do Seedance mede na voz do portão, no ritmo da língua.
-              const reguaVoz = reguaDoServidorNaTela({ engine: motorContador, script: prompt, language, vertical: analysis?.niche ?? null, seconds: duration })
+              const reguaVoz = reguaDoServidorNaTela({ engine: motorContador, script: prompt, language, vertical: analysis?.niche ?? null, seconds: duration, curtas: curtasOk }) // KINEO-DURACOES-CURTAS-2026-09-29: + curtas
               const veredito = contadorVoz({ script: prompt, regua: reguaVoz, requestedSeconds: duration })
               if (!veredito) return null
               const frase = fraseDoContador(veredito, reguaVoz.persona ? reguaVoz.persona.name : null, motorContador)

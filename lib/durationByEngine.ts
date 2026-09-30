@@ -93,6 +93,7 @@ export function supportedDurationsFor(engine: string | null | undefined, opts?: 
   if (isSeedance15(engine)) return SEEDANCE_DURATIONS
   if (opts?.curtas === false) return DEFAULT_ENGINE_DURATIONS
   if (isKling25(engine) || isVeo31(engine)) return CLASSIC_SHORT_ENGINE_DURATIONS
+  if (isHollywoodRoad(engine)) return HOLLYWOOD_ENGINE_DURATIONS // KINEO-DURACOES-CURTAS-2026-09-29 (entrega 3): 15 e 30 s na voz própria
   return DEFAULT_ENGINE_DURATIONS
 }
 

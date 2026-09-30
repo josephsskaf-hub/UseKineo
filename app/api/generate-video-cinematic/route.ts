@@ -1673,6 +1673,7 @@ async function manipularPost(req: NextRequest) {
       ? autofitDownAt(parsedScript.narration, requestedDuration, narrationRate, {
           // O planner hollywood trava o alvo em `Math.max(30, …)` — descer
           // abaixo de 30 ali seria puxado de volta e a fala voltaria a faltar.
+          // KINEO-DURACOES-CURTAS-2026-09-29 (entrega 3): o piso do alvo virou 15, mas o do degrau fica 30 — 20/25 s não existem no seletor (lib/narrationFit).
           floorSeconds: hollywoodPath ? AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD : AUTOFIT_DOWN_FLOOR_SECONDS,
         })
       : null
@@ -3884,10 +3885,15 @@ async function manipularPost(req: NextRequest) {
       //              qualquer diferença de encoding derruba a elegibilidade.
       //              O piso operacional real é 63-65s, e 68 dá folga a isso)
       //   90s → 98  (mesma proporção de folga)
+      // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 (entrega 3) — o piso do alvo era 30
+      // (Math.max(30, …)): 15 s pedidos planejavam 34 s (o furo que a rota recusava). Agora o piso é o menor alvo que a estrada
+      // oferece (15 — lib/durationByEngine HOLLYWOOD_ENGINE_DURATIONS): 15 → 17 (+2: a entrega encolhe ~10 %, 1,5 s num filme de
+      // 15; +4 seria 27 % de imagem paga a mais), 30 → 34 (+4, o tier curto de sempre). 35/60/90 → 39/68/98, byte a byte.
       const hollywoodTarget = (() => {
-        const req = Math.max(30, Math.min(90, Math.round(duration || 60)))
+        const req = Math.max(15, Math.min(90, Math.round(duration || 60))) // KINEO-DURACOES-CURTAS-2026-09-29: piso 30 → 15
         if (req >= 85) return req + 8   // tier 90s
         if (req >= 55) return req + 8   // tier 60s — piso do TikTok Rewards
+        if (req < 30) return req + 2    // KINEO-DURACOES-CURTAS-2026-09-29: tier 15 s
         return req + 4                  // tier curto
       })()
 
@@ -4181,7 +4187,11 @@ async function manipularPost(req: NextRequest) {
         }
         // ═══ END MIRROR ═══
         const sentences = sentencesRaw.flatMap(splitLongSentence)
-        if (totalWords >= 40 && sentences.length >= 3) {
+        // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 (entrega 3) — o C1 só redistribuía roteiro de
+        // 40+ palavras em 3+ frases: um roteiro pronto de 15 s (33-42 palavras) caía FORA do contrato e o GPT escreveria a fala.
+        // Nos alvos curtos da estrada (15/30 s) o C1 vale a partir de 12 palavras e 1 frase (o teto-rede divide a frase longa).
+        const c1Curto = duration < 35 && totalWords >= 12 && sentences.length >= 1 // KINEO-DURACOES-CURTAS-2026-09-29
+        if ((totalWords >= 40 && sentences.length >= 3) || c1Curto) { // KINEO-DURACOES-CURTAS-2026-09-29: + c1Curto
           type PlanScene = (typeof plan.scenes)[number]
           // KINEO-CENA-MUDA-2026-08-22 — índices das cenas que ficaram SEM
           // texto porque o roteiro acabou antes. Elas são PODADAS logo abaixo,
