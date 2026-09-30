@@ -119,6 +119,11 @@ export async function sweepStuckRenderDebits(): Promise<{
     .not('render_id', 'like', 'cinematic-%')
     .not('render_id', 'like', 'avatar-%')
     .not('render_id', 'like', 'adsv2%') // KINEO-ADS-V2-2026-09-28: adsv2-/adsv2redo- são varridos por sweepAbandonedAdsV2Debits (abaixo)
+    // KINEO-CLIPES-2026-09-29: o clipe avulso do /clips NÃO cria linha em `videos` (mora na tabela `clips`) — esta
+    // varredura estornaria todo clipe bem-sucedido. clips-% tem rede própria: lib/clips/clipServer.ts sweepClipJobs (mesmo
+    // cron). ATENÇÃO: 'clips-%' não casa com 'clip-%' — o Modo Clipe do Studio (/api/generate-clip, clip-<uuid>) grava
+    // linha em `videos` e CONTINUA nesta varredura, como antes.
+    .not('render_id', 'like', 'clips-%')
     .order('created_at', { ascending: false })
     .limit(200)
 

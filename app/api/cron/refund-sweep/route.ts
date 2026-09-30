@@ -62,6 +62,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sweepAbandonedAdsV2Debits, sweepAbandonedAvatarDebits, sweepAbandonedCinematicDebits, sweepStuckRenderDebits } from '@/lib/credits/refund'
 import { sweepPublishedAnimateJobs, sweepStaleAnimateClaims } from '@/lib/animate/service'
+import { sweepClipJobs } from '@/lib/clips/clipServer'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -171,9 +172,22 @@ export async function GET(req: NextRequest) {
     console.error('[cron/refund-sweep] abandoned-ads-v2 sweep failed:', msg)
   }
   console.log('[cron/refund-sweep] ads_v2', JSON.stringify(adsV2))
+
+  // KINEO-CLIPES-2026-09-29 — o clipe avulso (/clips) debita no pedido (clips-<uuid>) e fica fora da varredura genérica
+  // (clipe entregue não tem linha em `videos`). Esta é a rede dele: pergunta à fal, persiste o que ficou pronto, estorna
+  // falha terminal, envio perdido (>10 min sem request_id) e prazo vencido (>6 h). Mesma função da rota de status.
+  const clips = { scanned: 0, delivered: 0, refunded: 0, creditsReturned: 0, waiting: 0 }
+  try {
+    Object.assign(clips, await sweepClipJobs())
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    errors.push(`clips: ${msg}`)
+    console.error('[cron/refund-sweep] clips sweep failed:', msg)
+  }
+  console.log('[cron/refund-sweep] clips', JSON.stringify(clips))
   console.log('[cron/refund-sweep]', JSON.stringify({ renders, animate, cinematic, animatePublished, avatar, errors }))
 
   // 200 mesmo com erro parcial: as três varreduras são idempotentes e rodam de
   // novo na hora seguinte. Um 5xx aqui só produziria ruído sem ação possível.
-  return NextResponse.json({ ok: errors.length === 0, renders, animate, cinematic, animatePublished, adsV2, errors })
+  return NextResponse.json({ ok: errors.length === 0, renders, animate, cinematic, animatePublished, adsV2, clips, errors })
 }
