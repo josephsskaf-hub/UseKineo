@@ -14,7 +14,7 @@
 // `speechRateFor`, a maior duração que cabe de `largestFittingDuration`, o "desce" de
 // `decideDurationFollowsScript` e o "sobe/teto" de `decideDurationFollowsScriptUp`. Nenhum 15/35/90/
 // 1,15 é digitado aqui: se a régua mudar lá, o contador acompanha (scripts/test-contador-voz-2026-09-28.mjs).
-import { MIN_COVERAGE, AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD } from '@/lib/narrationFit'
+import { minCoverageFor, AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD } from '@/lib/narrationFit'
 import { SUPPORTED_DURATIONS, largestFittingDuration } from '@/lib/expandPolicy'
 import { decideDurationFollowsScript, decideDurationFollowsScriptUp } from '@/lib/durationFollowsScript'
 import { speechRateFor, speechFamilyForQuality, speechSecondsAt, type SpeechRate } from '@/lib/speechRate'
@@ -143,15 +143,15 @@ export function contadorVoz(args: { script: string; regua: ReguaDaTela; requeste
   }
   const minSeconds = Math.min(...supported)
   if (largest === null) {
-    return { kind: 'too_short', words, speechSeconds, requested, minSeconds, missingWords: Math.max(1, Math.ceil((minSeconds * MIN_COVERAGE - speechSeconds) * wps)) }
+    return { kind: 'too_short', words, speechSeconds, requested, minSeconds, missingWords: Math.max(1, Math.ceil((minSeconds * minCoverageFor(minSeconds) - speechSeconds) * wps)) }
   }
   if (sobe?.kind === 'up') return { kind: 'up', words, speechSeconds, requested, to: sobe.to }
-  const fitOk = speechSeconds >= requested * MIN_COVERAGE
+  const fitOk = speechSeconds >= requested * minCoverageFor(requested)
   if (fitOk) return { kind: 'fits', words, speechSeconds, requested, narratesLonger: speechSeconds > requested * 1.05 }
   const desce = decideDurationFollowsScript({ fitOk, ownScript: true, requestedSeconds: requested, speechSeconds, largestFitting: largest, floorSeconds: args.regua.floorSeconds })
-  const missingWords = Math.max(1, Math.ceil((requested * MIN_COVERAGE - speechSeconds) * wps))
+  const missingWords = Math.max(1, Math.ceil((requested * minCoverageFor(requested) - speechSeconds) * wps))
   if (desce) return { kind: 'down', words, speechSeconds, requested, to: desce.to, missingWords }
-  return { kind: 'too_short', words, speechSeconds, requested, minSeconds, missingWords: Math.max(1, Math.ceil((minSeconds * MIN_COVERAGE - speechSeconds) * wps)) }
+  return { kind: 'too_short', words, speechSeconds, requested, minSeconds, missingWords: Math.max(1, Math.ceil((minSeconds * minCoverageFor(minSeconds) - speechSeconds) * wps)) }
 }
 
 /** A frase da tela, em inglês, uma linha por ramo — derivada só do veredito (nenhum número digitado). */

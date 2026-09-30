@@ -3,6 +3,13 @@
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
 
+## 2026-09-30 — Filme de 15 s aceita roteiro com 75 % de fala (antes 95 %)
+
+**QUEM DECIDIU:** o fundador, 30/09, sobre o cliente novo do ChatGPT barrado 3 vezes: "Vai tenta puxar ele pra gente" [TRAVA 8.2 — lib/narrationFit].
+**O CASO:** Seedance 15 s + roteiro próprio com ~12 s de fala → recusa "faltam 6 palavras", 3 vezes seguidas, sem cobrança. Desde 29/09: 10 tentativas de Seedance 15 s, 3 barradas (2 pessoas).
+**O QUE:** minCoverageFor(duração): até 15 s = 75 % (no máximo ~3,75 s de cena final com música); acima de 15 s continua 95 %. Vale para o guard do servidor, a sugestão de duração, o contador de voz e o /generate.
+**GUARDIÃO:** scripts/test-cobertura-15s-2026-09-30.mjs.
+
 ## 2026-09-30 (madrugada) — Sai da home a grade "Video" com os 6 motores
 
 **QUEM DECIDIU:** o fundador, 30/09, com print da seção: "tira essa parte".
