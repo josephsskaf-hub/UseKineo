@@ -28,6 +28,7 @@ import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { reguaDe95No15s } from './test-support/desfaz-cobertura-15s.mjs'
 // ═══ Reancorado KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] ═══
 // A entrega das durações curtas (15 s em todo motor de IA, 30 s na estrada hollywood) marca TODA linha que acrescenta à rota do
 // cinematic (e às outras rotas travadas) com KINEO-DURACOES-CURTAS-2026-09-29, e troca de propósito SEIS linhas da base (a frase da
@@ -76,7 +77,7 @@ const MOCKS = {
   // ElevenLabs desligado (flag de produção ausente): o ramo que a régua mede é o tts-1-hd
   '@/lib/narration/elevenlabs': { isElevenLabsEnabled: () => false, ttsModelForTier: () => 'tts-1-hd', synthesizeWithElevenLabs: async () => null, ELEVENLABS_DEFAULT_VOICE_ID: 'x' },
 }
-const L = createOfflineLoader({ mocks: MOCKS })
+const L = createOfflineLoader({ mocks: MOCKS, source: reguaDe95No15s }) // reancorado 30/09 (KINEO-COBERTURA-15S): esta prova é da régua de 95 % do 15 s de 29/09 — a régua de 75 % de 30/09 volta a 95 % em memória aqui e tem guardião próprio (test-cobertura-15s-2026-09-30)
 const SILENCIO = { log() {}, warn() {}, error() {} }
 const roda = (src) => {
   if (src == null) throw new Error('fonte ausente')

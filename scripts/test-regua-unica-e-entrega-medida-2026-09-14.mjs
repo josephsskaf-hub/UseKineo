@@ -25,7 +25,7 @@ checa('basis é sempre estimate (nunca áudio medido)', SR.speechRateFor({ famil
 console.log('== 2) lib/speechRate envolve lib/narrationFit (trava 8.2: intocado) — mesma aritmética ==')
 const NF = roda(rd('lib/narrationFit.ts'))
 const SPX = roda(rd('lib/scriptParser.ts'))
-const SRX = roda(rd('lib/speechRate.ts').replace(/import \{[\s\S]*?\} from '@\/lib\/narrationFit'/, '').replace(/import \{ parseSpeed, parseUserScript \} from '@\/lib\/scriptParser'/, ''), { parseSpeed: SPX.parseSpeed, parseUserScript: SPX.parseUserScript, narrationFit: NF.narrationFit, autofitDown: NF.autofitDown, WORDS_PER_SECOND: NF.WORDS_PER_SECOND, MIN_COVERAGE: NF.MIN_COVERAGE, MIN_AUTOFIT_DOWN_COVERAGE: NF.MIN_AUTOFIT_DOWN_COVERAGE, AUTOFIT_DOWN_FLOOR_SECONDS: NF.AUTOFIT_DOWN_FLOOR_SECONDS, AUTOFIT_DOWN_STEP_SECONDS: NF.AUTOFIT_DOWN_STEP_SECONDS })
+const SRX = roda(rd('lib/speechRate.ts').replace(/import \{[\s\S]*?\} from '@\/lib\/narrationFit'/, '').replace(/import \{ parseSpeed, parseUserScript \} from '@\/lib\/scriptParser'/, ''), { parseSpeed: SPX.parseSpeed, parseUserScript: SPX.parseUserScript, narrationFit: NF.narrationFit, autofitDown: NF.autofitDown, WORDS_PER_SECOND: NF.WORDS_PER_SECOND, MIN_COVERAGE: NF.MIN_COVERAGE, minCoverageFor: NF.minCoverageFor, MIN_AUTOFIT_DOWN_COVERAGE: NF.MIN_AUTOFIT_DOWN_COVERAGE, AUTOFIT_DOWN_FLOOR_SECONDS: NF.AUTOFIT_DOWN_FLOOR_SECONDS, AUTOFIT_DOWN_STEP_SECONDS: NF.AUTOFIT_DOWN_STEP_SECONDS })
 const H = SRX.speechRateFor({ family: 'hollywood' })
 const C = SRX.speechRateFor({ family: 'classic' })
 const brief66 = Array(66).fill('word').join(' ')

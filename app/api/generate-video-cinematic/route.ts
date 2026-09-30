@@ -90,7 +90,7 @@ import { parseUserScript } from '@/lib/scriptParser'
 // KINEO-NARRACAO-ENCHE-2026-08-22 — a aritmética que impede um roteiro curto
 // demais de virar um filme com imagem muda. Ver o cabeçalho do módulo para a
 // medição que originou a regra.
-import { narrationTooShortMessage, minCoverageFor } from '@/lib/narrationFit'
+import { narrationTooShortMessage, MIN_COVERAGE } from '@/lib/narrationFit'
 import { speechRateFor, narrationFitAt, autofitDownAt } from '@/lib/speechRate'
 import { vozDoFilmeCurto, campoDaVozAssinada } from '@/lib/vozDoFilmeCurto' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29
 import { selectPersonaForScript } from '@/lib/narration/niche-mapping' // KINEO-RITMO-POR-VOZ-2026-09-15
@@ -3139,7 +3139,7 @@ async function manipularPost(req: NextRequest) {
         console.warn(
           `[narracao] RECUSADO (claim liberado, crédito devolvido): ${Math.round(fit.speech)}s de fala para ` +
           `alvo de ${duration}s (cobertura ${(fit.coverage * 100).toFixed(0)}%, ` +
-          `mínimo ${(minCoverageFor(duration) * 100).toFixed(0)}%).`,
+          `mínimo ${(MIN_COVERAGE * 100).toFixed(0)}%).`,
         )
         // ═══ sprint-v1v4 #22 — ESTA RECUSA SABE SE JA HOUVE OUTRA ═══════════
         // Medido: 154 das 283 falhas de 30d aconteceram a menos de CINCO

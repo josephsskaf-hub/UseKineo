@@ -106,7 +106,7 @@ console.log('== D) espelho das constantes: nada digitado no contador ==')
   const tol = Number(/DURATION_FOLLOWS_SCRIPT_CEILING_TOLERANCE = ([\d.]+)/.exec(dfs)?.[1])
   checa('durationFollowsScript.ts: teto 90 s e tolerância 1,15 (lidos do arquivo)', teto === 90 && tol === 1.15)
   const semComentarios = cv.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
-  checa('contadorVoz importa as decisões do servidor (durationFollowsScript, expandPolicy, speechRate, niche-mapping)', /import \{ decideDurationFollowsScript, decideDurationFollowsScriptUp \} from '@\/lib\/durationFollowsScript'/.test(cv) && /import \{ SUPPORTED_DURATIONS, largestFittingDuration \} from '@\/lib\/expandPolicy'/.test(cv) && /import \{ selectPersonaForScript \} from '@\/lib\/narration\/niche-mapping'/.test(cv) && /MIN_COVERAGE/.test(cv))
+  checa('contadorVoz importa as decisões do servidor (durationFollowsScript, expandPolicy, speechRate, niche-mapping)', /import \{ decideDurationFollowsScript, decideDurationFollowsScriptUp \} from '@\/lib\/durationFollowsScript'/.test(cv) && /import \{ SUPPORTED_DURATIONS, largestFittingDuration \} from '@\/lib\/expandPolicy'/.test(cv) && /import \{ selectPersonaForScript \} from '@\/lib\/narration\/niche-mapping'/.test(cv) && /minCoverageFor\(/.test(cv)) // reancorado 30/09 (KINEO-COBERTURA-15S): a régua agora é por duração, via minCoverageFor
   checa('contadorVoz NÃO digita teto, tolerância, cobertura nem lista de durações', !/\b90\b/.test(semComentarios) && !/1\.15/.test(semComentarios) && !/0\.95/.test(semComentarios) && !/\[35, 60, 90\]/.test(semComentarios))
   const fast = rd('app/api/generate-video-fast/route.ts')
   const cin = rd('app/api/generate-video-cinematic/route.ts')
