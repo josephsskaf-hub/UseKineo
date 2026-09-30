@@ -213,6 +213,10 @@ const SERVER_ONLY_EVENTS = new Set([
   'classic_scene_retry_hold_cleared', // app/api/compose — hold clássico desfeito
   'omni_scene_kling_fallback', // app/api/generate-video-cinematic — cena Omni que caiu no Kling
   'pasted_brief_detected', // lib/kineo1/pastedBrief (gravado por /api/generate-video-fast)
+  // KINEO-IMAGENS-FOTO-REFERENCIA-2026-09-29 — escritos SÓ por /api/images/reference (foto aprovada e guardada) e
+  // /api/images/generate (geração com foto de referência, com o desfecho). São a métrica da peça nova; o navegador não cunha.
+  'images_reference_uploaded',
+  'images_reference_used',
 ])
 
 export async function POST(req: NextRequest) {

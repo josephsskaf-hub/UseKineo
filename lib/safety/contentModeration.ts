@@ -21,7 +21,7 @@ import { decideModeration, type ModerationDecision } from './moderationPolicy'
 
 export type ModerationSurface =
   | 'images' | 'images_edit' | 'images_upscale' | 'animate' | 'gesture' | 'avatar' | 'avatar_scene' | 'clip' | 'character'
-  | 'footage' | 'ads_brief' | 'ads_render'
+  | 'footage' | 'ads_brief' | 'ads_render' | 'images_reference'
 export type ModerationStage = 'input' | 'output' | 'upload'
 
 export type ModerationVerdict =

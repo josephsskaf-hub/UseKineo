@@ -11,7 +11,12 @@ import { fal } from '@fal-ai/client'
 import { randomUUID } from 'crypto'
 import { debitVideoCredits } from '@/lib/credits/debit'
 import { refundRenderCredits } from '@/lib/credits/refund'
-import { persistImage } from '@/lib/imageStore'
+import { persistImage, signReferencePhotos } from '@/lib/imageStore'
+// KINEO-IMAGENS-FOTO-REFERENCIA-2026-09-29 — com foto de referência (só Nano Banana Pro), o pedido vai ao
+// fal-ai/nano-banana-pro/edit com as fotos da PRÓPRIA conta (caminho validado, URL assinada de curta duração) e o mesmo
+// custo de hoje. Sem referência, nada muda. A régua mora em lib/imageReference.ts (pura, com guardião).
+import { NANO_BANANA_EDIT_SLUG, REFERENCE_SIGNED_URL_SECONDS, buildNanoBananaEditInput, decideReferenceRequest } from '@/lib/imageReference'
+import { writeServerEvent } from '@/lib/serverEvents'
 // KINEO-MODERACAO-2026-09-25 — pedidos graves envolvendo menores foram gerados e guardados aqui (03/09 e 17/09, 2 contas
 // suspensas em 25/09). Só schnell/dev ligavam o checker do fal, e um dos pedidos passou pelo dev mesmo assim. Agora TODO
 // modelo passa por duas portas: o texto antes de cobrar e a imagem pronta antes de guardar. Falha fechada.
@@ -71,7 +76,7 @@ export async function POST(req: NextRequest) {
   if (!falKey) return NextResponse.json({ error: 'Provider not configured.' }, { status: 500 })
   fal.config({ credentials: falKey })
 
-  let body: { prompt?: string; model?: string; size?: string }
+  let body: { prompt?: string; model?: string; size?: string; reference_paths?: unknown; reference_consent?: unknown }
   try {
     body = await req.json()
   } catch {
@@ -87,7 +92,25 @@ export async function POST(req: NextRequest) {
     body.size === 'square_hd' || body.size === 'landscape_16_9' ? body.size : 'portrait_16_9'
   const model = MODELS[modelKey]
 
-  const inputCheck = await moderateContent({ surface: 'images', stage: 'input', userId: user.id, text: prompt, meta: { model: modelKey } })
+  // Referência: validada ANTES de moderar e de cobrar — só Nano Banana Pro, consentimento do servidor, até 3, só da pasta
+  // da própria conta. As URLs que vão à moderação e à fal são assinadas aqui, pelo caminho; nenhuma vem do navegador.
+  const refDecision = decideReferenceRequest(body, modelKey, user.id)
+  if (!refDecision.ok) return NextResponse.json({ error: refDecision.error, code: refDecision.code }, { status: refDecision.status })
+  const referencePaths = refDecision.paths
+  let referenceUrls: string[] = []
+  if (referencePaths.length > 0) {
+    const signed = await signReferencePhotos(referencePaths, REFERENCE_SIGNED_URL_SECONDS)
+    if (!signed) return NextResponse.json({ error: 'Reference photo not found — upload it again.', code: 'reference_missing' }, { status: 400 })
+    referenceUrls = signed
+  }
+  const withReference = referenceUrls.length > 0
+  const falSlug = withReference ? NANO_BANANA_EDIT_SLUG : model.slug
+  const falInput = withReference ? buildNanoBananaEditInput(prompt, size, referenceUrls) : model.input(prompt, size)
+  const referenceEvent = (outcome: string) => withReference
+    ? writeServerEvent({ name: 'images_reference_used', userId: user.id, path: '/images', metadata: { count: referenceUrls.length, model: modelKey, outcome } }).catch(() => false)
+    : Promise.resolve(false)
+
+  const inputCheck = await moderateContent({ surface: 'images', stage: 'input', userId: user.id, text: prompt, imageUrls: referenceUrls, meta: { model: modelKey, reference_count: referenceUrls.length } })
   if (!inputCheck.ok) {
     return NextResponse.json({ error: moderationRefusalMessage(inputCheck.reason), code: inputCheck.reason === 'blocked' ? 'moderation' : `moderation_${inputCheck.reason}` }, { status: moderationRefusalStatus(inputCheck.reason) })
   }
@@ -100,7 +123,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = (await fal.subscribe(model.slug, { input: model.input(prompt, size) })) as {
+    const result = (await fal.subscribe(falSlug, { input: falInput })) as {
       data?: { images?: Array<{ url?: string }>; image?: { url?: string } }
       images?: Array<{ url?: string }>
       image?: { url?: string }
@@ -113,20 +136,23 @@ export async function POST(req: NextRequest) {
       null
     if (!url) throw new Error('no image url in provider response')
     // A imagem pronta passa pela mesma régua ANTES de ir para o nosso bucket: barrada, não é guardada nem devolvida.
-    const outputCheck = await moderateContent({ surface: 'images', stage: 'output', userId: user.id, text: prompt, imageUrls: [url], meta: { model: modelKey } })
+    const outputCheck = await moderateContent({ surface: 'images', stage: 'output', userId: user.id, text: prompt, imageUrls: [url], meta: { model: modelKey, reference_count: referenceUrls.length } })
     if (!outputCheck.ok) {
       await refundRenderCredits(renderId).catch(() => {})
+      await referenceEvent('moderation_blocked')
       return NextResponse.json({ error: moderationRefusalMessage(outputCheck.reason), code: outputCheck.reason === 'blocked' ? 'moderation' : `moderation_${outputCheck.reason}` }, { status: moderationRefusalStatus(outputCheck.reason) })
     }
     // KINEO-IMAGES-STORE-2026-08-17 — URL do fal nao e permanente: copia pro
     // nosso bucket + linha na tabela `images` (galeria My Images). Fallback
     // best-effort: se a copia falhar, devolve a URL do fal mesmo.
     const stored = await persistImage({ userId: user.id, prompt, model: modelKey, sourceUrl: url })
-    console.log(`[images] user=${user.id.slice(0, 8)} model=${modelKey} cost=${model.cost} ok persisted=${!!stored.id}`)
+    console.log(`[images] user=${user.id.slice(0, 8)} model=${modelKey} cost=${model.cost} refs=${referenceUrls.length} ok persisted=${!!stored.id}`)
+    await referenceEvent('delivered')
     return NextResponse.json({ url: stored.url, id: stored.id, model: modelKey, balance: debit.data - 0 })
   } catch (e) {
     console.error('[images] provider failed — refunding:', e instanceof Error ? e.message : String(e))
     await refundRenderCredits(renderId).catch(() => {})
+    await referenceEvent('provider_failed')
     return NextResponse.json(
       { error: 'Image generation failed. Your credits were refunded — try again.' },
       { status: 502 },
