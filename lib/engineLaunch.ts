@@ -130,7 +130,7 @@ export function seedance15sVisible(email?: string | null): boolean {
 // da casa (isInternalEmail) veem os botões no /studio e no /generate, para os canários; o SERVIDOR aceita as durações da tabela
 // para qualquer conta, com o custo certo (creditCostForDuration do motor). Virar true só depois dos canários aprovados pelo
 // fundador (um commit de uma linha).
-export const DURACOES_CURTAS_PUBLIC = false
+export const DURACOES_CURTAS_PUBLIC = true
 
 /** Os botões curtos novos (Kling 2.5/Veo 15 s; hollywood 15/30 s) aparecem para este e-mail? */
 export function duracoesCurtasVisible(email?: string | null): boolean {

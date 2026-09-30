@@ -398,7 +398,7 @@ ok((landing.match(/href="\/clips"/g) ?? []).length === 2 && (landing.match(/\{cl
 
 // ─── 10. Interruptor de lançamento: preço é PROPOSTA até o "vai" do fundador ─
 const launch = read('lib/clips/clipLaunch.ts')
-ok(/export const CLIPS_PUBLIC = false\b/.test(launch) && launch.includes('return CLIPS_PUBLIC || isInternalEmail(email)'), 'CLIPS_PUBLIC=false: só a casa')
+ok(/export const CLIPS_PUBLIC = true\b/.test(launch) && launch.includes('return CLIPS_PUBLIC || isInternalEmail(email)'), 'CLIPS_PUBLIC=true desde 29/09 (vai do fundador: tabela aprovada e canário real entregue)')
 const routeNow = read('app/api/clips/route.ts')
 ok((routeNow.match(/if \(!clipsVisible\(user\.email\)\) return NextResponse\.json\(\{ error: 'Not found\.'/g) ?? []).length === 2 && routeNow.includes('if (!clipsVisible(null)) return NextResponse.json({ error: \'Not found.\''), 'GET e POST recusam conta de fora antes de qualquer custo')
 ok(read('app/api/clips/status/route.ts').includes("if (!clipsVisible(user.email)) return NextResponse.json({ error: 'Not found.' }"), 'status recusa conta de fora')
