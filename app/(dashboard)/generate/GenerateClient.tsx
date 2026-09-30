@@ -555,10 +555,20 @@ const DEFAULT_DURATION: Duration = DURATION_OPTIONS[0].value
 // 15 lá dentro viraria o padrão de todos os motores. A lista global (35/60/90 = lib/expandPolicy SUPPORTED_DURATIONS)
 // continua intacta; o Seedance ganha um botão a mais na frente, derivado de lib/durationByEngine (nada digitado).
 const SEEDANCE_SHORT_OPTION: { value: Duration; label: string } = { value: SEEDANCE_SHORT_SECONDS as Duration, label: `${SEEDANCE_SHORT_SECONDS}s — Teaser` }
-function durationOptionsFor(mode: GenerationMode, aiEngine: string, seedance15Ok: boolean, current: Duration): { value: Duration; label: string }[] {
+function durationOptionsFor(mode: GenerationMode, aiEngine: string, seedance15Ok: boolean, current: Duration, curtasOk: boolean = false): { value: Duration; label: string }[] {
+  // KINEO-DURACOES-CURTAS-2026-09-29 — Kling 2.5/Veo 15 s e hollywood 15/30 s: da tabela do servidor (supportedDurationsFor), com o
+  // interruptor DURACOES_CURTAS_PUBLIC (flag `curtas`); quem já está numa curta que o motor oferece continua vendo o botão aceso.
+  if (mode === 'cinematic_ai' && aiEngine !== 'seedance') {
+    const curtas = supportedDurationsFor(aiEngine).filter((d) => d < DURATION_OPTIONS[0].value && (curtasOk || d === current))
+    return curtas.length ? [...curtas.map((d) => SHORT_OPTION_BY_SECONDS[d] ?? { value: d as Duration, label: `${d}s` }), ...DURATION_OPTIONS] : DURATION_OPTIONS
+  }
   const seedance = mode === 'cinematic_ai' && supportedDurationsFor(aiEngine).includes(SEEDANCE_SHORT_SECONDS)
   // Quem já está em 15 (link do Studio da casa) continua vendo o botão aceso, mesmo antes da flag chegar.
   return seedance && (seedance15Ok || current === SEEDANCE_SHORT_SECONDS) ? [SEEDANCE_SHORT_OPTION, ...DURATION_OPTIONS] : DURATION_OPTIONS
+}
+/** KINEO-DURACOES-CURTAS-2026-09-29 — o rótulo de cada duração curta dos outros motores (o valor vem da tabela do servidor). */
+const SHORT_OPTION_BY_SECONDS: Record<number, { value: Duration; label: string }> = {
+  15: { value: 15 as Duration, label: '15s — Teaser' },
 }
 
 const POLL_GENERATING_MS = 4000
@@ -1522,9 +1532,11 @@ export default function GenerateClient({
   const [s25Ok, setS25Ok] = useState(false)
   // KINEO-SEEDANCE-15S-2026-09-29 — o botão de 15 s do Seedance (SEEDANCE_15S_PUBLIC || casa), flag `seedance15` do /api/me/credits.
   const [seedance15Ok, setSeedance15Ok] = useState(seedance15Prop === true) // KINEO-ENTRADA-SEEDANCE15: o servidor já sabe na montagem
+  // KINEO-DURACOES-CURTAS-2026-09-29 — os botões curtos novos (Kling 2.5/Veo 15 s; hollywood 15/30 s), flag `curtas` do /api/me/credits.
+  const [curtasOk, setCurtasOk] = useState(false)
   useEffect(() => {
     let alive = true
-    fetch('/api/me/credits', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive && d?.internal === true) setS25Ok(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true) }).catch(() => {})
+    fetch('/api/me/credits', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive && d?.internal === true) setS25Ok(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && d?.curtas === true) setCurtasOk(true) }).catch(() => {}) // KINEO-DURACOES-CURTAS-2026-09-29: + curtas
     return () => { alive = false }
   }, [])
 
@@ -1943,14 +1955,15 @@ export default function GenerateClient({
   // plan loads below.
   const [mode, setMode] = useState<GenerationMode>(kineo1NaMontagem ? 'fast' : 'cinematic_ai') // KINEO-ENTRADA-SEEDANCE15-2026-09-29
   // KINEO-SEEDANCE-15S-2026-09-29 — os botões de duração do motor escolhido (15 s só no Seedance, só com o interruptor).
-  const opcoesDeDuracao = durationOptionsFor(mode, aiEngine, seedance15Ok, duration)
+  const opcoesDeDuracao = durationOptionsFor(mode, aiEngine, seedance15Ok, duration, curtasOk) // KINEO-DURACOES-CURTAS-2026-09-29: + curtasOk
   // Trocar de motor estando em 15 s volta para 35 s: o 15 não existe fora do Seedance e o servidor recusaria (422).
+  // KINEO-DURACOES-CURTAS-2026-09-29 — agora: volta para 35 s quando o motor novo NÃO oferece a duração curta atual (tabela do servidor).
   const motorDaDuracaoRef = useRef<string>('')
   useEffect(() => {
     const motor = mode === 'cinematic_ai' ? aiEngine : mode
     const antes = motorDaDuracaoRef.current
     motorDaDuracaoRef.current = motor
-    if (antes === 'seedance' && motor !== 'seedance' && duration === SEEDANCE_SHORT_SECONDS) setDuration(35)
+    if (antes !== '' && antes !== motor && duration < 35 && !supportedDurationsFor(motor).includes(duration)) setDuration(35) // KINEO-DURACOES-CURTAS-2026-09-29
   }, [mode, aiEngine]) // eslint-disable-line react-hooks/exhaustive-deps
   // Push #316 — output language selector (en | pt | es). PUSH #36 preserves
   // the language promised by localized acquisition pages through auth.
@@ -9099,6 +9112,7 @@ export default function GenerateClient({
     }
     const uDur = Number(searchParams?.get('duration') ?? '')
     if ((uDur === 35 || uDur === 45 || uDur === 60 || uDur === 90 || (uDur === SEEDANCE_SHORT_SECONDS && uEng === 'seedance')) && duration !== uDur) { setDuration(uDur); return } // KINEO-SEEDANCE-15S-2026-09-29: 15 s do Studio (só Seedance)
+    if (uDur > 0 && uDur < 35 && uEng !== '' && uEng !== 'seedance' && supportedDurationsFor(uEng).includes(uDur) && duration !== uDur) { setDuration(uDur as Duration); return } // KINEO-DURACOES-CURTAS-2026-09-29: a curta do Studio nos outros motores (tabela do servidor)
     try {
       const raw = sessionStorage.getItem('kineo:studio:go:v1')
       if (!raw) { studioAutoFirePendingRef.current = false; return }
@@ -15261,6 +15275,7 @@ export default function GenerateClient({
             aiEngine={aiEngine}
             s25Ok={s25Ok}
             seedance15Ok={seedance15Ok}
+            curtasOk={curtasOk} // KINEO-DURACOES-CURTAS-2026-09-29
             kineo1Shown={kineo1Shown}
             setAiEngine={setAiEngine}
             isStarter={isStarter}
@@ -21059,6 +21074,7 @@ function ModeSelector({
   aiEngine,
   s25Ok,
   seedance15Ok,
+  curtasOk = false, // KINEO-DURACOES-CURTAS-2026-09-29
   kineo1Shown = true,
   setAiEngine,
   isStarter,
@@ -21082,6 +21098,8 @@ function ModeSelector({
   s25Ok: boolean
   // KINEO-SEEDANCE-15S-2026-09-29 — o resgate por saldo oferece o 15 s do Seedance só com o interruptor (espelho da rota).
   seedance15Ok?: boolean
+  /** KINEO-DURACOES-CURTAS-2026-09-29 — o resgate por saldo oferece as curtas dos outros motores só com DURACOES_CURTAS_PUBLIC (espelho da rota). */
+  curtasOk?: boolean
   /** KINEO-ENTRADA-SEEDANCE15-2026-09-29 — o card "Fast Mode" (Kineo 1) só aparece para quem o tem (kineo1NaTela). */
   kineo1Shown?: boolean
   setAiEngine: (e: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25') => void
@@ -21189,6 +21207,7 @@ function ModeSelector({
   // para quem o interruptor SEEDANCE_15S_PUBLIC mostra o botão.
   const duracoesDoSeletor: Duration[] = aiEngine === 'seedance' && seedance15Ok
     ? (supportedDurationsFor('seedance') as readonly number[]).map((d) => d as Duration)
+    : aiEngine !== 'seedance' && curtasOk ? (supportedDurationsFor(aiEngine) as readonly number[]).map((d) => d as Duration) // KINEO-DURACOES-CURTAS-2026-09-29: espelho de duracoesDoResgateCurtas na rota
     : DURATION_OPTIONS.map((o) => o.value)
   const resgateDeMotor =
     mode === 'cinematic_ai'

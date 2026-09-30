@@ -15,8 +15,26 @@
 //
 // Módulo PURO (sem import): lido pela rota, pelo /studio, pelo /generate e executado pelo guardião
 // scripts/test-seedance-15s-2026-09-29.mjs via transpile.
+//
+// ═══ KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] ═══
+// Fundador (29/09): "nem todo mundo faz vídeo de um minuto" — durações curtas em TODOS os motores. O cabeçalho acima
+// descreve o dia do Seedance 15 s; desde este bloco:
+//   · Kling 2.5 e Veo 3.1 (estrada CLÁSSICA) ganham 15 s. Os planejadores de plano por fala que já existem
+//     (lib/cinematic/klingShots kling25VerbatimPlan / kling25SceneSeconds — passos 5|10; lib/cinematic/veoShots
+//     veoVerbatimPlan / veoMarkedPlan / veoAiPlan — passos 4|6|8, schemas conferidos na fal em 29/09) dimensionam os
+//     clipes pela FALA com a duração pedida (15 s → 3-4 planos, cada um cabendo a sua fala, cobertura ≥ fala); a voz do
+//     15 s (lib/vozDoFilmeCurto, régua da casa 2,5 pal/s no ritmo da língua) vai assinada no claim, como no Seedance;
+//   · Kling 3 / MiniMax H3 / Omni / Seedance 2.5 (estrada HOLLYWOOD, voz própria a 2,3 pal/s) ganham 15 s e 30 s: o
+//     alvo do planejador deixa de ter piso de 30 s (route.ts hollywoodTarget e lib/hollywood/router.ts);
+//   · o preço é o de sempre: creditCostForDuration(qualidade do motor, pago, segundos) — linear, sem tabela nova;
+//   · roteiro longo pedido como filme curto é RECUSADO antes do débito em todos esses motores
+//     (checarFalaCurtaDoMotor), nunca vira filme longo pelo preço curto nem sobe a duração em silêncio;
+//   · os BOTÕES novos só aparecem com o interruptor DURACOES_CURTAS_PUBLIC (lib/engineLaunch.ts, casa até o canário) —
+//     o servidor aceita as durações da tabela abaixo para qualquer conta, com o custo certo (mesmo desenho do 15 s do
+//     Seedance na E2a).
+// Guardião: scripts/test-duracoes-curtas-todos-motores-2026-09-29.mjs.
 
-/** O menor alvo que todo motor aceita. Abaixo disto, só o Seedance 1.5. */
+/** O menor alvo que todo motor aceita (e o menor dos motores SEM duração curta: Sora, Kineo 1, Avatar). */
 export const MIN_DURATION_ALL_ENGINES = 35
 /** O alvo curto do Seedance 1.5. */
 export const SEEDANCE_SHORT_SECONDS = 15
@@ -37,9 +55,57 @@ export function isSeedance15(engine: string | null | undefined): boolean {
   return !outros.includes(k) && !qualidades.includes(k)
 }
 
-/** As durações que o seletor oferece para este motor. */
-export function supportedDurationsFor(engine: string | null | undefined): readonly number[] {
-  return isSeedance15(engine) ? SEEDANCE_DURATIONS : DEFAULT_ENGINE_DURATIONS
+// ═══ KINEO-DURACOES-CURTAS-2026-09-29 — a tabela motor × durações (fonte única do servidor, do /studio e do /generate) ═══
+/** Botões do Kling 2.5 e do Veo 3.1 (estrada clássica): o 15 s é o do Seedance, com os planos do próprio motor. */
+export const CLASSIC_SHORT_ENGINE_DURATIONS = [15, 35, 60, 90] as const
+/** Botões da estrada hollywood (Kling 3, MiniMax H3, Omni, Seedance 2.5): 15 s e 30 s na voz própria (2,3 pal/s). */
+export const HOLLYWOOD_ENGINE_DURATIONS = [15, 30, 35, 60, 90] as const
+/** As durações curtas novas (abaixo dos 35 de sempre) — as que o interruptor DURACOES_CURTAS_PUBLIC mostra na tela. */
+export const SHORT_TARGETS_NEW = [15, 30] as const
+
+const motorNormalizado = (engine: string | null | undefined): string => (typeof engine === 'string' ? engine.trim().toLowerCase() : '')
+/** Kling 2.5 (chave da UI 'kling' ou a quality do biller 'cinematic_kling'). */
+export function isKling25(engine: string | null | undefined): boolean {
+  const k = motorNormalizado(engine)
+  return k === 'kling' || k === 'cinematic_kling'
+}
+/** Veo 3.1 (chave da UI 'veo' ou a quality do biller 'cinematic_veo'). */
+export function isVeo31(engine: string | null | undefined): boolean {
+  const k = motorNormalizado(engine)
+  return k === 'veo' || k === 'cinematic_veo'
+}
+/** Motor da estrada hollywood (voz própria): Kling 3 ('hollywood'), MiniMax H3, Omni, Seedance 2.5 — chave da UI ou quality. */
+export function isHollywoodRoad(engine: string | null | undefined): boolean {
+  const k = motorNormalizado(engine)
+  return ['hollywood', 'h3', 'omni', 's25', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni', 'cinematic_s25'].includes(k)
+}
+/** Motor clássico com filme de 15 s: Seedance 1.5 (inclui motor ausente), Kling 2.5 e Veo 3.1. */
+export function isClassicShortEngine(engine: string | null | undefined): boolean {
+  return isSeedance15(engine) || isKling25(engine) || isVeo31(engine)
+}
+
+/**
+ * As durações que o seletor oferece para este motor. `curtas: false` (a tela, com o interruptor DURACOES_CURTAS_PUBLIC
+ * desligado para a conta) tira os 15/30 NOVOS do Kling 2.5, do Veo e da estrada hollywood; o Seedance segue com o 15 s
+ * dele (interruptor próprio, SEEDANCE_15S_PUBLIC). Sem opção = a verdade do servidor (a rota aceita a tabela inteira).
+ */
+export function supportedDurationsFor(engine: string | null | undefined, opts?: { curtas?: boolean }): readonly number[] {
+  if (isSeedance15(engine)) return SEEDANCE_DURATIONS
+  if (opts?.curtas === false) return DEFAULT_ENGINE_DURATIONS
+  if (isKling25(engine) || isVeo31(engine)) return CLASSIC_SHORT_ENGINE_DURATIONS
+  return DEFAULT_ENGINE_DURATIONS
+}
+
+/** Nome público do motor para as frases de recusa (os mesmos da vitrine). */
+export function nomePublicoDoMotor(engine: string | null | undefined): string {
+  const k = motorNormalizado(engine)
+  if (isKling25(k)) return 'Kling 2.5'
+  if (isVeo31(k)) return 'Veo 3.1'
+  if (k === 'hollywood' || k === 'cinematic_hollywood') return 'Kling 3'
+  if (k === 'h3' || k === 'cinematic_h3') return 'MiniMax H3'
+  if (k === 'omni' || k === 'cinematic_omni') return 'Omni'
+  if (k === 's25' || k === 'cinematic_s25') return 'Seedance 2.5'
+  return 'Seedance 1.5'
 }
 
 export type ChecagemDeDuracao =
@@ -47,16 +113,21 @@ export type ChecagemDeDuracao =
   | { ok: false; recusa: 'only_seedance_15s' | 'duration_not_offered'; sugestao: number }
 
 /**
- * 15 s (ou qualquer alvo abaixo de 35) fora do Seedance = recusa; no Seedance, abaixo de 15 (ou não finito) = recusa.
- * Nunca troca a duração em silêncio.
+ * Seedance: abaixo de 15 (ou não finito) = recusa. Kling 2.5 / Veo / estrada hollywood: abaixo de 35, só as durações
+ * curtas da tabela (15; e 30 na hollywood) passam — 20, 25, 10… são recusa 'duration_not_offered' sugerindo a menor
+ * duração da tabela ACIMA do pedido (nunca abaixo: o filme não encolhe). Motor sem duração curta (Sora…): abaixo de 35 =
+ * recusa 'only_seedance_15s' (o nome da razão ficou — é o fio que a tela já lê). Nunca troca a duração em silêncio.
  */
 export function checarDuracao(engine: string | null | undefined, seconds: number): ChecagemDeDuracao {
   const seedance = isSeedance15(engine)
+  const tabela = supportedDurationsFor(engine)
+  const temCurta = tabela[0] < MIN_DURATION_ALL_ENGINES
   if (!Number.isFinite(seconds)) {
-    return { ok: false, recusa: 'duration_not_offered', sugestao: seedance ? SEEDANCE_SHORT_SECONDS : MIN_DURATION_ALL_ENGINES }
+    return { ok: false, recusa: 'duration_not_offered', sugestao: seedance ? SEEDANCE_SHORT_SECONDS : temCurta ? tabela[0] : MIN_DURATION_ALL_ENGINES }
   }
   if (seconds < MIN_DURATION_ALL_ENGINES && !seedance) {
-    return { ok: false, recusa: 'only_seedance_15s', sugestao: MIN_DURATION_ALL_ENGINES }
+    if (!temCurta) return { ok: false, recusa: 'only_seedance_15s', sugestao: MIN_DURATION_ALL_ENGINES }
+    if (!tabela.includes(seconds)) return { ok: false, recusa: 'duration_not_offered', sugestao: tabela.find((d) => d >= seconds) ?? MIN_DURATION_ALL_ENGINES }
   }
   if (seconds < SEEDANCE_SHORT_SECONDS && seedance) {
     return { ok: false, recusa: 'duration_not_offered', sugestao: SEEDANCE_SHORT_SECONDS }
@@ -64,12 +135,18 @@ export function checarDuracao(engine: string | null | undefined, seconds: number
   return { ok: true }
 }
 
-export const ONLY_SEEDANCE_15S_MESSAGE = '15-second films are available on Seedance 1.5; pick 35 s for this engine.'
+export const ONLY_SEEDANCE_15S_MESSAGE = 'Short films are available on Seedance 1.5, Kling 2.5, Veo 3.1, Kling 3, MiniMax H3, Omni and Seedance 2.5; pick 35 s for this engine.'
 export const SEEDANCE_DURATION_NOT_OFFERED_MESSAGE = `Seedance 1.5 films are ${SEEDANCE_DURATIONS.join(', ')} seconds long; pick one of those. Nothing was charged.`
+/** Recusa de duração fora da tabela de um motor com duração curta (Kling 2.5, Veo, estrada hollywood). */
+export function duracaoNaoOferecidaMessage(engine: string | null | undefined): string {
+  const tabela = supportedDurationsFor(engine)
+  return `${nomePublicoDoMotor(engine)} films are ${tabela.slice(0, -1).join(', ')} or ${tabela[tabela.length - 1]} seconds long; pick one of those. Nothing was charged.`
+}
 
-/** A frase da recusa de duração, pela razão (a rota não escolhe texto). */
-export function mensagemDaRecusaDeDuracao(checagem: ChecagemDeDuracao): string {
+/** A frase da recusa de duração, pela razão (a rota não escolhe texto). Sem motor (ou Seedance) = as frases de sempre. */
+export function mensagemDaRecusaDeDuracao(checagem: ChecagemDeDuracao, engine?: string | null): string {
   if (checagem.ok) return ''
+  if (checagem.recusa === 'duration_not_offered' && engine !== undefined && !isSeedance15(engine)) return duracaoNaoOferecidaMessage(engine)
   return checagem.recusa === 'duration_not_offered' ? SEEDANCE_DURATION_NOT_OFFERED_MESSAGE : ONLY_SEEDANCE_15S_MESSAGE
 }
 
@@ -172,6 +249,95 @@ export function checarFalaDoFilmeCurto(args: {
     return { ok: false, recusa: 'script_too_long_for_short_film', estSeconds, limitSeconds, sugestao: MIN_DURATION_ALL_ENGINES }
   }
   return { ok: true, estSeconds, limitSeconds }
+}
+
+// ═══ KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] — a MESMA guarda nos outros motores ═══
+// Em verbatim o filme segue a FALA em todos os motores (Kling 2.5: kling25FilmSeconds; Veo: veoFilmSeconds; hollywood: o C1
+// redistribui o roteiro e a sobra vira cenas até 12), mas o preço fica selado na duração pedida. Sem esta guarda, 150 palavras
+// num Kling 2.5 "a 15 s" viravam ~65 s de filme por 15 cr (e num Kling 3, ~65 s por 38 cr). Mesma regra do Seedance:
+// fala estimada > alvo × 1,25 (SHORT_FILM_SPEECH_FACTOR_OUTROS, abaixo) = recusa ANTES do débito, com a saída que cabe (encurtar) e a duração maior da tabela com o custo
+// real (a rota calcula com a creditCostForDuration do motor). Régua da fala: clássico = o ritmo do filme curto na língua
+// (ritmoDoFilmeCurto, a mesma da guarda do Seedance e do escritor); hollywood = 2,3 pal/s (a voz própria, RITMO_HOLLYWOOD).
+// O Seedance NÃO passa por aqui (as duas guardas dele, logo acima, continuam byte a byte na rota).
+/** Passo da voz própria da estrada hollywood (lib/speechRate SPEECH_RATE_BASE.hollywood; espelho — módulo sem import). */
+export const RITMO_HOLLYWOOD = 2.3
+/**
+ * Folga de fala sobre o alvo curto nos outros motores: 1,25 (não o 1,5 do Seedance). Executado no guardião: a 1,5 × 15 s (56
+ * palavras) o Kling 2.5 planeja 30 s de imagem + 5 stills para 22-24 s de fala — US$ 2,90 de custo contra US$ 2,75 dos 15 cr
+ * (margem NEGATIVA); a 1,25 (46 palavras) o pior caso fica em ~25 s de imagem e margem positiva. É também a tolerância do ensaio
+ * de $0 (classicDryRunReport: +25 % sobre as palavras esperadas) — a guarda e o ensaio passam a concordar. O escritor do 15 s
+ * (36–41 palavras) fica bem dentro.
+ */
+export const SHORT_FILM_SPEECH_FACTOR_OUTROS = 1.25
+
+export type ChecagemDeFalaCurtaDoMotor =
+  | { ok: true; estSeconds: number; limitSeconds: number }
+  | { ok: false; recusa: 'script_too_long_for_short_film'; estSeconds: number; limitSeconds: number; sugestao: number; maxWords: number; wordsPerSecond: number }
+
+/** Kling 2.5, Veo 3.1 e estrada hollywood abaixo de 35 s em verbatim: a fala não passa de alvo × 1,25. Seedance/outros: ok. */
+export function checarFalaCurtaDoMotor(args: { engine: string | null | undefined; seconds: number; verbatim: boolean; narration: string; language?: string | null }): ChecagemDeFalaCurtaDoMotor {
+  const classico = isKling25(args.engine) || isVeo31(args.engine)
+  const hollywood = isHollywoodRoad(args.engine)
+  const wordsPerSecond = hollywood ? RITMO_HOLLYWOOD : ritmoDoFilmeCurto(args.language)
+  const words = String(args.narration ?? '').split(/\s+/).filter(Boolean).length
+  const estSeconds = words / wordsPerSecond
+  const limitSeconds = args.seconds * SHORT_FILM_SPEECH_FACTOR_OUTROS
+  if (!args.verbatim || !(classico || hollywood) || !(args.seconds < MIN_DURATION_ALL_ENGINES)) return { ok: true, estSeconds, limitSeconds }
+  if (estSeconds <= limitSeconds) return { ok: true, estSeconds, limitSeconds }
+  const tabela = supportedDurationsFor(args.engine)
+  const sugestao = tabela.find((d) => d > args.seconds) ?? MIN_DURATION_ALL_ENGINES
+  return { ok: false, recusa: 'script_too_long_for_short_film', estSeconds, limitSeconds, sugestao, maxWords: Math.floor(limitSeconds * wordsPerSecond + 1e-9), wordsPerSecond }
+}
+
+/** Teto de palavras do filme curto no motor (a guarda acima): Seedance = maxWordsForShortFilm; Kling 2.5/Veo = 1,25 × alvo no ritmo da língua; hollywood = 1,25 × alvo a 2,3 pal/s. */
+export function maxWordsCurtoDoMotor(engine: string | null | undefined, seconds: number, language?: string | null): number {
+  if (isSeedance15(engine)) return maxWordsForShortFilm(seconds, language)
+  const ritmo = isHollywoodRoad(engine) ? RITMO_HOLLYWOOD : ritmoDoFilmeCurto(language)
+  return Math.floor(seconds * SHORT_FILM_SPEECH_FACTOR_OUTROS * ritmo + 1e-9)
+}
+
+/** A faixa que a rota do cinematic aceita no filme curto do motor (o escritor prefere a versão dentro dela): piso do portão, teto da guarda. */
+export function faixaAceitaNoFilmeCurtoDoMotor(engine: string | null | undefined, seconds: number, coverage: number, language?: string | null): { min: number; max: number } {
+  if (isSeedance15(engine)) return faixaAceitaNoFilmeCurto(seconds, coverage, language)
+  const max = maxWordsCurtoDoMotor(engine, seconds, language)
+  const ritmo = isHollywoodRoad(engine) ? RITMO_HOLLYWOOD : ritmoDoFilmeCurto(language)
+  return { min: Math.min(max, Math.ceil(seconds * coverage * ritmo - 1e-9)), max }
+}
+
+/** A frase da recusa acima: a saída que cabe primeiro (encurtar), depois a duração maior com o custo real (passado pela rota). */
+export function scriptTooLongForShortFilmMessageDoMotor(checagem: { estSeconds: number; sugestao: number; maxWords: number }, seconds: number, custoDaSugestao?: number | null): string {
+  const custo = typeof custoDaSugestao === 'number' && Number.isFinite(custoDaSugestao) && custoDaSugestao > 0 ? ` (${custoDaSugestao} credits)` : ''
+  return `This script reads for about ${Math.round(checagem.estSeconds)} seconds — too long for a ${seconds}-second film. Shorten it to about ${checagem.maxWords} words to keep the ${seconds}-second price, or pick ${checagem.sugestao} s${custo}. Nothing was charged.`
+}
+
+/**
+ * KINEO-DURACOES-CURTAS-2026-09-29 — no filme de 15 s do Kling 2.5 e do Veo com roteiro MARCADO, os planos saem do divisor por
+ * fala (o do roteiro em prosa: cada plano cabe a sua fala, o mais barato) e cada plano HERDA as pistas visuais ([Pexels: …]) de
+ * todos os blocos do autor que a sua fala toca — nenhuma pista se perde, nenhuma palavra muda. `trechos` são as falas dos
+ * planos, na ordem; a soma delas é a narração. Pistas repetidas num mesmo plano entram uma vez.
+ */
+export function pistasDosTrechos(blocos: ReadonlyArray<{ voiceover: string; pexelsQuery: string }>, trechos: ReadonlyArray<string>): string[] {
+  const n = (t: string) => String(t ?? '').trim().split(/\s+/).filter(Boolean).length
+  const totalBlocos = blocos.reduce((a, b) => a + n(b.voiceover), 0)
+  // fala antes do 1º marcador (a narração a tem, os blocos não): os blocos começam depois dela, e ela fica com o 1º bloco
+  const antes = Math.max(0, trechos.reduce((a, t) => a + n(t), 0) - totalBlocos)
+  const fimDoBloco: number[] = []
+  let acc = antes
+  for (const b of blocos) { acc += n(b.voiceover); fimDoBloco.push(acc) }
+  let ini = 0
+  return trechos.map((t) => {
+    const fim = ini + n(t)
+    const pistas: string[] = []
+    let inicioDoBloco = 0 // o 1º bloco "começa" no zero: a fala antes do marcador herda a pista dele
+    blocos.forEach((b, i) => {
+      const toca = fimDoBloco[i] > ini && inicioDoBloco < Math.max(fim, ini + 1)
+      const q = String(b.pexelsQuery ?? '').trim()
+      if (toca && q && !pistas.includes(q)) pistas.push(q)
+      inicioDoBloco = fimDoBloco[i]
+    })
+    ini = fim
+    return pistas.join(', ')
+  })
 }
 
 /** Quantas palavras cabem no filme curto (o teto da guarda acima, na mesma régua de 2,5 pal/s; com a língua, no ritmo dela). */

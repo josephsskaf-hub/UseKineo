@@ -7,6 +7,7 @@ import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credit
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { S25_PUBLIC, enginePaused } from '@/lib/engineLaunch'
 import { seedance15sVisible } from '@/lib/engineLaunch' // KINEO-SEEDANCE-15S-2026-09-29
+import { duracoesCurtasVisible } from '@/lib/engineLaunch' // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29
 import { checarDuracao, checarFalaDoFilmeCurto, supportedDurationsFor, mensagemDaRecusaDeDuracao, scriptTooLongForShortFilmMessage } from '@/lib/durationByEngine' // KINEO-SEEDANCE-15S-2026-09-29
 import { SEEDANCE_SHORT_SECONDS, SEEDANCE_SHORT_CLIPS, seedanceShortSpeechSeconds, seedanceShortClipSeconds, isSeedance15 } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29
 import { ritmoDaVozNoIdioma, fatorDoRitmoDoIdioma, ritmoDoFilmeCurto } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29
@@ -51,6 +52,7 @@ import {
 } from '@/lib/cinematic/dispatchScenes'
 import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
 import { seedanceShortMarkedScenes } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 15 s] KINEO-CONTAGEM-FALA-15S-2026-09-29 (linha própria: a rota só GANHA linhas)
+import { checarFalaCurtaDoMotor, scriptTooLongForShortFilmMessageDoMotor, pistasDosTrechos } from '@/lib/durationByEngine' // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 (linha própria)
 import { describeScenesCovered, completeSceneDescriptions, hasSpeechArtifacts, type DescriptionCoverage } from '@/lib/cinematic/sceneDescriptions' // [TRAVA 8.2] KLING25-DESCRICOES-2026-09-28
 import { kling25FootageNeeded, kling25ShotCount, kling25SceneSeconds, kling25ClipsUsd, kling25WriterBudget, kling25AlignBudget, kling25AverageShotSeconds, kling25VerbatimPlan, kling25VisualHint, kling25SceneWordStarts, kling25PlanPace, kling25WordsFit, KLING25_CLIP_LOSS_SECONDS, kling25ApplyShotAxis, kling25StripShotAxis } from '@/lib/cinematic/klingShots' // KINEO-KLING25-PLANOS-5S-2026-09-28 · KINEO-KLING25-VARIEDADE-2026-09-28
 import { resolveCharacterVoice } from '@/lib/hollywood/characterVoice'
@@ -1552,11 +1554,13 @@ async function manipularPost(req: NextRequest) {
     // preço de 15 s; subir depois do clique é cobrança-surpresa). Fecha também o furo antigo: Kling 3 pedido a 15 s
     // planejava ~34 s (Math.max(30, …)+4) e cobrava 15 s. Revisão E2a: no Seedance, alvo < 15 (ou não finito) também é
     // recusa ('duration_not_offered') — duration 10 pagava 5 cr (piso de 10 s da conta) por 2 clipes de IA.
+    // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 — desde este bloco o 15 s vale também no Kling 2.5 e no
+    // Veo 3.1 (e 15/30 s na estrada hollywood): a tabela motor × durações é lib/durationByEngine supportedDurationsFor; fora dela, a mesma recusa.
     {
       const checagemDuracao = checarDuracao(typeof body.engine === 'string' ? body.engine : null, duration)
       if (!checagemDuracao.ok) {
         await writeServerEvent({ name: 'duration_engine_refused', userId: user.id, path: '/api/generate-video-cinematic', metadata: { engine: typeof body.engine === 'string' ? body.engine : null, requested_seconds: duration, suggested_seconds: checagemDuracao.sugestao, charged: false, version: 'seedance_15s_20260929' } })
-        return NextResponse.json({ error: mensagemDaRecusaDeDuracao(checagemDuracao), reason: checagemDuracao.recusa, engine: typeof body.engine === 'string' ? body.engine : null, requested_seconds: duration, suggested_seconds: checagemDuracao.sugestao, retryable: false, charged: false, refunded: false }, { status: 422 })
+        return NextResponse.json({ error: mensagemDaRecusaDeDuracao(checagemDuracao, typeof body.engine === 'string' ? body.engine : null), reason: checagemDuracao.recusa, engine: typeof body.engine === 'string' ? body.engine : null, requested_seconds: duration, suggested_seconds: checagemDuracao.sugestao, retryable: false, charged: false, refunded: false }, { status: 422 })
       }
     }
     const family: CinematicFamily = wantsH3 ? 'h3' : wantsOmni ? 'omni' : wantsS25 ? 's25' : 'hollywood'
@@ -1939,6 +1943,17 @@ async function manipularPost(req: NextRequest) {
     const cost = creditCostForDuration(costQuality, true, duration)
     const duracaoCobrada = duration // V2-PRECO-DA-DURACAO-ENTREGUE-2026-09-23: a duração que o `cost` precifica
     void baseCost // mantido para leitura: é o valor de referência a 60s
+    // ═══ KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] — roteiro longo pedido como filme curto ═══
+    // A guarda do Seedance 15 s (acima, byte a byte) nos outros motores com duração curta (Kling 2.5 e Veo 3.1 a 15 s; a estrada
+    // hollywood a 15/30 s): em verbatim o filme segue a fala, o preço fica selado na duração pedida. Fala estimada > alvo × 1,25 =
+    // recusa AQUI, antes do claim e do débito, com o custo real da duração sugerida (creditCostForDuration do MESMO motor).
+    {
+      const falaCurtaDoMotor = checarFalaCurtaDoMotor({ engine: typeof body.engine === 'string' ? body.engine : null, seconds: duration, verbatim, narration: parsedScript.narration, language: narrationLanguage.language }) // KINEO-DURACOES-CURTAS-2026-09-29
+      if (!falaCurtaDoMotor.ok) { // KINEO-DURACOES-CURTAS-2026-09-29
+        await writeServerEvent({ name: 'short_film_script_too_long_refused', userId: user.id, path: '/api/generate-video-cinematic', metadata: { engine: typeof body.engine === 'string' ? body.engine : null, requested_seconds: duration, est_speech_seconds: Math.round(falaCurtaDoMotor.estSeconds), limit_seconds: falaCurtaDoMotor.limitSeconds, suggested_seconds: falaCurtaDoMotor.sugestao, words_per_second: falaCurtaDoMotor.wordsPerSecond, charged: false, version: 'duracoes_curtas_20260929' } }) // KINEO-DURACOES-CURTAS-2026-09-29
+        return NextResponse.json({ error: scriptTooLongForShortFilmMessageDoMotor(falaCurtaDoMotor, duration, creditCostForDuration(costQuality, true, falaCurtaDoMotor.sugestao)), reason: falaCurtaDoMotor.recusa, requested_seconds: duration, est_speech_seconds: Math.round(falaCurtaDoMotor.estSeconds), suggested_seconds: falaCurtaDoMotor.sugestao, retryable: false, charged: false, refunded: false }, { status: 422 }) // KINEO-DURACOES-CURTAS-2026-09-29
+      } // KINEO-DURACOES-CURTAS-2026-09-29
+    } // KINEO-DURACOES-CURTAS-2026-09-29
 
     // ═══ KINEO-E4-SAIDA-B-2026-09-29 [TRAVA 8.2 — "vai E4" do fundador] — ADMISSÃO DA COTA SEMANAL NOVA ═══
     // 1 Seedance 1.5 de 15 s por semana para conta grátis de país da lista (lib/freeWeeklyFilm.ts). ESTREITA de
@@ -2192,13 +2207,16 @@ async function manipularPost(req: NextRequest) {
       const duracoesDoResgate: readonly number[] = motorPedido === 'seedance' && seedance15sVisible(user.email)
         ? supportedDurationsFor('seedance')
         : DURACOES_DO_SELETOR
+      // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 — nos outros motores a recusa por saldo também
+      // oferece as durações curtas do motor (Kling 2.5/Veo 15 s; hollywood 15/30 s), para quem o interruptor DURACOES_CURTAS_PUBLIC mostra os botões.
+      const duracoesDoResgateCurtas: readonly number[] | null = motorPedido !== 'seedance' && duracoesCurtasVisible(user.email) ? supportedDurationsFor(motorPedido) : null // KINEO-DURACOES-CURTAS-2026-09-29
       const resgateDoSaldo = heldExplainsGap
         ? ({ tipo: 'cabe' } as const)
         : planoDeResgate({
             motorAtual: motorPedido,
             duracaoAtual: duration,
             saldo: balance,
-            duracoes: duracoesDoResgate,
+            duracoes: duracoesDoResgateCurtas ?? duracoesDoResgate, // KINEO-DURACOES-CURTAS-2026-09-29
             custoDe,
             motoresDisponiveis: premiumLiberado
               ? ['seedance', 'h3', 'kling', 'veo', 'hollywood', 'omni']
@@ -2927,6 +2945,10 @@ async function manipularPost(req: NextRequest) {
     // é ele produzir o tamanho certo, não recusar o pedido da pessoa.
     if (verbatim && parsedScript.narration) {
       let fit = narrationFitAt(parsedScript.narration, duration, narrationRate)
+      // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 — a duração curta que o MOTOR oferece (15 s; 30 s na
+      // hollywood — lib/durationByEngine supportedDurationsFor) não é "alvo fantasma": sem isto o resgate/aterrissagem abaixo trocava o
+      // 15 pedido por 35 só para escrever a recusa ("you asked for a 35-second video" a quem pediu 15). Fora dos curtos, a lista de sempre.
+      const oferecidasDoPortao: readonly number[] = !SUPPORTED_DURATIONS.includes(duration as (typeof SUPPORTED_DURATIONS)[number]) && supportedDurationsFor(typeof body.engine === 'string' ? body.engine : null).includes(duration) ? [...SUPPORTED_DURATIONS, duration] : SUPPORTED_DURATIONS // KINEO-DURACOES-CURTAS-2026-09-29
       // ═══ sprint-v1v4 #20 — NAO RECUSE POR UM NUMERO QUE ELA NAO ESCOLHEU ═══
       // 11 das 15 recusas de narracao em 14 dias mediram o roteiro contra 45s,
       // e 45 nao existe no seletor (35/60/90) desde 20/08. Antes de recusar, o
@@ -2938,7 +2960,7 @@ async function manipularPost(req: NextRequest) {
         fitOk: fit.ok,
         alvoPedido: duration,
         falaSegundos: fit.speech,
-        oferecidas: SUPPORTED_DURATIONS,
+        oferecidas: oferecidasDoPortao, // KINEO-DURACOES-CURTAS-2026-09-29
         maiorQueCabe: largestFittingDuration(fit.speech),
       })
       if (resgate) {
@@ -2977,7 +2999,7 @@ async function manipularPost(req: NextRequest) {
           fitOk: fit.ok,
           alvoPedido: duration,
           falaSegundos: fit.speech,
-          oferecidas: SUPPORTED_DURATIONS,
+          oferecidas: oferecidasDoPortao, // KINEO-DURACOES-CURTAS-2026-09-29
           maiorQueCabe: largestFittingDuration(fit.speech),
         })
         if (pouso) {
@@ -3450,6 +3472,25 @@ async function manipularPost(req: NextRequest) {
         clipCount = scenes.length
       }
     }
+
+    // ═══ [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 — Kling 2.5 e Veo 3.1 a 15 s com roteiro MARCADO ═══
+    // No filme de 15 s o roteiro marcado (o "Let AI structure it" devolve 4 blocos; colado, até 7) planeja pelo divisor da PROSA do
+    // motor (kling25VerbatimPlan / veoVerbatimPlan: cada plano cabe a sua fala, o mais barato) e cada plano herda as pistas
+    // [Pexels: …] de todos os blocos que a sua fala toca (lib/durationByEngine pistasDosTrechos). Motivo — dinheiro e bloco: bloco a
+    // bloco, um HOOK de 13 palavras pedia 10 s de Kling (11 cabem em 5 s) e 4 blocos viravam 25-30 s de imagem para ~16 s de fala
+    // (15 cr ≈ US$ 2,75 contra ≈ US$ 2,80 de fal+still+voz: margem NEGATIVA, executado no guardião); pelo divisor são 20 s. E
+    // nenhum bloco some (resolveVerbatimSegments sorteava blocos quando havia mais blocos que planos). Nenhuma palavra muda: as
+    // falas dos planos somam a narração. 35/60/90, Seedance e hollywood: nada roda aqui.
+    if ((wantsKling || wantsVeo) && duration === SEEDANCE_SHORT_SECONDS && verbatim && parsedScript.segments.length > 0 && parsedScript.narration) { // KINEO-DURACOES-CURTAS-2026-09-29
+      const planoCurto = wantsKling ? kling25VerbatimPlan(parsedScript.narration, { durationSeconds: duration, wordsPerSecond: narrationRate.wordsPerSecond }) : veoVerbatimPlan(parsedScript.narration, { durationSeconds: duration, wordsPerSecond: narrationRate.wordsPerSecond }) // KINEO-DURACOES-CURTAS-2026-09-29
+      if (planoCurto.chunks.length > 0) { // KINEO-DURACOES-CURTAS-2026-09-29
+        const pistasCurtas = pistasDosTrechos(parsedScript.segments, planoCurto.chunks) // KINEO-DURACOES-CURTAS-2026-09-29
+        scenes = planoCurto.chunks.map((fala, i) => ({ description: pistasCurtas[i] || fala, voiceover: fala, caption: shortCaptionFromVoiceover(fala), stockSearchQuery: pistasCurtas[i] || fala, clipSeconds: planoCurto.seconds[i] })) // KINEO-DURACOES-CURTAS-2026-09-29
+        console.log(`[cinematic] KINEO-DURACOES-CURTAS: 15 s ${wantsKling ? 'Kling 2.5' : 'Veo 3.1'} marcado (${parsedScript.segments.length} blocos) em ${scenes.length} planos [${planoCurto.seconds.join(',')}] pelo divisor da fala, pistas herdadas`) // KINEO-DURACOES-CURTAS-2026-09-29
+        clipCount = scenes.length // KINEO-DURACOES-CURTAS-2026-09-29
+        if (wantsVeo) veoMarcadoRelato = null // KINEO-DURACOES-CURTAS-2026-09-29: o relato do VEO-MARCADO descrevia os planos substituídos
+      } // KINEO-DURACOES-CURTAS-2026-09-29
+    } // KINEO-DURACOES-CURTAS-2026-09-29
 
     // ═══ KINEO-ZERO-SCENES-FALLBACK-2026-09-04 — construtor vazio nao vira filme perdido ═══
     //
@@ -6735,6 +6776,9 @@ async function manipularPost(req: NextRequest) {
     // persona ficam de rastro); o /api/compose os põe no corpo antes de escolher a voz, em vez do `vertical` do navegador (que
     // o resgate do cron nem manda). Todo outro filme: resposta intacta.
     if (seedanceShortFilm && vozCurta) response.narration_voice = campoDaVozAssinada(vozCurta)
+    // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 — o filme de 15 s do Kling 2.5 e do Veo 3.1 fala a MESMA voz
+    // do 15 s (lib/vozDoFilmeCurto — o portão acima mediu nela): vai assinada no claim do mesmo jeito, e o /api/compose a usa.
+    if (vozCurta && (wantsKling || wantsVeo)) response.narration_voice = campoDaVozAssinada(vozCurta) // KINEO-DURACOES-CURTAS-2026-09-29
     // The signed claim records the ACTUAL per-scene model (usedModels). When
     // anchoring is OFF these are all `usedModel`, identical to the previous
     // `falRequestIds.map(() => usedModel)`.

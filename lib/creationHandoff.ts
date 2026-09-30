@@ -10,6 +10,11 @@ export type CreationLanguage = NarrationLanguage
 // browser silently discard everything after it.
 export const CREATION_HANDOFF_PROMPT_MAX_CHARS = 1000
 
+// ═══ KINEO-DURACOES-CURTAS-2026-09-29 [vai do fundador 29/09 'vai pra todas as 4'] — as durações curtas NOVAS por motor (abaixo de 35),
+// espelho de lib/durationByEngine.ts supportedDurationsFor (este módulo roda no guardião sem imports; o guardião
+// scripts/test-duracoes-curtas-todos-motores-2026-09-29.mjs compara as duas tabelas). ?duration=15 sem motor continua caindo no padrão.
+const CURTAS_DO_HANDOFF: Readonly<Record<string, readonly number[]>> = { kling: [15], veo: [15] }
+
 type QueryReader = Pick<URLSearchParams, 'get'>
 type QueryWriter = Pick<URLSearchParams, 'set'>
 
@@ -98,8 +103,8 @@ export function readCreationHandoff(params: QueryReader): CreationHandoff {
     duration:
       rawDuration === 45
         ? 35
-        : (rawDuration === 15 && rawEngine === 'seedance') || rawDuration === 35 || rawDuration === 60 || rawDuration === 90 // KINEO-SEEDANCE-15S-2026-09-29 (o padrão continua 35)
-          ? rawDuration
+        : (rawDuration === 15 && rawEngine === 'seedance') || (CURTAS_DO_HANDOFF[rawEngine] ?? []).includes(rawDuration) || rawDuration === 35 || rawDuration === 60 || rawDuration === 90 // KINEO-SEEDANCE-15S-2026-09-29 (o padrão continua 35) · KINEO-DURACOES-CURTAS-2026-09-29
+          ? (rawDuration as CreationDuration) // KINEO-DURACOES-CURTAS-2026-09-29: o includes() não estreita o tipo
           : null,
   }
 }

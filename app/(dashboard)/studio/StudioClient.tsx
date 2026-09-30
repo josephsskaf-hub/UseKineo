@@ -54,6 +54,7 @@ import { buildStudioSeriesReviewHref, carryStudioSeriesReview, isStudioSeriesRev
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 import { ENGINE_GATE_ACTIVE, STUDIO_ONLY_ENGINE_KEYS } from '@/lib/enginePlanGate'
 import { SEEDANCE_SHORT_SECONDS, MIN_DURATION_ALL_ENGINES } from '@/lib/durationByEngine' // KINEO-SEEDANCE-15S-2026-09-29
+import { supportedDurationsFor } from '@/lib/durationByEngine' // KINEO-DURACOES-CURTAS-2026-09-29 — a tabela motor × durações (fonte única do servidor)
 import DiretorKineo from '@/components/DiretorKineo' // DIRETOR-KINEO-20260923
 import DfyOfferCard from '@/components/DfyOfferCard' // KINEO-EMPRESAS-COCKPIT-2026-09-24
 // KINEO-STUDIO-TILE-ADS-2026-09-27 — tile "Business ad" na fileira de miniaturas. Fato: 0 dos 10 assinantes tocaram /ads em
@@ -88,6 +89,8 @@ const ENGINE_QUALITY: Record<string, Quality> = {
 // morando em dois lugares. Unificar os dois fica no backlog; hoje o conserto é
 // o motor existir nos dois.
 type EngineKey = 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni' | 's25'
+// KINEO-DURACOES-CURTAS-2026-09-29 — as durações do seletor (a curta depende do motor: lib/durationByEngine supportedDurationsFor).
+type StudioDuration = 15 | 35 | 60 | 90
 
 // KINEO-STUDIO-SPECS-2026-08-17 (fundador: 'so 1080p — as pessoas nao
 // precisam saber a quantidade de clips'): a ficha tecnica interna
@@ -204,7 +207,7 @@ export default function StudioClient() {
   // e `setDuration(35)` só não explodia porque o TS não cobre este caminho.
   // KINEO-SEEDANCE-15S-2026-09-29 — 15 = o filme curto do Seedance 1.5 (7 cr); o botão só aparece com o Seedance escolhido
   // e com o interruptor SEEDANCE_15S_PUBLIC (flag `seedance15` do /api/me/credits). O padrão continua 60.
-  const [duration, setDuration] = useState<15 | 35 | 60 | 90>(60)
+  const [duration, setDuration] = useState<StudioDuration>(60) // KINEO-DURACOES-CURTAS-2026-09-29: StudioDuration (15/35/60/90 + as curtas por motor)
   // KINEO-MULTIFORMATO-2026-09-02 — quatro formatos reais; 9:16 continua o
   // padrão (é o produto de 100% dos primeiros vídeos da casa).
   const [aspect, setAspect] = useState<Aspect>('9:16')
@@ -230,6 +233,9 @@ export default function StudioClient() {
   const [internal, setInternal] = useState(false)
   // KINEO-SEEDANCE-15S-2026-09-29 — o botão de 15 s do Seedance (SEEDANCE_15S_PUBLIC || casa). Falha fechada: sem a flag, sem botão.
   const [seedance15Ok, setSeedance15Ok] = useState(false)
+  // KINEO-DURACOES-CURTAS-2026-09-29 — os botões curtos NOVOS (Kling 2.5/Veo 15 s; hollywood 15/30 s): flag `curtas` do /api/me/credits
+  // (DURACOES_CURTAS_PUBLIC || casa). Falha fechada: sem a flag, sem botão (o servidor aceita, a tela só não oferece).
+  const [curtasOk, setCurtasOk] = useState(false)
   // KINEO-AVATAR-FORA-2026-09-28 — fundador (27/09): "avatar sai por hora". O link "AI Presenter ↗" e o card Avatar
   // do seletor só aparecem com AVATAR_PUBLIC=true ou para conta da casa (flag `avatar` do /api/me/credits =
   // avatarVisible). Medido: 0 cliques em studio_avatar_card_clicked na história do evento. Flag própria, não
@@ -260,7 +266,7 @@ export default function StudioClient() {
     fetch('/api/me/credits', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (alive) { setKineo1Flag(d?.kineo1 === true ? true : d?.kineo1 === false ? false : null); if (typeof d?.hasPaid === 'boolean') setContaPaga(d.hasPaid) } return d }) // KINEO-ENTRADA-SEEDANCE15
-      .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true); if (alive && d?.avatar === true) setAvatarOn(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && typeof d?.plan === 'string') setPlan(d.plan) })
+      .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true); if (alive && d?.avatar === true) setAvatarOn(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && d?.curtas === true) setCurtasOk(true); if (alive && typeof d?.plan === 'string') setPlan(d.plan) })
       .catch(() => {}) // saldo é enfeite: falhou, a tela segue como antes
       .finally(() => { if (alive) setFlagsProntas(true) }) // KINEO-ENTRADA-SEEDANCE15
     return () => { alive = false }
@@ -384,6 +390,9 @@ export default function StudioClient() {
     } else if (requestedDuration === SEEDANCE_SHORT_SECONDS && e === 'seedance') {
       // KINEO-SEEDANCE-15S-2026-09-29 — ?duration=15 só com ?engine=seedance: o 15 s não existe nos outros motores.
       setDuration(SEEDANCE_SHORT_SECONDS)
+    } else if (e && e !== 'seedance' && requestedDuration < MIN_DURATION_ALL_ENGINES && supportedDurationsFor(e).includes(requestedDuration)) {
+      // KINEO-DURACOES-CURTAS-2026-09-29 — ?duration= curta com um motor que a oferece (Kling 2.5/Veo 15; hollywood 15/30).
+      setDuration(requestedDuration as StudioDuration)
     }
     const quickstartChoice = sp.get('chatgpt_quickstart')
     if (isChatGptQuickstartChoice(quickstartChoice)) {
@@ -463,7 +472,12 @@ export default function StudioClient() {
   // KINEO-SEEDANCE-15S-2026-09-29 (revisão E2a) — com o Seedance em 15 s, os OUTROS cards não existem a 15 s: ao clicar,
   // o efeito abaixo sobe para 35. O card precifica na duração que o motor vai de fato receber (Kling 3 "38 cr" a 15 s
   // virava 88 cr no clique).
-  const duracaoDoCard = (key: EngineKey): number => (key === 'seedance' ? duration : Math.max(duration, MIN_DURATION_ALL_ENGINES))
+  // KINEO-DURACOES-CURTAS-2026-09-29 — as durações CURTAS (abaixo de 35) que este card oferece: o Seedance com o interruptor dele
+  // (SEEDANCE_15S_PUBLIC), os outros pela tabela do servidor (lib/durationByEngine supportedDurationsFor) com DURACOES_CURTAS_PUBLIC.
+  const curtasDoMotor = (key: EngineKey): number[] =>
+    (key === 'seedance' ? (seedance15Ok ? [...supportedDurationsFor('seedance')] : []) : [...supportedDurationsFor(key, { curtas: curtasOk })]).filter((d) => d < MIN_DURATION_ALL_ENGINES)
+  // KINEO-DURACOES-CURTAS-2026-09-29 — o card precifica na duração que o motor vai de fato receber: a curta que ele oferece, ou 35+.
+  const duracaoDoCard = (key: EngineKey): number => (key === 'seedance' || curtasDoMotor(key).includes(duration) ? duration : Math.max(duration, MIN_DURATION_ALL_ENGINES))
   const engineCost = (key: EngineKey) =>
     creditCostForDuration(ENGINE_QUALITY[key] ?? 'cinematic_ai', true, duracaoDoCard(key))
   const engineCostLabel = (key: EngineKey) => {
@@ -476,11 +490,13 @@ export default function StudioClient() {
   // que a 35 s (59 cr) o filme cabe. Fundador (22/09: "pode ir nas três primeiras"): mostrar o degrau que cabe, em
   // qualquer motor cujo custo na duração atual passa do saldo mas cabe numa duração menor do seletor.
   // KINEO-SEEDANCE-15S-2026-09-29 — no Seedance (com o interruptor) o degrau desce até 15 s (7 cr, cabe no trial de 10).
-  const stepDownFor = (key: EngineKey): { seconds: 15 | 35 | 60; cost: number } | null => {
+  const stepDownFor = (key: EngineKey): { seconds: StudioDuration; cost: number } | null => {
     if (balance === null) return null
     const c = engineCost(key)
     if (c <= 0 || balance >= c) return null
-    const degraus: readonly (15 | 35 | 60)[] = key === 'seedance' && seedance15Ok ? [60, 35, 15] : [60, 35]
+    // KINEO-DURACOES-CURTAS-2026-09-29 — o degrau desce até as curtas que o card oferece (Seedance 15 com o interruptor dele;
+    // Kling 2.5/Veo 15 e hollywood 30/15 com DURACOES_CURTAS_PUBLIC), da maior para a menor.
+    const degraus: readonly StudioDuration[] = [60, 35, ...curtasDoMotor(key).sort((a, b) => b - a)] as StudioDuration[]
     for (const d of degraus) {
       if (d >= duracaoDoCard(key)) continue
       const cost = creditCostForDuration(ENGINE_QUALITY[key] ?? 'cinematic_ai', true, d)
@@ -499,10 +515,12 @@ export default function StudioClient() {
   }
 
   // KINEO-SEEDANCE-15S-2026-09-29 — trocar de motor estando em 15 s volta para 35 s (o servidor recusaria o 15 fora do Seedance).
+  // KINEO-DURACOES-CURTAS-2026-09-29 — agora: volta para 35 s só se o motor novo NÃO oferece a duração curta atual (Kling 2.5/Veo
+  // guardam o 15; hollywood guarda 15 e 30).
   useEffect(() => {
-    if (engine !== 'seedance' && duration === SEEDANCE_SHORT_SECONDS) setDuration(MIN_DURATION_ALL_ENGINES as 35)
+    if (engine !== 'seedance' && duration < MIN_DURATION_ALL_ENGINES && !curtasDoMotor(engine).includes(duration)) setDuration(MIN_DURATION_ALL_ENGINES as 35)
   }, [engine]) // eslint-disable-line react-hooks/exhaustive-deps
-  const shortestDuration = engine === 'seedance' && seedance15Ok ? SEEDANCE_SHORT_SECONDS : MIN_DURATION_ALL_ENGINES
+  const shortestDuration = engine === 'seedance' && seedance15Ok ? SEEDANCE_SHORT_SECONDS : Math.min(MIN_DURATION_ALL_ENGINES, ...curtasDoMotor(engine)) // KINEO-DURACOES-CURTAS-2026-09-29
 
   // KINEO-DEGRAU-35S: impressão medida no mesmo gatilho do clique (picker aberto), com os degraus oferecidos.
   useEffect(() => {
@@ -996,6 +1014,11 @@ export default function StudioClient() {
               {engine === 'seedance' && (seedance15Ok || duration === SEEDANCE_SHORT_SECONDS) && (
                 <button type="button" className={`pill${duration === SEEDANCE_SHORT_SECONDS ? ' on' : ''}`} onClick={() => setDuration(SEEDANCE_SHORT_SECONDS)} title="Seedance 1.5 only — a short AI film">{SEEDANCE_SHORT_SECONDS}s</button>
               )}
+              {/* KINEO-DURACOES-CURTAS-2026-09-29 — as curtas dos outros motores (Kling 2.5/Veo 15 s; hollywood 15/30 s), da tabela do servidor,
+                  com o interruptor DURACOES_CURTAS_PUBLIC (ou quando já veio numa curta que o motor oferece). */}
+              {engine !== 'seedance' && [...new Set([...curtasDoMotor(engine), ...(duration < MIN_DURATION_ALL_ENGINES && supportedDurationsFor(engine).includes(duration) ? [duration] : [])])].sort((a, b) => a - b).map((d) => (
+                <button key={`curta-${d}`} type="button" className={`pill${duration === d ? ' on' : ''}`} onClick={() => setDuration(d as StudioDuration)} title="A short film on this engine">{d}s</button>
+              ))}
               <button type="button" className={`pill${duration === 35 ? ' on' : ''}`} onClick={() => setDuration(35)}>35s</button>
               <button type="button" className={`pill${duration === 60 ? ' on' : ''}`} onClick={() => setDuration(60)}>60s ⭐</button>
               <button type="button" className={`pill${duration === 90 ? ' on' : ''}`} onClick={() => setDuration(90)} title="Mais alcance: no TikTok, 90s rende ~4x as views de um vídeo de 60s">90s 📈</button>

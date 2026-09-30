@@ -24,6 +24,7 @@ import { looksLikeModelRefusal, MODEL_REFUSAL_MESSAGE } from '@/lib/modelRefusal
 // do filme curto da rota do cinematic aceita (lib/durationByEngine.ts), contado na MESMA régua dela (parseUserScript).
 import { parseUserScript } from '@/lib/scriptParser'
 import { maxWordsForShortFilm, isSeedance15 } from '@/lib/durationByEngine'
+import { isClassicShortEngine, maxWordsCurtoDoMotor, faixaAceitaNoFilmeCurtoDoMotor } from '@/lib/durationByEngine' // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 — o 15 s do Kling 2.5 e do Veo 3.1 nasce na régua do 15 s do Seedance
 import { faixaAceitaNoFilmeCurto } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29
 import { isShortFilmTarget, keepShortFilmSections, fitShortFilmScript, shortFilmRetryInstruction, finishShortFilmScript, stripSocialCta, truncatedSentences } from '@/lib/shortFilmScript'
 
@@ -347,7 +348,9 @@ export async function POST(req: NextRequest) {
     // SÓ no filme curto do Seedance 1.5 (o motor que a rota do cinematic trata como Seedance, inclusive sem `engine` — o mesmo
     // predicado do teto duro abaixo): faixa, teto duro e prompt no ritmo dela (lib/durationByEngine ritmoDoFilmeCurto: tr 29–34
     // e 45 palavras; en/pt/es 36–41 e 56, como antes). Kineo 1, Kling 2.5, Veo, a estrada de voz própria e 35/60/90: undefined.
-    const idiomaDoRitmo = isShortFilmTarget(alvoSegundos) && isSeedance15(typeof body.engine === 'string' ? body.engine : null) ? language : undefined
+    // KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4']: desde este bloco o Kling 2.5 e o Veo 3.1 a 15 s entram
+    // aqui também (a mesma voz do 15 s — lib/vozDoFilmeCurto —, a mesma guarda e o mesmo portão na rota do cinematic).
+    const idiomaDoRitmo = isShortFilmTarget(alvoSegundos) && isClassicShortEngine(typeof body.engine === 'string' ? body.engine : null) ? language : undefined // KINEO-DURACOES-CURTAS-2026-09-29: + Kling 2.5 e Veo 3.1
     // KINEO-ROTEIRO-COLADO-NAO-ENGORDA-2026-09-18 — roteiro colado: o piso de palavras é o da própria pessoa,
     // e o escritor só estrutura. Ver lib/pastedScript.ts.
     const colado = detectPastedScript(topic)
@@ -376,14 +379,14 @@ export async function POST(req: NextRequest) {
     // KINEO-ROTEIRO-15S-FRASE-INTEIRA-2026-09-29 — teto DURO do corte por frases: no Seedance, o que a guarda do cinematic
     // ainda aceita (22,5 s = 56 palavras, 3 × 8 s). Sem combinação de frases inteiras dentro de [piso, teto], passar do
     // teto até aqui vence ficar abaixo do piso ("passar do alvo é bom; ficar abaixo é defeito"). Kineo 1: sem folga.
-    const tetoDuroFilmeCurto = isSeedance15(typeof body.engine === 'string' ? body.engine : null) ? Math.max(tetoFilmeCurto, maxWordsForShortFilm(alvoSegundos, idiomaDoRitmo)) : tetoFilmeCurto
+    const tetoDuroFilmeCurto = isClassicShortEngine(typeof body.engine === 'string' ? body.engine : null) ? Math.max(tetoFilmeCurto, maxWordsCurtoDoMotor(typeof body.engine === 'string' ? body.engine : null, alvoSegundos, idiomaDoRitmo)) : tetoFilmeCurto // KINEO-DURACOES-CURTAS-2026-09-29: + Kling 2.5 e Veo 3.1 (teto da guarda DO MOTOR; no Seedance, o mesmo maxWordsForShortFilm)
     // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29 — o que a rota do cinematic ACEITA no
     // filme curto do Seedance 1.5, na língua (lib/durationByEngine faixaAceitaNoFilmeCurto: o portão de 95 % na voz mais rápida
     // do 15 s e a guarda de roteiro longo; tr 29–45, en/pt/es 36–56). Entre as duas versões do escritor, a que o cinematic aceita
     // vence a que ele recusa (notaDoFilmeCurto, abaixo). Caso de 29/09 09:27 UTC (Turquia): 27 palavras (o portão recusa) ficavam
     // no lugar de ~40 (a guarda aceita) porque "cabe no teto da faixa" pesava mais — e o 1º filme morria em 'narration_too_short'.
     // Fora do 15 s do Seedance (Kineo 1, 35/60/90): null — a escolha entre as versões fica como sempre.
-    const faixaDoCinematic = idiomaDoRitmo !== undefined ? faixaAceitaNoFilmeCurto(alvoSegundos, MIN_COVERAGE, idiomaDoRitmo) : null
+    const faixaDoCinematic = idiomaDoRitmo !== undefined ? faixaAceitaNoFilmeCurtoDoMotor(typeof body.engine === 'string' ? body.engine : null, alvoSegundos, MIN_COVERAGE, idiomaDoRitmo) : null // KINEO-DURACOES-CURTAS-2026-09-29: a faixa da guarda do motor (Seedance: a mesma de antes)
     const oCinematicAceita = (t: string): boolean => faixaDoCinematic !== null && falaNaReguaDaGuarda(t) >= faixaDoCinematic.min && palavrasDoFilmeCurto(t) <= faixaDoCinematic.max
     /** O rastro de uma versão do filme curto (log e script_written): palavras na régua da guarda e se o cinematic a aceita. */
     const versaoDoFilmeCurto = (t: string): { words: number; cinematic_accepts: boolean | null } => ({ words: palavrasDoFilmeCurto(t), cinematic_accepts: faixaDoCinematic ? oCinematicAceita(t) : null })
