@@ -636,3 +636,11 @@ Slug do X confirmado: utm_source=x.
 - A conta de afiliado do fundador (e-mails de admin) aparece com selo "Casa" e fica FORA dos totais: o único "pagante" da história era o teste dele pelo próprio código. Sem ela: 21 afiliados, 72 cliques, 0 cadastros, 0 vendas (30/09).
 - "Pessoas únicas" só aparece com IP anonimizado em ≥ 90% dos cliques: desde 27/08 o link não grava ip_hash sem a env AFFILIATE_IP_SALT (hoje 23,6%).
 - Guardião: scripts/test-admin-afiliados-2026-09-30.mjs (16 ok, 8 mutantes). Reancorado: test-affiliate-destinations (leitura paginada).
+
+## 2026-09-30 — Produto novo "Espaços" (KINEO-ESPACOS)
+- Fundador: "tenho muito acesso a construtoras… esse galpão está vazio… com IA colocar o Starbucks dentro, ou uma loja do Burger King… a pessoa faz as fotos, fala o que quer dentro, e a gente traz um vídeo perfeito… sempre usar algum método de procura". Também: apartamento decorado.
+- Prova real antes do código (30/09): 3 fotos do espaço vazio do Villa Versace (Moema) → cafeteria no padrão Starbucks com Nano Banana Pro edit + régua "mesma câmera, mesma estrutura": colunas, vidros e tubulação do teto ficaram no lugar. Vídeo antes → depois de 21 s.
+- /spaces (só contas da casa: SPACES_PUBLIC=false): fotos ou vídeo (a tela tira 3 quadros) → pedido + tipo → pesquisa de curadoria na web (/api/spaces/brief, OpenAI web_search, editável) → espaço pronto foto a foto (/api/images/generate, 5 cr, refazer por foto, comparador antes/depois) → clipe por foto (/api/clips Kling 2.5, 5 cr) → montagem própria antes → fusão → depois (/api/spaces/montage, Creatomate, cópia no nosso storage). Custo por espaço de 3 fotos ≈ 30 créditos, tudo em endpoints que já cobram e moderam.
+- Selo honesto inegociável: "Ilustração criada com IA · sem vínculo com as marcas exibidas" do primeiro ao último quadro; assinatura do fim só "Apresentado por <quem apresenta>" — a tela não oferece "decorado por <terceiro>". Mostrar como uma loja de marca FICARIA no ponto é prática de mercado; dizer que a marca está lá ou atribuir autoria a quem não participou, não.
+- Guardião: scripts/test-espacos-2026-09-30.mjs (16 ok, 6 mutantes). Reancorado: test-moderacao (contagem 22→24: rota do ChatGPT de outra sessão + a do Espaços).
+- Pendente do fundador: preço público (hoje só a casa usa) e o "vai" para abrir a clientes.

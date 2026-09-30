@@ -162,7 +162,11 @@ const imp = ['app', 'lib', 'components'].flatMap(walk).filter((p) => /from '@\/l
 // 29/09: +1 importador de servidor, lib/estrelaServer.ts (Estrela do filme: todo still do Nano Banana Pro edit com o rosto passa pela moderação de SAÍDA antes de virar âncora de cena — KINEO-ESTRELA-DO-FILME-2026-09-29).
 // 30/09: +1 importador de servidor, app/api/ads/v2/variations/route.ts ("3 variações" modera narração e frases de tela, a
 // mesma régua do /start, ANTES do débito — KINEO-ADS-3-VARIACOES-2026-09-30).
-ok(imp.length === 22 && imp.every((p) => !/^\s*['"]use client['"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`)
+// 30/09: +1 importador de servidor, app/api/mcp/chatgpt/route.ts (perfil MCP do ChatGPT; entrou sem atualizar esta
+// contagem — anotado aqui em 30/09 na reancoragem do KINEO-ESPACOS).
+// 30/09: +1 importador de servidor, app/api/spaces/brief/route.ts ("Espaços" modera o pedido ANTES da pesquisa paga na
+// web — KINEO-ESPACOS-2026-09-30).
+ok(imp.length === 24 && imp.every((p) => !/^\s*['"]use client['"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`)
 
 // ── 5. upload: o tipo pelos bytes ──────────────────────────────────────────────────────────────────────
 const K = roda('lib/safety/mediaKind.ts')

@@ -23,6 +23,7 @@ export type ModerationSurface =
   | 'chatgpt_plugin'
   | 'images' | 'images_edit' | 'images_upscale' | 'animate' | 'gesture' | 'avatar' | 'avatar_scene' | 'clip' | 'character'
   | 'footage' | 'ads_brief' | 'ads_render' | 'images_reference'
+  | 'spaces' // KINEO-ESPACOS-2026-09-30 — pedido do "Espaços" (o que vai dentro do espaço vazio)
   | 'estrela' // KINEO-ESTRELA-DO-FILME-2026-09-29 — still da estrela (Nano Banana Pro edit) conferido ANTES de virar âncora de cena
 export type ModerationStage = 'input' | 'output' | 'upload'
 
