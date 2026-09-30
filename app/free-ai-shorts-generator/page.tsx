@@ -17,7 +17,7 @@ import {
 } from '@/lib/growth/affiliateLandingContext'
 import { freeShortsAlternates } from '@/lib/seo/freeShortsGeneratorLangs'
 // KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — ponte roteiro → Seedance acima da dobra (fundador 23/09, jogada 3).
-import ScriptToSeedanceBridge from '@/components/ScriptToSeedanceBridge'
+import PaidSeedanceBridge from '@/components/PaidSeedanceBridge'
 import { ENGINES } from '@/lib/growth/enginePageCatalog'
 import { enginePaused } from '@/lib/engineLaunch'
 
@@ -60,14 +60,14 @@ const FAQ = [
   },
   {
     q: 'What happens after the free videos?',
-    a: 'You can keep testing with watermarked Fast videos within the free daily limit, or upgrade when you want watermark-free exports and premium AI engines.',
+    a: `${OFFER.copy.sentence} For recurring production, compare the monthly plans and the credits required by your chosen engine and duration. You can choose a plan before making your first film.`,
   },
 ] as const
 
 export const metadata: Metadata = {
   title: 'Free AI Shorts Generator - Create Faceless Shorts With No Card | Kineo',
   description:
-    'Use Kineo as a free AI Shorts generator. Type one idea and create a faceless YouTube Short with script, AI voiceover, visuals, captions, and MP4 export. No card for the Fast test.',
+    `Create faceless Shorts with script, AI voiceover, visuals and captions. Trial: ${OFFER.copy.planLimitLine}. Compare films and plans before you choose.`,
   alternates: {
     canonical: `${BASE}/free-ai-shorts-generator`,
     // KINEO-PORTAS-16-LINGUAS-2026-09-20 — hreflang das 16 portas (en/pt/es + 13 em /free-shorts-generator/<lang>).
@@ -85,7 +85,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Free AI Shorts Generator | Kineo',
-    description: 'Create a faceless AI Short from one idea. No card for the free Fast test.',
+    description: `Create a faceless AI Short from one idea. Trial: ${OFFER.copy.planLimitLine}.`,
     images: [FEATURED_EXAMPLE.posterPath],
   },
 }
@@ -132,6 +132,7 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
         <p style={{ fontSize: '1.08rem', color: '#86868b', lineHeight: 1.6, margin: '16px 0 0' }}>
           Type one idea and Kineo generates a ready-to-post vertical Short: script, AI voiceover, visuals, captions, and MP4 export. {ft(OFFER, 'Try the Fast workflow with no credit card.', 'Your active trial starts with the best engine it can cover — Seedance when eligible.')}
         </p>
+        {!enginePaused(ENGINES.seedance.param) && <PaidSeedanceBridge from="free_ai_shorts_generator" compact />}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '26px 0 0' }}>
           <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 850, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>
             Generate a free Short
@@ -143,10 +144,6 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 750, margin: '12px 0 0' }}>
           {ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card required.', OFFER.copy.headline)}
         </p>
-
-        {/* KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — medido 23/09: 132 sessões do ChatGPT → 70 contas → 0 pagantes em 60 d.
-            Quem chega com roteiro pronto vê o Seedance antes do formulário grátis. Some se o Seedance estiver pausado. */}
-        {!enginePaused(ENGINES.seedance.param) && <ScriptToSeedanceBridge from="free_ai_shorts_generator" compact />}
 
         <TopicGeneratorForm
           campaign={CAMPAIGN}
@@ -239,7 +236,7 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
 
         <div style={{ marginTop: 44, textAlign: 'center', background: 'radial-gradient(circle at 50% 0%, rgba(41,151,255,0.14), #0c0c0e 70%)', border: '1px solid rgba(41,151,255,0.25)', borderRadius: 18, padding: '34px 22px' }}>
           <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.85rem)', fontWeight: 900 }}>Generate the first Short now.</div>
-          <p style={{ color: '#86868b', margin: '8px 0 18px' }}>Use a watermarked Fast video to test the workflow before paying.</p>
+          <p style={{ color: '#86868b', margin: '8px 0 18px' }}>{OFFER.copy.headline}</p>
           <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="final" style={{ background: '#f5f5f7', color: '#000', fontWeight: 850, padding: '14px 30px', borderRadius: 980, textDecoration: 'none' }}>
             Try the free generator
           </OrganicCtaLink>
