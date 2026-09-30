@@ -88,7 +88,7 @@ function dataProblems(src) {
     if (clips.gate !== 'clips') probs.push('card do Clips sem o interruptor do produto')
 
   }
-  if (cards.some((c) => 'chips' in c.art || 'tag' in c.art)) probs.push('card com chips/etiqueta por cima do vídeo (fundador 30/09: cards limpos)')
+  if (cards.some((c) => 'chips' in c.art || 'tag' in c.art || 'badge' in c.art)) probs.push('card com chips/etiqueta/selo por cima do vídeo (fundador 30/09: cards limpos, "sem clips new")')
   if (!images || images.href !== '/images') probs.push('card de Images não aponta para /images')
   if (images) {
     if (images.title !== 'NANO BANANA PRO') probs.push('título do card de Images mudou')
@@ -236,7 +236,8 @@ ok(dataProblems(dataSrc.replace("title: 'KINEO FOR CLAUDE'", "title: 'OFFICIAL K
 ok(dataProblems(dataSrc.replace("'Write your video in Claude, render it in Kineo Studio'", "'Official Claude partner for videos'")).length > 0, '(M3) "partner" no subtítulo → vermelho')
 ok(dataProblems(dataSrc.replace("bands: ['KINEO IN CLAUDE'],", "bands: ['KINEO IN CLAUDE BY ANTHROPIC'],")).length > 0, '(M4) "by Anthropic" no letreiro → vermelho')
 ok(dataProblems(dataSrc.replace("bandTone: 'cobalt',", "bandTone: 'cobalt',\n      tag: 'Connector · MCP',")).length > 0, '(M4b) etiqueta de volta por cima do vídeo → vermelho')
-ok(dataProblems(dataSrc.replace("      badge: 'NEW',", "      badge: 'NEW',\n      chips: ['5', '7', '10', '15'],")).length > 0, '(M29) chips de duração de volta no Clips → vermelho')
+ok(dataProblems(dataSrc.replace("clip('promo-clips-surf')],", "clip('promo-clips-surf')],\n      chips: ['5', '7', '10', '15'],")).length > 0, '(M29) chips de duração de volta no Clips → vermelho')
+ok(dataProblems(dataSrc.replace("clip('promo-clips-surf')],", "clip('promo-clips-surf')],\n      badge: 'NEW',")).length > 0, '(M30) selo NEW de volta no Clips → vermelho')
 ok(dataProblems(dataSrc.replace("'Pro images from a sentence", "'4K images from a sentence")).length > 0, '(M26) card de Images prometendo 4K → vermelho')
 ok(dataProblems(dataSrc.replace("clip('promo-ads-c')]", "clip('promo-ads-a')]")).length > 0, '(M27) Ads sem a variação C → vermelho')
 ok(dataProblems(dataSrc.replace(", clip('promo-clips-surf')]", ']')).length > 0, '(M28) card com 2 vídeos em vez de 3 → vermelho')

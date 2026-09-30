@@ -33,17 +33,13 @@ export const PROMO_CARDS_CSS = `
 .kpc-lower[data-tone=cobalt] .kpc-band{background:var(--home-action,#0A5CFF);color:#fff;box-shadow:0 8px 22px -10px rgba(10,92,255,.7)}
 .kpc-lower[data-tone=glass] .kpc-band{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.38);backdrop-filter:blur(10px) saturate(160%);-webkit-backdrop-filter:blur(10px) saturate(160%)}
 .kpc-lower[data-tone=paper] .kpc-band{background:#F7F7F5;color:#0E1116;box-shadow:0 8px 22px -12px rgba(7,9,13,.6)}
-.kpc-new{position:absolute;left:3.6cqw;top:3.6cqw;padding:5px 10px;border-radius:999px;background:var(--home-action,#0A5CFF);color:#fff;font-size:11px;font-weight:800;letter-spacing:.12em;box-shadow:0 6px 18px -6px rgba(10,92,255,.8)}
 @media (prefers-reduced-motion: no-preference){
-.kpc-card:not([data-play]) .kpc-new{opacity:0;transform:scale(.6)}
 .kpc-card:not([data-play]) .kpc-band{opacity:0;transform:translateY(8px)}
 .kpc-card[data-play] .kpc-band{animation:kpcUp .7s cubic-bezier(.16,1,.3,1) .2s both}
-.kpc-card[data-play] .kpc-new{animation:kpcPop .55s cubic-bezier(.34,1.56,.64,1) .2s both}
 .kpc-card:hover .kpc-video video[data-on]{transform:scale(1.03)}
 .kpc-video video{transition:opacity .7s ease,transform .6s cubic-bezier(.16,1,.3,1)}
 }
 @keyframes kpcUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-@keyframes kpcPop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
 @media (max-width:1100px){
 .kpc-card{flex-basis:clamp(200px,calc((100% - 32px) / 3),420px)}
 }
@@ -103,7 +99,6 @@ function PromoArt({ card }: { card: PromoCard }) {
           {art.bands.map((band) => <span key={band} className="kpc-band">{band}</span>)}
         </span>
       ) : null}
-      {art.badge ? <span className="kpc-new"><UiLabel>{art.badge}</UiLabel></span> : null}
     </div>
   )
 }

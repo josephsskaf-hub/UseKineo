@@ -33,7 +33,6 @@ export type PromoCardArt = {
   bands?: readonly string[]
   /** Cor do letreiro: cobalto (cor da marca), vidro (translúcido) ou papel (branco). */
   bandTone?: 'cobalt' | 'glass' | 'paper'
-  badge?: string
 }
 // Fundador 30/09: "deixar os cards limpos… sem 5 s, 7 s, 10, 15… sem ABC" — nada de chips nem etiquetas por cima do vídeo.
 
@@ -90,7 +89,6 @@ export const PROMO_CARDS: readonly PromoCard[] = [
     art: {
       kind: 'reel',
       clips: [clip('promo-clips-storm'), clip('promo-clips-glacier'), clip('promo-clips-surf')],
-      badge: 'NEW',
     },
     gate: 'clips',
   },
