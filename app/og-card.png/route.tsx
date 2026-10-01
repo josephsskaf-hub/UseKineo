@@ -39,7 +39,9 @@ export async function GET() {
           flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
-          background: 'radial-gradient(ellipse 900px 520px at 0% 0%, #E6EEFF, rgba(230,238,255,0) 72%), #F7F7F5',
+          // O gerador (satori) não aceita radial-gradient com tamanho ('ellipse 900px…') — o cartão saiu com 0 bytes em 01/10.
+          // Guardião que GERA o cartão de verdade: node scripts/test-og-card-render-2026-10-01.mjs [saida.png]
+          background: 'linear-gradient(135deg, #E6EEFF 0%, #F7F7F5 55%)',
           padding: '90px 100px',
           fontFamily: 'sans-serif',
           textAlign: 'center',
