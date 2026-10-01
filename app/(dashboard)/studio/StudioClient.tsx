@@ -209,7 +209,7 @@ function withPick(list: StudioHeroVideo[], pick: StudioBestFilm | null, key: str
   return [{ src: pick.src, poster: pick.poster, title: pick.title }, ...list.filter((v) => v.src !== pick.src)].slice(0, 4)
 }
 /** KINEO-STUDIO-TELA-COR-2026-09-30 — uma regra por motor: a tela inteira herda a cor do motor do palco. */
-const STAGE_CSS = Object.entries(STAGE_TINT).map(([k, [a, b]]) => `html:has(.composer-proposal[data-stage="${k}"]){--stage-a:${a};--stage-b:${b}}`).join('\n')
+const STAGE_CSS = Object.entries(STAGE_TINT).map(([k, [a, b]]) => `html[data-studio-stage="${k}"]{--stage-a:${a};--stage-b:${b}}`).join('\n')
 function EngineHero({ name, desc, meta, videos, fallback }: { name: string; desc?: string; meta?: string; videos: StudioHeroVideo[]; fallback?: string }) {
   const list: StudioHeroVideo[] = videos.length ? videos : fallback ? [{ src: fallback, title: name }] : []
   const [i, setI] = useState(0)
@@ -385,6 +385,14 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   // sem legenda, pelo /api/generate-clip. O caso que motivou: um plano JSON
   // (Luffy vs. Akainu, 10 s) virou 49 s com a narradora lendo o JSON.
   const [scriptMode, setScriptMode] = useState<'ai' | 'verbatim' | 'clip'>('ai')
+  // KINEO-STUDIO-TELA-COR-2026-09-30 — a raiz da página leva o motor do palco (html[data-studio-stage]). O seletor html:has
+  // não recalculava a cor ao trocar de motor no Chrome (medido 30/09: data-stage mudou, a cor ficou); o atributo direto sim.
+  const stageKey = scriptMode === 'clip' ? 'seedance' : engine
+  useEffect(() => {
+    const root = document.documentElement
+    root.dataset.studioStage = stageKey
+    return () => { delete root.dataset.studioStage }
+  }, [stageKey])
   const [clipSeconds, setClipSeconds] = useState<number>(10)
   const [clipState, setClipState] = useState<{ phase: 'idle' | 'submitting' | 'rendering' | 'done' | 'failed'; renderId?: string; url?: string; error?: string; startedAt?: number }>({ phase: 'idle' })
   const clipPollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
