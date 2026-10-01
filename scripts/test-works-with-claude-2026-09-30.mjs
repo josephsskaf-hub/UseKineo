@@ -158,7 +158,11 @@ function oneClickProblems({ panelCode, clientCode, compCode, dataCode, pageCode 
   if (!/Continue/.test(steps) || !/<strong>Add<\/strong>/.test(steps) || !/<strong>Connect<\/strong>/.test(steps)) probs.push('os 3 passos não citam Continue / Add / Connect')
   if (/<details[\s\S]*?<ol/.test(panelCode.slice(0, panelCode.indexOf("tab === 'claude_code'")))) probs.push('os 3 passos escondidos num <details>')
   if (!panelCode.includes('<CopyField value={serverUrl}')) probs.push('sem o campo Copy de reserva')
-  if (!panelCode.includes('Already connected? Start in Claude →') || !pageCode.includes('startHref={claudePromptHref(CLAUDE_START_PROMPT)}')) probs.push('sem "Already connected? Start in Claude →" com o pedido pronto')
+  // reancorado 30/09 (KINEO-MCP-PAGINA): o botão virou o primário do 3º cartão ("Connect and start"), depois do
+  // Add → Connect — ali o "Already connected?" não faz sentido. Continua exigido: o texto "Start in Claude →" DENTRO do
+  // cartão 3 da aba Claude e o pedido pronto (startHref = claudePromptHref(CLAUDE_START_PROMPT)) vindo da página.
+  const card3 = (panelCode.match(/<StepCard n=\{3\} title="Connect and start">[\s\S]*?<\/StepCard>/) || [''])[0]
+  if (!card3.includes('Start in Claude →') || !card3.includes('href={startHref}') || !pageCode.includes('startHref={claudePromptHref(CLAUDE_START_PROMPT)}')) probs.push('sem "Start in Claude →" com o pedido pronto no cartão 3')
   // Aviso do celular: sem a inferência "works on your phone too" (não confirmada).
   if (!panelCode.includes('Add the connector from Claude on the web or desktop.') || /phone/i.test(visible(panelCode))) probs.push('aviso do celular ausente ou com promessa não confirmada ("phone")')
   // Nada de afirmar plano do Claude.
@@ -194,6 +198,8 @@ ok(mut({ panelCode: panel.replace('click Continue → Add → Connect.', 'click 
 ok(mut({ panelCode: panel.replace('Add the connector from Claude on the web or desktop.', 'Add the connector from Claude on the web or desktop; it then works on your phone too.') }), '(M19) aviso do celular com "works on your phone" não confirmado → vermelho')
 ok(mut({ dataCode: promoData.replace("    action: 'claude_connect',\n", '') }), '(M20b) card do Claude sem a ação de conectar → vermelho')
 ok(mut({ compCode: promoComp.replace('if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return', '') }), '(M21) card sequestrando Ctrl/⌘-clique → vermelho')
+// reancorado 30/09 (KINEO-MCP-PAGINA): mutante da âncora nova — cartão 3 sem o "Start in Claude →".
+ok(mut({ panelCode: panel.replace('                  Start in Claude →\n', '') }), '(M22) cartão 3 sem "Start in Claude →" → vermelho')
 
 // ─── mutantes ───────────────────────────────────────────────────────────────
 ok(badgeProblems(pricing.replace('Works with Claude · add Kineo as a connector', 'Official Claude partner')).length > 0, '(M1) selo "Official Claude partner" → vermelho')
