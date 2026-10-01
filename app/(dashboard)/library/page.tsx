@@ -2,9 +2,10 @@
 // ver os projetos que ela tem — videos, imagens, audios — num menu so").
 import LibraryClient from './LibraryClient'
 import VideoCollection from '@/components/library/VideoCollection'
+import MrrReactivationReturn from '@/components/growth/MrrReactivationReturn'
 
 export const metadata = { title: 'Library — Kineo' }
 
 export default function LibraryPage() {
-  return <LibraryClient videoCollection={<VideoCollection embedded />} />
+  return <LibraryClient videoCollection={<><MrrReactivationReturn /><div id="mrr-library-films"><VideoCollection embedded /></div></>} />
 }
