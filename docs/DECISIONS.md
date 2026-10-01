@@ -715,3 +715,10 @@ Slug do X confirmado: utm_source=x.
 - Esquerda mais larga (≥ 460 px, ~1 : 1,6) para os 4 atalhos de tema caberem numa linha; caixa de texto 170 px; topo (subtítulo e abas) mais enxuto. Em 1536×760 o quadro inteiro cabe na tela.
 - Palco estreito (< 720 px) esconde descrição e título; < 520 px mostra só vídeo e miniaturas. Celular: igual a antes (vídeo em cima).
 - Guardião test-studio-heroi: 19 ok, 14 mutantes.
+
+## 2026-10-01 — Studio: o "quadro de engenharia" (KINEO-STUDIO-ENGENHARIA)
+- Fundador: "deixar tudo num quadro de engenharia… onde a mágica acontece… tudo menorzinho, para a pessoa não ter que rolar para escolher o tempo… e embaixo uma reta de vídeos nossos". Vocabulário: "quadro de engenharia" = painel da esquerda do /studio.
+- Motor, ideia, formato/duração/língua, ajustes opcionais e gerar viram UM painel (a seção da ideia e a de ajustes se emendam: mesma cor de vidro, sem a emenda). Mais compacto: caixa de texto 120 px, botões de formato menores, língua num seletor pequeno, a dica do formato some no computador (segue no title do botão).
+- O palco fica ao lado do quadro com a altura da tela (clamp 460–820 px, cabe no primeiro olhar) e acompanha a rolagem enquanto o quadro rola; no celular volta à altura do conteúdo (vídeo em cima).
+- Embaixo: a "reta" com os 8 filmes da casa numa linha (4:5, cortados pelo topo para a legenda do filme não brigar com o título); 4 por linha em tela média; faixa que desliza no celular.
+- Guardião test-studio-heroi: 21 ok, 15 mutantes.

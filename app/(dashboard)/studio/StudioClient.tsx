@@ -1157,7 +1157,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                 </button>
               ))}
             </div>
-            <div style={{ fontSize: 11.5, color: 'var(--muted2)', marginBottom: 12, lineHeight: 1.5 }}>
+            <div className="studio-aspect-where" style={{ fontSize: 11.5, color: 'var(--muted2)', marginBottom: 12, lineHeight: 1.5 }}>
               {ASPECT_PILLS.find((a) => a.value === aspect)?.where}
             </div>
             {/* KINEO-IDIOMAS-15-2026-09-17 — a língua da narração (16 do catálogo). Fundador: "15 idiomas está ok";
@@ -1551,7 +1551,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
 /* KINEO-STUDIO-QUADRO-2026-10-01 — fundador (desenho em vermelho sobre o print): "equilíbrio de espaço entre a caixa de
    texto e o painel do vídeo… tem que ficar tudo no quadro". O palco ocupa a linha do cartão da ideia e tem a altura dele;
    o vídeo se ajusta à altura do palco (não empurra a linha). Ajustes e gerar seguem embaixo, na coluna da esquerda. */
-.studio-engine-hero{grid-column:2;grid-row:1;position:relative;align-self:stretch;min-width:0;min-height:460px}
+.studio-engine-hero{grid-column:2;grid-row:1 / span 2;position:sticky;top:16px;align-self:start;min-width:0;height:clamp(460px,calc(100svh - 280px),820px)}
 .composer-proposal{position:relative;isolation:isolate}
 /* KINEO-STUDIO-TELA-COR-2026-09-30 — fundador: "isso que você fez [o palco] para a tela toda". A cor do motor escolhido
    pinta a área inteira do Studio (o <main> rolável do painel), com transição suave ao trocar de motor. */
@@ -1574,8 +1574,11 @@ html[data-studio-stage]{--header-bg:color-mix(in srgb,var(--stage-b) 9%,var(--bg
 .studio-best{grid-column:1 / -1;min-width:0;margin-top:30px}
 .studio-best-hd h2{margin:0;font-size:22px;line-height:1.2;letter-spacing:-.02em;color:var(--text)}
 .studio-best-hd p{margin:4px 0 16px;font-size:13px;color:var(--muted)}
-.studio-best-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
-.sbf{position:relative;display:block;width:100%;padding:0;border:0;border-radius:18px;overflow:hidden;aspect-ratio:4/5;background:#06080d;cursor:pointer;text-align:left;box-shadow:0 18px 44px -24px color-mix(in srgb,var(--sbf-a) 80%,transparent),0 0 0 1px #0000000f;transition:transform .2s ease,box-shadow .2s ease}
+/* KINEO-STUDIO-ENGENHARIA-2026-10-01 — fundador: "embaixo a gente já faz uma reta de vídeos nossos". 8 numa linha no
+   computador largo; 4 por linha em tela média; no celular, uma faixa que desliza. */
+.studio-best-grid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:14px}
+@media(max-width:1279px){.studio-best-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.sbf{position:relative;display:block;width:100%;padding:0;border:0;border-radius:16px;overflow:hidden;aspect-ratio:4/5;background:#06080d;cursor:pointer;text-align:left;box-shadow:0 18px 44px -24px color-mix(in srgb,var(--sbf-a) 80%,transparent),0 0 0 1px #0000000f;transition:transform .2s ease,box-shadow .2s ease}
 .sbf:hover{transform:translateY(-3px);box-shadow:0 26px 54px -24px color-mix(in srgb,var(--sbf-a) 90%,transparent),0 0 0 1px #0000000f}
 .sbf:focus-visible{outline:3px solid var(--sbf-a);outline-offset:3px}
 .sbf:disabled{opacity:.5;cursor:default}
@@ -1584,7 +1587,8 @@ html[data-studio-stage]{--header-bg:color-mix(in srgb,var(--stage-b) 9%,var(--bg
 .sbf-foot{position:absolute;z-index:2;left:14px;right:14px;bottom:14px;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
 .sbf-tag{padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.04em;color:#fff;background:color-mix(in srgb,var(--sbf-a) 82%,#000)}
 .sbf-t{color:#fff;font-size:15px;font-weight:700;line-height:1.25;text-wrap:balance}
-@media(max-width:900px){.studio-best-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.sbf-t{font-size:13px}}
+@media(min-width:1280px){.sbf-t{font-size:13px}.sbf-foot{left:10px;right:10px;bottom:10px;gap:6px}.sbf-tag{font-size:10px;padding:3px 8px}}
+@media(max-width:900px){.studio-best-grid{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;padding-bottom:6px}.sbf{flex:0 0 42%;scroll-snap-align:start}.sbf-t{font-size:13px}}
 @media(prefers-reduced-motion:reduce){html{transition:none}.sbf{transition:none}.sbf:hover{transform:none}}
 .composer-proposal::before{content:'';position:absolute;z-index:-1;left:-40px;right:-40px;top:-40px;height:720px;pointer-events:none;background:radial-gradient(620px 420px at 74% 34%,color-mix(in srgb,var(--stage-a) 18%,transparent),transparent 72%),radial-gradient(620px 420px at 22% 40%,color-mix(in srgb,var(--stage-b) 18%,transparent),transparent 72%)}
 .studio-engine-hero{border-radius:26px;overflow:hidden;background:#06080d;padding:26px;box-shadow:0 30px 80px -30px color-mix(in srgb,var(--stage-a) 55%,transparent),0 1px 0 #ffffff14 inset;isolation:isolate}
@@ -1619,9 +1623,28 @@ html[data-studio-stage]{--header-bg:color-mix(in srgb,var(--stage-b) 9%,var(--bg
 }
 @container (max-width:720px){.seh-desc,.seh-title{display:none}.seh-name{font-size:26px}.seh{gap:16px}}
 @container (max-width:520px){.seh-info{display:none}.seh{justify-content:center}.seh-thumbs{flex:none}}
-@media(max-width:900px){.studio-engine-hero{padding:16px;border-radius:20px;min-height:0}}
+@media(max-width:900px){.studio-engine-hero{padding:16px;border-radius:20px;min-height:0;height:auto}}
 @media(prefers-reduced-motion:reduce){.seh-thumbs button{transition:none}}
 .studio-engine-pick{margin-bottom:18px}
+/* KINEO-STUDIO-ENGENHARIA-2026-10-01 — fundador: "deixar tudo num quadro de engenharia… onde a mágica acontece… tudo
+   menorzinho, para a pessoa não ter que rolar para escolher o tempo". Motor, ideia, formato/duração/língua, ajustes
+   opcionais e gerar formam UM painel (a seção da ideia e a de ajustes se emendam), ao lado do palco, com a mesma altura. */
+@media(min-width:901px){
+.composer-proposal .composer-proposal-grid{row-gap:0}
+html .stu.composer-proposal[data-stage] .composer-proposal-idea{border-bottom:0;border-bottom-left-radius:0;border-bottom-right-radius:0;box-shadow:none;padding-bottom:6px}
+html .stu.composer-proposal[data-stage] .composer-proposal-settings{background:color-mix(in srgb,var(--card) 78%,transparent);border:1px solid color-mix(in srgb,var(--stage-a) 22%,var(--border));border-top:0;border-radius:0 0 18px 18px;padding:0 24px 22px;-webkit-backdrop-filter:blur(18px) saturate(1.25);backdrop-filter:blur(18px) saturate(1.25);box-shadow:var(--sh-card)}
+html .stu.composer-proposal[data-stage] .composer-proposal-idea{border-color:color-mix(in srgb,var(--stage-a) 22%,var(--border))}
+html .stu.composer-proposal[data-stage] .composer-proposal-settings>.card,html .stu.composer-proposal[data-stage] .composer-proposal-settings .composer-proposal-optional{background:transparent;border:0;border-top:1px solid var(--border);border-radius:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;padding:14px 0 4px;margin:0}
+html .stu.composer-proposal[data-stage] .composer-proposal-settings .pill{min-height:34px;padding:6px 12px;font-size:12.5px}
+html .stu.composer-proposal[data-stage] .composer-proposal-settings .row{margin-bottom:8px!important}
+html .stu.composer-proposal[data-stage] .composer-proposal-settings .lab{margin-bottom:8px}
+.composer-proposal .studio-aspect-where{display:none}
+html .stu.composer-proposal[data-stage] .composer-proposal-settings select{width:auto;min-height:34px}
+html .stu.composer-proposal[data-stage] .composer-proposal-settings .studio-output-details{margin-top:2px}
+html .stu.composer-proposal[data-stage] .composer-proposal-settings .composer-proposal-optional>summary{min-height:34px}
+html .stu.composer-proposal[data-stage] .studio-generation-review>.val{font-size:11.5px}
+.composer-proposal .studio-generation-review{margin-top:12px;padding:14px;gap:8px}
+}
 /* KINEO-STUDIO-QUADRO-2026-10-01 — topo mais enxuto para o quadro (ideia + palco) caber na tela do notebook. */
 html .stu.composer-proposal .sub{margin-bottom:14px}html .stu.composer-proposal .studio-modes{margin:0 0 18px;padding-bottom:10px}html .stu.composer-proposal h1{margin-bottom:4px}
 .composer-proposal-idea{min-width:0;padding:24px;border:1px solid #293341;border-radius:20px;background:linear-gradient(150deg,#151b24,#10141b)}
@@ -1634,7 +1657,7 @@ html .stu.composer-proposal .sub{margin-bottom:14px}html .stu.composer-proposal 
 /* Keep the current creation in the first viewport; completed Shorts follow on scroll. */
 /* KINEO-STUDIO-HEROI-2026-09-30 — a ideia não estica mais até o fim da tela: a configuração vem logo embaixo. */
 @media(min-width:901px){
-  .composer-proposal .studio-prompt{min-height:170px}
+  .composer-proposal .studio-prompt{min-height:120px} /* KINEO-STUDIO-ENGENHARIA-2026-10-01 — quadro compacto */
 }
  .studio-modes{display:flex;flex-wrap:wrap;gap:8px;padding:5px;margin:20px 0;max-width:1320px;border-bottom:1px solid #27303e}
 .studio-modes button,.studio-modes a{display:inline-flex;align-items:center;gap:12px;min-height:44px;padding:10px 18px;border:1px solid transparent;border-radius:12px;background:transparent;color:#aeb9c8;font:600 13px inherit;text-decoration:none;cursor:pointer}

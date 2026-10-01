@@ -49,8 +49,11 @@ function clientProblems(src) {
   if (/href="\/animate"|href="\/avatar"/.test(modes)) p.push('abas do Studio ainda levam a Animate/AI Presenter')
   if (!/>Film<|>Clip</.test(modes)) p.push('abas Film/Clip sumiram')
   // reancorado 01/10 (KINEO-STUDIO-QUADRO): fundador — "equilíbrio de espaço entre a caixa de texto e o painel do vídeo…
-  // tudo no quadro". O palco deixa de ser fixo na direita inteira: ocupa a linha do cartão da ideia, com a altura dele.
-  if (!/\.studio-engine-hero\{grid-column:2;grid-row:1;position:relative;align-self:stretch;/.test(src)) p.push('o palco não tem a altura do cartão da ideia')
+  // tudo no quadro". reancorado de novo 01/10 (KINEO-STUDIO-ENGENHARIA): "deixar tudo num quadro de engenharia". O
+  // quadro (ideia + ajustes + gerar) é um painel só; o palco fica ao lado dele com a altura da tela (cabe no primeiro
+  // olhar) e acompanha a rolagem; no celular volta a ter a altura do conteúdo.
+  if (!/\.studio-engine-hero\{grid-column:2;grid-row:1 \/ span 2;position:sticky;top:16px;align-self:start;min-width:0;height:clamp\(460px,calc\(100svh - 280px\),820px\)\}/.test(src) || !/@media\(max-width:900px\)\{\.studio-engine-hero\{[^}]*height:auto\}/.test(src)) p.push('o palco não tem a altura do quadro na tela')
+  if (!/html \.stu\.composer-proposal\[data-stage\] \.composer-proposal-idea\{border-bottom:0;border-bottom-left-radius:0;border-bottom-right-radius:0;/.test(src) || !/html \.stu\.composer-proposal\[data-stage\] \.composer-proposal-settings\{background:[^}]*border-top:0;border-radius:0 0 18px 18px;/.test(src)) p.push('ideia e ajustes não formam um quadro só')
   // KINEO-STUDIO-MOTOR-PRIMEIRO-2026-09-30 — fundador: "a ideia tem que vir depois que você escolhe o motor"; "só o vídeo,
   // bem colocado no meio" (sem as laterais desfocadas).
   const idea = src.indexOf('<section className="composer-proposal-idea"')
@@ -126,7 +129,8 @@ ok(clientProblems(CLIENT.replace('<video key={v.src} className="seh-main"', '<vi
 ok(clientProblems(CLIENT.replace("data-stage={scriptMode === 'clip' ? 'seedance' : engine}>", "data-stage=\"fast\">")).length > 0, '(M8) cor presa num motor → vermelho')
 ok(clientProblems(CLIENT.replace(/main:has\(\.stu\.composer-proposal\)\{background:[^}]*\}/, 'main:has(.stu.composer-proposal){}')).length > 0, '(M10) tela sem a cor do motor → vermelho')
 ok(clientProblems(CLIENT.replace('html .stu.composer-proposal[data-stage]{background:transparent}', '')).length > 0, '(M12) fundo chapado cobrindo a cor → vermelho')
-ok(clientProblems(CLIENT.replace('.studio-engine-hero{grid-column:2;grid-row:1;position:relative;align-self:stretch;', '.studio-engine-hero{grid-column:2;grid-row:1 / span 2;position:sticky;align-self:start;')).length > 0, '(M14) palco fora do quadro da ideia → vermelho')
+ok(clientProblems(CLIENT.replace('height:clamp(460px,calc(100svh - 280px),820px)}', 'min-height:460px}')).length > 0, '(M14) palco sem a altura da tela → vermelho')
+ok(clientProblems(CLIENT.replace('border-top:0;border-radius:0 0 18px 18px;', 'border-radius:18px;')).length > 0, '(M15) quadro de engenharia partido em dois → vermelho')
 ok(clientProblems(CLIENT.replace('html[data-studio-stage] aside:has(>nav[data-nav-surface=sidebar]){--sidebar-bg:', 'html[data-studio-stage] aside:has(>nav[data-nav-surface=sidebar]){--x:')).length > 0, '(M13) barra lateral sem a cor do motor → vermelho')
 ok(clientProblems(CLIENT.replace('setHeroPick(f)\n', '\n').replace('setHeroPick(f)\r\n', '\r\n')).length > 0, '(M11) vitrine que não mostra o filme no palco → vermelho')
 {
@@ -138,7 +142,8 @@ ok(clientProblems(CLIENT.replace('setHeroPick(f)\n', '\n').replace('setHeroPick(
   const omni = lines.filter((l) => /engine: 'cinematic_omni'/.test(l)).length
   ok(ids.length === 8 && new Set(ids).size === 8 && lines.every(Boolean) && media.length === 16 && missing.length === 0 && omni === 0,
     `(V) vitrine: 8 filmes da casa, mídia presente, sem motor em manutenção (ids ${ids.length}, mídia ${media.length}, faltando ${missing.join(',') || 0}, omni ${omni})`)
-  ok(/\.studio-best-grid\{display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/.test(CLIENT), '(V2) duas fileiras de 4 no computador')
+  // reancorado 01/10 (KINEO-STUDIO-ENGENHARIA): "embaixo uma reta de vídeos nossos" — 8 numa linha no computador largo.
+  ok(/\.studio-best-grid\{display:grid;grid-template-columns:repeat\(8,minmax\(0,1fr\)\)/.test(CLIENT), '(V2) uma reta de 8 no computador')
 }
 ok(clientProblems(CLIENT.replace(/\n  veo: \['#[0-9A-F]{6}', '#[0-9A-F]{6}'\],/, '')).length > 0, '(M9) motor sem cor → vermelho')
 ok(navProblems(LAND, THEME.replace('.klp .nav-links>a,.klp .nav-links>.nd>summary { color:var(--txt); }', '')).length > 0, '(M5) tom diferente no topo → vermelho')
