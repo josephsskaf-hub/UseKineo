@@ -1554,7 +1554,14 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
 @property --stage-a{syntax:'<color>';inherits:true;initial-value:#0A5CFF}
 @property --stage-b{syntax:'<color>';inherits:true;initial-value:#22D3EE}
 html{--stage-a:#0A5CFF;--stage-b:#22D3EE;transition:--stage-a .7s ease,--stage-b .7s ease}
-main:has(.stu.composer-proposal){background:radial-gradient(1100px 640px at 88% -8%,color-mix(in srgb,var(--stage-a) 32%,transparent),transparent 70%),radial-gradient(900px 620px at -6% 34%,color-mix(in srgb,var(--stage-b) 20%,transparent),transparent 70%),radial-gradient(900px 600px at 60% 108%,color-mix(in srgb,var(--stage-a) 16%,transparent),transparent 70%),linear-gradient(180deg,color-mix(in srgb,var(--stage-a) 14%,var(--bg)),color-mix(in srgb,var(--stage-b) 8%,var(--bg)))}
+/* KINEO-STUDIO-COR-EQUILIBRIO-2026-10-01 — fundador: "adicionar cor na parte que não tem nada… achar um equilíbrio entre
+   a cor onde o vídeo fica e onde não tem nada". A cor se espalha pela tela inteira (inclusive atrás da coluna de ajustes),
+   o canto do vídeo perde um pouco de força, e os cartões da esquerda viram vidro para a cor aparecer por trás. */
+main:has(.stu.composer-proposal){background:radial-gradient(1100px 820px at 16% 58%,color-mix(in srgb,var(--stage-b) 20%,transparent),transparent 72%),radial-gradient(1100px 640px at 86% 2%,color-mix(in srgb,var(--stage-a) 18%,transparent),transparent 70%),radial-gradient(1000px 640px at 70% 100%,color-mix(in srgb,var(--stage-a) 12%,transparent),transparent 72%),radial-gradient(900px 560px at 30% -6%,color-mix(in srgb,var(--stage-a) 14%,transparent),transparent 72%),linear-gradient(135deg,color-mix(in srgb,var(--stage-b) 10%,var(--bg)),color-mix(in srgb,var(--stage-a) 10%,var(--bg)))}
+html .stu.composer-proposal[data-stage] :is(.composer-proposal-idea,.composer-proposal-settings>.card,.composer-proposal-optional){background:color-mix(in srgb,var(--card) 78%,transparent);border-color:color-mix(in srgb,var(--stage-a) 20%,var(--border));-webkit-backdrop-filter:blur(18px) saturate(1.25);backdrop-filter:blur(18px) saturate(1.25)}
+html .stu.composer-proposal[data-stage] .composer-proposal-settings>.card{box-shadow:var(--sh-card)}
+/* o .stu tinha fundo var(--bg) chapado e cobria a cor do <main> (só o brilho do topo aparecia). */
+html .stu.composer-proposal[data-stage]{background:transparent}
 .studio-best{grid-column:1 / -1;min-width:0;margin-top:30px}
 .studio-best-hd h2{margin:0;font-size:22px;line-height:1.2;letter-spacing:-.02em;color:var(--text)}
 .studio-best-hd p{margin:4px 0 16px;font-size:13px;color:var(--muted)}
@@ -1570,9 +1577,9 @@ main:has(.stu.composer-proposal){background:radial-gradient(1100px 640px at 88% 
 .sbf-t{color:#fff;font-size:15px;font-weight:700;line-height:1.25;text-wrap:balance}
 @media(max-width:900px){.studio-best-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.sbf-t{font-size:13px}}
 @media(prefers-reduced-motion:reduce){html{transition:none}.sbf{transition:none}.sbf:hover{transform:none}}
-.composer-proposal::before{content:'';position:absolute;z-index:-1;left:-40px;right:-40px;top:-40px;height:720px;pointer-events:none;background:radial-gradient(640px 360px at 76% 34%,color-mix(in srgb,var(--stage-a) 26%,transparent),transparent 72%),radial-gradient(560px 320px at 24% 0%,color-mix(in srgb,var(--stage-b) 16%,transparent),transparent 72%)}
+.composer-proposal::before{content:'';position:absolute;z-index:-1;left:-40px;right:-40px;top:-40px;height:720px;pointer-events:none;background:radial-gradient(620px 420px at 74% 34%,color-mix(in srgb,var(--stage-a) 18%,transparent),transparent 72%),radial-gradient(620px 420px at 22% 40%,color-mix(in srgb,var(--stage-b) 18%,transparent),transparent 72%)}
 .studio-engine-hero{border-radius:26px;overflow:hidden;background:#06080d;padding:26px;box-shadow:0 30px 80px -30px color-mix(in srgb,var(--stage-a) 55%,transparent),0 1px 0 #ffffff14 inset;isolation:isolate}
-.studio-engine-hero::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(60% 55% at 50% 28%,color-mix(in srgb,var(--stage-a) 50%,transparent),transparent 72%),radial-gradient(55% 50% at 92% 100%,color-mix(in srgb,var(--stage-b) 40%,transparent),transparent 70%),radial-gradient(45% 45% at 0% 100%,color-mix(in srgb,var(--stage-a) 28%,transparent),transparent 70%)}
+.studio-engine-hero::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(60% 55% at 50% 28%,color-mix(in srgb,var(--stage-a) 40%,transparent),transparent 72%),radial-gradient(55% 50% at 92% 100%,color-mix(in srgb,var(--stage-b) 40%,transparent),transparent 70%),radial-gradient(45% 45% at 0% 100%,color-mix(in srgb,var(--stage-a) 28%,transparent),transparent 70%)}
 .studio-engine-hero::after{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);background-size:44px 44px;mask-image:radial-gradient(70% 70% at 50% 40%,#000,transparent)}
 .studio-engine-hero{container-type:inline-size}
 .seh{display:grid;grid-template-columns:1fr;justify-items:center;align-items:center;gap:18px;color:#eef2f7}

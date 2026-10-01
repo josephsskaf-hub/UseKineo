@@ -69,6 +69,10 @@ function clientProblems(src) {
   if (!/const stageKey = scriptMode === 'clip' \? 'seedance' : engine\n\s+useEffect\(\(\) => \{\n\s+const root = document\.documentElement\n\s+root\.dataset\.studioStage = stageKey\n\s+return \(\) => \{ delete root\.dataset\.studioStage \}\n\s+\}, \[stageKey\]\)/.test(src)) p.push('a raiz da página não recebe o motor do palco')
   if (!/const STAGE_CSS = Object\.entries\(STAGE_TINT\)\.map\(\(\[k, \[a, b\]\]\) => `html\[data-studio-stage="\$\{k\}"\]\{--stage-a:\$\{a\};--stage-b:\$\{b\}\}`\)/.test(src) || !/<style dangerouslySetInnerHTML=\{\{ __html: STAGE_CSS \}\} \/>/.test(src)) p.push('regras de cor por motor ausentes')
   if (!/main:has\(\.stu\.composer-proposal\)\{background:[^}]*var\(--stage-a\)/.test(src)) p.push('a tela toda não ganha a cor do motor')
+  // KINEO-STUDIO-COR-EQUILIBRIO-2026-10-01 — o .stu tinha fundo chapado var(--bg) e escondia a cor do <main> (só o
+  // brilho do topo aparecia: "só tem cor em um lugar"). Sem o fundo transparente, a tela toda volta a ficar cinza.
+  if (!/html \.stu\.composer-proposal\[data-stage\]\{background:transparent\}/.test(src)) p.push('o fundo chapado do Studio cobre a cor da tela')
+  if (!/html \.stu\.composer-proposal\[data-stage\] :is\(\.composer-proposal-idea,\.composer-proposal-settings>\.card,\.composer-proposal-optional\)\{background:color-mix\(in srgb,var\(--card\) \d+%,transparent\)/.test(src)) p.push('cartões da esquerda sem o vidro (a cor não aparece atrás deles)')
   if (!/\.studio-engine-hero::before\{[^}]*var\(--stage-a\)/.test(src) || !/\.composer-proposal::before\{[^}]*var\(--stage-a\)/.test(src)) p.push('palco ou fundo sem a cor do motor')
   // KINEO-STUDIO-MELHORES-2026-09-30 — vitrine dos melhores logo abaixo do painel (fora da grade, senão o palco fixo
   // passa por cima), antes dos vídeos da própria conta.
@@ -115,6 +119,7 @@ ok(navProblems(LAND.replace('            <Link href="/claude-connector" data-nav
 ok(clientProblems(CLIENT.replace('<video key={v.src} className="seh-main"', '<video className="seh-bg" /><video key={v.src} className="seh-main"')).length > 0, '(M7) laterais desfocadas de volta → vermelho')
 ok(clientProblems(CLIENT.replace("data-stage={scriptMode === 'clip' ? 'seedance' : engine}>", "data-stage=\"fast\">")).length > 0, '(M8) cor presa num motor → vermelho')
 ok(clientProblems(CLIENT.replace(/main:has\(\.stu\.composer-proposal\)\{background:[^}]*\}/, 'main:has(.stu.composer-proposal){}')).length > 0, '(M10) tela sem a cor do motor → vermelho')
+ok(clientProblems(CLIENT.replace('html .stu.composer-proposal[data-stage]{background:transparent}', '')).length > 0, '(M12) fundo chapado cobrindo a cor → vermelho')
 ok(clientProblems(CLIENT.replace('setHeroPick(f)\n', '\n').replace('setHeroPick(f)\r\n', '\r\n')).length > 0, '(M11) vitrine que não mostra o filme no palco → vermelho')
 {
   // vitrine: 8 filmes da casa já aprovados, 2 fileiras de 4, com mídia em public/, nenhum de motor em manutenção.

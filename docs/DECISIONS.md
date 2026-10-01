@@ -696,3 +696,9 @@ Slug do X confirmado: utm_source=x.
 - Vitrine "Best films made on Kineo": 8 filmes da casa já aprovados pelo fundador, 2 fileiras de 4 (2 colunas no celular): castelo (Seedance, "100%"), Maracaibo (Kling 3), Dyatlov (Kling 2.5), o homem que pulou (Veo 3.1), navio que evaporou (Kling 3), o Golfo (H3), lago que petrifica (Seedance), jantar ainda quente (Kling 2.5). Omni fora enquanto em manutenção. Clique troca para o motor do filme e mostra o filme no palco (evento studio_best_film_clicked).
 - A vitrine vem logo abaixo do painel, fora da grade (o palco fixo não passa por cima); os vídeos da própria conta (episódio 2) continuam, depois dela.
 - Textos novos em 13 línguas. Guardião test-studio-heroi: 17 ok, 11 mutantes.
+
+## 2026-10-01 — Studio: cor equilibrada na tela toda (KINEO-STUDIO-COR-EQUILIBRIO)
+- Fundador: "adicionar cor na parte que não tem nada… senão parece mal feito, que só tem cor em um lugar… achar um equilíbrio entre a cor onde o vídeo fica e onde não tem nada".
+- Causa achada: o bloco .stu do Studio tinha fundo chapado var(--bg) e cobria a cor pintada no <main> — só o brilho do topo aparecia. Agora transparente.
+- A cor do motor se espalha em tom pastel pela tela inteira (mais forte atrás da coluna de ajustes, mais suave no canto do vídeo); o brilho do palco baixou um pouco; os cartões da esquerda viraram vidro (78% opaco + desfoque) para a cor aparecer por trás sem atrapalhar a leitura. Claro e escuro.
+- Guardião test-studio-heroi: 18 ok, 12 mutantes (novo: fundo chapado cobrindo a cor).
