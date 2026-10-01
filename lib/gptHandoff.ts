@@ -445,6 +445,11 @@ export function validateHandoffInput(body: unknown): HandoffValidation {
 export const HANDOFF_UTM_SOURCE = 'chatgpt_gpt'
 export const HANDOFF_INTENT_CAMPAIGN = 'kineo_gpt_store'
 export const STUDIO_CREATE_PATH = '/studio/create'
+// KINEO-GO-STUDIO-NOVO-2026-10-01 — fundador (01/10, print): o link /go abria a tela antiga do /studio/create
+// ("Create your Short" com categorias e a voz Luxury Narrator, que transformava 198 palavras do Seedance em 86 s / 90 s).
+// O destino do clique passa a ser o Studio novo, que já lê prompt/engine/duration/script_mode/language/aspect da URL
+// e despacha para o /studio/create ao apertar Gerar.
+export const STUDIO_PATH = '/studio'
 export const GO_PATH_PREFIX = '/go/'
 
 /** Token url-safe, >= 16 chars. Só aceitamos o que nós mesmos geramos. */
@@ -619,7 +624,7 @@ export function buildStudioDestination(row: {
   const tags = CHANNEL_TAGS[isHandoffChannel(row.channel) ? row.channel : DEFAULT_CHANNEL]
   q.set('utm_source', tags.utmSource)
   q.set('intent_campaign', tags.intentCampaign)
-  return `${STUDIO_CREATE_PATH}?${q.toString()}`
+  return `${STUDIO_PATH}?${q.toString()}`
 }
 
 // ─── O link GET → a MESMA validação da Action ───────────────────────────────

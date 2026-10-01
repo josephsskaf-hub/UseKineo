@@ -100,8 +100,8 @@ ok(!/GO_PATH_PREFIX|\/go\//.test(ternario), '(7) o ramo logado NUNCA volta para 
 ok(!/signup|login|authPath/.test(ternario), '(7) o ramo logado NUNCA volta para o cadastro')
 ok(
   // Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b/B2): o destino ganhou o 2º argumento (a entrada curta).
-  /let destino = STUDIO_CREATE_PATH/.test(rota) && /normalizeInternalRedirect\(buildStudioDestination\(row, entradaCurta\)\)/.test(rota),
-  '(7) destino cai para STUDIO_CREATE_PATH se buildStudioDestination falhar (falha fechada no Studio)',
+  /let destino = STUDIO_PATH/.test(rota) && /normalizeInternalRedirect\(buildStudioDestination\(row, entradaCurta\)\)/.test(rota),
+  '(7) destino cai para STUDIO_PATH se buildStudioDestination falhar (falha fechada no Studio)',
 )
 
 // (8) Nada de gerar filme sozinho: o link de terceiro jamais gasta crédito de

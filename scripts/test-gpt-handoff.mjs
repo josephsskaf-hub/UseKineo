@@ -183,7 +183,7 @@ if (L) {
   ok(!L.isHandoffToken('short') && !L.isHandoffToken('a'.repeat(16) + '/..'), '(A9) token curto ou com caractere fora do url-safe → recusado')
   ok(L.isHandoffToken('a'.repeat(16)) && !L.isHandoffToken('a'.repeat(15)), '(A9) mínimo 16 chars')
   const dest = L.buildStudioDestination({ script: 'Hello world & more', duration_sec: 90, engine_hint: 'veo' })
-  ok(dest.startsWith('/studio/create?') && /prompt=Hello\+world\+%26\+more/.test(dest) && /script_mode=verbatim/.test(dest) && /duration=90/.test(dest) && /engine=veo/.test(dest) && /utm_source=chatgpt_gpt/.test(dest) && /intent_campaign=kineo_gpt_store/.test(dest), '(A10) destino: /studio/create + prompt + verbatim + duration + engine + utm + campanha')
+  ok(dest.startsWith('/studio?') && /prompt=Hello\+world\+%26\+more/.test(dest) && /script_mode=verbatim/.test(dest) && /duration=90/.test(dest) && /engine=veo/.test(dest) && /utm_source=chatgpt_gpt/.test(dest) && /intent_campaign=kineo_gpt_store/.test(dest), '(A10) destino: /studio (Studio novo) + prompt + verbatim + duration + engine + utm + campanha')
   ok(/engine=seedance/.test(L.buildStudioDestination({ script: 'x', duration_sec: 60, engine_hint: 'bogus' })), '(A10) engine_hint inválido na linha cai em seedance, nunca passa cru')
   ok(L.handoffHeadline({ topic: null, script: 'HOOK\nFive things nobody tells you about money and power today' }) === 'Five things nobody tells you about money and power…', '(A10) manchete = primeiras 9 palavras faladas quando não há tópico')
   ok(/ANALYZE_PROMPT_MAX_CHARS = 5000/.test(read('lib/analyzeLimits.ts')) && L.STUDIO_PROMPT_MAX_CHARS === 5000, '(A11) STUDIO_PROMPT_MAX_CHARS espelha ANALYZE_PROMPT_MAX_CHARS (5000)')
@@ -272,7 +272,7 @@ ok(/userId = user\?\.id \?\? null/.test(goRoute), '(C3) userId vem de supabase.a
 ok(/authPath = hasPriorSession \? '\/login' : '\/signup'/.test(goRoute) && /c\.name\.startsWith\('sb-'\) && c\.name\.includes\('auth-token'\)/.test(goRoute), '(C3) sem sessão: cookie antigo → /login, novo → /signup (critério do porteiro de /studio/create)')
 // Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b/B2): o destino ganhou o 2º argumento (entrada curta decidida com a
 // conta logada); a prova continua a mesma — passa por normalizeInternalRedirect e cai em /studio/create pelado na recusa.
-ok(/destino = normalizeInternalRedirect\(buildStudioDestination\(row, entradaCurta\)\) \?\? STUDIO_CREATE_PATH/.test(goRoute), '(C3) destino passa por normalizeInternalRedirect; recusa → /studio/create pelado')
+ok(/destino = normalizeInternalRedirect\(buildStudioDestination\(row, entradaCurta\)\) \?\? STUDIO_PATH/.test(goRoute), '(C3) destino passa por normalizeInternalRedirect; recusa → /studio pelado')
 ok(/if \(!isHandoffToken\(token\)\) \{\s*\n\s*return NextResponse\.redirect\(`\$\{origem\}\$\{FALLBACK\}`, 302\)/.test(goRoute), '(C4) token inválido → redirect, não 4xx')
 ok(/if \(found\.status !== 'ok' \|\| found\.expired\) \{\s*\n\s*return NextResponse\.redirect\(`\$\{origem\}\$\{GO_PATH_PREFIX\}\$\{token\}`, 302\)/.test(goRoute), '(C4) sem linha ou vencido → volta para /go/<token> (a página explica)')
 ok(/await findHandoff\(token\)\.catch\(\(\) => \(\{ status: 'unavailable' as const \}\)\)/.test(goRoute), '(C4) leitura do banco com catch → nunca lança')

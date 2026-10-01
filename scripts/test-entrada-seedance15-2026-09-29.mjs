@@ -208,9 +208,9 @@ console.log('F) GPT: 15 s só no Seedance; trial abre em 15 s; roteiro longo vir
 const G = carregar('lib/gptHandoff.ts')
 checa('durationSec 15 aceito com engineHint seedance e recusado com outro motor', G.validateHandoffInput({ script: 'x y z', durationSec: 15, engineHint: 'seedance' }).ok === true && G.validateHandoffInput({ script: 'x y z', durationSec: 15, engineHint: 'kling' }).ok === false && G.validateHandoffInput({ script: 'x y z', durationSec: 45 }).ok === false && G.HANDOFF_SHORT_DURATION === CURTO)
 const linha = { script: 'word '.repeat(150).trim(), duration_sec: 60, engine_hint: 'seedance', aspect: '9:16' }
-const dLong = q(G.buildStudioDestination(linha, { shortSeconds: CURTO, fitsShort: false }).replace('/studio/create', ''))
-const dCurto = q(G.buildStudioDestination(linha, { shortSeconds: CURTO, fitsShort: true }).replace('/studio/create', ''))
-const dSem = q(G.buildStudioDestination(linha).replace('/studio/create', ''))
+const dLong = q(G.buildStudioDestination(linha, { shortSeconds: CURTO, fitsShort: false }).replace(/^\/studio(\/create)?/, ''))
+const dCurto = q(G.buildStudioDestination(linha, { shortSeconds: CURTO, fitsShort: true }).replace(/^\/studio(\/create)?/, ''))
+const dSem = q(G.buildStudioDestination(linha).replace(/^\/studio(\/create)?/, ''))
 checa('entrada curta: Seedance a 15 s; roteiro longo abre em modo IA (teaser), curto em verbatim; sem a entrada, o destino de sempre', dLong.get('duration') === '15' && dLong.get('engine') === 'seedance' && dLong.get('script_mode') === 'ai' && dCurto.get('script_mode') === 'verbatim' && dSem.get('duration') === '60' && dSem.get('script_mode') === 'verbatim')
 checa('roteiroCabeNoFilmeCurto usa o teto da guarda', EN.roteiroCabeNoFilmeCurto('word '.repeat(D.maxWordsForShortFilm(CURTO)).trim()) === true && EN.roteiroCabeNoFilmeCurto('word '.repeat(D.maxWordsForShortFilm(CURTO) + 1).trim()) === false)
 const GO = rd('app/api/gpt/handoff/go/route.ts')
