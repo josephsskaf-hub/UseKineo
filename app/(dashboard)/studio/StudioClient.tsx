@@ -189,32 +189,48 @@ const CAMERA_PRESETS: { key: string; label: string; emoji: string; prompt: strin
 
 /** KINEO-STUDIO-HEROI-2026-09-30 — vídeo do motor na direita do Studio (os filmes vêm do servidor: app/(dashboard)/studio/page.tsx). */
 export type StudioHeroVideo = { src: string; poster?: string; title: string }
-function EngineHero({ name, videos, fallback }: { name: string; videos: StudioHeroVideo[]; fallback?: string }) {
+/** KINEO-STUDIO-PALCO-2026-09-30 — cor de cada motor no palco e no fundo da página (fundador: "precisa ter mais cor…
+ *  cara de falta de acabamento"; referência Buzzy). Só decoração: o selo continua dizendo o motor real. */
+const STAGE_TINT: Record<string, [string, string]> = {
+  fast: ['#0A5CFF', '#22D3EE'],
+  seedance: ['#0EA5A4', '#84CC16'],
+  kling: ['#F59E0B', '#F97316'],
+  veo: ['#6366F1', '#38BDF8'],
+  hollywood: ['#E11D48', '#F59E0B'],
+  h3: ['#EC4899', '#8B5CF6'],
+  omni: ['#8B5CF6', '#3B82F6'],
+  s25: ['#0EA5A4', '#6366F1'],
+}
+function EngineHero({ name, desc, meta, videos, fallback }: { name: string; desc?: string; meta?: string; videos: StudioHeroVideo[]; fallback?: string }) {
   const list: StudioHeroVideo[] = videos.length ? videos : fallback ? [{ src: fallback, title: name }] : []
   const [i, setI] = useState(0)
   const v = list[Math.min(i, list.length - 1)]
-  if (!v) {
-    return (
-      <div className="seh-frame seh-empty"><b>{name}</b></div>
-    )
-  }
   return (
     <div className="seh">
-      <div className="seh-frame">
-        {/* KINEO-STUDIO-MOTOR-PRIMEIRO-2026-09-30 — fundador: "só o vídeo, bem colocado no meio" (sem laterais desfocadas). */}
-        <video key={v.src} className="seh-main" src={v.src} poster={v.poster} autoPlay muted loop playsInline preload="metadata" aria-label={`${v.title} — ${name}`} />
-        <span className="seh-badge"><UiLabel>Made with</UiLabel> {name}</span>
+      <div className="seh-info">
+        <h2 className="seh-name">{name}</h2>
+        {desc && <p className="seh-desc"><UiLabel>{desc}</UiLabel></p>}
+        {meta && <p className="seh-chip">{meta}</p>}
+        {v && <p className="seh-title">“{v.title}”</p>}
       </div>
-      <div className="seh-meta">
-        <p className="seh-title">{v.title}</p>
-        {list.length > 1 && (
-          <div className="seh-dots" role="tablist" aria-label={name}>
-            {list.map((x, k) => (
-              <button key={x.src} type="button" role="tab" aria-selected={k === i} aria-label={x.title} className={k === i ? 'on' : undefined} onClick={() => setI(k)} />
-            ))}
-          </div>
-        )}
-      </div>
+      {v ? (
+        <div className="seh-frame">
+          {/* KINEO-STUDIO-MOTOR-PRIMEIRO-2026-09-30 — fundador: "só o vídeo, bem colocado no meio" (sem laterais desfocadas). */}
+          <video key={v.src} className="seh-main" src={v.src} poster={v.poster} autoPlay muted loop playsInline preload="metadata" aria-label={`${v.title} — ${name}`} />
+          <span className="seh-badge"><UiLabel>Made with</UiLabel> {name}</span>
+        </div>
+      ) : (
+        <div className="seh-frame seh-empty"><b>{name}</b></div>
+      )}
+      {list.length > 1 && (
+        <div className="seh-thumbs" role="tablist" aria-label={name}>
+          {list.map((x, k) => (
+            <button key={x.src} type="button" role="tab" aria-selected={k === i} aria-label={x.title} className={k === i ? 'on' : undefined} onClick={() => setI(k)}>
+              {x.poster ? <img src={x.poster} alt="" loading="lazy" /> : <video src={`${x.src}#t=1`} muted playsInline preload="metadata" aria-hidden="true" tabIndex={-1} />}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -802,7 +818,7 @@ export default function StudioClient({ engineHeroes = {} }: { engineHeroes?: Rec
   }
 
   return (
-    <div className="stu composer-proposal">
+    <div className="stu composer-proposal" style={{ ['--stage-a' as string]: (STAGE_TINT[scriptMode === 'clip' ? 'seedance' : engine] ?? STAGE_TINT.fast)[0], ['--stage-b' as string]: (STAGE_TINT[scriptMode === 'clip' ? 'seedance' : engine] ?? STAGE_TINT.fast)[1] } as React.CSSProperties}>
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
 
       <h1><UiLabel>Studio</UiLabel></h1>
@@ -1299,7 +1315,7 @@ export default function StudioClient({ engineHeroes = {} }: { engineHeroes?: Rec
             padrão do motor… não deixar uma tela em branco". O filme da casa daquele motor (o líder escolhido pelo fundador
             primeiro), com o selo do motor que o gerou; troca junto com o seletor. No modo Clipe o motor é o Seedance 1.5. */}
         <aside className="studio-engine-hero" aria-label={t('Engine preview', 'Vista del motor')}>
-          <EngineHero key={scriptMode === 'clip' ? 'seedance' : engine} name={scriptMode === 'clip' ? 'Seedance 1.5' : eng.name} videos={engineHeroes[scriptMode === 'clip' ? 'seedance' : engine] ?? []} fallback={scriptMode === 'clip' ? ENGINES.find((e) => e.key === 'seedance')?.preview : eng.preview} />
+          <EngineHero key={scriptMode === 'clip' ? 'seedance' : engine} name={scriptMode === 'clip' ? 'Seedance 1.5' : eng.name} desc={scriptMode === 'clip' ? ENGINES.find((e) => e.key === 'seedance')?.desc : eng.desc} meta={scriptMode === 'clip' ? undefined : `${engineCostLabel(engine)} · ${duration}s · 1080p`} videos={engineHeroes[scriptMode === 'clip' ? 'seedance' : engine] ?? []} fallback={scriptMode === 'clip' ? ENGINES.find((e) => e.key === 'seedance')?.preview : eng.preview} />
         </aside>
         {myVids.length > 0 && <section className="composer-proposal-continuation" aria-label="Continue your videos">
 {myVids.length > 0 && (
@@ -1478,21 +1494,34 @@ export default function StudioClient({ engineHeroes = {} }: { engineHeroes?: Rec
 .composer-proposal .composer-proposal-idea{grid-column:1;grid-row:1}
 .composer-proposal .composer-proposal-settings{grid-column:1;grid-row:2}
 .studio-engine-hero{grid-column:2;grid-row:1 / span 2;position:sticky;top:16px;align-self:start;min-width:0}
-.seh{display:flex;flex-direction:column;align-items:center;gap:10px}
-.seh-frame{position:relative;display:block;max-width:100%;border-radius:20px;overflow:hidden;background:#05070b;line-height:0}
-.seh-frame .seh-main{display:block;width:min(100%,calc(max(420px,min(100svh - 300px,760px)) * .5625));height:auto;max-height:max(420px,min(calc(100svh - 300px),760px));object-fit:contain}
-.seh-empty{display:flex;align-items:center;justify-content:center;aspect-ratio:9/16;height:max(420px,min(calc(100svh - 300px),760px));color:#c9d1dc;font-size:20px;line-height:1.2}
-.seh-meta{width:100%}
-.studio-engine-pick{margin-bottom:18px}
-@media(max-width:900px){.seh-frame .seh-main{width:min(100%,calc(68svh * .5625));max-height:68svh}.seh-empty{height:68svh}}
+.composer-proposal{position:relative;isolation:isolate}
+.composer-proposal::before{content:'';position:absolute;z-index:-1;left:-40px;right:-40px;top:-40px;height:720px;pointer-events:none;background:radial-gradient(640px 360px at 76% 34%,color-mix(in srgb,var(--stage-a) 26%,transparent),transparent 72%),radial-gradient(560px 320px at 24% 0%,color-mix(in srgb,var(--stage-b) 16%,transparent),transparent 72%)}
+.studio-engine-hero{border-radius:26px;overflow:hidden;background:#06080d;padding:26px;box-shadow:0 30px 80px -30px color-mix(in srgb,var(--stage-a) 55%,transparent),0 1px 0 #ffffff14 inset;isolation:isolate}
+.studio-engine-hero::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(60% 55% at 50% 28%,color-mix(in srgb,var(--stage-a) 50%,transparent),transparent 72%),radial-gradient(55% 50% at 92% 100%,color-mix(in srgb,var(--stage-b) 40%,transparent),transparent 70%),radial-gradient(45% 45% at 0% 100%,color-mix(in srgb,var(--stage-a) 28%,transparent),transparent 70%)}
+.studio-engine-hero::after{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);background-size:44px 44px;mask-image:radial-gradient(70% 70% at 50% 40%,#000,transparent)}
+.studio-engine-hero{container-type:inline-size}
+.seh{display:grid;grid-template-columns:1fr;justify-items:center;align-items:center;gap:18px;color:#eef2f7}
+.seh-frame{grid-row:1}.seh-thumbs{grid-row:2}.seh-info{grid-row:3}
+.seh-info{display:flex;flex-direction:column;gap:10px;min-width:0;align-items:center;text-align:center}
+.seh-name{margin:0;font-size:clamp(26px,2.4vw,40px);line-height:1.05;letter-spacing:-.03em;font-weight:750;color:#fff;text-wrap:balance}
+.seh-desc{margin:0;font-size:14px;line-height:1.5;color:#d7deea}
+.seh-chip{margin:4px 0 0;white-space:nowrap;padding:6px 12px;border-radius:999px;background:#ffffff14;border:1px solid #ffffff26;font-size:12px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
+.seh-title{margin:6px 0 0;font-size:13px;line-height:1.45;color:#ffffffb3;font-style:italic}
+.seh-frame{position:relative;display:block;max-width:100%;border-radius:20px;overflow:hidden;background:#05070b;line-height:0;box-shadow:0 24px 60px -20px #000c,0 0 0 1px #ffffff1f}
+.seh-frame .seh-main{display:block;width:min(100%,calc(max(420px,min(100svh - 360px,700px)) * .5625));height:auto;max-height:max(420px,min(calc(100svh - 360px),700px));object-fit:contain}
+.seh-empty{display:flex;align-items:center;justify-content:center;aspect-ratio:9/16;height:max(420px,min(calc(100svh - 360px),700px));color:#c9d1dc;font-size:20px;line-height:1.2}
 .seh-badge{position:absolute;left:12px;bottom:12px;line-height:1.2;background:rgba(0,0,0,.62);color:#f5f5f7;border-radius:999px;padding:5px 11px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
-.seh-meta{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 4px}
-.seh-title{margin:0;font-size:13px;color:#aeb9c8;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.seh-dots{display:flex;gap:6px;flex-shrink:0}
-.seh-dots button{width:22px;height:22px;border-radius:999px;border:0;background:transparent;cursor:pointer;position:relative;padding:0}
-.seh-dots button::after{content:'';position:absolute;inset:7px;border-radius:999px;background:#3a4556}
-.seh-dots button.on::after{background:#2997ff;inset:6px}
-.seh-dots button:focus-visible{outline:2px solid #2997ff;outline-offset:1px}
+.seh-thumbs{display:flex;gap:10px}
+.seh-thumbs button{width:48px;aspect-ratio:9/16;padding:0;border:0;border-radius:10px;overflow:hidden;cursor:pointer;background:#0b0f17;opacity:.55;box-shadow:0 0 0 1px #ffffff26;transition:opacity .15s,box-shadow .15s,transform .15s}
+.seh-thumbs button:hover{opacity:.85}
+.seh-thumbs button.on{opacity:1;box-shadow:0 0 0 2px #fff;transform:scale(1.04)}
+.seh-thumbs button:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.seh-thumbs :is(img,video){width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+@container (min-width:540px){.seh{grid-template-columns:auto minmax(0,1fr);justify-items:start;column-gap:30px;row-gap:22px}.seh-frame{grid-column:1;grid-row:1 / span 2}.seh-info{grid-column:2;grid-row:1;align-self:end;align-items:flex-start;text-align:left}.seh-thumbs{grid-column:2;grid-row:2;align-self:start}}
+@container (min-width:900px){.seh{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);row-gap:0}.seh-info{grid-column:1;grid-row:1;align-self:center;justify-self:start;max-width:320px}.seh-frame{grid-column:2;grid-row:1}.seh-thumbs{grid-column:3;grid-row:1;align-self:center;justify-self:end;flex-direction:column}.seh-thumbs button{width:58px}}
+@media(max-width:900px){.studio-engine-hero{padding:16px;border-radius:20px}.seh-frame .seh-main{width:min(100%,calc(62svh * .5625));max-height:62svh}.seh-empty{height:62svh}}
+@media(prefers-reduced-motion:reduce){.seh-thumbs button{transition:none}}
+.studio-engine-pick{margin-bottom:18px}
 .composer-proposal-idea{min-width:0;padding:24px;border:1px solid #293341;border-radius:20px;background:linear-gradient(150deg,#151b24,#10141b)}
 .composer-proposal-settings{display:flex;flex-direction:column;gap:14px;min-width:0}
 .composer-proposal-continuation{grid-column:1 / -1;min-width:0}

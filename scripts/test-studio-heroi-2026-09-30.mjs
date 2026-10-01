@@ -36,7 +36,7 @@ function pageProblems(src) {
 }
 function clientProblems(src) {
   const p = []
-  if (!/<EngineHero key=\{scriptMode === 'clip' \? 'seedance' : engine\} name=\{scriptMode === 'clip' \? 'Seedance 1\.5' : eng\.name\} videos=\{engineHeroes\[scriptMode === 'clip' \? 'seedance' : engine\] \?\? \[\]\}/.test(src)) p.push('o herói não segue o motor escolhido (ou o Clipe não é Seedance 1.5)')
+  if (!/<EngineHero key=\{scriptMode === 'clip' \? 'seedance' : engine\} name=\{scriptMode === 'clip' \? 'Seedance 1\.5' : eng\.name\} [^\n]*?videos=\{engineHeroes\[scriptMode === 'clip' \? 'seedance' : engine\] \?\? \[\]\}/.test(src)) p.push('o herói não segue o motor escolhido (ou o Clipe não é Seedance 1.5)')
   if (!/<span className="seh-badge"><UiLabel>Made with<\/UiLabel> \{name\}<\/span>/.test(src)) p.push('herói sem o selo "Made with <motor>"')
   const settings = src.indexOf('<section className="composer-proposal-settings"')
   const review = src.indexOf('<div id="studio-generation-review"')
@@ -53,7 +53,14 @@ function clientProblems(src) {
   const box = src.indexOf('<textarea', idea)
   if (!(idea > 0 && pick > idea && box > pick && pick < settings)) p.push('o motor não vem antes da ideia')
   if (/className="seh-bg"|\.seh-bg\{/.test(src)) p.push('vídeo do motor ainda tem laterais desfocadas')
-  if (!/\.seh\{display:flex;flex-direction:column;align-items:center;/.test(src)) p.push('vídeo do motor não está centralizado')
+  // reancorado 30/09 (KINEO-STUDIO-PALCO): o vídeo segue sozinho e inteiro (sem laterais desfocadas), agora num palco
+  // com a cor do motor; centralizado no palco estreito e na coluna do meio no largo.
+  if (!/\.seh\{display:grid;grid-template-columns:1fr;justify-items:center;/.test(src) || !/@container \(min-width:900px\)\{\.seh\{grid-template-columns:minmax\(0,1fr\) auto minmax\(0,1fr\)/.test(src)) p.push('vídeo do motor não está centralizado no palco')
+  // KINEO-STUDIO-PALCO-2026-09-30 — fundador: "precisa ter mais cor… falta de acabamento". Cada motor do seletor tem a
+  // sua cor, e a cor segue o motor escolhido (Clipe = Seedance), no fundo da página e no palco.
+  for (const k of Object.keys(EXPECTED)) if (!new RegExp(`\\n  ${k}: \\['#[0-9A-F]{6}', '#[0-9A-F]{6}'\\],`).test(src)) p.push(`motor ${k} sem cor de palco`)
+  if (!/<div className="stu composer-proposal" style=\{\{ \['--stage-a' as string\]: \(STAGE_TINT\[scriptMode === 'clip' \? 'seedance' : engine\]/.test(src)) p.push('a cor do palco não segue o motor escolhido')
+  if (!/\.studio-engine-hero::before\{[^}]*var\(--stage-a\)/.test(src) || !/\.composer-proposal::before\{[^}]*var\(--stage-a\)/.test(src)) p.push('palco ou fundo sem a cor do motor')
   return p
 }
 function navProblems(land, theme) {
@@ -89,6 +96,8 @@ ok(navProblems(LAND.replace('            <Link href="/claude-connector" data-nav
   ok(clientProblems(back.slice(0, set) + blk + back.slice(set)).length > 0, '(M6) motor de volta para depois da ideia → vermelho')
 }
 ok(clientProblems(CLIENT.replace('<video key={v.src} className="seh-main"', '<video className="seh-bg" /><video key={v.src} className="seh-main"')).length > 0, '(M7) laterais desfocadas de volta → vermelho')
+ok(clientProblems(CLIENT.replace("['--stage-a' as string]: (STAGE_TINT[scriptMode === 'clip' ? 'seedance' : engine]", "['--stage-a' as string]: (STAGE_TINT['fast']")).length > 0, '(M8) cor presa num motor → vermelho')
+ok(clientProblems(CLIENT.replace(/\n  veo: \['#[0-9A-F]{6}', '#[0-9A-F]{6}'\],/, '')).length > 0, '(M9) motor sem cor → vermelho')
 ok(navProblems(LAND, THEME.replace('.klp .nav-links>a,.klp .nav-links>.nd>summary { color:var(--txt); }', '')).length > 0, '(M5) tom diferente no topo → vermelho')
 
 console.log(`\n${pass} verificações ok, ${fail} falhas`)
