@@ -763,3 +763,9 @@ Slug do X confirmado: utm_source=x.
 - **Decisão:** bloco "Your logo" no /studio (fora do modo clipe). O logo fica num caminho fixo da conta (`avatars/<uid>/brand-logo.png|jpg`); o `/api/compose` consulta o storage em cada montagem e ACRESCENTA o logo ao vídeo já montado (canto superior esquerdo, filme inteiro, faixa 10), nos dois caminhos (clássico e hollywood) — lib/compose (trava 8.2) não muda; a rota só ganha linhas marcadas [TRAVA 8.2 — "vamos fazer isso rápido agora"], retiradas em memória pelos guardiões byte a byte — logo vale para todos os motores, inclusive o filme que termina com a aba fechada, e para a versão limpa do unlock. Sem custo extra de crédito.
 - **Regras:** só a própria conta; PNG/JPG ≤ 5 MB; caixa "este logo é meu ou da minha empresa"; moderação no upload; remover = apagar o próprio logo. Sem logo, o filme sai byte a byte como antes. Guardião: scripts/test-logo-da-marca-2026-10-01.mjs.
 - **Em aberto:** /clips, /ads e /spaces não usam o logo ainda (montagens próprias).
+
+## Showcase — descoberta orgânica, 01/10/2026
+
+**DECISÃO APROVADA — execução do mandato de aquisição/conversão do fundador:** após comprovar a publicação do Showcase, corrigir somente sua ausência no sitemap em `codex/showcase-observacao-20261001`, preservando a integração MRR. Usar `SHOWCASE_PUBLIC` para retirar a URL junto da página, data própria e marcador de versão adicional nos eventos já deduplicados. Não criar impressões de crawler nem equiparar indexação a receita. [Evidência e critério de decisão](showcase-2026-10-04/discovery/DECISAO.md).
+
+**DECISÃO APROVADA — limite de um PUBLICAR por dia/sessão:** manter o novo candidato local em 01/10; não reescrever o PUBLICAR original, não reenfileirar a entrega já publicada e não alterar a fila alheia. Revalidar main/fila antes de qualquer publicação futura. A escolha preserva o congelamento dos SHAs que o fundador já recebeu.
