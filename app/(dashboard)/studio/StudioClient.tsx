@@ -1,5 +1,8 @@
 'use client'
 import MobileCreationShortcut from '@/components/MobileCreationShortcut'
+import StudioNearIdeaAction from '@/components/StudioNearIdeaAction'
+import { MRR_NEAR_IDEA_ENABLED } from '@/lib/growth/mrrStudio'
+import { useMrrStudioFunnel } from '@/lib/growth/useMrrStudioFunnel'
 
 import { KineoBoltText } from '@/components/KineoBolt'
 
@@ -377,6 +380,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   const adsTileHref = adsTileAccess ? ADS_TILE_WIZARD_HREF : ADS_TILE_DOOR_HREF
   const [preset, setPreset] = useState<string | null>(null)
   const [prompt, setPrompt] = useState('')
+  const recordMrr = useMrrStudioFunnel()
   // KINEO-STUDIO-SCRIPTMODE-2026-08-17 (fundador: 'faltou usar a script do
   // jeito que ela esta ou AI ajudar a escrever'): mesmo par de modos do
   // fluxo classico — 'ai' estrutura o texto, 'verbatim' narra palavra por
@@ -990,12 +994,17 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                 </button>
               ))}
             </div>
-            <textarea className="studio-prompt" ref={promptRef} value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5}
+            <textarea className="studio-prompt" ref={promptRef} value={prompt} onChange={(e) => { setPrompt(e.target.value); if (e.target.value.trim()) recordMrr('mrr_idea_entered') }} rows={5}
               placeholder={chatGptQuickstart === 'finished_script'
                 ? (t('Paste the complete script from ChatGPT here…', 'Pega aquí el guion completo de ChatGPT…'))
                 : chatGptQuickstart === 'idea'
                   ? (t('Paste the idea from ChatGPT here…', 'Pega aquí la idea de ChatGPT…'))
                   : (t('What’s your video about? One idea in — a finished film out: voiced, scored and captioned.', '¿De qué trata tu vídeo? Una idea se convierte en un vídeo con voz, música y subtítulos.'))} />
+            {MRR_NEAR_IDEA_ENABLED && scriptMode !== 'clip' && (
+              <StudioNearIdeaAction prompt={prompt} cost={cost} balance={balance} overLimit={limit.over}
+                bareStarter={isBareStarter(prompt)} engineName={eng.name} seconds={duration}
+                onGenerate={() => { recordMrr('mrr_generate_clicked'); generate() }} />
+            )}
             <div className="row" style={{ marginTop: 10 }}>
               <button type="button" className={`pill${scriptMode === 'ai' ? ' on' : ''}`} onClick={() => setScriptMode('ai')}><UiLabel>✨ Let AI structure it</UiLabel></button>
               <button type="button" className={`pill${scriptMode === 'verbatim' ? ' on' : ''}`} onClick={() => setScriptMode('verbatim')}><UiLabel>📝 Use my script as is</UiLabel></button>
@@ -1307,7 +1316,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                 anúncio, ou degraus desligados) e nunca esconde o go. Identidade: o
                 cartão resolve sozinho (o cockpit não conhece userId/e-mail). */}
             <DfyOfferCard prompt={prompt} userId={null} email={null} source="studio_cockpit" />
-            <button type="button" onClick={generate} disabled={!prompt.trim() || limit.over} className={`go ${prompt.trim() && !limit.over ? 'ok' : 'no'}`}>
+            <button type="button" onClick={() => { if (scriptMode !== 'clip') recordMrr('mrr_generate_clicked'); generate() }} disabled={!prompt.trim() || limit.over} className={`go ${prompt.trim() && !limit.over ? 'ok' : 'no'}`}>
               {/* KINEO-PRECO-VISIVEL-2026-09-02 — o custo entra NO BOTÃO, o
                   padrão da Higgsfield ("the exact cost is shown on the Generate
                   button before you confirm") e da Hailuo (número colado no botão,
