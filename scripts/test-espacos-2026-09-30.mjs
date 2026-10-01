@@ -140,7 +140,7 @@ ok(/useInterfaceLanguage\(\)/.test(client) && /signature, language, seal/.test(c
 ok(!/[ãõçáéíóú]/i.test(client.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')), '(7i) tela sem texto fixo em português (tudo vem do dicionário)')
 const nav = read('lib/ui/workspaceNavigation.ts'), side = read('components/Sidebar.tsx'), mob = read('components/MobileNav.tsx'), land = read('app/KineoLanding.tsx'), shell = read('app/(dashboard)/DashboardShell.tsx')
 const labels = JSON.parse(read('lib/ui/refinementCopy.json'))
-ok(/\{ href: '\/spaces', label: 'Spaces', icon: 'spaces' \}/.test(nav) && /\n  spaces: \(/.test(side) && /href: '\/spaces'/.test(mob) && /primaryLink\('\/spaces'\)/.test(mob) && /<Link href="\/spaces">/.test(land) && /'\/spaces': 'Spaces'/.test(shell), '(7j) Espaços em todos os pares do menu (lateral, celular, mega-menu, título)')
+ok(/\{ href: '\/spaces', label: 'Spaces', icon: 'spaces' \}/.test(nav) && /\n  spaces: \(/.test(side) && /href: '\/spaces'/.test(mob) && /primaryLink\('\/spaces'\)/.test(mob) && /<Link href="\/spaces" data-nav-item="more:spaces"><UiLabel>Spaces<\/UiLabel><\/Link>/.test(land) && /'\/spaces': 'Spaces'/.test(shell), '(7j) Espaços em todos os pares do menu (lateral, celular, topo do site, título)')
 ok(Object.keys(labels).length === 16 && Object.values(labels).every((d) => d['Spaces'] && d['Empty space in, finished space out']), '(7k) rótulo do menu nas 16 línguas')
 
 // (8) mutantes

@@ -861,8 +861,6 @@ export default function KineoLanding({
                   <Link href="/studio"><span className="nm-ic">🎬</span><span className="nm-tx"><b><UiLabel>Studio</UiLabel></b><i><UiLabel>Every control, one screen</UiLabel></i></span></Link>
                   {/* KINEO-CLIPES-2026-09-29 — par do Sidebar/MobileNav: clipe avulso de 5–15 s. */}
                   {clipsVisible(initialEmail) && <Link href="/clips"><span className="nm-ic">🎞</span><span className="nm-tx"><b><UiLabel>Clips</UiLabel></b><i><UiLabel>One scene, 5–15 s, text or photo</UiLabel></i></span></Link>}
-                  {/* KINEO-ESPACOS-LANCAMENTO-2026-09-30 — par do Sidebar/MobileNav: espaço vazio → pronto. */}
-                  <Link href="/spaces"><span className="nm-ic">🏬</span><span className="nm-tx"><b><UiLabel>Spaces</UiLabel></b><i><UiLabel>Empty space in, finished space out</UiLabel></i></span></Link>
                   <Link href="/examples" data-nav-item="examples"><span className="nm-ic">▦</span><span className="nm-tx"><b><UiLabel>Examples</UiLabel></b><i><UiLabel>Real renders, every engine</UiLabel></i></span></Link>
                 </span>
                 {/* KINEO-NAV-4-ITENS-2026-09-25 — coluna secundaria: so texto,
@@ -881,7 +879,11 @@ export default function KineoLanding({
                 {IMG_ENGINES.map(engine => <NavEngineItem key={engine.key} href={`/images?engine=${engine.key}`} name={engine.name} desc={engine.desc} icon={engine.icon} />)}
               </span>
             </PublicNavDropdown>
-            <Link href="/ads" data-nav-item="business"><UiLabel>For businesses</UiLabel></Link>
+            {/* KINEO-NAV-TOPO-ADS-2026-09-30 — fundador 30/09: ordem Video · Images · Spaces · Ads; "For businesses" vira "Ads"
+                (como os concorrentes) e entra direto no painel: /ads/new leva quem está logado ao montador e o visitante à
+                porta pública /ads. */}
+            <Link href="/spaces" data-nav-item="more:spaces"><UiLabel>Spaces</UiLabel></Link>
+            <Link href="/ads/new" data-nav-item="business"><UiLabel>Ads</UiLabel></Link>
             <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
           </div>
         <div className="nav-right">
@@ -900,12 +902,12 @@ export default function KineoLanding({
                   ou Dashboard; o resto vai para "More tools", secundario. */}
               <Link href="/studio" data-nav-item="video"><UiLabel>Video</UiLabel></Link>
               {clipsVisible(initialEmail) && <Link href="/clips"><UiLabel>Clips</UiLabel></Link>}
-              <Link href="/spaces"><UiLabel>Spaces</UiLabel></Link>
               <Link href="/images" data-nav-item="image"><UiLabel>Images</UiLabel></Link>
               <span className="nav-mobile-engines">
                 {IMG_ENGINES.map(engine => <Link key={engine.key} href={`/images?engine=${engine.key}`} data-nav-item="image"><span className="nm-ic" aria-hidden="true">{engine.icon}</span>{engine.name}</Link>)}
               </span>
-              <Link href="/ads" data-nav-item="business"><UiLabel>For businesses</UiLabel></Link>
+              <Link href="/spaces" data-nav-item="more:spaces"><UiLabel>Spaces</UiLabel></Link>
+              <Link href="/ads/new" data-nav-item="business"><UiLabel>Ads</UiLabel></Link>
               <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
               {initialUser
                 ? <Link className="btn btn-w" href="/studio"><UiLabel>Dashboard</UiLabel></Link>

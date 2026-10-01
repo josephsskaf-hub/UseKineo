@@ -52,7 +52,7 @@ export default async function ExamplesPage() {
           <nav className={styles.nav} aria-label="Main navigation" data-nav-surface="top" data-nav-area="public">
             <Link href="/studio" className={styles.navPrimary} data-nav-item="video"><UiLabel>Video</UiLabel></Link>
             <Link href="/images" data-nav-item="image"><UiLabel>Images</UiLabel></Link>
-            <Link href="/ads/new" data-nav-item="business"><UiLabel>For businesses</UiLabel></Link>
+            <Link href="/ads/new" data-nav-item="business"><UiLabel>Ads</UiLabel></Link>
             <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
           </nav>
           <div className={styles.headerTools}>
