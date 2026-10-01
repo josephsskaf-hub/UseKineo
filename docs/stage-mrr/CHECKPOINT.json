@@ -3,12 +3,12 @@
   "date": "2026-10-01",
   "worktree": "C:/kineo/.claude/worktrees/stage-sprint-mrr",
   "branch": "codex/sprint-mrr-first-film-20261001",
-  "main": "87825d3225af384ed4c887a7faf7bacbe4546c47",
-  "integratedQueue": "3aba3b0b7bbcbee9df0e66ad08b121a5a01acef9",
-  "status": "next-batch-in-progress-existing-queue-preserved",
-  "publication": "enqueued locally; launcher not executed by agent; deploy unverified",
-  "next": "Complete new priorities in own branch, guardians/full-suite/screenshots. Preserve b0 queue and Oct1 launcher (already notified); no second launcher today. Before next publication reconcile live main/queue. Never email or render.",
-  "results": "No after-version production observations yet. No new sales inferred.",
+  "main": "b0fef8ceabaf6b21ff53a137cd2268f5f293c797",
+  "integratedQueue": "b0fef8ceabaf6b21ff53a137cd2268f5f293c797",
+  "status": "new-batch-local-verified-await-next-permitted-publication",
+  "publication": "Prior b0 delivery reached origin/main; public /showcase HTTP200 with MRR version. New five-priority batch is local only; agent executed no publisher.",
+  "next": "On next permitted day (Oct2 or later), fetch and reconcile origin/main, remote queue if it exists and actual local queue; preserve other work, rerun gates on integrated candidate, enqueue via house script and prepare one safe PUBLICAR with full SHAs. Until then no second launcher, no queue overwrite. Daily SELECT measurement; no sends/renders. Saturday report Oct3 23UTC.",
+  "results": "At Oct1 14:16:15 UTC: 0 first positive subscriptions today (partial); 6 last30d. One anonymous studio-version observation; zero identified people exposed. New batch unexposed; commercial effects unknown.",
   "report": "docs/STAGE-sprint-mrr-2026-10-04.md",
   "reportDue": "2026-10-03T23:00:00Z",
   "externalEvidence": "C:/Users/josep/.codex/outputs/01a0e5e3-36cf-72b3-bc5d-26ca2cd6e88d/mrr-20261001",
@@ -37,23 +37,23 @@
   "backlog": [
     {
       "id": 1,
-      "status": "implemented; tsc and 9-mutant guardian passed; 8 local mocked-service screenshots; full suite pending"
+      "status": "implemented and locally tested; 9 mutants; explicit trial-fit first-film action; 8 screenshots"
     },
     {
       "id": 2,
-      "status": "existing written episode2 and PlanFit identified; audit reuse before adding offer"
+      "status": "implemented and locally tested; existing episode actions preserved, canonical films/month value"
     },
     {
       "id": 3,
-      "status": "next: public founder proof + canonical films/month + current refund terms"
+      "status": "implemented and locally tested; real authorized house proof, canonical film capacity, existing refund terms"
     },
     {
       "id": 4,
-      "status": "next: share acquisition CTA; UI footer only, engines protected"
+      "status": "implemented and locally tested; share UTM on public video and free-film UI footer; MP4 pixels untouched"
     },
     {
       "id": 5,
-      "status": "next: authenticated read-only campaign preview; no autonomous sending"
+      "status": "implemented and locally tested; founder-authenticated default dry-run, signed reviewed explicit dispatch; never invoked in production"
     }
   ],
   "priorDeliveryGates": {
@@ -71,5 +71,41 @@
     "newRed": 0,
     "ownMutantsKilled": 13,
     "screenshots": 20
+  },
+  "codeSha": "57582d91b4399b03a1b72d7960d7348174ff56a0",
+  "currentGates": {
+    "date": "2026-10-01",
+    "codeSha": "57582d91b4399b03a1b72d7960d7348174ff56a0",
+    "baselineSha": "b0fef8ceabaf6b21ff53a137cd2268f5f293c797",
+    "tsc": "clean; exit 0",
+    "baseline": {
+      "total": 740,
+      "passed": 538,
+      "failed": 202
+    },
+    "candidate": {
+      "total": 743,
+      "passed": 542,
+      "failed": 201
+    },
+    "newRedFiles": [],
+    "newFailedAssertions": [],
+    "resolved": [
+      "test-ritmo-por-idioma-15s-2026-09-29.mjs"
+    ],
+    "logComparison": "All failed logs compared. Differences: temp paths/PIDs, CRLF warnings, increased successful scanned-file/event counts, changed source excerpt in existing Spanish assertion; no new failed assertion.",
+    "ownMutantsKilled": 20,
+    "newScreenshots": 40,
+    "visualScope": "Real JSX; context/services mocked; no authenticated full Next E2E, render or external POST.",
+    "execution": "Offline guard denies networking and secret files. No production writes or sends.",
+    "logs": "C:/Users/josep/.codex/outputs/01a0e5e3-36cf-72b3-bc5d-26ca2cd6e88d/mrr-20261001/candidate-new-goal-final",
+    "publication": "Not queued; max one Oct1 MRR launcher already used. Fresh integration and gates required before next permitted launcher."
+  },
+  "measurementCut": "2026-10-01T14:16:15.87039Z",
+  "productionPublicProof": {
+    "path": "/showcase",
+    "status": 200,
+    "version": "mrr_showcase_20261001_v1",
+    "date": "2026-10-01"
   }
 }
