@@ -23,6 +23,14 @@ function contract(text=source) {
   assert.equal(url.searchParams.get('intent_campaign'),m.MRR_FIRST_FILM_VERSION)
   for(const key of ['autoanalyze','studio','studio_handoff_token']) assert.equal(url.searchParams.has(key),false)
   assert.ok(url.searchParams.get('prompt').includes('fictional'))
+  const handoff=load('lib/creationHandoff.ts').resolveActivationCreationContract(url.searchParams)
+  assert.equal(handoff.duration,15)
+  assert.equal(handoff.createIntent,'trial_best')
+  const resolve=load('lib/growth/trialActivationIntent.ts').resolveActivationRender
+  const input={createIntent:'trial_best',trialActive:true,hasPaid:false,credits:10,requestedDuration:15,scriptMode:'ai',seedanceCostAt:n=>load('lib/credits/engineCost.ts').creditCostForDuration('cinematic_ai',true,n),entrada15:true,shortSeconds:15,promptFitsShort:true,kineo1:false}
+  assert.equal(resolve(input).engine,'seedance')
+  assert.equal(resolve(input).duration,15)
+  assert.equal(resolve({...input,credits:0}).engine,'none')
 }
 contract()
 for(const [from,to] of [
@@ -48,5 +56,6 @@ for(const [from,to] of [['committed.current || !firstFilmOffer(facts)','false'],
   assert.throws(()=>wiring(c.replaceAll(from,to),s))
 assert.throws(()=>wiring(c,s.replace('d?.historyReliable === true && d?.completedCount === 0','true')))
 console.log('MRR first film: eligibility, canonical cost, explicit single intent, reliable history, visible impression; 9 mutants killed PASS')
+
 
 
