@@ -88,7 +88,7 @@ function wiring(overrides = {}) {
   assert.ok(get('app/showcase/showcase.css').includes('prefers-reduced-motion:reduce'))
   assert.ok(get('components/Footer.tsx').includes("...(SHOWCASE_PUBLIC ? [{ href: '/showcase'"))
   assert.ok(get('app/showcase/page.tsx').includes('if (!SHOWCASE_PUBLIC) notFound()'))
-  assert.ok(get('app/showcase/page.tsx').includes("canonical: '/showcase'"))
+  assert.ok(get('app/showcase/page.tsx').includes("canonical: 'https://www.usekineo.com/showcase'"))
   assert.ok(get('app/showcase/page.tsx').includes('/showcase-og.jpg'))
   assert.ok(fs.statSync(path.join(root, 'public/showcase-og.jpg')).size > 10_000)
 }
