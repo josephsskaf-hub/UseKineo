@@ -29,6 +29,15 @@ import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { AdsV2SimpleSession, readVideoForAd, videoFramesForAd } from './AdsV2Simple'
 import { ADS_V2_VARIATIONS_CSS, VariationToggle, VariationsBoard, variationsCopy, variationsPrice } from './AdsV2Variations'
 import { ADS_V2_SIMPLE_COPY } from '@/lib/ads/v2Simple'
+import { ADS_HOUSE_STAGE, ProductRow, ProductStage, ProductStageStyles, useProductStage } from '@/components/ProductStage' // KINEO-ABAS-PALCO-2026-10-01
+
+// KINEO-ABAS-PALCO-2026-10-01 — dentro do quadro de engenharia os passos do montador não têm caixa própria, e o quadro
+// "como funciona"/prévia desce para baixo dos passos (a direita é do palco).
+const ADS_PANEL_CSS = `.adv2 .kps-panel .adv2-layout{grid-template-columns:minmax(0,1fr);gap:8px}
+.adv2 .kps-panel .adv2-main{gap:0}
+.adv2 .kps-panel .adv2-card{background:transparent;border:0;border-top:1px solid var(--border);border-radius:0;box-shadow:none;padding:16px 0 6px}
+.adv2 .kps-panel .adv2-main>.adv2-card:first-of-type{border-top:0;padding-top:0}
+.adv2 .kps-panel .adv2-aside{position:static}`
 import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { ADS_WIZARD_THEME_CSS } from '../new/adsWizardTheme'
@@ -416,6 +425,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
   // Modo completo = o inglês de sempre; simples (e o instante antes de ler a URL) = a língua da interface.
   const shell = mode === 'full' ? ADS_V2_SIMPLE_COPY.en.shell : pickInterfaceCopy(ADS_V2_SIMPLE_COPY, lang).shell
   const nav = pickInterfaceCopy(ADS_V2_SIMPLE_COPY, lang).shell
+  useProductStage('ads') // KINEO-ABAS-PALCO-2026-10-01 — a cor do Ads pinta a tela e a barra lateral
 
   // ?mode=full abre o construtor completo; qualquer outra coisa, o simples.
   useEffect(() => {
@@ -498,9 +508,11 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
   }
 
   return (
-    <div className="stu adsw adv2">
+    <div className="stu adsw adv2 kps-page">
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
       <style dangerouslySetInnerHTML={{ __html: ADS_WIZARD_THEME_CSS + ADS_V2_CSS + ADS_V2_VARIATIONS_CSS }} />
+      <ProductStageStyles />
+      <style dangerouslySetInnerHTML={{ __html: ADS_PANEL_CSS }} />
       <header className="adsw-header adv2-head">
         <div>
           <h1>{shell.title}</h1>
@@ -538,7 +550,9 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
         <VariationsBoard key={groupId} groupId={groupId} lang={mode === 'full' ? 'en' : lang} onBalance={refreshBalance} onAnother={startOver} />
       ) : null}
       {groupId || !groupChecked ? null : (
-      <>
+      // KINEO-ABAS-PALCO-2026-10-01 — o formato do Studio: o montador é o quadro de engenharia; o palco mostra anúncios da casa.
+      <div className="kps-grid">
+      <div className="kps-panel">
       {mode === 'full' ? (
         <AdsV2Session
           key={session}
@@ -563,8 +577,11 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
           onVariationsStarted={openGroup}
         />
       ) : null}
-      </>
+      </div>
+        <ProductStage name={shell.title} desc={mode === 'full' ? shell.sub : shell.subSimple} items={ADS_HOUSE_STAGE} wide />
+      </div>
       )}
+      <ProductRow title="Made on Kineo" sub="Three looks of the same product, ready to A/B test." items={ADS_HOUSE_STAGE.map((x) => ({ title: x.title, image: x.poster! }))} wide />
     </div>
   )
 }

@@ -18,6 +18,7 @@ import { trackEvent } from '@/lib/analytics'
 import ControlIcon from '@/components/ControlIcon'
 import ImageResultPreview from '@/components/ImageResultPreview'
 import MobileCreationShortcut from '@/components/MobileCreationShortcut'
+import { ProductRow, ProductStage, ProductStageStyles, useProductStage, type StageItem } from '@/components/ProductStage' // KINEO-ABAS-PALCO-2026-10-01
 import { IMG_ENGINES, type ImgModelKey } from '@/lib/imageModels'
 
 type ImgSize = 'square_hd' | 'portrait_16_9' | 'landscape_16_9'
@@ -60,6 +61,21 @@ async function shrinkPhoto(file: File): Promise<Blob> {
   } catch {}
   return file
 }
+
+/** KINEO-ABAS-PALCO-2026-10-01 — imagens da casa feitas no Nano Banana Pro (conta do fundador, 30/09). */
+const HOUSE_IMAGES: StageItem[] = [
+  { title: 'Perfume campaign shot', badge: 'Nano Banana Pro', video: '/previews/promo-images-1.mp4', poster: '/posters/promo-images-1.webp' },
+  { title: 'Astronaut in a sunflower field', badge: 'Nano Banana Pro', video: '/previews/promo-images-2.mp4', poster: '/posters/promo-images-2.webp' },
+  { title: 'Lighthouse in the storm', badge: 'Nano Banana Pro', video: '/previews/promo-images-3.mp4', poster: '/posters/promo-images-3.webp' },
+]
+const HOUSE_ROW = [
+  { title: 'Perfume campaign shot', image: '/posters/promo-images-1.webp' },
+  { title: 'Astronaut in a sunflower field', image: '/posters/promo-images-2.webp' },
+  { title: 'Lighthouse in the storm', image: '/posters/promo-images-3.webp' },
+  { title: 'Empty floor → coffee shop', image: '/posters/spaces-demo-1-depois.webp' },
+  { title: 'Empty floor → sneaker store', image: '/posters/spaces-demo-2-depois.webp' },
+  { title: 'Empty floor → coworking', image: '/posters/spaces-demo-3-depois.webp' },
+]
 
 export default function ImagesClient() {
   const ui = useUiCopy()
@@ -136,6 +152,11 @@ export default function ImagesClient() {
   }
 
   const eng = IMG_ENGINES.find((e) => e.key === model)!
+  // KINEO-ABAS-PALCO-2026-10-01 — palco da aba Imagens: as imagens da própria conta feitas neste motor (as mais recentes)
+  // ou, sem nenhuma, os exemplos da casa — com o selo do motor real de cada peça (Nano Banana Pro).
+  useProductStage('images')
+  const mine: StageItem[] = items.filter((x) => x.model === model).slice(0, 4).map((x) => ({ title: ui('Your image'), badge: eng.name, after: x.upscaled ?? x.url, poster: x.upscaled ?? x.url, contain: true }))
+  const stageItems: StageItem[] = mine.length ? mine : HOUSE_IMAGES
   const unitCost = Number.parseInt(eng.credits, 10) || 1
   // Referência só vai no Nano Banana Pro; nos outros motores as fotos ficam guardadas na tela mas não são enviadas.
   const readyRefs = refs.filter((r) => r.path)
@@ -273,8 +294,9 @@ export default function ImagesClient() {
   }
 
   return (
-    <div className="stu images-workspace">
+    <div className="stu images-workspace kps-page">
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
+      <ProductStageStyles />
       <style>{`
         .stu.images-workspace{width:100%;min-width:0;max-width:none;background:var(--bg);color:var(--text);container:images-studio / inline-size}
         .stu.images-workspace h1{color:var(--text)}
@@ -327,11 +349,25 @@ export default function ImagesClient() {
         .stu.images-workspace .image-ref-add.off{opacity:.5;cursor:not-allowed}
         .stu.images-workspace .image-ref-off{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted2)}
         @media(max-width:900px){.stu.images-workspace .grid.creation-grid{grid-template-columns:minmax(0,1fr);gap:18px}.stu.images-workspace .creation-input textarea{min-height:230px}}
+        /* KINEO-ABAS-PALCO-2026-10-01 — quadro de engenharia compacto: motores em 3 colunas, sem a amostra embaixo de cada
+           um (o palco mostra), caixa de texto menor; os resultados da conta seguem embaixo, em largura total. */
+        .stu.images-workspace .kps-panel .image-engine-picker{margin-bottom:14px}
+        .stu.images-workspace .kps-panel .image-engines{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+        .stu.images-workspace .kps-panel .image-engine-card{min-height:0;padding:10px 11px;gap:4px}
+        .stu.images-workspace .kps-panel .image-engine-desc,.stu.images-workspace .kps-panel .image-reference-note,.stu.images-workspace .kps-panel .engine-real-sample,.stu.images-workspace .kps-panel .engine-sample-empty{display:none}
+        .stu.images-workspace .kps-panel .image-engine-top{display:none}
+        .stu.images-workspace .kps-panel .creation-input{padding:14px 0 4px}
+        .stu.images-workspace .kps-panel textarea{min-height:120px;height:140px}
+        .stu.images-workspace .kps-panel .cost{margin-top:12px}
+        .stu.images-workspace .grid.creation-grid{grid-template-columns:minmax(0,1fr);margin-top:8px}
       `}</style>
 
       <h1><UiLabel>Images</UiLabel></h1>
       <p className="sub"><UiLabel>Type it. See it. Six image engines, one screen.</UiLabel></p>
 
+{/* KINEO-ABAS-PALCO-2026-10-01 — o formato do Studio: quadro de engenharia na esquerda, palco do motor na direita. */}
+<div className="kps-grid">
+<div className="kps-panel">
       <fieldset className="image-engine-picker">
         <legend className="lab"><span className="n">1</span><UiLabel>Engine</UiLabel></legend>
         <p className="image-reference-note"><UiLabel>References from your own generated images.</UiLabel></p>
@@ -361,7 +397,6 @@ export default function ImagesClient() {
         </div>
       </fieldset>
 
-<div className="grid creation-grid">
 <div className="card creation-input">
             <div className="lab"><span className="n">2</span><UiLabel>Your image</UiLabel></div>
             <textarea aria-label={ui('Your image')} value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={7} maxLength={2000}
@@ -437,7 +472,6 @@ export default function ImagesClient() {
               </p>
             )}
           </div>
-<div className="rail creation-settings">
           <div className="card">
             <div className="lab"><span className="n">3</span><UiLabel>Format</UiLabel></div>
             <div className="row">
@@ -457,7 +491,11 @@ export default function ImagesClient() {
             </button>
             <details className="refine-details"><summary><UiLabel>Enhancement options</UiLabel></summary><div className="gnote"><UiLabel>Upscale any result to 2x for 1 credit.</UiLabel></div></details>
           </div>
-        </div>
+</div>
+        <ProductStage name={eng.name} desc={eng.desc} meta={`${eng.credits} / ${ui('image')}`} items={stageItems} wide={!mine.length} />
+</div>
+      <ProductRow title="Made on Kineo" sub="Real images from our engines — every one started as a sentence." items={HOUSE_ROW} />
+<div className="grid creation-grid">
 <div className="creation-results">
 {galleryFailed && (
             <div role="alert" className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', border: '1px solid rgba(251,191,36,.35)', background: 'rgba(251,191,36,.06)' }}>

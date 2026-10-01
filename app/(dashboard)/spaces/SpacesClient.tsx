@@ -23,6 +23,7 @@ import {
   type SpaceKind,
 } from '@/lib/spaces/spaces'
 import { spacesCopy, type SpacesCopyKey } from '@/lib/spaces/spacesCopy'
+import { ProductRow, ProductStage, ProductStageStyles, useProductStage, type StageItem } from '@/components/ProductStage' // KINEO-ABAS-PALCO-2026-10-01
 
 type PhotoState = 'idle' | 'uploading' | 'staging' | 'staged' | 'animating' | 'clip' | 'failed'
 interface Photo {
@@ -39,6 +40,13 @@ interface Photo {
 }
 
 const NANO_CREDITS = 5
+// KINEO-ABAS-PALCO-2026-10-01 — exemplos da casa (01/10): fotos reais de um andar vazio (a faixa "aluga-se" com telefone foi
+// apagada) e o mesmo espaço pronto no Nano Banana Pro, SEM marca de terceiros (o café de 30/09 tinha logo de rede — fora).
+const HOUSE_SPACES: StageItem[] = [
+  { title: 'Empty floor → coffee shop', badge: 'Nano Banana Pro', before: '/posters/spaces-demo-1-antes.webp', after: '/posters/spaces-demo-1-depois.webp', poster: '/posters/spaces-demo-1-depois.webp' },
+  { title: 'Empty floor → sneaker store', badge: 'Nano Banana Pro', before: '/posters/spaces-demo-2-antes.webp', after: '/posters/spaces-demo-2-depois.webp', poster: '/posters/spaces-demo-2-depois.webp' },
+  { title: 'Empty floor → coworking', badge: 'Nano Banana Pro', before: '/posters/spaces-demo-3-antes.webp', after: '/posters/spaces-demo-3-depois.webp', poster: '/posters/spaces-demo-3-depois.webp' },
+]
 const MAX_SIDE = 2048
 
 const C = {
@@ -53,6 +61,9 @@ const C = {
   danger: 'var(--danger, #D93025)',
 }
 const box: React.CSSProperties = { background: C.card, border: C.border, borderRadius: 16, padding: 20 }
+// KINEO-ABAS-PALCO-2026-10-01 — dentro do quadro de engenharia os passos não têm caixa própria; uma linha separa um do outro.
+const part: React.CSSProperties = { padding: '16px 0 4px', borderTop: C.border }
+const firstPart: React.CSSProperties = { padding: '0 0 4px' }
 const input: React.CSSProperties = { width: '100%', background: C.card, border: C.border, color: C.text, borderRadius: 10, padding: '10px 12px', fontSize: 14, outline: 'none', fontFamily: 'inherit' }
 const btn = (primary = false, disabled = false): React.CSSProperties => ({
   borderRadius: 10, padding: '10px 16px', fontSize: 14, fontWeight: 700, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1,
@@ -170,6 +181,13 @@ export default function SpacesClient() {
   const staged = photos.filter((p) => p.stagedUrl)
   const allStaged = photos.length > 0 && staged.length === photos.length
   const compareLabels = { before: t('before'), after: t('after'), compare: t('compare'), emptyAlt: t('emptyAlt'), readyAlt: t('readyAlt') }
+  // KINEO-ABAS-PALCO-2026-10-01 — o palco mostra a casa até a pessoa ter o dela: os espaços prontos dela (antes→depois) e,
+  // quando sair, o vídeo dela na frente.
+  useProductStage('spaces')
+  const stageItems: StageItem[] = [
+    ...(video?.url ? [{ title: t('title'), badge: 'Kling 2.5', video: video.url, poster: staged[0]?.stagedUrl ?? undefined }] : []),
+    ...staged.slice(0, 4).map((p) => ({ title: t('title'), badge: 'Nano Banana Pro', before: p.preview, after: p.stagedUrl ?? undefined, poster: p.stagedUrl ?? undefined })),
+  ]
 
   async function addFiles(files: FileList | null) {
     if (!files?.length) return
@@ -320,18 +338,22 @@ export default function SpacesClient() {
   const canStage = !busy && rights && photos.length > 0 && description.trim().length >= 3 && photosCost > 0
 
   return (
-    <div style={{ maxWidth: 1080, margin: '0 auto', padding: '28px 16px 96px', display: 'grid', gap: 16 }}>
+    <div className="stu kps-page" style={{ padding: '30px clamp(16px, 2.4vw, 34px) 96px', display: 'grid', gap: 16 }}>
+      <ProductStageStyles />
       <header>
         <div style={{ fontSize: 12, fontWeight: 700, color: C.accent, letterSpacing: '.08em', textTransform: 'uppercase' }}>{t('badge')}</div>
         <h1 style={{ fontSize: 30, fontWeight: 800, color: C.text, margin: '4px 0 6px', letterSpacing: '-.01em' }}>{t('title')}</h1>
         <p style={{ fontSize: 15, color: C.text2, margin: 0, maxWidth: 680 }}>{t('sub')}</p>
       </header>
 
+      {/* KINEO-ABAS-PALCO-2026-10-01 — o formato do Studio: quadro de engenharia na esquerda, palco na direita. */}
+      <div className="kps-grid">
+      <div className="kps-panel">
       {/* 1. Fotos */}
-      <section style={box}>
+      <section style={firstPart}>
         {step(1, t('s1Title'), t('s1Hint', { n: SPACE_MAX_PHOTOS }))}
         <input ref={fileRef} id="spaces-files" type="file" accept="image/*,video/*" multiple hidden onChange={(e) => { addFiles(e.target.files); e.target.value = '' }} />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: 10 }}>
           {photos.map((p) => (
             <div key={p.key} style={{ position: 'relative' }}>
               <img src={p.preview} alt="" style={{ width: '100%', aspectRatio: '9 / 16', objectFit: 'cover', borderRadius: 12, display: 'block' }} />
@@ -358,7 +380,7 @@ export default function SpacesClient() {
       </section>
 
       {/* 2. O que vai dentro */}
-      <section style={box}>
+      <section style={part}>
         {step(2, t('s2Title'), t('s2Hint'))}
         <div style={{ display: 'grid', gap: 12 }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -392,14 +414,14 @@ export default function SpacesClient() {
       </section>
 
       {/* 3. Espaço pronto */}
-      <section style={box}>
+      <section style={part}>
         {step(3, t('s3Title'), t('s3Hint', { n: NANO_CREDITS }))}
         <button type="button" onClick={stageAll} disabled={!canStage} style={btn(true, !canStage)}>
           {busy === 'photos' ? t('generating') : photosCost ? t('generatePhotos', { n: photosCost }) : photos.length ? t('allDone') : t('generatePhotosIdle')}
         </button>
         {!rights && photos.length ? <p style={{ fontSize: 12, color: C.muted, margin: '8px 0 0' }}>{t('checkRights')}</p> : null}
         {photos.some((p) => p.stagedUrl || p.state !== 'idle') ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14, marginTop: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12, marginTop: 16 }}>
             {photos.map((p) => (
               <div key={p.key} style={{ display: 'grid', gap: 8 }}>
                 {p.stagedUrl ? <Compare before={p.preview} after={p.stagedUrl} labels={compareLabels} /> : (
@@ -419,7 +441,7 @@ export default function SpacesClient() {
       </section>
 
       {/* 4. Vídeo */}
-      <section style={box}>
+      <section style={part}>
         {step(4, t('s4Title'), t('s4Hint', { n: clipCredits }))}
         <div style={{ display: 'grid', gap: 12, maxWidth: 520 }}>
           <div>
@@ -449,6 +471,10 @@ export default function SpacesClient() {
       </section>
 
       {error ? <div role="alert" style={{ ...box, borderColor: 'rgba(217,48,37,.45)', color: C.danger, fontSize: 14 }}>{error}</div> : null}
+      </div>
+        <ProductStage name={t('title')} desc={t('sub')} meta={`${NANO_CREDITS} cr · Nano Banana Pro`} items={stageItems.length ? stageItems : HOUSE_SPACES} labels={{ before: t('before'), after: t('after') }} />
+      </div>
+      <ProductRow title="Made on Kineo" sub="Real empty floors, finished by Kineo Spaces." items={HOUSE_SPACES.map((x) => ({ title: x.title, image: x.after! }))} />
     </div>
   )
 }

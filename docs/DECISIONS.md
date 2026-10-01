@@ -722,3 +722,12 @@ Slug do X confirmado: utm_source=x.
 - O palco fica ao lado do quadro com a altura da tela (clamp 460–820 px, cabe no primeiro olhar) e acompanha a rolagem enquanto o quadro rola; no celular volta à altura do conteúdo (vídeo em cima).
 - Embaixo: a "reta" com os 8 filmes da casa numa linha (4:5, cortados pelo topo para a legenda do filme não brigar com o título); 4 por linha em tela média; faixa que desliza no celular.
 - Guardião test-studio-heroi: 21 ok, 15 mutantes.
+
+## 2026-10-01 — O formato do Studio nas abas Imagens, Espaços e Ads (KINEO-ABAS-PALCO)
+- Fundador: "gostei tanto do que você fez… queria estender para todas as outras abas — Imagens, Espaços e Ads — no mesmo formato… ficou perfeito para uma agência de marketing".
+- Peça compartilhada components/ProductStage.tsx: cor do produto na tela inteira e na barra lateral (html[data-studio-stage], o mesmo atributo do Studio), quadro de engenharia (.kps-panel), palco escuro na altura da tela (.kps-stage, sticky) e a "reta" da casa (.kps-row). O Studio segue com a versão própria (mesma aparência).
+- Cores: Imagens rosa→âmbar · Espaços terracota→areia · Ads azul→vermelho.
+- Imagens: motor (6 motores compactos) + texto + formato + gerar no quadro; o palco mostra as imagens da própria conta naquele motor ou, sem nenhuma, as 3 da casa (Nano Banana Pro: perfume, astronauta, farol); embaixo a reta da casa; "Minhas imagens" segue embaixo.
+- Espaços: os 4 passos no quadro; o palco mostra 3 pares antes→depois da casa com cortina animada (fotos reais de um andar vazio — faixa "aluga-se" com telefone apagada — e o mesmo espaço pronto no Nano Banana Pro, SEM marca: café, loja de tênis, coworking; 15 créditos da conta do fundador). Quando a pessoa gera, o palco passa a mostrar os espaços dela e o vídeo dela. O café de 30/09 (logo de rede) fica fora da vitrine.
+- Ads (/ads/v2): o montador é o quadro de engenharia ("como funciona"/prévia descem para baixo dos passos); o palco mostra os 3 anúncios da casa (garrafa, fone, tênis — 3 looks cada; Nano Banana Pro + Kling 2.5); o painel das 3 variações (resultado) segue em largura total.
+- Guardião novo test-abas-palco-2026-10-01 (14 ok, 6 mutantes). Reancorado com o motivo: test-ads-v2-tela (I1 aceita '@/components/ProductStage', cliente puro).
