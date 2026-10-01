@@ -644,3 +644,12 @@ Slug do X confirmado: utm_source=x.
 - Selo honesto inegociável: "Ilustração criada com IA · sem vínculo com as marcas exibidas" do primeiro ao último quadro; assinatura do fim só "Apresentado por <quem apresenta>" — a tela não oferece "decorado por <terceiro>". Mostrar como uma loja de marca FICARIA no ponto é prática de mercado; dizer que a marca está lá ou atribuir autoria a quem não participou, não.
 - Guardião: scripts/test-espacos-2026-09-30.mjs (16 ok, 6 mutantes). Reancorado: test-moderacao (contagem 22→24: rota do ChatGPT de outra sessão + a do Espaços).
 - Pendente do fundador: preço público (hoje só a casa usa) e o "vai" para abrir a clientes.
+
+## 2026-09-30 — "Espaços" (Spaces) lançado para todos (KINEO-ESPACOS-LANCAMENTO)
+- Fundador, depois de testar: "vamos lançar esse espaço novo… pode subir como já um produto novo… colocar em inglês… a pessoa pudesse tirar qualquer fala de IA do vídeo, não tem necessidade… contato não precisa, o mais importante é o vídeo".
+- SPACES_PUBLIC=true. Menu em todos os pares: lateral, celular, mega-menu público (coluna Create), título do topo; rótulo "Spaces" nas 16 línguas.
+- Tela e vídeo nas 16 línguas (lib/spaces/spacesCopy.ts): BEFORE/AFTER, ANTES/DEPOIS… e "Presented by"/"Apresentado por" na língua de quem gera.
+- O vídeo não fala de IA. A nota "Imagem ilustrativa" (na língua) é opcional, desmarcada por padrão. Sem assinatura, o vídeo termina no último "Depois" (sem cartão vazio). Campo de contato removido.
+- Mantido: assinatura só "Apresentado por <quem apresenta>" — a tela não oferece "decorado por <terceiro>".
+- Preço: o de cada etapa que já existe (5 cr por foto pronta + 5 cr por clipe Kling 5 s ≈ 30 cr por espaço de 3 fotos). Sem preço público novo.
+- Guardião test-espacos (22 ok, 8 mutantes).

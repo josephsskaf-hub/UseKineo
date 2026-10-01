@@ -11,16 +11,16 @@
 // Creatomate: foto vazia ("Antes") que funde no espaço pronto ("Depois") — mesma câmera, então a fusão vira a revelação.
 // Prova de 30/09 (fotos reais do Villa Versace, Moema): colunas, vidros e tubulação do teto ficaram no lugar.
 //
-// SELO HONESTO (inegociável): todo vídeo carrega "Ilustração criada com IA · sem vínculo com as marcas exibidas" do
-// primeiro ao último quadro, e a assinatura do fim é de QUEM APRESENTA (a pessoa ou a empresa dela) — a tela não
-// oferece "decorado por <outra pessoa>". Mostrar como uma loja de marca FICARIA no ponto é prática de mercado
-// imobiliário; dizer que a marca está lá ou que alguém que não participou assinou não é.
+// SELO (decisão do fundador no lançamento, 30/09: "a pessoa pudesse tirar… qualquer fala de IA do vídeo, não tem
+// necessidade"): o vídeo não fala de IA. A nota "Imagem ilustrativa" (na língua de quem gera) é OPCIONAL, marcada pela
+// pessoa na tela. A assinatura do fim continua sendo de QUEM APRESENTA — a tela não oferece "decorado por <outra
+// pessoa>" (atribuir autoria a quem não participou não é detalhe de estilo).
 //
 // LIB PURA (nenhum import): o guardião scripts/test-espacos-2026-09-30.mjs carrega este arquivo cru no Node.
 
 // ── interruptor ─────────────────────────────────────────────────────────────────────────────────────────────────────
-/** false = só as contas da casa (o fundador vende como serviço primeiro). true abre para todo mundo. */
-export const SPACES_PUBLIC = false
+/** true = aberto para todo mundo (fundador 30/09: "vamos lançar… pode subir como já um produto novo"). false = só a casa. */
+export const SPACES_PUBLIC = true
 export function spacesVisibleFor(publicFlag: boolean, isInternal: boolean): boolean {
   return publicFlag === true || isInternal === true
 }
@@ -28,12 +28,13 @@ export function spacesVisibleFor(publicFlag: boolean, isInternal: boolean): bool
 // ── tipos de espaço ─────────────────────────────────────────────────────────────────────────────────────────────────
 export type SpaceKind = 'store' | 'food' | 'office' | 'home' | 'other'
 export const SPACE_KINDS: readonly SpaceKind[] = ['store', 'food', 'office', 'home', 'other']
-export const SPACE_KIND_LABEL: Record<SpaceKind, string> = {
-  store: 'Loja',
-  food: 'Café, bar ou restaurante',
-  office: 'Escritório',
-  home: 'Apartamento ou casa',
-  other: 'Outro',
+/** Nome do tipo no pedido à pesquisa (inglês; a tela usa lib/spaces/spacesCopy.ts). */
+export const SPACE_KIND_PROMPT: Record<SpaceKind, string> = {
+  store: 'store',
+  food: 'café, bar or restaurant',
+  office: 'office',
+  home: 'apartment or house',
+  other: 'space',
 }
 /** Como o espaço fica "vivo" na cena (gente só onde faz sentido; casa decorada fica sem gente). */
 const KIND_LIFE: Record<SpaceKind, string> = {
@@ -80,7 +81,7 @@ export function buildSpaceResearchMessages(description: string, kind: SpaceKind)
       'lighting, plants and decor, ambience. Each line under 150 characters, English, no numbering, no prices, no ' +
       'addresses, no marketing claims, no sources inline. Never invent a detail you did not find; if you found ' +
       'little, write fewer lines.',
-    input: `Space type: ${SPACE_KIND_LABEL[kind]} (${kind}). Requested: ${description}`,
+    input: `Space type: ${SPACE_KIND_PROMPT[kind]}. Requested: ${description}`,
   }
 }
 
@@ -134,13 +135,22 @@ export function buildSpaceMotionPrompt(kind: SpaceKind): string {
   return `${KIND_MOTION[kind]}. Steady cinematic camera. The architecture stays exactly the same.`
 }
 
-// ── selo e assinatura ───────────────────────────────────────────────────────────────────────────────────────────────
-export const SPACES_DISCLAIMER = 'Ilustração criada com IA · sem vínculo com as marcas exibidas'
-/** Assinatura do fim: sempre "Apresentado por <quem apresenta>" — nunca "decorado/projetado por" terceiros. */
-export function signatureLine(signature: string): string {
+// ── assinatura ──────────────────────────────────────────────────────────────────────────────────────────────────────
+/** Assinatura do fim: sempre "<Apresentado por> <quem apresenta>" na língua (modelo com {name}) — nunca "decorado por". */
+export function signatureLine(signature: string, template = 'Presented by {name}'): string {
   const s = cleanLine(signature, SPACE_SIGNATURE_MAX)
-  return s ? `Apresentado por ${s}` : ''
+  return s ? template.split('{name}').join(s) : ''
 }
+
+/** Rótulos do vídeo (lib/spaces/spacesCopy.ts spacesVideoLabels, na língua de quem gera). */
+export interface SpacesVideoLabels {
+  before: string
+  after: string
+  /** Modelo com {name}. */
+  presentedBy: string
+  seal: string
+}
+export const SPACES_VIDEO_LABELS_EN: SpacesVideoLabels = { before: 'BEFORE', after: 'AFTER', presentedBy: 'Presented by {name}', seal: 'Illustrative image' }
 
 // ── posse dos arquivos (a montagem só aceita mídia da própria conta no NOSSO storage) ─────────────────────────────────
 export function isOwnedSpaceAssetUrl(url: unknown, userId: string, supabaseOrigin: string): boolean {
@@ -181,16 +191,20 @@ const r3 = (n: number) => Math.round(n * 1000) / 1000
  * Source do Creatomate. Só propriedades que o montador do anúncio v2 (lib/ads/adV2Montage.ts) já exercita em produção:
  * shape+path+fill_color, image/video com fit/x/y/width/height, animação 'scale', enter_transition 'fade', text com
  * background_color/padding/border_radius. Para cada par: "Antes" (foto vazia, zoom lento) → o clipe entra em FADE por
- * cima (mesma câmera = a revelação) com "Depois". Fim: cartão com a assinatura. O selo de IA fica por cima de tudo.
+ * cima (mesma câmera = a revelação) com "Depois". Fim: cartão com a assinatura (só se houver). A nota "Imagem
+ * ilustrativa" só entra se a pessoa marcou (showSeal), por cima de tudo, do começo ao fim.
  */
 export function buildSpacesMontageSource(args: {
   pairs: readonly SpacePair[]
   signature: string
   contact: string
   fontFamily: string
+  labels?: SpacesVideoLabels
+  showSeal?: boolean
   width?: number
   height?: number
 }): Record<string, unknown> {
+  const L = args.labels ?? SPACES_VIDEO_LABELS_EN
   const width = args.width ?? 1080
   const height = args.height ?? 1920
   const pairs = args.pairs
@@ -198,7 +212,7 @@ export function buildSpacesMontageSource(args: {
   const isHttps = (u: unknown) => typeof u === 'string' && /^https:\/\/\S+$/i.test(u)
   pairs.forEach((p, i) => { if (!isHttps(p?.beforeUrl) || !isHttps(p?.clipUrl)) throw new Error(`spaces_montage_bad_url:${i}`) })
   const font = cleanLine(args.fontFamily, 60) || 'Montserrat'
-  const signature = signatureLine(args.signature)
+  const signature = signatureLine(args.signature, L.presentedBy)
   const contact = cleanLine(args.contact, SPACE_CONTACT_MAX)
 
   const elements: Record<string, unknown>[] = []
@@ -229,13 +243,16 @@ export function buildSpacesMontageSource(args: {
       source: p.clipUrl.trim(), fit: 'cover', ...full, loop: false, trim_start: 0, volume: '0%',
       enter_transition: { type: 'fade', duration: SPACES_REVEAL_SECONDS },
     })
-    elements.push(label('ANTES', t0 + 0.15, SPACES_BEFORE_SECONDS - 0.15))
-    elements.push(label('DEPOIS', tClip + SPACES_REVEAL_SECONDS, SPACES_CLIP_SECONDS - SPACES_REVEAL_SECONDS))
+    elements.push(label(cleanLine(L.before, 24), t0 + 0.15, SPACES_BEFORE_SECONDS - 0.15))
+    elements.push(label(cleanLine(L.after, 24), tClip + SPACES_REVEAL_SECONDS, SPACES_CLIP_SECONDS - SPACES_REVEAL_SECONDS))
   })
 
-  // Cartão final: fundo escuro + assinatura + contato (sem logo de terceiros).
-  elements.push({ type: 'shape', track: 3, time: shotsSeconds, duration: SPACES_CARD_SECONDS, ...full, path: SPACES_RECT_PATH, fill_color: '#0B0E13', enter_transition: { type: 'fade', duration: 0.5 } })
+  // Cartão final: fundo escuro + assinatura + contato (sem logo de terceiros). Sem assinatura nem contato, o vídeo
+  // termina no último "Depois" — nada de cartão vazio.
   const cardLines = [signature, contact].filter(Boolean)
+  const withCard = cardLines.length > 0
+  const end = withCard ? total : shotsSeconds
+  if (withCard) elements.push({ type: 'shape', track: 3, time: shotsSeconds, duration: SPACES_CARD_SECONDS, ...full, path: SPACES_RECT_PATH, fill_color: '#0B0E13', enter_transition: { type: 'fade', duration: 0.5 } })
   cardLines.forEach((text, i) => {
     elements.push({
       type: 'text', track: 4, time: r3(shotsSeconds + 0.3), duration: r3(SPACES_CARD_SECONDS - 0.3), text,
@@ -244,13 +261,14 @@ export function buildSpacesMontageSource(args: {
       enter_transition: { type: 'fade', duration: 0.3 },
     })
   })
-  // Selo de IA do primeiro ao último quadro (acima de tudo).
-  elements.push({
-    type: 'text', track: 5, time: 0, duration: total, text: SPACES_DISCLAIMER,
+  // Nota "Imagem ilustrativa" do primeiro ao último quadro (acima de tudo) — só quando a pessoa marcou.
+  if (args.showSeal === true) elements.push({
+    type: 'text', track: 5, time: 0, duration: end, text: cleanLine(L.seal, 60),
     x: '50%', y: '95.5%', x_anchor: '50%', y_anchor: '50%', width: '92%', height: '3%',
     font_family: font, font_size: 26, font_weight: '600', fill_color: 'rgba(255,255,255,0.92)',
     background_color: 'rgba(0,0,0,0.45)', background_x_padding: '3%', background_y_padding: '20%', border_radius: 8,
   })
 
-  return { output_format: 'mp4', width, height, frame_rate: 30, duration: total, snapshot_time: SPACES_BEFORE_SECONDS + 2, elements }
+  elements[0] = { ...elements[0], duration: end }
+  return { output_format: 'mp4', width, height, frame_rate: 30, duration: end, snapshot_time: SPACES_BEFORE_SECONDS + 2, elements }
 }

@@ -10,6 +10,8 @@ export const WORKSPACE_NAV = [
   // KINEO-CLIPES-2026-09-29 — Clipes (5–15 s, uma cena, sem narração) ao lado de Imagem; par no MobileNav e no mega-menu.
   { href: '/clips', label: 'Clips', icon: 'clips' },
   { href: '/ads/new', label: 'Ads', icon: 'ads' },
+  // KINEO-ESPACOS-LANCAMENTO-2026-09-30 — Espaços (espaço vazio → pronto, vídeo antes → depois); par no MobileNav e no mega-menu.
+  { href: '/spaces', label: 'Spaces', icon: 'spaces' },
   { href: '/library', label: 'Library', icon: 'videos' },
   { href: '/pricing', label: 'Pricing', icon: 'pricing' },
 ] as const

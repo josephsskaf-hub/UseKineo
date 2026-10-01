@@ -130,7 +130,9 @@
     "New at Kineo": "New at Kineo",
     "One product in, three ads out, ready to A/B test": "One product in, three ads out, ready to A/B test",
     "Write your video in Claude, render it in Kineo Studio": "Write your video in Claude, render it in Kineo Studio",
-    "Pro images from a sentence — or keep a face from your own photo": "Pro images from a sentence — or keep a face from your own photo"
+    "Pro images from a sentence — or keep a face from your own photo": "Pro images from a sentence — or keep a face from your own photo",
+    "Spaces": "Spaces",
+    "Empty space in, finished space out": "Empty space in, finished space out"
   },
   "pt": {
     "Clips": "Clipes",
@@ -262,7 +264,9 @@
     "New at Kineo": "Novidades da Kineo",
     "One product in, three ads out, ready to A/B test": "Um produto entra, três anúncios saem, prontos para teste A/B",
     "Write your video in Claude, render it in Kineo Studio": "Escreva o vídeo no Claude, renderize no Kineo Studio",
-    "Pro images from a sentence — or keep a face from your own photo": "Imagens profissionais a partir de uma frase — ou mantenha um rosto da sua própria foto"
+    "Pro images from a sentence — or keep a face from your own photo": "Imagens profissionais a partir de uma frase — ou mantenha um rosto da sua própria foto",
+    "Spaces": "Espaços",
+    "Empty space in, finished space out": "Espaço vazio entra, espaço pronto sai"
   },
   "es": {
     "Clips": "Clips",
@@ -393,7 +397,9 @@
     "New at Kineo": "Novedades de Kineo",
     "One product in, three ads out, ready to A/B test": "Entra un producto, salen tres anuncios, listos para test A/B",
     "Write your video in Claude, render it in Kineo Studio": "Escribe tu vídeo en Claude y renderízalo en Kineo Studio",
-    "Pro images from a sentence — or keep a face from your own photo": "Imágenes profesionales a partir de una frase — o conserva un rostro de tu propia foto"
+    "Pro images from a sentence — or keep a face from your own photo": "Imágenes profesionales a partir de una frase — o conserva un rostro de tu propia foto",
+    "Spaces": "Espacios",
+    "Empty space in, finished space out": "Entra un espacio vacío, sale terminado"
   },
   "fr": {
     "Clips": "Clips",
@@ -525,7 +531,9 @@
     "New at Kineo": "Nouveautés Kineo",
     "One product in, three ads out, ready to A/B test": "Un produit en entrée, trois pubs en sortie, prêtes pour l’A/B test",
     "Write your video in Claude, render it in Kineo Studio": "Écrivez votre vidéo dans Claude, générez-la dans Kineo Studio",
-    "Pro images from a sentence — or keep a face from your own photo": "Des images pro à partir d'une phrase — ou gardez un visage de votre propre photo"
+    "Pro images from a sentence — or keep a face from your own photo": "Des images pro à partir d'une phrase — ou gardez un visage de votre propre photo",
+    "Spaces": "Espaces",
+    "Empty space in, finished space out": "Un espace vide entre, un espace fini sort"
   },
   "de": {
     "Clips": "Clips",
@@ -657,7 +665,9 @@
     "New at Kineo": "Neu bei Kineo",
     "One product in, three ads out, ready to A/B test": "Ein Produkt rein, drei Anzeigen raus, bereit für A/B-Tests",
     "Write your video in Claude, render it in Kineo Studio": "Schreib dein Video in Claude, rendere es im Kineo Studio",
-    "Pro images from a sentence — or keep a face from your own photo": "Profi-Bilder aus einem Satz — oder behalte ein Gesicht aus deinem eigenen Foto"
+    "Pro images from a sentence — or keep a face from your own photo": "Profi-Bilder aus einem Satz — oder behalte ein Gesicht aus deinem eigenen Foto",
+    "Spaces": "Räume",
+    "Empty space in, finished space out": "Leerer Raum rein, fertiger Raum raus"
   },
   "it": {
     "Clips": "Clip",
@@ -789,7 +799,9 @@
     "New at Kineo": "Novità di Kineo",
     "One product in, three ads out, ready to A/B test": "Entra un prodotto, escono tre annunci, pronti per l’A/B test",
     "Write your video in Claude, render it in Kineo Studio": "Scrivi il video in Claude, generalo in Kineo Studio",
-    "Pro images from a sentence — or keep a face from your own photo": "Immagini professionali da una frase — o mantieni un volto dalla tua foto"
+    "Pro images from a sentence — or keep a face from your own photo": "Immagini professionali da una frase — o mantieni un volto dalla tua foto",
+    "Spaces": "Spazi",
+    "Empty space in, finished space out": "Entra uno spazio vuoto, esce finito"
   },
   "nl": {
     "Clips": "Clips",
@@ -921,7 +933,9 @@
     "New at Kineo": "Nieuw bij Kineo",
     "One product in, three ads out, ready to A/B test": "Eén product erin, drie advertenties eruit, klaar voor A/B-tests",
     "Write your video in Claude, render it in Kineo Studio": "Schrijf je video in Claude, render hem in Kineo Studio",
-    "Pro images from a sentence — or keep a face from your own photo": "Professionele beelden uit één zin — of behoud een gezicht uit je eigen foto"
+    "Pro images from a sentence — or keep a face from your own photo": "Professionele beelden uit één zin — of behoud een gezicht uit je eigen foto",
+    "Spaces": "Ruimtes",
+    "Empty space in, finished space out": "Lege ruimte erin, afgewerkte ruimte eruit"
   },
   "pl": {
     "Clips": "Klipy",
@@ -1053,7 +1067,9 @@
     "New at Kineo": "Nowości w Kineo",
     "One product in, three ads out, ready to A/B test": "Jeden produkt na wejściu, trzy reklamy na wyjściu, gotowe do testów A/B",
     "Write your video in Claude, render it in Kineo Studio": "Napisz film w Claude, wyrenderuj go w Kineo Studio",
-    "Pro images from a sentence — or keep a face from your own photo": "Profesjonalne obrazy z jednego zdania — albo zachowaj twarz z własnego zdjęcia"
+    "Pro images from a sentence — or keep a face from your own photo": "Profesjonalne obrazy z jednego zdania — albo zachowaj twarz z własnego zdjęcia",
+    "Spaces": "Przestrzenie",
+    "Empty space in, finished space out": "Pusta przestrzeń na wejściu, gotowa na wyjściu"
   },
   "tr": {
     "Clips": "Klipler",
@@ -1185,7 +1201,9 @@
     "New at Kineo": "Kineo’da yeni",
     "One product in, three ads out, ready to A/B test": "Bir ürün girer, üç reklam çıkar, A/B testine hazır",
     "Write your video in Claude, render it in Kineo Studio": "Videonu Claude’da yaz, Kineo Studio’da oluştur",
-    "Pro images from a sentence — or keep a face from your own photo": "Tek cümleden profesyonel görseller — ya da kendi fotoğrafındaki yüzü koru"
+    "Pro images from a sentence — or keep a face from your own photo": "Tek cümleden profesyonel görseller — ya da kendi fotoğrafındaki yüzü koru",
+    "Spaces": "Mekânlar",
+    "Empty space in, finished space out": "Boş mekân girer, hazır mekân çıkar"
   },
   "ru": {
     "Clips": "Клипы",
@@ -1317,7 +1335,9 @@
     "New at Kineo": "Новое в Kineo",
     "One product in, three ads out, ready to A/B test": "Один товар на входе, три рекламы на выходе — готово к A/B-тесту",
     "Write your video in Claude, render it in Kineo Studio": "Напишите видео в Claude, соберите его в Kineo Studio",
-    "Pro images from a sentence — or keep a face from your own photo": "Профессиональные изображения из одной фразы — или сохраните лицо со своего фото"
+    "Pro images from a sentence — or keep a face from your own photo": "Профессиональные изображения из одной фразы — или сохраните лицо со своего фото",
+    "Spaces": "Пространства",
+    "Empty space in, finished space out": "Пустое помещение — на входе, готовое — на выходе"
   },
   "uk": {
     "Clips": "Кліпи",
@@ -1449,7 +1469,9 @@
     "New at Kineo": "Нове в Kineo",
     "One product in, three ads out, ready to A/B test": "Один товар на вході, три реклами на виході — готово до A/B-тесту",
     "Write your video in Claude, render it in Kineo Studio": "Напишіть відео в Claude, зберіть його в Kineo Studio",
-    "Pro images from a sentence — or keep a face from your own photo": "Професійні зображення з однієї фрази — або збережіть обличчя з власного фото"
+    "Pro images from a sentence — or keep a face from your own photo": "Професійні зображення з однієї фрази — або збережіть обличчя з власного фото",
+    "Spaces": "Простори",
+    "Empty space in, finished space out": "Порожнє приміщення — на вході, готове — на виході"
   },
   "ar": {
     "Clips": "مقاطع",
@@ -1581,7 +1603,9 @@
     "New at Kineo": "الجديد في Kineo",
     "One product in, three ads out, ready to A/B test": "منتج واحد يدخل، وثلاثة إعلانات تخرج، جاهزة لاختبار A/B",
     "Write your video in Claude, render it in Kineo Studio": "اكتب الفيديو في Claude، وأنتجه في Kineo Studio",
-    "Pro images from a sentence — or keep a face from your own photo": "صور احترافية من جملة واحدة — أو احتفظ بوجه من صورتك الخاصة"
+    "Pro images from a sentence — or keep a face from your own photo": "صور احترافية من جملة واحدة — أو احتفظ بوجه من صورتك الخاصة",
+    "Spaces": "المساحات",
+    "Empty space in, finished space out": "تدخل مساحة فارغة وتخرج جاهزة"
   },
   "ur": {
     "Clips": "کلپس",
@@ -1713,7 +1737,9 @@
     "New at Kineo": "Kineo میں نیا",
     "One product in, three ads out, ready to A/B test": "ایک پروڈکٹ اندر، تین اشتہار باہر، A/B ٹیسٹ کے لیے تیار",
     "Write your video in Claude, render it in Kineo Studio": "ویڈیو Claude میں لکھیں، Kineo Studio میں تیار کریں",
-    "Pro images from a sentence — or keep a face from your own photo": "ایک جملے سے پروفیشنل تصاویر — یا اپنی تصویر سے چہرہ برقرار رکھیں"
+    "Pro images from a sentence — or keep a face from your own photo": "ایک جملے سے پروفیشنل تصاویر — یا اپنی تصویر سے چہرہ برقرار رکھیں",
+    "Spaces": "اسپیسز",
+    "Empty space in, finished space out": "خالی جگہ اندر، تیار جگہ باہر"
   },
   "hi": {
     "Clips": "क्लिप्स",
@@ -1843,7 +1869,9 @@
     "New at Kineo": "Kineo में नया",
     "One product in, three ads out, ready to A/B test": "एक प्रोडक्ट डालिए, तीन विज्ञापन पाइए, A/B टेस्ट के लिए तैयार",
     "Write your video in Claude, render it in Kineo Studio": "वीडियो Claude में लिखिए, Kineo Studio में रेंडर कीजिए",
-    "Pro images from a sentence — or keep a face from your own photo": "एक वाक्य से प्रोफ़ेशनल इमेज — या अपनी फ़ोटो का चेहरा बनाए रखें"
+    "Pro images from a sentence — or keep a face from your own photo": "एक वाक्य से प्रोफ़ेशनल इमेज — या अपनी फ़ोटो का चेहरा बनाए रखें",
+    "Spaces": "स्पेसेज़",
+    "Empty space in, finished space out": "खाली जगह अंदर, तैयार जगह बाहर"
   },
   "id": {
     "Clips": "Klip",
@@ -1975,7 +2003,9 @@
     "New at Kineo": "Baru di Kineo",
     "One product in, three ads out, ready to A/B test": "Satu produk masuk, tiga iklan keluar, siap untuk uji A/B",
     "Write your video in Claude, render it in Kineo Studio": "Tulis videomu di Claude, render di Kineo Studio",
-    "Pro images from a sentence — or keep a face from your own photo": "Gambar profesional dari satu kalimat — atau pertahankan wajah dari foto Anda sendiri"
+    "Pro images from a sentence — or keep a face from your own photo": "Gambar profesional dari satu kalimat — atau pertahankan wajah dari foto Anda sendiri",
+    "Spaces": "Ruang",
+    "Empty space in, finished space out": "Ruang kosong masuk, ruang jadi keluar"
   },
   "vi": {
     "Clips": "Clip",
@@ -2107,6 +2137,8 @@
     "New at Kineo": "Mới tại Kineo",
     "One product in, three ads out, ready to A/B test": "Một sản phẩm vào, ba quảng cáo ra, sẵn sàng thử nghiệm A/B",
     "Write your video in Claude, render it in Kineo Studio": "Viết video trong Claude, dựng video trong Kineo Studio",
-    "Pro images from a sentence — or keep a face from your own photo": "Ảnh chuyên nghiệp từ một câu — hoặc giữ gương mặt từ ảnh của chính bạn"
+    "Pro images from a sentence — or keep a face from your own photo": "Ảnh chuyên nghiệp từ một câu — hoặc giữ gương mặt từ ảnh của chính bạn",
+    "Spaces": "Không gian",
+    "Empty space in, finished space out": "Không gian trống vào, hoàn thiện ra"
   }
 }

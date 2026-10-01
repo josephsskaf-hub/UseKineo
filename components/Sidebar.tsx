@@ -173,6 +173,14 @@ const NAV_ICONS: Record<string, JSX.Element> = {
   ),
   // KINEO-NAV-4-ITENS-2026-09-25 — Studio Ads (megafone) e Scripts (folha com
   // linhas) entram no menu; mesma grade 17px / stroke 1.7 / currentColor.
+  // KINEO-ESPACOS-LANCAMENTO-2026-09-30 — Espaços: fachada com planta (espaço vazio → pronto).
+  spaces: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 21V9l9-6 9 6v12" />
+      <path d="M8 21v-6h8v6M3 21h18" />
+      <path d="M8.5 11h2M13.5 11h2" />
+    </svg>
+  ),
   ads: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M4 9.5h3l7.5-4.5v14L7 14.5H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1Z" />

@@ -12,6 +12,7 @@ import { pollCreatomateRender, submitCreatomateRender } from '@/lib/compose'
 import { persistRenderAssets } from '@/lib/renderAssets'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { isAdsInternalEmail } from '@/lib/ads/access'
+import { spacesVideoLabels } from '@/lib/spaces/spacesCopy'
 import {
   SPACES_PUBLIC,
   SPACE_CONTACT_MAX,
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
     if ('error' in g) return g.error
     const user = g.user
     const origin = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
-    const body = (await req.json().catch(() => null)) as { pairs?: unknown; signature?: unknown; contact?: unknown } | null
+    const body = (await req.json().catch(() => null)) as { pairs?: unknown; signature?: unknown; contact?: unknown; language?: unknown; seal?: unknown } | null
     const raw = Array.isArray(body?.pairs) ? (body!.pairs as { before_url?: unknown; clip_url?: unknown }[]) : []
     if (raw.length === 0 || raw.length > SPACE_MAX_PHOTOS) return fail('bad_pairs', 400)
     const pairs: SpacePair[] = []
@@ -58,7 +59,9 @@ export async function POST(req: NextRequest) {
     const contact = cleanLine(body?.contact, SPACE_CONTACT_MAX)
     let source: Record<string, unknown>
     try {
-      source = buildSpacesMontageSource({ pairs, signature, contact, fontFamily: 'Montserrat' })
+      // Rótulos na língua de quem gera (língua desconhecida = inglês); nota "Imagem ilustrativa" só se a pessoa marcou.
+      const language = typeof body?.language === 'string' ? body.language.slice(0, 5) : 'en'
+      source = buildSpacesMontageSource({ pairs, signature, contact, fontFamily: 'Montserrat', labels: spacesVideoLabels(language), showSeal: body?.seal === true })
     } catch (e) {
       return fail(e instanceof Error ? e.message : 'bad_montage', 400)
     }
@@ -67,7 +70,7 @@ export async function POST(req: NextRequest) {
       name: 'spaces_montage_submitted',
       userId: user.id,
       path: '/api/spaces/montage',
-      metadata: { render_id: renderId, pairs: pairs.length, signature: Boolean(signature), contact: Boolean(contact), seconds: source.duration },
+      metadata: { render_id: renderId, pairs: pairs.length, signature: Boolean(signature), contact: Boolean(contact), seal: body?.seal === true, language: typeof body?.language === 'string' ? body.language.slice(0, 5) : null, seconds: source.duration },
     })
     return NextResponse.json({ render_id: renderId }, { status: 202, headers: { 'Cache-Control': 'no-store' } })
   } catch (e) {
