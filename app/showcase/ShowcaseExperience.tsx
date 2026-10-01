@@ -51,5 +51,11 @@ export default function ShowcaseExperience() {
         <UiLabel>See plans →</UiLabel>
       </Link>
     </section>
+    <div className={styles.createBand}><div>
+      <h2><UiLabel>Start with your own idea.</UiLabel></h2>
+      <p><UiLabel>Review your engine, film length and exact credit cost before generating.</UiLabel></p>
+    </div><Link className={styles.navCta} href={`/studio?utm_source=showcase&utm_medium=product_proof&utm_campaign=${MRR_SHOWCASE_VERSION}`}>
+      <UiLabel>Open Studio →</UiLabel>
+    </Link></div>
   </div>
 }

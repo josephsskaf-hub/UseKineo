@@ -32,12 +32,6 @@ export default function ShowcasePage() {
         <p><UiLabel>Watch previews from films made by Kineo’s founder. Choose a style, then bring your own topic to the Studio.</UiLabel></p>
       </div></div>
       <ShowcaseExperience />
-      <div className={styles.createBand}><div>
-        <h2><UiLabel>Start with your own idea.</UiLabel></h2>
-        <p><UiLabel>Review your engine, film length and exact credit cost before generating.</UiLabel></p>
-      </div><Link className={styles.navCta} href={`/studio?utm_source=showcase&utm_medium=product_proof&utm_campaign=${MRR_SHOWCASE_VERSION}`}>
-        <UiLabel>Open Studio →</UiLabel>
-      </Link></div>
     </section>
   </main>
 }
