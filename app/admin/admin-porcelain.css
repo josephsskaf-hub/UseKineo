@@ -1,15 +1,15 @@
-/* Approved 30/09: neutral-gray administrative palette, independent of the public theme.
+/* Approved 30/09: original dark administrative palette with the refined navigation.
    No hidden financial rows, no metric rewrites, no changes to action permissions. */
 html .kineo-admin-theme.admin-porcelain {
-  color-scheme: light;
-  --bg:#E2E3E5; --sidebar-bg:#E7E8EA; --card:#F0F0F1; --card2:#E4E5E7;
-  --text:#25282D; --text2:#3B4046; --muted:#555D65; --muted2:#59616A;
-  --border:#CCCFD3; --border2:#A7ADB5; --indigo:#285B9C; --indigo-light:#285B9C;
-  --purple:#285B9C; --purple-light:#285B9C; --accent:#285B9C; --accent-soft:#E0E6EE;
-  --on-accent:#fff; --surface:var(--card); --surface-soft:var(--card2);
-  --danger:#B42318; --warning:#8A4B00; --success:#0F7A55;
-  --modal-overlay:rgba(14,17,22,.32); --modal-shadow:0 24px 80px #0E111626;
-  --sh-card:0 1px 3px #25282D0A;
+  color-scheme: dark;
+  --bg:#07090D; --sidebar-bg:#0B0E13; --card:#10141B; --card2:#161B24;
+  --text:#F2F4F7; --text2:#C9CFD8; --muted:#9AA3B2; --muted2:#8A93A3;
+  --border:#1F2530; --border2:#2E3644; --indigo:#4D8DFF; --indigo-light:#8DB4FF;
+  --purple:#4D8DFF; --purple-light:#8DB4FF; --accent:#8DB4FF; --accent-soft:#12203A;
+  --on-accent:#04122E; --surface:var(--card); --surface-soft:var(--card2);
+  --danger:#FF8787; --warning:#FFBF58; --success:#5FD4A4;
+  --modal-overlay:rgba(3,5,9,.74); --modal-shadow:0 24px 80px #000a;
+  --sh-card:inset 0 1px 0 #ffffff08,0 12px 36px #00000040;
   display:grid; grid-template-columns:208px minmax(0,1fr);
   background:var(--bg); color:var(--text); min-height:100vh; isolation:isolate;
 }
@@ -34,7 +34,7 @@ html .kineo-admin-theme.admin-porcelain {
 .adm-content h1 { color:var(--text)!important; font-size:clamp(25px,2.2vw,32px)!important; line-height:1.2!important; letter-spacing:-.035em!important; font-weight:700!important; background:none!important; -webkit-text-fill-color:currentColor!important }
 .adm-content h2 { letter-spacing:-.015em; line-height:1.4 }
 .adm-content p { line-height:1.6 }
-.adm-content :is(input,select,textarea) { max-width:100%; color-scheme:light; border-radius:9px }
+.adm-content :is(input,select,textarea) { max-width:100%; color-scheme:dark; border-radius:9px }
 .adm-content :is(button,input,select) { min-height:36px }
 .adm-content :is(button,a,input,select,textarea,summary):focus-visible,
 .adm-sidebar a:focus-visible { outline:2px solid var(--accent)!important; outline-offset:3px }
@@ -46,7 +46,7 @@ html .kineo-admin-theme.admin-porcelain {
 .adm-content .adm-legacy-nav { display:none }
 .adm-shortcuts>summary { padding:16px; border:1px solid var(--border); background:var(--card); border-radius:12px; font-size:13px; cursor:pointer; margin-bottom:16px }
 .adm-content .adm-card { border-color:var(--border)!important; box-shadow:var(--sh-card) }
-.adm-content .adm-primary-card { background:var(--accent-soft)!important; border-color:#BBC2CA!important }
+.adm-content .adm-primary-card { background:var(--accent-soft)!important; border-color:var(--border2)!important }
 .adm-content .adm-primary-card [data-adm-value] { color:var(--accent)!important }
 .adm-content .adm-card [data-adm-value] { color:var(--text)!important }
 .adm-skip { position:absolute; left:12px; top:-100px; z-index:100; padding:12px; background:var(--card); color:var(--accent); border:2px solid var(--accent) }

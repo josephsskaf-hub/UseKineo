@@ -679,3 +679,6 @@ Slug do X confirmado: utm_source=x.
 - Direita: o filme da casa do motor no tamanho dele (9:16), centralizado, cabendo na tela (até 760 px de altura), selo "Made with <motor>" embaixo à esquerda (não cobre a marca usekineo.com/free do topo do filme).
 - Subtítulo novo "Pick an engine, write your idea, then generate." em 13 línguas; lib/promptGuard.ts passa a reconhecer a frase nova como tela colada (a velha continua na lista).
 - Guardião test-studio-heroi ganhou o motor-antes-da-ideia e o fim das laterais (11 ok, 7 mutantes).
+## 2026-09-30 — ADM: cor escura original com os menus novos
+
+**DECISÃO APROVADA (fundador, Board):** após revisar `ADM-COR-ORIGINAL-MENUS-NOVOS.html`, Joseph confirmou: "deixa escuro pode dar merge". Esta decisão substitui somente a paleta branca/cinza das iterações anteriores do ADM: fundo escuro original, cartões grafite, texto claro e destaque azul. Preservar o refinamento dos menus e do layout, os controles, cálculos e permissões. Não mudar a aparência do site público nem do Studio.

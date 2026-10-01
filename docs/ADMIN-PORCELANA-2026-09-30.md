@@ -30,4 +30,14 @@
 
 **BASE CONFIRMADA (Git, 30/09/2026):** `origin/main` e `entrega-atual` em `d515109a4f8f76f0ed18813f8544df388733a83d`, reconferidos antes de integrar. Implementação isolada em `codex/admin-porcelana-20260930`; checkout principal sujo preservado.
 
-**QUESTÃO PENDENTE:** validação em produção após o processo normal de publicação. Esta entrega não executa build, deploy, consultas de produção, env, pagamentos ou campanhas. A fila Git local não comprova publicação. Banners do layout pai autenticado permanecem com as regras existentes; nenhum acesso administrativo é concedido pelo shell visual.
+**QUESTÃO PENDENTE (registro da primeira entrega):** validação em produção após o processo normal de publicação. A fila Git local não comprova publicação. Banners do layout pai autenticado permanecem com as regras existentes; nenhum acesso administrativo é concedido pelo shell visual.
+
+### Iteração final aprovada: escuro original, menus novos (30/09, noite BRT)
+
+**DECISÃO APROVADA:** `docs/DECISIONS.md`, entrada "ADM: cor escura original com os menus novos". A paleta escura substitui as propostas branca e cinza; o layout aprovado continua. **FATO CONFIRMADO / IMPLEMENTADO:** `app/admin/admin-porcelain.css:3` restaura fundo `#07090D`, navegação `#0B0E13`, cartões `#10141B` e texto `#F2F4F7`, com escopo exclusivo do ADM. O nome interno da classe CSS foi preservado para não alterar o shell.
+
+**TESTADO LOCALMENTE (30/09 BRT; prova gerada 01/10/2026 01:21 UTC):** comparação literal via AST de todas as páginas TSX administrativas e `LiveNowPanel` contra a base Git `3b055746`: somente cores de apresentação aprovadas mudaram. APIs, cálculos, handlers, texto e controles não foram modificados. TypeScript `--noEmit --incremental false` passou; guardiões Porcelana, compartilhamento (70), cinco melhorias (650), Afiliados (16), MRR (54) e fonte única (28) passaram. Os números são verificações offline, não métricas de negócio.
+
+**TESTADO LOCALMENTE:** JSX real de Visão geral, Pessoas e Afiliados em 1440/390 px, com rede bloqueada e dados fictícios zerados: fundos, navegação e destaque coincidem com o preview aprovado; sem overflow horizontal de documento. Quatro pares de texto/fundo passam contraste 4,5:1. Revisão React: mudança apenas de apresentação, sem hooks, fetching ou limites cliente/servidor novos.
+
+**ARTEFATO LOCAL:** `ADM-ESCURO-IMPLEMENTADO-ANTES-DEPOIS.html`, capturas `ADM-ESCURO-REAL-*` e `dark-implementation-verification.json` na pasta privada `admin-refine-20260930` desta conversa. As propostas e provas anteriores foram preservadas. **QUESTÃO PENDENTE:** confirmar o deploy do commit escuro após a publicação pela fila revisada; captura offline não comprova funcionamento autenticado em produção.

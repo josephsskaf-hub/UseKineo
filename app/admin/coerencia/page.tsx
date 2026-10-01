@@ -19,9 +19,9 @@ const FOUNDER = ['josephsskaf@gmail.com']
 
 function corDaNota(score: number | null | undefined): string {
   if (score == null) return '#6b7280'
-  if (score >= 75) return '#0F7A55'
-  if (score >= 50) return '#8A4B00'
-  return '#B42318'
+  if (score >= 75) return '#5FD4A4'
+  if (score >= 50) return '#FFBF58'
+  return '#FF8787'
 }
 function fmt(iso: string): string {
   const d = new Date(iso)
@@ -33,74 +33,74 @@ const primeiraLinha = (t: string, max = 150) => {
   return s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s
 }
 
-const chip: React.CSSProperties = { display: 'inline-block', padding: '4px 10px', borderRadius: 999, fontSize: 11.5, fontWeight: 800, textDecoration: 'none', border: '1px solid #E4E4E0', color: '#2A2F37' }
-const chipOn: React.CSSProperties = { ...chip, background: '#2A2F37', color: '#F1F1EE', borderColor: '#2A2F37' }
+const chip: React.CSSProperties = { display: 'inline-block', padding: '4px 10px', borderRadius: 999, fontSize: 11.5, fontWeight: 800, textDecoration: 'none', border: '1px solid #1F2530', color: '#C9CFD8' }
+const chipOn: React.CSSProperties = { ...chip, background: '#C9CFD8', color: '#161B24', borderColor: '#C9CFD8' }
 
 function Linha({ r }: { r: FastCoherenceRow }) {
   const c = r.coherence
   const ai = r.engine !== 'fast'
   return (
-    <div data-kineo="linha-coerencia" style={{ background: 'var(--card)', border: '1px solid #F1F1EE', borderRadius: 12, padding: '12px 14px', display: 'grid', gridTemplateColumns: '64px minmax(0, 1fr) auto', gap: 14, alignItems: 'start' }}>
+    <div data-kineo="linha-coerencia" style={{ background: 'var(--card)', border: '1px solid #161B24', borderRadius: 12, padding: '12px 14px', display: 'grid', gridTemplateColumns: '64px minmax(0, 1fr) auto', gap: 14, alignItems: 'start' }}>
       {/* 1 · a nota */}
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: 30, fontWeight: 900, color: corDaNota(c?.score), lineHeight: 1 }}>{c ? c.score : '—'}</div>
-        <div style={{ fontSize: 9.5, color: '#5A5F67', marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.4 }}>{c ? (c.verdict === 'coherent' ? 'coerente' : c.verdict === 'partial' ? 'parcial' : 'fora') : 'sem nota'}</div>
+        <div style={{ fontSize: 9.5, color: '#9AA3B2', marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.4 }}>{c ? (c.verdict === 'coherent' ? 'coerente' : c.verdict === 'partial' ? 'parcial' : 'fora') : 'sem nota'}</div>
         {r.feedback && <div style={{ fontSize: 18, marginTop: 6 }} title={`a pessoa disse ${r.feedback.verdict === 'up' ? 'sim' : 'não'} em ${fmt(r.feedback.at)}`}>{r.feedback.verdict === 'up' ? '👍' : '👎'}</div>}
       </div>
       {/* 2 · motor · quem · o que escreveu · link */}
       <div style={{ minWidth: 0 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'baseline', fontSize: 11.5, color: '#5A5F67' }}>
-          <span style={{ color: '#6941C6', fontWeight: 900, textTransform: 'uppercase', fontSize: 11 }}>{motor(r.engine)}</span>
-          <span style={{ color: '#2A2F37', fontWeight: 700 }}>{r.email ?? r.user_id.slice(0, 8)}</span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'baseline', fontSize: 11.5, color: '#9AA3B2' }}>
+          <span style={{ color: '#C4B5FD', fontWeight: 900, textTransform: 'uppercase', fontSize: 11 }}>{motor(r.engine)}</span>
+          <span style={{ color: '#C9CFD8', fontWeight: 700 }}>{r.email ?? r.user_id.slice(0, 8)}</span>
           <span>{fmt(r.created_at)}</span>
           {r.seconds != null && <span>{r.seconds}s</span>}
           {r.credits != null && <span>{r.credits} cr</span>}
         </div>
-        <div style={{ color: '#2A2F37', fontSize: 13.5, lineHeight: 1.4, marginTop: 6 }} title={r.topic}>
-          <span style={{ color: '#5A5F67', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', marginRight: 6 }}>{c?.request_pt ? 'pediu' : 'escreveu'}</span>
-          {c?.request_pt || primeiraLinha(r.topic) || <em style={{ color: '#B42318' }}>prompt vazio no banco</em>}
+        <div style={{ color: '#C9CFD8', fontSize: 13.5, lineHeight: 1.4, marginTop: 6 }} title={r.topic}>
+          <span style={{ color: '#9AA3B2', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', marginRight: 6 }}>{c?.request_pt ? 'pediu' : 'escreveu'}</span>
+          {c?.request_pt || primeiraLinha(r.topic) || <em style={{ color: '#FF8787' }}>prompt vazio no banco</em>}
           {c?.request_pt && <span style={{ color: '#6b7280', fontSize: 11.5, marginLeft: 8 }}>— original: {primeiraLinha(r.topic, 90)}</span>}
         </div>
         <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', fontSize: 12 }}>
           {r.url ? (
-            <a href={r.url} target="_blank" rel="noreferrer" data-kineo="abrir-filme" style={{ color: '#0A5CFF', fontWeight: 800 }}>▶ abrir o filme</a>
+            <a href={r.url} target="_blank" rel="noreferrer" data-kineo="abrir-filme" style={{ color: '#8DB4FF', fontWeight: 800 }}>▶ abrir o filme</a>
           ) : (
             <span style={{ color: '#6b7280' }}>sem arquivo</span>
           )}
-          {c && c.summary && <span style={{ color: '#5A5F67' }}>{c.summary}</span>}
+          {c && c.summary && <span style={{ color: '#9AA3B2' }}>{c.summary}</span>}
         </div>
         {r.feedback?.comment && (
-          <div style={{ marginTop: 6, color: '#fde68a', fontSize: 12, borderLeft: '2px solid #8A4B00', paddingLeft: 8 }}>a pessoa escreveu: “{r.feedback.comment}”</div>
+          <div style={{ marginTop: 6, color: '#fde68a', fontSize: 12, borderLeft: '2px solid #FFBF58', paddingLeft: 8 }}>a pessoa escreveu: “{r.feedback.comment}”</div>
         )}
         <details style={{ marginTop: 8 }}>
           <summary style={{ color: '#6b7280', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>detalhes{c && c.problems.length ? ` · ${c.problems.length} problema${c.problems.length > 1 ? 's' : ''}` : ''}{c ? ` · texto ${c.prompt_vs_narration} · visual ${c.narration_vs_visuals ?? '—'}` : ''}</summary>
           <div style={{ marginTop: 8, display: 'grid', gap: 8 }}>
             {c && c.problems.length > 0 && (
-              <ul style={{ margin: 0, paddingLeft: 18, color: '#B42318', fontSize: 12, lineHeight: 1.45 }}>
+              <ul style={{ margin: 0, paddingLeft: 18, color: '#FF8787', fontSize: 12, lineHeight: 1.45 }}>
                 {c.problems.map((p, i) => (
                   <li key={i}>{p}{c.worst_scene && i === 0 ? ` (pior cena: ${c.worst_scene})` : ''}</li>
                 ))}
               </ul>
             )}
             <details>
-              <summary style={{ color: '#0A5CFF', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>O que escreveu, inteiro ({r.topic.length} caracteres{r.topic_truncated ? ' · cortado pelo banco em 500/1.000 — filme anterior ao rastro completo' : ''})</summary>
-              <pre style={{ whiteSpace: 'pre-wrap', color: '#2A2F37', fontSize: 11.5, lineHeight: 1.45, margin: '4px 0 0', fontFamily: 'inherit', maxHeight: 240, overflow: 'auto' }}>{r.topic}</pre>
+              <summary style={{ color: '#8DB4FF', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>O que escreveu, inteiro ({r.topic.length} caracteres{r.topic_truncated ? ' · cortado pelo banco em 500/1.000 — filme anterior ao rastro completo' : ''})</summary>
+              <pre style={{ whiteSpace: 'pre-wrap', color: '#C9CFD8', fontSize: 11.5, lineHeight: 1.45, margin: '4px 0 0', fontFamily: 'inherit', maxHeight: 240, overflow: 'auto' }}>{r.topic}</pre>
             </details>
             <details>
-              <summary style={{ color: '#0A5CFF', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>O que foi narrado{r.narration ? '' : ' (sem registro)'}</summary>
-              <pre style={{ whiteSpace: 'pre-wrap', color: '#2A2F37', fontSize: 11.5, lineHeight: 1.45, margin: '4px 0 0', fontFamily: 'inherit', maxHeight: 240, overflow: 'auto' }}>{r.narration ?? '—'}</pre>
+              <summary style={{ color: '#8DB4FF', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>O que foi narrado{r.narration ? '' : ' (sem registro)'}</summary>
+              <pre style={{ whiteSpace: 'pre-wrap', color: '#C9CFD8', fontSize: 11.5, lineHeight: 1.45, margin: '4px 0 0', fontFamily: 'inherit', maxHeight: 240, overflow: 'auto' }}>{r.narration ?? '—'}</pre>
             </details>
             {r.scenes && r.scenes.length > 0 && (
               <details>
-                <summary style={{ color: '#0A5CFF', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>Cena a cena ({r.scenes.length}){ai ? ' — prompt exato enviado ao gerador' : ' — fala · busca · origem · tags'}</summary>
+                <summary style={{ color: '#8DB4FF', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>Cena a cena ({r.scenes.length}){ai ? ' — prompt exato enviado ao gerador' : ' — fala · busca · origem · tags'}</summary>
                 <table style={{ marginTop: 6, borderCollapse: 'collapse', fontSize: 11, width: '100%' }}>
                   <tbody>
                     {r.scenes.map((s) => (
-                      <tr key={s.scene} style={{ borderTop: '1px solid #F1F1EE', background: c?.worst_scene === s.scene ? 'rgba(248,113,113,.08)' : undefined }}>
-                        <td style={{ padding: '4px 6px', color: '#5A5F67', verticalAlign: 'top', whiteSpace: 'nowrap' }}>{s.scene}</td>
-                        {!ai && <td style={{ padding: '4px 6px', color: '#2A2F37', verticalAlign: 'top' }}>{s.voiceover}</td>}
-                        <td style={{ padding: '4px 6px', color: '#6941C6', verticalAlign: 'top', whiteSpace: ai ? 'normal' : 'nowrap' }}>{s.query ?? '—'}</td>
-                        <td style={{ padding: '4px 6px', color: s.sources.includes('fallbackA') || s.sources.includes('rejected') ? '#B42318' : s.sources.includes('aiStill') || s.sources.includes('aiVideo') ? '#0F7A55' : '#2A2F37', verticalAlign: 'top', whiteSpace: 'nowrap' }}>{s.sources.join('+') || 'none'}</td>
+                      <tr key={s.scene} style={{ borderTop: '1px solid #161B24', background: c?.worst_scene === s.scene ? 'rgba(248,113,113,.08)' : undefined }}>
+                        <td style={{ padding: '4px 6px', color: '#9AA3B2', verticalAlign: 'top', whiteSpace: 'nowrap' }}>{s.scene}</td>
+                        {!ai && <td style={{ padding: '4px 6px', color: '#C9CFD8', verticalAlign: 'top' }}>{s.voiceover}</td>}
+                        <td style={{ padding: '4px 6px', color: '#C4B5FD', verticalAlign: 'top', whiteSpace: ai ? 'normal' : 'nowrap' }}>{s.query ?? '—'}</td>
+                        <td style={{ padding: '4px 6px', color: s.sources.includes('fallbackA') || s.sources.includes('rejected') ? '#FF8787' : s.sources.includes('aiStill') || s.sources.includes('aiVideo') ? '#5FD4A4' : '#C9CFD8', verticalAlign: 'top', whiteSpace: 'nowrap' }}>{s.sources.join('+') || 'none'}</td>
                         {!ai && <td style={{ padding: '4px 6px', color: '#6b7280', verticalAlign: 'top' }}>{s.tags.slice(0, 2).join(' | ').slice(0, 140)}</td>}
                       </tr>
                     ))}
@@ -127,10 +127,10 @@ export default async function AdminCoerenciaPage({ searchParams }: { searchParam
   } = await supabase.auth.getUser()
   const email = user?.email?.toLowerCase() ?? ''
   if (!user || !isAdminEmail(email)) {
-    return <div style={{ padding: 40, color: '#2A2F37', fontFamily: 'system-ui' }}>403</div>
+    return <div style={{ padding: 40, color: '#C9CFD8', fontFamily: 'system-ui' }}>403</div>
   }
   const admin = serviceClient()
-  if (!admin) return <div style={{ padding: 40, color: '#2A2F37' }}>service unavailable</div>
+  if (!admin) return <div style={{ padding: 40, color: '#C9CFD8' }}>service unavailable</div>
 
   const one = (k: string) => (Array.isArray(searchParams?.[k]) ? (searchParams?.[k] as string[])[0] : (searchParams?.[k] as string | undefined))
   const hoursRaw = Number(one('hours'))
@@ -168,13 +168,13 @@ export default async function AdminCoerenciaPage({ searchParams }: { searchParam
   }
 
   return (
-    <main style={{ background: '#F7F7F5', minHeight: '100vh', color: '#2A2F37', fontFamily: 'system-ui, -apple-system, sans-serif', padding: '22px 18px 60px' }}>
+    <main style={{ background: '#07090D', minHeight: '100vh', color: '#C9CFD8', fontFamily: 'system-ui, -apple-system, sans-serif', padding: '22px 18px 60px' }}>
       <div style={{ maxWidth: 1040, margin: '0 auto' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'baseline', marginBottom: 12 }}>
           <h1 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>Coerência</h1>
-          <span style={{ color: '#5A5F67', fontSize: 12 }}>nota do juiz (0-100) = o que a pessoa escreveu × o que foi narrado × o que cada cena mostrou · 👍👎 = o que a pessoa disse</span>
+          <span style={{ color: '#9AA3B2', fontSize: 12 }}>nota do juiz (0-100) = o que a pessoa escreveu × o que foi narrado × o que cada cena mostrou · 👍👎 = o que a pessoa disse</span>
           <span style={{ marginLeft: 'auto', fontSize: 12 }}>
-            <Link href="/admin" style={{ color: '#0A5CFF' }}>CEO</Link> · <Link href="/admin/people" style={{ color: '#0A5CFF' }}>People</Link>
+            <Link href="/admin" style={{ color: '#8DB4FF' }}>CEO</Link> · <Link href="/admin/people" style={{ color: '#8DB4FF' }}>People</Link>
           </span>
         </div>
 
@@ -199,22 +199,22 @@ export default async function AdminCoerenciaPage({ searchParams }: { searchParam
         {/* placar por motor */}
         <table style={{ borderCollapse: 'collapse', fontSize: 12, marginBottom: 16 }} data-kineo="placar-por-motor">
           <thead>
-            <tr style={{ color: '#5A5F67', textAlign: 'left' }}>
+            <tr style={{ color: '#9AA3B2', textAlign: 'left' }}>
               <th style={{ padding: '4px 12px 4px 0', fontWeight: 700 }}>motor</th><th style={{ padding: '4px 12px', fontWeight: 700 }}>filmes</th><th style={{ padding: '4px 12px', fontWeight: 700 }}>média</th><th style={{ padding: '4px 12px', fontWeight: 700 }}>fora do pedido</th><th style={{ padding: '4px 12px', fontWeight: 700 }}>👍</th><th style={{ padding: '4px 12px', fontWeight: 700 }}>👎</th>
             </tr>
           </thead>
           <tbody>
             {Array.from(porMotor.entries()).sort((a, b) => b[1].n - a[1].n).map(([eng, m]) => (
-              <tr key={eng} style={{ borderTop: '1px solid #F1F1EE' }}>
-                <td style={{ padding: '5px 12px 5px 0', fontWeight: 800, color: '#2A2F37' }}>{motor(eng)}</td>
+              <tr key={eng} style={{ borderTop: '1px solid #161B24' }}>
+                <td style={{ padding: '5px 12px 5px 0', fontWeight: 800, color: '#C9CFD8' }}>{motor(eng)}</td>
                 <td style={{ padding: '5px 12px' }}>{m.n}</td>
                 <td style={{ padding: '5px 12px', fontWeight: 900, color: corDaNota(m.comNota ? Math.round(m.soma / m.comNota) : null) }}>{m.comNota ? Math.round(m.soma / m.comNota) : '—'}{m.comNota < m.n ? <span style={{ color: '#6b7280', fontWeight: 400 }}> ({m.comNota}/{m.n})</span> : null}</td>
-                <td style={{ padding: '5px 12px', color: m.off ? '#B42318' : '#5A5F67' }}>{m.off}</td>
+                <td style={{ padding: '5px 12px', color: m.off ? '#FF8787' : '#9AA3B2' }}>{m.off}</td>
                 <td style={{ padding: '5px 12px' }}>{m.up}</td>
                 <td style={{ padding: '5px 12px' }}>{m.down}</td>
               </tr>
             ))}
-            <tr style={{ borderTop: '1px solid #E4E4E0', color: '#5A5F67' }}>
+            <tr style={{ borderTop: '1px solid #1F2530', color: '#9AA3B2' }}>
               <td style={{ padding: '5px 12px 5px 0' }}>todos</td>
               <td style={{ padding: '5px 12px' }}>{todas.length}</td>
               <td style={{ padding: '5px 12px', fontWeight: 900, color: corDaNota(media) }}>{media ?? '—'}</td>
@@ -224,13 +224,13 @@ export default async function AdminCoerenciaPage({ searchParams }: { searchParam
             </tr>
           </tbody>
         </table>
-        {semNota > 0 && <div style={{ color: '#5A5F67', fontSize: 12, marginBottom: 10 }}>{semNota} filme{semNota > 1 ? 's' : ''} ainda sem nota — recarregue a página (o juiz avalia 6 por vez).</div>}
+        {semNota > 0 && <div style={{ color: '#9AA3B2', fontSize: 12, marginBottom: 10 }}>{semNota} filme{semNota > 1 ? 's' : ''} ainda sem nota — recarregue a página (o juiz avalia 6 por vez).</div>}
 
         <div style={{ display: 'grid', gap: 8 }}>
           {rows.map((r) => (
             <Linha key={r.video_id} r={r} />
           ))}
-          {rows.length === 0 && <div style={{ color: '#5A5F67' }}>Nenhum filme com esse filtro.</div>}
+          {rows.length === 0 && <div style={{ color: '#9AA3B2' }}>Nenhum filme com esse filtro.</div>}
         </div>
       </div>
     </main>

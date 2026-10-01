@@ -33,7 +33,7 @@ function mailtoFor(v: LiveVisitor): string {
 }
 
 function heatColor(heat: number): string {
-  return heat === 3 ? '#B42318' : heat === 2 ? '#8A4B00' : '#5A5F67'
+  return heat === 3 ? '#FF8787' : heat === 2 ? '#FFBF58' : '#9AA3B2'
 }
 
 export default function LiveNowPanel() {
@@ -58,7 +58,7 @@ export default function LiveNowPanel() {
   return (
     <section className="mb-6">
       <div className="flex items-center gap-2 mb-3">
-        <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: '#0F7A55' }} />
+        <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: '#5FD4A4' }} />
         <h2 className="font-black tracking-tight" style={{ fontSize: '0.88rem', color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
           Live · who&apos;s on the site
         </h2>
@@ -69,10 +69,10 @@ export default function LiveNowPanel() {
         {[
           ['Visitors 7d', data?.visitors_7d, 'var(--text)'],
           ['Visitors 24h', data?.visitors_24h, 'var(--text)'],
-          ['Signups 24h', data?.signups_24h, '#0A5CFF'],
-          ['Videos 24h', data?.videos_24h, '#6941C6'],
-          ['Checkouts 24h', data?.checkouts_24h, '#8A4B00'],
-          ['🟢 Online now', data?.online_now, '#0F7A55'],
+          ['Signups 24h', data?.signups_24h, '#8DB4FF'],
+          ['Videos 24h', data?.videos_24h, '#C4B5FD'],
+          ['Checkouts 24h', data?.checkouts_24h, '#FFBF58'],
+          ['🟢 Online now', data?.online_now, '#5FD4A4'],
         ].map(([label, value, color]) => (
           <div key={label as string} className="px-3 py-2.5" style={CARD}>
             <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--muted2)' }}>{label}</div>
@@ -85,7 +85,7 @@ export default function LiveNowPanel() {
 
       {/* Lista de quem está online: mais quente primeiro */}
       <div className="overflow-x-auto" style={{ ...CARD, padding: 0 }}>
-        {err && <div className="px-4 py-6 text-center text-xs" style={{ color: '#B42318' }}>Could not load live data.</div>}
+        {err && <div className="px-4 py-6 text-center text-xs" style={{ color: '#FF8787' }}>Could not load live data.</div>}
         {!err && !data && <div className="px-4 py-6 text-center text-xs" style={{ color: 'var(--muted2)' }}>Loading…</div>}
         {data && data.online.length === 0 && (
           <div className="px-4 py-6 text-center text-xs" style={{ color: 'var(--muted2)' }}>
@@ -95,7 +95,7 @@ export default function LiveNowPanel() {
         {data && data.online.length > 0 && (
           <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: 'rgba(14,17,22,0.04)' }}>
+              <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
                 {['Who', 'Doing now', 'Saldo e no que gastou', 'Vídeos (total)', 'Age', 'From', 'Seen'].map((h) => (
                   <th key={h} className="font-black uppercase tracking-widest" style={{ fontSize: '0.58rem', color: 'var(--muted2)', textAlign: 'left', padding: '8px 12px', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
@@ -108,13 +108,13 @@ export default function LiveNowPanel() {
                     <a
                       href={mailtoFor(v)}
                       title="Email this person now"
-                      style={{ color: '#0A5CFF', textDecoration: 'none', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.8rem' }}
+                      style={{ color: '#8DB4FF', textDecoration: 'none', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.8rem' }}
                     >
                       {v.email}
                     </a>
                     {v.name && <span className="ml-2" style={{ color: 'var(--muted2)', fontSize: '0.75rem' }}>{v.name}</span>}
                     {v.is_paid && (
-                      <span className="ml-2 rounded px-1.5 py-0.5 text-[9px] font-black uppercase" style={{ background: 'rgba(52,211,153,.12)', color: '#0F7A55', border: '1px solid rgba(52,211,153,.35)' }}>sub</span>
+                      <span className="ml-2 rounded px-1.5 py-0.5 text-[9px] font-black uppercase" style={{ background: 'rgba(52,211,153,.12)', color: '#5FD4A4', border: '1px solid rgba(52,211,153,.35)' }}>sub</span>
                     )}
                     {v.is_trial && (
                       <span className="ml-2 rounded px-1.5 py-0.5 text-[9px] font-black uppercase" title="trial de $1 — vira assinante no dia 8" style={{ background: 'rgba(41,151,255,.12)', color: '#7cc0ff', border: '1px solid rgba(41,151,255,.35)' }}>trial $1</span>
@@ -128,19 +128,19 @@ export default function LiveNowPanel() {
                         so existe quando ela TERMINA. Entre os dois, isto. */}
                     {v.rendering && (
                       <span className="ml-2 rounded px-1.5 py-0.5 text-[9px] font-black uppercase"
-                        style={{ background: 'rgba(251,191,36,.14)', color: '#8A4B00', border: '1px solid rgba(251,191,36,.35)' }}>
+                        style={{ background: 'rgba(251,191,36,.14)', color: '#FFBF58', border: '1px solid rgba(251,191,36,.35)' }}>
                         rendering
                       </span>
                     )}
                     {v.failed > 0 && (
                       <span className="ml-2 rounded px-1.5 py-0.5 text-[9px] font-black uppercase"
                         title="Geracoes que falharam — dor, nao uso"
-                        style={{ background: 'rgba(248,113,113,.12)', color: '#B42318', border: '1px solid rgba(248,113,113,.35)' }}>
+                        style={{ background: 'rgba(248,113,113,.12)', color: '#FF8787', border: '1px solid rgba(248,113,113,.35)' }}>
                         {v.failed} failed
                       </span>
                     )}
                   </td>
-                  <td style={{ padding: '9px 12px', color: (v.credits ?? 0) <= 5 ? '#9A3412' : 'var(--text)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                  <td style={{ padding: '9px 12px', color: (v.credits ?? 0) <= 5 ? '#FB923C' : 'var(--text)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                     <span style={{ fontWeight: 700 }}>{v.credits ?? '—'}{v.credits !== null && v.credits !== undefined ? ' cr' : ''}</span>
                     {/* KINEO-LEDGER-2026-08-25 (fundador: "não entendo como o
                         cara pode ter 46") — a equação inteira do saldo, de
@@ -154,7 +154,7 @@ export default function LiveNowPanel() {
                     {v.ledgerGap !== 0 && (
                       <span
                         title="saldo real menos o que as fontes explicam — furo de dados a investigar (ex.: créditos de plano mensal ainda não entram no razão)"
-                        style={{ color: '#B42318', fontSize: '0.7rem', marginLeft: 6, fontWeight: 800 }}>
+                        style={{ color: '#FF8787', fontSize: '0.7rem', marginLeft: 6, fontWeight: 800 }}>
                         ⚠ {v.ledgerGap > 0 ? '+' : ''}{v.ledgerGap} sem origem
                       </span>
                     )}
@@ -171,7 +171,7 @@ export default function LiveNowPanel() {
                         foram hoje. Era a pergunta que o fundador não conseguia
                         responder olhando a tela. */}
                     {v.spentOn && (
-                      <div style={{ color: '#6941C6', fontSize: '0.68rem', marginTop: 2 }}>{v.spentOn}</div>
+                      <div style={{ color: '#C4B5FD', fontSize: '0.68rem', marginTop: 2 }}>{v.spentOn}</div>
                     )}
                   </td>
                   <td style={{ padding: '9px 12px', color: 'var(--text)', fontSize: '0.8rem' }}>{v.videos}</td>

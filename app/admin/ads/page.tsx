@@ -32,13 +32,13 @@ export const metadata = { title: 'Admin · Ads', robots: { index: false, follow:
 
 const LIMIT = 500
 const DAYS = 90
-const CARD: CSSProperties = { background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 16, padding: 16, marginBottom: 12 }
-const MUTED: CSSProperties = { color: '#5A5F67', fontSize: 12 }
+const CARD: CSSProperties = { background: 'var(--card)', border: '1px solid #1F2530', borderRadius: 16, padding: 16, marginBottom: 12 }
+const MUTED: CSSProperties = { color: '#9AA3B2', fontSize: 12 }
 const ORDER_COLUMNS = 'id, user_id, status, template, seconds, video_id, qa_at, delivered_at, created_at, updated_at, brief'
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh', color: '#0E1116' }}>
+    <div style={{ background: 'var(--bg)', minHeight: '100vh', color: '#F2F4F7' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 16px 80px' }}>{children}</div>
     </div>
   )
@@ -51,13 +51,13 @@ function brt(iso: string | null): string {
 }
 
 function clock(hoursLeft: number | null): { text: string; color: string } {
-  if (hoursLeft === null) return { text: 'prazo desconhecido', color: '#8A4B00' }
-  if (hoursLeft < 0) return { text: `ATRASADO ${Math.abs(hoursLeft)} h`, color: '#B42318' }
-  return { text: `faltam ${hoursLeft} h`, color: hoursLeft < 6 ? '#8A4B00' : '#0F7A55' }
+  if (hoursLeft === null) return { text: 'prazo desconhecido', color: '#FFBF58' }
+  if (hoursLeft < 0) return { text: `ATRASADO ${Math.abs(hoursLeft)} h`, color: '#FF8787' }
+  return { text: `faltam ${hoursLeft} h`, color: hoursLeft < 6 ? '#FFBF58' : '#5FD4A4' }
 }
 
 function BriefView({ brief }: { brief: Record<string, unknown> | null }) {
-  if (!brief) return <p style={{ ...MUTED, color: '#8A4B00' }}>Sem briefing ainda (o cliente pode ter respondido o recibo por e-mail).</p>
+  if (!brief) return <p style={{ ...MUTED, color: '#FFBF58' }}>Sem briefing ainda (o cliente pode ter respondido o recibo por e-mail).</p>
   const entries = Object.entries(brief).filter(([, v]) => (Array.isArray(v) ? v.length : typeof v === 'string' && v))
   return (
     <dl style={{ margin: '8px 0 0', fontSize: 13 }}>
@@ -65,7 +65,7 @@ function BriefView({ brief }: { brief: Record<string, unknown> | null }) {
         <div key={k} style={{ marginBottom: 4 }}>
           <dt style={{ ...MUTED, display: 'inline' }}>{k}: </dt>
           <dd style={{ display: 'inline', margin: 0, whiteSpace: 'pre-wrap' }}>
-            {Array.isArray(v) ? v.map((l) => <a key={String(l)} href={String(l)} target="_blank" rel="noopener noreferrer" style={{ color: '#0A5CFF', marginRight: 8 }}>{String(l)}</a>) : String(v)}
+            {Array.isArray(v) ? v.map((l) => <a key={String(l)} href={String(l)} target="_blank" rel="noopener noreferrer" style={{ color: '#8DB4FF', marginRight: 8 }}>{String(l)}</a>) : String(v)}
           </dd>
         </div>
       ))}
@@ -89,7 +89,7 @@ function ReviewList({ rows, emails, videos, actions }: { rows: ReviewRow[]; emai
             <p style={MUTED}>
               {emails.get(r.userId) ?? r.userId} · {r.template ?? 'modelo?'} · {r.seconds ?? '?'} s · desde {brt(r.since)} ({r.ageHours} h) · pedido {r.id}
             </p>
-            {url ? <p><a href={url} target="_blank" rel="noopener noreferrer" style={{ color: '#0A5CFF' }}>Abrir o vídeo</a></p> : <p style={MUTED}>Sem vídeo ligado ao pedido.</p>}
+            {url ? <p><a href={url} target="_blank" rel="noopener noreferrer" style={{ color: '#8DB4FF' }}>Abrir o vídeo</a></p> : <p style={MUTED}>Sem vídeo ligado ao pedido.</p>}
             {actions && <AdsAdminActions orderId={r.id} />}
           </div>
         )
@@ -145,8 +145,8 @@ export default async function AdminAdsPage() {
     <Shell>
       <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 4 }}>Pedidos com gente no meio</h1>
       <p style={MUTED}>Kineo Empresas (Express/Pro) e revisão humana do {ADS_PRODUCT_NAME}. Horário de Brasília. Últimos {DAYS} dias.</p>
-      {errors.length > 0 && <div style={{ ...CARD, borderColor: '#B42318' }}>Leitura com erro — os números abaixo podem estar incompletos: {errors.join(' · ')}</div>}
-      {capped && <div style={{ ...CARD, borderColor: '#8A4B00' }}>Uma das listas bateu no teto de {LIMIT} linhas: há mais pedidos do que a tela mostra.</div>}
+      {errors.length > 0 && <div style={{ ...CARD, borderColor: '#FF8787' }}>Leitura com erro — os números abaixo podem estar incompletos: {errors.join(' · ')}</div>}
+      {capped && <div style={{ ...CARD, borderColor: '#FFBF58' }}>Uma das listas bateu no teto de {LIMIT} linhas: há mais pedidos do que a tela mostra.</div>}
 
       <h2 style={{ fontSize: 18, fontWeight: 800, margin: '24px 0 8px' }}>Empresas · {orders.length} pedidos · {lateDfy} atrasados</h2>
       <p style={MUTED}>Prazo = pago em + horas do degrau. A tela ainda não sabe o que já foi entregue: pedido entregue continua aparecendo (e passa a contar como atrasado). Teto de pedidos abertos ao mesmo tempo: {DFY_MAX_OPEN_ORDERS}.</p>
@@ -174,7 +174,7 @@ export default async function AdminAdsPage() {
       })}
       {orphanBriefs.length > 0 && (
         <>
-          <h3 style={{ fontSize: 15, fontWeight: 800, margin: '16px 0 8px', color: '#8A4B00' }}>Briefings sem pedido gravado ({orphanBriefs.length})</h3>
+          <h3 style={{ fontSize: 15, fontWeight: 800, margin: '16px 0 8px', color: '#FFBF58' }}>Briefings sem pedido gravado ({orphanBriefs.length})</h3>
           <p style={MUTED}>O briefing só é aceito com a sessão paga na Stripe; se o pedido não aparece acima, o webhook ainda não gravou (ou falhou).</p>
           {orphanBriefs.map((b) => (
             <div key={b.stripeSessionId} style={CARD}>
