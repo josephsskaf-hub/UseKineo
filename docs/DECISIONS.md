@@ -672,3 +672,10 @@ Slug do X confirmado: utm_source=x.
 - Abas do Studio: só Film e Clip (Animate e Avatar seguem nas suas páginas e no "More").
 - Topo do site: Video · Images · Spaces · Ads · MCP · Pricing; "MCP" → /claude-connector (URL de documentação do diretório do Claude). Todos os itens com a mesma cor de texto; só o atual ganha peso e sublinhado.
 - Guardião novo test-studio-heroi (9 ok, 5 mutantes). Reancorados com o motivo: test-app-blue-layout, test-avatar-fora.
+
+## 2026-09-30 — Studio: motor antes da ideia; vídeo do motor limpo e centralizado (KINEO-STUDIO-MOTOR-PRIMEIRO)
+- Fundador (prints do Studio e do Buzzy/Seedance 2.0): "a ideia tem que vir depois que você escolhe o motor"; "só o vídeo, bem colocado no meio", sem as laterais desfocadas.
+- Coluna esquerda: 1 Motor → 2 Ideia → 3 Formato → Revisar e gerar. No modo Clipe o seletor some (Seedance 1.5), e os passos viram 1 Ideia · 2 Formato.
+- Direita: o filme da casa do motor no tamanho dele (9:16), centralizado, cabendo na tela (até 760 px de altura), selo "Made with <motor>" embaixo à esquerda (não cobre a marca usekineo.com/free do topo do filme).
+- Subtítulo novo "Pick an engine, write your idea, then generate." em 13 línguas; lib/promptGuard.ts passa a reconhecer a frase nova como tela colada (a velha continua na lista).
+- Guardião test-studio-heroi ganhou o motor-antes-da-ideia e o fim das laterais (11 ok, 7 mutantes).
