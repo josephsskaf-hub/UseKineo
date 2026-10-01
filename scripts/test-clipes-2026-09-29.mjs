@@ -143,6 +143,17 @@ for (const foreign of [
   bad({ imageUrl: foreign }, 'image')
 }
 equal(cat.ownedClipImageUrl(PHOTO, U, SUPA), PHOTO, 'foto própria aceita')
+// KINEO-PRODUCAO-ADS-2026-10-01 — a imagem GERADA pela própria conta no /images (renders/images/<uid>/) também vira clipe;
+// a de outra conta, a pasta que só começa com o uid, o '..' e a raiz de renders/<uid>/ continuam recusados.
+const GERADA = `${SUPA}/storage/v1/object/public/renders/images/${U}/plano.png`
+equal(cat.ownedClipImageUrl(GERADA, U, SUPA), GERADA, 'imagem gerada da própria conta aceita (Produção)')
+for (const foreign of [
+  `${SUPA}/storage/v1/object/public/renders/images/${OTHER}/plano.png`,
+  `${SUPA}/storage/v1/object/public/renders/images/${U}x/plano.png`,
+  `${SUPA}/storage/v1/object/public/renders/images/${U}/../${OTHER}/plano.png`,
+  `${SUPA}/storage/v1/object/public/renders/images/${U}/`,
+  `${SUPA}/storage/v1/object/public/renders/clips/${U}/plano.png`,
+]) equal(cat.ownedClipImageUrl(foreign, U, SUPA), null, `imagem recusada: ${foreign.replace(SUPA, '<supa>')}`)
 
 // ─── 5. Visibilidade ─────────────────────────────────────────────────────────
 equal(cat.clipEngineAccess({ paused: false, launchVisible: true, planAllowed: true }), { ok: true }, 'motor liberado')

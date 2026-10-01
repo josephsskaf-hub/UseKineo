@@ -204,8 +204,10 @@ export function ownedClipImageUrl(imageUrl: string, userId: string, supabaseUrl:
   let path: string
   try { path = decodeURIComponent(parsed.pathname) } catch { return null }
   if (path.includes('..') || path.includes('\\') || path.includes('//')) return null
-  const prefix = `/storage/v1/object/public/avatars/${userId}/`
-  if (!path.startsWith(prefix) || path.length <= prefix.length) return null
+  // KINEO-PRODUCAO-ADS-2026-10-01 — além da foto enviada (avatars/<uid>/), a imagem GERADA pela própria conta no /images
+  // (renders/images/<uid>/, já moderada e cobrada no gerador) pode virar clipe: é o "dar vida" dos planos da Produção.
+  const prefixes = [`/storage/v1/object/public/avatars/${userId}/`, `/storage/v1/object/public/renders/images/${userId}/`]
+  if (!prefixes.some((prefix) => path.startsWith(prefix) && path.length > prefix.length)) return null
   return parsed.toString()
 }
 
