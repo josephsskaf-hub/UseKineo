@@ -14,6 +14,8 @@ import { KineoBrandIcon } from '@/components/KineoBolt'
 // kept inline to match the rest of the marketing chrome.
 
 import Link from 'next/link'
+import ShowcaseLabel from '@/components/showcase/ShowcaseLabel'
+import { SHOWCASE_PUBLIC } from '@/lib/showcaseTelemetry'
 import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage'
 import { FOOTER_PRESENTATION_CSS } from '@/lib/ui/footerPresentation'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
@@ -81,6 +83,7 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       { href: '/ads', label: 'Videos for businesses', sublist: ADS_SEGMENT_SUBLIST }, // 27/09: porta pública (200 para todos); /ads/new mandava visitante ao /login
       // KINEO-NOITE-2026-08-17 — os produtos novos do dia entram no rodape
       // (26 paginas publicas linkando; nenhuma pagina nasce orfa).
+      ...(SHOWCASE_PUBLIC ? [{ href: '/showcase', label: 'Showcase' }] : []),
       { href: '/images', label: 'AI image generator — 6 engines' },
       { href: '/audio', label: 'AI voice generator (text to speech)' },
       { href: '/ai-video-upscaler', label: 'AI video upscaler & enhancer' },
@@ -282,7 +285,7 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
                       </FooterBusinessLink>
                     ) : (
                       <Link href={link.href} style={linkStyle}>
-                        <UiLabel>{link.label}</UiLabel>
+                        {link.href === '/showcase' ? <ShowcaseLabel /> : <UiLabel>{link.label}</UiLabel>}
                       </Link>
                     )}
                     {link.sublist && (
