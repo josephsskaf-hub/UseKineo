@@ -133,7 +133,16 @@
     "Pro images from a sentence — or keep a face from your own photo": "Pro images from a sentence — or keep a face from your own photo",
     "Spaces": "Spaces",
     "Empty space in, finished space out": "Empty space in, finished space out",
-    "MCP": "MCP"
+    "MCP": "MCP",
+    "More actions": "More actions",
+    "Copy title": "Copy title",
+    "Replay": "Replay",
+    "Title copied": "Title copied",
+    "Preview unavailable": "Preview unavailable",
+    "Try again": "Try again",
+    "Downloading…": "Downloading…",
+    "Download saved MP4": "Download saved MP4",
+    "Download with Kineo watermark (MP4)": "Download with Kineo watermark (MP4)"
   },
   "pt": {
     "Clips": "Clipes",
@@ -268,7 +277,16 @@
     "Pro images from a sentence — or keep a face from your own photo": "Imagens profissionais a partir de uma frase — ou mantenha um rosto da sua própria foto",
     "Spaces": "Espaços",
     "Empty space in, finished space out": "Espaço vazio entra, espaço pronto sai",
-    "MCP": "MCP"
+    "MCP": "MCP",
+    "More actions": "Mais ações",
+    "Copy title": "Copiar título",
+    "Replay": "Repetir",
+    "Title copied": "Título copiado",
+    "Preview unavailable": "Prévia indisponível",
+    "Try again": "Tentar novamente",
+    "Downloading…": "Baixando…",
+    "Download saved MP4": "Baixar MP4 salvo",
+    "Download with Kineo watermark (MP4)": "Baixar com marca Kineo (MP4)"
   },
   "es": {
     "Clips": "Clips",
@@ -402,7 +420,16 @@
     "Pro images from a sentence — or keep a face from your own photo": "Imágenes profesionales a partir de una frase — o conserva un rostro de tu propia foto",
     "Spaces": "Espacios",
     "Empty space in, finished space out": "Entra un espacio vacío, sale terminado",
-    "MCP": "MCP"
+    "MCP": "MCP",
+    "More actions": "Más acciones",
+    "Copy title": "Copiar título",
+    "Replay": "Repetir",
+    "Title copied": "Título copiado",
+    "Preview unavailable": "Vista previa no disponible",
+    "Try again": "Intentar de nuevo",
+    "Downloading…": "Descargando…",
+    "Download saved MP4": "Descargar MP4 guardado",
+    "Download with Kineo watermark (MP4)": "Descargar con marca Kineo (MP4)"
   },
   "fr": {
     "Clips": "Clips",
@@ -537,7 +564,16 @@
     "Pro images from a sentence — or keep a face from your own photo": "Des images pro à partir d'une phrase — ou gardez un visage de votre propre photo",
     "Spaces": "Espaces",
     "Empty space in, finished space out": "Un espace vide entre, un espace fini sort",
-    "MCP": "MCP"
+    "MCP": "MCP",
+    "More actions": "Plus d’actions",
+    "Copy title": "Copier le titre",
+    "Replay": "Revoir",
+    "Title copied": "Titre copié",
+    "Preview unavailable": "Aperçu indisponible",
+    "Try again": "Réessayer",
+    "Downloading…": "Téléchargement…",
+    "Download saved MP4": "Télécharger le MP4 enregistré",
+    "Download with Kineo watermark (MP4)": "Télécharger avec le filigrane Kineo (MP4)"
   },
   "de": {
     "Clips": "Clips",
@@ -672,7 +708,16 @@
     "Pro images from a sentence — or keep a face from your own photo": "Profi-Bilder aus einem Satz — oder behalte ein Gesicht aus deinem eigenen Foto",
     "Spaces": "Räume",
     "Empty space in, finished space out": "Leerer Raum rein, fertiger Raum raus",
-    "MCP": "MCP"
+    "MCP": "MCP",
+    "More actions": "Weitere Aktionen",
+    "Copy title": "Titel kopieren",
+    "Replay": "Erneut abspielen",
+    "Title copied": "Titel kopiert",
+    "Preview unavailable": "Vorschau nicht verfügbar",
+    "Try again": "Erneut versuchen",
+    "Downloading…": "Wird heruntergeladen…",
+    "Download saved MP4": "Gespeichertes MP4 herunterladen",
+    "Download with Kineo watermark (MP4)": "Mit Kineo-Wasserzeichen herunterladen (MP4)"
   },
   "it": {
     "Clips": "Clip",
@@ -807,7 +852,16 @@
     "Pro images from a sentence — or keep a face from your own photo": "Immagini professionali da una frase — o mantieni un volto dalla tua foto",
     "Spaces": "Spazi",
     "Empty space in, finished space out": "Entra uno spazio vuoto, esce finito",
-    "MCP": "MCP"
+    "MCP": "MCP",
+    "More actions": "Altre azioni",
+    "Copy title": "Copia titolo",
+    "Replay": "Riproduci di nuovo",
+    "Title copied": "Titolo copiato",
+    "Preview unavailable": "Anteprima non disponibile",
+    "Try again": "Riprova",
+    "Downloading…": "Download in corso…",
+    "Download saved MP4": "Scarica MP4 salvato",
+    "Download with Kineo watermark (MP4)": "Scarica con filigrana Kineo (MP4)"
   },
   "nl": {
     "Clips": "Clips",
@@ -942,7 +996,16 @@
     "Pro images from a sentence — or keep a face from your own photo": "Professionele beelden uit één zin — of behoud een gezicht uit je eigen foto",
     "Spaces": "Ruimtes",
     "Empty space in, finished space out": "Lege ruimte erin, afgewerkte ruimte eruit",
-    "MCP": "MCP"
+    "MCP": "MCP",
+    "More actions": "Meer acties",
+    "Copy title": "Titel kopiëren",
+    "Replay": "Opnieuw afspelen",
+    "Title copied": "Titel gekopieerd",
+    "Preview unavailable": "Preview niet beschikbaar",
+    "Try again": "Opnieuw proberen",
+    "Downloading…": "Downloaden…",
+    "Download saved MP4": "Opgeslagen MP4 downloaden",
+    "Download with Kineo watermark (MP4)": "Downloaden met Kineo-watermerk (MP4)"
   },
   "pl": {
     "Clips": "Klipy",
@@ -1077,7 +1140,16 @@
     "Pro images from a sentence — or keep a face from your own photo": "Profesjonalne obrazy z jednego zdania — albo zachowaj twarz z własnego zdjęcia",
     "Spaces": "Przestrzenie",
     "Empty space in, finished space out": "Pusta przestrzeń na wejściu, gotowa na wyjściu",
-    "MCP": "MCP"
+    "MCP": "MCP",
+    "More actions": "Więcej działań",
+    "Copy title": "Kopiuj tytuł",
+    "Replay": "Odtwórz ponownie",
+    "Title copied": "Tytuł skopiowany",
+    "Preview unavailable": "Podgląd niedostępny",
+    "Try again": "Spróbuj ponownie",
+    "Downloading…": "Pobieranie…",
+    "Download saved MP4": "Pobierz zapisany MP4",
+    "Download with Kineo watermark (MP4)": "Pobierz ze znakiem wodnym Kineo (MP4)"
   },
   "tr": {
     "Clips": "Klipler",
@@ -1212,7 +1284,16 @@
     "Pro images from a sentence — or keep a face from your own photo": "Tek cümleden profesyonel görseller — ya da kendi fotoğrafındaki yüzü koru",
     "Spaces": "Mekânlar",
     "Empty space in, finished space out": "Boş mekân girer, hazır mekân çıkar",
-    "MCP": "MCP"
+    "MCP": "MCP",
+    "More actions": "Diğer işlemler",
+    "Copy title": "Başlığı kopyala",
+    "Replay": "Yeniden oynat",
+    "Title copied": "Başlık kopyalandı",
+    "Preview unavailable": "Önizleme kullanılamıyor",
+    "Try again": "Tekrar dene",
+    "Downloading…": "İndiriliyor…",
+    "Download saved MP4": "Kayıtlı MP4’ü indir",
+    "Download with Kineo watermark (MP4)": "Kineo filigranıyla indir (MP4)"
   },
   "ru": {
     "Clips": "Клипы",
@@ -1347,7 +1428,16 @@
     "Pro images from a sentence — or keep a face from your own photo": "Профессиональные изображения из одной фразы — или сохраните лицо со своего фото",
     "Spaces": "Пространства",
     "Empty space in, finished space out": "Пустое помещение — на входе, готовое — на выходе",
-    "MCP": "MCP"
+    "MCP": "MCP",
+    "More actions": "Другие действия",
+    "Copy title": "Копировать название",
+    "Replay": "Повторить",
+    "Title copied": "Название скопировано",
+    "Preview unavailable": "Предпросмотр недоступен",
+    "Try again": "Попробовать снова",
+    "Downloading…": "Скачивание…",
+    "Download saved MP4": "Скачать сохранённый MP4",
+    "Download with Kineo watermark (MP4)": "Скачать с водяным знаком Kineo (MP4)"
   },
   "uk": {
     "Clips": "Кліпи",
@@ -1482,7 +1572,16 @@
     "Pro images from a sentence — or keep a face from your own photo": "Професійні зображення з однієї фрази — або збережіть обличчя з власного фото",
     "Spaces": "Простори",
     "Empty space in, finished space out": "Порожнє приміщення — на вході, готове — на виході",
-    "MCP": "MCP"
+    "MCP": "MCP",
+    "More actions": "Інші дії",
+    "Copy title": "Копіювати назву",
+    "Replay": "Повторити",
+    "Title copied": "Назву скопійовано",
+    "Preview unavailable": "Перегляд недоступний",
+    "Try again": "Спробувати знову",
+    "Downloading…": "Завантаження…",
+    "Download saved MP4": "Завантажити збережений MP4",
+    "Download with Kineo watermark (MP4)": "Завантажити з водяним знаком Kineo (MP4)"
   },
   "ar": {
     "Clips": "مقاطع",
@@ -1617,7 +1716,16 @@
     "Pro images from a sentence — or keep a face from your own photo": "صور احترافية من جملة واحدة — أو احتفظ بوجه من صورتك الخاصة",
     "Spaces": "المساحات",
     "Empty space in, finished space out": "تدخل مساحة فارغة وتخرج جاهزة",
-    "MCP": "MCP"
+    "MCP": "MCP",
+    "More actions": "المزيد من الإجراءات",
+    "Copy title": "نسخ العنوان",
+    "Replay": "إعادة التشغيل",
+    "Title copied": "تم نسخ العنوان",
+    "Preview unavailable": "المعاينة غير متاحة",
+    "Try again": "حاول مجددًا",
+    "Downloading…": "جارٍ التنزيل…",
+    "Download saved MP4": "تنزيل ملف MP4 المحفوظ",
+    "Download with Kineo watermark (MP4)": "تنزيل بعلامة Kineo المائية (MP4)"
   },
   "ur": {
     "Clips": "کلپس",
@@ -1752,7 +1860,16 @@
     "Pro images from a sentence — or keep a face from your own photo": "ایک جملے سے پروفیشنل تصاویر — یا اپنی تصویر سے چہرہ برقرار رکھیں",
     "Spaces": "اسپیسز",
     "Empty space in, finished space out": "خالی جگہ اندر، تیار جگہ باہر",
-    "MCP": "MCP"
+    "MCP": "MCP",
+    "More actions": "مزید اقدامات",
+    "Copy title": "عنوان کاپی کریں",
+    "Replay": "دوبارہ چلائیں",
+    "Title copied": "عنوان کاپی ہو گیا",
+    "Preview unavailable": "پری ویو دستیاب نہیں",
+    "Try again": "دوبارہ کوشش کریں",
+    "Downloading…": "ڈاؤن لوڈ ہو رہا ہے…",
+    "Download saved MP4": "محفوظ MP4 ڈاؤن لوڈ کریں",
+    "Download with Kineo watermark (MP4)": "Kineo واٹرمارک کے ساتھ ڈاؤن لوڈ کریں (MP4)"
   },
   "hi": {
     "Clips": "क्लिप्स",
@@ -1885,7 +2002,16 @@
     "Pro images from a sentence — or keep a face from your own photo": "एक वाक्य से प्रोफ़ेशनल इमेज — या अपनी फ़ोटो का चेहरा बनाए रखें",
     "Spaces": "स्पेसेज़",
     "Empty space in, finished space out": "खाली जगह अंदर, तैयार जगह बाहर",
-    "MCP": "MCP"
+    "MCP": "MCP",
+    "More actions": "अन्य कार्रवाइयाँ",
+    "Copy title": "शीर्षक कॉपी करें",
+    "Replay": "फिर से चलाएँ",
+    "Title copied": "शीर्षक कॉपी हो गया",
+    "Preview unavailable": "प्रीव्यू उपलब्ध नहीं है",
+    "Try again": "फिर कोशिश करें",
+    "Downloading…": "डाउनलोड हो रहा है…",
+    "Download saved MP4": "सहेजा गया MP4 डाउनलोड करें",
+    "Download with Kineo watermark (MP4)": "Kineo वॉटरमार्क के साथ डाउनलोड करें (MP4)"
   },
   "id": {
     "Clips": "Klip",
@@ -2020,7 +2146,16 @@
     "Pro images from a sentence — or keep a face from your own photo": "Gambar profesional dari satu kalimat — atau pertahankan wajah dari foto Anda sendiri",
     "Spaces": "Ruang",
     "Empty space in, finished space out": "Ruang kosong masuk, ruang jadi keluar",
-    "MCP": "MCP"
+    "MCP": "MCP",
+    "More actions": "Tindakan lainnya",
+    "Copy title": "Salin judul",
+    "Replay": "Putar ulang",
+    "Title copied": "Judul disalin",
+    "Preview unavailable": "Pratinjau tidak tersedia",
+    "Try again": "Coba lagi",
+    "Downloading…": "Mengunduh…",
+    "Download saved MP4": "Unduh MP4 tersimpan",
+    "Download with Kineo watermark (MP4)": "Unduh dengan watermark Kineo (MP4)"
   },
   "vi": {
     "Clips": "Clip",
@@ -2155,6 +2290,15 @@
     "Pro images from a sentence — or keep a face from your own photo": "Ảnh chuyên nghiệp từ một câu — hoặc giữ gương mặt từ ảnh của chính bạn",
     "Spaces": "Không gian",
     "Empty space in, finished space out": "Không gian trống vào, hoàn thiện ra",
-    "MCP": "MCP"
+    "MCP": "MCP",
+    "More actions": "Thao tác khác",
+    "Copy title": "Sao chép tiêu đề",
+    "Replay": "Phát lại",
+    "Title copied": "Đã sao chép tiêu đề",
+    "Preview unavailable": "Không có bản xem trước",
+    "Try again": "Thử lại",
+    "Downloading…": "Đang tải xuống…",
+    "Download saved MP4": "Tải MP4 đã lưu",
+    "Download with Kineo watermark (MP4)": "Tải xuống có dấu Kineo (MP4)"
   }
 }
