@@ -153,7 +153,7 @@ export default async function GoPage({
   // do Studio é montado por buildStudioDestination().
   //
   // NÃO HÁ LAÇO POSSÍVEL: só desvia com `signedIn === true`, e o ramo logado de
-  // /api/gpt/handoff/go termina SEMPRE em /studio/create — nunca volta ao /go
+  // /api/gpt/handoff/go termina SEMPRE no /studio — nunca volta ao /go
   // nem ao /signup. Robô não é desviado (não tem sessão e não deve gastar a
   // rota). Nada é gerado: o Studio abre preenchido e espera o Generate.
   const backFromSignup = (Array.isArray(searchParams?.signup) ? searchParams?.signup[0] : searchParams?.signup) === '1'

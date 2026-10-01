@@ -465,6 +465,10 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
     if (e && ENGINES.some((x) => x.key === e) && (e !== 's25') && !ENGINES.find((x) => x.key === e)?.paused) setEngine(e as EngineKey) // KINEO-MOTOR-EM-MANUTENCAO: ?engine= pausado cai no padrão
     const p = sp.get('prompt')
     if (p) setPrompt(p)
+    // KINEO-GO-STUDIO-NOVO-2026-10-01 — o link /go (GPT/assistente) traz ?aspect= quando não é 9:16; antes ele caía no
+    // /studio/create, que lia o formato. Só formatos da lista oficial (allAspectSpecs).
+    const requestedAspect = sp.get('aspect')
+    if (requestedAspect && allAspectSpecs().some((s) => s.aspect === requestedAspect)) setAspect(requestedAspect as Aspect)
     const requestedLanguage = narrationLanguage(sp.get('language')) // KINEO-IDIOMAS-15 (páginas de idioma chegam com ?language=)
     if (requestedLanguage) setLanguage(requestedLanguage)
     const requestedScriptMode = sp.get('script_mode')
