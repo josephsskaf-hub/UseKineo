@@ -1545,10 +1545,13 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
       <style dangerouslySetInnerHTML={{ __html: `
 .composer-proposal .composer-proposal-grid{grid-template-columns:minmax(0,1fr)350px;gap:20px;max-width:1320px}
 /* KINEO-STUDIO-HEROI-2026-09-30 — esquerda: ideia + configuração + gerar; direita: o vídeo do motor (fixo ao rolar). */
-.composer-proposal .composer-proposal-grid{grid-template-columns:minmax(360px,460px) minmax(0,1fr);grid-template-rows:auto auto;align-items:start}
+.composer-proposal .composer-proposal-grid{grid-template-columns:minmax(460px,1fr) minmax(0,1.6fr);grid-template-rows:auto auto;align-items:start}
 .composer-proposal .composer-proposal-idea{grid-column:1;grid-row:1}
 .composer-proposal .composer-proposal-settings{grid-column:1;grid-row:2}
-.studio-engine-hero{grid-column:2;grid-row:1 / span 2;position:sticky;top:16px;align-self:start;min-width:0}
+/* KINEO-STUDIO-QUADRO-2026-10-01 — fundador (desenho em vermelho sobre o print): "equilíbrio de espaço entre a caixa de
+   texto e o painel do vídeo… tem que ficar tudo no quadro". O palco ocupa a linha do cartão da ideia e tem a altura dele;
+   o vídeo se ajusta à altura do palco (não empurra a linha). Ajustes e gerar seguem embaixo, na coluna da esquerda. */
+.studio-engine-hero{grid-column:2;grid-row:1;position:relative;align-self:stretch;min-width:0;min-height:460px}
 .composer-proposal{position:relative;isolation:isolate}
 /* KINEO-STUDIO-TELA-COR-2026-09-30 — fundador: "isso que você fez [o palco] para a tela toda". A cor do motor escolhido
    pinta a área inteira do Studio (o <main> rolável do painel), com transição suave ao trocar de motor. */
@@ -1596,8 +1599,8 @@ html[data-studio-stage]{--header-bg:color-mix(in srgb,var(--stage-b) 9%,var(--bg
 .seh-chip{margin:4px 0 0;white-space:nowrap;padding:6px 12px;border-radius:999px;background:#ffffff14;border:1px solid #ffffff26;font-size:12px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
 .seh-title{margin:6px 0 0;font-size:13px;line-height:1.45;color:#ffffffb3;font-style:italic}
 .seh-frame{position:relative;display:block;max-width:100%;border-radius:20px;overflow:hidden;background:#05070b;line-height:0;box-shadow:0 24px 60px -20px #000c,0 0 0 1px #ffffff1f}
-.seh-frame .seh-main{display:block;width:min(100%,calc(max(420px,min(100svh - 360px,700px)) * .5625));height:auto;max-height:max(420px,min(calc(100svh - 360px),700px));object-fit:contain}
-.seh-empty{display:flex;align-items:center;justify-content:center;aspect-ratio:9/16;height:max(420px,min(calc(100svh - 360px),700px));color:#c9d1dc;font-size:20px;line-height:1.2}
+.seh-frame .seh-main{display:block;width:min(100%,calc(62svh * .5625));height:auto;max-height:62svh;object-fit:cover}
+.seh-empty{display:flex;align-items:center;justify-content:center;aspect-ratio:9/16;height:62svh;color:#c9d1dc;font-size:20px;line-height:1.2}
 .seh-badge{position:absolute;left:12px;bottom:12px;line-height:1.2;background:rgba(0,0,0,.62);color:#f5f5f7;border-radius:999px;padding:5px 11px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
 .seh-thumbs{display:flex;gap:10px}
 .seh-thumbs button{width:48px;aspect-ratio:9/16;padding:0;border:0;border-radius:10px;overflow:hidden;cursor:pointer;background:#0b0f17;opacity:.55;box-shadow:0 0 0 1px #ffffff26;transition:opacity .15s,box-shadow .15s,transform .15s}
@@ -1605,11 +1608,22 @@ html[data-studio-stage]{--header-bg:color-mix(in srgb,var(--stage-b) 9%,var(--bg
 .seh-thumbs button.on{opacity:1;box-shadow:0 0 0 2px #fff;transform:scale(1.04)}
 .seh-thumbs button:focus-visible{outline:2px solid #fff;outline-offset:3px}
 .seh-thumbs :is(img,video){width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
-@container (min-width:540px){.seh{grid-template-columns:auto minmax(0,1fr);justify-items:start;column-gap:30px;row-gap:22px}.seh-frame{grid-column:1;grid-row:1 / span 2}.seh-info{grid-column:2;grid-row:1;align-self:end;align-items:flex-start;text-align:left}.seh-thumbs{grid-column:2;grid-row:2;align-self:start}}
-@container (min-width:900px){.seh{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);row-gap:0}.seh-info{grid-column:1;grid-row:1;align-self:center;justify-self:start;max-width:320px}.seh-frame{grid-column:2;grid-row:1}.seh-thumbs{grid-column:3;grid-row:1;align-self:center;justify-self:end;flex-direction:column}.seh-thumbs button{width:58px}}
-@media(max-width:900px){.studio-engine-hero{padding:16px;border-radius:20px}.seh-frame .seh-main{width:min(100%,calc(62svh * .5625));max-height:62svh}.seh-empty{height:62svh}}
+@media(min-width:901px){
+.seh{position:absolute;inset:24px;display:flex;align-items:center;justify-content:space-between;gap:clamp(18px,3cqw,40px)}
+.seh-info{order:1;flex:1 1 0;align-items:flex-start;text-align:left;justify-content:center;max-width:340px}
+.seh-frame{order:2;flex:none;height:100%;aspect-ratio:9/16;max-width:none}
+.seh-frame .seh-main{width:100%;height:100%;max-height:none}
+.seh-empty{height:100%}
+.seh-thumbs{order:3;flex:1 1 0;height:100%;flex-direction:column;align-items:flex-end;justify-content:center}
+.seh-thumbs button{width:auto;height:min(104px,calc((100% - 30px) / 4))}
+}
+@container (max-width:720px){.seh-desc,.seh-title{display:none}.seh-name{font-size:26px}.seh{gap:16px}}
+@container (max-width:520px){.seh-info{display:none}.seh{justify-content:center}.seh-thumbs{flex:none}}
+@media(max-width:900px){.studio-engine-hero{padding:16px;border-radius:20px;min-height:0}}
 @media(prefers-reduced-motion:reduce){.seh-thumbs button{transition:none}}
 .studio-engine-pick{margin-bottom:18px}
+/* KINEO-STUDIO-QUADRO-2026-10-01 — topo mais enxuto para o quadro (ideia + palco) caber na tela do notebook. */
+html .stu.composer-proposal .sub{margin-bottom:14px}html .stu.composer-proposal .studio-modes{margin:0 0 18px;padding-bottom:10px}html .stu.composer-proposal h1{margin-bottom:4px}
 .composer-proposal-idea{min-width:0;padding:24px;border:1px solid #293341;border-radius:20px;background:linear-gradient(150deg,#151b24,#10141b)}
 .composer-proposal-settings{display:flex;flex-direction:column;gap:14px;min-width:0}
 .composer-proposal-continuation{grid-column:1 / -1;min-width:0;margin-top:28px}
@@ -1620,7 +1634,7 @@ html[data-studio-stage]{--header-bg:color-mix(in srgb,var(--stage-b) 9%,var(--bg
 /* Keep the current creation in the first viewport; completed Shorts follow on scroll. */
 /* KINEO-STUDIO-HEROI-2026-09-30 — a ideia não estica mais até o fim da tela: a configuração vem logo embaixo. */
 @media(min-width:901px){
-  .composer-proposal .studio-prompt{min-height:200px}
+  .composer-proposal .studio-prompt{min-height:170px}
 }
  .studio-modes{display:flex;flex-wrap:wrap;gap:8px;padding:5px;margin:20px 0;max-width:1320px;border-bottom:1px solid #27303e}
 .studio-modes button,.studio-modes a{display:inline-flex;align-items:center;gap:12px;min-height:44px;padding:10px 18px;border:1px solid transparent;border-radius:12px;background:transparent;color:#aeb9c8;font:600 13px inherit;text-decoration:none;cursor:pointer}

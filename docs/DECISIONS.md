@@ -708,3 +708,10 @@ Slug do X confirmado: utm_source=x.
 - Paleta (pares em gradiente): Kineo 1 azul→violeta · Seedance esmeralda→ciano · Kling 2.5 laranja→rosa · Veo anil→ciano · Kling 3 carmim→roxo · H3 rosa→dourado · Omni violeta→ciano.
 - No Studio, a barra lateral veste o palco (fundo #06080d + brilho das duas cores do motor, texto claro) e troca junto com o motor; a barra do topo pega um leve tom da página. Fora do Studio tudo volta ao normal (o atributo html[data-studio-stage] sai junto com a tela).
 - Guardião test-studio-heroi: 19 ok, 13 mutantes.
+
+## 2026-10-01 — Studio: a ideia e o palco no mesmo quadro (KINEO-STUDIO-QUADRO)
+- Fundador (desenho em vermelho sobre o print): "equilíbrio de espaço entre a caixa de texto e o painel do vídeo… tem que ficar tudo no quadro".
+- O palco do motor ocupa a linha do cartão da ideia (motor + ideia + botões) e tem exatamente a altura dele; o vídeo 9:16 se ajusta a essa altura (não empurra a linha). Formato, ajustes e gerar seguem embaixo, na coluna da esquerda.
+- Esquerda mais larga (≥ 460 px, ~1 : 1,6) para os 4 atalhos de tema caberem numa linha; caixa de texto 170 px; topo (subtítulo e abas) mais enxuto. Em 1536×760 o quadro inteiro cabe na tela.
+- Palco estreito (< 720 px) esconde descrição e título; < 520 px mostra só vídeo e miniaturas. Celular: igual a antes (vídeo em cima).
+- Guardião test-studio-heroi: 19 ok, 14 mutantes.

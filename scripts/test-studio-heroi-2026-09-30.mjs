@@ -48,7 +48,9 @@ function clientProblems(src) {
   const modes = src.slice(src.indexOf('<nav className="studio-modes"'), src.indexOf('</nav>', src.indexOf('<nav className="studio-modes"')))
   if (/href="\/animate"|href="\/avatar"/.test(modes)) p.push('abas do Studio ainda levam a Animate/AI Presenter')
   if (!/>Film<|>Clip</.test(modes)) p.push('abas Film/Clip sumiram')
-  if (!/\.studio-engine-hero\{grid-column:2;grid-row:1 \/ span 2;position:sticky/.test(src)) p.push('vídeo do motor não ocupa a direita fixa')
+  // reancorado 01/10 (KINEO-STUDIO-QUADRO): fundador — "equilíbrio de espaço entre a caixa de texto e o painel do vídeo…
+  // tudo no quadro". O palco deixa de ser fixo na direita inteira: ocupa a linha do cartão da ideia, com a altura dele.
+  if (!/\.studio-engine-hero\{grid-column:2;grid-row:1;position:relative;align-self:stretch;/.test(src)) p.push('o palco não tem a altura do cartão da ideia')
   // KINEO-STUDIO-MOTOR-PRIMEIRO-2026-09-30 — fundador: "a ideia tem que vir depois que você escolhe o motor"; "só o vídeo,
   // bem colocado no meio" (sem as laterais desfocadas).
   const idea = src.indexOf('<section className="composer-proposal-idea"')
@@ -58,7 +60,7 @@ function clientProblems(src) {
   if (/className="seh-bg"|\.seh-bg\{/.test(src)) p.push('vídeo do motor ainda tem laterais desfocadas')
   // reancorado 30/09 (KINEO-STUDIO-PALCO): o vídeo segue sozinho e inteiro (sem laterais desfocadas), agora num palco
   // com a cor do motor; centralizado no palco estreito e na coluna do meio no largo.
-  if (!/\.seh\{display:grid;grid-template-columns:1fr;justify-items:center;/.test(src) || !/@container \(min-width:900px\)\{\.seh\{grid-template-columns:minmax\(0,1fr\) auto minmax\(0,1fr\)/.test(src)) p.push('vídeo do motor não está centralizado no palco')
+  if (!/\.seh\{display:grid;grid-template-columns:1fr;justify-items:center;/.test(src) || !/@media\(min-width:901px\)\{\r?\n\.seh\{position:absolute;inset:24px;display:flex;/.test(src) || !/\.seh-info\{order:1;/.test(src) || !/\.seh-frame\{order:2;flex:none;height:100%;aspect-ratio:9\/16;/.test(src) || !/\.seh-thumbs\{order:3;/.test(src)) p.push('vídeo do motor não está centralizado no palco')
   // KINEO-STUDIO-PALCO-2026-09-30 — fundador: "precisa ter mais cor… falta de acabamento". Cada motor do seletor tem a
   // sua cor, e a cor segue o motor escolhido (Clipe = Seedance), no fundo da página e no palco.
   for (const k of Object.keys(EXPECTED)) if (!new RegExp(`\\n  ${k}: \\['#[0-9A-F]{6}', '#[0-9A-F]{6}'\\],`).test(src)) p.push(`motor ${k} sem cor de palco`)
@@ -124,6 +126,7 @@ ok(clientProblems(CLIENT.replace('<video key={v.src} className="seh-main"', '<vi
 ok(clientProblems(CLIENT.replace("data-stage={scriptMode === 'clip' ? 'seedance' : engine}>", "data-stage=\"fast\">")).length > 0, '(M8) cor presa num motor → vermelho')
 ok(clientProblems(CLIENT.replace(/main:has\(\.stu\.composer-proposal\)\{background:[^}]*\}/, 'main:has(.stu.composer-proposal){}')).length > 0, '(M10) tela sem a cor do motor → vermelho')
 ok(clientProblems(CLIENT.replace('html .stu.composer-proposal[data-stage]{background:transparent}', '')).length > 0, '(M12) fundo chapado cobrindo a cor → vermelho')
+ok(clientProblems(CLIENT.replace('.studio-engine-hero{grid-column:2;grid-row:1;position:relative;align-self:stretch;', '.studio-engine-hero{grid-column:2;grid-row:1 / span 2;position:sticky;align-self:start;')).length > 0, '(M14) palco fora do quadro da ideia → vermelho')
 ok(clientProblems(CLIENT.replace('html[data-studio-stage] aside:has(>nav[data-nav-surface=sidebar]){--sidebar-bg:', 'html[data-studio-stage] aside:has(>nav[data-nav-surface=sidebar]){--x:')).length > 0, '(M13) barra lateral sem a cor do motor → vermelho')
 ok(clientProblems(CLIENT.replace('setHeroPick(f)\n', '\n').replace('setHeroPick(f)\r\n', '\r\n')).length > 0, '(M11) vitrine que não mostra o filme no palco → vermelho')
 {
