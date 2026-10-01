@@ -884,6 +884,9 @@ export default function KineoLanding({
                 porta pública /ads. */}
             <Link href="/spaces" data-nav-item="more:spaces"><UiLabel>Spaces</UiLabel></Link>
             <Link href="/ads/new" data-nav-item="business"><UiLabel>Ads</UiLabel></Link>
+            {/* KINEO-NAV-MCP-2026-09-30 — fundador: "colocar o MCP no menu" (como Buzzy/Higgsfield). A página do MCP é a
+                /claude-connector (URL de documentação do diretório do Claude — não muda de endereço). */}
+            <Link href="/claude-connector" data-nav-item="more:mcp"><UiLabel>MCP</UiLabel></Link>
             <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
           </div>
         <div className="nav-right">
@@ -908,6 +911,7 @@ export default function KineoLanding({
               </span>
               <Link href="/spaces" data-nav-item="more:spaces"><UiLabel>Spaces</UiLabel></Link>
               <Link href="/ads/new" data-nav-item="business"><UiLabel>Ads</UiLabel></Link>
+              <Link href="/claude-connector" data-nav-item="more:mcp"><UiLabel>MCP</UiLabel></Link>
               <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
               {initialUser
                 ? <Link className="btn btn-w" href="/studio"><UiLabel>Dashboard</UiLabel></Link>

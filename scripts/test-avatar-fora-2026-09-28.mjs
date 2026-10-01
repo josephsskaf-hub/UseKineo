@@ -134,8 +134,10 @@ const PORTAS = /href="\/avatar"|Talking Avatar|AI Presenter|Character Lock|Trans
   const studio = (fx) => renderPage('app/(dashboard)/studio/StudioClient.tsx', false, { demoOffer: true, demoShell: true, prompt: 'A lighthouse in a storm', balance: 100, ...fx })
   const pub = studio({ pickerOpen: true }), casa = studio({ pickerOpen: true, avatarOn: true })
   checa('Studio (público, seletor aberto): sem link "AI Presenter" e sem card Avatar', !pub.includes('href="/avatar"') && !pub.includes('Avatar Studio →') && !pub.includes('Talking AI presenter'))
-  checa('Studio (conta da casa, flag avatar): link e card continuam', casa.includes('href="/avatar"') && casa.includes('Avatar Studio →') && casa.includes('Talking AI presenter'))
-  checa('Studio: os motores do seletor seguem lá para o público (o card saiu, o picker não)', pub.includes('Kling 3') && pub.includes('Seedance 1.5') && pub.includes('href="/animate"'))
+  // reancorado 30/09 (KINEO-STUDIO-HEROI): o fundador tirou as abas "AI Presenter" e "Animate a Photo" do Studio para TODA
+  // conta; a conta da casa segue com o card Avatar no seletor de motores.
+  checa('Studio (conta da casa, flag avatar): card Avatar continua no seletor', casa.includes('Avatar Studio →') && casa.includes('Talking AI presenter'))
+  checa('Studio: os motores do seletor seguem lá para o público (o card saiu, o picker não)', pub.includes('Kling 3') && pub.includes('Seedance 1.5'))
 }
 {
   const html = renderPage('app/pricing/PricingClient.tsx', false, { demoOffer: true, demoShell: true, displayCurrency: 'usd', signedIn: true })
@@ -221,7 +223,7 @@ console.log('== (e) o que NÃO mudou: /avatar no ar, servidor aberto, cobrança 
   const pub = (await rota(PUBLICO).GET()).body, casa = (await rota(INTERNO).GET()).body
   checa('/api/me/credits (executado): público avatar:false, casa avatar:true; saldo e plano intactos', pub.avatar === false && casa.avatar === true && pub.credits === 7 && pub.plan === 'basic' && pub.internal === false)
   const st = rd('app/(dashboard)/studio/StudioClient.tsx')
-  checa('Studio liga o card pela flag `avatar`, nunca pela `internal` do S25', st.includes('if (alive && d?.avatar === true) setAvatarOn(true)') && !/d\?\.internal === true\) setAvatarOn/.test(st) && st.includes('{avatarOn && <Link href="/avatar">'))
+  checa('Studio liga o card pela flag `avatar`, nunca pela `internal` do S25', st.includes('if (alive && d?.avatar === true) setAvatarOn(true)') && !/d\?\.internal === true\) setAvatarOn/.test(st) && st.includes('{avatarOn && <button')) // reancorado 30/09 (KINEO-STUDIO-HEROI): a aba "AI Presenter" saiu; o card do seletor segue atrás de avatarOn
 }
 
 console.log('== (f) copy de SEO/comparação sem apresentador ==')

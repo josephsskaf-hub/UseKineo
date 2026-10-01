@@ -23,7 +23,9 @@ function page(file,initial={},props={}){
 }
 const studio=page('app/(dashboard)/studio/StudioClient.tsx',{prompt:'A lighthouse in a storm',balance:100})
 let html=studio.render()
-ok(html.indexOf('studio-generation-review')<html.indexOf('<section class="composer-proposal-settings"'),'cost and action are with idea')
+// reancorado 30/09 (KINEO-STUDIO-HEROI): fundador — "na lateral esquerda os ambientes de configuração, na direita o vídeo do
+// motor". O "Revisar e gerar" fecha a coluna de configuração (depois do formato); a direita é o vídeo do motor.
+ok(html.indexOf('<section class="composer-proposal-settings"')<html.indexOf('studio-generation-review')&&html.indexOf('studio-generation-review')<html.indexOf('studio-engine-hero'),'cost and action close the settings column; engine video on the right')
 studio.click('Clip');html=studio.render();equal(studio.state.scriptMode,'clip','real Clip handler')
 ok(html.includes('Render clip · 5 cr'),'clip cost from server constant')
 ok(html.includes('without narration'),'clip does not promise film narration')
@@ -34,9 +36,10 @@ studio.state.scriptMode='verbatim';studio.render();studio.click('Film');equal(st
 // Avatar do catálogo público em 27/09 ("avatar sai por hora"): o link "AI Presenter" só aparece com avatarOn
 // (AVATAR_PUBLIC || flag `avatar` do /api/me/credits). /animate segue obrigatório; /avatar vira ausente para o
 // público e presente para a conta da casa — as duas metades rodam o StudioClient real.
-ok(html.includes('href="/animate"'),'existing dedicated mode /animate')
-ok(!html.includes('href="/avatar"'),'AI Presenter mode link hidden for a public account (AVATAR_PUBLIC=false)')
-ok(page('app/(dashboard)/studio/StudioClient.tsx',{prompt:'A lighthouse in a storm',balance:100,avatarOn:true}).render().includes('href="/avatar"'),'internal account (avatar flag) still sees the AI Presenter mode link')
+// reancorado 30/09 (KINEO-STUDIO-HEROI): fundador — "tirar AI Presenter e Animate a Photo, que já têm em outro lugar".
+// As abas do Studio são só Film e Clip, para qualquer conta.
+ok(!html.includes('href="/animate"')&&!html.includes('href="/avatar"'),'Studio tabs: only Film and Clip (no Animate/AI Presenter links)')
+ok(!page('app/(dashboard)/studio/StudioClient.tsx',{prompt:'A lighthouse in a storm',balance:100,avatarOn:true}).render().includes('href="/avatar"'),'internal account (avatar flag) has no AI Presenter tab either')
 const videos=[{id:'completed-demo',title:'Lighthouse story',status:'completed',video_url:'/demo.mp4',thumbnail_url:null},{id:'pending-demo',title:'Forest story',status:'processing',video_url:null,thumbnail_url:null},{id:'failed-demo',title:'Ocean story',status:'failed',video_url:null,thumbnail_url:null}]
 const library=page('app/(dashboard)/library/LibraryClient.tsx',{loaded:true,vids:videos,imgs:[{id:'image-demo',url:'/demo.webp',model:'Demo image'}],auds:[{id:'audio-demo',url:'/demo.mp3',text:'Demo voice',model:'Demo audio'}]})
 html=library.render()

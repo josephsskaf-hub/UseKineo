@@ -34,6 +34,9 @@ html[data-theme=dark] .klp {
 .klp .nav-links { justify-self:center; gap:30px; font-size:14px; }
 .klp .nav-links>.nd>a,.klp .nav-links>a { display:inline-flex; align-items:center; min-height:48px; padding:10px 0; white-space:nowrap; }
 .klp .nav-links .nav-primary { color:var(--txt); font-weight:650; }
+/* KINEO-NAV-MESMO-TOM-2026-09-30 — fundador: "Spaces, Ads e Pricing não estão no mesmo tom de Vídeos e Imagens". Os itens
+   do topo (links e menus) usam a MESMA cor de texto; só o item atual ganha peso e o sublinhado azul. */
+.klp .nav-links>a,.klp .nav-links>.nd>summary { color:var(--txt); }
 .klp .nav-links .nav-primary::after { content:''; position:absolute; inset:auto 0 4px; height:2px; border-radius:2px; background:var(--home-action); }
 .klp .nav-right { justify-self:end; gap:12px; min-width:0; }
 .klp .nav-right .kineo-interface-language { color:var(--txt)!important; background:var(--card)!important; border-color:var(--line)!important; color-scheme:inherit!important; border-radius:8px!important; }
@@ -46,6 +49,7 @@ html:not([data-theme=dark]) .klp .nav-links .nav-primary,
 html:not([data-theme=dark]) .klp .nav-links>a:hover,
 html:not([data-theme=dark]) .klp .nav-links>.nd>a:hover { color:#0E1116; }
 html:not([data-theme=dark]) .klp .nav-links { color:#5A5F67; }
+html:not([data-theme=dark]) .klp .nav-links>a,html:not([data-theme=dark]) .klp .nav-links>.nd>summary { color:#0E1116; }
 html:not([data-theme=dark]) .klp .nav-links .nav-primary::after { background:#0A5CFF; }
 html:not([data-theme=dark]) .klp .nav-right .btn-w { background:#0E1116; color:#FFFFFF; border-color:#0E1116; }
 html:not([data-theme=dark]) .klp .nav-appearance { background:#FFFFFF; color:#0E1116; border-color:#E4E4E0; }

@@ -132,7 +132,8 @@
     "Write your video in Claude, render it in Kineo Studio": "Write your video in Claude, render it in Kineo Studio",
     "Pro images from a sentence — or keep a face from your own photo": "Pro images from a sentence — or keep a face from your own photo",
     "Spaces": "Spaces",
-    "Empty space in, finished space out": "Empty space in, finished space out"
+    "Empty space in, finished space out": "Empty space in, finished space out",
+    "MCP": "MCP"
   },
   "pt": {
     "Clips": "Clipes",
@@ -266,7 +267,8 @@
     "Write your video in Claude, render it in Kineo Studio": "Escreva o vídeo no Claude, renderize no Kineo Studio",
     "Pro images from a sentence — or keep a face from your own photo": "Imagens profissionais a partir de uma frase — ou mantenha um rosto da sua própria foto",
     "Spaces": "Espaços",
-    "Empty space in, finished space out": "Espaço vazio entra, espaço pronto sai"
+    "Empty space in, finished space out": "Espaço vazio entra, espaço pronto sai",
+    "MCP": "MCP"
   },
   "es": {
     "Clips": "Clips",
@@ -399,7 +401,8 @@
     "Write your video in Claude, render it in Kineo Studio": "Escribe tu vídeo en Claude y renderízalo en Kineo Studio",
     "Pro images from a sentence — or keep a face from your own photo": "Imágenes profesionales a partir de una frase — o conserva un rostro de tu propia foto",
     "Spaces": "Espacios",
-    "Empty space in, finished space out": "Entra un espacio vacío, sale terminado"
+    "Empty space in, finished space out": "Entra un espacio vacío, sale terminado",
+    "MCP": "MCP"
   },
   "fr": {
     "Clips": "Clips",
@@ -533,7 +536,8 @@
     "Write your video in Claude, render it in Kineo Studio": "Écrivez votre vidéo dans Claude, générez-la dans Kineo Studio",
     "Pro images from a sentence — or keep a face from your own photo": "Des images pro à partir d'une phrase — ou gardez un visage de votre propre photo",
     "Spaces": "Espaces",
-    "Empty space in, finished space out": "Un espace vide entre, un espace fini sort"
+    "Empty space in, finished space out": "Un espace vide entre, un espace fini sort",
+    "MCP": "MCP"
   },
   "de": {
     "Clips": "Clips",
@@ -667,7 +671,8 @@
     "Write your video in Claude, render it in Kineo Studio": "Schreib dein Video in Claude, rendere es im Kineo Studio",
     "Pro images from a sentence — or keep a face from your own photo": "Profi-Bilder aus einem Satz — oder behalte ein Gesicht aus deinem eigenen Foto",
     "Spaces": "Räume",
-    "Empty space in, finished space out": "Leerer Raum rein, fertiger Raum raus"
+    "Empty space in, finished space out": "Leerer Raum rein, fertiger Raum raus",
+    "MCP": "MCP"
   },
   "it": {
     "Clips": "Clip",
@@ -801,7 +806,8 @@
     "Write your video in Claude, render it in Kineo Studio": "Scrivi il video in Claude, generalo in Kineo Studio",
     "Pro images from a sentence — or keep a face from your own photo": "Immagini professionali da una frase — o mantieni un volto dalla tua foto",
     "Spaces": "Spazi",
-    "Empty space in, finished space out": "Entra uno spazio vuoto, esce finito"
+    "Empty space in, finished space out": "Entra uno spazio vuoto, esce finito",
+    "MCP": "MCP"
   },
   "nl": {
     "Clips": "Clips",
@@ -935,7 +941,8 @@
     "Write your video in Claude, render it in Kineo Studio": "Schrijf je video in Claude, render hem in Kineo Studio",
     "Pro images from a sentence — or keep a face from your own photo": "Professionele beelden uit één zin — of behoud een gezicht uit je eigen foto",
     "Spaces": "Ruimtes",
-    "Empty space in, finished space out": "Lege ruimte erin, afgewerkte ruimte eruit"
+    "Empty space in, finished space out": "Lege ruimte erin, afgewerkte ruimte eruit",
+    "MCP": "MCP"
   },
   "pl": {
     "Clips": "Klipy",
@@ -1069,7 +1076,8 @@
     "Write your video in Claude, render it in Kineo Studio": "Napisz film w Claude, wyrenderuj go w Kineo Studio",
     "Pro images from a sentence — or keep a face from your own photo": "Profesjonalne obrazy z jednego zdania — albo zachowaj twarz z własnego zdjęcia",
     "Spaces": "Przestrzenie",
-    "Empty space in, finished space out": "Pusta przestrzeń na wejściu, gotowa na wyjściu"
+    "Empty space in, finished space out": "Pusta przestrzeń na wejściu, gotowa na wyjściu",
+    "MCP": "MCP"
   },
   "tr": {
     "Clips": "Klipler",
@@ -1203,7 +1211,8 @@
     "Write your video in Claude, render it in Kineo Studio": "Videonu Claude’da yaz, Kineo Studio’da oluştur",
     "Pro images from a sentence — or keep a face from your own photo": "Tek cümleden profesyonel görseller — ya da kendi fotoğrafındaki yüzü koru",
     "Spaces": "Mekânlar",
-    "Empty space in, finished space out": "Boş mekân girer, hazır mekân çıkar"
+    "Empty space in, finished space out": "Boş mekân girer, hazır mekân çıkar",
+    "MCP": "MCP"
   },
   "ru": {
     "Clips": "Клипы",
@@ -1337,7 +1346,8 @@
     "Write your video in Claude, render it in Kineo Studio": "Напишите видео в Claude, соберите его в Kineo Studio",
     "Pro images from a sentence — or keep a face from your own photo": "Профессиональные изображения из одной фразы — или сохраните лицо со своего фото",
     "Spaces": "Пространства",
-    "Empty space in, finished space out": "Пустое помещение — на входе, готовое — на выходе"
+    "Empty space in, finished space out": "Пустое помещение — на входе, готовое — на выходе",
+    "MCP": "MCP"
   },
   "uk": {
     "Clips": "Кліпи",
@@ -1471,7 +1481,8 @@
     "Write your video in Claude, render it in Kineo Studio": "Напишіть відео в Claude, зберіть його в Kineo Studio",
     "Pro images from a sentence — or keep a face from your own photo": "Професійні зображення з однієї фрази — або збережіть обличчя з власного фото",
     "Spaces": "Простори",
-    "Empty space in, finished space out": "Порожнє приміщення — на вході, готове — на виході"
+    "Empty space in, finished space out": "Порожнє приміщення — на вході, готове — на виході",
+    "MCP": "MCP"
   },
   "ar": {
     "Clips": "مقاطع",
@@ -1605,7 +1616,8 @@
     "Write your video in Claude, render it in Kineo Studio": "اكتب الفيديو في Claude، وأنتجه في Kineo Studio",
     "Pro images from a sentence — or keep a face from your own photo": "صور احترافية من جملة واحدة — أو احتفظ بوجه من صورتك الخاصة",
     "Spaces": "المساحات",
-    "Empty space in, finished space out": "تدخل مساحة فارغة وتخرج جاهزة"
+    "Empty space in, finished space out": "تدخل مساحة فارغة وتخرج جاهزة",
+    "MCP": "MCP"
   },
   "ur": {
     "Clips": "کلپس",
@@ -1739,7 +1751,8 @@
     "Write your video in Claude, render it in Kineo Studio": "ویڈیو Claude میں لکھیں، Kineo Studio میں تیار کریں",
     "Pro images from a sentence — or keep a face from your own photo": "ایک جملے سے پروفیشنل تصاویر — یا اپنی تصویر سے چہرہ برقرار رکھیں",
     "Spaces": "اسپیسز",
-    "Empty space in, finished space out": "خالی جگہ اندر، تیار جگہ باہر"
+    "Empty space in, finished space out": "خالی جگہ اندر، تیار جگہ باہر",
+    "MCP": "MCP"
   },
   "hi": {
     "Clips": "क्लिप्स",
@@ -1871,7 +1884,8 @@
     "Write your video in Claude, render it in Kineo Studio": "वीडियो Claude में लिखिए, Kineo Studio में रेंडर कीजिए",
     "Pro images from a sentence — or keep a face from your own photo": "एक वाक्य से प्रोफ़ेशनल इमेज — या अपनी फ़ोटो का चेहरा बनाए रखें",
     "Spaces": "स्पेसेज़",
-    "Empty space in, finished space out": "खाली जगह अंदर, तैयार जगह बाहर"
+    "Empty space in, finished space out": "खाली जगह अंदर, तैयार जगह बाहर",
+    "MCP": "MCP"
   },
   "id": {
     "Clips": "Klip",
@@ -2005,7 +2019,8 @@
     "Write your video in Claude, render it in Kineo Studio": "Tulis videomu di Claude, render di Kineo Studio",
     "Pro images from a sentence — or keep a face from your own photo": "Gambar profesional dari satu kalimat — atau pertahankan wajah dari foto Anda sendiri",
     "Spaces": "Ruang",
-    "Empty space in, finished space out": "Ruang kosong masuk, ruang jadi keluar"
+    "Empty space in, finished space out": "Ruang kosong masuk, ruang jadi keluar",
+    "MCP": "MCP"
   },
   "vi": {
     "Clips": "Clip",
@@ -2139,6 +2154,7 @@
     "Write your video in Claude, render it in Kineo Studio": "Viết video trong Claude, dựng video trong Kineo Studio",
     "Pro images from a sentence — or keep a face from your own photo": "Ảnh chuyên nghiệp từ một câu — hoặc giữ gương mặt từ ảnh của chính bạn",
     "Spaces": "Không gian",
-    "Empty space in, finished space out": "Không gian trống vào, hoàn thiện ra"
+    "Empty space in, finished space out": "Không gian trống vào, hoàn thiện ra",
+    "MCP": "MCP"
   }
 }

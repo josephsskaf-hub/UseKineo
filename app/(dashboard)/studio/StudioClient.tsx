@@ -187,7 +187,40 @@ const CAMERA_PRESETS: { key: string; label: string; emoji: string; prompt: strin
 // (components/studioKit) que veste TODOS os ambientes. Ajuste aprovado pelo
 // fundador entra LA, uma vez, e atualiza o produto inteiro.
 
-export default function StudioClient() {
+/** KINEO-STUDIO-HEROI-2026-09-30 — vídeo do motor na direita do Studio (os filmes vêm do servidor: app/(dashboard)/studio/page.tsx). */
+export type StudioHeroVideo = { src: string; poster?: string; title: string }
+function EngineHero({ name, videos, fallback }: { name: string; videos: StudioHeroVideo[]; fallback?: string }) {
+  const list: StudioHeroVideo[] = videos.length ? videos : fallback ? [{ src: fallback, title: name }] : []
+  const [i, setI] = useState(0)
+  const v = list[Math.min(i, list.length - 1)]
+  if (!v) {
+    return (
+      <div className="seh-frame seh-empty"><b>{name}</b></div>
+    )
+  }
+  return (
+    <div className="seh">
+      <div className="seh-frame">
+        {/* Filmes da casa são verticais: o próprio filme, desfocado, preenche as laterais (sem faixa preta). */}
+        <video key={`${v.src}#bg`} className="seh-bg" src={v.src} poster={v.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" tabIndex={-1} />
+        <video key={v.src} className="seh-main" src={v.src} poster={v.poster} autoPlay muted loop playsInline preload="metadata" aria-label={`${v.title} — ${name}`} />
+        <span className="seh-badge"><UiLabel>Made with</UiLabel> {name}</span>
+      </div>
+      <div className="seh-meta">
+        <p className="seh-title">{v.title}</p>
+        {list.length > 1 && (
+          <div className="seh-dots" role="tablist" aria-label={name}>
+            {list.map((x, k) => (
+              <button key={x.src} type="button" role="tab" aria-selected={k === i} aria-label={x.title} className={k === i ? 'on' : undefined} onClick={() => setI(k)} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default function StudioClient({ engineHeroes = {} }: { engineHeroes?: Record<string, StudioHeroVideo[]> } = {}) {
   const t = useUiCopy()
   // sprint-retencao #15 — `studio_milestone` (11 cliques em 30d) e
   // `studio_video_tile` nunca tiveram denominador. So telemetria: a tela
@@ -779,8 +812,7 @@ export default function StudioClient() {
       <nav className="studio-modes" aria-label={t('Video mode', 'Modo de vídeo')}>
         <button type="button" aria-pressed={scriptMode !== 'clip'} onClick={() => { if (scriptMode === 'clip') setScriptMode('ai') }}><UiLabel>Film</UiLabel></button>
         <button type="button" data-testid="script-mode-clip" aria-pressed={scriptMode === 'clip'} onClick={() => setScriptMode('clip')}><UiLabel>Clip</UiLabel></button>
-        {avatarOn && <Link href="/avatar"><UiLabel>AI Presenter</UiLabel><span aria-hidden="true">↗</span></Link>}
-        <Link href="/animate"><UiLabel>Animate a Photo</UiLabel><span aria-hidden="true">↗</span></Link>
+        {/* KINEO-STUDIO-HEROI-2026-09-30 — fundador: tirar "AI Presenter" e "Animate a Photo" daqui (já têm porta própria). */}
       </nav>
       <div className="grid composer-proposal-grid">
         <section className="composer-proposal-idea" aria-label={t('Your idea', 'Tu idea')}>
@@ -941,97 +973,6 @@ export default function StudioClient() {
                 )}
               </div>
             )}
-          </div>
-<div id="studio-generation-review" tabIndex={-1} className="cost studio-generation-review" aria-label={t('Review and generate', 'Revisar y generar')}>
-            <div className="sum" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className="eng-ic" style={{ width: 24, height: 24, borderRadius: 7, fontSize: 10.5 }} aria-hidden="true"><KineoBoltText>{eng.icon}</KineoBoltText></span>{scriptMode === 'clip' ? `Seedance 1.5 · ${clipSeconds}s · ${aspect}` : `${eng.name} · ${duration}s · 1080p · ${aspect}`}{preset ? ` · ${CAMERA_PRESETS.find((c) => c.key === preset)?.label}` : ''}</div>
-            {/* O número tem de mudar junto com o seletor: preço que só
-                aparece DEPOIS do clique é cobrança-surpresa. O servidor cobra
-                por esta mesma função (creditCostForDuration), então tela e
-                fatura nunca divergem. */}
-            <div className="val">
-              <span><UiLabel>{(scriptMode !== 'clip' && rotuloDoFilmeGratis({ entrada15, trialActive: trialOn, balance, engine, duration, custoSeedance })) || 'Estimated cost'}</UiLabel></span>
-              <b style={balance !== null && (scriptMode === 'clip' ? CLIP_CREDITS : cost) > balance ? { color: '#fb923c' } : undefined}>{scriptMode === 'clip' ? CLIP_CREDITS : cost} cr</b>
-            </div>
-            {/* KINEO-ESTRELA-DO-FILME-2026-09-29 — a sobretaxa aparece ANTES do clique e já está dentro do número acima e do botão. */}
-            {estrelaCr > 0 && (
-              <div className="val" data-kineo="estrela-linha-do-custo" style={{ opacity: 0.85 }}>
-                <span>⭐ {estrelaCopy(idiomaDaTela, 'row')}</span>
-                <b style={{ fontWeight: 600 }}>+{estrelaCr} cr</b>
-              </div>
-            )}
-            {balance !== null && (scriptMode === 'clip' ? CLIP_CREDITS : cost) > balance && (
-              // A verdade ANTES da ideia ser escrita, não depois do clique.
-              <div className="val" style={{ color: '#fb923c', fontSize: '0.78rem' }}>
-                <span>You have {balance} cr</span>
-                <b style={{ fontWeight: 600 }}>{scriptMode === 'clip' ? `Need ${CLIP_CREDITS - balance} more credits` : duration > shortestDuration ? `try ${shortestDuration}s, or another engine` : 'try another engine'}</b>
-              </div>
-            )}
-            {/* Expectativa de tempo ANTES do clique: o cronômetro da tela de
-                render sobe sem dizer quanto é normal, e quem não conhece lê
-                como travado. Fast é minutos; motor de IA é vários minutos. */}
-            <div className="val" style={{ opacity: 0.75 }}>
-              <span><UiLabel>Usually takes</UiLabel></span>
-              <b style={{ fontWeight: 600 }}>{scriptMode === 'clip' ? '1–3 min' : eng.key === 'fast' ? '3–7 min' : '8–20 min'}</b>
-            </div>
-            {/* KINEO-PRECO-VISIVEL-2026-09-02 — o saldo em FILMES, no motor e na
-                duração escolhidos. Nenhum dos nove concorrentes auditados mostra
-                isto dentro do editor. Ataca o defeito medido em 02/09: 3 dos 4
-                checkouts do dia eram contas com 25 créditos INTACTOS e zero
-                vídeos — gente que nunca soube que já tinha filme na mão. */}
-            {scriptMode !== 'clip' && balance !== null && cost > 0 && Math.floor(balance / cost) > 0 && (
-              <div className="val" style={{ opacity: 0.75 }}>
-                <span><UiLabel>Your credits buy</UiLabel></span>
-                <b style={{ fontWeight: 600 }}>
-                  {Math.floor(balance / cost)} {Math.floor(balance / cost) === 1 ? (t('film', 'vídeo')) : (t('films', 'vídeos'))}<UiLabel> like this
-                </UiLabel></b>
-              </div>
-            )}
-            {scriptMode === 'clip' && clipState.phase !== 'idle' && (
-              <div className="gnote" data-testid="clip-result" style={{ marginBottom: 10 }}>
-                {clipState.phase === 'submitting' && <UiLabel>Sending your shot to Seedance…</UiLabel>}
-                {clipState.phase === 'rendering' && <UiLabel>Rendering your clip — usually 1 to 3 minutes. You can keep this tab open.</UiLabel>}
-                {clipState.phase === 'failed' && <span style={{ color: '#fb923c' }}>{clipState.error}</span>}
-                {clipState.phase === 'done' && clipState.url && (
-                  <div>
-                    <video src={clipState.url} controls playsInline style={{ width: '100%', maxWidth: 360, borderRadius: 12, display: 'block', marginBottom: 8 }} />
-                    <a href={clipState.url} download className="pill on" style={{ fontSize: 12 }}><UiLabel>Download MP4</UiLabel></a>
-                  </div>
-                )}
-              </div>
-            )}
-            {/* KINEO-EMPRESAS-COCKPIT-2026-09-24 — "quer que a gente faça?" AQUI, onde o
-                pedido de anúncio de empresa é digitado, ANTES do go. A v2 (23-24/09) só
-                montava o cartão no passo 2 do /studio/create, e este cockpit manda a
-                pessoa para lá com ?studio=1 + disparo automático atrás da cortina: o
-                cartão nunca existia antes do Generate (cético do workflow, 24/09 ~04h).
-                O componente devolve null fora do caso (texto que não parece pedido de
-                anúncio, ou degraus desligados) e nunca esconde o go. Identidade: o
-                cartão resolve sozinho (o cockpit não conhece userId/e-mail). */}
-            <DfyOfferCard prompt={prompt} userId={null} email={null} source="studio_cockpit" />
-            <button type="button" onClick={generate} disabled={!prompt.trim() || limit.over} className={`go ${prompt.trim() && !limit.over ? 'ok' : 'no'}`}>
-              {/* KINEO-PRECO-VISIVEL-2026-09-02 — o custo entra NO BOTÃO, o
-                  padrão da Higgsfield ("the exact cost is shown on the Generate
-                  button before you confirm") e da Hailuo (número colado no botão,
-                  recalculado ao vivo). Antes: 'Generate →' e o número só no
-                  rodapé cinza acima — que ninguém lê depois de escolher. */}
-              <UiLabel>{!prompt.trim()
-                ? 'Type your idea first'
-                : scriptMode === 'clip'
-                  ? (clipState.phase === 'rendering' || clipState.phase === 'submitting' ? 'Rendering clip…' : `Render clip · ${CLIP_CREDITS} cr →`)
-                : limit.over
-                  ? `Trim ${limit.excess.toLocaleString('en-US')} characters to continue`
-                  : balance !== null && cost > balance
-                    ? `Need ${cost - balance} more credits`
-                    : cost > 0
-                      ? `Generate · ${cost} cr →`
-                      : 'Generate →'}</UiLabel>
-            </button>
-            {/* KINEO-PRECO-VISIVEL-2026-09-02 — a política de estorno vira
-                promessa VISÍVEL. Higgsfield, Kling, Hailuo e OpusClip têm a
-                mesma política e nenhum a exibe na hora da escolha; nós já
-                cumprimos (o guard de narração e o release do claim devolvem na
-                hora), então dizer isto é confiança de graça. */}
-            <div className="gnote"><UiLabel>{scriptMode === 'clip' ? 'A single clip without narration. If a render fails, your credits come straight back.' : 'Voice, karaoke captions and score included. If a render fails, your credits come straight back.'}</UiLabel></div>
           </div>
         </section>
         <section className="composer-proposal-settings" aria-label={t('Settings and generation', 'Ajustes y generación')}>
@@ -1259,7 +1200,106 @@ export default function StudioClient() {
           </div>
           </details>
 
+          {/* KINEO-STUDIO-HEROI-2026-09-30 — o "Revisar e gerar" fecha a coluna de configuração (ideia → motor → formato →
+              ajustes → gerar); a direita é do vídeo do motor. */}
+<div id="studio-generation-review" tabIndex={-1} className="cost studio-generation-review" aria-label={t('Review and generate', 'Revisar y generar')}>
+            <div className="sum" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className="eng-ic" style={{ width: 24, height: 24, borderRadius: 7, fontSize: 10.5 }} aria-hidden="true"><KineoBoltText>{eng.icon}</KineoBoltText></span>{scriptMode === 'clip' ? `Seedance 1.5 · ${clipSeconds}s · ${aspect}` : `${eng.name} · ${duration}s · 1080p · ${aspect}`}{preset ? ` · ${CAMERA_PRESETS.find((c) => c.key === preset)?.label}` : ''}</div>
+            {/* O número tem de mudar junto com o seletor: preço que só
+                aparece DEPOIS do clique é cobrança-surpresa. O servidor cobra
+                por esta mesma função (creditCostForDuration), então tela e
+                fatura nunca divergem. */}
+            <div className="val">
+              <span><UiLabel>{(scriptMode !== 'clip' && rotuloDoFilmeGratis({ entrada15, trialActive: trialOn, balance, engine, duration, custoSeedance })) || 'Estimated cost'}</UiLabel></span>
+              <b style={balance !== null && (scriptMode === 'clip' ? CLIP_CREDITS : cost) > balance ? { color: '#fb923c' } : undefined}>{scriptMode === 'clip' ? CLIP_CREDITS : cost} cr</b>
+            </div>
+            {/* KINEO-ESTRELA-DO-FILME-2026-09-29 — a sobretaxa aparece ANTES do clique e já está dentro do número acima e do botão. */}
+            {estrelaCr > 0 && (
+              <div className="val" data-kineo="estrela-linha-do-custo" style={{ opacity: 0.85 }}>
+                <span>⭐ {estrelaCopy(idiomaDaTela, 'row')}</span>
+                <b style={{ fontWeight: 600 }}>+{estrelaCr} cr</b>
+              </div>
+            )}
+            {balance !== null && (scriptMode === 'clip' ? CLIP_CREDITS : cost) > balance && (
+              // A verdade ANTES da ideia ser escrita, não depois do clique.
+              <div className="val" style={{ color: '#fb923c', fontSize: '0.78rem' }}>
+                <span>You have {balance} cr</span>
+                <b style={{ fontWeight: 600 }}>{scriptMode === 'clip' ? `Need ${CLIP_CREDITS - balance} more credits` : duration > shortestDuration ? `try ${shortestDuration}s, or another engine` : 'try another engine'}</b>
+              </div>
+            )}
+            {/* Expectativa de tempo ANTES do clique: o cronômetro da tela de
+                render sobe sem dizer quanto é normal, e quem não conhece lê
+                como travado. Fast é minutos; motor de IA é vários minutos. */}
+            <div className="val" style={{ opacity: 0.75 }}>
+              <span><UiLabel>Usually takes</UiLabel></span>
+              <b style={{ fontWeight: 600 }}>{scriptMode === 'clip' ? '1–3 min' : eng.key === 'fast' ? '3–7 min' : '8–20 min'}</b>
+            </div>
+            {/* KINEO-PRECO-VISIVEL-2026-09-02 — o saldo em FILMES, no motor e na
+                duração escolhidos. Nenhum dos nove concorrentes auditados mostra
+                isto dentro do editor. Ataca o defeito medido em 02/09: 3 dos 4
+                checkouts do dia eram contas com 25 créditos INTACTOS e zero
+                vídeos — gente que nunca soube que já tinha filme na mão. */}
+            {scriptMode !== 'clip' && balance !== null && cost > 0 && Math.floor(balance / cost) > 0 && (
+              <div className="val" style={{ opacity: 0.75 }}>
+                <span><UiLabel>Your credits buy</UiLabel></span>
+                <b style={{ fontWeight: 600 }}>
+                  {Math.floor(balance / cost)} {Math.floor(balance / cost) === 1 ? (t('film', 'vídeo')) : (t('films', 'vídeos'))}<UiLabel> like this
+                </UiLabel></b>
+              </div>
+            )}
+            {scriptMode === 'clip' && clipState.phase !== 'idle' && (
+              <div className="gnote" data-testid="clip-result" style={{ marginBottom: 10 }}>
+                {clipState.phase === 'submitting' && <UiLabel>Sending your shot to Seedance…</UiLabel>}
+                {clipState.phase === 'rendering' && <UiLabel>Rendering your clip — usually 1 to 3 minutes. You can keep this tab open.</UiLabel>}
+                {clipState.phase === 'failed' && <span style={{ color: '#fb923c' }}>{clipState.error}</span>}
+                {clipState.phase === 'done' && clipState.url && (
+                  <div>
+                    <video src={clipState.url} controls playsInline style={{ width: '100%', maxWidth: 360, borderRadius: 12, display: 'block', marginBottom: 8 }} />
+                    <a href={clipState.url} download className="pill on" style={{ fontSize: 12 }}><UiLabel>Download MP4</UiLabel></a>
+                  </div>
+                )}
+              </div>
+            )}
+            {/* KINEO-EMPRESAS-COCKPIT-2026-09-24 — "quer que a gente faça?" AQUI, onde o
+                pedido de anúncio de empresa é digitado, ANTES do go. A v2 (23-24/09) só
+                montava o cartão no passo 2 do /studio/create, e este cockpit manda a
+                pessoa para lá com ?studio=1 + disparo automático atrás da cortina: o
+                cartão nunca existia antes do Generate (cético do workflow, 24/09 ~04h).
+                O componente devolve null fora do caso (texto que não parece pedido de
+                anúncio, ou degraus desligados) e nunca esconde o go. Identidade: o
+                cartão resolve sozinho (o cockpit não conhece userId/e-mail). */}
+            <DfyOfferCard prompt={prompt} userId={null} email={null} source="studio_cockpit" />
+            <button type="button" onClick={generate} disabled={!prompt.trim() || limit.over} className={`go ${prompt.trim() && !limit.over ? 'ok' : 'no'}`}>
+              {/* KINEO-PRECO-VISIVEL-2026-09-02 — o custo entra NO BOTÃO, o
+                  padrão da Higgsfield ("the exact cost is shown on the Generate
+                  button before you confirm") e da Hailuo (número colado no botão,
+                  recalculado ao vivo). Antes: 'Generate →' e o número só no
+                  rodapé cinza acima — que ninguém lê depois de escolher. */}
+              <UiLabel>{!prompt.trim()
+                ? 'Type your idea first'
+                : scriptMode === 'clip'
+                  ? (clipState.phase === 'rendering' || clipState.phase === 'submitting' ? 'Rendering clip…' : `Render clip · ${CLIP_CREDITS} cr →`)
+                : limit.over
+                  ? `Trim ${limit.excess.toLocaleString('en-US')} characters to continue`
+                  : balance !== null && cost > balance
+                    ? `Need ${cost - balance} more credits`
+                    : cost > 0
+                      ? `Generate · ${cost} cr →`
+                      : 'Generate →'}</UiLabel>
+            </button>
+            {/* KINEO-PRECO-VISIVEL-2026-09-02 — a política de estorno vira
+                promessa VISÍVEL. Higgsfield, Kling, Hailuo e OpusClip têm a
+                mesma política e nenhum a exibe na hora da escolha; nós já
+                cumprimos (o guard de narração e o release do claim devolvem na
+                hora), então dizer isto é confiança de graça. */}
+            <div className="gnote"><UiLabel>{scriptMode === 'clip' ? 'A single clip without narration. If a render fails, your credits come straight back.' : 'Voice, karaoke captions and score included. If a render fails, your credits come straight back.'}</UiLabel></div>
+          </div>
         </section>
+        {/* KINEO-STUDIO-HEROI-2026-09-30 — fundador: "na lateral esquerda os ambientes de configuração, na direita o vídeo
+            padrão do motor… não deixar uma tela em branco". O filme da casa daquele motor (o líder escolhido pelo fundador
+            primeiro), com o selo do motor que o gerou; troca junto com o seletor. No modo Clipe o motor é o Seedance 1.5. */}
+        <aside className="studio-engine-hero" aria-label={t('Engine preview', 'Vista del motor')}>
+          <EngineHero key={scriptMode === 'clip' ? 'seedance' : engine} name={scriptMode === 'clip' ? 'Seedance 1.5' : eng.name} videos={engineHeroes[scriptMode === 'clip' ? 'seedance' : engine] ?? []} fallback={scriptMode === 'clip' ? ENGINES.find((e) => e.key === 'seedance')?.preview : eng.preview} />
+        </aside>
         {myVids.length > 0 && <section className="composer-proposal-continuation" aria-label="Continue your videos">
 {myVids.length > 0 && (
             <div
@@ -1432,6 +1472,25 @@ export default function StudioClient() {
           escaped text children would disagree with the browser during hydration. */}
       <style dangerouslySetInnerHTML={{ __html: `
 .composer-proposal .composer-proposal-grid{grid-template-columns:minmax(0,1fr)350px;gap:20px;max-width:1320px}
+/* KINEO-STUDIO-HEROI-2026-09-30 — esquerda: ideia + configuração + gerar; direita: o vídeo do motor (fixo ao rolar). */
+.composer-proposal .composer-proposal-grid{grid-template-columns:minmax(360px,460px) minmax(0,1fr);grid-template-rows:auto auto;align-items:start}
+.composer-proposal .composer-proposal-idea{grid-column:1;grid-row:1}
+.composer-proposal .composer-proposal-settings{grid-column:1;grid-row:2}
+.studio-engine-hero{grid-column:2;grid-row:1 / span 2;position:sticky;top:16px;align-self:start;min-width:0}
+.seh{display:flex;flex-direction:column;gap:10px}
+.seh-frame{position:relative;border-radius:20px;overflow:hidden;background:#05070b;border:1px solid #293341;aspect-ratio:16/10;max-height:calc(100svh - 140px);display:flex;align-items:center;justify-content:center}
+.seh-frame video{display:block}
+.seh-frame .seh-bg{position:absolute;inset:-8%;width:116%;height:116%;object-fit:cover;filter:blur(28px) brightness(.55) saturate(1.2);pointer-events:none}
+.seh-frame .seh-main{position:relative;width:100%;height:100%;object-fit:contain}
+.seh-empty{color:#c9d1dc;font-size:20px}
+.seh-badge{position:absolute;left:12px;top:12px;background:rgba(0,0,0,.62);color:#f5f5f7;border-radius:999px;padding:5px 11px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.seh-meta{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 4px}
+.seh-title{margin:0;font-size:13px;color:#aeb9c8;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seh-dots{display:flex;gap:6px;flex-shrink:0}
+.seh-dots button{width:22px;height:22px;border-radius:999px;border:0;background:transparent;cursor:pointer;position:relative;padding:0}
+.seh-dots button::after{content:'';position:absolute;inset:7px;border-radius:999px;background:#3a4556}
+.seh-dots button.on::after{background:#2997ff;inset:6px}
+.seh-dots button:focus-visible{outline:2px solid #2997ff;outline-offset:1px}
 .composer-proposal-idea{min-width:0;padding:24px;border:1px solid #293341;border-radius:20px;background:linear-gradient(150deg,#151b24,#10141b)}
 .composer-proposal-settings{display:flex;flex-direction:column;gap:14px;min-width:0}
 .composer-proposal-continuation{grid-column:1 / -1;min-width:0}
@@ -1440,10 +1499,9 @@ export default function StudioClient() {
 .composer-proposal-optional>div{margin:16px 0}.composer-proposal-optional .cams{grid-template-columns:repeat(2,1fr)}
 .composer-proposal .hint{line-height:1.6}.composer-proposal textarea{min-height:180px;resize:vertical}
 /* Keep the current creation in the first viewport; completed Shorts follow on scroll. */
+/* KINEO-STUDIO-HEROI-2026-09-30 — a ideia não estica mais até o fim da tela: a configuração vem logo embaixo. */
 @media(min-width:901px){
-  .composer-proposal-idea{display:flex;flex-direction:column;min-height:calc(100svh - 96px)}
-  .composer-proposal-idea>div:first-child{display:flex;flex-direction:column;flex:1}
-  .composer-proposal .studio-prompt{flex:1;min-height:clamp(320px,42svh,600px)}
+  .composer-proposal .studio-prompt{min-height:200px}
 }
  .studio-modes{display:flex;flex-wrap:wrap;gap:8px;padding:5px;margin:20px 0;max-width:1320px;border-bottom:1px solid #27303e}
 .studio-modes button,.studio-modes a{display:inline-flex;align-items:center;gap:12px;min-height:44px;padding:10px 18px;border:1px solid transparent;border-radius:12px;background:transparent;color:#aeb9c8;font:600 13px inherit;text-decoration:none;cursor:pointer}
@@ -1454,7 +1512,7 @@ export default function StudioClient() {
 .stu .pk .pk-tx>.pill[role=button]:hover{background:rgba(41,151,255,.22);border-color:#7cc0ff;transform:none}
 .stu .pk .pk-tx>.pill[role=button]:focus-visible{outline:2px solid #b8dfff;outline-offset:3px;background:rgba(41,151,255,.22)}
 @media(max-width:600px){.composer-proposal .studio-generation-review{grid-template-columns:repeat(2,minmax(0,1fr))}.studio-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.studio-modes button,.studio-modes a{padding:10px}}
-@media(max-width:900px){.composer-proposal .composer-proposal-grid{grid-template-columns:1fr;gap:18px}.composer-proposal-idea{padding:16px}.composer-proposal textarea{min-height:160px}}
+@media(max-width:900px){.composer-proposal .composer-proposal-grid{grid-template-columns:1fr;grid-template-rows:none;gap:18px}.composer-proposal .composer-proposal-idea,.composer-proposal .composer-proposal-settings{grid-column:1;grid-row:auto}.studio-engine-hero{grid-column:1;grid-row:auto;position:static;order:-1}.composer-proposal-idea{padding:16px}.composer-proposal textarea{min-height:160px}}
 @media(max-width:900px){.composer-proposal .studio-prompt{min-height:260px}}
 ` }} />
     </div>

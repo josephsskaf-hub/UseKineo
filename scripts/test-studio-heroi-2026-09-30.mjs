@@ -1,0 +1,78 @@
+// KINEO-STUDIO-HEROI-2026-09-30 (+ KINEO-NAV-MCP / KINEO-NAV-MESMO-TOM) — guardião do Studio com o vídeo do motor e do
+// topo do site.
+// Fundador (30/09): "na lateral esquerda os ambientes de configuração, na direita o vídeo padrão do motor… não deixar
+// uma tela em branco"; "tirar AI Presenter e Animate a Photo"; "colocar o MCP no menu"; "Spaces, Ads e Pricing não
+// estão no mesmo tom de Vídeos e Imagens".
+// Prova: (1) o servidor mapeia cada motor do seletor para os filmes DA CASA daquele motor (selo honesto: Kling 2.5 →
+// cinematic_kling, nunca outro) e cada motor mapeado tem filme; (2) a direita mostra o vídeo do motor ESCOLHIDO (troca
+// com o seletor; Clipe = Seedance 1.5) com "Made with <motor>"; (3) o "Revisar e gerar" fecha a coluna da esquerda;
+// (4) abas só Film e Clip; (5) topo Video · Images · Spaces · Ads · MCP · Pricing, todos com a mesma cor; (6) mutantes.
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
+const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+let pass = 0
+let fail = 0
+const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }
+
+const PAGE = read('app/(dashboard)/studio/page.tsx')
+const CLIENT = read('app/(dashboard)/studio/StudioClient.tsx')
+const EXAMPLES = read('lib/publicExamples.ts')
+const LAND = read('app/KineoLanding.tsx')
+const THEME = read('app/kineoLandingTheme.ts')
+const EXPECTED = { fast: 'fast', seedance: 'cinematic_ai', kling: 'cinematic_kling', veo: 'cinematic_veo', hollywood: 'cinematic_hollywood', h3: 'cinematic_h3', omni: 'cinematic_omni' }
+
+function pageProblems(src) {
+  const p = []
+  const block = src.slice(src.indexOf('const HERO_ENGINE'), src.indexOf('}', src.indexOf('const HERO_ENGINE')) + 1)
+  const pairs = Object.fromEntries([...block.matchAll(/^\s+(\w+): '([a-z_0-9]+)',$/gm)].map((m) => [m[1], m[2]]))
+  for (const [k, v] of Object.entries(EXPECTED)) if (pairs[k] !== v) p.push(`${k} → ${pairs[k]} (deveria ${v}: selo do motor errado)`)
+  for (const k of Object.keys(pairs)) if (!(k in EXPECTED)) p.push(`motor inesperado no herói: ${k}`)
+  if (!/getHouseEngineExamples\(engine, 4\)/.test(src)) p.push('não usa os filmes da casa (getHouseEngineExamples)')
+  if (/getEngineRenders|getTrending|customer/i.test(src.replace(/\/\/.*$/gm, ''))) p.push('herói lê vídeo de cliente')
+  return p
+}
+function clientProblems(src) {
+  const p = []
+  if (!/<EngineHero key=\{scriptMode === 'clip' \? 'seedance' : engine\} name=\{scriptMode === 'clip' \? 'Seedance 1\.5' : eng\.name\} videos=\{engineHeroes\[scriptMode === 'clip' \? 'seedance' : engine\] \?\? \[\]\}/.test(src)) p.push('o herói não segue o motor escolhido (ou o Clipe não é Seedance 1.5)')
+  if (!/<span className="seh-badge"><UiLabel>Made with<\/UiLabel> \{name\}<\/span>/.test(src)) p.push('herói sem o selo "Made with <motor>"')
+  const settings = src.indexOf('<section className="composer-proposal-settings"')
+  const review = src.indexOf('<div id="studio-generation-review"')
+  const hero = src.indexOf('<aside className="studio-engine-hero"')
+  if (!(settings > 0 && review > settings && hero > review)) p.push('ordem errada: configuração → gerar → vídeo do motor')
+  const modes = src.slice(src.indexOf('<nav className="studio-modes"'), src.indexOf('</nav>', src.indexOf('<nav className="studio-modes"')))
+  if (/href="\/animate"|href="\/avatar"/.test(modes)) p.push('abas do Studio ainda levam a Animate/AI Presenter')
+  if (!/>Film<|>Clip</.test(modes)) p.push('abas Film/Clip sumiram')
+  if (!/\.studio-engine-hero\{grid-column:2;grid-row:1 \/ span 2;position:sticky/.test(src)) p.push('vídeo do motor não ocupa a direita fixa')
+  return p
+}
+function navProblems(land, theme) {
+  const p = []
+  const desk = land.slice(land.indexOf('<div className="nav-links"'), land.indexOf('<div className="nav-right">'))
+  const order = ['<PublicNavDropdown item="video"', '<PublicNavDropdown item="image"', 'href="/spaces"', 'href="/ads/new"', 'href="/claude-connector"', 'href="/pricing"'].map((h) => desk.indexOf(h))
+  if (order.some((x) => x < 0) || order.some((x, i) => i > 0 && x < order[i - 1])) p.push(`topo fora da ordem Video · Images · Spaces · Ads · MCP · Pricing (${order.join(',')})`)
+  if (!/<Link href="\/claude-connector" data-nav-item="more:mcp"><UiLabel>MCP<\/UiLabel><\/Link>/.test(desk)) p.push('MCP fora do topo')
+  if (!/\.klp \.nav-links>a,\.klp \.nav-links>\.nd>summary \{ color:var\(--txt\); \}/.test(theme) || !/html:not\(\[data-theme=dark\]\) \.klp \.nav-links>a,html:not\(\[data-theme=dark\]\) \.klp \.nav-links>\.nd>summary \{ color:#0E1116; \}/.test(theme)) p.push('itens do topo não têm a mesma cor')
+  return p
+}
+
+const pp = pageProblems(PAGE)
+ok(pp.length === 0, `(1) cada motor → filmes da casa do MESMO motor (${pp.join('; ') || 'ok'})`)
+const counts = Object.fromEntries(Object.values(EXPECTED).map((e) => [e, (EXAMPLES.match(new RegExp(`engine: '${e}'`, 'g')) || []).length]))
+ok(Object.values(counts).every((n) => n >= 1), `(1b) todo motor do seletor tem filme da casa (${JSON.stringify(counts)})`)
+const cp = clientProblems(CLIENT)
+ok(cp.length === 0, `(2-4) herói segue o motor, selo, gerar fecha a esquerda, abas só Film/Clip (${cp.join('; ') || 'ok'})`)
+const np = navProblems(LAND, THEME)
+ok(np.length === 0, `(5) topo na ordem com MCP e mesma cor (${np.join('; ') || 'ok'})`)
+
+// (6) mutantes
+ok(pageProblems(PAGE.replace("  kling: 'cinematic_kling',", "  kling: 'cinematic_veo',")).length > 0, '(M1) Kling 2.5 mostrando filme do Veo → vermelho')
+ok(clientProblems(CLIENT.replace("<EngineHero key={scriptMode === 'clip' ? 'seedance' : engine}", "<EngineHero key={'seedance'}")).length > 0, '(M2) herói preso num motor → vermelho')
+ok(clientProblems(CLIENT.replace('        {/* KINEO-STUDIO-HEROI-2026-09-30 — fundador: tirar \"AI Presenter\" e \"Animate a Photo\" daqui (já têm porta própria). */}\n', '        <Link href="/animate"><UiLabel>Animate a Photo</UiLabel></Link>\n')).length > 0, '(M3) aba Animate de volta → vermelho')
+ok(navProblems(LAND.replace('            <Link href="/claude-connector" data-nav-item="more:mcp"><UiLabel>MCP</UiLabel></Link>\n', ''), THEME).length > 0, '(M4) MCP fora do topo → vermelho')
+ok(navProblems(LAND, THEME.replace('.klp .nav-links>a,.klp .nav-links>.nd>summary { color:var(--txt); }', '')).length > 0, '(M5) tom diferente no topo → vermelho')
+
+console.log(`\n${pass} verificações ok, ${fail} falhas`)
+process.exit(fail ? 1 : 0)

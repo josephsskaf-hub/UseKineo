@@ -665,3 +665,10 @@ Slug do X confirmado: utm_source=x.
 ## 2026-09-30 — ADM cinza neutro aprovado para publicação
 
 **DECISÃO APROVADA (fundador, Board):** após revisar `ADM-CINZA-NEUTRO-ANTES-DEPOIS.html`, Joseph confirmou: "Pode publicar, essa ficou bem melhor." Aplicar fundo cinza neutro, cartões cinza-claro e azul discreto nos destaques apenas no ADM. Preservar layout, controles, cálculos, permissões e tema público. A aprovação substitui a paleta branca do ADM, não o restante do refinamento.
+
+## 2026-09-30 — Studio com o vídeo do motor; topo com MCP e no mesmo tom (KINEO-STUDIO-HEROI / KINEO-NAV-MCP / KINEO-NAV-MESMO-TOM)
+- Fundador: "na lateral esquerda os ambientes de configuração, na direita o vídeo padrão do motor… não deixar uma tela em branco"; "tirar AI Presenter e Animate a Photo, que já têm em outro lugar"; "colocar o MCP no menu"; "Spaces, Ads e Pricing não estão no mesmo tom de Vídeos e Imagens".
+- /studio: esquerda = ideia → motor → formato → ajustes → revisar e gerar; direita = vídeo do motor escolhido (fixo ao rolar), com "Made with <motor>" e até 4 filmes da casa (getHouseEngineExamples: o líder escolhido pelo fundador primeiro; nunca vídeo de cliente). Clipe = Seedance 1.5. Filme vertical com o próprio vídeo desfocado nas laterais. No celular o vídeo vem em cima.
+- Abas do Studio: só Film e Clip (Animate e Avatar seguem nas suas páginas e no "More").
+- Topo do site: Video · Images · Spaces · Ads · MCP · Pricing; "MCP" → /claude-connector (URL de documentação do diretório do Claude). Todos os itens com a mesma cor de texto; só o atual ganha peso e sublinhado.
+- Guardião novo test-studio-heroi (9 ok, 5 mutantes). Reancorados com o motivo: test-app-blue-layout, test-avatar-fora.
