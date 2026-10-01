@@ -135,7 +135,7 @@ export const DICT: Record<string, string> = {
   'a single line is enough — or paste a full script': 'satu baris saja cukup — atau tempel naskah lengkap',
   '1080×1920 · Full HD master': '1080×1920 · master Full HD',
   'Every film is delivered as a 1080×1920 Full HD master (engines render natively at 720–768p and are mastered up). For maximum sharpness, run ✨HD Enhance on the finished film.': 'Setiap film dikirim sebagai master 1080×1920 Full HD (mesin merender secara native di 720–768p lalu dimaster ke atas). Untuk ketajaman maksimal, jalankan ✨HD Enhance pada film yang sudah jadi.',
-  'Your idea first. Review the settings, then generate.': 'Ide Anda dulu. Tinjau pengaturannya, lalu buat.',
+  'Pick an engine, write your idea, then generate.': 'Pilih mesin, tulis ide Anda, lalu buat.',
   '📷 Photo': '📷 Foto',
   '🖼️ Upload a different photo': '🖼️ Unggah foto lain',
   '🎙️ Generating…': '🎙️ Membuat…',

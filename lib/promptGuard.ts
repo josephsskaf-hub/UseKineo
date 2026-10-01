@@ -13,6 +13,7 @@
 const FRASES_DA_NOSSA_TELA: readonly string[] = [
   'your idea first',
   'review the settings, then generate',
+  'pick an engine, write your idea, then generate',
   'let ai structure it',
   'use my script as is',
   'just this clip (no narration)',

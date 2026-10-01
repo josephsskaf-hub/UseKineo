@@ -46,6 +46,14 @@ function clientProblems(src) {
   if (/href="\/animate"|href="\/avatar"/.test(modes)) p.push('abas do Studio ainda levam a Animate/AI Presenter')
   if (!/>Film<|>Clip</.test(modes)) p.push('abas Film/Clip sumiram')
   if (!/\.studio-engine-hero\{grid-column:2;grid-row:1 \/ span 2;position:sticky/.test(src)) p.push('vídeo do motor não ocupa a direita fixa')
+  // KINEO-STUDIO-MOTOR-PRIMEIRO-2026-09-30 — fundador: "a ideia tem que vir depois que você escolhe o motor"; "só o vídeo,
+  // bem colocado no meio" (sem as laterais desfocadas).
+  const idea = src.indexOf('<section className="composer-proposal-idea"')
+  const pick = src.indexOf('<div className="studio-engine-pick"')
+  const box = src.indexOf('<textarea', idea)
+  if (!(idea > 0 && pick > idea && box > pick && pick < settings)) p.push('o motor não vem antes da ideia')
+  if (/className="seh-bg"|\.seh-bg\{/.test(src)) p.push('vídeo do motor ainda tem laterais desfocadas')
+  if (!/\.seh\{display:flex;flex-direction:column;align-items:center;/.test(src)) p.push('vídeo do motor não está centralizado')
   return p
 }
 function navProblems(land, theme) {
@@ -72,6 +80,15 @@ ok(pageProblems(PAGE.replace("  kling: 'cinematic_kling',", "  kling: 'cinematic
 ok(clientProblems(CLIENT.replace("<EngineHero key={scriptMode === 'clip' ? 'seedance' : engine}", "<EngineHero key={'seedance'}")).length > 0, '(M2) herói preso num motor → vermelho')
 ok(clientProblems(CLIENT.replace('        {/* KINEO-STUDIO-HEROI-2026-09-30 — fundador: tirar \"AI Presenter\" e \"Animate a Photo\" daqui (já têm porta própria). */}\n', '        <Link href="/animate"><UiLabel>Animate a Photo</UiLabel></Link>\n')).length > 0, '(M3) aba Animate de volta → vermelho')
 ok(navProblems(LAND.replace('            <Link href="/claude-connector" data-nav-item="more:mcp"><UiLabel>MCP</UiLabel></Link>\n', ''), THEME).length > 0, '(M4) MCP fora do topo → vermelho')
+{
+  const a = CLIENT.indexOf('<div className="studio-engine-pick"')
+  const b = CLIENT.indexOf('<div className="card">', a)
+  const blk = CLIENT.slice(a, b)
+  const back = CLIENT.slice(0, a) + CLIENT.slice(b)
+  const set = back.indexOf('<section className="composer-proposal-settings"') + '<section className="composer-proposal-settings" aria-label={t(\'Settings and generation\', \'Ajustes y generación\')}>\n'.length
+  ok(clientProblems(back.slice(0, set) + blk + back.slice(set)).length > 0, '(M6) motor de volta para depois da ideia → vermelho')
+}
+ok(clientProblems(CLIENT.replace('<video key={v.src} className="seh-main"', '<video className="seh-bg" /><video key={v.src} className="seh-main"')).length > 0, '(M7) laterais desfocadas de volta → vermelho')
 ok(navProblems(LAND, THEME.replace('.klp .nav-links>a,.klp .nav-links>.nd>summary { color:var(--txt); }', '')).length > 0, '(M5) tom diferente no topo → vermelho')
 
 console.log(`\n${pass} verificações ok, ${fail} falhas`)

@@ -135,7 +135,7 @@ export const DICT: Record<string, string> = {
   'a single line is enough — or paste a full script': 'một dòng là đủ — hoặc dán cả kịch bản',
   '1080×1920 · Full HD master': '1080×1920 · bản master Full HD',
   'Every film is delivered as a 1080×1920 Full HD master (engines render natively at 720–768p and are mastered up). For maximum sharpness, run ✨HD Enhance on the finished film.': 'Mỗi phim được giao dưới dạng bản master 1080×1920 Full HD (các engine render gốc ở 720–768p rồi được master lên). Để sắc nét tối đa, chạy ✨HD Enhance trên phim đã hoàn thành.',
-  'Your idea first. Review the settings, then generate.': 'Ý tưởng của bạn trước. Xem lại cài đặt, rồi tạo.',
+  'Pick an engine, write your idea, then generate.': 'Chọn công cụ, viết ý tưởng, rồi tạo.',
   '📷 Photo': '📷 Ảnh',
   '🖼️ Upload a different photo': '🖼️ Tải ảnh khác',
   '🎙️ Generating…': '🎙️ Đang tạo…',

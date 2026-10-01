@@ -201,8 +201,7 @@ function EngineHero({ name, videos, fallback }: { name: string; videos: StudioHe
   return (
     <div className="seh">
       <div className="seh-frame">
-        {/* Filmes da casa são verticais: o próprio filme, desfocado, preenche as laterais (sem faixa preta). */}
-        <video key={`${v.src}#bg`} className="seh-bg" src={v.src} poster={v.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" tabIndex={-1} />
+        {/* KINEO-STUDIO-MOTOR-PRIMEIRO-2026-09-30 — fundador: "só o vídeo, bem colocado no meio" (sem laterais desfocadas). */}
         <video key={v.src} className="seh-main" src={v.src} poster={v.poster} autoPlay muted loop playsInline preload="metadata" aria-label={`${v.title} — ${name}`} />
         <span className="seh-badge"><UiLabel>Made with</UiLabel> {name}</span>
       </div>
@@ -807,7 +806,7 @@ export default function StudioClient({ engineHeroes = {} }: { engineHeroes?: Rec
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
 
       <h1><UiLabel>Studio</UiLabel></h1>
-      <p className="sub"><UiLabel>Your idea first. Review the settings, then generate.</UiLabel></p>
+      <p className="sub"><UiLabel>Pick an engine, write your idea, then generate.</UiLabel></p>
 
       <nav className="studio-modes" aria-label={t('Video mode', 'Modo de vídeo')}>
         <button type="button" aria-pressed={scriptMode !== 'clip'} onClick={() => { if (scriptMode === 'clip') setScriptMode('ai') }}><UiLabel>Film</UiLabel></button>
@@ -816,9 +815,98 @@ export default function StudioClient({ engineHeroes = {} }: { engineHeroes?: Rec
       </nav>
       <div className="grid composer-proposal-grid">
         <section className="composer-proposal-idea" aria-label={t('Your idea', 'Tu idea')}>
+          {/* KINEO-STUDIO-MOTOR-PRIMEIRO-2026-09-30 — fundador: "a ideia tem que vir depois que você escolhe o motor".
+              Motor → ideia → formato → gerar (como Buzzy/Higgsfield: o modelo no topo do painel, o vídeo dele à direita). */}
+<div className="studio-engine-pick" hidden={scriptMode === 'clip'} style={{ position: 'relative' }}>
+            <button type="button" className="mdlbtn" onClick={() => setPickerOpen((o) => !o)}>
+              <span className="lab" style={{ marginBottom: 0 }}><span className="n">1</span><UiLabel>Engine</UiLabel></span>
+              <span className="mdlname" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="eng-ic" aria-hidden="true"><KineoBoltText>{eng.icon}</KineoBoltText></span>
+                <b>{eng.name}</b>
+                {/* KINEO-RES-1080-2026-08-24 — o fundador leu "720p ▾" ao lado
+                    do Kling 3 e "1080×1920 master" logo abaixo como CONTRADIÇÃO
+                    ("precisa arrumar isso") — e ele é o leitor mais treinado da
+                    casa; cliente tropeça igual. A decisão dele de 17/08 já dizia:
+                    "só 1080p — as pessoas não precisam saber". O rótulo do card
+                    fecha com a promessa da entrega (todo master é 1080×1920,
+                    verificado por ffprobe); a resolução NATIVA do motor sai da
+                    vitrine e vive só no hint explicativo do formato. */}
+                <i style={{ marginLeft: 'auto' }}>1080p ▾</i>
+              </span>
+            </button>
+            {pickerOpen && (
+              <div className="picker">
+                {ENGINES.filter((e) => (e.key !== 's25' || internal) && (e.key !== 'fast' || kineo1Shown)).map((e) => { const pausa = e.paused ? enginePaused(e.key) : null; return (
+                  <button key={e.key} type="button" className={`pk${e.key === engine ? ' on' : ''}`} disabled={Boolean(pausa)} aria-disabled={Boolean(pausa)} title={pausa ? pausa.message : undefined} style={pausa ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}
+                    onClick={() => { setEngine(e.key); setPickerOpen(false) }}>
+                    <span className="eng-ic" aria-hidden="true"><KineoBoltText>{e.icon}</KineoBoltText></span>
+                    <span className="pk-tx">
+                      {/* ═══ KINEO-PRECO-VISIVEL-2026-09-02 — REVERTE O #2026-08-18 ═══
+                          A nota antiga aqui dizia "preço não mora no seletor — só no
+                          cartão de gerar e no /pricing", citando Higgsfield/InVideo.
+                          A averiguação de 02/09 mostrou o contrário na fonte oficial:
+                          a Higgsfield imprime o custo DENTRO do botão Generate
+                          ("the exact cost is shown on the Generate button before you
+                          confirm") e publica ~70 modelos em créditos/5s; a Hailuo põe
+                          o número colado no botão Create e recalcula ao vivo. Quem
+                          esconde é Canva/InVideo — e esses têm 3 tiers, não 8 motores.
+                          O preço da nossa omissão está medido: 102 pessoas em 30 dias
+                          queimaram o trial inteiro no primeiro clique sem saber.
+                          Agora cada card diz o custo E quantos filmes o saldo compra. */}
+                      <span className="t">
+                        <b>{e.name}{pausa ? <span className="tag" style={{ background: 'rgba(255,180,84,.16)', color: '#ffb454' }}><UiLabel>Maintenance</UiLabel></span> : e.tag && <span className="tag"><UiLabel>{e.tag}</UiLabel></span>}{!pausa && ENGINE_GATE_ACTIVE && STUDIO_ONLY_ENGINE_KEYS.has(e.key) && <span className="tag" title="Studio plan engine"><UiLabel>Studio</UiLabel></span>}</b>
+                        <i>{engineCostLabel(e.key)}</i>
+                      </span>
+                      <span className="d"><UiLabel>{pausa ? `Temporarily paused for maintenance · use ${pausa.alternative.label} meanwhile` : e.desc}</UiLabel></span>
+                      <span className="d" style={{ color: e.key === 'fast' ? 'var(--accent)' : undefined, marginTop: 2 }}>
+                        {filmsLabel(e.key)}
+                      </span>
+                      {(() => { const st = stepDownFor(e.key); return st ? (
+                        <span role="button" tabIndex={0} className="pill on"
+                          onClick={(ev) => { ev.stopPropagation(); void trackEvent('studio_shorter_step_clicked', { engine: e.key, from: duration, to: st.seconds, cost: st.cost, balance }); setDuration(st.seconds); setEngine(e.key); setPickerOpen(false) }}
+                          onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ev.stopPropagation(); void trackEvent('studio_shorter_step_clicked', { engine: e.key, from: duration, to: st.seconds, cost: st.cost, balance }); setDuration(st.seconds); setEngine(e.key); setPickerOpen(false) } }}>
+                          <UiLabel>{`${st.seconds}s fits your credits · ${st.cost} cr`}</UiLabel>
+                        </span>
+                      ) : null })()}
+                    </span>
+                    {e.preview && (
+                      <span className="pkv" aria-hidden="true">
+                        <video src={e.preview} muted loop playsInline preload="none"
+                          onMouseEnter={(ev) => { const v = ev.currentTarget; v.currentTime = 0; v.play().catch(() => {}) }} />
+                      </span>
+                    )}
+                  </button>
+                ) })}
+                {/* KINEO-SPRINT-UI8-2026-08-30 — Avatar era o motor INVISIVEL
+                    (auditoria 28/08, achado #2): anunciado como 1 dos 8 motores,
+                    0 debitos NA HISTORIA — porque nao existia em NENHUM seletor.
+                    O /generate virou porteiro do /studio, entao este picker e o
+                    UNICO lugar onde cliente escolhe motor. O Avatar tem pipeline
+                    proprio (foto → apresentador falando), entao o card nao entra
+                    no fluxo do Studio: e a PORTA para o ambiente dedicado /avatar.
+                    Selo honesto: sem claim de resolucao (0 masters verificados).
+                    KINEO-AVATAR-FORA-2026-09-28 — atrás de avatarOn (AVATAR_PUBLIC || conta da casa). */}
+                {avatarOn && <button
+                  type="button"
+                  className="pk"
+                  onClick={() => { setPickerOpen(false); router.push('/avatar') }}
+                  onPointerDown={() => { void trackEvent('studio_avatar_card_clicked', { balance }) /* KINEO-AVATAR-MEDIDO-2026-09-22: 0 débitos na história — medir o gesto, não o débito */ }}
+                >
+                  <span className="eng-ic" aria-hidden="true">🧑</span>
+                  <span className="pk-tx">
+                    <span className="t">
+                      <b>Avatar<span className="tag"><UiLabel>Presenter</UiLabel></span></b>
+                      <i><UiLabel>Avatar Studio →</UiLabel></i>
+                    </span>
+                    <span className="d"><UiLabel>Talking AI presenter from a photo — lip-synced, its own studio</UiLabel></span>
+                  </span>
+                </button>}
+              </div>
+            )}
+          </div>
 <div>
             <div className="lab" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span><span className="n">1</span><UiLabel>{chatGptQuickstart === 'finished_script' ? 'Paste your ChatGPT script' : chatGptQuickstart === 'idea' ? 'Paste your ChatGPT idea' : 'Your idea'}</UiLabel></span>
+              <span><span className="n">{scriptMode === 'clip' ? 1 : 2}</span><UiLabel>{chatGptQuickstart === 'finished_script' ? 'Paste your ChatGPT script' : chatGptQuickstart === 'idea' ? 'Paste your ChatGPT idea' : 'Your idea'}</UiLabel></span>
               <button
                 type="button"
                 className="pill"
@@ -976,95 +1064,8 @@ export default function StudioClient({ engineHeroes = {} }: { engineHeroes?: Rec
           </div>
         </section>
         <section className="composer-proposal-settings" aria-label={t('Settings and generation', 'Ajustes y generación')}>
-<div hidden={scriptMode === 'clip'} style={{ position: 'relative' }}>
-            <button type="button" className="mdlbtn" onClick={() => setPickerOpen((o) => !o)}>
-              <span className="lab" style={{ marginBottom: 0 }}><span className="n">2</span><UiLabel>Engine</UiLabel></span>
-              <span className="mdlname" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span className="eng-ic" aria-hidden="true"><KineoBoltText>{eng.icon}</KineoBoltText></span>
-                <b>{eng.name}</b>
-                {/* KINEO-RES-1080-2026-08-24 — o fundador leu "720p ▾" ao lado
-                    do Kling 3 e "1080×1920 master" logo abaixo como CONTRADIÇÃO
-                    ("precisa arrumar isso") — e ele é o leitor mais treinado da
-                    casa; cliente tropeça igual. A decisão dele de 17/08 já dizia:
-                    "só 1080p — as pessoas não precisam saber". O rótulo do card
-                    fecha com a promessa da entrega (todo master é 1080×1920,
-                    verificado por ffprobe); a resolução NATIVA do motor sai da
-                    vitrine e vive só no hint explicativo do formato. */}
-                <i style={{ marginLeft: 'auto' }}>1080p ▾</i>
-              </span>
-            </button>
-            {pickerOpen && (
-              <div className="picker">
-                {ENGINES.filter((e) => (e.key !== 's25' || internal) && (e.key !== 'fast' || kineo1Shown)).map((e) => { const pausa = e.paused ? enginePaused(e.key) : null; return (
-                  <button key={e.key} type="button" className={`pk${e.key === engine ? ' on' : ''}`} disabled={Boolean(pausa)} aria-disabled={Boolean(pausa)} title={pausa ? pausa.message : undefined} style={pausa ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}
-                    onClick={() => { setEngine(e.key); setPickerOpen(false) }}>
-                    <span className="eng-ic" aria-hidden="true"><KineoBoltText>{e.icon}</KineoBoltText></span>
-                    <span className="pk-tx">
-                      {/* ═══ KINEO-PRECO-VISIVEL-2026-09-02 — REVERTE O #2026-08-18 ═══
-                          A nota antiga aqui dizia "preço não mora no seletor — só no
-                          cartão de gerar e no /pricing", citando Higgsfield/InVideo.
-                          A averiguação de 02/09 mostrou o contrário na fonte oficial:
-                          a Higgsfield imprime o custo DENTRO do botão Generate
-                          ("the exact cost is shown on the Generate button before you
-                          confirm") e publica ~70 modelos em créditos/5s; a Hailuo põe
-                          o número colado no botão Create e recalcula ao vivo. Quem
-                          esconde é Canva/InVideo — e esses têm 3 tiers, não 8 motores.
-                          O preço da nossa omissão está medido: 102 pessoas em 30 dias
-                          queimaram o trial inteiro no primeiro clique sem saber.
-                          Agora cada card diz o custo E quantos filmes o saldo compra. */}
-                      <span className="t">
-                        <b>{e.name}{pausa ? <span className="tag" style={{ background: 'rgba(255,180,84,.16)', color: '#ffb454' }}><UiLabel>Maintenance</UiLabel></span> : e.tag && <span className="tag"><UiLabel>{e.tag}</UiLabel></span>}{!pausa && ENGINE_GATE_ACTIVE && STUDIO_ONLY_ENGINE_KEYS.has(e.key) && <span className="tag" title="Studio plan engine"><UiLabel>Studio</UiLabel></span>}</b>
-                        <i>{engineCostLabel(e.key)}</i>
-                      </span>
-                      <span className="d"><UiLabel>{pausa ? `Temporarily paused for maintenance · use ${pausa.alternative.label} meanwhile` : e.desc}</UiLabel></span>
-                      <span className="d" style={{ color: e.key === 'fast' ? 'var(--accent)' : undefined, marginTop: 2 }}>
-                        {filmsLabel(e.key)}
-                      </span>
-                      {(() => { const st = stepDownFor(e.key); return st ? (
-                        <span role="button" tabIndex={0} className="pill on"
-                          onClick={(ev) => { ev.stopPropagation(); void trackEvent('studio_shorter_step_clicked', { engine: e.key, from: duration, to: st.seconds, cost: st.cost, balance }); setDuration(st.seconds); setEngine(e.key); setPickerOpen(false) }}
-                          onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ev.stopPropagation(); void trackEvent('studio_shorter_step_clicked', { engine: e.key, from: duration, to: st.seconds, cost: st.cost, balance }); setDuration(st.seconds); setEngine(e.key); setPickerOpen(false) } }}>
-                          <UiLabel>{`${st.seconds}s fits your credits · ${st.cost} cr`}</UiLabel>
-                        </span>
-                      ) : null })()}
-                    </span>
-                    {e.preview && (
-                      <span className="pkv" aria-hidden="true">
-                        <video src={e.preview} muted loop playsInline preload="none"
-                          onMouseEnter={(ev) => { const v = ev.currentTarget; v.currentTime = 0; v.play().catch(() => {}) }} />
-                      </span>
-                    )}
-                  </button>
-                ) })}
-                {/* KINEO-SPRINT-UI8-2026-08-30 — Avatar era o motor INVISIVEL
-                    (auditoria 28/08, achado #2): anunciado como 1 dos 8 motores,
-                    0 debitos NA HISTORIA — porque nao existia em NENHUM seletor.
-                    O /generate virou porteiro do /studio, entao este picker e o
-                    UNICO lugar onde cliente escolhe motor. O Avatar tem pipeline
-                    proprio (foto → apresentador falando), entao o card nao entra
-                    no fluxo do Studio: e a PORTA para o ambiente dedicado /avatar.
-                    Selo honesto: sem claim de resolucao (0 masters verificados).
-                    KINEO-AVATAR-FORA-2026-09-28 — atrás de avatarOn (AVATAR_PUBLIC || conta da casa). */}
-                {avatarOn && <button
-                  type="button"
-                  className="pk"
-                  onClick={() => { setPickerOpen(false); router.push('/avatar') }}
-                  onPointerDown={() => { void trackEvent('studio_avatar_card_clicked', { balance }) /* KINEO-AVATAR-MEDIDO-2026-09-22: 0 débitos na história — medir o gesto, não o débito */ }}
-                >
-                  <span className="eng-ic" aria-hidden="true">🧑</span>
-                  <span className="pk-tx">
-                    <span className="t">
-                      <b>Avatar<span className="tag"><UiLabel>Presenter</UiLabel></span></b>
-                      <i><UiLabel>Avatar Studio →</UiLabel></i>
-                    </span>
-                    <span className="d"><UiLabel>Talking AI presenter from a photo — lip-synced, its own studio</UiLabel></span>
-                  </span>
-                </button>}
-              </div>
-            )}
-          </div>
 <div className="card">
-            <div className="lab"><span className="n">3</span><UiLabel>Format</UiLabel></div>
+            <div className="lab"><span className="n">{scriptMode === 'clip' ? 2 : 3}</span><UiLabel>Format</UiLabel></div>
             <div className="row" style={{ marginBottom: 12, display: scriptMode === 'clip' ? 'none' : undefined }}>
               {/* ═══ KINEO-DURACAO-2026-08-20 — OS TRÊS TIERS QUE O DADO PEDE ═══
                   Medido em 6M de vídeos do TikTok (Socialinsider, jan-jun/2026):
@@ -1477,13 +1478,14 @@ export default function StudioClient({ engineHeroes = {} }: { engineHeroes?: Rec
 .composer-proposal .composer-proposal-idea{grid-column:1;grid-row:1}
 .composer-proposal .composer-proposal-settings{grid-column:1;grid-row:2}
 .studio-engine-hero{grid-column:2;grid-row:1 / span 2;position:sticky;top:16px;align-self:start;min-width:0}
-.seh{display:flex;flex-direction:column;gap:10px}
-.seh-frame{position:relative;border-radius:20px;overflow:hidden;background:#05070b;border:1px solid #293341;aspect-ratio:16/10;max-height:calc(100svh - 140px);display:flex;align-items:center;justify-content:center}
-.seh-frame video{display:block}
-.seh-frame .seh-bg{position:absolute;inset:-8%;width:116%;height:116%;object-fit:cover;filter:blur(28px) brightness(.55) saturate(1.2);pointer-events:none}
-.seh-frame .seh-main{position:relative;width:100%;height:100%;object-fit:contain}
-.seh-empty{color:#c9d1dc;font-size:20px}
-.seh-badge{position:absolute;left:12px;top:12px;background:rgba(0,0,0,.62);color:#f5f5f7;border-radius:999px;padding:5px 11px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.seh{display:flex;flex-direction:column;align-items:center;gap:10px}
+.seh-frame{position:relative;display:block;max-width:100%;border-radius:20px;overflow:hidden;background:#05070b;line-height:0}
+.seh-frame .seh-main{display:block;width:min(100%,calc(max(420px,min(100svh - 300px,760px)) * .5625));height:auto;max-height:max(420px,min(calc(100svh - 300px),760px));object-fit:contain}
+.seh-empty{display:flex;align-items:center;justify-content:center;aspect-ratio:9/16;height:max(420px,min(calc(100svh - 300px),760px));color:#c9d1dc;font-size:20px;line-height:1.2}
+.seh-meta{width:100%}
+.studio-engine-pick{margin-bottom:18px}
+@media(max-width:900px){.seh-frame .seh-main{width:min(100%,calc(68svh * .5625));max-height:68svh}.seh-empty{height:68svh}}
+.seh-badge{position:absolute;left:12px;bottom:12px;line-height:1.2;background:rgba(0,0,0,.62);color:#f5f5f7;border-radius:999px;padding:5px 11px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
 .seh-meta{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 4px}
 .seh-title{margin:0;font-size:13px;color:#aeb9c8;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .seh-dots{display:flex;gap:6px;flex-shrink:0}
@@ -1506,7 +1508,7 @@ export default function StudioClient({ engineHeroes = {} }: { engineHeroes?: Rec
  .studio-modes{display:flex;flex-wrap:wrap;gap:8px;padding:5px;margin:20px 0;max-width:1320px;border-bottom:1px solid #27303e}
 .studio-modes button,.studio-modes a{display:inline-flex;align-items:center;gap:12px;min-height:44px;padding:10px 18px;border:1px solid transparent;border-radius:12px;background:transparent;color:#aeb9c8;font:600 13px inherit;text-decoration:none;cursor:pointer}
 .studio-modes button[aria-pressed=true]{background:#2997ff1f;color:#8fc8ff;border-color:#2997ff55}.studio-modes a:hover,.studio-modes button:hover{background:#ffffff08}.studio-modes :focus-visible{outline:2px solid #2997ff;outline-offset:2px}
-.composer-proposal .studio-generation-review{margin-top:18px;background:#0d1929;border-color:#2997ff55;padding:16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.studio-generation-review>.sum,.studio-generation-review>.go,.studio-generation-review>.gnote{grid-column:1/-1}.composer-proposal .studio-generation-review>.val{display:block;margin:0;font-size:12px}.composer-proposal .studio-generation-review>.val b{display:block;margin-top:3px}.studio-output-details{margin-top:10px;color:#aeb9c8;font-size:12px}.studio-output-details summary{cursor:pointer;min-height:36px;align-content:center}.studio-output-details .hint{font-size:11px}.composer-proposal .composer-proposal-settings .card{padding:18px}.composer-proposal .composer-proposal-idea .n{display:none}
+.composer-proposal .studio-generation-review{margin-top:18px;background:#0d1929;border-color:#2997ff55;padding:16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.studio-generation-review>.sum,.studio-generation-review>.go,.studio-generation-review>.gnote{grid-column:1/-1}.composer-proposal .studio-generation-review>.val{display:block;margin:0;font-size:12px}.composer-proposal .studio-generation-review>.val b{display:block;margin-top:3px}.studio-output-details{margin-top:10px;color:#aeb9c8;font-size:12px}.studio-output-details summary{cursor:pointer;min-height:36px;align-content:center}.studio-output-details .hint{font-size:11px}.composer-proposal .composer-proposal-settings .card{padding:18px}
 .composer-proposal-how{margin-top:24px}.composer-proposal-how>summary{min-height:44px;align-content:center;cursor:pointer;color:#a1a1aa;font-size:13px}
 .stu .pk .pk-tx>.pill[role=button]{display:inline-flex;align-items:center;min-height:44px;max-width:100%;margin-top:8px;padding:8px 12px;border-radius:10px;border:1px solid rgba(92,179,255,.5);background:rgba(41,151,255,.12);color:#b8dfff;box-shadow:none;font-size:12px;line-height:1.5;white-space:normal;overflow-wrap:anywhere;text-align:start}
 .stu .pk .pk-tx>.pill[role=button]:hover{background:rgba(41,151,255,.22);border-color:#7cc0ff;transform:none}

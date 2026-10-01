@@ -135,7 +135,7 @@ export const DICT: Record<string, string> = {
   'a single line is enough — or paste a full script': 'eine einzige Zeile reicht — oder füge ein komplettes Skript ein',
   '1080×1920 · Full HD master': '1080×1920 · Full-HD-Master',
   'Every film is delivered as a 1080×1920 Full HD master (engines render natively at 720–768p and are mastered up). For maximum sharpness, run ✨HD Enhance on the finished film.': 'Jeder Film wird als 1080×1920-Full-HD-Master geliefert (die Engines rendern nativ in 720–768p und werden hochgemastert). Für maximale Schärfe lass ✨HD Enhance über den fertigen Film laufen.',
-  'Your idea first. Review the settings, then generate.': 'Zuerst deine Idee. Prüfe die Einstellungen, dann generiere.',
+  'Pick an engine, write your idea, then generate.': 'Wähle die Engine, schreib deine Idee, dann generiere.',
   '📷 Photo': '📷 Foto',
   '🖼️ Upload a different photo': '🖼️ Anderes Foto hochladen',
   '🎙️ Generating…': '🎙️ Wird generiert…',
