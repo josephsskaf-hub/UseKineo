@@ -1,2 +1,2 @@
-// The legacy admin routes share the same dark palette as /admin.
+// Both route trees share the approved administrative shell and palette.
 export { default } from '@/app/admin/layout'

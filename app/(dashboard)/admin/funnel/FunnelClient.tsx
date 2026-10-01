@@ -35,7 +35,7 @@ const PERIODS: Array<{ label: string; days: string }> = [
   { label: 'All', days: 'all' },
 ]
 const STATUS_COLOR: Record<string, string> = {
-  Cold: '#94a3b8', Warm: '#fbbf24', Hot: '#f97316', 'Very Hot': '#ef4444',
+  Cold: '#5A5F67', Warm: '#8A4B00', Hot: '#9A3412', 'Very Hot': '#B42318',
 }
 
 export default function FunnelClient({ data: initialData, viewerEmail, denied }: Props) {
@@ -197,7 +197,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
   return (
     <div className="px-4 sm:px-6 py-7 pb-20 max-w-5xl mx-auto">
       <header className="mb-6">
-        <div className="font-black uppercase tracking-widest mb-1" style={{ fontSize: '0.62rem', color: '#c4b5fd' }}>
+        <div className="font-black uppercase tracking-widest mb-1" style={{ fontSize: '0.62rem', color: '#6941C6' }}>
           Admin · Live
         </div>
         <div className="flex items-end justify-between gap-3 flex-wrap">
@@ -223,9 +223,9 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
                 onClick={() => setDays(p.days)}
                 className="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
                 style={{
-                  background: active ? '#22d3ee' : 'rgba(255,255,255,0.04)',
-                  color: active ? '#0A0A0B' : 'var(--muted)',
-                  border: `1px solid ${active ? '#22d3ee' : 'var(--border)'}`,
+                  background: active ? '#08778B' : 'rgba(14,17,22,0.04)',
+                  color: active ? 'var(--on-accent)' : 'var(--muted)',
+                  border: `1px solid ${active ? '#08778B' : 'var(--border)'}`,
                 }}
               >
                 {p.label}
@@ -235,7 +235,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           <span className="ml-2 self-center text-[11px]" style={{ color: 'var(--muted)' }}>
             cohort = signups in period
           </span>
-          <span className="self-center rounded-full px-2 py-1 text-[10px] font-bold" style={{ color: '#22d3ee', border: '1px solid rgba(34,211,238,0.35)', background: 'rgba(34,211,238,0.08)' }}>
+          <span className="self-center rounded-full px-2 py-1 text-[10px] font-bold" style={{ color: '#08778B', border: '1px solid rgba(34,211,238,0.35)', background: 'rgba(34,211,238,0.08)' }}>
             {data.scopeLabel}
           </span>
         </div>
@@ -248,11 +248,11 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
             Funnel (cohort)
           </h2>
           {leak && (
-            <div className="rounded-xl px-4 py-3 mb-3 text-sm font-bold" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.4)', color: '#f87171' }}>
+            <div className="rounded-xl px-4 py-3 mb-3 text-sm font-bold" style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.4)', color: '#B42318' }}>
               🩸 Biggest leak: {leak.label} — lost {fmt(leak.lossAbs)} ({pct1(leak.lossPct)})
             </div>
           )}
-          <div className="rounded-2xl p-4" style={{ background: 'rgba(11,17,32,0.85)', border: '1px solid var(--border)' }}>
+          <div className="rounded-2xl p-4" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
             {steps.map((st, i) => {
               const isLeak = leak ? st.label === leak.stepLabel : false
               const widthPct = Math.max(3, Math.round((st.count / maxCount) * 100))
@@ -263,11 +263,11 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
                     <span style={{ color: 'var(--muted)' }}>
                       <b style={{ color: 'var(--text)' }}>{fmt(st.count)}</b>
                       {i > 0 && <> · {pct1(st.pctOfPrev)} of prev · {pct1(st.pctOfSignups)} of signups</>}
-                      {i > 0 && st.lossAbs > 0 && <span style={{ color: '#f87171' }}> · −{fmt(st.lossAbs)}</span>}
+                      {i > 0 && st.lossAbs > 0 && <span style={{ color: '#B42318' }}> · −{fmt(st.lossAbs)}</span>}
                     </span>
                   </div>
-                  <div className="rounded-md h-7 overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', border: isLeak ? '1.5px solid #ef4444' : '1px solid var(--border)' }}>
-                    <div className="h-full rounded-md" style={{ width: `${widthPct}%`, background: isLeak ? 'linear-gradient(90deg,#ef4444,#b91c1c)' : 'linear-gradient(90deg,#22d3ee,#8b5cf6)' }} />
+                  <div className="rounded-md h-7 overflow-hidden" style={{ background: 'rgba(14,17,22,0.04)', border: isLeak ? '1.5px solid #B42318' : '1px solid var(--border)' }}>
+                    <div className="h-full rounded-md" style={{ width: `${widthPct}%`, background: isLeak ? 'linear-gradient(90deg,#B42318,#b91c1c)' : 'linear-gradient(90deg,#08778B,#8b5cf6)' }} />
                   </div>
                 </div>
               )
@@ -281,12 +281,12 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
         <Section title="Revenue leaks">
           <div className="col-span-full flex flex-col gap-2">
             {data.revenueLeaks.map((l) => (
-              <div key={l.label} className="rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap" style={{ background: 'rgba(11,17,32,0.85)', border: '1px solid var(--border)' }}>
+              <div key={l.label} className="rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
                 <div className="flex items-center gap-3">
-                  <span className="font-black" style={{ fontSize: '1.3rem', color: l.count > 0 ? '#fbbf24' : 'var(--muted)' }}>{fmt(l.count)}</span>
+                  <span className="font-black" style={{ fontSize: '1.3rem', color: l.count > 0 ? '#8A4B00' : 'var(--muted)' }}>{fmt(l.count)}</span>
                   <span className="text-sm font-bold" style={{ color: 'var(--text)' }}>{l.label}</span>
                 </div>
-                <span className="text-xs font-semibold" style={{ color: '#22d3ee' }}>→ {l.action}</span>
+                <span className="text-xs font-semibold" style={{ color: '#08778B' }}>→ {l.action}</span>
               </div>
             ))}
           </div>
@@ -299,7 +299,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           <h2 className="font-black tracking-tight mb-3" style={{ fontSize: '0.88rem', color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             Hot leads · closest to paying
           </h2>
-          <div className="rounded-2xl overflow-x-auto" style={{ background: 'rgba(11,17,32,0.85)', border: '1px solid var(--border)' }}>
+          <div className="rounded-2xl overflow-x-auto" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
             <table className="w-full text-left text-xs" style={{ minWidth: 640 }}>
               <thead>
                 <tr style={{ color: 'var(--muted)' }}>
@@ -341,7 +341,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
               Unique external people. Checkout and paid stay nested inside the completed-video cohort; the ChatGPT row is highlighted.
             </p>
           </div>
-          <div className="rounded-2xl overflow-x-auto" style={{ background: 'rgba(11,17,32,0.85)', border: '1px solid var(--border)' }}>
+          <div className="rounded-2xl overflow-x-auto" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
             <table className="w-full text-left text-xs" style={{ minWidth: 860 }}>
               <thead>
                 <tr style={{ color: 'var(--muted)' }}>
@@ -360,13 +360,13 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
                   const isChatGpt = src.source === 'chatgpt'
                   return (
                   <tr key={src.source} style={{ borderTop: '1px solid var(--border)', color: 'var(--text2)', background: isChatGpt ? 'rgba(34,211,238,0.07)' : undefined }}>
-                    <td className="px-3 py-2 font-bold" style={{ color: isChatGpt ? '#67e8f9' : 'var(--text)' }}>
+                    <td className="px-3 py-2 font-bold" style={{ color: isChatGpt ? '#08778B' : 'var(--text)' }}>
                       {src.source}{isChatGpt ? ' · FOCUS' : ''}
                     </td>
                     <td className="px-3 py-2">{sourceConversion.profilesAvailable ? fmt(src.signups) : '—'}</td>
                     <td className="px-3 py-2">{sourceConversion.videosAvailable ? fmt(src.completedVideos) : '—'}</td>
                     <td className="px-3 py-2">{sourceConversion.checkoutAvailable ? fmt(src.checkoutAfterVideo) : '—'}</td>
-                    <td className="px-3 py-2" style={{ color: src.paidAfterCheckout > 0 ? '#a78bfa' : 'var(--muted)' }}>
+                    <td className="px-3 py-2" style={{ color: src.paidAfterCheckout > 0 ? '#6941C6' : 'var(--muted)' }}>
                       {sourceConversion.paymentsAvailable ? fmt(src.paidAfterCheckout) : '—'}
                     </td>
                     <td className="px-3 py-2">{sourceConversion.videosAvailable ? src.signupToVideoRate : '—'}</td>
@@ -386,25 +386,25 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Known-source signups"
           value={fmt(acquisition.attributedSignups)}
           hint={`${fmt(acquisition.attributedActivated)} activated · ${fmt(acquisition.attributedPaid)} paid`}
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <Card
           label="Direct / unknown"
           value={fmt(acquisition.directOrUnknownSignups)}
           hint="no trustworthy first-touch source"
-          accent="#94a3b8"
+          accent="#5A5F67"
         />
         <Card
           label="OAuth / checkout refs ignored"
           value={fmt(acquisition.correctedSelfReferrals)}
           hint="historical rows normalized at read time"
-          accent={acquisition.correctedSelfReferrals > 0 ? '#fbbf24' : '#22d3ee'}
+          accent={acquisition.correctedSelfReferrals > 0 ? '#8A4B00' : '#08778B'}
         />
         <Card
           label="Top known source"
           value={acquisition.topSource ?? '—'}
           hint={`${fmt(acquisition.topSourceSignups)} signups`}
-          accent="#a78bfa"
+          accent="#6941C6"
         />
       </Section>
 
@@ -414,7 +414,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           <h2 className="font-black tracking-tight mb-3" style={{ fontSize: '0.88rem', color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             Topic performance · what gets made
           </h2>
-          <div className="rounded-2xl overflow-x-auto" style={{ background: 'rgba(11,17,32,0.85)', border: '1px solid var(--border)' }}>
+          <div className="rounded-2xl overflow-x-auto" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
             <table className="w-full text-left text-xs" style={{ minWidth: 480 }}>
               <thead>
                 <tr style={{ color: 'var(--muted)' }}>
@@ -439,18 +439,18 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
 
       {/* ── Existing real-stats sections ──────────────────────────────────── */}
       <Section title="Growth (all-time)">
-        <Card label="Total users"      value={fmt(s.totalUsers)}    hint="all signups"   accent="#22d3ee" />
-        <Card label="New this week"    value={fmt(s.newThisWeek)}   hint="last 7 days"   accent="#a78bfa" />
-        <Card label="New this month"   value={fmt(s.newThisMonth)}  hint="last 30 days"  accent="#a78bfa" />
-        <Card label="Videos this week" value={fmt(s.videosThisWeek)} hint="last 7 days"  accent="#a78bfa" />
+        <Card label="Total users"      value={fmt(s.totalUsers)}    hint="all signups"   accent="#08778B" />
+        <Card label="New this week"    value={fmt(s.newThisWeek)}   hint="last 7 days"   accent="#6941C6" />
+        <Card label="New this month"   value={fmt(s.newThisMonth)}  hint="last 30 days"  accent="#6941C6" />
+        <Card label="Videos this week" value={fmt(s.videosThisWeek)} hint="last 7 days"  accent="#6941C6" />
       </Section>
 
       <Section title="Subscribers">
-        <Card label="Starter" value={fmt(s.starterUsers ?? 0)} hint="Stripe active / trialing" accent="#22d3ee" />
-        <Card label="Creator" value={fmt(s.basicUsers)} hint="Stripe active / trialing" accent="#a78bfa" />
-        <Card label="Studio"  value={fmt(s.proUsers)}   hint="Stripe active / trialing" accent="#a78bfa" />
-        <Card label="Free"    value={fmt(s.freeUsers)}  hint="no valid recurring plan" accent="#94a3b8" />
-        <Card label="Paid · 0 credits ⚠️" value={fmt(s.paidNoCredits)} hint="check Stripe webhook" accent={s.paidNoCredits > 0 ? '#f87171' : '#a78bfa'} />
+        <Card label="Starter" value={fmt(s.starterUsers ?? 0)} hint="Stripe active / trialing" accent="#08778B" />
+        <Card label="Creator" value={fmt(s.basicUsers)} hint="Stripe active / trialing" accent="#6941C6" />
+        <Card label="Studio"  value={fmt(s.proUsers)}   hint="Stripe active / trialing" accent="#6941C6" />
+        <Card label="Free"    value={fmt(s.freeUsers)}  hint="no valid recurring plan" accent="#5A5F67" />
+        <Card label="Paid · 0 credits ⚠️" value={fmt(s.paidNoCredits)} hint="check Stripe webhook" accent={s.paidNoCredits > 0 ? '#B42318' : '#6941C6'} />
       </Section>
 
       <Section title="Conversion rates (all-time)">
@@ -465,31 +465,31 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="OAuth callbacks completed"
           value={fmt(data.counts.auth_callback_completed ?? 0)}
           hint="authoritative server event"
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <Card
           label="Email signups completed"
           value={fmt(data.counts.email_signup_completed ?? 0)}
           hint="authenticated before redirect"
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <Card
           label="Arrived at generator"
           value={fmt(data.counts.generate_arrived_server ?? 0)}
           hint="authenticated server arrival"
-          accent="#a78bfa"
+          accent="#6941C6"
         />
         <Card
           label="Activation session missing"
           value={fmt(data.counts.generate_activation_auth_missing ?? 0)}
           hint="must stay at zero"
-          accent={(data.counts.generate_activation_auth_missing ?? 0) > 0 ? '#f87171' : '#22d3ee'}
+          accent={(data.counts.generate_activation_auth_missing ?? 0) > 0 ? '#B42318' : '#08778B'}
         />
         <Card
           label="OAuth callbacks failed"
           value={fmt(data.counts.auth_callback_failed ?? 0)}
           hint="no credentials stored"
-          accent={(data.counts.auth_callback_failed ?? 0) > 0 ? '#fbbf24' : '#22d3ee'}
+          accent={(data.counts.auth_callback_failed ?? 0) > 0 ? '#8A4B00' : '#08778B'}
         />
       </Section>
 
@@ -498,19 +498,19 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Qualified intent actors"
           value={fmt(data.counts.checkout_attempted ?? 0)}
           hint={`${fmt(data.counts.checkout_attempted_raw ?? 0)} raw API requests`}
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <Card
           label="Auth wall actors"
           value={fmt(data.counts.checkout_auth_required ?? 0)}
           hint={`${fmt(data.counts.checkout_auth_page_view ?? 0)} reached signup screen`}
-          accent="#a78bfa"
+          accent="#6941C6"
         />
         <Card
           label="Auth method selected"
           value={fmt(data.counts.checkout_auth_method_selected ?? 0)}
           hint={`${fmt(data.counts.checkout_auth_confirmation_required ?? 0)} awaiting confirmation`}
-          accent="#a78bfa"
+          accent="#6941C6"
         />
         <Card
           label="Checkout auth completed"
@@ -519,19 +519,19 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
             data.counts.checkout_auth_callback_completed ?? 0,
           ))}
           hint="client completion or checkout callback"
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <Card
           label="Authenticated attempts"
           value={fmt(data.counts.checkout_authenticated_attempted ?? 0)}
           hint={`${fmt(data.counts.checkout_started ?? 0)} created Stripe session`}
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <Card
           label="Unidentified probes"
           value={fmt(data.counts.checkout_unidentified_requests ?? 0)}
           hint="excluded from buyer conversion rates"
-          accent={(data.counts.checkout_unidentified_requests ?? 0) > 0 ? '#fbbf24' : '#22d3ee'}
+          accent={(data.counts.checkout_unidentified_requests ?? 0) > 0 ? '#8A4B00' : '#08778B'}
         />
       </Section>
 
@@ -540,51 +540,51 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Agency page viewers"
           value={fmt(data.counts.agency_bulk_page_viewed ?? 0)}
           hint="unique people / sessions"
-          accent="#34d399"
+          accent="#0F7A55"
         />
         <Card
           label="Margin calculator viewers"
           value={fmt(data.counts.agency_margin_calculator_viewed ?? 0)}
           hint="unique people / sessions"
-          accent="#5cb3ff"
+          accent="#0A5CFF"
         />
         <Card
           label="Calculator → pack"
           value={fmt(data.counts.agency_margin_pack_selected ?? 0)}
           hint="selected a production pack"
-          accent="#5cb3ff"
+          accent="#0A5CFF"
         />
         <Card
           label="Pack checkout clicks"
           value={fmt(data.counts.agency_bulk_pack_clicked ?? 0)}
           hint={`${fmt(data.counts.bulk_checkout_started ?? 0)} Stripe sessions created`}
-          accent="#34d399"
+          accent="#0F7A55"
         />
         <Card
           label="Business brief viewers"
           value={fmt(data.counts.b2b_brief_viewed ?? 0)}
           hint="unique people / sessions"
-          accent="#a78bfa"
+          accent="#6941C6"
         />
         <Card
           label="Recorded business briefs"
           value={fmt(data.b2bLeadInbox?.total ?? 0)}
           hint={`${fmt(data.counts.b2b_brief_submitted ?? 0)} client success events`}
-          accent="#c4b5fd"
+          accent="#6941C6"
         />
       </Section>
 
       {(data.b2bLeadInbox?.leads.length ?? 0) > 0 ? (
         <section className="mb-6 rounded-xl p-4" style={{ background: 'rgba(167,139,250,.06)', border: '1px solid rgba(167,139,250,.25)' }}>
-          <h3 className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: '#c4b5fd' }}>
+          <h3 className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: '#6941C6' }}>
             Business brief inbox · {days === 'all' ? 'all time' : `${days}d`}
           </h3>
           <div className="grid gap-2">
             {data.b2bLeadInbox?.leads.slice(0, 20).map((lead) => (
               <div key={lead.email} className="rounded-lg px-3 py-2.5 flex flex-wrap items-center justify-between gap-2" style={{ background: 'rgba(11,17,32,.8)', border: '1px solid rgba(255,255,255,.07)' }}>
-                <a href={`mailto:${lead.email}`} className="text-sm font-bold break-all" style={{ color: '#f5f5f7' }}>{lead.email}</a>
+                <a href={`mailto:${lead.email}`} className="text-sm font-bold break-all" style={{ color: '#0E1116' }}>{lead.email}</a>
                 <div className="text-right">
-                  <div className="text-xs font-bold" style={{ color: '#a78bfa' }}>{lead.monthlyVolume}</div>
+                  <div className="text-xs font-bold" style={{ color: '#6941C6' }}>{lead.monthlyVolume}</div>
                   <div className="text-[10px]" style={{ color: 'var(--muted)' }}>
                     {lead.createdAt ? new Date(lead.createdAt).toLocaleString() : 'date unavailable'}
                   </div>
@@ -603,13 +603,13 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Compact handoff viewed"
           value={fmt(firstVideoOnboarding.views)}
           hint="unique users / sessions"
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <Card
           label="Primary clicks"
           value={fmt(firstVideoOnboarding.primaryClicks)}
           hint={`${fmt(firstVideoOnboarding.skips)} chose their own idea`}
-          accent="#a78bfa"
+          accent="#6941C6"
         />
         <RateCard
           label="View → Click"
@@ -620,13 +620,13 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Above-fold CTA viewers"
           value={fmt(firstVideoOnboarding.aboveFoldViews)}
           hint={ACTIVATION_HANDOFF_SURFACE_VERSION}
-          accent="#67e8f9"
+          accent="#08778B"
         />
         <Card
           label="Above-fold CTA clicks"
           value={fmt(firstVideoOnboarding.aboveFoldClicks)}
           hint="unique people; either CTA position in the new handoff"
-          accent="#2997ff"
+          accent="#0A5CFF"
         />
         <RateCard
           label="Above-fold view → click"
@@ -637,7 +637,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Renders dispatched"
           value={fmt(firstVideoOnboarding.dispatched)}
           hint="analysis reached generation dispatch"
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <RateCard
           label="Click → Dispatch"
@@ -648,7 +648,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="First videos completed"
           value={fmt(firstVideoOnboarding.completed)}
           hint={`${fmt(firstVideoOnboarding.failed)} failed`}
-          accent={firstVideoOnboarding.completed > 0 ? '#22d3ee' : '#fbbf24'}
+          accent={firstVideoOnboarding.completed > 0 ? '#08778B' : '#8A4B00'}
         />
         <RateCard
           label="Dispatch → Complete"
@@ -659,13 +659,13 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Goal router exposed"
           value={fmt(firstVideoOnboarding.goalRouterViews)}
           hint="new creator / business / client variant"
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <Card
           label="Changed default goal"
           value={fmt(firstVideoOnboarding.goalSelections)}
           hint="unique people; channel stays one-click by default"
-          accent="#a78bfa"
+          accent="#6941C6"
         />
         <RateCard
           label="Goal router view → click"
@@ -678,24 +678,24 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
             label={`Goal · ${goal.label}`}
             value={fmt(goal.clicks)}
             hint={`${fmt(goal.dispatched)} dispatched · ${fmt(goal.completed)} completed`}
-            accent={goal.clicks > 0 ? '#4ade80' : '#71717a'}
+            accent={goal.clicks > 0 ? '#0F7A55' : '#71717a'}
           />
         ))}
       </Section>
 
       <Section title={`ChatGPT quick-start · source → right input mode → video · ${days === 'all' ? 'all time' : `${days}d`}`}>
-        <Card label="Banner viewers" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.views) : '—'} hint={chatGptQuickstart.eventsAvailable ? `unique actors · ${CHATGPT_QUICKSTART_VARIANT}` : 'Events unavailable — not zero'} accent="#22d3ee" />
-        <Card label="Mode selections" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.selections) : '—'} hint={chatGptQuickstart.eventsAvailable ? `${chatGptQuickstart.scriptSelections} script · ${chatGptQuickstart.ideaSelections} idea` : 'Events unavailable — not zero'} accent="#2997ff" />
+        <Card label="Banner viewers" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.views) : '—'} hint={chatGptQuickstart.eventsAvailable ? `unique actors · ${CHATGPT_QUICKSTART_VARIANT}` : 'Events unavailable — not zero'} accent="#08778B" />
+        <Card label="Mode selections" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.selections) : '—'} hint={chatGptQuickstart.eventsAvailable ? `${chatGptQuickstart.scriptSelections} script · ${chatGptQuickstart.ideaSelections} idea` : 'Events unavailable — not zero'} accent="#0A5CFF" />
         <RateCard label="View → Choice" value={chatGptQuickstart.viewToSelectionRate} sub={`${chatGptQuickstart.selections} / ${chatGptQuickstart.views} people`} />
-        <Card label="Studio ready" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.studioReady) : '—'} hint="right field, mode and duration loaded" accent="#67e8f9" />
+        <Card label="Studio ready" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.studioReady) : '—'} hint="right field, mode and duration loaded" accent="#08778B" />
         <RateCard label="Choice → Studio" value={chatGptQuickstart.selectionToStudioReadyRate} sub={`${chatGptQuickstart.studioReady} / ${chatGptQuickstart.selections} people`} />
-        <Card label="Generation starts" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.starts) : '—'} hint="after the same actor's choice" accent="#a78bfa" />
+        <Card label="Generation starts" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.starts) : '—'} hint="after the same actor's choice" accent="#6941C6" />
         <RateCard label="Studio → Start" value={chatGptQuickstart.studioReadyToStartRate} sub={`${chatGptQuickstart.starts} / ${chatGptQuickstart.studioReady} people`} />
-        <Card label="Completed videos" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.completions) : '—'} hint="after quick-start generation" accent="#22d3ee" />
+        <Card label="Completed videos" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.completions) : '—'} hint="after quick-start generation" accent="#08778B" />
         <RateCard label="Start → Video" value={chatGptQuickstart.startToCompleteRate} sub={`${chatGptQuickstart.completions} / ${chatGptQuickstart.starts} people`} />
-        <Card label="Post-video checkouts" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.checkoutStarts) : '—'} hint="checkout after completed quick-start video" accent="#f97316" />
+        <Card label="Post-video checkouts" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.checkoutStarts) : '—'} hint="checkout after completed quick-start video" accent="#9A3412" />
         <RateCard label="Video → Checkout" value={chatGptQuickstart.completeToCheckoutRate} sub={`${chatGptQuickstart.checkoutStarts} / ${chatGptQuickstart.completions} people`} />
-        <Card label="Attributed payments" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.payments) : '—'} hint="payment event after attributed checkout" accent={chatGptQuickstart.payments > 0 ? '#22d3ee' : '#fbbf24'} />
+        <Card label="Attributed payments" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.payments) : '—'} hint="payment event after attributed checkout" accent={chatGptQuickstart.payments > 0 ? '#08778B' : '#8A4B00'} />
         <RateCard label="Checkout → Paid" value={chatGptQuickstart.checkoutToPaidRate} sub={`${chatGptQuickstart.payments} / ${chatGptQuickstart.checkoutStarts} people`} />
       </Section>
 
@@ -704,13 +704,13 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="People exposed"
           value={planFitOffer.eventsAvailable ? fmt(planFitOffer.exposedPeople) : '—'}
           hint={planFitOffer.eventsAvailable ? 'first completed video · card actually visible' : 'Events data unavailable — not zero'}
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <Card
           label="Cadence selected"
           value={planFitOffer.eventsAvailable ? fmt(planFitOffer.selectedPeople) : '—'}
           hint={planFitOffer.eventsAvailable ? 'unique people who chose a monthly target' : 'Events data unavailable — not zero'}
-          accent="#4ade80"
+          accent="#0F7A55"
         />
         <RateCard
           label="Exposure → Selection"
@@ -721,7 +721,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Stripe checkouts"
           value={planFitOffer.stripeAvailable ? fmt(planFitOffer.checkoutPeople) : '—'}
           hint={planFitOffer.stripeAvailable ? 'unique people · verified Stripe sessions' : 'Stripe data unavailable — not zero'}
-          accent="#a78bfa"
+          accent="#6941C6"
         />
         <RateCard
           label="Selection → Checkout"
@@ -732,7 +732,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="New subscriptions"
           value={planFitOffer.stripeAvailable ? fmt(planFitOffer.paidPeople) : '—'}
           hint={planFitOffer.stripeAvailable ? 'unique people · completed Stripe checkout' : 'Stripe data unavailable — not zero'}
-          accent={planFitOffer.paidPeople > 0 ? '#22d3ee' : '#fbbf24'}
+          accent={planFitOffer.paidPeople > 0 ? '#08778B' : '#8A4B00'}
         />
         <RateCard
           label="Checkout → Paid"
@@ -746,13 +746,13 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Offer viewed"
           value={fmt(repeatCreatorOffer.views)}
           hint="free users with 2+ completed videos"
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <Card
           label="Starter clicks"
           value={fmt(repeatCreatorOffer.clicks)}
           hint="primary $4.90 recurring offer"
-          accent="#4ade80"
+          accent="#0F7A55"
         />
         <RateCard
           label="View → Click"
@@ -763,7 +763,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Stripe checkouts"
           value={fmt(repeatCreatorOffer.checkoutStarts)}
           hint="session created after this click"
-          accent="#a78bfa"
+          accent="#6941C6"
         />
         <RateCard
           label="Click → Checkout"
@@ -774,7 +774,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Active subscribers"
           value={fmt(repeatCreatorOffer.activeSubscribers)}
           hint="verified active / trialing in Stripe"
-          accent={repeatCreatorOffer.activeSubscribers > 0 ? '#22d3ee' : '#fbbf24'}
+          accent={repeatCreatorOffer.activeSubscribers > 0 ? '#08778B' : '#8A4B00'}
         />
         <RateCard
           label="Checkout → Active"
@@ -788,19 +788,19 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="SEO landing visitors"
           value={fmt(organic.landingVisitors)}
           hint="unique external people"
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <Card
           label="Script handoff opens"
           value={fmt(organic.handoffOpens)}
           hint="unique people who opened the paste form"
-          accent="#2997ff"
+          accent="#0A5CFF"
         />
         <Card
           label="Organic intent people"
           value={fmt(organic.intentActors)}
           hint="unique people who submitted or left for the product"
-          accent="#a78bfa"
+          accent="#6941C6"
         />
         <RateCard
           label="Landing → Intent"
@@ -811,7 +811,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Signup page arrivals"
           value={fmt(organic.signupHandoffViewers)}
           hint="organic intent preserved into signup"
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <RateCard
           label="Intent → Signup page"
@@ -822,7 +822,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Auth method selected"
           value={fmt(organic.signupMethodSelectors)}
           hint="unique people choosing Google or email"
-          accent="#a78bfa"
+          accent="#6941C6"
         />
         <RateCard
           label="Signup page → Method"
@@ -833,13 +833,13 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Viral Now visitors"
           value={fmt(organic.viralNowViews)}
           hint="unique external actors · PUSH #39"
-          accent="#f97316"
+          accent="#9A3412"
         />
         <Card
           label="Viral topic selections"
           value={fmt(organic.viralNowClicks)}
           hint="exact topic preserved through signup"
-          accent="#ef4444"
+          accent="#B42318"
         />
         <RateCard
           label="Viral view → Topic"
@@ -850,7 +850,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Attributed signups"
           value={fmt(organic.signups)}
           hint="seo/organic campaigns; other sources are above"
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <RateCard
           label="Intent → Signup"
@@ -866,7 +866,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Recurring subscribers"
           value={fmt(organic.paid)}
           hint="verified active / trialing"
-          accent={organic.paid > 0 ? '#22d3ee' : '#fbbf24'}
+          accent={organic.paid > 0 ? '#08778B' : '#8A4B00'}
         />
       </Section>
 
@@ -875,13 +875,13 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Remix form viewers"
           value={exampleRemix.eventsAvailable ? fmt(exampleRemix.formViewers) : '—'}
           hint="unique external actors · form 50% visible"
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <Card
           label="Topics submitted"
           value={exampleRemix.eventsAvailable ? fmt(exampleRemix.topicSubmitters) : '—'}
           hint="unique people who entered their own story"
-          accent="#2997ff"
+          accent="#0A5CFF"
         />
         <RateCard
           label="View → Topic"
@@ -892,7 +892,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Attributed signups"
           value={fmt(exampleRemix.attributedSignups)}
           hint="profile campaign example_remix_v1"
-          accent="#a78bfa"
+          accent="#6941C6"
         />
         <RateCard
           label="Topic → Signup"
@@ -903,7 +903,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Completed creators"
           value={fmt(exampleRemix.completedCreators)}
           hint="attributed people with a completed video"
-          accent={exampleRemix.completedCreators > 0 ? '#22d3ee' : '#fbbf24'}
+          accent={exampleRemix.completedCreators > 0 ? '#08778B' : '#8A4B00'}
         />
         <RateCard
           label="Signup → Video"
@@ -917,19 +917,19 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Offer actually viewed"
           value={fmt(postVideoOffer.offerViews)}
           hint="50% of export card visible"
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <Card
           label="Watermarked downloads"
           value={fmt(postVideoOffer.watermarkedDownloads)}
           hint="free export delivered"
-          accent="#a78bfa"
+          accent="#6941C6"
         />
         <Card
           label="Clean-export clicks"
           value={fmt(postVideoOffer.cleanExportClicks)}
           hint="Starter at the export decision"
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <RateCard
           label="Offer view → Click"
@@ -940,7 +940,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Post-video checkouts"
           value={fmt(postVideoOffer.checkoutStarts)}
           hint="Stripe session created"
-          accent="#a78bfa"
+          accent="#6941C6"
         />
         <RateCard
           label="Click → Checkout"
@@ -951,7 +951,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Post-video subscribers"
           value={fmt(postVideoOffer.payments)}
           hint="verified payment_success"
-          accent={postVideoOffer.payments > 0 ? '#22d3ee' : '#fbbf24'}
+          accent={postVideoOffer.payments > 0 ? '#08778B' : '#8A4B00'}
         />
         <RateCard
           label="Checkout → Paid"
@@ -965,19 +965,19 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Offer viewers"
           value={fmt(trialPostVideoOffer.views)}
           hint="unique external actors"
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <Card
           label="Single-primary viewers"
           value={fmt(trialPostVideoOffer.singlePrimaryViews)}
           hint="new post-video layout only"
-          accent="#c4b5fd"
+          accent="#6941C6"
         />
         <Card
           label="Offer clicks"
           value={fmt(trialPostVideoOffer.clicks)}
           hint={`${fmt(trialPostVideoOffer.noClickViewers)} viewers did not click`}
-          accent="#4ade80"
+          accent="#0F7A55"
         />
         <RateCard
           label="View → Click"
@@ -988,7 +988,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Checkout after click"
           value={fmt(trialPostVideoOffer.checkoutStarts)}
           hint="same actor, ordered journey"
-          accent="#a78bfa"
+          accent="#6941C6"
         />
         <RateCard
           label="Click → Checkout"
@@ -999,7 +999,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Payment after checkout"
           value={fmt(trialPostVideoOffer.payments)}
           hint={`${fmt(trialPostVideoOffer.checkoutAfterViewWithoutClick)} checkout elsewhere after viewing`}
-          accent={trialPostVideoOffer.payments > 0 ? '#22d3ee' : '#fbbf24'}
+          accent={trialPostVideoOffer.payments > 0 ? '#08778B' : '#8A4B00'}
         />
         <RateCard
           label="Checkout → Paid"
@@ -1050,7 +1050,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Premium completers"
           value={fmt(trialBalanceBridge.premiumCompleters)}
           hint="35s Seedance completed after click"
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <RateCard
           label="Set up → Premium complete"
@@ -1061,7 +1061,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Checkout after premium"
           value={fmt(trialBalanceBridge.checkoutStarters)}
           hint="same actor, ordered journey"
-          accent="#a78bfa"
+          accent="#6941C6"
         />
         <RateCard
           label="Premium → Checkout"
@@ -1072,7 +1072,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Subscribers"
           value={fmt(trialBalanceBridge.subscribers)}
           hint="payment after the attributed checkout"
-          accent={trialBalanceBridge.subscribers > 0 ? '#22d3ee' : '#fbbf24'}
+          accent={trialBalanceBridge.subscribers > 0 ? '#08778B' : '#8A4B00'}
         />
         <RateCard
           label="Checkout → Paid"
@@ -1086,13 +1086,13 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Completed creators"
           value={fmt(creatorLoop.completedCreators)}
           hint={`${fmt(creatorLoop.completedVideos)} completed videos`}
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <Card
           label="PUSH 29 prompts seen"
           value={fmt(creatorLoop.deliveryPromptActors)}
           hint="visible done/history prompts"
-          accent="#c4b5fd"
+          accent="#6941C6"
         />
         <RateCard
           label="Prompt → Share click"
@@ -1108,13 +1108,13 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="PUSH 29 landings"
           value={fmt(creatorLoop.deliveryPublicLandings)}
           hint={`${creatorLoop.deliveryPublicCtaClicks} public CTA clicks`}
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <Card
           label="Share clicks"
           value={fmt(creatorLoop.shareClicks)}
           hint="done screen + My Videos"
-          accent="#a78bfa"
+          accent="#6941C6"
         />
         <RateCard
           label="Creator → Share"
@@ -1125,19 +1125,19 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Shares completed"
           value={fmt(creatorLoop.sharesCompleted)}
           hint="native share or copied public link"
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <Card
           label="Public-video landings"
           value={fmt(creatorLoop.publicVideoLandings)}
           hint="visits to /v/[id]"
-          accent="#a78bfa"
+          accent="#6941C6"
         />
         <Card
           label="Public CTA clicks"
           value={fmt(creatorLoop.publicVideoCtaClicks)}
           hint="make one like this"
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <RateCard
           label="Landing → CTA"
@@ -1148,7 +1148,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Remix tool arrivals"
           value={fmt(creatorLoop.remixArrivals)}
           hint="prefilled · no signup"
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <RateCard
           label="CTA → Remix"
@@ -1159,7 +1159,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Remix scripts made"
           value={fmt(creatorLoop.remixScripts)}
           hint="useful result delivered"
-          accent="#a78bfa"
+          accent="#6941C6"
         />
         <RateCard
           label="Remix → Script"
@@ -1170,7 +1170,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Remix signup intent"
           value={fmt(creatorLoop.remixSignupClicks)}
           hint="script carried into Studio"
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <RateCard
           label="Script → Signup click"
@@ -1181,7 +1181,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Referred signups"
           value={fmt(creatorLoop.referredSignups)}
           hint={`${creatorLoop.qualifiedReferrals} qualified rewards`}
-          accent="#a78bfa"
+          accent="#6941C6"
         />
         <RateCard
           label="CTA → Signup"
@@ -1192,7 +1192,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Referred subscribers"
           value={fmt(creatorLoop.referredPaid)}
           hint="Stripe active / trialing"
-          accent={creatorLoop.referredPaid > 0 ? '#22d3ee' : '#fbbf24'}
+          accent={creatorLoop.referredPaid > 0 ? '#08778B' : '#8A4B00'}
         />
         <RateCard
           label="Referral signup → Paid"
@@ -1206,19 +1206,19 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Completed creators"
           value={fmt(retentionLoop.completedCreators)}
           hint="creators active in period"
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <Card
           label="One and done"
           value={fmt(retentionLoop.oneAndDoneCreators)}
           hint="only one completed video"
-          accent={retentionLoop.oneAndDoneCreators > 0 ? '#fbbf24' : '#22d3ee'}
+          accent={retentionLoop.oneAndDoneCreators > 0 ? '#8A4B00' : '#08778B'}
         />
         <Card
           label="Repeat creators"
           value={fmt(retentionLoop.repeatCreators)}
           hint={`${retentionLoop.repeatWithin7dCreators} repeated within 7d`}
-          accent="#a78bfa"
+          accent="#6941C6"
         />
         <RateCard
           label="Creator → Second video"
@@ -1229,7 +1229,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Returned another day"
           value={fmt(retentionLoop.laterDayReturnCreators)}
           hint="new UTC day within 7d"
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <RateCard
           label="7d later-day return"
@@ -1240,13 +1240,13 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Next-episode clicks"
           value={fmt(retentionLoop.continuationClicks)}
           hint={`${retentionLoop.continuationLandings} reached generator`}
-          accent="#a78bfa"
+          accent="#6941C6"
         />
         <Card
           label="Continuation starts"
           value={fmt(retentionLoop.continuationStarts)}
           hint={`${retentionLoop.continuationCompletes} completed`}
-          accent="#22d3ee"
+          accent="#08778B"
         />
         <RateCard
           label="Click → Render"
@@ -1265,14 +1265,14 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           <h2 className="font-black tracking-tight mb-3" style={{ fontSize: '0.88rem', color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             Organic entry pages
           </h2>
-          <div className="overflow-x-auto rounded-2xl" style={{ background: 'rgba(11,17,32,0.85)', border: '1px solid var(--border)' }}>
+          <div className="overflow-x-auto rounded-2xl" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
             <table className="w-full text-xs">
               <thead><tr style={{ color: 'var(--muted)' }}><th className="px-3 py-2 text-left">Path</th><th className="px-3 py-2 text-right">Sessions</th></tr></thead>
               <tbody>
                 {organic.topLandingPages.map((page) => (
                   <tr key={page.path} style={{ borderTop: '1px solid var(--border)' }}>
                     <td className="px-3 py-2 font-mono" style={{ color: 'var(--text)' }}>{page.path}</td>
-                    <td className="px-3 py-2 text-right font-bold" style={{ color: '#22d3ee' }}>{fmt(page.sessions)}</td>
+                    <td className="px-3 py-2 text-right font-bold" style={{ color: '#08778B' }}>{fmt(page.sessions)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1283,18 +1283,18 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
 
       {data.stripePayments && (
         <Section title="💳 Recurring payment funnel · Stripe">
-          <Card label="Checkout initiated" value={fmt(data.stripePayments.checkoutCreated)}   hint="external subscription sessions" accent="#a78bfa" />
-          <Card label="Completed ✅"        value={fmt(data.stripePayments.checkoutCompleted)} hint="recurring subscription paid"    accent="#a78bfa" />
-          <Card label="Abandoned ❌"        value={fmt(data.stripePayments.checkoutAbandoned)} hint="subscription expired unpaid"    accent={data.stripePayments.checkoutAbandoned > 0 ? '#f87171' : '#a78bfa'} />
-          <Card label="Still open ⏳"       value={fmt(data.stripePayments.checkoutOpen)}      hint="on checkout page now"    accent="#fbbf24" />
+          <Card label="Checkout initiated" value={fmt(data.stripePayments.checkoutCreated)}   hint="external subscription sessions" accent="#6941C6" />
+          <Card label="Completed ✅"        value={fmt(data.stripePayments.checkoutCompleted)} hint="recurring subscription paid"    accent="#6941C6" />
+          <Card label="Abandoned ❌"        value={fmt(data.stripePayments.checkoutAbandoned)} hint="subscription expired unpaid"    accent={data.stripePayments.checkoutAbandoned > 0 ? '#B42318' : '#6941C6'} />
+          <Card label="Still open ⏳"       value={fmt(data.stripePayments.checkoutOpen)}      hint="on checkout page now"    accent="#8A4B00" />
           <RateCard label="Checkout → Payment" value={data.stripePayments.conversionRate} sub={`${data.stripePayments.checkoutCompleted} / ${data.stripePayments.checkoutCompleted + data.stripePayments.checkoutAbandoned}`} />
-          <Card label="Failed payments (30d)" value={fmt(data.stripePayments.recentFailedPayments)} hint="invoice.payment_failed" accent={data.stripePayments.recentFailedPayments > 0 ? '#f87171' : '#a78bfa'} />
+          <Card label="Failed payments (30d)" value={fmt(data.stripePayments.recentFailedPayments)} hint="invoice.payment_failed" accent={data.stripePayments.recentFailedPayments > 0 ? '#B42318' : '#6941C6'} />
         </Section>
       )}
 
       {/* ── #475 — Tracking health note ───────────────────────────────────── */}
       {data.trackingHealth?.eventsTableMissing && (
-        <div className="rounded-xl px-4 py-3 mt-2 text-xs" style={{ background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.35)', color: '#fbbf24' }}>
+        <div className="rounded-xl px-4 py-3 mt-2 text-xs" style={{ background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.35)', color: '#8A4B00' }}>
           ⚠️ <b>Tracking note:</b> {data.trackingHealth.note}
         </div>
       )}
@@ -1317,7 +1317,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Card({ label, value, hint, accent }: { label: string; value: string; hint?: string; accent?: string }) {
   return (
-    <div className="rounded-xl p-4" style={{ background: 'rgba(11,17,32,0.85)', border: `1px solid ${accent ? accent + '33' : 'var(--border)'}` }}>
+    <div className="rounded-xl p-4" style={{ background: 'var(--card)', border: `1px solid ${accent ? accent + '33' : 'var(--border)'}` }}>
       <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: accent ?? 'var(--muted)' }}>
         {label}
       </div>
@@ -1331,9 +1331,9 @@ function Card({ label, value, hint, accent }: { label: string; value: string; hi
 
 function RateCard({ label, value, sub }: { label: string; value: string; sub: string }) {
   const isGood = value !== '—' && parseFloat(value) >= 10
-  const accent = value === '—' ? '#94a3b8' : isGood ? '#a78bfa' : '#f59e0b'
+  const accent = value === '—' ? '#5A5F67' : isGood ? '#6941C6' : '#8A4B00'
   return (
-    <div className="rounded-xl p-4" style={{ background: 'rgba(11,17,32,0.85)', border: `1px solid ${accent}33` }}>
+    <div className="rounded-xl p-4" style={{ background: 'var(--card)', border: `1px solid ${accent}33` }}>
       <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--muted)' }}>
         {label}
       </div>
@@ -1349,7 +1349,7 @@ function RefreshIndicator({ refreshing, secondsAgo, lastUpdated }: { refreshing:
   if (!lastUpdated) return null
   return (
     <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--muted)' }}>
-      {refreshing && <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: '#22d3ee' }} />}
+      {refreshing && <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: '#08778B' }} />}
       <span>Updated {secondsAgo}s ago</span>
     </div>
   )
@@ -1363,7 +1363,7 @@ function AdminNav({ active }: { active: string }) {
     { label: 'Users', href: '/admin/users', key: 'users' },
   ]
   return (
-    <nav className="flex gap-1 mt-4">
+    <nav className="adm-legacy-nav flex gap-1 mt-4">
       {tabs.map((t) => (
         <Link key={t.key} href={t.href} className="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
           style={{ background: active === t.key ? 'var(--accent)' : 'transparent', color: active === t.key ? '#fff' : 'var(--muted)' }}>

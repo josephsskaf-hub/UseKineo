@@ -62,12 +62,12 @@ const ENGINE_LABEL: Record<string, string> = {
 }
 
 const CARD: CSSProperties = {
-  background: 'var(--card,#161618)', border: '1px solid var(--border,rgba(255,255,255,.09))',
+  background: 'var(--card,#FFFFFF)', border: '1px solid var(--border,rgba(255,255,255,.09))',
   borderRadius: 14, padding: '14px 16px',
 }
 const TH: CSSProperties = {
   fontSize: '0.58rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.09em',
-  color: '#86868b', textAlign: 'left', padding: '8px 12px', whiteSpace: 'nowrap',
+  color: '#5A5F67', textAlign: 'left', padding: '8px 12px', whiteSpace: 'nowrap',
 }
 const TD: CSSProperties = { padding: '9px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }
 
@@ -78,10 +78,10 @@ export default async function TrialRoiPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user || !isAdminEmail(user.email)) {
-    return <main style={{ padding: 40, color: '#f5f5f7' }}>Forbidden</main>
+    return <main style={{ padding: 40, color: '#0E1116' }}>Forbidden</main>
   }
   const admin = serviceClient()
-  if (!admin) return <main style={{ padding: 40, color: '#f5f5f7' }}>Service unavailable</main>
+  if (!admin) return <main style={{ padding: 40, color: '#0E1116' }}>Service unavailable</main>
 
   // Consumo real: o claim é o evento que representa cobrança de verdade.
   //
@@ -170,24 +170,24 @@ export default async function TrialRoiPage() {
   const fmtDay = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
 
   return (
-    <main style={{ padding: '28px 22px', maxWidth: 1280, margin: '0 auto', color: '#f5f5f7' }}>
-      <div style={{ fontSize: '0.6rem', fontWeight: 900, letterSpacing: '.12em', color: '#86868b', textTransform: 'uppercase' }}>
+    <main style={{ padding: '28px 22px', maxWidth: 1280, margin: '0 auto', color: '#0E1116' }}>
+      <div style={{ fontSize: '0.6rem', fontWeight: 900, letterSpacing: '.12em', color: '#5A5F67', textTransform: 'uppercase' }}>
         Admin · Reverse trial · retorno
       </div>
       <h1 style={{ fontSize: '1.6rem', fontWeight: 900, margin: '6px 0 4px' }}>O trial se paga?</h1>
-      <p style={{ color: '#86868b', fontSize: '0.85rem', margin: 0 }}>
+      <p style={{ color: '#5A5F67', fontSize: '0.85rem', margin: 0 }}>
         Todo mundo que consumiu crédito nos últimos 45 dias, o que isso custou de fornecedor, e quem virou cliente.
         Contas internas fora. Custo por render medido na fatura da fal, não estimado.
       </p>
 
-      <nav style={{ display: 'flex', gap: 6, margin: '16px 0 20px', flexWrap: 'wrap' }}>
+      <nav className="adm-legacy-nav" style={{ display: 'flex', gap: 6, margin: '16px 0 20px', flexWrap: 'wrap' }}>
         {[['CEO', '/admin'], ['People', '/admin/people'], ['Trial', '/admin/trial-abuse'],
           ['Cohort', '/admin/trial-cohort'], ['ROI do trial', '/admin/trial-roi'], ['Suppliers', '/admin/supplier-health']].map(([l, h]) => (
           <Link key={h} href={h} style={{
             fontSize: '0.74rem', fontWeight: 700, padding: '6px 11px', borderRadius: 8, textDecoration: 'none',
-            color: h === '/admin/trial-roi' ? '#0a0a0b' : '#c7c7cc',
-            background: h === '/admin/trial-roi' ? '#2997ff' : 'rgba(255,255,255,.05)',
-            border: '1px solid rgba(255,255,255,.08)',
+            color: h === '/admin/trial-roi' ? '#0E1116' : '#2A2F37',
+            background: h === '/admin/trial-roi' ? '#0A5CFF' : 'rgba(14,17,22,0.04)',
+            border: '1px solid rgba(14,17,22,0.04)',
           }}>{l}</Link>
         ))}
       </nav>
@@ -195,16 +195,16 @@ export default async function TrialRoiPage() {
       {/* ── O placar ───────────────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 12, marginBottom: 10 }}>
         {[
-          ['Gastou crédito', String(all.length), '#f5f5f7', 'pessoas com pelo menos 1 render'],
-          ['Usou motor de IA', String(aiSpenders.length), '#a78bfa', 'onde o dinheiro realmente vai'],
-          ['Custo de fornecedor', formatUsd(totalCost), '#fb923c', '45 dias, todos os motores'],
-          ['Viraram clientes', String(converted.length), converted.length > 0 ? '#34d399' : '#f87171', 'dos que gastaram'],
-          ['Custo por cliente', cac ? formatUsd(cac) : '—', cac ? '#fbbf24' : '#86868b', 'gasto ÷ convertidos'],
+          ['Gastou crédito', String(all.length), '#0E1116', 'pessoas com pelo menos 1 render'],
+          ['Usou motor de IA', String(aiSpenders.length), '#6941C6', 'onde o dinheiro realmente vai'],
+          ['Custo de fornecedor', formatUsd(totalCost), '#9A3412', '45 dias, todos os motores'],
+          ['Viraram clientes', String(converted.length), converted.length > 0 ? '#0F7A55' : '#B42318', 'dos que gastaram'],
+          ['Custo por cliente', cac ? formatUsd(cac) : '—', cac ? '#8A4B00' : '#5A5F67', 'gasto ÷ convertidos'],
         ].map(([label, value, color, sub]) => (
           <div key={label} style={CARD}>
-            <div style={{ fontSize: '0.58rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.09em', color: '#86868b' }}>{label}</div>
+            <div style={{ fontSize: '0.58rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.09em', color: '#5A5F67' }}>{label}</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 900, color, lineHeight: 1.15, marginTop: 3 }}>{value}</div>
-            <div style={{ fontSize: '0.66rem', color: '#86868b', marginTop: 2 }}>{sub}</div>
+            <div style={{ fontSize: '0.66rem', color: '#5A5F67', marginTop: 2 }}>{sub}</div>
           </div>
         ))}
       </div>
@@ -214,10 +214,10 @@ export default async function TrialRoiPage() {
         <div style={{ fontSize: '0.72rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.09em', color: '#7cc0ff', marginBottom: 6 }}>
           A régua, combinada antes do resultado
         </div>
-        <p style={{ fontSize: '0.82rem', color: '#c7c7cc', lineHeight: 1.6, margin: 0 }}>
+        <p style={{ fontSize: '0.82rem', color: '#2A2F37', lineHeight: 1.6, margin: 0 }}>
           Um cliente de <b>$15/mês</b> paga um custo de aquisição de <b>$130</b> em cerca de 9 meses — defensável se
-          ele fica. Então: <b style={{ color: '#34d399' }}>custo por cliente abaixo de ~$130 = o trial funciona</b> e a
-          conversa vira otimizar. <b style={{ color: '#f87171' }}>Acima disso, ou zero convertidos</b>, o trial está
+          ele fica. Então: <b style={{ color: '#0F7A55' }}>custo por cliente abaixo de ~$130 = o trial funciona</b> e a
+          conversa vira otimizar. <b style={{ color: '#B42318' }}>Acima disso, ou zero convertidos</b>, o trial está
           comprando uso e não cliente — e a pergunta deixa de ser &quot;cortar?&quot; e passa a ser &quot;o que falta
           entre o vídeo pronto e o cartão?&quot;.
           <br /><br />
@@ -231,18 +231,18 @@ export default async function TrialRoiPage() {
       <h2 style={{ fontSize: '0.95rem', fontWeight: 900, margin: '0 0 8px' }}>Onde o dinheiro foi, por motor</h2>
       <div style={{ ...CARD, padding: 0, overflowX: 'auto', marginBottom: 20 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr style={{ background: 'rgba(255,255,255,.03)' }}>
+          <thead><tr style={{ background: 'rgba(14,17,22,0.04)' }}>
             {['Motor', 'Renders', 'Pessoas', 'Custo', '$ / pessoa', 'Convertidos'].map((h) => <th key={h} style={TH}>{h}</th>)}
           </tr></thead>
           <tbody>
             {engines.map(([q, e]) => (
-              <tr key={q} style={{ borderTop: '1px solid rgba(255,255,255,.06)' }}>
+              <tr key={q} style={{ borderTop: '1px solid rgba(14,17,22,0.04)' }}>
                 <td style={{ ...TD, fontWeight: 700 }}>{ENGINE_LABEL[q] ?? q}</td>
                 <td style={TD}>{e.renders}</td>
                 <td style={TD}>{e.people.size}</td>
-                <td style={{ ...TD, color: '#fb923c', fontWeight: 700 }}>{formatUsd(e.cost)}</td>
-                <td style={{ ...TD, color: '#86868b' }}>{formatUsd(e.cost / Math.max(1, e.people.size))}</td>
-                <td style={{ ...TD, color: e.converted.size > 0 ? '#34d399' : '#f87171', fontWeight: 700 }}>
+                <td style={{ ...TD, color: '#9A3412', fontWeight: 700 }}>{formatUsd(e.cost)}</td>
+                <td style={{ ...TD, color: '#5A5F67' }}>{formatUsd(e.cost / Math.max(1, e.people.size))}</td>
+                <td style={{ ...TD, color: e.converted.size > 0 ? '#0F7A55' : '#B42318', fontWeight: 700 }}>
                   {e.converted.size} de {e.people.size}
                 </td>
               </tr>
@@ -255,40 +255,40 @@ export default async function TrialRoiPage() {
       <h2 style={{ fontSize: '0.95rem', fontWeight: 900, margin: '0 0 4px' }}>
         Quem consumiu motor de IA — {aiSpenders.length} pessoas, {formatUsd(aiCost)}, {aiConverted.length} viraram cliente
       </h2>
-      <p style={{ color: '#86868b', fontSize: '0.75rem', margin: '0 0 8px' }}>
+      <p style={{ color: '#5A5F67', fontSize: '0.75rem', margin: '0 0 8px' }}>
         Ordenado pelo que cada um custou. O e-mail é clicável: quem gastou muito e não comprou é a lista mais quente que existe.
       </p>
       <div style={{ ...CARD, padding: 0, overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr style={{ background: 'rgba(255,255,255,.03)' }}>
+          <thead><tr style={{ background: 'rgba(14,17,22,0.04)' }}>
             {['Quem', 'Custou', 'Renders', 'Motores', 'Gastou em', 'Virou cliente?'].map((h) => <th key={h} style={TH}>{h}</th>)}
           </tr></thead>
           <tbody>
             {topSpenders.map((p) => (
-              <tr key={p.email} style={{ borderTop: '1px solid rgba(255,255,255,.06)' }}>
+              <tr key={p.email} style={{ borderTop: '1px solid rgba(14,17,22,0.04)' }}>
                 <td style={TD}>
                   <a href={`mailto:${p.email}?subject=${encodeURIComponent('About your Kineo videos')}`}
-                     style={{ color: '#93c5fd', textDecoration: 'none', fontFamily: 'ui-monospace,monospace', fontSize: '.78rem' }}>
+                     style={{ color: '#0A5CFF', textDecoration: 'none', fontFamily: 'ui-monospace,monospace', fontSize: '.78rem' }}>
                     {p.email}
                   </a>
                 </td>
-                <td style={{ ...TD, color: '#fb923c', fontWeight: 800 }}>{formatUsd(p.cost)}</td>
+                <td style={{ ...TD, color: '#9A3412', fontWeight: 800 }}>{formatUsd(p.cost)}</td>
                 <td style={TD}>{p.total}</td>
-                <td style={{ ...TD, color: '#86868b', fontSize: '.72rem' }}>
+                <td style={{ ...TD, color: '#5A5F67', fontSize: '.72rem' }}>
                   {Object.entries(p.renders).map(([q, n]) => `${ENGINE_LABEL[q] ?? q}×${n}`).join(' · ')}
                 </td>
-                <td style={{ ...TD, color: '#86868b', fontSize: '.72rem' }}>{fmtDay(p.firstSpend)}</td>
+                <td style={{ ...TD, color: '#5A5F67', fontSize: '.72rem' }}>{fmtDay(p.firstSpend)}</td>
                 <td style={TD}>
                   {p.paid
-                    ? <span style={{ color: '#34d399', fontWeight: 800 }}>✓ sim</span>
-                    : <span style={{ color: '#f87171' }}>não</span>}
+                    ? <span style={{ color: '#0F7A55', fontWeight: 800 }}>✓ sim</span>
+                    : <span style={{ color: '#B42318' }}>não</span>}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <p style={{ color: '#86868b', fontSize: '0.7rem', marginTop: 10 }}>
+      <p style={{ color: '#5A5F67', fontSize: '0.7rem', marginTop: 10 }}>
         Custo por render medido na fatura da fal de agosto ({formatUsd(USD_PER_RENDER.cinematic_ai)} o Seedance, contra
         os $2.34 que a tabela teórica estimava — 41% de diferença). Reconferir quando a fatura fechar.
       </p>

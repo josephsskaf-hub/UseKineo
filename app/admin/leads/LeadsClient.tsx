@@ -29,7 +29,7 @@ interface AdminUserRow {
   is_paid: boolean
 }
 
-const CARD: React.CSSProperties = { background: '#161618', border: '1px solid #2a2a2d', borderRadius: 20 }
+const CARD: React.CSSProperties = { background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 20 }
 const POLL_MS = 60_000
 
 function fmt(v: number | null | undefined): string {
@@ -128,8 +128,8 @@ export default function LeadsClient({ denied }: { denied?: boolean }) {
       <Shell>
         <div className="rounded-2xl p-8 text-center" style={CARD}>
           <div className="text-5xl mb-3">🔒</div>
-          <h1 className="text-xl font-black mb-2" style={{ color: '#f5f5f7' }}>Access denied.</h1>
-          <p className="text-sm" style={{ color: '#86868b' }}>Admin only.</p>
+          <h1 className="text-xl font-black mb-2" style={{ color: '#0E1116' }}>Access denied.</h1>
+          <p className="text-sm" style={{ color: '#5A5F67' }}>Admin only.</p>
         </div>
       </Shell>
     )
@@ -138,16 +138,16 @@ export default function LeadsClient({ denied }: { denied?: boolean }) {
   return (
     <Shell>
       <header className="mb-6">
-        <div className="font-black uppercase tracking-widest mb-1" style={{ fontSize: '0.62rem', color: '#fbbf24' }}>
+        <div className="font-black uppercase tracking-widest mb-1" style={{ fontSize: '0.62rem', color: '#8A4B00' }}>
           Admin · Hot leads
         </div>
-        <h1 className="font-black tracking-tight" style={{ fontSize: '1.6rem', color: '#f5f5f7' }}>
+        <h1 className="font-black tracking-tight" style={{ fontSize: '1.6rem', color: '#0E1116' }}>
           People who want to pay and haven&apos;t
         </h1>
-        <p className="text-xs mt-1" style={{ color: '#86868b' }}>
+        <p className="text-xs mt-1" style={{ color: '#5A5F67' }}>
           Internal accounts excluded. Reach out within 24 h — that window converts best.
         </p>
-        <nav className="flex gap-1 mt-4 flex-wrap">
+        <nav className="adm-legacy-nav flex gap-1 mt-4 flex-wrap">
           {[
             { label: '← CEO', href: '/admin' },
             { label: 'People', href: '/admin/people' }, // KINEO-ADMIN-PEOPLE-2026-08-18
@@ -155,7 +155,7 @@ export default function LeadsClient({ denied }: { denied?: boolean }) {
             { label: 'Users', href: '/admin/users' },
             { label: 'Funnel', href: '/admin/funnel' },
           ].map((t) => (
-            <Link key={t.href} href={t.href} className="px-3 py-1.5 rounded-lg text-xs font-bold" style={{ color: '#86868b' }}>
+            <Link key={t.href} href={t.href} className="px-3 py-1.5 rounded-lg text-xs font-bold" style={{ color: '#5A5F67' }}>
               {t.label}
             </Link>
           ))}
@@ -163,12 +163,12 @@ export default function LeadsClient({ denied }: { denied?: boolean }) {
       </header>
 
       {loading && !users && (
-        <div className="rounded-2xl px-5 py-14 text-center text-sm" style={{ ...CARD, color: '#86868b' }}>
+        <div className="rounded-2xl px-5 py-14 text-center text-sm" style={{ ...CARD, color: '#5A5F67' }}>
           Loading leads…
         </div>
       )}
       {error && !users && (
-        <div className="rounded-2xl px-5 py-14 text-center text-sm" style={{ ...CARD, color: '#f87171' }}>
+        <div className="rounded-2xl px-5 py-14 text-center text-sm" style={{ ...CARD, color: '#B42318' }}>
           {error}
         </div>
       )}
@@ -176,10 +176,10 @@ export default function LeadsClient({ denied }: { denied?: boolean }) {
       {/* 1 — stuck at checkout (has a Stripe customer, still free) */}
       {users && (
         <section className="mb-8">
-          <h2 className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: '#f87171' }}>
+          <h2 className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: '#B42318' }}>
             🚨 Reached checkout and did not buy ({stuckAtCheckout.length})
           </h2>
-          <p className="text-[11px] mb-3" style={{ color: '#86868b' }}>
+          <p className="text-[11px] mb-3" style={{ color: '#5A5F67' }}>
             A Stripe customer exists for these accounts and the plan is still free. Highest-intent list
             we have.
           </p>
@@ -188,7 +188,7 @@ export default function LeadsClient({ denied }: { denied?: boolean }) {
             border="rgba(248,113,113,.4)"
             empty="Nobody stuck at checkout."
             rows={stuckAtCheckout.slice(0, 60).map((u) => [
-              <Mono key="e" text={u.email} badge="checkout" badgeColor="#f87171" mailtoSubject="Did something go wrong at checkout?" />,
+              <Mono key="e" text={u.email} badge="checkout" badgeColor="#B42318" mailtoSubject="Did something go wrong at checkout?" />,
               u.name || '—',
               fmtDate(u.created_at),
               fmt(u.credits),
@@ -204,10 +204,10 @@ export default function LeadsClient({ denied }: { denied?: boolean }) {
       {/* 1.5 — burned the whole trial (KINEO-HOTLEADS-2026-08-18) */}
       {users && (
         <section className="mb-8">
-          <h2 className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: '#fb923c' }}>
+          <h2 className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: '#9A3412' }}>
             ⚡ Burned the trial to zero ({burnedTrial.length})
           </h2>
-          <p className="text-[11px] mb-3" style={{ color: '#86868b' }}>
+          <p className="text-[11px] mb-3" style={{ color: '#5A5F67' }}>
             Free accounts with ≤5 credits left and ≥2 videos made. They used the product until it ran
             out — the strongest buy signal after checkout. Click an email to send the rescue note.
           </p>
@@ -216,7 +216,7 @@ export default function LeadsClient({ denied }: { denied?: boolean }) {
             border="rgba(251,146,60,.4)"
             empty="Nobody has burned through the trial yet."
             rows={burnedTrial.slice(0, 60).map((u) => [
-              <Mono key="e" text={u.email} badge="zero" badgeColor="#fb923c" mailtoSubject="You hit zero credits — here's what I can do" />,
+              <Mono key="e" text={u.email} badge="zero" badgeColor="#9A3412" mailtoSubject="You hit zero credits — here's what I can do" />,
               u.credits === 0 ? '0 🔥' : fmt(u.credits),
               fmt(u.videos_count),
               fmtDate(u.last_video_at),
@@ -229,10 +229,10 @@ export default function LeadsClient({ denied }: { denied?: boolean }) {
       {/* 2 — heavy free users */}
       {users && (
         <section className="mb-8">
-          <h2 className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: '#fbbf24' }}>
+          <h2 className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: '#8A4B00' }}>
             🔥 Heavy free users ({hotLeads.length})
           </h2>
-          <p className="text-[11px] mb-3" style={{ color: '#86868b' }}>
+          <p className="text-[11px] mb-3" style={{ color: '#5A5F67' }}>
             Free users with ≥5 downloads or ≥1 unlock click. The free tier is 3 videos/day, so these are
             people using the product hard without paying for it.
           </p>
@@ -241,7 +241,7 @@ export default function LeadsClient({ denied }: { denied?: boolean }) {
             border="rgba(251,191,36,.4)"
             empty="No heavy free users right now."
             rows={hotLeads.slice(0, 60).map((u) => [
-              <Mono key="e" text={u.email} badge="hot" badgeColor="#fbbf24" />,
+              <Mono key="e" text={u.email} badge="hot" badgeColor="#8A4B00" />,
               u.name || '—',
               `⬇ ${fmt(u.downloads_count)}`,
               u.unlock_clicks > 0 ? `🔓 ${fmt(u.unlock_clicks)}` : '—',
@@ -256,10 +256,10 @@ export default function LeadsClient({ denied }: { denied?: boolean }) {
       {/* 3 — abandoned Stripe sessions */}
       {ceo && (
         <section className="mb-8">
-          <h2 className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: '#f87171' }}>
+          <h2 className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: '#B42318' }}>
             💸 Abandoned Stripe checkouts ({ceo.abandonedCount})
           </h2>
-          <p className="text-[11px] mb-3" style={{ color: '#86868b' }}>
+          <p className="text-[11px] mb-3" style={{ color: '#5A5F67' }}>
             Expired Stripe sessions, freshest first. Anyone who has since paid is already filtered out.
           </p>
           <Table
@@ -294,7 +294,7 @@ function Mono({ text, badge, badgeColor, mailtoSubject }: { text: string; badge?
       {text && mailtoSubject ? (
         <a
           href={`mailto:${text}?subject=${encodeURIComponent(mailtoSubject)}`}
-          style={{ color: '#93c5fd', textDecoration: 'none' }}
+          style={{ color: '#0A5CFF', textDecoration: 'none' }}
           title="Send the rescue email"
         >
           {inner}
@@ -328,16 +328,16 @@ function Table({
   return (
     <div className="rounded-2xl overflow-x-auto" style={{ ...CARD, border: `1px solid ${border}` }}>
       {rows.length === 0 ? (
-        <div className="px-5 py-8 text-center text-sm" style={{ color: '#86868b' }}>{empty}</div>
+        <div className="px-5 py-8 text-center text-sm" style={{ color: '#5A5F67' }}>{empty}</div>
       ) : (
         <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: '#1d1d1f' }}>
+            <tr style={{ background: '#F1F1EE' }}>
               {head.map((h) => (
                 <th
                   key={h}
                   className="font-black uppercase tracking-widest"
-                  style={{ fontSize: '0.62rem', color: '#86868b', textAlign: 'left', padding: '10px 14px', whiteSpace: 'nowrap' }}
+                  style={{ fontSize: '0.62rem', color: '#5A5F67', textAlign: 'left', padding: '10px 14px', whiteSpace: 'nowrap' }}
                 >
                   {h}
                 </th>
@@ -346,9 +346,9 @@ function Table({
           </thead>
           <tbody>
             {rows.map((cells, i) => (
-              <tr key={i} style={{ borderTop: '1px solid #2a2a2d' }}>
+              <tr key={i} style={{ borderTop: '1px solid #E4E4E0' }}>
                 {cells.map((c, j) => (
-                  <td key={j} style={{ padding: '10px 14px', color: '#f5f5f7', whiteSpace: 'nowrap' }}>
+                  <td key={j} style={{ padding: '10px 14px', color: '#0E1116', whiteSpace: 'nowrap' }}>
                     {c}
                   </td>
                 ))}
@@ -363,7 +363,7 @@ function Table({
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ background: '#000', minHeight: '100vh' }}>
+    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
       <div className="px-4 sm:px-6 py-7 pb-20 max-w-[1400px] mx-auto">{children}</div>
     </div>
   )

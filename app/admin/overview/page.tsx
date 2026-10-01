@@ -448,7 +448,7 @@ async function loadMetrics(): Promise<Metrics | null> {
 
 // ── UI atoms (server-safe, no handlers) ─────────────────────────────────────
 
-const CARD: CSSProperties = { background: '#161618', border: '1px solid #2a2a2d', borderRadius: 20 }
+const CARD: CSSProperties = { background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 20 }
 
 function Kpi({
   label,
@@ -476,15 +476,15 @@ function Kpi({
           background: `linear-gradient(90deg, transparent 5%, rgba(${accent ?? '41,151,255'},.6) 50%, transparent 95%)`,
         }}
       />
-      <div className="text-[10px] font-extrabold uppercase tracking-[.14em]" style={{ color: '#86868b' }}>
+      <div className="text-[10px] font-extrabold uppercase tracking-[.14em]" style={{ color: '#5A5F67' }}>
         {label}
-        {tooltip ? <span style={{ color: '#6e6e73' }}> ⓘ</span> : null}
+        {tooltip ? <span style={{ color: '#6B6F76' }}> ⓘ</span> : null}
       </div>
-      <div className="mt-1 text-2xl font-semibold" style={{ color: '#f5f5f7' }}>
+      <div className="mt-1 text-2xl font-semibold" style={{ color: '#0E1116' }}>
         {value}
       </div>
       {sub ? (
-        <div className="mt-0.5 text-[11px] font-semibold" style={{ color: '#6e6e73' }}>
+        <div className="mt-0.5 text-[11px] font-semibold" style={{ color: '#6B6F76' }}>
           {sub}
         </div>
       ) : null}
@@ -496,7 +496,7 @@ function Section({ emoji, title, right, children }: { emoji: string; title: stri
   return (
     <section className="mt-4">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h2 className="text-[13px] font-bold" style={{ color: '#f5f5f7' }}>
+        <h2 className="text-[13px] font-bold" style={{ color: '#0E1116' }}>
           {emoji} {title}
         </h2>
         {right}
@@ -518,10 +518,10 @@ export default async function AdminOverviewPage() {
 
   if (!user || !ADMIN_EMAILS.has(email)) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-12 text-center" style={{ background: '#000', minHeight: '100vh' }}>
-        <div className="text-lg font-semibold" style={{ color: '#f5f5f7' }}>Admin</div>
-        <p className="mt-2 text-sm" style={{ color: '#86868b' }}>Forbidden</p>
-        <Link href="/login?next=/admin" className="mt-4 inline-block text-sm font-bold" style={{ color: '#2997ff' }}>
+      <div className="mx-auto max-w-5xl px-4 py-12 text-center" style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+        <div className="text-lg font-semibold" style={{ color: '#0E1116' }}>Admin</div>
+        <p className="mt-2 text-sm" style={{ color: '#5A5F67' }}>Forbidden</p>
+        <Link href="/login?next=/admin" className="mt-4 inline-block text-sm font-bold" style={{ color: '#0A5CFF' }}>
           Sign in →
         </Link>
       </div>
@@ -532,9 +532,9 @@ export default async function AdminOverviewPage() {
 
   if (!m) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-12 text-center" style={{ background: '#000', minHeight: '100vh' }}>
-        <div className="text-lg font-semibold" style={{ color: '#f5f5f7' }}>Admin</div>
-        <p className="mt-2 text-sm" style={{ color: '#86868b' }}>Failed to load metrics (service role / profiles query).</p>
+      <div className="mx-auto max-w-5xl px-4 py-12 text-center" style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+        <div className="text-lg font-semibold" style={{ color: '#0E1116' }}>Admin</div>
+        <p className="mt-2 text-sm" style={{ color: '#5A5F67' }}>Failed to load metrics (service role / profiles query).</p>
       </div>
     )
   }
@@ -548,16 +548,16 @@ export default async function AdminOverviewPage() {
   ]
 
   return (
-    <div style={{ background: '#000', minHeight: '100vh' }}>
+    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
       <div className="mx-auto max-w-6xl px-4 py-8">
         {/* Header */}
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <div className="text-[11px] font-extrabold uppercase tracking-[.16em]" style={{ color: '#2997ff' }}>Admin</div>
+            <div className="text-[11px] font-extrabold uppercase tracking-[.16em]" style={{ color: '#0A5CFF' }}>Admin</div>
             <h1
               className="text-2xl font-semibold tracking-tight"
               style={{
-                background: 'linear-gradient(180deg,#fff 35%,#a1a1a6)',
+                background: 'linear-gradient(180deg,#fff 35%,#5A5F67)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -569,12 +569,12 @@ export default async function AdminOverviewPage() {
           <div className="flex flex-wrap items-center gap-2">
             <span
               className="rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider"
-              style={{ background: 'rgba(41,151,255,.12)', color: '#2997ff', border: '1px solid rgba(41,151,255,.3)' }}
+              style={{ background: 'rgba(41,151,255,.12)', color: '#0A5CFF', border: '1px solid rgba(41,151,255,.3)' }}
               title={`${m.internalCount} founder/test accounts are excluded from every number on this page (lib/internalAccounts.ts)`}
             >
               {INTERNAL_ACCOUNTS_LABEL} · {m.internalCount}
             </span>
-            <nav className="flex flex-wrap gap-2 text-[12px] font-bold">
+            <nav className="adm-legacy-nav flex flex-wrap gap-2 text-[12px] font-bold">
               {[
                 ['/admin/users', 'Users'],
                 ['/admin/funnel', 'Funnel'],
@@ -582,7 +582,7 @@ export default async function AdminOverviewPage() {
                 ['/admin/ceo', 'CEO'],
                 ['/admin/affiliates', 'Affiliates'],
               ].map(([href, label]) => (
-                <Link key={href} href={href} className="rounded-lg px-2.5 py-1.5" style={{ color: '#86868b', background: 'rgba(255,255,255,.05)', border: '1px solid #2a2a2d' }}>
+                <Link key={href} href={href} className="rounded-lg px-2.5 py-1.5" style={{ color: '#5A5F67', background: 'rgba(14,17,22,0.04)', border: '1px solid #E4E4E0' }}>
                   {label}
                 </Link>
               ))}
@@ -596,8 +596,8 @@ export default async function AdminOverviewPage() {
           {/* KINEO-ADMIN-TRIAL-1-AGORA-2026-09-09 — o número que o fundador pediu, num lugar só. */}
           <div data-testid="trial-1-agora" style={{ marginBottom: 14, borderRadius: 14, border: '1px solid rgba(52,211,153,.45)', background: 'rgba(52,211,153,.08)', padding: '14px 16px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 16 }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: '#34d399' }}>No trial de $1 agora</div>
-              <div style={{ fontSize: 44, fontWeight: 900, lineHeight: 1, color: '#34d399' }} data-testid="trial-1-agora-n">{m.trial1.length}</div>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: '#0F7A55' }}>No trial de $1 agora</div>
+              <div style={{ fontSize: 44, fontWeight: 900, lineHeight: 1, color: '#0F7A55' }} data-testid="trial-1-agora-n">{m.trial1.length}</div>
               <div style={{ fontSize: 11, color: 'var(--muted2)', marginTop: 4 }}>pagaram $1 e estão dentro dos 7 dias · viram {fmtMoney(m.trialPotentialMrrUsd)}/mês no dia 8</div>
             </div>
             <div style={{ flex: 1, minWidth: 260 }}>
@@ -605,10 +605,10 @@ export default async function AdminOverviewPage() {
                 <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                   <thead><tr style={{ color: 'var(--muted2)', textAlign: 'left' }}>{['Pessoa', 'Pagou $1', 'Dias restantes', 'Plano no dia 8', 'Usou dos 80', 'Filmes'].map((h) => <th key={h} style={{ padding: '3px 8px', fontWeight: 700 }}>{h}</th>)}</tr></thead>
                   <tbody>{m.trial1.map((t) => (
-                    <tr key={t.id} data-testid="trial-1-pessoa" style={{ borderTop: '1px solid rgba(255,255,255,.06)' }}>
+                    <tr key={t.id} data-testid="trial-1-pessoa" style={{ borderTop: '1px solid rgba(14,17,22,0.04)' }}>
                       <td style={{ padding: '3px 8px', fontFamily: 'ui-monospace, monospace' }}>{t.email}</td>
                       <td style={{ padding: '3px 8px' }}>{t.paidAt ? timeAgo(t.paidAt) : '—'}</td>
-                      <td style={{ padding: '3px 8px', fontWeight: 800, color: t.daysLeft != null && t.daysLeft <= 1 ? '#fbbf24' : '#34d399' }}>{t.daysLeft != null ? `${t.daysLeft}d` : '—'}</td>
+                      <td style={{ padding: '3px 8px', fontWeight: 800, color: t.daysLeft != null && t.daysLeft <= 1 ? '#8A4B00' : '#0F7A55' }}>{t.daysLeft != null ? `${t.daysLeft}d` : '—'}</td>
                       <td style={{ padding: '3px 8px' }}>{(t.plan ?? '').replace('_trial', '') || '—'}</td>
                       <td style={{ padding: '3px 8px' }}>{t.credits != null ? `${Math.max(0, CARD_ENTRY_TRIAL_CREDITS - t.credits)} de ${CARD_ENTRY_TRIAL_CREDITS}` : '—'}</td>
                       <td style={{ padding: '3px 8px' }}>{t.films}</td>
@@ -637,14 +637,14 @@ export default async function AdminOverviewPage() {
           {/* KINEO-ADMIN-PAGARAM-1-2026-09-09 — fundador: "uma coluna só das pessoas que entram através de um dólar". */}
           {(() => { const pagaram = m.entrantes.filter((e) => e.paid1At); return (
             <div style={{ marginTop: 8, marginBottom: 14, borderRadius: 12, border: '1px solid rgba(52,211,153,.35)', background: 'rgba(52,211,153,.05)', padding: '10px 12px' }} data-testid="pagaram-1">
-              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: '#34d399', marginBottom: 6 }}>Entraram pelo $1 · {pagaram.length} desde o marco</div>
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.08em', textTransform: 'uppercase', color: '#0F7A55', marginBottom: 6 }}>Entraram pelo $1 · {pagaram.length} desde o marco</div>
               {pagaram.length === 0 ? <div style={{ fontSize: 12, color: 'var(--muted2)' }}>Ninguém pagou o $1 ainda desde o marco.</div> : (
                 <div style={{ overflowX: 'auto' }}><table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                   <thead><tr style={{ color: 'var(--muted2)', textAlign: 'left' }}>{['Pessoa', 'Pagou $1', 'Entrou', 'Plano', 'Usou dos 80', 'Créditos agora', 'Filmes'].map((h) => <th key={h} style={{ padding: '4px 8px', fontWeight: 700 }}>{h}</th>)}</tr></thead>
                   <tbody>{pagaram.map((e) => (
-                    <tr key={e.id} data-testid="pagou-1" style={{ borderTop: '1px solid rgba(255,255,255,.06)' }}>
+                    <tr key={e.id} data-testid="pagou-1" style={{ borderTop: '1px solid rgba(14,17,22,0.04)' }}>
                       <td style={{ padding: '4px 8px', fontFamily: 'ui-monospace, monospace' }}>{e.email}</td>
-                      <td style={{ padding: '4px 8px', color: '#34d399', fontWeight: 800 }}>{timeAgo(e.paid1At)}</td>
+                      <td style={{ padding: '4px 8px', color: '#0F7A55', fontWeight: 800 }}>{timeAgo(e.paid1At)}</td>
                       <td style={{ padding: '4px 8px' }}>{timeAgo(e.bornAt)}</td>
                       <td style={{ padding: '4px 8px' }}>{e.plan ?? '—'}</td>
                       <td style={{ padding: '4px 8px' }}>{e.credits != null ? `${Math.max(0, CARD_ENTRY_TRIAL_CREDITS - e.credits)} de ${CARD_ENTRY_TRIAL_CREDITS}` : '—'}</td>
@@ -663,13 +663,13 @@ export default async function AdminOverviewPage() {
               <tbody>
                 {m.entrantes.length === 0 && <tr><td colSpan={9} style={{ padding: 8, color: 'var(--muted2)' }}>Ninguém ainda desde o marco.</td></tr>}
                 {m.entrantes.map((e) => (
-                  <tr key={e.id} data-testid="entrante" style={{ borderTop: '1px solid rgba(255,255,255,.06)', background: e.paid1At ? 'rgba(52,211,153,.06)' : undefined }}>
+                  <tr key={e.id} data-testid="entrante" style={{ borderTop: '1px solid rgba(14,17,22,0.04)', background: e.paid1At ? 'rgba(52,211,153,.06)' : undefined }}>
                     <td style={{ padding: '4px 8px', fontFamily: 'ui-monospace, monospace' }}>{e.email}</td>
                     <td style={{ padding: '4px 8px' }}>{timeAgo(e.bornAt)}</td>
                     <td style={{ padding: '4px 8px' }}>{e.sawDoor ? '✓' : '—'}</td>
                     <td style={{ padding: '4px 8px' }}>{e.clicked ? '✓' : '—'}</td>
                     <td style={{ padding: '4px 8px' }}>{e.checkout ? '✓' : '—'}</td>
-                    <td style={{ padding: '4px 8px', color: e.paid1At ? '#34d399' : 'var(--muted2)', fontWeight: e.paid1At ? 800 : 400 }}>{e.paid1At ? timeAgo(e.paid1At) : '—'}</td>
+                    <td style={{ padding: '4px 8px', color: e.paid1At ? '#0F7A55' : 'var(--muted2)', fontWeight: e.paid1At ? 800 : 400 }}>{e.paid1At ? timeAgo(e.paid1At) : '—'}</td>
                     <td style={{ padding: '4px 8px' }}>{e.plan ?? '—'}</td>
                     <td style={{ padding: '4px 8px' }}>{e.credits ?? '—'}{e.paid1At && e.credits != null ? ` · usou ${Math.max(0, CARD_ENTRY_TRIAL_CREDITS - e.credits)} de ${CARD_ENTRY_TRIAL_CREDITS}` : ''}</td>
                     <td style={{ padding: '4px 8px' }}>{e.films}</td>
@@ -752,7 +752,7 @@ export default async function AdminOverviewPage() {
             />
           </div>
           <div className="mt-3 p-4" style={CARD}>
-            <div className="mb-2 text-[10px] font-extrabold uppercase tracking-[.14em]" style={{ color: '#86868b' }}>
+            <div className="mb-2 text-[10px] font-extrabold uppercase tracking-[.14em]" style={{ color: '#5A5F67' }}>
               External signups · last 14 days
             </div>
             <div className="flex items-end gap-1.5" style={{ height: 90 }}>
@@ -768,7 +768,7 @@ export default async function AdminOverviewPage() {
                       }}
                     />
                   </div>
-                  <span className="text-[8px] font-bold" style={{ color: '#6e6e73' }}>{d.date.slice(5)}</span>
+                  <span className="text-[8px] font-bold" style={{ color: '#6B6F76' }}>{d.date.slice(5)}</span>
                 </div>
               ))}
             </div>
@@ -819,7 +819,7 @@ export default async function AdminOverviewPage() {
           emoji="🎯"
           title="Funnel"
           right={
-            <Link href="/admin/funnel" className="text-[12px] font-bold" style={{ color: '#2997ff' }}>
+            <Link href="/admin/funnel" className="text-[12px] font-bold" style={{ color: '#0A5CFF' }}>
               ver completo →
             </Link>
           }
@@ -827,20 +827,20 @@ export default async function AdminOverviewPage() {
           <div className="p-4" style={CARD}>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {funnelSteps.map((s, i) => (
-                <div key={s.label} className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,.03)' }}>
-                  <div className="text-[10px] font-extrabold uppercase tracking-[.12em]" style={{ color: '#86868b' }}>
+                <div key={s.label} className="rounded-xl p-3" style={{ background: 'rgba(14,17,22,0.04)' }}>
+                  <div className="text-[10px] font-extrabold uppercase tracking-[.12em]" style={{ color: '#5A5F67' }}>
                     {i > 0 ? '↳ ' : ''}{s.label}
                   </div>
-                  <div className="mt-1 text-xl font-semibold" style={{ color: i === funnelSteps.length - 1 ? '#2997ff' : '#f5f5f7' }}>
+                  <div className="mt-1 text-xl font-semibold" style={{ color: i === funnelSteps.length - 1 ? '#0A5CFF' : '#0E1116' }}>
                     {s.count}
                   </div>
-                  <div className="text-[11px] font-semibold" style={{ color: '#6e6e73' }}>
+                  <div className="text-[11px] font-semibold" style={{ color: '#6B6F76' }}>
                     {i === 0 ? 'external, all-time' : `${fmtPct(s.count, funnelSteps[i - 1].count)} of prev`}
                   </div>
                 </div>
               ))}
             </div>
-            <p className="mt-2 text-[10.5px]" style={{ color: '#6e6e73' }}>
+            <p className="mt-2 text-[10.5px]" style={{ color: '#6B6F76' }}>
               Tried checkout = abandoned Stripe session ∪ checkout click (click_events + events).
             </p>
           </div>
@@ -864,23 +864,23 @@ export default async function AdminOverviewPage() {
               />
             </div>
             <div className="p-4" style={CARD}>
-              <div className="mb-2 text-[10px] font-extrabold uppercase tracking-[.14em]" style={{ color: '#86868b' }}>
+              <div className="mb-2 text-[10px] font-extrabold uppercase tracking-[.14em]" style={{ color: '#5A5F67' }}>
                 Last external signups
               </div>
               <div className="space-y-1.5">
                 {m.recentSignups.map((s, i) => (
-                  <div key={i} className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(255,255,255,.03)' }}>
-                    <span className="truncate text-[12.5px] font-semibold" style={{ color: '#f5f5f7' }}>{s.masked}</span>
-                    <span className="flex flex-shrink-0 items-center gap-2 text-[11px] font-bold" style={{ color: '#6e6e73' }}>
+                  <div key={i} className="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5" style={{ background: 'rgba(14,17,22,0.04)' }}>
+                    <span className="truncate text-[12.5px] font-semibold" style={{ color: '#0E1116' }}>{s.masked}</span>
+                    <span className="flex flex-shrink-0 items-center gap-2 text-[11px] font-bold" style={{ color: '#6B6F76' }}>
                       {s.utm ? (
-                        <span className="rounded px-1.5 py-0.5" style={{ background: 'rgba(41,151,255,.12)', color: '#2997ff' }}>{s.utm}</span>
+                        <span className="rounded px-1.5 py-0.5" style={{ background: 'rgba(41,151,255,.12)', color: '#0A5CFF' }}>{s.utm}</span>
                       ) : null}
                       {timeAgo(s.at)}
                     </span>
                   </div>
                 ))}
                 {m.recentSignups.length === 0 ? (
-                  <p className="text-[12px]" style={{ color: '#6e6e73' }}>No external signups yet.</p>
+                  <p className="text-[12px]" style={{ color: '#6B6F76' }}>No external signups yet.</p>
                 ) : null}
               </div>
             </div>
