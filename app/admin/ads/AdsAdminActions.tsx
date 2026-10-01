@@ -38,7 +38,7 @@ export default function AdsAdminActions({ orderId }: { orderId: string }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
       <input aria-label="Motivo da decisão" value={note} onChange={(e) => setNote(e.target.value)} placeholder="motivo (obrigatório para reprovar)" maxLength={500}
-        style={{ background: '#FFFFFF', color: '#0E1116', border: '1px solid #E4E4E0', borderRadius: 8, padding: '6px 8px', minWidth: 220 }} />
+        style={{ background: 'var(--card)', color: '#0E1116', border: '1px solid #E4E4E0', borderRadius: 8, padding: '6px 8px', minWidth: 220 }} />
       <button type="button" disabled={busy} onClick={() => void decide(true)}
         style={{ background: '#0F7A55', color: '#FFFFFF', borderRadius: 8, padding: '6px 12px', fontWeight: 700 }}>Aprovar</button>
       <button type="button" disabled={busy} onClick={() => void decide(false)}

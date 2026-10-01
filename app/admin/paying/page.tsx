@@ -42,7 +42,7 @@ import {
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const CARD: CSSProperties = { background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 20 }
+const CARD: CSSProperties = { background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 20 }
 
 // ── data ────────────────────────────────────────────────────────────────────
 
@@ -339,7 +339,7 @@ export default async function AdminPayingPage() {
       <section className="rounded-2xl overflow-x-auto" style={CARD}>
         <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: '#F1F1EE' }}>
+            <tr style={{ background: 'var(--card2)' }}>
               {['Customer', 'Plan', 'MRR', 'Signed up', 'Paid on', 'Country', 'Videos', 'Last video', 'Status'].map((h) => (
                 <th
                   key={h}

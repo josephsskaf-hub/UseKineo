@@ -40,7 +40,7 @@ function Linha({ r }: { r: FastCoherenceRow }) {
   const c = r.coherence
   const ai = r.engine !== 'fast'
   return (
-    <div data-kineo="linha-coerencia" style={{ background: '#FFFFFF', border: '1px solid #F1F1EE', borderRadius: 12, padding: '12px 14px', display: 'grid', gridTemplateColumns: '64px minmax(0, 1fr) auto', gap: 14, alignItems: 'start' }}>
+    <div data-kineo="linha-coerencia" style={{ background: 'var(--card)', border: '1px solid #F1F1EE', borderRadius: 12, padding: '12px 14px', display: 'grid', gridTemplateColumns: '64px minmax(0, 1fr) auto', gap: 14, alignItems: 'start' }}>
       {/* 1 · a nota */}
       <div style={{ textAlign: 'center' }}>
         <div style={{ fontSize: 30, fontWeight: 900, color: corDaNota(c?.score), lineHeight: 1 }}>{c ? c.score : '—'}</div>

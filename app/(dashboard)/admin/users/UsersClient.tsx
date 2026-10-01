@@ -172,7 +172,7 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
       <div className="px-4 sm:px-6 py-10 pb-20 max-w-3xl mx-auto">
         <div
           className="rounded-2xl p-8 text-center"
-          style={{ background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 20 }}
+          style={{ background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 20 }}
         >
           <div className="text-5xl mb-3">🔒</div>
           <h1 className="text-xl font-semibold mb-2" style={{ color: '#0E1116' }}>
@@ -266,10 +266,10 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
           <p className="text-[11px] mb-3" style={{ color: '#5A5F67' }}>
             Esses usuários criaram um customer no Stripe mas não finalizaram o pagamento. São os mais próximos de converter.
           </p>
-          <div className="rounded-2xl overflow-x-auto" style={{ background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 20 }}>
+          <div className="rounded-2xl overflow-x-auto" style={{ background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 20 }}>
             <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: '#F1F1EE' }}>
+                <tr style={{ background: 'var(--card2)' }}>
                   <Th>Email</Th>
                   <Th>Name</Th>
                   <Th>Joined</Th>
@@ -304,10 +304,10 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
           <h2 className="text-[11px] font-black uppercase tracking-widest mb-3" style={{ color: '#5A5F67' }}>
             Paid Subscribers
           </h2>
-          <div className="rounded-2xl overflow-x-auto" style={{ background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 20 }}>
+          <div className="rounded-2xl overflow-x-auto" style={{ background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 20 }}>
             <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: '#F1F1EE' }}>
+                <tr style={{ background: 'var(--card2)' }}>
                   <Th>Email</Th>
                   <Th>Name</Th>
                   <Th>Plan</Th>
@@ -361,7 +361,7 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
 
       <section
         className="rounded-2xl"
-        style={{ background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 20 }}
+        style={{ background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 20 }}
       >
         <div
           className="px-4 sm:px-5 py-3 flex items-center gap-3 flex-wrap"
@@ -374,7 +374,7 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
             placeholder="Search by email or name…"
             className="rounded-lg px-3 py-2 text-sm flex-1 min-w-[200px]"
             style={{
-              background: '#F1F1EE',
+              background: 'var(--card2)',
               border: '1px solid #E4E4E0',
               color: '#0E1116',
               outline: 'none',
@@ -407,7 +407,7 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
           <div className="overflow-x-auto">
             <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: '#F1F1EE' }}>
+                <tr style={{ background: 'var(--card2)' }}>
                   <Th>Email</Th>
                   <Th>Name</Th>
                   <Th>Country</Th>
@@ -517,7 +517,7 @@ function MetricCard({
     <div
       className="rounded-xl p-4"
       style={{
-        background: '#FFFFFF',
+        background: 'var(--card)',
         border: `1px solid ${accent ? `${accent}33` : '#E4E4E0'}`,
         borderRadius: 20,
       }}

@@ -448,7 +448,7 @@ async function loadMetrics(): Promise<Metrics | null> {
 
 // ── UI atoms (server-safe, no handlers) ─────────────────────────────────────
 
-const CARD: CSSProperties = { background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 20 }
+const CARD: CSSProperties = { background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 20 }
 
 function Kpi({
   label,

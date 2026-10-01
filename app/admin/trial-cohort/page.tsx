@@ -43,7 +43,7 @@ import { TRIAL_CREDIT_CAP } from '@/lib/reverseTrial'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const CARD: CSSProperties = { background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 20 }
+const CARD: CSSProperties = { background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 20 }
 
 /** Used-credit level at which we call a trial "capped or nearly". */
 const NEAR_CAP_CREDITS = 30
@@ -606,7 +606,7 @@ export default async function AdminTrialCohortPage() {
       <section className="rounded-2xl overflow-x-auto" style={CARD}>
         <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: '#F1F1EE' }}>
+            <tr style={{ background: 'var(--card2)' }}>
               {['Account', 'Group', 'Clock', 'Credits', 'Videos', 'Downloads', 'Days', 'Last event', 'Country', 'Source'].map((h) => (
                 <th
                   key={h}

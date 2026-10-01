@@ -32,7 +32,7 @@ export const metadata = { title: 'Admin · Ads', robots: { index: false, follow:
 
 const LIMIT = 500
 const DAYS = 90
-const CARD: CSSProperties = { background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 16, padding: 16, marginBottom: 12 }
+const CARD: CSSProperties = { background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 16, padding: 16, marginBottom: 12 }
 const MUTED: CSSProperties = { color: '#5A5F67', fontSize: 12 }
 const ORDER_COLUMNS = 'id, user_id, status, template, seconds, video_id, qa_at, delivered_at, created_at, updated_at, brief'
 

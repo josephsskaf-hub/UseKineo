@@ -20,6 +20,14 @@
 
 ## Integração e limites
 
+### Iteração aprovada: cinza neutro (30/09, noite BRT)
+
+**DECISÃO APROVADA:** `docs/DECISIONS.md`, entrada "ADM cinza neutro aprovado para publicação". **IMPLEMENTADO:** `app/admin/admin-porcelain.css:5` usa fundo `#E2E3E5`, cartões `#F0F0F1`, navegação `#E7E8EA` e destaque `#285B9C`. Os fundos fixos de 12 arquivos TSX administrativos passaram a usar os tokens, sem outras mudanças nesses arquivos (comparação literal normalizada contra o Git). Nenhuma API ou cálculo foi editado.
+
+**TESTADO LOCALMENTE (30/09 BRT):** TypeScript sem emissão e sem incremental; guardiões Porcelana, compartilhamento (70), cinco melhorias (650), Afiliados (16), MRR (54) e fonte única (28). Quatro pares de texto/fundo passam contraste 4,5:1. Revisão React/Next: sem alteração de hooks, limites cliente/servidor, chamadas ou eventos.
+
+**TESTADO LOCALMENTE:** JSX real de Visão geral, Pessoas e Afiliados em 1440/390 px: cores de fundo/nav/destaque idênticas à proposta aprovada, sem overflow de documento. Comparação privada `ADM-CINZA-IMPLEMENTADO-ANTES-DEPOIS.html`; prova `neutral-implementation-verification.json`, na pasta de artefatos `admin-refine-20260930` desta conversa. Fixtures fictícias; não são métricas de produção. **QUESTÃO PENDENTE:** confirmar o deploy deste ajuste após o envio ao Git.
+
 **BASE CONFIRMADA (Git, 30/09/2026):** `origin/main` e `entrega-atual` em `d515109a4f8f76f0ed18813f8544df388733a83d`, reconferidos antes de integrar. Implementação isolada em `codex/admin-porcelana-20260930`; checkout principal sujo preservado.
 
 **QUESTÃO PENDENTE:** validação em produção após o processo normal de publicação. Esta entrega não executa build, deploy, consultas de produção, env, pagamentos ou campanhas. A fila Git local não comprova publicação. Banners do layout pai autenticado permanecem com as regras existentes; nenhum acesso administrativo é concedido pelo shell visual.

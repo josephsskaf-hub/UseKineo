@@ -1,20 +1,20 @@
-/* Approved 30/09: administrative Porcelana, independent of the public theme.
+/* Approved 30/09: neutral-gray administrative palette, independent of the public theme.
    No hidden financial rows, no metric rewrites, no changes to action permissions. */
 html .kineo-admin-theme.admin-porcelain {
   color-scheme: light;
-  --bg:#F7F7F5; --sidebar-bg:#fff; --card:#fff; --card2:#F1F1EE;
-  --text:#0E1116; --text2:#2A2F37; --muted:#5A5F67; --muted2:#6B6F76;
-  --border:#E4E4E0; --border2:#BFC2C6; --indigo:#0A5CFF; --indigo-light:#0A5CFF;
-  --purple:#0A5CFF; --purple-light:#0A5CFF; --accent:#0A5CFF; --accent-soft:#E8EFFF;
+  --bg:#E2E3E5; --sidebar-bg:#E7E8EA; --card:#F0F0F1; --card2:#E4E5E7;
+  --text:#25282D; --text2:#3B4046; --muted:#555D65; --muted2:#59616A;
+  --border:#CCCFD3; --border2:#A7ADB5; --indigo:#285B9C; --indigo-light:#285B9C;
+  --purple:#285B9C; --purple-light:#285B9C; --accent:#285B9C; --accent-soft:#E0E6EE;
   --on-accent:#fff; --surface:var(--card); --surface-soft:var(--card2);
   --danger:#B42318; --warning:#8A4B00; --success:#0F7A55;
   --modal-overlay:rgba(14,17,22,.32); --modal-shadow:0 24px 80px #0E111626;
-  --sh-card:0 1px 3px #0E111608;
+  --sh-card:0 1px 3px #25282D0A;
   display:grid; grid-template-columns:208px minmax(0,1fr);
   background:var(--bg); color:var(--text); min-height:100vh; isolation:isolate;
 }
 .admin-porcelain * { box-sizing:border-box }
-.adm-sidebar { position:sticky; top:0; height:100dvh; overflow-y:auto; background:var(--card); border-right:1px solid var(--border); padding:28px 14px 18px; display:flex; flex-direction:column; gap:24px }
+.adm-sidebar { position:sticky; top:0; height:100dvh; overflow-y:auto; background:var(--sidebar-bg); border-right:1px solid var(--border); padding:28px 14px 18px; display:flex; flex-direction:column; gap:24px }
 .adm-brand { display:flex; align-items:center; gap:8px; padding:0 10px; color:var(--text); font-size:20px; font-weight:750; text-decoration:none }
 .adm-brand>span { color:var(--accent); font-size:32px; line-height:1 }
 .adm-brand>small { margin-left:auto; font-size:9px; letter-spacing:.08em; color:var(--muted) }
@@ -26,7 +26,7 @@ html .kineo-admin-theme.admin-porcelain {
 .adm-group>a[aria-current=page] { color:var(--accent); background:var(--accent-soft); font-weight:700 }
 .adm-exit { padding:14px 10px 0; border-top:1px solid var(--border); color:var(--muted); font-size:12px; text-decoration:none; margin-top:auto }
 .adm-workspace { min-width:0 }
-.adm-topbar { min-height:64px; background:var(--card); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:16px; padding:16px 28px; color:var(--muted); font-size:12px }
+.adm-topbar { min-height:64px; background:var(--sidebar-bg); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:16px; padding:16px 28px; color:var(--muted); font-size:12px }
 .adm-topbar>span { display:flex; gap:12px; flex-wrap:wrap }
 .adm-topbar strong { color:var(--text2); font-weight:600 }
 .adm-topbar>small { border:1px solid var(--border); padding:5px 8px; border-radius:6px; font-size:9px; text-transform:uppercase; white-space:nowrap }
@@ -46,7 +46,7 @@ html .kineo-admin-theme.admin-porcelain {
 .adm-content .adm-legacy-nav { display:none }
 .adm-shortcuts>summary { padding:16px; border:1px solid var(--border); background:var(--card); border-radius:12px; font-size:13px; cursor:pointer; margin-bottom:16px }
 .adm-content .adm-card { border-color:var(--border)!important; box-shadow:var(--sh-card) }
-.adm-content .adm-primary-card { background:var(--accent-soft)!important; border-color:#C2D3FF!important }
+.adm-content .adm-primary-card { background:var(--accent-soft)!important; border-color:#BBC2CA!important }
 .adm-content .adm-primary-card [data-adm-value] { color:var(--accent)!important }
 .adm-content .adm-card [data-adm-value] { color:var(--text)!important }
 .adm-skip { position:absolute; left:12px; top:-100px; z-index:100; padding:12px; background:var(--card); color:var(--accent); border:2px solid var(--accent) }

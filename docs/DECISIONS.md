@@ -661,3 +661,7 @@ Slug do X confirmado: utm_source=x.
 - Mantido: assinatura só "Apresentado por <quem apresenta>" — a tela não oferece "decorado por <terceiro>".
 - Preço: o de cada etapa que já existe (5 cr por foto pronta + 5 cr por clipe Kling 5 s ≈ 30 cr por espaço de 3 fotos). Sem preço público novo.
 - Guardião test-espacos (22 ok, 8 mutantes).
+
+## 2026-09-30 — ADM cinza neutro aprovado para publicação
+
+**DECISÃO APROVADA (fundador, Board):** após revisar `ADM-CINZA-NEUTRO-ANTES-DEPOIS.html`, Joseph confirmou: "Pode publicar, essa ficou bem melhor." Aplicar fundo cinza neutro, cartões cinza-claro e azul discreto nos destaques apenas no ADM. Preservar layout, controles, cálculos, permissões e tema público. A aprovação substitui a paleta branca do ADM, não o restante do refinamento.

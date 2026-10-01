@@ -34,7 +34,7 @@ import {
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const CARD: CSSProperties = { background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 20 }
+const CARD: CSSProperties = { background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 20 }
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
@@ -82,7 +82,7 @@ function FalBalanceCard({ panel, nowMs }: { panel: FalBalancePanel | null; nowMs
   const naoMedido = panel?.mode === 'fallback' ? `Not measured — waits for ${FAL_PANEL_MIGRATION.split('/').pop()}` : 'Not measured'
   // value null = número não medido: âmbar com a nota "Not measured", qualquer que seja a cor pedida.
   const tile = (label: string, value: string | null, color = '#0E1116', note?: string) => (
-    <div key={label} className="rounded-xl p-4" style={{ background: '#F1F1EE', border: '1px solid #E4E4E0' }}>
+    <div key={label} className="rounded-xl p-4" style={{ background: 'var(--card2)', border: '1px solid #E4E4E0' }}>
       <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#5A5F67' }}>{label}</div>
       <div className="font-black" style={{ fontSize: '1.5rem', lineHeight: 1.1, color: value === null ? '#8A4B00' : color }}>{value ?? '—'}</div>
       {(value === null || note) && <p className="text-[11px] mt-1" style={{ color: value === null ? '#8A4B00' : '#6B6F76' }}>{value === null ? naoMedido : note}</p>}
@@ -373,7 +373,7 @@ export default async function AdminSupplierHealthPage() {
           <>
             <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
               {health.windows.map((w) => (
-                <div key={w.key} className="rounded-xl p-4" style={{ background: '#F1F1EE', border: '1px solid #E4E4E0' }}>
+                <div key={w.key} className="rounded-xl p-4" style={{ background: 'var(--card2)', border: '1px solid #E4E4E0' }}>
                   <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#5A5F67' }}>
                     {w.label}
                   </div>

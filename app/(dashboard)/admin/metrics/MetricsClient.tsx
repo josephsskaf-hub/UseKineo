@@ -128,7 +128,7 @@ export default function MetricsClient({ metrics: initialMetrics, viewerEmail, de
       <div className="px-4 sm:px-6 py-10 pb-20 max-w-3xl mx-auto">
         <div
           className="rounded-2xl p-8 text-center"
-          style={{ background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 20 }}
+          style={{ background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 20 }}
         >
           <div className="text-5xl mb-3">🔒</div>
           <h1 className="text-xl font-semibold mb-2" style={{ color: '#0E1116' }}>
@@ -453,7 +453,7 @@ function MetricCard({ card }: { card: Card }) {
     <div
       className="rounded-xl p-4"
       style={{
-        background: '#FFFFFF',
+        background: 'var(--card)',
         border: '1px solid #E4E4E0',
         borderRadius: 20,
       }}

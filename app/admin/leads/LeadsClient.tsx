@@ -29,7 +29,7 @@ interface AdminUserRow {
   is_paid: boolean
 }
 
-const CARD: React.CSSProperties = { background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 20 }
+const CARD: React.CSSProperties = { background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 20 }
 const POLL_MS = 60_000
 
 function fmt(v: number | null | undefined): string {
@@ -332,7 +332,7 @@ function Table({
       ) : (
         <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: '#F1F1EE' }}>
+            <tr style={{ background: 'var(--card2)' }}>
               {head.map((h) => (
                 <th
                   key={h}

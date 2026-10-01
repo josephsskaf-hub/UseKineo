@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import type { PersonRow } from '@/app/api/admin/people/route'
 
-const CARD: React.CSSProperties = { background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 20 }
+const CARD: React.CSSProperties = { background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 20 }
 
 interface Summary {
   total: number
@@ -342,7 +342,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
         onChange={(e) => setQ(e.target.value)}
         placeholder="Search email, name, or country code…"
         className="w-full rounded-xl px-4 py-2.5 mb-6 text-sm"
-        style={{ background: '#FFFFFF', border: '1px solid #E4E4E0', color: '#0E1116', outline: 'none' }}
+        style={{ background: 'var(--card)', border: '1px solid #E4E4E0', color: '#0E1116', outline: 'none' }}
       />
 
       {!people && !error && (
@@ -416,7 +416,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
               type="button"
               onClick={() => setShowAll(true)}
               className="mt-3 px-4 py-2 rounded-lg text-xs font-bold"
-              style={{ background: '#FFFFFF', border: '1px solid #E4E4E0', color: '#5A5F67', cursor: 'pointer' }}
+              style={{ background: 'var(--card)', border: '1px solid #E4E4E0', color: '#5A5F67', cursor: 'pointer' }}
             >
               Show all {filtered.length} →
             </button>
@@ -444,7 +444,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              background: '#FFFFFF',
+              background: 'var(--card)',
               border: '1px solid #E4E4E0',
               borderRadius: 14,
               padding: 22,
@@ -468,7 +468,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
               onChange={(e) => setGrantAmount(e.target.value)}
               style={{
                 width: '100%',
-                background: '#F1F1EE',
+                background: 'var(--card2)',
                 border: '1px solid #E4E4E0',
                 borderRadius: 8,
                 color: '#0E1116',
@@ -488,7 +488,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
               placeholder="ex: review no Product Hunt, compensação por falha"
               style={{
                 width: '100%',
-                background: '#F1F1EE',
+                background: 'var(--card2)',
                 border: '1px solid #E4E4E0',
                 borderRadius: 8,
                 color: '#0E1116',
@@ -592,12 +592,12 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
                     {media.videos.map((v) => (
                       <div
                         key={v.id}
-                        style={{ background: '#F1F1EE', border: v.prompt_is_ui ? '1px solid rgba(248,113,113,.6)' : '1px solid #E4E4E0', borderRadius: 10, overflow: 'hidden', opacity: v.url ? 1 : 0.55 }}
+                        style={{ background: 'var(--card2)', border: v.prompt_is_ui ? '1px solid rgba(248,113,113,.6)' : '1px solid #E4E4E0', borderRadius: 10, overflow: 'hidden', opacity: v.url ? 1 : 0.55 }}
                       >
                         {v.url ? (
                           <video src={v.url} controls preload="metadata" playsInline style={{ display: 'block', width: '100%', aspectRatio: '9/16', maxHeight: 300, background: 'var(--bg)', objectFit: 'contain' }} />
                         ) : (
-                          <div style={{ aspectRatio: '9/16', maxHeight: 190, background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <div style={{ aspectRatio: '9/16', maxHeight: 190, background: 'var(--card)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <span style={{ fontSize: 22 }}>⏳</span>
                           </div>
                         )}
@@ -697,7 +697,7 @@ function Table({ head, rows, border, empty }: { head: string[]; rows: React.Reac
       ) : (
         <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: '#F1F1EE' }}>
+            <tr style={{ background: 'var(--card2)' }}>
               {head.map((h) => (
                 <th
                   key={h}
