@@ -1,0 +1,466 @@
+[
+  {
+    "id": "studio-before-1440-light",
+    "errors": [],
+    "scrollWidth": 1440,
+    "width": 1440,
+    "events": [],
+    "requests": [
+      {
+        "url": "/api/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/me/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/videos",
+        "method": "GET"
+      }
+    ]
+  },
+  {
+    "id": "studio-after-1440-light",
+    "errors": [],
+    "scrollWidth": 1440,
+    "width": 1440,
+    "events": [
+      {
+        "name": "mrr_studio_viewed",
+        "metadata": {
+          "version": "mrr_studio_20261001_v1",
+          "variant": "near_idea",
+          "surface": "studio"
+        }
+      },
+      {
+        "name": "mrr_idea_entered",
+        "metadata": {
+          "version": "mrr_studio_20261001_v1",
+          "variant": "near_idea",
+          "surface": "studio"
+        }
+      }
+    ],
+    "requests": [
+      {
+        "url": "/api/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/me/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/videos",
+        "method": "GET"
+      }
+    ]
+  },
+  {
+    "id": "home-before-1440-light",
+    "errors": [],
+    "scrollWidth": 1440,
+    "width": 1440,
+    "events": [],
+    "requests": []
+  },
+  {
+    "id": "home-after-1440-light",
+    "errors": [],
+    "scrollWidth": 1440,
+    "width": 1440,
+    "events": [
+      {
+        "name": "mrr_showcase_door_viewed",
+        "metadata": {
+          "version": "mrr_showcase_20261001_v1",
+          "surface": "home_gallery"
+        }
+      }
+    ],
+    "requests": []
+  },
+  {
+    "id": "showcase-after-1440-light",
+    "errors": [],
+    "scrollWidth": 1440,
+    "width": 1440,
+    "events": [
+      {
+        "name": "mrr_showcase_viewed",
+        "metadata": {
+          "version": "mrr_showcase_20261001_v1",
+          "surface": "showcase"
+        }
+      }
+    ],
+    "requests": []
+  },
+  {
+    "id": "studio-before-1440-dark",
+    "errors": [],
+    "scrollWidth": 1440,
+    "width": 1440,
+    "events": [],
+    "requests": [
+      {
+        "url": "/api/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/me/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/videos",
+        "method": "GET"
+      }
+    ]
+  },
+  {
+    "id": "studio-after-1440-dark",
+    "errors": [],
+    "scrollWidth": 1440,
+    "width": 1440,
+    "events": [
+      {
+        "name": "mrr_studio_viewed",
+        "metadata": {
+          "version": "mrr_studio_20261001_v1",
+          "variant": "near_idea",
+          "surface": "studio"
+        }
+      },
+      {
+        "name": "mrr_idea_entered",
+        "metadata": {
+          "version": "mrr_studio_20261001_v1",
+          "variant": "near_idea",
+          "surface": "studio"
+        }
+      }
+    ],
+    "requests": [
+      {
+        "url": "/api/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/me/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/videos",
+        "method": "GET"
+      }
+    ]
+  },
+  {
+    "id": "home-before-1440-dark",
+    "errors": [],
+    "scrollWidth": 1440,
+    "width": 1440,
+    "events": [],
+    "requests": []
+  },
+  {
+    "id": "home-after-1440-dark",
+    "errors": [],
+    "scrollWidth": 1440,
+    "width": 1440,
+    "events": [
+      {
+        "name": "mrr_showcase_door_viewed",
+        "metadata": {
+          "version": "mrr_showcase_20261001_v1",
+          "surface": "home_gallery"
+        }
+      }
+    ],
+    "requests": []
+  },
+  {
+    "id": "showcase-after-1440-dark",
+    "errors": [],
+    "scrollWidth": 1440,
+    "width": 1440,
+    "events": [
+      {
+        "name": "mrr_showcase_viewed",
+        "metadata": {
+          "version": "mrr_showcase_20261001_v1",
+          "surface": "showcase"
+        }
+      }
+    ],
+    "requests": []
+  },
+  {
+    "id": "studio-before-390-light",
+    "errors": [],
+    "scrollWidth": 390,
+    "width": 390,
+    "events": [],
+    "requests": [
+      {
+        "url": "/api/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/me/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/videos",
+        "method": "GET"
+      }
+    ]
+  },
+  {
+    "id": "studio-after-390-light",
+    "errors": [],
+    "scrollWidth": 390,
+    "width": 390,
+    "events": [
+      {
+        "name": "mrr_studio_viewed",
+        "metadata": {
+          "version": "mrr_studio_20261001_v1",
+          "variant": "near_idea",
+          "surface": "studio"
+        }
+      },
+      {
+        "name": "mrr_idea_entered",
+        "metadata": {
+          "version": "mrr_studio_20261001_v1",
+          "variant": "near_idea",
+          "surface": "studio"
+        }
+      }
+    ],
+    "requests": [
+      {
+        "url": "/api/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/me/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/videos",
+        "method": "GET"
+      }
+    ]
+  },
+  {
+    "id": "home-before-390-light",
+    "errors": [],
+    "scrollWidth": 390,
+    "width": 390,
+    "events": [],
+    "requests": []
+  },
+  {
+    "id": "home-after-390-light",
+    "errors": [],
+    "scrollWidth": 390,
+    "width": 390,
+    "events": [
+      {
+        "name": "mrr_showcase_door_viewed",
+        "metadata": {
+          "version": "mrr_showcase_20261001_v1",
+          "surface": "home_gallery"
+        }
+      }
+    ],
+    "requests": []
+  },
+  {
+    "id": "showcase-after-390-light",
+    "errors": [],
+    "scrollWidth": 390,
+    "width": 390,
+    "events": [
+      {
+        "name": "mrr_showcase_viewed",
+        "metadata": {
+          "version": "mrr_showcase_20261001_v1",
+          "surface": "showcase"
+        }
+      }
+    ],
+    "requests": []
+  },
+  {
+    "id": "studio-before-390-dark",
+    "errors": [],
+    "scrollWidth": 390,
+    "width": 390,
+    "events": [],
+    "requests": [
+      {
+        "url": "/api/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/me/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/videos",
+        "method": "GET"
+      }
+    ]
+  },
+  {
+    "id": "studio-after-390-dark",
+    "errors": [],
+    "scrollWidth": 390,
+    "width": 390,
+    "events": [
+      {
+        "name": "mrr_studio_viewed",
+        "metadata": {
+          "version": "mrr_studio_20261001_v1",
+          "variant": "near_idea",
+          "surface": "studio"
+        }
+      },
+      {
+        "name": "mrr_idea_entered",
+        "metadata": {
+          "version": "mrr_studio_20261001_v1",
+          "variant": "near_idea",
+          "surface": "studio"
+        }
+      }
+    ],
+    "requests": [
+      {
+        "url": "/api/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/me/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/videos",
+        "method": "GET"
+      }
+    ]
+  },
+  {
+    "id": "home-before-390-dark",
+    "errors": [],
+    "scrollWidth": 390,
+    "width": 390,
+    "events": [],
+    "requests": []
+  },
+  {
+    "id": "home-after-390-dark",
+    "errors": [],
+    "scrollWidth": 390,
+    "width": 390,
+    "events": [
+      {
+        "name": "mrr_showcase_door_viewed",
+        "metadata": {
+          "version": "mrr_showcase_20261001_v1",
+          "surface": "home_gallery"
+        }
+      }
+    ],
+    "requests": []
+  },
+  {
+    "id": "showcase-after-390-dark",
+    "errors": [],
+    "scrollWidth": 390,
+    "width": 390,
+    "events": [
+      {
+        "name": "mrr_showcase_viewed",
+        "metadata": {
+          "version": "mrr_showcase_20261001_v1",
+          "surface": "showcase"
+        }
+      }
+    ],
+    "requests": []
+  },
+  {
+    "id": "studio-interaction",
+    "nav": [
+      "/studio/create?engine=seedance&prompt=A+paper+boat+crosses+the+city+after+rain.&duration=15&script_mode=ai&autoanalyze=1&studio=1&intent_campaign=studio_v4"
+    ],
+    "events": [
+      {
+        "name": "mrr_studio_viewed",
+        "metadata": {
+          "version": "mrr_studio_20261001_v1",
+          "variant": "near_idea",
+          "surface": "studio"
+        }
+      },
+      {
+        "name": "mrr_idea_entered",
+        "metadata": {
+          "version": "mrr_studio_20261001_v1",
+          "variant": "near_idea",
+          "surface": "studio"
+        }
+      },
+      {
+        "name": "mrr_generate_clicked",
+        "metadata": {
+          "version": "mrr_studio_20261001_v1",
+          "variant": "near_idea",
+          "surface": "studio"
+        }
+      }
+    ],
+    "requests": [
+      {
+        "url": "/api/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/me/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/videos",
+        "method": "GET"
+      }
+    ]
+  },
+  {
+    "id": "showcase-interaction",
+    "initial": "4 films / month · $12.90 USD / month",
+    "sixty": "2 films / month · $12.90 USD / month",
+    "fifteen": "8 films / month · $12.90 USD / month",
+    "events": [
+      {
+        "name": "mrr_showcase_viewed",
+        "metadata": {
+          "version": "mrr_showcase_20261001_v1",
+          "surface": "showcase"
+        }
+      },
+      {
+        "name": "mrr_showcase_first_gesture",
+        "metadata": {
+          "version": "mrr_showcase_20261001_v1",
+          "surface": "showcase"
+        }
+      }
+    ]
+  }
+]
