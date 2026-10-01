@@ -89,7 +89,9 @@ const retiredNavigationLinks=new Set(['/scripts','/viral-now'])
 // 30/09 (KINEO-WORKS-WITH-CLAUDE, fundador "vai"): one documented ADDITION — the Claude connector page. Any other
 // extra or missing link still fails the exact multiset comparison.
 // 30/09 (KINEO-CLAUDE-1CLIQUE, brief do fundador): the footer link now lands on the connect panel with its source.
-const addedNavigationLinks=['/claude-connector?src=footer#connect']
+// 01/10: founder-requested /showcase entry follows its code switch. Keep the exact
+// multiset assertion; the showcase guardian mutates removal of this new link.
+const addedNavigationLinks=['/claude-connector?src=footer#connect', ...(pure('lib/showcaseTelemetry.ts').SHOWCASE_PUBLIC ? ['/showcase'] : [])]
 equal(links(footerAfter),[...links(footerBefore).map(h=>h==='/business-video-ads'?'/ads':h).filter(h=>!retiredNavigationLinks.has(h)&&!(avatarOffCatalogue&&h==='/ai-avatar')),...segmentLinks,...addedNavigationLinks].sort(),'footer preserves all destinations except documented navigation removals and off-catalogue Avatar, with direct Ads, derived segment doors and the documented Claude connector addition')
 equal((footerAfter.match(/<details /g)||[]).length,4,'four footer navigation groups')
 console.log(`PASS ${checks} locale and workspace checks; no network, database, email or generation`)

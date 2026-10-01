@@ -1,0 +1,18 @@
+PASS approved assets, honest badges, local previews and product destinations
+PASS all authored copy in the 16 site languages
+PASS visibility, background tab, reduced motion, data saving and pause
+PASS public page, stage, interactions, footer, switch and metadata wired
+PASS versioned deduplication, bounded payload and acquisition preserved
+PASS M1 wrong engine badge turns red
+PASS M2 unknown/customer asset turns red
+PASS M3 master instead of preview turns red
+PASS M4 missing locale turns red
+PASS M5 offscreen playback turns red
+PASS M6 hidden tab playback turns red
+PASS M7 eager video source turns red
+PASS M8 footer missing turns red
+PASS M9 kill switch disconnected turns red
+PASS M10 duplicate first gesture turns red
+PASS M11 unversioned cohort turns red
+PASS M12 false acknowledgement turns red
+17 checks passed, including 12 live mutations. Offline: no keys, database or renders.

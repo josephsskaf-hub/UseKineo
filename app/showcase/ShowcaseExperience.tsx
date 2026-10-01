@@ -2,12 +2,10 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import ExamplesGallery from '@/app/examples/ExamplesGallery'
-import { EXAMPLES_SELECTION_SEP24 } from '@/lib/ui/examplesSelectionSep24'
-import { MRR_SHOWCASE_VERSION, mrrShowcaseVideo, showcasePlanValue } from '@/lib/growth/mrrShowcase'
-import { SEEDANCE_15S_PUBLIC, qualityPaused } from '@/lib/engineLaunch'
+import { MRR_SHOWCASE_ENABLED, MRR_SHOWCASE_VERSION, showcasePlanValue } from '@/lib/growth/mrrShowcase'
+import { SEEDANCE_15S_PUBLIC } from '@/lib/engineLaunch'
 import { formatCheckoutMoney } from '@/lib/checkoutPricing'
-import { trackEvent } from '@/lib/analytics'
+import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
 import { UiLabel } from '@/components/InterfaceLanguage'
 import styles from '@/app/examples/ExamplesGallery.module.css'
 
@@ -15,20 +13,26 @@ export default function ShowcaseExperience() {
   const [seconds, setSeconds] = useState<15 | 35 | 60>(35)
   const impression = useRef(false)
   const firstGesture = useRef(false)
+  const panel = useRef<HTMLDivElement>(null)
   const value = showcasePlanValue('starter', seconds)
   useEffect(() => {
-    if (impression.current) return
-    impression.current = true
-    void trackEvent('mrr_showcase_viewed', { version: MRR_SHOWCASE_VERSION, surface: 'showcase' })
+    if (!MRR_SHOWCASE_ENABLED || !panel.current || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(entries => {
+      if (!entries.some(e => e.isIntersecting) || impression.current) return
+      impression.current = true
+      void trackEvent('mrr_showcase_viewed', { version: MRR_SHOWCASE_VERSION, surface: 'film_value' })
+      observer.disconnect()
+    }, { threshold: 0.25 })
+    observer.observe(panel.current)
+    return () => observer.disconnect()
   }, [])
   const recordGesture = () => {
     if (firstGesture.current) return
     firstGesture.current = true
-    void trackEvent('mrr_showcase_first_gesture', { version: MRR_SHOWCASE_VERSION, surface: 'showcase' })
+    void trackEvent('mrr_showcase_first_gesture', { version: MRR_SHOWCASE_VERSION, surface: 'film_value' })
   }
-  return <div onClickCapture={event => { if ((event.target as HTMLElement).closest('a,button,select,input')) recordGesture() }} onChangeCapture={recordGesture} data-mrr-showcase={MRR_SHOWCASE_VERSION}>
-    <ExamplesGallery videos={EXAMPLES_SELECTION_SEP24.filter(video => !qualityPaused(video.engine)).map(mrrShowcaseVideo)} separateFeatured
-      startPaused previewActionLabel="Make a film with my idea" />
+  if (!MRR_SHOWCASE_ENABLED) return null
+  return <div ref={panel} className="sc-section-inner" onClickCapture={event => { if ((event.target as HTMLElement).closest('a,button,select,input')) recordGesture() }} onChangeCapture={recordGesture} data-mrr-showcase={MRR_SHOWCASE_VERSION}>
     <section className={styles.createBand} aria-labelledby="showcase-film-value">
       <div>
         <h2 id="showcase-film-value"><UiLabel>What does a month of films look like?</UiLabel></h2>
@@ -46,16 +50,10 @@ export default function ShowcaseExperience() {
           {' '}<UiLabel>Using all monthly credits for this format, without extras. Other engines and lengths use different credits.</UiLabel></p>
         <p><UiLabel>Standard monthly price. Available offers and full plan details are shown on Pricing.</UiLabel></p>
       </div>
-      <Link className={styles.navCta} href={`/pricing?utm_source=showcase&utm_medium=product_proof&utm_campaign=${MRR_SHOWCASE_VERSION}`}
-        onClick={() => { void trackEvent('mrr_showcase_plans_clicked', { version: MRR_SHOWCASE_VERSION, seconds }) }}>
+      <Link className={styles.navCta} href="/pricing" data-showcase-action="pricing"
+        onClick={() => { rememberSignupCampaign(MRR_SHOWCASE_VERSION); void trackEvent('mrr_showcase_plans_clicked', { version: MRR_SHOWCASE_VERSION, seconds }) }}>
         <UiLabel>See plans →</UiLabel>
       </Link>
     </section>
-    <div className={styles.createBand}><div>
-      <h2><UiLabel>Start with your own idea.</UiLabel></h2>
-      <p><UiLabel>Review your engine, film length and exact credit cost before generating.</UiLabel></p>
-    </div><Link className={styles.navCta} href={`/studio?utm_source=showcase&utm_medium=product_proof&utm_campaign=${MRR_SHOWCASE_VERSION}`}>
-      <UiLabel>Open Studio →</UiLabel>
-    </Link></div>
   </div>
 }

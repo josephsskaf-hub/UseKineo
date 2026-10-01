@@ -4,8 +4,8 @@ WITH patterns(pat) AS (VALUES ('josephsskaf@gmail.com'),('josephskaf@hotmail.com
 people AS (SELECT p.id,p.created_at,coalesce(nullif(trim(p.signup_utm_source),''),nullif(trim(p.utm_source),''),'unknown') source,p.signup_utm_campaign campaign FROM profiles p WHERE NOT EXISTS (SELECT 1 FROM patterns i WHERE lower(trim(coalesce(p.email,''))) LIKE i.pat)),
 surface_events AS (
  SELECT e.* FROM events e
- WHERE e.name IN ('mrr_studio_viewed','mrr_showcase_viewed','mrr_showcase_door_viewed')
- AND e.metadata->>'version' IN ('mrr_studio_20261001_v1','mrr_showcase_20261001_v1')
+ WHERE e.name IN ('mrr_studio_viewed','mrr_showcase_viewed','mrr_showcase_door_viewed','showcase_impression')
+ AND coalesce(e.metadata->>'version',e.metadata->>'showcase_version') IN ('mrr_studio_20261001_v1','mrr_showcase_20261001_v1','showcase_v1')
  AND nullif(trim(e.session_id),'') IS NOT NULL
 ),
 session_people AS (
@@ -20,7 +20,7 @@ resolved AS (
  FROM surface_events s LEFT JOIN session_people sp USING(session_id)
 ),
 exposures AS (
- SELECT r.person,r.name surface,r.metadata->>'version' version,coalesce(r.metadata->>'variant','showcase') variant,min(r.created_at) exposed_at
+ SELECT r.person,r.name surface,coalesce(r.metadata->>'version',r.metadata->>'showcase_version') version,coalesce(r.metadata->>'variant','showcase') variant,min(r.created_at) exposed_at
  FROM resolved r JOIN people p ON p.id=r.person
  GROUP BY 1,2,3,4
 ),

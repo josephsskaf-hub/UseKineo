@@ -89,10 +89,10 @@
     "width": 1440,
     "events": [
       {
-        "name": "mrr_showcase_viewed",
+        "name": "showcase_impression",
         "metadata": {
-          "version": "mrr_showcase_20261001_v1",
-          "surface": "showcase"
+          "showcase_version": "showcase_v1",
+          "showcase_browser": "1b06823c-bc9c-493b-9a33-ca4961cce490"
         }
       }
     ],
@@ -188,10 +188,10 @@
     "width": 1440,
     "events": [
       {
-        "name": "mrr_showcase_viewed",
+        "name": "showcase_impression",
         "metadata": {
-          "version": "mrr_showcase_20261001_v1",
-          "surface": "showcase"
+          "showcase_version": "showcase_v1",
+          "showcase_browser": "fc2e79c8-e4d2-4d04-b266-b03b4571642f"
         }
       }
     ],
@@ -287,10 +287,10 @@
     "width": 390,
     "events": [
       {
-        "name": "mrr_showcase_viewed",
+        "name": "showcase_impression",
         "metadata": {
-          "version": "mrr_showcase_20261001_v1",
-          "surface": "showcase"
+          "showcase_version": "showcase_v1",
+          "showcase_browser": "be05c935-9256-4f1b-a5e9-73908a45d539"
         }
       }
     ],
@@ -386,10 +386,10 @@
     "width": 390,
     "events": [
       {
-        "name": "mrr_showcase_viewed",
+        "name": "showcase_impression",
         "metadata": {
-          "version": "mrr_showcase_20261001_v1",
-          "surface": "showcase"
+          "showcase_version": "showcase_v1",
+          "showcase_browser": "c3b3d440-34e1-41b5-bffc-8f5a792d8c02"
         }
       }
     ],
@@ -448,17 +448,17 @@
     "fifteen": "8 films / month · $12.90 USD / month",
     "events": [
       {
-        "name": "mrr_showcase_viewed",
+        "name": "showcase_impression",
         "metadata": {
-          "version": "mrr_showcase_20261001_v1",
-          "surface": "showcase"
+          "showcase_version": "showcase_v1",
+          "showcase_browser": "70aeebd3-9827-47d4-a8b7-83f3bcb00615"
         }
       },
       {
         "name": "mrr_showcase_first_gesture",
         "metadata": {
           "version": "mrr_showcase_20261001_v1",
-          "surface": "showcase"
+          "surface": "film_value"
         }
       }
     ]

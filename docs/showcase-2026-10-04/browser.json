@@ -1,0 +1,176 @@
+{
+  "date": "2026-10-01T07:56:39.237Z",
+  "localOnly": true,
+  "externalNetworkBlocked": true,
+  "apiResponsesMocked": true,
+  "locales": [
+    {
+      "locale": "en",
+      "w": 360,
+      "scroll": 360,
+      "dir": "ltr",
+      "h1": "Everything here was made on Kineo — from one sentence or a few photos"
+    },
+    {
+      "locale": "pt",
+      "w": 360,
+      "scroll": 360,
+      "dir": "ltr",
+      "h1": "Tudo aqui foi feito na Kineo — a partir de uma frase ou algumas fotos"
+    },
+    {
+      "locale": "es",
+      "w": 360,
+      "scroll": 360,
+      "dir": "ltr",
+      "h1": "Todo aquí se hizo en Kineo — a partir de una frase o unas fotos"
+    },
+    {
+      "locale": "fr",
+      "w": 360,
+      "scroll": 360,
+      "dir": "ltr",
+      "h1": "Tout ici a été créé sur Kineo — à partir d’une phrase ou de quelques photos"
+    },
+    {
+      "locale": "de",
+      "w": 360,
+      "scroll": 360,
+      "dir": "ltr",
+      "h1": "Alles hier wurde mit Kineo erstellt — aus einem Satz oder ein paar Fotos"
+    },
+    {
+      "locale": "it",
+      "w": 360,
+      "scroll": 360,
+      "dir": "ltr",
+      "h1": "Tutto qui è stato creato su Kineo — da una frase o poche foto"
+    },
+    {
+      "locale": "nl",
+      "w": 360,
+      "scroll": 360,
+      "dir": "ltr",
+      "h1": "Alles hier is gemaakt met Kineo — vanuit één zin of een paar foto’s"
+    },
+    {
+      "locale": "pl",
+      "w": 360,
+      "scroll": 360,
+      "dir": "ltr",
+      "h1": "Wszystko powstało w Kineo — z jednego zdania lub kilku zdjęć"
+    },
+    {
+      "locale": "tr",
+      "w": 360,
+      "scroll": 360,
+      "dir": "ltr",
+      "h1": "Buradaki her şey Kineo’da üretildi — tek bir cümleden veya birkaç fotoğraftan"
+    },
+    {
+      "locale": "ru",
+      "w": 360,
+      "scroll": 360,
+      "dir": "ltr",
+      "h1": "Всё здесь создано в Kineo — из одного предложения или нескольких фото"
+    },
+    {
+      "locale": "uk",
+      "w": 360,
+      "scroll": 360,
+      "dir": "ltr",
+      "h1": "Усе тут створено в Kineo — з одного речення або кількох фото"
+    },
+    {
+      "locale": "ar",
+      "w": 360,
+      "scroll": 360,
+      "dir": "rtl",
+      "h1": "كل ما هنا صُنع على Kineo — من جملة واحدة أو بضع صور"
+    },
+    {
+      "locale": "ur",
+      "w": 360,
+      "scroll": 360,
+      "dir": "rtl",
+      "h1": "یہاں سب کچھ Kineo پر بنا ہے — ایک جملے یا چند تصاویر سے"
+    },
+    {
+      "locale": "hi",
+      "w": 360,
+      "scroll": 360,
+      "dir": "ltr",
+      "h1": "यहाँ सब कुछ Kineo पर बना है — एक वाक्य या कुछ तस्वीरों से"
+    },
+    {
+      "locale": "id",
+      "w": 360,
+      "scroll": 360,
+      "dir": "ltr",
+      "h1": "Semua di sini dibuat di Kineo — dari satu kalimat atau beberapa foto"
+    },
+    {
+      "locale": "vi",
+      "w": 360,
+      "scroll": 360,
+      "dir": "ltr",
+      "h1": "Mọi thứ ở đây đều được tạo trên Kineo — từ một câu hoặc vài bức ảnh"
+    }
+  ],
+  "events": [
+    {
+      "event_name": "showcase_impression",
+      "name": "showcase_impression",
+      "metadata": {
+        "showcase_version": "showcase_v1",
+        "showcase_browser": "b39ec51a-921c-4602-92ed-e73a3e3ba0ec"
+      },
+      "path": "/showcase",
+      "session_id": "c02daeb3-f833-45d7-85f9-1b80e3d5bef2"
+    },
+    {
+      "event_name": "showcase_first_gesture",
+      "name": "showcase_first_gesture",
+      "metadata": {
+        "showcase_version": "showcase_v1",
+        "showcase_browser": "b39ec51a-921c-4602-92ed-e73a3e3ba0ec",
+        "action": "select"
+      },
+      "path": "/showcase",
+      "session_id": "c02daeb3-f833-45d7-85f9-1b80e3d5bef2"
+    }
+  ],
+  "media": [
+    "/previews/ex-90bd8367-60c6-4811-8fdd-3a5b0200eec6.mp4",
+    "/previews/promo-images-1.mp4",
+    "/previews/ex-4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4",
+    "/previews/promo-ads-3var-1.mp4",
+    "/previews/ex-f3de57b0-3486-4400-ba72-c9390774d426.mp4",
+    "/previews/ex-16742e11-a2fc-4e0a-a49a-2862e0ee36b0.mp4",
+    "/previews/ex-ad6cb185-a0a2-46cf-a148-ea7503dfe6d3.mp4",
+    "/previews/ex-692a6e98-6ed5-4c8d-8fa5-89ab21fbbcff.mp4",
+    "/previews/promo-images-2.mp4",
+    "/previews/promo-images-3.mp4",
+    "/previews/promo-ads-3var-2.mp4",
+    "/previews/promo-ads-3var-3.mp4",
+    "/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4",
+    "/previews/4b12925e-avalanche.mp4",
+    "/previews/99818ab0-0960-4089-a784-12b241736868.mp4",
+    "/previews/e487a011-8781-482f-913e-445ef5ad22bf.mp4"
+  ],
+  "errors": [],
+  "checks": [
+    "anonymous 200",
+    "visibility playback",
+    "offscreen source absent",
+    "pause",
+    "all tiles select",
+    "manual curtain",
+    "deduplicated impression/gesture",
+    "signup campaign preserved",
+    "all locales at 360px",
+    "RTL",
+    "four screenshots",
+    "unique metadata"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "sprint": "MRR produto",
+  "date": "2026-10-01",
+  "worktree": "C:/kineo/.claude/worktrees/stage-sprint-mrr",
+  "branch": "codex/sprint-mrr-20261001",
+  "main": "87825d3225af384ed4c887a7faf7bacbe4546c47",
+  "integratedQueue": "3aba3b0b7bbcbee9df0e66ad08b121a5a01acef9",
+  "status": "integrated-awaiting-full-suite",
+  "publication": "not-enqueued-not-deployed",
+  "next": "Run frozen full scripts/test-*.mjs suite versus main; tsc; fetch/reconcile; safe enfileirar; one PUBLICAR launcher. Never run launcher here.",
+  "results": "No after-version production observations yet. No new sales inferred.",
+  "report": "docs/STAGE-sprint-mrr-2026-10-04.md",
+  "reportDue": "2026-10-03T23:00:00Z",
+  "externalEvidence": "C:/Users/josep/.codex/outputs/01a0e5e3-36cf-72b3-bc5d-26ca2cd6e88d/mrr-20261001",
+  "restrictions": [
+    "no email",
+    "no paid generation",
+    "no Vercel/env/cron/engine/price changes",
+    "SELECT only",
+    "solo",
+    "no direct push"
+  ]
+}
