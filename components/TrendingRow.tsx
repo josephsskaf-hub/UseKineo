@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import MrrShowcaseLink from '@/components/MrrShowcaseLink'
 import { useEffect, useId, useRef, useState } from 'react'
 import type { WallVideo } from '@/lib/engineWall'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
@@ -194,6 +195,7 @@ export default function TrendingRow({ videos }: { videos: WallVideo[] }) {
         <span className={styles.caption}><span>{video.title}</span><span className={styles.watch}>{copy.preview} ↗</span></span>
       </button>)}
     </div>
+    <MrrShowcaseLink />
     {selected && <PreviewDialog key={selected.id} video={selected} onClose={closePreview} />}
   </div>
 }
