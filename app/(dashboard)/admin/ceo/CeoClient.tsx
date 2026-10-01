@@ -119,14 +119,14 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
       <header className="mb-6">
         <div
           className="font-black uppercase tracking-widest mb-1"
-          style={{ fontSize: '0.62rem', color: '#f59e0b' }}
+          style={{ fontSize: '0.62rem', color: '#8A4B00' }}
         >
           Admin · CEO View · Live
         </div>
         <div className="flex items-end justify-between gap-3 flex-wrap">
           <div>
             <h1 className="font-black tracking-tight mb-1" style={{ fontSize: '1.6rem', color: 'var(--text)' }}>
-              Morning Briefing
+              Visão geral
             </h1>
             <p className="text-xs" style={{ color: 'var(--muted2)' }}>
               {data.scopeLabel} ({data.internalExcluded} accounts) · signed in as {viewerEmail ?? '—'}
@@ -134,7 +134,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
           </div>
           <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--muted2)' }}>
             {refreshing && (
-              <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: '#f59e0b' }} />
+              <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: '#8A4B00' }} />
             )}
             {lastUpdated && <span>Updated {secondsAgo}s ago</span>}
           </div>
@@ -152,7 +152,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
         <BigCard
           label="Monthly Recurring Revenue"
           value={money(data.mrr)}
-          accent="#34d399"
+          accent="#0F7A55"
           sub={`${fmt(data.payingActive)} paying customer${data.payingActive === 1 ? '' : 's'}${
             data.arpu ? ` · ARPU ${money(data.arpu)}` : ''
           } · pago: ${data.mrrSourceLabel} · tabela nova ${money(data.mrrTableUsd)}${
@@ -160,7 +160,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
           }`}
         />
         {data.mrrByPlan.length === 0 ? (
-          <Card label="Paying customers" value="0" accent="#86868b" hint="no active paid plan" />
+          <Card label="Paying customers" value="0" accent="#5A5F67" hint="no active paid plan" />
         ) : (
           data.mrrByPlan.map((p) => (
             <Card
@@ -175,7 +175,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
         <Card
           label="Ever paid (has_paid)"
           value={fmt(data.hasPaidEver)}
-          accent="#86868b"
+          accent="#5A5F67"
           hint="historical, refunds included — NOT the goal metric"
         />
       </Section>
@@ -185,12 +185,12 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
         <Card
           label="Signed up (total)"
           value={fmt(data.totalUsers)}
-          accent="#f5f5f7"
+          accent="#0E1116"
           hint="real accounts, internal excluded"
         />
-        <Card label="New today" value={fmt(data.signupsToday)} accent="#2997ff" hint="last 24 h" />
-        <Card label="New this week" value={fmt(data.signupsThisWeek)} accent="#2997ff" hint="last 7 days" />
-        <Card label="New this month" value={fmt(data.signupsThisMonth)} accent="#2997ff" hint="last 30 days" />
+        <Card label="New today" value={fmt(data.signupsToday)} accent="#0A5CFF" hint="last 24 h" />
+        <Card label="New this week" value={fmt(data.signupsThisWeek)} accent="#0A5CFF" hint="last 7 days" />
+        <Card label="New this month" value={fmt(data.signupsThisMonth)} accent="#0A5CFF" hint="last 30 days" />
         <RateCard
           label="Signup → Paid"
           value={data.signupToPaidRate}
@@ -200,14 +200,14 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
 
       {/* ── Row 3: Activation ────────────────────────────────────────────── */}
       <Section title="⚡ Activation this week">
-        <Card label="New users (7d)" value={fmt(data.newUsersThisWeek)} accent="#fbbf24" hint="signed up" />
-        <Card label="Made a video (7d)" value={fmt(data.newActivatedThisWeek)} accent="#fbbf24" hint="of those new users" />
+        <Card label="New users (7d)" value={fmt(data.newUsersThisWeek)} accent="#8A4B00" hint="signed up" />
+        <Card label="Made a video (7d)" value={fmt(data.newActivatedThisWeek)} accent="#8A4B00" hint="of those new users" />
         <RateCard
           label="Activation rate"
           value={data.activationRateWeek}
           sub={`${fmt(data.newActivatedThisWeek)} / ${fmt(data.newUsersThisWeek)} new users`}
         />
-        <Card label="Videos today / 7d" value={`${fmt(data.videosToday)} / ${fmt(data.videosThisWeek)}`} accent="#f59e0b" hint="renders started" />
+        <Card label="Videos today / 7d" value={`${fmt(data.videosToday)} / ${fmt(data.videosThisWeek)}`} accent="#8A4B00" hint="renders started" />
       </Section>
 
       {/* ── Row 4: THE FUNNEL ────────────────────────────────────────────── */}
@@ -228,9 +228,9 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
                 onClick={() => setWin(f.key)}
                 className="px-3 py-1 rounded-lg text-xs font-bold transition-colors"
                 style={{
-                  background: f.key === win ? '#f59e0b' : 'transparent',
-                  color: f.key === win ? '#000' : 'var(--muted2)',
-                  border: `1px solid ${f.key === win ? '#f59e0b' : 'var(--border)'}`,
+                  background: f.key === win ? 'var(--accent)' : 'transparent',
+                  color: f.key === win ? 'var(--on-accent)' : 'var(--muted2)',
+                  border: `1px solid ${f.key === win ? '#8A4B00' : 'var(--border)'}`,
                 }}
               >
                 {f.key === 'all' ? 'All time' : f.key}
@@ -241,30 +241,30 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
 
         <div
           className="rounded-xl p-4"
-          style={{ background: 'rgba(11,17,32,0.85)', border: '1px solid var(--border)' }}
+          style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
         >
           <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))' }}>
             {funnel.steps.map((s, i) => {
               const width = funnel.signups > 0 ? Math.max(2, (s.count / funnel.signups) * 100) : 0
               const last = i === funnel.steps.length - 1
               return (
-                <div key={s.label} className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,.03)' }}>
+                <div key={s.label} className="rounded-xl p-3" style={{ background: 'rgba(14,17,22,0.04)' }}>
                   <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--muted2)' }}>
                     {i > 0 ? '↳ ' : ''}
                     {s.label}
                   </div>
                   <div
                     className="mt-1 font-black"
-                    style={{ fontSize: '1.6rem', lineHeight: 1.1, color: last ? '#34d399' : 'var(--text)' }}
+                    style={{ fontSize: '1.6rem', lineHeight: 1.1, color: last ? '#0F7A55' : 'var(--text)' }}
                   >
                     {fmt(s.count)}
                   </div>
-                  <div className="mt-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,.06)' }}>
+                  <div className="mt-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(14,17,22,0.04)' }}>
                     <div
                       style={{
                         width: `${width}%`,
                         height: '100%',
-                        background: last ? '#34d399' : '#2997ff',
+                        background: last ? '#0F7A55' : '#0A5CFF',
                         borderRadius: 999,
                       }}
                     />
@@ -274,7 +274,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
                     <span style={{ color: 'var(--muted)' }}> · {s.pctOfTop} of signups</span>
                   </div>
                   {i > 0 && s.dropAbs > 0 && (
-                    <div className="text-[10.5px] mt-0.5" style={{ color: '#f87171' }}>
+                    <div className="text-[10.5px] mt-0.5" style={{ color: '#B42318' }}>
                       −{fmt(s.dropAbs)} lost here
                     </div>
                   )}
@@ -303,7 +303,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
           }}
         >
           <div>
-            <div className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: '#f87171' }}>
+            <div className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: '#B42318' }}>
               🚨 Checkout leak
             </div>
             {/* KINEO-PAINEL-VERDADE-2026-08-27 — o número grande passou a ser
@@ -315,7 +315,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
                 Stripe sozinho (PUSH #97) — customer não é intenção de compra.
                 O texto antigo afirmava que todas as 37 "digitaram o e-mail
                 numa página de pagamento", e isso era falso para ~35 delas. */}
-            <div className="font-black" style={{ fontSize: '2rem', lineHeight: 1.05, color: '#f87171' }}>
+            <div className="font-black" style={{ fontSize: '2rem', lineHeight: 1.05, color: '#B42318' }}>
               {fmt(Math.max(leak.reachedCheckout - leak.reachedCheckoutPaid, 0))}
             </div>
             <p className="text-[11px] mt-1" style={{ color: 'var(--muted2)' }}>
@@ -325,20 +325,20 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
           <div className="flex-1 min-w-[220px]">
             <p className="text-sm" style={{ color: 'var(--text)' }}>
               {fmt(leak.reachedCheckout)} people actually hit checkout, {fmt(leak.reachedCheckoutPaid)}{' '}
-              paid — <strong style={{ color: '#f87171' }}>{leak.realConversion}</strong> close rate.
+              paid — <strong style={{ color: '#B42318' }}>{leak.realConversion}</strong> close rate.
             </p>
             <p className="text-[11px] mt-1" style={{ color: 'var(--muted2)' }}>
               Separately, {fmt(leak.openedCheckout)} accounts carry a Stripe customer id and{' '}
               {fmt(leak.stuckFree)} of those are still on free — but a customer id can be created by
               browser prefetch, so treat that list as cold, not as abandoned buyers.
             </p>
-            <Link href="/admin/leads" className="text-[12px] font-bold" style={{ color: '#2997ff' }}>
+            <Link href="/admin/leads" className="text-[12px] font-bold" style={{ color: '#0A5CFF' }}>
               work the leads →
             </Link>
           </div>
           <div className="flex gap-3">
-            <MiniStat label="Abandoned (Stripe)" value={fmt(data.abandonedCount)} accent="#f87171" />
-            <MiniStat label="Checkout → paid" value={data.checkoutConversionRate} accent="#fbbf24" />
+            <MiniStat label="Abandoned (Stripe)" value={fmt(data.abandonedCount)} accent="#B42318" />
+            <MiniStat label="Checkout → paid" value={data.checkoutConversionRate} accent="#8A4B00" />
           </div>
         </div>
       </section>
@@ -349,7 +349,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
         <section className="mb-6">
           <h2
             className="font-black uppercase tracking-widest mb-3"
-            style={{ fontSize: '0.88rem', color: '#f59e0b', letterSpacing: '0.08em' }}
+            style={{ fontSize: '0.88rem', color: '#8A4B00', letterSpacing: '0.08em' }}
           >
             ⚠️ At-risk paying customers — low credits ({data.atRiskCount})
           </h2>
@@ -357,9 +357,9 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
             <table className="w-full text-xs">
               <thead>
                 <tr style={{ background: 'rgba(245,158,11,0.08)' }}>
-                  <th className="text-left px-4 py-2 font-black" style={{ color: '#f59e0b' }}>Email</th>
-                  <th className="text-left px-4 py-2 font-black" style={{ color: '#f59e0b' }}>Plan</th>
-                  <th className="text-left px-4 py-2 font-black" style={{ color: '#f59e0b' }}>Credits left</th>
+                  <th className="text-left px-4 py-2 font-black" style={{ color: '#8A4B00' }}>Email</th>
+                  <th className="text-left px-4 py-2 font-black" style={{ color: '#8A4B00' }}>Plan</th>
+                  <th className="text-left px-4 py-2 font-black" style={{ color: '#8A4B00' }}>Credits left</th>
                 </tr>
               </thead>
               <tbody>
@@ -367,7 +367,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
                   <tr key={u.email} style={{ borderTop: '1px solid rgba(245,158,11,0.1)' }}>
                     <td className="px-4 py-2 font-mono" style={{ color: 'var(--text)' }}>{u.email}</td>
                     <td className="px-4 py-2" style={{ color: 'var(--muted2)' }}>{u.plan}</td>
-                    <td className="px-4 py-2 font-black" style={{ color: u.credits === 0 ? '#f87171' : '#f59e0b' }}>
+                    <td className="px-4 py-2 font-black" style={{ color: u.credits === 0 ? '#B42318' : '#8A4B00' }}>
                       {u.credits === 0 ? '0 ⚠️' : u.credits}
                     </td>
                   </tr>
@@ -379,12 +379,12 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
       )}
 
       {/* ── Where to go next ─────────────────────────────────────────────── */}
-      <NavCards />
+      <details className="adm-shortcuts"><summary>Explorar os painéis</summary><NavCards /></details>
     </div>
   )
 
   if (!home) return body
-  return <div style={{ background: '#000', minHeight: '100vh' }}>{body}</div>
+  return <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>{body}</div>
 }
 
 // ── Shared sub-components ────────────────────────────────────────────────────
@@ -409,13 +409,13 @@ function Card({ label, value, hint, accent }: { label: string; value: string | n
   const v = typeof value === 'number' ? value.toLocaleString('en-US') : value
   return (
     <div
-      className="rounded-xl p-4"
-      style={{ background: 'rgba(11,17,32,0.85)', border: `1px solid ${accent ? `${accent}33` : 'var(--border)'}` }}
+      className="adm-card rounded-xl p-4"
+      style={{ background: 'var(--card)', border: `1px solid ${accent ? `${accent}33` : 'var(--border)'}` }}
     >
-      <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: accent ?? 'var(--muted2)' }}>
+      <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--muted2)' }}>
         {label}
       </div>
-      <div className="font-black" style={{ fontSize: '1.7rem', lineHeight: 1.1, color: accent ?? 'var(--text)' }}>{v}</div>
+      <div data-adm-value className="font-black" style={{ fontSize: '1.7rem', lineHeight: 1.1, color: 'var(--text)' }}>{v}</div>
       {hint && <p className="text-[11px] mt-1.5" style={{ color: 'var(--muted2)' }}>{hint}</p>}
     </div>
   )
@@ -424,9 +424,9 @@ function Card({ label, value, hint, accent }: { label: string; value: string | n
 function BigCard({ label, value, accent, sub }: { label: string; value: string; accent?: string; sub?: string }) {
   return (
     <div
-      className="rounded-xl p-5"
+      className="adm-primary-card rounded-xl p-5"
       style={{
-        background: 'linear-gradient(135deg, rgba(11,17,32,0.95), rgba(11,17,32,0.85))',
+        background: 'linear-gradient(135deg, var(--card), var(--card))',
         border: `1px solid ${accent ? `${accent}55` : 'var(--border)'}`,
         gridColumn: 'span 2',
       }}
@@ -434,7 +434,7 @@ function BigCard({ label, value, accent, sub }: { label: string; value: string; 
       <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: accent ?? 'var(--muted2)' }}>
         {label}
       </div>
-      <div className="font-black mb-1" style={{ fontSize: '2.4rem', lineHeight: 1.1, color: accent ?? 'var(--text)' }}>
+      <div data-adm-value className="font-black mb-1" style={{ fontSize: '2.4rem', lineHeight: 1.1, color: 'var(--accent)' }}>
         {value}
       </div>
       {sub && <p className="text-xs" style={{ color: 'var(--muted2)' }}>{sub}</p>}
@@ -444,9 +444,9 @@ function BigCard({ label, value, accent, sub }: { label: string; value: string; 
 
 function RateCard({ label, value, sub }: { label: string; value: string; sub: string }) {
   const isGood = value !== '—' && parseFloat(value) >= 10
-  const accent = value === '—' ? '#86868b' : isGood ? '#34d399' : '#f59e0b'
+  const accent = value === '—' ? '#5A5F67' : isGood ? '#0F7A55' : '#8A4B00'
   return (
-    <div className="rounded-xl p-4" style={{ background: 'rgba(11,17,32,0.85)', border: `1px solid ${accent}33` }}>
+    <div className="rounded-xl p-4" style={{ background: 'var(--card)', border: `1px solid ${accent}33` }}>
       <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--muted2)' }}>{label}</div>
       <div className="font-black" style={{ fontSize: '1.9rem', lineHeight: 1.1, color: accent }}>{value}</div>
       <p className="text-[11px] mt-1.5" style={{ color: 'var(--muted2)' }}>{sub}</p>
@@ -456,7 +456,7 @@ function RateCard({ label, value, sub }: { label: string; value: string; sub: st
 
 function MiniStat({ label, value, accent }: { label: string; value: string; accent: string }) {
   return (
-    <div className="rounded-lg px-3 py-2" style={{ background: 'rgba(255,255,255,.03)', border: '1px solid var(--border)' }}>
+    <div className="rounded-lg px-3 py-2" style={{ background: 'rgba(14,17,22,0.04)', border: '1px solid var(--border)' }}>
       <div className="text-[9.5px] font-black uppercase tracking-widest" style={{ color: 'var(--muted2)' }}>{label}</div>
       <div className="font-black" style={{ fontSize: '1.1rem', color: accent }}>{value}</div>
     </div>
@@ -491,15 +491,15 @@ const NAV = [
 
 function AdminNav({ active }: { active: string }) {
   return (
-    <nav className="flex gap-1 mt-4 flex-wrap">
+    <nav className="adm-legacy-nav flex gap-1 mt-4 flex-wrap">
       {NAV.map((t) => (
         <Link
           key={t.key}
           href={t.href}
           className="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
           style={{
-            background: active === t.key ? '#f59e0b' : 'transparent',
-            color: active === t.key ? '#000' : 'var(--muted2)',
+            background: active === t.key ? '#8A4B00' : 'transparent',
+            color: active === t.key ? 'var(--on-accent)' : 'var(--muted2)',
           }}
         >
           {t.label}

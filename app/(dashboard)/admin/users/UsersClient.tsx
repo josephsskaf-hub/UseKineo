@@ -172,13 +172,13 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
       <div className="px-4 sm:px-6 py-10 pb-20 max-w-3xl mx-auto">
         <div
           className="rounded-2xl p-8 text-center"
-          style={{ background: '#161618', border: '1px solid #2a2a2d', borderRadius: 20 }}
+          style={{ background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 20 }}
         >
           <div className="text-5xl mb-3">🔒</div>
-          <h1 className="text-xl font-semibold mb-2" style={{ color: '#f5f5f7' }}>
+          <h1 className="text-xl font-semibold mb-2" style={{ color: '#0E1116' }}>
             Admin access required.
           </h1>
-          <p className="text-sm" style={{ color: '#86868b' }}>
+          <p className="text-sm" style={{ color: '#5A5F67' }}>
             Please sign in with an authorized account.
           </p>
         </div>
@@ -191,7 +191,7 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
       <header className="mb-6">
         <div
           className="font-black uppercase tracking-widest mb-1"
-          style={{ fontSize: '0.62rem', color: '#2997ff' }}
+          style={{ fontSize: '0.62rem', color: '#0A5CFF' }}
         >
           Admin · Staging
         </div>
@@ -201,7 +201,7 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
               className="font-semibold tracking-tight mb-1"
               style={{
                 fontSize: '1.6rem',
-                background: 'linear-gradient(180deg,#fff 35%,#a1a1a6)',
+                background: 'linear-gradient(180deg,#fff 35%,#5A5F67)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -209,7 +209,7 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
             >
               Users
             </h1>
-            <p className="text-xs" style={{ color: '#86868b' }}>
+            <p className="text-xs" style={{ color: '#5A5F67' }}>
               Live from auth.users + public.videos on staging Supabase. Signed in
               as {viewerEmail}.
             </p>
@@ -239,20 +239,20 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
           className="grid gap-3"
           style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}
         >
-          <MetricCard label="Pro subscribers"   value={stats?.pro   ?? null} hint="plan = pro"   accent="#2997ff" />
-          <MetricCard label="Basic subscribers" value={stats?.basic ?? null} hint="plan = basic" accent="#2997ff" />
-          <MetricCard label="Free users"        value={stats?.free  ?? null} hint="no paid plan" accent="#86868b" />
+          <MetricCard label="Pro subscribers"   value={stats?.pro   ?? null} hint="plan = pro"   accent="#0A5CFF" />
+          <MetricCard label="Basic subscribers" value={stats?.basic ?? null} hint="plan = basic" accent="#0A5CFF" />
+          <MetricCard label="Free users"        value={stats?.free  ?? null} hint="no paid plan" accent="#5A5F67" />
           <MetricCard
             label="Paid · 0 credits ⚠️"
             value={stats?.paidNoCredits ?? null}
             hint="pro/basic with no credits"
-            accent={stats?.paidNoCredits ? '#f87171' : '#2997ff'}
+            accent={stats?.paidNoCredits ? '#B42318' : '#0A5CFF'}
           />
           <MetricCard
             label="Checkout abandonado 🔥"
             value={stats?.checkoutAbandoned ?? null}
             hint="Stripe customer criado, sem plano pago"
-            accent={stats?.checkoutAbandoned ? '#f5f5f7' : '#86868b'}
+            accent={stats?.checkoutAbandoned ? '#0E1116' : '#5A5F67'}
           />
         </div>
       </section>
@@ -260,16 +260,16 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
       {/* Push #274 — Checkout abandoned spotlight table */}
       {users && users.filter(u => u.checkout_abandoned).length > 0 && (
         <section className="mb-6">
-          <h2 className="text-[11px] font-black uppercase tracking-widest mb-3" style={{ color: '#2997ff' }}>
+          <h2 className="text-[11px] font-black uppercase tracking-widest mb-3" style={{ color: '#0A5CFF' }}>
             🔥 Checkout Abandonado — leads quentes
           </h2>
-          <p className="text-[11px] mb-3" style={{ color: '#86868b' }}>
+          <p className="text-[11px] mb-3" style={{ color: '#5A5F67' }}>
             Esses usuários criaram um customer no Stripe mas não finalizaram o pagamento. São os mais próximos de converter.
           </p>
-          <div className="rounded-2xl overflow-x-auto" style={{ background: '#161618', border: '1px solid #2a2a2d', borderRadius: 20 }}>
+          <div className="rounded-2xl overflow-x-auto" style={{ background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 20 }}>
             <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: '#1d1d1f' }}>
+                <tr style={{ background: '#F1F1EE' }}>
                   <Th>Email</Th>
                   <Th>Name</Th>
                   <Th>Joined</Th>
@@ -281,7 +281,7 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
                   .filter(u => u.checkout_abandoned)
                   .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
                   .map(u => (
-                    <tr key={u.id} style={{ borderTop: '1px solid #2a2a2d' }}>
+                    <tr key={u.id} style={{ borderTop: '1px solid #E4E4E0' }}>
                       <Td mono>{u.email || '—'}</Td>
                       <Td>{u.name || '—'}</Td>
                       <Td>{fmtDate(u.created_at)}</Td>
@@ -301,13 +301,13 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
         return p === 'pro' || p === 'basic'
       }).length > 0 && (
         <section className="mb-6">
-          <h2 className="text-[11px] font-black uppercase tracking-widest mb-3" style={{ color: '#86868b' }}>
+          <h2 className="text-[11px] font-black uppercase tracking-widest mb-3" style={{ color: '#5A5F67' }}>
             Paid Subscribers
           </h2>
-          <div className="rounded-2xl overflow-x-auto" style={{ background: '#161618', border: '1px solid #2a2a2d', borderRadius: 20 }}>
+          <div className="rounded-2xl overflow-x-auto" style={{ background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 20 }}>
             <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: '#1d1d1f' }}>
+                <tr style={{ background: '#F1F1EE' }}>
                   <Th>Email</Th>
                   <Th>Name</Th>
                   <Th>Plan</Th>
@@ -331,17 +331,17 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
                     return a.created_at < b.created_at ? 1 : -1
                   })
                   .map(u => (
-                    <tr key={u.id} style={{ borderTop: '1px solid #2a2a2d' }}>
+                    <tr key={u.id} style={{ borderTop: '1px solid #E4E4E0' }}>
                       <Td mono>{u.email || '—'}</Td>
                       <Td>{u.name || '—'}</Td>
                       <Td><PlanBadge plan={u.plan} credits={u.credits} /></Td>
                       <Td align="right">
                         <span style={{
                           fontWeight: 700,
-                          color: u.credits === null ? '#86868b'
-                            : u.credits <= 0 ? '#f87171'
-                            : u.credits <= 5 ? '#f5f5f7'
-                            : '#2997ff',
+                          color: u.credits === null ? '#5A5F67'
+                            : u.credits <= 0 ? '#B42318'
+                            : u.credits <= 5 ? '#0E1116'
+                            : '#0A5CFF',
                           fontSize: '0.95rem',
                         }}>
                           {u.credits === null ? '—' : u.credits}
@@ -361,11 +361,11 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
 
       <section
         className="rounded-2xl"
-        style={{ background: '#161618', border: '1px solid #2a2a2d', borderRadius: 20 }}
+        style={{ background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 20 }}
       >
         <div
           className="px-4 sm:px-5 py-3 flex items-center gap-3 flex-wrap"
-          style={{ borderBottom: '1px solid #2a2a2d' }}
+          style={{ borderBottom: '1px solid #E4E4E0' }}
         >
           <input
             type="text"
@@ -374,31 +374,31 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
             placeholder="Search by email or name…"
             className="rounded-lg px-3 py-2 text-sm flex-1 min-w-[200px]"
             style={{
-              background: '#1d1d1f',
-              border: '1px solid #2a2a2d',
-              color: '#f5f5f7',
+              background: '#F1F1EE',
+              border: '1px solid #E4E4E0',
+              color: '#0E1116',
               outline: 'none',
             }}
           />
-          <div className="text-[11px]" style={{ color: '#86868b' }}>
+          <div className="text-[11px]" style={{ color: '#5A5F67' }}>
             {users ? `${filtered.length} / ${users.length}` : ''}
           </div>
         </div>
 
         {loading && !users && (
-          <div className="px-5 py-10 text-center text-sm" style={{ color: '#86868b' }}>
+          <div className="px-5 py-10 text-center text-sm" style={{ color: '#5A5F67' }}>
             Loading users…
           </div>
         )}
 
         {error && !loading && (
-          <div className="px-5 py-10 text-center text-sm" style={{ color: '#f87171' }}>
+          <div className="px-5 py-10 text-center text-sm" style={{ color: '#B42318' }}>
             {error}
           </div>
         )}
 
         {!loading && !error && users && filtered.length === 0 && (
-          <div className="px-5 py-10 text-center text-sm" style={{ color: '#86868b' }}>
+          <div className="px-5 py-10 text-center text-sm" style={{ color: '#5A5F67' }}>
             No users found.
           </div>
         )}
@@ -407,7 +407,7 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
           <div className="overflow-x-auto">
             <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: '#1d1d1f' }}>
+                <tr style={{ background: '#F1F1EE' }}>
                   <Th>Email</Th>
                   <Th>Name</Th>
                   <Th>Country</Th>
@@ -426,7 +426,7 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
                 {filtered.map((u) => (
                   <tr
                     key={u.id}
-                    style={{ borderTop: '1px solid #2a2a2d' }}
+                    style={{ borderTop: '1px solid #E4E4E0' }}
                   >
                     <Td mono>{u.email || '—'}</Td>
                     <Td>{u.name || '—'}</Td>
@@ -471,7 +471,7 @@ function RefreshIndicator({
   return (
     <div
       className="flex items-center gap-1.5 text-[11px]"
-      style={{ color: '#86868b' }}
+      style={{ color: '#5A5F67' }}
     >
       {refreshing ? (
         <span
@@ -480,7 +480,7 @@ function RefreshIndicator({
             width: 7,
             height: 7,
             borderRadius: '50%',
-            background: '#2997ff',
+            background: '#0A5CFF',
             animation: 'pulse 1s ease-in-out infinite',
           }}
         />
@@ -517,14 +517,14 @@ function MetricCard({
     <div
       className="rounded-xl p-4"
       style={{
-        background: '#161618',
-        border: `1px solid ${accent ? `${accent}33` : '#2a2a2d'}`,
+        background: '#FFFFFF',
+        border: `1px solid ${accent ? `${accent}33` : '#E4E4E0'}`,
         borderRadius: 20,
       }}
     >
       <div
         className="text-[10px] font-black uppercase tracking-widest mb-2"
-        style={{ color: accent ?? '#86868b' }}
+        style={{ color: accent ?? '#5A5F67' }}
       >
         {label}
       </div>
@@ -533,13 +533,13 @@ function MetricCard({
         style={{
           fontSize: '1.7rem',
           lineHeight: 1.1,
-          color: isAvailable ? (accent ?? '#f5f5f7') : '#6e6e73',
+          color: isAvailable ? (accent ?? '#0E1116') : '#6B6F76',
         }}
       >
         {isAvailable ? fmt(value) : '—'}
       </div>
       {hint && (
-        <p className="text-[11px] mt-1.5" style={{ color: '#86868b' }}>
+        <p className="text-[11px] mt-1.5" style={{ color: '#5A5F67' }}>
           {hint}
         </p>
       )}
@@ -556,12 +556,12 @@ function PlanBadge({ plan, credits }: { plan: string | null; credits: number | n
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
         <span
           className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold"
-          style={{ background: 'rgba(41,151,255,.12)', color: '#2997ff', border: '1px solid rgba(41,151,255,.3)' }}
+          style={{ background: 'rgba(41,151,255,.12)', color: '#0A5CFF', border: '1px solid rgba(41,151,255,.3)' }}
         >
           Pro
         </span>
         {!hasCredits && (
-          <span title="0 credits — check webhook" style={{ color: '#f87171', fontSize: 12 }}>⚠️</span>
+          <span title="0 credits — check webhook" style={{ color: '#B42318', fontSize: 12 }}>⚠️</span>
         )}
       </span>
     )
@@ -572,17 +572,17 @@ function PlanBadge({ plan, credits }: { plan: string | null; credits: number | n
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
         <span
           className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold"
-          style={{ background: 'rgba(41,151,255,.12)', color: '#2997ff', border: '1px solid rgba(41,151,255,.3)' }}
+          style={{ background: 'rgba(41,151,255,.12)', color: '#0A5CFF', border: '1px solid rgba(41,151,255,.3)' }}
         >
           Basic
         </span>
         {!hasCredits && (
-          <span title="0 credits — check webhook" style={{ color: '#f87171', fontSize: 12 }}>⚠️</span>
+          <span title="0 credits — check webhook" style={{ color: '#B42318', fontSize: 12 }}>⚠️</span>
         )}
       </span>
     )
   }
-  return <span style={{ color: '#86868b', fontSize: 12 }}>Free</span>
+  return <span style={{ color: '#5A5F67', fontSize: 12 }}>Free</span>
 }
 
 function AdminNav({ active }: { active: 'metrics' | 'funnel' | 'users' | 'ceo' }) {
@@ -593,7 +593,7 @@ function AdminNav({ active }: { active: 'metrics' | 'funnel' | 'users' | 'ceo' }
     { key: 'users', label: 'Users', href: '/admin/users' },
   ]
   return (
-    <nav className="mt-4 flex items-center gap-2 flex-wrap">
+    <nav className="adm-legacy-nav mt-4 flex items-center gap-2 flex-wrap">
       {tabs.map((t) => {
         const isActive = t.key === active
         return (
@@ -602,9 +602,9 @@ function AdminNav({ active }: { active: 'metrics' | 'funnel' | 'users' | 'ceo' }
             href={t.href}
             className="text-xs font-bold rounded-lg px-3 py-1.5"
             style={{
-              background: isActive ? 'rgba(41,151,255,.18)' : 'rgba(255,255,255,.04)',
-              border: `1px solid ${isActive ? 'rgba(41,151,255,.45)' : '#2a2a2d'}`,
-              color: isActive ? '#2997ff' : '#6e6e73',
+              background: isActive ? 'rgba(41,151,255,.18)' : 'rgba(14,17,22,0.04)',
+              border: `1px solid ${isActive ? 'rgba(41,151,255,.45)' : '#E4E4E0'}`,
+              color: isActive ? '#0A5CFF' : '#6B6F76',
               textDecoration: 'none',
             }}
           >
@@ -628,7 +628,7 @@ function Th({
       className="font-black uppercase tracking-widest"
       style={{
         fontSize: '0.62rem',
-        color: '#86868b',
+        color: '#5A5F67',
         textAlign: align,
         padding: '10px 14px',
       }}
@@ -651,7 +651,7 @@ function Td({
     <td
       style={{
         padding: '10px 14px',
-        color: '#f5f5f7',
+        color: '#0E1116',
         textAlign: align,
         fontFamily: mono ? 'ui-monospace, SFMono-Regular, Menlo, monospace' : undefined,
         fontSize: mono ? '0.82rem' : undefined,

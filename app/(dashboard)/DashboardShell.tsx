@@ -76,6 +76,9 @@ export default function DashboardShell({
   const pathname = usePathname()
   const title = pageTitles[pathname] ?? 'Dashboard'
 
+  // Admin has its own navigation in both route trees. Do not nest the customer sidebar.
+  if (pathname === '/admin' || pathname.startsWith('/admin/')) return <>{children}</>
+
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg)' }}>
       {/* Glow orbs */}

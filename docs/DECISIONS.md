@@ -2,6 +2,14 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
+## 2026-09-30 — ADM Porcelana aprovado para implementação e integração
+
+**DECISÃO APROVADA:** Joseph, nesta conversa Board, após abrir `ADM-ANTES-DEPOIS.html`: "gostei pode dar merge". Implementar a direção visual clara do protótipo no ADM: navegação agrupada compartilhada, títulos menores, cards legíveis, paleta Porcelana e adaptação mobile.
+
+**ESCOPO:** apresentação administrativa. Não autoriza alterações de valores, cálculo de MRR, comissão, permissões, banco, campanhas ou oferta. Preservar a reconstrução de Afiliados de 30/09. Integração pela fila segura já aprovada, sem substituir o checkout sujo de outra sessão.
+
+**TESTADO LOCALMENTE:** detalhes e limites em `docs/ADMIN-PORCELANA-2026-09-30.md`. Implementação não equivale a publicação nem a resultado comercial.
+
 
 ## 2026-09-30 — Filme de 15 s aceita roteiro com 75 % de fala (antes 95 %)
 

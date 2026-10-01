@@ -43,7 +43,7 @@ import { TRIAL_CREDIT_CAP } from '@/lib/reverseTrial'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const CARD: CSSProperties = { background: '#161618', border: '1px solid #2a2a2d', borderRadius: 20 }
+const CARD: CSSProperties = { background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 20 }
 
 /** Used-credit level at which we call a trial "capped or nearly". */
 const NEAR_CAP_CREDITS = 30
@@ -64,13 +64,13 @@ const GROUPS: GroupMeta[] = [
   {
     key: 'never_gen',
     label: 'Never generated',
-    accent: '#f87171',
+    accent: '#B42318',
     cause: 'Most of them DID press generate — they were failed by the render, not uninterested.',
   },
   {
     key: 'gen_no_dl',
     label: 'Generated, never downloaded',
-    accent: '#fbbf24',
+    accent: '#8A4B00',
     cause: 'They saw the video and never clicked Download once. Not a download bug — a wanting bug.',
   },
   {
@@ -82,13 +82,13 @@ const GROUPS: GroupMeta[] = [
   {
     key: 'active',
     label: 'Active and spending',
-    accent: '#34d399',
+    accent: '#0F7A55',
     cause: 'Returned on another day with the file in hand. This is the shape that pays.',
   },
   {
     key: 'cap',
     label: `Capped or near (${NEAR_CAP_CREDITS}+/${TRIAL_CREDIT_CAP})`,
-    accent: '#2997ff',
+    accent: '#0A5CFF',
     cause: 'Out of runway. Cannot generate again without a plan.',
   },
 ]
@@ -445,11 +445,11 @@ function fmtCountdown(hours: number | null): string {
 }
 
 function countdownColor(hours: number | null): string {
-  if (hours === null) return '#86868b'
-  if (hours <= 0) return '#6e6e73'
-  if (hours < 24) return '#f87171'
-  if (hours < 48) return '#fbbf24'
-  return '#86868b'
+  if (hours === null) return '#5A5F67'
+  if (hours <= 0) return '#6B6F76'
+  if (hours < 24) return '#B42318'
+  if (hours < 48) return '#8A4B00'
+  return '#5A5F67'
 }
 
 function fmtAgo(iso: string | null): string {
@@ -474,8 +474,8 @@ export default async function AdminTrialCohortPage() {
       <Shell>
         <div className="rounded-2xl p-8 text-center" style={CARD}>
           <div className="text-5xl mb-3">🔒</div>
-          <h1 className="text-xl font-black mb-2" style={{ color: '#f5f5f7' }}>Access denied.</h1>
-          <p className="text-sm" style={{ color: '#86868b' }}>Admin only.</p>
+          <h1 className="text-xl font-black mb-2" style={{ color: '#0E1116' }}>Access denied.</h1>
+          <p className="text-sm" style={{ color: '#5A5F67' }}>Admin only.</p>
         </div>
       </Shell>
     )
@@ -485,7 +485,7 @@ export default async function AdminTrialCohortPage() {
   if (!data) {
     return (
       <Shell>
-        <div className="rounded-2xl p-8 text-center text-sm" style={{ ...CARD, color: '#86868b' }}>
+        <div className="rounded-2xl p-8 text-center text-sm" style={{ ...CARD, color: '#5A5F67' }}>
           Service role not configured on this environment.
         </div>
       </Shell>
@@ -495,19 +495,19 @@ export default async function AdminTrialCohortPage() {
   return (
     <Shell>
       <header className="mb-6">
-        <div className="font-black uppercase tracking-widest mb-1" style={{ fontSize: '0.62rem', color: '#fbbf24' }}>
+        <div className="font-black uppercase tracking-widest mb-1" style={{ fontSize: '0.62rem', color: '#8A4B00' }}>
           Admin · Live trial cohort
         </div>
-        <h1 className="font-black tracking-tight" style={{ fontSize: '1.6rem', color: '#f5f5f7' }}>
+        <h1 className="font-black tracking-tight" style={{ fontSize: '1.6rem', color: '#0E1116' }}>
           {data.total} trial{data.total === 1 ? '' : 's'} still holding credit
         </h1>
-        <p className="text-xs mt-1" style={{ color: '#86868b' }}>
+        <p className="text-xs mt-1" style={{ color: '#5A5F67' }}>
           Every account with trial_status = active, bucketed by what it actually did. Read-only —
           this page sends nothing. Drafts live in docs/EMAILS-COORTE-TRIALS-2026-08-11.md.
           {data.internalCount > 0 &&
             ` Internal accounts are INCLUDED in these counts and badged in the table (${data.internalCount}) — unlike /admin/paying, nothing here is filtered out.`}
         </p>
-        <nav className="flex gap-1 mt-4 flex-wrap">
+        <nav className="adm-legacy-nav flex gap-1 mt-4 flex-wrap">
           {[
             { label: '← CEO', href: '/admin' },
             { label: 'Reverse trial', href: '/admin/trial-abuse' },
@@ -519,7 +519,7 @@ export default async function AdminTrialCohortPage() {
               key={t.href}
               href={t.href}
               className="px-3 py-1.5 rounded-lg text-xs font-bold"
-              style={{ color: '#86868b' }}
+              style={{ color: '#5A5F67' }}
             >
               {t.label}
             </Link>
@@ -530,7 +530,7 @@ export default async function AdminTrialCohortPage() {
       {data.suspectTruncation && (
         <div
           className="rounded-2xl p-4 mb-6 text-sm"
-          style={{ background: 'rgba(248,113,113,.1)', border: '1px solid rgba(248,113,113,.5)', color: '#f87171' }}
+          style={{ background: 'rgba(248,113,113,.1)', border: '1px solid rgba(248,113,113,.5)', color: '#B42318' }}
         >
           <strong>Do not act on these numbers.</strong> {data.total} trials were found but the events
           read came back empty, which means the query failed rather than that nobody did anything.
@@ -542,18 +542,18 @@ export default async function AdminTrialCohortPage() {
       {/* Clock */}
       <section className="mb-6 grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))' }}>
         <div className="rounded-xl p-5" style={{ ...CARD, border: '1px solid rgba(248,113,113,.4)' }}>
-          <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#f87171' }}>
+          <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#B42318' }}>
             Expire in 24h
           </div>
-          <div className="font-black" style={{ fontSize: '2.4rem', lineHeight: 1.1, color: '#f87171' }}>
+          <div className="font-black" style={{ fontSize: '2.4rem', lineHeight: 1.1, color: '#B42318' }}>
             {data.due24}
           </div>
-          <p className="text-xs mt-1" style={{ color: '#86868b' }}>
+          <p className="text-xs mt-1" style={{ color: '#5A5F67' }}>
             {data.due48} within 48h · {data.due7d} within 7d (cumulative)
             {data.expiredAlready > 0 && (
               <>
                 <br />
-                <span style={{ color: '#fbbf24' }}>
+                <span style={{ color: '#8A4B00' }}>
                   + {data.expiredAlready} clock already run out, not yet downgraded
                 </span>
               </>
@@ -561,24 +561,24 @@ export default async function AdminTrialCohortPage() {
           </p>
         </div>
         <div className="rounded-xl p-4" style={CARD}>
-          <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#86868b' }}>
+          <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#5A5F67' }}>
             Credits unspent
           </div>
-          <div className="font-black" style={{ fontSize: '1.7rem', lineHeight: 1.1, color: '#f5f5f7' }}>
+          <div className="font-black" style={{ fontSize: '1.7rem', lineHeight: 1.1, color: '#0E1116' }}>
             {data.creditsLeftTotal}
           </div>
-          <p className="text-[11px] mt-1.5" style={{ color: '#86868b' }}>
+          <p className="text-[11px] mt-1.5" style={{ color: '#5A5F67' }}>
             of {data.creditsGrantedTotal} actually granted · expires with the clock
           </p>
         </div>
         <div className="rounded-xl p-4" style={{ ...CARD, border: '1px solid rgba(251,191,36,.4)' }}>
-          <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#fbbf24' }}>
+          <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#8A4B00' }}>
             Hit the 08/09–08/11 outage
           </div>
-          <div className="font-black" style={{ fontSize: '1.7rem', lineHeight: 1.1, color: '#fbbf24' }}>
+          <div className="font-black" style={{ fontSize: '1.7rem', lineHeight: 1.1, color: '#8A4B00' }}>
             {data.outageHit}
           </div>
-          <p className="text-[11px] mt-1.5" style={{ color: '#86868b' }}>
+          <p className="text-[11px] mt-1.5" style={{ color: '#5A5F67' }}>
             burned trial clock in the ~33h when compose returned zero videos
           </p>
         </div>
@@ -591,13 +591,13 @@ export default async function AdminTrialCohortPage() {
             <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: g.meta.accent }}>
               {g.meta.label}
             </div>
-            <div className="font-black" style={{ fontSize: '1.7rem', lineHeight: 1.1, color: '#f5f5f7' }}>
+            <div className="font-black" style={{ fontSize: '1.7rem', lineHeight: 1.1, color: '#0E1116' }}>
               {g.count}
             </div>
-            <p className="text-[11px] mt-1.5" style={{ color: '#86868b' }}>
+            <p className="text-[11px] mt-1.5" style={{ color: '#5A5F67' }}>
               {g.avgCreditsUsed.toFixed(1)} credits avg · {g.creditsLeft} left · {g.due24} expire in 24h
             </p>
-            <p className="text-[11px] mt-2" style={{ color: '#6e6e73' }}>{g.meta.cause}</p>
+            <p className="text-[11px] mt-2" style={{ color: '#6B6F76' }}>{g.meta.cause}</p>
           </div>
         ))}
       </section>
@@ -606,12 +606,12 @@ export default async function AdminTrialCohortPage() {
       <section className="rounded-2xl overflow-x-auto" style={CARD}>
         <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ background: '#1d1d1f' }}>
+            <tr style={{ background: '#F1F1EE' }}>
               {['Account', 'Group', 'Clock', 'Credits', 'Videos', 'Downloads', 'Days', 'Last event', 'Country', 'Source'].map((h) => (
                 <th
                   key={h}
                   className="font-black uppercase tracking-widest"
-                  style={{ fontSize: '0.62rem', color: '#86868b', textAlign: 'left', padding: '10px 14px', whiteSpace: 'nowrap' }}
+                  style={{ fontSize: '0.62rem', color: '#5A5F67', textAlign: 'left', padding: '10px 14px', whiteSpace: 'nowrap' }}
                 >
                   {h}
                 </th>
@@ -621,29 +621,29 @@ export default async function AdminTrialCohortPage() {
           <tbody>
             {data.rows.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-5 py-10 text-center text-sm" style={{ color: '#86868b' }}>
+                <td colSpan={10} className="px-5 py-10 text-center text-sm" style={{ color: '#5A5F67' }}>
                   No active trials right now.
                 </td>
               </tr>
             )}
             {data.rows.map((r) => {
               const meta = GROUP_BY_KEY.get(r.group)
-              const accent = meta?.accent ?? '#86868b'
+              const accent = meta?.accent ?? '#5A5F67'
               return (
-                <tr key={r.id} style={{ borderTop: '1px solid #2a2a2d', opacity: r.internal ? 0.55 : 1 }}>
+                <tr key={r.id} style={{ borderTop: '1px solid #E4E4E0', opacity: r.internal ? 0.55 : 1 }}>
                   <Td>
                     <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.82rem' }}>
                       {r.email}
                       {r.internal && (
                         <span
                           className="ml-2 rounded px-1.5 py-0.5 text-[10px] font-black uppercase"
-                          style={{ background: 'rgba(134,134,139,.15)', color: '#86868b', border: '1px solid #3a3a3d' }}
+                          style={{ background: 'rgba(134,134,139,.15)', color: '#5A5F67', border: '1px solid #BFC2C6' }}
                         >
                           internal
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px]" style={{ color: '#6e6e73' }}>{r.id.slice(0, 8)}</div>
+                    <div className="text-[11px]" style={{ color: '#6B6F76' }}>{r.id.slice(0, 8)}</div>
                   </Td>
                   <Td>
                     <span
@@ -657,11 +657,11 @@ export default async function AdminTrialCohortPage() {
                     <span style={{ color: countdownColor(r.hoursLeft), fontWeight: 700 }}>
                       {fmtCountdown(r.hoursLeft)}
                     </span>
-                    <div className="text-[11px]" style={{ color: '#6e6e73' }}>{fmtDate(r.endsAt)}</div>
+                    <div className="text-[11px]" style={{ color: '#6B6F76' }}>{fmtDate(r.endsAt)}</div>
                   </Td>
                   <Td>
                     {r.creditsUsed}/{r.creditsGranted}
-                    <div className="text-[11px]" style={{ color: '#6e6e73' }}>{r.creditsLeft} left</div>
+                    <div className="text-[11px]" style={{ color: '#6B6F76' }}>{r.creditsLeft} left</div>
                   </Td>
                   <Td>
                     {r.videos}
@@ -671,26 +671,26 @@ export default async function AdminTrialCohortPage() {
                         generation_stage_error (compose_not_ok). Showing only
                         the first hides the people we most owe an apology. */}
                     {r.generateFailures > 0 && (
-                      <div className="text-[11px]" style={{ color: '#f87171' }}>{r.generateFailures} failed</div>
+                      <div className="text-[11px]" style={{ color: '#B42318' }}>{r.generateFailures} failed</div>
                     )}
                     {r.generateFailures === 0 && r.stageErrors > 0 && (
-                      <div className="text-[11px]" style={{ color: '#fbbf24' }}>{r.stageErrors} stage err</div>
+                      <div className="text-[11px]" style={{ color: '#8A4B00' }}>{r.stageErrors} stage err</div>
                     )}
                   </Td>
                   <Td>
                     {r.downloads}
                     {r.downloadFailures > 0 && (
-                      <div className="text-[11px]" style={{ color: '#f87171' }}>{r.downloadFailures} failed</div>
+                      <div className="text-[11px]" style={{ color: '#B42318' }}>{r.downloadFailures} failed</div>
                     )}
                     {r.downloadFailures === 0 && r.downloadClicks === 0 && r.videos > 0 && (
-                      <div className="text-[11px]" style={{ color: '#6e6e73' }}>never clicked</div>
+                      <div className="text-[11px]" style={{ color: '#6B6F76' }}>never clicked</div>
                     )}
                   </Td>
                   <Td>{r.activeDays}</Td>
                   <Td>
                     {fmtAgo(r.lastEventAt)}
                     {r.lastEventName && (
-                      <div className="text-[11px]" style={{ color: '#6e6e73' }}>{r.lastEventName}</div>
+                      <div className="text-[11px]" style={{ color: '#6B6F76' }}>{r.lastEventName}</div>
                     )}
                   </Td>
                   <Td>{r.country ? `${flagEmoji(r.country)} ${r.country}` : '—'}</Td>
@@ -702,7 +702,7 @@ export default async function AdminTrialCohortPage() {
         </table>
       </section>
 
-      <p className="text-[11px] mt-3" style={{ color: '#6e6e73' }}>
+      <p className="text-[11px] mt-3" style={{ color: '#6B6F76' }}>
         Groups are evaluated in order — capped, then active, then downloaded-and-gone, then
         generated-without-downloading, then never-generated — so the five counts always sum to{' '}
         {data.total}. &quot;Downloads&quot; counts events.video_downloaded, which only fires on the blob
@@ -716,13 +716,13 @@ export default async function AdminTrialCohortPage() {
 
 function Td({ children }: { children: React.ReactNode }) {
   return (
-    <td style={{ padding: '10px 14px', color: '#f5f5f7', whiteSpace: 'nowrap' }}>{children}</td>
+    <td style={{ padding: '10px 14px', color: '#0E1116', whiteSpace: 'nowrap' }}>{children}</td>
   )
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ background: '#000', minHeight: '100vh' }}>
+    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
       <div className="px-4 sm:px-6 py-7 pb-20 max-w-[1400px] mx-auto">{children}</div>
     </div>
   )

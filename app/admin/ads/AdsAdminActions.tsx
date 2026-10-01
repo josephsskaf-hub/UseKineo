@@ -38,12 +38,12 @@ export default function AdsAdminActions({ orderId }: { orderId: string }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
       <input aria-label="Motivo da decisão" value={note} onChange={(e) => setNote(e.target.value)} placeholder="motivo (obrigatório para reprovar)" maxLength={500}
-        style={{ background: '#0b0b0c', color: '#f5f5f7', border: '1px solid #2a2a2d', borderRadius: 8, padding: '6px 8px', minWidth: 220 }} />
+        style={{ background: '#FFFFFF', color: '#0E1116', border: '1px solid #E4E4E0', borderRadius: 8, padding: '6px 8px', minWidth: 220 }} />
       <button type="button" disabled={busy} onClick={() => void decide(true)}
-        style={{ background: '#34d399', color: '#04130c', borderRadius: 8, padding: '6px 12px', fontWeight: 700 }}>Aprovar</button>
+        style={{ background: '#0F7A55', color: '#FFFFFF', borderRadius: 8, padding: '6px 12px', fontWeight: 700 }}>Aprovar</button>
       <button type="button" disabled={busy} onClick={() => void decide(false)}
-        style={{ background: '#f87171', color: '#1a0404', borderRadius: 8, padding: '6px 12px', fontWeight: 700 }}>Reprovar</button>
-      {msg && <span role="status" style={{ fontSize: 12, color: '#86868b' }}>{msg}</span>}
+        style={{ background: '#B42318', color: '#1a0404', borderRadius: 8, padding: '6px 12px', fontWeight: 700 }}>Reprovar</button>
+      {msg && <span role="status" style={{ fontSize: 12, color: '#5A5F67' }}>{msg}</span>}
     </div>
   )
 }

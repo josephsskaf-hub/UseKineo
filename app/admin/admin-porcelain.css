@@ -1,0 +1,70 @@
+/* Approved 30/09: administrative Porcelana, independent of the public theme.
+   No hidden financial rows, no metric rewrites, no changes to action permissions. */
+html .kineo-admin-theme.admin-porcelain {
+  color-scheme: light;
+  --bg:#F7F7F5; --sidebar-bg:#fff; --card:#fff; --card2:#F1F1EE;
+  --text:#0E1116; --text2:#2A2F37; --muted:#5A5F67; --muted2:#6B6F76;
+  --border:#E4E4E0; --border2:#BFC2C6; --indigo:#0A5CFF; --indigo-light:#0A5CFF;
+  --purple:#0A5CFF; --purple-light:#0A5CFF; --accent:#0A5CFF; --accent-soft:#E8EFFF;
+  --on-accent:#fff; --surface:var(--card); --surface-soft:var(--card2);
+  --danger:#B42318; --warning:#8A4B00; --success:#0F7A55;
+  --modal-overlay:rgba(14,17,22,.32); --modal-shadow:0 24px 80px #0E111626;
+  --sh-card:0 1px 3px #0E111608;
+  display:grid; grid-template-columns:208px minmax(0,1fr);
+  background:var(--bg); color:var(--text); min-height:100vh; isolation:isolate;
+}
+.admin-porcelain * { box-sizing:border-box }
+.adm-sidebar { position:sticky; top:0; height:100dvh; overflow-y:auto; background:var(--card); border-right:1px solid var(--border); padding:28px 14px 18px; display:flex; flex-direction:column; gap:24px }
+.adm-brand { display:flex; align-items:center; gap:8px; padding:0 10px; color:var(--text); font-size:20px; font-weight:750; text-decoration:none }
+.adm-brand>span { color:var(--accent); font-size:32px; line-height:1 }
+.adm-brand>small { margin-left:auto; font-size:9px; letter-spacing:.08em; color:var(--muted) }
+.adm-navigation { display:grid; gap:20px }
+.adm-group>p { margin:0 10px 7px; color:var(--muted); text-transform:uppercase; letter-spacing:.1em; font-size:10px; font-weight:650 }
+.adm-group>a { display:flex; align-items:center; gap:10px; min-height:40px; padding:9px 12px; border-radius:9px; color:var(--text2); font-size:13px; text-decoration:none }
+.adm-group>a>span { font-size:11px; color:var(--muted) }
+.adm-group>a:hover { background:var(--card2) }
+.adm-group>a[aria-current=page] { color:var(--accent); background:var(--accent-soft); font-weight:700 }
+.adm-exit { padding:14px 10px 0; border-top:1px solid var(--border); color:var(--muted); font-size:12px; text-decoration:none; margin-top:auto }
+.adm-workspace { min-width:0 }
+.adm-topbar { min-height:64px; background:var(--card); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap:16px; padding:16px 28px; color:var(--muted); font-size:12px }
+.adm-topbar>span { display:flex; gap:12px; flex-wrap:wrap }
+.adm-topbar strong { color:var(--text2); font-weight:600 }
+.adm-topbar>small { border:1px solid var(--border); padding:5px 8px; border-radius:6px; font-size:9px; text-transform:uppercase; white-space:nowrap }
+.adm-content { min-width:0; overflow-wrap:anywhere; outline:none }
+.adm-content h1 { color:var(--text)!important; font-size:clamp(25px,2.2vw,32px)!important; line-height:1.2!important; letter-spacing:-.035em!important; font-weight:700!important; background:none!important; -webkit-text-fill-color:currentColor!important }
+.adm-content h2 { letter-spacing:-.015em; line-height:1.4 }
+.adm-content p { line-height:1.6 }
+.adm-content :is(input,select,textarea) { max-width:100%; color-scheme:light; border-radius:9px }
+.adm-content :is(button,input,select) { min-height:36px }
+.adm-content :is(button,a,input,select,textarea,summary):focus-visible,
+.adm-sidebar a:focus-visible { outline:2px solid var(--accent)!important; outline-offset:3px }
+.adm-content button:disabled { cursor:not-allowed; opacity:.65 }
+.adm-content table { font-variant-numeric:tabular-nums }
+.adm-content th { color:var(--muted); font-weight:650; text-align:inherit }
+.adm-content :is(th,td) { line-height:1.5 }
+.adm-content tbody tr:hover { background:var(--accent-soft)!important }
+.adm-content .adm-legacy-nav { display:none }
+.adm-shortcuts>summary { padding:16px; border:1px solid var(--border); background:var(--card); border-radius:12px; font-size:13px; cursor:pointer; margin-bottom:16px }
+.adm-content .adm-card { border-color:var(--border)!important; box-shadow:var(--sh-card) }
+.adm-content .adm-primary-card { background:var(--accent-soft)!important; border-color:#C2D3FF!important }
+.adm-content .adm-primary-card [data-adm-value] { color:var(--accent)!important }
+.adm-content .adm-card [data-adm-value] { color:var(--text)!important }
+.adm-skip { position:absolute; left:12px; top:-100px; z-index:100; padding:12px; background:var(--card); color:var(--accent); border:2px solid var(--accent) }
+.adm-skip:focus { top:12px }
+@media(max-width:800px) {
+  html .kineo-admin-theme.admin-porcelain { grid-template-columns:minmax(0,1fr) }
+  .adm-sidebar { position:static; height:auto; overflow:visible; padding:14px 16px; gap:12px; border-right:0; border-bottom:1px solid var(--border) }
+  .adm-brand { padding:0; font-size:18px }
+  .adm-brand>small { margin-left:0 }
+  .adm-navigation { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px }
+  .adm-group { position:relative; display:flex; gap:6px; flex-shrink:0 }
+  .adm-group>p { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%) }
+  .adm-group>a { min-height:44px; white-space:nowrap; background:var(--card2); padding:10px 12px }
+  .adm-group>a>span { display:none }
+  .adm-exit { margin:0; border:0; padding:0; align-self:flex-end }
+  .adm-topbar { padding:14px 16px; min-height:54px }
+  .adm-content :is(button,select) { min-height:40px }
+  .adm-content .adm-responsive-grid { grid-template-columns:minmax(0,1fr)!important }
+  .adm-content .adm-primary-card { grid-column:auto!important }
+}
+@media(prefers-reduced-motion:reduce) { .admin-porcelain * { scroll-behavior:auto!important } }
