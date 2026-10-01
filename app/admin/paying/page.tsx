@@ -42,7 +42,7 @@ import {
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const CARD: CSSProperties = { background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 20 }
+const CARD: CSSProperties = { background: 'var(--card)', border: '1px solid #1F2530', borderRadius: 20 }
 
 // ── data ────────────────────────────────────────────────────────────────────
 
@@ -240,8 +240,8 @@ export default async function AdminPayingPage() {
       <Shell>
         <div className="rounded-2xl p-8 text-center" style={CARD}>
           <div className="text-5xl mb-3">🔒</div>
-          <h1 className="text-xl font-black mb-2" style={{ color: '#0E1116' }}>Access denied.</h1>
-          <p className="text-sm" style={{ color: '#5A5F67' }}>Admin only.</p>
+          <h1 className="text-xl font-black mb-2" style={{ color: '#F2F4F7' }}>Access denied.</h1>
+          <p className="text-sm" style={{ color: '#9AA3B2' }}>Admin only.</p>
         </div>
       </Shell>
     )
@@ -251,7 +251,7 @@ export default async function AdminPayingPage() {
   if (!data) {
     return (
       <Shell>
-        <div className="rounded-2xl p-8 text-center text-sm" style={{ ...CARD, color: '#5A5F67' }}>
+        <div className="rounded-2xl p-8 text-center text-sm" style={{ ...CARD, color: '#9AA3B2' }}>
           Service role not configured on this environment.
         </div>
       </Shell>
@@ -261,13 +261,13 @@ export default async function AdminPayingPage() {
   return (
     <Shell>
       <header className="mb-6">
-        <div className="font-black uppercase tracking-widest mb-1" style={{ fontSize: '0.62rem', color: '#0F7A55' }}>
+        <div className="font-black uppercase tracking-widest mb-1" style={{ fontSize: '0.62rem', color: '#5FD4A4' }}>
           Admin · Paying customers
         </div>
-        <h1 className="font-black tracking-tight" style={{ fontSize: '1.6rem', color: '#0E1116' }}>
+        <h1 className="font-black tracking-tight" style={{ fontSize: '1.6rem', color: '#F2F4F7' }}>
           Who pays us
         </h1>
-        <p className="text-xs mt-1" style={{ color: '#5A5F67' }}>
+        <p className="text-xs mt-1" style={{ color: '#9AA3B2' }}>
           Active paid plan is the official goal metric (docs/METAS.md). Each row is what that customer
           actually pays (last paid invoice or subscription checkout; BRL at the house rate); the list
           price from lib/pricing appears only when no paid amount is known, marked “tabela”.
@@ -286,7 +286,7 @@ export default async function AdminPayingPage() {
               key={t.href}
               href={t.href}
               className="px-3 py-1.5 rounded-lg text-xs font-bold"
-              style={{ color: '#5A5F67' }}
+              style={{ color: '#9AA3B2' }}
             >
               {t.label}
             </Link>
@@ -297,24 +297,24 @@ export default async function AdminPayingPage() {
       {/* MRR per plan */}
       <section className="mb-6 grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))' }}>
         <div className="rounded-xl p-5" style={{ ...CARD, border: '1px solid rgba(52,211,153,.4)', gridColumn: 'span 2' }}>
-          <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#0F7A55' }}>
+          <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#5FD4A4' }}>
             MRR — active paid plans
           </div>
-          <div className="font-black" style={{ fontSize: '2.4rem', lineHeight: 1.1, color: '#0F7A55' }}>
+          <div className="font-black" style={{ fontSize: '2.4rem', lineHeight: 1.1, color: '#5FD4A4' }}>
             {formatUsd(data.mrrUsd)}
           </div>
-          <p className="text-xs mt-1" style={{ color: '#5A5F67' }}>
+          <p className="text-xs mt-1" style={{ color: '#9AA3B2' }}>
             {data.payingActive} paying customer{data.payingActive === 1 ? '' : 's'} ·{' '}
             {data.payingActive > 0 ? `ARPU ${formatUsd(data.mrrUsd / data.payingActive)}` : 'no ARPU yet'}
           </p>
           {/* KINEO-MRR-PRECO-PAGO-2026-09-28 — o número é o que cada um paga; a tabela nova fica ao lado, rotulada. */}
-          <p className="text-[11px] mt-1" style={{ color: '#5A5F67' }}>
+          <p className="text-[11px] mt-1" style={{ color: '#9AA3B2' }}>
             pago · {data.mrrSourceLabel} · tabela nova {formatUsd(data.mrrTableUsd)}
           </p>
         </div>
         {data.byPlan.length === 0 ? (
           <div className="rounded-xl p-4" style={CARD}>
-            <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#5A5F67' }}>
+            <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#9AA3B2' }}>
               No active plan
             </div>
           </div>
@@ -324,10 +324,10 @@ export default async function AdminPayingPage() {
               <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: p.accent }}>
                 {p.label}
               </div>
-              <div className="font-black" style={{ fontSize: '1.7rem', lineHeight: 1.1, color: '#0E1116' }}>
+              <div className="font-black" style={{ fontSize: '1.7rem', lineHeight: 1.1, color: '#F2F4F7' }}>
                 {p.count}
               </div>
-              <p className="text-[11px] mt-1.5" style={{ color: '#5A5F67' }}>
+              <p className="text-[11px] mt-1.5" style={{ color: '#9AA3B2' }}>
                 tabela {formatUsd(p.priceUsd)}/mo → pago {formatUsd(p.mrrUsd)}
               </p>
             </div>
@@ -344,7 +344,7 @@ export default async function AdminPayingPage() {
                 <th
                   key={h}
                   className="font-black uppercase tracking-widest"
-                  style={{ fontSize: '0.62rem', color: '#5A5F67', textAlign: 'left', padding: '10px 14px', whiteSpace: 'nowrap' }}
+                  style={{ fontSize: '0.62rem', color: '#9AA3B2', textAlign: 'left', padding: '10px 14px', whiteSpace: 'nowrap' }}
                 >
                   {h}
                 </th>
@@ -354,26 +354,26 @@ export default async function AdminPayingPage() {
           <tbody>
             {data.rows.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-5 py-10 text-center text-sm" style={{ color: '#5A5F67' }}>
+                <td colSpan={9} className="px-5 py-10 text-center text-sm" style={{ color: '#9AA3B2' }}>
                   No paying customers yet.
                 </td>
               </tr>
             )}
             {data.rows.map((r) => (
-              <tr key={r.email} style={{ borderTop: '1px solid #E4E4E0', opacity: r.internal ? 0.55 : 1 }}>
+              <tr key={r.email} style={{ borderTop: '1px solid #1F2530', opacity: r.internal ? 0.55 : 1 }}>
                 <Td>
                   <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.82rem' }}>
                     {r.email}
                     {r.internal && (
                       <span
                         className="ml-2 rounded px-1.5 py-0.5 text-[10px] font-black uppercase"
-                        style={{ background: 'rgba(134,134,139,.15)', color: '#5A5F67', border: '1px solid #BFC2C6' }}
+                        style={{ background: 'rgba(134,134,139,.15)', color: '#9AA3B2', border: '1px solid #2E3644' }}
                       >
                         internal
                       </span>
                     )}
                   </div>
-                  {r.name && <div className="text-[11px]" style={{ color: '#5A5F67' }}>{r.name}</div>}
+                  {r.name && <div className="text-[11px]" style={{ color: '#9AA3B2' }}>{r.name}</div>}
                 </Td>
                 <Td>
                   <span
@@ -384,12 +384,12 @@ export default async function AdminPayingPage() {
                   </span>
                 </Td>
                 <Td>
-                  <span style={{ color: r.internal || !r.active ? '#5A5F67' : '#0F7A55', fontWeight: 700 }}>
+                  <span style={{ color: r.internal || !r.active ? '#9AA3B2' : '#5FD4A4', fontWeight: 700 }}>
                     {r.internal ? `(${formatUsd(r.priceUsd)})` : formatUsd(r.priceUsd)}
                   </span>
                   {/* KINEO-MRR-PRECO-PAGO-2026-09-28 — pagante sem valor pago conhecido mostra a tabela, e diz isso. */}
                   {!r.trial && r.priceSource === 'table' && r.priceUsd > 0 && (
-                    <span className="ml-1 text-[10px]" style={{ color: '#8A4B00' }} title="sem fatura nem checkout com valor: mostrando o preço de tabela">
+                    <span className="ml-1 text-[10px]" style={{ color: '#FFBF58' }} title="sem fatura nem checkout com valor: mostrando o preço de tabela">
                       tabela
                     </span>
                   )}
@@ -406,14 +406,14 @@ export default async function AdminPayingPage() {
                     className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold"
                     style={
                       r.active
-                        ? { background: 'rgba(52,211,153,.12)', color: '#0F7A55', border: '1px solid rgba(52,211,153,.35)' }
-                        : { background: 'rgba(248,113,113,.12)', color: '#B42318', border: '1px solid rgba(248,113,113,.35)' }
+                        ? { background: 'rgba(52,211,153,.12)', color: '#5FD4A4', border: '1px solid rgba(52,211,153,.35)' }
+                        : { background: 'rgba(248,113,113,.12)', color: '#FF8787', border: '1px solid rgba(248,113,113,.35)' }
                     }
                   >
                     {r.active ? 'active' : `expired ${fmtDate(r.expiresAt)}`}
                   </span>
                   {r.trial && (
-                    <span className="ml-2 text-[10.5px]" style={{ color: '#5A5F67' }}>
+                    <span className="ml-2 text-[10.5px]" style={{ color: '#9AA3B2' }}>
                       trial · card on file
                     </span>
                   )}
@@ -424,7 +424,7 @@ export default async function AdminPayingPage() {
         </table>
       </section>
 
-      <p className="text-[11px] mt-3" style={{ color: '#6B6F76' }}>
+      <p className="text-[11px] mt-3" style={{ color: '#8A93A3' }}>
         &quot;Paid on&quot; is the first events.payment_success for that account — blank means the plan was
         set by a webhook we did not log an event for (older rows). Trials are priced at full plan
         value because the card is already on file. autopilot_pilot is a one-off $99 and counts as $0 MRR.
@@ -435,7 +435,7 @@ export default async function AdminPayingPage() {
 
 function Td({ children }: { children: React.ReactNode }) {
   return (
-    <td style={{ padding: '10px 14px', color: '#0E1116', whiteSpace: 'nowrap' }}>{children}</td>
+    <td style={{ padding: '10px 14px', color: '#F2F4F7', whiteSpace: 'nowrap' }}>{children}</td>
   )
 }
 

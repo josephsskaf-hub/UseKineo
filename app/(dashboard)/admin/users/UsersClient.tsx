@@ -172,13 +172,13 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
       <div className="px-4 sm:px-6 py-10 pb-20 max-w-3xl mx-auto">
         <div
           className="rounded-2xl p-8 text-center"
-          style={{ background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 20 }}
+          style={{ background: 'var(--card)', border: '1px solid #1F2530', borderRadius: 20 }}
         >
           <div className="text-5xl mb-3">🔒</div>
-          <h1 className="text-xl font-semibold mb-2" style={{ color: '#0E1116' }}>
+          <h1 className="text-xl font-semibold mb-2" style={{ color: '#F2F4F7' }}>
             Admin access required.
           </h1>
-          <p className="text-sm" style={{ color: '#5A5F67' }}>
+          <p className="text-sm" style={{ color: '#9AA3B2' }}>
             Please sign in with an authorized account.
           </p>
         </div>
@@ -191,7 +191,7 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
       <header className="mb-6">
         <div
           className="font-black uppercase tracking-widest mb-1"
-          style={{ fontSize: '0.62rem', color: '#0A5CFF' }}
+          style={{ fontSize: '0.62rem', color: '#8DB4FF' }}
         >
           Admin · Staging
         </div>
@@ -201,7 +201,7 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
               className="font-semibold tracking-tight mb-1"
               style={{
                 fontSize: '1.6rem',
-                background: 'linear-gradient(180deg,#fff 35%,#5A5F67)',
+                background: 'linear-gradient(180deg,#fff 35%,#9AA3B2)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -209,7 +209,7 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
             >
               Users
             </h1>
-            <p className="text-xs" style={{ color: '#5A5F67' }}>
+            <p className="text-xs" style={{ color: '#9AA3B2' }}>
               Live from auth.users + public.videos on staging Supabase. Signed in
               as {viewerEmail}.
             </p>
@@ -239,20 +239,20 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
           className="grid gap-3"
           style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}
         >
-          <MetricCard label="Pro subscribers"   value={stats?.pro   ?? null} hint="plan = pro"   accent="#0A5CFF" />
-          <MetricCard label="Basic subscribers" value={stats?.basic ?? null} hint="plan = basic" accent="#0A5CFF" />
-          <MetricCard label="Free users"        value={stats?.free  ?? null} hint="no paid plan" accent="#5A5F67" />
+          <MetricCard label="Pro subscribers"   value={stats?.pro   ?? null} hint="plan = pro"   accent="#8DB4FF" />
+          <MetricCard label="Basic subscribers" value={stats?.basic ?? null} hint="plan = basic" accent="#8DB4FF" />
+          <MetricCard label="Free users"        value={stats?.free  ?? null} hint="no paid plan" accent="#9AA3B2" />
           <MetricCard
             label="Paid · 0 credits ⚠️"
             value={stats?.paidNoCredits ?? null}
             hint="pro/basic with no credits"
-            accent={stats?.paidNoCredits ? '#B42318' : '#0A5CFF'}
+            accent={stats?.paidNoCredits ? '#FF8787' : '#8DB4FF'}
           />
           <MetricCard
             label="Checkout abandonado 🔥"
             value={stats?.checkoutAbandoned ?? null}
             hint="Stripe customer criado, sem plano pago"
-            accent={stats?.checkoutAbandoned ? '#0E1116' : '#5A5F67'}
+            accent={stats?.checkoutAbandoned ? '#F2F4F7' : '#9AA3B2'}
           />
         </div>
       </section>
@@ -260,13 +260,13 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
       {/* Push #274 — Checkout abandoned spotlight table */}
       {users && users.filter(u => u.checkout_abandoned).length > 0 && (
         <section className="mb-6">
-          <h2 className="text-[11px] font-black uppercase tracking-widest mb-3" style={{ color: '#0A5CFF' }}>
+          <h2 className="text-[11px] font-black uppercase tracking-widest mb-3" style={{ color: '#8DB4FF' }}>
             🔥 Checkout Abandonado — leads quentes
           </h2>
-          <p className="text-[11px] mb-3" style={{ color: '#5A5F67' }}>
+          <p className="text-[11px] mb-3" style={{ color: '#9AA3B2' }}>
             Esses usuários criaram um customer no Stripe mas não finalizaram o pagamento. São os mais próximos de converter.
           </p>
-          <div className="rounded-2xl overflow-x-auto" style={{ background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 20 }}>
+          <div className="rounded-2xl overflow-x-auto" style={{ background: 'var(--card)', border: '1px solid #1F2530', borderRadius: 20 }}>
             <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: 'var(--card2)' }}>
@@ -281,7 +281,7 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
                   .filter(u => u.checkout_abandoned)
                   .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
                   .map(u => (
-                    <tr key={u.id} style={{ borderTop: '1px solid #E4E4E0' }}>
+                    <tr key={u.id} style={{ borderTop: '1px solid #1F2530' }}>
                       <Td mono>{u.email || '—'}</Td>
                       <Td>{u.name || '—'}</Td>
                       <Td>{fmtDate(u.created_at)}</Td>
@@ -301,10 +301,10 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
         return p === 'pro' || p === 'basic'
       }).length > 0 && (
         <section className="mb-6">
-          <h2 className="text-[11px] font-black uppercase tracking-widest mb-3" style={{ color: '#5A5F67' }}>
+          <h2 className="text-[11px] font-black uppercase tracking-widest mb-3" style={{ color: '#9AA3B2' }}>
             Paid Subscribers
           </h2>
-          <div className="rounded-2xl overflow-x-auto" style={{ background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 20 }}>
+          <div className="rounded-2xl overflow-x-auto" style={{ background: 'var(--card)', border: '1px solid #1F2530', borderRadius: 20 }}>
             <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: 'var(--card2)' }}>
@@ -331,17 +331,17 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
                     return a.created_at < b.created_at ? 1 : -1
                   })
                   .map(u => (
-                    <tr key={u.id} style={{ borderTop: '1px solid #E4E4E0' }}>
+                    <tr key={u.id} style={{ borderTop: '1px solid #1F2530' }}>
                       <Td mono>{u.email || '—'}</Td>
                       <Td>{u.name || '—'}</Td>
                       <Td><PlanBadge plan={u.plan} credits={u.credits} /></Td>
                       <Td align="right">
                         <span style={{
                           fontWeight: 700,
-                          color: u.credits === null ? '#5A5F67'
-                            : u.credits <= 0 ? '#B42318'
-                            : u.credits <= 5 ? '#0E1116'
-                            : '#0A5CFF',
+                          color: u.credits === null ? '#9AA3B2'
+                            : u.credits <= 0 ? '#FF8787'
+                            : u.credits <= 5 ? '#F2F4F7'
+                            : '#8DB4FF',
                           fontSize: '0.95rem',
                         }}>
                           {u.credits === null ? '—' : u.credits}
@@ -361,11 +361,11 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
 
       <section
         className="rounded-2xl"
-        style={{ background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 20 }}
+        style={{ background: 'var(--card)', border: '1px solid #1F2530', borderRadius: 20 }}
       >
         <div
           className="px-4 sm:px-5 py-3 flex items-center gap-3 flex-wrap"
-          style={{ borderBottom: '1px solid #E4E4E0' }}
+          style={{ borderBottom: '1px solid #1F2530' }}
         >
           <input
             type="text"
@@ -375,30 +375,30 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
             className="rounded-lg px-3 py-2 text-sm flex-1 min-w-[200px]"
             style={{
               background: 'var(--card2)',
-              border: '1px solid #E4E4E0',
-              color: '#0E1116',
+              border: '1px solid #1F2530',
+              color: '#F2F4F7',
               outline: 'none',
             }}
           />
-          <div className="text-[11px]" style={{ color: '#5A5F67' }}>
+          <div className="text-[11px]" style={{ color: '#9AA3B2' }}>
             {users ? `${filtered.length} / ${users.length}` : ''}
           </div>
         </div>
 
         {loading && !users && (
-          <div className="px-5 py-10 text-center text-sm" style={{ color: '#5A5F67' }}>
+          <div className="px-5 py-10 text-center text-sm" style={{ color: '#9AA3B2' }}>
             Loading users…
           </div>
         )}
 
         {error && !loading && (
-          <div className="px-5 py-10 text-center text-sm" style={{ color: '#B42318' }}>
+          <div className="px-5 py-10 text-center text-sm" style={{ color: '#FF8787' }}>
             {error}
           </div>
         )}
 
         {!loading && !error && users && filtered.length === 0 && (
-          <div className="px-5 py-10 text-center text-sm" style={{ color: '#5A5F67' }}>
+          <div className="px-5 py-10 text-center text-sm" style={{ color: '#9AA3B2' }}>
             No users found.
           </div>
         )}
@@ -426,7 +426,7 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
                 {filtered.map((u) => (
                   <tr
                     key={u.id}
-                    style={{ borderTop: '1px solid #E4E4E0' }}
+                    style={{ borderTop: '1px solid #1F2530' }}
                   >
                     <Td mono>{u.email || '—'}</Td>
                     <Td>{u.name || '—'}</Td>
@@ -471,7 +471,7 @@ function RefreshIndicator({
   return (
     <div
       className="flex items-center gap-1.5 text-[11px]"
-      style={{ color: '#5A5F67' }}
+      style={{ color: '#9AA3B2' }}
     >
       {refreshing ? (
         <span
@@ -480,7 +480,7 @@ function RefreshIndicator({
             width: 7,
             height: 7,
             borderRadius: '50%',
-            background: '#0A5CFF',
+            background: '#8DB4FF',
             animation: 'pulse 1s ease-in-out infinite',
           }}
         />
@@ -518,13 +518,13 @@ function MetricCard({
       className="rounded-xl p-4"
       style={{
         background: 'var(--card)',
-        border: `1px solid ${accent ? `${accent}33` : '#E4E4E0'}`,
+        border: `1px solid ${accent ? `${accent}33` : '#1F2530'}`,
         borderRadius: 20,
       }}
     >
       <div
         className="text-[10px] font-black uppercase tracking-widest mb-2"
-        style={{ color: accent ?? '#5A5F67' }}
+        style={{ color: accent ?? '#9AA3B2' }}
       >
         {label}
       </div>
@@ -533,13 +533,13 @@ function MetricCard({
         style={{
           fontSize: '1.7rem',
           lineHeight: 1.1,
-          color: isAvailable ? (accent ?? '#0E1116') : '#6B6F76',
+          color: isAvailable ? (accent ?? '#F2F4F7') : '#8A93A3',
         }}
       >
         {isAvailable ? fmt(value) : '—'}
       </div>
       {hint && (
-        <p className="text-[11px] mt-1.5" style={{ color: '#5A5F67' }}>
+        <p className="text-[11px] mt-1.5" style={{ color: '#9AA3B2' }}>
           {hint}
         </p>
       )}
@@ -556,12 +556,12 @@ function PlanBadge({ plan, credits }: { plan: string | null; credits: number | n
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
         <span
           className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold"
-          style={{ background: 'rgba(41,151,255,.12)', color: '#0A5CFF', border: '1px solid rgba(41,151,255,.3)' }}
+          style={{ background: 'rgba(41,151,255,.12)', color: '#8DB4FF', border: '1px solid rgba(41,151,255,.3)' }}
         >
           Pro
         </span>
         {!hasCredits && (
-          <span title="0 credits — check webhook" style={{ color: '#B42318', fontSize: 12 }}>⚠️</span>
+          <span title="0 credits — check webhook" style={{ color: '#FF8787', fontSize: 12 }}>⚠️</span>
         )}
       </span>
     )
@@ -572,17 +572,17 @@ function PlanBadge({ plan, credits }: { plan: string | null; credits: number | n
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
         <span
           className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold"
-          style={{ background: 'rgba(41,151,255,.12)', color: '#0A5CFF', border: '1px solid rgba(41,151,255,.3)' }}
+          style={{ background: 'rgba(41,151,255,.12)', color: '#8DB4FF', border: '1px solid rgba(41,151,255,.3)' }}
         >
           Basic
         </span>
         {!hasCredits && (
-          <span title="0 credits — check webhook" style={{ color: '#B42318', fontSize: 12 }}>⚠️</span>
+          <span title="0 credits — check webhook" style={{ color: '#FF8787', fontSize: 12 }}>⚠️</span>
         )}
       </span>
     )
   }
-  return <span style={{ color: '#5A5F67', fontSize: 12 }}>Free</span>
+  return <span style={{ color: '#9AA3B2', fontSize: 12 }}>Free</span>
 }
 
 function AdminNav({ active }: { active: 'metrics' | 'funnel' | 'users' | 'ceo' }) {
@@ -602,9 +602,9 @@ function AdminNav({ active }: { active: 'metrics' | 'funnel' | 'users' | 'ceo' }
             href={t.href}
             className="text-xs font-bold rounded-lg px-3 py-1.5"
             style={{
-              background: isActive ? 'rgba(41,151,255,.18)' : 'rgba(14,17,22,0.04)',
-              border: `1px solid ${isActive ? 'rgba(41,151,255,.45)' : '#E4E4E0'}`,
-              color: isActive ? '#0A5CFF' : '#6B6F76',
+              background: isActive ? 'rgba(41,151,255,.18)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${isActive ? 'rgba(41,151,255,.45)' : '#1F2530'}`,
+              color: isActive ? '#8DB4FF' : '#8A93A3',
               textDecoration: 'none',
             }}
           >
@@ -628,7 +628,7 @@ function Th({
       className="font-black uppercase tracking-widest"
       style={{
         fontSize: '0.62rem',
-        color: '#5A5F67',
+        color: '#9AA3B2',
         textAlign: align,
         padding: '10px 14px',
       }}
@@ -651,7 +651,7 @@ function Td({
     <td
       style={{
         padding: '10px 14px',
-        color: '#0E1116',
+        color: '#F2F4F7',
         textAlign: align,
         fontFamily: mono ? 'ui-monospace, SFMono-Regular, Menlo, monospace' : undefined,
         fontSize: mono ? '0.82rem' : undefined,

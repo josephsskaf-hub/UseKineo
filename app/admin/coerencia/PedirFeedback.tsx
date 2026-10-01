@@ -21,7 +21,7 @@ export default function PedirFeedback({ videoId, askedAt, email }: { videoId: st
     }
   }
   const rotulo = estado === 'sending' ? 'enviando…' : estado === 'sent' ? 'e-mail enviado ✓' : estado === 'already' ? 'já pedido' : estado === 'error' ? 'falhou — tentar de novo' : '✉ pedir feedback'
-  const cor = estado === 'sent' ? '#0F7A55' : estado === 'already' ? '#6b7280' : estado === 'error' ? '#B42318' : '#0A5CFF'
+  const cor = estado === 'sent' ? '#5FD4A4' : estado === 'already' ? '#6b7280' : estado === 'error' ? '#FF8787' : '#8DB4FF'
   return (
     <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2 }}>
       <button
@@ -34,7 +34,7 @@ export default function PedirFeedback({ videoId, askedAt, email }: { videoId: st
       >
         {rotulo}
       </button>
-      {erro && <span style={{ color: '#B42318', fontSize: 10 }}>{erro}</span>}
+      {erro && <span style={{ color: '#FF8787', fontSize: 10 }}>{erro}</span>}
     </span>
   )
 }

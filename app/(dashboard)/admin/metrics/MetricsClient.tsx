@@ -128,13 +128,13 @@ export default function MetricsClient({ metrics: initialMetrics, viewerEmail, de
       <div className="px-4 sm:px-6 py-10 pb-20 max-w-3xl mx-auto">
         <div
           className="rounded-2xl p-8 text-center"
-          style={{ background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 20 }}
+          style={{ background: 'var(--card)', border: '1px solid #1F2530', borderRadius: 20 }}
         >
           <div className="text-5xl mb-3">🔒</div>
-          <h1 className="text-xl font-semibold mb-2" style={{ color: '#0E1116' }}>
+          <h1 className="text-xl font-semibold mb-2" style={{ color: '#F2F4F7' }}>
             Access denied.
           </h1>
-          <p className="text-sm" style={{ color: '#5A5F67' }}>
+          <p className="text-sm" style={{ color: '#9AA3B2' }}>
             This page is only available to staging admins.
           </p>
         </div>
@@ -203,7 +203,7 @@ export default function MetricsClient({ metrics: initialMetrics, viewerEmail, de
       <header className="mb-6">
         <div
           className="font-black uppercase tracking-widest mb-1"
-          style={{ fontSize: '0.62rem', color: '#0A5CFF' }}
+          style={{ fontSize: '0.62rem', color: '#8DB4FF' }}
         >
           Admin · Staging
         </div>
@@ -213,7 +213,7 @@ export default function MetricsClient({ metrics: initialMetrics, viewerEmail, de
               className="font-semibold tracking-tight mb-1"
               style={{
                 fontSize: '1.6rem',
-                background: 'linear-gradient(180deg,#fff 35%,#5A5F67)',
+                background: 'linear-gradient(180deg,#fff 35%,#9AA3B2)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -221,7 +221,7 @@ export default function MetricsClient({ metrics: initialMetrics, viewerEmail, de
             >
               Conversion Metrics
             </h1>
-            <p className="text-xs" style={{ color: '#5A5F67' }}>
+            <p className="text-xs" style={{ color: '#9AA3B2' }}>
               Live counts from the staging Supabase project. Signed in as {viewerEmail}.
             </p>
           </div>
@@ -343,7 +343,7 @@ function RefreshIndicator({
   return (
     <div
       className="flex items-center gap-1.5 text-[11px]"
-      style={{ color: '#5A5F67' }}
+      style={{ color: '#9AA3B2' }}
     >
       {refreshing ? (
         <span
@@ -352,7 +352,7 @@ function RefreshIndicator({
             width: 7,
             height: 7,
             borderRadius: '50%',
-            background: '#0A5CFF',
+            background: '#8DB4FF',
             animation: 'pulse 1s ease-in-out infinite',
           }}
         />
@@ -390,9 +390,9 @@ function AdminNav({ active }: { active: 'metrics' | 'funnel' | 'users' | 'ceo' }
             href={t.href}
             className="text-xs font-bold rounded-lg px-3 py-1.5"
             style={{
-              background: isActive ? 'rgba(41,151,255,.18)' : 'rgba(14,17,22,0.04)',
-              border: `1px solid ${isActive ? 'rgba(41,151,255,.45)' : '#E4E4E0'}`,
-              color: isActive ? '#0A5CFF' : '#6B6F76',
+              background: isActive ? 'rgba(41,151,255,.18)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${isActive ? 'rgba(41,151,255,.45)' : '#1F2530'}`,
+              color: isActive ? '#8DB4FF' : '#8A93A3',
               textDecoration: 'none',
             }}
           >
@@ -418,12 +418,12 @@ function Section({
       <div className="mb-3">
         <h2
           className="font-semibold tracking-tight mb-0.5"
-          style={{ fontSize: '0.95rem', color: '#0E1116' }}
+          style={{ fontSize: '0.95rem', color: '#F2F4F7' }}
         >
           {title}
         </h2>
         {subtitle && (
-          <p className="text-[11px]" style={{ color: '#5A5F67' }}>
+          <p className="text-[11px]" style={{ color: '#9AA3B2' }}>
             {subtitle}
           </p>
         )}
@@ -454,13 +454,13 @@ function MetricCard({ card }: { card: Card }) {
       className="rounded-xl p-4"
       style={{
         background: 'var(--card)',
-        border: '1px solid #E4E4E0',
+        border: '1px solid #1F2530',
         borderRadius: 20,
       }}
     >
       <div
         className="text-[10px] font-black uppercase tracking-widest mb-2"
-        style={{ color: '#5A5F67' }}
+        style={{ color: '#9AA3B2' }}
       >
         {card.label}
       </div>
@@ -469,13 +469,13 @@ function MetricCard({ card }: { card: Card }) {
         style={{
           fontSize: '1.7rem',
           lineHeight: 1.1,
-          color: isAvailable ? '#0E1116' : '#6B6F76',
+          color: isAvailable ? '#F2F4F7' : '#8A93A3',
         }}
       >
         {isAvailable ? (isString ? (card.value as string) : fmt(card.value as number)) : '—'}
       </div>
       {card.hint && (
-        <p className="text-[11px] mt-1.5" style={{ color: '#5A5F67' }}>
+        <p className="text-[11px] mt-1.5" style={{ color: '#9AA3B2' }}>
           {card.hint}
         </p>
       )}

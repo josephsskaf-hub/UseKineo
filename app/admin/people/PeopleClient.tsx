@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import type { PersonRow } from '@/app/api/admin/people/route'
 
-const CARD: React.CSSProperties = { background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 20 }
+const CARD: React.CSSProperties = { background: 'var(--card)', border: '1px solid #1F2530', borderRadius: 20 }
 
 interface Summary {
   total: number
@@ -45,9 +45,9 @@ function flagEmoji(cc: string | null): string {
 // mostra) · 'left' = assinou e cancelou (coorte nº1 de win-back: já confiou o
 // cartão uma vez) · 'pack' = pagamento avulso, nunca assinou.
 function kindBadge(k: PersonRow['paid_kind']): { label: string; color: string } | null {
-  if (k === 'active') return { label: 'sub', color: '#0F7A55' }
-  if (k === 'churned') return { label: 'left', color: '#B42318' }
-  if (k === 'one_time') return { label: 'pack', color: '#8A4B00' }
+  if (k === 'active') return { label: 'sub', color: '#5FD4A4' }
+  if (k === 'churned') return { label: 'left', color: '#FF8787' }
+  if (k === 'one_time') return { label: 'pack', color: '#FFBF58' }
   return null
 }
 
@@ -79,7 +79,7 @@ function GrantButton({ email, onClick }: { email: string; onClick: (email: strin
       style={{
         background: 'rgba(41,151,255,.12)',
         border: '1px solid rgba(41,151,255,.35)',
-        color: '#0A5CFF',
+        color: '#8DB4FF',
         borderRadius: 6,
         padding: '2px 8px',
         fontSize: 10,
@@ -127,7 +127,7 @@ function MediaButton({ email, onClick }: { email: string; onClick: (email: strin
       style={{
         background: 'rgba(167,139,250,.12)',
         border: '1px solid rgba(167,139,250,.35)',
-        color: '#6941C6',
+        color: '#C4B5FD',
         borderRadius: 6,
         padding: '2px 8px',
         fontSize: 10,
@@ -272,8 +272,8 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
       <Shell>
         <div className="rounded-2xl p-8 text-center" style={CARD}>
           <div className="text-5xl mb-3">🔒</div>
-          <h1 className="text-xl font-black mb-2" style={{ color: '#0E1116' }}>Access denied.</h1>
-          <p className="text-sm" style={{ color: '#5A5F67' }}>Admin only.</p>
+          <h1 className="text-xl font-black mb-2" style={{ color: '#F2F4F7' }}>Access denied.</h1>
+          <p className="text-sm" style={{ color: '#9AA3B2' }}>Admin only.</p>
         </div>
       </Shell>
     )
@@ -282,13 +282,13 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
   return (
     <Shell>
       <header className="mb-6">
-        <div className="font-black uppercase tracking-widest mb-1" style={{ fontSize: '0.62rem', color: '#0F7A55' }}>
+        <div className="font-black uppercase tracking-widest mb-1" style={{ fontSize: '0.62rem', color: '#5FD4A4' }}>
           Admin · People
         </div>
-        <h1 className="font-black tracking-tight" style={{ fontSize: '1.6rem', color: '#0E1116' }}>
+        <h1 className="font-black tracking-tight" style={{ fontSize: '1.6rem', color: '#F2F4F7' }}>
           Everyone — credits in, credits out
         </h1>
-        <p className="text-xs mt-1" style={{ color: '#5A5F67' }}>
+        <p className="text-xs mt-1" style={{ color: '#9AA3B2' }}>
           &quot;Granted&quot; = used + left (accounting identity, can&apos;t drift). &quot;Spent on&quot; comes from the
           credit ledger: 🎬 video · 🖼 image · 🎙 voice · ✨ HD enhance (numbers are credits, not counts).
         </p>
@@ -299,7 +299,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
             { label: 'Paying', href: '/admin/paying' },
             { label: 'Users', href: '/admin/users' },
           ].map((t) => (
-            <Link key={t.href} href={t.href} className="px-3 py-1.5 rounded-lg text-xs font-bold" style={{ color: '#5A5F67' }}>
+            <Link key={t.href} href={t.href} className="px-3 py-1.5 rounded-lg text-xs font-bold" style={{ color: '#9AA3B2' }}>
               {t.label}
             </Link>
           ))}
@@ -309,28 +309,28 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
       {summary && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
           {[
-            ['Signups', summary.total, '#0E1116'],
+            ['Signups', summary.total, '#F2F4F7'],
             // KINEO-PAIDKIND-2026-08-19 — o placar espelha o Stripe: ativos
             // = assinatura pagando AGORA (era 'Paying' com has_paid cru, que
             // somava cancelados + packs e mostrava 10 quando o Stripe tem 6).
-            ['Active subs', summary.active_subs, '#0F7A55'],
-            ['Churned', summary.churned, '#B42318'],
-            ['One-time', summary.one_time, '#8A4B00'],
-            ['Credits in wallets', summary.credits_in_circulation, '#0A5CFF'],
+            ['Active subs', summary.active_subs, '#5FD4A4'],
+            ['Churned', summary.churned, '#FF8787'],
+            ['One-time', summary.one_time, '#FFBF58'],
+            ['Credits in wallets', summary.credits_in_circulation, '#8DB4FF'],
             ['Credits spent', summary.credits_used_total, '#a1a1a8'],
             // #295 — o que o dinheiro virou. Um placar de gasto sem um placar
             // de ENTREGA mede o custo e ignora o produto.
-            ['Videos made', summary.made_videos_total, '#0F7A55'],
-            ['Animations', summary.made_animations_total, '#0F7A55'],
-            ['Images', summary.made_images_total, '#0F7A55'],
-            ['Voiceovers', summary.made_audios_total, '#0F7A55'],
+            ['Videos made', summary.made_videos_total, '#5FD4A4'],
+            ['Animations', summary.made_animations_total, '#5FD4A4'],
+            ['Images', summary.made_images_total, '#5FD4A4'],
+            ['Voiceovers', summary.made_audios_total, '#5FD4A4'],
             // O alarme fica ao lado do placar de propósito: número ruim
             // escondido numa aba é número que ninguém age em cima.
-            ['⚠ Burned (nothing back)', summary.burned_nothing_delivered, summary.burned_nothing_delivered > 0 ? '#B42318' : '#0F7A55'],
-            ['⚠ Credits burned', summary.burned_credits, summary.burned_credits > 0 ? '#B42318' : '#0F7A55'],
+            ['⚠ Burned (nothing back)', summary.burned_nothing_delivered, summary.burned_nothing_delivered > 0 ? '#FF8787' : '#5FD4A4'],
+            ['⚠ Credits burned', summary.burned_credits, summary.burned_credits > 0 ? '#FF8787' : '#5FD4A4'],
           ].map(([label, value, color]) => (
             <div key={label as string} className="rounded-2xl px-4 py-3" style={CARD}>
-              <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#5A5F67' }}>{label}</div>
+              <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#9AA3B2' }}>{label}</div>
               <div className="text-xl font-black" style={{ color: color as string }}>{(value as number).toLocaleString('en-US')}</div>
             </div>
           ))}
@@ -342,23 +342,23 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
         onChange={(e) => setQ(e.target.value)}
         placeholder="Search email, name, or country code…"
         className="w-full rounded-xl px-4 py-2.5 mb-6 text-sm"
-        style={{ background: 'var(--card)', border: '1px solid #E4E4E0', color: '#0E1116', outline: 'none' }}
+        style={{ background: 'var(--card)', border: '1px solid #1F2530', color: '#F2F4F7', outline: 'none' }}
       />
 
       {!people && !error && (
-        <div className="rounded-2xl px-5 py-14 text-center text-sm" style={{ ...CARD, color: '#5A5F67' }}>Loading…</div>
+        <div className="rounded-2xl px-5 py-14 text-center text-sm" style={{ ...CARD, color: '#9AA3B2' }}>Loading…</div>
       )}
       {error && (
-        <div className="rounded-2xl px-5 py-14 text-center text-sm" style={{ ...CARD, color: '#B42318' }}>{error}</div>
+        <div className="rounded-2xl px-5 py-14 text-center text-sm" style={{ ...CARD, color: '#FF8787' }}>{error}</div>
       )}
 
       {people && (
         <section className="mb-8">
-          <h2 className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: '#0F7A55' }}>
+          <h2 className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: '#5FD4A4' }}>
             💰 Bought ({buyers.length}) — {buyers.filter((b) => b.paid_kind === 'active').length} active · {buyers.filter((b) => b.paid_kind === 'churned').length} left · {buyers.filter((b) => b.paid_kind === 'one_time').length} pack
           </h2>
-          <p className="text-[11px] mb-3" style={{ color: '#5A5F67' }}>
-            <b style={{ color: '#0F7A55' }}>sub</b> = paying now (mirrors Stripe) · <b style={{ color: '#B42318' }}>left</b> = subscribed and cancelled (hottest win-back cohort) · <b style={{ color: '#8A4B00' }}>pack</b> = paid once, never subscribed.
+          <p className="text-[11px] mb-3" style={{ color: '#9AA3B2' }}>
+            <b style={{ color: '#5FD4A4' }}>sub</b> = paying now (mirrors Stripe) · <b style={{ color: '#FF8787' }}>left</b> = subscribed and cancelled (hottest win-back cohort) · <b style={{ color: '#FFBF58' }}>pack</b> = paid once, never subscribed.
           </p>
           <Table
             head={['Email', 'Type', 'Plan', 'First paid', 'Granted', 'Used', 'Left', 'Spent on', 'Got back', 'Last activity', '']}
@@ -371,9 +371,9 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
               fmtDate(p.first_paid),
               p.credits_granted?.toLocaleString('en-US') ?? '—',
               p.credits_used.toLocaleString('en-US'),
-              <b key="l" style={{ color: (p.credits_left ?? 0) <= 5 ? '#9A3412' : '#0A5CFF' }}>{p.credits_left?.toLocaleString('en-US') ?? '—'}</b>,
+              <b key="l" style={{ color: (p.credits_left ?? 0) <= 5 ? '#FB923C' : '#8DB4FF' }}>{p.credits_left?.toLocaleString('en-US') ?? '—'}</b>,
               usageLabel(p),
-              <span key="g" style={{ color: p.burned_nothing_delivered ? '#B42318' : '#0F7A55', fontWeight: 700 }}>
+              <span key="g" style={{ color: p.burned_nothing_delivered ? '#FF8787' : '#5FD4A4', fontWeight: 700 }}>
                 {p.burned_nothing_delivered ? '⚠ nothing' : deliveredLabel(p)}
               </span>,
               fmtDate(p.last_use),
@@ -385,10 +385,10 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
 
       {people && (
         <section className="mb-8">
-          <h2 className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: '#0E1116' }}>
+          <h2 className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: '#F2F4F7' }}>
             👥 Everyone ({filtered.length}{!showAll && filtered.length > 250 ? ' — showing 250' : ''})
           </h2>
-          <p className="text-[11px] mb-3" style={{ color: '#5A5F67' }}>
+          <p className="text-[11px] mb-3" style={{ color: '#9AA3B2' }}>
             Every signup, newest first, with the full credit story per person.
           </p>
           <Table
@@ -402,9 +402,9 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
               p.plan ?? '—',
               p.credits_granted?.toLocaleString('en-US') ?? '—',
               p.credits_used.toLocaleString('en-US'),
-              <b key="l" style={{ color: (p.credits_left ?? 0) <= 5 ? '#9A3412' : '#0A5CFF' }}>{p.credits_left?.toLocaleString('en-US') ?? '—'}</b>,
+              <b key="l" style={{ color: (p.credits_left ?? 0) <= 5 ? '#FB923C' : '#8DB4FF' }}>{p.credits_left?.toLocaleString('en-US') ?? '—'}</b>,
               usageLabel(p),
-              <span key="g" style={{ color: p.burned_nothing_delivered ? '#B42318' : '#0F7A55', fontWeight: 700 }}>
+              <span key="g" style={{ color: p.burned_nothing_delivered ? '#FF8787' : '#5FD4A4', fontWeight: 700 }}>
                 {p.burned_nothing_delivered ? '⚠ nothing' : deliveredLabel(p)}
               </span>,
               fmtDate(p.last_use),
@@ -416,7 +416,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
               type="button"
               onClick={() => setShowAll(true)}
               className="mt-3 px-4 py-2 rounded-lg text-xs font-bold"
-              style={{ background: 'var(--card)', border: '1px solid #E4E4E0', color: '#5A5F67', cursor: 'pointer' }}
+              style={{ background: 'var(--card)', border: '1px solid #1F2530', color: '#9AA3B2', cursor: 'pointer' }}
             >
               Show all {filtered.length} →
             </button>
@@ -445,21 +445,21 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
             onClick={(e) => e.stopPropagation()}
             style={{
               background: 'var(--card)',
-              border: '1px solid #E4E4E0',
+              border: '1px solid #1F2530',
               borderRadius: 14,
               padding: 22,
               width: 420,
               maxWidth: '92vw',
             }}
           >
-            <h3 style={{ color: '#0E1116', fontSize: 13, fontWeight: 900, marginBottom: 4 }}>
+            <h3 style={{ color: '#F2F4F7', fontSize: 13, fontWeight: 900, marginBottom: 4 }}>
               Dar créditos
             </h3>
-            <p style={{ color: '#5A5F67', fontSize: 11, marginBottom: 14, wordBreak: 'break-all' }}>
+            <p style={{ color: '#9AA3B2', fontSize: 11, marginBottom: 14, wordBreak: 'break-all' }}>
               {grantFor}
             </p>
 
-            <label style={{ color: '#5A5F67', fontSize: 10, fontWeight: 800, textTransform: 'uppercase' }}>
+            <label style={{ color: '#9AA3B2', fontSize: 10, fontWeight: 800, textTransform: 'uppercase' }}>
               Quantidade
             </label>
             <input
@@ -469,9 +469,9 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
               style={{
                 width: '100%',
                 background: 'var(--card2)',
-                border: '1px solid #E4E4E0',
+                border: '1px solid #1F2530',
                 borderRadius: 8,
-                color: '#0E1116',
+                color: '#F2F4F7',
                 padding: '9px 11px',
                 fontSize: 13,
                 marginTop: 5,
@@ -479,7 +479,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
               }}
             />
 
-            <label style={{ color: '#5A5F67', fontSize: 10, fontWeight: 800, textTransform: 'uppercase' }}>
+            <label style={{ color: '#9AA3B2', fontSize: 10, fontWeight: 800, textTransform: 'uppercase' }}>
               Motivo (fica no histórico)
             </label>
             <input
@@ -489,9 +489,9 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
               style={{
                 width: '100%',
                 background: 'var(--card2)',
-                border: '1px solid #E4E4E0',
+                border: '1px solid #1F2530',
                 borderRadius: 8,
-                color: '#0E1116',
+                color: '#F2F4F7',
                 padding: '9px 11px',
                 fontSize: 12,
                 marginTop: 5,
@@ -500,7 +500,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
             />
 
             {grantMsg && (
-              <p style={{ color: grantMsg.startsWith('✓') ? '#0F7A55' : '#B42318', fontSize: 11, marginBottom: 10 }}>
+              <p style={{ color: grantMsg.startsWith('✓') ? '#5FD4A4' : '#FF8787', fontSize: 11, marginBottom: 10 }}>
                 {grantMsg}
               </p>
             )}
@@ -512,7 +512,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
                 disabled={granting || grantReason.trim().length < 3}
                 style={{
                   flex: 1,
-                  background: grantReason.trim().length < 3 ? '#1c1c20' : '#0A5CFF',
+                  background: grantReason.trim().length < 3 ? '#1c1c20' : '#8DB4FF',
                   border: 'none',
                   borderRadius: 8,
                   color: grantReason.trim().length < 3 ? '#5a5a60' : '#fff',
@@ -530,9 +530,9 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
                 disabled={granting}
                 style={{
                   background: 'transparent',
-                  border: '1px solid #E4E4E0',
+                  border: '1px solid #1F2530',
                   borderRadius: 8,
-                  color: '#5A5F67',
+                  color: '#9AA3B2',
                   padding: '10px 16px',
                   fontSize: 12,
                   fontWeight: 700,
@@ -555,32 +555,32 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
         >
           <div style={{ ...CARD, width: '100%', maxWidth: 860, padding: '22px 24px', margin: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
-              <h3 style={{ color: '#0E1116', fontSize: 13, fontWeight: 900 }}>🎬 Tudo que esta pessoa fez</h3>
-              <button type="button" onClick={() => setMediaFor(null)} style={{ background: 'transparent', border: 'none', color: '#5A5F67', fontSize: 18, cursor: 'pointer' }}>×</button>
+              <h3 style={{ color: '#F2F4F7', fontSize: 13, fontWeight: 900 }}>🎬 Tudo que esta pessoa fez</h3>
+              <button type="button" onClick={() => setMediaFor(null)} style={{ background: 'transparent', border: 'none', color: '#9AA3B2', fontSize: 18, cursor: 'pointer' }}>×</button>
             </div>
-            <p style={{ color: '#5A5F67', fontSize: 11, marginBottom: 12, wordBreak: 'break-all' }}>{mediaFor}</p>
+            <p style={{ color: '#9AA3B2', fontSize: 11, marginBottom: 12, wordBreak: 'break-all' }}>{mediaFor}</p>
 
-            {!media && !mediaError && <p style={{ color: '#5A5F67', fontSize: 12 }}>Carregando…</p>}
-            {mediaError && <p style={{ color: '#B42318', fontSize: 12 }}>{mediaError}</p>}
+            {!media && !mediaError && <p style={{ color: '#9AA3B2', fontSize: 12 }}>Carregando…</p>}
+            {mediaError && <p style={{ color: '#FF8787', fontSize: 12 }}>{mediaError}</p>}
 
             {media && (
               <>
-                <p style={{ color: '#2A2F37', fontSize: 11.5, marginBottom: 12 }}>
-                  Saldo <b style={{ color: '#0A5CFF' }}>{media.credits ?? '—'} cr</b>
+                <p style={{ color: '#C9CFD8', fontSize: 11.5, marginBottom: 12 }}>
+                  Saldo <b style={{ color: '#8DB4FF' }}>{media.credits ?? '—'} cr</b>
                   {media.trial ? <> · trial {media.trial.granted} concedidos, {media.trial.used} no contador</> : null}
                   {media.plan ? <> · plano {media.plan}</> : null}
                   {' '}· 🎞 {media.videos.length} vídeos · 🖼 {media.images_total} imagens · 🔊 {media.audios_total} áudios · 🌀 {media.animations_delivered} animações
                 </p>
 
                 {media.guard_blocks.length > 0 && (
-                  <p style={{ color: '#8A4B00', fontSize: 11, marginBottom: 12 }}>
+                  <p style={{ color: '#FFBF58', fontSize: 11, marginBottom: 12 }}>
                     ✋ {media.guard_blocks.length}× barrado pelo guard de roteiro curto (crédito devolvido automaticamente desde o #325)
                     {media.guard_blocks[0]?.detail?.speech_seconds != null ? ` — último: ${media.guard_blocks[0].detail.speech_seconds}s de fala para pedido de ${media.guard_blocks[0].detail.target_seconds}s` : ''}
                   </p>
                 )}
 
                 {media.videos.length === 0 ? (
-                  <p style={{ color: '#5A5F67', fontSize: 12 }}>
+                  <p style={{ color: '#9AA3B2', fontSize: 12 }}>
                     Nenhum vídeo na conta — os créditos (se gastos) foram em imagens/áudio/animação, ou as gerações falharam/foram barradas e estornadas.
                   </p>
                 ) : (
@@ -592,7 +592,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
                     {media.videos.map((v) => (
                       <div
                         key={v.id}
-                        style={{ background: 'var(--card2)', border: v.prompt_is_ui ? '1px solid rgba(248,113,113,.6)' : '1px solid #E4E4E0', borderRadius: 10, overflow: 'hidden', opacity: v.url ? 1 : 0.55 }}
+                        style={{ background: 'var(--card2)', border: v.prompt_is_ui ? '1px solid rgba(248,113,113,.6)' : '1px solid #1F2530', borderRadius: 10, overflow: 'hidden', opacity: v.url ? 1 : 0.55 }}
                       >
                         {v.url ? (
                           <video src={v.url} controls preload="metadata" playsInline style={{ display: 'block', width: '100%', aspectRatio: '9/16', maxHeight: 300, background: 'var(--bg)', objectFit: 'contain' }} />
@@ -602,39 +602,39 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
                           </div>
                         )}
                         <div style={{ padding: '7px 9px' }}>
-                          <div style={{ color: '#6941C6', fontSize: 9.5, fontWeight: 800, textTransform: 'uppercase' }}>
+                          <div style={{ color: '#C4B5FD', fontSize: 9.5, fontWeight: 800, textTransform: 'uppercase' }}>
                             {MEDIA_ENGINE_LABEL[v.quality ?? ''] ?? v.quality ?? '—'}{v.status && v.status !== 'completed' ? ` · ${v.status}` : ''}
                           </div>
                           {v.prompt_is_ui && (
-                            <div style={{ color: '#B42318', fontSize: 10, fontWeight: 800, marginTop: 3 }}>⚠ prompt = texto da nossa própria tela (colado)</div>
+                            <div style={{ color: '#FF8787', fontSize: 10, fontWeight: 800, marginTop: 3 }}>⚠ prompt = texto da nossa própria tela (colado)</div>
                           )}
                           {/* KINEO-1-COERENCIA-2026-09-16 — a nota do juiz (escreveu × narrou × cenas), com os problemas nomeados. */}
                           {v.coherence && (
                             <div style={{ marginTop: 4, fontSize: 10.5, lineHeight: 1.4 }} data-kineo="coerencia">
-                              <span style={{ fontWeight: 900, color: v.coherence.score >= 75 ? '#0F7A55' : v.coherence.score >= 50 ? '#8A4B00' : '#B42318' }}>coerência {v.coherence.score}</span>
-                              <span style={{ color: '#5A5F67' }}> · texto {v.coherence.prompt_vs_narration} · visual {v.coherence.narration_vs_visuals ?? '—'}</span>
-                              {v.coherence.request_pt && <div style={{ color: '#2A2F37', marginTop: 2 }}>pediu: {v.coherence.request_pt}</div>}
+                              <span style={{ fontWeight: 900, color: v.coherence.score >= 75 ? '#5FD4A4' : v.coherence.score >= 50 ? '#FFBF58' : '#FF8787' }}>coerência {v.coherence.score}</span>
+                              <span style={{ color: '#9AA3B2' }}> · texto {v.coherence.prompt_vs_narration} · visual {v.coherence.narration_vs_visuals ?? '—'}</span>
+                              {v.coherence.request_pt && <div style={{ color: '#C9CFD8', marginTop: 2 }}>pediu: {v.coherence.request_pt}</div>}
                               {v.coherence.problems.length > 0 && (
-                                <div style={{ color: '#B42318', marginTop: 2 }}>{v.coherence.problems[0]}</div>
+                                <div style={{ color: '#FF8787', marginTop: 2 }}>{v.coherence.problems[0]}</div>
                               )}
                             </div>
                           )}
-                          <div style={{ color: '#2A2F37', fontSize: 10.5, lineHeight: 1.35, maxHeight: 42, overflow: 'hidden' }}>
+                          <div style={{ color: '#C9CFD8', fontSize: 10.5, lineHeight: 1.35, maxHeight: 42, overflow: 'hidden' }}>
                             {v.topic ?? 'Untitled'}
                           </div>
                           <details style={{ marginTop: 5 }}>
-                            <summary style={{ color: '#0A5CFF', fontSize: 10, fontWeight: 800, cursor: 'pointer' }}>O que escreveu ({(v.topic_full ?? v.topic ?? '').length} caracteres)</summary>
-                            <pre style={{ whiteSpace: 'pre-wrap', color: '#2A2F37', fontSize: 10.5, lineHeight: 1.45, margin: '4px 0 0', fontFamily: 'inherit', maxHeight: 220, overflow: 'auto' }}>{v.topic_full ?? v.topic ?? '—'}</pre>
+                            <summary style={{ color: '#8DB4FF', fontSize: 10, fontWeight: 800, cursor: 'pointer' }}>O que escreveu ({(v.topic_full ?? v.topic ?? '').length} caracteres)</summary>
+                            <pre style={{ whiteSpace: 'pre-wrap', color: '#C9CFD8', fontSize: 10.5, lineHeight: 1.45, margin: '4px 0 0', fontFamily: 'inherit', maxHeight: 220, overflow: 'auto' }}>{v.topic_full ?? v.topic ?? '—'}</pre>
                           </details>
                           <details style={{ marginTop: 4 }}>
-                            <summary style={{ color: '#0A5CFF', fontSize: 10, fontWeight: 800, cursor: 'pointer' }}>O que foi narrado{v.narration ? '' : ' (sem registro)'}</summary>
-                            <pre style={{ whiteSpace: 'pre-wrap', color: '#2A2F37', fontSize: 10.5, lineHeight: 1.45, margin: '4px 0 0', fontFamily: 'inherit', maxHeight: 220, overflow: 'auto' }}>{v.narration ?? 'A montagem não deixou a narração no evento compose_submission_claim para este vídeo.'}</pre>
+                            <summary style={{ color: '#8DB4FF', fontSize: 10, fontWeight: 800, cursor: 'pointer' }}>O que foi narrado{v.narration ? '' : ' (sem registro)'}</summary>
+                            <pre style={{ whiteSpace: 'pre-wrap', color: '#C9CFD8', fontSize: 10.5, lineHeight: 1.45, margin: '4px 0 0', fontFamily: 'inherit', maxHeight: 220, overflow: 'auto' }}>{v.narration ?? 'A montagem não deixou a narração no evento compose_submission_claim para este vídeo.'}</pre>
                           </details>
                           <div style={{ color: '#5a5a60', fontSize: 9.5, marginTop: 3 }}>
                             {fmtDate(v.created_at)}
                             {v.credits != null ? ` · ${v.credits} cr` : ''}
                             {v.seconds != null ? ` · ${v.seconds}s` : ''}
-                            {v.url ? <> · <a href={v.url} target="_blank" rel="noreferrer" style={{ color: '#0A5CFF' }}>abrir</a></> : null}
+                            {v.url ? <> · <a href={v.url} target="_blank" rel="noreferrer" style={{ color: '#8DB4FF' }}>abrir</a></> : null}
                           </div>
                         </div>
                       </div>
@@ -657,7 +657,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
             right: 18,
             background: 'rgba(52,211,153,.14)',
             border: '1px solid rgba(52,211,153,.4)',
-            color: '#0F7A55',
+            color: '#5FD4A4',
             padding: '10px 14px',
             borderRadius: 10,
             fontSize: 12,
@@ -693,7 +693,7 @@ function Table({ head, rows, border, empty }: { head: string[]; rows: React.Reac
   return (
     <div className="rounded-2xl overflow-x-auto" style={{ ...CARD, border: `1px solid ${border}` }}>
       {rows.length === 0 ? (
-        <div className="px-5 py-8 text-center text-sm" style={{ color: '#5A5F67' }}>{empty}</div>
+        <div className="px-5 py-8 text-center text-sm" style={{ color: '#9AA3B2' }}>{empty}</div>
       ) : (
         <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
           <thead>
@@ -702,7 +702,7 @@ function Table({ head, rows, border, empty }: { head: string[]; rows: React.Reac
                 <th
                   key={h}
                   className="font-black uppercase tracking-widest"
-                  style={{ fontSize: '0.62rem', color: '#5A5F67', textAlign: 'left', padding: '10px 14px', whiteSpace: 'nowrap' }}
+                  style={{ fontSize: '0.62rem', color: '#9AA3B2', textAlign: 'left', padding: '10px 14px', whiteSpace: 'nowrap' }}
                 >
                   {h}
                 </th>
@@ -711,9 +711,9 @@ function Table({ head, rows, border, empty }: { head: string[]; rows: React.Reac
           </thead>
           <tbody>
             {rows.map((cells, i) => (
-              <tr key={i} style={{ borderTop: '1px solid #E4E4E0' }}>
+              <tr key={i} style={{ borderTop: '1px solid #1F2530' }}>
                 {cells.map((c, j) => (
-                  <td key={j} style={{ padding: '10px 14px', color: '#0E1116', whiteSpace: 'nowrap' }}>{c}</td>
+                  <td key={j} style={{ padding: '10px 14px', color: '#F2F4F7', whiteSpace: 'nowrap' }}>{c}</td>
                 ))}
               </tr>
             ))}

@@ -672,3 +672,7 @@ Slug do X confirmado: utm_source=x.
 - Abas do Studio: só Film e Clip (Animate e Avatar seguem nas suas páginas e no "More").
 - Topo do site: Video · Images · Spaces · Ads · MCP · Pricing; "MCP" → /claude-connector (URL de documentação do diretório do Claude). Todos os itens com a mesma cor de texto; só o atual ganha peso e sublinhado.
 - Guardião novo test-studio-heroi (9 ok, 5 mutantes). Reancorados com o motivo: test-app-blue-layout, test-avatar-fora.
+
+## 2026-09-30 — ADM: cor escura original com os menus novos
+
+**DECISÃO APROVADA (fundador, Board):** após revisar `ADM-COR-ORIGINAL-MENUS-NOVOS.html`, Joseph confirmou: "deixa escuro pode dar merge". Esta decisão substitui somente a paleta branca/cinza das iterações anteriores do ADM: fundo escuro original, cartões grafite, texto claro e destaque azul. Preservar o refinamento dos menus e do layout, os controles, cálculos e permissões. Não mudar a aparência do site público nem do Studio.

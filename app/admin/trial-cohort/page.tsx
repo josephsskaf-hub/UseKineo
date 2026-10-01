@@ -43,7 +43,7 @@ import { TRIAL_CREDIT_CAP } from '@/lib/reverseTrial'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const CARD: CSSProperties = { background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 20 }
+const CARD: CSSProperties = { background: 'var(--card)', border: '1px solid #1F2530', borderRadius: 20 }
 
 /** Used-credit level at which we call a trial "capped or nearly". */
 const NEAR_CAP_CREDITS = 30
@@ -64,13 +64,13 @@ const GROUPS: GroupMeta[] = [
   {
     key: 'never_gen',
     label: 'Never generated',
-    accent: '#B42318',
+    accent: '#FF8787',
     cause: 'Most of them DID press generate — they were failed by the render, not uninterested.',
   },
   {
     key: 'gen_no_dl',
     label: 'Generated, never downloaded',
-    accent: '#8A4B00',
+    accent: '#FFBF58',
     cause: 'They saw the video and never clicked Download once. Not a download bug — a wanting bug.',
   },
   {
@@ -82,13 +82,13 @@ const GROUPS: GroupMeta[] = [
   {
     key: 'active',
     label: 'Active and spending',
-    accent: '#0F7A55',
+    accent: '#5FD4A4',
     cause: 'Returned on another day with the file in hand. This is the shape that pays.',
   },
   {
     key: 'cap',
     label: `Capped or near (${NEAR_CAP_CREDITS}+/${TRIAL_CREDIT_CAP})`,
-    accent: '#0A5CFF',
+    accent: '#8DB4FF',
     cause: 'Out of runway. Cannot generate again without a plan.',
   },
 ]
@@ -445,11 +445,11 @@ function fmtCountdown(hours: number | null): string {
 }
 
 function countdownColor(hours: number | null): string {
-  if (hours === null) return '#5A5F67'
-  if (hours <= 0) return '#6B6F76'
-  if (hours < 24) return '#B42318'
-  if (hours < 48) return '#8A4B00'
-  return '#5A5F67'
+  if (hours === null) return '#9AA3B2'
+  if (hours <= 0) return '#8A93A3'
+  if (hours < 24) return '#FF8787'
+  if (hours < 48) return '#FFBF58'
+  return '#9AA3B2'
 }
 
 function fmtAgo(iso: string | null): string {
@@ -474,8 +474,8 @@ export default async function AdminTrialCohortPage() {
       <Shell>
         <div className="rounded-2xl p-8 text-center" style={CARD}>
           <div className="text-5xl mb-3">🔒</div>
-          <h1 className="text-xl font-black mb-2" style={{ color: '#0E1116' }}>Access denied.</h1>
-          <p className="text-sm" style={{ color: '#5A5F67' }}>Admin only.</p>
+          <h1 className="text-xl font-black mb-2" style={{ color: '#F2F4F7' }}>Access denied.</h1>
+          <p className="text-sm" style={{ color: '#9AA3B2' }}>Admin only.</p>
         </div>
       </Shell>
     )
@@ -485,7 +485,7 @@ export default async function AdminTrialCohortPage() {
   if (!data) {
     return (
       <Shell>
-        <div className="rounded-2xl p-8 text-center text-sm" style={{ ...CARD, color: '#5A5F67' }}>
+        <div className="rounded-2xl p-8 text-center text-sm" style={{ ...CARD, color: '#9AA3B2' }}>
           Service role not configured on this environment.
         </div>
       </Shell>
@@ -495,13 +495,13 @@ export default async function AdminTrialCohortPage() {
   return (
     <Shell>
       <header className="mb-6">
-        <div className="font-black uppercase tracking-widest mb-1" style={{ fontSize: '0.62rem', color: '#8A4B00' }}>
+        <div className="font-black uppercase tracking-widest mb-1" style={{ fontSize: '0.62rem', color: '#FFBF58' }}>
           Admin · Live trial cohort
         </div>
-        <h1 className="font-black tracking-tight" style={{ fontSize: '1.6rem', color: '#0E1116' }}>
+        <h1 className="font-black tracking-tight" style={{ fontSize: '1.6rem', color: '#F2F4F7' }}>
           {data.total} trial{data.total === 1 ? '' : 's'} still holding credit
         </h1>
-        <p className="text-xs mt-1" style={{ color: '#5A5F67' }}>
+        <p className="text-xs mt-1" style={{ color: '#9AA3B2' }}>
           Every account with trial_status = active, bucketed by what it actually did. Read-only —
           this page sends nothing. Drafts live in docs/EMAILS-COORTE-TRIALS-2026-08-11.md.
           {data.internalCount > 0 &&
@@ -519,7 +519,7 @@ export default async function AdminTrialCohortPage() {
               key={t.href}
               href={t.href}
               className="px-3 py-1.5 rounded-lg text-xs font-bold"
-              style={{ color: '#5A5F67' }}
+              style={{ color: '#9AA3B2' }}
             >
               {t.label}
             </Link>
@@ -530,7 +530,7 @@ export default async function AdminTrialCohortPage() {
       {data.suspectTruncation && (
         <div
           className="rounded-2xl p-4 mb-6 text-sm"
-          style={{ background: 'rgba(248,113,113,.1)', border: '1px solid rgba(248,113,113,.5)', color: '#B42318' }}
+          style={{ background: 'rgba(248,113,113,.1)', border: '1px solid rgba(248,113,113,.5)', color: '#FF8787' }}
         >
           <strong>Do not act on these numbers.</strong> {data.total} trials were found but the events
           read came back empty, which means the query failed rather than that nobody did anything.
@@ -542,18 +542,18 @@ export default async function AdminTrialCohortPage() {
       {/* Clock */}
       <section className="mb-6 grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))' }}>
         <div className="rounded-xl p-5" style={{ ...CARD, border: '1px solid rgba(248,113,113,.4)' }}>
-          <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#B42318' }}>
+          <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#FF8787' }}>
             Expire in 24h
           </div>
-          <div className="font-black" style={{ fontSize: '2.4rem', lineHeight: 1.1, color: '#B42318' }}>
+          <div className="font-black" style={{ fontSize: '2.4rem', lineHeight: 1.1, color: '#FF8787' }}>
             {data.due24}
           </div>
-          <p className="text-xs mt-1" style={{ color: '#5A5F67' }}>
+          <p className="text-xs mt-1" style={{ color: '#9AA3B2' }}>
             {data.due48} within 48h · {data.due7d} within 7d (cumulative)
             {data.expiredAlready > 0 && (
               <>
                 <br />
-                <span style={{ color: '#8A4B00' }}>
+                <span style={{ color: '#FFBF58' }}>
                   + {data.expiredAlready} clock already run out, not yet downgraded
                 </span>
               </>
@@ -561,24 +561,24 @@ export default async function AdminTrialCohortPage() {
           </p>
         </div>
         <div className="rounded-xl p-4" style={CARD}>
-          <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#5A5F67' }}>
+          <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#9AA3B2' }}>
             Credits unspent
           </div>
-          <div className="font-black" style={{ fontSize: '1.7rem', lineHeight: 1.1, color: '#0E1116' }}>
+          <div className="font-black" style={{ fontSize: '1.7rem', lineHeight: 1.1, color: '#F2F4F7' }}>
             {data.creditsLeftTotal}
           </div>
-          <p className="text-[11px] mt-1.5" style={{ color: '#5A5F67' }}>
+          <p className="text-[11px] mt-1.5" style={{ color: '#9AA3B2' }}>
             of {data.creditsGrantedTotal} actually granted · expires with the clock
           </p>
         </div>
         <div className="rounded-xl p-4" style={{ ...CARD, border: '1px solid rgba(251,191,36,.4)' }}>
-          <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#8A4B00' }}>
+          <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: '#FFBF58' }}>
             Hit the 08/09–08/11 outage
           </div>
-          <div className="font-black" style={{ fontSize: '1.7rem', lineHeight: 1.1, color: '#8A4B00' }}>
+          <div className="font-black" style={{ fontSize: '1.7rem', lineHeight: 1.1, color: '#FFBF58' }}>
             {data.outageHit}
           </div>
-          <p className="text-[11px] mt-1.5" style={{ color: '#5A5F67' }}>
+          <p className="text-[11px] mt-1.5" style={{ color: '#9AA3B2' }}>
             burned trial clock in the ~33h when compose returned zero videos
           </p>
         </div>
@@ -591,13 +591,13 @@ export default async function AdminTrialCohortPage() {
             <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: g.meta.accent }}>
               {g.meta.label}
             </div>
-            <div className="font-black" style={{ fontSize: '1.7rem', lineHeight: 1.1, color: '#0E1116' }}>
+            <div className="font-black" style={{ fontSize: '1.7rem', lineHeight: 1.1, color: '#F2F4F7' }}>
               {g.count}
             </div>
-            <p className="text-[11px] mt-1.5" style={{ color: '#5A5F67' }}>
+            <p className="text-[11px] mt-1.5" style={{ color: '#9AA3B2' }}>
               {g.avgCreditsUsed.toFixed(1)} credits avg · {g.creditsLeft} left · {g.due24} expire in 24h
             </p>
-            <p className="text-[11px] mt-2" style={{ color: '#6B6F76' }}>{g.meta.cause}</p>
+            <p className="text-[11px] mt-2" style={{ color: '#8A93A3' }}>{g.meta.cause}</p>
           </div>
         ))}
       </section>
@@ -611,7 +611,7 @@ export default async function AdminTrialCohortPage() {
                 <th
                   key={h}
                   className="font-black uppercase tracking-widest"
-                  style={{ fontSize: '0.62rem', color: '#5A5F67', textAlign: 'left', padding: '10px 14px', whiteSpace: 'nowrap' }}
+                  style={{ fontSize: '0.62rem', color: '#9AA3B2', textAlign: 'left', padding: '10px 14px', whiteSpace: 'nowrap' }}
                 >
                   {h}
                 </th>
@@ -621,29 +621,29 @@ export default async function AdminTrialCohortPage() {
           <tbody>
             {data.rows.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-5 py-10 text-center text-sm" style={{ color: '#5A5F67' }}>
+                <td colSpan={10} className="px-5 py-10 text-center text-sm" style={{ color: '#9AA3B2' }}>
                   No active trials right now.
                 </td>
               </tr>
             )}
             {data.rows.map((r) => {
               const meta = GROUP_BY_KEY.get(r.group)
-              const accent = meta?.accent ?? '#5A5F67'
+              const accent = meta?.accent ?? '#9AA3B2'
               return (
-                <tr key={r.id} style={{ borderTop: '1px solid #E4E4E0', opacity: r.internal ? 0.55 : 1 }}>
+                <tr key={r.id} style={{ borderTop: '1px solid #1F2530', opacity: r.internal ? 0.55 : 1 }}>
                   <Td>
                     <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.82rem' }}>
                       {r.email}
                       {r.internal && (
                         <span
                           className="ml-2 rounded px-1.5 py-0.5 text-[10px] font-black uppercase"
-                          style={{ background: 'rgba(134,134,139,.15)', color: '#5A5F67', border: '1px solid #BFC2C6' }}
+                          style={{ background: 'rgba(134,134,139,.15)', color: '#9AA3B2', border: '1px solid #2E3644' }}
                         >
                           internal
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px]" style={{ color: '#6B6F76' }}>{r.id.slice(0, 8)}</div>
+                    <div className="text-[11px]" style={{ color: '#8A93A3' }}>{r.id.slice(0, 8)}</div>
                   </Td>
                   <Td>
                     <span
@@ -657,11 +657,11 @@ export default async function AdminTrialCohortPage() {
                     <span style={{ color: countdownColor(r.hoursLeft), fontWeight: 700 }}>
                       {fmtCountdown(r.hoursLeft)}
                     </span>
-                    <div className="text-[11px]" style={{ color: '#6B6F76' }}>{fmtDate(r.endsAt)}</div>
+                    <div className="text-[11px]" style={{ color: '#8A93A3' }}>{fmtDate(r.endsAt)}</div>
                   </Td>
                   <Td>
                     {r.creditsUsed}/{r.creditsGranted}
-                    <div className="text-[11px]" style={{ color: '#6B6F76' }}>{r.creditsLeft} left</div>
+                    <div className="text-[11px]" style={{ color: '#8A93A3' }}>{r.creditsLeft} left</div>
                   </Td>
                   <Td>
                     {r.videos}
@@ -671,26 +671,26 @@ export default async function AdminTrialCohortPage() {
                         generation_stage_error (compose_not_ok). Showing only
                         the first hides the people we most owe an apology. */}
                     {r.generateFailures > 0 && (
-                      <div className="text-[11px]" style={{ color: '#B42318' }}>{r.generateFailures} failed</div>
+                      <div className="text-[11px]" style={{ color: '#FF8787' }}>{r.generateFailures} failed</div>
                     )}
                     {r.generateFailures === 0 && r.stageErrors > 0 && (
-                      <div className="text-[11px]" style={{ color: '#8A4B00' }}>{r.stageErrors} stage err</div>
+                      <div className="text-[11px]" style={{ color: '#FFBF58' }}>{r.stageErrors} stage err</div>
                     )}
                   </Td>
                   <Td>
                     {r.downloads}
                     {r.downloadFailures > 0 && (
-                      <div className="text-[11px]" style={{ color: '#B42318' }}>{r.downloadFailures} failed</div>
+                      <div className="text-[11px]" style={{ color: '#FF8787' }}>{r.downloadFailures} failed</div>
                     )}
                     {r.downloadFailures === 0 && r.downloadClicks === 0 && r.videos > 0 && (
-                      <div className="text-[11px]" style={{ color: '#6B6F76' }}>never clicked</div>
+                      <div className="text-[11px]" style={{ color: '#8A93A3' }}>never clicked</div>
                     )}
                   </Td>
                   <Td>{r.activeDays}</Td>
                   <Td>
                     {fmtAgo(r.lastEventAt)}
                     {r.lastEventName && (
-                      <div className="text-[11px]" style={{ color: '#6B6F76' }}>{r.lastEventName}</div>
+                      <div className="text-[11px]" style={{ color: '#8A93A3' }}>{r.lastEventName}</div>
                     )}
                   </Td>
                   <Td>{r.country ? `${flagEmoji(r.country)} ${r.country}` : '—'}</Td>
@@ -702,7 +702,7 @@ export default async function AdminTrialCohortPage() {
         </table>
       </section>
 
-      <p className="text-[11px] mt-3" style={{ color: '#6B6F76' }}>
+      <p className="text-[11px] mt-3" style={{ color: '#8A93A3' }}>
         Groups are evaluated in order — capped, then active, then downloaded-and-gone, then
         generated-without-downloading, then never-generated — so the five counts always sum to{' '}
         {data.total}. &quot;Downloads&quot; counts events.video_downloaded, which only fires on the blob
@@ -716,7 +716,7 @@ export default async function AdminTrialCohortPage() {
 
 function Td({ children }: { children: React.ReactNode }) {
   return (
-    <td style={{ padding: '10px 14px', color: '#0E1116', whiteSpace: 'nowrap' }}>{children}</td>
+    <td style={{ padding: '10px 14px', color: '#F2F4F7', whiteSpace: 'nowrap' }}>{children}</td>
   )
 }
 

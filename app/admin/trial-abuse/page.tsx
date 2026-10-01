@@ -48,7 +48,7 @@ import {
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const CARD: CSSProperties = { background: 'var(--card)', border: '1px solid #E4E4E0', borderRadius: 20 }
+const CARD: CSSProperties = { background: 'var(--card)', border: '1px solid #1F2530', borderRadius: 20 }
 
 // ── data ────────────────────────────────────────────────────────────────────
 
@@ -419,10 +419,10 @@ function fmtDate(iso: string | null): string {
 
 const STATUS_ORDER = ['active', 'expired', 'downgraded', 'converted'] as const
 const STATUS_ACCENT: Record<string, string> = {
-  active: '#0F7A55',
-  expired: '#8A4B00',
-  downgraded: '#B42318',
-  converted: '#0A5CFF',
+  active: '#5FD4A4',
+  expired: '#FFBF58',
+  downgraded: '#FF8787',
+  converted: '#8DB4FF',
 }
 
 // ── page ────────────────────────────────────────────────────────────────────
@@ -437,8 +437,8 @@ export default async function AdminTrialAbusePage() {
       <Shell>
         <div className="rounded-2xl p-8 text-center" style={CARD}>
           <div className="text-5xl mb-3">🔒</div>
-          <h1 className="text-xl font-black mb-2" style={{ color: '#0E1116' }}>Access denied.</h1>
-          <p className="text-sm" style={{ color: '#5A5F67' }}>Admin only.</p>
+          <h1 className="text-xl font-black mb-2" style={{ color: '#F2F4F7' }}>Access denied.</h1>
+          <p className="text-sm" style={{ color: '#9AA3B2' }}>Admin only.</p>
         </div>
       </Shell>
     )
@@ -448,7 +448,7 @@ export default async function AdminTrialAbusePage() {
   if (!data) {
     return (
       <Shell>
-        <div className="rounded-2xl p-8 text-center text-sm" style={{ ...CARD, color: '#5A5F67' }}>
+        <div className="rounded-2xl p-8 text-center text-sm" style={{ ...CARD, color: '#9AA3B2' }}>
           Service role not configured on this environment.
         </div>
       </Shell>
@@ -463,12 +463,12 @@ export default async function AdminTrialAbusePage() {
   return (
     <Shell>
       <div className="flex items-center justify-between gap-4 mb-1">
-        <h1 className="text-2xl font-black" style={{ color: '#0E1116' }}>Reverse trial · abuse</h1>
-        <Link href="/admin" className="text-[12px] font-bold" style={{ color: '#0A5CFF' }}>← Admin</Link>
+        <h1 className="text-2xl font-black" style={{ color: '#F2F4F7' }}>Reverse trial · abuse</h1>
+        <Link href="/admin" className="text-[12px] font-bold" style={{ color: '#8DB4FF' }}>← Admin</Link>
       </div>
-      <p className="text-[12px] mb-5" style={{ color: '#5A5F67' }}>
+      <p className="text-[12px] mb-5" style={{ color: '#9AA3B2' }}>
         Read-only. Flag <code>KINEO_REVERSE_TRIAL_ENABLED</code> is{' '}
-        <strong style={{ color: REVERSE_TRIAL_ENABLED ? '#0F7A55' : '#8A4B00' }}>
+        <strong style={{ color: REVERSE_TRIAL_ENABLED ? '#5FD4A4' : '#FFBF58' }}>
           {REVERSE_TRIAL_ENABLED ? 'ON' : 'OFF'}
         </strong>
         {' · '}cap {TRIAL_CREDIT_CAP} credits{' · '}fingerprint limit{' '}
@@ -487,7 +487,7 @@ export default async function AdminTrialAbusePage() {
       {!trialFingerprintSaltConfigured() && (
         <div
           className="rounded-2xl p-4 mb-5 text-[12.5px]"
-          style={{ background: 'rgba(248,113,113,.14)', border: '1px solid rgba(248,113,113,.55)', color: '#B42318' }}
+          style={{ background: 'rgba(248,113,113,.14)', border: '1px solid rgba(248,113,113,.55)', color: '#FF8787' }}
         >
           <strong>anti-abuso INATIVO: falta {TRIAL_FINGERPRINT_SALT_ENV}.</strong> Sem essa variável
           de ambiente o fingerprint de device/IP nunca é calculado: TODO signup recebe trial sem
@@ -502,7 +502,7 @@ export default async function AdminTrialAbusePage() {
       {data.fingerprintTableMissing && (
         <div
           className="rounded-2xl p-4 mb-5 text-[12.5px]"
-          style={{ background: 'rgba(248,113,113,.10)', border: '1px solid rgba(248,113,113,.35)', color: '#B42318' }}
+          style={{ background: 'rgba(248,113,113,.10)', border: '1px solid rgba(248,113,113,.35)', color: '#FF8787' }}
         >
           <strong>{TRIAL_FINGERPRINT_TABLE} is missing on this environment.</strong> The device/IP guard
           is fail-open by design, so every signup is currently getting a trial with no device check.
@@ -512,10 +512,10 @@ export default async function AdminTrialAbusePage() {
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {statuses.map((s) => (
-          <Stat key={s} label={s} value={data.byStatus[s] ?? 0} accent={STATUS_ACCENT[s] ?? '#0E1116'} />
+          <Stat key={s} label={s} value={data.byStatus[s] ?? 0} accent={STATUS_ACCENT[s] ?? '#F2F4F7'} />
         ))}
         {statuses.length === 0 && (
-          <div className="col-span-2 md:col-span-4 rounded-2xl p-6 text-center text-sm" style={{ ...CARD, color: '#5A5F67' }}>
+          <div className="col-span-2 md:col-span-4 rounded-2xl p-6 text-center text-sm" style={{ ...CARD, color: '#9AA3B2' }}>
             No trial has ever been activated (expected while the flag is OFF).
           </div>
         )}
@@ -526,21 +526,21 @@ export default async function AdminTrialAbusePage() {
           enquanto o bloco de A/B mais abaixo exclui contas internas. Sem esta
           linha os dois "converted" da mesma tela divergiriam sem explicação. */}
       {data.byVariant.length > 0 && (
-        <p className="text-[11px] -mt-3 mb-6" style={{ color: '#6B6F76' }}>
+        <p className="text-[11px] -mt-3 mb-6" style={{ color: '#8A93A3' }}>
           Contagens brutas: incluem contas internas. O bloco{' '}
-          <strong style={{ color: '#5A5F67' }}>A/B</strong> abaixo as exclui — os números divergem
+          <strong style={{ color: '#9AA3B2' }}>A/B</strong> abaixo as exclui — os números divergem
           por construção.
         </p>
       )}
 
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <Stat label="trials, total" value={data.totalTrials} accent="#0E1116" />
-        <Stat label="credits granted" value={data.creditsGranted} accent="#8A4B00" />
-        <Stat label="credits used" value={data.creditsUsed} accent="#8A4B00" />
+        <Stat label="trials, total" value={data.totalTrials} accent="#F2F4F7" />
+        <Stat label="credits granted" value={data.creditsGranted} accent="#FFBF58" />
+        <Stat label="credits used" value={data.creditsUsed} accent="#FFBF58" />
         <Stat
           label={`blocked by fingerprint (${TRIAL_FINGERPRINT_WINDOW_DAYS}d)`}
           value={data.fpBlocked30d}
-          accent="#B42318"
+          accent="#FF8787"
         />
       </section>
 
@@ -548,24 +548,24 @@ export default async function AdminTrialAbusePage() {
         <Stat
           label={`allowed by fingerprint (${TRIAL_FINGERPRINT_WINDOW_DAYS}d)`}
           value={data.fpActivated30d}
-          accent="#0F7A55"
+          accent="#5FD4A4"
         />
-        <Stat label="blocked, all time" value={data.fpBlockedAllTime} accent="#B42318" />
-        <Stat label={`check failed (${TRIAL_FINGERPRINT_WINDOW_DAYS}d)`} value={data.checkFailed30d} accent="#8A4B00" />
-        <Stat label="repeat fingerprints" value={data.repeatOffenders.length} accent="#0E1116" />
+        <Stat label="blocked, all time" value={data.fpBlockedAllTime} accent="#FF8787" />
+        <Stat label={`check failed (${TRIAL_FINGERPRINT_WINDOW_DAYS}d)`} value={data.checkFailed30d} accent="#FFBF58" />
+        <Stat label="repeat fingerprints" value={data.repeatOffenders.length} accent="#F2F4F7" />
       </section>
 
       {data.byVariant.length > 0 && (
         <section className="rounded-2xl p-4 mb-6" style={CARD}>
           <div className="flex items-baseline justify-between gap-3 mb-1">
-            <h2 className="text-sm font-black" style={{ color: '#0E1116' }}>A/B · 3d vs 7d</h2>
-            <span className="text-[11px]" style={{ color: '#6B6F76' }}>{INTERNAL_ACCOUNTS_LABEL}</span>
+            <h2 className="text-sm font-black" style={{ color: '#F2F4F7' }}>A/B · 3d vs 7d</h2>
+            <span className="text-[11px]" style={{ color: '#8A93A3' }}>{INTERNAL_ACCOUNTS_LABEL}</span>
           </div>
 
           {(data.contaminationLookupSuspect || data.activationLookupSuspect) && (
             <div
               className="rounded-xl p-3 mb-3 text-[12px]"
-              style={{ background: 'rgba(248,113,113,.14)', border: '1px solid rgba(248,113,113,.55)', color: '#B42318' }}
+              style={{ background: 'rgba(248,113,113,.14)', border: '1px solid rgba(248,113,113,.55)', color: '#FF8787' }}
             >
               <strong>Uma das leituras falhou — os zeros abaixo são falta de dado.</strong>{' '}
               {data.contaminationLookupSuspect && (
@@ -589,7 +589,7 @@ export default async function AdminTrialAbusePage() {
           {data.conversionUnreadable && (
             <div
               className="rounded-xl p-3 mb-3 text-[12px] leading-relaxed"
-              style={{ background: 'rgba(251,191,36,.10)', border: '1px solid rgba(251,191,36,.35)', color: '#8A4B00' }}
+              style={{ background: 'rgba(251,191,36,.10)', border: '1px solid rgba(251,191,36,.35)', color: '#FFBF58' }}
             >
               <strong>A CONVERSÃO deste experimento não é legível, e não vai ser tão cedo.</strong>{' '}
               Com taxa base de ~1%, detectar uma diferença de 2× pede{' '}
@@ -613,26 +613,26 @@ export default async function AdminTrialAbusePage() {
 
           <div className="flex flex-col gap-2">
             {data.byVariant.map((v) => (
-              <div key={v.variant} className="text-[12.5px]" style={{ color: '#5A5F67' }}>
-                <strong style={{ color: '#0E1116' }}>{v.variant}</strong> · {v.eligible} elegíveis ·{' '}
-                <strong style={{ color: '#0E1116' }}>{v.matured}</strong> maturados ·{' '}
+              <div key={v.variant} className="text-[12.5px]" style={{ color: '#9AA3B2' }}>
+                <strong style={{ color: '#F2F4F7' }}>{v.variant}</strong> · {v.eligible} elegíveis ·{' '}
+                <strong style={{ color: '#F2F4F7' }}>{v.matured}</strong> maturados ·{' '}
                 {v.running} com o relógio correndo · {v.converted} converteram ·{' '}
-                <strong style={{ color: '#0E1116' }}>{v.activated}</strong> entregaram vídeo
+                <strong style={{ color: '#F2F4F7' }}>{v.activated}</strong> entregaram vídeo
                 {v.unreadableClock > 0 && (
-                  <span style={{ color: '#B42318' }}> · {v.unreadableClock} sem relógio legível</span>
+                  <span style={{ color: '#FF8787' }}> · {v.unreadableClock} sem relógio legível</span>
                 )}
                 {v.isArm && !data.conversionUnreadable && v.matured > 0 && (
-                  <span style={{ color: '#0A5CFF' }}>
+                  <span style={{ color: '#8DB4FF' }}>
                     {' '}· conversão {v.converted}/{v.matured}
                   </span>
                 )}
                 {v.isArm && !data.activationUnreadable && v.eligible > 0 && (
-                  <span style={{ color: '#0F7A55' }}>
+                  <span style={{ color: '#5FD4A4' }}>
                     {' '}· ativação {Math.round((v.activated / v.eligible) * 100)}%
                   </span>
                 )}
                 {(v.revived > 0 || v.extended > 0 || v.excludedInternal > 0) && (
-                  <span style={{ color: '#8A4B00' }}>
+                  <span style={{ color: '#FFBF58' }}>
                     {' '}· contaminados: {v.revived} revivido(s), {v.extended} estendido(s)
                     {v.excludedInternal > 0 && ` · ${v.excludedInternal} interna(s) fora`}
                   </span>
@@ -641,7 +641,7 @@ export default async function AdminTrialAbusePage() {
             ))}
           </div>
 
-          <p className="text-[11px] mt-3 leading-relaxed" style={{ color: '#6B6F76' }}>
+          <p className="text-[11px] mt-3 leading-relaxed" style={{ color: '#8A93A3' }}>
             <strong>Maturado</strong> = cadastro + os dias da variante já passaram (com folga para o
             cron). Não é <code>trial_status</code> (a extensão e o estorno devolvem uma linha
             rebaixada para <code>active</code>) e <strong>não é <code>trial_ends_at</code></strong>:
@@ -657,17 +657,17 @@ export default async function AdminTrialAbusePage() {
       )}
 
       <section className="rounded-2xl overflow-hidden" style={CARD}>
-        <div className="px-4 py-3 text-sm font-black" style={{ color: '#0E1116', borderBottom: '1px solid #E4E4E0' }}>
+        <div className="px-4 py-3 text-sm font-black" style={{ color: '#F2F4F7', borderBottom: '1px solid #1F2530' }}>
           Repeat fingerprints (2+ signups)
         </div>
         {data.repeatOffenders.length === 0 ? (
-          <div className="px-4 py-6 text-center text-sm" style={{ color: '#5A5F67' }}>
+          <div className="px-4 py-6 text-center text-sm" style={{ color: '#9AA3B2' }}>
             Nothing repeated yet.
           </div>
         ) : (
           <table className="w-full text-[12.5px]">
             <thead>
-              <tr style={{ color: '#5A5F67', textAlign: 'left' }}>
+              <tr style={{ color: '#9AA3B2', textAlign: 'left' }}>
                 <Th>fingerprint</Th>
                 <Th>trials granted</Th>
                 <Th>blocked</Th>
@@ -676,10 +676,10 @@ export default async function AdminTrialAbusePage() {
             </thead>
             <tbody>
               {data.repeatOffenders.map((r) => (
-                <tr key={r.label} style={{ borderTop: '1px solid #E4E4E0' }}>
-                  <Td><code style={{ color: '#5A5F67' }}>{r.label}…</code></Td>
+                <tr key={r.label} style={{ borderTop: '1px solid #1F2530' }}>
+                  <Td><code style={{ color: '#9AA3B2' }}>{r.label}…</code></Td>
                   <Td>{r.activated}</Td>
-                  <Td style={{ color: r.blocked > 0 ? '#B42318' : '#0E1116' }}>{r.blocked}</Td>
+                  <Td style={{ color: r.blocked > 0 ? '#FF8787' : '#F2F4F7' }}>{r.blocked}</Td>
                   <Td>{fmtDate(r.lastSeen)}</Td>
                 </tr>
               ))}
@@ -688,7 +688,7 @@ export default async function AdminTrialAbusePage() {
         )}
       </section>
 
-      <p className="text-[11px] mt-3" style={{ color: '#6B6F76' }}>
+      <p className="text-[11px] mt-3" style={{ color: '#8A93A3' }}>
         Fingerprint = SHA-256(salt · IP · user-agent · accept-language). Raw IPs are never stored, here
         or in logs — only the 12-char prefix shown above. Every failure mode of the check (missing salt,
         missing IP, missing table, query error) GRANTS the trial: &quot;check failed&quot; above counts
@@ -701,7 +701,7 @@ export default async function AdminTrialAbusePage() {
 function Stat({ label, value, accent }: { label: string; value: number; accent: string }) {
   return (
     <div className="rounded-2xl p-4" style={CARD}>
-      <div className="text-[11px] uppercase tracking-wider mb-1" style={{ color: '#5A5F67' }}>{label}</div>
+      <div className="text-[11px] uppercase tracking-wider mb-1" style={{ color: '#9AA3B2' }}>{label}</div>
       <div className="text-2xl font-black" style={{ color: accent }}>{value.toLocaleString('en-US')}</div>
     </div>
   )
@@ -712,7 +712,7 @@ function Th({ children }: { children: React.ReactNode }) {
 }
 
 function Td({ children, style }: { children: React.ReactNode; style?: CSSProperties }) {
-  return <td style={{ padding: '10px 14px', color: '#0E1116', whiteSpace: 'nowrap', ...style }}>{children}</td>
+  return <td style={{ padding: '10px 14px', color: '#F2F4F7', whiteSpace: 'nowrap', ...style }}>{children}</td>
 }
 
 function Shell({ children }: { children: React.ReactNode }) {

@@ -119,7 +119,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
       <header className="mb-6">
         <div
           className="font-black uppercase tracking-widest mb-1"
-          style={{ fontSize: '0.62rem', color: '#8A4B00' }}
+          style={{ fontSize: '0.62rem', color: '#FFBF58' }}
         >
           Admin · CEO View · Live
         </div>
@@ -134,7 +134,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
           </div>
           <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--muted2)' }}>
             {refreshing && (
-              <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: '#8A4B00' }} />
+              <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: '#FFBF58' }} />
             )}
             {lastUpdated && <span>Updated {secondsAgo}s ago</span>}
           </div>
@@ -152,7 +152,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
         <BigCard
           label="Monthly Recurring Revenue"
           value={money(data.mrr)}
-          accent="#0F7A55"
+          accent="#5FD4A4"
           sub={`${fmt(data.payingActive)} paying customer${data.payingActive === 1 ? '' : 's'}${
             data.arpu ? ` · ARPU ${money(data.arpu)}` : ''
           } · pago: ${data.mrrSourceLabel} · tabela nova ${money(data.mrrTableUsd)}${
@@ -160,7 +160,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
           }`}
         />
         {data.mrrByPlan.length === 0 ? (
-          <Card label="Paying customers" value="0" accent="#5A5F67" hint="no active paid plan" />
+          <Card label="Paying customers" value="0" accent="#9AA3B2" hint="no active paid plan" />
         ) : (
           data.mrrByPlan.map((p) => (
             <Card
@@ -175,7 +175,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
         <Card
           label="Ever paid (has_paid)"
           value={fmt(data.hasPaidEver)}
-          accent="#5A5F67"
+          accent="#9AA3B2"
           hint="historical, refunds included — NOT the goal metric"
         />
       </Section>
@@ -185,12 +185,12 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
         <Card
           label="Signed up (total)"
           value={fmt(data.totalUsers)}
-          accent="#0E1116"
+          accent="#F2F4F7"
           hint="real accounts, internal excluded"
         />
-        <Card label="New today" value={fmt(data.signupsToday)} accent="#0A5CFF" hint="last 24 h" />
-        <Card label="New this week" value={fmt(data.signupsThisWeek)} accent="#0A5CFF" hint="last 7 days" />
-        <Card label="New this month" value={fmt(data.signupsThisMonth)} accent="#0A5CFF" hint="last 30 days" />
+        <Card label="New today" value={fmt(data.signupsToday)} accent="#8DB4FF" hint="last 24 h" />
+        <Card label="New this week" value={fmt(data.signupsThisWeek)} accent="#8DB4FF" hint="last 7 days" />
+        <Card label="New this month" value={fmt(data.signupsThisMonth)} accent="#8DB4FF" hint="last 30 days" />
         <RateCard
           label="Signup → Paid"
           value={data.signupToPaidRate}
@@ -200,14 +200,14 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
 
       {/* ── Row 3: Activation ────────────────────────────────────────────── */}
       <Section title="⚡ Activation this week">
-        <Card label="New users (7d)" value={fmt(data.newUsersThisWeek)} accent="#8A4B00" hint="signed up" />
-        <Card label="Made a video (7d)" value={fmt(data.newActivatedThisWeek)} accent="#8A4B00" hint="of those new users" />
+        <Card label="New users (7d)" value={fmt(data.newUsersThisWeek)} accent="#FFBF58" hint="signed up" />
+        <Card label="Made a video (7d)" value={fmt(data.newActivatedThisWeek)} accent="#FFBF58" hint="of those new users" />
         <RateCard
           label="Activation rate"
           value={data.activationRateWeek}
           sub={`${fmt(data.newActivatedThisWeek)} / ${fmt(data.newUsersThisWeek)} new users`}
         />
-        <Card label="Videos today / 7d" value={`${fmt(data.videosToday)} / ${fmt(data.videosThisWeek)}`} accent="#8A4B00" hint="renders started" />
+        <Card label="Videos today / 7d" value={`${fmt(data.videosToday)} / ${fmt(data.videosThisWeek)}`} accent="#FFBF58" hint="renders started" />
       </Section>
 
       {/* ── Row 4: THE FUNNEL ────────────────────────────────────────────── */}
@@ -230,7 +230,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
                 style={{
                   background: f.key === win ? 'var(--accent)' : 'transparent',
                   color: f.key === win ? 'var(--on-accent)' : 'var(--muted2)',
-                  border: `1px solid ${f.key === win ? '#8A4B00' : 'var(--border)'}`,
+                  border: `1px solid ${f.key === win ? '#FFBF58' : 'var(--border)'}`,
                 }}
               >
                 {f.key === 'all' ? 'All time' : f.key}
@@ -248,23 +248,23 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
               const width = funnel.signups > 0 ? Math.max(2, (s.count / funnel.signups) * 100) : 0
               const last = i === funnel.steps.length - 1
               return (
-                <div key={s.label} className="rounded-xl p-3" style={{ background: 'rgba(14,17,22,0.04)' }}>
+                <div key={s.label} className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.04)' }}>
                   <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--muted2)' }}>
                     {i > 0 ? '↳ ' : ''}
                     {s.label}
                   </div>
                   <div
                     className="mt-1 font-black"
-                    style={{ fontSize: '1.6rem', lineHeight: 1.1, color: last ? '#0F7A55' : 'var(--text)' }}
+                    style={{ fontSize: '1.6rem', lineHeight: 1.1, color: last ? '#5FD4A4' : 'var(--text)' }}
                   >
                     {fmt(s.count)}
                   </div>
-                  <div className="mt-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(14,17,22,0.04)' }}>
+                  <div className="mt-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
                     <div
                       style={{
                         width: `${width}%`,
                         height: '100%',
-                        background: last ? '#0F7A55' : '#0A5CFF',
+                        background: last ? '#5FD4A4' : '#8DB4FF',
                         borderRadius: 999,
                       }}
                     />
@@ -274,7 +274,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
                     <span style={{ color: 'var(--muted)' }}> · {s.pctOfTop} of signups</span>
                   </div>
                   {i > 0 && s.dropAbs > 0 && (
-                    <div className="text-[10.5px] mt-0.5" style={{ color: '#B42318' }}>
+                    <div className="text-[10.5px] mt-0.5" style={{ color: '#FF8787' }}>
                       −{fmt(s.dropAbs)} lost here
                     </div>
                   )}
@@ -303,7 +303,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
           }}
         >
           <div>
-            <div className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: '#B42318' }}>
+            <div className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: '#FF8787' }}>
               🚨 Checkout leak
             </div>
             {/* KINEO-PAINEL-VERDADE-2026-08-27 — o número grande passou a ser
@@ -315,7 +315,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
                 Stripe sozinho (PUSH #97) — customer não é intenção de compra.
                 O texto antigo afirmava que todas as 37 "digitaram o e-mail
                 numa página de pagamento", e isso era falso para ~35 delas. */}
-            <div className="font-black" style={{ fontSize: '2rem', lineHeight: 1.05, color: '#B42318' }}>
+            <div className="font-black" style={{ fontSize: '2rem', lineHeight: 1.05, color: '#FF8787' }}>
               {fmt(Math.max(leak.reachedCheckout - leak.reachedCheckoutPaid, 0))}
             </div>
             <p className="text-[11px] mt-1" style={{ color: 'var(--muted2)' }}>
@@ -325,20 +325,20 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
           <div className="flex-1 min-w-[220px]">
             <p className="text-sm" style={{ color: 'var(--text)' }}>
               {fmt(leak.reachedCheckout)} people actually hit checkout, {fmt(leak.reachedCheckoutPaid)}{' '}
-              paid — <strong style={{ color: '#B42318' }}>{leak.realConversion}</strong> close rate.
+              paid — <strong style={{ color: '#FF8787' }}>{leak.realConversion}</strong> close rate.
             </p>
             <p className="text-[11px] mt-1" style={{ color: 'var(--muted2)' }}>
               Separately, {fmt(leak.openedCheckout)} accounts carry a Stripe customer id and{' '}
               {fmt(leak.stuckFree)} of those are still on free — but a customer id can be created by
               browser prefetch, so treat that list as cold, not as abandoned buyers.
             </p>
-            <Link href="/admin/leads" className="text-[12px] font-bold" style={{ color: '#0A5CFF' }}>
+            <Link href="/admin/leads" className="text-[12px] font-bold" style={{ color: '#8DB4FF' }}>
               work the leads →
             </Link>
           </div>
           <div className="flex gap-3">
-            <MiniStat label="Abandoned (Stripe)" value={fmt(data.abandonedCount)} accent="#B42318" />
-            <MiniStat label="Checkout → paid" value={data.checkoutConversionRate} accent="#8A4B00" />
+            <MiniStat label="Abandoned (Stripe)" value={fmt(data.abandonedCount)} accent="#FF8787" />
+            <MiniStat label="Checkout → paid" value={data.checkoutConversionRate} accent="#FFBF58" />
           </div>
         </div>
       </section>
@@ -349,7 +349,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
         <section className="mb-6">
           <h2
             className="font-black uppercase tracking-widest mb-3"
-            style={{ fontSize: '0.88rem', color: '#8A4B00', letterSpacing: '0.08em' }}
+            style={{ fontSize: '0.88rem', color: '#FFBF58', letterSpacing: '0.08em' }}
           >
             ⚠️ At-risk paying customers — low credits ({data.atRiskCount})
           </h2>
@@ -357,9 +357,9 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
             <table className="w-full text-xs">
               <thead>
                 <tr style={{ background: 'rgba(245,158,11,0.08)' }}>
-                  <th className="text-left px-4 py-2 font-black" style={{ color: '#8A4B00' }}>Email</th>
-                  <th className="text-left px-4 py-2 font-black" style={{ color: '#8A4B00' }}>Plan</th>
-                  <th className="text-left px-4 py-2 font-black" style={{ color: '#8A4B00' }}>Credits left</th>
+                  <th className="text-left px-4 py-2 font-black" style={{ color: '#FFBF58' }}>Email</th>
+                  <th className="text-left px-4 py-2 font-black" style={{ color: '#FFBF58' }}>Plan</th>
+                  <th className="text-left px-4 py-2 font-black" style={{ color: '#FFBF58' }}>Credits left</th>
                 </tr>
               </thead>
               <tbody>
@@ -367,7 +367,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
                   <tr key={u.email} style={{ borderTop: '1px solid rgba(245,158,11,0.1)' }}>
                     <td className="px-4 py-2 font-mono" style={{ color: 'var(--text)' }}>{u.email}</td>
                     <td className="px-4 py-2" style={{ color: 'var(--muted2)' }}>{u.plan}</td>
-                    <td className="px-4 py-2 font-black" style={{ color: u.credits === 0 ? '#B42318' : '#8A4B00' }}>
+                    <td className="px-4 py-2 font-black" style={{ color: u.credits === 0 ? '#FF8787' : '#FFBF58' }}>
                       {u.credits === 0 ? '0 ⚠️' : u.credits}
                     </td>
                   </tr>
@@ -444,7 +444,7 @@ function BigCard({ label, value, accent, sub }: { label: string; value: string; 
 
 function RateCard({ label, value, sub }: { label: string; value: string; sub: string }) {
   const isGood = value !== '—' && parseFloat(value) >= 10
-  const accent = value === '—' ? '#5A5F67' : isGood ? '#0F7A55' : '#8A4B00'
+  const accent = value === '—' ? '#9AA3B2' : isGood ? '#5FD4A4' : '#FFBF58'
   return (
     <div className="rounded-xl p-4" style={{ background: 'var(--card)', border: `1px solid ${accent}33` }}>
       <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--muted2)' }}>{label}</div>
@@ -456,7 +456,7 @@ function RateCard({ label, value, sub }: { label: string; value: string; sub: st
 
 function MiniStat({ label, value, accent }: { label: string; value: string; accent: string }) {
   return (
-    <div className="rounded-lg px-3 py-2" style={{ background: 'rgba(14,17,22,0.04)', border: '1px solid var(--border)' }}>
+    <div className="rounded-lg px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)' }}>
       <div className="text-[9.5px] font-black uppercase tracking-widest" style={{ color: 'var(--muted2)' }}>{label}</div>
       <div className="font-black" style={{ fontSize: '1.1rem', color: accent }}>{value}</div>
     </div>
@@ -498,7 +498,7 @@ function AdminNav({ active }: { active: string }) {
           href={t.href}
           className="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
           style={{
-            background: active === t.key ? '#8A4B00' : 'transparent',
+            background: active === t.key ? '#FFBF58' : 'transparent',
             color: active === t.key ? 'var(--on-accent)' : 'var(--muted2)',
           }}
         >
