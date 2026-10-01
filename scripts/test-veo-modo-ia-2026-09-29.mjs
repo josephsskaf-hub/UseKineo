@@ -79,6 +79,9 @@ const semE4 = (p, s) => { if (p !== 'app/api/compose/route.ts' || s == null) ret
 // achado 2): no ramo free-plan-fast do /api/compose a reserva da cota ganhou um desvio marcado para a casa e o Autopilot
 // (claim de custo 0 sem a contagem da cota em 0). Tirando o bloco marcado, voltam as duas linhas da base.
 const semE4Conserto = (p, s) => { if (p !== 'app/api/compose/route.ts' || s == null) return s; const bloco = fatia(s, '          // KINEO-E4-CONSERTO-2026-09-29 (achado 2)', '          } else {\n'); return (bloco ? s.split(bloco).join('') : s).split('\n').filter((l) => !l.includes('KINEO-E4-CONSERTO-2026-09-29 — fim do desvio')).join('\n') }
+// [TRAVA 8.2 — "vamos fazer isso rápido agora", fundador 01/10] KINEO-LOGO-DA-MARCA-2026-10-01 — o /api/compose ganhou só linhas marcadas (import + 2 comentários + 2 chamadas withBrandLogo, depois de montar);
+// elas são retiradas em memória antes do byte a byte — qualquer outra alteração na rota continua vermelha.
+const semLogo = (p, s) => (p !== 'app/api/compose/route.ts' || s == null ? s : s.split('\n').filter((l) => !l.includes('KINEO-LOGO-DA-MARCA-2026-10-01')).join('\n'))
 const semVoz15 = (p, s) => semE4Conserto(p, semE4(p, semVoz15Base(p, s)))
 const blocosE4Rota = (r) => [fatia(r, '    // ═══ KINEO-E4-SAIDA-B-2026-09-29 [TRAVA 8.2 — "vai E4" do fundador] — ADMISSÃO DA COTA SEMANAL NOVA ═══', '    // PUSH #20 — every premium AI engine is paid-only.'), fatia(r, '      // KINEO-E4-SAIDA-B-2026-09-29 — a cota semanal nova é a única outra exceção', '        )\n      }\n'), fatia(r, '    // ═══ KINEO-E4-CONSERTO-2026-09-29 [TRAVA 8.2 — "vai E4" do fundador] (revisão de dinheiro, achado 5) ═══', '    // KINEO-CAPACITY-2026-08-08 — DISJUNTOR GLOBAL'), ...r.split('\n').filter((l) => l.includes('KINEO-E4-SAIDA-B-2026-09-29') || l.includes('KINEO-E4-CONSERTO-2026-09-29'))]
 const eqJ = (a, b) => JSON.stringify(a) === JSON.stringify(b)
@@ -284,7 +287,7 @@ checa('o plano do modo IA viaja pelo builder da fal do Veo (scene.clipSeconds �
 // ═══ (c) byte a byte ═══
 console.log('== (c) Seedance / Kling 2.5 / Sora / hollywood byte a byte ==')
 for (const p of ['lib/cinematic/klingShots.ts', 'lib/compose.ts', 'lib/cinematic/classicDryRun.ts', 'lib/runway.ts', 'lib/cinematic/sceneWords.ts', 'lib/speechRate.ts', 'lib/narrationFit.ts', 'app/api/compose/route.ts', 'lib/cinematic/speechImageAlign.ts', 'lib/cinematic/sceneDescriptions.ts']) {
-  checa(`${p} byte a byte igual à base${p === 'app/api/compose/route.ts' ? ' (fora o import e o bloco marcados KINEO-VOZ-15S-MESMA-DA-MONTAGEM, só acrescentados)' : ''}`, rdBase(p) !== null && rdBase(p) === semCurtas(semVoz15(p, desfazCobertura15s(p, rd(p))))) // reancorado KINEO-DURACOES-CURTAS: lib/narrationFit ganhou só um comentário marcado
+  checa(`${p} byte a byte igual à base${p === 'app/api/compose/route.ts' ? ' (fora o import e o bloco marcados KINEO-VOZ-15S-MESMA-DA-MONTAGEM, só acrescentados)' : ''}`, rdBase(p) !== null && rdBase(p) === semCurtas(semVoz15(p, desfazCobertura15s(p, semLogo(p, rd(p)))))) // reancorado KINEO-DURACOES-CURTAS: lib/narrationFit ganhou só um comentário marcado
 }
 const fatiasIntocadas = [
   ['let kling25Footage = 0', 'clipCount = planos\n    }'],

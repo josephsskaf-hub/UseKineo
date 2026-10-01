@@ -22,6 +22,26 @@ export function brandLogoAdmin(): SupabaseClient {
   return cached
 }
 
+/**
+ * O elemento do logo para o Creatomate: faixa 10 (livre — os montadores usam 1–9), filme inteiro, canto SUPERIOR
+ * ESQUERDO. Em 9:16 a caixa vai de x≈32 a 248 px e y≈77 a 230 px; a plaquinha da marca d'água (faixa 9) ocupa
+ * x≈342–738 e a legenda começa em ~1350 px, então nada se toca. fit 'contain' preserva a proporção de qualquer logo.
+ * Só URL https. Entra DEPOIS de montado (mesmo padrão do "sem legenda" do Ads): lib/compose (trava 8.2) não muda.
+ */
+export function brandLogoElement(url: string | null | undefined, totalDuration: unknown): Record<string, unknown> | null {
+  const d = Number(totalDuration)
+  if (typeof url !== 'string' || !/^https:\/\//.test(url) || !(d > 0)) return null
+  return { type: 'image', track: 10, time: 0, duration: d, source: url, x: '14%', y: '8%', width: '20%', height: '8%', fit: 'contain' }
+}
+
+/** Acrescenta o logo a um source já montado (usa a duração do próprio source). Sem logo = source intacto. */
+export function withBrandLogo<T extends Record<string, unknown>>(source: T, url: string | null): T {
+  const els = (source as { elements?: unknown }).elements
+  const el = brandLogoElement(url, (source as { duration?: unknown }).duration)
+  if (el && Array.isArray(els)) els.push(el)
+  return source
+}
+
 /** URL pública do logo da conta (com `?v=` de versão), ou null. Nunca lança: sem logo = filme como sempre. */
 export async function findBrandLogoUrl(userId: string, admin: SupabaseClient = brandLogoAdmin()): Promise<string | null> {
   try {

@@ -16,7 +16,7 @@ import {
 } from '@/lib/refusalSpiral'
 // KINEO-MULTIFORMATO-2026-09-02 — enquadramento do master (9:16 · 16:9 · 1:1 · 4:5).
 import { normalizeAspect } from '@/lib/aspect'
-import { findBrandLogoUrl } from '@/lib/brandLogo' // KINEO-LOGO-DA-MARCA-2026-10-01
+import { findBrandLogoUrl, withBrandLogo } from '@/lib/brandLogo' // KINEO-LOGO-DA-MARCA-2026-10-01
 import {
   buildCreatomateSource,
   CreatomateSubmitError,
@@ -2678,8 +2678,6 @@ export async function POST(req: NextRequest) {
         console.warn('[compose] hollywood music unavailable; preserving narration')
       }
 
-      // KINEO-LOGO-DA-MARCA-2026-10-01 — o logo da empresa da conta, se existir, vai no canto de todo filme.
-      const hollywoodBrandLogoUrl = await findBrandLogoUrl(authenticatedUserId, composeAdmin)
       let hollywoodSource: Record<string, unknown>
       try {
         setActiveCaptionFont(language) // KINEO-IDIOMAS-15
@@ -2688,7 +2686,6 @@ export async function POST(req: NextRequest) {
           requestedDuration: duration,
           narrationBlocks,
           watermark: forced,
-          brandLogoUrl: hollywoodBrandLogoUrl, // KINEO-LOGO-DA-MARCA-2026-10-01
           endCard: forced,
           musicUrl: hollywoodMusicUrl,
           aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
@@ -2708,6 +2705,8 @@ export async function POST(req: NextRequest) {
           NextResponse.json({ error: `Could not assemble the render: ${msg}` }, { status: 500 }),
         )
       }
+      // [TRAVA 8.2 — "vamos fazer isso rápido agora", fundador 01/10] KINEO-LOGO-DA-MARCA-2026-10-01 — o logo da empresa da conta entra depois de montado (como o "sem legenda" do Ads); lib/compose não muda; busca que falha = filme sem logo.
+      withBrandLogo(hollywoodSource, await findBrandLogoUrl(authenticatedUserId, composeAdmin)) // KINEO-LOGO-DA-MARCA-2026-10-01
 
       // Submit once per authenticated generation. Retrying a provider POST
       // after an ambiguous response can create and charge two render jobs.
@@ -3378,13 +3377,10 @@ export async function POST(req: NextRequest) {
       isTrialRender ||
       isFreePlanCinematic ||
       FORCE_WATERMARK_EMAILS.has((user.email ?? '').toLowerCase())
-    // KINEO-LOGO-DA-MARCA-2026-10-01 — o logo da empresa da conta, se existir, vai no canto de todo filme.
-    const brandLogoUrl = await findBrandLogoUrl(authenticatedUserId, composeAdmin)
     let source: Record<string, unknown>
     try {
       setActiveCaptionFont(language) // KINEO-IDIOMAS-15
       source = buildCreatomateSource({
-        brandLogoUrl, // KINEO-LOGO-DA-MARCA-2026-10-01
         clipUrls: composeClipUrls, // KINEO1-PRIMEIRO-FILME-VIDEO — com os clipes Seedance encaixados (ou o original)
         clipSeconds: composeClipUrls === clipUrls ? signedClipPlan?.seconds ?? null : null, // KINEO-KLING25-PLANOS-5S-2026-09-28 — plano de 5 s nunca ocupa mais de 5 s
         // KINEO-KLING25-PLANOS-5S-2026-09-28 (revisão adversarial) — cada plano entra quando a SUA fala começa
@@ -3441,6 +3437,8 @@ export async function POST(req: NextRequest) {
         ),
       )
     }
+    // [TRAVA 8.2 — "vamos fazer isso rápido agora", fundador 01/10] KINEO-LOGO-DA-MARCA-2026-10-01 — idem no caminho clássico (Kineo 1, Seedance, Kling 2.5, Veo, Avatar).
+    withBrandLogo(source, await findBrandLogoUrl(authenticatedUserId, composeAdmin)) // KINEO-LOGO-DA-MARCA-2026-10-01
 
     // KINEO-ADS-SEM-LEGENDA-2026-09-26 — fundador: "tem que ter opção de sem legenda". As legendas saem do montador
     // (lib/compose, trava 8.2) como elementos de texto nas trilhas 5 (palavra falada) e 7 (destaques). Quando o
