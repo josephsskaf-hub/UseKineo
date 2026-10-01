@@ -37,7 +37,7 @@ for(const [from,to] of [["set('utm_source', 'showcase')","set('utm_source', 'wro
 const page=read('app/showcase/page.tsx'), experience=read('app/showcase/ShowcaseExperience.tsx'), door=read('components/MrrShowcaseLink.tsx')
 function surfaces(p,e,d) {
   assert.ok(p.includes('if (!MRR_SHOWCASE_ENABLED) notFound()'))
-  assert.ok(e.includes('EXAMPLES_SELECTION_SEP24.map(mrrShowcaseVideo)'), 'only approved collection')
+  assert.ok(e.includes('EXAMPLES_SELECTION_SEP24.filter(video => !qualityPaused(video.engine)).map(mrrShowcaseVideo)'), 'only approved collection with currently available engines')
   assert.ok(e.includes('startPaused previewActionLabel='), 'no autoplay on arrival')
   assert.ok(e.includes("trackEvent('mrr_showcase_viewed'") && e.includes("trackEvent('mrr_showcase_first_gesture'"))
   assert.ok(e.includes('version: MRR_SHOWCASE_VERSION'))
@@ -48,7 +48,7 @@ function surfaces(p,e,d) {
 }
 surfaces(page,experience,door)
 assert.throws(()=>surfaces(page.replace('if (!MRR_SHOWCASE_ENABLED) notFound()',''),experience,door))
-assert.throws(()=>surfaces(page,experience.replace('EXAMPLES_SELECTION_SEP24.map(mrrShowcaseVideo)','customerVideos'),door))
+assert.throws(()=>surfaces(page,experience.replace('EXAMPLES_SELECTION_SEP24.filter(video => !qualityPaused(video.engine)).map(mrrShowcaseVideo)','customerVideos'),door))
 assert.throws(()=>surfaces(page,experience.replace("trackEvent('mrr_showcase_viewed'","trackEvent('wrong'"),door))
 assert.ok(!/createClient|supabase|fetch\(/.test(page+experience+door),'no auth/data/provider requests added')
 console.log('MRR Showcase: attribution, preserved engine/format, canonical film math, switches, events and 6 killed mutants PASS')

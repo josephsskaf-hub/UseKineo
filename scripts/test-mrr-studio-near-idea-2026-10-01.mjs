@@ -36,13 +36,13 @@ function integration(s) {
   assert.ok(textarea>0 && action>textarea && action<modes, 'CTA immediately follows idea')
   assert.ok(s.includes("MRR_NEAR_IDEA_ENABLED && scriptMode !== 'clip'"), 'switch and clip isolation')
   assert.ok(s.includes('prompt={prompt} cost={cost} balance={balance} overLimit={limit.over}'), 'uses live final cost and guards')
-  assert.ok(s.includes("onGenerate={() => { recordMrr('mrr_generate_clicked'); generate() }}"), 'same guarded generation handler')
-  assert.ok(s.includes("if (e.target.value.trim()) recordMrr('mrr_idea_entered')"), 'only explicit typing/paste records idea')
+  assert.ok(s.includes('onGenerate={generate}') && s.includes("recordMrr('mrr_generate_clicked')"), 'same guarded generation handler')
+  assert.ok(s.includes("if (e.currentTarget.value.trim()) recordMrr('mrr_idea_entered')"), 'only explicit typing/paste records idea')
   assert.ok(s.includes('<div id="studio-generation-review"'), 'original review remains')
 }
 const studio=read('app/(dashboard)/studio/StudioClient.tsx')
 integration(studio)
-for (const [from,to] of [['cost={cost}','cost={7}'],["MRR_NEAR_IDEA_ENABLED && scriptMode !== 'clip'","true"],["generate() }} />","newPaidRender() }} />"]]) {
+for (const [from,to] of [['cost={cost}','cost={7}'],["MRR_NEAR_IDEA_ENABLED && scriptMode !== 'clip'","true"],["onGenerate={generate}","onGenerate={newPaidRender}"]]) {
   assert.ok(studio.includes(from))
   assert.throws(()=>integration(studio.replace(from,to)))
 }

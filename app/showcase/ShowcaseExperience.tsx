@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import ExamplesGallery from '@/app/examples/ExamplesGallery'
 import { EXAMPLES_SELECTION_SEP24 } from '@/lib/ui/examplesSelectionSep24'
 import { MRR_SHOWCASE_VERSION, mrrShowcaseVideo, showcasePlanValue } from '@/lib/growth/mrrShowcase'
-import { SEEDANCE_15S_PUBLIC } from '@/lib/engineLaunch'
+import { SEEDANCE_15S_PUBLIC, qualityPaused } from '@/lib/engineLaunch'
 import { formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { trackEvent } from '@/lib/analytics'
 import { UiLabel } from '@/components/InterfaceLanguage'
@@ -27,7 +27,7 @@ export default function ShowcaseExperience() {
     void trackEvent('mrr_showcase_first_gesture', { version: MRR_SHOWCASE_VERSION, surface: 'showcase' })
   }
   return <div onClickCapture={event => { if ((event.target as HTMLElement).closest('a,button,select,input')) recordGesture() }} onChangeCapture={recordGesture} data-mrr-showcase={MRR_SHOWCASE_VERSION}>
-    <ExamplesGallery videos={EXAMPLES_SELECTION_SEP24.map(mrrShowcaseVideo)} separateFeatured
+    <ExamplesGallery videos={EXAMPLES_SELECTION_SEP24.filter(video => !qualityPaused(video.engine)).map(mrrShowcaseVideo)} separateFeatured
       startPaused previewActionLabel="Make a film with my idea" />
     <section className={styles.createBand} aria-labelledby="showcase-film-value">
       <div>
