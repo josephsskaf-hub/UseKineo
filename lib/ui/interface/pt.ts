@@ -136,6 +136,8 @@ export const DICT: Record<string, string> = {
   '1080×1920 · Full HD master': '1080×1920 · master em Full HD',
   'Every film is delivered as a 1080×1920 Full HD master (engines render natively at 720–768p and are mastered up). For maximum sharpness, run ✨HD Enhance on the finished film.': 'Todo filme é entregue como master 1080×1920 Full HD (os motores renderizam nativamente em 720–768p e são masterizados para cima). Para nitidez máxima, rode o ✨HD Enhance no filme pronto.',
   'Pick an engine, write your idea, then generate.': 'Escolha o motor, escreva sua ideia e depois gere.',
+  'Best films made on Kineo': 'Os melhores filmes feitos no Kineo',
+  'Tap a film to use its engine.': 'Toque num filme para usar o motor dele.',
   '📷 Photo': '📷 Foto',
   '🖼️ Upload a different photo': '🖼️ Enviar outra foto',
   '🎙️ Generating…': '🎙️ Gerando…',

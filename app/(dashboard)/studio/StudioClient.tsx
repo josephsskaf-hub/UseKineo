@@ -189,6 +189,8 @@ const CAMERA_PRESETS: { key: string; label: string; emoji: string; prompt: strin
 
 /** KINEO-STUDIO-HEROI-2026-09-30 — vídeo do motor na direita do Studio (os filmes vêm do servidor: app/(dashboard)/studio/page.tsx). */
 export type StudioHeroVideo = { src: string; poster?: string; title: string }
+/** KINEO-STUDIO-MELHORES-2026-09-30 — filme da vitrine "Best films" (escolhidos no servidor: page.tsx). */
+export type StudioBestFilm = { id: string; title: string; engine: string; src: string; poster?: string }
 /** KINEO-STUDIO-PALCO-2026-09-30 — cor de cada motor no palco e no fundo da página (fundador: "precisa ter mais cor…
  *  cara de falta de acabamento"; referência Buzzy). Só decoração: o selo continua dizendo o motor real. */
 const STAGE_TINT: Record<string, [string, string]> = {
@@ -201,6 +203,13 @@ const STAGE_TINT: Record<string, [string, string]> = {
   omni: ['#8B5CF6', '#3B82F6'],
   s25: ['#0EA5A4', '#6366F1'],
 }
+/** KINEO-STUDIO-MELHORES-2026-09-30 — o filme clicado na vitrine vai para a frente da lista do palco (sem repetir). */
+function withPick(list: StudioHeroVideo[], pick: StudioBestFilm | null, key: string): StudioHeroVideo[] {
+  if (!pick || pick.engine !== key) return list
+  return [{ src: pick.src, poster: pick.poster, title: pick.title }, ...list.filter((v) => v.src !== pick.src)].slice(0, 4)
+}
+/** KINEO-STUDIO-TELA-COR-2026-09-30 — uma regra por motor: a tela inteira herda a cor do motor do palco. */
+const STAGE_CSS = Object.entries(STAGE_TINT).map(([k, [a, b]]) => `html:has(.composer-proposal[data-stage="${k}"]){--stage-a:${a};--stage-b:${b}}`).join('\n')
 function EngineHero({ name, desc, meta, videos, fallback }: { name: string; desc?: string; meta?: string; videos: StudioHeroVideo[]; fallback?: string }) {
   const list: StudioHeroVideo[] = videos.length ? videos : fallback ? [{ src: fallback, title: name }] : []
   const [i, setI] = useState(0)
@@ -235,8 +244,10 @@ function EngineHero({ name, desc, meta, videos, fallback }: { name: string; desc
   )
 }
 
-export default function StudioClient({ engineHeroes = {} }: { engineHeroes?: Record<string, StudioHeroVideo[]> } = {}) {
+export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { engineHeroes?: Record<string, StudioHeroVideo[]>; bestFilms?: StudioBestFilm[] } = {}) {
   const t = useUiCopy()
+  // KINEO-STUDIO-MELHORES-2026-09-30 — o filme da vitrine clicado abre no palco do motor dele.
+  const [heroPick, setHeroPick] = useState<StudioBestFilm | null>(null)
   // sprint-retencao #15 — `studio_milestone` (11 cliques em 30d) e
   // `studio_video_tile` nunca tiveram denominador. So telemetria: a tela
   // continua exatamente a mesma.
@@ -818,7 +829,7 @@ export default function StudioClient({ engineHeroes = {} }: { engineHeroes?: Rec
   }
 
   return (
-    <div className="stu composer-proposal" style={{ ['--stage-a' as string]: (STAGE_TINT[scriptMode === 'clip' ? 'seedance' : engine] ?? STAGE_TINT.fast)[0], ['--stage-b' as string]: (STAGE_TINT[scriptMode === 'clip' ? 'seedance' : engine] ?? STAGE_TINT.fast)[1] } as React.CSSProperties}>
+    <div className="stu composer-proposal" data-stage={scriptMode === 'clip' ? 'seedance' : engine}>
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
 
       <h1><UiLabel>Studio</UiLabel></h1>
@@ -1315,8 +1326,42 @@ export default function StudioClient({ engineHeroes = {} }: { engineHeroes?: Rec
             padrão do motor… não deixar uma tela em branco". O filme da casa daquele motor (o líder escolhido pelo fundador
             primeiro), com o selo do motor que o gerou; troca junto com o seletor. No modo Clipe o motor é o Seedance 1.5. */}
         <aside className="studio-engine-hero" aria-label={t('Engine preview', 'Vista del motor')}>
-          <EngineHero key={scriptMode === 'clip' ? 'seedance' : engine} name={scriptMode === 'clip' ? 'Seedance 1.5' : eng.name} desc={scriptMode === 'clip' ? ENGINES.find((e) => e.key === 'seedance')?.desc : eng.desc} meta={scriptMode === 'clip' ? undefined : `${engineCostLabel(engine)} · ${duration}s · 1080p`} videos={engineHeroes[scriptMode === 'clip' ? 'seedance' : engine] ?? []} fallback={scriptMode === 'clip' ? ENGINES.find((e) => e.key === 'seedance')?.preview : eng.preview} />
+          <EngineHero key={`${scriptMode === 'clip' ? 'seedance' : engine}:${heroPick && heroPick.engine === (scriptMode === 'clip' ? 'seedance' : engine) ? heroPick.id : ''}`} name={scriptMode === 'clip' ? 'Seedance 1.5' : eng.name} desc={scriptMode === 'clip' ? ENGINES.find((e) => e.key === 'seedance')?.desc : eng.desc} meta={scriptMode === 'clip' ? undefined : `${engineCostLabel(engine)} · ${duration}s · 1080p`} videos={withPick(engineHeroes[scriptMode === 'clip' ? 'seedance' : engine] ?? [], heroPick, scriptMode === 'clip' ? 'seedance' : engine)} fallback={scriptMode === 'clip' ? ENGINES.find((e) => e.key === 'seedance')?.preview : eng.preview} />
         </aside>
+      </div>
+        {/* KINEO-STUDIO-MELHORES-2026-09-30 — fundador: "na parte de baixo sempre tem que ser os melhores vídeos… uns oito,
+            duas fileiras". Os 8 filmes da casa que ele já aprovou; o clique troca para o motor do filme e mostra o filme no
+            palco. Os vídeos da própria conta (episódio 2) continuam, mas depois da vitrine. */}
+        {bestFilms.length > 0 && (
+          <section className="studio-best" aria-label={t('Best films', 'Mejores películas')}>
+            <div className="studio-best-hd">
+              <h2><UiLabel>Best films made on Kineo</UiLabel></h2>
+              <p><UiLabel>Tap a film to use its engine.</UiLabel></p>
+            </div>
+            <div className="studio-best-grid">
+              {bestFilms.map((f, idx) => {
+                const e = ENGINES.find((x) => x.key === f.engine)
+                const pausa = enginePaused(f.engine as EngineKey)
+                return (
+                  <button key={f.id} type="button" className="sbf" disabled={Boolean(pausa)} aria-label={`${f.title} — ${e?.name ?? ''}`} style={{ ['--sbf-a' as string]: (STAGE_TINT[f.engine] ?? STAGE_TINT.fast)[0] } as React.CSSProperties}
+                    onClick={() => {
+                      void trackEvent('studio_best_film_clicked', { film_id: f.id, engine: f.engine, position: idx })
+                      if (pausa) return
+                      if (scriptMode === 'clip') setScriptMode('ai')
+                      setEngine(f.engine as EngineKey)
+                      setHeroPick(f)
+                      document.querySelector('.studio-engine-hero')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    }}>
+                    <video src={f.src} poster={f.poster} muted loop playsInline preload="none" aria-hidden="true" tabIndex={-1}
+                      onMouseEnter={(ev) => { ev.currentTarget.play().catch(() => {}) }}
+                      onMouseLeave={(ev) => { ev.currentTarget.pause() }} />
+                    <span className="sbf-foot"><span className="sbf-tag">{e?.name}</span><span className="sbf-t">{f.title}</span></span>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+        )}
         {myVids.length > 0 && <section className="composer-proposal-continuation" aria-label="Continue your videos">
 {myVids.length > 0 && (
             <div
@@ -1471,7 +1516,6 @@ export default function StudioClient({ engineHeroes = {} }: { engineHeroes?: Rec
             </div>
           )}
         </section>}
-      </div>
       <MobileCreationShortcut targetId="studio-generation-review" cost={`${eng.name} · ${scriptMode === 'clip' ? CLIP_CREDITS : cost} cr`} />
       <details className="composer-proposal-how">
         <summary><UiLabel>How it works</UiLabel></summary>
@@ -1495,6 +1539,28 @@ export default function StudioClient({ engineHeroes = {} }: { engineHeroes?: Rec
 .composer-proposal .composer-proposal-settings{grid-column:1;grid-row:2}
 .studio-engine-hero{grid-column:2;grid-row:1 / span 2;position:sticky;top:16px;align-self:start;min-width:0}
 .composer-proposal{position:relative;isolation:isolate}
+/* KINEO-STUDIO-TELA-COR-2026-09-30 — fundador: "isso que você fez [o palco] para a tela toda". A cor do motor escolhido
+   pinta a área inteira do Studio (o <main> rolável do painel), com transição suave ao trocar de motor. */
+@property --stage-a{syntax:'<color>';inherits:true;initial-value:#0A5CFF}
+@property --stage-b{syntax:'<color>';inherits:true;initial-value:#22D3EE}
+html{--stage-a:#0A5CFF;--stage-b:#22D3EE;transition:--stage-a .7s ease,--stage-b .7s ease}
+${STAGE_CSS}
+main:has(.stu.composer-proposal){background:radial-gradient(1100px 640px at 88% -8%,color-mix(in srgb,var(--stage-a) 32%,transparent),transparent 70%),radial-gradient(900px 620px at -6% 34%,color-mix(in srgb,var(--stage-b) 20%,transparent),transparent 70%),radial-gradient(900px 600px at 60% 108%,color-mix(in srgb,var(--stage-a) 16%,transparent),transparent 70%),linear-gradient(180deg,color-mix(in srgb,var(--stage-a) 14%,var(--bg)),color-mix(in srgb,var(--stage-b) 8%,var(--bg)))}
+.studio-best{grid-column:1 / -1;min-width:0;margin-top:30px}
+.studio-best-hd h2{margin:0;font-size:22px;line-height:1.2;letter-spacing:-.02em;color:var(--text)}
+.studio-best-hd p{margin:4px 0 16px;font-size:13px;color:var(--muted)}
+.studio-best-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.sbf{position:relative;display:block;width:100%;padding:0;border:0;border-radius:18px;overflow:hidden;aspect-ratio:4/5;background:#06080d;cursor:pointer;text-align:left;box-shadow:0 18px 44px -24px color-mix(in srgb,var(--sbf-a) 80%,transparent),0 0 0 1px #0000000f;transition:transform .2s ease,box-shadow .2s ease}
+.sbf:hover{transform:translateY(-3px);box-shadow:0 26px 54px -24px color-mix(in srgb,var(--sbf-a) 90%,transparent),0 0 0 1px #0000000f}
+.sbf:focus-visible{outline:3px solid var(--sbf-a);outline-offset:3px}
+.sbf:disabled{opacity:.5;cursor:default}
+.sbf video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 0;pointer-events:none}
+.sbf::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,#000000d0);pointer-events:none}
+.sbf-foot{position:absolute;z-index:2;left:14px;right:14px;bottom:14px;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.sbf-tag{padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.04em;color:#fff;background:color-mix(in srgb,var(--sbf-a) 82%,#000)}
+.sbf-t{color:#fff;font-size:15px;font-weight:700;line-height:1.25;text-wrap:balance}
+@media(max-width:900px){.studio-best-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.sbf-t{font-size:13px}}
+@media(prefers-reduced-motion:reduce){html{transition:none}.sbf{transition:none}.sbf:hover{transform:none}}
 .composer-proposal::before{content:'';position:absolute;z-index:-1;left:-40px;right:-40px;top:-40px;height:720px;pointer-events:none;background:radial-gradient(640px 360px at 76% 34%,color-mix(in srgb,var(--stage-a) 26%,transparent),transparent 72%),radial-gradient(560px 320px at 24% 0%,color-mix(in srgb,var(--stage-b) 16%,transparent),transparent 72%)}
 .studio-engine-hero{border-radius:26px;overflow:hidden;background:#06080d;padding:26px;box-shadow:0 30px 80px -30px color-mix(in srgb,var(--stage-a) 55%,transparent),0 1px 0 #ffffff14 inset;isolation:isolate}
 .studio-engine-hero::before{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(60% 55% at 50% 28%,color-mix(in srgb,var(--stage-a) 50%,transparent),transparent 72%),radial-gradient(55% 50% at 92% 100%,color-mix(in srgb,var(--stage-b) 40%,transparent),transparent 70%),radial-gradient(45% 45% at 0% 100%,color-mix(in srgb,var(--stage-a) 28%,transparent),transparent 70%)}
@@ -1524,7 +1590,7 @@ export default function StudioClient({ engineHeroes = {} }: { engineHeroes?: Rec
 .studio-engine-pick{margin-bottom:18px}
 .composer-proposal-idea{min-width:0;padding:24px;border:1px solid #293341;border-radius:20px;background:linear-gradient(150deg,#151b24,#10141b)}
 .composer-proposal-settings{display:flex;flex-direction:column;gap:14px;min-width:0}
-.composer-proposal-continuation{grid-column:1 / -1;min-width:0}
+.composer-proposal-continuation{grid-column:1 / -1;min-width:0;margin-top:28px}
 .composer-proposal-optional{border:1px solid #292a31;border-radius:14px;padding:0 14px;background:#101014}
 .composer-proposal-optional>summary{min-height:48px;display:list-item;align-content:center;cursor:pointer;font-size:13px;color:#c9ccd3}
 .composer-proposal-optional>div{margin:16px 0}.composer-proposal-optional .cams{grid-template-columns:repeat(2,1fr)}

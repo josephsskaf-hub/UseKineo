@@ -36,7 +36,10 @@ function pageProblems(src) {
 }
 function clientProblems(src) {
   const p = []
-  if (!/<EngineHero key=\{scriptMode === 'clip' \? 'seedance' : engine\} name=\{scriptMode === 'clip' \? 'Seedance 1\.5' : eng\.name\} [^\n]*?videos=\{engineHeroes\[scriptMode === 'clip' \? 'seedance' : engine\] \?\? \[\]\}/.test(src)) p.push('o herói não segue o motor escolhido (ou o Clipe não é Seedance 1.5)')
+  // reancorado 30/09 (KINEO-STUDIO-MELHORES): a chave do palco ganhou o filme escolhido na vitrine, e a lista do motor
+  // recebe esse filme na frente (withPick) — continua sendo a lista do MOTOR escolhido.
+  if (!/<EngineHero key=\{`\$\{scriptMode === 'clip' \? 'seedance' : engine\}:[^`]*`\} name=\{scriptMode === 'clip' \? 'Seedance 1\.5' : eng\.name\} [^\n]*?videos=\{withPick\(engineHeroes\[scriptMode === 'clip' \? 'seedance' : engine\] \?\? \[\], heroPick, scriptMode === 'clip' \? 'seedance' : engine\)\}/.test(src)) p.push('o herói não segue o motor escolhido (ou o Clipe não é Seedance 1.5)')
+  if (!/if \(!pick \|\| pick\.engine !== key\) return list/.test(src)) p.push('filme da vitrine entra no palco de outro motor')
   if (!/<span className="seh-badge"><UiLabel>Made with<\/UiLabel> \{name\}<\/span>/.test(src)) p.push('herói sem o selo "Made with <motor>"')
   const settings = src.indexOf('<section className="composer-proposal-settings"')
   const review = src.indexOf('<div id="studio-generation-review"')
@@ -59,8 +62,20 @@ function clientProblems(src) {
   // KINEO-STUDIO-PALCO-2026-09-30 — fundador: "precisa ter mais cor… falta de acabamento". Cada motor do seletor tem a
   // sua cor, e a cor segue o motor escolhido (Clipe = Seedance), no fundo da página e no palco.
   for (const k of Object.keys(EXPECTED)) if (!new RegExp(`\\n  ${k}: \\['#[0-9A-F]{6}', '#[0-9A-F]{6}'\\],`).test(src)) p.push(`motor ${k} sem cor de palco`)
-  if (!/<div className="stu composer-proposal" style=\{\{ \['--stage-a' as string\]: \(STAGE_TINT\[scriptMode === 'clip' \? 'seedance' : engine\]/.test(src)) p.push('a cor do palco não segue o motor escolhido')
+  // reancorado 30/09 (KINEO-STUDIO-TELA-COR): fundador — "isso que você fez para a tela toda". A cor sai do style inline
+  // e vira data-stage; uma regra html:has por motor (gerada de STAGE_TINT) pinta o <main> inteiro do Studio.
+  if (!/<div className="stu composer-proposal" data-stage=\{scriptMode === 'clip' \? 'seedance' : engine\}>/.test(src)) p.push('a cor do palco não segue o motor escolhido')
+  if (!/const STAGE_CSS = Object\.entries\(STAGE_TINT\)\.map\(\(\[k, \[a, b\]\]\) => `html:has\(\.composer-proposal\[data-stage="\$\{k\}"\]\)\{--stage-a:\$\{a\};--stage-b:\$\{b\}\}`\)/.test(src) || !/\n\$\{STAGE_CSS\}\n/.test(src)) p.push('regras de cor por motor ausentes')
+  if (!/main:has\(\.stu\.composer-proposal\)\{background:[^}]*var\(--stage-a\)/.test(src)) p.push('a tela toda não ganha a cor do motor')
   if (!/\.studio-engine-hero::before\{[^}]*var\(--stage-a\)/.test(src) || !/\.composer-proposal::before\{[^}]*var\(--stage-a\)/.test(src)) p.push('palco ou fundo sem a cor do motor')
+  // KINEO-STUDIO-MELHORES-2026-09-30 — vitrine dos melhores logo abaixo do painel (fora da grade, senão o palco fixo
+  // passa por cima), antes dos vídeos da própria conta.
+  const gridEnd = src.indexOf('</aside>')
+  const best = src.indexOf('<section className="studio-best"')
+  const cont = src.indexOf('<section className="composer-proposal-continuation"')
+  const between = best > 0 ? src.slice(gridEnd, best) : ''
+  if (!(gridEnd > 0 && best > gridEnd && cont > best && /\n {6}<\/div>\n/.test(between.replace(/\r\n/g, '\n')))) p.push('vitrine fora do lugar (depois do painel, fora da grade, antes dos vídeos da conta)')
+  if (!/setEngine\(f\.engine as EngineKey\)\n\s+setHeroPick\(f\)/.test(src)) p.push('clique na vitrine não troca o motor nem mostra o filme')
   return p
 }
 function navProblems(land, theme) {
@@ -84,7 +99,7 @@ ok(np.length === 0, `(5) topo na ordem com MCP e mesma cor (${np.join('; ') || '
 
 // (6) mutantes
 ok(pageProblems(PAGE.replace("  kling: 'cinematic_kling',", "  kling: 'cinematic_veo',")).length > 0, '(M1) Kling 2.5 mostrando filme do Veo → vermelho')
-ok(clientProblems(CLIENT.replace("<EngineHero key={scriptMode === 'clip' ? 'seedance' : engine}", "<EngineHero key={'seedance'}")).length > 0, '(M2) herói preso num motor → vermelho')
+ok(clientProblems(CLIENT.replace("videos={withPick(engineHeroes[scriptMode === 'clip' ? 'seedance' : engine] ?? [],", "videos={withPick(engineHeroes['seedance'] ?? [],")).length > 0, '(M2) herói preso num motor → vermelho')
 ok(clientProblems(CLIENT.replace('        {/* KINEO-STUDIO-HEROI-2026-09-30 — fundador: tirar \"AI Presenter\" e \"Animate a Photo\" daqui (já têm porta própria). */}\n', '        <Link href="/animate"><UiLabel>Animate a Photo</UiLabel></Link>\n')).length > 0, '(M3) aba Animate de volta → vermelho')
 ok(navProblems(LAND.replace('            <Link href="/claude-connector" data-nav-item="more:mcp"><UiLabel>MCP</UiLabel></Link>\n', ''), THEME).length > 0, '(M4) MCP fora do topo → vermelho')
 {
@@ -96,7 +111,20 @@ ok(navProblems(LAND.replace('            <Link href="/claude-connector" data-nav
   ok(clientProblems(back.slice(0, set) + blk + back.slice(set)).length > 0, '(M6) motor de volta para depois da ideia → vermelho')
 }
 ok(clientProblems(CLIENT.replace('<video key={v.src} className="seh-main"', '<video className="seh-bg" /><video key={v.src} className="seh-main"')).length > 0, '(M7) laterais desfocadas de volta → vermelho')
-ok(clientProblems(CLIENT.replace("['--stage-a' as string]: (STAGE_TINT[scriptMode === 'clip' ? 'seedance' : engine]", "['--stage-a' as string]: (STAGE_TINT['fast']")).length > 0, '(M8) cor presa num motor → vermelho')
+ok(clientProblems(CLIENT.replace("data-stage={scriptMode === 'clip' ? 'seedance' : engine}>", "data-stage=\"fast\">")).length > 0, '(M8) cor presa num motor → vermelho')
+ok(clientProblems(CLIENT.replace(/main:has\(\.stu\.composer-proposal\)\{background:[^}]*\}/, 'main:has(.stu.composer-proposal){}')).length > 0, '(M10) tela sem a cor do motor → vermelho')
+ok(clientProblems(CLIENT.replace('setHeroPick(f)\n', '\n').replace('setHeroPick(f)\r\n', '\r\n')).length > 0, '(M11) vitrine que não mostra o filme no palco → vermelho')
+{
+  // vitrine: 8 filmes da casa já aprovados, 2 fileiras de 4, com mídia em public/, nenhum de motor em manutenção.
+  const ids = [...(PAGE.match(/const BEST_FILM_IDS = \[([\s\S]*?)\] as const/)?.[1] ?? '').matchAll(/'([0-9a-f-]{36})'/g)].map((m) => m[1])
+  const lines = ids.map((id) => EXAMPLES.split('\n').find((l) => l.includes(`id: '${id}'`) && l.includes('previewPath')) ?? '')
+  const media = lines.flatMap((l) => [...l.matchAll(/(?:previewPath|posterPath): '\/([^']+)'/g)].map((m) => m[1]))
+  const missing = media.filter((m) => !fs.existsSync(path.join(ROOT, 'public', m)))
+  const omni = lines.filter((l) => /engine: 'cinematic_omni'/.test(l)).length
+  ok(ids.length === 8 && new Set(ids).size === 8 && lines.every(Boolean) && media.length === 16 && missing.length === 0 && omni === 0,
+    `(V) vitrine: 8 filmes da casa, mídia presente, sem motor em manutenção (ids ${ids.length}, mídia ${media.length}, faltando ${missing.join(',') || 0}, omni ${omni})`)
+  ok(/\.studio-best-grid\{display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/.test(CLIENT), '(V2) duas fileiras de 4 no computador')
+}
 ok(clientProblems(CLIENT.replace(/\n  veo: \['#[0-9A-F]{6}', '#[0-9A-F]{6}'\],/, '')).length > 0, '(M9) motor sem cor → vermelho')
 ok(navProblems(LAND, THEME.replace('.klp .nav-links>a,.klp .nav-links>.nd>summary { color:var(--txt); }', '')).length > 0, '(M5) tom diferente no topo → vermelho')
 

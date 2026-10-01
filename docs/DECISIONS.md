@@ -689,3 +689,10 @@ Slug do X confirmado: utm_source=x.
 - No palco: nome do motor grande, a descrição dele, o custo na duração escolhida ("25 cr · 60s · 1080p"), o título do filme e as miniaturas dos filmes da casa daquele motor (troca no clique). O vídeo continua sozinho e inteiro, sem laterais desfocadas.
 - Layout por container query: palco largo = info | vídeo | miniaturas; médio = vídeo | info+miniaturas; estreito/celular = vídeo, miniaturas, info.
 - Selo honesto intacto: "Made with <motor real>" no vídeo; nenhum vídeo de cliente.
+
+## 2026-09-30 — Studio: a cor do motor na tela toda + vitrine "Best films" (KINEO-STUDIO-TELA-COR / KINEO-STUDIO-MELHORES)
+- Fundador: "isso que você fez [o palco] para a tela toda… gostei muito dessas cores"; "na parte de baixo sempre tem que ser os melhores vídeos… uns oito, duas fileiras… os que eu já achei melhor" (ainda apareciam os vídeos de ads dele).
+- Tela toda: a cor do motor escolhido pinta o <main> inteiro do Studio (claro e escuro), com transição suave ao trocar de motor (@property). Fonte única: STAGE_TINT → uma regra html:has por motor (data-stage na raiz do Studio).
+- Vitrine "Best films made on Kineo": 8 filmes da casa já aprovados pelo fundador, 2 fileiras de 4 (2 colunas no celular): castelo (Seedance, "100%"), Maracaibo (Kling 3), Dyatlov (Kling 2.5), o homem que pulou (Veo 3.1), navio que evaporou (Kling 3), o Golfo (H3), lago que petrifica (Seedance), jantar ainda quente (Kling 2.5). Omni fora enquanto em manutenção. Clique troca para o motor do filme e mostra o filme no palco (evento studio_best_film_clicked).
+- A vitrine vem logo abaixo do painel, fora da grade (o palco fixo não passa por cima); os vídeos da própria conta (episódio 2) continuam, depois dela.
+- Textos novos em 13 línguas. Guardião test-studio-heroi: 17 ok, 11 mutantes.
