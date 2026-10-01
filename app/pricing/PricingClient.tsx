@@ -44,6 +44,7 @@ import PricingAdsBlock from '@/components/pricing/PricingAdsBlock' // KINEO-FLUX
 import PricingCreditsBlock from '@/components/pricing/PricingCreditsBlock' // KINEO-FLUXO-NOVO-2026-09-25
 import { PRICING_BUSINESS_PATH_TARGET_ID } from '@/lib/growth/pricingBusinessPath'
 import PricingSavedCheckout from '@/components/PricingSavedCheckout'
+import MrrPricingProof from '@/components/growth/MrrPricingProof'
 import PricingJourneyProof from '@/components/growth/PricingJourneyProof'
 import AutopilotBreakEvenCalculator from './AutopilotBreakEvenCalculator'
 
@@ -1062,6 +1063,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         <RegionalFirstPack />
         {/* KINEO-STUDIO50-2026-09-22 — a oferta mora onde a pessoa volta sozinha; o servidor decide se ela existe. */}
         <Studio50OfferBanner surface="pricing" />
+        <MrrPricingProof />
         <div id="plans" className="scroll-mt-24 grid grid-cols-1 gap-7 md:grid-cols-3 max-w-5xl mx-auto pt-5 items-stretch">
           {buildPricing(resolvedCurrency, resolvedRegion).map((p) => {
             const isPaid = p.tier === 'starter' || p.tier === 'basic' || p.tier === 'pro'
