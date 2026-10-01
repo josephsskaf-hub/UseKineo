@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { MRR_SHOWCASE_ENABLED, MRR_SHOWCASE_VERSION } from '@/lib/growth/mrrShowcase'
+import { MRR_SHOWCASE_ENABLED } from '@/lib/growth/mrrShowcaseConfig'
 import { UiLabel, InterfaceLanguageSelect } from '@/components/InterfaceLanguage'
 import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 import { KineoBrandIcon } from '@/components/KineoBolt'

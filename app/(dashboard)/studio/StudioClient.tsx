@@ -777,7 +777,6 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   const generate = () => {
     // VARREDURA-LIMITES-2026-09-23 — o clipe também respeita o teto (6.000, o da rota do clipe) antes de gastar.
     if (scriptMode === 'clip') { if (limit.over) return; void generateClip(); return }
-    recordMrr('mrr_generate_clicked')
     // Nunca navegar com um texto que o /studio/create vai recusar sem rede:
     // a pessoa veria o erro numa caixa que nao deixa editar o excedente.
     if (limit.over) return
@@ -1004,7 +1003,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
             {MRR_NEAR_IDEA_ENABLED && scriptMode !== 'clip' && (
               <StudioNearIdeaAction prompt={prompt} cost={cost} balance={balance} overLimit={limit.over}
                 bareStarter={isBareStarter(prompt)} engineName={eng.name} seconds={duration}
-                onGenerate={generate} />
+                onGenerate={() => { recordMrr('mrr_generate_clicked'); generate() }} />
             )}
             <div className="row" style={{ marginTop: 10 }}>
               <button type="button" className={`pill${scriptMode === 'ai' ? ' on' : ''}`} onClick={() => setScriptMode('ai')}><UiLabel>✨ Let AI structure it</UiLabel></button>
@@ -1317,7 +1316,8 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                 anúncio, ou degraus desligados) e nunca esconde o go. Identidade: o
                 cartão resolve sozinho (o cockpit não conhece userId/e-mail). */}
             <DfyOfferCard prompt={prompt} userId={null} email={null} source="studio_cockpit" />
-            <button type="button" onClick={generate} disabled={!prompt.trim() || limit.over} className={`go ${prompt.trim() && !limit.over ? 'ok' : 'no'}`}>
+            <button type="button" onClick={generate} disabled={!prompt.trim() || limit.over} className={`go ${prompt.trim() && !limit.over ? 'ok' : 'no'}`}
+              onClickCapture={() => { if (scriptMode !== 'clip') recordMrr('mrr_generate_clicked') }}>
               {/* KINEO-PRECO-VISIVEL-2026-09-02 — o custo entra NO BOTÃO, o
                   padrão da Higgsfield ("the exact cost is shown on the Generate
                   button before you confirm") e da Hailuo (número colado no botão,

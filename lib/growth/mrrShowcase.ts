@@ -2,8 +2,8 @@ import type { WallVideo } from '@/lib/engineWall'
 import { creditCostForDuration } from '@/lib/credits/engineCost'
 import { TIER_CREDITS, getTierPrice, type CheckoutTier } from '@/lib/checkoutPricing'
 
-export const MRR_SHOWCASE_ENABLED = true
-export const MRR_SHOWCASE_VERSION = 'mrr_showcase_20261001_v1' as const
+import { MRR_SHOWCASE_VERSION } from './mrrShowcaseConfig'
+export { MRR_SHOWCASE_ENABLED, MRR_SHOWCASE_VERSION } from './mrrShowcaseConfig'
 
 /** Keep the original engine/format. Never fill a prompt or start a render. */
 export function mrrShowcaseVideo(video: WallVideo): WallVideo {

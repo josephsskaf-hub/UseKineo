@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef } from 'react'
-import { MRR_SHOWCASE_ENABLED, MRR_SHOWCASE_VERSION } from '@/lib/growth/mrrShowcase'
+import { MRR_SHOWCASE_ENABLED, MRR_SHOWCASE_VERSION } from '@/lib/growth/mrrShowcaseConfig'
 import { trackEvent } from '@/lib/analytics'
 import { UiLabel } from '@/components/InterfaceLanguage'
 

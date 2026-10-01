@@ -23,6 +23,9 @@ function load(file) {
     if (id === '@/components/InterfaceLanguage') return { useInterfaceLanguage: () => locale, UiLabel: ({ children }) => children }
     if (id.endsWith('.module.css')) return { __esModule: true, default: new Proxy({}, { get: (_, name) => String(name) }) }
     if (id === '@/lib/ui/showcaseGallery') return load('lib/ui/showcaseGallery.ts')
+    if (id === '@/components/MrrShowcaseLink') return load('components/MrrShowcaseLink.tsx')
+    if (id === '@/lib/growth/mrrShowcaseConfig') return load('lib/growth/mrrShowcaseConfig.ts')
+    if (id === '@/lib/analytics') return { trackEvent: () => { throw Error('Analytics forbidden in offline SSR') } }
     if (id === '@/lib/ui/previewFacts') return load('lib/ui/previewFacts.ts')
     if (id === '@/lib/ui/heroFrame') return load('lib/ui/heroFrame.ts')
     if (id === '@/lib/ui/interfaceLanguage' || id === './interfaceLanguage') return load('lib/ui/interfaceLanguage.ts')
