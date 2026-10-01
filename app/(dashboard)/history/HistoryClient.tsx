@@ -7,6 +7,7 @@ import ControlIcon from '@/components/ControlIcon'
 import { FilmVersionPicker, ExpandableFilmTitle, ManualCopyDialog } from '@/components/DeliveryControls'
 import { downloadOutcomeMessage, filmSource, type FilmVersion } from '@/lib/ui/deliveryRefinement'
 import PostFilmCreatorOffer from '@/components/PostFilmCreatorOffer'
+import FilmPreviewDialog from '@/components/FilmPreviewDialog'
 
 // Push #323 - My Videos: show first frame via preload=metadata; no more black cards
 
@@ -16,7 +17,6 @@ import { trackCheckoutClick } from '@/lib/trackClick'
 import { trackClosedEvent, trackEvent } from '@/lib/analytics'
 import { downloadVideoFile } from '@/lib/videoDownload'
 import { engineLabelFor } from '@/lib/engineLabel' // KINEO-CARD-COM-MOTOR-2026-09-16
-import { fitLightboxFrame } from '@/lib/frameFit'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { buildStudioSeriesReviewHref } from '@/lib/navigation/studioSeriesReview'
 import { reviewVideoRetryHref } from '@/lib/navigation/reviewVideoRetry'
@@ -365,13 +365,6 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
   // user expects when clicking a card), and a proper blob download that works
   // from My Videos any time — not just once on the result page.
   const [lightbox, setLightbox] = useState<string | null>(null)
-  const filmDialogRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!lightbox) return
-    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    filmDialogRef.current?.focus()
-    return () => previousFocus?.focus()
-  }, [lightbox])
   // sprint-ui #9 (29-30/08) — busca por titulo/tema. O fundador tem 327 videos
   // e achar um era rolagem infinita; cliente com 20+ sofre igual. Client-side.
   const [query, setQuery] = useState('')
@@ -2118,70 +2111,27 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
         </details>
       )}
 
-      {/* Push #098 — big-player overlay (the large view). Clicking a card opens
-          the Short here with a download button that always saves the correctly
-          named MP4. controlsList="nodownload" removes the ⋮ menu's raw download. */}
+      {/* Essential preview approved by the founder: same files, download and offer gates. */}
       {lightbox && (() => {
         const v = videos.find((x) => x.id === lightbox)
         if (!v) return null
+        const src = filmSource(v.video_url, enhUrls[v.id], fileVersions[v.id])!
         return (
-          <div
-            onClick={() => setLightbox(null)}
-            ref={filmDialogRef} tabIndex={-1}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') { event.preventDefault(); setLightbox(null) }
-              if (event.key !== 'Tab') return
-              const controls = [...event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], video[controls]')]
-              const first = controls[0], last = controls[controls.length - 1]
-              if (!first || !last) return
-              if (event.shiftKey && (document.activeElement === first || document.activeElement === event.currentTarget)) { event.preventDefault(); last.focus() }
-              else if (!event.shiftKey && (document.activeElement === last || document.activeElement === event.currentTarget)) { event.preventDefault(); first.focus() }
+          <FilmPreviewDialog key={v.id}
+            title={extractTitle(v.topic)} src={src}
+            hasEnhanced={Boolean(enhUrls[v.id])} version={fileVersions[v.id] ?? 'enhanced'}
+            resolution={fileResolutions[src]} downloading={downloadingId === v.id}
+            downloadLabel={downloadingId === v.id ? 'Downloading…' : isWatermarkedFastAsset(v) ? 'Download with Kineo watermark (MP4)' : 'Download saved MP4'}
+            downloadNote={downloadNotes[v.id]} copied={copiedKey === 'film-title-' + v.id}
+            onVersionChange={version => setFileVersions(prev => ({ ...prev, [v.id]: version }))}
+            onDownload={() => handleDownload(v)}
+            onCopyTitle={() => { void copyToClipboard('film-title-' + v.id, extractTitle(v.topic)) }}
+            onMetadata={player => {
+              if (player.videoWidth && player.videoHeight) setFileResolutions(prev => ({ ...prev, [player.currentSrc]: `${player.videoWidth} × ${player.videoHeight}` }))
             }}
-            role="dialog" aria-modal="true" aria-label="Your film"
-            style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(0,0,0,0.94)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px 16px', overflowY: 'auto' }}
+            onError={() => setErrors(prev => new Set([...prev, v.id]))}
+            onClose={() => setLightbox(null)}
           >
-            <style>{`
-              .p3-film-layout { width: min(980px, 100%); margin: auto 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); gap: 28px; align-items: center; }
-              .p3-film-player { width: 100%; max-width: 100%; margin: auto; }
-              .p3-film-player [data-kineo-frame] { max-height: 72vh; }
-              .p3-film-actions { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
-              @media(max-width: 700px) { .p3-film-layout { grid-template-columns: minmax(0, 1fr); gap: 18px; max-width: 440px; } .p3-film-player [data-kineo-frame] { max-height: 40vh; } }
-            `}</style>
-            <div className="p3-film-layout" onClick={(e) => e.stopPropagation()}>
-            {/* KINEO-QUADRO-QUE-SE-AJUSTA-2026-09-02 — a coluna do lightbox e a
-                moldura abaixo nasciam verticais e ficavam verticais. Com o
-                multi-formato no ar, `data-kineo-frame` deixa lib/frameFit
-                reajustar as duas ao quadro real do arquivo. */}
-            <div className="p3-film-player" data-kineo-frame-shell>
-              <div data-kineo-frame data-kineo-frame-wide="100%" style={{ position: 'relative', width: '100%', aspectRatio: '9 / 16', borderRadius: 16, overflow: 'hidden', background: '#000', border: '1px solid rgba(41,151,255,0.4)', boxShadow: '0 18px 60px rgba(41,151,255,0.15)' }}>
-                <video
-                  src={filmSource(v.video_url, enhUrls[v.id], fileVersions[v.id])!}
-                  controls
-                  autoPlay
-                  playsInline
-                  controlsList="nodownload"
-                  disablePictureInPicture
-                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                  onLoadedMetadata={(e) => { fitLightboxFrame(e.currentTarget); const player = e.currentTarget; if (player.videoWidth && player.videoHeight) setFileResolutions(prev => ({ ...prev, [player.currentSrc]: `${player.videoWidth} × ${player.videoHeight}` })) }}
-                  onError={() => setErrors((prev) => new Set([...prev, v.id]))}
-                />
-              </div>
-            </div>
-            <div className="p3-film-actions">
-              <p style={{ margin: 0, fontSize: 18, lineHeight: 1.4, fontWeight: 750, color: '#f5f5f7', overflowWrap: 'anywhere' }}>{extractTitle(v.topic)}</p>
-              {enhUrls[v.id] ? <FilmVersionPicker value={fileVersions[v.id] ?? 'enhanced'} onChange={version => setFileVersions(prev => ({ ...prev, [v.id]: version }))} disabled={downloadingId === v.id} resolution={fileResolutions[filmSource(v.video_url, enhUrls[v.id], fileVersions[v.id])!]} /> : null}
-              {downloadNotes[v.id] ? <p className="delivery-note" role="status">{downloadNotes[v.id]}</p> : null}
-              <button
-                onClick={() => handleDownload(v)}
-                disabled={downloadingId === v.id}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '14px', borderRadius: 14, border: 'none', cursor: downloadingId === v.id ? 'wait' : 'pointer', background: '#2997ff', color: '#fff', fontWeight: 800, fontSize: '0.95rem', boxShadow: '0 8px 28px rgba(41,151,255,0.35)' }}
-              >
-                {downloadingId === v.id
-                  ? 'Downloading…'
-                  : isWatermarkedFastAsset(v)
-                    ? '⬇ Download with Kineo watermark (MP4)'
-                    : '⬇ Download saved MP4'}
-              </button>
               {v.status === 'completed' && Boolean(v.video_url) && (
                 <PostFilmCreatorOffer key={v.id} surface="history_film" eligible={creatorTrialEligible} videoId={v.id} pending={checkout.pending !== null} onLaunch={checkout.launch} error={checkout.error} />
               )}
@@ -2189,7 +2139,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                 <button
                   onClick={() => handleStarterCheckout('history_lightbox')}
                   disabled={checkout.pending !== null}
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, width: '100%', padding: '13px 10px', borderRadius: 14, cursor: checkout.pending ? 'wait' : 'pointer', opacity: checkout.pending ? 0.7 : 1, background: 'transparent', border: '1px solid #31587a', color: '#a7d7ff', fontWeight: 800, fontSize: '0.9rem' }}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, width: '100%', padding: '10px 12px', borderRadius: 8, cursor: checkout.pending ? 'wait' : 'pointer', opacity: checkout.pending ? 0.7 : 1, background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)', fontWeight: 500, fontSize: '0.8rem' }}
                 >
                   {checkout.pending === 'history_lightbox' ? (
                     <span><UiLabel>Loading…</UiLabel></span>
@@ -2205,36 +2155,11 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                 </button>
               )}
               {isWatermarkedFastAsset(v) && cleanExportLocked === true && checkout.error && (
-                <p role="alert" style={{ color: '#ff6b6b', fontSize: '0.75rem', fontWeight: 600, textAlign: 'center', margin: 0 }}>
+                <p role="alert" style={{ color: 'var(--danger)', fontSize: '0.75rem', fontWeight: 600, textAlign: 'center', margin: 0 }}>
                   {checkout.error}
                 </p>
               )}
-              {/* KINEO-WALL-2026-08-03 — gancho de retenção, uma linha, logo
-                  depois do download: quem acabou de baixar é exatamente quem
-                  está prestes a postar. Leva ao mesmo fluxo que já existe (o
-                  campo "cola o link" na tela de sucesso do /generate) e à
-                  página pública /wall. Sem estado novo, sem redesenho, sem
-                  encostar em paywall ou créditos. */}
-              <p style={{ margin: 0, textAlign: 'center', fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.5 }}><UiLabel>
-                Published it?</UiLabel>{' '}
-                <a
-                  href="/wall"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}
-                ><UiLabel>
-                  Paste the link and get on the wall →
-                </UiLabel></a>
-              </p>
-              <button
-                onClick={() => setLightbox(null)}
-                style={{ width: '100%', padding: '10px', borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--muted)', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}
-              ><UiLabel>
-                Close
-              </UiLabel></button>
-            </div>
-            </div>
-          </div>
+          </FilmPreviewDialog>
         )
       })()}
       {/* Dia 9 — toast de confirmacao (download/copy) */}
