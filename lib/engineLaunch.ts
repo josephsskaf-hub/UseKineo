@@ -142,7 +142,7 @@ export function duracoesCurtasVisible(email?: string | null): boolean {
 // (lib/estrelaDoFilme.ts). A sobretaxa é o PREÇO B do fundador (29/09, "2B"): 2 cr a cada 6 s de filme. Mesmo
 // desenho do DURACOES_CURTAS_PUBLIC: false → só as contas da casa (isInternalEmail) veem o bloco no /studio, e o SERVIDOR
 // recusa (403, antes do débito) a estrela de conta de fora. Virar true depois do canário aprovado (um commit de uma linha).
-export const ESTRELA_PUBLIC = false
+export const ESTRELA_PUBLIC = true // LIGADO 01/10 (fundador: "liga a estrela" — cliente pediu foto de referência no Kling 2.5)
 
 /** O bloco "Estrela do filme" aparece (e o servidor aceita) para este e-mail? */
 export function estrelaVisible(email?: string | null): boolean {

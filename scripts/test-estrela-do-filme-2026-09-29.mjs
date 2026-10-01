@@ -323,7 +323,8 @@ function verificaRota(r = SRC.rota) {
   checa('D12 celebridade nomeada continua bloqueada: "meu amigo como Aquiles igual ao Brad Pitt em Troia" e "Taylor Swift" batem na lista; "Aquiles"/"Leônidas" (mito/história) não', R && R.mentionsContemporaryFigure('meu amigo como Aquiles igual ao Brad Pitt em Troia') && R.mentionsContemporaryFigure('Taylor Swift on stage') && !R.mentionsContemporaryFigure('Meu amigo lutando na guerra de Troia como Aquiles, forte, bolado') && !R.mentionsContemporaryFigure('my friend as Leonidas at Thermopylae'))
   // interruptor
   const launch = SRC.launch
-  checa('D13 ESTRELA_PUBLIC nasce false; estrelaVisible = ESTRELA_PUBLIC || casa (executado)', /export const ESTRELA_PUBLIC = false\n/.test(launch) && (() => { const E = roda(launch, { '@/lib/internalAccounts': { isInternalEmail: (e) => e === 'casa@usekineo.com' } }); return E.estrelaVisible('casa@usekineo.com') === true && E.estrelaVisible('fora@gmail.com') === false && E.estrelaVisible(null) === false })())
+  // 01/10: o fundador ligou ("liga a estrela") — a cliente pediu foto de referência no Kling 2.5.
+  checa('D13 ESTRELA_PUBLIC ligado (01/10); estrelaVisible = ESTRELA_PUBLIC || casa (executado)', /export const ESTRELA_PUBLIC = true\b/.test(launch) && (() => { const E = roda(launch, { '@/lib/internalAccounts': { isInternalEmail: (e) => e === 'casa@usekineo.com' } }); return E.estrelaVisible('casa@usekineo.com') === true && E.estrelaVisible('fora@gmail.com') === true && E.estrelaVisible(null) === true })())
   checa('D14 /api/me/credits devolve estrela: estrelaVisible(user.email)', SRC.me.includes('estrela: estrelaVisible(user.email),'))
   const ev = SRC.events
   const lista = ev.slice(ev.indexOf('const SERVER_ONLY_EVENTS = new Set(['), ev.indexOf('])', ev.indexOf('const SERVER_ONLY_EVENTS = new Set([')))
