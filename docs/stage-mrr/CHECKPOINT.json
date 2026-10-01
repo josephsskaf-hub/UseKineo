@@ -7,7 +7,7 @@
   "integratedQueue": "b0fef8ceabaf6b21ff53a137cd2268f5f293c797",
   "status": "new-batch-local-verified-await-next-permitted-publication",
   "publication": "Prior b0 delivery reached origin/main; public /showcase HTTP200 with MRR version. New five-priority batch is local only; agent executed no publisher.",
-  "next": "On next permitted day (Oct2 or later), fetch and reconcile origin/main, remote queue if it exists and actual local queue; preserve other work, rerun gates on integrated candidate, enqueue via house script and prepare one safe PUBLICAR with full SHAs. Until then no second launcher, no queue overwrite. Daily SELECT measurement; no sends/renders. Saturday report Oct3 23UTC.",
+  "next": "Email HOLD active, including prepared reactivation dispatch; explicit later release required. On next permitted day (Oct2 or later), fetch and reconcile origin/main, remote queue if it exists and actual local queue; preserve other work, rerun gates on integrated candidate, enqueue via house script and prepare one safe PUBLICAR with full SHAs. Until then no second launcher, no queue overwrite. Daily SELECT measurement; no sends/renders. Saturday report Oct3 23UTC.",
   "results": "At Oct1 14:16:15 UTC: 0 first positive subscriptions today (partial); 6 last30d. One anonymous studio-version observation; zero identified people exposed. New batch unexposed; commercial effects unknown.",
   "report": "docs/STAGE-sprint-mrr-2026-10-04.md",
   "reportDue": "2026-10-03T23:00:00Z",
@@ -53,7 +53,7 @@
     },
     {
       "id": 5,
-      "status": "implemented and locally tested; founder-authenticated default dry-run, signed reviewed explicit dispatch; never invoked in production"
+      "status": "implemented and locally tested, never invoked; dispatch ON HOLD until explicit later release following Board diagnosis"
     }
   ],
   "priorDeliveryGates": {
@@ -107,5 +107,14 @@
     "status": 200,
     "version": "mrr_showcase_20261001_v1",
     "date": "2026-10-01"
+  },
+  "emailHold": {
+    "status": "ACTIVE",
+    "date": "2026-10-01",
+    "source": "Ordem de Joseph transmitida pelo Board nesta conversa",
+    "scope": "No prospecting invitations, cold campaigns, manual retries, unsolicited follow-ups or reactivation dispatch. Prior volume goals, new day or founder campaign button alone do not lift hold.",
+    "release": "Explicit subsequent release after Board diagnosis; agent never sends under MRR sprint mandate.",
+    "evidence": "Board relayed recipient rejection for Kevin Stratvert at 2026-10-01 13:16 UTC: 550 5.7.1 Message rejected: sender domain is blocklisted; cites usekineo.com and Spamhaus. Not independently verified listing or proof all deliveries failed.",
+    "constraints": "Preserve queues/history/suppressions. No alternate sender/channel bypass, test send, parallel investigation, DNS/credentials/provider-setting changes or provider retry manipulation. Product work and transactional emails unchanged."
   }
 }

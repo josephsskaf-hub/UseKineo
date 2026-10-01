@@ -1,3 +1,6 @@
+
+**DECISÃO APROVADA — HOLD comercial, Joseph via Board em 01/10/2026.** Prospecção e disparo da reativação preparada ficam suspensos até liberação explícita posterior ao diagnóstico coordenado pelo Board. Metas, virada do dia e botão de envio não levantam o HOLD. Preservar filas, históricos e supressões; nenhum teste de e-mail, troca de remetente/canal, investigação paralela ou mudança de DNS/configuração. A sprint de produto e e-mails transacionais existentes continuam. Relato do Board: rejeição destinatária 550 5.7.1 para Kevin Stratvert às 13:16 UTC, citando domínio e Spamhaus; não é confirmação independente de listagem nem de falha em todos os envios. Nenhum envio realizado por esta sprint.
+
 # Sprint MRR — balanço de sábado (em preparação)
 
 **DECISÃO APROVADA — fundador, 01/10/2026.** Meta atual: pelo menos uma assinatura NOVA por dia e conversão de cadastro >=2%. Relatório final sábado 03/10 às 20h BRT; nome literal deste arquivo preservado. Este documento ainda é parcial.
