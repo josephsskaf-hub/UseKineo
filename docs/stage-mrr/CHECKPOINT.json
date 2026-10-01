@@ -2,12 +2,12 @@
   "sprint": "MRR produto",
   "date": "2026-10-01",
   "worktree": "C:/kineo/.claude/worktrees/stage-sprint-mrr",
-  "branch": "codex/sprint-mrr-measurement-20261001",
+  "branch": "codex/sprint-mrr-first-film-20261001",
   "main": "87825d3225af384ed4c887a7faf7bacbe4546c47",
   "integratedQueue": "3aba3b0b7bbcbee9df0e66ad08b121a5a01acef9",
-  "status": "enqueued-launcher-ready-measurement-prepared",
+  "status": "next-batch-in-progress-existing-queue-preserved",
   "publication": "enqueued locally; launcher not executed by agent; deploy unverified",
-  "next": "Read remote main/public route only to confirm publication. If not published, no after-result exists; do not re-enqueue or create a second launcher today. After publication, validate versioned event ingestion with SELECT, no test writes; only compare mature 48h cohorts. Saturday report remains due. Preserve local queue if it advances.",
+  "next": "Complete new priorities in own branch, guardians/full-suite/screenshots. Preserve b0 queue and Oct1 launcher (already notified); no second launcher today. Before next publication reconcile live main/queue. Never email or render.",
   "results": "No after-version production observations yet. No new sales inferred.",
   "report": "docs/STAGE-sprint-mrr-2026-10-04.md",
   "reportDue": "2026-10-03T23:00:00Z",
@@ -24,7 +24,39 @@
   "candidate": "b0fef8ceabaf6b21ff53a137cd2268f5f293c797",
   "launcher": "C:/kineo/PUBLICAR-MRR-2026-10-01.bat",
   "launcherNotificationSent": true,
-  "gates": {
+  "goal": {
+    "newSubscriptionsPerDay": 1,
+    "signupConversionMinimum": 0.02,
+    "baseline": {
+      "people": 681,
+      "newSubscriptions": 6,
+      "days": 30
+    },
+    "arithmetic": "681/30*0.02=0.454/day; 1/day requires 50 signups/day at 2%, or 4.405% at current volume"
+  },
+  "backlog": [
+    {
+      "id": 1,
+      "status": "implemented; tsc and 9-mutant guardian passed; 8 local mocked-service screenshots; full suite pending"
+    },
+    {
+      "id": 2,
+      "status": "existing written episode2 and PlanFit identified; audit reuse before adding offer"
+    },
+    {
+      "id": 3,
+      "status": "next: public founder proof + canonical films/month + current refund terms"
+    },
+    {
+      "id": 4,
+      "status": "next: share acquisition CTA; UI footer only, engines protected"
+    },
+    {
+      "id": 5,
+      "status": "next: authenticated read-only campaign preview; no autonomous sending"
+    }
+  ],
+  "priorDeliveryGates": {
     "tsc": "clean",
     "baseline": {
       "total": 737,
