@@ -27,6 +27,14 @@ exposures AS (
 mature AS (SELECT * FROM exposures WHERE exposed_at<=now()-interval '48 hours'),
 flags AS (
  SELECT x.*,p.created_at>=x.exposed_at AND p.created_at<x.exposed_at+interval '48 hours' AS signup_in_48h,
+ EXISTS(SELECT 1 FROM events e LEFT JOIN session_people sp USING(session_id)
+   WHERE coalesce(e.user_id,sp.person)=x.person AND e.created_at>=x.exposed_at AND e.created_at<x.exposed_at+interval '48 hours'
+   AND coalesce(e.metadata->>'version',e.metadata->>'showcase_version')=x.version
+   AND e.name=CASE x.surface WHEN 'mrr_studio_viewed' THEN 'mrr_idea_entered'
+     WHEN 'mrr_showcase_viewed' THEN 'mrr_showcase_first_gesture'
+     WHEN 'mrr_showcase_door_viewed' THEN 'mrr_showcase_door_clicked'
+     WHEN 'showcase_impression' THEN 'showcase_first_gesture' END
+   AND nullif(trim(e.session_id),'') IS NOT NULL) first_gesture,
  EXISTS(SELECT 1 FROM events e WHERE e.user_id=x.person AND e.created_at>=x.exposed_at AND e.created_at<x.exposed_at+interval '48 hours'
    AND e.name='mrr_idea_entered' AND e.metadata->>'version'=x.version AND e.metadata->>'variant'=x.variant AND nullif(trim(e.session_id),'') IS NOT NULL) typed,
  EXISTS(SELECT 1 FROM events e WHERE e.user_id=x.person AND e.created_at>=x.exposed_at AND e.created_at<x.exposed_at+interval '48 hours'
@@ -44,6 +52,7 @@ SELECT jsonb_build_object(
  'version_exposed_people',(SELECT jsonb_agg(z) FROM (SELECT surface,version,variant,count(DISTINCT person) people FROM exposures GROUP BY 1,2,3)z),
  'mature_48h',(SELECT jsonb_agg(z) FROM (SELECT surface,version,variant,count(DISTINCT person) denominator,
  count(DISTINCT person) FILTER(WHERE signup_in_48h) signups,
+ count(DISTINCT person) FILTER(WHERE first_gesture) first_gesture,
  count(DISTINCT person) FILTER(WHERE typed) typed,
  count(DISTINCT person) FILTER(WHERE generated) generated,
  count(DISTINCT person) FILTER(WHERE checkout) checkout,
@@ -51,4 +60,3 @@ SELECT jsonb_build_object(
  FROM flags GROUP BY 1,2,3)z),
  'unresolved_sessions',(SELECT count(DISTINCT session_id) FROM resolved WHERE person IS NULL)
 ) measurement;
-

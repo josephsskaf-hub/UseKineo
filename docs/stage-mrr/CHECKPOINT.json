@@ -2,12 +2,12 @@
   "sprint": "MRR produto",
   "date": "2026-10-01",
   "worktree": "C:/kineo/.claude/worktrees/stage-sprint-mrr",
-  "branch": "codex/sprint-mrr-20261001",
+  "branch": "codex/sprint-mrr-measurement-20261001",
   "main": "87825d3225af384ed4c887a7faf7bacbe4546c47",
   "integratedQueue": "3aba3b0b7bbcbee9df0e66ad08b121a5a01acef9",
-  "status": "integrated-awaiting-full-suite",
-  "publication": "not-enqueued-not-deployed",
-  "next": "Run frozen full scripts/test-*.mjs suite versus main; tsc; fetch/reconcile; safe enfileirar; one PUBLICAR launcher. Never run launcher here.",
+  "status": "enqueued-launcher-ready-measurement-prepared",
+  "publication": "enqueued locally; launcher not executed by agent; deploy unverified",
+  "next": "Read remote main/public route only to confirm publication. If not published, no after-result exists; do not re-enqueue or create a second launcher today. After publication, validate versioned event ingestion with SELECT, no test writes; only compare mature 48h cohorts. Saturday report remains due. Preserve local queue if it advances.",
   "results": "No after-version production observations yet. No new sales inferred.",
   "report": "docs/STAGE-sprint-mrr-2026-10-04.md",
   "reportDue": "2026-10-03T23:00:00Z",
@@ -19,5 +19,25 @@
     "SELECT only",
     "solo",
     "no direct push"
-  ]
+  ],
+  "deliveryBranch": "codex/sprint-mrr-20261001",
+  "candidate": "b0fef8ceabaf6b21ff53a137cd2268f5f293c797",
+  "launcher": "C:/kineo/PUBLICAR-MRR-2026-10-01.bat",
+  "launcherNotificationSent": true,
+  "gates": {
+    "tsc": "clean",
+    "baseline": {
+      "total": 737,
+      "passed": 535,
+      "failed": 202
+    },
+    "candidate": {
+      "total": 740,
+      "passed": 538,
+      "failed": 202
+    },
+    "newRed": 0,
+    "ownMutantsKilled": 13,
+    "screenshots": 20
+  }
 }

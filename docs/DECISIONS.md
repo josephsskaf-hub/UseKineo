@@ -756,3 +756,9 @@ Slug do X confirmado: utm_source=x.
 ## 2026-10-01 — MRR: integração da fila Showcase
 
 - **FATO CONFIRMADO / DECISÃO OPERACIONAL REVERSÍVEL:** entrega-atual avançou para 3aba3b0b7bbcbee9df0e66ad08b121a5a01acef9 durante a validação. Preservados a página, catálogo, tradução, palcos, telemetria e rodapé dessa entrega. A MRR passa a fornecer apenas o bloco de valor em filmes após o palco Filmes e sua porta na home; não duplica galeria. Seu interruptor remove apenas esse complemento, nunca a rota alheia. Revalidar a árvore integrada inteira antes de enfileirar.
+
+## 2026-10-01 — MRR: candidato congelado e fila preservada
+
+- **TESTADO LOCALMENTE:** tsc limpo; suíte inteira main 737/535 verdes/202 falhas e candidato 740/538 verdes/202 falhas, sem novos arquivos ou asserções vermelhos. 13 mutantes MRR mortos; 20 prints com JSX real e serviços simulados. Gates em docs/stage-mrr/gates-2026-10-01.json.
+- **IMPLEMENTADO / ENFILEIRADO, NÃO VALIDADO EM PRODUÇÃO:** candidato b0fef8ceabaf6b21ff53a137cd2268f5f293c797, main 87825d3225af384ed4c887a7faf7bacbe4546c47. Fila alheia 3aba3b0 integrada antes dos gates. enfileirar.sh fez CAS sem push. PUBLICAR-MRR-2026-10-01.bat criado na raiz autorizada, chama o publicador seguro da worktree e aborta se main/fila mudar. O agente não o executou.
+- **DECISÃO OPERACIONAL REVERSÍVEL:** continuar medição/documentação na nova branch codex/sprint-mrr-measurement-20261001. Nenhuma nova entrega artificial enquanto faltarem exposição e observação; não reenfileirar nem criar segundo PUBLICAR hoje.
