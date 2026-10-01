@@ -1,0 +1,43 @@
+[
+  {
+    "measurement": {
+      "payment_groups": [
+        {
+          "kind": null,
+          "mode": "payment",
+          "tier": null,
+          "events": 2,
+          "people": 1,
+          "card_trial": "false"
+        },
+        {
+          "kind": null,
+          "mode": "subscription",
+          "tier": "basic",
+          "events": 2,
+          "people": 2,
+          "card_trial": "false"
+        },
+        {
+          "kind": null,
+          "mode": "subscription",
+          "tier": "starter",
+          "events": 3,
+          "people": 3,
+          "card_trial": "false"
+        },
+        {
+          "kind": null,
+          "mode": "subscription",
+          "tier": "starter",
+          "events": 1,
+          "people": 1,
+          "card_trial": null
+        }
+      ],
+      "missing_email_cohort": 0,
+      "first_positive_subscription_people": 6,
+      "payments_before_first_video_people": 6
+    }
+  }
+]

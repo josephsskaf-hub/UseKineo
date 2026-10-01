@@ -1,0 +1,216 @@
+[
+  {
+    "measurement": {
+      "window": {
+        "start": "2026-09-01T06:00:00Z",
+        "end_exclusive": "2026-10-01T06:00:00Z"
+      },
+      "by_source": [
+        {
+          "paid": 5,
+          "source": "chatgpt",
+          "signups": 314,
+          "checkout": 29,
+          "generated": 241,
+          "first_video": 194
+        },
+        {
+          "paid": 0,
+          "source": "taaft",
+          "signups": 143,
+          "checkout": 13,
+          "generated": 102,
+          "first_video": 89
+        },
+        {
+          "paid": 1,
+          "source": "unknown",
+          "signups": 134,
+          "checkout": 16,
+          "generated": 54,
+          "first_video": 44
+        },
+        {
+          "paid": 0,
+          "source": "nav",
+          "signups": 31,
+          "checkout": 3,
+          "generated": 17,
+          "first_video": 18
+        },
+        {
+          "paid": 0,
+          "source": "toolify",
+          "signups": 18,
+          "checkout": 3,
+          "generated": 7,
+          "first_video": 5
+        },
+        {
+          "paid": 0,
+          "source": "seo",
+          "signups": 12,
+          "checkout": 2,
+          "generated": 11,
+          "first_video": 10
+        },
+        {
+          "paid": 0,
+          "source": "hero",
+          "signups": 9,
+          "checkout": 1,
+          "generated": 5,
+          "first_video": 5
+        },
+        {
+          "paid": 0,
+          "source": "engine_bento",
+          "signups": 4,
+          "checkout": 1,
+          "generated": 2,
+          "first_video": 2
+        },
+        {
+          "paid": 0,
+          "source": "partners",
+          "signups": 3,
+          "checkout": 0,
+          "generated": 1,
+          "first_video": 1
+        },
+        {
+          "paid": 0,
+          "source": "topaihubs",
+          "signups": 2,
+          "checkout": 0,
+          "generated": 0,
+          "first_video": 0
+        },
+        {
+          "paid": 0,
+          "source": "home_sticky_cta",
+          "signups": 2,
+          "checkout": 1,
+          "generated": 1,
+          "first_video": 1
+        },
+        {
+          "paid": 0,
+          "source": "gemini",
+          "signups": 2,
+          "checkout": 0,
+          "generated": 1,
+          "first_video": 1
+        },
+        {
+          "paid": 0,
+          "source": "reddit",
+          "signups": 2,
+          "checkout": 1,
+          "generated": 0,
+          "first_video": 0
+        },
+        {
+          "paid": 0,
+          "source": "nav-mobile",
+          "signups": 2,
+          "checkout": 0,
+          "generated": 1,
+          "first_video": 1
+        },
+        {
+          "paid": 0,
+          "source": "vip-20.67673.live",
+          "signups": 1,
+          "checkout": 0,
+          "generated": 0,
+          "first_video": 1
+        },
+        {
+          "paid": 0,
+          "source": "attempt_lost",
+          "signups": 1,
+          "checkout": 0,
+          "generated": 1,
+          "first_video": 0
+        },
+        {
+          "paid": 0,
+          "source": "awa-newsletter.beehiiv.com",
+          "signups": 1,
+          "checkout": 0,
+          "generated": 0,
+          "first_video": 0
+        }
+      ],
+      "cohort_summary": [
+        {
+          "paid": 6,
+          "scope": "cohort_30d",
+          "signup": 681,
+          "checkout": 70,
+          "generated": 444,
+          "create_view": 542,
+          "first_video": 372,
+          "second_video": 100,
+          "generated_and_paid": 6,
+          "paid_without_video": 0,
+          "generated_with_video": 368,
+          "studio_observed_lower_bound": 467
+        },
+        {
+          "paid": 5,
+          "scope": "cohort_at_least_7d",
+          "signup": 537,
+          "checkout": 60,
+          "generated": 388,
+          "create_view": 459,
+          "first_video": 328,
+          "second_video": 92,
+          "generated_and_paid": 5,
+          "paid_without_video": 0,
+          "generated_with_video": 326,
+          "studio_observed_lower_bound": 353
+        }
+      ],
+      "video_statuses": [
+        {
+          "status": "completed",
+          "videos": 645
+        }
+      ],
+      "external_window_events": [
+        {
+          "name": "checkout_started",
+          "events": 86,
+          "people": 74,
+          "people_with_session": 74
+        },
+        {
+          "name": "generate_completed",
+          "events": 400,
+          "people": 309,
+          "people_with_session": 309
+        },
+        {
+          "name": "generate_started",
+          "events": 879,
+          "people": 455,
+          "people_with_session": 455
+        },
+        {
+          "name": "payment_success",
+          "events": 8,
+          "people": 7,
+          "people_with_session": 7
+        },
+        {
+          "name": "studio_tiles_shown",
+          "events": 525,
+          "people": 152,
+          "people_with_session": 152
+        }
+      ]
+    }
+  }
+]
