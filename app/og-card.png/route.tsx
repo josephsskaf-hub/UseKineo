@@ -13,6 +13,11 @@ import { ImageResponse } from 'next/og'
 // (public/ não entra no PUSH_KINEO.bat — por isso rota em app/, não estático.)
 export const runtime = 'edge'
 
+// KINEO-OG-CLARO-2026-10-01 — fundador: "aparece o tema preto, muda pro branco quando manda o link". O cartão da prévia (WhatsApp,
+// X, Slack) passa a usar a paleta CLARA da home (.klp: #F7F7F5, texto #0E1116, azul #0A5CFF) e o raio azul atual (public/favicon.svg)
+// no lugar do "K" antigo. O layout aponta para /og-card.png?v=claro-1001: URL nunca vista = sem a prévia preta guardada em cache.
+const BOLT = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="64" height="64"><path fill="#0A5CFF" transform="translate(5.676671 -5.410644) scale(0.039116)" d="M513.672,502.93L370.117,905.274L275.391,905.274L378.418,616.211L14.16,616.211L14.16,592.285L159.18,189.453L253.906,189.453L149.414,479.004L513.672,479.004Z"/></svg>')
+
 export async function GET() {
   return new ImageResponse(
     (
@@ -34,37 +39,23 @@ export async function GET() {
           flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
-          background: 'linear-gradient(135deg, #000 55%, #06121f 100%)',
+          background: 'radial-gradient(ellipse 900px 520px at 0% 0%, #E6EEFF, rgba(230,238,255,0) 72%), #F7F7F5',
           padding: '90px 100px',
           fontFamily: 'sans-serif',
           textAlign: 'center',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 44 }}>
-          <div
-            style={{
-              display: 'flex',
-              width: 58,
-              height: 58,
-              borderRadius: 14,
-              background: '#2563eb',
-              color: '#fff',
-              fontSize: 36,
-              fontWeight: 800,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            K
-          </div>
-          <div style={{ display: 'flex', color: '#2997ff', fontSize: 46, fontWeight: 800 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={BOLT} width={64} height={64} alt="" />
+          <div style={{ display: 'flex', color: '#0E1116', fontSize: 46, fontWeight: 800, letterSpacing: -1 }}>
             Kineo
           </div>
         </div>
         <div
           style={{
             display: 'flex',
-            color: '#F1F5F9',
+            color: '#0E1116',
             fontSize: 68,
             fontWeight: 800,
             lineHeight: 1.12,
@@ -72,7 +63,7 @@ export async function GET() {
         >
           Type an idea. Get a finished Short.
         </div>
-        <div style={{ display: 'flex', color: '#94a3b8', fontSize: 32, fontWeight: 600, marginTop: 22 }}>
+        <div style={{ display: 'flex', color: '#5A5F67', fontSize: 32, fontWeight: 600, marginTop: 22 }}>
           AI script · voiceover · captions · footage — in minutes. Free to try, no card.
         </div>
       </div>
