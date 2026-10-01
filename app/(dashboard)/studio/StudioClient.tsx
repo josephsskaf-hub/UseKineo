@@ -831,6 +831,8 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   return (
     <div className="stu composer-proposal" data-stage={scriptMode === 'clip' ? 'seedance' : engine}>
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
+      {/* KINEO-STUDIO-TELA-COR-2026-09-30 — cor de cada motor (gerada de STAGE_TINT); o CSS grande abaixo segue estático. */}
+      <style dangerouslySetInnerHTML={{ __html: STAGE_CSS }} />
 
       <h1><UiLabel>Studio</UiLabel></h1>
       <p className="sub"><UiLabel>Pick an engine, write your idea, then generate.</UiLabel></p>
@@ -1544,7 +1546,6 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
 @property --stage-a{syntax:'<color>';inherits:true;initial-value:#0A5CFF}
 @property --stage-b{syntax:'<color>';inherits:true;initial-value:#22D3EE}
 html{--stage-a:#0A5CFF;--stage-b:#22D3EE;transition:--stage-a .7s ease,--stage-b .7s ease}
-${STAGE_CSS}
 main:has(.stu.composer-proposal){background:radial-gradient(1100px 640px at 88% -8%,color-mix(in srgb,var(--stage-a) 32%,transparent),transparent 70%),radial-gradient(900px 620px at -6% 34%,color-mix(in srgb,var(--stage-b) 20%,transparent),transparent 70%),radial-gradient(900px 600px at 60% 108%,color-mix(in srgb,var(--stage-a) 16%,transparent),transparent 70%),linear-gradient(180deg,color-mix(in srgb,var(--stage-a) 14%,var(--bg)),color-mix(in srgb,var(--stage-b) 8%,var(--bg)))}
 .studio-best{grid-column:1 / -1;min-width:0;margin-top:30px}
 .studio-best-hd h2{margin:0;font-size:22px;line-height:1.2;letter-spacing:-.02em;color:var(--text)}

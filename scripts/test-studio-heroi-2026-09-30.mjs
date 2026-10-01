@@ -65,7 +65,7 @@ function clientProblems(src) {
   // reancorado 30/09 (KINEO-STUDIO-TELA-COR): fundador — "isso que você fez para a tela toda". A cor sai do style inline
   // e vira data-stage; uma regra html:has por motor (gerada de STAGE_TINT) pinta o <main> inteiro do Studio.
   if (!/<div className="stu composer-proposal" data-stage=\{scriptMode === 'clip' \? 'seedance' : engine\}>/.test(src)) p.push('a cor do palco não segue o motor escolhido')
-  if (!/const STAGE_CSS = Object\.entries\(STAGE_TINT\)\.map\(\(\[k, \[a, b\]\]\) => `html:has\(\.composer-proposal\[data-stage="\$\{k\}"\]\)\{--stage-a:\$\{a\};--stage-b:\$\{b\}\}`\)/.test(src) || !/\n\$\{STAGE_CSS\}\n/.test(src)) p.push('regras de cor por motor ausentes')
+  if (!/const STAGE_CSS = Object\.entries\(STAGE_TINT\)\.map\(\(\[k, \[a, b\]\]\) => `html:has\(\.composer-proposal\[data-stage="\$\{k\}"\]\)\{--stage-a:\$\{a\};--stage-b:\$\{b\}\}`\)/.test(src) || !/<style dangerouslySetInnerHTML=\{\{ __html: STAGE_CSS \}\} \/>/.test(src)) p.push('regras de cor por motor ausentes')
   if (!/main:has\(\.stu\.composer-proposal\)\{background:[^}]*var\(--stage-a\)/.test(src)) p.push('a tela toda não ganha a cor do motor')
   if (!/\.studio-engine-hero::before\{[^}]*var\(--stage-a\)/.test(src) || !/\.composer-proposal::before\{[^}]*var\(--stage-a\)/.test(src)) p.push('palco ou fundo sem a cor do motor')
   // KINEO-STUDIO-MELHORES-2026-09-30 — vitrine dos melhores logo abaixo do painel (fora da grade, senão o palco fixo
