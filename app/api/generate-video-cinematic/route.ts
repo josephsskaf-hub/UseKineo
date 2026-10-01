@@ -2928,6 +2928,9 @@ async function manipularPost(req: NextRequest) {
       models: string[],
     ): Promise<NextResponse> => {
       response = { ...response, submission_uncertain: cinematicSubmissionUncertain }
+      // [TRAVA 8.2 — Tarefa 0 do pedido de 01/10] KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01 — a sobretaxa que o `cost` somou vai ASSINADA na resposta do claim (hash + assinatura):
+      // o /api/compose confere filme + ESTE número, sem recalcular. Sem estrela, nada entra (resposta e hash de sempre). [KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01]
+      if (estrelaAtiva) response = { ...response, estrela_sobretaxa_cr: estrelaSobretaxaDe(duracaoCobrada) } // KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01
       cinematicSubmissionCache.set(cacheKey, {
         fingerprint: claimFingerprint,
         creditCost: cost,
