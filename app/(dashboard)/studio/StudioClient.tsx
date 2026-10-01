@@ -24,6 +24,7 @@ import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { ESTRELA_PUBLIC } from '@/lib/engineLaunch'
 import { estrelaDisponivelNoMotor, estrelaSobretaxa } from '@/lib/estrelaDoFilme'
 import { estrelaCopy } from '@/lib/estrelaCopy'
+import BrandLogoPicker from '@/components/BrandLogoPicker' // KINEO-LOGO-DA-MARCA-2026-10-01
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { CLIP_CREDITS } from '@/lib/cinematic/shotSpec'
@@ -1108,6 +1109,8 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                 )}
               </div>
             )}
+            {/* KINEO-LOGO-DA-MARCA-2026-10-01 — logo da empresa no canto de todo filme (todos os motores); fora do modo clipe. */}
+            {scriptMode !== 'clip' && <BrandLogoPicker />}
           </div>
         </section>
         <section className="composer-proposal-settings" aria-label={t('Settings and generation', 'Ajustes y generación')}>

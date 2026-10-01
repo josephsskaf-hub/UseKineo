@@ -16,6 +16,7 @@ import {
 } from '@/lib/refusalSpiral'
 // KINEO-MULTIFORMATO-2026-09-02 — enquadramento do master (9:16 · 16:9 · 1:1 · 4:5).
 import { normalizeAspect } from '@/lib/aspect'
+import { findBrandLogoUrl } from '@/lib/brandLogo' // KINEO-LOGO-DA-MARCA-2026-10-01
 import {
   buildCreatomateSource,
   CreatomateSubmitError,
@@ -2677,6 +2678,8 @@ export async function POST(req: NextRequest) {
         console.warn('[compose] hollywood music unavailable; preserving narration')
       }
 
+      // KINEO-LOGO-DA-MARCA-2026-10-01 — o logo da empresa da conta, se existir, vai no canto de todo filme.
+      const hollywoodBrandLogoUrl = await findBrandLogoUrl(authenticatedUserId, composeAdmin)
       let hollywoodSource: Record<string, unknown>
       try {
         setActiveCaptionFont(language) // KINEO-IDIOMAS-15
@@ -2685,6 +2688,7 @@ export async function POST(req: NextRequest) {
           requestedDuration: duration,
           narrationBlocks,
           watermark: forced,
+          brandLogoUrl: hollywoodBrandLogoUrl, // KINEO-LOGO-DA-MARCA-2026-10-01
           endCard: forced,
           musicUrl: hollywoodMusicUrl,
           aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
@@ -3374,10 +3378,13 @@ export async function POST(req: NextRequest) {
       isTrialRender ||
       isFreePlanCinematic ||
       FORCE_WATERMARK_EMAILS.has((user.email ?? '').toLowerCase())
+    // KINEO-LOGO-DA-MARCA-2026-10-01 — o logo da empresa da conta, se existir, vai no canto de todo filme.
+    const brandLogoUrl = await findBrandLogoUrl(authenticatedUserId, composeAdmin)
     let source: Record<string, unknown>
     try {
       setActiveCaptionFont(language) // KINEO-IDIOMAS-15
       source = buildCreatomateSource({
+        brandLogoUrl, // KINEO-LOGO-DA-MARCA-2026-10-01
         clipUrls: composeClipUrls, // KINEO1-PRIMEIRO-FILME-VIDEO — com os clipes Seedance encaixados (ou o original)
         clipSeconds: composeClipUrls === clipUrls ? signedClipPlan?.seconds ?? null : null, // KINEO-KLING25-PLANOS-5S-2026-09-28 — plano de 5 s nunca ocupa mais de 5 s
         // KINEO-KLING25-PLANOS-5S-2026-09-28 (revisão adversarial) — cada plano entra quando a SUA fala começa

@@ -756,3 +756,10 @@ Slug do X confirmado: utm_source=x.
 ## 2026-10-01 — MRR: integração da fila Showcase
 
 - **FATO CONFIRMADO / DECISÃO OPERACIONAL REVERSÍVEL:** entrega-atual avançou para 3aba3b0b7bbcbee9df0e66ad08b121a5a01acef9 durante a validação. Preservados a página, catálogo, tradução, palcos, telemetria e rodapé dessa entrega. A MRR passa a fornecer apenas o bloco de valor em filmes após o palco Filmes e sua porta na home; não duplica galeria. Seu interruptor remove apenas esse complemento, nunca a rota alheia. Revalidar a árvore integrada inteira antes de enfileirar.
+
+## 2026-10-01 — Estrela do filme aberta + "Seu logo" em todo filme (KINEO-LOGO-DA-MARCA)
+
+- **Pedido do fundador (01/10):** uma cliente queria imagem de referência no Kling 2.5. Primeiro "liga a estrela" (ESTRELA_PUBLIC=true, rosto da foto como protagonista, +2 cr/6 s); depois o pedido real: "ela quer colocar o logo dela… seria só um logo… para todos os motores… rápido".
+- **Decisão:** bloco "Your logo" no /studio (fora do modo clipe). O logo fica num caminho fixo da conta (`avatars/<uid>/brand-logo.png|jpg`); o `/api/compose` consulta o storage em cada montagem e grava o logo no canto superior esquerdo, filme inteiro, faixa 10, nos dois montadores (clássico e hollywood) — logo vale para todos os motores, inclusive o filme que termina com a aba fechada, e para a versão limpa do unlock. Sem custo extra de crédito.
+- **Regras:** só a própria conta; PNG/JPG ≤ 5 MB; caixa "este logo é meu ou da minha empresa"; moderação no upload; remover = apagar o próprio logo. Sem logo, o filme sai byte a byte como antes. Guardião: scripts/test-logo-da-marca-2026-10-01.mjs.
+- **Em aberto:** /clips, /ads e /spaces não usam o logo ainda (montagens próprias).

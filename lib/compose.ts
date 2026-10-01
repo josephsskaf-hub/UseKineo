@@ -44,6 +44,18 @@ const CREATOMATE_BASE = 'https://api.creatomate.com/v1'
 // CTA_TEXT, CTA_TAIL_SECONDS and INTRO_LOCKUP_SECONDS were deleted together
 // with the elements they fed: nothing in this file emits a CTA tail any more.
 const WATERMARK_TEXT = 'usekineo.com/free'
+
+// KINEO-LOGO-DA-MARCA-2026-10-01 — o logo da empresa do cliente (lib/brandLogo.ts), filme inteiro, faixa 10 (livre).
+// Canto SUPERIOR ESQUERDO: em 9:16 a caixa vai de x≈32 a 248 px e y≈77 a 230 px — a plaquinha da marca d'água
+// (track 9) ocupa x≈342–738, então os dois nunca se tocam; a legenda começa em ~1350 px. fit 'contain' preserva a
+// proporção de qualquer logo (largo ou quadrado) dentro da caixa. Só URL https — o compose resolve do storage da conta.
+export function brandLogoElement(url: string | null | undefined, totalDuration: number): CreatomateElement | null {
+  if (typeof url !== 'string' || !/^https:\/\//.test(url) || !(totalDuration > 0)) return null
+  return {
+    type: 'image', track: 10, time: 0, duration: totalDuration, source: url,
+    x: '14%', y: '8%', width: '20%', height: '8%', fit: 'contain',
+  }
+}
 // Push #293 / Kineo-Audio-2026 — Background music volume + fades. Lowered
 // 18%→12% so the narrator always dominates (InVideo/OpusClip sit music ~10-14%
 // under a VO). Creatomate can't sidechain-duck, so a fixed low level plus a
@@ -316,6 +328,8 @@ export interface ComposeInputs {
    * The decision is made server-side in /api/compose (never trusts the client).
    */
   watermark?: boolean
+  /** KINEO-LOGO-DA-MARCA-2026-10-01 — logo da empresa do cliente, canto superior esquerdo, filme inteiro. */
+  brandLogoUrl?: string | null
   /**
    * #482 — used to append a "Made with Kineo" end card plus a "usekineo.com"
    * CTA in the final 2.5s window (and, after PUSH #100, a second copy of the
@@ -2065,6 +2079,7 @@ export function buildCreatomateSource({
   whisperWords,
   musicUrl,
   watermark = false,
+  brandLogoUrl = null, // KINEO-LOGO-DA-MARCA-2026-10-01
   avatarUrl = null,
   avatarHookSeconds = null,
   aspect,
@@ -3042,6 +3057,9 @@ export function buildCreatomateSource({
     })
   }
 
+  const logoEl = brandLogoElement(brandLogoUrl, totalDuration) // KINEO-LOGO-DA-MARCA-2026-10-01
+  if (logoEl) elements.push(logoEl)
+
   return {
     // KINEO-RENDER-PROFILE-2026-08-10 — o literal 1080/1920/30 virou alavanca
     // de custo por env. Defaults idênticos: enquanto KINEO_RENDER_* não
@@ -3135,6 +3153,7 @@ export function buildHollywoodCreatomateSource({
   requestedDuration,
   narrationBlocks,
   watermark = false,
+  brandLogoUrl = null, // KINEO-LOGO-DA-MARCA-2026-10-01
   musicUrl = null,
   muteClipAudio = false,
   aspect, // KINEO-MULTIFORMATO-2026-09-02 — ausente = '9:16'
@@ -3144,6 +3163,8 @@ export function buildHollywoodCreatomateSource({
   requestedDuration?: number
   narrationBlocks: HollywoodNarrationBlock[]
   watermark?: boolean
+  /** KINEO-LOGO-DA-MARCA-2026-10-01 — logo da empresa do cliente, canto superior esquerdo, filme inteiro. */
+  brandLogoUrl?: string | null
   endCard?: boolean
   // KINEO-HOLLYWOOD-SCORE-2026-08-17 — trilha por tema em volume de cinema.
   // O Hollywood rodava SEM musica; o fundador ouviu os respiros entre
@@ -3544,6 +3565,9 @@ export function buildHollywoodCreatomateSource({
       background_color: 'rgba(13,13,20,0.55)',
     })
   }
+
+  const logoEl = brandLogoElement(brandLogoUrl, totalDuration) // KINEO-LOGO-DA-MARCA-2026-10-01
+  if (logoEl) elements.push(logoEl)
 
   return {
     // KINEO-RENDER-PROFILE-2026-08-10 — o literal 1080/1920/30 virou alavanca

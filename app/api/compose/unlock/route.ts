@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { findBrandLogoUrl } from '@/lib/brandLogo' // KINEO-LOGO-DA-MARCA-2026-10-01
 import { stripe } from '@/lib/stripe'
 import {
   buildCreatomateSource,
@@ -583,10 +584,13 @@ export async function POST(req: NextRequest) {
       musicUrl = null
     }
 
+    // KINEO-LOGO-DA-MARCA-2026-10-01 — a versão limpa mantém o logo da empresa, igual ao filme original.
+    const brandLogoUrl = await findBrandLogoUrl(user.id, admin)
     let source: Record<string, unknown>
     try {
       setActiveCaptionFont(language) // LOTE2-EXPORT-LIMPO-FIEL-2026-09-23 — a mesma fonte por língua do /api/compose
       source = buildCreatomateSource({
+        brandLogoUrl, // KINEO-LOGO-DA-MARCA-2026-10-01
         clipUrls,
         voiceoverUrl,
         voiceoverScript: scaledScript,
