@@ -682,3 +682,10 @@ Slug do X confirmado: utm_source=x.
 ## 2026-09-30 — ADM: cor escura original com os menus novos
 
 **DECISÃO APROVADA (fundador, Board):** após revisar `ADM-COR-ORIGINAL-MENUS-NOVOS.html`, Joseph confirmou: "deixa escuro pode dar merge". Esta decisão substitui somente a paleta branca/cinza das iterações anteriores do ADM: fundo escuro original, cartões grafite, texto claro e destaque azul. Preservar o refinamento dos menus e do layout, os controles, cálculos e permissões. Não mudar a aparência do site público nem do Studio.
+
+## 2026-09-30 — Studio: palco do motor com cor (KINEO-STUDIO-PALCO)
+- Fundador (print do Buzzy x nosso Studio): "precisa ter mais cor… cara de falta de acabamento e polimento".
+- O vídeo do motor fica num palco escuro (nos dois temas) com o brilho da cor do motor escolhido; o fundo da página ganha o mesmo brilho, suave. Cada motor tem um par de cores (STAGE_TINT em StudioClient.tsx); Clipe usa a do Seedance.
+- No palco: nome do motor grande, a descrição dele, o custo na duração escolhida ("25 cr · 60s · 1080p"), o título do filme e as miniaturas dos filmes da casa daquele motor (troca no clique). O vídeo continua sozinho e inteiro, sem laterais desfocadas.
+- Layout por container query: palco largo = info | vídeo | miniaturas; médio = vídeo | info+miniaturas; estreito/celular = vídeo, miniaturas, info.
+- Selo honesto intacto: "Made with <motor real>" no vídeo; nenhum vídeo de cliente.
