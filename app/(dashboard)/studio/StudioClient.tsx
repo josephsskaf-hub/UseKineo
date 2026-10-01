@@ -194,14 +194,15 @@ export type StudioBestFilm = { id: string; title: string; engine: string; src: s
 /** KINEO-STUDIO-PALCO-2026-09-30 — cor de cada motor no palco e no fundo da página (fundador: "precisa ter mais cor…
  *  cara de falta de acabamento"; referência Buzzy). Só decoração: o selo continua dizendo o motor real. */
 const STAGE_TINT: Record<string, [string, string]> = {
-  fast: ['#0A5CFF', '#22D3EE'],
-  seedance: ['#0EA5A4', '#84CC16'],
-  kling: ['#F59E0B', '#F97316'],
-  veo: ['#6366F1', '#38BDF8'],
-  hollywood: ['#E11D48', '#F59E0B'],
-  h3: ['#EC4899', '#8B5CF6'],
-  omni: ['#8B5CF6', '#3B82F6'],
-  s25: ['#0EA5A4', '#6366F1'],
+  // KINEO-STUDIO-LATERAL-COR-2026-10-01 — fundador: "troca as cores, melhorar um pouco mais". Pares mais vivos, em gradiente.
+  fast: ['#2F6BFF', '#7C5CFF'],
+  seedance: ['#10B981', '#06B6D4'],
+  kling: ['#FF7A18', '#FF3D77'],
+  veo: ['#4F46E5', '#06B6D4'],
+  hollywood: ['#E11D48', '#7C3AED'],
+  h3: ['#EC4899', '#F59E0B'],
+  omni: ['#8B5CF6', '#22D3EE'],
+  s25: ['#14B8A6', '#6366F1'],
 }
 /** KINEO-STUDIO-MELHORES-2026-09-30 — o filme clicado na vitrine vai para a frente da lista do palco (sem repetir). */
 function withPick(list: StudioHeroVideo[], pick: StudioBestFilm | null, key: string): StudioHeroVideo[] {
@@ -1562,6 +1563,11 @@ html .stu.composer-proposal[data-stage] :is(.composer-proposal-idea,.composer-pr
 html .stu.composer-proposal[data-stage] .composer-proposal-settings>.card{box-shadow:var(--sh-card)}
 /* o .stu tinha fundo var(--bg) chapado e cobria a cor do <main> (só o brilho do topo aparecia). */
 html .stu.composer-proposal[data-stage]{background:transparent}
+/* KINEO-STUDIO-LATERAL-COR-2026-10-01 — fundador: "precisa estar a cor da barra lateral a mesma cor da caixa dos motores".
+   No Studio a barra lateral veste o palco (escuro + brilho do motor) e troca junto com o motor; a barra do topo pega o tom
+   da página. Fora do Studio o atributo some (efeito do StudioClient) e tudo volta ao normal. */
+html[data-studio-stage] aside:has(>nav[data-nav-surface=sidebar]){--sidebar-bg:radial-gradient(130% 55% at 0% 0%,color-mix(in srgb,var(--stage-a) 46%,transparent),transparent 72%),radial-gradient(130% 50% at 100% 100%,color-mix(in srgb,var(--stage-b) 40%,transparent),transparent 72%),#06080d;--text:#F2F4F7;--text2:#D5DBE4;--muted:#A3ADBB;--muted2:#8A93A3;--border:#ffffff1c;--border2:#ffffff2e;--card:#ffffff12;--card2:#ffffff1a;--accent:#FFFFFF;--accent-soft:color-mix(in srgb,var(--stage-a) 34%,transparent);--indigo:color-mix(in srgb,var(--stage-a) 65%,#fff);color-scheme:dark;color:var(--text);border-right-color:#ffffff14!important}
+html[data-studio-stage]{--header-bg:color-mix(in srgb,var(--stage-b) 9%,var(--bg))}
 .studio-best{grid-column:1 / -1;min-width:0;margin-top:30px}
 .studio-best-hd h2{margin:0;font-size:22px;line-height:1.2;letter-spacing:-.02em;color:var(--text)}
 .studio-best-hd p{margin:4px 0 16px;font-size:13px;color:var(--muted)}

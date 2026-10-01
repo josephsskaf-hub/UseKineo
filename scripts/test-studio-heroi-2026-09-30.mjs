@@ -72,6 +72,10 @@ function clientProblems(src) {
   // KINEO-STUDIO-COR-EQUILIBRIO-2026-10-01 — o .stu tinha fundo chapado var(--bg) e escondia a cor do <main> (só o
   // brilho do topo aparecia: "só tem cor em um lugar"). Sem o fundo transparente, a tela toda volta a ficar cinza.
   if (!/html \.stu\.composer-proposal\[data-stage\]\{background:transparent\}/.test(src)) p.push('o fundo chapado do Studio cobre a cor da tela')
+  // KINEO-STUDIO-LATERAL-COR-2026-10-01 — fundador: "a cor da barra lateral, a mesma cor da caixa dos motores". No
+  // Studio a lateral veste o palco: fundo escuro #06080d com o brilho de --stage-a/--stage-b, igual ao .studio-engine-hero.
+  const side = src.match(/html\[data-studio-stage\] aside:has\(>nav\[data-nav-surface=sidebar\]\)\{([^\n]*)\}/)?.[1] ?? ''
+  if (!/--sidebar-bg:[^;]*var\(--stage-a\)[^;]*var\(--stage-b\)[^;]*#06080d;/.test(side) || !/\.studio-engine-hero\{[^}]*background:#06080d/.test(src)) p.push('barra lateral sem a cor da caixa do motor')
   if (!/html \.stu\.composer-proposal\[data-stage\] :is\(\.composer-proposal-idea,\.composer-proposal-settings>\.card,\.composer-proposal-optional\)\{background:color-mix\(in srgb,var\(--card\) \d+%,transparent\)/.test(src)) p.push('cartões da esquerda sem o vidro (a cor não aparece atrás deles)')
   if (!/\.studio-engine-hero::before\{[^}]*var\(--stage-a\)/.test(src) || !/\.composer-proposal::before\{[^}]*var\(--stage-a\)/.test(src)) p.push('palco ou fundo sem a cor do motor')
   // KINEO-STUDIO-MELHORES-2026-09-30 — vitrine dos melhores logo abaixo do painel (fora da grade, senão o palco fixo
@@ -120,6 +124,7 @@ ok(clientProblems(CLIENT.replace('<video key={v.src} className="seh-main"', '<vi
 ok(clientProblems(CLIENT.replace("data-stage={scriptMode === 'clip' ? 'seedance' : engine}>", "data-stage=\"fast\">")).length > 0, '(M8) cor presa num motor → vermelho')
 ok(clientProblems(CLIENT.replace(/main:has\(\.stu\.composer-proposal\)\{background:[^}]*\}/, 'main:has(.stu.composer-proposal){}')).length > 0, '(M10) tela sem a cor do motor → vermelho')
 ok(clientProblems(CLIENT.replace('html .stu.composer-proposal[data-stage]{background:transparent}', '')).length > 0, '(M12) fundo chapado cobrindo a cor → vermelho')
+ok(clientProblems(CLIENT.replace('html[data-studio-stage] aside:has(>nav[data-nav-surface=sidebar]){--sidebar-bg:', 'html[data-studio-stage] aside:has(>nav[data-nav-surface=sidebar]){--x:')).length > 0, '(M13) barra lateral sem a cor do motor → vermelho')
 ok(clientProblems(CLIENT.replace('setHeroPick(f)\n', '\n').replace('setHeroPick(f)\r\n', '\r\n')).length > 0, '(M11) vitrine que não mostra o filme no palco → vermelho')
 {
   // vitrine: 8 filmes da casa já aprovados, 2 fileiras de 4, com mídia em public/, nenhum de motor em manutenção.

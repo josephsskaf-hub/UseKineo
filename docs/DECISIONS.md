@@ -702,3 +702,9 @@ Slug do X confirmado: utm_source=x.
 - Causa achada: o bloco .stu do Studio tinha fundo chapado var(--bg) e cobria a cor pintada no <main> — só o brilho do topo aparecia. Agora transparente.
 - A cor do motor se espalha em tom pastel pela tela inteira (mais forte atrás da coluna de ajustes, mais suave no canto do vídeo); o brilho do palco baixou um pouco; os cartões da esquerda viraram vidro (78% opaco + desfoque) para a cor aparecer por trás sem atrapalhar a leitura. Claro e escuro.
 - Guardião test-studio-heroi: 18 ok, 12 mutantes (novo: fundo chapado cobrindo a cor).
+
+## 2026-10-01 — Studio: paleta nova + barra lateral com a cor da caixa do motor (KINEO-STUDIO-LATERAL-COR)
+- Fundador: "troca as cores, melhorar um pouco mais, o caminho tá certo… precisa estar a cor da barra lateral a mesma cor da caixa dos motores".
+- Paleta (pares em gradiente): Kineo 1 azul→violeta · Seedance esmeralda→ciano · Kling 2.5 laranja→rosa · Veo anil→ciano · Kling 3 carmim→roxo · H3 rosa→dourado · Omni violeta→ciano.
+- No Studio, a barra lateral veste o palco (fundo #06080d + brilho das duas cores do motor, texto claro) e troca junto com o motor; a barra do topo pega um leve tom da página. Fora do Studio tudo volta ao normal (o atributo html[data-studio-stage] sai junto com a tela).
+- Guardião test-studio-heroi: 19 ok, 13 mutantes.
