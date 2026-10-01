@@ -116,5 +116,32 @@
     "release": "Explicit subsequent release after Board diagnosis; agent never sends under MRR sprint mandate.",
     "evidence": "Board relayed recipient rejection for Kevin Stratvert at 2026-10-01 13:16 UTC: 550 5.7.1 Message rejected: sender domain is blocklisted; cites usekineo.com and Spamhaus. Not independently verified listing or proof all deliveries failed.",
     "constraints": "Preserve queues/history/suppressions. No alternate sender/channel bypass, test send, parallel investigation, DNS/credentials/provider-setting changes or provider retry manipulation. Product work and transactional emails unchanged."
+  },
+  "priorityDecision": {
+    "date": "2026-10-01",
+    "source": "Joseph via Board; existing evidence only, no new financial query",
+    "focus": "First eligible film: explicit one-click ready topic within existing trial",
+    "baseline": {
+      "window": "2026-09-01T06:00:00Z/2026-10-01T06:00:00Z",
+      "signups": 681,
+      "neverGenerate": 237,
+      "stoppedAfterFirst": 272,
+      "checkoutPeople": 70,
+      "newSubscriptions": 6
+    },
+    "interpretation": "272 is the largest observed adjacent loss in people; 64/70 is the largest listed percentage loss. Founder priority remains first activation (237 never generated). These populations overlap and are not a strict chronological funnel. Trial-eligible subset of 237 is unknown.",
+    "hypothesis": "An explicit complete topic with actual affordable cost reduces the effort needed for an eligible signup to start a first film.",
+    "action": "Ship already implemented MrrFirstFilm in next permitted reviewed house batch; no new duplicate widget, campaign or generation owner.",
+    "metric": "Distinct external people exposed to mrr_first_film_20261001_v1 with session_id, then explicit commitment, generate_started and first positive subscription within equal mature 48h follow-up. Anonymous sessions separate; no division by all 681 as if they were exposed.",
+    "continue": "Keep under observation if eligibility and explicit-click contract remain correct; evaluate all mature exposed people and paid outcomes. No causal uplift claim without comparable baseline/control.",
+    "stop": "Disable MRR_FIRST_FILM_ENABLED through house process if hidden autostart, duplicate generation ownership, trial-ineligible exposure or cost/balance mismatch is verified. With no mature sample, retain UNKNOWN rather than claim success/failure.",
+    "states": {
+      "local": "Implemented; 9 first-film mutants, tsc clean, 8 first-film screenshots; integrated batch full suite has no new red.",
+      "published": "New batch not published. Prior b0 levers reached main; showcase public evidence recorded.",
+      "exposed": "New first-film exposure unknown/not observed; no production query in this turn.",
+      "paid": "No incremental paid outcome attributed. Existing latest cut Oct1 14:16:15UTC only.",
+      "netMRR": "Unknown: this evidence lacks complete expansion, contraction and cancellation reconciliation."
+    },
+    "publicationGate": "One MRR PUBLICAR/day already used Oct1. Next eligible Oct2, after fresh merge/gates. HOLD keeps reactivation dispatch suspended."
   }
 }
