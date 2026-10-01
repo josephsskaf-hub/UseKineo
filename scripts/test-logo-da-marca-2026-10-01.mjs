@@ -26,7 +26,8 @@ checa('L1 as duas funções puras existem em lib/brandLogo.ts', typeof brandLogo
 const URL_OK = 'https://x.supabase.co/storage/v1/object/public/avatars/u/brand-logo.png?v=1'
 const el = brandLogoElement(URL_OK, 42)
 checa('L2 https vira imagem na faixa 10, do 0 ao fim, contain', !!el && el.type === 'image' && el.track === 10 && el.time === 0 && el.duration === 42 && el.fit === 'contain' && el.source === URL_OK)
-checa('L3 canto superior esquerdo (x ≤ 20%, y ≤ 10%)', !!el && parseFloat(el.x) <= 20 && parseFloat(el.y) <= 10)
+// 1º filme real (Viva Connect, 01/10): em y 8% o logo cobria o 'usekineo.com/free' (faixa 9 termina em ~7,1% = 137 px).
+checa('L3 canto esquerdo, com o TOPO da caixa abaixo da faixa da marca dágua (≥ 8%) e longe da legenda (≤ 25%)', !!el && parseFloat(el.x) <= 20 && parseFloat(el.y) - parseFloat(el.height) / 2 >= 8 && parseFloat(el.y) + parseFloat(el.height) / 2 <= 25)
 checa('L4 sem URL / http / duração 0 = nenhum elemento', brandLogoElement(null, 30) === null && brandLogoElement('http://a/b.png', 30) === null && brandLogoElement(URL_OK, 0) === null)
 const src = { duration: 33.5, elements: [{ type: 'video', track: 1 }, { type: 'text', track: 9 }] }
 withBrandLogo(src, URL_OK)

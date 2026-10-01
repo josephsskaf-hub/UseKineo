@@ -24,14 +24,15 @@ export function brandLogoAdmin(): SupabaseClient {
 
 /**
  * O elemento do logo para o Creatomate: faixa 10 (livre — os montadores usam 1–9), filme inteiro, canto SUPERIOR
- * ESQUERDO. Em 9:16 a caixa vai de x≈32 a 248 px e y≈77 a 230 px; a plaquinha da marca d'água (faixa 9) ocupa
- * x≈342–738 e a legenda começa em ~1350 px, então nada se toca. fit 'contain' preserva a proporção de qualquer logo.
+ * ESQUERDO, ABAIXO da faixa da marca d'água. 1º filme real (Viva Connect, 01/10): com y 8% o logo cobria o começo
+ * do "usekineo.com/free" — a plaquinha medida no vídeo começa em x≈250 px, não nos 342 da conta antiga. Agora o centro
+ * fica a 15%: em 9:16 a caixa vai de y≈211 a 365 px (a plaquinha termina em ~137 px; a legenda começa em ~1350 px). fit 'contain' preserva a proporção de qualquer logo.
  * Só URL https. Entra DEPOIS de montado (mesmo padrão do "sem legenda" do Ads): lib/compose (trava 8.2) não muda.
  */
 export function brandLogoElement(url: string | null | undefined, totalDuration: unknown): Record<string, unknown> | null {
   const d = Number(totalDuration)
   if (typeof url !== 'string' || !/^https:\/\//.test(url) || !(d > 0)) return null
-  return { type: 'image', track: 10, time: 0, duration: d, source: url, x: '14%', y: '8%', width: '20%', height: '8%', fit: 'contain' }
+  return { type: 'image', track: 10, time: 0, duration: d, source: url, x: '14%', y: '15%', width: '20%', height: '8%', fit: 'contain' }
 }
 
 /** Acrescenta o logo a um source já montado (usa a duração do próprio source). Sem logo = source intacto. */
