@@ -90,6 +90,34 @@ export default function ClipsClient() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<{ text: string; credits: boolean } | null>(null)
   const [showTopup, setShowTopup] = useState(false)
+  // KINEO-NUVEM-A2-2026-10-02 — "Add my logo": cópia do clipe pronto com o logo da conta (lib/clips/clipBrand.ts). O
+  // servidor decide se o botão existe (interruptor + logo salvo); o clipe original nunca muda e nada é cobrado.
+  const [brandAvailable, setBrandAvailable] = useState(false)
+  const [brand, setBrand] = useState<Record<string, { state: 'working' | 'ready' | 'failed'; url?: string }>>({})
+  useEffect(() => {
+    fetch('/api/clips/brand', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setBrandAvailable(d?.available === true))
+      .catch(() => setBrandAvailable(false))
+  }, [])
+  async function addLogo(clipId: string) {
+    setBrand((b) => ({ ...b, [clipId]: { state: 'working' } }))
+    try {
+      const res = await fetch('/api/clips/brand', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: clipId }) })
+      const d = await res.json().catch(() => null)
+      const renderId = typeof d?.render_id === 'string' ? d.render_id : null
+      if (!renderId) throw new Error('submit')
+      for (let i = 0; i < 60; i++) {
+        await new Promise((r) => setTimeout(r, 5000))
+        const st = await fetch(`/api/clips/brand?render=${encodeURIComponent(renderId)}`, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null)
+        if (st?.status === 'succeeded' && typeof st.url === 'string') { setBrand((b) => ({ ...b, [clipId]: { state: 'ready', url: st.url } })); return }
+        if (st?.status === 'failed') throw new Error('render')
+      }
+      throw new Error('timeout')
+    } catch {
+      setBrand((b) => ({ ...b, [clipId]: { state: 'failed' } }))
+    }
+  }
   const fileRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(() => {
@@ -374,6 +402,9 @@ export default function ClipsClient() {
                 {c.status === 'done' && c.video_url && (
                   <div className="row" style={{ marginTop: 8 }}>
                     <button type="button" className="pill" onClick={() => void download(c.video_url!, `kineo-clip-${c.id.slice(0, 8)}.mp4`)}><ControlIcon name="download" /> {t('download')}</button>
+                    {brandAvailable && ['9:16', '16:9', '1:1'].includes(c.aspect) && (brand[c.id]?.state === 'ready' && brand[c.id]?.url
+                      ? <button type="button" className="pill" onClick={() => void download(brand[c.id]!.url!, `kineo-clip-${c.id.slice(0, 8)}-logo.mp4`)}><ControlIcon name="download" /> {t('withLogoDownload')}</button>
+                      : <button type="button" className="pill" disabled={brand[c.id]?.state === 'working'} onClick={() => void addLogo(c.id)}>{brand[c.id]?.state === 'working' ? t('withLogoWorking') : brand[c.id]?.state === 'failed' ? `↻ ${t('withLogo')}` : t('withLogo')}</button>)}
                   </div>
                 )}
               </div>

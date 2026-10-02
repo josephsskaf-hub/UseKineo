@@ -42,6 +42,10 @@ export const CLIP_COPY_EN = {
   tryAgain: 'Try again',
   addCredits: 'Add credits →',
   signIn: 'Sign in →',
+  // KINEO-NUVEM-A2-2026-10-02 — passada de logo do clipe (lib/clips/clipBrand.ts)
+  withLogo: 'Add my logo',
+  withLogoWorking: 'Adding your logo…',
+  withLogoDownload: 'With my logo',
 } as const
 
 export type ClipCopyKey = keyof typeof CLIP_COPY_EN
@@ -86,6 +90,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     tryAgain: 'Tentar de novo',
     addCredits: 'Adicionar créditos →',
     signIn: 'Entrar →',
+    withLogo: 'Colocar meu logo',
+    withLogoWorking: 'Colocando seu logo…',
+    withLogoDownload: 'Com meu logo',
   },
   es: {
     title: 'Clips',
@@ -125,6 +132,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     tryAgain: 'Reintentar',
     addCredits: 'Añadir créditos →',
     signIn: 'Iniciar sesión →',
+    withLogo: 'Poner mi logo',
+    withLogoWorking: 'Poniendo tu logo…',
+    withLogoDownload: 'Con mi logo',
   },
   fr: {
     title: 'Clips',
@@ -164,6 +174,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     tryAgain: 'Réessayer',
     addCredits: 'Ajouter des crédits →',
     signIn: 'Se connecter →',
+    withLogo: 'Ajouter mon logo',
+    withLogoWorking: 'Ajout de votre logo…',
+    withLogoDownload: 'Avec mon logo',
   },
   de: {
     title: 'Clips',
@@ -203,6 +216,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     tryAgain: 'Erneut versuchen',
     addCredits: 'Credits aufladen →',
     signIn: 'Anmelden →',
+    withLogo: 'Mein Logo einfügen',
+    withLogoWorking: 'Logo wird eingefügt…',
+    withLogoDownload: 'Mit meinem Logo',
   },
   it: {
     title: 'Clip',
@@ -242,6 +258,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     tryAgain: 'Riprova',
     addCredits: 'Aggiungi crediti →',
     signIn: 'Accedi →',
+    withLogo: 'Aggiungi il mio logo',
+    withLogoWorking: 'Aggiungo il tuo logo…',
+    withLogoDownload: 'Con il mio logo',
   },
   nl: {
     title: 'Clips',
@@ -281,6 +300,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     tryAgain: 'Opnieuw proberen',
     addCredits: 'Credits toevoegen →',
     signIn: 'Inloggen →',
+    withLogo: 'Mijn logo toevoegen',
+    withLogoWorking: 'Je logo wordt toegevoegd…',
+    withLogoDownload: 'Met mijn logo',
   },
   pl: {
     title: 'Klipy',
@@ -320,6 +342,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     tryAgain: 'Spróbuj ponownie',
     addCredits: 'Dodaj kredyty →',
     signIn: 'Zaloguj się →',
+    withLogo: 'Dodaj moje logo',
+    withLogoWorking: 'Dodajemy Twoje logo…',
+    withLogoDownload: 'Z moim logo',
   },
   tr: {
     title: 'Klipler',
@@ -359,6 +384,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     tryAgain: 'Tekrar dene',
     addCredits: 'Kredi ekle →',
     signIn: 'Giriş yap →',
+    withLogo: 'Logomu ekle',
+    withLogoWorking: 'Logonuz ekleniyor…',
+    withLogoDownload: 'Logomla',
   },
   ru: {
     title: 'Клипы',
@@ -398,6 +426,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     tryAgain: 'Повторить',
     addCredits: 'Пополнить кредиты →',
     signIn: 'Войти →',
+    withLogo: 'Добавить мой логотип',
+    withLogoWorking: 'Добавляем ваш логотип…',
+    withLogoDownload: 'С моим логотипом',
   },
   uk: {
     title: 'Кліпи',
@@ -437,6 +468,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     tryAgain: 'Спробувати ще',
     addCredits: 'Поповнити кредити →',
     signIn: 'Увійти →',
+    withLogo: 'Додати мій логотип',
+    withLogoWorking: 'Додаємо ваш логотип…',
+    withLogoDownload: 'З моїм логотипом',
   },
   ar: {
     title: 'مقاطع',
@@ -476,6 +510,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     tryAgain: 'حاول مرة أخرى',
     addCredits: 'أضف رصيدًا ←',
     signIn: 'تسجيل الدخول ←',
+    withLogo: 'أضف شعاري',
+    withLogoWorking: 'جارٍ إضافة شعارك…',
+    withLogoDownload: 'مع شعاري',
   },
   ur: {
     title: 'کلپس',
@@ -515,6 +552,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     tryAgain: 'دوبارہ کوشش کریں',
     addCredits: 'کریڈٹ شامل کریں ←',
     signIn: 'سائن ان کریں ←',
+    withLogo: 'میرا لوگو لگائیں',
+    withLogoWorking: 'آپ کا لوگو لگ رہا ہے…',
+    withLogoDownload: 'میرے لوگو کے ساتھ',
   },
   hi: {
     title: 'क्लिप्स',
@@ -554,6 +594,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     tryAgain: 'फिर कोशिश करें',
     addCredits: 'क्रेडिट जोड़ें →',
     signIn: 'साइन इन करें →',
+    withLogo: 'मेरा लोगो लगाएँ',
+    withLogoWorking: 'आपका लोगो लग रहा है…',
+    withLogoDownload: 'मेरे लोगो के साथ',
   },
   id: {
     title: 'Klip',
@@ -593,6 +636,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     tryAgain: 'Coba lagi',
     addCredits: 'Tambah kredit →',
     signIn: 'Masuk →',
+    withLogo: 'Tambahkan logo saya',
+    withLogoWorking: 'Menambahkan logo Anda…',
+    withLogoDownload: 'Dengan logo saya',
   },
   vi: {
     title: 'Clip',
@@ -632,6 +678,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     tryAgain: 'Thử lại',
     addCredits: 'Thêm tín dụng →',
     signIn: 'Đăng nhập →',
+    withLogo: 'Thêm logo của tôi',
+    withLogoWorking: 'Đang thêm logo của bạn…',
+    withLogoDownload: 'Kèm logo của tôi',
   },
 }
 

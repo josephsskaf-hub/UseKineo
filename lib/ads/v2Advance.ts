@@ -36,6 +36,7 @@ import { buildShotInput } from '@/lib/ads/v2Engines'
 import { ADS_V2_ENGINES, adsV2RetakeCredits, routeShot, type AdsV2Engine, type AdsV2ShotKind, type AdsV2Tier } from '@/lib/ads/v2Tiers'
 import { ADS_V2_CARD_SECONDS, type AdsV2ShotPlan } from '@/lib/ads/v2ShotLists'
 import { buildAdV2Source, ADS_V2_VOICE_START, type AdV2MontageShot } from '@/lib/ads/adV2Montage'
+import { findBrandLogoUrl, withBrandLogo } from '@/lib/brandLogo' // KINEO-NUVEM-A2-2026-10-02
 import { adsV2FallbackTrack, adsV2MusicTrimStart, adsV2MusicUsable, adsV2SwapLibraryTrack } from '@/lib/ads/v2Music'
 import { ADS_V2_QUALITY, confirmAdsV2Debit, failAdsV2Order } from '@/lib/ads/v2Billing'
 import {
@@ -590,6 +591,10 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
     await failAdsV2Order(admin, order, `montage_invalid:${e instanceof Error ? e.message : String(e)}`, '/lib/ads/v2Advance')
     return
   }
+  // KINEO-NUVEM-A2-2026-10-02 — logo da CONTA no canto durante os planos, como em todo filme do compose. Para no começo do
+  // cartão final (`until`), que já traz o logo da empresa em tela cheia: o mesmo logo nunca aparece duas vezes no quadro.
+  // Sem logo na conta = source idêntico ao de antes; a busca nunca lança (lib/brandLogo findBrandLogoUrl).
+  withBrandLogo(source, await findBrandLogoUrl(order.user_id, admin), { until: Math.round(shotsSeconds * 1000) / 1000 })
   // 4. Carimbo ANTES do POST (só quem ainda segura a trava): com ele e sem id, o envio é ambíguo e nunca se repete.
   const stamp = await admin
     .from('ads_v2_orders')

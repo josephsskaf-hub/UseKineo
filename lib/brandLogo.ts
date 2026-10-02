@@ -23,22 +23,37 @@ export function brandLogoAdmin(): SupabaseClient {
 }
 
 /**
+ * KINEO-NUVEM-A2-2026-10-02 — onde o logo fica nos montadores de FORA do compose ("logo da conta em tudo"):
+ *   · `until` (s): o logo some neste instante — o Ads v2 para no começo do cartão final, que JÁ mostra o logo da empresa
+ *     (sem duplicar o mesmo logo no mesmo quadro);
+ *   · `y`: centro vertical em % — o Espaços desce o logo para 19% porque o rótulo ANTES/DEPOIS mora em y 6–12%.
+ */
+export interface BrandLogoPlacement {
+  until?: number
+  y?: string
+}
+
+/**
  * O elemento do logo para o Creatomate: faixa 10 (livre — os montadores usam 1–9), filme inteiro, canto SUPERIOR
  * ESQUERDO, ABAIXO da faixa da marca d'água. 1º filme real (Viva Connect, 01/10): com y 8% o logo cobria o começo
  * do "usekineo.com/free" — a plaquinha medida no vídeo começa em x≈250 px, não nos 342 da conta antiga. Agora o centro
  * fica a 15%: em 9:16 a caixa vai de y≈211 a 365 px (a plaquinha termina em ~137 px; a legenda começa em ~1350 px). fit 'contain' preserva a proporção de qualquer logo.
  * Só URL https. Entra DEPOIS de montado (mesmo padrão do "sem legenda" do Ads): lib/compose (trava 8.2) não muda.
  */
-export function brandLogoElement(url: string | null | undefined, totalDuration: unknown): Record<string, unknown> | null {
-  const d = Number(totalDuration)
+export function brandLogoElement(url: string | null | undefined, totalDuration: unknown, place?: BrandLogoPlacement): Record<string, unknown> | null {
+  // KINEO-NUVEM-A2-2026-10-02 — `place` é opcional e só existe para os montadores de fora do compose (Espaços, Ads v2,
+  // passada de logo do Clips): sem ele, o elemento é byte a byte o de 01/10 (o compose não passa nada).
+  const until = place?.until
+  const d = Number(until === undefined ? totalDuration : Math.min(Number(until), Number(totalDuration)))
   if (typeof url !== 'string' || !/^https:\/\//.test(url) || !(d > 0)) return null
-  return { type: 'image', track: 10, time: 0, duration: d, source: url, x: '14%', y: '15%', width: '20%', height: '8%', fit: 'contain' }
+  const y = typeof place?.y === 'string' && /^\d{1,2}(\.\d+)?%$/.test(place.y) ? place.y : '15%'
+  return { type: 'image', track: 10, time: 0, duration: d, source: url, x: '14%', y, width: '20%', height: '8%', fit: 'contain' }
 }
 
 /** Acrescenta o logo a um source já montado (usa a duração do próprio source). Sem logo = source intacto. */
-export function withBrandLogo<T extends Record<string, unknown>>(source: T, url: string | null): T {
+export function withBrandLogo<T extends Record<string, unknown>>(source: T, url: string | null, place?: BrandLogoPlacement): T {
   const els = (source as { elements?: unknown }).elements
-  const el = brandLogoElement(url, (source as { duration?: unknown }).duration)
+  const el = brandLogoElement(url, (source as { duration?: unknown }).duration, place)
   if (el && Array.isArray(els)) els.push(el)
   return source
 }

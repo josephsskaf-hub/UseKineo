@@ -145,6 +145,8 @@ const billingStubs = {
   '@/lib/credits/debit': { debitVideoCredits: async (db, a) => { billCalls.debit.push({ ...a, at: billCalls.intent.length }); return db.__debit ? db.__debit(a) : { data: 0, error: null } } },
   '@/lib/credits/refund': { refundRenderCredits: async (ref) => { billCalls.refund.push(ref); return refundHook ? refundHook(ref) : 0 } },
   '@/lib/serverEvents': { writeServerEvent: async (e) => { billCalls.events.push(e); return true } },
+  // Reancorado 02/10 (KINEO-NUVEM-A2): v2Advance passou a importar o logo da conta; o stub = conta SEM logo (source idêntico ao de antes).
+  '@/lib/brandLogo': { findBrandLogoUrl: async () => null, withBrandLogo: (s) => s },
 }
 const B = makeLoader(billingStubs)('lib/ads/v2Billing.ts')
 
@@ -305,6 +307,8 @@ const advStubs = {
   '@/lib/textLanguage': { captionFontFor: () => 'Montserrat', narrationLanguage: (x) => (typeof x === 'string' && x ? x : null) },
   '@/lib/ads/speakable': { speakableForTts: (t) => t },
   '@/lib/serverEvents': { writeServerEvent: async (e) => { prov.events.push({ ...e, orderAtEvent: currentTables ? { ...currentTables.ads_v2_orders[0] } : null }); return true } },
+  // Reancorado 02/10 (KINEO-NUVEM-A2): v2Advance passou a importar o logo da conta; o stub = conta SEM logo (source idêntico ao de antes).
+  '@/lib/brandLogo': { findBrandLogoUrl: async () => null, withBrandLogo: (s) => s },
   '@/lib/ads/v2Billing': makeLoader(billingStubs)('lib/ads/v2Billing.ts'),
   '@/lib/ads/v2Shots': {
     ...SH,

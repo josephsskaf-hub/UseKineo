@@ -12,8 +12,10 @@ import { pollCreatomateRender, submitCreatomateRender } from '@/lib/compose'
 import { persistRenderAssets } from '@/lib/renderAssets'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { isAdsInternalEmail } from '@/lib/ads/access'
+import { findBrandLogoUrl, withBrandLogo } from '@/lib/brandLogo' // KINEO-NUVEM-A2-2026-10-02
 import { spacesVideoLabels } from '@/lib/spaces/spacesCopy'
 import {
+  SPACES_BRAND_LOGO_Y,
   SPACES_PUBLIC,
   SPACE_CONTACT_MAX,
   SPACE_MAX_PHOTOS,
@@ -65,12 +67,15 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       return fail(e instanceof Error ? e.message : 'bad_montage', 400)
     }
+    // KINEO-NUVEM-A2-2026-10-02 — o logo da conta (se houver) entra DEPOIS de montado, como no compose; nunca lança.
+    const brandLogo = await findBrandLogoUrl(user.id)
+    withBrandLogo(source, brandLogo, { y: SPACES_BRAND_LOGO_Y })
     const renderId = await submitCreatomateRender(source)
     await writeServerEvent({
       name: 'spaces_montage_submitted',
       userId: user.id,
       path: '/api/spaces/montage',
-      metadata: { render_id: renderId, pairs: pairs.length, signature: Boolean(signature), contact: Boolean(contact), seal: body?.seal === true, language: typeof body?.language === 'string' ? body.language.slice(0, 5) : null, seconds: source.duration },
+      metadata: { render_id: renderId, pairs: pairs.length, brand_logo: Boolean(brandLogo), signature: Boolean(signature), contact: Boolean(contact), seal: body?.seal === true, language: typeof body?.language === 'string' ? body.language.slice(0, 5) : null, seconds: source.duration },
     })
     return NextResponse.json({ render_id: renderId }, { status: 202, headers: { 'Cache-Control': 'no-store' } })
   } catch (e) {

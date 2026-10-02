@@ -182,6 +182,12 @@ export const SPACES_BEFORE_SECONDS = 1.6
 export const SPACES_REVEAL_SECONDS = 1.1
 export const SPACES_CLIP_SECONDS = 5
 export const SPACES_CARD_SECONDS = 2.6
+/**
+ * KINEO-NUVEM-A2-2026-10-02 — o logo da CONTA (lib/brandLogo, o mesmo do "Your logo" do Studio) entra no vídeo do Espaços
+ * no canto esquerdo, do primeiro ao último quadro. Centro em 19% (caixa de 15% a 23%): o rótulo ANTES/DEPOIS ocupa
+ * y 6–12% no centro da tela e o logo padrão (15%, caixa 11–19%) encostaria nele. Sem logo na conta = vídeo de sempre.
+ */
+export const SPACES_BRAND_LOGO_Y = '19%'
 /** Mesmo retângulo que o compose usa (shape só desenha com path). */
 export const SPACES_RECT_PATH = 'M 0 0 L 100 0 L 100 100 L 0 100 Z'
 

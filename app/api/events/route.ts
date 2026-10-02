@@ -235,6 +235,9 @@ const SERVER_ONLY_EVENTS = new Set([
   // da montagem confere (mesmo desenho do producao_montage_submitted): fora desta lista, um navegador cunhava a prova e
   // passava a consultar (e copiar para o próprio storage) o render de outra conta.
   'spaces_montage_submitted',
+  // KINEO-NUVEM-A2-2026-10-02 — escrito SÓ por /api/clips/brand (cópia do clipe com o logo da conta): é a prova de dono
+  // do GET e a trava de "um envio por clipe". Se o navegador o cunhasse, travaria o botão de outra pessoa.
+  'clip_brand_submitted',
 ])
 
 export async function POST(req: NextRequest) {
