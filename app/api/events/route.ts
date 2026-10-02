@@ -231,6 +231,10 @@ const SERVER_ONLY_EVENTS = new Set([
   // /api/ads/producao/montage (a linha com o render_id é a PROVA de dono que o GET da montagem confere). O navegador não cunha.
   'producao_plan_created',
   'producao_montage_submitted',
+  // KINEO-NUVEM-A6-2026-10-02 — escrito SÓ por /api/spaces/montage. A linha com o render_id é a PROVA de dono que o GET
+  // da montagem confere (mesmo desenho do producao_montage_submitted): fora desta lista, um navegador cunhava a prova e
+  // passava a consultar (e copiar para o próprio storage) o render de outra conta.
+  'spaces_montage_submitted',
 ])
 
 export async function POST(req: NextRequest) {
