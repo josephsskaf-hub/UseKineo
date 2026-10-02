@@ -18,7 +18,10 @@ const com = rd('lib/affiliateCommission.ts')
 checa('fonte única pura: AFFILIATE_COMMISSION_RATE = 0.3 e PCT derivado', /export const AFFILIATE_COMMISSION_RATE = 0\.3\b/.test(com) && /AFFILIATE_COMMISSION_PCT = `\$\{Math\.round\(AFFILIATE_COMMISSION_RATE \* 100\)\}%`/.test(com) && !/^import /m.test(com))
 checa('cadastro de afiliado grava a fonte, não 0.4', /commission_rate: AFFILIATE_COMMISSION_RATE,/.test(rd('app/api/affiliate/apply/route.ts')) && !/commission_rate: 0\.4/.test(rd('app/api/affiliate/apply/route.ts')))
 checa('/partners calcula com a fonte e não diz 40%', /const COMMISSION_RATE = AFFILIATE_COMMISSION_RATE/.test(rd('app/partners/page.tsx')) && !/40%/.test(rd('app/partners/page.tsx')))
-for (const f of ['app/(dashboard)/affiliate/page.tsx', 'components/Footer.tsx', 'lib/ui/interfaceLabels.ts', 'lib/ui/interfaceHindi.ts', 'lib/growth/affiliateProgramComparison.ts']) {
+// Reancorado 02/10 (KINEO-LACOS-TAXA-2026-10-02): o painel do afiliado deixou de digitar "30%" — a taxa vem de
+// AFFILIATE_COMMISSION_PCT (a fonte acima, = 0.3). A prova continua a mesma: a tela diz a taxa da fonte e nunca "40%".
+checa('app/(dashboard)/affiliate/page.tsx: taxa da fonte (AFFILIATE_COMMISSION_PCT) e nenhum "40% recurring"', /earn \{AFFILIATE_COMMISSION_PCT\} recurring/.test(rd('app/(dashboard)/affiliate/page.tsx')) && /AFFILIATE_COMMISSION_PCT[^\n]*from '@\/lib\/affiliateCommission'/.test(rd('app/(dashboard)/affiliate/page.tsx')) && !/40% recurring|40% recurrente/.test(rd('app/(dashboard)/affiliate/page.tsx')))
+for (const f of ['components/Footer.tsx', 'lib/ui/interfaceLabels.ts', 'lib/ui/interfaceHindi.ts', 'lib/growth/affiliateProgramComparison.ts']) {
   checa(`${f}: 30% e nenhum "40% recurring"`, /30%/.test(rd(f)) && !/40% recurring|40% recurrente/.test(rd(f)))
 }
 // KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: o kit foi reescrito em inglês depois da V7 (a frase "$29/mês → $8,70"
