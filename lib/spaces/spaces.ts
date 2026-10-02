@@ -25,6 +25,21 @@ export function spacesVisibleFor(publicFlag: boolean, isInternal: boolean): bool
   return publicFlag === true || isInternal === true
 }
 
+// ── KINEO-NUVEM-A5-2026-10-02 — "vários destinos": 1 ponto vazio → 2 a 4 negócios rotulados num só vídeo ──────────────
+// Pedido (02/10): a construtora mostra o MESMO ponto vazio virando café · farmácia · clínica, para o locatário escolher.
+// Mesmo motor e mesmas etapas pagas de sempre: uma foto pronta por destino (Nano Banana Pro, 5 cr) e um clipe por destino
+// (Kling 2.5, 5 cr) — o preço é a SOMA das etapas, nada de tabela nova. A montagem repete o "Antes" e troca o "Depois"
+// pelo nome de cada negócio. Interruptor próprio (false = só a casa); abrir é decisão do fundador.
+export const SPACES_MULTI_PUBLIC = false
+export const SPACES_MULTI_MIN = 2
+export const SPACES_MULTI_MAX = 4
+export const SPACES_DESTINATION_LABEL_MAX = 24
+/** Créditos do vídeo de vários destinos = (foto pronta + clipe) × destinos, com os preços que as etapas já cobram. */
+export function spacesMultiCredits(destinations: number, stageCredits: number, clipCredits: number): number {
+  if (!Number.isInteger(destinations) || destinations < SPACES_MULTI_MIN || destinations > SPACES_MULTI_MAX) throw new Error('spaces_multi_bad_count')
+  return destinations * (stageCredits + clipCredits)
+}
+
 // ── tipos de espaço ─────────────────────────────────────────────────────────────────────────────────────────────────
 export type SpaceKind = 'store' | 'food' | 'office' | 'home' | 'other'
 export const SPACE_KINDS: readonly SpaceKind[] = ['store', 'food', 'office', 'home', 'other']
@@ -177,6 +192,8 @@ export interface SpacePair {
   beforeUrl: string
   /** Clipe do espaço pronto, gerado a partir da foto pronta (mesma câmera). */
   clipUrl: string
+  /** KINEO-NUVEM-A5-2026-10-02 — vários destinos: o nome do negócio no lugar do "Depois" (ex.: "Café"). */
+  label?: string
 }
 export const SPACES_BEFORE_SECONDS = 1.6
 export const SPACES_REVEAL_SECONDS = 1.1
@@ -250,7 +267,9 @@ export function buildSpacesMontageSource(args: {
       enter_transition: { type: 'fade', duration: SPACES_REVEAL_SECONDS },
     })
     elements.push(label(cleanLine(L.before, 24), t0 + 0.15, SPACES_BEFORE_SECONDS - 0.15))
-    elements.push(label(cleanLine(L.after, 24), tClip + SPACES_REVEAL_SECONDS, SPACES_CLIP_SECONDS - SPACES_REVEAL_SECONDS))
+    // KINEO-NUVEM-A5-2026-10-02 — com destino rotulado, o nome do negócio entra no lugar do "Depois".
+    const afterText = cleanLine(p.label ?? '', SPACES_DESTINATION_LABEL_MAX) || cleanLine(L.after, 24)
+    elements.push(label(afterText, tClip + SPACES_REVEAL_SECONDS, SPACES_CLIP_SECONDS - SPACES_REVEAL_SECONDS))
   })
 
   // Cartão final: fundo escuro + assinatura + contato (sem logo de terceiros). Sem assinatura nem contato, o vídeo

@@ -75,7 +75,7 @@ let seq = 0
 const newKey = () => `p${Date.now().toString(36)}${(seq++).toString(36)}`
 
 /** Reduz a foto para ≤ 2048 px (JPEG). */
-async function shrink(blob: Blob): Promise<Blob> {
+export async function shrink(blob: Blob): Promise<Blob> {
   const bmp = await createImageBitmap(blob)
   const scale = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height))
   const canvas = document.createElement('canvas')
@@ -86,7 +86,7 @@ async function shrink(blob: Blob): Promise<Blob> {
 }
 
 /** Tira até 3 quadros de um vídeo (15 %, 50 %, 85 %) no próprio navegador. */
-async function framesFromVideo(file: File, count: number): Promise<Blob[]> {
+export async function framesFromVideo(file: File, count: number): Promise<Blob[]> {
   const url = URL.createObjectURL(file)
   try {
     const v = document.createElement('video')
@@ -111,7 +111,7 @@ async function framesFromVideo(file: File, count: number): Promise<Blob[]> {
   }
 }
 
-function Compare({ before, after, labels }: { before: string; after: string; labels: { before: string; after: string; compare: string; emptyAlt: string; readyAlt: string } }) {
+export function Compare({ before, after, labels }: { before: string; after: string; labels: { before: string; after: string; compare: string; emptyAlt: string; readyAlt: string } }) {
   const [pos, setPos] = useState(50)
   return (
     <div style={{ position: 'relative', width: '100%', aspectRatio: '9 / 16', borderRadius: 12, overflow: 'hidden', background: '#000' }}>
@@ -128,7 +128,8 @@ function Compare({ before, after, labels }: { before: string; after: string; lab
   )
 }
 
-export default function SpacesClient() {
+// KINEO-NUVEM-A5-2026-10-02 — multiAllowed: a página diz se a conta vê "vários destinos" (interruptor ou casa).
+export default function SpacesClient({ multiAllowed = false }: { multiAllowed?: boolean }) {
   const language = useInterfaceLanguage()
   const t = useCallback((key: SpacesCopyKey, vars?: Record<string, string | number>) => spacesCopy(language, key, vars), [language])
   const [photos, setPhotos] = useState<Photo[]>([])
@@ -344,6 +345,7 @@ export default function SpacesClient() {
         <div style={{ fontSize: 12, fontWeight: 700, color: C.accent, letterSpacing: '.08em', textTransform: 'uppercase' }}>{t('badge')}</div>
         <h1 style={{ fontSize: 30, fontWeight: 800, color: C.text, margin: '4px 0 6px', letterSpacing: '-.01em' }}>{t('title')}</h1>
         <p style={{ fontSize: 15, color: C.text2, margin: 0, maxWidth: 680 }}>{t('sub')}</p>
+        {multiAllowed ? <p style={{ margin: '8px 0 0', fontSize: 14 }}><a href="/spaces?mode=multi" style={{ color: C.accent, fontWeight: 700, textDecoration: 'none' }}>{t('multiLink')}</a></p> : null}
       </header>
 
       {/* KINEO-ABAS-PALCO-2026-10-01 — o formato do Studio: quadro de engenharia na esquerda, palco na direita. */}

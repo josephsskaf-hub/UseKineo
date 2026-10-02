@@ -16,6 +16,10 @@ import { findBrandLogoUrl, withBrandLogo } from '@/lib/brandLogo' // KINEO-NUVEM
 import { spacesVideoLabels } from '@/lib/spaces/spacesCopy'
 import {
   SPACES_BRAND_LOGO_Y,
+  SPACES_DESTINATION_LABEL_MAX,
+  SPACES_MULTI_MAX,
+  SPACES_MULTI_MIN,
+  SPACES_MULTI_PUBLIC,
   SPACES_PUBLIC,
   SPACE_CONTACT_MAX,
   SPACE_MAX_PHOTOS,
@@ -50,12 +54,20 @@ export async function POST(req: NextRequest) {
     const user = g.user
     const origin = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
     const body = (await req.json().catch(() => null)) as { pairs?: unknown; signature?: unknown; contact?: unknown; language?: unknown; seal?: unknown } | null
-    const raw = Array.isArray(body?.pairs) ? (body!.pairs as { before_url?: unknown; clip_url?: unknown }[]) : []
+    const raw = Array.isArray(body?.pairs) ? (body!.pairs as { before_url?: unknown; clip_url?: unknown; label?: unknown }[]) : []
     if (raw.length === 0 || raw.length > SPACE_MAX_PHOTOS) return fail('bad_pairs', 400)
+    // KINEO-NUVEM-A5-2026-10-02 — vários destinos (rótulo por par): só com o interruptor ou conta da casa, 2 a 4 pares,
+    // todos rotulados. Sem rótulo nenhum = o vídeo de sempre.
+    const labels = raw.map((p) => cleanLine(p?.label, SPACES_DESTINATION_LABEL_MAX))
+    const multi = labels.some(Boolean)
+    if (multi) {
+      if (!spacesVisibleFor(SPACES_MULTI_PUBLIC, isAdsInternalEmail(user.email))) return fail('not_found', 404)
+      if (labels.some((l) => !l) || raw.length < SPACES_MULTI_MIN || raw.length > SPACES_MULTI_MAX) return fail('bad_destinations', 400)
+    }
     const pairs: SpacePair[] = []
-    for (const p of raw) {
+    for (const [i, p] of raw.entries()) {
       if (!isOwnedSpaceAssetUrl(p?.before_url, user.id, origin) || !isOwnedSpaceAssetUrl(p?.clip_url, user.id, origin)) return fail('not_your_media', 403)
-      pairs.push({ beforeUrl: String(p.before_url), clipUrl: String(p.clip_url) })
+      pairs.push({ beforeUrl: String(p.before_url), clipUrl: String(p.clip_url), ...(multi ? { label: labels[i] } : {}) })
     }
     const signature = cleanLine(body?.signature, SPACE_SIGNATURE_MAX)
     const contact = cleanLine(body?.contact, SPACE_CONTACT_MAX)
@@ -75,7 +87,7 @@ export async function POST(req: NextRequest) {
       name: 'spaces_montage_submitted',
       userId: user.id,
       path: '/api/spaces/montage',
-      metadata: { render_id: renderId, pairs: pairs.length, brand_logo: Boolean(brandLogo), signature: Boolean(signature), contact: Boolean(contact), seal: body?.seal === true, language: typeof body?.language === 'string' ? body.language.slice(0, 5) : null, seconds: source.duration },
+      metadata: { render_id: renderId, pairs: pairs.length, multi, brand_logo: Boolean(brandLogo), signature: Boolean(signature), contact: Boolean(contact), seal: body?.seal === true, language: typeof body?.language === 'string' ? body.language.slice(0, 5) : null, seconds: source.duration },
     })
     return NextResponse.json({ render_id: renderId }, { status: 202, headers: { 'Cache-Control': 'no-store' } })
   } catch (e) {
