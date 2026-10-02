@@ -34,6 +34,7 @@ import {
   type WallRange,
   type WallShort,
 } from '@/lib/wallOfProof'
+import { listIndexablePublicVideos, type PublicVideo } from '@/lib/publicVideos'
 
 const BLUE = '#2997ff'
 const MUTED = '#86868b'
@@ -50,6 +51,48 @@ const loadWall = unstable_cache(
   ['kineo-wall-of-proof'],
   { revalidate: 600, tags: ['wall-of-proof'] },
 )
+
+// ═══ KINEO-LACOS-WALL-2026-10-02 ════════════════════════════════════════════
+// Segunda seção: "Latest public films" — as páginas /v/<id> que os DONOS publicaram (o botão "Create a public watch
+// page" do My Videos carimba videos.published_at). O /wall só mostrava Shorts colados do YouTube; os filmes
+// publicados na própria Kineo não apareciam em lugar nenhum além do sitemap.
+//
+// PRIVACIDADE: a seleção é a MESMA do video-sitemap — listIndexablePublicVideos (lib/publicVideos.ts), que aplica a
+// política de lib/publicSurfacePolicy.ts no servidor: com CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED desligada, só entra
+// linha com consentimento do dono (published_at), e ainda assim só a que passa o portão de qualidade (status,
+// URL durável, título/roteiro). Esta página não consulta `videos` por conta própria e não abre nada que a política
+// não abra. Sem nenhuma linha publicada, a seção não aparece.
+//
+// LEITURA: no servidor, com prazo (LATEST_FILMS_TIMEOUT_MS) e falha SILENCIOSA — a seção some, o mural fica. O
+// cache de 10 min é o mesmo do mural; um estouro de prazo LANÇA dentro do cache (não grava "vazio" por 10 min) e é
+// engolido fora dele.
+const LATEST_FILMS_LIMIT = 8
+const LATEST_FILMS_TIMEOUT_MS = 2_500
+
+const loadLatestFilmsCached = unstable_cache(
+  async (): Promise<PublicVideo[]> => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const prazo = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('latest_films_timeout')), LATEST_FILMS_TIMEOUT_MS)
+    })
+    try {
+      return await Promise.race([listIndexablePublicVideos(LATEST_FILMS_LIMIT), prazo])
+    } finally {
+      if (timer) clearTimeout(timer)
+    }
+  },
+  ['kineo-wall-latest-public-films'],
+  { revalidate: 600, tags: ['wall-of-proof', 'public-videos'] },
+)
+
+async function loadLatestFilms(): Promise<PublicVideo[]> {
+  try {
+    const films = await loadLatestFilmsCached()
+    return Array.isArray(films) ? films.slice(0, LATEST_FILMS_LIMIT) : []
+  } catch {
+    return []
+  }
+}
 
 // O root layout NÃO declara `robots` nem `alternates.canonical` (ver o comentário
 // PUSH #92 em app/layout.tsx), então esta página não herda noindex nenhum. Ainda
@@ -272,6 +315,115 @@ function ShortCard({ short, rank }: { short: WallShort; rank: number }) {
   )
 }
 
+function formatFilmDuration(seconds: number | null): string | null {
+  if (!seconds || seconds <= 0) return null
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return m ? `${m}:${String(s).padStart(2, '0')}` : `${s}s`
+}
+
+// KINEO-LACOS-WALL-2026-10-02 — cartão de um filme publicado: abre a /v/<id> (a página do filme, com o "Make your
+// own version"), não o YouTube. A miniatura é a do próprio filme (frame persistido) ou o cartão OG gerado.
+function PublicFilmCard({ film }: { film: PublicVideo }) {
+  const duration = formatFilmDuration(film.durationSeconds)
+  return (
+    <li style={{ listStyle: 'none' }}>
+      <Link href={`/v/${film.id}`} style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
+        <div
+          style={{
+            position: 'relative',
+            width: '100%',
+            aspectRatio: '9 / 16',
+            borderRadius: 14,
+            overflow: 'hidden',
+            background: '#111',
+            border: '1px solid rgba(255,255,255,0.1)',
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={film.thumbnailUrl}
+            alt={film.title}
+            loading="lazy"
+            decoding="async"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 42%)',
+            }}
+          />
+          {duration && (
+            <span
+              style={{
+                position: 'absolute',
+                bottom: 8,
+                left: 8,
+                padding: '4px 9px',
+                borderRadius: 8,
+                background: 'rgba(0,0,0,0.72)',
+                color: '#f5f5f7',
+                fontSize: '0.76rem',
+                fontWeight: 900,
+              }}
+            >
+              {duration}
+            </span>
+          )}
+        </div>
+        <p
+          style={{
+            margin: '10px 0 2px',
+            fontSize: '0.86rem',
+            fontWeight: 700,
+            lineHeight: 1.4,
+            color: '#f5f5f7',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+        >
+          {film.title}
+        </p>
+        <p style={{ margin: 0, fontSize: '0.76rem', color: MUTED }}>Watch on Kineo</p>
+      </Link>
+    </li>
+  )
+}
+
+function LatestPublicFilms({ films }: { films: PublicVideo[] }) {
+  if (films.length === 0) return null
+  return (
+    <section aria-labelledby="latest-public-films" style={{ marginTop: 44 }}>
+      <h2 id="latest-public-films" style={{ margin: '0 0 6px', fontSize: '1.25rem', fontWeight: 900 }}>
+        Latest public films
+      </h2>
+      <p style={{ margin: '0 0 18px', color: '#d2d2d7', fontSize: '0.92rem', lineHeight: 1.6, maxWidth: 680 }}>
+        Films their creators chose to publish on Kineo. Open one to watch it — and make your own version from the same
+        idea.
+      </p>
+      <ul
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+          gap: 18,
+          margin: 0,
+          padding: 0,
+        }}
+      >
+        {films.map((film) => (
+          <PublicFilmCard key={film.id} film={film} />
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 function EmptyState({ range }: { range: WallRange }) {
   return (
     <div
@@ -305,7 +457,8 @@ export default async function WallOfProofPage({
   searchParams?: { range?: string }
 }) {
   const range: WallRange = searchParams?.range === 'all' ? 'all' : 'week'
-  const data = await loadWall(range)
+  // KINEO-LACOS-WALL-2026-10-02 — as duas leituras correm juntas; a dos filmes nunca lança (some em silêncio).
+  const [data, latestFilms] = await Promise.all([loadWall(range), loadLatestFilms()])
   const { items, totalAllTime, viewsPending, totalViews } = data
 
   return (
@@ -406,6 +559,8 @@ export default async function WallOfProofPage({
             ))}
           </ul>
         )}
+
+        <LatestPublicFilms films={latestFilms} />
 
         {/* id="paste" — destino do botão "Paste my link" do e-mail
             send-post-nudge. Sem a âncora, quem clica no e-mail cai no TOPO da

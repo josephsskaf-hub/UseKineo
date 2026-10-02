@@ -68,6 +68,11 @@ import { ADS_V2_MAX_PHOTOS, ADS_V2_MIN_PHOTOS } from '@/lib/ads/v2ShotLists' // 
 import { TIER_CREDITS, formatCheckoutMoney, getTierPrice } from '@/lib/checkoutPricing' // KINEO-ADS-PORTA-PLANO-2026-09-27
 import { planName } from '@/lib/growth/planFit' // KINEO-ADS-PORTA-PLANO-2026-09-27 — the canonical plan name
 import AdsPageBanners, { AdsCtaLink, type AdsDoorCta } from './AdsPageBanners'
+// KINEO-NUVEM-A4-2026-10-02 — card "Kineo Business" (o plano Studio para empresas; sem preço novo, atrás de interruptor).
+import { kineoBusinessOffer, kineoBusinessVisible } from '@/lib/growth/kineoBusiness'
+import { characterLimitFor } from '@/lib/characterLimits'
+import { ADS_VARIACOES_PUBLIC } from '@/lib/ads/v2Variations'
+import { SPACES_PUBLIC } from '@/lib/spaces/spaces'
 
 export const dynamic = 'force-dynamic'
 
@@ -251,6 +256,18 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
   // níveis DERIVADOS desta página (V2_LEVELS) — "1 new ad at any level" deixou de ser a frase inteira (90 paga 2 de Photo motion).
   const passCoverage = adsCoverageLine(ADS_PASS_CREDITS, V2_LEVELS)
 
+  // KINEO-NUVEM-A4-2026-10-02 — o Studio apresentado para empresas: preço, créditos e personagens vêm das fontes.
+  const business = kineoBusinessVisible({ internal: viewer.internal, preview: first(searchParams?.preview) })
+    ? kineoBusinessOffer({
+        priceLabel: formatCheckoutMoney('usd', getTierPrice('pro', 'usd', 'standard')),
+        planName: planName('pro'),
+        credits: TIER_CREDITS.pro,
+        characters: characterLimitFor('pro', true),
+        variationsOpen: ADS_VARIACOES_PUBLIC,
+        spacesOpen: SPACES_PUBLIC,
+      })
+    : null
+
   const copy = adsPassCopy()
   const price = adsPassPriceLabel()
   const lengths = Array.from(new Set(ADS_MODELS.map((m) => m.seconds))).sort((a, b) => a - b)
@@ -400,6 +417,25 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
             </div>
           </div>
         </section>
+
+        {business ? (
+          <section className="ads-sec" aria-labelledby="ads-business" data-kineo="kineo-business-card">
+            <h2 id="ads-business">For businesses</h2>
+            <p className="ads-lede">{business.planLine}</p>
+            <div className="cost ads-price">
+              <div className="sum">{business.name}</div>
+              <p className="ads-amount">{business.priceLabel}<span> /month</span></p>
+              <ul className="ads-list ok">{business.includes.map((item) => <li key={item}>{item}</li>)}</ul>
+              <div className="ads-cta" style={{ marginTop: 16 }}>
+                <AdsCtaLink href={business.href} cta="plan" tier="pro" from="business" placement="price" className="go ok ads-go">
+                  {business.ctaLabel}
+                </AdsCtaLink>
+                <p className="gnote">{viewer.signedIn ? 'Secure Stripe checkout. Cancel anytime.' : 'Secure Stripe checkout. You sign in (or create your account) first. Cancel anytime.'}</p>
+              </div>
+              <p className="ads-fine">Shown in US dollars; the checkout may show the amount in your local currency.</p>
+            </div>
+          </section>
+        ) : null}
 
         <section className="ads-sec ads-faq" aria-labelledby="ads-faq">
           <h2 id="ads-faq">Questions</h2>

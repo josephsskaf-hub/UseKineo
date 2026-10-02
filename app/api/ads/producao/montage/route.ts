@@ -9,19 +9,32 @@
 //              fala ligados no claim) — a fala entra alinhada ao plano, com a duração real do mp3;
 //   · narração (opcional) → linha da tabela `audios` da conta, em renders/audio/<uid>/;
 //   · logo   → o logo da empresa da conta (lib/brandLogo findBrandLogoUrl), em tela cheia no cartão final de 3 s.
-// PREÇO: "a definir" (PRODUCAO_MONTAGE_CREDITS = null, decisão do fundador). Enquanto a Produção é só da casa
-// (PRODUCAO_PUBLIC=false), a montagem não cobra — as peças já cobraram nos endpoints de sempre. O GET só responde a quem
-// enviou: o envio grava `producao_montage_submitted` (evento só de servidor) com o render_id e a conta; sem ele, 404.
+// PREÇO (KINEO-NUVEM-A3-2026-10-02): proposta de PRODUCAO_MONTAGE_CREDITS = 2, cobrada SÓ com
+// PRODUCAO_MONTAGE_CHARGE_LIVE=true (nasce false: a casa monta grátis, como em 01/10). Com a cobrança ligada: chave
+// 'prodmont-<hash(conta, clique)>' → débito ANTES do envio (padrão v2Billing) → estorno se o envio ou o Creatomate falhar.
+// O GET só responde a quem enviou: o envio grava `producao_montage_submitted` (evento só de servidor) com o render_id, a
+// chave e os créditos; sem ele, 404. Pronto = cópia no nosso storage + linha em `videos` com render_id = chave: o filme
+// entra na Biblioteca e essa linha é a prova de entrega que a varredura genérica de estorno lê (sem ela, estorna em 2 h).
 import { NextRequest, NextResponse } from 'next/server'
 import { pollCreatomateRender, submitCreatomateRender } from '@/lib/compose'
 import { persistRenderAssets } from '@/lib/renderAssets'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { findBrandLogoUrl } from '@/lib/brandLogo'
 import { loadPrepaidAvatarClaimForGeneration } from '@/lib/avatar/reservation'
-import { PRODUCAO_NO_STORE, producaoFail, producaoGate } from '@/lib/ads/producaoServer'
+import { randomUUID } from 'node:crypto'
 import {
+  PRODUCAO_NO_STORE,
+  chargeProducaoMontage,
+  producaoFail,
+  producaoGate,
+  producaoMontageBillingRef,
+  refundProducaoMontage,
+} from '@/lib/ads/producaoServer'
+import {
+  PRODUCAO_MONTAGE_CHARGE_LIVE,
   PRODUCAO_MONTAGE_CREDITS,
   PRODUCAO_MONTAGE_EVENT,
+  PRODUCAO_MONTAGE_QUALITY,
   PRODUCAO_PUBLIC,
   PRODUCAO_SLOGAN_MAX,
   PRODUCAO_SUPPORT_MAX,
@@ -29,6 +42,8 @@ import {
   buildProducaoMontageSource,
   cleanLine,
   isOwnedProducaoAudioUrl,
+  isProducaoIdempotencyKey,
+  montageChargeCredits,
   montageUsdEstimate,
   parseMontageRefs,
   type ProducaoMontageShot,
@@ -47,8 +62,8 @@ export async function POST(req: NextRequest) {
     const g = await producaoGate()
     if (!g.ok) return g.res
     const { user, admin } = g
-    // Preço "a definir": aberta ao público, a montagem não pode sair de graça nem cobrar um número inventado.
-    if (PRODUCAO_PUBLIC && PRODUCAO_MONTAGE_CREDITS === null) return producaoFail('price_not_set', 403)
+    // KINEO-NUVEM-A3-2026-10-02 — aberta ao público, a montagem não pode sair de graça: público exige a cobrança ligada.
+    if (PRODUCAO_PUBLIC && !PRODUCAO_MONTAGE_CHARGE_LIVE) return producaoFail('price_not_set', 403)
 
     const body = (await req.json().catch(() => null)) as Record<string, unknown> | null
     const refs = parseMontageRefs(body?.shots)
@@ -109,7 +124,33 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       return producaoFail(e instanceof Error ? e.message : 'bad_montage', 400)
     }
-    const renderId = await submitCreatomateRender(source)
+    // KINEO-NUVEM-A3-2026-10-02 — um clique = uma chave. O mesmo clique repetido (rede, duplo toque) devolve a MESMA
+    // montagem sem novo débito nem novo render; sem chave da tela, cada pedido ganha uma nova (nunca cobra em dobro).
+    const idem = isProducaoIdempotencyKey(body?.idempotency_key) ? body!.idempotency_key as string : randomUUID()
+    const billingRef = producaoMontageBillingRef(user.id, idem)
+    const prior = await admin.from('events').select('metadata').eq('user_id', user.id).eq('name', PRODUCAO_MONTAGE_EVENT).eq('metadata->>billing_ref', billingRef).limit(1)
+    if (prior.error) return producaoFail('montage_unavailable', 503)
+    const priorMeta = prior.data?.[0]?.metadata as { render_id?: unknown; seconds?: unknown; credits?: unknown } | undefined
+    if (priorMeta && typeof priorMeta.render_id === 'string') {
+      return NextResponse.json({ render_id: priorMeta.render_id, seconds: Number(priorMeta.seconds), credits: Number(priorMeta.credits) || 0, logo: Boolean(logoUrl), reused: true }, { status: 202, headers: PRODUCAO_NO_STORE })
+    }
+    const credits = montageChargeCredits()
+    if (credits > 0) {
+      const charge = await chargeProducaoMontage(admin, { userId: user.id, billingRef, cost: credits })
+      if (!charge.ok) {
+        if (charge.debitPossible) await refundProducaoMontage(admin, { userId: user.id, billingRef })
+        return producaoFail(charge.code, charge.status, { credits })
+      }
+    }
+    let renderId: string
+    try {
+      renderId = await submitCreatomateRender(source)
+    } catch (e) {
+      // O envio falhou depois do débito: devolve na hora (idempotente no banco) e diz à tela.
+      const refund = credits > 0 ? await refundProducaoMontage(admin, { userId: user.id, billingRef }) : null
+      console.warn('[ads/producao/montage POST] envio recusado:', e instanceof Error ? e.message : String(e))
+      return producaoFail('montage_failed', 502, { refunded: refund === 'refunded' })
+    }
     const seconds = Number(source.duration)
     await writeServerEvent({
       name: PRODUCAO_MONTAGE_EVENT,
@@ -117,10 +158,11 @@ export async function POST(req: NextRequest) {
       path: '/api/ads/producao/montage',
       metadata: {
         render_id: renderId, version: PRODUCAO_VERSION, shots: shots.length, talk: shots.filter((s) => s.kind === 'talk').length,
-        narration: Boolean(narration), logo: Boolean(logoUrl), seconds, credits: 0, price: PRODUCAO_MONTAGE_CREDITS, est_usd: montageUsdEstimate(seconds),
+        narration: Boolean(narration), logo: Boolean(logoUrl), seconds, credits, price: PRODUCAO_MONTAGE_CREDITS, est_usd: montageUsdEstimate(seconds),
+        billing_ref: billingRef,
       },
     })
-    return NextResponse.json({ render_id: renderId, seconds, credits: 0, logo: Boolean(logoUrl) }, { status: 202, headers: PRODUCAO_NO_STORE })
+    return NextResponse.json({ render_id: renderId, seconds, credits, logo: Boolean(logoUrl) }, { status: 202, headers: PRODUCAO_NO_STORE })
   } catch (e) {
     console.warn('[ads/producao/montage POST] falhou:', e instanceof Error ? e.message : String(e))
     return producaoFail('montage_failed', 502)
@@ -136,21 +178,54 @@ export async function GET(req: NextRequest) {
     if (!RENDER_ID_RE.test(id)) return producaoFail('bad_id', 400)
     const own = await admin
       .from('events')
-      .select('id')
+      .select('id, metadata')
       .eq('user_id', user.id)
       .eq('name', PRODUCAO_MONTAGE_EVENT)
       .eq('metadata->>render_id', id)
       .limit(1)
     if (own.error) return producaoFail('montage_failed', 502)
     if (!own.data?.length) return producaoFail('not_found', 404)
+    // KINEO-NUVEM-A3-2026-10-02 — a chave e os créditos moram no evento do envio (montagens de antes de 02/10 não têm chave).
+    const meta = (own.data[0] as { metadata?: { billing_ref?: unknown; credits?: unknown; seconds?: unknown } }).metadata ?? {}
+    const billingRef = typeof meta.billing_ref === 'string' && meta.billing_ref ? meta.billing_ref : null
+    const charged = Number(meta.credits) || 0
 
     const st = await pollCreatomateRender(id)
+    if ((st.status === 'failed' || st.status === 'cancelled') && billingRef && charged > 0) {
+      // Creatomate desistiu: devolve os créditos da montagem (idempotente — a 2ª consulta não devolve de novo).
+      const refund = await refundProducaoMontage(admin, { userId: user.id, billingRef })
+      return NextResponse.json({ status: st.status, progress: st.progress, url: null, error: st.error, refunded: refund === 'refunded' }, { headers: PRODUCAO_NO_STORE })
+    }
     if (st.status !== 'succeeded' || !st.url) {
       return NextResponse.json({ status: st.status, progress: st.progress, url: null, error: st.error }, { headers: PRODUCAO_NO_STORE })
     }
     // Pronto: cópia no nosso storage (idempotente por caminho; falhou = fica a URL do fornecedor, nunca trava a entrega).
     const saved = await persistRenderAssets({ userId: user.id, renderId: `producao-${id}`, videoUrl: st.url, snapshotUrl: st.snapshotUrl })
-    return NextResponse.json({ status: 'succeeded', progress: 1, url: saved.videoUrl, poster: saved.thumbnailUrl, seconds: saved.measuredSeconds }, { headers: PRODUCAO_NO_STORE })
+    // KINEO-NUVEM-A3-2026-10-02 — o MP4 entra na Biblioteca: linha em `videos` com render_id = chave da cobrança
+    // (videos_render_id_unique: a 2ª consulta cai no 23505 e só relê). É também a prova de entrega da varredura de estorno.
+    let videoId: string | null = null
+    if (billingRef) {
+      const row = {
+        user_id: user.id,
+        status: 'completed',
+        video_url: saved.videoUrl,
+        thumbnail_url: saved.thumbnailUrl ?? null,
+        render_id: billingRef,
+        topic: 'Production · Studio Ads',
+        title: 'Production',
+        platform: 'Studio Ads',
+        duration: Math.round(Number(saved.measuredSeconds ?? meta.seconds) || 0),
+        quality_mode: PRODUCAO_MONTAGE_QUALITY,
+        credits_used: charged,
+      }
+      const ins = await admin.from('videos').insert(row).select('id').maybeSingle()
+      if (!ins.error && ins.data) videoId = String((ins.data as { id: string }).id)
+      else if ((ins.error as { code?: string } | null)?.code === '23505') {
+        const ex = await admin.from('videos').select('id').eq('render_id', billingRef).eq('user_id', user.id).maybeSingle()
+        videoId = ex.data ? String((ex.data as { id: string }).id) : null
+      } else console.warn('[ads/producao/montage GET] linha em videos falhou:', ins.error?.message)
+    }
+    return NextResponse.json({ status: 'succeeded', progress: 1, url: saved.videoUrl, poster: saved.thumbnailUrl, seconds: saved.measuredSeconds, video_id: videoId }, { headers: PRODUCAO_NO_STORE })
   } catch (e) {
     console.warn('[ads/producao/montage GET] falhou:', e instanceof Error ? e.message : String(e))
     return producaoFail('montage_failed', 502)

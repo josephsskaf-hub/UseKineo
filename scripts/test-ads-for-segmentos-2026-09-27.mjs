@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { root, source, offlineModules, React, renderToStaticMarkup, checks } from './gpt24h-offline-support.mjs'
 const { check, finish } = checks()
@@ -8,6 +8,7 @@ const load = offlineModules({ replacements })
 const data = load(dataPath), page = load(pagePath)
 const presentation = load('lib/growth/adsSegmentPresentation.ts')
 const prices = load('lib/checkoutPricing.ts'), offer = load('lib/ads/offer.ts')
+const showcase = load('lib/showcase.ts') // Reancorado 02/10 (KINEO-ADS-FOR-VIDEO-DA-CASA-2026-10-02): fonte do vídeo da casa
 // REANCORADO 29/09 (KINEO-ADS-V2-VIRADA-2026-09-29): o produto principal das páginas /ads/for virou o anúncio v2 (~15 s). O
 // preço da linha de oferta passou a ser o do nível mais barato do v2 (adsV2Credits), não mais o do Kineo 1 de 35 s. A
 // intenção segue: preço e crédito canônicos, nunca digitados, e a mudança na fonte aparece no HTML.
@@ -34,7 +35,16 @@ for (const segment of data.ADS_SEGMENTS) {
   const cta = new URL(data.adsSegmentCta(segment.slug), 'https://www.usekineo.com')
   check(`${segment.slug}: CTA attribution`, cta.pathname === '/ads' && cta.searchParams.get('utm_source') === 'seo' && cta.searchParams.get('utm_medium') === 'ads_for' && cta.searchParams.get('utm_campaign') === 'gpt24h' && cta.searchParams.get('utm_content') === segment.slug)
   check(`${segment.slug}: single primary CTA, canonical price and credits`, (html.match(/class="cta"/g) ?? []).length === 1 && html.includes(prices.formatCheckoutMoney('usd', prices.getTierPrice('starter','usd','standard'))) && html.includes(`from ${v2Cheapest} credits per ${v2screen.ADS_V2_SCREEN_SECONDS}-second ad`))
-  check(`${segment.slug}: honest placeholder or approved watch page, never invented playable sample`, !html.includes('<video') && (segment.exampleVideoUrl === null ? html.includes('placeholder, not a client result') : html.includes('Watch the example ad') && data.approvedSegmentExample(segment.exampleVideoUrl) !== null))
+  // Reancorado 02/10 (KINEO-ADS-FOR-VIDEO-DA-CASA-2026-10-02): sem exemplo aprovado do segmento, a página passou a tocar um
+  // anúncio PÚBLICO da casa (lib/showcase.ts SHOWCASE_MEDIA.ads, os mesmos da /showcase) no lugar do placeholder. Mesma
+  // prova de honestidade: nada inventado — o <video> só aceita um arquivo da vitrine da casa que existe em public/, com a
+  // legenda "house demo, not a client result"; sem vídeo da casa, volta o placeholder; com /v/ aprovado, só o link.
+  const houseAds = showcase.SHOWCASE_MEDIA.ads.filter(a => a.video && a.poster)
+  const videoSrcs = [...html.matchAll(/<video[^>]*\ssrc="([^"]+)"/g)].map(m => m[1])
+  const houseOk = videoSrcs.length === 1 && houseAds.some(a => a.video === videoSrcs[0]) && existsSync(resolve(root, 'public' + videoSrcs[0])) && html.includes('a house demo, not a client result')
+  check(`${segment.slug}: honest placeholder, house demo or approved watch page, never invented playable sample`, segment.exampleVideoUrl === null
+    ? (houseAds.length > 0 ? houseOk && !html.includes('placeholder, not a client result') : !html.includes('<video') && html.includes('placeholder, not a client result'))
+    : !html.includes('<video') && html.includes('Watch the example ad') && data.approvedSegmentExample(segment.exampleVideoUrl) !== null)
   const png = readFileSync(resolve(root, 'public' + data.adsSegmentPoster(segment.slug)))
   check(`${segment.slug}: static PNG 1200 x 630`, png.toString('hex', 0, 8) === '89504e470d0a1a0a' && png.readUInt32BE(16) === 1200 && png.readUInt32BE(20) === 630)
   check(`${segment.slug}: links to all siblings`, expected.filter(x => x !== segment.slug).every(x => html.includes(`/ads/for/${x}`)))

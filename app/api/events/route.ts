@@ -231,6 +231,19 @@ const SERVER_ONLY_EVENTS = new Set([
   // /api/ads/producao/montage (a linha com o render_id é a PROVA de dono que o GET da montagem confere). O navegador não cunha.
   'producao_plan_created',
   'producao_montage_submitted',
+  // KINEO-NUVEM-A6-2026-10-02 — escrito SÓ por /api/spaces/montage. A linha com o render_id é a PROVA de dono que o GET
+  // da montagem confere (mesmo desenho do producao_montage_submitted): fora desta lista, um navegador cunhava a prova e
+  // passava a consultar (e copiar para o próprio storage) o render de outra conta.
+  'spaces_montage_submitted',
+  // KINEO-NUVEM-A2-2026-10-02 — escrito SÓ por /api/clips/brand (cópia do clipe com o logo da conta): é a prova de dono
+  // do GET e a trava de "um envio por clipe". Se o navegador o cunhasse, travaria o botão de outra pessoa.
+  'clip_brand_submitted',
+  // KINEO-LACOS-INDICACAO-2026-10-02 — o laço de indicação: chegada pelo link (app/a/[code] e /v/<id>?ref=), cadastro
+  // atribuído (app/api/referral/attribute) e indicação qualificada com crédito pago (app/api/referral/qualify). Fatos
+  // do servidor; se o navegador pudesse cunhá-los, o funil da indicação (e o crédito que ele justifica) mentiria.
+  'referral_landing',
+  'referral_attributed',
+  'referral_qualified',
 ])
 
 export async function POST(req: NextRequest) {

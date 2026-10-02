@@ -17,7 +17,11 @@ import { createClient } from '@/lib/supabase/client'
 import { trackSignupSource } from '@/lib/analytics'
 import { GOOGLE_ADS_SIGNUP_CONVERSION } from '@/lib/growth/googleAdsSignupConversion'
 
-export default function SignupConversionTracker() {
+// KINEO-LINKS-STUDIO-NOVO-2026-10-02 — `keepUrl`: no Studio novo (/studio) o ?signup=1 NÃO é apagado da barra.
+// O StudioClient relê a URL a cada mudança de query (useSearchParams) e reaplicaria prompt/duração por cima do que a
+// tela já ajustou ao saldo. Sem apagar, um recarregamento repete o disparo: o Ads deduplica pelo transaction_id
+// (uid) e o trackSignupSource pelo sessionStorage. O Generate do Studio monta uma query nova, sem ?signup=1.
+export default function SignupConversionTracker({ keepUrl = false }: { keepUrl?: boolean } = {}) {
   useEffect(() => {
     try {
       const params = new URLSearchParams(window.location.search)
@@ -49,15 +53,17 @@ export default function SignupConversionTracker() {
       } catch {
         /* non-blocking */
       } finally {
-        try {
-          const url = new URL(window.location.href)
-          url.searchParams.delete('signup')
-          window.history.replaceState({}, '', url.pathname + url.search + url.hash)
-        } catch {
-          /* ignore */
+        if (!keepUrl) {
+          try {
+            const url = new URL(window.location.href)
+            url.searchParams.delete('signup')
+            window.history.replaceState({}, '', url.pathname + url.search + url.hash)
+          } catch {
+            /* ignore */
+          }
         }
       }
     })()
-  }, [])
+  }, [keepUrl])
   return null
 }

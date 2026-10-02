@@ -13,6 +13,13 @@ import {
   isAffiliatePreviewBot,
 } from '@/lib/affiliateDestinations'
 import { normalizeAffiliateClickId, normalizeAffiliateCode } from '@/lib/affiliateAttribution'
+import {
+  findReferrerIdByCode,
+  normalizeReferralCode,
+  recordReferralLanding,
+  REFERRAL_COOKIE,
+  REFERRAL_COOKIE_MAX_AGE,
+} from '@/lib/referralLanding'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -34,6 +41,37 @@ const CLICK_COOKIE = 'sf_aff_click'
 const COOKIE_HINT = 'sf_aff_hint'
 const COOKIE_MAX_AGE = 90 * 24 * 60 * 60 // 90 days, in seconds
 const SALT = process.env.AFFILIATE_IP_SALT ?? null
+
+// KINEO-LACOS-INDICACAO-2026-10-02 — o middleware manda TODO `?ref=XXXXXXXX` para cá (KINEO-AFILIADO-REF-2026-09-08),
+// inclusive o link do "Invite & Earn" (profiles.referral_code, mesmo formato de 8 caracteres). Um código que não é
+// de afiliado ia para a home SEM o código, e a indicação morria antes do cadastro (0 atribuições desde a semana de
+// 24/08). Agora: se o código é de INDICAÇÃO, grava `referral_landing` e entrega o código à home num cookie legível
+// (não é prova financeira — a indicação sempre foi atribuída pelo código que o navegador guarda; ver lib/referral.ts).
+// Primeiro toque: um código de indicação válido já no cookie não é sobrescrito. Qualquer falha cai no comportamento
+// de antes (home, sem cookie).
+async function referralHomeRedirect(req: NextRequest, code: string, appUrl: string): Promise<NextResponse | null> {
+  try {
+    const referralCode = normalizeReferralCode(code)
+    if (!referralCode) return null
+    const referrerId = await findReferrerIdByCode(referralCode)
+    if (!referrerId) return null
+    const userAgent = req.headers.get('user-agent') ?? ''
+    const res = NextResponse.redirect(new URL('/', appUrl))
+    await recordReferralLanding({ code: referralCode, surface: 'home', userAgent, referrerId })
+    if (isAffiliatePreviewBot(userAgent)) return res
+    if (!normalizeReferralCode(req.cookies.get(REFERRAL_COOKIE)?.value)) {
+      res.cookies.set(REFERRAL_COOKIE, referralCode, {
+        maxAge: REFERRAL_COOKIE_MAX_AGE,
+        sameSite: 'lax',
+        secure: true,
+        path: '/',
+      })
+    }
+    return res
+  } catch {
+    return null
+  }
+}
 
 function admin() {
   return createAdmin(
@@ -64,7 +102,12 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
       .single()
 
     // Unknown or inactive code → just send them home, no cookie, no click row.
+    // KINEO-LACOS-INDICACAO-2026-10-02 — exceto quando o código desconhecido é de INDICAÇÃO (ver referralHomeRedirect).
     if (!aff || aff.status !== 'active') {
+      if (!aff) {
+        const referral = await referralHomeRedirect(req, code, appUrl)
+        if (referral) return referral
+      }
       return NextResponse.redirect(appUrl)
     }
 

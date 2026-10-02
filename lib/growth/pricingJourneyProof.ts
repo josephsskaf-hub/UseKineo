@@ -75,8 +75,9 @@ export function decidePricingJourneyProof(input: PricingJourneyProofInput): Pric
     return {
       state: 'before_first_delivery',
       completedCountBucket: '0',
+      // KINEO-LINKS-STUDIO-NOVO-2026-10-02 — destino = o Studio novo (/studio), que lê engine/duration/intent_campaign.
       creationHref:
-        `/studio/create?engine=${engine}&duration=35&intent_campaign=${PRICING_JOURNEY_PROOF_VERSION}`,
+        `/studio?engine=${engine}&duration=35&intent_campaign=${PRICING_JOURNEY_PROOF_VERSION}`,
       engineLabel: input.reverseTrial ? 'Seedance 1.5' : 'Kineo 1',
       duration: 35,
       version: PRICING_JOURNEY_PROOF_VERSION,

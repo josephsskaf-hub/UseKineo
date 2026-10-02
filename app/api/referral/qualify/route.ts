@@ -1,17 +1,23 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
+import { writeServerEvent } from '@/lib/serverEvents'
+import {
+  REFERRAL_MAX_REWARDED_FRIENDS,
+  REFERRAL_QUALIFIED_EVENT,
+  REFERRAL_REWARD_CREDITS,
+} from '@/lib/referralReward'
 
 export const dynamic = 'force-dynamic'
 
-// ── Referral reward config (easy to change) ──────────────────────────────
+// ── Referral reward config ───────────────────────────────────────────────
+// KINEO-LACOS-INDICACAO-2026-10-02 — os números vêm de lib/referralReward.ts (fonte única).
 // Credits granted to BOTH the referrer and the referred user when the
-// referred user qualifies (email confirmed + first video made).
-const REFERRAL_REWARD_CREDITS = 30
+// referred user qualifies (email confirmed + first video made): REFERRAL_REWARD_CREDITS.
 // Abuse cap: a referrer is only rewarded for this many successful referrals.
 // When the cap is reached the referred user STILL gets their bonus; only the
 // referrer's reward + count increment are skipped.
-const MAX_REFERRALS_PER_USER = 20
+const MAX_REFERRALS_PER_USER = REFERRAL_MAX_REWARDED_FRIENDS
 // ─────────────────────────────────────────────────────────────────────────
 
 // Service-role client — bypasses RLS for all reads/writes. Same pattern as
@@ -122,6 +128,8 @@ export async function POST() {
     // Cap reached → the referred user keeps their bonus (granted above); we
     // simply skip rewarding/incrementing the referrer.
     const referrerCount = referrer.referral_count ?? 0
+    // KINEO-LACOS-INDICACAO-2026-10-02 — o desfecho do lado do indicador entra no evento referral_qualified.
+    let referrerOutcome: 'paid' | 'capped' | 'grant_failed' = 'capped'
     if (referrerCount < MAX_REFERRALS_PER_USER) {
       const { error: refErr } = await admin
         .from('profiles')
@@ -133,7 +141,9 @@ export async function POST() {
       if (refErr) {
         // The referred user is already credited; log but don't fail the flow.
         console.error('[referral qualify] referrer grant error:', refErr.code, refErr.message)
+        referrerOutcome = 'grant_failed'
       } else {
+        referrerOutcome = 'paid'
         console.log(
           `[referral qualify] +${REFERRAL_REWARD_CREDITS} to both: referred ${me.id} & referrer ${referrer.id} (count ${referrerCount + 1})`
         )
@@ -143,6 +153,20 @@ export async function POST() {
         `[referral qualify] referrer ${referrer.id} at cap (${MAX_REFERRALS_PER_USER}) — referred ${me.id} still rewarded, referrer skipped`
       )
     }
+
+    // KINEO-LACOS-INDICACAO-2026-10-02 — o degrau final do laço, gravado SÓ aqui (SERVER_ONLY_EVENTS). Ids, nunca
+    // e-mail. Awaitado: `void` em serverless perde a escrita quando o runtime congela depois da resposta.
+    await writeServerEvent({
+      name: REFERRAL_QUALIFIED_EVENT,
+      userId: me.id,
+      metadata: {
+        referrer_user_id: referrer.id,
+        referred_credits: REFERRAL_REWARD_CREDITS,
+        referrer_credits: referrerOutcome === 'paid' ? REFERRAL_REWARD_CREDITS : 0,
+        referrer_outcome: referrerOutcome,
+        referrer_count: referrerOutcome === 'paid' ? referrerCount + 1 : referrerCount,
+      },
+    })
 
     return NextResponse.json({ ok: true, granted: true })
   } catch (err) {

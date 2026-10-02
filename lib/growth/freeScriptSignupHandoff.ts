@@ -40,7 +40,10 @@ export function buildFreeScriptSignupHref(
       return marker ? `${marker}: ${safeText}` : safeText
     })
     .join('\n')
-  const destination = `/studio/create?${new URLSearchParams({
+  // KINEO-LINKS-STUDIO-NOVO-2026-10-02 — destino = o Studio novo (/studio), mesmo precedente do link /go (36fc267).
+  // O Studio lê o prompt; `autoanalyze` e `handoff_kind` seguem na URL: são a prova que o /signup usa para mostrar
+  // "Your script is waiting" (lib/growth/signupCreationPreview.ts aceita /studio e /studio/create).
+  const destination = `/studio?${new URLSearchParams({
     prompt: script,
     autoanalyze: '1',
     handoff_kind: 'free_script',

@@ -15,6 +15,9 @@ import LocalizedScriptHandoff from '@/components/LocalizedScriptHandoff'
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
 // de tabela publicando um valor que o checkout não cobrava mais.
 import { STARTER_USD_AMOUNT } from '@/lib/marketingPrice'
+// KINEO-PRECO-REAIS-PORTA-PT-2026-10-02 — preço em reais atrás de GERADOR_BRL_PRICE_LIVE (false = frase de hoje, byte a
+// byte). O valor vem de lib/settlementCurrency (tabela que o checkout cobra), nunca digitado.
+import { geradorPaidPlansSentence } from '@/lib/seo/brlDoorPrice'
 import { freeShortsAlternates } from '@/lib/seo/freeShortsGeneratorLangs'
 
 const BASE = 'https://www.usekineo.com'
@@ -47,7 +50,7 @@ const FAQ = [
   },
   {
     q: 'É grátis mesmo? Precisa de cartão?',
-    a: 'Você cria, assiste, baixa e posta vídeos Fast com marca d’água sem cartão nenhum. Planos pagos liberam o MP4 limpo, a partir de US$ ' + STARTER_USD_AMOUNT + ' por mês como preço de referência em USD. Para clientes no Brasil, a cobrança normalmente é em reais; confira o valor no checkout.',
+    a: 'Você cria, assiste, baixa e posta vídeos Fast com marca d’água sem cartão nenhum. ' + geradorPaidPlansSentence(STARTER_USD_AMOUNT),
   },
   {
     q: 'Preciso aparecer ou saber editar?',

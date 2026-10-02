@@ -15,6 +15,11 @@ import { enginePaused, KINEO1_PUBLIC } from '@/lib/engineLaunch'
 import { ENGINES, ENGINE_SLUGS } from '@/lib/growth/enginePageCatalog'
 import { buildProductSurfaceSignupHref } from '@/lib/growth/productSurfaceIntent'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
+// KINEO-MAPA-ORFAS-2026-10-02 — o hub era a única cabeça natural das páginas de motor TRADUZIDAS e do hub de casos de uso,
+// e não linkava nenhum dos dois: as 26 páginas /ai-video-generator/<motor>/<língua> e as 100 /for/<slug> só tinham o
+// sitemap. Agora as duas listas saem dos catálogos que geram as páginas (nunca digitadas).
+import { ENGINE_LANG_CODES, LOCALIZED_ENGINE_SLUGS, engineLangLocale } from '@/lib/seo/enginePageLangs'
+import { INTENT_HUB_PATH, INTENT_SLUGS } from '@/lib/seo/intentPages'
 
 export const dynamic = 'force-static'
 
@@ -142,6 +147,24 @@ export default async function EngineHubPage() {
         </section>
 
         <CitationAnswerLinks />
+
+        {/* KINEO-MAPA-ORFAS-2026-10-02 — casos de uso + cada motor na língua do leitor, derivados dos catálogos. */}
+        <section style={{ marginTop: 44 }}>
+          <h2 style={{ fontSize: '1.15rem', fontWeight: 900, margin: '0 0 8px', textAlign: 'center' }}>By use case and in your language</h2>
+          <p style={{ textAlign: 'center', margin: '0 0 16px', fontSize: '0.9rem' }}>
+            <Link href={INTENT_HUB_PATH} style={{ color: '#2997ff', fontWeight: 800, textDecoration: 'none' }}>AI video generator for {INTENT_SLUGS.length} use cases — channel, format, language →</Link>
+          </p>
+          <div style={{ display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+            {LOCALIZED_ENGINE_SLUGS.map((slug) => (
+              <nav key={slug} aria-label={`${ENGINES[slug].name} in other languages`} style={{ padding: '12px 14px', borderRadius: 14, ...CARD, fontSize: '0.82rem', lineHeight: 1.9 }}>
+                <span style={{ fontWeight: 800, marginRight: 6 }}>{ENGINES[slug].name}</span>
+                {ENGINE_LANG_CODES.map((code) => (
+                  <Link key={code} href={`/ai-video-generator/${slug}/${code}`} hrefLang={engineLangLocale(code)} style={{ color: '#86868b', textDecoration: 'none', marginRight: 10 }}>{code.toUpperCase()}</Link>
+                ))}
+              </nav>
+            ))}
+          </div>
+        </section>
 
         <nav style={{ marginTop: 44, textAlign: 'center', fontSize: '0.85rem', color: '#6e6e73', lineHeight: 2 }}>
           <Link href="/examples" style={{ color: '#86868b', textDecoration: 'none' }}>Real examples</Link>

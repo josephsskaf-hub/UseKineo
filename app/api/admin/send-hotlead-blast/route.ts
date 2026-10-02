@@ -37,6 +37,8 @@ import { claimEmailSlot, recordEmailSend, recordResendResponse } from '@/lib/ema
 // trial) — é o público que menos perdoa uma diferença entre e-mail e fatura.
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { PAID_PLANS } from '../_shared/mrr'
+// KINEO-LACOS-TAXA-2026-10-02 — a carta prometia 40% com a comissão em 30% desde 09/09; a taxa vem da fonte única.
+import { AFFILIATE_COMMISSION_PCT } from '@/lib/affiliateCommission'
 
 const STARTER_PRICE = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
 const CREATOR_PRICE = formatCheckoutMoney('usd', TIER_PRICES.basic.usd)
@@ -65,7 +67,8 @@ const ADMIN_EMAILS = new Set([
 const FROM_EMAIL = 'Joseph at Kineo <hello@usekineo.com>'
 const REPLY_TO = 'hello@usekineo.com'
 const FLAG_EVENT = 'hotlead_emailed_v1'
-const TRIAL_START = '2026-08-07'
+const TRIAL_START = '2026-08-07'
+
 const DISPOSABLE_DOMAINS = new Set([
   'yopmail.com', 'gmeenramy.com', 'kinws.com', 'doefy.com', 'x-box.in',
   'mailinator.com', 'guerrillamail.com', 'sharklasers.com', 'tempmail.com',
@@ -102,7 +105,7 @@ function subjectFor(seg: Segment): string {
   if (seg === 'burned') return 'You used every single credit — quick question'
   if (seg === 'stalled') return 'Your Kineo credits are still sitting there'
   if (seg === 'watermark') return 'That watermark comes off, by the way'
-  if (seg === 'paying') return 'Want 40% of every referral, forever?'
+  if (seg === 'paying') return `Want ${AFFILIATE_COMMISSION_PCT} of every referral, forever?`
   return 'You make more videos than most paid users'
 }
 
@@ -140,7 +143,7 @@ ${sig}`
   if (seg === 'paying') {
     return `${open}
 <p>Hey — Joseph here, founder of Kineo.</p>
-<p>You're one of the first paying customers we've ever had, and I don't take that lightly. So before I tell anyone else: our affiliate program pays <b>40% of every payment, recurring</b> — for anyone you send our way.</p>
+<p>You're one of the first paying customers we've ever had, and I don't take that lightly. So before I tell anyone else: our affiliate program pays <b>${AFFILIATE_COMMISSION_PCT} of every payment, recurring</b> — for anyone you send our way.</p>
 <p>You already know what the product does. If one creator friend signs up on Creator, that's real money every month, forever.</p>
 <p style="margin:22px 0"><a href="https://usekineo.com/affiliate?intent_campaign=hotlead_paying" style="background:#2997ff;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold">Get your link &rarr;</a></p>
 <p>And as always — anything broken, anything missing, reply here. Founding customers get founder answers.</p>
@@ -240,7 +243,7 @@ async function collectSegments(): Promise<Record<Segment, Lead[]>> {
     const lead: Lead = { id: p.id, email, videos, credits }
     const isPaying = PAID_PLANS.has((p.plan ?? '').toString())
     if (isPaying) {
-      // Unico segmento de pagantes: convite de afiliado 40%.
+      // Unico segmento de pagantes: convite de afiliado (taxa = AFFILIATE_COMMISSION_PCT).
       out.paying.push(lead)
       continue
     }

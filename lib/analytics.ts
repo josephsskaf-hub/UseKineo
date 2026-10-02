@@ -284,6 +284,90 @@ function storedSurface(): string | null {
   return readSurfaceCookie()
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-ATRIBUICAO-POUSO-2026-10-02 — a PÁGINA DE ENTRADA, numa chave própria.
+// ═══════════════════════════════════════════════════════════════════════════
+// Mesma razão da superfície acima para não morar dentro de `kineo_src`: aquele
+// objeto só é escrito quando há utm/referrer externo ("nada a gravar" deixa um
+// pouso posterior com UTM vencer). Se o caminho entrasse lá, toda visita direta
+// gravaria o marcador e CONGELARIA a origem em "só caminho".
+//
+// Primeiro toque de verdade: o caminho só é gravado se ESTE navegador ainda não
+// tem caminho NEM origem gravados. Navegador que já tinha `kineo_src` de antes
+// desta mudança fica sem caminho (nulo honesto) em vez de ganhar a página
+// atual fingindo ser a de entrada. Só pathname (sem query: prompt, e-mail e
+// tokens moram na query), cortado e validado por sanitizeLandingPath.
+//
+// ESPELHO, SEM IMPORT: a régua abaixo é cópia literal de lib/landingPath.ts (a
+// rota do servidor importa de lá). Este arquivo não ganha import novo de
+// propósito — 15 guardiões executam lib/analytics.ts com a lista EXATA de
+// imports mockada, e um import a mais derrubaria todos. O guardião
+// scripts/test-atribuicao-pouso-2026-10-02.mjs executa as duas cópias sobre os
+// mesmos casos e reprova se divergirem.
+const LANDING_PATH_KEY = 'kineo_landing'
+const LANDING_PATH_MAX = 200
+const SAFE_LANDING_PATH = /^\/(?!\/)[A-Za-z0-9\-._~/%]*$/
+function sanitizeLandingPath(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null
+  const pathOnly = raw.trim().split(/[?#]/, 1)[0] ?? ''
+  if (!pathOnly.startsWith('/') || pathOnly.startsWith('//')) return null
+  const redacted = /^\/go\/[^/]+/.test(pathOnly) ? '/go' : pathOnly
+  const bounded = redacted.slice(0, LANDING_PATH_MAX)
+  return SAFE_LANDING_PATH.test(bounded) ? bounded : null
+}
+
+function readLandingCookie(): string | null {
+  if (typeof document === 'undefined') return null
+  try {
+    const m = document.cookie.match(/(?:^|;\s*)kineo_landing=([^;]+)/)
+    return m ? sanitizeLandingPath(decodeURIComponent(m[1])) : null
+  } catch {
+    return null
+  }
+}
+
+function captureLandingOnce(): void {
+  if (typeof window === 'undefined') return
+  try {
+    let already: string | null = null
+    let hasSource = false
+    try {
+      already = localStorage.getItem(LANDING_PATH_KEY)
+      hasSource = Boolean(localStorage.getItem(SRC_KEY))
+    } catch {
+      /* localStorage indisponível — os cookies decidem */
+    }
+    if (already || readLandingCookie() || hasSource || readSourceCookie()) return
+
+    const path = sanitizeLandingPath(window.location.pathname)
+    if (!path) return
+    try {
+      localStorage.setItem(LANDING_PATH_KEY, path)
+    } catch {
+      /* ignore */
+    }
+    try {
+      // 90 dias, como `kineo_src`/`kineo_surface`: atravessa o OAuth e a confirmação de e-mail.
+      document.cookie = `${LANDING_PATH_KEY}=${encodeURIComponent(path)};path=/;max-age=7776000;samesite=lax`
+    } catch {
+      /* ignore */
+    }
+  } catch {
+    /* silent — captura do caminho nunca pode quebrar a página */
+  }
+}
+
+function storedLandingPath(): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(LANDING_PATH_KEY)
+    if (raw) return sanitizeLandingPath(raw)
+  } catch {
+    /* cai no cookie */
+  }
+  return readLandingCookie()
+}
+
 function readSourceCookie(): StoredSource | null {
   if (typeof document === 'undefined') return null
   try {
@@ -303,6 +387,9 @@ export function captureSourceOnce(): void {
   // registrada, e o placar de "qual tela converte" nasceria enviesado para
   // quem NÃO tem origem.
   captureSurfaceOnce()
+  // KINEO-ATRIBUICAO-POUSO-2026-10-02 — o caminho de entrada ANTES de gravar a origem: a regra dele é "nada gravado
+  // ainda", e a origem desta mesma visita vai ser gravada logo abaixo.
+  captureLandingOnce()
   try {
     // First-touch wins: if we already recorded a source (either store), stop.
     if (localStorage.getItem(SRC_KEY) || readSourceCookie()) return
@@ -406,6 +493,9 @@ export function trackSignupSource(): void {
         // `profiles.signup_surface`; NUNCA para `signup_utm_source`, que
         // responde de ONDE a pessoa veio.
         signup_surface: storedSurface(),
+        // KINEO-ATRIBUICAO-POUSO-2026-10-02 — a página de entrada (só pathname). Vai para
+        // `profiles.signup_landing_path`, gravada só quando ainda nula.
+        signup_landing_path: storedLandingPath(),
       }),
       keepalive: true,
     })

@@ -35,7 +35,9 @@ const page = rd(PAGE)
 const terms = rd(TERMS)
 const pricingLib = rd('lib/checkoutPricing.ts')
 const engineCost = rd('lib/credits/engineCost.ts')
-const charactersLib = rd('lib/characters.ts')
+// Reancorado 02/10 (KINEO-NUVEM-A4): o corpo de characterLimitFor mudou para lib/characterLimits.ts (módulo puro);
+// lib/characters.ts o reexporta, então /pricing segue importando de lá e a prova (números lidos da fonte) é a mesma.
+const charactersLib = rd('lib/characterLimits.ts')
 const charactersRoute = rd('app/api/characters/route.ts')
 
 // A tabela é o trecho entre a tag <table> (única no arquivo) e o fecho </table>; "Compare plans" como texto não serve

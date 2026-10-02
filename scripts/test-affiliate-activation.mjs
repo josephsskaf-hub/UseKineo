@@ -69,7 +69,7 @@ ok(component.includes("href=\"/affiliate\""), 'card enters existing partner kit'
 ok(component.includes('affiliate_momentum_card_viewed'), 'visible card is measured')
 ok(component.includes('affiliate_momentum_card_clicked'), 'activation click is measured')
 ok(component.includes("state === 'pending' || state === 'suspended'"), 'non-actionable accounts are not sold another state')
-ok(component.includes('40% on eligible subscription payments'), 'approved commission promise is qualified')
+ok(component.includes('${AFFILIATE_COMMISSION_PCT} on eligible subscription payments') && component.includes("from '@/lib/affiliateCommission'"), 'approved commission promise is qualified') // Reancorado 02/10 (KINEO-LACOS-TAXA-2026-10-02): dizia 40% com a comissão em 30%; a taxa vem da fonte única
 ok(history.includes('isAffiliateMomentumEligible({'), 'real history caller uses eligibility policy')
 ok(history.includes('isHistorySubscriptionOfferEligible({'), 'real history caller uses subscription recovery policy')
 ok(history.includes('history_first_video_offer_viewed'), 'one-video recovery impression is measured separately')

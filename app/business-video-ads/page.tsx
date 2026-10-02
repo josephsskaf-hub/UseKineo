@@ -5,6 +5,14 @@ import { DFY_SERVICE_FACT } from '@/lib/growth/dfyServiceFacts'
 import { adsSegmentOffer } from '@/lib/growth/adsSegmentPresentation'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import BusinessAdsOffers from './BusinessAdsOffers'
+// KINEO-NUVEM-A4-2026-10-02 — card "Kineo Business" (o Studio para empresas; sem preço novo). Página estática: só aparece
+// com KINEO_BUSINESS_CARD_LIVE=true (o preview da casa mora no /ads, que é dinâmico).
+import { KINEO_BUSINESS_CARD_LIVE, kineoBusinessOffer } from '@/lib/growth/kineoBusiness'
+import { TIER_CREDITS, formatCheckoutMoney, getTierPrice } from '@/lib/checkoutPricing'
+import { planName } from '@/lib/growth/planFit'
+import { characterLimitFor } from '@/lib/characterLimits'
+import { ADS_VARIACOES_PUBLIC } from '@/lib/ads/v2Variations'
+import { SPACES_PUBLIC } from '@/lib/spaces/spaces'
 import styles from './businessAds.module.css'
 
 export const dynamic = 'force-static'
@@ -25,6 +33,16 @@ const BRIEFS = [
 
 export default function BusinessVideoAdsPage() {
   const offer = adsSegmentOffer()
+  const business = KINEO_BUSINESS_CARD_LIVE
+    ? kineoBusinessOffer({
+        priceLabel: formatCheckoutMoney('usd', getTierPrice('pro', 'usd', 'standard')),
+        planName: planName('pro'),
+        credits: TIER_CREDITS.pro,
+        characters: characterLimitFor('pro', true),
+        variationsOpen: ADS_VARIACOES_PUBLIC,
+        spacesOpen: SPACES_PUBLIC,
+      })
+    : null
   return <div className={styles.surface}><main className={styles.page}>
     <nav className={styles.nav} aria-label="Business video navigation"><a href="/" className={styles.brand}><KineoBrandIcon size={33} />Kineo<span> / empresas</span></a><a href="/ads">Explore Studio Ads ↗</a></nav>
     <header className={styles.hero} data-kineo="business-self-service-first">
@@ -50,6 +68,22 @@ export default function BusinessVideoAdsPage() {
         <div className={styles.diagram} aria-hidden="true"><i /><i /><i /><i /><i /></div>
       </div>
     </header>
+    {business ? (
+      <section className={styles.section} aria-labelledby="kineo-business-heading" data-kineo="kineo-business-card">
+        <div className={styles.sectionHeading}><p className={styles.eyebrow}>FOR BUSINESSES · MAKE IT YOURSELF</p><h2 id="kineo-business-heading">{business.name}</h2><p>{business.planLine}</p></div>
+        <div className={styles.offers}>
+          <article className={styles.offer}>
+            <div className={styles.offerTop}><h3>{business.name}</h3><span>Monthly · cancel anytime</span></div>
+            <p className={styles.price}>{business.priceLabel}<small> /month</small></p>
+            <ul className={styles.detail}>{business.includes.map((item) => <li key={item}>{item}</li>)}</ul>
+            {/* <a> simples, nunca <Link>: o checkout é um GET e o prefetch do Link abriria sessão de pagamento. A atribuição vai no
+                intent_campaign=kineo_business que o checkout grava. */}
+            <a className={styles.buy} href={business.href}>{business.ctaLabel}</a>
+            <small>Secure Stripe checkout. Shown in US dollars.</small>
+          </article>
+        </div>
+      </section>
+    ) : null}
     <section className={styles.section} aria-labelledby="packages-heading">
       <div className={styles.sectionHeading}><p className={styles.eyebrow}>OR, HAVE US MAKE IT</p><h2 id="packages-heading">Prefer a done-for-you video?</h2><p>Kineo Empresas is a separate service operated by a human. Choose Express or Pro; the package sets the delivery time and revisions.</p></div>
       <BusinessAdsOffers />

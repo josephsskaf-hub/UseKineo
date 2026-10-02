@@ -15,6 +15,7 @@ import CreditsTopupModal from '@/components/CreditsTopupModal' // KINEO-TOPUP-PO
 import AccountPanel from '@/components/AccountPanel' // KINEO-ACCOUNT-PANEL-2026-08-19
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { trackEvent } from '@/lib/analytics'
+import { AFFILIATE_COMMISSION_PCT } from '@/lib/affiliateCommission' // KINEO-LACOS-TAXA-2026-10-02 — a taxa do item Afiliados vem da fonte única
 import { isCreditsReadFailure, READ_FAILED_EVENT, READ_FAILED_LABEL, READ_FAILED_HINT } from '@/lib/creditsReadFailure'
 import {
   TOPUP_ELIGIBILITY_HANDOFF_VERSION,
@@ -637,13 +638,15 @@ export default function Sidebar({
             {isLoggedIn && (
               <>
                 <NavItem href="/referral" icon={NAV_ICONS.referral} label="Invite & Earn" exact={false} pathname={pathname} onClick={onClose} />
-                {/* PUSH #95 — the affiliate program (40% recurring, 90-day attribution,
+                {/* KINEO-LACOS-TAXA-2026-10-02 — o rótulo dizia "Affiliate — 40%" com a comissão em 30% desde 09/09: a taxa
+                    agora vem de AFFILIATE_COMMISSION_PCT (lib/affiliateCommission.ts) e nenhum texto a digita.
+                    PUSH #95 — the affiliate program (recurring commission, 90-day attribution,
                     working /a/[code] tracking + dashboard) shipped with zero internal
                     links anywhere in the app. Surfacing it here, next to "Invite & Earn"
                     since it's the same job-to-be-done (grow the account by bringing in
                     others). Reuses the "pricing" tag icon — closest existing NAV_ICONS
                     match for a commission/money concept. */}
-                <NavItem href="/affiliate" icon={NAV_ICONS.pricing} label="Affiliate — 40%" exact={false} pathname={pathname} onClick={onClose} badge="NEW" />
+                <NavItem href="/affiliate" icon={NAV_ICONS.pricing} label={`Affiliate — ${AFFILIATE_COMMISSION_PCT}`} exact={false} pathname={pathname} onClick={onClose} badge="NEW" />
               </>
             )}
           </details>

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
+import { writeServerEvent } from '@/lib/serverEvents'
+import { REFERRAL_ATTRIBUTED_EVENT } from '@/lib/referralReward'
 
 export const dynamic = 'force-dynamic'
 
@@ -80,7 +82,16 @@ export async function POST(req: NextRequest) {
       console.error('[referral attribute] update error:', updErr.code, updErr.message)
       return NextResponse.json({ ok: false, reason: 'update_failed' })
     }
-    if (attributed?.id) return NextResponse.json({ ok: true })
+    if (attributed?.id) {
+      // KINEO-LACOS-INDICACAO-2026-10-02 — o cadastro foi atribuído AGORA (só a requisição que venceu o update
+      // condicional chega aqui). Ids, nunca e-mail; SERVER_ONLY_EVENTS impede o navegador de cunhá-lo.
+      await writeServerEvent({
+        name: REFERRAL_ATTRIBUTED_EVENT,
+        userId: user.id,
+        metadata: { referrer_user_id: referrer.id },
+      })
+      return NextResponse.json({ ok: true })
+    }
 
     // A concurrent first-touch may have won between the initial read and the
     // conditional update. Confirm it instead of reporting a false success.

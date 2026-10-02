@@ -30,7 +30,7 @@ const intent = moduleBox.exports
 
 const blank = new URL(intent.buildBlankStudioSignupHref({ campaign: 'seo_blank_test' }), 'https://www.usekineo.com')
 equal(blank.pathname, '/signup', 'blank start begins at signup')
-equal(blank.searchParams.get('utm_source'), 'seo', 'blank start keeps SEO source')
+equal(blank.searchParams.get('utm_source'), null, 'blank start keeps SEO source') // Reancorado 02/10 (KINEO-ATRIBUICAO-POUSO): o 'seo' cravado era origem inventada; sem utmSource explícito o link não leva utm_source (a página de entrada vai para profiles.signup_landing_path)
 equal(blank.searchParams.get('utm_medium'), 'organic', 'blank start keeps organic medium')
 equal(blank.searchParams.get('utm_campaign'), 'seo_blank_test', 'blank start keeps campaign')
 equal(blank.searchParams.get('intent_campaign'), 'seo_blank_test', 'blank start exposes bounded signup intent')
@@ -78,7 +78,7 @@ const bounded = new URL(intent.buildBlankStudioSignupHref({
   utmMedium: '../bad',
 }), 'https://www.usekineo.com')
 equal(bounded.searchParams.get('utm_campaign'), 'organic_creation', 'unsafe campaign falls back')
-equal(bounded.searchParams.get('utm_source'), 'seo', 'unsafe source falls back')
+equal(bounded.searchParams.get('utm_source'), null, 'unsafe source falls back') // Reancorado 02/10 (KINEO-ATRIBUICAO-POUSO): fonte inválida cai em NENHUMA fonte, não mais no 'seo' inventado; a prova (lixo nunca passa cru) é a mesma
 equal(bounded.searchParams.get('utm_medium'), 'organic', 'unsafe medium falls back')
 ok(bounded.searchParams.get('redirect').startsWith('/studio?'), 'redirect remains internal')
 

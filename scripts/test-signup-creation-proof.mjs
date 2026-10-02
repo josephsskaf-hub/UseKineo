@@ -116,7 +116,7 @@ equal(proof.buildExampleRemixSignupPreview('/studio/create?prompt=private'), nul
 equal(proof.buildExampleRemixSignupPreview('//evil.example/studio/create?prompt=x'), null, 'external redirect cannot become a saved-work preview')
 equal(proof.buildExampleRemixSignupPreview('/\\evil.example/studio/create?prompt=x'), null, 'backslash redirect cannot become a saved-work preview')
 for (const [label, changed] of [
-  ['path', remixRedirect.replace('/studio/create?', '/studio/create-evil?')],
+  ['path', remixRedirect.replace(/^\/studio(\/create)?\?/, '/studio/create-evil?')], // Reancorado 02/10 (KINEO-LINKS-STUDIO-NOVO): o remix agora sai em /studio?…; o mutante troca o caminho em qualquer dos dois
   ['intent', remixRedirect.replace('create_intent=example_remix', 'create_intent=fast')],
 ]) {
   equal(proof.buildExampleRemixSignupPreview(changed), null, `${label} mismatch fails closed`)
@@ -194,7 +194,7 @@ check(generatedScriptPreview?.excerpt[0].startsWith('HOOK:'), 'generated script 
 equal(authPreview({ redirect: generatedScriptRedirect.replace('&handoff_kind=free_script', '') }), null, 'missing handoff marker fails closed')
 equal(authPreview({ redirect: generatedScriptRedirect.replace('handoff_kind=free_script', 'handoff_kind=unknown') }), null, 'unknown handoff marker fails closed')
 equal(authPreview({ redirect: generatedScriptRedirect.replace('autoanalyze=1', 'autoanalyze=0') }), null, 'non-analyzing destination cannot claim generated-script proof')
-equal(authPreview({ redirect: generatedScriptRedirect.replace('/studio/create?', '/studio/create-evil?') }), null, 'generated-script proof requires the exact creation path')
+equal(authPreview({ redirect: generatedScriptRedirect.replace(/^\/studio(\/create)?\?/, '/studio/create-evil?') }), null, 'generated-script proof requires the exact creation path') // Reancorado 02/10 (KINEO-LINKS-STUDIO-NOVO): o roteiro grátis agora sai em /studio?…; mesmo mutante de caminho
 equal(authPreview({ redirect: `${generatedScriptRedirect}&create_intent=fast` }), null, 'visual proof cannot authorize automatic creation')
 equal(authPreview({ reason: 'checkout', redirect: generatedScriptRedirect }), null, 'checkout stays sovereign over generated-script proof')
 equal(

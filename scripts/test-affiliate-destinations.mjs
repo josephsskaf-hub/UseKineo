@@ -226,6 +226,9 @@ async function runRoute({
     '@supabase/supabase-js': { createClient: () => sb },
     '@/lib/affiliateDestinations': destinations,
     '@/lib/affiliateAttribution': attribution,
+    // Reancorado 02/10 (KINEO-LACOS-INDICACAO-2026-10-02): import novo da rota (desvio de código de INDICAÇÃO). O mock
+    // diz "não é indicação", então código desconhecido segue indo para a home sem cookie — a prova de antes.
+    '@/lib/referralLanding': { findReferrerIdByCode: async () => null, recordReferralLanding: async () => null, normalizeReferralCode: () => null, REFERRAL_COOKIE: 'sf_ref', REFERRAL_COOKIE_MAX_AGE: 1 },
   }, { AFFILIATE_IP_SALT: 'private-test-salt' })
   const query = to === null ? '' : `?to=${encodeURIComponent(to)}`
   const req = {

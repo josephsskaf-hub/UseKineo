@@ -93,7 +93,9 @@ checa('castelo (90bd8367, Seedance) é o líder das páginas de motor, com prév
 checa('o líder vem ANTES da vitrine da casa só nas páginas de motor; FOUNDER_SHOWCASE (home, /ph) não recebe o castelo', wall.includes('for (const v of [...founderShowcaseWall(ENGINE_PAGE_LEAD), ...founderShowcaseWall()]) {') && !pubEx.split('export const ENGINE_PAGE_LEAD')[0].includes('90bd8367'))
 
 console.log('4) mutantes')
-const mutAlt = roda(engSrc.replace("  for (const code of ENGINE_LANG_CODES) out[FREE_SHORTS_LANG_BY_CODE[code].locale] = `${base}/ai-video-generator/${slug}/${code}`\n", ''), { '@/lib/seo/freeShortsGeneratorLangs': F })
+// Reancorado 02/10 (KINEO-MOTORES-PT-ES-2026-10-02): o laço do hreflang lê o locale por engineLangLocale(code) (pt/es,
+// atrás de ENGINE_PAGES_PT_ES_LIVE, não moram em FREE_SHORTS_LANG_BY_CODE). Mesma prova: sem o laço, não são 15.
+const mutAlt = roda(engSrc.replace("  for (const code of ENGINE_LANG_CODES) out[engineLangLocale(code)] = `${base}/ai-video-generator/${slug}/${code}`\n", ''), { '@/lib/seo/freeShortsGeneratorLangs': F })
 checa('mutante (hreflang sem as 13) é pego', Object.keys(mutAlt.engineAlternates('https://x', 'veo')).length !== 15)
 checa('mutante (galeria sem filtro de motor) é pego', !wall.replace("if (v.engine !== engine || seen.has(v.id)) continue", 'if (seen.has(v.id)) continue').includes('v.engine !== engine || seen.has(v.id)'))
 checa('mutante (cobertura do trial cravada) é pego', !page.replace('const covers = TRIAL_CREDITS_SHOWN >= e.creditCost', 'const covers = true').includes('TRIAL_CREDITS_SHOWN >= e.creditCost'))

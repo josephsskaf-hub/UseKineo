@@ -119,7 +119,7 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
     label: 'Invite',
     exact: false,
   },
-  // PUSH #95 — the affiliate program (40% recurring commission, working
+  // PUSH #95 — the affiliate program (recurring commission — taxa em lib/affiliateCommission.ts, working
   // dashboard + tracking) had zero internal links anywhere in the app.
   // Matching Sidebar.tsx entry, placed right after "Invite" per the same
   // job-to-be-done. Reuses the "pricing" tag icon (same SVG as the /pricing

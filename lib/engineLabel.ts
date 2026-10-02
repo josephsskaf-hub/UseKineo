@@ -24,6 +24,8 @@ const MAPA: Record<string, string> = {
   presenter: 'Avatar',
   // KINEO-ADS-V2-2026-09-28 — anúncio v2: as fotos do cliente animadas (Kling O3 / Seedance 2.0 / H3) e montadas.
   ads_v2: 'Studio Ads',
+  // KINEO-NUVEM-A3-2026-10-02 — montagem da Produção (personagem + clipes/falas + cartão com logo), dentro do Studio Ads.
+  producao_montage: 'Studio Ads',
   // Tiers legados pré-vitrine: rodavam no mesmo pipeline do Kineo 1 com
   // stock — rotular como o motor real, não como o nome de tier morto.
   basic: 'Kineo 1',

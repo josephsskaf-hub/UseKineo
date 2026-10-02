@@ -337,6 +337,8 @@ const advStubs = {
   '@/lib/textLanguage': { captionFontFor: () => 'Montserrat', narrationLanguage: (x) => (typeof x === 'string' && x ? x : null) },
   '@/lib/ads/speakable': { speakableForTts: (t) => t },
   '@/lib/serverEvents': { writeServerEvent: async () => true },
+  // Reancorado 02/10 (KINEO-NUVEM-A2): v2Advance passou a importar o logo da conta; o stub = conta SEM logo (source idêntico ao de antes).
+  '@/lib/brandLogo': { findBrandLogoUrl: async () => null, withBrandLogo: (s) => s },
   '@/lib/ads/v2Billing': {
     ADS_V2_QUALITY: 'ads_v2',
     confirmAdsV2Debit: async () => ({ ok: true, refunded: false }),

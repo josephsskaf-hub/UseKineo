@@ -23,6 +23,9 @@ import {
   pairsForTool,
 } from '@/lib/comparisons'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+// KINEO-MAPA-ORFAS-2026-10-02 — as 3 comparações de anúncio (/vs/<x>-alternative) moram neste mesmo caminho e não eram
+// listadas aqui: só o sitemap chegava nelas. A lista sai do snapshot que gera as páginas (nunca digitada).
+import { ADS_COMPARISONS, adsComparisonPath } from '@/lib/growth/adsComparisons'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -272,6 +275,20 @@ export default function ComparisonsHubPage() {
             )
           })}
         </div>
+
+        {/* KINEO-MAPA-ORFAS-2026-10-02 — comparações de ferramentas de anúncio, do snapshot oficial. */}
+        <h2 style={h2}>Video-ad tools</h2>
+        <p style={p}>
+          For businesses making video ads from their own photos: Kineo Studio Ads next to ad tools people shortlist,
+          from a dated snapshot of each tool&rsquo;s official page, with anything we could not confirm marked as such.
+        </p>
+        <ul style={{ margin: '0 0 8px', paddingLeft: 18, color: '#d2d2d7', lineHeight: 1.85, fontSize: '0.95rem' }}>
+          {ADS_COMPARISONS.map((competitor) => (
+            <li key={competitor.slug}>
+              <Link href={adsComparisonPath(competitor.slug)} style={link}>Kineo Studio Ads vs {competitor.name}</Link>
+            </li>
+          ))}
+        </ul>
 
         <h2 style={h2}>How these pages are written</h2>
         <div style={{ display: 'grid', gap: 10 }}>
