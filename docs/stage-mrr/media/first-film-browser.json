@@ -9,7 +9,7 @@
         "name": "mrr_studio_viewed",
         "metadata": {
           "version": "mrr_studio_20261001_v1",
-          "variant": "near_idea",
+          "variant": "control",
           "surface": "studio"
         }
       },
@@ -33,6 +33,10 @@
       }
     ],
     "requests": [
+      {
+        "url": "/api/brand-logo",
+        "method": "GET"
+      },
       {
         "url": "/api/credits",
         "method": "GET"
@@ -57,7 +61,7 @@
         "name": "mrr_studio_viewed",
         "metadata": {
           "version": "mrr_studio_20261001_v1",
-          "variant": "near_idea",
+          "variant": "control",
           "surface": "studio"
         }
       },
@@ -81,6 +85,10 @@
       }
     ],
     "requests": [
+      {
+        "url": "/api/brand-logo",
+        "method": "GET"
+      },
       {
         "url": "/api/credits",
         "method": "GET"
@@ -105,7 +113,7 @@
         "name": "mrr_studio_viewed",
         "metadata": {
           "version": "mrr_studio_20261001_v1",
-          "variant": "near_idea",
+          "variant": "control",
           "surface": "studio"
         }
       },
@@ -129,6 +137,10 @@
       }
     ],
     "requests": [
+      {
+        "url": "/api/brand-logo",
+        "method": "GET"
+      },
       {
         "url": "/api/credits",
         "method": "GET"
@@ -153,7 +165,7 @@
         "name": "mrr_studio_viewed",
         "metadata": {
           "version": "mrr_studio_20261001_v1",
-          "variant": "near_idea",
+          "variant": "control",
           "surface": "studio"
         }
       },
@@ -177,6 +189,10 @@
       }
     ],
     "requests": [
+      {
+        "url": "/api/brand-logo",
+        "method": "GET"
+      },
       {
         "url": "/api/credits",
         "method": "GET"

@@ -1,14 +1,14 @@
 {
   "sprint": "MRR produto",
-  "date": "2026-10-01",
+  "date": "2026-10-02",
   "worktree": "C:/kineo/.claude/worktrees/stage-sprint-mrr",
   "branch": "codex/sprint-mrr-first-film-20261001",
-  "main": "b0fef8ceabaf6b21ff53a137cd2268f5f293c797",
-  "integratedQueue": "b0fef8ceabaf6b21ff53a137cd2268f5f293c797",
-  "status": "new-batch-local-verified-await-next-permitted-publication",
-  "publication": "Prior b0 delivery reached origin/main; public /showcase HTTP200 with MRR version. New five-priority batch is local only; agent executed no publisher.",
-  "next": "Email HOLD active, including prepared reactivation dispatch; explicit later release required. On next permitted day (Oct2 or later), fetch and reconcile origin/main, remote queue if it exists and actual local queue; preserve other work, rerun gates on integrated candidate, enqueue via house script and prepare one safe PUBLICAR with full SHAs. Until then no second launcher, no queue overwrite. Daily SELECT measurement; no sends/renders. Saturday report Oct3 23UTC.",
-  "results": "At Oct1 14:16:15 UTC: 0 first positive subscriptions today (partial); 6 last30d. One anonymous studio-version observation; zero identified people exposed. New batch unexposed; commercial effects unknown.",
+  "main": "6ac5d2b8bbef9ad59a373f33238ca52e728e23cc",
+  "integratedQueue": "6ac5d2b8bbef9ad59a373f33238ca52e728e23cc",
+  "status": "integrated-verified-ready-to-enqueue",
+  "publication": "Prior b0 published; near-idea flag subsequently disabled by founder in current main and preserved. New batch not published; ready for house enqueue and Oct2 launcher.",
+  "next": "Enqueue reviewed integrated tree preserving main/local queue; create one safe PUBLICAR-MRR-2026-10-02.bat with candidate and reviewed main. Never execute publisher. Then own observation branch: await real publication, measure versioned mature cohorts, preserve HOLD and no duplicate launcher today.",
+  "results": "Oct1 full BRT day:20 external signups,0 first positive subscriptions observed. Oct2 to00:07BRT:1 signup,0 new subscriptions. Rolling30d:6 first subs;5ChatGPT,1unknown. Studio version17 identified external impressions/5typed/6clicks, home showcase door2; immature/mixed control exposure, not causal results. NetMRR unknown.",
   "report": "docs/STAGE-sprint-mrr-2026-10-04.md",
   "reportDue": "2026-10-03T23:00:00Z",
   "externalEvidence": "C:/Users/josep/.codex/outputs/01a0e5e3-36cf-72b3-bc5d-26ca2cd6e88d/mrr-20261001",
@@ -53,7 +53,7 @@
     },
     {
       "id": 5,
-      "status": "implemented and locally tested, never invoked; dispatch ON HOLD until explicit later release following Board diagnosis"
+      "status": "Preview implemented; SEND_ENABLED=false. Server returns423 before writes/provider; UI hides send. Six mutant tests. HOLD persists until explicit later release."
     }
   ],
   "priorDeliveryGates": {
@@ -72,36 +72,34 @@
     "ownMutantsKilled": 13,
     "screenshots": 20
   },
-  "codeSha": "57582d91b4399b03a1b72d7960d7348174ff56a0",
+  "codeSha": "fcc3a887812b620e850ed907c7a97389aa6a9fc5",
   "currentGates": {
-    "date": "2026-10-01",
-    "codeSha": "57582d91b4399b03a1b72d7960d7348174ff56a0",
-    "baselineSha": "b0fef8ceabaf6b21ff53a137cd2268f5f293c797",
-    "tsc": "clean; exit 0",
+    "date": "2026-10-02",
+    "codeSha": "fcc3a887812b620e850ed907c7a97389aa6a9fc5",
+    "baselineSha": "6ac5d2b8bbef9ad59a373f33238ca52e728e23cc",
+    "tsc": "clean; exit 0 after merge and HOLD gate",
     "baseline": {
-      "total": 740,
-      "passed": 538,
-      "failed": 202
+      "total": 744,
+      "passed": 603,
+      "failed": 141
     },
     "candidate": {
-      "total": 743,
-      "passed": 542,
-      "failed": 201
+      "total": 747,
+      "passed": 606,
+      "failed": 141
     },
     "newRedFiles": [],
     "newFailedAssertions": [],
-    "resolved": [
-      "test-ritmo-por-idioma-15s-2026-09-29.mjs"
-    ],
-    "logComparison": "All failed logs compared. Differences: temp paths/PIDs, CRLF warnings, increased successful scanned-file/event counts, changed source excerpt in existing Spanish assertion; no new failed assertion.",
-    "ownMutantsKilled": 20,
-    "newScreenshots": 40,
-    "visualScope": "Real JSX; context/services mocked; no authenticated full Next E2E, render or external POST.",
-    "execution": "Offline guard denies networking and secret files. No production writes or sends.",
-    "logs": "C:/Users/josep/.codex/outputs/01a0e5e3-36cf-72b3-bc5d-26ca2cd6e88d/mrr-20261001/candidate-new-goal-final",
-    "publication": "Not queued; max one Oct1 MRR launcher already used. Fresh integration and gates required before next permitted launcher."
+    "ownMutantsKilled": 21,
+    "originalMutantsPreserved": 13,
+    "screenshots": "8 first-film and 4 HOLD preview screenshots refreshed; 28 other unchanged component screenshots retained",
+    "environment": "Both use junction to C:/kineo/node_modules; sanitized env/offline guard blocks external networking/secret reads. Earlier candidate attempt without junction was superseded. Runtime interruption after736 scripts: resumed only11 missing scripts, no test or assertion changed.",
+    "comparison": "Failure logs compared: same assertions; changes only PIDs/temp paths, CRLF warnings, successful scan counts, expanded source excerpt in legacy Spanish assertion.",
+    "logs": "C:/Users/josep/.codex/outputs/01a0e5e3-36cf-72b3-bc5d-26ca2cd6e88d/mrr-20261001/candidate-20261002-deps",
+    "publication": "Prepared for house queue; enqueue/publication are separate from test success.",
+    "limitations": "Mocked-service real-JSX browser verification; no full authenticated Next E2E, paid render or email send."
   },
-  "measurementCut": "2026-10-01T14:16:15.87039Z",
+  "measurementCut": "2026-10-02T03:07:03.572474Z",
   "productionPublicProof": {
     "path": "/showcase",
     "status": 200,
@@ -143,5 +141,6 @@
       "netMRR": "Unknown: this evidence lacks complete expansion, contraction and cancellation reconciliation."
     },
     "publicationGate": "One MRR PUBLICAR/day already used Oct1. Next eligible Oct2, after fresh merge/gates. HOLD keeps reactivation dispatch suspended."
-  }
+  },
+  "nearIdeaDecision": "MRR_NEAR_IDEA_ENABLED=false from current origin/main, founder decision preserved; never reactivate by inferred MRR goal."
 }
