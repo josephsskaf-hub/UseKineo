@@ -205,14 +205,26 @@ export default async function PublicVideoPage({
 
   return (
     <main
+      className="pv-main"
       style={{
         minHeight: '100vh',
         background: '#000',
         color: '#f5f5f7',
-        padding: '24px 16px 120px',
+        padding: '24px 16px 64px',
         fontFamily: 'var(--font-inter), system-ui, -apple-system, sans-serif',
       }}
     >
+      {/* KINEO-LACOS-STICKY-2026-10-02 — a barra fixa existe só no celular (<= 640px), onde o player 9:16 empurra a CTA
+          para fora da tela; no desktop a CTA sob o player já está à vista. O corpo ganha padding-bottom do tamanho da
+          barra + safe-area, para a barra nunca cobrir o fim da página. `display` mora só no CSS (estilo inline
+          venceria a media query). */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html:
+            '.pv-sticky{display:none}' +
+            '@media (max-width:640px){.pv-sticky{display:flex}.pv-main{padding-bottom:calc(96px + env(safe-area-inset-bottom)) !important}}',
+        }}
+      />
       {v?.isIndexable && (
         <>
           <script
@@ -351,7 +363,7 @@ export default async function PublicVideoPage({
           >
             Make your own version — free →
           </PublicVideoCtaLink>
-          <ShareVideoButton title={v?.title ?? 'A Short made with Kineo'} />
+          <ShareVideoButton title={v?.title ?? 'A Short made with Kineo'} videoId={params.id} />
           <div style={{ marginTop: 10 }}>
             <PublicVideoCtaLink
               href={remixHref}
@@ -540,8 +552,11 @@ export default async function PublicVideoPage({
 
       {/* ONDA4 #2 (14/08) — no mobile o CTA nascia fora da tela (player 9:16
           empurra tudo para baixo). Barra fixa: a porta de entrada acompanha o
-          visitante a pagina inteira. */}
+          visitante a pagina inteira.
+          KINEO-LACOS-STICKY-2026-10-02 — só no celular (classe pv-sticky) e com a CTA PRINCIPAL da página ("Make your
+          own version", cadastro com o tema deste filme), não mais o remix sem cadastro, que segue sob o player. */}
       <div
+        className="pv-sticky"
         style={{
           position: 'fixed',
           bottom: 0,
@@ -553,15 +568,14 @@ export default async function PublicVideoPage({
           backdropFilter: 'blur(14px)',
           WebkitBackdropFilter: 'blur(14px)',
           borderTop: '1px solid rgba(41,151,255,0.25)',
-          display: 'flex',
           justifyContent: 'center',
         }}
       >
         <PublicVideoCtaLink
-          href={remixHref}
+          href={generateFromScriptHref(title, 'public_video_remake')}
           videoId={params.id}
           placement="sticky_bar"
-          destination="/free-script-generator"
+          destination="/signup"
           style={{
             display: 'block',
             width: 'min(420px, 100%)',
@@ -575,7 +589,7 @@ export default async function PublicVideoPage({
             fontSize: '1rem',
           }}
         >
-          Remix this topic free →
+          Make your own version — free →
         </PublicVideoCtaLink>
       </div>
 

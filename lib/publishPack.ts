@@ -172,6 +172,28 @@ export function prepararPacote(
   }
 }
 
+// ═══ KINEO-LACOS-KIT-2026-10-02 ═════════════════════════════════════════════
+// O kit apontava a linha de credito para a HOME (KINEO_CREDIT_LINE, utm video_desc). Quando o dono ja PUBLICOU a
+// pagina do filme (videos.published_at), o link certo e a /v/ do proprio filme, com o codigo de indicacao do dono:
+// quem clica ve o filme que acabou de ver no feed, com "Make your own version" do lado, e o cadastro conta para o
+// dono no Invite & Earn. So a URL da linha da casa troca; o texto e a regra do plano (credito so no gratuito) ficam.
+// Puro e sem import (o guardiao executa este arquivo): quem chama passa a linha da casa e a URL ja montada.
+const URL_DO_FILME = /^https:\/\/www\.usekineo\.com\/v\/[^\s]+$/
+
+/** Troca a URL da linha de credito da casa pela /v/ do filme. Sem linha da casa no pacote (plano pago), nada muda. */
+export function apontarCreditoParaFilme(
+  p: PacoteDePublicacao,
+  linhaDaCasa: string,
+  urlDoFilme: string | null | undefined,
+): PacoteDePublicacao {
+  const url = typeof urlDoFilme === 'string' ? urlDoFilme.trim() : ''
+  if (!linhaDaCasa || !URL_DO_FILME.test(url)) return p
+  if (!p.ytDescription.includes(linhaDaCasa)) return p
+  const linhaDoFilme = linhaDaCasa.replace(/https:\/\/\S+$/, url)
+  if (linhaDoFilme === linhaDaCasa) return p
+  return { ...p, ytDescription: p.ytDescription.split(linhaDaCasa).join(linhaDoFilme) }
+}
+
 /** Le o que foi gravado. Falha SEMPRE aberta. */
 export function lerPacote(metadata: unknown): PacoteDePublicacao | null {
   if (!metadata || typeof metadata !== 'object') return null
