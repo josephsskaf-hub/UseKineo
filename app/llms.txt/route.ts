@@ -60,6 +60,7 @@ import { EDITING_TOOLS, MAX_FILE_BYTES, MAX_CLIP_SECONDS } from '@/lib/videoEdit
 import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 import { TIER_PRICES, formatCheckoutMoney, packPriceLabel } from '@/lib/checkoutPricing' // KINEO-FATOS-VIGENCIA-2026-09-23 — preço sempre formatado, nunca `usd / 100` nem literal
 import { AFFILIATE_COMMISSION_PCT } from '@/lib/affiliateCommission'
+import { REFERRAL_MAX_REWARDED_FRIENDS, REFERRAL_REWARD_CREDITS } from '@/lib/referralReward' // KINEO-NUVEM-INTEGRACAO-2026-10-02
 import { ENGINE_PAUSE, PAUSED_ENGINE_KEYS, AVATAR_PUBLIC, KINEO1_PUBLIC } from '@/lib/engineLaunch' // KINEO-AVATAR-FORA-2026-09-28 · KINEO-FILME-GRATIS-15S-2026-09-29
 import { NARRATION_LANGUAGES, HOLLYWOOD_LANGUAGES } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -94,8 +95,8 @@ const BASE = PRODUCT.url
 // usada pelo cadastro. Importá-la não arrasta cookies, banco ou Stripe.
 // As constantes de indicação abaixo ainda são locais às rotas indicadas;
 // não importar handlers dinâmicos nesta resposta estática.
-const REFERRAL_REWARD_CREDITS = 30 // fonte: app/api/referral/route.ts:8, app/api/referral/qualify/route.ts:10
-const REFERRAL_MAX_REWARDED_FRIENDS = 20 // fonte: app/api/referral/qualify/route.ts:14 (MAX_REFERRALS_PER_USER)
+// KINEO-NUVEM-INTEGRACAO-2026-10-02 — os 30 créditos e o teto de 20 amigos moram agora em lib/referralReward.ts (módulo
+// puro, a MESMA fonte que /api/referral e /api/referral/qualify importam). Sem cópia local: o número citado é o que paga.
 const AFFILIATE_FIRST_TOUCH_DAYS = 90 // fonte: app/a/[code]/route.ts:13 (COOKIE_MAX_AGE)
 
 function planLine(plan: (typeof PLAN_FACTS)[number]): string {
