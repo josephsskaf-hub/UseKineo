@@ -258,6 +258,9 @@ export type McpDeps = {
   createHandoff: (args: Record<string, unknown>, meta?: Record<string, unknown>) => Promise<HandoffToolResult>
   pausedEngines: readonly string[]
   profile?: 'chatgpt'
+  /** KINEO-MCP-CHATGPT-FATOS-2026-10-02 — só no perfil chatgpt: anexa os fatos comerciais (deps.facts) ao kineo_facts.
+   *  A rota passa CHATGPT_MCP_COMMERCIAL_FACTS_LIVE (false hoje); ausente/false = contrato de antes. */
+  commercialFacts?: boolean
 }
 
 export type JsonRpcId = string | number | null
@@ -294,7 +297,15 @@ async function callTool(name: string, args: Record<string, unknown>, deps: McpDe
   if (name === TOOL_FACTS) {
     if (deps.profile === 'chatgpt') {
       if (Object.keys(args).length) return { ok: false, result: toolError('This tool accepts no arguments.') }
-      return { ok: true, result: toolText(chatgptCapabilities(deps.pausedEngines), false) }
+      const capabilities = chatgptCapabilities(deps.pausedEngines)
+      if (deps.commercialFacts === true) {
+        // KINEO-MCP-CHATGPT-FATOS-2026-10-02 — interruptor ligado: os fatos vivos, mesma seleção do Claude. Falha ao ler
+        // os fatos nunca derruba as capacidades: o campo só some.
+        try {
+          capabilities.commercial = selectFacts(deps.facts(), FACTS_TOPIC_ALL)
+        } catch { /* sem fatos: só as capacidades */ }
+      }
+      return { ok: true, result: toolText(capabilities, false) }
     }
     const topic = args.topic
     if (topic !== undefined && topic !== FACTS_TOPIC_ALL && !(typeof topic === 'string' && topic in FACTS_TOPICS)) {
@@ -377,7 +388,7 @@ export async function handleMcpMessage(msg: unknown, deps: McpDeps): Promise<{ r
     case 'ping':
       return { response: { jsonrpc: '2.0', id, result: {} }, trace: { method } }
     case 'tools/list':
-      return { response: { jsonrpc: '2.0', id, result: { tools: deps.profile === 'chatgpt' ? chatgptTools(buildTools({ pausedEngines: deps.pausedEngines })) : buildTools({ pausedEngines: deps.pausedEngines }) } }, trace: { method } }
+      return { response: { jsonrpc: '2.0', id, result: { tools: deps.profile === 'chatgpt' ? chatgptTools(buildTools({ pausedEngines: deps.pausedEngines }), { commercialFacts: deps.commercialFacts === true }) : buildTools({ pausedEngines: deps.pausedEngines }) } }, trace: { method } }
     case 'tools/call': {
       const name = typeof params.name === 'string' ? params.name : ''
       if (name !== TOOL_FACTS && name !== TOOL_HANDOFF) {
