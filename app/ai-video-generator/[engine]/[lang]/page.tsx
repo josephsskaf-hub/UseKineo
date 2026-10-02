@@ -17,8 +17,9 @@ import { TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
 import { STARTER_MONTH } from '@/lib/marketingPrice'
 import { ENGINES } from '@/lib/growth/enginePageCatalog'
 import { enginePaused } from '@/lib/engineLaunch'
-import { FREE_SHORTS_LANG_BY_CODE } from '@/lib/seo/freeShortsGeneratorLangs'
-import { ENGINE_LANGS, ENGINE_LANG_CODES, LOCALIZED_ENGINE_SLUGS, engineAlternates, type LocalizedEngineSlug } from '@/lib/seo/enginePageLangs'
+// KINEO-MOTORES-PT-ES-2026-10-02 — texto e porta vêm de engineLangFor/engineDoorFor: as 13 de sempre e, com
+// ENGINE_PAGES_PT_ES_LIVE=true, pt/es (que não moram em FREE_SHORTS_LANG_BY_CODE). Desligado = as mesmas 13 de antes.
+import { ENGINE_LANG_CODES, LOCALIZED_ENGINE_SLUGS, engineAlternates, engineDoorFor, engineLangFor, type LocalizedEngineSlug } from '@/lib/seo/enginePageLangs'
 
 const BASE = 'https://www.usekineo.com'
 const CARD = { background: '#161618', border: '1px solid #2a2a2d' }
@@ -30,8 +31,8 @@ export function generateStaticParams() {
 
 function resolve(params: { engine: string; lang: string }) {
   const slug = LOCALIZED_ENGINE_SLUGS.find((s) => s === params.engine)
-  const L = ENGINE_LANGS[params.lang as keyof typeof ENGINE_LANGS]
-  const P = FREE_SHORTS_LANG_BY_CODE[params.lang]
+  const L = engineLangFor(params.lang)
+  const P = engineDoorFor(params.lang)
   const e = slug ? ENGINES[slug] : undefined
   if (!slug || !L || !P || !e) return null
   const facts = { engine: e.name, credits: e.creditCost, trial: TRIAL_CREDITS_SHOWN }
@@ -162,7 +163,7 @@ export default async function EngineLangPage({ params }: { params: { engine: str
         <p style={{ textAlign: 'center', marginTop: 28, fontSize: '0.85rem' }}>
           <Link href={`/ai-video-generator/${slug}`} style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}>English →</Link>
           {' · '}
-          <Link href={`/free-shorts-generator/${P.code}`} style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}>{P.badge} →</Link>
+          <Link href={P.doorPath} style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}>{P.badge} →</Link>
         </p>
       </div>
       <Footer />
