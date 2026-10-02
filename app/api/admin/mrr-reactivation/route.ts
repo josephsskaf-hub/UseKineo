@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { dailyCap, recordResendResponse } from '@/lib/email/quota'
-import { eligibleReactivationProfile, readyFilmDraft, readEveryPage, MRR_REACTIVATION_ENABLED, MRR_REACTIVATION_VERSION, MRR_REACTIVATION_BATCH, MRR_REACTIVATION_CLAIM, MRR_REACTIVATION_SENT } from '@/lib/growth/mrrReactivation'
+import { eligibleReactivationProfile, readyFilmDraft, readEveryPage, MRR_REACTIVATION_ENABLED, MRR_REACTIVATION_VERSION, MRR_REACTIVATION_SEND_ENABLED, MRR_REACTIVATION_BATCH, MRR_REACTIVATION_CLAIM, MRR_REACTIVATION_SENT } from '@/lib/growth/mrrReactivation'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -81,6 +81,7 @@ export async function POST(req: NextRequest) {
     if (!ctx) return json({ error: 'Founder session required' }, 403)
     const body = await req.json()
     if (body.dryRun !== false) return GET()
+    if (!MRR_REACTIVATION_SEND_ENABLED) return json({ error: 'Commercial email HOLD: explicit founder release required; no email sent' }, 423)
     if (body.confirm !== 'SEND_REVIEWED_READY_FILMS' || !Array.isArray(body.ids) || body.ids.length < 1 || body.ids.length > MRR_REACTIVATION_BATCH
       || !Number.isFinite(body.expires) || body.expires < Date.now() || body.expires > Date.now() + 10 * 60000) return json({ error: 'Review the current batch first' }, 409)
     const eligible = await prepare(ctx)

@@ -12,7 +12,7 @@ assert.ok(!pure.readyFilmDraft('My film').text.includes('/v/'))
 const paged=await pure.readEveryPage(async(a,b)=>({data:Array.from({length:Math.max(0,Math.min(1201-a,b-a+1))},(_,i)=>a+i),error:null}));assert.equal(paged.length,1201)
 await assert.rejects(()=>pure.readEveryPage(async()=>({data:null,error:'offline'})))
 
-async function contract(text=source){
+async function contract(text=source,sendEnabled=true){
  let founder=true,suppressed=false;const sent=[],written=[],events=[]
  const db={from(table){let write=null;const q={select(){return q},order(){return q},range(){return q},in(){return q},eq(){return q},gte(){return q},lt(){return q},insert(row){write=row;return q},then(resolve,reject){
   let result={data:[],error:null,count:0};
@@ -20,7 +20,7 @@ async function contract(text=source){
   else if(table==='profiles')result.data=[good];else if(table==='events')result.data=events;else if(table==='videos')result.data=[{id:'video-fixture',user_id:good.id,status:'completed',video_url:'https://example.test/film.mp4',title:'My film',created_at:good.created_at}];
   return Promise.resolve(result).then(resolve,reject)
  }};return q}}
- const load=createOfflineLoader({source:(p,s)=>p===file?text:s,env:{NEXT_PUBLIC_SUPABASE_URL:'https://fixture.test',SUPABASE_SERVICE_ROLE_KEY:'offline-fixture-not-a-secret',RESEND_API_KEY:'offline-fixture'},globals:{AbortSignal:{timeout:()=>undefined},fetch:async(url,init)=>{sent.push({url,init});return{ok:true,status:200,json:async()=>({id:'provider-fixture'})}}},mocks:{
+ const load=createOfflineLoader({source:(p,s)=>p===file?text:p==='lib/growth/mrrReactivation.ts'&&sendEnabled?s.replace('MRR_REACTIVATION_SEND_ENABLED = false','MRR_REACTIVATION_SEND_ENABLED = true'):s,env:{NEXT_PUBLIC_SUPABASE_URL:'https://fixture.test',SUPABASE_SERVICE_ROLE_KEY:'offline-fixture-not-a-secret',RESEND_API_KEY:'offline-fixture'},globals:{AbortSignal:{timeout:()=>undefined},fetch:async(url,init)=>{sent.push({url,init});return{ok:true,status:200,json:async()=>({id:'provider-fixture'})}}},mocks:{
   'next/server':{NextResponse:{json:(body,options)=>({body,status:options?.status??200})}},
   '@supabase/supabase-js':{createClient:()=>db},
   '@/lib/supabase/server':{createClient:()=>({auth:{getUser:async()=>({data:{user:{id:'founder-fixture',email:founder?'josephsskaf@gmail.com':'stranger@example.test'}}})}})},
@@ -36,11 +36,15 @@ async function contract(text=source){
  assert.equal((await api.POST(request({dryRun:true}))).status,200);assert.equal(written.length,0)
  assert.equal((await api.POST({...request({}),headers:{get:()=> 'https://evil.test'}})).status,403)
  const body={dryRun:false,confirm:'SEND_REVIEWED_READY_FILMS',ids:[good.id],expires:preview.body.expires,reviewToken:preview.body.reviewToken}
+ if(!sendEnabled){assert.equal((await api.POST(request(body))).status,423);assert.equal(sent.length,0);assert.equal(written.length,0);return}
  assert.equal((await api.POST(request({...body,reviewToken:'0'.repeat(64)}))).status,409);assert.equal(sent.length,0)
  const result=await api.POST(request(body));assert.equal(result.status,200);assert.equal(sent.length,1);assert.equal(written[0].row.name,'mrr_ready_film_claimed')
  assert.equal((await api.POST(request(body))).status,409);assert.equal(sent.length,1,'repeat click cannot resend')
  const payload=JSON.parse(sent[0].init.body);assert.equal(payload.reply_to,'joseph@usekineo.com');assert.ok(payload.text.includes('Unsubscribe:'));assert.ok(payload.text.includes('My film'));assert.equal(payload.to.length,1)
 }
+assert.equal(pure.MRR_REACTIVATION_SEND_ENABLED,false)
+await contract(source,false)
+await assert.rejects(()=>contract(source.replace('!MRR_REACTIVATION_SEND_ENABLED','false'),false))
 await contract()
 for(const [from,to]of[
  ["user.email?.trim().toLowerCase() !== FOUNDER","false"],['body.dryRun !== false','false'],
@@ -50,4 +54,4 @@ for(const [from,to]of[
 assert.ok(read('lib/lifecycle/emailEvents.ts').includes("'mrr_ready_film_sent'"))
 assert.ok(read('app/api/events/route.ts').includes("'mrr_ready_film_sent'"))
 assert.ok(!/setInterval|useEffect/.test(read('components/growth/MrrReactivationReview.tsx')),'no auto-send lifecycle')
-console.log('MRR reactivation: 1201-row pagination, exclusions, founder-only preview zero writes, signed review, CSRF, atomic claim, no repeat; 5 killed mutants PASS')
+console.log('MRR reactivation: 1201-row pagination, exclusions, founder-only preview zero writes, signed review, CSRF, atomic claim, no repeat; 6 killed mutants PASS (includes HOLD: zero writes/sends even with a reviewed founder payload)')

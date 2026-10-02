@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { MRR_REACTIVATION_SEND_ENABLED } from '@/lib/growth/mrrReactivation'
 type Preview = { eligible: number; expires: number; reviewToken: string; recipients: Array<{ id: string; email: string; subject: string; text: string }> }
 
 export default function MrrReactivationReview() {
@@ -18,7 +19,7 @@ export default function MrrReactivationReview() {
     finally { setBusy(false) }
   }
   async function send() {
-    if (busy || !approved || !preview || preview.recipients.length === 0) return
+    if (!MRR_REACTIVATION_SEND_ENABLED || busy || !approved || !preview || preview.recipients.length === 0) return
     const reviewed = preview
     setBusy(true); setApproved(false); setPreview(null)
     try {
@@ -31,13 +32,14 @@ export default function MrrReactivationReview() {
   }
   return <main style={{ maxWidth: 900, margin: '32px auto', padding: 20, color: 'var(--text)' }}>
     <h1>Reativação MRR — filme pronto</h1>
+    {!MRR_REACTIVATION_SEND_ENABLED && <p role="status">Envio suspenso por HOLD comercial. A prévia continua disponível; é necessária liberação explícita posterior do fundador.</p>}
     <p>Somente Joseph. O link abre esta revisão; não dispara mensagens. Nenhuma geração nova. Cada pessoa deve ter filme entregue, não ter pagamento, respeitar supressões e ficar fora do resgate de checkout. No máximo 10 por clique; envio não comprova entrega ou compra.</p>
     <button type="button" disabled={busy} onClick={load}>Carregar prévia sem enviar</button>
     <pre role="status" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{result}</pre>
     {preview?.recipients.map(person => <article key={person.id} style={{ padding: 16, margin: '12px 0', border: '1px solid var(--border)', borderRadius: 12 }}>
       <strong>{person.email}</strong><p>{person.subject}</p><pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{person.text}</pre>
     </article>)}
-    {preview && preview.recipients.length > 0 && <>
+    {MRR_REACTIVATION_SEND_ENABLED && preview && preview.recipients.length > 0 && <>
       <label><input type="checkbox" checked={approved} onChange={e => setApproved(e.target.checked)} /> Sou Joseph e revisei os destinatários e textos acima. Quero enviar este lote agora.</label>
       <button type="button" disabled={busy || !approved} onClick={send} style={{ display: 'block', marginTop: 16 }}>Enviar somente este lote revisado</button>
       <p>A revisão expira em 10 minutos. Nova elegibilidade é conferida no clique. Falha ou resultado ambíguo não gera reenvio automático.</p>
