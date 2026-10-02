@@ -17,8 +17,11 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { KINEO_CREDIT_LINE } from '@/lib/videoDescription'
+import { buildPublishedVideoSharePath } from '@/lib/videoShare'
 import {
+  apontarCreditoParaFilme,
   PACOTE_EVENT,
+  SITE,
   lerPacote,
   pacoteAindaVale,
   prepararPacote,
@@ -119,12 +122,40 @@ const SISTEMA = [
   'Write in the language of the topic you are given. Never invent facts that the topic does not support: if the topic is thin, stay general rather than specific.',
 ].join('\n')
 
+// ═══ KINEO-LACOS-KIT-2026-10-02 ═════════════════════════════════════════════
+// O link do kit aponta para a /v/ do PROPRIO filme quando o dono publicou a pagina (videos.published_at), com o
+// codigo de indicacao dele (profiles.referral_code) — o mesmo caminho canonico do botao "Share link" do My Videos
+// (lib/videoShare.ts buildPublishedVideoSharePath). Sem published_at, o link de hoje (home) fica. Falha ABERTA:
+// qualquer erro ou demora devolve o pacote como ele era, e o e-mail sai igual.
+const LINK_DO_FILME_TIMEOUT_MS = 2_500
+
+async function urlDoFilmePublicado(admin: Admin, userId: string, videoId: string): Promise<string | null> {
+  const consulta = (async () => {
+    const { data: filme } = await admin
+      .from('videos')
+      .select('id, published_at')
+      .eq('id', videoId)
+      .eq('user_id', userId)
+      .maybeSingle()
+    const publicadoEm = typeof filme?.published_at === 'string' ? filme.published_at.trim() : ''
+    if (!publicadoEm) return null
+    const { data: dono } = await admin.from('profiles').select('referral_code').eq('id', userId).maybeSingle()
+    const codigo = typeof dono?.referral_code === 'string' ? dono.referral_code : null
+    const caminho = buildPublishedVideoSharePath(videoId, codigo)
+    return caminho ? `${SITE}${caminho}` : null
+  })().catch(() => null)
+  const prazo = new Promise<null>((resolve) => setTimeout(() => resolve(null), LINK_DO_FILME_TIMEOUT_MS))
+  return Promise.race([consulta, prazo])
+}
+
 /**
  * O pacote deste filme: o gravado, ou um novo escrito e guardado.
  *
  * `escrever: false` = so leitura, custo ZERO garantido.
  */
-export async function garantirPacote(
+// KINEO-LACOS-KIT-2026-10-02 — o corpo de sempre (gravado ou escrito novo). O `garantirPacote` exportado, no fim do
+// arquivo, so acrescenta o link da /v/ do filme publicado por cima deste resultado.
+async function garantirPacoteDaCasa(
   admin: Admin,
   userId: string,
   filme: FilmeDoPacote,
@@ -211,4 +242,21 @@ export async function garantirPacote(
 
   await guardar(admin, userId, videoId, p)
   return p
+}
+
+/**
+ * O pacote deste filme: o gravado, ou um novo escrito e guardado — com a linha de credito da casa apontando para a
+ * /v/ do filme quando a pagina foi publicada. Mesma assinatura e mesmo contrato de sempre para os tres chamadores.
+ */
+export async function garantirPacote(
+  admin: Admin,
+  userId: string,
+  filme: FilmeDoPacote,
+  opts?: { escrever?: boolean; isFreePlan?: boolean; onFalha?: (motivo: string) => void },
+): Promise<PacoteDePublicacao | null> {
+  const pacote = await garantirPacoteDaCasa(admin, userId, filme, opts)
+  // Pacote de assinante sai limpo (sem a linha da casa): nao ha link a apontar e nenhuma consulta e feita.
+  if (!pacote || typeof filme.id !== 'string' || !pacote.ytDescription.includes(KINEO_CREDIT_LINE)) return pacote
+  const url = await urlDoFilmePublicado(admin, userId, filme.id)
+  return apontarCreditoParaFilme(pacote, KINEO_CREDIT_LINE, url)
 }

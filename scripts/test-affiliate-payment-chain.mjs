@@ -111,6 +111,9 @@ function setup() {
       '@supabase/supabase-js': { createClient: () => db },
       '@/lib/affiliateDestinations': compile(read('lib/affiliateDestinations.ts')),
       '@/lib/affiliateAttribution': attribution,
+      // Reancorado 02/10 (KINEO-LACOS-INDICACAO-2026-10-02): a rota /a/ ganhou o desvio de código de INDICAÇÃO; aqui o
+      // código é de afiliado ativo e o desvio nunca roda — o mock só satisfaz o import (prova inalterada).
+      '@/lib/referralLanding': { findReferrerIdByCode: async () => null, recordReferralLanding: async () => null, normalizeReferralCode: () => null, REFERRAL_COOKIE: 'sf_ref', REFERRAL_COOKIE_MAX_AGE: 1 },
     })
     now = initialTime - 3600000
     let response

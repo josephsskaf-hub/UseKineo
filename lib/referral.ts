@@ -10,11 +10,24 @@
 
 const REF_KEY = 'sf_ref'
 const REFERRAL_CODE = /^[A-HJ-NP-Z2-9]{8}$/
+// KINEO-LACOS-INDICACAO-2026-10-02 — o /a/<code> (para onde o middleware manda todo `?ref=` fora de /v/) entrega o
+// código de indicação neste cookie legível; antes ele chegava à home SEM código e a indicação morria. Mesmo nome da
+// chave do localStorage, de propósito (lib/referralReward.ts REFERRAL_COOKIE).
+const REF_COOKIE = 'sf_ref'
+
+function refFromCookie(): string {
+  try {
+    const m = document.cookie.match(new RegExp('(?:^|;\\s*)' + REF_COOKIE + '=([^;]*)'))
+    return m ? decodeURIComponent(m[1]) : ''
+  } catch {
+    return ''
+  }
+}
 
 export function captureRefOnce(): void {
   if (typeof window === 'undefined') return
   try {
-    const raw = new URLSearchParams(window.location.search).get('ref')
+    const raw = new URLSearchParams(window.location.search).get('ref') || refFromCookie()
     const ref = (raw ?? '').trim().toUpperCase()
     if (!REFERRAL_CODE.test(ref)) return
     const existing = (localStorage.getItem(REF_KEY) ?? '').trim().toUpperCase()

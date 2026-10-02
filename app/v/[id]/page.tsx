@@ -18,6 +18,9 @@ import {
 } from '@/lib/scriptLibrary'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { publicVideoRemixHref } from '@/lib/publicVideoRemix'
+import { headers } from 'next/headers'
+import { recordReferralLanding } from '@/lib/referralLanding'
+import { normalizeReferralCode } from '@/lib/referralReward'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -157,7 +160,13 @@ function breadcrumbJsonLd(v: PublicVideo, vertical: string | null) {
   }
 }
 
-export default async function PublicVideoPage({ params }: { params: { id: string } }) {
+export default async function PublicVideoPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string }
+  searchParams?: { ref?: string | string[] }
+}) {
   const result = await getPublicVideoResult(params.id)
   // A genuinely absent id is a real 404, not a 200 "not available" template.
   // A Supabase outage falls through to the friendly noindex render below so an
@@ -179,19 +188,43 @@ export default async function PublicVideoPage({ params }: { params: { id: string
   // in lib/publicVideos.ts, so this rail can never link to a `noindex` page or
   // a dead id. When Supabase is unreachable the library resolves to empty and
   // the whole block simply does not render.
-  const { vertical, related } = await getRelatedScripts(params.id, 9)
+  // KINEO-LACOS-INDICACAO-2026-10-02 — chegada pelo link do dono (`?ref=<código de indicação>`), gravada no servidor
+  // (`referral_landing`, SERVER_ONLY_EVENTS). Só para filme que existe e é público; robô de prévia não conta. Corre
+  // junto com a leitura dos irmãos, então não soma latência; falha em silêncio.
+  const refCode = normalizeReferralCode(Array.isArray(searchParams?.ref) ? searchParams?.ref[0] : searchParams?.ref)
+  const landing = refCode && v
+    ? recordReferralLanding({
+        code: refCode,
+        surface: 'public_video',
+        userAgent: headers().get('user-agent'),
+        videoId: params.id,
+      }).catch(() => null)
+    : Promise.resolve(null)
+  const [{ vertical, related }] = await Promise.all([getRelatedScripts(params.id, 9), landing])
   const verticalMeta = vertical ? getScriptVertical(vertical) : null
 
   return (
     <main
+      className="pv-main"
       style={{
         minHeight: '100vh',
         background: '#000',
         color: '#f5f5f7',
-        padding: '24px 16px 120px',
+        padding: '24px 16px 64px',
         fontFamily: 'var(--font-inter), system-ui, -apple-system, sans-serif',
       }}
     >
+      {/* KINEO-LACOS-STICKY-2026-10-02 — a barra fixa existe só no celular (<= 640px), onde o player 9:16 empurra a CTA
+          para fora da tela; no desktop a CTA sob o player já está à vista. O corpo ganha padding-bottom do tamanho da
+          barra + safe-area, para a barra nunca cobrir o fim da página. `display` mora só no CSS (estilo inline
+          venceria a media query). */}
+      <style
+        dangerouslySetInnerHTML={{
+          __html:
+            '.pv-sticky{display:none}' +
+            '@media (max-width:640px){.pv-sticky{display:flex}.pv-main{padding-bottom:calc(96px + env(safe-area-inset-bottom)) !important}}',
+        }}
+      />
       {v?.isIndexable && (
         <>
           <script
@@ -330,7 +363,7 @@ export default async function PublicVideoPage({ params }: { params: { id: string
           >
             Make your own version — free →
           </PublicVideoCtaLink>
-          <ShareVideoButton title={v?.title ?? 'A Short made with Kineo'} />
+          <ShareVideoButton title={v?.title ?? 'A Short made with Kineo'} videoId={params.id} />
           <div style={{ marginTop: 10 }}>
             <PublicVideoCtaLink
               href={remixHref}
@@ -519,8 +552,11 @@ export default async function PublicVideoPage({ params }: { params: { id: string
 
       {/* ONDA4 #2 (14/08) — no mobile o CTA nascia fora da tela (player 9:16
           empurra tudo para baixo). Barra fixa: a porta de entrada acompanha o
-          visitante a pagina inteira. */}
+          visitante a pagina inteira.
+          KINEO-LACOS-STICKY-2026-10-02 — só no celular (classe pv-sticky) e com a CTA PRINCIPAL da página ("Make your
+          own version", cadastro com o tema deste filme), não mais o remix sem cadastro, que segue sob o player. */}
       <div
+        className="pv-sticky"
         style={{
           position: 'fixed',
           bottom: 0,
@@ -532,15 +568,14 @@ export default async function PublicVideoPage({ params }: { params: { id: string
           backdropFilter: 'blur(14px)',
           WebkitBackdropFilter: 'blur(14px)',
           borderTop: '1px solid rgba(41,151,255,0.25)',
-          display: 'flex',
           justifyContent: 'center',
         }}
       >
         <PublicVideoCtaLink
-          href={remixHref}
+          href={generateFromScriptHref(title, 'public_video_remake')}
           videoId={params.id}
           placement="sticky_bar"
-          destination="/free-script-generator"
+          destination="/signup"
           style={{
             display: 'block',
             width: 'min(420px, 100%)',
@@ -554,7 +589,7 @@ export default async function PublicVideoPage({ params }: { params: { id: string
             fontSize: '1rem',
           }}
         >
-          Remix this topic free →
+          Make your own version — free →
         </PublicVideoCtaLink>
       </div>
 

@@ -7,6 +7,8 @@
 // are handled globally by <ReferralAutoTrigger/> in the dashboard layout, so
 // this component is read-only: it fetches the share data and renders the card.
 import { useEffect, useState } from 'react'
+import { trackEvent } from '@/lib/analytics'
+import { REFERRAL_LINK_COPIED_EVENT } from '@/lib/referralReward'
 
 interface ReferralData {
   code: string
@@ -36,12 +38,19 @@ export default function ReferralCard() {
     }
   }, [])
 
-  function copyReferral() {
+  // KINEO-LACOS-INDICACAO-2026-10-02 — o primeiro degrau do laço era cego. Grava referral_link_copied SÓ quando a
+  // cópia deu certo (writeText resolve), sem o código nem e-mail no metadado: quem copiou já está no user/sessão.
+  async function copyReferral() {
     if (!referral?.url) return
     try {
-      navigator.clipboard.writeText(referral.url)
+      await navigator.clipboard.writeText(referral.url)
       setRefCopied(true)
       setTimeout(() => setRefCopied(false), 2000)
+      void trackEvent(REFERRAL_LINK_COPIED_EVENT, {
+        surface: 'referral_page',
+        method: 'clipboard',
+        referral_count: referral.count,
+      })
     } catch {
       /* clipboard may be blocked — ignore */
     }
