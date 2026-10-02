@@ -92,6 +92,10 @@ const retiredNavigationLinks=new Set(['/scripts','/viral-now'])
 // 01/10: founder-requested /showcase entry follows its code switch. Keep the exact
 // multiset assertion; the showcase guardian mutates removal of this new link.
 const addedNavigationLinks=['/claude-connector?src=footer#connect', ...(pure('lib/showcaseTelemetry.ts').SHOWCASE_PUBLIC ? ['/showcase'] : [])]
-equal(links(footerAfter),[...links(footerBefore).map(h=>h==='/business-video-ads'?'/ads':h).filter(h=>!retiredNavigationLinks.has(h)&&!(avatarOffCatalogue&&h==='/ai-avatar')),...segmentLinks,...addedNavigationLinks].sort(),'footer preserves all destinations except documented navigation removals and off-catalogue Avatar, with direct Ads, derived segment doors and the documented Claude connector addition')
+// Reancorado 02/10 (KINEO-MAPA-ORFAS-2026-10-02): documented ADDITIONS that give the orphans an internal link, each DERIVED
+// from the catalogue that builds the pages (product landing pages, engine hub, use-case hub, /vs hub + the ad comparisons,
+// and the 16 free-generator language doors). The exact multiset comparison stays: any other extra/missing link still fails.
+const orphanMapLinks=[...pure('lib/growth/productLandingPages.ts').PRODUCT_LANDING_PAGES.map(p=>p.path),'/ai-video-generator',pure('lib/seo/intentPages.ts').INTENT_HUB_PATH,'/vs',...JSON.parse(source('lib/growth/adsCompetitorSnapshot.json')).competitors.map(c=>'/vs/'+c.slug),...Object.entries(pure('lib/seo/freeShortsGeneratorLangs.ts').freeShortsAlternates('')).filter(([k])=>k!=='x-default').map(([,h])=>h)]
+equal(links(footerAfter),[...links(footerBefore).map(h=>h==='/business-video-ads'?'/ads':h).filter(h=>!retiredNavigationLinks.has(h)&&!(avatarOffCatalogue&&h==='/ai-avatar')),...segmentLinks,...addedNavigationLinks,...orphanMapLinks].sort(),'footer preserves all destinations except documented navigation removals and off-catalogue Avatar, with direct Ads, derived segment doors and the documented Claude connector addition')
 equal((footerAfter.match(/<details /g)||[]).length,4,'four footer navigation groups')
 console.log(`PASS ${checks} locale and workspace checks; no network, database, email or generation`)

@@ -5,8 +5,22 @@ import { ADS_SEGMENTS, findAdsSegment, adsSegmentPath, adsSegmentPoster, adsSegm
 import { adsSegmentOffer, adsSegmentFaq, adsSegmentFaqSchema } from '@/lib/growth/adsSegmentPresentation'
 import { ADS_V2_HOW_IT_WORKS } from '@/lib/ads/v2Screen' // KINEO-ADS-V2-VIRADA-2026-09-29 — os mesmos 4 passos do montador
 import styles from './segment.module.css'
+// KINEO-ADS-FOR-VIDEO-DA-CASA-2026-10-02 — as 8 páginas mostravam "Example video coming soon" sobre um cartaz estático.
+// A casa JÁ tem anúncios públicos feitos no Kineo pela própria conta (lib/showcase.ts SHOWCASE_MEDIA.ads, os mesmos da
+// /showcase, arquivos em public/previews + public/posters). Sem exemplo aprovado do segmento (/v/…), a página toca um
+// deles com a legenda honesta: demo da casa, não resultado de cliente — e nunca finge ser do segmento. Sem nenhum vídeo
+// da casa, volta o placeholder de antes.
+import { SHOWCASE_MEDIA } from '@/lib/showcase'
 
 type Props = { params: { segment: string } }
+
+/** Um anúncio da casa por segmento, em rodízio pela ordem do catálogo (mesmo segmento = mesmo vídeo em todo build). */
+function houseAdFor(slug: string) {
+  const ads = SHOWCASE_MEDIA.ads.filter((item) => item.video && item.poster)
+  if (ads.length === 0) return null
+  const index = Math.max(0, ADS_SEGMENTS.findIndex((segment) => segment.slug === slug))
+  return ads[index % ads.length]
+}
 const BASE = 'https://www.usekineo.com'
 
 export function generateStaticParams() {
@@ -32,6 +46,7 @@ export default function AdsSegmentPage({ params }: Props) {
   const offer = adsSegmentOffer()
   const faqs = adsSegmentFaq(segment)
   const example = approvedSegmentExample(segment.exampleVideoUrl)
+  const houseAd = example ? null : houseAdFor(segment.slug)
   return <main className={styles.page}>
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(adsSegmentFaqSchema(segment)).replace(/</g, '\\u003c') }} />
     <nav className={styles.nav} aria-label="Breadcrumb"><a href="/">Kineo</a><span aria-hidden="true">/</span><a href="/ads">Studio Ads</a><span aria-hidden="true">/</span><span aria-current="page">{segment.shortName}</span></nav>
@@ -46,8 +61,12 @@ export default function AdsSegmentPage({ params }: Props) {
         <p className={styles.note}>Check your facts before rendering. Generation time varies.</p>
       </div>
       <figure className={styles.preview}>
-        <Image src={adsSegmentPoster(segment.slug)} alt={`Studio Ads for ${segment.name}. Placeholder graphic, not a finished ad.`} width={1200} height={630} sizes="(max-width: 760px) 100vw, 45vw" priority />
-        <figcaption>{example ? <a href={example}>Watch the example ad →</a> : 'Example video coming soon · this is a placeholder, not a client result.'}</figcaption>
+        {houseAd ? (
+          <video className={styles.houseVideo} src={houseAd.video} poster={houseAd.poster} controls muted playsInline preload="none" aria-label={`Example ad made in Kineo by the Kineo team (${houseAd.badge}). A house demo, not a client result.`} />
+        ) : (
+          <Image src={adsSegmentPoster(segment.slug)} alt={`Studio Ads for ${segment.name}. Placeholder graphic, not a finished ad.`} width={1200} height={630} sizes="(max-width: 760px) 100vw, 45vw" priority />
+        )}
+        <figcaption>{example ? <a href={example}>Watch the example ad →</a> : houseAd ? `Example ad made in Kineo by the Kineo team · ${houseAd.badge} · a house demo, not a client result or a ${segment.name} ad.` : 'Example video coming soon · this is a placeholder, not a client result.'}</figcaption>
       </figure>
     </header>
     <section className={styles.section} aria-labelledby="why-heading">

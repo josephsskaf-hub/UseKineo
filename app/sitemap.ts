@@ -17,6 +17,9 @@ import { LOCALIZED_ENGINE_SLUGS, ENGINE_LANG_CODES } from '@/lib/seo/enginePageL
 import { adsPassLive } from '@/lib/ads/offer'
 import { ADS_SEGMENT_SLUGS, ADS_SEGMENTS_UPDATED, adsSegmentPath } from '@/lib/growth/adsSegments'
 import { ADS_COMPARISONS, adsComparisonPath } from '@/lib/growth/adsComparisons'
+// KINEO-MAPA-PRODUTOS-2026-10-02 — as 3 páginas de produto do A1 (Spaces, Clips, anúncio com atriz de IA) e a /showcase.
+import { PRODUCT_LANDING_PAGES } from '@/lib/growth/productLandingPages'
+import { SHOWCASE_PUBLIC } from '@/lib/showcaseTelemetry'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -63,7 +66,12 @@ const BASE = 'https://www.usekineo.com'
 // PROJETO-1-GOOGLE-2026-09-17 — advanced because the cluster gained 101 real pages
 // (/ai-video-generator/for + 100 intent pages). Same test as every bump above:
 // the cluster materially changed, so the old date would be a lie.
-const LAST_MODIFIED = new Date('2026-09-17T05:00:00.000Z')
+// KINEO-MAPA-PRODUTOS-2026-10-02 — advanced from 2026-09-17 because the cluster materially changed since then: it gained
+// Clips (29/09), Spaces (30/09), the business production flow with an AI actor (Produção, 01/10) and the Ads v2
+// photo-motion ad (29/09), their three public product pages (/ai-virtual-staging-video, /ai-video-clip-generator,
+// /ai-actor-ads), /showcase and /support, and the orphan language doors and comparisons got internal links. Same test
+// as every bump above: the old date would be a lie.
+const LAST_MODIFIED = new Date('2026-10-02T05:00:00.000Z')
 // KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — /ads is new; it carries its own date instead of re-dating the cluster.
 const ADS_DOOR_LAST_MODIFIED = new Date('2026-09-24T21:30:00.000Z')
 
@@ -244,6 +252,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/tiktok-creator-rewards-videos', priority: 0.9, freq: 'weekly' },
     { path: '/ai-robot-video-generator', priority: 0.8, freq: 'weekly' },
     { path: '/omni-flash-vs-sora', priority: 0.9, freq: 'weekly' },
+    // KINEO-MAPA-PRODUTOS-2026-10-02 — /showcase (films, images, spaces and ads made on Kineo; public, canonical, no
+    // noindex) follows its own switch: the page answers 404 with SHOWCASE_PUBLIC=false, so the map entry goes with it.
+    ...(SHOWCASE_PUBLIC ? [{ path: '/showcase', priority: 0.8, freq: 'weekly' as const }] : []),
+    // /support — public help page (no login, canonical /support, no noindex); low priority like /terms and /privacy.
+    { path: '/support', priority: 0.3, freq: 'monthly' },
     { path: '/terms', priority: 0.2, freq: 'monthly' },
     { path: '/privacy', priority: 0.2, freq: 'monthly' },
   ]
@@ -258,6 +271,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // KINEO-MOTORES-16-LINGUAS-2026-09-21 — as 3 páginas de motor que vendem, em 13 línguas (T1 do plano da semana).
   for (const slug of LOCALIZED_ENGINE_SLUGS) for (const lang of ENGINE_LANG_CODES) {
     routes.push({ path: `/ai-video-generator/${slug}/${lang}`, priority: 0.8, freq: 'weekly' })
+  }
+  // KINEO-MAPA-PRODUTOS-2026-10-02 — as páginas de produto do A1, do catálogo (nunca caminho digitado): 0.8 weekly.
+  for (const page of PRODUCT_LANDING_PAGES) {
+    routes.push({ path: page.path, priority: 0.8, freq: 'weekly' })
   }
   // PROJETO 1 — GOOGLE: hub 0.9 (cabeça do cluster), páginas 0.8 (mesmo perfil de /free-ai-shorts e /alternatives).
   routes.push({ path: INTENT_HUB_PATH, priority: 0.9, freq: 'weekly' })

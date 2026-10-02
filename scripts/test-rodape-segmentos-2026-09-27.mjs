@@ -77,7 +77,11 @@ const avatarOffCatalogue = /^export const AVATAR_PUBLIC = false$/m.test(read('li
 const historicalHrefs = beforeHrefs.filter((h) => !(avatarOffCatalogue && h === '/ai-avatar'))
 check(beforeHrefs.length > 0 && historicalHrefs.every((h) => afterHrefs.includes(h)), 'every historical footer link (' + historicalHrefs.length + ') is still rendered')
 check(!avatarOffCatalogue || (beforeHrefs.includes('/ai-avatar') && !afterHrefs.includes('/ai-avatar')), 'Avatar off the catalogue: /ai-avatar was in the footer and is no longer rendered')
-equal(afterHrefs.filter((h) => !beforeHrefs.includes(h)).sort(), [...expectedHrefs].sort(), 'the only new links are the derived segment doors')
+// Reancorado 02/10 (KINEO-MAPA-ORFAS-2026-10-02): links novos DOCUMENTADOS para tirar os órfãos do escuro, cada um derivado
+// do catálogo que gera as páginas (produtos do A1, hub de motores, hub de casos de uso, hub /vs + comparações de anúncio,
+// portas de língua). Fora deles e das portas de segmento, qualquer link novo continua vermelho.
+const orphanMapHrefs = [...pure('lib/growth/productLandingPages.ts').PRODUCT_LANDING_PAGES.map((p) => p.path), '/ai-video-generator', pure('lib/seo/intentPages.ts').INTENT_HUB_PATH, '/vs', ...JSON.parse(read('lib/growth/adsCompetitorSnapshot.json')).competitors.map((c) => '/vs/' + c.slug), ...Object.entries(pure('lib/seo/freeShortsGeneratorLangs.ts').freeShortsAlternates('')).filter(([k]) => k !== 'x-default').map(([, h]) => h)]
+equal(afterHrefs.filter((h) => !beforeHrefs.includes(h) && !orphanMapHrefs.includes(h)).sort(), [...expectedHrefs].sort(), 'the only new links are the derived segment doors (plus the documented orphan-map links)')
 check((before.match(/href="\/ads\/for\//g) || []).length === 0, 'baseline had zero segment links from the footer (the orphan state this item closes)')
 
 // ── Mutantes em memória (nada gravado em disco) ─────────────────────────────────────────────
