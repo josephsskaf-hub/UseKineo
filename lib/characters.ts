@@ -30,15 +30,9 @@ export interface SavedCharacter {
   traits?: string | null
 }
 
-/** KINEO-CHARLOCK-V2-2026-07-10 — per-plan limits (briefing validated with
- *  paid jobs): FREE = 0 (locked UI is the upgrade bait), Starter/Creator = 3,
- *  Studio = 10. Server-side gate — never localStorage (thumbnail-limit lesson). */
-export function characterLimitFor(plan: string, hasPaid: boolean): number {
-  const p = (plan ?? '').toLowerCase()
-  if (p === 'pro' || p === 'pro_trial') return 10
-  if (p === 'basic' || p === 'basic_trial' || p === 'starter' || p === 'starter_trial') return 3
-  return hasPaid ? 3 : 0
-}
+// KINEO-NUVEM-A4-2026-10-02 — characterLimitFor mudou para lib/characterLimits.ts (módulo puro): páginas estáticas e o
+// harness offline dos guardiões leem o limite sem arrastar o supabase-js deste arquivo. Mesma função, reexportada aqui.
+export { characterLimitFor } from '@/lib/characterLimits'
 
 // KINEO-MODERACAO-2026-09-25 — o repasse "já é nosso storage" aceitava QUALQUER arquivo público de QUALQUER conta
 // (/storage/v1/object/public/<bucket>/<pasta de outra pessoa>/…): dava para fixar como personagem a foto de outra conta
