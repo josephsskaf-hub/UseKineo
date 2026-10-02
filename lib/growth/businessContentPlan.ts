@@ -254,7 +254,9 @@ export function buildBusinessPlanActivationHref(input: {
     `Evidence boundary: ${input.firstItem.evidence}`,
     'Use only verified facts. Keep [placeholders] for anything not supplied.',
   ].join('\n')
-  const destination = `/studio/create?${new URLSearchParams({
+  // KINEO-LINKS-STUDIO-NOVO-2026-10-02 — destino = o Studio novo (/studio), mesmo precedente do link /go (36fc267).
+  // O Studio lê prompt/duration/intent_campaign; `autoanalyze` segue na URL (o Studio o recoloca no Generate).
+  const destination = `/studio?${new URLSearchParams({
     prompt,
     duration: '35',
     autoanalyze: '1',

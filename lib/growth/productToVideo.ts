@@ -69,7 +69,9 @@ export function buildProductToVideoActivationHref(lines: ProductScriptLine[]): s
       return marker ? `${marker}: ${safeText}` : safeText
     })
     .join('\n')
-  const destination = `/studio/create?${new URLSearchParams({
+  // KINEO-LINKS-STUDIO-NOVO-2026-10-02 — destino = o Studio novo (/studio), mesmo precedente do link /go (36fc267).
+  // O Studio lê prompt/script_mode/duration/intent_campaign; `autoanalyze` segue na URL (o Studio o recoloca no Generate).
+  const destination = `/studio?${new URLSearchParams({
     prompt: script,
     script_mode: 'verbatim',
     duration: '35',

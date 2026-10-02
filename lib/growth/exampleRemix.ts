@@ -41,5 +41,11 @@ export function exampleRemixHref(input: {
     utm_content: input.slug,
   })
   if (input.mode === 'exact') params.set('remix_mode', 'exact_prompt')
-  return `/studio/create?${params.toString()}`
+  // KINEO-LINKS-STUDIO-NOVO-2026-10-02 — destino = o Studio novo (/studio), mesmo precedente do link /go (36fc267).
+  // O Studio lê prompt/script_mode; os utm_* são gravados pelo SourceCapture em qualquer página. `create_intent=
+  // example_remix` não é executável (readCreationHandoff só aceita fast/trial_best): segue só como marcador da prova
+  // do /signup. Novo: intent_campaign, a única etiqueta que o Studio carrega até o /studio/create no Generate (sem ela
+  // a campanha do remix virava 'studio_v4' no funil de geração).
+  params.set('intent_campaign', EXAMPLE_REMIX_CAMPAIGN)
+  return `/studio?${params.toString()}`
 }

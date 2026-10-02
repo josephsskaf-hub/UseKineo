@@ -125,9 +125,13 @@ check('erro de checkout de pacote volta para /studio', src('app/api/stripe/check
 // CONFLITO DE 03/09 12:51 — enquanto eu editava FreeHookClient.tsx, o Codex o
 // reescreveu na main para usar o helper hookActivationHref(). Resolução: ficar
 // com a versão da main no cliente e corrigir o /generate DENTRO do helper novo.
-check('3 ferramentas gratuitas de SEO (script, saashub, produto)', ['lib/growth/freeScriptSignupHandoff.ts', 'app/from-saashub/SaaSHubBridgeClient.tsx', 'lib/growth/productToVideo.ts'].every((f) => src(f).includes('/studio/create')))
+// Reancorado 02/10 (KINEO-LINKS-STUDIO-NOVO): roteiro grátis e produto passaram a mandar para o Studio novo (/studio?…);
+// a prova continua a mesma — destino direto (Studio novo ou sala de criação), nunca o porteiro /generate.
+check('3 ferramentas gratuitas de SEO (script, saashub, produto)', ['lib/growth/freeScriptSignupHandoff.ts', 'app/from-saashub/SaaSHubBridgeClient.tsx', 'lib/growth/productToVideo.ts'].every((f) => src(f).includes('/studio/create') || src(f).includes('`/studio?')))
 check('hook: o cliente usa o helper da main, e o helper vai direto', src('app/free-hook-generator/FreeHookClient.tsx').includes('hookActivationHref(') && src('lib/growth/answerEngineHookWorkbench.ts').includes('/studio/create?'))
-check('5 helpers de crescimento (série, remix, comentário, brief, plano)', ['lib/seriesContinuation.ts', 'lib/growth/exampleRemix.ts', 'lib/growth/commentToVideo.ts', 'lib/growth/clientShortBrief.ts', 'lib/growth/businessContentPlan.ts'].every((f) => src(f).includes('/studio/create?')))
+// Reancorado 02/10 (KINEO-LINKS-STUDIO-NOVO): remix, comentário e plano passaram a mandar para o Studio novo (`/studio?…`);
+// mesma prova — destino direto, nunca /generate.
+check('5 helpers de crescimento (série, remix, comentário, brief, plano)', ['lib/seriesContinuation.ts', 'lib/growth/exampleRemix.ts', 'lib/growth/commentToVideo.ts', 'lib/growth/clientShortBrief.ts', 'lib/growth/businessContentPlan.ts'].every((f) => src(f).includes('/studio/create?') || src(f).includes('`/studio?')))
 check('a lista de afiliados JÁ conhecia /studio/create (não precisou mexer)', src('lib/affiliateFirstClick.ts').includes("'/studio/create',"))
 
 console.log('10 · FIO DE ALARME — varredura do repositório inteiro')
