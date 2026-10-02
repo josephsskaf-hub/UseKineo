@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { REFERRAL_REWARD_CREDITS } from '@/lib/referralReward'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -16,8 +17,8 @@ export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
 // ── Referral config (easy to change) ─────────────────────────────────────
-// Credits each side earns — kept in sync with app/api/referral/qualify.
-const REFERRAL_REWARD_CREDITS = 30
+// KINEO-LACOS-INDICACAO-2026-10-02 — os créditos de cada lado vêm de lib/referralReward.ts (fonte única; antes o 30
+// era digitado aqui, no qualify e no llms.txt com um "kept in sync").
 const APP_URL = 'https://www.usekineo.com'
 // 8-char uppercase alphanumeric code. Ambiguous chars (0/O/1/I) are removed
 // so codes are easy to read aloud and type.

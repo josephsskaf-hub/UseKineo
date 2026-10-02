@@ -18,6 +18,9 @@ import {
 } from '@/lib/scriptLibrary'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { publicVideoRemixHref } from '@/lib/publicVideoRemix'
+import { headers } from 'next/headers'
+import { recordReferralLanding } from '@/lib/referralLanding'
+import { normalizeReferralCode } from '@/lib/referralReward'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -157,7 +160,13 @@ function breadcrumbJsonLd(v: PublicVideo, vertical: string | null) {
   }
 }
 
-export default async function PublicVideoPage({ params }: { params: { id: string } }) {
+export default async function PublicVideoPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string }
+  searchParams?: { ref?: string | string[] }
+}) {
   const result = await getPublicVideoResult(params.id)
   // A genuinely absent id is a real 404, not a 200 "not available" template.
   // A Supabase outage falls through to the friendly noindex render below so an
@@ -179,7 +188,19 @@ export default async function PublicVideoPage({ params }: { params: { id: string
   // in lib/publicVideos.ts, so this rail can never link to a `noindex` page or
   // a dead id. When Supabase is unreachable the library resolves to empty and
   // the whole block simply does not render.
-  const { vertical, related } = await getRelatedScripts(params.id, 9)
+  // KINEO-LACOS-INDICACAO-2026-10-02 — chegada pelo link do dono (`?ref=<código de indicação>`), gravada no servidor
+  // (`referral_landing`, SERVER_ONLY_EVENTS). Só para filme que existe e é público; robô de prévia não conta. Corre
+  // junto com a leitura dos irmãos, então não soma latência; falha em silêncio.
+  const refCode = normalizeReferralCode(Array.isArray(searchParams?.ref) ? searchParams?.ref[0] : searchParams?.ref)
+  const landing = refCode && v
+    ? recordReferralLanding({
+        code: refCode,
+        surface: 'public_video',
+        userAgent: headers().get('user-agent'),
+        videoId: params.id,
+      }).catch(() => null)
+    : Promise.resolve(null)
+  const [{ vertical, related }] = await Promise.all([getRelatedScripts(params.id, 9), landing])
   const verticalMeta = vertical ? getScriptVertical(vertical) : null
 
   return (

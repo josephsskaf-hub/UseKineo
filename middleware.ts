@@ -59,8 +59,13 @@ export async function middleware(request: NextRequest) {
   // cara de código de afiliado (8 caracteres A-Z0-9) redireciona para `/a/CODE`,
   // que faz o trabalho de sempre. Nada mais no `ref` é tocado (Product Hunt manda
   // `?ref=producthunt`, que não casa com o formato).
+  // KINEO-LACOS-INDICACAO-2026-10-02 — exceto a página pública do filme (/v/<id>). O link que o dono compartilha
+  // (lib/videoShare.ts buildPublishedVideoSharePath) leva `?ref=<código de indicação>`; desviado para /a/, o visitante
+  // NUNCA via o filme — caía na home. Ali o código fica na URL: a página grava `referral_landing` no servidor e o
+  // captureRefOnce guarda o código para o cadastro. Um código de indicação em qualquer outra página continua indo
+  // para /a/, que agora o reconhece (app/a/[code]/route.ts → referralHomeRedirect).
   const ref = request.nextUrl.searchParams.get('ref')
-  if (ref && /^[A-Z0-9]{8}$/.test(ref) && request.method === 'GET' && !request.nextUrl.pathname.startsWith('/a/') && !request.nextUrl.pathname.startsWith('/api/')) {
+  if (ref && /^[A-Z0-9]{8}$/.test(ref) && request.method === 'GET' && !request.nextUrl.pathname.startsWith('/a/') && !request.nextUrl.pathname.startsWith('/api/') && !request.nextUrl.pathname.startsWith('/v/')) {
     const dest = request.nextUrl.clone()
     dest.pathname = '/a/' + ref
     dest.search = ''
