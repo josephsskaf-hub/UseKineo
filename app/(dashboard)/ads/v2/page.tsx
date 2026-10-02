@@ -16,6 +16,8 @@ import { adsV2Visible } from '@/lib/ads/v2Access'
 import { adsVariationsVisible } from '@/lib/ads/v2VariationsAccess' // KINEO-ADS-3-VARIACOES-2026-09-30 — a opção "3 variações"
 import { writeServerEvent } from '@/lib/serverEvents'
 import { KINEO1_35S_CREDITS } from '@/lib/ads/offer' // KINEO-ADS-V2-VIRADA-2026-09-29 — o preço do link "classic maker"
+import { isAdsInternalEmail } from '@/lib/ads/access' // KINEO-PRODUCAO-ADS-2026-10-01 — o atalho da Produção
+import { PRODUCAO_PUBLIC, producaoVisibleFor } from '@/lib/ads/producao' // KINEO-PRODUCAO-ADS-2026-10-01
 import AdsV2Client from './AdsV2Client'
 
 export const metadata = { title: 'Studio Ads — Kineo' }
@@ -46,5 +48,5 @@ export default async function AdsV2Page() {
     balance = null
   }
 
-  return <AdsV2Client initialBalance={balance} classicCredits={KINEO1_35S_CREDITS} variations={adsVariationsVisible(user.email)} />
+  return <AdsV2Client initialBalance={balance} classicCredits={KINEO1_35S_CREDITS} variations={adsVariationsVisible(user.email)} producao={producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} />
 }

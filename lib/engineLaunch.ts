@@ -142,6 +142,10 @@ export function duracoesCurtasVisible(email?: string | null): boolean {
 // (lib/estrelaDoFilme.ts). A sobretaxa é o PREÇO B do fundador (29/09, "2B"): 2 cr a cada 6 s de filme. Mesmo
 // desenho do DURACOES_CURTAS_PUBLIC: false → só as contas da casa (isInternalEmail) veem o bloco no /studio, e o SERVIDOR
 // recusa (403, antes do débito) a estrela de conta de fora. Virar true depois do canário aprovado (um commit de uma linha).
+// 01/10 17:40 — DESLIGADO de novo (Claude): ligado às 15h sem o canário, os 3 primeiros filmes reais com estrela (todos do fundador)
+// morreram na montagem com "These AI clips do not match their signed generation": o claim cobra filme + sobretaxa (ex. 38+6=44) e o
+// /api/compose confere só o preço do filme (38). O resgate do servidor monta depois (não faz essa conferência), mas a tela diz "falhou,
+// créditos devolvidos" — e não devolveu. Volta a true só com a conferência do compose somando a sobretaxa assinada + canário.
 export const ESTRELA_PUBLIC = false
 
 /** O bloco "Estrela do filme" aparece (e o servidor aceita) para este e-mail? */

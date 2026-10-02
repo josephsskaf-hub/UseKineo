@@ -6,7 +6,7 @@ import { normalizeInternalRedirect } from '@/lib/authRedirect'
 import {
   GO_PATH_PREFIX,
   HANDOFF_UTM_SOURCE,
-  STUDIO_CREATE_PATH,
+  STUDIO_PATH,
   buildStudioDestination,
   isHandoffToken,
 } from '@/lib/gptHandoff'
@@ -130,11 +130,11 @@ export async function GET(req: NextRequest) {
   }
 
   // ── 5. A porta certa.
-  let destino = STUDIO_CREATE_PATH
+  let destino = STUDIO_PATH
   try {
-    destino = normalizeInternalRedirect(buildStudioDestination(row, entradaCurta)) ?? STUDIO_CREATE_PATH
+    destino = normalizeInternalRedirect(buildStudioDestination(row, entradaCurta)) ?? STUDIO_PATH
   } catch {
-    destino = STUDIO_CREATE_PATH
+    destino = STUDIO_PATH
   }
   let authPath = '/signup'
   try {

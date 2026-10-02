@@ -177,9 +177,13 @@ const generationAst=ts.createSourceFile('generation.ts',generationSource,99,true
 let publishNode
 function findPublisher(node){if(ts.isVariableDeclaration(node)&&node.name.getText(generationAst)==='publishCinematicResponse')publishNode=node.initializer;ts.forEachChild(node,findPublisher)}
 findPublisher(generationAst);assert.ok(publishNode)
+// KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01 — reancorado: o publicador ganhou a linha que assina a sobretaxa da estrela
+// (só com estrela). O contexto da execução recebe estrelaAtiva/estrelaSobretaxaDe/duracaoCobrada e as duas posições são provadas.
+for(const estrelaAtiva of [false,true])
 for(const uncertain of [true,false]){
   const cached=[],signed=[]
   const module=evaluate(`export const publish=${publishNode.getText(generationAst)}`,{
+    estrelaAtiva,estrelaSobretaxaDe:(s)=>(s===15?6:0),duracaoCobrada:15,
     cinematicSubmissionUncertain:uncertain,cinematicSubmissionCache:{set:(k,v)=>cached.push(v)},cacheKey:'fixture-cache',
     claimFingerprint:'fixture-fingerprint',cost:25,claimQuality:'cinematic_ai',claimEngine:'fixture-engine',
     cinematicAdmin:{},serviceRoleKey:'fixture',user:{id:'fixture-user'},generationId:'fixture-generation',
@@ -189,5 +193,7 @@ for(const uncertain of [true,false]){
   const response=await module.publish({submission_uncertain:!uncertain},['fixture-request',null],['fixture-model','fixture-model'])
   eq((await response.json()).submission_uncertain,uncertain)
   eq(cached[0].response.submission_uncertain,uncertain);eq(signed[0].response.submission_uncertain,uncertain)
+  eq(signed[0].response.estrela_sobretaxa_cr,estrelaAtiva?6:undefined);eq(cached[0].response.estrela_sobretaxa_cr,estrelaAtiva?6:undefined)
+  eq(Object.prototype.hasOwnProperty.call(signed[0].response,'estrela_sobretaxa_cr'),estrelaAtiva)
 }
 console.log(`${checks} route-integration checks passed; actual failure/replay/footage/publication statements; no network, no refund, no provider.`)

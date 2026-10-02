@@ -410,7 +410,8 @@ function setGroupParam(id: string | null) {
 // (page.tsx lê lib/ads/offer) — o cliente não ganha import novo e nunca digita o número.
 // KINEO-ADS-3-VARIACOES-2026-09-30 — variations: a opção "3 variações" (adsVariationsVisible, decidido no page.tsx).
 // Com ela, ?group=<id> (ou o grupo em andamento mais novo) abre o painel das 3 no lugar da sessão; sem ela, nada muda.
-export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean }) {
+// KINEO-PRODUCAO-ADS-2026-10-01 — producao: o atalho para /ads/producao (producaoVisibleFor, decidido no page.tsx).
+export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean }) {
   const [session, setSession] = useState(0)
   const [groupId, setGroupId] = useState<string | null>(null)
   const [groupChecked, setGroupChecked] = useState(!variations)
@@ -526,6 +527,11 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
           {mode ? (
             <p className="adv2-classic">
               <a href={mode === 'simple' ? '/ads/v2?mode=full' : '/ads/v2'}>{mode === 'simple' ? nav.toFull : nav.toSimple}</a>
+            </p>
+          ) : null}
+          {producao ? (
+            <p className="adv2-classic">
+              <a href="/ads/producao"><UiLabel>New: Production — one character, shot by shot, with your logo</UiLabel></a>
             </p>
           ) : null}
         </div>

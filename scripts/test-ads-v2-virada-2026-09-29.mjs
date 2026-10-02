@@ -279,8 +279,10 @@ await check('F3-mutante: a frase velha de volta fica vermelho', () => !offerHone
 const LINK = '<a href="/ads/new?classic=1">Prefer a narrated 35-second ad? Use the classic maker ({classicCredits} credits)</a>'
 // REANCORADO 30/09 (KINEO-ADS-3-VARIACOES-2026-09-30): o invólucro ganhou a prop `variations` (a opção "3 variações",
 // decidida no servidor por adsVariationsVisible). O link clássico e o preço vindo do servidor seguem exatamente iguais.
-const linkClassico = (client, page) => client.split(LINK).length === 2 && /classicCredits = null(, variations = false)? \}: \{ initialBalance: number \| null; classicCredits\?: number \| null(; variations\?: boolean)? \}/.test(client) &&
-  /<AdsV2Client initialBalance=\{balance\} classicCredits=\{KINEO1_35S_CREDITS\}( variations=\{adsVariationsVisible\(user\.email\)\})? \/>/.test(page) && /import \{ KINEO1_35S_CREDITS \} from '@\/lib\/ads\/offer'/.test(page) && OF.KINEO1_35S_CREDITS === 3
+// REANCORADO 01/10 (KINEO-PRODUCAO-ADS-2026-10-01): mais uma prop opcional, `producao` (o atalho para /ads/producao, decidido
+// no servidor por producaoVisibleFor). O link clássico e o preço vindo do servidor seguem exatamente iguais.
+const linkClassico = (client, page) => client.split(LINK).length === 2 && /classicCredits = null(, variations = false)?(, producao = false)? \}: \{ initialBalance: number \| null; classicCredits\?: number \| null(; variations\?: boolean)?(; producao\?: boolean)? \}/.test(client) &&
+  /<AdsV2Client initialBalance=\{balance\} classicCredits=\{KINEO1_35S_CREDITS\}( variations=\{adsVariationsVisible\(user\.email\)\})?( producao=\{producaoVisibleFor\(PRODUCAO_PUBLIC, isAdsInternalEmail\(user\.email\)\)\})? \/>/.test(page) && /import \{ KINEO1_35S_CREDITS \} from '@\/lib\/ads\/offer'/.test(page) && OF.KINEO1_35S_CREDITS === 3
 await check('L1 montador v2: link "Prefer a narrated 35-second ad? Use the classic maker (N credits)" → /ads/new?classic=1, N vindo do servidor (KINEO1_35S_CREDITS = 3)', linkClassico(SRC.v2Client, SRC.v2Page))
 await check('L1-mutante: link apontando para /ads/new (sem ?classic=1, que agora volta ao v2) fica vermelho', () => !linkClassico(trocar(SRC.v2Client, 'href="/ads/new?classic=1">Prefer', 'href="/ads/new">Prefer'), SRC.v2Page))
 await check('L1-mutante: preço do clássico digitado no page do v2 fica vermelho', () => !linkClassico(SRC.v2Client, trocar(SRC.v2Page, 'classicCredits={KINEO1_35S_CREDITS}', 'classicCredits={3}')))

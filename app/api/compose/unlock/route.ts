@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { findBrandLogoUrl, withBrandLogo } from '@/lib/brandLogo' // KINEO-LOGO-DA-MARCA-2026-10-01
 import { stripe } from '@/lib/stripe'
 import {
   buildCreatomateSource,
@@ -614,6 +615,8 @@ export async function POST(req: NextRequest) {
       await releaseExplicitlyRejectedClaim()
       return NextResponse.json({ error: `Could not assemble the render: ${msg}` }, { status: 500 })
     }
+    // KINEO-LOGO-DA-MARCA-2026-10-01 — a versão limpa mantém o logo da empresa, igual ao filme original.
+    withBrandLogo(source, await findBrandLogoUrl(user.id, admin)) // KINEO-LOGO-DA-MARCA-2026-10-01
 
     let renderId: string
     try {

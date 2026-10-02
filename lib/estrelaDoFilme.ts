@@ -276,3 +276,19 @@ export function relatoDaEstrela(engine: string, plano: EstrelaCenaPlano[], ancor
   const comProtagonista = plano.filter((p) => p.protagonista).length
   return { engine, scenes: plano.length, anchored: ancoradas, fallback: Math.max(0, comProtagonista - ancoradas), version: ESTRELA_VERSION }
 }
+
+// ═══ KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01 — a sobretaxa viaja ASSINADA no claim ═══════════════════════════════
+// O claim do filme cobra filme + sobretaxa (ex.: 38 + 6 = 44) e o /api/compose conferia só o preço do filme (38) →
+// "These AI clips do not match their signed generation" nos 3 primeiros filmes reais com estrela (01/10). A rota do filme
+// passa a gravar, dentro da resposta do claim (coberta pelo hash + assinatura do servidor), a sobretaxa que ELA somou ao
+// `cost`; o compose LÊ esse número — nunca recalcula, nunca aceita do navegador. Claim sem o campo = 0 (o de sempre).
+export const ESTRELA_SOBRETAXA_CAMPO = 'estrela_sobretaxa_cr'
+
+/** A sobretaxa assinada no claim (0 = sem estrela ou claim antigo). Valor fora de (0, custo) = 0 — falha fechada: a
+ * conferência dura do compose volta a comparar só o preço do filme e recusa, como antes. */
+export function sobretaxaAssinadaDaEstrela(response: Record<string, unknown> | null | undefined, creditCost: number): number {
+  const v = response ? response[ESTRELA_SOBRETAXA_CAMPO] : undefined
+  if (typeof v !== 'number' || !Number.isInteger(v) || v <= 0) return 0
+  if (!Number.isInteger(creditCost) || v >= creditCost) return 0
+  return v
+}

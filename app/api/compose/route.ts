@@ -16,6 +16,7 @@ import {
 } from '@/lib/refusalSpiral'
 // KINEO-MULTIFORMATO-2026-09-02 — enquadramento do master (9:16 · 16:9 · 1:1 · 4:5).
 import { normalizeAspect } from '@/lib/aspect'
+import { findBrandLogoUrl, withBrandLogo } from '@/lib/brandLogo' // KINEO-LOGO-DA-MARCA-2026-10-01
 import {
   buildCreatomateSource,
   CreatomateSubmitError,
@@ -71,6 +72,7 @@ import { alertCreatomateDown } from '@/lib/creatomateAlert'
 import { checkCreatomateQuota } from '@/lib/creatomateQuota'
 import { inspectActiveComposeCreditHolds } from '@/lib/credits/composeHold'
 import { loadVerifiedCinematicClaim, cinematicJobsAreTerminal, type CinematicClaim } from '@/lib/cinematic/claim'
+import { sobretaxaAssinadaDaEstrela } from '@/lib/estrelaDoFilme' // KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01
 import { readVerifiedSceneRetryHold, releaseSceneRetryMutex, type SceneRetryMutex } from '@/lib/cinematic/sceneRetry'
 import { classicSceneRetryHoldResolvable } from '@/lib/classicSceneRetry' // KINEO-CENA-CLASSICA-2026-09-28
 import { alignSignedClipPlan } from '@/lib/cinematic/klingShots' // KINEO-KLING25-PLANOS-5S-2026-09-28
@@ -841,6 +843,10 @@ export async function POST(req: NextRequest) {
       // deixa o cliente esticar o filme. A regra dura continua sendo aplicada
       // logo abaixo, agora contra a duração que o claim assinou; e a duração
       // do compose (TTS, timeline, corte) passa a ser a do filme real.
+      // [TRAVA 8.2 — Tarefa 0 do pedido de 01/10] KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01 — a "Estrela do filme" cobra filme + sobretaxa
+      // (38 + 6 = 44) e assina a sobretaxa na resposta do claim; as duas conferências de preço abaixo somam ESSE número (lido [KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01]
+      // do claim assinado, nunca do corpo). Sem estrela ou claim antigo = 0 → as linhas de sempre decidem. [KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01]
+      const estrelaSobretaxaAssinada = sobretaxaAssinadaDaEstrela(cinematicBirthClaim.response, cinematicBirthClaim.creditCost) // KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01
       {
         const claimDurationRaw = Number(cinematicBirthClaim.response?.duration)
         const claimDuration = Number.isFinite(claimDurationRaw) && claimDurationRaw > 0 ? claimDurationRaw : null
@@ -848,7 +854,10 @@ export async function POST(req: NextRequest) {
           !isServiceFinish &&
           claimDuration !== null &&
           claimDuration < duration &&
+          cinematicBirthClaim.creditCost === creditCostForDuration(trustedQuality, true, claimDuration) + estrelaSobretaxaAssinada && // KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01
+          (estrelaSobretaxaAssinada > 0 || // KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01
           cinematicBirthClaim.creditCost === creditCostForDuration(trustedQuality, true, claimDuration)
+          ) // KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01
         ) {
           console.warn(`[compose] KINEO-DEGRAU: botao ${duration}s, claim assinado em ${claimDuration}s — compondo em ${claimDuration}s`)
           duration = claimDuration
@@ -877,6 +886,8 @@ export async function POST(req: NextRequest) {
         // passaram. Em modo de resgate o custo de confianca e o DO CLAIM (ja
         // debitado, assinado) — recalcular pela duracao aqui nao protege
         // ninguem, so nega a entrega. Cliente comum continua na regra dura.
+        (!isServiceFinish && cinematicBirthClaim.creditCost !== creditCostForDuration(trustedQuality, true, duration) + estrelaSobretaxaAssinada) || // KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01
+        estrelaSobretaxaAssinada === 0 && // KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01
         (!isServiceFinish && cinematicBirthClaim.creditCost !== creditCostForDuration(trustedQuality, true, duration)) ||
         !inputsMatch
       ) {
@@ -2704,6 +2715,8 @@ export async function POST(req: NextRequest) {
           NextResponse.json({ error: `Could not assemble the render: ${msg}` }, { status: 500 }),
         )
       }
+      // [TRAVA 8.2 — "vamos fazer isso rápido agora", fundador 01/10] KINEO-LOGO-DA-MARCA-2026-10-01 — o logo da empresa da conta entra depois de montado (como o "sem legenda" do Ads); lib/compose não muda; busca que falha = filme sem logo.
+      withBrandLogo(hollywoodSource, await findBrandLogoUrl(authenticatedUserId, composeAdmin)) // KINEO-LOGO-DA-MARCA-2026-10-01
 
       // Submit once per authenticated generation. Retrying a provider POST
       // after an ambiguous response can create and charge two render jobs.
@@ -3434,6 +3447,8 @@ export async function POST(req: NextRequest) {
         ),
       )
     }
+    // [TRAVA 8.2 — "vamos fazer isso rápido agora", fundador 01/10] KINEO-LOGO-DA-MARCA-2026-10-01 — idem no caminho clássico (Kineo 1, Seedance, Kling 2.5, Veo, Avatar).
+    withBrandLogo(source, await findBrandLogoUrl(authenticatedUserId, composeAdmin)) // KINEO-LOGO-DA-MARCA-2026-10-01
 
     // KINEO-ADS-SEM-LEGENDA-2026-09-26 — fundador: "tem que ter opção de sem legenda". As legendas saem do montador
     // (lib/compose, trava 8.2) como elementos de texto nas trilhas 5 (palavra falada) e 7 (destaques). Quando o

@@ -25,6 +25,7 @@ import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { ESTRELA_PUBLIC } from '@/lib/engineLaunch'
 import { estrelaDisponivelNoMotor, estrelaSobretaxa } from '@/lib/estrelaDoFilme'
 import { estrelaCopy } from '@/lib/estrelaCopy'
+import BrandLogoPicker from '@/components/BrandLogoPicker' // KINEO-LOGO-DA-MARCA-2026-10-01
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { CLIP_CREDITS } from '@/lib/cinematic/shotSpec'
@@ -466,6 +467,10 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
     if (e && ENGINES.some((x) => x.key === e) && (e !== 's25') && !ENGINES.find((x) => x.key === e)?.paused) setEngine(e as EngineKey) // KINEO-MOTOR-EM-MANUTENCAO: ?engine= pausado cai no padrão
     const p = sp.get('prompt')
     if (p) setPrompt(p)
+    // KINEO-GO-STUDIO-NOVO-2026-10-01 — o link /go (GPT/assistente) traz ?aspect= quando não é 9:16; antes ele caía no
+    // /studio/create, que lia o formato. Só formatos da lista oficial (allAspectSpecs).
+    const requestedAspect = sp.get('aspect')
+    if (requestedAspect && allAspectSpecs().some((s) => s.aspect === requestedAspect)) setAspect(requestedAspect as Aspect)
     const requestedLanguage = narrationLanguage(sp.get('language')) // KINEO-IDIOMAS-15 (páginas de idioma chegam com ?language=)
     if (requestedLanguage) setLanguage(requestedLanguage)
     const requestedScriptMode = sp.get('script_mode')
@@ -1111,6 +1116,8 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                 )}
               </div>
             )}
+            {/* KINEO-LOGO-DA-MARCA-2026-10-01 — logo da empresa no canto de todo filme (todos os motores); fora do modo clipe. */}
+            {scriptMode !== 'clip' && <BrandLogoPicker />}
           </div>
         </section>
         <section className="composer-proposal-settings" aria-label={t('Settings and generation', 'Ajustes y generación')}>
