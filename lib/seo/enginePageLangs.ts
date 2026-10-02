@@ -17,8 +17,10 @@ export type LocalizedEngineSlug = (typeof ALL_LOCALIZED_ENGINE_SLUGS)[number]
 export const LOCALIZED_ENGINE_SLUGS: readonly LocalizedEngineSlug[] = ALL_LOCALIZED_ENGINE_SLUGS.filter((slug) => slug !== 'kineo-1')
 
 type Facts = { engine: string; credits: number; trial: number }
+/** As 13 línguas publicadas + pt/es (atrás de ENGINE_PAGES_PT_ES_LIVE, ver o fim do arquivo). */
+export type EnginePageLangCode = FreeShortsLang['code'] | 'pt' | 'es'
 export type EngineLang = {
-  code: FreeShortsLang['code']
+  code: EnginePageLangCode
   title: (f: Facts) => string
   description: (f: Facts) => string
   h1: (f: Facts) => string
@@ -339,12 +341,127 @@ export const ENGINE_LANGS: Record<FreeShortsLang['code'], EngineLang> = {
   },
 }
 
-export const ENGINE_LANG_CODES = Object.keys(ENGINE_LANGS) as Array<FreeShortsLang['code']>
+// ═══ KINEO-MOTORES-PT-ES-2026-10-02 — português e espanhol nas páginas de motor, ATRÁS DE INTERRUPTOR ═══════════════
+//
+// Decisão do fundador: o conteúdo nasce pronto e DESLIGADO. Com ENGINE_PAGES_PT_ES_LIVE = false nada muda no ar — as
+// listas publicadas (ENGINE_LANG_CODES → generateStaticParams, sitemap, hreflang, /llms.txt, /facts) seguem com as 13.
+// Com true, /ai-video-generator/<motor>/pt e /es passam a existir com o MESMO molde das outras 13 (mesma prova viva,
+// mesmo formulário, custo do catálogo via f.credits/f.trial/f.starter — nada digitado), e o hreflang ganha pt-BR e es.
+// pt/es não moram em lib/seo/freeShortsGeneratorLangs (as portas deles têm slug próprio: /gerador-de-shorts-gratis e
+// /generador-de-shorts-gratis), então o pedaço da porta (formulário, prova, título do FAQ, locale) fica aqui ao lado,
+// copiado das duas páginas — e engineDoorFor() devolve o mesmo formato para as 15.
+// Voltar a false = as duas páginas somem do build e de todo mapa no mesmo deploy.
+export const ENGINE_PAGES_PT_ES_LIVE = false
 
-/** hreflang das 14 versões de uma página de motor (en + 13). */
+export type EnginePtEsCode = 'pt' | 'es'
+export const ENGINE_PT_ES_CODES: readonly EnginePtEsCode[] = ['pt', 'es']
+
+export const ENGINE_LANGS_PT_ES: Record<EnginePtEsCode, EngineLang> = {
+  pt: {
+    code: 'pt',
+    title: (f) => `${f.engine} — gerador de vídeos com IA para YouTube Shorts | Kineo`,
+    description: (f) => `${f.engine} no Kineo: um Short vertical completo, narrado em português e com legendas, ${f.credits} créditos por vídeo de 60 s. Teste grátis com ${f.trial} créditos, sem cartão.`,
+    h1: (f) => `${f.engine}: de uma ideia a um Short pronto`,
+    lead: (f) => `Digite uma ideia ou cole o seu roteiro. O Kineo escreve as cenas, roda o ${f.engine}, grava a narração em português, coloca as legendas e devolve um Short 9:16 pronto para postar.`,
+    about: {
+      'kineo-1': () => `${K1} é o motor mais rápido e mais barato do Kineo: imagens reais escolhidas para cada frase da narração, voz neural e legendas palavra por palavra. É o motor do primeiro vídeo — e do volume diário.`,
+      seedance: () => `O Seedance 1.5 Pro (ByteDance) não procura imagens de banco: ele gera cada cena a partir do seu roteiro. Você digita uma ideia, o Kineo dirige o Seedance cena por cena, narra, legenda e monta o Short.`,
+      veo: () => `O Veo 3.1 é o principal modelo de vídeo do Google. No Kineo, ele não é um gerador de clipes para você editar depois: entra uma ideia, sai um Short completo — roteiro, voz, cenas do Veo e legendas.`,
+    },
+    howTitle: 'Como funciona',
+    how: ['Digite uma ideia ou cole um roteiro (até 1.000 caracteres).', 'O Kineo escreve as cenas, escolhe ou gera as imagens, grava a voz e as legendas.', 'Baixe o Short 9:16 e poste no YouTube Shorts, TikTok ou Reels.'],
+    costTitle: 'Quanto custa',
+    cost: (f) => `${f.credits} créditos por vídeo de 60 segundos. Toda conta nova recebe ${f.trial} créditos grátis, sem cartão — ${f.covers ? 'o bastante para um vídeo completo com este motor (com marca d’água)' : `não o bastante para um vídeo completo com este motor: o seu primeiro filme ${f.engine} vem com o plano Starter (${f.starter})`}.`,
+    proofTitle: (f) => `Shorts reais renderizados pelo ${f.engine}`,
+    proofLine: 'Não é um demo: vídeos prontos de contas reais do Kineo, e o selo diz o motor que de fato os renderizou.',
+    faq: (f) => [
+      { q: `O vídeo sai em português com o ${f.engine}?`, a: 'Sim. Roteiro, voz neural e legendas saem em português do Brasil — o idioma já vem selecionado a partir desta página.' },
+      { q: `Quanto custa um vídeo ${f.engine}?`, a: `${f.credits} créditos por vídeo de 60 s. O teste grátis dá ${f.trial} créditos sem cartão${f.covers ? ', o que cobre um vídeo completo com marca d’água' : `, o que não cobre um vídeo ${f.engine}: o primeiro filme vem com o Starter (${f.starter})`}. Os planos pagos liberam o MP4 sem marca d’água.` },
+      { q: 'Preciso saber editar ou aparecer na câmera?', a: 'Não. Formato faceless: a IA escreve, narra, escolhe ou gera as cenas e coloca as legendas. Você digita o tema e baixa o vídeo, normalmente em 3 a 7 minutos.' },
+    ],
+  },
+  es: {
+    code: 'es',
+    title: (f) => `${f.engine} — generador de videos con IA para YouTube Shorts | Kineo`,
+    description: (f) => `${f.engine} en Kineo: un Short vertical completo, narrado en español y con subtítulos, ${f.credits} créditos por video de 60 s. Prueba gratis con ${f.trial} créditos, sin tarjeta.`,
+    h1: (f) => `${f.engine}: de una idea a un Short listo`,
+    lead: (f) => `Escribe una idea o pega tu guion. Kineo escribe las escenas, ejecuta ${f.engine}, graba la narración en español, añade los subtítulos y te entrega un Short 9:16 listo para publicar.`,
+    about: {
+      'kineo-1': () => `${K1} es el motor más rápido y más barato de Kineo: imágenes reales elegidas para cada frase de tu narración, voz neural y subtítulos palabra por palabra. Es el motor de tu primer video — y del volumen diario.`,
+      seedance: () => `Seedance 1.5 Pro (ByteDance) no busca imágenes de archivo: genera cada escena a partir de tu guion. Escribes una idea, Kineo dirige Seedance escena por escena, narra, subtitula y monta el Short.`,
+      veo: () => `Veo 3.1 es el modelo de video insignia de Google. En Kineo no es un generador de clips para editar después: entra una idea, sale un Short completo — guion, voz, escenas de Veo y subtítulos.`,
+    },
+    howTitle: 'Cómo funciona',
+    how: ['Escribe una idea o pega un guion (hasta 1.000 caracteres).', 'Kineo escribe las escenas, elige o genera las imágenes, graba la voz y los subtítulos.', 'Descarga el Short 9:16 y publícalo en YouTube Shorts, TikTok o Reels.'],
+    costTitle: 'Cuánto cuesta',
+    cost: (f) => `${f.credits} créditos por video de 60 segundos. Cada cuenta nueva recibe ${f.trial} créditos gratis, sin tarjeta — ${f.covers ? 'suficiente para un video completo con este motor (con marca de agua)' : `no alcanza para un video completo con este motor: tu primera película ${f.engine} viene con el plan Starter (${f.starter})`}.`,
+    proofTitle: (f) => `Shorts reales renderizados por ${f.engine}`,
+    proofLine: 'No es una demo: videos terminados de cuentas reales de Kineo, y la insignia indica el motor que realmente los renderizó.',
+    faq: (f) => [
+      { q: `¿El video sale en español con ${f.engine}?`, a: 'Sí. Guion, voz neural y subtítulos salen en español — el idioma ya viene seleccionado desde esta página.' },
+      { q: `¿Cuánto cuesta un video de ${f.engine}?`, a: `${f.credits} créditos por video de 60 s. La prueba gratis da ${f.trial} créditos sin tarjeta${f.covers ? ', suficiente para un video completo con marca de agua' : `, que no alcanzan para un video de ${f.engine}: la primera película viene con Starter (${f.starter})`}. Los planes de pago liberan el MP4 sin marca de agua.` },
+      { q: '¿Tengo que saber editar o salir en cámara?', a: 'No. Formato faceless: la IA escribe, narra, elige o genera las escenas y añade los subtítulos. Escribes el tema y descargas el video, normalmente en 3 a 7 minutos.' },
+    ],
+  },
+}
+
+/** O pedaço "porta" da página (formulário, prova, título do FAQ, locale) — o que FREE_SHORTS_LANG_BY_CODE dá às outras 13. */
+export type EngineDoor = Pick<FreeShortsLang, 'locale' | 'dir' | 'badge' | 'examples' | 'form' | 'proof' | 'faqTitle'> & {
+  code: EnginePageLangCode
+  /** A porta grátis da mesma língua (pt/es têm slug próprio). */
+  doorPath: string
+}
+
+export const ENGINE_DOORS_PT_ES: Record<EnginePtEsCode, EngineDoor> = {
+  pt: {
+    code: 'pt', locale: 'pt-BR', doorPath: '/gerador-de-shorts-gratis',
+    badge: 'Gerador de Shorts com IA',
+    examples: ['A ilha que ninguém pode visitar', 'O hábito que deixa as pessoas pobres sem perceber', 'Por que a IA está mudando o trabalho de todo mundo'],
+    form: { label: 'Sobre o que vai ser o seu Short grátis?', placeholder: 'Ex.: a ilha proibida que aparece no mapa', submit: 'Criar meu Short grátis', examplesLabel: 'Ideias prontas', note: 'Sua ideia atravessa o cadastro — o primeiro filme (Seedance 1.5, 15 s) começa sem cartão.' },
+    proof: { eyebrow: 'Feito de verdade com o Kineo', line: 'Cada um destes Shorts começou com uma linha de texto.' },
+    faqTitle: 'Perguntas frequentes',
+  },
+  es: {
+    code: 'es', locale: 'es', doorPath: '/generador-de-shorts-gratis',
+    badge: 'Generador de Shorts con IA',
+    examples: ['La isla que nadie puede visitar', 'El hábito que hace pobre a la gente sin darse cuenta', 'Por qué la IA está cambiando el trabajo de todos'],
+    form: { label: '¿Sobre qué será tu Short gratis?', placeholder: 'Ej.: la isla prohibida que aparece en el mapa', submit: 'Crear mi Short gratis', examplesLabel: 'Ideas listas', note: 'Tu idea atraviesa el registro — la primera película (Seedance 1.5, 15 s) empieza sin tarjeta.' },
+    proof: { eyebrow: 'Hecho de verdad con Kineo', line: 'Cada uno de estos Shorts empezó con una línea de texto.' },
+    faqTitle: 'Preguntas frecuentes',
+  },
+}
+
+const isPtEs = (code: string): code is EnginePtEsCode => (ENGINE_PT_ES_CODES as readonly string[]).includes(code)
+
+/** As línguas PUBLICADAS: as 13 sempre; pt/es só com o interruptor ligado. */
+export const ENGINE_LANG_CODES: EnginePageLangCode[] = [
+  ...(Object.keys(ENGINE_LANGS) as Array<FreeShortsLang['code']>),
+  ...(ENGINE_PAGES_PT_ES_LIVE ? ENGINE_PT_ES_CODES : []),
+]
+
+/** Texto da página de motor numa língua publicada; undefined fora da lista (a página vira 404). */
+export function engineLangFor(code: string): EngineLang | undefined {
+  if (!(ENGINE_LANG_CODES as string[]).includes(code)) return undefined
+  return isPtEs(code) ? ENGINE_LANGS_PT_ES[code] : ENGINE_LANGS[code as FreeShortsLang['code']]
+}
+
+/** Porta (formulário, prova, locale) da mesma língua; undefined fora da lista publicada. */
+export function engineDoorFor(code: string): EngineDoor | undefined {
+  if (!(ENGINE_LANG_CODES as string[]).includes(code)) return undefined
+  if (isPtEs(code)) return ENGINE_DOORS_PT_ES[code]
+  const l = FREE_SHORTS_LANG_BY_CODE[code]
+  return l ? { code: l.code, locale: l.locale, dir: l.dir, badge: l.badge, examples: l.examples, form: l.form, proof: l.proof, faqTitle: l.faqTitle, doorPath: `/free-shorts-generator/${l.code}` } : undefined
+}
+
+/** BCP-47 da língua da página de motor (pt → pt-BR). */
+export function engineLangLocale(code: EnginePageLangCode): string {
+  return isPtEs(code) ? ENGINE_DOORS_PT_ES[code].locale : FREE_SHORTS_LANG_BY_CODE[code].locale
+}
+
+/** hreflang das versões de uma página de motor (en + 13, + pt-BR/es com o interruptor ligado). */
 export function engineAlternates(base: string, slug: LocalizedEngineSlug): Record<string, string> {
   const out: Record<string, string> = { en: `${base}/ai-video-generator/${slug}` }
-  for (const code of ENGINE_LANG_CODES) out[FREE_SHORTS_LANG_BY_CODE[code].locale] = `${base}/ai-video-generator/${slug}/${code}`
+  for (const code of ENGINE_LANG_CODES) out[engineLangLocale(code)] = `${base}/ai-video-generator/${slug}/${code}`
   out['x-default'] = out.en
   return out
 }

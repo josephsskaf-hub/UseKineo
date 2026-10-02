@@ -32,6 +32,18 @@ import { AVATAR_PUBLIC } from '@/lib/engineLaunch' // KINEO-AVATAR-FORA-2026-09-
 // link de negócios, então a sublista nasce DERIVADA de ADS_SEGMENTS (adsSegmentPath +
 // shortName) — nunca uma lista digitada; segmento novo na fonte entra aqui sozinho.
 import { ADS_SEGMENTS, adsSegmentPath } from '@/lib/growth/adsSegments'
+// KINEO-MAPA-ORFAS-2026-10-02 — os órfãos do domínio ganham caminho rastreável a partir de TODA página pública que renderiza
+// este rodapé, sempre DERIVADO do catálogo que gera as páginas (nunca uma lista digitada):
+//   · as 3 páginas de produto do A1 (Spaces, Clips, anúncio com atriz de IA) — lib/growth/productLandingPages;
+//   · o hub /ai-video-generator/for (que lista as 100 páginas de intenção) — lib/seo/intentPages;
+//   · o hub /vs (que lista as comparações canônicas) e as 3 comparações de anúncio — lib/growth/adsComparisons;
+//   · as 16 portas de língua da ferramenta grátis — freeShortsAlternates (a MESMA fonte do hreflang delas).
+// Sem despejar 150 links: os hubs carregam a lista inteira; aqui vai um link por hub + uma linha compacta de línguas.
+// As 26 páginas de motor traduzidas são linkadas do hub /ai-video-generator (linkado aqui).
+import { PRODUCT_LANDING_PAGES } from '@/lib/growth/productLandingPages'
+import { INTENT_HUB_PATH, INTENT_SLUGS } from '@/lib/seo/intentPages'
+import { ADS_COMPARISONS, adsComparisonPath } from '@/lib/growth/adsComparisons'
+import { freeShortsAlternates } from '@/lib/seo/freeShortsGeneratorLangs'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -46,6 +58,26 @@ const ADS_SEGMENT_SUBLIST: { title: string; links: { href: string; label: string
   title: 'Video ads for…',
   links: ADS_SEGMENTS.map((segment) => ({ href: adsSegmentPath(segment.slug), label: segment.shortName })),
 }
+
+// KINEO-MAPA-ORFAS-2026-10-02 — as 3 comparações de anúncio (/vs/<x>-alternative), derivadas do snapshot que gera as páginas.
+const ADS_COMPARISON_SUBLIST: typeof ADS_SEGMENT_SUBLIST = {
+  title: 'Video ad tools',
+  links: ADS_COMPARISONS.map((competitor) => ({ href: adsComparisonPath(competitor.slug), label: `Kineo vs ${competitor.name}` })),
+}
+
+// KINEO-MAPA-ORFAS-2026-10-02 — o nome de cada língua NA PRÓPRIA língua (Intl), para quem procura a porta reconhecer a sua.
+function nativeLanguageName(locale: string): string {
+  try {
+    const name = new Intl.DisplayNames([locale], { type: 'language' }).of(locale)
+    return name ? name.charAt(0).toLocaleUpperCase(locale) + name.slice(1) : locale
+  } catch {
+    return locale
+  }
+}
+// As portas da ferramenta grátis em todas as línguas: a mesma tabela do hreflang (en/pt-BR/es + as 13 de /free-shorts-generator).
+const LANGUAGE_DOORS = Object.entries(freeShortsAlternates(''))
+  .filter(([locale]) => locale !== 'x-default')
+  .map(([locale, href]) => ({ locale, href, label: nativeLanguageName(locale) }))
 
 // Internal navigation grouped for crawl depth + human wayfinding.
 const navGroups: { title: string; links: { href: string; label: string; costCalculator?: boolean; sublist?: typeof ADS_SEGMENT_SUBLIST }[] }[] = [
@@ -81,6 +113,11 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
     // ═══════════════════════════════════════════════════════════════════════
     links: [
       { href: '/ads', label: 'Videos for businesses', sublist: ADS_SEGMENT_SUBLIST }, // 27/09: porta pública (200 para todos); /ads/new mandava visitante ao /login
+      // KINEO-MAPA-ORFAS-2026-10-02 — as páginas de produto do A1, do catálogo (caminho novo lá = link novo aqui).
+      ...PRODUCT_LANDING_PAGES.map((page) => ({ href: page.path, label: page.footerLabel })),
+      // O hub dos motores linka as páginas de motor (e as traduzidas); o de casos de uso linka as 100 páginas de intenção.
+      { href: '/ai-video-generator', label: 'AI video generator — every engine' },
+      { href: INTENT_HUB_PATH, label: `AI video for ${INTENT_SLUGS.length} use cases` },
       // KINEO-NOITE-2026-08-17 — os produtos novos do dia entram no rodape
       // (26 paginas publicas linkando; nenhuma pagina nasce orfa).
       ...(SHOWCASE_PUBLIC ? [{ href: '/showcase', label: 'Showcase' }] : []),
@@ -195,6 +232,8 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
     title: 'Compare',
     links: [
       { href: '/alternatives', label: 'All comparisons' },
+      // KINEO-MAPA-ORFAS-2026-10-02 — o hub /vs lista todas as comparações canônicas; a sublista leva às 3 de anúncio.
+      { href: '/vs', label: 'Head-to-head tool comparisons', sublist: ADS_COMPARISON_SUBLIST },
       { href: '/alternatives/opusclip', label: 'Kineo vs OpusClip' },
       { href: '/alternatives/invideo', label: 'Kineo vs InVideo' },
       { href: '/alternatives/heygen', label: 'Kineo vs HeyGen' },
@@ -307,6 +346,20 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
               })}
             </ul>
           </details>
+        ))}
+      </nav>
+
+      {/* KINEO-MAPA-ORFAS-2026-10-02 — linha compacta: a ferramenta grátis em cada língua (fora dos 4 <details>). */}
+      <nav
+        aria-label="Free Shorts generator in your language"
+        style={{ maxWidth: 1060, margin: '0 auto 20px', textAlign: 'center', fontSize: 11, lineHeight: 1.9 }}
+      >
+        <span><UiLabel>Free Shorts generator in your language:</UiLabel></span>{' '}
+        {LANGUAGE_DOORS.map((door, index) => (
+          <span key={door.href}>
+            {index > 0 && <span aria-hidden style={{ opacity: 0.4 }}> · </span>}
+            <Link href={door.href} hrefLang={door.locale} lang={door.locale} style={linkStyle}>{door.label}</Link>
+          </span>
         ))}
       </nav>
 

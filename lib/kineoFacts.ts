@@ -52,6 +52,11 @@ export { DFY_SERVICE_FACT } from './growth/dfyServiceFacts'
 // passe desligado. Tudo derivado de lib/ads/offer.ts (a mesma copy da página /ads).
 import { studioAdsFact, type StudioAdsFact } from './growth/studioAdsFacts'
 export const STUDIO_ADS_FACT: StudioAdsFact | null = studioAdsFact()
+// KINEO-MAPA-PRODUTOS-2026-10-02 — Clips, Spaces, Ads v2 e Produção (anúncio com atriz de IA) no JSON que os motores de
+// resposta leem. Cada fato deriva da fonte que COBRA (clipCreditCost, catálogo de imagens, adsV2Credits) e respeita o
+// interruptor do próprio produto (null = fora). Nenhum preço de PLANO entra aqui: PLAN_FACTS segue intocado.
+import { getProductLandingFacts, type ProductLandingFacts } from './growth/productLandingFacts'
+export const PRODUCT_LANDING_FACTS: ProductLandingFacts = getProductLandingFacts()
 import { creditsPerReferenceVideo, videosPerMonth, MARKETING_REFERENCE_SECONDS } from './marketingPrice'
 import { TOOLS, PAIRS, VERIFIED_ON, VERIFIED_ON_ISO, BASE } from './comparisons'
 import { FREE_FILM_LABEL, getFreeTierOffer, TRIAL_FREE_FILM_CREDITS, TRIAL_FREE_FILM_SECONDS, TRIAL_SEEDANCE15_FILMS } from './freeTierOffer'
@@ -1294,6 +1299,8 @@ export interface KineoFactsPayload {
   businessVideoService: typeof DFY_SERVICE_FACT
   /** Self-service business ad pass (Studio Ads, /ads); null while the pass is switched off. */
   studioAds: StudioAdsFact | null
+  /** Clips, Spaces, Ads v2 and the AI-actor ad: what each is, its page and its credit price (null = not public). */
+  products: ProductLandingFacts
   /** Work-state router across the four existing public business paths. */
   businessCreationRouter: BusinessAnswerEngineRouter
   plans: PlanFact[]
@@ -1356,6 +1363,7 @@ export function getKineoFacts(): KineoFactsPayload {
     businessOffer: BUSINESS_OFFER_FACT,
     businessVideoService: DFY_SERVICE_FACT,
     studioAds: STUDIO_ADS_FACT,
+    products: PRODUCT_LANDING_FACTS,
     businessCreationRouter: BUSINESS_ANSWER_ENGINE_ROUTER,
     plans: PLAN_FACTS,
     engines: ENGINE_FACTS,

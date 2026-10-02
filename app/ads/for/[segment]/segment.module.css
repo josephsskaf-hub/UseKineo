@@ -16,6 +16,8 @@
 .note { font-size: 12px; color: #596775; }
 .preview { margin: 0; border: 1px solid #dce1e3; border-radius: 14px; overflow: hidden; background: #f1f3f2; }
 .preview img { display: block; width: 100%; height: auto; }
+/* KINEO-ADS-FOR-VIDEO-DA-CASA-2026-10-02 — anúncio vertical da casa: cabe na coluna sem esticar a dobra. */
+.houseVideo { display: block; width: 100%; max-height: min(70vh, 640px); background: #000; object-fit: contain; }
 .preview figcaption { padding: 14px 18px; font-size: 12px; color: #52616e; }
 .section { padding: 38px 0; border-top: 1px solid #dce1e3; }
 .page h2 { margin: 0 0 24px; font-size: clamp(25px, 3vw, 34px); line-height: 1.2; letter-spacing: -.035em; }

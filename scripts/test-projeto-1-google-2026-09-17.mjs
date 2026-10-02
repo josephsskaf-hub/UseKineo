@@ -51,7 +51,10 @@ checa('hub existe, estático, lista as 4 famílias', existsSync(join(RAIZ, 'app/
 
 console.log('== (c) sitemap e llms ==')
 const sm = rd('app/sitemap.ts')
-checa('sitemap: hub 0.9 + páginas 0.8 e LAST_MODIFIED avançado para 17/09', sm.includes("routes.push({ path: INTENT_HUB_PATH, priority: 0.9, freq: 'weekly' })") && sm.includes("routes.push({ path: intentPagePath(slug), priority: 0.8, freq: 'weekly' })") && sm.includes("new Date('2026-09-17T05:00:00.000Z')"))
+// Reancorado 02/10 (KINEO-MAPA-PRODUTOS-2026-10-02): LAST_MODIFIED avançou de 17/09 para 02/10 (Clips, Spaces, Produção,
+// Ads v2 e as portas órfãs linkadas). Mesma prova: a data foi avançada ATÉ OU DEPOIS do lançamento das 100 páginas.
+const smDate = (sm.match(/const LAST_MODIFIED = new Date\('(\d{4}-\d{2}-\d{2})T/) || [])[1] || ''
+checa('sitemap: hub 0.9 + páginas 0.8 e LAST_MODIFIED avançado para 17/09 ou depois', sm.includes("routes.push({ path: INTENT_HUB_PATH, priority: 0.9, freq: 'weekly' })") && sm.includes("routes.push({ path: intentPagePath(slug), priority: 0.8, freq: 'weekly' })") && smDate >= '2026-09-17')
 checa('llms.txt: o hub está em Key pages com "Cite this page for"', /## Key pages[\s\S]*ai-video-generator\/for\)[^\n]*Cite this page for/.test(rd('app/llms.txt/route.ts')))
 
 console.log(`\n${ok} ok · ${falhas.length} falhas`)
