@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
     }
 
     // KINEO-ATRIBUICAO-POUSO-2026-10-02 — o caminho de entrada num UPDATE PRÓPRIO, depois do resto, por dois motivos:
-    //   1. a coluna nasce numa migration (20261002120000_signup_landing_path.sql) que pode rodar depois do deploy. Se ela
+    //   1. a coluna nasce numa migration (20261002130000_signup_landing_path.sql) que pode rodar depois do deploy. Se ela
     //      entrasse no SELECT/UPDATE acima, a falta da coluna derrubaria a atribuição inteira (é o aviso da migration do
     //      signup_surface). Aqui, erro de coluna inexistente só pula esta gravação;
     //   2. primeiro toque vence no próprio banco: o filtro `is null` faz a escrita atômica — nunca sobrescreve.
