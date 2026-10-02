@@ -28,7 +28,9 @@ const P = module.exports
 checa('P1 nasce só da casa (PRODUCAO_PUBLIC = false)', P.PRODUCAO_PUBLIC === false && /export const PRODUCAO_PUBLIC = false\n/.test(libSrc))
 checa('P2 producaoVisibleFor: público OU casa', P.producaoVisibleFor(true, false) && P.producaoVisibleFor(false, true) && !P.producaoVisibleFor(false, false))
 checa('P3 abrir ao público exige preço da montagem decidido (null = "a definir" só com a casa)', !P.PRODUCAO_PUBLIC || typeof P.PRODUCAO_MONTAGE_CREDITS === 'number')
-checa('P4 a montagem recusa (403 price_not_set) público + preço null ANTES de ler o pedido', ordem(montSrc, "if (PRODUCAO_PUBLIC && PRODUCAO_MONTAGE_CREDITS === null) return producaoFail('price_not_set', 403)", 'parseMontageRefs(body?.shots)'))
+// Reancorado 02/10 (KINEO-NUVEM-A3): o preço deixou de ser null (proposta 2 cr) e a cobrança tem interruptor próprio
+// (PRODUCAO_MONTAGE_CHARGE_LIVE); a prova é a mesma — público sem cobrança ligada recusa ANTES de ler o pedido.
+checa('P4 a montagem recusa (403 price_not_set) público sem cobrança ligada ANTES de ler o pedido', ordem(montSrc, "if (PRODUCAO_PUBLIC && !PRODUCAO_MONTAGE_CHARGE_LIVE) return producaoFail('price_not_set', 403)", 'parseMontageRefs(body?.shots)'))
 
 // ── P5 espelhos de preço (o número da tela = o que a rota cobra) ──
 checa('P5 imagem: 5 cr = MODELS.nanobanana.cost do /api/images/generate', P.PRODUCAO_IMAGE_CREDITS === 5 && /nanobanana: \{\n\s+slug: 'fal-ai\/nano-banana-pro',\n\s+cost: 5,/.test(imagesSrc))
@@ -37,7 +39,9 @@ checa('P7 piso de 12 s = AVATAR_MIN_NARRATION_SECONDS da rota', P.PRODUCAO_AVATA
 checa('P8 narração: 2 cr/1.000 caracteres = perK do minimax e a mesma fórmula da rota',
   P.PRODUCAO_NARRATION_CREDITS_PER_1K === 2 && /minimax: \{[\s\S]{0,900}?perK: 2,/.test(audioSrc) && audioSrc.includes('const cost = Math.max(1, Math.ceil(text.length / 1000)) * model.perK') &&
   P.narrationCredits('') === 0 && P.narrationCredits('abc') === 2 && P.narrationCredits('x'.repeat(1000)) === 2 && P.narrationCredits('x'.repeat(1001)) === 4)
-checa('P9 montagem sem tabela: null ("a definir") e a tela diz isso antes do clique', P.PRODUCAO_MONTAGE_CREDITS === null && clientSrc.includes("'Montage: price to be set — free while in preview'"))
+// Reancorado 02/10 (KINEO-NUVEM-A3): o "a definir" virou proposta (2 cr) atrás de PRODUCAO_MONTAGE_CHARGE_LIVE=false; a
+// prova continua: enquanto não cobra, a tela diz "grátis" antes do clique (a cobrança ligada mostra o preço).
+checa('P9 montagem: preço só cobrado com o interruptor e a tela diz isso antes do clique', P.PRODUCAO_MONTAGE_CHARGE_LIVE === false && P.montageChargeCredits() === 0 && clientSrc.includes("'Montage: free while in preview · saved to your Library'") && clientSrc.includes('PRODUCAO_MONTAGE_CHARGE_LIVE ?'))
 
 // ── P10 personagem e prompts ──
 checa('P10 a frase de identidade do pedido do fundador', P.identityLine('woman') === 'This exact woman, same face, hair and outfit' && P.identityLine('man') === 'This exact man, same face, hair and outfit' && P.identityLine('mascot') === 'This exact character, same face, hair and outfit')
@@ -71,7 +75,7 @@ checa('P23 voz feminina = nova, masculina = onyx; outro valor = null', P.PRODUCA
 checa('P24 generate-avatar: a voz escolhida entra DEPOIS da clonada e ANTES do caminho de sempre (onyx/persona intactos)',
   ordem(avatarSrc, 'if (cloneVoiceId) {', '} else if (chosenVoice) {', "model: 'tts-1-hd'", "voice: PRODUCAO_VOICE_IDS[chosenVoice]", '} else {', "? await generateTTS(ttsSource, 1.0, undefined, 'free', language)"))
 checa('P25 a impressão digital só muda com a voz escolhida (sem voz = mesmo hash de antes)', avatarSrc.includes("...(chosenVoice ? { voiceGender: chosenVoice } : {}),") && avatarSrc.includes('const chosenVoice = producaoVoice(body.voiceGender)'))
-checa('P26 a tela manda voiceGender e scriptMode verbatim ao avatar, fabric, sem b-roll', clientSrc.includes("engine: PRODUCAO_AVATAR_ENGINE, scriptMode: 'verbatim', noBroll: true, voiceGender: s.voice") && !clientSrc.includes('[Pexels:') && !clientSrc.includes("vertical: 'curiosities'"))
+checa('P26 a tela manda voiceGender e scriptMode verbatim ao avatar, motor escolhido (padrão fabric), sem b-roll', clientSrc.includes("engine: producaoTalkEngine(s.talkEngine).key, scriptMode: 'verbatim', noBroll: true, voiceGender: s.voice") /* Reancorado 02/10 (KINEO-NUVEM-A3): presenter 70 ao lado do fabric 110; o padrão segue fabric */ && P.PRODUCAO_TALK_DEFAULT === 'fabric' && !clientSrc.includes('[Pexels:') && !clientSrc.includes("vertical: 'curiosities'"))
 
 // ── P27 montagem (Creatomate), EXECUTADA ──
 const VID = (n) => `https://x.supabase.co/storage/v1/object/public/renders/clips/u/${n}.mp4`
@@ -143,7 +147,7 @@ checa('P54 o clipe usa a imagem gerada direto (renders/images/<uid>/, sem reenvi
 checa('P55 as imagens dos planos vão com a referência do personagem (Nano Banana Pro, 9:16, consentimento)', clientSrc.includes('model: PRODUCAO_IMAGE_MODEL, size: PRODUCAO_IMAGE_SIZE, reference_paths: refs, reference_consent: true') && clientSrc.includes('buildShotImagePrompt({ kind, shot: s, productPhoto: Boolean(productRef) })'))
 checa('P56 personagem salvo para reusar (/api/characters) e foto real só com autorização marcada', clientSrc.includes("postJson('/api/characters', {") && clientSrc.includes("fetch('/api/characters'") && clientSrc.includes('disabled={!!busy || !consent}') && clientSrc.includes('if (!files?.length || !consent) return'))
 checa('P57 textos da tela passam por UiLabel (nenhum <h1>/<h2> cru)', (clientSrc.match(/<UiLabel>/g) || []).length >= 40 && !/<h[12][^>]*>[A-Za-z]/.test(clientSrc))
-checa('P58 selo honesto: o palco nomeia o motor real de cada peça', clientSrc.includes("badge: 'Nano Banana Pro'") && clientSrc.includes("s.mode === 'talk' ? 'VEED Fabric'") && clientSrc.includes('photoEngines.find((e) => e.key === s.engine)?.label'))
+checa('P58 selo honesto: o palco nomeia o motor real de cada peça', clientSrc.includes("badge: 'Nano Banana Pro'") && clientSrc.includes("s.mode === 'talk' ? producaoTalkEngine(s.talkEngine).model") /* Reancorado 02/10 (KINEO-NUVEM-A3): o selo é o modelo real da fala escolhida */ && clientSrc.includes('photoEngines.find((e) => e.key === s.engine)?.label'))
 
 console.log(`\ntest-producao-ads-2026-10-01: ${ok} ok · ${falhas} falhas`)
 process.exit(falhas ? 1 : 0)

@@ -35,6 +35,25 @@ export const PRODUCAO_IMAGE_SIZE = 'portrait_16_9'
 /** Fala para a câmera: /api/generate-avatar, engine fabric → AVATAR_CREDIT_COST (110). Espelho; o guardião confere. */
 export const PRODUCAO_AVATAR_ENGINE = 'fabric'
 export const PRODUCAO_AVATAR_CREDITS = 110
+/**
+ * KINEO-NUVEM-A3-2026-10-02 — duas falas para a câmera, lado a lado, com o preço que o /api/generate-avatar JÁ cobra
+ * (const AVATAR_CREDIT_COST = engine === 'presenter' ? 70 : 110; lib/avatar/reservation.ts tem o mesmo par):
+ *   · 'presenter' = Kling AI Avatar v2 Standard, 70 cr — "Talk to camera (standard)";
+ *   · 'fabric'    = VEED Fabric, 110 cr — a que o fundador validou à mão em 01/10 (continua o PADRÃO).
+ * O claim do presenter é quality 'presenter' e a montagem o lê pelo mesmo loadPrepaidAvatarClaimForGeneration. O nome na
+ * tela é o motor real (selo honesto). Qual vem marcado é decisão do fundador (lista do handoff).
+ */
+export type ProducaoTalkEngine = 'presenter' | 'fabric'
+export interface ProducaoTalkOption { key: ProducaoTalkEngine; label: string; model: string; credits: number }
+export const PRODUCAO_PRESENTER_CREDITS = 70
+export const PRODUCAO_TALK_ENGINES: readonly ProducaoTalkOption[] = [
+  { key: 'presenter', label: 'Talk to camera (standard)', model: 'Kling AI Avatar v2 Standard', credits: PRODUCAO_PRESENTER_CREDITS },
+  { key: 'fabric', label: 'Talk to camera (VEED Fabric)', model: 'VEED Fabric', credits: PRODUCAO_AVATAR_CREDITS },
+]
+export const PRODUCAO_TALK_DEFAULT: ProducaoTalkEngine = PRODUCAO_AVATAR_ENGINE
+export function producaoTalkEngine(v: unknown): ProducaoTalkOption {
+  return PRODUCAO_TALK_ENGINES.find((e) => e.key === v) ?? PRODUCAO_TALK_ENGINES.find((e) => e.key === PRODUCAO_TALK_DEFAULT)!
+}
 /** O avatar recusa (422, sem cobrar) menos de 12 s de fala (AVATAR_MIN_NARRATION_SECONDS na rota). */
 export const PRODUCAO_AVATAR_MIN_SECONDS = 12
 /** Narração opcional: /api/audio/generate, MiniMax Speech-2.8 HD = 2 cr a cada 1.000 caracteres (mínimo 1 bloco). */
@@ -46,11 +65,30 @@ export function narrationCredits(text: string): number {
   return Math.max(1, Math.ceil(chars / 1000)) * PRODUCAO_NARRATION_CREDITS_PER_1K
 }
 /**
- * Montagem (Creatomate): SEM tabela de preço — "preço novo = decisão do fundador". null = "preço a definir": a casa
- * monta sem cobrar enquanto PRODUCAO_PUBLIC = false. Custo real de referência no código: ~US$0,13 por vídeo de 15 s
- * (lib/ads/v2Tiers.ts ADS_V2_FIXED_USD_PARTS.creatomate), escalando com os segundos.
+ * Montagem (Creatomate). Custo real de referência no código: ~US$0,13 por vídeo de 15 s (lib/ads/v2Tiers.ts
+ * ADS_V2_FIXED_USD_PARTS.creatomate), escalando com os segundos.
+ *
+ * KINEO-NUVEM-A3-2026-10-02 — PROPOSTA de preço: 2 créditos por montagem (no crédito mais barato da casa, Studio
+ * US$ 0,183/cr, são ~US$ 0,37 contra ~US$ 0,13-0,26 de Creatomate para 15-30 s). Preço público = decisão do fundador,
+ * então nasce atrás de interruptor: PRODUCAO_MONTAGE_CHARGE_LIVE=false → a montagem não cobra ninguém (a casa monta
+ * grátis como em 01/10); true → débito no padrão de lib/ads/v2Billing.ts (recordRenderIntent → saldo → débito → reler o
+ * ledger), estorno na falha do envio ou do Creatomate, e a linha em `videos` (Biblioteca) é a prova de entrega que a
+ * varredura genérica de estorno lê. PRODUCAO_PUBLIC=true exige a cobrança ligada (o guardião e a rota recusam o contrário).
  */
-export const PRODUCAO_MONTAGE_CREDITS: number | null = null
+export const PRODUCAO_MONTAGE_CREDITS = 2
+export const PRODUCAO_MONTAGE_CHARGE_LIVE = false
+export function montageChargeCredits(live: boolean = PRODUCAO_MONTAGE_CHARGE_LIVE): number {
+  return live ? PRODUCAO_MONTAGE_CREDITS : 0
+}
+/** Chave do débito = videos.render_id da entrega. 'prodmont-' NÃO está em GENERIC_SWEEP_EXCLUDED_PATTERNS de propósito:
+ *  entregue = linha em `videos` com esta chave (a varredura não estorna); sem linha 2 h depois = estorna. */
+export const PRODUCAO_MONTAGE_BILLING_PREFIX = 'prodmont-'
+/** quality de render_jobs e de videos.quality_mode (selo "Studio Ads" em lib/engineLabel.ts). */
+export const PRODUCAO_MONTAGE_QUALITY = 'producao_montage'
+/** Chave de idempotência que a tela manda por clique (o mesmo clique repetido = a mesma montagem, um débito só). */
+export function isProducaoIdempotencyKey(v: unknown): v is string {
+  return typeof v === 'string' && /^[A-Za-z0-9_-]{8,80}$/.test(v)
+}
 export const PRODUCAO_MONTAGE_USD_PER_15S = 0.13
 export function montageUsdEstimate(seconds: number): number {
   const s = Number(seconds)

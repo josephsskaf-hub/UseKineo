@@ -17,8 +17,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { ADS_HOUSE_STAGE, ProductRow, ProductStage, ProductStageStyles, useProductStage, type StageItem } from '@/components/ProductStage'
 import {
-  PRODUCAO_AVATAR_CREDITS,
-  PRODUCAO_AVATAR_ENGINE,
   PRODUCAO_AVATAR_MIN_SECONDS,
   PRODUCAO_CHARACTER_KINDS,
   PRODUCAO_IDEA_MAX,
@@ -28,8 +26,12 @@ import {
   PRODUCAO_IMAGE_SIZE,
   PRODUCAO_LINE_MAX,
   PRODUCAO_MAX_SHOTS,
+  PRODUCAO_MONTAGE_CHARGE_LIVE,
   PRODUCAO_MONTAGE_CREDITS,
   PRODUCAO_NARRATION_MODEL,
+  PRODUCAO_TALK_DEFAULT,
+  PRODUCAO_TALK_ENGINES,
+  producaoTalkEngine,
   PRODUCAO_SLOGAN_MAX,
   PRODUCAO_SUPPORT_MAX,
   PRODUCAO_TEMPLATES,
@@ -42,6 +44,7 @@ import {
   type ProducaoLanguage,
   type ProducaoShot,
   type ProducaoShotMode,
+  type ProducaoTalkEngine,
   type ProducaoTemplateKey,
   type ProducaoVoice,
 } from '@/lib/ads/producao'
@@ -51,6 +54,8 @@ type ImgState = 'idle' | 'working' | 'done' | 'failed'
 interface Shot extends ProducaoShot {
   key: string
   voice: ProducaoVoice
+  /** KINEO-NUVEM-A3-2026-10-02 — fala para a câmera: 'presenter' (Kling Avatar v2 Standard, 70) ou 'fabric' (VEED, 110). */
+  talkEngine: ProducaoTalkEngine
   engine: string
   seconds: number
   imageUrl: string | null
@@ -219,14 +224,14 @@ export default function ProducaoClient() {
       if (!r.ok || !Array.isArray(j?.shots)) throw new Error(errorFor(r.status, j))
       setPlanSource(j.source as string)
       setShots((j.shots as ProducaoShot[]).map((s) => ({
-        ...s, key: newKey(), voice: kind === 'man' ? 'male' : 'female', engine: defaultEngine?.key ?? 'kling', seconds: defaultEngine?.seconds[0] ?? 5,
+        ...s, key: newKey(), voice: kind === 'man' ? 'male' : 'female', talkEngine: PRODUCAO_TALK_DEFAULT, engine: defaultEngine?.key ?? 'kling', seconds: defaultEngine?.seconds[0] ?? 5,
         imageUrl: null, imageState: 'idle', approved: false, clipId: null, talkGenId: null, lifeUrl: null, lifeFor: null, lifeState: 'idle', error: null,
       })))
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not plan the shots.') } finally { setBusy(null) }
   }
   function addShot() {
     if (shots.length >= PRODUCAO_MAX_SHOTS) return
-    setShots((l) => [...l, { key: newKey(), title: `Shot ${l.length + 1}`, imagePrompt: '', motionPrompt: 'slow cinematic push-in, natural movement', mode: 'clip', line: '', voice: kind === 'man' ? 'male' : 'female', engine: defaultEngine?.key ?? 'kling', seconds: defaultEngine?.seconds[0] ?? 5, imageUrl: null, imageState: 'idle', approved: false, clipId: null, talkGenId: null, lifeUrl: null, lifeFor: null, lifeState: 'idle', error: null }])
+    setShots((l) => [...l, { key: newKey(), title: `Shot ${l.length + 1}`, imagePrompt: '', motionPrompt: 'slow cinematic push-in, natural movement', mode: 'clip', line: '', voice: kind === 'man' ? 'male' : 'female', talkEngine: PRODUCAO_TALK_DEFAULT, engine: defaultEngine?.key ?? 'kling', seconds: defaultEngine?.seconds[0] ?? 5, imageUrl: null, imageState: 'idle', approved: false, clipId: null, talkGenId: null, lifeUrl: null, lifeFor: null, lifeState: 'idle', error: null }])
   }
   function move(key: string, d: -1 | 1) {
     setShots((l) => {
@@ -259,8 +264,8 @@ export default function ProducaoClient() {
 
   // ── 4. Dar vida ──────────────────────────────────────────────────────────
   const clipCost = useCallback((s: Shot) => photoEngines.find((e) => e.key === s.engine)?.credits[String(s.seconds)] ?? null, [photoEngines])
-  const shotLifeCost = (s: Shot) => (s.mode === 'talk' ? PRODUCAO_AVATAR_CREDITS : clipCost(s) ?? 0)
-  const lifeKey = (s: Shot) => `${s.mode}|${s.imageUrl}|${s.mode === 'talk' ? `${s.voice}|${language}|${s.line}` : `${s.engine}|${s.seconds}|${s.motionPrompt}`}`
+  const shotLifeCost = (s: Shot) => (s.mode === 'talk' ? producaoTalkEngine(s.talkEngine).credits : clipCost(s) ?? 0)
+  const lifeKey = (s: Shot) => `${s.mode}|${s.imageUrl}|${s.mode === 'talk' ? `${s.talkEngine}|${s.voice}|${language}|${s.line}` : `${s.engine}|${s.seconds}|${s.motionPrompt}`}`
 
   async function clipOne(s: Shot) {
     const { r, j } = await postJson('/api/clips', { engine: s.engine, seconds: s.seconds, aspect: '9:16', image_url: s.imageUrl, prompt: s.motionPrompt }, { 'idempotency-key': `producao-${s.key}-${(s.imageUrl ?? '').slice(-12).replace(/[^A-Za-z0-9._:-]/g, '')}-${s.engine}-${s.seconds}` })
@@ -289,14 +294,14 @@ export default function ProducaoClient() {
     const generationId = `producao_${s.key}_${Math.random().toString(36).slice(2, 10)}`
     const { r, j } = await postJson('/api/generate-avatar', {
       generationId, prompt: s.line, duration: Math.max(3, Math.round(estimateTalkSeconds(s.line))), language, avatarImageUrl: uj.url,
-      engine: PRODUCAO_AVATAR_ENGINE, scriptMode: 'verbatim', noBroll: true, voiceGender: s.voice,
+      engine: producaoTalkEngine(s.talkEngine).key, scriptMode: 'verbatim', noBroll: true, voiceGender: s.voice,
     })
     if (!r.ok || !j?.avatar_request_id) throw new Error(errorFor(r.status, j))
     creditsChanged()
     patch(s.key, { talkGenId: generationId })
     for (let i = 0; i < 120; i++) {
       await sleep(8000)
-      const st = await fetch(`/api/avatar-status?request_id=${encodeURIComponent(j.avatar_request_id)}&engine=${PRODUCAO_AVATAR_ENGINE}`, { cache: 'no-store' }).then((x) => x.json()).catch(() => null)
+      const st = await fetch(`/api/avatar-status?request_id=${encodeURIComponent(j.avatar_request_id)}&engine=${producaoTalkEngine(s.talkEngine).key}`, { cache: 'no-store' }).then((x) => x.json()).catch(() => null)
       if (st?.status === 'done' && st.video_url) return { url: st.video_url as string, generationId }
       if (st?.status === 'failed') throw new Error(typeof st.error === 'string' ? st.error : 'The talking shot failed.')
     }
@@ -340,16 +345,20 @@ export default function ProducaoClient() {
     setBusy('montage'); setError(null)
     setMontage({ status: 'submitting', url: null, progress: 0 })
     try {
+      // KINEO-NUVEM-A3-2026-10-02 — uma chave por clique: o mesmo clique repetido não cobra nem monta duas vezes.
+      const idempotencyKey = `pm-${newKey()}`
       const { r, j } = await postJson('/api/ads/producao/montage', {
+        idempotency_key: idempotencyKey,
         shots: ready.map((s) => (s.mode === 'talk' ? { kind: 'talk', generation_id: s.talkGenId } : { kind: 'clip', clip_id: s.clipId })),
         narration_id: narration.id ?? undefined, narration_seconds: narration.seconds ?? undefined, slogan, support, card_theme: cardTheme,
       })
       if (!r.ok || !j?.render_id) throw new Error(errorFor(r.status, j))
+      if (Number(j.credits) > 0) creditsChanged()
       for (let i = 0; i < 100; i++) {
         await sleep(4000)
         const st = await fetch(`/api/ads/producao/montage?id=${encodeURIComponent(j.render_id)}`, { cache: 'no-store' }).then((x) => x.json()).catch(() => null)
         if (st?.status === 'succeeded' && st.url) { setMontage({ status: 'done', url: st.url, progress: 1 }); return }
-        if (st?.status === 'failed' || st?.status === 'cancelled') throw new Error('The montage failed. Try again.')
+        if (st?.status === 'failed' || st?.status === 'cancelled') throw new Error(st?.refunded ? 'The montage failed. Its credits were refunded — try again.' : 'The montage failed. Try again.')
         setMontage({ status: 'rendering', url: null, progress: typeof st?.progress === 'number' ? st.progress : 0 })
       }
       throw new Error('The montage is taking longer than usual. Try again in a minute.')
@@ -359,12 +368,13 @@ export default function ProducaoClient() {
   // ── Palco ────────────────────────────────────────────────────────────────
   const stageItems: StageItem[] = [
     ...(montage?.url ? [{ title: 'Your production', badge: 'Kineo montage', video: montage.url }] : []),
-    ...shots.filter((s) => s.lifeUrl && s.lifeFor === lifeKey(s)).map((s) => ({ title: s.title, badge: s.mode === 'talk' ? 'VEED Fabric' : (photoEngines.find((e) => e.key === s.engine)?.label ?? s.engine), video: s.lifeUrl!, poster: s.imageUrl ?? undefined })),
+    ...shots.filter((s) => s.lifeUrl && s.lifeFor === lifeKey(s)).map((s) => ({ title: s.title, badge: s.mode === 'talk' ? producaoTalkEngine(s.talkEngine).model : (photoEngines.find((e) => e.key === s.engine)?.label ?? s.engine), video: s.lifeUrl!, poster: s.imageUrl ?? undefined })),
     ...shots.filter((s) => s.imageUrl).map((s) => ({ title: s.title, badge: 'Nano Banana Pro', after: s.imageUrl!, poster: s.imageUrl! })),
   ]
   const imagesToMake = shots.filter((s) => !s.imageUrl && s.imagePrompt.trim().length >= 8).length
   const hasCharacter = refPaths.length > 0
-  const montagePrice = PRODUCAO_MONTAGE_CREDITS === null ? 'Montage: price to be set — free while in preview' : `Montage · ${PRODUCAO_MONTAGE_CREDITS} cr`
+  // KINEO-NUVEM-A3-2026-10-02 — o preço da montagem só é cobrado com PRODUCAO_MONTAGE_CHARGE_LIVE; antes disso a tela diz "grátis".
+  const montagePrice = PRODUCAO_MONTAGE_CHARGE_LIVE ? `Montage · ${PRODUCAO_MONTAGE_CREDITS} cr · saved to your Library` : 'Montage: free while in preview · saved to your Library'
 
   const step = (n: number, title: string, hint?: string) => (
     <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', marginBottom: 12 }}>
@@ -553,7 +563,9 @@ export default function ProducaoClient() {
                             {(['female', 'male'] as ProducaoVoice[]).map((v) => (
                               <button key={v} type="button" onClick={() => patch(s.key, { voice: v })} style={chip(s.voice === v)}><UiLabel>{v === 'female' ? 'Female voice' : 'Male voice'}</UiLabel></button>
                             ))}
-                            <span style={{ fontSize: 12, color: C.muted }}><UiLabel>{`VEED Fabric · ${PRODUCAO_AVATAR_CREDITS} cr`}</UiLabel></span>
+                            {PRODUCAO_TALK_ENGINES.map((te) => (
+                              <button key={te.key} type="button" onClick={() => patch(s.key, { talkEngine: te.key })} style={chip(s.talkEngine === te.key)} title={te.model}><UiLabel>{`${te.label} · ${te.credits} cr`}</UiLabel></button>
+                            ))}
                           </div>
                         )}
                         <div style={{ fontSize: 12, color: s.lifeState === 'failed' ? C.danger : C.muted }}>
