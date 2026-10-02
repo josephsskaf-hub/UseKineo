@@ -68,7 +68,7 @@ const redirect = new URL(activation.searchParams.get('redirect'), 'https://www.u
 // app/(dashboard)/studio/create/page.tsx) e o destino acompanhou. A INTENCAO nunca
 // foi o literal: era garantir que o roteiro atravessa o cadastro e cai numa sala de
 // criacao AUTENTICADA — nunca numa pagina de marketing — com o texto intacto.
-equal(redirect.pathname, '/studio/create', 'product script carries into the established creator')
+equal(redirect.pathname, '/studio', 'product script carries into the established creator') // Reancorado 02/10 (KINEO-LINKS-STUDIO-NOVO): o destino virou o Studio novo (/studio), que lê prompt/script_mode/duration/intent_campaign; mesma prova (sala de criação, não marketing)
 equal(['/pricing','/signup','/login','/'].includes(redirect.pathname), false, 'o roteiro nunca cai numa pagina de marketing')
 equal(Boolean(redirect.searchParams.get('prompt')?.trim()), true, 'o texto sobrevive ao desvio pelo cadastro')
 equal(redirect.searchParams.get('script_mode'), 'verbatim', 'product words use the preservation mode')

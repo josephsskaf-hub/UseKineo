@@ -27,6 +27,9 @@ export const BUY_CREDITS_STUDIO_INTENT_CAMPAIGN = 'buy_credits_studio_v1' as con
 /** Campanha do "Back to your script" do /checkout/success. */
 export const CHECKOUT_SUCCESS_RESUME_INTENT_CAMPAIGN = 'checkout_success_resume_v1' as const
 /** Para onde a volta pós-pagamento cai quando há rascunho fresco (nada dispara sozinho). */
+// KINEO-LINKS-STUDIO-NOVO-2026-10-02 — FICA no /studio/create de propósito: `resume=wall_v1` (o rascunho guardado na
+// parede + a régua de saldo do pacote) só é lido pelo GenerateClient. O Studio novo não lê `resume`; migrar aqui
+// devolveria quem acabou de pagar a uma caixa vazia. Migra quando o Studio novo souber retomar o rascunho da parede.
 export const WALL_V1_RESUME_PATH = '/studio/create?resume=wall_v1' as const
 
 export type WallV1Reason = 'trial_spent' | 'credits' | 'trial_ended' | 'trial_stalled'

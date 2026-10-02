@@ -130,7 +130,7 @@ const redirect = new URL(activation.searchParams.get('redirect'), 'https://www.u
 // com o prompt e a atribuição intactos — está preservada. Verifico agora as
 // três coisas que importam, em vez de um literal: o caminho, que ele não é
 // página de marketing, e que o prompt e a campanha sobreviveram à viagem.
-equal(redirect.pathname, '/studio/create', 'first idea carries to the creation room')
+equal(redirect.pathname, '/studio', 'first idea carries to the creation room') // Reancorado 02/10 (KINEO-LINKS-STUDIO-NOVO): o destino virou o Studio novo (/studio), que lê prompt/duration/intent_campaign; mesma prova
 equal(
   ['/pricing', '/signup', '/login', '/'].includes(redirect.pathname), false,
   'the first idea never lands on a marketing page',

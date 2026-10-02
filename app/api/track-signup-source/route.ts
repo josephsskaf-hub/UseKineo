@@ -15,6 +15,8 @@ import { paisDoRequest } from '@/lib/freeFilmPolicy'
 // borda, e só o hash desce para lib/reverseTrial.ts. O IP cru não é gravado em
 // lugar nenhum e não entra no escopo do módulo que fala com o banco.
 import { trialFingerprintFromHeaders } from '@/lib/trialFingerprint'
+// KINEO-ATRIBUICAO-POUSO-2026-10-02 — a mesma régua de caminho que o navegador usa (lib/analytics.ts).
+import { LANDING_PATH_KEY, sanitizeLandingPath } from '@/lib/landingPath'
 
 // #383 — best-effort signup attribution.
 //
@@ -75,6 +77,8 @@ export async function POST(req: NextRequest) {
     // pessoa veio" e `signup_surface` responde "em que tela nossa ela clicou".
     // Misturar as duas foi o que apagou a origem externa de 42 perfis.
     let signup_surface: string | null = null
+    // KINEO-ATRIBUICAO-POUSO-2026-10-02 — a página por onde a pessoa ENTROU no site (só pathname).
+    let signup_landing_path: string | null = null
     const clean = (v: unknown, max: number): string | null =>
       typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null
     try {
@@ -93,6 +97,7 @@ export async function POST(req: NextRequest) {
       signup_surface =
         internalSurfaceLabel(clean(body?.signup_surface, 80)) ??
         internalSurfaceLabel(clean(body?.signup_utm_source, 80))
+      signup_landing_path = sanitizeLandingPath(body?.signup_landing_path)
     } catch {
       /* no/invalid JSON body — keep nulls */
     }
@@ -128,6 +133,16 @@ export async function POST(req: NextRequest) {
       signup_surface = internalSurfaceLabel(req.cookies.get('kineo_surface')?.value ?? null)
     }
 
+    // KINEO-ATRIBUICAO-POUSO-2026-10-02 — fallback do cookie do caminho (bundle antigo ou chamada sem corpo).
+    if (!signup_landing_path) {
+      try {
+        const raw = req.cookies.get(LANDING_PATH_KEY)?.value
+        signup_landing_path = raw ? sanitizeLandingPath(decodeURIComponent(raw)) : null
+      } catch {
+        /* cookie malformado — fica nulo */
+      }
+    }
+
     // Country comes from Vercel's edge geo header (already received in prod).
     const signup_country = req.headers.get('x-vercel-ip-country') || null
 
@@ -159,11 +174,44 @@ export async function POST(req: NextRequest) {
       await supabase.from('profiles').update(patch).eq('id', user.id)
     }
 
-    return NextResponse.json({ ok: true, written: Object.keys(patch) })
+    // KINEO-ATRIBUICAO-POUSO-2026-10-02 — o caminho de entrada num UPDATE PRÓPRIO, depois do resto, por dois motivos:
+    //   1. a coluna nasce numa migration (20261002120000_signup_landing_path.sql) que pode rodar depois do deploy. Se ela
+    //      entrasse no SELECT/UPDATE acima, a falta da coluna derrubaria a atribuição inteira (é o aviso da migration do
+    //      signup_surface). Aqui, erro de coluna inexistente só pula esta gravação;
+    //   2. primeiro toque vence no próprio banco: o filtro `is null` faz a escrita atômica — nunca sobrescreve.
+    const written = Object.keys(patch)
+    if (signup_landing_path) {
+      try {
+        const { data: landed, error: landingError } = await supabase
+          .from('profiles')
+          .update({ signup_landing_path })
+          .eq('id', user.id)
+          .is('signup_landing_path', null)
+          .select('id')
+        if (landingError) {
+          if (!isMissingColumnError(landingError, 'signup_landing_path')) {
+            console.error('[track-signup-source] landing path non-fatal:', landingError.message)
+          }
+        } else if (Array.isArray(landed) && landed.length > 0) {
+          written.push('signup_landing_path')
+        }
+      } catch (e) {
+        console.error('[track-signup-source] landing path non-fatal:', e instanceof Error ? e.message : String(e))
+      }
+    }
+
+    return NextResponse.json({ ok: true, written })
   } catch (err) {
     // Swallow everything — attribution failures must never surface to the user
     // or break signup. Log for observability only.
     console.error('[track-signup-source] non-fatal:', err instanceof Error ? err.message : String(err))
     return NextResponse.json({ ok: false, reason: 'error' })
   }
+}
+
+/** KINEO-ATRIBUICAO-POUSO-2026-10-02 — "a coluna ainda não existe" (Postgres 42703 ou o cache de schema do PostgREST). */
+function isMissingColumnError(error: { code?: string | null; message?: string | null }, column: string): boolean {
+  const code = String(error.code ?? '')
+  const message = String(error.message ?? '')
+  return code === '42703' || code === 'PGRST204' || (message.includes(column) && /does not exist|could not find/i.test(message))
 }

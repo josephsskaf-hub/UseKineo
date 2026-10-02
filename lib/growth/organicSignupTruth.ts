@@ -38,6 +38,11 @@ export function isOrganicSignupAttribution(input: {
   const medium = token(input.medium)
   const campaign = token(input.campaign)
   if (source === 'seo' && medium === 'organic') return true
+  // KINEO-ATRIBUICAO-POUSO-2026-10-02 — os links das páginas públicas (lib/growth/publicCreationIntent.ts) deixaram de
+  // cravar utm_source=seo: chegam com medium 'organic' e SEM source. Sem esta linha, campanhas sem prefixo legado
+  // (vs_comparison_cluster, text_to_video…) sumiriam do evento organic_signup_handoff_viewed. Source preenchida com
+  // outra coisa (chatgpt, alternatives…) continua NÃO sendo orgânica por esta regra.
+  if (!source && medium === 'organic' && campaign) return true
   if (source === ANSWER_ENGINE_HOOK_ATTRIBUTION.source &&
     medium === ANSWER_ENGINE_HOOK_ATTRIBUTION.medium &&
     campaign === ANSWER_ENGINE_HOOK_ATTRIBUTION.campaign) return true
@@ -64,7 +69,8 @@ export function organicSignupHandoffContext(params: URLSearchParams): OrganicSig
   return {
     version: ORGANIC_SIGNUP_TRUTH_VERSION,
     campaign,
-    source: source || 'legacy_campaign',
+    // KINEO-ATRIBUICAO-POUSO-2026-10-02 — organic sem source = página pública sem origem inventada.
+    source: source || (medium === 'organic' ? 'organic_page' : 'legacy_campaign'),
     medium: medium || 'legacy_campaign',
     createIntent,
   }

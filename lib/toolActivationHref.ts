@@ -33,7 +33,7 @@
 // O QUE ESTA FUNÇÃO FAZ.
 // Devolve a MESMA forma de href que a melhor página da casa usa hoje
 // (`buildFreeScriptSignupHref`): /signup com um `redirect` interno para
-// /studio/create já carregando o resultado da pessoa. O `redirect` é lido por
+// /studio (o Studio novo; até 02/10 era /studio/create) já carregando o resultado da pessoa. O `redirect` é lido por
 // `activationRedirectFromSearch` no /signup e passa por `normalizeInternalRedirect`,
 // então só caminhos same-origin sobrevivem — a validação é de lá, não daqui.
 //
@@ -47,6 +47,8 @@
 // genéricas e o gerador de roteiro têm limites e metadados de handoff distintos.
 
 const PROMPT_MAX = 600
+/** KINEO-LINKS-STUDIO-NOVO-2026-10-02 — a porta do trabalho da pessoa é o Studio novo, não a tela antiga /studio/create. */
+export const TOOL_ACTIVATION_STUDIO_PATH = '/studio'
 const INTENT_CAMPAIGN_PATTERN = /^[A-Za-z0-9._~-]{1,100}$/
 
 export type ToolActivationOptions = {
@@ -65,7 +67,7 @@ export type ToolActivationOptions = {
 }
 
 /**
- * /signup?…&redirect=/generate?prompt=<trabalho da pessoa>&autoanalyze=1
+ * /signup?…&redirect=/studio?prompt=<trabalho da pessoa>&autoanalyze=1
  *
  * Sem prompt, degrada para a porta simples (signup → /generate), que continua
  * sendo melhor que mandar para outra página de SEO.
@@ -95,12 +97,17 @@ export function toolActivationHref({
     const generate = new URLSearchParams({ prompt: clean })
     if (autoanalyze) generate.set('autoanalyze', '1')
     if (scriptMode) generate.set('script_mode', scriptMode)
-    if (duration) generate.set('duration', String(duration))
+    // KINEO-LINKS-STUDIO-NOVO-2026-10-02 — o Studio novo só conhece 35/60/90; o 45 legado a tela antiga já traduzia
+    // para 35 (readCreationHandoff, 02/09). A tradução passa a nascer aqui para o destino novo abrir no mesmo filme.
+    if (duration) generate.set('duration', String(duration === 45 ? 35 : duration))
     const cleanIntentCampaign = (intentCampaign ?? '').trim()
     if (INTENT_CAMPAIGN_PATTERN.test(cleanIntentCampaign)) {
       generate.set('intent_campaign', cleanIntentCampaign)
     }
-    signup.set('redirect', `/studio/create?${generate.toString()}`)
+    // KINEO-LINKS-STUDIO-NOVO-2026-10-02 — destino = o Studio novo (/studio), mesmo precedente do link /go (36fc267).
+    // O Studio lê prompt/script_mode/duration/intent_campaign da URL; `autoanalyze` fica na URL por compatibilidade
+    // (o Studio o recoloca sozinho ao apertar Generate, quando despacha para /studio/create).
+    signup.set('redirect', `${TOOL_ACTIVATION_STUDIO_PATH}?${generate.toString()}`)
   }
 
   return `/signup?${signup.toString()}`

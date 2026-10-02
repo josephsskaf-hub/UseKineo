@@ -67,6 +67,10 @@ export function buildAuthenticatedCreationRedirect({
   if (language) destination.set('language', language)
   if (scriptMode) destination.set('script_mode', scriptMode)
   if (duration) destination.set('duration', String(duration))
+  // KINEO-LINKS-STUDIO-NOVO-2026-10-02 — FICA no /studio/create de propósito: `create_intent` (fast/trial_best = o
+  // contrato de criação automática) e `welcome=1` (activation_entry do generate_arrived_server) só são lidos pela tela
+  // antiga; o Studio novo ignora os dois e a prova do /signup (buildAuthenticatedCreationSignupPreview) exige este
+  // endereço exato. Migrar trocaria o render automático por um clique — decisão de produto, não de link.
   return `/studio/create?${destination.toString()}`
 }
 

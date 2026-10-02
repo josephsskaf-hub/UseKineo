@@ -82,9 +82,18 @@ export function buildSignupCreationPreview(params: QueryReader): SignupCreationP
       }
 }
 
+// KINEO-LINKS-STUDIO-NOVO-2026-10-02 — os construtores do remix (lib/growth/exampleRemix.ts) e do roteiro grátis
+// (lib/growth/freeScriptSignupHandoff.ts) passaram a mandar para o Studio novo (/studio). A prova "Your script is
+// waiting" aceita os DOIS endereços exatos: /studio (links novos) e /studio/create (links já em circulação). Nenhum
+// outro caminho vira prova; o resto das exigências (marcador, sem create_intent executável) segue igual.
+const SAVED_WORK_STUDIO_PATHS: ReadonlySet<string> = new Set(['/studio', '/studio/create'])
+function isSavedWorkStudioPath(pathname: string): boolean {
+  return SAVED_WORK_STUDIO_PATHS.has(pathname)
+}
+
 /**
  * Recover only the public example-remix proof that the auth gate nested inside
- * its allow-listed /studio/create redirect. Other product, checkout and
+ * its allow-listed /studio (or legacy /studio/create) redirect. Other product, checkout and
  * arbitrary redirects must stay on their existing generic signup contract.
  */
 export function buildExampleRemixSignupPreview(
@@ -96,7 +105,7 @@ export function buildExampleRemixSignupPreview(
   const destination = new URL(normalized, 'https://kineo.local')
   const params = destination.searchParams
   if (
-    destination.pathname !== '/studio/create' ||
+    !isSavedWorkStudioPath(destination.pathname) ||
     params.get('create_intent') !== 'example_remix'
   ) {
     return null
@@ -119,7 +128,7 @@ export function buildFreeScriptSignupPreview(
   const destination = new URL(normalized, 'https://kineo.local')
   const params = destination.searchParams
   if (
-    destination.pathname !== '/studio/create' ||
+    !isSavedWorkStudioPath(destination.pathname) ||
     params.get('handoff_kind') !== 'free_script' ||
     params.get('autoanalyze') !== '1' ||
     params.get('create_intent') !== null

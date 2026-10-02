@@ -59,7 +59,7 @@ export default function ExampleRemixForm({
       version: EXAMPLE_REMIX_CAMPAIGN,
       example_slug: slug,
       topic_length: safeTopic.length,
-      destination: '/studio/create',
+      destination: '/studio', // KINEO-LINKS-STUDIO-NOVO-2026-10-02: o remix abre o Studio novo
     })
     router.push(href)
   }
@@ -81,12 +81,12 @@ export default function ExampleRemixForm({
           void trackEvent('example_remix_exact_started', {
             version: EXAMPLE_REMIX_EXACT_VERSION,
             example_slug: slug,
-            destination: '/studio/create',
+            destination: '/studio', // KINEO-LINKS-STUDIO-NOVO-2026-10-02: o remix abre o Studio novo
           })
           void trackEvent('organic_cta_clicked', {
             source: `example_${slug}`,
             placement: 'example_remix_exact',
-            destination: '/studio/create',
+            destination: '/studio', // KINEO-LINKS-STUDIO-NOVO-2026-10-02: o remix abre o Studio novo
             remix_mode: 'exact_prompt',
           })
         }}

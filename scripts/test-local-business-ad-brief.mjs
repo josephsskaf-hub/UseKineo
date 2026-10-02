@@ -87,7 +87,7 @@ try {
   equal(signup.pathname, '/signup', 'draft continues through signup')
   equal(signup.searchParams.get('utm_campaign'), 'growth_local_business_brief_20260828', 'B2B cohort has its own campaign')
   const destination = new URL(signup.searchParams.get('redirect'), 'https://www.usekineo.com')
-  equal(destination.pathname, '/generate', 'approved draft reaches the editor, not checkout or render')
+  equal(destination.pathname, '/studio', 'approved draft reaches the editor, not checkout or render') // Reancorado 02/10 (KINEO-LINKS-STUDIO-NOVO): esperava '/generate' (já velho); o destino agora é o Studio novo
   equal(destination.searchParams.get('prompt'), maxResult.script, 'exact draft survives the signup redirect')
   equal(destination.searchParams.get('script_mode'), 'verbatim', 'editor receives the draft in verbatim mode')
   equal(destination.searchParams.get('duration'), '35', 'editor opens the matching 35-second preset')

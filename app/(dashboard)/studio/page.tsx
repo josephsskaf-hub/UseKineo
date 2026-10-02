@@ -8,6 +8,7 @@
 import { getHouseEngineExamples } from '@/lib/engineWall'
 import { ENGINE_PAGE_LEAD, FOUNDER_SHOWCASE } from '@/lib/publicExamples'
 import StudioClient, { type StudioBestFilm, type StudioHeroVideo } from './StudioClient'
+import SignupConversionTracker from '@/components/SignupConversionTracker' // KINEO-LINKS-STUDIO-NOVO-2026-10-02
 
 export const metadata = { title: 'Studio — Kineo' }
 
@@ -54,5 +55,14 @@ export default function StudioPage() {
     const engine = f ? STUDIO_KEY[f.engine] : undefined
     return f && engine ? [{ id: f.id, title: f.title, engine, src: f.previewPath, poster: f.posterPath }] : []
   })
-  return <StudioClient engineHeroes={engineHeroes} bestFilms={bestFilms} />
+  // KINEO-LINKS-STUDIO-NOVO-2026-10-02 — conta NOVA por Google/Apple pousa aqui com ?signup=1 (o /auth/callback acrescenta)
+  // desde que o /go (36fc267) e as ferramentas de SEO passaram a mandar para o Studio novo. Quem disparava a conversão de
+  // cadastro do Ads e o trackSignupSource (origem do perfil) era só a tela antiga e a home: sem isto, esses cadastros
+  // nasciam sem conversão e sem origem. keepUrl: a query do Studio não é tocada (ver o componente).
+  return (
+    <>
+      <SignupConversionTracker keepUrl />
+      <StudioClient engineHeroes={engineHeroes} bestFilms={bestFilms} />
+    </>
+  )
 }
