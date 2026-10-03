@@ -1,6 +1,12 @@
 
 import { KineoBrandIcon } from '@/components/KineoBolt'
 import { FREE_FILM_COUNTRY_CLAUSE } from '@/lib/freeFilmPolicy' // KINEO-E4-CONSERTO-2026-09-29: o grant de 10 cr só vale na lista (saída B)
+// KINEO-PARTNERS-PACOTE-2026-10-03 — a resposta "Can I test Kineo first?" dizia "10 credits and every engine unlocked":
+// falso. Os créditos de cadastro (TRIAL_CREDITS_SHOWN) pagam TRIAL_SEEDANCE15_FILMS filme(s) Seedance 1.5 de
+// TRIAL_FREE_FILM_SECONDS s com marca d'água; Kling/Veo/Studio pedem plano. Tudo derivado das fontes, e o pacote de
+// demonstração do parceiro (lib/partnerPack.ts) entra com a verdade do interruptor PARTNER_PACK_LIVE.
+import { TRIAL_CREDITS_SHOWN, TRIAL_FREE_FILM_SECONDS, TRIAL_SEEDANCE15_FILMS } from '@/lib/freeTierOffer'
+import { PARTNER_PACK_DAYS, PARTNER_PACK_LIVE, PARTNER_PACK_STAGE1_CREDITS, PARTNER_PACK_STAGE2_CREDITS } from '@/lib/partnerPack'
 // #486 — Public affiliate-recruiting landing. The page every outreach links to.
 // Explains the verified 30% recurring model, first-touch window and how to
 // apply through the built-in affiliate dashboard. Static, in sitemap for SEO.
@@ -10,8 +16,9 @@ import { FREE_FILM_COUNTRY_CLAUSE } from '@/lib/freeFilmPolicy' // KINEO-E4-CONS
 // true when app/api/affiliate/apply/route.ts:110 started inserting new
 // affiliates with `status: 'active'` instead of 'pending'. Every claim below is
 // now traceable to code:
-//   30% commission      → app/api/affiliate/apply/route.ts:111 (commission_rate: 0.4)
-//                         read back by app/api/stripe/webhook/route.ts:72-77
+//   30% commission      → app/api/affiliate/apply/route.ts grava commission_rate: AFFILIATE_COMMISSION_RATE (0.3,
+//                         lib/affiliateCommission.ts); o webhook (recordAffiliateCommission) lê a taxa da linha.
+//                         Corrigido 03/10 (KINEO-PARTNERS-PACOTE-2026-10-03): este comentário ainda dizia 0.4.
 //   90-day first touch  → app/a/[code]/route.ts:13 (COOKIE_MAX_AGE) + :58-68
 //                         (cookie is only set when absent = first touch wins)
 //   link live instantly → app/api/affiliate/apply/route.ts:110 ('active') is
@@ -47,7 +54,7 @@ import {
 
 // KINEO-PRICING-V6-2026-08-19 — a ilustração de ganhos é CALCULADA, não
 // digitada. 30% é a taxa que app/api/affiliate/apply/route.ts grava
-// (commission_rate: 0.4); o piso e o teto são o plano mais barato e o mais caro
+// (commission_rate: AFFILIATE_COMMISSION_RATE = 0.3 — corrigido 03/10, dizia 0.4); o piso e o teto são o plano mais barato e o mais caro
 // da escada de assinatura (Autopilot fica de fora de propósito: $299/mês num
 // exemplo de afiliado infla a promessa com um produto que quase ninguém compra).
 const COMMISSION_RATE = AFFILIATE_COMMISSION_RATE
@@ -96,7 +103,7 @@ export default function PartnersPage() {
     { q: 'Do I have to be approved first?', a: 'No. There is no review queue and no waiting. The moment you submit the application your affiliate link is active — it starts logging clicks and setting the 90-day attribution cookie on the very first visitor you send.' },
     { q: 'How much do I earn?', a: 'Affiliates earn 30% of each eligible payment from customers they refer, including recurring payments while the customer remains subscribed and the affiliate account remains active. First-touch tracking lasts 90 days.' },
     { q: 'How does Kineo compare with other AI video affiliate programs?', a: `Rates are not directly comparable unless duration is included. As verified ${AFFILIATE_COMPARISON_VERIFIED_HUMAN}, Kineo publishes 30% recurring while the referred customer stays subscribed; OpusClip publishes 25% recurring through the first year; InVideo publishes 50% on monthly or 25% on annual purchases for the first billing cycle only; and VEED publishes a 20% recurring base with performance bonuses up to 50%. The comparison on this page links every official source.` },
-    { q: 'Can I test Kineo first?', a: `Yes. Every new account${FREE_FILM_COUNTRY_CLAUSE} starts free with 10 credits and every engine unlocked, no card. If you need extra demo access for a specific audience or tutorial, email us and we will sort it out with you.` },
+    { q: 'Can I test Kineo first?', a: `Yes. Every new account${FREE_FILM_COUNTRY_CLAUSE} starts free with ${TRIAL_CREDITS_SHOWN} credits, no card — enough for ${TRIAL_SEEDANCE15_FILMS === 1 ? 'one' : TRIAL_SEEDANCE15_FILMS} watermarked ${TRIAL_FREE_FILM_SECONDS}-second Seedance 1.5 film${TRIAL_SEEDANCE15_FILMS === 1 ? '' : 's'}. Kling, Veo and the other Studio engines need a paid plan. Partners can also get a demo pack to create with: ${PARTNER_PACK_STAGE1_CREDITS} credits with paid-plan engine access for ${PARTNER_PACK_DAYS} days, plus ${PARTNER_PACK_STAGE2_CREDITS} more after you share one public post with your link or coupon and we review it. ${PARTNER_PACK_LIVE ? 'The first part is added when you join.' : 'Email us after you join to get it.'}` },
     { q: 'What do I promote?', a: 'Kineo turns one topic or script into a finished 9:16 Short with script structure, AI voice, matched visuals and captions. Paid plans unlock clean exports and recurring-show tools.' },
     { q: 'How is attribution tracked?', a: 'Your Kineo affiliate link records first-touch clicks, signups, payments and renewals in your affiliate dashboard. The first affiliate link a visitor touches wins, and that attribution holds for 90 days.' },
     // KINEO-CUPOM-AFILIADO-2026-08-21 — esta pagina prometia SO o link, e link
