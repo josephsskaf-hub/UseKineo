@@ -70,3 +70,56 @@ select metadata->>'reason' motivo, count(*) from events where name = 'scene_prev
 select count(*) previas, sum((metadata->>'image_calls')::int) imagens, sum((metadata->>'image_megapixels')::numeric) megapixels,
   sum((metadata->>'script_calls')::int) roteiros
 from events where name = 'scene_preview_shown';
+
+-- ═══════════════════════════════ TAREFA 2 — ITEM A (o grupo de dentro) ═══════════════════════════════════════════════
+-- As medições de base (30 d, países da lista, 206 pessoas) foram feitas em 03/10 antes da ordem de não usar o conector;
+-- os números estão no handoff. As seguintes AGUARDAM SQL (depois do deploy).
+
+-- ═══ SQL #7 — A ideia chega ao Studio novo depois do login? ═══════════════════════════════════════════════════════
+-- Mede: de quem saiu do callback com idea_to_studio=true, quantos chegaram ao /studio com a ideia em até 1 h.
+-- Decisão: manter IDEIA_POUSA_NO_STUDIO=true (lib/growth/ideiaPousaNoStudio.ts).
+-- Esperado: ≥ 95%.
+select count(distinct a.user_id) sairam_com_ideia, count(distinct s.user_id) chegaram_com_ideia
+from events a
+left join events s on s.user_id = a.user_id and s.name = 'studio_idea_arrived_v1'
+  and s.metadata->>'has_prompt' = 'true' and s.created_at < a.created_at + interval '1 hour'
+where a.name = 'auth_callback_completed' and a.metadata->>'idea_to_studio' = 'true';
+
+-- ═══ SQL #8 — Geração em 1 h e pagantes entre quem digitou ideia: 14 d antes × 14 d depois do deploy ═════════════════
+-- Mede: o efeito de trocar o auto-start pelo Studio preenchido (a 1 clique). Troque :deploy pela data do deploy.
+-- Decisão: manter ou desligar IDEIA_POUSA_NO_STUDIO.
+-- Esperado: filme em 1 h cai de 74% para 55–65%; a FRAÇÃO de pagantes não cai (auto-start pagou 0,6% × à mão 2,1% em 60 d).
+with coh as (
+  select p.id, p.created_at, p.has_paid, p.created_at >= timestamptz :'deploy' depois
+  from profiles p
+  where p.created_at between timestamptz :'deploy' - interval '14 days' and timestamptz :'deploy' + interval '14 days'
+    and exists (select 1 from events e where e.user_id = p.id and e.name in ('auth_callback_completed', 'email_signup_completed') and e.metadata->>'has_prompt' = 'true')
+)
+select depois, count(*) pessoas,
+  count(*) filter (where exists (select 1 from videos v where v.user_id = coh.id and v.created_at < coh.created_at + interval '1 hour')) filme_1h,
+  count(*) filter (where has_paid) pagantes
+from coh group by 1 order by 1;
+
+-- ═══ SQL #9 — Contas sem crédito que recebiam a promessa "seu primeiro filme é grátis" ═══════════════════════════════
+-- Mede: region_paid_only/blocked com activation_nudge_sent_at desde 29/09 (antes do conserto em 1934e4c1).
+-- Decisão: confirmar que pular essas contas no lembrete vale a pena.
+-- Esperado: > 0 (havia 39 contas region_paid_only em 30 d).
+select count(*) from profiles
+where trial_status in ('region_paid_only', 'blocked') and activation_nudge_sent_at > greatest('2026-09-29'::timestamptz, now() - interval '30 days');
+
+-- ═══ SQL #10 — Cadastro Google que pousava no /studio ficava sem origem/conversão? ════════════════════════════════
+-- Mede: novos cadastros do callback com destino /studio e signup_country nulo (o trackSignupSource não rodava lá).
+-- Decisão: confirmar o bug antigo consertado de carona (StudioIdeaArrival no /studio).
+-- Esperado: fração de signup_country nulo acima da média dos outros destinos.
+select e.metadata->>'destination_path' destino, count(*) filter (where p.signup_country is null) sem_pais, count(*) total
+from events e join profiles p on p.id = e.user_id
+where e.name = 'auth_callback_completed' and e.metadata->>'is_new_user' = 'true'
+group by 1 order by 3 desc limit 10;
+
+-- ═══ SQL #11 — O lembrete com a ideia faz efeito? ═════════════════════════════════════════════════════════════════
+-- Mede: lembretes enviados com/sem ideia e filme em até 48 h depois do envio, por pessoa.
+-- Decisão: ligar LEMBRETE_COM_IDEIA='live' (lib/lifecycle/lembreteComIdeia.ts) — hoje 'dry_run'.
+-- Esperado: com ideia, acima dos 10,6% de hoje (5 de 47 fizeram filme em 48 h depois do lembrete).
+select n.metadata->>'with_idea' com_ideia, count(distinct n.user_id) pessoas,
+  count(distinct n.user_id) filter (where exists (select 1 from videos v where v.user_id = n.user_id and v.created_at between n.created_at and n.created_at + interval '48 hours')) filme_48h
+from events n where n.name = 'activation_nudge_sent' group by 1;
