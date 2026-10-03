@@ -9,13 +9,14 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { UiLabel } from '@/components/InterfaceLanguage'
 
-export type ProductStageKey = 'images' | 'spaces' | 'ads'
+export type ProductStageKey = 'images' | 'spaces' | 'ads' | 'clips'
 
 /** Par de cores de cada produto (mesmo papel do STAGE_TINT dos motores no Studio). */
 export const PRODUCT_TINT: Record<ProductStageKey, [string, string]> = {
   images: ['#FF4D8D', '#FFB020'],
   spaces: ['#C2410C', '#E9B872'],
   ads: ['#2563EB', '#F43F5E'],
+  clips: ['#06B6D4', '#8B5CF6'], // KINEO-CLIPS-CORES-2026-10-01 — a única aba que tinha ficado sem as cores (fundador 01/10)
 }
 
 /** KINEO-ABAS-PALCO-2026-10-01 — anúncios da casa (o card da home): cada quadro = 3 variações do mesmo produto, feitas na

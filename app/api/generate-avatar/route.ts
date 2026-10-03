@@ -60,6 +60,7 @@ import {
   verifyAvatarClaim,
 } from '@/lib/avatar/claim'
 import { synthesizeWithVoice } from '@/lib/avatar/voice'
+import { PRODUCAO_VOICE_IDS, producaoVoice } from '@/lib/ads/producao' // KINEO-PRODUCAO-VOZ-2026-10-01
 import { getPixabayVideoForQueries } from '@/lib/pixabay'
 import { pickLibraryClips } from '@/lib/stockLibrary'
 // Avatar B-roll fix (13/06) — reuse the Phase-1 B-roll Intelligence engine so
@@ -198,6 +199,9 @@ export async function POST(req: NextRequest) {
       // Trusted performance preset. The route maps this enum to server-owned
       // prompts; arbitrary client prompt text is never forwarded to fal.
       performanceStyle?: 'natural' | 'energetic'
+      // KINEO-PRODUCAO-VOZ-2026-10-01 — voz escolhida pela pessoa ('female' → nova, 'male' → onyx, OpenAI tts-1-hd). Sem o
+      // campo, nada muda: verbatim sem marcadores segue onyx e o motor de persona segue com o [Pexels:] + vertical.
+      voiceGender?: string
     }
     try {
       body = await req.json()
@@ -271,6 +275,7 @@ export async function POST(req: NextRequest) {
     const vertical = typeof body.vertical === 'string' && body.vertical.trim()
       ? body.vertical.trim().toLowerCase()
       : undefined
+    const chosenVoice = producaoVoice(body.voiceGender) // KINEO-PRODUCAO-VOZ-2026-10-01 — null = o caminho de sempre
 
     // ── 1. Narration text ────────────────────────────────────────────────
     // A browser-created id is persisted before this request starts. The events
@@ -555,6 +560,8 @@ export async function POST(req: NextRequest) {
         forceVerbatim,
         voiceId: typeof body.voiceId === 'string' ? body.voiceId.trim() : '',
         vertical: vertical ?? '',
+        // KINEO-PRODUCAO-VOZ-2026-10-01 — só entra quando escolhida: sem voz, a impressão digital é a de sempre (mesmo hash).
+        ...(chosenVoice ? { voiceGender: chosenVoice } : {}),
       })
       const pendingMetadata = {
         generation_id: generationId,
@@ -790,6 +797,16 @@ export async function POST(req: NextRequest) {
           console.warn('[generate-avatar] cloned voice failed, falling back to default TTS:', cloneErr instanceof Error ? cloneErr.message : String(cloneErr))
           audioBuffer = await generateTTS(ttsSource, speed ?? 1.0, vertical, 'cinematic', language)
         }
+      } else if (chosenVoice) {
+        // KINEO-PRODUCAO-VOZ-2026-10-01 — a voz que a pessoa escolheu (Produção do Ads), sem o truque do [Pexels:] +
+        // vertical. OpenAI tts-1-hd direto, como o /api/ads/voice: fala EXATAMENTE o texto limpo, ritmo 1,0, sem pausas
+        // dramáticas — o mp3 acaba quando as palavras acabam (a mesma razão do passe plano do verbatim).
+        const { openai } = await import('@/lib/openai')
+        const speech = await openai.audio.speech.create(
+          { model: 'tts-1-hd', voice: PRODUCAO_VOICE_IDS[chosenVoice], input: stripScriptMarkers(narration).slice(0, 4000), speed: 1 },
+          { timeout: 55_000, maxRetries: 0 },
+        )
+        audioBuffer = Buffer.from(await speech.arrayBuffer())
       } else {
         // Verbatim tail fix (13/06) — the 'cinematic' Narration Engine adds
         // dramatic pauses/padding, which inflates the mp3 past the actual

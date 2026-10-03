@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
+import { ProductStageStyles, useProductStage } from '@/components/ProductStage' // KINEO-CLIPS-CORES-2026-10-01
 import CreditsTopupModal from '@/components/CreditsTopupModal'
 import ControlIcon from '@/components/ControlIcon'
 import { outOfCreditsDestination } from '@/lib/credits/outOfCreditsPlans'
@@ -71,6 +72,7 @@ async function compressPhoto(file: File): Promise<File> {
 export default function ClipsClient() {
   const language = useInterfaceLanguage()
   const t = useCallback((key: ClipCopyKey, vars?: Record<string, string | number>) => clipCopy(language, key, vars), [language])
+  useProductStage('clips') // KINEO-CLIPS-CORES-2026-10-01 — fundo e barra lateral na cor da aba, como Imagens/Espaços/Ads
 
   const [engines, setEngines] = useState<Engine[]>([])
   const [clips, setClips] = useState<Clip[]>([])
@@ -228,13 +230,14 @@ export default function ClipsClient() {
   const minCost = (e: Engine) => Math.min(...Object.values(e.credits))
 
   return (
-    <div className="stu clips-workspace">
+    <div className="stu clips-workspace kps-page">
+      <ProductStageStyles />
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
       <style>{`
         .stu.clips-workspace{width:100%;min-width:0;max-width:none;background:var(--bg);color:var(--text);container:clips-studio / inline-size}
         .stu.clips-workspace .sub{color:var(--muted2);margin-bottom:24px}
         .stu.clips-workspace .grid.creation-grid{width:100%;max-width:none;grid-template-columns:minmax(0,1fr) minmax(260px,320px);gap:24px}
-        .stu.clips-workspace .card{background:var(--card);border-color:var(--border);border-radius:var(--r-md,18px)}
+        .stu.clips-workspace .card{background:color-mix(in srgb,var(--card) 78%,transparent);border-color:color-mix(in srgb,var(--stage-a) 22%,var(--border));border-radius:var(--r-md,18px);-webkit-backdrop-filter:blur(18px) saturate(1.25);backdrop-filter:blur(18px) saturate(1.25)}
         .stu.clips-workspace .creation-input{padding:22px}
         .stu.clips-workspace textarea{min-height:clamp(170px,22vh,260px);background:var(--card2);border-color:var(--border);color:var(--text);font-size:16px}
         .stu.clips-workspace .pill{background:var(--card2);border-color:var(--border);color:var(--text2);min-height:40px}

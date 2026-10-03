@@ -227,6 +227,10 @@ const SERVER_ONLY_EVENTS = new Set([
   // sobretaxa; e o desfecho dos stills: cenas, ancoradas, fallback). Contagens, sem caminho nem URL. O navegador não cunha.
   'estrela_requested',
   'estrela_scene_anchored',
+  // KINEO-PRODUCAO-ADS-2026-10-01 — escritos SÓ por /api/ads/producao/plan (o teto diário conta estas linhas) e
+  // /api/ads/producao/montage (a linha com o render_id é a PROVA de dono que o GET da montagem confere). O navegador não cunha.
+  'producao_plan_created',
+  'producao_montage_submitted',
 ])
 
 export async function POST(req: NextRequest) {
