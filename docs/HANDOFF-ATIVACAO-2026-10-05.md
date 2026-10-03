@@ -342,3 +342,19 @@ ecab2f9f Partners D3 · (+ este commit do handoff). Merges de integração: 5a9b
 7. `PARTNER_PACK_LIVE`: etapa 1 automática na inscrição (AGUARDA SQL #14).
 8. Agendar o cron `courtesy-expire` e aplicar as migrations `20261003120000` → `20261003121000`.
 9. Manter os tetos da prévia (1/dia, 3 no total, 200/dia global) e `PREVIA_CENAS_PUBLIC=true` (AGUARDA SQL #5/#6).
+
+---
+
+## Medições rodadas em 03/10 (o fundador liberou as ações; só leitura)
+
+PR em rascunho: https://github.com/josephsskaf-hub/UseKineo/pull/52.
+
+| SQL | Resultado | O que conclui |
+|---|---|---|
+| #9 | **39** contas `region_paid_only`/`blocked` receberam o lembrete "seu primeiro filme é grátis" desde 29/09, todas com 0 crédito. | Confirma que valeu cortar a promessa falsa (commit 1934e4c1). |
+| #12 | Contas novas de 7 dias: **51** `active` com 10 cr, 48 `downgraded` com 10, 2 `converted` com 10, **41** `region_paid_only` com 0 e 17 `blocked` com 0. | A copy da /partners ("os créditos de cadastro pagam 1 Seedance de 15 s") é verdadeira para quem é da lista. O grupo fora da lista é ~40% dos cadastros, o público da prévia. |
+| #13 | **1** conta `studio_trial` sem assinatura (remendo manual). | Quando a migration de cortesia for aplicada, migrar essa conta para `courtesy_grants`. |
+| #14 | **22** afiliados ativos com conta grátis. | Ligar `PARTNER_PACK_LIVE` custaria até 22 × 50 = 1.100 cr se todos fizerem as 2 etapas. A etapa 1 sozinha custa até 550 cr. |
+| #15 | 65 cliques de afiliado em 30 d (antes de filtrar robôs); **1** perfil com `affiliate_id` em 30 d. | Clique → cadastro continua sendo o gargalo. |
+
+As consultas #5–#8, #10 e #11 só fazem sentido depois do deploy.
