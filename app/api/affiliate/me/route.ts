@@ -9,6 +9,15 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { BRL_PER_USD_HOUSE } from '@/lib/settlementCurrency'
+// KINEO-PARTNERS-PACOTE-2026-10-03 — estado do pacote de demonstração no painel do parceiro.
+import {
+  partnerPackStage,
+  PARTNER_PACK_DAYS,
+  PARTNER_PACK_LIVE,
+  PARTNER_PACK_STAGE1_CREDITS,
+  PARTNER_PACK_STAGE2_CREDITS,
+  type PartnerPackRow,
+} from '@/lib/partnerPack'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -267,7 +276,39 @@ export async function GET() {
       status: c.status,
     }))
 
+    // KINEO-PARTNERS-PACOTE-2026-10-03 — pacote de demonstração (etapas, post, prazo). Tabela ausente = indisponível.
+    let partnerPack: Record<string, unknown> = { available: false }
+    try {
+      const { data: pack, error: packErr } = await admin
+        .from('partner_packs')
+        .select('id, affiliate_id, user_id, courtesy_grant_id, stage1_at, post_url, post_status, post_submitted_at, post_reviewed_at, stage2_at')
+        .eq('affiliate_id', affiliateId)
+        .maybeSingle()
+      if (!packErr) {
+        const row = (pack as PartnerPackRow | null) ?? null
+        let endsAt: string | null = null
+        if (row?.courtesy_grant_id) {
+          const { data: grant } = await admin.from('courtesy_grants').select('ends_at, status').eq('id', row.courtesy_grant_id).maybeSingle()
+          endsAt = grant?.status === 'active' ? ((grant.ends_at as string | null) ?? null) : null
+        }
+        partnerPack = {
+          available: true,
+          live: PARTNER_PACK_LIVE,
+          stage: partnerPackStage(row),
+          post_status: row?.post_status ?? 'none',
+          post_url: row?.post_url ?? null,
+          courtesy_ends_at: endsAt,
+          stage1_credits: PARTNER_PACK_STAGE1_CREDITS,
+          stage2_credits: PARTNER_PACK_STAGE2_CREDITS,
+          days: PARTNER_PACK_DAYS,
+        }
+      }
+    } catch {
+      partnerPack = { available: false }
+    }
+
     return NextResponse.json({
+      partner_pack: partnerPack,
       isAffiliate: true,
       affiliate: {
         code: affiliate.code,

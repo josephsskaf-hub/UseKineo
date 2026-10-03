@@ -1,7 +1,7 @@
 // Affiliate self-serve — apply to become an affiliate.
 // POST, auth required. Idempotent: if the signed-in user already owns an
 // affiliate row we return it as-is. Otherwise we create one with a unique
-// 8-char code, status 'active' and a 40% commission rate. RLS on the
+// 8-char code, status 'active' and AFFILIATE_COMMISSION_RATE (30%). RLS on the
 // affiliate_* tables is deny-all, so all writes use the service-role client.
 //
 // PUSH #100 — POR QUE 'active' NA CRIAÇÃO (era 'pending'):
@@ -33,6 +33,9 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { writeServerEvent } from '@/lib/serverEvents'
+// KINEO-PARTNERS-PACOTE-2026-10-03 — pacote de demonstração na entrada, atrás de PARTNER_PACK_LIVE (false).
+import { shouldGrantPackOnApply } from '@/lib/partnerPack'
+import { grantPartnerPackStage1 } from '@/lib/partnerPackStore'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -111,10 +114,20 @@ export async function POST(req: Request) {
           status: 'active',
           commission_rate: AFFILIATE_COMMISSION_RATE,
         })
-        .select('status, code')
+        .select('id, status, code')
         .single()
 
       if (!error && created) {
+        // KINEO-PARTNERS-PACOTE-2026-10-03 — com o interruptor ligado, a entrada já entrega a etapa 1 do pacote
+        // (cortesia creator_trial, 25 créditos, 30 dias). Desligado (hoje), nada muda aqui. Falha nunca derruba a
+        // inscrição: o admin pode dar a etapa 1 pela lista de parceiros.
+        if (shouldGrantPackOnApply()) {
+          try {
+            await grantPartnerPackStage1(admin, { affiliateId: created.id as string, grantedBy: 'partner_pack_auto' })
+          } catch (packErr) {
+            console.warn('[affiliate/apply] demo pack not granted:', packErr instanceof Error ? packErr.message : 'unknown')
+          }
+        }
         await writeServerEvent({
           name: 'affiliate_application_submitted',
           userId: user.id,

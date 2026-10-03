@@ -164,7 +164,17 @@ export function affiliateDestinationBucket(
 // agents keeps the dashboard's raw “link visits” count from being inflated and
 // avoids minting unusable financial proof rows. Unknown agents remain visible;
 // this is a conservative allowlist of well-known preview/crawler signatures.
+//
+// KINEO-AFILIADOS-CLIQUE-ROBO-2026-10-03 — medido em produção (30 dias, sem a conta da casa): 18 dos 60 "cliques"
+// de afiliado eram robôs que a lista acima não conhecia (Bytespider, ShapBot, ClaudeBot, ExaSearchBot, SemrushBot,
+// Applebot, trendictionbot…). Cada um virava "visita" no painel do parceiro e cunhava prova de clique que nunca
+// chega a um cadastro. A forma genérica `<letra>bot` seguida de `/`, `;`, `)` ou dígito pega os crawlers
+// que se declaram, sem pegar o celular Cubot (o UA dele traz `Cubot X30 Build/` ou `CUBOT_P40`: depois do "bot" vem
+// espaço ou `_`, nunca `/;)`/dígito — ver o guardião scripts/test-afiliados-atribuicao-2026-10-03.mjs, que prova os
+// dois lados).
+const AFFILIATE_PREVIEW_BOT =
+  /(facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|discordbot|whatsapp|telegrambot|googlebot|bingbot|bytespider|crawler|spider|headlesschrome|[a-z]bot[\/;)\d])/i
+
 export function isAffiliatePreviewBot(userAgent: string | null | undefined): boolean {
-  return /(facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|discordbot|whatsapp|telegrambot|googlebot|bingbot)/i
-    .test(userAgent ?? '')
+  return AFFILIATE_PREVIEW_BOT.test(userAgent ?? '')
 }
