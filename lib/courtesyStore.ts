@@ -115,7 +115,9 @@ export async function addCourtesyCredits(
   const { data: g, error: gErr } = await admin.from('courtesy_grants').select(GRANT_COLUMNS).eq('id', input.grantId).maybeSingle()
   if (gErr || !g) return { ok: false, status: 404, error: 'Cortesia não encontrada.' }
   const grant = g as CourtesyGrantRow
-  if (grant.status !== 'active') return { ok: false, status: 409, error: 'A cortesia não está mais ativa.' }
+  // 410 = cortesia encerrada pelo cron (expired/superseded/revoked): quem chama decide se abre outra. Cortesia ainda
+  // 'active' com o prazo passado (cron não rodou) recebe o crédito — o vencimento dela continua com o cron.
+  if (grant.status !== 'active') return { ok: false, status: 410, error: 'A cortesia não está mais ativa.' }
   const { data: p } = await admin.from('profiles').select('id, plan, video_credits').eq('id', grant.user_id).maybeSingle()
   const prof = p as CourtesyProfile | null
   if (!prof) return { ok: false, status: 404, error: 'Conta não encontrada.' }

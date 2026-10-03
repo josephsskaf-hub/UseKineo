@@ -75,6 +75,18 @@ interface AffiliateMe {
   stats?: { clicks: number; signups: number; paid: number }
   earnings?: { pending: number; approved: number; paid: number; total: number }
   recent?: Commission[]
+  // KINEO-PARTNERS-PACOTE-2026-10-03 — pacote de demonstração (cortesia em 2 etapas).
+  partner_pack?: {
+    available: boolean
+    live?: boolean
+    stage?: 0 | 1 | 2
+    post_status?: 'none' | 'pending' | 'approved' | 'rejected'
+    post_url?: string | null
+    courtesy_ends_at?: string | null
+    stage1_credits?: number
+    stage2_credits?: number
+    days?: number
+  }
 }
 
 const CYAN = 'var(--accent)'
@@ -115,6 +127,54 @@ function StatusBadge({ status }: { status: string | null }) {
     >
       {status ?? '—'}
     </span>
+  )
+}
+
+// KINEO-PARTNERS-PACOTE-2026-10-03 — o cartão do pacote de demonstração. Só aparece quando o parceiro já recebeu a
+// etapa 1 (o admin dá, ou a entrada dá com PARTNER_PACK_LIVE). Etapa 2 = registrar 1 post público com o link/cupom;
+// o admin confere e aprova. Sem promessa de ganho: o texto fala do que ele cria, não do que ele vai receber.
+function PartnerPackCard({ pack, onSaved }: { pack: NonNullable<AffiliateMe['partner_pack']>; onSaved: () => void }) {
+  const [url, setUrl] = useState(pack.post_url ?? '')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  if (!pack.available || !pack.stage) return null
+  const stage2 = pack.stage2_credits ?? 0
+  const save = async () => {
+    if (saving) return
+    setSaving(true)
+    setError(null)
+    try {
+      const r = await fetch('/api/affiliate/partner-post', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) })
+      const j = (await r.json().catch(() => ({}))) as { error?: string }
+      if (!r.ok) setError(j.error ?? 'Could not save the link.')
+      else onSaved()
+    } finally {
+      setSaving(false)
+    }
+  }
+  return (
+    <div data-testid="partner-pack-card" className="rounded-2xl p-5 mb-6" style={{ background: CARD, border: BORDER }}>
+      <div className="font-black uppercase tracking-widest mb-1" style={{ fontSize: '0.62rem', color: CYAN }}>Kineo Partners · demo pack {pack.stage}/2</div>
+      <p className="text-sm" style={{ color: TEXT, lineHeight: 1.5 }}>
+        {pack.stage === 2
+          ? 'Both stages of your demo pack are in your account. Keep creating and posting with your link or coupon.'
+          : `Your demo credits are in your account${pack.courtesy_ends_at ? ` until ${fmtDate(pack.courtesy_ends_at)}` : ''}, with the Creator engines unlocked. Post one public video made with Kineo that shows your link or coupon, paste the post link here, and after a quick review you get ${stage2} more credits.`}
+      </p>
+      {pack.stage === 1 && (
+        pack.post_status === 'pending' ? (
+          <p className="text-xs mt-3" style={{ color: MUTED }}>Post received — waiting for review: <a href={pack.post_url ?? '#'} target="_blank" rel="noreferrer noopener" style={{ color: CYAN }}>{pack.post_url}</a></p>
+        ) : (
+          <div className="flex gap-2 mt-3 flex-wrap">
+            <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://www.tiktok.com/@you/video/…" className="flex-1 rounded-xl px-3 py-2 text-sm" style={{ minWidth: 220, background: 'var(--card2)', border: BORDER, color: TEXT }} />
+            <button type="button" onClick={() => void save()} disabled={saving || !url.trim()} className="rounded-xl px-4 py-2 text-sm font-black" style={{ background: CYAN, color: '#0b0b0d', opacity: saving || !url.trim() ? 0.5 : 1 }}>
+              {saving ? 'Saving…' : 'Send post link'}
+            </button>
+          </div>
+        )
+      )}
+      {pack.post_status === 'rejected' && pack.stage === 1 && <p className="text-xs mt-2" style={{ color: 'var(--warning)' }}>The last link could not be approved (it must be public and show your link or coupon). You can send another one.</p>}
+      {error && <p className="text-xs mt-2" style={{ color: 'var(--warning)' }}>{error}</p>}
+    </div>
   )
 }
 
@@ -813,6 +873,8 @@ export default function AffiliatePage() {
         </div>
       ) : null}
 
+      {data.partner_pack ? <PartnerPackCard pack={data.partner_pack} onSaved={() => void load()} /> : null}
+
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
         <Kpi label="Link visits" value={stats.clicks.toLocaleString('en-US')} accent={CYAN} />
@@ -820,6 +882,7 @@ export default function AffiliatePage() {
         <Kpi label="Paid customers" value={stats.paid.toLocaleString('en-US')} accent={GREEN} />
         <Kpi label="Pending $" value={dollars(earnings.pending)} accent="var(--warning)" />
         <Kpi label="Approved $" value={dollars(earnings.approved)} accent={GREEN} />
+        <Kpi label="Paid out $" value={dollars(earnings.paid)} accent={GREEN} />
         <Kpi label="Total earned" value={dollars(earnings.total)} accent={CYAN} />
       </div>
       {/* KINEO-AFILIADO-TERMOS-2026-09-09 — os termos de repasse ao lado dos números, da fonte única. */}

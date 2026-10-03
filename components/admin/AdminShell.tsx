@@ -6,7 +6,7 @@ import type { ReactNode } from 'react'
 
 export const ADMIN_GROUPS = [
   { label: 'Negócio', pages: [['/admin', 'Visão geral'], ['/admin/paying', 'Pagantes'], ['/admin/overview', 'Indicadores']] },
-  { label: 'Aquisição', pages: [['/admin/leads', 'Oportunidades'], ['/admin/funnel', 'Funil'], ['/admin/affiliates', 'Afiliados']] },
+  { label: 'Aquisição', pages: [['/admin/leads', 'Oportunidades'], ['/admin/funnel', 'Funil'], ['/admin/affiliates', 'Afiliados'], ['/admin/partners', 'Parceiros']] },
   { label: 'Pessoas', pages: [['/admin/people', 'Pessoas'], ['/admin/users', 'Contas']] },
   { label: 'Operação', pages: [['/admin/ads', 'Pedidos Ads'], ['/admin/supplier-health', 'Fornecedores'], ['/admin/coerencia', 'Qualidade'], ['/admin/metrics', 'Métricas']] },
   { label: 'Trial', pages: [['/admin/trial-roi', 'Retorno do trial'], ['/admin/trial-cohort', 'Coortes'], ['/admin/trial-abuse', 'Risco do trial']] },
