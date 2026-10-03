@@ -8,6 +8,7 @@
 import { getHouseEngineExamples } from '@/lib/engineWall'
 import { ENGINE_PAGE_LEAD, FOUNDER_SHOWCASE } from '@/lib/publicExamples'
 import StudioClient, { type StudioBestFilm, type StudioHeroVideo } from './StudioClient'
+import StudioIdeaArrival from '@/components/StudioIdeaArrival'
 
 export const metadata = { title: 'Studio — Kineo' }
 
@@ -54,5 +55,12 @@ export default function StudioPage() {
     const engine = f ? STUDIO_KEY[f.engine] : undefined
     return f && engine ? [{ id: f.id, title: f.title, engine, src: f.previewPath, poster: f.posterPath }] : []
   })
-  return <StudioClient engineHeroes={engineHeroes} bestFilms={bestFilms} />
+  // KINEO-IDEIA-POUSA-NO-STUDIO-2026-10-03 — o cadastro com ideia agora pousa aqui: a conversão do Ads (?signup=1), o
+  // catch-all de origem e a prova de chegada moram em StudioIdeaArrival (fora do StudioClient, de propósito).
+  return (
+    <>
+      <StudioIdeaArrival />
+      <StudioClient engineHeroes={engineHeroes} bestFilms={bestFilms} />
+    </>
+  )
 }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { resolveAuthRedirect } from '@/lib/authRedirect'
+import { destinoDaIdeia, ideiaFoiParaOStudio } from '@/lib/growth/ideiaPousaNoStudio'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { maybeActivateReverseTrial } from '@/lib/reverseTrial'
 import { paisDoRequest } from '@/lib/freeFilmPolicy'
@@ -88,6 +89,12 @@ export async function GET(request: Request) {
         destination.searchParams.set('signup', '1')
         destinationPath = `${destination.pathname}${destination.search}`
       }
+      // KINEO-IDEIA-POUSA-NO-STUDIO-2026-10-03 — a ideia digitada antes do cadastro pousa no Studio (/studio), a um
+      // clique de gerar, e não mais na casa de máquinas com o auto-start armado. Esta é a saída do Google/Apple E da
+      // confirmação de e-mail. Checkout nunca passa pela régua; destino sem ideia volta idêntico.
+      // Ver lib/growth/ideiaPousaNoStudio.ts (interruptor IDEIA_POUSA_NO_STUDIO).
+      const destinoAntesDaIdeia = destinationPath
+      if (!isCheckoutNext) destinationPath = destinoDaIdeia(destinationPath)
       const destinationUrl = new URL(destinationPath, origin)
       const rawIntentCampaign = (destinationUrl.searchParams.get('intent_campaign') ?? '').trim()
       const intentCampaign = /^[A-Za-z0-9._~-]{1,100}$/.test(rawIntentCampaign)
@@ -108,6 +115,8 @@ export async function GET(request: Request) {
           is_checkout_destination: isCheckoutNext,
           destination_path: destinationUrl.pathname.slice(0, 128),
           has_prompt: destinationUrl.searchParams.has('prompt'),
+          // KINEO-IDEIA-POUSA-NO-STUDIO-2026-10-03 — a régua trocou a casa de máquinas pelo Studio?
+          idea_to_studio: ideiaFoiParaOStudio(destinoAntesDaIdeia, destinationPath),
           intent_campaign: intentCampaign,
           provider: typeof data.user?.app_metadata?.provider === 'string'
             ? data.user.app_metadata.provider.slice(0, 32)

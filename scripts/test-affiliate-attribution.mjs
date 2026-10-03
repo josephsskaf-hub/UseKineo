@@ -359,7 +359,9 @@ check(emailActivation.indexOf('await finalizeAffiliateSignupAttribution({') < em
 check(emailActivation.includes('for (const name of AFFILIATE_ATTRIBUTION_COOKIE_NAMES)'), 'email activation retires the complete financial cookie set')
 
 const signupPage = read('app/(auth)/signup/page.tsx')
-check(signupPage.indexOf("await fetch('/api/auth/activation-completed'") < signupPage.indexOf('window.location.assign(nextDestination)'), 'email signup awaits server attribution before public-home navigation')
+// Reancorado 03/10 (KINEO-IDEIA-POUSA-NO-STUDIO-2026-10-03): a saída do cadastro passou pela régua da ideia
+// (destinoDaIdeia); a ordem provada — atribuição no servidor ANTES da navegação — é a mesma.
+check(signupPage.includes('window.location.assign(destinoDaIdeia(nextDestination))') && signupPage.indexOf("await fetch('/api/auth/activation-completed'") < signupPage.indexOf('window.location.assign(destinoDaIdeia(nextDestination))'), 'email signup awaits server attribution before public-home navigation')
 
 const checkout = read('app/api/stripe/checkout/route.ts')
 check(checkout.includes('resolveCustomAffiliateBeforeSubscription(req, user, profile)'), 'subscription checkout closes the client-effect race server-side')
