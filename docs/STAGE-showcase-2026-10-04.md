@@ -1,5 +1,9 @@
 # Showcase — entrega de 04/10/2026
 
+## Retomada de 03/10
+
+**FATO CONFIRMADO — IMPLEMENTADO / TESTADO LOCALMENTE:** a pendência de descoberta foi integrada à main atual e à fila MRR, preservando o trabalho alheio. [Registro, prova HTTP, prints locais e régua comercial](showcase-2026-10-04/resume-20261003/RETOMADA.md). O portfólio já está público; publicação da correção e resultados comerciais são estados separados.
+
 ## Atualização de 01/10, 21:41 UTC
 
 **EVIDÊNCIA DE PRODUÇÃO:** o portfólio já responde HTTP 200, com os quatro CTAs de produto e o bloco integrado pela frente MRR; [prova pública](showcase-2026-10-04/discovery/production.json). As pendências de publicação abaixo retratam o momento da entrega original, não o estado desta leitura. **QUESTÃO PENDENTE / DESCONHECIDO:** exposição por pessoas, cadastros e MRR atribuídos não foram medidos nesta sessão.
