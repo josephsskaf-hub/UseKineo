@@ -509,8 +509,11 @@ checa('mutante (casa pelos padrões LIKE de isInternalEmail) → vermelho', !pro
   checa('mutante (casa volta para a cota 0) → vermelho', (await provaCota(trocar(extraiCota(src), "          if (kineo1Porta === 'internal' || kineo1Porta === 'autopilot') {", '          if (false) {'))).length > 0)
   let intocados = false
   try {
-    const d = execFileSync('git', ['diff', '--name-only', 'origin/main', '--', 'app/api/compose/status', 'app/api/compose/unlock'], { cwd: root, encoding: 'utf8' })
-    intocados = d.trim() === ''
+    // Reancorado 03/10 (KINEO-GANCHO-1Q-2026-10-03): o unlock ganhou só linhas ACRESCENTADAS e marcadas (import + chamada do gancho
+    // escrito, depois do logo). A prova continua: nenhuma linha removida e toda linha nova carrega o marcador — qualquer outra mudança segue vermelha.
+    const d = execFileSync('git', ['diff', '--unified=0', 'origin/main', '--', 'app/api/compose/status', 'app/api/compose/unlock'], { cwd: root, encoding: 'utf8' })
+    const mudadas = d.split('\n').filter((l) => /^[+-]/.test(l) && !/^(\+\+\+|---) /.test(l))
+    intocados = mudadas.every((l) => l.startsWith('+') && l.includes('KINEO-GANCHO-1Q-2026-10-03'))
   } catch { intocados = !/kineo1Gate/.test(rd('app/api/compose/unlock/route.ts')) }
   checa('compose/status e compose/unlock intocados', intocados && !rd('app/api/compose/unlock/route.ts').includes('kineo1Gate'))
   const OFFER = L0('lib/freeTierOffer.ts')
