@@ -23,6 +23,9 @@
 import { stripe } from '@/lib/stripe'
 import { INTERNAL_ACCOUNTS_LABEL, isInternalEmail } from '@/lib/internalAccounts'
 import { fetchAllRows, serviceClient } from '../_shared/db'
+// KINEO-CORTESIA-2026-10-03 — cortesia do admin entra com o plano real (free): fora de pagante e MRR.
+import { maskCourtesyPlans } from '@/lib/courtesy'
+import { loadActiveCourtesyGrants } from '@/lib/courtesyStore'
 import {
   formatUsd,
   isPaidPlan,
@@ -223,7 +226,7 @@ export async function computeCeoData(): Promise<CeoData | null> {
   const admin = serviceClient()
   if (!admin) return null
 
-  const [profiles, videos, paidEvents] = await Promise.all([
+  const [profilesRaw, videos, paidEvents, courtesy] = await Promise.all([
     fetchAllRows<ProfileRow>(
       admin,
       'profiles',
@@ -235,7 +238,9 @@ export async function computeCeoData(): Promise<CeoData | null> {
       column: 'name',
       values: [...MRR_PAID_EVENT_NAMES],
     }),
+    loadActiveCourtesyGrants(admin),
   ])
+  const profiles = maskCourtesyPlans(profilesRaw, courtesy)
   if (profiles.length === 0) return null
   const paidByUser = paidMonthlyUsdByUser(paidEvents)
 

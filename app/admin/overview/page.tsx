@@ -29,6 +29,9 @@ import { stripeNetRevenue, type NetRevenue } from '@/app/api/admin/_shared/reven
 import { PAID_PLANS, PLAN_PRICE_USD, isTrialPlan } from '@/app/api/admin/_shared/mrr'
 // KINEO-MRR-PRECO-PAGO-2026-09-28 — o MRR é o que cada assinante PAGA (última fatura), não a tabela de hoje.
 import { paidMonthlyUsdByUser, paidMrrForProfiles, paidMrrSourceLabel, type PaidAmountEvent } from '@/app/api/admin/_shared/mrr'
+// KINEO-CORTESIA-2026-10-03 — cortesia do admin aparece com o plano real (free): fora de pagante, trial de $1 e MRR.
+import { maskCourtesyPlans } from '@/lib/courtesy'
+import { loadActiveCourtesyGrants } from '@/lib/courtesyStore'
 
 import { funilVersaoB, VERSAO_B_SINCE, metaTrue, type EventRow, type FunilB } from '@/lib/admin/versaoBFunnel'
 
@@ -161,7 +164,7 @@ async function loadMetrics(): Promise<Metrics | null> {
   // defeito que fez o /admin mostrar 435 visitantes nas duas janelas.
   // A cura é a mesma da casa: fetchAllRows pagina de 1.000 em 1.000, com
   // ORDER BY id estável (consertado em 28/08 no próprio helper).
-  const [profilesR, videosR, debitsR, abandR, clicksR, eventsR] = await Promise.all([
+  const [profilesR, videosR, debitsR, abandR, clicksR, eventsR, courtesyR] = await Promise.all([
     fetchAllRows<ProfileRow>(admin, 'profiles', 'id, email, plan, created_at, utm_source, stripe_subscription_id, video_credits'),
     fetchAllRows<VideoRow>(admin, 'videos', 'user_id, created_at, status, credits_used'),
     fetchAllRows<{ user_id: string | null; refunded_at: string | null }>(admin, 'credit_debits', 'user_id, refunded_at'),
@@ -185,8 +188,9 @@ async function loadMetrics(): Promise<Metrics | null> {
         'starter_pack_checkout_clicked',
       ],
     }),
+    loadActiveCourtesyGrants(admin),
   ])
-  const profilesQ = { data: profilesR, error: null }
+  const profilesQ = { data: maskCourtesyPlans(profilesR, courtesyR), error: null }
   const videosQ = { data: videosR }
   const debitsQ = { data: debitsR }
   const abandQ = { data: abandR }

@@ -21,6 +21,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { PAID_PLANS } from '../_shared/mrr'
+import { maskCourtesyPlans } from '@/lib/courtesy'
+import { loadActiveCourtesyGrants } from '@/lib/courtesyStore'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -255,6 +257,11 @@ export async function GET() {
       }
     } catch (e) {
       console.warn('[admin/users] profiles query failed:', e)
+    }
+    // KINEO-CORTESIA-2026-10-03 — cortesia do admin (creator_trial/studio_trial) aparece com o plano real de antes:
+    // fora de is_paid e do placar de pagantes.
+    for (const p of maskCourtesyPlans([...plans].map(([id, plan]) => ({ id, plan })), await loadActiveCourtesyGrants(admin))) {
+      plans.set(p.id, p.plan ?? null)
     }
 
     // Whitelist the fields we return. No tokens, no hashes, no raw provider

@@ -16,6 +16,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { fetchAllRows, isAdminEmail, serviceClient } from '../_shared/db'
 import { isPayingPlan } from '../_shared/mrr'
+import { loadActiveCourtesyGrants } from '@/lib/courtesyStore'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -48,6 +49,10 @@ export interface PersonRow {
   // 'churned'; pagou sem nunca ter subscription = pack avulso = 'one_time'.
   paid_kind: PaidKind
   is_internal: boolean
+  // KINEO-CORTESIA-2026-10-03 — cortesia ativa (nível e fim). Plano *_trial com isto preenchido = presente do admin,
+  // não trial de $1 nem pagante.
+  courtesy_level: string | null
+  courtesy_until: string | null
   first_paid: string | null
   credits_left: number | null
   credits_used: number
@@ -109,6 +114,7 @@ export async function GET() {
     const admin = serviceClient()
     if (!admin) return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
 
+    const courtesyByUser = new Map((await loadActiveCourtesyGrants(admin)).map((g) => [g.user_id, g]))
     const [profiles, debits, payEvents, videoRows, imageRows, audioRows, animateRows] = await Promise.all([
       fetchAllRows<{
         id: string
@@ -232,6 +238,8 @@ export async function GET() {
           has_paid: p.has_paid === true,
           paid_kind: paidKind,
           is_internal: isInternal(p.email as string),
+          courtesy_level: courtesyByUser.get(p.id)?.level ?? null,
+          courtesy_until: courtesyByUser.get(p.id)?.ends_at ?? null,
           first_paid: firstPaid.get(p.id) ?? null,
           credits_left: left,
           credits_used: used,

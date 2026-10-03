@@ -93,6 +93,26 @@ function GrantButton({ email, onClick }: { email: string; onClick: (email: strin
   )
 }
 
+// KINEO-CORTESIA-2026-10-03 — "Cortesia": plano creator_trial/studio_trial com créditos, validade e motivo. Diferente
+// do "+ créditos" (só saldo, a conta free continua recusada nos motores). Regra em lib/courtesy.ts.
+function CourtesyButton({ email, onClick }: { email: string; onClick: (email: string) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(email)}
+      title="Cortesia: libera os motores por um prazo (creator_trial/studio_trial), com créditos e motivo"
+      style={{ background: 'rgba(95,212,164,.12)', border: '1px solid rgba(95,212,164,.35)', color: '#5FD4A4', borderRadius: 6, padding: '2px 8px', fontSize: 10, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' }}
+    >
+      cortesia
+    </button>
+  )
+}
+
+function planLabel(p: PersonRow): string {
+  if (!p.courtesy_level) return p.plan ?? '—'
+  return `${p.plan ?? '—'} · cortesia até ${fmtDate(p.courtesy_until)}`
+}
+
 // ═══ KINEO-PERSON-MEDIA-2026-08-25 — "abrir um espaço e ver TODOS os vídeos
 // que aquele cliente já fez" (fundador, 25/08, preocupado com trials de 25cr
 // zerando sem vídeo visível). O botão 🎬 abre a obra inteira da pessoa:
@@ -164,6 +184,13 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
   const [grantReason, setGrantReason] = useState('')
   const [granting, setGranting] = useState(false)
   const [grantMsg, setGrantMsg] = useState<string | null>(null)
+  // KINEO-CORTESIA-2026-10-03 — estado do painel de cortesia.
+  const [courtesyFor, setCourtesyFor] = useState<string | null>(null)
+  const [courtesyLevel, setCourtesyLevel] = useState<'creator_trial' | 'studio_trial'>('creator_trial')
+  const [courtesyCredits, setCourtesyCredits] = useState('25')
+  const [courtesyDays, setCourtesyDays] = useState('30')
+  const [courtesyReason, setCourtesyReason] = useState('')
+  const [courtesyBusy, setCourtesyBusy] = useState(false)
   // KINEO-PERSON-MEDIA-2026-08-25 — o raio-X de mídia da pessoa clicada.
   const [mediaFor, setMediaFor] = useState<string | null>(null)
   const [media, setMedia] = useState<PersonMedia | null>(null)
@@ -247,6 +274,29 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
       setGrantMsg('Falhou ao conceder.')
     } finally {
       setGranting(false)
+    }
+  }
+
+  const submitCourtesy = async () => {
+    if (!courtesyFor || courtesyBusy) return
+    setCourtesyBusy(true)
+    setGrantMsg(null)
+    try {
+      const r = await fetch('/api/admin/courtesy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: courtesyFor, level: courtesyLevel, credits: Number(courtesyCredits), days: Number(courtesyDays), reason: courtesyReason }),
+      })
+      const json = (await r.json()) as { error?: string; before?: number; after?: number; ends_at?: string; level?: string }
+      if (!r.ok) { setGrantMsg(json.error ?? 'Falhou.'); return }
+      setGrantMsg(`✓ ${courtesyFor}: cortesia ${json.level} até ${fmtDate(json.ends_at ?? null)} · ${json.before} → ${json.after} créditos`)
+      setCourtesyReason('')
+      setCourtesyFor(null)
+      load()
+    } catch {
+      setGrantMsg('Falhou ao conceder a cortesia.')
+    } finally {
+      setCourtesyBusy(false)
     }
   }
 
@@ -367,7 +417,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
             rows={buyers.map((p) => [
               <Mono key="e" text={p.email} badge={kindBadge(p.paid_kind)?.label} badgeColor={kindBadge(p.paid_kind)?.color} />,
               kindBadge(p.paid_kind)?.label ?? '—',
-              p.plan ?? '—',
+              planLabel(p),
               fmtDate(p.first_paid),
               p.credits_granted?.toLocaleString('en-US') ?? '—',
               p.credits_used.toLocaleString('en-US'),
@@ -377,7 +427,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
                 {p.burned_nothing_delivered ? '⚠ nothing' : deliveredLabel(p)}
               </span>,
               fmtDate(p.last_use),
-              <span key="gr" style={{ display: 'inline-flex', gap: 4 }}><GrantButton email={p.email} onClick={setGrantFor} /><MediaButton email={p.email} onClick={setMediaFor} /></span>,
+              <span key="gr" style={{ display: 'inline-flex', gap: 4 }}><GrantButton email={p.email} onClick={setGrantFor} /><CourtesyButton email={p.email} onClick={setCourtesyFor} /><MediaButton email={p.email} onClick={setMediaFor} /></span>,
             ])}
           />
         </section>
@@ -399,7 +449,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
               <Mono key="e" text={p.email} badge={kindBadge(p.paid_kind)?.label} badgeColor={kindBadge(p.paid_kind)?.color} />,
               fmtDate(p.signup),
               p.country ? `${flagEmoji(p.country)} ${p.country}` : '—',
-              p.plan ?? '—',
+              planLabel(p),
               p.credits_granted?.toLocaleString('en-US') ?? '—',
               p.credits_used.toLocaleString('en-US'),
               <b key="l" style={{ color: (p.credits_left ?? 0) <= 5 ? '#FB923C' : '#8DB4FF' }}>{p.credits_left?.toLocaleString('en-US') ?? '—'}</b>,
@@ -408,7 +458,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
                 {p.burned_nothing_delivered ? '⚠ nothing' : deliveredLabel(p)}
               </span>,
               fmtDate(p.last_use),
-              <span key="gr" style={{ display: 'inline-flex', gap: 4 }}><GrantButton email={p.email} onClick={setGrantFor} /><MediaButton email={p.email} onClick={setMediaFor} /></span>,
+              <span key="gr" style={{ display: 'inline-flex', gap: 4 }}><GrantButton email={p.email} onClick={setGrantFor} /><CourtesyButton email={p.email} onClick={setCourtesyFor} /><MediaButton email={p.email} onClick={setMediaFor} /></span>,
             ])}
           />
           {!showAll && filtered.length > 250 && (
@@ -546,6 +596,48 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
         </div>
       )}
 
+      {/* KINEO-CORTESIA-2026-10-03 — painel de cortesia (mesmo desenho do "Dar créditos"). */}
+      {courtesyFor && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}
+          onClick={() => !courtesyBusy && setCourtesyFor(null)}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--card)', border: '1px solid #1F2530', borderRadius: 14, padding: 22, width: 420, maxWidth: '92vw' }}>
+            <h3 style={{ color: '#F2F4F7', fontSize: 13, fontWeight: 900, marginBottom: 4 }}>Cortesia</h3>
+            <p style={{ color: '#9AA3B2', fontSize: 11, marginBottom: 6, wordBreak: 'break-all' }}>{courtesyFor}</p>
+            <p style={{ color: '#9AA3B2', fontSize: 10.5, marginBottom: 14, lineHeight: 1.45 }}>
+              Libera os motores pelo prazo (plano de trial, nunca plano cheio), soma os créditos e guarda o plano anterior.
+              Fica fora de pagantes e do MRR. Só para conta sem plano. No fim do prazo, o cron volta o plano anterior.
+            </p>
+            {([
+              ['Nível', <select key="lv" value={courtesyLevel} onChange={(e) => setCourtesyLevel(e.target.value as 'creator_trial' | 'studio_trial')} style={{ width: '100%', background: 'var(--card2)', border: '1px solid #1F2530', borderRadius: 8, color: '#F2F4F7', padding: '9px 11px', fontSize: 13, marginTop: 5, marginBottom: 12 }}><option value="creator_trial">creator_trial</option><option value="studio_trial">studio_trial</option></select>],
+              ['Créditos', <input key="cr" type="number" value={courtesyCredits} onChange={(e) => setCourtesyCredits(e.target.value)} style={{ width: '100%', background: 'var(--card2)', border: '1px solid #1F2530', borderRadius: 8, color: '#F2F4F7', padding: '9px 11px', fontSize: 13, marginTop: 5, marginBottom: 12 }} />],
+              ['Validade (dias)', <input key="dy" type="number" value={courtesyDays} onChange={(e) => setCourtesyDays(e.target.value)} style={{ width: '100%', background: 'var(--card2)', border: '1px solid #1F2530', borderRadius: 8, color: '#F2F4F7', padding: '9px 11px', fontSize: 13, marginTop: 5, marginBottom: 12 }} />],
+              ['Motivo (fica no histórico)', <input key="rs" value={courtesyReason} onChange={(e) => setCourtesyReason(e.target.value)} placeholder="ex: parceiro de conteúdo, compensação por falha" style={{ width: '100%', background: 'var(--card2)', border: '1px solid #1F2530', borderRadius: 8, color: '#F2F4F7', padding: '9px 11px', fontSize: 12, marginTop: 5, marginBottom: 16 }} />],
+            ] as Array<[string, React.ReactNode]>).map(([label, field]) => (
+              <div key={label}>
+                <label style={{ color: '#9AA3B2', fontSize: 10, fontWeight: 800, textTransform: 'uppercase' }}>{label}</label>
+                {field}
+              </div>
+            ))}
+            {grantMsg && !grantMsg.startsWith('✓') && <p style={{ color: '#FF8787', fontSize: 11, marginBottom: 10 }}>{grantMsg}</p>}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => void submitCourtesy()}
+                disabled={courtesyBusy || courtesyReason.trim().length < 3}
+                style={{ flex: 1, background: courtesyReason.trim().length < 3 ? '#1c1c20' : '#5FD4A4', border: 'none', borderRadius: 8, color: courtesyReason.trim().length < 3 ? '#5a5a60' : '#0b0b0d', padding: '10px 0', fontSize: 12, fontWeight: 900, cursor: courtesyBusy || courtesyReason.trim().length < 3 ? 'not-allowed' : 'pointer' }}
+              >
+                {courtesyBusy ? 'Concedendo…' : 'Conceder cortesia'}
+              </button>
+              <button type="button" onClick={() => setCourtesyFor(null)} disabled={courtesyBusy} style={{ background: 'transparent', border: '1px solid #1F2530', borderRadius: 8, color: '#9AA3B2', padding: '10px 16px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ═══ KINEO-PERSON-MEDIA-2026-08-25 — o espaço com TODOS os vídeos da
           pessoa (independente do tempo), clicáveis. Clicar fora fecha. */}
       {mediaFor && (
@@ -649,7 +741,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
 
       {/* Confirmação depois de fechar o painel — sem isto o admin não sabe se
           a concessão pegou e acaba concedendo de novo. */}
-      {!grantFor && grantMsg?.startsWith('✓') && (
+      {!grantFor && !courtesyFor && grantMsg?.startsWith('✓') && (
         <div
           style={{
             position: 'fixed',
