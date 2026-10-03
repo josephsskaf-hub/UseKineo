@@ -1,6 +1,7 @@
 'use client'
 import MobileCreationShortcut from '@/components/MobileCreationShortcut'
 import StudioNearIdeaAction from '@/components/StudioNearIdeaAction'
+import MrrFirstFilm from '@/components/MrrFirstFilm'
 import { MRR_NEAR_IDEA_ENABLED } from '@/lib/growth/mrrStudio'
 import { useMrrStudioFunnel } from '@/lib/growth/useMrrStudioFunnel'
 
@@ -416,10 +417,11 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   // anunciando o que nasceu esta semana (Images/Audio/Enhance). ~1.300 contas
   // antigas nunca souberam que isso existe.
   const [myVids, setMyVids] = useState<{ id: string; title: string | null; video_url: string | null; thumbnail_url: string | null; enhanced_url?: string | null }[]>([])
+  const [firstFilmHistoryEmpty, setFirstFilmHistoryEmpty] = useState(false)
   useEffect(() => {
     fetch('/api/videos', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : { videos: [] }))
-      .then((d) => { if (Array.isArray(d?.videos)) setMyVids(d.videos.filter((v: { video_url?: string | null }) => v.video_url).slice(0, 6)) })
+      .then((d) => { if (Array.isArray(d?.videos)) setMyVids(d.videos.filter((v: { video_url?: string | null }) => v.video_url).slice(0, 6)); setFirstFilmHistoryEmpty(d?.historyReliable === true && d?.completedCount === 0 && Array.isArray(d?.videos) && d.videos.length === 0) })
       .catch(() => {})
   }, [])
 
@@ -986,6 +988,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                   : 'Paste the idea or one sentence below. Kineo will write the hook, scenes and payoff; Seedance and the 60s target are already selected.'}
               </div>
             ) : null}
+            {!prompt.trim() && scriptMode !== 'clip' && <MrrFirstFilm historyEmpty={firstFilmHistoryEmpty} trialActive={trialOn} hasPaid={contaPaga} shortFilmAllowed={entrada15} balance={balance} />}
             <div className="row" style={{ marginBottom: 8 }}>
               {([
                 ['📊 Facts', '5 shocking facts about ', 'ai'],

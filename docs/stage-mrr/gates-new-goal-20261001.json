@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-01",
+  "codeSha": "57582d91b4399b03a1b72d7960d7348174ff56a0",
+  "baselineSha": "b0fef8ceabaf6b21ff53a137cd2268f5f293c797",
+  "tsc": "clean; exit 0",
+  "baseline": {
+    "total": 740,
+    "passed": 538,
+    "failed": 202
+  },
+  "candidate": {
+    "total": 743,
+    "passed": 542,
+    "failed": 201
+  },
+  "newRedFiles": [],
+  "newFailedAssertions": [],
+  "resolved": [
+    "test-ritmo-por-idioma-15s-2026-09-29.mjs"
+  ],
+  "logComparison": "All failed logs compared. Differences: temp paths/PIDs, CRLF warnings, increased successful scanned-file/event counts, changed source excerpt in existing Spanish assertion; no new failed assertion.",
+  "ownMutantsKilled": 20,
+  "newScreenshots": 40,
+  "visualScope": "Real JSX; context/services mocked; no authenticated full Next E2E, render or external POST.",
+  "execution": "Offline guard denies networking and secret files. No production writes or sends.",
+  "logs": "C:/Users/josep/.codex/outputs/01a0e5e3-36cf-72b3-bc5d-26ca2cd6e88d/mrr-20261001/candidate-new-goal-final",
+  "publication": "Not queued; max one Oct1 MRR launcher already used. Fresh integration and gates required before next permitted launcher."
+}

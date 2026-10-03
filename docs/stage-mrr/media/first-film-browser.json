@@ -1,0 +1,210 @@
+[
+  {
+    "name": "first-film-after-1440-light.png",
+    "nav": [
+      "/studio/create?engine=seedance&duration=15&prompt=A+tiny+paper+boat+travels+through+a+rain-soaked+city+and+reaches+the+sea+at+sunrise.+Tell+this+fictional+story+with+a+beginning%2C+a+surprise+and+a+hopeful+ending.&script_mode=ai&create_intent=trial_best&intent_campaign=mrr_first_film_20261001_v1"
+    ],
+    "events": [
+      {
+        "name": "mrr_studio_viewed",
+        "metadata": {
+          "version": "mrr_studio_20261001_v1",
+          "variant": "control",
+          "surface": "studio"
+        }
+      },
+      {
+        "name": "mrr_first_film_viewed",
+        "metadata": {
+          "version": "mrr_first_film_20261001_v1",
+          "topic": "paper_boat",
+          "seconds": 15,
+          "cost": 7
+        }
+      },
+      {
+        "name": "mrr_first_film_committed",
+        "metadata": {
+          "version": "mrr_first_film_20261001_v1",
+          "topic": "paper_boat",
+          "seconds": 15,
+          "cost": 7
+        }
+      }
+    ],
+    "requests": [
+      {
+        "url": "/api/brand-logo",
+        "method": "GET"
+      },
+      {
+        "url": "/api/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/me/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/videos",
+        "method": "GET"
+      }
+    ]
+  },
+  {
+    "name": "first-film-after-1440-dark.png",
+    "nav": [
+      "/studio/create?engine=seedance&duration=15&prompt=A+tiny+paper+boat+travels+through+a+rain-soaked+city+and+reaches+the+sea+at+sunrise.+Tell+this+fictional+story+with+a+beginning%2C+a+surprise+and+a+hopeful+ending.&script_mode=ai&create_intent=trial_best&intent_campaign=mrr_first_film_20261001_v1"
+    ],
+    "events": [
+      {
+        "name": "mrr_studio_viewed",
+        "metadata": {
+          "version": "mrr_studio_20261001_v1",
+          "variant": "control",
+          "surface": "studio"
+        }
+      },
+      {
+        "name": "mrr_first_film_viewed",
+        "metadata": {
+          "version": "mrr_first_film_20261001_v1",
+          "topic": "paper_boat",
+          "seconds": 15,
+          "cost": 7
+        }
+      },
+      {
+        "name": "mrr_first_film_committed",
+        "metadata": {
+          "version": "mrr_first_film_20261001_v1",
+          "topic": "paper_boat",
+          "seconds": 15,
+          "cost": 7
+        }
+      }
+    ],
+    "requests": [
+      {
+        "url": "/api/brand-logo",
+        "method": "GET"
+      },
+      {
+        "url": "/api/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/me/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/videos",
+        "method": "GET"
+      }
+    ]
+  },
+  {
+    "name": "first-film-after-390-light.png",
+    "nav": [
+      "/studio/create?engine=seedance&duration=15&prompt=A+tiny+paper+boat+travels+through+a+rain-soaked+city+and+reaches+the+sea+at+sunrise.+Tell+this+fictional+story+with+a+beginning%2C+a+surprise+and+a+hopeful+ending.&script_mode=ai&create_intent=trial_best&intent_campaign=mrr_first_film_20261001_v1"
+    ],
+    "events": [
+      {
+        "name": "mrr_studio_viewed",
+        "metadata": {
+          "version": "mrr_studio_20261001_v1",
+          "variant": "control",
+          "surface": "studio"
+        }
+      },
+      {
+        "name": "mrr_first_film_viewed",
+        "metadata": {
+          "version": "mrr_first_film_20261001_v1",
+          "topic": "paper_boat",
+          "seconds": 15,
+          "cost": 7
+        }
+      },
+      {
+        "name": "mrr_first_film_committed",
+        "metadata": {
+          "version": "mrr_first_film_20261001_v1",
+          "topic": "paper_boat",
+          "seconds": 15,
+          "cost": 7
+        }
+      }
+    ],
+    "requests": [
+      {
+        "url": "/api/brand-logo",
+        "method": "GET"
+      },
+      {
+        "url": "/api/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/me/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/videos",
+        "method": "GET"
+      }
+    ]
+  },
+  {
+    "name": "first-film-after-390-dark.png",
+    "nav": [
+      "/studio/create?engine=seedance&duration=15&prompt=A+tiny+paper+boat+travels+through+a+rain-soaked+city+and+reaches+the+sea+at+sunrise.+Tell+this+fictional+story+with+a+beginning%2C+a+surprise+and+a+hopeful+ending.&script_mode=ai&create_intent=trial_best&intent_campaign=mrr_first_film_20261001_v1"
+    ],
+    "events": [
+      {
+        "name": "mrr_studio_viewed",
+        "metadata": {
+          "version": "mrr_studio_20261001_v1",
+          "variant": "control",
+          "surface": "studio"
+        }
+      },
+      {
+        "name": "mrr_first_film_viewed",
+        "metadata": {
+          "version": "mrr_first_film_20261001_v1",
+          "topic": "paper_boat",
+          "seconds": 15,
+          "cost": 7
+        }
+      },
+      {
+        "name": "mrr_first_film_committed",
+        "metadata": {
+          "version": "mrr_first_film_20261001_v1",
+          "topic": "paper_boat",
+          "seconds": 15,
+          "cost": 7
+        }
+      }
+    ],
+    "requests": [
+      {
+        "url": "/api/brand-logo",
+        "method": "GET"
+      },
+      {
+        "url": "/api/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/me/credits",
+        "method": "GET"
+      },
+      {
+        "url": "/api/videos",
+        "method": "GET"
+      }
+    ]
+  }
+]

@@ -1,0 +1,110 @@
+[
+  {
+    "name": "growth-episode-before-1440-light.png",
+    "events": [],
+    "requests": [],
+    "width": 1440,
+    "scroll": 1440
+  },
+  {
+    "name": "growth-episode-after-1440-light.png",
+    "events": [
+      {
+        "name": "mrr_episode_value_viewed",
+        "metadata": {
+          "version": "mrr_episode_value_20261001_v1"
+        }
+      },
+      {
+        "name": "mrr_episode_value_first_gesture",
+        "metadata": {
+          "version": "mrr_episode_value_20261001_v1"
+        }
+      }
+    ],
+    "requests": [],
+    "width": 1440,
+    "scroll": 1440
+  },
+  {
+    "name": "growth-episode-before-1440-dark.png",
+    "events": [],
+    "requests": [],
+    "width": 1440,
+    "scroll": 1440
+  },
+  {
+    "name": "growth-episode-after-1440-dark.png",
+    "events": [
+      {
+        "name": "mrr_episode_value_viewed",
+        "metadata": {
+          "version": "mrr_episode_value_20261001_v1"
+        }
+      },
+      {
+        "name": "mrr_episode_value_first_gesture",
+        "metadata": {
+          "version": "mrr_episode_value_20261001_v1"
+        }
+      }
+    ],
+    "requests": [],
+    "width": 1440,
+    "scroll": 1440
+  },
+  {
+    "name": "growth-episode-before-390-light.png",
+    "events": [],
+    "requests": [],
+    "width": 390,
+    "scroll": 390
+  },
+  {
+    "name": "growth-episode-after-390-light.png",
+    "events": [
+      {
+        "name": "mrr_episode_value_viewed",
+        "metadata": {
+          "version": "mrr_episode_value_20261001_v1"
+        }
+      },
+      {
+        "name": "mrr_episode_value_first_gesture",
+        "metadata": {
+          "version": "mrr_episode_value_20261001_v1"
+        }
+      }
+    ],
+    "requests": [],
+    "width": 390,
+    "scroll": 390
+  },
+  {
+    "name": "growth-episode-before-390-dark.png",
+    "events": [],
+    "requests": [],
+    "width": 390,
+    "scroll": 390
+  },
+  {
+    "name": "growth-episode-after-390-dark.png",
+    "events": [
+      {
+        "name": "mrr_episode_value_viewed",
+        "metadata": {
+          "version": "mrr_episode_value_20261001_v1"
+        }
+      },
+      {
+        "name": "mrr_episode_value_first_gesture",
+        "metadata": {
+          "version": "mrr_episode_value_20261001_v1"
+        }
+      }
+    ],
+    "requests": [],
+    "width": 390,
+    "scroll": 390
+  }
+]

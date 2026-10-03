@@ -1,3 +1,5 @@
+> **EVIDÊNCIA DE PRODUÇÃO — atualização 01/10/2026:** o candidato b0 abaixo já está em origin/main; /showcase respondeu HTTP200 com versão MRR. O launcher de 01/10 é histórico e não deve ser clicado novamente. O novo lote das cinco prioridades permanece local, conforme NEW-GOAL-DELIVERY.md e CHECKPOINT.json. O restante conserva a evidência histórica do primeiro enfileiramento.
+
 # MRR — entrega local de 01/10/2026
 
 **IMPLEMENTADO / ainda não VALIDADO EM PRODUÇÃO.** Duas alavancas: botão junto da ideia no Studio e prova comercial com valor em filmes no /showcase integrado da fila, acessível pela vitrine da home. O funil, suas lacunas e os cenários estão em [MEASUREMENT.md](MEASUREMENT.md). Não há promessa de novos pagantes com base em teste local.

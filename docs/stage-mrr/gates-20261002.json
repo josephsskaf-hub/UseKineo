@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-02",
+  "codeSha": "fcc3a887812b620e850ed907c7a97389aa6a9fc5",
+  "baselineSha": "6ac5d2b8bbef9ad59a373f33238ca52e728e23cc",
+  "tsc": "clean; exit 0 after merge and HOLD gate",
+  "baseline": {
+    "total": 744,
+    "passed": 603,
+    "failed": 141
+  },
+  "candidate": {
+    "total": 747,
+    "passed": 606,
+    "failed": 141
+  },
+  "newRedFiles": [],
+  "newFailedAssertions": [],
+  "ownMutantsKilled": 21,
+  "originalMutantsPreserved": 13,
+  "screenshots": "8 first-film and 4 HOLD preview screenshots refreshed; 28 other unchanged component screenshots retained",
+  "environment": "Both use junction to C:/kineo/node_modules; sanitized env/offline guard blocks external networking/secret reads. Earlier candidate attempt without junction was superseded. Runtime interruption after736 scripts: resumed only11 missing scripts, no test or assertion changed.",
+  "comparison": "Failure logs compared: same assertions; changes only PIDs/temp paths, CRLF warnings, successful scan counts, expanded source excerpt in legacy Spanish assertion.",
+  "logs": "C:/Users/josep/.codex/outputs/01a0e5e3-36cf-72b3-bc5d-26ca2cd6e88d/mrr-20261001/candidate-20261002-deps",
+  "publication": "Prepared for house queue; enqueue/publication are separate from test success.",
+  "limitations": "Mocked-service real-JSX browser verification; no full authenticated Next E2E, paid render or email send."
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "name": "growth-reactivation-after-1440-light.png",
+    "events": [],
+    "requests": [
+      {
+        "url": "/api/admin/mrr-reactivation",
+        "method": "GET"
+      }
+    ],
+    "width": 1440,
+    "scroll": 1440
+  },
+  {
+    "name": "growth-reactivation-after-1440-dark.png",
+    "events": [],
+    "requests": [
+      {
+        "url": "/api/admin/mrr-reactivation",
+        "method": "GET"
+      }
+    ],
+    "width": 1440,
+    "scroll": 1440
+  },
+  {
+    "name": "growth-reactivation-after-390-light.png",
+    "events": [],
+    "requests": [
+      {
+        "url": "/api/admin/mrr-reactivation",
+        "method": "GET"
+      }
+    ],
+    "width": 390,
+    "scroll": 390
+  },
+  {
+    "name": "growth-reactivation-after-390-dark.png",
+    "events": [],
+    "requests": [
+      {
+        "url": "/api/admin/mrr-reactivation",
+        "method": "GET"
+      }
+    ],
+    "width": 390,
+    "scroll": 390
+  }
+]

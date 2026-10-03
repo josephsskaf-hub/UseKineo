@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+import MrrShareFooter from '@/components/growth/MrrShareFooter'
 import PublicVideoCtaLink from '@/components/PublicVideoCtaLink'
 import ShareVideoButton from './ShareVideoButton'
 import PublicVideoPlayer from './PublicVideoPlayer'
@@ -330,6 +331,7 @@ export default async function PublicVideoPage({ params }: { params: { id: string
           >
             Make your own version — free →
           </PublicVideoCtaLink>
+          <MrrShareFooter />
           <ShareVideoButton title={v?.title ?? 'A Short made with Kineo'} />
           <div style={{ marginTop: 10 }}>
             <PublicVideoCtaLink
