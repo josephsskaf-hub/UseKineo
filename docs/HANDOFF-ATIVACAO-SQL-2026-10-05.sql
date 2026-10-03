@@ -123,3 +123,34 @@ group by 1 order by 3 desc limit 10;
 select n.metadata->>'with_idea' com_ideia, count(distinct n.user_id) pessoas,
   count(distinct n.user_id) filter (where exists (select 1 from videos v where v.user_id = n.user_id and v.created_at between n.created_at and n.created_at + interval '48 hours')) filme_48h
 from events n where n.name = 'activation_nudge_sent' group by 1;
+
+-- ═══════════════════════════ TAREFA 2 — ITEM C (afiliados) e TAREFA 3 (Kineo Partners) ════════════════════════════
+-- As medições de base do item C (30 d) foram feitas em 03/10 antes da ordem; as consultas completas estão em
+-- docs/queries/AFILIADOS-30D-2026-10-03.sql. As seguintes AGUARDAM SQL.
+
+-- ═══ SQL #12 — O trial de cadastro libera mesmo 1 filme? ═══════════════════════════════════════════════════════════
+-- Mede: trial_status e créditos do trial das contas novas de 7 dias.
+-- Decisão: a copy nova da /partners ("os créditos de cadastro pagam 1 Seedance 1.5 de 15 s") é verdadeira.
+-- Esperado: maioria 'active' com 10; o resto 'region_paid_only' com 0 (BR passa a 'active' depois do deploy).
+select trial_status, count(*), round(avg(trial_credits_granted)) from profiles where created_at > now() - interval '7 days' group by 1;
+
+-- ═══ SQL #13 — Remendos manuais de cortesia em uso ═════════════════════════════════════════════════════════════════
+-- Mede: contas com plano *_trial trocado à mão (sem assinatura), que o /admin contava como "trial de $1".
+-- Decisão: migrar essas contas para courtesy_grants (com fim e plano anterior) depois da migration 20261003120000.
+-- Esperado: algumas contas, todas sem stripe_subscription_id.
+select plan, count(*) from profiles where plan like '%\_trial' and stripe_subscription_id is null group by 1;
+
+-- ═══ SQL #14 — Custo de dar a etapa 1 do pacote a quem já é afiliado ═══════════════════════════════════════════════
+-- Mede: afiliados ativos com conta grátis (excluída a casa) — elegíveis ao pacote de demonstração.
+-- Decisão: DECISÃO DO FUNDADOR PENDENTE — ligar PARTNER_PACK_LIVE (lib/partnerPack.ts) e o custo (25 a 50 cr por pessoa).
+-- Esperado: perto de 20.
+select count(*) from affiliates a join profiles p on p.id = a.user_id
+where a.status = 'active' and coalesce(p.plan, 'free') = 'free'
+  and not (a.email ilike '%josephsskaf%' or a.email ilike '%usekineo%' or a.email ilike '%shortsforge%');
+
+-- ═══ SQL #15 — Cliques de afiliado sem robô e cadastros atribuídos (repetir em 7 dias) ═════════════════════════════
+-- Mede: cliques humanos (os robôs declarados deixam de contar a partir do deploy) e perfis carimbados com afiliado.
+-- Decisão: onde a cadeia rompe — hoje é clique → cadastro (0 cadastros em 30 d, 42 cliques humanos).
+-- Esperado: cliques humanos ≈ cliques totais depois do deploy; cadastros atribuídos ≥ 1 se o kit do parceiro sair.
+select count(*) cliques, count(*) filter (where created_at > now() - interval '7 days') cliques_7d from affiliate_clicks where created_at > now() - interval '30 days';
+select count(*) perfis_com_afiliado from profiles where created_at > now() - interval '30 days' and affiliate_id is not null;
