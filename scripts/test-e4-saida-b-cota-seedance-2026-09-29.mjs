@@ -137,10 +137,11 @@ const L0 = criaLoader()
 const POL = L0('lib/freeFilmPolicy.ts')
 const provaPais = (M) =>
   M.FREE_FILM_POLICY === 'pais_rico' &&
-  ['PK', 'IN', 'NG', 'BR'].every((c) => M.filmeGratisPermitido(c) === false) &&
-  ['US', 'ES', 'GB'].every((c) => M.filmeGratisPermitido(c) === true) &&
+  // Reancorado 03/10 (KINEO-BRASIL-VOLTA): o fundador devolveu o BR à lista; a exclusão segue provada com PK/IN/NG/MX.
+  ['PK', 'IN', 'NG', 'MX'].every((c) => M.filmeGratisPermitido(c) === false) &&
+  ['US', 'ES', 'GB', 'BR'].every((c) => M.filmeGratisPermitido(c) === true) &&
   [null, undefined, '', 'XX'].every((c) => M.filmeGratisPermitido(c) === true)
-checa("FREE_FILM_POLICY='pais_rico': PK/IN/NG/BR → sem filme grátis; US/ES/GB → com; país nulo/'XX' → concede", provaPais(POL))
+checa("FREE_FILM_POLICY='pais_rico': PK/IN/NG/MX → sem filme grátis; US/ES/GB/BR → com; país nulo/'XX' → concede", provaPais(POL))
 checa("mutante (política volta a 'todos') → vermelho", !provaPais(criaLoader({ sobrescritas: muta('lib/freeFilmPolicy.ts', "export const FREE_FILM_POLICY: FreeFilmPolicy = 'pais_rico'", "export const FREE_FILM_POLICY: FreeFilmPolicy = 'todos'") })('lib/freeFilmPolicy.ts')))
 
 // ══ (b) concessão do trial executada ════════════════════════════════════════════════════════════════════════════════
@@ -154,11 +155,11 @@ async function ativa({ country, perfil, criadoEm = new Date().toISOString(), sob
   return { r, db, eventos, RT }
 }
 {
-  for (const c of ['PK', 'IN', 'NG', 'BR']) {
+  for (const c of ['PK', 'IN', 'NG', 'MX']) { // Reancorado 03/10 (KINEO-BRASIL-VOLTA): BR saiu daqui e entrou abaixo, com trial
     const x = await ativa({ country: c })
     checa(`cadastro novo de ${c}: region_paid_only, 0 crédito, evento trial_region_excluded`, x.r.reason === 'region_paid_only' && x.db.estado.perfil.trial_status === 'region_paid_only' && x.db.estado.perfil.video_credits === 0 && x.eventos.some((e) => e.name === 'trial_region_excluded' && e.metadata?.country === c))
   }
-  for (const c of ['US', 'ES', 'GB', null]) {
+  for (const c of ['US', 'ES', 'GB', 'BR', null]) {
     const x = await ativa({ country: c })
     checa(`cadastro novo de ${c ?? 'país nulo'}: trial concedido (${x.db.estado.perfil.video_credits} cr)`, x.r.activated === true && x.db.estado.perfil.trial_status === 'active' && x.db.estado.perfil.video_credits > 0)
   }
@@ -183,7 +184,7 @@ const matriz = (M) => [
   // KINEO-E4-CONSERTO-2026-09-29 — reancorado com motivo (revisão de dinheiro, achado 4): país desconhecido (nulo, 'XX',
   // 'T1' do Tor) deixou de conceder a cota semanal — era a porta de conta antiga de fora da lista pelo Tor/VPN.
   [P(), 'US', 'eligible'], [P(), 'ES', 'eligible'], [P(), 'GB', 'eligible'], [P(), null, 'country'], [P(), 'XX', 'country'], [P(), 'T1', 'country'], [P(), '', 'country'],
-  [P(), 'PK', 'country'], [P(), 'IN', 'country'], [P(), 'NG', 'country'], [P(), 'BR', 'country'],
+  [P(), 'PK', 'country'], [P(), 'IN', 'country'], [P(), 'NG', 'country'], [P(), 'MX', 'country'], [P(), 'BR', 'eligible'], // Reancorado 03/10 (KINEO-BRASIL-VOLTA)
   [P({ trial_status: 'region_paid_only' }), 'US', 'region_paid_only'], [P({ trial_status: 'region_paid_only' }), null, 'region_paid_only'],
   [P({ has_paid: true }), 'US', 'paid'], [P({ plan: 'starter' }), 'US', 'paid'], [P({ plan: 'autopilot' }), 'US', 'paid'],
   [P({ trial_status: 'active' }), 'US', 'trial_status'], [P({ trial_status: 'blocked' }), 'US', 'trial_status'], [P({ trial_status: 'card_required' }), 'US', 'trial_status'],

@@ -22,7 +22,8 @@ export const FREE_FILM_POLICY: FreeFilmPolicy = 'pais_rico'
 /**
  * ISO-3166 alfa-2 dos países que recebem o filme grátis sob 'pais_rico'. Alta renda: América do Norte anglófona,
  * Reino Unido/Irlanda, Oceania, União Europeia + EEE + Suíça, Ásia rica e Golfo + Israel.
- * BR e MX FORA de propósito (0 pagantes em 30 dias). Mudar a lista é decisão do fundador.
+ * MX FORA de propósito (0 pagantes em 30 dias). BR voltou em 03/10 por decisão do fundador (KINEO-BRASIL-VOLTA-2026-10-03).
+ * Mudar a lista é decisão do fundador.
  */
 export const PAISES_FILME_GRATIS: readonly string[] = [
   // América do Norte, Reino Unido e Irlanda, Oceania
@@ -36,6 +37,7 @@ export const PAISES_FILME_GRATIS: readonly string[] = [
   'JP', 'KR', 'SG', 'HK', 'TW',
   // Golfo e Israel
   'AE', 'SA', 'QA', 'KW', 'BH', 'OM', 'IL',
+  'BR', // KINEO-BRASIL-VOLTA-2026-10-03 — fundador (03/10): o Brasil vende (checkout em reais, Kineo Empresas). Reverter = apagar esta linha.
 ]
 
 /** Status gravado em profiles.trial_status para quem ficou fora do filme grátis (texto livre, sem CHECK no banco). */

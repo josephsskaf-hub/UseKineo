@@ -36,17 +36,19 @@ const P = rodaPuro(polSrc)
 // REANCORADO NA E4 (KINEO-E4-SAIDA-B-2026-09-29, motivo: a E4 cumpriu a condição deste guardião — cota de Kineo 1 em 0 e
 // portão do Kineo 1 no servidor — e LIGA a saída B). O padrão passa a ser 'pais_rico'; o ramo 'todos' segue provado
 // abaixo por política injetada. A prova completa da E4 mora em scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs.
-const provaPadrao = (M) => M.FREE_FILM_POLICY === 'pais_rico' && ['PK', 'IN', 'NG', 'BR'].every((c) => M.filmeGratisPermitido(c) === false) && ['US', null, undefined, ''].every((c) => M.filmeGratisPermitido(c) === true) && ['PK', 'US', null].every((c) => M.filmeGratisPermitido(c, 'todos') === true)
-checa("padrão 'pais_rico' (E4): PK, IN, NG, BR sem filme grátis; US e sem país com; 'todos' injetado concede a todos", provaPadrao(P))
+// Reancorado 03/10 (KINEO-BRASIL-VOLTA): o fundador devolveu o BR à lista (03/10); a exclusão segue provada com PK/IN/NG/MX.
+const provaPadrao = (M) => M.FREE_FILM_POLICY === 'pais_rico' && ['PK', 'IN', 'NG', 'MX'].every((c) => M.filmeGratisPermitido(c) === false) && ['US', null, undefined, ''].every((c) => M.filmeGratisPermitido(c) === true) && ['PK', 'US', null].every((c) => M.filmeGratisPermitido(c, 'todos') === true)
+checa("padrão 'pais_rico' (E4): PK, IN, NG, MX sem filme grátis; US e sem país com; 'todos' injetado concede a todos", provaPadrao(P))
 const provaB = (M) =>
-  ['PK', 'IN', 'NG', 'BR', 'MX', 'BD', 'KE'].every((c) => M.filmeGratisPermitido(c, 'pais_rico') === false) &&
-  ['US', 'ES', 'GB', 'DE', 'PL', 'JP', 'AE', 'IL', 'us', ' es '].every((c) => M.filmeGratisPermitido(c, 'pais_rico') === true) &&
+  ['PK', 'IN', 'NG', 'MX', 'BD', 'KE'].every((c) => M.filmeGratisPermitido(c, 'pais_rico') === false) &&
+  ['US', 'ES', 'GB', 'DE', 'PL', 'JP', 'AE', 'IL', 'BR', 'br', 'us', ' es '].every((c) => M.filmeGratisPermitido(c, 'pais_rico') === true) &&
   [null, undefined, '', 'XX', 'T1', 'zzz'].every((c) => M.filmeGratisPermitido(c, 'pais_rico') === true)
-checa("'pais_rico': PK/IN/NG/BR/MX/BD/KE → false; US/ES/GB/DE/PL/JP/AE/IL → true; sem país/'XX' → true", provaB(P))
-checa('BR e MX fora da lista; a lista é ISO-2 sem repetição', !P.PAISES_FILME_GRATIS.includes('BR') && !P.PAISES_FILME_GRATIS.includes('MX') && P.PAISES_FILME_GRATIS.every((c) => /^[A-Z]{2}$/.test(c)) && new Set(P.PAISES_FILME_GRATIS).size === P.PAISES_FILME_GRATIS.length)
+checa("'pais_rico': PK/IN/NG/MX/BD/KE → false; US/ES/GB/DE/PL/JP/AE/IL/BR → true; sem país/'XX' → true", provaB(P))
+checa('BR na lista (03/10) e MX fora; a lista é ISO-2 sem repetição', P.PAISES_FILME_GRATIS.includes('BR') && !P.PAISES_FILME_GRATIS.includes('MX') && P.PAISES_FILME_GRATIS.every((c) => /^[A-Z]{2}$/.test(c)) && new Set(P.PAISES_FILME_GRATIS).size === P.PAISES_FILME_GRATIS.length)
 checa('lista pedida pelo fundador inteira', ['US', 'CA', 'GB', 'IE', 'AU', 'NZ', 'PL', 'CZ', 'LT', 'LV', 'EE', 'SK', 'SI', 'HR', 'GR', 'HU', 'RO', 'PT', 'ES', 'IT', 'FR', 'DE', 'NL', 'BE', 'LU', 'AT', 'SE', 'NO', 'DK', 'FI', 'IS', 'CH', 'MT', 'CY', 'JP', 'KR', 'SG', 'HK', 'TW', 'AE', 'SA', 'QA', 'KW', 'BH', 'OM', 'IL'].every((c) => P.PAISES_FILME_GRATIS.includes(c)))
 checa("mutante (padrão volta a 'todos') → vermelho em \"'pais_rico' é o padrão\"", !provaPadrao(rodaPuro(trocar(polSrc, "export const FREE_FILM_POLICY: FreeFilmPolicy = 'pais_rico'", "export const FREE_FILM_POLICY: FreeFilmPolicy = 'todos'"))))
-checa('mutante (BR entra na lista) → vermelho', !provaB(rodaPuro(trocar(polSrc, "  'US', 'CA',", "  'BR', 'US', 'CA',"))))
+checa('mutante (BR sai da lista de novo) → vermelho', !provaB(rodaPuro(trocar(polSrc, "  'BR', // KINEO-BRASIL-VOLTA", "  // KINEO-BRASIL-VOLTA"))))
+checa('mutante (MX entra na lista) → vermelho', !provaB(rodaPuro(trocar(polSrc, "  'US', 'CA',", "  'MX', 'US', 'CA',"))))
 checa('mutante (sem país vira recusa) → vermelho', !provaB(rodaPuro(trocar(polSrc, '  if (c === null) return true\n', '  if (c === null) return false\n'))))
 checa('paisDoRequest lê x-vercel-ip-country e normaliza', P.paisDoRequest({ get: (n) => (n === 'x-vercel-ip-country' ? 'pk' : null) }) === 'PK' && P.paisDoRequest({ get: () => null }) === null && P.paisDoRequest(null) === null)
 
