@@ -83,7 +83,9 @@ const semE4Conserto = (p, s) => { if (p !== 'app/api/compose/route.ts' || s == n
 // elas são retiradas em memória antes do byte a byte — qualquer outra alteração na rota continua vermelha.
 // [TRAVA 8.2 — Tarefa 0 de 01/10] KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01 — reancorado: o compose ganhou SÓ linhas marcadas (import, a leitura
 // da sobretaxa assinada e as duas conferências de preço); retiradas em memória, a rota volta à base — qualquer outra mudança continua vermelha.
-const semLogo = (p, s) => (p !== 'app/api/compose/route.ts' || s == null ? s : s.split('\n').filter((l) => !l.includes('KINEO-LOGO-DA-MARCA-2026-10-01') && !l.includes('KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01')).join('\n'))
+// Reancorado 03/10 (KINEO-GANCHO-1Q-2026-10-03): o /api/compose ganhou só linhas marcadas (3 imports + 2 comentários + 2 chamadas
+// withHookFirstFrame logo depois das do logo, com o source já montado); retiradas em memória, a rota volta à base — qualquer outra mudança continua vermelha.
+const semLogo = (p, s) => (p !== 'app/api/compose/route.ts' || s == null ? s : s.split('\n').filter((l) => !l.includes('KINEO-LOGO-DA-MARCA-2026-10-01') && !l.includes('KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01') && !l.includes('KINEO-GANCHO-1Q-2026-10-03')).join('\n'))
 const semVoz15 = (p, s) => semE4Conserto(p, semE4(p, semVoz15Base(p, s)))
 const blocosE4Rota = (r) => [fatia(r, '    // ═══ KINEO-E4-SAIDA-B-2026-09-29 [TRAVA 8.2 — "vai E4" do fundador] — ADMISSÃO DA COTA SEMANAL NOVA ═══', '    // PUSH #20 — every premium AI engine is paid-only.'), fatia(r, '      // KINEO-E4-SAIDA-B-2026-09-29 — a cota semanal nova é a única outra exceção', '        )\n      }\n'), fatia(r, '    // ═══ KINEO-E4-CONSERTO-2026-09-29 [TRAVA 8.2 — "vai E4" do fundador] (revisão de dinheiro, achado 5) ═══', '    // KINEO-CAPACITY-2026-08-08 — DISJUNTOR GLOBAL'), ...r.split('\n').filter((l) => l.includes('KINEO-E4-SAIDA-B-2026-09-29') || l.includes('KINEO-E4-CONSERTO-2026-09-29'))]
 const eqJ = (a, b) => JSON.stringify(a) === JSON.stringify(b)
