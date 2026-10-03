@@ -17,6 +17,9 @@ import {
 // KINEO-MULTIFORMATO-2026-09-02 — enquadramento do master (9:16 · 16:9 · 1:1 · 4:5).
 import { normalizeAspect } from '@/lib/aspect'
 import { findBrandLogoUrl, withBrandLogo } from '@/lib/brandLogo' // KINEO-LOGO-DA-MARCA-2026-10-01
+import { withHookFirstFrame, hookNarration } from '@/lib/hookFirstFrame' // KINEO-GANCHO-1Q-2026-10-03
+import { isInternalEmail } from '@/lib/internalAccounts' // KINEO-GANCHO-1Q-2026-10-03
+import { captionFontFor } from '@/lib/textLanguage' // KINEO-GANCHO-1Q-2026-10-03
 import {
   buildCreatomateSource,
   CreatomateSubmitError,
@@ -2717,6 +2720,8 @@ export async function POST(req: NextRequest) {
       }
       // [TRAVA 8.2 — "vamos fazer isso rápido agora", fundador 01/10] KINEO-LOGO-DA-MARCA-2026-10-01 — o logo da empresa da conta entra depois de montado (como o "sem legenda" do Ads); lib/compose não muda; busca que falha = filme sem logo.
       withBrandLogo(hollywoodSource, await findBrandLogoUrl(authenticatedUserId, composeAdmin)) // KINEO-LOGO-DA-MARCA-2026-10-01
+      // KINEO-GANCHO-1Q-2026-10-03 (pedido da sessão CEO em nome do fundador, 03/10) — a 1ª frase da narração escrita no topo de 0 a 2,5 s (o público do TikTok sai em 0:02); só contas internas enquanto GANCHO_1Q_PUBLIC=false; entra depois de montado e depois do logo (a posição é medida contra ele); lib/compose não muda.
+      { const g = withHookFirstFrame(hollywoodSource, { interna: isInternalEmail(user.email), narration: hookNarration(narrationBlocks, voiceoverScript), font: captionFontFor(language) }); if (g.applied) console.log(`[compose] KINEO-GANCHO-1Q-2026-10-03 hollywood: "${g.phrase}" y=${g.y}`) } // KINEO-GANCHO-1Q-2026-10-03
 
       // Submit once per authenticated generation. Retrying a provider POST
       // after an ambiguous response can create and charge two render jobs.
@@ -3449,6 +3454,8 @@ export async function POST(req: NextRequest) {
     }
     // [TRAVA 8.2 — "vamos fazer isso rápido agora", fundador 01/10] KINEO-LOGO-DA-MARCA-2026-10-01 — idem no caminho clássico (Kineo 1, Seedance, Kling 2.5, Veo, Avatar).
     withBrandLogo(source, await findBrandLogoUrl(authenticatedUserId, composeAdmin)) // KINEO-LOGO-DA-MARCA-2026-10-01
+    // KINEO-GANCHO-1Q-2026-10-03 — idem no caminho clássico, com o texto que o TTS leu (scaledScript); avatar (rosto no quadro) e Studio Ads (narration_source 'tts' no modo serviço) ficam de fora.
+    { const g = withHookFirstFrame(source, { interna: isInternalEmail(user.email), narration: scaledScript, font: captionFontFor(language), skip: avatarMode || (isServiceFinish && body.narration_source === 'tts') }); if (g.applied) console.log(`[compose] KINEO-GANCHO-1Q-2026-10-03: "${g.phrase}" y=${g.y}`) } // KINEO-GANCHO-1Q-2026-10-03
 
     // KINEO-ADS-SEM-LEGENDA-2026-09-26 — fundador: "tem que ter opção de sem legenda". As legendas saem do montador
     // (lib/compose, trava 8.2) como elementos de texto nas trilhas 5 (palavra falada) e 7 (destaques). Quando o
