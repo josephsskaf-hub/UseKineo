@@ -211,6 +211,10 @@ const callbackModule = loadTs('app/auth/callback/route.ts', {
   // 29/09 (KINEO-FILME-GRATIS-POR-PAIS-2026-09-29): o callback passa o país do request ao grant do trial; aqui o grant
   // é mock, então o país também é (sem cabeçalho = null, o mesmo que a função real devolve neste Request).
   '@/lib/freeFilmPolicy': { paisDoRequest: () => null },
+  // Reancorado 03/10 (KINEO-IDEIA-POUSA-NO-STUDIO-2026-10-03): o callback passa o destino NÃO-checkout pela régua da
+  // ideia (casa de máquinas com ideia → /studio). O módulo é puro: entra o REAL, não um mock — a prova da ponte de
+  // sessão do checkout continua idêntica (checkout nunca passa pela régua).
+  '@/lib/growth/ideiaPousaNoStudio': loadTs('lib/growth/ideiaPousaNoStudio.ts'),
   '@/lib/growth/checkoutOAuthFailureHandoff': {
     buildCheckoutOAuthFailureHandoff: (value) => {
       const isCheckout = typeof value === 'string' && /^\/api\/(?:stripe|paypal|mercadopago)\/checkout(?:\?|$)/.test(value)

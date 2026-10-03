@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { findBrandLogoUrl, withBrandLogo } from '@/lib/brandLogo' // KINEO-LOGO-DA-MARCA-2026-10-01
+import { withHookFirstFrame } from '@/lib/hookFirstFrame' // KINEO-GANCHO-1Q-2026-10-03
+import { isInternalEmail } from '@/lib/internalAccounts' // KINEO-GANCHO-1Q-2026-10-03
+import { captionFontFor } from '@/lib/textLanguage' // KINEO-GANCHO-1Q-2026-10-03
 import { stripe } from '@/lib/stripe'
 import {
   buildCreatomateSource,
@@ -617,6 +620,8 @@ export async function POST(req: NextRequest) {
     }
     // KINEO-LOGO-DA-MARCA-2026-10-01 — a versão limpa mantém o logo da empresa, igual ao filme original.
     withBrandLogo(source, await findBrandLogoUrl(user.id, admin)) // KINEO-LOGO-DA-MARCA-2026-10-01
+    // KINEO-GANCHO-1Q-2026-10-03 — a versão limpa mantém o gancho escrito do 1º quadro, igual ao filme original (mesmo texto narrado, mesma conta medida).
+    withHookFirstFrame(source, { interna: isInternalEmail(user.email), narration: scaledScript, font: captionFontFor(language) }) // KINEO-GANCHO-1Q-2026-10-03
 
     let renderId: string
     try {

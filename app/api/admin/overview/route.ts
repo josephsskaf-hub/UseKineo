@@ -11,6 +11,10 @@ import { fetchAllRows } from '@/app/api/admin/_shared/db'
 import { PAID_PLANS, PLAN_PRICE_USD, isTrialPlan } from '@/app/api/admin/_shared/mrr'
 // KINEO-MRR-PRECO-PAGO-2026-09-28 — o MRR é o que cada assinante PAGA (última fatura), não a tabela de hoje.
 import { MRR_PAID_EVENT_NAMES, paidMonthlyUsdByUser, paidMrrSourceLabel, subscriberMrr, type PaidAmountEvent, type PaidMonthly } from '@/app/api/admin/_shared/mrr'
+// KINEO-CORTESIA-2026-10-03 — conta cortesia (creator_trial/studio_trial do admin) entra com o plano REAL de antes:
+// nem pagante, nem trial de $1, nem MRR potencial.
+import { maskCourtesyPlans } from '@/lib/courtesy'
+import { loadActiveCourtesyGrants } from '@/lib/courtesyStore'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -119,7 +123,7 @@ export async function GET() {
       const profs = await fetchAllRows<{ id: string; plan: string | null; stripe_customer_id: string | null; video_credits: number | null }>(
         admin, 'profiles', 'id, plan, stripe_customer_id, video_credits',
       )
-      for (const p of profs) {
+      for (const p of maskCourtesyPlans(profs, await loadActiveCourtesyGrants(admin))) {
         if (excludedIds.has(p.id)) continue // #417 — skip test/founder accounts
         planById.set(p.id, (p.plan ?? 'free').toLowerCase())
         hasStripeById.set(p.id, !!p.stripe_customer_id)

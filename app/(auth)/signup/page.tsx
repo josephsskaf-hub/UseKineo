@@ -13,6 +13,7 @@ import AuthSavedCreationCard from '@/components/AuthSavedCreationCard'
 import { rememberSignupCampaign, trackEvent, trackSignupSource } from '@/lib/analytics'
 import { isDisposableEmail } from '@/lib/emailValidation'
 import { normalizeInternalRedirect } from '@/lib/authRedirect'
+import { destinoDaIdeia } from '@/lib/growth/ideiaPousaNoStudio' // KINEO-IDEIA-POUSA-NO-STUDIO-2026-10-03
 import {
   trackCheckoutAuthStep,
   trackCheckoutSignupResolution,
@@ -489,7 +490,9 @@ export default function SignupPage() {
 
     // Activation-first onboarding: resume the homepage prompt in /generate.
     // A validated explicit redirect still takes priority for pending checkout.
-    window.location.assign(nextDestination)
+    // KINEO-IDEIA-POUSA-NO-STUDIO-2026-10-03 — com uma ideia, a saída é o Studio (/studio) preenchido, sem auto-start.
+    // O destino calculado acima segue no formato antigo para as provas de "trabalho salvo"; só a SAÍDA muda.
+    window.location.assign(destinoDaIdeia(nextDestination))
   }
 
   return (

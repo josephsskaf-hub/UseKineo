@@ -21,6 +21,9 @@ import type { CSSProperties } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { INTERNAL_ACCOUNTS_LABEL, isInternalEmail } from '@/lib/internalAccounts'
 import { fetchAllRows, isAdminEmail, serviceClient } from '@/app/api/admin/_shared/db'
+// KINEO-CORTESIA-2026-10-03 — cortesia do admin não é pagante nem trial de $1: entra com o plano real (free).
+import { maskCourtesyPlans } from '@/lib/courtesy'
+import { loadActiveCourtesyGrants } from '@/lib/courtesyStore'
 import {
   formatUsd,
   isPaidPlan,
@@ -96,7 +99,7 @@ async function loadPaying(): Promise<PayingData | null> {
   const admin = serviceClient()
   if (!admin) return null
 
-  const [profiles, videos, payEvents] = await Promise.all([
+  const [profilesRaw, videos, payEvents, courtesy] = await Promise.all([
     fetchAllRows<ProfileRow>(
       admin,
       'profiles',
@@ -113,7 +116,9 @@ async function loadPaying(): Promise<PayingData | null> {
       'id, user_id, name, created_at, metadata',
       { column: 'name', values: [...MRR_PAID_EVENT_NAMES] },
     ),
+    loadActiveCourtesyGrants(admin),
   ])
+  const profiles = maskCourtesyPlans(profilesRaw, courtesy)
   const paidByUser = paidMonthlyUsdByUser(payEvents)
 
   const videoCount = new Map<string, number>()

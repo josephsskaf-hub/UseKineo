@@ -231,6 +231,16 @@ const SERVER_ONLY_EVENTS = new Set([
   // /api/ads/producao/montage (a linha com o render_id é a PROVA de dono que o GET da montagem confere). O navegador não cunha.
   'producao_plan_created',
   'producao_montage_submitted',
+  // KINEO-PREVIA-CENAS-2026-10-03 — escritos SÓ por /api/scene-preview(/cta) e /studio/create. `scene_preview_requested` é a
+  // RESERVA que as travas contam (1/dia, 3 no total, 200/dia global): se o navegador a cunhasse, travaria a prévia de
+  // alguém ou mentiria no funil de quem ficou fora do filme grátis.
+  'scene_preview_requested',
+  'scene_preview_shown',
+  'scene_preview_refused',
+  'scene_preview_cta_clicked',
+  'scene_preview_routed',
+  // KINEO-BRASIL-VOLTA-2026-10-03 — escrito SÓ por /api/admin/br-recredit (com ?confirm=APPLY): é o rastro do crédito.
+  'admin_br_trial_recredited',
 ])
 
 export async function POST(req: NextRequest) {

@@ -32,6 +32,13 @@ import { escolherSementeDeRetorno, SEMENTE_TETO_VIDEOS } from '@/lib/returningSe
 import { arrivouDeEmailNosso, escolherPortaDeAuth } from '@/lib/lifecycle/emailReturnDoor'
 import { lerAvisoDeRecusa } from '@/lib/entrega/refusalNoticeServer'
 import GenerateClient from '../../generate/GenerateClient'
+import { previaPath, shouldRouteGenerateToPreview, type PreviaProfile } from '@/lib/scenePreview' // KINEO-PREVIA-CENAS-2026-10-03
+import { creditCostForDuration } from '@/lib/credits/engineCost' // KINEO-PREVIA-CENAS-2026-10-03 — o saldo paga o filme pedido?
+
+// KINEO-PREVIA-CENAS-2026-10-03 — chave de motor do Studio → quality do cobrador (o mesmo mapa da rota do cinematic).
+const PREVIA_STUDIO_QUALITY: Record<string, 'fast' | 'cinematic_ai' | 'cinematic_kling' | 'cinematic_veo' | 'cinematic_hollywood' | 'cinematic_h3' | 'cinematic_omni' | 'cinematic_s25'> = {
+  fast: 'fast', seedance: 'cinematic_ai', kling: 'cinematic_kling', veo: 'cinematic_veo', hollywood: 'cinematic_hollywood', h3: 'cinematic_h3', omni: 'cinematic_omni', s25: 'cinematic_s25',
+}
 
 // sprint-ui #11 (2026-08-30) — titulo de aba proprio. Sem isto, a aba
 // mostrava o title SEO da landing ('Kineo — AI YouTube Shorts Generator
@@ -151,6 +158,33 @@ export default async function StudioCreatePage({ searchParams }: StudioCreatePag
     })
   } catch {
     /* best-effort — a página nunca quebra por causa do trial */
+  }
+
+  // KINEO-PREVIA-CENAS-2026-10-03 — quem nasceu fora do filme grátis (region_paid_only, sem pagar, sem saldo para o filme
+  // pedido) apertava Gerar e batia na recusa 402 do cinematic. Agora o Gerar do Studio desvia, no SERVIDOR e DEPOIS da
+  // ativação do trial (é ela que grava o trial_status), para a prévia grátis das cenas com a mesma ideia. Só o despacho do
+  // Studio (studio=1/autoanalyze=1) — link de e-mail, retomada de checkout e criação automática seguem iguais. Regra pura
+  // em lib/scenePreview.ts shouldRouteGenerateToPreview; nada é gerado no desvio.
+  try {
+    const { data: prev } = await supabase.from('profiles').select('trial_status, has_paid, plan, video_credits').eq('id', user.id).maybeSingle()
+    const engineParam = firstParam(searchParams, 'engine')
+    const quality = PREVIA_STUDIO_QUALITY[engineParam ?? ''] ?? null
+    const seconds = Number(firstParam(searchParams, 'duration'))
+    const filmCost = quality ? creditCostForDuration(quality, true, Number.isFinite(seconds) && seconds > 0 ? seconds : 60) : null
+    const params = {
+      studio: firstParam(searchParams, 'studio'),
+      autoanalyze: firstParam(searchParams, 'autoanalyze'),
+      prompt: firstParam(searchParams, 'prompt'),
+      create_intent: firstParam(searchParams, 'create_intent'),
+      resume: firstParam(searchParams, 'resume'),
+    }
+    if (shouldRouteGenerateToPreview({ profile: prev as PreviaProfile | null, params, filmCost })) {
+      await writeServerEvent({ name: 'scene_preview_routed', userId: user.id, path: '/studio/create', metadata: { engine: engineParam, seconds: Number.isFinite(seconds) ? seconds : null, film_cost: filmCost } })
+      redirect(previaPath({ prompt: params.prompt ?? '', engine: engineParam, duration: firstParam(searchParams, 'duration'), language: firstParam(searchParams, 'language') }))
+    }
+  } catch (e) {
+    // redirect() do Next lança de propósito: deixa passar. Qualquer outra falha = o caminho de sempre.
+    if (e && typeof e === 'object' && 'digest' in e && String((e as { digest?: unknown }).digest).startsWith('NEXT_REDIRECT')) throw e
   }
 
   await writeServerEvent({

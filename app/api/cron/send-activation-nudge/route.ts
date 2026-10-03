@@ -7,6 +7,18 @@ import { LIFECYCLE_SKIP_STAMP } from '@/lib/lifecycle/skipStamp'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { getViralNowTopics } from '@/lib/viralTopics'
 import { composerUrl } from '@/lib/lifecycle/composerUrl'
+import { writeServerEvent } from '@/lib/serverEvents'
+// KINEO-LEMBRETE-COM-A-IDEIA-2026-10-03 — a ideia da pessoa na carta (modo 'dry_run' por padrão) e a recusa de quem
+// não pode gerar (region_paid_only/blocked). Régua pura; ver o cabeçalho do módulo.
+import {
+  LEMBRETE_COM_IDEIA,
+  LEMBRETE_COM_IDEIA_VERSION,
+  LEMBRETE_IDEIA_CAMPAIGN,
+  assuntoComIdeia,
+  blocoDaIdeia,
+  ideiaDoCadastro,
+  podeGerarParaLembrete,
+} from '@/lib/lifecycle/lembreteComIdeia'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = atual).
 const OFFER = getFreeTierOffer()
@@ -123,11 +135,14 @@ function episodiosProntos(): EpisodioPronto[] {
 }
 
 // KINEO-UNSUBSCRIBE-2026-07-26 — recebe userId para o rodapé de descadastro.
-function buildEmail(userId: string, episodios: EpisodioPronto[] = []) {
+function buildEmail(userId: string, episodios: EpisodioPronto[] = [], ideia: { texto: string; href: string } | null = null) {
   // KINEO-ACTIVATION-COPY-2026-07-06 — free plan gives 2 free videos, NOT
   // "30 credits" (stale copy that misled every signup). Short, founder-to-user
   // tone, one CTA to the video creator.
   const url = `${APP_URL}/generate?utm_source=lifecycle&utm_medium=email&utm_campaign=d0_activation`
+  // KINEO-LEMBRETE-COM-A-IDEIA-2026-10-03 — com a ideia da pessoa (só no modo 'live'), ela abre a carta, logo depois
+  // da saudação, com o botão para o compositor já preenchido; o resto da carta (episódios, botão genérico) segue igual.
+  const blocoIdeia = ideia ? blocoDaIdeia(ideia.texto, ideia.href) : null
   // Sem os tres episodios, as duas variaveis sao string vazia e a carta sai
   // como saia antes — a unica diferenca e que a frase deixou de listar dois
   // exemplos entre parenteses (que ninguem podia clicar).
@@ -165,7 +180,7 @@ ${episodios.map((e, i) => `${i + 1}. ${e.titulo}\n   ${e.href}`).join('\n\n')}
 
 It's the team at Kineo. You signed up a little while ago but haven't made your first video yet — so here's a nudge, because the first one is the fun part.
 
-${ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24 hours with no card.', OFFER.copy.headline)} ${exemplosText}
+${blocoIdeia ? `${blocoIdeia.text}\n` : ''}${ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24 hours with no card.', OFFER.copy.headline)} ${exemplosText}
 ${episodiosTexto}
 Make your first video here: ${url}
 
@@ -177,6 +192,7 @@ usekineo.com`
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111;line-height:1.6;max-width:480px;">
   <p style="margin:0 0 14px;">Hey,</p>
   <p style="margin:0 0 14px;">It's the team at Kineo. You signed up a little while ago but haven't made your first video yet — so here's a nudge, because the first one is the fun part.</p>
+  ${blocoIdeia ? blocoIdeia.html : ''}
   <p style="margin:0 0 14px;">${ft(OFFER, 'Create, watch, download and share up to <strong>3 watermarked Fast videos every 24 hours</strong> with no card.', OFFER.copy.headline)} ${exemplosText}</p>
   ${episodiosHtml}
   <p style="margin:0 0 24px;"><a href="${url}" style="display:inline-block;background:#2997ff;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">Make my first video →</a></p>
@@ -193,11 +209,14 @@ export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  // KINEO-LEMBRETE-COM-A-IDEIA-2026-10-03 — `?dry_run=1`: calcula a coorte, a carta e a ideia de cada um, e NÃO envia
+  // nem carimba nada (nem o sentinela). É a prévia do fundador antes de virar LEMBRETE_COM_IDEIA para 'live'.
+  const dryRun = req.nextUrl.searchParams.get('dry_run') === '1'
   // Keep every non-approved segment untouched during the Lote 1 micro-test.
-  if (!LIFECYCLE_EMAILS_ENABLED) {
+  if (!LIFECYCLE_EMAILS_ENABLED && !dryRun) {
     return NextResponse.json({ paused: true, sent: 0, reason: 'lifecycle_email_gate' })
   }
-  if (!RESEND_API_KEY) {
+  if (!RESEND_API_KEY && !dryRun) {
     console.error('[send-activation-nudge] RESEND_API_KEY not set')
     return NextResponse.json({ error: 'Email service not configured' }, { status: 500 })
   }
@@ -234,7 +253,7 @@ export async function GET(req: NextRequest) {
 
   const { data: candidates, error } = await admin
     .from('profiles')
-    .select('id, email, plan, created_at, activation_nudge_sent_at')
+    .select('id, email, plan, created_at, activation_nudge_sent_at, trial_status') // KINEO-LEMBRETE-COM-A-IDEIA-2026-10-03: trial_status
     .gte('created_at', from)
     .lte('created_at', to)
     .is('activation_nudge_sent_at', null)
@@ -256,6 +275,18 @@ export async function GET(req: NextRequest) {
   let sent = 0
   let skipped = 0
   let suppressed = 0
+  // KINEO-LEMBRETE-COM-A-IDEIA-2026-10-03 — contadores sem PII para o JSON (o que a carta com a ideia faria).
+  let semFilmePulados = 0
+  let comIdeia = 0
+  let elegiveis = 0
+  // O carimbo-sentinela de pulo; em ?dry_run=1 nada é escrito.
+  const carimbarPulo = async (id: string) => {
+    if (dryRun) return
+    await admin
+      .from('profiles')
+      .update({ activation_nudge_sent_at: LIFECYCLE_SKIP_STAMP })
+      .eq('id', id)
+  }
 
   // Calculado UMA vez por execucao: a funcao e determinstica por janela de
   // 4h, entao calcular por pessoa seria trabalho repetido — e abriria a chance
@@ -287,10 +318,17 @@ export async function GET(req: NextRequest) {
     // 24h ignora. KINEO-SKIP-STAMP-2026-08-05.
     if (!email || isTestEmail(email)) {
       skipped++
-      await admin
-        .from('profiles')
-        .update({ activation_nudge_sent_at: LIFECYCLE_SKIP_STAMP })
-        .eq('id', u.id)
+      await carimbarPulo(u.id as string)
+      continue
+    }
+
+    // KINEO-LEMBRETE-COM-A-IDEIA-2026-10-03 — quem NÃO PODE gerar (region_paid_only: fora do filme grátis por país;
+    // blocked: trial negado pelas travas) não recebe "seu primeiro filme é grátis". Sentinela: a linha sai deste job e
+    // segue elegível para os outros (a supressão de 24 h ignora o sentinela).
+    if (!podeGerarParaLembrete(u as { trial_status?: string | null })) {
+      skipped++
+      semFilmePulados++
+      await carimbarPulo(u.id as string)
       continue
     }
 
@@ -305,10 +343,7 @@ export async function GET(req: NextRequest) {
       // irreversível, então continua carimbando para nunca reconsiderar — mas
       // com o SENTINELA, porque quem acabou de gerar vídeo é exatamente quem
       // pode bater no teto minutos depois e precisa receber o e-mail do muro.
-      await admin
-        .from('profiles')
-        .update({ activation_nudge_sent_at: LIFECYCLE_SKIP_STAMP })
-        .eq('id', u.id)
+      await carimbarPulo(u.id as string)
       continue
     }
 
@@ -349,14 +384,38 @@ export async function GET(req: NextRequest) {
       .in('name', ['generate_started', 'video_generation_started'])
     if ((attempts ?? 0) > 0) {
       skipped++
-      await admin
-        .from('profiles')
-        .update({ activation_nudge_sent_at: LIFECYCLE_SKIP_STAMP })
-        .eq('id', u.id)
+      await carimbarPulo(u.id as string)
       continue
     }
 
-    const { text, html } = buildEmail(u.id, episodiosDoLote)
+    // KINEO-LEMBRETE-COM-A-IDEIA-2026-10-03 — a ideia que a pessoa digitou antes do cadastro (gravada no evento de
+    // chegada: auth_callback_completed / email_signup_completed, metadata.idea). Leitura best-effort: falhou = sem ideia,
+    // e a carta sai como sempre. 'off' nem lê.
+    elegiveis++
+    let ideia: string | null = null
+    if (LEMBRETE_COM_IDEIA !== 'off') {
+      try {
+        const { data: chegadas } = await admin
+          .from('events')
+          .select('metadata')
+          .eq('user_id', u.id)
+          .in('name', ['auth_callback_completed', 'email_signup_completed'])
+          .order('created_at', { ascending: false })
+          .limit(5)
+        ideia = ideiaDoCadastro((chegadas ?? []) as { metadata?: unknown }[])
+      } catch {
+        ideia = null
+      }
+    }
+    if (ideia) comIdeia++
+    const usarIdeia = LEMBRETE_COM_IDEIA === 'live' && ideia !== null
+    const ideiaNaCarta = usarIdeia && ideia
+      ? { texto: ideia, href: composerUrl({ base: APP_URL, campaign: LEMBRETE_IDEIA_CAMPAIGN, prompt: ideia }) }
+      : null
+    // ?dry_run=1: nada sai, nada é carimbado.
+    if (dryRun) continue
+
+    const { text, html } = buildEmail(u.id, episodiosDoLote, ideiaNaCarta)
     try {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -372,8 +431,10 @@ export async function GET(req: NextRequest) {
           // mesma licao da carta do episodio 2 (#15) — a isca e o que a pessoa
           // nunca viu, nao um lembrete de que ela nao fez nada. Sem episodios,
           // volta byte a byte para o assunto de sempre.
-          subject:
-            episodiosDoLote.length > 0
+          // KINEO-LEMBRETE-COM-A-IDEIA-2026-10-03 — com a ideia ('live'), o assunto é o filme DELA.
+          subject: ideiaNaCarta
+            ? assuntoComIdeia(ideiaNaCarta.texto)
+            : episodiosDoLote.length > 0
               ? `Your first video: "${episodiosDoLote[0].titulo}"`
               : 'Your first film is a few minutes away', // KINEO-FILME-GRATIS-15S-2026-09-29 — "Fast video" era o Kineo 1
           text,
@@ -388,6 +449,20 @@ export async function GET(req: NextRequest) {
           .from('profiles')
           .update({ activation_nudge_sent_at: new Date().toISOString() })
           .eq('id', u.id)
+        // KINEO-LEMBRETE-COM-A-IDEIA-2026-10-03 — até hoje o envio só existia no carimbo do perfil; agora há um evento
+        // por pessoa (com/sem ideia, horas após o cadastro) para medir clique e filme depois do envio. Sem PII.
+        await writeServerEvent({
+          name: 'activation_nudge_sent',
+          userId: u.id as string,
+          path: '/api/cron/send-activation-nudge',
+          metadata: {
+            version: LEMBRETE_COM_IDEIA_VERSION,
+            idea_mode: LEMBRETE_COM_IDEIA,
+            with_idea: Boolean(ideiaNaCarta),
+            had_idea: ideia !== null,
+            hours_after_signup: Math.round(((Date.now() - Date.parse(String(u.created_at))) / 3_600_000) * 10) / 10,
+          },
+        })
         console.log(`[send-activation-nudge] sent to ${email}`)
       } else {
         console.error(`[send-activation-nudge] resend failed for ${email}:`, await res.text())
@@ -404,5 +479,11 @@ export async function GET(req: NextRequest) {
     total: (candidates ?? []).length,
     suppressed_recent_lifecycle: suppressed,
     suppression_degraded: suppression.degraded,
+    // KINEO-LEMBRETE-COM-A-IDEIA-2026-10-03
+    dry_run: dryRun,
+    idea_mode: LEMBRETE_COM_IDEIA,
+    eligible: elegiveis,
+    with_idea: comIdeia,
+    skipped_cannot_generate: semFilmePulados,
   })
 }

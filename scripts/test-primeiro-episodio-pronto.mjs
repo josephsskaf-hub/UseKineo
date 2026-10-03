@@ -58,6 +58,9 @@ function montar(src, arquivoSaida) {
     .replace(/\(v: string\)/g, '(v)')
     .replace(/function buildEmail\(userId: string, episodios = \[\]\)/, 'function buildEmail(userId, episodios = [])')
     .replace(/function buildEmail\(userId: string\)/, 'function buildEmail(userId, episodios = [])')
+    // Reancorado 03/10 (KINEO-LEMBRETE-COM-A-IDEIA-2026-10-03): 3º parâmetro opcional (a ideia da pessoa, só no modo
+    // 'live'); null = a carta de sempre, que é o que este guardião compara com a produção.
+    .replace(/function buildEmail\(userId: string, episodios = \[\], ideia: \{ texto: string; href: string \} \| null = null\)/, 'function buildEmail(userId, episodios = [], ideia = null)')
   const exporta = temNovo ? 'export { buildEmail, episodiosProntos }' : 'export { buildEmail }'
   writeFileSync(join(raiz, arquivoSaida), `${CABECALHO}\n${corpo}\n${exporta}`, 'utf8')
   return arquivoSaida
@@ -131,14 +134,17 @@ check('18. o pool e funcao PURA: nenhuma chamada de modelo nesta rota', !/api\.o
 check('19. e nenhuma leitura de banco a mais para montar os episodios', !/from\('viral_now_topics'\)/.test(atual))
 check('20. episodiosProntos tem try/catch e devolve [] no erro', /function episodiosProntos\(\)[\s\S]{0,1200}?\} catch \{\n\s*return \[\]\n\s*\}/.test(atual))
 check('21. ou os TRES, ou nenhum (nao sai carta com 1 exemplo torto)', /return out\.length === 3 \? out : \[\]/.test(atual))
-check('22. o pool e calculado UMA vez por execucao, fora do laco', /const episodiosDoLote = episodiosProntos\(\)/.test(atual) && atual.indexOf('const episodiosDoLote') < atual.indexOf('buildEmail(u.id, episodiosDoLote)'))
+// Reancorado 03/10 (KINEO-LEMBRETE-COM-A-IDEIA-2026-10-03): a chamada ganhou o 3º argumento (ideiaNaCarta).
+check('22. o pool e calculado UMA vez por execucao, fora do laco', /const episodiosDoLote = episodiosProntos\(\)/.test(atual) && atual.includes('buildEmail(u.id, episodiosDoLote') && atual.indexOf('const episodiosDoLote') < atual.indexOf('buildEmail(u.id, episodiosDoLote'))
 check('23. o assunto nomeia o primeiro episodio quando ele existe', /episodiosDoLote\.length > 0\n\s*\? `Your first video: "\$\{episodiosDoLote\[0\]\.titulo\}"`/.test(atual))
 // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: "Fast video" era o Kineo 1 (fora do catálogo público; o
 // primeiro filme de conta nova é o Seedance de 15 s). O assunto de hoje continua o mesmo, só sem o nome do motor.
 check('24. e volta ao assunto de hoje quando nao existe', atual.includes("'Your first film is a few minutes away'") && !atual.includes('Your first Fast video'))
 // As travas que ja existiam na rota nao podem ter sumido.
 check('25. o portao de cron continua FAIL-CLOSED', /if \(!cronSecret\) return false/.test(atual))
-check('26. o interruptor de ciclo de vida continua respeitado', /if \(!LIFECYCLE_EMAILS_ENABLED\)/.test(atual))
+// Reancorado 03/10 (KINEO-LEMBRETE-COM-A-IDEIA-2026-10-03): o portão ganhou a exceção `?dry_run=1` (prévia que não
+// envia nem carimba); para envio real ele continua valendo igual.
+check('26. o interruptor de ciclo de vida continua respeitado', /if \(!LIFECYCLE_EMAILS_ENABLED( && !dryRun)?\)/.test(atual))
 check('27. o rodape de descadastro continua nos dois corpos', /emailFooterText\(userId\)/.test(atual) && /emailFooterHtml\(userId\)/.test(atual))
 check('28. o carimbo de PULO continua sendo o sentinela, nao now()', /LIFECYCLE_SKIP_STAMP/.test(atual))
 

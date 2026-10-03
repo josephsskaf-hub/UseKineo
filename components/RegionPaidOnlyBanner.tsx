@@ -13,12 +13,14 @@ import { trackEvent } from '@/lib/analytics'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
 import { REGION_PAID_ONLY_NOTICE, REGION_PAID_ONLY_PLANS_HREF } from '@/lib/freeFilmPolicy'
+import { PREVIA_CENAS_PUBLIC, PREVIA_COPY } from '@/lib/scenePreview' // KINEO-PREVIA-CENAS-2026-10-03
 
 export const REGION_PAID_ONLY_BANNER_VERSION = 'region_paid_only_notice_v1' as const
 
 export default function RegionPaidOnlyBanner() {
   const language = useInterfaceLanguage()
   const copy = pickInterfaceCopy(REGION_PAID_ONLY_NOTICE, language)
+  const previa = pickInterfaceCopy(PREVIA_COPY, language) // KINEO-PREVIA-CENAS-2026-10-03
   const shownRef = useRef(false)
 
   useEffect(() => {
@@ -48,6 +50,17 @@ export default function RegionPaidOnlyBanner() {
         <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{copy.title}</div>
         <div style={{ marginTop: 4, fontSize: 13, lineHeight: 1.5, color: 'rgba(255,255,255,.78)' }}>{copy.body}</div>
       </div>
+      {/* KINEO-PREVIA-CENAS-2026-10-03 — antes dos planos, a prévia grátis das cenas (o produto funcionando por centavos). */}
+      {PREVIA_CENAS_PUBLIC ? (
+        <Link
+          href="/studio/previa"
+          data-testid="region-paid-only-preview"
+          onClick={() => { void trackEvent('region_paid_only_preview_clicked', { version: REGION_PAID_ONLY_BANNER_VERSION, language }) }}
+          style={{ color: '#fff', border: '1px solid rgba(255,255,255,.55)', borderRadius: 999, padding: '10px 16px', fontSize: 14, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
+          {previa.bannerPreview}
+        </Link>
+      ) : null}
       <Link
         href={REGION_PAID_ONLY_PLANS_HREF}
         data-testid="region-paid-only-plans"

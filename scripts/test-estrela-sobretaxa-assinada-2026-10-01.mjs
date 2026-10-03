@@ -107,7 +107,9 @@ let BASE = null
 const base = (p) => { try { return git(['show', `${BASE}:${p}`]).replace(/\r\n/g, '\n') } catch { return null } }
 checa(`E24 base de comparação disponível (${BASE ?? 'nenhuma'})`, Boolean(BASE))
 if (BASE) {
-  checa('E25 /api/compose sem as linhas marcadas = base, byte a byte', semMarca(compose) === base('app/api/compose/route.ts'))
+  // Reancorado 03/10 (KINEO-GANCHO-1Q-2026-10-03): o /api/compose ganhou depois disto só linhas marcadas com o gancho escrito
+  // (3 imports + 2 comentários + 2 chamadas withHookFirstFrame, depois do logo); elas saem em memória junto com as da estrela.
+  checa('E25 /api/compose sem as linhas marcadas = base, byte a byte', semMarca(compose).split('\n').filter((l) => !l.includes('KINEO-GANCHO-1Q-2026-10-03')).join('\n') === base('app/api/compose/route.ts'))
   checa('E26 /api/generate-video-cinematic sem as linhas marcadas = base, byte a byte', semMarca(cinematic) === base('app/api/generate-video-cinematic/route.ts'))
 }
 checa('E27 a Estrela continua só com a casa (ESTRELA_PUBLIC = false)', /export const ESTRELA_PUBLIC = false\n/.test(launch))

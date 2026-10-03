@@ -157,6 +157,9 @@ const PERMITIDOS = new Set([
   // LISTAS DE CAMINHO, não links, e /generate tem que continuar nelas:
   'app/robots.ts',              // DISALLOW: o porteiro não deve ser indexado
   'lib/affiliateFirstClick.ts', // allow-list de destinos que preservam o cookie
+  // Reancorado 03/10 (KINEO-IDEIA-POUSA-NO-STUDIO-2026-10-03): LISTA DE CAMINHO, não link — a régua reconhece o
+  // porteiro como casa de máquinas para tirar dele (e do /studio/create) quem chega do login com uma ideia.
+  'lib/growth/ideiaPousaNoStudio.ts',
 ])
 const semComment = (f) => f.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n')
 const acharArquivos = (dir, acc = []) => {

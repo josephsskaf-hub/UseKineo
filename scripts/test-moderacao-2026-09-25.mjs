@@ -170,7 +170,9 @@ const imp = ['app', 'lib', 'components'].flatMap(walk).filter((p) => /from '@\/l
 // ficar ligado nos filmes — KINEO-LOGO-DA-MARCA-2026-10-01).
 // 01/10: +1 importador de servidor, app/api/ads/producao/plan/route.ts ("Produção" do Ads modera a ideia e a descrição do
 // personagem ANTES do planejador — KINEO-PRODUCAO-ADS-2026-10-01).
-ok(imp.length === 26 && imp.every((p) => !/^\s*['"]use client['"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`)
+// 03/10: +1 importador de servidor, app/api/scene-preview/route.ts (Reancorado 03/10 (KINEO-PREVIA-CENAS): a prévia das
+// cenas modera a ideia ANTES do roteiro e das imagens, e cada imagem na SAÍDA antes de guardar).
+ok(imp.length === 27 && imp.every((p) => !/^\s*['"]use client['"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`)
 
 // ── 5. upload: o tipo pelos bytes ──────────────────────────────────────────────────────────────────────
 const K = roda('lib/safety/mediaKind.ts')

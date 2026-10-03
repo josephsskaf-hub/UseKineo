@@ -9,6 +9,7 @@ import GoogleSignInButton from '@/components/GoogleSignInButton'
 import AppleSignInButton from '@/components/AppleSignInButton'
 import { trackSignupSource } from '@/lib/analytics'
 import { resolveAuthRedirect } from '@/lib/authRedirect'
+import { destinoDaIdeia } from '@/lib/growth/ideiaPousaNoStudio' // KINEO-IDEIA-POUSA-NO-STUDIO-2026-10-03
 import { trackCheckoutAuthStep } from '@/lib/authAnalytics'
 import {
   readBulkCheckoutAuthContext,
@@ -143,7 +144,9 @@ export default function LoginPage() {
 
     // Hard navigate so the Next.js middleware sees the freshly-set Supabase
     // auth cookies on the next request.
-    window.location.assign(destination)
+    // KINEO-IDEIA-POUSA-NO-STUDIO-2026-10-03 — mesma régua do /auth/callback: destino com ideia vira o Studio
+    // preenchido (sem auto-start); todo o resto (checkout, retomada, sem ideia) segue idêntico.
+    window.location.assign(destinoDaIdeia(destination))
   }
 
   // ONDA3 #15 (14/08) — enquanto checa a sessao, um palco neutro (mesmo fundo,
