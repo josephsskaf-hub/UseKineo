@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { normalizeInternalRedirect } from '@/lib/authRedirect'
+import { trechoDaIdeia } from '@/lib/growth/ideiaPousaNoStudio' // KINEO-LEMBRETE-COM-A-IDEIA-2026-10-03
 import { writeServerEvent } from '@/lib/serverEvents'
 import {
   AFFILIATE_ATTRIBUTION_COOKIE_NAMES,
@@ -119,6 +120,8 @@ export async function POST(req: NextRequest) {
       metadata: {
         destination_path: destinationUrl.pathname.slice(0, 128),
         has_prompt: destinationUrl.searchParams.has('prompt'),
+        // KINEO-LEMBRETE-COM-A-IDEIA-2026-10-03 — a ideia (≤120 caracteres) que o lembrete de ~1 h cita. Sem ideia, null.
+        idea: trechoDaIdeia(destination),
         is_recent_signup: isRecentSignup,
         intent_campaign: intentCampaign,
         // KINEO-TRIAL-GRANT-EMAIL-2026-09-04 — a medição sai de graça: este

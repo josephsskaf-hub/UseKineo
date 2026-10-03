@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { resolveAuthRedirect } from '@/lib/authRedirect'
-import { destinoDaIdeia, ideiaFoiParaOStudio } from '@/lib/growth/ideiaPousaNoStudio'
+import { destinoDaIdeia, ideiaFoiParaOStudio, trechoDaIdeia } from '@/lib/growth/ideiaPousaNoStudio'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { maybeActivateReverseTrial } from '@/lib/reverseTrial'
 import { paisDoRequest } from '@/lib/freeFilmPolicy'
@@ -117,6 +117,9 @@ export async function GET(request: Request) {
           has_prompt: destinationUrl.searchParams.has('prompt'),
           // KINEO-IDEIA-POUSA-NO-STUDIO-2026-10-03 — a régua trocou a casa de máquinas pelo Studio?
           idea_to_studio: ideiaFoiParaOStudio(destinoAntesDaIdeia, destinationPath),
+          // KINEO-LEMBRETE-COM-A-IDEIA-2026-10-03 — a única cópia server-side da ideia de quem ainda não gerou
+          // (≤120 caracteres): o lembrete de ~1 h (send-activation-nudge) a cita. Sem ideia, null.
+          idea: trechoDaIdeia(destinoAntesDaIdeia),
           intent_campaign: intentCampaign,
           provider: typeof data.user?.app_metadata?.provider === 'string'
             ? data.user.app_metadata.provider.slice(0, 32)
