@@ -159,7 +159,7 @@ async function problems(S) {
   if (r3.creditsRemoved !== 0) p.push('quem comprou no meio perdeu crédito')
   const r4 = C.planCourtesyExpiry(grant, { id: 'u', plan: 'basic', video_credits: 150, has_paid: true }, NOW + 1, 'remove_courtesy_leftover')
   if (r4.action !== 'supersede') p.push('quem assinou no meio foi rebaixado')
-  if (C.COURTESY_LEFTOVER_RULE !== 'keep') p.push('regra do saldo mudou sem decisão do fundador (esperado keep)')
+  if (C.COURTESY_LEFTOVER_RULE !== 'remove_courtesy_leftover') p.push('regra do saldo diverge da decisão do fundador de 05/10 (esperado remove_courtesy_leftover)')
 
   // (4) MRR / pagantes / trial de $1
   const live = { id: 'c1', plan: 'creator_trial', email: 'c@x.test' }

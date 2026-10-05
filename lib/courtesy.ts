@@ -31,7 +31,7 @@ export const COURTESY_EXPIRE_MAX_PER_RUN = 50
 
 export type CourtesyLeftoverRule = 'keep' | 'remove_courtesy_leftover'
 /** ⚠ DECISÃO DO FUNDADOR — ver o topo. Recomendação: 'remove_courtesy_leftover'. */
-export const COURTESY_LEFTOVER_RULE: CourtesyLeftoverRule = 'keep'
+export const COURTESY_LEFTOVER_RULE: CourtesyLeftoverRule = 'remove_courtesy_leftover' // fundador aprovou 05/10 (decisão I)
 
 export type CourtesySource = 'admin' | 'partner_pack'
 export type CourtesyStatus = 'active' | 'expired' | 'superseded' | 'revoked'

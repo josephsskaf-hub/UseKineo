@@ -53,7 +53,7 @@ function problems(M) {
   if (b.html.includes('<b>x</b>') || !b.html.includes('&lt;b&gt;')) p.push('bloco HTML sem escape')
   if (/credit|\$|free|grátis|trial/i.test(b.text + b.html)) p.push('bloco da ideia promete crédito/preço/grátis')
   if (!b.text.includes('https://www.usekineo.com/studio/create?prompt=x')) p.push('bloco sem o link')
-  if (M.LEMBRETE_COM_IDEIA !== 'dry_run') p.push(`modo da ideia nasceu '${M.LEMBRETE_COM_IDEIA}', não 'dry_run'`)
+  if (M.LEMBRETE_COM_IDEIA !== 'live') p.push(`modo da ideia é '${M.LEMBRETE_COM_IDEIA}', não 'live' (decisão G do fundador, 05/10)`)
   return p
 }
 
@@ -99,7 +99,7 @@ const mut = (name, from, to) => {
   try { caught = problems(load(SRC.replace(from, to))).length > 0 } catch { caught = true }
   ok(caught, `mutante pego: ${name}`)
 }
-mut("modo nasce 'live'", `export const LEMBRETE_COM_IDEIA: LembreteComIdeiaModo = 'dry_run'`, `export const LEMBRETE_COM_IDEIA: LembreteComIdeiaModo = 'live'`)
+mut("modo volta a 'dry_run'", `LembreteComIdeiaModo = 'live'`, `LembreteComIdeiaModo = 'dry_run'`)
 mut('region_paid_only volta a receber', `['region_paid_only', 'blocked']`, `['blocked']`)
 mut('filtro de instrução some', `if (INSTRUCAO.test(t)) return null`, '')
 mut('a ideia MAIS ANTIGA vence', `for (const l of linhas ?? []) {`, `for (const l of [...(linhas ?? [])].reverse()) {`)

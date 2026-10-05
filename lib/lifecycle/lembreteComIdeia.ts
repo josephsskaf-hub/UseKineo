@@ -24,7 +24,7 @@
 
 export type LembreteComIdeiaModo = 'off' | 'dry_run' | 'live'
 
-export const LEMBRETE_COM_IDEIA: LembreteComIdeiaModo = 'dry_run'
+export const LEMBRETE_COM_IDEIA: LembreteComIdeiaModo = 'live' // fundador aprovou 05/10 (decisão G); a medição SQL #11 só existe depois do envio real
 
 export const LEMBRETE_COM_IDEIA_VERSION = 'lembrete_com_ideia_2026_10_03' as const
 
