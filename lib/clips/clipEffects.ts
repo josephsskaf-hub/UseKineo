@@ -68,7 +68,7 @@ export const CLIP_EFFECTS: readonly ClipEffect[] = [
     prompt: `The person in the photo comes to life: natural breathing, a soft genuine smile, blinking, a gentle head turn toward the camera, hair moving slightly. Keep the exact face, outfit and background. Subtle handheld camera. ${NO_TEXT}`,
     filmIdea: 'The story behind this photo — who this person is and the moment it was taken',
     person: true,
-    preview: { video: '/previews/216cbed2-b95f-47e7-98bc-e4c3fc3010a9.mp4', note: 'House film: a face brought to life (Kling 3)' },
+    preview: { video: '/previews/216cbed2-b95f-47e7-98bc-e4c3fc3010a9.mp4', poster: '/posters/216cbed2-b95f-47e7-98bc-e4c3fc3010a9.webp', note: 'House film: a face brought to life (Kling 3)' }, // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05: capa = quadro do próprio clipe (sem caixa preta enquanto carrega)
   },
   {
     key: 'product_360',
@@ -79,7 +79,9 @@ export const CLIP_EFFECTS: readonly ClipEffect[] = [
     prompt: `The product from the photo rotates a full 360 degrees on a turntable in a clean studio, soft key light, glossy reflections, smooth constant speed, product perfectly centered and unchanged in shape and color. ${NO_TEXT}`,
     filmIdea: 'Why this product is different — a 60-second ad that shows what it does',
     person: false,
-    preview: { video: '/previews/promo-ads-3var-1.mp4', poster: '/posters/promo-ads-3var-1.webp', note: 'House ad made from product photos (Kling 2.5)' },
+    // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — a prévia antiga eram os 3 anúncios da garrafa (promo-ads-3var-1): nada girava.
+    // Agora é um clipe FEITO COM ESTE EFEITO (pedido effect=product_360, clipe e6925ca9) a partir de uma foto de produto gerada.
+    preview: { video: '/previews/efeito-product_360.mp4', poster: '/posters/efeito-product_360.webp', note: 'Made with this effect from an AI-generated product photo (Kling 2.5)' },
   },
   {
     key: 'zoom_out_earth',
@@ -101,7 +103,7 @@ export const CLIP_EFFECTS: readonly ClipEffect[] = [
     prompt: `Turn the photo into a dramatic cinematic slow-motion shot: everything moves at 120 fps slow motion, dust and light particles floating, shallow depth of field, gentle dolly-in, movie color grade. Keep the scene and people unchanged. ${NO_TEXT}`,
     filmIdea: 'The moment in this photo as an epic 60-second story',
     person: true,
-    preview: { video: '/previews/c6bdbcfb-ffc2-48e1-be15-e26fb048fe9a.mp4', note: 'House film in cinematic slow motion (Kling 2.5)' },
+    preview: { video: '/previews/c6bdbcfb-ffc2-48e1-be15-e26fb048fe9a.mp4', poster: '/posters/c6bdbcfb-ffc2-48e1-be15-e26fb048fe9a.webp', note: 'House film in cinematic slow motion (Kling 2.5)' }, // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05: capa do próprio clipe
   },
   {
     key: 'restore_old_photo',
@@ -137,7 +139,10 @@ export const CLIP_EFFECTS: readonly ClipEffect[] = [
     prompt: `Keep the foreground subject exactly as in the photo while a dramatic storm builds behind: dark rolling clouds, lightning strikes on the horizon, wind moving hair and clothes, cinematic lighting flashes. ${NO_TEXT}`,
     filmIdea: 'The night the storm came — a 60-second dramatic story',
     person: false,
-    preview: { video: '/previews/4b12925e-avalanche.mp4', note: 'House film: storm and lightning (Kling 3)' },
+    // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — a prévia antiga (4b12925e-avalanche.mp4) era um mar calmo visto de cima, sem
+    // tempestade nenhuma: vitrine mentindo. Agora é o fim do MESMO filme da casa (Maracaibo, Kling 3, 26,8→30 s do master
+    // enhanced): a pessoa em primeiro plano e o raio caindo atrás dela — exatamente o que o efeito promete.
+    preview: { video: '/previews/4b12925e-raio.mp4', poster: '/posters/4b12925e-raio.webp', note: 'House film: lightning striking behind a person on a lakeshore (Kling 3)' },
   },
 ]
 

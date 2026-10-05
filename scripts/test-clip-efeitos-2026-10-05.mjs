@@ -321,7 +321,7 @@ const mutants = [
   ['M7 clipe de texto reconhecido como efeito', FX, "  if (row.mode !== 'image') return null\n", ''],
   ['M8 clip_effect_ready fora do "quem moveu a linha"', FLOW, "    if (moved) {\n      await deps.event('clip_delivered'", "    if (true) {\n      await deps.event('clip_delivered'"],
   ['M9 clip_effect_ready nunca gravado', FLOW, "      if (effect) await deps.event('clip_effect_ready'", "      if (false) await deps.event('clip_effect_ready'"],
-  ['M10 prévia aponta arquivo inexistente', FX, "'/previews/4b12925e-avalanche.mp4'", "'/previews/nao-existe.mp4'"],
+  ['M10 prévia aponta arquivo inexistente', FX, "'/previews/4b12925e-raio.mp4'", "'/previews/nao-existe.mp4'"], // reancorado 05/10 (KINEO-HOME-CLIPES-EM-CIMA): prévia da tempestade virou o corte honesto do raio
   ['M11 upsell dispara o render sozinho', FX, "duration: '60', intent_campaign:", "duration: '60', autoanalyze: '1', intent_campaign:"],
 ]
 for (const [label, file, from, to] of mutants) {

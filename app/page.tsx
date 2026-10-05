@@ -12,7 +12,6 @@ import { BRAND_ALIASES, BRAND_NAME, BRAND_URL } from '@/lib/brandIdentity'
 // #faq). Antes saía do layout em 187 páginas; ver components/StructuredData.tsx.
 import { FaqStructuredData } from '@/components/StructuredData'
 // KINEO-HOME-CLIPS-FIRST-2026-10-05 — A/B da home clips-first (lib/growth/homeClipsFirst.ts; nasce 'off').
-import ClipsFirstHome from '@/components/home/ClipsFirstHome'
 import HomeVariantExposure from '@/components/home/HomeVariantExposure'
 import { resolveHomeVariant } from '@/lib/growth/homeClipsFirstServer'
 import { HOME_PREVIEW_PARAM } from '@/lib/growth/homeClipsFirst'
@@ -156,18 +155,9 @@ export default async function HomePage({
       surface={user && (firstSearchParam(searchParams, 'welcome') === '1' || firstSearchParam(searchParams, 'signup') === '1') ? 'post_signup' : 'home'}
     />
   ) : null
-  if (homeChoice.variant === 'clips_first') {
-    return (
-      <>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(BRAND_JSON_LD) }}
-        />
-        <ClipsFirstHome signedIn={Boolean(user)} resume={resume} preview={homeChoice.preview} />
-        {homeExposure}
-      </>
-    )
-  }
+  // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — fundador: o braço clips_first passa a ser a MESMA home (KineoLanding, menu
+  // completo) com Clipes no topo e os filmes narrados logo embaixo; a página separada (ClipsFirstHome) saiu do ar.
+  const clipsFirst = homeChoice.variant === 'clips_first'
 
   const [engineWall, trending] = await Promise.all([getEngineHero(), getTrending()])
   // The founder-approved post-signup destination is the engine showroom. Keep
@@ -197,6 +187,7 @@ export default async function HomePage({
         resume={resume}
         initialAcquisitionSource={initialAcquisitionSource}
         showWelcomeGoalRouter={showWelcomeGoalRouter}
+        clipsFirst={clipsFirst}
       />
       {homeExposure}
     </>

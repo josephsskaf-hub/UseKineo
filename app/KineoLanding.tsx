@@ -33,6 +33,8 @@ import HomeFeaturedFilms from '@/components/HomeFeaturedFilms'
 import TrendingRow from '@/components/TrendingRow'
 // KINEO-PROMO-CARDS-2026-09-30 — fileira de cards grandes logo abaixo do menu (Kineo for Claude + Clips).
 import PromoCards from '@/components/PromoCards'
+import HomeClipsStrip from '@/components/home/HomeClipsStrip' // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05
+import { clipsFirstFilmHref } from '@/lib/growth/homeClipsFirst'
 import { promoCardsFor } from '@/lib/ui/promoCards'
 // KINEO-VITRINE-MOEDA-2026-08-19 — LandingStarterPrice cobria SÓ o Starter, e
 // por isso a home mostrava R$24,90 (regional) ao lado de $19.90 e $39.90
@@ -91,6 +93,9 @@ type Props = {
   resume?: { title: string; episode: number; videoId: string } | null
   initialAcquisitionSource?: HomeReferralBridgeSource | null
   showWelcomeGoalRouter?: boolean
+  // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — braço clips_first do A/B: a MESMA home, com Clipes no topo (menu e página)
+  // e os filmes narrados logo embaixo. Desligado = a home de sempre, byte a byte no que o visitante vê.
+  clipsFirst?: boolean
 }
 
 const KLP_CSS = `
@@ -184,6 +189,7 @@ html{scroll-behavior:smooth}
 .klp .nd-mega{min-width:500px}
 .klp .nd-mega .nm-col{display:flex;flex-direction:column;position:relative;z-index:1;min-width:235px;margin-top:12px;padding:8px 5px 8px}
 .klp .nd-mega .nm-col+.nm-col{border-left:1px solid var(--line)}
+.klp .nd-mega .nm-h-next{margin-top:8px;padding-top:13px;border-top:1px solid var(--line)}
 .klp .nd-mega .nm-h{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt2);font-weight:700;padding:6px 15px 7px;margin:0 5px}
 .klp .nd-mega .nm-col a{margin:0 5px;line-height:1.25;display:flex;align-items:center;gap:11px}
 .klp .nm-ic{flex-shrink:0;width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);font-weight:800;font-size:14px;color:#e8eaee;letter-spacing:-.02em}
@@ -753,6 +759,7 @@ export default function KineoLanding({
   engineWall = [],
   trending = [],
   resume = null,
+  clipsFirst = false,
 }: Props & { engineWall?: WallVideo[]; trending?: WallVideo[] }) {
   const isSignedIn = Boolean(initialUser)
   const referralBridge = !isSignedIn && initialAcquisitionSource
@@ -765,6 +772,8 @@ export default function KineoLanding({
   // Avatar nesta página (mega-menu, menu mobile e tile do bento). Medido: 0 cliques no card do /studio e o último filme de apresentador em 15/07.
   // Contas da casa (isInternalEmail) continuam vendo tudo; o /avatar segue no ar por link direto.
   const showAvatar = avatarVisible(initialEmail)
+  // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — Clips no menu (desktop e celular) segue o interruptor de sempre do /clips.
+  const showClips = clipsVisible(initialEmail)
   // KINEO-KINEO1-FORA-2026-09-29 — fundador (29/09): "quero tirar o kineo 1 do jogo, ele estraga a entrada". Mesmo
   // desenho do showAvatar: um booleano decide as 3 portas do Kineo 1 nesta página (mega-menu, tile do bento, chip
   // final). A vitrine é pública — aqui só a casa (isInternalEmail) continua vendo; o legado de quem já paga e usa é
@@ -825,10 +834,22 @@ export default function KineoLanding({
             {/* KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 — decisão do fundador (25/09, "vídeo com submenu, podemos dar merge"):
                 topo = Vídeo (com submenu) · Imagem · Para empresas · Preços + Entrar. Exemplos mora dentro de Vídeo.
                 data-nav-item/surface/area = contrato de lib/navTelemetry (nav_item_clicked). */}
+            {/* KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — fundador: "deixar o menu mais bonito, do mesmo jeito que estava... os
+                clips em cima, os filmes narrados embaixo, para a pessoa entender que ela pode escolher entre as duas
+                coisas". O topo é o de antes nos DOIS braços do A/B (Video · Images · Spaces · Ads · MCP · Pricing); dentro
+                de Video a 1ª coluna abre com os Clipes e logo embaixo vêm os filmes narrados (os motores, que antes se
+                chamavam só "Engines"). O item Clips saiu da coluna Create para não aparecer duas vezes. */}
             <PublicNavDropdown item="video" label="Video">
               <span className="nd-menu nd-mega">
                 <span className="nm-col">
-                  <span className="nm-h"><UiLabel>Engines</UiLabel></span>
+                  {showClips && (
+                    <>
+                      <span className="nm-h"><UiLabel>Clips</UiLabel></span>
+                      <NavEngineItem href="/clips?upload=1" name="Photo to clip" desc="One-click photo effects" icon="✦" preview="/previews/efeito-product_360.mp4" />
+                      <NavEngineItem href="/clips" name="Text to clip" desc="One line, a 5–15 s scene" icon="✎" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" />
+                    </>
+                  )}
+                  <span className={showClips ? 'nm-h nm-h-next' : 'nm-h'}><UiLabel>{showClips ? 'Narrated films' : 'Engines'}</UiLabel></span>
                   {/* KINEO-MENU-ICONES-2026-08-17 (fundador, ref. Higgsfield):
                       SEM preco no menu (atrito antes da hora — preco mora na
                       pagina) + caixinha com monograma/glifo de cada produto. */}
@@ -859,8 +880,8 @@ export default function KineoLanding({
                 <span className="nm-col">
                   <span className="nm-h"><UiLabel>Create</UiLabel></span>
                   <Link href="/studio"><span className="nm-ic">🎬</span><span className="nm-tx"><b><UiLabel>Studio</UiLabel></b><i><UiLabel>Every control, one screen</UiLabel></i></span></Link>
-                  {/* KINEO-CLIPES-2026-09-29 — par do Sidebar/MobileNav: clipe avulso de 5–15 s. */}
-                  {clipsVisible(initialEmail) && <Link href="/clips"><span className="nm-ic">🎞</span><span className="nm-tx"><b><UiLabel>Clips</UiLabel></b><i><UiLabel>One scene, 5–15 s, text or photo</UiLabel></i></span></Link>}
+                  {/* KINEO-CLIPES-2026-09-29 — par do Sidebar/MobileNav: clipe avulso de 5–15 s. KINEO-HOME-CLIPES-EM-CIMA-2026-10-05:
+                      o Clips subiu para o grupo próprio no topo da 1ª coluna ("Photo to clip" / "Text to clip"). */}
                   <Link href="/examples" data-nav-item="examples"><span className="nm-ic">▦</span><span className="nm-tx"><b><UiLabel>Examples</UiLabel></b><i><UiLabel>Real renders, every engine</UiLabel></i></span></Link>
                 </span>
                 {/* KINEO-NAV-4-ITENS-2026-09-25 — coluna secundaria: so texto,
@@ -903,8 +924,10 @@ export default function KineoLanding({
             <label htmlFor="nav-toggle" id="mobile-nav-menu" className="nav-mobile-menu" data-nav-surface="mobile" data-nav-area="public">
               {/* KINEO-NAV-4-ITENS-2026-09-25 — par do topo: os 4 itens + Log in
                   ou Dashboard; o resto vai para "More tools", secundario. */}
-              <Link href="/studio" data-nav-item="video"><UiLabel>Video</UiLabel></Link>
-              {clipsVisible(initialEmail) && <Link href="/clips"><UiLabel>Clips</UiLabel></Link>}
+              {/* KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — par do mega-menu: Clipes em cima, filmes narrados embaixo. */}
+              {showClips
+                ? <><Link href="/clips" data-nav-item="more:clips"><UiLabel>Clips</UiLabel></Link><Link href="/studio" data-nav-item="video"><UiLabel>Narrated films</UiLabel></Link></>
+                : <Link href="/studio" data-nav-item="video"><UiLabel>Video</UiLabel></Link>}
               <Link href="/images" data-nav-item="image"><UiLabel>Images</UiLabel></Link>
               <span className="nav-mobile-engines">
                 {IMG_ENGINES.map(engine => <Link key={engine.key} href={`/images?engine=${engine.key}`} data-nav-item="image"><span className="nm-ic" aria-hidden="true">{engine.icon}</span>{engine.name}</Link>)}
@@ -933,11 +956,24 @@ export default function KineoLanding({
       {/* KINEO-PROMO-CARDS-2026-09-30 — fundador (30/09): "quero esses cards no Kineo também, com essas edições legais".
           Fileira logo abaixo do menu; entra ANTES do hero sem tirar nada da curadoria (hero, motores, engineWall intactos).
           O card do Clips segue o mesmo interruptor do mega-menu (clipsVisible). */}
-      <PromoCards cards={promoCardsFor({ clips: clipsVisible(initialEmail) })} />
+      {/* KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — braço clips_first: Clipes no topo; os cards promocionais descem para
+          logo depois dos filmes narrados (a ordem pedida pelo fundador: clipes em cima, filmes narrados logo embaixo). */}
+      {clipsFirst
+        ? <HomeClipsStrip signedIn={isSignedIn} />
+        : <PromoCards cards={promoCardsFor({ clips: clipsVisible(initialEmail) })} />}
 
       <header className="hero">
         <div className="glow" />
         <div className="wrap">
+          {clipsFirst && (
+            <>
+              <div className="home-business-heading" style={{ marginBottom: 6 }}>
+                <h2><UiLabel>Narrated films</UiLabel></h2>
+                <Link href={clipsFirstFilmHref(isSignedIn)} className="btn btn-ghost" data-home-cta="open_studio"><UiLabel>Open Studio</UiLabel> ↗</Link>
+              </div>
+              <p style={{ margin: '0 0 16px', color: 'var(--muted)', fontSize: 15, maxWidth: 640 }}><UiLabel>Type an idea — Kineo writes, narrates, scores and edits the whole film.</UiLabel></p>
+            </>
+          )}
           {/* Fundador 30/09: "já quero tirar make room for your next big idea, create video… aproximar os dois vídeos". */}
           <h1 style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}><UiLabel>Make room for</UiLabel> <UiLabel>your next big idea.</UiLabel></h1>
           <div id="samples" aria-label="Films made with Kineo">
@@ -945,6 +981,9 @@ export default function KineoLanding({
           </div>
         </div>
       </header>
+
+      {/* No braço clips_first o cartão "Clips" dos promocionais sairia repetido (a faixa de Clipes já abre a página). */}
+      {clipsFirst && <PromoCards cards={promoCardsFor({ clips: false })} />}
 
       {/* The post-signup route intentionally lands on this engine showroom.
           The router comes AFTER the founder-curated four-video hero, so it

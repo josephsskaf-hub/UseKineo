@@ -10,7 +10,8 @@
 //       home sem abrir os dois (interruptor que "não faz nada" em silêncio);
 //   (7) contrato dos links: logado → /clips?effect=<key>; deslogado → /signup?redirect=<…> que o normalizador do
 //       cadastro (lib/authRedirect.ts, executado) devolve igual; "Upload a photo" e o botão do filme idem;
-//   (8) a home atual intacta com 'off': troca num único ponto do app/page.tsx, sinal só com expose, KineoLanding e
+//   (8) a home atual intacta com 'off': troca num único ponto do app/page.tsx, sinal só com expose, a KineoLanding
+//       recebe só o booleano clipsFirst (reancorado 05/10: a variante virou a mesma home com Clipes no topo),
 //       lib/engineWall.ts sem nenhuma referência à variante, homepage_view da home atual segue 'kineo_landing_v3';
 //   (9) evento de servidor: home_variant_exposed em SERVER_ONLY_EVENTS; a rota recalcula a variante (corpo não escolhe);
 //  (10) a variante: preço de cada efeito = clipCreditCost(engine, seconds) EXECUTADO; prévia real só onde o catálogo tem
@@ -218,15 +219,27 @@ ok(real.length === 0, '(1–7) atribuição, 50/50, off/all/robô, precedência,
 console.log(`       (amostra: ${(share(M, uuids(10000)) * 100).toFixed(2)}% de 10.000 UUIDs em clips_first)`)
 
 // ── (8) home atual intacta com 'off'
+// REANCORADO 05/10 (KINEO-HOME-CLIPES-EM-CIMA-2026-10-05) — fundador: a página separada da variante (ClipsFirstHome, com o
+// bloco "Turn any photo into a video in one click" e menu reduzido) saiu do ar; o braço clips_first passou a ser a MESMA
+// home (KineoLanding, menu completo) com a faixa de Clipes no topo e os filmes narrados logo embaixo. Contrato novo: um
+// único sorteio no page.tsx, um booleano derivado SÓ de homeChoice.variant, e a KineoLanding recebe só esse booleano
+// (padrão false = home de controle byte a byte no corpo), sem sorteio próprio.
 const page = read('app/page.tsx')
-ok((page.match(/resolveHomeVariant\(/g) || []).length === 1 && (page.match(/<ClipsFirstHome\b/g) || []).length === 1, '(8a) troca da home em UM ponto do app/page.tsx')
-ok(/if \(homeChoice\.variant === 'clips_first'\) \{/.test(page), '(8b) a variante só renderiza com homeChoice.variant === clips_first')
+ok((page.match(/resolveHomeVariant\(/g) || []).length === 1 && !/<ClipsFirstHome\b/.test(page) && (page.match(/clipsFirst=\{clipsFirst\}/g) || []).length === 1, '(8a) troca da home em UM ponto do app/page.tsx (um sorteio, um booleano para a KineoLanding)')
+ok(/const clipsFirst = homeChoice\.variant === 'clips_first'\n/.test(page), '(8b) a variante só aparece com homeChoice.variant === clips_first')
 ok(/const homeExposure = homeChoice\.expose \? \(/.test(page), '(8c) o sinal de exposição só monta com expose (nunca com off/robô/prévia)')
-ok(/<KineoLanding\n        initialUser=\{user \? \{ id: user\.id \} : null\}\n        engineWall=\{engineWall\}\n        trending=\{trending\}\n        initialEmail=\{email\}\n        initialIsPro=\{isPro\}\n        resume=\{resume\}\n        initialAcquisitionSource=\{initialAcquisitionSource\}\n        showWelcomeGoalRouter=\{showWelcomeGoalRouter\}\n      \/>\n      \{homeExposure\}\n/.test(page), '(8d) a chamada da home atual segue com as mesmas props (só o sinal nulo ao lado)')
-ok(page.indexOf('<FaqStructuredData />') > page.indexOf("homeChoice.variant === 'clips_first'"), '(8e) FAQPage continua só na home atual (na variante as 13 perguntas não são texto visível)')
+ok(/<KineoLanding\n        initialUser=\{user \? \{ id: user\.id \} : null\}\n        engineWall=\{engineWall\}\n        trending=\{trending\}\n        initialEmail=\{email\}\n        initialIsPro=\{isPro\}\n        resume=\{resume\}\n        initialAcquisitionSource=\{initialAcquisitionSource\}\n        showWelcomeGoalRouter=\{showWelcomeGoalRouter\}\n        clipsFirst=\{clipsFirst\}\n      \/>\n      \{homeExposure\}\n/.test(page), '(8d) a chamada da home segue com as mesmas props + o booleano clipsFirst (e o sinal nulo ao lado)')
+ok(/\n      <FaqStructuredData \/>\n      <KineoLanding\n/.test(page) && !/if \(homeChoice\.variant === 'clips_first'\) \{/.test(page), '(8e) FAQPage nas duas variantes: a variante é a mesma home, com as 13 perguntas visíveis')
 const landing = read('app/KineoLanding.tsx')
 const wall = read('lib/engineWall.ts')
-ok(!/ClipsFirst|homeClipsFirst|home_variant/.test(landing) && !/ClipsFirst|homeClipsFirst|home_variant/.test(wall), '(8f) app/KineoLanding.tsx e lib/engineWall.ts não sabem da variante')
+ok(!/ClipsFirst|homeClipsFirst|home_variant/.test(wall) && !/resolveHomeVariant|assignHomeVariant|homeClipsFirstServer|HOME_CLIPS_FIRST|home_variant/.test(landing) && /\n  clipsFirst = false,\n/.test(landing), '(8f) lib/engineWall.ts não sabe da variante; a KineoLanding só recebe o booleano (padrão false), sem sorteio próprio')
+// O que o fundador pediu, preso aqui para ninguém desfazer sem querer:
+ok(/\{clipsFirst\n        \? <HomeClipsStrip signedIn=\{isSignedIn\} \/>\n        : <PromoCards cards=\{promoCardsFor\(\{ clips: clipsVisible\(initialEmail\) \}\)\} \/>\}/.test(landing), '(8j) braço de controle intacto: a fileira de cards antiga abre a página; no clips_first a faixa de Clipes toma o lugar dela')
+const strip = read('components/home/HomeClipsStrip.tsx')
+ok(load(effectsSrc, 'lib/clips').CLIP_EFFECTS.filter((e) => e.preview).length + 1 === 8 && strip.includes('.filter((c) => c.effect.preview)') && strip.includes('data-clip-effect="text"'), '(8k) a faixa tem 8 cartões: os efeitos com prévia + o clipe a partir de texto ("nem que a gente repita um")')
+ok(!/Turn any photo into a video/.test(strip) && !/Turn any photo into a video/.test(landing), '(8l) o bloco "Turn any photo into a video in one click" não volta para a home')
+ok(landing.includes('href={clipsFirstFilmHref(isSignedIn)}') && landing.indexOf('href={clipsFirstFilmHref(isSignedIn)}') > landing.indexOf('<header className="hero">'), '(8m) o botão dos filmes narrados da variante leva a campanha que a SQL do A/B lê (home_clips_first_film)')
+ok(/<PublicNavDropdown item="video" label="Video">/.test(landing) && ['/spaces', '/ads/new', '/claude-connector', '/pricing'].every((h) => landing.includes(`<Link href="${h}"`)) && !/data-nav-item="clips"/.test(landing), '(8n) menu do topo como era (Video · Images · Spaces · Ads · MCP · Pricing), sem item solto de Clipes')
 const lvt = read('components/LandingViewTracker.tsx')
 ok(/variant = 'kineo_landing_v3'/.test(lvt) && /<LandingViewTracker signedIn=\{Boolean\(initialUser\)\} \/>/.test(landing), "(8g) homepage_view da home atual continua 'kineo_landing_v3'")
 const mw = read('middleware.ts')
