@@ -243,6 +243,14 @@ const SERVER_ONLY_EVENTS = new Set([
   'scene_preview_routed',
   // KINEO-BRASIL-VOLTA-2026-10-03 — escrito SÓ por /api/admin/br-recredit (com ?confirm=APPLY): é o rastro do crédito.
   'admin_br_trial_recredited',
+  // KINEO-CLIP-EFEITOS-2026-10-05 — efeitos de 1 clique do /clips (lib/clips/clipEffects.ts CLIP_EFFECT_EVENTS): pedido
+  // aceito (/api/clips), clipe pronto (settleClip, só quem move a linha) e clique no upsell (/api/clips/effect-upsell).
+  'clip_effect_chosen',
+  'clip_effect_ready',
+  'clip_effect_film_upsell_clicked',
+  // KINEO-HOME-CLIPS-FIRST-2026-10-05 — escrito SÓ por /api/home-variant (variante recalculada no servidor pelo user_id ou
+  // pelo cookie httpOnly kineo_vid). É o denominador do A/B da home: se o navegador pudesse cunhá-lo, o placar mentiria.
+  'home_variant_exposed',
 ])
 
 export async function POST(req: NextRequest) {

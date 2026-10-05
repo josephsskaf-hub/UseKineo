@@ -42,6 +42,8 @@ import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 import PricingBusinessPathTelemetry from '@/components/PricingBusinessPathTelemetry'
 import PricingAdsBlock from '@/components/pricing/PricingAdsBlock' // KINEO-FLUXO-NOVO-2026-09-25 — blocos de compra única abaixo dos planos (peça D)
 import PricingCreditsBlock from '@/components/pricing/PricingCreditsBlock' // KINEO-FLUXO-NOVO-2026-09-25
+import TwoProductsPricing from '@/components/pricing/TwoProductsPricing' // KINEO-PRECOS-DOIS-PRODUTOS-2026-10-05
+import { PRECOS_DOIS_PRODUTOS_PUBLIC } from '@/lib/pricingTwoProducts' // KINEO-PRECOS-DOIS-PRODUTOS-2026-10-05 (desligado)
 import { PRICING_BUSINESS_PATH_TARGET_ID } from '@/lib/growth/pricingBusinessPath'
 import PricingSavedCheckout from '@/components/PricingSavedCheckout'
 import MrrPricingProof from '@/components/growth/MrrPricingProof'
@@ -1555,6 +1557,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
 
         {PRICING_SHOW_ADS_BLOCK ? <PricingAdsBlock /> : null}
         <PricingCreditsBlock />
+        {PRECOS_DOIS_PRODUTOS_PUBLIC ? <TwoProductsPricing /> : null}
 
         {/* ══════════════════════════════════════════════════════════════
             KINEO-AUTOPILOT-299-2026-07-26 — DONE-FOR-YOU TIER.

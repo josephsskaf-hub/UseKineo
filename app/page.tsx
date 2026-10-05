@@ -11,6 +11,11 @@ import { BRAND_ALIASES, BRAND_NAME, BRAND_URL } from '@/lib/brandIdentity'
 // servido aqui, a única página onde as 13 são texto visível (KineoLanding
 // #faq). Antes saía do layout em 187 páginas; ver components/StructuredData.tsx.
 import { FaqStructuredData } from '@/components/StructuredData'
+// KINEO-HOME-CLIPS-FIRST-2026-10-05 — A/B da home clips-first (lib/growth/homeClipsFirst.ts; nasce 'off').
+import ClipsFirstHome from '@/components/home/ClipsFirstHome'
+import HomeVariantExposure from '@/components/home/HomeVariantExposure'
+import { resolveHomeVariant } from '@/lib/growth/homeClipsFirstServer'
+import { HOME_PREVIEW_PARAM } from '@/lib/growth/homeClipsFirst'
 
 export const metadata: Metadata = {
   // UX10 #10 (15/08) — o title/description agora vendem o que a pagina VIROU:
@@ -136,6 +141,34 @@ export default async function HomePage({
     }
   }
 
+  // KINEO-HOME-CLIPS-FIRST-2026-10-05 — o ÚNICO ponto de troca da home. Com HOME_CLIPS_FIRST='off' a escolha é sempre
+  // 'control', nenhum sinal é montado e o resto desta função segue byte a byte. Robô vê sempre 'control' (a página que o
+  // Google indexa continua esta); a variante não leva o FAQPage porque lá as 13 perguntas não são texto visível.
+  const homeChoice = resolveHomeVariant({
+    userId: user?.id ?? null,
+    email,
+    previewParam: firstSearchParam(searchParams, HOME_PREVIEW_PARAM),
+  })
+  const homeExposure = homeChoice.expose ? (
+    <HomeVariantExposure
+      variant={homeChoice.variant}
+      signedIn={Boolean(user)}
+      surface={user && (firstSearchParam(searchParams, 'welcome') === '1' || firstSearchParam(searchParams, 'signup') === '1') ? 'post_signup' : 'home'}
+    />
+  ) : null
+  if (homeChoice.variant === 'clips_first') {
+    return (
+      <>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(BRAND_JSON_LD) }}
+        />
+        <ClipsFirstHome signedIn={Boolean(user)} resume={resume} preview={homeChoice.preview} />
+        {homeExposure}
+      </>
+    )
+  }
+
   const [engineWall, trending] = await Promise.all([getEngineHero(), getTrending()])
   // The founder-approved post-signup destination is the engine showroom. Keep
   // its four hero videos untouched, then expose the existing creator/business/
@@ -165,6 +198,7 @@ export default async function HomePage({
         initialAcquisitionSource={initialAcquisitionSource}
         showWelcomeGoalRouter={showWelcomeGoalRouter}
       />
+      {homeExposure}
     </>
   )
 }
