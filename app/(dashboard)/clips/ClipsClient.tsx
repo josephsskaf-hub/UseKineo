@@ -295,8 +295,6 @@ export default function ClipsClient() {
     })
   }
 
-  const minCost = (e: Engine) => Math.min(...Object.values(e.credits))
-
   const photoRow = (
     <div className="photo-row">
       {photoUrl
@@ -385,8 +383,7 @@ export default function ClipsClient() {
                 <span className="fx-title"><UiLabel>{fx.title}</UiLabel></span>
                 <span className="fx-sub"><UiLabel>{fx.sub}</UiLabel></span>
                 <span className="fx-foot">
-                  <span className="tag">{t('madeWith', { engine: fx.engine_label })} · {fx.seconds} s</span>
-                  <span className="pr">{fx.credits} cr</span>
+                  <span className="tag">{fx.engine_label}</span>
                 </span>
                 {fx.preview && <span className="fx-note">{fx.preview.note}</span>}
               </button>
@@ -402,7 +399,6 @@ export default function ClipsClient() {
             <span className="ic" aria-hidden="true">{ICON[e.key] ?? '•'}</span>
             <span className="nm">{e.label}</span>
             <span className="sec">{e.seconds.join(' · ')} s</span>
-            <span className="pr">{t('from', { n: minCost(e) })}</span>
             {!e.text && <span className="tag">{t('photoOnly')}</span>}
           </button>
         ))}
@@ -425,11 +421,10 @@ export default function ClipsClient() {
             <div className="rail creation-settings">
               <div className="cost" id="clip-effect-review" tabIndex={-1}>
                 <div className="sum"><UiLabel>{effect.title}</UiLabel> · {t('madeWith', { engine: effect.engine_label })} · {effect.seconds} s</div>
-                <div className="val"><span>{t('cost')}</span><b>{effect.credits}</b></div>
                 {balance !== null && <div className="gnote">{balance} {t('credits')}</div>}
                 <button type="button" disabled={busy || uploading} className={`go ${busy || uploading ? 'no' : 'ok'}`}
                   onClick={() => (photoUrl ? void generateEffect() : fileRef.current?.click())}>
-                  {busy ? t('creating') : uploading ? t('uploading') : photoUrl ? t('generate') : t('effectAddPhoto')}
+                  {busy ? t('creating') : uploading ? t('uploading') : photoUrl ? <>{t('generate')} · {effect.credits} {t('credits')}</> : t('effectAddPhoto')}
                 </button>
               </div>
             </div>
@@ -460,7 +455,7 @@ export default function ClipsClient() {
                 <div className="row">
                   {alternatives.map((alt) => (
                     <button key={alt.key} type="button" className="pill" onClick={() => setEngineKey(alt.key)}>
-                      {alt.label} · {alt.credits[String(seconds)]} cr
+                      {alt.label}
                     </button>
                   ))}
                 </div>
@@ -483,10 +478,9 @@ export default function ClipsClient() {
 
           <div className="cost" id="clip-generation-review" tabIndex={-1}>
             <div className="sum">{engine ? `${engine.label} · ${seconds} s · ${effectiveAspect === 'image' ? t('samePhoto') : effectiveAspect}` : '—'}</div>
-            <div className="val"><span>{t('cost')}</span><b>{cost ?? '—'}</b></div>
             {balance !== null && <div className="gnote">{balance} {t('credits')}</div>}
             <button type="button" onClick={generate} disabled={!canGenerate} className={`go ${canGenerate ? 'ok' : 'no'}`}>
-              {busy ? t('creating') : (withPhoto || prompt.trim().length >= 3) ? t('generate') : t('describeFirst')}
+              {busy ? t('creating') : (withPhoto || prompt.trim().length >= 3) ? <>{t('generate')} · {cost ?? '—'} {t('credits')}</> : t('describeFirst')}
             </button>
           </div>
         </div>

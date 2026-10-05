@@ -288,7 +288,8 @@ ok(!/ref_image/.test(fxSrc.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g,
 const client = read('app/(dashboard)/clips/ClipsClient.tsx')
 ok(client.includes('await send({ effect: effect.key, image_url: photoUrl })') && !/send\(\{ effect: effect\.key[^}]*prompt/.test(client), '(7a) a tela manda só { effect, image_url } — nenhum prompt no pedido de efeito')
 ok(client.includes(": <span className=\"fx-soon\">{t('previewSoon')}</span>}") && client.includes('<video src={fx.preview.video} poster={fx.preview.poster} autoPlay muted loop playsInline'), '(7b) prévia em vídeo onde existe; onde é null, placeholder MARCADO "Preview coming soon"')
-ok(client.includes("{t('madeWith', { engine: fx.engine_label })}") && client.includes('{fx.credits} cr') && client.includes('{fx.preview.note}'), '(7c) cartão com selo do motor real, preço em créditos e nota honesta da prévia')
+// Fundador, sprint 06/10: cartão sem preço; créditos apenas no botão que gera.
+ok(client.includes('<span className="tag">{fx.engine_label}</span>') && !client.includes('{fx.credits} cr') && client.includes('{fx.preview.note}') && /photoUrl \? <>\{t\('generate'\)\} · \{effect.credits\}/.test(client), '(7c) cartão com motor real e nota honesta; preço só no botão de gerar')
 ok((client.match(/fetch\('\/api\/avatar\/upload'/g) ?? []).length === 1 && client.includes("fd.append('rights', 'true')") && client.includes("fd.append('purpose', 'animate')"), '(7d) o efeito usa o MESMO upload/termo de direitos do /clips (um caminho só)')
 ok(client.includes("fetch('/api/clips/effect-upsell'") && client.includes("{c.effect && c.film_href && (") && client.includes("{t('filmUpsell')}"), '(7e) clipe de efeito pronto mostra o upsell e passa pela rota antes de navegar')
 ok(client.includes("{e.seconds.join(' · ')} s") && client.includes("t('notLength', { engine: engine.label, s: seconds })"), '(7f) o clipe livre continua igual (durações reais, troca com 1 clique)')

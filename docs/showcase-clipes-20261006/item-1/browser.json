@@ -1,0 +1,58 @@
+{
+  "at": "2026-10-05T23:19:50.792Z",
+  "localOnly": true,
+  "realAnonymousGet": true,
+  "otherApisMocked": true,
+  "checks": [
+    {
+      "stage": "before",
+      "effectCards": 2,
+      "paidRequests": 0,
+      "errors": [
+        "Text content does not match server-rendered HTML.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+        "Text content does not match server-rendered HTML.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+        "Text content does not match server-rendered HTML.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+        "Text content does not match server-rendered HTML.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+        "Text content does not match server-rendered HTML.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+        "Hydration failed because the initial UI does not match what was rendered on the server.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+        "Hydration failed because the initial UI does not match what was rendered on the server.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+        "Hydration failed because the initial UI does not match what was rendered on the server.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+        "There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error"
+      ]
+    },
+    {
+      "stage": "after",
+      "effectCards": 9,
+      "paidRequests": 0,
+      "errors": [
+        "Text content does not match server-rendered HTML.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+        "Text content does not match server-rendered HTML.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+        "Text content does not match server-rendered HTML.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+        "Text content does not match server-rendered HTML.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+        "Text content does not match server-rendered HTML.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+        "Hydration failed because the initial UI does not match what was rendered on the server.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+        "Hydration failed because the initial UI does not match what was rendered on the server.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+        "Hydration failed because the initial UI does not match what was rendered on the server.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error",
+        "There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error"
+      ]
+    }
+  ],
+  "screens": [
+    "before-desktop-light.jpg",
+    "before-desktop-light-generate.jpg",
+    "before-desktop-dark.jpg",
+    "before-desktop-dark-generate.jpg",
+    "before-mobile-light.jpg",
+    "before-mobile-light-generate.jpg",
+    "before-mobile-dark.jpg",
+    "before-mobile-dark-generate.jpg",
+    "after-desktop-light.jpg",
+    "after-desktop-light-generate.jpg",
+    "after-desktop-dark.jpg",
+    "after-desktop-dark-generate.jpg",
+    "after-mobile-light.jpg",
+    "after-mobile-light-generate.jpg",
+    "after-mobile-dark.jpg",
+    "after-mobile-dark-generate.jpg"
+  ]
+}
