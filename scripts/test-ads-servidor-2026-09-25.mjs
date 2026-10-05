@@ -64,7 +64,8 @@ checa('2e. nenhum outro pacote escreve a coluna (só o ramo isAdsPass)', (wh.mat
 
 // ── 3. invariante de preço espelha o módulo ─────────────────────────────────────────────────
 const cp = rd('lib/checkoutPricing.ts')
-const row = cp.match(/\{ id: 'pack:ads_pass', usdMinor: (\d+), credits: (\d+), advertisedQuality: 'cinematic_ai' \}/)
+// KINEO-PASSE-AVULSO-2026-10-05 — a linha ganhou `advertisedSeconds` (duração anunciada por SKU); preço e créditos seguem conferidos.
+const row = cp.match(/\{ id: 'pack:ads_pass', usdMinor: (\d+), credits: (\d+), advertisedQuality: 'cinematic_ai'(?:, advertisedSeconds: PACK_ADVERTISED_SECONDS\.ads_pass)? \}/)
 checa('3. a linha do passe no checkPricingInvariants tem os MESMOS números de lib/ads/offer.ts', !!row && Number(row[1]) === offer.ADS_PASS_USD_MINOR && Number(row[2]) === offer.ADS_PASS_CREDITS)
 
 // ── 4. sink do navegador recusa os eventos que só o servidor sabe ──────────────────────────────

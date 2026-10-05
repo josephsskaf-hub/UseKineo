@@ -64,8 +64,9 @@ const pricing=page('app/pricing/PricingClient.tsx',{displayCurrency:'usd',signed
 html=pricing.render();ok(html.indexOf('id="plans"')<html.indexOf('class="pricing-secondary"'),'plan choice before secondary offer')
 ok(html.includes('credits / month'),'credits visible without expanding details')
 ok(!html.includes('Make 0 AI films'),'no impossible trial film count')
-pricing.click('Annual2 MONTHS FREE');html=pricing.render();equal(pricing.state.billing,'annual','real annual switch')
-ok(html.includes('billed annually'),'annual payment disclosure retained')
+// KINEO-ANUAL-40OFF-2026-10-05 — o selo do anual virou "SAVE 40%" e o card diz "billed $Y yearly · save 40%" + a política de reembolso.
+pricing.click('AnnualSAVE 40%');html=pricing.render();equal(pricing.state.billing,'annual','real annual switch')
+ok(html.includes('yearly · save 40%')&&html.includes('refundable in full within 14 days'),'annual payment disclosure retained (yearly total, 40% and refund policy)')
 pricing.click('Monthly');html=pricing.render();equal(pricing.state.billing,'monthly','real monthly switch')
 for(const [value,want] of [[null,48],['300',300],['9999',300],['0',1],['-1',48],['oops',48]])equal(load('@/lib/ui/libraryListing').videoListLimit(value),want,'bounded video list')
 // Run the real GET route. Authenticated owner predicate must survive all limits.

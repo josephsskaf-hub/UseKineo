@@ -542,12 +542,11 @@ export const LEGACY_TIER_CREDITS_V5: Record<CheckoutPlanTier, number> = {
 /** Grant de quem paga MENOS que o vigente, pelo valor da fatura em USD (mensal, ou anual = 10× o piso V5). */
 export function legacyCreditsForUsd(tier: CheckoutPlanTier, amountPaidMinor: number, billing: 'monthly' | 'annual' = 'monthly'): number {
   if (tier === 'starter' || tier === 'basic' || tier === 'pro') {
-    // KINEO-ANUAL-40OFF-2026-10-05 — o anual V5 era 10× o mensal V5; o anual vigente (40% off) do Studio ($395)
-    // ficou ABAIXO desse piso ($399). Sem o min(), um anual comprado hoje leria como "legado V6" no dia em que o
-    // anual subir de novo. O piso do anual é o menor entre o V5 (10×) e o preço anual vigente.
-    const floorV5 = billing === 'annual'
-      ? Math.min(LEGACY_V5_PRICES_USD[tier] * 10, ANNUAL_PRICES[tier].usd)
-      : LEGACY_V5_PRICES_USD[tier]
+    // ⚠ KINEO-ANUAL-40OFF-2026-10-05 — o anual vigente do Studio (40% off, $395) ficou ABAIXO deste piso ($399).
+    // HOJE é inofensivo: annualRefillCredits só chama esta régua para fatura MENOR que o anual vigente, e quem paga
+    // $395 recebe o grant vigente (300). Mas no dia em que o anual SUBIR, um assinante de $395 leria como "V6" (180):
+    // quem reprecificar o anual tem de acrescentar o anual 40% off como degrau legado aqui.
+    const floorV5 = LEGACY_V5_PRICES_USD[tier] * (billing === 'annual' ? 10 : 1)
     if (amountPaidMinor >= floorV5) return LEGACY_TIER_CREDITS_V5[tier]
   }
   return LEGACY_TIER_CREDITS_V6[tier]

@@ -96,7 +96,7 @@ function planLine(plan: (typeof PLAN_FACTS)[number]): string {
   const intro = plan.firstMonthUsd
     ? `${plan.firstMonthUsd} for the first month, then ${plan.monthlyUsd}/month`
     : `${plan.monthlyUsd}/month`
-  // KINEO-ANUAL-40OFF-2026-10-05 — o anual diz o desconto e o equivalente mensal (≈), nunca "2 months free".
+  // KINEO-ANUAL-40OFF-2026-10-05 — o anual diz o desconto e o equivalente mensal (≈), nunca o rótulo antigo de meses grátis.
   const annual = plan.annualUsd
     ? ` (or ${plan.annualUsd}/year ≈ ${plan.annualPerMonthUsd}/month, save ${plan.annualSavingsPercent}%)`
     : ''

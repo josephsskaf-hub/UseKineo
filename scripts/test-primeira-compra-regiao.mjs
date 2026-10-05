@@ -269,8 +269,10 @@ ok('e NÃO cria assinatura (senão a copy "no subscription" vira mentira)',
   !/mode: 'subscription'/.test(pack))
 
 const precos = ler('lib', 'checkoutPricing.ts')
-ok('o pacote continua a US$ 4,90', /PACK_PRICE_MINOR[^=]*=\s*\{ usd: 490 \}/.test(precos))
-ok('o pacote continua com 30 créditos', /starter: 30,/.test(precos))
+// KINEO-PASSE-AVULSO-2026-10-05 — o pacote virou o passe de um filme: US$ 4,99 / 35 créditos (fundador 04-05/10).
+// A margem segue positiva no pior caso (o invariante (2) de lib/checkoutPricing.ts confere).
+ok('o pacote está a US$ 4,99', /PACK_PRICE_MINOR[^=]*=\s*\{ usd: 499 \}/.test(precos))
+ok('o pacote tem 35 créditos (1 filme Seedance de 60 s)', /starter: 35,/.test(precos))
 // A margem: 30cr a $4,90 é +36,3% (documentado em lib/checkoutPricing.ts). O
 // SKU de $2.90/25cr perde $0,78 por venda — ele NÃO pode entrar aqui por
 // engano num refactor futuro.

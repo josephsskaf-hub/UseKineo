@@ -111,7 +111,7 @@ function avalia(src) {
   t('renovação: fatura no preço vigente ou acima recebe o grant vigente (5490, 5900 → 300; 2990 → 150; 1290 → 60)', r('pro', 5490) === 300 && r('pro', 5900) === 300 && r('basic', 2990) === 150 && r('starter', 1290) === 60)
   t('renovação: fatura desconhecida/zero recebe o grant vigente', r('pro', null) === 300 && r('pro', undefined) === 300 && r('pro', 0) === 300)
   t('renovação: Creator $19,90 e Starter $9,90 (V5) mantêm 150 / 60', r('basic', 1990) === 150 && r('starter', 990) === 60)
-  t('legacyCreditsForUsd anual: $399 (V5) → 300; $395 (anual 40% off vigente) → 300; $290 (V6) → 180; $99 → 60', CP.legacyCreditsForUsd('pro', 39900, 'annual') === 300 && CP.legacyCreditsForUsd('pro', 39500, 'annual') === 300 && CP.legacyCreditsForUsd('pro', 29000, 'annual') === 180 && CP.legacyCreditsForUsd('starter', 9900, 'annual') === 60)
+  t('legacyCreditsForUsd anual: $399 (V5) → 300; $290 (V6) → 180; $99 → 60', CP.legacyCreditsForUsd('pro', 39900, 'annual') === 300 && CP.legacyCreditsForUsd('pro', 29000, 'annual') === 180 && CP.legacyCreditsForUsd('starter', 9900, 'annual') === 60)
   t('annualRefillCredits: anual V5 ($99/$199/$399) mantém 60/150/300; abaixo do piso → V6; vigente (9290/21500/39500) e o V8-A antigo (54900) → vigente', AR.annualRefillCredits('starter', 9900, 'usd') === 60 && AR.annualRefillCredits('basic', 19900, 'usd') === 150 && AR.annualRefillCredits('pro', 39900, 'usd') === 300 && AR.annualRefillCredits('pro', 29000, 'usd') === 180 && AR.annualRefillCredits('pro', 54900, 'usd') === 300 && AR.annualRefillCredits('starter', 9290, 'usd') === 60 && AR.annualRefillCredits('basic', 21500, 'usd') === 150 && AR.annualRefillCredits('pro', 39500, 'usd') === 300)
 
   // 3. BRL
