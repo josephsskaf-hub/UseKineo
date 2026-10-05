@@ -1,5 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
+import {
+  HOME_VISITOR_COOKIE,
+  HOME_VISITOR_COOKIE_MAX_AGE_SECONDS,
+  shouldMintHomeVisitorCookie,
+} from '@/lib/growth/homeClipsFirst'
 
 const LEGACY_PUBLIC_HOSTS = new Set([
   'shortsforgeai.com',
@@ -67,7 +72,28 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(dest, 307)
   }
 
-  return await updateSession(request)
+  // KINEO-HOME-CLIPS-FIRST-2026-10-05 — id first-party do visitante para o A/B da home (lib/growth/homeClipsFirst.ts).
+  // Só na home, só GET, só gente, só com HOME_CLIPS_FIRST ligado e só se ainda não existe: com 'off' nada muda.
+  // Vai também no REQUEST para a home ler o mesmo id já na primeira visita (sem isso a 1ª visita não teria sorteio).
+  const mintedVisitorId = shouldMintHomeVisitorCookie({
+    pathname: request.nextUrl.pathname,
+    method: request.method,
+    userAgent: request.headers.get('user-agent'),
+    existing: request.cookies.get(HOME_VISITOR_COOKIE)?.value,
+  })
+    ? crypto.randomUUID()
+    : null
+  if (!mintedVisitorId) return await updateSession(request)
+  request.cookies.set(HOME_VISITOR_COOKIE, mintedVisitorId)
+  const response = await updateSession(request)
+  response.cookies.set(HOME_VISITOR_COOKIE, mintedVisitorId, {
+    httpOnly: true,
+    secure: request.nextUrl.protocol === 'https:',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: HOME_VISITOR_COOKIE_MAX_AGE_SECONDS,
+  })
+  return response
 }
 
 export const config = {
