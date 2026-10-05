@@ -108,7 +108,7 @@ async function problems(M) {
   const effects = fx.CLIP_EFFECTS
 
   // (1) catálogo
-  if (effects.length !== 8) p.push(`catálogo com ${effects.length} efeitos (esperado 8)`)
+  if (effects.length !== 7) p.push(`catálogo com ${effects.length} efeitos (esperado 7 — cartoon_3d saiu em 05/10: o motor não estiliza a foto)`)
   if (new Set(effects.map((e) => e.key)).size !== effects.length) p.push('chave de efeito repetida')
   for (const e of effects) {
     const v = cat.validateClipRequest({ engine: e.engine, seconds: e.seconds, aspect: null, prompt: e.prompt, imageUrl: PHOTO }, { userId: U, supabaseUrl: SUPA })

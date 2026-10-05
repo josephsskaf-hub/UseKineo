@@ -90,7 +90,7 @@ export const CLIP_EFFECTS: readonly ClipEffect[] = [
     prompt: `Start exactly on the photo, then the camera pulls straight up and away in one continuous accelerating move: rooftops, the city, the coastline, clouds, until the whole planet Earth is visible from space. ${NO_TEXT}`,
     filmIdea: 'This place seen from above — what makes it special, told in 60 seconds',
     person: false,
-    preview: null,
+    preview: { video: '/previews/efeito-zoom_out_earth.mp4', poster: '/posters/efeito-zoom_out_earth.webp', note: 'Made with this effect from an AI-generated photo (Kling 2.5)' }, // KINEO-PREVIAS-EFEITOS-2026-10-05
   },
   {
     key: 'cinematic_slowmo',
@@ -112,19 +112,11 @@ export const CLIP_EFFECTS: readonly ClipEffect[] = [
     prompt: `Restore the old photograph: sharper detail, cleaned scratches, natural color, then animate it gently — subtle breathing, a slight smile, blinking, light camera push-in. Keep every face exactly as it is. ${NO_TEXT}`,
     filmIdea: 'The story of the people in this old photo and the year it was taken',
     person: true,
-    preview: null,
+    preview: { video: '/previews/efeito-restore_old_photo.mp4', poster: '/posters/efeito-restore_old_photo.webp', note: 'Made with this effect from an AI-generated photo (Seedance 1.5)' }, // KINEO-PREVIAS-EFEITOS-2026-10-05
   },
-  {
-    key: 'cartoon_3d',
-    title: 'Turn into a 3D cartoon',
-    sub: 'Your photo as an animated 3D movie character.',
-    engine: 'seedance',
-    seconds: 5,
-    prompt: `Transform the photo into a polished 3D animated movie style: the same person and pose as a stylized 3D cartoon character with soft lighting, then a short playful animation — a wave and a smile to camera. ${NO_TEXT}`,
-    filmIdea: 'An animated 60-second adventure starring this character',
-    person: true,
-    preview: null,
-  },
+  // KINEO-PREVIAS-EFEITOS-2026-10-05 — "Turn into a 3D cartoon" SAIU da galeria: testado em Seedance 1.5 e Kling 2.5 a partir
+  // de foto, o motor de vídeo preserva o rosto real e só anima (a pessoa acena, não vira desenho). Volta quando houver
+  // uma etapa de estilização da foto (ex.: edição de imagem para 3D) ANTES do vídeo.
   {
     key: 'color_burst',
     title: 'Color and particle burst',
@@ -134,7 +126,7 @@ export const CLIP_EFFECTS: readonly ClipEffect[] = [
     prompt: `A vivid burst of colored powder and glowing particles explodes around the subject of the photo in slow motion, colors swirling in the air, cinematic backlight, subject stays sharp and unchanged. ${NO_TEXT}`,
     filmIdea: 'A celebration in 60 seconds — the story behind this moment',
     person: false,
-    preview: null,
+    preview: { video: '/previews/efeito-color_burst.mp4', poster: '/posters/efeito-color_burst.webp', note: 'Made with this effect from an AI-generated photo (Kling 2.5)' }, // KINEO-PREVIAS-EFEITOS-2026-10-05
   },
   {
     key: 'storm_behind',
