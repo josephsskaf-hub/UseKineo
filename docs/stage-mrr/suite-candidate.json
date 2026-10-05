@@ -1,0 +1,4442 @@
+[
+  {
+    "file": "test-abas-palco-2026-10-01.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-aceite-emenda-analise.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-activation-recovery-claim-settle.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-activation-recovery-server-truth.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-active-quality-rejection-2026-09-11.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-admin-afiliados-2026-09-30.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-admin-fonte-unica-2026-09-08.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-admin-mrr-preco-pago-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-admin-porcelana-2026-09-30.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-3-variacoes-2026-09-30.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-3var-cor-2026-09-30.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-aeo-2026-09-24.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-comecar-do-zero-2026-09-29.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-comparacoes-2026-09-27.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-estilo-2026-09-26.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-for-segmentos-2026-09-27.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-fundacao-2026-09-25.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-ia-faz-2026-09-26.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-modo-simples-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-porta-plano-2026-09-27.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-recursos-2026-09-26.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-self-serve-2026-09-24.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-sem-legenda-2026-09-26.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-servidor-2026-09-25.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-simples-acabamento-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-sprint16h-2026-09-27.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-teste1-2026-09-26.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-v2-base-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-v2-cartas-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-v2-musica-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-v2-servidor-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-v2-tela-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-v2-virada-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ads-video-do-cliente-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-aeo-business-offer.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-aeo-engine-destinations.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-aeo-trial-access.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-affiliate-activation.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-affiliate-attribution.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-affiliate-business-recruitment.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-affiliate-business-subscription.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-affiliate-client-brief-relay.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-affiliate-destinations.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-affiliate-funnel-missions.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-affiliate-funnel-report.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-affiliate-landing-context.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-affiliate-ledger.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-affiliate-me-currency-contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-affiliate-payment-chain.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-affiliate-program-comparison.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-afiliado-30-e-packs-v7-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-afiliado-ref-2026-09-08.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-afiliado-termos-e-sonda-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-afiliados-acordam.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-after-the-film-facts.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-agency-appearance.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-agency-bridge-attribution.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-agency-checkout-return.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-agency-header-journey.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-agency-monthly-path-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-agency-production-scope.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-agency-proposal-handoff.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ai-shorts-series.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-alerta-ntfy-e-briefing-sem-recibo-2026-09-25.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-alternatives-job-chooser.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-alvo-fantasma-2026-08-31.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-animate-paywall.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-another-short-shelf.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-answer-engine-hook-subscription-report.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-answer-engine-hook-workbench.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-anual-recarga-mensal-2026-09-24.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-aparar-expansao-2026-09-02.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-apertou-nao-saiu-2026-09-24.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-app-blue-layout.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-archive-studio-review.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-arena-media-contract.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-assistant-deep-link.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-assistant-engine-refusal-2026-09-24.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-auditoria-motores-2026-09-14.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-autopilot-break-even.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-autopilot-case-study-path.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-autopilot-checkout-return.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-autopilot-checkout-success.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-autopilot-decision-funnel.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-autopilot-lite-2026-09-16.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-autopilot-pilot-resume.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-avatar-appearance.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-avatar-card.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-avatar-fora-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-avatar-r1-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-aviso-renovacao-recusada-2026-09-18.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-b2b-auth-context.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-b2b-bulk-page.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-b2b-commercial-funnel-report.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-b2b-distribution.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-b2b-fit-review-subscription.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-b2b-lead-intake.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-b2b-margin-calculator.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-b2b-proof-candidate-report.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-b2b-subscription-truth-loader.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-b2b-subscription-truth-report.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-b2c-subscription-truth-report.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-banner-volta-2026-08-31.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-barra-de-creditos-2026-09-23.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-billing-drift.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-bloqueio-visivel-2026-08-30.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-brand-entity-aliases.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-brief-e-ideia-colada-2026-09-12.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-bulk-checkout-truth.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-business-ads-navigation-2026-09-24.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-business-answer-engine-router.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-business-content-plan.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-business-pilot-review.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-business-self-service-first-2026-09-27.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-cadastro-nao-promete-gratis-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-caixa-vazia-episodio2-2026-09-04.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-campaign-run.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-capa-snapshot.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-capacidade-em-filmes.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-caption-chunker.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-carta-cota-semanal-2026-09-17.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-carta-da-recusa.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-carta-episodio-gatilho-2026-09-06.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-carta-temporada.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-cartas-pos-morte-desligadas-2026-09-24.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-causa-sempre-2026-08-31.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-cena-classica-retentativa-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-cena-presa-2026-09-22.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-chatgpt-entry-subscription-report.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-chatgpt-paste-page.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-chatgpt-porta.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-chatgpt-post-video-offer.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-chatgpt-quickstart.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-chatgpt-script-handoff.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-auth-session-bridge.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-cancel-deliver-first.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-cancel-objection-visibility.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-currency-truth.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-entry-surface.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-fallback-truth.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-hot-nudge.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-intent.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-oauth-failure-handoff.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-password-recovery.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-payment-guidance.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-profile-read.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-recovery.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-resume-delivery-guard.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-resume-human-view.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-resume-own-film.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-resume-unavailable.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-session-window.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-setup-failure-return.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-signup-resolution.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-success-entitlement.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-value-context.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-checkout-visual-proof.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-cinematic-poll-diagnostic-2026-09-11.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-cinematic-speech-2026-09-11.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-cinematic-terminal-proof-2026-09-11.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-cinematic-timeline-2026-09-11.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-citation-calculator-source.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-citation-engine-metadata.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-citation-engine-source.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-citation-entry-truth-2026-09-30.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-citation-script-purchase-2026-09-30.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-clean-export-direct.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-clean-export-trial-door.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-clean-film-trial-door.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-client-short-brief.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-clipes-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-clipping-earn-angle-cta.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-clique-perdido.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-cobertura-15s-2026-09-30.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-cobertura-supressao-2026-09-04.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-coerencia-historia-2026-09-02.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-coerencia-kineo1-2026-09-16.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-comment-to-video.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-comparisons-script-input-truth.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-compose-falha-com-nome-2026-09-22.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-comprador-sequestrado-2026-09-18.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-consentimento-superficie.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-contador-voz-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-contagem-fala-15s-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-continue-now-2026-09-08.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-contrato-duracao-classico-2026-09-02.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-convite-na-hora-certa-2026-08-31.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-copy-filme-gratis-15s-2026-09-29.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-copy-honesta-c-2026-09-27.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-credit-minutes-ui.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-credito-em-minutos-2026-09-25.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-credito-preso.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-credito-vitrine.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-creditos-restantes-e-resgate-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-credits-held-waitroom.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-cron-dryrun-eterno.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-cta-composer-2026-09-06.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-d0-alcance-do-saldo.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-daily-shorts-ideas-feed.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-daily-shorts-ideas-subscription-report.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-data-cache-no-store.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-dedupe-teto-1000-2026-09-08.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-delivery-refinement.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-descoberta-assistente.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-despacho-vazio-2026-09-04.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-diretor-kineo-2026-09-23.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-diretrizes-coladas-2026-09-04.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-dispatch-contract.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-dispatch-entry-2026-09-05.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-dodo-trilho.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-dominios-descartaveis-2026-09-27.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-done-footer-2026-08-31.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-done-workspace.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-dryrun-classico-2026-09-12.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-dunning-account-2026-09-25.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-dunning-grace.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-duracao-que-nao-existe-2026-08-31.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-duracoes-curtas-todos-motores-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-duration-floor-39.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-e4-saida-b-cota-seedance-2026-09-29.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-editor-no-mapa.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-empresas-briefing-2026-09-25.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-empresas-pagamento-tardio-2026-09-24.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-enche-silencio-2026-09-13.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-engine-landing-intent.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-enterprise-alternative-business-path.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-entrada-seedance15-2026-09-29.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-entrega-noite-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-entrega-noite-r5-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-entrega-noite-r6-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-episodio-com-assunto-2026-09-22.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-episodio2-ending-2026-09-01.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-episodio2-loss-2026-09-01.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-episodio2-memoria-2026-09-06.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-erro-de-checkout-visivel-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-error-pages.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-erros-vercel-2026-09-03.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-espacos-2026-09-30.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-espiral-recusa-2026-09-01.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-esteira-sem-filme-gratis-2026-09-08.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-estorno-explicado-2026-09-02.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-estorno-indevido-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-estrela-do-filme-2026-09-29.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-events-identity-stamp.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-example-remix.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-examples-business-proof-bridge.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-examples-gallery.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-examples-gpt24h-2026-09-27.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-exit-intent-diz-a-verdade-2026-09-27.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-exit-intent-variant-probe.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-expand-growth-base-2026-08-31.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-expand-policy.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-expand-seed-authoring.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-expansor-degrau.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-failure-cause-38.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-failure-recovery-honest.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-failure-recovery-latest-wins.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-failure-screen-40.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-faixa-continuar.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-fal-saldo-alerta-2026-09-28.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-fala-cabe-2026-09-15.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-fala-maior-que-a-cena-2026-09-13.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-fala-x-imagem-2026-09-16.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-falha-contada-uma-vez-2026-08-31.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-faq-schema-so-onde-visivel.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-fidelidade-h3-2026-09-14.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-fila-global-pilula-2026-08-31.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-fila-proximo-episodio-2026-08-31.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-filme-gratis-por-pais-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-filme-pronto-3-saidas-2026-09-25.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-first-file-later-day-retrieval.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-first-film-free-offer.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-first-video-engine-to-subscription.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-first-video-file-value-to-subscription.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-five-improvements.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-footer-business-discovery.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-free-clean-leak.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-free-limit-wall.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-free-quota-teto-fala.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-funil-volta-1-dolar-2026-09-08.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-go-auto-forward.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-google-ads-signup-conversion-truth.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-gpt-5h-a-2026-09-24.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-gpt-5h-b-2026-09-24.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-gpt-5h-c-2026-09-24.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-gpt-fit-nao-e-veredito.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-gpt-handoff-verdade.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-gpt-handoff.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-gpt-loja-2026-09-24.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-gpt-v31-facts-2026-09-24.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-graca-nao-curou-2026-09-07.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-grant-copy-single-source.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-growth-candidate-2026-09-01.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-growth-invideo-free-intent.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-growth-roundup-search-intent.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-growth-space-intent.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-guardiao-2026-08-28.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-guardiao-yaml-2026-09-03.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-h3-fala-atravessa-o-corte-2026-09-25.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-h3-mesma-regua-do-escritor-2026-09-25.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-h3-palavras-2026-09-15.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-h3-verbatim-corte-2026-09-23.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-handoff-error-visivel.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-historia-com-personagens-2026-09-16.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-historico-render-vivo.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-history-first-video-offer-human-view.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-history-referral-mission.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-history-second-video-milestone.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-home-b2b-bridge.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-home-blue-layout.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-home-curation-restore.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-home-curation.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-home-pricing-checkout.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-home-referral-bridge.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-home-resume-studio.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-home-welcome-goal-router.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-hora-da-volta-2026-08-31.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-hot-nudge-janela-campanhas.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-idiomas-15-2026-09-17.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-imagem-para-video-2026-09-25.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-images-audio-error-state.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-images-audio-loading-skeleton.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-images-foto-referencia-2026-09-29.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-inline-pricing-decision-funnel.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-instruction-paste-notice.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-interface-16-linguas-2026-09-21.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-interface-language.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-juiz-ve-a-cena-1-2026-09-22.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-jwt-skew-fallback.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kineo1-aviso-desenho-2026-09-18.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kineo1-cinema-2026-09-02.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kineo1-clipe-ia-prompt-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kineo1-diagnostico-consertos-2026-09-18.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kineo1-diretor-ve-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kineo1-divisor-e-cabeca-2026-09-18.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kineo1-ficcao-stock-exato-2026-09-22.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kineo1-filme-desenhado-2026-09-21.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kineo1-fora-vitrine-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kineo1-hibrido-2026-09-16.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kineo1-imagem-v2-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kineo1-imagem-v2-rota-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kineo1-juiz-honesto-2026-09-21.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kineo1-sem-generico-e-homonimo-2026-09-20.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kineo1-sujeito-nitidez-2026-09-18.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kineo1-tags-proibidas-2026-09-28.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kineo1-verbatim-estica-2026-09-22.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kling-duracao-2026-09-15.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kling25-60s-ancora-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kling25-60s-teto-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kling25-descricoes-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kling25-planos-5s-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kling25-variedade-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-kling3-imagens-2026-09-17.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-klp-reset-welcome-2026-09-10.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-laco-viral-2026-09-17.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-landing-source-capture.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-language-navigation.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-last-setup-memory.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-legenda-grafia-do-roteiro-2026-09-28.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-leva-confiabilidade-2026-08-28.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-library-caminho-volta-2026-08-31.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-library-error-state.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-library-search.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-library-visual-gallery.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-lifecycle-suppression-ledger.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-limit-purchase-fit.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-link-que-sabe-dizer-nao.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-link-rastreavel-2026-09-21.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-livro-de-estado-2026-09-19.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-llm-fallback-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-llms-affiliate-source.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-llms-commercial-truth.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-llms-engine-availability.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-llms-paginas-citadas.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-local-business-ad-brief.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-local-business-brief-funnel-report.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-local-business-brief-observability.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-local-business-tool-discovery.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-locale-readiness.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-localized-public-limit.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-logo-png-cinza-moderacao-2026-09-28.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-low-balance-pricing-bridge.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-manrope-system.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-marcador-da-casa.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-mcp-claude-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-mcp-pagina-2026-09-30.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-memoria-episodio-2026-09-04.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-mensagem-da-excecao-2026-09-08.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-middleware-auth-timeout-2026-09-18.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-models-pricing-nao-mente.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-moderacao-2026-09-25.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-moeda-local-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-momentum-continuacao-2026-09-01.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-momentum-ladder.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-momentum-motor-gratis.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-momentum-topic.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-monetization-originality-builder.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-money-truth-contract.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-motor-capacidade-35s-2026-09-27.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-motor-que-cabe-2026-08-31.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-motor-so-no-studio-2026-09-08.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-motores-16-linguas-2026-09-21.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-motores-d1-2026-09-01.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-motores-dia-2026-09-22.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-motores-pausados-2026-09-15.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-motores-r2-r6-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-mrr-1-3-2026-09-16.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-mrr-showcase-2026-10-01.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-mrr-studio-near-idea-2026-10-01.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-multiformato-2026-09-02.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-music-direction-2026-09-11.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-myvideos-error-state.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-myvideos-loading-skeleton.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-narracao-degrau.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-narration-ruler.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-nav-item-clicked-2026-09-25.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-next-action-2026-09-05.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-next-action-card-2026-09-06.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-next-door-bar.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-next-episode-visibility.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-next-episode-wall-2026-09-06.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-next-episode-wall-episodio-2026-09-06.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-next-idea-wait-45.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-next-shorts-affordance-2026-08-31.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-next-shorts-placement-2026-09-01.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-nextshorts-visto.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-onboarding-goal-router.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-organic-premium-first.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-organic-signup-truth.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-origem-social-2026-09-21.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-originality-brief-interaction.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-other-deliveries.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-out-of-credits-plans.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-pacote-axel-2026-09-19.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-pacote-no-email-de-entrega.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-pacote-publicacao.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-paginas-citadas-ponte-2026-09-23.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-paid-engine-proof-2026-09-27.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-paid-seedance-bridge-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-paid-upgrade-reason.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-paid-video-citation-guidance-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-painel-trilhos.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-painel-verdade.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-parede-no-clique-2026-09-27.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-parede-v1-2026-09-23.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-passe-b-90-creditos-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-paypal-canonical-catalog.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-paypal-idempotencia.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-pedido-repetido-2026-09-24.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-personagem-sem-apresentador-2026-09-15.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ph-dobra-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ph-frio-beacon-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ph-frio-promessa-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ph-kit-2026-09-09.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ph-landing-2026-09-08.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ph-rolagem-real-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-pilula-proximo-episodio-2026-08-31.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-pilula-render-fantasma.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-placar-diario-2026-09-08.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-placar-trial-1-dolar-2026-09-08.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-plan-film-language.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-plan-fit.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-platform-decision.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-pontas-15s-idioma-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ponte-com-preco-2026-09-07.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ponte-sql-sem-corte-no-futuro.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-popups-saldo-2026-08-30.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-porta-1-dolar-d5-d10.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-porta-1-dolar-no-momento-da-perda.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-porta-1dolar-no-banner-do-trial.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-porta-1dolar-no-fim-do-trial.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-porta-1dolar-no-mapa.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-porta-1dolar-no-upgrade-modal.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-porta-1usd-no-email-de-entrega.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-porta-email-2026-09-06.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-porta-episodio-email-2026-09-05.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-porta-episodio2-2026-09-04.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-porta-episodio2-ramos-2026-09-05.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-porta-fala-em-filmes-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-porta-filme-ja-feito-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-porta-formato-colado-2026-09-24.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-porta-modal-filme-rodado-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-porta-serie-impressao-2026-09-05.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-porta-terceiro-filme-2026-09-17.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-porta-v2-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-portas-16-linguas-2026-09-20.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-post-delivery-checkout-origin-report.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-post-delivery-silence.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-post-delivery-slot.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-post-download-ask.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-post-expiry-new-session.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-precedencia-carta-recusa.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-preco-do-trial-derivado.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-preco-para-saldo-cheio-2026-09-07.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-preco-v7-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-preco-v8-A-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-preco-visivel-2026-09-02.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-preflight-que-nao-acusa-2026-09-08.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-pricing-3-blocos-2026-09-25.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-pricing-business-path.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-pricing-diz-a-verdade-2026-09-27.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-pricing-journey-proof.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-pricing-mobile-sticky-billing-truth.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-pricing-monthly-campaign.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-pricing-plan-choice-attribution.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-pricing-saved-checkout.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-pricing-tier-handoff.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-primeira-compra-regiao.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-primeira-pessoa-2026-09-11.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-primeiro-episodio-pronto.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-primeiro-filme-2026-09-16.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-primeiro-filme-video-2026-09-17.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-private-file-share.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-product-surface-intent.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-product-to-video.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-projeto-1-google-2026-09-17.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-promo-cards-2026-09-30.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-prompt-proprio-2026-09-16.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-proximo-episodio-marcadores-2026-09-05.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-public-cost-planner-discovery.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-public-creation-intent.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-public-nav-disclosure.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-public-promo-truth.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-public-video-privacy.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-public-video-remix.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-publicador-refspec-2026-09-05.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-publish-kit-business-path.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-quadro-real-2026-09-02.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-qualidade-classicos-2026-09-12.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-qualidade-comprovada-2026-09-15.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-quality-failure-ui-2026-09-11.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-quality-rejection-2026-09-11.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-quality-route-integration-2026-09-11.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-quem-digitou-a-marca-dagua.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-quickstart-no-script-door.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-radar-de-qualidade-2026-09-20.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-razao-assinante-2026-09-17.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ready-notice-studio-review.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-real-estate-video-maker.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-receita-liquida-2026-09-21.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-reconcile-dunning-gatilho-2026-09-08.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-recovery-clock-premise-2026-09-05.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-recovery-first-film-2026-09-05.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-recovery-made-film-2026-09-05.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-recusa-analyze-copy-2026-09-01.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-recusa-com-nome-2026-08-31.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-recusa-com-nome.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-recusa-e-roteiro-colado-2026-09-18.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-recusa-nao-e-tente-de-novo-2026-08-31.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-refinement-next.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-regua-do-escritor-2026-09-17.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-regua-unica-e-entrega-medida-2026-09-14.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-reliable-page-view.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-render-morto.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-render-recovery-2026-09-06.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-render-tab-title.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-renovacao-preserva-comprado-2026-09-25.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-renovacao-recusada-2026-09-18.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-rescue-composed-films.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-resgate-402-2026-09-01.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-resgate-defeito.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-resgate-filme-do-fornecedor-2026-09-08.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-resgate-rapido-2026-09-19.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-restaura-autor-2026-09-13.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-restauracao-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-result-video-decision-report.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-result-video-value-sampled.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-resume-1dolar-fiel-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-resume-strip-to-subscription.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-returning-seed-2026-09-01.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-revisao-e2b-entrada-2026-09-29.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-rewrite-candidate-offer.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ritmo-por-idioma-15s-2026-09-29.mjs",
+    "exit": null,
+    "signal": "SIGTERM",
+    "error": "ETIMEDOUT"
+  },
+  {
+    "file": "test-ritmo-por-voz-2026-09-15.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-rodape-saldo-desconhecido-2026-09-05.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-rodape-segmentos-2026-09-27.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-roteiro-15s-frase-inteira-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-roteiro-de-cinema.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-roteiro-longo-nao-e-erro-2026-09-08.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-roteiro-perdido-2026-08-31.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-runway.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-safe-transport-offline.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-saida-barata-2026-09-06.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-saida-espera-2026-08-31.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-saldo-parcial-2026-09-21.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-saldo-rodape-email-2026-09-06.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-salvage-estorno-2026-09-15.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-saude-recusa-propria-2026-09-22.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-scene-disposition.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-scene-retry-mutex-2026-09-11.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-scene-truth.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-script-library-private-acquisition.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-script-preflight.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-season-cota.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-season-lock.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-season-strip.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-second-try-ordem-recencia.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-seedance-15s-2026-09-29.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-seedance-15s-3x6-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-seedance-blocos-e-voz-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-seedance-ficha-2026-09-15.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-seedance-hero-plans-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-segunda-tentativa-1usd.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-selo-omni-pausado-2026-09-30.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-sem-enchimento-2026-09-15.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-sem-letras-2026-09-21.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-sem-porteiro-2026-09-02.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-seo-form-handoff.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-serie-episodio-2.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-serie-memoria-2026-09-04.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-server-only-events.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-settlement-no-funil-2026-09-10.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-sharing-safety.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-shorts-pay-authority.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-shorts-script-timer.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-shorts-vendor-evaluation.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-showcase-2026-10-02.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-showcase-premium.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-signup-creation-proof.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-signup-product-destination.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-silencio-na-cena-2026-09-11.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-silencio-na-tela-2026-09-23.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-sistema-de-compra-2026-09-08.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-slot-impression-truth.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-sora-migration-topic.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-source-conversion-funnel.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-stalled-frescor-2026-09-05.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-state-study-starter-position.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-sticky-generate-2026-09-01.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-stranded-authorized-urls-fallback.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-stranded-email-dedupe.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-stranded-extra-attempt-4xx.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-stranded-own-generation.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-stranded-ready-footer.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-stripe-async-checkout.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-stripe-atraso-2-meses-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-stripe-checkout-failure-truth.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-studio-entry-transition.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-studio-heroi-2026-09-30.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-studio-hierarchy-proposal.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-studio-hierarchy-runtime.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-studio-marco-2026-08-31.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-studio-mobile-2026-08-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-studio-prompt-limit.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-studio-series-review.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-studio-tile-ads-2026-09-27.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-studio-tile-episode2-2026-08-31.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-studio50-2026-09-22.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-subscriber-idle.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-subscription-revenue-ledger.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-subscription-session-outcome-report.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-sucesso-studio-ads-2026-09-27.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-sucesso-tempo-ads-2026-09-27.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-supressao-events-2026-09-06.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-synthesia-ai-answer.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-taaft-listing-package.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-tab-titles.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-tarefas-5-6-2026-09-08.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-taxa-de-entrada-chega-na-stripe-2026-09-09.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-tela-que-nao-mente-2026-09-08.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-telas-sem-filme-gratis-2026-09-08.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-temporada-sonda.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-temporada.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-tentativa-perdida-2026-09-06.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-tentativa-perdida-ve-o-fast-2026-09-08.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-teto-no-prompt.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-text-to-video-intent-router.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-topico-do-despacho-2026-09-16.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-topup-eligibility-handoff.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-topup-offer-gate.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-tres-jogadas-servidor-2026-09-23.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-tres-modos-clipe-2026-09-11.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-trial-1-dolar-2026-09-07.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-trial-active-subscription-cta.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-trial-balance-bridge.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-trial-best-activation.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-trial-cta-starter-primeiro-2026-09-27.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-trial-downgrade-first-value.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-trial-downgrade-human-view.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-trial-downgrade-plan-choice.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-trial-grant-orfao.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-trial-lastcall-d10-with-film.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-trial-loss-burned-film.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-trial-offer-d5-with-film.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-trial-offer-first-film.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-trial-post-video-funnel.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-trial-post-video-primary.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-trial-repeat-before-checkout.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-trial-watermark.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-troca-de-plano-2026-09-09.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-trust-center.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-upi-planos-2026-09-11.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ux-complete.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-ux-mobile-navigation.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-variety-axis.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-varredura-limites-2026-09-23.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-velocidade-2026-08-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-vender-no-download-2026-09-18.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-vendor-evaluation-subscription-report.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-veo-90-2026-09-14.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-veo-ancora-916-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-veo-card-honesto-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-veo-hero-plans-2026-09-30.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-veo-marcado-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-veo-modo-ia-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-veo-planos-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-verbatim-order-warning.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-verbatim-scene-plan.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-verified-checkout-purchase.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-versao-b-entrada-1-dolar-2026-09-08.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-video-editing.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-video-rating-prompt-visibility.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-video-ready-cron-ads-2026-09-27.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-video-ready-footer.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-video-ready-nudge.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-video-ready-studio-ads-2026-09-27.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-video-share-consent.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-videos-search.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-vigia-cenario-inventado-2026-09-11.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-vigia-descritor-e-era-2026-09-11.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-vigia-ledger-hollywood-2026-09-11.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-vigia-palavras-por-cena-2026-09-11.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-viral-score-share-subscription-report.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-viral-score-share.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-viralnow-search-intent.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-visual-contract-2026-09-11.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-vitrine-em-alta-2026-08-31.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-vitrine-fundador-2026-09-07.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-vitrine-sem-filme-de-cliente-2026-09-28.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-voz-15s-mesma-da-montagem-2026-09-29.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-voz-na-boca-2026-09-11.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-web-share-target-collector.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-web-share-target-subscription-report.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-web-share-target.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-welcome-offer-checkout-rescue.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-welcome-offer-frequency.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-works-with-claude-2026-09-30.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-workspace-spanish.mjs",
+    "exit": 1,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-youtube-automation-case-study-truth.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  },
+  {
+    "file": "test-zero-cenas-fallback-2026-09-04.mjs",
+    "exit": 0,
+    "signal": null,
+    "error": null
+  }
+]

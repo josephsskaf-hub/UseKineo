@@ -2,6 +2,8 @@
 export const SHOWCASE_PUBLIC = true
 export const SHOWCASE_TELEMETRY_ENABLED = true
 export const SHOWCASE_VERSION = 'showcase_v1'
+// Release marker only: a sitemap entry does not prove a crawler or person saw it.
+export const SHOWCASE_DISCOVERY_VERSION = 'showcase_sitemap_20261001_v1'
 export const SHOWCASE_CAMPAIGN = 'showcase_v1'
 export const SHOWCASE_EVENTS = { impression: 'showcase_impression', gesture: 'showcase_first_gesture' } as const
 export const SHOWCASE_ACTIONS = ['signup', 'pricing', 'films', 'images', 'spaces', 'ads', 'select', 'preview', 'compare'] as const

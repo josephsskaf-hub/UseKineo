@@ -1,0 +1,18 @@
+{
+  "observedAtUtc": "2026-10-03T09:50:43.3418272+00:00",
+  "method": "Public HTTP GET; no JavaScript or analytics",
+  "requests": [
+    {
+      "path": "/showcase",
+      "status": 200,
+      "hasCanonicalShowcase": true,
+      "hasSitemapEntry": false
+    },
+    {
+      "path": "/sitemap.xml",
+      "status": 200,
+      "hasCanonicalShowcase": false,
+      "hasSitemapEntry": false
+    }
+  ]
+}

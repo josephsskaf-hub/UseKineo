@@ -102,9 +102,37 @@ function telemetry(overrides = {}) {
   assert.equal(data.showcaseAction('signup'), 'signup')
   for (const x of ['email@private.com', '/arbitrary', undefined, 'https://evil.test']) assert.equal(data.showcaseAction(x), null)
   assert.equal(data.SHOWCASE_VERSION, 'showcase_v1')
+  assert.equal(data.SHOWCASE_DISCOVERY_VERSION, 'showcase_sitemap_20261001_v1')
   const src = overrides['components/showcase/ShowcaseTelemetry.tsx'] ?? read('components/showcase/ShowcaseTelemetry.tsx')
   for (const fragment of ['if (!SHOWCASE_TELEMETRY_ENABLED) return', 'showcase_version: SHOWCASE_VERSION', 'showcase_browser: actor', 'rememberSignupCampaign(SHOWCASE_CAMPAIGN)', "if (result === 'stored')", 'event.isTrusted', 'trackClosedEvent']) assert.ok(src.includes(fragment), fragment)
   assert.ok(!/utm_source=|user_id:|email:/.test(src))
+  assert.ok(src.includes('showcase_discovery_version: SHOWCASE_DISCOVERY_VERSION'))
+}
+function discovery(overrides = {}) {
+  const src = overrides['app/sitemap.ts'] ?? read('app/sitemap.ts')
+  const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
+  // Execute the actual sitemap with inert catalog fixtures: no Next server or network.
+  const run = enabled => {
+    const mod = { exports: {} }
+    const fixtures = {
+      SHOWCASE_PUBLIC: enabled, AVATAR_PUBLIC: false, CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED: false,
+      NICHE_SLUGS: [], COMPETITOR_SLUGS: [], PUBLIC_EXAMPLES: [], CANONICAL_SLUGS: [],
+      SCRIPT_VERTICAL_SLUGS: [], ENGINE_SLUGS: [], INTENT_SLUGS: [],
+      INTENT_HUB_PATH: '/ai-video-generator/for', intentPagePath: s => `/ai-video-generator/for/${s}`,
+      CITATION_ANSWER_LINKS: [], CITATION_REVIEW_DATE: '2026-09-01', FREE_SHORTS_LANGS: [],
+      LOCALIZED_ENGINE_SLUGS: [], ENGINE_LANG_CODES: [], adsPassLive: () => false,
+      ADS_SEGMENT_SLUGS: [], ADS_SEGMENTS_UPDATED: '2026-09-01', ADS_COMPARISONS: [],
+      adsSegmentPath: s => `/ads/${s}`, adsComparisonPath: s => `/ads/compare/${s}`,
+    }
+    new Function('exports', 'require', 'module', js)(mod.exports, () => fixtures, mod)
+    return mod.exports.default()
+  }
+  const on = run(true), off = run(false), url = 'https://www.usekineo.com/showcase'
+  const entry = on.filter(item => item.url === url)
+  assert.equal(entry.length, 1, 'Public showcase must have one canonical discovery entry')
+  assert.equal(entry[0].lastModified.toISOString(), '2026-10-01T00:00:00.000Z')
+  assert.equal(off.some(item => item.url === url), false, 'Disabled page must leave the sitemap')
+  assert.deepEqual(on.filter(item => item.url !== url), off, 'Showcase switch must not alter other routes')
 }
 check('approved assets, honest badges, local previews and product destinations', () => catalog())
 check('all authored copy in the 16 site languages', () => copy())
@@ -123,4 +151,10 @@ check('M9 kill switch disconnected turns red', () => mutate('app/showcase/page.t
 check('M10 duplicate first gesture turns red', () => mutate('lib/showcaseTelemetry.ts', 'if (sent.has(key)) return false;', '', telemetry))
 check('M11 unversioned cohort turns red', () => mutate('components/showcase/ShowcaseTelemetry.tsx', 'showcase_version: SHOWCASE_VERSION', "release_time: 'today'", telemetry))
 check('M12 false acknowledgement turns red', () => mutate('components/showcase/ShowcaseTelemetry.tsx', "if (result === 'stored')", 'if (result)', telemetry))
-console.log(`${count} checks passed, including 12 live mutations. Offline: no keys, database or renders.`)
+check('sitemap discovers the public portfolio and removes it when disabled', () => discovery())
+check('M13 missing sitemap entry turns red', () => mutate('app/sitemap.ts', 'url: `${BASE}/showcase`', 'url: `${BASE}/missing-showcase`', discovery))
+check('M14 sitemap ignores kill switch turns red', () => mutate('app/sitemap.ts', '...(SHOWCASE_PUBLIC ? [{', '...(true ? [{', discovery))
+check('M15 wrong canonical host turns red', () => mutate('app/sitemap.ts', 'url: `${BASE}/showcase`', "url: 'https://usekineo.com/showcase'", discovery))
+check('M16 stale portfolio review date turns red', () => mutate('app/sitemap.ts', "new Date('2026-10-01T00:00:00.000Z')", "new Date('2026-07-01T00:00:00.000Z')", discovery))
+check('M17 discovery marker missing turns red', () => mutate('components/showcase/ShowcaseTelemetry.tsx', 'showcase_discovery_version: SHOWCASE_DISCOVERY_VERSION,', '', telemetry))
+console.log(`${count} checks passed, including 17 live mutations. Offline: no keys, database or renders.`)

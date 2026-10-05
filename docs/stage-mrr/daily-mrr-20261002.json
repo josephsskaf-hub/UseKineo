@@ -1,0 +1,269 @@
+{
+  "cut": "2026-10-02T03:07:03.572474+00:00",
+  "daily": [
+    {
+      "day": "2026-09-02",
+      "signups": 48,
+      "partial_day": true,
+      "new_subscriptions": 1
+    },
+    {
+      "day": "2026-09-03",
+      "signups": 41,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-04",
+      "signups": 29,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-05",
+      "signups": 30,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-06",
+      "signups": 36,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-07",
+      "signups": 24,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-08",
+      "signups": 8,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-09",
+      "signups": 10,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-10",
+      "signups": 13,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-11",
+      "signups": 20,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-12",
+      "signups": 16,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-13",
+      "signups": 17,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-14",
+      "signups": 19,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-15",
+      "signups": 19,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-16",
+      "signups": 39,
+      "partial_day": false,
+      "new_subscriptions": 1
+    },
+    {
+      "day": "2026-09-17",
+      "signups": 34,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-18",
+      "signups": 16,
+      "partial_day": false,
+      "new_subscriptions": 1
+    },
+    {
+      "day": "2026-09-19",
+      "signups": 10,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-20",
+      "signups": 20,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-21",
+      "signups": 20,
+      "partial_day": false,
+      "new_subscriptions": 2
+    },
+    {
+      "day": "2026-09-22",
+      "signups": 24,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-23",
+      "signups": 18,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-24",
+      "signups": 13,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-25",
+      "signups": 12,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-26",
+      "signups": 12,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-27",
+      "signups": 35,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-28",
+      "signups": 28,
+      "partial_day": false,
+      "new_subscriptions": 1
+    },
+    {
+      "day": "2026-09-29",
+      "signups": 24,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-09-30",
+      "signups": 20,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-10-01",
+      "signups": 20,
+      "partial_day": false,
+      "new_subscriptions": 0
+    },
+    {
+      "day": "2026-10-02",
+      "signups": 1,
+      "partial_day": true,
+      "new_subscriptions": 0
+    }
+  ],
+  "start": "2026-09-02T03:07:03.572474+00:00",
+  "limits": "First observed positive subscription payment_success in available history; renewals/reactivations and one-offs excluded. Signup stages overlap and are not strictly sequential. No causal attribution from time alone. Missing legacy idea instrumentation is unknown, not zero.",
+  "timezone": "America/Sao_Paulo",
+  "versions": [
+    {
+      "name": "mrr_showcase_door_viewed",
+      "version": "mrr_showcase_20261001_v1",
+      "identified_external_people": 2,
+      "anonymous_events_not_people": 2
+    },
+    {
+      "name": "mrr_generate_clicked",
+      "version": "mrr_studio_20261001_v1",
+      "identified_external_people": 6,
+      "anonymous_events_not_people": 1
+    },
+    {
+      "name": "mrr_idea_entered",
+      "version": "mrr_studio_20261001_v1",
+      "identified_external_people": 5,
+      "anonymous_events_not_people": 1
+    },
+    {
+      "name": "mrr_studio_viewed",
+      "version": "mrr_studio_20261001_v1",
+      "identified_external_people": 17,
+      "anonymous_events_not_people": 4
+    }
+  ],
+  "signup_cohort": {
+    "signup": 676,
+    "checkout": 73,
+    "generate": 428,
+    "first_film": 364,
+    "second_film": 97,
+    "share_signups": 0,
+    "new_subscription": 6,
+    "studio_observed_lower_bound": 461,
+    "typed_in_instrumented_version": 5
+  },
+  "new_subscribers_by_source": [
+    {
+      "source": "chatgpt",
+      "user_id": "P1",
+      "campaign": "unknown",
+      "created_at": "2026-09-02T20:22:43.066199+00:00"
+    },
+    {
+      "source": "chatgpt",
+      "user_id": "P2",
+      "campaign": "unknown",
+      "created_at": "2026-09-16T22:16:34.400066+00:00"
+    },
+    {
+      "source": "chatgpt",
+      "user_id": "P3",
+      "campaign": "seo_engine_veo",
+      "created_at": "2026-09-19T02:04:28.864836+00:00"
+    },
+    {
+      "source": "chatgpt",
+      "user_id": "P4",
+      "campaign": "seo_engine_seedance",
+      "created_at": "2026-09-21T15:14:55.601439+00:00"
+    },
+    {
+      "source": "unknown",
+      "user_id": "P5",
+      "campaign": "unknown",
+      "created_at": "2026-09-21T16:50:09.8498+00:00"
+    },
+    {
+      "source": "chatgpt",
+      "user_id": "P6",
+      "campaign": "unknown",
+      "created_at": "2026-09-28T18:09:58.209066+00:00"
+    }
+  ]
+}

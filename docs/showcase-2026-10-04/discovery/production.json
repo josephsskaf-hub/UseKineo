@@ -1,0 +1,27 @@
+{
+  "observedAtUtc": "2026-10-01T21:41:56.5164204+00:00",
+  "method": "Public HTTP GET only; JavaScript not executed; no analytics event emitted by this check",
+  "sourceMain": "ea7b95d1b2dbc2df0741417d24741eecc06a0a2f",
+  "requests": [
+    {
+      "path": "/showcase",
+      "status": 200,
+      "showcaseInSitemap": false,
+      "hasFilmValuePanel": true,
+      "hasFilmCTA": true,
+      "hasImagesCTA": true,
+      "hasSpacesCTA": true,
+      "hasAdsCTA": true
+    },
+    {
+      "path": "/sitemap.xml",
+      "status": 200,
+      "showcaseInSitemap": false,
+      "hasFilmValuePanel": false,
+      "hasFilmCTA": false,
+      "hasImagesCTA": false,
+      "hasSpacesCTA": false,
+      "hasAdsCTA": false
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 'use client'
 import { useEffect } from 'react'
 import { rememberSignupCampaign, trackClosedEvent } from '@/lib/analytics'
-import { createShowcaseLatch, showcaseAction, SHOWCASE_CAMPAIGN, SHOWCASE_EVENTS, SHOWCASE_TELEMETRY_ENABLED, SHOWCASE_VERSION } from '@/lib/showcaseTelemetry'
+import { createShowcaseLatch, showcaseAction, SHOWCASE_CAMPAIGN, SHOWCASE_DISCOVERY_VERSION, SHOWCASE_EVENTS, SHOWCASE_TELEMETRY_ENABLED, SHOWCASE_VERSION } from '@/lib/showcaseTelemetry'
 
 const claim = createShowcaseLatch()
 let ephemeralActor: string | undefined
@@ -26,6 +26,7 @@ export default function ShowcaseTelemetry() {
       if (!claim(key)) return
       void trackClosedEvent(SHOWCASE_EVENTS[kind], {
         showcase_version: SHOWCASE_VERSION, showcase_browser: actor, ...(action ? { action } : {}),
+        showcase_discovery_version: SHOWCASE_DISCOVERY_VERSION,
       }, '/showcase').then(result => {
         if (result === 'stored') { try { localStorage.setItem(key, 'stored') } catch { /* optional */ } }
       })

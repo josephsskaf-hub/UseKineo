@@ -1,0 +1,9 @@
+{
+  "checkedAtUtc": "2026-10-03T09:50:11.7854810+00:00",
+  "command": "node node_modules/typescript/bin/tsc --noEmit --incremental false",
+  "exitCode": 0,
+  "diagnostics": [],
+  "code": "ea20f9edb0ec9fd34465a8af64c9211ced345cd7",
+  "main": "6ac5d2b8bbef9ad59a373f33238ca52e728e23cc",
+  "preservedQueue": "456f4b65f0c6c8b6687ae5107a271d9d2729cc6a"
+}

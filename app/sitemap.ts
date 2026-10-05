@@ -17,6 +17,7 @@ import { LOCALIZED_ENGINE_SLUGS, ENGINE_LANG_CODES } from '@/lib/seo/enginePageL
 import { adsPassLive } from '@/lib/ads/offer'
 import { ADS_SEGMENT_SLUGS, ADS_SEGMENTS_UPDATED, adsSegmentPath } from '@/lib/growth/adsSegments'
 import { ADS_COMPARISONS, adsComparisonPath } from '@/lib/growth/adsComparisons'
+import { SHOWCASE_PUBLIC } from '@/lib/showcaseTelemetry'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -333,6 +334,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }))
   return [
+    // House portfolio: discoverable only while the public page is enabled.
+    // Its own review date must not re-date the unrelated acquisition pages.
+    ...(SHOWCASE_PUBLIC ? [{
+      url: `${BASE}/showcase`,
+      lastModified: new Date('2026-10-01T00:00:00.000Z'),
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    }] : []),
     ...ADS_COMPARISONS.map(({ slug }) => ({
       url: `${BASE}${adsComparisonPath(slug)}`,
       lastModified: ADS_SEGMENTS_UPDATED,

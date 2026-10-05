@@ -4,8 +4,8 @@ WITH patterns(pat) AS (VALUES ('josephsskaf@gmail.com'),('josephskaf@hotmail.com
 people AS (SELECT p.id,p.created_at,coalesce(nullif(trim(p.signup_utm_source),''),nullif(trim(p.utm_source),''),'unknown') source,p.signup_utm_campaign campaign FROM profiles p WHERE NOT EXISTS (SELECT 1 FROM patterns i WHERE lower(trim(coalesce(p.email,''))) LIKE i.pat)),
 surface_events AS (
  SELECT e.* FROM events e
- WHERE e.name IN ('mrr_studio_viewed','mrr_showcase_viewed','mrr_showcase_door_viewed','showcase_impression')
- AND coalesce(e.metadata->>'version',e.metadata->>'showcase_version') IN ('mrr_studio_20261001_v1','mrr_showcase_20261001_v1','showcase_v1')
+ WHERE e.name IN ('mrr_studio_viewed','mrr_showcase_viewed','mrr_showcase_door_viewed','showcase_impression','mrr_first_film_viewed','mrr_episode_value_viewed','mrr_pricing_proof_viewed','mrr_share_viewed','mrr_ready_film_return_viewed')
+ AND coalesce(e.metadata->>'version',e.metadata->>'showcase_version') IN ('mrr_studio_20261001_v1','mrr_showcase_20261001_v1','showcase_v1','mrr_first_film_20261001_v1','mrr_episode_value_20261001_v1','mrr_pricing_proof_20261001_v1','mrr_share_20261001_v1','mrr_ready_film_20261001_v1')
  AND nullif(trim(e.session_id),'') IS NOT NULL
 ),
 session_people AS (
@@ -27,6 +27,19 @@ exposures AS (
 mature AS (SELECT * FROM exposures WHERE exposed_at<=now()-interval '48 hours'),
 flags AS (
  SELECT x.*,p.created_at>=x.exposed_at AND p.created_at<x.exposed_at+interval '48 hours' AS signup_in_48h,
+ EXISTS(SELECT 1 FROM events e LEFT JOIN session_people sp USING(session_id)
+   WHERE coalesce(e.user_id,sp.person)=x.person AND e.created_at>=x.exposed_at AND e.created_at<x.exposed_at+interval '48 hours'
+   AND coalesce(e.metadata->>'version',e.metadata->>'showcase_version')=x.version
+   AND e.name=CASE x.surface WHEN 'mrr_studio_viewed' THEN 'mrr_idea_entered'
+     WHEN 'mrr_showcase_viewed' THEN 'mrr_showcase_first_gesture'
+     WHEN 'mrr_showcase_door_viewed' THEN 'mrr_showcase_door_clicked'
+     WHEN 'showcase_impression' THEN 'showcase_first_gesture'
+     WHEN 'mrr_first_film_viewed' THEN 'mrr_first_film_committed'
+     WHEN 'mrr_episode_value_viewed' THEN 'mrr_episode_value_first_gesture'
+     WHEN 'mrr_pricing_proof_viewed' THEN 'mrr_pricing_proof_first_gesture'
+     WHEN 'mrr_share_viewed' THEN 'mrr_share_first_gesture'
+     WHEN 'mrr_ready_film_return_viewed' THEN 'mrr_ready_film_return_first_gesture' END
+   AND nullif(trim(e.session_id),'') IS NOT NULL) first_gesture,
  EXISTS(SELECT 1 FROM events e WHERE e.user_id=x.person AND e.created_at>=x.exposed_at AND e.created_at<x.exposed_at+interval '48 hours'
    AND e.name='mrr_idea_entered' AND e.metadata->>'version'=x.version AND e.metadata->>'variant'=x.variant AND nullif(trim(e.session_id),'') IS NOT NULL) typed,
  EXISTS(SELECT 1 FROM events e WHERE e.user_id=x.person AND e.created_at>=x.exposed_at AND e.created_at<x.exposed_at+interval '48 hours'
@@ -44,6 +57,7 @@ SELECT jsonb_build_object(
  'version_exposed_people',(SELECT jsonb_agg(z) FROM (SELECT surface,version,variant,count(DISTINCT person) people FROM exposures GROUP BY 1,2,3)z),
  'mature_48h',(SELECT jsonb_agg(z) FROM (SELECT surface,version,variant,count(DISTINCT person) denominator,
  count(DISTINCT person) FILTER(WHERE signup_in_48h) signups,
+ count(DISTINCT person) FILTER(WHERE first_gesture) first_gesture,
  count(DISTINCT person) FILTER(WHERE typed) typed,
  count(DISTINCT person) FILTER(WHERE generated) generated,
  count(DISTINCT person) FILTER(WHERE checkout) checkout,
@@ -51,4 +65,3 @@ SELECT jsonb_build_object(
  FROM flags GROUP BY 1,2,3)z),
  'unresolved_sessions',(SELECT count(DISTINCT session_id) FROM resolved WHERE person IS NULL)
 ) measurement;
-
