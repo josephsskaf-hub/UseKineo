@@ -179,7 +179,7 @@ async function problems(S) {
   }
   if (!/searchParams\.get\('confirm'\) === 'APPLY'/.test(S.cron) || !/expireCourtesies\(admin, \{ apply,/.test(S.cron)) p.push('cron sem trava ?confirm=APPLY')
   if (!/export const fetchCache = 'force-no-store'/.test(S.cron)) p.push('cron sem force-no-store')
-  if (!/courtesy-expire?confirm=APPLY/.test(S.vercel)) p.push('cron de validade da cortesia fora do vercel.json (decisão I do fundador, 05/10: a cortesia vence)')
+  if (!S.vercel.includes('/api/cron/courtesy-expire?confirm=APPLY')) p.push('cron de validade da cortesia fora do vercel.json (decisão I do fundador, 05/10: a cortesia vence)')
   if (!/grantCourtesy\(admin,/.test(S.adminRoute) || !/isAdminEmail\(user\.email\)/.test(S.adminRoute)) p.push('rota do admin sem trava de admin ou sem a store')
   if (!/update\(\{ plan: v\.value\.level/.test(S.store)) p.push('store não grava o nível validado no plano')
   const mig = MIGRATIONS.map((f) => [f, read('supabase/migrations/' + f)])
