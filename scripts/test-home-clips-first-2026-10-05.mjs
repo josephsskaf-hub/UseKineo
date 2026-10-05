@@ -289,5 +289,15 @@ for (const [name, mut] of mutants) {
   ok(caught, `mutante pego: ${name}`)
 }
 
+// (11) carimbo do A/B nos eventos de efeito do /clips (contrato homeVariantStamp): escolha e upsell levam a variante;
+// clip_effect_ready nasce no settle (rota de status OU cron, sem cookie) e liga à escolha pelo clip_id.
+{
+  const post = read('app/api/clips/route.ts')
+  const up = read('app/api/clips/effect-upsell/route.ts')
+  const stamp = /\.\.\.clipEffectEventMetadata\(effect, (result\.clip|row)\), \.\.\.homeVariantStamp\(user\.id, user\.email\), version: 'clip_effects_20261005' \}/
+  ok(stamp.test(post) && /import \{ homeVariantStamp \} from '@\/lib\/growth\/homeClipsFirstServer'/.test(post), '(11a) clip_effect_chosen carimba a variante da home (user_id + e-mail + kineo_vid)')
+  ok(stamp.test(up) && /import \{ homeVariantStamp \} from '@\/lib\/growth\/homeClipsFirstServer'/.test(up), '(11b) clip_effect_film_upsell_clicked carimba a variante da home')
+  ok(/clip_id: clip\.id/.test(effectsSrc), '(11c) clip_effect_ready liga à escolha pelo clip_id (metadata comum)')
+}
 console.log(`\n  RESULTADO: ${pass} ok · ${fail} falha(s)`)
 process.exit(fail ? 1 : 0)

@@ -11,6 +11,7 @@ import { clipsVisible } from '@/lib/clips/clipLaunch'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { clipEffectEventMetadata, clipEffectFilmHref, clipEffectForRow, clipEffectsVisible } from '@/lib/clips/clipEffects'
+import { homeVariantStamp } from '@/lib/growth/homeClipsFirstServer'
 
 export const maxDuration = 15
 export const dynamic = 'force-dynamic'
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
     name: 'clip_effect_film_upsell_clicked',
     userId: user.id,
     path: '/api/clips/effect-upsell',
-    metadata: { ...clipEffectEventMetadata(effect, row), version: 'clip_effects_20261005' },
+    metadata: { ...clipEffectEventMetadata(effect, row), ...homeVariantStamp(user.id, user.email), version: 'clip_effects_20261005' },
   }).catch(() => false)
 
   return NextResponse.json({ href: clipEffectFilmHref(effect) }, { headers: NO_STORE })

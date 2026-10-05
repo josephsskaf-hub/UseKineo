@@ -22,6 +22,7 @@ import { clipsVisible } from '@/lib/clips/clipLaunch'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { clipEffectEventMetadata, clipEffectsVisible, publicClipEffects, resolveClipEffectRequest, wantsClipEffect, type ClipEffect } from '@/lib/clips/clipEffects'
+import { homeVariantStamp } from '@/lib/growth/homeClipsFirstServer'
 import type { ClipRequestInput } from '@/lib/clips/clipCatalog'
 
 export const maxDuration = 60
@@ -122,7 +123,7 @@ export async function POST(req: NextRequest) {
         name: 'clip_effect_chosen',
         userId: user.id,
         path: '/api/clips',
-        metadata: { ...clipEffectEventMetadata(effect, result.clip), version: 'clip_effects_20261005' },
+        metadata: { ...clipEffectEventMetadata(effect, result.clip), ...homeVariantStamp(user.id, user.email), version: 'clip_effects_20261005' },
       }).catch(() => false)
     }
     if (result.ok) {
