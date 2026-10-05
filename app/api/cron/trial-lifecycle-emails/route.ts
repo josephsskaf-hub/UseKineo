@@ -1332,7 +1332,8 @@ function buildEmail(c: Candidate): { subject: string; text: string; html: string
     // Agora a cláusula nasce da tabela do cobrador; `null` = saldo não cobre um
     // render, e aí a carta sai sem conta nenhuma em vez de prometer errado.
     const reachClause = trialReachClause(c.creditsLeft)
-    const engineLine = reachClause ? `${reachClause}. ` : 'Every engine is unlocked. '
+    // KINEO-VERDADE-TRIAL-2026-10-05 — sem saldo para um render a carta não promete motor nenhum.
+    const engineLine = reachClause ? `${reachClause}. ` : ''
     const text = `Hey,
 
 Your Creator trial is live. ${creditLine} — ${engineLine}Films carry a watermark until you upgrade.

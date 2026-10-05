@@ -367,7 +367,7 @@ import {
   type OnboardingGoalId,
 } from '@/lib/growth/onboardingGoals'
 import { FreeTierCopy, useFreeTierOffer } from '@/components/FreeTierOfferProvider'
-import { swapFreeTierCopy as ft, TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
+import { swapFreeTierCopy as ft, TRIAL_CREDITS_SHOWN, TRIAL_FIRST_FILM_PHRASE } from '@/lib/freeTierOffer'
 // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — AvatarPaywallModal import removed.
 // That modal only sold the retired avatar_credits packs (?pack=avatar*). Avatar
 // videos now cost 120 universal credits; the avatar 402 already routes to the
@@ -14871,7 +14871,7 @@ export default function GenerateClient({
                   o ramo de baixo continua identico ao de hoje. */}
               <span>
                 {trialActive ? (
-                  <>You&apos;re in. <strong>Your trial credits unlock EVERY engine, Kling 3 included &mdash; films come out watermarked until you upgrade</strong> — we&apos;ve loaded an idea below.</>
+                  <>You&apos;re in. <strong>Your trial credits are {TRIAL_FIRST_FILM_PHRASE} &mdash; films come out watermarked until you upgrade</strong> — we&apos;ve loaded an idea below.</>
                 ) : (
                   <>You&apos;re in. <strong>Your Fast previews are free to create, watch, share and download with a watermark</strong> — we&apos;ve loaded an idea below.</>
                 )}
@@ -23153,7 +23153,7 @@ function WelcomeBanner({ onDismiss, trialLive, grantedCredits }: { onDismiss: ()
         ) : (
           // KINEO-GRANT-COPY-UNICA-2026-08-17 — era a PRIMEIRA frase que quem
           // acabou de se cadastrar lê, e prometia 40 quando a conta recebeu 50.
-          <FreeTierCopy legacy="Create up to 3 watermarked Fast videos every 24 hours — we dropped a viral idea below. Hit Generate, or type your own. No card needed." on={`Your Creator trial is live — ${grant} free credits, every engine unlocked — Kling 3 included. We dropped a viral idea below. Hit Generate, or type your own. No card needed.`} />
+          <FreeTierCopy legacy="Create up to 3 watermarked Fast videos every 24 hours — we dropped a viral idea below. Hit Generate, or type your own. No card needed." on={`Your Creator trial is live — ${grant} free credits, ${TRIAL_FIRST_FILM_PHRASE}. We dropped a viral idea below. Hit Generate, or type your own. No card needed.`} />
         )}
       </span>
       <button

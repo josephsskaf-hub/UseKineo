@@ -6,7 +6,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
-import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_FIRST_FILM_PHRASE } from '@/lib/freeTierOffer'
 // ⚠️ KINEO-PRICING-V6-2026-08-19 — a linha de preço deste lembrete era
 // "Starter $9.90/mo, then $9.90/mo · Creator $9.90 first month, then
 // $24.90/mo". Além dos quatro valores mortos, o "$9.90/mo, then $9.90/mo" do
@@ -271,7 +271,7 @@ export async function GET(req: NextRequest) {
               <div style="background:rgba(41,151,255,0.08);border:1px solid rgba(41,151,255,0.3);border-radius:14px;padding:20px 24px;margin-bottom:28px;text-align:center;">
                 <p style="color:#2997ff;font-size:12px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;margin:0 0 6px;">⏰ YOUR FAST ACCESS IS READY</p>
                 <p style="color:#f1f5f9;font-size:24px;font-weight:900;margin:0 0 4px;">${ft(OFFER, 'Up to 3 Fast videos every 24h.', OFFER.copy.chip)}</p>
-                <p style="color:#64748b;font-size:13px;margin:0;">${ft(OFFER, 'No card. Free videos include a Kineo watermark.', 'Trial credits unlock every engine — films come out watermarked until you upgrade.')}</p>
+                <p style="color:#64748b;font-size:13px;margin:0;">${ft(OFFER, 'No card. Free videos include a Kineo watermark.', `Trial credits are ${TRIAL_FIRST_FILM_PHRASE} — films come out watermarked until you upgrade.`)}</p>
               </div>
 
               <p style="color:#94a3b8;font-size:14px;margin:0 0 24px;line-height:1.7;">

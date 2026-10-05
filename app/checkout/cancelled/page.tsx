@@ -30,7 +30,7 @@ import {
 } from '@/lib/checkoutPricing'
 import { formatSettlementMoney, planSettlementAmountMinor } from '@/lib/settlementCurrency'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
-import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, TRIAL_FIRST_FILM_PHRASE } from '@/lib/freeTierOffer'
 import { readAutopilotCheckoutReturn } from '@/lib/growth/autopilotCheckoutReturn'
 import { readPlanFitCheckoutReturn } from '@/lib/growth/planFitCheckout'
 import {
@@ -782,7 +782,7 @@ function CheckoutCancelledContent() {
                     <p style={{ margin: '6px 0 12px', fontSize: '0.82rem', color: 'var(--muted2)', lineHeight: 1.55 }}>
                       {cardTrial
                         ? 'You can return to Studio to review your idea. Starting this Creator trial requires payment.'
-                        : <>{ft(OFFER, 'Make up to 3 Fast videos every 24h on the free account, no card.', `Use your ${TRIAL_GRANT_CREDITS_COPY} free credits — every engine unlocked.`)} If one of them is good enough to post, that&apos;s the only argument for paying that actually works.</>}
+                        : <>{ft(OFFER, 'Make up to 3 Fast videos every 24h on the free account, no card.', `Use your ${TRIAL_GRANT_CREDITS_COPY} free credits — ${TRIAL_FIRST_FILM_PHRASE}.`)} If one of them is good enough to post, that&apos;s the only argument for paying that actually works.</>}
                     </p>
                   )}
                   <Link

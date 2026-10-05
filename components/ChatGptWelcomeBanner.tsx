@@ -244,7 +244,7 @@ export function ChatGptWelcomeCard({
         ) : null}
         <span>Your text stays editable in Studio before anything is generated.</span>
       </div>
-      {/* KINEO-PLUGIN-SEM-PROMO-2026-10-05 — 'every engine unlocked' era falso (conta grátis não usa Kling/Veo sem plano). */}
+      {/* KINEO-PLUGIN-SEM-PROMO-2026-10-05 — a promessa de todos os motores liberados era falsa (conta grátis não usa Kling/Veo sem plano). */}
       <p className={styles.proof}>
         {TRIAL_CREDITS_SHOWN} free credits · no card · plans from {STARTER_MO}
       </p>

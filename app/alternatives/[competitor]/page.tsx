@@ -20,7 +20,7 @@ import QusoDecisionSections, { QUSO_INTENT_CAMPAIGN } from './QusoDecisionSectio
 // back to search. The map and the lookup both live in lib/comparisons.ts, which
 // is the single source of truth for the comparison cluster.
 import { TOOLS, TOOL_ID_BY_ALTERNATIVES_SLUG, otherTool, pairsForTool } from '@/lib/comparisons'
-import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, TRIAL_FIRST_FILM_PHRASE, TRIAL_FIRST_FILM_SHORT } from '@/lib/freeTierOffer' // KINEO-VERDADE-TRIAL-2026-10-05
 // KINEO-PRICING-V6-2026-08-19 — o preço do Starter aparece dezenas de vezes
 // nesta página. Foi exatamente por ser digitado à mão que ele sobreviveu a
 // duas mudanças de tabela ($4.90 → $9.90 → $7) e continuou mentindo aqui
@@ -97,13 +97,13 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'InVideo AI',
     h1: 'A Free InVideo AI Alternative for Faceless Shorts',
     intro:
-      `Kineo starts free (10 credits, every engine unlocked, no card); InVideo AI has its own free tier. The useful difference is the workflow: InVideo is a broad video creator, while Kineo is built specifically for faceless 9:16 Shorts. One idea becomes a hook-driven script, voiceover, footage and captions, usually in 3–7 minutes. ${ft(OFFER, 'Kineo free access includes up to 3 watermarked Fast videos every 24 hours.', `Kineo starts with ${TRIAL_GRANT_CREDITS_COPY} free credits and every engine unlocked; trial films are watermarked.`)}`,
+      `Kineo starts free (${TRIAL_GRANT_CREDITS_COPY} credits — ${TRIAL_FIRST_FILM_PHRASE}, no card); InVideo AI has its own free tier. The useful difference is the workflow: InVideo is a broad video creator, while Kineo is built specifically for faceless 9:16 Shorts. One idea becomes a hook-driven script, voiceover, footage and captions, usually in 3–7 minutes. ${ft(OFFER, 'Kineo free access includes up to 3 watermarked Fast videos every 24 hours.', `Kineo starts with ${TRIAL_GRANT_CREDITS_COPY} free credits, ${TRIAL_FIRST_FILM_PHRASE}; trial films are watermarked.`)}`,
     theyDo: 'InVideo AI is a broad, general-purpose AI video maker for many formats.',
     pickThem:
       'Pick InVideo if you need long-form, horizontal, or many different video formats from one tool. Pick Kineo if your whole game is posting faceless Shorts daily and you want them optimized for retention out of the box.',
     rows: [
       { feature: 'Free access without a card', sfa: true, them: true },
-      { feature: 'Free allowance', sfa: ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', `${TRIAL_GRANT_CREDITS_COPY} credits; every engine unlocked`), them: 'Limited credits; resets weekly' },
+      { feature: 'Free allowance', sfa: ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', `${TRIAL_GRANT_CREDITS_COPY} credits; ${TRIAL_FIRST_FILM_SHORT}`), them: 'Limited credits; resets weekly' },
       { feature: 'Creates the full video from just an idea', sfa: true, them: true },
       { feature: 'Purpose-built for faceless 9:16 Shorts', sfa: true, them: 'General-purpose' },
       { feature: 'Viral hook structure baked into the script', sfa: true, them: false },
@@ -116,7 +116,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     faq: [
       {
         q: 'Is there a free InVideo AI alternative?',
-        a: `Kineo starts free (10 credits, no card) and is focused on faceless vertical Shorts. ${ft(OFFER, 'Free access includes up to 3 watermarked Fast videos every 24 hours.', `A new account receives ${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked; trial films are watermarked.`)} InVideo also has a no-card free plan with limited credits that reset weekly, according to its official help center checked ${INVIDEO_FACTS_CHECKED}.`,
+        a: `Kineo starts free (${TRIAL_GRANT_CREDITS_COPY} credits, no card) and is focused on faceless vertical Shorts. ${ft(OFFER, 'Free access includes up to 3 watermarked Fast videos every 24 hours.', `A new account receives ${TRIAL_GRANT_CREDITS_COPY} free credits, ${TRIAL_FIRST_FILM_PHRASE}; trial films are watermarked.`)} InVideo also has a no-card free plan with limited credits that reset weekly, according to its official help center checked ${INVIDEO_FACTS_CHECKED}.`,
       },
       {
         q: 'What is the best InVideo alternative for faceless YouTube Shorts?',
@@ -878,10 +878,10 @@ const CARD = { background: '#161618', border: '1px solid #2a2a2d' }
 function currentKineoOffer(value: string): string {
   return value
     .replace(/is the first short really free\?/gi, 'Can I use Kineo without paying?')
-    .replace(/your first short is free(?: with no credit card(?: required)?)?/gi, ft(OFFER, 'you can create up to 3 watermarked Fast videos every 24h with no card', `you get ${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked, no card — trial films are watermarked and a plan unlocks the clean download`))
-    .replace(/the first short is free(?: with no credit card(?: required)?)?/gi, ft(OFFER, 'you can create up to 3 watermarked Fast videos every 24h with no card', `you get ${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked, no card — trial films are watermarked and a plan unlocks the clean download`))
-    .replace(/a free first short/gi, ft(OFFER, 'up to 3 watermarked Fast videos every 24h with no card', `${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked, no card (films are watermarked until you upgrade)`))
-    .replace(/free first short/gi, ft(OFFER, 'up to 3 watermarked Fast videos every 24h with no card', `${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked, no card (films are watermarked until you upgrade)`))
+    .replace(/your first short is free(?: with no credit card(?: required)?)?/gi, ft(OFFER, 'you can create up to 3 watermarked Fast videos every 24h with no card', `you get ${TRIAL_GRANT_CREDITS_COPY} free credits — ${TRIAL_FIRST_FILM_PHRASE}, no card — trial films are watermarked and a plan unlocks the clean download`))
+    .replace(/the first short is free(?: with no credit card(?: required)?)?/gi, ft(OFFER, 'you can create up to 3 watermarked Fast videos every 24h with no card', `you get ${TRIAL_GRANT_CREDITS_COPY} free credits — ${TRIAL_FIRST_FILM_PHRASE}, no card — trial films are watermarked and a plan unlocks the clean download`))
+    .replace(/a free first short/gi, ft(OFFER, 'up to 3 watermarked Fast videos every 24h with no card', `${TRIAL_GRANT_CREDITS_COPY} free credits — ${TRIAL_FIRST_FILM_PHRASE}, no card (films are watermarked until you upgrade)`))
+    .replace(/free first short/gi, ft(OFFER, 'up to 3 watermarked Fast videos every 24h with no card', `${TRIAL_GRANT_CREDITS_COPY} free credits — ${TRIAL_FIRST_FILM_PHRASE}, no card (films are watermarked until you upgrade)`))
     // KINEO-PRICING-V6-2026-08-19 — AQUI MORRERAM NOVE SUBSTITUIÇÕES DE PREÇO.
     // Elas existiam para consertar, no render, um preço errado que estava
     // escrito lá em cima na tabela COMPETITORS — e por isso eram um remendo que
@@ -898,9 +898,9 @@ function currentKineoOffer(value: string): string {
     // O conserto certo não é reescrever a substituição: é a origem passar a
     // derivar o preço de TIER_PRICES, o que ela agora faz. Sobrou aqui só o que
     // esta função sempre foi de verdade — o swap da copy do free tier.
-    .replaceAll('first Short free', ft(OFFER, 'up to 3 watermarked Fast videos every 24h, no card', `${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked, no card (films are watermarked until you upgrade)`))
-    .replaceAll('first one is free', ft(OFFER, 'up to 3 watermarked Fast videos every 24h are free', `${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked is free`))
-    .replaceAll('first one free', ft(OFFER, 'up to 3 watermarked Fast videos every 24h, no card', `${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked, no card (films are watermarked until you upgrade)`))
+    .replaceAll('first Short free', ft(OFFER, 'up to 3 watermarked Fast videos every 24h, no card', `${TRIAL_GRANT_CREDITS_COPY} free credits — ${TRIAL_FIRST_FILM_PHRASE}, no card (films are watermarked until you upgrade)`))
+    .replaceAll('first one is free', ft(OFFER, 'up to 3 watermarked Fast videos every 24h are free', `${TRIAL_GRANT_CREDITS_COPY} free credits — ${TRIAL_FIRST_FILM_PHRASE} — come free`))
+    .replaceAll('first one free', ft(OFFER, 'up to 3 watermarked Fast videos every 24h, no card', `${TRIAL_GRANT_CREDITS_COPY} free credits — ${TRIAL_FIRST_FILM_PHRASE}, no card (films are watermarked until you upgrade)`))
 }
 
 function Cell({ v }: { v: boolean | string }) {

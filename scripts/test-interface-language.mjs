@@ -13,7 +13,8 @@ equal(language.parseInterfaceLanguage('es'),'es','explicit Spanish accepted')
 equal(language.parseInterfaceLanguage('en'),'en','English can be restored')
 const canonical=pure('lib/ui/canonicalCopySpanish.ts').canonicalCopySpanish
 for(const amount of [0,1,25,40,80,180]){
- const input=`Start free — every engine unlocked, including Kling 3. Make ${amount} AI ${amount===1?'film':'films'} free, watermarked. Upgrade any time to download them clean.`
+ // KINEO-VERDADE-TRIAL-2026-10-05 — a frase canônica velha (todos os motores no trial) morreu; mesma intenção sobre a nova.
+ const input=`New accounts get ${amount} credits — enough for your first ${amount+15}-second AI film; trial films are watermarked.`
  equal(canonical(input).match(/\d+/g),input.match(/\d+/g),'canonical quantities preserved, not frozen at today’s grant')
 }
 equal(canonical('A different offer: 500 free credits'),undefined,'unrecognized offer is not silently translated to another promise')

@@ -479,9 +479,9 @@ synthetic voice. None of them alternate the two inside one finished Short.
   single creation surface. Every film is delivered as a 1080×1920 master.
 - 2026-09-09 (evening): the free trial is back.
   Every new account started with 30 credits (one Seedance 1.5 film and one Kineo 1
-  film of 60 s), every engine unlocked, no card required.
-- 2026-09-16: the free trial became 10 credits for new accounts, every engine
-  unlocked, no card required. Accounts created before keep the credits they received.
+  film of 60 s), no card required.
+- 2026-09-16: the free trial became 10 credits for new accounts, no card
+  required. Accounts created before keep the credits they received.
 - 2026-09-29: the 10 trial credits pay for one free 15-second film (Seedance 1.5),
   watermarked. Kineo 1 is no longer offered to new accounts (it stays for existing
   paying accounts and one-time business packs).

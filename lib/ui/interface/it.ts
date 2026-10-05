@@ -120,7 +120,7 @@ export const DICT: Record<string, string> = {
   'Every video engine incl. MiniMax H3': 'Tutti i motori video, incl. MiniMax H3',
   'Watermark-free MP4 · 100 projects · 90-day storage': 'MP4 senza filigrana · 100 progetti · archiviazione 90 giorni',
   ', finished': ', finito',
-  '— every engine unlocked': '— tutti i motori sbloccati',
+  '— Kling and Veo included': '— Kling e Veo inclusi',
   '· voice + karaoke captions + score': '· voce + sottotitoli karaoke + colonna sonora',
   '500 projects · forever storage': '500 progetti · archiviazione per sempre',
   'Cancel anytime — 7-day money-back': 'Annulla quando vuoi — 7 giorni soddisfatti o rimborsati',

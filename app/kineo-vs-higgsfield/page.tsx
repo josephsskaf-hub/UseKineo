@@ -17,6 +17,7 @@ import { filmsAndScenes } from '@/lib/marketingPrice'
 // Omni Flash (#1, Aug 2026)" na tabela: contagem errada (duas vezes, diferente em cada lugar) e um motor pausado
 // desde 15/09 vendido como diferencial. Contagem e lista agora são as derivadas dos interruptores.
 import { VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY } from '@/lib/engineLaunch'
+import { TRIAL_GRANT_CREDITS_COPY, TRIAL_FIRST_FILM_PHRASE, TRIAL_FIRST_FILM_SHORT } from '@/lib/freeTierOffer' // KINEO-VERDADE-TRIAL-2026-10-05
 const ENGINE_COUNT = VIDEO_ENGINE_COUNT_WORD.toLowerCase()
 
 export const dynamic = 'force-static'
@@ -77,7 +78,7 @@ const ROWS: Array<[string, string, string]> = [
   ['Character/world consistency', 'Per generation', 'Anchored across every scene of the film'],
   ['Top engines', 'Yes — several', `Yes — ${ENGINE_COUNT}: ${VIDEO_ENGINE_LIST_COPY}`],
   ['Talking character with lip sync', 'Limited', 'Kling 3 renders a character speaking your line'],
-  ['Entry', 'Limited free tier', 'Free — 10 credits, every engine, no card'],
+  ['Entry', 'Limited free tier', `Free trial: ${TRIAL_FIRST_FILM_SHORT}, no card`],
 ]
 
 export default function VsHiggsfieldPage() {
@@ -145,7 +146,7 @@ export default function VsHiggsfieldPage() {
         >
           Start free
         </Link>
-        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>Free — 10 credits, every engine unlocked, no card</p>
+        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>{`Free — ${TRIAL_GRANT_CREDITS_COPY} credits, ${TRIAL_FIRST_FILM_PHRASE}, no card`}</p>
       </div>
 
       <p style={{ color: '#5a5a60', fontSize: 11.5, marginTop: 20 }}>

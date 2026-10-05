@@ -15,7 +15,7 @@ import { FOUNDER_SHOWCASE } from '@/lib/publicExamples'
 import { engineDisplayName } from '@/lib/enginePlanGate'
 import { CARD_TRIAL_DAYS, CARD_TRIAL_GRANT_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { CARD_ENTRY_COPY, FREE_ENTRY_CREDITS } from '@/lib/entryPolicy'
-import { FREE_FILM_LABEL, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer' // KINEO-FILME-GRATIS-15S-2026-09-29
+import { FREE_FILM_LABEL, GRANT_COUNTRY_CLAUSE, TRIAL_FIRST_FILM_SHORT } from '@/lib/freeTierOffer' // KINEO-FILME-GRATIS-15S-2026-09-29 · KINEO-VERDADE-TRIAL-2026-10-05
 import { videosPerMonth } from '@/lib/marketingPrice' // KINEO-FILME-GRATIS-15S-2026-09-29
 // KINEO-PH-CONTAGEM-2026-09-09 — a contagem de motores É DERIVADA. Esta página
 // era o ÚNICO lugar do site que digitava "Nine" à mão, em três lugares (título
@@ -135,7 +135,7 @@ export default function PhPage() {
                 {CARD_ENTRY_COPY.ctaLong}
               </a>
               <span style={{ fontSize: 13, color: 'rgba(255,255,255,.6)' }}>
-                {FREE_ENTRY_CREDITS} credits free · every engine unlocked · no card · plans from {usd(TIER_PRICES.starter.usd)}/mo
+                {FREE_ENTRY_CREDITS} credits free · {TRIAL_FIRST_FILM_SHORT} · no card · plans from {usd(TIER_PRICES.starter.usd)}/mo
               </span>
             </div>
             <p style={{ marginTop: 12, fontSize: 13, color: 'rgba(255,255,255,.5)' }}>{CARD_ENTRY_COPY.noFreeTier}</p>
@@ -193,13 +193,13 @@ export default function PhPage() {
           ))}
         </section>
         <p style={{ marginTop: 10, fontSize: 13, color: 'rgba(255,255,255,.55)' }}>
-          Every account{GRANT_COUNTRY_CLAUSE} starts free with {FREE_ENTRY_CREDITS} credits — enough for one {FREE_FILM_LABEL} — every engine unlocked, no card. Full details on the <Link href="/pricing" style={{ color: '#7cc0ff' }}>pricing page</Link>.
+          Every account{GRANT_COUNTRY_CLAUSE} starts free with {FREE_ENTRY_CREDITS} credits — enough for one {FREE_FILM_LABEL} — no card. Full details on the <Link href="/pricing" style={{ color: '#7cc0ff' }}>pricing page</Link>.
         </p>
 
         <section style={{ marginTop: 48, maxWidth: 720 }}>
           <h2 style={{ fontSize: 20, fontWeight: 900, margin: '0 0 12px' }}>Honest answers</h2>
           {[
-            ['Is it really free to start?', `Yes. Sign up and you get ${FREE_ENTRY_CREDITS} credits — enough for one ${FREE_FILM_LABEL}, watermarked — with every engine unlocked. No card. Plans start at ${usd(TIER_PRICES.starter.usd)}/month when you want more.`],
+            ['Is it really free to start?', `Yes. Sign up and you get ${FREE_ENTRY_CREDITS} credits — enough for one ${FREE_FILM_LABEL}, watermarked. No card. Plans start at ${usd(TIER_PRICES.starter.usd)}/month when you want more.`],
             ['Is there a free tier?', `Yes: ${FREE_ENTRY_CREDITS} credits on signup, no card. Trial films are watermarked; any paid plan unlocks clean downloads.`],
             ['How long does a film take?', 'Usually 8–20 minutes on the AI engines (Seedance 1.5, Kling 2.5); cinematic engines (Kling 3, Veo 3.1) take longer, especially when the provider is busy.'],
             ['Who owns the videos?', 'You do. Download the MP4 and post it anywhere.'],

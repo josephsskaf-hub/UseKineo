@@ -6,10 +6,10 @@ import { FREE_FILM_COUNTRY_CLAUSE } from '@/lib/freeFilmPolicy'
 // KINEO-VERDADE-TRIAL-2026-10-05 — e-mail de boas-vindas refeito (fundador 05/10):
 //   · paleta clara da marca (a mesma do site e do og card): fundo #F7F7F5, cartão branco com borda #E3E6EC, texto
 //     #0E1116 / #5A5F67, CTA azul #0A5CFF. O tema preto antigo saiu;
-//   · logo = <img> do ícone real em URL pública absoluta. O emoji dentro de uma <div display:inline-flex> quebrava:
+//   · logo = <img> do ícone real em URL pública absoluta. O emoji dentro de uma <div> com layout flexível quebrava:
 //     cliente de e-mail não suporta flex. Só tabela + estilo inline aqui, nada de flex/grid/CSS externo;
 //   · copy VERDADEIRA: a conta grátis não usa Kling/Veo sem plano (gate isPaidUser em generate-video-cinematic), e não
-//     existe biblioteca de stock footage nesse filme. A promessa é o que o grant COMPRA — números derivados de
+//     existe banco de imagens de arquivo nesse filme. A promessa é o que o grant COMPRA — números derivados de
 //     lib/freeTierOffer.ts (grant ÷ custo do filme de 15 s) e cláusula de país de lib/freeFilmPolicy.ts; nada digitado.
 //   Quem recebe, quando, e a lógica da rota: intocados. scripts/test-verdade-trial-2026-10-05.mjs trava a volta.
 

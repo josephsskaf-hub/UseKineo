@@ -87,7 +87,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Can I use Seedance 1.5 without paying?',
-        a: `Yes, once: every new account${GRANT_COUNTRY_CLAUSE} starts with the free trial (${TRIAL_CREDITS_SHOWN} credits, every engine unlocked, no card), which pays for ${TRIAL_SEEDANCE15_FILMS === 1 ? 'one' : TRIAL_SEEDANCE15_FILMS} ${FREE_FILM_LABEL}, watermarked. A 60-second Seedance film costs ${SEEDANCE_COST} credits and comes with Starter (${STARTER_MONTH}) or Creator.`,
+        a: `Yes, once: every new account${GRANT_COUNTRY_CLAUSE} starts with the free trial (${TRIAL_CREDITS_SHOWN} credits, no card), which pays for ${TRIAL_SEEDANCE15_FILMS === 1 ? 'one' : TRIAL_SEEDANCE15_FILMS} ${FREE_FILM_LABEL}, watermarked. A 60-second Seedance film costs ${SEEDANCE_COST} credits and comes with Starter (${STARTER_MONTH}) or Creator.`,
       },
       {
         q: 'What model is behind Kineo’s Seedance engine?',
@@ -95,7 +95,7 @@ export const ENGINES: Record<string, Engine> = {
       },
       {
         q: 'Seedance vs Kling vs Veo — which should I pick?',
-        a: `Choose by your budget and remaining credits: a complete ${MARKETING_REFERENCE_SECONDS}-second reference film costs ${SEEDANCE_COST} credits with Seedance 1.5, ${KLING_COST} with Kling 2.5 or ${VEO_COST} with Veo 3.1. New accounts receive ${TRIAL_CREDITS_SHOWN} free credits, with every engine unlocked and no card required. That balance ${trialFilmsForEngine(SEEDANCE_COST) > 0 ? 'covers a complete Seedance reference film' : 'does not cover a complete Seedance reference film'}; engine access does not guarantee enough credits for a render. Choose a paid plan with sufficient credits when you need more. Free-trial films carry a watermark; a paid plan unlocks clean downloads.`,
+        a: `Choose by your budget and remaining credits: a complete ${MARKETING_REFERENCE_SECONDS}-second reference film costs ${SEEDANCE_COST} credits with Seedance 1.5, ${KLING_COST} with Kling 2.5 or ${VEO_COST} with Veo 3.1. New accounts receive ${TRIAL_CREDITS_SHOWN} free credits, no card required. That balance ${trialFilmsForEngine(SEEDANCE_COST) > 0 ? 'covers a complete Seedance reference film' : 'does not cover a complete Seedance reference film'}; engine access does not guarantee enough credits for a render. Choose a paid plan with sufficient credits when you need more. Free-trial films carry a watermark; a paid plan unlocks clean downloads.`,
       },
     ],
   },
@@ -114,7 +114,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Is Kling 2.5 free on Kineo?',
-        a: `New accounts receive ${TRIAL_CREDITS_SHOWN} free credits, with every engine unlocked and no card required. A complete ${MARKETING_REFERENCE_SECONDS}-second Kling 2.5 reference film costs ${KLING_COST} credits, so the trial balance ${trialFilmsForEngine(KLING_COST) > 0 ? 'covers one complete reference film' : 'does not cover one complete reference film'}. Engine access and sufficient balance are separate requirements: choose a paid plan with enough credits for the render. Free-trial films carry a watermark; a paid plan unlocks clean downloads.`,
+        a: `New accounts receive ${TRIAL_CREDITS_SHOWN} free credits, no card required. A complete ${MARKETING_REFERENCE_SECONDS}-second Kling 2.5 reference film costs ${KLING_COST} credits, so the trial balance ${trialFilmsForEngine(KLING_COST) > 0 ? 'covers one complete reference film' : 'does not cover one complete reference film'}. Engine access and sufficient balance are separate requirements: choose a paid plan with enough credits for the render. Free-trial films carry a watermark; a paid plan unlocks clean downloads.`,
       },
       {
         q: 'Which Kling model does Kineo use?',
@@ -141,7 +141,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Can I try Veo 3.1 for free?',
-        a: `New accounts receive ${TRIAL_CREDITS_SHOWN} free credits, with every engine unlocked and no card required. A complete ${MARKETING_REFERENCE_SECONDS}-second Veo 3.1 reference film costs ${VEO_COST} credits, so the trial balance ${trialFilmsForEngine(VEO_COST) > 0 ? 'covers one complete reference film' : 'does not cover one complete reference film'}. Engine access and sufficient balance are separate requirements: choose a paid plan with enough credits for the render. Free-trial films carry a watermark; a paid plan unlocks clean downloads.`,
+        a: `New accounts receive ${TRIAL_CREDITS_SHOWN} free credits, no card required. A complete ${MARKETING_REFERENCE_SECONDS}-second Veo 3.1 reference film costs ${VEO_COST} credits, so the trial balance ${trialFilmsForEngine(VEO_COST) > 0 ? 'covers one complete reference film' : 'does not cover one complete reference film'}. Engine access and sufficient balance are separate requirements: choose a paid plan with enough credits for the render. Free-trial films carry a watermark; a paid plan unlocks clean downloads.`,
       },
       {
         q: 'What is different about Veo inside Kineo versus using Veo directly?',

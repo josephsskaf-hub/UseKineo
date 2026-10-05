@@ -1,7 +1,7 @@
 
 import { KineoBrandIcon } from '@/components/KineoBolt'
 import { FREE_FILM_COUNTRY_CLAUSE } from '@/lib/freeFilmPolicy' // KINEO-E4-CONSERTO-2026-09-29: o grant de 10 cr só vale na lista (saída B)
-// KINEO-PARTNERS-PACOTE-2026-10-03 — a resposta "Can I test Kineo first?" dizia "10 credits and every engine unlocked":
+// KINEO-PARTNERS-PACOTE-2026-10-03 — a resposta "Can I test Kineo first?" dizia que os 10 créditos liberavam todos os motores:
 // falso. Os créditos de cadastro (TRIAL_CREDITS_SHOWN) pagam TRIAL_SEEDANCE15_FILMS filme(s) Seedance 1.5 de
 // TRIAL_FREE_FILM_SECONDS s com marca d'água; Kling/Veo/Studio pedem plano. Tudo derivado das fontes, e o pacote de
 // demonstração do parceiro (lib/partnerPack.ts) entra com a verdade do interruptor PARTNER_PACK_LIVE.

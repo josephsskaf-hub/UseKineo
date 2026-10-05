@@ -115,7 +115,7 @@ function textValue(videos: number, userId: string, starterPrice: string): string
 
 You opened our checkout more than once in the last few days and didn't finish. I'm not going to guess why, but I did go and look at what you were actually shown — and I owe you a correction.
 
-You never saw our cheapest plan. Starter is ${starterPrice}/month — ${TIER_CREDITS.starter} credits a month, watermark-free exports, every engine unlocked. It was on the page, but hidden behind a small link under a much more expensive button. That's our fault, not yours.
+You never saw our cheapest plan. Starter is ${starterPrice}/month — ${TIER_CREDITS.starter} credits a month, watermark-free exports, Kling and Veo included. It was on the page, but hidden behind a small link under a much more expensive button. That's our fault, not yours.
 
 ${made}
 
@@ -135,7 +135,7 @@ function htmlValue(videos: number, userId: string, starterPrice: string): string
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1e293b;line-height:1.6">
   <p>Hey — Joseph here, founder of <b>Kineo</b> 🎬</p>
   <p>You opened our checkout more than once in the last few days and didn't finish. I'm not going to guess why, but I did go and look at what you were actually shown — and I owe you a correction.</p>
-  <p><b>You never saw our cheapest plan.</b> Starter is <b>${starterPrice}/month</b> — ${TIER_CREDITS.starter} credits a month, watermark-free exports, every engine unlocked. It was on the page, but hidden behind a small link under a much more expensive button. That's our fault, not yours.</p>
+  <p><b>You never saw our cheapest plan.</b> Starter is <b>${starterPrice}/month</b> — ${TIER_CREDITS.starter} credits a month, watermark-free exports, Kling and Veo included. It was on the page, but hidden behind a small link under a much more expensive button. That's our fault, not yours.</p>
   <p>${made}</p>
   <p style="margin:26px 0">
     <a href="${URL_VALUE}" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">See my real price — ${starterPrice}/mo &rarr;</a>
