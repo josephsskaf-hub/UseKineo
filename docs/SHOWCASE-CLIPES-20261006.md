@@ -9,8 +9,8 @@
 | Item | LOCAL | ENFILEIRADO | PUBLICADO | EXPOSTO | PAGO |
 |---|---|---|---|---|---|
 | 1 · visitante = conta nova | Testado; código 2e330992 | 09698a53c3c489831ec99f3b52710edaff53fcb8 | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
-| 2 · páginas de efeito | Testado; código 646361bf | Em preparação da fila | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
-| 3 · Kling 4 desligado | Pendente | Pendente | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
+| 2 · páginas de efeito | Testado; código 646361bf | 2db02ec7cae6b6119438056aba76b84c705b25d9 | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
+| 3 · Kling 4 desligado | Preparado; validação completa em andamento | Pendente | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
 | 4 · medição por origem | Pendente | Pendente | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
 
 ## Item 1 · catálogo público e preço no botão
@@ -43,11 +43,23 @@
 
 **TESTADO LOCALMENTE — 05/10:** suíte completa: base 762 scripts / 619 verdes / 143 vermelhos; item 2, 764 / 621 / 143. Nenhum teste nem asserção vermelha nova. [Gates completos](showcase-clipes-20261006/item-2/gates.json). Execução isolada de rede, mesmas dependências da base.
 
+## Item 3 · Kling 4 preparado, desligado
+
+**IMPLEMENTADO / FATO CONFIRMADO — lib/clips/clipKling4.ts e lib/clips/clipCatalog.ts:** registro `PREPARED_CLIP_ENGINES.kling4`, exportado pelo catálogo, com `KLING4_CLIPS_ENABLED=false`. Model id, custo e fontes permanecem nulos. A seleção pública e o POST recusam `kling4`; os sete motores ativos e sua cobrança permanecem iguais.
+
+**IMPLEMENTADO:** tentativa de ligar sem evidências falha na carga do módulo e no guardião, antes de um pedido. Exige fornecedor fal, model id e custo positivos, fontes oficiais do mesmo modelo, data, revisão de schema/dispatcher e cotação comparável (modelo/resolução/áudio/prateleira). `quotePreparedKling4` calcula apenas uma simulação interna pela régua vigente: mercado −10%, piso de margem 40% no crédito mais barato, mínimo da casa. Informa quando o piso impede −10%; não publica nem debita preço novo.
+
+**TESTADO LOCALMENTE:** dez mutantes rejeitados; catálogo/POST não reconhecem `kling4`; valores ausentes/zero/negativos/NaN, fonte falsa, revendedor e revisão ausente bloqueados. Comparação da fórmula com a régua existente para durações/motores com cotação. Guardião de preço existente: 32 verificações e seus mutantes verdes.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** API pública utilizável, schema e preço da fal. Não existe adapter especulativo de Kling 4. Para ativar depois do lançamento, preencher fatos verificáveis, implementar e testar offline o payload oficial, conferir custo e só então habilitar. A preparação está concluída dentro do que se pode verificar hoje; não equivale a motor pronto para gerar apenas mudando `false` para `true`. Fornecedor novo continua decisão do fundador.
+
 ## Régua de medição
 
 **FATO CONFIRMADO — app/api/clips/route.ts e lib/clips/clipFlow.ts:** `clip_effect_chosen` hoje significa pedido de geração aceito e novo; `clip_effect_ready` significa transição persistida para pronto. Cliques de navegação não serão rebatizados como geração aceita.
 
-**QUESTÃO PENDENTE / DESCONHECIDO:** pessoas externas por efeito/origem, visitas às futuras páginas, novos pagantes e MRR. Nenhuma consulta autenticada de produção foi executada neste checkpoint. Não usar 2→9 efeitos como antes→depois comercial. Contar pessoas identificadas distintas, excluir internos/bots, separar navegadores anônimos; pagamento exige vínculo e recorrência comprovados. Sem PII no repo.
+**EVIDÊNCIA DE PRODUÇÃO — consulta somente SELECT em 05/10/2026 23:45Z:** janela exata `[2026-10-05T03:00:00Z, 2026-10-05T23:44:00Z)`. `clip_effect_chosen`: 5 eventos, 1 conta identificada; `clip_effect_ready`: 5 eventos, 1 conta identificada. Aplicado o filtro canônico de lib/internalAccounts.ts, restam 0 eventos e 0 contas externas em ambos. Não são cinco pessoas; os registros pertencem à conta interna. Consulta retornou apenas agregados, sem PII.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** visitas às futuras páginas, origens históricas, novos pagantes e MRR. Zero eventos externos registrados nesta janela não comprova zero visitas nem zero receita. Não usar 2→9 efeitos como antes→depois comercial. Contar pessoas identificadas distintas, excluir internos/bots, separar navegadores anônimos; pagamento exige vínculo e recorrência comprovados. Sem PII no repo.
 
 ## Fontes consultadas em 05/10/2026
 
@@ -59,4 +71,4 @@
 
 **DECISÃO APROVADA:** sem alterações em home, pós-cadastro, checkout, preço/plano/crédito, compose, engineWall, motores existentes, banco, Vercel ou crons. Sem renders pagos, mensagens externas ou PII. Fornecedor continua fal; Kling 4 fica desligado mesmo que haja anúncio novo, até model id/custo verificáveis e guardião verde.
 
-**SUGESTÃO — próximo passo:** concluir a validação do item 1, preservar a fila por merge, enfileirar pelo script da casa e produzir o launcher com os dois SHAs completos. Depois seguir os itens 2–4, cada um em commit/entrega próprios. Ao retomar, ler este arquivo e o Git real antes de escrever.
+**SUGESTÃO — próximo passo:** concluir gates/fila do item 3; implementar o item 4; consolidar as entregas do dia em um launcher com os dois SHAs completos. Ao retomar, ler este arquivo e o Git real antes de escrever. Nunca executar o launcher nesta sessão.

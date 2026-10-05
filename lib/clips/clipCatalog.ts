@@ -2,7 +2,7 @@
 // as 4… é muito mais público que podemos alcançar"). O filme narrado continua sendo o produto principal; o clipe é a porta
 // de quem chega procurando o que os concorrentes vendem (5–15 s, texto ou foto → vídeo).
 //
-// MÓDULO PURO (sem import em tempo de execução): o guardião scripts/test-clipes-2026-09-29.mjs o executa isolado.
+// MÓDULO PURO: somente módulos locais puros. Guardiões executam o catálogo isolado, sem rede nem cobrança.
 //
 // A REGRA DAS DURAÇÕES (fundador 29/09): o cliente pede 5, 7, 10 ou 15 s. Cada motor mostra SÓ o que o schema oficial da
 // fal aceita num clipe único (sem emendar dois). Se o motor não aceita o número exato, vale o valor aceito MAIS PRÓXIMO
@@ -26,6 +26,9 @@
 //
 // SOM: clipe sem narração. Kling 3, Seedance e Veo vão com generate_audio:false (é também o preço mais baixo da fal);
 // H3 e Omni não têm chave de áudio no schema — o som nativo deles vem sempre, e a tela não promete nem um nem outro.
+
+// Cadastro preparado, fora da seleção pública e do dispatcher até existir API/custo/schema verificados.
+export { PREPARED_CLIP_ENGINES } from './clipKling4'
 
 export type ClipEngineKey = 'hollywood' | 'kling' | 'seedance' | 'veo' | 'h3' | 'omni' | 's25'
 export type ClipAspect = '9:16' | '16:9' | '1:1'
