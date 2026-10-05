@@ -1,0 +1,138 @@
+{
+  "at": "2026-10-05T23:36:07.180Z",
+  "localOnly": true,
+  "externalNetworkBlocked": true,
+  "signupSimulated": true,
+  "paidRequests": 0,
+  "locales": [
+    {
+      "lang": "en",
+      "h1": "Melt it",
+      "status": 200
+    },
+    {
+      "lang": "pt",
+      "h1": "Derreter",
+      "status": 200
+    },
+    {
+      "lang": "es",
+      "h1": "Derrítelo",
+      "status": 200
+    },
+    {
+      "lang": "fr",
+      "h1": "Faites-le fondre",
+      "status": 200
+    },
+    {
+      "lang": "de",
+      "h1": "Lass es schmelzen",
+      "status": 200
+    },
+    {
+      "lang": "it",
+      "h1": "Scioglilo",
+      "status": 200
+    },
+    {
+      "lang": "nl",
+      "h1": "Laat het smelten",
+      "status": 200
+    },
+    {
+      "lang": "pl",
+      "h1": "Roztop to",
+      "status": 200
+    },
+    {
+      "lang": "tr",
+      "h1": "Erit",
+      "status": 200
+    },
+    {
+      "lang": "ru",
+      "h1": "Растопить",
+      "status": 200
+    },
+    {
+      "lang": "uk",
+      "h1": "Розтопити",
+      "status": 200
+    },
+    {
+      "lang": "ar",
+      "h1": "أذِبه",
+      "status": 200
+    },
+    {
+      "lang": "ur",
+      "h1": "اسے پگھلائیں",
+      "status": 200
+    },
+    {
+      "lang": "hi",
+      "h1": "इसे पिघलाएँ",
+      "status": 200
+    },
+    {
+      "lang": "id",
+      "h1": "Lelehkan",
+      "status": 200
+    },
+    {
+      "lang": "vi",
+      "h1": "Làm tan chảy",
+      "status": 200
+    }
+  ],
+  "englishEffects": 9,
+  "sitemapEntries": 144,
+  "invalidRoutes404": true,
+  "visiblePlayback": true,
+  "offscreenUnloaded": true,
+  "screens": [
+    "after-desktop-light.jpg",
+    "after-desktop-dark.jpg",
+    "after-mobile-light.jpg",
+    "after-mobile-dark.jpg"
+  ],
+  "errors": [
+    {
+      "path": "/clips",
+      "message": "Text content does not match server-rendered HTML.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error"
+    },
+    {
+      "path": "/clips",
+      "message": "Text content does not match server-rendered HTML.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error"
+    },
+    {
+      "path": "/clips",
+      "message": "Text content does not match server-rendered HTML.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error"
+    },
+    {
+      "path": "/clips",
+      "message": "Text content does not match server-rendered HTML.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error"
+    },
+    {
+      "path": "/clips",
+      "message": "Text content does not match server-rendered HTML.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error"
+    },
+    {
+      "path": "/clips",
+      "message": "Hydration failed because the initial UI does not match what was rendered on the server.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error"
+    },
+    {
+      "path": "/clips",
+      "message": "Hydration failed because the initial UI does not match what was rendered on the server.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error"
+    },
+    {
+      "path": "/clips",
+      "message": "Hydration failed because the initial UI does not match what was rendered on the server.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error"
+    },
+    {
+      "path": "/clips",
+      "message": "There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering.\nSee more info here: https://nextjs.org/docs/messages/react-hydration-error"
+    }
+  ]
+}

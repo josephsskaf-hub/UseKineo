@@ -18,6 +18,7 @@ import { adsPassLive } from '@/lib/ads/offer'
 import { ADS_SEGMENT_SLUGS, ADS_SEGMENTS_UPDATED, adsSegmentPath } from '@/lib/growth/adsSegments'
 import { ADS_COMPARISONS, adsComparisonPath } from '@/lib/growth/adsComparisons'
 import { SHOWCASE_PUBLIC } from '@/lib/showcaseTelemetry'
+import { effectSitemapEntries } from '@/lib/clips/clipEffectPages'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -334,6 +335,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }))
   return [
+    ...effectSitemapEntries(),
     // House portfolio: discoverable only while the public page is enabled.
     // Its own review date must not re-date the unrelated acquisition pages.
     ...(SHOWCASE_PUBLIC ? [{
