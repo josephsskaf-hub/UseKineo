@@ -114,6 +114,7 @@ ok(annotationProblems(tools).length === 0, `(A1) toda tool tem title + readOnlyH
 const byName = Object.fromEntries(tools.map((t) => [t.name, t]))
 ok(tools.length === 2 && byName.kineo_facts && byName.create_video_handoff, '(A2) exatamente 2 tools: kineo_facts e create_video_handoff')
 ok(byName.kineo_facts?.annotations.readOnlyHint === true && byName.kineo_facts?.annotations.destructiveHint === false, '(A3) kineo_facts: readOnlyHint true, destructiveHint false')
+ok(byName.create_video_handoff?.annotations.openWorldHint === true, '(A4b) create_video_handoff: openWorldHint true — grava no serviço da Kineo e devolve link público (achado da revisão OpenAI 05/10)')
 ok(byName.create_video_handoff?.annotations.readOnlyHint === false && byName.create_video_handoff?.annotations.destructiveHint === false, '(A4) create_video_handoff: readOnlyHint false, destructiveHint false EXPLÍCITO (sem ele a spec presume destrutiva)')
 ok(tools.every((t) => t.title === t.annotations.title), '(A5) title de topo = annotations.title')
 const engEnum = byName.create_video_handoff?.inputSchema?.properties?.engineHint?.enum ?? []
@@ -215,7 +216,7 @@ mt = clone(); mt[0].title = ''
 ok(annotationProblems(mt).length > 0, '(M3) tool sem title → vermelho')
 // M4: no DISCO — um kineoMcp.ts sem as dicas da tool de escrita, importado de verdade
 const mutRel = `lib/mcp/.mutante-${randomBytes(4).toString('hex')}.ts`
-const mutSrc = mcpCode.replace("annotations: { title: handoffTitle, readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }", 'annotations: { title: handoffTitle, idempotentHint: true } as never')
+const mutSrc = mcpCode.replace("annotations: { title: handoffTitle, readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true }", 'annotations: { title: handoffTitle, idempotentHint: true } as never')
 ok(mutSrc !== mcpCode, '(M4a) mutante de disco aplicou (a linha de anotação existe como o guardião espera)')
 try {
   fs.writeFileSync(path.join(ROOT, mutRel), mutSrc)

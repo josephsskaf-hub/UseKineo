@@ -245,7 +245,9 @@ export function buildTools(opts: { pausedEngines: readonly string[] }): McpTool[
         required: ['script'],
         additionalProperties: false,
       },
-      annotations: { title: handoffTitle, readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      // KINEO-OPENWORLD-2026-10-05 — a revisão da OpenAI apontou: a tool grava o roteiro no serviço da Kineo e devolve um link
+      // público (/go) que qualquer pessoa com o link lê — isto é interagir com um sistema externo ao ChatGPT. openWorldHint: true.
+      annotations: { title: handoffTitle, readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     },
   ]
 }

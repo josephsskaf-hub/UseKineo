@@ -77,6 +77,9 @@ export default function ChatGptWelcomeBanner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const intentCampaign = searchParams.get('intent_campaign')
+  // KINEO-PLUGIN-SEM-PROMO-2026-10-05 — quem chega pelo app do ChatGPT (revisão da OpenAI: sem promoção de compra/upgrade
+  // no percurso do plugin) não vê a linha de oferta. As outras portas do ChatGPT seguem iguais.
+  const pluginArrival = intentCampaign === 'kineo_chatgpt_plugin'
   const trialOwnsRoute = trialFirstDeliveryOwnsRoute(intentCampaign)
 
   useEffect(() => {
@@ -105,7 +108,8 @@ export default function ChatGptWelcomeBanner() {
   // Query-only client navigation can reuse the dashboard layout. Keep this
   // render guard synchronous so the Quickstart never flashes over a reserved
   // first-delivery route while the effect catches up.
-  if (trialOwnsRoute || !show) return null
+  // KINEO-PLUGIN-SEM-PROMO-2026-10-05 — quem chega pelo app do ChatGPT já tem o roteiro no Studio: sem o card de oferta.
+  if (trialOwnsRoute || !show || pluginArrival) return null
 
   return (
     <ChatGptWelcomeCard
@@ -240,8 +244,9 @@ export function ChatGptWelcomeCard({
         ) : null}
         <span>Your text stays editable in Studio before anything is generated.</span>
       </div>
+      {/* KINEO-PLUGIN-SEM-PROMO-2026-10-05 — 'every engine unlocked' era falso (conta grátis não usa Kling/Veo sem plano). */}
       <p className={styles.proof}>
-        {TRIAL_CREDITS_SHOWN} free credits · every engine unlocked · no card · plans from {STARTER_MO}
+        {TRIAL_CREDITS_SHOWN} free credits · no card · plans from {STARTER_MO}
       </p>
       <button type="button" aria-label="Dismiss" className={styles.dismiss} onClick={onDismiss}>
         ×
