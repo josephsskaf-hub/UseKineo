@@ -31,6 +31,8 @@ export type ClipEffectKey =
   | 'cartoon_3d'
   | 'color_burst'
   | 'storm_behind'
+  | 'melt'
+  | 'secret_cake'
 
 export interface ClipEffectPreview {
   video: string
@@ -68,7 +70,8 @@ export const CLIP_EFFECTS: readonly ClipEffect[] = [
     prompt: `The person in the photo comes to life: natural breathing, a soft genuine smile, blinking, a gentle head turn toward the camera, hair moving slightly. Keep the exact face, outfit and background. Subtle handheld camera. ${NO_TEXT}`,
     filmIdea: 'The story behind this photo — who this person is and the moment it was taken',
     person: true,
-    preview: { video: '/previews/216cbed2-b95f-47e7-98bc-e4c3fc3010a9.mp4', poster: '/posters/216cbed2-b95f-47e7-98bc-e4c3fc3010a9.webp', note: 'House film: a face brought to life (Kling 3)' }, // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05: capa = quadro do próprio clipe (sem caixa preta enquanto carrega)
+    // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 (2ª rodada): prévia FEITA COM ESTE EFEITO a partir de uma foto gerada (clipe c442034c)
+    preview: { video: '/previews/efeito-bring_to_life.mp4', poster: '/posters/efeito-bring_to_life.webp', note: 'Made with this effect from an AI-generated photo (Seedance 1.5)' },
   },
   {
     key: 'product_360',
@@ -103,7 +106,8 @@ export const CLIP_EFFECTS: readonly ClipEffect[] = [
     prompt: `Turn the photo into a dramatic cinematic slow-motion shot: everything moves at 120 fps slow motion, dust and light particles floating, shallow depth of field, gentle dolly-in, movie color grade. Keep the scene and people unchanged. ${NO_TEXT}`,
     filmIdea: 'The moment in this photo as an epic 60-second story',
     person: true,
-    preview: { video: '/previews/c6bdbcfb-ffc2-48e1-be15-e26fb048fe9a.mp4', poster: '/posters/c6bdbcfb-ffc2-48e1-be15-e26fb048fe9a.webp', note: 'House film in cinematic slow motion (Kling 2.5)' }, // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05: capa do próprio clipe
+    // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 (2ª rodada): prévia FEITA COM ESTE EFEITO a partir de uma foto gerada (clipe 25d560b0)
+    preview: { video: '/previews/efeito-cinematic_slowmo.mp4', poster: '/posters/efeito-cinematic_slowmo.webp', note: 'Made with this effect from an AI-generated photo (Kling 2.5)' },
   },
   {
     key: 'restore_old_photo',
@@ -139,10 +143,40 @@ export const CLIP_EFFECTS: readonly ClipEffect[] = [
     prompt: `Keep the foreground subject exactly as in the photo while a dramatic storm builds behind: dark rolling clouds, lightning strikes on the horizon, wind moving hair and clothes, cinematic lighting flashes. ${NO_TEXT}`,
     filmIdea: 'The night the storm came — a 60-second dramatic story',
     person: false,
-    // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — a prévia antiga (4b12925e-avalanche.mp4) era um mar calmo visto de cima, sem
-    // tempestade nenhuma: vitrine mentindo. Agora é o fim do MESMO filme da casa (Maracaibo, Kling 3, 26,8→30 s do master
-    // enhanced): a pessoa em primeiro plano e o raio caindo atrás dela — exatamente o que o efeito promete.
-    preview: { video: '/previews/4b12925e-raio.mp4', poster: '/posters/4b12925e-raio.webp', note: 'House film: lightning striking behind a person on a lakeshore (Kling 3)' },
+    // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — a prévia de antes de 05/10 (4b12925e-avalanche.mp4) era um mar calmo visto de
+    // cima, sem tempestade nenhuma: vitrine mentindo. KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 (2ª rodada): prévia FEITA COM ESTE EFEITO a partir de uma foto gerada (clipe 8d9a0bde): a
+    // pessoa em primeiro plano e os raios caindo no horizonte atrás dela — exatamente o que o efeito promete.
+    preview: { video: '/previews/efeito-storm_behind.mp4', poster: '/posters/efeito-storm_behind.webp', note: 'Made with this effect from an AI-generated photo (Kling 2.5)' },
+  },
+  // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 (2ª rodada) — efeito "absurdo", do tipo que viraliza nas redes (referência de
+  // mercado: os efeitos de transformar objeto do Pika). Testado ANTES de entrar: no Kling 2.5, a partir de uma foto
+  // gerada de um despertador, o objeto derrete numa poça brilhante (clipe afe09bce). Para objeto, não pessoa.
+  {
+    key: 'melt',
+    title: 'Melt it',
+    sub: 'It melts like ice cream in the sun.',
+    engine: 'kling',
+    seconds: 5,
+    prompt: `The main object in the photo slowly melts like ice cream in the hot sun, sagging and dripping into a glossy puddle while keeping its original colors. Background and lighting unchanged, static camera. ${NO_TEXT}`,
+    filmIdea: 'The day everything melted — a 60-second story',
+    person: false,
+    preview: { video: '/previews/efeito-melt.mp4', poster: '/posters/efeito-melt.webp', note: 'Made with this effect from an AI-generated photo (Kling 2.5)' },
+  },
+  // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 (2ª rodada) — o meme "isso é um bolo?". Testado ANTES de entrar no Kling 2.5: numa
+  // maçã o motor mostrou maçã por dentro (comida puxa o recheio real — clipe 58823c31, reprovado); num tênis de foto gerada,
+  // a faca corta e as metades abrem em bolo de verdade (clipe 2e25e135, aprovado). Funciona melhor com OBJETO que não é
+  // comida. ("Inflate it" também foi testado em 05/10 — Kling e Seedance — e NÃO entrou: o motor faz um balão em volta
+  // do objeto em vez de inflar o próprio objeto.)
+  {
+    key: 'secret_cake',
+    title: 'Secretly a cake',
+    sub: 'A knife slices through — it was cake all along.',
+    engine: 'kling',
+    seconds: 5,
+    prompt: `A kitchen knife cuts the object in the photo cleanly in half from top to bottom; the two halves slide apart and reveal that the whole inside is cake: layers of vanilla sponge and white frosting that follow the exact outer shape. The outside keeps exactly the same look and colors. Static camera, soft daylight. ${NO_TEXT}`,
+    filmIdea: 'The secret behind this object — a 60-second story',
+    person: false,
+    preview: { video: '/previews/efeito-secret_cake.mp4', poster: '/posters/efeito-secret_cake.webp', note: 'Made with this effect from an AI-generated product photo (Kling 2.5)' },
   },
 ]
 

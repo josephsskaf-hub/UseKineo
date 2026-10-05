@@ -108,7 +108,9 @@ async function problems(M) {
   const effects = fx.CLIP_EFFECTS
 
   // (1) catálogo
-  if (effects.length !== 7) p.push(`catálogo com ${effects.length} efeitos (esperado 7 — cartoon_3d saiu em 05/10: o motor não estiliza a foto)`)
+  // Reancorado 05/10 (KINEO-HOME-CLIPES-EM-CIMA, 2ª rodada): +2 efeitos testados antes de entrar (melt, secret_cake); inflate
+  // foi testado e NÃO entrou (o motor faz um balão em volta do objeto). cartoon_3d segue fora (o motor não estiliza a foto).
+  if (effects.length !== 9) p.push(`catálogo com ${effects.length} efeitos (esperado 9 — melt e secret_cake entraram em 05/10; cartoon_3d e inflate ficaram fora: o motor não faz o que o nome promete)`)
   if (new Set(effects.map((e) => e.key)).size !== effects.length) p.push('chave de efeito repetida')
   for (const e of effects) {
     const v = cat.validateClipRequest({ engine: e.engine, seconds: e.seconds, aspect: null, prompt: e.prompt, imageUrl: PHOTO }, { userId: U, supabaseUrl: SUPA })
@@ -120,6 +122,9 @@ async function problems(M) {
       if (!fs.existsSync(path.join(ROOT, 'public', e.preview.video))) p.push(`${e.key}: prévia aponta arquivo que não existe (${e.preview.video})`)
       if (e.preview.poster && !fs.existsSync(path.join(ROOT, 'public', e.preview.poster))) p.push(`${e.key}: pôster não existe`)
       if (!e.preview.note || e.preview.note.length < 8) p.push(`${e.key}: prévia sem o selo honesto (note)`)
+      // 05/10 (2ª rodada): a tempestade mostrava um mar calmo e o 360° mostrava anúncios de garrafa. Desde então TODA prévia
+      // é um clipe feito com o próprio efeito — filme da casa que "parece" o efeito não serve mais.
+      if (!/^Made with this effect /.test(e.preview.note)) p.push(`${e.key}: prévia não foi feita com o próprio efeito (${e.preview.note})`)
     }
   }
   if (fx.clipEffectByKey('nao_existe') !== null || fx.clipEffectByKey(undefined) !== null) p.push('clipEffectByKey aceita chave fora do catálogo')
@@ -321,7 +326,7 @@ const mutants = [
   ['M7 clipe de texto reconhecido como efeito', FX, "  if (row.mode !== 'image') return null\n", ''],
   ['M8 clip_effect_ready fora do "quem moveu a linha"', FLOW, "    if (moved) {\n      await deps.event('clip_delivered'", "    if (true) {\n      await deps.event('clip_delivered'"],
   ['M9 clip_effect_ready nunca gravado', FLOW, "      if (effect) await deps.event('clip_effect_ready'", "      if (false) await deps.event('clip_effect_ready'"],
-  ['M10 prévia aponta arquivo inexistente', FX, "'/previews/4b12925e-raio.mp4'", "'/previews/nao-existe.mp4'"], // reancorado 05/10 (KINEO-HOME-CLIPES-EM-CIMA): prévia da tempestade virou o corte honesto do raio
+  ['M10 prévia aponta arquivo inexistente', FX, "'/previews/efeito-storm_behind.mp4'", "'/previews/nao-existe.mp4'"], // reancorado 05/10 (KINEO-HOME-CLIPES-EM-CIMA, 2ª rodada): a tempestade ganhou prévia feita com o próprio efeito
   ['M11 upsell dispara o render sozinho', FX, "duration: '60', intent_campaign:", "duration: '60', autoanalyze: '1', intent_campaign:"],
 ]
 for (const [label, file, from, to] of mutants) {

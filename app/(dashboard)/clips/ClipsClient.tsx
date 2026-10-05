@@ -10,7 +10,7 @@
 // navegador manda só { effect, image_url }; o servidor resolve prompt/motor/duração/formato. Clipe de efeito pronto
 // ganha "Turn into a narrated film (60 s)", que passa por POST /api/clips/effect-upsell antes de abrir o Studio.
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
-import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
+import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { ProductStageStyles, useProductStage } from '@/components/ProductStage' // KINEO-CLIPS-CORES-2026-10-01
 import CreditsTopupModal from '@/components/CreditsTopupModal'
@@ -382,8 +382,8 @@ export default function ClipsClient() {
                     ? <video src={fx.preview.video} poster={fx.preview.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" />
                     : <span className="fx-soon">{t('previewSoon')}</span>}
                 </span>
-                <span className="fx-title">{fx.title}</span>
-                <span className="fx-sub">{fx.sub}</span>
+                <span className="fx-title"><UiLabel>{fx.title}</UiLabel></span>
+                <span className="fx-sub"><UiLabel>{fx.sub}</UiLabel></span>
                 <span className="fx-foot">
                   <span className="tag">{t('madeWith', { engine: fx.engine_label })} · {fx.seconds} s</span>
                   <span className="pr">{fx.credits} cr</span>
@@ -412,8 +412,8 @@ export default function ClipsClient() {
         {effect ? (
           <>
             <div className="card creation-input" id="clip-effect-panel">
-              <div className="lab"><span className="n">1</span>{t('effectLabel')} · {effect.title}</div>
-              <p className="clip-meta" style={{ marginTop: 0 }}>{effect.sub}</p>
+              <div className="lab"><span className="n">1</span>{t('effectLabel')} · <UiLabel>{effect.title}</UiLabel></div>
+              <p className="clip-meta" style={{ marginTop: 0 }}><UiLabel>{effect.sub}</UiLabel></p>
               <div className="lab" style={{ marginTop: 14 }}><span className="n">2</span>{t('effectAddPhoto')}</div>
               {photoRow}
               {effect.person && <p className="notice" role="note">{t('effectPersonHint')}</p>}
@@ -424,7 +424,7 @@ export default function ClipsClient() {
             </div>
             <div className="rail creation-settings">
               <div className="cost" id="clip-effect-review" tabIndex={-1}>
-                <div className="sum">{effect.title} · {t('madeWith', { engine: effect.engine_label })} · {effect.seconds} s</div>
+                <div className="sum"><UiLabel>{effect.title}</UiLabel> · {t('madeWith', { engine: effect.engine_label })} · {effect.seconds} s</div>
                 <div className="val"><span>{t('cost')}</span><b>{effect.credits}</b></div>
                 {balance !== null && <div className="gnote">{balance} {t('credits')}</div>}
                 <button type="button" disabled={busy || uploading} className={`go ${busy || uploading ? 'no' : 'ok'}`}

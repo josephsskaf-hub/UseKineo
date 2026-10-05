@@ -257,10 +257,10 @@ ok(componentProblems(compSrc.replace('poster={clip.poster}', '')).length > 0, '(
 ok(componentProblems(compSrc.replace('if (visible && !reduce)', 'if (visible)')).length > 0, '(M10) vídeo toca com reduced-motion → vermelho')
 ok(componentProblems(compSrc.replace('@media (prefers-reduced-motion: no-preference){\n', '')).length > 0, '(M11) animação sem guarda de reduced-motion → vermelho')
 ok(componentProblems(compSrc.replace('preload="none"', 'autoPlay preload="auto"')).length > 0, '(M12) autoPlay + preload pesado → vermelho')
-// Reancorado 05/10 (KINEO-HOME-CLIPES-EM-CIMA-2026-10-05): a fileira virou o ramo do braço de controle do A/B
-// ({clipsFirst ? <HomeClipsStrip …/> : <PromoCards …/>}); o mutante tira esse ramo e PROVA que a âncora existia.
-const M13_FROM = '        : <PromoCards cards={promoCardsFor({ clips: clipsVisible(initialEmail) })} />}'
-ok(landing.includes(M13_FROM) && landingProblems(landing.replace(M13_FROM, '        : null}')).length > 0, '(M13) fileira removida da home → vermelho')
+// Reancorado 05/10 (KINEO-HOME-CLIPES-EM-CIMA-2026-10-05, 2ª rodada): a fileira voltou a abrir a página nos dois braços
+// do A/B (fundador: "tem que vir em cima, com quatro"); o mutante tira a linha e PROVA que a âncora existia.
+const M13_FROM = '      <PromoCards cards={promoCardsFor({ clips: clipsVisible(initialEmail) })} />\n'
+ok(landing.includes(M13_FROM) && landingProblems(landing.replace(M13_FROM, '')).length > 0, '(M13) fileira removida da home → vermelho')
 ok(dataProblems(dataSrc.replace("gate: 'clips',", '')).length > 0, '(M14) Clips sem interruptor → vermelho')
 ok(dataProblems(dataSrc.replace("href: '/ads',", "href: '/ads/new',")).length > 0, '(M16) link de Ads errado → vermelho')
 ok(dataProblems(dataSrc.replace("id: 'ads',", "id: 'ads-x',")).length > 0, '(M17) card de Ads fora da ordem/ausente → vermelho')

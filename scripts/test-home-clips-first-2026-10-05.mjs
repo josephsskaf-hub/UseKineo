@@ -234,9 +234,19 @@ const landing = read('app/KineoLanding.tsx')
 const wall = read('lib/engineWall.ts')
 ok(!/ClipsFirst|homeClipsFirst|home_variant/.test(wall) && !/resolveHomeVariant|assignHomeVariant|homeClipsFirstServer|HOME_CLIPS_FIRST|home_variant/.test(landing) && /\n  clipsFirst = false,\n/.test(landing), '(8f) lib/engineWall.ts não sabe da variante; a KineoLanding só recebe o booleano (padrão false), sem sorteio próprio')
 // O que o fundador pediu, preso aqui para ninguém desfazer sem querer:
-ok(/\{clipsFirst\n        \? <HomeClipsStrip signedIn=\{isSignedIn\} \/>\n        : <PromoCards cards=\{promoCardsFor\(\{ clips: clipsVisible\(initialEmail\) \}\)\} \/>\}/.test(landing), '(8j) braço de controle intacto: a fileira de cards antiga abre a página; no clips_first a faixa de Clipes toma o lugar dela')
+// Reancorado 05/10 (2ª rodada, fundador): "a fileira de cards tem que vir em cima, com quatro… depois os clips, metade
+// clips, metade narrated films: quatro clips, quatro narrated films… e daí já vai para Videos for business".
+ok(/\n      <PromoCards cards=\{promoCardsFor\(\{ clips: clipsVisible\(initialEmail\) \}\)\} \/>\n      \{clipsFirst && <HomeClipsStrip signedIn=\{isSignedIn\} \/>\}\n\n      <header className="hero">/.test(landing), '(8j) a fileira de 4 cards abre a página nos dois braços; no clips_first a faixa de Clipes vem logo abaixo, antes dos filmes')
 const strip = read('components/home/HomeClipsStrip.tsx')
-ok(load(effectsSrc, 'lib/clips').CLIP_EFFECTS.filter((e) => e.preview).length + 1 === 8 && strip.includes('.filter((c) => c.effect.preview)') && strip.includes('data-clip-effect="text"'), '(8k) a faixa tem 8 cartões: os efeitos com prévia + o clipe a partir de texto ("nem que a gente repita um")')
+const homeKeys = (strip.match(/export const HOME_CLIP_KEYS: readonly ClipEffectKey\[\] = \[([^\]]*)\]/)?.[1] ?? '').match(/'([a-z0-9_]+)'/g)?.map((k) => k.slice(1, -1)) ?? []
+const fxAll = load(effectsSrc, 'lib/clips').CLIP_EFFECTS
+ok(homeKeys.length === 4 && new Set(homeKeys).size === 4 && homeKeys.every((k) => fxAll.some((e) => e.key === k && e.preview && /^Made with this effect /.test(e.preview.note))) && homeKeys[0] === 'color_burst' && homeKeys.includes('product_360'), '(8k) metade de clipes = 4 efeitos do catálogo com prévia feita pelo próprio efeito (o fundador escolheu a explosão de cor e o tênis girando)')
+// A grade dos filmes da home mora em app/kineoLandingTheme.ts (.featuredFour); a dos clipes tem de repetir altura e
+// colunas — se alguém mexer numa metade, este check lembra de mexer na outra.
+const theme = read('app/kineoLandingTheme.ts')
+const filmRule = theme.match(/\.klp #samples \.\$\{gallery\.featuredFour\} \{ (--film-height:clamp\([^)]*\)); (grid-template-columns:repeat\(4,minmax\(0,1fr\)\)); height:var\(--film-height\); gap:(\d+px); \}/)
+ok(Boolean(filmRule) && strip.includes(`${filmRule[1]};display:grid;${filmRule[2]};height:var(--film-height);gap:${filmRule[3]}`), '(8o) os 4 clipes usam a MESMA grade dos 4 filmes narrados (altura, 4 colunas e espaço iguais), para as duas metades baterem')
+ok(/\n      \{clipsFirst && businessShowcase\}\n\n      \{\/\* Approved home layout/.test(landing) && /\n      \{!clipsFirst && businessShowcase\}\n/.test(landing) && landing.indexOf('{clipsFirst && businessShowcase}') > landing.indexOf('</header>'), '(8p) no clips_first, depois dos filmes vem direto "Videos for your business."; no controle a ordem é a de sempre')
 ok(!/Turn any photo into a video/.test(strip) && !/Turn any photo into a video/.test(landing), '(8l) o bloco "Turn any photo into a video in one click" não volta para a home')
 ok(landing.includes('href={clipsFirstFilmHref(isSignedIn)}') && landing.indexOf('href={clipsFirstFilmHref(isSignedIn)}') > landing.indexOf('<header className="hero">'), '(8m) o botão dos filmes narrados da variante leva a campanha que a SQL do A/B lê (home_clips_first_film)')
 ok(/<PublicNavDropdown item="video" label="Video">/.test(landing) && ['/spaces', '/ads/new', '/claude-connector', '/pricing'].every((h) => landing.includes(`<Link href="${h}"`)) && !/data-nav-item="clips"/.test(landing), '(8n) menu do topo como era (Video · Images · Spaces · Ads · MCP · Pricing), sem item solto de Clipes')

@@ -20,6 +20,7 @@ export default function NavEngineItem({
   chip,
   preview,
   icon,
+  translateName = false,
 }: {
   href: string
   name: string
@@ -31,6 +32,9 @@ export default function NavEngineItem({
   /** KINEO-MENU-ICONES-2026-08-17 (fundador, ref. Higgsfield): caixinha
       arredondada a esquerda com monograma/glifo do motor. */
   icon?: React.ReactNode
+  /** KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — nome descritivo (ex.: "Photo to clip") passa pela tradução da interface;
+      nome de motor é marca e nunca é traduzido (padrão). */
+  translateName?: boolean
 }) {
   const ref = useRef<HTMLVideoElement | null>(null)
   return (
@@ -48,7 +52,7 @@ export default function NavEngineItem({
       {icon ? <span className="nm-ic" aria-hidden="true"><KineoBoltText>{icon}</KineoBoltText></span> : null}
       <span className="nm-tx">
         <b>
-          {name}
+          {translateName ? <UiLabel>{name}</UiLabel> : name}
           {chip ? <em className="nm-chip">{chip}</em> : null}
         </b>
         <i><UiLabel>{desc}</UiLabel></i>

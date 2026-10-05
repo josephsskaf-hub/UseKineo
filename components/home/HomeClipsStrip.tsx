@@ -1,50 +1,54 @@
-// KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — fundador (05/10): "quero a home do jeito que estava, com os clipes na parte de
-// cima e os filmes narrados logo embaixo", oito cartões ("nem que a gente repita um") e SEM o bloco "Turn any photo into
-// a video in one click" + caixa de upload ("muito feia"). Esta faixa entra DENTRO da home antiga (KineoLanding), só na
-// variante clips_first do A/B, e fala a MESMA língua visual dos cartões antigos do topo (components/PromoCards: mídia
-// 512/348 com canto 14px e sombra, título em caixa alta, linha apagada embaixo) — 4 por fileira, 2 fileiras, para os
-// filmes narrados aparecerem logo abaixo e não uma tela inteira depois. Os 7 efeitos vêm do catálogo
-// (lib/clips/clipEffects, preço da função de cobrança); o 8º cartão é o clipe a partir de texto (o /clips também aceita
-// só uma ideia escrita), com um clipe REAL do Kling 2.5 da casa.
+// KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — fundador (05/10, 2ª rodada, sobre a home no ar): "a fileira de cards tem que vir
+// em cima, com quatro… e daí depois entram os clips, dividido com os narrated films: quatro clips, quatro narrated films…
+// escolher os quatro melhores… e daí já vai para Videos for business". Esta faixa é a METADE de clipes dessa vitrine: os 4
+// melhores efeitos do catálogo (lib/clips/clipEffects; preço = a função de cobrança), na MESMA grade e no MESMO cartão dos
+// 4 filmes narrados logo abaixo (a regra da home em app/kineoLandingTheme.ts para .featuredFour: 4 colunas iguais, altura
+// clamp(320px,27vw,440px), espaço 18px, canto 16px; 2 colunas no celular; vídeo cobrindo o cartão, sombra embaixo, selo
+// pequeno + título por cima, o 1º com título maior). Só aparece
+// no braço clips_first do A/B; a página antiga do braço (ClipsFirstHome, com o hero de upload que o fundador reprovou)
+// saiu do ar na 1ª rodada.
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import WallMedia from '@/components/WallMedia'
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { clipsFirstEffectCards } from '@/components/home/ClipsFirstHome'
-import { clipCreditCost } from '@/lib/clips/clipPricing'
+import type { ClipEffectKey } from '@/lib/clips/clipEffects'
 
-const TEXT_CLIP = {
-  video: '/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4',
-  poster: '/posters/c4e4fbab-0978-4daa-9fcf-119096370210.jpg',
-}
+/** Os 4 da vitrine, na ordem (o 1º é o cartão grande). O fundador escolheu a explosão de cor e o tênis girando; os outros
+ *  dois são os efeitos novos que viralizam (bolo e derreter) — e o mesmo tênis em dois efeitos mostra "uma foto, vários clipes". */
+export const HOME_CLIP_KEYS: readonly ClipEffectKey[] = ['color_burst', 'product_360', 'secret_cake', 'melt']
 
-// As prévias VERTICAIS (720×1280, feitas com o efeito) num cartão horizontal: que faixa da altura aparece. Conta do
-// object-position: a faixa visível começa em p×0,618 da altura e cobre 38% dela — o número põe o assunto no meio.
-// As horizontais (casa, 1400×782) ficam no centro.
-const FOCUS: Record<string, string> = {
-  product_360: '50% 55%',
-  zoom_out_earth: '50% 42%',
-  restore_old_photo: '50% 14%',
-  color_burst: '50% 26%',
+// Que faixa da prévia VERTICAL (9:16) aparece no cartão (~0,86 no computador: 65% da altura do vídeo). Conta do
+// object-position: a janela visível começa em p × (1 − 0,655) da altura — o número põe o assunto no meio do cartão.
+const FOCUS: Partial<Record<ClipEffectKey, string>> = {
+  color_burst: '50% 21%',
+  product_360: '50% 56%',
+  secret_cake: '50% 56%',
+  melt: '50% 82%',
+  zoom_out_earth: '50% 36%',
+  restore_old_photo: '50% 8%',
 }
 
 const CSS = `
-.klp .kcs{padding:24px 0 6px}
+.klp .kcs{padding:24px 0 4px}
 .klp .kcs .home-business-heading{margin-bottom:6px}
-.klp .kcs-sub{margin:0 0 18px;color:var(--muted);font-size:15px;line-height:1.45;max-width:680px}
-.klp .kcs-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px 16px}
-.klp .kcs-card{display:flex;flex-direction:column;gap:11px;color:var(--txt);text-decoration:none;border-radius:16px;outline:none}
+.klp .kcs-sub{margin:0 0 16px;color:var(--muted);font-size:15px;line-height:1.45;max-width:680px}
+.klp .kcs-grid{--film-height:clamp(320px,27vw,440px);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));height:var(--film-height);gap:18px}
+.klp .kcs-card{position:relative;display:block;min-width:0;overflow:hidden;border:1px solid var(--line);border-radius:16px;background:#101821;color:#fff;text-decoration:none;isolation:isolate}
+.klp .kcs-card:hover{border-color:var(--blue)}
 .klp .kcs-card:focus-visible{outline:2px solid var(--home-action,#0A5CFF);outline-offset:4px}
-.klp .kcs-md{position:relative;aspect-ratio:512/348;border-radius:14px;overflow:hidden;background-color:#10141B;background-repeat:no-repeat;background-size:cover;background-position:var(--kcs-focus,50% 50%);isolation:isolate;box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 14px 34px -22px rgba(7,9,13,.55);transition:transform 250ms cubic-bezier(.2,0,0,1),box-shadow 250ms ease}
-.klp .kcs-card:hover .kcs-md{transform:translateY(-2px);box-shadow:0 1px 0 rgba(255,255,255,.07) inset,0 22px 44px -24px rgba(7,9,13,.7)}
+.klp .kcs-md{position:absolute;inset:0;background-color:#101821;background-repeat:no-repeat;background-size:cover;background-position:var(--kcs-focus,50% 50%)}
 .klp .kcs-md video{object-position:var(--kcs-focus,50% 50%)}
-.klp .kcs-cr{position:absolute;right:10px;top:10px;z-index:2;font-size:11.5px;font-weight:750;letter-spacing:.02em;line-height:1;border-radius:999px;padding:6px 10px;background:rgba(7,9,13,.58);color:#fff;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
-.klp .kcs-tx{display:flex;flex-direction:column;gap:3px;padding:0 2px}
-.klp .kcs-tx b{font-size:15px;line-height:1.25;font-weight:750;letter-spacing:.04em;text-transform:uppercase}
-.klp .kcs-tx i{font-style:normal;font-size:14px;line-height:1.4;color:var(--muted)}
-@media(max-width:899px){.klp .kcs-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 12px}}
-@media(max-width:560px){.klp .kcs{padding-top:16px}.klp .kcs-sub{font-size:14px;margin-bottom:14px}.klp .kcs-card{gap:8px}.klp .kcs-tx b{font-size:12.5px;letter-spacing:.03em}.klp .kcs-tx i{display:none}.klp .kcs-cr{font-size:10.5px;padding:5px 8px;right:7px;top:7px}}
-@media(prefers-reduced-motion:reduce){.klp .kcs-md{transition:none}}
+.klp .kcs-shade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,transparent 42%,rgba(3,9,18,.85) 100%)}
+.klp .kcs-copy{position:absolute;left:16px;right:16px;bottom:12px;z-index:2;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+.klp .kcs-copy i{font-style:normal;font-size:8px;font-weight:650;letter-spacing:.8px;text-transform:uppercase;color:#c8ddf1}
+.klp .kcs-copy b{font-size:15px;line-height:1.2;font-weight:600;letter-spacing:-.2px;color:#fff;text-wrap:balance}
+.klp .kcs-card:first-child .kcs-copy{left:20px;bottom:20px;gap:6px}
+.klp .kcs-card:first-child .kcs-copy b{font-size:clamp(22px,1.8vw,28px);line-height:1.15}
+.klp .kcs-card:first-child .kcs-copy i{font-size:9px;letter-spacing:1.2px}
+@media(max-width:800px){.klp .kcs-grid{height:auto;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.klp .kcs-card{height:clamp(240px,48vw,355px)}}
+@media(max-width:700px){.klp .kcs{padding-top:16px}.klp .kcs-sub{font-size:14px;margin-bottom:12px}.klp .kcs-copy{left:10px;right:10px;bottom:10px}.klp .kcs-copy b,.klp .kcs-card:first-child .kcs-copy b{font-size:13px;line-height:1.25}.klp .kcs-copy i,.klp .kcs-card:first-child .kcs-copy i{font-size:7px;letter-spacing:.3px}.klp .kcs-card:first-child .kcs-copy{left:10px;bottom:10px}}
+@media(max-width:560px){.klp .kcs-grid{gap:12px}.klp .kcs-card{height:clamp(225px,66vw,320px);border-radius:12px}}
 `
 
 function mediaStyle(poster: string | undefined, focus: string | undefined): CSSProperties | undefined {
@@ -56,9 +60,10 @@ function mediaStyle(poster: string | undefined, focus: string | undefined): CSSP
 }
 
 export default function HomeClipsStrip({ signedIn }: { signedIn: boolean }) {
-  const cards = clipsFirstEffectCards(signedIn).filter((c) => c.effect.preview)
+  const all = clipsFirstEffectCards(signedIn).filter((c) => c.effect.preview)
+  // Cartão de um efeito fora do catálogo (ou sem prévia) simplesmente não entra — nunca um quadro vazio.
+  const cards = HOME_CLIP_KEYS.map((key) => all.find((c) => c.effect.key === key)).filter((c): c is (typeof all)[number] => Boolean(c))
   const clipsHref = signedIn ? '/clips' : `/signup?redirect=${encodeURIComponent('/clips')}`
-  const textClipCredits = clipCreditCost('kling', 5)
   return (
     <section className="kcs" aria-labelledby="home-clips-heading" data-home-section="clips">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -80,30 +85,14 @@ export default function HomeClipsStrip({ signedIn }: { signedIn: boolean }) {
             >
               <div className="kcs-md" style={mediaStyle(c.effect.preview?.poster, FOCUS[c.effect.key])}>
                 {c.effect.preview ? <WallMedia src={c.effect.preview.video} /> : null}
-                <span className="kcs-cr" aria-hidden="true">{c.credits} cr</span>
               </div>
-              <div className="kcs-tx">
+              <span className="kcs-shade" aria-hidden="true" />
+              <span className="kcs-copy">
+                <i>{c.engineLabel} · {c.effect.seconds} s · {c.credits} cr</i>
                 <b><UiLabel>{c.effect.title}</UiLabel></b>
-                <i><UiLabel>{c.effect.sub}</UiLabel></i>
-              </div>
+              </span>
             </Link>
           ))}
-          <Link
-            href={clipsHref}
-            className="kcs-card"
-            data-clip-effect="text"
-            data-home-cta="clip_text"
-            aria-label={`Any idea, as a clip — ${textClipCredits} credits`}
-          >
-            <div className="kcs-md" style={mediaStyle(TEXT_CLIP.poster, undefined)}>
-              <WallMedia src={TEXT_CLIP.video} />
-              <span className="kcs-cr" aria-hidden="true">{textClipCredits} cr</span>
-            </div>
-            <div className="kcs-tx">
-              <b><UiLabel>Any idea, as a clip</UiLabel></b>
-              <i><UiLabel>No photo? Write one line and get a cinematic scene.</UiLabel></i>
-            </div>
-          </Link>
         </div>
       </div>
     </section>

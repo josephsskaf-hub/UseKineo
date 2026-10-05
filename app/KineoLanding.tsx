@@ -774,6 +774,8 @@ export default function KineoLanding({
   const showAvatar = avatarVisible(initialEmail)
   // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — Clips no menu (desktop e celular) segue o interruptor de sempre do /clips.
   const showClips = clipsVisible(initialEmail)
+  // A seção de empresas é a mesma nos dois braços; só muda de lugar (logo depois dos filmes no braço clips_first).
+  const businessShowcase = <section className="home-business-showcase"><div className="wrap"><div className="home-business-heading"><h2><UiLabel>Videos for your business.</UiLabel></h2><Link href="/ads" className="btn btn-ghost"><UiLabel>For businesses</UiLabel> ↗</Link></div><BusinessVisualReferences /></div></section>
   // KINEO-KINEO1-FORA-2026-09-29 — fundador (29/09): "quero tirar o kineo 1 do jogo, ele estraga a entrada". Mesmo
   // desenho do showAvatar: um booleano decide as 3 portas do Kineo 1 nesta página (mega-menu, tile do bento, chip
   // final). A vitrine é pública — aqui só a casa (isInternalEmail) continua vendo; o legado de quem já paga e usa é
@@ -845,8 +847,8 @@ export default function KineoLanding({
                   {showClips && (
                     <>
                       <span className="nm-h"><UiLabel>Clips</UiLabel></span>
-                      <NavEngineItem href="/clips?upload=1" name="Photo to clip" desc="One-click photo effects" icon="✦" preview="/previews/efeito-product_360.mp4" />
-                      <NavEngineItem href="/clips" name="Text to clip" desc="One line, a 5–15 s scene" icon="✎" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" />
+                      <NavEngineItem href="/clips?upload=1" name="Photo to clip" translateName desc="One-click photo effects" icon="✦" preview="/previews/efeito-product_360.mp4" />
+                      <NavEngineItem href="/clips" name="Text to clip" translateName desc="One line, a 5–15 s scene" icon="✎" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" />
                     </>
                   )}
                   <span className={showClips ? 'nm-h nm-h-next' : 'nm-h'}><UiLabel>{showClips ? 'Narrated films' : 'Engines'}</UiLabel></span>
@@ -956,11 +958,11 @@ export default function KineoLanding({
       {/* KINEO-PROMO-CARDS-2026-09-30 — fundador (30/09): "quero esses cards no Kineo também, com essas edições legais".
           Fileira logo abaixo do menu; entra ANTES do hero sem tirar nada da curadoria (hero, motores, engineWall intactos).
           O card do Clips segue o mesmo interruptor do mega-menu (clipsVisible). */}
-      {/* KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — braço clips_first: Clipes no topo; os cards promocionais descem para
-          logo depois dos filmes narrados (a ordem pedida pelo fundador: clipes em cima, filmes narrados logo embaixo). */}
-      {clipsFirst
-        ? <HomeClipsStrip signedIn={isSignedIn} />
-        : <PromoCards cards={promoCardsFor({ clips: clipsVisible(initialEmail) })} />}
+      {/* KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 (2ª rodada, fundador): a fileira de cards fica no TOPO nos dois braços, com os
+          4 (Claude · Ads · Clips · Nano Banana Pro); no braço clips_first vem logo abaixo a vitrine dividida — 4 clipes
+          (HomeClipsStrip) + os 4 filmes narrados do hero — e daí direto "Videos for your business". */}
+      <PromoCards cards={promoCardsFor({ clips: clipsVisible(initialEmail) })} />
+      {clipsFirst && <HomeClipsStrip signedIn={isSignedIn} />}
 
       <header className="hero">
         <div className="glow" />
@@ -981,9 +983,6 @@ export default function KineoLanding({
           </div>
         </div>
       </header>
-
-      {/* No braço clips_first o cartão "Clips" dos promocionais sairia repetido (a faixa de Clipes já abre a página). */}
-      {clipsFirst && <PromoCards cards={promoCardsFor({ clips: false })} />}
 
       {/* The post-signup route intentionally lands on this engine showroom.
           The router comes AFTER the founder-curated four-video hero, so it
@@ -1017,6 +1016,10 @@ export default function KineoLanding({
       ) : null}
 
 
+      {/* KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 (2ª rodada) — fundador: depois dos clipes e filmes "já vai para a tela Videos
+          for Business"; no braço clips_first a fileira "Start with the full toolkit" desce para depois dela. */}
+      {clipsFirst && businessShowcase}
+
       {/* Approved home layout: creation first, proof together, engine catalog retained below. */}
       <section className="home-create" aria-label="Create with Kineo">
         <div className="wrap">
@@ -1047,7 +1050,7 @@ export default function KineoLanding({
         </div>
       </section>
 
-      <section className="home-business-showcase"><div className="wrap"><div className="home-business-heading"><h2><UiLabel>Videos for your business.</UiLabel></h2><Link href="/ads" className="btn btn-ghost"><UiLabel>For businesses</UiLabel> ↗</Link></div><BusinessVisualReferences /></div></section>
+      {!clipsFirst && businessShowcase}
 
       <section className="home-proof" aria-label="Kineo reviews and recognition">
         <div className="wrap">
