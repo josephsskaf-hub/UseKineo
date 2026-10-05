@@ -10,7 +10,7 @@
 |---|---|---|---|---|---|
 | 1 · visitante = conta nova | Testado; código 2e330992 | 09698a53c3c489831ec99f3b52710edaff53fcb8 | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
 | 2 · páginas de efeito | Testado; código 646361bf | 2db02ec7cae6b6119438056aba76b84c705b25d9 | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
-| 3 · Kling 4 desligado | Preparado; validação completa em andamento | Pendente | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
+| 3 · Kling 4 desligado | Testado; código 414d9ea7 | Em preparação da fila | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
 | 4 · medição por origem | Pendente | Pendente | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
 
 ## Item 1 · catálogo público e preço no botão
@@ -50,6 +50,8 @@
 **IMPLEMENTADO:** tentativa de ligar sem evidências falha na carga do módulo e no guardião, antes de um pedido. Exige fornecedor fal, model id e custo positivos, fontes oficiais do mesmo modelo, data, revisão de schema/dispatcher e cotação comparável (modelo/resolução/áudio/prateleira). `quotePreparedKling4` calcula apenas uma simulação interna pela régua vigente: mercado −10%, piso de margem 40% no crédito mais barato, mínimo da casa. Informa quando o piso impede −10%; não publica nem debita preço novo.
 
 **TESTADO LOCALMENTE:** dez mutantes rejeitados; catálogo/POST não reconhecem `kling4`; valores ausentes/zero/negativos/NaN, fonte falsa, revendedor e revisão ausente bloqueados. Comparação da fórmula com a régua existente para durações/motores com cotação. Guardião de preço existente: 32 verificações e seus mutantes verdes.
+
+**TESTADO LOCALMENTE — 05/10:** tsc limpo. Suíte completa: base 762 / 619 verdes / 143 vermelhos; item 3, 765 / 622 / 143, nenhum teste nem asserção vermelha nova. [Gates completos](showcase-clipes-20261006/item-3/gates.json). Não há mudança visual nem chamada paga nesta entrega.
 
 **QUESTÃO PENDENTE / DESCONHECIDO:** API pública utilizável, schema e preço da fal. Não existe adapter especulativo de Kling 4. Para ativar depois do lançamento, preencher fatos verificáveis, implementar e testar offline o payload oficial, conferir custo e só então habilitar. A preparação está concluída dentro do que se pode verificar hoje; não equivale a motor pronto para gerar apenas mudando `false` para `true`. Fornecedor novo continua decisão do fundador.
 
