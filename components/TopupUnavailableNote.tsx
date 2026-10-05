@@ -37,10 +37,38 @@
 // `fittingPlanIds[0]` de antes) e deixa a recarga como consequência de ter
 // um plano, não como porta fechada. Nada de número novo: TIER_CREDITS,
 // filmsCoveredByTier, a guarda do divisor e o evento continuam iguais.
+//
+// ═══ KINEO-PASSE-AVULSO-2026-10-05 — O PASSE DE UM FILME, AO LADO DO PLANO ═══
+// Medido em 05/10: 16 contas free/trial bateram nesta parede em 48 h e nenhuma
+// tinha como comprar UM filme — a caixa só dizia que recarga é coisa de plano.
+// Decisão do fundador (Pacote 2): o passe avulso (PACK_PRICE_MINOR por
+// PACK_CREDITS.starter = exatamente um filme Seedance 1.5 de 60 s, sem
+// assinatura) aparece AQUI, abaixo da sugestão de plano — o plano continua
+// sendo o CTA principal. Só para conta que NÃO assina (o pai decide e passa
+// `filmPass`; ausente = nada muda). O checkout é o caminho que já existe
+// (?pack=starter, devolvido ao Studio pelo pai). Impressão: `film_pass_offer_shown`,
+// uma vez por montagem; o clique usa os eventos de checkout de sempre.
+// Nenhum preço digitado: tudo sai de lib/checkoutPricing.
 import { useEffect, useRef } from 'react'
 import type { LimitPurchaseFit, LimitPurchasePlanTier } from '@/lib/growth/limitPurchaseFit'
-import { TIER_CREDITS } from '@/lib/checkoutPricing'
+import { PACK_ADVERTISED_SECONDS, PACK_CREDITS, PACK_PRICE_MINOR, TIER_CREDITS, packPriceLabel } from '@/lib/checkoutPricing'
 import { trackEvent } from '@/lib/analytics'
+
+export const FILM_PASS_OFFER_VERSION = 'film_pass_offer_v1' as const
+
+/** O que o passe faz por ESTE pedido: cobre o filme (saldo + passe ≥ custo) ou só um filme de 60 s de Seedance. */
+export function filmPassCoversRequest(fit: LimitPurchaseFit | null): boolean {
+  if (!fit) return false
+  const balance = Number.isFinite(fit.balance) ? Math.max(0, fit.balance) : 0
+  return balance + PACK_CREDITS.starter >= fit.requiredCredits
+}
+
+/** "One 60-second film, no subscription — 35 credits." Derivado. */
+export function filmPassCopy(fit: LimitPurchaseFit | null): { title: string; sub: string } {
+  const title = `Just one film? ${packPriceLabel()}, no subscription`
+  const base = `${PACK_CREDITS.starter} credits — one ${PACK_ADVERTISED_SECONDS.starter}-second Seedance 1.5 film. Paid once.`
+  return { title, sub: filmPassCoversRequest(fit) ? `Covers this film. ${base}` : base }
+}
 
 const TIER_NAMES: Record<LimitPurchasePlanTier, string> = {
   starter: 'Starter',
@@ -78,7 +106,14 @@ export function topupUnavailableCopy(fit: LimitPurchaseFit | null): string {
     : `${name} above covers this film and ${films - 1} more like it this month. One-time top-ups unlock once you are on a plan.`
 }
 
-export default function TopupUnavailableNote({ fit }: { fit: LimitPurchaseFit | null }) {
+export default function TopupUnavailableNote({
+  fit,
+  filmPass = null,
+}: {
+  fit: LimitPurchaseFit | null
+  /** KINEO-PASSE-AVULSO-2026-10-05 — só para conta sem assinatura. `onBuy` é do pai (rascunho, checkout, eventos). */
+  filmPass?: { onBuy: () => void; disabled?: boolean; reason?: string | null } | null
+}) {
   // Uma vez por montagem, fire-and-forget: telemetria nunca pode derrubar o
   // pop-up de crédito curto de quem está a tentar comprar.
   const trackedRef = useRef(false)
@@ -94,6 +129,29 @@ export default function TopupUnavailableNote({ fit }: { fit: LimitPurchaseFit | 
       /* ignore */
     }
   }, [fit])
+
+  // KINEO-PASSE-AVULSO-2026-10-05 — impressão REAL do passe: só quando ele é pintado, uma vez por montagem.
+  const filmPassTrackedRef = useRef(false)
+  useEffect(() => {
+    if (!filmPass || filmPassTrackedRef.current) return
+    filmPassTrackedRef.current = true
+    try {
+      void trackEvent('film_pass_offer_shown', {
+        version: FILM_PASS_OFFER_VERSION,
+        surface: 'generate_upgrade_modal',
+        pack: 'starter',
+        pack_price_minor: PACK_PRICE_MINOR.usd,
+        pack_credits: PACK_CREDITS.starter,
+        required_credits: fit?.requiredCredits ?? null,
+        balance: fit?.balance ?? null,
+        covers_request: filmPassCoversRequest(fit),
+        reason: filmPass.reason ?? null,
+      })
+    } catch {
+      /* ignore */
+    }
+  }, [filmPass, fit])
+  const passCopy = filmPass ? filmPassCopy(fit) : null
 
   return (
     <div
@@ -117,6 +175,33 @@ export default function TopupUnavailableNote({ fit }: { fit: LimitPurchaseFit | 
       >
         {topupUnavailableCopy(fit)}
       </span>
+      {filmPass && passCopy ? (
+        <button
+          type="button"
+          data-kineo="film-pass"
+          data-version={FILM_PASS_OFFER_VERSION}
+          disabled={filmPass.disabled === true}
+          onClick={() => filmPass.onBuy()}
+          style={{
+            display: 'block',
+            width: '100%',
+            marginTop: 10,
+            padding: '10px 12px',
+            borderRadius: 10,
+            background: 'transparent',
+            border: '1px solid rgba(255,255,255,.22)',
+            color: '#E2E8F0',
+            textAlign: 'center',
+            cursor: filmPass.disabled ? 'not-allowed' : 'pointer',
+            opacity: filmPass.disabled ? 0.6 : 1,
+          }}
+        >
+          <span style={{ display: 'block', fontSize: '0.84rem', fontWeight: 800 }}>{passCopy.title} →</span>
+          <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: '#a1a1a8', marginTop: 2 }}>
+            {passCopy.sub}
+          </span>
+        </button>
+      ) : null}
     </div>
   )
 }

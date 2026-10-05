@@ -14385,6 +14385,25 @@ export default function GenerateClient({
               setUpgradeLoading(true)
             },
           }}
+          // KINEO-PASSE-AVULSO-2026-10-05 — o passe de UM filme na parede de crédito, só para quem não assina. Mesmo
+          // caminho do pacote que já existia (?pack=starter devolvido ao Studio, régua do saldo para liberar o Generate
+          // na volta), mesmo launcher das linhas de plano (trava de duplo clique) e os eventos de checkout de sempre.
+          onFilmPass={isStarter || isCreator || isStudio ? null : () => {
+            saveStudioDraftNow()
+            try { if (typeof credits === 'number') sessionStorage.setItem(WALL_V1_PACK_BALANCE_KEY, String(credits)) } catch { /* ignore */ }
+            const started = upgradeModalCheckout.launch(
+              'film_pass',
+              withStudioReturn(withIntentCampaign('/api/stripe/checkout?pack=starter')),
+              { pack: 'starter', from: 'out_of_credits_wall', return_to: 'studio', reason: upgradeReason },
+            )
+            if (!started) return
+            trackCheckoutClick('starter')
+            try {
+              const ttq = (window as unknown as { ttq?: { track: Function } }).ttq
+              if (ttq && typeof ttq.track === 'function') ttq.track('InitiateCheckout', { content_name: 'film_pass' })
+            } catch { /* non-blocking */ }
+            setUpgradeLoading(true)
+          }}
           // KINEO-PRIMEIRO-FILME-GRATIS-2026-09-04 — a saida honesta, quando ela
           // existe de verdade. Ver `firstFilmFreeAvailable`.
           firstFilmFree={!CARD_ENTRY_ONLY && firstFilmFreeAvailable}
@@ -22005,6 +22024,8 @@ function UpgradeModal({
   readyClips = null,
   // KINEO-PAREDE-V1-2026-09-23 — ausente = parede desligada neste modal.
   wallV1 = null,
+  // KINEO-PASSE-AVULSO-2026-10-05 — ausente = sem passe de um filme (assinante ou tela que não oferece).
+  onFilmPass = null,
 }: {
   loading: boolean
   onUpgrade: (tier: 'starter' | 'basic' | 'pro') => void
@@ -22063,6 +22084,11 @@ function UpgradeModal({
     isStudio: boolean
     onCheckout: (tier: 'starter' | 'basic' | 'pro') => void
   } | null
+  /**
+   * KINEO-PASSE-AVULSO-2026-10-05 — o passe de UM filme (?pack=starter) para conta sem assinatura. É do pai:
+   * grava o rascunho, lança o checkout devolvendo ao Studio e mede o clique. O modal só pinta, e só se !isSubscriber.
+   */
+  onFilmPass?: (() => void) | null
 }) {
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — the top-up buttons below were raw
   // window.location.href with only `loading` (a prop that is never true for
@@ -22845,7 +22871,10 @@ function UpgradeModal({
             )}
           </div>
         ) : (
-          <TopupUnavailableNote fit={purchaseFit} />
+          <TopupUnavailableNote
+            fit={purchaseFit}
+            filmPass={onFilmPass && !isSubscriber ? { onBuy: onFilmPass, disabled: loading, reason } : null}
+          />
         )}
 
         {/* KINEO-INTRO-MONTH-2026-07-13 escape button removed
