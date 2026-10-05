@@ -20,6 +20,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
 import RegionalFirstPack from '@/components/RegionalFirstPack'
+import { ConversionPricingEntry, ConversionPlanCapacity } from '@/components/offers/ConversionUpgrade'
+import { MRR_CONVERSION_ENABLED, conversionCheckoutHref, conversionMetadata } from '@/lib/offers/mrrConversion'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { createClient } from '@/lib/supabase/client'
 import ExitIntentOffer from '@/components/ExitIntentOffer'
@@ -556,7 +558,7 @@ export default function PricingClient({ initialBilling = 'annual', characterLimi
     setRequestedTier(sanitizePricingTierHandoff(params.get('tier')))
     if (intentCampaign) rememberSignupCampaign(intentCampaign)
     setArrivedWithPromo((params.get('promo') ?? '').trim().length > 0)
-    void trackEvent('pricing_view', intentCampaign ? { source: intentCampaign } : undefined)
+    void trackEvent('pricing_view', { ...(intentCampaign ? { source: intentCampaign } : {}), ...(MRR_CONVERSION_ENABLED ? conversionMetadata('pricing') : {}) })
   }, [])
 
   // KINEO-PRICING-TIER-HANDOFF-2026-08-31 — warm recovery links already name
@@ -698,8 +700,8 @@ export default function PricingClient({ initialBilling = 'annual', characterLimi
     const effectiveBilling = isAutopilotFamily ? 'monthly' : billing
     const started = checkout.launch(
       tier,
-      `/api/stripe/checkout?tier=${tier}${billingParam}${promoParam}${introParam}${intentParam}`,
-      { tier, billing: effectiveBilling, intro: introParam !== '', pricing_surface: 'pricing_page' },
+      conversionCheckoutHref(`/api/stripe/checkout?tier=${tier}${billingParam}${promoParam}${introParam}${intentParam}`, 'pricing', `${tier}_${effectiveBilling}`),
+      { tier, billing: effectiveBilling, intro: introParam !== '', pricing_surface: 'pricing_page', ...(MRR_CONVERSION_ENABLED && !isAutopilotFamily ? conversionMetadata('pricing', `${tier}_${effectiveBilling}`) : {}), previous_intent_campaign: intentCampaign },
     )
     // A suppressed duplicate click must not double-count the funnel or fire a
     // second TikTok InitiateCheckout.
@@ -957,7 +959,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             Pricing
           </div>
           <h1 className="text-balance text-4xl font-black tracking-tight sm:text-5xl text-[var(--text)]">
-            {displayCurrency ? headline : 'Simple monthly plans. Cancel anytime.'}
+            {MRR_CONVERSION_ENABLED ? 'Make your next film or clip.' : displayCurrency ? headline : 'Simple monthly plans. Cancel anytime.'}
           </h1>
           {/* KINEO-SHOWCASE-2026-07-10 — Joseph: parágrafo comparativo removido
               ("texto sujo") — os CARDS de preço são a estrela do hero. */}
@@ -971,7 +973,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                 reversão de risco lê como insegurança, não como confiança; e o
                 "3 grátis / 24h" saiu daqui porque a cota do free não é argumento
                 para quem já está decidindo QUAL plano pagar. */}
-            {['Cancel anytime', '7-day money-back guarantee'].map((label) => (
+            {['Cancel anytime', billing === 'annual' ? ANNUAL_REFUND_POLICY : '7-day money-back guarantee'].map((label) => (
               <div key={label} className="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--muted)]">
                 <span aria-hidden="true" style={{ color: 'var(--accent)' }}>✓</span>
                 <span>{label}</span>
@@ -1018,6 +1020,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         {/* Push #267 — Free banner removed with Free card */}
 
         {/* #381 — monthly / annual billing toggle */}
+        <ConversionPricingEntry />
         <div className="mb-7 flex items-center justify-center">
           <div className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--card2)] p-1">
             <button
@@ -1070,7 +1073,9 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             de propósito: a ordem do fundador é "avulso primeiro, assinatura
             logo abaixo". Ver o cabeçalho de components/RegionalFirstPack.tsx
             para os 40 checkouts sem um pagamento que mandaram fazer isto. */}
-        <RegionalFirstPack />
+        {!MRR_CONVERSION_ENABLED && (
+          <RegionalFirstPack />
+        )}
         {/* KINEO-STUDIO50-2026-09-22 — a oferta mora onde a pessoa volta sozinha; o servidor decide se ela existe. */}
         <Studio50OfferBanner surface="pricing" />
         <MrrPricingProof />
@@ -1185,8 +1190,9 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                     pertence); o selo do 1º mês vira a linha miúda sob o botão,
                     onde o preço já foi decidido. Nada foi deletado da página —
                     só parou de disputar atenção no instante da decisão. */}
-                {isPaid && <p className="plan-credit-summary">{TIER_CREDITS[p.tier as PaidTier]} credits / month</p>}
-                {isPaid && <CreditMinutesSummary credits={TIER_CREDITS[p.tier as PaidTier]} />}
+                {isPaid && !MRR_CONVERSION_ENABLED && <CreditMinutesSummary credits={TIER_CREDITS[p.tier as PaidTier]} />}
+                {isPaid && <ConversionPlanCapacity key={`${p.tier}_${billing}`} tier={p.tier as PaidTier} billing={billing} currency={displayCurrency} region={resolvedRegion} surface="pricing" />}
+                {isPaid && <p className="plan-credit-summary" style={MRR_CONVERSION_ENABLED ? { fontSize: 11, color: 'var(--muted)' } : undefined}>{TIER_CREDITS[p.tier as PaidTier]} credits / month</p>}
                 {'videosPerMonth' in p && p.videosPerMonth ? (
                   <div className="mt-5 text-[17px] font-black tracking-tight text-[var(--accent)]">
                     {p.videosPerMonth}
