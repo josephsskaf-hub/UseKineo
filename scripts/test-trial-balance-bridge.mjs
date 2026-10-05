@@ -42,10 +42,16 @@ const repeatPolicy = executeTs('lib/growth/trialRepeatBeforeCheckout.ts', {
 })
 const onboardingGoals = executeTs('lib/growth/onboardingGoals.ts')
 
-equal(policy.TRIAL_BALANCE_BRIDGE_COST, 15, '35s Seedance costs 15 canonical credits')
-equal(policy.FULL_SEEDANCE_COST, 25, '60s Seedance costs 25 canonical credits')
+// KINEO-SEEDANCE-35CR-2026-10-04 — Seedance 60 s 25 → 35 (fundador 04/10). Os custos são LIDOS da função que cobra
+// (35 s = 21, era 15; 60 s = 35, era 25) e todo saldo de teste abaixo é escrito em função deles: a intenção de cada
+// verificação (borda exata, um crédito a menos, faixa da ponte) fica igual, só o número muda.
+const B = engineCost.creditCostForDuration('cinematic_ai', true, 35)
+const F = engineCost.creditCostForDuration('cinematic_ai', true, 60)
+equal([B, F], [21, 35], 'Seedance 35s/60s cost 21/35 canonical credits (KINEO-SEEDANCE-35CR-2026-10-04)')
+equal(policy.TRIAL_BALANCE_BRIDGE_COST, B, '35s Seedance costs the canonical 35s credits')
+equal(policy.FULL_SEEDANCE_COST, F, '60s Seedance costs the canonical 60s credits')
 equal(policy.TRIAL_FIRST_DELIVERY_DURATION, 35, 'first delivery uses the measured shorter premium experience')
-equal(policy.TRIAL_FIRST_DELIVERY_COST, 15, 'first delivery uses 15 canonical Seedance credits')
+equal(policy.TRIAL_FIRST_DELIVERY_COST, B, 'first delivery uses the canonical 35s Seedance credits')
 equal(policy.TRIAL_FIRST_FAST_REPEAT_DURATION, 60, 'the preserved repeat is a full Fast episode')
 equal(policy.TRIAL_FIRST_FAST_REPEAT_COST, 5, 'a full Fast repeat uses 5 canonical trial credits')
 equal(policy.TRIAL_RETURN_FAST_SHORT_COST, 3, '35s Kineo 1 return uses 3 canonical active-trial credits')
@@ -67,23 +73,23 @@ for (const input of [
 }
 
 for (const [input, eligible, reason] of [
-  [{ trialPhase: 'active', credits: 25, creditsUsed: 0 }, true, 'eligible'],
-  [{ trialPhase: 'active', credits: 15, creditsUsed: 0 }, true, 'eligible'],
-  [{ trialPhase: 'active', credits: 25, creditsUsed: 4 }, false, 'already_used'],
-  [{ trialPhase: 'active', credits: 14, creditsUsed: 0 }, false, 'insufficient_balance'],
+  [{ trialPhase: 'active', credits: B + 10, creditsUsed: 0 }, true, 'eligible'],
+  [{ trialPhase: 'active', credits: B, creditsUsed: 0 }, true, 'eligible'],
+  [{ trialPhase: 'active', credits: B + 10, creditsUsed: 4 }, false, 'already_used'],
+  [{ trialPhase: 'active', credits: B - 1, creditsUsed: 0 }, false, 'insufficient_balance'],
   [{ trialPhase: 'active', credits: null, creditsUsed: 0 }, false, 'unknown_balance'],
-  [{ trialPhase: 'active', credits: 25, creditsUsed: null }, false, 'unknown_usage'],
-  [{ trialPhase: 'ending', credits: 25, creditsUsed: 0 }, false, 'not_active'],
+  [{ trialPhase: 'active', credits: B + 10, creditsUsed: null }, false, 'unknown_usage'],
+  [{ trialPhase: 'ending', credits: B + 10, creditsUsed: 0 }, false, 'not_active'],
 ]) {
   const result = policy.decideTrialFirstDelivery(input)
   equal(result.eligible, eligible, 'first-delivery eligibility names ' + reason)
   equal(result.reason, reason, 'first-delivery decision returns ' + reason)
 }
 for (const input of [
-  { trialPhase: 'active', credits: 25, creditsUsed: 0 },
-  { trialPhase: 'active', credits: 25, creditsUsed: null },
-  { trialPhase: 'active', credits: 25, creditsUsed: 4 },
-  { trialPhase: 'active', credits: 14, creditsUsed: 0 },
+  { trialPhase: 'active', credits: B + 10, creditsUsed: 0 },
+  { trialPhase: 'active', credits: B + 10, creditsUsed: null },
+  { trialPhase: 'active', credits: B + 10, creditsUsed: 4 },
+  { trialPhase: 'active', credits: B - 1, creditsUsed: 0 },
 ]) {
   const decision = policy.decideTrialFirstDelivery(input)
   const metadata = policy.trialFirstDeliveryExposureMetadata(decision)
@@ -97,12 +103,12 @@ for (const input of [
   equal(metadata.first_delivery_version, policy.TRIAL_FIRST_DELIVERY_VERSION, 'exposure keeps the click contract version')
 }
 equal(
-  policy.decideTrialFirstDelivery({ trialPhase: 'active', credits: 25, creditsUsed: 0 }).creditsAfterSuccess,
+  policy.decideTrialFirstDelivery({ trialPhase: 'active', credits: B + 10, creditsUsed: 0 }).creditsAfterSuccess,
   10,
   'premium first delivery intentionally preserves the day-one repetition budget',
 )
 equal(
-  policy.decideTrialFirstDelivery({ trialPhase: 'active', credits: 25, creditsUsed: 0 }).fastRepeatsAfterSuccess,
+  policy.decideTrialFirstDelivery({ trialPhase: 'active', credits: B + 10, creditsUsed: 0 }).fastRepeatsAfterSuccess,
   2,
   'the canonical grant preserves two full 60s Fast repetitions',
 )
@@ -125,20 +131,21 @@ equal(secondRepeat.action, 'episode', '5 remaining credits produce the second fu
 equal(secondRepeat.duration, 60, 'the second funded repeat keeps the full 60s duration')
 equal(secondRepeat.creditsAfterSuccess, 0, 'the three-video journey reaches the honest credit wall only after repetition')
 
-for (const credits of [15, 20, 21, 22, 23, 24]) {
+const BRIDGE_BAND = Array.from({ length: F - B }, (_, i) => B + i) // B..F-1 (21–34)
+for (const credits of BRIDGE_BAND) {
   const result = policy.decideTrialBalanceBridge({ trialPhase: 'active', credits, deliveredQuality: 'fast' })
   equal(result.eligible, true, `${credits} residual credits are eligible`)
-  equal(result.creditsAfterSuccess, credits - 15, `${credits} exposes exact post-success balance`)
+  equal(result.creditsAfterSuccess, credits - B, `${credits} exposes exact post-success balance`)
 }
 
-for (const credits of [15, 20, 21, 22, 23, 24]) {
+for (const credits of BRIDGE_BAND) {
   const result = policy.decideTrialReturnLadder({ trialPhase: 'active', credits })
   equal(result.eligible, true, `${credits} credits are recoverable after returning to the app`)
-  equal(result.creditsAfterSuccess, credits - 15, `${credits} keeps exact return-ladder math`)
+  equal(result.creditsAfterSuccess, credits - B, `${credits} keeps exact return-ladder math`)
   equal(result.engine, 'cinematic_ai', `${credits} credits preserve the Seedance rung`)
 }
 
-for (const credits of [5, 6, 10, 14]) {
+for (const credits of [5, 6, 10, 14, B - 1]) {
   const result = policy.decideTrialReturnLadder({ trialPhase: 'active', credits })
   equal(result.eligible, true, `${credits} credits now keep the return ladder alive`)
   equal(result.engine, 'fast', `${credits} credits choose Kineo 1 instead of making a false free-tier claim`)
@@ -164,7 +171,7 @@ for (const credits of [0, 1, 2]) {
 }
 
 for (const [credits, engine, duration, campaign] of [
-  [20, 'seedance', '35', policy.TRIAL_BALANCE_BRIDGE_VERSION],
+  [B, 'seedance', '35', policy.TRIAL_BALANCE_BRIDGE_VERSION],
   [10, 'fast', '60', policy.TRIAL_RETURN_FAST_VERSION],
   [3, 'fast', '35', policy.TRIAL_RETURN_FAST_VERSION],
 ]) {
@@ -184,7 +191,7 @@ for (const [input, reason] of [
   [{ trialPhase: 'ending', credits: 20 }, 'not_active'],
   [{ trialPhase: 'active', credits: null }, 'unknown_balance'],
   [{ trialPhase: 'active', credits: 2 }, 'too_few_credits'],
-  [{ trialPhase: 'active', credits: 25 }, 'full_seedance_already_fits'],
+  [{ trialPhase: 'active', credits: F }, 'full_seedance_already_fits'],
 ]) {
   const result = policy.decideTrialReturnLadder(input)
   equal(result.eligible, false, `return ladder rejects ${reason}`)
@@ -196,8 +203,8 @@ for (const [input, reason] of [
   [{ trialPhase: 'ending', credits: 20, deliveredQuality: 'fast' }, 'not_active'],
   [{ trialPhase: 'active', credits: 20, deliveredQuality: 'cinematic_ai' }, 'not_fast'],
   [{ trialPhase: 'active', credits: null, deliveredQuality: 'fast' }, 'unknown_balance'],
-  [{ trialPhase: 'active', credits: 14, deliveredQuality: 'fast' }, 'too_few_credits'],
-  [{ trialPhase: 'active', credits: 25, deliveredQuality: 'fast' }, 'full_seedance_already_fits'],
+  [{ trialPhase: 'active', credits: B - 1, deliveredQuality: 'fast' }, 'too_few_credits'],
+  [{ trialPhase: 'active', credits: F, deliveredQuality: 'fast' }, 'full_seedance_already_fits'],
 ]) {
   const result = policy.decideTrialBalanceBridge(input)
   equal(result.eligible, false, `${reason} is ineligible`)
@@ -396,7 +403,8 @@ for (const label of ['Bridge viewers', 'Premium completers', 'Checkout after pre
   check(admin.includes(label), `admin displays ${label}`)
 }
 
-check(admin.includes('Fast trial users with 15–24cr left'), 'admin shows the actual eligibility band')
+// KINEO-SEEDANCE-35CR-2026-10-04 — a faixa deixou de ser digitada ("15–24"): o admin a lê da política (21–34 hoje).
+check(admin.includes('hint={`Fast trial users with ${TRIAL_BALANCE_BRIDGE_COST}–${FULL_SEEDANCE_COST - 1}cr left`}'), 'admin shows the actual eligibility band, derived from the policy')
 check(admin.includes('35s Seedance completed after click'), 'admin shows the actual supported bridge duration')
 
 const previewPath = 'docs/previews/TRIAL-BALANCE-BRIDGE-2026-08-29.html'

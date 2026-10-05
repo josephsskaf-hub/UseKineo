@@ -78,7 +78,8 @@ const edge = videoReadyFooter({ ...base, isSubscriber: false, creditsRemaining: 
 // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o piso do próximo filme deixou de ser o Kineo 1 (5 cr, fora do
 // catálogo público) e passou a ser o Seedance 1.5 de 15 s, lido de lib/marketingPrice (SEEDANCE_SHORT_FILM_CREDITS, derivado
 // de creditCostForDuration). A borda continua: exatamente o piso compra o próximo; um crédito a menos não.
-ok(edge.kind === 'trial_episode2' && NEXT_VIDEO_MIN_CREDITS === marketing.SEEDANCE_SHORT_FILM_CREDITS && NEXT_VIDEO_MIN_CREDITS === 7, 'exatamente o piso (Seedance 15 s, 7cr) ainda compra o proximo → episodio 2')
+// KINEO-SEEDANCE-35CR-2026-10-04 — o piso agora é lido da função que cobra (9 cr a 15 s; era o literal 7).
+ok(edge.kind === 'trial_episode2' && NEXT_VIDEO_MIN_CREDITS === marketing.SEEDANCE_SHORT_FILM_CREDITS && NEXT_VIDEO_MIN_CREDITS === engine.creditCostForDuration('cinematic_ai', true, 15), `exatamente o piso (Seedance 15 s, ${NEXT_VIDEO_MIN_CREDITS}cr) ainda compra o proximo → episodio 2`)
 ok(videoReadyFooter({ ...base, isSubscriber: false, creditsRemaining: NEXT_VIDEO_MIN_CREDITS - 1 }).kind !== 'trial_episode2', 'um credito abaixo do piso nao promete o proximo filme')
 ok(videoReadyFooter({ ...base, isSubscriber: false, creditsRemaining: 4.9 }).kind === 'plan_films', '4.9cr → floor 4 → nao compra → plano')
 

@@ -21575,7 +21575,7 @@ function ModeSelector({
             {custoDoMotor(aiEngine, duration)} credits — you have {credits}.{' '}
             {resgateDeMotor.tipo === 'mesma_camera'
               ? `Same engine at ${resgateDeMotor.alvo.duracao}s fits.`
-              : `${NOME_DO_MOTOR[resgateDeMotor.alvo.motor] ?? 'Another engine'} fits at ${duration}s.`}
+              : `${NOME_DO_MOTOR[resgateDeMotor.alvo.motor] ?? 'Another engine'} fits at ${resgateDeMotor.alvo.duracao}s.`}
           </p>
           <button
             type="button"

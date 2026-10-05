@@ -115,10 +115,11 @@ function provaPreco(Eng) {
     r.push(Eng.creditCostForDuration(QUALIDADE[m], true, 35) === Math.ceil(base * 35 / 60)) // 35/60/90 intactos
   }
   r.push(Eng.creditCostForDuration('cinematic_kling', true, 15) === 15 && Eng.creditCostForDuration('cinematic_veo', true, 15) === 25)
-  r.push(Eng.creditCostForDuration('cinematic_ai', true, 15) === 7)
+  // KINEO-SEEDANCE-35CR-2026-10-04 — Seedance 60 s 25 → 35: o 15 s sai ⌈35 × 15/60⌉ = 9 (era 7), pela mesma régua.
+  r.push(Eng.creditCostForDuration('cinematic_ai', true, 15) === Math.ceil(Eng.creditCostFor('cinematic_ai', true) * 15 / 60) && Eng.creditCostForDuration('cinematic_ai', true, 15) === 9)
   return r.every(Boolean)
 }
-checa('preço a 15 s = ⌈base × 15/60⌉ (Kling 2.5 15 cr, Veo 25 cr, Seedance 7), abaixo do de 35 s, 35/60/90 intactos', provaPreco(E))
+checa('preço a 15 s = ⌈base × 15/60⌉ (Kling 2.5 15 cr, Veo 25 cr, Seedance 9), abaixo do de 35 s, 35/60/90 intactos', provaPreco(E))
 const ENGCOST_SRC = rd('lib/credits/engineCost.ts')
 const mutClamp = ENGCOST_SRC.replace('const clamped = Math.max(10, Math.min(180, safe))', 'const clamped = Math.max(35, Math.min(180, safe))')
 checa('mutante: clamp mínimo sobe para 35 s (preço do filme curto sobe em silêncio) fica VERMELHO', mutClamp !== ENGCOST_SRC && !provaPreco(carregador({ 'lib/credits/engineCost.ts': mutClamp })('lib/credits/engineCost')))
