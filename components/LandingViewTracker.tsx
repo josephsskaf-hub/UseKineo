@@ -16,9 +16,12 @@ import { acquisitionSource, sanitizeAcquisitionReferrer } from '@/lib/acquisitio
 
 type Props = {
   signedIn: boolean
+  // KINEO-HOME-CLIPS-FIRST-2026-10-05 — a variante clips-first (components/home/ClipsFirstHome.tsx) passa a sua; a home
+  // atual não passa nada e continua gravando exatamente 'kineo_landing_v3'.
+  variant?: string
 }
 
-export default function LandingViewTracker({ signedIn }: Props) {
+export default function LandingViewTracker({ signedIn, variant = 'kineo_landing_v3' }: Props) {
   useEffect(() => {
     // One homepage_view per browser tab. Storage and analytics failures must
     // never affect page rendering (Safari private mode can throw on storage).
@@ -36,12 +39,12 @@ export default function LandingViewTracker({ signedIn }: Props) {
         void trackEvent('homepage_view', {
           referrer_host: referrerHost,
           signed_in: signedIn,
-          variant: 'kineo_landing_v3',
+          variant,
         }, '/')
       }
     } catch {
       // Storage or analytics failures must never affect page rendering.
     }
-  }, [signedIn])
+  }, [signedIn, variant])
   return null
 }
