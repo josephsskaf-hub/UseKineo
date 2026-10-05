@@ -81,14 +81,19 @@ export default function HomeClipsStrip({ signedIn }: { signedIn: boolean }) {
               className="kcs-card"
               data-clip-effect={c.effect.key}
               data-home-cta="clip_effect"
-              aria-label={`${c.effect.title} — ${c.credits} credits`}
+              aria-label={`${c.effect.title} — ${c.engineLabel}`}
             >
               <div className="kcs-md" style={mediaStyle(c.effect.preview?.poster, FOCUS[c.effect.key])}>
                 {c.effect.preview ? <WallMedia src={c.effect.preview.video} /> : null}
               </div>
               <span className="kcs-shade" aria-hidden="true" />
               <span className="kcs-copy">
-                <i>{c.engineLabel} · {c.effect.seconds} s · {c.credits} cr</i>
+                {/* KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 (4ª rodada, fundador: "deixa os créditos aparecendo nos vídeos ou os
+                    motores?") — sem crédito nem segundos no cartão: Higgsfield, PixVerse, Kling e Pika não mostram preço na
+                    galeria (o preço aparece no botão de gerar — no nosso caso, na tela do /clips), e a regra da casa já era
+                    "sem preço no menu, atrito antes da hora" (17/08) e "cards limpos, sem 5 s" (30/09). Fica só o motor:
+                    selo honesto e sinal de qualidade (o mercado vende pelo nome do modelo). */}
+                <i>{c.engineLabel}</i>
                 <b><UiLabel>{c.effect.title}</UiLabel></b>
               </span>
             </Link>
