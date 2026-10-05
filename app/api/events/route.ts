@@ -236,6 +236,9 @@ const SERVER_ONLY_EVENTS = new Set([
   'clip_effect_chosen',
   'clip_effect_ready',
   'clip_effect_film_upsell_clicked',
+  // KINEO-HOME-CLIPS-FIRST-2026-10-05 — escrito SÓ por /api/home-variant (variante recalculada no servidor pelo user_id ou
+  // pelo cookie httpOnly kineo_vid). É o denominador do A/B da home: se o navegador pudesse cunhá-lo, o placar mentiria.
+  'home_variant_exposed',
 ])
 
 export async function POST(req: NextRequest) {
