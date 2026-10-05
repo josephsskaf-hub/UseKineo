@@ -20,7 +20,7 @@ import QusoDecisionSections, { QUSO_INTENT_CAMPAIGN } from './QusoDecisionSectio
 // back to search. The map and the lookup both live in lib/comparisons.ts, which
 // is the single source of truth for the comparison cluster.
 import { TOOLS, TOOL_ID_BY_ALTERNATIVES_SLUG, otherTool, pairsForTool } from '@/lib/comparisons'
-import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, TRIAL_FIRST_FILM_PHRASE, TRIAL_FIRST_FILM_SHORT } from '@/lib/freeTierOffer' // KINEO-VERDADE-TRIAL-2026-10-05
+import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, TRIAL_CREDITS_SHOWN, TRIAL_FIRST_FILM_PHRASE, TRIAL_FIRST_FILM_SHORT } from '@/lib/freeTierOffer' // KINEO-VERDADE-TRIAL-2026-10-05
 // KINEO-PRICING-V6-2026-08-19 — o preço do Starter aparece dezenas de vezes
 // nesta página. Foi exatamente por ser digitado à mão que ele sobreviveu a
 // duas mudanças de tabela ($4.90 → $9.90 → $7) e continuou mentindo aqui
@@ -97,7 +97,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'InVideo AI',
     h1: 'A Free InVideo AI Alternative for Faceless Shorts',
     intro:
-      `Kineo starts free (${TRIAL_GRANT_CREDITS_COPY} credits — ${TRIAL_FIRST_FILM_PHRASE}, no card); InVideo AI has its own free tier. The useful difference is the workflow: InVideo is a broad video creator, while Kineo is built specifically for faceless 9:16 Shorts. One idea becomes a hook-driven script, voiceover, footage and captions, usually in 3–7 minutes. ${ft(OFFER, 'Kineo free access includes up to 3 watermarked Fast videos every 24 hours.', `Kineo starts with ${TRIAL_GRANT_CREDITS_COPY} free credits, ${TRIAL_FIRST_FILM_PHRASE}; trial films are watermarked.`)}`,
+      `Kineo starts free (${TRIAL_CREDITS_SHOWN} credits — ${TRIAL_FIRST_FILM_PHRASE}, no card); InVideo AI has its own free tier. The useful difference is the workflow: InVideo is a broad video creator, while Kineo is built specifically for faceless 9:16 Shorts. One idea becomes a hook-driven script, voiceover, footage and captions, usually in 3–7 minutes. ${ft(OFFER, 'Kineo free access includes up to 3 watermarked Fast videos every 24 hours.', `Kineo starts with ${TRIAL_GRANT_CREDITS_COPY} free credits, ${TRIAL_FIRST_FILM_PHRASE}; trial films are watermarked.`)}`,
     theyDo: 'InVideo AI is a broad, general-purpose AI video maker for many formats.',
     pickThem:
       'Pick InVideo if you need long-form, horizontal, or many different video formats from one tool. Pick Kineo if your whole game is posting faceless Shorts daily and you want them optimized for retention out of the box.',
@@ -116,7 +116,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     faq: [
       {
         q: 'Is there a free InVideo AI alternative?',
-        a: `Kineo starts free (${TRIAL_GRANT_CREDITS_COPY} credits, no card) and is focused on faceless vertical Shorts. ${ft(OFFER, 'Free access includes up to 3 watermarked Fast videos every 24 hours.', `A new account receives ${TRIAL_GRANT_CREDITS_COPY} free credits, ${TRIAL_FIRST_FILM_PHRASE}; trial films are watermarked.`)} InVideo also has a no-card free plan with limited credits that reset weekly, according to its official help center checked ${INVIDEO_FACTS_CHECKED}.`,
+        a: `Kineo starts free (${TRIAL_CREDITS_SHOWN} credits, no card) and is focused on faceless vertical Shorts. ${ft(OFFER, 'Free access includes up to 3 watermarked Fast videos every 24 hours.', `A new account receives ${TRIAL_GRANT_CREDITS_COPY} free credits, ${TRIAL_FIRST_FILM_PHRASE}; trial films are watermarked.`)} InVideo also has a no-card free plan with limited credits that reset weekly, according to its official help center checked ${INVIDEO_FACTS_CHECKED}.`,
       },
       {
         q: 'What is the best InVideo alternative for faceless YouTube Shorts?',

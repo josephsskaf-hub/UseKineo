@@ -17,7 +17,7 @@ import { filmsAndScenes } from '@/lib/marketingPrice'
 // Omni Flash (#1, Aug 2026)" na tabela: contagem errada (duas vezes, diferente em cada lugar) e um motor pausado
 // desde 15/09 vendido como diferencial. Contagem e lista agora são as derivadas dos interruptores.
 import { VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY } from '@/lib/engineLaunch'
-import { TRIAL_GRANT_CREDITS_COPY, TRIAL_FIRST_FILM_PHRASE, TRIAL_FIRST_FILM_SHORT } from '@/lib/freeTierOffer' // KINEO-VERDADE-TRIAL-2026-10-05
+import { TRIAL_CREDITS_SHOWN, TRIAL_FIRST_FILM_PHRASE, TRIAL_FIRST_FILM_SHORT } from '@/lib/freeTierOffer' // KINEO-VERDADE-TRIAL-2026-10-05
 const ENGINE_COUNT = VIDEO_ENGINE_COUNT_WORD.toLowerCase()
 
 export const dynamic = 'force-static'
@@ -146,7 +146,7 @@ export default function VsHiggsfieldPage() {
         >
           Start free
         </Link>
-        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>{`Free — ${TRIAL_GRANT_CREDITS_COPY} credits, ${TRIAL_FIRST_FILM_PHRASE}, no card`}</p>
+        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>{`Free — ${TRIAL_CREDITS_SHOWN} credits, ${TRIAL_FIRST_FILM_PHRASE}, no card`}</p>
       </div>
 
       <p style={{ color: '#5a5a60', fontSize: 11.5, marginTop: 20 }}>

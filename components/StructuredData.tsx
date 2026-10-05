@@ -1,4 +1,4 @@
-import { getFreeTierOffer, swapFreeTierCopy as ft , TRIAL_GRANT_CREDITS_COPY, GRANT_COUNTRY_CLAUSE, TRIAL_FIRST_FILM_PHRASE } from '@/lib/freeTierOffer'
+import { getFreeTierOffer, swapFreeTierCopy as ft , TRIAL_GRANT_CREDITS_COPY, GRANT_COUNTRY_CLAUSE, TRIAL_FIRST_FILM_PHRASE, TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
 import { VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, PAUSED_ENGINES_COPY, KINEO1_PUBLIC } from '@/lib/engineLaunch'
 import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
 import { CHECKOUT_CURRENCY_DISCLOSURE, formatResultCount, videosPerMonth } from '@/lib/marketingPrice'
@@ -280,7 +280,7 @@ const faqSchema = {
       name: 'How much does Kineo cost?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `Kineo has three monthly plans: Starter at $${usd(TIER_PRICES.starter.usd)} for ${TIER_CREDITS.starter} credits, Creator at $${usd(TIER_PRICES.basic.usd)} for ${TIER_CREDITS.basic} credits and Studio at $${usd(TIER_PRICES.pro.usd)} for ${TIER_CREDITS.pro} credits. Credits are spent per video and how many a video costs depends on the engine you pick, so a Fast render and a cinematic film come out of the same balance at very different rates. ${CHECKOUT_CURRENCY_DISCLOSURE} Every new account${GRANT_COUNTRY_CLAUSE} starts free with ${TRIAL_GRANT_CREDITS_COPY} credits — ${TRIAL_FIRST_FILM_PHRASE}, no card.`,
+        text: `Kineo has three monthly plans: Starter at $${usd(TIER_PRICES.starter.usd)} for ${TIER_CREDITS.starter} credits, Creator at $${usd(TIER_PRICES.basic.usd)} for ${TIER_CREDITS.basic} credits and Studio at $${usd(TIER_PRICES.pro.usd)} for ${TIER_CREDITS.pro} credits. Credits are spent per video and how many a video costs depends on the engine you pick, so a Fast render and a cinematic film come out of the same balance at very different rates. ${CHECKOUT_CURRENCY_DISCLOSURE} Every new account${GRANT_COUNTRY_CLAUSE} starts free with ${TRIAL_CREDITS_SHOWN} credits — ${TRIAL_FIRST_FILM_PHRASE}, no card.`,
       },
     },
     {
