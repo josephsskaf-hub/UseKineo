@@ -34,6 +34,15 @@
 // O pack avulso resolve sem mexer na assinatura, e por isso ele mora ao lado
 // do saldo, não escondido atrás de um upsell de plano.
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
+
+// KINEO-PAINEL-PORTAL-2026-10-05 — o painel nascia dentro da barra lateral; com o Studio de vidro (backdrop-filter) por cima,
+// o conteúdo da página passava NA FRENTE do painel (print do fundador 05/10). Renderizar no <body> tira o painel de
+// qualquer contexto de empilhamento de ancestral.
+function portal(node: React.ReactNode) {
+  if (typeof document === 'undefined') return null
+  return createPortal(node, document.body)
+}
 import Link from 'next/link'
 import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
@@ -137,7 +146,7 @@ export default function AccountPanel({
 
   const go = () => { onClose(); onNavigate?.() }
 
-  return (
+  return portal(
     <>
       <div
         onClick={onClose}
