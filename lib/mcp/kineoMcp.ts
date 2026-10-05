@@ -220,13 +220,15 @@ export function buildTools(opts: { pausedEngines: readonly string[] }): McpTool[
             type: 'string',
             enum: [...ASPECTS],
             default: DEFAULT_ASPECT,
-            description: `Frame: ${DEFAULT_ASPECT} for Shorts, TikTok and Reels; 16:9 for regular YouTube or websites; 1:1 square; 4:5 tall feed post.`,
+            // KINEO-APP-PADRAO-SEEDANCE-VERTICAL-2026-10-05 — o ChatGPT lia "cinematic" e mandava 16:9 + Kling 3.
+            description: `Frame: ${DEFAULT_ASPECT} (vertical) for Shorts, TikTok and Reels — use ${DEFAULT_ASPECT} unless the user explicitly asks for widescreen/horizontal, square or a feed post; 16:9 for regular YouTube or websites; 1:1 square; 4:5 tall feed post.`,
           },
           engineHint: {
             type: 'string',
             enum: engines,
             default: DEFAULT_ENGINE,
-            description: `Video engine preselected in Studio: ${label(engines)}. The person can change it in Studio.`,
+            // KINEO-APP-PADRAO-SEEDANCE-VERTICAL-2026-10-05 — conta nova tem só o crédito de cadastro; motor premium vira parede.
+            description: `Video engine preselected in Studio: ${label(engines)}. Use ${DEFAULT_ENGINE} unless the user explicitly names another engine: it is the only engine a new account's free credits can pay for, and words like "cinematic" or "epic" are not a request for a premium engine. Premium engines cost several times more and need a paid plan. The person can change it in Studio.`,
           },
           language: {
             type: 'string',

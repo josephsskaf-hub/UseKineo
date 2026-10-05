@@ -55,9 +55,10 @@ ok(/searchParams\?\.signup/.test(page), '(2) a página lê searchParams.signup �
 // com varredor. Amarrado à variável que decide, não a texto solto.
 const decisao = (page.match(/const autoForward = ([^\n]+)/) || [])[1] ?? ''
 ok(/\bsignedIn\b/.test(decisao), '(3) a decisão exige signedIn — é o que torna o laço IMPOSSÍVEL')
-ok(/\bbackFromSignup\b/.test(decisao), '(3) a decisão exige backFromSignup — só a volta do cadastro desvia')
+// KINEO-GO-BRANCO-2026-10-05 — além da volta do cadastro, o link do app do ChatGPT também desvia QUEM JÁ ESTÁ LOGADO.
+ok(/\(\s*backFromSignup\s*\|\|\s*chatgptPlugin\s*\)/.test(decisao), '(3) a decisão exige (backFromSignup || chatgptPlugin) — volta do cadastro ou link do app do ChatGPT')
 ok(/!\s*bot\b/.test(decisao), '(3) a decisão exige !bot — varredor não é desviado')
-ok(/&&/.test(decisao) && !/\|\|/.test(decisao), '(3) as três condições são E, nunca OU (um OU sozinho reabre o laço)')
+ok(/&&/.test(decisao) && !/\|\|/.test(decisao.replace(/\(\s*backFromSignup\s*\|\|\s*chatgptPlugin\s*\)/, 'X')), '(3) signedIn, !bot e o grupo são E; o único OU mora dentro do grupo (signedIn segue obrigatório: laço impossível)')
 ok(/if \(autoForward\)/.test(page), '(3) o if usa a variável autoForward — a decisão mora num lugar só')
 
 // (4) O destino é a ROTA CONTADORA, não uma cópia da regra dela. É lá que o

@@ -12,17 +12,19 @@ import { HANDOFF_TTL_DAYS } from '@/lib/gptHandoff'
 //
 // Sem CSS novo: mesmo vocabulário inline de app/revive/[handle]/page.tsx e
 // app/v/[id]/page.tsx (BLUE/MUTED/TEXT/SOFT, Shell, Wordmark).
-export const BLUE = '#2997ff'
-export const MUTED = '#86868b'
-export const TEXT = '#f5f5f7'
-export const SOFT = '#d2d2d7'
+// KINEO-GO-BRANCO-2026-10-05 — fundador: a página do link do ChatGPT era preta e fora da paleta; passa à paleta clara do
+// app/og-card (#F7F7F5 · #0E1116 · #5A5F67 · azul #0A5CFF).
+export const BLUE = '#0A5CFF'
+export const MUTED = '#5A5F67'
+export const TEXT = '#0E1116'
+export const SOFT = '#2E333B'
 
 export function Shell({ children }: { children: React.ReactNode }) {
   return (
     <main
       style={{
         minHeight: '100vh',
-        background: '#000',
+        background: '#F7F7F5',
         color: TEXT,
         padding: '22px 16px 64px',
         fontFamily: 'var(--font-sans), Arial, sans-serif',

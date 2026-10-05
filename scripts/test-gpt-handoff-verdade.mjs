@@ -147,7 +147,7 @@ console.log('\n(6) app/go/[token]/not-found.tsx')
   ok(/export default function/.test(nf) && !/'use client'/.test(nf), '(6c) é server component com export default')
   ok(/does not match any script/.test(notice) && /Open the Studio/.test(notice) && /\/studio\?utm_source=chatgpt_gpt&intent_campaign=kineo_gpt_store_expired/.test(notice), '(6d) o texto "does not match any script" e o botão "Open the Studio" (mesmo link) estão no visual compartilhado')
   ok(/export function Shell\(/.test(notice) && /export function Wordmark\(/.test(notice) && /export const BUTTON: React\.CSSProperties/.test(notice) && /export function Expired\(/.test(notice), '(6e) HandoffNotice exporta Shell, Wordmark, BUTTON, Expired')
-  ok(/export const BLUE = '#2997ff'/.test(notice) && /export const MUTED = '#86868b'/.test(notice) && /export const SOFT = '#d2d2d7'/.test(notice), '(6f) mesmas cores de antes (sem CSS novo)')
+  ok(/export const BLUE = '#0A5CFF'/.test(notice) && /export const MUTED = '#5A5F67'/.test(notice) && /export const SOFT = '#2E333B'/.test(notice), '(6f) paleta clara da marca (KINEO-GO-BRANCO-2026-10-05, decisão do fundador)')
 }
 
 // ═══ (7) unavailable continua 200 — provado de novo pelo texto inteiro ══════

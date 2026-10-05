@@ -157,7 +157,9 @@ export default async function GoPage({
   // nem ao /signup. Robô não é desviado (não tem sessão e não deve gastar a
   // rota). Nada é gerado: o Studio abre preenchido e espera o Generate.
   const backFromSignup = (Array.isArray(searchParams?.signup) ? searchParams?.signup[0] : searchParams?.signup) === '1'
-  const autoForward = signedIn && backFromSignup && !bot
+  // KINEO-GO-BRANCO-2026-10-05 — quem já está logado e veio do app do ChatGPT não passa por esta página: vai direto ao
+  // Studio pela mesma rota contadora (o clique segue contado). A página fica só para quem ainda não tem sessão.
+  const autoForward = signedIn && !bot && (backFromSignup || chatgptPlugin)
   if (autoForward) {
     try {
       await writeServerEvent({
@@ -227,7 +229,7 @@ export default async function GoPage({
       <p style={{ color: SOFT, fontSize: '1rem', lineHeight: 1.55, margin: '0 0 22px' }}>{fitLine}</p>
 
       {overStudioLimit && (
-        <p style={{ color: '#ffb340', fontSize: '0.95rem', lineHeight: 1.55, margin: '0 0 18px' }}>
+        <p style={{ color: '#B45309', fontSize: '0.95rem', lineHeight: 1.55, margin: '0 0 18px' }}>
           This script is {row.script.length.toLocaleString('en-US')} characters; the Studio accepts up to{' '}
           {STUDIO_PROMPT_MAX_CHARS.toLocaleString('en-US')}. You will be asked to trim it before generating.
         </p>
@@ -248,7 +250,7 @@ export default async function GoPage({
         </p>
       </div>
 
-      <section style={{ borderTop: '1px solid #1d1d1f', paddingTop: 18 }}>
+      <section style={{ borderTop: '1px solid #E3E6EC', paddingTop: 18 }}>
         <p style={{ color: MUTED, fontSize: '0.8rem', letterSpacing: '0.04em', textTransform: 'uppercase', margin: '0 0 10px' }}>
           Full script
         </p>
