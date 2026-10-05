@@ -72,11 +72,17 @@ const EXPECTED_CREDITS = {
 for (const [engine, table] of Object.entries(EXPECTED_CREDITS)) {
   equal(Object.keys(table).map(Number), EXPECTED_SECONDS[engine], `tabela cobre as durações de ${engine}`)
   for (const [s, cr] of Object.entries(table)) {
-    equal(price.clipCreditCost(engine, Number(s), false), cr, `${engine} ${s}s = ${cr} cr (texto)`)
-    equal(price.clipCreditCost(engine, Number(s), true), cr, `${engine} ${s}s = ${cr} cr (foto: fal cobra igual)`)
+    // KINEO-LIGA-TUDO-2026-10-05 — a tabela de 29/09 continua viva como REGRA (clipCreditCostRegra2909); o preço cobrado
+    // passou a ser a régua de mercado (CLIP_PRECO_MERCADO_PUBLIC=true, fundador 05/10), provada em test-clip-preco-mercado.
+    equal(price.clipCreditCostRegra2909(engine, Number(s)), cr, `${engine} ${s}s = ${cr} cr (regra de 29/09)`)
+    equal(price.clipCreditCost(engine, Number(s), true), price.clipCreditCost(engine, Number(s), false), `${engine} ${s}s: foto e texto custam igual (fal cobra igual)`)
     const m = price.clipMarginAtStudio(engine, Number(s))
-    ok(m >= price.filmMarginAtStudio(engine) - 1e-9, `${engine} ${s}s: margem ${(m * 100).toFixed(1)}% ≥ margem do filme`)
-    ok(m >= price.CLIP_MARGIN_FLOOR - 1e-9, `${engine} ${s}s: margem ≥ piso`)
+    if (price.CLIP_PRECO_MERCADO_PUBLIC) {
+      ok(m >= 0.4 - 1e-9, `${engine} ${s}s: margem ${(m * 100).toFixed(1)}% ≥ piso de 40% da régua de mercado`)
+    } else {
+      ok(m >= price.filmMarginAtStudio(engine) - 1e-9, `${engine} ${s}s: margem ${(m * 100).toFixed(1)}% ≥ margem do filme`)
+      ok(m >= price.CLIP_MARGIN_FLOOR - 1e-9, `${engine} ${s}s: margem ≥ piso`)
+    }
   }
 }
 assert.throws(() => price.clipCreditCost('kling', 7.5), /positive integer/); checks += 1
@@ -193,7 +199,7 @@ const KEY = 'clip-ui-test-0001'
 {
   const { deps, calls } = fakeSubmitDeps()
   const r = await flow.submitClip(deps, { userId: U, idempotencyKey: KEY, body: body() })
-  equal([r.ok, r.status, r.clip.status, r.clip.credits, r.clip.billing_reference], [true, 202, 'processing', 8, 'clips-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'], 'pedido feliz: 202, processing, 8 cr, chave clips-')
+  equal([r.ok, r.status, r.clip.status, r.clip.credits, r.clip.billing_reference], [true, 202, 'processing', price.clipCreditCost('kling', 10, false), 'clips-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'], 'pedido feliz: 202, processing, preço do catálogo (KINEO-LIGA-TUDO-2026-10-05), chave clips-')
   const iMod = calls.indexOf('moderate'), iDebit = calls.findIndex((c) => c.startsWith('debit:'))
   ok(iMod >= 0 && iDebit > iMod, 'moderação ANTES do débito')
   ok(calls.indexOf('insert') < iDebit, 'linha (trava de idempotência) nasce antes do débito')
