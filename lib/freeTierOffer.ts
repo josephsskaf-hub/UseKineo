@@ -238,6 +238,23 @@ export const TRIAL_SEEDANCE15_FILMS = trialFilmsForEngine(TRIAL_FREE_FILM_CREDIT
 /** "free 15-second film (Seedance 1.5)" — a frase única do filme grátis. */
 export const FREE_FILM_LABEL = `free ${TRIAL_FREE_FILM_SECONDS}-second film (Seedance 1.5)`
 
+// ═══ KINEO-VERDADE-TRIAL-2026-10-05 — a promessa "todos os motores liberados" no trial MORREU (fundador 05/10).
+// A frase era verdade de ACESSO e mentira de SALDO: com o grant do trial ninguém paga um Kling/Veo, e conta grátis sem
+// plano é recusada nos motores premium (app/api/generate-video-cinematic, gate isPaidUser). Estava espalhada em ~66
+// pontos de ~38 arquivos e cada um derivava sozinho. Agora a promessa do trial é UMA frase, calculada do grant ÷ custo
+// do filme de 15 s (a mesma função que cobra) — se o grant deixar de cobrir o filme, a frase deixa de prometê-lo.
+// scripts/test-verdade-trial-2026-10-05.mjs reprova a volta da frase velha em app/, lib/ e components/.
+/** "enough for your first 15-second AI film" — o que o grant do trial compra, derivado. */
+export const TRIAL_FIRST_FILM_PHRASE: string = TRIAL_SEEDANCE15_FILMS >= 1
+  ? `enough for your first ${TRIAL_FREE_FILM_SECONDS}-second AI film`
+  : `a head start on your first AI film`
+/** Forma curta para chips e células de tabela: "first AI film, 15 s". */
+export const TRIAL_FIRST_FILM_SHORT: string = TRIAL_SEEDANCE15_FILMS >= 1
+  ? `first AI film, ${TRIAL_FREE_FILM_SECONDS} s`
+  : `a head start on a first AI film`
+/** Onde os motores premium começam — a outra metade da verdade (acesso a Kling/Veo exige plano pago). */
+export const PREMIUM_ENGINES_FROM_STARTER = 'Kling and Veo from Starter'
+
 // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — O FILME GRÁTIS VIRA O SEEDANCE 1.5 DE 15 s. Com a entrada nova ligada
 // (SEEDANCE_15S_PUBLIC), o que o grant compra é o filme curto do Seedance, no custo PAGO de 15 s (é assim que o trial
 // debita — creditCostForDuration, a mesma função da rota). Derivado de G ÷ custo, nunca digitado: com o trial de 10 e o
@@ -297,8 +314,9 @@ const ON_COPY: FreeTierCopy = {
   // (Starter). Números de G e TRIAL_KINEO1_FILMS — nunca digitados.
   sentence:
     `Every new account${CC} gets ${G} free credits = a ${FREE_FILM_LABEL}; longer films and the other AI engines (Veo, Kling) from Starter. Films come out watermarked; a plan removes the watermark and unlocks clean downloads.`,
-  chip: `${TRIAL_GRANT_CREDITS_COPY} free credits${CC} — every engine unlocked`,
-  chipLower: `${TRIAL_GRANT_CREDITS_COPY} free credits${CC} — every engine unlocked`,
+  // KINEO-VERDADE-TRIAL-2026-10-05 — o chip diz o que o grant COMPRA, não um acesso que o saldo não paga.
+  chip: `${TRIAL_GRANT_CREDITS_COPY} free credits${CC} — ${TRIAL_FIRST_FILM_PHRASE}`,
+  chipLower: `${TRIAL_GRANT_CREDITS_COPY} free credits${CC} — ${TRIAL_FIRST_FILM_PHRASE}`,
   planCardBody:
     `Free to start${CC}: ${G} free credits = a ${FREE_FILM_LABEL}; longer films and the other AI engines from Starter. Watermarked while you try; a plan makes them yours to keep.`,
   counterNoun: 'this week', // KINEO-COTA-SEMANAL
@@ -322,7 +340,7 @@ const ON_COPY: FreeTierCopy = {
   // Nomeia a coisa MAIOR que a pessoa recebe no clique, sem prometer desconto
   // (guardrail do fundador: 50%/COMEBACK50 nunca em superficie publica) e sem
   // numero de tracao. O numero e verificavel: e o grant exato, derivado.
-  ctaPrimary: `Start free — every engine unlocked →`,
+  ctaPrimary: `Start free — your first AI film →`, // KINEO-VERDADE-TRIAL-2026-10-05
   // Primeira oracao da headline aprovada pelo fundador, verbatim.
   ctaHeading: 'Make a real film free — keep it for $9',
 }

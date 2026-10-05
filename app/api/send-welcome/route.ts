@@ -1,13 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { TRIAL_CREDITS_SHOWN, TRIAL_FIRST_FILM_PHRASE } from '@/lib/freeTierOffer'
+import { FREE_FILM_COUNTRY_CLAUSE } from '@/lib/freeFilmPolicy'
 
-// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = atual).
-const OFFER = getFreeTierOffer()
+// KINEO-VERDADE-TRIAL-2026-10-05 — e-mail de boas-vindas refeito (fundador 05/10):
+//   · paleta clara da marca (a mesma do site e do og card): fundo #F7F7F5, cartão branco com borda #E3E6EC, texto
+//     #0E1116 / #5A5F67, CTA azul #0A5CFF. O tema preto antigo saiu;
+//   · logo = <img> do ícone real em URL pública absoluta. O emoji dentro de uma <div display:inline-flex> quebrava:
+//     cliente de e-mail não suporta flex. Só tabela + estilo inline aqui, nada de flex/grid/CSS externo;
+//   · copy VERDADEIRA: a conta grátis não usa Kling/Veo sem plano (gate isPaidUser em generate-video-cinematic), e não
+//     existe biblioteca de stock footage nesse filme. A promessa é o que o grant COMPRA — números derivados de
+//     lib/freeTierOffer.ts (grant ÷ custo do filme de 15 s) e cláusula de país de lib/freeFilmPolicy.ts; nada digitado.
+//   Quem recebe, quando, e a lógica da rota: intocados. scripts/test-verdade-trial-2026-10-05.mjs trava a volta.
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY
 const APP_URL = 'https://www.usekineo.com'
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Kineo <support@usekineo.com>'
+const ICON_URL = `${APP_URL}/kineo-icon-512.png`
+
+// A promessa única do e-mail, HTML e texto puro leem a mesma frase.
+const OFFER_LINE = `${TRIAL_CREDITS_SHOWN} free credits${FREE_FILM_COUNTRY_CLAUSE} — ${TRIAL_FIRST_FILM_PHRASE} (script, narration, music and captions).`
+const BULLETS = [
+  'AI writes the script and the narration',
+  'Captions and music included',
+  'No camera or editing needed',
+  'You watch the film before deciding to pay',
+]
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,70 +60,87 @@ export async function POST(request: NextRequest) {
         : '/studio/create?welcome=1'
     const dashboardUrl = `${APP_URL}${safeActivationPath}`
 
+    const bulletRows = BULLETS.map(
+      (b) => `<tr>
+                        <td width="28" valign="top" style="padding:7px 0;color:#0A5CFF;font-size:16px;font-weight:700;line-height:22px;">&#10003;</td>
+                        <td valign="top" style="padding:7px 0;color:#0E1116;font-size:15px;line-height:22px;">${b}</td>
+                      </tr>`,
+    ).join('\n                      ')
+
     const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Create your first Kineo Short</title>
+  <meta name="color-scheme" content="light" />
+  <meta name="supported-color-schemes" content="light" />
+  <title>Create your first Kineo film</title>
 </head>
-<body style="margin:0;padding:0;background:#000000;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#000000;padding:40px 20px;">
+<body style="margin:0;padding:0;background-color:#F7F7F5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#F7F7F5" style="background-color:#F7F7F5;">
     <tr>
-      <td align="center">
-        <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+      <td align="center" style="padding:40px 16px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;">
           <tr>
-            <td align="center" style="padding-bottom:28px;">
-              <div style="display:inline-flex;align-items:center;gap:10px;">
-                <div style="width:38px;height:38px;border-radius:12px;background:#2997ff;display:inline-flex;align-items:center;justify-content:center;font-size:18px;text-align:center;">⚡</div>
-                <span style="font-size:20px;font-weight:900;color:#f5f5f7;letter-spacing:-0.5px;">Kineo</span>
-              </div>
+            <td align="center" style="padding:0 0 24px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td valign="middle" style="padding:0 10px 0 0;">
+                    <img src="${ICON_URL}" width="40" height="40" alt="Kineo" style="display:block;width:40px;height:40px;border:0;border-radius:10px;" />
+                  </td>
+                  <td valign="middle" style="font-size:22px;font-weight:800;color:#0E1116;letter-spacing:-0.4px;">Kineo</td>
+                </tr>
+              </table>
             </td>
           </tr>
           <tr>
-            <td style="background:#161618;border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:40px 36px;">
-              <p style="color:#e2e8f0;font-size:18px;font-weight:700;margin:0 0 6px;">${greeting}</p>
-              <p style="color:#94a3b8;font-size:15px;margin:0 0 24px;line-height:1.6;">Your account is ready. Your first AI Short is one click away.</p>
+            <td bgcolor="#FFFFFF" style="background-color:#FFFFFF;border:1px solid #E3E6EC;border-radius:16px;padding:36px 32px;">
+              <p style="color:#0E1116;font-size:18px;font-weight:700;margin:0 0 6px;">${greeting}</p>
+              <p style="color:#5A5F67;font-size:15px;margin:0 0 24px;line-height:1.6;">Your account is ready. Type an idea and Kineo turns it into a short AI film.</p>
 
-              <!-- hero benefit box -->
-              <div style="background:rgba(41,151,255,0.08);border:1px solid rgba(41,151,255,0.28);border-radius:14px;padding:20px 24px;margin-bottom:28px;text-align:center;">
-                <p style="color:#2997ff;font-size:12px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;margin:0 0 8px;">${ft(OFFER, 'UP TO 3 FAST VIDEOS / 24H — NO CARD', `${TRIAL_GRANT_CREDITS_COPY} FREE CREDITS · EVERY ENGINE UNLOCKED`)}</p>
-                <p style="color:#f1f5f9;font-size:28px;font-weight:900;margin:0 0 4px;letter-spacing:-0.5px;">See your idea become a Short</p>
-                <p style="color:#64748b;font-size:13px;margin:0;">Script, voice, footage and captions — automatically.</p>
-              </div>
-
-              <!-- feature list -->
-              <table cellpadding="0" cellspacing="0" style="margin-bottom:32px;width:100%;">
-                <tr><td style="padding:7px 0;"><span style="color:#34d399;margin-right:10px;font-size:16px;">✓</span><span style="color:#e2e8f0;font-size:14px;font-weight:600;">AI writes your script + voiceover in seconds</span></td></tr>
-                <tr><td style="padding:7px 0;"><span style="color:#34d399;margin-right:10px;font-size:16px;">✓</span><span style="color:#e2e8f0;font-size:14px;font-weight:600;">Auto-captions — no editing skill needed</span></td></tr>
-                <tr><td style="padding:7px 0;"><span style="color:#34d399;margin-right:10px;font-size:16px;">✓</span><span style="color:#e2e8f0;font-size:14px;font-weight:600;">Stock footage library — no camera needed</span></td></tr>
-                <tr><td style="padding:7px 0;"><span style="color:#34d399;margin-right:10px;font-size:16px;">✓</span><span style="color:#e2e8f0;font-size:14px;font-weight:600;">Watch the finished preview before deciding to pay</span></td></tr>
-              </table>
-
-              <!-- single CTA button -->
-              <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:12px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
                 <tr>
-                  <td align="center">
-                    <a href="${dashboardUrl}" style="display:inline-block;background:#2997ff;color:#ffffff;font-size:17px;font-weight:900;text-decoration:none;padding:18px 48px;border-radius:14px;letter-spacing:0.01em;box-shadow:0 6px 28px rgba(41,151,255,0.45);">
-                      Create My First Short →
-                    </a>
+                  <td bgcolor="#F7F7F5" style="background-color:#F7F7F5;border:1px solid #E3E6EC;border-radius:12px;padding:20px 22px;">
+                    <p style="color:#0A5CFF;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 8px;">Your free start</p>
+                    <p style="color:#0E1116;font-size:24px;font-weight:800;margin:0 0 8px;letter-spacing:-0.4px;line-height:1.25;">See your idea become a film</p>
+                    <p style="color:#5A5F67;font-size:14px;margin:0;line-height:1.6;">${OFFER_LINE}</p>
                   </td>
                 </tr>
               </table>
-              <p style="text-align:center;color:#475569;font-size:12px;margin:0 0 28px;">Free videos include a Kineo watermark · Start with any idea</p>
 
-              <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:20px;">
-                <p style="color:#475569;font-size:13px;margin:0;line-height:1.6;text-align:center;">
-                  Questions? Just reply to this email — we read every one.
-                </p>
-              </div>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
+                      ${bulletRows}
+              </table>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 12px;">
+                <tr>
+                  <td align="center">
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td align="center" bgcolor="#0A5CFF" style="background-color:#0A5CFF;border-radius:10px;">
+                          <a href="${dashboardUrl}" style="display:inline-block;padding:16px 40px;color:#FFFFFF;font-size:16px;font-weight:700;text-decoration:none;border-radius:10px;">Create my first film &rarr;</a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              <p style="text-align:center;color:#5A5F67;font-size:12px;margin:0 0 24px;line-height:1.6;">Trial films carry a small Kineo watermark &middot; any paid plan removes it</p>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="border-top:1px solid #E3E6EC;padding:20px 0 0;">
+                    <p style="color:#5A5F67;font-size:13px;margin:0;line-height:1.6;text-align:center;">Questions? Just reply to this email — we read every one.</p>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
           <tr>
-            <td align="center" style="padding-top:20px;">
-              <p style="color:#334155;font-size:12px;margin:0;">
+            <td align="center" style="padding:20px 0 0;">
+              <p style="color:#5A5F67;font-size:12px;margin:0;line-height:1.6;">
                 — The Kineo Team<br />
-                <a href="${APP_URL}" style="color:#2997ff;text-decoration:none;">usekineo.com</a>
+                <a href="${APP_URL}" style="color:#0A5CFF;text-decoration:none;">usekineo.com</a>
               </p>
             </td>
           </tr>
@@ -118,15 +153,15 @@ export async function POST(request: NextRequest) {
 
     const text = `${greeting}
 
-Your Kineo account is ready. ${ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24 hours — no card required.', OFFER.copy.headline)}
+Your Kineo account is ready. Type an idea and Kineo turns it into a short AI film.
 
-Your Short includes:
-- AI script + neural voiceover pipeline
-- Auto-captions engine
-- Stock footage library — no camera needed
-- A finished preview before you decide to pay
+Your free start: ${OFFER_LINE}
 
-👉 Create your first Short:
+${BULLETS.map((b) => `- ${b}`).join('\n')}
+
+Trial films carry a small Kineo watermark; any paid plan removes it.
+
+Create your first film:
 ${dashboardUrl}
 
 — The Kineo Team
@@ -141,7 +176,7 @@ usekineo.com`
       body: JSON.stringify({
         from: FROM_EMAIL,
         to: [email],
-        subject: '🎬 Your Kineo trial is live — make your first Short',
+        subject: '🎬 Welcome to Kineo — make your first AI film',
         html,
         text,
       }),
