@@ -231,6 +231,11 @@ const SERVER_ONLY_EVENTS = new Set([
   // /api/ads/producao/montage (a linha com o render_id é a PROVA de dono que o GET da montagem confere). O navegador não cunha.
   'producao_plan_created',
   'producao_montage_submitted',
+  // KINEO-CLIP-EFEITOS-2026-10-05 — efeitos de 1 clique do /clips (lib/clips/clipEffects.ts CLIP_EFFECT_EVENTS): pedido
+  // aceito (/api/clips), clipe pronto (settleClip, só quem move a linha) e clique no upsell (/api/clips/effect-upsell).
+  'clip_effect_chosen',
+  'clip_effect_ready',
+  'clip_effect_film_upsell_clicked',
 ])
 
 export async function POST(req: NextRequest) {
