@@ -104,7 +104,7 @@ export function clipFalUsd(engine: ClipEngineKey, seconds: number, _withImage = 
 // cada número. DESLIGADO = clipCreditCost devolve EXATAMENTE a regra de 29/09 (guardião
 // scripts/test-clip-preco-mercado-2026-10-05.mjs prova motor a motor, duração a duração). Ligar é decisão de preço
 // público do fundador.
-export const CLIP_PRECO_MERCADO_PUBLIC = false
+export const CLIP_PRECO_MERCADO_PUBLIC = true // fundador 05/10: −10% do concorrente onde a margem deixa; senão piso de 40%
 
 /** US$ 29,90 (2990 centavos) — espelho de TIER_PRICES.basic.usd (Creator) em lib/checkoutPricing.ts (guardião confere). */
 export const CREATOR_PLAN_USD_CENTS = 2990

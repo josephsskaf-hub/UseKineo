@@ -23,7 +23,7 @@
 export type HomeClipsFirstMode = 'off' | 'ab50' | 'all'
 
 /** Interruptor da home clips-first. NASCE 'off' (nada muda para ninguém). O fundador liga. */
-export const HOME_CLIPS_FIRST: HomeClipsFirstMode = 'off'
+export const HOME_CLIPS_FIRST: HomeClipsFirstMode = 'ab50' // fundador 05/10: A/B 50/50, juiz = SQL #5 em 14 dias
 
 export type HomeVariant = 'control' | 'clips_first'
 export type HomeAssignmentKind = 'user' | 'visitor'

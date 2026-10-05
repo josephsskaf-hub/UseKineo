@@ -247,7 +247,7 @@ ok(realProblems.length === 0, `(1-6) regras executadas na fonte real: ${realProb
 
 // ─── Fiação real (leitura de arquivo) ────────────────────────────────────────
 const fxSrc = read('lib/clips/clipEffects.ts')
-ok(/export const CLIP_EFFECTS_PUBLIC = false\b/.test(fxSrc), '(4a) interruptor nasce DESLIGADO (só a casa vê os efeitos)')
+ok(/export const CLIP_EFFECTS_PUBLIC = true\b/.test(fxSrc), '(4a) interruptor LIGADO (fundador 05/10: efeitos para todos)')
 const route = read('app/api/clips/route.ts')
 const post = route.slice(route.indexOf('export async function POST'))
 const get = route.slice(route.indexOf('export async function GET'), route.indexOf('export async function POST'))

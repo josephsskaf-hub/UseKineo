@@ -85,7 +85,7 @@ function problems(replacements = {}) {
 
 // ─── 1. Interruptor e a página de hoje ───────────────────────────────────────
 console.log('1. interruptor')
-ok(/^export const PRECOS_DOIS_PRODUTOS_PUBLIC = false$/m.test(MODEL_SRC), 'PRECOS_DOIS_PRODUTOS_PUBLIC = false (decisão do fundador)')
+ok(/^export const PRECOS_DOIS_PRODUTOS_PUBLIC = true\b/m.test(MODEL_SRC), 'PRECOS_DOIS_PRODUTOS_PUBLIC = true (fundador ligou em 05/10)')
 ok((CLIENT_SRC.match(/<TwoProductsPricing \/>/g) || []).length === 1
   && CLIENT_SRC.includes('        <PricingCreditsBlock />\n        {PRECOS_DOIS_PRODUTOS_PUBLIC ? <TwoProductsPricing /> : null}\n'), 'o /pricing só monta as tabelas atrás do interruptor, logo abaixo de "One-time credits"')
 ok((CLIENT_SRC.match(/TwoProductsPricing|PRECOS_DOIS_PRODUTOS_PUBLIC/g) || []).length === 5, 'PricingClient: só o import, o interruptor e a linha do bloco (mudança mínima)')
@@ -95,7 +95,9 @@ ok(!/\b\d+\s*cr\b|\$\s?\d/.test(COMP_SRC.replace(/^\s*\/\/.*$/gm, '')), 'nenhum 
 
 // ─── 2-5. Modelo executado e marcação ───────────────────────────────────────
 console.log('2. células derivadas')
-const real = problems()
+// KINEO-LIGA-TUDO-2026-10-05 — a base das provas é a régua DESLIGADA (forçada); a ligada é conferida em 'mkt'.
+const OFFP = { 'lib/clips/clipPricing.ts': read('lib/clips/clipPricing.ts').replace(/export const CLIP_PRECO_MERCADO_PUBLIC = true[^\r\n]*/, 'export const CLIP_PRECO_MERCADO_PUBLIC = false') }
+const real = problems(OFFP)
 ok(real.p.length === 0, 'cada célula = clipCreditCost / creditCostForDuration, ≈US$ no Creator, contagens para baixo, só motores públicos' + (real.p.length ? '\n       ' + real.p.join('\n       ') : ''))
 const row = (list, e) => list.find((r) => r.engine === e)
 ok(row(real.m.films, 'seedance').cells[1] === null && row(real.m.films, 'hollywood').cells[1] !== null, 'filme de 30 s só na estrada hollywood (Seedance 1.5 não aceita 30)')
@@ -106,7 +108,7 @@ ok(!real.m.clips.some((r) => r.engine === 'omni' || r.engine === 's25'), 'Omni e
 console.log('3. acompanha as fontes')
 const s35 = problems({ 'lib/credits/engineCost.ts': read('lib/credits/engineCost.ts').replace(/(case 'cinematic_ai':[\s\S]*?)return 25\n/, '$1return 35\n') })
 ok(s35.p.length === 0 && row(s35.m.films, 'seedance').cells[2].credits === 35 && row(s35.m.films, 'seedance').cells[0].credits === 9, 'Seedance a 35 cr/60 s (branch do CEO): a tabela segue sozinha (60 s = 35, 15 s = 9)')
-const mkt = problems({ 'lib/clips/clipPricing.ts': read('lib/clips/clipPricing.ts').replace('export const CLIP_PRECO_MERCADO_PUBLIC = false', 'export const CLIP_PRECO_MERCADO_PUBLIC = true') })
+const mkt = problems()
 ok(mkt.p.length === 0 && row(mkt.m.clips, 'hollywood').cells[0].credits === 6 && row(real.m.clips, 'hollywood').cells[0].credits === 8, 'régua de mercado ligada: o clipe Kling 3 de 5 s vai de 8 para 6 cr na tabela sem tocar nela')
 
 console.log('4. marcação')
@@ -131,10 +133,11 @@ const MUTANTS = [
 ]
 for (const [name, over] of MUTANTS) {
   let caught
-  try { caught = problems(over).p.length > 0 } catch { caught = true }
+  try { caught = problems({ ...OFFP, ...over }).p.length > 0 } catch { caught = true }
   ok(caught, `mutante pego: ${name}`)
 }
-ok(/^export const PRECOS_DOIS_PRODUTOS_PUBLIC = false$/m.test(MODEL_SRC.replace('= false', '= false')) && !/^export const PRECOS_DOIS_PRODUTOS_PUBLIC = false$/m.test(MODEL_SRC.replace('PRECOS_DOIS_PRODUTOS_PUBLIC = false', 'PRECOS_DOIS_PRODUTOS_PUBLIC = true')), 'mutante pego: interruptor ligado no código')
+// KINEO-LIGA-TUDO-2026-10-05 — o interruptor agora está LIGADO por decisão do fundador; a prova vira: desligá-lo seria pego.
+ok(/^export const PRECOS_DOIS_PRODUTOS_PUBLIC = true\b/m.test(MODEL_SRC) && !/^export const PRECOS_DOIS_PRODUTOS_PUBLIC = true\b/m.test(MODEL_SRC.replace(/PRECOS_DOIS_PRODUTOS_PUBLIC = true/, 'PRECOS_DOIS_PRODUTOS_PUBLIC = false')), 'mutante pego: interruptor desligado no código')
 
 console.log(`\n${pass} ok, ${fail} fail`)
 process.exit(fail ? 1 : 0)

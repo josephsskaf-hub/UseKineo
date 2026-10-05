@@ -39,7 +39,9 @@ function loadSet(over = {}) {
 
 const PRICE_SRC = read('lib/clips/clipPricing.ts')
 const MK_SRC = read('lib/clips/clipPriceVsMarket.ts')
-const ON = { 'lib/clips/clipPricing.ts': PRICE_SRC.replace('export const CLIP_PRECO_MERCADO_PUBLIC = false', 'export const CLIP_PRECO_MERCADO_PUBLIC = true') }
+// KINEO-LIGA-TUDO-2026-10-05 — o fundador ligou a régua; OFF/ON são forçados aqui para a prova seguir independente do valor publicado.
+const OFF_SRC = PRICE_SRC.replace(/^export const CLIP_PRECO_MERCADO_PUBLIC = (true|false)[^\r\n]*/m, 'export const CLIP_PRECO_MERCADO_PUBLIC = false')
+const ON = { 'lib/clips/clipPricing.ts': OFF_SRC.replace('export const CLIP_PRECO_MERCADO_PUBLIC = false', 'export const CLIP_PRECO_MERCADO_PUBLIC = true') }
 
 // A tabela de 29/09 (a de hoje) — a mesma de scripts/test-clipes-2026-09-29.mjs. Desligado, NADA disto muda.
 const TODAY = {
@@ -100,8 +102,8 @@ function marketProblems({ price, mk, cat }) {
 
 // ─── 1. Interruptor DESLIGADO = a regra de 29/09, byte a byte ──────────────────
 console.log('1. desligado = hoje')
-ok(/^export const CLIP_PRECO_MERCADO_PUBLIC = false$/m.test(PRICE_SRC), 'CLIP_PRECO_MERCADO_PUBLIC = false no código (decisão de preço público é do fundador)')
-const OFF = loadSet()
+ok(/^export const CLIP_PRECO_MERCADO_PUBLIC = true\b/m.test(PRICE_SRC), 'CLIP_PRECO_MERCADO_PUBLIC = true no código (fundador ligou em 05/10)')
+const OFF = loadSet({ 'lib/clips/clipPricing.ts': OFF_SRC })
 let same = true
 let covered = 0
 for (const engine of OFF.cat.CLIP_ENGINE_ORDER) {

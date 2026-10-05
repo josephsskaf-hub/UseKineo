@@ -23,7 +23,7 @@ import { CLIP_COSTS, clipCreditCost } from './clips/clipPricing'
 import { creditCostForDuration, type Quality } from './credits/engineCost'
 import { SHORT_TARGETS_NEW, isSeedance15, supportedDurationsFor } from './durationByEngine'
 
-export const PRECOS_DOIS_PRODUTOS_PUBLIC = false
+export const PRECOS_DOIS_PRODUTOS_PUBLIC = true // fundador 05/10: ligar tudo
 
 /** Colunas da tabela de clipes (alvo; a célula mostra o valor REAL que o motor entrega). */
 export const TWO_PRODUCTS_CLIP_TARGETS: readonly number[] = [5, 10]

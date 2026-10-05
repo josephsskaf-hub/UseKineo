@@ -20,7 +20,7 @@ import { CLIP_ENGINES, type ClipEngineKey, type ClipRequestInput } from './clipC
 import { clipCreditCost } from './clipPricing'
 
 /** Interruptor dos efeitos. false = só as contas da casa veem a galeria (o fundador liga). */
-export const CLIP_EFFECTS_PUBLIC = false
+export const CLIP_EFFECTS_PUBLIC = true // fundador 05/10: ligar tudo
 
 export type ClipEffectKey =
   | 'bring_to_life'
