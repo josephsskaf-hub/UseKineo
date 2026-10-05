@@ -32,6 +32,7 @@ import {
   type ClipEngineKey,
 } from '@/lib/clips/clipCatalog'
 import { clipCreditCost } from '@/lib/clips/clipPricing'
+import { clipEffectFilmHref, clipEffectForRow, type ClipEffectKey } from '@/lib/clips/clipEffects'
 import {
   CLIP_EXPIRE_MS,
   CLIP_PENDING_STALE_MS,
@@ -148,9 +149,14 @@ export interface PublicClip {
   credits_refunded: number
   failure_reason: string | null
   created_at: string
+  /** KINEO-CLIP-EFEITOS-2026-10-05 — efeito de 1 clique que gerou o clipe (null = clipe livre). */
+  effect: ClipEffectKey | null
+  /** Link do upsell "filme narrado" (só para clipe de efeito); o clique passa antes por POST /api/clips/effect-upsell. */
+  film_href: string | null
 }
 
 export function toPublicClip(row: ClipRow): PublicClip {
+  const effect = clipEffectForRow(row)
   return {
     id: row.id,
     engine: row.engine,
@@ -166,6 +172,8 @@ export function toPublicClip(row: ClipRow): PublicClip {
     credits_refunded: row.credits_refunded,
     failure_reason: row.failure_reason,
     created_at: row.created_at,
+    effect: effect?.key ?? null,
+    film_href: effect ? clipEffectFilmHref(effect) : null,
   }
 }
 

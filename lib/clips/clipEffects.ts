@@ -9,8 +9,15 @@
 // PRÉVIAS HONESTAS: só aponta um clipe da casa quando ele de fato mostra o efeito; senão `preview: null` e a tela mostra um
 // placeholder marcado. NADA de render pago para criar prévia (regra da sessão). O selo é o motor real.
 //
-// MÓDULO PURO (só `import type`): a tela do /clips, a variante "clips-first" da home e o guardião leem o MESMO catálogo.
-import type { ClipEngineKey } from './clipCatalog'
+// MÓDULO PURO (só imports relativos de módulos puros: ./clipCatalog e ./clipPricing): a tela do /clips, a variante
+// "clips-first" da home, a rota e o guardião (scripts/test-clip-efeitos-2026-10-05.mjs) leem o MESMO catálogo.
+//
+// KINEO-CLIP-EFEITOS-2026-10-05 — o SERVIDOR resolve o efeito: o navegador manda só `effect` (chave) + a foto; prompt,
+// motor, duração e formato saem daqui (resolveClipEffectRequest) e o resto do pedido segue o submitClip de sempre
+// (moderação de entrada, saldo, débito, estorno, MP4 no nosso bucket). Interruptor antes de tudo: efeito com
+// CLIP_EFFECTS_PUBLIC=false e conta de fora → 404, nada lido nem cobrado.
+import { CLIP_ENGINES, type ClipEngineKey, type ClipRequestInput } from './clipCatalog'
+import { clipCreditCost } from './clipPricing'
 
 /** Interruptor dos efeitos. false = só as contas da casa veem a galeria (o fundador liga). */
 export const CLIP_EFFECTS_PUBLIC = false
@@ -152,11 +159,97 @@ export function clipEffectsVisible(isInternal: boolean, publicFlag: boolean = CL
 }
 
 /**
- * O upsell para o produto 2: o Studio abre com a ideia sugerida do efeito (o Studio novo lê ?prompt=&engine=&duration=;
- * NADA dispara sozinho — a pessoa aperta Gerar). A foto do clipe vai junto como referência quando o Studio a ler.
+ * O upsell para o produto 2: o Studio abre com a ideia sugerida do efeito (o Studio novo lê ?prompt=&engine=&duration=&
+ * intent_campaign=; NADA dispara sozinho — a pessoa aperta Gerar).
+ * KINEO-CLIP-EFEITOS-2026-10-05 — a foto NÃO viaja: o Studio (app/(dashboard)/studio/StudioClient.tsx) não lê nenhum
+ * parâmetro de imagem de referência, então o `ref_image` saiu do link (era peso morto e expunha a URL da foto no
+ * histórico/referrer). O argumento `args.photoUrl` fica na assinatura para os chamadores não quebrarem no dia em que o
+ * Studio passar a ler a foto — pendência da sessão dona do Studio.
  */
-export function clipEffectFilmHref(effect: ClipEffect, args?: { photoUrl?: string | null }): string {
+export function clipEffectFilmHref(effect: ClipEffect, _args?: { photoUrl?: string | null }): string {
   const q = new URLSearchParams({ prompt: effect.filmIdea, engine: 'seedance', duration: '60', intent_campaign: `clip_effect_${effect.key}` })
-  if (args?.photoUrl && /^https:\/\//.test(args.photoUrl)) q.set('ref_image', args.photoUrl)
   return `/studio?${q.toString()}`
+}
+
+// ─── KINEO-CLIP-EFEITOS-2026-10-05 — servidor, preço, eventos ───────────────
+/** Eventos do efeito — todos escritos SÓ pelo servidor (estão em SERVER_ONLY_EVENTS de app/api/events/route.ts). */
+export const CLIP_EFFECT_EVENTS = ['clip_effect_chosen', 'clip_effect_ready', 'clip_effect_film_upsell_clicked'] as const
+
+/**
+ * Créditos do clipe de um efeito = o preço do clipe de sempre (lib/clips/clipPricing.ts), com a MESMA chamada que o
+ * submitClip faz na hora do débito (efeito é sempre com foto → withImage=true; hoje a fal cobra igual com e sem foto).
+ */
+export function clipEffectCredits(effect: ClipEffect): number {
+  return clipCreditCost(effect.engine, effect.seconds, true)
+}
+
+/** O que a galeria recebe do GET /api/clips — sem o prompt (o navegador não precisa dele nem o manda de volta). */
+export interface PublicClipEffect {
+  key: ClipEffectKey
+  title: string
+  sub: string
+  engine: ClipEngineKey
+  /** Selo honesto: o motor REAL que faz o clipe deste efeito. */
+  engine_label: string
+  seconds: number
+  credits: number
+  person: boolean
+  preview: ClipEffectPreview | null
+}
+
+/** Cartões da galeria, só com os motores que a conta pode apertar (a rota recusa o resto com a mesma régua). */
+export function publicClipEffects(engineOk: (engine: ClipEngineKey) => boolean): PublicClipEffect[] {
+  return CLIP_EFFECTS.filter((e) => engineOk(e.engine)).map((e) => ({
+    key: e.key,
+    title: e.title,
+    sub: e.sub,
+    engine: e.engine,
+    engine_label: CLIP_ENGINES[e.engine].label,
+    seconds: e.seconds,
+    credits: clipEffectCredits(e),
+    person: e.person,
+    preview: e.preview,
+  }))
+}
+
+/** O corpo do POST pede um efeito? (campo ausente/vazio = o clipe livre de sempre). */
+export function wantsClipEffect(raw: unknown): boolean {
+  return raw !== undefined && raw !== null && raw !== ''
+}
+
+export type ClipEffectResolution =
+  | { ok: true; effect: ClipEffect; body: ClipRequestInput }
+  | { ok: false; status: number; code: string; error: string }
+
+/**
+ * O servidor transforma `effect` (chave) + foto no pedido do clipe. A ordem é o contrato:
+ *   1. interruptor (CLIP_EFFECTS_PUBLIC / conta da casa) — fora dele, 404 sem ler nada;
+ *   2. chave do catálogo — desconhecida, 400;
+ *   3. foto obrigatória (efeito é sempre image-to-video) — sem foto, 400;
+ *   4. prompt, motor, duração e formato SAEM DO CATÁLOGO. Nada do navegador além da foto entra no pedido: `prompt`,
+ *      `engine`, `seconds` e `aspect` que vierem no corpo são ignorados.
+ * A posse da foto, a moderação, o saldo, o débito e o estorno continuam no submitClip, idênticos ao clipe livre.
+ */
+export function resolveClipEffectRequest(raw: unknown, ctx: { visible: boolean; imageUrl: unknown }): ClipEffectResolution {
+  if (ctx.visible !== true) return { ok: false, status: 404, code: 'not_found', error: 'Not found.' }
+  const effect = clipEffectByKey(raw)
+  if (!effect) return { ok: false, status: 400, code: 'effect', error: 'Choose one of the listed effects.' }
+  const imageUrl = typeof ctx.imageUrl === 'string' ? ctx.imageUrl.trim() : ''
+  if (!imageUrl) return { ok: false, status: 400, code: 'effect_photo', error: 'This effect starts from your photo. Add a photo first.' }
+  return { ok: true, effect, body: { engine: effect.engine, seconds: effect.seconds, aspect: null, prompt: effect.prompt, imageUrl } }
+}
+
+/**
+ * Qual efeito gerou esta linha de `clips`? O prompt do efeito é fixo e só o servidor o escreve, então prompt + motor +
+ * duração + foto identificam o efeito sem coluna nova na tabela. (Se o texto de um efeito mudar no catálogo, os clipes
+ * antigos dele deixam de ser reconhecidos — perdem só o botão do upsell e o evento de pronto.)
+ */
+export function clipEffectForRow(row: { prompt: string; engine: string; seconds: number; mode: string }): ClipEffect | null {
+  if (row.mode !== 'image') return null
+  return CLIP_EFFECTS.find((e) => e.prompt === row.prompt && e.engine === row.engine && e.seconds === row.seconds) ?? null
+}
+
+/** Metadata dos eventos do efeito: só a forma do pedido (sem foto, texto ou e-mail). */
+export function clipEffectEventMetadata(effect: ClipEffect, clip: { id: string; credits: number }): Record<string, unknown> {
+  return { effect: effect.key, engine: effect.engine, seconds: effect.seconds, credits: clip.credits, clip_id: clip.id }
 }

@@ -33,6 +33,7 @@ import {
   type ClipRequestInput,
 } from './clipCatalog'
 import { clipCreditCost, clipFalUsd } from './clipPricing'
+import { clipEffectEventMetadata, clipEffectForRow } from './clipEffects'
 
 /** Pedido sem request_id da fal há mais que isto = o envio morreu no meio; estorna. */
 export const CLIP_PENDING_STALE_MS = 10 * 60 * 1000
@@ -235,7 +236,7 @@ export interface ClipSettleDeps {
   refund(billingReference: string): Promise<number>
   markDone(id: string, videoUrl: string): Promise<boolean>
   markFailed(id: string, reason: string, refunded: number): Promise<boolean>
-  event(name: 'clip_delivered' | 'clip_failed', metadata: Record<string, unknown>): Promise<void>
+  event(name: 'clip_delivered' | 'clip_failed' | 'clip_effect_ready', metadata: Record<string, unknown>): Promise<void>
   now(): number
 }
 
@@ -265,7 +266,13 @@ export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<Cl
       return Number.isFinite(age) && age >= CLIP_EXPIRE_MS ? fail('persist_failed') : row
     }
     const moved = await deps.markDone(row.id, ours)
-    if (moved) await deps.event('clip_delivered', { ...clipTelemetry(row), age_ms: Math.max(0, age) })
+    if (moved) {
+      await deps.event('clip_delivered', { ...clipTelemetry(row), age_ms: Math.max(0, age) })
+      // KINEO-CLIP-EFEITOS-2026-10-05 — clipe de um efeito de 1 clique ficou pronto. Mesmo ponto e mesma condição do
+      // clip_delivered (só quem MOVEU a linha para `done` grava): duas abas + o cron nunca contam o mesmo clipe duas vezes.
+      const effect = clipEffectForRow(row)
+      if (effect) await deps.event('clip_effect_ready', { ...clipEffectEventMetadata(effect, row), age_ms: Math.max(0, age) })
+    }
     return { ...row, status: 'done', video_url: ours }
   }
   return Number.isFinite(age) && age >= CLIP_EXPIRE_MS ? fail('expired') : row
