@@ -823,3 +823,9 @@ Slug do X confirmado: utm_source=x.
   3. **Anual = 12 × mensal × 0,60 (40% off)**, no lugar de "10× / 2 meses grátis": US$ 92,90 / 215 / 395 (≈ $7,74 / $17,92 / $32,92 por mês); em reais 12 × mensal × 0,60 arredondado para cima até ,90 (R$ 467,90 / 1.079,90 / 1.979,90). /pricing abre no anual ("≈ $X/mo, billed $Y yearly · save 40%"), mensal a um clique. Créditos do anual continuam chegando MÊS A MÊS (webhook concede o mês 0; cron `annual-credit-refill`, os meses 1..11). **Reembolso do anual: integral em 14 dias, depois nenhum** (`ANNUAL_REFUND_POLICY`, no /pricing, FAQ, termos e no texto do checkout anual). Marcador: `KINEO-ANUAL-40OFF-2026-10-05`.
 - **FATO CONFIRMADO — código:** pack e anual são cobrados com `price_data` inline (valor no código); nenhum Stripe Price ID precisa ser criado. PayPal (desligado) ganhou `PLAN_VERSION = 'v3'` para que um futuro setup crie planos com o preço anual novo.
 - **GUARDIÃO:** `scripts/test-pacote2-precos-2026-10-05.mjs` (executa as funções reais, 8 mutantes).
+
+## 2026-10-06 — Showcase / Clipes, catálogo visitante
+
+- **DECISÃO APROVADA — sprint do fundador nesta conversa:** visitante recebe a mesma seleção de efeitos de uma conta criada agora; cartão sem preço, custo no botão de gerar; sem alteração da regra de cobrança. Detalhes e limites em `docs/SHOWCASE-CLIPES-20261006.md`.
+- **IMPLEMENTADO / escolha reversível:** apenas o visitante usa a data atual na política de acesso; datas ausentes de contas reais continuam falhando fechado. `CLIP_GUEST_AS_NEW_ACCOUNT=false` restaura o catálogo anterior. Assim evitamos enfraquecer o gate compartilhado de planos.
+- **TESTADO LOCALMENTE:** GET real com nove efeitos, igualdade com conta nova inclusive sob gate ativo, POST anônimo 401, motores pausados ocultos e seis mutantes. Não equivale a publicação ou receita.

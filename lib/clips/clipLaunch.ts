@@ -12,6 +12,10 @@ import { isInternalEmail } from '@/lib/internalAccounts'
 
 export const CLIPS_PUBLIC = true // LIGADO 29/09 (fundador: tabela aprovada + "ok para os testes"; clipe Seedance 5 s real entregue e persistido)
 
+// Showcase / Clipes, 06/10: visitante recebe o catálogo de quem cria conta agora.
+// false restaura o catálogo anterior; autorização, saldo e débito do POST não mudam.
+export const CLIP_GUEST_AS_NEW_ACCOUNT = true
+
 /** O clipe aparece e funciona para este e-mail? Público depois do "vai"; antes, só a casa. */
 export function clipsVisible(email?: string | null): boolean {
   return CLIPS_PUBLIC || isInternalEmail(email)

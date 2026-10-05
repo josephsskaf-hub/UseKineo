@@ -16,7 +16,7 @@ import {
   submitDepsFor,
   toPublicClip,
 } from '@/lib/clips/clipServer'
-import { clipsVisible } from '@/lib/clips/clipLaunch'
+import { CLIP_GUEST_AS_NEW_ACCOUNT, clipsVisible } from '@/lib/clips/clipLaunch'
 // KINEO-CLIP-EFEITOS-2026-10-05 — efeitos de 1 clique: o corpo traz só `effect` (chave) + a foto; o servidor resolve o
 // resto pelo catálogo (lib/clips/clipEffects.ts) e o pedido segue o MESMO submitClip (moderação, débito, estorno).
 import { isInternalEmail } from '@/lib/internalAccounts'
@@ -39,7 +39,7 @@ export async function GET() {
   if (!user) {
     // Visitante (o dashboard é público): com o clipe lançado, vê o catálogo de conta nova e só entra no clique de gerar.
     if (!clipsVisible(null)) return NextResponse.json({ error: 'Not found.', engines: [], clips: [] }, { status: 404, headers: NO_STORE })
-    const guest = engineAccessFor({ email: null, plan: null, createdAt: null })
+    const guest = engineAccessFor({ email: null, plan: null, createdAt: CLIP_GUEST_AS_NEW_ACCOUNT ? new Date().toISOString() : null })
     const guestEffects = clipEffectsVisible(false) ? publicClipEffects((engine) => guest(engine).ok) : []
     return NextResponse.json({ engines: clipCatalogFor(guest), effects: guestEffects, clips: [], balance: null, signed_in: false }, { headers: NO_STORE })
   }
