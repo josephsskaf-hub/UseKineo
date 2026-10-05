@@ -227,8 +227,9 @@ export function buildTools(opts: { pausedEngines: readonly string[] }): McpTool[
             type: 'string',
             enum: engines,
             default: DEFAULT_ENGINE,
-            // KINEO-APP-PADRAO-SEEDANCE-VERTICAL-2026-10-05 — conta nova tem só o crédito de cadastro; motor premium vira parede.
-            description: `Video engine preselected in Studio: ${label(engines)}. Use ${DEFAULT_ENGINE} unless the user explicitly names another engine: it is the only engine a new account's free credits can pay for, and words like "cinematic" or "epic" are not a request for a premium engine. Premium engines cost several times more and need a paid plan. The person can change it in Studio.`,
+            // KINEO-APP-PADRAO-SEEDANCE-VERTICAL-2026-10-05 — padrão Seedance para quem não nomeia motor. A revisão da OpenAI
+            // (05/10) pediu a descrição sem referência comercial (créditos/plano): fica só a orientação técnica.
+            description: `Video engine preselected in Studio: ${label(engines)}. Use ${DEFAULT_ENGINE} unless the user explicitly names another engine; words like "cinematic" or "epic" describe the style, not a request for a different engine. The person can change it in Studio.`,
           },
           language: {
             type: 'string',
