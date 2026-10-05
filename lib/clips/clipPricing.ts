@@ -2,6 +2,7 @@
 // sem o "vai" dele — o CEO leva a tabela antes de publicar).
 //
 // MÓDULO PURO (só `import type`, apagado na transpilação): o guardião executa isolado.
+// (05/10: + um import RELATIVO de outro módulo puro, ./clipPriceVsMarket — o loader dos guardiões resolve './'.)
 //
 // A REGRA, em uma linha:
 //   créditos = max(CLIP_MIN_CREDITS, ceil( custo_fal_do_clipe ÷ ( US$/crédito_do_Studio × (1 − margem_alvo) ) ))
@@ -47,6 +48,9 @@
 //   Seedance 2.5 150 cr · US$ 13,70 (engineCost.ts KINEO-S25-ESPERTA: "Custo fal ~$13.70/60s")                    → 50,1%
 // Os créditos do filme são ESPELHO de creditCostFor() (lib/credits/engineCost.ts); o guardião confere a igualdade.
 import type { ClipEngineKey } from './clipCatalog'
+// KINEO-CLIP-PRECO-MERCADO-2026-10-05 — único import em tempo de execução, e RELATIVO a outro módulo puro (sem ciclo:
+// clipPriceVsMarket só tem `import type`). A régua "−10% do concorrente" mora lá; aqui só o interruptor.
+import { decideMarketClipPrice, type MarketDecision } from './clipPriceVsMarket'
 
 /** US$ 54,90 (5490 centavos) — espelho de TIER_PRICES.pro.usd em lib/checkoutPricing.ts (guardião confere). */
 export const STUDIO_PLAN_USD_CENTS = 5490
@@ -93,8 +97,44 @@ export function clipFalUsd(engine: ClipEngineKey, seconds: number, _withImage = 
   return Math.round(CLIP_COSTS[engine].usdPerSecond * seconds * 10000) / 10000
 }
 
+// ═══ KINEO-CLIP-PRECO-MERCADO-2026-10-05 — PREÇO POR SEGUNDO ~10% ABAIXO DO CONCORRENTE, NUNCA NO PREJUÍZO ═══
+// Fundador (04/10): clipe = porta de entrada, comparado na mesma aba com Higgsfield/Kling/Runway. A régua (90% do
+// concorrente mais barato no MESMO modelo e resolução, piso de 40% de margem no crédito do Studio, "IMPOSSÍVEL A −10%"
+// quando o mercado vende abaixo do que a fal nos cobra) mora em lib/clips/clipPriceVsMarket.ts, com fonte/URL/data de
+// cada número. DESLIGADO = clipCreditCost devolve EXATAMENTE a regra de 29/09 (guardião
+// scripts/test-clip-preco-mercado-2026-10-05.mjs prova motor a motor, duração a duração). Ligar é decisão de preço
+// público do fundador.
+export const CLIP_PRECO_MERCADO_PUBLIC = false
+
+/** US$ 29,90 (2990 centavos) — espelho de TIER_PRICES.basic.usd (Creator) em lib/checkoutPricing.ts (guardião confere). */
+export const CREATOR_PLAN_USD_CENTS = 2990
+/** 150 créditos — espelho de TIER_CREDITS.basic (Creator) em lib/checkoutPricing.ts (guardião confere). */
+export const CREATOR_PLAN_CREDITS = 150
+export const CREATOR_USD_PER_CREDIT = CREATOR_PLAN_USD_CENTS / 100 / CREATOR_PLAN_CREDITS
+
+/** A decisão da régua de mercado para o motor e a duração (vale com o interruptor ligado; a tabela do fundador lê daqui). */
+export function clipMarketDecision(engine: ClipEngineKey, seconds: number, withImage = false): MarketDecision {
+  return decideMarketClipPrice(engine, seconds, {
+    houseFalUsdPerSecond: CLIP_COSTS[engine].usdPerSecond,
+    floorUsdPerCredit: STUDIO_USD_PER_CREDIT,
+    refUsdPerCredit: CREATOR_USD_PER_CREDIT,
+    shelfMaxUsdCents: STUDIO_PLAN_USD_CENTS,
+    minCredits: CLIP_MIN_CREDITS,
+    fallbackCredits: clipCreditCostRegra2909(engine, seconds, withImage),
+  })
+}
+
 /** Créditos do clipe. Só aceita segundos inteiros positivos; o catálogo decide quais o motor oferece. */
 export function clipCreditCost(engine: ClipEngineKey, seconds: number, withImage = false): number {
+  if (CLIP_PRECO_MERCADO_PUBLIC) {
+    if (!Number.isInteger(seconds) || seconds <= 0) throw new Error('clipCreditCost: seconds must be a positive integer')
+    return clipMarketDecision(engine, seconds, withImage).credits
+  }
+  return clipCreditCostRegra2909(engine, seconds, withImage)
+}
+
+/** A regra de 29/09 (a de hoje): margem ≥ a do filme do motor e ≥ 50%, mínimo de 5 cr. */
+export function clipCreditCostRegra2909(engine: ClipEngineKey, seconds: number, withImage = false): number {
   if (!Number.isInteger(seconds) || seconds <= 0) throw new Error('clipCreditCost: seconds must be a positive integer')
   const perCreditKept = STUDIO_USD_PER_CREDIT * (1 - clipTargetMargin(engine))
   // Arredonda a 6 casas antes do ceil: 7,000000001 de ruído de ponto flutuante não vira 8 créditos.
