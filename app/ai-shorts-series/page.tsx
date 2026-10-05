@@ -66,7 +66,7 @@ function priceSentence(p: PlanFact): string {
 // KINEO-FILME-GRATIS-15S-2026-09-29 — o saldo e o filme grátis vêm do TRIAL_ACCESS (era "10 credits" digitado), e a
 // cota recorrente só é citada se RECURRING_FREE_ACCESS for anunciado (hoje null).
 const START_SENTENCE = TRIAL_ACCESS
-  ? `A new account starts free with ${TRIAL_ACCESS.credits} credits and every engine unlocked, no card` +
+  ? `A new account starts free with ${TRIAL_ACCESS.credits} credits, no card` + // KINEO-VERDADE-TRIAL-2026-10-05: o grant paga o filme curto, não Kling/Veo
     (TRIAL_ACCESS.freeFilm
       ? ` — enough for one free ${TRIAL_ACCESS.freeFilm.seconds}-second film (${TRIAL_ACCESS.freeFilm.engine}). `
       : '. ') +

@@ -120,7 +120,7 @@ export const DICT: Record<string, string> = {
   'Every video engine incl. MiniMax H3': 'Elke video-engine incl. MiniMax H3',
   'Watermark-free MP4 · 100 projects · 90-day storage': 'MP4 zonder watermerk · 100 projecten · 90 dagen opslag',
   ', finished': ', afgewerkt',
-  '— every engine unlocked': '— elke engine ontgrendeld',
+  '— Kling and Veo included': '— Kling en Veo inbegrepen',
   '· voice + karaoke captions + score': '· stem + karaoke-ondertitels + muziek',
   '500 projects · forever storage': '500 projecten · opslag voor altijd',
   'Cancel anytime — 7-day money-back': 'Altijd opzegbaar — 7 dagen geld terug',

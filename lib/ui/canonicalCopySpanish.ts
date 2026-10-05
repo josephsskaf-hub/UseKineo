@@ -6,18 +6,13 @@ export function canonicalCopySpanish(text: string): string | undefined {
   if ((match = text.match(/^Trim ([\d,]+) characters to continue$/))) return `Recorta ${match[1]} caracteres para continuar`
   if ((match = text.match(/^(\d+) credits \/ video$/))) return `${match[1]} créditos / vídeo`
   if ((match = text.match(/^≈ (\d+) finished films? — (\d+) AI scenes$/))) return `≈ ${match[1]} ${match[1] === '1' ? 'vídeo terminado' : 'vídeos terminados'} — ${match[2]} escenas IA`
-  if ((match = text.match(/^Start free — every engine unlocked, including Kling 3\. Make (\d+) AI films? free, watermarked\. Upgrade any time to download them clean\.$/))) {
-    return `Empieza gratis con todos los motores desbloqueados, incluido Kling 3. Crea ${match[1]} ${match[1] === '1' ? 'vídeo gratuito' : 'vídeos gratuitos'} con IA y marca de agua. Pásate a un plan cuando quieras para descargarlos sin marca de agua.`
+  // KINEO-VERDADE-TRIAL-2026-10-05 — a promessa velha dos motores saiu do inglês (o grant paga o filme de 15 s, não Kling/Veo);
+  // as frases canônicas abaixo são as novas, com TRIAL_FIRST_FILM_PHRASE (lib/freeTierOffer.ts) e os números capturados.
+  if ((match = text.match(/^every new account( in supported countries)? gets (\d+) free credits — enough for your first (\d+)-second AI film$/))) {
+    return `cada cuenta nueva${match[1] ? ' en los países disponibles' : ''} recibe ${match[2]} créditos gratuitos — suficientes para tu primer vídeo con IA de ${match[3]} segundos`
   }
-  if ((match = text.match(/^every new account gets (\d+) free credits with every engine unlocked, Kling 3 included$/))) {
-    return `cada cuenta nueva recibe ${match[1]} créditos gratuitos con todos los motores desbloqueados, incluido Kling 3`
-  }
-  // KINEO-E4-CONSERTO-2026-09-29 — a mesma frase com a cláusula de país da saída B (lib/freeFilmPolicy.ts).
-  if ((match = text.match(/^every new account in supported countries gets (\d+) free credits with every engine unlocked, Kling 3 included$/))) {
-    return `cada cuenta nueva en los países disponibles recibe ${match[1]} créditos gratuitos con todos los motores desbloqueados, incluido Kling 3`
-  }
-  if ((match = text.match(/^New accounts get (\d+) credits with every engine unlocked, watermarked; after it ends, free access gives 1 watermarked Fast video per month that you can download and share\.$/))) {
-    return `Las cuentas nuevas reciben ${match[1]} créditos con todos los motores desbloqueados y marca de agua. Después, el acceso gratuito incluye 1 vídeo Fast al mes con marca de agua que puedes descargar y compartir.`
+  if ((match = text.match(/^New accounts get (\d+) credits — enough for your first (\d+)-second AI film; trial films are watermarked\.$/))) {
+    return `Las cuentas nuevas reciben ${match[1]} créditos — suficientes para tu primer vídeo con IA de ${match[2]} segundos; los vídeos de prueba llevan marca de agua.`
   }
   if ((match = text.match(/^Kineo lists and charges plan prices in (USD) worldwide\. Your bank may convert the charge to your local currency and may add conversion or cross-border fees\.$/))) {
     return `Kineo muestra y cobra los planes en ${match[1]} en todo el mundo. Tu banco puede convertir el cargo a tu moneda local y aplicar comisiones de conversión o de transacción internacional.`

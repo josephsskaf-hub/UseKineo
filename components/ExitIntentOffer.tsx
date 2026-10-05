@@ -573,7 +573,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
             NENHUMA afirmação de desconto — o que a gente tem de verdade para
             oferecer aqui é a escada (o degrau barato), não um desconto. */}
         <p id="exit-offer-desc" className="text-[13.5px] text-[var(--muted)] mb-5 leading-relaxed">
-          A monthly balance for finished films. Every engine unlocked. Cancel anytime.
+          A monthly balance for finished films. Kling and Veo included. Cancel anytime.
         </p>
 
         {/* KINEO-INTRO-MONTH-2026-07-13 — v3 ladder: intro Starter (left) vs

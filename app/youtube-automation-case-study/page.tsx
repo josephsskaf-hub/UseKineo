@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
-import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, TRIAL_FIRST_FILM_SHORT } from '@/lib/freeTierOffer'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -218,7 +218,7 @@ export default function CaseStudyPage() {
                 parágrafo que JÁ passa por ft(), então com a flag ON a mesma
                 caixa dizia "Creator trial: 50 credits" no texto e "3 videos a
                 day" no botão. Flag OFF devolve o literal byte a byte. */}
-            {ft(OFFER, 'Start free — 3 videos a day', `Start free — ${TRIAL_GRANT_CREDITS_COPY} credits, every engine`)}
+            {ft(OFFER, 'Start free — 3 videos a day', `Start free — ${TRIAL_GRANT_CREDITS_COPY} credits, ${TRIAL_FIRST_FILM_SHORT}`)}
           </Link>
           <p className="mt-4 text-xs text-white/40">
             Need client videos without managed publishing? <Link href="/ai-shorts-for-agencies" className="underline hover:text-white/70">See one-time agency packs</Link> ·{' '}

@@ -187,7 +187,7 @@ export default function SocialProof() {
         {TRUST_SIGNALS.map((raw, i) => {
           // O selo 'free' promete a oferta — passa pela troca; os demais ficam.
           const s = raw.id === 'free'
-            ? { ...raw, title: ft(OFFER, raw.title, OFFER.copy.chip), sub: ft(OFFER, raw.sub, 'Every engine unlocked on signup') }
+            ? { ...raw, title: ft(OFFER, raw.title, OFFER.copy.chip), sub: ft(OFFER, raw.sub, 'No card · watermarked while you try') } // KINEO-VERDADE-TRIAL-2026-10-05
             : raw
           return <SignalCard key={s.id} signal={s} visible={visible} index={i} />
         })}

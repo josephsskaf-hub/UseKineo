@@ -144,7 +144,7 @@ export const INTERFACE_HI: Record<string, string> = {
   'Every video engine incl. MiniMax H3': 'MiniMax H3 सहित सभी वीडियो इंजन',
   'Watermark-free MP4 · 100 projects · 90-day storage': 'बिना वॉटरमार्क MP4 · 100 प्रोजेक्ट · 90-दिन स्टोरेज',
   ', finished': ', तैयार', Or: 'या', 'Kling 2.5 cinematic films': 'Kling 2.5 सिनेमाई वीडियो',
-  '— every engine unlocked': '— सभी इंजन उपलब्ध',
+  '— Kling and Veo included': '— Kling और Veo शामिल',
   '· voice + karaoke captions + score': '· आवाज़ + कराओके कैप्शन + संगीत',
   '500 projects · forever storage': '500 प्रोजेक्ट · स्थायी स्टोरेज',
   'Cancel anytime — 7-day money-back': 'कभी भी रद्द करें — 7-दिन की धनवापसी',

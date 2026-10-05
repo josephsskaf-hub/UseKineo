@@ -12,7 +12,7 @@
 // + ItemList JSON-LD so Google and answer engines can lift the ranking.
 
 import type { Metadata } from 'next'
-import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer'
+import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, GRANT_COUNTRY_CLAUSE, TRIAL_FIRST_FILM_PHRASE } from '@/lib/freeTierOffer'
 // KINEO-STARTER-EM-ARTIGO-2026-08-15 — o MESMO componente da home/#70, nunca
 // uma cópia. Ver o bloco no corpo. Client island; `force-static` segue valendo.
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
@@ -587,7 +587,7 @@ export default function BestAiShortsGeneratorsPage() {
             narrate, a clip to caption, or an avatar to render. Kineo starts from nothing but a
             topic and hands you a finished, ready-to-post 9:16 Short: hook-first script, AI
             voiceover, matched visuals and captions, usually in about 3–7 minutes. Test
-            it free — {ft(OFFER, 'up to 3 watermarked Fast videos every 24 hours, no credit card.', `every new account${GRANT_COUNTRY_CLAUSE} gets ${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked, no card — films come out watermarked until you upgrade.`)}
+            it free — {ft(OFFER, 'up to 3 watermarked Fast videos every 24 hours, no credit card.', `every new account${GRANT_COUNTRY_CLAUSE} gets ${TRIAL_GRANT_CREDITS_COPY} free credits — ${TRIAL_FIRST_FILM_PHRASE}, no card — films come out watermarked until you upgrade.`)}
           </p>
           {/* KINEO-STARTER-EM-ARTIGO-2026-08-15 — aqui havia um `<a href={CTA_URL}>`
               CRU para `/free-ai-shorts-generator`: nenhum `organic_cta_clicked`

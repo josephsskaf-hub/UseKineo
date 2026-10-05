@@ -9,7 +9,7 @@
 //
 // Regras que o guardião (scripts/test-projeto-1-google-2026-09-17.mjs) prende: slugs únicos e em kebab-case,
 // prompt de exemplo com ≥ 8 palavras, nenhuma frase proibida (preço/crédito literal, motor pausado como
-// disponível, "every engine unlocked"), e a família 'alternative' só afirma o que é verdade sobre a Kineo —
+// disponível, a promessa de todos os motores liberados no trial), e a família 'alternative' só afirma o que é verdade sobre a Kineo —
 // nunca inventa números do concorrente.
 
 export type IntentFamily = 'niche' | 'format' | 'language' | 'alternative'

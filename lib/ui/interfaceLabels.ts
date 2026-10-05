@@ -295,7 +295,7 @@ export const INTERFACE_ES: Record<string, string> = {
   'Every video engine incl. MiniMax H3': 'Todos los motores de vídeo, incluido MiniMax H3',
   'Watermark-free MP4 · 100 projects · 90-day storage': 'MP4 sin marca de agua · 100 proyectos · 90 días de almacenamiento',
   ', finished': ', terminados', Or: 'O', 'Kling 2.5 cinematic films': 'vídeos cinematográficos con Kling 2.5',
-  '— every engine unlocked': '— todos los motores desbloqueados',
+  '— Kling and Veo included': '— Kling y Veo incluidos',
   '· voice + karaoke captions + score': '· voz, subtítulos karaoke y música',
   '500 projects · forever storage': '500 proyectos · almacenamiento permanente',
   'Cancel anytime — 7-day money-back': 'Cancela cuando quieras · devolución durante 7 días',

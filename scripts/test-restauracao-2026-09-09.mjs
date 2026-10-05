@@ -82,7 +82,8 @@ console.log('== 5. nenhuma página pública fala em $1 ==')
 console.log('== 6. /ph e o kit do PH ==')
 const ph = rd('app/ph/page.tsx')
 checa('/ph: CTA vai para o cadastro com utm do PH', /const CTA = '\/signup\?utm_source=producthunt[^']*intent_campaign=ph_sep10'/.test(ph) && !/trial=1'/.test(ph))
-checa('/ph: letra miúda fala em créditos grátis, não em $1', /\{FREE_ENTRY_CREDITS\} credits free · every engine unlocked · no card/.test(ph) && !/Is the \$1 real\?/.test(ph))
+// KINEO-VERDADE-TRIAL-2026-10-05 — a letra miúda trocou a promessa de motores pela frase única do primeiro filme.
+checa('/ph: letra miúda fala em créditos grátis, não em $1', /\{FREE_ENTRY_CREDITS\} credits free · \{TRIAL_FIRST_FILM_SHORT\} · no card/.test(ph) && !/Is the \$1 real\?/.test(ph))
 const kit = rd('docs/ph/PH-TEXTOS-2026-09-10.md')
 checa('kit do PH: sem "$1 for 7 days", com "Free to start"', !/\$1 for 7 days/.test(kit) && /Free to start, 10 credits, no card/.test(kit))
 

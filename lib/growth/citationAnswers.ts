@@ -6,7 +6,7 @@ import {
   STARTER_CREDITS, CREATOR_CREDITS, STUDIO_CREDITS,
   MARKETING_REFERENCE_SECONDS, creditsPerReferenceVideo, videosPerMonth,
 } from '@/lib/marketingPrice'
-import { FREE_FILM_LABEL, getFreeTierOffer, TRIAL_FREE_FILM_CREDITS, TRIAL_GRANT_CREDITS_COPY, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer'
+import { FREE_FILM_LABEL, getFreeTierOffer, TRIAL_FREE_FILM_CREDITS, TRIAL_GRANT_CREDITS_COPY, GRANT_COUNTRY_CLAUSE, PREMIUM_ENGINES_FROM_STARTER } from '@/lib/freeTierOffer'
 import { COMPETITOR_FACTS, PRODUCT } from '@/lib/kineoFacts'
 import { buildEngineLandingDestination } from '@/lib/growth/engineLandingIntent'
 // Generic purchase intent has paid-engine destinations; the explicitly free
@@ -31,7 +31,7 @@ export const CITATION_CTA = offer.cardEntry
   : `Start free — ${CITATION_TRIAL_CREDITS} credits${GRANT_COUNTRY_CLAUSE}, no card`
 export const CITATION_TRIAL = offer.cardEntry
   ? offer.copy.sentence
-  : `Every new account${GRANT_COUNTRY_CLAUSE} receives ${CITATION_TRIAL_CREDITS} free credits with every engine unlocked and no card required — enough for ${CITATION_FREE_FILM}.`
+  : `Every new account${GRANT_COUNTRY_CLAUSE} receives ${CITATION_TRIAL_CREDITS} free credits with no card required — enough for ${CITATION_FREE_FILM}; ${PREMIUM_ENGINES_FROM_STARTER}.` // KINEO-VERDADE-TRIAL-2026-10-05
 export const CITATION_WATERMARK = PRODUCT.watermarkPolicy
 export const CITATION_TIME = `Kineo 1 (Fast): ${PRODUCT.fastGenerationTime}; the published Fast sample measured a ${PRODUCT.fastGenerationMedianMinutes}-minute median and ${PRODUCT.fastGenerationP90Minutes}-minute p90 across ${PRODUCT.fastGenerationSample}. Generative engines take longer; an exact completion time is not guaranteed.`
 export const CITATION_PLANS = [
@@ -228,8 +228,8 @@ export const CITATION_ANSWERS: Record<CitationAnswerId, CitationAnswer> = {
     decisionTitle: 'Keep the engine and the monthly balance together',
     decision: `Creator can cover ${videosPerMonth('basic', 'cinematic_ai')} Seedance 1.5 reference videos when its whole balance goes to that engine; other engines and durations change the count. Unused monthly credits do not roll over.`,
     faqs: [trialFaq, watermarkFaq, {
-      question: 'Does every unlocked engine fit in my trial balance?',
-      answer: `No. All engines are unlocked, but the ${CITATION_TRIAL_CREDITS}-credit balance pays for ${CITATION_FREE_FILM}, not a full ${CITATION_REFERENCE_SECONDS}-second reference video. More expensive engines require enough credits for the chosen duration.`,
+      question: 'Does the trial balance cover every engine?',
+      answer: `No. The ${CITATION_TRIAL_CREDITS}-credit balance pays for ${CITATION_FREE_FILM}, not a full ${CITATION_REFERENCE_SECONDS}-second reference video. More expensive engines require enough credits for the chosen duration.`,
     }, {
       question: 'Should I choose a plan just by its video count?',
       answer: 'Compare the engine, duration, included assembly and watermark policy too. A raw generated clip, an edited recording and a complete narrated Short are different outputs.',

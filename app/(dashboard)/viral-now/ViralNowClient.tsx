@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import type { ViralTopic } from '@/lib/viralTopics'
 import { getNextRefreshMs } from '@/lib/viralTopics'
 import { trackEvent } from '@/lib/analytics'
+import { TRIAL_FIRST_FILM_PHRASE } from '@/lib/freeTierOffer' // KINEO-VERDADE-TRIAL-2026-10-05
 
 // KINEO-SEASONS-2026-08-18 (roubo com critério da fileira 'Black Friday' do
 // InVideo): temporadas por janela de data — o calendário vira merchandising.
@@ -397,7 +398,7 @@ export default function ViralNowClient({
           color: 'var(--muted2)',
           lineHeight: 1.5,
         }}>
-          Pick a trending topic and create a faceless Short with your free credits — every engine unlocked.
+          Pick a trending topic and create a faceless Short with your free credits — {TRIAL_FIRST_FILM_PHRASE}.
           Your exact idea stays selected through signup.
         </p>
       </div>

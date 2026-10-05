@@ -32,7 +32,9 @@ check(!/InVideo[^\n]{0,80}\$\d/i.test(invideoBlock), 'no competitor dollar price
 
 // Kineo price and free allowance stay on canonical sources. The new section
 // must work whether the reverse-trial flag is on or off.
-check(page.includes("import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'"), 'free offer is canonical')
+// KINEO-VERDADE-TRIAL-2026-10-05 — o import ganhou a frase única do primeiro filme (TRIAL_FIRST_FILM_PHRASE) e o
+// número exibido (TRIAL_CREDITS_SHOWN); a intenção segue: a oferta grátis vem da fonte canônica, nunca digitada.
+check(/import \{ getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY[^}]*TRIAL_FIRST_FILM_PHRASE[^}]*\} from '@\/lib\/freeTierOffer'/.test(page), 'free offer is canonical')
 check(page.includes("import { STARTER_MO, STARTER_MONTH } from '@/lib/marketingPrice'"), 'paid price is canonical')
 check(invideoBlock.includes('ft(OFFER,'), 'InVideo record swaps with the deployed free-tier flag')
 check(page.includes('{OFFER.copy.sentence}'), 'visible answer reads the deployed offer')

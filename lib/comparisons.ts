@@ -28,7 +28,7 @@ const K = (minor: number) => formatCheckoutMoney('usd', minor)
 //  - This file is the single source of truth for the whole cluster, so a fact
 //    can never drift between two pages.
 
-import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer'
+import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, GRANT_COUNTRY_CLAUSE, TRIAL_FIRST_FILM_PHRASE, TRIAL_FIRST_FILM_SHORT } from '@/lib/freeTierOffer' // KINEO-VERDADE-TRIAL-2026-10-05
 // #296 — o custo em créditos de CADA motor passa a ser derivado, pela mesma
 // razão que o preço em dólar já era (ver a nota do KINEO-PRICING-V6 abaixo, em
 // `entryPrice`): a linha `exportLimits` do Kineo listava "a Fast video costs 1
@@ -347,7 +347,7 @@ export const TOOLS: Record<ToolId, Tool> = {
     // propósito: são dado verificado, com data de verificação.
     entryPrice: `Starter ${K(TIER_PRICES.starter.usd)}/month`,
     fullPricing:
-      `Free (${ft(OFFER, 'up to 3 watermarked Fast videos per 24h, no card', `${TRIAL_GRANT_CREDITS_COPY} free credits, every engine, watermarked; then 1 Fast/mo`)}) · Starter ${K(TIER_PRICES.starter.usd)}/mo, ${TIER_CREDITS.starter} credits (${K(ANNUAL_PRICES.starter.usd)}/year) · Creator ${K(TIER_PRICES.basic.usd)}/mo, ${TIER_CREDITS.basic} credits (${K(ANNUAL_PRICES.basic.usd)}/year) · Studio ${K(TIER_PRICES.pro.usd)}/mo, ${TIER_CREDITS.pro} credits (${K(ANNUAL_PRICES.pro.usd)}/year). Charged in USD worldwide. 7-day money-back guarantee.`,
+      `Free (${ft(OFFER, 'up to 3 watermarked Fast videos per 24h, no card', `${TRIAL_GRANT_CREDITS_COPY} free credits — ${TRIAL_FIRST_FILM_SHORT}, watermarked`)}) · Starter ${K(TIER_PRICES.starter.usd)}/mo, ${TIER_CREDITS.starter} credits (${K(ANNUAL_PRICES.starter.usd)}/year) · Creator ${K(TIER_PRICES.basic.usd)}/mo, ${TIER_CREDITS.basic} credits (${K(ANNUAL_PRICES.basic.usd)}/year) · Studio ${K(TIER_PRICES.pro.usd)}/mo, ${TIER_CREDITS.pro} credits (${K(ANNUAL_PRICES.pro.usd)}/year). Charged in USD worldwide. 7-day money-back guarantee.`,
     watermark: 'Watermarked on the free tier; every paid plan exports a clean, watermark-free MP4.',
     // KINEO-MULTIFORMATO-2026-09-02 — esta linha dizia "9:16 vertical only" e
     // era o argumento honesto até 02/09. Deixou de ser verdade no dia em que o
@@ -1179,7 +1179,7 @@ export const PAIRS: Pair[] = [
       // ser "eu só publico vertical mesmo" e passou a ser o oposto: o quadro é
       // gerado, não recortado.
       'You want the frame to be right in the camera, not recovered afterwards by a tracker guessing where the subject is.',
-      ft(OFFER, 'You want to test whether you can actually keep a channel going before paying anything — 3 free videos a day, no card.', `You want to test the full workflow before paying — ${TRIAL_GRANT_CREDITS_COPY} free credits, every engine unlocked, no card.`),
+      ft(OFFER, 'You want to test whether you can actually keep a channel going before paying anything — 3 free videos a day, no card.', `You want to test the full workflow before paying — ${TRIAL_GRANT_CREDITS_COPY} free credits, ${TRIAL_FIRST_FILM_PHRASE}, no card.`),
     ],
     differences: [
       {
@@ -1259,7 +1259,7 @@ export const PAIRS: Pair[] = [
       'You have no long-form footage and no plan to record any.',
       'The bottleneck is writing and producing at all, not distributing something that exists.',
       'You want 9:16, 16:9, 1:1 or 4:5 generated natively instead of auto-reframing source footage.',
-      ft(OFFER, 'You want to try a daily posting rhythm before paying — 3 free videos every 24 hours, no card.', `You want to try the real workflow before paying — ${TRIAL_GRANT_CREDITS_COPY} free credits, every engine unlocked, no card.`),
+      ft(OFFER, 'You want to try a daily posting rhythm before paying — 3 free videos every 24 hours, no card.', `You want to try the real workflow before paying — ${TRIAL_GRANT_CREDITS_COPY} free credits, ${TRIAL_FIRST_FILM_PHRASE}, no card.`),
       'You want a clean MP4 on the cheapest paid plan: every Kineo paid tier is watermark-free.',
     ],
     pickB: [
@@ -1438,7 +1438,7 @@ export const PAIRS: Pair[] = [
       'There is no video yet. This is the whole case for Kineo on this page.',
       'You do not film, do not want to, and the channel is faceless by design.',
       'You want script, voiceover, footage and captions from one typed sentence.',
-      ft(OFFER, 'You post daily and want the free tier to prove you can keep it up — 3 videos every 24 hours.', `You want to prove the workflow fits before paying — ${TRIAL_GRANT_CREDITS_COPY} free credits, every engine unlocked, no card.`),
+      ft(OFFER, 'You post daily and want the free tier to prove you can keep it up — 3 videos every 24 hours.', `You want to prove the workflow fits before paying — ${TRIAL_GRANT_CREDITS_COPY} free credits, ${TRIAL_FIRST_FILM_PHRASE}, no card.`),
       `Budget is tight: Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month; Submagic Starter is $19/member/month.`,
     ],
     pickB: [
@@ -4052,7 +4052,7 @@ export const PAIRS: Pair[] = [
       'You have a topic, not a clip, and the missing step is the video existing at all.',
       'The format is faceless: narration over matched footage, captions, nobody on screen.',
       'One ratio per render fits your workflow; Kineo supports 9:16, 16:9, 1:1 and 4:5.',
-      ft(OFFER, 'You want to test a daily rhythm before paying: 3 watermarked Fast videos every 24 hours, no card.', `You want to test the real thing before paying: ${TRIAL_GRANT_CREDITS_COPY} free credits, every engine unlocked, no card.`),
+      ft(OFFER, 'You want to test a daily rhythm before paying: 3 watermarked Fast videos every 24 hours, no card.', `You want to test the real thing before paying: ${TRIAL_GRANT_CREDITS_COPY} free credits, ${TRIAL_FIRST_FILM_PHRASE}, no card.`),
       `Budget is the binding constraint: Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, against $24.99.`,
     ],
     differences: [
@@ -4225,7 +4225,7 @@ export const PAIRS: Pair[] = [
       'The format is faceless: narration over matched footage with nobody on screen.',
       'You have a topic, not a script, and writing it is the step that keeps not happening.',
       'One ratio per render fits your workflow; Kineo supports 9:16, 16:9, 1:1 and 4:5.',
-      ft(OFFER, 'You want to test a daily posting rhythm before paying — 3 watermarked Fast videos every 24 hours, no card.', `You want to test a real posting rhythm before paying — ${TRIAL_GRANT_CREDITS_COPY} free credits, every engine unlocked, no card.`),
+      ft(OFFER, 'You want to test a daily posting rhythm before paying — 3 watermarked Fast videos every 24 hours, no card.', `You want to test a real posting rhythm before paying — ${TRIAL_GRANT_CREDITS_COPY} free credits, ${TRIAL_FIRST_FILM_PHRASE}, no card.`),
     ],
     differences: [
       {

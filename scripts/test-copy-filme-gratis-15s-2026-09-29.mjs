@@ -213,7 +213,8 @@ console.log('== 3. varredura do texto público (literais e JSX, sem comentários
     // o mutante segue a linha nova, com a mesma frase proibida de antes.
     ['lib/freeTierOffer.ts', "  residual: 'your saved library',", "  residual: '1 free Kineo 1 video every week',"],
     ['lib/seo/intentPages.ts', "    engineWhy: f.why ?? 'Seedance 1.5 generates a scene for every line of the script.',", "    engineWhy: f.why ?? 'Kineo 1 matches real footage to every line and fits inside the free trial.',"],
-    ['app/ph/page.tsx', 'enough for one {FREE_FILM_LABEL} — every engine unlocked', 'enough for a free 35-second film — every engine unlocked'],
+    // KINEO-VERDADE-TRIAL-2026-10-05 — âncora re-ancorada: a linha do /ph perdeu a promessa de motores; mesmo mutante (35 s).
+    ['app/ph/page.tsx', 'enough for one {FREE_FILM_LABEL} — no card.', 'enough for a free 35-second film — no card.'],
     // Revisão da E2b (texto, achado 8): as paráfrases que passavam verdes, e um arquivo que antes nem era lido.
     ['lib/freeTierOffer.ts', "  planLimitLine: `one ${FREE_FILM_LABEL} with the trial credits`,", "  planLimitLine: `one ${FREE_FILM_LABEL} with the trial credits, then 1 free film every 7 days`,"],
     ['lib/seo/intentPages.ts', "    engineWhy: f.why ?? 'Seedance 1.5 generates a scene for every line of the script.',", "    engineWhy: f.why ?? 'Kineo 1 matches real footage and costs 0 credits on the trial.',"],

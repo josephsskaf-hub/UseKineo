@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
-import { swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { swapFreeTierCopy as ft, TRIAL_FIRST_FILM_PHRASE } from '@/lib/freeTierOffer'
 // KINEO-PRICING-V6-2026-08-19 — preço e grant desta tela saem da MESMA tabela
 // que a rota da Stripe cobra. Ver PLAN_LIMITS logo abaixo.
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
@@ -475,7 +475,7 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
                         entram no trial (invariante 2 de getEffectiveEntitlement)
                         e prometer o contrario aqui seria o caso Kling — a tela
                         destravando o que o servidor recusa com 402. */}
-                    <ReadOnlyRow label="Trial includes" value="Every engine unlocked · watermarked exports" />
+                    <ReadOnlyRow label="Trial includes" value={`Credits ${TRIAL_FIRST_FILM_PHRASE} · watermarked exports`} /* KINEO-VERDADE-TRIAL-2026-10-05 */ />
                     <ReadOnlyRow label="After the trial" value={ft(OFFER, '3 watermarked Fast videos / 24h', OFFER.copy.residual)} />
                   </>
                 ) : tier === 'free' ? (
@@ -591,7 +591,7 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
                   </h3>
                   <p className="text-sm mb-3" style={{ color: 'var(--muted)', lineHeight: 1.6 }}>
                     {trialActive
-                      ? `Trial credits unlock EVERY engine, Kling 3 included. Trial films carry a watermark — any paid plan unlocks the clean, watermark-free MP4. When the trial ends, unspent trial credits are removed and free access is ${OFFER.copy.residual}.`
+                      ? `Trial credits are ${TRIAL_FIRST_FILM_PHRASE}. Trial films carry a watermark — any paid plan unlocks the clean, watermark-free MP4. When the trial ends, unspent trial credits are removed and free access is ${OFFER.copy.residual}.`
                       : hasPaid
                         ? `Your legacy pack keeps clean Fast exports available at ${creditCostFor('fast', true)} credits each. Upgrade to a monthly plan when you want a recurring balance.`
                         : 'Never-paid free accounts can create, watch, download and share each Fast video with a watermark. The allowance grants no credits and does not include premium AI Generated video.'}

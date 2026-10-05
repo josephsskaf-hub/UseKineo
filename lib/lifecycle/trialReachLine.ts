@@ -92,5 +92,6 @@ export function trialReachClause(creditsLeft: number): string | null {
   if (films < 1) return null
   const noun = films === 1 ? 'film' : 'films'
   const counted = films === 1 ? 'one full' : `${films} full`
-  return `every engine is unlocked, and that covers ${counted} ${TRIAL_REACH_ENGINE_NAME} ${noun} start to finish`
+  // KINEO-VERDADE-TRIAL-2026-10-05 — sem "todos os motores liberados": o saldo do trial não paga Kling/Veo.
+  return `that covers ${counted} ${TRIAL_REACH_ENGINE_NAME} ${noun} start to finish`
 }

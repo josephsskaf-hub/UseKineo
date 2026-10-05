@@ -120,7 +120,7 @@ export const DICT: Record<string, string> = {
   'Every video engine incl. MiniMax H3': 'Mọi engine video, kể cả MiniMax H3',
   'Watermark-free MP4 · 100 projects · 90-day storage': 'MP4 không watermark · 100 dự án · lưu trữ 90 ngày',
   ', finished': ', hoàn chỉnh',
-  '— every engine unlocked': '— mọi engine đã mở khóa',
+  '— Kling and Veo included': '— bao gồm Kling và Veo',
   '· voice + karaoke captions + score': '· giọng nói + phụ đề karaoke + nhạc nền',
   '500 projects · forever storage': '500 dự án · lưu trữ vĩnh viễn',
   'Cancel anytime — 7-day money-back': 'Hủy bất cứ lúc nào — hoàn tiền trong 7 ngày',

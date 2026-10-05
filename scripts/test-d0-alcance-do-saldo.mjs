@@ -99,8 +99,10 @@ if (!klingCabeNoTrial) {
 check('o d0 usa a cláusula derivada', /trialReachClause\(c\.creditsLeft\)/.test(ramoD0))
 check('a cláusula entra nas DUAS superfícies (text e html)', (ramoD0.match(/\$\{engineLine\}/g) || []).length === 2)
 check('o ramo trata o null da cláusula', /reachClause \?/.test(ramoD0))
-check('o fallback do null não publica contagem', /'Every engine is unlocked\. '/.test(ramoD0))
-check('a promessa pública do fundador continua na carta', /[Ee]very engine is unlocked/.test(ramoD0))
+// KINEO-VERDADE-TRIAL-2026-10-05 — o fundador retirou a promessa de motores do trial (05/10): o fallback do null agora
+// é vazio (sem contagem E sem motor), e a carta não pode voltar a dizer que todo motor está liberado.
+check('o fallback do null não publica contagem', /const engineLine = reachClause \? `\$\{reachClause\}\. ` : ''/.test(ramoD0))
+check('a carta não promete mais todos os motores (KINEO-VERDADE-TRIAL-2026-10-05)', !/every engine/i.test(ramoD0Codigo))
 check('a marca d\'água continua declarada', /watermark until you upgrade/.test(ramoD0))
 
 // ── O import existe e aponta para o módulo certo ──────────────────────────
