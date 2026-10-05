@@ -200,9 +200,35 @@ export function monthlyPriceMinor(
 export const ANNUAL_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {
   // KINEO-PLANOS-9-19-29-2026-09-08 — anual = 10 meses (2 grátis), padrão do mercado.
   // KINEO-PRECO-V8-A-2026-09-28 — 10× o mensal novo: $129 / $299 / $549.
-  starter: { usd: 12900 },
-  basic: { usd: 29900 },
-  pro: { usd: 54900 },
+  // ═══ KINEO-ANUAL-40OFF-2026-10-05 — ANUAL = 12 × MENSAL × 0,60 (40% OFF) ═══
+  // Decisão do fundador (04-05/10, Pacote 2): o anual deixa de ser "10× / 2 meses
+  // grátis" e passa a ser 40% de desconto sobre 12 mensalidades. Arredondado para
+  // um preço limpo (fundador): $154,80 × 0,6 = $92,88 → $92,90 · $358,80 × 0,6 =
+  // $215,28 → $215 · $658,80 × 0,6 = $395,28 → $395. Os créditos continuam
+  // chegando MÊS A MÊS (webhook concede o mês 0; cron annual-credit-refill, os
+  // meses 1..11). Reembolso: integral em 14 dias, depois nenhum (ANNUAL_REFUND_DAYS).
+  // O invariante (8) confere que cada linha fica a ±0,5 ponto de ANNUAL_DISCOUNT_PERCENT.
+  starter: { usd: 9290 },
+  basic: { usd: 21500 },
+  pro: { usd: 39500 },
+}
+
+/** KINEO-ANUAL-40OFF-2026-10-05 — o desconto do anual sobre 12 mensalidades. A copy ("save 40%") lê daqui. */
+export const ANNUAL_DISCOUNT_PERCENT = 40
+/** KINEO-ANUAL-40OFF-2026-10-05 — reembolso do anual: integral dentro deste prazo, nenhum depois (fundador 05/10). */
+export const ANNUAL_REFUND_DAYS = 14
+/** Frase única da política de reembolso do anual — pricing, FAQ e termos leem daqui. */
+export const ANNUAL_REFUND_POLICY = `Annual plans are refundable in full within ${ANNUAL_REFUND_DAYS} days of purchase; after that, no refund.`
+
+/** Desconto real (inteiro, %) do anual de `tier` contra 12 mensalidades — para a copy nunca digitar o número. */
+export function annualSavingsPercent(tier: CheckoutTier): number {
+  const twelve = TIER_PRICES[tier].usd * 12
+  return twelve > 0 ? Math.round((1 - ANNUAL_PRICES[tier].usd / twelve) * 100) : 0
+}
+
+/** "≈ $7.74/mo" — o anual dividido por 12, em USD, com centavos. */
+export function annualPerMonthLabel(tier: CheckoutTier): string {
+  return `$${(ANNUAL_PRICES[tier].usd / 1200).toFixed(2)}`
 }
 
 export const INTRO_PRICES: Record<CheckoutIntroTier, Record<CheckoutCurrency, number>> = {
@@ -516,7 +542,12 @@ export const LEGACY_TIER_CREDITS_V5: Record<CheckoutPlanTier, number> = {
 /** Grant de quem paga MENOS que o vigente, pelo valor da fatura em USD (mensal, ou anual = 10× o piso V5). */
 export function legacyCreditsForUsd(tier: CheckoutPlanTier, amountPaidMinor: number, billing: 'monthly' | 'annual' = 'monthly'): number {
   if (tier === 'starter' || tier === 'basic' || tier === 'pro') {
-    const floorV5 = LEGACY_V5_PRICES_USD[tier] * (billing === 'annual' ? 10 : 1)
+    // KINEO-ANUAL-40OFF-2026-10-05 — o anual V5 era 10× o mensal V5; o anual vigente (40% off) do Studio ($395)
+    // ficou ABAIXO desse piso ($399). Sem o min(), um anual comprado hoje leria como "legado V6" no dia em que o
+    // anual subir de novo. O piso do anual é o menor entre o V5 (10×) e o preço anual vigente.
+    const floorV5 = billing === 'annual'
+      ? Math.min(LEGACY_V5_PRICES_USD[tier] * 10, ANNUAL_PRICES[tier].usd)
+      : LEGACY_V5_PRICES_USD[tier]
     if (amountPaidMinor >= floorV5) return LEGACY_TIER_CREDITS_V5[tier]
   }
   return LEGACY_TIER_CREDITS_V6[tier]
@@ -561,11 +592,29 @@ export const INTRO_CREDITS: Record<CheckoutIntroTier, number> = {
 // NOTE FOR THE NEXT PERSON: "two or three AI videos for $4.90" is arithmetically
 // impossible. 50 credits = 2 Seedance = $4.68 worst case, which is −$0.22 on a
 // $4.90 sale. 30 is the ceiling at this price point.
+// ═══ KINEO-PASSE-AVULSO-2026-10-05 — O PACK VIRA "UM FILME, SEM ASSINATURA" ═══
+// Decisão do fundador (04-05/10, Pacote 2): com o Seedance 1.5 a 35 cr, o pack de
+// $4,90/30 cr deixou de comprar um filme de 60 s. O passe avulso passa a ser
+// US$ 4,99 por 35 créditos = EXATAMENTE um filme Seedance 1.5 de 60 s.
+// Pior caso (invariante 2): líquido $4,55 contra COGS $2,31 (35 cr no Fast, H3
+// não cabe) → +$2,24; custo real do filme Seedance 60 s ≈ $3,30 (clipPricing) → +$1,25.
 export const PACK_CREDITS = {
-  /** ?pack=starter — the $4.90 First Pack. */
-  starter: 30,
-  /** ?pack=starter290 — the dormant $2.90 offer (lib/flags.ts OFFER_290_ENABLED). */
+  /** ?pack=starter — o passe avulso: US$ 4,99 = 1 filme Seedance 1.5 de 60 s. */
+  starter: 35,
+  /** ?pack=starter290 — the dormant $2.90 offer (lib/flags.ts OFFER_290_ENABLED). Anuncia um filme de 35 s. */
   starter290: 25,
+} as const
+
+/**
+ * KINEO-PASSE-AVULSO-2026-10-05 — a duração do filme que cada SKU avulso ANUNCIA.
+ * O invariante (2) prova cada pack contra ESTA duração (antes era 60 s para todos):
+ * o starter290 (25 cr, dormente) cabe um Seedance de 35 s (21 cr), não um de 60 s (35 cr).
+ * Toda copy desses SKUs que falar em duração lê daqui.
+ */
+export const PACK_ADVERTISED_SECONDS = {
+  starter: 60,
+  starter290: 35,
+  ads_pass: 60,
 } as const
 
 // KINEO-VENDER-O-VIDEO-2026-08-21 — o preço do pacote avulso mora aqui porque
@@ -575,10 +624,19 @@ export const PACK_CREDITS = {
 // este repositório já pegou duas vezes (o `20` do Seedance e o `25` do
 // Starter). Preço que aparece em tela e preço que a Stripe cobra têm de sair
 // da MESMA linha.
-/** ?pack=starter — valor em centavos. Espelha PACK_PRICES.usd do checkout. */
-export const PACK_PRICE_MINOR: Record<CheckoutCurrency, number> = { usd: 490 }
+/** ?pack=starter — valor em centavos. Espelha PACK_PRICES.usd do checkout.
+ *  KINEO-PASSE-AVULSO-2026-10-05 — 490 → 499 (US$ 4,99 por 1 filme de 60 s). */
+export const PACK_PRICE_MINOR: Record<CheckoutCurrency, number> = { usd: 499 }
 
-/** "$4.90" — formatado para copy. */
+/** ?pack=starter290 — valor em centavos (dormente). Espelha PACK290_PRICES do checkout. */
+export const PACK290_PRICE_MINOR: Record<CheckoutCurrency, number> = { usd: 290 }
+
+/** Preço que o pack de US$ 4,90 cobrava até 05/10 — só para o fallback por valor do webhook (sessões antigas). */
+export const LEGACY_PACK_STARTER_PRICE_MINOR_490 = 490
+/** Créditos que esse pack antigo concedia (30). */
+export const LEGACY_PACK_STARTER_CREDITS_490 = 30
+
+/** "$4.99" — formatado para copy. */
 export function packPriceLabel(currency: CheckoutCurrency = 'usd'): string {
   return `$${(PACK_PRICE_MINOR[currency] / 100).toFixed(2)}`
 }
@@ -841,26 +899,29 @@ export function checkPricingInvariants(): string[] {
     }
   }
 
-  // (2) Every one-time entry pack buys at least one real 60s Seedance video.
-  //     and still nets positive against worst-case provider cost.
+  // (2) Every one-time entry pack buys at least one real Seedance video of the
+  //     duration IT advertises (KINEO-PASSE-AVULSO-2026-10-05: per SKU, no longer
+  //     60 s for all — starter290 advertises 35 s), and still nets positive
+  //     against worst-case provider cost.
   const packSkus: Array<{
     id: string
     usdMinor: number
     credits: number
     advertisedQuality: Parameters<typeof creditCostForDuration>[0]
+    advertisedSeconds: number
   }> = [
-    { id: 'pack:starter', usdMinor: 490, credits: PACK_CREDITS.starter, advertisedQuality: 'cinematic_ai' },
-    { id: 'pack:starter290', usdMinor: 290, credits: PACK_CREDITS.starter290, advertisedQuality: 'cinematic_ai' },
+    { id: 'pack:starter', usdMinor: PACK_PRICE_MINOR.usd, credits: PACK_CREDITS.starter, advertisedQuality: 'cinematic_ai', advertisedSeconds: PACK_ADVERTISED_SECONDS.starter },
+    { id: 'pack:starter290', usdMinor: PACK290_PRICE_MINOR.usd, credits: PACK_CREDITS.starter290, advertisedQuality: 'cinematic_ai', advertisedSeconds: PACK_ADVERTISED_SECONDS.starter290 },
     // KINEO-STUDIO-ADS-2026-09-25 — passe do Studio Ads: literal espelhado de lib/ads/offer.ts (ADS_PASS_USD_MINOR /
     // ADS_PASS_CREDITS); o guardião test-ads-servidor confere a igualdade. Anuncia Kineo 1, mas prova-se contra Seedance.
     // 28/09: passe B do fundador (90 cr pelo mesmo US$19,90).
-    { id: 'pack:ads_pass', usdMinor: 1990, credits: 90, advertisedQuality: 'cinematic_ai' },
+    { id: 'pack:ads_pass', usdMinor: 1990, credits: 90, advertisedQuality: 'cinematic_ai', advertisedSeconds: PACK_ADVERTISED_SECONDS.ads_pass },
   ]
   for (const sku of packSkus) {
-    const advertisedVideoCost = creditCostForDuration(sku.advertisedQuality, true, 60)
+    const advertisedVideoCost = creditCostForDuration(sku.advertisedQuality, true, sku.advertisedSeconds)
     if (sku.credits < advertisedVideoCost) {
       problems.push(
-        `${sku.id} grants ${sku.credits} credits — below the ${advertisedVideoCost} needed for its advertised 60s video.`,
+        `${sku.id} grants ${sku.credits} credits — below the ${advertisedVideoCost} needed for its advertised ${sku.advertisedSeconds}s video.`,
       )
     }
     const net = netAfterStripeUsd(sku.usdMinor / 100)
@@ -982,8 +1043,8 @@ export function checkPricingInvariants(): string[] {
     owners.push(sku)
     usdAmountOwners.set(amount, owners)
   }
-  claim(490, 'pack:starter')
-  claim(290, 'pack:starter290')
+  claim(PACK_PRICE_MINOR.usd, 'pack:starter')
+  claim(PACK290_PRICE_MINOR.usd, 'pack:starter290')
   claim(TOPUP_USD_PRICES.topup40, 'topup40')
   claim(TOPUP_USD_PRICES.topup100, 'topup100')
   claim(TOPUP_USD_PRICES.topup120, 'topup120')
@@ -1043,10 +1104,21 @@ export function checkPricingInvariants(): string[] {
           problems.push(
             `annual:${tier} in ${currency}/${region} costs ${annual}, at or above 12 monthly ` +
             `payments (${twelveMonths}). The annual toggle would sell a WORSE deal while the UI ` +
-            `says "≈2 months free".`,
+            `says "save ${ANNUAL_DISCOUNT_PERCENT}%".`,
           )
         }
       }
+    }
+  }
+  // (8b) KINEO-ANUAL-40OFF-2026-10-05 — o anual é 12 × mensal × (1 − 40%), arredondado para preço limpo. Mais de
+  //      0,5 ponto de distância do desconto anunciado = a etiqueta "save 40%" mente para um lado ou para o outro.
+  for (const tier of Object.keys(TIER_PRICES) as CheckoutTier[]) {
+    const exact = (1 - ANNUAL_PRICES[tier].usd / (TIER_PRICES[tier].usd * 12)) * 100
+    if (Math.abs(exact - ANNUAL_DISCOUNT_PERCENT) > 0.5) {
+      problems.push(
+        `annual:${tier} saves ${exact.toFixed(2)}% against 12 monthly payments, but the copy says ` +
+        `"save ${ANNUAL_DISCOUNT_PERCENT}%". Re-derive ANNUAL_PRICES (12 × monthly × ${(100 - ANNUAL_DISCOUNT_PERCENT) / 100}).`,
+      )
     }
   }
 

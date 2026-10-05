@@ -21,8 +21,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { OFFER_290_ENABLED } from '@/lib/flags'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
-import { PACK_CREDITS } from '@/lib/checkoutPricing'
-import { formatResultCount, videosForCredits } from '@/lib/marketingPrice'
+import { PACK_ADVERTISED_SECONDS, PACK_CREDITS, packPriceLabel } from '@/lib/checkoutPricing'
+import { formatResultCount } from '@/lib/marketingPrice'
+import { creditCostForDuration } from '@/lib/credits/engineCost'
+
+// KINEO-PASSE-AVULSO-2026-10-05 — com o Seedance a 35 cr, os 25 cr deste SKU não compram o filme de 60 s; ele
+// anuncia o de 35 s (PACK_ADVERTISED_SECONDS.starter290), contado pela MESMA função que o servidor cobra.
+const OFFER290_FILM_SECONDS = PACK_ADVERTISED_SECONDS.starter290
+const OFFER290_FILMS = Math.floor(PACK_CREDITS.starter290 / creditCostForDuration('cinematic_ai', true, OFFER290_FILM_SECONDS))
 
 const SEEN_KEY = 'kineo_offer290_seen'
 // KINEO-REBASE-2026-07-10 — written by components/ExitIntentOffer.tsx on show.
@@ -141,9 +147,9 @@ export default function Offer290Banner() {
             cheapest thing we sell finally buys the thing we advertise. */}
         <span style={{ color: '#fbbf24', fontWeight: 800, fontSize: 14 }}>
           🔥 First pack:{' '}
-          <span style={{ textDecoration: 'line-through', opacity: 0.7 }}>$4.90</span>{' '}
+          <span style={{ textDecoration: 'line-through', opacity: 0.7 }}>{packPriceLabel()}</span>{' '}
           <span style={{ color: '#fff' }}>$2.90</span> — {PACK_CREDITS.starter290} credits,
-          enough for {formatResultCount(videosForCredits(PACK_CREDITS.starter290, 'cinematic_ai'), 'AI Generated video')}
+          enough for {formatResultCount(OFFER290_FILMS, `${OFFER290_FILM_SECONDS}-second AI film`)}
         </span>
         <span style={{ color: '#fca5a5', fontSize: 13, fontWeight: 600 }}>
           Expires in{' '}

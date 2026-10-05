@@ -16,6 +16,7 @@ import {
   PAYPAL_TIER_USD,
   type PayPalTier,
 } from '@/lib/paypal'
+import { PACK_PRICE_MINOR } from '@/lib/checkoutPricing' // KINEO-PASSE-AVULSO-2026-10-05
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -99,7 +100,7 @@ export async function GET(req: NextRequest) {
         grantPackCredits(admin, userId, PAYPAL_PACK.credits),
       )
       return NextResponse.redirect(
-        `${appUrl()}/checkout/success?success=true&pack=starter&currency=usd&amount=490&via=paypal`
+        `${appUrl()}/checkout/success?success=true&pack=starter&currency=usd&amount=${PACK_PRICE_MINOR.usd}&via=paypal`
       )
     }
 

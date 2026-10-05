@@ -62,7 +62,7 @@
 // o deploy: o corte antes/depois é ele, nunca o relógio.
 import { useEffect, useRef, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
-import { PACK_CREDITS, packPriceLabel } from '@/lib/checkoutPricing'
+import { PACK_CREDITS, PACK_PRICE_MINOR, packPriceLabel } from '@/lib/checkoutPricing'
 
 /** Marcador de versão da superfície. Sem ele, uma medição depois do próximo
  *  deploy misturaria duas telas diferentes no mesmo número. */
@@ -217,7 +217,7 @@ export default function RegionalFirstPack({
       country: pais,
       surface,
       surface_version: REGIONAL_FIRST_PACK_VERSION,
-      pack_price_minor: 490,
+      pack_price_minor: PACK_PRICE_MINOR.usd, // KINEO-PASSE-AVULSO-2026-10-05 (era 490 digitado)
       pack_credits: PACK_CREDITS.starter,
       // Sem estes dois, uma impressão do Brasil (que vê SÓ o botão de Pix) e
       // uma da Índia (que vê os dois) viram a mesma linha, e ninguém saberia

@@ -21,7 +21,7 @@ import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
 // a QUANTIDADE nunca bateu: o assunto dizia "25-Short pack", o corpo dizia "10
 // videos", e o SKU concede PACK_CREDITS.starter (30) desde a V3D. Três números
 // para uma coisa só, no mesmo e-mail. Agora é um, derivado.
-import { PACK_CREDITS } from '@/lib/checkoutPricing'
+import { PACK_CREDITS, packPriceLabel } from '@/lib/checkoutPricing' // KINEO-PASSE-AVULSO-2026-10-05: preço do pack lido da fonte (era $4.90 digitado)
 import { PAID_PLANS } from '../_shared/mrr'
 
 export const maxDuration = 300
@@ -48,7 +48,7 @@ const ADMIN_EMAILS = new Set([
 // hello@ = prospecção/resgate de leads (support@ is reserved for support).
 const FROM_EMAIL = 'Joseph at Kineo <hello@usekineo.com>'
 const REPLY_TO = 'hello@usekineo.com'
-const SUBJECT = `Your ${PACK_CREDITS.starter}-credit pack — $4.90, no subscription`
+const SUBJECT = `Your ${PACK_CREDITS.starter}-credit pack — ${packPriceLabel()}, no subscription`
 
 // KINEO-PACK-WIDEN-2026-07-08 — widened from the Jul 5–6 cohort to ALL signups
 // (launch onward → end of today) so the $4.90 win-back reaches every unpaid lead
@@ -78,7 +78,7 @@ function isInternal(email: string): boolean {
   const dom = email.split('@')[1] ?? ''
   if (dom === 'shortsforgeai.com' || dom === 'usekineo.com' || dom === 'theresanaiforthat.com') return true
   return false
-}
+}
 function isValidExternalEmail(email: string): boolean {
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return false
   if (email.includes('example.com') || email.startsWith('test@') || email.startsWith('smoketest')) return false
@@ -95,13 +95,13 @@ function emailHtml(userId: string): string {
   <p>Hey — thanks for trying <b>Kineo</b> 🎬</p>
   <p>You can turn any idea into a finished, faceless YouTube Short in a few minutes — footage, voiceover, captions and music, done for you.</p>
   <p>Here's a founder deal to keep the momentum going:</p>
-  <p style="font-size:18px;margin:18px 0"><b>${PACK_CREDITS.starter} credits for a one-time $4.90.</b></p>
+  <p style="font-size:18px;margin:18px 0"><b>${PACK_CREDITS.starter} credits for a one-time ${packPriceLabel()}.</b></p>
   <ul>
     <li>No subscription</li>
     <li>Watermark-free</li>
   </ul>
   <p style="margin:26px 0">
-    <a href="https://usekineo.com/pricing?utm_source=winback_email&utm_campaign=starter25" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Get ${PACK_CREDITS.starter} credits for $4.90 →</a>
+    <a href="https://usekineo.com/pricing?utm_source=winback_email&utm_campaign=starter25" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Get ${PACK_CREDITS.starter} credits for ${packPriceLabel()} →</a>
   </p>
   <p>Just reply to this email if you need anything — I read every one.</p>
   <p>— Joseph, founder<br/>Kineo · https://usekineo.com</p>

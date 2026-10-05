@@ -141,7 +141,7 @@ import {
   CHECKOUT_CURRENCY_DISCLOSURE,
   CREATOR_AI_FILMS,
   creditsPerReferenceVideo,
-  videoMixForCredits,
+  describeSeedanceMix,
   videosForCredits,
   videosPerMonth,
 } from '@/lib/marketingPrice'
@@ -12127,7 +12127,10 @@ export default function GenerateClient({
     isSubscriber: isStarter || isCreator || isStudio,
     plan: serverPlanName,
   })
-  const shareRewardMix = videoMixForCredits(30, 'cinematic_ai', 'fast')
+  // KINEO-SEEDANCE-35CR-2026-10-04 — com o Seedance 60 s a 35 cr, os 30 cr do convite viravam "0 AI film + 6 quick
+  // videos" (o Kineo 1 nem está na vitrine). A frase agora conta o que 30 cr compram de verdade, pela mesma régua
+  // das packs (describeSeedanceMix: filmes de 15 s, 9 cr cada).
+  const shareRewardMixLabel = describeSeedanceMix(30)
 
   // ═══ KINEO-CUSTO-VISIVEL-2026-08-23 — o custo de CADA duração, antes do
   // clique. Decisão B do fundador (23/08), e o caso que a motivou: 6 pessoas
@@ -18544,7 +18547,7 @@ export default function GenerateClient({
                       style={{ color: 'var(--muted2)', lineHeight: 1.5 }}
                     >
                       {shareReferralCode
-                        ? `They make their first video, you each get 30 credits — that's ${shareRewardMix.primary} AI film + ${shareRewardMix.secondary} quick video${shareRewardMix.secondary === 1 ? '' : 's'}, free.`
+                        ? `They make their first video, you each get 30 credits — that's ${shareRewardMixLabel}, free.`
                         : 'Send your public watch page and ask what they think.'}
                     </p>
                   </div>
