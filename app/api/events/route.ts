@@ -231,6 +231,9 @@ const SERVER_ONLY_EVENTS = new Set([
   // /api/ads/producao/montage (a linha com o render_id é a PROVA de dono que o GET da montagem confere). O navegador não cunha.
   'producao_plan_created',
   'producao_montage_submitted',
+  // KINEO-HOME-CLIPS-FIRST-2026-10-05 — escrito SÓ por /api/home-variant (variante recalculada no servidor pelo user_id ou
+  // pelo cookie httpOnly kineo_vid). É o denominador do A/B da home: se o navegador pudesse cunhá-lo, o placar mentiria.
+  'home_variant_exposed',
 ])
 
 export async function POST(req: NextRequest) {
