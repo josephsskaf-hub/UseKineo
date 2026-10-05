@@ -360,6 +360,17 @@ relatório de concorrente virando página /vs, prazo de mercado (morte do Sora
 4. Configurar: 1 legenda + shortsforgeai.com no último segundo
 5. Usuário baixa e sobe no YouTube
 
+## ⚠⚠ REGRA FIXA — PROVOCAR O FUNDADOR, DOA O QUANTO DOER (fundador 04-05/10)
+"Olha, Joseph, isso que você está fazendo não está no caminho certo. Vai nesse caminho que você vai ganhar mais
+dinheiro." Origem: na noite de 04/10 descobrimos que os concorrentes (Higgsfield, Kling) faturam milhões com CLIPES de
+5–10 s e efeitos de 1 clique, enquanto a Kineo passou semanas no filme narrado de 60 s — e ninguém tinha dito isso a ele.
+Em UMA conversa o plano mudou (Clipes = produto 1, filme = produto 2, anual 40%, passe avulso). Daí em diante:
+- Em toda análise, trazer SEM ESPERAR PERGUNTA o que o mercado/concorrente faz que nós não fazemos, e confrontar a
+  estratégia quando dado de receita ou de concorrente apontar outro caminho.
+- TODA discussão termina com um bloco "Não dá / dá melhor": o que não pode ser feito (e por quê), o que pode ser feito
+  de um jeito melhor, diferente, ou que ganha mais dinheiro. Vem ANTES das listas ✅ / 📋.
+- Dizer na cara quando a ideia do fundador perde dinheiro (ex.: clipe abaixo do custo da fal para igualar o Higgsfield).
+
 ## ⚠ REGRA FIXA — pensar junto, não só executar (fundador 16/08)
 **Toda entrega vem com o raciocínio estratégico junto** — o "porquê" de produto/marca/receita, não só o "o quê". O fundador quer as sacadas explicitadas pra pensar e progredir junto.
 
