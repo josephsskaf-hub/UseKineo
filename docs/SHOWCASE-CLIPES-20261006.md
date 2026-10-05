@@ -8,7 +8,7 @@
 
 | Item | LOCAL | ENFILEIRADO | PUBLICADO | EXPOSTO | PAGO |
 |---|---|---|---|---|---|
-| 1 · visitante = conta nova | Implementação e guardião em validação | Pendente | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
+| 1 · visitante = conta nova | Testado; código 2e330992 | Pronto para fila da casa | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
 | 2 · páginas de efeito | Pendente | Pendente | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
 | 3 · Kling 4 desligado | Pendente | Pendente | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
 | 4 · medição por origem | Pendente | Pendente | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
@@ -25,7 +25,7 @@
 
 **TESTADO LOCALMENTE:** scripts/test-clips-visitante-2026-10-06.mjs executa GET/POST reais com dependências de rede/pagamento bloqueadas. Prova visitante=conta criada agora, nove efeitos, pausa dos motores, política futura ativa, rollback e ausência de leitura de saldo/trabalhos do visitante. Seis mutantes rejeitados. O guardião de efeitos de 05/10 foi atualizado para a regra expressa de cartão sem preço.
 
-**TESTADO LOCALMENTE — 05/10:** tsc --noEmit --incremental false terminou com código 0. Guardião dos efeitos: 39 verificações, 11 mutantes anteriores preservados. A base tem 762 scripts: 619 verdes, 143 vermelhos; comparação completa do candidato em andamento.
+**TESTADO LOCALMENTE — 05/10:** tsc --noEmit --incremental false terminou com código 0. Guardião dos efeitos: 39 verificações, 11 mutantes anteriores preservados. Suíte inteira: base 762 scripts / 619 verdes / 143 vermelhos; candidato 763 / 620 / 143. Nenhum teste nem asserção vermelha nova. [Gates completos](showcase-clipes-20261006/item-1/gates.json). Código validado: 2e3309926882fdbd86995ff94e34c389715e38b4. Dependências iguais e rede bloqueada nas duas execuções.
 
 **TESTADO LOCALMENTE — 05/10 23:19:50Z:** [comparação visual autocontida](showcase-clipes-20261006/item-1/comparison.html), [prova de navegador](showcase-clipes-20261006/item-1/browser.json). GET anônimo local real: 2→9 efeitos; desktop/celular, claro/escuro, sem rolagem lateral, custo no botão, zero POST de geração. Demais APIs simuladas; nada pago. Os mesmos nove erros de hidratação do painel ocorreram na base e no candidato, sem erro novo; não foram disfarçados como validação de produção. Prints separados mostram cartões e botão de gerar.
 
