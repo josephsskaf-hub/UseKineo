@@ -31,10 +31,17 @@ const exists = (rel) => fs.existsSync(path.join(ROOT, rel))
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }
-function load(src) {
+// Reancorado 05/10 (CLIP-EFEITOS): lib/clips/clipEffects.ts passou a importar ./clipCatalog e ./clipPricing (puros).
+// O carregador resolve SÓ imports relativos ('./x' → arquivo .ts vizinho, recursivo); qualquer outro import continua erro.
+function load(src, dir = 'lib/growth') {
   const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText
   const mod = { exports: {} }
-  new Function('module', 'exports', 'require', js)(mod, mod.exports, (p) => { throw new Error('import inesperado: ' + p) })
+  const req = (p) => {
+    if (!p.startsWith('./')) throw new Error('import inesperado: ' + p)
+    const rel = path.posix.join(dir, p.slice(2) + '.ts')
+    return load(read(rel), path.posix.dirname(rel))
+  }
+  new Function('module', 'exports', 'require', js)(mod, mod.exports, req)
   return mod.exports
 }
 
@@ -197,7 +204,7 @@ ok(/clipsPublic: clipsVisible\(email\),/.test(server) && /effectsPublic: clipEff
 ok((server.match(/homeClipsFirstModeFor\(args\.email\)/g) || []).length === 2 && /resolveHomeVariant\(\{ userId, email \}\)/.test(read('app/api/home-variant/route.ts')) && /email,\n    previewParam/.test(read('app/page.tsx')), '(6c) home e rota de exposição passam o e-mail para a trava')
 // executado: a trava com o catálogo REAL (clipEffectsVisible de lib/clips/clipEffects.ts)
 {
-  const EV = load(effectsSrc)
+  const EV = load(effectsSrc, 'lib/clips')
   const outsider = M.effectiveHomeClipsFirstMode('ab50', { clipsPublic: clipsPublic, effectsPublic: EV.clipEffectsVisible(false) })
   const house = M.effectiveHomeClipsFirstMode('ab50', { clipsPublic: true, effectsPublic: EV.clipEffectsVisible(true) })
   ok(house === 'ab50' && outsider === (effectsPublic && clipsPublic ? 'ab50' : 'off'), `(6d) com a home ligada: casa sorteada; visitante de fora ${effectsPublic ? 'sorteado (efeitos públicos)' : 'fica na home atual (CLIP_EFFECTS_PUBLIC=false)'}`)
@@ -246,8 +253,8 @@ ok(/if \(!effect\.preview\)/.test(cf) && /Preview coming soon/.test(cf) && /clas
 ok(/<SignupConversionTracker \/>/.test(cf) && /<WelcomeOfferModal surface="home" \/>/.test(cf) && /variant=\{CLIPS_FIRST_LANDING_VARIANT\}/.test(cf), '(10e) mesmos rastreadores da home (Ads ?signup=1, welcome20, homepage_view com variante própria)')
 ok(/ENGINE_PAGE_LEAD\.slice\(0, 1\)/.test(cf) && /FOUNDER_SHOWCASE\.slice\(0, 2\)/.test(cf) && /clipsFirstFilmHref\(signedIn\)/.test(cf), '(10f) produto 2: filmes da casa + botão para o Studio')
 // execução: preço por efeito e mídia
-const P = load(read('lib/clips/clipPricing.ts'))
-const E = load(effectsSrc)
+const P = load(read('lib/clips/clipPricing.ts'), 'lib/clips')
+const E = load(effectsSrc, 'lib/clips')
 const prices = E.CLIP_EFFECTS.map((e) => P.clipCreditCost(e.engine, e.seconds))
 ok(E.CLIP_EFFECTS.length >= 4 && prices.every((c) => Number.isInteger(c) && c >= P.CLIP_MIN_CREDITS), `(10g) preço executado de cada efeito: ${E.CLIP_EFFECTS.map((e, i) => `${e.key}=${prices[i]}`).join(' ')}`)
 const missing = E.CLIP_EFFECTS.filter((e) => e.preview).flatMap((e) => [e.preview.video, e.preview.poster].filter(Boolean)).filter((u) => !exists('public' + u))
