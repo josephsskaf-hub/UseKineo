@@ -22,7 +22,7 @@ function run(input = {}, requested = 'credits', implementation = opener) {
     // Conversion sprint: the imported flag/metadata are mocked at this opener boundary;
     // test-mrr-conversao-0610 executes their real implementation and its mutants.
     MRR_CONVERSION_ENABLED: true,
-    notPaidProven: input.hasPaid !== true && !input.isStarter && !input.isCreator && !input.isStudio,
+    notPaidProven: input.hasPaid !== true,
     conversionMetadata: surface => ({ offer_version: 'mrr0610_v1', offer_surface: surface }),
     hasPaid: false, isStarter: false, isCreator: false, isStudio: false,
     trialUi: { creditsGranted: 30, phase: 'downgraded' }, trialActive: false,
@@ -106,5 +106,6 @@ const conversion = run({ limitPurchaseFit: { recommendation_id: 'fixture' } })
 assert.equal(conversion.events.length, 1, 'new modal does not claim the hidden old fit was viewed')
 assert.equal(conversion.events[0].metadata.offer_version, 'mrr0610_v1', 'eligible modal carries the offer version')
 assert.equal(fit.events[0].metadata.offer_version, undefined, 'subscribers retain their existing modal attribution')
-checks += 3
+for (const tier of ['isStarter', 'isCreator', 'isStudio']) assert.equal(run({ [tier]: true }).events[0].metadata.offer_version, undefined, 'paid plan wins even before hasPaid refresh')
+checks += 6
 console.log(`paid-upgrade-reason: ${checks} checks passed (offline)`)

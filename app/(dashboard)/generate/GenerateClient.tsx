@@ -11423,7 +11423,7 @@ export default function GenerateClient({
     // recusas do motor de IA estavam até hoje. `void`: é telemetria de UI, a
     // aba não vai a lugar nenhum na linha seguinte — o modal abre.
     void trackEvent('upgrade_modal_opened', {
-      ...(MRR_CONVERSION_ENABLED && notPaidProven ? conversionMetadata('upgrade') : {}),
+      ...(MRR_CONVERSION_ENABLED && notPaidProven && !paidAccount ? conversionMetadata('upgrade') : {}),
       reason: resolvedReason,
       requested_reason: reason,
       surface: 'generate',
@@ -11439,7 +11439,7 @@ export default function GenerateClient({
     // evento novo só existe quando saldo e custo provam uma falta real; seus
     // valores são buckets, nunca o saldo exato.
     const reasonHasCreditFit = resolvedReason === 'credits' || resolvedReason.startsWith('trial_')
-    if (limitPurchaseFit && reasonHasCreditFit && !(MRR_CONVERSION_ENABLED && notPaidProven)) {
+    if (limitPurchaseFit && reasonHasCreditFit && !(MRR_CONVERSION_ENABLED && notPaidProven && !paidAccount)) {
       void trackEvent('limit_purchase_fit_viewed', {
         surface: 'generate_upgrade_modal',
         reason: resolvedReason,
@@ -14337,8 +14337,8 @@ export default function GenerateClient({
             const originalHref = withIntentCampaign(`/api/stripe/checkout?tier=${tier}&billing=${billing}${introParam}`)
             const started = upgradeModalCheckout.launch(
               tier,
-              notPaidProven ? conversionCheckoutHref(originalHref, 'upgrade', `${tier}_${billing}`) : originalHref,
-              { tier, billing, intro: introParam !== '', reason: upgradeReason, ...(MRR_CONVERSION_ENABLED && notPaidProven ? conversionMetadata('upgrade', `${tier}_${billing}`) : {}), previous_intent_campaign: intentCampaign || null },
+              notPaidProven && !(isStarter || isCreator || isStudio) ? conversionCheckoutHref(originalHref, 'upgrade', `${tier}_${billing}`) : originalHref,
+              { tier, billing, intro: introParam !== '', reason: upgradeReason, ...(MRR_CONVERSION_ENABLED && notPaidProven && !(isStarter || isCreator || isStudio) ? conversionMetadata('upgrade', `${tier}_${billing}`) : {}), previous_intent_campaign: intentCampaign || null },
             )
             if (!started) return
             trackCheckoutClick(tier)
@@ -22312,7 +22312,7 @@ function UpgradeModal({
   }
   const head = HEAD[reason] ?? HEAD.credits
   // The existing free/trial action is preserved; only the purchase dialog changes.
-  if (MRR_CONVERSION_ENABLED && notPaidProven) {
+  if (MRR_CONVERSION_ENABLED && notPaidProven && !isSubscriber) {
     const freeLabel = firstFilmFree ? 'Make my first film free' : trialSeedance15
       ? `Make my included ${trialSeedance15.seconds}-second Seedance film`
       : trialKineo1 ? `Make my included ${trialKineo1.seconds}-second Kineo 1 film` : null
