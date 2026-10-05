@@ -99,7 +99,12 @@ export function creditCostFor(quality: Quality, isPaidUser = false): number {
       // 25cr + fixes de retry/salvage de hoje, sai do prejuízo. O trial de
       // 25cr segue comprando EXATAMENTE 1 Seedance — storytelling intacto.
       // (O espelho SEEDANCE_CREDIT_COST da rota agora LÊ esta função.)
-      return 25
+      // KINEO-SEEDANCE-35CR-2026-10-04 — 25 → 35 (decisão do fundador, 04/10 ~23h45 BRT: "vamos subir sim o
+      // preço do seedance 1.5 como você recomendou"). Comparação por segundo de filme PRONTO no Creator: a 25cr
+      // saía US$ 0,08/s contra ~US$ 0,29/s do InVideo (modo gerativo); a 35cr sai ~US$ 0,12/s, ainda ~60% abaixo,
+      // e a margem sai de ~28% (clipPricing) para perto de 50%. A régua por duração acompanha sozinha:
+      // 15s = 9cr (a cota semanal grátis e o trial de 10cr seguem cobrindo 1 filme de 15s) · 35s = 21 · 90s = 53.
+      return 35
     case 'cinematic_kling':
       // KINEO-KLING-90-2026-07-06 margin math intact.
       // KINEO-REBASE-2026-07-10 — 90 → 45 (2:1 rebase; same USD value).

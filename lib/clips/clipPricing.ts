@@ -71,7 +71,7 @@ export interface ClipCostSpec {
 export const CLIP_COSTS: Record<ClipEngineKey, ClipCostSpec> = {
   hollywood: { usdPerSecond: 0.112, filmQuality: 'cinematic_hollywood', filmCredits: 150, filmFalUsd: 11.0 },
   kling: { usdPerSecond: 0.07, filmQuality: 'cinematic_kling', filmCredits: 60, filmFalUsd: 8.4 },
-  seedance: { usdPerSecond: 0.026, filmQuality: 'cinematic_ai', filmCredits: 25, filmFalUsd: 3.3 },
+  seedance: { usdPerSecond: 0.026, filmQuality: 'cinematic_ai', filmCredits: 35, filmFalUsd: 3.3 }, // KINEO-SEEDANCE-35CR-2026-10-04 (era 25)
   veo: { usdPerSecond: 0.1, filmQuality: 'cinematic_veo', filmCredits: 100, filmFalUsd: 9.75 },
   h3: { usdPerSecond: 0.06, filmQuality: 'cinematic_h3', filmCredits: 45, filmFalUsd: 3.9 },
   omni: { usdPerSecond: 0.13, filmQuality: 'cinematic_omni', filmCredits: 150, filmFalUsd: 8.5 },
