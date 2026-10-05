@@ -27,8 +27,11 @@ export function pricingBillingHandoff(input: { billing?: unknown; promo?: unknow
   // mensal — a página abria numa oferta cujo contrato ela mesma descrevia
   // errado; e o anual teve 0 vendas na vida. `?billing=annual` explícito
   // continua abrindo no anual.
+  // KINEO-ANUAL-40OFF-2026-10-05 — volta a abrir no ANUAL (fundador, Pacote 2: "anual pré-selecionado"). O motivo de
+  // 23/09 morreu: desde 24/09 o anual recebe crédito MÊS A MÊS (cron annual-credit-refill), e agora ele é 40% off.
+  // As promos mensais (FIRST50/COMEBACK50) e `?billing=monthly` explícito continuam abrindo no mensal.
   return {
-    initialBilling: monthlyPromo ? 'monthly' : requestedBilling ?? 'monthly',
+    initialBilling: monthlyPromo ? 'monthly' : requestedBilling ?? 'annual',
     // A different billing handoff resets the page; unrelated query changes do not
     // overwrite a buyer's subsequent manual choice.
     key: `${requestedBilling ?? 'default'}:${monthlyPromo}`,

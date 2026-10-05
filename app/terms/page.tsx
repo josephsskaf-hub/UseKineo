@@ -4,6 +4,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
+import { ANNUAL_REFUND_POLICY } from '@/lib/checkoutPricing' // KINEO-ANUAL-40OFF-2026-10-05
 
 export const metadata: Metadata = {
   title: 'Terms of Service — Kineo',
@@ -99,6 +100,8 @@ export default function TermsPage() {
               support@usekineo.com
             </a>{' '}
             within 7 days of the first charge and we&apos;ll refund 100%.
+            An annual plan is billed once a year and still releases its
+            credits month by month. {ANNUAL_REFUND_POLICY}{' '}
             Failed generations never consume credits.
           </Section>
 

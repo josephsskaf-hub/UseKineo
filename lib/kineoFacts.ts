@@ -34,6 +34,10 @@ import {
   TIER_CREDITS,
   CURRENCY_DISPLAY,
   formatCheckoutMoney,
+  // KINEO-ANUAL-40OFF-2026-10-05 — o desconto e a política de reembolso do anual entram no catálogo pela fonte única.
+  ANNUAL_DISCOUNT_PERCENT,
+  ANNUAL_REFUND_POLICY,
+  annualSavingsPercent,
   // KINEO-PORTA-1DOLAR-NO-MAPA-2026-09-07 — os três números da porta de $1 vêm
   // do MESMO módulo que a rota do Stripe usa para cobrar. Ver CARD_TRIAL_FACT.
   CARD_TRIAL_ENTRY_FEE_MINOR,
@@ -185,6 +189,9 @@ export interface PlanFact {
   /** Preço anual à vista, quando existe. */
   annualUsd: string | null
   annualUsdCents: number | null
+  /** KINEO-ANUAL-40OFF-2026-10-05 — anual ÷ 12, formatado ("≈ $7.74/mo"), e o desconto real contra 12 mensalidades. */
+  annualPerMonthUsd: string | null
+  annualSavingsPercent: number | null
   /** Créditos liberados a cada mês de cobrança. */
   creditsPerMonth: number
   /** O que o plano inclui, como aparece em /pricing. */
@@ -286,6 +293,8 @@ function buildPlan(id: CheckoutTier): PlanFact {
     firstMonthUsdCents: intro,
     annualUsd: formatCheckoutMoney('usd', ANNUAL_PRICES[id].usd),
     annualUsdCents: ANNUAL_PRICES[id].usd,
+    annualPerMonthUsd: formatCheckoutMoney('usd', ANNUAL_PRICES[id].usd / 12),
+    annualSavingsPercent: annualSavingsPercent(id),
     creditsPerMonth: plan.credits,
     includes: PLAN_INCLUDES[id],
   }
@@ -310,6 +319,8 @@ const AUTOPILOT_FACT: PlanFact = {
   firstMonthUsdCents: null,
   annualUsd: null,
   annualUsdCents: null,
+  annualPerMonthUsd: null,
+  annualSavingsPercent: null,
   creditsPerMonth: PLANS.autopilot.credits,
   includes: [
     'Done-for-you: we connect your YouTube channel and publish one Short a day to it',
@@ -330,6 +341,8 @@ const AUTOPILOT_LITE_FACT: PlanFact = {
   firstMonthUsdCents: null,
   annualUsd: null,
   annualUsdCents: null,
+  annualPerMonthUsd: null,
+  annualSavingsPercent: null,
   creditsPerMonth: PLANS.autopilot_lite.credits,
   includes: [
     'Done-for-you, weekly: we connect your YouTube channel and publish one episode of your series every week',
@@ -790,7 +803,9 @@ export const PRODUCT = {
   creditsRollOver: false,
   // fonte: app/pricing/PricingClient.tsx:59.
   moneyBackGuaranteeDays: 7,
-  billing: 'Month-to-month, cancel anytime',
+  // KINEO-ANUAL-40OFF-2026-10-05 — o anual é 40% off sobre 12 mensalidades, com reembolso integral em 14 dias.
+  billing: `Monthly, or annual at ${ANNUAL_DISCOUNT_PERCENT}% off 12 monthly payments; cancel anytime`,
+  annualRefundPolicy: ANNUAL_REFUND_POLICY,
   // fonte: lib/checkoutPricing.ts (CURRENCY_DISPLAY). Derivado da mesma tabela
   // que formata a vitrine e governa o resolver do Checkout: o feed AEO não
   // mantém uma segunda lista de moedas para esquecer depois de uma mudança.
