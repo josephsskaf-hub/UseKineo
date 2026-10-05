@@ -157,6 +157,10 @@
       "schedule": "47 * * * *"
     },
     {
+      "path": "/api/cron/courtesy-expire?confirm=APPLY",
+      "schedule": "23 9 * * *"
+    },
+    {
       "path": "/api/cron/ads-v2-advance",
       "schedule": "2-57/5 * * * *"
     }
