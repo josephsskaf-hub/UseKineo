@@ -123,6 +123,8 @@ function discovery(overrides = {}) {
       LOCALIZED_ENGINE_SLUGS: [], ENGINE_LANG_CODES: [], adsPassLive: () => false,
       ADS_SEGMENT_SLUGS: [], ADS_SEGMENTS_UPDATED: '2026-09-01', ADS_COMPARISONS: [],
       adsSegmentPath: s => `/ads/${s}`, adsComparisonPath: s => `/ads/compare/${s}`,
+      // New independent cluster; its real entries are exercised by test-clips-effect-pages-2026-10-06.
+      effectSitemapEntries: () => [{ url: 'https://www.usekineo.com/effects/melt' }],
     }
     new Function('exports', 'require', 'module', js)(mod.exports, () => fixtures, mod)
     return mod.exports.default()

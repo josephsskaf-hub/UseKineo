@@ -1,0 +1,33 @@
+.effect-page{min-height:100vh;background:radial-gradient(ellipse at 90% 10%,color-mix(in srgb,#06b6d4 12%,transparent),transparent 58%),radial-gradient(ellipse at 0% 45%,color-mix(in srgb,#8b5cf6 10%,transparent),transparent 52%),var(--bg);color:var(--text);overflow-x:clip}
+html:has(.effect-page),body:has(.effect-page){height:auto;overflow-x:clip}
+.effect-page{position:relative;z-index:1;isolation:isolate}
+.effect-page *{box-sizing:border-box}
+.ep-nav,.ep-wrap{width:min(1220px,100%);margin:auto;padding-inline:32px}
+.ep-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-block:24px;border-bottom:1px solid var(--border)}
+.ep-brand{display:flex;align-items:center;gap:8px;font-size:21px;font-weight:800;text-decoration:none;color:var(--text)}
+.ep-tools{display:flex;align-items:center;gap:10px}
+.ep-tools select{min-width:0;max-width:150px;padding:9px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font:inherit;font-size:13px}
+.ep-breadcrumb{font-size:13px;color:var(--muted2);padding-block:28px;overflow-wrap:anywhere}
+.effect-page a{color:inherit}.ep-breadcrumb a{text-decoration:none}
+.ep-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,6vw,84px);align-items:center;padding-block:10px 58px}
+.ep-intro{min-width:0}.ep-eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--muted2)}
+.ep-intro h1{font-size:clamp(36px,4.5vw,64px);line-height:1.07;letter-spacing:-.04em;margin:18px 0;overflow-wrap:anywhere}
+.ep-lead{font-size:clamp(17px,1.8vw,21px);line-height:1.65;color:var(--text2);max-width:470px}
+.ep-engine{display:inline-block;padding:5px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;margin-top:10px}
+.ep-steps{display:flex;gap:25px;flex-wrap:wrap;list-style-position:inside;padding:0;margin:30px 0;font-size:13px;color:var(--muted2);line-height:1.7}
+.effect-page .ep-cta{display:inline-flex;align-items:center;justify-content:space-between;gap:42px;background:var(--accent,#0a5cff);color:var(--on-accent,#fff);padding:17px 23px;border-radius:12px;font-size:16px;font-weight:750;text-decoration:none;max-width:100%;min-height:52px}
+.ep-note{font-size:12px;color:var(--muted2);line-height:1.6;margin-top:14px}
+.ep-stage{margin:0;min-width:0;padding:16px;background:#090c13;border:1px solid #ffffff21;border-radius:22px;display:grid;justify-items:center;box-shadow:0 18px 58px #0002}
+.ep-stage video{display:block;width:100%;max-height:570px;aspect-ratio:9/16;object-fit:contain;background:#090c13;border-radius:12px}
+.ep-stage figcaption{font-size:11px;line-height:1.5;color:#c2c8d2;padding:12px 12px 0;text-align:center}
+.ep-related{border-top:1px solid var(--border);padding-block:30px 44px}
+.ep-section-heading{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:22px}
+.ep-section-heading h2{font-size:23px;margin:0}.ep-section-heading a{font-size:13px}
+.ep-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+.ep-card{display:block;min-width:0;text-decoration:none;border:1px solid var(--border);background:var(--card);border-radius:14px;overflow:hidden;padding:8px}
+.ep-card img{display:block;width:100%;height:auto;aspect-ratio:4/5;object-fit:cover;border-radius:9px}
+.ep-card-engine{display:block;font-size:10px;color:var(--muted2);padding:12px 5px 3px}
+.ep-card h3{font-size:14px;line-height:1.45;margin:0;padding:0 5px 8px;overflow-wrap:anywhere}
+.ep-footer{display:flex;justify-content:space-between;gap:16px;padding-block:26px;border-top:1px solid var(--border);font-size:12px;color:var(--muted2)}
+.effect-page :is(a,select,button,video):focus-visible{outline:3px solid #06b6d4;outline-offset:4px}
+@media(max-width:760px){.ep-nav,.ep-wrap{padding-inline:20px}.ep-nav{padding-block:18px}.ep-hero{grid-template-columns:minmax(0,1fr);gap:26px;padding-bottom:34px}.ep-stage{grid-row:2;padding:12px}.ep-stage video{max-height:490px}.ep-intro h1{font-size:42px}.ep-steps{margin-block:23px;gap:8px 18px}.ep-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.ep-breadcrumb{padding-block:24px}.ep-tools select{max-width:125px}.ep-card h3{font-size:13px}}

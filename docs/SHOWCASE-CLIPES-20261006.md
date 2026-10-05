@@ -8,8 +8,8 @@
 
 | Item | LOCAL | ENFILEIRADO | PUBLICADO | EXPOSTO | PAGO |
 |---|---|---|---|---|---|
-| 1 · visitante = conta nova | Testado; código 2e330992 | Pronto para fila da casa | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
-| 2 · páginas de efeito | Pendente | Pendente | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
+| 1 · visitante = conta nova | Testado; código 2e330992 | 09698a53c3c489831ec99f3b52710edaff53fcb8 | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
+| 2 · páginas de efeito | Testado; código 646361bf | Em preparação da fila | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
 | 3 · Kling 4 desligado | Pendente | Pendente | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
 | 4 · medição por origem | Pendente | Pendente | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
 
@@ -29,7 +29,21 @@
 
 **TESTADO LOCALMENTE — 05/10 23:19:50Z:** [comparação visual autocontida](showcase-clipes-20261006/item-1/comparison.html), [prova de navegador](showcase-clipes-20261006/item-1/browser.json). GET anônimo local real: 2→9 efeitos; desktop/celular, claro/escuro, sem rolagem lateral, custo no botão, zero POST de geração. Demais APIs simuladas; nada pago. Os mesmos nove erros de hidratação do painel ocorreram na base e no candidato, sem erro novo; não foram disfarçados como validação de produção. Prints separados mostram cartões e botão de gerar.
 
-## Medição e dados
+## Item 2 · uma página por efeito
+
+**IMPLEMENTADO / FATO CONFIRMADO — lib/clips/clipEffectPages.ts e app/effects/:** nove efeitos reais, cada um com página inglesa em `/effects/<slug>` e 15 versões em `/effects/<slug>/<lang>`. Ex.: `/effects/melt`, `/effects/product-360`, `/effects/melt/pt`. Título, descrição, capa OG própria, canonical e hreflang; 144 URLs no sitemap. Conteúdo no mesmo `lib/ui/refinementCopy.json`, sem preço nos cartões ou na página. Motor e mídia derivados do catálogo da casa; prompts não são enviados como props da página.
+
+**IMPLEMENTADO:** o CTA de visitante usa o `redirect` já aceito pelo cadastro para voltar a `/clips?effect=<key>&clip_origin=effect_page`; conta autenticada vai direto. Nenhuma alteração em cadastro, checkout ou home. `CLIP_EFFECT_PAGES_PUBLIC=false` retira páginas e sitemap juntos. Prévia descarrega fora da tela/aba, respeita redução de movimento e economia de dados; demais efeitos usam apenas capas.
+
+**TESTADO LOCALMENTE — 05/10 23:36Z:** nove rotas inglesas 200; as 16 línguas verificadas em `/effects/melt`, títulos/OG/canonical/hreflang e RTL corretos; rotas inválidas 404; 144 URLs de efeito no sitemap; nenhuma rolagem lateral a 360 px; CTA → cadastro simulado → efeito Melt selecionado, sem POST de geração. Zero erro de hidratação nas páginas novas. Os erros observados pertencem ao `/clips` e já existiam na base.
+
+**TESTADO LOCALMENTE:** tsc limpo; seis mutantes no guardião `test-clips-effect-pages-2026-10-06.mjs`; guardião do Showcase preserva 23 verificações/17 mutantes, com fixture do novo grupo independente no sitemap. [Comparação antes/depois](showcase-clipes-20261006/item-2/comparison.html), [prova de navegador](showcase-clipes-20261006/item-2/browser.json).
+
+**SUGESTÃO / limite comercial:** manter a página específica e a prévia próprias, prática observada na Higgsfield. Publicação e sitemap não comprovam indexação, visita, cadastro ou receita; isso será medido pela coorte do evento, não presumido pelo número de URLs.
+
+**TESTADO LOCALMENTE — 05/10:** suíte completa: base 762 scripts / 619 verdes / 143 vermelhos; item 2, 764 / 621 / 143. Nenhum teste nem asserção vermelha nova. [Gates completos](showcase-clipes-20261006/item-2/gates.json). Execução isolada de rede, mesmas dependências da base.
+
+## Régua de medição
 
 **FATO CONFIRMADO — app/api/clips/route.ts e lib/clips/clipFlow.ts:** `clip_effect_chosen` hoje significa pedido de geração aceito e novo; `clip_effect_ready` significa transição persistida para pronto. Cliques de navegação não serão rebatizados como geração aceita.
 
