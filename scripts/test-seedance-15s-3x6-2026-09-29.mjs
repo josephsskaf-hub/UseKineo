@@ -133,11 +133,15 @@ checa('isSeedanceShortClaim: duration 15 + fal_model do Seedance (t2v ou i2v) = 
 }
 
 // ═══ 2. custo ═══
-console.log('2) custo: crédito inalterado (7), clipe mais barato')
+console.log('2) custo: crédito do 15 s pela régua (9 desde 04/10), clipe mais barato')
 const E = roda(rd('lib/credits/engineCost.ts'))
 const Eb = rdBase('lib/credits/engineCost.ts') ? roda(rdBase('lib/credits/engineCost.ts')) : null
 const custo15 = E.creditCostForDuration('cinematic_ai', true, 15)
-checa(`o filme de 15 s continua custando 7 cr pela função que debita (lido: ${custo15}) e engineCost.ts é o da base`, custo15 === 7 && rd('lib/credits/engineCost.ts') === rdBase('lib/credits/engineCost.ts') && Eb?.creditCostForDuration('cinematic_ai', true, 15) === 7)
+// KINEO-SEEDANCE-35CR-2026-10-04 — o engineCost.ts deixou de ser o da base DE PROPÓSITO (Seedance 60 s 25 → 35, decisão do
+// fundador 04/10): o 15 s passa a 9 pela MESMA régua. A intenção do guardião continua — o 3×6 não mexe em preço: fora o
+// Seedance, todo motor e toda duração custam o mesmo que na base, e a regra ⌈base × 15/60⌉ é a mesma.
+const OUTROS_MOTORES = ['fast', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni']
+checa(`o filme de 15 s custa ${custo15} cr pela função que debita (⌈35 × 15/60⌉ = 9) e, fora o Seedance, o engineCost.ts cobra o mesmo que a base`, custo15 === 9 && custo15 === Math.ceil(E.creditCostFor('cinematic_ai', true) * 15 / 60) && Eb !== null && OUTROS_MOTORES.every((q) => [15, 35, 60, 90].every((s) => E.creditCostForDuration(q, true, s) === Eb.creditCostForDuration(q, true, s))))
 const USD_S = Number(/export const SEEDANCE_720P_USD_PER_SECOND = ([\d.]+)/.exec(rd('lib/fastAiClips.ts'))?.[1])
 const novo = Math.round(3 * 6 * USD_S * 100) / 100, antes = Math.round(2 * 10 * USD_S * 100) / 100
 checa(`custo de clipe por filme (US$ ${USD_S}/s, 720p sem áudio): 3 × 6 s = US$ ${novo.toFixed(2)} < 2 × 10 s = US$ ${antes.toFixed(2)}; teto 3 × 8 s = US$ ${(24 * USD_S).toFixed(2)}`, USD_S > 0 && novo < antes && novo === 0.47 && antes === 0.52)

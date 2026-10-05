@@ -66,7 +66,7 @@ export type PlanoDeResgate =
   | { tipo: 'cabe' }
   /** Mesma câmera, filme mais curto. É o desvio PREFERIDO: preserva a escolha. */
   | { tipo: 'mesma_camera'; alvo: Combinacao }
-  /** Mesma duração, a melhor câmera que o saldo alcança. */
+  /** Mesma duração (ou, se nenhuma cabe nela, a maior duração menor), a melhor câmera que o saldo alcança. */
   | { tipo: 'outra_camera'; alvo: Combinacao }
   /** Nada do cardápio cabe. Aí sim é conversa de saldo — e ela é do Codex. */
   | { tipo: 'nada_cabe' }
@@ -80,7 +80,8 @@ export type PlanoDeResgate =
  * 2º só então oferece outra câmera na MESMA duração, sempre a MAIS CARA que
  *    ainda cabe — nunca a mais barata da lista. Oferecer o pior quando o saldo
  *    paga o intermediário é entregar menos do que a pessoa pode ter.
- * 3º `nada_cabe` é honesto: a tela não finge que existe saída quando não existe.
+ * 3º (KINEO-SEEDANCE-35CR-2026-10-04) outra câmera numa duração MENOR, a maior que cabe.
+ * 4º `nada_cabe` é honesto: a tela não finge que existe saída quando não existe.
  */
 export function planoDeResgate(args: {
   motorAtual: string
@@ -112,6 +113,19 @@ export function planoDeResgate(args: {
     .filter((c) => cabeNoSaldo(c.custo, saldo) && c.custo > 0)
     .sort((a, b) => b.custo - a.custo)
   if (outras.length) return { tipo: 'outra_camera', alvo: outras[0] }
+
+  // 3º — KINEO-SEEDANCE-35CR-2026-10-04: outra câmera em duração MENOR. Com o Seedance de 60 s a 35 cr, um saldo de 25
+  // pedindo Kling 2.5 ou H3 a 60 s deixou de ter saída na mesma duração (era o Seedance de 25 exato) — e a tela dizia
+  // "nada cabe" com o Seedance de 35 s (21 cr) ao alcance. A preferência segue a mesma: a MAIOR duração, depois a
+  // câmera MAIS CARA que cabe nela.
+  const outrasMaisCurtas = duracoes
+    .filter((d) => d < duracaoAtual)
+    .flatMap((d) => motoresDisponiveis
+      .filter((m) => m !== motorAtual)
+      .map((m) => ({ motor: m, duracao: d, custo: custoDe(m, d) })))
+    .filter((c) => cabeNoSaldo(c.custo, saldo) && c.custo > 0)
+    .sort((a, b) => b.duracao - a.duracao || b.custo - a.custo)
+  if (outrasMaisCurtas.length) return { tipo: 'outra_camera', alvo: outrasMaisCurtas[0] }
 
   return { tipo: 'nada_cabe' }
 }

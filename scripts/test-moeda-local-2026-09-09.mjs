@@ -46,14 +46,15 @@ const m = roda(libSrc)
 
 // a tabela em reais — KINEO-PRECO-V8-A-2026-09-28: reancorada com motivo (escada 13/30/55 do fundador, 28/09; a tabela V5
 // de 09/09 — R$ 49,90/99,90/199,90 — virou o piso do grant legado, LEGACY_V5_BRL_PLAN_PRICES_MINOR).
-checa('Starter R$ 64,90 · anual R$ 649,00', m.BRL_PLAN_PRICES_MINOR.starter.monthly === 6490 && m.BRL_PLAN_PRICES_MINOR.starter.annual === 64900)
-checa('Creator R$ 149,90 · anual R$ 1.499,00', m.BRL_PLAN_PRICES_MINOR.basic.monthly === 14990 && m.BRL_PLAN_PRICES_MINOR.basic.annual === 149900)
-checa('Studio R$ 274,90 · anual R$ 2.749,00', m.BRL_PLAN_PRICES_MINOR.pro.monthly === 27490 && m.BRL_PLAN_PRICES_MINOR.pro.annual === 274900)
+// KINEO-ANUAL-40OFF-2026-10-05 — o anual em reais virou 12 × mensal × 0,60 até ,90 (era 10×): 467,90 / 1.079,90 / 1.979,90.
+checa('Starter R$ 64,90 · anual R$ 467,90', m.BRL_PLAN_PRICES_MINOR.starter.monthly === 6490 && m.BRL_PLAN_PRICES_MINOR.starter.annual === 46790)
+checa('Creator R$ 149,90 · anual R$ 1.079,90', m.BRL_PLAN_PRICES_MINOR.basic.monthly === 14990 && m.BRL_PLAN_PRICES_MINOR.basic.annual === 107990)
+checa('Studio R$ 274,90 · anual R$ 1.979,90', m.BRL_PLAN_PRICES_MINOR.pro.monthly === 27490 && m.BRL_PLAN_PRICES_MINOR.pro.annual === 197990)
 checa('piso legado V5 em reais: R$ 49,90 · 99,90 · 199,90', m.LEGACY_V5_BRL_PLAN_PRICES_MINOR.starter === 4990 && m.LEGACY_V5_BRL_PLAN_PRICES_MINOR.basic === 9990 && m.LEGACY_V5_BRL_PLAN_PRICES_MINOR.pro === 19990)
 checa('a tabela é exatamente o que a fórmula da casa dá sobre $12,90/$29,90/$54,90 (invariante vazio)', m.checkSettlementInvariants({ starter: 1290, basic: 2990, pro: 5490 }).length === 0)
 checa('o invariante ACUSA uma tabela torta', m.checkSettlementInvariants({ starter: 1490, basic: 2990, pro: 5490 }).length === 1)
 checa('fórmula: termina em ,90 e nunca abaixo de R$ 1,90', m.usdToBrlMinor(490) === 2490 && m.usdToBrlMinor(1990) === 9990 && m.usdToBrlMinor(0) === 190 && m.usdToBrlMinor(1) === 190)
-checa('plano: anual em BRL vem da TABELA (10× o mensal), não da fórmula sobre o anual em USD', m.planSettlementAmountMinor('starter', 'annual', 'brl', 12900) === 64900 && m.usdToBrlMinor(12900) !== 64900)
+checa('plano: anual em BRL vem da TABELA (12 × mensal × 0,60 até ,90), não da fórmula sobre o anual em USD', m.planSettlementAmountMinor('starter', 'annual', 'brl', 9290) === 46790 && m.usdToBrlMinor(9290) !== 46790)
 checa('plano em USD: devolve o próprio preço de lista', m.planSettlementAmountMinor('pro', 'monthly', 'usd', 5490) === 5490 && m.settlementAmountMinor(2990, 'usd') === 2990)
 
 // a decisão
@@ -115,7 +116,8 @@ console.log('== telas ==')
 const geo = rd('app/api/geo/route.ts')
 checa('/api/geo devolve settlement_currency (IP + idioma; só exibição)', /settlement_currency: settlement\.currency/.test(geo) && /resolveSettlementCurrency\(\{ ipCountry: country, acceptLanguage: req\.headers\.get\('accept-language'\) \}\)/.test(geo))
 const pr = rd('app/pricing/PricingClient.tsx')
-checa('/pricing: o preço grande segue em dólar (p.price / annualPrices) — nada mudou no número', /\? annualPrices\[p\.tier as PaidTier\]\.perMonth\n\s+: p\.price\}/.test(pr))
+// KINEO-ANUAL-40OFF-2026-10-05 — o anual ganhou o "≈" na frente (é o anual ÷ 12); a fonte do número é a mesma.
+checa('/pricing: o preço grande segue em dólar (p.price / annualPrices) — nada mudou no número', /\? `≈ \$\{annualPrices\[p\.tier as PaidTier\]\.perMonth\}`\n\s+: p\.price\}/.test(pr))
 // 25/09: o merge visual do GPT trocou a cor fixa #86868b por var(--muted) (tema claro/escuro); a condição é o contrato, a classe não.
 checa('/pricing: a linha "Charged in BRL" só aparece quando o /api/geo diz brl', /\{settlementCurrency === 'brl' \? \(\n\s+<div className="mt-1 text-\[11\.5px\] font-medium text-\[(#86868b|var\(--muted\))\]" data-testid="settlement-note">/.test(pr))
 checa('/pricing: a linha usa a TABELA (planSettlementAmountMinor) — mensal e anual', /planSettlementAmountMinor\(\n\s+p\.tier as PaidTier,\n\s+billing === 'annual' \? 'annual' : 'monthly',\n\s+'brl',/.test(pr))

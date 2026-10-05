@@ -37,7 +37,8 @@ const ck = rd('app/api/stripe/checkout/route.ts')
 // 60/150/300); o número vigente e o mutante moram em scripts/test-preco-v8-A-2026-09-28.mjs.
 console.log('== 1. preço V8-A (escada 13/30/55 sobre a estrutura da V5) ==')
 checa('TIER_PRICES = 1290 / 2990 / 5490', /starter: \{ usd: 1290 \},\n  basic: \{ usd: 2990 \},\n  pro: \{ usd: 5490 \},/.test(cp))
-checa('ANNUAL = 12900 / 29900 / 54900 (10×)', /starter: \{ usd: 12900 \},\n  basic: \{ usd: 29900 \},\n  pro: \{ usd: 54900 \},/.test(cp))
+// KINEO-ANUAL-40OFF-2026-10-05 — re-ancorado: anual = 12 × mensal × 0,60 arredondado (fundador 04-05/10; era 10×).
+checa('ANNUAL = 9290 / 21500 / 39500 (40% off)', /starter: \{ usd: 9290 \},\n  basic: \{ usd: 21500 \},\n  pro: \{ usd: 39500 \},/.test(cp))
 checa('INTRO = preço cheio (1290 / 2990)', /starter: \{ usd: 1290 \},\n  basic: \{ usd: 2990 \},\n\}/.test(cp))
 checa('créditos dos planos intactos (60/150/300)', /starter: 60,\n  basic: 150,\n  pro: 300,/.test(cp))
 

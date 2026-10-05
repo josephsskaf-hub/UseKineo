@@ -48,6 +48,8 @@ import {
   CARD_TRIAL_LIVE,
   resolvePriceRegion,
   PACK_PRICE_MINOR,
+  PACK290_PRICE_MINOR,
+  PACK_ADVERTISED_SECONDS,
   type BulkPackId,
   type CheckoutCurrency as Currency,
   type CheckoutIntroTier as IntroTier,
@@ -782,9 +784,10 @@ const STARTER_PACK = {
   // the very first payment a customer ever made bought none of the thing the
   // homepage sells. 30 = 1 Seedance + 10 Fast. Worst-case COGS $2.84 against
   // $4.458 net → +$1.62 (36.3%). Grant lives in lib/checkoutPricing.ts.
+  // KINEO-PASSE-AVULSO-2026-10-05 — passe avulso: US$ 4,99 / 35 cr = exatamente 1 filme Seedance 1.5 de 60 s.
   credits: PACK_CREDITS.starter,
   name: 'Kineo — Starter Pack',
-  description: `One-time: ${PACK_CREDITS.starter} credits — ${describeSeedanceMix(PACK_CREDITS.starter)}. No subscription.`,
+  description: `One-time: ${PACK_CREDITS.starter} credits — one ${PACK_ADVERTISED_SECONDS.starter}-second Seedance film. No subscription.`,
 }
 // KINEO-VENDER-O-VIDEO-2026-08-21 — o USD deixa de ser literal aqui: a tela do
 // paywall passou a mostrar este preco, e preco em tela e preco cobrado tem de
@@ -808,9 +811,12 @@ const PACK_PRICES: Record<Currency, number> = { usd: PACK_PRICE_MINOR.usd }
 const STARTER290_PACK = {
   credits: PACK_CREDITS.starter290,
   name: 'Kineo — First Pack (24h offer)',
-  description: `One-time launch offer: ${PACK_CREDITS.starter290} credits — ${describeSeedanceMix(PACK_CREDITS.starter290)}. Limited to 1 per account.`,
+  // KINEO-PASSE-AVULSO-2026-10-05 — com o Seedance a 35 cr, 25 cr não compram mais o filme de 60 s: o SKU anuncia o de
+  // 35 s (PACK_ADVERTISED_SECONDS.starter290 = 21 cr), que é o que o invariante (2) prova.
+  description: `One-time launch offer: ${PACK_CREDITS.starter290} credits — one ${PACK_ADVERTISED_SECONDS.starter290}-second Seedance film. Limited to 1 per account.`,
 }
-const PACK290_PRICES: Record<Currency, number> = { usd: 290 }
+// KINEO-PASSE-AVULSO-2026-10-05 — lê a fonte única (o invariante de lib/checkoutPricing prova o mesmo número).
+const PACK290_PRICES: Record<Currency, number> = { usd: PACK290_PRICE_MINOR.usd }
 
 // ─── KINEO-PILOT-99-2026-07-26 — $99 / 7-day Autopilot pilot (one-time) ──────
 // The paid filter in front of the $299 tier. One-time PAYMENT, not a

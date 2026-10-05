@@ -52,7 +52,7 @@ import { ENGINES } from '@/lib/growth/enginePageCatalog'
 // nem o número de ferramentas nem os limites de arquivo são digitados aqui.
 import { EDITING_TOOLS, MAX_FILE_BYTES, MAX_CLIP_SECONDS } from '@/lib/videoEditing/settings'
 import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
-import { TIER_PRICES, formatCheckoutMoney, packPriceLabel } from '@/lib/checkoutPricing' // KINEO-FATOS-VIGENCIA-2026-09-23 — preço sempre formatado, nunca `usd / 100` nem literal
+import { TIER_PRICES, formatCheckoutMoney, packPriceLabel, ANNUAL_DISCOUNT_PERCENT as ANNUAL_DISCOUNT_PERCENT_FACT } from '@/lib/checkoutPricing' // KINEO-FATOS-VIGENCIA-2026-09-23 — preço sempre formatado, nunca `usd / 100` nem literal
 import { AFFILIATE_COMMISSION_PCT } from '@/lib/affiliateCommission'
 import { ENGINE_PAUSE, PAUSED_ENGINE_KEYS, AVATAR_PUBLIC, KINEO1_PUBLIC } from '@/lib/engineLaunch' // KINEO-AVATAR-FORA-2026-09-28 · KINEO-FILME-GRATIS-15S-2026-09-29
 import { NARRATION_LANGUAGES, HOLLYWOOD_LANGUAGES } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
@@ -96,7 +96,10 @@ function planLine(plan: (typeof PLAN_FACTS)[number]): string {
   const intro = plan.firstMonthUsd
     ? `${plan.firstMonthUsd} for the first month, then ${plan.monthlyUsd}/month`
     : `${plan.monthlyUsd}/month`
-  const annual = plan.annualUsd ? ` (or ${plan.annualUsd}/year)` : ''
+  // KINEO-ANUAL-40OFF-2026-10-05 — o anual diz o desconto e o equivalente mensal (≈), nunca o rótulo antigo de meses grátis.
+  const annual = plan.annualUsd
+    ? ` (or ${plan.annualUsd}/year ≈ ${plan.annualPerMonthUsd}/month, save ${plan.annualSavingsPercent}%)`
+    : ''
   return `- **${plan.name}** — ${intro}${annual}. ${plan.creditsPerMonth} credits per billing month.\n${plan.includes
     .map((item) => `  - ${item}`)
     .join('\n')}`
@@ -370,7 +373,8 @@ ${cardTrialLines}
 
 ${plans}
 
-- Billing: ${PRODUCT.billing}. ${PRODUCT.moneyBackGuaranteeDays}-day money-back guarantee on every paid plan.
+- Billing: ${PRODUCT.billing}. ${PRODUCT.moneyBackGuaranteeDays}-day money-back guarantee on every paid plan. ${PRODUCT.annualRefundPolicy}
+- Annual plans still release credits month by month (no 12-month lump sum).
 - Credits refresh each billing month and do **not** roll over.
 - Published plan amounts are reference prices in USD. Customers in Brazil normally pay in BRL; check the checkout for the currency and amount.
 
@@ -484,7 +488,11 @@ synthetic voice. None of them alternate the two inside one finished Short.
   Prices returned to $9.90 / $19.90 / $39.90 on 2026-09-09 (credits 60 / 150 / 300 unchanged on that date;
   those prices are history, see 2026-09-28 below). Existing subscribers keep the price they signed up at.
 - 2026-09-28: plans repriced to a three-tier ladder — Starter ${formatCheckoutMoney('usd', TIER_PRICES.starter.usd)} / Creator ${formatCheckoutMoney('usd', TIER_PRICES.basic.usd)} / Studio ${formatCheckoutMoney('usd', TIER_PRICES.pro.usd)}
-  per month; annual = 10 months; credits 60 / 150 / 300 unchanged. Existing subscribers keep the price they signed up at.
+  per month; annual = 10 months at the time (replaced by 40% off on 2026-10-05); credits 60 / 150 / 300 unchanged. Existing subscribers keep the price they signed up at.
+- 2026-10-05: annual plans became ${ANNUAL_DISCOUNT_PERCENT_FACT}% off 12 monthly payments (was 10× the monthly price),
+  with credits still released month by month; annual is refundable in full within 14 days, then no refund.
+  Seedance 1.5 became 35 credits per 60-second film (15 s = 9). The one-time pass is ${packPriceLabel()} for
+  one 60-second Seedance 1.5 film, no subscription.
 - 2026-08-23: talking characters with lip sync alternate with narration on
   Kling 3 AND MiniMax H3 inside one Short — verified frame-by-frame on
   customer renders.

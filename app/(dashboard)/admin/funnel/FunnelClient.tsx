@@ -10,6 +10,9 @@ import { useEffect, useRef, useState } from 'react'
 import type { FunnelData } from '@/app/api/admin/funnel/route'
 import { CHATGPT_QUICKSTART_VARIANT } from '@/lib/growth/chatgptQuickstart'
 import { ACTIVATION_HANDOFF_SURFACE_VERSION } from '@/lib/growth/onboardingGoals'
+// KINEO-SEEDANCE-35CR-2026-10-04 — a faixa da ponte (Seedance 35 s ≤ saldo < Seedance 60 s) era "15–24" digitado; com o
+// Seedance a 35 cr ela é 21–34. Lida da política que decide, para não envelhecer no próximo reprice.
+import { FULL_SEEDANCE_COST, TRIAL_BALANCE_BRIDGE_COST } from '@/lib/growth/trialBalanceBridge'
 
 export type { FunnelData }
 
@@ -1038,7 +1041,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
         <Card
           label="Bridge viewers"
           value={fmt(trialBalanceBridge.viewers)}
-          hint="Fast trial users with 15–24cr left"
+          hint={`Fast trial users with ${TRIAL_BALANCE_BRIDGE_COST}–${FULL_SEEDANCE_COST - 1}cr left`}
           accent="#c084fc"
         />
         <RateCard

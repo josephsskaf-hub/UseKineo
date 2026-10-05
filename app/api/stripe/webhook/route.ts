@@ -12,6 +12,9 @@ import {
   AUTOPILOT_PILOT_PRICES,
   BULK_PACKS,
   PACK_CREDITS,
+  PACK_PRICE_MINOR,
+  LEGACY_PACK_STARTER_PRICE_MINOR_490,
+  LEGACY_PACK_STARTER_CREDITS_490,
   TIER_CREDITS, renewalCreditsFor,
   CARD_TRIAL_GRANT_CREDITS,
   isAmbiguousOneTimeUsdAmount,
@@ -850,9 +853,10 @@ async function recordPaymentSuccess(
 // com nenhum SKU one-time nem com o fallback por valor:
 //   · AMBIGUOUS_ONE_TIME_USD_AMOUNTS = {} (vazia desde V8-A, 28/09: o Starter anual foi de 9900 para 12900 e o
 //     piloto voltou a ser o único dono de 9900; até então era {9900}, Starter anual × piloto);
-//   · packs: 490 (starter), 290 (starter290); top-ups: 590/1490/1290/5990;
+//   · packs: 499 (starter, desde 05/10; 490 antes), 290 (starter290); top-ups: 590/1490/1290/5990;
 //   · bulk: 1900/3500/4900/7500; piloto Autopilot: 9900; Autopilot mensal 29900;
-//   · mensais (subscription): 1290/2990/5490; anuais (mode:'subscription' hoje): 12900/29900/54900;
+//   · mensais (subscription): 1290/2990/5490; anuais (mode:'subscription' hoje): 9290/21500/39500
+//     (KINEO-ANUAL-40OFF-2026-10-05; eram 12900/29900/54900);
 //   · legados por valor: 900 e 1900.
 // Nenhum é 10000. O `!pack` é a mesma guarda que o piloto usa: uma sessão da
 // casa SEMPRE carrega metadata.pack, então o fallback por valor só alcança
@@ -1342,7 +1346,10 @@ export async function POST(req: NextRequest) {
             if (amount === 900) creditsToAdd = 10
             else if (amount === 1900) creditsToAdd = 25
             // KINEO-PRICING-V3D-2026-07-26 — mirrors PACK_CREDITS.starter (10 → 30).
-            else if (amount === 490) creditsToAdd = PACK_CREDITS.starter
+            // KINEO-PASSE-AVULSO-2026-10-05 — o passe avulso agora é US$ 4,99 / 35 cr (PACK_PRICE_MINOR); a sessão
+            // antiga de US$ 4,90 sem metadata segue recebendo os 30 cr que ELA comprou.
+            else if (amount === PACK_PRICE_MINOR.usd) creditsToAdd = PACK_CREDITS.starter
+            else if (amount === LEGACY_PACK_STARTER_PRICE_MINOR_490) creditsToAdd = LEGACY_PACK_STARTER_CREDITS_490
             // KINEO-PRICING-V3D-2026-07-26 — $2.90 had no legacy fallback at
             // all: a starter290 session that somehow lost its metadata would
             // have been logged as "unexpected amount_total" and the buyer would

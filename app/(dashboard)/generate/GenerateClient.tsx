@@ -141,7 +141,7 @@ import {
   CHECKOUT_CURRENCY_DISCLOSURE,
   CREATOR_AI_FILMS,
   creditsPerReferenceVideo,
-  videoMixForCredits,
+  describeSeedanceMix,
   videosForCredits,
   videosPerMonth,
 } from '@/lib/marketingPrice'
@@ -12129,7 +12129,10 @@ export default function GenerateClient({
     isSubscriber: isStarter || isCreator || isStudio,
     plan: serverPlanName,
   })
-  const shareRewardMix = videoMixForCredits(30, 'cinematic_ai', 'fast')
+  // KINEO-SEEDANCE-35CR-2026-10-04 — com o Seedance 60 s a 35 cr, os 30 cr do convite viravam "0 AI film + 6 quick
+  // videos" (o Kineo 1 nem está na vitrine). A frase agora conta o que 30 cr compram de verdade, pela mesma régua
+  // das packs (describeSeedanceMix: filmes de 15 s, 9 cr cada).
+  const shareRewardMixLabel = describeSeedanceMix(30)
 
   // ═══ KINEO-CUSTO-VISIVEL-2026-08-23 — o custo de CADA duração, antes do
   // clique. Decisão B do fundador (23/08), e o caso que a motivou: 6 pessoas
@@ -14383,6 +14386,25 @@ export default function GenerateClient({
               } catch { /* non-blocking */ }
               setUpgradeLoading(true)
             },
+          }}
+          // KINEO-PASSE-AVULSO-2026-10-05 — o passe de UM filme na parede de crédito, só para quem não assina. Mesmo
+          // caminho do pacote que já existia (?pack=starter devolvido ao Studio, régua do saldo para liberar o Generate
+          // na volta), mesmo launcher das linhas de plano (trava de duplo clique) e os eventos de checkout de sempre.
+          onFilmPass={isStarter || isCreator || isStudio ? null : () => {
+            saveStudioDraftNow()
+            try { if (typeof credits === 'number') sessionStorage.setItem(WALL_V1_PACK_BALANCE_KEY, String(credits)) } catch { /* ignore */ }
+            const started = upgradeModalCheckout.launch(
+              'film_pass',
+              withStudioReturn(withIntentCampaign('/api/stripe/checkout?pack=starter')),
+              { pack: 'starter', from: 'out_of_credits_wall', return_to: 'studio', reason: upgradeReason },
+            )
+            if (!started) return
+            trackCheckoutClick('starter')
+            try {
+              const ttq = (window as unknown as { ttq?: { track: Function } }).ttq
+              if (ttq && typeof ttq.track === 'function') ttq.track('InitiateCheckout', { content_name: 'film_pass' })
+            } catch { /* non-blocking */ }
+            setUpgradeLoading(true)
           }}
           // KINEO-PRIMEIRO-FILME-GRATIS-2026-09-04 — a saida honesta, quando ela
           // existe de verdade. Ver `firstFilmFreeAvailable`.
@@ -18549,7 +18571,7 @@ export default function GenerateClient({
                       style={{ color: 'var(--muted2)', lineHeight: 1.5 }}
                     >
                       {shareReferralCode
-                        ? `They make their first video, you each get 30 credits — that's ${shareRewardMix.primary} AI film + ${shareRewardMix.secondary} quick video${shareRewardMix.secondary === 1 ? '' : 's'}, free.`
+                        ? `They make their first video, you each get 30 credits — that's ${shareRewardMixLabel}, free.`
                         : 'Send your public watch page and ask what they think.'}
                     </p>
                   </div>
@@ -21558,7 +21580,7 @@ function ModeSelector({
             {custoDoMotor(aiEngine, duration)} credits — you have {credits}.{' '}
             {resgateDeMotor.tipo === 'mesma_camera'
               ? `Same engine at ${resgateDeMotor.alvo.duracao}s fits.`
-              : `${NOME_DO_MOTOR[resgateDeMotor.alvo.motor] ?? 'Another engine'} fits at ${duration}s.`}
+              : `${NOME_DO_MOTOR[resgateDeMotor.alvo.motor] ?? 'Another engine'} fits at ${resgateDeMotor.alvo.duracao}s.`}
           </p>
           <button
             type="button"
@@ -22007,6 +22029,8 @@ function UpgradeModal({
   readyClips = null,
   // KINEO-PAREDE-V1-2026-09-23 — ausente = parede desligada neste modal.
   wallV1 = null,
+  // KINEO-PASSE-AVULSO-2026-10-05 — ausente = sem passe de um filme (assinante ou tela que não oferece).
+  onFilmPass = null,
 }: {
   loading: boolean
   onUpgrade: (tier: 'starter' | 'basic' | 'pro') => void
@@ -22065,6 +22089,11 @@ function UpgradeModal({
     isStudio: boolean
     onCheckout: (tier: 'starter' | 'basic' | 'pro') => void
   } | null
+  /**
+   * KINEO-PASSE-AVULSO-2026-10-05 — o passe de UM filme (?pack=starter) para conta sem assinatura. É do pai:
+   * grava o rascunho, lança o checkout devolvendo ao Studio e mede o clique. O modal só pinta, e só se !isSubscriber.
+   */
+  onFilmPass?: (() => void) | null
 }) {
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — the top-up buttons below were raw
   // window.location.href with only `loading` (a prop that is never true for
@@ -22847,7 +22876,10 @@ function UpgradeModal({
             )}
           </div>
         ) : (
-          <TopupUnavailableNote fit={purchaseFit} />
+          <TopupUnavailableNote
+            fit={purchaseFit}
+            filmPass={onFilmPass && !isSubscriber ? { onBuy: onFilmPass, disabled: loading, reason } : null}
+          />
         )}
 
         {/* KINEO-INTRO-MONTH-2026-07-13 escape button removed

@@ -21,13 +21,14 @@ const libSrc = rd('lib/primeiroFilme.ts')
 const P = roda(libSrc, { NEXT_PUBLIC_KINEO_PRIMEIRO_FILME: 'on' }) // ligado só aqui, para provar a elegibilidade
 const P0 = roda(libSrc)
 const dentro = new Date('2026-09-18T12:00:00Z')
-const base = { created_at: '2026-09-17T10:00:00Z', plan: 'free', has_paid: false, trial_status: 'active', video_credits: 30, filmes: 0 }
-checa('cadastro novo, trial ativo, 30 cr, sem filme → elegível', P.elegivelPrimeiroFilme(base, dentro).elegivel === true)
+const base = { created_at: '2026-09-17T10:00:00Z', plan: 'free', has_paid: false, trial_status: 'active', video_credits: 35, filmes: 0 }
+checa('cadastro novo, trial ativo, 35 cr, sem filme → elegível', P.elegivelPrimeiroFilme(base, dentro).elegivel === true)
 checa('conta de antes de 16/09 08:00Z → conta_antiga', P.elegivelPrimeiroFilme({ ...base, created_at: '2026-09-15T23:00:00Z' }, dentro).motivo === 'conta_antiga')
 checa('já pagou → ja_pagou', P.elegivelPrimeiroFilme({ ...base, has_paid: true }, dentro).motivo === 'ja_pagou')
 checa('plano pago → plano_pago', P.elegivelPrimeiroFilme({ ...base, plan: 'basic' }, dentro).motivo === 'plano_pago')
 checa('sem trial ativo → sem_trial_ativo', P.elegivelPrimeiroFilme({ ...base, trial_status: null }, dentro).motivo === 'sem_trial_ativo' && P.elegivelPrimeiroFilme({ ...base, trial_status: 'ended' }, dentro).motivo === 'sem_trial_ativo')
-checa('24 créditos (menos que os 25 do Seedance 60 s) → saldo_insuficiente', P.elegivelPrimeiroFilme({ ...base, video_credits: 24 }, dentro).motivo === 'saldo_insuficiente')
+// KINEO-SEEDANCE-35CR-2026-10-04 — o Seedance 60 s foi a 35: o saldo de 30 da base deixou de cobrir o 1º filme; a base sobe para 35.
+checa('34 créditos (menos que os 35 do Seedance 60 s) → saldo_insuficiente', P.elegivelPrimeiroFilme({ ...base, video_credits: 34 }, dentro).motivo === 'saldo_insuficiente')
 checa('já tem um filme (qualquer estado que não falha) → ja_fez_o_primeiro', P.elegivelPrimeiroFilme({ ...base, filmes: 1 }, dentro).motivo === 'ja_fez_o_primeiro')
 checa('created_at nulo → conta_antiga (nunca elegível por acidente)', P.elegivelPrimeiroFilme({ ...base, created_at: null }, dentro).motivo === 'conta_antiga')
 
@@ -37,7 +38,7 @@ checa('DESLIGADO por padrão (sem env) e a elegibilidade diz "desligado"', P0.PR
 checa('NEXT_PUBLIC_KINEO_PRIMEIRO_FILME=on liga; off/lixo não', roda(libSrc, { NEXT_PUBLIC_KINEO_PRIMEIRO_FILME: 'on' }).PRIMEIRO_FILME_ENABLED === true && roda(libSrc, { NEXT_PUBLIC_KINEO_PRIMEIRO_FILME: 'off' }).PRIMEIRO_FILME_ENABLED === false && roda(libSrc, { NEXT_PUBLIC_KINEO_PRIMEIRO_FILME: 'talvez' }).PRIMEIRO_FILME_ENABLED === false)
 checa('janela de 7 dias: 16/09 08:00Z → 23/09 08:00Z', Date.parse(P.PRIMEIRO_FILME_ATE) - Date.parse(P.PRIMEIRO_FILME_DESDE) === 7 * 24 * 3600 * 1000)
 checa('depois da janela ninguém trava (fora_da_janela)', P.elegivelPrimeiroFilme(base, new Date('2026-09-23T08:00:01Z')).motivo === 'fora_da_janela' && P.dentroDaJanela(new Date('2026-09-23T07:59:59Z')))
-checa('motor, duração e créditos espelham o Seedance 60 s (25 cr)', P.PRIMEIRO_FILME_ENGINE === 'seedance' && P.PRIMEIRO_FILME_DURATION === 60 && P.PRIMEIRO_FILME_CREDITOS === 25 && /return 25/.test(rd('lib/credits/engineCost.ts')))
+checa('motor, duração e créditos espelham o Seedance 60 s (35 cr — KINEO-SEEDANCE-35CR-2026-10-04)', P.PRIMEIRO_FILME_ENGINE === 'seedance' && P.PRIMEIRO_FILME_DURATION === 60 && P.PRIMEIRO_FILME_CREDITOS === 35 && /return 35/.test(rd('lib/credits/engineCost.ts')))
 
 console.log('== (c) teto diário ==')
 checa('padrão 15 filmes/dia (≈ 35 USD)', P.primeiroFilmeCapDia() === 15 && P.PRIMEIRO_FILME_CAP_DIA_PADRAO === 15)

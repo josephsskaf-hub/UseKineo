@@ -40,7 +40,8 @@ export const PRIMEIRO_FILME_QUALITY = 'cinematic_ai' as const
 export const PRIMEIRO_FILME_DURATION = 60 as const
 // Espelho de creditCostFor('cinematic_ai') a 60 s (lib/credits/engineCost.ts) — só para a
 // elegibilidade no cliente; o cobrador continua sendo a fonte única do preço.
-export const PRIMEIRO_FILME_CREDITOS = 25
+// KINEO-SEEDANCE-35CR-2026-10-04 — espelho re-ancorado 25 → 35 (o guardião confere o return do engineCost).
+export const PRIMEIRO_FILME_CREDITOS = 35
 
 // ≈ US$ 35/dia a ~US$ 2,3 por filme. Env KINEO_PRIMEIRO_FILME_CAP_DIA sobrescreve; 0 ou 'off' desliga o teto? Não:
 // 0 fecha a porta (ninguém trava), porque teto é dinheiro do fundador — a única forma de "sem teto" é um número alto.

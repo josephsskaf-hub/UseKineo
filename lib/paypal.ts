@@ -12,7 +12,7 @@
 
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { renewalBalance } from '@/lib/credits/renewalBalance' // KINEO-RENOVACAO-PRESERVA-CREDITO-COMPRADO-2026-09-25
-import { TIER_PRICES, ANNUAL_PRICES, TIER_CREDITS, PACK_CREDITS } from '@/lib/checkoutPricing'
+import { TIER_PRICES, ANNUAL_PRICES, TIER_CREDITS, PACK_CREDITS, PACK_PRICE_MINOR } from '@/lib/checkoutPricing'
 
 export type PayPalTier = 'starter' | 'basic' | 'pro'
 export type PayPalBilling = 'monthly' | 'annual'
@@ -65,10 +65,11 @@ export const PAYPAL_PLAN_CREDITS: Record<PayPalTier, number> = {
   pro: TIER_CREDITS.pro,
 }
 
-// First Pack — mesmo SKU da Stripe (?pack=starter): $4.90 por PACK_CREDITS.starter.
+// First Pack — mesmo SKU da Stripe (?pack=starter): PACK_PRICE_MINOR por PACK_CREDITS.starter.
+// KINEO-PASSE-AVULSO-2026-10-05 — o preço deixou de ser literal ('4.90'): sai da fonte única (US$ 4,99).
 export const PAYPAL_PACK = {
   credits: PACK_CREDITS.starter,
-  usd: '4.90',
+  usd: usd(PACK_PRICE_MINOR.usd),
   name: `Kineo — First Pack (${PACK_CREDITS.starter} credits)`,
 }
 
@@ -77,7 +78,9 @@ export const PAYPAL_PACK = {
 // o /api/paypal/setup cria planos NOVOS com o preço atual em vez de reutilizar
 // os de julho. Os antigos continuam no paypal_config (ninguém assinou por eles;
 // PAYPAL_ENABLED sempre foi false), e o tierFromPlanId lê os dois formatos.
-const PLAN_VERSION = 'v2'
+// KINEO-ANUAL-40OFF-2026-10-05 — v2 → v3: o anual mudou de preço (40% off) e o plano PayPal v2 anual, se já
+// foi criado, cobraria o preço antigo para sempre. O /api/paypal/setup cria os v3 com o preço vigente.
+const PLAN_VERSION = 'v3'
 
 export function paypalAdminClient() {
   return createSupabaseAdmin(

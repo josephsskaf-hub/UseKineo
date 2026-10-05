@@ -145,7 +145,7 @@ export function videoMixForCredits(
 
 /** Segundos do filme curto do Seedance 1.5 (espelho de lib/durationByEngine SEEDANCE_SHORT_SECONDS; o guardião confere). */
 export const SEEDANCE_SHORT_FILM_SECONDS = 15
-/** Custo do filme curto do Seedance 1.5 — o filme mais barato que uma conta nova consegue fazer (7 cr). Derivado. */
+/** Custo do filme curto do Seedance 1.5 — o filme mais barato que uma conta nova consegue fazer (9 cr desde KINEO-SEEDANCE-35CR-2026-10-04; era 7). Derivado. */
 export const SEEDANCE_SHORT_FILM_CREDITS = creditCostForDuration('cinematic_ai', true, SEEDANCE_SHORT_FILM_SECONDS)
 
 /** Copy de packs/top-ups: omite motores que o saldo não compra. */

@@ -60,11 +60,13 @@ equal(policy.sanitizePricingIntentCampaign('hello world'), null, 'space-bearing 
 // (fundador, 23/09): o anual concede créditos por fatura, 1× por ano, enquanto
 // o FAQ promete reset mensal, e o anual teve 0 vendas na vida. Um ?billing=
 // explícito continua mandando; as promos mensais continuam vencendo.
-equal(policy.pricingBillingHandoff({}).initialBilling, 'monthly', 'sem parâmetro, a página abre no MENSAL (23/09)')
+// KINEO-ANUAL-40OFF-2026-10-05 — re-ancorado: o padrão volta ao ANUAL (fundador, Pacote 2: "anual pré-selecionado"). O
+// motivo de 23/09 morreu — o anual recebe crédito mês a mês desde 24/09 (cron annual-credit-refill) e agora é 40% off.
+equal(policy.pricingBillingHandoff({}).initialBilling, 'annual', 'sem parâmetro, a página abre no ANUAL (05/10)')
 equal(policy.pricingBillingHandoff({ billing: 'annual' }).initialBilling, 'annual', '?billing=annual explícito ainda abre no anual')
 equal(policy.pricingBillingHandoff({ billing: 'monthly' }).initialBilling, 'monthly', '?billing=monthly abre no mensal')
 equal(policy.pricingBillingHandoff({ billing: 'annual', promo: 'first50' }).initialBilling, 'monthly', 'promo mensal vence o billing pedido')
-equal(policy.pricingBillingHandoff({ billing: 'weekly' }).initialBilling, 'monthly', 'billing desconhecido cai no padrão mensal')
+equal(policy.pricingBillingHandoff({ billing: 'weekly' }).initialBilling, 'annual', 'billing desconhecido cai no padrão (anual desde 05/10)')
 equal(policy.pricingBillingHandoff({}).key, 'default:', 'chave do handoff sem parâmetro continua "default:" (não reseta a escolha manual)')
 
 const pricing = source('app/pricing/PricingClient.tsx')

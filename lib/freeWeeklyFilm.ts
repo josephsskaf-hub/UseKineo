@@ -29,7 +29,7 @@ import { paisDaListaConfirmado, REGION_PAID_ONLY_TRIAL_STATUS } from './freeFilm
 export const FREE_WEEKLY_FILM_ENABLED = true
 export const FREE_WEEKLY_FILM_QUALITY = 'cinematic_ai' as const
 export const FREE_WEEKLY_FILM_SECONDS = 15
-/** 7 cr hoje — a MESMA função que o cinematic cobra; nunca digitado. */
+/** 9 cr hoje (era 7 até KINEO-SEEDANCE-35CR-2026-10-04) — a MESMA função que o cinematic cobra; nunca digitado. */
 export const FREE_WEEKLY_FILM_CREDITS = creditCostForDuration(FREE_WEEKLY_FILM_QUALITY, true, FREE_WEEKLY_FILM_SECONDS)
 export const FREE_WEEKLY_FILM_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
 /** Conta sem decisão de trial (trial_status NULL) só entra depois disto — não corre contra o grant do cadastro. */

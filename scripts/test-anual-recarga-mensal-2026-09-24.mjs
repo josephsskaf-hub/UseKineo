@@ -81,9 +81,14 @@ checa('período inválido = nada a conceder', lib.annualRefillDueMonths(0, now).
 // créditos: vigente × legado
 checa('anual pago ao preço vigente → grant vigente do plano', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, ANNUAL[t].usd, 'usd') === TIER_CREDITS[t]))
 // KINEO-PRECO-V8-A-2026-09-28 — três degraus da escada, todos executados na função real:
-checa('anual pago abaixo do vigente mas no piso V5 ou acima (ex.: 12800 ≥ 9900) → grant V5 (60/150/300 — o que esse valor comprou)', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, ANNUAL[t].usd - 100, 'usd') === LEGACY_V5[t]))
+// KINEO-ANUAL-40OFF-2026-10-05 — re-ancorado: o anual vigente virou 40% off (9290/21500/39500) e o do Starter e o do
+// Studio ficaram ABAIXO do anual V5 (9900/39900). Para eles não existe mais a faixa "abaixo do vigente e acima do piso
+// V5": quem pagou o V5 pagou ≥ o vigente e recebe o grant vigente (que é o mesmo 60/300). A faixa só existe no Creator
+// ($199 ≤ x < $215). Os três degraus continuam provados na função real, cada um onde ele existe.
+checa('anual pago abaixo do vigente mas no piso V5 ou acima (Creator: 21400 ≥ 19900) → grant V5 (150 — o que esse valor comprou)', ['basic'].every((t) => V5_PRICES[t] * 10 <= ANNUAL[t].usd - 100 && lib.annualRefillCredits(t, ANNUAL[t].usd - 100, 'usd') === LEGACY_V5[t]))
 checa('anual pago EXATAMENTE no anual V5 (9900/19900/39900, assinante de antes de 28/09) → mantém 60/150/300', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, V5_PRICES[t] * 10, 'usd') === LEGACY_V5[t]))
-checa('anual pago abaixo do piso V5 (assinante V6) → grant V6 (60/150/180)', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, V5_PRICES[t] * 10 - 100, 'usd') === LEGACY[t]))
+checa('anual pago abaixo do piso V5 E do vigente (assinante V6) → grant V6 (60/150/180)', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, Math.min(V5_PRICES[t] * 10, ANNUAL[t].usd) - 100, 'usd') === LEGACY[t]))
+checa('Studio que pagou o anual V6 ($290) → 180; Studio no anual 40% off ($395) → 300', lib.annualRefillCredits('pro', 29000, 'usd') === LEGACY.pro && lib.annualRefillCredits('pro', ANNUAL.pro.usd, 'usd') === TIER_CREDITS.pro)
 checa('fatura em BRL não tem legado a honrar → grant vigente', lib.annualRefillCredits('pro', 1, 'brl') === TIER_CREDITS.pro)
 checa('valor ausente → grant vigente', lib.annualRefillCredits('starter', null, 'usd') === TIER_CREDITS.starter)
 checa('só starter/basic/pro têm anual', lib.annualTierFromMetadata('pro') === 'pro' && lib.annualTierFromMetadata('autopilot') === null && lib.annualTierFromMetadata(undefined) === null)

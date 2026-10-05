@@ -8,6 +8,14 @@ import {
 
 export const CHECKOUT_VALUE_CONTEXT_VERSION = 'checkout_value_context_v3' as const
 
+/**
+ * KINEO-ANUAL-40OFF-2026-10-05 — espelho LITERAL de ANNUAL_REFUND_POLICY (lib/checkoutPricing.ts). Este módulo não
+ * importa valores de checkoutPricing de propósito (os guardiões o executam com mocks fechados);
+ * scripts/test-pacote2-precos-2026-10-05.mjs confere que as duas frases são idênticas.
+ */
+export const CHECKOUT_ANNUAL_REFUND_SENTENCE =
+  'Annual plans are refundable in full within 14 days of purchase; after that, no refund.'
+
 export type CheckoutValueContextInput = {
   billing: 'monthly' | 'annual'
   credits: number
@@ -75,9 +83,13 @@ function resultCountDescription(input: CheckoutValueContextInput): {
  */
 export function buildCheckoutValueContext(input: CheckoutValueContextInput): CheckoutValueContext {
   const renewal = input.billing === 'annual' ? 'yearly' : 'monthly'
-  const submitMessage =
-    `Credits are added after payment succeeds. Renews ${renewal} at the price shown. ` +
-    'Cancel anytime from Account. 7-day money-back guarantee.'
+  // KINEO-ANUAL-40OFF-2026-10-05 — o anual tem política própria (fundador 05/10): reembolso integral em 14 dias,
+  // depois nenhum; e os créditos chegam mês a mês. O texto do anual era o do mensal ("7-day money-back").
+  const submitMessage = input.billing === 'annual'
+    ? `Credits are added after payment succeeds and arrive month by month. Renews ${renewal} at the price shown. ` +
+      `Cancel anytime from Account. ${CHECKOUT_ANNUAL_REFUND_SENTENCE}`
+    : `Credits are added after payment succeeds. Renews ${renewal} at the price shown. ` +
+      'Cancel anytime from Account. 7-day money-back guarantee.'
 
   const bridgeEligibleTier = input.tier === 'basic' || input.tier === 'pro'
   const bridgeContext =

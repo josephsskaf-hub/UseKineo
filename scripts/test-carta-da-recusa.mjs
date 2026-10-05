@@ -163,9 +163,11 @@ ok('`?pack=starter` cria sessão `mode: \'payment\'` — cobrança ÚNICA, sem m
 ok('e NÃO cria assinatura', !/mode: 'subscription'/.test(pack))
 
 const precos = ler('lib', 'checkoutPricing.ts')
-ok('o pacote continua a US$ 4,90 (a carta manda o valor que a Stripe cobra)',
-  /PACK_PRICE_MINOR[^=]*=\s*\{ usd: 490 \}/.test(precos))
-ok('o pacote continua com 30 créditos', /starter: 30,/.test(precos))
+// KINEO-PASSE-AVULSO-2026-10-05 — o pacote virou o passe de um filme: US$ 4,99 / 35 créditos (fundador 04-05/10). A carta
+// continua lendo PACK_PRICE_MINOR/PACK_CREDITS (bloco acima), então o valor que ela manda é o que a Stripe cobra.
+ok('o pacote está a US$ 4,99 (a carta manda o valor que a Stripe cobra)',
+  /PACK_PRICE_MINOR[^=]*=\s*\{ usd: 499 \}/.test(precos))
+ok('o pacote tem 35 créditos (1 filme Seedance de 60 s)', /starter: 35,/.test(precos))
 
 // ── BLOCO D — O CARIMBO ESTÁ REGISTRADO ONDE A REGRA VIVE ─────────────────
 // A regra "uma carta por pessoa por dia" não mora num arquivo só. Carimbo novo

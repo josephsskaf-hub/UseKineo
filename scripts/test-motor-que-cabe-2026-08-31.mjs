@@ -33,9 +33,11 @@ const plano = (motor, duracao, saldo, motores = TODOS) =>
   A.planoDeResgate({ motorAtual: motor, duracaoAtual: duracao, saldo, duracoes: DUR, custoDe, motoresDisponiveis: motores })
 
 console.log('\n── A. a aritmética do custo (a mesma que o servidor cobra)')
-checa('Seedance 60s = 25', custoDe('seedance', 60) === 25, `=${custoDe('seedance', 60)}`)
-checa('Seedance 35s = 15 (o selo dizia 25 em toda duração)', custoDe('seedance', 35) === 15, `=${custoDe('seedance', 35)}`)
-checa('Seedance 90s = 38', custoDe('seedance', 90) === 38, `=${custoDe('seedance', 90)}`)
+// KINEO-SEEDANCE-35CR-2026-10-04 — re-ancorado 25 → 35 (decisão do fundador 04/10); a régua por duração é derivada:
+// 35 s = 21 (era 15), 90 s = 53 (era 38). Os pares de produção abaixo foram re-ancorados para a MESMA intenção.
+checa('Seedance 60s = 35', custoDe('seedance', 60) === 35, `=${custoDe('seedance', 60)}`)
+checa('Seedance 35s = 21 (o selo dizia o preço de 60 s em toda duração)', custoDe('seedance', 35) === 21, `=${custoDe('seedance', 35)}`)
+checa('Seedance 90s = 53', custoDe('seedance', 90) === 53, `=${custoDe('seedance', 90)}`)
 checa('H3 60s = 45', custoDe('h3', 60) === 45)
 // KINEO-KLING25-60CR-2026-09-29 — re-ancorado 50 → 60 (decisão do fundador, 29/09:
 // "sobe kling 2 pra 60 creditos"; planos de 5 s + still em todas as cenas ≈ US$ 8,40/filme).
@@ -64,28 +66,29 @@ checa('hollywood 150 × saldo 62 → outra câmera', p1.tipo === 'outra_camera',
 // lista, e não o que eu tinha chutado ao escrever este teste.
 checa('  ...e a câmera é a MAIS CARA que cabe (Kling, 60) — não a mais barata', p1.alvo?.motor === 'kling' && p1.alvo?.custo === 60, JSON.stringify(p1.alvo))
 checa('  ...e ela é de fato mais cara que a alternativa barata (H3, 45)', custoDe('kling', 60) > custoDe('h3', 60))
-// kling 60 / saldo 25 → 35s custa 35, não cabe; outra câmera a 60s: seedance 25 (exato)
+// kling 60 / saldo 25 → 35s custa 35, não cabe; nenhuma câmera cabe a 60s (Seedance agora 35) — a saída é o
+// Seedance a 35s por 21 (KINEO-SEEDANCE-35CR-2026-10-04: o 3º degrau do planoDeResgate, outra câmera mais curta).
 const p2 = plano('kling', 60, 25)
 checa('kling 60 × saldo 25 → outra câmera', p2.tipo === 'outra_camera', JSON.stringify(p2))
-checa('  ...Seedance a 60s por 25, o saldo exato', p2.alvo?.motor === 'seedance' && p2.alvo?.custo === 25)
+checa('  ...Seedance a 35s por 21 (a 60s já não cabe)', p2.alvo?.motor === 'seedance' && p2.alvo?.duracao === 35 && p2.alvo?.custo === 21, JSON.stringify(p2.alvo))
 // h3 45 / saldo 25
 const p3 = plano('h3', 60, 25)
 checa('h3 45 × saldo 25 → tem saída', p3.tipo !== 'nada_cabe' && p3.tipo !== 'cabe', JSON.stringify(p3))
-// h3 27 (35s) / saldo 25 → não há duração menor; outra câmera a 35s: seedance 15
+// h3 27 (35s) / saldo 25 → não há duração menor; outra câmera a 35s: seedance 21
 const p4 = plano('h3', 35, 25)
-checa('h3 27 × saldo 25 (já no 35s) → Seedance a 35s por 15', p4.tipo === 'outra_camera' && p4.alvo?.motor === 'seedance' && p4.alvo?.custo === 15, JSON.stringify(p4))
-// seedance 38 (90s) / saldo 21 → mesma câmera a 60s custa 25 (não cabe), a 35s custa 15 ✓
+checa('h3 27 × saldo 25 (já no 35s) → Seedance a 35s por 21', p4.tipo === 'outra_camera' && p4.alvo?.motor === 'seedance' && p4.alvo?.custo === 21, JSON.stringify(p4))
+// seedance 53 (90s) / saldo 21 → mesma câmera a 60s custa 35 (não cabe), a 35s custa 21 ✓
 const p5 = plano('seedance', 90, 21)
-checa('seedance 38 × saldo 21 → MESMA câmera, 35s', p5.tipo === 'mesma_camera' && p5.alvo?.duracao === 35 && p5.alvo?.custo === 15, JSON.stringify(p5))
-// seedance 20 / saldo 19 — 1 crédito faltando
-const p6 = plano('seedance', 60, 19)
-checa('seedance 25 × saldo 19 → 35s por 15 (faltavam 6)', p6.tipo === 'mesma_camera' && p6.alvo?.custo === 15, JSON.stringify(p6))
+checa('seedance 53 × saldo 21 → MESMA câmera, 35s', p5.tipo === 'mesma_camera' && p5.alvo?.duracao === 35 && p5.alvo?.custo === 21, JSON.stringify(p5))
+// seedance 60s / saldo um crédito abaixo do filme (era 25 × 19; agora 35 × 34)
+const p6 = plano('seedance', 60, 34)
+checa('seedance 35 × saldo 34 → 35s por 21 (faltava 1)', p6.tipo === 'mesma_camera' && p6.alvo?.custo === 21, JSON.stringify(p6))
 checa('NENHUM dos 6 casos reais era "nada_cabe"',
   [p1, p2, p3, p4, p5, p6].every((p) => p.tipo === 'mesma_camera' || p.tipo === 'outra_camera'))
 
 console.log('\n── D. a ordem de preferência não é arbitrária')
-// seedance 90s / saldo 30: mesma câmera a 60s custa 25 ✓ — deve preferir isso a trocar de motor
-const d1 = plano('seedance', 90, 30)
+// seedance 90s / saldo 40: mesma câmera a 60s custa 35 ✓ — deve preferir isso a trocar de motor (era saldo 30 × 25)
+const d1 = plano('seedance', 90, 40)
 checa('preserva a CÂMERA escolhida antes de trocar de motor', d1.tipo === 'mesma_camera' && d1.alvo?.duracao === 60, JSON.stringify(d1))
 checa('  ...e pega a MAIOR duração que cabe, não a menor', d1.alvo?.duracao === 60)
 // saldo 5: nada cabe

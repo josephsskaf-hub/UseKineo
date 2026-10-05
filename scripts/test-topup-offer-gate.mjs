@@ -60,7 +60,8 @@ check('o modal decide por canPurchaseCreditTopup(plan)',
 check('a escadinha e GOVERNADA por topupPurchasable (nao mais `{(`)',
   /\{topupPurchasable \? \(\n\s+<div style=\{\{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 \}\}>/.test(GC))
 check('o ramo negativo pinta a caixa substituta',
-  /\) : \(\n\s+<TopupUnavailableNote fit=\{purchaseFit\} \/>\n\s+\)\}/.test(GC))
+  // KINEO-PASSE-AVULSO-2026-10-05 — a caixa ganhou a prop `filmPass` (passe de um filme para quem não assina).
+  /\) : \(\n\s+<TopupUnavailableNote\n\s+fit=\{purchaseFit\}\n\s+filmPass=\{onFilmPass && !isSubscriber \? [^\n]+\n\s+\/>\n\s+\)\}/.test(GC))
 check('o plano do servidor e derivado dos booleanos da tela',
   /const\s+serverPlanName\s*=\s*isStudio \? 'pro' : isCreator \? 'basic' : isStarter \? 'starter' : 'free'/.test(GC))
 check('o calculo do pai recebe o plano', /isSubscriber: isStarter \|\| isCreator \|\| isStudio,\n\s+plan: serverPlanName,/.test(GC))

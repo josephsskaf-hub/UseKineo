@@ -173,7 +173,8 @@ checa(`nenhum valor aceito (3500/7500/10000) está em AMBIGUOUS_ONE_TIME_USD_AMO
 checa('3500/7500 colidem com bulk20/bulk50 de propósito documentado: por isso a 3ª regra só vale para sessão de Payment Link (a casa nunca cria sessão com payment_link) e sem metadata.pack', /sessionPaymentLinkId\(session\) !== null &&\s*DFY_ACCEPTED_AMOUNTS_USD_MINOR\.includes\(session\.amount_total \?\? -1\)/.test(dfyS) && usdAmounts.includes(3500) && usdAmounts.includes(7500) && !usdAmounts.includes(10000) && legados.length >= 2 && dfy.DFY_ACCEPTED_AMOUNTS_USD_MINOR.every((v) => !legados.includes(v)))
 // KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: o Starter anual saiu de 9900 e a lista de ambíguos ficou vazia; o
 // comentário do webhook diz isso e segue listando os valores (490/290, top-ups, bulk, mensais, anuais novos, legados).
-checa('o comentário do webhook registra a prova de não colisão (lista vazia desde V8-A, 490/290, top-ups, bulk, anuais, legados)', /AMBIGUOUS_ONE_TIME_USD_AMOUNTS = \{\} \(vazia desde V8-A/.test(wh) && /anuais \(mode:'subscription' hoje\): 12900\/29900\/54900/.test(wh) && /Nenhum é 10000/.test(wh))
+checa('o comentário do webhook registra a prova de não colisão (lista vazia desde V8-A, 490/290, top-ups, bulk, anuais, legados)', /AMBIGUOUS_ONE_TIME_USD_AMOUNTS = \{\} \(vazia desde V8-A/.test(wh) && /anuais \(mode:'subscription' hoje\): 9290\/21500\/39500/.test(wh) && /Nenhum é 10000/.test(wh))
+// ↑ KINEO-ANUAL-40OFF-2026-10-05 — re-ancorado: os anuais viraram 9290/21500/39500 (40% off); 10000 segue sem dono.
 // ── GPT-COWORK-FOLLOWUP-2026-09-24 (P0) — o pedido Empresas EXECUTADO, não só lido ──────────────────────────
 // Por quê: o Cowork criou os dois links (Express e Pro) com metadata kind=dfy/tier, mas a Stripe não garante copiar a
 // metadata do Payment Link para a sessão, e a conta tem Adaptive Pricing (valor em moeda local). A única chave que
@@ -268,10 +269,12 @@ checa('P0 grant.ts fora deste caminho: o webhook da Stripe não importa lib/paym
 console.log('== S3: lib/growth/pricingPlanChoiceAttribution.ts ==')
 const ppc = rd('lib/growth/pricingPlanChoiceAttribution.ts')
 const P = roda(ppc)
-checa("padrão sem parâmetro é 'monthly' (fundador 23/09)", P.pricingBillingHandoff({}).initialBilling === 'monthly')
+// KINEO-ANUAL-40OFF-2026-10-05 — re-ancorado: o fundador (Pacote 2) quer o anual pré-selecionado; o motivo de 23/09
+// (crédito por fatura, 1×/ano) morreu com a recarga mensal de 24/09. Promos mensais e ?billing explícito seguem mandando.
+checa("padrão sem parâmetro é 'annual' (fundador 05/10; era 'monthly' em 23/09)", P.pricingBillingHandoff({}).initialBilling === 'annual')
 checa("?billing=annual explícito continua abrindo no anual", P.pricingBillingHandoff({ billing: 'annual' }).initialBilling === 'annual')
 checa("promo mensal vence o pedido de anual", P.pricingBillingHandoff({ billing: 'annual', promo: 'COMEBACK50' }).initialBilling === 'monthly')
-checa("no código: `requestedBilling ?? 'monthly'` e nenhum `?? 'annual'`", ppc.includes("requestedBilling ?? 'monthly'") && !ppc.includes("?? 'annual'"))
+checa("no código: `requestedBilling ?? 'annual'` e nenhum `?? 'monthly'`", ppc.includes("requestedBilling ?? 'annual'") && !ppc.includes("?? 'monthly'"))
 checa('o motivo está no arquivo (anual concede por fatura 1×/ano; 0 vendas anuais)', /KINEO-PADRAO-MENSAL-2026-09-23/.test(ppc) && /0 vendas/.test(ppc) && /por FATURA/.test(ppc))
 
 // ── S4: fatos que a IA lê ────────────────────────────────────────────────────

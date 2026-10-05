@@ -46,9 +46,12 @@ const creatorBridge = policy.buildCheckoutValueContext({
   tier: 'basic',
 })
 equal(creatorBridge.variant, 'trial_balance_seedance', 'Creator bridge is personalized')
-equal(creatorBridge.outputCount, 6, 'Creator translates 90 credits into six canonical 15-credit films')
-check(creatorBridge.lineItemDescription.includes('up to 6 Seedance 35s films'), 'Creator names the tangible output')
-check(creatorBridge.lineItemDescription.includes('(15 credits each)'), 'Creator exposes the per-film cost')
+// KINEO-SEEDANCE-35CR-2026-10-04 — o custo do Seedance de 35 s é LIDO da função (21 cr; era 15) e a contagem segue dele.
+const SEEDANCE_35S = engineCost.creditCostForDuration('cinematic_ai', true, 35)
+const SEEDANCE_60S = engineCost.creditCostForDuration('cinematic_ai', true, 60)
+equal(creatorBridge.outputCount, Math.floor(90 / SEEDANCE_35S), `Creator translates 90 credits into canonical ${SEEDANCE_35S}-credit films`)
+check(creatorBridge.lineItemDescription.includes(`up to ${Math.floor(90 / SEEDANCE_35S)} Seedance 35s films`), 'Creator names the tangible output')
+check(creatorBridge.lineItemDescription.includes(`(${SEEDANCE_35S} credits each)`), 'Creator exposes the per-film cost')
 check(creatorBridge.lineItemDescription.includes('watermark-free'), 'paid ownership benefit remains visible')
 
 const studioBridge = policy.buildCheckoutValueContext({
@@ -57,7 +60,7 @@ const studioBridge = policy.buildCheckoutValueContext({
   intentCampaign: bridge.TRIAL_BALANCE_BRIDGE_VERSION,
   tier: 'pro',
 })
-equal(studioBridge.outputCount, 12, 'Studio translates its canonical grant into twelve films')
+equal(studioBridge.outputCount, Math.floor(180 / SEEDANCE_35S), 'Studio translates its canonical grant into films (KINEO-SEEDANCE-35CR-2026-10-04)')
 check(studioBridge.lineItemDescription.includes('180 credits / month'), 'Studio uses the runtime grant')
 
 for (const [input, label] of [
@@ -78,8 +81,9 @@ check(starter.lineItemDescription.includes('AI voiceover, captions and no waterm
 
 const creator = policy.buildCheckoutValueContext({ billing: 'monthly', credits: 90, intentCampaign: 'unrelated', tier: 'basic' })
 equal(creator.variant, 'standard_result_count', 'ordinary Creator receives result-count copy')
-equal(creator.outputCount, 3, 'Creator derives three Seedance films from canonical 25-credit cost')
-check(creator.lineItemDescription.includes('up to 3 Seedance 60s AI films'), 'Creator names engine, count and duration')
+// KINEO-SEEDANCE-35CR-2026-10-04 — custo do Seedance de 60 s lido da função (35 cr; era 25).
+equal(creator.outputCount, Math.floor(90 / SEEDANCE_60S), `Creator derives Seedance films from canonical ${SEEDANCE_60S}-credit cost`)
+check(creator.lineItemDescription.includes(`up to ${Math.floor(90 / SEEDANCE_60S)} Seedance 60s AI films`), 'Creator names engine, count and duration')
 check(creator.lineItemDescription.includes('or 18 ready-to-post Fast Shorts'), 'Creator also names the high-volume output a Fast user already understands')
 check(creator.lineItemDescription.includes('voiceover, captions and no watermark'), 'Creator keeps finished-output ownership visible after both counts')
 

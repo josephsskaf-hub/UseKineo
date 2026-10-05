@@ -61,6 +61,9 @@ import {
   AUTOPILOT_PILOT_PRICES,
   AUTOPILOT_PRICES,
   AUTOPILOT_LITE_PRICES,
+  // KINEO-ANUAL-40OFF-2026-10-05 — o selo, a linha do card e a política de reembolso do anual leem daqui.
+  ANNUAL_DISCOUNT_PERCENT,
+  ANNUAL_REFUND_POLICY,
   INTRO_CREDITS,
   TIER_CREDITS,
   // KINEO-REGIONAL-PRICING-2026-08-04 — TIER_PRICES / INTRO_PRICES /
@@ -182,7 +185,8 @@ const buildFaqs = (OFFER: FreeTierOffer): { q: string; a: string }[] => [
   },
   {
     q: 'Is there a money-back guarantee?',
-    a: 'Yes — Starter, Creator, and Studio come with a 7-day money-back guarantee. If you\'re not satisfied, email us within 7 days of your purchase and we\'ll refund 100%. No questions asked.',
+    // KINEO-ANUAL-40OFF-2026-10-05 — a política do anual (14 dias, depois nada) vem da fonte única.
+    a: `Yes — Starter, Creator, and Studio come with a 7-day money-back guarantee. If you're not satisfied, email us within 7 days of your purchase and we'll refund 100%. No questions asked. ${ANNUAL_REFUND_POLICY}`,
   },
   {
     q: 'What happens if a video fails to generate?',
@@ -461,7 +465,7 @@ export default function PricingClient({ initialBilling = 'annual', characterLimi
   // scrolling back up to the cards.
   const [showStickyCta, setShowStickyCta] = useState<boolean>(false)
 
-  // #381 — monthly vs annual billing toggle. Annual ≈ 2 months free.
+  // #381 — monthly vs annual billing toggle. KINEO-ANUAL-40OFF-2026-10-05: annual = 40% off 12 monthly payments.
   // KINEO-MRR-1-ANUAL-2026-09-16 (fundador: "vai"): a página ABRE no anual — é o padrão de InVideo, Pictory,
   // Fliki e Higgsfield (10 meses pelo preço de 12) e o Creator é onde 51 de 91 pessoas pararam no checkout em
   // 30 dias. O mensal continua a um clique, com o mesmo preço de sempre; nenhum número mudou.
@@ -1032,11 +1036,15 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             >
               Annual
               <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-black text-[var(--accent)]">
-                2 MONTHS FREE
+                SAVE {ANNUAL_DISCOUNT_PERCENT}%
               </span>
             </button>
           </div>
         </div>
+        {/* KINEO-ANUAL-40OFF-2026-10-05 — política de reembolso do anual (fundador 05/10) colada no seletor. */}
+        <p className="-mt-5 mb-6 text-center text-[11.5px] font-semibold text-[var(--muted)]" data-testid="annual-refund-policy">
+          {ANNUAL_REFUND_POLICY}
+        </p>
         <p className="-mt-4 mb-7 text-center text-[11.5px] font-semibold text-[var(--muted)]">
           {CHECKOUT_CURRENCY_DISCLOSURE}
         </p>
@@ -1127,13 +1135,13 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                 <div className="mt-2 flex items-baseline gap-1.5">
                   <span className="text-[2.4rem] font-black leading-none tracking-tight text-[var(--text)]">
                     {billing === 'annual'
-                      ? annualPrices[p.tier as PaidTier].perMonth
+                      ? `≈ ${annualPrices[p.tier as PaidTier].perMonth}`
                       : p.price}
                   </span>
                 </div>
                 <div className="mt-1 text-[12.5px] font-semibold text-[var(--accent)]">
                   {billing === 'annual'
-                    ? `/ month · billed annually (${displayCurrency ? annualPrices[p.tier as PaidTier].total : '—'}/yr)`
+                    ? `/mo, billed ${displayCurrency ? annualPrices[p.tier as PaidTier].total : '—'} yearly · save ${ANNUAL_DISCOUNT_PERCENT}%`
                     : p.priceSub}
                 </div>
                 {/* KINEO-MOEDA-LOCAL-2026-09-09 — o preço fica em dólar para todo mundo;
@@ -2216,6 +2224,9 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
               </div>
               <p className="text-[13px] text-[var(--muted)] leading-relaxed m-0">
                 If you&apos;re not happy in the first 7 days, email us and we&apos;ll refund 100%. No questions asked. Works for all plans.
+              </p>
+              <p className="text-[13px] text-[var(--muted)] leading-relaxed m-0 mt-1">
+                {ANNUAL_REFUND_POLICY}
               </p>
             </div>
           </div>

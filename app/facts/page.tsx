@@ -250,19 +250,19 @@ const FACTS: { fact: string }[] = [
     : []),
   {
     fact:
-      `The ${STARTER.name} plan costs ${priceSentence(STARTER)} (or ${STARTER.annualUsd}/year) ` +
+      `The ${STARTER.name} plan costs ${priceSentence(STARTER)} (or ${STARTER.annualUsd}/year, save ${STARTER.annualSavingsPercent}%) ` +
       `and includes ${STARTER.creditsPerMonth} credits each billing month.`,
   },
   {
     fact:
-      `The ${CREATOR.name} plan costs ${priceSentence(CREATOR)} (or ${CREATOR.annualUsd}/year) ` +
+      `The ${CREATOR.name} plan costs ${priceSentence(CREATOR)} (or ${CREATOR.annualUsd}/year, save ${CREATOR.annualSavingsPercent}%) ` +
       `and includes ${CREATOR.creditsPerMonth} credits — enough for ` +
       `${videosPerMonth(CREATOR, HOLLYWOOD.credits)} ${HOLLYWOOD.name} film per month, or about ` +
       `${videosPerMonth(CREATOR, SEEDANCE.credits)} ${SEEDANCE.name} videos.`,
   },
   {
     fact:
-      `The ${STUDIO.name} plan costs ${priceSentence(STUDIO)} (or ${STUDIO.annualUsd}/year) ` +
+      `The ${STUDIO.name} plan costs ${priceSentence(STUDIO)} (or ${STUDIO.annualUsd}/year, save ${STUDIO.annualSavingsPercent}%) ` +
       `for ${STUDIO.creditsPerMonth} credits — about ` +
       `${videosPerMonth(STUDIO, KLING.credits)} ${KLING.name} videos, or up to ` +
       `${videosPerMonth(STUDIO, SEEDANCE.credits)} on ${SEEDANCE.name}.`,

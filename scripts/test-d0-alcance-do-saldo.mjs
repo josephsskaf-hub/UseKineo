@@ -62,7 +62,8 @@ check('lê o grant do trial de $1', GRANT_1USD !== null)
 // o guardião ACUSA em vez de seguir calculando com um número que ninguém viu.
 // KINEO-TRIAL-10-2026-09-16 (fundador): 30 → 10 para cadastro novo; o Seedance (25) NÃO cabe mais no trial — dois Kineo 1 cabem.
 check('grant do trial grátis é 10 (fundador 16/09; era 30 na restauração 09/09)', GRANT_TRIAL === 10)
-check('Seedance (25) não cabe no trial de 10; dois Kineo 1 (5) cabem', CUSTO_SEEDANCE === 25 && GRANT_TRIAL < CUSTO_SEEDANCE && GRANT_TRIAL === 10)
+// KINEO-SEEDANCE-35CR-2026-10-04 — o Seedance de 60 s foi de 25 para 35; continua não cabendo no trial de 10.
+check('Seedance (35) não cabe no trial de 10; dois Kineo 1 (5) cabem', CUSTO_SEEDANCE === 35 && GRANT_TRIAL < CUSTO_SEEDANCE && GRANT_TRIAL === 10)
 check('Kling 3 segue em 150', CUSTO_KLING3 === 150)
 
 // ── A PREMISSA: o motor nomeado antes NÃO cabe no saldo ───────────────────

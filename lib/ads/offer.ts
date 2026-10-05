@@ -34,9 +34,11 @@ export const ADS_ACCESS_COLUMN = 'ads_access_until' as const
 
 /** Valores one-time (centavos USD) já usados por outros SKUs da casa — o passe não pode cair em nenhum.
  *  KINEO-PRECO-V8-A-2026-09-28 — anuais passaram de 9900/19900/39900 para 12900/29900/54900 (9900 fica: piloto);
- *  os mensais novos (1290 = topup120 também, 2990, 5490) entram pelo mesmo motivo que o 29900 do Autopilot já estava. */
+ *  os mensais novos (1290 = topup120 também, 2990, 5490) entram pelo mesmo motivo que o 29900 do Autopilot já estava.
+ *  KINEO-ANUAL-40OFF-2026-10-05 / KINEO-PASSE-AVULSO-2026-10-05 — anuais 12900/29900/54900 → 9290/21500/39500 (29900 fica:
+ *  Autopilot mensal); o passe avulso 490 → 499 (490 fica: o webhook ainda credita sessões antigas de US$ 4,90 por valor). */
 export const ONE_TIME_USD_MINOR_OCCUPIED: readonly number[] = [
-  290, 490, 590, 900, 1290, 1490, 1900, 2990, 3500, 4900, 5490, 5990, 7500, 9900, 10000, 12900, 29900, 54900,
+  290, 490, 499, 590, 900, 1290, 1490, 1900, 2990, 3500, 4900, 5490, 5990, 7500, 9290, 9900, 10000, 21500, 29900, 39500,
 ]
 
 /** Kineo 1 de 60 s custa 5 créditos (lib/credits/engineCost.ts); o passe (90 cr desde 28/09) cobre 18 anúncios de 60 s ou 30 de 35 s. */
