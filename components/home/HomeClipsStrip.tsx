@@ -15,16 +15,16 @@ import { clipsFirstEffectCards } from '@/components/home/ClipsFirstHome'
 import type { ClipEffectKey } from '@/lib/clips/clipEffects'
 
 /** Os 4 da vitrine, na ordem (o 1º é o cartão grande). O fundador escolheu a explosão de cor e o tênis girando; os outros
- *  dois são os efeitos novos que viralizam (bolo e derreter) — e o mesmo tênis em dois efeitos mostra "uma foto, vários clipes". */
+ *  dois são os efeitos novos que viralizam (bolsa que é bolo e despertador que derrete). */
 export const HOME_CLIP_KEYS: readonly ClipEffectKey[] = ['color_burst', 'product_360', 'secret_cake', 'melt']
 
 // Que faixa da prévia VERTICAL (9:16) aparece no cartão (~0,86 no computador: 65% da altura do vídeo). Conta do
 // object-position: a janela visível começa em p × (1 − 0,655) da altura — o número põe o assunto no meio do cartão.
 const FOCUS: Partial<Record<ClipEffectKey, string>> = {
   color_burst: '50% 21%',
-  product_360: '50% 56%',
-  secret_cake: '50% 56%',
-  melt: '50% 82%',
+  product_360: '50% 40%',
+  secret_cake: '50% 58%',
+  melt: '50% 52%',
   zoom_out_earth: '50% 36%',
   restore_old_photo: '50% 8%',
 }

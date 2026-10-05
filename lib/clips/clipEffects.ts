@@ -83,7 +83,9 @@ export const CLIP_EFFECTS: readonly ClipEffect[] = [
     filmIdea: 'Why this product is different — a 60-second ad that shows what it does',
     person: false,
     // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — a prévia antiga eram os 3 anúncios da garrafa (promo-ads-3var-1): nada girava.
-    // Agora é um clipe FEITO COM ESTE EFEITO (pedido effect=product_360, clipe e6925ca9) a partir de uma foto de produto gerada.
+    // Agora é um clipe FEITO COM ESTE EFEITO (pedido effect=product_360) a partir de uma foto de produto gerada. 05/10, 3ª rodada
+    // (fundador: "estão bem ruins"): o tênis branco em fundo cinza (e6925ca9) virou tênis azul elétrico em fundo azul-violeta,
+    // grande no quadro (clipe 3e70de18) — o efeito é o mesmo; o que melhorou foi a foto de partida.
     preview: { video: '/previews/efeito-product_360.mp4', poster: '/posters/efeito-product_360.webp', note: 'Made with this effect from an AI-generated product photo (Kling 2.5)' },
   },
   {
@@ -149,22 +151,25 @@ export const CLIP_EFFECTS: readonly ClipEffect[] = [
     preview: { video: '/previews/efeito-storm_behind.mp4', poster: '/posters/efeito-storm_behind.webp', note: 'Made with this effect from an AI-generated photo (Kling 2.5)' },
   },
   // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 (2ª rodada) — efeito "absurdo", do tipo que viraliza nas redes (referência de
-  // mercado: os efeitos de transformar objeto do Pika). Testado ANTES de entrar: no Kling 2.5, a partir de uma foto
-  // gerada de um despertador, o objeto derrete numa poça brilhante (clipe afe09bce). Para objeto, não pessoa.
+  // mercado: os efeitos de transformar objeto do Pika). Testado ANTES de entrar no Kling 2.5. A 1ª versão do prompt dizia
+  // "in the hot sun" e o despertador virou uma gosma laranja com cara de fogo (afe09bce; fundador: "o negócio queimando");
+  // sem o sol, o objeto amolece, escorre e desaba numa poça NAS PRÓPRIAS CORES: cubo colorido (f54df122) e despertador azul
+  // pastel (53226855, a prévia). Para objeto, não pessoa.
   {
     key: 'melt',
     title: 'Melt it',
     sub: 'It melts like ice cream in the sun.',
     engine: 'kling',
     seconds: 5,
-    prompt: `The main object in the photo slowly melts like ice cream in the hot sun, sagging and dripping into a glossy puddle while keeping its original colors. Background and lighting unchanged, static camera. ${NO_TEXT}`,
+    prompt: `The main object in the photo slowly melts like ice cream: it softens, sags and drips until it collapses completely into a glossy puddle, keeping its original colors. Background and lighting unchanged, static camera. ${NO_TEXT}`,
     filmIdea: 'The day everything melted — a 60-second story',
     person: false,
     preview: { video: '/previews/efeito-melt.mp4', poster: '/posters/efeito-melt.webp', note: 'Made with this effect from an AI-generated photo (Kling 2.5)' },
   },
   // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 (2ª rodada) — o meme "isso é um bolo?". Testado ANTES de entrar no Kling 2.5: numa
   // maçã o motor mostrou maçã por dentro (comida puxa o recheio real — clipe 58823c31, reprovado); num tênis de foto gerada,
-  // a faca corta e as metades abrem em bolo de verdade (clipe 2e25e135, aprovado). Funciona melhor com OBJETO que não é
+  // a faca corta e as metades abrem em bolo de verdade (clipe 2e25e135, aprovado); na 3ª rodada a prévia passou a ser uma
+  // bolsa rosa em bancada de mármore (528beb01), mais bonita na vitrine. Funciona melhor com OBJETO que não é
   // comida. ("Inflate it" também foi testado em 05/10 — Kling e Seedance — e NÃO entrou: o motor faz um balão em volta
   // do objeto em vez de inflar o próprio objeto.)
   {
