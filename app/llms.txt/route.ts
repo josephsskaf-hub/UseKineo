@@ -488,7 +488,7 @@ synthetic voice. None of them alternate the two inside one finished Short.
   Prices returned to $9.90 / $19.90 / $39.90 on 2026-09-09 (credits 60 / 150 / 300 unchanged on that date;
   those prices are history, see 2026-09-28 below). Existing subscribers keep the price they signed up at.
 - 2026-09-28: plans repriced to a three-tier ladder — Starter ${formatCheckoutMoney('usd', TIER_PRICES.starter.usd)} / Creator ${formatCheckoutMoney('usd', TIER_PRICES.basic.usd)} / Studio ${formatCheckoutMoney('usd', TIER_PRICES.pro.usd)}
-  per month; annual = 10 months; credits 60 / 150 / 300 unchanged. Existing subscribers keep the price they signed up at.
+  per month; annual = 10 months at the time (replaced by 40% off on 2026-10-05); credits 60 / 150 / 300 unchanged. Existing subscribers keep the price they signed up at.
 - 2026-10-05: annual plans became ${ANNUAL_DISCOUNT_PERCENT_FACT}% off 12 monthly payments (was 10× the monthly price),
   with credits still released month by month; annual is refundable in full within 14 days, then no refund.
   Seedance 1.5 became 35 credits per 60-second film (15 s = 9). The one-time pass is ${packPriceLabel()} for
