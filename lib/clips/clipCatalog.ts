@@ -171,7 +171,7 @@ export function aspectsFor(engine: ClipEngineKey, mode: ClipMode): ClipAspect[] 
 // são recusados na rota, antes de qualquer débito — a tela e o servidor leem a mesma resposta.
 export interface ClipEngineFacts {
   paused: boolean
-  /** false só para o Seedance 2.5 fora das contas da casa enquanto S25_PUBLIC=false. */
+  /** false só para o Seedance 2.5 fora das contas da casa (s25ClipVisible: o clipe do 2.5 não abriu junto com o filme em 06/10). */
   launchVisible: boolean
   planAllowed: boolean
 }

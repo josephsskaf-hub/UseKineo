@@ -8,7 +8,7 @@
 //   · foto   → sobe por /api/avatar/upload purpose=animate (avatars/<uid>/, moderada no upload), e os bytes são relidos
 //              por lib/animate/remoteImage.ts downloadPublicAnimateImage (JPG/PNG ≤ 8 MB, rede pública) antes do envio
 //   · bucket → `renders`, pasta clips/<uid>/<clipId>.mp4 (mesmo bucket de images/, audio/, enhanced/; nenhum bucket novo)
-//   · interruptores → lib/engineLaunch.ts (enginePaused, s25Visible) e lib/enginePlanGate.ts (decideEngineGate)
+//   · interruptores → lib/engineLaunch.ts (enginePaused, s25ClipVisible — KINEO-S25-ABRE-2026-10-06) e lib/enginePlanGate.ts (decideEngineGate)
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { createHmac, randomUUID } from 'node:crypto'
 import { fal } from '@fal-ai/client'
@@ -16,7 +16,7 @@ import { debitVideoCredits } from '@/lib/credits/debit'
 import { refundRenderCredits } from '@/lib/credits/refund'
 import { moderateContent } from '@/lib/safety/contentModeration'
 import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy'
-import { enginePaused, s25Visible } from '@/lib/engineLaunch'
+import { enginePaused, s25ClipVisible } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06: s25ClipVisible
 import { decideEngineGate } from '@/lib/enginePlanGate'
 import { downloadPublicAnimateImage } from '@/lib/animate/remoteImage'
 import { writeServerEvent } from '@/lib/serverEvents'
@@ -110,7 +110,9 @@ export async function loadClipAccount(supabase: SupabaseClient, user: { id: stri
 export function engineAccessFor(account: Pick<ClipAccount, 'email' | 'plan' | 'createdAt'>): (engine: ClipEngineKey) => ClipEngineAccess {
   return (engine) => clipEngineAccess({
     paused: enginePaused(engine) !== null,
-    launchVisible: engine !== 's25' || s25Visible(account.email),
+    // KINEO-S25-ABRE-2026-10-06 — o FILME do 2.5 abriu para quem paga; o CLIPE avulso não abriu junto (nenhum clipe do 2.5
+    // renderizado na história): segue só da casa, exatamente como estava com S25_PUBLIC=false (lib/engineLaunch.ts).
+    launchVisible: engine !== 's25' || s25ClipVisible(account.email),
     planAllowed: decideEngineGate({ engine, plan: account.plan, profileCreatedAt: account.createdAt }).allowed,
   })
 }

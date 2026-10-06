@@ -370,7 +370,9 @@ ok(server.includes("moderateContent({ surface: 'clip', stage: 'input'"), 'modera
 ok(server.includes('debitVideoCredits(userSupabase') && server.includes('refundRenderCredits(ref)'), 'débito e estorno pelos helpers únicos da casa')
 ok(server.includes("storage.from(CLIPS_BUCKET).upload(path, buf, { contentType: 'video/mp4', upsert: true })") && server.includes("CLIPS_BUCKET = 'renders'"), 'MP4 no bucket renders (nenhum bucket novo)')
 ok(server.includes("video_url: row.status === 'done' ? row.video_url : null"), 'resposta pública nunca expõe URL antes de pronto')
-ok(server.includes('decideEngineGate(') && server.includes('enginePaused(engine)') && server.includes('s25Visible(account.email)'), 'visibilidade lê os interruptores da casa')
+// REANCORADO KINEO-S25-ABRE-2026-10-06: o filme do Seedance 2.5 abriu (só plano pago) e o CLIPE dele não — a régua do clipe
+// virou s25ClipVisible (só a casa, como antes com S25_PUBLIC=false). Sem isso, S25_PUBLIC=true abriria o clipe para toda conta.
+ok(server.includes('decideEngineGate(') && server.includes('enginePaused(engine)') && server.includes("launchVisible: engine !== 's25' || s25ClipVisible(account.email),"), 'visibilidade lê os interruptores da casa')
 // REANCORADO 29/09 (KINEO-ESTORNO-INDEVIDO-2026-09-29): as exclusões da varredura genérica saíram dos .not() soltos de
 // refund.ts para a lista GENERIC_SWEEP_EXCLUDED_PATTERNS (lib/credits/sweepScope.ts), que refund.ts aplica em laço. A
 // intenção é a mesma: clips-% fora, clip-% dentro. O comportamento executado está em scripts/test-estorno-indevido-2026-09-29.mjs.
