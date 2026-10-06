@@ -30,7 +30,9 @@ export function clipsVisible(email?: string | null): boolean {
 //                           engine_paid) ANTES de qualquer débito.
 // A pausa do motor (lib/engineLaunch.ts enginePaused('s25')) continua mandando: pausado, o 2.5 não aparece nem ligado.
 // Preço: lib/clips/clipPricing.ts CLIP_S25_CREDITS (uma constante). Guardião: scripts/test-s25-clipes-2026-10-06.mjs.
-export const CLIP_S25_PUBLIC = false
+// LIGADO 06/10 (fundador: opção C, igualar a Runway Pro, chamariz — 8 cr / 5 s e 16 cr / 10 s; sessão CEO: "deixe
+// CLIP_S25_PUBLIC = true"). Desligar = false nesta linha: volta a ser só da casa, nada mais muda.
+export const CLIP_S25_PUBLIC = true
 
 /** O card do 2.5 aparece no /clips para este e-mail? (Usar é outra pergunta — pagante —, respondida no servidor.) */
 export function clipS25Visible(email?: string | null): boolean {
