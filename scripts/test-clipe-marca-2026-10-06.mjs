@@ -153,7 +153,9 @@ function wiring(over, live) {
   const ctx = { st: null }
   const transform = (rel, text) => {
     let t = over[rel] ?? text
-    if (rel === MOD && live) t = t.replace('export const FREE_CLIP_WATERMARK_LIVE = false', 'export const FREE_CLIP_WATERMARK_LIVE = true')
+    // REANCORADO 06/10 (KINEO-MARCA-TESTE-INTERNO-2026-10-06): o mundo "desligado" e o "ligado" são forçados nos dois sentidos —
+    // o teste não depende do valor gravado no arquivo (o fundador vira o interruptor depois do clipe de prova).
+    if (rel === MOD) t = t.replace(/export const FREE_CLIP_WATERMARK_LIVE = (true|false)/, `export const FREE_CLIP_WATERMARK_LIVE = ${live}`)
     return t
   }
   const mocks = {
@@ -261,9 +263,12 @@ async function problems(over = {}) {
     const short = Math.min(w, h)
     if (s.width !== w || s.height !== h || s.frame_rate !== 24 || s.output_format !== 'mp4') p.push(`(3) ${label}: quadro do render ≠ quadro do clipe`)
     if (!video || video.source !== 'https://cdn.test/clean.mp4') p.push(`(3) ${label}: o render não parte do clipe limpo`)
-    if (!text || text.text !== 'usekineo.com' || text.x_anchor !== '100%' || text.y_anchor !== '100%') p.push(`(3) ${label}: marca sem o texto ou fora do canto`)
+    // REANCORADO 06/10 (KINEO-MARCA-CANTO-SUPERIOR-2026-10-06, fundador "recomendo ligar"): o canto inferior direito some atrás
+    // do disco do TikTok no 9:16; a marca foi para o SUPERIOR ESQUERDO (âncora 0%/0%). A posição fina (abaixo da faixa das abas
+    // no quadro em pé, 16:9 e 1:1) é provada em scripts/test-clipes-tres-2026-10-06.mjs.
+    if (!text || text.text !== 'usekineo.com' || text.x_anchor !== '0%' || text.y_anchor !== '0%') p.push(`(3) ${label}: marca sem o texto ou fora do canto`)
     else {
-      if (!(text.x > w * 0.75 && text.x < w && text.y > h * 0.85 && text.y < h)) p.push(`(3) ${label}: marca fora do canto inferior direito (${text.x},${text.y})`)
+      if (!(text.x > 0 && text.x < w * 0.15 && text.y > 0 && text.y < h * 0.2)) p.push(`(3) ${label}: marca fora do canto superior esquerdo (${text.x},${text.y})`)
       if (!(text.font_size >= short * 0.025 && text.font_size <= short * 0.05)) p.push(`(3) ${label}: fonte ilegível ou chamativa (${text.font_size}px)`)
       if (text.font_family !== 'Montserrat' || !text.background_color) p.push(`(3) ${label}: marca sem a fonte/plaqueta da casa`)
     }
@@ -461,7 +466,8 @@ ok(real.length === 0, '(1–5) interruptor nasce false; desligado nada muda; pag
 // (6) mutantes — cada âncora é real e cada regra quebrada fica vermelha
 const mutants = [
   ['M1 interruptor nasce ligado', MOD, 'export const FREE_CLIP_WATERMARK_LIVE = false', 'export const FREE_CLIP_WATERMARK_LIVE = true'],
-  ['M2 persist sem o interruptor (lê perfil com a peça desligada)', SERVER, '  if (FREE_CLIP_WATERMARK_LIVE) {\n    const { persistFreeClipWithMark }', '  if (true) {\n    const { persistFreeClipWithMark }'],
+  // REANCORADO 06/10 (KINEO-MARCA-TESTE-INTERNO-2026-10-06): o portão do persist ganhou a chave do clipe de prova da casa.
+  ['M2 persist sem o interruptor (lê perfil com a peça desligada)', SERVER, '  if (FREE_CLIP_WATERMARK_LIVE || isFreeClipMarkTestKey(row.idempotency_key)) {\n    const { persistFreeClipWithMark }', '  if (true) {\n    const { persistFreeClipWithMark }'],
   ['M3 has_paid ignorado', MOD, '  if (row.has_paid === true) return true\n', ''],
   ['M4 trial de cartão (Stripe/PayPal) tratado como cortesia', MOD, '    return filled(row.stripe_subscription_id) || filled(row.paypal_subscription_id) || filled(row.paddle_subscription_id)\n', '    return false\n'],
   ['M5 plano desconhecido vira grátis', MOD, '  }\n  return true\n}\n\nexport type FreeClipMarkReason', '  }\n  return false\n}\n\nexport type FreeClipMarkReason'],

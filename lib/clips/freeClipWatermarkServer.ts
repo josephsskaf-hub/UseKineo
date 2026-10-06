@@ -1,6 +1,8 @@
 // KINEO-CLIPE-MARCA-2026-10-06 — a fiação real da marca do clipe grátis (regra, desenho e ordem em
 // lib/clips/freeClipWatermark.ts, executados pelo guardião). Este arquivo só é carregado por import dinâmico em
 // lib/clips/clipServer.ts persistClipVideo, e só com FREE_CLIP_WATERMARK_LIVE=true: desligado, ele nem entra na rota.
+// KINEO-MARCA-TESTE-INTERNO-2026-10-06 — exceção única: o clipe de PROVA (chave com FREE_CLIP_MARK_TEST_KEY_PREFIX) também
+// entra, e aqui o e-mail do dono decide — só conta da casa (isInternalEmail) recebe a marca; conta de fora sai limpa.
 //
 // Reaproveitado da casa, sem cópia de regra:
 //   · Creatomate → submitCreatomateRender / pollCreatomateRender de lib/compose.ts (o mesmo submit da marca dos filmes,
@@ -10,6 +12,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { pollCreatomateRender, submitCreatomateRender } from '@/lib/compose'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { isInternalEmail } from '@/lib/internalAccounts' // KINEO-MARCA-TESTE-INTERNO-2026-10-06
 import type { ClipRow } from '@/lib/clips/clipFlow'
 import {
   CLIP_OWNER_PROFILE_COLUMNS,
@@ -18,11 +21,13 @@ import {
   brandedClipPath,
   cleanClipSourcePath,
   freeClipWatermarkDecision,
+  isFreeClipMarkTestKey,
   parseBrandMarker,
   type BrandClaim,
   type BrandRenderState,
   type ClipOwnerProfile,
   type FreeClipBrandDeps,
+  type FreeClipMarkReason,
 } from '@/lib/clips/freeClipWatermark'
 
 const DOWNLOAD_TIMEOUT_MS = 45_000
@@ -57,12 +62,23 @@ export async function persistFreeClipWithMark(ctx: {
   }
 
   // A decisão só é tomada uma vez, antes da trava. Com a marca já em andamento, segue até o fim com o motivo gravado nela.
-  let reason: 'free' | 'courtesy' | null = null
+  let reason: FreeClipMarkReason | null = null
   if (!parseBrandMarker(row.video_url)) {
-    const { data, error } = await admin.from('profiles').select(CLIP_OWNER_PROFILE_COLUMNS).eq('id', row.user_id).maybeSingle()
+    // KINEO-MARCA-TESTE-INTERNO-2026-10-06 — o clipe de prova (chave de teste) lê também o e-mail do dono: só conta da casa
+    // (isInternalEmail, a fonte única) ganha a marca com o interruptor desligado. Qualquer outro clipe: a leitura de sempre.
+    const markTestKey = isFreeClipMarkTestKey(row.idempotency_key)
+    const { data, error } = await admin
+      .from('profiles')
+      .select(markTestKey ? `${CLIP_OWNER_PROFILE_COLUMNS},email` : CLIP_OWNER_PROFILE_COLUMNS)
+      .eq('id', row.user_id)
+      .maybeSingle()
+    const profile = error ? null : ((data ?? null) as (ClipOwnerProfile & { email?: unknown }) | null)
     const decision = freeClipWatermarkDecision({
       live: FREE_CLIP_WATERMARK_LIVE,
-      profile: error ? null : ((data ?? null) as ClipOwnerProfile | null),
+      profile,
+      markTest: markTestKey
+        ? { key: row.idempotency_key, ownerInternal: isInternalEmail(typeof profile?.email === 'string' ? profile.email : null) }
+        : undefined,
     })
     if (!decision.brand) {
       if (decision.reason === 'profile_unreadable') {

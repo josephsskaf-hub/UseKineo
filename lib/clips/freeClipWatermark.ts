@@ -35,12 +35,30 @@
 // toPublicClip) guarda a marca de andamento `kineo-brand:v1:<fase>:<motivo>:<início>:<render>`. A primeira gravação é
 // compare-and-set (`video_url IS NULL`): duas abas e o cron juntos nunca pedem dois renders do mesmo clipe. markDone
 // sobrescreve com a URL final.
+//
+// KINEO-MARCA-CANTO-SUPERIOR-2026-10-06 (fundador: "recomendo ligar") — a marca saiu do canto INFERIOR DIREITO (no 9:16 ele
+// some atrás do disco/botões do TikTok, Reels e Shorts) para o SUPERIOR ESQUERDO. No quadro em pé ela fica logo abaixo da
+// faixa das abas do alto (7% da altura — a medida da casa em lib/hookFirstFrame.ts GANCHO_1Q_TOP_UI_PCT, espelhada aqui);
+// em 16:9 e 1:1 o canto de cima à esquerda é livre nos players (Shorts/X/Instagram) e a marca usa a mesma margem dos lados.
+// KINEO-MARCA-TESTE-INTERNO-2026-10-06 — e um jeito SÓ PARA CONTA DA CASA de ver a marca num clipe de teste com o interruptor
+// ainda desligado: a chave do pedido com FREE_CLIP_MARK_TEST_KEY_PREFIX (o /clips faz isso com ?marca=1). Quem decide é o
+// servidor, na hora de guardar o clipe: o e-mail do dono precisa ser da casa (lib/internalAccounts isInternalEmail). Conta de
+// fora com a mesma chave sai limpa — o interruptor continua sendo UM só, aqui embaixo.
 
 /** ⚠ INTERRUPTOR DO FUNDADOR. false = nenhuma marca, para ninguém: o clipe sai byte a byte como antes. */
 export const FREE_CLIP_WATERMARK_LIVE = false
 
-/** O texto queimado no canto inferior direito. */
+/** O texto queimado no canto superior esquerdo. */
 export const FREE_CLIP_WATERMARK_TEXT = 'usekineo.com'
+
+/** KINEO-MARCA-TESTE-INTERNO-2026-10-06 — prefixo da chave do pedido do clipe de prova da casa e o parâmetro do /clips que o
+ *  liga. Não é um segundo interruptor: só vale para conta da casa, um clipe por vez, decidido no servidor. */
+export const FREE_CLIP_MARK_TEST_KEY_PREFIX = 'clip-marca-teste-'
+export const FREE_CLIP_MARK_TEST_PARAM = 'marca'
+
+export function isFreeClipMarkTestKey(key: unknown): boolean {
+  return typeof key === 'string' && key.startsWith(FREE_CLIP_MARK_TEST_KEY_PREFIX)
+}
 
 /** A legenda pronta do botão "Post it" (vai para a folha de compartilhar e para a área de transferência). */
 export const CLIP_SHARE_CAPTION = 'Made with Kineo · usekineo.com #madewithkineo'
@@ -103,12 +121,23 @@ export function clipOwnerPays(row: ClipOwnerProfile): boolean {
   return true
 }
 
-export type FreeClipMarkReason = 'free' | 'courtesy'
+export type FreeClipMarkReason = 'free' | 'courtesy' | 'forced'
 export type FreeClipWatermarkDecision =
   | { brand: true; reason: FreeClipMarkReason }
   | { brand: false; reason: 'switch_off' | 'paying' | 'profile_unreadable' }
 
-export function freeClipWatermarkDecision(args: { live: boolean; profile: ClipOwnerProfile | null | undefined }): FreeClipWatermarkDecision {
+/**
+ * Quem recebe a marca. `markTest` (KINEO-MARCA-TESTE-INTERNO-2026-10-06): a chave do pedido e se o DONO é conta da casa
+ * (calculado no servidor com isInternalEmail sobre o e-mail do perfil). Só os dois juntos forçam a marca ('forced') — com o
+ * interruptor desligado e mesmo na conta da casa que paga (é o clipe de prova). Fora disso, a regra de sempre: interruptor
+ * desligado = nada; pagante = nunca.
+ */
+export function freeClipWatermarkDecision(args: {
+  live: boolean
+  profile: ClipOwnerProfile | null | undefined
+  markTest?: { key: unknown; ownerInternal: boolean }
+}): FreeClipWatermarkDecision {
+  if (args.markTest?.ownerInternal === true && isFreeClipMarkTestKey(args.markTest.key)) return { brand: true, reason: 'forced' }
   if (!args.live) return { brand: false, reason: 'switch_off' }
   if (!args.profile) return { brand: false, reason: 'profile_unreadable' }
   if (clipOwnerPays(args.profile)) return { brand: false, reason: 'paying' }
@@ -149,7 +178,7 @@ export function brandMarker(m: BrandMarker): string {
 
 export function parseBrandMarker(value: unknown): BrandMarker | null {
   if (typeof value !== 'string' || !value.startsWith(MARKER_PREFIX)) return null
-  const m = /^(starting|rendering):(free|courtesy):(\d{10,16}):([A-Za-z0-9-]{8,80}|-)$/.exec(value.slice(MARKER_PREFIX.length))
+  const m = /^(starting|rendering):(free|courtesy|forced):(\d{10,16}):([A-Za-z0-9-]{8,80}|-)$/.exec(value.slice(MARKER_PREFIX.length))
   if (!m) return null
   const renderId = m[4] === '-' ? null : m[4]
   if (m[1] === 'rendering' && !renderId) return null
@@ -157,16 +186,21 @@ export function parseBrandMarker(value: unknown): BrandMarker | null {
 }
 
 // ─── O desenho da marca ──────────────────────────────────────────────────────
-// Canto inferior direito, fora do assunto. Tudo proporcional ao lado CURTO do quadro, então 9:16, 16:9 e 1:1 recebem a
-// mesma marca no mesmo tamanho aparente. Plaqueta escura translúcida: a lição do #100 dos filmes ("1px de contorno sem
-// plaqueta some sobre imagem clara") vale aqui. Fonte, peso e cores = a marca dos filmes, um degrau mais discreta.
+// KINEO-MARCA-CANTO-SUPERIOR-2026-10-06 — canto SUPERIOR ESQUERDO (era o inferior direito: no 9:16 ele fica atrás do disco
+// e dos botões de curtir/comentar do TikTok, Reels e Shorts). Tamanho proporcional ao lado CURTO do quadro, então 9:16, 16:9
+// e 1:1 recebem a mesma marca no mesmo tamanho aparente. Plaqueta escura translúcida: a lição do #100 dos filmes ("1px de
+// contorno sem plaqueta some sobre imagem clara") vale aqui. Fonte, peso e cores = a marca dos filmes, um degrau mais discreta.
 export const FREE_CLIP_WATERMARK_STYLE = {
   fontFamily: 'Montserrat',
   fontWeight: '700',
   /** tamanho da fonte = 3,4% do lado curto (720 → 24 px; 1080 → 37 px). */
   fontShortSideRatio: 0.034,
-  /** distância da plaqueta até a borda = 3,5% do lado curto. */
+  /** distância da plaqueta até a borda ESQUERDA (e até o topo em 16:9 e 1:1) = 3,5% do lado curto. */
   marginShortSideRatio: 0.035,
+  /** quadro EM PÉ: a faixa das abas do alto do TikTok/Reels/Shorts ("Seguindo | Para você", LIVE, busca) ocupa os 7% de cima
+   *  — espelho de lib/hookFirstFrame.ts GANCHO_1Q_TOP_UI_PCT (o guardião confere) — e a plaqueta começa 1% abaixo dela. */
+  tallTopUiRatio: 0.07,
+  tallTopGapRatio: 0.01,
   /** folgas da plaqueta em % da fonte (Creatomate: background_*_padding é % do tamanho da fonte). */
   padXPercent: 30,
   padYPercent: 18,
@@ -190,10 +224,12 @@ export interface ClipVideoInfo {
 export interface FreeClipWatermarkLayout {
   fontSize: number
   margin: number
+  /** borda de cima da PLAQUETA (em pé: abaixo da faixa das abas; deitado/quadrado: a margem). */
+  top: number
   padX: number
   padY: number
   radius: number
-  /** canto inferior direito da CAIXA DO TEXTO (âncora 100%/100%); a plaqueta passa padX/padY para fora dele. */
+  /** canto superior esquerdo da CAIXA DO TEXTO (âncora 0%/0%); a plaqueta passa padX/padY para fora dele. */
   x: number
   y: number
 }
@@ -207,14 +243,17 @@ export function freeClipWatermarkLayout(info: Pick<ClipVideoInfo, 'width' | 'hei
   const margin = Math.max(8, Math.round(short * S.marginShortSideRatio))
   const padX = round1((fontSize * S.padXPercent) / 100)
   const padY = round1((fontSize * S.padYPercent) / 100)
+  const tall = info.height > info.width
+  const top = tall ? Math.max(margin, Math.round(info.height * (S.tallTopUiRatio + S.tallTopGapRatio))) : margin
   return {
     fontSize,
     margin,
+    top,
     padX,
     padY,
     radius: round1((fontSize * S.radiusPercent) / 100),
-    x: round1(info.width - margin - padX),
-    y: round1(info.height - margin - padY),
+    x: round1(margin + padX),
+    y: round1(top + padY),
   }
 }
 
@@ -251,8 +290,8 @@ export function buildFreeClipWatermarkSource(cleanUrl: string, info: ClipVideoIn
         text: FREE_CLIP_WATERMARK_TEXT,
         x: L.x,
         y: L.y,
-        x_anchor: '100%',
-        y_anchor: '100%',
+        x_anchor: '0%',
+        y_anchor: '0%',
         font_family: S.fontFamily,
         font_weight: S.fontWeight,
         font_size: L.fontSize,

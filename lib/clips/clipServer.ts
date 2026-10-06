@@ -51,6 +51,7 @@ import {
   clipOwnerPays,
   cleanClipSourcePath,
   isBrandedClipUrl,
+  isFreeClipMarkTestKey,
   type ClipOwnerProfile,
 } from '@/lib/clips/freeClipWatermark'
 // KINEO-S25-CLIPES-2026-10-06 — o clipe do Seedance 2.5: interruptor único (clipLaunch) e "só para quem paga" pela MESMA
@@ -250,8 +251,10 @@ export async function publicClipsForViewer(admin: SupabaseClient, userId: string
   if (!out.some((clip) => clip.branded)) return out
   const { data, error } = await admin.from('profiles').select(CLIP_OWNER_PROFILE_COLUMNS).eq('id', userId).maybeSingle()
   if (error || !data || !clipOwnerPays(data as ClipOwnerProfile)) return out
+  // KINEO-MARCA-TESTE-INTERNO-2026-10-06 — o clipe de PROVA da casa fica com a marca na lista (ele existe para mostrar a marca).
+  const markTests = new Set(rows.filter((row) => isFreeClipMarkTestKey(row.idempotency_key)).map((row) => row.id))
   return out.map((clip) => {
-    if (!clip.branded) return clip
+    if (!clip.branded || markTests.has(clip.id)) return clip
     try {
       const { data: pub } = admin.storage.from(CLIPS_BUCKET).getPublicUrl(cleanClipSourcePath(userId, clip.id, clipCleanToken(clip.id)))
       return pub?.publicUrl ? { ...clip, video_url: pub.publicUrl, branded: false } : clip
@@ -348,7 +351,9 @@ async function persistClipVideo(admin: SupabaseClient, row: ClipRow, providerUrl
   // KINEO-CLIPE-MARCA-2026-10-06 — clipe de quem não paga sai com a marca usekineo.com (lib/clips/freeClipWatermark.ts).
   // Desligado (FREE_CLIP_WATERMARK_LIVE=false) nada disto roda — nem o import — e o clipe segue o caminho de sempre.
   // null = este clipe não leva marca (pagou, perfil ilegível, perto do prazo): caminho de sempre, logo abaixo.
-  if (FREE_CLIP_WATERMARK_LIVE) {
+  // KINEO-MARCA-TESTE-INTERNO-2026-10-06 — a única exceção com o interruptor desligado: o clipe de PROVA (chave de teste). Quem
+  // decide se ele leva a marca é o servidor da marca, pelo e-mail do dono (só conta da casa); conta de fora sai limpa.
+  if (FREE_CLIP_WATERMARK_LIVE || isFreeClipMarkTestKey(row.idempotency_key)) {
     const { persistFreeClipWithMark } = await import('@/lib/clips/freeClipWatermarkServer')
     const marked = await persistFreeClipWithMark({
       admin, row, providerUrl, bucket: CLIPS_BUCKET, table: CLIPS_TABLE, cleanToken: clipCleanToken(row.id), expireMs: CLIP_EXPIRE_MS,

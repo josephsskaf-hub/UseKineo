@@ -6,6 +6,9 @@
 //   (B) KINEO-FAROL-VITRINE-2026-10-06 — o farol (1º clipe Seedance 2.5 da casa) vira a vitrine do card do 2.5 no /clips: só
 //       ali (livre e trancado), selo honesto conferido no próprio MP4 (480×854, 24 fps, 5 s), pôster WebP, sem preço no
 //       cartão, e a curadoria do fundador intacta (o farol só é citado pela vitrine do 2.5).
+//   (C) KINEO-MARCA-CANTO-SUPERIOR / KINEO-MARCA-TESTE-INTERNO-2026-10-06 — a marca do clipe grátis no canto SUPERIOR ESQUERDO
+//       (9:16 logo abaixo da faixa das abas; 16:9 e 1:1 na margem), nunca em conta paga, o clipe de prova forçado SÓ para conta
+//       da casa (e-mail conferido no servidor) e o interruptor FREE_CLIP_WATERMARK_LIVE num lugar só — executando a fiação real.
 // Estilo da casa: readFileSync + ts.transpileModule para os módulos puros (imports relativos) e o carregador offline da casa
 // (scripts/test-support/offline-ts-loader.mjs) para EXECUTAR a rota com banco, fal e eventos falsos. Nada de rede, nada de
 // crédito. Mutantes no fim: cada regra quebrada fica vermelha (só conta o vermelho NOVO).
@@ -320,11 +323,197 @@ async function problemsB(over = {}) {
   return p
 }
 
+// ═══ (C) A marca d'água do clipe grátis ══════════════════════════════════════
+const SERVER = 'lib/clips/clipServer.ts'
+const WIRE = 'lib/clips/freeClipWatermarkServer.ts'
+const HOOK = 'lib/hookFirstFrame.ts'
+const MELT = fs.readFileSync(path.join(ROOT, 'public/previews/efeito-melt.mp4')) // clipe real da casa, 720×1280, 24 fps, 5 s
+const UID = '11111111-1111-4111-8111-111111111111'
+const CID = '22222222-2222-4222-8222-222222222222'
+const KEY = 'test-service-key'
+const PUB = (p) => `https://cdn.test/renders/${p}`
+const CANONICAL = `clips/${UID}/${CID}.mp4`
+const BRANDED_PATH = `clips/${UID}/${CID}.kineo.mp4`
+const INTERNAL = 'joseph+teste01@gmail.com' // lista exata da casa (lib/internalAccounts)
+
+/** A fiação real (clipServer → settleClip → servidor da marca) com banco, bucket, fal e Creatomate falsos. */
+function markWiring(over, live) {
+  const ctx = { st: null }
+  const source = (rel, text) => {
+    let t = over[rel] ?? text
+    if (rel === WATERMARK) t = t.replace(/export const FREE_CLIP_WATERMARK_LIVE = (true|false)/, `export const FREE_CLIP_WATERMARK_LIVE = ${live}`)
+    return t
+  }
+  const fetch = async (url) => {
+    const bytes = String(url).includes('fal.test') ? MELT : Buffer.from('BRANDED-MP4-BYTES')
+    const ab = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+    return { ok: true, status: 200, arrayBuffer: async () => ab, text: async () => '' }
+  }
+  const load = createOfflineLoader({
+    source,
+    env: { SUPABASE_SERVICE_ROLE_KEY: KEY, NEXT_PUBLIC_SUPABASE_URL: 'https://db.test', FAL_KEY: 'fal-test' },
+    globals: { fetch, AbortSignal },
+    mocks: {
+      '@fal-ai/client': { fal: { config() {}, queue: { status: async () => ({ status: 'COMPLETED' }), result: async () => ({ data: { video: { url: 'https://fal.test/out.mp4' } } }) } } },
+      '@/lib/credits/debit': { debitVideoCredits: async () => { throw new Error('débito no settle') } },
+      '@/lib/credits/refund': { refundRenderCredits: async () => 5 },
+      '@/lib/safety/contentModeration': { moderateContent: async () => ({ ok: true }) },
+      '@/lib/safety/moderationPolicy': {},
+      '@/lib/animate/remoteImage': { downloadPublicAnimateImage: async () => {} },
+      '@/lib/serverEvents': { writeServerEvent: async (e) => { ctx.st.events.push(e); return true } },
+      '@/lib/falAlert': { alertFalExhausted: async () => {}, looksExhausted: () => false },
+      '@/lib/stripe': { stripe: new Proxy({}, { get: () => { throw new Error('Stripe no teste da marca') } }) },
+      '@/lib/compose': {
+        submitCreatomateRender: async (s) => { ctx.st.submits.push(s); return 'rnd-00000001' },
+        pollCreatomateRender: async () => ({ status: 'succeeded', url: 'https://creatomate.test/rnd.mp4', error: null }),
+      },
+    },
+  })
+  const server = load(SERVER)
+  const flow = load('lib/clips/clipFlow.ts')
+  const admin = {
+    from(table) {
+      const q = { op: 'select', patch: null, filters: [], columns: '' }
+      const exec = () => {
+        const st = ctx.st
+        if (table === 'profiles') { st.profileReads.push(q.columns); return { data: st.profile, error: null } }
+        if (table === 'clips' && q.op === 'update') {
+          if (!q.filters.every((f) => f(st.clip))) return { data: [], error: null }
+          Object.assign(st.clip, q.patch)
+          return { data: [{ id: st.clip.id }], error: null }
+        }
+        return { data: null, error: { message: 'unexpected query' } }
+      }
+      const api = {
+        select(c) { if (q.op === 'select' && typeof c === 'string') q.columns = c; return api },
+        update(patch) { q.op = 'update'; q.patch = patch; return api },
+        eq(c, v) { q.filters.push((r) => r[c] === v); return api },
+        is(c, v) { q.filters.push((r) => r[c] === v); return api },
+        in(c, vs) { q.filters.push((r) => vs.includes(r[c])); return api },
+        maybeSingle() { return Promise.resolve(exec()) },
+        then(a, b) { return Promise.resolve(exec()).then(a, b) },
+      }
+      return api
+    },
+    storage: { from: (bucket) => ({ upload: async (p) => { ctx.st.uploads.push(p); return { error: null } }, getPublicUrl: (p) => ({ data: { publicUrl: `https://cdn.test/${bucket}/${p}` } }) }) },
+  }
+  const world = ({ key, profile }) => {
+    ctx.st = {
+      clip: {
+        id: CID, user_id: UID, idempotency_key: key, fingerprint: 'f', billing_reference: `clips-${CID}`, engine: 'seedance', mode: 'text',
+        model: 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video', seconds: 5, aspect: '9:16', prompt: 'a lighthouse', image_url: null, credits: 5,
+        fal_usd: 0.13, status: 'processing', fal_request_id: 'req-1', video_url: null, failure_reason: null, credits_refunded: 0,
+        created_at: new Date(Date.now() - 90_000).toISOString(),
+      },
+      profile, profileReads: [], uploads: [], events: [], submits: [],
+    }
+    return ctx.st
+  }
+  const settle = () => flow.settleClip(server.settleDepsFor(admin, UID), { ...ctx.st.clip })
+  return { server, admin, world, settle }
+}
+
+async function problemsC(over = {}) {
+  const p = []
+  const src = (rel) => (over[rel] ?? raw(rel)).replace(/\r\n/g, '\n')
+  let M, H
+  try { M = loadPure(WATERMARK, over); H = loadPure(HOOK, over) } catch (err) { return [`(C) módulo não carrega: ${err.message}`] }
+
+  // (C1) canto SUPERIOR ESQUERDO: no 9:16 logo abaixo da faixa das abas (TikTok/Reels/Shorts), em 16:9 e 1:1 na margem.
+  const S = M.FREE_CLIP_WATERMARK_STYLE
+  if (Math.round(S.tallTopUiRatio * 100) !== H.GANCHO_1Q_TOP_UI_PCT) p.push(`(C1) a faixa das abas daqui (${S.tallTopUiRatio}) ≠ a medida da casa (${H.GANCHO_1Q_TOP_UI_PCT}%)`)
+  const FRAMES = [[720, 1280, '9:16'], [480, 854, '9:16 (2.5 a 480p)'], [1080, 1920, '9:16 1080'], [1280, 720, '16:9'], [1920, 1080, '16:9 1080'], [1080, 1080, '1:1'], [720, 720, '1:1 720']]
+  for (const [w, h, label] of FRAMES) {
+    const s = M.buildFreeClipWatermarkSource('https://cdn.test/clean.mp4', { width: w, height: h, fps: 24, durationSeconds: 5 })
+    const t = (s.elements ?? []).find((e) => e.type === 'text')
+    if (!t || t.x_anchor !== '0%' || t.y_anchor !== '0%') { p.push(`(C1) ${label}: marca sem âncora no canto superior esquerdo`); continue }
+    const padX = (t.font_size * parseFloat(t.background_x_padding)) / 100
+    const padY = (t.font_size * parseFloat(t.background_y_padding)) / 100
+    const left = t.x - padX
+    const top = t.y - padY
+    const plateW = 12 * 0.62 * t.font_size + 2 * padX // "usekineo.com" em Montserrat 700, com folga
+    const plateH = 1.15 * t.font_size + 2 * padY
+    const short = Math.min(w, h)
+    if (!(left >= short * 0.02 && left <= short * 0.06)) p.push(`(C1) ${label}: plaqueta longe da borda esquerda (${left.toFixed(1)} px)`)
+    if (left + plateW > w * 0.5) p.push(`(C1) ${label}: a marca invade o meio do quadro`)
+    if (h > w) {
+      if (top < h * 0.08 - 0.5) p.push(`(C1) ${label}: a marca fica embaixo da faixa das abas do alto (topo ${top.toFixed(1)} px < 8%)`)
+      if (top + plateH > h * 0.15) p.push(`(C1) ${label}: a marca desceu do canto (base ${(top + plateH).toFixed(1)} px > 15%)`)
+    } else if (!(top >= short * 0.02 && top <= short * 0.06)) p.push(`(C1) ${label}: plaqueta longe do topo (${top.toFixed(1)} px)`)
+    if (t.x > w * 0.25 || t.y > h * 0.2) p.push(`(C1) ${label}: a marca voltou para baixo/direita`)
+  }
+
+  // (C2) nunca em conta paga; (C3) forçar só em conta da casa, com a chave de teste — regra pura
+  const TEST = `${M.FREE_CLIP_MARK_TEST_KEY_PREFIX}00000000-0000-4000-8000-000000000000`
+  const PAYING = [{ plan: 'pro', has_paid: true }, { plan: 'starter', has_paid: false }, { plan: 'studio_trial', has_paid: true, stripe_subscription_id: 'sub_1' }]
+  for (const profile of PAYING) {
+    for (const live of [true, false]) {
+      if (M.freeClipWatermarkDecision({ live, profile }).brand !== false) p.push(`(C2) pagante recebeu marca (live=${live}, ${profile.plan})`)
+      if (M.freeClipWatermarkDecision({ live, profile, markTest: { key: TEST, ownerInternal: false } }).brand !== false) p.push(`(C2) pagante de fora com a chave de teste recebeu marca (live=${live})`)
+    }
+  }
+  const free = { plan: 'free', has_paid: false }
+  if (M.freeClipWatermarkDecision({ live: false, profile: free, markTest: { key: TEST, ownerInternal: false } }).brand !== false) p.push('(C3) conta de fora forçou a marca com a chave de teste')
+  if (M.freeClipWatermarkDecision({ live: false, profile: free, markTest: { key: 'clip-ui-123456789', ownerInternal: true } }).brand !== false) p.push('(C3) conta da casa sem a chave de teste recebeu marca com o interruptor desligado')
+  const forced = M.freeClipWatermarkDecision({ live: false, profile: { plan: 'pro', has_paid: true }, markTest: { key: TEST, ownerInternal: true } })
+  if (forced.brand !== true || forced.reason !== 'forced') p.push(`(C3) a conta da casa não consegue o clipe de prova: ${JSON.stringify(forced)}`)
+  if (!M.parseBrandMarker(M.brandMarker({ phase: 'starting', reason: 'forced', startedAt: Date.now(), renderId: null }))) p.push('(C3) a marca de andamento não aceita o motivo do clipe de prova')
+  if (M.isFreeClipMarkTestKey('clip-ui-123') || !M.isFreeClipMarkTestKey(TEST) || M.isFreeClipMarkTestKey(null)) p.push('(C3) chave de teste reconhecida errado')
+
+  // (C2/C3) a fiação REAL, com o interruptor DESLIGADO
+  try {
+    const W = markWiring(over, false)
+    {
+      const st = W.world({ key: TEST, profile: { plan: 'pro', has_paid: true, email: INTERNAL } })
+      const first = await W.settle()
+      const text = st.submits[0]?.elements?.find((e) => e.type === 'text')
+      if (first.status !== 'processing' || !text || text.x_anchor !== '0%' || text.y !== Math.round((Math.round(1280 * 0.08) + text.font_size * 0.18) * 10) / 10) p.push(`(C3) clipe de prova da casa não pediu a marca no canto superior esquerdo (${first.status}, ${JSON.stringify(text && { x: text.x, y: text.y })})`)
+      if (!st.profileReads.some((c) => /\bemail\b/.test(c))) p.push('(C3) o servidor não leu o e-mail do dono para decidir o clipe de prova')
+      const second = await W.settle()
+      if (second.status !== 'done' || second.video_url !== PUB(BRANDED_PATH)) p.push(`(C3) clipe de prova da casa não saiu com a marca (${second.status} ${second.video_url})`)
+      if (!st.events.some((e) => e.name === 'clip_watermark_started' && e.metadata?.reason === 'forced')) p.push('(C3) sem o evento clip_watermark_started com reason forced (rastro do teste)')
+      const list = await W.server.publicClipsForViewer(W.admin, UID, [{ ...st.clip }])
+      if (list[0]?.video_url !== PUB(BRANDED_PATH) || list[0]?.branded !== true) p.push('(C3) na lista, o clipe de prova da casa (que paga) perdeu a marca')
+      const normal = await W.server.publicClipsForViewer(W.admin, UID, [{ ...st.clip, idempotency_key: 'clip-ui-normal-0001' }])
+      if (normal[0]?.branded !== false) p.push('(C2) clipe com marca de quem paga continuou com marca na lista (devia virar o limpo)')
+    }
+    {
+      const st = W.world({ key: TEST, profile: { plan: 'free', has_paid: false, email: 'customer@example.test' } })
+      const after = await W.settle()
+      if (after.status !== 'done' || after.video_url !== PUB(CANONICAL) || st.submits.length) p.push('(C3) conta de fora com a chave de teste ganhou a marca (interruptor desligado)')
+    }
+    {
+      const st = W.world({ key: 'clip-ui-normal-0001', profile: { plan: 'pro', has_paid: true, email: INTERNAL } })
+      const after = await W.settle()
+      if (after.video_url !== PUB(CANONICAL) || st.submits.length || st.profileReads.length) p.push('(C3) conta da casa SEM a chave de teste passou pela marca com o interruptor desligado')
+    }
+  } catch (err) { p.push(`(C) fiação não executa: ${err.message}`) }
+  try {
+    const W = markWiring(over, true)
+    const st = W.world({ key: 'clip-ui-normal-0002', profile: { plan: 'starter', has_paid: true, email: 'customer@example.test' } })
+    const after = await W.settle()
+    if (after.video_url !== PUB(CANONICAL) || st.submits.length) p.push('(C2) ligado: o PAGANTE passou pela marca')
+  } catch (err) { p.push(`(C) fiação ligada não executa: ${err.message}`) }
+
+  // (C4) o interruptor mora num lugar só; a chave de teste não é um segundo interruptor
+  const defs = APP_FILES.filter((rel) => /\b(?:const|let|var)\s+FREE_CLIP_WATERMARK_LIVE\w*\s*=/.test(over[rel] ?? raw(rel)))
+  if (defs.join() !== WATERMARK) p.push(`(C4) o interruptor da marca definido fora de um lugar só: ${defs.join(', ')}`)
+  if (!src(SERVER).includes('  if (FREE_CLIP_WATERMARK_LIVE || isFreeClipMarkTestKey(row.idempotency_key)) {')) p.push('(C4) o portão do persist não é o interruptor + a chave de prova')
+  if (!src(WIRE).includes('      live: FREE_CLIP_WATERMARK_LIVE,') || !src(WIRE).includes("ownerInternal: isInternalEmail(typeof profile?.email === 'string' ? profile.email : null)")) p.push('(C4) a decisão do servidor não lê o interruptor e o e-mail do dono')
+  const exportedBools = [...src(WATERMARK).matchAll(/export const (\w+)\s*=\s*(true|false)\b/g)].map((m) => m[1])
+  if (exportedBools.join() !== 'FREE_CLIP_WATERMARK_LIVE') p.push(`(C4) outra chave liga/desliga a marca: ${exportedBools.join(', ')}`)
+  const client = src(CLIENT)
+  if (!client.includes('const key = newKey(markTestRef.current)') || !client.includes("markTestRef.current = new URLSearchParams(window.location.search).get(FREE_CLIP_MARK_TEST_PARAM) === '1'")) p.push('(C4) o /clips não tem o jeito do clipe de prova (?marca=1)')
+  return p
+}
+
 console.log('TESTE clipes-tres — 06/10')
 const realA = await problemsA()
 ok(realA.length === 0, '(A) aviso do clipe grátis: só quem tem e não usou, no /studio e no /clips; ideia pronta cabe no presente; CTA que vende fica; nada dispara sozinho; eventos; 16 línguas' + (realA.length ? ' → ' + realA.join(' | ') : ''))
 const realB = await problemsB()
 ok(realB.length === 0, '(B) farol: só no card do 2.5 (livre e trancado), clipe real de 5 s em pé conferido no MP4, pôster, sem preço no cartão, curadoria intacta' + (realB.length ? ' → ' + realB.join(' | ') : ''))
+const realC = await problemsC()
+ok(realC.length === 0, '(C) marca: canto superior esquerdo (9:16 abaixo das abas; 16:9 e 1:1 na margem), nunca em conta paga, forçar só em conta da casa com a chave de prova, interruptor num lugar só' + (realC.length ? ' → ' + realC.join(' | ') : ''))
 
 // ─── Mutantes ────────────────────────────────────────────────────────────────
 const MUTANTS = [
@@ -347,6 +536,15 @@ const MUTANTS = [
   ['MB5 vitrine presa ao 2.5 na tela', CLIENT, "            <button key={e.key} type=\"button\" className={`clip-engine${sc ? ' has-showcase' : ''}`}", "            <button key={e.key} type=\"button\" className={`clip-engine${clipEngineShowcase('s25') ? ' has-showcase' : ''}`}", problemsB, realB],
   ['MB6 card trancado sem a vitrine', CLIENT, "onClick={() => { void trackClosedEvent(CLIP_PAID_EVENTS.clicked, { surface: 'clips', engine: e.key, balance }) }}>\n              {sc && <EngineShowcaseMedia sc={sc} />}\n", "onClick={() => { void trackClosedEvent(CLIP_PAID_EVENTS.clicked, { surface: 'clips', engine: e.key, balance }) }}>\n", problemsB, realB],
   ['MB7 farol entra na curadoria da home', 'lib/engineWall.ts', "const EXCLUDED = new Set<string>([\n", `const EXCLUDED = new Set<string>([\n  '${FAROL}',\n`, problemsB, realB],
+  ['MC1 marca volta para o canto inferior direito', WATERMARK, "        x_anchor: '0%',\n        y_anchor: '0%',", "        x_anchor: '100%',\n        y_anchor: '100%',", problemsC, realC],
+  ['MC2 no 9:16 a marca fica embaixo da faixa das abas', WATERMARK, '  const top = tall ? Math.max(margin, Math.round(info.height * (S.tallTopUiRatio + S.tallTopGapRatio))) : margin', '  const top = margin', problemsC, realC],
+  ['MC3 conta de fora força a marca', WATERMARK, '  if (args.markTest?.ownerInternal === true && isFreeClipMarkTestKey(args.markTest.key))', '  if (isFreeClipMarkTestKey(args.markTest?.key))', problemsC, realC],
+  ['MC4 servidor não confere o e-mail do dono', WIRE, "ownerInternal: isInternalEmail(typeof profile?.email === 'string' ? profile.email : null)", 'ownerInternal: true', problemsC, realC],
+  ['MC5 segundo interruptor da marca', SERVER, "export const CLIPS_TABLE = 'clips'\n", "export const FREE_CLIP_WATERMARK_LIVE_FORCE = true\nexport const CLIPS_TABLE = 'clips'\n", problemsC, realC],
+  ['MC6 pagante recebe a marca com o interruptor ligado', WATERMARK, "  if (clipOwnerPays(args.profile)) return { brand: false, reason: 'paying' }\n", '', problemsC, realC],
+  ['MC7 clipe de prova não passa pelo portão do persist', SERVER, '  if (FREE_CLIP_WATERMARK_LIVE || isFreeClipMarkTestKey(row.idempotency_key)) {', '  if (FREE_CLIP_WATERMARK_LIVE) {', problemsC, realC],
+  ['MC8 clipe de prova perde a marca na lista', SERVER, '    if (!clip.branded || markTests.has(clip.id)) return clip', '    if (!clip.branded) return clip', problemsC, realC],
+  ['MC9 faixa das abas fora da medida da casa', WATERMARK, '  tallTopUiRatio: 0.07,', '  tallTopUiRatio: 0.05,', problemsC, realC],
   ['MA9 replay conta outro pedido do aviso', ROUTE, 'if (!effect && body.free_clip_notice === true && result.ok && !result.replay) {', 'if (!effect && body.free_clip_notice === true && result.ok) {', problemsA, realA],
   ['MA10 todo pedido vira pedido do aviso', ROUTE, 'if (!effect && body.free_clip_notice === true && result.ok && !result.replay) {', 'if (!effect && result.ok && !result.replay) {', problemsA, realA],
   ['MA11 o navegador cunha o pedido do aviso', EVENTS, "  'free_clip_notice_clip_requested',\n", '', problemsA, realA],

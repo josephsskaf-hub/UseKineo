@@ -24,6 +24,7 @@ import { CLIP_POST_COPY, CLIP_POST_EVENTS, CLIP_SHARE_CAPTION } from '@/lib/clip
 import { CLIP_PAID_EVENTS, clipPaidUpgradeHref } from '@/lib/clips/clipLaunch' // KINEO-S25-CLIPES-2026-10-06 — card trancado (só planos pagos)
 import { FREE_CLIP_APPLY_EVENT, FREE_CLIP_IDEA, FREE_CLIP_NOTICE_PARAM } from '@/lib/clips/freeClipNotice' // KINEO-AVISO-CLIPE-GRATIS-2026-10-06
 import { clipEngineShowcase, type ClipEngineShowcase } from '@/lib/clips/clipEngineShowcase' // KINEO-FAROL-VITRINE-2026-10-06
+import { FREE_CLIP_MARK_TEST_KEY_PREFIX, FREE_CLIP_MARK_TEST_PARAM } from '@/lib/clips/freeClipWatermark' // KINEO-MARCA-TESTE-INTERNO-2026-10-06
 
 type Engine = {
   key: string
@@ -90,8 +91,11 @@ function EngineShowcaseMedia({ sc }: { sc: ClipEngineShowcase }) {
   )
 }
 
-function newKey(): string {
-  try { return `clip-ui-${crypto.randomUUID()}` } catch { return `clip-ui-${Date.now()}-${Math.random().toString(36).slice(2, 10)}` }
+// KINEO-MARCA-TESTE-INTERNO-2026-10-06 — com ?marca=1 a chave do pedido nasce com o prefixo do clipe de PROVA da marca; quem
+// decide se ele sai com a marca é o servidor, pelo e-mail do dono (só conta da casa). Sem o parâmetro, a chave de sempre.
+function newKey(markTest = false): string {
+  const prefix = markTest ? FREE_CLIP_MARK_TEST_KEY_PREFIX : 'clip-ui-'
+  try { return `${prefix}${crypto.randomUUID()}` } catch { return `${prefix}${Date.now()}-${Math.random().toString(36).slice(2, 10)}` }
 }
 
 async function compressPhoto(file: File): Promise<File> {
@@ -188,7 +192,9 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
   const [freeClipPending, setFreeClipPending] = useState(false)
   const freeClipOriginRef = useRef(false)
   const freeClipFocusRef = useRef(false)
+  const markTestRef = useRef(false) // KINEO-MARCA-TESTE-INTERNO-2026-10-06 — ?marca=1 (clipe de prova da marca; só vale para conta da casa)
   useEffect(() => {
+    markTestRef.current = new URLSearchParams(window.location.search).get(FREE_CLIP_MARK_TEST_PARAM) === '1'
     if (new URLSearchParams(window.location.search).get(FREE_CLIP_NOTICE_PARAM) === '1') setFreeClipPending(true)
     const onApply = () => setFreeClipPending(true)
     window.addEventListener(FREE_CLIP_APPLY_EVENT, onApply)
@@ -297,7 +303,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
   async function send(payload: Record<string, unknown>) {
     setBusy(true)
     setError(null)
-    const key = newKey()
+    const key = newKey(markTestRef.current)
     try {
       const res = await fetch('/api/clips', {
         method: 'POST',
