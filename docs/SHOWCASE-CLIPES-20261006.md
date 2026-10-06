@@ -89,6 +89,10 @@
 
 **FATO CONFIRMADO — Git remoto lido em 05/10 BRT:** origin/main permanece 7ec75c5ddce617b285417f25fd8fd8c99d7a301b; não existe ref remota origin/entrega-atual. A fila da casa é a ref local entrega-atual, que foi preservada por merge e atualizada apenas por scripts/enfileirar.sh. Não houve push direto nem branch -f.
 
+**FATO CONFIRMADO / INTEGRAÇÃO — 05/10 BRT:** a fila avançou para `1add24fba47242e95811f1e536b00461af7ff8da` (MRR) durante os gates finais. O merge `01c96a95d7f18508b3e839df1d5f32f4bee894a0` preservou esse candidato integralmente. Único conflito: dois acréscimos no fim de DECISIONS, resolvido mantendo ambos. Arquivos MRR conferidos idênticos ao candidato da fila; arquivos de Clipes idênticos ao nosso candidato anterior. As afirmações de escopo desta entrega referem-se às alterações de autoria Showcase; a fila combinada inclui também o trabalho MRR, sem reedição por esta sessão.
+
+**TESTADO LOCALMENTE — integração, 05/10 BRT:** tsc limpo; todos os 767 scripts executados, 624 passaram e as mesmas 143 falhas da base permaneceram. Nenhum vermelho nem asserção nova. [Gates após o merge](showcase-clipes-20261006/integration/gates.json). Guardiões de Clipes e MRR incluídos nessa execução. Não reutilizamos os gates anteriores como prova do merge.
+
 ## Como desfazer
 
 **SUGESTÃO operacional reversível:** por nova branch e o mesmo caminho de gates/fila/launcher, `CLIP_GUEST_AS_NEW_ACCOUNT=false` restaura a seleção anônima anterior; `CLIP_EFFECT_PAGES_PUBLIC=false` retira páginas e sitemap de efeitos; `CLIP_MEASUREMENT_ENABLED=false` desliga os eventos novos. Kling 4 já está false. Esses estados foram exercitados nos guardiões; o rollback deve ser validado com a configuração intencional. Para desfazer os quatro itens integralmente, reverter apenas os commits desta entrega, em ordem inversa, preservando merges/trabalho alheio. Nunca resetar main ou a fila.

@@ -11,6 +11,9 @@
       "name": "clip_effect_chosen",
       "allEvents": 5,
       "allIdentifiedAccounts": 1,
+      "internalEvents": 5,
+      "internalAccounts": 1,
+      "missingProfileOrEmail": 0,
       "externalIdentifiedAccounts": 0,
       "externalEvents": 0
     },
@@ -18,6 +21,9 @@
       "name": "clip_effect_ready",
       "allEvents": 5,
       "allIdentifiedAccounts": 1,
+      "internalEvents": 5,
+      "internalAccounts": 1,
+      "missingProfileOrEmail": 0,
       "externalIdentifiedAccounts": 0,
       "externalEvents": 0
     }
