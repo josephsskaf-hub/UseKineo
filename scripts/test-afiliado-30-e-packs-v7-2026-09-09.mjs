@@ -1,4 +1,4 @@
-// KINEO-LOTE3-2026-09-09 — guardião: comissão de afiliado com UMA fonte (30%),
+// KINEO-LOTE3-2026-09-09 — guardião: comissão de afiliado com UMA fonte (30% em 09/09; 40% desde 06/10),
 // packs de agência prometendo filmes Kineo 1 de 60 s (não "Fast" de 1 crédito),
 // porta v2 no funil e a tabela de entrantes no admin.
 import { readFileSync } from 'node:fs'
@@ -13,17 +13,24 @@ let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else falhas.push(n) }
 
-console.log('== afiliado 30% ==')
+// KINEO-AFILIADOS-40-2026-10-06 — reancorado com motivo: o fundador voltou a comissão para 40% RECORRENTE em 06/10
+// ("2 sim", sprint "MRR hoje"). A trava continua a mesma ideia — uma fonte, nenhuma tela digitando outro número —,
+// só que agora o número travado é 40% (e /partners e o painel derivam da fonte, sem a taxa digitada no texto).
+console.log('== afiliado 40% ==')
 const com = rd('lib/affiliateCommission.ts')
-checa('fonte única pura: AFFILIATE_COMMISSION_RATE = 0.3 e PCT derivado', /export const AFFILIATE_COMMISSION_RATE = 0\.3\b/.test(com) && /AFFILIATE_COMMISSION_PCT = `\$\{Math\.round\(AFFILIATE_COMMISSION_RATE \* 100\)\}%`/.test(com) && !/^import /m.test(com))
-checa('cadastro de afiliado grava a fonte, não 0.4', /commission_rate: AFFILIATE_COMMISSION_RATE,/.test(rd('app/api/affiliate/apply/route.ts')) && !/commission_rate: 0\.4/.test(rd('app/api/affiliate/apply/route.ts')))
-checa('/partners calcula com a fonte e não diz 40%', /const COMMISSION_RATE = AFFILIATE_COMMISSION_RATE/.test(rd('app/partners/page.tsx')) && !/40%/.test(rd('app/partners/page.tsx')))
-for (const f of ['app/(dashboard)/affiliate/page.tsx', 'components/Footer.tsx', 'lib/ui/interfaceLabels.ts', 'lib/ui/interfaceHindi.ts', 'lib/growth/affiliateProgramComparison.ts']) {
-  checa(`${f}: 30% e nenhum "40% recurring"`, /30%/.test(rd(f)) && !/40% recurring|40% recurrente/.test(rd(f)))
+const semComentarios = (src) => ts.transpileModule(src, { fileName: 'x.tsx', compilerOptions: { removeComments: true, jsx: ts.JsxEmit.Preserve, target: ts.ScriptTarget.ES2020 } }).outputText
+checa('fonte única pura: AFFILIATE_COMMISSION_RATE = 0.4 e PCT derivado', /export const AFFILIATE_COMMISSION_RATE = 0\.4\b/.test(com) && /AFFILIATE_COMMISSION_PCT = `\$\{Math\.round\(AFFILIATE_COMMISSION_RATE \* 100\)\}%`/.test(com) && !/^import /m.test(com))
+checa('cadastro de afiliado grava a fonte, não um número digitado', /commission_rate: AFFILIATE_COMMISSION_RATE,/.test(rd('app/api/affiliate/apply/route.ts')) && !/commission_rate: 0\.\d/.test(rd('app/api/affiliate/apply/route.ts')))
+checa('/partners calcula com a fonte e não digita a taxa', /const COMMISSION_RATE = AFFILIATE_COMMISSION_RATE/.test(rd('app/partners/page.tsx')) && !/\b[34]0 ?%/.test(semComentarios(rd('app/partners/page.tsx'))))
+checa('painel do afiliado deriva a taxa da fonte (sem 30% nem 40% digitado)', /AFFILIATE_COMMISSION_PCT/.test(rd('app/(dashboard)/affiliate/page.tsx')) && !/\b[34]0 ?%/.test(semComentarios(rd('app/(dashboard)/affiliate/page.tsx'))))
+for (const f of ['components/Footer.tsx', 'lib/ui/interfaceLabels.ts', 'lib/ui/interfaceHindi.ts', 'lib/growth/affiliateProgramComparison.ts']) {
+  // sem comentários: o histórico do rodapé (KINEO-AFFILIATE-DEDUPE) cita os rótulos antigos de propósito.
+  checa(`${f}: espelho em 40% e nenhum "30% recurring"`, /40%/.test(semComentarios(rd(f))) && !/30% recurring|30% recurrente/.test(semComentarios(rd(f))))
 }
 // KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: o kit foi reescrito em inglês depois da V7 (a frase "$29/mês → $8,70"
 // não existia mais) e a escada é 12,90/29,90/54,90: 30% do Creator = US$8,97. A prova lê a tabela e o exemplo do kit.
-checa('kit de afiliados: 30% e US$8,97 por Creator (US$29,90)', /30%/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')) && /\| Creator \| US\$29\.90 \| 150 \|/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')) && /US\$8\.97 on Creator/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')))
+// KINEO-AFILIADOS-40-2026-10-06 — reancorado de novo com motivo: a 40%, o Creator de US$29,90 rende US$11,96 por mês.
+checa('kit de afiliados: 40% e US$11,96 por Creator (US$29,90)', /Earn \*\*40% on every eligible purchase/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')) && /\| Creator \| US\$29\.90 \| 150 \|/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')) && /US\$11\.96 on Creator/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')))
 
 console.log('== packs de agência no V7 ==')
 const cp = rd('lib/checkoutPricing.ts')
@@ -71,4 +78,4 @@ checa('admin: entrantes nascem do evento card_entry_required desde o marco', /e\
 
 console.log(`\n  verificacoes: ${ok + falhas.length} · falhas: ${falhas.length}`)
 if (falhas.length) { for (const f of falhas) console.log('  ✗ ' + f); process.exit(1) }
-console.log('OK — afiliado 30% com fonte única, packs prometendo filmes reais, porta v2 no funil, entrantes no admin')
+console.log('OK — afiliado 40% (desde 06/10) com fonte única, packs prometendo filmes reais, porta v2 no funil, entrantes no admin')

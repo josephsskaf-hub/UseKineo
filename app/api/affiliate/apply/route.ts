@@ -1,7 +1,7 @@
 // Affiliate self-serve — apply to become an affiliate.
 // POST, auth required. Idempotent: if the signed-in user already owns an
 // affiliate row we return it as-is. Otherwise we create one with a unique
-// 8-char code, status 'active' and AFFILIATE_COMMISSION_RATE (30%). RLS on the
+// 8-char code, status 'active' and AFFILIATE_COMMISSION_RATE (40% desde 06/10). RLS on the
 // affiliate_* tables is deny-all, so all writes use the service-role client.
 //
 // PUSH #100 — POR QUE 'active' NA CRIAÇÃO (era 'pending'):

@@ -129,6 +129,8 @@ const REAL = {
   attribution: read('lib/affiliateAttribution.ts'),
   finalizer: read('lib/affiliateSignupFinalization.ts'),
   ledger: read('lib/affiliateLedger.ts'),
+  // Reancorado 06/10 (KINEO-AFILIADOS-40-2026-10-06): o webhook paga effectiveAffiliateCommissionRate (lib pura).
+  commission: read('lib/affiliateCommission.ts'),
   linkRoute: read('app/a/[code]/route.ts'),
   checkout: read('app/api/stripe/checkout/route.ts'),
   webhook: read('app/api/stripe/webhook/route.ts'),
@@ -171,7 +173,7 @@ async function problems(S) {
     checkout = compile(declaration(S.checkout, 'resolveCustomAffiliateBeforeSubscription') +
       `\nexport async function run(req, user, profile) { const sessionParams = {metadata:{}, subscription_data:{metadata:{}}}; ${S.checkout.slice(begin, end)}; return sessionParams; }`, {}, attribution)
     payment = compile(declaration(S.webhook, 'RetryableAffiliateLedgerError') + '\n' + declaration(S.webhook, 'recordAffiliateCommission') + '\nexport { recordAffiliateCommission };', {}, {
-      ...ledger, resolveAffiliateByCoupon: async () => null,
+      ...ledger, ...compile(S.commission), resolveAffiliateByCoupon: async () => null,
     })
   } catch (e) { return [...p, 'montagem da cadeia quebrou: ' + e.message] }
 
@@ -219,7 +221,8 @@ async function problems(S) {
   try { await payment.recordAffiliateCommission(db, initialArgs); await payment.recordAffiliateCommission(db, initialArgs) } catch (e) { p.push('comissão inicial lançou: ' + e.message) }
   const c0 = db.tables.affiliate_commissions[0]
   if (db.tables.affiliate_commissions.length !== 1) p.push(`checkout.session.completed repetido gerou ${db.tables.affiliate_commissions.length} comissões (esperado 1)`)
-  if (!c0 || c0.affiliate_id !== 'aff-1' || c0.external_id !== 'cs_sim_initial' || c0.commission_amount !== 897 || c0.type !== 'initial' || c0.status !== 'pending') p.push('comissão inicial errada: ' + JSON.stringify(c0))
+  // Reancorado 06/10 (fundador: 30% → 40%): a linha do afiliado segue gravada com 0.3 e o webhook paga o piso, 40% de 2990 = 1196.
+  if (!c0 || c0.affiliate_id !== 'aff-1' || c0.external_id !== 'cs_sim_initial' || c0.commission_amount !== 1196 || c0.type !== 'initial' || c0.status !== 'pending') p.push('comissão inicial errada: ' + JSON.stringify(c0))
   if (db.tables.affiliate_referrals[0].status !== 'paid') p.push('indicação não virou "paid" no pagamento da assinatura')
   // renovação: invoice.payment_succeeded (subscription_cycle) com a assinatura que o checkout gravou
   const subscription = { id: 'sub_sim', metadata: { supabase_user_id: 'buyer', ...params.subscription_data.metadata } }
@@ -227,12 +230,12 @@ async function problems(S) {
   const renewalArgs = evalArgs(renewalSite, { invoice, subscription, renewalUserId: subscription.metadata.supabase_user_id, subscriptionId: 'sub_sim' })
   try { await payment.recordAffiliateCommission(db, renewalArgs) } catch (e) { p.push('comissão de renovação lançou: ' + e.message) }
   const c1 = db.tables.affiliate_commissions[1]
-  if (!c1 || c1.type !== 'recurring' || c1.external_id !== 'in_sim_cycle' || c1.commission_amount !== 897 || c1.affiliate_id !== 'aff-1') p.push('renovação não gerou comissão recorrente de 30%: ' + JSON.stringify(c1))
+  if (!c1 || c1.type !== 'recurring' || c1.external_id !== 'in_sim_cycle' || c1.commission_amount !== 1196 || c1.affiliate_id !== 'aff-1') p.push('renovação não gerou comissão recorrente de 40%: ' + JSON.stringify(c1))
   // pacote avulso: comissão sim, "pagante" (assinante) não muda por ele
   const packSession = { ...session, id: 'cs_sim_pack', mode: 'payment', amount_total: 990 }
   try { await payment.recordAffiliateCommission(db, evalArgs(packSite, { session: packSession, userId: 'buyer' })) } catch (e) { p.push('comissão de pacote lançou: ' + e.message) }
   const c2 = db.tables.affiliate_commissions[2]
-  if (!c2 || c2.commission_amount !== 297 || c2.type !== 'initial') p.push('pacote avulso sem comissão de 30%')
+  if (!c2 || c2.commission_amount !== 396 || c2.type !== 'initial') p.push('pacote avulso sem comissão de 40%')
   // Rewardful dono da venda → nada no livro próprio
   const rw = evalArgs(initialSite, { session: { ...session, id: 'cs_sim_rw', metadata: { ...session.metadata, affiliate_system: 'rewardful' } }, userId: 'buyer' })
   await payment.recordAffiliateCommission(db, rw)
@@ -247,7 +250,7 @@ async function problems(S) {
 }
 
 const real = await problems(REAL)
-ok(real.length === 0, 'cadeia real: clique → cadastro (OAuth e e-mail) → checkout → webhook → comissão 30%' + (real.length ? ' — ' + real.join(' | ') : ''))
+ok(real.length === 0, 'cadeia real: clique → cadastro (OAuth e e-mail) → checkout → webhook → comissão 40%' + (real.length ? ' — ' + real.join(' | ') : ''))
 
 // ── Mutantes: cada um tem de derrubar a cadeia ──
 const OLD_BOT = '/(facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|discordbot|whatsapp|telegrambot|googlebot|bingbot)/i'
@@ -260,7 +263,9 @@ const mutants = [
   ['renovação manda o valor errado', { webhook: REAL.webhook.split("amountGross: invoice.amount_paid ?? 0").join('amountGross: 0') }],
   ['renovação marcada como inicial', { webhook: REAL.webhook.split("type: 'recurring', paymentKind: 'subscription'").join("type: 'initial', paymentKind: 'subscription'") }],
   ['comissão ignora o afiliado do perfil', { webhook: REAL.webhook.replace("let affiliateId = (prof?.affiliate_id as string | null | undefined) ?? null", 'let affiliateId = null as string | null') }],
-  ['ledger calcula comissão com taxa fixa de 40%', { ledger: REAL.ledger.replace('const amount = Math.round(amountGross * rate)', 'const amount = Math.round(amountGross * 0.4)') }],
+  // Reancorado 06/10: a 40% a taxa fixa de 40% não é mais um defeito visível; o mutante realista é voltar a 30% cravado.
+  ['ledger calcula comissão com taxa fixa de 30%', { ledger: REAL.ledger.replace('const amount = Math.round(amountGross * rate)', 'const amount = Math.round(amountGross * 0.3)') }],
+  ['webhook volta a pagar a taxa crua gravada na linha (0.3)', { webhook: REAL.webhook.replace('const rate = effectiveAffiliateCommissionRate(aff.commission_rate)', 'const rate = Number(aff.commission_rate ?? 0)') }],
   ['primeiro toque aceita conta sem prova de clique', { attribution: REAL.attribution.replace("if (!clickId) return { ok: false, reason: 'invalid_click_proof' }", "if (!clickId) return { ok: true, affiliateId: affiliate.id, already: false }") }],
 ]
 for (const [name, patch] of mutants) {

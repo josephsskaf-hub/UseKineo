@@ -19,7 +19,7 @@
 //    link to one person, right now, with one tap.
 
 import { useEffect, useRef, useState } from 'react'
-import { AFFILIATE_BONUS_TERMS, AFFILIATE_PAYOUT_TERMS } from '@/lib/affiliateCommission'
+import { AFFILIATE_BONUS_TERMS, AFFILIATE_COMMISSION_PCT, AFFILIATE_PAYOUT_TERMS } from '@/lib/affiliateCommission'
 import Link from 'next/link'
 import { AFFILIATE_PRESENTATION_CSS } from '@/lib/ui/affiliatePresentation'
 import { trackEvent } from '@/lib/analytics'
@@ -361,12 +361,12 @@ export default function AffiliatePage() {
                 color: CYAN,
               }}
             >
-              earn 30% recurring
+              earn {AFFILIATE_COMMISSION_PCT} recurring
             </span>{' '}
             on eligible payments
           </h1>
           <p className="text-sm mb-6 mx-auto" style={{ color: MUTED, maxWidth: 460, lineHeight: 1.6 }}>
-            Share your link, send people to Kineo, and earn 30% recurring on eligible subscription
+            Share your link, send people to Kineo, and earn {AFFILIATE_COMMISSION_PCT} recurring on eligible subscription
             payments from customers you bring. No review queue: your link is active the second you
             press the button, and starts tracking link visits immediately.
           </p>

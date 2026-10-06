@@ -296,7 +296,7 @@ export const DICT: Record<string, string> = {
   'State of AI Shorts 2026': 'State of AI Shorts 2026',
   'AI Shorts for agencies & client work': 'Shorts AI untuk agensi & pekerjaan klien',
   'Trust Center — privacy, payments & ownership': 'Pusat Kepercayaan — privasi, pembayaran & kepemilikan',
-  'Affiliate program - 30% recurring': 'Program afiliasi - 30% berulang',
+  'Affiliate program - 40% recurring': 'Program afiliasi - 40% berulang',
   'Free AI Shorts by niche': 'Shorts AI gratis per niche',
   'Free script generator': 'Generator naskah gratis',
   'Product video ad script': 'Naskah iklan video produk',

@@ -95,7 +95,8 @@ function setup() {
   const payment = compile(
     declaration('app/api/stripe/webhook/route.ts', 'RetryableAffiliateLedgerError') + '\n' +
     declaration('app/api/stripe/webhook/route.ts', 'recordAffiliateCommission') + '\nexport { recordAffiliateCommission };', {}, {
-      ...ledger, resolveAffiliateByCoupon: async () => { throw Error('Coupon path not simulated by this harness') },
+      // Reancorado 06/10 (KINEO-AFILIADOS-40-2026-10-06): a função real chama effectiveAffiliateCommissionRate (lib pura).
+      ...ledger, ...compile(read('lib/affiliateCommission.ts')), resolveAffiliateByCoupon: async () => { throw Error('Coupon path not simulated by this harness') },
     },
   )
   const signup = () => finalizer.finalizeAffiliateSignupAttribution({ rawCode: CODE, rawClickId: CLICK, user, source: 'auth_callback' })
@@ -159,13 +160,14 @@ function setup() {
   eq(checkout.client_reference_id, undefined, 'custom suppresses Rewardful reference')
   await s.pay(); await s.pay()
   eq(s.db.tables.affiliate_commissions.length, 1, 'duplicated initial payment creates one debt')
-  eq(s.db.tables.affiliate_commissions[0].commission_amount, 297, 'legacy30% preserved')
+  // Reancorado 06/10 (fundador: 30% → 40%): a linha gravada com 0.3 recebe o piso do programa, 40% de 990 = 396.
+  eq(s.db.tables.affiliate_commissions[0].commission_amount, 396, 'stored 0.3 pays the 40% program floor')
   eq(s.db.tables.affiliate_referrals[0].status, 'paid', 'subscription marks paid after commission')
   await s.pay({ externalId: 'in_test_offline_renewal', type: 'recurring', currency: 'brl', amountGross: 4990 })
   await s.pay({ externalId: 'in_test_offline_renewal', type: 'recurring', currency: 'brl', amountGross: 4990 })
   eq(s.db.tables.affiliate_commissions.length, 2, 'renewal replay does not duplicate debt')
   eq(s.db.tables.affiliate_commissions[1].currency, 'brl', 'BRL retained separately')
-  eq(s.db.tables.affiliate_commissions[1].commission_amount, 1497, 'BRL uses minor units without conversion')
+  eq(s.db.tables.affiliate_commissions[1].commission_amount, 1996, 'BRL uses minor units without conversion (40% of 4990, reancorado 06/10)')
   await s.pay({ externalId: 'cs_test_rewardful', attributionSystem: 'rewardful' })
   eq(s.db.tables.affiliate_commissions.length, 2, 'Rewardful charge creates no custom debt')
 }
@@ -207,7 +209,8 @@ const unresolved = []
   now += 31 * 86400000
   await s.pay({ externalId: 'in_test_later', type: 'recurring' })
   if (s.db.tables.affiliate_referrals[0].converted_at !== convertedAt) unresolved.push('Renewal overwrites first converted_at; unsafe anchor for a 12-month window')
-  s.db.tables.affiliates[0].commission_rate = 0.2
+  // Reancorado 06/10: abaixo do piso (0.2) a taxa paga não muda mais; a sonda usa uma taxa ACIMA do piso para seguir medindo o replay.
+  s.db.tables.affiliates[0].commission_rate = 0.5
   try { await s.pay() } catch (e) { unresolved.push(`Changed live rate breaks initial-payment replay: ${e.message}`) }
 }
 {

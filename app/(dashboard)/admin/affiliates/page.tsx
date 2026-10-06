@@ -10,6 +10,8 @@
 
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+// KINEO-AFILIADOS-40-2026-10-06 — a taxa gravada por pessoa virou "acordo especial"; o webhook paga a maior entre ela e o piso.
+import { AFFILIATE_COMMISSION_PCT, effectiveAffiliateCommissionRate } from '@/lib/affiliateCommission'
 
 type Money = Record<string, number>
 
@@ -553,6 +555,7 @@ export default function AdminAffiliatesPage() {
                                         <input id={`rate-${a.id}`} type="number" min={0} max={100} step={0.5} value={rateDraft[a.id] ?? ''} onChange={(e) => setRateDraft((d) => ({ ...d, [a.id]: e.target.value }))} style={{ ...input, width: 80 }} />
                                         <span>%</span>
                                         <button type="button" disabled={busy} onClick={() => { const p = parseFloat(rateDraft[a.id]); if (!Number.isNaN(p)) post(a.id, { commission_rate: p / 100 }) }} style={btn('ghost')}>Salvar</button>
+                                        <span style={{ fontSize: 12, color: C.muted }}>paga {Math.round(effectiveAffiliateCommissionRate(a.commission_rate) * 100)}% (piso do programa {AFFILIATE_COMMISSION_PCT}; vale a maior)</span>
                                       </label>
                                       <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, color: C.text2 }}>
                                         <span style={{ width: 70 }}>Cupom</span>

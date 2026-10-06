@@ -90,6 +90,7 @@ import {
 import { CARD_ENTRY_TRIAL_STATUS } from '@/lib/entryPolicy'
 import { renewalCreditsForInvoice } from '@/lib/settlementCurrency'
 import { RENEWAL_CARRY_VERSION, renewalBalance } from '@/lib/credits/renewalBalance' // KINEO-RENOVACAO-PRESERVA-CREDITO-COMPRADO-2026-09-25
+import { effectiveAffiliateCommissionRate } from '@/lib/affiliateCommission' // KINEO-AFILIADOS-40-2026-10-06: taxa do programa = piso
 
 // KINEO-PILOT-99-2026-07-26 — fallback por valor para o piloto de $99, QUALIFICADO
 // POR MOEDA. Sem a moeda isto seria um bug de caixa: topup40 em INR custa 49900 e
@@ -615,7 +616,9 @@ async function recordAffiliateCommission(
       throw new AffiliateLedgerIntegrityError('Could not read affiliate commission terms')
     }
     if (!aff || aff.status !== 'active') return
-    const rate = Number(aff.commission_rate ?? 0)
+    // KINEO-AFILIADOS-40-2026-10-06 — era `Number(aff.commission_rate ?? 0)`: a taxa gravada na linha (0.3 nas 25
+    // linhas de hoje) decidia sozinha. Agora a taxa do programa (lib/affiliateCommission.ts) é piso; maior por pessoa vale.
+    const rate = effectiveAffiliateCommissionRate(aff.commission_rate)
     const commission = calculateAffiliateCommission(args.amountGross, rate)
 
     const { data: ref, error: referralError } = await supabase

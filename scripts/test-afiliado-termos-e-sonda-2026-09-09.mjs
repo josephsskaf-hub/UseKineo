@@ -20,7 +20,8 @@ const exp = {}; vm.runInNewContext(js, { exports: exp })
 checa('decisões do fundador na fonte: mínimo 20, dia 15, carência 30, bônus 3, teto 20', exp.AFFILIATE_PAYOUT_MIN_USD === 20 && exp.AFFILIATE_PAYOUT_DAY_OF_MONTH === 15 && exp.AFFILIATE_HOLD_DAYS === 30 && exp.AFFILIATE_ACTIVATION_BONUS_USD === 3 && exp.AFFILIATE_ACTIVATION_BONUS_CAP === 20)
 checa('frase de repasse derivada (30 days, 15th, $20 minimum, roll over)', /30 days after/.test(exp.AFFILIATE_PAYOUT_TERMS) && /by the 15th/.test(exp.AFFILIATE_PAYOUT_TERMS) && /\$20 minimum/.test(exp.AFFILIATE_PAYOUT_TERMS) && /roll over/.test(exp.AFFILIATE_PAYOUT_TERMS))
 checa('frase do bônus derivada ($3, first 20, paid together, never separate)', /\$3 after/.test(exp.AFFILIATE_BONUS_TERMS) && /first 20 affiliates/.test(exp.AFFILIATE_BONUS_TERMS) && /paid together with your first commission, never as a separate payout/.test(exp.AFFILIATE_BONUS_TERMS))
-checa('comissão continua 30%', exp.AFFILIATE_COMMISSION_RATE === 0.3)
+// Reancorado 06/10 (KINEO-AFILIADOS-40-2026-10-06): o fundador voltou a comissão para 40% recorrente.
+checa('comissão é 40% (decisão do fundador 06/10)', exp.AFFILIATE_COMMISSION_RATE === 0.4)
 
 const partners = rd('app/partners/page.tsx')
 checa('/partners: "When do I get paid?" usa AFFILIATE_PAYOUT_TERMS e pede o PayPal', /When do I get paid\?', a: `[^`]*\$\{AFFILIATE_PAYOUT_TERMS\}[^`]*PayPal/.test(partners))

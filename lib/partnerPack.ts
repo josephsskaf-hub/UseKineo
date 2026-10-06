@@ -6,7 +6,7 @@
 //   etapa 2 — depois que ele registra no painel o link de 1 post PÚBLICO com o link/cupom dele e o admin APROVA com 1
 //             clique (nada automático): +PARTNER_PACK_STAGE2_CREDITS.
 // 1 pacote por afiliado (único no banco). Conta que já paga não recebe (cortesia nunca por cima de plano).
-// Comissão e termos NÃO mudam aqui: 30% recorrente (AFFILIATE_COMMISSION_RATE em lib/affiliateCommission.ts).
+// Comissão e termos NÃO mudam aqui: taxa recorrente em AFFILIATE_COMMISSION_RATE (lib/affiliateCommission.ts; 40% desde 06/10).
 //
 // ⚠ PARTNER_PACK_LIVE = false: com ele desligado a entrada NÃO dá nada sozinha — é dinheiro (crédito de motor),
 // decisão do fundador. Desligado, o admin ainda pode dar a etapa 1 a um parceiro escolhido, pela lista de parceiros.

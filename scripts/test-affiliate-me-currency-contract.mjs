@@ -69,6 +69,9 @@ async function run(rows, { source = routeSource, user = true, rate = settlement.
     // pura, compilada de verdade). O dublê do banco não conhece partner_packs, a leitura cai em "indisponível" e o
     // contrato de moeda testado aqui segue inalterado (nenhuma escrita, nenhuma chamada externa).
     '@/lib/partnerPack': compile(fs.readFileSync('lib/partnerPack.ts', 'utf8'), {}),
+    // Reancorado 06/10 (KINEO-AFILIADOS-40-2026-10-06): a rota devolve a taxa que o webhook paga
+    // (effectiveAffiliateCommissionRate, lib pura compilada de verdade) em vez da taxa crua gravada na linha.
+    '@/lib/affiliateCommission': compile(fs.readFileSync('lib/affiliateCommission.ts', 'utf8'), {}),
   }, {
     // Synthetic markers only. Host process.env is never exposed to the VM.
     process: { env: { NEXT_PUBLIC_SUPABASE_URL: 'https://fixture.invalid', SUPABASE_SERVICE_ROLE_KEY: 'fixture-not-a-key' } },
@@ -100,7 +103,8 @@ eq(mixed.body.earnings.total, mixed.body.earnings.pending + mixed.body.earnings.
 eq(mixed.body.recent.length, fixtures.length, 'Audit detail preserves void and clawback history')
 eq(mixed.body.recent[1].commission_amount, 1000, 'Detail preserves original amount')
 eq(mixed.body.recent[1].currency, 'brl', 'Detail preserves original currency')
-eq(mixed.body.affiliate.commission_rate, 0.3, 'Commission policy unchanged')
+// Reancorado 06/10 (fundador: comissão 30% → 40% recorrente): a linha gravada com 0.3 aparece no painel como 0.4 (piso do programa).
+eq(mixed.body.affiliate.commission_rate, 0.4, 'Panel shows the paid rate: program floor 0.4 over a stored 0.3')
 eq(mixed.body.affiliate.coupon_code, 'EXISTING', 'Existing coupon untouched')
 
 const changedRate = await run([row(1000, 'brl', 'pending')], { rate: 10 })

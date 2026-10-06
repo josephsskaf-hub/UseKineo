@@ -69,7 +69,9 @@ function problems(pageSrc, overrides = {}) {
   if (!a.includes(`${pack.PARTNER_PACK_STAGE1_CREDITS} credits`) || !a.includes(`${pack.PARTNER_PACK_DAYS} days`) || !a.includes(`plus ${pack.PARTNER_PACK_STAGE2_CREDITS} more`)) p.push('pacote de demonstração sem os números de lib/partnerPack')
   if (pack.PARTNER_PACK_LIVE ? !/added when you join/.test(a) : (/added when you join/.test(a) || !/Email us after you join/.test(a))) p.push('copy do pacote não segue o interruptor PARTNER_PACK_LIVE')
   if (/week|weekly|semana/i.test(a)) p.push('copy anuncia a cota semanal (não anunciada)')
-  if (/commission_rate: 0\.4/.test(pageSrc)) p.push('comentário da taxa ainda diz 0.4')
+  // Reancorado 06/10 (KINEO-AFILIADOS-40-2026-10-06): com a taxa em 0.4, "0.4" deixou de ser mentira — a regra passa a ser
+  // a de sempre por trás dela: o comentário cita AFFILIATE_COMMISSION_RATE, nunca um número cru que envelhece.
+  if (/commission_rate: 0\.\d/.test(pageSrc)) p.push('comentário da taxa digita um número em vez de citar AFFILIATE_COMMISSION_RATE')
   return p
 }
 
@@ -85,7 +87,7 @@ const mutants = [
   ['copy antiga ("every engine unlocked")', () => problems(withLine(OLD))],
   ['copy promete entrega automática com o interruptor desligado', () => problems(PAGE.replace("${PARTNER_PACK_LIVE ? 'The first part is added when you join.' : 'Email us after you join to get it.'}", 'The first part is added when you join.'))],
   ['créditos digitados à mão', () => problems(PAGE.replace('starts free with ${TRIAL_CREDITS_SHOWN} credits', 'starts free with 30 credits'))],
-  ['comentário volta a 0.4', () => problems(PAGE.replace('commission_rate: AFFILIATE_COMMISSION_RATE (0.3,', 'commission_rate: 0.4 (0.3,'))],
+  ['comentário volta a digitar a taxa', () => problems(PAGE.replace('commission_rate: AFFILIATE_COMMISSION_RATE (0.4,', 'commission_rate: 0.4 (0.4,'))],
 ]
 for (const [name, run] of mutants) {
   let caught = false

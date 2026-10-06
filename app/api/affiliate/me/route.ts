@@ -9,6 +9,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { BRL_PER_USD_HOUSE } from '@/lib/settlementCurrency'
+// KINEO-AFILIADOS-40-2026-10-06 — o painel mostra a taxa que o webhook paga (programa = piso), não a gravada na linha.
+import { effectiveAffiliateCommissionRate } from '@/lib/affiliateCommission'
 // KINEO-PARTNERS-PACOTE-2026-10-03 — estado do pacote de demonstração no painel do parceiro.
 import {
   partnerPackStage,
@@ -313,7 +315,7 @@ export async function GET() {
       affiliate: {
         code: affiliate.code,
         status: affiliate.status,
-        commission_rate: affiliate.commission_rate,
+        commission_rate: effectiveAffiliateCommissionRate(affiliate.commission_rate),
         coupon_code: couponCode,
       },
       link: 'https://www.usekineo.com/a/' + affiliate.code,

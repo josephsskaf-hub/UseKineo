@@ -296,7 +296,7 @@ export const DICT: Record<string, string> = {
   'State of AI Shorts 2026': 'État des Shorts IA 2026',
   'AI Shorts for agencies & client work': 'Shorts IA pour agences et clients',
   'Trust Center — privacy, payments & ownership': 'Centre de confiance — confidentialité, paiements et propriété',
-  'Affiliate program - 30% recurring': 'Programme d’affiliation - 30 % récurrent',
+  'Affiliate program - 40% recurring': 'Programme d’affiliation - 40 % récurrent',
   'Free AI Shorts by niche': 'Shorts IA gratuits par niche',
   'Free script generator': 'Générateur de script gratuit',
   'Product video ad script': 'Script de pub vidéo produit',
