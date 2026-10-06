@@ -414,10 +414,12 @@ const landing = read('app/KineoLanding.tsx')
 // Reancorado 05/10 (KINEO-HOME-CLIPES-EM-CIMA-2026-10-05) — fundador: "os clips em cima, os filmes narrados embaixo". O Clips
 // saiu da coluna Create e virou o grupo do topo da 1ª coluna do mega-menu ("Photo to clip" / "Text to clip"), e abre o
 // menu do celular; os dois atrás do MESMO interruptor (showClips = clipsVisible(initialEmail)).
-ok(/\n  const showClips = clipsVisible\(initialEmail\)\n/.test(landing)
-  && /\{showClips && \(\n\s*<>\n\s*<span className="nm-h"><UiLabel>Clips<\/UiLabel><\/span>\n\s*<NavEngineItem href="\/clips\?upload=1"[^\n]*\/>\n\s*<NavEngineItem href="\/clips"/.test(landing)
-  && /\{showClips\n\s*\? <><Link href="\/clips" data-nav-item="more:clips">/.test(landing)
-  && (landing.match(/href="\/clips"/g) ?? []).length === 2, 'mega-menu e menu público têm Clipes (par) atrás do interruptor')
+// 05/10 noite: o checkout do Windows traz CRLF (autocrlf) e as regex abaixo usam \n — normalizar antes (no Linux já passava).
+const landingLF = landing.replace(/\r\n/g, '\n')
+ok(/\n  const showClips = clipsVisible\(initialEmail\)\n/.test(landingLF)
+  && /\{showClips && \(\n\s*<>\n\s*<span className="nm-h"><UiLabel>Clips<\/UiLabel><\/span>\n\s*<NavEngineItem href="\/clips\?upload=1"[^\n]*\/>\n\s*<NavEngineItem href="\/clips"/.test(landingLF)
+  && /\{showClips\n\s*\? <><Link href="\/clips" data-nav-item="more:clips">/.test(landingLF)
+  && (landingLF.match(/href="\/clips"/g) ?? []).length === 2, 'mega-menu e menu público têm Clipes (par) atrás do interruptor')
 
 // ─── 10. Interruptor de lançamento: preço é PROPOSTA até o "vai" do fundador ─
 const launch = read('lib/clips/clipLaunch.ts')
