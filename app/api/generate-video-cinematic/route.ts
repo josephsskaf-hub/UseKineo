@@ -79,6 +79,7 @@ import { sceneNarrationsForPlan } from '@/lib/cinematic/speechContract'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo, type VisualMode } from '@/lib/cinematic/visualMode'
 import { garantirAcaoCentral, silenciarFalaNoPrompt, apararComFolga, removerDatasInventadas } from '@/lib/hollywood/fidelidade'
+import { planejarCenasS25, montarPromptS25, ambienteComEpoca, epocaDoFilmeS25, S25_CENA_EVENTO } from '@/lib/hollywood/s25Cena' // KINEO-S25-NOTA95-2026-10-06
 // KINEO-MULTIFORMATO-2026-09-02 — enquadramento pedido (9:16 · 16:9 · 1:1 · 4:5).
 import { aspectSpec, normalizeAspect } from '@/lib/aspect'
 import { montarContrato, aplicarContrato, severidadeDe } from '@/lib/cinematic/sceneTruth'
@@ -5072,6 +5073,28 @@ async function manipularPost(req: NextRequest) {
             const input = buildFalInput(d.model_with_anchor, 'preflight', false, true, plan.scenes[d.scene - 1].seconds, 'https://preflight.local/anchor.png')
             if (d.model_with_anchor.includes('image-to-video') && !input.image_url) preflightProblems.push(`cena ${d.scene}: modelo i2v ${d.model_with_anchor} sem image_url no payload`)
           }
+          // ═══ KINEO-S25-NOTA95-2026-10-06 — o ensaio de $0 do S25 mostra o prompt que cada cena levaria ao motor ═══
+          // O render pago monta o prompt DEPOIS do supervisor fala×imagem (que reescreve parte das cenas): numa CÓPIA do plano, [KINEO-S25-NOTA95-2026-10-06]
+          // supervisor (mesma chamada e mesmo filtro do caminho pago, ~US$ 0,002) → planejarCenasS25 → fidelidade 'fim' → [KINEO-S25-NOTA95-2026-10-06]
+          // montarPromptS25. Sem still/âncora (nada é gerado); boca fechada, nitidez e textSafety entram no laço como em toda cena. [KINEO-S25-NOTA95-2026-10-06]
+          let s25Ensaio: Record<string, unknown> | null = null // KINEO-S25-NOTA95-2026-10-06
+          if (family === 's25') { // KINEO-S25-NOTA95-2026-10-06
+            const copia = plan.scenes.map((s) => ({ ...s })) // KINEO-S25-NOTA95-2026-10-06
+            try { // KINEO-S25-NOTA95-2026-10-06
+              const idxs = copia.map((_, i) => i).filter((i) => copia[i].type !== 'dialogue' && (copia[i].voiceover ?? '').trim().length > 0 && (copia[i].prompt ?? '').trim().length > 0) // KINEO-S25-NOTA95-2026-10-06
+              const alinhadoE = idxs.length > 0 ? await alignShotsToSpeech({ topic: prompt, scenes: idxs.map((i) => ({ voiceover: copia[i].voiceover ?? '', shot: copia[i].prompt })) }) : null // KINEO-S25-NOTA95-2026-10-06
+              const historiaE = `${prompt} ${copia.map((sc) => sc.voiceover ?? '').join(' ')}` // KINEO-S25-NOTA95-2026-10-06
+              if (alinhadoE) for (const c of alinhadoE.rewritten) copia[idxs[c.index]].prompt = scrubInventedSetting(c.shot, historiaE).text // KINEO-S25-NOTA95-2026-10-06
+            } catch { /* falha aberta, como no render pago */ } // KINEO-S25-NOTA95-2026-10-06
+            try { // KINEO-S25-NOTA95-2026-10-06
+              const s25PlanoE = planejarCenasS25({ cenas: copia.map((s) => ({ prompt: s.prompt, voiceover: s.voiceover ?? null, type: s.type })), roteiro: `${prompt} ${copia.map((s) => s.voiceover ?? '').join(' ')}`, characterSheet: plan.characterSheet, styleSheet: plan.styleSheet, idioma: hollywoodLanguage }) // KINEO-S25-NOTA95-2026-10-06
+              s25Ensaio = { // KINEO-S25-NOTA95-2026-10-06
+                ...s25PlanoE.relato, // KINEO-S25-NOTA95-2026-10-06
+                ambiente_ancora: ambienteComEpoca(plan.environmentSheet ?? '', epocaDoFilmeS25(`${prompt} ${copia.map((s) => s.voiceover ?? '').join(' ')}`, hollywoodLanguage)), // KINEO-S25-NOTA95-2026-10-06
+                prompts: s25PlanoE.cenas.flatMap((c) => c ? [{ cena: c.indice + 1, prompt: montarPromptS25({ promptCena: garantirAcaoCentral(silenciarFalaNoPrompt(c.prompt), copia[c.indice].voiceover ?? '', plan.characterSheet ?? '', 'fim').prompt, epoca: c.epoca, eraReserva: eraSuffix, mouthSuffix: '', spectacleSuffix: '' }) }] : []), // KINEO-S25-NOTA95-2026-10-06
+              } // KINEO-S25-NOTA95-2026-10-06
+            } catch (e) { s25Ensaio = { erro: e instanceof Error ? e.message : String(e) } } // KINEO-S25-NOTA95-2026-10-06 — falha aberta: o render pago seguiria com as cenas do planejador
+          } // KINEO-S25-NOTA95-2026-10-06
           await releaseBirthClaim('dry_run_no_charge')
           return NextResponse.json({
             dry_run: true,
@@ -5108,6 +5131,7 @@ async function manipularPost(req: NextRequest) {
             silence_words_to_add: silence.wordsToAdd,
             preflight_problems: preflightProblems,
             dispatch_preview: dispatchPreview,
+            ...(s25Ensaio ? { s25_cenas: s25Ensaio } : {}), // KINEO-S25-NOTA95-2026-10-06
             verdict: muteSeconds <= 6 && totalSeconds >= duration && preflightProblems.length === 0 && silence.ok
               ? 'PASS — todos os segundos têm história (mudo ≤6s, silêncio dentro da cena ≤1,5s/≤8s), a duração fecha e o payload respeita o schema do fornecedor'
               : preflightProblems.length > 0
@@ -5237,6 +5261,9 @@ async function manipularPost(req: NextRequest) {
         anchors = await generateHollywoodAnchors({
           characterSheet: plan.characterSheet,
           environmentSheet: plan.environmentSheet,
+          // KINEO-S25-NOTA95-2026-10-06 — no S25 a âncora de ambiente nasce com a época do filme ("London, 1952: period clothing…"); antes era a
+          // environmentSheet do GPT sem trava nenhuma. Só acrescenta (sobrescreve a chave no S25); as outras famílias: byte a byte. [KINEO-S25-NOTA95-2026-10-06]
+          ...(family === 's25' ? { environmentSheet: ambienteComEpoca(plan.environmentSheet, epocaDoFilmeS25(`${prompt} ${plan.scenes.map((s) => s.voiceover ?? '').join(' ')}`, hollywoodLanguage)) } : {}), // KINEO-S25-NOTA95-2026-10-06
           styleSheet: plan.styleSheet,
         })
       } catch (e) {
@@ -5448,6 +5475,24 @@ async function manipularPost(req: NextRequest) {
         console.log(`[estrela] gen=${generationId} engine=${estrelaDecisao.engine} cenas=${relato.scenes} ancoradas=${relato.anchored} fallback=${relato.fallback} retrato=${retratoEstrela ? 'estrela' : 'flux'} extra_usd=${(r.feitos * ESTRELA_STILL_USD).toFixed(2)}`) // KINEO-ESTRELA-DO-FILME-2026-09-29
         void writeServerEvent({ name: 'estrela_scene_anchored', userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { ...relato, portrait: retratoEstrela ? 'estrela' : querRetrato ? 'fallback' : 'none', reasons: r.motivos, extra_usd: Math.round(r.feitos * ESTRELA_STILL_USD * 100) / 100 } }) // KINEO-ESTRELA-DO-FILME-2026-09-29
       } // KINEO-ESTRELA-DO-FILME-2026-09-29
+      // ═══ KINEO-S25-NOTA95-2026-10-06 — a ÚLTIMA passada no plano visual do Seedance 2.5, antes de still e POST ═══
+      // Filmes de 06/10 (Tambora 80, Boston 78, Londres 72): cenas abrindo com o mesmo prefixo de 35 palavras, frase abstrata virando a [KINEO-S25-NOTA95-2026-10-06]
+      // cena-padrão (e a mesma foto de ambiente), época fora do still. lib/hollywood/s25Cena: visual único na frente → época (cena a cena, [KINEO-S25-NOTA95-2026-10-06]
+      // inclusive sem pessoa) → eixo → câmera/look; frase abstrata ganha imagem concreta; par seguido com a mesma composição troca de [KINEO-S25-NOTA95-2026-10-06]
+      // plano. Depois do supervisor fala×imagem (planos finais): o still FLUX nasce deste prompt. Falha aberta: erro = cenas do planejador. [KINEO-S25-NOTA95-2026-10-06]
+      let s25Plano: ReturnType<typeof planejarCenasS25> | null = null // KINEO-S25-NOTA95-2026-10-06
+      if (family === 's25') { // KINEO-S25-NOTA95-2026-10-06
+        try { // KINEO-S25-NOTA95-2026-10-06
+          s25Plano = planejarCenasS25({ cenas: plan.scenes.map((s) => ({ prompt: s.prompt, voiceover: s.voiceover ?? null, type: s.type })), roteiro: `${prompt} ${plan.scenes.map((s) => s.voiceover ?? '').join(' ')}`, characterSheet: plan.characterSheet, styleSheet: plan.styleSheet, idioma: hollywoodLanguage }) // KINEO-S25-NOTA95-2026-10-06
+        } catch (e) { // KINEO-S25-NOTA95-2026-10-06
+          console.warn('[cinematic] KINEO-S25-NOTA95: a passada do S25 falhou — as cenas seguem como o planejador escreveu:', e instanceof Error ? e.message : String(e)) // KINEO-S25-NOTA95-2026-10-06
+        } // KINEO-S25-NOTA95-2026-10-06
+      } // KINEO-S25-NOTA95-2026-10-06
+      if (s25Plano) { // KINEO-S25-NOTA95-2026-10-06
+        for (const c of s25Plano.cenas) if (c) plan.scenes[c.indice].prompt = c.prompt // KINEO-S25-NOTA95-2026-10-06
+        console.log(`[cinematic] KINEO-S25-NOTA95: ${s25Plano.relato.cenas_s25} cena(s), ${s25Plano.relato.abstratas} abstrata(s) → imagem concreta, ${s25Plano.relato.trocas} troca(s) de plano, época "${s25Plano.relato.epoca_base}"`) // KINEO-S25-NOTA95-2026-10-06
+        await writeServerEvent({ name: S25_CENA_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, ...s25Plano.relato } }) // KINEO-S25-NOTA95-2026-10-06
+      } // KINEO-S25-NOTA95-2026-10-06
       for (const [idx, hs] of plan.scenes.entries()) {
         // `sceneModel`/`sceneEngine` (NOT `usedModel` — that name belongs to
         // the classic single-model path below and must not be shadowed).
@@ -5580,7 +5625,12 @@ async function manipularPost(req: NextRequest) {
           // da cena (= a cena se passa no mundo do narrador); b-roll de outros
           // lugares/eventos vai de t2v e ganha visual proprio.
           const envSig = (plan.environmentSheet ?? '').trim().toLowerCase().slice(0, 24)
-          const inNarratorWorld = envSig.length > 8 && hs.prompt.toLowerCase().includes(envSig)
+          // KINEO-S25-NOTA95-2026-10-06 — no S25 a foto de ambiente semeia UMA cena por filme. Londres 1952 (387d3344): as cenas 1, 5 e 6 animaram [KINEO-S25-NOTA95-2026-10-06]
+          // a MESMA imagem (…/bgxeYjpCGkwbKI67lGD_E.jpg) e 4 de 8 quadros saíram com a mesma rua. Da 2ª vez em diante a cena segue o caminho de [KINEO-S25-NOTA95-2026-10-06]
+          // quem não tem âncora: still próprio (sem pessoa) ou t2v (com pessoa). [KINEO-S25-NOTA95-2026-10-06]
+          const s25AmbienteJaUsado = family === 's25' && Boolean(anchors?.environmentUrl) && hSceneAnchors.includes(anchors?.environmentUrl ?? null) // KINEO-S25-NOTA95-2026-10-06
+          if (s25AmbienteJaUsado && envSig.length > 8 && hs.prompt.toLowerCase().includes(envSig)) console.log(`[cinematic] KINEO-S25-NOTA95: cena ${hs.index} pediria a foto de ambiente de novo — segue sem ela (still próprio ou t2v)`) // KINEO-S25-NOTA95-2026-10-06
+          const inNarratorWorld = envSig.length > 8 && hs.prompt.toLowerCase().includes(envSig) && !s25AmbienteJaUsado // KINEO-S25-NOTA95-2026-10-06 (troca a linha da base: + && !s25AmbienteJaUsado)
           // KINEO-ESTRELA-DO-FILME-2026-09-29 — cena com protagonista e still da estrela pronto: a estrela é a âncora (vence a de
           // ambiente e dispensa o still FLUX). Sem estrela, estrelaHollywood é todo null e a escolha é a de sempre. [KINEO-ESTRELA-DO-FILME-2026-09-29]
           const anchorUrl = estrelaHollywood[idx] ? estrelaHollywood[idx] : anchors // KINEO-ESTRELA-DO-FILME-2026-09-29
@@ -5719,12 +5769,23 @@ async function manipularPost(req: NextRequest) {
           if (hs.type !== 'dialogue') {
             // KINEO-KLING3-IMAGENS — Kling 3 lê a IMAGEM primeiro; a frase da narração vira contexto no fim.
             const fid = garantirAcaoCentral(silenciarFalaNoPrompt(hs.prompt), hs.voiceover ?? '', plan.characterSheet ?? '', family === 'hollywood' ? 'fim' : 'inicio')
+            const promptS25AntesDaFidelidade = hs.prompt // KINEO-S25-NOTA95-2026-10-06
             hs.prompt = fid.prompt
+            // KINEO-S25-NOTA95-2026-10-06 — no S25 a frase da narração também vai para o FIM ('fim', como no Kling 3): a frase CRUA abrindo o [KINEO-S25-NOTA95-2026-10-06]
+            // prompt ("Shows exactly this moment…: Officials later estimated…") puxava legenda e a cena-padrão. Mesma função pura, mesma cobertura. [KINEO-S25-NOTA95-2026-10-06]
+            if (family === 's25') hs.prompt = garantirAcaoCentral(silenciarFalaNoPrompt(promptS25AntesDaFidelidade), hs.voiceover ?? '', plan.characterSheet ?? '', 'fim').prompt // KINEO-S25-NOTA95-2026-10-06
             // Cobertura DECLARADA no claim (coberta / divergente / desconhecida) — nunca aprovada por omissão.
             const hsFid = hs as { conversao?: string; identidade?: string }
             fidelidadeRelato.push({ cena: idx + 1, cobertura: fid.cobertura.status, motivo: fid.cobertura.motivo, conversao: hsFid.conversao ?? null, identidade: hsFid.identidade ?? null })
           }
-          const scenePromptBruto = mouthPrefix + uprightPrefix + hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix
+          // KINEO-S25-NOTA95-2026-10-06 — S25: o prompt da cena (montado por planejarCenasS25 antes do laço) JÁ abre com o visual único e traz a [KINEO-S25-NOTA95-2026-10-06]
+          // época; aqui entram só o aviso curto de câmera e os sufixos de boca fechada e nitidez. Sem o prefixo de 35 palavras igual em toda cena e [KINEO-S25-NOTA95-2026-10-06]
+          // sem o eraSuffix longo ("no tanks, no cars…" — Boston, um TANQUE de melaço, recebia "no tanks"), que só volta como reserva se a cena não [KINEO-S25-NOTA95-2026-10-06]
+          // ganhou frase de época. Outras famílias: a mesma expressão de antes, byte a byte (troca a linha da base). [KINEO-S25-NOTA95-2026-10-06]
+          const s25Montagem = family === 's25' && hs.type !== 'dialogue' ? s25Plano?.cenas[idx] ?? null : null // KINEO-S25-NOTA95-2026-10-06
+          const scenePromptBruto = s25Montagem // KINEO-S25-NOTA95-2026-10-06
+            ? montarPromptS25({ promptCena: hs.prompt, epoca: s25Montagem.epoca, eraReserva: eraSuffix, mouthSuffix, spectacleSuffix }) // KINEO-S25-NOTA95-2026-10-06
+            : mouthPrefix + uprightPrefix + hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix // KINEO-S25-NOTA95-2026-10-06
           // ═══ CONTRATO CENA VERDADEIRA — o gate roda AQUI, com o prompt que
           // vai de fato ao motor, imediatamente antes do POST pago. Na
           // primeira versao esta biblioteca subiu SEM CALLER: 24 testes verdes

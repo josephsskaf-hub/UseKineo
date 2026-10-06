@@ -51,7 +51,13 @@ const TROCADAS_CURTAS = [
 // isso — nada fora do marcador, nenhuma outra linha da base trocada. Prova: scripts/test-estrela-do-filme-2026-09-29.mjs.
 const MARCA_ESTRELA = 'KINEO-ESTRELA-DO-FILME-2026-09-29'
 TROCADAS_CURTAS.push("    const formatoVisual = decidirFormato(prompt, tagFacelessPresente)", "    const cost = creditCostForDuration(costQuality, true, duration)", "        creditCostForDuration(MOTOR_PARA_QUALIDADE[m] ?? 'cinematic_ai', true, d)", "      characterId: typeof body.characterId === 'string' ? body.characterId.trim() : '',", "      const precoEntregue = creditCostForDuration(costQuality, true, duration)", "      const fichaDoPedidoTexto = deriveExplicitCharacter(prompt)", "          const anchorUrl = anchors")
-const semCurtas = (t) => (t == null ? t : t.split('\n').filter((l) => !l.includes(MARCA_CURTAS) && !l.includes(MARCA_ESTRELA)).join('\n'))
+// ═══ Reancorado KINEO-S25-NOTA95-2026-10-06 [TRAVA 8.2 — vai do fundador 06/10 'vai nota 95'] ═══
+// A entrega "S25 nota 95" marca TODA linha que acrescenta à rota do cinematic com KINEO-S25-NOTA95-2026-10-06 e troca de propósito DUAS
+// linhas da base (a escolha da foto de ambiente e a montagem do prompt da cena, ambas só no ramo s25). Este guardião aceita exatamente
+// isso — nada fora do marcador, nenhuma outra linha da base trocada. Prova: scripts/test-s25-nota95-2026-10-06.mjs.
+const MARCA_S25 = 'KINEO-S25-NOTA95-2026-10-06'
+TROCADAS_CURTAS.push('          const inNarratorWorld = envSig.length > 8 && hs.prompt.toLowerCase().includes(envSig)', '          const scenePromptBruto = mouthPrefix + uprightPrefix + hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix')
+const semCurtas = (t) => (t == null ? t : t.split('\n').filter((l) => !l.includes(MARCA_CURTAS) && !l.includes(MARCA_ESTRELA) && !l.includes(MARCA_S25)).join('\n'))
 const semTrocadas = (t) => (t == null ? t : t.split('\n').filter((l) => !TROCADAS_CURTAS.includes(l.replace(/\r$/, ''))).join('\n'))
 
 

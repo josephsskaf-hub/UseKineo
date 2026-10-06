@@ -110,9 +110,14 @@ if (BASE) {
   // Reancorado 03/10 (KINEO-GANCHO-1Q-2026-10-03): o /api/compose ganhou depois disto só linhas marcadas com o gancho escrito
   // (3 imports + 2 comentários + 2 chamadas withHookFirstFrame, depois do logo); elas saem em memória junto com as da estrela.
   checa('E25 /api/compose sem as linhas marcadas = base, byte a byte', semMarca(compose).split('\n').filter((l) => !l.includes('KINEO-GANCHO-1Q-2026-10-03')).join('\n') === base('app/api/compose/route.ts'))
-  // Reancorado 06/10 (KINEO-S25-ABRE-2026-10-06): a rota do filme ganhou depois disto só linhas marcadas com o portão pago do
-  // Seedance 2.5 (2 imports + o bloco, todas com a marca, nenhuma removida); elas saem em memória junto com as da estrela.
-  checa('E26 /api/generate-video-cinematic sem as linhas marcadas = base, byte a byte', semMarca(cinematic).split('\n').filter((l) => !l.includes('KINEO-S25-ABRE-2026-10-06')).join('\n') === base('app/api/generate-video-cinematic/route.ts'))
+  // Reancorado 06/10 duas vezes: KINEO-S25-ABRE-2026-10-06 (portão pago do 2.5: só linhas marcadas) e KINEO-S25-NOTA95-2026-10-06
+  // (passada de cenas do s25: linhas marcadas + as 2 linhas da base trocadas de propósito). Ambas saem em memória dos dois lados.
+  // Reancorado 06/10 (KINEO-S25-NOTA95-2026-10-06 [TRAVA 8.2 — vai do fundador 06/10 'vai nota 95']): a rota do cinematic ganhou SÓ linhas
+  // marcadas KINEO-S25-NOTA95-2026-10-06 e troca de propósito DUAS linhas da base (a escolha da foto de ambiente e a montagem do prompt da
+  // cena, só no ramo s25); elas saem em memória dos dois lados — o resto continua byte a byte. Prova: scripts/test-s25-nota95-2026-10-06.mjs.
+  const TROCADAS_S25 = ['          const inNarratorWorld = envSig.length > 8 && hs.prompt.toLowerCase().includes(envSig)', '          const scenePromptBruto = mouthPrefix + uprightPrefix + hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix']
+  const semS25 = (s) => (s == null ? s : s.split('\n').filter((l) => !l.includes('KINEO-S25-NOTA95-2026-10-06') && !l.includes('KINEO-S25-ABRE-2026-10-06') && !TROCADAS_S25.includes(l)).join('\n'))
+  checa('E26 /api/generate-video-cinematic sem as linhas marcadas = base, byte a byte', semS25(semMarca(cinematic)) === semS25(base('app/api/generate-video-cinematic/route.ts')))
 }
 checa('E27 a Estrela continua só com a casa (ESTRELA_PUBLIC = false)', /export const ESTRELA_PUBLIC = false\n/.test(launch))
 

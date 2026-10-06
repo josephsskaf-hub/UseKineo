@@ -418,6 +418,11 @@ function soAcrescimos(p) {
     "      const precoEntregue = creditCostForDuration(costQuality, true, duration)",
     "      const fichaDoPedidoTexto = deriveExplicitCharacter(prompt)",
     "          const anchorUrl = anchors",
+    // ═══ Reancorado KINEO-S25-NOTA95-2026-10-06 [TRAVA 8.2 — vai do fundador 06/10 'vai nota 95'] ═══
+    // A entrega "S25 nota 95" marca toda linha que acrescenta com KINEO-S25-NOTA95-2026-10-06 e troca de propósito DUAS linhas da base
+    // (a escolha da foto de ambiente e a montagem do prompt da cena, só no ramo s25). Prova: scripts/test-s25-nota95-2026-10-06.mjs.
+    '          const inNarratorWorld = envSig.length > 8 && hs.prompt.toLowerCase().includes(envSig)',
+    '          const scenePromptBruto = mouthPrefix + uprightPrefix + hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix',
   ])
   const tiradas = diff.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---') && !(p.endsWith('generate-video-cinematic/route.ts') && TROCADAS.has(l.slice(1))))
   return { ok: tiradas.length === 0, n: diff.split(LF).filter((l) => l.startsWith('+') && !l.startsWith('+++')).length }
