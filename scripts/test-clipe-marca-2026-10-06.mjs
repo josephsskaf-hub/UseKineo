@@ -214,7 +214,9 @@ async function problems(over = {}) {
   try { M = loadPure(MOD, over) } catch (err) { return [`módulo puro não carrega: ${err.message}`] }
 
   // (1) interruptor e textos
-  if (M.FREE_CLIP_WATERMARK_LIVE !== false) p.push('(1) o interruptor nasceu ligado (combinado com o fundador: nasce false, ele liga)')
+  // REANCORADO 06/10 (KINEO-MARCA-CANTO-SUPERIOR-2026-10-06, commit 3b): o fundador ligou ("recomendo ligar"), publicado só
+  // depois do clipe de prova com ?marca=1. O mundo desligado continua provado abaixo (wiring força os dois valores).
+  if (M.FREE_CLIP_WATERMARK_LIVE !== true) p.push('(1) o interruptor está desligado (o fundador ligou em 06/10, depois do clipe de prova)')
   if (M.FREE_CLIP_WATERMARK_TEXT !== 'usekineo.com') p.push('(1) o texto da marca não é usekineo.com')
   if (M.CLIP_SHARE_CAPTION !== 'Made with Kineo · usekineo.com #madewithkineo') p.push('(4) a legenda do "Post it" mudou')
 
@@ -461,11 +463,11 @@ async function problems(over = {}) {
 
 console.log('TESTE clipe grátis com marca usekineo.com + botão Post it — 06/10')
 const real = await problems()
-ok(real.length === 0, '(1–5) interruptor nasce false; desligado nada muda; pagante nunca; falha entrega o limpo; Post it com legenda; 16 línguas' + (real.length ? ' → ' + real.join(' | ') : ''))
+ok(real.length === 0, '(1–5) interruptor ligado (06/10); desligado nada muda; pagante nunca; falha entrega o limpo; Post it com legenda; 16 línguas' + (real.length ? ' → ' + real.join(' | ') : ''))
 
 // (6) mutantes — cada âncora é real e cada regra quebrada fica vermelha
 const mutants = [
-  ['M1 interruptor nasce ligado', MOD, 'export const FREE_CLIP_WATERMARK_LIVE = false', 'export const FREE_CLIP_WATERMARK_LIVE = true'],
+  ['M1 interruptor desligado sem decisão do fundador', MOD, 'export const FREE_CLIP_WATERMARK_LIVE = true', 'export const FREE_CLIP_WATERMARK_LIVE = false'],
   // REANCORADO 06/10 (KINEO-MARCA-TESTE-INTERNO-2026-10-06): o portão do persist ganhou a chave do clipe de prova da casa.
   ['M2 persist sem o interruptor (lê perfil com a peça desligada)', SERVER, '  if (FREE_CLIP_WATERMARK_LIVE || isFreeClipMarkTestKey(row.idempotency_key)) {\n    const { persistFreeClipWithMark }', '  if (true) {\n    const { persistFreeClipWithMark }'],
   ['M3 has_paid ignorado', MOD, '  if (row.has_paid === true) return true\n', ''],

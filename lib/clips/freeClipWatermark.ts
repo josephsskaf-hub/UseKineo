@@ -46,7 +46,7 @@
 // fora com a mesma chave sai limpa — o interruptor continua sendo UM só, aqui embaixo.
 
 /** ⚠ INTERRUPTOR DO FUNDADOR. false = nenhuma marca, para ninguém: o clipe sai byte a byte como antes. */
-export const FREE_CLIP_WATERMARK_LIVE = false
+export const FREE_CLIP_WATERMARK_LIVE = true // LIGADO 06/10 (fundador: "recomendo ligar") — publicar só depois do clipe de prova (?marca=1)
 
 /** O texto queimado no canto superior esquerdo. */
 export const FREE_CLIP_WATERMARK_TEXT = 'usekineo.com'
