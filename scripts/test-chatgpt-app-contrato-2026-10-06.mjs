@@ -135,6 +135,10 @@ function routeProblems(code) {
   if (count(/path: EVENT_PATH/g) !== 2) p.push('path ausente em algum evento')
   if (/\b(args|arguments|script|params|subject|ip|meta)\b/.test(body)) p.push('evento carrega roteiro/argumentos/IP/subject')
   if (!/\} catch \{/.test(body)) p.push('medição sem try/catch')
+  // Teto de tempo: Supabase lento não segura a resposta (initialize e kineo_facts não tocam o banco).
+  if (!hasLine(body, /^\s*if \(write\) await Promise\.race\(\[write, new Promise<void>\(\(resolve\) => \{ timer = setTimeout\(resolve, MEDICAO_TETO_MS\) \}\)\]\)$/)) p.push('medição sem teto de tempo')
+  const teto = Number((code.match(/^const MEDICAO_TETO_MS = (\d+)$/m) ?? [])[1])
+  if (!(teto > 0 && teto <= 3000)) p.push(`teto da medição fora de 1..3000 ms (${teto})`)
   return p
 }
 
@@ -230,6 +234,10 @@ const leaksScript = routeCode.split("tool: trace.tool ?? null, ok: trace.ok ?? f
 ok(leaksScript !== routeCode && routeProblems(leaksScript).length > 0, '(M9) evento passa a carregar o roteiro → vermelho')
 const noChannel = routeCode.split("{ channel: 'chatgpt_plugin', tool:").join('{ tool:')
 ok(noChannel !== routeCode && routeProblems(noChannel).length > 0, '(M10) mcp_tool_called sem channel (vira "uso do Claude" no SQL) → vermelho')
+const semTeto = routeCode.split('if (write) await Promise.race([write, new Promise<void>((resolve) => { timer = setTimeout(resolve, MEDICAO_TETO_MS) })])').join('if (write) await write')
+ok(semTeto !== routeCode && routeProblems(semTeto).length > 0, '(M11) medição sem teto (Supabase lento seguraria o initialize do revisor) → vermelho')
+const tetoAlto = routeCode.split('const MEDICAO_TETO_MS = 1500').join('const MEDICAO_TETO_MS = 20000')
+ok(tetoAlto !== routeCode && routeProblems(tetoAlto).length > 0, '(M12) teto de 20 s (o maxDuration inteiro) → vermelho')
 
 console.log(`\n${pass} verificações ok, ${fail} falhas`)
 process.exit(fail ? 1 : 0)

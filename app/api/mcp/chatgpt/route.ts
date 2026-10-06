@@ -32,17 +32,25 @@ export const DELETE = GET
 // openai/subject: só método, tool, desfecho, cliente e a família do user-agent (openai-mcp = o ChatGPT; o resto é
 // sonda). Nenhuma resposta muda — o que a OpenAI revisa é a resposta, e ela sai igual.
 const EVENT_PATH = '/api/mcp/chatgpt'
+/** Teto da medição: initialize e kineo_facts não tocam o banco; um Supabase lento (como em 28/08) não pode segurar a
+ *  resposta que o ChatGPT — e o revisor — esperam. Passou do teto, o evento se perde; a resposta não. */
+const MEDICAO_TETO_MS = 1500
 
 async function record(trace: McpTrace, userAgent: string | null): Promise<void> {
   const ua = (userAgent ?? '').split('/')[0].trim().slice(0, 40) || null
+  let timer: ReturnType<typeof setTimeout> | undefined
   try {
+    let write: Promise<unknown> | null = null
     if (trace.method === 'initialize') {
-      await writeServerEvent({ name: 'mcp_initialized', path: EVENT_PATH, metadata: { channel: 'chatgpt_plugin', client: trace.client ?? null, protocol: trace.protocol ?? null, ua } })
+      write = writeServerEvent({ name: 'mcp_initialized', path: EVENT_PATH, metadata: { channel: 'chatgpt_plugin', client: trace.client ?? null, protocol: trace.protocol ?? null, ua } })
     } else if (trace.method === 'tools/call') {
-      await writeServerEvent({ name: 'mcp_tool_called', path: EVENT_PATH, metadata: { channel: 'chatgpt_plugin', tool: trace.tool ?? null, ok: trace.ok ?? false, ua } })
+      write = writeServerEvent({ name: 'mcp_tool_called', path: EVENT_PATH, metadata: { channel: 'chatgpt_plugin', tool: trace.tool ?? null, ok: trace.ok ?? false, ua } })
     }
+    if (write) await Promise.race([write, new Promise<void>((resolve) => { timer = setTimeout(resolve, MEDICAO_TETO_MS) })])
   } catch {
     // a medição nunca derruba a resposta ao ChatGPT
+  } finally {
+    if (timer) clearTimeout(timer)
   }
 }
 

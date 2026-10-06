@@ -50,7 +50,7 @@ function query() {
 }
 globalThis.__kineoTest = {
   db: { from: query },
-  events: async event => { if (state.eventsDown) throw Error('Offline events sink unavailable'); state.events.push(event); return true },
+  events: async event => { if (state.eventsDown) throw Error('Offline events sink unavailable'); if (state.eventsHang) return new Promise(() => {}); state.events.push(event); return true },
   client: () => ({ auth: { getUser: async () => ({ data: { user: state.signedIn ? { id: 'test-user', email: 'tester@example.invalid' } : null } }) }, from: query }),
   cookies: () => ({ get: () => undefined, getAll: () => [] }),
   headers: () => new Headers(),
@@ -241,6 +241,14 @@ await check('Route counts initialize and tool calls on its own channel; response
   } finally {
     state.eventsDown = false
   }
+  state.eventsHang = true
+  const started = Date.now()
+  try {
+    await same({ jsonrpc: '2.0', id: 12, method: 'tools/call', params: { name: 'kineo_facts' } })
+  } finally {
+    state.eventsHang = false
+  }
+  assert(Date.now() - started < 4000, 'a stuck events sink must not hold the ChatGPT response')
   assert(!JSON.stringify(state.events).includes(script))
 })
 // KINEO-CHATGPT-CONTRATO-V1-2026-10-06 — o interruptor de manutenção não mexe no tools/list em revisão; a recusa
