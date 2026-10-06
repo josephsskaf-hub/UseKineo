@@ -25,8 +25,10 @@ import {
   GUEST_CHECKOUT_STRIPE_NOTE,
   GUEST_CHECKOUT_VERSION,
   GUEST_CHECKOUT_VERSION_KEY,
+  GUEST_READY_LINK_TTL_HOURS,
   buildGuestCheckoutSuccessUrl,
   guestPurchaseConflict,
+  guestReadyEmailClaimId,
   normalizeGuestEmail,
   type GuestConflictReason,
 } from '@/lib/growth/guestCheckout'
@@ -38,6 +40,8 @@ import {
   type SettlementReason,
 } from '@/lib/settlementCurrency'
 import { attributeAffiliateForUser } from '@/lib/affiliateAttribution'
+import { recordResendResponse, recordEmailSend } from '@/lib/email/quota'
+import { signGuestReadyToken } from '@/lib/auth/guestAccess'
 
 // ─── Segredo do navegador que abriu o checkout ──────────────────────────────────────────────────────────────────────
 const NONCE_PATTERN = /^[A-Za-z0-9_-]{43}$/
@@ -640,4 +644,129 @@ export function guestSignInEmailMessage(link: string): { subject: string; text: 
     '<p style="margin:0;color:#5A5F67;font-size:13px;">Kineo · <a href="https://www.usekineo.com" style="color:#0A5CFF;">usekineo.com</a></p>' +
     '</div>'
   return { subject, text, html }
+}
+
+// ─── E-mail "sua conta Kineo está pronta" (webhook, conta NASCIDA desta compra, 1× por sessão Stripe) ───────────────
+// Cobre quem fechou a aba antes da volta da Stripe: sem ele, a conta paga existe e a pessoa não sabe como entrar.
+// Conta que já existia NÃO recebe este e-mail (ela recebe só o link da página /checkout/guest, como antes).
+// Mesmo padrão dos transacionais da casa (Resend, ledger 'revenue', evento de desfecho) e três regras do webhook:
+//   1. NUNCA LANÇA — e-mail que falha não pode virar 500 nem reenvio de um pagamento já concedido.
+//   2. AWAIT em tudo, com teto no Resend (void antes do return morre na Vercel).
+//   3. Uma vez por sessão: reserva guest_ready_email:<sessão> em stripe_events ANTES de enviar; falhou o envio, a
+//      reserva é devolvida (um reenvio do evento pode tentar de novo) e o fracasso vira evento.
+// Sem preço no texto (regra da casa: moeda não localiza em e-mail). O link é o token NOSSO (lib/auth/guestAccess.ts),
+// que não morre quando o login de uso único gera outro link do Auth logo depois.
+export const GUEST_READY_EMAIL_KIND = 'guest_account_ready' as const
+export const GUEST_READY_EMAIL_PATH = '/auth/guest-link'
+/** Origem pública fixa: o webhook não sabe em que host a pessoa comprou (mesma escolha de /api/send-welcome). */
+export const GUEST_EMAIL_APP_ORIGIN = 'https://www.usekineo.com'
+
+export function guestReadyLink(origin: string, token: string): string {
+  return `${origin}${GUEST_READY_EMAIL_PATH}?ready=${encodeURIComponent(token)}`
+}
+
+export function guestAccountReadyEmailMessage(link: string): { subject: string; text: string; html: string } {
+  const days = Math.max(1, Math.round(GUEST_READY_LINK_TTL_HOURS / 24))
+  const validity = `This button works once and expires in ${days} day${days === 1 ? '' : 's'}.`
+  const after = 'After that, sign in with this email: continue with Google, or use “Forgot password” on the sign-in page to set a password.'
+  const subject = 'Your Kineo account is ready'
+  const text =
+    'Your Kineo account is ready and your plan is active on this email.\n\n' +
+    `Sign in to start creating: ${link}\n\n` +
+    `${validity} ${after}\n\n` +
+    'If you did not buy a Kineo plan, reply to this email and we will sort it out.\n\n' +
+    'Kineo · usekineo.com'
+  const font = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"
+  const html =
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#F7F7F5" style="background-color:#F7F7F5;">' +
+    '<tr><td align="center" style="padding:32px 16px;">' +
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;background:#FFFFFF;border:1px solid #E3E6EC;border-radius:16px;">' +
+    `<tr><td style="padding:28px 28px 8px;font-family:${font};color:#0E1116;font-size:20px;font-weight:800;">Your Kineo account is ready</td></tr>` +
+    `<tr><td style="padding:0 28px 18px;font-family:${font};color:#5A5F67;font-size:15px;line-height:22px;">Your plan is active on this email. Sign in to start creating.</td></tr>` +
+    `<tr><td style="padding:0 28px 22px;"><a href="${link}" style="display:inline-block;padding:13px 20px;border-radius:10px;background:#0A5CFF;color:#FFFFFF;font-family:Arial,sans-serif;font-size:15px;font-weight:700;text-decoration:none;">Sign in to Kineo</a></td></tr>` +
+    `<tr><td style="padding:0 28px 24px;font-family:Arial,sans-serif;color:#5A5F67;font-size:13px;line-height:20px;">${validity} ${after}<br><br>If you did not buy a Kineo plan, reply to this email and we will sort it out.</td></tr>` +
+    '</table>' +
+    '<p style="margin:16px 0 0;font-family:Arial,sans-serif;color:#5A5F67;font-size:12px;">Kineo · <a href="https://www.usekineo.com" style="color:#0A5CFF;">usekineo.com</a></p>' +
+    '</td></tr></table>'
+  return { subject, text, html }
+}
+
+export async function sendGuestAccountReadyEmailOnce(input: {
+  admin: SupabaseClient
+  stripeSessionId: string
+  userId: string
+  email: string
+  secret: string | null | undefined
+  resendKey: string | null | undefined
+  from: string
+  origin?: string
+  nowMs?: number
+}): Promise<'sent' | 'duplicate' | 'skipped' | 'failed'> {
+  const event = async (name: string, metadata: Record<string, unknown>) => {
+    try {
+      await input.admin.from('events').insert({
+        name,
+        user_id: input.userId,
+        path: '/api/stripe/webhook',
+        metadata: { version: GUEST_CHECKOUT_VERSION, stripe_session_id: input.stripeSessionId, ...metadata },
+      })
+    } catch {
+      // evento é registro; o desfecho já foi decidido
+    }
+  }
+  try {
+    if (!input.resendKey || !input.secret) {
+      await event(GUEST_CHECKOUT_EVENTS.readyEmailFailed, { reason: !input.resendKey ? 'sender_unconfigured' : 'secret_missing' })
+      return 'skipped'
+    }
+    const claimId = guestReadyEmailClaimId(input.stripeSessionId)
+    const { error: claimError } = await input.admin.from('stripe_events').insert({ id: claimId })
+    if (claimError?.code === '23505') return 'duplicate'
+    if (claimError) {
+      console.error('[guest-checkout] ready email not sent (claim failed):', input.stripeSessionId.slice(0, 16), claimError.code)
+      await event(GUEST_CHECKOUT_EVENTS.readyEmailFailed, { reason: 'claim_failed' })
+      return 'failed'
+    }
+    const release = async () => {
+      try {
+        await input.admin.from('stripe_events').delete().eq('id', claimId)
+      } catch {
+        // reserva presa = nenhum 2º e-mail, nunca um a mais
+      }
+    }
+    const nowMs = input.nowMs ?? Date.now()
+    const token = signGuestReadyToken({
+      userId: input.userId,
+      stripeSessionId: input.stripeSessionId,
+      expiresAtSeconds: Math.floor(nowMs / 1000) + GUEST_READY_LINK_TTL_HOURS * 3600,
+      secret: input.secret,
+    })
+    const message = guestAccountReadyEmailMessage(guestReadyLink(input.origin ?? GUEST_EMAIL_APP_ORIGIN, token))
+    let res: Response
+    try {
+      res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        signal: AbortSignal.timeout(GUEST_SIGNIN_EMAIL_TIMEOUT_MS),
+        headers: { Authorization: `Bearer ${input.resendKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: input.from, to: [input.email], subject: message.subject, text: message.text, html: message.html }),
+      })
+    } catch (sendError) {
+      const detail = (sendError instanceof Error ? sendError.message : String(sendError)).slice(0, 200)
+      await recordEmailSend({ kind: GUEST_READY_EMAIL_KIND, priority: 'revenue', userId: input.userId, ok: false, detail, admin: input.admin })
+      await release()
+      await event(GUEST_CHECKOUT_EVENTS.readyEmailFailed, { reason: 'send_threw' })
+      return 'failed'
+    }
+    await recordResendResponse({ kind: GUEST_READY_EMAIL_KIND, priority: 'revenue', userId: input.userId, res, admin: input.admin })
+    if (!res.ok) {
+      await release()
+      await event(GUEST_CHECKOUT_EVENTS.readyEmailFailed, { reason: 'resend_rejected', http_status: res.status })
+      return 'failed'
+    }
+    await event(GUEST_CHECKOUT_EVENTS.readyEmailSent, { link_ttl_hours: GUEST_READY_LINK_TTL_HOURS })
+    return 'sent'
+  } catch (error) {
+    console.error('[guest-checkout] ready email threw (webhook continues):', error instanceof Error ? error.message : String(error))
+    return 'failed'
+  }
 }

@@ -91,6 +91,7 @@ import {
   GUEST_CHECKOUT_NONCE_MAX_AGE_SECONDS,
   GUEST_CHECKOUT_VERSION,
   guestCheckoutFallbackReason,
+  type GuestCheckoutFailureReason,
 } from '@/lib/growth/guestCheckout'
 import {
   buildGuestSubscriptionSessionParams,
@@ -280,8 +281,10 @@ async function recordCheckoutEvent(
     // denominador do único canal de receita novo viraria ficção.
     | 'bulk_checkout_started'
     | 'ads_checkout_started' // KINEO-STUDIO-ADS-2026-09-25
-    // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — sessão Stripe aberta por quem ainda não tem conta (SERVER_ONLY).
-    | 'checkout_guest_started',
+    // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — sessão Stripe aberta por quem ainda não tem conta, e o pedido que podia ser
+    // de convidado mas voltou ao caminho de hoje, com o motivo (os dois SERVER_ONLY).
+    | 'checkout_guest_started'
+    | 'guest_checkout_fallback',
   userId: string | null,
   metadata: Record<string, unknown>,
   sessionId?: string,
@@ -1170,32 +1173,46 @@ async function buildAndRedirect(
       introDiscount: intro && !isAnnual && (tier === 'starter' || tier === 'basic') && introDiscountMinor(tier, currency, region) > 0,
       botSuspected: isLikelyBotUserAgent(req.headers.get('user-agent')),
     })
+    // NUNCA PIOR QUE HOJE: se a sessão de convidado não abrir (exceção, 4xx da Stripe, sessão sem URL), o visitante
+    // segue para o caminho de hoje logo abaixo — o mesmo checkout_auth_required e o mesmo redirect ao cadastro.
+    let guestFailure: { reason: GuestCheckoutFailureReason; detail: Record<string, unknown> } | null = null
     if (guestFallback === null) {
       failureContext = { ...checkoutMetadata, guest_checkout: true }
-      return buildGuestSubscriptionAndRedirect(req, {
-        appUrl,
-        tier,
-        billing,
-        isAnnual,
-        interval,
-        unitAmount,
-        currency,
-        region,
-        country,
-        intro,
-        intentCampaign: intentCampaign ?? null,
-        browserSessionId,
-        checkoutMetadata,
-        checkoutValueContext,
-        redirectError,
-      })
+      try {
+        const guest = await buildGuestSubscriptionAndRedirect(req, {
+          appUrl,
+          tier,
+          billing,
+          isAnnual,
+          interval,
+          unitAmount,
+          currency,
+          region,
+          country,
+          intro,
+          intentCampaign: intentCampaign ?? null,
+          browserSessionId,
+          checkoutMetadata,
+          checkoutValueContext,
+        })
+        if (guest.ok) return guest.response
+        guestFailure = guest.failure
+      } catch (guestError) {
+        guestFailure = { reason: 'guest_session_threw', detail: guestStripeErrorShape(guestError) }
+      }
+      failureContext = { ...checkoutMetadata }
     }
-    await recordCheckoutEvent(
-      'checkout_auth_required',
-      null,
-      GUEST_CHECKOUT_LIVE ? { ...checkoutMetadata, guest_fallback: guestFallback } : checkoutMetadata,
-      browserSessionId ?? undefined,
-    )
+    if (GUEST_CHECKOUT_LIVE) {
+      // O motivo de não ser convidado (régua ou falha) mora num evento próprio; o checkout_auth_required abaixo fica
+      // com a mesma metadata de sempre.
+      await recordCheckoutEvent(
+        GUEST_CHECKOUT_EVENTS.fallback,
+        null,
+        { ...checkoutMetadata, guest_fallback: guestFailure?.reason ?? guestFallback, ...(guestFailure?.detail ?? {}) },
+        browserSessionId ?? undefined,
+      )
+    }
+    await recordCheckoutEvent('checkout_auth_required', null, checkoutMetadata, browserSessionId ?? undefined)
     // KINEO-PAINEL-QUE-NAO-MENTE-2026-09-03 — era console.ERROR, e por isso
     // aparecia no painel da Vercel como falha de produção. Não é: o caso está
     // TRATADO logo abaixo — a pessoa é mandada para o cadastro carregando a URL
@@ -2548,7 +2565,8 @@ async function buildAndRedirect(
 // Tudo o que define preço chega pronto do caminho logado (tier, billing, unitAmount, currency, region, interval,
 // checkoutValueContext são as MESMAS variáveis); a moeda de liquidação usa a mesma conta (guestSettlement). O que
 // muda é só o que depende da conta: sem `customer`, sem supabase_user_id — o webhook acha ou cria o dono pelo e-mail
-// que a Stripe coletar (lib/stripe/guestCheckout.ts → resolveGuestCheckoutOwner).
+// que a Stripe coletar (lib/stripe/guestCheckout.ts → resolveGuestCheckoutOwner). Não abriu → { ok: false } e quem
+// chama segue o caminho de hoje (cadastro antes); nunca uma tela de erro que hoje não existiria.
 async function buildGuestSubscriptionAndRedirect(
   req: NextRequest,
   ctx: {
@@ -2566,9 +2584,11 @@ async function buildGuestSubscriptionAndRedirect(
     browserSessionId: string | null
     checkoutMetadata: Record<string, unknown>
     checkoutValueContext: ReturnType<typeof buildCheckoutValueContext>
-    redirectError: (msg: string) => Promise<NextResponse>
   },
-): Promise<NextResponse> {
+): Promise<
+  | { ok: true; response: NextResponse }
+  | { ok: false; failure: { reason: GuestCheckoutFailureReason; detail: Record<string, unknown> } }
+> {
   const plan = TIERS[ctx.tier]
   const settlement = guestSettlement({
     tier: ctx.tier,
@@ -2652,9 +2672,13 @@ async function buildGuestSubscriptionAndRedirect(
       }),
     })
   } catch (sessionErr) {
-    const msg = sessionErr instanceof Error ? sessionErr.message : String(sessionErr)
-    console.error('[stripe/checkout] guest Session creation error:', msg)
-    return ctx.redirectError(`Payment session failed: ${msg || 'Please try again'}`)
+    // Nunca pior que hoje: quem chama devolve o visitante ao cadastro (o caminho de hoje). Sem a mensagem crua da
+    // Stripe no evento (pode ecoar e-mail ou ids); só tipo, código e status.
+    console.error('[stripe/checkout] guest Session creation error — falling back to sign-up first')
+    return { ok: false, failure: { reason: 'stripe_session_failed', detail: guestStripeErrorShape(sessionErr) } }
+  }
+  if (!session?.url) {
+    return { ok: false, failure: { reason: 'stripe_session_without_url', detail: { stripe_session_id: session?.id ?? null } } }
   }
 
   // O par canônico do funil (checkout_started, mesmo id determinístico do logado) + o evento próprio do convidado.
@@ -2672,7 +2696,7 @@ async function buildGuestSubscriptionAndRedirect(
 
   // Sem o cookie de retomada (kineo_checkout_session): a retomada é autenticada e checa o dono pela metadata, que
   // aqui só existe depois do pagamento.
-  const response = NextResponse.redirect(session.url!)
+  const response = NextResponse.redirect(session.url)
   response.cookies.set({
     name: GUEST_CHECKOUT_NONCE_COOKIE,
     value: nonce,
@@ -2682,7 +2706,17 @@ async function buildGuestSubscriptionAndRedirect(
     path: '/',
     maxAge: GUEST_CHECKOUT_NONCE_MAX_AGE_SECONDS,
   })
-  return response
+  return { ok: true, response }
+}
+
+/** Forma fechada de um erro da Stripe para o evento de fallback: nunca a mensagem (pode carregar e-mail ou ids). */
+function guestStripeErrorShape(error: unknown): Record<string, unknown> {
+  const e = error as { type?: unknown; code?: unknown; statusCode?: unknown } | null
+  return {
+    stripe_error_type: typeof e?.type === 'string' ? e.type.slice(0, 64) : error instanceof Error ? error.name.slice(0, 64) : 'unknown',
+    stripe_error_code: typeof e?.code === 'string' ? e.code.slice(0, 64) : null,
+    stripe_status: typeof e?.statusCode === 'number' ? e.statusCode : null,
+  }
 }
 
 // ─── One-time Starter Pack checkout (mode: 'payment') ────────────────────────

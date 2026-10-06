@@ -94,6 +94,14 @@ export default function ResetPasswordPage() {
     return () => subscription.unsubscribe()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — a recuperação de senha prova o e-mail: numa conta nascida de compra sem login,
+  // o servidor derruba as OUTRAS sessões (uma vez por conta; a sessão do login de uso único nunca dispara isto).
+  // Fora disso, a rota não faz nada. Falha de rede aqui nunca atrapalha trocar a senha.
+  useEffect(() => {
+    if (!ready) return
+    void fetch('/api/auth/guest-sessions', { method: 'POST', credentials: 'same-origin', cache: 'no-store' }).catch(() => {})
+  }, [ready])
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)

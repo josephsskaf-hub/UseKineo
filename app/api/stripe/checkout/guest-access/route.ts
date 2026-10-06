@@ -5,8 +5,11 @@ import { createClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { recordEmailSend, recordResendResponse } from '@/lib/email/quota'
+import { sessionIdFromAccessToken } from '@/lib/auth/guestAccess'
 import {
   GUEST_ACCOUNT_SESSION_APP_METADATA_KEY,
+  GUEST_AUTO_LOGIN_SESSION_KEY,
+  GUEST_SESSIONS_REVOKED_AT_KEY,
   GUEST_CHECKOUT_EVENTS,
   GUEST_CHECKOUT_NONCE_COOKIE,
   GUEST_CHECKOUT_NONCE_HASH_KEY,
@@ -192,15 +195,18 @@ export async function POST(req: NextRequest) {
   if (markerError) return reply({ state: 'pending' })
   const hasMarker = (id: string) => (markerRows ?? []).some((row: { id?: string }) => row.id === id)
 
-  let owner: { bornFromThisSession: boolean; createdAtMs: number | null } | null = null
+  let owner: { bornFromThisSession: boolean; createdAtMs: number | null; emailProven: boolean } | null = null
   let ownerEmail: string | null = null
   if (ownerUserId) {
     const { data, error } = await admin.auth.admin.getUserById(ownerUserId)
     if (!error && data?.user) {
       const createdAtMs = Date.parse(data.user.created_at ?? '')
+      const ownerMeta = (data.user.app_metadata ?? {}) as Record<string, unknown>
       owner = {
-        bornFromThisSession: (data.user.app_metadata as Record<string, unknown> | undefined)?.[GUEST_ACCOUNT_SESSION_APP_METADATA_KEY] === sessionId,
+        bornFromThisSession: ownerMeta[GUEST_ACCOUNT_SESSION_APP_METADATA_KEY] === sessionId,
         createdAtMs: Number.isFinite(createdAtMs) ? createdAtMs : null,
+        // O dono já entrou com prova de e-mail (as outras sessões caíram): o login sem prova não abre mais.
+        emailProven: Boolean(ownerMeta[GUEST_SESSIONS_REVOKED_AT_KEY]),
       }
       ownerEmail = normalizeGuestEmail(data.user.email ?? null)
     }
@@ -250,7 +256,19 @@ export async function POST(req: NextRequest) {
       const supabase = createClient()
       const { data: otpData, error: otpError } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'magiclink' })
       if (!otpError && otpData?.user?.id === ownerUserId && otpData.session) {
-        signedIn = true
+        // Esta é a ÚNICA sessão da conta que não provou o e-mail. O id dela fica em app_metadata para que a 1ª entrada
+        // com prova (Google, link por e-mail, recuperação de senha) a derrube (lib/auth/guestAccess.ts) — e para que
+        // ela mesma nunca dispare a derrubada. Sem esse registro, o login não vale: desfaz e a vaga volta.
+        const autoSessionId = sessionIdFromAccessToken(otpData.session.access_token)
+        const currentMeta = (otpData.user.app_metadata ?? {}) as Record<string, unknown>
+        const stamped = autoSessionId
+          ? await admin.auth.admin.updateUserById(ownerUserId, { app_metadata: { ...currentMeta, [GUEST_AUTO_LOGIN_SESSION_KEY]: autoSessionId } })
+          : { error: { message: 'session_id claim missing' } }
+        if (!stamped.error) {
+          signedIn = true
+        } else {
+          await supabase.auth.signOut({ scope: 'local' })
+        }
       } else if (otpData?.session) {
         // Trava: a sessão emitida tem de ser do dono desta compra. Qualquer outra é descartada na hora.
         await supabase.auth.signOut({ scope: 'local' })

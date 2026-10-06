@@ -20,6 +20,11 @@
 //      tomada de conta: alguém paga com o e-mail de outra pessoa); o plano entra na conta dela e vai um link por e-mail.
 //   4. Eventos de servidor: checkout_guest_started, guest_account_created/matched, guest_login_link_used, e o
 //      payment_success de sempre com o user_id da conta nova/existente.
+//   5. Nunca pior que hoje: se a sessão de convidado não abrir na Stripe, o visitante volta ao caminho de hoje
+//      (cadastro antes) e o motivo vai em guest_checkout_fallback.
+//   6. Conta nascida assim: a 1ª entrada que prova o e-mail (Google/OAuth, link por e-mail, recuperação de senha)
+//      derruba as OUTRAS sessões, uma vez (guest_sessions_revoked) — fecha a tomada de conta por e-mail alheio.
+//   7. O webhook manda UM e-mail "sua conta está pronta" com link de entrada (cobre quem fechou a aba antes da volta).
 //
 // PURO DE PROPÓSITO: este arquivo não importa NADA. O cliente (PricingClient, KineoLanding, /ads, /checkout/guest) lê o
 // interruptor e as frases daqui; o servidor lê as decisões; o guardião scripts/test-compra-sem-login-2026-10-06.mjs
@@ -55,6 +60,13 @@ export const GUEST_LOGIN_CLOCK_SKEW_MS = 2 * 60 * 1000
 export const GUEST_SIGNIN_EMAIL_MAX_PER_SESSION = 3
 /** Carimbo em app_metadata (só o admin escreve) da conta criada por esta compra: o fato não depende de adivinhar. */
 export const GUEST_ACCOUNT_SESSION_APP_METADATA_KEY = 'kineo_guest_checkout_session' as const
+/** Id da sessão do Auth emitida pelo login de uso único (claim session_id do JWT): a ÚNICA sessão sem prova de e-mail. */
+export const GUEST_AUTO_LOGIN_SESSION_KEY = 'kineo_guest_auto_session_id' as const
+/** Quando e por onde a 1ª entrada com prova de e-mail derrubou as outras sessões (uma vez por conta). */
+export const GUEST_SESSIONS_REVOKED_AT_KEY = 'kineo_guest_sessions_revoked_at' as const
+export const GUEST_SESSIONS_REVOKED_VIA_KEY = 'kineo_guest_sessions_revoked_via' as const
+/** Validade do link do e-mail "sua conta está pronta" (uso único; depois, Google ou "Forgot password"). */
+export const GUEST_READY_LINK_TTL_HOURS = 72
 
 // ─── Marcadores em stripe_events (id texto, único) ───────────────────────────────────────────────────────────────────
 /** ESPELHO do literal do webhook (`checkout_fulfilled:${session.id}`): o guardião confere que os dois batem. */
@@ -70,6 +82,14 @@ export function guestConflictMarkerId(stripeSessionId: string): string {
 export function guestSignInEmailSlotId(stripeSessionId: string, slot: number): string {
   return `guest_signin_email:${stripeSessionId}:${slot}`
 }
+/** O e-mail "sua conta está pronta" sai UMA vez por sessão Stripe (reentrega do webhook não repete). */
+export function guestReadyEmailClaimId(stripeSessionId: string): string {
+  return `guest_ready_email:${stripeSessionId}`
+}
+/** O link desse e-mail entra UMA vez. */
+export function guestReadyLinkClaimId(stripeSessionId: string): string {
+  return `guest_ready_link_used:${stripeSessionId}`
+}
 
 // ─── Eventos (todos SERVER_ONLY em app/api/events/route.ts) ─────────────────────────────────────────────────────────
 export const GUEST_CHECKOUT_EVENTS = {
@@ -80,6 +100,12 @@ export const GUEST_CHECKOUT_EVENTS = {
   loginRefused: 'guest_login_refused',
   conflict: 'guest_checkout_conflict',
   emailSent: 'guest_signin_email_sent',
+  /** Pedido que podia ser de convidado e voltou ao caminho de hoje (régua ou falha ao abrir a sessão), com o motivo. */
+  fallback: 'guest_checkout_fallback',
+  /** A 1ª entrada com prova de e-mail numa conta de convidado derrubou as outras sessões (uma vez por conta). */
+  sessionsRevoked: 'guest_sessions_revoked',
+  readyEmailSent: 'guest_account_ready_email_sent',
+  readyEmailFailed: 'guest_account_ready_email_failed',
 } as const
 
 // ─── Quem pode comprar sem conta ─────────────────────────────────────────────────────────────────────────────────────
@@ -126,6 +152,13 @@ export function guestCheckoutFallbackReason(input: {
   if (input.botSuspected) return 'bot_suspected'
   return null
 }
+
+/**
+ * Falha ao abrir a sessão de convidado (exceção ou 4xx da Stripe, ou sessão sem URL). A regra é "nunca pior que hoje":
+ * o visitante volta ao caminho de hoje (cadastro antes, mesmo redirect, mesmo checkout_auth_required) e o motivo vai
+ * num evento guest_checkout_fallback — nunca uma tela de erro que hoje não existiria.
+ */
+export type GuestCheckoutFailureReason = 'stripe_session_failed' | 'stripe_session_without_url' | 'guest_session_threw'
 
 /** A tela só promete "sem cadastro" quando o servidor vai mesmo abrir a Stripe sem conta (mesma régua, lado cliente). */
 export function guestCheckoutCoversPlanClick(input: {
@@ -220,7 +253,8 @@ export type GuestAccessInput = {
   fulfilled: boolean
   /** stripe_events tem guest_checkout_conflict:<sessão>. */
   conflict: boolean
-  owner: null | { bornFromThisSession: boolean; createdAtMs: number | null }
+  /** emailProven = o dono já entrou com prova de e-mail (as outras sessões caíram; carimbo em app_metadata). */
+  owner: null | { bornFromThisSession: boolean; createdAtMs: number | null; emailProven?: boolean }
   /** O cookie httpOnly deste navegador bate com o hash gravado na sessão Stripe. */
   browserProof: boolean
   loginAlreadyUsed: boolean
@@ -243,6 +277,9 @@ export function decideGuestAccess(input: GuestAccessInput): GuestAccessDecision 
   if (input.owner.bornFromThisSession !== true) return { state: 'check_email', reason: 'existing_account' }
   if (input.browserProof !== true) return { state: 'check_email', reason: 'other_browser' }
   if (input.loginAlreadyUsed) return { state: 'check_email', reason: 'already_used' }
+  // O dono do e-mail já entrou com prova (Google, link por e-mail, recuperação): o login sem prova não abre mais — a
+  // ordem dos cliques não pode reabrir a porta que a derrubada única fechou.
+  if (input.owner.emailProven === true) return { state: 'check_email', reason: 'already_used' }
   const createdAtMs = input.owner.createdAtMs
   const windowMs = (input.windowMinutes ?? GUEST_LOGIN_WINDOW_MINUTES) * 60 * 1000
   if (
@@ -254,6 +291,46 @@ export function decideGuestAccess(input: GuestAccessInput): GuestAccessDecision 
     return { state: 'check_email', reason: 'expired' }
   }
   return { state: 'sign_in' }
+}
+
+// ─── Tomada de conta: a 1ª entrada com prova de e-mail derruba as outras sessões ────────────────────────────────────
+// O login de uso único entra sem provar o e-mail (quem pagou pode ter digitado o e-mail de outra pessoa). Se o dono
+// real do e-mail entrar depois por um meio que prova a caixa (Google/OAuth, link por e-mail, recuperação de senha), as
+// OUTRAS sessões caem — inclusive a do login de uso único — uma única vez por conta.
+export type GuestSessionRevocationDecision =
+  | 'not_guest_account'
+  | 'already_revoked'
+  | 'no_session'
+  | 'auto_login_session'
+  | 'not_proven'
+  | 'revoke'
+
+/**
+ * Métodos de entrada (claim `amr` do JWT do Auth; medidos em auth.mfa_amr_claims/auth.flow_state em 06/10: oauth,
+ * otp, recovery, password) que PROVAM a caixa de e-mail. 'password' NUNCA prova: a sessão sem prova pode pôr uma
+ * senha direto na API do Auth e entrar com ela — se senha contasse, ela mesma gastaria a derrubada única.
+ */
+export const GUEST_EMAIL_PROVING_AMR = ['oauth', 'otp', 'magiclink', 'recovery', 'email/signup', 'invite', 'email_change', 'sso/saml'] as const
+
+export function guestSessionRevocation(input: {
+  appMetadata: Record<string, unknown> | null | undefined
+  currentSessionId: string | null | undefined
+  /** Métodos (amr) da sessão nova. */
+  authMethods: readonly string[]
+  /** Quais métodos valem como prova nesta porta (padrão: GUEST_EMAIL_PROVING_AMR). */
+  acceptedMethods?: readonly string[]
+}): GuestSessionRevocationDecision {
+  const meta = input.appMetadata ?? {}
+  const born = meta[GUEST_ACCOUNT_SESSION_APP_METADATA_KEY]
+  if (typeof born !== 'string' || !born) return 'not_guest_account'
+  if (meta[GUEST_SESSIONS_REVOKED_AT_KEY]) return 'already_revoked'
+  const current = typeof input.currentSessionId === 'string' ? input.currentSessionId : ''
+  if (!current) return 'no_session'
+  // A própria sessão do login de uso único nunca dispara a derrubada (ela é a que não provou o e-mail).
+  if (meta[GUEST_AUTO_LOGIN_SESSION_KEY] === current) return 'auto_login_session'
+  const accepted: readonly string[] = input.acceptedMethods ?? GUEST_EMAIL_PROVING_AMR
+  if (!input.authMethods.some((method) => accepted.includes(method))) return 'not_proven'
+  return 'revoke'
 }
 
 // ─── URLs de volta da Stripe ─────────────────────────────────────────────────────────────────────────────────────────

@@ -9,6 +9,13 @@
 //     ativo, afiliado na metadata, falha que pede reenvio, e o MESMO grant do caminho logado;
 //   · app/api/stripe/checkout/guest-access/route.ts e app/auth/guest-link/route.ts — login de uso único (1×, só no
 //     navegador da compra, só na janela), link velho, link usado 2×, corrida de dois cliques, e-mail de entrada.
+// Leva 2 (mesmo dia, antes de publicar):
+//   · NUNCA PIOR QUE HOJE — Stripe falsa jogando erro (4xx, rede, sessão sem URL, exceção no meio): o visitante cai no
+//     MESMO redirect de hoje, com o MESMO checkout_auth_required, mais guest_checkout_fallback com o motivo;
+//   · TOMADA DE CONTA — a 1ª entrada que prova o e-mail (link por e-mail, Google pela /auth/callback, recuperação de
+//     senha pela /api/auth/guest-sessions) derruba as OUTRAS sessões uma vez (guest_sessions_revoked); senha não
+//     prova; o login de uso único não dispara e não reabre depois;
+//   · E-MAIL "SUA CONTA ESTÁ PRONTA" — 1 por sessão Stripe, só conta nova, sem preço, link de uso único e com validade.
 // Banco, Stripe, Auth e Resend são falsos em memória. Depois, MUTANTES em memória: cada regra é quebrada por uma troca
 // de texto cuja aplicação é provada (âncora única, texto novo presente) e o cenário que a guarda tem de ficar vermelho.
 // Funciona com o interruptor em false (commit 1) e em true (commit 2): os cenários forçam o valor que precisam.
@@ -26,6 +33,7 @@ const nodeRequire = createRequire(join(root, 'package.json'))
 const ts = nodeRequire('typescript')
 const CR = String.fromCharCode(13)
 const sources = new Map()
+const squashWs = (s) => s.replace(/\s+/g, ' ')
 function read(rel) {
   if (!sources.has(rel)) sources.set(rel, readFileSync(join(root, rel), 'utf8').split(CR).join(''))
   return sources.get(rel)
@@ -47,6 +55,12 @@ const ACCESS = 'app/api/stripe/checkout/guest-access/route.ts'
 const LINK = 'app/auth/guest-link/route.ts'
 const SINK = 'app/api/events/route.ts'
 const PAGE = 'app/checkout/guest/page.tsx'
+const GUARD = 'lib/auth/guestAccess.ts'
+const RECOVERY = 'app/api/auth/guest-sessions/route.ts'
+const CALLBACK = 'app/auth/callback/route.ts'
+const RESET_PAGE = 'app/(auth)/reset-password/page.tsx'
+const READY_SUBJECT = 'Your Kineo account is ready'
+const SIGNIN_SUBJECT = 'Your Kineo sign-in link'
 const ORIGIN = 'https://www.usekineo.com'
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15'
 
@@ -250,6 +264,11 @@ function makeDb() {
   }
   const authUsers = []
   const tokens = new Map()
+  // Sessões do Auth: cada entrada vira um session_id; o token de acesso é um JWT de mentira com sub e session_id
+  // (o formato que lib/auth/guestAccess.ts lê). signOut('others') derruba todas as outras do mesmo usuário.
+  const sessions = new Map()
+  const oauthCodes = new Map()
+  const signOutCalls = []
   const profileDefaults = (id, email) => ({
     id, email, video_credits: 0, free_ai_generate_used: false, plan: 'free', is_pro: false, has_paid: false,
     stripe_customer_id: null, stripe_subscription_id: null, paypal_subscription_id: null, affiliate_id: null,
@@ -265,7 +284,36 @@ function makeDb() {
     auth: {
       users: authUsers,
       tokens,
+      sessions,
+      oauthCodes,
+      signOutCalls,
+      /** Sessão nova do Auth: method vira o claim amr (oauth, otp, recovery, password — os que o projeto grava). */
+      openSession(userId, method = 'otp') {
+        const sid = nodeCrypto.randomUUID()
+        sessions.set(sid, { userId, method, revoked: false })
+        const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url')
+        const claims = { sub: userId, session_id: sid, amr: [{ method, timestamp: Math.floor(Date.now() / 1000) }] }
+        return { sid, accessToken: `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64(claims)}.fake` }
+      },
+      alive(sid) { return Boolean(sid && sessions.get(sid) && !sessions.get(sid).revoked) },
+      /** Coloca uma sessão num navegador (o que os cookies do @supabase/ssr fazem). */
+      enter(browser, userId, method) {
+        const s = db.auth.openSession(userId, method)
+        browser.userId = userId
+        browser.sid = s.sid
+        browser.accessToken = s.accessToken
+        return s
+      },
       admin: {
+        async updateUserById(id, attrs) {
+          const injected = takeFailure('auth', 'updateUserById')
+          if (injected) return { data: { user: null }, error: injected }
+          const u = authUsers.find((x) => x.id === id)
+          if (!u) return { data: { user: null }, error: { message: 'User not found' } }
+          if (attrs.app_metadata) u.app_metadata = { ...u.app_metadata, ...clone(attrs.app_metadata) }
+          if (attrs.password) u.password_set = true
+          return { data: { user: clone(u) }, error: null }
+        },
         async createUser(attrs) {
           const injected = takeFailure('auth', 'createUser')
           if (injected) return { data: { user: null }, error: injected }
@@ -315,23 +363,55 @@ function makeDb() {
 }
 
 function ssrClientFor(db, browser) {
+  // Navegador com sessão derrubada = deslogado (o Auth recusa o refresh/getUser de sessão apagada).
+  const current = () => {
+    if (!browser.userId) return null
+    if (browser.sid && !db.auth.alive(browser.sid)) return null
+    return db.auth.users.find((x) => x.id === browser.userId) ?? null
+  }
+  const missing = { name: 'AuthSessionMissingError', message: 'Auth session missing!' }
   return {
     from: (t) => db.from(t),
     auth: {
       async getUser() {
-        const u = browser.userId ? db.auth.users.find((x) => x.id === browser.userId) : null
-        return u ? { data: { user: clone(u) }, error: null } : { data: { user: null }, error: { name: 'AuthSessionMissingError', message: 'Auth session missing!' } }
+        const u = current()
+        return u ? { data: { user: clone(u) }, error: null } : { data: { user: null }, error: missing }
+      },
+      async getSession() {
+        const u = current()
+        return { data: { session: u ? { access_token: browser.accessToken ?? null, user: clone(u) } : null }, error: null }
       },
       async verifyOtp({ token_hash, type }) {
         const t = db.auth.tokens.get(token_hash)
         if (!t || t.used || type !== 'magiclink') return { data: { user: null, session: null }, error: { message: 'Email link is invalid or has expired' } }
         t.used = true
         const u = db.auth.users.find((x) => x.id === t.userId)
-        browser.userId = u.id
+        // POST /verify (token_hash) grava amr 'otp' — medido em auth.mfa_amr_claims.
+        const s = db.auth.enter(browser, u.id, 'otp')
         browser.minted = (browser.minted ?? 0) + 1
-        return { data: { user: clone(u), session: { access_token: 'fake-access', user: clone(u) } }, error: null }
+        return { data: { user: clone(u), session: { access_token: s.accessToken, user: clone(u) } }, error: null }
       },
-      async signOut() { browser.userId = null; return { error: null } },
+      async exchangeCodeForSession(code) {
+        const c = db.auth.oauthCodes.get(code)
+        if (!c || c.used) return { data: { user: null, session: null }, error: { name: 'AuthApiError', message: 'invalid flow state, no valid flow state found' } }
+        c.used = true
+        const u = db.auth.users.find((x) => x.id === c.userId)
+        const s = db.auth.enter(browser, u.id, c.method)
+        return { data: { user: clone(u), session: { access_token: s.accessToken, user: clone(u) } }, error: null }
+      },
+      async signOut(options = {}) {
+        const scope = options.scope ?? 'global'
+        db.auth.signOutCalls.push({ scope, userId: browser.userId ?? null, sid: browser.sid ?? null })
+        const mine = browser.sid ?? null
+        for (const [sid, s] of db.auth.sessions) {
+          if (s.userId !== browser.userId) continue
+          if (scope === 'others' && sid === mine) continue
+          if (scope === 'local' && sid !== mine) continue
+          s.revoked = true
+        }
+        if (scope !== 'others') { browser.userId = null; browser.sid = null; browser.accessToken = null }
+        return { error: null }
+      },
     },
   }
 }
@@ -344,10 +424,13 @@ function makeStripe() {
   const subscriptions = new Map()
   const idem = new Map()
   const calls = []
+  // Falhas injetadas no próximo checkout.sessions.create: { kind: 'throw', error } | { kind: 'no_url' } | { kind: 'url_getter_throws' }.
+  const createFailures = []
   const missing = (what) => Object.assign(new Error(`No such ${what}`), { code: 'resource_missing', statusCode: 404, type: 'StripeInvalidRequestError' })
   const strip = (s) => { const out = clone(s); delete out._params; return out }
   return {
     calls,
+    createFailures,
     sessionStore: sessions,
     customerStore: customers,
     subscriptionStore: subscriptions,
@@ -355,6 +438,12 @@ function makeStripe() {
       sessions: {
         async create(params, opts = {}) {
           calls.push({ op: 'checkout.sessions.create', params: clone(params), idempotencyKey: opts.idempotencyKey ?? null })
+          const injected = createFailures.shift()
+          if (injected?.kind === 'throw') throw injected.error
+          if (injected?.kind === 'no_url') return { id: `cs_test_${nextId('')}`, object: 'checkout.session', url: null, status: 'open' }
+          if (injected?.kind === 'url_getter_throws') {
+            return Object.defineProperty({ id: `cs_test_${nextId('')}`, object: 'checkout.session' }, 'url', { get() { throw new TypeError('url getter exploded') } })
+          }
           if (opts.idempotencyKey && idem.has(opts.idempotencyKey)) {
             const prev = idem.get(opts.idempotencyKey)
             if (JSON.stringify(prev.params) !== JSON.stringify(params)) {
@@ -498,8 +587,15 @@ function makeEnv({ live = true, transforms = {} } = {}) {
     warn: (...a) => logs.push(['warn', a.map(String).join(' ')]),
     error: (...a) => logs.push(['error', a.map(String).join(' ')]),
   }
+  // Falhas injetadas no Resend: { subject, status } responde !ok; { subject, throws: true } lança (rede).
+  const fetchFailures = []
   const fakeFetch = async (url, init = {}) => {
-    fetchCalls.push({ url: String(url), body: init.body ? JSON.parse(init.body) : null })
+    const body = init.body ? JSON.parse(init.body) : null
+    const i = fetchFailures.findIndex((f) => !f.subject || f.subject === body?.subject)
+    const failure = i >= 0 ? fetchFailures.splice(i, 1)[0] : null
+    fetchCalls.push({ url: String(url), body, ok: !failure })
+    if (failure?.throws) throw new Error('fetch failed: ECONNRESET')
+    if (failure) return { ok: false, status: failure.status ?? 500, json: async () => ({ message: 'injected failure' }) }
     return { ok: true, status: 200, json: async () => ({ id: `re_${fetchCalls.length}` }) }
   }
   const stubs = {
@@ -520,19 +616,34 @@ function makeEnv({ live = true, transforms = {} } = {}) {
       },
       paidAmountLabel: (amount, currency) => `${(Number(amount) / 100).toFixed(2)} ${String(currency).toUpperCase()}`,
     },
-    '@/lib/reverseTrial': { REVERSE_TRIAL_ENABLED: true, TRIAL_GRANT_CREDITS: 25 },
+    '@/lib/reverseTrial': { REVERSE_TRIAL_ENABLED: true, TRIAL_GRANT_CREDITS: 25, maybeActivateReverseTrial: async () => ({ activated: false }) },
     '@/lib/email/quota': { recordEmailSend: async () => {}, recordResendResponse: async () => {} },
+    // Só a /auth/callback usa estes (cookies do pedido, impressão digital do trial, afiliado do cadastro).
+    'next/headers': {
+      cookies: () => {
+        const b = requestBrowser.getStore() ?? state.browser
+        return { get: (k) => (Object.prototype.hasOwnProperty.call(b.cookies, k) ? { name: k, value: b.cookies[k] } : undefined) }
+      },
+    },
+    crypto: nodeRequire('node:crypto'),
+    '@/lib/affiliateSignupFinalization': {
+      AFFILIATE_ATTRIBUTION_COOKIE_NAMES: ['sf_aff', 'sf_aff_click'],
+      finalizeAffiliateSignupAttribution: async () => ({ attempted: false, clearCookies: false, outcome: 'no_code' }),
+    },
   }
   const all = { ...transforms, [PURE]: [switchTo(live), ...(transforms[PURE] ?? [])] }
   const world = makeWorld({ stubs, transforms: all, globals: { process: { env: { ...ENV } }, console: quietConsole, fetch: fakeFetch } })
   return {
-    db, stripe, state, world, fetchCalls, founderAlerts, logs,
+    db, stripe, state, world, fetchCalls, fetchFailures, founderAlerts, logs,
     get pure() { return world.load(PURE) },
     get server() { return world.load(SERVER) },
+    get guard() { return world.load(GUARD) },
     get checkout() { return world.load(CHECKOUT) },
     get webhook() { return world.load(WEBHOOK) },
     get access() { return world.load(ACCESS) },
     get link() { return world.load(LINK) },
+    get recovery() { return world.load(RECOVERY) },
+    get callback() { return world.load(CALLBACK) },
     get pricing() { return world.load('lib/checkoutPricing.ts') },
     get settlement() { return world.load('lib/settlementCurrency.ts') },
     get successFlow() { return world.load('lib/growth/checkoutSuccessFlow.ts') },
@@ -588,6 +699,31 @@ async function followLink(env, browser, url) {
   const res = await requestBrowser.run(browser, () => env.link.GET({ url }))
   return res
 }
+/** A página /reset-password, com a sessão da recuperação pronta, chama POST /api/auth/guest-sessions. */
+async function recoveryPost(env, browser, origin = ORIGIN) {
+  env.state.browser = browser
+  const res = await requestBrowser.run(browser, () => env.recovery.POST(fakeReq(`${ORIGIN}/api/auth/guest-sessions`, {
+    cookies: browser.cookies, headers: { origin },
+  })))
+  return { res, body: (await res.json()) ?? {} }
+}
+/** Volta do Google (ou de outro link PKCE): /auth/callback?code=… troca o código por sessão neste navegador. */
+async function callbackGet(env, browser, userId, method = 'oauth', next = '/studio') {
+  const code = nodeCrypto.randomUUID()
+  env.db.auth.oauthCodes.set(code, { userId, method, used: false })
+  env.state.browser = browser
+  const res = await requestBrowser.run(browser, () => env.callback.GET({
+    url: `${ORIGIN}/auth/callback?code=${code}&next=${encodeURIComponent(next)}`,
+    headers: { get: () => null },
+  }))
+  return res
+}
+const mailsWith = (env, subject) => env.fetchCalls.filter((c) => c.ok && c.body?.subject === subject)
+const readyMails = (env) => mailsWith(env, READY_SUBJECT)
+const signinMails = (env) => mailsWith(env, SIGNIN_SUBJECT)
+const readyLinkOf = (mail) => String(mail?.body?.text ?? '').match(/https:\/\/www\.usekineo\.com\/auth\/guest-link\?ready=[^\s]+/)?.[0] ?? null
+/** Preço literal em qualquer moeda/forma (regra da casa: moeda não localiza no e-mail). */
+const PRICE_LITERAL = /(?:US\$|R\$|\$|€|£|₹)\s?\d|\d+[.,]\d{2}\b|\b(?:USD|BRL|INR|EUR)\b|\/\s?(?:mo|month|year|yr)\b/i
 const location = (res) => res.headers.get('location') ?? ''
 const sessionIdFromLocation = (res) => (location(res).match(/cs_test_[A-Za-z0-9]+/) ?? [null])[0]
 
@@ -735,11 +871,73 @@ async function sFallbacks(env) {
     const res = await checkoutGet(env, newBrowser(), c.query, { ua: c.ua ?? UA })
     if (creates(env).length !== before) p.push(`${c.reason}: abriu sessão de convidado`)
     if (!location(res).startsWith(`${ORIGIN}/signup?reason=checkout&redirect=`)) p.push(`${c.reason}: não voltou ao cadastro (${location(res)})`)
-    const required = env.db.rows('events').slice(eventsBefore).find((e) => e.name === 'checkout_auth_required')
-    if (required?.metadata?.guest_fallback !== c.reason) p.push(`${c.reason}: evento sem o motivo (${required?.metadata?.guest_fallback})`)
+    const fresh = env.db.rows('events').slice(eventsBefore)
+    const attempted = fresh.find((e) => e.name === 'checkout_attempted')
+    const required = fresh.find((e) => e.name === 'checkout_auth_required')
+    const fallback = fresh.find((e) => e.name === 'guest_checkout_fallback')
+    if (fallback?.metadata?.guest_fallback !== c.reason) p.push(`${c.reason}: guest_checkout_fallback sem o motivo (${fallback?.metadata?.guest_fallback})`)
+    if (!required || JSON.stringify(required.metadata) !== JSON.stringify(attempted?.metadata)) p.push(`${c.reason}: checkout_auth_required mudou de forma (o motivo mora no evento próprio)`)
   }
   const resumed = await checkoutGet(env, newBrowser(), 'tier=basic&billing=monthly&resumed=1')
   if (!location(resumed).startsWith(`${ORIGIN}/pricing?checkout_error=`)) p.push('resumed=1 sem sessão deixou de mostrar o erro de antes')
+  return p
+}
+
+/** NUNCA PIOR QUE HOJE: a Stripe falha ao abrir a sessão de convidado → o visitante recebe EXATAMENTE a resposta de hoje. */
+const STRIPE_FAILURES = [
+  {
+    name: '4xx da Stripe',
+    inject: { kind: 'throw', error: Object.assign(new Error('Invalid integer: comprador@exemplo.com'), { type: 'StripeInvalidRequestError', code: 'parameter_invalid_integer', statusCode: 400 }) },
+    reason: 'stripe_session_failed',
+    detail: { stripe_error_type: 'StripeInvalidRequestError', stripe_error_code: 'parameter_invalid_integer', stripe_status: 400 },
+  },
+  {
+    name: '429 da Stripe',
+    inject: { kind: 'throw', error: Object.assign(new Error('Too many requests'), { type: 'StripeRateLimitError', code: 'rate_limit', statusCode: 429 }) },
+    reason: 'stripe_session_failed',
+    detail: { stripe_error_type: 'StripeRateLimitError', stripe_status: 429 },
+  },
+  {
+    name: 'rede caiu',
+    inject: { kind: 'throw', error: new Error('socket hang up (comprador@exemplo.com)') },
+    reason: 'stripe_session_failed',
+    detail: { stripe_error_type: 'Error', stripe_error_code: null, stripe_status: null },
+  },
+  { name: 'sessão sem URL', inject: { kind: 'no_url' }, reason: 'stripe_session_without_url' },
+  { name: 'exceção depois da Stripe', inject: { kind: 'url_getter_throws' }, reason: 'guest_session_threw', detail: { stripe_error_type: 'TypeError' } },
+]
+async function sStripeFailure(env) {
+  const p = []
+  const query = 'tier=basic&billing=monthly&intro=1&intent_campaign=ads_door'
+  // A resposta de HOJE para o mesmo pedido: interruptor desligado, mesmo navegador (mesma sessão de evento).
+  const today = makeEnv({ live: false })
+  const todayRes = await checkoutGet(today, newBrowser({ kineo_event_session_id: 'sess_failcase01' }), query)
+  const todayRequired = today.db.events('checkout_auth_required')[0]
+  if (!todayRequired) return ['falha da Stripe: o caminho de hoje não gravou checkout_auth_required (referência quebrada)']
+  for (const c of STRIPE_FAILURES) {
+    const browser = newBrowser({ kineo_event_session_id: 'sess_failcase01' })
+    const before = env.db.rows('events').length
+    const createsBefore = creates(env).length
+    env.stripe.createFailures.push(c.inject)
+    const res = await checkoutGet(env, browser, query)
+    if (creates(env).length !== createsBefore + 1) p.push(`${c.name}: a sessão de convidado nem foi tentada`)
+    env.stripe.createFailures.length = 0
+    if (res.status !== todayRes.status || location(res) !== location(todayRes)) p.push(`${c.name}: resposta difere de hoje (${res.status} ${location(res)} vs ${todayRes.status} ${location(todayRes)})`)
+    if (Object.keys(browser.cookies).some((k) => k !== 'kineo_event_session_id')) p.push(`${c.name}: gravou cookie sem sessão aberta`)
+    const fresh = env.db.rows('events').slice(before)
+    const names = fresh.map((e) => e.name)
+    if (JSON.stringify(names) !== JSON.stringify(['checkout_attempted', 'guest_checkout_fallback', 'checkout_auth_required'])) p.push(`${c.name}: eventos ${JSON.stringify(names)}`)
+    const required = fresh.find((e) => e.name === 'checkout_auth_required')
+    if (JSON.stringify(required?.metadata) !== JSON.stringify(todayRequired.metadata) || required?.user_id !== null || required?.session_id !== todayRequired.session_id) p.push(`${c.name}: checkout_auth_required não é o de hoje`)
+    const fb = fresh.find((e) => e.name === 'guest_checkout_fallback')
+    if (fb?.metadata?.guest_fallback !== c.reason) p.push(`${c.name}: motivo ${fb?.metadata?.guest_fallback}, esperava ${c.reason}`)
+    for (const [k, v] of Object.entries(c.detail ?? {})) if (fb?.metadata?.[k] !== v) p.push(`${c.name}: ${k}=${JSON.stringify(fb?.metadata?.[k])}, esperava ${JSON.stringify(v)}`)
+    if (JSON.stringify(fb ?? {}).includes('comprador@exemplo.com')) p.push(`${c.name}: a mensagem crua da Stripe (com e-mail) vazou para o evento`)
+    if (fb && (fb.session_id !== 'sess_failcase01' || fb.user_id !== null || fb.metadata?.tier !== 'basic' || fb.metadata?.intent_campaign !== 'ads_door')) p.push(`${c.name}: fallback sem a intenção de compra/sessão do navegador`)
+  }
+  // Depois da falha, o próximo clique (Stripe de pé) volta a abrir a sessão de convidado normalmente.
+  const ok = await checkoutGet(env, newBrowser(), query)
+  if (!sessionIdFromLocation(ok)) p.push('falha da Stripe: o clique seguinte não abriu a sessão de convidado')
   return p
 }
 
@@ -774,10 +972,13 @@ async function sNewAccount(env) {
   if (env.db.auth.users.length !== usersBefore) p.push('reenvio: criou outra conta')
   if (env.db.profile(user.id)?.video_credits !== credits) p.push('reenvio: créditos dobraram')
   if (env.db.events('guest_account_created').length !== 1 || env.db.events('payment_success').length !== 1) p.push('reenvio: eventos duplicados')
+  if (readyMails(env).length !== 1) p.push(`reenvio: e-mail "sua conta está pronta" saiu ${readyMails(env).length}×`)
   // Login de uso único, no navegador da compra.
   const jarBefore = { ...buy.browser.cookies }
   const first = await access(env, buy.browser, buy.sessionId)
   if (first.body.state !== 'signed_in' || buy.browser.userId !== user.id) p.push(`login: esperava signed_in no navegador da compra (${JSON.stringify(first.body)})`)
+  const stampedUser = env.db.auth.users.find((u) => u.id === user.id)
+  if (!buy.browser.sid || stampedUser?.app_metadata?.kineo_guest_auto_session_id !== buy.browser.sid) p.push('login: o id da sessão sem prova não ficou em app_metadata (a derrubada não saberia quem poupar/derrubar)')
   if ('kineo_guest_checkout' in buy.browser.cookies) p.push('login: o segredo do navegador não foi apagado depois do uso')
   if (env.db.events('guest_login_link_used').length !== 1 || env.db.events('guest_login_link_used')[0].user_id !== user.id || env.db.events('guest_login_link_used')[0].metadata?.method !== 'auto') p.push('login: guest_login_link_used ausente/sem dono')
   const stillIn = await access(env, buy.browser, buy.sessionId)
@@ -817,10 +1018,10 @@ async function sOtherBrowserEmail(env) {
   const look = await access(env, stranger, buy.sessionId)
   if (look.body.state !== 'check_email' || look.body.reason !== 'other_browser' || stranger.userId) p.push(`outro navegador: ${JSON.stringify(look.body)}`)
   if (look.body.email_hint) p.push('outro navegador: mostrou o e-mail a quem não provou ser o navegador da compra')
-  if (env.fetchCalls.length !== 0) p.push('outro navegador: mandou e-mail sem a pessoa pedir')
+  if (signinMails(env).length !== 0) p.push('outro navegador: mandou e-mail sem a pessoa pedir')
   const asked = await access(env, stranger, buy.sessionId, 'email')
-  if (asked.body.email_sent !== true || env.fetchCalls.length !== 1) p.push(`e-mail: não saiu (${JSON.stringify(asked.body)})`)
-  const mail = env.fetchCalls[0]?.body
+  if (asked.body.email_sent !== true || signinMails(env).length !== 1) p.push(`e-mail: não saiu (${JSON.stringify(asked.body)})`)
+  const mail = signinMails(env)[0]?.body
   if (mail?.to?.[0] !== 'outro@exemplo.com') p.push('e-mail: foi para outro endereço')
   const link = String(mail?.text ?? '').match(/https:\/\/www\.usekineo\.com\/auth\/guest-link\?token_hash=[^\s]+/)?.[0]
   if (!link) return [...p, 'e-mail: sem o link de entrada']
@@ -835,7 +1036,7 @@ async function sOtherBrowserEmail(env) {
   if (again.userId || !location(reuse).startsWith(`${ORIGIN}/login?redirect=`)) p.push('link: entrou 2× com o mesmo link')
   // Teto de e-mails por sessão.
   for (let i = 0; i < 4; i++) await access(env, stranger, buy.sessionId, 'email')
-  if (env.fetchCalls.length !== 3) p.push(`e-mail: teto por sessão não segurou (${env.fetchCalls.length} envios)`)
+  if (signinMails(env).length !== 3) p.push(`e-mail: teto por sessão não segurou (${signinMails(env).length} envios)`)
   return p
 }
 
@@ -861,11 +1062,13 @@ async function sExistingAccount(env) {
   if (prof?.plan !== 'starter' || prof?.video_credits !== 7 + env.pricing.TIER_CREDITS.starter || prof?.has_paid !== true) p.push(`conta existente: grant errado ${JSON.stringify(prof)}`)
   if (env.db.events('guest_account_matched').length !== 1 || env.db.events('guest_account_created').length !== 0) p.push('conta existente: evento errado')
   if (env.db.events('payment_success')[0]?.user_id !== old.id) p.push('conta existente: payment_success sem o dono')
+  if (readyMails(env).length !== 0) p.push('conta existente: recebeu "sua conta está pronta" (só conta nova recebe)')
   const r = await access(env, buy.browser, buy.sessionId)
   if (r.body.state !== 'check_email' || r.body.reason !== 'existing_account' || buy.browser.userId) p.push(`conta existente: logou ou não avisou (${JSON.stringify(r.body)})`)
-  if (r.body.email_sent !== true || env.fetchCalls.length !== 1 || env.fetchCalls[0].body?.to?.[0] !== 'antiga@exemplo.com') p.push('conta existente: link não foi para a caixa da dona')
+  if (r.body.email_sent !== true || signinMails(env).length !== 1 || signinMails(env)[0].body?.to?.[0] !== 'antiga@exemplo.com') p.push('conta existente: link não foi para a caixa da dona')
   const again = await access(env, buy.browser, buy.sessionId)
-  if (again.body.email_sent !== true || env.fetchCalls.length !== 1) p.push('conta existente: recarregar mandou outro e-mail')
+  if (again.body.email_sent !== true || signinMails(env).length !== 1) p.push('conta existente: recarregar mandou outro e-mail')
+  if (env.fetchCalls.length !== 1) p.push(`conta existente: ${env.fetchCalls.length} e-mails no total (esperava só o link)`)
   return p
 }
 
@@ -886,6 +1089,7 @@ async function sConflict(env) {
   if (env.db.events('guest_checkout_conflict').length !== 1 || env.founderAlerts.filter((a) => a.outcome === 'sent').length !== 1) p.push('conflito: reenvio duplicou evento/aviso')
   const r = await access(env, buy.browser, buy.sessionId)
   if (r.body.state !== 'conflict' || buy.browser.userId) p.push(`conflito: a página não disse a verdade (${JSON.stringify(r.body)})`)
+  if (readyMails(env).length !== 0) p.push('conflito: mandou "sua conta está pronta" para quem já assinava')
   return p
 }
 
@@ -898,10 +1102,12 @@ async function sUnpaid(env) {
   if (env.db.events('checkout_payment_pending').length !== 1) p.push('não paga: sem checkout_payment_pending')
   const r = await access(env, buy.browser, buy.sessionId)
   if (r.body.state !== 'pending' || buy.browser.userId) p.push(`não paga: página não esperou (${JSON.stringify(r.body)})`)
+  if (env.fetchCalls.length !== 0) p.push('não paga: mandou e-mail antes do dinheiro')
   const settled = env.stripe.settle(buy.sessionId)
   const late = await deliver(env, 'checkout.session.async_payment_succeeded', settled)
   const user = env.db.auth.users.find((u) => u.email === 'boleto@exemplo.com')
   if (late.res.status !== 200 || !user || env.db.profile(user.id)?.plan !== 'basic') p.push('não paga: o pagamento confirmado depois não entregou')
+  if (readyMails(env).length !== 1 || readyMails(env)[0].body?.to?.[0] !== 'boleto@exemplo.com') p.push('não paga: o pagamento confirmado depois não mandou "sua conta está pronta"')
   return p
 }
 
@@ -959,6 +1165,214 @@ async function sSameGrant(env) {
   }
   const [pa, pb] = [logged.sessionId, buy.sessionId].map((id) => env.db.events('payment_success').find((e) => e.metadata?.stripe_session_id === id))
   if (pa?.metadata?.credits_granted !== pb?.metadata?.credits_granted) p.push('mesmo grant: credits_granted difere')
+  return p
+}
+
+/** Conta nova: UM e-mail "sua conta está pronta" — sem preço, link de uso único e com validade; reenvio não repete. */
+async function sReadyEmail(env) {
+  const p = []
+  const buy = await guestPurchase(env, { email: 'Pronta@Exemplo.com', query: 'tier=pro&billing=monthly', country: 'BR', lang: 'pt-BR' })
+  if (buy.delivered?.res.status !== 200) return [`pronta: webhook ${buy.delivered?.res.status}`]
+  const user = env.db.auth.users.find((u) => u.email === 'pronta@exemplo.com')
+  const mails = readyMails(env)
+  if (mails.length !== 1) return [`pronta: ${mails.length} e-mails "sua conta está pronta"`]
+  const mail = mails[0].body
+  if (mail.to?.[0] !== 'pronta@exemplo.com' || mails[0].url !== 'https://api.resend.com/emails') p.push('pronta: destinatário/fornecedor errado')
+  const link = readyLinkOf(mails[0])
+  if (!link || !String(mail.html).includes(`href="${link}"`)) return [...p, 'pronta: sem o link de entrada no texto e no botão']
+  const words = `${mail.subject}\n${mail.text}\n${String(mail.html).replace(/<[^>]+>/g, ' ')}`
+  if (PRICE_LITERAL.test(words)) p.push(`pronta: preço/moeda literal no e-mail (${words.match(PRICE_LITERAL)?.[0]})`)
+  const amount = buy.snapshot.amount_total
+  if ([String(amount), (amount / 100).toFixed(2), (amount / 100).toFixed(2).replace('.', ',')].some((s) => words.includes(s))) p.push('pronta: o valor pago aparece no e-mail')
+  const sent = env.db.events('guest_account_ready_email_sent')
+  if (sent.length !== 1 || sent[0].user_id !== user?.id || sent[0].metadata?.stripe_session_id !== buy.sessionId) p.push('pronta: guest_account_ready_email_sent ausente/sem dono')
+  // Reenvio do mesmo evento e evento novo da mesma sessão: nenhum 2º e-mail.
+  await deliver(env, 'checkout.session.completed', buy.snapshot, buy.delivered.eventId)
+  await deliver(env, 'checkout.session.completed', buy.snapshot)
+  if (readyMails(env).length !== 1 || env.db.events('guest_account_ready_email_sent').length !== 1) p.push(`pronta: reenvio do webhook mandou outro e-mail (${readyMails(env).length})`)
+  if (!env.db.marker(`guest_ready_email:${buy.sessionId}`)) p.push('pronta: sem a reserva 1×/sessão')
+  // O login de uso único gera outro link do Auth logo depois — o link do e-mail (token nosso) continua valendo.
+  await access(env, buy.browser, buy.sessionId)
+  const token = new URL(link).searchParams.get('ready') ?? ''
+  const [v, uid, sid, exp] = token.split('.')
+  const G = env.guard
+  const nowS = Math.floor(Date.now() / 1000)
+  const attempts = [
+    ['assinatura forjada', `${v}.${uid}.${sid}.${exp}.${nodeCrypto.randomBytes(32).toString('base64url')}`],
+    ['outro segredo', G.signGuestReadyToken({ userId: uid, stripeSessionId: sid, expiresAtSeconds: nowS + 3600, secret: 'outro-segredo' })],
+    ['vencido', G.signGuestReadyToken({ userId: uid, stripeSessionId: sid, expiresAtSeconds: nowS - 60, secret: ENV.SUPABASE_SERVICE_ROLE_KEY })],
+    ['validade esticada', `${v}.${uid}.${sid}.${Number(exp) + 86400 * 30}.${token.split('.')[4]}`],
+  ]
+  for (const [name, bad] of attempts) {
+    const intruder = newBrowser()
+    const r = await followLink(env, intruder, `${ORIGIN}/auth/guest-link?ready=${encodeURIComponent(bad)}`)
+    if (intruder.userId || !location(r).startsWith(`${ORIGIN}/login?redirect=`)) p.push(`pronta: link ${name} entrou`)
+  }
+  const phone = newBrowser()
+  const enter = await followLink(env, phone, link)
+  if (enter.status !== 307 || location(enter) !== `${ORIGIN}/studio` || phone.userId !== user?.id) p.push(`pronta: o link do e-mail não entrou no Studio (${enter.status} ${location(enter)})`)
+  const used = env.db.events('guest_login_link_used').filter((e) => e.metadata?.method === 'ready_email_link')
+  if (used.length !== 1 || used[0].user_id !== user?.id) p.push('pronta: guest_login_link_used (ready_email_link) ausente')
+  const again = newBrowser()
+  const reuse = await followLink(env, again, link)
+  if (again.userId || !location(reuse).startsWith(`${ORIGIN}/login?redirect=`)) p.push('pronta: o link do e-mail entrou 2×')
+  return p
+}
+
+/** Resend fora no momento da entrega: o pagamento segue entregue (200), a falha vira evento e a reserva volta. */
+async function sReadyEmailRetry(env) {
+  const p = []
+  env.fetchFailures.push({ subject: READY_SUBJECT, status: 503 })
+  const buy = await guestPurchase(env, { email: 'tardia@exemplo.com' })
+  if (buy.delivered?.res.status !== 200) p.push(`pronta (Resend fora): webhook ${buy.delivered?.res.status} — e-mail nunca derruba a entrega`)
+  const user = env.db.auth.users.find((u) => u.email === 'tardia@exemplo.com')
+  if (env.db.profile(user?.id)?.plan !== 'basic') p.push('pronta (Resend fora): o plano não foi concedido')
+  if (readyMails(env).length !== 0) p.push('pronta (Resend fora): contou e-mail que não saiu')
+  const failed = env.db.events('guest_account_ready_email_failed')
+  if (failed.length !== 1 || failed[0].metadata?.reason !== 'resend_rejected' || failed[0].metadata?.http_status !== 503) p.push(`pronta (Resend fora): evento de falha ${JSON.stringify(failed.map((e) => e.metadata))}`)
+  if (env.db.marker(`guest_ready_email:${buy.sessionId}`)) p.push('pronta (Resend fora): reserva presa (nenhum reenvio mandaria)')
+  // Outro evento da mesma sessão (reentrega da Stripe com id novo): agora sai, uma vez.
+  await deliver(env, 'checkout.session.completed', buy.snapshot)
+  await deliver(env, 'checkout.session.completed', buy.snapshot)
+  if (readyMails(env).length !== 1) p.push(`pronta (Resend fora): depois da falha saíram ${readyMails(env).length} e-mails (esperava 1)`)
+  // Rede caiu no envio: o mesmo desfecho, com o motivo certo.
+  env.fetchFailures.push({ subject: READY_SUBJECT, throws: true })
+  const buy2 = await guestPurchase(env, { email: 'rede@exemplo.com' })
+  if (buy2.delivered?.res.status !== 200 || env.db.events('guest_account_ready_email_failed').filter((e) => e.metadata?.reason === 'send_threw').length !== 1) p.push('pronta (rede caiu): webhook ou evento de falha errado')
+  return p
+}
+
+/** Tomada de conta: quem paga digitou o e-mail de outra pessoa. A 1ª entrada COM prova derruba as outras sessões, 1×. */
+async function sTakeoverGuard(env) {
+  const p = []
+  const buy = await guestPurchase(env, { email: 'vitima@exemplo.com' })
+  if (buy.delivered?.res.status !== 200) return [`tomada: webhook ${buy.delivered?.res.status}`]
+  const victim = env.db.auth.users.find((u) => u.email === 'vitima@exemplo.com')
+  const metaOf = () => env.db.auth.users.find((u) => u.id === victim.id)?.app_metadata ?? {}
+  const auto = await access(env, buy.browser, buy.sessionId)
+  if (auto.body.state !== 'signed_in' || !env.db.auth.alive(buy.browser.sid)) return [`tomada: o login de uso único não entrou (${JSON.stringify(auto.body)})`]
+  // Quem pagou põe uma senha direto na API do Auth, entra com ela em outro navegador e tenta gastar a derrubada.
+  const pwd = newBrowser()
+  env.db.auth.enter(pwd, victim.id, 'password')
+  const viaPassword = await recoveryPost(env, pwd)
+  const viaAuto = await recoveryPost(env, buy.browser)
+  if (viaPassword.body.revoked !== false || viaAuto.body.revoked !== false) p.push('tomada: sessão de senha/da compra gastou a derrubada (senha não prova o e-mail)')
+  if (env.db.events('guest_sessions_revoked').length !== 0 || metaOf().kineo_guest_sessions_revoked_at) p.push('tomada: derrubada carimbada sem prova de e-mail')
+  if (!env.db.auth.alive(buy.browser.sid) || !env.db.auth.alive(pwd.sid)) p.push('tomada: sessão caiu sem entrada com prova')
+  // A dona do e-mail abre "sua conta está pronta" no celular: entrada COM prova.
+  const link = readyLinkOf(readyMails(env)[0])
+  if (!link) return [...p, 'tomada: a dona do e-mail não recebeu "sua conta está pronta"']
+  const phone = newBrowser()
+  const enter = await followLink(env, phone, link)
+  if (location(enter) !== `${ORIGIN}/studio` || phone.userId !== victim.id) p.push(`tomada: a dona não entrou pelo link (${location(enter)})`)
+  if (env.db.auth.alive(buy.browser.sid) || env.db.auth.alive(pwd.sid)) p.push('tomada: as outras sessões (compra e senha) continuaram vivas depois da entrada com prova')
+  if (!env.db.auth.alive(phone.sid)) p.push('tomada: a derrubada derrubou a própria entrada')
+  const payerView = await access(env, buy.browser, buy.sessionId)
+  if (payerView.body.state === 'signed_in') p.push('tomada: o navegador de quem pagou continuou dentro')
+  const revoked = env.db.events('guest_sessions_revoked')
+  if (revoked.length !== 1 || revoked[0].user_id !== victim.id || revoked[0].metadata?.method !== 'ready_email_link') p.push(`tomada: guest_sessions_revoked ${JSON.stringify(revoked.map((e) => e.metadata))}`)
+  if (!metaOf().kineo_guest_sessions_revoked_at || metaOf().kineo_guest_sessions_revoked_via !== 'ready_email_link') p.push('tomada: sem o carimbo "uma vez por conta" em app_metadata')
+  // 2ª entrada com prova (Google, outro aparelho): nada cai de novo.
+  const laptop = newBrowser()
+  const google = await callbackGet(env, laptop, victim.id, 'oauth')
+  if (google.status !== 307 || laptop.userId !== victim.id) p.push(`tomada: o Google não entrou (${google.status} ${location(google)})`)
+  if (!env.db.auth.alive(phone.sid)) p.push('tomada: a 2ª entrada com prova derrubou de novo (era uma vez por conta)')
+  if (env.db.events('guest_sessions_revoked').length !== 1 || env.db.auth.signOutCalls.filter((c) => c.scope === 'others').length !== 1) p.push('tomada: derrubada repetida')
+  return p
+}
+
+/** A dona entra com prova ANTES do login de uso único: depois disso o login sem prova não abre mais. */
+async function sProofBeforeAutoLogin(env) {
+  const p = []
+  const buy = await guestPurchase(env, { email: 'primeiro@exemplo.com' })
+  if (buy.delivered?.res.status !== 200) return [`ordem: webhook ${buy.delivered?.res.status}`]
+  const owner = env.db.auth.users.find((u) => u.email === 'primeiro@exemplo.com')
+  const phone = newBrowser()
+  await followLink(env, phone, readyLinkOf(readyMails(env)[0]) ?? `${ORIGIN}/auth/guest-link`)
+  if (phone.userId !== owner?.id) return ['ordem: a dona não entrou pelo link do e-mail']
+  if (!env.db.auth.users.find((u) => u.id === owner.id)?.app_metadata?.kineo_guest_sessions_revoked_at) p.push('ordem: a 1ª entrada com prova não carimbou a conta')
+  const late = await access(env, buy.browser, buy.sessionId)
+  if (late.body.state !== 'check_email' || buy.browser.userId) p.push(`ordem: o login sem prova abriu DEPOIS da prova (${JSON.stringify(late.body)})`)
+  if (env.db.events('guest_login_link_used').some((e) => e.metadata?.method === 'auto')) p.push('ordem: contou login automático')
+  return p
+}
+
+/** Recuperação de senha (troca do código no navegador): a página chama a rota; só sessão de RECUPERAÇÃO conta. */
+async function sRecoveryRevokes(env) {
+  const p = []
+  const buy = await guestPurchase(env, { email: 'recupera@exemplo.com' })
+  if (buy.delivered?.res.status !== 200) return [`recuperação: webhook ${buy.delivered?.res.status}`]
+  const owner = env.db.auth.users.find((u) => u.email === 'recupera@exemplo.com')
+  await access(env, buy.browser, buy.sessionId)
+  if (!env.db.auth.alive(buy.browser.sid)) return ['recuperação: o login de uso único não entrou']
+  // Sessão que não é de recuperação chamando a rota da página de senha: nada (a porta é só da recuperação).
+  const other = newBrowser()
+  env.db.auth.enter(other, owner.id, 'oauth')
+  const notRecovery = await recoveryPost(env, other)
+  if (notRecovery.body.revoked !== false || !env.db.auth.alive(buy.browser.sid)) p.push('recuperação: a rota agiu com sessão que não é de recuperação')
+  const reset = newBrowser()
+  env.db.auth.enter(reset, owner.id, 'recovery')
+  const cross = await recoveryPost(env, reset, 'https://evil.example')
+  if (cross.res.status !== 403 || !env.db.auth.alive(buy.browser.sid)) p.push('recuperação: aceitou chamada de outra origem')
+  const ok = await recoveryPost(env, reset)
+  if (ok.res.status !== 200 || ok.body.revoked !== true) p.push(`recuperação: não derrubou (${ok.res.status} ${JSON.stringify(ok.body)})`)
+  if (env.db.auth.alive(buy.browser.sid) || env.db.auth.alive(other.sid) || !env.db.auth.alive(reset.sid)) p.push('recuperação: sessões erradas caíram/ficaram')
+  const ev = env.db.events('guest_sessions_revoked')
+  if (ev.length !== 1 || ev[0].metadata?.method !== 'password_recovery' || ev[0].user_id !== owner.id) p.push('recuperação: guest_sessions_revoked ausente/errado')
+  const anon = await recoveryPost(env, newBrowser())
+  if (anon.res.status !== 401) p.push(`recuperação: sem sessão respondeu ${anon.res.status}`)
+  // Conta comum (não nasceu de compra sem login): a recuperação nunca derruba nada.
+  const plain = env.db.seedUser({ email: 'comum@exemplo.com' })
+  const plainOld = newBrowser()
+  env.db.auth.enter(plainOld, plain.id, 'password')
+  const plainReset = newBrowser()
+  env.db.auth.enter(plainReset, plain.id, 'recovery')
+  const plainRes = await recoveryPost(env, plainReset)
+  if (plainRes.body.revoked !== false || !env.db.auth.alive(plainOld.sid)) p.push('recuperação: derrubou sessões de conta comum')
+  return p
+}
+
+/** Google pela /auth/callback: conta de convidado derruba as outras 1×; conta comum nunca. */
+async function sCallbackRevokes(env) {
+  const p = []
+  const buy = await guestPurchase(env, { email: 'google@exemplo.com' })
+  if (buy.delivered?.res.status !== 200) return [`callback: webhook ${buy.delivered?.res.status}`]
+  const owner = env.db.auth.users.find((u) => u.email === 'google@exemplo.com')
+  await access(env, buy.browser, buy.sessionId)
+  const laptop = newBrowser()
+  const res = await callbackGet(env, laptop, owner.id, 'oauth')
+  if (res.status !== 307 || location(res) !== `${ORIGIN}/studio` || laptop.userId !== owner.id) p.push(`callback: o Google não entrou (${res.status} ${location(res)})`)
+  if (env.db.auth.alive(buy.browser.sid) || !env.db.auth.alive(laptop.sid)) p.push('callback: a sessão de quem pagou sobreviveu à entrada pelo Google')
+  const ev = env.db.events('guest_sessions_revoked')
+  if (ev.length !== 1 || ev[0].metadata?.method !== 'auth_callback' || ev[0].path !== '/auth/callback') p.push('callback: guest_sessions_revoked ausente/errado')
+  if (env.db.events('auth_callback_completed').length !== 1) p.push('callback: o resto da callback deixou de rodar')
+  // Conta comum entrando pelo Google com outra sessão aberta: nada cai, nenhum evento.
+  const plain = env.db.seedUser({ email: 'comum.google@exemplo.com' })
+  const plainOld = newBrowser()
+  env.db.auth.enter(plainOld, plain.id, 'password')
+  const before = env.db.auth.signOutCalls.length
+  const plainRes = await callbackGet(env, newBrowser(), plain.id, 'oauth')
+  if (plainRes.status !== 307 || !env.db.auth.alive(plainOld.sid) || env.db.auth.signOutCalls.length !== before || env.db.events('guest_sessions_revoked').length !== 1) p.push('callback: mexeu nas sessões de uma conta comum')
+  return p
+}
+
+/** As regras puras da derrubada, uma a uma (os mutantes do módulo puro têm de ficar vermelhos aqui). */
+async function sPureRevocationRules(env) {
+  const P = env.pure
+  const p = []
+  const autoSid = 'aaaaaaaa-0000-4000-8000-000000000001'
+  const fresh = 'bbbbbbbb-0000-4000-8000-000000000002'
+  const guest = { kineo_guest_checkout_session: 'cs_test_abcdefghij0123456789', kineo_guest_auto_session_id: autoSid }
+  const r = (meta, sid, methods, accepted) => P.guestSessionRevocation({ appMetadata: meta, currentSessionId: sid, authMethods: methods, acceptedMethods: accepted })
+  if (r(guest, fresh, ['oauth']) !== 'revoke') p.push('pura: Google numa conta de convidado não derruba')
+  if (r(guest, fresh, ['otp']) !== 'revoke') p.push('pura: link por e-mail não derruba')
+  if (r(guest, fresh, ['recovery'], ['recovery']) !== 'revoke') p.push('pura: recuperação não derruba')
+  if (r({}, fresh, ['oauth']) !== 'not_guest_account' || r(null, fresh, ['oauth']) !== 'not_guest_account') p.push('pura: conta comum derrubaria')
+  if (r({ ...guest, kineo_guest_sessions_revoked_at: '2026-10-06T00:00:00.000Z' }, fresh, ['oauth']) !== 'already_revoked') p.push('pura: derrubaria 2×')
+  if (r(guest, autoSid, ['otp']) !== 'auto_login_session') p.push('pura: a sessão sem prova dispararia a derrubada')
+  if (r(guest, fresh, ['password']) !== 'not_proven' || r(guest, fresh, []) !== 'not_proven') p.push('pura: senha (ou nada) contaria como prova')
+  if (r(guest, fresh, ['oauth'], ['recovery']) !== 'not_proven') p.push('pura: a porta da recuperação aceitaria outro método')
+  if (r(guest, null, ['oauth']) !== 'no_session') p.push('pura: decidiria sem sessão')
   return p
 }
 
@@ -1022,6 +1436,14 @@ async function run(name, scenario, opts) {
   const clientFiles = files.filter((f) => /^\s*['"]use client['"]/.test(read(f)))
   check(clientFiles.length > 50, `varredura de 'use client' com denominador real (${clientFiles.length})`)
   check(clientFiles.every((f) => !read(f).includes("'@/lib/stripe/guestCheckout'")), 'nenhum componente de cliente importa o lado servidor (node:crypto quebraria o build)')
+  check(clientFiles.every((f) => !read(f).includes("'@/lib/auth/guestAccess'")), 'nenhum componente de cliente importa a trava de sessões (node:crypto + chave de serviço)')
+  // A recuperação de senha troca o código NO NAVEGADOR: só a página pode avisar o servidor que a sessão nova existe.
+  check(clientFiles.includes(RESET_PAGE) && squashWs(read(RESET_PAGE)).includes(squashWs(`useEffect(() => {
+    if (!ready) return
+    void fetch('/api/auth/guest-sessions', { method: 'POST', credentials: 'same-origin', cache: 'no-store' }).catch(() => {})
+  }, [ready])`)), '/reset-password avisa /api/auth/guest-sessions quando a sessão da recuperação fica pronta (e falha de rede não atrapalha)')
+  // Na /auth/callback a trava é carregada sob demanda: guardiões que fecham a lista de imports da callback não mudam.
+  check(read(CALLBACK).includes("const { revokeGuestSessionsOnce } = await import('@/lib/auth/guestAccess')") && !/^import [^\n]*'@\/lib\/auth\/guestAccess'/m.test(read(CALLBACK)), '/auth/callback carrega a trava sob demanda (sem import estático novo)')
   check(clientFiles.includes(PAGE) && !read(PAGE).includes('@/lib/stripe/guestCheckout'), '/checkout/guest é cliente e só lê o módulo puro')
   const webhook = read(WEBHOOK)
   check((webhook.match(/`checkout_fulfilled:\$\{session\.id\}`/g) ?? []).length === 2, 'o webhook ainda escreve checkout_fulfilled:${session.id} (o marcador que a página de acesso lê)')
@@ -1097,6 +1519,7 @@ async function run(name, scenario, opts) {
   check(d({ owner: { bornFromThisSession: false, createdAtMs: now } }).reason === 'existing_account', 'conta que já existia NUNCA loga sozinha')
   check(d({ browserProof: false }).reason === 'other_browser', 'sem o segredo do navegador = e-mail')
   check(d({ loginAlreadyUsed: true }).reason === 'already_used', 'login já usado = e-mail')
+  check(d({ owner: { bornFromThisSession: true, createdAtMs: now - 60000, emailProven: true } }).reason === 'already_used', 'dona já entrou com prova de e-mail = o login sem prova não abre')
   check(d({ owner: { bornFromThisSession: true, createdAtMs: now - 16 * 60000 } }).reason === 'expired', 'fora da janela = e-mail')
   check(d({ owner: { bornFromThisSession: true, createdAtMs: now + 5 * 60000 } }).reason === 'expired', 'conta "do futuro" além da folga = e-mail')
   check(d({ owner: { bornFromThisSession: true, createdAtMs: null } }).reason === 'expired', 'sem data de nascimento = e-mail')
@@ -1175,6 +1598,30 @@ async function run(name, scenario, opts) {
   let created = null
   await S.resolveGuestCheckoutOwner(deps({ createAuthUser: async (input) => { created = input; return { user: { id: 'novo', email: input.email, created_at: nowIso(), app_metadata: input.appMetadata }, error: null } } }), session)
   check(created?.email === 'x@y.co' && created?.appMetadata?.kineo_guest_checkout_session === 'cs_test_s', 'conta nasce com o e-mail normalizado e o carimbo da sessão')
+
+  // Token do e-mail "sua conta está pronta" e leitura do JWT do Auth (lib/auth/guestAccess.ts).
+  const G = env.guard
+  const uid = '0f8fad5b-d9cb-469f-a165-70867728950e'
+  const sid = 'cs_test_abcdefghij0123456789'
+  const nowS = 1_790_000_000
+  const tok = G.signGuestReadyToken({ userId: uid, stripeSessionId: sid, expiresAtSeconds: nowS + 3600, secret: 's1' })
+  const ver = (t, o = {}) => G.verifyGuestReadyToken(t, { secret: 's1', nowSeconds: nowS, ...o })
+  check(ver(tok).ok === true && ver(tok).userId === uid && ver(tok).stripeSessionId === sid, 'token do e-mail: assinado e lido de volta')
+  check(ver(tok, { secret: 's2' }).reason === 'bad_signature', 'token do e-mail: outro segredo = recusado')
+  check(ver(tok, { nowSeconds: nowS + 3600 }).reason === 'expired', 'token do e-mail: vence na hora marcada')
+  const parts = tok.split('.')
+  check(ver([...parts.slice(0, 3), String(nowS + 999999), parts[4]].join('.')).reason === 'bad_signature', 'token do e-mail: validade não se estica')
+  check(ver([parts[0], '0f8fad5b-d9cb-469f-a165-70867728950f', ...parts.slice(2)].join('.')).reason === 'bad_signature', 'token do e-mail: dono não se troca')
+  check(['', 'x', `${parts.slice(0, 4).join('.')}`, [...parts.slice(0, 1), 'nao-e-uuid', ...parts.slice(2)].join('.'), [...parts.slice(0, 2), 'cs_x', ...parts.slice(3)].join('.'), [...parts.slice(0, 3), 'abc', parts[4]].join('.'), null].every((t) => ver(t).reason === 'malformed'), 'token do e-mail: formas quebradas = malformed')
+  const ttl = env.pure.GUEST_READY_LINK_TTL_HOURS
+  check(ttl >= 24 && ttl <= 24 * 7, `link do e-mail vale dias, não para sempre (${ttl} h)`)
+  const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url')
+  const jwt = (claims) => `${b64({ alg: 'HS256' })}.${b64(claims)}.sig`
+  check(G.sessionIdFromAccessToken(jwt({ session_id: uid })) === uid && G.sessionIdFromAccessToken('a.b') === null && G.sessionIdFromAccessToken(jwt({ session_id: 'x y' })) === null, 'session_id do JWT')
+  check(JSON.stringify(G.amrMethodsFromAccessToken(jwt({ amr: [{ method: 'oauth', timestamp: 1 }, { method: 'totp', timestamp: 2 }] }))) === '["oauth","totp"]' && JSON.stringify(G.amrMethodsFromAccessToken(jwt({ amr: ['pwd'] }))) === '["pwd"]' && G.amrMethodsFromAccessToken(jwt({})).length === 0 && G.amrMethodsFromAccessToken(null).length === 0, 'amr do JWT (forma do Supabase e RFC 8176)')
+  const msg = S.guestAccountReadyEmailMessage('https://www.usekineo.com/auth/guest-link?ready=abc')
+  check(msg.subject === READY_SUBJECT && msg.text.includes('https://www.usekineo.com/auth/guest-link?ready=abc') && msg.html.includes('href="https://www.usekineo.com/auth/guest-link?ready=abc"'), 'e-mail pronto: assunto, link no texto e no botão')
+  check(!PRICE_LITERAL.test(`${msg.subject}\n${msg.text}\n${msg.html.replace(/<[^>]+>/g, ' ')}`), 'e-mail pronto: nenhum preço/moeda literal')
 }
 
 // ── 3-5. Cenários executados ──────────────────────────────────────────────────────────────────────────────────────────
@@ -1183,6 +1630,7 @@ const SCENARIOS = [
   ['sessão de convidado (EUA)', sGuestSession, { live: true }],
   ['moeda e preço = caminho logado', sCurrencyParity, { live: true }],
   ['desvios para o cadastro', sFallbacks, { live: true }],
+  ['Stripe falha = caminho de hoje + guest_checkout_fallback', sStripeFailure, { live: true }],
   ['conta nova + reenvio + login 1×', sNewAccount, { live: true }],
   ['corrida de dois cliques', sConcurrentClaim, { live: true }],
   ['outro navegador + e-mail + link', sOtherBrowserEmail, { live: true }],
@@ -1194,6 +1642,13 @@ const SCENARIOS = [
   ['falha pede reenvio', sRetry, { live: true }],
   ['mesmo grant do logado', sSameGrant, { live: true }],
   ['outra origem', sCrossOrigin, { live: true }],
+  ['e-mail "sua conta está pronta" (1×, sem preço, link de uso único)', sReadyEmail, { live: true }],
+  ['e-mail "sua conta está pronta" com o Resend fora', sReadyEmailRetry, { live: true }],
+  ['tomada de conta: 1ª entrada com prova derruba as outras, 1×', sTakeoverGuard, { live: true }],
+  ['tomada de conta: prova antes do login automático fecha o login', sProofBeforeAutoLogin, { live: true }],
+  ['tomada de conta: recuperação de senha', sRecoveryRevokes, { live: true }],
+  ['tomada de conta: Google pela /auth/callback', sCallbackRevokes, { live: true }],
+  ['tomada de conta: regras puras', sPureRevocationRules, { live: true }],
 ]
 for (const [name, scenario, opts] of SCENARIOS) {
   const problems = await run(name, scenario, opts)
@@ -1217,7 +1672,7 @@ const MUTANTS = [
   ['rota de acesso: vaga ignorada (corrida)', { [ACCESS]: [replaceOnce('    const claim = await claimMarker(admin, claimId)\n', "    const claim = 'claimed' as 'claimed' | 'taken' | 'error'\n", 'sem reserva do login')] }, sConcurrentClaim, true],
   ['rota de acesso: sem trava de origem', { [ACCESS]: [replaceOnce("  if (origin && origin !== req.nextUrl.origin) return reply({ state: 'unavailable' }, 403)\n", '', 'sem trava de origem')] }, sCrossOrigin, true],
   ['rota de acesso: conta existente sem e-mail', { [ACCESS]: [replaceOnce("      : reason === 'existing_account' && browserProof ? 'auto' : null", '      : null', 'sem e-mail automático')] }, sExistingAccount, true],
-  ['link do e-mail: token inválido entra', { [LINK]: [replaceOnce('  if (error || !data?.user || !data.session) return failure\n', '  if (!data?.user) return NextResponse.redirect(new URL(next, origin))\n', 'sem checagem do verifyOtp')] }, sOtherBrowserEmail, true],
+  ['link do e-mail: token inválido entra', { [LINK]: [replaceOnce('  if (error || !data?.user || !data.session) {\n', '  if (!data?.user) return NextResponse.redirect(new URL(next, origin))\n  if (false) {\n', 'sem checagem do verifyOtp')] }, sOtherBrowserEmail, true],
   ['servidor: conta sem carimbo da sessão', { [SERVER]: [replaceOnce('        [GUEST_ACCOUNT_SESSION_APP_METADATA_KEY]: sessionId,\n', '', 'sem carimbo em app_metadata')] }, sNewAccount, true],
   ['servidor: assinatura sem dono', { [SERVER]: [replaceOnce('    await deps.updateSubscriptionMetadata(subscriptionId, { supabase_user_id: userId })\n', '', 'sem carimbo na assinatura')] }, sNewAccount, true],
   ['servidor: BRL ignorado', { [SERVER]: [replaceOnce("    : planSettlementAmountMinor(input.tier, input.isAnnual ? 'annual' : 'monthly', chargeCurrency, input.unitAmount)", '    : input.unitAmount', 'sem tabela em reais')] }, sCurrencyParity, true],
@@ -1231,6 +1686,31 @@ const MUTANTS = [
   ['checkout: cupom não desvia', { [CHECKOUT]: [replaceOnce('      promoRequested: rawPromo.length > 0,', '      promoRequested: false,', 'cupom fora da régua')] }, sFallbacks, true],
   ['checkout: interruptor forçado', { [CHECKOUT]: [replaceOnce('      live: GUEST_CHECKOUT_LIVE,\n      isGet,', '      live: true,\n      isGet,', 'interruptor forçado na rota')] }, sSwitchOff, false],
   ['checkout: cookie do navegador some', { [CHECKOUT]: [replaceOnce('    name: GUEST_CHECKOUT_NONCE_COOKIE,\n    value: nonce,', "    name: 'outro_cookie',\n    value: nonce,", 'cookie com outro nome')] }, sNewAccount, true],
+  // ── leva 2: nunca pior que hoje ──
+  ['checkout: falha da Stripe vira tela de erro', { [CHECKOUT]: [replaceOnce('        if (guest.ok) return guest.response\n        guestFailure = guest.failure\n', "        if (guest.ok) return guest.response\n        return redirectError('Payment session failed')\n", 'falha vira erro')] }, sStripeFailure, true],
+  ['checkout: exceção no meio escapa', { [CHECKOUT]: [replaceOnce("      } catch (guestError) {\n        guestFailure = { reason: 'guest_session_threw', detail: guestStripeErrorShape(guestError) }\n      }\n", '      } catch (guestError) {\n        throw guestError\n      }\n', 'exceção sem rede de proteção')] }, sStripeFailure, true],
+  ['checkout: fallback sem o evento do motivo', { [CHECKOUT]: [replaceOnce('    if (GUEST_CHECKOUT_LIVE) {\n      // O motivo de não ser convidado', '    if (false) {\n      // O motivo de não ser convidado', 'sem guest_checkout_fallback')] }, sStripeFailure, true],
+  // ── leva 2: tomada de conta ──
+  ['link do e-mail: entrada com prova não derruba as outras', { [LINK]: [replaceOnce("  await revokeGuestSessionsOnce({ supabase, user: data.user, session: data.session, method, path: '/auth/guest-link' })\n", '', 'sem a trava no link')] }, sTakeoverGuard, true],
+  ['puro: derruba mais de uma vez', { [PURE]: [replaceOnce("  if (meta[GUEST_SESSIONS_REVOKED_AT_KEY]) return 'already_revoked'\n", '', 'sem uma vez por conta')] }, sTakeoverGuard, true],
+  ['puro: conta comum também cai', { [PURE]: [replaceOnce("  if (typeof born !== 'string' || !born) return 'not_guest_account'\n", '', 'sem filtro de conta de convidado')] }, sCallbackRevokes, true],
+  ['puro: a sessão sem prova dispara', { [PURE]: [replaceOnce("  if (meta[GUEST_AUTO_LOGIN_SESSION_KEY] === current) return 'auto_login_session'\n", '', 'sem exceção da sessão automática')] }, sPureRevocationRules, true],
+  ['puro: senha vale como prova', { [PURE]: [replaceOnce("  if (!input.authMethods.some((method) => accepted.includes(method))) return 'not_proven'\n", '', 'sem checagem de amr')] }, sTakeoverGuard, true],
+  ['puro: prova antes reabre o login automático', { [PURE]: [replaceOnce("  if (input.owner.emailProven === true) return { state: 'check_email', reason: 'already_used' }\n", '', 'sem emailProven')] }, sProofBeforeAutoLogin, true],
+  ['trava: carimba sem derrubar', { [GUARD]: [replaceOnce("    const { error: signOutError } = await input.supabase.auth.signOut({ scope: 'others' })\n", '    const signOutError = null\n', 'sem signOut others')] }, sTakeoverGuard, true],
+  ['recuperação: porta aceita qualquer método', { [RECOVERY]: [replaceOnce("    acceptedMethods: ['recovery'],\n", '', 'sem amr recovery')] }, sRecoveryRevokes, true],
+  ['callback: Google não derruba', { [CALLBACK]: [replaceOnce("          await revokeGuestSessionsOnce({ supabase, user: data.user, session: data.session, method: 'auth_callback', path: '/auth/callback' })\n", '', 'sem a trava na callback')] }, sCallbackRevokes, true],
+  ['rota de acesso: sessão sem prova não registrada', { [ACCESS]: [replaceOnce('          ? await admin.auth.admin.updateUserById(ownerUserId, { app_metadata: { ...currentMeta, [GUEST_AUTO_LOGIN_SESSION_KEY]: autoSessionId } })\n', '          ? { error: null }\n', 'sem registro do id da sessão automática')] }, sNewAccount, true],
+  ['rota de acesso: ignora a prova já feita', { [ACCESS]: [replaceOnce('        emailProven: Boolean(ownerMeta[GUEST_SESSIONS_REVOKED_AT_KEY]),\n', '        emailProven: false,\n', 'emailProven sempre falso')] }, sProofBeforeAutoLogin, true],
+  // ── leva 2: e-mail "sua conta está pronta" ──
+  ['webhook: conta nova sem o e-mail', { [WEBHOOK]: [replaceOnce('        // que a página /checkout/guest manda).\n        if (sendGuestReadyEmail) await sendGuestReadyEmail()\n', '        // que a página /checkout/guest manda).\n', 'sem envio no fim do Path B')] }, sReadyEmail, true],
+  ['webhook: conta existente também recebe', { [WEBHOOK]: [replaceOnce('          if (guestOwner.created) {\n            const readyOwner = guestOwner', '          if (true) {\n            const readyOwner = guestOwner', 'e-mail para qualquer dono')] }, sExistingAccount, true],
+  ['servidor: e-mail sem reserva (reenvio repete)', { [SERVER]: [replaceOnce("    const { error: claimError } = await input.admin.from('stripe_events').insert({ id: claimId })\n    if (claimError?.code === '23505') return 'duplicate'\n", '    const claimError = null as { code?: string } | null\n', 'sem reserva 1×/sessão')] }, sReadyEmail, true],
+  ['servidor: preço no e-mail', { [SERVER]: [replaceOnce("    'If you did not buy a Kineo plan, reply to this email and we will sort it out.\\n\\n' +\n", "    'If you did not buy a Kineo plan, reply to this email and we will sort it out.\\n\\n' +\n    'Plan: Creator, $29.90/month.\\n\\n' +\n", 'preço literal no texto')] }, sReadyEmail, true],
+  ['servidor: falha do Resend prende a reserva', { [SERVER]: [replaceOnce("      await release()\n      await event(GUEST_CHECKOUT_EVENTS.readyEmailFailed, { reason: 'resend_rejected', http_status: res.status })\n", "      await event(GUEST_CHECKOUT_EVENTS.readyEmailFailed, { reason: 'resend_rejected', http_status: res.status })\n", 'sem devolver a reserva')] }, sReadyEmailRetry, true],
+  ['link do e-mail pronto: entra 2×', { [LINK]: [replaceOnce("    const { error: claimError } = await admin.from('stripe_events').insert({ id: readyClaim })\n    if (claimError) return failure // 23505 = já usado; outro erro = não arrisca um 2º uso\n", '', 'sem uso único')] }, sReadyEmail, true],
+  ['token do e-mail: assinatura ignorada', { [GUARD]: [replaceOnce("  if (given.length !== expected.length || !timingSafeEqual(given, expected)) return { ok: false, reason: 'bad_signature' }\n", '', 'sem assinatura')] }, sReadyEmail, true],
+  ['token do e-mail: validade ignorada', { [GUARD]: [replaceOnce("  if (expiresAtSeconds <= input.nowSeconds) return { ok: false, reason: 'expired' }\n", '', 'sem validade')] }, sReadyEmail, true],
 ]
 for (const [name, transforms, scenario, live] of MUTANTS) {
   let problems

@@ -103,6 +103,7 @@ import {
   deterministicEventUuid,
   guestOwnerDepsFor,
   resolveGuestCheckoutOwner,
+  sendGuestAccountReadyEmailOnce,
   type GuestCheckoutOwner,
 } from '@/lib/stripe/guestCheckout'
 
@@ -1733,6 +1734,8 @@ export async function POST(req: NextRequest) {
         // desta entrega: daqui para baixo payment_success e o Path B leem EXATAMENTE o que leriam numa compra logada.
         // Qualquer falha = RetryableEntitlementError → 500 → a Stripe reenvia (o resolver é idempotente: mesmo e-mail,
         // carimbo em app_metadata, eventos com id determinístico). Sem kineo_guest=1, nada disto roda.
+        // Conta NASCIDA desta compra: depois do grant sai UM e-mail "sua conta está pronta" (cobre quem fechou a aba).
+        let sendGuestReadyEmail: (() => Promise<void>) | null = null
         if (isGuestCheckoutSession(session)) {
           entitlementPending = true
           let guestOwner: GuestCheckoutOwner
@@ -1794,6 +1797,20 @@ export async function POST(req: NextRequest) {
             entitlementPending = false
             console.warn('[stripe webhook] guest checkout conflict recorded; no grant:', session.id, guestOwner.conflict)
             break
+          }
+          if (guestOwner.created) {
+            const readyOwner = guestOwner
+            sendGuestReadyEmail = async () => {
+              await sendGuestAccountReadyEmailOnce({
+                admin: supabase,
+                stripeSessionId: session.id,
+                userId: readyOwner.userId,
+                email: readyOwner.email,
+                secret: process.env.SUPABASE_SERVICE_ROLE_KEY,
+                resendKey: process.env.RESEND_API_KEY,
+                from: process.env.RESEND_FROM_EMAIL || 'Kineo <support@usekineo.com>',
+              })
+            }
           }
         }
         const userId = session.metadata?.supabase_user_id
@@ -1897,6 +1914,8 @@ export async function POST(req: NextRequest) {
           // idempotente passa por aqui, e a UPDATE guardada faz 0 linhas quando
           // já convertido.
           await markTrialConverted(supabase, userId, { source: 'checkout_subscription_resumed', stripeRef: session.id })
+          // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — a entrega anterior pode ter morrido entre o grant e o e-mail (1×/sessão).
+          if (sendGuestReadyEmail) await sendGuestReadyEmail()
           console.log('[stripe webhook] subscription Checkout already fulfilled:', session.id)
           break
         }
@@ -2039,6 +2058,11 @@ export async function POST(req: NextRequest) {
         // plano vira `${tier}_trial`, que isPayingProfile já conta como pagante
         // — o webhook e o cron dão o MESMO veredito sobre a mesma linha.
         await markTrialConverted(supabase, userId, { source: 'checkout_subscription', stripeRef: session.id })
+
+        // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — conta nascida desta compra, plano já concedido: "sua conta está pronta"
+        // (1×/sessão Stripe, nunca lança). Conta que já existia: sendGuestReadyEmail fica null (ela recebe só o link
+        // que a página /checkout/guest manda).
+        if (sendGuestReadyEmail) await sendGuestReadyEmail()
 
         break
       }

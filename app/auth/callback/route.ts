@@ -177,6 +177,19 @@ export async function GET(request: Request) {
         }
       }
 
+      // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — conta nascida de compra sem login: a 1ª entrada que prova o e-mail
+      // (Google/OAuth, confirmação de e-mail) derruba as OUTRAS sessões — a do navegador que pagou entrou sem provar a
+      // caixa. Uma vez por conta; nunca derruba este login (lib/auth/guestAccess.ts não lança). Carregado sob demanda,
+      // como o creationOAuthFailureHandoff mais abaixo: módulo que falhe ao carregar vira log, não erro de login.
+      if (data.user && data.session) {
+        try {
+          const { revokeGuestSessionsOnce } = await import('@/lib/auth/guestAccess')
+          await revokeGuestSessionsOnce({ supabase, user: data.user, session: data.session, method: 'auth_callback', path: '/auth/callback' })
+        } catch (guardError) {
+          console.error('[auth/callback] guest session guard skipped:', guardError instanceof Error ? guardError.message : String(guardError))
+        }
+      }
+
       // A signup can legitimately land on the public homepage, whose layout
       // does not mount AffiliateAutoTrigger. Finalize the protected click here,
       // while OAuth/email-confirmation still carries the first-touch cookies;
