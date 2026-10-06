@@ -7,7 +7,8 @@ import { AVATAR_PUBLIC } from '@/lib/engineLaunch' // KINEO-AVATAR-FORA-2026-09-
 import { SCRIPT_VERTICAL_SLUGS } from '@/lib/scriptLibrary'
 import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy'
 // KINEO-ENGINE-SEO-2026-08-15 — cluster por MOTOR (hub + 5 páginas).
-import { ENGINE_SLUGS } from '@/lib/growth/enginePageCatalog'
+import { ENGINE_SLUGS, isIndexableEngineSlug } from '@/lib/growth/enginePageCatalog'
+import { ENGINE_GEO_REVIEWED_ISO } from '@/lib/seo/engineCitation' // KINEO-MOTORES-GEO-2026-10-06
 // PROJETO 1 — GOOGLE (17/09): 100 páginas de intenção + hub (lib/seo/intentPages.ts).
 import { INTENT_HUB_PATH, INTENT_SLUGS, intentPagePath } from '@/lib/seo/intentPages'
 import { CITATION_ANSWER_LINKS, CITATION_REVIEW_DATE } from '@/lib/growth/citationAnswers'
@@ -68,6 +69,12 @@ const BASE = 'https://www.usekineo.com'
 const LAST_MODIFIED = new Date('2026-09-17T05:00:00.000Z')
 // KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — /ads is new; it carries its own date instead of re-dating the cluster.
 const ADS_DOOR_LAST_MODIFIED = new Date('2026-09-24T21:30:00.000Z')
+// KINEO-MOTORES-GEO-2026-10-06 — as páginas de motor (hub, motores indexáveis e as 26 traduzidas) e as três de comparação
+// revisadas nesta mudança levam a data REAL da revisão; o resto do cluster mantém a sua (não se re-data o que não mudou).
+// E a régua "motor desligado não tem página indexável": motor pausado/oculto sai do mapa (a página responde noindex pelo
+// layout do segmento) — mesma isIndexableEngineSlug do layout e do llms.txt.
+const ENGINE_GEO_LAST_MODIFIED = new Date(`${ENGINE_GEO_REVIEWED_ISO}T12:00:00.000Z`)
+const ENGINE_GEO_REVISED_PAGES = ['/ai-video-generator', '/models-pricing', '/kineo-vs-higgsfield', '/seedance-vs-veo-vs-kling']
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes: { path: string; priority: number; freq: 'daily' | 'weekly' | 'monthly' }[] = [
@@ -266,11 +273,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
   for (const slug of INTENT_SLUGS) {
     routes.push({ path: intentPagePath(slug), priority: 0.8, freq: 'weekly' })
   }
-  const staticEntries = routes.map((r) => ({
+  const engineNoIndex = ENGINE_SLUGS.filter((slug) => !isIndexableEngineSlug(slug)).map((slug) => `/ai-video-generator/${slug}`)
+  const engineGeoRevised = new Set([
+    ...ENGINE_GEO_REVISED_PAGES,
+    ...ENGINE_SLUGS.filter((slug) => isIndexableEngineSlug(slug)).map((slug) => `/ai-video-generator/${slug}`),
+    ...LOCALIZED_ENGINE_SLUGS.flatMap((slug) => ENGINE_LANG_CODES.map((lang) => `/ai-video-generator/${slug}/${lang}`)),
+  ])
+  const staticEntries = routes.filter((r) => !engineNoIndex.some((p) => r.path === p || r.path.startsWith(`${p}/`))).map((r) => ({
     url: `${BASE}${r.path}`,
     lastModified: r.path === '/ads' ? ADS_DOOR_LAST_MODIFIED
       : ['/business-video-ads', '/sora-alternative', '/omni-flash-vs-sora'].includes(r.path)
-      ? new Date('2026-09-24T13:51:19.000Z') : LAST_MODIFIED,
+      ? new Date('2026-09-24T13:51:19.000Z') : engineGeoRevised.has(r.path) ? ENGINE_GEO_LAST_MODIFIED : LAST_MODIFIED,
     changeFrequency: r.freq,
     priority: r.priority,
   }))

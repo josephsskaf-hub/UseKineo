@@ -2,6 +2,10 @@ import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { engineFixture } from './gpt24h-engine-fixture.mjs'
 import { offlineModules, renderToStaticMarkup } from './gpt24h-offline-support.mjs'
+// KINEO-MOTORES-GEO-2026-10-06 — reancorado com motivo: os dois blocos novos e os 6 textos reescritos pela camada citável
+// (TAREFA 12) são descontados dos DOIS lados pela normalização única; a hierarquia do hero e o resto da página seguem
+// travados. O conteúdo novo é provado por scripts/test-motores-geo-2026-10-06.mjs.
+import { semMotoresGeoHtml } from './test-support/motores-geo-2026-10-06.mjs'
 
 // Actual server-page rendering, offline boundaries; no visits or analytics writes.
 const path = 'app/ai-video-generator/[engine]/page.tsx'
@@ -11,8 +15,8 @@ const { ENGINE_SLUGS } = after('lib/growth/enginePageCatalog.ts')
 const hero = html => html.match(/<section\b[\s\S]*?<\/section>/)?.[0]
 let tested = 0
 for (const engine of ENGINE_SLUGS) {
-  const old = renderToStaticMarkup(await before(path).default({ params: { engine } }))
-  const current = renderToStaticMarkup(await after(path).default({ params: { engine } }))
+  const old = semMotoresGeoHtml(renderToStaticMarkup(await before(path).default({ params: { engine } })))
+  const current = semMotoresGeoHtml(renderToStaticMarkup(await after(path).default({ params: { engine } })))
   //30/09: founder increased acquisition work; Veo adopts the same actions.
   // Its entire non-action content remains byte-locked, as do all other pages.
   if (engine !== 'seedance' && engine !== 'veo') assert.equal(current, old, engine + ': entire rendered page unchanged')

@@ -416,7 +416,9 @@ export const ENGINE_FACTS: EngineFact[] = [
     name: 'Veo 3.1',
     url: `${BASE}${engineLandingPublicPath('veo')}`,
     credits: creditsPerReferenceVideo('cinematic_veo'),
-    what: 'Google Veo 3.1 for the highest-fidelity generated scenes, with native audio.',
+    // KINEO-MOTORES-GEO-2026-10-06 — dizia "with native audio": falso. O cinematic pede o Veo 3.1 Fast com
+    // generate_audio:false (app/api/generate-video-cinematic/route.ts) e a narração, a legenda e a trilha são da casa.
+    what: 'Google Veo 3.1 (the Fast version) for high-fidelity generated scenes; Kineo turns the model’s own audio off and adds the narration, captions and music.',
   },
   // KINEO-AVATAR-FORA-2026-09-28 — fora do catálogo público desde 27/09 (fundador: "avatar sai por hora"). Medido:
   // 1 filme 'avatar' e 3 'presenter' entregues NA HISTÓRIA (o último em 15/07), 0 cliques no card do /studio.

@@ -20,6 +20,7 @@ import { enginePaused } from '@/lib/engineLaunch'
 import { ENGINE_FACTS } from '@/lib/kineoFacts'
 import { creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import { GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer' // KINEO-MOTORES-GEO-2026-10-06 — o filme grátis vale nos países do trial
 
 // Mesmo regime da /state-of-ai-shorts-2026: os números vêm do banco, revalida uma vez por dia.
 export const revalidate = STUDY_REVALIDATE_SECONDS
@@ -137,7 +138,7 @@ export default async function SeedanceVsVeoVsKlingPage() {
       q: 'Can I paste a script I wrote with ChatGPT?',
       a:
         'Yes. Paste the script into Kineo, choose "Use my script as is", and the engine you pick narrates it word for ' +
-        'word — Seedance 1.5 generates every scene with AI, and a new account can try it free with one 15-second film.',
+        `word — Seedance 1.5 generates every scene with AI, and a new account${GRANT_COUNTRY_CLAUSE} can try it free with one 15-second film.`,
     },
   ]
 
@@ -236,7 +237,7 @@ export default async function SeedanceVsVeoVsKlingPage() {
           ({kling?.films ?? 0}) are chosen far less often — they cost {veo?.credits60 ?? '—'} and {kling?.credits60 ?? '—'} credits
           per 60-second film, and at that size of sample the honest reading is &ldquo;rarely picked&rdquo;, not &ldquo;worse&rdquo;.
           {/* KINEO-FILME-GRATIS-15S-2026-09-29 — o Kineo 1 saiu do catálogo público e desta tabela (ENGINE_SLUGS). */}
-          The free way to try it is Seedance itself: a new account&apos;s trial credits pay for one 15-second Seedance film.
+          {` The free way to try it is Seedance itself: a new account’s trial credits${GRANT_COUNTRY_CLAUSE} pay for one 15-second Seedance film.`}
         </p>
 
         <section style={{ ...CARD, padding: '18px 20px', margin: '28px 0 0' }}>

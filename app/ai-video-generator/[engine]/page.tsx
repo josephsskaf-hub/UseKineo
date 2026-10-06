@@ -44,6 +44,7 @@ import {
 } from '@/lib/growth/engineLandingIntent'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 import { ENGINES, ENGINE_SLUGS, type Engine } from '@/lib/growth/enginePageCatalog'
+import { EngineAnswerLead, EnginePriceCard, engineGeoFor, pausedAccessNote } from '@/components/EngineCitationAnswer' // KINEO-MOTORES-GEO-2026-10-06
 import { enginePaused } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
 import { engineAlternates, LOCALIZED_ENGINE_SLUGS, type LocalizedEngineSlug } from '@/lib/seo/enginePageLangs' // KINEO-MOTORES-16-LINGUAS-2026-09-21
 const OFFER = getFreeTierOffer()
@@ -92,6 +93,7 @@ const CARD = { background: '#161618', border: '1px solid #2a2a2d' }
 export default async function EnginePage({ params }: { params: { engine: string } }) {
   const e = ENGINES[params.engine]
   if (!e) notFound()
+  const geo = engineGeoFor(params.engine) // KINEO-MOTORES-GEO-2026-10-06 — camada citável; null = motor pausado/aposentado (página no modo antigo)
 
   // A PROVA. Renders reais daquele motor, do banco, com o quality_mode REAL —
   // um vídeo só recebe o selo "VEO 3.1" se foi o Veo que o gerou. Falha de
@@ -134,7 +136,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
     ],
   }
 
-  const tierNote = e.tier === 'Free'
+  const tierNote = geo ? geo.accessNote : enginePaused(e.param) ? pausedAccessNote(e.name, enginePaused(e.param)!) : e.tier === 'Free'
     ? ft(OFFER, 'Free with a watermark · no card', OFFER.copy.chip)
     : `${e.name} is unlocked on every account. Its ${e.creditCost}-credit 60-second cost is covered by the ${e.tier} monthly grant; the ${TRIAL_CREDITS_SHOWN}-credit free trial ${TRIAL_CREDITS_SHOWN >= e.creditCost ? 'covers one' : 'does not cover one'}.`
 
@@ -158,6 +160,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
             {e.name} · {engineCostLabel(e)}
           </div>
           <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 900, lineHeight: 1.15, margin: '16px 0 0' }}>{e.h1}</h1>
+          {geo && <EngineAnswerLead geo={geo} />}
           {!enginePaused(e.param) && <PaidEngineBudget slug={params.engine} />}
           {enginePaused(e.param) && (
             <div role="status" style={{ margin: '14px 0 0', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(255,180,84,.45)', background: 'rgba(255,180,84,.10)', color: '#ffd9a3', fontSize: 14.5, lineHeight: 1.6 }}>
@@ -175,7 +178,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
               placement="hero"
               style={{ display: 'inline-block', background: '#f5f5f7', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.05rem' }}
             >
-              {e.tier === 'Free' || TRIAL_CREDITS_SHOWN >= e.creditCost
+              {geo ? geo.ctaLabel : e.tier === 'Free' || TRIAL_CREDITS_SHOWN >= e.creditCost
                 ? `Try ${e.name} free →`
                 : CARD_ENTRY_COPY.ctaLong}
             </OrganicCtaLink>
@@ -189,6 +192,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
           {/* Honestidade explícita: nunca prometer grátis um motor de Studio. */}
           <p style={{ fontSize: '0.82rem', color: '#86868b', margin: '12px 0 0' }}>{tierNote}</p>
         </section>
+        {geo && <EnginePriceCard geo={geo} ctaHref={signupUrl} campaign={campaign} />}
 
         {/* KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — medido 23/09: esta página recebe a maior fatia do ChatGPT (228 sessões,
             103 contas, 0 pagantes em 60 d) e a ponte de 22/09 vivia abaixo da dobra, sem evento. Agora ela vem logo
@@ -289,7 +293,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
                   ['Cost per video', engineCostLabel(e)],
                   ['Smallest monthly grant that covers one', paidBudget?.label ?? (e.tier === 'Free' ? 'None — runs on a free account' : e.tier)],
                   ['Output', 'Vertical 9:16 MP4, script + AI voiceover + captions already assembled'],
-                  ['Typical turnaround', '3–7 minutes from idea to download'],
+                  ['Typical turnaround', geo ? geo.turnaround : '3–7 minutes from idea to download'],
                   ['Best for', e.bestFor],
                   ['Trade-off', e.tradeoff],
                 ].map(([k, v], i) => (
@@ -320,7 +324,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
             {[
               { n: '1', t: 'Type one idea', d: 'A topic, a fact, a hook — one sentence. No prompt engineering, no scene list.' },
               { n: '2', t: `${e.name} renders the scenes`, d: 'Kineo writes the hook-first script, splits it into scenes and prompts the engine for each one, then adds the AI voiceover and captions.' },
-              { n: '3', t: 'Download & post', d: 'A vertical 9:16 MP4 in a few minutes, ready for YouTube Shorts, TikTok and Reels.' },
+              { n: '3', t: 'Download & post', d: geo ? geo.howStep3 : 'A vertical 9:16 MP4 in a few minutes, ready for YouTube Shorts, TikTok and Reels.' },
             ].map((s) => (
               <div key={s.n} style={{ ...CARD, borderRadius: 14, padding: 16 }}>
                 <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(41,151,255,0.12)', color: '#2997ff', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>{s.n}</div>
@@ -368,7 +372,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
             </table>
           </div>
           <p style={{ fontSize: '0.74rem', color: '#6e6e73', textAlign: 'center', margin: '10px 0 0' }}>
-            Credit costs read from Kineo&rsquo;s single pricing source (August 2026). Engines and costs may change.
+            {geo ? geo.costsNote : <>Credit costs read from Kineo&rsquo;s single pricing source (August 2026). Engines and costs may change.</>}
           </p>
         </section>
 
@@ -389,7 +393,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
         <section style={{ marginTop: 48, textAlign: 'center', ...CARD, borderRadius: 18, padding: '28px 20px' }}>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>Put your own topic through {e.name}</h2>
           <p style={{ color: '#86868b', margin: '8px 0 18px', fontSize: '0.95rem' }}>
-            One idea in, a ready-to-post vertical Short out. No editing timeline. Free to start.
+            {geo ? geo.finalLine : <>One idea in, a ready-to-post vertical Short out. No editing timeline. Free to start.</>}
           </p>
           <OrganicCtaLink
             href={primaryCtaHref}
@@ -397,7 +401,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
             placement="final"
             style={{ display: 'inline-block', background: '#f5f5f7', color: '#000', fontWeight: 900, padding: '14px 30px', borderRadius: 980, textDecoration: 'none', fontSize: '1.02rem' }}
           >
-            {CARD_ENTRY_COPY.ctaLong}
+            {geo ? geo.ctaLabel : CARD_ENTRY_COPY.ctaLong}
           </OrganicCtaLink>
           <p style={{ margin: '14px 0 0', fontSize: '0.82rem', color: '#6e6e73' }}>
             Already have an account?{' '}

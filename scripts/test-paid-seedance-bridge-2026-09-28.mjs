@@ -3,6 +3,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { React, root, source, offlineModules, renderToStaticMarkup, checks } from './gpt24h-offline-support.mjs'
+// KINEO-MOTORES-GEO-2026-10-06 — reancorado com motivo: a S24-01 continua sem tocar a página do motor; a única mudança
+// aprovada depois da cdb154e2 é a camada citável da TAREFA 12 (11 edições exatas, descontadas pela normalização única).
+import { semMotoresGeoFonte } from './test-support/motores-geo-2026-10-06.mjs'
 const { check, finish } = checks()
 const events = []
 const mocks = { 'lib/analytics.ts': { trackEvent: (...args) => events.push(args) } }
@@ -40,7 +43,7 @@ check('curation file unmodified',execFileSync('git',['diff','--','lib/publicExam
 // predates the independently tested A30-01 Veo hero. Keep an exact whole-file
 // comparison against that tested code, not a broad exception for engine edits.
 // Veo's own behavioral guard separately freezes siblings, metadata and CTA intent.
-check('S24-01 preserves the entire separately tested Veo engine page', source('app/ai-video-generator/[engine]/page.tsx').replace(/\r\n/g,'\n').trim()===execFileSync('git',['show','cdb154e2:app/ai-video-generator/[engine]/page.tsx'],{cwd:root,encoding:'utf8'}).replace(/\r\n/g,'\n').trim())
+check('S24-01 preserves the entire separately tested Veo engine page', semMotoresGeoFonte(source('app/ai-video-generator/[engine]/page.tsx').replace(/\r\n/g,'\n')).trim()===execFileSync('git',['show','cdb154e2:app/ai-video-generator/[engine]/page.tsx'],{cwd:root,encoding:'utf8'}).replace(/\r\n/g,'\n').trim())
 check('owner permanent Kineo1 redirect retained', source('next.config.js').includes("{ source: '/ai-video-generator/kineo-1', destination: '/ai-video-generator/seedance', statusCode: 301 }"))
 check('server-only curation selection', !source('components/ScriptToSeedanceBridge.tsx').includes("@/lib/publicExamples"))
 check('no effects during static preview',events.length===0)

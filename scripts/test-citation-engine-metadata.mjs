@@ -4,6 +4,11 @@ import vm from 'node:vm'
 import ts from 'typescript'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+// KINEO-MOTORES-GEO-2026-10-06 — reancorado com motivo (TAREFA 12, sessão CEO 06/10): a página de motor ganhou a camada
+// citável (resposta depois do H1, tabela de preço, comparação direta) e corrigiu 6 frases. A normalização desconta SÓ
+// essas 11 edições exatas (scripts/test-support/motores-geo-2026-10-06.mjs); o conteúdo novo é provado, com mutantes,
+// por scripts/test-motores-geo-2026-10-06.mjs. Todo o resto do corpo segue travado na base 560b5e2f.
+import { semMotoresGeoFonte, edicoesMotoresGeo } from './test-support/motores-geo-2026-10-06.mjs'
 
 const file = 'app/ai-video-generator/[engine]/page.tsx'
 const current = fs.readFileSync(file, 'utf8')
@@ -121,7 +126,8 @@ const semGaleriaDaCasa = (body) => {
   assert.ok(!current.includes('kineo1_bridge') && !current.includes('seedanceBridge.map'), 'a ponte antiga abaixo da dobra saiu')
 }
 assert.notEqual(pageBody(current), pageBody(previous), 'a galeria da casa e a ponte existem na página atual')
-assert.equal(semGaleriaDaCasa(pageBody(current)), pageBody(previous))
+assert.equal(edicoesMotoresGeo(current), 11, 'as 11 edições da camada citável existem (a normalização tem sujeito)')
+assert.equal(semGaleriaDaCasa(semMotoresGeoFonte(pageBody(current))), pageBody(previous))
 console.log('PASS: actual metadata, canonical URLs, pause policy and credit coverage for ' + ENGINE_SLUGS.length + ' engine pages; visible page locked outside approved gallery, bridge and G3 additions')
 
 // Exercise the hub's actual metadata object, not a copied expected object.

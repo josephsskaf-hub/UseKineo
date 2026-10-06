@@ -2,6 +2,9 @@ import assert from 'node:assert/strict'
 import {execFileSync} from 'node:child_process'
 import {engineFixture} from './gpt24h-engine-fixture.mjs'
 import {offlineModules,renderToStaticMarkup,source} from './gpt24h-offline-support.mjs'
+// KINEO-MOTORES-GEO-2026-10-06 — reancorado com motivo: a camada citável da TAREFA 12 (2 blocos novos + 6 textos) é
+// descontada dos DOIS lados pela normalização única; o caminho de compra do Veo e o resto seguem travados.
+import {semMotoresGeoHtml} from './test-support/motores-geo-2026-10-06.mjs'
 const file='app/ai-video-generator/[engine]/page.tsx',base=execFileSync('git',['show','7dbd47c1:'+file],{encoding:'utf8'})
 const mutant=process.argv.includes('--mutant')
 const before=engineFixture({[file]:base}),after=engineFixture(mutant?{'components/SeedanceHeroActions.tsx':source('components/SeedanceHeroActions.tsx').replace('href="/pricing"','href="/signup"')}:{})
@@ -9,7 +12,7 @@ const hero=html=>html.match(/<section\b[\s\S]*?<\/section>/)?.[0]
 const actions=/<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:22px">[\s\S]*?<\/div>/
 let count=0
 for(const engine of after('lib/growth/enginePageCatalog.ts').ENGINE_SLUGS){
- const old=renderToStaticMarkup(await before(file).default({params:{engine}})),html=renderToStaticMarkup(await after(file).default({params:{engine}}))
+ const old=semMotoresGeoHtml(renderToStaticMarkup(await before(file).default({params:{engine}}))),html=semMotoresGeoHtml(renderToStaticMarkup(await after(file).default({params:{engine}})))
  if(engine!=='veo'){
   // A mutated shared component affects Seedance as well; the mutant below
   // is evaluated against the Veo purchase path, not an incidental sibling.

@@ -27,6 +27,11 @@ const AI_CRAWLERS = [
   'CCBot',
 ]
 
+// KINEO-MOTORES-GEO-2026-10-06 — a busca do ChatGPT cita o que o índice do Bing tem (é o Bing que o IndexNow alimenta).
+// O Bingbot já caía no grupo '*', liberado; o grupo explícito documenta a intenção e protege contra alguém apertar o
+// '*' depois sem lembrar dele. Pela RFC 9309 o grupo nomeado SUBSTITUI o '*', por isso as regras são as mesmas.
+const SEARCH_INDEX_CRAWLERS = ['Bingbot']
+
 // KINEO-REVIVE-2026-07-26 — '/revive' são páginas 1:1 geradas para UM prospect
 // nomeado (handle do canal dele, 3 vídeos no estilo dele). Indexar isso é
 // (a) doorway page aos olhos do Google e (b) expor publicamente a lista de
@@ -77,6 +82,11 @@ export default function robots(): MetadataRoute.Robots {
       },
       {
         userAgent: AI_CRAWLERS,
+        allow: ALLOW,
+        disallow: DISALLOW,
+      },
+      {
+        userAgent: SEARCH_INDEX_CRAWLERS,
         allow: ALLOW,
         disallow: DISALLOW,
       },

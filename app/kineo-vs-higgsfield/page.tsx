@@ -17,7 +17,7 @@ import { filmsAndScenes } from '@/lib/marketingPrice'
 // Omni Flash (#1, Aug 2026)" na tabela: contagem errada (duas vezes, diferente em cada lugar) e um motor pausado
 // desde 15/09 vendido como diferencial. Contagem e lista agora são as derivadas dos interruptores.
 import { VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY } from '@/lib/engineLaunch'
-import { TRIAL_CREDITS_SHOWN, TRIAL_FIRST_FILM_PHRASE, TRIAL_FIRST_FILM_SHORT } from '@/lib/freeTierOffer' // KINEO-VERDADE-TRIAL-2026-10-05
+import { TRIAL_CREDITS_SHOWN, TRIAL_FIRST_FILM_PHRASE, TRIAL_FIRST_FILM_SHORT, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer' // KINEO-VERDADE-TRIAL-2026-10-05 · KINEO-MOTORES-GEO-2026-10-06 (país)
 const ENGINE_COUNT = VIDEO_ENGINE_COUNT_WORD.toLowerCase()
 
 export const dynamic = 'force-static'
@@ -55,7 +55,7 @@ const FAQ_JSONLD = {
       name: 'Is Kineo cheaper than Higgsfield?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `Kineo plans start at ${TIER_PRICES.starter.usd / 100}/month and the mid plan is ${TIER_PRICES.basic.usd / 100}/month; Higgsfield entry plans are typically $15/month with the popular tier around $39/month billed annually. The honest comparison is per finished video: with Kineo the credits include the whole film — narration, captions and music — while on a generation platform a finished Short usually means several generations plus your editing time.`,
+        text: `Kineo plans start at ${usd(TIER_PRICES.starter.usd)}/month and the mid plan is ${usd(TIER_PRICES.basic.usd)}/month; Higgsfield's plans start at $15/month (Starter, 200 credits) and Plus is $49/month, or $39/month billed annually (1,000 credits), as listed on Higgsfield's site in October 2026. The honest comparison is per finished video: with Kineo the credits include the whole film — narration, captions and music — while on a generation platform a finished Short usually means several generations plus your editing time.`,
       },
     },
     {
@@ -78,7 +78,7 @@ const ROWS: Array<[string, string, string]> = [
   ['Character/world consistency', 'Per generation', 'Anchored across every scene of the film'],
   ['Top engines', 'Yes — several', `Yes — ${ENGINE_COUNT}: ${VIDEO_ENGINE_LIST_COPY}`],
   ['Talking character with lip sync', 'Limited', 'Kling 3 renders a character speaking your line'],
-  ['Entry', 'Limited free tier', `Free trial: ${TRIAL_FIRST_FILM_SHORT}, no card`],
+  ['Entry', 'Limited free tier', `Free trial${GRANT_COUNTRY_CLAUSE}: ${TRIAL_FIRST_FILM_SHORT}, no card`],
 ]
 
 export default function VsHiggsfieldPage() {
@@ -146,11 +146,11 @@ export default function VsHiggsfieldPage() {
         >
           Start free
         </Link>
-        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>{`Free — ${TRIAL_CREDITS_SHOWN} credits, ${TRIAL_FIRST_FILM_PHRASE}, no card`}</p>
+        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>{`Free — ${TRIAL_CREDITS_SHOWN} credits${GRANT_COUNTRY_CLAUSE}, ${TRIAL_FIRST_FILM_PHRASE}, no card`}</p>
       </div>
 
       <p style={{ color: '#5a5a60', fontSize: 11.5, marginTop: 20 }}>
-        Competitor pricing and features change; figures reflect their public pricing page as read in August 2026. We link
+        Competitor pricing and features change; Higgsfield figures were read from Higgsfield’s own price list in October 2026. We link
         to our own renders so you can verify our side yourself. Kineo is not affiliated with Higgsfield.
       </p>
     </main>
