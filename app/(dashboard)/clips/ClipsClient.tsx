@@ -17,6 +17,8 @@ import CreditsTopupModal from '@/components/CreditsTopupModal'
 import ControlIcon from '@/components/ControlIcon'
 import { outOfCreditsDestination } from '@/lib/credits/outOfCreditsPlans'
 import { clipCopy, type ClipCopyKey } from '@/lib/clips/clipCopy'
+import ClipTelemetry, { readClipEntryOrigin } from '@/lib/clips/ClipTelemetry'
+import { CLIP_MEASUREMENT_ENABLED } from '@/lib/clips/clipMeasurement'
 
 type Engine = {
   key: string
@@ -87,7 +89,7 @@ async function compressPhoto(file: File): Promise<File> {
   }
 }
 
-export default function ClipsClient() {
+export default function ClipsClient({ measurementActor = null }: { measurementActor?: string | null }) {
   const language = useInterfaceLanguage()
   const t = useCallback((key: ClipCopyKey, vars?: Record<string, string | number>) => clipCopy(language, key, vars), [language])
   useProductStage('clips') // KINEO-CLIPS-CORES-2026-10-01 — fundo e barra lateral na cor da aba, como Imagens/Espaços/Ads
@@ -220,7 +222,9 @@ export default function ClipsClient() {
       const res = await fetch('/api/clips', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Idempotency-Key': key },
-        body: JSON.stringify({ ...payload, idempotency_key: key }),
+        body: JSON.stringify({ ...payload, idempotency_key: key,
+          ...(CLIP_MEASUREMENT_ENABLED && payload.effect ? { clip_origin: readClipEntryOrigin() } : {}),
+        }),
       })
       const data = await res.json().catch(() => ({}))
       if (data?.clip) setClips((xs) => [data.clip as Clip, ...xs.filter((c) => c.id !== data.clip.id)])
@@ -296,7 +300,7 @@ export default function ClipsClient() {
   }
 
   const photoRow = (
-    <div className="photo-row">
+    <div className="photo-row" data-clip-action="upload">
       {photoUrl
         // eslint-disable-next-line @next/next/no-img-element
         ? <><img src={photoUrl} alt="" /><button type="button" className="pill" onClick={() => setPhotoUrl(null)}>{t('removePhoto')}</button></>
@@ -318,6 +322,7 @@ export default function ClipsClient() {
 
   return (
     <div className="stu clips-workspace kps-page">
+      <ClipTelemetry actor={measurementActor} surface="clips" ready={!loading && !loadFailed && engines.length > 0} />
       <ProductStageStyles />
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
       <style>{`
@@ -374,7 +379,7 @@ export default function ClipsClient() {
           <p className="clip-meta" style={{ marginTop: 0, marginBottom: 12 }}>{t('effectsSub')}</p>
           <div className="fx-grid" role="group" aria-labelledby="clip-effects-title">
             {effects.map((fx) => (
-              <button key={fx.key} type="button" className="fx-card" aria-pressed={fx.key === effectKey} onClick={() => chooseEffect(fx.key)}>
+              <button key={fx.key} type="button" className="fx-card" data-clip-action="select_effect" data-clip-effect={fx.key} aria-pressed={fx.key === effectKey} onClick={() => chooseEffect(fx.key)}>
                 <span className="fx-media">
                   {fx.preview
                     ? <video src={fx.preview.video} poster={fx.preview.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" />
@@ -423,6 +428,7 @@ export default function ClipsClient() {
                 <div className="sum"><UiLabel>{effect.title}</UiLabel> · {t('madeWith', { engine: effect.engine_label })} · {effect.seconds} s</div>
                 {balance !== null && <div className="gnote">{balance} {t('credits')}</div>}
                 <button type="button" disabled={busy || uploading} className={`go ${busy || uploading ? 'no' : 'ok'}`}
+                  data-clip-action={photoUrl ? 'generate' : 'upload'} data-clip-effect={effect.key}
                   onClick={() => (photoUrl ? void generateEffect() : fileRef.current?.click())}>
                   {busy ? t('creating') : uploading ? t('uploading') : photoUrl ? <>{t('generate')} · {effect.credits} {t('credits')}</> : t('effectAddPhoto')}
                 </button>
@@ -479,7 +485,7 @@ export default function ClipsClient() {
           <div className="cost" id="clip-generation-review" tabIndex={-1}>
             <div className="sum">{engine ? `${engine.label} · ${seconds} s · ${effectiveAspect === 'image' ? t('samePhoto') : effectiveAspect}` : '—'}</div>
             {balance !== null && <div className="gnote">{balance} {t('credits')}</div>}
-            <button type="button" onClick={generate} disabled={!canGenerate} className={`go ${canGenerate ? 'ok' : 'no'}`}>
+            <button type="button" data-clip-action="generate" onClick={generate} disabled={!canGenerate} className={`go ${canGenerate ? 'ok' : 'no'}`}>
               {busy ? t('creating') : (withPhoto || prompt.trim().length >= 3) ? <>{t('generate')} · {cost ?? '—'} {t('credits')}</> : t('describeFirst')}
             </button>
           </div>

@@ -8,6 +8,5 @@ export default async function EffectPage({ slug, lang = 'en' }: { slug: string; 
   const language = effectLanguage(lang)
   if (!effect || !language) notFound()
   const { data: { user } } = await createClient().auth.getUser()
-  return <EffectPageClient effect={effectPageCard(effect)} language={language} signedIn={!!user} related={publicEffectPages().filter(item => item.key !== effect.key).map(effectPageCard)} />
+  return <EffectPageClient effect={effectPageCard(effect)} language={language} signedIn={!!user} measurementActor={user?.id ?? null} related={publicEffectPages().filter(item => item.key !== effect.key).map(effectPageCard)} />
 }
-

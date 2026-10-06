@@ -10,8 +10,8 @@
 |---|---|---|---|---|---|
 | 1 · visitante = conta nova | Testado; código 2e330992 | 09698a53c3c489831ec99f3b52710edaff53fcb8 | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
 | 2 · páginas de efeito | Testado; código 646361bf | 2db02ec7cae6b6119438056aba76b84c705b25d9 | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
-| 3 · Kling 4 desligado | Testado; código 414d9ea7 | Em preparação da fila | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
-| 4 · medição por origem | Pendente | Pendente | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
+| 3 · Kling 4 desligado | Testado; código 414d9ea7 | 656b79c1b0848d71fd7653ef5b059770a59532ff | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
+| 4 · medição por origem | Testado; suíte completa em andamento | Pendente | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
 
 ## Item 1 · catálogo público e preço no botão
 
@@ -55,11 +55,19 @@
 
 **QUESTÃO PENDENTE / DESCONHECIDO:** API pública utilizável, schema e preço da fal. Não existe adapter especulativo de Kling 4. Para ativar depois do lançamento, preencher fatos verificáveis, implementar e testar offline o payload oficial, conferir custo e só então habilitar. A preparação está concluída dentro do que se pode verificar hoje; não equivale a motor pronto para gerar apenas mudando `false` para `true`. Fornecedor novo continua decisão do fundador.
 
+## Item 4 · medição por efeito e origem
+
+**IMPLEMENTADO / FATO CONFIRMADO — lib/clips/clipMeasurement.ts:3, lib/clips/ClipTelemetry.tsx:34, app/api/clips/route.ts:120:** coorte `clips_journey_20261006_v1`; impressão e primeiro gesto por superfície/identidade disponível; origem limitada a home, effect_page, clips ou unknown. Pedido aceito e entrega pronta conservam seu significado. Origem da conclusão vem do pedido da mesma conta/clipe/efeito, por consulta; sem coluna nova ou alteração de cobrança. `CLIP_MEASUREMENT_ENABLED=false` desliga apenas a medição nova.
+
+**TESTADO LOCALMENTE:** guardião executa rota e liquidação reais com dependências falsas, verifica repetição/erro/autenticação, classificação de bot, versão e rollback; oito mutantes rejeitados. tsc limpo. [Navegador local](showcase-clipes-20261006/item-4/browser.json) confirma as quatro origens, incluindo unknown, cadastro simulado, dedupe e ausência de chamadas pagas. Consulta SELECT validada com dados sintéticos, duplicatas, internos/bots e conclusões de pessoa/efeito incorretos. [Régua e roteiro dos relatórios](showcase-clipes-20261006/MEDICAO.md).
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** cobertura real da origem depois da publicação. Navegação da home não foi alterada; se o navegador/OAuth não preservar evidência, não será inventada atribuição. Contagem de navegadores anônimos é separada de pessoas identificadas.
+
 ## Régua de medição
 
 **FATO CONFIRMADO — app/api/clips/route.ts e lib/clips/clipFlow.ts:** `clip_effect_chosen` hoje significa pedido de geração aceito e novo; `clip_effect_ready` significa transição persistida para pronto. Cliques de navegação não serão rebatizados como geração aceita.
 
-**EVIDÊNCIA DE PRODUÇÃO — consulta somente SELECT em 05/10/2026 23:45Z:** janela exata `[2026-10-05T03:00:00Z, 2026-10-05T23:44:00Z)`. `clip_effect_chosen`: 5 eventos, 1 conta identificada; `clip_effect_ready`: 5 eventos, 1 conta identificada. Aplicado o filtro canônico de lib/internalAccounts.ts, restam 0 eventos e 0 contas externas em ambos. Não são cinco pessoas; os registros pertencem à conta interna. Consulta retornou apenas agregados, sem PII.
+**EVIDÊNCIA DE PRODUÇÃO — consulta somente SELECT em 05/10/2026:** janela exata `[2026-10-05T03:00:00Z, 2026-10-05T23:44:00Z)`. `clip_effect_chosen`: 5 eventos, 1 conta identificada; `clip_effect_ready`: 5 eventos, 1 conta identificada. Aplicado o filtro canônico de lib/internalAccounts.ts, restam 0 eventos e 0 contas externas em ambos. Não são cinco pessoas; os registros pertencem à conta interna. Consulta retornou apenas agregados, sem PII.
 
 **QUESTÃO PENDENTE / DESCONHECIDO:** visitas às futuras páginas, origens históricas, novos pagantes e MRR. Zero eventos externos registrados nesta janela não comprova zero visitas nem zero receita. Não usar 2→9 efeitos como antes→depois comercial. Contar pessoas identificadas distintas, excluir internos/bots, separar navegadores anônimos; pagamento exige vínculo e recorrência comprovados. Sem PII no repo.
 

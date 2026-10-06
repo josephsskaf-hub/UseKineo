@@ -24,6 +24,8 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { clipEffectEventMetadata, clipEffectsVisible, publicClipEffects, resolveClipEffectRequest, wantsClipEffect, type ClipEffect } from '@/lib/clips/clipEffects'
 import { homeVariantStamp } from '@/lib/growth/homeClipsFirstServer'
 import type { ClipRequestInput } from '@/lib/clips/clipCatalog'
+import { CLIP_MEASUREMENT_ENABLED, clipOriginMetadata } from '@/lib/clips/clipMeasurement'
+import { isLikelyBot } from '@/lib/requestIdentity'
 
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
@@ -123,7 +125,11 @@ export async function POST(req: NextRequest) {
         name: 'clip_effect_chosen',
         userId: user.id,
         path: '/api/clips',
-        metadata: { ...clipEffectEventMetadata(effect, result.clip), ...homeVariantStamp(user.id, user.email), version: 'clip_effects_20261005' },
+        metadata: {
+          ...clipEffectEventMetadata(effect, result.clip), ...homeVariantStamp(user.id, user.email), version: 'clip_effects_20261005',
+          ...clipOriginMetadata(body.clip_origin),
+          ...(CLIP_MEASUREMENT_ENABLED ? { is_bot: isLikelyBot(req.headers.get('user-agent')) } : {}),
+        },
       }).catch(() => false)
     }
     if (result.ok) {

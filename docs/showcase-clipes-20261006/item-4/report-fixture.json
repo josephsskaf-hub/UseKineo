@@ -1,0 +1,36 @@
+{
+  "verifiedAt": "2026-10-06T00:00:00Z",
+  "kind": "Synthetic SELECT with CTE VALUES; no production rows and no writes",
+  "distinctChosenPeople": 2,
+  "distinctReadyPeople": 2,
+  "effects": [
+    {
+      "effect": "melt",
+      "origin": "home",
+      "chosenPeople": 1,
+      "chosenClips": 2,
+      "readyPeople": 1,
+      "readyClips": 1
+    },
+    {
+      "effect": "product_360",
+      "origin": "effect_page",
+      "chosenPeople": 1,
+      "chosenClips": 1,
+      "readyPeople": 1,
+      "readyClips": 1
+    }
+  ],
+  "surface": {
+    "identifiedPeople": 1,
+    "anonymousBrowsers": 1,
+    "eventsWithoutPersistentIdentity": 1
+  },
+  "knownBotEventsExcluded": 2,
+  "duplicateEventsDeduplicated": true,
+  "internalAccountsExcluded": true,
+  "internalAnonymousBrowserExcluded": true,
+  "wrongPersonReadyExcluded": true,
+  "wrongEffectReadyExcluded": true,
+  "commercialEvidence": false
+}

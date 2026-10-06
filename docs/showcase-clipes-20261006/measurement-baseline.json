@@ -1,0 +1,31 @@
+{
+  "source": "Production Supabase SELECT on events/profiles, canonical internal account exclusion; aggregates only",
+  "observedDate": "2026-10-05",
+  "window": {
+    "from": "2026-10-05T03:00:00Z",
+    "until": "2026-10-05T23:44:00Z",
+    "exclusiveUntil": true
+  },
+  "events": [
+    {
+      "name": "clip_effect_chosen",
+      "allEvents": 5,
+      "allIdentifiedAccounts": 1,
+      "externalIdentifiedAccounts": 0,
+      "externalEvents": 0
+    },
+    {
+      "name": "clip_effect_ready",
+      "allEvents": 5,
+      "allIdentifiedAccounts": 1,
+      "externalIdentifiedAccounts": 0,
+      "externalEvents": 0
+    }
+  ],
+  "newCohortRecordedEvents": 0,
+  "newCohortPublished": "DESCONHECIDO",
+  "commercialBeforeAfter": "DESCONHECIDO: not comparable windows/cohorts",
+  "pageVisits": "DESCONHECIDO",
+  "newPayers": "DESCONHECIDO",
+  "mrr": "DESCONHECIDO"
+}

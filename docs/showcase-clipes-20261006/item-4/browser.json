@@ -1,0 +1,44 @@
+{
+  "at": "2026-10-05T23:57:54.961Z",
+  "localOnly": true,
+  "externalNetworkBlocked": true,
+  "signupSimulated": true,
+  "eventsIntercepted": true,
+  "generationRequestsIntercepted": true,
+  "paidRenders": 0,
+  "databaseWrites": 0,
+  "cases": [
+    {
+      "case": "effect page → signup stub → preset",
+      "origin": "effect_page",
+      "impressionDeduped": true,
+      "gestureDeduped": true,
+      "relatedClickKeepsSourcePage": true,
+      "interceptedGenerations": 1
+    },
+    {
+      "case": "direct",
+      "origin": "clips",
+      "evidence": "current_surface",
+      "interceptedGenerations": 1
+    },
+    {
+      "case": "home",
+      "origin": "home",
+      "evidence": "same_site_navigation",
+      "interceptedGenerations": 1
+    },
+    {
+      "case": "home_signup",
+      "origin": "home",
+      "evidence": "same_site_navigation",
+      "interceptedGenerations": 1
+    },
+    {
+      "case": "preset_unknown",
+      "origin": "unknown",
+      "evidence": "unknown",
+      "interceptedGenerations": 1
+    }
+  ]
+}

@@ -12,5 +12,5 @@ export default async function ClipsPage() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!clipsVisible(user?.email ?? null)) notFound()
-  return <ClipsClient />
+  return <ClipsClient measurementActor={user?.id ?? null} />
 }

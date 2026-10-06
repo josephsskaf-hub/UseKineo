@@ -8,13 +8,15 @@ import { CLIP_ENGINES } from '@/lib/clips/clipCatalog'
 import { effectDestination, effectPagePath, effectSlug, effectText, type EffectPageCard } from '@/lib/clips/clipEffectPages'
 import EffectPreview from './EffectPreview'
 import './effects.css'
+import ClipTelemetry from '@/lib/clips/ClipTelemetry'
 
-export default function EffectPageClient({ effect, language, signedIn, related }: {
-  effect: EffectPageCard; language: InterfaceLanguage; signedIn: boolean; related: EffectPageCard[]
+export default function EffectPageClient({ effect, language, signedIn, related, measurementActor }: {
+  effect: EffectPageCard; language: InterfaceLanguage; signedIn: boolean; related: EffectPageCard[]; measurementActor: string | null
 }) {
   const router = useRouter()
   const t = (text: string) => effectText(language, text)
   return <main className="effect-page" lang={language} dir={interfaceLanguageIsRtl(language) ? 'rtl' : 'ltr'}>
+    <ClipTelemetry actor={measurementActor} surface="effect_page" effect={effect.key} />
     <header className="ep-nav">
       <Link href="/" className="ep-brand" aria-label="Kineo"><KineoBrandIcon size={24} /> Kineo</Link>
       <div className="ep-tools">
@@ -33,17 +35,17 @@ export default function EffectPageClient({ effect, language, signedIn, related }
           <p className="ep-lead">{t(effect.sub)}</p>
           <span className="ep-engine" dir="ltr">{CLIP_ENGINES[effect.engine].label}</span>
           <ol className="ep-steps"><li>{t('Use this effect')}</li><li>{t('Add your photo')}</li><li>{t('Generate your clip')}</li></ol>
-          <Link className="ep-cta" href={effectDestination(effect, signedIn)} prefetch={false} data-effect-use={effect.key}>{t('Use this effect')} <span aria-hidden="true">↗</span></Link>
+          <Link className="ep-cta" href={effectDestination(effect, signedIn)} prefetch={false} data-effect-use={effect.key} data-clip-action="use_effect" data-clip-effect={effect.key}>{t('Use this effect')} <span aria-hidden="true">↗</span></Link>
           <p className="ep-note">{t('Your result depends on your photo.')}</p>
         </div>
-        <figure className="ep-stage">
+        <figure className="ep-stage" data-clip-action="preview">
           <EffectPreview video={effect.preview!.video} poster={effect.preview!.poster!} label={t(effect.title)} />
           <figcaption>{t('Preview made with this effect from an AI-generated photo.')}</figcaption>
         </figure>
       </section>
       <section className="ep-related" aria-labelledby="more-effects">
-        <div className="ep-section-heading"><h2 id="more-effects">{t('More effects')}</h2><Link href="/clips">{t('See all effects')} ↗</Link></div>
-        <div className="ep-grid">{related.map(item => <Link key={item.key} className="ep-card" href={effectPagePath(effectSlug(item), language)} prefetch={false}>
+        <div className="ep-section-heading"><h2 id="more-effects">{t('More effects')}</h2><Link href="/clips" data-clip-action="view_all">{t('See all effects')} ↗</Link></div>
+        <div className="ep-grid">{related.map(item => <Link key={item.key} className="ep-card" href={effectPagePath(effectSlug(item), language)} prefetch={false} data-clip-action="select_related" data-clip-effect={item.key}>
           {/* House posters only; no additional videos or paid renders. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={item.preview!.poster} alt={t(item.title)} loading="lazy" width={270} height={480} />
@@ -55,4 +57,3 @@ export default function EffectPageClient({ effect, language, signedIn, related }
     </div>
   </main>
 }
-

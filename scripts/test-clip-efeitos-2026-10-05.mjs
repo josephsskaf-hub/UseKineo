@@ -187,7 +187,7 @@ async function problems(M) {
   // (5) eventos: escolhido (metadata), pronto (sem duplicar), forma sem dado pessoal
   const e0 = effects[0]
   const meta = fx.clipEffectEventMetadata(e0, { id: 'c1', credits: 5 })
-  if (JSON.stringify(Object.keys(meta).sort()) !== JSON.stringify(['clip_id', 'credits', 'effect', 'engine', 'seconds'])) p.push('metadata do evento fora de { effect, engine, seconds, credits, clip_id }')
+  if (JSON.stringify(Object.keys(meta).sort()) !== JSON.stringify(['clip_id', 'clip_measurement_version', 'credits', 'effect', 'engine', 'seconds'])) p.push('metadata do evento fora do contrato sem PII do efeito + versão de medição')
   if (meta.effect !== e0.key || meta.engine !== e0.engine || meta.seconds !== e0.seconds) p.push('metadata do evento não descreve o efeito')
   const row = (over = {}) => ({
     id: 'c1', user_id: U, idempotency_key: KEY, fingerprint: 'f', billing_reference: 'clips-c1', engine: e0.engine, mode: 'image',

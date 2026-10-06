@@ -18,6 +18,7 @@
 // CLIP_EFFECTS_PUBLIC=false e conta de fora → 404, nada lido nem cobrado.
 import { CLIP_ENGINES, type ClipEngineKey, type ClipRequestInput } from './clipCatalog'
 import { clipCreditCost } from './clipPricing'
+import { clipMeasurementVersion } from './clipMeasurement'
 
 /** Interruptor dos efeitos. false = só as contas da casa veem a galeria (o fundador liga). */
 export const CLIP_EFFECTS_PUBLIC = true // fundador 05/10: ligar tudo
@@ -287,5 +288,5 @@ export function clipEffectForRow(row: { prompt: string; engine: string; seconds:
 
 /** Metadata dos eventos do efeito: só a forma do pedido (sem foto, texto ou e-mail). */
 export function clipEffectEventMetadata(effect: ClipEffect, clip: { id: string; credits: number }): Record<string, unknown> {
-  return { effect: effect.key, engine: effect.engine, seconds: effect.seconds, credits: clip.credits, clip_id: clip.id }
+  return { effect: effect.key, engine: effect.engine, seconds: effect.seconds, credits: clip.credits, clip_id: clip.id, ...clipMeasurementVersion() }
 }
