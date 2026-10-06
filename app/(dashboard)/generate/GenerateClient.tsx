@@ -256,6 +256,7 @@ import {
 // /api/stripe/checkout usa para aceitar ou recusar a compra de recarga.
 import { canPurchaseCreditTopup } from '@/lib/growth/topupEligibility'
 import TopupUnavailableNote from '@/components/TopupUnavailableNote'
+import SubscriberUpgradeNudge, { SUBSCRIBER_UPGRADE_ENABLED } from '@/components/billing/SubscriberUpgradeNudge' // KINEO-ASSINANTE-SOBE-2026-10-06
 import MrrEpisodeValue from '@/components/growth/MrrEpisodeValue'
 import MrrShareFooter from '@/components/growth/MrrShareFooter'
 import FilmReadyExits from '@/components/FilmReadyExits' // KINEO-FLUXO-NOVO-2026-09-25 — as 3 saídas do filme pronto
@@ -22590,6 +22591,10 @@ function UpgradeModal({
             de components/UpgradeModalTrialDoor.tsx para a medição. */}
         <UpgradeModalTrialDoor currency={currency} region={region} notPaidProven={notPaidProven} reason={reason} readyClips={readyClips} />
 
+        {/* KINEO-ASSINANTE-SOBE-2026-10-06 — assinante sem crédito: o próximo degrau pela TROCA (POST /api/stripe/change-plan),
+            nunca pelo checkout, que recusa a segunda assinatura. As linhas de plano abaixo somem para ele; a recarga segue. */}
+        {isSubscriber && <SubscriberUpgradeNudge surface="generate_upgrade_modal" tone="dark" onDone={onClose} />}
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {PLAN_LIST.map((plan) => {
             // KINEO-UPGRADE-MODAL-CURRENCY-2026-08-06 — o `as 'starter'|'basic'|'pro'`
@@ -22600,7 +22605,7 @@ function UpgradeModal({
             // com TypeError no meio de uma tela que pede dinheiro. Plano que não
             // sabemos precificar simplesmente não é vendido aqui (fail-closed).
             const tier = asCheckoutTier(plan.tier)
-            if (!tier) return null
+            if (!tier || (isSubscriber && SUBSCRIBER_UPGRADE_ENABLED)) return null // KINEO-ASSINANTE-SOBE-2026-10-06 — assinante troca de plano no empurrão acima; esta linha o mandaria ao checkout, que recusa a 2ª assinatura
             const purchaseChoice = { type: 'plan', id: tier } as const
             const fitsRequest = purchaseFit
               ? limitPurchaseChoiceFits(purchaseFit, purchaseChoice)

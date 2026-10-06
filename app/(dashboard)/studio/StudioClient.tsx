@@ -76,6 +76,7 @@ import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/access'
 import { KINEO1_35S_CREDITS, adsPassLive } from '@/lib/ads/offer'
 import { ADS_MODELS } from '@/lib/ads/models'
 import { formatCheckoutMoney, getTierPrice } from '@/lib/checkoutPricing'
+import SubscriberUpgradeNudge from '@/components/billing/SubscriberUpgradeNudge' // KINEO-ASSINANTE-SOBE-2026-10-06 — clipe sem crédito: o assinante sobe de plano ou recarrega
 
 // A chave do card → a Quality que o biller entende. Uma fonte só para os dois
 // (tela e cobrança) evita a classe de bug que este arquivo já teve: custo em
@@ -401,7 +402,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
     return () => { delete root.dataset.studioStage }
   }, [stageKey])
   const [clipSeconds, setClipSeconds] = useState<number>(10)
-  const [clipState, setClipState] = useState<{ phase: 'idle' | 'submitting' | 'rendering' | 'done' | 'failed'; renderId?: string; url?: string; error?: string; startedAt?: number }>({ phase: 'idle' })
+  const [clipState, setClipState] = useState<{ phase: 'idle' | 'submitting' | 'rendering' | 'done' | 'failed'; renderId?: string; url?: string; error?: string; noCredits?: boolean; startedAt?: number }>({ phase: 'idle' })
   const clipPollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [chatGptQuickstart, setChatGptQuickstart] = useState<ChatGptQuickstartChoice | null>(null)
   const promptRef = useRef<HTMLTextAreaElement | null>(null)
@@ -711,7 +712,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
     try {
       const r = await fetch('/api/generate-clip', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt: prompt.trim(), seconds: clipSeconds, aspect }) })
       const j = await r.json() as { render_id?: string; error?: string; insufficient?: boolean }
-      if (!r.ok || !j.render_id) { setClipState({ phase: 'failed', error: j.error || 'Could not start the clip.' }); return }
+      if (!r.ok || !j.render_id) { setClipState({ phase: 'failed', error: j.error || 'Could not start the clip.', noCredits: r.status === 402 }); return }
       setClipState({ phase: 'rendering', renderId: j.render_id, startedAt })
       pollClip(j.render_id, startedAt)
     } catch {
@@ -1309,6 +1310,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                 {clipState.phase === 'submitting' && <UiLabel>Sending your shot to Seedance…</UiLabel>}
                 {clipState.phase === 'rendering' && <UiLabel>Rendering your clip — usually 1 to 3 minutes. You can keep this tab open.</UiLabel>}
                 {clipState.phase === 'failed' && <span style={{ color: '#fb923c' }}>{clipState.error}</span>}
+                {clipState.phase === 'failed' && clipState.noCredits && <SubscriberUpgradeNudge surface="studio_clip_402" topup onDone={(b) => { if (typeof b === 'number') setBalance(b); setClipState({ phase: 'idle' }) }} />}
                 {clipState.phase === 'done' && clipState.url && (
                   <div>
                     <video src={clipState.url} controls playsInline style={{ width: '100%', maxWidth: 360, borderRadius: 12, display: 'block', marginBottom: 8 }} />
