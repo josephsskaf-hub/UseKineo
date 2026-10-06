@@ -57,6 +57,11 @@ export const CLIP_COPY_EN = {
   paidBadge: 'NEW · paid plans',
   paidHint: 'Available on paid plans — see plans',
   seePlans: 'See plans →',
+  // KINEO-AVISO-CLIPE-GRATIS-2026-10-06 — o aviso "Você tem 1 clipe grátis" no topo do /studio e do /clips
+  // (components/FreeClipNotice.tsx; regra e ideia pronta em lib/clips/freeClipNotice.ts). {s} = os segundos da ideia pronta.
+  freeClipTitle: 'You have 1 free clip',
+  freeClipBody: 'A {s}-second video clip from one line of text. We’ve already written an idea for you — just press “Generate clip”.',
+  freeClipCta: 'Make my free clip',
 } as const
 
 export type ClipCopyKey = keyof typeof CLIP_COPY_EN
@@ -114,6 +119,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     paidBadge: 'NOVO · planos pagos',
     paidHint: 'Disponível nos planos pagos — ver planos',
     seePlans: 'Ver planos →',
+    freeClipTitle: 'Você tem 1 clipe grátis',
+    freeClipBody: 'Um clipe de vídeo de {s} segundos a partir de uma linha de texto. Já escrevemos uma ideia para você — é só apertar “Gerar clipe”.',
+    freeClipCta: 'Fazer meu clipe grátis',
   },
   es: {
     title: 'Clips',
@@ -166,6 +174,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     paidBadge: 'NUEVO · planes de pago',
     paidHint: 'Disponible en los planes de pago — ver planes',
     seePlans: 'Ver planes →',
+    freeClipTitle: 'Tienes 1 clip gratis',
+    freeClipBody: 'Un clip de vídeo de {s} segundos a partir de una línea de texto. Ya escribimos una idea para ti — solo pulsa «Generar clip».',
+    freeClipCta: 'Hacer mi clip gratis',
   },
   fr: {
     title: 'Clips',
@@ -218,6 +229,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     paidBadge: 'NOUVEAU · offres payantes',
     paidHint: 'Disponible avec les offres payantes — voir les offres',
     seePlans: 'Voir les offres →',
+    freeClipTitle: 'Vous avez 1 clip gratuit',
+    freeClipBody: 'Un clip vidéo de {s} secondes à partir d’une ligne de texte. Nous avons déjà écrit une idée pour vous — il suffit d’appuyer sur « Générer le clip ».',
+    freeClipCta: 'Créer mon clip gratuit',
   },
   de: {
     title: 'Clips',
@@ -270,6 +284,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     paidBadge: 'NEU · bezahlte Pläne',
     paidHint: 'In bezahlten Plänen verfügbar — Pläne ansehen',
     seePlans: 'Pläne ansehen →',
+    freeClipTitle: 'Du hast 1 Gratis-Clip',
+    freeClipBody: 'Ein {s}-Sekunden-Videoclip aus einer Zeile Text. Wir haben schon eine Idee für dich geschrieben — tippe einfach auf „Clip erstellen“.',
+    freeClipCta: 'Meinen Gratis-Clip erstellen',
   },
   it: {
     title: 'Clip',
@@ -322,6 +339,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     paidBadge: 'NUOVO · piani a pagamento',
     paidHint: 'Disponibile nei piani a pagamento — vedi i piani',
     seePlans: 'Vedi i piani →',
+    freeClipTitle: 'Hai 1 clip gratis',
+    freeClipBody: 'Un clip video di {s} secondi da una riga di testo. Abbiamo già scritto un’idea per te — basta premere «Genera clip».',
+    freeClipCta: 'Crea il mio clip gratis',
   },
   nl: {
     title: 'Clips',
@@ -374,6 +394,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     paidBadge: 'NIEUW · betaalde plannen',
     paidHint: 'Beschikbaar in betaalde plannen — bekijk de plannen',
     seePlans: 'Bekijk de plannen →',
+    freeClipTitle: 'Je hebt 1 gratis clip',
+    freeClipBody: 'Een videoclip van {s} seconden uit één regel tekst. We hebben al een idee voor je geschreven — druk gewoon op ‘Clip maken’.',
+    freeClipCta: 'Maak mijn gratis clip',
   },
   pl: {
     title: 'Klipy',
@@ -426,6 +449,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     paidBadge: 'NOWOŚĆ · płatne plany',
     paidHint: 'Dostępne w płatnych planach — zobacz plany',
     seePlans: 'Zobacz plany →',
+    freeClipTitle: 'Masz 1 darmowy klip',
+    freeClipBody: '{s}-sekundowy klip wideo z jednej linijki tekstu. Pomysł już dla Ciebie napisaliśmy — wystarczy nacisnąć „Generuj klip”.',
+    freeClipCta: 'Zrób mój darmowy klip',
   },
   tr: {
     title: 'Klipler',
@@ -478,6 +504,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     paidBadge: 'YENİ · ücretli planlar',
     paidHint: 'Ücretli planlarda kullanılabilir — planları gör',
     seePlans: 'Planları gör →',
+    freeClipTitle: '1 ücretsiz klibiniz var',
+    freeClipBody: 'Tek satır metinden {s} saniyelik bir video klip. Sizin için bir fikir bile yazdık — sadece “Klip oluştur”a basın.',
+    freeClipCta: 'Ücretsiz klibimi yap',
   },
   ru: {
     title: 'Клипы',
@@ -530,6 +559,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     paidBadge: 'НОВИНКА · платные планы',
     paidHint: 'Доступно в платных планах — посмотреть планы',
     seePlans: 'Посмотреть планы →',
+    freeClipTitle: 'У вас есть 1 бесплатный клип',
+    freeClipBody: 'Видеоклип на {s} секунд из одной строки текста. Мы уже написали для вас идею — просто нажмите «Создать клип».',
+    freeClipCta: 'Сделать бесплатный клип',
   },
   uk: {
     title: 'Кліпи',
@@ -582,6 +614,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     paidBadge: 'НОВИНКА · платні плани',
     paidHint: 'Доступно в платних планах — переглянути плани',
     seePlans: 'Переглянути плани →',
+    freeClipTitle: 'У вас є 1 безкоштовний кліп',
+    freeClipBody: 'Відеокліп на {s} секунд з одного рядка тексту. Ми вже написали для вас ідею — просто натисніть «Створити кліп».',
+    freeClipCta: 'Зробити безкоштовний кліп',
   },
   ar: {
     title: 'مقاطع',
@@ -634,6 +669,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     paidBadge: 'جديد · الخطط المدفوعة',
     paidHint: 'متاح في الخطط المدفوعة — اعرض الخطط',
     seePlans: 'اعرض الخطط ←',
+    freeClipTitle: 'لديك مقطع واحد مجاني',
+    freeClipBody: 'مقطع فيديو مدته {s} ثوانٍ من سطر نصي واحد. كتبنا لك فكرة جاهزة — فقط اضغط «أنشئ المقطع».',
+    freeClipCta: 'أنشئ مقطعي المجاني',
   },
   ur: {
     title: 'کلپس',
@@ -686,6 +724,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     paidBadge: 'نیا · بامعاوضہ پلانز',
     paidHint: 'بامعاوضہ پلانز میں دستیاب — پلانز دیکھیں',
     seePlans: 'پلانز دیکھیں ←',
+    freeClipTitle: 'آپ کے پاس 1 مفت کلپ ہے',
+    freeClipBody: 'متن کی ایک سطر سے {s} سیکنڈ کا ویڈیو کلپ۔ ہم نے آپ کے لیے ایک آئیڈیا پہلے ہی لکھ دیا ہے — بس "کلپ بنائیں" دبائیں۔',
+    freeClipCta: 'میرا مفت کلپ بنائیں',
   },
   hi: {
     title: 'क्लिप्स',
@@ -738,6 +779,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     paidBadge: 'नया · पेड प्लान',
     paidHint: 'पेड प्लान में उपलब्ध — प्लान देखें',
     seePlans: 'प्लान देखें →',
+    freeClipTitle: 'आपके पास 1 मुफ़्त क्लिप है',
+    freeClipBody: 'टेक्स्ट की एक लाइन से {s} सेकंड की वीडियो क्लिप। हमने आपके लिए एक आइडिया पहले ही लिख दिया है — बस "क्लिप बनाएँ" दबाएँ।',
+    freeClipCta: 'मेरी मुफ़्त क्लिप बनाएँ',
   },
   id: {
     title: 'Klip',
@@ -790,6 +834,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     paidBadge: 'BARU · paket berbayar',
     paidHint: 'Tersedia di paket berbayar — lihat paket',
     seePlans: 'Lihat paket →',
+    freeClipTitle: 'Anda punya 1 klip gratis',
+    freeClipBody: 'Klip video {s} detik dari satu baris teks. Kami sudah menuliskan ide untuk Anda — tinggal tekan “Buat klip”.',
+    freeClipCta: 'Buat klip gratis saya',
   },
   vi: {
     title: 'Clip',
@@ -842,6 +889,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     paidBadge: 'MỚI · gói trả phí',
     paidHint: 'Có trong các gói trả phí — xem các gói',
     seePlans: 'Xem các gói →',
+    freeClipTitle: 'Bạn có 1 clip miễn phí',
+    freeClipBody: 'Một clip video {s} giây từ một dòng chữ. Chúng tôi đã viết sẵn một ý tưởng cho bạn — chỉ cần bấm “Tạo clip”.',
+    freeClipCta: 'Tạo clip miễn phí',
   },
 }
 

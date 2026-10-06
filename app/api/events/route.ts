@@ -248,6 +248,10 @@ const SERVER_ONLY_EVENTS = new Set([
   'clip_effect_chosen',
   'clip_effect_ready',
   'clip_effect_film_upsell_clicked',
+  // KINEO-AVISO-CLIPE-GRATIS-2026-10-06 — escrito SÓ por /api/clips quando o pedido que nasceu da ideia pronta do aviso "Você
+  // tem 1 clipe grátis" é ACEITO (lib/clips/freeClipNotice.ts FREE_CLIP_NOTICE_EVENTS.requested). É o degrau do funil do
+  // presente; se o navegador pudesse cunhá-lo, o aviso pareceria converter sem nenhum clipe pedido.
+  'free_clip_notice_clip_requested',
   // KINEO-HOME-CLIPS-FIRST-2026-10-05 — escrito SÓ por /api/home-variant (variante recalculada no servidor pelo user_id ou
   // pelo cookie httpOnly kineo_vid). É o denominador do A/B da home: se o navegador pudesse cunhá-lo, o placar mentiria.
   'home_variant_exposed',

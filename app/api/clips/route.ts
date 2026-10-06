@@ -28,6 +28,7 @@ import { homeVariantStamp } from '@/lib/growth/homeClipsFirstServer'
 import type { ClipRequestInput } from '@/lib/clips/clipCatalog'
 import { CLIP_MEASUREMENT_ENABLED, clipOriginMetadata } from '@/lib/clips/clipMeasurement'
 import { isLikelyBot } from '@/lib/requestIdentity'
+import { FREE_CLIP_NOTICE_EVENTS, FREE_CLIP_NOTICE_VERSION } from '@/lib/clips/freeClipNotice' // KINEO-AVISO-CLIPE-GRATIS-2026-10-06
 
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
@@ -133,6 +134,17 @@ export async function POST(req: NextRequest) {
           ...clipOriginMetadata(body.clip_origin),
           ...(CLIP_MEASUREMENT_ENABLED ? { is_bot: isLikelyBot(req.headers.get('user-agent')) } : {}),
         },
+      }).catch(() => false)
+    }
+    // KINEO-AVISO-CLIPE-GRATIS-2026-10-06 — o clipe saiu da ideia pronta do aviso "Você tem 1 clipe grátis" (lib/clips/
+    // freeClipNotice.ts). O navegador só diz de onde veio; o servidor grava o fato com o id do clipe ACEITO e novo (replay não
+    // conta) — funil aviso → clique → pedido → clip_delivered, ligado pelo clip_id. Nada muda no pedido nem no débito.
+    if (!effect && body.free_clip_notice === true && result.ok && !result.replay) {
+      await writeServerEvent({
+        name: FREE_CLIP_NOTICE_EVENTS.requested,
+        userId: user.id,
+        path: '/api/clips',
+        metadata: { clip_id: result.clip.id, engine: result.clip.engine, seconds: result.clip.seconds, credits: result.clip.credits, version: FREE_CLIP_NOTICE_VERSION },
       }).catch(() => false)
     }
     if (result.ok) {

@@ -22,6 +22,7 @@ import { CLIP_MEASUREMENT_ENABLED } from '@/lib/clips/clipMeasurement'
 import { trackClosedEvent } from '@/lib/analytics'
 import { CLIP_POST_COPY, CLIP_POST_EVENTS, CLIP_SHARE_CAPTION } from '@/lib/clips/freeClipWatermark'
 import { CLIP_PAID_EVENTS, clipPaidUpgradeHref } from '@/lib/clips/clipLaunch' // KINEO-S25-CLIPES-2026-10-06 — card trancado (só planos pagos)
+import { FREE_CLIP_APPLY_EVENT, FREE_CLIP_IDEA, FREE_CLIP_NOTICE_PARAM } from '@/lib/clips/freeClipNotice' // KINEO-AVISO-CLIPE-GRATIS-2026-10-06
 
 type Engine = {
   key: string
@@ -169,6 +170,36 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
     if (wanted && effects.some((fx) => fx.key === wanted)) setEffectKey(wanted)
   }, [effects])
 
+  // KINEO-AVISO-CLIPE-GRATIS-2026-10-06 — a ideia pronta do aviso "Você tem 1 clipe grátis" (lib/clips/freeClipNotice.ts):
+  // vinda do /studio (?free_clip=1) ou do botão do aviso aqui mesmo (evento de janela). Preenche motor, duração, formato e a
+  // ideia, e leva o olho ao botão de gerar — nada dispara sozinho. Motor fora do catálogo da conta: o primeiro que faz texto
+  // na duração da ideia.
+  const [freeClipPending, setFreeClipPending] = useState(false)
+  const freeClipOriginRef = useRef(false)
+  const freeClipFocusRef = useRef(false)
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get(FREE_CLIP_NOTICE_PARAM) === '1') setFreeClipPending(true)
+    const onApply = () => setFreeClipPending(true)
+    window.addEventListener(FREE_CLIP_APPLY_EVENT, onApply)
+    return () => window.removeEventListener(FREE_CLIP_APPLY_EVENT, onApply)
+  }, [])
+  useEffect(() => {
+    if (!freeClipPending || engines.length === 0) return
+    setFreeClipPending(false)
+    const fits = (e: Engine) => e.text && e.seconds.includes(FREE_CLIP_IDEA.seconds)
+    const target = engines.find((e) => e.key === FREE_CLIP_IDEA.engine && fits(e)) ?? engines.find(fits)
+    if (!target) return
+    setEffectKey(null)
+    setPhotoUrl(null)
+    setEngineKey(target.key)
+    setSeconds(FREE_CLIP_IDEA.seconds)
+    setAspect(FREE_CLIP_IDEA.aspect)
+    setPrompt(FREE_CLIP_IDEA.prompt)
+    setError(null)
+    freeClipOriginRef.current = true
+    freeClipFocusRef.current = true
+  }, [freeClipPending, engines])
+
   const effect = effects.find((fx) => fx.key === effectKey) ?? null
   const engine = engines.find((e) => e.key === engineKey) ?? null
 
@@ -193,6 +224,16 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
   const alternatives = engines.filter((e) => e.key !== engineKey && e.seconds.includes(seconds) && (withPhoto ? e.photo : e.text))
   const textOk = withPhoto ? prompt.trim().length === 0 || prompt.trim().length >= 3 : prompt.trim().length >= 3
   const canGenerate = !!engine && lengthOk && !modeProblem && textOk && !busy && !uploading && cost !== null
+
+  // KINEO-AVISO-CLIPE-GRATIS-2026-10-06 — ideia pronta aplicada: assim que o botão de gerar acende, ele vem para o centro e
+  // ganha o foco (a pessoa só aperta).
+  useEffect(() => {
+    if (!freeClipFocusRef.current || !canGenerate) return
+    freeClipFocusRef.current = false
+    const review = document.getElementById('clip-generation-review')
+    review?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    review?.querySelector<HTMLButtonElement>('button[data-clip-action="generate"]')?.focus({ preventScroll: true })
+  }, [canGenerate, prompt, engineKey])
 
   function chooseEngine(next: Engine) {
     setEngineKey(next.key)
@@ -252,11 +293,14 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
         headers: { 'Content-Type': 'application/json', 'Idempotency-Key': key },
         body: JSON.stringify({ ...payload, idempotency_key: key,
           ...(CLIP_MEASUREMENT_ENABLED && payload.effect ? { clip_origin: readClipEntryOrigin() } : {}),
+          // KINEO-AVISO-CLIPE-GRATIS-2026-10-06 — o pedido saiu da ideia pronta do aviso: o servidor grava o fato com o clip_id.
+          ...(freeClipOriginRef.current && !payload.effect ? { free_clip_notice: true } : {}),
         }),
       })
       const data = await res.json().catch(() => ({}))
       if (data?.clip) setClips((xs) => [data.clip as Clip, ...xs.filter((c) => c.id !== data.clip.id)])
       if (typeof data?.balance === 'number') setBalance(data.balance)
+      if (res.ok && !payload.effect) freeClipOriginRef.current = false
       if (!res.ok) {
         // KINEO-S25-CLIPES-2026-10-06 — 402 engine_paid (motor só de planos pagos) leva aos planos, não à recarga de créditos.
         const paidOnly = data?.code === 'engine_paid'

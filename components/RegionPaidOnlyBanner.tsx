@@ -7,20 +7,57 @@
 // tela autenticada — "o filme grátis ainda não está disponível no seu país; os planos funcionam normalmente" — com o
 // botão dos planos. Texto em pt/en/es (lib/freeFilmPolicy.ts REGION_PAID_ONLY_NOTICE, pela língua escolhida da
 // interface; as outras caem no inglês). Some sozinha quando a pessoa paga (regionPaidOnlyNoticeVisible, no servidor).
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
-import { REGION_FREE_CLIP_HREF, REGION_FREE_CLIP_NOTICE, REGION_PAID_ONLY_NOTICE, REGION_PAID_ONLY_PLANS_HREF } from '@/lib/freeFilmPolicy'
+import { REGION_FREE_CLIP_CREDITS, REGION_FREE_CLIP_HREF, REGION_FREE_CLIP_NOTICE, REGION_PAID_ONLY_NOTICE, REGION_PAID_ONLY_PLANS_HREF } from '@/lib/freeFilmPolicy'
 import { PREVIA_CENAS_PUBLIC, PREVIA_COPY } from '@/lib/scenePreview' // KINEO-PREVIA-CENAS-2026-10-03
+import FreeClipNotice from '@/components/FreeClipNotice' // KINEO-AVISO-CLIPE-GRATIS-2026-10-06
+import { freeClipNoticeSurface, freeClipStillAvailable } from '@/lib/clips/freeClipNotice'
 
 export const REGION_PAID_ONLY_BANNER_VERSION = 'region_paid_only_notice_v1' as const
+
+// KINEO-AVISO-CLIPE-GRATIS-2026-10-06 — no /studio e no /clips, quem TEM o clipe grátis e ainda não usou (freeClip: o layout
+// calculou regionFreeClipAvailable no servidor) vê "Você tem 1 clipe grátis" NO LUGAR desta faixa — uma faixa só, com o botão
+// dos planos dentro (components/FreeClipNotice.tsx). Nas outras telas, e para quem não tem o presente, a faixa de sempre.
+export default function RegionPaidOnlyBanner({ freeClip = false }: { freeClip?: boolean }) {
+  const gift = useFreeClipGift(freeClip)
+  const surface = freeClipNoticeSurface(usePathname(), gift)
+  if (surface) return <FreeClipNotice key={surface} surface={surface} />
+  return <RegionPaidOnlyStrip freeClip={gift} />
+}
+
+// KINEO-AVISO-CLIPE-GRATIS-2026-10-06 — o layout decide no servidor e não roda de novo numa navegação dentro do app: o saldo
+// que muda NESTA aba (clipe pedido, estorno, pagamento — todos disparam `creditsChanged`) decide aqui, pela regra pura
+// freeClipStillAvailable. Usou o presente (ou pagou): na hora, o aviso dá lugar à faixa dos planos — o CTA que vende fica.
+function useFreeClipGift(serverSaid: boolean): boolean {
+  const [gift, setGift] = useState(serverSaid)
+  useEffect(() => {
+    setGift(serverSaid)
+    if (!serverSaid) return
+    let alive = true
+    const recheck = () => {
+      fetch('/api/credits', { cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => { if (alive) setGift((current) => freeClipStillAvailable(serverSaid, current, d, REGION_FREE_CLIP_CREDITS)) })
+        .catch(() => {})
+    }
+    window.addEventListener('creditsChanged', recheck)
+    return () => {
+      alive = false
+      window.removeEventListener('creditsChanged', recheck)
+    }
+  }, [serverSaid])
+  return gift
+}
 
 // KINEO-CLIPE-GRATIS-REGIAO-2026-10-05 (fundador, item 1A) — com o clipe grátis disponível (5 cr dados no cadastro), a faixa
 // vira "seu primeiro clipe é grátis" com o botão para o /clips; os planos descem para o botão secundário. Usou o clipe
 // (saldo < 5) = volta a faixa de sempre.
-export default function RegionPaidOnlyBanner({ freeClip = false }: { freeClip?: boolean }) {
+function RegionPaidOnlyStrip({ freeClip }: { freeClip: boolean }) {
   const language = useInterfaceLanguage()
   const copy = pickInterfaceCopy(freeClip ? REGION_FREE_CLIP_NOTICE : REGION_PAID_ONLY_NOTICE, language)
   const plansCta = pickInterfaceCopy(REGION_PAID_ONLY_NOTICE, language).cta
@@ -50,9 +87,12 @@ export default function RegionPaidOnlyBanner({ freeClip = false }: { freeClip?: 
         gap: 12,
       }}
     >
+      {/* KINEO-AVISO-CLIPE-GRATIS-2026-10-06 — texto nas cores do TEMA: o claro é o padrão desde a PORCELANA (30/09) e o branco
+          fixo desta faixa (desenhada em 29/09, no app escuro) sumia nele — título, texto e "See plans" quase invisíveis
+          (medido em 06/10 com o Edge sem cabeça). O botão azul com texto preto lê nos dois temas e fica como estava. */}
       <div style={{ minWidth: 220, flex: '1 1 320px' }}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{copy.title}</div>
-        <div style={{ marginTop: 4, fontSize: 13, lineHeight: 1.5, color: 'rgba(255,255,255,.78)' }}>{copy.body}</div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{copy.title}</div>
+        <div style={{ marginTop: 4, fontSize: 13, lineHeight: 1.5, color: 'var(--text2)' }}>{copy.body}</div>
       </div>
       {/* KINEO-PREVIA-CENAS-2026-10-03 — antes dos planos, a prévia grátis das cenas (o produto funcionando por centavos). */}
       {freeClip ? (
@@ -70,7 +110,7 @@ export default function RegionPaidOnlyBanner({ freeClip = false }: { freeClip?: 
           href="/studio/previa"
           data-testid="region-paid-only-preview"
           onClick={() => { void trackEvent('region_paid_only_preview_clicked', { version: REGION_PAID_ONLY_BANNER_VERSION, language }) }}
-          style={{ color: '#fff', border: '1px solid rgba(255,255,255,.55)', borderRadius: 999, padding: '10px 16px', fontSize: 14, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}
+          style={{ color: 'var(--text)', border: '1px solid var(--border2, var(--border))', borderRadius: 999, padding: '10px 16px', fontSize: 14, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}
         >
           {previa.bannerPreview}
         </Link>
@@ -80,7 +120,7 @@ export default function RegionPaidOnlyBanner({ freeClip = false }: { freeClip?: 
         data-testid="region-paid-only-plans"
         onClick={() => { void trackEvent('region_paid_only_notice_clicked', { version: REGION_PAID_ONLY_BANNER_VERSION, language }) }}
         style={freeClip
-          ? { color: '#fff', border: '1px solid rgba(255,255,255,.55)', borderRadius: 999, padding: '10px 16px', fontSize: 14, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }
+          ? { color: 'var(--text)', border: '1px solid var(--border2, var(--border))', borderRadius: 999, padding: '10px 16px', fontSize: 14, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }
           : {
             background: '#2997ff',
             color: '#000',
