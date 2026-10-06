@@ -266,11 +266,15 @@ async function verificacoes(over = {}) {
 
   // ── (F) só o S25: quem importa a lib, onde a rota chama, e as fatias REAIS da rota ──
   const R = src(ROTA)
-  v('s25Cena só é importado pela rota generate-video-cinematic (varre app/, lib/, components/)', () => { const quem = ['app', 'lib', 'components'].flatMap(arquivosTs).map((p) => relative(RAIZ, p).replace(/\\/g, '/')).filter((p) => p !== LIB && /s25Cena/.test(readFileSync(join(RAIZ, p), 'utf8'))).sort(); return JSON.stringify(quem) === JSON.stringify([ROTA]) })
-  v("toda chamada de planejarCenasS25/ambienteComEpoca/epocaDoFilmeS25/montarPromptS25 na rota fica num ramo family === 's25' (até 20 linhas acima)", () => {
+  // Reancorado 06/10 na integração com o juiz da foto-base (KINEO-JUIZ-STILL-2026-10-06): lib/hollywood/juizStill.ts CITA s25Cena em
+  // comentário (é módulo puro, sem import) — conta só IMPORT de verdade; e a chamada do juiz a ambienteComEpoca fica atrás de
+  // juizStillLigado(family), que só vale como ramo do S25 enquanto JUIZ_STILL_FAMILIAS for exatamente ['s25'] (linha inteira conferida).
+  v('s25Cena só é importado pela rota generate-video-cinematic (varre app/, lib/, components/)', () => { const quem = ['app', 'lib', 'components'].flatMap(arquivosTs).map((p) => relative(RAIZ, p).replace(/\\/g, '/')).filter((p) => p !== LIB && /from\s+['"][^'"]*\/s25Cena['"]/.test(readFileSync(join(RAIZ, p), 'utf8'))).sort(); return JSON.stringify(quem) === JSON.stringify([ROTA]) })
+  v("toda chamada de planejarCenasS25/ambienteComEpoca/epocaDoFilmeS25/montarPromptS25 na rota fica num ramo family === 's25' (até 20 linhas acima; o juiz conta como ramo do S25 só com JUIZ_STILL_FAMILIAS = ['s25'])", () => {
     const L = R.split('\n')
+    const juizSoS25 = src('lib/hollywood/juizStill.ts').split('\n').some((x) => x === "export const JUIZ_STILL_FAMILIAS: readonly string[] = ['s25']")
     const chamadas = L.map((l, i) => [l, i]).filter(([l]) => /\b(?:planejarCenasS25|ambienteComEpoca|epocaDoFilmeS25|montarPromptS25)\(/.test(l) && !/^\s*(?:import|\/\/)/.test(l))
-    return chamadas.length >= 6 && chamadas.every(([, i]) => L.slice(Math.max(0, i - 20), i + 1).some((x) => x.includes("family === 's25'")))
+    return chamadas.length >= 6 && chamadas.every(([, i]) => L.slice(Math.max(0, i - 20), i + 1).some((x) => x.includes("family === 's25'") || (juizSoS25 && x.includes('juizStillLigado(family)'))))
   })
   const corpoEnsaio = fatia(R, '          let s25Ensaio: Record<string, unknown> | null = null', "          await releaseBirthClaim('dry_run_no_charge')")
   const corpoPre = fatia(R, '      // ═══ KINEO-S25-NOTA95-2026-10-06 — a ÚLTIMA passada no plano visual do Seedance 2.5, antes de still e POST ═══', '      for (const [idx, hs] of plan.scenes.entries()) {')
