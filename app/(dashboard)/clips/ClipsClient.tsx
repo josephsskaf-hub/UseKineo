@@ -23,6 +23,7 @@ import { trackClosedEvent } from '@/lib/analytics'
 import { CLIP_POST_COPY, CLIP_POST_EVENTS, CLIP_SHARE_CAPTION } from '@/lib/clips/freeClipWatermark'
 import { CLIP_PAID_EVENTS, clipPaidUpgradeHref } from '@/lib/clips/clipLaunch' // KINEO-S25-CLIPES-2026-10-06 — card trancado (só planos pagos)
 import { FREE_CLIP_APPLY_EVENT, FREE_CLIP_IDEA, FREE_CLIP_NOTICE_PARAM } from '@/lib/clips/freeClipNotice' // KINEO-AVISO-CLIPE-GRATIS-2026-10-06
+import { clipEngineShowcase, type ClipEngineShowcase } from '@/lib/clips/clipEngineShowcase' // KINEO-FAROL-VITRINE-2026-10-06
 
 type Engine = {
   key: string
@@ -78,6 +79,16 @@ type EffectCard = {
 const ASPECT_KEY: Record<string, ClipCopyKey> = { '9:16': 'vertical', '16:9': 'wide', '1:1': 'square' }
 const ASPECT_ICON: Record<string, string> = { '9:16': '▯', '16:9': '▭', '1:1': '□' }
 const ICON: Record<string, string> = { seedance: 'S', kling: 'K', hollywood: 'K3', veo: 'G', h3: 'H3', omni: 'OF', s25: 'S2' }
+
+// KINEO-FAROL-VITRINE-2026-10-06 — o vídeo da vitrine do card do motor: o MESMO elemento das prévias dos efeitos (mudo, em
+// loop, com pôster), cobrindo o card por baixo do texto. Decorativo: o nome do motor e o selo vêm em texto no próprio card.
+function EngineShowcaseMedia({ sc }: { sc: ClipEngineShowcase }) {
+  return (
+    <span className="sc-media" aria-hidden="true">
+      <video src={sc.video} poster={sc.poster} autoPlay muted loop playsInline preload="metadata" style={{ objectPosition: sc.focus }} />
+    </span>
+  )
+}
 
 function newKey(): string {
   try { return `clip-ui-${crypto.randomUUID()}` } catch { return `clip-ui-${Date.now()}-${Math.random().toString(36).slice(2, 10)}` }
@@ -488,6 +499,15 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
         .stu.clips-workspace .clip-engine .tag{font-size:10px;color:var(--muted2);border:1px solid var(--border);border-radius:6px;padding:1px 6px;align-self:flex-start}
         .stu.clips-workspace .clip-engine.locked{text-decoration:none;border-style:dashed}
         .stu.clips-workspace .clip-engine .tag.paid{color:var(--indigo);border-color:color-mix(in srgb,var(--indigo) 45%,var(--border));background:color-mix(in srgb,var(--indigo) 12%,transparent);font-weight:700}
+        .stu.clips-workspace .clip-engine.has-showcase{position:relative;overflow:hidden;isolation:isolate;background:#05080d;color:#fff;border-color:color-mix(in srgb,var(--indigo) 40%,var(--border))}
+        .stu.clips-workspace .clip-engine .sc-media{position:absolute;inset:0;z-index:-2;pointer-events:none}
+        .stu.clips-workspace .clip-engine .sc-media video{width:100%;height:100%;object-fit:cover;display:block}
+        .stu.clips-workspace .clip-engine.has-showcase::after{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,rgba(3,9,18,.2) 0%,rgba(3,9,18,.45) 45%,rgba(3,9,18,.86) 100%)}
+        .stu.clips-workspace .clip-engine.has-showcase .ic{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.32);color:#fff}
+        .stu.clips-workspace .clip-engine.has-showcase .nm{color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+        .stu.clips-workspace .clip-engine.has-showcase .sec,.stu.clips-workspace .clip-engine.has-showcase .pr{color:rgba(255,255,255,.86);text-shadow:0 1px 2px rgba(0,0,0,.6)}
+        .stu.clips-workspace .clip-engine.has-showcase .tag.paid{color:#d6e9ff;border-color:rgba(124,192,255,.6);background:rgba(41,151,255,.24)}
+        .stu.clips-workspace .clip-engine .sc-note{margin-top:auto;font-size:10.5px;color:rgba(255,255,255,.78);text-shadow:0 1px 2px rgba(0,0,0,.6)}
         .stu.clips-workspace .notice{margin-top:10px;padding:10px 12px;border-radius:10px;border:1px solid rgba(251,191,36,.35);background:rgba(251,191,36,.06);font-size:12.5px;color:var(--text)}
         .stu.clips-workspace .notice .row{margin-top:8px}
         .stu.clips-workspace .photo-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}
@@ -542,26 +562,39 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
 
       {!effect && <div className="lab"><span className="n">1</span>{t('engine')}</div>}
       {!effect && <div className="clip-engines" role="group" aria-label={t('engine')}>
-        {engines.map((e) => (
-          <button key={e.key} type="button" className="clip-engine" aria-pressed={e.key === engineKey} onClick={() => chooseEngine(e)}>
-            <span className="ic" aria-hidden="true">{ICON[e.key] ?? '•'}</span>
-            <span className="nm">{e.label}</span>
-            <span className="sec">{e.seconds.join(' · ')} s</span>
-            {!e.text && <span className="tag">{t('photoOnly')}</span>}
-          </button>
-        ))}
+        {/* KINEO-FAROL-VITRINE-2026-10-06 — card com vitrine (lib/clips/clipEngineShowcase.ts, hoje só o 2.5): o clipe REAL do
+            motor cobre o card por baixo do texto, com o selo "Feito com <motor> · N s". Os outros cards seguem iguais. */}
+        {engines.map((e) => {
+          const sc = clipEngineShowcase(e.key)
+          return (
+            <button key={e.key} type="button" className={`clip-engine${sc ? ' has-showcase' : ''}`} aria-pressed={e.key === engineKey} onClick={() => chooseEngine(e)}>
+              {sc && <EngineShowcaseMedia sc={sc} />}
+              <span className="ic" aria-hidden="true">{ICON[e.key] ?? '•'}</span>
+              <span className="nm">{e.label}</span>
+              <span className="sec">{e.seconds.join(' · ')} s</span>
+              {!e.text && <span className="tag">{t('photoOnly')}</span>}
+              {sc && <span className="sc-note">{t('madeWith', { engine: e.label })} · {sc.seconds}&nbsp;s</span>}
+            </button>
+          )
+        })}
         {/* KINEO-S25-CLIPES-2026-10-06 — card trancado: o motor REAL (selo honesto) + "NEW · paid plans"; o clique leva aos
-            planos e nunca escolhe o motor (o servidor recusaria com a mesma régua, antes de qualquer débito). Sem preço. */}
-        {lockedEngines.map((e) => (
-          <a key={`locked-${e.key}`} className="clip-engine locked" href={e.upgradeHref} data-clip-locked={e.key}
-            onClick={() => { void trackClosedEvent(CLIP_PAID_EVENTS.clicked, { surface: 'clips', engine: e.key, balance }) }}>
-            <span className="ic" aria-hidden="true">{ICON[e.key] ?? '•'}</span>
-            <span className="nm">{e.label}</span>
-            <span className="sec">{e.seconds.join(' · ')} s</span>
-            <span className="tag paid">{t('paidBadge')}</span>
-            <span className="pr">{t('paidHint')}</span>
-          </a>
-        ))}
+            planos e nunca escolhe o motor (o servidor recusaria com a mesma régua, antes de qualquer débito). Sem preço.
+            KINEO-FAROL-VITRINE-2026-10-06 — com vitrine, o farol do 2.5 cobre o card (o clique continua levando aos planos). */}
+        {lockedEngines.map((e) => {
+          const sc = clipEngineShowcase(e.key)
+          return (
+            <a key={`locked-${e.key}`} className={`clip-engine locked${sc ? ' has-showcase' : ''}`} href={e.upgradeHref} data-clip-locked={e.key}
+              onClick={() => { void trackClosedEvent(CLIP_PAID_EVENTS.clicked, { surface: 'clips', engine: e.key, balance }) }}>
+              {sc && <EngineShowcaseMedia sc={sc} />}
+              <span className="ic" aria-hidden="true">{ICON[e.key] ?? '•'}</span>
+              <span className="nm">{e.label}</span>
+              <span className="sec">{e.seconds.join(' · ')} s</span>
+              <span className="tag paid">{t('paidBadge')}</span>
+              <span className="pr">{t('paidHint')}</span>
+              {sc && <span className="sc-note">{t('madeWith', { engine: e.label })} · {sc.seconds}&nbsp;s</span>}
+            </a>
+          )
+        })}
       </div>}
 
       <div className="grid creation-grid">

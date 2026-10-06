@@ -3,6 +3,9 @@
 //       presente e ainda não usou (a regra do layout, regionFreeClipAvailable); UM clique para a ideia pronta (que cabe no
 //       presente); o aviso não tira o CTA que vende (planos) nem cobre a tela; nada dispara sozinho; eventos _shown/_clicked do
 //       navegador (com session_id) e o pedido ACEITO gravado pelo servidor; 16 línguas.
+//   (B) KINEO-FAROL-VITRINE-2026-10-06 — o farol (1º clipe Seedance 2.5 da casa) vira a vitrine do card do 2.5 no /clips: só
+//       ali (livre e trancado), selo honesto conferido no próprio MP4 (480×854, 24 fps, 5 s), pôster WebP, sem preço no
+//       cartão, e a curadoria do fundador intacta (o farol só é citado pela vitrine do 2.5).
 // Estilo da casa: readFileSync + ts.transpileModule para os módulos puros (imports relativos) e o carregador offline da casa
 // (scripts/test-support/offline-ts-loader.mjs) para EXECUTAR a rota com banco, fal e eventos falsos. Nada de rede, nada de
 // crédito. Mutantes no fim: cada regra quebrada fica vermelha (só conta o vermelho NOVO).
@@ -232,9 +235,96 @@ async function problemsA(over = {}) {
   return p
 }
 
+// ═══ (B) O farol na vitrine do Seedance 2.5 ══════════════════════════════════
+const SHOWCASE = 'lib/clips/clipEngineShowcase.ts'
+const WATERMARK = 'lib/clips/freeClipWatermark.ts'
+const FAROL = 'fb1eeb41-48ca-4835-a93a-01d422a17aa4'
+/** Arquivos de código do app (para provar onde o farol é citado). */
+function sourceFiles(dir, out = []) {
+  for (const name of fs.readdirSync(path.join(ROOT, dir))) {
+    if (name === 'node_modules' || name.startsWith('.')) continue
+    const rel = `${dir}/${name}`
+    if (fs.statSync(path.join(ROOT, rel)).isDirectory()) sourceFiles(rel, out)
+    else if (/\.(tsx?|mjs|json)$/.test(name)) out.push(rel)
+  }
+  return out
+}
+const APP_FILES = ['app', 'lib', 'components'].flatMap((d) => sourceFiles(d))
+/** Ordem das caixas do topo do MP4 (o moov antes do mdat toca enquanto baixa). */
+function topBoxes(buf) {
+  const out = []
+  let o = 0
+  while (o + 8 <= buf.length) {
+    let size = buf.readUInt32BE(o)
+    if (size === 1) size = Number(buf.readBigUInt64BE(o + 8))
+    else if (size === 0) size = buf.length - o
+    out.push(buf.toString('latin1', o + 4, o + 8))
+    if (size < 8) break
+    o += size
+  }
+  return out
+}
+
+async function problemsB(over = {}) {
+  const p = []
+  const src = (rel) => (over[rel] ?? raw(rel)).replace(/\r\n/g, '\n')
+  let SC, W
+  try { SC = loadPure(SHOWCASE, over); W = loadPure(WATERMARK, over) } catch (err) { return [`(B) módulo não carrega: ${err.message}`] }
+
+  // (B1) só o 2.5 tem vitrine, e é o farol
+  const keys = Object.keys(SC.CLIP_ENGINE_SHOWCASE ?? {})
+  if (keys.join() !== 's25') p.push(`(B1) vitrine fora do lugar do 2.5: ${keys.join(',') || 'nenhuma'}`)
+  for (const k of ['seedance', 'kling', 'hollywood', 'veo', 'h3', 'omni', '__proto__', 'toString']) if (SC.clipEngineShowcase(k) !== null) p.push(`(B1) o card ${k} ganhou vitrine`)
+  const s = SC.clipEngineShowcase('s25')
+  if (!s) return [...p, '(B1) o card do 2.5 sem vitrine']
+  if (s.clipId !== FAROL || s.video !== `/previews/${FAROL}.mp4` || s.poster !== `/posters/${FAROL}.webp`) p.push('(B1) a vitrine do 2.5 não é o farol (id/arquivos)')
+
+  // (B2) selo honesto, conferido no próprio arquivo: Seedance 2.5 em pé (9:16), 5 s, e o pôster existe
+  const mp4Path = path.join(ROOT, 'public', s.video.replace(/^\//, ''))
+  const posterPath = path.join(ROOT, 'public', s.poster.replace(/^\//, ''))
+  if (!fs.existsSync(mp4Path)) p.push(`(B2) prévia aponta arquivo inexistente: ${s.video}`)
+  else {
+    const buf = fs.readFileSync(mp4Path)
+    const info = W.probeClipVideo(buf)
+    if (!info || info.width !== 480 || info.height !== 854 || info.fps !== 24) p.push(`(B2) o MP4 não é o clipe do 2.5 (480×854, 24 fps): ${JSON.stringify(info)}`)
+    else if (Math.round(info.durationSeconds) !== s.seconds) p.push(`(B2) o selo diz ${s.seconds} s e o clipe tem ${info.durationSeconds} s`)
+    const boxes = topBoxes(buf)
+    if (boxes.indexOf('moov') < 0 || boxes.indexOf('moov') > boxes.indexOf('mdat')) p.push('(B2) MP4 sem o moov na frente (o card esperaria o arquivo inteiro)')
+    if (buf.length > 2 * 1024 * 1024) p.push(`(B2) prévia pesada demais para um card (${buf.length} bytes)`)
+  }
+  if (!fs.existsSync(posterPath)) p.push(`(B2) pôster inexistente: ${s.poster}`)
+  else {
+    const pb = fs.readFileSync(posterPath)
+    if (pb.toString('latin1', 0, 4) !== 'RIFF' || pb.toString('latin1', 8, 12) !== 'WEBP' || pb.length > 200 * 1024) p.push('(B2) pôster não é um WebP leve')
+  }
+  if (s.seconds !== 5) p.push(`(B2) a vitrine do 2.5 devia dizer 5 s (é o clipe de 5 s): ${s.seconds}`)
+
+  // (B3) a tela: a vitrine sai do catálogo do PRÓPRIO card (nada amarrado ao 2.5 na tela), nos dois cards do motor, sem preço
+  const client = src(CLIENT)
+  if ((client.match(/const sc = clipEngineShowcase\(e\.key\)/g) ?? []).length !== 2 || /clipEngineShowcase\((?!e\.key\))/.test(client.replace(/import \{ clipEngineShowcase[^\n]*\n/, ''))) p.push('(B3) a vitrine não vem do catálogo do próprio card (ou está presa a um motor na tela)')
+  const grid = between(client, '{engines.map(', '</div>}')
+  const freeCard = between(client, '{engines.map(', '{lockedEngines.map(')
+  const lockedCard = between(client, '{lockedEngines.map(', '</div>}')
+  for (const [label, block] of [['card livre', freeCard], ['card trancado', lockedCard]]) {
+    if (!block.includes('{sc && <EngineShowcaseMedia sc={sc} />}')) p.push(`(B3) ${label} sem o vídeo da vitrine`)
+    if (!block.includes("{sc && <span className=\"sc-note\">{t('madeWith', { engine: e.label })} · {sc.seconds}&nbsp;s</span>}")) p.push(`(B3) ${label} sem o selo "Feito com <motor> · N s"`)
+  }
+  if (/\bcredits\b|minCost|\bcost\b|clipCreditCost|\bcr\b/.test(code(grid))) p.push('(B3) cartão de motor com preço (o crédito mora no botão de gerar)')
+  if (!lockedCard.includes('href={e.upgradeHref}') || /chooseEngine|setEngineKey/.test(lockedCard)) p.push('(B3) o card trancado do 2.5 deixou de levar aos planos')
+  const media = between(client, 'function EngineShowcaseMedia(', '\n}\n')
+  if (!media.includes('<video src={sc.video} poster={sc.poster} autoPlay muted loop playsInline preload="metadata"') || !media.includes('aria-hidden="true"')) p.push('(B3) o vídeo da vitrine fora do padrão das prévias (mudo, em loop, com pôster, decorativo)')
+
+  // (B4) curadoria do fundador intacta: o farol só é citado pela vitrine do 2.5
+  const cites = APP_FILES.filter((rel) => (over[rel] ?? raw(rel)).includes(FAROL))
+  if (cites.join() !== SHOWCASE) p.push(`(B4) o farol apareceu fora da vitrine do 2.5: ${cites.join(', ')}`)
+  return p
+}
+
 console.log('TESTE clipes-tres — 06/10')
 const realA = await problemsA()
 ok(realA.length === 0, '(A) aviso do clipe grátis: só quem tem e não usou, no /studio e no /clips; ideia pronta cabe no presente; CTA que vende fica; nada dispara sozinho; eventos; 16 línguas' + (realA.length ? ' → ' + realA.join(' | ') : ''))
+const realB = await problemsB()
+ok(realB.length === 0, '(B) farol: só no card do 2.5 (livre e trancado), clipe real de 5 s em pé conferido no MP4, pôster, sem preço no cartão, curadoria intacta' + (realB.length ? ' → ' + realB.join(' | ') : ''))
 
 // ─── Mutantes ────────────────────────────────────────────────────────────────
 const MUTANTS = [
@@ -250,6 +340,13 @@ const MUTANTS = [
   ['MA15 usou o presente e o aviso continua', NOTICE, '  return read.hasPaid !== true && read.credits >= giftCredits', '  return true', problemsA, realA],
   ['MA16 título do aviso em branco fixo (some no tema claro)', NOTICE_UI, "color: 'var(--text)' }}>{clipCopy(language, 'freeClipTitle')}", "color: '#fff' }}>{clipCopy(language, 'freeClipTitle')}", problemsA, realA],
   ['MA17 "See plans" da faixa em branco fixo', BANNER, "          ? { color: 'var(--text)', border: '1px solid var(--border2, var(--border))'", "          ? { color: '#fff', border: '1px solid rgba(255,255,255,.55)'", problemsA, realA],
+  ['MB1 farol vaza para o card do Kling 2.5', SHOWCASE, '  s25: {\n', `  kling: { video: '/previews/${FAROL}.mp4', poster: '/posters/${FAROL}.webp', seconds: 5, clipId: '${FAROL}', focus: '50% 40%' },\n  s25: {\n`, problemsB, realB],
+  ['MB2 selo mente a duração', SHOWCASE, '    seconds: 5,\n', '    seconds: 10,\n', problemsB, realB],
+  ['MB3 prévia aponta arquivo inexistente', SHOWCASE, `    video: '/previews/${FAROL}.mp4',`, "    video: '/previews/nao-existe.mp4',", problemsB, realB],
+  ['MB4 preço no cartão do motor', CLIENT, "              {!e.text && <span className=\"tag\">{t('photoOnly')}</span>}\n", "              {!e.text && <span className=\"tag\">{t('photoOnly')}</span>}\n              <span className=\"pr\">{e.credits[String(e.seconds[0])]} cr</span>\n", problemsB, realB],
+  ['MB5 vitrine presa ao 2.5 na tela', CLIENT, "            <button key={e.key} type=\"button\" className={`clip-engine${sc ? ' has-showcase' : ''}`}", "            <button key={e.key} type=\"button\" className={`clip-engine${clipEngineShowcase('s25') ? ' has-showcase' : ''}`}", problemsB, realB],
+  ['MB6 card trancado sem a vitrine', CLIENT, "onClick={() => { void trackClosedEvent(CLIP_PAID_EVENTS.clicked, { surface: 'clips', engine: e.key, balance }) }}>\n              {sc && <EngineShowcaseMedia sc={sc} />}\n", "onClick={() => { void trackClosedEvent(CLIP_PAID_EVENTS.clicked, { surface: 'clips', engine: e.key, balance }) }}>\n", problemsB, realB],
+  ['MB7 farol entra na curadoria da home', 'lib/engineWall.ts', "const EXCLUDED = new Set<string>([\n", `const EXCLUDED = new Set<string>([\n  '${FAROL}',\n`, problemsB, realB],
   ['MA9 replay conta outro pedido do aviso', ROUTE, 'if (!effect && body.free_clip_notice === true && result.ok && !result.replay) {', 'if (!effect && body.free_clip_notice === true && result.ok) {', problemsA, realA],
   ['MA10 todo pedido vira pedido do aviso', ROUTE, 'if (!effect && body.free_clip_notice === true && result.ok && !result.replay) {', 'if (!effect && result.ok && !result.replay) {', problemsA, realA],
   ['MA11 o navegador cunha o pedido do aviso', EVENTS, "  'free_clip_notice_clip_requested',\n", '', problemsA, realA],
