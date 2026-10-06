@@ -21,6 +21,9 @@ const deps = {
   '@/lib/serverEvents': { writeServerEvent: forbidden },
   '@/lib/falAlert': {},
   '@/lib/growth/homeClipsFirstServer': { homeVariantStamp: forbidden },
+  // REANCORADO 06/10 (KINEO-S25-CLIPES-2026-10-06): clipServer passou a ler o predicado canônico de pagante (isPayingPlan,
+  // app/api/admin/_shared/mrr.ts), que importa a Stripe — aqui ela falha fechada como o resto.
+  '@/lib/stripe': { stripe: new Proxy({}, { get: () => forbidden }) },
 }
 async function run({ mutate = null, cutoff = null, rollback = false } = {}) {
   let signedIn = false, reads = 0

@@ -165,6 +165,9 @@ function wiring(over, live) {
     '@/lib/animate/remoteImage': { downloadPublicAnimateImage: async () => {} },
     '@/lib/serverEvents': { writeServerEvent: async (e) => { ctx.st.events.push(e); return true } },
     '@/lib/falAlert': { alertFalExhausted: async () => {}, looksExhausted: () => false },
+    // REANCORADO 06/10 (KINEO-S25-CLIPES-2026-10-06): clipServer passou a ler o predicado canônico de pagante (isPayingPlan,
+    // app/api/admin/_shared/mrr.ts), que importa a Stripe — aqui ela falha fechada (nenhuma prova da marca usa a Stripe).
+    '@/lib/stripe': { stripe: new Proxy({}, { get: () => { throw new Error('Stripe no teste da marca') } }) },
     '@/lib/compose': {
       submitCreatomateRender: async (source) => { ctx.st.submits.push(source); if (ctx.st.submitFail) throw new Error('Creatomate rejected the render (400)'); return 'rnd-00000001' },
       pollCreatomateRender: async () => {

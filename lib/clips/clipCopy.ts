@@ -53,6 +53,10 @@ export const CLIP_COPY_EN = {
   effectAddPhoto: 'Add a photo to start',
   effectBack: 'Write my own clip instead',
   filmUpsell: 'Turn into a narrated film (60 s)',
+  // KINEO-S25-CLIPES-2026-10-06 — card do motor só de planos pagos (as mesmas frases do card do filme do 2.5, codex/s25-abre-0610).
+  paidBadge: 'NEW · paid plans',
+  paidHint: 'Available on paid plans — see plans',
+  seePlans: 'See plans →',
 } as const
 
 export type ClipCopyKey = keyof typeof CLIP_COPY_EN
@@ -107,6 +111,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     effectAddPhoto: 'Adicione uma foto para começar',
     effectBack: 'Prefiro escrever meu próprio clipe',
     filmUpsell: 'Transformar em filme narrado (60 s)',
+    paidBadge: 'NOVO · planos pagos',
+    paidHint: 'Disponível nos planos pagos — ver planos',
+    seePlans: 'Ver planos →',
   },
   es: {
     title: 'Clips',
@@ -156,6 +163,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     effectAddPhoto: 'Añade una foto para empezar',
     effectBack: 'Prefiero escribir mi propio clip',
     filmUpsell: 'Convertir en película narrada (60 s)',
+    paidBadge: 'NUEVO · planes de pago',
+    paidHint: 'Disponible en los planes de pago — ver planes',
+    seePlans: 'Ver planes →',
   },
   fr: {
     title: 'Clips',
@@ -205,6 +215,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     effectAddPhoto: 'Ajoutez une photo pour commencer',
     effectBack: 'Écrire plutôt mon propre clip',
     filmUpsell: 'Transformer en film narré (60 s)',
+    paidBadge: 'NOUVEAU · offres payantes',
+    paidHint: 'Disponible avec les offres payantes — voir les offres',
+    seePlans: 'Voir les offres →',
   },
   de: {
     title: 'Clips',
@@ -254,6 +267,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     effectAddPhoto: 'Füge ein Foto hinzu, um zu starten',
     effectBack: 'Lieber meinen eigenen Clip schreiben',
     filmUpsell: 'In einen erzählten Film verwandeln (60 s)',
+    paidBadge: 'NEU · bezahlte Pläne',
+    paidHint: 'In bezahlten Plänen verfügbar — Pläne ansehen',
+    seePlans: 'Pläne ansehen →',
   },
   it: {
     title: 'Clip',
@@ -303,6 +319,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     effectAddPhoto: 'Aggiungi una foto per iniziare',
     effectBack: 'Preferisco scrivere la mia clip',
     filmUpsell: 'Trasforma in un film narrato (60 s)',
+    paidBadge: 'NUOVO · piani a pagamento',
+    paidHint: 'Disponibile nei piani a pagamento — vedi i piani',
+    seePlans: 'Vedi i piani →',
   },
   nl: {
     title: 'Clips',
@@ -352,6 +371,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     effectAddPhoto: 'Voeg een foto toe om te beginnen',
     effectBack: 'Liever mijn eigen clip schrijven',
     filmUpsell: 'Maak er een vertelde film van (60 s)',
+    paidBadge: 'NIEUW · betaalde plannen',
+    paidHint: 'Beschikbaar in betaalde plannen — bekijk de plannen',
+    seePlans: 'Bekijk de plannen →',
   },
   pl: {
     title: 'Klipy',
@@ -401,6 +423,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     effectAddPhoto: 'Dodaj zdjęcie, aby zacząć',
     effectBack: 'Wolę napisać własny klip',
     filmUpsell: 'Zamień w film z narracją (60 s)',
+    paidBadge: 'NOWOŚĆ · płatne plany',
+    paidHint: 'Dostępne w płatnych planach — zobacz plany',
+    seePlans: 'Zobacz plany →',
   },
   tr: {
     title: 'Klipler',
@@ -450,6 +475,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     effectAddPhoto: 'Başlamak için fotoğraf ekleyin',
     effectBack: 'Kendi klibimi yazmayı tercih ederim',
     filmUpsell: 'Anlatımlı filme dönüştür (60 sn)',
+    paidBadge: 'YENİ · ücretli planlar',
+    paidHint: 'Ücretli planlarda kullanılabilir — planları gör',
+    seePlans: 'Planları gör →',
   },
   ru: {
     title: 'Клипы',
@@ -499,6 +527,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     effectAddPhoto: 'Добавьте фото, чтобы начать',
     effectBack: 'Лучше напишу свой клип',
     filmUpsell: 'Превратить в фильм с озвучкой (60 с)',
+    paidBadge: 'НОВИНКА · платные планы',
+    paidHint: 'Доступно в платных планах — посмотреть планы',
+    seePlans: 'Посмотреть планы →',
   },
   uk: {
     title: 'Кліпи',
@@ -548,6 +579,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     effectAddPhoto: 'Додайте фото, щоб почати',
     effectBack: 'Краще напишу свій кліп',
     filmUpsell: 'Перетворити на фільм з озвученням (60 с)',
+    paidBadge: 'НОВИНКА · платні плани',
+    paidHint: 'Доступно в платних планах — переглянути плани',
+    seePlans: 'Переглянути плани →',
   },
   ar: {
     title: 'مقاطع',
@@ -597,6 +631,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     effectAddPhoto: 'أضف صورة للبدء',
     effectBack: 'أفضّل كتابة مقطعي بنفسي',
     filmUpsell: 'حوّله إلى فيلم مروي (60 ث)',
+    paidBadge: 'جديد · الخطط المدفوعة',
+    paidHint: 'متاح في الخطط المدفوعة — اعرض الخطط',
+    seePlans: 'اعرض الخطط ←',
   },
   ur: {
     title: 'کلپس',
@@ -646,6 +683,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     effectAddPhoto: 'شروع کرنے کے لیے تصویر شامل کریں',
     effectBack: 'میں اپنا کلپ خود لکھنا چاہتا ہوں',
     filmUpsell: 'بیان والی فلم میں بدلیں (60 سیکنڈ)',
+    paidBadge: 'نیا · بامعاوضہ پلانز',
+    paidHint: 'بامعاوضہ پلانز میں دستیاب — پلانز دیکھیں',
+    seePlans: 'پلانز دیکھیں ←',
   },
   hi: {
     title: 'क्लिप्स',
@@ -695,6 +735,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     effectAddPhoto: 'शुरू करने के लिए फ़ोटो जोड़ें',
     effectBack: 'मैं अपनी क्लिप खुद लिखूँगा',
     filmUpsell: 'नैरेशन वाली फ़िल्म बनाएँ (60 सेकंड)',
+    paidBadge: 'नया · पेड प्लान',
+    paidHint: 'पेड प्लान में उपलब्ध — प्लान देखें',
+    seePlans: 'प्लान देखें →',
   },
   id: {
     title: 'Klip',
@@ -744,6 +787,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     effectAddPhoto: 'Tambahkan foto untuk mulai',
     effectBack: 'Saya tulis klip sendiri saja',
     filmUpsell: 'Jadikan film bernarasi (60 dtk)',
+    paidBadge: 'BARU · paket berbayar',
+    paidHint: 'Tersedia di paket berbayar — lihat paket',
+    seePlans: 'Lihat paket →',
   },
   vi: {
     title: 'Clip',
@@ -793,6 +839,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     effectAddPhoto: 'Thêm ảnh để bắt đầu',
     effectBack: 'Tôi muốn tự viết clip',
     filmUpsell: 'Biến thành phim có lời dẫn (60 giây)',
+    paidBadge: 'MỚI · gói trả phí',
+    paidHint: 'Có trong các gói trả phí — xem các gói',
+    seePlans: 'Xem các gói →',
   },
 }
 

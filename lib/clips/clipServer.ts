@@ -29,6 +29,7 @@ import {
   modesFor,
   offeredSecondsFor,
   type ClipEngineAccess,
+  type ClipEngineFacts,
   type ClipEngineKey,
 } from '@/lib/clips/clipCatalog'
 import { clipCreditCost } from '@/lib/clips/clipPricing'
@@ -52,6 +53,11 @@ import {
   isBrandedClipUrl,
   type ClipOwnerProfile,
 } from '@/lib/clips/freeClipWatermark'
+// KINEO-S25-CLIPES-2026-10-06 — o clipe do Seedance 2.5: interruptor próprio (clipLaunch) e "só para quem paga" pela MESMA
+// régua do filme do 2.5 — a casa exata do validador de $0 e isPayingPlan da régua única do admin (nunca lista redigitada).
+import { clipPaidUpgradeHref, clipS25Visible } from '@/lib/clips/clipLaunch'
+import { isPayingPlan } from '@/app/api/admin/_shared/mrr'
+import { isDryRunAccount } from '@/lib/cinematic/classicDryRun'
 
 export const CLIPS_TABLE = 'clips'
 export const CLIPS_BUCKET = 'renders'
@@ -114,7 +120,25 @@ export function engineAccessFor(account: Pick<ClipAccount, 'email' | 'plan' | 'c
     // renderizado na história): segue só da casa, exatamente como estava com S25_PUBLIC=false (lib/engineLaunch.ts).
     launchVisible: engine !== 's25' || s25ClipVisible(account.email),
     planAllowed: decideEngineGate({ engine, plan: account.plan, profileCreatedAt: account.createdAt }).allowed,
+
+    // KINEO-S25-CLIPES-2026-10-06 — o 2.5 no /clips tem interruptor e portão próprios: estes fatos vencem os de cima para o s25.
+    ...(engine === 's25' ? clipS25Facts(account) : {}),
   })
+}
+
+/**
+ * KINEO-S25-CLIPES-2026-10-06 — pagante para o clipe do Seedance 2.5: a MESMA composição do portão do filme do 2.5
+ * (lib/s25Access.ts s25AccessFor, codex/s25-abre-0610): a casa EXATA do validador de $0 (isDryRunAccount — não o
+ * isInternalEmail largo, que casa com estranhos) ou plano pago AGORA (isPayingPlan: *_trial de cortesia e o trial de $1 NÃO
+ * passam; pacote avulso compra crédito, não assinatura). Plano nulo ou ilegível = não paga (falha fechada).
+ */
+export function clipS25Paying(account: Pick<ClipAccount, 'email' | 'plan'>): boolean {
+  return isDryRunAccount(account.email) || isPayingPlan(account.plan)
+}
+
+/** Quem VÊ (CLIP_S25_PUBLIC ou a casa) e quem USA (pagante) o clipe do 2.5. */
+export function clipS25Facts(account: Pick<ClipAccount, 'email' | 'plan'>): Pick<ClipEngineFacts, 'launchVisible' | 'paidAllowed'> {
+  return { launchVisible: clipS25Visible(account.email), paidAllowed: clipS25Paying(account) }
 }
 
 export interface PublicClipEngine {
@@ -144,6 +168,28 @@ export function clipCatalogFor(access: (engine: ClipEngineKey) => ClipEngineAcce
       textAspects: modes.includes('t2v') ? aspectsFor(key, 't2v') : [],
       photoAspects: modes.includes('i2v') ? aspectsFor(key, 'i2v') : [],
     }
+  })
+}
+
+/** KINEO-S25-CLIPES-2026-10-06 — motor que a conta VÊ mas só usa pagando (o card trancado do /clips). */
+export interface LockedClipEngine {
+  key: ClipEngineKey
+  label: string
+  seconds: number[]
+  /** Os planos (lib/clips/clipLaunch.ts clipPaidUpgradeHref): o clique no card trancado vai para cá. */
+  upgradeHref: string
+}
+
+/**
+ * KINEO-S25-CLIPES-2026-10-06 — os cards trancados ("NEW · paid plans"). Ficam FORA de clipCatalogFor de propósito: quem lê
+ * `engines` (/clips, Produção do Studio Ads, Espaços) continua recebendo só o que a conta pode apertar, e a rota recusa o
+ * resto com a MESMA régua (402 engine_paid) antes de qualquer débito. Sem preço no card (o preço mora no botão de gerar).
+ */
+export function lockedClipEnginesFor(access: (engine: ClipEngineKey) => ClipEngineAccess): LockedClipEngine[] {
+  return CLIP_ENGINE_ORDER.flatMap((key) => {
+    const verdict = access(key)
+    if (verdict.ok || verdict.reason !== 'paid') return []
+    return [{ key, label: CLIP_ENGINES[key].label, seconds: offeredSecondsFor(key), upgradeHref: clipPaidUpgradeHref(key) }]
   })
 }
 

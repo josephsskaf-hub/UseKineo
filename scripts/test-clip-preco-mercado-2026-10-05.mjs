@@ -40,7 +40,13 @@ function loadSet(over = {}) {
 const PRICE_SRC = read('lib/clips/clipPricing.ts')
 const MK_SRC = read('lib/clips/clipPriceVsMarket.ts')
 // KINEO-LIGA-TUDO-2026-10-05 — o fundador ligou a régua; OFF/ON são forçados aqui para a prova seguir independente do valor publicado.
+// REANCORADO 06/10 (KINEO-S25-CLIPES-2026-10-06): o clipe do Seedance 2.5 ganhou PREÇO DECIDIDO pelo fundador (CLIP_S25_CREDITS,
+// opção C — igualar a Runway Pro, chamariz), que vence as duas réguas. Para as provas 1 e 3 continuarem medindo AS RÉGUAS, a
+// constante é zerada (null) em OFF/ON — a troca é conferida abaixo; a prova 6 mede o preço decidido com a fonte REAL.
+const S25_DECIDED_RE = /^export const CLIP_S25_CREDITS: ([^=]+)= \{[^}]*\}/m
+if (!S25_DECIDED_RE.test(PRICE_SRC)) throw new Error('âncora CLIP_S25_CREDITS sumiu de lib/clips/clipPricing.ts')
 const OFF_SRC = PRICE_SRC.replace(/^export const CLIP_PRECO_MERCADO_PUBLIC = (true|false)[^\r\n]*/m, 'export const CLIP_PRECO_MERCADO_PUBLIC = false')
+  .replace(S25_DECIDED_RE, 'export const CLIP_S25_CREDITS: $1= null')
 const ON = { 'lib/clips/clipPricing.ts': OFF_SRC.replace('export const CLIP_PRECO_MERCADO_PUBLIC = false', 'export const CLIP_PRECO_MERCADO_PUBLIC = true') }
 
 // A tabela de 29/09 (a de hoje) — a mesma de scripts/test-clipes-2026-09-29.mjs. Desligado, NADA disto muda.
@@ -63,7 +69,10 @@ const PROPOSED = {
   omni: { 5: [12, 'sem_concorrente'], 7: [17, 'sem_concorrente'], 10: [23, 'sem_concorrente'] },
   s25: { 5: [11, 'impossivel'], 7: [15, 'impossivel'], 10: [21, 'impossivel'], 15: [31, 'impossivel'] },
 }
-const CHEAPEST = { seedance: null, kling: 'kling-k25-pro', hollywood: 'hf-k3-plus-sec', veo: 'hf-veo-fast-plus-sec', h3: 'runway-h3-pro', omni: null, s25: 'runway-s25-pro' }
+// REANCORADO 06/10 (KINEO-S25-CLIPES-2026-10-06): a 480p, o mais barato OFICIAL do 2.5 passou a ser a Higgsfield Plus
+// (post oficial de 19/09: "10 seconds, 480p | 30 credits", 3 cr/s no plano de US$ 49 / 1.000 cr = US$ 0,147/s), não mais a
+// Runway Pro (US$ 0,311/s). O preço da régua não muda (segue IMPOSSÍVEL A −10%: o mercado vende abaixo da fal).
+const CHEAPEST = { seedance: null, kling: 'kling-k25-pro', hollywood: 'hf-k3-plus-sec', veo: 'hf-veo-fast-plus-sec', h3: 'runway-h3-pro', omni: null, s25: 'hf-s25-plus' }
 
 /** Problemas da régua com o interruptor LIGADO (lista vazia = régua certa). */
 function marketProblems({ price, mk, cat }) {
@@ -155,7 +164,9 @@ for (const q of mk.MARKET_QUOTES) {
   if (ids.has(q.id)) bad.push('id repetido')
   ids.add(q.id)
   if (!/^https:\/\//.test(q.url) || !/^https:\/\//.test(q.plan.url)) bad.push('sem URL')
-  if (q.checkedOn !== '2026-10-05') bad.push('sem data 05/10/2026')
+  // REANCORADO 06/10 (KINEO-S25-CLIPES-2026-10-06): as cotações do Seedance 2.5 reconferidas nas páginas oficiais abertas
+  // carregam 06/10 (MARKET_CHECKED_ON_S25); as demais seguem 05/10. Data fora das duas = sem conferência.
+  if (q.checkedOn !== '2026-10-05' && !(q.checkedOn === '2026-10-06' && q.model === 'seedance-2.5')) bad.push('sem data 05/10/2026 (ou 06/10 no Seedance 2.5)')
   if (!['oficial', 'secundaria'].includes(q.source) || !['oficial', 'secundaria'].includes(q.plan.source)) bad.push('fonte sem tipo')
   if (q.source === 'secundaria' && !/secundária, não conferida na página oficial/.test(q.note || '')) bad.push('secundária sem a marca')
   if (!(q.creditsPerSecond > 0 && q.plan.usdCentsMonthly > 0 && q.plan.creditsMonthly > 0)) bad.push('número vazio')
@@ -207,6 +218,29 @@ for (const [name, over] of MUTANTS) {
 // Mutante do interruptor: ligado no código → a prova 1 tem de acusar.
 const flipped = loadSet(ON)
 ok(['hollywood', 'kling', 'veo', 's25'].some((e) => flipped.price.clipCreditCost(e, e === 'veo' ? 6 : 5) !== TODAY[e][e === 'veo' ? 6 : 5]), 'mutante pego: interruptor ligado muda o preço de hoje (a prova 1 acusa)')
+
+// ─── 6. Preço decidido do 2.5 (KINEO-S25-CLIPES-2026-10-06) — fonte REAL, com a régua ligada e desligada ─────────
+console.log('6. preço decidido do 2.5')
+{
+  const REAL = loadSet()
+  const REAL_OFF = loadSet({ 'lib/clips/clipPricing.ts': PRICE_SRC.replace(/^export const CLIP_PRECO_MERCADO_PUBLIC = (true|false)[^\r\n]*/m, 'export const CLIP_PRECO_MERCADO_PUBLIC = false') })
+  ok(OFF.price.CLIP_S25_CREDITS === null && MARKET.price.CLIP_S25_CREDITS === null && REAL.price.CLIP_S25_CREDITS !== null, 'provas 1 e 3 medem as RÉGUAS (constante do 2.5 zerada só em memória; a fonte real a tem)')
+  const table = REAL.price.CLIP_S25_CREDITS
+  let decidedOk = !!table
+  for (const set of [REAL, REAL_OFF]) for (const s of set.cat.offeredSecondsFor('s25')) for (const img of [false, true]) {
+    if (set.price.clipCreditCost('s25', s, img) !== table?.[s]) decidedOk = false
+  }
+  ok(decidedOk && table[5] === 8 && table[10] === 16, 'clipe do 2.5 = CLIP_S25_CREDITS com a régua ligada e desligada (5 s = 8, 10 s = 16: decisão do fundador 06/10)')
+  let othersOk = true
+  for (const engine of REAL.cat.CLIP_ENGINE_ORDER) {
+    if (engine === 's25') continue
+    for (const s of REAL.cat.offeredSecondsFor(engine)) {
+      if (REAL.price.clipCreditCost(engine, s) !== MARKET.price.clipCreditCost(engine, s)) othersOk = false
+      if (REAL_OFF.price.clipCreditCost(engine, s) !== OFF.price.clipCreditCost(engine, s)) othersOk = false
+    }
+  }
+  ok(othersOk, 'a constante do 2.5 não mexe em nenhum outro motor (régua ligada e desligada)')
+}
 
 console.log(`\n${pass} ok, ${fail} fail`)
 process.exit(fail ? 1 : 0)

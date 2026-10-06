@@ -77,7 +77,15 @@ for (const [engine, table] of Object.entries(EXPECTED_CREDITS)) {
     equal(price.clipCreditCostRegra2909(engine, Number(s)), cr, `${engine} ${s}s = ${cr} cr (regra de 29/09)`)
     equal(price.clipCreditCost(engine, Number(s), true), price.clipCreditCost(engine, Number(s), false), `${engine} ${s}s: foto e texto custam igual (fal cobra igual)`)
     const m = price.clipMarginAtStudio(engine, Number(s))
-    if (price.CLIP_PRECO_MERCADO_PUBLIC) {
+    if (engine === 's25' && price.CLIP_S25_CREDITS) {
+      // REANCORADO 06/10 (KINEO-S25-CLIPES-2026-10-06): o clipe do 2.5 tem PREÇO DECIDIDO pelo fundador (opção C, igualar a
+      // Runway Pro, chamariz — lib/clips/clipPricing.ts CLIP_S25_CREDITS), abaixo do piso de 40% de propósito. A trava aqui
+      // passa a ser: o preço cobrado é o da constante e a margem no Studio (custo da casa) fica ≥ 25% (a trava do CEO). As
+      // travas finas (25% no Creator com o custo conservador da fal, cobertura das durações, recusa do não pagante antes do
+      // débito, selo do motor) estão em scripts/test-s25-clipes-2026-10-06.mjs.
+      equal(price.clipCreditCost(engine, Number(s)), price.CLIP_S25_CREDITS[s], `${engine} ${s}s = preço decidido (${price.CLIP_S25_CREDITS[s]} cr)`)
+      ok(m >= 0.25 - 1e-9, `${engine} ${s}s: margem ${(m * 100).toFixed(1)}% ≥ 25% (preço decidido pelo fundador)`)
+    } else if (price.CLIP_PRECO_MERCADO_PUBLIC) {
       ok(m >= 0.4 - 1e-9, `${engine} ${s}s: margem ${(m * 100).toFixed(1)}% ≥ piso de 40% da régua de mercado`)
     } else {
       ok(m >= price.filmMarginAtStudio(engine) - 1e-9, `${engine} ${s}s: margem ${(m * 100).toFixed(1)}% ≥ margem do filme`)

@@ -174,15 +174,24 @@ export interface ClipEngineFacts {
   /** false só para o Seedance 2.5 fora das contas da casa (s25ClipVisible: o clipe do 2.5 não abriu junto com o filme em 06/10). */
   launchVisible: boolean
   planAllowed: boolean
+
+  /**
+   * KINEO-S25-CLIPES-2026-10-06 — motor só de quem PAGA (hoje só o clipe do Seedance 2.5, lib/clips/clipLaunch.ts
+   * CLIP_S25_PUBLIC): false = esta conta não paga (ou o plano não deu para ler — falha fechada). Ausente = sem esse portão.
+   */
+  paidAllowed?: boolean
 }
 
 export type ClipEngineAccess =
   | { ok: true }
-  | { ok: false; reason: 'paused' | 'hidden' | 'plan'; status: number }
+  | { ok: false; reason: 'paused' | 'hidden' | 'plan' | 'paid'; status: number }
 
 export function clipEngineAccess(facts: ClipEngineFacts): ClipEngineAccess {
   if (!facts.launchVisible) return { ok: false, reason: 'hidden', status: 404 }
   if (facts.paused) return { ok: false, reason: 'paused', status: 409 }
+  // KINEO-S25-CLIPES-2026-10-06 — 'paid' = a conta VÊ o motor (card com selo e caminho de upgrade), mas não usa: 402 antes
+  // de qualquer débito. Vem depois de 'hidden' e 'paused' de propósito: motor escondido ou pausado nem vira card trancado.
+  if (facts.paidAllowed === false) return { ok: false, reason: 'paid', status: 402 }
   if (!facts.planAllowed) return { ok: false, reason: 'plan', status: 402 }
   return { ok: true }
 }
@@ -297,6 +306,12 @@ export function buildClipFalInput(req: ClipRequest): Record<string, unknown> {
       return { prompt: req.prompt, ...image, duration: s, resolution: '768P', ...(req.mode === 't2v' && aspect ? { aspect_ratio: aspect } : {}) }
     case 'omni':
       return { prompt: req.prompt, ...image, duration: s, aspect_ratio: aspect ?? '9:16' }
+    // KINEO-S25-CLIPES-2026-10-06 — 480p de propósito (custo × qualidade, conferido em 06/10 na fal): o 2.5 cobra por TOKEN
+    // (US$ 0,0214/1.000 a 480p e 720p; ~US$ 0,0234 a 1080p) e o token cresce com os pixels — por segundo, ~US$ 0,22 a 480p,
+    // ~0,47 a 720p (2,1×) e ~1,16 a 1080p (5,3×). A 720p, o clipe de 5 s custaria ~US$ 2,37 só de fal: acima do que o
+    // mercado cobra pelo clipe inteiro (Runway Pro, 480p, US$ 1,56). 480p é a resolução que o mercado vende como entrada do
+    // 2.5 e a mesma do filme da casa (lib/hollywood/router.ts S25_RESOLUTION). Sem áudio (o clipe é mudo; na fal o preço é o
+    // mesmo com ou sem). Endpoint = o do filme (S25_T2V_MODEL/S25_I2V_MODEL), que a casa já roda em produção.
     case 's25':
       return { prompt: req.prompt, ...image, duration: String(s), resolution: '480p', generate_audio: false, aspect_ratio: aspect ?? 'auto' }
   }

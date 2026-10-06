@@ -37,6 +37,10 @@
 //   Omni Flash .... US$ 0,13/s em 720p (página do google/gemini-omni-flash/image-to-video)
 //   Seedance 2.5 .. US$ 0,208/s em 480p 9:16 (lib/hollywood/router.ts S25_USD_PER_SECOND; página da fal em acesso antecipado,
 //                   sem preço público — número da casa, conferir na fatura antes de abrir o motor)
+//                   06/10 (KINEO-S25-CLIPES): a fal publica o preço do MESMO modelo na página de parceiro
+//                   bytedance/seedance-2.5: US$ 0,0214 por 1.000 tokens a 480p/720p → ~US$ 0,215/s a 9:16 480p pela fórmula
+//                   (496×864×24/1024 tokens/s) e "roughly $0.2205" no texto da fal — 3–6% acima dos 0,208. A régua de mercado
+//                   já usa o maior (clipPriceVsMarket ENGINE_MARKET.s25); este espelho do filme fica como está.
 //
 // MARGEM DO FILME NO STUDIO (custo fal de um filme de 60 s ÷ receita dos créditos a US$ 0,183):
 //   Kling 3 150 cr · US$ 11,00 (CLAUDE.md 18/08: "64-73 s ≈ $11-12"; usamos o PISO do custo = a margem mais alta) → 59,9%
@@ -124,8 +128,35 @@ export function clipMarketDecision(engine: ClipEngineKey, seconds: number, withI
   })
 }
 
+// ═══ KINEO-S25-CLIPES-2026-10-06 — O PREÇO DO CLIPE DO SEEDANCE 2.5: UMA CONSTANTE, DECISÃO DO FUNDADOR ═══
+// fundador 06/10: opção C, igualar Runway Pro seedance-2.5 480p, chamariz.
+//   5 s = 8 cr e 10 s = 16 cr (≈ US$ 1,59 e 3,19 no crédito do Creator). A Runway Pro vende o 2.5 a 480p por 20 cr/s num
+//   plano de US$ 35 / 2.250 cr = US$ 0,311/s → US$ 1,56 por 5 s e 3,11 por 10 s (clipPriceVsMarket 'runway-s25-pro',
+//   fonte oficial). 7 s e 15 s (o catálogo do 2.5 também os oferece — regra das durações de 29/09) seguem a MESMA conta da
+//   decisão: ceil(preço da Runway Pro ÷ US$/crédito do Creator) = 11 e 24 cr.
+//   Conferido em 06/10 depois da decisão: a 480p o oficial mais barato é a Higgsfield Plus (US$ 0,74 / 5 s — abaixo do custo
+//   da fal, ~US$ 1,07–1,10), e a Pika vende 720p a US$ 1,36 / 5 s; igualar a Higgsfield daria prejuízo (4 cr / 5 s).
+// Fica ABAIXO do piso de 40% da régua de mercado de propósito (chamariz, decisão de preço público do fundador): a margem
+// sobre a fal é ~30–35% no crédito do Creator e ~23–29% no do Studio mensal (o clipe de 7 s é o mais apertado); no ANUAL
+// de 40% o crédito vale menos que o custo do clipe (relatório de 06/10). Os outros motores NÃO mudam (régua, piso de 40%).
+// Trocar o preço = editar ESTA constante e nada mais (tela, débito e tabela do /pricing leem clipCreditCost).
+// null = o 2.5 volta para a régua de mercado (hoje 11/15/21/31 cr, "IMPOSSÍVEL A −10%").
+// Guardião: scripts/test-s25-clipes-2026-10-06.mjs (a tabela cobre toda duração oferecida; 5 s = 8 e 10 s = 16).
+export const CLIP_S25_CREDITS: Readonly<Record<number, number>> | null = { 5: 8, 7: 11, 10: 16, 15: 24 }
+
+/** Créditos decididos para o clipe do 2.5 nesta duração, ou null (sem decisão para ela: vale a régua). */
+export function clipS25DecidedCredits(seconds: number): number | null {
+  if (!CLIP_S25_CREDITS) return null
+  if (!Number.isInteger(seconds) || seconds <= 0) throw new Error('clipCreditCost: seconds must be a positive integer')
+  return Object.prototype.hasOwnProperty.call(CLIP_S25_CREDITS, seconds) ? CLIP_S25_CREDITS[seconds] : null
+}
+
 /** Créditos do clipe. Só aceita segundos inteiros positivos; o catálogo decide quais o motor oferece. */
 export function clipCreditCost(engine: ClipEngineKey, seconds: number, withImage = false): number {
+  // KINEO-S25-CLIPES-2026-10-06 — o preço decidido pelo fundador vence as duas réguas abaixo (que seguem valendo para os
+  // outros motores). Duração sem decisão cai na régua — nunca abaixo do custo —, e o guardião prova que não há buraco.
+  const decided = engine === 's25' ? clipS25DecidedCredits(seconds) : null
+  if (decided !== null) return decided
   if (CLIP_PRECO_MERCADO_PUBLIC) {
     if (!Number.isInteger(seconds) || seconds <= 0) throw new Error('clipCreditCost: seconds must be a positive integer')
     return clipMarketDecision(engine, seconds, withImage).credits

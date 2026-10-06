@@ -122,7 +122,10 @@ export async function submitClip(
       ? `${label} is temporarily paused for maintenance. Nothing was charged.`
       : access.reason === 'plan'
         ? `${label} clips are part of the Studio plan. Nothing was charged.`
-        : 'Choose one of the listed engines.'
+        // KINEO-S25-CLIPES-2026-10-06 — mesma frase da recusa do filme do 2.5: o que falta (qualquer plano pago) e que nada foi cobrado.
+        : access.reason === 'paid'
+          ? `${label} is available on paid plans. Pick any plan to use it — nothing was charged.`
+          : 'Choose one of the listed engines.'
     return { ok: false, status: access.status, code: `engine_${access.reason}`, error }
   }
 

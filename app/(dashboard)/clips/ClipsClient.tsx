@@ -21,6 +21,7 @@ import ClipTelemetry, { readClipEntryOrigin } from '@/lib/clips/ClipTelemetry'
 import { CLIP_MEASUREMENT_ENABLED } from '@/lib/clips/clipMeasurement'
 import { trackClosedEvent } from '@/lib/analytics'
 import { CLIP_POST_COPY, CLIP_POST_EVENTS, CLIP_SHARE_CAPTION } from '@/lib/clips/freeClipWatermark'
+import { CLIP_PAID_EVENTS, clipPaidUpgradeHref } from '@/lib/clips/clipLaunch' // KINEO-S25-CLIPES-2026-10-06 — card trancado (só planos pagos)
 
 type Engine = {
   key: string
@@ -31,6 +32,15 @@ type Engine = {
   credits: Record<string, number>
   textAspects: string[]
   photoAspects: string[]
+}
+
+// KINEO-S25-CLIPES-2026-10-06 — motor que a conta VÊ mas só usa pagando (GET /api/clips `locked_engines`, hoje o Seedance
+// 2.5 para quem não paga). Nunca vira o motor escolhido: o card mostra o selo e o clique leva aos planos.
+type LockedEngine = {
+  key: string
+  label: string
+  seconds: number[]
+  upgradeHref: string
 }
 
 type Clip = {
@@ -98,6 +108,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
   useProductStage('clips') // KINEO-CLIPS-CORES-2026-10-01 — fundo e barra lateral na cor da aba, como Imagens/Espaços/Ads
 
   const [engines, setEngines] = useState<Engine[]>([])
+  const [lockedEngines, setLockedEngines] = useState<LockedEngine[]>([]) // KINEO-S25-CLIPES-2026-10-06
   const [effects, setEffects] = useState<EffectCard[]>([])
   const [effectKey, setEffectKey] = useState<string | null>(null)
   const [clips, setClips] = useState<Clip[]>([])
@@ -113,7 +124,8 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<{ text: string; credits: boolean } | null>(null)
+  // upgrade (KINEO-S25-CLIPES-2026-10-06): recusa 402 engine_paid → o link é "ver planos", não "adicionar créditos".
+  const [error, setError] = useState<{ text: string; credits: boolean; upgrade?: string | null } | null>(null)
   const [showTopup, setShowTopup] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -124,6 +136,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
       .then(async (r) => {
         const d = await r.json().catch(() => null)
         if (Array.isArray(d?.engines)) setEngines(d.engines)
+        if (Array.isArray(d?.locked_engines)) setLockedEngines(d.locked_engines)
         if (Array.isArray(d?.effects)) setEffects(d.effects)
         if (typeof d?.balance === 'number') setBalance(d.balance)
         if (!r.ok) { setLoadFailed(true); return }
@@ -158,6 +171,18 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
 
   const effect = effects.find((fx) => fx.key === effectKey) ?? null
   const engine = engines.find((e) => e.key === engineKey) ?? null
+
+  // KINEO-S25-CLIPES-2026-10-06 — o denominador do selo: o card trancado ESTEVE na tela (1× por carga e por motor). Mesmo
+  // evento do card do filme do 2.5, com surface:'clips'; o clique (CLIP_PAID_EVENTS.clicked) sem isto seria número solto.
+  const lockedSeenRef = useRef(new Set<string>())
+  useEffect(() => {
+    if (loading || effect) return
+    for (const e of lockedEngines) {
+      if (lockedSeenRef.current.has(e.key)) continue
+      lockedSeenRef.current.add(e.key)
+      void trackClosedEvent(CLIP_PAID_EVENTS.shown, { surface: 'clips', engine: e.key, balance })
+    }
+  }, [lockedEngines, loading, effect]) // eslint-disable-line react-hooks/exhaustive-deps
   const withPhoto = !!photoUrl
   const allSeconds = useMemo(() => Array.from(new Set(engines.flatMap((e) => e.seconds))).sort((a, b) => a - b), [engines])
   const aspectChoices = engine ? (withPhoto ? engine.photoAspects : engine.textAspects) : []
@@ -233,7 +258,13 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
       if (data?.clip) setClips((xs) => [data.clip as Clip, ...xs.filter((c) => c.id !== data.clip.id)])
       if (typeof data?.balance === 'number') setBalance(data.balance)
       if (!res.ok) {
-        setError({ text: typeof data?.error === 'string' ? data.error : 'Could not start the clip.', credits: data?.code === 'credits' || res.status === 402 })
+        // KINEO-S25-CLIPES-2026-10-06 — 402 engine_paid (motor só de planos pagos) leva aos planos, não à recarga de créditos.
+        const paidOnly = data?.code === 'engine_paid'
+        setError({
+          text: typeof data?.error === 'string' ? data.error : 'Could not start the clip.',
+          credits: !paidOnly && (data?.code === 'credits' || res.status === 402),
+          upgrade: paidOnly ? (typeof payload.engine === 'string' ? clipPaidUpgradeHref(payload.engine) : '/pricing#plans') : null,
+        })
         return
       }
       window.dispatchEvent(new Event('creditsChanged'))
@@ -382,6 +413,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
         ? <button type="button" onClick={() => setShowTopup(true)} style={{ color: 'var(--indigo)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>{t('addCredits')}</button>
         : <a href="/pricing" style={{ color: 'var(--indigo)', fontWeight: 700 }}>{t('addCredits')}</a>)}
       {/signed in/i.test(error.text) && <a href="/login?redirect=/clips" style={{ color: 'var(--indigo)', fontWeight: 700 }}>{t('signIn')}</a>}
+      {error.upgrade && <a href={error.upgrade} style={{ color: 'var(--indigo)', fontWeight: 700 }}>{t('seePlans')}</a>}
     </p>
   )
 
@@ -410,6 +442,8 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
         .stu.clips-workspace .clip-engine .sec{font-size:12px;color:var(--text2);font-variant-numeric:tabular-nums}
         .stu.clips-workspace .clip-engine .pr{font-size:11px;color:var(--muted2)}
         .stu.clips-workspace .clip-engine .tag{font-size:10px;color:var(--muted2);border:1px solid var(--border);border-radius:6px;padding:1px 6px;align-self:flex-start}
+        .stu.clips-workspace .clip-engine.locked{text-decoration:none;border-style:dashed}
+        .stu.clips-workspace .clip-engine .tag.paid{color:var(--indigo);border-color:color-mix(in srgb,var(--indigo) 45%,var(--border));background:color-mix(in srgb,var(--indigo) 12%,transparent);font-weight:700}
         .stu.clips-workspace .notice{margin-top:10px;padding:10px 12px;border-radius:10px;border:1px solid rgba(251,191,36,.35);background:rgba(251,191,36,.06);font-size:12.5px;color:var(--text)}
         .stu.clips-workspace .notice .row{margin-top:8px}
         .stu.clips-workspace .photo-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}
@@ -471,6 +505,18 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
             <span className="sec">{e.seconds.join(' · ')} s</span>
             {!e.text && <span className="tag">{t('photoOnly')}</span>}
           </button>
+        ))}
+        {/* KINEO-S25-CLIPES-2026-10-06 — card trancado: o motor REAL (selo honesto) + "NEW · paid plans"; o clique leva aos
+            planos e nunca escolhe o motor (o servidor recusaria com a mesma régua, antes de qualquer débito). Sem preço. */}
+        {lockedEngines.map((e) => (
+          <a key={`locked-${e.key}`} className="clip-engine locked" href={e.upgradeHref} data-clip-locked={e.key}
+            onClick={() => { void trackClosedEvent(CLIP_PAID_EVENTS.clicked, { surface: 'clips', engine: e.key, balance }) }}>
+            <span className="ic" aria-hidden="true">{ICON[e.key] ?? '•'}</span>
+            <span className="nm">{e.label}</span>
+            <span className="sec">{e.seconds.join(' · ')} s</span>
+            <span className="tag paid">{t('paidBadge')}</span>
+            <span className="pr">{t('paidHint')}</span>
+          </a>
         ))}
       </div>}
 

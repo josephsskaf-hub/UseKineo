@@ -13,6 +13,7 @@ import {
   engineAccessFor,
   listClips,
   loadClipAccount,
+  lockedClipEnginesFor,
   publicClipsForViewer,
   submitDepsFor,
   toPublicClip,
@@ -44,7 +45,8 @@ export async function GET() {
     if (!clipsVisible(null)) return NextResponse.json({ error: 'Not found.', engines: [], clips: [] }, { status: 404, headers: NO_STORE })
     const guest = engineAccessFor({ email: null, plan: null, createdAt: CLIP_GUEST_AS_NEW_ACCOUNT ? new Date().toISOString() : null })
     const guestEffects = clipEffectsVisible(false) ? publicClipEffects((engine) => guest(engine).ok) : []
-    return NextResponse.json({ engines: clipCatalogFor(guest), effects: guestEffects, clips: [], balance: null, signed_in: false }, { headers: NO_STORE })
+    // KINEO-S25-CLIPES-2026-10-06 — `locked_engines`: o que a conta VÊ mas só usa pagando (card "NEW · paid plans" → planos).
+    return NextResponse.json({ engines: clipCatalogFor(guest), locked_engines: lockedClipEnginesFor(guest), effects: guestEffects, clips: [], balance: null, signed_in: false }, { headers: NO_STORE })
   }
   // Interruptor de lançamento (lib/clips/clipLaunch.ts): antes do "vai" do fundador, só a casa.
   if (!clipsVisible(user.email)) return NextResponse.json({ error: 'Not found.', engines: [], clips: [] }, { status: 404, headers: NO_STORE })
@@ -60,12 +62,12 @@ export async function GET() {
   // Falha de leitura não se disfarça de lista vazia (lição do incidente JWT-skew, 28/08).
   if (rows === null) {
     return NextResponse.json(
-      { error: 'Could not load your clips right now.', engines: clipCatalogFor(access), effects, clips: [], balance: account.balance },
+      { error: 'Could not load your clips right now.', engines: clipCatalogFor(access), locked_engines: lockedClipEnginesFor(access), effects, clips: [], balance: account.balance },
       { status: 503, headers: NO_STORE },
     )
   }
   return NextResponse.json(
-    { engines: clipCatalogFor(access), effects, clips: await publicClipsForViewer(admin, user.id, rows), balance: account.balance },
+    { engines: clipCatalogFor(access), locked_engines: lockedClipEnginesFor(access), effects, clips: await publicClipsForViewer(admin, user.id, rows), balance: account.balance },
     { headers: NO_STORE },
   )
 }
