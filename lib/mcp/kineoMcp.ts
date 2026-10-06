@@ -45,7 +45,7 @@ import {
   engineFamily,
   normalizeEngineHint,
 } from '@/lib/gptHandoff'
-import { CHATGPT_MCP_INSTRUCTIONS, chatgptCapabilities, chatgptTools } from '@/lib/mcp/chatgptContract'
+import { CHATGPT_LISTING_PAUSED_ENGINES, CHATGPT_MCP_INSTRUCTIONS, chatgptCapabilities, chatgptTools } from '@/lib/mcp/chatgptContract'
 
 // ─── Identidade e protocolo ─────────────────────────────────────────────────
 export const MCP_SERVER_NAME = 'kineo'
@@ -382,7 +382,9 @@ export async function handleMcpMessage(msg: unknown, deps: McpDeps): Promise<{ r
     case 'ping':
       return { response: { jsonrpc: '2.0', id, result: {} }, trace: { method } }
     case 'tools/list':
-      return { response: { jsonrpc: '2.0', id, result: { tools: deps.profile === 'chatgpt' ? chatgptTools(buildTools({ pausedEngines: deps.pausedEngines })) : buildTools({ pausedEngines: deps.pausedEngines }) } }, trace: { method } }
+      // KINEO-CHATGPT-CONTRATO-V1-2026-10-06 — o ChatGPT lista os motores da versão em revisão, não o interruptor vivo
+      // de manutenção (lib/mcp/chatgptContract.ts). A recusa de motor pausado continua viva em callTool.
+      return { response: { jsonrpc: '2.0', id, result: { tools: deps.profile === 'chatgpt' ? chatgptTools(buildTools({ pausedEngines: CHATGPT_LISTING_PAUSED_ENGINES })) : buildTools({ pausedEngines: deps.pausedEngines }) } }, trace: { method } }
     case 'tools/call': {
       const name = typeof params.name === 'string' ? params.name : ''
       if (name !== TOOL_FACTS && name !== TOOL_HANDOFF) {

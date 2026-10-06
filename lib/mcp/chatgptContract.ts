@@ -4,6 +4,23 @@ import {
 } from '@/lib/gptHandoff'
 import type { McpTool } from '@/lib/mcp/kineoMcp'
 
+// ═══ KINEO-CHATGPT-CONTRATO-V1-2026-10-06 — o que a OpenAI revisa não muda por efeito colateral ═══════════
+// "Kineo Script Studio" v1.0.0 foi enviado à revisão da OpenAI em 05/10/2026 18:40 UTC (protocolo C-BnHX0bXXKQDc),
+// com o tools/list que estava no ar desde o deploy dpl_C4u2FuRRTXNX98Wr5MnYVRQ488Wa (026952a1, 18:26 UTC). Nome,
+// descrição, esquema e anotação de tool são METADADO: a OpenAI guarda a varredura junto com a submissão e, depois de
+// publicado, re-escaneia o servidor todo dia — mudança pode ser retida. Até aqui o enum de motores do
+// create_video_handoff vinha do interruptor vivo de manutenção (lib/engineLaunch PAUSED_ENGINE_KEYS): pausar ou
+// despausar um motor para o site (como em 15/09 e em 22/09) mudaria o esquema da ferramenta em revisão sem ninguém
+// ver. A listagem do ChatGPT passa a anunciar os motores DA VERSÃO; a recusa continua viva (kineoMcp callTool lê
+// deps.pausedEngines): motor pausado pedido pelo ChatGPT volta com erro legível e a alternativa, sem gravar nada.
+// Retrato do contrato: docs/chatgpt-plugin/contrato-v1.0.0.json. Guardião: scripts/test-chatgpt-app-contrato-2026-10-06.mjs.
+// Mudar de propósito = nova versão do app: atualizar o retrato no mesmo commit e seguir o plano de revisão.
+export const CHATGPT_CONTRACT_VERSION = '1.0.0'
+/** Motores que o tools/list do ChatGPT anuncia na v1.0.0 (o enum que estava no ar em 05/10). */
+export const CHATGPT_V1_ENGINES: readonly string[] = ['fast', 'seedance', 'kling', 'veo', 'hollywood', 'h3']
+/** O que buildTools() tira da listagem do ChatGPT: tudo o que não é da versão — nunca o interruptor vivo. */
+export const CHATGPT_LISTING_PAUSED_ENGINES: readonly string[] = HANDOFF_ENGINES.filter((e) => !CHATGPT_V1_ENGINES.includes(e))
+
 // An explicit endpoint/profile, not client sniffing. Claude keeps its existing
 // contract. Never copy the commercial facts object into the ChatGPT profile.
 export const CHATGPT_MCP_INSTRUCTIONS =

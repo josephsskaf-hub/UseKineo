@@ -1,0 +1,411 @@
+{
+  "plugin": "Kineo Script Studio",
+  "version": "1.0.0",
+  "endpoint": "https://www.usekineo.com/api/mcp/chatgpt",
+  "submittedAt": "2026-10-05T18:40:53Z",
+  "submissionRef": "C-BnHX0bXXKQDc",
+  "liveSince": {
+    "deployment": "dpl_C4u2FuRRTXNX98Wr5MnYVRQ488Wa",
+    "commit": "026952a16cf753c27904067f33edac02f6094dc1",
+    "createdAt": "2026-10-05T18:26:26Z"
+  },
+  "capturedAt": "2026-10-06T09:52Z",
+  "note": "Retrato do initialize e do tools/list que a OpenAI revisa (Kineo Script Studio v1.0.0). Capturado da produção em 06/10 com POST da kineo-sonda/1.0; nenhum arquivo do contrato mudou entre o deploy de 05/10 18:26 UTC e a captura. Mudar isto = nova versão do app: ver docs/chatgpt-plugin e o guardião scripts/test-chatgpt-app-contrato-2026-10-06.mjs.",
+  "initialize": {
+    "serverInfo": {
+      "name": "kineo",
+      "title": "Kineo",
+      "version": "1.0.0"
+    },
+    "capabilities": {
+      "tools": {
+        "listChanged": false
+      }
+    },
+    "instructions": "Kineo prepares narration scripts for video production. kineo_facts returns technical capabilities; create_video_handoff saves a user-approved script and returns its text, word count, duration assessment and Studio link. Saving makes a bearer link: anyone with the link can read the script. The link expires after 7 days. Neither tool renders or publishes media."
+  },
+  "tools": [
+    {
+      "name": "kineo_facts",
+      "title": "Get video script capabilities",
+      "description": "Returns available video engines, supported frame shapes and durations, and script length limits. Read-only technical information for preparing a video narration.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "annotations": {
+        "title": "Get video script capabilities",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "engines": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "id",
+                    "name",
+                    "family",
+                    "durations"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "family": {
+                      "enum": [
+                        "classic",
+                        "hollywood"
+                      ]
+                    },
+                    "durations": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              },
+              "aspects": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "scriptMaxChars": {
+                "type": "integer"
+              },
+              "studioMaxChars": {
+                "type": "integer"
+              },
+              "behavior": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "engines",
+              "aspects",
+              "scriptMaxChars",
+              "studioMaxChars",
+              "behavior"
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "words": {
+                "type": "number"
+              },
+              "outcome": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "effectiveSeconds",
+                  "requestedSeconds",
+                  "missingWords",
+                  "lost60sFloor"
+                ],
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "at_target",
+                      "shorter_film",
+                      "too_short"
+                    ]
+                  },
+                  "effectiveSeconds": {
+                    "type": "number"
+                  },
+                  "requestedSeconds": {
+                    "type": "number"
+                  },
+                  "missingWords": {
+                    "type": "number"
+                  },
+                  "lost60sFloor": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "refusal": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        ]
+      },
+      "securitySchemes": [
+        {
+          "type": "noauth"
+        }
+      ],
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "noauth"
+          }
+        ]
+      }
+    },
+    {
+      "name": "create_video_handoff",
+      "title": "Save an approved video script",
+      "description": "Saves the narration the user approved. Returns the full script, server word count, duration assessment and a shareable Kineo Studio link. Anyone with the link can read it. The link expires after 7 days. Does not render, publish or charge. Existing Kineo accounts can open the script in Studio.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "script": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000,
+            "description": "The narration exactly as the user approved it, plain text, optionally with HOOK:/MICRO REWARD:/ESCALATION:/PAYOFF: labels."
+          },
+          "durationSec": {
+            "type": "integer",
+            "enum": [
+              15,
+              35,
+              60,
+              90
+            ],
+            "default": 60,
+            "description": "Target film length in seconds. 15 is available only with engineHint seedance."
+          },
+          "aspect": {
+            "type": "string",
+            "enum": [
+              "9:16",
+              "16:9",
+              "1:1",
+              "4:5"
+            ],
+            "default": "9:16",
+            "description": "Frame: 9:16 (vertical) for Shorts, TikTok and Reels — use 9:16 unless the user explicitly asks for widescreen/horizontal, square or a feed post; 16:9 for regular YouTube or websites; 1:1 square; 4:5 tall feed post."
+          },
+          "engineHint": {
+            "type": "string",
+            "enum": [
+              "fast",
+              "seedance",
+              "kling",
+              "veo",
+              "hollywood",
+              "h3"
+            ],
+            "default": "seedance",
+            "description": "Video engine preselected in Studio: fast = Kineo 1, seedance = Seedance 1.5, kling = Kling 2.5, veo = Veo 3.1, hollywood = Kling 3, h3 = MiniMax H3. Use seedance unless the user explicitly names another engine; words like \"cinematic\" or \"epic\" describe the style, not a request for a different engine. The person can change it in Studio."
+          },
+          "language": {
+            "type": "string",
+            "pattern": "^[a-z]{2}(-[A-Z]{2})?$",
+            "default": "en",
+            "description": "Language of the script as a short code, such as en, pt or es."
+          },
+          "topic": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Optional 3-8 word title shown on the link page."
+          }
+        },
+        "required": [
+          "script"
+        ],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "title": "Save an approved video script",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "outputSchema": {
+        "type": "object",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "url": {
+                "type": "string",
+                "format": "uri"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "script": {
+                "type": "string"
+              },
+              "words": {
+                "type": "integer"
+              },
+              "seconds": {
+                "type": "number"
+              },
+              "fitMessage": {
+                "type": "string"
+              },
+              "outcome": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "effectiveSeconds",
+                  "requestedSeconds",
+                  "missingWords",
+                  "lost60sFloor"
+                ],
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "at_target",
+                      "shorter_film",
+                      "too_short"
+                    ]
+                  },
+                  "effectiveSeconds": {
+                    "type": "number"
+                  },
+                  "requestedSeconds": {
+                    "type": "number"
+                  },
+                  "missingWords": {
+                    "type": "number"
+                  },
+                  "lost60sFloor": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "outcomeMessage": {
+                "type": "string"
+              },
+              "durationSec": {
+                "type": "integer"
+              },
+              "engineHint": {
+                "type": "string"
+              },
+              "aspect": {
+                "type": "string"
+              },
+              "language": {
+                "type": "string"
+              },
+              "overStudioLimit": {
+                "type": "boolean"
+              },
+              "studioLimitChars": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "url",
+              "expiresAt",
+              "script",
+              "words",
+              "seconds",
+              "fitMessage",
+              "outcome",
+              "outcomeMessage",
+              "durationSec",
+              "engineHint",
+              "aspect",
+              "language",
+              "overStudioLimit",
+              "studioLimitChars"
+            ]
+          },
+          {
+            "type": "object",
+            "required": [
+              "error"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "words": {
+                "type": "number"
+              },
+              "outcome": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "effectiveSeconds",
+                  "requestedSeconds",
+                  "missingWords",
+                  "lost60sFloor"
+                ],
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "at_target",
+                      "shorter_film",
+                      "too_short"
+                    ]
+                  },
+                  "effectiveSeconds": {
+                    "type": "number"
+                  },
+                  "requestedSeconds": {
+                    "type": "number"
+                  },
+                  "missingWords": {
+                    "type": "number"
+                  },
+                  "lost60sFloor": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "refusal": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        ]
+      },
+      "securitySchemes": [
+        {
+          "type": "noauth"
+        }
+      ],
+      "_meta": {
+        "securitySchemes": [
+          {
+            "type": "noauth"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -50,7 +50,7 @@ function query() {
 }
 globalThis.__kineoTest = {
   db: { from: query },
-  events: async event => { state.events.push(event); return true },
+  events: async event => { if (state.eventsDown) throw Error('Offline events sink unavailable'); state.events.push(event); return true },
   client: () => ({ auth: { getUser: async () => ({ data: { user: state.signedIn ? { id: 'test-user', email: 'tester@example.invalid' } : null } }) }, from: query }),
   cookies: () => ({ get: () => undefined, getAll: () => [] }),
   headers: () => new Headers(),
@@ -103,6 +103,7 @@ const { createConnectorHandoff } = await import('../lib/mcp/connectorHandoff.ts'
 const { chatgptRateIdentity } = await import('../lib/mcp/chatgptIdentity.ts')
 const { hashIp, insertHandoff, findHandoff } = await import('../lib/gptHandoffStore.ts')
 const { PAUSED_ENGINE_KEYS } = await import('../lib/engineLaunch.ts')
+const { STUDIO_PATH } = await import('../lib/gptHandoff.ts')
 const { default: GoPage } = await import('../app/go/[token]/page.tsx')
 let checks = 0
 async function check(name, fn) { await fn(); checks++; console.log('PASS ' + name) }
@@ -217,6 +218,45 @@ await check('HTTP transport, moderation failures and title coverage', async () =
   assert(!good.isError); schema('create_video_handoff', good)
   assert.equal(state.moderationInputs.at(-1)[0].text, 'Garden story\n\n' + script)
 })
+// KINEO-CHATGPT-ADOCAO-2026-10-06 — a rota passa a contar initialize e tools/call (canal e path próprios), sem mudar
+// nenhum byte da resposta que a revisão da OpenAI vê; e a medição fora do ar não derruba nada.
+await check('Route counts initialize and tool calls on its own channel; responses unchanged (06/10)', async () => {
+  const { NextRequest } = await import('next/server')
+  const route = await import('../app/api/mcp/chatgpt/route.ts')
+  const post = body => route.POST(new NextRequest('https://www.usekineo.com/api/mcp/chatgpt', { method: 'POST', body: JSON.stringify(body), headers: { 'user-agent': 'openai-mcp/1.0.0' } }))
+  const same = async msg => assert.deepEqual(await (await post(msg)).json(), (await handleMcpMessage(msg, deps)).response)
+  const from = state.events.length
+  await same({ jsonrpc: '2.0', id: 7, method: 'initialize', params: { protocolVersion: '2025-06-18', clientInfo: { name: 'openai-mcp', version: '1.0.0' } } })
+  await same({ jsonrpc: '2.0', id: 8, method: 'tools/list' })
+  await same({ jsonrpc: '2.0', id: 9, method: 'tools/call', params: { name: 'kineo_facts' } })
+  await same({ jsonrpc: '2.0', id: 10, method: 'tools/call', params: { name: 'kineo_facts', arguments: { topic: 'plans' } } })
+  const fresh = state.events.slice(from)
+  assert.deepEqual(fresh.map(e => [e.name, e.path]), [['mcp_initialized', '/api/mcp/chatgpt'], ['mcp_tool_called', '/api/mcp/chatgpt'], ['mcp_tool_called', '/api/mcp/chatgpt']])
+  assert.deepEqual(fresh[0].metadata, { channel: 'chatgpt_plugin', client: 'openai-mcp/1.0.0', protocol: '2025-06-18', ua: 'openai-mcp' })
+  assert.deepEqual(fresh[1].metadata, { channel: 'chatgpt_plugin', tool: 'kineo_facts', ok: true, ua: 'openai-mcp' })
+  assert.deepEqual(fresh[2].metadata, { channel: 'chatgpt_plugin', tool: 'kineo_facts', ok: false, ua: 'openai-mcp' })
+  state.eventsDown = true
+  try {
+    await same({ jsonrpc: '2.0', id: 11, method: 'initialize', params: { protocolVersion: '2025-06-18' } })
+  } finally {
+    state.eventsDown = false
+  }
+  assert(!JSON.stringify(state.events).includes(script))
+})
+// KINEO-CHATGPT-CONTRATO-V1-2026-10-06 — o interruptor de manutenção não mexe no tools/list em revisão; a recusa
+// de motor pausado continua viva na chamada e nada é gravado.
+await check('Listing keeps the reviewed engine list when the live pause list changes; calls still refuse paused engines (06/10)', async () => {
+  const enumOf = async paused => (await rpc('tools/list', {}, { ...deps, pausedEngines: paused })).result.tools.find(t => t.name === 'create_video_handoff').inputSchema.properties.engineHint.enum
+  const reviewed = await enumOf(PAUSED_ENGINE_KEYS)
+  assert.deepEqual(await enumOf([]), reviewed)
+  assert.deepEqual(await enumOf(['omni', 's25', 'h3']), reviewed)
+  assert(reviewed.includes('h3') && !reviewed.includes('omni'))
+  const count = state.rows.length
+  const paused = (await rpc('tools/call', { name: 'create_video_handoff', arguments: { ...input, durationSec: 35, engineHint: 'h3' } }, { ...deps, pausedEngines: ['omni', 's25', 'h3'] })).result
+  assert.equal(paused.isError, true); schema('create_video_handoff', paused)
+  assert.match(paused.structuredContent.error, /temporarily paused/)
+  assert.equal(state.rows.length, count)
+})
 await check('Per-user and shared global limits are enforced', async () => {
   const { RATE_LIMIT_PER_IP_PER_HOUR, RATE_LIMIT_GLOBAL_PER_HOUR } = await import('../lib/gptHandoff.ts')
   const saved = state.rows
@@ -236,7 +276,19 @@ await check('ChatGPT click uses existing-account login without generating media'
   assert.equal(new URL(response.headers.get('location')).searchParams.get('source'), 'chatgpt_plugin')
   state.signedIn = true
   const signedIn = await GET(new NextRequest('https://www.usekineo.com/api/gpt/handoff/go?token=' + row.token))
-  assert.equal(new URL(signedIn.headers.get('location')).pathname, '/studio/create')
+  // 06/10 — reancorado: desde KINEO-GO-STUDIO-NOVO-2026-10-01 o destino é o Studio novo (STUDIO_PATH), não /studio/create;
+  // o vermelho parava o arquivo aqui e as 2 verificações seguintes (challenge e /go sem oferta) nunca rodavam. A intenção
+  // fica mais estrita: o Studio abre com o roteiro salvo, verbatim, na duração e no motor salvos, com a etiqueta do app,
+  // e sem nenhum parâmetro que dispare render sozinho.
+  const dest = new URL(signedIn.headers.get('location'))
+  assert.equal(dest.pathname, STUDIO_PATH)
+  assert.equal(dest.searchParams.get('prompt'), row.script)
+  assert.equal(dest.searchParams.get('script_mode'), 'verbatim')
+  assert.equal(dest.searchParams.get('duration'), String(row.duration_sec))
+  assert.equal(dest.searchParams.get('engine'), row.engine_hint)
+  assert.equal(dest.searchParams.get('utm_source'), 'chatgpt_plugin')
+  assert.equal(dest.searchParams.get('intent_campaign'), 'kineo_chatgpt_plugin')
+  for (const k of ['create_intent', 'autoanalyze', 'autostart', 'auto', 'studio']) assert.equal(dest.searchParams.has(k), false, k)
   state.signedIn = false
 })
 await check('Domain challenge fails closed until configured; shared pages exclude checkout overlays', async () => {
