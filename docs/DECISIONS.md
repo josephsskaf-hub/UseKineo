@@ -829,3 +829,10 @@ Slug do X confirmado: utm_source=x.
 - **DECISÃO APROVADA — sprint do fundador nesta conversa:** visitante recebe a mesma seleção de efeitos de uma conta criada agora; cartão sem preço, custo no botão de gerar; sem alteração da regra de cobrança. Detalhes e limites em `docs/SHOWCASE-CLIPES-20261006.md`.
 - **IMPLEMENTADO / escolha reversível:** apenas o visitante usa a data atual na política de acesso; datas ausentes de contas reais continuam falhando fechado. `CLIP_GUEST_AS_NEW_ACCOUNT=false` restaura o catálogo anterior. Assim evitamos enfraquecer o gate compartilhado de planos.
 - **TESTADO LOCALMENTE:** GET real com nove efeitos, igualdade com conta nova inclusive sob gate ativo, POST anônimo 401, motores pausados ocultos e seis mutantes. Não equivale a publicação ou receita.
+
+## 2026-10-06 — Showcase / Clipes, páginas, Kling 4 e medição
+
+- **DECISÃO APROVADA — sprint do fundador nesta conversa:** nove páginas de efeito com as 16 línguas no dicionário existente; Kling 4 preparado e desligado; chosen/ready por efeito e origem; relatórios de 24h em execução finita. Sem alterar home, checkout, pós-cadastro, preços vigentes, créditos, compose ou engineWall.
+- **ESCOLHA REVERSÍVEL / IMPLEMENTADO — lib/clips/clipEffectPages.ts:8:** URLs localizadas e metadados específicos com interruptor único para páginas e sitemap; utiliza somente prévias existentes feitas pelo efeito.
+- **ESCOLHA REVERSÍVEL / IMPLEMENTADO — lib/clips/clipKling4.ts:7:** model id/custo permanecem nulos até comprovação na fal. Não adivinhar schema nem fazer adapter especulativo; a ausência de fatos bloqueia ativação. Cálculo futuro usa a régua vigente, sem mudar preço ativo. Fornecedor diferente exige decisão do fundador.
+- **ESCOLHA REVERSÍVEL / IMPLEMENTADO — lib/clips/clipMeasurement.ts:34 e lib/clips/clipMeasurementReport.ts:5:** origem desconhecida permanece unknown; não deduzir home da variante A/B ou do preset isolado. Relacionar conclusão ao pedido por conta/clipe/efeito via SELECT, evitando migration, coluna ou mudança no fluxo de cobrança. Pessoas distintas e anônimos separados. Razões e provas em docs/showcase-clipes-20261006/MEDICAO.md.

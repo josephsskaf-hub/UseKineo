@@ -11,7 +11,7 @@
 | 1 · visitante = conta nova | Testado; código 2e330992 | 09698a53c3c489831ec99f3b52710edaff53fcb8 | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
 | 2 · páginas de efeito | Testado; código 646361bf | 2db02ec7cae6b6119438056aba76b84c705b25d9 | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
 | 3 · Kling 4 desligado | Testado; código 414d9ea7 | 656b79c1b0848d71fd7653ef5b059770a59532ff | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
-| 4 · medição por origem | Testado; suíte completa em andamento | Pendente | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
+| 4 · medição por origem | Testado; código f967b737 + guardião 18a85263 | Em preparação da fila | DESCONHECIDO | DESCONHECIDO | DESCONHECIDO |
 
 ## Item 1 · catálogo público e preço no botão
 
@@ -63,6 +63,8 @@
 
 **TESTADO LOCALMENTE / ajuste de teste:** o guardião A/B passou a aceitar campos após a versão antiga no objeto de metadata, mantendo a exigência do carimbo e seus argumentos. A rota real e um mutante adicional provam que o carimbo não se perdeu. Nenhum arquivo da home foi modificado.
 
+**TESTADO LOCALMENTE — 05/10 BRT:** tsc limpo. Suíte final completa: base 762 / 619 verdes / 143 vermelhos; candidato 766 / 623 / 143. Nenhum teste nem asserção vermelha nova. [Gates completos](showcase-clipes-20261006/item-4/gates.json). Os quatro guardiões novos rejeitam 31 mutantes (6 + 6 + 10 + 9). Home, pós-cadastro, checkout, regras de preço/crédito, compose e engineWall têm diff vazio contra a base.
+
 **QUESTÃO PENDENTE / DESCONHECIDO:** cobertura real da origem depois da publicação. Navegação da home não foi alterada; se o navegador/OAuth não preservar evidência, não será inventada atribuição. Contagem de navegadores anônimos é separada de pessoas identificadas.
 
 ## Régua de medição
@@ -83,4 +85,18 @@
 
 **DECISÃO APROVADA:** sem alterações em home, pós-cadastro, checkout, preço/plano/crédito, compose, engineWall, motores existentes, banco, Vercel ou crons. Sem renders pagos, mensagens externas ou PII. Fornecedor continua fal; Kling 4 fica desligado mesmo que haja anúncio novo, até model id/custo verificáveis e guardião verde.
 
-**SUGESTÃO — próximo passo:** concluir gates/fila do item 3; implementar o item 4; consolidar as entregas do dia em um launcher com os dois SHAs completos. Ao retomar, ler este arquivo e o Git real antes de escrever. Nunca executar o launcher nesta sessão.
+**EVIDÊNCIA DE PRODUÇÃO — 06/10/2026 00:03:36Z (05/10 21:03 BRT):** GET público de /api/clips continua com 2 efeitos; /effects/melt responde 404; sitemap responde 200, sem URLs de efeitos. A entrega deste sprint ainda não está publicada nessa conferência. Isso não apaga o Showcase anterior, que pertence a outro escopo. [Leitura HTTP](showcase-clipes-20261006/pre-publication.json).
+
+**FATO CONFIRMADO — Git remoto lido em 05/10 BRT:** origin/main permanece 7ec75c5ddce617b285417f25fd8fd8c99d7a301b; não existe ref remota origin/entrega-atual. A fila da casa é a ref local entrega-atual, que foi preservada por merge e atualizada apenas por scripts/enfileirar.sh. Não houve push direto nem branch -f.
+
+## Como desfazer
+
+**SUGESTÃO operacional reversível:** por nova branch e o mesmo caminho de gates/fila/launcher, `CLIP_GUEST_AS_NEW_ACCOUNT=false` restaura a seleção anônima anterior; `CLIP_EFFECT_PAGES_PUBLIC=false` retira páginas e sitemap de efeitos; `CLIP_MEASUREMENT_ENABLED=false` desliga os eventos novos. Kling 4 já está false. Esses estados foram exercitados nos guardiões; o rollback deve ser validado com a configuração intencional. Para desfazer os quatro itens integralmente, reverter apenas os commits desta entrega, em ordem inversa, preservando merges/trabalho alheio. Nunca resetar main ou a fila.
+
+## O que pode melhorar e próximo passo
+
+**FATO CONFIRMADO / SUGESTÃO:** o catálogo escondia sete efeitos do visitante; a correção está testada. A fragilidade preexistente da suíte (143 scripts vermelhos na base) continua documentada, sem ser disfarçada como verde. Para resultado comercial, publicar pelo launcher e observar pessoas externas expostas/ativadas antes de pedir mais efeitos. O snapshot só contém atividade interna; não há aumento de conversão ou MRR comprovado. A organização por efeito da Higgsfield foi adaptada, sem supor que a feature prove receita.
+
+**SUGESTÃO — manter/desligar:** manter as nove páginas, o catálogo coerente e a medição após publicação; manter Kling 4 desligado até fatos verificáveis da fal e revisão do adapter. Decisões adicionais do fundador: eventual fornecedor diferente e eventual investimento em novas prévias, somente quando houver evidência de demanda. Nenhum gasto foi iniciado.
+
+**SUGESTÃO — próximo passo:** registrar o recibo final da fila e do launcher, sem executar publicação. Ao retomar, ler este arquivo e o Git real antes de escrever. Os relatórios finitos já foram agendados; não criar outro agendamento.

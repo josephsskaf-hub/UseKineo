@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-10-06T00:03:36.8195917Z",
+  "source": "Public HTTP GET https://www.usekineo.com",
+  "apiStatus": 200,
+  "anonymous": true,
+  "effectCount": 2,
+  "effectKeys": ["bring_to_life", "restore_old_photo"],
+  "effectPageStatus": 404,
+  "sitemapStatus": 200,
+  "effectSitemapEntries": 0,
+  "newSprintPublication": "not yet observed",
+  "commercialExposure": "DESCONHECIDO",
+  "newPayers": "DESCONHECIDO"
+}
