@@ -20,6 +20,8 @@ import { findBrandLogoUrl, withBrandLogo } from '@/lib/brandLogo' // KINEO-LOGO-
 import { withHookFirstFrame, hookNarration } from '@/lib/hookFirstFrame' // KINEO-GANCHO-1Q-2026-10-03
 import { isInternalEmail } from '@/lib/internalAccounts' // KINEO-GANCHO-1Q-2026-10-03
 import { captionFontFor } from '@/lib/textLanguage' // KINEO-GANCHO-1Q-2026-10-03
+import { decidirLegenda, tirarLegendaEGancho } from '@/lib/semLegenda' // KINEO-SEM-LEGENDA-2026-10-06
+import { registrarVersaoDaCasa, registrarSemLegendaIgnorado } from '@/lib/semLegendaServer' // KINEO-SEM-LEGENDA-2026-10-06
 import {
   buildCreatomateSource,
   CreatomateSubmitError,
@@ -769,6 +771,10 @@ export async function POST(req: NextRequest) {
     }
     const generationId = rawGenerationId
     composeCtx.userId = authenticatedUserId; composeCtx.generationId = generationId; composeCtx.quality = quality; composeCtx.stage = 'claimed' // KINEO-COMPOSE-FALHA-COM-NOME
+    // KINEO-SEM-LEGENDA-2026-10-06 — captions:false = versão B (sem legenda e sem título-gancho) SÓ para conta interna; o Studio Ads segue tirando a legenda
+    // como desde 26/09 (modo serviço + narration_source 'tts'); cliente que mandar é ignorado — filme como hoje — e o servidor grava o rastro. KINEO-SEM-LEGENDA-2026-10-06
+    const semLegenda = decidirLegenda({ captions: body.captions, interna: isInternalEmail(user.email), studioAds: isServiceFinish && body.narration_source === 'tts' }) // KINEO-SEM-LEGENDA-2026-10-06
+    if (semLegenda.motivo === 'ignorado_cliente') { await registrarSemLegendaIgnorado({ userId: authenticatedUserId, generationId, quality }); delete body.captions } // KINEO-SEM-LEGENDA-2026-10-06
     const submissionKey = `${authenticatedUserId}:${generationId}`
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -2722,6 +2728,7 @@ export async function POST(req: NextRequest) {
       withBrandLogo(hollywoodSource, await findBrandLogoUrl(authenticatedUserId, composeAdmin)) // KINEO-LOGO-DA-MARCA-2026-10-01
       // KINEO-GANCHO-1Q-2026-10-03 (pedido da sessão CEO em nome do fundador, 03/10) — a 1ª frase da narração escrita no topo de 0 a 2,5 s (o público do TikTok sai em 0:02); só contas internas enquanto GANCHO_1Q_PUBLIC=false; entra depois de montado e depois do logo (a posição é medida contra ele); lib/compose não muda.
       { const g = withHookFirstFrame(hollywoodSource, { interna: isInternalEmail(user.email), narration: hookNarration(narrationBlocks, voiceoverScript), font: captionFontFor(language) }); if (g.applied) console.log(`[compose] KINEO-GANCHO-1Q-2026-10-03 hollywood: "${g.phrase}" y=${g.y}`) } // KINEO-GANCHO-1Q-2026-10-03
+      if (semLegenda.tirarLegenda || semLegenda.tirarGancho) { const sl = tirarLegendaEGancho(hollywoodSource, { legenda: semLegenda.tirarLegenda, gancho: semLegenda.tirarGancho }); hollywoodSource = sl.source; console.log(`[compose] KINEO-SEM-LEGENDA-2026-10-06 hollywood (${semLegenda.motivo}): ${sl.legendas} legenda(s) e ${sl.gancho} gancho retirados`) } // KINEO-SEM-LEGENDA-2026-10-06
 
       // Submit once per authenticated generation. Retrying a provider POST
       // after an ambiguous response can create and charge two render jobs.
@@ -2808,6 +2815,7 @@ export async function POST(req: NextRequest) {
       // Publish the accepted render only after its server-side billing intent
       // exists, so a cross-instance replay cannot race ahead of that record.
       const hollywoodClaimStored = await completeGenerationClaim(hollywoodRenderId, hollywoodCost)
+      await registrarVersaoDaCasa({ userId: authenticatedUserId, generationId, renderId: hollywoodRenderId, quality, decisao: semLegenda, source: hollywoodSource }) // KINEO-SEM-LEGENDA-2026-10-06 — conta interna: versão gerada + RenderScript da versão B; cliente: nada
       if (
         (!hollywoodIntentStored && !hollywoodClaimStored) ||
         (cinematicUpstreamDebited && !hollywoodClaimStored)
@@ -3476,6 +3484,7 @@ export async function POST(req: NextRequest) {
         source = { ...source, elements: els.map((e) => (isCaptionElement(e) ? { ...(e as Record<string, unknown>), ...overrides } : e)) }
       }
     }
+    if (semLegenda.tirarLegenda || semLegenda.tirarGancho) { const sl = tirarLegendaEGancho(source, { legenda: semLegenda.tirarLegenda, gancho: semLegenda.tirarGancho }); source = sl.source; console.log(`[compose] KINEO-SEM-LEGENDA-2026-10-06 (${semLegenda.motivo}): ${sl.legendas} legenda(s) e ${sl.gancho} gancho retirados`) } // KINEO-SEM-LEGENDA-2026-10-06
 
     // Step 5 — Submit to Creatomate once per authenticated generation. The
     // provider has no documented idempotency key, so a blind retry after an
@@ -3609,6 +3618,7 @@ export async function POST(req: NextRequest) {
       cost: intendedCost,
     })
     const claimStored = await completeGenerationClaim(renderId, intendedCost)
+    await registrarVersaoDaCasa({ userId: authenticatedUserId, generationId, renderId, quality, decisao: semLegenda, source }) // KINEO-SEM-LEGENDA-2026-10-06 — conta interna: versão gerada + RenderScript da versão B; cliente: nada
     if ((!intentStored && !claimStored) || (cinematicUpstreamDebited && !claimStored)) {
       return NextResponse.json(
         { error: 'Your render was accepted and is being recovered safely.', pending: true, retry_after_ms: 5000 },
