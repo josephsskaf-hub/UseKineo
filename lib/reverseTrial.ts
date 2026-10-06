@@ -74,7 +74,7 @@ import {
 // recebe. lib/freeTierOffer.ts importa apenas engineCost (puro) — sem ciclo.
 import { getFreeTierOffer, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { CARD_ENTRY_ONLY, CARD_ENTRY_REQUIRED_EVENT, CARD_ENTRY_TRIAL_STATUS } from './entryPolicy'
-import { filmeGratisPermitido, REGION_PAID_ONLY_TRIAL_STATUS, TRIAL_REGION_EXCLUDED_EVENT } from './freeFilmPolicy'
+import { filmeGratisPermitido, REGION_PAID_ONLY_TRIAL_STATUS, TRIAL_REGION_EXCLUDED_EVENT, REGION_FREE_CLIP_PUBLIC, REGION_FREE_CLIP_CREDITS, REGION_FREE_CLIP_GRANTED_EVENT } from './freeFilmPolicy'
 
 // Mesmo idioma de flag dos crons de lifecycle (KINEO_LIFECYCLE_EMAILS_ENABLED):
 // igualdade estrita com 'true'. Qualquer outro valor (ausente, '1', 'yes') = OFF.
@@ -925,6 +925,26 @@ export async function maybeActivateReverseTrial(args: {
           name: TRIAL_REGION_EXCLUDED_EVENT,
           userId: args.userId,
           metadata: { country: args.country ?? null, marked: markedPais },
+        })
+      }
+      // KINEO-CLIPE-GRATIS-REGIAO-2026-10-05 (fundador, item 1A) — na MESMA transição que marcou 'region_paid_only', os
+      // créditos de 1 clipe de 5 s. Compare-and-set: só quem acabou de ser marcado (markedPais), ainda 'region_paid_only' e
+      // com saldo 0 — nunca dá duas vezes, nunca sobrescreve saldo. O evento grava se deu ou não (sem sinal = sem prova).
+      if (markedPais && REGION_FREE_CLIP_PUBLIC) {
+        const { data: deuClipe, error: clipeErr } = await db
+          .from('profiles')
+          .update({ video_credits: REGION_FREE_CLIP_CREDITS })
+          .eq('id', args.userId)
+          .eq('trial_status', REGION_PAID_ONLY_TRIAL_STATUS)
+          .eq('video_credits', 0)
+          .select('id')
+        if (clipeErr) {
+          console.warn(`[reverse-trial] could not grant region free clip user=${args.userId.slice(0, 8)}:`, clipeErr.message)
+        }
+        await writeServerEvent({
+          name: REGION_FREE_CLIP_GRANTED_EVENT,
+          userId: args.userId,
+          metadata: { country: args.country ?? null, credits: REGION_FREE_CLIP_CREDITS, granted: !clipeErr && Array.isArray(deuClipe) && deuClipe.length > 0, source: 'signup' },
         })
       }
       return { activated: false, reason: 'region_paid_only' }

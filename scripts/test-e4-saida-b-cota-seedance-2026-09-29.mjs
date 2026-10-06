@@ -156,8 +156,15 @@ async function ativa({ country, perfil, criadoEm = new Date().toISOString(), sob
 }
 {
   for (const c of ['PK', 'IN', 'NG', 'MX']) { // Reancorado 03/10 (KINEO-BRASIL-VOLTA): BR saiu daqui e entrou abaixo, com trial
+    // Reancorado 05/10 (KINEO-CLIPE-GRATIS-REGIAO, fundador item 1A): continua 'region_paid_only' (sem filme grátis), mas
+    // nasce com os créditos de 1 clipe de 5 s e o evento region_free_clip_granted (granted:true) — antes era 0 crédito.
     const x = await ativa({ country: c })
-    checa(`cadastro novo de ${c}: region_paid_only, 0 crédito, evento trial_region_excluded`, x.r.reason === 'region_paid_only' && x.db.estado.perfil.trial_status === 'region_paid_only' && x.db.estado.perfil.video_credits === 0 && x.eventos.some((e) => e.name === 'trial_region_excluded' && e.metadata?.country === c))
+    checa(`cadastro novo de ${c}: region_paid_only, 5 cr do clipe grátis, eventos trial_region_excluded + region_free_clip_granted`, x.r.reason === 'region_paid_only' && x.db.estado.perfil.trial_status === 'region_paid_only' && x.db.estado.perfil.video_credits === 5 && x.eventos.some((e) => e.name === 'trial_region_excluded' && e.metadata?.country === c) && x.eventos.some((e) => e.name === 'region_free_clip_granted' && e.metadata?.granted === true && e.metadata?.country === c && e.metadata?.credits === 5))
+  }
+  {
+    // Segunda entrada da mesma conta (já marcada, saldo do clipe gasto): a transição não acontece de novo → nada de crédito.
+    const x = await ativa({ country: 'PK', perfil: { id: 'u-1', trial_status: 'region_paid_only', plan: 'free', has_paid: false, video_credits: 0 } })
+    checa('conta que já era region_paid_only (clipe usado) entra de novo: 0 crédito, nenhum region_free_clip_granted', x.db.estado.perfil.video_credits === 0 && !x.eventos.some((e) => e.name === 'region_free_clip_granted'))
   }
   for (const c of ['US', 'ES', 'GB', 'BR', null]) {
     const x = await ativa({ country: c })
@@ -605,7 +612,7 @@ console.log('== (f) llms.txt e /api/facts executados; aviso da conta region_paid
   checa('o aviso aparece só para region_paid_only que não pagou', vis(POL))
   const layout = rd('app/(dashboard)/layout.tsx')
   const banner = rd('components/RegionPaidOnlyBanner.tsx')
-  checa('layout do painel monta o aviso por regionPaidOnlyNoticeVisible; o componente usa a língua da interface e o link dos planos', layout.includes('{user && regionPaidOnlyNoticeVisible(profile as') && layout.includes('<RegionPaidOnlyBanner />') && banner.includes('pickInterfaceCopy(REGION_PAID_ONLY_NOTICE, language)') && banner.includes('href={REGION_PAID_ONLY_PLANS_HREF}'))
+  checa('layout do painel monta o aviso por regionPaidOnlyNoticeVisible; o componente usa a língua da interface e o link dos planos', layout.includes('{user && regionPaidOnlyNoticeVisible(profile as') && (layout.includes('<RegionPaidOnlyBanner />') || layout.includes('<RegionPaidOnlyBanner freeClip={regionFreeClipAvailable(')) /* reancorado 05/10 (KINEO-CLIPE-GRATIS-REGIAO): a faixa recebe se o clipe grátis está disponível */ && banner.includes('pickInterfaceCopy(REGION_PAID_ONLY_NOTICE, language)') && banner.includes('href={REGION_PAID_ONLY_PLANS_HREF}'))
   const sink = rd('app/api/events/route.ts')
   checa('eventos novos só do servidor (kineo1_retired_refused, free_weekly_film_granted/admitted/grant_voided/exclusive_refused)', ['kineo1_retired_refused', 'free_weekly_film_granted', 'free_weekly_film_admitted'].every((n) => sink.includes(`  '${n}',\n`)) && ['free_weekly_film_grant_voided', 'free_weekly_film_exclusive_refused'].every((n) => sink.includes(`  '${n}', //`)))
 }

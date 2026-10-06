@@ -73,7 +73,7 @@ import type { Metadata } from 'next'
 import CardEntryBanner from '@/components/CardEntryBanner'
 import TrialContinueNowBanner from '@/components/TrialContinueNowBanner'
 import RegionPaidOnlyBanner from '@/components/RegionPaidOnlyBanner' // KINEO-E4-SAIDA-B-2026-09-29
-import { regionPaidOnlyNoticeVisible } from '@/lib/freeFilmPolicy'
+import { regionFreeClipAvailable, regionPaidOnlyNoticeVisible } from '@/lib/freeFilmPolicy'
 import ScenePreviewResumeBanner from '@/components/ScenePreviewResumeBanner' // KINEO-PREVIA-CENAS-2026-10-03
 
 // KINEO-ACQ-SPRINT-2026-07-29 — KEEP THE APP OUT OF THE SEARCH INDEX.
@@ -186,7 +186,7 @@ export default async function DashboardLayout({
       )}
       {/* KINEO-E4-SAIDA-B-2026-09-29 — conta que nasceu fora do filme grátis (region_paid_only) lê a verdade
           em pt/en/es com o botão dos planos, nunca um erro seco no clique. Some quando paga. */}
-      {user && regionPaidOnlyNoticeVisible(profile as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null } | null) && <RegionPaidOnlyBanner />}
+      {user && regionPaidOnlyNoticeVisible(profile as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null } | null) && <RegionPaidOnlyBanner freeClip={regionFreeClipAvailable(profile as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null; video_credits?: number | null } | null)} />}
       {/* KINEO-PREVIA-CENAS-2026-10-03 — depois de pagar, quem viu a prévia volta ao Studio com o roteiro a 1 clique. Só para
           conta que já pode fazer filme (pagou ou tem plano); o aviso só aparece com a prévia guardada no navegador. */}
       {user && ((profile as { has_paid?: boolean | null } | null)?.has_paid === true || !['free', ''].includes(String((profile as { plan?: string | null } | null)?.plan ?? 'free').toLowerCase())) && <ScenePreviewResumeBanner />}

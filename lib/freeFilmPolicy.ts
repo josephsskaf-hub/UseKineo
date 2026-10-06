@@ -113,6 +113,41 @@ export const REGION_PAID_ONLY_PLANS_HREF = '/pricing'
 /** Recusa de servidor para a conta 'region_paid_only' (inglês: a rota não sabe a língua da interface). */
 export const REGION_PAID_ONLY_REFUSAL = `${REGION_PAID_ONLY_NOTICE.en.title}. ${REGION_PAID_ONLY_NOTICE.en.body} Nothing was charged.`
 
+// KINEO-CLIPE-GRATIS-REGIAO-2026-10-05 — decisão do fundador (05/10, noite, item 1A): "por 0,27 eu topo liberar para esses
+// países que não têm tanto poder aquisitivo, pelo menos um clipe grátis de 5 segundos". Quem nasce 'region_paid_only' ganha,
+// no cadastro, os créditos de 1 clipe de 5 s (lib/reverseTrial.ts: compare-and-set em trial_status='region_paid_only' e
+// video_credits=0 — nunca dá duas vezes, nunca sobrescreve saldo). 5 cr = 1 clipe de 5 s no Seedance 1.5 (US$ 0,13 na fal)
+// ou no Kling 2.5 (US$ 0,35, o teto). O filme narrado continua recusado para essas contas (REGION_PAID_ONLY_REFUSAL,
+// intacto). O guardião scripts/test-clipe-gratis-regiao-2026-10-05.mjs confere que o número bate com
+// clipCreditCost('seedance', 5) de lib/clips/clipPricing.ts (espelho, sem import: este módulo também roda no navegador).
+export const REGION_FREE_CLIP_PUBLIC = true
+export const REGION_FREE_CLIP_CREDITS = 5
+export const REGION_FREE_CLIP_GRANTED_EVENT = 'region_free_clip_granted'
+export const REGION_FREE_CLIP_HREF = '/clips'
+/** A faixa do topo enquanto o clipe grátis está disponível (pt/en/es; as outras línguas da interface caem no inglês). */
+export const REGION_FREE_CLIP_NOTICE: { en: RegionPaidOnlyNoticeCopy; pt: RegionPaidOnlyNoticeCopy; es: RegionPaidOnlyNoticeCopy } = {
+  en: {
+    title: 'Your first clip is free',
+    body: 'The free film is not available in your country yet, but your first 5-second clip is on us. Plans unlock every engine, with clean downloads.',
+    cta: 'Make my free clip',
+  },
+  pt: {
+    title: 'Seu primeiro clipe é grátis',
+    body: 'O filme grátis ainda não está disponível no seu país, mas o seu primeiro clipe de 5 segundos é por nossa conta. Os planos liberam todos os motores, com download sem marca d’água.',
+    cta: 'Fazer meu clipe grátis',
+  },
+  es: {
+    title: 'Tu primer clip es gratis',
+    body: 'La película gratis todavía no está disponible en tu país, pero tu primer clip de 5 segundos va por nuestra cuenta. Los planes desbloquean todos los motores, con descargas sin marca de agua.',
+    cta: 'Hacer mi clip gratis',
+  },
+}
+/** A faixa oferece o clipe grátis enquanto o saldo cobre 1 clipe: some quando a pessoa usa e volta se o clipe falhar e for estornado. */
+export function regionFreeClipAvailable(row: { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null; video_credits?: number | null } | null | undefined): boolean {
+  if (!REGION_FREE_CLIP_PUBLIC || !regionPaidOnlyNoticeVisible(row)) return false
+  return typeof row?.video_credits === 'number' && row.video_credits >= REGION_FREE_CLIP_CREDITS
+}
+
 /** País do request pela Vercel (x-vercel-ip-country); null sem cabeçalho. */
 export function paisDoRequest(h: { get(name: string): string | null } | null | undefined): string | null {
   try {
