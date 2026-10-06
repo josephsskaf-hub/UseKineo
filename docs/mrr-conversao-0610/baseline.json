@@ -1,0 +1,53 @@
+{
+  "start": "2026-09-28T23:25:12.672456+00:00",
+  "end_exclusive": "2026-10-05T23:25:12.672456+00:00",
+  "signup_cohort": {
+    "people": 136,
+    "paid_people": 1,
+    "checkout_people": 17
+  },
+  "upgrade_funnel": {
+    "upgrade_people": 62,
+    "checkout_people": 13,
+    "paid_people": 1
+  },
+  "cohort_paid_origin": [
+    {
+      "people": 1,
+      "source": "chatgpt",
+      "campaign": "unknown"
+    }
+  ],
+  "all_external_event_people": [
+    {
+      "name": "pricing_view",
+      "people": 37
+    },
+    {
+      "name": "topup_unavailable_note_shown",
+      "people": 62
+    },
+    {
+      "name": "upgrade_modal_opened",
+      "people": 62
+    }
+  ],
+  "checkout_trial_status_now": [
+    {
+      "people": 10,
+      "status": "region_paid_only"
+    },
+    {
+      "people": 4,
+      "status": "active"
+    },
+    {
+      "people": 2,
+      "status": "downgraded"
+    },
+    {
+      "people": 1,
+      "status": "converted"
+    }
+  ]
+}

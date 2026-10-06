@@ -15,6 +15,8 @@ import PricingCards from '@/components/PricingCards'
 import StickyGenerateBar from '@/components/StickyGenerateBar'
 import NextActionCard from '@/components/NextActionCard'
 import UpgradeModalTrialDoor from '@/components/UpgradeModalTrialDoor'
+import ConversionUpgrade from '@/components/offers/ConversionUpgrade'
+import { MRR_CONVERSION_ENABLED, conversionCheckoutHref, conversionMetadata, type ConversionBilling } from '@/lib/offers/mrrConversion'
 import RegionalFirstPack from '@/components/RegionalFirstPack'
 // KINEO-SPRINT-OFFER-2026-07-14 — PostVideoPaywall import removed. It was the
 // THIRD offer block on the success screen (on top of the Push #099 intro block
@@ -11421,6 +11423,7 @@ export default function GenerateClient({
     // recusas do motor de IA estavam até hoje. `void`: é telemetria de UI, a
     // aba não vai a lugar nenhum na linha seguinte — o modal abre.
     void trackEvent('upgrade_modal_opened', {
+      ...(MRR_CONVERSION_ENABLED && notPaidProven && !paidAccount ? conversionMetadata('upgrade') : {}),
       reason: resolvedReason,
       requested_reason: reason,
       surface: 'generate',
@@ -11436,7 +11439,7 @@ export default function GenerateClient({
     // evento novo só existe quando saldo e custo provam uma falta real; seus
     // valores são buckets, nunca o saldo exato.
     const reasonHasCreditFit = resolvedReason === 'credits' || resolvedReason.startsWith('trial_')
-    if (limitPurchaseFit && reasonHasCreditFit) {
+    if (limitPurchaseFit && reasonHasCreditFit && !(MRR_CONVERSION_ENABLED && notPaidProven && !paidAccount)) {
       void trackEvent('limit_purchase_fit_viewed', {
         surface: 'generate_upgrade_modal',
         reason: resolvedReason,
@@ -14319,7 +14322,7 @@ export default function GenerateClient({
           // once and never cleared, so a failed redirect left the modal stuck
           // on "…" forever. The launcher's watchdog releases it after 15 s.
           loading={upgradeModalCheckout.pending !== null}
-          onUpgrade={(tier) => {
+          onUpgrade={(tier, billing = 'monthly') => {
             // #380 — straight to Stripe via the working GET checkout route.
             // KINEO-SPRINT-OFFER-2026-07-14 — SINGLE OFFER: the intro month
             // ($4.90 Starter / $9.90 Creator first month) replaced the old
@@ -14330,11 +14333,12 @@ export default function GenerateClient({
             // 7-sessions-in-2.8s incident (source: "upgrade_modal"): the only
             // guard was `upgradeLoading`, set AFTER trackCheckoutClick and never
             // painted before the next tap. The launcher latch is synchronous.
-            const introParam = tier === 'starter' || tier === 'basic' ? '&intro=1' : ''
+            const introParam = billing === 'monthly' && (tier === 'starter' || tier === 'basic') ? '&intro=1' : ''
+            const originalHref = withIntentCampaign(`/api/stripe/checkout?tier=${tier}&billing=${billing}${introParam}`)
             const started = upgradeModalCheckout.launch(
               tier,
-              withIntentCampaign(`/api/stripe/checkout?tier=${tier}${introParam}`),
-              { tier, intro: tier === 'starter' || tier === 'basic', reason: upgradeReason },
+              notPaidProven && !(isStarter || isCreator || isStudio) ? conversionCheckoutHref(originalHref, 'upgrade', `${tier}_${billing}`) : originalHref,
+              { tier, billing, intro: introParam !== '', reason: upgradeReason, ...(MRR_CONVERSION_ENABLED && notPaidProven && !(isStarter || isCreator || isStudio) ? conversionMetadata('upgrade', `${tier}_${billing}`) : {}), previous_intent_campaign: intentCampaign || null },
             )
             if (!started) return
             trackCheckoutClick(tier)
@@ -14395,8 +14399,8 @@ export default function GenerateClient({
             try { if (typeof credits === 'number') sessionStorage.setItem(WALL_V1_PACK_BALANCE_KEY, String(credits)) } catch { /* ignore */ }
             const started = upgradeModalCheckout.launch(
               'film_pass',
-              withStudioReturn(withIntentCampaign('/api/stripe/checkout?pack=starter')),
-              { pack: 'starter', from: 'out_of_credits_wall', return_to: 'studio', reason: upgradeReason },
+              notPaidProven ? conversionCheckoutHref(withStudioReturn(withIntentCampaign('/api/stripe/checkout?pack=starter')), 'upgrade', 'pass') : withStudioReturn(withIntentCampaign('/api/stripe/checkout?pack=starter')),
+              { pack: 'starter', from: 'out_of_credits_wall', return_to: 'studio', reason: upgradeReason, ...(MRR_CONVERSION_ENABLED && notPaidProven ? conversionMetadata('upgrade', 'pass') : {}), previous_intent_campaign: intentCampaign || null },
             )
             if (!started) return
             trackCheckoutClick('starter')
@@ -22033,7 +22037,7 @@ function UpgradeModal({
   onFilmPass = null,
 }: {
   loading: boolean
-  onUpgrade: (tier: 'starter' | 'basic' | 'pro') => void
+  onUpgrade: (tier: 'starter' | 'basic' | 'pro', billing?: ConversionBilling) => void
   onClose: () => void
   reason?: 'credits' | 'studio' | 'creator' | 'trial_ended' | 'trial_stalled' | 'trial_spent' | 'footage'
   isSubscriber?: boolean
@@ -22123,6 +22127,7 @@ function UpgradeModal({
   // comparação fica explícita para o guardião amarrar). Gate de plano
   // (studio/creator/footage) e assinante caem nas linhas de plano de sempre.
   const wallV1Eligible =
+    !(MRR_CONVERSION_ENABLED && notPaidProven) &&
     wallV1 !== null &&
     isWallV1Reason(reason) &&
     !wallV1.isStarter && !wallV1.isCreator && !wallV1.isStudio &&
@@ -22306,6 +22311,15 @@ function UpgradeModal({
     },
   }
   const head = HEAD[reason] ?? HEAD.credits
+  // The existing free/trial action is preserved; only the purchase dialog changes.
+  if (MRR_CONVERSION_ENABLED && notPaidProven && !isSubscriber) {
+    const freeLabel = firstFilmFree ? 'Make my first film free' : trialSeedance15
+      ? `Make my included ${trialSeedance15.seconds}-second Seedance film`
+      : trialKineo1 ? `Make my included ${trialKineo1.seconds}-second Kineo 1 film` : null
+    return <ConversionUpgrade currency={currency} region={region} onClose={onClose} onUpgrade={onUpgrade}
+      onFilmPass={isSubscriber ? null : onFilmPass} loading={loading} error={checkoutError}
+      freeAction={freeLabel && onFirstFilmFree ? { label: freeLabel, onClick: onFirstFilmFree } : null} />
+  }
   return (
     <div
       role="dialog"

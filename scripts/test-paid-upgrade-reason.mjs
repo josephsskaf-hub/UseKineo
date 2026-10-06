@@ -19,6 +19,11 @@ assert.match(fs.readFileSync('lib/checkoutPricing.ts', 'utf8'), /CARD_TRIAL_LIVE
 function run(input = {}, requested = 'credits', implementation = opener) {
   const observed = { reasons: [], modal: [], door: [], events: [] }
   const context = {
+    // Conversion sprint: the imported flag/metadata are mocked at this opener boundary;
+    // test-mrr-conversao-0610 executes their real implementation and its mutants.
+    MRR_CONVERSION_ENABLED: true,
+    notPaidProven: input.hasPaid !== true,
+    conversionMetadata: surface => ({ offer_version: 'mrr0610_v1', offer_surface: surface }),
     hasPaid: false, isStarter: false, isCreator: false, isStudio: false,
     trialUi: { creditsGranted: 30, phase: 'downgraded' }, trialActive: false,
     credits: 20, CARD_TRIAL_LIVE: false, freeFilmAvailable: true, limitPurchaseFit: null,
@@ -97,4 +102,10 @@ assert.equal(fit.events[1].name, 'limit_purchase_fit_viewed')
 assert.equal(fit.events[1].metadata.reason, 'credits', 'fit telemetry uses corrected reason')
 assert.equal(fit.events[1].metadata.recommendation_id, 'fixture', 'recommendation is preserved')
 checks += 4
+const conversion = run({ limitPurchaseFit: { recommendation_id: 'fixture' } })
+assert.equal(conversion.events.length, 1, 'new modal does not claim the hidden old fit was viewed')
+assert.equal(conversion.events[0].metadata.offer_version, 'mrr0610_v1', 'eligible modal carries the offer version')
+assert.equal(fit.events[0].metadata.offer_version, undefined, 'subscribers retain their existing modal attribution')
+for (const tier of ['isStarter', 'isCreator', 'isStudio']) assert.equal(run({ [tier]: true }).events[0].metadata.offer_version, undefined, 'paid plan wins even before hasPaid refresh')
+checks += 6
 console.log(`paid-upgrade-reason: ${checks} checks passed (offline)`)
