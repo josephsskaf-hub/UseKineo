@@ -61,6 +61,23 @@ import {
 // KINEO-GRACA-NAO-CUROU-2026-09-07 — a decisão pura de "restaurar o plano de
 // quem foi revogado antes da graça?". Mesma peça que /api/admin/reconcile-dunning.
 import { decideDunningReconcile } from '@/lib/billing/dunningReconcile'
+// KINEO-DUNNING-EMAIL-2026-10-06 — o aviso de renovação recusada vai por e-mail, 1 por fatura. Decisão, interruptor e
+// textos no módulo puro; o I/O (dedupe, Resend, carimbo) mora em sendRenewalFailedEmailOnce, mais abaixo.
+import {
+  RENEWAL_FAILED_EMAIL_EVENT,
+  RENEWAL_FAILED_EMAIL_FAILED_EVENT,
+  RENEWAL_FAILED_EMAIL_FROM,
+  RENEWAL_FAILED_EMAIL_KIND,
+  RENEWAL_FAILED_EMAIL_LIVE,
+  RENEWAL_FAILED_EMAIL_REPLY_TO,
+  RENEWAL_FAILED_EMAIL_SKIPPED_EVENT,
+  RENEWAL_FAILED_EMAIL_TIMEOUT_MS,
+  RENEWAL_FAILED_EMAIL_VERSION,
+  decideRenewalFailedEmail,
+  renewalEmailLanguage,
+  renewalFailedEmailMessage,
+} from '@/lib/billing/renewalFailedEmail'
+import { recordEmailSend, recordResendResponse } from '@/lib/email/quota'
 import {
   AffiliateLedgerIntegrityError,
   calculateAffiliateCommission,
@@ -1132,6 +1149,160 @@ async function markTrialConverted(
     })
   } catch (err) {
     console.error('[stripe webhook] trial_converted threw:', err)
+  }
+}
+
+// ═══ KINEO-DUNNING-EMAIL-2026-10-06 — o aviso de renovação recusada sai daqui, na 1ª falha de cada fatura ═══════════
+// SE manda e O QUE manda: lib/billing/renewalFailedEmail.ts (puro, com o porquê). Aqui só o I/O, com três regras
+// porque isto roda DENTRO do webhook da Stripe:
+//  1. NUNCA LANÇA. É chamado depois de `entitlementConfirmed = true`: e-mail que falha não pode virar 500 (a Stripe
+//     reenviaria o evento) nem mudar a resposta de hoje. Tudo dentro de um try/catch que só avisa no log.
+//  2. AWAIT EM TUDO, com teto RENEWAL_FAILED_EMAIL_TIMEOUT_MS no Resend: `void` antes do return morre na Vercel.
+//  3. CARIMBO SÓ COM O RESEND DIZENDO OK. O carimbo (RENEWAL_FAILED_EMAIL_EVENT + metadata.invoice_id) é a dedupe
+//     por fatura. Falhou = evento `_failed` e nenhum carimbo: a próxima falha da MESMA fatura tenta de novo.
+// Todo desfecho vira evento (enviado / pulado com motivo / falhou): sem isso "0 e-mails" não distingue "ninguém
+// precisou" de "o envio está quebrado".
+type RenewalFailedEmailOwner = { id: string; plan: string | null; has_paid: boolean }
+
+async function sendRenewalFailedEmailOnce(
+  supabase: AdminClient,
+  input: {
+    invoice: Pick<Stripe.Invoice, 'id' | 'billing_reason' | 'attempt_count' | 'customer_email'>
+    subscriptionId: string
+    subscriptionStatus: string
+    owner: RenewalFailedEmailOwner | null
+    tier: string | null
+  },
+): Promise<void> {
+  const ownerId = input.owner?.id ?? null
+  const invoiceId = input.invoice.id ?? null
+  const base = {
+    version: RENEWAL_FAILED_EMAIL_VERSION,
+    source: 'stripe_webhook',
+    invoice_id: invoiceId,
+    subscription_ref: input.subscriptionId,
+    attempt: typeof input.invoice.attempt_count === 'number' ? input.invoice.attempt_count : null,
+    billing_reason: input.invoice.billing_reason ?? null,
+  }
+  try {
+    // Dedupe por FATURA. Erro de leitura = desconhecido (null) = não envia agora; a próxima tentativa pergunta de novo.
+    let alreadySentForInvoice: boolean | null = null
+    if (invoiceId) {
+      const { data: sentForInvoice, error: dedupeErr } = await supabase
+        .from('events')
+        .select('id')
+        .eq('name', RENEWAL_FAILED_EMAIL_EVENT)
+        .eq('metadata->>invoice_id', invoiceId)
+        .limit(1)
+      if (dedupeErr) console.error('[stripe webhook] renewal email dedupe read failed:', invoiceId, dedupeErr.message)
+      else alreadySentForInvoice = (sentForInvoice?.length ?? 0) > 0
+    }
+
+    let profile: { email?: string | null; email_opted_out?: boolean | null; signup_country?: string | null; last_country?: string | null } | null = null
+    if (ownerId) {
+      const { data, error: profileErr } = await supabase
+        .from('profiles')
+        .select('email, email_opted_out, signup_country, last_country')
+        .eq('id', ownerId)
+        .maybeSingle()
+      if (profileErr) console.error('[stripe webhook] renewal email profile read failed:', ownerId, profileErr.message)
+      profile = data
+    }
+    const recipient = (profile?.email || input.invoice.customer_email || '').trim()
+    const marketingOptOut = profile?.email_opted_out === true
+
+    const decision = decideRenewalFailedEmail({
+      live: RENEWAL_FAILED_EMAIL_LIVE,
+      billingReason: input.invoice.billing_reason,
+      invoiceId,
+      ownerId,
+      ownerHasPaid: input.owner?.has_paid === true,
+      subscriptionStatus: input.subscriptionStatus,
+      alreadySentForInvoice,
+      recipientEmail: recipient,
+      marketingOptOut,
+    })
+    if (!decision.send) {
+      await writeServerEvent({
+        name: RENEWAL_FAILED_EMAIL_SKIPPED_EVENT,
+        userId: ownerId,
+        path: '/api/stripe/webhook',
+        metadata: { ...base, reason: decision.reason },
+      })
+      return
+    }
+
+    const apiKey = process.env.RESEND_API_KEY
+    if (!apiKey) {
+      console.error('[stripe webhook] renewal email not sent: RESEND_API_KEY missing')
+      await writeServerEvent({
+        name: RENEWAL_FAILED_EMAIL_SKIPPED_EVENT,
+        userId: ownerId,
+        path: '/api/stripe/webhook',
+        metadata: { ...base, reason: 'sender_unconfigured' },
+      })
+      return
+    }
+
+    const message = renewalFailedEmailMessage({
+      language: renewalEmailLanguage(profile?.last_country || profile?.signup_country),
+      tier: input.tier ?? input.owner?.plan ?? null,
+    })
+    let res: Response
+    try {
+      res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        signal: AbortSignal.timeout(RENEWAL_FAILED_EMAIL_TIMEOUT_MS),
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: RENEWAL_FAILED_EMAIL_FROM,
+          to: [recipient],
+          reply_to: RENEWAL_FAILED_EMAIL_REPLY_TO,
+          subject: message.subject,
+          text: message.text,
+          html: message.html,
+        }),
+      })
+    } catch (sendErr) {
+      const detail = (sendErr instanceof Error ? sendErr.message : String(sendErr)).slice(0, 200)
+      await recordEmailSend({ kind: RENEWAL_FAILED_EMAIL_KIND, priority: 'revenue', userId: ownerId, ok: false, detail, admin: supabase })
+      await writeServerEvent({
+        name: RENEWAL_FAILED_EMAIL_FAILED_EVENT,
+        userId: ownerId,
+        path: '/api/stripe/webhook',
+        metadata: { ...base, language: message.language, error: detail },
+      })
+      console.warn('[stripe webhook] renewal email send threw (webhook continues):', invoiceId, detail)
+      return
+    }
+    await recordResendResponse({ kind: RENEWAL_FAILED_EMAIL_KIND, priority: 'revenue', userId: ownerId, res, admin: supabase })
+    if (!res.ok) {
+      await writeServerEvent({
+        name: RENEWAL_FAILED_EMAIL_FAILED_EVENT,
+        userId: ownerId,
+        path: '/api/stripe/webhook',
+        metadata: { ...base, language: message.language, http_status: res.status },
+      })
+      console.warn('[stripe webhook] renewal email rejected by Resend (webhook continues):', invoiceId, res.status)
+      return
+    }
+
+    const receipt = (await res.json().catch(() => null)) as { id?: unknown } | null
+    const stamped = await writeServerEvent({
+      name: RENEWAL_FAILED_EMAIL_EVENT,
+      userId: ownerId,
+      path: '/api/stripe/webhook',
+      metadata: {
+        ...base,
+        language: message.language,
+        marketing_opt_out: marketingOptOut,
+        provider_id: typeof receipt?.id === 'string' ? receipt.id : null,
+      },
+    })
+    if (!stamped) console.error('[stripe webhook] renewal email SENT but not stamped — the next failure of this invoice may resend:', invoiceId)
+    else console.log('[stripe webhook] renewal failed email sent:', ownerId?.slice(0, 8), invoiceId, message.language)
+  } catch (err) {
+    console.warn('[stripe webhook] renewal failed email threw (webhook continues):', invoiceId, err instanceof Error ? err.message : String(err))
   }
 }
 
@@ -2733,6 +2904,17 @@ export async function POST(req: NextRequest) {
                 }
               }
             }
+
+            // KINEO-DUNNING-EMAIL-2026-10-06 — quem está com o cartão recusado não volta ao app para ver o banner: o
+            // aviso vai por e-mail, 1 por fatura, na 1ª falha (lib/billing/renewalFailedEmail.ts decide e escreve).
+            // Roda DEPOIS de entitlementConfirmed e nunca lança: a resposta à Stripe é a mesma de antes.
+            await sendRenewalFailedEmailOnce(supabase, {
+              invoice,
+              subscriptionId: failedSubscriptionId,
+              subscriptionStatus: failedSubscription.status,
+              owner: dunningOwner,
+              tier: failedSubscription.metadata?.tier ?? null,
+            })
           }
           console.warn('[stripe webhook] payment_failed kept access for subscription:', failedSubscriptionId, failedSubscription.status)
           break

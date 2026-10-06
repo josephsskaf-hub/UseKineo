@@ -22,6 +22,9 @@ import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emai
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { PAID_PLANS } from '../_shared/mrr'
+// KINEO-DUNNING-EMAIL-2026-10-06 — desde 06/10 o webhook manda o aviso sozinho na 1ª falha de cada fatura de renovação
+// (lib/billing/renewalFailedEmail.ts). Esta carta manual vira repescagem: quem já recebeu o automático em 30 dias fica fora.
+import { RENEWAL_FAILED_EMAIL_EVENT } from '@/lib/billing/renewalFailedEmail'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -141,7 +144,9 @@ export async function GET(req: NextRequest) {
     // Quem já pagou uma fatura DEPOIS da recusa se recuperou sozinho; quem já recebeu esta carta em 30 dias espera.
     const [{ data: pagasRows }, { data: jaRows }] = await Promise.all([
       admin.from('events').select('user_id, created_at').eq('name', 'subscription_invoice_paid').gte('created_at', desde).in('user_id', ids),
-      admin.from('events').select('user_id, created_at').eq('name', SENT_EVENT).gte('created_at', new Date(Date.now() - RESEND_AFTER_DAYS * 86_400_000).toISOString()).in('user_id', ids),
+      // KINEO-DUNNING-EMAIL-2026-10-06 — o aviso AUTOMÁTICO (webhook da Stripe, 1 por fatura) também conta como "já
+      // recebeu": esta carta manual não repete o que o webhook acabou de dizer.
+      admin.from('events').select('user_id, created_at').in('name', [SENT_EVENT, RENEWAL_FAILED_EMAIL_EVENT]).gte('created_at', new Date(Date.now() - RESEND_AFTER_DAYS * 86_400_000).toISOString()).in('user_id', ids),
     ])
     const pagouDepois = new Map<string, string>()
     for (const r of pagasRows ?? []) { const u = r.user_id as string; const t = r.created_at as string; if (!pagouDepois.has(u) || t > (pagouDepois.get(u) ?? '')) pagouDepois.set(u, t) }

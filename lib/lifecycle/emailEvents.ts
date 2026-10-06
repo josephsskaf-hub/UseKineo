@@ -103,6 +103,10 @@ export const LIFECYCLE_EMAIL_EVENT_NAMES = [
   'weekly_quota_sent',
   // KINEO-RENOVACAO-RECUSADA-2026-09-18 — assinante com renovação recusada (admin/send-renewal-declined).
   'renewal_declined_emailed_v1',
+  // KINEO-DUNNING-EMAIL-2026-10-06 — o mesmo aviso, agora automático: sai do webhook da Stripe na 1ª falha de cada
+  // fatura de renovação (lib/billing/renewalFailedEmail.ts). É transacional (não espera a janela de ninguém), mas
+  // entra aqui para os OUTROS jobs ficarem 24 h quietos depois dele — nada de oferta no dia do cartão recusado.
+  'renewal_payment_failed_email_sent',
   // KINEO-STUDIO50-2026-09-22 — carta 'Studio a 50%' para quem chegou ao checkout e não pagou (admin/send-studio50).
   'studio50_sent',
 ] as const
