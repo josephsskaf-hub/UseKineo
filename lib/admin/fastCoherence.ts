@@ -21,6 +21,7 @@ import {
   type FastSceneEvidence,
 } from '@/lib/fastCoherence'
 import { FILM_FEEDBACK_ASKED_EVENT, FILM_FEEDBACK_EVENT, type FilmFeedbackVerdict } from '@/lib/filmFeedback'
+import { JUIZ_STILL_RESUMO_EVENTO, lerResumoDoJuiz, type JuizStillPainel } from '@/lib/hollywood/juizStill' // KINEO-JUIZ-STILL-2026-10-06
 
 export type FastCoherenceRow = {
   video_id: string
@@ -51,6 +52,12 @@ export type FastCoherenceRow = {
   feedback: { verdict: FilmFeedbackVerdict; comment: string | null; at: string } | null
   /** quando o fundador já mandou o e-mail "did it match?" para este filme (botão do quadro) */
   feedback_asked_at: string | null
+  /**
+   * KINEO-JUIZ-STILL-2026-10-06 — o juiz da FOTO-BASE (antes de animar; hoje só Seedance 2.5): o resumo que a rota grava por
+   * filme (juiz_still_resumo) — fotos julgadas, recusadas, refeitas, motivos e custo. null = filme sem o juiz (outro motor,
+   * ou anterior ao deploy). A nota de coerência julga DEPOIS; este julga ANTES do gasto com o vídeo.
+   */
+  juiz_still: JuizStillPainel | null
 }
 
 type VideoRow = { id: string; user_id: string; created_at: string; topic: string | null; video_url: string | null; duration: number | null; credits_used: number | null; render_id: string | null; quality_mode: string | null }
@@ -232,6 +239,18 @@ export async function listFastCoherence(
     const prev = scoreByGen.get(s.session_id)
     if (!prev || prev.created_at < s.created_at) scoreByGen.set(s.session_id, s)
   }
+  // ═══ KINEO-JUIZ-STILL-2026-10-06 — o juiz da foto-base, ao lado da nota: o resumo por filme que a rota grava depois do laço ═══
+  // (um evento por filme, session_id = generation_id; o mais recente vence — retentativa do mesmo filme regrava). Falha aberta:
+  // erro de leitura = a linha sai sem o juiz, a nota continua.
+  const juizRes = genIds.length // KINEO-JUIZ-STILL-2026-10-06
+    ? await admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', JUIZ_STILL_RESUMO_EVENTO).in('session_id', genIds).order('created_at', { ascending: false }).limit(1000)
+    : { data: [] as EventRow[] }
+  const juizByGen = new Map<string, JuizStillPainel>() // KINEO-JUIZ-STILL-2026-10-06
+  for (const j of ((juizRes.data ?? []) as EventRow[])) {
+    if (!j.session_id || juizByGen.has(j.session_id)) continue
+    const painel = lerResumoDoJuiz(j.metadata)
+    if (painel) juizByGen.set(j.session_id, painel)
+  }
   // Último 👍/👎 por vídeo; o comentário (evento posterior) cola no veredito.
   const feedbackByVideo = new Map<string, { verdict: FilmFeedbackVerdict; comment: string | null; at: string }>()
   const askedByVideo = new Map<string, string>()
@@ -298,6 +317,7 @@ export async function listFastCoherence(
       coherence_at: scoreEv?.created_at ?? null,
       feedback: feedbackByVideo.get(v.id) ?? null,
       feedback_asked_at: askedByVideo.get(v.id) ?? null,
+      juiz_still: gen ? juizByGen.get(gen) ?? null : null, // KINEO-JUIZ-STILL-2026-10-06
     })
   }
 

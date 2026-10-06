@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { isAdminEmail, serviceClient } from '@/app/api/admin/_shared/db'
 import { ENGINE_LABEL, listFastCoherence, type FastCoherenceRow } from '@/lib/admin/fastCoherence'
+import { ROTULO_CRITERIO, type CriterioJuiz, type JuizStillPainel } from '@/lib/hollywood/juizStill' // KINEO-JUIZ-STILL-2026-10-06
 import PedirFeedback from './PedirFeedback'
 
 export const dynamic = 'force-dynamic'
@@ -36,6 +37,35 @@ const primeiraLinha = (t: string, max = 150) => {
 const chip: React.CSSProperties = { display: 'inline-block', padding: '4px 10px', borderRadius: 999, fontSize: 11.5, fontWeight: 800, textDecoration: 'none', border: '1px solid #1F2530', color: '#C9CFD8' }
 const chipOn: React.CSSProperties = { ...chip, background: '#C9CFD8', color: '#161B24', borderColor: '#C9CFD8' }
 
+// ═══ KINEO-JUIZ-STILL-2026-10-06 — o juiz da FOTO-BASE ao lado da nota ═══
+// A nota (acima) julga o filme PRONTO; o juiz da foto-base julgou cada foto ANTES de ela virar vídeo (hoje só Seedance 2.5):
+// quantas viu, quantas recusou (anacronismo, encara a câmera, texto legível, igual à anterior), quantas refez e o custo.
+const corDoJuiz = (j: JuizStillPainel) => (j.com_defeito > 0 ? '#FF8787' : j.recusadas > 0 ? '#FFBF58' : j.julgadas > 0 ? '#5FD4A4' : '#9AA3B2')
+const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`
+const rotuloCriterio = (c: string) => ROTULO_CRITERIO[c as CriterioJuiz] ?? c
+function desfechoDoMotivo(m: JuizStillPainel['motivos'][number]): string {
+  if (m.escolhida === 'regerada') return m.veredito_regerada === 'OK' ? 'foto nova aprovada' : m.veredito_regerada === 'REJECT' ? `foto nova também recusada${m.motivo_regerada ? ` (${m.motivo_regerada})` : ''} — seguiu a de nota maior` : 'foto nova (sem 2º julgamento)'
+  return m.veredito_regerada === 'REJECT' ? 'as duas recusadas — seguiu a original' : 'seguiu a original (sem foto nova)'
+}
+function JuizDaFoto({ j }: { j: JuizStillPainel }) {
+  const resumo = j.fotos === 0
+    ? 'nenhuma cena com foto-base (todas sem still)'
+    : [plural(j.julgadas, 'foto julgada', 'fotos julgadas'), plural(j.recusadas, 'recusada', 'recusadas'), plural(j.regeradas, 'refeita', 'refeitas'), j.salvas ? plural(j.salvas, 'salva', 'salvas') : '', j.com_defeito ? plural(j.com_defeito, 'seguiu com defeito', 'seguiram com defeito') : '', j.erros + j.puladas ? `${j.erros + j.puladas} sem juiz (erro/tempo)` : ''].filter(Boolean).join(' · ')
+  return (
+    <div data-kineo="juiz-still" style={{ marginTop: 6, fontSize: 12, lineHeight: 1.45 }}>
+      <span style={{ color: corDoJuiz(j), fontWeight: 800 }}>📷 Juiz da foto-base</span>
+      <span style={{ color: '#9AA3B2' }}> · {resumo} · US$ {j.custo_usd.toFixed(3)} · {(j.ms / 1000).toFixed(1)} s{j.orcamento_estourado ? ' · teto de tempo atingido' : ''}{j.disjuntor ? ' · juiz desligado por falhas' : ''}</span>
+      {j.motivos.length > 0 && (
+        <ul style={{ margin: '3px 0 0', paddingLeft: 18, color: '#C9CFD8' }}>
+          {j.motivos.map((m, i) => (
+            <li key={i}>cena {m.cena}{m.origem === 'ambiente' ? ' (foto de ambiente)' : ''} · <b>{rotuloCriterio(m.criterio)}</b>{m.motivo ? `: ${m.motivo}` : ''} <span style={{ color: '#9AA3B2' }}>→ {desfechoDoMotivo(m)}</span></li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 function Linha({ r }: { r: FastCoherenceRow }) {
   const c = r.coherence
   const ai = r.engine !== 'fast'
@@ -46,6 +76,11 @@ function Linha({ r }: { r: FastCoherenceRow }) {
         <div style={{ fontSize: 30, fontWeight: 900, color: corDaNota(c?.score), lineHeight: 1 }}>{c ? c.score : '—'}</div>
         <div style={{ fontSize: 9.5, color: '#9AA3B2', marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.4 }}>{c ? (c.verdict === 'coherent' ? 'coerente' : c.verdict === 'partial' ? 'parcial' : 'fora') : 'sem nota'}</div>
         {r.feedback && <div style={{ fontSize: 18, marginTop: 6 }} title={`a pessoa disse ${r.feedback.verdict === 'up' ? 'sim' : 'não'} em ${fmt(r.feedback.at)}`}>{r.feedback.verdict === 'up' ? '👍' : '👎'}</div>}
+        {r.juiz_still && (
+          <div data-kineo="juiz-still-selo" style={{ fontSize: 10.5, marginTop: 6, fontWeight: 800, color: corDoJuiz(r.juiz_still) }} title={`juiz da foto-base: ${r.juiz_still.julgadas} julgada(s), ${r.juiz_still.recusadas} recusada(s), ${r.juiz_still.regeradas} refeita(s)`}>
+            📷 {r.juiz_still.fotos === 0 ? '—' : r.juiz_still.recusadas === 0 ? `${r.juiz_still.julgadas} ✓` : `${r.juiz_still.recusadas}✗/${r.juiz_still.julgadas}`}
+          </div>
+        )}
       </div>
       {/* 2 · motor · quem · o que escreveu · link */}
       <div style={{ minWidth: 0 }}>
@@ -69,6 +104,7 @@ function Linha({ r }: { r: FastCoherenceRow }) {
           )}
           {c && c.summary && <span style={{ color: '#9AA3B2' }}>{c.summary}</span>}
         </div>
+        {r.juiz_still && <JuizDaFoto j={r.juiz_still} />}
         {r.feedback?.comment && (
           <div style={{ marginTop: 6, color: '#fde68a', fontSize: 12, borderLeft: '2px solid #FFBF58', paddingLeft: 8 }}>a pessoa escreveu: “{r.feedback.comment}”</div>
         )}
@@ -144,6 +180,7 @@ export default async function AdminCoerenciaPage({ searchParams }: { searchParam
     if (so === 'parcial') return r.coherence?.verdict === 'partial'
     if (so === 'baixo') return !!r.coherence && r.coherence.score < 75
     if (so === 'semfeedback') return !r.feedback && !r.feedback_asked_at
+    if (so === 'juiz') return !!r.juiz_still && r.juiz_still.recusadas > 0 // KINEO-JUIZ-STILL-2026-10-06
     return true
   })
   const comNota = todas.filter((r) => r.coherence)
@@ -172,7 +209,7 @@ export default async function AdminCoerenciaPage({ searchParams }: { searchParam
       <div style={{ maxWidth: 1040, margin: '0 auto' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'baseline', marginBottom: 12 }}>
           <h1 style={{ fontSize: 20, fontWeight: 900, margin: 0 }}>Coerência</h1>
-          <span style={{ color: '#9AA3B2', fontSize: 12 }}>nota do juiz (0-100) = o que a pessoa escreveu × o que foi narrado × o que cada cena mostrou · 👍👎 = o que a pessoa disse</span>
+          <span style={{ color: '#9AA3B2', fontSize: 12 }}>nota do juiz (0-100) = o que a pessoa escreveu × o que foi narrado × o que cada cena mostrou · 👍👎 = o que a pessoa disse · 📷 = o juiz da foto-base, ANTES de animar (Seedance 2.5)</span>
           <span style={{ marginLeft: 'auto', fontSize: 12 }}>
             <Link href="/admin" style={{ color: '#8DB4FF' }}>CEO</Link> · <Link href="/admin/people" style={{ color: '#8DB4FF' }}>People</Link>
           </span>
@@ -190,7 +227,7 @@ export default async function AdminCoerenciaPage({ searchParams }: { searchParam
             <Link key={eng} href={q({ engine: engine === eng ? undefined : eng })} style={engine === eng ? chipOn : chip}>{motor(eng)} <span style={{ opacity: 0.7 }}>{m.n}</span></Link>
           ))}
           <span style={{ color: '#6b7280', fontSize: 11, marginLeft: 10, marginRight: 2 }}>só</span>
-          {[['baixo', 'nota < 75'], ['fora', 'fora do pedido'], ['parcial', 'parciais'], ['semfeedback', 'sem feedback pedido']].map(([k, l]) => (
+          {[['baixo', 'nota < 75'], ['fora', 'fora do pedido'], ['parcial', 'parciais'], ['semfeedback', 'sem feedback pedido'], ['juiz', 'foto recusada pelo juiz']].map(([k, l]) => (
             <Link key={k} href={q({ so: so === k ? undefined : k })} style={so === k ? chipOn : chip}>{l}</Link>
           ))}
           <Link href={q({ casa: incluirCasa ? undefined : '1' })} style={incluirCasa ? chipOn : chip}>{incluirCasa ? 'com a casa' : '+ casa'}</Link>

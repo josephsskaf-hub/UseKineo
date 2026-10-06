@@ -80,6 +80,7 @@ import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo, type VisualMode } from '@/lib/cinematic/visualMode'
 import { garantirAcaoCentral, silenciarFalaNoPrompt, apararComFolga, removerDatasInventadas } from '@/lib/hollywood/fidelidade'
 import { planejarCenasS25, montarPromptS25, ambienteComEpoca, epocaDoFilmeS25, S25_CENA_EVENTO } from '@/lib/hollywood/s25Cena' // KINEO-S25-NOTA95-2026-10-06
+import { juizStillLigado, novoFilmeDoJuiz, julgarFotoBase, anterioresDoJuiz, resumoDoJuizStill, JUIZ_STILL_EVENTO, JUIZ_STILL_RESUMO_EVENTO } from '@/lib/hollywood/juizStill' // KINEO-JUIZ-STILL-2026-10-06
 // KINEO-MULTIFORMATO-2026-09-02 — enquadramento pedido (9:16 · 16:9 · 1:1 · 4:5).
 import { aspectSpec, normalizeAspect } from '@/lib/aspect'
 import { montarContrato, aplicarContrato, severidadeDe } from '@/lib/cinematic/sceneTruth'
@@ -5426,6 +5427,42 @@ async function manipularPost(req: NextRequest) {
       // tem 300 s): com o FLUX lento em todas as cenas, 11 cenas × 15 s estourariam; 45 s cobrem 3 cenas no pior caso.
       const OMNI_STILL_RETRY_BUDGET_MS = 45_000
       let omniStillRetryMs = 0
+      // ═══ KINEO-JUIZ-STILL-2026-10-06 [TRAVA 8.2 — vai do fundador 06/10 'vai juiz'] — o juiz da FOTO-BASE antes de animar ═══
+      // Só nas famílias de JUIZ_STILL_FAMILIAS (hoje: s25). Logo depois de cada still FLUX (e da foto de ambiente, no 1º uso) e [KINEO-JUIZ-STILL-2026-10-06]
+      // ANTES do POST do vídeo: gpt-4o-mini vê a foto + época/lugar + o que a cena deve mostrar + a cena anterior (foto e texto) e [KINEO-JUIZ-STILL-2026-10-06]
+      // responde OK ou REJECT com motivo (anacronismo, encara a câmera, texto legível, igual à anterior). REJECT = UMA foto nova [KINEO-JUIZ-STILL-2026-10-06]
+      // (semente nova, instrução positiva sem o substantivo proibido); 2º REJECT = segue a melhor e registra. Nunca impede a [KINEO-JUIZ-STILL-2026-10-06]
+      // entrega: 6 s por chamada, 20 s por cena, 45 s por filme (como as 2ªs chances do Omni acima), falha aberta, disjuntor. [KINEO-JUIZ-STILL-2026-10-06]
+      // Evento juiz_still por foto e juiz_still_resumo por filme (depois do laço) — é o que a aba /admin/coerencia mostra. [KINEO-JUIZ-STILL-2026-10-06]
+      const juizStillFilme = juizStillLigado(family) ? novoFilmeDoJuiz() : null // KINEO-JUIZ-STILL-2026-10-06
+      const juizStillCena = juizStillFilme // KINEO-JUIZ-STILL-2026-10-06
+        ? async (a: { idx: number; url: string; origem: 'still' | 'ambiente'; cenas: ReadonlyArray<{ nucleo: string; epoca: string; plano: string } | null> | null }): Promise<string> => { // KINEO-JUIZ-STILL-2026-10-06
+          try { // KINEO-JUIZ-STILL-2026-10-06
+            const cenaJ = plan.scenes[a.idx] // KINEO-JUIZ-STILL-2026-10-06
+            const s25J = a.cenas?.[a.idx] ?? null // KINEO-JUIZ-STILL-2026-10-06
+            const antes = anterioresDoJuiz(a.idx, hSceneAnchors, plan.scenes.map((s, k) => a.cenas?.[k]?.nucleo ?? s.prompt), plan.scenes.map((_, k) => a.cenas?.[k]?.plano ?? null)) // KINEO-JUIZ-STILL-2026-10-06
+            // A foto de ambiente nasceu da environmentSheet + época, VAZIA (anchors.ts): refeita, continua sendo o lugar vazio — nunca a ação da [KINEO-JUIZ-STILL-2026-10-06]
+            // cena (que pode ter gente: no S25 still com rosto vai em t2v, hipótese do 422). O still da cena refaz a partir do próprio prompt. [KINEO-JUIZ-STILL-2026-10-06]
+            const ambienteJ = a.origem === 'ambiente' ? (plan.environmentSheet ?? '').replace(/[.\s]+$/, '').trim() : '' // KINEO-JUIZ-STILL-2026-10-06
+            const julgado = await julgarFotoBase({ // KINEO-JUIZ-STILL-2026-10-06
+              indice: a.idx, url: a.url, origem: a.origem, fala: cenaJ.voiceover ?? '', epoca: s25J?.epoca ?? '', // KINEO-JUIZ-STILL-2026-10-06
+              prompt: ambienteJ ? `${ambienteComEpoca(ambienteJ, s25J?.epoca ?? '')}. An empty, quiet establishing view of the place.` : cenaJ.prompt, // KINEO-JUIZ-STILL-2026-10-06
+              nucleo: ambienteJ || (s25J?.nucleo ?? null), // KINEO-JUIZ-STILL-2026-10-06
+              plano: s25J?.plano ?? null, fotoAnterior: antes.fotoAnterior, descricoesAnteriores: antes.descricoesAnteriores, seed: generationSeed, // KINEO-JUIZ-STILL-2026-10-06
+            }, { // KINEO-JUIZ-STILL-2026-10-06
+              filme: juizStillFilme, // KINEO-JUIZ-STILL-2026-10-06
+              gerarStill: (scenePrompt, seed, pollWindowMs) => generateCinematicSceneStill({ scenePrompt, styleSuffix: plan.styleSheet ?? '', seed, pollWindowMs }), // KINEO-JUIZ-STILL-2026-10-06
+            }) // KINEO-JUIZ-STILL-2026-10-06
+            const rj = julgado.relato // KINEO-JUIZ-STILL-2026-10-06
+            console.log(`[juiz-still] cena ${a.idx + 1} (${a.origem}): ${rj.veredito}${rj.criterio !== 'nenhum' ? ` ${rj.criterio}` : ''}${rj.motivo ? ` — ${rj.motivo}` : ''}${rj.regerou ? ` → foto nova ${rj.regeracao_ok ? (rj.veredito_regerada ?? 'sem 2º julgamento') : 'falhou'}, segue a ${rj.escolhida}` : ''} · US$ ${rj.custo_usd.toFixed(4)} · ${rj.ms} ms`) // KINEO-JUIZ-STILL-2026-10-06
+            await writeServerEvent({ name: JUIZ_STILL_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, family, ...rj } }) // KINEO-JUIZ-STILL-2026-10-06
+            return julgado.url // KINEO-JUIZ-STILL-2026-10-06
+          } catch (e) { // KINEO-JUIZ-STILL-2026-10-06
+            console.warn('[juiz-still] falhou — a foto de antes segue para o vídeo:', e instanceof Error ? e.message : String(e)) // KINEO-JUIZ-STILL-2026-10-06
+            return a.url // KINEO-JUIZ-STILL-2026-10-06
+          } // KINEO-JUIZ-STILL-2026-10-06
+        } // KINEO-JUIZ-STILL-2026-10-06
+        : null // KINEO-JUIZ-STILL-2026-10-06
       // Veredito do Contrato Cena Verdadeira, cena a cena. Vai para o claim
       // junto com o resto — sem isso o gate corrige no escuro e ninguem
       // consegue auditar depois se ele acertou ou estragou.
@@ -5631,6 +5668,13 @@ async function manipularPost(req: NextRequest) {
           const s25AmbienteJaUsado = family === 's25' && Boolean(anchors?.environmentUrl) && hSceneAnchors.includes(anchors?.environmentUrl ?? null) // KINEO-S25-NOTA95-2026-10-06
           if (s25AmbienteJaUsado && envSig.length > 8 && hs.prompt.toLowerCase().includes(envSig)) console.log(`[cinematic] KINEO-S25-NOTA95: cena ${hs.index} pediria a foto de ambiente de novo — segue sem ela (still próprio ou t2v)`) // KINEO-S25-NOTA95-2026-10-06
           const inNarratorWorld = envSig.length > 8 && hs.prompt.toLowerCase().includes(envSig) && !s25AmbienteJaUsado // KINEO-S25-NOTA95-2026-10-06 (troca a linha da base: + && !s25AmbienteJaUsado)
+          // KINEO-JUIZ-STILL-2026-10-06 — a foto de AMBIENTE (FLUX, uma vez por filme no S25) também passa pelo juiz antes de virar o 1º [KINEO-JUIZ-STILL-2026-10-06]
+          // quadro desta cena. Recusada e refeita, a foto nova vira a âncora de ambiente do filme — e conta como já usada para as próximas [KINEO-JUIZ-STILL-2026-10-06]
+          // (hSceneAnchors guarda a nova). Retrato do personagem salvo (ambiente = retrato) e still da estrela não são FLUX: o juiz não mexe. [KINEO-JUIZ-STILL-2026-10-06]
+          if (juizStillCena && anchors && hs.type !== 'dialogue' && inNarratorWorld && !estrelaHollywood[idx] && anchors.environmentUrl !== anchors.portraitUrl) { // KINEO-JUIZ-STILL-2026-10-06
+            const ambienteJulgado = await juizStillCena({ idx, url: anchors.environmentUrl, origem: 'ambiente', cenas: s25Plano?.cenas ?? null }) // KINEO-JUIZ-STILL-2026-10-06
+            if (ambienteJulgado && ambienteJulgado !== anchors.environmentUrl) anchors = { ...anchors, environmentUrl: ambienteJulgado } // KINEO-JUIZ-STILL-2026-10-06
+          } // KINEO-JUIZ-STILL-2026-10-06
           // KINEO-ESTRELA-DO-FILME-2026-09-29 — cena com protagonista e still da estrela pronto: a estrela é a âncora (vence a de
           // ambiente e dispensa o still FLUX). Sem estrela, estrelaHollywood é todo null e a escolha é a de sempre. [KINEO-ESTRELA-DO-FILME-2026-09-29]
           const anchorUrl = estrelaHollywood[idx] ? estrelaHollywood[idx] : anchors // KINEO-ESTRELA-DO-FILME-2026-09-29
@@ -5670,6 +5714,9 @@ async function manipularPost(req: NextRequest) {
               })
             } catch { sceneStillUrl = null }
           }
+          // KINEO-JUIZ-STILL-2026-10-06 — o still FLUX desta cena passa pelo juiz da foto-base ANTES do POST do vídeo (só JUIZ_STILL_FAMILIAS): [KINEO-JUIZ-STILL-2026-10-06]
+          // OK segue; REJECT = uma foto nova; o juiz devolve sempre uma foto (no pior caso a mesma) — nunca segura a cena. [KINEO-JUIZ-STILL-2026-10-06]
+          if (juizStillCena && sceneStillUrl) sceneStillUrl = await juizStillCena({ idx, url: sceneStillUrl, origem: 'still', cenas: s25Plano?.cenas ?? null }) // KINEO-JUIZ-STILL-2026-10-06
           // ═══ KINEO-OMNI-ANCORA-2026-09-28 — cena Omni sem imagem não vira Kling em silêncio ═══
           // O fal só tem Omni em image-to-video (o t2v responde 404, conferido em 27/09); sem imagem a cena ia para o Kling
           // v3 t2v (cinematicSceneModel) — US$ 0,168/s contra 0,13/s, outro look dentro de um filme vendido como Omni, e
@@ -5874,6 +5921,15 @@ async function manipularPost(req: NextRequest) {
         }
         await new Promise((r) => setTimeout(r, 450))
       }
+      // KINEO-JUIZ-STILL-2026-10-06 — o resumo do juiz da foto-base por filme (fotos julgadas, recusadas, refeitas, motivos, custo, tempo): [KINEO-JUIZ-STILL-2026-10-06]
+      // é o que a aba /admin/coerencia mostra ao lado da nota. Gravado também quando nenhuma cena teve foto (tudo t2v): "0 fotos" é um fato. [KINEO-JUIZ-STILL-2026-10-06]
+      if (juizStillFilme) { // KINEO-JUIZ-STILL-2026-10-06
+        try { // KINEO-JUIZ-STILL-2026-10-06
+          const resumoJuiz = resumoDoJuizStill(juizStillFilme, plan.scenes.length) // KINEO-JUIZ-STILL-2026-10-06
+          console.log(`[juiz-still] filme ${generationId}: ${resumoJuiz.fotos} foto(s), ${resumoJuiz.recusadas} recusada(s), ${resumoJuiz.regeradas} refeita(s), ${resumoJuiz.salvas} salva(s) · US$ ${resumoJuiz.custo_usd.toFixed(4)} · ${resumoJuiz.ms} ms`) // KINEO-JUIZ-STILL-2026-10-06
+          await writeServerEvent({ name: JUIZ_STILL_RESUMO_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, family, ...resumoJuiz } }) // KINEO-JUIZ-STILL-2026-10-06
+        } catch (e) { console.warn('[juiz-still] resumo do filme não gravado:', e instanceof Error ? e.message : String(e)) } // KINEO-JUIZ-STILL-2026-10-06
+      } // KINEO-JUIZ-STILL-2026-10-06
 
       // Keep every response array parallel to plan.scenes. Unsubmitted scenes
       // remain null and follow the existing stock/fallback path in compose.

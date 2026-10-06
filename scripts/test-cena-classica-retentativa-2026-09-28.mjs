@@ -552,7 +552,10 @@ checa('fatia do still hollywood existe, com o teto de 2ªs chances declarado for
 checa('o 80-char de test-qualidade-comprovada segue: hSceneAnchors logo depois do sceneAnchor', Boolean(blocoOmni) && blocoOmni.includes('const sceneAnchor = anchorUrl ?? sceneStillUrl ?? undefined\n          hSceneAnchors[idx] = sceneAnchor ?? null'))
 const fnModelo = fatia(router, 'export function cinematicSceneModel(', '\n}\n')
 const cinematicSceneModel = roda(fnModelo, { ...ROUTER, H3_MODELS: ROUTER.H3_MODELS }).cinematicSceneModel
-const montaOmni = (bloco, relogio = Date) => roda(`export async function rodar(ctx: any) {\n  const { family, hs, anchorUrl, anchors, plan, generationSeed, generateCinematicSceneStill, hSceneAnchors, idx, cinematicSceneModel, writeServerEvent, user, generationId, OMNI_STILL_RETRY_BUDGET_MS } = ctx\n  let omniStillRetryMs = ctx.omniStillRetryMs ?? 0\n  let sceneModel = 'antes'\n${bloco}\n  return { sceneAnchor, sceneModel, omniStillRetryMs }\n}`, { Date: relogio }).rodar
+// Reancorado KINEO-JUIZ-STILL-2026-10-06 [TRAVA 8.2 — vai do fundador 06/10 'vai juiz']: a fatia ganhou a linha marcada do juiz da foto-base
+// (`if (juizStillCena && sceneStillUrl) …`), que só existe na família s25 — no Omni o fecho é null, então aqui ele entra como null (o padrão).
+// Prova do juiz: scripts/test-juiz-still-2026-10-06.mjs.
+const montaOmni = (bloco, relogio = Date) => roda(`export async function rodar(ctx: any) {\n  const { family, hs, anchorUrl, anchors, plan, generationSeed, generateCinematicSceneStill, hSceneAnchors, idx, cinematicSceneModel, writeServerEvent, user, generationId, OMNI_STILL_RETRY_BUDGET_MS, juizStillCena = null } = ctx\n  let omniStillRetryMs = ctx.omniStillRetryMs ?? 0\n  let sceneModel = 'antes'\n${bloco}\n  return { sceneAnchor, sceneModel, omniStillRetryMs }\n}`, { Date: relogio }).rodar
 const omni = async (bloco, { family = 'omni', type = 'support', anchors = null, anchorUrl = undefined, stills = [], gasto = 0, relogio = Date } = {}) => {
   const chamadas = [], eventos = [], hSceneAnchors = []
   const out = await montaOmni(bloco, relogio)({ family, hs: { type, prompt: 'Basalt columns under a storm, wide aerial.', index: 3 }, anchorUrl, anchors, plan: { styleSheet: 'teal grade' }, generationSeed: 7,
