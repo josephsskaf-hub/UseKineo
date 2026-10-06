@@ -320,7 +320,8 @@ for (const [name, mut] of mutants) {
 {
   const post = read('app/api/clips/route.ts')
   const up = read('app/api/clips/effect-upsell/route.ts')
-  const stamp = /\.\.\.clipEffectEventMetadata\(effect, (result\.clip|row)\), \.\.\.homeVariantStamp\(user\.id, user\.email\), version: 'clip_effects_20261005' \}/
+  // A medição de origem acrescenta campos; o carimbo A/B e seus argumentos continuam obrigatórios.
+  const stamp = /\.\.\.clipEffectEventMetadata\(effect, (result\.clip|row)\), \.\.\.homeVariantStamp\(user\.id, user\.email\), version: 'clip_effects_20261005'(?=\s*[,}])/
   ok(stamp.test(post) && /import \{ homeVariantStamp \} from '@\/lib\/growth\/homeClipsFirstServer'/.test(post), '(11a) clip_effect_chosen carimba a variante da home (user_id + e-mail + kineo_vid)')
   ok(stamp.test(up) && /import \{ homeVariantStamp \} from '@\/lib\/growth\/homeClipsFirstServer'/.test(up), '(11b) clip_effect_film_upsell_clicked carimba a variante da home')
   ok(/clip_id: clip\.id/.test(effectsSrc), '(11c) clip_effect_ready liga à escolha pelo clip_id (metadata comum)')

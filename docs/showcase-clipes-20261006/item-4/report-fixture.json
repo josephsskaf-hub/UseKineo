@@ -1,5 +1,6 @@
 {
-  "verifiedAt": "2026-10-06T00:00:00Z",
+  "verifiedDate": "2026-10-05",
+  "timezone": "America/Sao_Paulo",
   "kind": "Synthetic SELECT with CTE VALUES; no production rows and no writes",
   "distinctChosenPeople": 2,
   "distinctReadyPeople": 2,

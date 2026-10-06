@@ -39,7 +39,7 @@
 
 **EVIDÊNCIA DE PRODUÇÃO — 05/10/2026, SELECT em events/profiles:** [snapshot agregado](measurement-baseline.json), janela [03:00Z, 23:44Z). Cinco chosen e cinco ready, uma conta interna. Zero contas externas registradas após filtro. Não prova ausência de visitas, cadastros ou pagamentos.
 
-**TESTADO LOCALMENTE / consulta sintética somente leitura — 06/10 UTC (05/10 BRT):** [prova de agregação](item-4/report-fixture.json). A mesma consulta foi executada com CTEs VALUES em memória, sem consultar linhas reais nem escrever banco. Duas contas externas, três pedidos aceitos únicos, dois prontos válidos; duplicatas, conta interna, bot e ready de pessoa/efeito errados não inflaram o funil. Um navegador anônimo persistente permanece separado de uma conta identificada e de um evento sem ID durável. Isso é prova de regra, não dado comercial.
+**TESTADO LOCALMENTE / consulta sintética somente leitura — 05/10 BRT:** [prova de agregação](item-4/report-fixture.json). A mesma consulta foi executada com CTEs VALUES em memória, sem consultar linhas reais nem escrever banco. Duas contas externas, três pedidos aceitos únicos, dois prontos válidos; duplicatas, conta interna, bot e ready de pessoa/efeito errados não inflaram o funil. Um navegador anônimo persistente permanece separado de uma conta identificada e de um evento sem ID durável. Isso é prova de regra, não dado comercial.
 
 **TESTADO LOCALMENTE — 05/10 23:57:54Z:** [navegador](item-4/browser.json): entrada direta, home, home→cadastro simulado, página de efeito→cadastro simulado e preset sem evidência; impressão/primeiro gesto deduplicados; clique em efeito relacionado mantém a página de origem no denominador. APIs de eventos/geração interceptadas, zero gravação em produção e zero render.
 

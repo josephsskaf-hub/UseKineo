@@ -84,6 +84,7 @@ async function checkRoute(mutation, off = false) {
   let metadata = events[0].metadata
   assert.equal(events[0].userId, 'fixture-person')
   assert.equal(metadata.effect, 'melt')
+  assert.equal(metadata.home_variant, 'B', 'Existing home A/B stamp is preserved')
   if (off) {
     for (const key of ['clip_measurement_version', 'clip_origin', 'is_bot']) assert.equal(metadata[key], undefined)
     return
@@ -140,6 +141,7 @@ const mutants = [
   ['client bot spoof', ROUTE, "isLikelyBot(req.headers.get('user-agent'))", 'false', checkRoute],
   ['lost origin', ROUTE, 'clipOriginMetadata(body.clip_origin)', 'clipOriginMetadata(null)', checkRoute],
   ['lost version', M, 'CLIP_MEASUREMENT_ENABLED ? { clip_measurement_version: CLIP_MEASUREMENT_VERSION } : {}', '{}', checkPure],
+  ['lost home A/B stamp', ROUTE, '...homeVariantStamp(user.id, user.email),', '', checkRoute],
 ]
 for (const [name, file, from, to, check] of mutants) {
   assert.ok(fs.readFileSync(file, 'utf8').includes(from), 'Anchor: ' + name)
@@ -148,4 +150,4 @@ for (const [name, file, from, to, check] of mutants) {
   assert.ok(failed, 'Mutant must turn red: ' + name)
   console.log('Mutant rejected: ' + name)
 }
-console.log('PASS: real route/settlement, origin evidence, first gesture/impression dedupe, rollback, read-only person report, 8 mutants.')
+console.log('PASS: real route/settlement, origin evidence, first gesture/impression dedupe, rollback, read-only person report, 9 mutants.')
