@@ -383,5 +383,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     })),
+    // KINEO-DURACAO-REWARDS-2026-10-06 — ferramenta grátis (régua de narração × piso de 1 min do Creator Rewards);
+    // data própria = dia em que as fontes oficiais da página foram lidas. Guardião: test-duracao-rewards-2026-10-06.
+    {
+      url: `${BASE}/tiktok-creator-rewards-length-checker`,
+      lastModified: new Date('2026-10-06T00:00:00.000Z'),
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    },
   ]
 }
