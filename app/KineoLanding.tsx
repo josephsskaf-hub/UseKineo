@@ -6,6 +6,7 @@ import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 // Marker: KINEO-LANDING-V3-2026-06-30
 import { clipsVisible } from '@/lib/clips/clipLaunch'
 import { s25Visible, S25_PUBLIC, VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, PAUSED_ENGINES_COPY, enginePaused, avatarVisible, kineo1Visible } from '@/lib/engineLaunch'
+import { S25_PAID_BADGE, s25UpgradeHref } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06
 import { enginePlanBadge } from '@/lib/enginePlanGate'
 import Link from 'next/link'
 import { InterfaceLanguageSelect, UiLabel, UiText } from '@/components/InterfaceLanguage'
@@ -868,9 +869,11 @@ export default function KineoLanding({
                   {!enginePaused('omni') && <NavEngineItem href="/studio?engine=omni&intent_campaign=nav_mega" name="Omni Flash" desc="Google's Gemini Omni Flash — cinematic scenes" icon="OF" preview="/previews/41924eb2-d81d-4f2c-a5bb-5477c042af04.mp4" />}
                   {/* KINEO-S25-LAUNCH-2026-09-01 — Seedance 2.5: so a casa ve ate o
                       canario passar (s25Visible); S25_PUBLIC=true abre pra todos.
-                      Sem preview de proposito (selo honesto: clipe so deste motor). */}
+                      Sem preview de proposito (selo honesto: clipe so deste motor).
+                      KINEO-S25-ABRE-2026-10-06 — publico: selo "NEW · paid plans" (traduzido) e o clique vai aos planos.
+                      A home nao sabe quem paga (o visitante, na maioria, nem entrou) e o 2.5 so roda em plano pago. */}
                   {s25Visible(initialEmail) && (
-                    <NavEngineItem href="/studio?engine=s25&intent_campaign=nav_mega" name="Seedance 2.5" desc="ByteDance’s newest engine · 480p→HD" chip={S25_PUBLIC ? 'NEW' : 'INTERNAL'} icon="S2" />
+                    <NavEngineItem href={S25_PUBLIC ? s25UpgradeHref('nav') : '/studio?engine=s25&intent_campaign=nav_mega'} name="Seedance 2.5" desc="ByteDance’s newest engine · 480p→HD" chip={S25_PUBLIC ? S25_PAID_BADGE : 'INTERNAL'} translateChip={S25_PUBLIC} icon="S2" />
                   )}
                   <NavEngineItem href="/studio?engine=hollywood&intent_campaign=nav_mega" name="Kling 3" desc="Film scenes & native voice" chip="STUDIO" icon="K3" preview="/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4" />
                   {/* KINEO-H3-2026-08-19 — sem `preview` de proposito: o clipe

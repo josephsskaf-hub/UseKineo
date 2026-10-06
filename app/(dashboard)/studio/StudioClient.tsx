@@ -35,6 +35,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
 import { NARRATION_LANGUAGES, narrationLanguage, isHollywoodLanguage, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 import { enginePaused, AVATAR_PUBLIC, SEEDANCE_15S_PUBLIC } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 · KINEO-AVATAR-FORA-2026-09-28 · KINEO-ENTRADA-SEEDANCE15-2026-09-29
+import { S25_PAID_BADGE, S25_PAID_HINT, S25_PAID_CLICK_EVENT, S25_PAID_SHOWN_EVENT, s25UpgradeHref } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06 — o 2.5 trancado para quem não paga
 // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — a régua única da entrada (quem vê o Kineo 1, a duração que o saldo paga, o
 // rótulo do filme grátis). Só age com a entrada nova ligada para a conta (flag seedance15).
 import { kineo1NaTela, duracaoDaUrlNaEntrada, rotuloDoFilmeGratis } from '@/lib/growth/entradaSeedance15'
@@ -156,7 +157,11 @@ const ENGINES: { paused?: boolean; /* KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 */
   // KINEO-S25-CARD-2026-09-01 — Seedance 2.5, visivel SO para contas internas
   // (flag `internal` do /api/me/credits) ate os 4 carimbos do canario. Nunca
   // mostrar botao que o publico nao pode apertar — a licao do Seedance 2.0.
-  { key: 's25', paused: Boolean(enginePaused('s25')), icon: 'S2', name: 'Seedance 2.5', tag: 'New', desc: 'ByteDance’s newest engine — 480p + HD Enhance master', res: '480p→HD', credits: `${creditCostFor('cinematic_s25', true)} cr`, supportsRef: true },
+  // KINEO-S25-ABRE-2026-10-06 — com S25_PUBLIC todo mundo VÊ o card; quem não paga (flag `s25Liberado` do /api/me/credits
+  // = false ou ainda não chegou) vê o selo S25_PAID_BADGE e o clique leva ao upgrade, sem escolher o motor. A linha diz a
+  // verdade da entrega (fundador 06/10: "quero que o Enhance pare de ser automático; se eu quiser, aperto o botão"): o
+  // filme sai com as cenas originais e o ✨HD Enhance é o botão do filme pronto — nunca "incluso".
+  { key: 's25', paused: Boolean(enginePaused('s25')), icon: 'S2', name: 'Seedance 2.5', tag: 'New', desc: 'ByteDance’s newest engine · Enhance available with one click', res: '480p→HD', credits: `${creditCostFor('cinematic_s25', true)} cr`, supportsRef: true },
 ]
 
 // KINEO-CEO-HOUR-2026-08-17 (#3) — 'Surprise me': mata a paralisia da pagina
@@ -303,6 +308,9 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   const [balance, setBalance] = useState<number | null>(null)
   // KINEO-S25-CARD-2026-09-01 — so a casa ve o card do 2.5 durante o canario.
   const [internal, setInternal] = useState(false)
+  // KINEO-S25-ABRE-2026-10-06 — a conta pode USAR o 2.5? (flag `s25Liberado` do /api/me/credits, a mesma régua do portão do
+  // servidor). null = ainda não chegou / leitura falhou → card trancado (falha fechada: o servidor recusaria de qualquer jeito).
+  const [s25Liberado, setS25Liberado] = useState<boolean | null>(null)
   // KINEO-SEEDANCE-15S-2026-09-29 — o botão de 15 s do Seedance (SEEDANCE_15S_PUBLIC || casa). Falha fechada: sem a flag, sem botão.
   const [seedance15Ok, setSeedance15Ok] = useState(false)
   // KINEO-DURACOES-CURTAS-2026-09-29 — os botões curtos NOVOS (Kling 2.5/Veo 15 s; hollywood 15/30 s): flag `curtas` do /api/me/credits
@@ -345,7 +353,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
     let alive = true
     fetch('/api/me/credits', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (alive) { setKineo1Flag(d?.kineo1 === true ? true : d?.kineo1 === false ? false : null); if (typeof d?.hasPaid === 'boolean') setContaPaga(d.hasPaid); if (d?.estrela === true) setEstrelaOk(true) } return d }) // KINEO-ENTRADA-SEEDANCE15 · KINEO-ESTRELA-DO-FILME-2026-09-29 (flag estrela)
+      .then((d) => { if (alive) { setKineo1Flag(d?.kineo1 === true ? true : d?.kineo1 === false ? false : null); if (typeof d?.hasPaid === 'boolean') setContaPaga(d.hasPaid); if (d?.estrela === true) setEstrelaOk(true); if (typeof d?.s25Liberado === 'boolean') setS25Liberado(d.s25Liberado) } return d }) // KINEO-ENTRADA-SEEDANCE15 · KINEO-ESTRELA-DO-FILME-2026-09-29 (flag estrela) · KINEO-S25-ABRE-2026-10-06 (flag s25Liberado)
       .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true); if (alive && d?.avatar === true) setAvatarOn(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && d?.curtas === true) setCurtasOk(true); if (alive && typeof d?.plan === 'string') setPlan(d.plan) })
       .catch(() => {}) // saldo é enfeite: falhou, a tela segue como antes
       .finally(() => { if (alive) setFlagsProntas(true) }) // KINEO-ENTRADA-SEEDANCE15
@@ -514,6 +522,15 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
     if (isOnboardingGoalId(onboardingGoal)) onboardingGoalRef.current = onboardingGoal
   }, [searchSignature])
 
+  // KINEO-S25-ABRE-2026-10-06 — ?engine=s25 (página do motor, handoff do GPT, link de quem já assina): o efeito de URL acima
+  // nunca escolhe o 2.5 sozinho. Aqui ele é escolhido SÓ quando o servidor confirmou que a conta paga (s25Liberado); quem não
+  // paga fica no motor padrão e o seletor abre com o card trancado (selo + caminho de upgrade). Flag ausente = nada muda.
+  useEffect(() => {
+    if (new URLSearchParams(searchSignature).get('engine') !== 's25' || s25Liberado === null) return
+    if (s25Liberado && !ENGINES.find((x) => x.key === 's25')?.paused) setEngine('s25')
+    else if (!s25Liberado) setPickerOpen(true)
+  }, [s25Liberado, searchSignature])
+
   // KINEO-FLUXO-NOVO-2026-09-25 — Peça A (fundador, 25/09): "Vídeo → /studio direto na caixa da ideia". Toda chegada
   // põe o cursor na caixa da ideia, SÓ com ponteiro fino (mouse/trackpad): no celular o foco abriria o teclado por cima
   // da tela. Não rouba o foco de quem já está em outro campo, não rola a página, e deixa a revisão de série e o atalho do
@@ -626,9 +643,17 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   // KINEO-DEGRAU-35S: impressão medida no mesmo gatilho do clique (picker aberto), com os degraus oferecidos.
   useEffect(() => {
     if (!pickerOpen || balance === null) return
-    const steps = ENGINES.filter((e) => !e.paused && (e.key !== 'fast' || kineo1Shown)).map((e) => ({ engine: e.key, step: stepDownFor(e.key) })).filter((s) => s.step).map((s) => ({ engine: s.engine, to: s.step!.seconds, cost: s.step!.cost }))
+    const steps = ENGINES.filter((e) => !e.paused && (e.key !== 'fast' || kineo1Shown) && (e.key !== 's25' || s25Liberado === true) /* KINEO-S25-ABRE-2026-10-06: card trancado não oferece degrau */).map((e) => ({ engine: e.key, step: stepDownFor(e.key) })).filter((s) => s.step).map((s) => ({ engine: s.engine, to: s.step!.seconds, cost: s.step!.cost }))
     if (steps.length) void trackEvent('studio_shorter_step_shown', { duration, balance, steps })
   }, [pickerOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+  // KINEO-S25-ABRE-2026-10-06 — o denominador do selo: quantas pessoas VIRAM o 2.5 trancado (picker aberto), uma vez por
+  // carga. Sem isto, S25_PAID_CLICK_EVENT seria número solto.
+  const s25SeloVistoRef = useRef(false)
+  useEffect(() => {
+    if (!pickerOpen || !internal || s25Liberado === true || s25SeloVistoRef.current || ENGINES.find((x) => x.key === 's25')?.paused) return
+    s25SeloVistoRef.current = true
+    void trackEvent(S25_PAID_SHOWN_EVENT, { surface: 'studio', balance, flag: s25Liberado === false ? 'not_paying' : 'unknown' })
+  }, [pickerOpen, internal, s25Liberado]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const finalPrompt = useMemo(() => {
     const p = CAMERA_PRESETS.find((c) => c.key === preset)
@@ -886,7 +911,22 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
             </button>
             {pickerOpen && (
               <div className="picker">
-                {ENGINES.filter((e) => (e.key !== 's25' || internal) && (e.key !== 'fast' || kineo1Shown)).map((e) => { const pausa = e.paused ? enginePaused(e.key) : null; return (
+                {ENGINES.filter((e) => (e.key !== 's25' || internal) && (e.key !== 'fast' || kineo1Shown)).map((e) => { const pausa = e.paused ? enginePaused(e.key) : null; const trancado = !pausa && e.key === 's25' && s25Liberado !== true /* KINEO-S25-ABRE-2026-10-06: o 2.5 para quem não paga — selo + upgrade, nunca escolhe o motor */; return trancado ? (
+                  // KINEO-S25-ABRE-2026-10-06 — card PRÓPRIO do 2.5 trancado: o clique leva aos planos e nunca chama setEngine. O card
+                  // normal (abaixo) segue byte a byte o de sempre, com o handler da base.
+                  <button key={e.key} type="button" className="pk" data-kineo="s25-trancado"
+                    onClick={() => { void trackEvent(S25_PAID_CLICK_EVENT, { surface: 'studio', balance }); setPickerOpen(false); router.push(s25UpgradeHref('studio')) }}>
+                    <span className="eng-ic" aria-hidden="true"><KineoBoltText>{e.icon}</KineoBoltText></span>
+                    <span className="pk-tx">
+                      <span className="t">
+                        <b>{e.name}<span className="tag" style={{ background: 'rgba(41,151,255,.16)', color: '#7cc0ff' }}><UiLabel>{S25_PAID_BADGE}</UiLabel></span></b>
+                        <i>{engineCostLabel(e.key)}</i>
+                      </span>
+                      <span className="d"><UiLabel>{e.desc}</UiLabel></span>
+                      <span className="d" style={{ color: 'var(--accent)', marginTop: 2 }}><UiLabel>{S25_PAID_HINT}</UiLabel></span>
+                    </span>
+                  </button>
+                ) : (
                   <button key={e.key} type="button" className={`pk${e.key === engine ? ' on' : ''}`} disabled={Boolean(pausa)} aria-disabled={Boolean(pausa)} title={pausa ? pausa.message : undefined} style={pausa ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}
                     onClick={() => { setEngine(e.key); setPickerOpen(false) }}>
                     <span className="eng-ic" aria-hidden="true"><KineoBoltText>{e.icon}</KineoBoltText></span>

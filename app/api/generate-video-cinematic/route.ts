@@ -7,6 +7,8 @@ import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credit
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { S25_PUBLIC, enginePaused } from '@/lib/engineLaunch'
 import { seedance15sVisible } from '@/lib/engineLaunch' // KINEO-SEEDANCE-15S-2026-09-29
+import { S25_PAID_ONLY_EVENT, S25_PAID_ONLY_MESSAGE, S25_PAID_ONLY_REASON, s25UpgradeHref } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06
+import { s25AccessFor } from '@/lib/s25Access' // KINEO-S25-ABRE-2026-10-06 — o 2.5 só para quem paga (isPayingPlan), recusa antes do débito
 import { duracoesCurtasVisible } from '@/lib/engineLaunch' // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29
 // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29 — as fotos do rosto viram o protagonista:
 // a régua pura (quem, motor, preço ANTES do débito, quais cenas, o pedido ao edit) e o servidor (assinar, gerar, moderar). [KINEO-ESTRELA-DO-FILME-2026-09-29]
@@ -1864,6 +1866,20 @@ async function manipularPost(req: NextRequest) {
     // teve trial funcional. So fala de PERDA quem comprovadamente RECEBEU.
     const trialEnded =
       (trialUi.phase === 'downgraded' || trialUi.phase === 'ending') && trialUi.creditsGranted > 0
+    // ═══ KINEO-S25-ABRE-2026-10-06 — SEEDANCE 2.5 SÓ PARA QUEM PAGA (aposta A do fundador, 06/10) ═══════════════
+    // O 2.5 é motor PAGO EXTRA: página e seletor são públicos (S25_PUBLIC, a isca), mas usar exige plano pago — [KINEO-S25-ABRE-2026-10-06]
+    // isPayingPlan via lib/s25Access.ts. O trial de cadastro (o TRIAL_UNLOCKS_PREMIUM abaixo NÃO vale para ele), o [KINEO-S25-ABRE-2026-10-06]
+    // *_trial de cortesia e o pacote avulso ficam de fora. Fica ANTES do gate dos motores premium, do custo, do claim e de [KINEO-S25-ABRE-2026-10-06]
+    // qualquer débito: recusar aqui custa zero. Mesmo formato das recusas de portão (402 + upsell 'studio', que o [KINEO-S25-ABRE-2026-10-06]
+    // /studio/create já abre como caixa de planos) e evento de SERVIDOR com o motivo. Os outros motores não passam por aqui. [KINEO-S25-ABRE-2026-10-06]
+    // Com S25_PUBLIC=false vale o portão antigo do canário (mais abaixo, 's25_internal_only'). [KINEO-S25-ABRE-2026-10-06]
+    if (wantsS25 && S25_PUBLIC) { // KINEO-S25-ABRE-2026-10-06
+      const acessoS25 = s25AccessFor({ email: user.email, plan: planVal }) // KINEO-S25-ABRE-2026-10-06
+      if (!acessoS25.allowed) { // KINEO-S25-ABRE-2026-10-06
+        await writeServerEvent({ name: S25_PAID_ONLY_EVENT, userId: user.id, path: '/api/generate-video-cinematic', metadata: { engine: 's25', reason: acessoS25.reason, plan: planVal, has_paid: profile?.has_paid === true, trial_active: trialActive, balance, dry_run: body.dry_run === true, charged: false, version: 's25_abre_20261006' } }) // KINEO-S25-ABRE-2026-10-06
+        return NextResponse.json({ error: S25_PAID_ONLY_MESSAGE, upsell: 'studio', reason: S25_PAID_ONLY_REASON, engine: 's25', upgradeHref: s25UpgradeHref('server'), balance, retryable: false, charged: false, refunded: false }, { status: 402 }) // KINEO-S25-ABRE-2026-10-06
+      } // KINEO-S25-ABRE-2026-10-06
+    } // KINEO-S25-ABRE-2026-10-06
 
     // ═══ KINEO-TETO-2026-08-20 — O TRIAL PASSA A MOSTRAR O TETO ═══════════
     // Inversão do modelo, decidida com o fundador depois do estudo dos cinco

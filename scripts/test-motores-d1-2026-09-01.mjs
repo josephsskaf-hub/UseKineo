@@ -54,7 +54,9 @@ const rc = ler('app/api/generate-video-cinematic/route.ts')
 chk('s25 entra na MESMA estrada (contrato de cena de graca)', rc.includes('wantsHollywood || wantsH3 || wantsOmni || wantsS25'))
 chk('GATE le o interruptor unico (S25_PUBLIC) + conta interna', rc.includes("wantsS25 && !S25_PUBLIC && !isInternalEmail(user.email)"))
 const lc = ler('lib/engineLaunch.ts')
-chk('interruptor unico existe e esta FECHADO (S25_PUBLIC=false)', lc.includes('export const S25_PUBLIC = false'))
+// REANCORADO KINEO-S25-ABRE-2026-10-06: o interruptor abriu (aposta A do fundador, 06/10) — público para VER, só plano pago
+// USA (o portão pago na rota, lib/s25Access.ts; provado em scripts/test-s25-abre-2026-10-06.mjs).
+chk('interruptor unico existe e esta ABERTO (S25_PUBLIC=true, 06/10) com o portao pago na rota', lc.includes('export const S25_PUBLIC = true') && rc.includes("import { s25AccessFor } from '@/lib/s25Access'"))
 chk('mega-menu da home le o interruptor (so a casa ve hoje)', ler('app/KineoLanding.tsx').includes('s25Visible(initialEmail) && ('))
 chk('/generate: Omni entrou no seletor (nunca esteve) + 2.5 atras do gate', /key: 'omni', label: 'Omni Flash'/.test(ler('app/(dashboard)/generate/GenerateClient.tsx')) && ler('app/(dashboard)/generate/GenerateClient.tsx').includes("...(s25Ok ? [{ key: 's25' as const"))
 // 15/09 (KINEO-MOTOR-EM-MANUTENCAO): o pricing deixou de listar o 2.5 pelo interruptor S25_PUBLIC porque o motor está pausado (a linha do flagship virou só Kling 3); schema e calculadora seguem lendo o interruptor único.

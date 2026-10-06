@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
+import { existsSync } from 'node:fs' // KINEO-S25-ABRE-2026-10-06
 import { engineFixture } from './gpt24h-engine-fixture.mjs'
 import { offlineModules, renderToStaticMarkup } from './gpt24h-offline-support.mjs'
 // KINEO-MOTORES-GEO-2026-10-06 — reancorado com motivo: os dois blocos novos e os 6 textos reescritos pela camada citável
@@ -12,9 +13,16 @@ const path = 'app/ai-video-generator/[engine]/page.tsx'
 const base = execFileSync('git', ['show', 'a94638f8:' + path], { encoding: 'utf8' })
 const before = engineFixture({ [path]: base }), after = engineFixture()
 const { ENGINE_SLUGS } = after('lib/growth/enginePageCatalog.ts')
+// KINEO-S25-ABRE-2026-10-06 — reancorado com motivo: com o S25_PUBLIC ligado o Seedance 2.5 volta ao catálogo, mas com ROTA
+// PRÓPRIA (app/ai-video-generator/seedance-2-5/page.tsx; o segmento estático vence o [engine]) e o [engine] deixou de gerá-lo
+// no generateStaticParams. A trava vale para os slugs que ESTA página serve; só o slug do 2.5 pode sair dela, e só com a rota
+// própria no lugar (o conteúdo dela é provado por scripts/test-s25-abre-2026-10-06.mjs). Na base, servidos = ENGINE_SLUGS.
+const served = (await after(path).generateStaticParams()).map((p) => p.engine)
+const leftEngine = ENGINE_SLUGS.filter((slug) => !served.includes(slug))
+assert.ok(leftEngine.every((slug) => slug === 'seedance-2-5') && (leftEngine.length === 0 || existsSync(new URL('../app/ai-video-generator/seedance-2-5/page.tsx', import.meta.url))), 'only the Seedance 2.5 slug left [engine], to its own route: ' + leftEngine)
 const hero = html => html.match(/<section\b[\s\S]*?<\/section>/)?.[0]
 let tested = 0
-for (const engine of ENGINE_SLUGS) {
+for (const engine of served) {
   const old = semMotoresGeoHtml(renderToStaticMarkup(await before(path).default({ params: { engine } })))
   const current = semMotoresGeoHtml(renderToStaticMarkup(await after(path).default({ params: { engine } })))
   //30/09: founder increased acquisition work; Veo adopts the same actions.

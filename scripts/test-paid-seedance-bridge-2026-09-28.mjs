@@ -43,7 +43,26 @@ check('curation file unmodified',execFileSync('git',['diff','--','lib/publicExam
 // predates the independently tested A30-01 Veo hero. Keep an exact whole-file
 // comparison against that tested code, not a broad exception for engine edits.
 // Veo's own behavioral guard separately freezes siblings, metadata and CTA intent.
-check('S24-01 preserves the entire separately tested Veo engine page', semMotoresGeoFonte(source('app/ai-video-generator/[engine]/page.tsx').replace(/\r\n/g,'\n')).trim()===execFileSync('git',['show','cdb154e2:app/ai-video-generator/[engine]/page.tsx'],{cwd:root,encoding:'utf8'}).replace(/\r\n/g,'\n').trim())
+// KINEO-MOTORES-GEO-2026-10-06 + KINEO-S25-ABRE-2026-10-06 — as duas normalizações juntas: as 11 edições da TAREFA 12
+// (semMotoresGeoFonte) e os 2 trechos exatos do slug do 2.5 (abaixo). Todo o resto segue byte a byte igual ao cdb154e2.
+// KINEO-S25-ABRE-2026-10-06 — reancorado com motivo: a única mudança autorizada desde cdb154e2 são os DOIS trechos EXATOS
+// que tiram 'seedance-2-5' do generateStaticParams (o Seedance 2.5 ganhou rota própria, app/ai-video-generator/seedance-2-5,
+// porque esta página diria "Start free"/"unlocked on every account" de um motor só de plano pago). Cada trecho tem de existir
+// uma vez, inteiro; desfeitos em memória, o resto do arquivo segue byte a byte igual ao cdb154e2.
+const S25_IMPORT = "import { S25_PAGE_SLUG } from '@/lib/growth/s25EnginePage' // KINEO-S25-ABRE-2026-10-06 — rota própria do 2.5\n"
+const S25_GSP_NOVO = [
+  "  // KINEO-S25-ABRE-2026-10-06 — o Seedance 2.5 tem rota própria (app/ai-video-generator/seedance-2-5/page.tsx: motor só de",
+  "  // plano pago, sem o \"Start free\"/\"unlocked on every account\" desta página). O segmento estático já vence no roteamento;",
+  "  // tirar daqui evita gerar a mesma URL duas vezes.",
+  "  return ENGINE_SLUGS.filter((engine) => engine !== S25_PAGE_SLUG).map((engine) => ({ engine }))",
+].join('\n')
+const S25_GSP_BASE = '  return ENGINE_SLUGS.map((engine) => ({ engine }))'
+{
+  const atual = source('app/ai-video-generator/[engine]/page.tsx').replace(/\r\n/g,'\n')
+  const umaVez = (s, x) => s.split(x).length === 2
+  check('S24-01 (S25-ABRE) os dois trechos do slug do 2.5 existem uma vez, inteiros', umaVez(atual, S25_IMPORT) && umaVez(atual, S25_GSP_NOVO))
+  check('S24-01 preserves the entire separately tested Veo engine page', semMotoresGeoFonte(atual.replace(S25_IMPORT, '').replace(S25_GSP_NOVO, S25_GSP_BASE)).trim()===execFileSync('git',['show','cdb154e2:app/ai-video-generator/[engine]/page.tsx'],{cwd:root,encoding:'utf8'}).replace(/\r\n/g,'\n').trim())
+}
 check('owner permanent Kineo1 redirect retained', source('next.config.js').includes("{ source: '/ai-video-generator/kineo-1', destination: '/ai-video-generator/seedance', statusCode: 301 }"))
 check('server-only curation selection', !source('components/ScriptToSeedanceBridge.tsx').includes("@/lib/publicExamples"))
 check('no effects during static preview',events.length===0)

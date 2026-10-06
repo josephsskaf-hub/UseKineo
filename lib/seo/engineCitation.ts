@@ -209,6 +209,20 @@ const PROFILES: Record<ClipEngineKey, EngineProfile> = {
   },
 }
 
+/**
+ * KINEO-S25-ABRE-2026-10-06 — quem pode usar o motor e se o clipe avulso dele está à venda. O padrão (OPEN_ACCESS) é o de
+ * todo motor até 06/10 e deixa o texto byte a byte igual; o Seedance 2.5 volta como motor PAGO EXTRA (o servidor recusa o
+ * trial e a conta grátis — lib/s25Access.ts) e sem clipe avulso para o público (s25ClipVisible): a página não pode dizer
+ * "New accounts start with N free credits" como se o trial o abrisse, nem anunciar preço de um clipe que não se vende.
+ */
+export interface CitationAccess {
+  /** Só plano pago usa o motor (o trial e a conta grátis, não). */
+  paidPlansOnly: boolean
+  /** O clipe avulso do motor está à venda para o público (/clips)? false = nenhuma linha/preço de clipe. */
+  clipOnSale: boolean
+}
+export const OPEN_ACCESS: CitationAccess = { paidPlansOnly: false, clipOnSale: true }
+
 export interface EngineCitation {
   slug: string
   key: ClipEngineKey
@@ -218,7 +232,10 @@ export interface EngineCitation {
   reviewedLabel: string
   reference: CitationPlan
   plans: CitationPlan[]
-  rows: { clip: CitationPriceRow; film35: CitationPriceRow; film60: CitationPriceRow }
+  /** clip = null quando o clipe avulso do motor não está à venda para o público (KINEO-S25-ABRE-2026-10-06). */
+  rows: { clip: CitationPriceRow | null; film35: CitationPriceRow; film60: CitationPriceRow }
+  /** Só plano pago usa o motor (KINEO-S25-ABRE-2026-10-06). */
+  paidPlansOnly: boolean
   smallestPlanFor60: CitationPlan | null
   direct: DirectRoute[]
   directNote: EngineProfile['directNote'] | null
@@ -249,7 +266,10 @@ export function buildEngineCitation(input: {
   name: string
   plans: readonly CitationPlan[]
   trial: CitationTrial
+  /** KINEO-S25-ABRE-2026-10-06 — ausente = OPEN_ACCESS (o texto de todo motor até 06/10, intacto). */
+  access?: CitationAccess
 }): EngineCitation | null {
+  const access = input.access ?? OPEN_ACCESS
   if (!isClipEngineKey(input.key)) return null
   const key = input.key
   const quality = CLIP_COSTS[key].filmQuality as Quality
@@ -289,28 +309,40 @@ export function buildEngineCitation(input: {
     ? `The smallest monthly plan that covers a 60-second ${name} video is ${smallestPlanFor60.label} (${usd(smallestPlanFor60.usdCents)}/month).`
     : smallestSentence
   const trialOptions = [
-    ...(clip.credits <= t.credits ? [`one ${clip.seconds}-second ${name} clip`] : []),
+    ...(access.clipOnSale && clip.credits <= t.credits ? [`one ${clip.seconds}-second ${name} clip`] : []), // KINEO-S25-ABRE-2026-10-06: clipe que não se vende não entra
     ...(t.freeFilmCredits <= t.credits ? [`the ${t.freeFilmLabel}`] : []),
   ]
   const trialSentence = trialOptions.length
     ? `New accounts${t.countryClause} start with ${t.credits} free credits — enough for ${trialOptions.join(' or ')}, not for a 60-second ${name} video.`
     : `New accounts${t.countryClause} start with ${t.credits} free credits — not enough for a ${name} clip or video.`
-  const answerLead =
-    `You can use ${name} online in Kineo Studio${profile.modelLine}: a ${clip.seconds}-second ${name} clip costs ${clip.credits} credits ` +
-    `(about ${usd(clip.usdCents)}), and a finished 60-second ${name} video with voice, captions and music costs ${film60.credits} credits ` +
-    `(about ${usd(film60.usdCents)}).`
+  // KINEO-S25-ABRE-2026-10-06 — motor só de plano pago e/ou sem clipe avulso à venda: as frases dizem isso (nunca o trial
+  // como porta, nunca preço de clipe que não se vende). Com OPEN_ACCESS, `pago` = '' e `clipeAVenda` = o clipe: o texto de
+  // todo motor até 06/10 sai byte a byte igual.
+  const pago = access.paidPlansOnly ? ', on any paid plan' : ''
+  const clipeAVenda = access.clipOnSale ? clip : null
+  const answerLead = clipeAVenda
+    ? `You can use ${name} online in Kineo Studio${profile.modelLine}${pago}: a ${clip.seconds}-second ${name} clip costs ${clip.credits} credits ` +
+      `(about ${usd(clip.usdCents)}), and a finished 60-second ${name} video with voice, captions and music costs ${film60.credits} credits ` +
+      `(about ${usd(film60.usdCents)}).`
+    : `You can use ${name} online in Kineo Studio${profile.modelLine}${pago}: a finished ${name} video with voice, captions and music costs ` +
+      `${film35.credits} credits for 35 seconds (about ${usd(film35.usdCents)}) or ${film60.credits} credits for 60 seconds (about ${usd(film60.usdCents)}).`
   const planLine = `US$ amounts use the ${reference.label} plan’s credit price (${usd(reference.usdCents)} for ${reference.credits} credits). ${smallestSentence}`
   const priced = direct.filter((r) => r.clipUsdCents !== null)
   // A pergunta que o comprador faz ao ChatGPT, respondida numa entrada só (onde + quanto) — a FAQ do Kling 3 tem
   // tamanho travado em 3 por outro guardião (test-avatar-fora), então a resposta citável cabe em UMA entrada.
+  const pagoFaq = access.paidPlansOnly ? ', on any paid plan (the free trial does not include it)' : ''
   const faqWhereCost = {
     q: `Where can I use ${name} online, and what does a ${name} video cost?`,
-    a: `In Kineo Studio at usekineo.com/studio${profile.modelLine}: a ${clip.seconds}-second ${name} clip costs ${clip.credits} credits, and a finished narrated video with voice, captions and music costs ${film35.credits} credits for 35 seconds or ${film60.credits} credits for 60 seconds — about ${usd(clip.usdCents)}, ${usd(film35.usdCents)} and ${usd(film60.usdCents)} at the ${reference.label} plan’s credit price (${usd(reference.usdCents)} for ${reference.credits} credits). ${smallestSentence} A narrated video usually takes ${minutes}.`,
+    a: clipeAVenda
+      ? `In Kineo Studio at usekineo.com/studio${profile.modelLine}${pagoFaq}: a ${clip.seconds}-second ${name} clip costs ${clip.credits} credits, and a finished narrated video with voice, captions and music costs ${film35.credits} credits for 35 seconds or ${film60.credits} credits for 60 seconds — about ${usd(clip.usdCents)}, ${usd(film35.usdCents)} and ${usd(film60.usdCents)} at the ${reference.label} plan’s credit price (${usd(reference.usdCents)} for ${reference.credits} credits). ${smallestSentence} A narrated video usually takes ${minutes}.`
+      : `In Kineo Studio at usekineo.com/studio${profile.modelLine}${pagoFaq}: a finished narrated video with voice, captions and music costs ${film35.credits} credits for 35 seconds or ${film60.credits} credits for 60 seconds — about ${usd(film35.usdCents)} and ${usd(film60.usdCents)} at the ${reference.label} plan’s credit price (${usd(reference.usdCents)} for ${reference.credits} credits). ${smallestSentence} A narrated video usually takes ${minutes}.`,
   }
   const faqDirect = priced.length
     ? {
         q: `Is it cheaper to use ${name} directly?`,
-        a: `For raw clips, compare: ${priced.map((r) => `${r.who}, about ${usd(r.clipUsdCents as number)} for ${r.seconds} seconds`).join('; ')} (prices as published in ${directCheckedLabel}), against ${clip.credits} credits (about ${usd(clip.usdCents)}) for a ${clip.seconds}-second clip on Kineo. Those are raw clips: the script, narration, captions, music and the edit are still yours. Kineo’s video price includes all of that in one render.`,
+        a: clipeAVenda
+          ? `For raw clips, compare: ${priced.map((r) => `${r.who}, about ${usd(r.clipUsdCents as number)} for ${r.seconds} seconds`).join('; ')} (prices as published in ${directCheckedLabel}), against ${clip.credits} credits (about ${usd(clip.usdCents)}) for a ${clip.seconds}-second clip on Kineo. Those are raw clips: the script, narration, captions, music and the edit are still yours. Kineo’s video price includes all of that in one render.`
+          : `Raw clips elsewhere: ${priced.map((r) => `${r.who}, about ${usd(r.clipUsdCents as number)} for ${r.seconds} seconds`).join('; ')} (prices as published in ${directCheckedLabel}). Kineo does not sell raw ${name} clips: a finished ${name} video — ${film35.credits} credits (about ${usd(film35.usdCents)}) for 35 seconds — includes the script, narration, captions, music and the edit in one render.`,
       }
     : null
 
@@ -323,19 +355,20 @@ export function buildEngineCitation(input: {
     reviewedLabel: monthYear(ENGINE_GEO_REVIEWED_ISO),
     reference,
     plans,
-    rows: { clip, film35, film60 },
+    rows: { clip: clipeAVenda, film35, film60 },
+    paidPlansOnly: access.paidPlansOnly,
     smallestPlanFor60,
     direct,
     directNote: profile.directNote ?? null,
     directCheckedLabel,
     answerLead,
     planLine,
-    accessNote: `${trialSentence} ${smallestMonthlySentence}`,
+    accessNote: access.paidPlansOnly ? `${name} is on paid plans — the free trial does not include it. ${smallestMonthlySentence}` : `${trialSentence} ${smallestMonthlySentence}`,
     turnaround: `Usually ${minutes} for a narrated video — it varies with length and provider queues`,
     howStep3: `A vertical 9:16 MP4, usually ${minutes} later, ready for YouTube Shorts, TikTok and Reels.`,
     costsNote: `Credit costs read from Kineo’s single pricing source (${monthYear(ENGINE_GEO_REVIEWED_ISO)}). Engines and costs may change.`,
     finalLine: `${ENGINE_GEO_BRAND_LINE} ${ENGINE_GEO_REWARDS_LINE}`,
-    ctaLabel: `Make a ${name} video →`,
+    ctaLabel: access.paidPlansOnly ? `Make a ${name} video on a paid plan →` : `Make a ${name} video →`,
     faqWhereCost,
     faqDirect,
   }

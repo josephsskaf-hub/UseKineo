@@ -110,7 +110,9 @@ if (BASE) {
   // Reancorado 03/10 (KINEO-GANCHO-1Q-2026-10-03): o /api/compose ganhou depois disto só linhas marcadas com o gancho escrito
   // (3 imports + 2 comentários + 2 chamadas withHookFirstFrame, depois do logo); elas saem em memória junto com as da estrela.
   checa('E25 /api/compose sem as linhas marcadas = base, byte a byte', semMarca(compose).split('\n').filter((l) => !l.includes('KINEO-GANCHO-1Q-2026-10-03')).join('\n') === base('app/api/compose/route.ts'))
-  checa('E26 /api/generate-video-cinematic sem as linhas marcadas = base, byte a byte', semMarca(cinematic) === base('app/api/generate-video-cinematic/route.ts'))
+  // Reancorado 06/10 (KINEO-S25-ABRE-2026-10-06): a rota do filme ganhou depois disto só linhas marcadas com o portão pago do
+  // Seedance 2.5 (2 imports + o bloco, todas com a marca, nenhuma removida); elas saem em memória junto com as da estrela.
+  checa('E26 /api/generate-video-cinematic sem as linhas marcadas = base, byte a byte', semMarca(cinematic).split('\n').filter((l) => !l.includes('KINEO-S25-ABRE-2026-10-06')).join('\n') === base('app/api/generate-video-cinematic/route.ts'))
 }
 checa('E27 a Estrela continua só com a casa (ESTRELA_PUBLIC = false)', /export const ESTRELA_PUBLIC = false\n/.test(launch))
 

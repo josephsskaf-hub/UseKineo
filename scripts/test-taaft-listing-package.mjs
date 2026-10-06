@@ -35,7 +35,9 @@ for (const stale of ['30 credits','40 credits','50 credits','25 free credits',
 for (const engine of ['Seedance 1.5','Kling 2.5','Kling 3','Veo 3.1']) {
  check(ready.includes(engine), 'current engine: ' + engine)
 }
-check(/PAUSED_ENGINE_KEYS[^\n]*\['omni', 's25'\]/.test(engines), 'maintenance reconciled') // KINEO-H3-DE-VOLTA-2026-09-22: o H3 voltou ao site; o pacote do TAAFT segue sem o H3 até o fundador editar a listagem lá
+// KINEO-S25-ABRE-2026-10-06 — reancorado: o Seedance 2.5 voltou ao site (só plano pago); como o H3 em 22/09, o pacote do TAAFT
+// segue SEM ele até o fundador editar a listagem lá (a exclusão de 'Seedance 2.5' acima continua valendo). Pausado: só o Omni.
+check(/PAUSED_ENGINE_KEYS[^\n]*\['omni'\]/.test(engines), 'maintenance reconciled') // KINEO-H3-DE-VOLTA-2026-09-22: o H3 voltou ao site; o pacote do TAAFT segue sem o H3 até o fundador editar a listagem lá
 check(listing.includes('v3.3.3') && listing.includes('histórico imutável'), 'history protected')
 check(listing.includes('LOCAL') && listing.includes('validação independente DESCONHECIDA'), 'states separated')
 check(!listing.includes('Generate · 20 cr'), 'no stale capture cost')

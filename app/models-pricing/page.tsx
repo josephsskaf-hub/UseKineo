@@ -67,8 +67,10 @@ const ROWS: Row[] = [
   { key: 'omni', name: 'Omni Flash', quality: 'cinematic_omni', what: 'Gemini Omni Flash — cinematic scenes', path: ENGINE_LANDING_PUBLIC_PATHS.omni },
   // O S25 só aparece quando o interruptor único abrir para o público — mostrar
   // preço de motor que ninguém pode escolher é a lição do Seedance 2.0.
+  // KINEO-S25-ABRE-2026-10-06 — a linha diz a entrega real (o ✨HD Enhance é o botão do filme pronto, nunca embutido —
+  // fundador 06/10) e que o motor é dos planos pagos: o trial não o abre (lib/s25Access.ts), e a coluna do trial diz isso.
   ...(S25_PUBLIC
-    ? [{ key: 's25', name: 'Seedance 2.5', quality: 'cinematic_s25' as Quality, what: 'ByteDance’s newest engine — 480p master + HD Enhance', path: ENGINE_LANDING_PUBLIC_PATHS.s25 }]
+    ? [{ key: 's25', name: 'Seedance 2.5', quality: 'cinematic_s25' as Quality, what: 'ByteDance’s newest engine · Enhance available with one click · paid plans only', path: ENGINE_LANDING_PUBLIC_PATHS.s25 }]
     : []),
 ]
 
@@ -136,7 +138,7 @@ export default function ModelsPricingPage() {
                     </td>
                   ))}
                   <td style={{ padding: '14px 16px', textAlign: 'right', whiteSpace: 'nowrap', color: free >= 1 || freeShort ? '#7ee2a8' : '#8f8f9c' }}>
-                    {free >= 1 ? `${free} film${free === 1 ? '' : 's'}` : freeShort ? `${TRIAL_SEEDANCE15_FILMS} free ${TRIAL_FREE_FILM_SECONDS}s film` : 'part of one'}
+                    {r.quality === 'cinematic_s25' ? 'Paid plans only' /* KINEO-S25-ABRE-2026-10-06: o trial não abre o 2.5 */ : free >= 1 ? `${free} film${free === 1 ? '' : 's'}` : freeShort ? `${TRIAL_SEEDANCE15_FILMS} free ${TRIAL_FREE_FILM_SECONDS}s film` : 'part of one'}
                   </td>
                 </tr>
               )

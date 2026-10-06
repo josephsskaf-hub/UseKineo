@@ -521,7 +521,9 @@ checa('mutante (casa pelos padrões LIKE de isInternalEmail) → vermelho', !pro
     // escrito, depois do logo). A prova continua: nenhuma linha removida e toda linha nova carrega o marcador — qualquer outra mudança segue vermelha.
     const d = execFileSync('git', ['diff', '--unified=0', 'origin/main', '--', 'app/api/compose/status', 'app/api/compose/unlock'], { cwd: root, encoding: 'utf8' })
     const mudadas = d.split('\n').filter((l) => /^[+-]/.test(l) && !/^(\+\+\+|---) /.test(l))
-    intocados = mudadas.every((l) => l.startsWith('+') && l.includes('KINEO-GANCHO-1Q-2026-10-03'))
+    // Reancorado 06/10 (KINEO-S25-ABRE-2026-10-06): o compose/status ganhou só linhas ACRESCENTADAS e marcadas (o Enhance
+    // automático da conta da casa deixa de rodar no Seedance 2.5, pedido do fundador). Mesma prova: nada removido, tudo marcado.
+    intocados = mudadas.every((l) => l.startsWith('+') && (l.includes('KINEO-GANCHO-1Q-2026-10-03') || l.includes('KINEO-S25-ABRE-2026-10-06')))
   } catch { intocados = !/kineo1Gate/.test(rd('app/api/compose/unlock/route.ts')) }
   checa('compose/status e compose/unlock intocados', intocados && !rd('app/api/compose/unlock/route.ts').includes('kineo1Gate'))
   const OFFER = L0('lib/freeTierOffer.ts')

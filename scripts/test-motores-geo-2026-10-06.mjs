@@ -45,6 +45,8 @@ const SITEMAP = 'app/sitemap.ts'
 const ROBOTS = 'app/robots.ts'
 const LLMS = 'app/llms.txt/route.ts'
 const LAUNCH = 'lib/engineLaunch.ts'
+// KINEO-S25-ABRE-2026-10-06 — motor com rota própria (o Seedance 2.5: só plano pago, sem o "Start free" do [engine]).
+const ROTA_PROPRIA = { 'seedance-2-5': 'app/ai-video-generator/seedance-2-5/page.tsx' }
 const PRICING = 'lib/checkoutPricing.ts'
 const BASE = 'https://www.usekineo.com'
 const BRAND = 'Type one sentence. Get a finished 60-second video — voice, captions and music included — in minutes.'
@@ -109,8 +111,17 @@ async function problemas(rep = {}) {
     const f35 = cost.creditCostForDuration(quality, true, 35)
     const f60 = cost.creditCostForDuration(quality, true, 60)
     const smallest = tiers.find(([t]) => pricing.TIER_CREDITS[t] >= f60) ?? null
-    esperado[slug] = { name: e.name, clipSec, clipCr, f35, f60 }
-    const html = renderToStaticMarkup(await load(PAGE).default({ params: { engine: slug } }))
+    // KINEO-S25-ABRE-2026-10-06 — reancorado: o Seedance 2.5 voltou (S25_PUBLIC) como motor SÓ DE PLANO PAGO e sem clipe avulso
+    // para o público, com rota própria. As mesmas provas valem para ele, na versão honesta: primeira frase "onde usar + quanto
+    // custa" sem preço de clipe e com "on any paid plan", tabela sem linha de clipe, nota de acesso "on paid plans" no lugar do
+    // trial, CTA "… on a paid plan →" para o cadastro com a campanha, e a página servida é a rota própria (não a do [engine]).
+    const soPago = launch.engineIsPaidPlansOnly(key)
+    const clipeAVenda = key !== 's25' || launch.s25ClipVisible(null)
+    const rotulo = soPago ? `Make a ${e.name} video on a paid plan →` : `Make a ${e.name} video →`
+    esperado[slug] = { name: e.name, clipSec, clipCr, f35, f60, soPago, clipeAVenda }
+    const html = ROTA_PROPRIA[slug]
+      ? renderToStaticMarkup(await load(ROTA_PROPRIA[slug]).default())
+      : renderToStaticMarkup(await load(PAGE).default({ params: { engine: slug } }))
     const t = texto(html)
     // primeira frase depois do H1
     const depoisH1 = html.slice(html.indexOf('</h1>'))
@@ -119,14 +130,23 @@ async function problemas(rep = {}) {
     const lead = texto(primeiroP)
     const frase1 = `You can use ${e.name} online in Kineo Studio`
     if (!lead.startsWith(frase1)) p.push(`${slug}: a resposta não começa por "${frase1}"`)
-    if (!lead.includes(`a ${clipSec}-second ${e.name} clip costs ${clipCr} credits (about ${usd(usdOf(clipCr))})`)) p.push(`${slug}: preço do clipe na 1ª frase ≠ fonte (${clipCr} cr, ${usd(usdOf(clipCr))})`)
-    if (!lead.includes(`video with voice, captions and music costs ${f60} credits (about ${usd(usdOf(f60))})`)) p.push(`${slug}: preço do filme de 60 s na 1ª frase ≠ fonte (${f60} cr)`)
+    if (clipeAVenda) {
+      if (!lead.includes(`a ${clipSec}-second ${e.name} clip costs ${clipCr} credits (about ${usd(usdOf(clipCr))})`)) p.push(`${slug}: preço do clipe na 1ª frase ≠ fonte (${clipCr} cr, ${usd(usdOf(clipCr))})`)
+      if (!lead.includes(`video with voice, captions and music costs ${f60} credits (about ${usd(usdOf(f60))})`)) p.push(`${slug}: preço do filme de 60 s na 1ª frase ≠ fonte (${f60} cr)`)
+    } else {
+      // KINEO-S25-ABRE-2026-10-06 — sem clipe à venda: a 1ª frase dá o filme de 35 e de 60 s, nunca preço de clipe
+      if (/-second [^.]* clip costs/.test(lead)) p.push(`${slug}: 1ª frase anuncia clipe que não se vende`)
+      if (!lead.includes(`costs ${f35} credits for 35 seconds (about ${usd(usdOf(f35))}) or ${f60} credits for 60 seconds (about ${usd(usdOf(f60))})`)) p.push(`${slug}: preço do filme de 60 s na 1ª frase ≠ fonte (${f35}/${f60} cr)`)
+    }
+    if (soPago && !lead.includes(', on any paid plan:')) p.push(`${slug}: 1ª frase não diz que o motor é só de plano pago`)
+    if (!soPago && lead.includes('on any paid plan')) p.push(`${slug}: 1ª frase diz "plano pago" de motor aberto ao trial`)
     if (smallest && !lead.includes(`is ${smallest[1]} at ${money(pricing.TIER_PRICES[smallest[0]].usd)}/month`)) p.push(`${slug}: menor plano ≠ fonte (${smallest[1]})`)
     // tabela
     const card = html.match(/<section data-kineo="engine-price-card"[\s\S]*?<\/section>/)?.[0] ?? ''
     if (!card) p.push(`${slug}: sem a tabela de preço`)
     const linhas = [...card.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/g)].map((m) => [...m[1].matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/g)].map((c) => texto(c[1])))
-    const exp = [[`${clipSec}-second clip`, clipCr], ['35-second video', f35], ['60-second video', f60]]
+    const exp = [...(clipeAVenda ? [[`${clipSec}-second clip`, clipCr]] : []), ['35-second video', f35], ['60-second video', f60]] // KINEO-S25-ABRE-2026-10-06
+    if (!clipeAVenda && linhas.some((l) => /-second clip/.test(l[0] ?? ''))) p.push(`${slug}: tabela com linha de clipe que não se vende`)
     for (const [rotulo, cr] of exp) {
       const linha = linhas.find((l) => l[0]?.startsWith(rotulo))
       const planos = tiers.map(([t]) => { const n = Math.floor(pricing.TIER_CREDITS[t] / cr); return n > 0 ? `${n} per month` : '—' })
@@ -163,9 +183,9 @@ async function problemas(rep = {}) {
     if (!geo.direct.length && !geo.directNote) p.push(`${slug}: sem comparação direta e sem aviso honesto`)
     if (key === 'seedance' && !(geo.directNote && card.includes('href="https://www.byteplus.com/en/product/modelark"'))) p.push('seedance: aviso honesto da BytePlus ausente')
     // CTA → campanha + motor; frase da marca de apoio
-    const cta = card.match(/<a href="([^"]+)"[^>]*>(Make a [^<]+ video →)<\/a>/)
+    const cta = card.match(/<a href="([^"]+)"[^>]*>(Make a [^<]+ →)<\/a>/) // KINEO-S25-ABRE-2026-10-06: "… video →" ou "… video on a paid plan →"
     const hrefEsperado = intent.buildEngineLandingSignupHref({ engine: key, campaign: `seo_engine_${slug}` })
-    if (!cta || unesc(cta[1]) !== hrefEsperado || cta[2] !== `Make a ${e.name} video →`) p.push(`${slug}: CTA do card ≠ cadastro com a campanha (${cta && unesc(cta[1])})`)
+    if (!cta || unesc(cta[1]) !== hrefEsperado || cta[2] !== rotulo) p.push(`${slug}: CTA do card ≠ cadastro com a campanha (${cta && unesc(cta[1])})`) // KINEO-S25-ABRE-2026-10-06: rótulo do motor (pago: "… on a paid plan →")
     else {
       const u = new URL(unesc(cta[1]), BASE)
       const redirect = new URL(u.searchParams.get('redirect') ?? '', BASE)
@@ -177,18 +197,24 @@ async function problemas(rep = {}) {
     if (!depoisCta.includes(BRAND) || !depoisCta.includes(REWARDS)) p.push(`${slug}: frase da marca não está logo abaixo do CTA`)
     if (/qualif/i.test(texto(card))) p.push(`${slug}: promete que o vídeo "se qualifica"`)
     // os CTAs de cadastro da página (hero, quando não é o par Seedance/Veo, e final) levam o mesmo destino
-    const ctasPagina = [...html.matchAll(/<a href="([^"]+)"[^>]*>(Make a [^<]+ video →)<\/a>/g)]
-    if (ctasPagina.length < 2 || ctasPagina.some((m) => unesc(m[1]) !== hrefEsperado)) p.push(`${slug}: CTAs "Make a … video" da página fora do destino com campanha`)
+    const ctasPagina = [...html.matchAll(/<a href="([^"]+)"[^>]*>(Make a [^<]+ →)<\/a>/g)] // KINEO-S25-ABRE-2026-10-06: inclui "… on a paid plan →"
+    if (ctasPagina.length < 2 || ctasPagina.some((m) => unesc(m[1]) !== hrefEsperado || m[2] !== rotulo)) p.push(`${slug}: CTAs "Make a … video" da página fora do destino com campanha`)
     // mentiras corrigidas
     if (t.includes('3–7 minutes')) p.push(`${slug}: ainda promete 3–7 minutes`)
     if (!t.includes(`Usually ${minutos} for a narrated video`)) p.push(`${slug}: tempo de entrega honesto ausente`)
     if (/unlocked on every account/.test(t)) p.push(`${slug}: ainda diz "unlocked on every account"`)
-    if (!t.includes(`New accounts${trial.GRANT_COUNTRY_CLAUSE} start with ${trial.TRIAL_CREDITS_SHOWN} free credits`)) p.push(`${slug}: nota de acesso sem a cláusula do país`)
+    // KINEO-S25-ABRE-2026-10-06 — motor só de plano pago: a nota diz isso e NUNCA oferece o trial como porta.
+    if (soPago) {
+      if (!t.includes(`${e.name} is on paid plans — the free trial does not include it.`)) p.push(`${slug}: nota de acesso sem "on paid plans"`)
+      if (/New accounts[^.]* start with \d+ free credits/.test(t)) p.push(`${slug}: motor pago oferece o trial na nota de acesso`)
+    } else if (!t.includes(`New accounts${trial.GRANT_COUNTRY_CLAUSE} start with ${trial.TRIAL_CREDITS_SHOWN} free credits`)) p.push(`${slug}: nota de acesso sem a cláusula do país`)
     // FAQ citável no JSON-LD (o que a IA lê)
     const ld = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => { try { return JSON.parse(m[1]) } catch { return null } })
     const faq = ld.find((x) => x && x['@type'] === 'FAQPage')
     const q = faq?.mainEntity?.find((x) => x.name === `Where can I use ${e.name} online, and what does a ${e.name} video cost?`)
-    if (!q || !q.acceptedAnswer.text.includes(`a ${clipSec}-second ${e.name} clip costs ${clipCr} credits`) || !q.acceptedAnswer.text.includes(`${f60} credits for 60 seconds`)) p.push(`${slug}: FAQ citável ausente ou ≠ fonte no JSON-LD`)
+    const faqClipe = clipeAVenda ? q?.acceptedAnswer.text.includes(`a ${clipSec}-second ${e.name} clip costs ${clipCr} credits`) : !/clip costs/.test(q?.acceptedAnswer.text ?? '') // KINEO-S25-ABRE-2026-10-06
+    const faqPago = !soPago || (q?.acceptedAnswer.text ?? '').includes('on any paid plan (the free trial does not include it)')
+    if (!q || !faqClipe || !faqPago || !q.acceptedAnswer.text.includes(`${f35} credits for 35 seconds or ${f60} credits for 60 seconds`)) p.push(`${slug}: FAQ citável ausente ou ≠ fonte no JSON-LD`)
     // tier derivado
     const tierEsperado = smallest ? smallest[1] : 'Studio'
     if (e.tier !== tierEsperado) p.push(`${slug}: tier "${e.tier}" ≠ menor plano que paga 60 s (${tierEsperado})`)
@@ -261,7 +287,7 @@ async function problemas(rep = {}) {
   for (const slug of indexaveis) {
     const x = esperado[slug]
     const linha = secao.split('\n').find((l) => l.startsWith(`- [Where to use ${x.name} online](${BASE}/ai-video-generator/${slug})`)) ?? ''
-    if (!linha.includes(`${x.clipSec}-second clip: ${x.clipCr} credits`) || !linha.includes(`60-second narrated video: ${x.f60} credits`) || !linha.includes(`35-second narrated video: ${x.f35} credits`)) p.push(`llms.txt: linha do ${x.name} ausente ou ≠ fonte`)
+    if (!(x.clipeAVenda ? linha.includes(`${x.clipSec}-second clip: ${x.clipCr} credits`) : !/-second clip:/.test(linha)) || (x.soPago && !linha.includes('paid plans only (not in the free trial)')) || !linha.includes(`60-second narrated video: ${x.f60} credits`) || !linha.includes(`35-second narrated video: ${x.f35} credits`)) p.push(`llms.txt: linha do ${x.name} ausente ou ≠ fonte`)
   }
   for (const slug of fora) if (secao.includes(`/ai-video-generator/${slug})`)) p.push(`llms.txt: motor pausado ${slug} na seção de onde usar`)
   const arena = llms.split('\n').find((l) => l.startsWith('- [Engine Arena]')) ?? ''

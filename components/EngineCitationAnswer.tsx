@@ -48,7 +48,8 @@ function rowLabel(r: CitationPriceRow): { title: string; detail: string } {
 }
 
 export function EnginePriceCard({ geo, ctaHref, campaign }: { geo: EngineCitation; ctaHref: string; campaign: string }) {
-  const rows = [geo.rows.clip, geo.rows.film35, geo.rows.film60]
+  // KINEO-S25-ABRE-2026-10-06 — sem clipe avulso à venda (o Seedance 2.5), a tabela não tem linha de clipe.
+  const rows = [geo.rows.clip, geo.rows.film35, geo.rows.film60].filter((r): r is CitationPriceRow => r !== null)
   const th: CSSProperties = { textAlign: 'left', padding: '11px 10px', fontWeight: 700, color: MUTED, whiteSpace: 'nowrap' }
   const td: CSSProperties = { padding: '11px 10px', verticalAlign: 'top', lineHeight: 1.45 }
   return (
@@ -100,7 +101,9 @@ export function EnginePriceCard({ geo, ctaHref, campaign }: { geo: EngineCitatio
         <ul style={{ margin: 0, paddingLeft: 18, color: '#d2d2d7', fontSize: '0.9rem', lineHeight: 1.65 }}>
           <li>
             <strong>Kineo</strong>
-            {` — ${geo.rows.clip.credits} credits for a ${geo.rows.clip.seconds}-second clip (about ${usd(geo.rows.clip.usdCents)}), or ${geo.rows.film60.credits} credits for a finished 60-second video with voice, captions and music.`}
+            {geo.rows.clip
+              ? ` — ${geo.rows.clip.credits} credits for a ${geo.rows.clip.seconds}-second clip (about ${usd(geo.rows.clip.usdCents)}), or ${geo.rows.film60.credits} credits for a finished 60-second video with voice, captions and music.`
+              : ` — no raw ${geo.name} clips: ${geo.rows.film35.credits} credits for a finished 35-second video (about ${usd(geo.rows.film35.usdCents)}) or ${geo.rows.film60.credits} credits for 60 seconds, with voice, captions and music${geo.paidPlansOnly ? ', on any paid plan' : ''}.`}
           </li>
           {geo.direct.map((r) => (
             <li key={r.who}>

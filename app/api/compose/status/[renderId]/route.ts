@@ -1379,10 +1379,16 @@ export async function GET(
       // completa o job e troca a URL quando ele abre a Library — zero fluxo
       // novo. Idempotente: só submete se enhance_request_id ainda é null.
       // Cliente NÃO entra aqui: pra ele o Enhance é produto pago (10cr).
+      // KINEO-S25-ABRE-2026-10-06 — fundador (06/10): "quero que o Enhance pare de ser automático; se eu quiser, aperto o
+      // botão e coloco no vídeo". O Seedance 2.5 sai daqui: o filme fica com as cenas originais e o ✨HD Enhance é o [KINEO-S25-ABRE-2026-10-06]
+      // botão manual da Library (POST /api/enhance — por vídeo, qualquer motor, 10 cr; Studio com 2 grátis/mês). [KINEO-S25-ABRE-2026-10-06]
+      // Não existe Enhance por cena na estrada s25 (conferido em 06/10): o único automático era este, do filme pronto [KINEO-S25-ABRE-2026-10-06]
+      // e só na conta da casa. Os outros motores da casa seguem como estavam (decisão de 20/08, não reaberta). [KINEO-S25-ABRE-2026-10-06]
       try {
         const HOUSE_ENHANCE_EMAILS = new Set(['josephsskaf@gmail.com'])
         if (
           isCinematicQuality &&
+          quality !== 'cinematic_s25' && // KINEO-S25-ABRE-2026-10-06 — sem Enhance automático no 2.5
           videoId &&
           user.email &&
           HOUSE_ENHANCE_EMAILS.has(user.email.toLowerCase())

@@ -181,7 +181,7 @@ checa('/generate: card "Fast Mode" só com kineo1Shown; ?engine= pela régua no 
 checa('/generate: parede de crédito oferece o Seedance de 15 s (custo derivado) e a caixa do Kineo 1 exige kineo1Shown', GEN.includes('            credits >= custoSeedance(SEEDANCE_SHORT_SECONDS)') && GEN.includes("credits >= creditCostForDuration('fast', isPaidAccount, duration) && kineo1Shown") && GEN.includes('data-testid="trial-seedance15-offer"'))
 checa('/generate: "última configuração" não devolve o Kineo 1 a quem não o tem (M2)', temLinha(GEN, "    if (lastSetup.quality === 'fast' && !kineo1Shown) return null"))
 const ME = rd('app/api/me/credits/route.ts')
-checa("/api/me/credits: leitura de legado que falhou vira null ('não sei', pendência 5 da E1) e a resposta leva hasPaid", ME.includes("if (l.ok === false) throw new Error('kineo1_legacy_unreadable')") && ME.includes('.catch(() => null)') && ME.includes('internal: s25Visible(user.email), hasPaid, kineo1, plan })'))
+checa("/api/me/credits: leitura de legado que falhou vira null ('não sei', pendência 5 da E1) e a resposta leva hasPaid", ME.includes("if (l.ok === false) throw new Error('kineo1_legacy_unreadable')") && ME.includes('.catch(() => null)') && ME.includes('internal: s25Visible(user.email), s25Liberado, hasPaid, kineo1, plan })')) // reancorado KINEO-S25-ABRE-2026-10-06: + s25Liberado
 
 console.log('E) ponte do trial em 15 s e o degrau de volta (M3)')
 const TB_SRC = rd('lib/growth/trialBalanceBridge.ts')

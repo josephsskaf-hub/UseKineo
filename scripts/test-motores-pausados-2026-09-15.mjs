@@ -20,17 +20,23 @@ const roda = (src, globals = {}) => { const js = ts.transpileModule(src, { compi
 console.log('== (a) interruptor único, executado ==')
 const launchSrc = rd('lib/engineLaunch.ts').replace(/import \{ isInternalEmail \} from '@\/lib\/internalAccounts'\n/, '')
 const L = roda(launchSrc, { isInternalEmail: (e) => /@usekineo\.com$|josephsskaf/.test(String(e ?? '')) })
-checa('omni e s25 pausados; os cinco da oferta + H3 (de volta em 22/09) ativos', ['omni', 's25'].every((k) => L.enginePaused(k)) && ['fast', 'seedance', 'kling', 'veo', 'hollywood', 'avatar', 'h3', '', undefined, null].every((k) => !L.enginePaused(k)))
-checa('cada pausa tem data, rótulo, mensagem com "paused for maintenance", "Nothing was charged" e alternativa ativa', ['omni', 's25'].every((k) => { const p = L.enginePaused(k); return p && p.since === '2026-09-15' && /paused for maintenance/.test(p.message) && /Nothing was charged/.test(p.message) && ['hollywood', 'kling'].includes(p.alternative.key) && !L.enginePaused(p.alternative.key) }))
-checa('qualityPaused espelha pela quality do biller', !L.qualityPaused('cinematic_h3') && L.qualityPaused('cinematic_omni') && L.qualityPaused('cinematic_s25') && !L.qualityPaused('cinematic_hollywood') && !L.qualityPaused('cinematic_kling') && !L.qualityPaused('cinematic_veo') && !L.qualityPaused('cinematic_ai') && !L.qualityPaused('fast'))
+// REANCORADO KINEO-S25-ABRE-2026-10-06 — o Seedance 2.5 saiu da manutenção (aposta A do fundador, 06/10: 3 filmes de teste
+// pelo critério do H3) e voltou SÓ para quem paga — o portão pago é provado em scripts/test-s25-abre-2026-10-06.mjs. A
+// vigilância desta trava segue a mesma para quem continua pausado: o Omni (pausado, recusado antes do débito) e os ativos.
+checa('omni pausado; os cinco da oferta + H3 (de volta em 22/09) + Seedance 2.5 (de volta em 06/10, só plano pago) ativos', ['omni'].every((k) => L.enginePaused(k)) && ['fast', 'seedance', 'kling', 'veo', 'hollywood', 'avatar', 'h3', 's25', '', undefined, null].every((k) => !L.enginePaused(k)))
+checa('cada pausa tem data, rótulo, mensagem com "paused for maintenance", "Nothing was charged" e alternativa ativa', L.PAUSED_ENGINE_KEYS.length >= 1 && L.PAUSED_ENGINE_KEYS.every((k) => { const p = L.enginePaused(k); return p && p.since === '2026-09-15' && /paused for maintenance/.test(p.message) && /Nothing was charged/.test(p.message) && ['hollywood', 'kling'].includes(p.alternative.key) && !L.enginePaused(p.alternative.key) }))
+checa('qualityPaused espelha pela quality do biller', !L.qualityPaused('cinematic_h3') && L.qualityPaused('cinematic_omni') && !L.qualityPaused('cinematic_s25') && !L.qualityPaused('cinematic_hollywood') && !L.qualityPaused('cinematic_kling') && !L.qualityPaused('cinematic_veo') && !L.qualityPaused('cinematic_ai') && !L.qualityPaused('fast'))
 // KINEO-AVATAR-FORA-2026-09-28 — re-ancorada: exigia 'Seven' e a lista terminando em 'Avatar'. O fundador tirou o
 // Avatar do catálogo público em 27/09 ("avatar sai por hora"): com AVATAR_PUBLIC=false a contagem é 'Six' e a lista
 // termina em 'Kineo 1'. A intenção original (contagem/lista só com o que o público pode apertar) segue a mesma;
 // o guardião test-avatar-fora-2026-09-28.mjs prova que virar o interruptor devolve 'Seven' e o Avatar.
 // Reancorado 29/09 (KINEO-KINEO1-FORA-2026-09-29): o Kineo 1 também saiu do catálogo público (KINEO1_PUBLIC=false) —
 // "Five" e a lista termina em 'Seedance 1.5'. A intenção (só o que o público pode apertar, sem Omni/S25) é a mesma.
-checa('contagem e lista públicas só com os disponíveis (Five: H3 de volta, sem Omni/S25, Avatar e Kineo 1 fora do catálogo) e a frase de pausa nomeia os dois', L.AVATAR_PUBLIC === false && L.KINEO1_PUBLIC === false && L.VIDEO_ENGINE_COUNT_WORD === 'Five' && L.VIDEO_ENGINE_COUNT_SENTENCE_START === 'Five' && !/Omni|Seedance 2.5|Avatar|Kineo 1/.test(L.VIDEO_ENGINE_LIST_COPY) && /^Veo 3.1, Kling 3, Kling 2.5, MiniMax H3 and Seedance 1.5$/.test(L.VIDEO_ENGINE_LIST_COPY) && /^Omni Flash and Seedance 2.5 are temporarily paused/.test(L.PAUSED_ENGINES_COPY) && /nothing is charged/i.test(L.PAUSED_ENGINES_COPY)) // KINEO-H3-DE-VOLTA-2026-09-22 · KINEO-AVATAR-FORA-2026-09-28
-checa('S25 continua interno (S25_PUBLIC=false) — nada foi apagado', L.S25_PUBLIC === false)
+// REANCORADO KINEO-S25-ABRE-2026-10-06 — Six: o Seedance 2.5 voltou ao catálogo público marcado "(paid plans)" (o servidor
+// só o roda para plano pago) e a frase de pausa nomeia SÓ o Omni. A intenção é a mesma: só o que o público pode ver e
+// apertar, sem o pausado, e o que exige plano dito na própria lista.
+checa('contagem e lista públicas só com os disponíveis (Six: H3 de volta, Seedance 2.5 de volta só plano pago, sem Omni, Avatar e Kineo 1 fora do catálogo) e a frase de pausa nomeia só o Omni', L.AVATAR_PUBLIC === false && L.KINEO1_PUBLIC === false && L.VIDEO_ENGINE_COUNT_WORD === 'Six' && L.VIDEO_ENGINE_COUNT_SENTENCE_START === 'Six' && !/Omni|Avatar|Kineo 1/.test(L.VIDEO_ENGINE_LIST_COPY) && /^Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5 and Seedance 2.5 \(paid plans\)$/.test(L.VIDEO_ENGINE_LIST_COPY) && /^Omni Flash is temporarily paused/.test(L.PAUSED_ENGINES_COPY) && !/Seedance 2\.5/.test(L.PAUSED_ENGINES_COPY) && /nothing is charged/i.test(L.PAUSED_ENGINES_COPY)) // KINEO-H3-DE-VOLTA-2026-09-22 · KINEO-AVATAR-FORA-2026-09-28 · KINEO-S25-ABRE-2026-10-06
+checa('S25 público (S25_PUBLIC=true, 06/10) — e o servidor só o roda para quem paga (lib/s25Access.ts) — nada foi apagado', L.S25_PUBLIC === true && rd('app/api/generate-video-cinematic/route.ts').includes("import { s25AccessFor } from '@/lib/s25Access'"))
 
 console.log('== (b) servidor: recusa antes do débito, ensaio interno passa ==')
 const rc = rd('app/api/generate-video-cinematic/route.ts')
@@ -43,7 +49,9 @@ checa('KINEO-MANUTENCAO-INTERNA: conta interna passa também no render real (log
 {
   // executa a decisão do gate com a função real
   const decide = (engine, dryRun, email) => { const pausa = L.enginePaused(engine); return Boolean(pausa && !(dryRun === true && /josephsskaf/.test(email))) }
-  checa('decisão: omni real (qualquer conta) recusa; omni ensaio interno passa; kling real passa; s25 ensaio de cliente recusa', decide('omni', false, 'josephsskaf@gmail.com') && !decide('omni', true, 'josephsskaf@gmail.com') && !decide('kling', false, 'x@y.z') && decide('s25', true, 'cliente@x.z') && !decide('h3', false, 'cliente@x.z')) // KINEO-H3-DE-VOLTA-2026-09-22: h3 real de cliente passa
+  // REANCORADO KINEO-S25-ABRE-2026-10-06: o caso "ensaio de cliente recusa" passa a ser no Omni (o s25 saiu da pausa; a
+  // recusa dele para quem não paga é o portão pago, provado em scripts/test-s25-abre-2026-10-06.mjs).
+  checa('decisão: omni real (qualquer conta) recusa; omni ensaio interno passa; kling real passa; omni ensaio de cliente recusa; s25 não é mais pausa', decide('omni', false, 'josephsskaf@gmail.com') && !decide('omni', true, 'josephsskaf@gmail.com') && !decide('kling', false, 'x@y.z') && decide('omni', true, 'cliente@x.z') && !decide('s25', false, 'cliente@x.z') && !decide('h3', false, 'cliente@x.z')) // KINEO-H3-DE-VOLTA-2026-09-22: h3 real de cliente passa
 }
 checa('recuperação preservada: retry-hollywood-scene, cinematic-clip-status, compose e cron não ganharam gate', !rd('app/api/retry-hollywood-scene/route.ts').includes('enginePaused') && !rd('app/api/cinematic-clip-status/route.ts').includes('enginePaused') && !rd('app/api/compose/route.ts').includes('enginePaused') && !rd('app/api/cron/finish-stranded-renders/route.ts').includes('enginePaused'))
 checa('custos continuam no biller (nada apagado)', /case 'cinematic_h3'/.test(rd('lib/credits/engineCost.ts')) && /case 'cinematic_omni'/.test(rd('lib/credits/engineCost.ts')) && /case 'cinematic_s25'/.test(rd('lib/credits/engineCost.ts')))

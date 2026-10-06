@@ -61,15 +61,18 @@ const launchSrc = rd('lib/engineLaunch.ts')
 const L = rodaLaunch(launchSrc)
 // engineLaunch real pelo carregador (usado pelos blocos que executam o /arena, a rota e o /studio/create).
 const launchReal = createOfflineLoader()('lib/engineLaunch.ts')
-const provaA = (M) => M.KINEO1_PUBLIC === false && M.VIDEO_ENGINE_COUNT_WORD === 'Five' && M.VIDEO_ENGINE_COUNT_SENTENCE_START === 'Five' &&
-  M.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3 and Seedance 1.5' && !/Kineo 1|Avatar/.test(M.VIDEO_ENGINE_LIST_COPY)
-checa('KINEO1_PUBLIC=false; contagem "Five" e lista pública sem Kineo 1', provaA(L))
+// REANCORADO KINEO-S25-ABRE-2026-10-06 — o Seedance 2.5 voltou ao catálogo público marcado "(paid plans)" (S25_PUBLIC=true;
+// só plano pago usa — scripts/test-s25-abre-2026-10-06.mjs): "Six", e cada interruptor ligado soma um. A vigilância é a
+// mesma: Kineo 1 fora da lista pública, e os interruptores o devolvem por derivação, nunca por número digitado.
+const provaA = (M) => M.KINEO1_PUBLIC === false && M.VIDEO_ENGINE_COUNT_WORD === 'Six' && M.VIDEO_ENGINE_COUNT_SENTENCE_START === 'Six' &&
+  M.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5 and Seedance 2.5 (paid plans)' && !/Kineo 1|Avatar/.test(M.VIDEO_ENGINE_LIST_COPY)
+checa('KINEO1_PUBLIC=false; contagem "Six" e lista pública sem Kineo 1', provaA(L))
 {
   const ligaK1 = trocar(launchSrc, 'export const KINEO1_PUBLIC = false', 'export const KINEO1_PUBLIC = true')
   const V = rodaLaunch(ligaK1)
-  checa('ligar o Kineo 1 devolve "Six" e "... Seedance 1.5 and Kineo 1" (derivado, não digitado)', V.VIDEO_ENGINE_COUNT_WORD === 'Six' && V.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5 and Kineo 1' && V.kineo1Visible(PUBLICO) === true && !provaA(V))
+  checa('ligar o Kineo 1 devolve "Seven" e "... Seedance 2.5 (paid plans) and Kineo 1" (derivado, não digitado)', V.VIDEO_ENGINE_COUNT_WORD === 'Seven' && V.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5, Seedance 2.5 (paid plans) and Kineo 1' && V.kineo1Visible(PUBLICO) === true && !provaA(V))
   const ambos = rodaLaunch(trocar(ligaK1, 'export const AVATAR_PUBLIC = false', 'export const AVATAR_PUBLIC = true'))
-  checa('ligar os dois devolve "Seven" e "..., Kineo 1 and Avatar"', ambos.VIDEO_ENGINE_COUNT_WORD === 'Seven' && ambos.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5, Kineo 1 and Avatar')
+  checa('ligar os dois devolve "Eight" e "..., Kineo 1 and Avatar"', ambos.VIDEO_ENGINE_COUNT_WORD === 'Eight' && ambos.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5, Seedance 2.5 (paid plans), Kineo 1 and Avatar')
   const cravado = trocar(launchSrc, "...(KINEO1_PUBLIC ? ['Kineo 1'] : []),", "'Kineo 1',")
   checa('mutante (Kineo 1 cravado na lista) → vermelho', !provaA(rodaLaunch(cravado)))
 }
@@ -128,7 +131,8 @@ const semKineo1 = (html) => !html.includes('Kineo 1') && !html.includes('engine=
   checa('home (e-mail público logado): idem', semKineo1(logado))
   // REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles de motor saiu da home). Some a porta do tile;
   // ficam 2 portas do Kineo 1 para a casa (mega-menu e chip final), ainda atrás de showKineo1.
-  checa('home (visitante): sem grade de tiles e FAQ "Five ... and Seedance 1.5"', conta(pub, 'class="tile') === 0 && pub.includes('Veo 3.1, Kling 3, Kling 2.5, MiniMax H3 and Seedance 1.5'))
+  // REANCORADO KINEO-S25-ABRE-2026-10-06: "Six ... Seedance 1.5 and Seedance 2.5 (paid plans)".
+  checa('home (visitante): sem grade de tiles e FAQ "Six ... and Seedance 2.5 (paid plans)"', conta(pub, 'class="tile') === 0 && pub.includes('Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5 and Seedance 2.5 (paid plans)'))
   checa('home (casa): as 2 portas do Kineo 1 continuam (mega-menu, chip) e o tile saiu', conta(casa, 'engine=fast&amp;intent_campaign=nav_mega') === 1 && conta(casa, 'engine=fast&amp;intent_campaign=engine_tile') === 0 && conta(casa, 'engine=fast&amp;intent_campaign=final_chip') === 1)
   checa('mutante (predicado aplicado à casa, que vê as portas) → vermelho', !semKineo1(casa))
   const land = rd('app/KineoLanding.tsx')
@@ -297,6 +301,9 @@ console.log('== (h) resolveKineo1Flag, GET /api/me/credits e /studio/create exec
       '@/lib/supabase/server': { createClient: () => sb },
       '@/lib/engineLaunch': launchReal,
       '@/lib/kineo1Access': { readKineo1Access: (id) => (id === 'u-1' ? r.fn() : Promise.reject(new Error('id errado'))) },
+      // REANCORADO KINEO-S25-ABRE-2026-10-06: a rota ganhou a flag s25Liberado (régua do servidor, lib/s25Access.ts — provada
+      // em scripts/test-s25-abre-2026-10-06.mjs). Aqui ela é só um vizinho da flag kineo1: stub fixo.
+      '@/lib/s25Access': { s25LiberadoNaTela: () => false },
     }
     const box = { exports: {} }
     vm.runInNewContext(js, { module: box, exports: box.exports, require: (id) => { if (Object.hasOwn(mocks, id)) return mocks[id]; throw new Error('unmocked ' + id) }, Promise })

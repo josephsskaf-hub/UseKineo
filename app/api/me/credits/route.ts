@@ -7,6 +7,7 @@ import { s25Visible, avatarVisible, resolveKineo1Flag, seedance15sVisible } from
 import { duracoesCurtasVisible } from '@/lib/engineLaunch' // KINEO-DURACOES-CURTAS-2026-09-29
 import { estrelaVisible } from '@/lib/engineLaunch' // KINEO-ESTRELA-DO-FILME-2026-09-29
 import { readKineo1Access } from '@/lib/kineo1Access'
+import { s25LiberadoNaTela } from '@/lib/s25Access' // KINEO-S25-ABRE-2026-10-06
 
 // KINEO-CABE-2026-08-21 — saldo do usuário logado, para a tela poder dizer a
 // verdade ANTES do clique. Existe porque o /studio oferecia motores que o
@@ -55,5 +56,9 @@ export async function GET() {
   // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — `hasPaid` para a régua do 'não sei' do Studio (kineo1NaTela).
   const hasPaid = (data as { has_paid?: boolean | null } | null)?.has_paid === true
   // KINEO-DURACOES-CURTAS-2026-09-29 — `curtas` = os botões curtos novos (Kling 2.5/Veo 15 s; hollywood 15/30 s): DURACOES_CURTAS_PUBLIC || casa.
-  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), curtas: duracoesCurtasVisible(user.email), estrela: estrelaVisible(user.email), internal: s25Visible(user.email), hasPaid, kineo1, plan })
+  // KINEO-S25-ABRE-2026-10-06 — `s25Liberado` = a conta pode USAR o Seedance 2.5 (a MESMA composição do portão da rota do
+  // filme, lib/s25Access.ts: plano pago, nunca *_trial). `internal` segue sendo só "o 2.5 aparece" (s25Visible): quem vê
+  // sem poder usar ganha o selo "NEW · paid plans" e o clique leva ao upgrade.
+  const s25Liberado = s25LiberadoNaTela(user.email, plan)
+  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), curtas: duracoesCurtasVisible(user.email), estrela: estrelaVisible(user.email), internal: s25Visible(user.email), s25Liberado, hasPaid, kineo1, plan })
 }

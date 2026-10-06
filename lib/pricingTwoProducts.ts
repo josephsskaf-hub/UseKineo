@@ -43,6 +43,9 @@ export interface TwoProductsPlan {
 export interface TwoProductsVisibility {
   /** O motor aparece no catálogo público (não pausado; Seedance 2.5 só com S25_PUBLIC). */
   engineListed: (engine: ClipEngineKey) => boolean
+  /** KINEO-S25-ABRE-2026-10-06 — o CLIPE avulso do motor está à venda para o público? Ausente = a mesma régua de engineListed.
+   *  Existe porque o filme do Seedance 2.5 abriu (só para quem paga) e o clipe dele não (segue só da casa, s25ClipVisible). */
+  clipListed?: (engine: ClipEngineKey) => boolean
   /** DURACOES_CURTAS_PUBLIC (15/30 s fora do Seedance). */
   shortDurations: boolean
   /** SEEDANCE_15S_PUBLIC (15 s do Seedance 1.5). */
@@ -109,8 +112,9 @@ export function filmSecondsFor(engine: ClipEngineKey, vis: TwoProductsVisibility
 export function buildTwoProductsModel(args: { creator: TwoProductsPlan; plans: readonly TwoProductsPlan[]; visibility: TwoProductsVisibility }): TwoProductsModel {
   const usdPerCredit = args.creator.usdCentsMonthly / 100 / args.creator.credits
   const engines = CLIP_ENGINE_ORDER.filter((engine) => args.visibility.engineListed(engine))
+  const clipListed = args.visibility.clipListed ?? (() => true) // KINEO-S25-ABRE-2026-10-06
 
-  const clips: ClipRow[] = engines.map((engine) => ({
+  const clips: ClipRow[] = engines.filter((engine) => clipListed(engine)).map((engine) => ({
     engine,
     label: CLIP_ENGINES[engine].label,
     cells: TWO_PRODUCTS_CLIP_TARGETS.map((target) => {

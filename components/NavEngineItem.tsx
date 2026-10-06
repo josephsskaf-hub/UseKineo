@@ -21,6 +21,7 @@ export default function NavEngineItem({
   preview,
   icon,
   translateName = false,
+  translateChip = false,
 }: {
   href: string
   name: string
@@ -35,6 +36,9 @@ export default function NavEngineItem({
   /** KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — nome descritivo (ex.: "Photo to clip") passa pela tradução da interface;
       nome de motor é marca e nunca é traduzido (padrão). */
   translateName?: boolean
+  /** KINEO-S25-ABRE-2026-10-06 — selo descritivo (ex.: "NEW · paid plans") passa pela tradução da interface; os selos de
+      tier de uma palavra (TOP, STUDIO) seguem como estão (padrão). */
+  translateChip?: boolean
 }) {
   const ref = useRef<HTMLVideoElement | null>(null)
   return (
@@ -53,7 +57,7 @@ export default function NavEngineItem({
       <span className="nm-tx">
         <b>
           {translateName ? <UiLabel>{name}</UiLabel> : name}
-          {chip ? <em className="nm-chip">{chip}</em> : null}
+          {chip ? <em className="nm-chip">{translateChip ? <UiLabel>{chip}</UiLabel> : chip}</em> : null}
         </b>
         <i><UiLabel>{desc}</UiLabel></i>
       </span>

@@ -228,7 +228,9 @@ checa('mutante: régua chumbada em true fica VERMELHO', mutReguaChumbada !== LAU
 // seedance15 segue na mesma linha inteira, pelo interruptor.
 // Reancorado KINEO-ESTRELA-DO-FILME-2026-09-29: a resposta ganhou `estrela` (flag do bloco "Estrela do filme" no /studio, estrelaVisible);
 // a flag seedance15 segue na mesma linha inteira, pelo interruptor.
-const L_ME = "  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), curtas: duracoesCurtasVisible(user.email), estrela: estrelaVisible(user.email), internal: s25Visible(user.email), hasPaid, kineo1, plan })"
+// Reancorado KINEO-S25-ABRE-2026-10-06: a resposta ganhou `s25Liberado` (a régua de quem USA o Seedance 2.5, lib/s25Access.ts);
+// a flag seedance15 segue na mesma linha inteira, pelo interruptor.
+const L_ME = "  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), curtas: duracoesCurtasVisible(user.email), estrela: estrelaVisible(user.email), internal: s25Visible(user.email), s25Liberado, hasPaid, kineo1, plan })"
 checa('/api/me/credits devolve a flag seedance15 pelo interruptor (linha inteira)', temLinha(ME, L_ME))
 const ANCORAS_STUDIO = [
   ['Studio: botão de 15 s só com Seedance escolhido e com o interruptor', "              {engine === 'seedance' && (seedance15Ok || duration === SEEDANCE_SHORT_SECONDS) && ("],
@@ -245,7 +247,8 @@ const ANCORAS_STUDIO = [
 for (const [nome, l] of ANCORAS_STUDIO) checa(nome, temLinha(STUDIO, l))
 const ANCORAS_GEN = [
   ['/generate: botão de 15 s só com o interruptor (ou já em 15) — M-D', '  return seedance && (seedance15Ok || current === SEEDANCE_SHORT_SECONDS) ? [SEEDANCE_SHORT_OPTION, ...DURATION_OPTIONS] : DURATION_OPTIONS'],
-  ['/generate: a flag vem de d?.seedance15, não de d?.internal — M-L', "    fetch('/api/me/credits', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive && d?.internal === true) setS25Ok(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && d?.curtas === true) setCurtasOk(true) }).catch(() => {}) // KINEO-DURACOES-CURTAS-2026-09-29: + curtas"],
+  // Reancorado KINEO-S25-ABRE-2026-10-06: a mesma linha passou a ler também `s25Liberado` (quem não paga não fica com o 2.5).
+  ['/generate: a flag vem de d?.seedance15, não de d?.internal — M-L', "    fetch('/api/me/credits', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive && d?.internal === true) setS25Ok(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && d?.curtas === true) setCurtasOk(true); if (alive && typeof d?.s25Liberado === 'boolean') { setS25Liberado(d.s25Liberado); if (d.s25Liberado === false) setAiEngine((atual) => (atual === 's25' ? 'seedance' : atual)) } }).catch(() => {}) // KINEO-DURACOES-CURTAS-2026-09-29: + curtas · KINEO-S25-ABRE-2026-10-06: + s25Liberado (quem não paga não fica com o 2.5 escolhido pela URL)"],
   ['/generate: trocar de motor estando numa curta que o motor novo não oferece volta para 35 — M-K', "    if (antes !== '' && antes !== motor && duration < 35 && !supportedDurationsFor(motor).includes(duration)) setDuration(35) // KINEO-DURACOES-CURTAS-2026-09-29"],
   ['/generate: resgate por saldo oferece 15 só no Seedance e com o interruptor — M-J', "  const duracoesDoSeletor: Duration[] = aiEngine === 'seedance' && seedance15Ok"],
   ['/generate: fora disso, a lista global', '    : DURATION_OPTIONS.map((o) => o.value)'],

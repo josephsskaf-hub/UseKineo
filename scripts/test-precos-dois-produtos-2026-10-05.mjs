@@ -35,7 +35,10 @@ function problems(replacements = {}) {
   const rate = prices.TIER_PRICES.basic.usd / 100 / prices.TIER_CREDITS.basic
   if (Math.abs(m.usdPerCredit - rate) > 1e-12) p.push(`US$/crédito ${m.usdPerCredit} ≠ Creator ${rate}`)
   const listed = cat.CLIP_ENGINE_ORDER.filter((e) => !launch.enginePaused(e) && (e !== 's25' || launch.S25_PUBLIC))
-  if (JSON.stringify(m.clips.map((r) => r.engine)) !== JSON.stringify(listed)) p.push(`motores dos clipes ${m.clips.map((r) => r.engine)} ≠ públicos ${listed}`)
+  // REANCORADO KINEO-S25-ABRE-2026-10-06: o FILME do Seedance 2.5 está à venda (planos pagos) e o CLIPE dele não (segue só da
+  // casa, s25ClipVisible) — a tabela de clipes do visitante segue a régua do clipe; a de filmes, a do motor.
+  const clipsListed = listed.filter((e) => e !== 's25' || launch.s25ClipVisible(null))
+  if (JSON.stringify(m.clips.map((r) => r.engine)) !== JSON.stringify(clipsListed)) p.push(`motores dos clipes ${m.clips.map((r) => r.engine)} ≠ públicos ${clipsListed}`)
   if (JSON.stringify(m.films.map((r) => r.engine)) !== JSON.stringify(listed)) p.push('motores dos filmes ≠ públicos')
   const usdCents = (credits) => Math.round(credits * rate * 100)
   for (const row of m.clips) {
@@ -103,7 +106,9 @@ const row = (list, e) => list.find((r) => r.engine === e)
 ok(row(real.m.films, 'seedance').cells[1] === null && row(real.m.films, 'hollywood').cells[1] !== null, 'filme de 30 s só na estrada hollywood (Seedance 1.5 não aceita 30)')
 ok(JSON.stringify(row(real.m.clips, 'veo').cells.map((c) => c.seconds)) === '[6,8]', 'Veo mostra 6 s e 8 s (o que entrega), nunca "5 s"')
 ok(row(real.m.clips, 'kling').cells.every((c) => c && [5, 10].includes(c.seconds)), 'Kling 2.5: 5 s e 10 s')
-ok(!real.m.clips.some((r) => r.engine === 'omni' || r.engine === 's25'), 'Omni e Seedance 2.5 (pausados) fora das tabelas')
+// REANCORADO KINEO-S25-ABRE-2026-10-06: o Omni segue pausado (fora das duas tabelas); o Seedance 2.5 voltou só como FILME de plano
+// pago — o clipe dele não está à venda para o público.
+ok(!real.m.clips.some((r) => r.engine === 'omni' || r.engine === 's25') && !real.m.films.some((r) => r.engine === 'omni') && real.m.films.some((r) => r.engine === 's25'), 'Omni (pausado) fora das tabelas; Seedance 2.5 só na de filmes (o clipe dele não está à venda)')
 
 console.log('3. acompanha as fontes')
 const s35 = problems({ 'lib/credits/engineCost.ts': read('lib/credits/engineCost.ts').replace(/(case 'cinematic_ai':[\s\S]*?)return 25\n/, '$1return 35\n') })

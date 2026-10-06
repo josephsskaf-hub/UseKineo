@@ -150,8 +150,10 @@ mutant('interruptor invertido no pop-up', 'modal',
   "const studioLead = enginePaused('omni') ? KLING3_LEAD : OMNI_LEAD", "const studioLead = enginePaused('omni') ? OMNI_LEAD : KLING3_LEAD")
 mutant('interruptor removido do pop-up', 'modal',
   "const studioLead = enginePaused('omni') ? KLING3_LEAD : OMNI_LEAD", 'const studioLead = OMNI_LEAD')
+// REANCORADO KINEO-S25-ABRE-2026-10-06: o Seedance 2.5 saiu da pausa (06/10, só plano pago); o motor pausado do mutante passa a
+// ser o próprio Omni — a mesma regressão (o ramo de fuga do pop-up apontando para um motor em manutenção) segue vigiada.
 mutant('ramo pausado do pop-up apontando para motor pausado', 'modal',
-  "const KLING3_LEAD = { quality: 'cinematic_hollywood', film: 'Kling 3 film' } as const", "const KLING3_LEAD = { quality: 'cinematic_s25', film: 'Kling 3 film' } as const")
+  "const KLING3_LEAD = { quality: 'cinematic_hollywood', film: 'Kling 3 film' } as const", "const KLING3_LEAD = { quality: 'cinematic_omni', film: 'Kling 3 film' } as const")
 mutant('superlativo de volta no perk do Studio', 'modal',
   "'MiniMax H3 film')}`, 'Kling 3 film scenes", "'MiniMax H3 film')} — the #1 model`, 'Kling 3 film scenes")
 mutant('home: linha do Omni sem interruptor', 'landing',

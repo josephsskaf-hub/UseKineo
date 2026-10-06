@@ -61,15 +61,18 @@ const L = rodaLaunch(launchSrc)
 // Reancorado 29/09 (KINEO-KINEO1-FORA-2026-09-29): o Kineo 1 também saiu do catálogo (KINEO1_PUBLIC=false), então a
 // contagem é "Five" e ligar só o Avatar devolve "Six" com "... Seedance 1.5 and Avatar". O que se vigia é o mesmo:
 // Avatar fora, e o interruptor o traz de volta por derivação, nunca por número digitado.
-const provaA = (M) => M.AVATAR_PUBLIC === false && M.VIDEO_ENGINE_COUNT_WORD === 'Five' && M.VIDEO_ENGINE_COUNT_SENTENCE_START === 'Five' &&
-  M.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3 and Seedance 1.5' && !/Avatar/.test(M.VIDEO_ENGINE_LIST_COPY)
-checa('AVATAR_PUBLIC=false; contagem "Five" e lista pública sem Avatar', provaA(L))
+// REANCORADO KINEO-S25-ABRE-2026-10-06 — o Seedance 2.5 voltou ao catálogo público marcado "(paid plans)" (S25_PUBLIC=true,
+// só plano pago usa — scripts/test-s25-abre-2026-10-06.mjs): a contagem vira "Six" e ligar o Avatar devolve "Seven". A
+// vigilância é a mesma: Avatar fora, e o interruptor o traz de volta por derivação, nunca por número digitado.
+const provaA = (M) => M.AVATAR_PUBLIC === false && M.VIDEO_ENGINE_COUNT_WORD === 'Six' && M.VIDEO_ENGINE_COUNT_SENTENCE_START === 'Six' &&
+  M.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5 and Seedance 2.5 (paid plans)' && !/Avatar/.test(M.VIDEO_ENGINE_LIST_COPY)
+checa('AVATAR_PUBLIC=false; contagem "Six" e lista pública sem Avatar', provaA(L))
 checa('avatarVisible: público e anônimo não veem; conta da casa vê', L.avatarVisible(PUBLICO) === false && L.avatarVisible(null) === false && L.avatarVisible(undefined) === false && L.avatarVisible(INTERNO) === true)
-checa('Avatar não virou pausa (pausa diria "manutenção", motivo falso) e S25 segue interno', !L.enginePaused('avatar') && !L.enginePaused('presenter') && !L.PAUSED_ENGINE_KEYS.includes('avatar') && L.S25_PUBLIC === false)
+checa('Avatar não virou pausa (pausa diria "manutenção", motivo falso); S25 público desde 06/10 (só plano pago usa)', !L.enginePaused('avatar') && !L.enginePaused('presenter') && !L.PAUSED_ENGINE_KEYS.includes('avatar') && L.S25_PUBLIC === true)
 {
   const ligado = LIGA(launchSrc)
   const V = rodaLaunch(ligado)
-  checa('virar o interruptor devolve "Six" e "... Seedance 1.5 and Avatar" (derivado, não digitado)', ligado !== launchSrc && V.AVATAR_PUBLIC === true && V.VIDEO_ENGINE_COUNT_WORD === 'Six' && V.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5 and Avatar' && V.avatarVisible(PUBLICO) === true)
+  checa('virar o interruptor devolve "Seven" e "... Seedance 2.5 (paid plans) and Avatar" (derivado, não digitado)', ligado !== launchSrc && V.AVATAR_PUBLIC === true && V.VIDEO_ENGINE_COUNT_WORD === 'Seven' && V.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5, Seedance 2.5 (paid plans) and Avatar' && V.avatarVisible(PUBLICO) === true)
   // 29/09: a contagem virou o tamanho da lista derivada; o mutante crava a contagem na palavra antiga.
   const mutante = launchSrc.replace('export const VIDEO_ENGINE_COUNT_WORD: string = ENGINE_COUNT_WORDS[PUBLIC_VIDEO_ENGINE_NAMES.length]', "export const VIDEO_ENGINE_COUNT_WORD: string = 'Seven'")
   checa('mutante (contagem cravada "Seven") → vermelho', mutante !== launchSrc && !provaA(rodaLaunch(mutante)))
@@ -125,7 +128,8 @@ const PORTAS = /href="\/avatar"|Talking Avatar|AI Presenter|Character Lock|Trans
   // REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles de motor saiu da home; os motores seguem no mega-menu e no /studio).
   checa('home (visitante): a grade de tiles de motor saiu e o toolkit removido não reaparece', conta(pub, 'class="tile') === 0 && !pub.includes('id="toolkit"') && conta(pub, 'class="tcard"') === 0)
   // 29/09 (KINEO-KINEO1-FORA): "Five" e a lista sem Kineo 1 nem Avatar.
-  checa('home (visitante): FAQ diz "Five" e a lista sem Avatar', pub.includes('Five') && pub.includes('Veo 3.1, Kling 3, Kling 2.5, MiniMax H3 and Seedance 1.5') && !pub.includes('and Avatar'))
+  // REANCORADO KINEO-S25-ABRE-2026-10-06: "Six", com o Seedance 2.5 marcado "(paid plans)".
+  checa('home (visitante): FAQ diz "Six" e a lista sem Avatar', pub.includes('Six') && pub.includes('Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5 and Seedance 2.5 (paid plans)') && !pub.includes('and Avatar'))
   // REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles de motor saiu da home; os motores seguem no mega-menu e no /studio). O tile do Avatar saiu junto: sobram 2 portas internas (mega-menu e menu mobile).
   checa('home (conta da casa): as 2 portas internas do Avatar continuam; os cards retirados também saem para a casa', conta(casa, 'href="/avatar"') === 2 && conta(casa, 'class="tcard"') === 0 && !casa.includes('id="toolkit"') && casa.includes('Talking Avatar'))
   checa('home (e-mail público logado): mesmas 0 portas', !PORTAS.test(home(PUBLICO)))
@@ -213,7 +217,10 @@ console.log('== (e) o que NÃO mudou: /avatar no ar, servidor aberto, cobrança 
 }
 {
   // /api/me/credits real: flag `avatar` separada da `internal` (que é s25Visible).
+  // REANCORADO KINEO-S25-ABRE-2026-10-06: a rota passou a ler a régua de quem usa o 2.5 (lib/s25Access.ts → isPayingPlan de
+  // app/api/admin/_shared/mrr.ts, que importa a Stripe): o SDK entra como mock, a régua roda de verdade.
   const rota = (email) => createOfflineLoader({ mocks: {
+    '@/lib/stripe': { stripe: {} },
     'next/server': { NextResponse: { json: (body, init) => ({ body, status: init?.status ?? 200 }) } },
     '@/lib/supabase/server': { createClient: () => ({
       auth: { getUser: async () => ({ data: { user: { id: 'u1', email } } }) },
@@ -221,7 +228,9 @@ console.log('== (e) o que NÃO mudou: /avatar no ar, servidor aberto, cobrança 
     }) },
   } })('app/api/me/credits/route.ts')
   const pub = (await rota(PUBLICO).GET()).body, casa = (await rota(INTERNO).GET()).body
-  checa('/api/me/credits (executado): público avatar:false, casa avatar:true; saldo e plano intactos', pub.avatar === false && casa.avatar === true && pub.credits === 7 && pub.plan === 'basic' && pub.internal === false)
+  // REANCORADO KINEO-S25-ABRE-2026-10-06: com S25_PUBLIC=true a `internal` (s25Visible) vale true para todos — e a flag
+  // `avatar` continua false para o público: é exatamente a separação que esta trava protege.
+  checa('/api/me/credits (executado): público avatar:false (mesmo com internal:true do S25 público), casa avatar:true; saldo e plano intactos', pub.avatar === false && casa.avatar === true && pub.credits === 7 && pub.plan === 'basic' && pub.internal === true)
   const st = rd('app/(dashboard)/studio/StudioClient.tsx')
   checa('Studio liga o card pela flag `avatar`, nunca pela `internal` do S25', st.includes('if (alive && d?.avatar === true) setAvatarOn(true)') && !/d\?\.internal === true\) setAvatarOn/.test(st) && st.includes('{avatarOn && <button')) // reancorado 30/09 (KINEO-STUDIO-HEROI): a aba "AI Presenter" saiu; o card do seletor segue atrás de avatarOn
 }

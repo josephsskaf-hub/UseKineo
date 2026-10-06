@@ -45,6 +45,7 @@ import {
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 import { ENGINES, ENGINE_SLUGS, type Engine } from '@/lib/growth/enginePageCatalog'
 import { EngineAnswerLead, EnginePriceCard, engineGeoFor, pausedAccessNote } from '@/components/EngineCitationAnswer' // KINEO-MOTORES-GEO-2026-10-06
+import { S25_PAGE_SLUG } from '@/lib/growth/s25EnginePage' // KINEO-S25-ABRE-2026-10-06 — rota própria do 2.5
 import { enginePaused } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
 import { engineAlternates, LOCALIZED_ENGINE_SLUGS, type LocalizedEngineSlug } from '@/lib/seo/enginePageLangs' // KINEO-MOTORES-16-LINGUAS-2026-09-21
 const OFFER = getFreeTierOffer()
@@ -59,7 +60,10 @@ function engineCostLabel(engine: Engine): string {
 }
 
 export function generateStaticParams() {
-  return ENGINE_SLUGS.map((engine) => ({ engine }))
+  // KINEO-S25-ABRE-2026-10-06 — o Seedance 2.5 tem rota própria (app/ai-video-generator/seedance-2-5/page.tsx: motor só de
+  // plano pago, sem o "Start free"/"unlocked on every account" desta página). O segmento estático já vence no roteamento;
+  // tirar daqui evita gerar a mesma URL duas vezes.
+  return ENGINE_SLUGS.filter((engine) => engine !== S25_PAGE_SLUG).map((engine) => ({ engine }))
 }
 
 const BASE = 'https://www.usekineo.com'

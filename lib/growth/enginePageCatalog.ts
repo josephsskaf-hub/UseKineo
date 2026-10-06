@@ -1,6 +1,7 @@
 // Shared data for the engine page, hub and sitemap. Route modules export only Next-supported names.
 // Mechanical extraction for CITACOES-01; existing content and feature gates are preserved.
 import { S25_PUBLIC, AVATAR_PUBLIC, enginePaused } from '@/lib/engineLaunch'
+import { engineIsPaidPlansOnly, s25ClipVisible } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06
 import { FREE_FILM_LABEL, getFreeTierOffer, swapFreeTierCopy as ft, trialFilmsForEngine, TRIAL_CREDITS_SHOWN, TRIAL_SEEDANCE15_FILMS, GRANT_COUNTRY_CLAUSE, TRIAL_FREE_FILM_CREDITS } from '@/lib/freeTierOffer'
 import { STARTER_MONTH, MARKETING_REFERENCE_SECONDS, creditsPerReferenceVideo, videosPerMonth } from '@/lib/marketingPrice'
 import { ENGINE_LANDING_LABELS, type EngineLandingParam } from '@/lib/growth/engineLandingIntent'
@@ -8,6 +9,8 @@ import { ENGINE_LANDING_LABELS, type EngineLandingParam } from '@/lib/growth/eng
 import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
 import type { Quality } from '@/lib/credits/engineCost'
 import { buildEngineCitation, dayMonthYear, ENGINE_GEO_FILM_MINUTES, type CitationPlan, type EngineCitation } from '@/lib/seo/engineCitation'
+import { OPEN_ACCESS, type CitationAccess } from '@/lib/seo/engineCitation' // KINEO-S25-ABRE-2026-10-06
+import { s25PageCopy } from '@/lib/growth/s25EnginePage' // KINEO-S25-ABRE-2026-10-06 — módulo puro (só imports relativos)
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -19,6 +22,8 @@ const KLING3_COST = creditsPerReferenceVideo('cinematic_hollywood')
 const H3_COST = creditsPerReferenceVideo('cinematic_h3')
 const OMNI_COST = creditsPerReferenceVideo('cinematic_omni')
 const S25_COST = creditsPerReferenceVideo('cinematic_s25')
+// KINEO-S25-ABRE-2026-10-06 — o texto da página do 2.5 (sessão CEO), com os números derivados da fonte.
+const S25_COPY = s25PageCopy()
 
 // ═══ KINEO-MOTORES-GEO-2026-10-06 — a página de motor que o ChatGPT cita (TAREFA 12) ═══════════════════════════
 // Planos e trial chegam das MESMAS constantes que cobram e concedem (TIER_PRICES/TIER_CREDITS; lib/freeTierOffer);
@@ -33,8 +38,13 @@ const GEO_TRIAL = { credits: TRIAL_CREDITS_SHOWN, countryClause: GRANT_COUNTRY_C
 function geoVisible(param: EngineLandingParam): boolean {
   return !enginePaused(param) && (param !== 's25' || S25_PUBLIC)
 }
+// KINEO-S25-ABRE-2026-10-06 — quem usa o motor e se o clipe avulso dele está à venda: o 2.5 é só de plano pago (o servidor
+// recusa trial e conta grátis, lib/s25Access.ts) e o clipe dele segue só da casa (s25ClipVisible). Os outros: OPEN_ACCESS.
+function accessFor(param: EngineLandingParam): CitationAccess {
+  return engineIsPaidPlansOnly(param) ? { paidPlansOnly: true, clipOnSale: param !== 's25' || s25ClipVisible(null) } : OPEN_ACCESS
+}
 function geoFor(slug: string, param: EngineLandingParam): EngineCitation | null {
-  return geoVisible(param) ? buildEngineCitation({ slug, key: param, name: ENGINE_LANDING_LABELS[param], plans: GEO_PLANS, trial: GEO_TRIAL }) : null
+  return geoVisible(param) ? buildEngineCitation({ slug, key: param, name: ENGINE_LANDING_LABELS[param], plans: GEO_PLANS, trial: GEO_TRIAL, access: accessFor(param) }) : null
 }
 /** A entrada citável "onde usar + quanto custa" (+ "é mais barato direto?" quando há preço direto conferido). */
 function geoFaq(geo: EngineCitation | null): { q: string; a: string }[] {
@@ -316,37 +326,29 @@ export const ENGINES: Record<string, Engine> = {
   },
   // KINEO-S25-LAUNCH-2026-09-01 — pagina do Seedance 2.5, atras do interruptor
   // unico: com S25_PUBLIC=false o slug nem e gerado (404 limpo, nada indexado
-  // antes do canario). A manchete e a diferenca de acesso, nao de tecnologia:
-  // o mesmo modelo que concorrentes trancam em planos de US$49 entra aqui no
-  // plano de US$29 — e sai FILME PRONTO, nao clipe solto. Claims datadas.
+  // antes do canario).
+  // KINEO-S25-ABRE-2026-10-06 — a volta do 2.5 como motor PAGO EXTRA (aposta A do fundador). O texto antigo mentia em 4
+  // pontos e saiu: "fits the $29 Studio plan" (o Studio é TIER_PRICES.pro), "the Studio tier" (o Creator já paga um filme
+  // de 60 s), "masters to 1080×1920 with Topaz-based enhancement" (o Enhance é o botão do filme pronto, nunca embutido) e
+  // "Scenes run up to 15 seconds, the longest in the catalog" (Kling 3 e H3 têm o mesmo teto). O texto novo é o da sessão
+  // CEO, com todo número derivado em lib/growth/s25EnginePage.ts. A página tem rota própria
+  // (app/ai-video-generator/seedance-2-5/page.tsx): a genérica diria "unlocked on every account" e "Start free".
   ...(S25_PUBLIC
     ? {
         'seedance-2-5': {
           param: 's25' as EngineLandingParam,
           qualityMode: 'cinematic_s25',
           name: 'Seedance 2.5',
-          model: 'fal-ai/seedance-2.5 (image-to-video, 480p native + HD Enhance master)',
+          model: 'fal-ai/seedance-2.5 — image-to-video from a scene still, text-to-video without one',
           creditCost: S25_COST,
-          tier: tierFor('cinematic_s25'),
-          h1: "Seedance 2.5 AI video generator — ByteDance's newest model, as a finished Short",
-          intro:
-            `Seedance 2.5 is ByteDance's newest video model, running inside Kineo's cinematic pipeline: every scene is anchored to a generated still for visual consistency, your narration is spoken word for word, and the film comes out with karaoke captions and an AI-composed soundtrack. Kineo renders at 480p and masters to a 1080×1920 HD file with Topaz-based enhancement — that is how a ${S25_COST}-credit film fits the $29 Studio plan while other platforms gate this model behind $49+ tiers (as of September 2026).`,
-          bestFor: pausedLead('s25') + 'Spectacle: weather, explosions, machines, crowds, historical set pieces — scenes where the newest motion model earns its cost. Scenes run up to 15 seconds, the longest in the catalog.',
-          tradeoff: "Slower than every other engine (long scenes queue longer at the provider — plan on 15-20 minutes), and native 480p before enhancement: fine text and faces hold up less than on Kling 3. Kling 3 still wins for on-camera speech with lip sync.",
-          faq: [
-            {
-              q: 'How much does a Seedance 2.5 video cost on Kineo?',
-              a: `${S25_COST} credits per 60-second finished film — the Studio tier. The Studio monthly grant fits ${videosPerMonth('pro', 'cinematic_s25')}.`,
-            },
-            {
-              q: 'Why is Seedance 2.5 cheaper here than on other platforms?',
-              a: 'Two reasons. Kineo renders at 480p and enhances the master to HD instead of paying for native 720p+ (which costs the provider more than twice as much per second). And Kineo sells a finished film — script, voice, captions, soundtrack, editing — rather than raw 8-second clips you assemble yourself. As of September 2026 most consumer platforms only offer this model on plans of $49/month or more.',
-            },
-            {
-              q: 'Does the 480p render look bad?',
-              a: 'Every film is mastered to 1080×1920 with enhancement, and each film on this page is a real render you can judge. Fine on-screen text and very close faces are where the difference shows; landscapes, action and atmosphere hold up well.',
-            },
-          ],
+          tier: tierFor('cinematic_s25'), // KINEO-MOTORES-GEO-2026-10-06 — derivado (o Creator paga um filme de 60 s)
+          h1: S25_COPY.h1,
+          intro: S25_COPY.lead,
+          bestFor: pausedLead('s25') + 'Spectacle: weather, explosions, machines, crowds, historical set pieces — scenes where the newest motion model earns its cost. On paid plans only.',
+          tradeoff: 'Slower than the other engines — long scenes queue longer at the provider. Fine on-screen text and very close faces hold up less well than on Kling 3, which also still wins for on-camera speech with lip sync.',
+          // KINEO-MOTORES-GEO-2026-10-06 · KINEO-S25-ABRE-2026-10-06 — a entrada citável (onde usar + quanto custa, só plano pago,
+          // sem clipe avulso) e o "é mais barato direto?" vêm de S25_GEO; o resto é o texto da sessão CEO.
+          faq: [...geoFaq(S25_GEO), ...S25_COPY.faq],
         },
       }
     : {}),

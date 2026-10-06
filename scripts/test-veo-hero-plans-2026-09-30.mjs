@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import {execFileSync} from 'node:child_process'
+import {existsSync} from 'node:fs' // KINEO-S25-ABRE-2026-10-06
 import {engineFixture} from './gpt24h-engine-fixture.mjs'
 import {offlineModules,renderToStaticMarkup,source} from './gpt24h-offline-support.mjs'
 // KINEO-MOTORES-GEO-2026-10-06 — reancorado com motivo: a camada citável da TAREFA 12 (2 blocos novos + 6 textos) é
@@ -11,7 +12,12 @@ const before=engineFixture({[file]:base}),after=engineFixture(mutant?{'component
 const hero=html=>html.match(/<section\b[\s\S]*?<\/section>/)?.[0]
 const actions=/<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:22px">[\s\S]*?<\/div>/
 let count=0
-for(const engine of after('lib/growth/enginePageCatalog.ts').ENGINE_SLUGS){
+// KINEO-S25-ABRE-2026-10-06 — reancorado com motivo: o Seedance 2.5 volta ao catálogo com ROTA PRÓPRIA
+// (app/ai-video-generator/seedance-2-5/page.tsx) e o [engine] deixou de gerá-lo no generateStaticParams. A trava vale para
+// os slugs que ESTA página serve; só o slug do 2.5 pode sair dela, e só com a rota própria no lugar. Na base, servidos = todos.
+const allSlugs=after('lib/growth/enginePageCatalog.ts').ENGINE_SLUGS,served=(await after(file).generateStaticParams()).map(p=>p.engine),leftEngine=allSlugs.filter(s=>!served.includes(s))
+assert.ok(leftEngine.every(s=>s==='seedance-2-5')&&(leftEngine.length===0||existsSync(new URL('../app/ai-video-generator/seedance-2-5/page.tsx',import.meta.url))),'only the Seedance 2.5 slug left [engine], to its own route: '+leftEngine);count++
+for(const engine of served){
  const old=semMotoresGeoHtml(renderToStaticMarkup(await before(file).default({params:{engine}}))),html=semMotoresGeoHtml(renderToStaticMarkup(await after(file).default({params:{engine}})))
  if(engine!=='veo'){
   // A mutated shared component affects Seedance as well; the mutant below

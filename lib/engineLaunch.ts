@@ -9,9 +9,15 @@
 //                      e calculadora mostram o motor de uma vez.
 // Regra da casa que isto protege: nunca mostrar botao que o publico nao
 // pode apertar (o gate do servidor le o MESMO interruptor).
+// ═══ KINEO-S25-ABRE-2026-10-06 — aposta A do fundador (06/10): o 2.5 volta como MOTOR PAGO EXTRA. Público para VER
+// (mega-menu, /studio, /generate, pricing, FAQ, schema, calculadora e a página /ai-video-generator/seedance-2-5 — a
+// isca de quem procura "Seedance 2.5"), mas só USA quem paga um plano: o portão do servidor mora em lib/s25Access.ts
+// (isPayingPlan de app/api/admin/_shared/mrr.ts — *_trial de cortesia e trial de cadastro NÃO passam) e recusa antes
+// de qualquer débito. Quem não paga vê o selo S25_PAID_BADGE e o clique leva ao upgrade, sem escolher o motor.
+// Para voltar ao canário: S25_PUBLIC=false (só a casa vê e usa, como em 01/09).
 import { isInternalEmail } from '@/lib/internalAccounts'
 
-export const S25_PUBLIC = false
+export const S25_PUBLIC = true
 
 // ═══ KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 — decisão do fundador (15/09, noite): a oferta concentra em cinco
 // motores (Kineo 1, Kling 2.5, Kling 3 aprovados; Seedance 1.5 e Veo 3.1 em prova). MiniMax H3, Omni Flash e
@@ -23,27 +29,63 @@ export const S25_PUBLIC = false
 // VOLTA-2026-09-22.md §8). O que mudou para ele voltar: compose com motivo (compose_failed), cena presa vira recusa
 // e ressubmete (lib/stuckScene), juiz lendo a cena 1 (índice 0-based), prefixo sem pessoa e sem telefone nas famílias
 // sem negative_prompt. Omni e Seedance 2.5 seguem pausados — mesmo caminho, ainda sem os 3 filmes.
-export type PausedEngineKey = 'omni' | 's25'
+// ═══ KINEO-S25-ABRE-2026-10-06 — o Seedance 2.5 sai da manutenção pelo MESMO critério do H3 (3 filmes de teste com juiz
+// ≥ 75 e montagem em poucos minutos, rodados pelo CEO na conta do fundador em 06/10) e volta só para quem paga (portão em
+// lib/s25Access.ts). A mensagem de pausa dele ("Kling 2.5 is available right now") sai junto; o Omni segue pausado.
+export type PausedEngineKey = 'omni'
 export interface EnginePause { since: string; label: string; alternative: { key: 'hollywood' | 'kling'; label: string }; message: string }
 export const ENGINE_PAUSE: Record<PausedEngineKey, EnginePause> = {
   omni: { since: '2026-09-15', label: 'Omni Flash', alternative: { key: 'hollywood', label: 'Kling 3' }, message: 'Omni Flash is temporarily paused for maintenance while we fix its film quality. Nothing was charged. Kling 3 is the closest engine and is available right now.' },
-  s25: { since: '2026-09-15', label: 'Seedance 2.5', alternative: { key: 'kling', label: 'Kling 2.5' }, message: 'Seedance 2.5 is temporarily paused for maintenance. Nothing was charged. Kling 2.5 is available right now.' },
 }
-export const PAUSED_ENGINE_KEYS: readonly PausedEngineKey[] = ['omni', 's25'] // KINEO-H3-DE-VOLTA-2026-09-22
-/** Pausa do motor pela chave da UI/rota ('h3' | 'omni' | 's25'); null quando o motor está ativo. */
+export const PAUSED_ENGINE_KEYS: readonly PausedEngineKey[] = ['omni'] // KINEO-H3-DE-VOLTA-2026-09-22 · KINEO-S25-ABRE-2026-10-06
+/** Pausa do motor pela chave da UI/rota ('omni'); null quando o motor está ativo. */
 export function enginePaused(engine: string | null | undefined): EnginePause | null {
   const k = typeof engine === 'string' ? engine.toLowerCase() : ''
   return (PAUSED_ENGINE_KEYS as readonly string[]).includes(k) ? ENGINE_PAUSE[k as PausedEngineKey] : null
 }
-/** Pausa pela quality do biller ('cinematic_h3' | 'cinematic_omni' | 'cinematic_s25'). */
+/** Pausa pela quality do biller ('cinematic_omni'). */
 export function qualityPaused(quality: string | null | undefined): EnginePause | null {
   const q = typeof quality === 'string' ? quality.toLowerCase() : ''
-  return q === 'cinematic_omni' ? ENGINE_PAUSE.omni : q === 'cinematic_s25' ? ENGINE_PAUSE.s25 : null // KINEO-H3-DE-VOLTA-2026-09-22
+  return q === 'cinematic_omni' ? ENGINE_PAUSE.omni : null // KINEO-H3-DE-VOLTA-2026-09-22 · KINEO-S25-ABRE-2026-10-06
 }
 
 /** O 2.5 aparece para este e-mail? Publico depois do lancamento; antes, so a casa. */
 export function s25Visible(email?: string | null): boolean {
   return S25_PUBLIC || isInternalEmail(email)
+}
+
+// ═══ KINEO-S25-ABRE-2026-10-06 — o que a tela e a recusa dizem a quem NÃO paga. Puro e sem import novo (este arquivo vai
+// para o navegador): QUEM paga é decidido no servidor (lib/s25Access.ts) e chega à tela pela flag `s25Liberado` do
+// /api/me/credits; sem a flag (leitura falhou, conta deslogada) a tela trata como não pagante — falha fechada.
+/** Selo do 2.5 para quem não paga (UiLabel; 16 línguas em lib/ui/refinementCopy.json). */
+export const S25_PAID_BADGE = 'NEW · paid plans'
+/** Linha do card/chip do 2.5 trancado (UiLabel; 16 línguas em lib/ui/refinementCopy.json). */
+export const S25_PAID_HINT = 'Available on paid plans — see plans'
+/** Motivo de fio da recusa do servidor (402, mesmo formato das outras recusas de portão). */
+export const S25_PAID_ONLY_REASON = 's25_paid_plans_only'
+/** Evento de SERVIDOR da recusa (o motivo vai no metadata). */
+export const S25_PAID_ONLY_EVENT = 's25_paid_only_refused'
+/** Evento de navegador: o clique no 2.5 trancado (o primeiro gesto depois do selo). */
+export const S25_PAID_CLICK_EVENT = 's25_paid_plans_clicked'
+/** Evento de navegador: o 2.5 trancado ESTEVE na tela (o denominador do clique), uma vez por carga. */
+export const S25_PAID_SHOWN_EVENT = 's25_paid_badge_shown'
+/** A frase da recusa: diz o que falta (qualquer plano pago) e que nada foi cobrado. */
+export const S25_PAID_ONLY_MESSAGE = 'Seedance 2.5 is available on paid plans. Pick any plan to use it — nothing was charged.'
+export type S25UpgradeSurface = 'studio' | 'studio_create' | 'nav' | 'engine_page' | 'server'
+/** O caminho de upgrade: os planos do /pricing, com a campanha da superfície (s25_paid_plans_<superfície>). */
+export function s25UpgradeHref(surface: S25UpgradeSurface): string {
+  return `/pricing?intent_campaign=s25_paid_plans_${surface}#plans`
+}
+/** O motor é só de plano pago? Hoje só o 2.5 — o servidor aplica (lib/s25Access.ts); as páginas citáveis dizem isso. */
+export function engineIsPaidPlansOnly(engine: string | null | undefined): boolean {
+  return engine === 's25'
+}
+// KINEO-S25-ABRE-2026-10-06 — o CLIPE avulso do 2.5 (/clips) NÃO abre junto com o filme: nenhum clipe do 2.5 foi
+// renderizado na história (tabela clips, medido 06/10: só hollywood/kling/seedance), e com S25_PUBLIC=true o s25Visible
+// abriria o clipe para TODA conta, inclusive grátis. Segue só da casa — a mesma régua de antes. Abrir = 1 clipe de teste e
+// trocar esta régua pelo portão pago do servidor (lib/s25Access.ts s25LiberadoNaTela).
+export function s25ClipVisible(email?: string | null): boolean {
+  return isInternalEmail(email)
 }
 
 // ═══ KINEO-AVATAR-FORA-2026-09-28 — decisão do fundador (27/09): "avatar sai por hora".
@@ -162,8 +204,12 @@ export function estrelaVisible(email?: string | null): boolean {
 // (FAQ da home, FAQ/Organization do schema, /ph e a calculadora) sem ninguém redigitar número.
 // KINEO-KINEO1-FORA-2026-09-29: cinco — o Kineo 1 saiu do catálogo público. A lista vira dado derivado dos DOIS
 // interruptores (KINEO1_PUBLIC, AVATAR_PUBLIC) e a contagem é o tamanho dela: nenhum número digitado.
+// KINEO-S25-ABRE-2026-10-06: seis — o Seedance 2.5 volta ao catálogo público (S25_PUBLIC e fora da pausa) com o aviso
+// de que é dos planos pagos, porque é isso que o servidor cobra (lib/s25Access.ts): a lista diz o que existe E o que
+// precisa para apertar. Virar S25_PUBLIC=false (ou pausar o motor) devolve 'Five' sozinho.
 const PUBLIC_VIDEO_ENGINE_NAMES: readonly string[] = [
   'Veo 3.1', 'Kling 3', 'Kling 2.5', 'MiniMax H3', 'Seedance 1.5',
+  ...(S25_PUBLIC && enginePaused('s25') === null ? ['Seedance 2.5 (paid plans)'] : []),
   ...(KINEO1_PUBLIC ? ['Kineo 1'] : []),
   ...(AVATAR_PUBLIC ? ['Avatar'] : []),
 ]
@@ -171,4 +217,6 @@ const ENGINE_COUNT_WORDS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six'
 export const VIDEO_ENGINE_COUNT_WORD: string = ENGINE_COUNT_WORDS[PUBLIC_VIDEO_ENGINE_NAMES.length]
 export const VIDEO_ENGINE_COUNT_SENTENCE_START = VIDEO_ENGINE_COUNT_WORD
 export const VIDEO_ENGINE_LIST_COPY = PUBLIC_VIDEO_ENGINE_NAMES.slice(0, -1).join(', ') + ' and ' + PUBLIC_VIDEO_ENGINE_NAMES[PUBLIC_VIDEO_ENGINE_NAMES.length - 1]
-export const PAUSED_ENGINES_COPY = 'Omni Flash and Seedance 2.5 are temporarily paused for maintenance (since 15 September 2026); nothing is charged for a blocked attempt, and Kling 3 / Kling 2.5 cover the same jobs meanwhile.'
+// KINEO-S25-ABRE-2026-10-06 — só o Omni segue pausado (a frase nomeia exatamente PAUSED_ENGINE_KEYS; o guardião
+// scripts/test-s25-abre-2026-10-06.mjs confere).
+export const PAUSED_ENGINES_COPY = 'Omni Flash is temporarily paused for maintenance (since 15 September 2026); nothing is charged for a blocked attempt, and Kling 3 covers the same jobs meanwhile.'

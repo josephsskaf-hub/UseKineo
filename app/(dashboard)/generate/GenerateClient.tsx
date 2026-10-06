@@ -98,6 +98,7 @@ import {
   normalizeQuality,
 } from '@/lib/credits/engineCost'
 import { enginePaused } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
+import { S25_PAID_BADGE, S25_PAID_HINT, S25_PAID_CLICK_EVENT, S25_PAID_SHOWN_EVENT } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06 — o 2.5 trancado para quem não paga
 import { SEEDANCE_SHORT_SECONDS, supportedDurationsFor } from '@/lib/durationByEngine' // KINEO-SEEDANCE-15S-2026-09-29
 // sprint-v1v4 #13 — o cardápio de motores passa a saber quanto a pessoa tem
 // no bolso. Módulo puro: só compara custo × saldo, não conhece plano nem preço.
@@ -1556,13 +1557,16 @@ export default function GenerateClient({
   // KINEO-S25-LAUNCH-2026-09-01 — o 2.5 so aparece para quem s25Visible()
   // aprova (a casa hoje; todos apos S25_PUBLIC). Vem do /api/me/credits.
   const [s25Ok, setS25Ok] = useState(false)
+  // KINEO-S25-ABRE-2026-10-06 — a conta pode USAR o 2.5? (flag `s25Liberado` do /api/me/credits = a régua do portão do
+  // servidor, lib/s25Access.ts). null = não chegou → chip trancado (falha fechada); false → o ?engine=s25 da URL não fica.
+  const [s25Liberado, setS25Liberado] = useState<boolean | null>(null)
   // KINEO-SEEDANCE-15S-2026-09-29 — o botão de 15 s do Seedance (SEEDANCE_15S_PUBLIC || casa), flag `seedance15` do /api/me/credits.
   const [seedance15Ok, setSeedance15Ok] = useState(seedance15Prop === true) // KINEO-ENTRADA-SEEDANCE15: o servidor já sabe na montagem
   // KINEO-DURACOES-CURTAS-2026-09-29 — os botões curtos novos (Kling 2.5/Veo 15 s; hollywood 15/30 s), flag `curtas` do /api/me/credits.
   const [curtasOk, setCurtasOk] = useState(false)
   useEffect(() => {
     let alive = true
-    fetch('/api/me/credits', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive && d?.internal === true) setS25Ok(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && d?.curtas === true) setCurtasOk(true) }).catch(() => {}) // KINEO-DURACOES-CURTAS-2026-09-29: + curtas
+    fetch('/api/me/credits', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive && d?.internal === true) setS25Ok(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && d?.curtas === true) setCurtasOk(true); if (alive && typeof d?.s25Liberado === 'boolean') { setS25Liberado(d.s25Liberado); if (d.s25Liberado === false) setAiEngine((atual) => (atual === 's25' ? 'seedance' : atual)) } }).catch(() => {}) // KINEO-DURACOES-CURTAS-2026-09-29: + curtas · KINEO-S25-ABRE-2026-10-06: + s25Liberado (quem não paga não fica com o 2.5 escolhido pela URL)
     return () => { alive = false }
   }, [])
 
@@ -15327,6 +15331,8 @@ export default function GenerateClient({
             freeAiUsed={freeAiUsed}
             aiEngine={aiEngine}
             s25Ok={s25Ok}
+            s25Liberado={s25Liberado} // KINEO-S25-ABRE-2026-10-06
+            onUpgradeS25={() => openOutOfCreditsModal('studio')} // KINEO-S25-ABRE-2026-10-06: a caixa de planos (os 3 planos pagos abrem o 2.5)
             seedance15Ok={seedance15Ok}
             curtasOk={curtasOk} // KINEO-DURACOES-CURTAS-2026-09-29
             kineo1Shown={kineo1Shown}
@@ -21129,6 +21135,8 @@ function ModeSelector({
   freeAiUsed,
   aiEngine,
   s25Ok,
+  s25Liberado = null, // KINEO-S25-ABRE-2026-10-06
+  onUpgradeS25, // KINEO-S25-ABRE-2026-10-06
   seedance15Ok,
   curtasOk = false, // KINEO-DURACOES-CURTAS-2026-09-29
   kineo1Shown = true,
@@ -21152,6 +21160,10 @@ function ModeSelector({
   // KINEO-HOLLYWOOD-2026-07-09 — 'hollywood' added.
   aiEngine: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25'
   s25Ok: boolean
+  /** KINEO-S25-ABRE-2026-10-06 — a conta pode USAR o 2.5 (flag do servidor). Diferente de true = chip trancado: selo + upgrade. */
+  s25Liberado?: boolean | null
+  /** KINEO-S25-ABRE-2026-10-06 — o caminho de upgrade do chip trancado (a caixa de planos). */
+  onUpgradeS25?: () => void
   // KINEO-SEEDANCE-15S-2026-09-29 — o resgate por saldo oferece o 15 s do Seedance só com o interruptor (espelho da rota).
   seedance15Ok?: boolean
   /** KINEO-DURACOES-CURTAS-2026-09-29 — o resgate por saldo oferece as curtas dos outros motores só com DURACOES_CURTAS_PUBLIC (espelho da rota). */
@@ -21175,6 +21187,14 @@ function ModeSelector({
   setDuration?: (d: Duration) => void
   track?: (name: string, meta?: Record<string, unknown>) => void
 }) {
+  // KINEO-S25-ABRE-2026-10-06 — o denominador do selo do 2.5 trancado nesta tela: uma vez por montagem, só com a flag do
+  // servidor decidida (false = não paga). O clique (S25_PAID_CLICK_EVENT) vira taxa por pessoa exposta.
+  const s25SeloVistoRef = useRef(false)
+  useEffect(() => {
+    if (!s25Ok || s25Liberado !== false || s25SeloVistoRef.current || enginePaused('s25')) return
+    s25SeloVistoRef.current = true
+    track?.(S25_PAID_SHOWN_EVENT, { surface: 'studio_create' })
+  }, [s25Ok, s25Liberado]) // eslint-disable-line react-hooks/exhaustive-deps
   const fastFeatures = ['Smart stock footage (matched per scene)', 'Natural AI voice', 'Usually ready in 3–7 minutes']
   const aiFeatures = ['Every scene generated by AI', 'Great-quality AI visuals (Seedance)', 'Cinematic feel']
   // KINEO-TSC-2026-07-26 — o bloco do Cinematic está escondido atrás de
@@ -21394,6 +21414,8 @@ function ModeSelector({
               // (KINEO-CUSTO-VISIVEL): quem não alcança vê ANTES de clicar.
               const naoCabe = cinematicUnlocked && !cabeNoSaldo(m.cr, credits)
               const pausa = enginePaused(m.key) // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
+              // KINEO-S25-ABRE-2026-10-06 — o 2.5 para quem não paga: selo + caixa de planos, nunca escolhe o motor.
+              const trancadoS25 = !pausa && m.key === 's25' && s25Liberado !== true
               return (
                 <button
                   key={m.key}
@@ -21401,16 +21423,16 @@ function ModeSelector({
                   disabled={Boolean(pausa)}
                   aria-disabled={Boolean(pausa)}
                   title={pausa ? pausa.message : undefined}
-                  onClick={() => { if (cinematicUnlocked) { setMode('cinematic_ai'); setAiEngine(m.key) } else { onUpgrade() } }}
+                  onClick={() => { if (trancadoS25) { track?.(S25_PAID_CLICK_EVENT, { surface: 'studio_create' }); (onUpgradeS25 ?? onUpgrade)(); return } if (cinematicUnlocked) { setMode('cinematic_ai'); setAiEngine(m.key) } else { onUpgrade() } }}
                   className="flex items-center justify-between rounded-lg px-3 py-2 transition-all"
                   style={{ background: active ? 'rgba(41,151,255,.18)' : 'rgba(255,255,255,.04)', border: active ? '1.5px solid rgba(41,151,255,.6)' : '1.5px solid var(--border)', cursor: pausa ? 'not-allowed' : 'pointer', opacity: naoCabe && !active ? 0.6 : 1, filter: pausa ? 'grayscale(1) opacity(.55)' : undefined }}
                 >
                   <span className="text-left">
-                    <span className="block text-xs font-bold" style={{ color: 'var(--text)' }}>{m.label}{pausa ? ' · Maintenance' : ''}</span>
-                    <span className="block text-[10px]" style={{ color: 'var(--muted)' }}>{pausa ? `Temporarily paused · use ${pausa.alternative.label} meanwhile` : m.sub}</span>
+                    <span className="block text-xs font-bold" style={{ color: 'var(--text)' }}>{m.label}{pausa ? ' · Maintenance' : ''}{trancadoS25 && <> · <UiLabel>{S25_PAID_BADGE}</UiLabel></>}</span>
+                    <span className="block text-[10px]" style={{ color: trancadoS25 ? '#7cc0ff' : 'var(--muted)' }}>{pausa ? `Temporarily paused · use ${pausa.alternative.label} meanwhile` : trancadoS25 ? <UiLabel>{S25_PAID_HINT}</UiLabel> : m.sub}</span>
                   </span>
                   <span className="text-[11px] font-black px-2 py-0.5 rounded-full whitespace-nowrap" style={{ background: naoCabe ? 'rgba(255,180,84,.14)' : 'rgba(41,151,255,.18)', color: naoCabe ? '#ffb454' : '#7cc0ff', border: `1px solid rgba(${naoCabe ? '255,180,84' : '41,151,255'},.3)` }}>
-                    {!cinematicUnlocked
+                    {trancadoS25 ? `🔒 ${m.cr} cr` : !cinematicUnlocked
                       ? (trialActive ? '🔒 Studio' : '🔒')
                       /* sprint-v1v4 #13 — `+N` é a frase mais curta possível de
                          "faltam N créditos". O chip continua clicável: escolher
