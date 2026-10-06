@@ -18,7 +18,7 @@
 //
 // MÓDULO PURO: só imports RELATIVOS de módulos puros — o guardião scripts/test-motores-geo-2026-10-06.mjs o executa
 // isolado, sem rede, e prova cada número contra a função que cobra.
-import { isClipEngineKey, type ClipEngineKey } from '../clips/clipCatalog'
+import { isClipEngineKey, offeredSecondsFor, type ClipEngineKey } from '../clips/clipCatalog'
 import { CLIP_COSTS, clipCreditCost } from '../clips/clipPricing'
 import { MARKET_QUOTES, type MarketQuote } from '../clips/clipPriceVsMarket'
 import { creditCostForDuration, type Quality } from '../credits/engineCost'
@@ -212,8 +212,10 @@ const PROFILES: Record<ClipEngineKey, EngineProfile> = {
 /**
  * KINEO-S25-ABRE-2026-10-06 — quem pode usar o motor e se o clipe avulso dele está à venda. O padrão (OPEN_ACCESS) é o de
  * todo motor até 06/10 e deixa o texto byte a byte igual; o Seedance 2.5 volta como motor PAGO EXTRA (o servidor recusa o
- * trial e a conta grátis — lib/s25Access.ts) e sem clipe avulso para o público (s25ClipVisible): a página não pode dizer
- * "New accounts start with N free credits" como se o trial o abrisse, nem anunciar preço de um clipe que não se vende.
+ * trial e a conta grátis — lib/s25Access.ts) e, com o clipe dele desligado, sem clipe avulso para o público: a página não pode
+ * dizer "New accounts start with N free credits" como se o trial o abrisse, nem anunciar preço de um clipe que não se vende.
+ * KINEO-S25-CLIPES-2026-10-06 — quem decide clipOnSale do 2.5 é o interruptor único do clipe (lib/clips/clipLaunch.ts
+ * CLIP_S25_PUBLIC, lido em lib/growth/enginePageCatalog.ts accessFor); este módulo segue sem ler interruptor nenhum.
  */
 export interface CitationAccess {
   /** Só plano pago usa o motor (o trial e a conta grátis, não). */
@@ -236,6 +238,11 @@ export interface EngineCitation {
   rows: { clip: CitationPriceRow | null; film35: CitationPriceRow; film60: CitationPriceRow }
   /** Só plano pago usa o motor (KINEO-S25-ABRE-2026-10-06). */
   paidPlansOnly: boolean
+  /**
+   * KINEO-S25-CLIPES-2026-10-06 — "<motor> clips from N credits (paid plans)": só para motor de plano pago COM clipe à venda
+   * (o Seedance 2.5 com o interruptor do clipe ligado); N = o clipe mais barato que o catálogo oferece. null nos outros casos.
+   */
+  clipFromLine: string | null
   smallestPlanFor60: CitationPlan | null
   direct: DirectRoute[]
   directNote: EngineProfile['directNote'] | null
@@ -320,6 +327,12 @@ export function buildEngineCitation(input: {
   // todo motor até 06/10 sai byte a byte igual.
   const pago = access.paidPlansOnly ? ', on any paid plan' : ''
   const clipeAVenda = access.clipOnSale ? clip : null
+  // KINEO-S25-CLIPES-2026-10-06 — motor de plano pago com clipe à venda: a frase curta que a página e o llms.txt citam. N = o
+  // clipe mais barato do catálogo (clipCreditCost em cada duração oferecida — o número que a rota /api/clips cobra), nunca
+  // digitado. Motor aberto ao trial: null, e o texto dele segue byte a byte igual.
+  const clipFromLine = clipeAVenda && access.paidPlansOnly
+    ? `${name} clips from ${Math.min(...offeredSecondsFor(key).map((s) => clipCreditCost(key, s, false)))} credits (paid plans)`
+    : null
   const answerLead = clipeAVenda
     ? `You can use ${name} online in Kineo Studio${profile.modelLine}${pago}: a ${clip.seconds}-second ${name} clip costs ${clip.credits} credits ` +
       `(about ${usd(clip.usdCents)}), and a finished 60-second ${name} video with voice, captions and music costs ${film60.credits} credits ` +
@@ -357,13 +370,14 @@ export function buildEngineCitation(input: {
     plans,
     rows: { clip: clipeAVenda, film35, film60 },
     paidPlansOnly: access.paidPlansOnly,
+    clipFromLine,
     smallestPlanFor60,
     direct,
     directNote: profile.directNote ?? null,
     directCheckedLabel,
     answerLead,
     planLine,
-    accessNote: access.paidPlansOnly ? `${name} is on paid plans — the free trial does not include it. ${smallestMonthlySentence}` : `${trialSentence} ${smallestMonthlySentence}`,
+    accessNote: access.paidPlansOnly ? `${name} is on paid plans — the free trial does not include it. ${clipFromLine ? `${clipFromLine}. ` : ''}${smallestMonthlySentence}` : `${trialSentence} ${smallestMonthlySentence}`,
     turnaround: `Usually ${minutes} for a narrated video — it varies with length and provider queues`,
     howStep3: `A vertical 9:16 MP4, usually ${minutes} later, ready for YouTube Shorts, TikTok and Reels.`,
     costsNote: `Credit costs read from Kineo’s single pricing source (${monthYear(ENGINE_GEO_REVIEWED_ISO)}). Engines and costs may change.`,

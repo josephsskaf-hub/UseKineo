@@ -14,8 +14,10 @@
 //   6. selo do motor certo: rótulo "Seedance 2.5", endpoint = o do filme (lib/hollywood/router.ts), 480p sem áudio;
 //   7. tela: card trancado com selo e link dos planos, sem preço, nunca escolhe o motor; 402 engine_paid → "ver planos";
 //   8. mutantes (todos em memória — nenhum arquivo é tocado).
-// O motor está PAUSADO na main de 06/10 (a despausa é da pista do filme, codex/s25-abre-0610); a prova do mundo despausado
-// tira o 's25' de PAUSED_ENGINE_KEYS só em memória e confere que a troca aplicou.
+// A pausa do 2.5 é da pista do filme (codex/s25-abre-0610 despausou): os 4 mundos (ligado/desligado × pausado/despausado)
+// põem ou tiram o 's25' de PAUSED_ENGINE_KEYS só em memória — valha o que valer no arquivo — e conferem que a troca aplicou.
+// Uma régua só para o clipe: lib/clips/clipLaunch.ts CLIP_S25_PUBLIC (a trava s25ClipVisible do s25-abre virou este
+// interruptor); quem paga = lib/s25Access.ts s25AccessFor, a MESMA função do filme.
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -68,19 +70,27 @@ function setSwitch(text, on) {
   if (!re.test(text)) throw new Error('âncora CLIP_S25_PUBLIC sumiu de lib/clips/clipLaunch.ts')
   return text.replace(re, `export const CLIP_S25_PUBLIC = ${on}`)
 }
-function unpauseS25(text) {
+/** Pausa (ou despausa) o 2.5 em memória, valha o que valer no arquivo (a main de 06/10 o pausava; o s25-abre o despausa). */
+function setPause(text, paused) {
   const re = /(export const PAUSED_ENGINE_KEYS: readonly PausedEngineKey\[\] = \[)([^\]]*)(\])/
   const m = re.exec(text)
   if (!m) throw new Error('âncora PAUSED_ENGINE_KEYS sumiu de lib/engineLaunch.ts')
-  const list = m[2].split(',').map((s) => s.trim()).filter((s) => s && s !== "'s25'")
-  return text.replace(re, (_all, a, _b, c) => a + list.join(', ') + c)
+  const list = m[2].split(',').map((s) => s.trim()).filter((s) => s && !/^'s25'/.test(s))
+  if (paused) list.push("'s25' as PausedEngineKey")
+  let out = text.replace(re, (_all, a, _b, c) => a + list.join(', ') + c)
+  if (paused && !/^\s*s25: \{ since:/m.test(out)) {
+    const head = 'export const ENGINE_PAUSE: Record<PausedEngineKey, EnginePause> = {\n'
+    if (!out.includes(head)) throw new Error('âncora ENGINE_PAUSE sumiu de lib/engineLaunch.ts')
+    out = out.replace(head, head + "  s25: { since: '2026-09-15', label: 'Seedance 2.5', alternative: { key: 'kling', label: 'Kling 2.5' }, message: 'paused (guardião)' },\n")
+  }
+  return out
 }
 /** Um mundo = um carregador novo (cache próprio) com o interruptor, a pausa e o mutante pedidos. */
 function world({ on, unpaused, over = {} }) {
   const transform = (rel, text) => {
     let t = over[rel] ? over[rel](text) : text
     if (rel === LAUNCH) t = setSwitch(t, on)
-    if (rel === ENGINE_LAUNCH && unpaused) t = unpauseS25(t)
+    if (rel === ENGINE_LAUNCH) t = setPause(t, !unpaused)
     return t
   }
   const load = createOfflineLoader({ mocks: MOCKS, source: transform, env: { NEXT_PUBLIC_SUPABASE_URL: SUPA } })
@@ -150,10 +160,13 @@ async function problems(over = {}) {
     onPaused: world({ on: true, unpaused: false, over }),
     offPaused: world({ on: false, unpaused: false, over }),
   }
-  // A troca em memória aplicou? (sem isto, um mundo "despausado" que continua pausado aprovaria tudo calado)
-  if (W.onFree.engineLaunch.enginePaused('s25') !== null) p.push('mundo despausado continua com o 2.5 pausado (transformação não aplicou)')
-  if (W.onPaused.engineLaunch.enginePaused('s25') === null && /'s25'/.test(read(ENGINE_LAUNCH).match(/PAUSED_ENGINE_KEYS: readonly PausedEngineKey\[\] = \[[^\]]*\]/)?.[0] ?? '')) p.push('mundo pausado perdeu a pausa')
+  // As trocas em memória aplicaram? (sem isto, um mundo "despausado" que continua pausado aprovaria tudo calado)
+  for (const [name, w, paused] of [['ligado', W.onFree, false], ['desligado', W.offFree, false], ['ligado+pausado', W.onPaused, true], ['desligado+pausado', W.offPaused, true]]) {
+    if ((w.engineLaunch.enginePaused('s25') !== null) !== paused) p.push(`mundo ${name}: a pausa do 2.5 em memória não aplicou`)
+    if (w.engineLaunch.enginePaused('omni') === null) p.push(`mundo ${name}: o Omni saiu da pausa (a transformação mexeu no que não devia)`)
+  }
   if (W.onFree.launch.CLIP_S25_PUBLIC !== true || W.offFree.launch.CLIP_S25_PUBLIC !== false) p.push('interruptor em memória não aplicou')
+  if (typeof W.onFree.engineLaunch.s25ClipVisible === 'function') p.push('2ª régua do clipe do 2.5 em lib/engineLaunch.ts (o interruptor é o CLIP_S25_PUBLIC)')
 
   // ─── 1/2/3. Quem vê e quem usa ─────────────────────────────────────────────
   for (const [name, account] of Object.entries(ACCOUNTS)) {
@@ -311,7 +324,7 @@ async function problems(over = {}) {
       },
       source: (rel, raw) => {
         const text = over[rel] ? over[rel](raw) : raw
-        return rel === LAUNCH ? setSwitch(text, w.launch.CLIP_S25_PUBLIC) : rel === ENGINE_LAUNCH && w.engineLaunch.enginePaused('s25') === null ? unpauseS25(text) : text
+        return rel === LAUNCH ? setSwitch(text, w.launch.CLIP_S25_PUBLIC) : rel === ENGINE_LAUNCH ? setPause(text, w.engineLaunch.enginePaused('s25') !== null) : text
       },
       env: { NEXT_PUBLIC_SUPABASE_URL: SUPA },
     })(ROUTE)
@@ -348,7 +361,8 @@ ok(base.length === 0, 'interruptor, portão de pagante, pausa, preço decidido, 
 {
   const w = world({ on: false, unpaused: false })
   const committed = /^export const CLIP_S25_PUBLIC = (true|false)\b/m.exec(read(LAUNCH))?.[1]
-  console.log(`  ·   interruptor no código: CLIP_S25_PUBLIC = ${committed} · 2.5 ${w.engineLaunch.enginePaused('s25') ? 'PAUSADO' : 'ativo'} em lib/engineLaunch.ts`)
+  const pausedInFile = /PAUSED_ENGINE_KEYS: readonly PausedEngineKey\[\] = \[[^\]]*'s25'/.test(read(ENGINE_LAUNCH))
+  console.log(`  ·   no código: CLIP_S25_PUBLIC = ${committed} · 2.5 ${pausedInFile ? 'PAUSADO' : 'ativo (fora da pausa)'} em lib/engineLaunch.ts`)
   const { price, market, cat } = w
   for (const s of cat.offeredSecondsFor('s25')) {
     const cr = price.clipCreditCost('s25', s)
@@ -364,9 +378,12 @@ const swap = (from, to) => (text) => {
 }
 const MUTANTS = [
   ['desligado mas o card aparece para todo mundo', { [LAUNCH]: swap('return CLIP_S25_PUBLIC || isInternalEmail(email)', 'return true') }],
-  ['engineAccessFor sem os fatos do 2.5', { [SERVER]: swap("...(engine === 's25' ? clipS25Facts(account) : {}),", '') }],
-  ['pagante largo (plano ≠ free: cortesia e ilegível passam)', { [SERVER]: swap('return isDryRunAccount(account.email) || isPayingPlan(account.plan)', "return isDryRunAccount(account.email) || account.plan !== 'free'") }],
-  ['casa larga (isInternalEmail no lugar do validador de $0)', { [SERVER]: swap('return isDryRunAccount(account.email) || isPayingPlan(account.plan)', "return clipS25Visible(account.email) && account.email !== null || isPayingPlan(account.plan)") }],
+  ['engineAccessFor sem o portão de pagante do 2.5', { [SERVER]: swap("...(engine === 's25' ? { paidAllowed: clipS25Paying(account) } : {}),", '') }],
+  ['launchVisible do 2.5 sem o interruptor único', { [SERVER]: swap("launchVisible: engine !== 's25' || clipS25Visible(account.email),", 'launchVisible: true,') }],
+  ['pagante do clipe ≠ portão do filme (plano ≠ free)', { [SERVER]: swap('return s25AccessFor({ email: account.email, plan: account.plan }).allowed', "return account.plan !== 'free'") }],
+  ['portão do filme largo (*_trial passa)', { 'lib/s25Access.ts': swap("  if (isPayingPlan(conta.plan)) return { allowed: true, reason: 'paying_plan' }", "  if (isPayingPlan(conta.plan) || isTrialPlan(conta.plan)) return { allowed: true, reason: 'paying_plan' }") }],
+  ['casa larga (test% no lugar da lista exata)', { 'lib/s25Access.ts': swap("  if (isDryRunAccount(conta.email)) return { allowed: true, reason: 'house' }", "  if (isDryRunAccount(conta.email) || /^test/.test(String(conta.email))) return { allowed: true, reason: 'house' }") }],
+  ['2ª régua do clipe volta ao engineLaunch', { [ENGINE_LAUNCH]: swap('export function s25Visible(email?: string | null): boolean {', 'export function s25ClipVisible(email?: string | null): boolean { return isInternalEmail(email) }\nexport function s25Visible(email?: string | null): boolean {') }],
   ['portão ignora paidAllowed', { [CATALOG]: swap("if (facts.paidAllowed === false) return { ok: false, reason: 'paid', status: 402 }", '') }],
   ['trancado vira escondido', { [CATALOG]: swap("if (facts.paidAllowed === false) return { ok: false, reason: 'paid', status: 402 }", "if (facts.paidAllowed === false) return { ok: false, reason: 'hidden', status: 404 }") }],
   ['card trancado também para motor escondido', { [SERVER]: swap("if (verdict.ok || verdict.reason !== 'paid') return []", "if (verdict.ok || verdict.reason === 'paused') return []") }],

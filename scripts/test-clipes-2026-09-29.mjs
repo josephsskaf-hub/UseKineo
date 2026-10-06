@@ -380,7 +380,11 @@ ok(server.includes("storage.from(CLIPS_BUCKET).upload(path, buf, { contentType: 
 ok(server.includes("video_url: row.status === 'done' ? row.video_url : null"), 'resposta pública nunca expõe URL antes de pronto')
 // REANCORADO KINEO-S25-ABRE-2026-10-06: o filme do Seedance 2.5 abriu (só plano pago) e o CLIPE dele não — a régua do clipe
 // virou s25ClipVisible (só a casa, como antes com S25_PUBLIC=false). Sem isso, S25_PUBLIC=true abriria o clipe para toda conta.
-ok(server.includes('decideEngineGate(') && server.includes('enginePaused(engine)') && server.includes("launchVisible: engine !== 's25' || s25ClipVisible(account.email),"), 'visibilidade lê os interruptores da casa')
+// REANCORADO KINEO-S25-CLIPES-2026-10-06: a trava "só da casa" virou o interruptor ÚNICO do clipe do 2.5 (lib/clips/clipLaunch.ts
+// CLIP_S25_PUBLIC → clipS25Visible) + o portão de pagante do filme do 2.5 (clipS25Paying → lib/s25Access.ts). Mais estrito: exige
+// também o portão e proíbe a 2ª régua. A prova EXECUTADA (recusa antes do débito, card trancado) é scripts/test-s25-clipes-2026-10-06.mjs.
+ok(server.includes('decideEngineGate(') && server.includes('enginePaused(engine)') && server.includes("launchVisible: engine !== 's25' || clipS25Visible(account.email),")
+  && server.includes("...(engine === 's25' ? { paidAllowed: clipS25Paying(account) } : {}),") && !server.includes('s25ClipVisible('), 'visibilidade lê os interruptores da casa (clipe do 2.5: interruptor único + portão de pagante)')
 // REANCORADO 29/09 (KINEO-ESTORNO-INDEVIDO-2026-09-29): as exclusões da varredura genérica saíram dos .not() soltos de
 // refund.ts para a lista GENERIC_SWEEP_EXCLUDED_PATTERNS (lib/credits/sweepScope.ts), que refund.ts aplica em laço. A
 // intenção é a mesma: clips-% fora, clip-% dentro. O comportamento executado está em scripts/test-estorno-indevido-2026-09-29.mjs.

@@ -37,7 +37,11 @@ function problems(replacements = {}) {
   const listed = cat.CLIP_ENGINE_ORDER.filter((e) => !launch.enginePaused(e) && (e !== 's25' || launch.S25_PUBLIC))
   // REANCORADO KINEO-S25-ABRE-2026-10-06: o FILME do Seedance 2.5 está à venda (planos pagos) e o CLIPE dele não (segue só da
   // casa, s25ClipVisible) — a tabela de clipes do visitante segue a régua do clipe; a de filmes, a do motor.
-  const clipsListed = listed.filter((e) => e !== 's25' || launch.s25ClipVisible(null))
+  // REANCORADO KINEO-S25-CLIPES-2026-10-06: a régua do clipe do 2.5 virou o interruptor ÚNICO dele (lib/clips/clipLaunch.ts
+  // clipS25Visible / CLIP_S25_PUBLIC), no lugar do s25ClipVisible de lib/engineLaunch.ts.
+  const clipLaunch = load('lib/clips/clipLaunch.ts')
+  if (typeof launch.s25ClipVisible === 'function') p.push('2ª régua do clipe do 2.5 voltou a lib/engineLaunch.ts')
+  const clipsListed = listed.filter((e) => e !== 's25' || clipLaunch.clipS25Visible(null))
   if (JSON.stringify(m.clips.map((r) => r.engine)) !== JSON.stringify(clipsListed)) p.push(`motores dos clipes ${m.clips.map((r) => r.engine)} ≠ públicos ${clipsListed}`)
   if (JSON.stringify(m.films.map((r) => r.engine)) !== JSON.stringify(listed)) p.push('motores dos filmes ≠ públicos')
   const usdCents = (credits) => Math.round(credits * rate * 100)
@@ -108,7 +112,13 @@ ok(JSON.stringify(row(real.m.clips, 'veo').cells.map((c) => c.seconds)) === '[6,
 ok(row(real.m.clips, 'kling').cells.every((c) => c && [5, 10].includes(c.seconds)), 'Kling 2.5: 5 s e 10 s')
 // REANCORADO KINEO-S25-ABRE-2026-10-06: o Omni segue pausado (fora das duas tabelas); o Seedance 2.5 voltou só como FILME de plano
 // pago — o clipe dele não está à venda para o público.
-ok(!real.m.clips.some((r) => r.engine === 'omni' || r.engine === 's25') && !real.m.films.some((r) => r.engine === 'omni') && real.m.films.some((r) => r.engine === 's25'), 'Omni (pausado) fora das tabelas; Seedance 2.5 só na de filmes (o clipe dele não está à venda)')
+// REANCORADO KINEO-S25-CLIPES-2026-10-06: a linha do CLIPE do 2.5 segue o interruptor único do clipe (CLIP_S25_PUBLIC) — ligado,
+// entra com o preço decidido pelo fundador; desligado, fora (como no s25-abre).
+{
+  const clipOn = /^export const CLIP_S25_PUBLIC = true\b/m.test(read('lib/clips/clipLaunch.ts'))
+  ok(!real.m.clips.some((r) => r.engine === 'omni') && real.m.clips.some((r) => r.engine === 's25') === clipOn && !real.m.films.some((r) => r.engine === 'omni') && real.m.films.some((r) => r.engine === 's25'),
+    `Omni (pausado) fora das tabelas; Seedance 2.5 na de filmes e ${clipOn ? 'na' : 'fora da'} de clipes (CLIP_S25_PUBLIC = ${clipOn})`)
+}
 
 console.log('3. acompanha as fontes')
 const s35 = problems({ 'lib/credits/engineCost.ts': read('lib/credits/engineCost.ts').replace(/(case 'cinematic_ai':[\s\S]*?)return 25\n/, '$1return 35\n') })

@@ -102,7 +102,7 @@ export function EnginePriceCard({ geo, ctaHref, campaign }: { geo: EngineCitatio
           <li>
             <strong>Kineo</strong>
             {geo.rows.clip
-              ? ` — ${geo.rows.clip.credits} credits for a ${geo.rows.clip.seconds}-second clip (about ${usd(geo.rows.clip.usdCents)}), or ${geo.rows.film60.credits} credits for a finished 60-second video with voice, captions and music.`
+              ? ` — ${geo.rows.clip.credits} credits for a ${geo.rows.clip.seconds}-second clip (about ${usd(geo.rows.clip.usdCents)}), or ${geo.rows.film60.credits} credits for a finished 60-second video with voice, captions and music${geo.paidPlansOnly ? ', on any paid plan' : '' /* KINEO-S25-CLIPES-2026-10-06: clipe do 2.5 à venda, só plano pago */}.`
               : ` — no raw ${geo.name} clips: ${geo.rows.film35.credits} credits for a finished 35-second video (about ${usd(geo.rows.film35.usdCents)}) or ${geo.rows.film60.credits} credits for 60 seconds, with voice, captions and music${geo.paidPlansOnly ? ', on any paid plan' : ''}.`}
           </li>
           {geo.direct.map((r) => (

@@ -13,10 +13,13 @@
 //   (7) página /ai-video-generator/seedance-2-5 RENDERIZADA: números da fonte (TIER_PRICES, TIER_CREDITS, ANNUAL_PRICES,
 //       custo do 2.5 e do Seedance 1.5), a frase da Pika só com a data da consulta, nenhuma resolução, nenhum "Enhance
 //       incluso", nenhum "Start free"; o [engine] não gera mais o slug; a camada citável da TAREFA 12 (resposta logo
-//       depois do H1, tabela 35/60 s por plano, CTA seo_engine_seedance-2-5) na versão "só plano pago, sem clipe avulso";
+//       depois do H1, tabela 35/60 s por plano, CTA seo_engine_seedance-2-5) na versão "só plano pago" — e, desde
+//       KINEO-S25-CLIPES-2026-10-06, nos DOIS estados do interruptor do clipe: desligado, sem clipe avulso (como antes);
+//       ligado, o clipe com o preço da fonte e "Seedance 2.5 clips from N credits (paid plans)";
 //       no cenário "2.5 pausado", noindex e sem preço citável; llms.txt com "paid plans only" e a voz da casa;
 //   (8) Enhance: o automático do filme pronto (conta da casa) não roda no 2.5; nenhum upscale/Topaz na estrada s25;
-//   (9) o clipe do 2.5 segue só da casa; (10) as 3 frases novas nas 16 línguas;
+//   (9) o clipe do 2.5 segue o interruptor ÚNICO dele (lib/clips/clipLaunch.ts CLIP_S25_PUBLIC — reancorado
+//       KINEO-S25-CLIPES-2026-10-06) + o portão de pagante deste filme; (10) as 3 frases novas nas 16 línguas;
 //  (11) mutantes: cada regra quebrada fica vermelha — e cada mutante prova que aplicou.
 // Estilo readFileSync + transpile (molde scripts/test-clipe-gratis-regiao-2026-10-05.mjs).
 import fs from 'node:fs'
@@ -249,16 +252,39 @@ async function problems(over = {}) {
   if (!src(NAVITEM).includes('{translateChip ? <UiLabel>{chip}</UiLabel> : chip}')) p.push('NavEngineItem não traduz o selo')
   if (L.S25_PAID_BADGE !== 'NEW · paid plans') p.push('selo do 2.5 mudou')
 
-  // (7) página do 2.5 RENDERIZADA, números recalculados aqui da fonte
-  try {
-    const pl = makeLoader(over, {
+  // REANCORADO KINEO-S25-CLIPES-2026-10-06 — o clipe do 2.5 à venda segue o interruptor ÚNICO dele (lib/clips/clipLaunch.ts
+  // CLIP_S25_PUBLIC; quem usa = o portão pago deste filme). As provas da página (7) e da camada citável rodam nos DOIS estados,
+  // sempre: o do arquivo (ou do mutante) e o oposto, em memória. Desligado = a versão "só plano pago, sem clipe avulso" de
+  // antes, intacta; ligado = o preço do clipe da fonte (clipCreditCost → o preço decidido), "on any paid plan" e a frase
+  // "Seedance 2.5 clips from N credits (paid plans)". Mais estrito que antes: os dois lados ficam presos.
+  const CLIP_LAUNCH = 'lib/clips/clipLaunch.ts'
+  const CLIP_SWITCH_RE = /^export const CLIP_S25_PUBLIC = (true|false)\b/m
+  const clipLaunchSrc = src(CLIP_LAUNCH)
+  const mundosDoClipe = []
+  if (!CLIP_SWITCH_RE.test(clipLaunchSrc)) p.push('âncora CLIP_S25_PUBLIC sumiu de lib/clips/clipLaunch.ts')
+  else {
+    const noArquivo = CLIP_SWITCH_RE.exec(clipLaunchSrc)[1] === 'true'
+    for (const ligado of [noArquivo, !noArquivo]) {
+      mundosDoClipe.push({ ligado, over: ligado === noArquivo ? over : { ...over, [CLIP_LAUNCH]: clipLaunchSrc.replace(CLIP_SWITCH_RE, `export const CLIP_S25_PUBLIC = ${ligado}`) } })
+    }
+  }
+
+  // (7) página do 2.5 RENDERIZADA, números recalculados aqui da fonte — nos dois estados do clipe
+  for (const mundo of mundosDoClipe) try {
+    const tag = mundo.ligado ? '[clipe ligado] ' : '[clipe desligado] '
+    const pl = makeLoader(mundo.over, {
       '@/components/Footer': { __esModule: true, default: () => null },
       '@/components/OrganicCtaLink': { __esModule: true, default: ({ children, href, source, placement, ...rest }) => React.createElement('a', { href, ...rest }, children) },
     })
+    if (pl('@/' + CLIP_LAUNCH).CLIP_S25_PUBLIC !== mundo.ligado) { p.push(`${tag}o interruptor em memória não aplicou`); continue }
     const page = pl('@/' + PAGE)
     const S = pl('@/' + PAGE_LIB)
     const html = renderToStaticMarkup(page.default())
     const meta = page.generateMetadata()
+    const clipPricing = pl('@/lib/clips/clipPricing')
+    const clipSec = pl('@/lib/pricingTwoProducts').clipSecondsForTarget('s25', 5)
+    const clipCr = clipPricing.clipCreditCost('s25', clipSec, false)
+    const clipMin = Math.min(...pl('@/lib/clips/clipCatalog').offeredSecondsFor('s25').map((s) => clipPricing.clipCreditCost('s25', s, false)))
     const fmt = (minor) => CP.formatCheckoutMoney('usd', Math.round(minor))
     const cr = (s) => cost.creditCostForDuration('cinematic_s25', true, s)
     const cr35 = cr(35)
@@ -279,18 +305,30 @@ async function problems(over = {}) {
       ['Enhance available with one click', 'Enhance como botão, nunca incluso'],
     ]
     const texto = html.replace(/&amp;/g, '&').replace(/&#x27;|&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    for (const [t, label] of esperados) if (!texto.includes(t)) p.push(`página sem ${label}: "${t}"`)
-    // KINEO-MOTORES-GEO-2026-10-06 (TAREFA 12) na rota própria: a 1ª frase depois do H1 é a resposta citável, na versão
-    // "só plano pago, sem clipe avulso"; a tabela tem 35 e 60 s (nunca clipe) com quantos cabem em cada plano.
+    for (const [t, label] of esperados) if (!texto.includes(t)) p.push(`${tag}página sem ${label}: "${t}"`)
+    // KINEO-MOTORES-GEO-2026-10-06 (TAREFA 12) na rota própria: a 1ª frase depois do H1 é a resposta citável "só plano pago";
+    // a tabela tem 35 e 60 s com quantos cabem em cada plano. REANCORADO KINEO-S25-CLIPES-2026-10-06: com o clipe DESLIGADO,
+    // nenhum clipe (como antes); LIGADO, o clipe com o preço da fonte, "on any paid plan" e "clips from N credits (paid plans)".
     const depoisH1 = texto.slice(texto.indexOf('</h1>'))
     const primeiroP = depoisH1.match(/<p\b[^>]*>[\s\S]*?<\/p>/)?.[0] ?? ''
     const usdC = (credits) => fmt((credits * CP.TIER_PRICES.basic.usd) / CP.TIER_CREDITS.basic)
-    if (!primeiroP.startsWith('<p data-kineo="engine-answer"') || !primeiroP.includes('You can use Seedance 2.5 online in Kineo Studio') || !primeiroP.includes(', on any paid plan:')) p.push('1ª frase depois do H1 não é a resposta citável "só plano pago"')
-    else if (!primeiroP.includes(`costs ${cr35} credits for 35 seconds (about ${usdC(cr35)}) or ${cr60} credits for 60 seconds (about ${usdC(cr60)})`)) p.push('1ª frase com preço ≠ fonte')
-    if (/clip costs|-second clip<|-second clip ·/.test(texto)) p.push('página anuncia clipe avulso do 2.5 (não se vende)')
-    if (!texto.includes('Seedance 2.5 is on paid plans — the free trial does not include it.')) p.push('página sem a nota "on paid plans"')
-    if (/New accounts[^.<]* start with \d+ free credits/.test(texto)) p.push('página oferece o trial como porta do 2.5')
     const card = texto.match(/<section data-kineo="engine-price-card"[\s\S]*?<\/section>/)?.[0] ?? ''
+    const fraseDe = `Seedance 2.5 clips from ${clipMin} credits (paid plans)`
+    if (!primeiroP.startsWith('<p data-kineo="engine-answer"') || !primeiroP.includes('You can use Seedance 2.5 online in Kineo Studio') || !primeiroP.includes(', on any paid plan:')) p.push(`${tag}1ª frase depois do H1 não é a resposta citável "só plano pago"`)
+    else if (mundo.ligado) {
+      if (!primeiroP.includes(`a ${clipSec}-second Seedance 2.5 clip costs ${clipCr} credits (about ${usdC(clipCr)})`) || !primeiroP.includes(`video with voice, captions and music costs ${cr60} credits (about ${usdC(cr60)})`)) p.push(`${tag}1ª frase com preço do clipe/filme ≠ fonte`)
+    } else if (!primeiroP.includes(`costs ${cr35} credits for 35 seconds (about ${usdC(cr35)}) or ${cr60} credits for 60 seconds (about ${usdC(cr60)})`)) p.push(`${tag}1ª frase com preço ≠ fonte`)
+    if (mundo.ligado) {
+      const linhaClipe = card.match(new RegExp(`${clipSec}-second clip[\\s\\S]*?</tr>`))?.[0] ?? ''
+      const contagensClipe = [CP.TIER_CREDITS.starter, CP.TIER_CREDITS.basic, CP.TIER_CREDITS.pro].map((k) => (Math.floor(k / clipCr) > 0 ? `${Math.floor(k / clipCr)} per month` : '—'))
+      if (!linhaClipe.includes(`${clipCr} cr`) || !linhaClipe.includes(usdC(clipCr)) || !contagensClipe.every((n) => linhaClipe.includes(`>${n}<`))) p.push(`${tag}tabela sem a linha do clipe de ${clipSec} s com o preço da fonte`)
+      if (!texto.includes(`${fraseDe}.`)) p.push(`${tag}página sem "${fraseDe}"`)
+      if (!texto.includes(`${clipCr} credits for a ${clipSec}-second clip (about ${usdC(clipCr)}), or ${cr60} credits for a finished 60-second video with voice, captions and music, on any paid plan.`)) p.push(`${tag}linha da Kineo no card sem o clipe "on any paid plan"`)
+    } else {
+      if (/clip costs|-second clip<|-second clip ·|clips from/.test(texto)) p.push(`${tag}página anuncia clipe avulso do 2.5 (não se vende)`)
+    }
+    if (!texto.includes('Seedance 2.5 is on paid plans — the free trial does not include it.')) p.push(`${tag}página sem a nota "on paid plans"`)
+    if (/New accounts[^.<]* start with \d+ free credits/.test(texto)) p.push(`${tag}página oferece o trial como porta do 2.5`)
     for (const s of [35, 60]) {
       const c = cr(s)
       const linha = card.match(new RegExp(`${s}-second video[\\s\\S]*?</tr>`))?.[0] ?? ''
@@ -322,7 +360,7 @@ async function problems(over = {}) {
       i = texto.indexOf(linha, i + linha.length)
     }
     if (!/paid plans/.test(meta.description) || !/not in the free trial/.test(meta.description) || !meta.description.includes(`${cr35} credits`)) p.push('metadata da página sem preço/plano pago honesto')
-  } catch (err) { p.push(`página do 2.5 não renderiza: ${err.message}`) }
+  } catch (err) { p.push(`[clipe ${mundo.ligado ? 'ligado' : 'desligado'}] página do 2.5 não renderiza: ${err.message}`) }
   // CENÁRIO "2.5 pausado" (KINEO-MOTORES-GEO-2026-10-06): a rota própria segue a régua do [engine] — sem camada citável,
   // aviso de manutenção e robots noindex. Aplicado aqui sobre a fonte (ou a do mutante) de lib/engineLaunch.ts.
   try {
@@ -346,28 +384,49 @@ async function problems(over = {}) {
     }
   } catch (err) { p.push(`cenário pausado não roda: ${err.message}`) }
   if (!src(ENGINE_PAGE).includes('return ENGINE_SLUGS.filter((engine) => engine !== S25_PAGE_SLUG).map((engine) => ({ engine }))')) p.push('[engine] ainda gera o slug do 2.5 (rota duplicada)')
-  try {
-    const cat = load('@/' + CATALOG)
-    const S25C = load('@/' + PAGE_LIB).s25PageCopy()
+  // REANCORADO KINEO-S25-CLIPES-2026-10-06 — a camada citável nos DOIS estados do interruptor do clipe (mundosDoClipe acima).
+  for (const mundo of mundosDoClipe) try {
+    const tag = mundo.ligado ? '[clipe ligado] ' : '[clipe desligado] '
+    const lw = makeLoader(mundo.over, STRIPE_MOCK)
+    const cat = lw('@/' + CATALOG)
+    const S25C = lw('@/' + PAGE_LIB).s25PageCopy()
+    const clipPricing = lw('@/lib/clips/clipPricing')
+    const clipMin = Math.min(...lw('@/lib/clips/clipCatalog').offeredSecondsFor('s25').map((s) => clipPricing.clipCreditCost('s25', s, false)))
     const e = cat.ENGINES['seedance-2-5']
-    if (!e || !cat.ENGINE_SLUGS.includes('seedance-2-5')) p.push('catálogo sem a página do 2.5')
-    else if (/1080|480p|Topaz|\$29 Studio|fits the \$29|Studio tier|longest in the catalog|\$49/.test([e.model, e.intro, e.bestFor, e.tradeoff, ...e.faq.flatMap((f) => [f.q, f.a])].join(' '))) p.push('catálogo do 2.5 ainda com as mentiras antigas')
+    if (!e || !cat.ENGINE_SLUGS.includes('seedance-2-5')) p.push(`${tag}catálogo sem a página do 2.5`)
+    else if (/1080|480p|Topaz|\$29 Studio|fits the \$29|Studio tier|longest in the catalog|\$49/.test([e.model, e.intro, e.bestFor, e.tradeoff, ...e.faq.flatMap((f) => [f.q, f.a])].join(' '))) p.push(`${tag}catálogo do 2.5 ainda com as mentiras antigas`)
     else {
       // FAQ = a entrada citável da TAREFA 12 (onde usar + quanto custa; é mais barato direto?) + o texto da sessão CEO
       const g = cat.ENGINE_GEO['seedance-2-5']
-      if (!g) p.push('catálogo sem a camada citável do 2.5 (ENGINE_GEO)')
+      if (!g) p.push(`${tag}catálogo sem a camada citável do 2.5 (ENGINE_GEO)`)
       else {
-        if (g.paidPlansOnly !== true || g.rows.clip !== null) p.push('camada citável do 2.5 vende clipe avulso ou esquece o "só plano pago"')
+        if (g.paidPlansOnly !== true) p.push(`${tag}camada citável do 2.5 esquece o "só plano pago"`)
+        if (mundo.ligado) {
+          // ligado: o clipe à venda com o preço da FONTE (clipCreditCost → preço decidido), "só plano pago" e a frase curta
+          const c = g.rows.clip
+          if (!c || c.credits !== clipPricing.clipCreditCost('s25', c.seconds, false)) p.push(`${tag}camada citável do 2.5 sem o clipe à venda ou com preço ≠ clipCreditCost`)
+          if (g.clipFromLine !== `Seedance 2.5 clips from ${clipMin} credits (paid plans)`) p.push(`${tag}camada citável sem "Seedance 2.5 clips from ${clipMin} credits (paid plans)" (veio ${g.clipFromLine})`)
+          if (!g.accessNote.startsWith(`Seedance 2.5 is on paid plans — the free trial does not include it. Seedance 2.5 clips from ${clipMin} credits (paid plans). `)) p.push(`${tag}nota de acesso sem a frase do clipe "(paid plans)"`)
+          if (c && (!g.faqWhereCost.a.includes('on any paid plan (the free trial does not include it)') || !g.faqWhereCost.a.includes(`a ${c.seconds}-second Seedance 2.5 clip costs ${c.credits} credits`))) p.push(`${tag}FAQ citável do 2.5 sem "só plano pago" ou sem o clipe à venda`)
+        } else {
+          // desligado: nenhum clipe, nenhuma frase curta (a versão "sem clipe avulso" de antes, intacta)
+          if (g.rows.clip !== null || g.clipFromLine !== null) p.push(`${tag}camada citável do 2.5 vende clipe avulso`)
+          if (!g.faqWhereCost.a.includes('on any paid plan (the free trial does not include it)') || /clip costs/.test(g.faqWhereCost.a)) p.push(`${tag}FAQ citável do 2.5 sem "só plano pago" ou com clipe avulso`)
+        }
         const faqEsperada = [g.faqWhereCost, ...(g.faqDirect ? [g.faqDirect] : []), ...S25C.faq]
-        if (e.intro !== S25C.lead || e.h1 !== S25C.h1 || JSON.stringify(e.faq) !== JSON.stringify(faqEsperada)) p.push('catálogo do 2.5 não lê o texto derivado (s25PageCopy + a entrada citável)')
-        if (!g.faqWhereCost.a.includes('on any paid plan (the free trial does not include it)') || /clip costs/.test(g.faqWhereCost.a)) p.push('FAQ citável do 2.5 sem "só plano pago" ou com clipe avulso')
+        if (e.intro !== S25C.lead || e.h1 !== S25C.h1 || JSON.stringify(e.faq) !== JSON.stringify(faqEsperada)) p.push(`${tag}catálogo do 2.5 não lê o texto derivado (s25PageCopy + a entrada citável)`)
       }
-      if (!cat.isIndexableEngineSlug('seedance-2-5') || !cat.INDEXABLE_ENGINE_SLUGS.includes('seedance-2-5')) p.push('página do 2.5 fora da lista indexável (sitemap/llms.txt)')
+      if (!cat.isIndexableEngineSlug('seedance-2-5') || !cat.INDEXABLE_ENGINE_SLUGS.includes('seedance-2-5')) p.push(`${tag}página do 2.5 fora da lista indexável (sitemap/llms.txt)`)
+      // os motores ABERTOS (todos menos o 2.5) não ganham a frase curta: o texto deles segue byte a byte igual
+      for (const [slug, geo] of Object.entries(cat.ENGINE_GEO)) if (slug !== 'seedance-2-5' && geo && geo.clipFromLine !== null) p.push(`${tag}${slug}: motor aberto ganhou "clips from … (paid plans)"`)
     }
-  } catch (err) { p.push(`catálogo não carrega: ${err.message}`) }
+  } catch (err) { p.push(`[clipe ${mundo.ligado ? 'ligado' : 'desligado'}] catálogo não carrega: ${err.message}`) }
   // llms.txt: a linha do 2.5 diz "só plano pago" e a voz é da casa (o modelo roda com generate_audio:false)
   const llms = src(LLMS)
   if (!llms.includes("const acesso = geo.paidPlansOnly ? 'paid plans only (not in the free trial); ' : ''")) p.push('llms.txt sem o "paid plans only" do motor pago')
+  // KINEO-S25-CLIPES-2026-10-06 — a novidade do motor pago cita o clipe à venda pela frase da camada citável (o comportamento
+  // executado, nos dois estados, está em scripts/test-motores-geo-2026-10-06.mjs).
+  if (!llms.includes("narrates the script.${geo.clipFromLine ? ` ${geo.clipFromLine}.` : ''")) p.push('llms.txt: a novidade do 2.5 não cita o clipe à venda (clipFromLine)')
   if (/built-in voice \([^)]*Seedance 2\.5/.test(llms) || !llms.includes('and Seedance 2.5 (Kineo narrates it; the model’s own audio is off)')) p.push('llms.txt diz que o 2.5 tem voz própria (a narração é da casa)')
   if (!src(MODELS).includes("what: 'ByteDance’s newest engine · Enhance available with one click · paid plans only'") || !src(MODELS).includes("{r.quality === 'cinematic_s25' ? 'Paid plans only'")) p.push('/models-pricing: linha do 2.5 sem a verdade (Enhance com um clique, só plano pago)')
 
@@ -380,12 +439,22 @@ async function problems(over = {}) {
   const enh = src(ENHANCE)
   if (/cinematic_s25|quality_mode/.test(semComentarios(enh)) || !enh.includes(".select('id,video_url,enhanced_url,enhance_request_id')")) p.push('o botão manual de Enhance deixou de valer para qualquer filme')
 
-  // (9) clipe do 2.5 só da casa — e o /pricing não o anuncia (o filme sim)
-  if (!L.s25ClipVisible(HOUSE) || L.s25ClipVisible(STRANGER) || L.s25ClipVisible(null)) p.push('clipe do 2.5 abriu para fora da casa')
-  if (!src(CLIPS).includes("launchVisible: engine !== 's25' || s25ClipVisible(account.email),")) p.push('/clips não usa a régua do clipe do 2.5')
-  try {
-    const tp = load('@/' + TWO_PRODUCTS).twoProductsModelForPage()
-    if (tp.clips.some((r) => r.engine === 's25')) p.push('/pricing anuncia CLIPE do 2.5 (que o público não pode comprar)')
+  // (9) REANCORADO KINEO-S25-CLIPES-2026-10-06 — o clipe do 2.5 tem UM interruptor (lib/clips/clipLaunch.ts CLIP_S25_PUBLIC, que
+  // substitui o s25ClipVisible daqui) e o portão de pagante DESTE filme (clipS25Paying → s25AccessFor). Desligado = só a casa
+  // (como era); ligado = todo mundo vê, só quem paga usa. A prova executada (recusa antes do débito, card trancado, preço
+  // decidido) mora em scripts/test-s25-clipes-2026-10-06.mjs; aqui fica a amarração com o filme e o /pricing.
+  let CL = null
+  try { CL = load('@/lib/clips/clipLaunch') } catch (err) { p.push(`interruptor do clipe não carrega: ${err.message}`) }
+  if ('s25ClipVisible' in L) p.push('voltou uma 2ª régua do clipe do 2.5 em lib/engineLaunch.ts (o interruptor é o CLIP_S25_PUBLIC)')
+  if (CL && (!CL.clipS25Visible(HOUSE) || CL.clipS25Visible(STRANGER) !== CL.CLIP_S25_PUBLIC || CL.clipS25Visible(null) !== CL.CLIP_S25_PUBLIC)) p.push('clipe do 2.5 fora do interruptor único (CLIP_S25_PUBLIC)')
+  const clipSrc = src(CLIPS)
+  if (!hasLine(clipSrc, "launchVisible: engine !== 's25' || clipS25Visible(account.email),")
+    || !hasLine(clipSrc, "...(engine === 's25' ? { paidAllowed: clipS25Paying(account) } : {}),")
+    || !hasLine(clipSrc, 'return s25AccessFor({ email: account.email, plan: account.plan }).allowed')) p.push('/clips não usa o interruptor único + o portão de pagante do filme do 2.5')
+  // /pricing nos dois estados do interruptor do clipe (o do arquivo e o oposto, em memória)
+  for (const mundo of mundosDoClipe) try {
+    const tp = makeLoader(mundo.over, STRIPE_MOCK)('@/' + TWO_PRODUCTS).twoProductsModelForPage()
+    if (tp.clips.some((r) => r.engine === 's25') !== mundo.ligado) p.push(`[clipe ${mundo.ligado ? 'ligado' : 'desligado'}] /pricing: a linha do CLIPE do 2.5 não segue o interruptor único do clipe`)
     if (!tp.films.some((r) => r.engine === 's25')) p.push('/pricing não mostra o FILME do 2.5 (S25_PUBLIC liga a linha por desenho)')
   } catch (err) { p.push(`tabelas do /pricing não carregam: ${err.message}`) }
 
@@ -432,23 +501,35 @@ const mutants = [
   ['M20 Enhance automático volta no 2.5', STATUS, "          quality !== 'cinematic_s25' && // KINEO-S25-ABRE-2026-10-06 — sem Enhance automático no 2.5\n", ''],
   ['M21 upscale por cena na estrada s25', ROUTE, '  if (model === S25_I2V_MODEL) {\n', "  if (model === S25_I2V_MODEL) {\n    void ['fal-ai/topaz/upscale/video']\n"],
   ['M22 preço do 2.5 mudou', COST, '      return 150\n    case \'pro\':', '      return 160\n    case \'pro\':'],
-  ['M23 clipe do 2.5 abre para todos', LAUNCH, 'export function s25ClipVisible(email?: string | null): boolean {\n  return isInternalEmail(email)', 'export function s25ClipVisible(email?: string | null): boolean {\n  return S25_PUBLIC || isInternalEmail(email)'],
+  // REANCORADOS KINEO-S25-CLIPES-2026-10-06: a régua do clipe saiu daqui para o interruptor único (lib/clips/clipLaunch.ts).
+  ['M23 clipe do 2.5 sem o portão de pagante', CLIPS, "    ...(engine === 's25' ? { paidAllowed: clipS25Paying(account) } : {}),\n", ''],
+  ['M23b 2ª régua do clipe volta ao engineLaunch', LAUNCH, 'export function s25Visible(email?: string | null): boolean {', 'export function s25ClipVisible(email?: string | null): boolean { return isInternalEmail(email) }\nexport function s25Visible(email?: string | null): boolean {'],
+  ['M23c clipe do 2.5 com régua de pagante larga', CLIPS, '  return s25AccessFor({ email: account.email, plan: account.plan }).allowed', "  return account.plan !== 'free'"],
   ['M24 frase de pausa ainda cita o 2.5', LAUNCH, "export const PAUSED_ENGINES_COPY = 'Omni Flash is temporarily paused", "export const PAUSED_ENGINES_COPY = 'Omni Flash and Seedance 2.5 are temporarily paused"],
   ['M25 tradução pt do selo faltando', COPYFILE, '    "NEW · paid plans": "NOVO · planos pagos",\n', ''],
   ['M26 [engine] volta a gerar o slug do 2.5', ENGINE_PAGE, 'return ENGINE_SLUGS.filter((engine) => engine !== S25_PAGE_SLUG).map((engine) => ({ engine }))', 'return ENGINE_SLUGS.map((engine) => ({ engine }))'],
   ['M27 clique do /studio/create sem a caixa de planos', GEN, "onUpgradeS25={() => openOutOfCreditsModal('studio')}", 'onUpgradeS25={() => undefined}'],
   ['M28 catálogo volta ao texto velho', CATALOG, '          intro: S25_COPY.lead,', "          intro: 'Kineo renders at 480p and masters to a 1080×1920 HD file with Topaz-based enhancement.',"],
   ['M29 tela de cliente importa o módulo de servidor', STUDIO, "import { S25_PAID_BADGE, S25_PAID_HINT,", "import { s25AccessFor } from '@/lib/s25Access'\nimport { S25_PAID_BADGE, S25_PAID_HINT,"],
-  ['M30 /pricing anuncia o clipe do 2.5', TWO_PRODUCTS, "      clipListed: (engine) => engine !== 's25' || s25ClipVisible(null),\n", ''],
+  ['M30 /pricing ignora o interruptor do clipe do 2.5', TWO_PRODUCTS, "      clipListed: (engine) => engine !== 's25' || clipS25Visible(null),\n", "      clipListed: (engine) => engine !== 's25' || !clipS25Visible(null),\n"],
   // KINEO-MOTORES-GEO-2026-10-06 × KINEO-S25-ABRE-2026-10-06 — a camada citável na versão "só plano pago"
-  ['M31 camada citável vende o clipe do 2.5', CATALOG, "clipOnSale: param !== 's25' || s25ClipVisible(null) }", 'clipOnSale: true }'],
+  // REANCORADOS KINEO-S25-CLIPES-2026-10-06: a camada citável segue o interruptor único do clipe (provado nos dois estados).
+  ['M31 camada citável vende o clipe do 2.5 com o interruptor desligado', CATALOG, "clipOnSale: param !== 's25' || clipS25Visible(null) }", 'clipOnSale: true }'],
+  ['M31b camada citável esconde o clipe do 2.5 com o interruptor ligado', CATALOG, "clipOnSale: param !== 's25' || clipS25Visible(null) }", "clipOnSale: param !== 's25' }"],
   ['M32 o 2.5 deixa de ser "só plano pago" nas páginas', LAUNCH, "export function engineIsPaidPlansOnly(engine: string | null | undefined): boolean {\n  return engine === 's25'", "export function engineIsPaidPlansOnly(engine: string | null | undefined): boolean {\n  return engine === 'nenhum'"],
   ['M33 página do 2.5 pausado continua indexável', PAGE, '    ...(isIndexableEngineSlug(S25_PAGE_SLUG) ? {} : { robots: { index: false, follow: true } }),\n', ''],
   ['M34 llms.txt volta a dar voz própria ao 2.5', LLMS, 'The engines with their own built-in voice (Kling 3, MiniMax H3, Omni) and Seedance 2.5 (Kineo narrates it; the model’s own audio is off) narrate in', 'The engines with their own built-in voice (Kling 3, MiniMax H3, Omni, Seedance 2.5) narrate in'],
   ['M35 llms.txt sem o "paid plans only"', LLMS, "const acesso = geo.paidPlansOnly ? 'paid plans only (not in the free trial); ' : ''", "const acesso = ''"],
   ['M36 a resposta citável sai de baixo do H1', PAGE, '          {geo && <EngineAnswerLead geo={geo} />}\n', ''],
-  ['M37 a nota de acesso oferece o trial ao motor pago', CITATION, "    accessNote: access.paidPlansOnly ? `${name} is on paid plans — the free trial does not include it. ${smallestMonthlySentence}` : `${trialSentence} ${smallestMonthlySentence}`,", '    accessNote: `${trialSentence} ${smallestMonthlySentence}`,'],
+  // M37 REANCORADO KINEO-S25-CLIPES-2026-10-06 (a nota ganhou a frase do clipe à venda; a intenção é a mesma).
+  ['M37 a nota de acesso oferece o trial ao motor pago', CITATION, "    accessNote: access.paidPlansOnly ? `${name} is on paid plans — the free trial does not include it. ${clipFromLine ? `${clipFromLine}. ` : ''}${smallestMonthlySentence}` : `${trialSentence} ${smallestMonthlySentence}`,", '    accessNote: `${trialSentence} ${smallestMonthlySentence}`,'],
   ['M38 CTA do 2.5 sem "on a paid plan"', CITATION, "    ctaLabel: access.paidPlansOnly ? `Make a ${name} video on a paid plan →` : `Make a ${name} video →`,", '    ctaLabel: `Make a ${name} video →`,'],
+  // KINEO-S25-CLIPES-2026-10-06 — "Seedance 2.5 clips from N credits (paid plans)" com o clipe ligado
+  ['M39 a frase do clipe à venda some', CITATION, '  const clipFromLine = clipeAVenda && access.paidPlansOnly\n', '  const clipFromLine = null && clipeAVenda && access.paidPlansOnly\n'],
+  ['M40 a frase do clipe sem "(paid plans)"', CITATION, ' credits (paid plans)`\n    : null', ' credits`\n    : null'],
+  ['M41 o "from N credits" digitado', CITATION, '${Math.min(...offeredSecondsFor(key).map((s) => clipCreditCost(key, s, false)))}', '5'],
+  ['M42 card: linha da Kineo com clipe sem "on any paid plan"', 'components/EngineCitationAnswer.tsx', "${geo.paidPlansOnly ? ', on any paid plan' : '' /* KINEO-S25-CLIPES-2026-10-06: clipe do 2.5 à venda, só plano pago */}", ''],
+  ['M43 llms.txt: a novidade do 2.5 sem o clipe à venda', LLMS, "narrates the script.${geo.clipFromLine ? ` ${geo.clipFromLine}.` : '' /* KINEO-S25-CLIPES-2026-10-06 */}", 'narrates the script.'],
 ]
 for (const [label, file, from, to] of mutants) {
   const src = read(file)

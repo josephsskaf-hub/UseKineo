@@ -44,7 +44,8 @@ export interface TwoProductsVisibility {
   /** O motor aparece no catálogo público (não pausado; Seedance 2.5 só com S25_PUBLIC). */
   engineListed: (engine: ClipEngineKey) => boolean
   /** KINEO-S25-ABRE-2026-10-06 — o CLIPE avulso do motor está à venda para o público? Ausente = a mesma régua de engineListed.
-   *  Existe porque o filme do Seedance 2.5 abriu (só para quem paga) e o clipe dele não (segue só da casa, s25ClipVisible). */
+   *  Existe porque o filme do Seedance 2.5 abriu (só para quem paga) e o clipe dele tem interruptor próprio
+   *  (KINEO-S25-CLIPES-2026-10-06: lib/clips/clipLaunch.ts CLIP_S25_PUBLIC — o único). */
   clipListed?: (engine: ClipEngineKey) => boolean
   /** DURACOES_CURTAS_PUBLIC (15/30 s fora do Seedance). */
   shortDurations: boolean

@@ -20,6 +20,8 @@
 //       desta revisão (executado aqui contra o sitemap gerado, sem rede).
 // Cada regra tem um mutante em memória (22) que precisa ficar VERMELHO pelo motivo certo, e 2 controles (a fonte muda:
 // preço do Creator; o Veo pausado no interruptor) que precisam ficar VERDES — prova de que nada é digitado.
+// KINEO-S25-CLIPES-2026-10-06: +2 controles (clipe do 2.5 ligado/desligado no interruptor único do clipe, em memória) e
+// +2 mutantes (M23 a frase "clips from … (paid plans)" some; M24 a camada citável vende o clipe desligado).
 import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -81,6 +83,8 @@ async function problemas(rep = {}) {
   const load = engineFixture(rep)
   const cat = load(CATALOG)
   const launch = load(LAUNCH)
+  const clipLaunch = load('lib/clips/clipLaunch.ts') // KINEO-S25-CLIPES-2026-10-06 — o interruptor único do clipe do 2.5
+  const clipCat = load('lib/clips/clipCatalog.ts')
   const cost = load('lib/credits/engineCost.ts')
   const clipPricing = load('lib/clips/clipPricing.ts')
   const two = load('lib/pricingTwoProducts.ts')
@@ -116,9 +120,14 @@ async function problemas(rep = {}) {
     // custa" sem preço de clipe e com "on any paid plan", tabela sem linha de clipe, nota de acesso "on paid plans" no lugar do
     // trial, CTA "… on a paid plan →" para o cadastro com a campanha, e a página servida é a rota própria (não a do [engine]).
     const soPago = launch.engineIsPaidPlansOnly(key)
-    const clipeAVenda = key !== 's25' || launch.s25ClipVisible(null)
+    // REANCORADO KINEO-S25-CLIPES-2026-10-06: o clipe do 2.5 está à venda conforme o interruptor ÚNICO dele (lib/clips/clipLaunch.ts
+    // CLIP_S25_PUBLIC → clipS25Visible), não mais o s25ClipVisible de lib/engineLaunch.ts (que saiu). Mesmas provas nos dois estados.
+    const clipeAVenda = key !== 's25' || clipLaunch.clipS25Visible(null)
     const rotulo = soPago ? `Make a ${e.name} video on a paid plan →` : `Make a ${e.name} video →`
-    esperado[slug] = { name: e.name, clipSec, clipCr, f35, f60, soPago, clipeAVenda }
+    // KINEO-S25-CLIPES-2026-10-06 — motor pago COM clipe à venda: "<motor> clips from N credits (paid plans)", N = o clipe mais
+    // barato do catálogo (clipCreditCost em cada duração oferecida). Motor aberto ou sem clipe à venda: a frase nunca aparece.
+    const fraseDe = soPago && clipeAVenda ? `${e.name} clips from ${Math.min(...clipCat.offeredSecondsFor(key).map((s) => clipPricing.clipCreditCost(key, s, false)))} credits (paid plans)` : null
+    esperado[slug] = { name: e.name, clipSec, clipCr, f35, f60, soPago, clipeAVenda, fraseDe }
     const html = ROTA_PROPRIA[slug]
       ? renderToStaticMarkup(await load(ROTA_PROPRIA[slug]).default())
       : renderToStaticMarkup(await load(PAGE).default({ params: { engine: slug } }))
@@ -208,6 +217,7 @@ async function problemas(rep = {}) {
       if (!t.includes(`${e.name} is on paid plans — the free trial does not include it.`)) p.push(`${slug}: nota de acesso sem "on paid plans"`)
       if (/New accounts[^.]* start with \d+ free credits/.test(t)) p.push(`${slug}: motor pago oferece o trial na nota de acesso`)
     } else if (!t.includes(`New accounts${trial.GRANT_COUNTRY_CLAUSE} start with ${trial.TRIAL_CREDITS_SHOWN} free credits`)) p.push(`${slug}: nota de acesso sem a cláusula do país`)
+    if (fraseDe ? !t.includes(`${fraseDe}.`) : / clips from \d+ credits \(paid plans\)/.test(t)) p.push(`${slug}: frase "clips from … (paid plans)" ${fraseDe ? 'ausente' : 'onde não cabe'}`) // KINEO-S25-CLIPES-2026-10-06
     // FAQ citável no JSON-LD (o que a IA lê)
     const ld = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => { try { return JSON.parse(m[1]) } catch { return null } })
     const faq = ld.find((x) => x && x['@type'] === 'FAQPage')
@@ -290,6 +300,13 @@ async function problemas(rep = {}) {
     if (!(x.clipeAVenda ? linha.includes(`${x.clipSec}-second clip: ${x.clipCr} credits`) : !/-second clip:/.test(linha)) || (x.soPago && !linha.includes('paid plans only (not in the free trial)')) || !linha.includes(`60-second narrated video: ${x.f60} credits`) || !linha.includes(`35-second narrated video: ${x.f35} credits`)) p.push(`llms.txt: linha do ${x.name} ausente ou ≠ fonte`)
   }
   for (const slug of fora) if (secao.includes(`/ai-video-generator/${slug})`)) p.push(`llms.txt: motor pausado ${slug} na seção de onde usar`)
+  // KINEO-S25-CLIPES-2026-10-06 — a novidade do motor pago com clipe à venda cita "<motor> clips from N credits (paid plans)";
+  // sem clipe à venda, a frase não aparece em lugar nenhum do llms.txt.
+  for (const slug of indexaveis) {
+    const x = esperado[slug]
+    if (x.fraseDe && !llms.includes(`${x.fraseDe}.`)) p.push(`llms.txt: ${x.name} sem "${x.fraseDe}"`)
+  }
+  if (!indexaveis.some((slug) => esperado[slug].fraseDe) && / clips from \d+ credits \(paid plans\)/.test(llms)) p.push('llms.txt: "clips from … (paid plans)" sem clipe pago à venda')
   const arena = llms.split('\n').find((l) => l.startsWith('- [Engine Arena]')) ?? ''
   if (/\bseven\b/i.test(arena)) p.push('llms.txt: Engine Arena ainda fala em "seven"')
   const facts = L('lib/kineoFacts.ts')
@@ -355,9 +372,18 @@ const troca = (rel, de, para, extra = {}) => {
 }
 const precoCreatorMudou = troca(PRICING, 'export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {\n  starter: { usd: 1290 },\n  basic: { usd: 2990 },', 'export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {\n  starter: { usd: 1290 },\n  basic: { usd: 3190 },')
 const veoPausado = troca(LAUNCH, '  return (PAUSED_ENGINE_KEYS as readonly string[]).includes(k) ? ENGINE_PAUSE[k as PausedEngineKey] : null', "  return k === 'veo' ? ENGINE_PAUSE.omni : (PAUSED_ENGINE_KEYS as readonly string[]).includes(k) ? ENGINE_PAUSE[k as PausedEngineKey] : null")
+// KINEO-S25-CLIPES-2026-10-06 — o interruptor único do clipe do 2.5 (lib/clips/clipLaunch.ts) forçado em memória: as mesmas
+// provas valem com o clipe do 2.5 à venda e sem ele, seja qual for o valor no arquivo.
+const clipS25Com = (ligado) => {
+  const src = rd('lib/clips/clipLaunch.ts')
+  if (!/^export const CLIP_S25_PUBLIC = (true|false)\b/m.test(src)) throw new Error('âncora CLIP_S25_PUBLIC ausente em lib/clips/clipLaunch.ts')
+  return { 'lib/clips/clipLaunch.ts': src.replace(/^export const CLIP_S25_PUBLIC = (true|false)\b/m, `export const CLIP_S25_PUBLIC = ${ligado}`) }
+}
 const controles = [
   ['C1 preço do Creator muda na fonte → a página acompanha (US$ derivado)', precoCreatorMudou],
   ['C2 pausar o Veo no interruptor → a página dele sai do índice sozinha', veoPausado],
+  ['C3 clipe do 2.5 LIGADO → página, tabela, FAQ e llms.txt com o clipe pago (preço da fonte, "paid plans")', clipS25Com(true)],
+  ['C4 clipe do 2.5 DESLIGADO → nenhum clipe do 2.5 nas páginas nem no llms.txt', clipS25Com(false)],
 ]
 for (const [rotulo, rep] of controles) {
   const r = await problemas(rep)
@@ -386,6 +412,9 @@ const mutantes = [
   ['M20 frase da marca some do CTA', troca('components/EngineCitationAnswer.tsx', '>{ENGINE_GEO_BRAND_LINE}</p>', '>Start free today.</p>')],
   ['M21 espelho do país desligado (trial volta a valer "para todos" nas traduzidas)', troca('lib/seo/enginePageLangs.ts', 'export const TRIAL_ONLY_IN_SUPPORTED_COUNTRIES = true', 'export const TRIAL_ONLY_IN_SUPPORTED_COUNTRIES = false')],
   ['M22 tradução volta a prometer 3–7 minutos', troca('lib/seo/enginePageLangs.ts', 'lädst das Video herunter, meist in 8–25 Minuten.', 'lädst das Video herunter, meist in 3–7 Minuten.')],
+  // KINEO-S25-CLIPES-2026-10-06 — rodam com o interruptor do clipe forçado em memória (independem do valor no arquivo)
+  ['M23 a frase "clips from … (paid plans)" some (clipe do 2.5 ligado)', troca(GEO, '  const clipFromLine = clipeAVenda && access.paidPlansOnly\n', '  const clipFromLine = null && clipeAVenda && access.paidPlansOnly\n', clipS25Com(true))],
+  ['M24 a camada citável vende o clipe do 2.5 com o interruptor desligado', troca(CATALOG, "clipOnSale: param !== 's25' || clipS25Visible(null) }", 'clipOnSale: true }', clipS25Com(false))],
 ]
 // O mutante tem de ficar vermelho PELO MOTIVO CERTO (não por efeito colateral): o problema esperado precisa aparecer.
 const ESPERADO = {
@@ -398,6 +427,7 @@ const ESPERADO = {
   M17: /≠ cotação oficial/, M18: /Veo ainda diz "native audio"/, M19: /tier "Studio" ≠ menor plano/,
   M20: /frase da marca não está logo abaixo do CTA/,
   M21: /espelho do país .* ≠ GRANT_COUNTRY_CLAUSE/, M22: /de: tempo de entrega ainda é 3–7 min/,
+  M23: /frase "clips from … \(paid plans\)" ausente/, M24: /1ª frase anuncia clipe que não se vende|tabela com linha de clipe que não se vende/,
 }
 for (const [rotulo, rep] of mutantes) {
   let r

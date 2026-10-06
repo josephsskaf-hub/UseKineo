@@ -80,13 +80,12 @@ export function s25UpgradeHref(surface: S25UpgradeSurface): string {
 export function engineIsPaidPlansOnly(engine: string | null | undefined): boolean {
   return engine === 's25'
 }
-// KINEO-S25-ABRE-2026-10-06 — o CLIPE avulso do 2.5 (/clips) NÃO abre junto com o filme: nenhum clipe do 2.5 foi
-// renderizado na história (tabela clips, medido 06/10: só hollywood/kling/seedance), e com S25_PUBLIC=true o s25Visible
-// abriria o clipe para TODA conta, inclusive grátis. Segue só da casa — a mesma régua de antes. Abrir = 1 clipe de teste e
-// trocar esta régua pelo portão pago do servidor (lib/s25Access.ts s25LiberadoNaTela).
-export function s25ClipVisible(email?: string | null): boolean {
-  return isInternalEmail(email)
-}
+// KINEO-S25-ABRE-2026-10-06 — o CLIPE avulso do 2.5 (/clips) NÃO abre junto com o filme (com S25_PUBLIC=true o s25Visible
+// abriria o clipe para TODA conta, inclusive grátis).
+// KINEO-S25-CLIPES-2026-10-06 — a trava "só da casa" que morava aqui (s25ClipVisible) virou o interruptor ÚNICO do clipe do
+// 2.5: lib/clips/clipLaunch.ts CLIP_S25_PUBLIC (quem VÊ) + o portão de pagante deste mesmo filme (lib/s25Access.ts
+// s25AccessFor, em lib/clips/clipServer.ts clipS25Paying — quem USA) + o preço decidido (lib/clips/clipPricing.ts
+// CLIP_S25_CREDITS). Nada de segunda régua para o mesmo clipe aqui: o guardião scripts/test-s25-abre-2026-10-06.mjs acusa.
 
 // ═══ KINEO-AVATAR-FORA-2026-09-28 — decisão do fundador (27/09): "avatar sai por hora".
 // O caso, medido no banco: em toda a história, 1 filme 'avatar' e 3 'presenter' entregues (o último em 15/07);

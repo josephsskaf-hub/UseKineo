@@ -1,7 +1,8 @@
 // Shared data for the engine page, hub and sitemap. Route modules export only Next-supported names.
 // Mechanical extraction for CITACOES-01; existing content and feature gates are preserved.
 import { S25_PUBLIC, AVATAR_PUBLIC, enginePaused } from '@/lib/engineLaunch'
-import { engineIsPaidPlansOnly, s25ClipVisible } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06
+import { engineIsPaidPlansOnly } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06
+import { clipS25Visible } from '@/lib/clips/clipLaunch' // KINEO-S25-CLIPES-2026-10-06 — o interruptor único do clipe do 2.5
 import { FREE_FILM_LABEL, getFreeTierOffer, swapFreeTierCopy as ft, trialFilmsForEngine, TRIAL_CREDITS_SHOWN, TRIAL_SEEDANCE15_FILMS, GRANT_COUNTRY_CLAUSE, TRIAL_FREE_FILM_CREDITS } from '@/lib/freeTierOffer'
 import { STARTER_MONTH, MARKETING_REFERENCE_SECONDS, creditsPerReferenceVideo, videosPerMonth } from '@/lib/marketingPrice'
 import { ENGINE_LANDING_LABELS, type EngineLandingParam } from '@/lib/growth/engineLandingIntent'
@@ -39,9 +40,11 @@ function geoVisible(param: EngineLandingParam): boolean {
   return !enginePaused(param) && (param !== 's25' || S25_PUBLIC)
 }
 // KINEO-S25-ABRE-2026-10-06 — quem usa o motor e se o clipe avulso dele está à venda: o 2.5 é só de plano pago (o servidor
-// recusa trial e conta grátis, lib/s25Access.ts) e o clipe dele segue só da casa (s25ClipVisible). Os outros: OPEN_ACCESS.
+// recusa trial e conta grátis, lib/s25Access.ts). KINEO-S25-CLIPES-2026-10-06 — o clipe do 2.5 está à venda para o público
+// quando o interruptor ÚNICO dele está ligado (lib/clips/clipLaunch.ts CLIP_S25_PUBLIC; quem usa = o mesmo portão pago do
+// filme), com o preço decidido pelo fundador (clipCreditCost → CLIP_S25_CREDITS). Os outros: OPEN_ACCESS.
 function accessFor(param: EngineLandingParam): CitationAccess {
-  return engineIsPaidPlansOnly(param) ? { paidPlansOnly: true, clipOnSale: param !== 's25' || s25ClipVisible(null) } : OPEN_ACCESS
+  return engineIsPaidPlansOnly(param) ? { paidPlansOnly: true, clipOnSale: param !== 's25' || clipS25Visible(null) } : OPEN_ACCESS
 }
 function geoFor(slug: string, param: EngineLandingParam): EngineCitation | null {
   return geoVisible(param) ? buildEngineCitation({ slug, key: param, name: ENGINE_LANDING_LABELS[param], plans: GEO_PLANS, trial: GEO_TRIAL, access: accessFor(param) }) : null

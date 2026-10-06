@@ -166,12 +166,14 @@ export function aspectsFor(engine: ClipEngineKey, mode: ClipMode): ClipAspect[] 
 }
 
 // ─── Visibilidade ────────────────────────────────────────────────────────────
-// Os fatos vêm do servidor (lib/engineLaunch.ts: enginePaused / s25Visible; lib/enginePlanGate.ts: decideEngineGate).
+// Os fatos vêm do servidor (lib/engineLaunch.ts: enginePaused; lib/clips/clipLaunch.ts: clipS25Visible; lib/s25Access.ts:
+// quem paga; lib/enginePlanGate.ts: decideEngineGate).
 // Aqui só a régua: motor pausado, motor interno para conta de fora e motor fora do plano ficam de fora do catálogo E
 // são recusados na rota, antes de qualquer débito — a tela e o servidor leem a mesma resposta.
 export interface ClipEngineFacts {
   paused: boolean
-  /** false só para o Seedance 2.5 fora das contas da casa (s25ClipVisible: o clipe do 2.5 não abriu junto com o filme em 06/10). */
+  /** false só para o Seedance 2.5 fora das contas da casa enquanto o interruptor ÚNICO do clipe dele, lib/clips/clipLaunch.ts
+   *  CLIP_S25_PUBLIC, estiver desligado (KINEO-S25-CLIPES-2026-10-06; substitui o s25ClipVisible de 06/10). */
   launchVisible: boolean
   planAllowed: boolean
 

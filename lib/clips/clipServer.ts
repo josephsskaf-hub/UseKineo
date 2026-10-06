@@ -8,7 +8,8 @@
 //   · foto   → sobe por /api/avatar/upload purpose=animate (avatars/<uid>/, moderada no upload), e os bytes são relidos
 //              por lib/animate/remoteImage.ts downloadPublicAnimateImage (JPG/PNG ≤ 8 MB, rede pública) antes do envio
 //   · bucket → `renders`, pasta clips/<uid>/<clipId>.mp4 (mesmo bucket de images/, audio/, enhanced/; nenhum bucket novo)
-//   · interruptores → lib/engineLaunch.ts (enginePaused, s25ClipVisible — KINEO-S25-ABRE-2026-10-06) e lib/enginePlanGate.ts (decideEngineGate)
+//   · interruptores → lib/engineLaunch.ts (enginePaused), lib/clips/clipLaunch.ts (CLIP_S25_PUBLIC — o clipe do 2.5, KINEO-S25-CLIPES-2026-10-06;
+//                    substitui o s25ClipVisible do KINEO-S25-ABRE-2026-10-06), lib/s25Access.ts (quem paga) e lib/enginePlanGate.ts (decideEngineGate)
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { createHmac, randomUUID } from 'node:crypto'
 import { fal } from '@fal-ai/client'
@@ -16,7 +17,7 @@ import { debitVideoCredits } from '@/lib/credits/debit'
 import { refundRenderCredits } from '@/lib/credits/refund'
 import { moderateContent } from '@/lib/safety/contentModeration'
 import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy'
-import { enginePaused, s25ClipVisible } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06: s25ClipVisible
+import { enginePaused } from '@/lib/engineLaunch' // KINEO-S25-CLIPES-2026-10-06: o clipe do 2.5 lê clipS25Visible (lib/clips/clipLaunch.ts)
 import { decideEngineGate } from '@/lib/enginePlanGate'
 import { downloadPublicAnimateImage } from '@/lib/animate/remoteImage'
 import { writeServerEvent } from '@/lib/serverEvents'
@@ -29,7 +30,6 @@ import {
   modesFor,
   offeredSecondsFor,
   type ClipEngineAccess,
-  type ClipEngineFacts,
   type ClipEngineKey,
 } from '@/lib/clips/clipCatalog'
 import { clipCreditCost } from '@/lib/clips/clipPricing'
@@ -53,11 +53,10 @@ import {
   isBrandedClipUrl,
   type ClipOwnerProfile,
 } from '@/lib/clips/freeClipWatermark'
-// KINEO-S25-CLIPES-2026-10-06 — o clipe do Seedance 2.5: interruptor próprio (clipLaunch) e "só para quem paga" pela MESMA
-// régua do filme do 2.5 — a casa exata do validador de $0 e isPayingPlan da régua única do admin (nunca lista redigitada).
+// KINEO-S25-CLIPES-2026-10-06 — o clipe do Seedance 2.5: interruptor único (clipLaunch) e "só para quem paga" pela MESMA
+// função do filme do 2.5 (lib/s25Access.ts — só servidor; isPayingPlan da régua única do admin, nunca lista redigitada).
 import { clipPaidUpgradeHref, clipS25Visible } from '@/lib/clips/clipLaunch'
-import { isPayingPlan } from '@/app/api/admin/_shared/mrr'
-import { isDryRunAccount } from '@/lib/cinematic/classicDryRun'
+import { s25AccessFor } from '@/lib/s25Access'
 
 export const CLIPS_TABLE = 'clips'
 export const CLIPS_BUCKET = 'renders'
@@ -116,29 +115,23 @@ export async function loadClipAccount(supabase: SupabaseClient, user: { id: stri
 export function engineAccessFor(account: Pick<ClipAccount, 'email' | 'plan' | 'createdAt'>): (engine: ClipEngineKey) => ClipEngineAccess {
   return (engine) => clipEngineAccess({
     paused: enginePaused(engine) !== null,
-    // KINEO-S25-ABRE-2026-10-06 — o FILME do 2.5 abriu para quem paga; o CLIPE avulso não abriu junto (nenhum clipe do 2.5
-    // renderizado na história): segue só da casa, exatamente como estava com S25_PUBLIC=false (lib/engineLaunch.ts).
-    launchVisible: engine !== 's25' || s25ClipVisible(account.email),
+    // KINEO-S25-CLIPES-2026-10-06 — UM interruptor para o CLIPE do 2.5: lib/clips/clipLaunch.ts CLIP_S25_PUBLIC (quem VÊ). Ele
+    // substitui a trava "só da casa" do KINEO-S25-ABRE-2026-10-06 (s25ClipVisible); o FILME do 2.5 segue com o S25_PUBLIC dele.
+    launchVisible: engine !== 's25' || clipS25Visible(account.email),
     planAllowed: decideEngineGate({ engine, plan: account.plan, profileCreatedAt: account.createdAt }).allowed,
-
-    // KINEO-S25-CLIPES-2026-10-06 — o 2.5 no /clips tem interruptor e portão próprios: estes fatos vencem os de cima para o s25.
-    ...(engine === 's25' ? clipS25Facts(account) : {}),
+    // KINEO-S25-CLIPES-2026-10-06 — e só quem PAGA usa (a régua do filme do 2.5): quem não paga recebe o card trancado.
+    ...(engine === 's25' ? { paidAllowed: clipS25Paying(account) } : {}),
   })
 }
 
 /**
- * KINEO-S25-CLIPES-2026-10-06 — pagante para o clipe do Seedance 2.5: a MESMA composição do portão do filme do 2.5
- * (lib/s25Access.ts s25AccessFor, codex/s25-abre-0610): a casa EXATA do validador de $0 (isDryRunAccount — não o
- * isInternalEmail largo, que casa com estranhos) ou plano pago AGORA (isPayingPlan: *_trial de cortesia e o trial de $1 NÃO
- * passam; pacote avulso compra crédito, não assinatura). Plano nulo ou ilegível = não paga (falha fechada).
+ * KINEO-S25-CLIPES-2026-10-06 — pagante para o clipe do Seedance 2.5 = o portão do FILME do 2.5, a mesma função
+ * (lib/s25Access.ts s25AccessFor): a casa EXATA do validador de $0 (isDryRunAccount — não o isInternalEmail largo) ou plano
+ * pago AGORA (isPayingPlan de app/api/admin/_shared/mrr.ts: *_trial de cortesia e o trial de $1 NÃO passam; pacote avulso
+ * compra crédito, não assinatura — por isso nem isPayingProfile nem treatAsPaid). Plano nulo/ilegível = não paga.
  */
 export function clipS25Paying(account: Pick<ClipAccount, 'email' | 'plan'>): boolean {
-  return isDryRunAccount(account.email) || isPayingPlan(account.plan)
-}
-
-/** Quem VÊ (CLIP_S25_PUBLIC ou a casa) e quem USA (pagante) o clipe do 2.5. */
-export function clipS25Facts(account: Pick<ClipAccount, 'email' | 'plan'>): Pick<ClipEngineFacts, 'launchVisible' | 'paidAllowed'> {
-  return { launchVisible: clipS25Visible(account.email), paidAllowed: clipS25Paying(account) }
+  return s25AccessFor({ email: account.email, plan: account.plan }).allowed
 }
 
 export interface PublicClipEngine {
