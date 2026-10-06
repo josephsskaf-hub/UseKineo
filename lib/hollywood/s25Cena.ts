@@ -19,7 +19,7 @@
 // Este módulo é PURO (sem import): o guardião scripts/test-s25-nota95-2026-10-06.mjs o executa em sandbox. Só a família
 // s25 o chama (rota generate-video-cinematic). H3/Omni/Kling 3 ficam byte a byte como estavam.
 
-export const S25_CENA_VERSAO = 's25_nota95_v1'
+export const S25_CENA_VERSAO = 's25_nota95_v2_apresentador' // KINEO-S25-APRESENTADOR-2026-10-06 (era 's25_nota95_v1': o evento separa o antes do depois)
 export const S25_CENA_EVENTO = 's25_cena_plano'
 
 /** O aviso de câmera do S25: curto, concreto, SEM substantivo de pessoa ("every visible person" desenhava a pessoa —
@@ -470,6 +470,8 @@ export type CenaS25 = {
   motivo: string
   sobreposicaoAnterior: number
   comunsAnterior: string[]
+  apresentador: 'fora' | 'na_historia' | null // KINEO-S25-APRESENTADOR-2026-10-06 — 'fora' = núcleo refeito da fala; 'na_historia' = a fala cita a pessoa
+  olharLente: number // KINEO-S25-APRESENTADOR-2026-10-06 — trechos de olhar para a lente trocados nesta cena (núcleo + resto)
 }
 export type RelatoS25 = {
   versao: string
@@ -479,15 +481,178 @@ export type RelatoS25 = {
   abstratas: number
   trocas: number
   aberturas_distintas: boolean
-  cenas: Array<{ cena: number; plano: PlanoTipo; plano_original: PlanoTipo; abstrata: TipoAbstrato | null; trocou: boolean; motivo: string; epoca: string; sobreposicao_anterior: number; comuns_anterior: string[]; abertura: string }>
+  papel_apresentador: string | null // KINEO-S25-APRESENTADOR-2026-10-06 — o papel de narrador/apresentador da ficha (null = ficha sem esse papel)
+  apresentador_fora: number // KINEO-S25-APRESENTADOR-2026-10-06 — cenas em que o apresentador saiu (núcleo refeito da fala)
+  apresentador_na_historia: number // KINEO-S25-APRESENTADOR-2026-10-06 — cenas em que a fala cita a pessoa e ela fica, trabalhando na cena
+  olhar_lente: number // KINEO-S25-APRESENTADOR-2026-10-06 — cenas com olhar para a lente trocado por olhar dentro da cena
+  cenas: Array<{ cena: number; plano: PlanoTipo; plano_original: PlanoTipo; abstrata: TipoAbstrato | null; trocou: boolean; motivo: string; epoca: string; sobreposicao_anterior: number; comuns_anterior: string[]; abertura: string; apresentador: 'fora' | 'na_historia' | null; olhar_lente: number }> // KINEO-S25-APRESENTADOR-2026-10-06 (+ apresentador, olhar_lente)
 }
 
 const abertura = (p: string) => limpa(p).toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 6).join(' ')
 const semPontoFinal = (t: string) => limpa(t).replace(/[.\s]+$/, '')
 
+// ── 8. APRESENTADOR FORA DA HISTÓRIA — KINEO-S25-APRESENTADOR-2026-10-06 ──
+// Ensaio de $0 de 06/10 (main 56e40659, Tambora 1815 verbatim 35 s, documentary_faceless, hostFits=false): o roteiro fecha com // KINEO-S25-APRESENTADOR-2026-10-06
+// "historians traced it to a single mountain" e o planejador GPT inventou um apresentador ("A middle-aged historian, Caucasian, … // KINEO-S25-APRESENTADOR-2026-10-06
+// stands against a backdrop of antique bookshelves"): a cena 1 — o gancho — virou ele "looking directly into the camera" (o vulcão // KINEO-S25-APRESENTADOR-2026-10-06
+// não aparecia) e a âncora de ambiente virou o escritório dele. O roteador (router.ts ~905-918) só converte cena tipada 'dialogue' // KINEO-S25-APRESENTADOR-2026-10-06
+// quando hostFits=false; apresentador numa cena 'support'/'cinematic' passava inteiro. Só no S25, nesta passada: // KINEO-S25-APRESENTADOR-2026-10-06
+//   (1) ninguém olha para a lente: o trecho vira um olhar DENTRO da cena, sem proibição que nomeie a câmera (a proibição que // KINEO-S25-APRESENTADOR-2026-10-06
+//       nomeia o objeto desenha o objeto; o AVISO_CAMERA_S25 fica como está). Forma negada ("never facing the lens") fica; // KINEO-S25-APRESENTADOR-2026-10-06
+//   (2) apresentador que a fala da cena não cita (papel, pronome ou nome da ficha) sai: o núcleo nasce da FALA (lugar + // KINEO-S25-APRESENTADOR-2026-10-06
+//       acontecimento + pedaços nominais), com a época da cena; citado, fica — sem lente e trabalhando na cena (mapa, livro); // KINEO-S25-APRESENTADOR-2026-10-06
+//   (3) a âncora de ambiente deixa de ser o escritório quando ele não tem lugar nenhum da história: vira a época/lugar do filme. // KINEO-S25-APRESENTADOR-2026-10-06
+export type ApresentadorS25 = 'fora' | 'na_historia' // KINEO-S25-APRESENTADOR-2026-10-06
+/** O olhar que entra no lugar do olhar para a lente (sem nomear câmera, lente nem espectador). */ // KINEO-S25-APRESENTADOR-2026-10-06
+export const OLHAR_NA_CENA = 'the scene in front of them' // KINEO-S25-APRESENTADOR-2026-10-06
+const VER: Record<string, string> = { address: 'watch', addresses: 'watches', addressing: 'watching', addressed: 'watched', speak: 'watch', speaks: 'watches', speaking: 'watching', spoke: 'watched', talk: 'watch', talks: 'watches', talking: 'watching', talked: 'watched' } // KINEO-S25-APRESENTADOR-2026-10-06
+const MANTER: Record<string, string> = { make: 'keep', makes: 'keeps', making: 'keeping', made: 'kept' } // KINEO-S25-APRESENTADOR-2026-10-06
+const FICAR: Record<string, string> = { break: 'stay', breaks: 'stays', breaking: 'staying', broke: 'stayed' } // KINEO-S25-APRESENTADOR-2026-10-06
+// Cada forma: verbo capturado → olhar dentro da cena. "camera lens"/"camera's lens" saem inteiros (não sobra "lens"). // KINEO-S25-APRESENTADOR-2026-10-06
+const FORMAS_OLHAR: Array<[RegExp, (verbo: string, alvo: string, inicioDeOracao: boolean) => string]> = [ // KINEO-S25-APRESENTADOR-2026-10-06
+  [/\b(look(?:s|ing|ed)?|star(?:e|es|ing|ed)|gaz(?:e|es|ing|ed)|peer(?:s|ing|ed)?|glanc(?:e|es|ing|ed))\s+(?:(?:directly|straight|right|squarely|intently|steadily|deeply|unblinkingly|back|out)\s+){0,2}(?:into|at|toward|towards|to)\s+(?:the\s+|our\s+)?(?:camera(?:['’]s)?(?:\s+lens)?|lens|viewers?)(?![A-Za-z])/gi, // KINEO-S25-APRESENTADOR-2026-10-06
+    (v, alvo, ini) => (/ing$/i.test(v) && ini ? `eyes on ${alvo}` : `${v} at ${alvo}`)], // KINEO-S25-APRESENTADOR-2026-10-06
+  [/\b(fac(?:e|es|ing|ed))\s+(?:(?:directly|straight|right|squarely)\s+)?(?:the\s+|our\s+)?(?:camera(?:['’]s)?(?:\s+lens)?|lens|viewers?)(?![A-Za-z])/gi, (v, alvo) => `${v} ${alvo}`], // KINEO-S25-APRESENTADOR-2026-10-06
+  [/\b(address(?:es|ing|ed)?|speak(?:s|ing)?|spoke|talk(?:s|ing|ed)?)\s+(?:(?:directly|straight)\s+)?(?:(?:to|into|at|toward|towards)\s+)?(?:the\s+|our\s+)?(?:camera(?:['’]s)?(?:\s+lens)?|lens|viewers?)(?![A-Za-z])(?:\s+about\s+[^,.;:!?]+)?/gi, (v, alvo) => `${VER[v.toLowerCase()] ?? 'watches'} ${alvo}`], // KINEO-S25-APRESENTADOR-2026-10-06 (o assunto da fala, "about …", sai junto)
+  [/\b(break(?:s|ing)?|broke)\s+the\s+fourth\s+wall\b/gi, (v) => `${FICAR[v.toLowerCase()] ?? 'stays'} absorbed in the scene`], // KINEO-S25-APRESENTADOR-2026-10-06
+  [/\b(mak(?:e|es|ing)|made)\s+(?:(?:direct|steady)\s+)?eye[- ]contact\s+with\s+(?:the\s+|our\s+)?(?:camera(?:['’]s)?(?:\s+lens)?|lens|viewers?)(?![A-Za-z])/gi, (v, alvo) => `${MANTER[v.toLowerCase()] ?? 'keeps'} their eyes on ${alvo}`], // KINEO-S25-APRESENTADOR-2026-10-06
+  [/\b(turn(?:s|ing|ed)?)\s+(?:(?:directly|straight)\s+)?(?:to|toward|towards)\s+(?:the\s+|our\s+)?(?:camera(?:['’]s)?(?:\s+lens)?|lens|viewers?)(?![A-Za-z])/gi, (v, alvo) => `${v} toward ${alvo}`], // KINEO-S25-APRESENTADOR-2026-10-06
+  [/\b(eyes|gaze)\s+(?:locked|fixed|trained|set|riveted)\s+(?:on|upon)\s+(?:the\s+|our\s+)?(?:camera(?:['’]s)?(?:\s+lens)?|lens|viewers?)(?![A-Za-z])/gi, (_v, alvo) => `eyes on ${alvo}`], // KINEO-S25-APRESENTADOR-2026-10-06
+] // KINEO-S25-APRESENTADOR-2026-10-06
+// Negação na mesma oração ("never facing the lens", "Nobody addresses the camera", "does not look at the camera"): fica como está. // KINEO-S25-APRESENTADOR-2026-10-06
+const NEGA_NA_ORACAO_RE = /(?:^|[^A-Za-z])(?:not|never|no|nobody|without|neither|nor|avoids?|avoiding|avoided|refuses?|refusing|refused)(?![A-Za-z])|n['’]t(?![A-Za-z])/i // KINEO-S25-APRESENTADOR-2026-10-06
+/** Olhar para a lente → olhar dentro da cena (sem nomear a câmera). `alvo` = para onde a pessoa olha. Devolve o texto e quantos trechos trocou. */ // KINEO-S25-APRESENTADOR-2026-10-06
+export function olharNaCena(texto: string, alvo: string = OLHAR_NA_CENA): { texto: string; trocas: number } { // KINEO-S25-APRESENTADOR-2026-10-06
+  let t = texto ?? '' // KINEO-S25-APRESENTADOR-2026-10-06
+  let trocas = 0 // KINEO-S25-APRESENTADOR-2026-10-06
+  for (const [re, troca] of FORMAS_OLHAR) { // KINEO-S25-APRESENTADOR-2026-10-06
+    t = t.replace(re, (m: string, verbo: string, off: number, todo: string) => { // KINEO-S25-APRESENTADOR-2026-10-06
+      const antes = todo.slice(Math.max(0, off - 80), off) // KINEO-S25-APRESENTADOR-2026-10-06
+      if (NEGA_NA_ORACAO_RE.test(antes.split(/[,.;:!?]/).pop() ?? '')) return m // KINEO-S25-APRESENTADOR-2026-10-06
+      trocas++ // KINEO-S25-APRESENTADOR-2026-10-06
+      const novo = troca(verbo, alvo, /(?:^|[,;:.!?])\s*$/.test(antes)) // KINEO-S25-APRESENTADOR-2026-10-06
+      return /^[A-Z]/.test(m) ? novo.charAt(0).toUpperCase() + novo.slice(1) : novo // KINEO-S25-APRESENTADOR-2026-10-06
+    }) // KINEO-S25-APRESENTADOR-2026-10-06
+  } // KINEO-S25-APRESENTADOR-2026-10-06
+  return { texto: t, trocas } // KINEO-S25-APRESENTADOR-2026-10-06
+} // KINEO-S25-APRESENTADOR-2026-10-06
+// ── KINEO-S25-APRESENTADOR-2026-10-06 ──
+// Papéis de narrador/apresentador (en/pt/es). Limites por letra (não \b): "anfitriã"/"guía" terminam em letra acentuada. // KINEO-S25-APRESENTADOR-2026-10-06
+const PAPEIS_APRESENTADOR: Array<{ papel: string; re: RegExp }> = [ // KINEO-S25-APRESENTADOR-2026-10-06
+  { papel: 'historian', re: /(?<![A-Za-zÀ-ÿ])(?:historians?|historiador(?:a|es|as)?)(?![A-Za-zÀ-ÿ])/i }, // KINEO-S25-APRESENTADOR-2026-10-06
+  { papel: 'narrator', re: /(?<![A-Za-zÀ-ÿ])(?:narrators?|narrador(?:a|es|as)?)(?![A-Za-zÀ-ÿ])/i }, // KINEO-S25-APRESENTADOR-2026-10-06
+  { papel: 'storyteller', re: /(?<![A-Za-zÀ-ÿ])(?:story-?tellers?|contador(?:a|es|as)? de hist[óo]rias|cuentacuentos|cuentistas?)(?![A-Za-zÀ-ÿ])/i }, // KINEO-S25-APRESENTADOR-2026-10-06
+  { papel: 'presenter', re: /(?<![A-Za-zÀ-ÿ])(?:presenters?|hosts?|anchor(?:m[ae]n|wom[ae]n|s)?|apresentador(?:a|es|as)?|presentador(?:a|es|as)?|anfitri(?:ão|ã|ões|ãs|ón|ona|ones|onas))(?![A-Za-zÀ-ÿ])/i }, // KINEO-S25-APRESENTADOR-2026-10-06
+  { papel: 'expert', re: /(?<![A-Za-zÀ-ÿ])(?:experts?|specialists?|especialistas?|expert[oa]s?|perit[oa]s?)(?![A-Za-zÀ-ÿ])/i }, // KINEO-S25-APRESENTADOR-2026-10-06
+  { papel: 'professor', re: /(?<![A-Za-zÀ-ÿ])(?:professors?|lecturers?|scholars?|academics?|professor(?:a|es|as)?|profesor(?:a|es|as)?|catedr[áa]tic[oa]s?)(?![A-Za-zÀ-ÿ])/i }, // KINEO-S25-APRESENTADOR-2026-10-06
+  { papel: 'scientist', re: /(?<![A-Za-zÀ-ÿ])(?:scientists?|researchers?|investigators?|geologists?|v[ou]lcanologists?|climatologists?|cientistas?|pesquisador(?:a|es|as)?|cient[íi]fic[oa]s?|investigador(?:a|es|as)?|ge[óo]log[oa]s?|v[ou]lcan[óo]log[oa]s?)(?![A-Za-zÀ-ÿ])/i }, // KINEO-S25-APRESENTADOR-2026-10-06
+  { papel: 'reporter', re: /(?<![A-Za-zÀ-ÿ])(?:reporters?|journalists?|correspondents?|rep[óo]rter(?:es)?|jornalistas?|periodistas?|reporter[oa]s?|correspondentes?|corresponsal(?:es)?)(?![A-Za-zÀ-ÿ])/i }, // KINEO-S25-APRESENTADOR-2026-10-06
+  { papel: 'guide', re: /(?<![A-Za-zÀ-ÿ])(?:guides?|guias?|gu[íi]as?)(?![A-Za-zÀ-ÿ])/i }, // KINEO-S25-APRESENTADOR-2026-10-06
+  { papel: 'archaeologist', re: /(?<![A-Za-zÀ-ÿ])(?:arch(?:a)?eologists?|arque[óo]log[oa]s?)(?![A-Za-zÀ-ÿ])/i }, // KINEO-S25-APRESENTADOR-2026-10-06
+] // KINEO-S25-APRESENTADOR-2026-10-06
+// A cabeça da ficha = quem a pessoa É ("A middle-aged historian"), antes da 1ª vírgula/descrição ("with", "wearing", "in"…): // KINEO-S25-APRESENTADOR-2026-10-06
+// "A weathered sailor … with an anchor tattoo" não vira apresentador por causa de um objeto da descrição. // KINEO-S25-APRESENTADOR-2026-10-06
+const CORTE_CABECA_RE = /[,;:.(]|\s(?:with|wearing|in|who|holding|standing|stands|sitting|sits|seated|dressed|carrying|against|from|at|on|com|vestindo|usando|con|vestid[oa]|em|en)\s/i // KINEO-S25-APRESENTADOR-2026-10-06
+/** O papel de narrador/apresentador que a ficha descreve (pela cabeça da ficha), ou null. */ // KINEO-S25-APRESENTADOR-2026-10-06
+export function papelDeApresentador(characterSheet: string | null | undefined): { papel: string; re: RegExp } | null { // KINEO-S25-APRESENTADOR-2026-10-06
+  const cabeca = limpa(characterSheet ?? '').split(CORTE_CABECA_RE)[0] ?? '' // KINEO-S25-APRESENTADOR-2026-10-06
+  return PAPEIS_APRESENTADOR.find((p) => p.re.test(cabeca)) ?? null // KINEO-S25-APRESENTADOR-2026-10-06
+} // KINEO-S25-APRESENTADOR-2026-10-06
+const normal = (t: string) => limpa(t).toLowerCase().replace(/[^a-z0-9à-ÿ\s]/g, ' ').replace(/\s+/g, ' ').trim() // KINEO-S25-APRESENTADOR-2026-10-06
+/** A pessoa da ficha está no texto: o começo da ficha (4 palavras) repetido, ou o papel dito ("the historian"). */ // KINEO-S25-APRESENTADOR-2026-10-06
+function pessoaDaFichaNaCena(texto: string, ficha: string, papelRe: RegExp): boolean { // KINEO-S25-APRESENTADOR-2026-10-06
+  const ini = normal(ficha).split(' ').slice(0, 4).join(' ') // KINEO-S25-APRESENTADOR-2026-10-06
+  return (ini.split(' ').length >= 3 && normal(texto).includes(ini)) || papelRe.test(texto ?? '') // KINEO-S25-APRESENTADOR-2026-10-06
+} // KINEO-S25-APRESENTADOR-2026-10-06
+const PRONOME_PESSOA_RE = /(?<![A-Za-zÀ-ÿ])(?:he|she|him|his|her|hers|himself|herself|ele|ela|dele|dela|él|ella)(?![A-Za-zÀ-ÿ])/i // KINEO-S25-APRESENTADOR-2026-10-06
+const nomesDaFicha = (ficha: string) => limpa(ficha).split(/\s+/).slice(1).map((w) => w.replace(/[^A-Za-zÀ-ÿ'’-]/g, '')).filter((w) => w.length >= 3 && /^[A-ZÀ-Ý]/.test(w)) // KINEO-S25-APRESENTADOR-2026-10-06
+/** A fala da cena cita a pessoa? 'papel' = o papel (en/pt/es: "historians traced…"); 'pessoa' = um pronome de pessoa ou um nome // KINEO-S25-APRESENTADOR-2026-10-06
+ *  da ficha (a pessoa pode ser personagem da história: "She drilled…"); null = não cita → o apresentador está fora da história. */ // KINEO-S25-APRESENTADOR-2026-10-06
+function falaCitaPessoa(fala: string, papelRe: RegExp, ficha: string): 'papel' | 'pessoa' | null { // KINEO-S25-APRESENTADOR-2026-10-06
+  const f = fala ?? '' // KINEO-S25-APRESENTADOR-2026-10-06
+  const palavrasDaFala = f.split(/[^A-Za-zÀ-ÿ'’-]+/) // KINEO-S25-APRESENTADOR-2026-10-06
+  if (papelRe.test(f)) return 'papel' // KINEO-S25-APRESENTADOR-2026-10-06
+  return PRONOME_PESSOA_RE.test(f) || nomesDaFicha(ficha).some((n) => palavrasDaFala.includes(n)) ? 'pessoa' : null // KINEO-S25-APRESENTADOR-2026-10-06
+} // KINEO-S25-APRESENTADOR-2026-10-06
+// O cenário do apresentador (frase a frase, para tirar do núcleo/resto refeito) e o do ambiente (forte = 1 basta; fraco = 3). // KINEO-S25-APRESENTADOR-2026-10-06
+const CENARIO_DO_APRESENTADOR_RE = /(?<![A-Za-zÀ-ÿ])(?:study room|studio|library|office|desk|bookshel(?:f|ves)|bookcases?|book-lined|globe|classroom|lecture hall|newsroom|backdrop|estantes?|biblioteca|escrit[óo]rio|est[úu]dio)(?![A-Za-zÀ-ÿ])/i // KINEO-S25-APRESENTADOR-2026-10-06
+const CENARIO_FORTE_RE = /(?<![A-Za-zÀ-ÿ])(?:study room|(?:a|the|his|her|their|private|historical|quiet|cozy|cosy|book-lined|dim|wood-panell?ed)\s+study|bookshel(?:f|ves)|bookcases?|book-lined|library|(?<!(?:around|across) the )globe|lecture (?:hall|theat(?:er|re))|classroom|newsroom|news desk|(?:tv|television|broadcast|podcast|recording|news) studio|talk[- ]show|scholarly|estantes? de livros|estanter[íi]as?|sala de aula|globo terrestre|biblioteca)(?![A-Za-zÀ-ÿ])/i // KINEO-S25-APRESENTADOR-2026-10-06
+const CENARIO_FRACO_RE = /(?<![A-Za-zÀ-ÿ])(?:desks?|office|studio|armchairs?|fireplace|books|archives?|maps|documents|contemplative|escrit[óo]rio|est[úu]dio|livros|libros|despacho)(?![A-Za-zÀ-ÿ])/gi // KINEO-S25-APRESENTADOR-2026-10-06
+/** A environmentSheet descreve o cenário de um apresentador (escritório, biblioteca, estúdio, sala de aula…)? */ // KINEO-S25-APRESENTADOR-2026-10-06
+export function cenarioDeApresentador(environmentSheet: string): boolean { // KINEO-S25-APRESENTADOR-2026-10-06
+  const e = environmentSheet ?? '' // KINEO-S25-APRESENTADOR-2026-10-06
+  return CENARIO_FORTE_RE.test(e) || new Set((e.match(CENARIO_FRACO_RE) ?? []).map((w) => w.toLowerCase())).size >= 3 // KINEO-S25-APRESENTADOR-2026-10-06
+} // KINEO-S25-APRESENTADOR-2026-10-06
+/** O lugar dentro da frase de época ("Mount Tambora, Indonesia, 1815: …" → "Mount Tambora, Indonesia"); sem lugar → null. */ // KINEO-S25-APRESENTADOR-2026-10-06
+export function lugarDaEpoca(epoca: string): string | null { // KINEO-S25-APRESENTADOR-2026-10-06
+  const cabeca = limpa(epoca).split(':')[0] // KINEO-S25-APRESENTADOR-2026-10-06
+  const k = cabeca.lastIndexOf(', ') // KINEO-S25-APRESENTADOR-2026-10-06
+  return k > 0 ? cabeca.slice(0, k) : null // KINEO-S25-APRESENTADOR-2026-10-06
+} // KINEO-S25-APRESENTADOR-2026-10-06
+/** O texto cita o lugar (qualquer parte: "Mount Tambora", "Tambora", "Indonesia")? */ // KINEO-S25-APRESENTADOR-2026-10-06
+function mencionaLugar(texto: string, lugar: string): boolean { // KINEO-S25-APRESENTADOR-2026-10-06
+  const t = (texto ?? '').toLowerCase() // KINEO-S25-APRESENTADOR-2026-10-06
+  return lugar.split(/,\s*/).flatMap((p) => [p, p.replace(/^(?:mount|mt\.|lake|cape|fort|port|monte|lago|cabo|ilha|isla)\s+/i, '')]).some((p) => p.length >= 3 && t.includes(p.toLowerCase())) // KINEO-S25-APRESENTADOR-2026-10-06
+} // KINEO-S25-APRESENTADOR-2026-10-06
+const natural = (lugar: string) => lugar.replace(/, /, ' in ') // KINEO-S25-APRESENTADOR-2026-10-06 — "Mount Tambora, Indonesia" → "Mount Tambora in Indonesia"
+// O acontecimento físico da fala, em imagem (en/pt/es). Sem pessoa e sem marca de câmera/look nas frases (o still FLUX nasce delas). // KINEO-S25-APRESENTADOR-2026-10-06
+const VULCAO_RE = /(?<![A-Za-zÀ-ÿ])(?:mount|mt|volcano(?:es)?|volcanic|volc[áa]n|vulc[ãa]o|monte|craters?|crateras?|cr[áa]ter|caldera)(?![A-Za-zÀ-ÿ])/i // KINEO-S25-APRESENTADOR-2026-10-06
+const ACONTECIMENTOS: Array<{ re: RegExp; imagem: string; vulcao?: string }> = [ // KINEO-S25-APRESENTADOR-2026-10-06
+  { re: /(?<![A-Za-zÀ-ÿ])(?:erupt\w*|explod\w*|explosions?|blast(?:s|ed)?|erup[çc](?:ão|ões)|explodiu|explodiram|explos(?:ão|ões)|erupci[óo]n|explot[óo]|explosi[óo]n)(?![A-Za-zÀ-ÿ])/i, imagem: 'torn by a massive explosion, fire and smoke billowing upward', vulcao: 'erupting, a towering column of ash and fire rising into the sky' }, // KINEO-S25-APRESENTADOR-2026-10-06
+  { re: /(?<![A-Za-zÀ-ÿ])(?:avalanche|landslide|mudslide|deslizamento|alud)(?![A-Za-zÀ-ÿ])/i, imagem: 'buried under a roaring avalanche of snow and rock' }, // KINEO-S25-APRESENTADOR-2026-10-06
+  { re: /(?<![A-Za-zÀ-ÿ])(?:tsunami|tidal wave|waves?|onda|ondas|olas?|maremoto)(?![A-Za-zÀ-ÿ])/i, imagem: 'struck by a towering wave' }, // KINEO-S25-APRESENTADOR-2026-10-06
+  { re: /(?<![A-Za-zÀ-ÿ])(?:flood\w*|inunda\w*|enchentes?)(?![A-Za-zÀ-ÿ])/i, imagem: 'under muddy floodwater' }, // KINEO-S25-APRESENTADOR-2026-10-06
+  { re: /(?<![A-Za-zÀ-ÿ])(?:earthquake|quake\w*|terremoto|sismo)(?![A-Za-zÀ-ÿ])/i, imagem: 'shaken by an earthquake, the ground cracking open' }, // KINEO-S25-APRESENTADOR-2026-10-06
+  { re: /(?<![A-Za-zÀ-ÿ])(?:collaps\w*|crumbl\w*|toppl\w*|desab\w*|derrumb\w*|colaps\w*)(?![A-Za-zÀ-ÿ])/i, imagem: 'collapsing in a cloud of dust and debris' }, // KINEO-S25-APRESENTADOR-2026-10-06
+  { re: /(?<![A-Za-zÀ-ÿ])(?:burned down|burnt down|caught fire|went up in flames|on fire|in flames|blaze|inferno|inc[êe]ndio|incendio|pegou fogo)(?![A-Za-zÀ-ÿ])/i, imagem: 'engulfed in flames and thick smoke' }, // KINEO-S25-APRESENTADOR-2026-10-06
+  { re: /(?<![A-Za-zÀ-ÿ])(?:storms?|hurricane|typhoon|cyclone|tornado|blizzard|tempestade|furac[ãa]o|tormenta|hurac[áa]n)(?![A-Za-zÀ-ÿ])/i, imagem: 'battered by a violent storm' }, // KINEO-S25-APRESENTADOR-2026-10-06
+  { re: /(?<![A-Za-zÀ-ÿ])(?:sank|sinks?|sinking|sunk|naufrag\w*|afund\w*|hundi\w*)(?![A-Za-zÀ-ÿ])/i, imagem: 'sinking beneath dark, heaving waves' }, // KINEO-S25-APRESENTADOR-2026-10-06
+] // KINEO-S25-APRESENTADOR-2026-10-06
+// Palavras de som/medida/verbo solto que pedacosNominais deixa passar e que não se filmam ("roar heard", "kilometers", "spread"). // KINEO-S25-APRESENTADOR-2026-10-06
+const SEM_IMAGEM = new Set(('heard spread said told known roar roars sound sounds noise bang boom rumble echo echoes cry cries scream screams voice voices ' + // KINEO-S25-APRESENTADOR-2026-10-06
+  'silence smell smelled taste kilometers kilometres miles meters metres feet foot tons tonnes gallons liters litres percent degrees per search ' + // KINEO-S25-APRESENTADOR-2026-10-06
+  'west east north south cost hit put set cut let').split(/\s+/)) // KINEO-S25-APRESENTADOR-2026-10-06
+const focoDaFala = (fala: string) => pedacosNominais(fala).map((p) => p.split(' ').filter((w) => !SEM_IMAGEM.has(w)).join(' ')).filter((p) => p.length >= 3).slice(0, 2) // KINEO-S25-APRESENTADOR-2026-10-06
+/** A imagem do que a FALA narra: lugar da cena + acontecimento físico + pedaços nominais (foco só em inglês, como na troca de plano). */ // KINEO-S25-APRESENTADOR-2026-10-06
+// Sem lugar, sem acontecimento e sem foco (fala em pt/es sobre outra coisa): o cenário dominante das cenas anteriores ("the fields"), // KINEO-S25-APRESENTADOR-2026-10-06
+// e só por último o lugar de origem do filme — nunca o escritório do apresentador. // KINEO-S25-APRESENTADOR-2026-10-06
+export function imagemDaFala(a: { fala: string; lugar: string | null; origem: string | null; idioma: IdiomaS25; variante: number; cenario?: string }): string { // KINEO-S25-APRESENTADOR-2026-10-06
+  const fala = a.fala ?? '' // KINEO-S25-APRESENTADOR-2026-10-06
+  const onde = a.lugar ? natural(a.lugar) : null // KINEO-S25-APRESENTADOR-2026-10-06
+  const foco = a.idioma === 'en' ? focoDaFala(fala) : [] // KINEO-S25-APRESENTADOR-2026-10-06
+  const ev = ACONTECIMENTOS.find((x) => x.re.test(fala)) // KINEO-S25-APRESENTADOR-2026-10-06
+  const quem = onde ?? (foco.length ? juntaFoco(foco) : a.origem ? natural(a.origem) : null) // KINEO-S25-APRESENTADOR-2026-10-06
+  if (ev && quem) { // KINEO-S25-APRESENTADOR-2026-10-06
+    const evento = ev.vulcao && VULCAO_RE.test(`${fala} ${a.lugar ?? a.origem ?? ''}`) ? ev.vulcao : ev.imagem // KINEO-S25-APRESENTADOR-2026-10-06
+    return `${a.variante % 2 === 0 ? 'Wide shot of' : 'Aerial view of'} ${quem} ${evento}${onde && foco.length ? `, with ${juntaFoco(foco)}` : ''}.` // KINEO-S25-APRESENTADOR-2026-10-06
+  } // KINEO-S25-APRESENTADOR-2026-10-06
+  if (foco.length) return `${a.variante % 2 === 0 ? 'Wide shot of' : 'Ground-level view of'} ${juntaFoco(foco)}${onde ? ` in ${onde}` : ', seen from far away'}.` // KINEO-S25-APRESENTADOR-2026-10-06
+  if (onde) return `Wide establishing shot of ${onde}, seen from far away.` // KINEO-S25-APRESENTADOR-2026-10-06
+  if (a.cenario && a.cenario !== 'place') return `Wide establishing shot of the ${a.cenario}, seen from far away.` // KINEO-S25-APRESENTADOR-2026-10-06
+  return a.origem ? `Wide establishing shot of ${natural(a.origem)}, seen from far away.` : '' // KINEO-S25-APRESENTADOR-2026-10-06
+} // KINEO-S25-APRESENTADOR-2026-10-06
+/** Para onde olha a pessoa citada pela fala: o mapa do lugar da cena, ou um livro. */ // KINEO-S25-APRESENTADOR-2026-10-06
+const trabalhoNaCena = (lugar: string | null) => (lugar ? `an old map of ${natural(lugar)} spread out in front of them` : 'an old book open in front of them') // KINEO-S25-APRESENTADOR-2026-10-06
+const ATIVIDADE_RE = /\b(?:hold(?:s|ing)?|held|read(?:s|ing)?|stud(?:y|ies|ying|ied)|examin\w*|inspect\w*|writ(?:e|es|ing)|wrote|sketch\w*|draw(?:s|ing)?|drew|trac(?:e|es|ing|ed)|point(?:s|ing|ed)?|leaf(?:s|ing)?|bent over|bend(?:s|ing)? over|lean(?:s|ing|ed)? over|work(?:s|ing|ed)?|dig(?:s|ging)?|measur\w*|compar\w*|consult\w*|annotat\w*|unroll\w*|unfold\w*|eyes on)\b/i // KINEO-S25-APRESENTADOR-2026-10-06
+/** A frase da pessoa ganha o trabalho na cena (", studying an old map of …") quando a pessoa só posa. */ // KINEO-S25-APRESENTADOR-2026-10-06
+function comTrabalho(nucleo: string, ficha: string, papelRe: RegExp, trabalho: string): string { // KINEO-S25-APRESENTADOR-2026-10-06
+  const fs = frases(nucleo) // KINEO-S25-APRESENTADOR-2026-10-06
+  if (!fs.length) return nucleo // KINEO-S25-APRESENTADOR-2026-10-06
+  const k = Math.max(0, fs.findIndex((f) => pessoaDaFichaNaCena(f, ficha, papelRe))) // KINEO-S25-APRESENTADOR-2026-10-06
+  fs[k] = `${fs[k].replace(/[.!?]+$/, '')}, ${trabalho}.` // KINEO-S25-APRESENTADOR-2026-10-06
+  return fs.join(' ') // KINEO-S25-APRESENTADOR-2026-10-06
+} // KINEO-S25-APRESENTADOR-2026-10-06
+/** Frase que pertence ao apresentador (ele, o cenário dele, ou o olhar que sobrou dele) — sai junto com ele. */ // KINEO-S25-APRESENTADOR-2026-10-06
+const fraseDoApresentador = (f: string, ficha: string, papelRe: RegExp) => pessoaDaFichaNaCena(f, ficha, papelRe) || PRONOME_PESSOA_RE.test(f) || CENARIO_DO_APRESENTADOR_RE.test(f) || f.includes(OLHAR_NA_CENA) // KINEO-S25-APRESENTADOR-2026-10-06
+// O enquadramento de retrato que o GPT escreveu para o apresentador ("Medium shot, …") contradiria o "Wide shot of …" refeito. // KINEO-S25-APRESENTADOR-2026-10-06
+const ENQUADRAMENTO_DE_PESSOA_RE = /\b(?:extreme\s+)?(?:medium(?:[- ](?:close|wide))?[- ]?(?:up|shot)|close[- ]?up(?:\s+shot)?|mid[- ]shot|waist[- ]up(?:\s+shot)?|head[- ]and[- ]shoulders(?:\s+shot)?|portrait\s+(?:shot|framing))\b[,;]?\s*/gi // KINEO-S25-APRESENTADOR-2026-10-06
+const semEnquadramentoDePessoa = (t: string) => limpa((t ?? '').replace(ENQUADRAMENTO_DE_PESSOA_RE, ' ')).replace(/\s+([,.;])/g, (_m: string, p: string) => p).replace(/,\s*\./g, '.').replace(/^[,;.\s]+/, '').replace(/(^|[.!?]\s+)([a-z])/g, (_m: string, a: string, b: string) => a + b.toUpperCase()) // KINEO-S25-APRESENTADOR-2026-10-06
+// ── fim do bloco KINEO-S25-APRESENTADOR-2026-10-06 ──
 /** A environmentSheet com a época do filme — vai à âncora de ambiente do S25 (que antes nascia sem trava). */
 export function ambienteComEpoca(environmentSheet: string, epoca: string): string {
   const e = semPontoFinal(environmentSheet)
+  // KINEO-S25-APRESENTADOR-2026-10-06 — o escritório/estúdio do apresentador sem lugar nenhum da história vira o mundo da história: a própria época/lugar
+  if (epoca && e && cenarioDeApresentador(e)) { const lugar = lugarDaEpoca(epoca); if (!lugar || !mencionaLugar(e, lugar)) return semPontoFinal(epoca) } // KINEO-S25-APRESENTADOR-2026-10-06
   return epoca && e ? `${e}. ${semPontoFinal(epoca)}` : environmentSheet
 }
 
@@ -549,7 +714,50 @@ export function planejarCenasS25(input: { cenas: CenaS25Entrada[]; roteiro: stri
     nucleos[i] = imagemConcreta(t, { fala: input.cenas[i].voiceover ?? '', lugar: epocas[i]?.lugar ?? null, origem, cenario: cenario(i), salto: saltoDeTempo(input.cenas[i].voiceover ?? ''), mesBase: base.mes, variante })
     motivos[i] = `frase abstrata (${t}) → imagem concreta`
   })
-  const planos: PlanoTipo[] = nucleos.map((nu, i) => planoDe(`${nu} ${abstratas[i] ? '' : partes[i].resto}`))
+  // KINEO-S25-APRESENTADOR-2026-10-06 — (1) olhar para a lente vira olhar dentro da cena em TODA cena; (2) a pessoa da ficha com papel de
+  // narrador/apresentador que a fala da cena não cita sai: o núcleo nasce da fala (a época da cena entra na montagem, como em toda cena); // KINEO-S25-APRESENTADOR-2026-10-06
+  // citada, fica sem lente e trabalhando na cena. Frase abstrata já ganhou a imagem do código (o apresentador saiu com o núcleo antigo). // KINEO-S25-APRESENTADOR-2026-10-06
+  const papel = papelDeApresentador(ficha) // KINEO-S25-APRESENTADOR-2026-10-06
+  const apresentador: Array<ApresentadorS25 | null> = input.cenas.map(() => null) // KINEO-S25-APRESENTADOR-2026-10-06
+  const olharLente: number[] = input.cenas.map(() => 0) // KINEO-S25-APRESENTADOR-2026-10-06
+  let refeitas = 0 // KINEO-S25-APRESENTADOR-2026-10-06
+  nucleos.forEach((nu, i) => { // KINEO-S25-APRESENTADOR-2026-10-06
+    if (!ativo[i]) return // KINEO-S25-APRESENTADOR-2026-10-06
+    const fala = input.cenas[i].voiceover ?? '' // KINEO-S25-APRESENTADOR-2026-10-06
+    const lugarDaCena = epocas[i]?.lugar ?? null // KINEO-S25-APRESENTADOR-2026-10-06
+    const olhar = olharNaCena(nu) // KINEO-S25-APRESENTADOR-2026-10-06
+    olharLente[i] = olhar.trocas // KINEO-S25-APRESENTADOR-2026-10-06
+    if (!papel || abstratas[i] || !pessoaDaFichaNaCena(nu, ficha, papel.re)) { // KINEO-S25-APRESENTADOR-2026-10-06
+      nucleos[i] = olhar.texto // KINEO-S25-APRESENTADOR-2026-10-06
+      if (olhar.trocas) motivos[i] = motivos[i] || 'olhar para a lente → olhar dentro da cena' // KINEO-S25-APRESENTADOR-2026-10-06
+      return // KINEO-S25-APRESENTADOR-2026-10-06
+    } // KINEO-S25-APRESENTADOR-2026-10-06
+    const citada = falaCitaPessoa(fala, papel.re, ficha) // KINEO-S25-APRESENTADOR-2026-10-06
+    if (citada === 'pessoa') { // KINEO-S25-APRESENTADOR-2026-10-06 — personagem da história ("She drilled…"): fica fazendo a ação da fala, só sem lente
+      nucleos[i] = olhar.texto // KINEO-S25-APRESENTADOR-2026-10-06
+      apresentador[i] = 'na_historia' // KINEO-S25-APRESENTADOR-2026-10-06
+      motivos[i] = 'pessoa da ficha citada na fala (pronome/nome) → fica, sem lente' // KINEO-S25-APRESENTADOR-2026-10-06
+      return // KINEO-S25-APRESENTADOR-2026-10-06
+    } // KINEO-S25-APRESENTADOR-2026-10-06
+    if (citada === 'papel') { // KINEO-S25-APRESENTADOR-2026-10-06
+      // já trabalha (segura, lê, examina…): o olhar vai para o trabalho; só posa: o olhar vai para o mapa/livro, ou ganha "studying …" // KINEO-S25-APRESENTADOR-2026-10-06
+      const jaTrabalha = ATIVIDADE_RE.test(nu) // KINEO-S25-APRESENTADOR-2026-10-06
+      const objeto = jaTrabalha ? 'the work in their hands' : trabalhoNaCena(lugarDaCena) // KINEO-S25-APRESENTADOR-2026-10-06
+      const naHistoria = olharNaCena(nu, objeto) // KINEO-S25-APRESENTADOR-2026-10-06
+      nucleos[i] = jaTrabalha || naHistoria.trocas > 0 ? naHistoria.texto : comTrabalho(naHistoria.texto, ficha, papel.re, `studying ${objeto}`) // KINEO-S25-APRESENTADOR-2026-10-06
+      apresentador[i] = 'na_historia' // KINEO-S25-APRESENTADOR-2026-10-06
+      motivos[i] = `apresentador citado na fala (${papel.papel}) → fica, sem lente, trabalhando na cena` // KINEO-S25-APRESENTADOR-2026-10-06
+      return // KINEO-S25-APRESENTADOR-2026-10-06
+    } // KINEO-S25-APRESENTADOR-2026-10-06
+    const ficam = frases(olhar.texto).filter((f) => !fraseDoApresentador(f, ficha, papel.re)) // KINEO-S25-APRESENTADOR-2026-10-06
+    const imagem = imagemDaFala({ fala, lugar: lugarDaCena, origem, idioma, variante: refeitas, cenario: cenario(i) }) // KINEO-S25-APRESENTADOR-2026-10-06
+    nucleos[i] = limpa(`${imagem} ${ficam.join(' ')}`) // KINEO-S25-APRESENTADOR-2026-10-06
+    refeitas++ // KINEO-S25-APRESENTADOR-2026-10-06
+    apresentador[i] = 'fora' // KINEO-S25-APRESENTADOR-2026-10-06
+    motivos[i] = 'apresentador fora da história → imagem da fala' // KINEO-S25-APRESENTADOR-2026-10-06
+  }) // KINEO-S25-APRESENTADOR-2026-10-06
+  // KINEO-S25-APRESENTADOR-2026-10-06 — núcleo refeito (como o da frase abstrata) é imagem do código: o plano vem dele, não da direção que o GPT escreveu para o apresentador
+  const planos: PlanoTipo[] = nucleos.map((nu, i) => planoDe(`${nu} ${abstratas[i] || apresentador[i] === 'fora' ? '' : partes[i].resto}`)) // KINEO-S25-APRESENTADOR-2026-10-06 (+ || apresentador[i] === 'fora')
   const planosOriginais = [...planos]
   const termos: string[][] = nucleos.map((nu) => termosDe(nu, ficha))
   const termosFala = input.cenas.map((c) => termosDe(c.voiceover ?? ''))
@@ -574,7 +782,7 @@ export function planejarCenasS25(input: { cenas: CenaS25Entrada[]; roteiro: stri
     planos[alvo] = novo
     termos[alvo] = termosDe(nucleos[alvo], ficha)
     trocou[alvo] = true
-    motivos[alvo] = `mesma composição da cena ${causa + 1} → plano ${novo}`
+    motivos[alvo] = `${motivos[alvo] ? `${motivos[alvo]}; ` : ''}mesma composição da cena ${causa + 1} → plano ${novo}` // KINEO-S25-APRESENTADOR-2026-10-06 (o motivo do apresentador/olhar não some na troca)
   }
   for (let i = 1; i < n; i++) {
     if (!ativo[i] || !ativo[i - 1]) continue
@@ -612,6 +820,11 @@ export function planejarCenasS25(input: { cenas: CenaS25Entrada[]; roteiro: stri
     // idempotente: época/eixo de uma passada anterior saem antes de entrar de novo
     let resto = ` ${partes[i].resto}`.split(EIXO_S25).join(' ').replace(EPOCA_JA_DITA_RE, ' ')
     resto = resto.split(SEM_TEXTO_ROTEADOR.trim()).join(SEM_TEXTO_S25.trim()).replace(SEM_EXTRAS_RE, SEM_EXTRAS_S25)
+    const olharResto = olharNaCena(resto) // KINEO-S25-APRESENTADOR-2026-10-06 — o olhar para a lente sai também da direção (resto)
+    resto = olharResto.texto // KINEO-S25-APRESENTADOR-2026-10-06
+    olharLente[i] += olharResto.trocas // KINEO-S25-APRESENTADOR-2026-10-06
+    // KINEO-S25-APRESENTADOR-2026-10-06 — apresentador fora: as frases dele (ele, o cenário dele) e o enquadramento de retrato saem da direção também
+    if (apresentador[i] === 'fora' && papel) resto = semEnquadramentoDePessoa(frases(resto).filter((f) => !fraseDoApresentador(f, ficha, papel.re)).join(' ')) // KINEO-S25-APRESENTADOR-2026-10-06
     if (estilo && !/Cinematography \(match exactly\)/i.test(resto)) resto += ` Cinematography (match exactly): ${estilo}.`
     if (!/No readable text/i.test(resto)) resto += SEM_TEXTO_S25
     const nucleoFinal = limpa((nucleos[i] || pedacosNominais(c.voiceover ?? '').slice(0, 2).join(' and ') || 'The scene').replace(SEM_EXTRAS_RE, SEM_EXTRAS_S25))
@@ -621,6 +834,7 @@ export function planejarCenasS25(input: { cenas: CenaS25Entrada[]; roteiro: stri
       indice: i, prompt, nucleo: nucleoFinal, nucleoOriginal: partes[i].nucleo, epoca, ano: epocas[i]?.ano ?? null, lugar: epocas[i]?.lugar ?? null,
       plano: planos[i], planoOriginal: planosOriginais[i], abstrata: abstratas[i], trocou: trocou[i], motivo: motivos[i] || 'mantida',
       sobreposicaoAnterior: sobreAnterior[i], comunsAnterior: comunsAnterior[i],
+      apresentador: apresentador[i], olharLente: olharLente[i], // KINEO-S25-APRESENTADOR-2026-10-06
     }
   })
   const ativas = cenas.filter((c): c is CenaS25 => c !== null)
@@ -635,7 +849,11 @@ export function planejarCenasS25(input: { cenas: CenaS25Entrada[]; roteiro: stri
       abstratas: ativas.filter((c) => c.abstrata).length,
       trocas: ativas.filter((c) => c.trocou).length,
       aberturas_distintas: new Set(aberturas).size === aberturas.length,
-      cenas: ativas.map((c) => ({ cena: c.indice + 1, plano: c.plano, plano_original: c.planoOriginal, abstrata: c.abstrata, trocou: c.trocou, motivo: c.motivo, epoca: c.epoca, sobreposicao_anterior: c.sobreposicaoAnterior, comuns_anterior: c.comunsAnterior, abertura: abertura(c.prompt) })),
+      papel_apresentador: papel?.papel ?? null, // KINEO-S25-APRESENTADOR-2026-10-06
+      apresentador_fora: ativas.filter((c) => c.apresentador === 'fora').length, // KINEO-S25-APRESENTADOR-2026-10-06
+      apresentador_na_historia: ativas.filter((c) => c.apresentador === 'na_historia').length, // KINEO-S25-APRESENTADOR-2026-10-06
+      olhar_lente: ativas.filter((c) => c.olharLente > 0).length, // KINEO-S25-APRESENTADOR-2026-10-06
+      cenas: ativas.map((c) => ({ cena: c.indice + 1, plano: c.plano, plano_original: c.planoOriginal, abstrata: c.abstrata, trocou: c.trocou, motivo: c.motivo, epoca: c.epoca, sobreposicao_anterior: c.sobreposicaoAnterior, comuns_anterior: c.comunsAnterior, abertura: abertura(c.prompt), apresentador: c.apresentador, olhar_lente: c.olharLente })), // KINEO-S25-APRESENTADOR-2026-10-06 (+ apresentador, olhar_lente)
     },
   }
 }
