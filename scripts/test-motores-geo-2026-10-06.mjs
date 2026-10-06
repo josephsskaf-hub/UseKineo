@@ -169,7 +169,9 @@ async function problemas(rep = {}) {
     // comparação direta (só fonte oficial, datada)
     const geo = cat.ENGINE_GEO[slug]
     if (!geo) { p.push(`${slug}: indexável sem camada citável`); continue }
-    const cotacoes = { kling: 'runway-k25-standard', hollywood: 'runway-k3-standard', h3: 'runway-h3-standard', s25: 'runway-s25-standard' }
+    // REANCORADO KINEO-S25-CLIPES-2026-10-06 (correção de fato público): o 2.5 compara com a Runway PRO — runway.com/pricing (06/10)
+    // lista o Seedance 2.5 só no Pro e no Max. Os outros motores seguem com as cotações de sempre.
+    const cotacoes = { kling: 'runway-k25-standard', hollywood: 'runway-k3-standard', h3: 'runway-h3-standard', s25: 'runway-s25-pro' }
     for (const r of geo.direct) {
       for (const s of r.sources) {
         let host = ''
@@ -190,6 +192,14 @@ async function problemas(rep = {}) {
       if (!texto(card).includes(`About ${usd(r.clipUsdCents)} for ${clipSec} seconds of raw video.`)) p.push(`${slug}: preço direto de ${r.who} fora do HTML`)
     }
     if (!geo.direct.length && !geo.directNote) p.push(`${slug}: sem comparação direta e sem aviso honesto`)
+    // KINEO-S25-CLIPES-2026-10-06 — comparação pública só com plano que a página oficial do concorrente LISTA com o modelo
+    // (lib/clips/clipPriceVsMarket.ts MODEL_PLAN_LISTINGS; o Seedance 2.5 na Runway: só Pro e Max, runway.com/pricing 06/10).
+    const listagens = market.MODEL_PLAN_LISTINGS[market.ENGINE_MARKET[key].model] ?? []
+    for (const r of geo.direct) {
+      const quem = /^(\S+) \((\w+) plan\)$/.exec(r.who)
+      const listagem = quem ? listagens.find((l) => l.competitor === quem[1]) : null
+      if (listagem && !listagem.plans.includes(quem[2])) p.push(`${slug}: cita ${r.who}, plano que a página oficial não lista com o modelo`)
+    }
     if (key === 'seedance' && !(geo.directNote && card.includes('href="https://www.byteplus.com/en/product/modelark"'))) p.push('seedance: aviso honesto da BytePlus ausente')
     // CTA → campanha + motor; frase da marca de apoio
     const cta = card.match(/<a href="([^"]+)"[^>]*>(Make a [^<]+ →)<\/a>/) // KINEO-S25-ABRE-2026-10-06: "… video →" ou "… video on a paid plan →"
@@ -298,6 +308,10 @@ async function problemas(rep = {}) {
     const x = esperado[slug]
     const linha = secao.split('\n').find((l) => l.startsWith(`- [Where to use ${x.name} online](${BASE}/ai-video-generator/${slug})`)) ?? ''
     if (!(x.clipeAVenda ? linha.includes(`${x.clipSec}-second clip: ${x.clipCr} credits`) : !/-second clip:/.test(linha)) || (x.soPago && !linha.includes('paid plans only (not in the free trial)')) || !linha.includes(`60-second narrated video: ${x.f60} credits`) || !linha.includes(`35-second narrated video: ${x.f35} credits`)) p.push(`llms.txt: linha do ${x.name} ausente ou ≠ fonte`)
+    // KINEO-S25-CLIPES-2026-10-06 — o preço direto do llms.txt é o MESMO da página (mesmo concorrente, mesmo plano, mesmo valor)
+    for (const r of (cat.ENGINE_GEO[slug]?.direct ?? []).filter((route) => route.clipUsdCents !== null)) {
+      if (!linha.includes(`${r.who}, about ${usd(r.clipUsdCents)} for ${r.seconds} seconds`)) p.push(`llms.txt: ${x.name} sem o preço direto de ${r.who}`)
+    }
   }
   for (const slug of fora) if (secao.includes(`/ai-video-generator/${slug})`)) p.push(`llms.txt: motor pausado ${slug} na seção de onde usar`)
   // KINEO-S25-CLIPES-2026-10-06 — a novidade do motor pago com clipe à venda cita "<motor> clips from N credits (paid plans)";
@@ -370,6 +384,15 @@ const troca = (rel, de, para, extra = {}) => {
   if (src.split(de).length !== 2) throw new Error(`âncora do mutante ausente/ambígua em ${rel}: ${de.slice(0, 80)}`)
   return { ...extra, [rel]: src.replace(de, () => para) }
 }
+// KINEO-S25-CLIPES-2026-10-06 — várias trocas no MESMO arquivo (cada âncora tem de existir uma vez só).
+const trocaDupla = (rel, pares, extra = {}) => {
+  let src = rd(rel)
+  for (const [de, para] of pares) {
+    if (src.split(de).length !== 2) throw new Error(`âncora do mutante ausente/ambígua em ${rel}: ${de.slice(0, 80)}`)
+    src = src.replace(de, () => para)
+  }
+  return { ...extra, [rel]: src }
+}
 const precoCreatorMudou = troca(PRICING, 'export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {\n  starter: { usd: 1290 },\n  basic: { usd: 2990 },', 'export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {\n  starter: { usd: 1290 },\n  basic: { usd: 3190 },')
 const veoPausado = troca(LAUNCH, '  return (PAUSED_ENGINE_KEYS as readonly string[]).includes(k) ? ENGINE_PAUSE[k as PausedEngineKey] : null', "  return k === 'veo' ? ENGINE_PAUSE.omni : (PAUSED_ENGINE_KEYS as readonly string[]).includes(k) ? ENGINE_PAUSE[k as PausedEngineKey] : null")
 // KINEO-S25-CLIPES-2026-10-06 — o interruptor único do clipe do 2.5 (lib/clips/clipLaunch.ts) forçado em memória: as mesmas
@@ -415,6 +438,13 @@ const mutantes = [
   // KINEO-S25-CLIPES-2026-10-06 — rodam com o interruptor do clipe forçado em memória (independem do valor no arquivo)
   ['M23 a frase "clips from … (paid plans)" some (clipe do 2.5 ligado)', troca(GEO, '  const clipFromLine = clipeAVenda && access.paidPlansOnly\n', '  const clipFromLine = null && clipeAVenda && access.paidPlansOnly\n', clipS25Com(true))],
   ['M24 a camada citável vende o clipe do 2.5 com o interruptor desligado', troca(CATALOG, "clipOnSale: param !== 's25' || clipS25Visible(null) }", 'clipOnSale: true }', clipS25Com(false))],
+  // KINEO-S25-CLIPES-2026-10-06 — correção de fato público: o 2.5 só compara com a Runway Pro (a Standard não lista o 2.5)
+  ['M25 o 2.5 volta a comparar com a Runway Standard', troca(GEO, "runwayRoute('runway-s25-pro', 'Seedance 2.5 at its lowest resolution', s)", "runwayRoute('runway-s25-standard', 'Seedance 2.5 at its lowest resolution', s)")],
+  ['M26 sem a trava do quote() e com a Runway Standard no 2.5', trocaDupla(GEO, [
+    ["  if (quotePlanListsModel(q) === false) throw new Error(`engineCitation: ${q.plan.competitor} ${q.plan.plan} não lista ${q.model} na página oficial (${id})`)\n", ''],
+    ["runwayRoute('runway-s25-pro', 'Seedance 2.5 at its lowest resolution', s)", "runwayRoute('runway-s25-standard', 'Seedance 2.5 at its lowest resolution', s)"],
+  ])],
+  ['M27 a listagem oficial passa a incluir o Standard', troca('lib/clips/clipPriceVsMarket.ts', "plans: ['Pro', 'Max'], url: 'https://runway.com/pricing'", "plans: ['Standard', 'Pro', 'Max'], url: 'https://runway.com/pricing'", trocaDupla(GEO, [["runwayRoute('runway-s25-pro', 'Seedance 2.5 at its lowest resolution', s)", "runwayRoute('runway-s25-standard', 'Seedance 2.5 at its lowest resolution', s)"]]))],
 ]
 // O mutante tem de ficar vermelho PELO MOTIVO CERTO (não por efeito colateral): o problema esperado precisa aparecer.
 const ESPERADO = {
@@ -428,6 +458,8 @@ const ESPERADO = {
   M20: /frase da marca não está logo abaixo do CTA/,
   M21: /espelho do país .* ≠ GRANT_COUNTRY_CLAUSE/, M22: /de: tempo de entrega ainda é 3–7 min/,
   M23: /frase "clips from … \(paid plans\)" ausente/, M24: /1ª frase anuncia clipe que não se vende|tabela com linha de clipe que não se vende/,
+  M25: /Runway Standard não lista seedance-2\.5 na página oficial/, M26: /cita Runway \(Standard plan\), plano que a página oficial não lista/,
+  M27: /≠ cotação oficial/,
 }
 for (const [rotulo, rep] of mutantes) {
   let r

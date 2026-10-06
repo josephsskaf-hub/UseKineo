@@ -204,6 +204,27 @@ export const MARKET_UNKNOWN: readonly string[] = [
   'Omni Flash (Gemini Omni Flash) e Seedance 1.5 Pro: nenhum concorrente com preço achado — mantêm a regra de 29/09.',
 ]
 
+// ─── Quais planos LISTAM o modelo na página oficial (KINEO-S25-CLIPES-2026-10-06) ─────────────────────────────────
+// Página PÚBLICA nossa só compara com plano que a página oficial do concorrente lista com o modelo. Conferido em 06/10/2026
+// em runway.com/pricing: o Seedance 2.5 aparece só nos cartões do Pro e do Max (o Standard lista "Gen-4.5, Kling 3.0, Nano
+// Banana Pro and more" — não confirma o 2.5). A cotação 'runway-s25-standard' segue na tabela (é o preço por segundo da
+// academy), mas lib/seo/engineCitation.ts recusa citá-la. Modelo/concorrente sem registro aqui = não conferido (não trava).
+export interface ModelPlanListing {
+  competitor: MarketPlan['competitor']
+  plans: readonly string[]
+  url: string
+  checkedOn: string
+}
+export const MODEL_PLAN_LISTINGS: Partial<Record<MarketModel, readonly ModelPlanListing[]>> = {
+  'seedance-2.5': [{ competitor: 'Runway', plans: ['Pro', 'Max'], url: 'https://runway.com/pricing', checkedOn: '2026-10-06' }],
+}
+
+/** O plano da cotação é listado com o modelo na página oficial? true/false quando conferido; null = sem registro. */
+export function quotePlanListsModel(quote: MarketQuote): boolean | null {
+  const listing = MODEL_PLAN_LISTINGS[quote.model]?.find((l) => l.competitor === quote.plan.competitor)
+  return listing ? listing.plans.includes(quote.plan.plan) : null
+}
+
 // ─── O que o NOSSO clipe entrega (modelo + resolução) e o custo da fal conferido em 05/10 ────────────────────────
 export interface EngineMarketMatch {
   model: MarketModel

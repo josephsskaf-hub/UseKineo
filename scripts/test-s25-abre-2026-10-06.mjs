@@ -328,6 +328,10 @@ async function problems(over = {}) {
       if (/clip costs|-second clip<|-second clip ·|clips from/.test(texto)) p.push(`${tag}página anuncia clipe avulso do 2.5 (não se vende)`)
     }
     if (!texto.includes('Seedance 2.5 is on paid plans — the free trial does not include it.')) p.push(`${tag}página sem a nota "on paid plans"`)
+    // KINEO-S25-CLIPES-2026-10-06 — correção de fato público: a comparação do 2.5 cita a Runway PRO (runway.com/pricing, 06/10,
+    // lista o Seedance 2.5 só no Pro e no Max), nunca a Standard — na lista do card e na FAQ.
+    const semTags = texto.replace(/<[^>]+>/g, '')
+    if (!semTags.includes('Runway (Pro plan) — $35/month') || !semTags.includes('Runway (Pro plan), about') || /Runway \(Standard plan\)/.test(semTags)) p.push(`${tag}comparação do 2.5 com plano da Runway que não lista o modelo (esperado Runway Pro)`)
     if (/New accounts[^.<]* start with \d+ free credits/.test(texto)) p.push(`${tag}página oferece o trial como porta do 2.5`)
     for (const s of [35, 60]) {
       const c = cr(s)
@@ -530,6 +534,8 @@ const mutants = [
   ['M41 o "from N credits" digitado', CITATION, '${Math.min(...offeredSecondsFor(key).map((s) => clipCreditCost(key, s, false)))}', '5'],
   ['M42 card: linha da Kineo com clipe sem "on any paid plan"', 'components/EngineCitationAnswer.tsx', "${geo.paidPlansOnly ? ', on any paid plan' : '' /* KINEO-S25-CLIPES-2026-10-06: clipe do 2.5 à venda, só plano pago */}", ''],
   ['M43 llms.txt: a novidade do 2.5 sem o clipe à venda', LLMS, "narrates the script.${geo.clipFromLine ? ` ${geo.clipFromLine}.` : '' /* KINEO-S25-CLIPES-2026-10-06 */}", 'narrates the script.'],
+  // KINEO-S25-CLIPES-2026-10-06 — correção de fato público (Runway Standard → Pro no 2.5)
+  ['M44 o 2.5 volta a comparar com a Runway Standard', CITATION, "runwayRoute('runway-s25-pro', 'Seedance 2.5 at its lowest resolution', s)", "runwayRoute('runway-s25-standard', 'Seedance 2.5 at its lowest resolution', s)"],
 ]
 for (const [label, file, from, to] of mutants) {
   const src = read(file)

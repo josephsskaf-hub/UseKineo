@@ -20,7 +20,7 @@
 // isolado, sem rede, e prova cada número contra a função que cobra.
 import { isClipEngineKey, offeredSecondsFor, type ClipEngineKey } from '../clips/clipCatalog'
 import { CLIP_COSTS, clipCreditCost } from '../clips/clipPricing'
-import { MARKET_QUOTES, type MarketQuote } from '../clips/clipPriceVsMarket'
+import { MARKET_QUOTES, quotePlanListsModel, type MarketQuote } from '../clips/clipPriceVsMarket'
 import { creditCostForDuration, type Quality } from '../credits/engineCost'
 import { supportedDurationsFor } from '../durationByEngine'
 import { clipSecondsForTarget } from '../pricingTwoProducts'
@@ -95,6 +95,8 @@ export interface DirectRoute {
 // Runway: planos e créditos por segundo vêm de lib/clips/clipPriceVsMarket.ts (MARKET_QUOTES, oficial, 05/10) e foram
 // relidos em 06/10 em runway.com/pricing (Standard US$ 15/mês, 625 créditos) e academy.runwayml.com/models-pricing
 // (Kling 3.0 Pro sem áudio 12/s; Kling 2.5 Turbo Pro 12–15/s; MiniMax H3 10/s; Seedance 2.5 20/s) — mesmos números.
+// KINEO-S25-CLIPES-2026-10-06 — o Seedance 2.5 compara com a Runway PRO (US$ 35/mês, 2.250 créditos): runway.com/pricing lista
+// o 2.5 só no Pro e no Max (MODEL_PLAN_LISTINGS); quote() recusa cotação de plano que não lista o modelo.
 // Google: preço do Veo 3.1 Fast na Gemini API lido em 06/10 em ai.google.dev/gemini-api/docs/pricing ("$0.10" por
 // segundo na menor resolução, áudio incluído por padrão; página atualizada em 2026-10-01).
 // Kling (app próprio): a página oficial mostra preço promocional e preço cheio diferentes (06/10) — sem número aqui.
@@ -120,6 +122,10 @@ export const FONTES_DIRETAS = {
 function quote(id: string): MarketQuote {
   const q = MARKET_QUOTES.find((x) => x.id === id)
   if (!q || q.source !== 'oficial' || q.plan.source !== 'oficial') throw new Error(`engineCitation: cotação oficial ausente ${id}`)
+  // KINEO-S25-CLIPES-2026-10-06 — correção de fato público: a página só compara com plano que a página oficial do concorrente
+  // LISTA com o modelo (lib/clips/clipPriceVsMarket.ts MODEL_PLAN_LISTINGS). Citar um plano que não oferece o modelo trava aqui,
+  // no carregamento — antes de qualquer página sair com o preço errado.
+  if (quotePlanListsModel(q) === false) throw new Error(`engineCitation: ${q.plan.competitor} ${q.plan.plan} não lista ${q.model} na página oficial (${id})`)
   return q
 }
 
@@ -205,7 +211,9 @@ const PROFILES: Record<ClipEngineKey, EngineProfile> = {
   },
   s25: {
     modelLine: ', which runs ByteDance’s Seedance 2.5',
-    direct: (s) => [runwayRoute('runway-s25-standard', 'Seedance 2.5 at its lowest resolution', s)],
+    // KINEO-S25-CLIPES-2026-10-06 — Runway PRO: runway.com/pricing (06/10) lista o Seedance 2.5 só no Pro e no Max; o Standard
+    // citado antes não confirma o modelo. "lowest resolution" é a do modelo (480p, 20 créditos/s), não depende do plano.
+    direct: (s) => [runwayRoute('runway-s25-pro', 'Seedance 2.5 at its lowest resolution', s)],
   },
 }
 
