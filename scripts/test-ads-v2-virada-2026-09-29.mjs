@@ -93,6 +93,10 @@ async function abrirAdsNew(pageSrc, { params = {}, user = null, reason = 'subscr
     '@/lib/ads/autoBrief': { adsAutoVisible: () => true },
     '@/lib/serverEvents': { writeServerEvent: async () => {} },
     '@/lib/ads/v2Tiers': tiers,
+    // REANCORADO 06/10 (KINEO-ADS-PAREDE-2026-10-06): a negação do visitante lê o cookie de sessão do navegador (sem cookie
+    // aqui = null, o mesmo rastro de antes); a prova de que o session_id viaja mora em scripts/test-ads-parede-2026-10-06.mjs.
+    'next/headers': { cookies: () => ({ get: () => undefined }) },
+    '@/lib/growth/checkoutAuthSessionBridge': { EVENT_SESSION_COOKIE: 'kineo_event_session_id', normalizeEventSessionId: () => null },
     './AdsWizardClient': 'AdsWizardClient',
   }
   const mod = runModule(pageSrc, (s) => {

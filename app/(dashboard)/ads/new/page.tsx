@@ -13,6 +13,8 @@ import { adsGate, loadAdsAccess } from '@/lib/ads/serverAccess'
 import { adsAutoVisible } from '@/lib/ads/autoBrief' // KINEO-ADS-SEM-LOGIN-2026-09-27
 import { writeServerEvent } from '@/lib/serverEvents' // KINEO-ADS-PORTA-MEDIDA-2026-09-27
 import { ADS_V2_PUBLIC } from '@/lib/ads/v2Tiers' // KINEO-ADS-V2-VIRADA-2026-09-29
+import { cookies } from 'next/headers' // KINEO-ADS-PAREDE-2026-10-06 — a sessão do navegador na negação do visitante
+import { EVENT_SESSION_COOKIE, normalizeEventSessionId } from '@/lib/growth/checkoutAuthSessionBridge' // KINEO-ADS-PAREDE-2026-10-06
 import AdsWizardClient from './AdsWizardClient'
 
 export const metadata = { title: 'Studio Ads — Kineo' }
@@ -84,11 +86,15 @@ export default async function AdsNewPage({ searchParams }: { searchParams?: Sear
   // sessionStorage por 1 h. O rastro continua sendo ads_access_denied who:'anon' (mesma população de antes), agora com
   // outcome:'anonymous_panel' para separar quem viu o painel de quem foi mandado ao /login.
   if (!user) {
+    // KINEO-ADS-PAREDE-2026-10-06 — a negação do visitante passa a levar a sessão do navegador (o cookie que lib/analytics.ts
+    // espelha, só o formato que ele gera): 31 das 39 linhas de 30 dias não tinham user_id nem session_id e não se ligavam a
+    // nada (nem ao ads_page_viewed que as precedeu, nem a um cadastro depois). Cookie ausente ou adulterado = null, como antes.
+    const anonSession = normalizeEventSessionId(cookies().get(EVENT_SESSION_COOKIE)?.value)
     if (resumingPass || !adsAutoVisible('none')) {
-      await writeServerEvent({ name: 'ads_access_denied', path: '/ads/new', metadata: { stage: 'page', who: 'anon' } })
+      await writeServerEvent({ name: 'ads_access_denied', path: '/ads/new', metadata: { stage: 'page', who: 'anon' }, sessionId: anonSession })
       redirect(`/login?redirect=${encodeURIComponent('/ads/new' + (qs ? '?' + qs : ''))}`)
     }
-    await writeServerEvent({ name: 'ads_access_denied', path: '/ads/new', metadata: { stage: 'page', who: 'anon', outcome: 'anonymous_panel' } })
+    await writeServerEvent({ name: 'ads_access_denied', path: '/ads/new', metadata: { stage: 'page', who: 'anon', outcome: 'anonymous_panel' }, sessionId: anonSession })
     return (
       <Suspense fallback={null}>
         <AdsWizardClient gate="anon" access="none" resumingPass={false} />

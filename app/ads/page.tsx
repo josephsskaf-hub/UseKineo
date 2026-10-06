@@ -68,6 +68,14 @@ import { ADS_V2_MAX_PHOTOS, ADS_V2_MIN_PHOTOS } from '@/lib/ads/v2ShotLists' // 
 import { TIER_CREDITS, formatCheckoutMoney, getTierPrice } from '@/lib/checkoutPricing' // KINEO-ADS-PORTA-PLANO-2026-09-27
 import { planName } from '@/lib/growth/planFit' // KINEO-ADS-PORTA-PLANO-2026-09-27 — the canonical plan name
 import AdsPageBanners, { AdsCtaLink, type AdsDoorCta } from './AdsPageBanners'
+// KINEO-ADS-PAREDE-2026-10-06 — a parede vende: quem chega por uma porta da parede (?from=v2|new|producao|studio) sem acesso
+// vê a OFERTA do plano de entrada (+ Express) no lugar da faixa. Quem vê e de onde vem cada número: lib/ads/paywall.ts e
+// lib/ads/paywallSources.ts. Interruptor de reversão: ADS_PAYWALL_LIVE (false = a faixa de antes volta sozinha).
+import { ADS_ACCESS_SELECT, adsAccessReason, type AdsAccessFields } from '@/lib/ads/access'
+import { adsPaywallNoSession, adsPaywallOffer, adsPaywallVisible, type AdsPaywallProof } from '@/lib/ads/paywall'
+import { adsPaywallSources } from '@/lib/ads/paywallSources'
+import { REGION_PAID_ONLY_TRIAL_STATUS } from '@/lib/freeFilmPolicy'
+import AdsPaywall from './AdsPaywall'
 
 export const dynamic = 'force-dynamic'
 
@@ -99,7 +107,11 @@ const READ_TIMEOUT_MS = 2500
 const REVIEW_WINDOW_MS = 24 * 3600 * 1000
 
 type Viewer = { signedIn: boolean; gate: 'ok' | 'no_access' | 'closed' | null; internal: boolean }
-const ANONYMOUS: Viewer = { signedIn: false, gate: null, internal: false }
+/** KINEO-ADS-PAREDE-2026-10-06 — o que a oferta da parede precisa além do Viewer: o id (client_reference_id do Express), se o
+ *  getUser CONFIRMOU "sem sessão" e a prova positiva relida. ANONYMOUS é também o valor do timeout: ali noSession fica false —
+ *  leitura que estourou o tempo é "não sei", nunca "anônimo". */
+type DoorViewer = Viewer & { userId: string | null; noSession: boolean; proof: AdsPaywallProof | null }
+const ANONYMOUS: DoorViewer = { signedIn: false, gate: null, internal: false, userId: null, noSession: false, proof: null }
 
 type SearchParams = Record<string, string | string[] | undefined>
 
@@ -119,17 +131,35 @@ function withTimeout<T>(work: Promise<T>, fallback: T): Promise<T> {
   })
 }
 
-/** Who is looking: the verified auth e-mail (getUser), never profiles.email. */
-async function readViewer(): Promise<Viewer> {
+/** KINEO-ADS-PAREDE-2026-10-06 — PROVA POSITIVA para a oferta da parede: o perfil relido com sucesso continua sem acesso.
+ *  loadAdsAccess devolve 'none' também quando a leitura FALHA (falha fechada para o montador); para uma oferta de assinatura
+ *  isso seria vender plano a quem já assina. Erro, perfil ausente ou exceção = null = a oferta não aparece (a faixa fica). */
+async function readPaywallProof(admin: ReturnType<typeof footageAdminClient>, userId: string, authEmail: string | null | undefined): Promise<AdsPaywallProof | null> {
   try {
-    const { data: { user } } = await createClient().auth.getUser()
-    if (!user) return ANONYMOUS
+    const { data, error } = await admin.from('profiles').select(`${ADS_ACCESS_SELECT}, trial_status`).eq('id', userId).maybeSingle()
+    if (error || !data) return null
+    const row = data as AdsAccessFields & { trial_status?: unknown }
+    return { reason: adsAccessReason(row, authEmail), trialStatus: typeof row.trial_status === 'string' ? row.trial_status : null }
+  } catch {
+    return null
+  }
+}
+
+/** Who is looking: the verified auth e-mail (getUser), never profiles.email. */
+async function readViewer(): Promise<DoorViewer> {
+  try {
+    const { data: { user }, error } = await createClient().auth.getUser()
+    // KINEO-ADS-PAREDE-2026-10-06 — anônimo CONFIRMADO só quando o auth respondeu "sem sessão"; erro de auth é "não sei".
+    if (!user) return { ...ANONYMOUS, noSession: adsPaywallNoSession(error) }
     const internal = isAdsInternalEmail(user.email)
     try {
-      const { reason } = await loadAdsAccess(user.id, user.email)
-      return { signedIn: true, gate: adsGate(reason), internal }
+      const { admin, reason } = await loadAdsAccess(user.id, user.email)
+      const gate = adsGate(reason)
+      // KINEO-ADS-PAREDE-2026-10-06 — só quem o gate barrou é relido (assinante nem paga a segunda leitura).
+      const proof = gate === 'no_access' ? await readPaywallProof(admin, user.id, user.email) : null
+      return { signedIn: true, gate, internal, userId: user.id, noSession: false, proof }
     } catch {
-      return { signedIn: true, gate: null, internal }
+      return { signedIn: true, gate: null, internal, userId: user.id, noSession: false, proof: null }
     }
   } catch {
     return ANONYMOUS
@@ -243,6 +273,9 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
   const planOffer = live && viewer.gate !== 'ok'
   // KINEO-ADS-V2-VIRADA-2026-09-29 — /ads/v2 sends no-access people here with ?from=v2: same strip as ?from=new.
   const returnedFromWizard = (from === 'new' || from === 'v2') && viewer.signedIn && viewer.gate === 'no_access'
+  // KINEO-ADS-PAREDE-2026-10-06 — a oferta da parede (lib/ads/paywall.ts): no lugar da faixa, para quem chegou por uma porta da
+  // parede sem acesso (logado com prova positiva relida, ou anônimo confirmado pelo auth). null = a faixa de antes.
+  const paywallOffer = adsPaywallVisible({ live, from, viewer }) ? adsPaywallOffer(adsPaywallSources(viewer.userId)) : null
   const starterName = planName('starter')
   const starterPrice = formatCheckoutMoney('usd', getTierPrice('starter', 'usd', 'standard'))
   const starterAds35 = Math.floor(TIER_CREDITS.starter / KINEO1_35S_CREDITS)
@@ -274,16 +307,24 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
           <AdsPageBanners live={live} cta={cta} planOffer={planOffer} from={from} />
         </Suspense>
 
-        {/* KINEO-ADS-PORTA-PLANO-2026-09-27 — sent back by /ads/new (no access): say why, point to the two doors. No promise
-            about a saved draft: AdsWizardClient only writes 'kineo:ads:draft:v1' in the anonymous mode (saveDraftAndLogin),
-            never for a signed-in account, so there is nothing to bring back here. */}
-        {returnedFromWizard ? (
-          <div className="ads-banner ads-returned" role="status">
-            <p>
-              <b>Studio Ads is part of every paid plan.</b> Pick {starterName} or the pass below and open the ad maker again. <a href="#ads-price">See both options →</a>
-            </p>
-          </div>
-        ) : null}
+        {/* KINEO-ADS-PAREDE-2026-10-06 — quem bateu na parede vê a OFERTA (plano de entrada + Express; sem passe, a mesma para a
+            conta 'region_paid_only') no lugar da faixa; impressão e clique saem do próprio componente. */}
+        {paywallOffer ? (
+          <AdsPaywall offer={paywallOffer} from={from ?? ''} signedIn={viewer.signedIn} regionPaidOnly={viewer.proof?.trialStatus === REGION_PAID_ONLY_TRIAL_STATUS} />
+        ) : (
+          <>
+            {/* KINEO-ADS-PORTA-PLANO-2026-09-27 — sent back by /ads/new (no access): say why, point to the two doors. No promise
+                about a saved draft: AdsWizardClient only writes 'kineo:ads:draft:v1' in the anonymous mode (saveDraftAndLogin),
+                never for a signed-in account, so there is nothing to bring back here. */}
+            {returnedFromWizard ? (
+              <div className="ads-banner ads-returned" role="status">
+                <p>
+                  <b>Studio Ads is part of every paid plan.</b> Pick {starterName} or the pass below and open the ad maker again. <a href="#ads-price">See both options →</a>
+                </p>
+              </div>
+            ) : null}
+          </>
+        )}
 
         <header className="ads-hero">
           <p className="ads-eyebrow">STUDIO ADS · KINEO EMPRESAS</p>
@@ -523,6 +564,26 @@ html[data-theme=dark] .stu.ads-door{--ads-door-error:#ff9b9b;--ads-door-error-so
 .ads-faq summary{cursor:pointer;font-size:15px;font-weight:700;color:var(--text);min-height:28px}
 .ads-faq details p{margin:10px 0 0;font-size:14px;line-height:1.65;color:var(--muted)}
 .ads-faq a{color:var(--accent)}
+/* KINEO-ADS-PAREDE-2026-10-06 — a oferta da parede (app/ads/AdsPaywall.tsx): texto à esquerda, plano à direita, Express embaixo
+   do texto; no celular empilha texto → plano → Express (o botão principal vem antes do secundário). Sem Express, uma linha só. */
+.stu.ads-door .ads-paywall{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,400px);grid-template-areas:"copy plan" "express plan";gap:18px 44px;align-items:start;margin:22px 0 6px;padding:32px 34px;border-radius:22px;background:var(--card);border:1px solid var(--border2);box-shadow:var(--sh-card)}
+.stu.ads-door .ads-paywall.ads-paywall-solo{grid-template-areas:"copy plan";align-items:center}
+.ads-paywall-copy{grid-area:copy;align-self:end;min-width:0}
+.stu.ads-door .ads-paywall.ads-paywall-solo .ads-paywall-copy{align-self:center}
+.stu.ads-door .ads-paywall h2{font-size:clamp(26px,3.4vw,40px);line-height:1.1;letter-spacing:-.03em;margin:0 0 12px}
+.ads-paywall-sub{margin:0;max-width:480px;font-size:15px;line-height:1.6;color:var(--muted)}
+.ads-paywall-plan{grid-area:plan;min-width:0;padding:20px 20px 14px;border-radius:18px;background:var(--accent-soft);border:1px solid var(--border2)}
+.ads-paywall-head{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:4px 12px;margin:0 0 8px}
+.ads-paywall-head b{font-size:19px;font-weight:750;letter-spacing:-.01em;color:var(--text)}
+.ads-paywall-price{font-size:24px;font-weight:750;letter-spacing:-.02em;color:var(--text);white-space:nowrap}
+.ads-paywall-facts{list-style:none;margin:0 0 8px;padding:0}
+.ads-paywall-facts li{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:9px 0;border-top:1px solid var(--border2);font-size:14px;line-height:1.4;color:var(--text2)}
+.ads-paywall-facts b{flex-shrink:0;font-size:17px;font-weight:800;color:var(--accent)}
+.ads-paywall-either{margin:0 0 14px;font-size:12px;line-height:1.45;color:var(--muted2)}
+.ads-paywall-express{grid-area:express;align-self:start;min-width:0;padding-top:16px;border-top:1px solid var(--border)}
+.ads-paywall-express a{font-size:15px;font-weight:700;line-height:1.45;color:var(--accent);text-decoration:none}
+.ads-paywall-express a:hover{text-decoration:underline}
+.ads-paywall-express p{margin:4px 0 0;font-size:13px;line-height:1.5;color:var(--muted)}
 @media(max-width:900px){
   .stu.ads-door{padding:0 0 12px}
   .ads-door .ads-wrap{padding:0 16px}
@@ -532,5 +593,8 @@ html[data-theme=dark] .stu.ads-door{--ads-door-error:#ff9b9b;--ads-door-error-so
   .ads-doors{grid-template-columns:1fr}
   .ads-cta{max-width:none}
   .ads-amount{font-size:34px}
+  .stu.ads-door .ads-paywall{grid-template-columns:minmax(0,1fr);grid-template-areas:"copy" "plan" "express";gap:16px;margin-top:16px;padding:22px 16px}
+  .stu.ads-door .ads-paywall.ads-paywall-solo{grid-template-areas:"copy" "plan"}
+  .ads-paywall-copy{align-self:start}
 }
 `
