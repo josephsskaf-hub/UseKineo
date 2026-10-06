@@ -10,7 +10,7 @@
 //   · bucket → `renders`, pasta clips/<uid>/<clipId>.mp4 (mesmo bucket de images/, audio/, enhanced/; nenhum bucket novo)
 //   · interruptores → lib/engineLaunch.ts (enginePaused, s25Visible) e lib/enginePlanGate.ts (decideEngineGate)
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
-import { randomUUID } from 'node:crypto'
+import { createHmac, randomUUID } from 'node:crypto'
 import { fal } from '@fal-ai/client'
 import { debitVideoCredits } from '@/lib/credits/debit'
 import { refundRenderCredits } from '@/lib/credits/refund'
@@ -42,6 +42,16 @@ import {
   type ClipSubmitDeps,
   type ProviderState,
 } from '@/lib/clips/clipFlow'
+// KINEO-CLIPE-MARCA-2026-10-06 — a marca do clipe grátis: interruptor e regra puros. A fiação (Creatomate) só é carregada
+// com o interruptor ligado (import dinâmico em persistClipVideo).
+import {
+  CLIP_OWNER_PROFILE_COLUMNS,
+  FREE_CLIP_WATERMARK_LIVE,
+  clipOwnerPays,
+  cleanClipSourcePath,
+  isBrandedClipUrl,
+  type ClipOwnerProfile,
+} from '@/lib/clips/freeClipWatermark'
 
 export const CLIPS_TABLE = 'clips'
 export const CLIPS_BUCKET = 'renders'
@@ -153,6 +163,8 @@ export interface PublicClip {
   effect: ClipEffectKey | null
   /** Link do upsell "filme narrado" (só para clipe de efeito); o clique passa antes por POST /api/clips/effect-upsell. */
   film_href: string | null
+  /** KINEO-CLIPE-MARCA-2026-10-06 — o arquivo entregue leva a marca usekineo.com (clipe de quem não paga). */
+  branded: boolean
 }
 
 export function toPublicClip(row: ClipRow): PublicClip {
@@ -174,7 +186,38 @@ export function toPublicClip(row: ClipRow): PublicClip {
     created_at: row.created_at,
     effect: effect?.key ?? null,
     film_href: effect ? clipEffectFilmHref(effect) : null,
+    branded: row.status === 'done' && isBrandedClipUrl(row.video_url),
   }
+}
+
+/**
+ * KINEO-CLIPE-MARCA-2026-10-06 — token do caminho do original LIMPO de um clipe com marca. HMAC com a chave de serviço (o
+ * mesmo segredo das claims da casa, lib/animate/claim.ts): o dono lê a própria linha pelo RLS, mas não monta este caminho.
+ */
+export function clipCleanToken(clipId: string): string {
+  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!secret) throw new Error('clip clean token: service key missing')
+  return createHmac('sha256', secret).update(`kineo-clip-clean:${clipId}`).digest('hex').slice(0, 24)
+}
+
+/**
+ * KINEO-CLIPE-MARCA-2026-10-06 — "Meus clipes" para quem ASSINOU depois de fazer clipes grátis: a URL com marca vira a do
+ * original limpo. Sem clipe com marca na lista (sempre, com o interruptor desligado) é o mesmo map de antes, sem leitura.
+ */
+export async function publicClipsForViewer(admin: SupabaseClient, userId: string, rows: ClipRow[]): Promise<PublicClip[]> {
+  const out = rows.map((row) => toPublicClip(row))
+  if (!out.some((clip) => clip.branded)) return out
+  const { data, error } = await admin.from('profiles').select(CLIP_OWNER_PROFILE_COLUMNS).eq('id', userId).maybeSingle()
+  if (error || !data || !clipOwnerPays(data as ClipOwnerProfile)) return out
+  return out.map((clip) => {
+    if (!clip.branded) return clip
+    try {
+      const { data: pub } = admin.storage.from(CLIPS_BUCKET).getPublicUrl(cleanClipSourcePath(userId, clip.id, clipCleanToken(clip.id)))
+      return pub?.publicUrl ? { ...clip, video_url: pub.publicUrl, branded: false } : clip
+    } catch {
+      return clip
+    }
+  })
 }
 
 export async function listClips(admin: SupabaseClient, userId: string, limit = 30): Promise<ClipRow[] | null> {
@@ -261,6 +304,16 @@ async function pollFal(model: string, requestId: string): Promise<ProviderState>
 }
 
 async function persistClipVideo(admin: SupabaseClient, row: ClipRow, providerUrl: string): Promise<string> {
+  // KINEO-CLIPE-MARCA-2026-10-06 — clipe de quem não paga sai com a marca usekineo.com (lib/clips/freeClipWatermark.ts).
+  // Desligado (FREE_CLIP_WATERMARK_LIVE=false) nada disto roda — nem o import — e o clipe segue o caminho de sempre.
+  // null = este clipe não leva marca (pagou, perfil ilegível, perto do prazo): caminho de sempre, logo abaixo.
+  if (FREE_CLIP_WATERMARK_LIVE) {
+    const { persistFreeClipWithMark } = await import('@/lib/clips/freeClipWatermarkServer')
+    const marked = await persistFreeClipWithMark({
+      admin, row, providerUrl, bucket: CLIPS_BUCKET, table: CLIPS_TABLE, cleanToken: clipCleanToken(row.id), expireMs: CLIP_EXPIRE_MS,
+    })
+    if (marked !== null) return marked
+  }
   const res = await fetch(providerUrl, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS), cache: 'no-store' })
   if (!res.ok) throw new Error(`download ${res.status}`)
   const buf = await res.arrayBuffer()

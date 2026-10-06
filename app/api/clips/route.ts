@@ -13,6 +13,7 @@ import {
   engineAccessFor,
   listClips,
   loadClipAccount,
+  publicClipsForViewer,
   submitDepsFor,
   toPublicClip,
 } from '@/lib/clips/clipServer'
@@ -64,7 +65,7 @@ export async function GET() {
     )
   }
   return NextResponse.json(
-    { engines: clipCatalogFor(access), effects, clips: rows.map(toPublicClip), balance: account.balance },
+    { engines: clipCatalogFor(access), effects, clips: await publicClipsForViewer(admin, user.id, rows), balance: account.balance },
     { headers: NO_STORE },
   )
 }

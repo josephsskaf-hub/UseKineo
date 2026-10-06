@@ -19,6 +19,8 @@ import { outOfCreditsDestination } from '@/lib/credits/outOfCreditsPlans'
 import { clipCopy, type ClipCopyKey } from '@/lib/clips/clipCopy'
 import ClipTelemetry, { readClipEntryOrigin } from '@/lib/clips/ClipTelemetry'
 import { CLIP_MEASUREMENT_ENABLED } from '@/lib/clips/clipMeasurement'
+import { trackClosedEvent } from '@/lib/analytics'
+import { CLIP_POST_COPY, CLIP_POST_EVENTS, CLIP_SHARE_CAPTION } from '@/lib/clips/freeClipWatermark'
 
 type Engine = {
   key: string
@@ -47,6 +49,7 @@ type Clip = {
   created_at: string
   effect?: string | null
   film_href?: string | null
+  branded?: boolean
 }
 
 type EffectCard = {
@@ -276,6 +279,68 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
     } catch {
       window.open(url, '_blank', 'noopener')
     }
+  }
+
+  // KINEO-CLIPE-MARCA-2026-10-06 — "Post it" (todas as contas). No celular: a folha de compartilhar com o ARQUIVO (TikTok e
+  // Reels aparecem ali) e a legenda pronta. Sem compartilhamento de arquivo (computador): baixa o MP4 e copia a legenda.
+  // A cópia começa no próprio toque — alguns navegadores negam a área de transferência depois de um await.
+  const postFiles = useRef(new Map<string, File>())
+  const [postBusy, setPostBusy] = useState<string | null>(null)
+  const [postNote, setPostNote] = useState<{ id: string; kind: 'shared' | 'downloaded' | 'manual' | 'again' } | null>(null)
+
+  async function copyCaption(): Promise<boolean> {
+    try {
+      await navigator.clipboard.writeText(CLIP_SHARE_CAPTION)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  async function post(c: Clip) {
+    const url = c.video_url
+    if (!url || postBusy) return
+    const name = `kineo-clip-${c.id.slice(0, 8)}.mp4`
+    const meta = { clip_id: c.id, engine: c.engine, seconds: c.seconds, branded: c.branded === true, effect: c.effect ?? null }
+    // Folha de compartilhar só em tela de toque: no computador a folha do sistema não leva ao TikTok/Reels — lá, baixar e copiar.
+    const touch = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches
+    const sheet = touch && typeof navigator.share === 'function' && typeof navigator.canShare === 'function'
+    void trackClosedEvent(CLIP_POST_EVENTS.clicked, { ...meta, method: sheet ? 'share_sheet' : 'download_copy' })
+    const copying = copyCaption()
+    setPostNote(null)
+    if (sheet) {
+      try {
+        let file = postFiles.current.get(c.id)
+        if (!file) {
+          setPostBusy(c.id)
+          const res = await fetch(url)
+          if (!res.ok) throw new Error('fetch')
+          file = new File([await res.blob()], name, { type: 'video/mp4' })
+          postFiles.current.set(c.id, file)
+          setPostBusy(null)
+        }
+        if (navigator.canShare({ files: [file] })) {
+          const sharing = navigator.share({ files: [file], text: CLIP_SHARE_CAPTION })
+          void copying.then((ok) => setPostNote({ id: c.id, kind: ok ? 'shared' : 'manual' }))
+          await sharing
+          void trackClosedEvent(CLIP_POST_EVENTS.shared, { ...meta, method: 'share_sheet' })
+          return
+        }
+      } catch (error) {
+        setPostBusy(null)
+        const reason = error instanceof Error ? error.name : ''
+        if (reason === 'AbortError') return
+        // O arquivo chegou depois que o toque expirou (Safari): o próximo toque compartilha na hora.
+        if (reason === 'NotAllowedError' && postFiles.current.has(c.id)) {
+          setPostNote({ id: c.id, kind: 'again' })
+          return
+        }
+      }
+    }
+    await download(url, name)
+    const copied = await copying
+    setPostNote({ id: c.id, kind: copied ? 'downloaded' : 'manual' })
+    void trackClosedEvent(CLIP_POST_EVENTS.fallback, { ...meta, method: 'download_copy', caption_copied: copied })
   }
 
   // Upsell do clipe de efeito: grava o clique no servidor (clip_effect_film_upsell_clicked) e abre o Studio com a ideia.
@@ -515,10 +580,19 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
                 {c.status === 'done' && c.video_url && (
                   <div className="row" style={{ marginTop: 8 }}>
                     <button type="button" className="pill" onClick={() => void download(c.video_url!, `kineo-clip-${c.id.slice(0, 8)}.mp4`)}><ControlIcon name="download" /> {t('download')}</button>
+                    <button type="button" className="pill on" data-clip-post={c.id} disabled={postBusy === c.id} aria-busy={postBusy === c.id} onClick={() => void post(c)}>
+                      ↗ <UiLabel>{postBusy === c.id ? CLIP_POST_COPY.preparing : CLIP_POST_COPY.button}</UiLabel>
+                    </button>
                     {c.effect && c.film_href && (
                       <a className="pill on film-upsell" href={c.film_href} onClick={(event) => filmClick(event, c)}>{t('filmUpsell')} →</a>
                     )}
                   </div>
+                )}
+                {postNote?.id === c.id && (
+                  <p className="clip-meta" role="status" style={{ marginTop: 6 }}>
+                    <UiLabel>{CLIP_POST_COPY[postNote.kind]}</UiLabel>
+                    {postNote.kind === 'manual' && <> <code style={{ userSelect: 'all', overflowWrap: 'anywhere' }}>{CLIP_SHARE_CAPTION}</code></>}
+                  </p>
                 )}
               </div>
             ))}
