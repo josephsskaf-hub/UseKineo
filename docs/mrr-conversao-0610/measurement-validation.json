@@ -1,0 +1,23 @@
+{
+  "classification": "TESTADO LOCALMENTE / SELECT sintético, não resultado comercial",
+  "date": "2026-10-05",
+  "method": "O SQL real report.sql foi executado com CTEs VALUES que substituem profiles e events; sem leitura de pessoas reais e sem escrita.",
+  "cases": [
+    "Duas impressões e dois payment_success da mesma pessoa continuam sendo uma pessoa pagante.",
+    "Pagamento com outra stripe_session_id não converte o checkout observado.",
+    "Conta interna é excluída com NOT EXISTS.",
+    "Impressão sem session_id não abre a coorte de exposição.",
+    "Impressão posterior ao checkout não atribui retroativamente a venda à oferta.",
+    "payment_success com amount_total zero não é venda.",
+    "Checkout e pagamento de servidor podem ter session_id de navegador nulo; a stripe_session_id canônica é obrigatória para a ligação."
+  ],
+  "expected_and_observed": {
+    "upgrade_people": 3,
+    "checkout_people": 3,
+    "unique_paid_people": 1,
+    "pass_offer": {"exposed_people": 3, "checkout_people": 2, "paid_people": 1},
+    "annual_offer": {"exposed_people": 1, "checkout_people": 1, "paid_people": 0},
+    "unmatched_versioned_checkouts": 2,
+    "browser_events_without_session": 1
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "mandate": "MRR Conversão 72 h, fundador 05/10/2026; início 06/10",
+  "timezone": "America/Sao_Paulo",
+  "window_start": "2026-10-06T03:00:00Z",
+  "window_end_exclusive": "2026-10-09T03:00:00Z",
+  "worktree": "C:/kineo-wt/mrr-conversao",
+  "branch": "codex/mrr-conversao-0610",
+  "baseline_main_sha": "7ec75c5ddce617b285417f25fd8fd8c99d7a301b",
+  "feature_sha": "c538a1cf4fea31e799c22e4c5bf35883d4091179",
+  "integrated_code_sha": "abf5092cad75b651fe4ab0f6d030674dd5234010",
+  "queue_preserved_sha": "656b79c1b0848d71fd7653ef5b059770a59532ff",
+  "offer_version": "mrr0610_v1",
+  "switch": "lib/offers/mrrConversion.ts: MRR_CONVERSION_ENABLED",
+  "status": "tested_locally; publication and exposure require external evidence",
+  "release_receipt": "C:/Users/josep/.codex/outputs/mrr-conversao-0610/release.json",
+  "launcher_pattern": "C:/kineo/PUBLICAR-MRR-CONVERSAO-*.bat",
+  "rule": "Read the receipt for the final candidate SHA and launcher. Never execute the launcher as agent, never infer deployment from the queue or ask a duplicate click without a new candidate.",
+  "measurement": {
+    "baseline": "baseline.json",
+    "query": "report.sql",
+    "validation": "measurement-validation.json",
+    "goal": "at least 5 distinct external people with positive canonical payment_success linked to exposed offer and checkout session",
+    "acquisition_origin": "coalesce signup_utm_source and utm_source; signup_utm_campaign is the only campaign column",
+    "attribution": "UI offer_version/offer_id/offer_surface; server metadata.intent_campaign=mrr0610_v1_<surface>_<offer>",
+    "no_pii": true
+  },
+  "stripe": {
+    "reads_only": true,
+    "static_live_price_499_or_link_found": false,
+    "founder_link_requested": true,
+    "existing_checkout": "/api/stripe/checkout?pack=starter",
+    "pricing_mechanism": "canonical inline price_data already implemented before sprint",
+    "real_purchase_tested": false
+  },
+  "automation": {
+    "id": "kineo-50-contatos-por-dia",
+    "name": "Kineo · MRR Conversão · 72 h",
+    "status": "ACTIVE",
+    "local_time": "00:10",
+    "reports": ["2026-10-07", "2026-10-08", "2026-10-09"],
+    "first_run_2026_10_06": "start/exposure check; no premature 24h report",
+    "pause_after_final_report": true
+  },
+  "next_steps": [
+    "Verify current main and public version after founder publication; no deploy claim beforehand.",
+    "At 24h/48h/72h execute SELECT aggregate only, report people with denominators per offer and canonical payment.",
+    "Do not mix signup cohort 136/17/1 with upgrade cohort 62/13/1.",
+    "Any new price, plan, credit or coupon requires a founder decision; no emails, paid renders, manual DB writes or protected-file edits."
+  ]
+}
