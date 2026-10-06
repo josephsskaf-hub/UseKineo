@@ -14,7 +14,8 @@
 //     MESMO redirect de hoje, com o MESMO checkout_auth_required, mais guest_checkout_fallback com o motivo;
 //   · TOMADA DE CONTA — a 1ª entrada que prova o e-mail (link por e-mail, Google pela /auth/callback, recuperação de
 //     senha pela /api/auth/guest-sessions) derruba as OUTRAS sessões uma vez (guest_sessions_revoked); senha não
-//     prova; o login de uso único não dispara e não reabre depois;
+//     prova; o login de uso único não dispara e não reabre depois; leva 3: na mesma hora a senha vira uma aleatória
+//     forte (admin + religar a sessão da prova; na recuperação, pela própria sessão), e falha da troca não desfaz nada;
 //   · E-MAIL "SUA CONTA ESTÁ PRONTA" — 1 por sessão Stripe, só conta nova, sem preço, link de uso único e com validade.
 // Banco, Stripe, Auth e Resend são falsos em memória. Depois, MUTANTES em memória: cada regra é quebrada por uma troca
 // de texto cuja aplicação é provada (âncora única, texto novo presente) e o cenário que a guarda tem de ficar vermelho.
@@ -278,6 +279,7 @@ function makeDb() {
     tables,
     T,
     failures,
+    takeFailure,
     fail(table, op, error, times = 1) { failures.push({ table, op, error, remaining: times }) },
     from: (t) => new Query(t),
     rows: (t) => T(t),
@@ -296,6 +298,17 @@ function makeDb() {
         return { sid, accessToken: `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64(claims)}.fake` }
       },
       alive(sid) { return Boolean(sid && sessions.get(sid) && !sessions.get(sid).revoked) },
+      /** Toda escrita de senha (admin ou pela própria sessão), para provar "uma vez" e "nunca na conta comum". */
+      passwordWrites: [],
+      /** Projeto com "exigir a senha atual" ligado: só sessão de recuperação troca senha sem a atual. */
+      requireCurrentPassword: false,
+      /** Entrar com e-mail e senha (o que quem pôs uma senha pela API faria depois). */
+      signInWithPassword(browser, email, password) {
+        const u = authUsers.find((x) => x.email === String(email).trim().toLowerCase())
+        if (!u || !u.passwordSecret || u.passwordSecret !== password) return false
+        db.auth.enter(browser, u.id, 'password')
+        return true
+      },
       /** Coloca uma sessão num navegador (o que os cookies do @supabase/ssr fazem). */
       enter(browser, userId, method) {
         const s = db.auth.openSession(userId, method)
@@ -306,12 +319,18 @@ function makeDb() {
       },
       admin: {
         async updateUserById(id, attrs) {
-          const injected = takeFailure('auth', 'updateUserById')
+          const injected = takeFailure('auth', attrs.password ? 'updateUserById:password' : 'updateUserById')
           if (injected) return { data: { user: null }, error: injected }
           const u = authUsers.find((x) => x.id === id)
           if (!u) return { data: { user: null }, error: { message: 'User not found' } }
           if (attrs.app_metadata) u.app_metadata = { ...u.app_metadata, ...clone(attrs.app_metadata) }
-          if (attrs.password) u.password_set = true
+          if (attrs.password) {
+            // supabase/auth: admin → UpdatePassword(tx, nil) → Logout de TODAS as sessões + ClearAllOneTimeTokensForUser.
+            db.auth.passwordWrites.push({ userId: id, via: 'admin' })
+            u.passwordSecret = attrs.password
+            for (const s of sessions.values()) if (s.userId === id) s.revoked = true
+            for (const [k, v] of tokens) if (v.userId === id) tokens.delete(k)
+          }
           return { data: { user: clone(u) }, error: null }
         },
         async createUser(attrs) {
@@ -340,6 +359,8 @@ function makeDb() {
           return { data: { users: authUsers.slice(start, start + perPage).map(clone) }, error: null }
         },
         async generateLink({ type, email }) {
+          const injectedLink = takeFailure('auth', 'generateLink')
+          if (injectedLink) return { data: { properties: null, user: null }, error: injectedLink }
           const u = authUsers.find((x) => x.email === String(email).trim().toLowerCase())
           if (!u || type !== 'magiclink') return { data: { properties: null, user: null }, error: { message: 'User not found' } }
           if (!db.auth.keepOldTokens) for (const [k, v] of tokens) if (v.userId === u.id) tokens.delete(k) // o Auth invalida o link pendente
@@ -398,6 +419,24 @@ function ssrClientFor(db, browser) {
         const u = db.auth.users.find((x) => x.id === c.userId)
         const s = db.auth.enter(browser, u.id, c.method)
         return { data: { user: clone(u), session: { access_token: s.accessToken, user: clone(u) } }, error: null }
+      },
+      async updateUser(attributes = {}) {
+        const u = current()
+        if (!u) return { data: { user: null }, error: missing }
+        if (typeof attributes.password === 'string') {
+          const injected = db.takeFailure('auth', 'updateUser:password')
+          if (injected) return { data: { user: null }, error: injected }
+          const method = db.auth.sessions.get(browser.sid)?.method ?? null
+          if (db.auth.requireCurrentPassword && method !== 'recovery' && !attributes.current_password) {
+            return { data: { user: null }, error: { name: 'AuthApiError', status: 400, code: 'current_password_required', message: 'Current password required' } }
+          }
+          // supabase/auth: usuário → UpdatePassword(tx, &session.ID) → LogoutAllExceptMe + ClearAllOneTimeTokensForUser.
+          db.auth.passwordWrites.push({ userId: u.id, via: 'own_session' })
+          u.passwordSecret = attributes.password
+          for (const [sid, s] of db.auth.sessions) if (s.userId === u.id && sid !== browser.sid) s.revoked = true
+          for (const [k, v] of db.auth.tokens) if (v.userId === u.id) db.auth.tokens.delete(k)
+        }
+        return { data: { user: clone(u) }, error: null }
       },
       async signOut(options = {}) {
         const scope = options.scope ?? 'global'
@@ -1251,9 +1290,12 @@ async function sTakeoverGuard(env) {
   const metaOf = () => env.db.auth.users.find((u) => u.id === victim.id)?.app_metadata ?? {}
   const auto = await access(env, buy.browser, buy.sessionId)
   if (auto.body.state !== 'signed_in' || !env.db.auth.alive(buy.browser.sid)) return [`tomada: o login de uso único não entrou (${JSON.stringify(auto.body)})`]
-  // Quem pagou põe uma senha direto na API do Auth, entra com ela em outro navegador e tenta gastar a derrubada.
+  // Quem pagou põe uma senha direto na API do Auth (pela sessão sem prova), entra com ela em outro navegador e tenta
+  // gastar a derrubada.
+  const setByPayer = await ssrClientFor(env.db, buy.browser).auth.updateUser({ password: 'senha-de-quem-pagou-123' })
+  if (setByPayer.error) return [`tomada: a sessão sem prova não conseguiu pôr senha no falso (${JSON.stringify(setByPayer.error)})`]
   const pwd = newBrowser()
-  env.db.auth.enter(pwd, victim.id, 'password')
+  if (!env.db.auth.signInWithPassword(pwd, 'vitima@exemplo.com', 'senha-de-quem-pagou-123')) return ['tomada: a senha de quem pagou não entrou (falso quebrado)']
   const viaPassword = await recoveryPost(env, pwd)
   const viaAuto = await recoveryPost(env, buy.browser)
   if (viaPassword.body.revoked !== false || viaAuto.body.revoked !== false) p.push('tomada: sessão de senha/da compra gastou a derrubada (senha não prova o e-mail)')
@@ -1272,12 +1314,22 @@ async function sTakeoverGuard(env) {
   const revoked = env.db.events('guest_sessions_revoked')
   if (revoked.length !== 1 || revoked[0].user_id !== victim.id || revoked[0].metadata?.method !== 'ready_email_link') p.push(`tomada: guest_sessions_revoked ${JSON.stringify(revoked.map((e) => e.metadata))}`)
   if (!metaOf().kineo_guest_sessions_revoked_at || metaOf().kineo_guest_sessions_revoked_via !== 'ready_email_link') p.push('tomada: sem o carimbo "uma vez por conta" em app_metadata')
-  // 2ª entrada com prova (Google, outro aparelho): nada cai de novo.
+  // A senha que quem pagou pôs deixou de valer: virou uma aleatória forte que ninguém conhece (pelo admin, uma vez).
+  if (env.db.auth.signInWithPassword(newBrowser(), 'vitima@exemplo.com', 'senha-de-quem-pagou-123')) p.push('tomada: a senha de quem pagou continuou entrando depois da prova da dona')
+  if (revoked[0]?.metadata?.password_scrambled !== true || revoked[0]?.metadata?.session_reentered !== true) p.push(`tomada: guest_sessions_revoked sem password_scrambled/session_reentered (${JSON.stringify(revoked[0]?.metadata)})`)
+  if (!metaOf().kineo_guest_password_scrambled_at) p.push('tomada: sem o carimbo da senha trocada em app_metadata')
+  const secret = env.db.auth.users.find((u) => u.id === victim.id)?.passwordSecret ?? ''
+  if (secret.length < 40 || !/[a-z]/.test(secret) || !/[A-Z]/.test(secret) || !/[0-9]/.test(secret) || !/[^A-Za-z0-9]/.test(secret)) p.push('tomada: a senha nova não é aleatória forte (tamanho/classes)')
+  if (secret && [JSON.stringify(env.db.tables), JSON.stringify(env.logs), JSON.stringify(env.fetchCalls)].some((s) => s.includes(secret))) p.push('tomada: a senha nova vazou para evento/log/e-mail')
+  const adminWrites = env.db.auth.passwordWrites.filter((w) => w.userId === victim.id && w.via === 'admin')
+  if (adminWrites.length !== 1) p.push(`tomada: ${adminWrites.length} trocas de senha pelo admin (esperava 1)`)
+  // 2ª entrada com prova (Google, outro aparelho): nada cai de novo e a senha não muda de novo.
   const laptop = newBrowser()
   const google = await callbackGet(env, laptop, victim.id, 'oauth')
   if (google.status !== 307 || laptop.userId !== victim.id) p.push(`tomada: o Google não entrou (${google.status} ${location(google)})`)
-  if (!env.db.auth.alive(phone.sid)) p.push('tomada: a 2ª entrada com prova derrubou de novo (era uma vez por conta)')
+  if (!env.db.auth.alive(phone.sid) || !env.db.auth.alive(laptop.sid)) p.push('tomada: a 2ª entrada com prova derrubou de novo (era uma vez por conta)')
   if (env.db.events('guest_sessions_revoked').length !== 1 || env.db.auth.signOutCalls.filter((c) => c.scope === 'others').length !== 1) p.push('tomada: derrubada repetida')
+  if (env.db.auth.passwordWrites.filter((w) => w.userId === victim.id && w.via === 'admin').length !== 1 || (env.db.auth.users.find((u) => u.id === victim.id)?.passwordSecret ?? '') !== secret) p.push('tomada: a 2ª entrada com prova trocou a senha de novo')
   return p
 }
 
@@ -1303,6 +1355,9 @@ async function sRecoveryRevokes(env) {
   const buy = await guestPurchase(env, { email: 'recupera@exemplo.com' })
   if (buy.delivered?.res.status !== 200) return [`recuperação: webhook ${buy.delivered?.res.status}`]
   const owner = env.db.auth.users.find((u) => u.email === 'recupera@exemplo.com')
+  // Projeto com "exigir a senha atual" ligado: só uma sessão de RECUPERAÇÃO troca senha sem a atual — a troca
+  // aleatória tem de sair pela própria sessão de recuperação, que precisa sobreviver para a pessoa gravar a escolhida.
+  env.db.auth.requireCurrentPassword = true
   await access(env, buy.browser, buy.sessionId)
   if (!env.db.auth.alive(buy.browser.sid)) return ['recuperação: o login de uso único não entrou']
   // Sessão que não é de recuperação chamando a rota da página de senha: nada (a porta é só da recuperação).
@@ -1319,6 +1374,12 @@ async function sRecoveryRevokes(env) {
   if (env.db.auth.alive(buy.browser.sid) || env.db.auth.alive(other.sid) || !env.db.auth.alive(reset.sid)) p.push('recuperação: sessões erradas caíram/ficaram')
   const ev = env.db.events('guest_sessions_revoked')
   if (ev.length !== 1 || ev[0].metadata?.method !== 'password_recovery' || ev[0].user_id !== owner.id) p.push('recuperação: guest_sessions_revoked ausente/errado')
+  if (ev[0]?.metadata?.password_scrambled !== true) p.push(`recuperação: a senha não virou aleatória (${JSON.stringify(ev[0]?.metadata)})`)
+  const ownWrites = env.db.auth.passwordWrites.filter((w) => w.userId === owner.id)
+  if (ownWrites.length !== 1 || ownWrites[0].via !== 'own_session') p.push(`recuperação: troca de senha pelo caminho errado ${JSON.stringify(ownWrites)} (pelo admin, a sessão da recuperação morreria)`)
+  // A página grava a senha escolhida DEPOIS (espera a rota): com a sessão da recuperação viva, a escolha vale.
+  const chosen = await ssrClientFor(env.db, reset).auth.updateUser({ password: 'minha-senha-nova-456' })
+  if (chosen.error || !env.db.auth.signInWithPassword(newBrowser(), 'recupera@exemplo.com', 'minha-senha-nova-456')) p.push(`recuperação: a senha escolhida não ficou (${JSON.stringify(chosen.error)})`)
   const anon = await recoveryPost(env, newBrowser())
   if (anon.res.status !== 401) p.push(`recuperação: sem sessão respondeu ${anon.res.status}`)
   // Conta comum (não nasceu de compra sem login): a recuperação nunca derruba nada.
@@ -1329,6 +1390,7 @@ async function sRecoveryRevokes(env) {
   env.db.auth.enter(plainReset, plain.id, 'recovery')
   const plainRes = await recoveryPost(env, plainReset)
   if (plainRes.body.revoked !== false || !env.db.auth.alive(plainOld.sid)) p.push('recuperação: derrubou sessões de conta comum')
+  if (env.db.auth.passwordWrites.some((w) => w.userId === plain.id)) p.push('recuperação: trocou a senha de uma conta comum')
   return p
 }
 
@@ -1342,17 +1404,62 @@ async function sCallbackRevokes(env) {
   const laptop = newBrowser()
   const res = await callbackGet(env, laptop, owner.id, 'oauth')
   if (res.status !== 307 || location(res) !== `${ORIGIN}/studio` || laptop.userId !== owner.id) p.push(`callback: o Google não entrou (${res.status} ${location(res)})`)
-  if (env.db.auth.alive(buy.browser.sid) || !env.db.auth.alive(laptop.sid)) p.push('callback: a sessão de quem pagou sobreviveu à entrada pelo Google')
+  if (!env.db.auth.alive(laptop.sid)) p.push('callback: quem entrou pelo Google ficou sem sessão (a troca da senha derrubou e ninguém religou)')
+  if (env.db.auth.alive(buy.browser.sid)) p.push('callback: a sessão de quem pagou sobreviveu à entrada pelo Google')
   const ev = env.db.events('guest_sessions_revoked')
   if (ev.length !== 1 || ev[0].metadata?.method !== 'auth_callback' || ev[0].path !== '/auth/callback') p.push('callback: guest_sessions_revoked ausente/errado')
+  if (ev[0]?.metadata?.password_scrambled !== true || ev[0]?.metadata?.session_reentered !== true) p.push(`callback: senha não trocada/sessão do Google não religada (${JSON.stringify(ev[0]?.metadata)})`)
   if (env.db.events('auth_callback_completed').length !== 1) p.push('callback: o resto da callback deixou de rodar')
-  // Conta comum entrando pelo Google com outra sessão aberta: nada cai, nenhum evento.
+  // Conta comum entrando pelo Google com outra sessão aberta: nada cai, nenhum evento, a senha fica.
   const plain = env.db.seedUser({ email: 'comum.google@exemplo.com' })
+  plain.passwordSecret = 'senha-da-conta-comum-1'
   const plainOld = newBrowser()
   env.db.auth.enter(plainOld, plain.id, 'password')
   const before = env.db.auth.signOutCalls.length
   const plainRes = await callbackGet(env, newBrowser(), plain.id, 'oauth')
   if (plainRes.status !== 307 || !env.db.auth.alive(plainOld.sid) || env.db.auth.signOutCalls.length !== before || env.db.events('guest_sessions_revoked').length !== 1) p.push('callback: mexeu nas sessões de uma conta comum')
+  if (env.db.auth.passwordWrites.some((w) => w.userId === plain.id) || !env.db.auth.signInWithPassword(newBrowser(), 'comum.google@exemplo.com', 'senha-da-conta-comum-1')) p.push('callback: trocou a senha de uma conta comum')
+  return p
+}
+
+/** A troca da senha falha: a derrubada segue e o motivo vai no evento; religar a sessão falha: o evento diz. */
+async function sScrambleFails(env) {
+  const p = []
+  // (a) Admin recusa a senha nova (link do e-mail): as outras caem, a entrada fica, o motivo vai no evento, uma vez.
+  const buy = await guestPurchase(env, { email: 'falha.senha@exemplo.com' })
+  if (buy.delivered?.res.status !== 200) return [`senha falha: webhook ${buy.delivered?.res.status}`]
+  const owner = env.db.auth.users.find((u) => u.email === 'falha.senha@exemplo.com')
+  await access(env, buy.browser, buy.sessionId)
+  env.db.fail('auth', 'updateUserById:password', { name: 'AuthApiError', status: 422, code: 'weak_password', message: 'Password should contain at least one character of each' })
+  const phone = newBrowser()
+  const enter = await followLink(env, phone, readyLinkOf(readyMails(env)[0]) ?? `${ORIGIN}/auth/guest-link`)
+  if (location(enter) !== `${ORIGIN}/studio` || !env.db.auth.alive(phone.sid)) p.push(`senha falha: a dona não ficou dentro (${location(enter)})`)
+  if (env.db.auth.alive(buy.browser.sid)) p.push('senha falha: a derrubada não seguiu')
+  const ev = env.db.events('guest_sessions_revoked').filter((e) => e.user_id === owner.id)
+  if (ev.length !== 1 || ev[0].metadata?.password_scrambled !== false || ev[0].metadata?.password_scramble_error !== 'weak_password') p.push(`senha falha: evento sem o motivo (${JSON.stringify(ev.map((e) => e.metadata))})`)
+  const meta = env.db.auth.users.find((u) => u.id === owner.id)?.app_metadata ?? {}
+  if (!meta.kineo_guest_sessions_revoked_at || meta.kineo_guest_password_scrambled_at) p.push('senha falha: carimbos errados (derrubada sim, senha não)')
+  // (b) Senha trocada, mas o Auth não devolve o token para religar a sessão do Google: o evento diz session_reentered=false.
+  const buy2 = await guestPurchase(env, { email: 'religa@exemplo.com' })
+  const owner2 = env.db.auth.users.find((u) => u.email === 'religa@exemplo.com')
+  await access(env, buy2.browser, buy2.sessionId)
+  env.db.fail('auth', 'generateLink', { name: 'AuthApiError', status: 500, code: 'unexpected_failure', message: 'down' })
+  const laptop = newBrowser()
+  await callbackGet(env, laptop, owner2.id, 'oauth')
+  const ev2 = env.db.events('guest_sessions_revoked').filter((e) => e.user_id === owner2.id)
+  if (ev2.length !== 1 || ev2[0].metadata?.password_scrambled !== true || ev2[0].metadata?.session_reentered !== false) p.push(`religar falha: evento ${JSON.stringify(ev2.map((e) => e.metadata))}`)
+  if (env.db.auth.alive(buy2.browser.sid)) p.push('religar falha: a sessão de quem pagou sobreviveu')
+  // (c) Recuperação: a própria sessão não consegue trocar a senha — a derrubada segue, motivo no evento.
+  const buy3 = await guestPurchase(env, { email: 'recupera.falha@exemplo.com' })
+  const owner3 = env.db.auth.users.find((u) => u.email === 'recupera.falha@exemplo.com')
+  await access(env, buy3.browser, buy3.sessionId)
+  const reset = newBrowser()
+  env.db.auth.enter(reset, owner3.id, 'recovery')
+  env.db.fail('auth', 'updateUser:password', { name: 'AuthApiError', status: 429, code: 'over_request_rate_limit', message: 'slow down' })
+  const r = await recoveryPost(env, reset)
+  const ev3 = env.db.events('guest_sessions_revoked').filter((e) => e.user_id === owner3.id)
+  if (r.body.revoked !== true || env.db.auth.alive(buy3.browser.sid) || !env.db.auth.alive(reset.sid)) p.push('recuperação falha: a derrubada não seguiu')
+  if (ev3.length !== 1 || ev3[0].metadata?.password_scrambled !== false || ev3[0].metadata?.password_scramble_error !== 'over_request_rate_limit') p.push(`recuperação falha: evento ${JSON.stringify(ev3.map((e) => e.metadata))}`)
   return p
 }
 
@@ -1440,8 +1547,17 @@ async function run(name, scenario, opts) {
   // A recuperação de senha troca o código NO NAVEGADOR: só a página pode avisar o servidor que a sessão nova existe.
   check(clientFiles.includes(RESET_PAGE) && squashWs(read(RESET_PAGE)).includes(squashWs(`useEffect(() => {
     if (!ready) return
-    void fetch('/api/auth/guest-sessions', { method: 'POST', credentials: 'same-origin', cache: 'no-store' }).catch(() => {})
-  }, [ready])`)), '/reset-password avisa /api/auth/guest-sessions quando a sessão da recuperação fica pronta (e falha de rede não atrapalha)')
+    guestGuard.current = Promise.race([
+      fetch('/api/auth/guest-sessions', { method: 'POST', credentials: 'same-origin', cache: 'no-store' }).catch(() => null),
+      new Promise((resolve) => setTimeout(resolve, 10000)),
+    ])
+  }, [ready])`)), '/reset-password avisa /api/auth/guest-sessions quando a sessão da recuperação fica pronta (falha de rede não atrapalha; teto de 10 s)')
+  {
+    const resetSrc = squashWs(read(RESET_PAGE))
+    const waitAt = resetSrc.indexOf('if (guestGuard.current) await guestGuard.current')
+    const saveAt = resetSrc.indexOf('const { error } = await supabase.auth.updateUser({ password })')
+    check(waitAt > 0 && saveAt > waitAt && resetSrc.indexOf('async function handleSubmit') < waitAt, '/reset-password grava a senha escolhida só DEPOIS da troca aleatória da trava (nunca é sobrescrita)')
+  }
   // Na /auth/callback a trava é carregada sob demanda: guardiões que fecham a lista de imports da callback não mudam.
   check(read(CALLBACK).includes("const { revokeGuestSessionsOnce } = await import('@/lib/auth/guestAccess')") && !/^import [^\n]*'@\/lib\/auth\/guestAccess'/m.test(read(CALLBACK)), '/auth/callback carrega a trava sob demanda (sem import estático novo)')
   check(clientFiles.includes(PAGE) && !read(PAGE).includes('@/lib/stripe/guestCheckout'), '/checkout/guest é cliente e só lê o módulo puro')
@@ -1649,6 +1765,7 @@ const SCENARIOS = [
   ['tomada de conta: recuperação de senha', sRecoveryRevokes, { live: true }],
   ['tomada de conta: Google pela /auth/callback', sCallbackRevokes, { live: true }],
   ['tomada de conta: regras puras', sPureRevocationRules, { live: true }],
+  ['tomada de conta: troca da senha falha, a derrubada segue', sScrambleFails, { live: true }],
 ]
 for (const [name, scenario, opts] of SCENARIOS) {
   const problems = await run(name, scenario, opts)
@@ -1697,11 +1814,18 @@ const MUTANTS = [
   ['puro: a sessão sem prova dispara', { [PURE]: [replaceOnce("  if (meta[GUEST_AUTO_LOGIN_SESSION_KEY] === current) return 'auto_login_session'\n", '', 'sem exceção da sessão automática')] }, sPureRevocationRules, true],
   ['puro: senha vale como prova', { [PURE]: [replaceOnce("  if (!input.authMethods.some((method) => accepted.includes(method))) return 'not_proven'\n", '', 'sem checagem de amr')] }, sTakeoverGuard, true],
   ['puro: prova antes reabre o login automático', { [PURE]: [replaceOnce("  if (input.owner.emailProven === true) return { state: 'check_email', reason: 'already_used' }\n", '', 'sem emailProven')] }, sProofBeforeAutoLogin, true],
-  ['trava: carimba sem derrubar', { [GUARD]: [replaceOnce("    const { error: signOutError } = await input.supabase.auth.signOut({ scope: 'others' })\n", '    const signOutError = null\n', 'sem signOut others')] }, sTakeoverGuard, true],
+  // Com a troca da senha (admin), o Auth já derruba tudo; o signOut 'others' é o que derruba quando a troca FALHA.
+  ['trava: carimba sem derrubar', { [GUARD]: [replaceOnce("    const { error: signOutError } = await input.supabase.auth.signOut({ scope: 'others' })\n", '    const signOutError = null\n', 'sem signOut others')] }, sScrambleFails, true],
   ['recuperação: porta aceita qualquer método', { [RECOVERY]: [replaceOnce("    acceptedMethods: ['recovery'],\n", '', 'sem amr recovery')] }, sRecoveryRevokes, true],
   ['callback: Google não derruba', { [CALLBACK]: [replaceOnce("          await revokeGuestSessionsOnce({ supabase, user: data.user, session: data.session, method: 'auth_callback', path: '/auth/callback' })\n", '', 'sem a trava na callback')] }, sCallbackRevokes, true],
   ['rota de acesso: sessão sem prova não registrada', { [ACCESS]: [replaceOnce('          ? await admin.auth.admin.updateUserById(ownerUserId, { app_metadata: { ...currentMeta, [GUEST_AUTO_LOGIN_SESSION_KEY]: autoSessionId } })\n', '          ? { error: null }\n', 'sem registro do id da sessão automática')] }, sNewAccount, true],
   ['rota de acesso: ignora a prova já feita', { [ACCESS]: [replaceOnce('        emailProven: Boolean(ownerMeta[GUEST_SESSIONS_REVOKED_AT_KEY]),\n', '        emailProven: false,\n', 'emailProven sempre falso')] }, sProofBeforeAutoLogin, true],
+  // ── leva 3: a senha vira aleatória na 1ª prova ──
+  ['trava: senha de quem pagou sobrevive', { [GUARD]: [replaceOnce('    const scramble = await scramblePassword({\n', '    const scramble = { password_scrambled: false } as { password_scrambled: boolean; password_scramble_error?: string; session_reentered?: boolean }\n    void ({\n', 'sem troca de senha')] }, sTakeoverGuard, true],
+  ['trava: senha fraca/previsível', { [GUARD]: [replaceOnce("  return `${randomBytes(32).toString('base64url')}aZ7!`\n", "  return 'Kineo-2026!'\n", 'senha fixa')] }, sTakeoverGuard, true],
+  ['trava: a dona sai junto (sem religar)', { [GUARD]: [replaceOnce('    if (input.email) {\n', '    if (false) {\n', 'sem religar a sessão da prova')] }, sCallbackRevokes, true],
+  ['trava: senha que falha desfaz a derrubada', { [GUARD]: [replaceOnce('    if (!scramble.password_scrambled) console.error(', "    if (!scramble.password_scrambled) return { revoked: false, decision: 'error', passwordScrambled: false }\n    if (!scramble.password_scrambled) console.error(", 'falha da senha aborta')] }, sScrambleFails, true],
+  ['recuperação: senha trocada pelo admin (mata a sessão da recuperação)', { [RECOVERY]: [replaceOnce("    passwordStrategy: 'own_session',\n", '', 'estratégia padrão (admin) na recuperação')] }, sRecoveryRevokes, true],
   // ── leva 2: e-mail "sua conta está pronta" ──
   ['webhook: conta nova sem o e-mail', { [WEBHOOK]: [replaceOnce('        // que a página /checkout/guest manda).\n        if (sendGuestReadyEmail) await sendGuestReadyEmail()\n', '        // que a página /checkout/guest manda).\n', 'sem envio no fim do Path B')] }, sReadyEmail, true],
   ['webhook: conta existente também recebe', { [WEBHOOK]: [replaceOnce('          if (guestOwner.created) {\n            const readyOwner = guestOwner', '          if (true) {\n            const readyOwner = guestOwner', 'e-mail para qualquer dono')] }, sExistingAccount, true],

@@ -2,7 +2,7 @@
 
 import { KineoBrandIcon } from '@/components/KineoBolt'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -95,11 +95,16 @@ export default function ResetPasswordPage() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — a recuperação de senha prova o e-mail: numa conta nascida de compra sem login,
-  // o servidor derruba as OUTRAS sessões (uma vez por conta; a sessão do login de uso único nunca dispara isto).
-  // Fora disso, a rota não faz nada. Falha de rede aqui nunca atrapalha trocar a senha.
+  // o servidor derruba as OUTRAS sessões e troca a senha por uma aleatória (uma vez por conta; a sessão do login de uso
+  // único nunca dispara isto). Fora disso, a rota não faz nada. Falha de rede aqui nunca atrapalha trocar a senha; o
+  // envio espera esta chamada (até 10 s) para a senha escolhida ficar sempre por último.
+  const guestGuard = useRef<Promise<unknown> | null>(null)
   useEffect(() => {
     if (!ready) return
-    void fetch('/api/auth/guest-sessions', { method: 'POST', credentials: 'same-origin', cache: 'no-store' }).catch(() => {})
+    guestGuard.current = Promise.race([
+      fetch('/api/auth/guest-sessions', { method: 'POST', credentials: 'same-origin', cache: 'no-store' }).catch(() => null),
+      new Promise((resolve) => setTimeout(resolve, 10000)),
+    ])
   }, [ready])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -116,6 +121,9 @@ export default function ResetPasswordPage() {
     }
 
     setLoading(true)
+
+    // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — a senha aleatória da trava (conta de convidado) nunca sobrescreve a escolhida.
+    if (guestGuard.current) await guestGuard.current
 
     const { error } = await supabase.auth.updateUser({ password })
 

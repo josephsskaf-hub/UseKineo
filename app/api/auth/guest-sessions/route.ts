@@ -10,6 +10,9 @@ import { revokeGuestSessionsOnce } from '@/lib/auth/guestAccess'
 // "Forgot password"). A sessão do próprio login de uso único (id em app_metadata) e qualquer sessão de SENHA não fazem
 // nada: quem entrou sem provar o e-mail pode pôr uma senha direto na API do Auth — se ela contasse, essa pessoa
 // gastaria a derrubada única antes do dono de verdade.
+// A senha aleatória sai pela PRÓPRIA sessão de recuperação ('own_session'): pelo admin, o Auth encerraria todas as
+// sessões e a pessoa perderia, no meio, a sessão com que está trocando a senha. A página espera esta rota terminar
+// antes de gravar a senha escolhida, então a escolha sempre fica por último.
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
@@ -32,6 +35,7 @@ export async function POST(req: NextRequest) {
     method: 'password_recovery',
     path: '/api/auth/guest-sessions',
     acceptedMethods: ['recovery'],
+    passwordStrategy: 'own_session',
   })
   return reply({ revoked: result.revoked })
 }

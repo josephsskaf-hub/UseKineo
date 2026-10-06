@@ -23,7 +23,8 @@
 //   5. Nunca pior que hoje: se a sessão de convidado não abrir na Stripe, o visitante volta ao caminho de hoje
 //      (cadastro antes) e o motivo vai em guest_checkout_fallback.
 //   6. Conta nascida assim: a 1ª entrada que prova o e-mail (Google/OAuth, link por e-mail, recuperação de senha)
-//      derruba as OUTRAS sessões, uma vez (guest_sessions_revoked) — fecha a tomada de conta por e-mail alheio.
+//      derruba as OUTRAS sessões e troca a senha por uma aleatória, uma vez (guest_sessions_revoked) — fecha a tomada
+//      de conta por e-mail alheio, inclusive a senha que a sessão sem prova tenha posto.
 //   7. O webhook manda UM e-mail "sua conta está pronta" com link de entrada (cobre quem fechou a aba antes da volta).
 //
 // PURO DE PROPÓSITO: este arquivo não importa NADA. O cliente (PricingClient, KineoLanding, /ads, /checkout/guest) lê o
@@ -65,6 +66,8 @@ export const GUEST_AUTO_LOGIN_SESSION_KEY = 'kineo_guest_auto_session_id' as con
 /** Quando e por onde a 1ª entrada com prova de e-mail derrubou as outras sessões (uma vez por conta). */
 export const GUEST_SESSIONS_REVOKED_AT_KEY = 'kineo_guest_sessions_revoked_at' as const
 export const GUEST_SESSIONS_REVOKED_VIA_KEY = 'kineo_guest_sessions_revoked_via' as const
+/** Quando a senha da conta virou uma aleatória que ninguém conhece (na mesma 1ª entrada com prova; uma vez por conta). */
+export const GUEST_PASSWORD_SCRAMBLED_AT_KEY = 'kineo_guest_password_scrambled_at' as const
 /** Validade do link do e-mail "sua conta está pronta" (uso único; depois, Google ou "Forgot password"). */
 export const GUEST_READY_LINK_TTL_HOURS = 72
 

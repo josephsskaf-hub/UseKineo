@@ -1,8 +1,8 @@
 # Decisão — compra sem login (06/10/2026)
 
-**Status:** código pronto na branch `codex/compra-sem-login-0610`, em dois commits: o primeiro com o interruptor
-DESLIGADO (o site se comporta exatamente como hoje) e o último, sozinho, só virando o interruptor para LIGADO.
-Nada foi publicado; publicar é o clique do fundador.
+**Status:** código pronto na branch `codex/compra-sem-login2-0610` (sobre a main e6a89a8e): primeiro os commits com o
+interruptor DESLIGADO (o site se comporta exatamente como hoje) e, por último e sozinho, o commit que só vira o
+interruptor para LIGADO. Nada foi publicado; publicar é o clique do fundador.
 
 ## A decisão
 
@@ -61,8 +61,8 @@ tira esse degrau do caminho. O que acontece dentro da página da Stripe (o preç
 
 | Risco | Mitigação |
 |---|---|
-| Alguém paga digitando o e-mail de OUTRA pessoa que não tinha conta e entra pelo login automático | A 1ª entrada que prova o e-mail (link por e-mail, Google pela `/auth/callback`, recuperação de senha pela `/api/auth/guest-sessions`) derruba as OUTRAS sessões (`signOut` scope `others`), uma vez por conta, e grava `guest_sessions_revoked`. Prova = método da sessão no claim `amr` do JWT (oauth, otp, recovery…); **senha nunca prova**. A sessão do login automático não dispara a derrubada. Depois da prova, o login automático daquela compra não abre mais. O token de acesso que a sessão derrubada já tinha vale até expirar (até 1 h) em leitura direta ao banco; renovação e `getUser` param na hora. |
-| Mesmo cenário, se quem pagou pôs uma SENHA direto na API do Auth antes da dona entrar | **Risco residual.** A derrubada tira a sessão, mas a senha continua valendo se a dona entrou por Google ou link (pela recuperação de senha ela troca a senha e o problema some). Conserto pequeno, NÃO feito porque não foi pedido: na derrubada, embaralhar a senha pelo admin (quem usa as telas do site nunca tem senha antes da 1ª prova). Para explorar, o atacante precisa pagar um plano no e-mail da vítima. |
+| Alguém paga digitando o e-mail de OUTRA pessoa que não tinha conta e entra pelo login automático | A 1ª entrada que prova o e-mail (link por e-mail, Google pela `/auth/callback`, recuperação de senha pela `/api/auth/guest-sessions`) derruba as OUTRAS sessões (`signOut` scope `others`) e troca a senha por uma aleatória (linha abaixo), uma vez por conta, e grava `guest_sessions_revoked`. Prova = método da sessão no claim `amr` do JWT (oauth, otp, recovery…); **senha nunca prova**. A sessão do login automático não dispara a derrubada. Depois da prova, o login automático daquela compra não abre mais. O token de acesso que a sessão derrubada já tinha vale até expirar (até 1 h) em leitura direta ao banco; renovação e `getUser` param na hora. |
+| Mesmo cenário, se quem pagou pôs uma SENHA direto na API do Auth antes da dona entrar | **FECHADO (decisão do coordenador em 06/10, leva 3).** Na mesma 1ª prova, uma vez por conta e só em conta nascida de compra sem login, a senha vira uma aleatória forte que ninguém conhece (256 bits, nunca gravada nem registrada) e o evento `guest_sessions_revoked` leva `password_scrambled: true`. Link por e-mail e Google: troca pelo admin; como no Auth a troca de senha pelo admin encerra TODAS as sessões (inclusive a que acabou de provar o e-mail), a sessão da dona é religada na mesma requisição (`session_reentered`). Recuperação de senha: troca pela própria sessão de recuperação (o Auth mantém essa sessão e derruba as outras); pelo admin, a pessoa perderia a sessão no meio da troca, e a página espera essa troca terminar antes de gravar a senha escolhida. Se a troca falhar, a derrubada segue e o motivo vai em `password_scramble_error`. Quem usa as telas do site nunca tem senha antes da 1ª prova, então ninguém de boa-fé perde uma senha que escolheu. |
 | E-mail de quem já tinha conta | Nunca loga sozinho; o plano entra na conta; o link vai só para a caixa dela. |
 | Dois cliques / reenvio do webhook | Mesma sessão Stripe por navegador (idempotência); conta, eventos e e-mails com reserva por sessão. |
 | Resend fora na hora do webhook | O pagamento segue entregue (200); a falha vira `guest_account_ready_email_failed` e a reserva volta — um novo evento da mesma sessão reenvia. Não há fila de reenvio dedicada; a pessoa ainda entra pela página, por Google ou por "Forgot password". |
@@ -70,7 +70,9 @@ tira esse degrau do caminho. O que acontece dentro da página da Stripe (o preç
 | Afiliado | O cookie viaja na metadata da sessão e a comissão nasce no webhook, para a conta nova. |
 
 O que só um pagamento real prova: o e-mail que a Stripe coleta de verdade, o claim `amr` real do Auth na volta do
-Google/recuperação (medido no banco: `oauth`, `otp`, `recovery`, `password`), a entrega do Resend e o pixel de compra.
+Google/recuperação (medido no banco: `oauth`, `otp`, `recovery`, `password`), a troca de senha + religar a sessão no
+Auth de produção (comportamento lido no código do supabase/auth: admin → encerra todas as sessões; a própria sessão →
+encerra as outras), a entrega do Resend e o pixel de compra.
 
 ## O interruptor
 
@@ -93,5 +95,7 @@ interruptor.
 - `guest_checkout_fallback` por motivo — se `stripe_session_failed` aparecer, a Stripe está recusando a sessão.
 - `guest_account_created` vs `guest_account_matched` vs `guest_checkout_conflict`.
 - `guest_login_link_used` por método (`auto`, `email_link`, `ready_email_link`) e `guest_login_refused` por motivo.
-- `guest_sessions_revoked` — conta de convidado em que a dona do e-mail entrou com prova.
+- `guest_sessions_revoked` — conta de convidado em que a dona do e-mail entrou com prova; `password_scrambled` (e
+  `password_scramble_error` quando falha) e `session_reentered` (link/Google) dizem se a senha foi trocada e se a
+  sessão da dona voltou.
 - `guest_account_ready_email_sent` / `guest_account_ready_email_failed`.
