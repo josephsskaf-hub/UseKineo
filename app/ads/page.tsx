@@ -67,6 +67,7 @@ import { ADS_V2_HOW_IT_WORKS, ADS_V2_SCREEN_SECONDS, ADS_V2_TIER_COPY } from '@/
 import { ADS_V2_MAX_PHOTOS, ADS_V2_MIN_PHOTOS } from '@/lib/ads/v2ShotLists' // KINEO-ADS-V2-VIRADA-2026-09-29
 import { TIER_CREDITS, formatCheckoutMoney, getTierPrice } from '@/lib/checkoutPricing' // KINEO-ADS-PORTA-PLANO-2026-09-27
 import { planName } from '@/lib/growth/planFit' // KINEO-ADS-PORTA-PLANO-2026-09-27 — the canonical plan name
+import { GUEST_CHECKOUT_ANON_NOTE, GUEST_CHECKOUT_LIVE } from '@/lib/growth/guestCheckout' // KINEO-COMPRA-SEM-LOGIN-2026-10-06
 import AdsPageBanners, { AdsCtaLink, type AdsDoorCta } from './AdsPageBanners'
 // KINEO-ADS-PAREDE-2026-10-06 — a parede vende: quem chega por uma porta da parede (?from=v2|new|producao|studio) sem acesso
 // vê a OFERTA do plano de entrada (+ Express) no lugar da faixa. Quem vê e de onde vem cada número: lib/ads/paywall.ts e
@@ -422,7 +423,14 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
                   </AdsCtaLink>
                   {/* KINEO-COPY-HONESTA-C-2026-09-27 — this door is also shown to signed-in people without access (planOffer = gate !== 'ok');
                       the checkout GET only sends anonymous viewers to /login (app/api/stripe/checkout/route.ts), so the note tells each viewer the truth. */}
-                  <p className="gnote">{viewer.signedIn ? 'Secure Stripe checkout.' : 'Secure Stripe checkout. You sign in (or create your account) first.'}</p>
+                  {/* KINEO-COMPRA-SEM-LOGIN-2026-10-06 — com a compra sem login ligada, o anônimo vai direto à Stripe (esta porta
+                      não leva cupom nem 1º mês: guestCheckoutFallbackReason devolve null) e a conta nasce do e-mail pago;
+                      desligada, a nota de sempre (logado / anônimo) continua exatamente como era. */}
+                  {GUEST_CHECKOUT_LIVE && !viewer.signedIn ? (
+                    <p className="gnote">{GUEST_CHECKOUT_ANON_NOTE}</p>
+                  ) : (
+                    <p className="gnote">{viewer.signedIn ? 'Secure Stripe checkout.' : 'Secure Stripe checkout. You sign in (or create your account) first.'}</p>
+                  )}
                 </div>
                 <p className="ads-fine">Shown in US dollars; the checkout may show the amount in your local currency.</p>
               </div>

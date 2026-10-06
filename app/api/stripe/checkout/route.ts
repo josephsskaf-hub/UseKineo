@@ -80,7 +80,26 @@ import { ADS_ACCESS_COLUMN } from '@/lib/ads/offer'
 import {
   attributeAffiliateForUser,
   normalizeAffiliateClickId,
+  normalizeAffiliateCode,
 } from '@/lib/affiliateAttribution'
+// KINEO-COMPRA-SEM-LOGIN-2026-10-06 — o interruptor e a régua de quem compra sem conta (puro), e o lado servidor da
+// sessão de convidado (segredo do navegador, moeda de liquidação, parâmetros e chave de idempotência).
+import {
+  GUEST_CHECKOUT_EVENTS,
+  GUEST_CHECKOUT_LIVE,
+  GUEST_CHECKOUT_NONCE_COOKIE,
+  GUEST_CHECKOUT_NONCE_MAX_AGE_SECONDS,
+  GUEST_CHECKOUT_VERSION,
+  guestCheckoutFallbackReason,
+} from '@/lib/growth/guestCheckout'
+import {
+  buildGuestSubscriptionSessionParams,
+  guestCheckoutIdempotencyKey,
+  guestNonceHash,
+  guestSettlement,
+  mintGuestNonce,
+  readGuestNonce,
+} from '@/lib/stripe/guestCheckout'
 import { readCheckoutProfileWithRetry } from '@/lib/stripe/checkoutProfileRead'
 import { checkoutIntentMetadata } from '@/lib/growth/checkoutIntent'
 import { buildCheckoutValueContext } from '@/lib/growth/checkoutValueContext'
@@ -260,7 +279,9 @@ async function recordCheckoutEvent(
     // em app/api/events/route.ts): se o sink do browser pudesse cunhá-lo, o
     // denominador do único canal de receita novo viraria ficção.
     | 'bulk_checkout_started'
-    | 'ads_checkout_started', // KINEO-STUDIO-ADS-2026-09-25
+    | 'ads_checkout_started' // KINEO-STUDIO-ADS-2026-09-25
+    // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — sessão Stripe aberta por quem ainda não tem conta (SERVER_ONLY).
+    | 'checkout_guest_started',
   userId: string | null,
   metadata: Record<string, unknown>,
   sessionId?: string,
@@ -283,12 +304,15 @@ async function recordCheckoutEvent(
     // requests. Give checkout_started a deterministic UUID so analytics also
     // remain idempotent instead of counting the same session twice.
     const stripeSessionId = typeof metadata.stripe_session_id === 'string' ? metadata.stripe_session_id : null
-    if (name === 'checkout_started' && stripeSessionId) {
-      const hex = createHash('sha256').update(`checkout_started:${stripeSessionId}`).digest('hex').slice(0, 32)
+    // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — o evento do convidado ganha o MESMO id determinístico (nome:sessão): dois
+    // cliques na janela de idempotência devolvem a mesma sessão e não podem contar duas compras abertas.
+    const deterministicCheckoutEvent = name === 'checkout_started' || name === 'checkout_guest_started'
+    if (deterministicCheckoutEvent && stripeSessionId) {
+      const hex = createHash('sha256').update(`${name}:${stripeSessionId}`).digest('hex').slice(0, 32)
       eventRow.id = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
     }
     const { error } = await admin.from('events').insert(eventRow)
-    if (error?.code === '23505' && name === 'checkout_started') return
+    if (error?.code === '23505' && deterministicCheckoutEvent) return
     if (error) console.error('[stripe/checkout] event insert failed:', name, error.code, error.message)
   } catch (error) {
     console.error('[stripe/checkout] event insert threw:', name, error)
@@ -1130,7 +1154,48 @@ async function buildAndRedirect(
   await recordCheckoutEvent('checkout_attempted', user?.id ?? null, checkoutMetadata, browserSessionId ?? undefined)
 
   if (authError || !user) {
-    await recordCheckoutEvent('checkout_auth_required', null, checkoutMetadata, browserSessionId ?? undefined)
+    // ═══ KINEO-COMPRA-SEM-LOGIN-2026-10-06 — quem não tem conta paga primeiro ═══════════════════════════════════
+    // Com GUEST_CHECKOUT_LIVE=false a régua devolve 'switch_off' sem olhar mais nada e TUDO abaixo segue byte a byte
+    // como antes (mesmo evento, mesma metadata, mesmo redirect). Ligada, só a compra que não depende de saber QUEM
+    // compra vira sessão de convidado; trial, Plan Fit, marca d'água, retomada, cupom e 1º mês voltam ao cadastro.
+    const guestFallback = guestCheckoutFallbackReason({
+      live: GUEST_CHECKOUT_LIVE,
+      isGet,
+      resumed: req.nextUrl.searchParams.get('resumed') === '1',
+      wantsTrial,
+      planFit: Boolean(requestedPlanFitContext),
+      returnToWatermark,
+      checkoutRecovery,
+      promoRequested: rawPromo.length > 0,
+      introDiscount: intro && !isAnnual && (tier === 'starter' || tier === 'basic') && introDiscountMinor(tier, currency, region) > 0,
+      botSuspected: isLikelyBotUserAgent(req.headers.get('user-agent')),
+    })
+    if (guestFallback === null) {
+      failureContext = { ...checkoutMetadata, guest_checkout: true }
+      return buildGuestSubscriptionAndRedirect(req, {
+        appUrl,
+        tier,
+        billing,
+        isAnnual,
+        interval,
+        unitAmount,
+        currency,
+        region,
+        country,
+        intro,
+        intentCampaign: intentCampaign ?? null,
+        browserSessionId,
+        checkoutMetadata,
+        checkoutValueContext,
+        redirectError,
+      })
+    }
+    await recordCheckoutEvent(
+      'checkout_auth_required',
+      null,
+      GUEST_CHECKOUT_LIVE ? { ...checkoutMetadata, guest_fallback: guestFallback } : checkoutMetadata,
+      browserSessionId ?? undefined,
+    )
     // KINEO-PAINEL-QUE-NAO-MENTE-2026-09-03 — era console.ERROR, e por isso
     // aparecia no painel da Vercel como falha de produção. Não é: o caso está
     // TRATADO logo abaixo — a pessoa é mandada para o cadastro carregando a URL
@@ -2476,6 +2541,148 @@ async function buildAndRedirect(
     ? NextResponse.redirect(session.url!)
     : NextResponse.json({ url: session.url })
   return rememberRecurringCheckout(response, session.id)
+}
+
+// ─── KINEO-COMPRA-SEM-LOGIN-2026-10-06 — assinatura aberta por quem ainda não tem conta ──────────────────────
+// Chamada SÓ de dentro de buildAndRedirect, no ramo sem sessão, quando guestCheckoutFallbackReason() devolveu null.
+// Tudo o que define preço chega pronto do caminho logado (tier, billing, unitAmount, currency, region, interval,
+// checkoutValueContext são as MESMAS variáveis); a moeda de liquidação usa a mesma conta (guestSettlement). O que
+// muda é só o que depende da conta: sem `customer`, sem supabase_user_id — o webhook acha ou cria o dono pelo e-mail
+// que a Stripe coletar (lib/stripe/guestCheckout.ts → resolveGuestCheckoutOwner).
+async function buildGuestSubscriptionAndRedirect(
+  req: NextRequest,
+  ctx: {
+    appUrl: string
+    tier: PlanTier
+    billing: Billing
+    isAnnual: boolean
+    interval: 'month' | 'year'
+    unitAmount: number
+    currency: Currency
+    region: PriceRegion
+    country: string
+    intro: boolean
+    intentCampaign: string | null
+    browserSessionId: string | null
+    checkoutMetadata: Record<string, unknown>
+    checkoutValueContext: ReturnType<typeof buildCheckoutValueContext>
+    redirectError: (msg: string) => Promise<NextResponse>
+  },
+): Promise<NextResponse> {
+  const plan = TIERS[ctx.tier]
+  const settlement = guestSettlement({
+    tier: ctx.tier,
+    isAnnual: ctx.isAnnual,
+    unitAmount: ctx.unitAmount,
+    ipCountry: ctx.country,
+    acceptLanguage: req.headers.get('accept-language'),
+    forcedCurrency: req.nextUrl.searchParams.get('currency'),
+  })
+  // O segredo deste navegador: reaproveitado se já existe (dois cliques = mesma sessão Stripe), novo senão. Só o
+  // sha256 vai para a Stripe; o login de uso único exige o cookie que bate com ele.
+  const nonce = readGuestNonce(req.cookies.get(GUEST_CHECKOUT_NONCE_COOKIE)?.value) ?? mintGuestNonce()
+  const nonceHash = guestNonceHash(nonce)
+  const checkoutWindow = Math.floor(Date.now() / (CHECKOUT_IDEMPOTENCY_BUCKET_SECONDS * 1000))
+  const affiliateCode = normalizeAffiliateCode(req.cookies.get('sf_aff')?.value)
+  const affiliateClickId = normalizeAffiliateClickId(req.cookies.get('sf_aff_click')?.value)
+  const rewardfulReferral = req.cookies.get('rewardful_referral')?.value?.trim() || null
+  const autopilotPriceId = ctx.tier === 'autopilot' && settlement.chargeCurrency === 'usd'
+    ? autopilotPriceIdOverride(ctx.currency)
+    : null
+
+  const { params, affiliateSystem } = buildGuestSubscriptionSessionParams({
+    appUrl: ctx.appUrl,
+    tier: ctx.tier,
+    billing: ctx.billing,
+    interval: ctx.interval,
+    unitAmount: ctx.unitAmount,
+    listCurrency: ctx.currency,
+    region: ctx.region,
+    chargeCurrency: settlement.chargeCurrency,
+    chargeAmount: settlement.chargeAmount,
+    settlementReason: settlement.settlementReason,
+    ipCountry: ctx.country,
+    planName: plan.name,
+    lineItemDescription: withCheckoutPaymentGuidance(
+      ctx.checkoutValueContext.lineItemDescription ?? plan.description,
+    ),
+    imageUrl: CHECKOUT_VISUAL_PROOF.imageUrl,
+    planCredits: plan.credits,
+    introRequested: ctx.intro,
+    intentCampaign: ctx.intentCampaign,
+    valueContext: {
+      version: ctx.checkoutValueContext.version,
+      variant: ctx.checkoutValueContext.variant,
+      outputCount: ctx.checkoutValueContext.outputCount,
+      submitMessage: ctx.checkoutValueContext.submitMessage,
+    },
+    paymentGuidanceVersion: CHECKOUT_PAYMENT_GUIDANCE_VERSION,
+    visualProofVersion: CHECKOUT_VISUAL_PROOF.version,
+    windowHours: RECURRING_CHECKOUT_WINDOW_HOURS,
+    windowVersion: RECURRING_CHECKOUT_WINDOW_VERSION,
+    expiresAt: recurringCheckoutExpiresAt(checkoutWindow),
+    nonceHash,
+    affiliateCode,
+    affiliateClickId,
+    rewardfulReferral,
+    autopilotPriceId,
+  })
+
+  const guestMetadata: Record<string, unknown> = {
+    ...ctx.checkoutMetadata,
+    settlement_currency: settlement.chargeCurrency,
+    settlement_reason: settlement.settlementReason,
+    settlement_amount_minor: settlement.chargeAmount,
+    list_price_usd_minor: ctx.unitAmount,
+    guest_checkout: true,
+    guest_checkout_version: GUEST_CHECKOUT_VERSION,
+    affiliate_system: affiliateSystem,
+    affiliate_code_present: Boolean(affiliateCode),
+  }
+
+  let session: Stripe.Checkout.Session
+  try {
+    session = await stripe.checkout.sessions.create(params, {
+      idempotencyKey: guestCheckoutIdempotencyKey(params, {
+        nonceHash,
+        window: checkoutWindow,
+        unitAmount: ctx.unitAmount,
+        listCurrency: ctx.currency,
+        introRequested: ctx.intro,
+      }),
+    })
+  } catch (sessionErr) {
+    const msg = sessionErr instanceof Error ? sessionErr.message : String(sessionErr)
+    console.error('[stripe/checkout] guest Session creation error:', msg)
+    return ctx.redirectError(`Payment session failed: ${msg || 'Please try again'}`)
+  }
+
+  // O par canônico do funil (checkout_started, mesmo id determinístico do logado) + o evento próprio do convidado.
+  const startedMetadata = {
+    ...guestMetadata,
+    intro_applied: false,
+    private_offer_applied: false,
+    public_promo_applied: false,
+    stripe_session_id: session.id,
+    checkout_session_window_hours: RECURRING_CHECKOUT_WINDOW_HOURS,
+    checkout_session_window_version: RECURRING_CHECKOUT_WINDOW_VERSION,
+  }
+  await recordCheckoutEvent('checkout_started', null, startedMetadata, ctx.browserSessionId ?? undefined)
+  await recordCheckoutEvent(GUEST_CHECKOUT_EVENTS.started, null, startedMetadata, ctx.browserSessionId ?? undefined)
+
+  // Sem o cookie de retomada (kineo_checkout_session): a retomada é autenticada e checa o dono pela metadata, que
+  // aqui só existe depois do pagamento.
+  const response = NextResponse.redirect(session.url!)
+  response.cookies.set({
+    name: GUEST_CHECKOUT_NONCE_COOKIE,
+    value: nonce,
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: GUEST_CHECKOUT_NONCE_MAX_AGE_SECONDS,
+  })
+  return response
 }
 
 // ─── One-time Starter Pack checkout (mode: 'payment') ────────────────────────

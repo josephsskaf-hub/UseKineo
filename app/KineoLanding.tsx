@@ -42,6 +42,7 @@ import { promoCardsFor } from '@/lib/ui/promoCards'
 // (chumbados). Agora os TRÊS planos falam a moeda do visitante.
 import LandingPlanPrice from '@/components/LandingPlanPrice'
 import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing' // KINEO-AEO-PRICE-TRUTH-2026-08-19
+import { GUEST_CHECKOUT_LIVE } from '@/lib/growth/guestCheckout' // KINEO-COMPRA-SEM-LOGIN-2026-10-06
 // KINEO-CLIPES-2026-08-19 — filme pronto + cenas, ver lib/marketingPrice.
 import { CHECKOUT_CURRENCY_DISCLOSURE, filmsAndScenes, imagesFor, nanoBananasFor, voiceoversFor, filmsOn } from '@/lib/marketingPrice' // KINEO-CARD-CHEIO-2026-08-25
 
@@ -743,6 +744,9 @@ a.pl-badge:hover{color:var(--txt);border-color:rgba(41,151,255,.5)}
 
 function pricingCheckoutHref(checkoutPath: string, isSignedIn: boolean): string {
   if (isSignedIn) return checkoutPath
+  // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — com a compra sem login ligada, o card da home vai direto ao checkout (estes três
+  // links não levam cupom e o 1º mês não tem desconto: guestCheckoutFallbackReason devolve null e a Stripe abre sem conta).
+  if (GUEST_CHECKOUT_LIVE) return checkoutPath
 
   // Signed-out buyers see the auth screen before the payment API. This keeps
   // public link checkers from inflating checkout telemetry while preserving

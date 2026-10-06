@@ -205,6 +205,17 @@ const SERVER_ONLY_EVENTS = new Set([
   // assinatura) e `renewal_ignored_non_access` o pagamento de renovação descartado; forjá-los mentiria no placar.
   'subscription_ended',
   'renewal_ignored_non_access',
+  // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — escritos SÓ no servidor (rota de checkout, webhook, /api/stripe/checkout/
+  // guest-access e /auth/guest-link). São o funil da compra sem login (sessão aberta → conta criada/achada → login de
+  // uso único usado/recusado → e-mail de entrada) e o conflito com plano ativo; nomes em lib/growth/guestCheckout.ts
+  // (GUEST_CHECKOUT_EVENTS). Forjados pelo navegador, inventariam contas e logins que não existiram.
+  'checkout_guest_started',
+  'guest_account_created',
+  'guest_account_matched',
+  'guest_login_link_used',
+  'guest_login_refused',
+  'guest_checkout_conflict',
+  'guest_signin_email_sent',
   // FIX-REVISAO-2 (KINEO-FAL-SALDO-ALERTA / PLANO-B-OPENAI / CENA-CLASSICA / KINEO1-IMAGEM-V2 — 2026-09-28) — os nove
   // nomes que as levas de 28/09 escrevem SÓ no servidor (writeServerEvent ou insert com a service role). Fora desta
   // lista, a 2ª revisão executou este POST anônimo com {event_name: fal_balance_exhausted, metadata: {alerted: true,

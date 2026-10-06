@@ -13,6 +13,7 @@ import { useEffect, useRef } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { useInterfaceLanguage, useUiCopy } from '@/components/InterfaceLanguage'
 import { ADS_OFFER_VERSION } from '@/lib/ads/offer'
+import { GUEST_CHECKOUT_LIVE } from '@/lib/growth/guestCheckout' // KINEO-COMPRA-SEM-LOGIN-2026-10-06
 import {
   ADS_PAYWALL_CLICKED_EVENT,
   ADS_PAYWALL_COPY as COPY,
@@ -84,7 +85,14 @@ export default function AdsPaywall({
         <a href={offer.checkoutHref} className="go ok ads-go" data-kineo="ads-paywall-plan" onClick={() => clicked('plan')}>
           {fill(ui(COPY.cta), { plan: offer.planName, price })}
         </a>
-        <p className="gnote">{ui(signedIn ? COPY.note : COPY.noteAnon)}</p>
+        {/* KINEO-COMPRA-SEM-LOGIN-2026-10-06 — "você cria a conta antes" só é verdade enquanto a compra sem login estiver
+            desligada; ligada, o anônimo vai direto à Stripe (esta porta não leva cupom nem 1º mês) e lê a nota comum.
+            Desligada, a linha de sempre continua exatamente como era. */}
+        {GUEST_CHECKOUT_LIVE && !signedIn ? (
+          <p className="gnote">{ui(COPY.note)}</p>
+        ) : (
+          <p className="gnote">{ui(signedIn ? COPY.note : COPY.noteAnon)}</p>
+        )}
       </div>
       {offer.express ? (
         <div className="ads-paywall-express">

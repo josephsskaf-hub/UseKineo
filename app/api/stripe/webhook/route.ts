@@ -32,7 +32,7 @@ import { readBulkCheckoutTruthVersion } from '@/lib/growth/bulkCheckoutTruth'
 // puro lib/growth/dfySession.ts, que lê os MESMOS números de lib/growth/dfyOffer: a página de briefing pós-pagamento
 // autoriza pela Stripe com a MESMA regra deste webhook, sem cópia. O alerta ao fundador vem de lib/founderAlert.ts.
 import { dfySessionTier, isDfyOrderSession } from '@/lib/growth/dfySession'
-import { alertFounderAdsPass, alertFounderDfyOrder } from '@/lib/founderAlert'
+import { alertFounderAdsPass, alertFounderDfyOrder, alertFounderOnce, paidAmountLabel } from '@/lib/founderAlert'
 // KINEO-PILOT-99-2026-07-26 — o nome do plano e o cálculo do prazo são os MESMOS
 // que o cron lê. Se divergirem, o piloto ou nunca expira ou nunca gera.
 import { AUTOPILOT_PILOT_PLAN, autopilotPilotExpiresAt } from '@/lib/autopilot/config'
@@ -91,6 +91,20 @@ import { CARD_ENTRY_TRIAL_STATUS } from '@/lib/entryPolicy'
 import { renewalCreditsForInvoice } from '@/lib/settlementCurrency'
 import { RENEWAL_CARRY_VERSION, renewalBalance } from '@/lib/credits/renewalBalance' // KINEO-RENOVACAO-PRESERVA-CREDITO-COMPRADO-2026-09-25
 import { effectiveAffiliateCommissionRate } from '@/lib/affiliateCommission' // KINEO-AFILIADOS-40-2026-10-06: taxa do programa = piso
+// KINEO-COMPRA-SEM-LOGIN-2026-10-06 — a compra de quem não tinha conta: no começo do Path B o webhook acha/cria o dono
+// pelo e-mail; o grant que vem depois é o mesmo do caminho logado. Sem kineo_guest=1 na sessão, nada disto roda.
+import {
+  GUEST_CHECKOUT_EVENTS,
+  GUEST_CHECKOUT_VERSION,
+  guestConflictMarkerId,
+  isGuestCheckoutSession,
+} from '@/lib/growth/guestCheckout'
+import {
+  deterministicEventUuid,
+  guestOwnerDepsFor,
+  resolveGuestCheckoutOwner,
+  type GuestCheckoutOwner,
+} from '@/lib/stripe/guestCheckout'
 
 // KINEO-PILOT-99-2026-07-26 — fallback por valor para o piloto de $99, QUALIFICADO
 // POR MOEDA. Sem a moeda isto seria um bug de caixa: topup40 em INR custa 49900 e
@@ -738,6 +752,9 @@ async function recordPaymentSuccess(
   session: Stripe.Checkout.Session
 ): Promise<void> {
   if (session.payment_status !== 'paid') return
+  // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — compra de convidado ainda sem dono: quem grava é o Path B, logo depois de
+  // achar/criar a conta (com o user_id). Gravar aqui deixaria uma linha sem dono que a deduplicação eternizaria.
+  if (isGuestCheckoutSession(session) && !session.metadata?.supabase_user_id) return
 
   // Entitlement failures intentionally release the stripe_events guard so
   // Stripe can retry. Keep this analytics row idempotent across that retry.
@@ -837,6 +854,8 @@ async function recordPaymentSuccess(
       payment_link: typeof session.payment_link === 'string'
         ? session.payment_link
         : session.payment_link?.id ?? null,
+      // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — só na compra de convidado (as outras linhas não mudam de forma).
+      ...(isGuestCheckoutSession(session) ? { guest_checkout: true, guest_checkout_version: GUEST_CHECKOUT_VERSION } : {}),
     },
   }
 
@@ -1707,6 +1726,76 @@ export async function POST(req: NextRequest) {
         }
 
         // ── Path B: Subscription checkout ──
+        // ═══ KINEO-COMPRA-SEM-LOGIN-2026-10-06 — o dono da compra de quem não tinha conta ═══════════════════════
+        // A sessão de convidado (kineo_guest=1, sempre mode 'subscription') nasce sem supabase_user_id. Aqui, antes do
+        // grant, o webhook acha a conta pelo e-mail que a Stripe coletou ou cria uma (lib/stripe/guestCheckout.ts), e
+        // carimba o dono no Customer, na Assinatura e na própria sessão da Stripe. O mesmo carimbo entra no objeto
+        // desta entrega: daqui para baixo payment_success e o Path B leem EXATAMENTE o que leriam numa compra logada.
+        // Qualquer falha = RetryableEntitlementError → 500 → a Stripe reenvia (o resolver é idempotente: mesmo e-mail,
+        // carimbo em app_metadata, eventos com id determinístico). Sem kineo_guest=1, nada disto roda.
+        if (isGuestCheckoutSession(session)) {
+          entitlementPending = true
+          let guestOwner: GuestCheckoutOwner
+          try {
+            guestOwner = await resolveGuestCheckoutOwner(guestOwnerDepsFor(supabase, stripe), session)
+          } catch (guestOwnerError) {
+            const reason = guestOwnerError instanceof Error ? guestOwnerError.message : String(guestOwnerError)
+            throw new RetryableEntitlementError(`Guest checkout owner unresolved (${session.id}): ${reason}`)
+          }
+          session.metadata = { ...(session.metadata ?? {}), supabase_user_id: guestOwner.userId }
+          // O payment_success de cima pulou esta sessão (dono ainda desconhecido); agora ele sai com o user_id.
+          try {
+            await recordPaymentSuccess(supabase, event.id, session)
+          } catch (trackingError) {
+            console.error('[stripe webhook] guest payment_success tracking threw:', trackingError)
+          }
+
+          // O e-mail já tinha plano ativo vindo de OUTRA assinatura. O caminho logado teria recusado antes de cobrar
+          // ("You already have a Kineo subscription"); aqui o dinheiro já entrou. Nada é sobrescrito nem concedido: o
+          // conflito vira marcador (a página /checkout/guest lê) + evento com dono, e o fundador é avisado (1×/sessão).
+          // A renovação desta 2ª assinatura cai no ramo "superseded" e não toca o perfil.
+          if (guestOwner.conflict) {
+            const { error: conflictMarkerError } = await supabase
+              .from('stripe_events')
+              .insert({ id: guestConflictMarkerId(session.id) })
+            if (conflictMarkerError && conflictMarkerError.code !== '23505') {
+              throw new RetryableCheckoutAnalyticsError(`Guest conflict marker not recorded (${session.id}): ${conflictMarkerError.message}`)
+            }
+            const { error: conflictEventError } = await supabase.from('events').insert({
+              id: deterministicEventUuid(GUEST_CHECKOUT_EVENTS.conflict, session.id),
+              name: GUEST_CHECKOUT_EVENTS.conflict,
+              user_id: guestOwner.userId,
+              path: '/api/stripe/webhook',
+              metadata: {
+                source: 'stripe_webhook',
+                version: GUEST_CHECKOUT_VERSION,
+                stripe_session_id: session.id,
+                stripe_subscription_id: typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? null,
+                conflict: guestOwner.conflict,
+                tier: session.metadata?.tier ?? null,
+                amount_total: session.amount_total ?? null,
+                currency: session.currency ?? null,
+              },
+            })
+            if (conflictEventError && conflictEventError.code !== '23505') {
+              throw new RetryableCheckoutAnalyticsError(`Guest conflict event not recorded (${session.id}): ${conflictEventError.message}`)
+            }
+            await alertFounderOnce({
+              kind: 'guest_conflict',
+              stripeSessionId: session.id,
+              subject: `[Kineo] Compra sem login caiu em conta que JÁ tem plano (${guestOwner.conflict})`,
+              text:
+                `Sessão ${session.id} pagou ${paidAmountLabel(session.amount_total, session.currency)} (${session.metadata?.tier ?? 'plano'}) ` +
+                `com um e-mail que já tem acesso pago (${guestOwner.conflict}). Nada foi concedido nem sobrescrito: a conta ` +
+                `segue no plano de antes e esta 2ª assinatura está ativa na Stripe. Decidir: reembolsar/cancelar a nova ` +
+                `ou trocar o plano à mão. user_id=${guestOwner.userId}`,
+            })
+            entitlementConfirmed = true
+            entitlementPending = false
+            console.warn('[stripe webhook] guest checkout conflict recorded; no grant:', session.id, guestOwner.conflict)
+            break
+          }
+        }
         const userId = session.metadata?.supabase_user_id
         const customerId = typeof session.customer === 'string'
           ? session.customer

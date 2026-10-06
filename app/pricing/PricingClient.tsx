@@ -88,6 +88,7 @@ import { planSettlementAmountMinor, settlementNote, type SettlementCurrency } fr
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, type FreeTierOffer } from '@/lib/freeTierOffer'
 import { CHECKOUT_PAYMENT_GUIDANCE_COMPACT } from '@/lib/growth/checkoutPaymentGuidance'
+import { GUEST_CHECKOUT_LIVE, guestCheckoutCoversPlanClick } from '@/lib/growth/guestCheckout' // KINEO-COMPRA-SEM-LOGIN-2026-10-06
 import {
   buildPricingPlanChoiceAttribution,
   sanitizePricingIntentCampaign,
@@ -1304,7 +1305,9 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                   onClick={() => handleBuy(p.tier as PaidTier)}
                   className="mt-auto block w-full rounded-xl bg-[var(--indigo)] px-4 py-3 text-center text-[14px] font-extrabold text-[var(--on-accent)] shadow-[0_8px_24px_rgba(41,151,255,.35)] transition hover:brightness-110 hover:shadow-[0_10px_30px_rgba(41,151,255,.45)] disabled:opacity-60"
                 >
-                  {purchasing === p.tier ? 'Opening secure checkout…' : signedIn === false ? 'Sign up & continue →' : `${ctaLabel} →`}
+                  {/* KINEO-COMPRA-SEM-LOGIN-2026-10-06 — sem sessão, o rótulo só deixa de dizer "Sign up" quando o servidor vai
+                      MESMO abrir a Stripe sem conta (mesma régua: interruptor ligado, sem cupom, sem 1º mês com desconto). */}
+                  {purchasing === p.tier ? 'Opening secure checkout…' : signedIn === false && !guestCheckoutCoversPlanClick({ live: GUEST_CHECKOUT_LIVE, promoRequested: arrivedWithPromo, introDiscount: billing === 'monthly' && (p.tier === 'starter' || p.tier === 'basic') && hasIntroOffer(p.tier, resolvedCurrency, resolvedRegion) }) ? 'Sign up & continue →' : `${ctaLabel} →`}
                 </button>
                 {/* KINEO-UPI-PLANOS-2026-09-11 — assinatura mensal pela Índia via Dodo
                     (UPI / RuPay). Mesmo plano, mesmo preço em USD, mesmos créditos;
