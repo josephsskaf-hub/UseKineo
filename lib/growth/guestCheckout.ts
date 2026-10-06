@@ -34,7 +34,7 @@
 // INTERRUPTOR ÚNICO. false = o caminho de hoje, sem exceção: nenhuma sessão de convidado nasce, toda tela fala
 // "Sign up & continue". O webhook e a página de acesso NÃO olham o interruptor de propósito: uma sessão paga
 // enquanto ele estava ligado precisa ser entregue mesmo que alguém o desligue no meio da janela de 24 h.
-export const GUEST_CHECKOUT_LIVE = false
+export const GUEST_CHECKOUT_LIVE = true
 
 export const GUEST_CHECKOUT_VERSION = 'guest_checkout_v1' as const
 
