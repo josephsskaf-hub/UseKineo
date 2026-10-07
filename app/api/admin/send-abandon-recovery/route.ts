@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // Cart-abandonment recovery blast (admin-only) — idempotent + batched.
 //
 // KINEO-ABANDON-RECOVERY-2026-07-08 — email everyone who clicked a checkout
@@ -185,11 +186,11 @@ export async function GET(req: NextRequest) {
     const admin = adminClient()
 
     // 1) user_ids that fired a checkout-click event (the universe of abandoners).
-    const { data: evRows, error: evErr } = await admin
+    const { data: evRows, error: evErr } = await readAll(() => admin
       .from('events')
       .select('user_id')
       .in('name', CHECKOUT_EVENTS)
-      .not('user_id', 'is', null)
+      .not('user_id', 'is', null), { route: '/api/admin/send-abandon-recovery', table: 'events' })
     if (evErr) {
       return NextResponse.json({ error: `events query failed: ${evErr.message}` }, { status: 500 })
     }
@@ -201,13 +202,13 @@ export async function GET(req: NextRequest) {
     }
 
     // 2) those clickers' profiles: unpaid + not yet recovery-emailed.
-    const { data: rows, error } = await admin
+    const { data: rows, error } = await readAll(() => admin
       .from('profiles')
       .select('id, email, plan, is_pro, has_paid')
       .in('id', clickerIds)
       .eq('abandon_emailed', false)
       // KINEO-UNSUBSCRIBE-2026-07-26 — quem pediu para sair NUNCA entra em coorte.
-      .eq('email_opted_out', false)
+      .eq('email_opted_out', false), { route: '/api/admin/send-abandon-recovery', table: 'profiles' })
     if (error) {
       return NextResponse.json({ error: `profiles query failed: ${error.message}` }, { status: 500 })
     }

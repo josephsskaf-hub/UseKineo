@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // KINEO-RADAR-DE-QUALIDADE-2026-09-20 — ver lib/qualityRadar.ts. A cada 15 min: julga filmes novos sem nota e alerta o
 // fundador quando um pagante recebe filme ruim. Com ?digest=1 (cron diário 08:05 BRT): resumo das 24 h.
 import { NextRequest, NextResponse } from 'next/server'
@@ -36,9 +37,9 @@ export async function GET(req: NextRequest) {
   const digest = req.nextUrl.searchParams.get('digest') === '1'
 
   // Julga o que ainda não tem nota (janela curta no tique de 15 min; 24 h no resumo).
-  const rows = await listFastCoherence(admin, { hours: digest ? 24 : RADAR_JUDGE_WINDOW_HOURS, limit: digest ? 200 : 300, maxCompute: RADAR_MAX_JUDGE_PER_RUN, excludeEmails: INTERNAL })
+  const rows = await listFastCoherence(admin, { route: '/api/cron/quality-radar', hours: digest ? 24 : RADAR_JUDGE_WINDOW_HOURS, limit: digest ? 200 : 300, maxCompute: RADAR_MAX_JUDGE_PER_RUN, excludeEmails: INTERNAL })
   const userIds = [...new Set(rows.map((r) => r.user_id))]
-  const { data: profs } = userIds.length ? await admin.from('profiles').select('id, has_paid, plan, video_credits').in('id', userIds) : { data: [] as Array<Record<string, unknown>> }
+  const { data: profs } = userIds.length ? await readAll(() => admin.from('profiles').select('id, has_paid, plan, video_credits').in('id', userIds), { route: '/api/cron/quality-radar', table: 'profiles' }) : { data: [] as Array<Record<string, unknown>> }
   const paidBy = new Map<string, { hasPaid: boolean; credits: number | null }>()
   for (const p of profs ?? []) {
     const plan = String((p as { plan?: string }).plan ?? 'free').toLowerCase()
@@ -60,7 +61,7 @@ export async function GET(req: NextRequest) {
 
   // Alertas: 1 por filme, nunca repetido (marcador por video_id).
   const ids = films.map((f) => f.video_id)
-  const { data: marks } = ids.length ? await admin.from('events').select('session_id').eq('name', RADAR_ALERT_EVENT).in('session_id', ids) : { data: [] as Array<{ session_id: string | null }> }
+  const { data: marks } = ids.length ? await readAll(() => admin.from('events').select('session_id').eq('name', RADAR_ALERT_EVENT).in('session_id', ids), { route: '/api/cron/quality-radar', table: 'events' }) : { data: [] as Array<{ session_id: string | null }> }
   const alerted = new Set((marks ?? []).map((m) => m.session_id as string))
   const results: Array<{ video: string; reason: string }> = []
   let sentCount = 0

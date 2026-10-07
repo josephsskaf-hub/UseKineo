@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // KINEO-HOT-UPSELL-2026-07-10 — SNIPER de conversão (meta: 10 pagantes).
 // One-off, admin-gated, idempotente via public.events (name='hot_upsell_sent').
 // 3 segmentos, MENSAGEM CERTA PRA CADA UM (não é blast genérico):
@@ -10,7 +11,6 @@
 // GET sem params = DRY RUN · ?confirm=SEND = dispara (respeita Resend 100/dia
 // — este lote tem ~15, cabe na sobra de hoje).
 import { NextRequest, NextResponse } from 'next/server'
-import { dedupeTripwire } from '@/lib/truncationTripwire'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
@@ -165,14 +165,13 @@ export async function GET(req: NextRequest) {
 
     // Idempotência: pula quem já recebeu (events.name='hot_upsell_sent') ou
     // quem JÁ PAGOU desde a curadoria (nunca fazer upsell pra pagante).
-    const { data: sentRows } = await admin
+    const { data: sentRows } = await readAll(() => admin
       .from('events')
       .select('metadata')
-      .eq('name', 'hot_upsell_sent')
-    // KINEO-TRIPWIRE-1000-2026-08-28 — sem .limit() nao significa sem teto:
-    // o PostgREST corta em 1000 do mesmo jeito. Encostou = aborta.
+      .eq('name', 'hot_upsell_sent'), { route: '/api/admin/send-hot-upsell', table: 'events' })
+    // Leitura completa pelo readAll; qualquer falha de página aborta o envio.
     const alreadySent = new Set(
-      dedupeTripwire(sentRows, 'send-hot-upsell hot_upsell_sent').map((r) => {
+      (sentRows ?? []).map((r) => {
         try { return ((r as { metadata: { email?: string } }).metadata?.email ?? '').toLowerCase() } catch { return '' }
       }),
     )
@@ -182,10 +181,10 @@ export async function GET(req: NextRequest) {
     // um .eq() na query: o id do perfil é RESOLVIDO aqui pelo email, e é ele
     // que assina o link de descadastro. Sem id → sem unsubscribe possível →
     // o contato é pulado (skipped_no_profile), nunca enviado sem saída.
-    const { data: profileRows } = await admin
+    const { data: profileRows } = await readAll(() => admin
       .from('profiles')
       .select('id, email, has_paid, plan, email_opted_out')
-      .in('email', allEmails)
+      .in('email', allEmails), { route: '/api/admin/send-hot-upsell', table: 'profiles' })
     type ProfileRow = { id: string; email: string | null; has_paid: boolean | null; email_opted_out: boolean | null }
     const profileByEmail = new Map<string, ProfileRow>()
     for (const r of (profileRows ?? []) as ProfileRow[]) {

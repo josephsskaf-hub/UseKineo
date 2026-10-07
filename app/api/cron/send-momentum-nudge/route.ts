@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
@@ -89,9 +90,7 @@ import { COMPOSE_CLAIM_EVENT, COMPOSE_CLAIM_PATH } from '@/lib/composeClaim'
 // instrucao (`lib/momentumTopic.ts`): roteiro que comeca com "Create a
 // 40-second…"/"STYLE:"/"must be in FRENCH ONLY" nao vira anchor. Sem tema
 // utilizavel, texto e URL sao os de antes. E a leitura de `videos` ganhou
-// tripwire de truncamento (PostgREST devolve no maximo 1.000 linhas SEM ERRO;
-// 756 em 30d hoje): saturou → 500 e nenhum e-mail, porque contagem truncada
-// diria "You're three away" para quem ja fez cinco.
+// Leitura paginada: qualquer falha impede o envio com contagem parcial.
 
 // ═══ KINEO-SPRINT-ASSINATURAS-2026-09-02 (#23) — A ESCADA E O RESGATE ═════
 //
@@ -178,7 +177,6 @@ const MAX_PER_RUN = 40
 // Janela: cedo o bastante para a memória estar fresca, tarde o bastante para
 // não atropelar quem ainda está na sessão. 20h-96h desde o último vídeo
 // (constantes em lib/momentumLadder.ts; `?max_idle_h=` só alarga, #23).
-const VIDEOS_TRIPWIRE = 1000
 // #23: sessão de admin também abre a rota (link de 1 clique do fundador).
 const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com'])
 
@@ -303,19 +301,13 @@ export async function GET(req: NextRequest) {
 
   // Candidatos: vídeos concluídos na janela de ociosidade. Agregamos por
   // pessoa em memória (o Supabase JS não faz GROUP BY).
-  const { data: vids, error } = await admin
+  const { data: vids, error } = await readAll(() => admin
     .from('videos')
     .select('user_id, created_at, topic, quality_mode')
     .eq('status', 'completed')
-    .gte('created_at', new Date(now - 30 * 24 * 3600_000).toISOString())
-    .limit(4000)
+    .gte('created_at', new Date(now - 30 * 24 * 3600_000).toISOString()), { route: '/api/cron/send-momentum-nudge', table: 'videos' })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  // Tripwire de truncamento (#6): o PostgREST corta em max-rows (1.000 por
-  // padrao) sem erro. Pagina cheia = contagem por pessoa nao confiavel.
-  if ((vids?.length ?? 0) >= VIDEOS_TRIPWIRE) {
-    console.error(`[momentum] videos query saturated at ${vids?.length} rows — counts untrustworthy, sending nothing`)
-    return NextResponse.json({ error: 'videos_truncated', rows: vids?.length, note: 'paginar a leitura antes de voltar a enviar' }, { status: 500 })
-  }
+  // readAll conclui todas as páginas antes de calcular contagem e elegibilidade.
 
   type Agg = { count: number; last: string; topic: string | null }
   const byUser = new Map<string, Agg>()
@@ -344,8 +336,8 @@ export async function GET(req: NextRequest) {
 
   const ids = candidates.map(([id]) => id)
   const [{ data: profs }, { data: stamps }] = await Promise.all([
-    admin.from('profiles').select('id, email, email_opted_out, video_credits, stripe_subscription_id').in('id', ids.slice(0, 1000)),
-    admin.from('events').select('user_id, created_at, metadata').eq('name', STAMP).in('user_id', ids.slice(0, 1000)),
+    readAll(() => admin.from('profiles').select('id, email, email_opted_out, video_credits, stripe_subscription_id').in('id', ids.slice(0, 1000)), { route: '/api/cron/send-momentum-nudge', table: 'profiles' }),
+    readAll(() => admin.from('events').select('user_id, created_at, metadata').eq('name', STAMP).in('user_id', ids.slice(0, 1000)), { route: '/api/cron/send-momentum-nudge', table: 'events' }),
   ])
   // #23: carimbos POR PESSOA com o degrau (metadata.videos) e a hora — a
   // escada decide se este degrau já foi avisado ou se é cedo demais.
@@ -373,13 +365,13 @@ export async function GET(req: NextRequest) {
   const OFFER = getFreeTierOffer()
   const quotaWindowStart = new Date(now - OFFER.windowMs).toISOString()
   const [freeClaimsRes, freeVideosRes] = await Promise.all([
-    admin.from('events').select('user_id, metadata, created_at')
+    readAll(() => admin.from('events').select('user_id, metadata, created_at')
       .eq('name', COMPOSE_CLAIM_EVENT).eq('path', COMPOSE_CLAIM_PATH)
       .eq('metadata->>quality', 'fast').eq('metadata->>cost', '0')
-      .gte('created_at', quotaWindowStart).limit(5000),
-    admin.from('videos').select('user_id, render_id')
+      .gte('created_at', quotaWindowStart), { route: '/api/cron/send-momentum-nudge', table: 'events' }),
+    readAll(() => admin.from('videos').select('user_id, render_id')
       .eq('quality_mode', 'fast').eq('credits_used', 0)
-      .gte('created_at', quotaWindowStart).limit(5000),
+      .gte('created_at', quotaWindowStart), { route: '/api/cron/send-momentum-nudge', table: 'videos' }),
   ])
   const quotaReadOk = !freeClaimsRes.error && !freeVideosRes.error
   if (!quotaReadOk) {

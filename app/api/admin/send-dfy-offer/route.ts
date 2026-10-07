@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // KINEO-DFY-OFFER-2026-07-08 — Done-For-You campaign (admin-only) — idempotent + batched.
 //
 // Offer: "30 AI Shorts done for you — $97 one-time". Sent to every unpaid signup
@@ -124,14 +125,14 @@ export async function GET(req: NextRequest) {
 
     const admin = adminClient()
 
-    const { data: rows, error } = await admin
+    const { data: rows, error } = await readAll(() => admin
       .from('profiles')
       .select('id, email, plan, is_pro, has_paid, video_credits, created_at')
       .gte('created_at', WINDOW_START)
       .lt('created_at', WINDOW_END)
       .eq('dfy_offer_emailed', false)
       // KINEO-UNSUBSCRIBE-2026-07-26 — quem pediu para sair NUNCA entra em coorte.
-      .eq('email_opted_out', false)
+      .eq('email_opted_out', false), { route: '/api/admin/send-dfy-offer', table: 'profiles' })
     if (error) {
       return NextResponse.json({ error: `profiles query failed: ${error.message}` }, { status: 500 })
     }

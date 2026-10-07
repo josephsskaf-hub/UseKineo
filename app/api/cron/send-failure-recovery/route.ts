@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
@@ -535,9 +536,9 @@ export async function GET(req: NextRequest) {
 
   const ids = [...porPessoa.keys()]
   const [{ data: profs }, { data: stamps }, { data: comVideo }] = await Promise.all([
-    admin.from('profiles').select('id, email, email_opted_out, video_credits').in('id', ids),
-    admin.from('events').select('user_id').eq('name', STAMP).in('user_id', ids),
-    admin.from('videos').select('user_id').eq('status', 'completed').in('user_id', ids),
+    readAll(() => admin.from('profiles').select('id, email, email_opted_out, video_credits').in('id', ids), { route: '/api/cron/send-failure-recovery', table: 'profiles' }),
+    readAll(() => admin.from('events').select('user_id').eq('name', STAMP).in('user_id', ids), { route: '/api/cron/send-failure-recovery', table: 'events' }),
+    readAll(() => admin.from('videos').select('user_id').eq('status', 'completed').in('user_id', ids), { route: '/api/cron/send-failure-recovery', table: 'videos' }),
   ])
   const jaAvisado = new Set((stamps ?? []).map((s) => s.user_id as string))
   const jaTemVideo = new Set((comVideo ?? []).map((v) => v.user_id as string))

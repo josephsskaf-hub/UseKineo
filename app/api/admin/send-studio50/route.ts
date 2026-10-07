@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // KINEO-STUDIO50-2026-09-22 — carta "Studio a 50%" para quem chegou ao checkout e não pagou.
 //
 // POR QUE A CARTA É SECUNDÁRIA (medido 22/09): 4 cartas anteriores para esta coorte (checkout_rescue 19/08 com
@@ -105,14 +106,14 @@ export async function GET(req: NextRequest) {
 
     // 1) quem tentou o checkout na janela (paginado — PostgREST corta em 1000)
     const lastHit = new Map<string, string>()
-    for (let from = 0; ; from += 1000) {
-      const { data, error } = await admin
+    {
+      const { data, error } = await readAll(() => admin
         .from('events').select('user_id, created_at')
         .in('name', [...STUDIO50_CHECKOUT_EVENTS]).gte('created_at', since).not('user_id', 'is', null)
-        .order('created_at', { ascending: false }).range(from, from + 999)
+        .order('created_at', { ascending: false }), { route: '/api/admin/send-studio50', table: 'events' })
       if (error) throw error
       for (const r of data ?? []) { const id = r.user_id as string; if (!lastHit.has(id)) lastHit.set(id, r.created_at as string) }
-      if (!data || data.length < 1000) break
+
     }
     const ids = [...lastHit.keys()]
 
@@ -124,9 +125,9 @@ export async function GET(req: NextRequest) {
     for (let i = 0; i < ids.length; i += 300) {
       const slice = ids.slice(i, i + 300)
       const [{ data: p }, { data: s }, { data: t }] = await Promise.all([
-        admin.from('profiles').select('id, email, email_opted_out').in('id', slice),
-        admin.from('events').select('user_id').eq('name', STAMP).in('user_id', slice),
-        admin.from('events').select('user_id').in('name', [...LIFECYCLE_EMAIL_EVENT_NAMES, STAMP]).gte('created_at', dayAgo).in('user_id', slice),
+        readAll(() => admin.from('profiles').select('id, email, email_opted_out').in('id', slice), { route: '/api/admin/send-studio50', table: 'profiles' }),
+        readAll(() => admin.from('events').select('user_id').eq('name', STAMP).in('user_id', slice), { route: '/api/admin/send-studio50', table: 'events' }),
+        readAll(() => admin.from('events').select('user_id').in('name', [...LIFECYCLE_EMAIL_EVENT_NAMES, STAMP]).gte('created_at', dayAgo).in('user_id', slice), { route: '/api/admin/send-studio50', table: 'events' }),
       ])
       for (const r of p ?? []) profiles.set(r.id as string, { email: String(r.email ?? '').toLowerCase(), opted: !!r.email_opted_out })
       for (const r of s ?? []) stamped.add(r.user_id as string)

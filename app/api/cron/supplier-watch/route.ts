@@ -275,8 +275,8 @@ export async function GET(req: NextRequest) {
   const now = new Date()
 
   const [health, burn] = await Promise.all([
-    readGenerationHealth(admin, now),
-    readSupplierBurn(admin, now),
+    readGenerationHealth(admin, now, '/api/cron/supplier-watch'),
+    readSupplierBurn(admin, now, '/api/cron/supplier-watch'),
   ])
 
   // Camada 2 compartilha a dedupe POR CICLO de lib/creatomateQuota.ts, então o

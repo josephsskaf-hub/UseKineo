@@ -1,3 +1,4 @@
+import { readAll } from '../supabase/readAll'
 // KINEO-LIFECYCLE-SUPPRESSION-2026-07-27 — a trava que faltava entre os jobs
 // de ciclo de vida.
 //
@@ -204,10 +205,8 @@ export interface LifecycleSuppression {
   /** true = alguma consulta falhou e a trava fechou em cima de TODOS os ids. */
   readonly degraded: boolean
   /**
-   * true = a QUINTA fonte (carimbos em `events`) falhou e foi IGNORADA nesta
-   * execucao. Diferente de `degraded` DE PROPOSITO — ver o bloco
-   * KINEO-SUPPRESSION-EVENTS-2026-09-06. Campo OPCIONAL para nao quebrar
-   * nenhum objeto que ja implemente esta interface.
+   * true = a fonte de carimbos em events falhou. O lote inteiro fica
+   * suprimido, assim como nas demais fontes. Campo opcional por compatibilidade.
    */
   readonly eventsDegraded?: boolean
 }
@@ -276,10 +275,10 @@ export async function loadLifecycleSuppression(
 
   try {
     for (const part of chunk(ids, CHUNK_SIZE)) {
-      const { data: profileRows, error: profileErr } = await admin
+      const { data: profileRows, error: profileErr } = await readAll(() => admin
         .from('profiles')
         .select(['id', ...PROFILE_TIMESTAMP_COLUMNS].join(', '))
-        .in('id', part)
+        .in('id', part), { route: 'lifecycle/suppression', table: 'profiles' })
 
       if (profileErr) return closed(`profiles: ${profileErr.code ?? '?'} ${profileErr.message}`)
 
@@ -290,13 +289,13 @@ export async function loadLifecycleSuppression(
       // send-recovery é o único que NÃO marca em profiles — o carimbo dele mora
       // na linha de checkout_abandoned. Sem esta segunda consulta o job mais
       // agressivo da casa (a cada 2h) ficaria invisível para os outros três.
-      const { data: abandonedRows, error: abandonedErr } = await admin
+      const { data: abandonedRows, error: abandonedErr } = await readAll(() => admin
         .from('checkout_abandoned')
         .select('user_id, recovery_sent_at')
         .in('user_id', part)
         // KINEO-SKIP-STAMP-2026-08-05 — corta o carimbo de PULO na origem, em vez
         // de trazer a linha e descartá-la no `bump`. Mesmo resultado, menos I/O.
-        .gte('recovery_sent_at', new Date(REAL_SEND_FLOOR_MS).toISOString())
+        .gte('recovery_sent_at', new Date(REAL_SEND_FLOOR_MS).toISOString()), { route: 'lifecycle/suppression', table: 'checkout_abandoned' })
 
       if (abandonedErr) {
         return closed(`checkout_abandoned: ${abandonedErr.code ?? '?'} ${abandonedErr.message}`)
@@ -311,11 +310,11 @@ export async function loadLifecycleSuppression(
       // consulta os cinco e-mails do trial ficariam invisíveis para os outros
       // jobs — a regra deste módulo é entrar aqui no MESMO commit em que o job
       // nasce. Corte na origem: só linhas dentro da janela de 24h interessam.
-      const { data: trialEmailRows, error: trialEmailErr } = await admin
+      const { data: trialEmailRows, error: trialEmailErr } = await readAll(() => admin
         .from('trial_emails_log')
         .select('user_id, sent_at')
         .in('user_id', part)
-        .gte('sent_at', new Date(cutoff).toISOString())
+        .gte('sent_at', new Date(cutoff).toISOString()), { route: 'lifecycle/suppression', table: 'trial_emails_log', key: ['user_id', 'email_kind'] })
 
       if (trialEmailErr) {
         return closed(`trial_emails_log: ${trialEmailErr.code ?? '?'} ${trialEmailErr.message}`)
@@ -374,13 +373,13 @@ export async function loadLifecycleSuppression(
       // (0,8%) passam a ser adiados; os pares de ~5h do `checkout_recovery`
       // NÃO são afetados porque aquele caller passa janela de 4h
       // (HOT_LEAD_SUPPRESSION_HOURS), e a janela é aplicada aqui, não lá.
-      const { data: ledgerRows, error: ledgerErr } = await admin
+      const { data: ledgerRows, error: ledgerErr } = await readAll(() => admin
         .from('email_send_log')
         .select('user_id, sent_at')
         .in('user_id', part)
         .gte('sent_at', new Date(cutoff).toISOString())
         .eq('ok', true)
-        .not('yielded', 'is', true)
+        .not('yielded', 'is', true), { route: 'lifecycle/suppression', table: 'email_send_log' })
 
       if (ledgerErr) {
         return closed(`email_send_log: ${ledgerErr.code ?? '?'} ${ledgerErr.message}`)
@@ -394,92 +393,26 @@ export async function loadLifecycleSuppression(
     return closed(err instanceof Error ? err.message : String(err))
   }
 
-  // ═══ KINEO-SUPPRESSION-EVENTS-2026-09-06 (sprint-assinaturas #26) ════════
-  // A QUINTA FONTE, e a que faltava para METADE das campanhas da casa.
-  //
-  // O DEFEITO, MEDIDO E NAO DEDUZIDO (06/09, janela de 7 dias):
-  // **70 pares** de e-mails de ciclo de vida para a MESMA pessoa dentro de 30
-  // minutos, **42 pessoas distintas**, intervalo minimo **0,0 minuto** — o
-  // mesmo instante. Doze combinacoes diferentes; as dominantes envolviam
-  // `stranded_ready_sent` e `video_ready_email_sent`. O caso que abriu a
-  // investigacao: a pessoa `ee8027b2` recebeu a carta da temporada as
-  // 15:45:50 e um `post_nudge` as 15:50:12 — **4 min 22 s** depois.
-  //
-  // POR QUE AS QUATRO FONTES ACIMA NAO VIAM NADA DISSO: elas leem colunas
-  // (`profiles`, `checkout_abandoned`, `trial_emails_log`) e o ledger
-  // (`email_send_log`). **Nenhuma abre a tabela `events`** — e carimbo em
-  // evento e a geracao NOVA de carimbo, a que toda campanha de admin usa
-  // porque nao exige migracao. Sete campanhas de admin e cinco crons
-  // carimbavam so ali, e portanto nao existiam para esta trava.
-  //
-  // TAMANHO DA MUDANCA, medido ANTES de escrever (janela de 24h, producao):
-  // 215 pessoas tinham e-mail registrado por evento; **182 ja eram visiveis**
-  // pelas quatro fontes antigas; **59 sao novas**. Ou seja, ate 59 pessoas
-  // passam a ter o proximo e-mail ADIADO por 24h. Nenhuma perde e-mail para
-  // sempre: todo job que consulta isto reconsidera a coorte na execucao
-  // seguinte.
-  //
-  // ⚠️ ESTA FONTE FALHA **ABERTA**, E ISSO E DECISAO, NAO ESQUECIMENTO.
-  // As quatro fontes antigas falham FECHADAS porque sem elas a trava nao
-  // existe. Esta e ADITIVA: se a consulta morrer, o comportamento degrada
-  // exatamente para o que estava em producao antes deste commit. Fecha-la
-  // junto transformaria um solucos de query numa mordaca de 24h sobre a base
-  // inteira — trocar um defeito conhecido por um risco pior. O sinal fica
-  // separado em `eventsDegraded` para que ninguem confunda "a quinta fonte
-  // caiu" com "a trava fechou em cima de todo mundo".
-  //
-  // POR QUE UMA LEITURA GLOBAL E NAO FATIADA POR ID: o filtro de janela ja e
-  // seletivo (3.735 de 116.054 linhas em 24h, e so ~300 delas sao carimbo de
-  // e-mail), `events_created_at_idx` existe e `user_id` NAO tem indice. Uma
-  // leitura paginada por data e mais barata que N consultas por lote de ids.
-  // A paginacao e obrigatoria: PostgREST trunca em 1.000 linhas SEM ERRO
-  // (memoria da casa, /admin de 28/08), e truncar aqui e deixar de suprimir
-  // em silencio.
-  let eventsDegraded = false
+  // Carimbos em events participam da mesma garantia das outras fontes:
+  // leitura completa, ordem total e falha fechada antes de qualquer envio.
+  // O comportamento anterior ignorava erros/teto de páginas nesta fonte e
+  // podia reenviar mesmo sem conhecer todos os envios recentes.
   try {
     const idSet = new Set(ids)
-    const desde = new Date(cutoff).toISOString()
-    const PAGINA = 1000
-    const MAX_PAGINAS = 20
-    let pagina = 0
-    for (; pagina < MAX_PAGINAS; pagina++) {
-      const { data: eventRows, error: eventErr } = await admin
-        .from('events')
-        .select('user_id, created_at')
-        .gte('created_at', desde)
-        .in('name', LIFECYCLE_EMAIL_EVENT_NAMES as unknown as string[])
-        .order('created_at', { ascending: true })
-        .range(pagina * PAGINA, pagina * PAGINA + PAGINA - 1)
-
-      if (eventErr) {
-        console.error(
-          `[lifecycle-suppression] quinta fonte (events) IGNORADA — ${eventErr.code ?? '?'} ${eventErr.message}. A trava segue valendo pelas outras quatro.`,
-        )
-        eventsDegraded = true
-        break
+    const { data: eventRows } = await readAll(() => admin
+      .from('events')
+      .select('user_id, created_at')
+      .gte('created_at', new Date(cutoff).toISOString())
+      .in('name', LIFECYCLE_EMAIL_EVENT_NAMES as unknown as string[])
+      .order('created_at', { ascending: true }),
+    { route: 'lifecycle/suppression', table: 'events' })
+    for (const row of eventRows ?? []) {
+      if (typeof row.user_id === 'string' && idSet.has(row.user_id)) {
+        bump(row.user_id, parseTime(row.created_at))
       }
-
-      const linhas = (eventRows ?? []) as unknown as Array<Record<string, unknown>>
-      for (const row of linhas) {
-        if (typeof row.user_id === 'string' && idSet.has(row.user_id)) {
-          bump(row.user_id, parseTime(row.created_at))
-        }
-      }
-      if (linhas.length < PAGINA) break
-    }
-    if (!eventsDegraded && pagina >= MAX_PAGINAS) {
-      // Teto batido = leitura possivelmente incompleta. Nao e erro de query,
-      // entao nao cai no ramo acima — mas tambem nao pode passar por completo.
-      console.error(
-        `[lifecycle-suppression] quinta fonte (events) INCOMPLETA — ${MAX_PAGINAS} paginas de ${PAGINA} esgotadas na janela`,
-      )
-      eventsDegraded = true
     }
   } catch (err) {
-    console.error(
-      `[lifecycle-suppression] quinta fonte (events) IGNORADA — ${err instanceof Error ? err.message : String(err)}. A trava segue valendo pelas outras quatro.`,
-    )
-    eventsDegraded = true
+    return { ...closed(err instanceof Error ? err.message : String(err)), eventsDegraded: true }
   }
 
   const suppressed = new Set<string>()
@@ -496,5 +429,5 @@ export async function loadLifecycleSuppression(
     )
   }
 
-  return { isSuppressed: (u) => suppressed.has(u), suppressedCount: suppressed.size, degraded: false, eventsDegraded }
+  return { isSuppressed: (u) => suppressed.has(u), suppressedCount: suppressed.size, degraded: false, eventsDegraded: false }
 }

@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
@@ -251,14 +252,14 @@ export async function GET(req: NextRequest) {
   const from = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
   const to = new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString()
 
-  const { data: candidates, error } = await admin
+  const { data: candidates, error } = await readAll(() => admin
     .from('profiles')
     .select('id, email, plan, created_at, activation_nudge_sent_at, trial_status') // KINEO-LEMBRETE-COM-A-IDEIA-2026-10-03: trial_status
     .gte('created_at', from)
     .lte('created_at', to)
     .is('activation_nudge_sent_at', null)
     // KINEO-UNSUBSCRIBE-2026-07-26 — quem pediu para sair NUNCA entra em coorte.
-    .eq('email_opted_out', false)
+    .eq('email_opted_out', false), { route: '/api/cron/send-activation-nudge', table: 'profiles' })
 
   if (error) {
     console.error('[send-activation-nudge] query error:', error.message)

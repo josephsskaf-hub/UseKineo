@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // ═══ KINEO-CARTA-DA-RECUSA-2026-09-07 — ciclo de pagamentos #2 ═════════════
 //
 // O NÚMERO QUE MANDOU ESCREVER ISTO (07/09, base inteira; o instrumento nasceu
@@ -54,7 +55,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { dedupeTripwire } from '@/lib/truncationTripwire'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { PACK_CREDITS, packPriceLabel } from '@/lib/checkoutPricing'
@@ -279,13 +279,12 @@ export async function GET(req: NextRequest) {
 
     // ── 1. a recusa MAIS RECENTE de cada pessoa, 14 dias ────────────────────
     const desde = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
-    const { data: recusas, error: recErr } = await admin
+    const { data: recusas, error: recErr } = await readAll(() => admin
       .from('events')
       .select('user_id, created_at, metadata')
       .eq('name', 'checkout_payment_failed')
       .gte('created_at', desde)
-      .order('created_at', { ascending: false })
-      .limit(5000)
+      .order('created_at', { ascending: false }), { route: '/api/admin/send-card-declined', table: 'events' })
     if (recErr) return NextResponse.json({ error: recErr.message }, { status: 500 })
 
     const fora = { renovacao_ou_desconhecido: 0, sem_dono: 0, identidade_inferida: 0 }
@@ -323,10 +322,10 @@ export async function GET(req: NextRequest) {
     }
 
     // ── 2. quem sai da lista, e por quê ─────────────────────────────────────
-    const { data: perfis, error: perfErr } = await admin
+    const { data: perfis, error: perfErr } = await readAll(() => admin
       .from('profiles')
       .select('id, email, email_opted_out, has_paid')
-      .in('id', ids.slice(0, 1000))
+      .in('id', ids.slice(0, 1000)), { route: '/api/admin/send-card-declined', table: 'profiles' })
     if (perfErr) return NextResponse.json({ error: perfErr.message }, { status: 500 })
 
     const excluidos = { pagante: 0, optout: 0, junk: 0, bloqueado: 0, outra_campanha: 0, ja_recebeu: 0 }
@@ -340,17 +339,17 @@ export async function GET(req: NextRequest) {
     })
     const baseIds = base.map((p) => p.id as string)
 
-    // Os três dedupes com tripwire: truncar em 1000 aqui é reenviar campanha
+    // Os três dedupes com paginação completa: truncar em 1000 aqui é reenviar campanha
     // (KINEO-TRIPWIRE-1000-2026-08-28).
-    const { data: pagouRows } = await admin
-      .from('events').select('user_id').eq('name', 'payment_success').in('user_id', baseIds)
-    const pagou = new Set(dedupeTripwire(pagouRows, 'card-declined payment_success').map((r) => r.user_id as string))
-    const { data: outrasRows } = await admin
-      .from('events').select('user_id').in('name', OUTRAS_CAMPANHAS).in('user_id', baseIds)
-    const outras = new Set(dedupeTripwire(outrasRows, 'card-declined OUTRAS_CAMPANHAS').map((r) => r.user_id as string))
-    const { data: jaRows } = await admin
-      .from('events').select('user_id').eq('name', SENT_EVENT).in('user_id', baseIds)
-    const ja = new Set(dedupeTripwire(jaRows, 'card-declined SENT_EVENT').map((r) => r.user_id as string))
+    const { data: pagouRows } = await readAll(() => admin
+      .from('events').select('user_id').eq('name', 'payment_success').in('user_id', baseIds), { route: '/api/admin/send-card-declined', table: 'events' })
+    const pagou = new Set((pagouRows ?? []).map((r) => r.user_id as string))
+    const { data: outrasRows } = await readAll(() => admin
+      .from('events').select('user_id').in('name', OUTRAS_CAMPANHAS).in('user_id', baseIds), { route: '/api/admin/send-card-declined', table: 'events' })
+    const outras = new Set((outrasRows ?? []).map((r) => r.user_id as string))
+    const { data: jaRows } = await readAll(() => admin
+      .from('events').select('user_id').eq('name', SENT_EVENT).in('user_id', baseIds), { route: '/api/admin/send-card-declined', table: 'events' })
+    const ja = new Set((jaRows ?? []).map((r) => r.user_id as string))
 
     const candidatos: Candidato[] = []
     for (const p of base) {

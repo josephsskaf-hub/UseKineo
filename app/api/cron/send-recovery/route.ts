@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
@@ -778,12 +779,12 @@ export async function GET(req: NextRequest) {
 
   // Sessions expired in the last RECOVERY_WINDOW_HOURS, never recovered.
   const since = new Date(Date.now() - RECOVERY_WINDOW_HOURS * 60 * 60 * 1000).toISOString()
-  const { data: rows, error } = await admin
+  const { data: rows, error } = await readAll(() => admin
     .from('checkout_abandoned')
     .select('id, user_id, tier, expired_at')
     .is('recovery_sent_at', null)
     .gte('expired_at', since)
-    .order('expired_at', { ascending: false })
+    .order('expired_at', { ascending: false }), { route: '/api/cron/send-recovery', table: 'checkout_abandoned' })
 
   if (error) {
     console.error('[send-recovery] query error:', error.message)
@@ -803,7 +804,7 @@ export async function GET(req: NextRequest) {
 
   // Profiles: email + current plan (skip already-converted users).
   const userIds = [...byUser.keys()]
-  const { data: profiles, error: profErr } = await admin
+  const { data: profiles, error: profErr } = await readAll(() => admin
     .from('profiles')
     // KINEO-UNSUBSCRIBE-2026-07-26 — a coorte aqui nasce de checkout_abandoned,
     // não de uma query em profiles, então o opt-out entra no SELECT e é
@@ -813,7 +814,7 @@ export async function GET(req: NextRequest) {
     // que a frase de crédito seja o saldo REAL da pessoa e não um literal.
     // Mesma leitura, mesma linha: zero query nova.
     .select('id, email, plan, email_opted_out, video_credits')
-    .in('id', userIds)
+    .in('id', userIds), { route: '/api/cron/send-recovery', table: 'profiles' })
   if (profErr) {
     console.error('[send-recovery] profiles error:', profErr.message)
     return NextResponse.json({ error: profErr.message }, { status: 500 })

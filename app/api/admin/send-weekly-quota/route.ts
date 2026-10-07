@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // ═══ KINEO-COTA-SEMANAL-CARTA-2026-09-17 — "seu vídeo grátis voltou, e agora é toda semana" ═══════════════
 //
 // Fundador (17/09, tarde): "Eu quero 170 e-mails para avisar que a cota de uma semana grátis voltou. Toda semana agora
@@ -103,13 +104,12 @@ export async function GET(req: NextRequest) {
     const batch = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, MAX_BATCH) : MAX_BATCH
 
     const encerrados: Array<{ id: string; email: string }> = []
-    for (let from = 0; ; from += 1000) {
-      const { data, error } = await admin
+    {
+      const { data, error } = await readAll(() => admin
         .from('profiles')
         .select('id, email, has_paid, email_opted_out, trial_status')
         .eq('trial_status', 'downgraded')
-        .order('created_at', { ascending: true })
-        .range(from, from + 999)
+        .order('created_at', { ascending: true }), { route: '/api/admin/send-weekly-quota', table: 'profiles' })
       if (error) throw error
       for (const p of data ?? []) {
         const email = String(p.email ?? '').toLowerCase()
@@ -117,7 +117,7 @@ export async function GET(req: NextRequest) {
         if (isInternalEmail(email) || isDisposableEmail(email)) continue
         encerrados.push({ id: p.id as string, email })
       }
-      if (!data || data.length < 1000) break
+
     }
     const ids = encerrados.map((z) => z.id)
 
@@ -127,11 +127,11 @@ export async function GET(req: NextRequest) {
     for (let i = 0; i < ids.length; i += 500) {
       const slice = ids.slice(i, i + 500)
       const [{ data: v }, { data: s }, { data: q }] = await Promise.all([
-        admin.from('videos').select('user_id').eq('status', 'completed').in('user_id', slice),
-        admin.from('events').select('user_id').eq('name', STAMP).in('user_id', slice),
+        readAll(() => admin.from('videos').select('user_id').eq('status', 'completed').in('user_id', slice), { route: '/api/admin/send-weekly-quota', table: 'videos' }),
+        readAll(() => admin.from('events').select('user_id').eq('name', STAMP).in('user_id', slice), { route: '/api/admin/send-weekly-quota', table: 'events' }),
         // 'Frio' = sem atividade REAL no navegador (session_id). Evento de servidor (cron, e-mail automático) não é presença:
         // no 1º lote (17/09) o filtro cru deixou 156 de 523 passarem — o resto tinha só carimbo de e-mail nosso.
-        admin.from('events').select('user_id').gte('created_at', new Date(Date.now() - COLD_DAYS * 86400_000).toISOString()).not('session_id', 'is', null).in('user_id', slice).limit(5000),
+        readAll(() => admin.from('events').select('user_id').gte('created_at', new Date(Date.now() - COLD_DAYS * 86400_000).toISOString()).not('session_id', 'is', null).in('user_id', slice), { route: '/api/admin/send-weekly-quota', table: 'events' }),
       ])
       for (const r of v ?? []) comVideo.add(r.user_id as string)
       for (const r of s ?? []) jaAvisado.add(r.user_id as string)

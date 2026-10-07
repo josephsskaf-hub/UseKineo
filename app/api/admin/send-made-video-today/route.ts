@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // KINEO-MADE-VIDEO-TODAY-2026-08-19 — quem fez vídeo HOJE e não comprou.
 //
 // Pedido do fundador, no fim do dia: "pega essas pessoas que tão fazendo vídeo
@@ -142,8 +143,8 @@ export async function GET(req: NextRequest) {
 
     // Janela: as últimas 16h cobrem "a tarde toda" sem pegar ontem.
     const since = new Date(Date.now() - 16 * 60 * 60 * 1000).toISOString()
-    const { data: vids } = await admin
-      .from('videos').select('user_id, created_at').gte('created_at', since).limit(5000)
+    const { data: vids } = await readAll(() => admin
+      .from('videos').select('user_id, created_at').gte('created_at', since), { route: '/api/admin/send-made-video-today', table: 'videos' })
 
     const videosBy = new Map<string, number>()
     for (const v of vids ?? []) {
@@ -154,10 +155,10 @@ export async function GET(req: NextRequest) {
     if (ids.length === 0) return NextResponse.json({ mode: 'DRY_RUN', remaining_unemailed: 0 })
 
     const [profRes, evtRes] = await Promise.all([
-      admin.from('profiles').select('id, email, email_opted_out, has_paid, plan, signup_country, last_country, signup_utm_source').in('id', ids),
-      admin.from('events').select('user_id, name')
+      readAll(() => admin.from('profiles').select('id, email, email_opted_out, has_paid, plan, signup_country, last_country, signup_utm_source').in('id', ids), { route: '/api/admin/send-made-video-today', table: 'profiles' }),
+      readAll(() => admin.from('events').select('user_id, name')
         .in('user_id', ids)
-        .in('name', ['video_downloaded', SENT_EVENT, ...OTHER_CAMPAIGNS, 'checkout_started', 'checkout_attempted']),
+        .in('name', ['video_downloaded', SENT_EVENT, ...OTHER_CAMPAIGNS, 'checkout_started', 'checkout_attempted']), { route: '/api/admin/send-made-video-today', table: 'events' }),
     ])
 
     const downloaded = new Set<string>()

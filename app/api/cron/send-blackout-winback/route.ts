@@ -1,5 +1,5 @@
+import { readAll } from '@/lib/supabase/readAll'
 import { NextRequest, NextResponse } from 'next/server'
-import { dedupeTripwire } from '@/lib/truncationTripwire'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
@@ -214,7 +214,7 @@ export async function GET(req: NextRequest) {
   const now = Date.now()
 
   // 1) Blackout markers in the last 48h.
-  const { data: markers, error: markersError } = await admin
+  const { data: markers, error: markersError } = await readAll(() => admin
     .from('events')
     .select('created_at')
     .eq('name', 'generation_stage_error')
@@ -227,8 +227,7 @@ export async function GET(req: NextRequest) {
     // means "a provider took generation down"; recovery must not care which one.
     .in('metadata->>reason', BLACKOUT_MARKER_REASONS)
     .gte('created_at', new Date(now - MARKER_LOOKBACK_MS).toISOString())
-    .order('created_at', { ascending: true })
-    .limit(2000)
+    .order('created_at', { ascending: true }), { route: '/api/cron/send-blackout-winback', table: 'events' })
   if (markersError) {
     console.error('[blackout-winback] markers query error:', markersError.message)
     return NextResponse.json({ error: markersError.message }, { status: 500 })
@@ -282,7 +281,7 @@ export async function GET(req: NextRequest) {
       `${((firstDead - preMarkerStart) / HOUR_MS).toFixed(1)}h antes do 1º marcador)`,
   )
   const windowEnd = new Date(lastDead).toISOString()
-  const { data: errs, error: errsError } = await admin
+  const { data: errs, error: errsError } = await readAll(() => admin
     .from('events')
     .select('user_id, metadata')
     .eq('name', 'generation_stage_error')
@@ -295,8 +294,7 @@ export async function GET(req: NextRequest) {
     // teto for atingido sem ordenação, quem cai fora são as vítimas RECENTES —
     // exatamente as que o comportamento antigo pegava. A invariante "a coorte
     // nunca encolhe" só é verdadeira com esta linha.
-    .order('created_at', { ascending: false })
-    .limit(5000)
+    .order('created_at', { ascending: false }), { route: '/api/cron/send-blackout-winback', table: 'events' })
   if (errsError) {
     console.error('[blackout-winback] victims query error:', errsError.message)
     return NextResponse.json({ error: errsError.message }, { status: 500 })
@@ -313,14 +311,13 @@ export async function GET(req: NextRequest) {
   }
 
   // 4) Dedupe: already winbacked in the last 7 days.
-  const { data: already } = await admin
+  const { data: already } = await readAll(() => admin
     .from('events')
     .select('user_id')
     .eq('name', 'blackout_winback_sent')
-    .gte('created_at', new Date(now - DEDUPE_WINDOW_MS).toISOString())
-    .limit(2000)
-  // KINEO-TRIPWIRE-1000-2026-08-28 — dedupe truncado = reenvio; aborta.
-  for (const a of dedupeTripwire(already as Array<{ user_id?: string | null }> | null, 'blackout-winback sent')) {
+    .gte('created_at', new Date(now - DEDUPE_WINDOW_MS).toISOString()), { route: '/api/cron/send-blackout-winback', table: 'events' })
+    // Leitura completa pelo readAll; qualquer falha de página aborta o envio.
+  for (const a of (already as Array<{ user_id?: string | null }> | null ?? [])) {
     if (a.user_id) victimIds.delete(a.user_id)
   }
   if (victimIds.size === 0) {
@@ -340,11 +337,11 @@ export async function GET(req: NextRequest) {
   const profiles: Array<{ id: string; email?: string | null }> = []
   for (let i = 0; i < victimList.length; i += PROFILE_CHUNK) {
     const chunk = victimList.slice(i, i + PROFILE_CHUNK)
-    const { data, error: profilesError } = await admin
+    const { data, error: profilesError } = await readAll(() => admin
       .from('profiles')
       .select('id, email')
       .in('id', chunk)
-      .eq('email_opted_out', false)
+      .eq('email_opted_out', false), { route: '/api/cron/send-blackout-winback', table: 'profiles' })
     if (profilesError) {
       console.error('[blackout-winback] profiles query error:', profilesError.message)
       return NextResponse.json({ error: profilesError.message }, { status: 500 })

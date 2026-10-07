@@ -1,3 +1,4 @@
+import { readAll, readUnpaginated } from '@/lib/supabase/readAll'
 // KINEO-RESGATE-FILME-DO-FORNECEDOR-2026-09-08 (madrugada-produto #7, M3)
 //
 // O DEFEITO, MEDIDO NO BANCO E SONDADO NA REDE EM 08/09 ~04:50 BRT:
@@ -120,13 +121,13 @@ export async function GET(req: NextRequest) {
 
   const ownStorageOrigin = `${supabaseUrl.replace(/\/+$/, '')}/storage/v1/object/public/`
 
-  const { data: rows, error } = await admin
+  const { data: rows, error } = await readUnpaginated(admin
     .from('videos')
     .select('id, user_id, render_id, video_url, created_at')
     .eq('status', 'completed')
     .not('video_url', 'is', null)
-    .order('created_at', { ascending: true })
-    .limit(1000)
+    .order('created_at', { ascending: true }).order('id', { ascending: true })
+    .limit(1000), { route: '/api/cron/rescue-vendor-assets', table: 'videos' })
 
   if (error) {
     console.error('[rescue-vendor-assets] query error:', error.message)
@@ -138,11 +139,10 @@ export async function GET(req: NextRequest) {
 
   // Quem já foi carimbado como expirado não volta para a fila: a fonte não
   // ressuscita, e recontar o mesmo prejuízo todo dia é ruído.
-  const { data: stamped } = await admin
+  const { data: stamped } = await readAll(() => admin
     .from('events')
     .select('metadata')
-    .in('name', [EXPIRED_EVENT, RESCUED_EVENT])
-    .limit(1000)
+    .in('name', [EXPIRED_EVENT, RESCUED_EVENT]), { route: '/api/cron/rescue-vendor-assets', table: 'events' })
   const alreadySeen = new Set<string>()
   for (const row of (stamped ?? []) as { metadata: unknown }[]) {
     const md = row.metadata as { video_id?: unknown } | null

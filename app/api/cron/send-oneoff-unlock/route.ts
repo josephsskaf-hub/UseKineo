@@ -1,5 +1,5 @@
+import { readAll } from '@/lib/supabase/readAll'
 import { NextRequest, NextResponse } from 'next/server'
-import { dedupeTripwire } from '@/lib/truncationTripwire'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { packPriceLabel, PACK_CREDITS } from '@/lib/checkoutPricing'
@@ -149,7 +149,7 @@ export async function GET(req: NextRequest) {
   if (ids.length === 0) return NextResponse.json({ mode: 'DRY_RUN', eligible: 0, note: 'ninguem no checkout em 7d' })
 
   const [{ data: profs }, { data: stamps, error: stampsErro }, { data: vids }] = await Promise.all([
-    admin.from('profiles').select('id, email, email_opted_out, video_credits, is_pro').in('id', ids),
+    readAll(() => admin.from('profiles').select('id, email, email_opted_out, video_credits, is_pro').in('id', ids), { route: '/api/cron/send-oneoff-unlock', table: 'profiles' }),
     // ⚠️ SEM `.in('user_id', ids)` — E ISSO É A CORREÇÃO, NÃO UM DESCUIDO.
     // Ver KINEO-REENVIO-8X abaixo: com centenas de UUIDs, o `.in()` monta uma
     // query string gigante e o PostgREST devolve ERRO em vez de linhas. Como o
@@ -157,8 +157,8 @@ export async function GET(req: NextRequest) {
     // Set de deduplicação nascia VAZIO, e a campanha reenviava para todo mundo
     // a cada passada. Ler a tabela inteira do carimbo é barato (uma campanha
     // tem centenas de linhas, não milhões) e não tem limite de URL.
-    admin.from('events').select('user_id').eq('name', STAMP).limit(5000),
-    admin.from('videos').select('user_id').eq('status', 'completed').in('user_id', ids),
+    readAll(() => admin.from('events').select('user_id').eq('name', STAMP), { route: '/api/cron/send-oneoff-unlock', table: 'events' }),
+    readAll(() => admin.from('videos').select('user_id').eq('status', 'completed').in('user_id', ids), { route: '/api/cron/send-oneoff-unlock', table: 'videos' }),
   ])
 
   // ═══ KINEO-REENVIO-8X-2026-08-21 — FAIL-CLOSED NA DEDUPLICAÇÃO ═══════════
@@ -192,9 +192,8 @@ export async function GET(req: NextRequest) {
       { status: 503 },
     )
   }
-  // KINEO-TRIPWIRE-1000-2026-08-28 — trava de dedupe encostou no teto de
-  // 1000 do PostgREST = lista INCOMPLETA = risco do reenvio 8x. Aborta.
-  const jaRecebeu = new Set(dedupeTripwire(stamps, 'send-oneoff-unlock STAMP').map((s) => s.user_id as string))
+    // Leitura completa pelo readAll; qualquer falha de página aborta o envio.
+  const jaRecebeu = new Set((stamps ?? []).map((s) => s.user_id as string))
   const contagem = new Map<string, number>()
   for (const v of vids ?? []) {
     const u = v.user_id as string

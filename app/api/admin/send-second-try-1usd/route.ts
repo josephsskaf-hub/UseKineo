@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // ═══════════════════════════════════════════════════════════════════════════
 // KINEO-SEGUNDA-TENTATIVA-1USD-2026-09-07 (va-r8) — A CARTA QUE A ROTAÇÃO #1
 // CANCELOU, FEITA PARA A COORTE QUE EXISTE DE VERDADE
@@ -241,13 +242,12 @@ export async function GET(req: NextRequest) {
     // 1) contas ZERADAS, nunca pagantes, opt-in, externas — lidas em páginas
     //    (regra anti-1000: o PostgREST trunca em 1000 SEM ERRO).
     const zeradas: Array<{ id: string; email: string }> = []
-    for (let from = 0; ; from += 1000) {
-      const { data, error } = await admin
+    {
+      const { data, error } = await readAll(() => admin
         .from('profiles')
         .select('id, email, plan, has_paid, email_opted_out, video_credits')
         .eq('video_credits', 0)
-        .order('created_at', { ascending: true })
-        .range(from, from + 999)
+        .order('created_at', { ascending: true }), { route: '/api/admin/send-second-try-1usd', table: 'profiles' })
       if (error) throw error
       for (const p of data ?? []) {
         const email = String(p.email ?? '').toLowerCase()
@@ -255,7 +255,7 @@ export async function GET(req: NextRequest) {
         if (isInternalEmail(email) || proibido(email)) continue
         zeradas.push({ id: p.id as string, email })
       }
-      if (!data || data.length < 1000) break
+
     }
     const ids = zeradas.map((z) => z.id)
 
@@ -268,25 +268,24 @@ export async function GET(req: NextRequest) {
     for (let i = 0; i < ids.length; i += 500) {
       const slice = ids.slice(i, i + 500)
       const [{ data: v }, { data: s }] = await Promise.all([
-        admin.from('videos').select('user_id').eq('status', 'completed').in('user_id', slice).limit(20000),
-        admin.from('events').select('user_id').eq('name', STAMP).in('user_id', slice).limit(5000),
+        readAll(() => admin.from('videos').select('user_id').eq('status', 'completed').in('user_id', slice), { route: '/api/admin/send-second-try-1usd', table: 'videos' }),
+        readAll(() => admin.from('events').select('user_id').eq('name', STAMP).in('user_id', slice), { route: '/api/admin/send-second-try-1usd', table: 'events' }),
       ])
       // Os eventos de checkout vêm PAGINADOS e não com `.limit()`: o PostgREST
       // trunca em 1000 SEM ERRO, e um truncamento aqui não erra para mais — ele
       // some com gente da coorte em silêncio (o achado #3 da auditoria de
       // 28/08, "truncamento sistêmico", em 40+ pontos).
       const c: Array<{ user_id: string | null; session_id: string | null; created_at: string | null }> = []
-      for (let from = 0; ; from += 1000) {
-        const { data: page, error: pageErr } = await admin
+      {
+        const { data: page, error: pageErr } = await readAll(() => admin
           .from('events')
           .select('user_id, session_id, created_at')
           .in('name', CHECKOUT_INTENT)
           .in('user_id', slice)
-          .order('created_at', { ascending: true })
-          .range(from, from + 999)
+          .order('created_at', { ascending: true }), { route: '/api/admin/send-second-try-1usd', table: 'events' })
         if (pageErr) throw pageErr
         for (const r of page ?? []) c.push(r as { user_id: string | null; session_id: string | null; created_at: string | null })
-        if (!page || page.length < 1000) break
+
       }
       for (const r of v ?? []) {
         const uid = r.user_id as string

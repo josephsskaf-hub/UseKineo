@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // ═══ KINEO-CARTA-DA-TEMPORADA-2026-09-06 (sprint-assinaturas #19) ══════════
 //
 // A COORTE QUE NENHUMA CAMPANHA DA CASA MIRA — e é a maior de todas.
@@ -260,13 +261,12 @@ export async function GET(req: NextRequest) {
 
     // ── 1. filmes entregues nos últimos 14 dias ────────────────────────────
     const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
-    const { data: vids, error: vidsErr } = await admin
+    const { data: vids, error: vidsErr } = await readAll(() => admin
       .from('videos')
       .select('id, user_id, credits_used, created_at, title, topic, quality_mode, duration_seconds')
       .eq('status', 'completed')
       .gte('created_at', since)
-      .order('created_at', { ascending: false })
-      .limit(5000)
+      .order('created_at', { ascending: false }), { route: '/api/admin/send-season-letter', table: 'videos' })
     if (vidsErr) return NextResponse.json({ error: 'videos query failed' }, { status: 503 })
 
     // A coorte é "fez EXATAMENTE UM filme". A contagem é por pessoa dentro da
@@ -308,10 +308,10 @@ export async function GET(req: NextRequest) {
       ...STAMP_COLUMNS, ...STAMP_DATES,
     ].join(', ')
     const [profRes, evtRes] = await Promise.all([
-      admin.from('profiles').select(colunas).in('id', ids),
-      admin.from('events').select('user_id, name')
+      readAll(() => admin.from('profiles').select(colunas).in('id', ids), { route: '/api/admin/send-season-letter', table: 'profiles' }),
+      readAll(() => admin.from('events').select('user_id, name')
         .in('user_id', ids)
-        .in('name', [SENT_EVENT, ...OTHER_CAMPAIGNS, 'checkout_started', 'checkout_attempted', 'upgrade_modal_opened']),
+        .in('name', [SENT_EVENT, ...OTHER_CAMPAIGNS, 'checkout_started', 'checkout_attempted', 'upgrade_modal_opened']), { route: '/api/admin/send-season-letter', table: 'events' }),
     ])
     if (profRes.error || evtRes.error) {
       await registrarCorrida(admin, corridaAbortada(CAMPANHA, modo, 'query', { coorte_bruta: ids.length }))

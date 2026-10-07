@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 import { NextRequest, NextResponse } from 'next/server'
 // KINEO-BUGHUNT-FILA-2026-08-08 — `@/lib/supabase/server` (cliente de cookie)
 // NÃO é importado aqui de propósito: um cron não tem sessão, e sob RLS o
@@ -193,7 +194,7 @@ export async function GET(req: NextRequest) {
   const from = new Date(now.getTime() - 28 * 60 * 60 * 1000).toISOString()
   const to = new Date(now.getTime() - 20 * 60 * 60 * 1000).toISOString()
 
-  const { data: users, error } = await supabase
+  const { data: users, error } = await readAll(() => supabase
     .from('profiles')
     // KINEO-AUTOPILOT-299-2026-07-26 — era `full_name`, coluna que NÃO EXISTE
     // em public.profiles (a coluna se chama `name`). O select inteiro estourava
@@ -206,7 +207,7 @@ export async function GET(req: NextRequest) {
     .is('reminder_sent_at', null)
     .in('plan', ['free', null])
     // KINEO-UNSUBSCRIBE-2026-07-26 — quem pediu para sair NUNCA entra em coorte.
-    .eq('email_opted_out', false)
+    .eq('email_opted_out', false), { route: '/api/cron/send-reminders', table: 'profiles' })
 
   if (error) {
     console.error('[send-reminders] DB query error:', error.message)

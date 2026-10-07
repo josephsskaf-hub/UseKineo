@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
@@ -286,11 +287,10 @@ export async function GET(req: NextRequest) {
   // ── 1) Quem gerou vídeo nos últimos 7 dias ────────────────────────────────
   // Uma consulta só: o vídeo mais recente (qualquer status) fixa a recência, e
   // pelo menos um `completed` prova o interesse. Volume de 7 dias é pequeno.
-  const { data: recentVideos, error: videosErr } = await admin
+  const { data: recentVideos, error: videosErr } = await readAll(() => admin
     .from('videos')
     .select('user_id, status, created_at')
-    .gte('created_at', new Date(now - MAX_IDLE_MS).toISOString())
-    .limit(5000)
+    .gte('created_at', new Date(now - MAX_IDLE_MS).toISOString()), { route: '/api/cron/send-credits-back', table: 'videos' })
 
   if (videosErr) {
     console.error('[send-credits-back] videos query error:', videosErr.message)
@@ -331,22 +331,20 @@ export async function GET(req: NextRequest) {
   // tamanho da coorte que a correção certa alcançaria.
   const windowStart = new Date(now - FREE_FAST_WINDOW_MS).toISOString()
   const [claimsResult, freeVideosResult] = await Promise.all([
-    admin
+    readAll(() => admin
       .from('events')
       .select('user_id, metadata, created_at')
       .eq('name', COMPOSE_CLAIM_EVENT)
       .eq('path', COMPOSE_CLAIM_PATH)
       .eq('metadata->>quality', 'fast')
       .eq('metadata->>cost', '0')
-      .gte('created_at', windowStart)
-      .limit(5000),
-    admin
+      .gte('created_at', windowStart), { route: '/api/cron/send-credits-back', table: 'events' }),
+    readAll(() => admin
       .from('videos')
       .select('id, user_id, render_id')
       .eq('quality_mode', 'fast')
       .eq('credits_used', 0)
-      .gte('created_at', windowStart)
-      .limit(5000),
+      .gte('created_at', windowStart), { route: '/api/cron/send-credits-back', table: 'videos' }),
   ])
 
   if (claimsResult.error || freeVideosResult.error) {
@@ -402,11 +400,11 @@ export async function GET(req: NextRequest) {
   let skippedPlanOrTest = 0
 
   for (const part of chunk(withCreditsIds, CHUNK_SIZE)) {
-    const { data: profiles, error: profilesErr } = await admin
+    const { data: profiles, error: profilesErr } = await readAll(() => admin
       .from('profiles')
       .select('id, email, plan, has_paid, credits_back_sent_at')
       .in('id', part)
-      .eq('email_opted_out', false)
+      .eq('email_opted_out', false), { route: '/api/cron/send-credits-back', table: 'profiles' })
 
     if (profilesErr) {
       console.error('[send-credits-back] profiles query error:', profilesErr.message)

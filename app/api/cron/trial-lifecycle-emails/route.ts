@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
@@ -2257,14 +2258,13 @@ export async function GET(req: NextRequest) {
   // ── 1) Toda conta que já teve trial e ainda pode receber algo ──────────────
   // 'converted' fica FORA da query — quem pagou nunca mais entra aqui, nem por
   // bug de janela. Volume: trials nascem só com a flag ON, coorte de dias.
-  const { data: rows, error: rowsErr } = await admin
+  const { data: rows, error: rowsErr } = await readAll(() => admin
     .from('profiles')
     .select(
       'id, email, plan, has_paid, trial_status, trial_ends_at, trial_downgraded_at, trial_variant, trial_credits_used, trial_credits_granted, trial_extended, video_credits',
     )
     .in('trial_status', ['active', 'expired', 'downgraded'])
-    .eq('email_opted_out', false)
-    .limit(5000)
+    .eq('email_opted_out', false), { route: '/api/cron/trial-lifecycle-emails', table: 'profiles' })
 
   if (rowsErr) {
     console.error('[trial-lifecycle-emails] cohort query failed:', rowsErr.message)

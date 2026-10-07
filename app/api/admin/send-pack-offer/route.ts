@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // Starter-Pack win-back blast (admin-only) — idempotent + batched.
 //
 // KINEO-PACK-OFFER-2026-07-06 — one-time campaign: email everyone who signed up
@@ -135,14 +136,14 @@ export async function GET(req: NextRequest) {
     const admin = adminClient()
 
     // Cohort: Jul 5–6 signups not yet emailed this offer.
-    const { data: rows, error } = await admin
+    const { data: rows, error } = await readAll(() => admin
       .from('profiles')
       .select('id, email, plan, is_pro, has_paid, video_credits, created_at')
       .gte('created_at', WINDOW_START)
       .lt('created_at', WINDOW_END)
       .eq('pack_offer_emailed', false)
       // KINEO-UNSUBSCRIBE-2026-07-26 — quem pediu para sair NUNCA entra em coorte.
-      .eq('email_opted_out', false)
+      .eq('email_opted_out', false), { route: '/api/admin/send-pack-offer', table: 'profiles' })
     if (error) {
       return NextResponse.json({ error: `profiles query failed: ${error.message}` }, { status: 500 })
     }

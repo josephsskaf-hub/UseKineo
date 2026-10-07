@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // AI Avatar LAUNCH blast (admin-only) — v2, idempotent + batched.
 //
 // WHY v2: the free Resend tier caps at 100 emails/day. v1 had no "already
@@ -155,13 +156,13 @@ export async function GET(req: NextRequest) {
     }
 
     // Pull unflagged recipients only (idempotent target set).
-    const { data: rows, error } = await admin
+    const { data: rows, error } = await readAll(() => admin
       .from('profiles')
       .select('id, email')
       .not('email', 'is', null)
       .eq('avatar_launch_emailed', false)
       // KINEO-UNSUBSCRIBE-2026-07-26 — quem pediu para sair NUNCA entra em coorte.
-      .eq('email_opted_out', false)
+      .eq('email_opted_out', false), { route: '/api/admin/send-avatar-launch', table: 'profiles' })
     if (error) {
       return NextResponse.json({ error: `profiles query failed: ${error.message}` }, { status: 500 })
     }

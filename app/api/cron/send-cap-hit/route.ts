@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
@@ -197,27 +198,25 @@ export async function GET(req: NextRequest) {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
   const [refusalsResult, videosResult] = await Promise.all([
-    admin
+    readAll(() => admin
       .from('events')
       .select('user_id')
       .eq('name', 'compose_refused')
       .eq('metadata->>reason', 'free_fast_limit')
       .gte('created_at', since)
-      .order('created_at', { ascending: false })
-      .limit(2000),
+      .order('created_at', { ascending: false }), { route: '/api/cron/send-cap-hit', table: 'events' }),
     // O proxy tem que contar O MESMO que o muro conta: Fast e sem crédito
     // (compose/route.ts reserveFreeFastPreviewSlot). Sem `quality_mode`/
     // `credits_used` aqui, renders cinematográficos e Fast PAGOS entravam na
     // coorte — e um comprador com plan='free' recebia "você bateu no teto free".
-    admin
+    readAll(() => admin
       .from('videos')
       .select('user_id')
       .eq('status', 'completed')
       .eq('quality_mode', 'fast')
       .eq('credits_used', 0)
       .gte('created_at', since)
-      .order('created_at', { ascending: false })
-      .limit(2000),
+      .order('created_at', { ascending: false }), { route: '/api/cron/send-cap-hit', table: 'videos' }),
   ])
 
   if (refusalsResult.error || videosResult.error) {
@@ -258,12 +257,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ sent: 0, skipped: 0, total: 0, refused: 0, cohort: 0 })
   }
 
-  const { data: candidates, error } = await admin
+  const { data: candidates, error } = await readAll(() => admin
     .from('profiles')
     .select('id, email, plan, cap_hit_sent_at')
     .in('id', cappedIds)
     .is('cap_hit_sent_at', null)
-    .eq('email_opted_out', false)
+    .eq('email_opted_out', false), { route: '/api/cron/send-cap-hit', table: 'profiles' })
 
   if (error) {
     console.error('[send-cap-hit] profiles query error:', error.message)

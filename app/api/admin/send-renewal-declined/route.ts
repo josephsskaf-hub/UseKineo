@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // ═══ KINEO-RENOVACAO-RECUSADA-2026-09-18 — "sua renovação não passou; troque o cartão em 1 clique" ═══════════
 //
 // O NÚMERO (17/09, banco): dois dos nove assinantes ativos (valos87196 e akajitin) tiveram TRÊS recusas de renovação
@@ -114,9 +115,9 @@ export async function GET(req: NextRequest) {
     const admin = createAdminClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } })
 
     const desde = new Date(Date.now() - LOOKBACK_DAYS * 86_400_000).toISOString()
-    const { data: recusas, error: recErr } = await admin
+    const { data: recusas, error: recErr } = await readAll(() => admin
       .from('events').select('user_id, created_at, metadata').eq('name', 'checkout_payment_failed')
-      .gte('created_at', desde).order('created_at', { ascending: false }).limit(2000)
+      .gte('created_at', desde).order('created_at', { ascending: false }), { route: '/api/admin/send-renewal-declined', table: 'events' })
     if (recErr) return NextResponse.json({ error: recErr.message }, { status: 500 })
 
     // Última recusa de RENOVAÇÃO por pessoa, com a contagem de tentativas na janela.
@@ -137,16 +138,16 @@ export async function GET(req: NextRequest) {
     const ids = [...porPessoa.keys()]
     if (ids.length === 0) return NextResponse.json({ mode: 'DRY_RUN', elegiveis: 0, note: `nenhuma recusa de renovação com dono em ${LOOKBACK_DAYS} dias` })
 
-    const { data: perfis, error: perfErr } = await admin
-      .from('profiles').select('id, email, plan, has_paid, email_opted_out').in('id', ids.slice(0, 1000))
+    const { data: perfis, error: perfErr } = await readAll(() => admin
+      .from('profiles').select('id, email, plan, has_paid, email_opted_out').in('id', ids.slice(0, 1000)), { route: '/api/admin/send-renewal-declined', table: 'profiles' })
     if (perfErr) return NextResponse.json({ error: perfErr.message }, { status: 500 })
 
     // Quem já pagou uma fatura DEPOIS da recusa se recuperou sozinho; quem já recebeu esta carta em 30 dias espera.
     const [{ data: pagasRows }, { data: jaRows }] = await Promise.all([
-      admin.from('events').select('user_id, created_at').eq('name', 'subscription_invoice_paid').gte('created_at', desde).in('user_id', ids),
+      readAll(() => admin.from('events').select('user_id, created_at').eq('name', 'subscription_invoice_paid').gte('created_at', desde).in('user_id', ids), { route: '/api/admin/send-renewal-declined', table: 'events' }),
       // KINEO-DUNNING-EMAIL-2026-10-06 — o aviso AUTOMÁTICO (webhook da Stripe, 1 por fatura) também conta como "já
       // recebeu": esta carta manual não repete o que o webhook acabou de dizer.
-      admin.from('events').select('user_id, created_at').in('name', [SENT_EVENT, RENEWAL_FAILED_EMAIL_EVENT]).gte('created_at', new Date(Date.now() - RESEND_AFTER_DAYS * 86_400_000).toISOString()).in('user_id', ids),
+      readAll(() => admin.from('events').select('user_id, created_at').in('name', [SENT_EVENT, RENEWAL_FAILED_EMAIL_EVENT]).gte('created_at', new Date(Date.now() - RESEND_AFTER_DAYS * 86_400_000).toISOString()).in('user_id', ids), { route: '/api/admin/send-renewal-declined', table: 'events' }),
     ])
     const pagouDepois = new Map<string, string>()
     for (const r of pagasRows ?? []) { const u = r.user_id as string; const t = r.created_at as string; if (!pagouDepois.has(u) || t > (pagouDepois.get(u) ?? '')) pagouDepois.set(u, t) }

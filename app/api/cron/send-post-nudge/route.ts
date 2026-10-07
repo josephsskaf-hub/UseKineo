@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
@@ -135,7 +136,6 @@ const MAX_PER_RUN = Math.max(
 /** PostgREST manda `in.(...)` na query string — fatiar para não estourar a URL. */
 const CHUNK_SIZE = 200
 /** Tetos de leitura. */
-const MAX_EVENT_ROWS = 5000
 
 // Fail-closed cron auth (KINEO-CRON-FAILCLOSED-2026-07-27 pattern).
 function isAuthorized(req: NextRequest): boolean {
@@ -254,13 +254,12 @@ export async function GET(req: NextRequest) {
   // `video_downloaded` é emitido em UM lugar só (lib/videoDownload.ts) e só no
   // caminho de blob confirmado — abrir uma aba não conta. É a prova de entrega
   // mais forte que a empresa tem.
-  const { data: downloads, error: dlErr } = await admin
+  const { data: downloads, error: dlErr } = await readAll(() => admin
     .from('events')
     .select('user_id, created_at')
     .eq('name', 'video_downloaded')
     .gte('created_at', new Date(now - MAX_IDLE_MS).toISOString())
-    .order('created_at', { ascending: false })
-    .limit(MAX_EVENT_ROWS)
+    .order('created_at', { ascending: false }), { route: '/api/cron/send-post-nudge', table: 'events' })
 
   if (dlErr) {
     console.error('[send-post-nudge] downloads query error:', dlErr.message)
@@ -289,26 +288,16 @@ export async function GET(req: NextRequest) {
   // mensagem parecer automática e sem valor.
   const alreadyPosted = new Set<string>()
   for (const part of chunk(idleIds, CHUNK_SIZE)) {
-    const POSTED_PAGE = 1000
-    const { data: posted, error: postedErr } = await admin
+    const { data: posted, error: postedErr } = await readAll(() => admin
       .from('posted_shorts')
       .select('user_id')
-      .in('user_id', part)
-      .limit(POSTED_PAGE)
+      .in('user_id', part), { route: '/api/cron/send-post-nudge', table: 'posted_shorts' })
 
     if (postedErr) {
       console.error('[send-post-nudge] posted_shorts query error:', postedErr.message)
       return NextResponse.json({ error: postedErr.message, sent: 0 }, { status: 503 })
     }
-    // Truncamento do PostgREST NÃO vem como `error` — vem como uma página curta
-    // e silenciosa. Sem esta checagem a exclusão "quem já postou" falharia
-    // ABERTA justamente quando a tabela crescer, e alguém que postou receberia
-    // "você baixou e nunca postou". Fechar aqui é barato: o job perde uma
-    // rodada e volta em uma hora.
-    if ((posted?.length ?? 0) >= POSTED_PAGE) {
-      console.error('[send-post-nudge] posted_shorts truncado no limite — abortando (fail-closed)')
-      return NextResponse.json({ error: 'posted_shorts_truncated', sent: 0 }, { status: 503 })
-    }
+    // readAll só entrega a exclusão depois de carregar todas as páginas.
     for (const row of (posted ?? []) as Array<Record<string, unknown>>) {
       if (typeof row.user_id === 'string') alreadyPosted.add(row.user_id)
     }
@@ -331,14 +320,13 @@ export async function GET(req: NextRequest) {
   // Quando colidem, quem cede é este. Quem bateu no muro nas últimas 24h sai da
   // coorte de hoje e volta amanhã, sem carimbo e sem perda.
   const capHitSince = new Date(now - 24 * 60 * 60 * 1000).toISOString()
-  const { data: atTheWall, error: wallErr } = await admin
+  const { data: atTheWall, error: wallErr } = await readAll(() => admin
     .from('events')
     .select('user_id')
     .eq('name', 'compose_refused')
     .eq('metadata->>reason', 'free_fast_limit')
     .gte('created_at', capHitSince)
-    .order('created_at', { ascending: false })
-    .limit(2000)
+    .order('created_at', { ascending: false }), { route: '/api/cron/send-post-nudge', table: 'events' })
 
   if (wallErr) {
     // Falha FECHADA: sem saber quem está no muro, o risco é calar uma compra.
@@ -373,11 +361,11 @@ export async function GET(req: NextRequest) {
   let skippedCooldown = 0
 
   for (const part of chunk(coldIds, CHUNK_SIZE)) {
-    const { data: profiles, error: profilesErr } = await admin
+    const { data: profiles, error: profilesErr } = await readAll(() => admin
       .from('profiles')
       .select('id, email, plan, has_paid, post_nudge_sent_at')
       .in('id', part)
-      .eq('email_opted_out', false)
+      .eq('email_opted_out', false), { route: '/api/cron/send-post-nudge', table: 'profiles' })
 
     if (profilesErr) {
       console.error('[send-post-nudge] profiles query error:', profilesErr.message)

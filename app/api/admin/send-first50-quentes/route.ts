@@ -1,5 +1,5 @@
+import { readAll } from '@/lib/supabase/readAll'
 import { NextRequest, NextResponse } from 'next/server'
-import { dedupeTripwire } from '@/lib/truncationTripwire'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
@@ -220,13 +220,13 @@ export async function GET(req: NextRequest) {
 
   const [{ data: profs, error: pErro }, { data: spam, error: sErro }, { data: stamps, error: stErro }] =
     await Promise.all([
-      admin.from('profiles').select('id, email, email_opted_out, has_paid, is_pro').in('id', quentes),
+      readAll(() => admin.from('profiles').select('id, email, email_opted_out, has_paid, is_pro').in('id', quentes), { route: '/api/admin/send-first50-quentes', table: 'profiles' }),
       // ⚠️ o PostgREST corta em ~1.000 linhas mesmo pedindo 5.000 — hoje os stamps
       // têm ~212 linhas, mas se algum passar de 1.000 esta leitura degrada em
       // silêncio. order desc = os mais novos sobrevivem ao corte.
-      admin.from('events').select('user_id').eq('name', 'oneoff_unlock_emailed').order('created_at', { ascending: false }).limit(1000),
+      readAll(() => admin.from('events').select('user_id').eq('name', 'oneoff_unlock_emailed').order('created_at', { ascending: false }), { route: '/api/admin/send-first50-quentes', table: 'events' }),
       // #284 — created_at junto: a onda 2 precisa da IDADE do carimbo v1.
-      admin.from('events').select('user_id, created_at').eq('name', STAMP).order('created_at', { ascending: false }).limit(1000),
+      readAll(() => admin.from('events').select('user_id, created_at').eq('name', STAMP).order('created_at', { ascending: false }), { route: '/api/admin/send-first50-quentes', table: 'events' }),
     ])
   if (pErro || sErro || stErro) {
     return NextResponse.json(
@@ -235,10 +235,9 @@ export async function GET(req: NextRequest) {
     )
   }
 
-  // KINEO-TRIPWIRE-1000-2026-08-28 — o comentario acima ("degrada em
-  // silencio") deixou de ser profecia aceita: encostar no teto agora ABORTA.
-  const queimados = new Set(dedupeTripwire(spam, 'first50 oneoff_unlock_emailed').map((s) => s.user_id as string))
-  const jaRecebeu = new Set(dedupeTripwire(stamps, 'first50 STAMP').map((s) => s.user_id as string))
+    // Leitura completa pelo readAll; qualquer falha de página aborta o envio.
+  const queimados = new Set((spam ?? []).map((s) => s.user_id as string))
+  const jaRecebeu = new Set((stamps ?? []).map((s) => s.user_id as string))
   // #284 — idade do carimbo v1 por pessoa (o mais RECENTE, ordem desc acima).
   const v1Em = new Map<string, number>()
   for (const s of stamps ?? []) {
@@ -250,9 +249,9 @@ export async function GET(req: NextRequest) {
   // ABORTA (a lição de 21/08 — a trava que falha aberto É o desastre).
   let jaRecebeuOnda2 = new Set<string>()
   if (segment === 'segunda') {
-    const { data: stamps2, error: st2Erro } = await admin
+    const { data: stamps2, error: st2Erro } = await readAll(() => admin
       .from('events').select('user_id').eq('name', STAMP2)
-      .order('created_at', { ascending: false }).limit(1000)
+      .order('created_at', { ascending: false }), { route: '/api/admin/send-first50-quentes', table: 'events' })
     if (st2Erro) {
       return NextResponse.json(
         { mode: 'ABORTED', reason: 'stamp2_unreadable', detail: st2Erro.message },

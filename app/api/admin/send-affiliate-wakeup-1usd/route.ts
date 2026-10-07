@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // ═══════════════════════════════════════════════════════════════════════════
 // KINEO-AFILIADOS-ACORDAM-2026-09-07 (va-r11) — A CASA FALA COM OS 15 SÓCIOS
 // QUE NUNCA TIVERAM MOTIVO PARA POSTAR
@@ -189,13 +190,12 @@ export async function GET(req: NextRequest) {
     // 1) sócios ATIVOS — lidos em páginas (regra anti-1000: o PostgREST trunca
     //    em 1000 SEM ERRO). Hoje são 15; a paginação é a apólice de amanhã.
     const socios: Array<{ id: string; email: string; code: string; rate: number }> = []
-    for (let from = 0; ; from += 1000) {
-      const { data, error } = await admin
+    {
+      const { data, error } = await readAll(() => admin
         .from('affiliates')
         .select('user_id, email, code, status, commission_rate')
         .eq('status', 'active')
-        .order('created_at', { ascending: true })
-        .range(from, from + 999)
+        .order('created_at', { ascending: true }), { route: '/api/admin/send-affiliate-wakeup-1usd', table: 'affiliates' })
       if (error) throw error
       for (const a of data ?? []) {
         const email = String(a.email ?? '').toLowerCase()
@@ -209,7 +209,7 @@ export async function GET(req: NextRequest) {
         if (isInternalEmail(email) || proibido(email)) continue
         socios.push({ id: uid, email, code, rate })
       }
-      if (!data || data.length < 1000) break
+
     }
     const ids = socios.map((s) => s.id)
 
@@ -220,8 +220,8 @@ export async function GET(req: NextRequest) {
     for (let i = 0; i < ids.length; i += 500) {
       const slice = ids.slice(i, i + 500)
       const [{ data: p, error: pe }, { data: s, error: se }] = await Promise.all([
-        admin.from('profiles').select('id, email_opted_out').in('id', slice),
-        admin.from('events').select('user_id').eq('name', STAMP).in('user_id', slice).limit(5000),
+        readAll(() => admin.from('profiles').select('id, email_opted_out').in('id', slice), { route: '/api/admin/send-affiliate-wakeup-1usd', table: 'profiles' }),
+        readAll(() => admin.from('events').select('user_id').eq('name', STAMP).in('user_id', slice), { route: '/api/admin/send-affiliate-wakeup-1usd', table: 'events' }),
       ])
       if (pe) throw pe
       if (se) throw se

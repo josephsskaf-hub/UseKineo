@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // KINEO-HOTLEADS-2026-08-14 — one-off hot-lead blast (admin/cron-gated).
 //
 // Pedido literal do fundador (14/08): "usa os nossos hot leads, dá uma olhada
@@ -24,7 +25,6 @@
 // é respeitada: quem levou QUALQUER e-mail da régua nos últimos 3 dias fica
 // de fora desta leva — hot lead não é desculpa para spam.
 import { NextRequest, NextResponse } from 'next/server'
-import { dedupeTripwire } from '@/lib/truncationTripwire'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
@@ -179,17 +179,15 @@ async function collectSegments(): Promise<Record<Segment, Lead[]>> {
   const db = adminClient()
 
   // Perfis free com e-mail (uma leitura, filtros em memória — a base é ~1.1k).
-  const { data: profiles } = await db
+  const { data: profiles } = await readAll(() => db
     .from('profiles')
-    .select('id, email, plan, video_credits, created_at')
-    .limit(3000)
+    .select('id, email, plan, video_credits, created_at'), { route: '/api/admin/send-hotlead-blast', table: 'profiles' })
 
   // Vídeos completos por usuário.
-  const { data: vids } = await db
+  const { data: vids } = await readAll(() => db
     .from('videos')
     .select('user_id, status')
-    .eq('status', 'completed')
-    .limit(20000)
+    .eq('status', 'completed'), { route: '/api/admin/send-hotlead-blast', table: 'videos' })
   const videoCount = new Map<string, number>()
   for (const v of vids ?? []) {
     videoCount.set(v.user_id, (videoCount.get(v.user_id) ?? 0) + 1)
@@ -197,37 +195,33 @@ async function collectSegments(): Promise<Record<Segment, Lead[]>> {
 
   // AQUISICAO 3 (14/08) — sinais de evento para os segmentos novos:
   // quem baixou video (video_downloaded) e quem alguma vez viu /pricing.
-  const { data: dls } = await db
+  const { data: dls } = await readAll(() => db
     .from('events')
     .select('user_id')
     .eq('name', 'video_downloaded')
-    .not('user_id', 'is', null)
-    .limit(10000)
+    .not('user_id', 'is', null), { route: '/api/admin/send-hotlead-blast', table: 'events' })
   const downloaded = new Set((dls ?? []).map((e) => e.user_id as string))
-  const { data: pv } = await db
+  const { data: pv } = await readAll(() => db
     .from('events')
     .select('user_id')
     .like('path', '/pricing%')
-    .not('user_id', 'is', null)
-    .limit(20000)
+    .not('user_id', 'is', null), { route: '/api/admin/send-hotlead-blast', table: 'events' })
   const sawPricing = new Set((pv ?? []).map((e) => e.user_id as string))
 
   // Já emailados por esta rota (flag idempotente).
-  const { data: flagged } = await db
+  const { data: flagged } = await readAll(() => db
     .from('events')
     .select('user_id')
-    .eq('name', FLAG_EVENT)
-    .limit(5000)
-  // KINEO-TRIPWIRE-1000-2026-08-28 — trava de dedupe encostou no teto de
-  // 1000 do PostgREST = lista INCOMPLETA = risco do reenvio 8x. Aborta.
-  const alreadySent = new Set(dedupeTripwire(flagged, 'send-hotlead-blast FLAG_EVENT').map((e) => e.user_id))
+    .eq('name', FLAG_EVENT), { route: '/api/admin/send-hotlead-blast', table: 'events' })
+    // Leitura completa pelo readAll; qualquer falha de página aborta o envio.
+  const alreadySent = new Set((flagged ?? []).map((e) => e.user_id))
 
   // Supressão de lifecycle no PADRÃO DA CASA (24h): ninguém recebe dois
   // e-mails no mesmo dia — mas a régua de ontem não bloqueia o hot lead de
   // hoje. (Medido 14/08: com 72h a supressão comia 13 dos 14 queimados,
   // porque a régua diária toca quase toda a base free.)
   const candidateIds = (profiles ?? []).map((p) => p.id as string)
-  const suppression = await loadLifecycleSuppression(db, candidateIds, 24).catch(() => null)
+  const suppression = await loadLifecycleSuppression(db, candidateIds, 24)
 
   const out: Record<Segment, Lead[]> = { burned: [], stalled: [], power: [], watermark: [], paying: [] }
   for (const p of profiles ?? []) {

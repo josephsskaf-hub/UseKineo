@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // Stalled-render rescue blast (admin- or cron-gated) — idempotent + batched.
 //
 // KINEO-STALLED-RESCUE-2026-07-26 — a maior coorte morna do banco que NUNCA
@@ -381,16 +382,14 @@ async function distinctUserIdsForEvents(
 ): Promise<{ ids: Set<string>; latestAt: Map<string, number>; error?: string }> {
   const ids = new Set<string>()
   const latestAt = new Map<string, number>()
-  const PAGE = 1000
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await admin
+  {
+    const { data, error } = await readAll(() => admin
       .from('events')
       .select('user_id, created_at')
       .in('name', names)
       .not('user_id', 'is', null)
       .order('created_at', { ascending: true })
-      .order('id', { ascending: true })
-      .range(from, from + PAGE - 1)
+      .order('id', { ascending: true }), { route: '/api/admin/send-stalled-rescue', table: 'events' })
     if (error) return { ids, latestAt, error: error.message }
     const rows = (data ?? []) as Array<{ user_id: string | null; created_at?: string | null }>
     for (const r of rows) {
@@ -403,9 +402,7 @@ async function distinctUserIdsForEvents(
       const prev = latestAt.get(r.user_id)
       if (prev === undefined || t > prev) latestAt.set(r.user_id, t)
     }
-    if (rows.length < PAGE) break
-    // Trava de segurança: nunca varrer indefinidamente se a tabela crescer.
-    if (from > 200_000) break
+
   }
   return { ids, latestAt }
 }
@@ -556,7 +553,7 @@ export async function GET(req: NextRequest) {
     // run, não só para o envio.
     const rows: Row[] = []
     for (const ids of chunk(stalledIds, 200)) {
-      const { data, error } = await admin
+      const { data, error } = await readAll(() => admin
         .from('profiles')
         .select('id, email, plan, is_pro, has_paid, trial_status, trial_ends_at, trial_credits_granted, trial_credits_used, video_credits')
         .in('id', ids)
@@ -564,7 +561,7 @@ export async function GET(req: NextRequest) {
         .eq('is_pro', false)
         .eq(FLAG_COLUMN, false)
         // KINEO-UNSUBSCRIBE-2026-07-26 — quem pediu para sair NUNCA entra em coorte.
-        .eq('email_opted_out', false)
+        .eq('email_opted_out', false), { route: '/api/admin/send-stalled-rescue', table: 'profiles' })
       if (error) {
         return NextResponse.json({ error: `profiles query failed: ${error.message}` }, { status: 500 })
       }
@@ -612,17 +609,15 @@ export async function GET(req: NextRequest) {
     // não é". Aqui o erro para o envio inteiro, antes de qualquer disparo.
     const abandonedUsers = new Set<string>()
     {
-      const PAGE = 1000
-      for (let from = 0; ; from += PAGE) {
-        const { data: ab, error: abErr } = await admin
+      {
+        const { data: ab, error: abErr } = await readAll(() => admin
           .from('checkout_abandoned')
           .select('user_id')
           // ORDER BY obrigatório: sem ordem estável o Postgres pode deslocar a
           // janela quando chega linha nova durante a paginação, e a linha
           // pulada é exatamente uma pessoa recebendo este e-mail por cima do
           // send-recovery — a falha que esta exclusão existe para impedir.
-          .order('user_id', { ascending: true })
-          .range(from, from + PAGE - 1)
+          .order('user_id', { ascending: true }), { route: '/api/admin/send-stalled-rescue', table: 'checkout_abandoned' })
         if (abErr) {
           console.error('[stalled-rescue] checkout_abandoned query failed:', abErr.message)
           return NextResponse.json(
@@ -639,8 +634,7 @@ export async function GET(req: NextRequest) {
         // pode cortar abaixo do limite pedido, e truncar esta lista em silêncio
         // significa mandar e-mail duplicado exatamente para quem já estava a um
         // passo de pagar.
-        if (rows.length < PAGE) break
-        if (from > 200_000) break
+
       }
     }
 

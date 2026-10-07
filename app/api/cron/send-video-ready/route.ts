@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
@@ -311,13 +312,13 @@ export async function GET(req: NextRequest) {
   const oldest = new Date(now - MAX_AGE_MS).toISOString()
 
   // Completed videos in the 30min-24h window (small volume: dozens/day).
-  const { data: readyVideos, error: videosErr } = await admin
+  const { data: readyVideos, error: videosErr } = await readAll(() => admin
     .from('videos')
     .select('id, user_id, title, topic, thumbnail_url, thumb_url, created_at, credits_used, duration, quality_mode')
     .eq('status', 'completed')
     .gte('created_at', oldest)
     .lte('created_at', newest)
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: false }), { route: '/api/cron/send-video-ready', table: 'videos' })
 
   if (videosErr) {
     console.error('[send-video-ready] videos query error:', videosErr.message)
@@ -360,12 +361,12 @@ export async function GET(req: NextRequest) {
   // who already got another "video is ready" e-mail (status route / rescue
   // cron). One query, fail-closed: an error here means no e-mail this run.
   const candidateIds = Array.from(perUser.keys())
-  const { data: signals, error: dlErr } = await admin
+  const { data: signals, error: dlErr } = await readAll(() => admin
     .from('events')
     .select('user_id, name, created_at')
     .in('name', [...DOWNLOAD_EVENTS, SEEN_EVENT, ...READY_EMAIL_EVENTS])
     .in('user_id', candidateIds)
-    .gte('created_at', oldest)
+    .gte('created_at', oldest), { route: '/api/cron/send-video-ready', table: 'events' })
 
   if (dlErr) {
     console.error('[send-video-ready] signals query error:', dlErr.message)
@@ -401,12 +402,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ sent: 0, skipped: 0, total: 0, all_downloaded: true })
   }
 
-  const { data: candidates, error } = await admin
+  const { data: candidates, error } = await readAll(() => admin
     .from('profiles')
     .select('id, email, video_ready_sent_at, has_paid, plan, video_credits')
     .in('id', Array.from(perUser.keys()))
     .is('video_ready_sent_at', null)
-    .eq('email_opted_out', false)
+    .eq('email_opted_out', false), { route: '/api/cron/send-video-ready', table: 'profiles' })
 
   if (error) {
     console.error('[send-video-ready] profiles query error:', error.message)

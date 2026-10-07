@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // ═══ KINEO-PORTA-DE-VOLTA-2026-09-06 — sprint-assinaturas #13 ══════════════
 //
 // O NÚMERO QUE MANDOU ESCREVER ISTO (medido 06/09 05:2x BRT, contas externas):
@@ -46,7 +47,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
-import { dedupeTripwire } from '@/lib/truncationTripwire'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { pickMomentumTopic } from '@/lib/momentumTopic'
@@ -257,13 +257,12 @@ export async function GET(req: NextRequest) {
 
     // ── 1. a sessão expirada MAIS RECENTE de cada pessoa, 14 dias ───────────
     const desde = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
-    const { data: expRows, error: expErr } = await admin
+    const { data: expRows, error: expErr } = await readAll(() => admin
       .from('events')
       .select('user_id, created_at, metadata')
       .eq('name', 'checkout_session_expired')
       .gte('created_at', desde)
-      .order('created_at', { ascending: false })
-      .limit(5000)
+      .order('created_at', { ascending: false }), { route: '/api/admin/send-checkout-recovery', table: 'events' })
     if (expErr) return NextResponse.json({ error: expErr.message }, { status: 500 })
 
     const ultimaSessao = new Map<string, { sessionId: string; tier: string | null; pais: string; quando: string }>()
@@ -286,10 +285,10 @@ export async function GET(req: NextRequest) {
     }
 
     // ── 2. quem sai da lista, e por quê ─────────────────────────────────────
-    const { data: perfis, error: perfErr } = await admin
+    const { data: perfis, error: perfErr } = await readAll(() => admin
       .from('profiles')
       .select('id, email, email_opted_out, has_paid')
-      .in('id', ids.slice(0, 1000))
+      .in('id', ids.slice(0, 1000)), { route: '/api/admin/send-checkout-recovery', table: 'profiles' })
     if (perfErr) return NextResponse.json({ error: perfErr.message }, { status: 500 })
 
     const excluidos = { pagante: 0, optout: 0, junk: 0, bloqueado: 0, outra_campanha: 0, ja_recebeu: 0 }
@@ -304,26 +303,26 @@ export async function GET(req: NextRequest) {
     const baseIds = base.map((p) => p.id as string)
 
     // Quem já pagou alguma vez na história (não só `has_paid`), quem já entrou
-    // em outra campanha, e quem já recebeu ESTA. Os três com tripwire: dedupe
+    // em outra campanha, e quem já recebeu ESTA. Os três com paginação completa: dedupe
     // truncado em 1000 é reenvio de campanha (KINEO-TRIPWIRE-1000-2026-08-28).
-    const { data: pagouRows } = await admin
-      .from('events').select('user_id').eq('name', 'payment_success').in('user_id', baseIds)
-    const pagou = new Set(dedupeTripwire(pagouRows, 'checkout-recovery payment_success').map((r) => r.user_id as string))
-    const { data: outrasRows } = await admin
-      .from('events').select('user_id').in('name', OUTRAS_CAMPANHAS).in('user_id', baseIds)
-    const outras = new Set(dedupeTripwire(outrasRows, 'checkout-recovery OUTRAS_CAMPANHAS').map((r) => r.user_id as string))
-    const { data: jaRows } = await admin
-      .from('events').select('user_id').eq('name', SENT_EVENT).in('user_id', baseIds)
-    const ja = new Set(dedupeTripwire(jaRows, 'checkout-recovery SENT_EVENT').map((r) => r.user_id as string))
+    const { data: pagouRows } = await readAll(() => admin
+      .from('events').select('user_id').eq('name', 'payment_success').in('user_id', baseIds), { route: '/api/admin/send-checkout-recovery', table: 'events' })
+    const pagou = new Set((pagouRows ?? []).map((r) => r.user_id as string))
+    const { data: outrasRows } = await readAll(() => admin
+      .from('events').select('user_id').in('name', OUTRAS_CAMPANHAS).in('user_id', baseIds), { route: '/api/admin/send-checkout-recovery', table: 'events' })
+    const outras = new Set((outrasRows ?? []).map((r) => r.user_id as string))
+    const { data: jaRows } = await readAll(() => admin
+      .from('events').select('user_id').eq('name', SENT_EVENT).in('user_id', baseIds), { route: '/api/admin/send-checkout-recovery', table: 'events' })
+    const ja = new Set((jaRows ?? []).map((r) => r.user_id as string))
 
     // Filmes entregues — a carta muda de frase conforme a pessoa já tenha
     // recebido filme ou não, e nomear um filme que não existe é mentira.
     const filmes = new Map<string, { title: string | null; topic: string | null }>()
     for (let i = 0; i < baseIds.length; i += 200) {
       const slice = baseIds.slice(i, i + 200)
-      const { data: vids } = await admin
+      const { data: vids } = await readAll(() => admin
         .from('videos').select('user_id, title, topic, created_at')
-        .in('user_id', slice).order('created_at', { ascending: false }).limit(5000)
+        .in('user_id', slice).order('created_at', { ascending: false }), { route: '/api/admin/send-checkout-recovery', table: 'videos' })
       for (const v of vids ?? []) {
         const uid = v.user_id as string
         if (!filmes.has(uid)) filmes.set(uid, { title: v.title as string | null, topic: v.topic as string | null })

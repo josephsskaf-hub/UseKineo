@@ -72,13 +72,16 @@ export async function GET(req: NextRequest) {
     const userId = sub.metadata?.supabase_user_id
     if (!userId) continue
 
-    const { data: jaAvisado } = await admin
+    const { data: jaAvisado, error: stampError } = await admin
       .from('events')
       .select('id')
       .eq('name', STAMP)
       .eq('user_id', userId)
       .gte('created_at', new Date(Date.now() - 20 * 24 * 3600_000).toISOString())
+      .limit(1)
       .maybeSingle()
+    // Consulta de existência por pessoa: vários carimbos continuam significando já enviado.
+    if (stampError) return NextResponse.json({ error: 'email_stamp_unavailable' }, { status: 503 })
     if (jaAvisado) continue
 
     const { data: prof } = await admin

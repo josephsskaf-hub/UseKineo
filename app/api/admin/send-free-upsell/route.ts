@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // Free-trier upsell blast (admin- or cron-gated) — idempotent + batched.
 //
 // KINEO-FREE-UPSELL-2026-07-23 — emails users who USED the free generator
@@ -148,14 +149,14 @@ export async function GET(req: NextRequest) {
     const admin = adminClient()
 
     // Cohort: used the free generator, still unpaid, not yet upsell-emailed.
-    const { data: rows, error } = await admin
+    const { data: rows, error } = await readAll(() => admin
       .from('profiles')
       .select('id, email, plan, is_pro, has_paid')
       .eq('free_ai_generate_used', true)
       .eq('has_paid', false)
       .eq('free_upsell_emailed', false)
       // KINEO-UNSUBSCRIBE-2026-07-26 — quem pediu para sair NUNCA entra em coorte.
-      .eq('email_opted_out', false)
+      .eq('email_opted_out', false), { route: '/api/admin/send-free-upsell', table: 'profiles' })
     if (error) {
       return NextResponse.json({ error: `profiles query failed: ${error.message}` }, { status: 500 })
     }

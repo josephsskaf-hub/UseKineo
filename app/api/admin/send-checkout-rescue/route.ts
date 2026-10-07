@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // KINEO-CHECKOUT-RESCUE-2026-08-19 — a lista mais quente que a empresa tem.
 //
 // O QUE OS NÚMEROS DISSERAM (funil de 7 dias, medido em 19/08):
@@ -30,7 +31,6 @@
 // default, ?confirm=SEND&limit=N para disparar, pacing de 600ms, carimbo por
 // usuário marcado SÓ no sucesso — ninguém recebe duas vezes.
 import { NextRequest, NextResponse } from 'next/server'
-import { dedupeTripwire } from '@/lib/truncationTripwire'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
@@ -221,12 +221,11 @@ export async function GET(req: NextRequest) {
     // O corte de 2 tentativas não é decorativo: é o que separa intenção de
     // curiosidade, e é a razão desta lista existir.
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-    const { data: ckRows, error: ckErr } = await admin
+    const { data: ckRows, error: ckErr } = await readAll(() => admin
       .from('events')
       .select('user_id, metadata')
       .in('name', ['checkout_started', 'checkout_attempted', 'checkout_session_expired'])
-      .gte('created_at', since)
-      .limit(20000)
+      .gte('created_at', since), { route: '/api/admin/send-checkout-rescue', table: 'events' })
     if (ckErr) return NextResponse.json({ error: ckErr.message }, { status: 500 })
 
     const tries = new Map<string, number>()
@@ -245,10 +244,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ mode: 'DRY_RUN', remaining_unemailed: 0, note: 'no one hit checkout twice in the window' })
     }
 
-    const { data: profiles, error: profErr } = await admin
+    const { data: profiles, error: profErr } = await readAll(() => admin
       .from('profiles')
       .select('id, email, email_opted_out, has_paid, signup_country, last_country')
-      .in('id', candidateIds.slice(0, 1000))
+      .in('id', candidateIds.slice(0, 1000)), { route: '/api/admin/send-checkout-rescue', table: 'profiles' })
     if (profErr) return NextResponse.json({ error: profErr.message }, { status: 500 })
 
     const base = (profiles ?? []).filter(
@@ -259,17 +258,17 @@ export async function GET(req: NextRequest) {
     const videoCounts = new Map<string, number>()
     for (let i = 0; i < ids.length; i += 200) {
       const slice = ids.slice(i, i + 200)
-      const { data: vids } = await admin.from('videos').select('user_id').in('user_id', slice).limit(10000)
+      const { data: vids } = await readAll(() => admin.from('videos').select('user_id').in('user_id', slice), { route: '/api/admin/send-checkout-rescue', table: 'videos' })
       for (const v of vids ?? []) {
         const uid = v.user_id as string
         videoCounts.set(uid, (videoCounts.get(uid) ?? 0) + 1)
       }
     }
 
-    const { data: sentRows } = await admin
-      .from('events').select('user_id').eq('name', SENT_EVENT).in('user_id', ids)
-    // KINEO-TRIPWIRE-1000-2026-08-28 — dedupe truncado = reenvio; aborta.
-    const alreadySent = new Set(dedupeTripwire(sentRows, 'checkout-rescue SENT_EVENT').map((r) => r.user_id as string))
+    const { data: sentRows } = await readAll(() => admin
+      .from('events').select('user_id').eq('name', SENT_EVENT).in('user_id', ids), { route: '/api/admin/send-checkout-rescue', table: 'events' })
+    // Leitura completa pelo readAll; qualquer falha de página aborta o envio.
+    const alreadySent = new Set((sentRows ?? []).map((r) => r.user_id as string))
 
     const recipients = base
       .map((p) => {

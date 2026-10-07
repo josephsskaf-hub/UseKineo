@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // ═══ KINEO-PROXIMA-ACAO-CARTA-2026-09-06 — sprint-assinaturas #4 ═══════════
 //
 // A COORTE, e ela é a mais quente que a casa tem sem campanha nenhuma: pessoa
@@ -371,13 +372,12 @@ export async function GET(req: NextRequest) {
 
     // ── 1. o ÚLTIMO filme entregue de cada pessoa, nos últimos 14 dias ──────
     const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
-    const { data: vids, error: vidsErr } = await admin
+    const { data: vids, error: vidsErr } = await readAll(() => admin
       .from('videos')
       .select('id, user_id, credits_used, created_at, title, topic, status')
       .eq('status', 'completed')
       .gte('created_at', since)
-      .order('created_at', { ascending: false })
-      .limit(5000)
+      .order('created_at', { ascending: false }), { route: '/api/admin/send-next-episode-wall', table: 'videos' })
     if (vidsErr) return NextResponse.json({ error: 'videos query failed' }, { status: 503 })
 
     const ultimoDe = new Map<
@@ -422,13 +422,12 @@ export async function GET(req: NextRequest) {
     const episodioDe = new Map<string, string>()
     const videoIds = [...ultimoDe.values()].map((u) => u.videoId).filter((v): v is string => !!v)
     if (videoIds.length > 0) {
-      const { data: mem, error: memErr } = await admin
+      const { data: mem, error: memErr } = await readAll(() => admin
         .from('events')
         .select('session_id, metadata, created_at')
         .eq('name', EPISODIO_ESCRITO_EVENT)
         .in('session_id', videoIds)
-        .order('created_at', { ascending: false })
-        .limit(5000)
+        .order('created_at', { ascending: false }), { route: '/api/admin/send-next-episode-wall', table: 'events' })
       if (!memErr) {
         const agora = Date.now()
         const porVideo = new Map<string, string>()
@@ -453,10 +452,10 @@ export async function GET(req: NextRequest) {
       ...STAMP_COLUMNS, ...STAMP_DATES,
     ].join(', ')
     const [profRes, evtRes] = await Promise.all([
-      admin.from('profiles').select(colunas).in('id', ids),
-      admin.from('events').select('user_id, name')
+      readAll(() => admin.from('profiles').select(colunas).in('id', ids), { route: '/api/admin/send-next-episode-wall', table: 'profiles' }),
+      readAll(() => admin.from('events').select('user_id, name')
         .in('user_id', ids)
-        .in('name', [SENT_EVENT, ...OTHER_CAMPAIGNS, 'checkout_started', 'checkout_attempted']),
+        .in('name', [SENT_EVENT, ...OTHER_CAMPAIGNS, 'checkout_started', 'checkout_attempted']), { route: '/api/admin/send-next-episode-wall', table: 'events' }),
     ])
     if (profRes.error || evtRes.error) {
       await registrarCorrida(admin, corridaAbortada(CAMPANHA, modo, 'query', { coorte_bruta: ids.length }))

@@ -1,3 +1,4 @@
+import { readUnpaginated } from '@/lib/supabase/readAll'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import {
@@ -168,7 +169,7 @@ export async function GET(req: NextRequest) {
       .order('trial_ends_at', { ascending: true, nullsFirst: true })
       .limit(COHORT_PAGE)
 
-  const { data: openTrials, error } = await readCohort()
+  const { data: openTrials, error } = await readUnpaginated(readCohort(), { route: '/api/cron/trial-downgrade', table: 'profiles' })
 
   if (error) {
     console.error('[trial-downgrade] cohort query failed:', error.message)

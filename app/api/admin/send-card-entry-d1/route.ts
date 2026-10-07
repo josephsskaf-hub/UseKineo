@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // KINEO-CARTA-D1-PORTA-2026-09-08 — TAREFA 5 (fundador, 08/09): "carta D+1 para
 // quem viu a porta de $1 e não pagou. Hoje essa pessoa não recebe nada."
 //
@@ -139,14 +140,13 @@ export async function GET(req: NextRequest) {
     const now = Date.now()
 
     const elegiveis: Array<{ id: string; email: string; createdAt: string }> = []
-    for (let from = 0; ; from += 1000) {
-      const { data, error } = await admin
+    {
+      const { data, error } = await readAll(() => admin
         .from('profiles')
         .select('id, email, plan, has_paid, email_opted_out, video_credits, trial_status, created_at')
         .eq('trial_status', CARD_ENTRY_TRIAL_STATUS)
         .gte('created_at', new Date(now - MAX_AGE_MS).toISOString())
-        .order('created_at', { ascending: true })
-        .range(from, from + 999)
+        .order('created_at', { ascending: true }), { route: '/api/admin/send-card-entry-d1', table: 'profiles' })
       if (error) throw error
       for (const p of data ?? []) {
         const email = String(p.email ?? '').toLowerCase()
@@ -154,7 +154,7 @@ export async function GET(req: NextRequest) {
         if (!isCardEntryD1Eligible(p as Parameters<typeof isCardEntryD1Eligible>[0], now)) continue
         elegiveis.push({ id: p.id as string, email, createdAt: String(p.created_at) })
       }
-      if (!data || data.length < 1000) break
+
     }
 
     const ids = elegiveis.map((e) => e.id)
@@ -163,12 +163,11 @@ export async function GET(req: NextRequest) {
     const bateuPorta = new Set<string>()
     for (let i = 0; i < ids.length; i += 500) {
       const slice = ids.slice(i, i + 500)
-      const { data: ev } = await admin
+      const { data: ev } = await readAll(() => admin
         .from('events')
         .select('user_id, name')
         .in('name', [STAMP, 'card_entry_banner_shown', 'paywall_hit'])
-        .in('user_id', slice)
-        .limit(20000)
+        .in('user_id', slice), { route: '/api/admin/send-card-entry-d1', table: 'events' })
       for (const r of ev ?? []) {
         const uid = r.user_id as string
         if (r.name === STAMP) jaAvisado.add(uid)

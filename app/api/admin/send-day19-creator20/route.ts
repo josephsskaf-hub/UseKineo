@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // KINEO-DAY19-CREATOR20-2026-08-20 — a coorte do dia 19 recebe 20% no Creator.
 //
 // Pedido do fundador (madrugada de 20/08): "pega todas as pessoas que usaram
@@ -150,11 +151,10 @@ export async function GET(req: NextRequest) {
     const admin = createAdminClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } })
 
     // Quem esteve no site no dia 19 (qualquer evento logado).
-    const { data: dayRows, error: dayErr } = await admin
+    const { data: dayRows, error: dayErr } = await readAll(() => admin
       .from('events').select('user_id')
       .gte('created_at', DAY19_START).lt('created_at', DAY19_END)
-      .not('user_id', 'is', null)
-      .limit(60000)
+      .not('user_id', 'is', null), { route: '/api/admin/send-day19-creator20', table: 'events' })
     if (dayErr) return NextResponse.json({ error: dayErr.message }, { status: 500 })
     const ids = [...new Set((dayRows ?? []).map((r) => (r as { user_id: string }).user_id))]
     if (ids.length === 0) return NextResponse.json({ mode: 'DRY_RUN', remaining_unemailed: 0 })
@@ -169,10 +169,10 @@ export async function GET(req: NextRequest) {
 
     for (const chunk of chunks) {
       const [p, v, m, s2] = await Promise.all([
-        admin.from('profiles').select('id, email, email_opted_out, has_paid, plan').in('id', chunk),
-        admin.from('videos').select('user_id').in('user_id', chunk).limit(10000),
-        admin.from('events').select('user_id').in('user_id', chunk).in('name', MARKETING_STAMPS),
-        admin.from('events').select('user_id').in('user_id', chunk).eq('name', SENT_EVENT),
+        readAll(() => admin.from('profiles').select('id, email, email_opted_out, has_paid, plan').in('id', chunk), { route: '/api/admin/send-day19-creator20', table: 'profiles' }),
+        readAll(() => admin.from('videos').select('user_id').in('user_id', chunk), { route: '/api/admin/send-day19-creator20', table: 'videos' }),
+        readAll(() => admin.from('events').select('user_id').in('user_id', chunk).in('name', MARKETING_STAMPS), { route: '/api/admin/send-day19-creator20', table: 'events' }),
+        readAll(() => admin.from('events').select('user_id').in('user_id', chunk).eq('name', SENT_EVENT), { route: '/api/admin/send-day19-creator20', table: 'events' }),
       ])
       for (const row of p.data ?? []) profiles.push(row as (typeof profiles)[number])
       for (const row of v.data ?? []) {

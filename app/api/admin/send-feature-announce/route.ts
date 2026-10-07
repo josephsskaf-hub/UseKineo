@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // KINEO-FEATURE-ANNOUNCE-2026-07-10 — avatar-suite announcement blast
 // (admin-only, idempotent, batched). Announces the 4 new features shipped
 // 10/07 (AI Presenter, Character Lock, Transparent Gesture Clips, UGC
@@ -134,12 +135,12 @@ export async function GET(req: NextRequest) {
 
     // WHOLE base (paid + free) not yet announced — new engines are relevant
     // to everyone; idempotency flag prevents double sends across batches/days.
-    const { data: rows, error } = await admin
+    const { data: rows, error } = await readAll(() => admin
       .from('profiles')
       .select('id, email')
       .eq('feature_announce_emailed', false)
       // KINEO-UNSUBSCRIBE-2026-07-26 — quem pediu para sair NUNCA entra em coorte.
-      .eq('email_opted_out', false)
+      .eq('email_opted_out', false), { route: '/api/admin/send-feature-announce', table: 'profiles' })
     if (error) {
       return NextResponse.json({ error: `profiles query failed: ${error.message}` }, { status: 500 })
     }

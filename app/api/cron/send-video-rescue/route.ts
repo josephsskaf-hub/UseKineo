@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
@@ -168,13 +169,12 @@ export async function GET(req: NextRequest) {
   })
 
   // 1) Un-rescued profiles (dedupe via video_rescue_sent_at).
-  const { data: profiles, error } = await admin
+  const { data: profiles, error } = await readAll(() => admin
     .from('profiles')
     .select('id, email, plan, is_pro, video_rescue_sent_at')
     .is('video_rescue_sent_at', null)
     // KINEO-UNSUBSCRIBE-2026-07-26 — quem pediu para sair NUNCA entra em coorte.
-    .eq('email_opted_out', false)
-    .limit(5000)
+    .eq('email_opted_out', false), { route: '/api/cron/send-video-rescue', table: 'profiles' })
   if (error) {
     console.error('[send-video-rescue] profiles query error:', error.message)
     return NextResponse.json({ error: error.message }, { status: 500 })
@@ -183,7 +183,7 @@ export async function GET(req: NextRequest) {
   // 2) Latest video per user.
   const latestVideoByUser = new Map<string, number>()
   {
-    const { data: vids } = await admin.from('videos').select('user_id, created_at').limit(10000)
+    const { data: vids } = await readAll(() => admin.from('videos').select('user_id, created_at'), { route: '/api/cron/send-video-rescue', table: 'videos' })
     for (const v of (vids ?? []) as Array<{ user_id?: string | null; created_at?: string | null }>) {
       if (!v.user_id) continue
       const t = v.created_at ? new Date(v.created_at).getTime() : 0
@@ -195,7 +195,7 @@ export async function GET(req: NextRequest) {
   // 3) Users already in the abandoned-checkout recovery flow — exclude.
   const abandonedUsers = new Set<string>()
   {
-    const { data: ab } = await admin.from('checkout_abandoned').select('user_id').limit(10000)
+    const { data: ab } = await readAll(() => admin.from('checkout_abandoned').select('user_id'), { route: '/api/cron/send-video-rescue', table: 'checkout_abandoned' })
     for (const a of (ab ?? []) as Array<{ user_id?: string | null }>) {
       if (a.user_id) abandonedUsers.add(a.user_id)
     }

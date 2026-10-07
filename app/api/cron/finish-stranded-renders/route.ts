@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // KINEO-STRANDED-2026-08-18/19 — "o vídeo continua renderizando mesmo com a
 // aba fechada" (ordem do fundador, noite de 18/08). Duas gerações do mesmo
 // arquivo na mesma noite:
@@ -543,11 +544,11 @@ export async function GET(req: NextRequest) {
 
   // Dedupe/attempt bookkeeping por geração.
   const genIds = candidates.map((c) => c.session_id).filter((s): s is string => !!s)
-  const { data: markerRows, error: markerErr } = await admin
+  const { data: markerRows, error: markerErr } = await readAll(() => admin
     .from('events')
     .select('name, session_id, metadata, created_at')
     .in('name', [RESCUE_EVENT, ATTEMPT_EVENT, READY_EVENT, FAST_READY_EVENT, COMPOSED_EVENT, OUTCOME_EVENT, CINEMATIC_CLIENT_POLL_EVENT])
-    .in('session_id', genIds.slice(0, 200))
+    .in('session_id', genIds.slice(0, 200)), { route: '/api/cron/finish-stranded-renders', table: 'events' })
   // sprint-assinaturas #4 — o erro deste lote era engolido; agora vai pro log e
   // viaja no `stranded_dedupe_miss` quando o lookup direto pega o que o lote perdeu.
   const markerBatchError = markerErr ? markerErr.message.slice(0, 200) : null
@@ -944,7 +945,7 @@ export async function GET(req: NextRequest) {
 
     const fastGenIds = (fastClaims ?? []).map((c) => c.session_id).filter((x): x is string => !!x)
     const { data: fastMarkers, error: fastMarkerErr } = fastGenIds.length > 0
-      ? await admin.from('events').select('session_id').in('name', [FAST_READY_EVENT, READY_EVENT]).in('session_id', fastGenIds.slice(0, 200))
+      ? await readAll(() => admin.from('events').select('session_id').in('name', [FAST_READY_EVENT, READY_EVENT]).in('session_id', fastGenIds.slice(0, 200)), { route: '/api/cron/finish-stranded-renders', table: 'events' })
       : { data: [] as Array<{ session_id: string | null }>, error: null }
     const alreadyFast = new Set((fastMarkers ?? []).map((m) => m.session_id as string))
     // sprint-assinaturas #4 — 9 de 9 resgates do Kineo 1 saíram repetidos; o erro
@@ -1136,11 +1137,11 @@ export async function GET(req: NextRequest) {
       .filter((x): x is string => typeof x === 'string' && x.length > 0)
 
     if (openedGenIds.length > 0) {
-      const { data: settledRows, error: settledErr } = await admin
+      const { data: settledRows, error: settledErr } = await readAll(() => admin
         .from('events')
         .select('session_id')
         .in('name', [ATTEMPT_CLOSED_EVENT, ATTEMPT_LOST_EVENT, ATTEMPT_LOST_CANDIDATE_EVENT])
-        .in('session_id', openedGenIds.slice(0, 200))
+        .in('session_id', openedGenIds.slice(0, 200)), { route: '/api/cron/finish-stranded-renders', table: 'events' })
       // fail-closed: sem a lista de já-fechados/já-avisados não se manda nada.
       if (settledErr) throw new Error(`settled lookup failed: ${settledErr.message}`)
       const settled = new Set((settledRows ?? []).map((r) => r.session_id as string))
@@ -1290,11 +1291,11 @@ export async function GET(req: NextRequest) {
     // resposta a gente pula a fase inteira, senão um PostgREST ruim recompõe
     // filme que já existe (a lição do #4, que mandou 9 resgates repetidos).
     const { data: recMarkers, error: recMarkerErr } = recGenIds.length > 0
-      ? await admin
+      ? await readAll(() => admin
           .from('events')
           .select('session_id, name')
           .in('name', [RECOVERY_ATTEMPT_EVENT, 'compose_submission_claim'])
-          .in('session_id', recGenIds.slice(0, 200))
+          .in('session_id', recGenIds.slice(0, 200)), { route: '/api/cron/finish-stranded-renders', table: 'events' })
       : { data: [] as Array<{ session_id: string | null; name: string }>, error: null }
     if (recMarkerErr) console.error('[stranded-recovery] marker batch failed:', recMarkerErr.message)
 

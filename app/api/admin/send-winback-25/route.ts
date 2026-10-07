@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // KINEO-WINBACK-25-2026-09-01 — ACAO 1-B do fundador ("vai pra todos, 1 a 10").
 //
 // QUEM ENTRA (montado ao vivo do banco, nunca lista chumbada):
@@ -100,13 +101,12 @@ export async function GET(req: NextRequest) {
 
     // 1) contas zeradas, nao pagas, opt-in — lidas em paginas (regra anti-1000).
     const zeradas: Array<{ id: string; email: string; plan: string | null }> = []
-    for (let from = 0; ; from += 1000) {
-      const { data, error } = await admin
+    {
+      const { data, error } = await readAll(() => admin
         .from('profiles')
         .select('id, email, plan, has_paid, email_opted_out, video_credits')
         .eq('video_credits', 0)
-        .order('created_at', { ascending: true })
-        .range(from, from + 999)
+        .order('created_at', { ascending: true }), { route: '/api/admin/send-winback-25', table: 'profiles' })
       if (error) throw error
       for (const p of data ?? []) {
         const email = String(p.email ?? '').toLowerCase()
@@ -114,7 +114,7 @@ export async function GET(req: NextRequest) {
         if (isInternalEmail(email)) continue
         zeradas.push({ id: p.id as string, email, plan: (p.plan as string | null) ?? null })
       }
-      if (!data || data.length < 1000) break
+
     }
     const ids = zeradas.map((z) => z.id)
 
@@ -125,9 +125,9 @@ export async function GET(req: NextRequest) {
     for (let i = 0; i < ids.length; i += 500) {
       const slice = ids.slice(i, i + 500)
       const [{ data: v }, { data: s }, { data: q }] = await Promise.all([
-        admin.from('videos').select('user_id').eq('status', 'completed').in('user_id', slice),
-        admin.from('events').select('user_id').eq('name', STAMP).in('user_id', slice),
-        admin.from('events').select('user_id').gte('created_at', new Date(Date.now() - 3 * 86400_000).toISOString()).in('user_id', slice).limit(5000),
+        readAll(() => admin.from('videos').select('user_id').eq('status', 'completed').in('user_id', slice), { route: '/api/admin/send-winback-25', table: 'videos' }),
+        readAll(() => admin.from('events').select('user_id').eq('name', STAMP).in('user_id', slice), { route: '/api/admin/send-winback-25', table: 'events' }),
+        readAll(() => admin.from('events').select('user_id').gte('created_at', new Date(Date.now() - 3 * 86400_000).toISOString()).in('user_id', slice), { route: '/api/admin/send-winback-25', table: 'events' }),
       ])
       for (const r of v ?? []) comVideo.add(r.user_id as string)
       for (const r of s ?? []) jaAvisado.add(r.user_id as string)

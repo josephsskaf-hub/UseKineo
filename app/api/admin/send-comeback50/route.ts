@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // KINEO-COMEBACK50-2026-08-04 — ORDEM I do fundador (04/08): trazer de volta a
 // coorte mais QUALIFICADA do banco que nunca pagou.
 //
@@ -177,19 +178,16 @@ function chunk<T>(arr: T[], size: number): T[][] {
 /** downloads por usuário (paginado — PostgREST corta em 1000 linhas). */
 async function downloadCounts(admin: AdminDb): Promise<{ counts: Map<string, number>; error?: string }> {
   const counts = new Map<string, number>()
-  const PAGE = 1000
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await admin
+  {
+    const { data, error } = await readAll(() => admin
       .from('events')
       .select('user_id')
       .eq('name', 'video_downloaded')
-      .not('user_id', 'is', null)
-      .range(from, from + PAGE - 1)
+      .not('user_id', 'is', null), { route: '/api/admin/send-comeback50', table: 'events' })
     if (error) return { counts, error: error.message }
     const rows = (data ?? []) as Array<{ user_id: string | null }>
     for (const r of rows) if (r.user_id) counts.set(r.user_id, (counts.get(r.user_id) ?? 0) + 1)
-    if (rows.length < PAGE) break
-    if (from > 200_000) break
+
   }
   return { counts }
 }
@@ -197,19 +195,16 @@ async function downloadCounts(admin: AdminDb): Promise<{ counts: Map<string, num
 /** vídeos concluídos por usuário (paginado). */
 async function completedVideoCounts(admin: AdminDb): Promise<{ counts: Map<string, number>; error?: string }> {
   const counts = new Map<string, number>()
-  const PAGE = 1000
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await admin
+  {
+    const { data, error } = await readAll(() => admin
       .from('videos')
       .select('user_id')
       .eq('status', 'completed')
-      .not('user_id', 'is', null)
-      .range(from, from + PAGE - 1)
+      .not('user_id', 'is', null), { route: '/api/admin/send-comeback50', table: 'videos' })
     if (error) return { counts, error: error.message }
     const rows = (data ?? []) as Array<{ user_id: string | null }>
     for (const r of rows) if (r.user_id) counts.set(r.user_id, (counts.get(r.user_id) ?? 0) + 1)
-    if (rows.length < PAGE) break
-    if (from > 200_000) break
+
   }
   return { counts }
 }
@@ -304,13 +299,13 @@ export async function GET(req: NextRequest) {
 
     const rows: Row[] = []
     for (const ids of chunk(Array.from(candidateIds), 200)) {
-      const { data, error } = await admin
+      const { data, error } = await readAll(() => admin
         .from('profiles')
         .select('id, email, plan, is_pro, has_paid, stripe_customer_id')
         .in('id', ids)
         .eq('has_paid', false)
         .eq(FLAG_COLUMN, false)
-        .eq('email_opted_out', false)
+        .eq('email_opted_out', false), { route: '/api/admin/send-comeback50', table: 'profiles' })
       if (error) return NextResponse.json({ error: `profiles query failed: ${error.message}` }, { status: 500 })
       rows.push(...((data ?? []) as Row[]))
     }

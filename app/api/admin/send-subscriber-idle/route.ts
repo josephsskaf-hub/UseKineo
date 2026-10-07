@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // KINEO-SUBSCRIBER-IDLE-2026-09-02 — sprint-assinaturas #10.
 // Contexto e copy em lib/lifecycle/subscriberIdle.ts.
 //
@@ -63,13 +64,12 @@ export async function GET(req: NextRequest) {
 
     // 1) assinantes pagantes ativos, opt-in, externos — em paginas (regra anti-1000)
     const subs: Array<{ id: string; email: string; plan: string; credits: number }> = []
-    for (let from = 0; ; from += 1000) {
-      const { data, error } = await admin
+    {
+      const { data, error } = await readAll(() => admin
         .from('profiles')
         .select('id, email, plan, has_paid, email_opted_out, video_credits, stripe_subscription_id, paypal_subscription_id, paddle_subscription_id')
         .eq('has_paid', true)
-        .order('created_at', { ascending: true })
-        .range(from, from + 999)
+        .order('created_at', { ascending: true }), { route: '/api/admin/send-subscriber-idle', table: 'profiles' })
       if (error) throw error
       for (const p of data ?? []) {
         const email = String(p.email ?? '').toLowerCase()
@@ -81,7 +81,7 @@ export async function GET(req: NextRequest) {
         if (!Number.isFinite(credits) || credits < minCredits) continue
         subs.push({ id: p.id as string, email, plan, credits })
       }
-      if (!data || data.length < 1000) break
+
     }
     const ids = subs.map((s) => s.id)
 
@@ -92,9 +92,9 @@ export async function GET(req: NextRequest) {
     for (let i = 0; i < ids.length; i += 500) {
       const slice = ids.slice(i, i + 500)
       const [{ data: v }, { data: s }, { data: q }] = await Promise.all([
-        admin.from('videos').select('user_id, created_at, title, topic').eq('status', 'completed').in('user_id', slice).order('created_at', { ascending: false }).limit(5000),
-        admin.from('events').select('user_id').eq('name', STAMP).gte('created_at', new Date(Date.now() - RESEND_DAYS * 86400_000).toISOString()).in('user_id', slice),
-        admin.from('events').select('user_id').gte('created_at', new Date(Date.now() - HOT_HOURS * 3600_000).toISOString()).in('user_id', slice).limit(5000),
+        readAll(() => admin.from('videos').select('user_id, created_at, title, topic').eq('status', 'completed').in('user_id', slice).order('created_at', { ascending: false }), { route: '/api/admin/send-subscriber-idle', table: 'videos' }),
+        readAll(() => admin.from('events').select('user_id').eq('name', STAMP).gte('created_at', new Date(Date.now() - RESEND_DAYS * 86400_000).toISOString()).in('user_id', slice), { route: '/api/admin/send-subscriber-idle', table: 'events' }),
+        readAll(() => admin.from('events').select('user_id').gte('created_at', new Date(Date.now() - HOT_HOURS * 3600_000).toISOString()).in('user_id', slice), { route: '/api/admin/send-subscriber-idle', table: 'events' }),
       ])
       for (const r of v ?? []) {
         const uid = r.user_id as string
