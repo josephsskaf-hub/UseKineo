@@ -436,6 +436,9 @@ export default async function EnginePage({ params }: { params: { engine: string 
             <Link href="/free-ai-shorts-generator" style={{ color: '#86868b', textDecoration: 'none' }}>Free AI Shorts generator</Link>
             {' · '}
             <Link href="/best-ai-shorts-generators" style={{ color: '#86868b', textDecoration: 'none' }}>Best AI Shorts generators</Link>
+            {' · '}
+            {/* KINEO-INDICE-VIDEO-IA-2026-10-06 — o índice mensal com tempo e custo medidos de cada motor (link discreto). */}
+            <Link href="/ai-video-index" style={{ color: '#86868b', textDecoration: 'none' }}>Real cost and render time</Link>
           </div>
         </nav>
       </div>

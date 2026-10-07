@@ -6,6 +6,7 @@ import { React, root, source, offlineModules, renderToStaticMarkup, checks } fro
 // KINEO-MOTORES-GEO-2026-10-06 — reancorado com motivo: a S24-01 continua sem tocar a página do motor; a única mudança
 // aprovada depois da cdb154e2 é a camada citável da TAREFA 12 (11 edições exatas, descontadas pela normalização única).
 import { semMotoresGeoFonte } from './test-support/motores-geo-2026-10-06.mjs'
+import { edicoesIndiceFonte, semIndiceFonte } from './test-support/indice-video-ia-2026-10-06.mjs' // KINEO-INDICE-VIDEO-IA-2026-10-06
 const { check, finish } = checks()
 const events = []
 const mocks = { 'lib/analytics.ts': { trackEvent: (...args) => events.push(args) } }
@@ -67,7 +68,10 @@ const MARCA_OG_BASE = "    openGraph: { title, description, url, type: 'website'
   const umaVez = (s, x) => s.split(x).length === 2
   check('S24-01 (S25-ABRE) os dois trechos do slug do 2.5 existem uma vez, inteiros', umaVez(atual, S25_IMPORT) && umaVez(atual, S25_GSP_NOVO))
   check('S24-01 (MARCA) o og:site_name com o domínio existe uma vez, inteiro', umaVez(atual, MARCA_OG_NOVO))
-  check('S24-01 preserves the entire separately tested Veo engine page', semMotoresGeoFonte(atual.replace(S25_IMPORT, '').replace(S25_GSP_NOVO, S25_GSP_BASE).replace(MARCA_OG_NOVO, MARCA_OG_BASE)).trim()===execFileSync('git',['show','cdb154e2:app/ai-video-generator/[engine]/page.tsx'],{cwd:root,encoding:'utf8'}).replace(/\r\n/g,'\n').trim())
+  // KINEO-INDICE-VIDEO-IA-2026-10-06 — reancorado com motivo: desconta SÓ as 3 linhas do link discreto "Real cost and render
+  // time" (/ai-video-index; scripts/test-support/indice-video-ia-2026-10-06.mjs), que precisam existir uma vez.
+  check('S24-01 (ÍNDICE) o link do índice existe uma vez, inteiro', edicoesIndiceFonte(atual) === 1)
+  check('S24-01 preserves the entire separately tested Veo engine page', semMotoresGeoFonte(semIndiceFonte(atual).replace(S25_IMPORT, '').replace(S25_GSP_NOVO, S25_GSP_BASE).replace(MARCA_OG_NOVO, MARCA_OG_BASE)).trim()===execFileSync('git',['show','cdb154e2:app/ai-video-generator/[engine]/page.tsx'],{cwd:root,encoding:'utf8'}).replace(/\r\n/g,'\n').trim())
 }
 check('owner permanent Kineo1 redirect retained', source('next.config.js').includes("{ source: '/ai-video-generator/kineo-1', destination: '/ai-video-generator/seedance', statusCode: 301 }"))
 check('server-only curation selection', !source('components/ScriptToSeedanceBridge.tsx').includes("@/lib/publicExamples"))
