@@ -9,13 +9,13 @@
 // ESTILO readFileSync DE PROPÓSITO: guardião que importa com alias `@/` morre
 // no import antes da primeira verificação (memória `guardioes-com-alias-nao-rodam`).
 //
-// E ELE NÃO CONTA TEXTO: as travas que importam estão amarradas à VARIÁVEL que
-// decide (`eventsDegraded`) e ao ramo que não pode existir (`closed(` dentro do
-// bloco da quinta fonte). Mutante que troque o fail-open por fail-closed, que
-// tire a paginação, que tire o filtro de nomes ou que devolva a fonte sem o
-// sinal, tem de deixar isto VERMELHO.
+// Atualização 06/10: a quinta fonte também fecha em erro. Lista incompleta de
+// envios não pode autorizar reenvio. O módulo e o readAll reais são executados
+// com banco falso, incluindo página 2, janela curta e mutantes.
 
 import { readFileSync } from 'node:fs'
+import vm from 'node:vm'
+import ts from 'typescript'
 
 const SUP = 'lib/lifecycle/suppression.ts'
 const EVT = 'lib/lifecycle/emailEvents.ts'
@@ -75,18 +75,16 @@ check('não existe lista de nomes de e-mail copiada dentro do suppression.ts',
 // próprio, senão a janela de 4h do hot lead vale para quatro fontes e 24h para
 // a quinta.
 check('a fonte nova usa o mesmo `cutoff` das outras quatro',
-  /const desde = new Date\(cutoff\)\.toISOString\(\)/.test(sup) && /\.gte\('created_at', desde\)/.test(sup))
+  /\.gte\('created_at', new Date\(cutoff\)\.toISOString\(\)\)/.test(sup))
 
-// ── 3. FALHA ABERTA — a propriedade que separa esta fonte das outras quatro ──
-console.log('\n3. a quinta fonte falha ABERTA, e isso está amarrado ao código')
+// ── 3. FALHA FECHADA — lista incompleta não autoriza reenvio ────────────────
+console.log('\n3. a quinta fonte falha FECHADA, com sinal para quem chama')
 // A FATIA COMEÇA NO CÓDIGO, NÃO NO COMENTÁRIO — e isto é um erro que eu
 // cometi na primeira versão deste guardião. Ancorar em
 // `KINEO-SUPPRESSION-EVENTS-2026-09-06` casava com a MENÇÃO ao bloco lá em
 // cima, na interface, e a fatia engolia o laço inteiro das quatro fontes
-// antigas — com os quatro `return closed(` dentro. O guardião ficava vermelho
-// pelo motivo errado (memória `falsificar-mutacao-commitar-antes`: regex solto
-// casa com o próprio comentário).
-const iniBloco = sup.indexOf('let eventsDegraded = false')
+// antigas. A fatia abaixo começa na variável usada pela quinta fonte.
+const iniBloco = sup.indexOf('const idSet = new Set(ids)')
 const fimBloco = sup.indexOf('const suppressed = new Set<string>()')
 check('o bloco da quinta fonte existe e vem antes do cálculo final',
   iniBloco > 0 && fimBloco > iniBloco)
@@ -96,33 +94,24 @@ check('o cabeçalho KINEO-SUPPRESSION-EVENTS-2026-09-06 documenta a fonte nova',
   sup.includes('KINEO-SUPPRESSION-EVENTS-2026-09-06'))
 const bloco = sup.slice(iniBloco, fimBloco)
 
-// ESTA é a trava central: se alguém trocar o tratamento de erro por `closed(`,
-// uma falha de query passa a silenciar a base inteira.
-check('o bloco da quinta fonte NUNCA chama closed() — falha aberta',
-  !/return closed\(/.test(bloco))
-check('o bloco marca eventsDegraded no erro de query', /eventsDegraded = true/.test(bloco))
-check('o bloco tem try/catch próprio (erro dele não cai no catch das outras)',
-  /try \{/.test(bloco) && /\} catch \(err\) \{/.test(bloco))
-check('a variável de falha é declarada FORA do try (sobrevive ao catch)',
-  /let eventsDegraded = false\n\s*try \{/.test(bloco))
+check('falha da quinta fonte chama closed e marca eventsDegraded',
+  /return \{ \.\.\.closed\(.*\), eventsDegraded: true \}/.test(bloco))
+check('o bloco captura a falha do readAll', /\} catch \(err\) \{/.test(bloco))
 
 // O sinal chega a quem chama: sem isto, "a quinta fonte caiu" é indistinguível
 // de "estava tudo bem".
 check('a interface expõe eventsDegraded', /readonly eventsDegraded\?: boolean/.test(sup))
 check('o retorno de sucesso carrega eventsDegraded',
-  /degraded: false, eventsDegraded \}/.test(sup))
+  /degraded: false, eventsDegraded: false \}/.test(sup))
 check('eventsDegraded é OPCIONAL (não quebra implementador existente)',
   /eventsDegraded\?: boolean/.test(sup))
 
 // ── 4. PAGINAÇÃO — truncar em 1.000 é deixar de suprimir EM SILÊNCIO ─────────
-console.log('\n4. a leitura é paginada e o teto é barulhento')
-check('usa .range() para paginar', /\.range\(pagina \* PAGINA, pagina \* PAGINA \+ PAGINA - 1\)/.test(bloco))
+console.log('\n4. a leitura usa a paginação compartilhada')
+check('usa readAll para leitura completa', /await readAll\(\(\) => admin/.test(bloco))
 check('ordena por created_at (paginação sem ORDER BY pula linha)',
   /\.order\('created_at', \{ ascending: true \}\)/.test(bloco))
-check('para quando a página vem incompleta', /if \(linhas\.length < PAGINA\) break/.test(bloco))
-check('tem teto de páginas', /MAX_PAGINAS/.test(bloco))
-check('teto batido marca eventsDegraded (não passa por completo)',
-  /pagina >= MAX_PAGINAS\) \{[\s\S]{0,400}?eventsDegraded = true/.test(bloco))
+check('contexto da consulta identifica rota e tabela', /route: 'lifecycle\/suppression', table: 'events'/.test(bloco))
 
 // ── 5. O QUE A FONTE NOVA NÃO PODE FAZER ─────────────────────────────────────
 console.log('\n5. limites')
@@ -134,6 +123,77 @@ check('filtra pelos ids consultados (não suprime quem não foi perguntado)',
 check('as quatro fontes antigas continuam falhando FECHADAS',
   /return closed\(`profiles: /.test(sup) && /return closed\(`checkout_abandoned: /.test(sup) &&
   /return closed\(`trial_emails_log: /.test(sup) && /return closed\(`email_send_log: /.test(sup))
+
+console.log('\n6. comportamento real offline e mutantes')
+const NOW = Date.parse('2026-10-06T15:00:00Z')
+class Clock extends Date { static now() { return NOW } }
+function compile(source, dependencies = {}) {
+  const exports = {}
+  const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
+  vm.runInNewContext(js, { exports, Date: Clock, Map, Set, console: { log() {}, warn() {}, error() {} }, require(id) {
+    if (Object.hasOwn(dependencies, id)) return dependencies[id]
+    throw new Error('Import sem dublê: ' + id)
+  } })
+  return exports
+}
+const readSource = readFileSync('lib/supabase/readAll.ts', 'utf8').replace(/\r\n/g, '\n')
+const dependencies = {
+  './skipStamp': compile(readFileSync('lib/lifecycle/skipStamp.ts', 'utf8')),
+  './emailEvents': compile(evt),
+}
+async function execute(source = sup, { failTable = null, failFrom = 1000, windowHours = 24, paginationSource = readSource } = {}) {
+  const reads = compile(paginationSource, { '../serverEvents': { writeServerEvent: async () => true } })
+  const module = compile(source, { ...dependencies, '../supabase/readAll': reads })
+  const events = Array.from({ length: 1500 }, (_, i) => ({ id: String(i).padStart(5, '0'), user_id: i === 1200 ? 'received' : 'outside-' + i, name: 'stranded_ready_sent', created_at: new Date(NOW - 5 * 3600000).toISOString() }))
+  events.push({ id: 'reader', user_id: 'reader', name: 'email_opened', created_at: new Date(NOW - 3600000).toISOString() })
+  const calls = []
+  const db = { from(table) {
+    let filters = [], sorters = [], bounds = [0, 999]
+    const q = {
+      select: () => q,
+      in(k, values) { filters.push((r) => values.includes(r[k])); return q },
+      eq(k, value) { filters.push((r) => r[k] === value); return q },
+      gte(k, value) { filters.push((r) => r[k] >= value); return q },
+      not(k, _op, value) { filters.push((r) => r[k] !== value); return q },
+      order(k, { ascending = true } = {}) { sorters.push([k, ascending]); return q },
+      range(from, to) { bounds = [from, to]; return q },
+      then(resolve, reject) {
+        calls.push({ table, bounds, sorters })
+        if (table === failTable && bounds[0] === failFrom) return Promise.resolve({ data: null, error: { message: 'fixture falhou' } }).then(resolve, reject)
+        const rows = (table === 'events' ? events : []).filter((r) => filters.every((f) => f(r)))
+        rows.sort((a, b) => { for (const [k, asc] of sorters) { const n = a[k] < b[k] ? -1 : a[k] > b[k] ? 1 : 0; if (n) return asc ? n : -n } return 0 })
+        return Promise.resolve({ data: rows.slice(bounds[0], bounds[1] + 1), error: null }).then(resolve, reject)
+      },
+    }
+    return q
+  } }
+  return { result: await module.loadLifecycleSuppression(db, ['received', 'fresh', 'reader'], windowHours), calls }
+}
+const success = await execute()
+check('envio na linha 1201 suprime destinatário, sem calar fresh/reader', success.result.isSuppressed('received') && !success.result.isSuppressed('fresh') && !success.result.isSuppressed('reader'))
+check('sucesso não marca degradação', !success.result.degraded && !success.result.eventsDegraded)
+check('events leu segunda página e desempate id', success.calls.some((c) => c.table === 'events' && c.bounds[0] === 1000 && JSON.stringify(c.sorters) === '[["created_at",true],["id",true]]'))
+const short = await execute(sup, { windowHours: 4 })
+check('janela de 4h deixa passar envio de 5h (24h suprime)', !short.result.isSuppressed('received') && !short.result.degraded)
+const closed = await execute(sup, { failTable: 'events' })
+check('página 2 falhou: todos suprimidos, degraded e eventsDegraded verdadeiros', closed.result.degraded && closed.result.eventsDegraded && closed.result.suppressedCount === 3 && ['received', 'fresh', 'reader'].every(closed.result.isSuppressed))
+for (const table of ['profiles', 'checkout_abandoned', 'trial_emails_log', 'email_send_log']) {
+  const failure = await execute(sup, { failTable: table, failFrom: 0 })
+  check('erro na fonte ' + table + ' mantém falha fechada', failure.result.degraded && failure.result.suppressedCount === 3)
+}
+function mutate(source, original, replacement) {
+  if (!source.includes(original)) throw new Error('Mutante sem alvo: ' + original)
+  return source.replace(original, replacement)
+}
+const oldOpen = mutate(sup, 'return { ...closed(err instanceof Error ? err.message : String(err)), eventsDegraded: true }', 'return { isSuppressed: () => false, suppressedCount: 0, degraded: false, eventsDegraded: true }')
+const unsafe = await execute(oldOpen, { failTable: 'events' })
+check('mutante fail-open morto: erro deixa fresh passar e quebra contrato', !unsafe.result.isSuppressed('fresh') && !unsafe.result.degraded)
+const shortRead = mutate(readSource, 'data.length < POSTGREST_PAGE_SIZE', 'data.length <= POSTGREST_PAGE_SIZE')
+const truncated = await execute(sup, { paginationSource: shortRead })
+check('mutante sem página 2 morto: perde destinatário que já recebeu', !truncated.result.isSuppressed('received'))
+const noNames = mutate(sup, ".in('name', LIFECYCLE_EMAIL_EVENT_NAMES as unknown as string[])", '')
+const silencedReader = await execute(noNames)
+check('mutante sem filtro de nomes morto: leitura vira supressão indevida', silencedReader.result.isSuppressed('reader'))
 
 console.log('\n' + (falhas.length === 0 ? 'VERDE' : 'VERMELHO') + ' — ' + ok + ' verificações ok, ' + falhas.length + ' falha(s)')
 if (falhas.length) { for (const f of falhas) console.log('   · ' + f); process.exit(1) }
