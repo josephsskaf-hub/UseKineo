@@ -26,6 +26,15 @@ jobs:
         run: npx tsc --noEmit --incremental false
       - name: Admin — paginação, tripwire e dedupe após 1000 linhas
         run: node scripts/test-admin-truncamento-2026-10.mjs
+      - name: Admin — contratos dos sete guardiões de campanhas e coerência
+        run: |
+          node scripts/test-afiliados-acordam.mjs
+          node scripts/test-coerencia-kineo1-2026-09-16.mjs
+          node scripts/test-juiz-still-2026-10-06.mjs
+          node scripts/test-carta-da-recusa.mjs
+          node scripts/test-momentum-topic.mjs
+          node scripts/test-stalled-frescor-2026-09-05.mjs
+          node scripts/test-hot-nudge-janela-campanhas.mjs
       - name: GPT-5H — oferta operada, migração Sora e fatos públicos
         run: |
           for item in a b c; do
