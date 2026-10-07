@@ -1,5 +1,5 @@
 {
-    "schema": "kineo-ai-video-index/1",
+    "schema": "kineo-ai-video-index/2",
     "window": {
         "end": "2026-10-07T00:00:00Z",
         "days": 30,
@@ -8,44 +8,27 @@
     "edition": "2026-10",
     "engines": [
         {
-            "house": {
-                "films": 39,
-                "minutesToFilm": {
-                    "n": 39,
-                    "p90": 8.4,
-                    "median": 6.5
-                },
-                "durationSeconds": {
-                    "n": 39,
-                    "median": 71.0
-                }
-            },
+            "house": null,
             "engine": "Seedance 1.5",
             "customers": {
-                "films": 109,
-                "creators": 97,
-                "requests": {
-                    "n": 154,
-                    "failed": 5,
-                    "delivered": 109,
-                    "stoppedByChecks": 40,
-                    "noOutcomeRecorded": 0
-                },
                 "coherence": {
-                    "n": 102,
                     "mean": 75.6,
-                    "below50": 15
+                    "offPct": 14.7,
+                    "sample": "100+"
+                },
+                "reliability": {
+                    "pct": 98.2,
+                    "sample": "100+",
+                    "unknownPct": 0.0
                 },
                 "minutesToFilm": {
-                    "n": 109,
                     "p90": 16.2,
-                    "median": 5.9
+                    "median": 5.9,
+                    "sample": "100+"
                 },
                 "durationSeconds": {
-                    "n": 109,
-                    "max": 90,
-                    "min": 13,
-                    "median": 43.0
+                    "median": 43.0,
+                    "sample": "100+"
                 }
             },
             "windowNote": null,
@@ -53,313 +36,106 @@
         },
         {
             "house": {
-                "films": 29,
                 "minutesToFilm": {
-                    "n": 17,
-                    "p90": 5.5,
-                    "median": 3.2
-                },
-                "durationSeconds": {
-                    "n": 29,
-                    "median": 38.0
-                }
-            },
-            "engine": "Kineo 1",
-            "customers": {
-                "films": 239,
-                "creators": 173,
-                "requests": {
-                    "n": 554,
-                    "failed": 103,
-                    "delivered": 236,
-                    "stoppedByChecks": 100,
-                    "noOutcomeRecorded": 115
-                },
-                "coherence": {
-                    "n": 225,
-                    "mean": 70.9,
-                    "below50": 37
-                },
-                "minutesToFilm": {
-                    "n": 239,
-                    "p90": 19.0,
-                    "median": 4.5
-                },
-                "durationSeconds": {
-                    "n": 239,
-                    "max": 90,
-                    "min": 17,
-                    "median": 45.0
-                }
-            },
-            "windowNote": "Removed from the public catalogue on 2026-09-29; still available to existing paying accounts.",
-            "qualityMode": "fast"
-        },
-        {
-            "house": {
-                "films": 9,
-                "minutesToFilm": {
-                    "n": 9,
                     "p90": 13.8,
-                    "median": 7.7
+                    "median": 7.7,
+                    "sample": "<10"
                 },
                 "durationSeconds": {
-                    "n": 9,
-                    "median": 62.0
+                    "median": 62.0,
+                    "sample": "<10"
                 }
             },
             "engine": "Kling 2.5",
-            "customers": {
-                "films": 3,
-                "creators": 3,
-                "requests": {
-                    "n": 3,
-                    "failed": 0,
-                    "delivered": 3,
-                    "stoppedByChecks": 0,
-                    "noOutcomeRecorded": 0
-                },
-                "coherence": {
-                    "n": 3,
-                    "mean": 60.0,
-                    "below50": 1
-                },
-                "minutesToFilm": {
-                    "n": 3,
-                    "p90": 29.5,
-                    "median": 7.4
-                },
-                "durationSeconds": {
-                    "n": 3,
-                    "max": 76,
-                    "min": 39,
-                    "median": 50.0
-                }
-            },
+            "customers": null,
             "windowNote": null,
             "qualityMode": "cinematic_kling"
         },
         {
             "house": {
-                "films": 7,
                 "minutesToFilm": {
-                    "n": 7,
                     "p90": 16.8,
-                    "median": 6.3
+                    "median": 6.3,
+                    "sample": "<10"
                 },
                 "durationSeconds": {
-                    "n": 7,
-                    "median": 63.0
+                    "median": 63.0,
+                    "sample": "<10"
                 }
             },
             "engine": "Veo 3.1",
-            "customers": {
-                "films": 2,
-                "creators": 1,
-                "requests": {
-                    "n": 5,
-                    "failed": 0,
-                    "delivered": 2,
-                    "stoppedByChecks": 3,
-                    "noOutcomeRecorded": 0
-                },
-                "coherence": {
-                    "n": 2,
-                    "mean": 95.0,
-                    "below50": 0
-                },
-                "minutesToFilm": {
-                    "n": 2,
-                    "p90": 26.9,
-                    "median": 16.9
-                },
-                "durationSeconds": {
-                    "n": 2,
-                    "max": 45,
-                    "min": 34,
-                    "median": 39.5
-                }
-            },
+            "customers": null,
             "windowNote": null,
             "qualityMode": "cinematic_veo"
         },
         {
             "house": {
-                "films": 7,
                 "minutesToFilm": {
-                    "n": 7,
                     "p90": 11.0,
-                    "median": 7.4
+                    "median": 7.4,
+                    "sample": "<10"
                 },
                 "durationSeconds": {
-                    "n": 7,
-                    "median": 53.0
+                    "median": 53.0,
+                    "sample": "<10"
                 }
             },
             "engine": "Kling 3",
-            "customers": {
-                "films": 0,
-                "creators": 0,
-                "requests": {
-                    "n": 0,
-                    "failed": 0,
-                    "delivered": 0,
-                    "stoppedByChecks": 0,
-                    "noOutcomeRecorded": 0
-                },
-                "coherence": {
-                    "n": 0,
-                    "mean": null,
-                    "below50": 0
-                },
-                "minutesToFilm": {
-                    "n": 0,
-                    "p90": null,
-                    "median": null
-                },
-                "durationSeconds": {
-                    "n": 0,
-                    "max": null,
-                    "min": null,
-                    "median": null
-                }
-            },
+            "customers": null,
             "windowNote": null,
             "qualityMode": "cinematic_hollywood"
         },
         {
             "house": {
-                "films": 6,
                 "minutesToFilm": {
-                    "n": 6,
                     "p90": 10.2,
-                    "median": 7.4
+                    "median": 7.4,
+                    "sample": "<10"
                 },
                 "durationSeconds": {
-                    "n": 6,
-                    "median": 41.0
+                    "median": 41.0,
+                    "sample": "<10"
                 }
             },
             "engine": "MiniMax H3",
-            "customers": {
-                "films": 0,
-                "creators": 0,
-                "requests": {
-                    "n": 3,
-                    "failed": 2,
-                    "delivered": 0,
-                    "stoppedByChecks": 1,
-                    "noOutcomeRecorded": 0
-                },
-                "coherence": {
-                    "n": 0,
-                    "mean": null,
-                    "below50": 0
-                },
-                "minutesToFilm": {
-                    "n": 0,
-                    "p90": null,
-                    "median": null
-                },
-                "durationSeconds": {
-                    "n": 0,
-                    "max": null,
-                    "min": null,
-                    "median": null
-                }
-            },
+            "customers": null,
             "windowNote": "Paused for new films from 2026-09-15 to 2026-09-22.",
             "qualityMode": "cinematic_h3"
         },
         {
             "house": {
-                "films": 4,
                 "minutesToFilm": {
-                    "n": 4,
                     "p90": 18.9,
-                    "median": 16.8
+                    "median": 16.8,
+                    "sample": "<10"
                 },
                 "durationSeconds": {
-                    "n": 4,
-                    "median": 44.5
+                    "median": 44.5,
+                    "sample": "<10"
                 }
             },
             "engine": "Seedance 2.5",
-            "customers": {
-                "films": 0,
-                "creators": 0,
-                "requests": {
-                    "n": 0,
-                    "failed": 0,
-                    "delivered": 0,
-                    "stoppedByChecks": 0,
-                    "noOutcomeRecorded": 0
-                },
-                "coherence": {
-                    "n": 0,
-                    "mean": null,
-                    "below50": 0
-                },
-                "minutesToFilm": {
-                    "n": 0,
-                    "p90": null,
-                    "median": null
-                },
-                "durationSeconds": {
-                    "n": 0,
-                    "max": null,
-                    "min": null,
-                    "median": null
-                }
-            },
+            "customers": null,
             "windowNote": "House-only until 2026-09-15, paused until 2026-10-06, then reopened for paid plans only.",
             "qualityMode": "cinematic_s25"
         },
         {
             "house": {
-                "films": 1,
                 "minutesToFilm": {
-                    "n": 1,
                     "p90": 4.8,
-                    "median": 4.8
+                    "median": 4.8,
+                    "sample": "<10"
                 },
                 "durationSeconds": {
-                    "n": 1,
-                    "median": 40.0
+                    "median": 40.0,
+                    "sample": "<10"
                 }
             },
             "engine": "Omni Flash",
-            "customers": {
-                "films": 0,
-                "creators": 0,
-                "requests": {
-                    "n": 0,
-                    "failed": 0,
-                    "delivered": 0,
-                    "stoppedByChecks": 0,
-                    "noOutcomeRecorded": 0
-                },
-                "coherence": {
-                    "n": 0,
-                    "mean": null,
-                    "below50": 0
-                },
-                "minutesToFilm": {
-                    "n": 0,
-                    "p90": null,
-                    "median": null
-                },
-                "durationSeconds": {
-                    "n": 0,
-                    "max": null,
-                    "min": null,
-                    "median": null
-                }
-            },
+            "customers": null,
             "windowNote": "Paused for maintenance since 2026-09-15.",
             "qualityMode": "cinematic_omni"
         }
     ],
-    "measuredAt": "2026-10-07T01:53:15Z",
-    "houseAccounts": "excluded from every customer figure; reported separately under \"house\""
+    "measuredAt": "2026-10-07T03:05:06Z"
 }
