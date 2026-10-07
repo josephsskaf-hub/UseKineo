@@ -27,6 +27,7 @@
 // do lote a busca volta vazia e conta em cost.pixabay_denied (nunca estoura o teto); (3) teto de rpm em
 // REPLAY_PIXABAY_RPM_MAX (50): a produção fica sempre com metade da chave.
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { readAll } from '../supabase/readAll'
 import { PEOPLE_LIFESTYLE_RE } from '@/lib/broll/aesthetic-packs'
 import { searchVault } from '@/lib/clipVault'
 import { buildSceneClipPrompt, FIRST_FILM_AI_CLIPS_EVENT, FIRST_FILM_AI_CLIPS_RESULT_EVENT } from '@/lib/fastAiClips'
@@ -391,15 +392,14 @@ export async function pickReplayBatch(
   opts: { last: number; maxImage: number; offset?: number; days?: number; excludeEmails: string[] },
 ): Promise<{ ids: string[]; eligible: number }> {
   const since = new Date(Date.now() - Math.max(1, Math.min(30, opts.days ?? 10)) * 86_400_000).toISOString()
-  const { data } = await admin
+  const { data } = await readAll(() => admin
     .from('events')
     .select('created_at, session_id, user_id, metadata')
     .eq('name', FAST_COHERENCE_EVENT)
     .eq('metadata->>version', FAST_COHERENCE_VERSION)
     .eq('metadata->>engine', 'fast')
     .gte('created_at', since)
-    .order('created_at', { ascending: false })
-    .limit(1000)
+    .order('created_at', { ascending: false }), { route: '/api/admin/kineo1-replay', table: 'events' })
   const latest = new Map<string, EventRow>()
   for (const r of (data ?? []) as EventRow[]) if (r.session_id && !latest.has(r.session_id)) latest.set(r.session_id, r)
   const rows = Array.from(latest.values()).filter((r) => {

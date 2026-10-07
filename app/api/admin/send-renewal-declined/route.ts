@@ -102,6 +102,7 @@ export function corpoHtml(plano: string, motivo: string, vezes: number, userId: 
 type Candidato = { id: string; email: string; plano: string; motivoBruto: string | null; motivo: string; vezes: number; recusadoEm: string }
 
 export async function GET(req: NextRequest) {
+  const readAt = Date.now() // Same time boundary on every page of this request.
   try {
     if (!autorizadoPorCron(req)) {
       const supabase = createClient()
@@ -147,7 +148,7 @@ export async function GET(req: NextRequest) {
       readAll(() => admin.from('events').select('user_id, created_at').eq('name', 'subscription_invoice_paid').gte('created_at', desde).in('user_id', ids), { route: '/api/admin/send-renewal-declined', table: 'events' }),
       // KINEO-DUNNING-EMAIL-2026-10-06 — o aviso AUTOMÁTICO (webhook da Stripe, 1 por fatura) também conta como "já
       // recebeu": esta carta manual não repete o que o webhook acabou de dizer.
-      readAll(() => admin.from('events').select('user_id, created_at').in('name', [SENT_EVENT, RENEWAL_FAILED_EMAIL_EVENT]).gte('created_at', new Date(Date.now() - RESEND_AFTER_DAYS * 86_400_000).toISOString()).in('user_id', ids), { route: '/api/admin/send-renewal-declined', table: 'events' }),
+      readAll(() => admin.from('events').select('user_id, created_at').in('name', [SENT_EVENT, RENEWAL_FAILED_EMAIL_EVENT]).gte('created_at', new Date(readAt - RESEND_AFTER_DAYS * 86_400_000).toISOString()).in('user_id', ids), { route: '/api/admin/send-renewal-declined', table: 'events' }),
     ])
     const pagouDepois = new Map<string, string>()
     for (const r of pagasRows ?? []) { const u = r.user_id as string; const t = r.created_at as string; if (!pagouDepois.has(u) || t > (pagouDepois.get(u) ?? '')) pagouDepois.set(u, t) }

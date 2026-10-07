@@ -27,6 +27,7 @@
 //   é o único número que a nossa base guarda de forma confiável por job.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { readAll } from '../supabase/readAll'
 import { readQuota, cycleStart } from '@/lib/creatomateQuota'
 
 type BurnDb = Pick<SupabaseClient, 'from'>
@@ -46,8 +47,6 @@ const OPENAI_MONTHLY_CAP_USD = 100
 // já existem 442 linhas em `render_jobs`; no ritmo do TAAFT o teto seria
 // cruzado, a queima do fal apareceria menor do que é e o painel ficaria
 // otimista exatamente na véspera do estouro. Por isso: paginação de verdade.
-const RENDER_PAGE = 1_000
-const RENDER_HARD_CAP = 40_000
 
 export interface SupplierBurnRow {
   key: 'creatomate' | 'fal' | 'openai'
@@ -143,27 +142,18 @@ interface RenderJobRow {
   created_at: string | null
 }
 
-async function readRenderJobs(db: BurnDb, sinceIso: string): Promise<RenderJobRow[] | null> {
-  const out: RenderJobRow[] = []
-  for (let from = 0; from < RENDER_HARD_CAP; from += RENDER_PAGE) {
-    const { data, error } = await db
+async function readRenderJobs(db: BurnDb, sinceIso: string, route: string): Promise<RenderJobRow[] | null> {
+  try {
+    const { data } = await readAll(() => db
       .from('render_jobs')
       .select('quality, cost, created_at')
       .gte('created_at', sinceIso)
-      .order('created_at', { ascending: false })
-      .range(from, from + RENDER_PAGE - 1)
-    if (error || !Array.isArray(data)) {
-      console.warn('[supplier-burn] leitura de render_jobs falhou:', error?.message ?? 'sem dados')
-      // Página parcial ainda é melhor que nada — mas SÓ se já tivermos alguma.
-      // Zero linhas com erro é indistinguível de "ninguém renderizou", e essa
-      // confusão faria o painel mostrar queima zero durante uma pane do banco.
-      return out.length > 0 ? out : null
-    }
-    const batch = data as unknown as RenderJobRow[]
-    out.push(...batch)
-    if (batch.length < RENDER_PAGE) break
+      .order('created_at', { ascending: false }), { route, table: 'render_jobs' })
+    return data as RenderJobRow[]
+  } catch (error) {
+    console.warn('[supplier-burn] leitura de render_jobs falhou:', error instanceof Error ? error.message : String(error))
+    return null
   }
-  return out
 }
 
 function falRow(jobs: RenderJobRow[], now: Date): SupplierBurnRow {
@@ -265,10 +255,10 @@ function openaiRow(jobs: RenderJobRow[], now: Date): SupplierBurnRow {
 /**
  * Uma linha por fornecedor. Nunca lança; devolve o que conseguiu medir.
  */
-export async function readSupplierBurn(db: BurnDb, now: Date = new Date()): Promise<SupplierBurnRow[]> {
+export async function readSupplierBurn(db: BurnDb, now: Date = new Date(), route = '/admin/supplier-health'): Promise<SupplierBurnRow[]> {
   try {
     const since = new Date(now.getTime() - 31 * DAY_MS).toISOString()
-    const [creatomate, jobs] = await Promise.all([creatomateRow(db, now), readRenderJobs(db, since)])
+    const [creatomate, jobs] = await Promise.all([creatomateRow(db, now), readRenderJobs(db, since, route)])
     const rows: SupplierBurnRow[] = []
     if (creatomate) rows.push(creatomate)
     if (jobs) {

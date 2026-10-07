@@ -84,6 +84,7 @@ usekineo.com`
 }
 
 export async function GET(req: NextRequest) {
+  const readAt = Date.now() // Same time boundary on every page of this request.
   try {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -127,7 +128,7 @@ export async function GET(req: NextRequest) {
       const [{ data: v }, { data: s }, { data: q }] = await Promise.all([
         readAll(() => admin.from('videos').select('user_id').eq('status', 'completed').in('user_id', slice), { route: '/api/admin/send-winback-25', table: 'videos' }),
         readAll(() => admin.from('events').select('user_id').eq('name', STAMP).in('user_id', slice), { route: '/api/admin/send-winback-25', table: 'events' }),
-        readAll(() => admin.from('events').select('user_id').gte('created_at', new Date(Date.now() - 3 * 86400_000).toISOString()).in('user_id', slice), { route: '/api/admin/send-winback-25', table: 'events' }),
+        readAll(() => admin.from('events').select('user_id').gte('created_at', new Date(readAt - 3 * 86400_000).toISOString()).in('user_id', slice), { route: '/api/admin/send-winback-25', table: 'events' }),
       ])
       for (const r of v ?? []) comVideo.add(r.user_id as string)
       for (const r of s ?? []) jaAvisado.add(r.user_id as string)

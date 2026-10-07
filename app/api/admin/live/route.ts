@@ -263,19 +263,19 @@ export async function GET() {
       // ignorar estorno — igual ao /admin/people (#295), que já fazia isso.
       const animateDelivPromise = readAll(() => admin
         .from('events').select('user_id, metadata').eq('name', 'animate_job_settled').in('user_id', ids), { route: '/api/admin/live', table: 'events' })
-      const [profRes, vidRes, animateDelivRes] = await Promise.all([
+      const [profRes, vidRes, animateDelivRes, imagesRes, audiosRes, grantsRes, purchasesRes, debitsRes, revokesRes, subsRes] = await Promise.all([
         readAll(() => admin.from('profiles')
           .select('id, email, name, plan, has_paid, video_credits, trial_credits_used, trial_credits_granted, signup_country, last_country, signup_utm_source, created_at')
           .in('id', ids), { route: '/api/admin/live', table: 'profiles' }),
         readAll(() => admin.from('videos').select('user_id').in('user_id', ids), { route: '/api/admin/live', table: 'videos' }),
         animateDelivPromise,
+        imagesPromise, audiosPromise, grantsPromise, purchasesPromise, debitsPromise, revokesPromise, subsPromise,
       ])
       // KINEO-PAINEL-MONTANDO-2026-09-19 — entregues nas 24 h por pessoa+motor: a linha de gasto passa a dizer
       // "2 pedidos (1 pronto · 1 montando)" em vez de "2 vídeos", que contradizia o total=1 enquanto o resgate montava.
       const { data: vids24 } = await readAll(() => admin.from('videos').select('user_id, quality_mode').in('user_id', ids).gte('created_at', new Date(now - 24 * 60 * 60 * 1000).toISOString()), { route: '/api/admin/live', table: 'videos' })
       const delivered24 = new Map<string, number>()
       for (const v of vids24 ?? []) { const k = `${(v as { user_id?: string }).user_id}|${(v as { quality_mode?: string }).quality_mode ?? '?'}`; delivered24.set(k, (delivered24.get(k) ?? 0) + 1) }
-      const [imagesRes, audiosRes, grantsRes, purchasesRes, debitsRes, revokesRes, subsRes] = await Promise.all([imagesPromise, audiosPromise, grantsPromise, purchasesPromise, debitsPromise, revokesPromise, subsPromise])
       // Razão por pessoa: bônus, compras, gastos, estornos e expirado — crus.
       const ledgerBy = new Map<string, { bonus: number; bought: number; spent: number; refunded: number; revoked: number }>()
       const led = (uid: string) => {

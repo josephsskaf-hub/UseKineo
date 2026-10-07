@@ -473,7 +473,7 @@ export async function GET(req: Request) {
         allProfiles = profs as ProfileRow[]
         profilesAvailable = true
       }
-    } catch { /* ignore */ }
+    } catch (error) { throw error /* incomplete reads cannot become zero */ }
 
     // One shared exclusion list protects every metric below. Auth catches
     // internal accounts even when their profile e-mail is missing; profiles
@@ -522,9 +522,8 @@ export async function GET(req: Request) {
           }),
         }
       }
-    } catch {
-      // The rest of the growth dashboard remains available if the lead inbox
-      // is temporarily unavailable.
+    } catch (error) {
+      throw error // an unavailable inbox must not be reported as zero leads
     }
 
     let newThisWeek = 0, newThisMonth = 0
@@ -553,7 +552,7 @@ export async function GET(req: Request) {
           if (row.created_at && new Date(row.created_at).getTime() >= weekAgo) videosThisWeek++
         }
       }
-    } catch { /* ignore */ }
+    } catch (error) { throw error /* incomplete reads cannot become zero */ }
     const usersWithVideos = userWithVideoSet.size
 
     // ── click_events + checkout_abandoned (cohort signals) ──────────────────
@@ -571,7 +570,7 @@ export async function GET(req: Request) {
           (row.plan === 'basic' || row.plan === 'pro')
         )
       }
-    } catch { /* ignore */ }
+    } catch (error) { throw error /* incomplete reads cannot become zero */ }
     try {
       const { data } = await readAll(() => admin.from('checkout_abandoned').select('user_id,expired_at,tier'), { route: '/api/admin/funnel', table: 'checkout_abandoned' })
       if (Array.isArray(data)) {
@@ -580,7 +579,7 @@ export async function GET(req: Request) {
           (row.tier === 'starter' || row.tier === 'basic' || row.tier === 'pro')
         )
       }
-    } catch { /* ignore */ }
+    } catch (error) { throw error /* incomplete reads cannot become zero */ }
 
     // public.events is live in production. Exact per-name counts avoid the
     // PostgREST 1,000-row response cap, while the smaller identity query is
@@ -752,8 +751,8 @@ export async function GET(req: Request) {
           retentionEventsAvailable = true
         }
       }
-    } catch {
-      eventsAvailable = false
+    } catch (error) {
+      throw error // partial event windows must not become conversion metrics
     }
 
     // Checkout requests made without either an authenticated user or the

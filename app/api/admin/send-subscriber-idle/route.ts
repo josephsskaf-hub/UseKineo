@@ -46,6 +46,7 @@ const FROM_EMAIL = 'Joseph at Kineo <joseph@usekineo.com>'
 const REPLY_TO = 'joseph@usekineo.com'
 
 export async function GET(req: NextRequest) {
+  const readAt = Date.now() // Same time boundary on every page of this request.
   try {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -93,8 +94,8 @@ export async function GET(req: NextRequest) {
       const slice = ids.slice(i, i + 500)
       const [{ data: v }, { data: s }, { data: q }] = await Promise.all([
         readAll(() => admin.from('videos').select('user_id, created_at, title, topic').eq('status', 'completed').in('user_id', slice).order('created_at', { ascending: false }), { route: '/api/admin/send-subscriber-idle', table: 'videos' }),
-        readAll(() => admin.from('events').select('user_id').eq('name', STAMP).gte('created_at', new Date(Date.now() - RESEND_DAYS * 86400_000).toISOString()).in('user_id', slice), { route: '/api/admin/send-subscriber-idle', table: 'events' }),
-        readAll(() => admin.from('events').select('user_id').gte('created_at', new Date(Date.now() - HOT_HOURS * 3600_000).toISOString()).in('user_id', slice), { route: '/api/admin/send-subscriber-idle', table: 'events' }),
+        readAll(() => admin.from('events').select('user_id').eq('name', STAMP).gte('created_at', new Date(readAt - RESEND_DAYS * 86400_000).toISOString()).in('user_id', slice), { route: '/api/admin/send-subscriber-idle', table: 'events' }),
+        readAll(() => admin.from('events').select('user_id').gte('created_at', new Date(readAt - HOT_HOURS * 3600_000).toISOString()).in('user_id', slice), { route: '/api/admin/send-subscriber-idle', table: 'events' }),
       ])
       for (const r of v ?? []) {
         const uid = r.user_id as string

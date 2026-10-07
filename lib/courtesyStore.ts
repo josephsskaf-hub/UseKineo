@@ -4,8 +4,9 @@
 //              2) perfil com CAS (plano e saldo ainda são os que lemos) → plano = nível, saldo += créditos
 //              3) evento admin_courtesy_granted (quem/quanto/por quê/até quando)
 //   Se o passo 2 perder a corrida, a linha do passo 1 vira 'revoked' e nada foi dado.
-// Sem import de runtime além da regra pura: o guardião executa este arquivo com um banco em memória.
+// O guardião executa este arquivo com banco em memória e stub explícito de leitura.
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { readAll } from './supabase/readAll'
 import {
   courtesyEndsAt,
   planCourtesyExpiry,
@@ -188,13 +189,8 @@ export async function expireCourtesies(
   return { due: rows.length, rows }
 }
 
-/** Cortesias ativas (para o placar do admin mascarar o plano). Falha = lista vazia: o painel nunca cai por isto. */
-export async function loadActiveCourtesyGrants(admin: SupabaseClient): Promise<Array<Pick<CourtesyGrantRow, 'user_id' | 'level' | 'previous_plan' | 'ends_at'>>> {
-  try {
-    const { data, error } = await admin.from('courtesy_grants').select('user_id, level, previous_plan, ends_at').eq('status', 'active').limit(1000)
-    if (error || !Array.isArray(data)) return []
-    return data as Array<Pick<CourtesyGrantRow, 'user_id' | 'level' | 'previous_plan' | 'ends_at'>>
-  } catch {
-    return []
-  }
+/** Cortesias ativas para o placar: uma leitura incompleta não pode virar MRR. */
+export async function loadActiveCourtesyGrants(admin: SupabaseClient, route = '/admin'): Promise<Array<Pick<CourtesyGrantRow, 'user_id' | 'level' | 'previous_plan' | 'ends_at'>>> {
+  const { data } = await readAll(() => admin.from('courtesy_grants').select('user_id, level, previous_plan, ends_at').eq('status', 'active'), { route, table: 'courtesy_grants' })
+  return data as Array<Pick<CourtesyGrantRow, 'user_id' | 'level' | 'previous_plan' | 'ends_at'>>
 }

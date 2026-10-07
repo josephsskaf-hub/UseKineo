@@ -74,6 +74,7 @@ usekineo.com`
 }
 
 export async function GET(req: NextRequest) {
+  const readAt = Date.now() // Same time boundary on every page of this request.
   try {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
@@ -131,7 +132,7 @@ export async function GET(req: NextRequest) {
         readAll(() => admin.from('events').select('user_id').eq('name', STAMP).in('user_id', slice), { route: '/api/admin/send-weekly-quota', table: 'events' }),
         // 'Frio' = sem atividade REAL no navegador (session_id). Evento de servidor (cron, e-mail automático) não é presença:
         // no 1º lote (17/09) o filtro cru deixou 156 de 523 passarem — o resto tinha só carimbo de e-mail nosso.
-        readAll(() => admin.from('events').select('user_id').gte('created_at', new Date(Date.now() - COLD_DAYS * 86400_000).toISOString()).not('session_id', 'is', null).in('user_id', slice), { route: '/api/admin/send-weekly-quota', table: 'events' }),
+        readAll(() => admin.from('events').select('user_id').gte('created_at', new Date(readAt - COLD_DAYS * 86400_000).toISOString()).not('session_id', 'is', null).in('user_id', slice), { route: '/api/admin/send-weekly-quota', table: 'events' }),
       ])
       for (const r of v ?? []) comVideo.add(r.user_id as string)
       for (const r of s ?? []) jaAvisado.add(r.user_id as string)

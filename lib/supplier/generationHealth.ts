@@ -27,6 +27,7 @@
 // 33 horas por falta de instrumento, não vamos perder mais por causa dele.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { readAll } from '../supabase/readAll'
 
 type HealthDb = Pick<SupabaseClient, 'from'>
 
@@ -69,15 +70,7 @@ export const FAILURE_RATE_PCT = 50
 /** (c) o mesmo motivo repetindo — sinal de causa única, não de azar. */
 export const REASON_REPEAT_MIN = 10
 
-// ⚠️ 1000 NÃO É UM NÚMERO ESCOLHIDO — é `db.max_rows` deste projeto, documentado
-// em app/api/admin/_shared/db.ts. Pedir mais que isso não traz mais: o PostgREST
-// corta em 1000 de qualquer jeito. A primeira versão deste arquivo pedia 5.000,
-// e o efeito era pior que inútil: a checagem `rows.length >= ROW_LIMIT` NUNCA
-// seria verdadeira, ou seja, o aviso de truncamento era código morto e a janela
-// de 6h subcontaria em silêncio — num pico, que é quando ela precisa contar.
-// (31/07 15:00Z sozinha gerou 128 linhas observadas; 6h de pico chegam perto
-// de 800.) Com o valor certo, o aviso volta a funcionar.
-const ROW_LIMIT = 1_000
+// A janela completa é paginada; falha em qualquer página = não mediu.
 
 /**
  * Carência antes de cobrar entrega de uma tentativa.
@@ -335,16 +328,16 @@ function buildWindow(
 export async function readGenerationHealth(
   db: HealthDb,
   now: Date = new Date(),
+  route = '/admin/supplier-health',
 ): Promise<GenerationHealth | null> {
   try {
     const since = new Date(now.getTime() - SLOW_WINDOW_MINUTES * 60_000)
-    const { data, error } = await db
+    const { data, error } = await readAll(() => db
       .from('events')
       .select('name, created_at, user_id, metadata')
       .in('name', WATCHED_EVENTS)
       .gte('created_at', since.toISOString())
-      .order('created_at', { ascending: false })
-      .limit(ROW_LIMIT)
+      .order('created_at', { ascending: false }), { route, table: 'events' })
 
     if (error || !Array.isArray(data)) {
       console.warn('[supplier-watch] leitura de saúde falhou:', error?.message ?? 'sem dados')
@@ -352,13 +345,7 @@ export async function readGenerationHealth(
     }
 
     const rows = data as unknown as EventRow[]
-    const truncated = rows.length >= ROW_LIMIT
-    if (truncated) {
-      // Truncar corta as linhas MAIS ANTIGAS (order desc), então a janela de 1h
-      // continua íntegra e a de 6h vira um piso. Dito em log para ninguém ler o
-      // número da janela lenta como completo.
-      console.warn(`[supplier-watch] leitura truncada em ${ROW_LIMIT} linhas — janela de 6h subconta`)
-    }
+    const truncated = false
 
     const fast = buildWindow('fast', FAST_WINDOW_MINUTES, FAST_MIN_ATTEMPTS, rows, now)
     const slow = buildWindow('slow', SLOW_WINDOW_MINUTES, SLOW_MIN_ATTEMPTS, rows, now)

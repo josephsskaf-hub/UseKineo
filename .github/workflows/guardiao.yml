@@ -24,6 +24,8 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Typecheck bruto — qualquer erro reprova
         run: npx tsc --noEmit --incremental false
+      - name: Admin — paginação, tripwire e dedupe após 1000 linhas
+        run: node scripts/test-admin-truncamento-2026-10.mjs
       - name: GPT-5H — oferta operada, migração Sora e fatos públicos
         run: |
           for item in a b c; do
