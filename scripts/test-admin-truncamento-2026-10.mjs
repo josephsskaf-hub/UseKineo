@@ -67,6 +67,8 @@ function database(tables, options = {}) {
             calls.push({ table, order: order.map((x) => [...x]), bounds })
             if (options.failTable === table && bounds?.[0] === 1000) return { data: null, error: { message: 'fixture page 2 unavailable' } }
             let rows = [...(tables[table] ?? [])].filter((r) => predicates.every((p) => p(r)))
+            const missingOrder = rows.length ? order.find(([key]) => !Object.hasOwn(rows[0], key)) : null
+            if (missingOrder) return { data: null, error: { code: '42703', message: `column ${table}.${missingOrder[0]} does not exist` } }
             if (options.shuffle !== false && rows.length) {
               const offset = executions * 347 % rows.length
               rows = rows.slice(offset).concat(rows.slice(0, offset))
@@ -133,6 +135,17 @@ await test('chave composta funciona em tabela sem id', async () => {
   assert.equal(new Set(result.data.map((r) => r.user_id + ':' + r.email_kind)).size, 2500)
   assert.ok(db.calls.every((c) => c.order.map(([k]) => k).join(',') === 'user_id,email_kind'))
 })
+async function keylessContract(api) {
+  for (const table of ['credit_debits', 'render_jobs', 'trial_debit_ledger', 'avatar_jobs']) {
+    const key = table === 'avatar_jobs' ? 'request_id' : 'render_id'
+    const rows = makeRows(2500).map(({ id }) => ({ [key]: id }))
+    const db = database({ [table]: rows })
+    const result = await api.readAll(() => db.from(table).select('*'), { route: '/admin/fixture', table })
+    assert.equal(new Set(result.data.map((r) => r[key])).size, 2500)
+    assert.ok(db.calls.every((c) => c.order.map(([k]) => k).join(',') === key))
+  }
+}
+await test('PK real das tabelas sem id; ORDER em coluna ausente falha no mock', () => keylessContract(wrapper()))
 
 function mutate(source, before, after) {
   assert.ok(source.includes(before), 'ponto de mutação não encontrado: ' + before)
@@ -152,6 +165,7 @@ await kill('tripwire só acima de 1000', mutate(wrapperSource, 'result.data?.len
 await kill('primeira página tratada como lista completa', mutate(wrapperSource, 'data.length < POSTGREST_PAGE_SIZE', 'data.length <= POSTGREST_PAGE_SIZE'), paginationContract)
 await kill('range removido', mutate(wrapperSource, 'await query.range(from, from + POSTGREST_PAGE_SIZE - 1)', 'await query'), paginationContract)
 await kill('ORDER de desempate removido', mutate(wrapperSource, 'for (const key of keys) query = query.order(key, { ascending: true })', 'for (const key of []) query = query.order(key, { ascending: true })'), paginationContract)
+await kill('credit_debits ordenada pela coluna id inexistente', mutate(wrapperSource, "credit_debits: ['render_id']", "credit_debits: ['id']"), keylessContract)
 
 // Executa GET verdadeiro com dependências e rede substituídas explicitamente.
 // O contato curado só existe após 1000 eventos; outros contatos não têm perfil.
@@ -290,13 +304,16 @@ if (snapshotArg !== -1) {
     }
     const options = { tables, measuredAt: snapshot.measuredAt }
     const project = ({ externalUsers, activatedAll, videos7d }) => ({ externalUsers, activatedAll, videos7d })
-    const before = project(await overview(baseline.fetchAllRows, options))
-    const after = project(await overview(newDb.fetchAllRows, options))
+    const metricsBefore = await overview(baseline.fetchAllRows, options)
+    const metricsAfter = await overview(newDb.fetchAllRows, options)
+    const before = project(metricsBefore)
+    const after = project(metricsAfter)
     assert.deepEqual(after, before)
     // Só agregados: nunca imprimir e-mails, IDs ou metadata do snapshot.
     console.log('EVIDÊNCIA DE PRODUÇÃO — replay offline loadMetrics; baseline 7b4417ce: ' + JSON.stringify({ measuredAt: snapshot.measuredAt, before, after }))
+    console.log('EVIDÊNCIA DE PRODUÇÃO — leitura de credit_debits por PK real: ' + JSON.stringify({ measuredAt: snapshot.measuredAt, refunds7dBefore: metricsBefore.refunds7d, refunds7dAfter: metricsAfter.refunds7d }))
   })
 }
 
-console.log(`\n[admin-truncamento] ${passed} passaram; ${failed.length} falharam. Só fixtures offline.`)
+console.log(`\n[admin-truncamento] ${passed} passaram; ${failed.length} falharam. Execução offline, sem rede ou envio.`)
 if (failed.length) process.exitCode = 1
