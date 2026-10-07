@@ -42,9 +42,9 @@ Conferido em `origin/main` 5ca07684 e no banco de produção, só com SELECT.
 - `scripts/test-anuncio-motor-rastreio-2026-10-07.mjs`: **98/98**. Roda o módulo de verdade e confere as âncoras nos arquivos reais.
 - Cenário novo "clique pago do anúncio" em `scripts/test-compra-sem-login-2026-10-06.mjs`: roda a **rota e o webhook reais** com o cookie, para convidado e logado, e confere que sem cookie, ou com cookie adulterado, nenhuma chave nova aparece. **294 ok**, com 2 mutantes em memória que falham como devem.
 - `scripts/test-anuncio-motor-copia-2026-10-07.mjs`: **217/217**. Confere cada número dos anúncios contra o código (seção 3).
-- **22 mutantes** nos arquivos reais, cada um com prova de que foi aplicado e restauração byte a byte: todos ficaram vermelhos.
+- **31 mutantes** nos arquivos reais (18 do rastreio, 4 do guardião do Google Ads, 9 da cópia), cada um com prova de que foi aplicado e restauração byte a byte: todos ficaram vermelhos.
 - `tsc` limpo, com controle positivo (a sonda com erro de tipo reprova).
-- Suíte inteira: 790 guardiões. A worktree pristina em 5ca07684 tem **142 vermelhos herdados**; o ramo tem **141**. Nenhum vermelho novo, e o guardião do Google Ads voltou a passar.
+- Suíte inteira: 789 guardiões na worktree pristina em 5ca07684, com **142 vermelhos herdados**. No ramo são 791 (os 2 novos entram) e **141 vermelhos**: nenhum vermelho novo, e o guardião do Google Ads voltou a passar.
 
 **Sem publicar o código, o teste ainda é legível pelo caminho comum (mesma aba).** O cookie fecha o caso de quem volta depois e da compra sem login. **Publique antes de ligar a campanha.**
 
@@ -385,7 +385,7 @@ Se o A for reprovado por marca, o B segue rodando sozinho e o grupo não para (s
   - Anúncio B sem nenhuma marca, em todos os grupos.
   - Sitelinks sem marca.
   - Nada de "official", nada de inserção dinâmica de palavra-chave (`{KeyWord:…}`), nada que sugira parceria.
-  - O Veo aparece como **"Veo 3.1 Fast"**, que é o que rodamos.
+  - Os anúncios do Veo deixam claro que é o **"Veo 3.1 Fast"**, que é o que rodamos.
 - **Se o A for reprovado:** não recorra. Deixe o B rodar e anote a data. Reprovar o A não para o teste.
 
 ---
@@ -432,7 +432,7 @@ Consulta: **`docs/queries/ANUNCIO-MOTOR-LEITURA-2026-10-07.sql`** (só SELECT, S
 ### Opção A: Google Ads Editor (recomendada, cerca de 15 min)
 1. Baixe e instale o **Google Ads Editor**, gratuito, em ads.google.com/intl/pt-BR/home/tools/ads-editor/.
 2. Abra o Editor → **Adicionar conta** → entre com o seu Google → escolha a conta → **Baixar**.
-3. Menu **Conta → Importar → Do arquivo…**. Importe, **nesta ordem**, os arquivos de `docs/anuncio-google-motores-2026-10-07/`: `1-campanha.csv`, `2-locais.csv`, `3-grupos.csv`, `4-palavras-chave.csv`, `5-negativas.csv`, `6-anuncios.csv`, `7-sitelinks.csv`. Em cada um: **Concluir e revisar alterações** → **Manter**.
+3. Menu **Conta → Importar → Do arquivo…**. Importe, **nesta ordem**, os arquivos de `docs/anuncio-google-motores-2026-10-07/` (até a publicação, a pasta fica em `C:\kineo-wt\anuncio-motor-0710\docs\anuncio-google-motores-2026-10-07\`): `1-campanha.csv`, `2-locais.csv`, `3-grupos.csv`, `4-palavras-chave.csv`, `5-negativas.csv`, `6-anuncios.csv`, `7-sitelinks.csv`. Em cada um: **Concluir e revisar alterações** → **Manter**.
 4. Clique na campanha e confira no painel:
    - Redes: só Pesquisa do Google.
    - Locais: os 4 países, com a opção de local em **Presença**. Isso não vem do CSV; ajuste à mão.
