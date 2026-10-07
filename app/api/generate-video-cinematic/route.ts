@@ -35,6 +35,7 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { FREE_WEEKLY_FILM_ADMITTED_EVENT, FREE_WEEKLY_FILM_COUNTRY_EVENTS, FREE_WEEKLY_FILM_EXCLUSIVE_REFUSED_EVENT, FREE_WEEKLY_FILM_IN_USE_MESSAGE, FREE_WEEKLY_FILM_QUALITY, FREE_WEEKLY_FILM_SECONDS, FREE_WEEKLY_FILM_WINDOW_MS, freeWeeklyCountryMatches, freeWeeklyFilmAdmissible, freeWeeklyFilmEligibility, freeWeeklyFilmExclusive } from '@/lib/freeWeeklyFilm' // KINEO-E4-SAIDA-B-2026-09-29 [TRAVA 8.2]
 import { paisDoRequest, REGION_PAID_ONLY_REFUSAL, REGION_PAID_ONLY_TRIAL_STATUS } from '@/lib/freeFilmPolicy' // KINEO-E4-SAIDA-B-2026-09-29
+import { REGION_FREE_FILM_IN_USE_MESSAGE, REGION_FREE_FILM_LIVE, REGION_FREE_FILM_QUALITY, REGION_FREE_FILM_REFUSAL, REGION_FREE_FILM_REFUSED_EVENT, REGION_FREE_FILM_SECONDS, REGION_FREE_FILM_USED_EVENT, regionFreeFilmAdmissible, regionFreeFilmEligibility, regionFreeFilmExclusive } from '@/lib/freeFilmPolicy' // KINEO-SAIDA-REGIAO-2026-10-07
 import { SCENE_WRITER_INPUT_MAX_CHARS } from '@/lib/analyzeLimits' // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23
 // KINEO-353A — classificacao pura da falha de cena (sem rede, sem banco).
 import {
@@ -2018,6 +2019,28 @@ async function manipularPost(req: NextRequest) {
       } // KINEO-DURACOES-CURTAS-2026-09-29
     } // KINEO-DURACOES-CURTAS-2026-09-29
 
+    // ═══ KINEO-SAIDA-REGIAO-2026-10-07 (a) [TRAVA 8.2 — "vai pra tudo" do fundador 07/10] — ADMISSÃO DO FILME GRÁTIS DE REGIÃO ═══
+    // [KINEO-SAIDA-REGIAO-2026-10-07] UM Seedance 1.5 de 15 s por conta 'region_paid_only' (lib/freeFilmPolicy.ts, interruptor REGION_FREE_FILM_LIVE):
+    // [KINEO-SAIDA-REGIAO-2026-10-07] só costQuality 'cinematic_ai', só 15 s, só conta elegível (região, sem pagar, plano grátis) e só se ela NUNCA
+    // [KINEO-SAIDA-REGIAO-2026-10-07] teve vídeo não-falho — sem janela, não é a cota semanal do bloco abaixo. Contagem que falha = não admite. O
+    // [KINEO-SAIDA-REGIAO-2026-10-07] débito é o de sempre (os créditos que o cadastro deu) e a trava de pedidos simultâneos reconfere depois do
+    // [KINEO-SAIDA-REGIAO-2026-10-07] claim (mais abaixo). Motores Studio continuam pagos (gate acima). Desligado: false, sem consulta ao banco.
+    // [KINEO-SAIDA-REGIAO-2026-10-07] Toda linha desta entrega na rota leva a marca; tiradas as marcadas, a rota volta à base byte a byte.
+    const regionFreeFilmAdmitted: boolean = REGION_FREE_FILM_LIVE && !isPaidUser && !trialActive && costQuality === REGION_FREE_FILM_QUALITY && duration === REGION_FREE_FILM_SECONDS // KINEO-SAIDA-REGIAO-2026-10-07
+      ? await (async (): Promise<boolean> => { // KINEO-SAIDA-REGIAO-2026-10-07
+        const elegivelRegiao = regionFreeFilmEligibility(profile) // KINEO-SAIDA-REGIAO-2026-10-07
+        let filmesAntes: number | null = null // KINEO-SAIDA-REGIAO-2026-10-07
+        if (elegivelRegiao === 'eligible') { // KINEO-SAIDA-REGIAO-2026-10-07
+          const { count: nFilmes, error: filmesErr } = await supabase // KINEO-SAIDA-REGIAO-2026-10-07
+            .from('videos') // KINEO-SAIDA-REGIAO-2026-10-07
+            .select('id', { count: 'exact', head: true }) // KINEO-SAIDA-REGIAO-2026-10-07
+            .eq('user_id', user.id) // KINEO-SAIDA-REGIAO-2026-10-07
+            .neq('status', 'failed') // KINEO-SAIDA-REGIAO-2026-10-07
+          filmesAntes = filmesErr || typeof nFilmes !== 'number' ? null : nFilmes // KINEO-SAIDA-REGIAO-2026-10-07
+        } // KINEO-SAIDA-REGIAO-2026-10-07
+        return regionFreeFilmAdmissible({ quality: costQuality, durationSeconds: duration, eligibility: elegivelRegiao, priorFilms: filmesAntes }) // KINEO-SAIDA-REGIAO-2026-10-07
+      })() // KINEO-SAIDA-REGIAO-2026-10-07
+      : false // KINEO-SAIDA-REGIAO-2026-10-07
     // ═══ KINEO-E4-SAIDA-B-2026-09-29 [TRAVA 8.2 — "vai E4" do fundador] — ADMISSÃO DA COTA SEMANAL NOVA ═══
     // 1 Seedance 1.5 de 15 s por semana para conta grátis de país da lista (lib/freeWeeklyFilm.ts). ESTREITA de
     // propósito: só costQuality 'cinematic_ai', só 15 s, só conta elegível (nunca 'region_paid_only', país do PEDIDO na
@@ -2056,10 +2079,14 @@ async function manipularPost(req: NextRequest) {
     // Fast (3 watermarked videos / 24h), never a hidden premium trial.
     // KINEO-REVERSE-TRIAL-P1-2026-08-06 — exceção EXPLÍCITA e flag-gated: o
     // reverse trial (Creator por 3/7 dias, cap 40 no backend) libera o Seedance.
+    if (!regionFreeFilmAdmitted) { // KINEO-SAIDA-REGIAO-2026-10-07 — o filme grátis de região admitido pula o gate de plano (o saldo abaixo segue cobrando). Só linhas ACRESCENTADAS: o gate de dentro é o da base.
     if (!isPaidUser && !trialActive) {
       // KINEO-E4-SAIDA-B-2026-09-29 — a cota semanal nova é a única outra exceção: o admitido pula a recusa. (Só linhas
       // ACRESCENTADAS nesta rota — a linha do gate acima é a da base; scripts/test-seedance-15s-3x6 confere.)
       if (!freeWeeklyAdmitted) {
+      // [KINEO-SAIDA-REGIAO-2026-10-07] Com o filme grátis de região ligado, a conta da região que NÃO foi admitida (já usou o filme, outro motor
+      // [KINEO-SAIDA-REGIAO-2026-10-07] ou outra duração) ouve a recusa nova — a de baixo diria "não disponível no seu país", que deixou de ser verdade.
+      if (REGION_FREE_FILM_LIVE && profile?.trial_status === REGION_PAID_ONLY_TRIAL_STATUS) return NextResponse.json({ error: REGION_FREE_FILM_REFUSAL, upsell: 'creator', reason: 'plan_ai_engine', region: REGION_PAID_ONLY_TRIAL_STATUS, balance }, { status: 402 }) // KINEO-SAIDA-REGIAO-2026-10-07
       // KINEO-E4-SAIDA-B-2026-09-29 — conta que nasceu fora do filme grátis ouve a verdade, não "upgrade" seco.
       if (profile?.trial_status === REGION_PAID_ONLY_TRIAL_STATUS) {
         return NextResponse.json(
@@ -2091,6 +2118,7 @@ async function manipularPost(req: NextRequest) {
       )
       } // KINEO-E4-SAIDA-B-2026-09-29 — fim do `if (!freeWeeklyAdmitted)`
     }
+    } // KINEO-SAIDA-REGIAO-2026-10-07 — fim do `if (!regionFreeFilmAdmitted)`
 
     // ═══ KINEO-TRIAL-STALL-2026-08-14 (fase 2, item 3) ═══════════════════════
     // ESTE ERA O ÚNICO DOS QUATRO 402 DESTA ROTA SEM TRATAMENTO CONTEXTUAL E
@@ -2863,6 +2891,7 @@ async function manipularPost(req: NextRequest) {
       currentProfile.has_paid === true ||
       PAID_PLANS.has(currentPlan) ||
       freeWeeklyAdmitted || // KINEO-E4-SAIDA-B-2026-09-29: admitido acima pela cota semanal (15 s, Seedance, país da lista); o saldo abaixo segue cobrando
+      regionFreeFilmAdmitted || // KINEO-SAIDA-REGIAO-2026-10-07: admitido acima pelo filme grátis de região (15 s, Seedance, 1 por conta); o saldo abaixo segue cobrando
       isTrialActive(currentProfile)
     const currentBalance = Math.max(0, currentProfile.video_credits)
     const heldByOtherJobs = Math.max(0, holds.totalHeld - cost)
@@ -2880,6 +2909,25 @@ async function manipularPost(req: NextRequest) {
       )
     }
 
+    // ═══ KINEO-SAIDA-REGIAO-2026-10-07 (a) [TRAVA 8.2 — "vai pra tudo" do fundador 07/10] — o filme grátis de região é UM por conta: a trava DEPOIS do próprio claim ═══
+    // [KINEO-SAIDA-REGIAO-2026-10-07] A admissão lá em cima conta `videos`, que só nasce quando o render termina: dois pedidos juntos contavam 0.
+    // [KINEO-SAIDA-REGIAO-2026-10-07] Aqui, com o claim gravado e os holds auditados: outro crédito reservado, OU qualquer débito `cinematic-*` não
+    // [KINEO-SAIDA-REGIAO-2026-10-07] estornado na VIDA da conta, OU leitura que falhou → recusa sem cobrar e solta o claim. Falha estorna; o filme volta.
+    if (regionFreeFilmAdmitted) { // KINEO-SAIDA-REGIAO-2026-10-07
+      const { count: debitosVida, error: debitosVidaErr } = await cinematicAdmin // KINEO-SAIDA-REGIAO-2026-10-07
+        .from('credit_debits') // KINEO-SAIDA-REGIAO-2026-10-07
+        .select('render_id', { count: 'exact', head: true }) // KINEO-SAIDA-REGIAO-2026-10-07
+        .eq('user_id', user.id) // KINEO-SAIDA-REGIAO-2026-10-07
+        .like('render_id', 'cinematic-%') // KINEO-SAIDA-REGIAO-2026-10-07
+        .is('refunded_at', null) // KINEO-SAIDA-REGIAO-2026-10-07
+      const debitosNaVida = debitosVidaErr || typeof debitosVida !== 'number' ? null : debitosVida // KINEO-SAIDA-REGIAO-2026-10-07
+      const outroPedidoRegiao = holds.totalHeld > cost // KINEO-SAIDA-REGIAO-2026-10-07
+      if (!regionFreeFilmExclusive({ otherActiveHold: outroPedidoRegiao, lifetimeCinematicDebits: debitosNaVida })) { // KINEO-SAIDA-REGIAO-2026-10-07
+        await releaseBirthClaim('region_free_film_in_use') // KINEO-SAIDA-REGIAO-2026-10-07
+        await writeServerEvent({ name: REGION_FREE_FILM_REFUSED_EVENT, userId: user.id, path: '/api/generate-video-cinematic', metadata: { reason: debitosNaVida === null ? 'read_failed' : outroPedidoRegiao ? 'other_hold' : 'already_used', held: holds.totalHeld, cost, lifetime_debits: debitosNaVida } }) // KINEO-SAIDA-REGIAO-2026-10-07
+        return NextResponse.json({ error: REGION_FREE_FILM_IN_USE_MESSAGE, reason: 'region_free_film_in_use', charged: false, upgrade: '/pricing' }, { status: 402 }) // KINEO-SAIDA-REGIAO-2026-10-07
+      } // KINEO-SAIDA-REGIAO-2026-10-07
+    } // KINEO-SAIDA-REGIAO-2026-10-07
     // ═══ KINEO-E4-CONSERTO-2026-09-29 [TRAVA 8.2 — "vai E4" do fundador] (revisão de dinheiro, achado 5) ═══
     // A cota semanal é EXCLUSIVA: a admissão acima conta `videos`, que só nasce quando o render termina — dois
     // Seedance de 15 s disparados juntos contavam 0 e passavam os dois. Aqui, DEPOIS de gravar o próprio claim (o
@@ -3246,6 +3294,8 @@ async function manipularPost(req: NextRequest) {
     // KINEO-TRIAL-DOUBLECOUNT-2026-08-07 — o débito desta request está feito e
     // confirmado; settleDebitAndRespond() não precisa repetir o mesmo RPC.
     debitConfirmedThisRequest = { ok: true, balance: upfrontDebit.balance, insufficient: false, error: '' }
+    // KINEO-SAIDA-REGIAO-2026-10-07 (a) — o filme grátis de região foi GASTO neste render (débito confirmado). Falha depois = estorno, e o filme volta.
+    if (regionFreeFilmAdmitted) await writeServerEvent({ name: REGION_FREE_FILM_USED_EVENT, userId: user.id, path: '/api/generate-video-cinematic', metadata: { generation_id: generationId, quality: costQuality, seconds: duration, cost, balance_after: upfrontDebit.balance, country: paisDoRequest(req.headers) } }) // KINEO-SAIDA-REGIAO-2026-10-07
 
     // ═══ V2-PRECO-DA-DURACAO-ENTREGUE-2026-09-23 — autorização nominal do fundador ("vai v2 e v3", 23/09, trava 8.2) ═══
     // O `cost` é assinado no claim com a duração PEDIDA e não pode mudar aqui (KINEO-DEBITO-DEPOIS-DA-TRAVA: mudar o preço

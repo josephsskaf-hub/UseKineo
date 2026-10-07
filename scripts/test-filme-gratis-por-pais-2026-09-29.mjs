@@ -110,13 +110,16 @@ async function ativa({ country, politica }) {
 }
 {
   const padraoReal = await ativa({ country: 'PK' })
+  // Reancorado 07/10 (KINEO-SAIDA-REGIAO-2026-10-07, fundador "vai pra tudo"): com REGION_FREE_FILM_LIVE ligado o cadastro de região
+  // ganha, além do clipe, os créditos de UM filme Seedance de 15 s (REGION_FREE_FILM_CREDITS) — o número vem do interruptor, não cravado.
+  const filmeDeRegiao = politicaReal.REGION_FREE_FILM_LIVE === true ? politicaReal.REGION_FREE_FILM_CREDITS : 0
   // Reancorado 05/10 (KINEO-CLIPE-GRATIS-REGIAO, fundador item 1A): continua sem filme grátis, mas nasce com os 5 cr de 1 clipe de 5 s.
-  checa(`'pais_rico' (padrão real desde a E4): cadastro do PK nasce region_paid_only com os 5 cr do clipe grátis (${padraoReal.r.reason})`, padraoReal.r.reason === 'region_paid_only' && padraoReal.db.perfil.video_credits === 5)
+  checa(`'pais_rico' (padrão real desde a E4): cadastro do PK nasce region_paid_only com os 5 cr do clipe grátis (${padraoReal.r.reason})`, padraoReal.r.reason === 'region_paid_only' && padraoReal.db.perfil.video_credits === 5 + filmeDeRegiao)
   const hoje = await ativa({ country: 'PK', politica: 'todos' })
   checa(`'todos' (injetado): cadastro do PK ganha o trial como antes (${hoje.r.reason}, ${hoje.db.perfil.video_credits} cr)`, hoje.r.activated === true && hoje.db.perfil.trial_status === 'active' && hoje.db.perfil.video_credits === hoje.RT.TRIAL_GRANT_CREDITS && !hoje.eventos.some((e) => e.name === 'trial_region_excluded'))
   const pk = await ativa({ country: 'PK', politica: 'pais_rico' })
   const marca = pk.db.updates.find((u) => u.patch?.trial_status === 'region_paid_only')
-  checa(`'pais_rico' + PK: region_paid_only, 5 cr do clipe grátis (não o trial), evento com o país (${pk.r.reason})`, pk.r.activated === false && pk.r.reason === 'region_paid_only' && pk.db.perfil.trial_status === 'region_paid_only' && pk.db.perfil.video_credits === 5 && pk.eventos.some((e) => e.name === 'region_free_clip_granted' && e.metadata?.granted === true) && !!marca && marca.filtros.some(([k, c, v]) => k === 'is' && c === 'trial_status' && v === null) && pk.eventos.some((e) => e.name === 'trial_region_excluded' && e.metadata?.country === 'PK') && !pk.eventos.some((e) => e.name === 'trial_credits_granted'))
+  checa(`'pais_rico' + PK: region_paid_only, 5 cr do clipe grátis (não o trial), evento com o país (${pk.r.reason})`, pk.r.activated === false && pk.r.reason === 'region_paid_only' && pk.db.perfil.trial_status === 'region_paid_only' && pk.db.perfil.video_credits === 5 + filmeDeRegiao && pk.eventos.some((e) => e.name === 'region_free_clip_granted' && e.metadata?.granted === true) && !!marca && marca.filtros.some(([k, c, v]) => k === 'is' && c === 'trial_status' && v === null) && pk.eventos.some((e) => e.name === 'trial_region_excluded' && e.metadata?.country === 'PK') && !pk.eventos.some((e) => e.name === 'trial_credits_granted'))
   const us = await ativa({ country: 'US', politica: 'pais_rico' })
   checa("'pais_rico' + US: trial concedido", us.r.activated === true && us.db.perfil.trial_status === 'active')
   const semPais = await ativa({ country: null, politica: 'pais_rico' })

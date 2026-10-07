@@ -12,6 +12,10 @@ import {
   conversionMetadata, conversionPass, conversionPlan, paidOnlyEntry,
   type ConversionBilling, type ConversionSurface, type ConversionTier,
 } from '@/lib/offers/mrrConversion'
+// KINEO-SAIDA-REGIAO-2026-10-07 (b) — o passe na moeda local para 'region_paid_only' (o servidor confere a régua; quem não
+// é da régua recebe o cartão de sempre como `fallback`). Desligado (REGION_PASS_OFFER_LIVE): esta tela é a de hoje.
+import { REGION_PASS_OFFER_LIVE } from '@/lib/freeFilmPolicy'
+import RegionPassOffer from '@/components/RegionPassOffer'
 
 const SAMPLE: { videoPath: string; arenaPosterPath?: string } | undefined = PUBLIC_ENGINE_EXAMPLES.find(v => v.engine === 'cinematic_ai' && 'arenaPosterPath' in v)
 const panel = { border: '1px solid var(--border)', borderRadius: 14, padding: 16, background: 'var(--card2)' }
@@ -91,11 +95,13 @@ export function ConversionPassCard({ surface, onBuy, disabled = false }: { surfa
   </div>
 }
 
-export default function ConversionUpgrade({ currency, region, onClose, onUpgrade, onFilmPass, loading, error, freeAction }: {
+export default function ConversionUpgrade({ currency, region, onClose, onUpgrade, onFilmPass, loading, error, freeAction, regionPass = null }: {
   currency: CheckoutCurrency | null; region: PriceRegion; onClose: () => void
   onUpgrade: (tier: ConversionTier, billing?: ConversionBilling) => void
   onFilmPass: (() => void) | null; loading: boolean; error: string | null
   freeAction?: { label: string; onClick: () => void } | null
+  /** KINEO-SAIDA-REGIAO-2026-10-07 — a parede pede o passe da região (o pai só passa isto para quem não assina). */
+  regionPass?: { beforeBuy?: () => void } | null
 }) {
   const [billing, setBilling] = useState<ConversionBilling>('annual')
   const observation = useOfferObservation('upgrade', 'menu')
@@ -125,7 +131,9 @@ export default function ConversionUpgrade({ currency, region, onClose, onUpgrade
       <h2 id="conversion-upgrade-title" style={{ fontSize: 25, lineHeight: 1.2, margin: '6px 40px 10px 0' }}>Your idea. Your next film.</h2>
       <ConversionProof />
       {freeAction && <div style={{ ...panel, marginBottom: 14 }}><p style={{ marginTop: 0 }}>You still have a film available before you buy.</p><button style={button} type="button" onClick={freeAction.onClick}>{freeAction.label}</button></div>}
-      {onFilmPass && <ConversionPassCard surface="upgrade" onBuy={onFilmPass} disabled={loading} />}
+      {REGION_PASS_OFFER_LIVE && regionPass
+        ? <RegionPassOffer surface="wall" beforeBuy={regionPass.beforeBuy} fallback={onFilmPass ? <ConversionPassCard surface="upgrade" onBuy={onFilmPass} disabled={loading} /> : null} />
+        : onFilmPass && <ConversionPassCard surface="upgrade" onBuy={onFilmPass} disabled={loading} />}
       <h3 style={{ fontSize: 17, marginBottom: 12 }}>Making more? Choose a plan.</h3>
       <div role="group" aria-label="Billing period" style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         {(['monthly', 'annual'] as const).map(value => <button type="button" key={value} aria-pressed={billing === value}
@@ -164,9 +172,13 @@ export function ConversionPricingEntry() {
   }, [])
   if (!MRR_CONVERSION_ENABLED || !eligible) return null
   return <div style={{ maxWidth: 700, margin: '0 auto 24px' }}>
-    <ConversionPassCard surface="pricing" disabled={checkout.pending !== null} onBuy={() => {
+    {REGION_PASS_OFFER_LIVE /* KINEO-SAIDA-REGIAO-2026-10-07: o passe na moeda local; fora da régua, o cartão de sempre */
+      ? <RegionPassOffer surface="pricing" fallback={<ConversionPassCard surface="pricing" disabled={checkout.pending !== null} onBuy={() => {
       checkout.launch('pass', conversionCheckoutHref('/api/stripe/checkout?pack=starter', 'pricing', 'pass'), conversionMetadata('pricing', 'pass'))
-    }} />
+    }} />} />
+      : <ConversionPassCard surface="pricing" disabled={checkout.pending !== null} onBuy={() => {
+      checkout.launch('pass', conversionCheckoutHref('/api/stripe/checkout?pack=starter', 'pricing', 'pass'), conversionMetadata('pricing', 'pass'))
+    }} />}
     {checkout.error && <p role="alert">{checkout.error}</p>}
   </div>
 }

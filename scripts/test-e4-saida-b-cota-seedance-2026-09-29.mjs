@@ -159,7 +159,10 @@ async function ativa({ country, perfil, criadoEm = new Date().toISOString(), sob
     // Reancorado 05/10 (KINEO-CLIPE-GRATIS-REGIAO, fundador item 1A): continua 'region_paid_only' (sem filme grátis), mas
     // nasce com os créditos de 1 clipe de 5 s e o evento region_free_clip_granted (granted:true) — antes era 0 crédito.
     const x = await ativa({ country: c })
-    checa(`cadastro novo de ${c}: region_paid_only, 5 cr do clipe grátis, eventos trial_region_excluded + region_free_clip_granted`, x.r.reason === 'region_paid_only' && x.db.estado.perfil.trial_status === 'region_paid_only' && x.db.estado.perfil.video_credits === 5 && x.eventos.some((e) => e.name === 'trial_region_excluded' && e.metadata?.country === c) && x.eventos.some((e) => e.name === 'region_free_clip_granted' && e.metadata?.granted === true && e.metadata?.country === c && e.metadata?.credits === 5))
+    // Reancorado 07/10 (KINEO-SAIDA-REGIAO-2026-10-07, fundador "vai pra tudo"): com REGION_FREE_FILM_LIVE ligado a região ganha também os
+    // créditos de UM filme Seedance de 15 s (REGION_FREE_FILM_CREDITS) — o número vem do interruptor e da constante, nunca cravado.
+    const filmeDeRegiao = POL.REGION_FREE_FILM_LIVE === true ? POL.REGION_FREE_FILM_CREDITS : 0
+    checa(`cadastro novo de ${c}: region_paid_only, 5 cr do clipe grátis${filmeDeRegiao ? ` + ${filmeDeRegiao} cr do filme de região` : ''}, eventos trial_region_excluded + region_free_clip_granted`, x.r.reason === 'region_paid_only' && x.db.estado.perfil.trial_status === 'region_paid_only' && x.db.estado.perfil.video_credits === 5 + filmeDeRegiao && x.eventos.some((e) => e.name === 'trial_region_excluded' && e.metadata?.country === c) && x.eventos.some((e) => e.name === 'region_free_clip_granted' && e.metadata?.granted === true && e.metadata?.country === c && e.metadata?.credits === 5))
   }
   {
     // Segunda entrada da mesma conta (já marcada, saldo do clipe gasto): a transição não acontece de novo → nada de crédito.

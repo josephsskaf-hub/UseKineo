@@ -75,6 +75,7 @@ import {
 import { getFreeTierOffer, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { CARD_ENTRY_ONLY, CARD_ENTRY_REQUIRED_EVENT, CARD_ENTRY_TRIAL_STATUS } from './entryPolicy'
 import { filmeGratisPermitido, REGION_PAID_ONLY_TRIAL_STATUS, TRIAL_REGION_EXCLUDED_EVENT, REGION_FREE_CLIP_PUBLIC, REGION_FREE_CLIP_CREDITS, REGION_FREE_CLIP_GRANTED_EVENT } from './freeFilmPolicy'
+import { REGION_FREE_FILM_LIVE, REGION_FREE_FILM_GRANTED_EVENT, REGION_FREE_FILM_QUALITY, REGION_FREE_FILM_SECONDS, regionFreeFilmGrantCredits } from './freeFilmPolicy' // KINEO-SAIDA-REGIAO-2026-10-07
 
 // Mesmo idioma de flag dos crons de lifecycle (KINEO_LIFECYCLE_EMAILS_ENABLED):
 // igualdade estrita com 'true'. Qualquer outro valor (ausente, '1', 'yes') = OFF.
@@ -910,6 +911,12 @@ export async function maybeActivateReverseTrial(args: {
     // — que só lê trial_status NULL — não recredita) e um evento só na transição. Fica ANTES da digital de propósito:
     // a recusa por país é mais barata que a query da digital e não deve consumir cota de ativação do aparelho.
     if (!filmeGratisPermitido(args.country ?? null)) {
+      // KINEO-SAIDA-REGIAO-2026-10-07 (a) — com o filme grátis de região ligado, a conta de fora da lista passa pela MESMA
+      // digital do aparelho que o teste do resto do mundo (guarda 7, abaixo): estourou o limite → 'blocked', sem filme e
+      // sem clipe, evento trial_blocked_fingerprint, visível no /admin/trial-abuse. Desligado: nada disto roda (hoje).
+      if (REGION_FREE_FILM_LIVE && (await digitalBarraFilmeDeRegiao(db, args))) {
+        return { activated: false, reason: 'fingerprint_limit' }
+      }
       const { data: marcadasPais, error: paisErr } = await db
         .from('profiles')
         .update({ trial_status: REGION_PAID_ONLY_TRIAL_STATUS })
@@ -946,6 +953,12 @@ export async function maybeActivateReverseTrial(args: {
           userId: args.userId,
           metadata: { country: args.country ?? null, credits: REGION_FREE_CLIP_CREDITS, granted: !clipeErr && Array.isArray(deuClipe) && deuClipe.length > 0, source: 'signup' },
         })
+      }
+      // KINEO-SAIDA-REGIAO-2026-10-07 (a) — os créditos de UM filme Seedance 1.5 de 15 s, na MESMA transição que marcou a
+      // região (markedPais: uma vez por conta, para sempre — trial_status nunca volta a NULL). Soma ao saldo com
+      // compare-and-set (nunca por cima de outro crédito) e grava o evento dizendo se deu.
+      if (markedPais && REGION_FREE_FILM_LIVE) {
+        await concederFilmeDeRegiao(db, args)
       }
       return { activated: false, reason: 'region_paid_only' }
     }
@@ -1182,6 +1195,141 @@ export async function maybeActivateReverseTrial(args: {
     console.error('[reverse-trial] activation threw:', e instanceof Error ? e.message : String(e))
     return { activated: false, reason: 'threw' }
   }
+}
+
+// ═══ KINEO-SAIDA-REGIAO-2026-10-07 (a) — o filme grátis de região, no cadastro ══════════════════════════════════════════
+// Só rodam com REGION_FREE_FILM_LIVE (lib/freeFilmPolicy.ts), chamadas do ramo 'region_paid_only' acima.
+
+/**
+ * A digital do aparelho (guarda 7 do teste) para a conta de fora da lista: as MESMAS funções de lib/trialFingerprint.ts,
+ * o MESMO limite (TRIAL_FINGERPRINT_MAX_ACTIVATIONS ativações por digital em TRIAL_FINGERPRINT_WINDOW_DAYS) e o MESMO
+ * desfecho do teste quando estoura: linha 'blocked' na tabela de digitais, trial_status='blocked' com a guarda
+ * `.is('trial_status', null)` e o evento trial_blocked_fingerprint (com scope e país). Falha ABERTO como lá (sem salt, sem
+ * sinal, leitura com erro → segue). Devolve true quando a conta foi barrada. O teste e o filme de região dividem a mesma
+ * cota de ativações por aparelho: o filme concedido grava 'activated' (concederFilmeDeRegiao).
+ */
+async function digitalBarraFilmeDeRegiao(
+  db: SupabaseClient,
+  args: { userId: string; fingerprintHash?: string | null; country?: string | null },
+): Promise<boolean> {
+  const fingerprintHash = args.fingerprintHash ?? null
+  if (!trialFingerprintSaltConfigured() && !missingSaltReported) {
+    missingSaltReported = true
+    console.error(
+      `[reverse-trial] ANTI-ABUSE INACTIVE: ${TRIAL_FINGERPRINT_SALT_ENV} is not set — region free films get no device/IP check.`,
+    )
+    await writeServerEvent({
+      name: 'trial_fingerprint_salt_missing',
+      userId: args.userId,
+      metadata: { env_var: TRIAL_FINGERPRINT_SALT_ENV, once_per_process: true, scope: 'region_free_film' },
+    })
+  }
+  const verdict = await evaluateTrialFingerprint(db, fingerprintHash)
+  if (verdict.reason === 'check_failed') {
+    await writeServerEvent({
+      name: 'trial_fingerprint_check_failed',
+      userId: args.userId,
+      metadata: { fingerprint: fingerprintLabel(fingerprintHash), scope: 'region_free_film' },
+    })
+  }
+  if (verdict.allow) return false
+  console.warn(
+    `[reverse-trial] fingerprint limit (region free film) user=${args.userId.slice(0, 8)} fp=${fingerprintLabel(fingerprintHash)} prior=${verdict.priorActivations}`,
+  )
+  await recordTrialFingerprint(db, { hash: fingerprintHash, userId: args.userId, outcome: 'blocked' })
+  const { error: marcaErr } = await db
+    .from('profiles')
+    .update({ trial_status: 'blocked' })
+    .eq('id', args.userId)
+    .is('trial_status', null)
+  if (marcaErr) {
+    console.warn(`[reverse-trial] could not mark blocked profile (region free film) user=${args.userId.slice(0, 8)}:`, marcaErr.message)
+  }
+  await writeServerEvent({
+    name: 'trial_blocked_fingerprint',
+    userId: args.userId,
+    metadata: {
+      reason: verdict.reason,
+      fingerprint: fingerprintLabel(fingerprintHash),
+      prior_activations: verdict.priorActivations,
+      max_activations: TRIAL_FINGERPRINT_MAX_ACTIVATIONS,
+      window_days: TRIAL_FINGERPRINT_WINDOW_DAYS,
+      scope: 'region_free_film',
+      country: args.country ?? null,
+    },
+  })
+  return true
+}
+
+/**
+ * Soma os créditos de UM filme (regionFreeFilmGrantCredits) ao saldo da conta recém-marcada 'region_paid_only'.
+ * Compare-and-set nos dois eixos — o carimbo da região e o saldo LIDO — com até 3 tentativas (outro crédito chegando no
+ * mesmo instante só faz reler; nunca escreve por cima). Concedeu → a digital grava 'activated' (queima a vaga do
+ * aparelho só quando o filme existe, como o teste). O evento sai SEMPRE, dizendo se deu: sem sinal não há prova.
+ */
+async function concederFilmeDeRegiao(
+  db: SupabaseClient,
+  args: { userId: string; fingerprintHash?: string | null; country?: string | null },
+): Promise<void> {
+  const credits = regionFreeFilmGrantCredits()
+  if (credits <= 0) return
+  let granted = false
+  let balanceBefore: number | null = null
+  let failure: string | null = null
+  for (let attempt = 1; attempt <= 3 && !granted && failure === null; attempt += 1) {
+    const { data: row, error: readErr } = await db
+      .from('profiles')
+      .select('video_credits, trial_status')
+      .eq('id', args.userId)
+      .maybeSingle()
+    if (readErr || !row) {
+      failure = readErr?.message ?? 'no_row'
+      break
+    }
+    if ((row as { trial_status?: string | null }).trial_status !== REGION_PAID_ONLY_TRIAL_STATUS) {
+      failure = 'not_region'
+      break
+    }
+    const rawBalance = (row as { video_credits?: unknown }).video_credits
+    const balance = typeof rawBalance === 'number' ? rawBalance : null
+    const write = db
+      .from('profiles')
+      .update({ video_credits: (balance ?? 0) + credits })
+      .eq('id', args.userId)
+      .eq('trial_status', REGION_PAID_ONLY_TRIAL_STATUS)
+    const guarded = balance === null ? write.is('video_credits', null) : write.eq('video_credits', balance)
+    const { data: updated, error: updateErr } = await guarded.select('id')
+    if (updateErr) {
+      failure = updateErr.message
+      break
+    }
+    if (Array.isArray(updated) && updated.length > 0) {
+      granted = true
+      balanceBefore = balance
+    }
+  }
+  if (!granted && failure === null) failure = 'lost_race'
+  if (failure) {
+    console.warn(`[reverse-trial] could not grant region free film user=${args.userId.slice(0, 8)}: ${failure}`)
+  }
+  if (granted) {
+    await recordTrialFingerprint(db, { hash: args.fingerprintHash ?? null, userId: args.userId, outcome: 'activated' })
+  }
+  await writeServerEvent({
+    name: REGION_FREE_FILM_GRANTED_EVENT,
+    userId: args.userId,
+    metadata: {
+      country: args.country ?? null,
+      credits,
+      granted,
+      balance_before: balanceBefore,
+      quality: REGION_FREE_FILM_QUALITY,
+      seconds: REGION_FREE_FILM_SECONDS,
+      fingerprint: fingerprintLabel(args.fingerprintHash ?? null),
+      source: 'signup',
+      ...(failure ? { failure: failure.slice(0, 120) } : {}),
+    },
+  })
 }
 
 /**

@@ -206,6 +206,15 @@ const SERVER_ONLY_EVENTS = new Set([
   'free_weekly_film_admitted',
   'free_weekly_film_grant_voided', // KINEO-E4-CONSERTO-2026-09-29: carimbo gravado sem crédito (lib/freeWeeklyFilmGrant.ts)
   'free_weekly_film_exclusive_refused', // KINEO-E4-CONSERTO-2026-09-29: trava de pedidos simultâneos da cota semanal (cinematic)
+  // KINEO-SAIDA-REGIAO-2026-10-07 — escritos SÓ no servidor: o filme grátis de região (concessão no cadastro em
+  // lib/reverseTrial.ts; uso e recusa da trava no cinematic) e o passe na moeda local (app/api/region-pass: a oferta
+  // mostrada e o clique que segue para o checkout). São o custo e o funil medidos da saída da região: forjados pelo
+  // navegador, inventariam filmes e cliques que não existiram. Nenhum emissor de navegador usa estes nomes.
+  'region_free_film_granted',
+  'region_free_film_used',
+  'region_free_film_refused',
+  'region_pass_offer_shown',
+  'region_pass_offer_clicked',
   // KINEO-STRIPE-ATRASO-2026-09-28 — escritos SÓ pelo webhook da Stripe. `subscription_ended` é o churn (fim de
   // assinatura) e `renewal_ignored_non_access` o pagamento de renovação descartado; forjá-los mentiria no placar.
   'subscription_ended',

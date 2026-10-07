@@ -18,6 +18,8 @@ import UpgradeModalTrialDoor from '@/components/UpgradeModalTrialDoor'
 import ConversionUpgrade from '@/components/offers/ConversionUpgrade'
 import { MRR_CONVERSION_ENABLED, conversionCheckoutHref, conversionMetadata, type ConversionBilling } from '@/lib/offers/mrrConversion'
 import RegionalFirstPack from '@/components/RegionalFirstPack'
+import RegionPassOffer from '@/components/RegionPassOffer' // KINEO-SAIDA-REGIAO-2026-10-07 (b)
+import { REGION_PASS_OFFER_LIVE } from '@/lib/freeFilmPolicy' // KINEO-SAIDA-REGIAO-2026-10-07 (b)
 // KINEO-SPRINT-OFFER-2026-07-14 — PostVideoPaywall import removed. It was the
 // THIRD offer block on the success screen (on top of the Push #099 intro block
 // and UpsellSection), still selling FOUNDING50 + the one-time pack — three
@@ -14415,6 +14417,9 @@ export default function GenerateClient({
             } catch { /* non-blocking */ }
             setUpgradeLoading(true)
           }}
+          // KINEO-SAIDA-REGIAO-2026-10-07 (b) — o passe da região na parede: o rascunho vai gravado antes do checkout,
+          // como no passe de sempre (o cartão grava a régua do saldo para a volta liberar o Generate).
+          onRegionPassBeforeBuy={REGION_PASS_OFFER_LIVE ? () => saveStudioDraftNow() : null}
           // KINEO-PRIMEIRO-FILME-GRATIS-2026-09-04 — a saida honesta, quando ela
           // existe de verdade. Ver `firstFilmFreeAvailable`.
           firstFilmFree={!CARD_ENTRY_ONLY && firstFilmFreeAvailable}
@@ -17860,7 +17865,17 @@ export default function GenerateClient({
                   ⚠ Devolve null para todo mundo fora dos cinco países: esta
                   tela não muda para 100% de quem hoje paga. Toda a decisão mora
                   no componente — aqui é UMA linha, e o visual é do Codex. */}
+              {/* KINEO-SAIDA-REGIAO-2026-10-07 (b) — LOGO DEPOIS DO FILME GRÁTIS: o passe avulso na moeda local para quem
+                  nasceu 'region_paid_only'. O servidor confere a régua e o preço; para essa conta o cartão toma o lugar do
+                  pack regional de sempre (mesmo SKU) e, para quem não é da régua, o pack de sempre volta como `fallback` —
+                  nunca dois passes, nunca nenhum. Fora do interruptor REGION_PASS_OFFER_LIVE, esta tela é a de hoje. */}
+              {REGION_PASS_OFFER_LIVE && phase === 'done' && notPaidProven && trialActive !== true ? (
+                <RegionPassOffer surface="after_film" fallback={<RegionalFirstPack surface="post_video" />} />
+              ) : (
+              <>
               {phase === 'done' && <RegionalFirstPack surface="post_video" />}
+              </>
+              )}
 
               {/* KINEO-CREDITO-POR-POSTAR-2026-08-21 — só para o free tier, que
                   é quem carrega a marca d'água. Oferecer isto a um assinante
@@ -22058,6 +22073,8 @@ function UpgradeModal({
   wallV1 = null,
   // KINEO-PASSE-AVULSO-2026-10-05 — ausente = sem passe de um filme (assinante ou tela que não oferece).
   onFilmPass = null,
+  // KINEO-SAIDA-REGIAO-2026-10-07 (b) — do pai: guarda o rascunho antes do checkout do passe da região.
+  onRegionPassBeforeBuy = null,
 }: {
   loading: boolean
   onUpgrade: (tier: 'starter' | 'basic' | 'pro', billing?: ConversionBilling) => void
@@ -22121,6 +22138,8 @@ function UpgradeModal({
    * grava o rascunho, lança o checkout devolvendo ao Studio e mede o clique. O modal só pinta, e só se !isSubscriber.
    */
   onFilmPass?: (() => void) | null
+  /** KINEO-SAIDA-REGIAO-2026-10-07 (b) — guardar o rascunho antes do passe da região (o cartão grava a régua do saldo). */
+  onRegionPassBeforeBuy?: (() => void) | null
 }) {
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — the top-up buttons below were raw
   // window.location.href with only `loading` (a prop that is never true for
@@ -22341,7 +22360,8 @@ function UpgradeModal({
       : trialKineo1 ? `Make my included ${trialKineo1.seconds}-second Kineo 1 film` : null
     return <ConversionUpgrade currency={currency} region={region} onClose={onClose} onUpgrade={onUpgrade}
       onFilmPass={isSubscriber ? null : onFilmPass} loading={loading} error={checkoutError}
-      freeAction={freeLabel && onFirstFilmFree ? { label: freeLabel, onClick: onFirstFilmFree } : null} />
+      freeAction={freeLabel && onFirstFilmFree ? { label: freeLabel, onClick: onFirstFilmFree } : null}
+      regionPass={REGION_PASS_OFFER_LIVE && !isSubscriber ? { beforeBuy: onRegionPassBeforeBuy ?? undefined } : null} /* KINEO-SAIDA-REGIAO-2026-10-07 */ />
   }
   return (
     <div

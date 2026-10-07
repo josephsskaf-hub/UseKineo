@@ -42,8 +42,18 @@ chk('a marca fica DENTRO do ramo de bloqueio (só quem foi barrado)',
 const iDesc = cod.indexOf('if (isDisposableEmail(args.email)) {')
 const iDescFim = iDesc >= 0 ? cod.indexOf("return { activated: false, reason: 'disposable_email' }", iDesc) : -1
 const iMarcaDesc = iDesc >= 0 ? cod.indexOf(MARCA, iDesc) : -1
-chk('a marca do ramo de descartável também fica DENTRO do ramo, e não há marca fora dos dois',
-  iDesc >= 0 && iMarcaDesc > iDesc && iMarcaDesc < iDescFim && cod.split(MARCA).length - 1 === 2)
+// Reancorado 07/10 (KINEO-SAIDA-REGIAO-2026-10-07 [TRAVA 8.2 — "vai pra tudo" do fundador 07/10]), mesma intenção: o filme grátis de
+// região passa pela MESMA digital do aparelho e, quando ela estoura, ganha a MESMA marca — DENTRO do próprio ramo
+// (digitalBarraFilmeDeRegiao), entre o registro 'blocked' da digital e o evento trial_blocked_fingerprint. Continua não existindo
+// marca fora dos ramos de bloqueio: com o ramo da região são três; sem ele, as duas de sempre.
+const iRegiao = cod.indexOf('async function digitalBarraFilmeDeRegiao(')
+const iRegiaoOutcome = iRegiao >= 0 ? cod.indexOf("outcome: 'blocked'", iRegiao) : -1
+const iMarcaRegiao = iRegiaoOutcome >= 0 ? cod.indexOf(MARCA, iRegiaoOutcome) : -1
+const iRegiaoEvento = iMarcaRegiao >= 0 ? cod.indexOf("name: 'trial_blocked_fingerprint'", iMarcaRegiao) : -1
+const iRegiaoFim = iRegiao >= 0 ? cod.indexOf('async function concederFilmeDeRegiao(', iRegiao) : -1
+const regiaoDentro = iRegiao < 0 || (iRegiaoOutcome > iRegiao && iMarcaRegiao > iRegiaoOutcome && iRegiaoEvento > iMarcaRegiao && iRegiaoFim > iRegiaoEvento)
+chk('a marca do ramo de descartável também fica DENTRO do ramo, e não há marca fora dos ramos de bloqueio (descartável, digital do teste e, se existir, digital do filme de região)',
+  iDesc >= 0 && iMarcaDesc > iDesc && iMarcaDesc < iDescFim && regiaoDentro && cod.split(MARCA).length - 1 === (iRegiao >= 0 ? 3 : 2))
 chk('falha-aberto: erro ao marcar não derruba o bloqueio (só loga)',
   cod.includes('could not mark blocked profile'))
 chk('o contrato silencioso continua (fingerprint_limit, sem copy acusatória)',

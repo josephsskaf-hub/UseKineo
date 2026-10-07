@@ -156,3 +156,152 @@ export function paisDoRequest(h: { get(name: string): string | null } | null | u
     return null
   }
 }
+
+// ═══ KINEO-SAIDA-REGIAO-2026-10-07 — A SAÍDA DE QUEM NASCE 'region_paid_only' (fundador 07/10: "vai pra tudo") ══════════
+// O DADO (Supabase, 28/09 → 07/10, só SELECT): 78 de 194 cadastros (40%) nasceram 'region_paid_only' (IN 16 · EG 9 · JO 6 ·
+// PK 6 · NG 4 …); 0 fizeram filme e 0 compraram. O clipe grátis de 5 s chegou a 75 e 4 usaram; 11 abriram o checkout de
+// um PLANO e nenhum pagou. A decisão são DUAS coisas, cada uma com o seu interruptor — os dois moram AQUI e só aqui:
+//   (a) REGION_FREE_FILM_LIVE — UM filme Seedance 1.5 de 15 s por conta, do jeito que o resto do mundo tem o teste. Os
+//       créditos do filme entram NO CADASTRO (lib/reverseTrial.ts, a mesma transição que marca a região, DEPOIS da digital
+//       do aparelho: a régua do teste, 2 ativações por digital em 30 dias, quem passa vira 'blocked'); o cinematic admite só
+//       Seedance 1.5 a 15 s, só conta 'region_paid_only' sem pagar, só se ela NUNCA teve filme (sem janela: não é cota
+//       semanal) e reconfere depois de gravar o próprio claim. O débito é o de sempre; render que falha estorna.
+//       O clipe grátis de 5 s CONTINUA (decisão no docs/DECISAO-SAIDA-REGIAO-2026-10-07.md): a faixa anuncia o filme
+//       primeiro e o clipe depois; o crédito do clipe não é tocado.
+//   (b) REGION_PASS_OFFER_LIVE — o passe avulso (?pack=starter) na moeda local, na parede e logo depois do filme grátis
+//       (lib/regionPass.ts, app/api/region-pass, components/RegionPassOffer.tsx).
+// false = o comportamento de hoje, byte a byte (scripts/test-saida-regiao-2026-10-07.mjs prova executando).
+export const REGION_FREE_FILM_LIVE = false
+export const REGION_PASS_OFFER_LIVE = false
+
+/** O filme grátis de região é o MESMO filme da cota semanal (lib/freeWeeklyFilm.ts FREE_WEEKLY_FILM_QUALITY/SECONDS). */
+export const REGION_FREE_FILM_QUALITY = 'cinematic_ai' as const
+export const REGION_FREE_FILM_SECONDS = 15
+/**
+ * Créditos do filme = creditCostForDuration('cinematic_ai', true, 15) — a função que o cinematic COBRA (hoje 9). Espelho
+ * sem import (este módulo roda no navegador e não importa nada); o guardião confere contra a função e contra
+ * FREE_WEEKLY_FILM_CREDITS. Não é crédito novo: é video_credits, o saldo de sempre, debitado e estornado como sempre.
+ */
+export const REGION_FREE_FILM_CREDITS = 9
+export const REGION_FREE_FILM_GRANTED_EVENT = 'region_free_film_granted'
+export const REGION_FREE_FILM_USED_EVENT = 'region_free_film_used'
+/** A trava de pedidos simultâneos recusou (nada cobrado). metadata.reason diz qual leitura. */
+export const REGION_FREE_FILM_REFUSED_EVENT = 'region_free_film_refused'
+/** Onde a faixa leva: o Studio já abre o Seedance na maior duração que o saldo paga (lib/growth/entradaSeedance15.ts). */
+export const REGION_FREE_FILM_HREF = '/studio?engine=seedance&duration=15'
+
+export type RegionFreeFilmReason = 'eligible' | 'disabled' | 'not_region' | 'paid'
+
+/** A conta pode usar o filme grátis de região? A MESMA régua da faixa (regionPaidOnlyNoticeVisible) + o interruptor. */
+export function regionFreeFilmEligibility(
+  row: { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null } | null | undefined,
+  live: boolean = REGION_FREE_FILM_LIVE,
+): RegionFreeFilmReason {
+  if (!live) return 'disabled'
+  if (!row || row.trial_status !== REGION_PAID_ONLY_TRIAL_STATUS) return 'not_region'
+  if (!regionPaidOnlyNoticeVisible(row)) return 'paid'
+  return 'eligible'
+}
+
+/** Quanto o cadastro soma pelo filme: o custo de 1 filme com o interruptor ligado; 0 desligado. */
+export function regionFreeFilmGrantCredits(live: boolean = REGION_FREE_FILM_LIVE): number {
+  return live ? REGION_FREE_FILM_CREDITS : 0
+}
+
+/**
+ * A admissão no cinematic: Seedance 1.5, 15 s, conta elegível e NENHUM filme dela (não falho) — na vida da conta, não "na
+ * semana". `priorFilms` null = não consegui contar → não admite (falha fechada: é dinheiro).
+ */
+export function regionFreeFilmAdmissible(input: {
+  quality: string
+  durationSeconds: number
+  eligibility: RegionFreeFilmReason
+  priorFilms: number | null
+}): boolean {
+  return (
+    input.quality === REGION_FREE_FILM_QUALITY &&
+    input.durationSeconds === REGION_FREE_FILM_SECONDS &&
+    input.eligibility === 'eligible' &&
+    input.priorFilms === 0
+  )
+}
+
+/**
+ * A trava de pedidos simultâneos, DEPOIS de gravar o próprio claim (o "inserir e depois auditar" dos holds): nenhum outro
+ * crédito reservado e nenhum débito `cinematic-*` não estornado NA VIDA da conta. `lifetimeCinematicDebits` null = a
+ * leitura falhou → recusa. Render que falha é estornado (refunded_at) e o filme volta.
+ */
+export function regionFreeFilmExclusive(input: { otherActiveHold: boolean; lifetimeCinematicDebits: number | null }): boolean {
+  return input.otherActiveHold === false && input.lifetimeCinematicDebits === 0
+}
+
+/** A faixa anuncia o filme grátis enquanto ele existe: elegível, saldo ≥ 1 filme e nenhum vídeo feito ainda. */
+export function regionFreeFilmAvailable(
+  row: { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null; video_credits?: number | null } | null | undefined,
+  videosCount: number | null | undefined,
+  live: boolean = REGION_FREE_FILM_LIVE,
+): boolean {
+  if (regionFreeFilmEligibility(row, live) !== 'eligible') return false
+  if (videosCount !== 0) return false
+  return typeof row?.video_credits === 'number' && row.video_credits >= REGION_FREE_FILM_CREDITS
+}
+
+/** Recusa de servidor com o filme ligado: o filme de região EXISTE, esta conta só não pode usá-lo neste pedido. */
+export const REGION_FREE_FILM_REFUSAL =
+  'Your free film is one 15-second Seedance 1.5 film per account. Plans work normally here: pick one and every engine is yours, with clean downloads. Nothing was charged.'
+/** Recusa da trava de simultâneos (só chega a quem a admissão deixou passar). Sem prometer data. */
+export const REGION_FREE_FILM_IN_USE_MESSAGE =
+  'Your free film is already in progress or done. Nothing was charged — see the plans to keep creating.'
+
+/** As faixas com o filme ligado — nenhuma diz "não disponível no seu país" (com o filme no ar, seria mentira). */
+export const REGION_FREE_FILM_NOTICE: { en: RegionPaidOnlyNoticeCopy; pt: RegionPaidOnlyNoticeCopy; es: RegionPaidOnlyNoticeCopy } = {
+  en: {
+    title: 'Your first film is free',
+    body: 'A 15-second Seedance 1.5 film from your own idea, on us (with a small Kineo watermark). Plans unlock every engine, with clean downloads.',
+    cta: 'Make my free film',
+  },
+  pt: {
+    title: 'Seu primeiro filme é grátis',
+    body: 'Um filme de 15 segundos no Seedance 1.5, a partir da sua ideia, por nossa conta (com uma pequena marca d’água da Kineo). Os planos liberam todos os motores, com download sem marca d’água.',
+    cta: 'Fazer meu filme grátis',
+  },
+  es: {
+    title: 'Tu primera película es gratis',
+    body: 'Una película de 15 segundos en Seedance 1.5, a partir de tu idea, por nuestra cuenta (con una pequeña marca de agua de Kineo). Los planes desbloquean todos los motores, con descargas sin marca de agua.',
+    cta: 'Hacer mi película gratis',
+  },
+}
+export const REGION_FREE_CLIP_NOTICE_FILM_LIVE: { en: RegionPaidOnlyNoticeCopy; pt: RegionPaidOnlyNoticeCopy; es: RegionPaidOnlyNoticeCopy } = {
+  en: {
+    title: 'Your first clip is free',
+    body: 'Your first 5-second clip is on us. Plans unlock every engine, with clean downloads.',
+    cta: 'Make my free clip',
+  },
+  pt: {
+    title: 'Seu primeiro clipe é grátis',
+    body: 'O seu primeiro clipe de 5 segundos é por nossa conta. Os planos liberam todos os motores, com download sem marca d’água.',
+    cta: 'Fazer meu clipe grátis',
+  },
+  es: {
+    title: 'Tu primer clip es gratis',
+    body: 'Tu primer clip de 5 segundos va por nuestra cuenta. Los planes desbloquean todos los motores, con descargas sin marca de agua.',
+    cta: 'Hacer mi clip gratis',
+  },
+}
+export const REGION_PLANS_NOTICE_FILM_LIVE: { en: RegionPaidOnlyNoticeCopy; pt: RegionPaidOnlyNoticeCopy; es: RegionPaidOnlyNoticeCopy } = {
+  en: {
+    title: 'Keep creating',
+    body: 'Plans work normally here: pick one and every engine is yours, with clean downloads.',
+    cta: 'See plans',
+  },
+  pt: {
+    title: 'Continue criando',
+    body: 'Os planos funcionam normalmente: escolha um e todos os motores ficam liberados, com download sem marca d’água.',
+    cta: 'Ver planos',
+  },
+  es: {
+    title: 'Sigue creando',
+    body: 'Los planes funcionan con normalidad: elige uno y todos los motores quedan disponibles, con descargas sin marca de agua.',
+    cta: 'Ver planes',
+  },
+}

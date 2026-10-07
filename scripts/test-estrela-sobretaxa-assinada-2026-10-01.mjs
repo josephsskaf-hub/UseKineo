@@ -120,7 +120,10 @@ if (BASE) {
   // Reancorado 06/10 (KINEO-JUIZ-STILL-2026-10-06 [TRAVA 8.2 — vai do fundador 06/10 'vai juiz']): o juiz da foto-base entrou na rota SÓ com
   // linhas marcadas (import, o fecho antes do laço, a foto de ambiente e o still dentro da cena, o resumo depois do laço) e nenhuma linha da
   // base trocada; elas saem em memória dos dois lados. Prova: scripts/test-juiz-still-2026-10-06.mjs.
-  const semS25 = (s) => (s == null ? s : s.split('\n').filter((l) => !l.includes('KINEO-S25-NOTA95-2026-10-06') && !l.includes('KINEO-S25-ABRE-2026-10-06') && !l.includes('KINEO-JUIZ-STILL-2026-10-06') && !TROCADAS_S25.includes(l)).join('\n'))
+  // Reancorado 07/10 (KINEO-SAIDA-REGIAO-2026-10-07 [TRAVA 8.2 — "vai pra tudo" do fundador 07/10]): a saída da região entrou na rota SÓ com
+  // linhas marcadas (admissão do filme grátis de 15 s, embrulho do gate de plano, recusa nova, releitura, trava depois do claim, evento de uso) e
+  // nenhuma linha da base trocada; elas saem em memória dos dois lados. Prova: scripts/test-saida-regiao-2026-10-07.mjs.
+  const semS25 = (s) => (s == null ? s : s.split('\n').filter((l) => !l.includes('KINEO-S25-NOTA95-2026-10-06') && !l.includes('KINEO-S25-ABRE-2026-10-06') && !l.includes('KINEO-JUIZ-STILL-2026-10-06') && !l.includes('KINEO-SAIDA-REGIAO-2026-10-07') && !TROCADAS_S25.includes(l)).join('\n'))
   checa('E26 /api/generate-video-cinematic sem as linhas marcadas = base, byte a byte', semS25(semMarca(cinematic)) === semS25(base('app/api/generate-video-cinematic/route.ts')))
 }
 checa('E27 a Estrela continua só com a casa (ESTRELA_PUBLIC = false)', /export const ESTRELA_PUBLIC = false\n/.test(launch))
