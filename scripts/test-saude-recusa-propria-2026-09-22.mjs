@@ -13,14 +13,16 @@ const ts = require(join(root, 'node_modules', 'typescript'))
 const rd = (p) => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n')
 let ok = 0; const falhas = []
 const checa = (nome, cond) => { if (cond) { ok += 1; return } falhas.push(nome); console.error('  ✗ ' + nome) }
-function roda(src) {
+function roda(src, imports = {}) {
   const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText
   const m = { exports: {} }
-  new Function('module', 'exports', 'require', js)(m, m.exports, (n) => { throw new Error('import inesperado ' + n) })
+  new Function('module', 'exports', 'require', js)(m, m.exports, (n) => { if (Object.hasOwn(imports, n)) return imports[n]; throw new Error('import inesperado ' + n) })
   return m.exports
 }
 const src = rd('lib/supplier/generationHealth.ts')
-const H = roda(src)
+const reads = roda(rd('lib/supabase/readAll.ts'), { '../serverEvents': { writeServerEvent: async () => true } })
+const deps = { '../supabase/readAll': reads }
+const H = roda(src, deps)
 const now = new Date('2026-09-22T18:07:00Z')
 const iso = (minAgo) => new Date(now.getTime() - minAgo * 60_000).toISOString()
 // 16 tentativas de 7 pessoas nas últimas 6h: 10 entregues, 5 com desfecho "failed" (o caso real), 1 sem desfecho
@@ -40,7 +42,22 @@ function janela(reason) {
   rows.push({ name: 'video_generation_started', created_at: iso(3), user_id: 'u7', metadata: null })
   return rows
 }
-const db = (rows) => ({ from: () => ({ select: () => ({ in: () => ({ gte: () => ({ order: () => ({ limit: async () => ({ data: rows, error: null }) }) }) }) }) }) })
+const db = (rows) => ({ from() {
+  let bounds = [0, 999], sorters = [], filters = []
+  const q = {
+    select: () => q,
+    in(k, values) { filters.push((r) => values.includes(r[k])); return q },
+    gte(k, value) { filters.push((r) => r[k] >= value); return q },
+    order(k, { ascending = true } = {}) { sorters.push([k, ascending]); return q },
+    range(from, to) { bounds = [from, to]; return q },
+    then(resolve, reject) {
+      let data = rows.map((r, i) => ({ id: String(i).padStart(5, '0'), ...r })).filter((r) => filters.every((f) => f(r)))
+      data.sort((a, b) => { for (const [k, asc] of sorters) { const n = a[k] < b[k] ? -1 : a[k] > b[k] ? 1 : 0; if (n) return asc ? n : -n } return 0 })
+      return Promise.resolve({ data: data.slice(bounds[0], bounds[1] + 1), error: null }).then(resolve, reject)
+    },
+  }
+  return q
+} })
 
 console.log('1) o caso real: portão de narração não é fornecedor')
 const real = await H.readGenerationHealth(db(janela('narration_too_short')), now)
@@ -67,9 +84,12 @@ checa('recusa fora da janela de 3 min não desculpa o failed (u1 tem 2 bloqueios
 console.log('4) o e-mail mostra as recusas separadas e o guardião de mutante')
 const watch = rd('app/api/cron/supplier-watch/route.ts')
 checa('supplier-watch imprime "recusas nossas" com w.refused', watch.includes('recusas nossas ........ ${w.refused}'))
-const mut = roda(src.replace("if (matchesOwnRefusal(row.user_id, t)) refused++\n      else failed++", 'failed++'))
+const mut = roda(src.replace("if (matchesOwnRefusal(row.user_id, t)) refused++\n      else failed++", 'failed++'), deps)
 const sm = (await mut.readGenerationHealth(db(janela('narration_too_short')), now)).windows.find((w) => w.key === 'slow')
 checa('mutante (cruzamento removido) é pego: volta a contar 5 falhas', sm.failed === 5)
+const many = Array.from({ length: 1201 }, (_, i) => ({ name: 'video_generation_started', created_at: iso(2), user_id: 'external-' + i, metadata: null }))
+const full = await H.readGenerationHealth(db(many), now)
+checa('saúde lê 1201 tentativas via readAll real, sem cortar em 1000', full.windows.find((w) => w.key === 'slow').attempts === 1201)
 
 console.log(`\n═══ ${ok} passaram, ${falhas.length} falharam ═══`)
 process.exit(falhas.length ? 1 : 0)

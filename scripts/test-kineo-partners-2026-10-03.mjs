@@ -33,12 +33,13 @@ function compile(source, imports = {}) {
 }
 
 class Q {
-  constructor(db, t) { this.db = db; this.t = t; this.f = []; this.op = 'select' }
+  constructor(db, t) { this.db = db; this.t = t; this.f = []; this.op = 'select'; this.sorters = [] }
   select() { return this }
   eq(k, v) { this.f.push((r) => r[k] === v); return this }
   is(k, v) { this.f.push((r) => (r[k] ?? null) === v); return this }
   lte(k, v) { this.f.push((r) => String(r[k]) <= v); return this }
-  order() { return this }
+  order(k, { ascending = true } = {}) { this.sorters.push([k, ascending]); return this }
+  range(from, to) { this.bounds = [from, to]; return this }
   limit(n) { this.max = n; return this }
   insert(v) { this.op = 'insert'; this.v = v; return this }
   update(v) { this.op = 'update'; this.v = v; return this }
@@ -54,9 +55,11 @@ class Q {
       return { data: [row], error: null }
     }
     let rows = list.filter((r) => this.f.every((fn) => fn(r)))
+    rows.sort((a, b) => { for (const [k, asc] of this.sorters) { const n = a[k] < b[k] ? -1 : a[k] > b[k] ? 1 : 0; if (n) return asc ? n : -n } return 0 })
     if (this.op === 'update') rows.forEach((r) => Object.assign(r, this.v))
     if (this.op === 'delete') { this.db.t[this.t] = list.filter((r) => !rows.includes(r)); return { data: null, error: null } }
     if (this.max) rows = rows.slice(0, this.max)
+    if (this.op === 'select') rows = rows.slice(this.bounds?.[0] ?? 0, this.bounds ? this.bounds[1] + 1 : 1000)
     return { data: rows.map((r) => ({ ...r })), error: null }
   }
   async maybeSingle() { const r = await this.run(); return { ...r, data: r.data?.[0] ?? null } }
@@ -106,7 +109,8 @@ async function problems(S) {
   try {
     P = compile(S.pack)
     C = compile(S.courtesy)
-    CS = compile(S.courtesyStore, { '@/lib/courtesy': C })
+    const reads = compile(read('lib/supabase/readAll.ts'), { '../serverEvents': { writeServerEvent: async () => true } })
+    CS = compile(S.courtesyStore, { '@/lib/courtesy': C, './supabase/readAll': reads })
     PS = compile(S.packStore, { '@/lib/courtesyStore': CS, '@/lib/partnerPack': P })
     AC = compile(S.commission)
   } catch (e) { return ['módulos não compilam: ' + e.message] }
@@ -129,6 +133,8 @@ async function problems(S) {
   if (!s1.ok) p.push('etapa 1 falhou: ' + s1.error)
   if (prof.plan !== 'creator_trial' || prof.video_credits !== 29) p.push(`etapa 1 não deu creator_trial + 25 (${prof.plan}/${prof.video_credits})`)
   const g1 = db.t.courtesy_grants[0]
+  const activeGrants = await CS.loadActiveCourtesyGrants(db)
+  if (activeGrants.length !== 1 || activeGrants[0].user_id !== prof.id) p.push('leitura paginada real perdeu a cortesia do kit')
   if (!g1 || g1.source !== 'partner_pack' || g1.ends_at !== new Date(NOW + 30 * DAY).toISOString() || pack?.courtesy_grant_id !== g1.id || !pack?.stage1_at) p.push('etapa 1 sem cortesia de 30 dias ligada ao pacote')
   const again = await PS.grantPartnerPackStage1(db, { affiliateId: 'a-free', grantedBy: 'admin@test', nowMs: NOW })
   if (again.ok || db.t.partner_packs.length !== 1 || prof.video_credits !== 29) p.push('segundo pacote para o mesmo afiliado')

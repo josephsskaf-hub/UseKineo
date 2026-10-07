@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { createClient } from '@supabase/supabase-js'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (path) => readFileSync(join(root, path), 'utf8').replace(/\r\n/g, '\n')
@@ -146,6 +147,37 @@ async function keylessContract(api) {
   }
 }
 await test('PK real das tabelas sem id; ORDER em coluna ausente falha no mock', () => keylessContract(wrapper()))
+await test('SDK Supabase real: range inclusivo, filtros, ordem original e PK chegam à URL', async () => {
+  const calls = []
+  const tables = {
+    events: makeRows(2500).map((r) => ({ ...r, name: 'fixture', created_at: '2026-10-06T00:00:00Z' })),
+    credit_debits: makeRows(1001).map(({ id }) => ({ render_id: id, refunded_at: '2026-10-06T00:00:00Z' })),
+  }
+  const client = createClient('https://fixture.invalid', 'OFFLINE_FIXTURE', {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { fetch: async (input, init) => {
+      const url = new URL(typeof input === 'string' ? input : input.url ?? String(input))
+      assert.equal(url.hostname, 'fixture.invalid')
+      assert.equal(init.method, 'GET')
+      const table = url.pathname.split('/').pop()
+      assert.ok(Object.hasOwn(tables, table), 'nenhum endpoint fora da fixture')
+      const from = Number(url.searchParams.get('offset'))
+      const limit = Number(url.searchParams.get('limit'))
+      assert.equal(limit, 1000, 'range inclusivo 0..999 corresponde a 1000 linhas')
+      const expectedOrder = table === 'events' ? 'created_at.desc,id.asc' : 'refunded_at.desc,render_id.asc'
+      assert.equal(url.searchParams.get('order'), expectedOrder)
+      if (table === 'events') assert.equal(url.searchParams.get('name'), 'eq.fixture')
+      calls.push({ table, from })
+      return new Response(JSON.stringify(tables[table].slice(from, from + limit)), { status: 200, headers: { 'Content-Type': 'application/json' } })
+    } },
+  })
+  const api = wrapper()
+  const events = await api.readAll(() => client.from('events').select('id, created_at').eq('name', 'fixture').order('created_at', { ascending: false }), { route: '/admin/fixture', table: 'events' })
+  assert.equal(events.data.length, 2500)
+  const debits = await api.readAll(() => client.from('credit_debits').select('render_id, refunded_at').order('refunded_at', { ascending: false }), { route: '/admin/fixture', table: 'credit_debits' })
+  assert.equal(debits.data.length, 1001)
+  assert.deepEqual(calls, [{ table: 'events', from: 0 }, { table: 'events', from: 1000 }, { table: 'events', from: 2000 }, { table: 'credit_debits', from: 0 }, { table: 'credit_debits', from: 1000 }])
+})
 
 function mutate(source, before, after) {
   assert.ok(source.includes(before), 'ponto de mutação não encontrado: ' + before)

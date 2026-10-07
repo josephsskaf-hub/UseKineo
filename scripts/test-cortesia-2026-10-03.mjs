@@ -34,12 +34,13 @@ function compile(source, imports = {}) {
 
 // ── banco em memória com o contrato do supabase-js que a store usa ──
 class Q {
-  constructor(db, t) { this.db = db; this.t = t; this.f = []; this.op = 'select'; this.cols = '*'; this.wantRows = false }
+  constructor(db, t) { this.db = db; this.t = t; this.f = []; this.op = 'select'; this.cols = '*'; this.wantRows = false; this.sorters = [] }
   select(c = '*') { this.cols = c; this.wantRows = true; return this }
   eq(k, v) { this.f.push((r) => r[k] === v); return this }
   is(k, v) { this.f.push((r) => (r[k] ?? null) === v); return this }
   lte(k, v) { this.f.push((r) => String(r[k]) <= v); return this }
-  order() { return this }
+  order(k, { ascending = true } = {}) { this.sorters.push([k, ascending]); return this }
+  range(from, to) { this.bounds = [from, to]; (this.db.ranges ??= []).push([from, to]); return this }
   limit(n) { this.max = n; return this }
   insert(v) { this.op = 'insert'; this.v = v; return this }
   update(v) { this.op = 'update'; this.v = v; return this }
@@ -53,8 +54,11 @@ class Q {
       return { data: [row], error: null }
     }
     let rows = list.filter((r) => this.f.every((fn) => fn(r)))
+    if (this.db.failFrom != null && this.bounds?.[0] === this.db.failFrom) return { data: null, error: { message: 'página indisponível' } }
+    rows.sort((a, b) => { for (const [k, asc] of this.sorters) { const n = a[k] < b[k] ? -1 : a[k] > b[k] ? 1 : 0; if (n) return asc ? n : -n } return 0 })
     if (this.op === 'update') rows.forEach((r) => Object.assign(r, this.v))
     if (this.max) rows = rows.slice(0, this.max)
+    if (this.op === 'select') rows = rows.slice(this.bounds?.[0] ?? 0, this.bounds ? this.bounds[1] + 1 : 1000)
     return { data: rows.map((r) => ({ ...r })), error: null }
   }
   async maybeSingle() { const r = await this.run(); return { ...r, data: r.data?.[0] ?? null } }
@@ -96,7 +100,8 @@ async function problems(S) {
   let C, store, M
   try {
     C = compile(S.courtesy)
-    store = compile(S.store, { '@/lib/courtesy': C })
+    const reads = compile(read('lib/supabase/readAll.ts'), { '../serverEvents': { writeServerEvent: async () => true } })
+    store = compile(S.store, { '@/lib/courtesy': C, './supabase/readAll': reads })
     M = compile(S.mrr, {
       '@/lib/pricing': { PLANS: { starter: { price: 12.9 }, basic: { price: 29.9 }, pro: { price: 54.9 }, autopilot: { price: 299 }, autopilot_lite: { price: 59 } } },
       '@/lib/stripe': { stripe: {} },
@@ -173,9 +178,17 @@ async function problems(S) {
   if (C.maskCourtesyPlans([{ id: 'c1', plan: 'basic' }], [{ user_id: 'c1', level: 'creator_trial', previous_plan: null }])[0].plan !== 'basic') p.push('máscara escondeu quem virou assinante')
 
   // (5) fiação
+  const large = newDb([])
+  large.t.courtesy_grants = Array.from({ length: 1201 }, (_, i) => ({ id: String(i).padStart(5, '0'), user_id: 'u' + i, level: 'creator_trial', previous_plan: 'free', status: 'active' }))
+  const grants = await store.loadActiveCourtesyGrants(large)
+  if (grants.length !== 1201 || new Set(grants.map((g) => g.user_id)).size !== 1201 || JSON.stringify(large.ranges) !== '[[0,999],[1000,1999]]') p.push('cortesias truncadas: readAll real precisa ler duas páginas')
+  large.failFrom = 1000
+  let rejected = false
+  try { await store.loadActiveCourtesyGrants(large) } catch { rejected = true }
+  if (!rejected) p.push('falha na segunda página das cortesias devolveu resultado parcial')
   const surfaces = { overviewRoute: 'app/api/admin/overview/route.ts', overviewPage: 'app/admin/overview/page.tsx', payingPage: 'app/admin/paying/page.tsx', ceo: 'app/api/admin/ceo/compute.ts', users: 'app/api/admin/users/route.ts' }
   for (const [k, f] of Object.entries(surfaces)) {
-    if (!/maskCourtesyPlans\(/.test(S[k]) || !/loadActiveCourtesyGrants\(admin\)/.test(S[k])) p.push(`${f} conta pagante/MRR sem mascarar a cortesia`)
+    if (!/maskCourtesyPlans\(/.test(S[k]) || !/loadActiveCourtesyGrants\(admin(?:,\s*'[^']+')?\)/.test(S[k])) p.push(`${f} conta pagante/MRR sem mascarar a cortesia`)
   }
   if (!/searchParams\.get\('confirm'\) === 'APPLY'/.test(S.cron) || !/expireCourtesies\(admin, \{ apply,/.test(S.cron)) p.push('cron sem trava ?confirm=APPLY')
   if (!/export const fetchCache = 'force-no-store'/.test(S.cron)) p.push('cron sem force-no-store')
