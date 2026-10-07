@@ -26,6 +26,7 @@ export const BASE = 'https://www.usekineo.com'
 /** As páginas desta mudança (sitemap, llms.txt, rodapé e links cruzados leem daqui). */
 export const HUB_PAGES = {
   oneplace: { path: '/seedance-kling-veo-in-one-place', label: 'Seedance, Kling and Veo in one place' },
+  cheapest: { path: '/cheapest-way-to-use-seedance-and-kling-3', label: 'Cheapest way to use Seedance and Kling 3' },
   faceless: { path: '/faceless-youtube-shorts-generator', label: 'AI faceless YouTube Shorts generator' },
   brand: { path: '/kineo-vs-kineo-studio', label: 'Kineo vs kineo.studio (not the same company)' },
 } as const
