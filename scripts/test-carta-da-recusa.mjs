@@ -20,14 +20,15 @@
 //     carta mente no dia em que o preço mudar — defeito que este repositório
 //     já pegou duas vezes (o `20` do Seedance e o `25` do Starter).
 //
-// A rota importa `@/lib/*` e não roda fora do Next, então o bloco A exercita a
-// DECISÃO PURA (funções exportadas de propósito para isto) e os blocos B/C
-// leem os arquivos REAIS, sempre amarrados à variável que decide.
+// O bloco A exercita a DECISÃO PURA; o bloco B também transpila o GET e readAll
+// reais em sandbox offline, com imports explícitos, respostas PostgREST capadas
+// e envio simulado. Os demais contratos continuam ligados aos arquivos reais.
 //
 // Rodar: node scripts/test-carta-da-recusa.mjs
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { verifyCampaignPagination } from './test-support/campaign-pagination-contract.mjs'
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const falhas = []
@@ -126,8 +127,9 @@ ok('os 4 bloqueados do ciclo estão na lista',
     .every((b) => rota.includes(`'${b}'`)))
 ok('cabeçalho de descadastro vai em todo envio',
   /headers: unsubscribeHeaders\(c\.id\)/.test(rota))
-ok('os três dedupes passam pelo tripwire de truncamento em 1000',
-  (rota.match(/dedupeTripwire\(/g) ?? []).length >= 3)
+for (const result of await verifyCampaignPagination('card')) {
+  ok(result.name, result.ok, result.detail)
+}
 ok('teto de 30 por lote e pacing de 600ms',
   /Math\.min\(limiteParam, 30\)/.test(rota) && /setTimeout\(r, 600\)/.test(rota))
 ok('o envio deixa carimbo em `events` com o nome canônico',

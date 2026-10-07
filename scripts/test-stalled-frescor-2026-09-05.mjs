@@ -29,6 +29,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { verifyCampaignPagination } from './test-support/campaign-pagination-contract.mjs'
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -78,8 +79,11 @@ check('paginacao ordena por created_at',
   /\.order\('created_at', \{ ascending: true \}\)/.test(admin))
 check('paginacao desempata por id (determinismo real)',
   /\.order\('id', \{ ascending: true \}\)/.test(admin))
-check('a ordenacao vem ANTES do .range()',
-  admin.indexOf(".order('id', { ascending: true })") < admin.indexOf('.range(from, from + PAGE - 1)'))
+for (const result of await verifyCampaignPagination('stalled')) {
+  check(result.name, result.ok)
+  if (result.ok) console.log(`  ✓ ${result.name}`)
+  else console.error(result.detail)
+}
 
 // ─── 3. fresh_hours: existe, clampado, ausente = hoje ──────────────────────
 console.log('\n3) fresh_hours e opcional, clampado, e ausente NAO muda nada')

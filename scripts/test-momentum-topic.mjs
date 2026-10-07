@@ -4,13 +4,14 @@
 // (a) o portao antigo (>90 chars = null) rejeitava 100% deles;
 // (b) o portao novo devolve o gancho para os roteiros de verdade;
 // (c) roteiro que e INSTRUCAO ao modelo nao vira anchor;
-// (d) a rota usa o modulo novo, nao o cleanTopic antigo, e tem o tripwire.
+// (d) a rota usa o modulo novo e le todas as paginas antes de contar/envio.
 // Transpila os .ts com o proprio typescript do repo (sem tsx/ts-node aqui).
 import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { createRequire } from 'node:module'
+import { verifyCampaignPagination } from './test-support/campaign-pagination-contract.mjs'
 const R = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(join(R, 'package.json'))
 const ts = require('typescript')
@@ -93,9 +94,10 @@ t('rota usa pickMomentumTopic no alvo', /topic: pickMomentumTopic\(agg\.topic\)/
 t('rota nao define mais cleanTopic', !/function cleanTopic/.test(rota))
 t('anchor da rota vem do modulo', /const anchor = momentumAnchor\(topic, videosMade\)/.test(rota))
 t('tema segue viajando no botao (buildSeriesContinuationEmailUrl com topic)', /buildSeriesContinuationEmailUrl\(APP_URL, topic, 'momentum_email'/.test(rota))
-const iTrip = rota.indexOf('>= VIDEOS_TRIPWIRE')
-t('tripwire de truncamento: >=1000 linhas → 500 e zero envio', /VIDEOS_TRIPWIRE = 1000/.test(rota) && iTrip > 0 && /status: 500/.test(rota.slice(iTrip, iTrip + 500)))
-t('tripwire vem ANTES da agregacao por pessoa', iTrip < rota.indexOf('const byUser = new Map'))
+for (const result of await verifyCampaignPagination('momentum')) {
+  t(result.name, result.ok)
+  if (!result.ok) console.error(result.detail)
+}
 const corpo = rota.slice(rota.indexOf('function buildEmail'), rota.indexOf('export async function GET'))
 t('copy nao nomeia motor nem preco', !/kling|veo|seedance|minimax|omni|\$\d/i.test(corpo))
 

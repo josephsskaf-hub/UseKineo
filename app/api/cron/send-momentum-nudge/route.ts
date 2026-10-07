@@ -283,6 +283,16 @@ ${emailFooterHtml(userId)}`
 }
 
 export async function GET(req: NextRequest) {
+  try {
+    return await handleMomentumNudge(req)
+  } catch (error) {
+    // readAll rejeita qualquer página incompleta antes de chegar aos envios.
+    console.error('[momentum] unexpected:', error)
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+  }
+}
+
+async function handleMomentumNudge(req: NextRequest) {
   const viaCron = isCronAuthorized(req)
   if (!viaCron && !(await isAdminSession())) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!RESEND_API_KEY) return NextResponse.json({ error: 'RESEND_API_KEY missing' }, { status: 503 })
