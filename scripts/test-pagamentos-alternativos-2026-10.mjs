@@ -68,6 +68,7 @@ function fakeDatabase() {
     events: [], mp_payments: [], hotmart_payments: [], paypal_events: [], paypal_config: [],
   }
   const state = { accesses: 0, writes: [], failures: [], tables }
+  let profileUpdateSequence = 0
   const primaryKey = table => ({ mp_payments: 'payment_id', hotmart_payments: 'transaction', paypal_config: 'key' })[table] ?? 'id'
   const property = (row, key) => key === 'metadata->>state' ? row.metadata?.state : row[key]
   const db = { from(table) {
@@ -103,7 +104,12 @@ function fakeDatabase() {
         row[key] ??= `synthetic-${table}-${tables[table].length}`
         tables[table].push(row); rows = [row]
       } else if (operation === 'update') {
-        for (const row of rows) Object.assign(row, clone(payload))
+        for (const row of rows) {
+          Object.assign(row, clone(payload))
+          // Model the profile updated_at trigger: even a same-balance UPDATE
+          // changes the version used by the production optimistic lock.
+          if (table === 'profiles') row.updated_at = new Date(Date.UTC(2026, 9, 7) + ++profileUpdateSequence).toISOString()
+        }
       } else if (operation === 'delete') {
         tables[table] = tables[table].filter(row => !rows.includes(row))
       }
@@ -415,6 +421,13 @@ for (const returnFirst of [true, false]) {
   await paypal.activateSubscription(db, USER, 'basic', 'SUB-1')
   eq(state.tables.profiles[0].video_credits, 97, 'PayPal: real activation retry does not add a second allowance')
   eq(state.tables.profiles[0].plan, 'basic', 'PayPal: real activation sets verified plan')
+  const sameBalanceRenewals = await Promise.allSettled([
+    paypal.activateSubscription(db, USER, 'basic', 'SUB-1'),
+    paypal.activateSubscription(db, USER, 'basic', 'SUB-1'),
+  ])
+  eq(sameBalanceRenewals.filter(result => result.status === 'fulfilled').length, 1, 'PayPal: updated_at also serializes concurrent unchanged-balance renewals')
+  eq(sameBalanceRenewals.filter(result => result.status === 'rejected').length, 1, 'PayPal: unchanged-balance stale version retries')
+  eq(state.tables.profiles[0].video_credits, 97, 'PayPal: concurrent unchanged-balance renewals preserve balance')
   state.tables.profiles[0].video_credits = 150
   await paypal.activateSubscription(db, USER, 'basic', 'SUB-1')
   eq(state.tables.profiles[0].video_credits, 150, 'PayPal: real recurring grant preserves purchased excess')
@@ -494,6 +507,54 @@ for (const provider of ['paypal', 'mercadopago']) {
   h.subscriptionStatus = 'ACTIVE'
   eq((await h.mod.POST(paypalRequest('BILLING.SUBSCRIPTION.SUSPENDED', { id: 'SUB-1' }, 'STALE-SUSPEND'))).status, 200, 'PayPal: stale suspension notification acknowledged')
   eq(h.state.tables.profiles[0].is_pro, true, 'PayPal: stale suspension cannot revoke currently active subscription')
+}
+
+// Setup is not invoked against PayPal. Its real GET runs with fake config,
+// fake plan creation and fake HTTP; no secrets or external writes are used.
+{
+  const calls = [], configWrites = [], plans = []
+  let configReads = 0
+  const modules = { 'lib/paypal.ts': {
+    paypalAdminClient: () => ({}),
+    getPaypalConfig: async () => { configReads++; return null },
+    setPaypalConfig: async (_db, key, value) => { configWrites.push({ key, value }) },
+    ensurePlan: async (_db, tier, billing) => { plans.push({ tier, billing }); return `PLAN-${tier}-${billing}` },
+    paypalFetch: async (path, options) => {
+      calls.push({ path, options })
+      if (!options?.method) return { id: env.PAYPAL_WEBHOOK_ID, event_types: [{ name: 'LEGACY.MANUAL.EVENT' }, { name: 'PAYMENT.CAPTURE.COMPLETED' }] }
+      assert.equal(options.method, 'PATCH', 'configured setup may only PATCH existing webhook')
+      return null
+    },
+  } }
+  const setup = loader({ modules, environment: { ...env, CRON_SECRET: 'synthetic-setup-key' } })('app/api/paypal/setup/route.ts')
+  for (const key of ['', '?key=wrong-key']) {
+    eq((await setup.GET({ nextUrl: new URL('https://example.invalid/api/paypal/setup' + key) })).status, 401, 'PayPal setup: configured webhook requires correct key')
+    eq(calls.length, 0, 'PayPal setup: unauthorized request never calls provider')
+    eq(plans.length, 0, 'PayPal setup: unauthorized request never creates plans')
+    eq(configWrites.length, 0, 'PayPal setup: unauthorized request never changes config')
+  }
+  eq(configReads, 0, 'PayPal setup: environment webhook is recognized without database fallback')
+  const response = await setup.GET({ nextUrl: new URL('https://example.invalid/api/paypal/setup?key=synthetic-setup-key') })
+  eq(response.status, 200, 'PayPal setup: authorized request updates fake registration')
+  eq(calls.length, 2, 'PayPal setup: existing webhook is read then patched')
+  eq(calls[0].path, '/v1/notifications/webhooks/' + env.PAYPAL_WEBHOOK_ID, 'PayPal setup: reads configured webhook')
+  eq(calls[1].path, calls[0].path, 'PayPal setup: PATCH targets the same configured webhook')
+  eq(calls[1].options.method, 'PATCH', 'PayPal setup: uses documented PATCH method')
+  const patch = JSON.parse(calls[1].options.body)
+  eq(patch.length, 1, 'PayPal setup: only changes event subscriptions')
+  eq(patch[0].op, 'replace', 'PayPal setup: replaces event-types field')
+  eq(patch[0].path, '/event_types', 'PayPal setup: uses official event-types path')
+  const names = patch[0].value.map(event => event.name)
+  ok(names.includes('LEGACY.MANUAL.EVENT'), 'PayPal setup: preserves manual subscriptions')
+  for (const name of ['PAYMENT.CAPTURE.COMPLETED', 'PAYMENT.CAPTURE.REFUNDED', 'PAYMENT.CAPTURE.REVERSED',
+    'PAYMENT.SALE.COMPLETED', 'PAYMENT.SALE.REFUNDED', 'PAYMENT.SALE.REVERSED',
+    'BILLING.SUBSCRIPTION.ACTIVATED', 'BILLING.SUBSCRIPTION.CANCELLED', 'BILLING.SUBSCRIPTION.SUSPENDED', 'BILLING.SUBSCRIPTION.EXPIRED']) {
+    ok(names.includes(name), 'PayPal setup: registration includes ' + name)
+  }
+  eq(new Set(names).size, names.length, 'PayPal setup: union deduplicates existing events')
+  eq(configWrites.length, 0, 'PayPal setup: existing configured webhook is not recreated')
+  eq(plans.length, 6, 'PayPal setup: existing six plan combinations remain supported')
+  eq((await response.json()).webhook_id, env.PAYPAL_WEBHOOK_ID, 'PayPal setup: reports configured webhook identity')
 }
 
 function replaceExactly(source, before, after) {
