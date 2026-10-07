@@ -36,6 +36,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { createRequire } from 'node:module'
+import { compileOffline, memoryDb } from './test-support/truncamento-dedupe-offline.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -72,7 +73,9 @@ const trialFee = loadTs('lib/lifecycle/trialEntryFee.ts', { '@/lib/checkoutPrici
 
 const FOOT_HTML = '<!--FOOTER_HTML-->'
 const FOOT_TEXT = '\n[FOOTER_TEXT]'
+const paginatedReads = compileOffline(read('lib/supabase/readAll.ts'), { '../serverEvents': { writeServerEvent: async () => true } })
 const MOCKS = {
+  '@/lib/supabase/readAll': paginatedReads,
   'next/server': { NextResponse: { json: (b, i) => ({ body: b, init: i }) } },
   '@/lib/supabase/server': { createClient: () => ({}) },
   '@supabase/supabase-js': { createClient: () => ({}) },
@@ -193,10 +196,49 @@ console.log('\n── 8. O CARIMBO EXISTE, TEM NOME PROPRIO E ESTA REGISTRADO')
 
 console.log('\n── 9. A COORTE NAO E TRUNCADA EM SILENCIO')
 {
-  ok(/\.range\(from, from \+ 999\)/.test(codeOnly), 'os socios sao lidos PAGINADOS (o PostgREST corta em 1000 sem erro)')
-  ok(/if \(!data \|\| data\.length < 1000\) break/.test(codeOnly), 'a paginacao so para quando a pagina vem incompleta')
+  const tree = ts.createSourceFile(ROUTE, src, ts.ScriptTarget.Latest, true)
+  const queries = []
+  function visit(node) {
+    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'readAll') queries.push(node)
+    ts.forEachChild(node, visit)
+  }
+  visit(tree)
+  ok(queries.length === 3, 'coorte, opt-out e dedupe chamam o mesmo readAll real')
   ok(/if \(error\) throw error/.test(codeOnly), 'erro de leitura vira excecao, nao coorte vazia silenciosa')
   ok(/if \(pe\) throw pe/.test(codeOnly) && /if \(se\) throw se/.test(codeOnly), 'opt-out e carimbo tambem falham alto em vez de sumir com gente')
+  const uid = (i) => 'u' + String(i).padStart(5, '0')
+  async function execute(source, options = {}) {
+    const affiliates = Array.from({ length: 1501 }, (_, i) => ({ id: 'a' + String(i).padStart(5, '0'), user_id: uid(i), email: uid(i) + '@fixture.invalid', code: 'CODE' + i, commission_rate: 0.4, status: 'active', created_at: '2026-09-01T00:00:00Z' }))
+    const profiles = affiliates.map((a) => ({ id: a.user_id, email_opted_out: false }))
+    const events = Array.from({ length: 1201 }, (_, i) => ({ id: 'e' + String(i).padStart(5, '0'), user_id: i === 1200 ? uid(499) : uid(0), name: 'affiliate_wakeup_1usd_sent', created_at: '2026-07-01T00:00:00Z' }))
+    const db = memoryDb({ affiliates, profiles, events }, options)
+    let attemptedSends = 0
+    const route = compileOffline(source, {
+      ...MOCKS,
+      'next/server': { NextResponse: { json: (body, init = {}) => ({ body, status: init.status ?? 200 }) } },
+      '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: { email: 'josephsskaf@gmail.com' } } }) } }) },
+      '@supabase/supabase-js': { createClient: () => db },
+    }, {
+      process: { env: { RESEND_API_KEY: 'OFFLINE', NEXT_PUBLIC_SUPABASE_URL: 'https://fixture.invalid', SUPABASE_SERVICE_ROLE_KEY: 'OFFLINE' } },
+      fetch: () => { attemptedSends++; throw new Error('Nenhum envio autorizado no dry-run') },
+    })
+    const result = await route.GET({ headers: new Headers(), nextUrl: new URL('https://fixture.invalid/') })
+    return { ...result, db, attemptedSends }
+  }
+  const complete = await execute(src)
+  ok(complete.status === 200 && complete.body.active_affiliates === 1501, 'GET real le TODOS os 1501 socios, com ordem estavel e pagina 2')
+  ok(complete.body.already_sent === 2 && complete.body.remaining_unemailed === 1499, 'carimbo antigo na linha 1201 continua excluindo o segundo socio')
+  ok(complete.db.calls.some((c) => c.table === 'affiliates' && c.bounds[0] === 1000 && JSON.stringify(c.order) === '[["created_at",true],["id",true]]'), 'coorte preserva created_at e acrescenta id como desempate')
+  ok(complete.db.calls.some((c) => c.table === 'events' && c.bounds[0] === 1000), 'dedupe realmente le segunda pagina dentro do bloco de usuarios')
+  ok(complete.attemptedSends === 0 && complete.db.writes.length === 0, 'dry-run paginado permanece sem envio e sem escrita')
+  const failure = await execute(src, { failTable: 'events', failFrom: 1000 })
+  ok(failure.status === 500 && failure.attemptedSends === 0 && failure.db.writes.length === 0, 'erro page2 dedupe falha fechado, nunca lista parcial ou envio')
+  const dedupe = queries.find((q) => q.arguments[0]?.getText(tree).includes(".eq('name', STAMP)"))
+  if (!dedupe || !ts.isArrowFunction(dedupe.arguments[0])) throw new Error('consulta de dedupe nao localizada para mutacao')
+  const singleRead = src.slice(0, dedupe.getStart(tree)) + dedupe.arguments[0].body.getText(tree) + ".order('id', { ascending: true }).limit(1000)" + src.slice(dedupe.end)
+  ok(singleRead !== src, 'mutante remove readAll apenas do dedupe, preservando o handler real')
+  const unsafe = await execute(singleRead)
+  ok(unsafe.status === 200 && unsafe.body.already_sent < 2 && unsafe.body.remaining_unemailed > 1499, 'mutante morto: consulta unica perde carimbo e recoloca quem ja recebeu')
 }
 
 console.log('\n── 10. O PORTAO DO CARDAPIO: a atribuicao existe antes do convite')
