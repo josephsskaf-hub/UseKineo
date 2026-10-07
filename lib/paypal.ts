@@ -11,8 +11,10 @@
 // and persisted in the paypal_config table — zero extra env vars.
 
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
-import { renewalBalance } from '@/lib/credits/renewalBalance' // KINEO-RENOVACAO-PRESERVA-CREDITO-COMPRADO-2026-09-25
-import { TIER_PRICES, ANNUAL_PRICES, TIER_CREDITS, PACK_CREDITS, PACK_PRICE_MINOR } from '@/lib/checkoutPricing'
+import { renewalBalance } from './credits/renewalBalance' // KINEO-RENOVACAO-PRESERVA-CREDITO-COMPRADO-2026-09-25
+import { TIER_PRICES, ANNUAL_PRICES, TIER_CREDITS, PACK_CREDITS, PACK_PRICE_MINOR } from './checkoutPricing'
+
+import { grantAlternativePack, updatePaymentProfile, paymentError } from './payments/alternative'
 
 export type PayPalTier = 'starter' | 'basic' | 'pro'
 export type PayPalBilling = 'monthly' | 'annual'
@@ -199,7 +201,8 @@ export async function ensurePlan(admin: Admin, tier: PayPalTier, billing: PayPal
 
 // Reverse lookup: PayPal plan id → { tier, billing } (used by the webhook).
 export async function tierFromPlanId(admin: Admin, planId: string): Promise<{ tier: PayPalTier; billing: PayPalBilling } | null> {
-  const { data } = await admin.from('paypal_config').select('key,value').like('key', 'plan_%')
+  const { data, error } = await admin.from('paypal_config').select('key,value').like('key', 'plan_%')
+  if (error) throw paymentError('paypal_plan_lookup_failed', error)
   for (const row of data ?? []) {
     if (row.value === planId) {
       // 'plan_<tier>_<billing>' (julho) ou 'plan_<tier>_<billing>_v2' — o sufixo
@@ -211,106 +214,50 @@ export async function tierFromPlanId(admin: Admin, planId: string): Promise<{ ti
   return null
 }
 
-// ── Webhook signature verification ───────────────────────────────────────────
-export async function verifyPaypalWebhook(
-  admin: Admin,
-  headers: Headers,
-  rawBody: string
-): Promise<boolean> {
-  // KINEO-PAYPAL-LIVE-2026-09-07 — o env manda. Em 07/09 a conta Business
-  // nasceu (joseph@usekineo.com) e o webhook live foi criado à mão no painel
-  // do PayPal. A tabela paypal_config pode guardar o id SANDBOX de julho —
-  // verificar assinatura live contra id sandbox falha sempre, e o cliente
-  // pagaria sem receber crédito. PAYPAL_WEBHOOK_ID na Vercel vence a tabela.
-  const webhookId = process.env.PAYPAL_WEBHOOK_ID || (await getPaypalConfig(admin, 'webhook_id'))
-  if (!webhookId) {
-    console.error('[paypal] webhook id missing — set PAYPAL_WEBHOOK_ID on Vercel or run /api/paypal/setup')
-    return false
-  }
+// Official verification: https://developer.paypal.com/api/rest/webhooks/rest/
+// The configured ID is required before ANY database access. Preserve raw JSON.
+export async function verifyPaypalWebhook(headers: Headers, rawBody: string): Promise<boolean> {
+  const fields = ['paypal-auth-algo', 'paypal-cert-url', 'paypal-transmission-id', 'paypal-transmission-sig', 'paypal-transmission-time']
+  if (fields.some((name) => !headers.get(name))) return false
+  const webhookId = process.env.PAYPAL_WEBHOOK_ID
+  if (!webhookId) throw paymentError('paypal_webhook_id_missing')
+  const envelope = JSON.stringify({
+    auth_algo: headers.get('paypal-auth-algo'), cert_url: headers.get('paypal-cert-url'),
+    transmission_id: headers.get('paypal-transmission-id'), transmission_sig: headers.get('paypal-transmission-sig'),
+    transmission_time: headers.get('paypal-transmission-time'), webhook_id: webhookId,
+  })
+  let result: Record<string, unknown> | null
   try {
-    const result = await paypalFetch('/v1/notifications/verify-webhook-signature', {
-      method: 'POST',
-      body: JSON.stringify({
-        auth_algo: headers.get('paypal-auth-algo'),
-        cert_url: headers.get('paypal-cert-url'),
-        transmission_id: headers.get('paypal-transmission-id'),
-        transmission_sig: headers.get('paypal-transmission-sig'),
-        transmission_time: headers.get('paypal-transmission-time'),
-        webhook_id: webhookId,
-        webhook_event: JSON.parse(rawBody),
-      }),
+    result = await paypalFetch('/v1/notifications/verify-webhook-signature', {
+      method: 'POST', body: envelope.slice(0, -1) + ',"webhook_event":' + rawBody + '}',
     })
-    return result?.verification_status === 'SUCCESS'
-  } catch (err) {
-    console.error('[paypal] webhook verification threw:', err)
-    return false
-  }
-}
-
-// ── Idempotency (paypal_events: id text pk) ─────────────────────────────────
-// Returns true when this logical key was seen for the FIRST time.
-export async function paypalClaimEvent(admin: Admin, id: string, type: string): Promise<boolean> {
-  const { error } = await admin.from('paypal_events').insert({ id, type })
-  if (!error) return true
-  if (error.code === '23505') return false // duplicate — already processed
-  // 42P01 = table missing; log and allow (better than dropping live payments)
-  if (error.code !== '42P01') console.error('[paypal] claim event error:', error.code, error.message)
+  } catch { throw paymentError('paypal_verification_unavailable') }
+  if (result?.verification_status === 'FAILURE') return false
+  if (result?.verification_status !== 'SUCCESS') throw paymentError('paypal_verification_invalid_response')
   return true
 }
 
-/** Libera o guard de idempotência quando o processamento FALHOU — sem isto, a
- *  primeira falha transitória congela o pagamento para sempre. Best-effort de
- *  propósito: se a liberação falhar, o 500 do handler ainda pede re-tentativa.
- *  Também apagada pelo #363 e ainda importada por app/api/paypal/return e
- *  app/api/paypal/webhook. */
-export async function paypalReleaseEvent(admin: Admin, id: string): Promise<void> {
-  const { error } = await admin.from('paypal_events').delete().eq('id', id)
-  if (error) {
-    console.error('[paypal] FALHOU AO LIBERAR O GUARD — pagamento pode congelar:', id, error.message)
-  }
-}
-
-// ── Credit granting (mirrors the Stripe webhook paths) ──────────────────────
+// Credit amounts stay in checkoutPricing; renewal carry stays in renewalBalance.
+// All grants are one checked UPDATE; no log-and-continue on missing profiles.
 export async function grantPackCredits(admin: Admin, userId: string, credits: number): Promise<void> {
-  const { data: profile } = await admin.from('profiles').select('video_credits').eq('id', userId).single()
-  const next = (profile?.video_credits ?? 0) + credits
-  const { error } = await admin.from('profiles').update({ video_credits: next }).eq('id', userId)
-  if (error) console.error('[paypal] pack credit grant failed:', error.message, userId)
-  else console.log(`[paypal] +${credits} credits (pack) → user ${userId} (now ${next})`)
+  await grantAlternativePack(admin, userId, credits)
 }
 
-export async function activateSubscription(
-  admin: Admin,
-  userId: string,
-  tier: PayPalTier,
-  subscriptionId: string
-): Promise<void> {
-  const credits = PAYPAL_PLAN_CREDITS[tier]
-  const { data: profile } = await admin.from('profiles').select('video_credits').eq('id', userId).single()
-  const next = (profile?.video_credits ?? 0) + credits
-  const { error } = await admin
-    .from('profiles')
-    .update({
-      is_pro: true,
-      plan: tier,
-      paypal_subscription_id: subscriptionId,
-      video_credits: next,
-      cinematic_tokens: tier === 'pro' ? 1 : 0,
-    })
-    .eq('id', userId)
-  if (error) console.error('[paypal] subscription activate failed:', error.message, userId)
-  else console.log(`[paypal] subscription ACTIVE: ${tier} (+${credits} credits) → user ${userId} (now ${next})`)
+export async function activateSubscription(admin: Admin, userId: string, tier: PayPalTier, subscriptionId: string): Promise<void> {
+  await updatePaymentProfile(admin, userId, (profile) => ({
+    is_pro: true, plan: tier, paypal_subscription_id: subscriptionId, has_paid: true,
+    // Decide first charge versus renewal from the SAME snapshot guarded by
+    // the UPDATE. Concurrent sales cannot both add an activation allowance.
+    video_credits: profile.paypal_subscription_id === subscriptionId
+      ? renewalBalance(profile.video_credits, PAYPAL_PLAN_CREDITS[tier]).balance
+      : (profile.video_credits ?? 0) + PAYPAL_PLAN_CREDITS[tier],
+    cinematic_tokens: tier === 'pro' ? 1 : 0,
+  }))
 }
 
 export async function renewSubscriptionCredits(admin: Admin, userId: string, tier: PayPalTier): Promise<void> {
-  // KINEO-RENOVACAO-PRESERVA-CREDITO-COMPRADO-2026-09-25 — espelha a Stripe: a cota do plano zera, o comprado sobrevive.
-  const credits = PAYPAL_PLAN_CREDITS[tier]
-  const { data: atual } = await admin.from('profiles').select('video_credits').eq('id', userId).maybeSingle()
-  const renovacao = renewalBalance((atual as { video_credits?: unknown } | null)?.video_credits, credits)
-  const { error } = await admin
-    .from('profiles')
-    .update({ video_credits: renovacao.balance, cinematic_tokens: tier === 'pro' ? 1 : 0, is_pro: true, plan: tier })
-    .eq('id', userId)
-  if (error) console.error('[paypal] renewal grant failed:', error.message, userId)
-  else console.log(`[paypal] renewal: ${tier} → user ${userId} (${credits} + ${renovacao.carried} carried = ${renovacao.balance})`)
+  await updatePaymentProfile(admin, userId, (profile) => ({
+    video_credits: renewalBalance(profile.video_credits, PAYPAL_PLAN_CREDITS[tier]).balance,
+    cinematic_tokens: tier === 'pro' ? 1 : 0, is_pro: true, plan: tier, has_paid: true,
+  }))
 }

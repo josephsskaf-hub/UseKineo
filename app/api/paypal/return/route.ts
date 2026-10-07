@@ -1,143 +1,49 @@
-// PAYPAL-2026-07-06 — buyer lands here after approving on paypal.com.
-//   ?flow=pack&token=ORDER_ID           → capture + credit 10 Fast Shorts
-//   ?flow=sub&subscription_id=I-XXX&tier=&billing= → verify + activate plan
-// Crediting is idempotent (paypal_events claim) — the webhook is the backup
-// path for the same grants, whichever arrives first wins, the other no-ops.
-
 import { NextRequest, NextResponse } from 'next/server'
-import {
-  paypalAdminClient,
-  paypalFetch,
-  paypalClaimEvent,
-  paypalReleaseEvent,
-  grantPackCredits,
-  activateSubscription,
-  PAYPAL_PACK,
-  PAYPAL_TIER_USD,
-  type PayPalTier,
-} from '@/lib/paypal'
-import { PACK_PRICE_MINOR } from '@/lib/checkoutPricing' // KINEO-PASSE-AVULSO-2026-10-05
+import { paypalAdminClient, paypalFetch } from '../../../../lib/paypal'
+import { fulfillPaypalCapture, fetchPaypalResource } from '../../../../lib/payments/paypal'
+import { reportPaymentFailure, paymentError, type PaymentDb } from '../../../../lib/payments/alternative'
+import { PACK_PRICE_MINOR } from '../../../../lib/checkoutPricing'
 
 export const dynamic = 'force-dynamic'
-// ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
-// Rota SO-GET no Next 14.2: sem POST no modulo, o store nasce com
-// revalidate=false, e `dynamic='force-dynamic'` NAO muda isso (so pula o proxy
-// que marcaria a rota como dinamica). Resultado: todo GET do supabase-js (e da
-// fal/Creatomate) com URL estavel ia para o Data Cache da Vercel PARA SEMPRE —
-// a rota lia o banco como ele estava na PRIMEIRA vez que aquela URL foi pedida.
-// Provado em producao 02/09: cron de resgate contando 1 tentativa com 3 no
-// banco, marcador stranded_composed invisivel 13 min depois de gravado,
-// "claim row missing" logo apos 23505 no MESMO id, e-mail de video pronto
-// repetido 15 min depois (be9c6314). Esta linha e o unico interruptor que
-// zera o revalidate ANTES do primeiro fetch. Nao remover.
 export const fetchCache = 'force-no-store'
-
-function appUrl() {
-  return 'https://www.usekineo.com'
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// KINEO-PAYPAL-IDEMPOTENCIA-2026-09-07 — A MESMA CORREÇÃO DO WEBHOOK, AQUI.
-// ═══════════════════════════════════════════════════════════════════════════
-// Esta rota e o webhook DIVIDEM as mesmas chaves em `paypal_events` (é o que o
-// cabeçalho do arquivo chama de "whichever arrives first wins"). Por isso
-// consertar só o webhook deixaria o defeito vivo: se a concessão falhasse
-// AQUI, a marca ficava, e o webhook — que é o caminho de reserva para
-// exatamente este caso — chegava depois, lia "já processado" e não concedia
-// nada. Uma falha transitória de um lado envenenava o outro.
-//
-// A regra da casa é a mesma dos outros trilhos: pegar a marca antes, e se a
-// entrega não acontecer, DEVOLVER a marca. Aqui a devolução importa ainda
-// mais, porque quem repara é o webhook e não uma re-tentativa nossa.
-async function concederOuLiberar(
-  admin: Parameters<typeof paypalReleaseEvent>[0],
-  chave: string,
-  tipo: string,
-  conceder: () => Promise<void>,
-): Promise<void> {
-  if (!(await paypalClaimEvent(admin, chave, tipo))) return // já concedido
-  try {
-    await conceder()
-  } catch (err) {
-    await paypalReleaseEvent(admin, chave)
-    throw err
-  }
-}
+const APP_URL = 'https://www.usekineo.com'
 
 export async function GET(req: NextRequest) {
-  const params = req.nextUrl.searchParams
-  const flow = params.get('flow')
-  const admin = paypalAdminClient()
-
+  let db: PaymentDb | undefined
   try {
-    // ── One-time pack: capture the approved order ────────────────────────────
-    if (flow === 'pack') {
+    const params = req.nextUrl.searchParams
+    if (params.get('flow') === 'pack') {
       const orderId = params.get('token')
-      if (!orderId) throw new Error('missing order token')
-
-      let capture: Record<string, unknown> | null = null
+      if (!orderId) throw paymentError('paypal_order_id_missing')
+      let order: Record<string, any> | null
       try {
-        capture = await paypalFetch(`/v2/checkout/orders/${orderId}/capture`, {
-          method: 'POST',
-          idempotencyKey: `capture-${orderId}`,
-          body: JSON.stringify({}),
+        order = await paypalFetch(`/v2/checkout/orders/${encodeURIComponent(orderId)}/capture`, {
+          method: 'POST', idempotencyKey: `capture-${orderId}`, body: '{}',
         })
-      } catch (err) {
-        // ORDER_ALREADY_CAPTURED → double return-visit; fetch instead.
-        const msg = String(err)
-        if (!msg.includes('ORDER_ALREADY_CAPTURED')) throw err
-        capture = await paypalFetch(`/v2/checkout/orders/${orderId}`)
+      } catch {
+        // Read the actual order after a timeout or already-captured response.
+        order = await fetchPaypalResource(`/v2/checkout/orders/${encodeURIComponent(orderId)}`)
       }
-
-      const status = String(capture?.status ?? '')
-      if (status !== 'COMPLETED') throw new Error(`order not completed: ${status}`)
-
-      const pu = ((capture?.purchase_units ?? []) as Array<Record<string, unknown>>)[0] ?? {}
-      const userId = String(pu.custom_id ?? ((pu.payments as Record<string, unknown> | undefined)?.captures as Array<Record<string, unknown>> | undefined)?.[0]?.custom_id ?? '')
-      if (!userId) throw new Error('order missing custom_id')
-
-      await concederOuLiberar(admin, `order:${orderId}`, 'pack_capture', () =>
-        grantPackCredits(admin, userId, PAYPAL_PACK.credits),
-      )
-      return NextResponse.redirect(
-        `${appUrl()}/checkout/success?success=true&pack=starter&currency=usd&amount=${PACK_PRICE_MINOR.usd}&via=paypal`
-      )
+      if (order?.status !== 'COMPLETED') throw paymentError('paypal_order_not_settled')
+      const captureId = order.purchase_units?.[0]?.payments?.captures?.[0]?.id
+      if (!captureId) throw paymentError('paypal_capture_id_missing')
+      db = paypalAdminClient()
+      const outcome = await fulfillPaypalCapture(db, captureId, `return:${orderId}`)
+      if (outcome === 'reversed') throw paymentError('paypal_order_reversed')
+      return NextResponse.redirect(`${APP_URL}/checkout/success?success=true&pack=starter&currency=usd&amount=${PACK_PRICE_MINOR.usd}&via=paypal`)
     }
-
-    // ── Subscription: verify with PayPal, then activate ──────────────────────
-    if (flow === 'sub') {
+    if (params.get('flow') === 'sub') {
       const subId = params.get('subscription_id')
-      const tier = (params.get('tier') ?? 'basic') as PayPalTier
-      const billing = params.get('billing') === 'annual' ? 'annual' : 'monthly'
-      if (!subId) throw new Error('missing subscription_id')
-
-      const sub = await paypalFetch(`/v1/billing/subscriptions/${subId}`)
-      const status = String(sub?.status ?? '')
-      const userId = String(sub?.custom_id ?? '')
-      if (!userId) throw new Error('subscription missing custom_id')
-      // APPROVED = buyer approved, activation still settling; ACTIVE = done.
-      if (status !== 'ACTIVE' && status !== 'APPROVED') {
-        throw new Error(`subscription not active: ${status}`)
-      }
-
-      await concederOuLiberar(admin, `subact:${subId}`, 'sub_activate', () =>
-        activateSubscription(admin, userId, tier, subId),
-      )
-      const cents = Math.round(
-        parseFloat(billing === 'annual' ? PAYPAL_TIER_USD[tier].annual : PAYPAL_TIER_USD[tier].monthly) * 100
-      )
-      return NextResponse.redirect(
-        `${appUrl()}/checkout/success?success=true&currency=usd&amount=${cents}&via=paypal`
-      )
+      if (!subId) throw paymentError('paypal_subscription_id_missing')
+      const sub = await fetchPaypalResource(`/v1/billing/subscriptions/${encodeURIComponent(subId)}`)
+      if (!['ACTIVE', 'APPROVED'].includes(sub.status)) throw paymentError('paypal_subscription_not_active')
+      // No tier/amount from query parameters is trusted. Delivery follows the
+      // authenticated paid SALE, independent of whether this tab stays open.
+      return NextResponse.redirect(`${APP_URL}/checkout/success?provider=paypal&pending=1`)
     }
-
-    throw new Error(`unknown flow: ${flow}`)
-  } catch (err) {
-    console.error('[paypal/return] failed:', err)
-    return NextResponse.redirect(
-      `${appUrl()}/pricing?checkout_error=${encodeURIComponent(
-        'PayPal payment could not be confirmed. If you were charged, contact support@usekineo.com — we will fix it fast.'
-      )}`
-    )
+    throw paymentError('paypal_flow_invalid')
+  } catch (error) {
+    await reportPaymentFailure('paypal', null, null, error, db)
+    return NextResponse.json({ error: 'PayPal payment could not be confirmed. Please retry or contact support@usekineo.com.' }, { status: 500 })
   }
 }

@@ -1,189 +1,67 @@
-// PAYPAL-2026-07-06 — webhook backup/renewal path. Signature-verified against
-// webhook_id stored in paypal_config (created by /api/paypal/setup).
-// Handled events:
-//   PAYMENT.CAPTURE.COMPLETED        → pack credits (if return route missed it)
-//   BILLING.SUBSCRIPTION.ACTIVATED   → plan activation (backup)
-//   PAYMENT.SALE.COMPLETED           → recurring renewals (credits reset)
-//   BILLING.SUBSCRIPTION.CANCELLED / SUSPENDED / EXPIRED → downgrade to free
-// All grants idempotent via paypal_events claims shared with /api/paypal/return.
-
 import { NextRequest, NextResponse } from 'next/server'
+import { paypalAdminClient, verifyPaypalWebhook } from '../../../../lib/paypal'
 import {
-  paypalAdminClient,
-  paypalFetch,
-  verifyPaypalWebhook,
-  paypalClaimEvent,
-  paypalReleaseEvent,
-  grantPackCredits,
-  activateSubscription,
-  renewSubscriptionCredits,
-  tierFromPlanId,
-  PAYPAL_PACK,
-  type PayPalTier,
-} from '@/lib/paypal'
+  paymentWasProcessed, markPaymentProcessed, reversePayment, reportPaymentFailure, paymentError,
+  type PaymentDb,
+} from '../../../../lib/payments/alternative'
+import {
+  fulfillPaypalCapture, fulfillPaypalSale, revokePaypalSubscription, paypalReversalTarget,
+} from '../../../../lib/payments/paypal'
 
 export const dynamic = 'force-dynamic'
-
-// Mirrors the Stripe webhook's PROTECTED_EMAILS behavior for plan-changing events.
-const PROTECTED_EMAILS = new Set([
-  'josephsskaf@gmail.com',
-  'josephskaf@gmail.com',
-  'josephskaf@hotmail.com',
-  'joseph-test@shortsforgeai.com',
-])
+export const fetchCache = 'force-no-store'
 
 export async function POST(req: NextRequest) {
-  const rawBody = await req.text()
-  const admin = paypalAdminClient()
-
-  const valid = await verifyPaypalWebhook(admin, req.headers, rawBody)
-  if (!valid) {
-    return NextResponse.json({ error: 'invalid signature' }, { status: 400 })
-  }
-
-  let event: Record<string, unknown>
+  let db: PaymentDb | undefined
+  let eventId: string | null = null
   try {
-    event = JSON.parse(rawBody)
-  } catch {
-    return NextResponse.json({ error: 'bad json' }, { status: 400 })
-  }
-
-  const eventId = String(event.id ?? '')
-  const eventType = String(event.event_type ?? '')
-  const resource = (event.resource ?? {}) as Record<string, unknown>
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // KINEO-PAYPAL-IDEMPOTENCIA-2026-09-07 — TODA MARCA TIRADA NESTE PEDIDO É
-  // DEVOLVIDA SE A ENTREGA NÃO ACONTECER.
-  // ═══════════════════════════════════════════════════════════════════════
-  // O `evt:` abaixo é tirado ANTES do switch, então ele sozinho já congelava o
-  // pagamento: se qualquer concessão lá dentro falhasse, a marca do evento
-  // ficava, a re-tentativa do PayPal lia "duplicate" e ninguém nunca recebia.
-  // Somando a marca por-operação de dentro do switch, eram DUAS marcas
-  // permanentes protegendo uma entrega que não aconteceu.
-  //
-  // Agora toda marca entra nesta lista, e o `catch` devolve todas antes de
-  // pedir re-tentativa com 500. Ver o cabeçalho de `paypalClaimEvent`.
-  const marcasTiradas: string[] = []
-  const marcar = async (chave: string, tipo: string): Promise<boolean> => {
-    const primeiraVez = await paypalClaimEvent(admin, chave, tipo)
-    if (primeiraVez) marcasTiradas.push(chave)
-    return primeiraVez
-  }
-
-  try {
-    // Event-level dedupe (PayPal retries on non-2xx / slow responses).
-    if (eventId && !(await marcar(`evt:${eventId}`, eventType))) {
-      return NextResponse.json({ received: true, duplicate: true })
+    const rawBody = await req.text()
+    if (!await verifyPaypalWebhook(req.headers, rawBody)) {
+      await reportPaymentFailure('paypal', null, null, paymentError('invalid_signature'))
+      return NextResponse.json({ error: 'invalid signature' }, { status: 401 })
     }
-
-    switch (eventType) {
-      case 'PAYMENT.CAPTURE.COMPLETED': {
-        // One-time pack capture. supplementary_data carries the order id.
-        const captureId = String(resource.id ?? '')
-        const userId = String(resource.custom_id ?? '')
-        const orderId = String(
-          ((resource.supplementary_data as Record<string, unknown> | undefined)?.related_ids as
-            | Record<string, unknown>
-            | undefined)?.order_id ?? ''
-        )
-        const amount = (resource.amount ?? {}) as { value?: string }
-        if (!userId) break
-        // Ignore subscription charges here (those come as PAYMENT.SALE.COMPLETED).
-        if (amount.value !== PAYPAL_PACK.usd) break
-        const claimKey = orderId ? `order:${orderId}` : `capture:${captureId}`
-        if (await marcar(claimKey, 'pack_capture')) {
-          await grantPackCredits(admin, userId, PAYPAL_PACK.credits)
-        }
+    const event = JSON.parse(rawBody)
+    eventId = typeof event.id === 'string' ? event.id : null
+    if (!eventId || !event.event_type) throw paymentError('paypal_event_identity_missing')
+    db = paypalAdminClient()
+    if (await paymentWasProcessed(db, 'paypal', eventId)) return NextResponse.json({ received: true, duplicate: true })
+    const resource = event.resource ?? {}
+    switch (event.event_type) {
+      case 'PAYMENT.CAPTURE.COMPLETED':
+        await fulfillPaypalCapture(db, String(resource.id ?? ''), eventId)
         break
-      }
-
-      case 'BILLING.SUBSCRIPTION.ACTIVATED': {
-        const subId = String(resource.id ?? '')
-        const userId = String(resource.custom_id ?? '')
-        const planId = String(resource.plan_id ?? '')
-        if (!subId || !userId) break
-        const mapped = await tierFromPlanId(admin, planId)
-        const tier: PayPalTier = mapped?.tier ?? 'basic'
-        if (await marcar(`subact:${subId}`, 'sub_activate')) {
-          await activateSubscription(admin, userId, tier, subId)
-        }
+      case 'PAYMENT.SALE.COMPLETED':
+        await fulfillPaypalSale(db, String(resource.id ?? ''), eventId)
         break
-      }
-
-      case 'PAYMENT.SALE.COMPLETED': {
-        // Subscription charge. First sale = activation charge (already credited
-        // by subact). Later sales = renewals → reset credits to plan allowance.
-        const saleId = String(resource.id ?? '')
-        const subId = String(resource.billing_agreement_id ?? '')
-        if (!saleId || !subId) break
-        if (!(await marcar(`sale:${subId}:${saleId}`, 'sub_sale'))) break
-
-        const { count } = await admin
-          .from('paypal_events')
-          .select('id', { count: 'exact', head: true })
-          .like('id', `sale:${subId}:%`)
-        const isFirstSale = (count ?? 1) <= 1
-        if (isFirstSale) break // activation grant already handled
-
-        const sub = await paypalFetch(`/v1/billing/subscriptions/${subId}`)
-        const userId = String(sub?.custom_id ?? '')
-        const planId = String(sub?.plan_id ?? '')
-        if (!userId) break
-        const { data: prof } = await admin.from('profiles').select('email').eq('id', userId).single()
-        if (PROTECTED_EMAILS.has(String(prof?.email ?? '').toLowerCase())) break
-        const mapped = await tierFromPlanId(admin, planId)
-        await renewSubscriptionCredits(admin, userId, mapped?.tier ?? 'basic')
+      case 'PAYMENT.CAPTURE.REFUNDED':
+        await reversePayment(db, 'paypal', `capture:${paypalReversalTarget(resource, 'capture')}`, eventId)
         break
-      }
-
+      case 'PAYMENT.CAPTURE.REVERSED':
+        if (!resource.id) throw paymentError('paypal_capture_id_missing')
+        await reversePayment(db, 'paypal', `capture:${resource.id}`, eventId)
+        break
+      case 'PAYMENT.SALE.REFUNDED':
+        await reversePayment(db, 'paypal', `sale:${paypalReversalTarget(resource, 'sale')}`, eventId)
+        break
+      case 'PAYMENT.SALE.REVERSED':
+        if (!resource.id) throw paymentError('paypal_sale_id_missing')
+        await reversePayment(db, 'paypal', `sale:${resource.id}`, eventId)
+        break
       case 'BILLING.SUBSCRIPTION.CANCELLED':
       case 'BILLING.SUBSCRIPTION.SUSPENDED':
-      case 'BILLING.SUBSCRIPTION.EXPIRED': {
-        const subId = String(resource.id ?? '')
-        if (!subId) break
-        const { data: prof } = await admin
-          .from('profiles')
-          .select('id,email')
-          .eq('paypal_subscription_id', subId)
-          .maybeSingle()
-        if (!prof?.id) break
-        if (PROTECTED_EMAILS.has(String(prof.email ?? '').toLowerCase())) break
-        const { error } = await admin
-          .from('profiles')
-          .update({ is_pro: false, plan: 'free', paypal_subscription_id: null })
-          .eq('id', prof.id)
-        if (error) console.error('[paypal webhook] downgrade failed:', error.message)
-        else console.log(`[paypal webhook] ${eventType} → user ${prof.id} downgraded to free`)
+      case 'BILLING.SUBSCRIPTION.EXPIRED':
+        await revokePaypalSubscription(db, String(resource.id ?? ''), eventId)
         break
-      }
-
+      // Activation is not proof of a settled charge. The first verified SALE
+      // activates and grants once, even if it arrives before ACTIVATED.
+      case 'BILLING.SUBSCRIPTION.ACTIVATED':
       default:
-        // Unhandled event types are fine — we subscribed narrowly in setup.
         break
     }
-  } catch (err) {
-    // ANTES: `console.error` e 200. O comentário dizia "grants are idempotent
-    // and PayPal hammer-retries 5xx" — e as duas metades estavam erradas. As
-    // concessões eram idempotentes na direção que PERDE o pagamento (a marca
-    // ficava, a re-tentativa pulava), e o 200 dizia ao PayPal para não tentar
-    // mais. Juntas, produziam o pior desfecho possível num trilho de dinheiro:
-    // o cliente paga, não recebe, e não há erro em lugar nenhum.
-    console.error('[paypal webhook] handler error:', eventType, err)
-
-    // Devolve TODAS as marcas tiradas neste pedido, para que a re-tentativa
-    // encontre o caminho limpo em vez de ler "duplicate" e desistir.
-    for (const chave of marcasTiradas) {
-      await paypalReleaseEvent(admin, chave)
-    }
-
-    // 500 = "tente de novo". É o único jeito de pedir a re-tentativa, e o
-    // PayPal re-tenta por dias. Barulhento de propósito.
-    return NextResponse.json(
-      { error: 'grant failed, retry', event_type: eventType },
-      { status: 500 },
-    )
+    await markPaymentProcessed(db, 'paypal', eventId)
+    return NextResponse.json({ received: true })
+  } catch (error) {
+    await reportPaymentFailure('paypal', eventId, null, error, db)
+    return NextResponse.json({ error: 'payment processing failed, retry' }, { status: 500 })
   }
-
-  return NextResponse.json({ received: true })
 }
