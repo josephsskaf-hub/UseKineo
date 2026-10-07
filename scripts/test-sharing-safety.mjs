@@ -101,7 +101,8 @@ for(const row of [{status:'processing'},{video_url:null},{status:'failed'}]){
 }
 const invalid=route();await invalid.mod.GET(new Request('https://example.invalid/api/video/publish?v=bad&t=bad'));eq(invalid.clients,0,'invalid link inert')
 
-const admins=load('app/api/admin/_shared/db.ts',{'@supabase/supabase-js':{createClient:()=>{throw Error('No DB')}}})
+// This suite executes the real admin allowlist; it must never read admin data.
+const admins=load('app/api/admin/_shared/db.ts',{'@supabase/supabase-js':{createClient:()=>{throw Error('No DB')}},'../../../../lib/supabase/readAll':{readAll:()=>{throw Error('No paginated reads in authorization test')}}})
 for(const user of [null,{email:'outside@example.invalid'},{email:'josephsskaf@gmail.com'}]){
  let mutations=0
  const chain={eq:()=>chain,select:async()=>({error:null,count:1})}
@@ -110,7 +111,7 @@ for(const user of [null,{email:'outside@example.invalid'},{email:'josephsskaf@gm
  eq(res.status,!user?401:admins.isAdminEmail(user.email)?200:403,'admin authorization')
  eq(mutations,user&&admins.isAdminEmail(user.email)?1:0,'outside actor never writes metrics')
 }
-for(const name of ['payment_success','video_published_v1','video_unpublished_v1','library_recent_project_opened']){
+for(const name of ['payment_success','video_published_v1','video_unpublished_v1','admin_read_truncated','library_recent_project_opened']){
  let inserted=0
  let lastRow=null
  // KINEO-QUEM-E-GENTE-2026-09-07 (fv-r10) — RESOLUCAO DAS DUAS CORRECOES, que
