@@ -1997,6 +1997,56 @@ async function sWelcomeLoggedUnchanged() {
   return JSON.stringify(shots[0]) === JSON.stringify(shots[1]) ? [] : ['logado: o interruptor da oferta mudou o caminho de quem já tem conta']
 }
 
+// ═══ KINEO-ANUNCIO-MOTOR-2026-10-07 — o clique pago do anúncio viaja do cookie do pouso até o payment_success ═════════
+// Rota e webhook REAIS: o cookie kineo_paid_click (escrito pelo SourceCapture, lib/growth/paidClickAttribution.ts) tem
+// de aparecer no checkout_started, no checkout_guest_started e no payment_success — do convidado e do logado —, nunca na
+// sessão da Stripe; sem cookie (ou com cookie adulterado) nenhuma chave nova. Guardião próprio do módulo e das âncoras:
+// scripts/test-anuncio-motor-rastreio-2026-10-07.mjs.
+async function sPaidClick(env) {
+  const p = []
+  const atSec = Math.floor(Date.now() / 1000) - 3600
+  const cookie = encodeURIComponent(JSON.stringify({ v: 1, s: 'google', m: 'cpc', c: 'motor-seedance-2-5', t: 'seedance 2.5 app', k: 'gclid', i: 'Cj0KCQjwTESTE_abc-123', a: atSec }))
+  const expected = JSON.stringify({
+    paid_click_version: 'paid_click_v1', paid_utm_source: 'google', paid_utm_medium: 'cpc', paid_utm_campaign: 'motor-seedance-2-5',
+    paid_utm_term: 'seedance 2.5 app', paid_click_id_type: 'gclid', paid_click_id: 'Cj0KCQjwTESTE_abc-123', paid_click_at: new Date(atSec * 1000).toISOString(),
+  })
+  const paidOf = (m) => JSON.stringify(Object.fromEntries(Object.entries(m ?? {}).filter(([k]) => k.startsWith('paid_'))))
+  const ofSession = (name, id) => env.db.events(name).find((e) => e.metadata?.stripe_session_id === id)
+  // 1. Convidado que clicou no anúncio.
+  const guest = await guestPurchase(env, { browser: newBrowser({ kineo_event_session_id: 'sess_anuncio_g1', kineo_paid_click: cookie }), email: 'anuncio.convidado@exemplo.com' })
+  if (!guest.sessionId) return ['anúncio: GET do convidado não abriu sessão']
+  if (guest.delivered?.res.status !== 200) return [`anúncio: webhook do convidado ${guest.delivered?.res.status}`]
+  if (paidOf(ofSession('checkout_started', guest.sessionId)?.metadata) !== expected) p.push(`anúncio: checkout_started do convidado sem o clique pago (${paidOf(ofSession('checkout_started', guest.sessionId)?.metadata)})`)
+  if (paidOf(ofSession('checkout_guest_started', guest.sessionId)?.metadata) !== expected) p.push('anúncio: checkout_guest_started sem o clique pago')
+  const guestPaid = ofSession('payment_success', guest.sessionId)
+  if (!guestPaid?.user_id) p.push('anúncio: payment_success do convidado ausente/sem dono')
+  if (paidOf(guestPaid?.metadata) !== expected) p.push(`anúncio: payment_success do convidado sem o clique pago (${paidOf(guestPaid?.metadata)})`)
+  const stripeSide = JSON.stringify([env.stripe.sessionStore.get(guest.sessionId)?.metadata ?? {}, lastCreate(env)?.params ?? {}])
+  if (/paid_|gclid|motor-seedance/.test(stripeSide)) p.push('anúncio: o clique pago vazou para a sessão da Stripe')
+  // 2. Logado que clicou no anúncio: o mesmo writer de eventos e o mesmo webhook.
+  const user = env.db.seedUser({ email: 'anuncio.logado@exemplo.com' })
+  const loggedBrowser = newBrowser({ kineo_event_session_id: 'sess_anuncio_l1', kineo_paid_click: cookie })
+  loggedBrowser.userId = user.id
+  const loggedSession = sessionIdFromLocation(await checkoutGet(env, loggedBrowser, 'tier=basic&billing=monthly&intro=1'))
+  if (!loggedSession) {
+    p.push('anúncio: GET logado não abriu sessão')
+  } else {
+    const delivered = await deliver(env, 'checkout.session.completed', env.stripe.pay(loggedSession, { email: 'anuncio.logado@exemplo.com' }))
+    if (delivered.res.status !== 200) p.push(`anúncio: webhook do logado ${delivered.res.status}`)
+    if (paidOf(ofSession('checkout_started', loggedSession)?.metadata) !== expected) p.push('anúncio: checkout_started do logado sem o clique pago')
+    const loggedPaid = ofSession('payment_success', loggedSession)
+    if (loggedPaid?.user_id !== user.id || paidOf(loggedPaid?.metadata) !== expected) p.push('anúncio: payment_success do logado sem o clique pago')
+  }
+  // 3. Sem anúncio e com cookie adulterado: o evento sai como antes, sem chave paid_*.
+  for (const [label, jar] of [['sem cookie', {}], ['cookie adulterado', { kineo_paid_click: encodeURIComponent('{"v":1,"k":"gclid","i":"x y","a":1}') }]]) {
+    const plain = await guestPurchase(env, { browser: newBrowser({ kineo_event_session_id: `sess_anuncio_${label.length}`, ...jar }), email: `sem.anuncio.${label.length}@exemplo.com` })
+    const plainPaid = plain.sessionId ? ofSession('payment_success', plain.sessionId) : null
+    if (!plainPaid) p.push(`${label}: payment_success ausente`)
+    else if (paidOf(plainPaid.metadata) !== '{}' || paidOf(ofSession('checkout_started', plain.sessionId)?.metadata) !== '{}') p.push(`${label}: ganhou chave paid_*`)
+  }
+  return p
+}
+
 // ═══ EXECUÇÃO ═════════════════════════════════════════════════════════════════════════════════════════════════════════
 async function run(name, scenario, opts) {
   try {
@@ -2291,6 +2341,8 @@ const SCENARIOS = [
   ['oferta de boas-vindas: o mesmo grant do logado, oferta registrada no evento', sWelcomeGrant, { live: true, welcomeLive: true }],
   ['oferta de boas-vindas: reuso grava guest_welcome_promo_reused e avisa o fundador', sWelcomeReuse, { live: true, welcomeLive: true }],
   ['oferta de boas-vindas: regras puras e carimbo', sWelcomePureRules, { live: true, welcomeLive: true }],
+  // ── KINEO-ANUNCIO-MOTOR-2026-10-07: o clique pago do anúncio chega ao payment_success (convidado e logado) ──
+  ['clique pago do anúncio: cookie → eventos de checkout → payment_success, nunca na Stripe', sPaidClick, { live: true }],
 ]
 for (const [name, scenario, opts] of SCENARIOS) {
   const problems = await run(name, scenario, opts)
@@ -2389,6 +2441,9 @@ const MUTANTS = [
   ['webhook: reuso sem o evento', { [WEBHOOK]: [replaceOnce("            const { error: reuseEventError } = await supabase.from('events').insert({\n", "            const { error: reuseEventError } = await supabase.from('events_descartado').insert({\n", 'evento em outra tabela')] }, sWelcomeReuse, true, true],
   ['webhook: reuso sem o aviso', { [WEBHOOK]: [replaceOnce("            await alertFounderOnce({\n              kind: 'guest_welcome_promo_reused',\n", "            void ({\n              kind: 'guest_welcome_promo_reused',\n", 'sem aviso')] }, sWelcomeReuse, true, true],
   ['webhook: falha ao gravar o reuso passa calada', { [WEBHOOK]: [replaceOnce('              throw new RetryableCheckoutAnalyticsError(`Guest welcome promo reuse not recorded', '              console.error(`Guest welcome promo reuse not recorded', 'falha engolida')] }, sWelcomeReuse, true, true],
+  // KINEO-ANUNCIO-MOTOR-2026-10-07 — sem a cópia em qualquer uma das duas pontas, a compra perde a origem paga.
+  ['rota: eventos de checkout sem o clique pago', { [CHECKOUT]: [replaceOnce('      metadata: { ...metadata, ...paidClickMetadataFromRequest() },\n', '      metadata,\n', 'eventRow sem o clique')] }, sPaidClick, true],
+  ['webhook: payment_success sem o clique pago', { [WEBHOOK]: [replaceOnce('      ...paidClickMetadata,\n', '', 'payment_success sem o clique')] }, sPaidClick, true],
 ]
 for (const [name, transforms, scenario, live, welcomeLive = false] of MUTANTS) {
   let problems

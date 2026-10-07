@@ -109,6 +109,8 @@ import {
 } from '@/lib/stripe/guestCheckout'
 // KINEO-CUPOM-CONVIDADO-2026-10-07 — o percentual da oferta de boas-vindas no aviso ao fundador (fonte única).
 import { WELCOME20_PERCENT_OFF } from '@/lib/growth/publicPromoTruth'
+// KINEO-ANUNCIO-MOTOR-2026-10-07 — o clique pago (anúncio) que a rota de checkout gravou no checkout_started.
+import { paidClickMetadataFromEvent, type PaidClickMetadata } from '@/lib/growth/paidClickAttribution'
 
 // KINEO-PILOT-99-2026-07-26 — fallback por valor para o piloto de $99, QUALIFICADO
 // POR MOEDA. Sem a moeda isto seria um bug de caixa: topup40 em INR custa 49900 e
@@ -791,20 +793,24 @@ async function recordPaymentSuccess(
   // tab id in Stripe metadata would make otherwise-identical requests use the
   // same key with different parameters. Recover attribution from the
   // deterministic checkout_started event instead.
-  if (!browserSessionId) {
-    const { data: checkoutRows, error: checkoutLookupError } = await supabase
-      .from('events')
-      .select('session_id')
-      .eq('name', 'checkout_started')
-      .contains('metadata', { stripe_session_id: session.id })
-      .limit(1)
-    if (checkoutLookupError) {
-      console.error('[stripe webhook] checkout_started attribution lookup error:', checkoutLookupError.code, checkoutLookupError.message)
-    } else {
-      const recoveredSessionId = checkoutRows?.[0]?.session_id
-      if (typeof recoveredSessionId === 'string' && /^[A-Za-z0-9_-]{8,64}$/.test(recoveredSessionId)) {
-        browserSessionId = recoveredSessionId
-      }
+  // KINEO-ANUNCIO-MOTOR-2026-10-07 — a mesma leitura agora roda SEMPRE (antes, só sem browser_session_id) e traz também
+  // o clique pago que a rota de checkout gravou no checkout_started (lib/growth/paidClickAttribution.ts, saneado de
+  // novo aqui). Com isso o payment_success diz, por si, se a compra veio de anúncio — inclusive a compra sem login, cuja
+  // conta nasce neste webhook sem origem nenhuma. Atribuição pura: erro aqui só perde o rótulo, nunca a venda.
+  let paidClickMetadata: PaidClickMetadata = {}
+  const { data: checkoutRows, error: checkoutLookupError } = await supabase
+    .from('events')
+    .select('session_id, metadata')
+    .eq('name', 'checkout_started')
+    .contains('metadata', { stripe_session_id: session.id })
+    .limit(1)
+  if (checkoutLookupError) {
+    console.error('[stripe webhook] checkout_started attribution lookup error:', checkoutLookupError.code, checkoutLookupError.message)
+  } else {
+    paidClickMetadata = paidClickMetadataFromEvent(checkoutRows?.[0]?.metadata)
+    const recoveredSessionId = checkoutRows?.[0]?.session_id
+    if (!browserSessionId && typeof recoveredSessionId === 'string' && /^[A-Za-z0-9_-]{8,64}$/.test(recoveredSessionId)) {
+      browserSessionId = recoveredSessionId
     }
   }
   const eventHex = createHash('sha256').update(`payment_success:${session.id}`).digest('hex').slice(0, 32)
@@ -861,6 +867,9 @@ async function recordPaymentSuccess(
       // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — só na compra de convidado (as outras linhas não mudam de forma).
       // KINEO-CUPOM-CONVIDADO-2026-10-07 — e, nela, o desconto de boas-vindas quando houve (sem ele, nada muda).
       ...(isGuestCheckoutSession(session) ? { guest_checkout: true, guest_checkout_version: GUEST_CHECKOUT_VERSION, ...guestWelcomePromoEventMetadata(session.metadata) } : {}),
+      // KINEO-ANUNCIO-MOTOR-2026-10-07 — o clique pago (paid_utm_* + gclid|gbraid|wbraid) copiado do checkout_started;
+      // compra sem anúncio = nenhuma chave nova. É o que a leitura do teste de anúncio por motor soma por grupo.
+      ...paidClickMetadata,
     },
   }
 
