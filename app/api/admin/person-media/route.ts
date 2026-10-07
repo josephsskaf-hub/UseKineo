@@ -15,6 +15,7 @@ import { NextResponse } from 'next/server'
 import { looksLikeOurOwnUi } from '@/lib/promptGuard'
 import { listFastCoherence } from '@/lib/admin/fastCoherence' // KINEO-1-COERENCIA-2026-09-16
 import { createClient } from '@/lib/supabase/server'
+import { readAll } from '@/lib/supabase/readAll'
 import { isAdminEmail, serviceClient } from '../_shared/db'
 
 export const dynamic = 'force-dynamic'
@@ -109,7 +110,7 @@ export async function GET(req: Request) {
     // sem nota por abertura e grava). Falha aberta: sem nota, o card fica sem selo.
     const coerenciaPorVideo = new Map<string, { score: number; verdict: string; problems: string[]; summary: string; request_pt: string; narration_vs_visuals: number | null; prompt_vs_narration: number }>()
     try {
-      const linhas = await listFastCoherence(admin, { route: '/api/admin/person-media', hours: 24 * 30, limit: 60, userId: uid, maxCompute: 4 })
+      const linhas = await listFastCoherence(admin, { route: '/api/admin/person-media', hours: 24 * 30, limit: 60, userId: uid, maxCompute: 4 }, readAll)
       for (const l of linhas) if (l.coherence) coerenciaPorVideo.set(l.video_id, { score: l.coherence.score, verdict: l.coherence.verdict, problems: l.coherence.problems, summary: l.coherence.summary, request_pt: l.coherence.request_pt ?? '', narration_vs_visuals: l.coherence.narration_vs_visuals, prompt_vs_narration: l.coherence.prompt_vs_narration })
     } catch (e) {
       console.warn('[admin/person-media] coerencia indisponivel:', e instanceof Error ? e.message : String(e))

@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
   const digest = req.nextUrl.searchParams.get('digest') === '1'
 
   // Julga o que ainda não tem nota (janela curta no tique de 15 min; 24 h no resumo).
-  const rows = await listFastCoherence(admin, { route: '/api/cron/quality-radar', hours: digest ? 24 : RADAR_JUDGE_WINDOW_HOURS, limit: digest ? 200 : 300, maxCompute: RADAR_MAX_JUDGE_PER_RUN, excludeEmails: INTERNAL })
+  const rows = await listFastCoherence(admin, { route: '/api/cron/quality-radar', hours: digest ? 24 : RADAR_JUDGE_WINDOW_HOURS, limit: digest ? 200 : 300, maxCompute: RADAR_MAX_JUDGE_PER_RUN, excludeEmails: INTERNAL }, readAll)
   const userIds = [...new Set(rows.map((r) => r.user_id))]
   const { data: profs } = userIds.length ? await readAll(() => admin.from('profiles').select('id, has_paid, plan, video_credits').in('id', userIds), { route: '/api/cron/quality-radar', table: 'profiles' }) : { data: [] as Array<Record<string, unknown>> }
   const paidBy = new Map<string, { hasPaid: boolean; credits: number | null }>()

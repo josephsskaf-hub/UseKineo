@@ -7,6 +7,7 @@
 // Abrir a página julga o que ainda não tem nota (até 6 por vez) e grava. Gate idêntico a toda tela /admin.
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { readAll } from '@/lib/supabase/readAll'
 import { isAdminEmail, serviceClient } from '@/app/api/admin/_shared/db'
 import { ENGINE_LABEL, listFastCoherence, type FastCoherenceRow } from '@/lib/admin/fastCoherence'
 import { ROTULO_CRITERIO, type CriterioJuiz, type JuizStillPainel } from '@/lib/hollywood/juizStill' // KINEO-JUIZ-STILL-2026-10-06
@@ -174,7 +175,7 @@ export default async function AdminCoerenciaPage({ searchParams }: { searchParam
   const incluirCasa = one('casa') === '1'
   const engine = (one('engine') ?? '').trim() || undefined
   const so = one('so') // 'fora' | 'parcial' | 'semfeedback'
-  const todas = await listFastCoherence(admin, { hours, limit: 150, engine, maxCompute: 6, excludeEmails: incluirCasa ? [] : FOUNDER })
+  const todas = await listFastCoherence(admin, { hours, limit: 150, engine, maxCompute: 6, excludeEmails: incluirCasa ? [] : FOUNDER }, readAll)
   const rows = todas.filter((r) => {
     if (so === 'fora') return r.coherence?.verdict === 'off'
     if (so === 'parcial') return r.coherence?.verdict === 'partial'

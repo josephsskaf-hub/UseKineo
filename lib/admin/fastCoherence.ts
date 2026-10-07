@@ -1,4 +1,4 @@
-import { readAll } from '@/lib/supabase/readAll'
+import type { readAll as ReadAllRows } from '../supabase/readAll'
 // KINEO-1-COERENCIA-2026-09-16 — leitura do painel: filmes com a nota de coerência.
 // R3 (fundador 16/09 noite: "aplicar em todos os motores… ter essa régua do meu olho"): TODOS os motores.
 //
@@ -109,10 +109,12 @@ export function evidenceFromDispatch(md: Record<string, unknown> | null | undefi
 /**
  * Filmes na janela, com nota. `userId` restringe a uma pessoa; `engine` a um motor (quality_mode).
  * `maxCompute` = quantos filmes sem nota são julgados nesta chamada (0 = só ler).
+ * O chamador injeta a leitura paginada; importar os helpers puros não inicializa telemetria/cliente.
  */
 export async function listFastCoherence(
   admin: SupabaseClient,
   opts: { route?: string; hours?: number; limit?: number; userId?: string; engine?: string; maxCompute?: number; excludeEmails?: string[] },
+  readAll: typeof ReadAllRows,
 ): Promise<FastCoherenceRow[]> {
   const hours = Math.max(1, Math.min(24 * 30, opts.hours ?? 48))
   const limit = Math.max(1, Math.min(300, opts.limit ?? 120))

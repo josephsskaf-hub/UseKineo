@@ -30,6 +30,7 @@ const MARCA = 'KINEO-JUIZ-STILL-2026-10-06'
 const LIB = 'lib/hollywood/juizStill.ts'
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
 const ADMIN = 'lib/admin/fastCoherence.ts'
+const LEITURA = 'lib/supabase/readAll.ts'
 const PAGINA = 'app/admin/coerencia/page.tsx'
 const S25 = 'lib/hollywood/s25Cena.ts'
 const FID = 'lib/hollywood/fidelidade.ts'
@@ -387,6 +388,7 @@ async function verificacoes(over = {}) {
     const fakeCoh = { FAST_COHERENCE_EVENT: 'fast_coherence', FAST_COHERENCE_VERSION: 'x', FAST_SCENE_PLAN_EVENT: 'fast_scene_plan', TOPIC_TRUNCATION_HINT: 500, scoreFastCoherence: async () => null }
     const fakeFb = { FILM_FEEDBACK_EVENT: 'film_feedback', FILM_FEEDBACK_ASKED_EVENT: 'film_feedback_asked' }
     const A = carrega(src(ADMIN), { mapa: { '@/lib/fastCoherence': fakeCoh, '@/lib/filmFeedback': fakeFb, '@/lib/hollywood/juizStill': L } })
+    const { readAll } = carrega(src(LEITURA), { mapa: { '../serverEvents': { writeServerEvent: async () => { throw new Error('telemetria proibida no guardião paginado') } } } })
     const filme = L.novoFilmeDoJuiz()
     const jz = async (indice, url, respostas, origem = 'still') => L.julgarFotoBase(ENTRADA({ indice, url, origem, fotoAnterior: null }), { filme, gerarStill: async () => `regen://${indice}`, fetchImpl: juizFalso(respostas).fetchImpl, apiKey: 'k' })
     await jz(0, 'AMBIENTE', [R_AMB_REJ, R_OK_88], 'ambiente')
@@ -401,27 +403,40 @@ async function verificacoes(over = {}) {
         { id: 'v2', user_id: 'u1', created_at: new Date().toISOString(), topic: 'Pompeii', video_url: 'https://x/v2.mp4', duration: 60, credits_used: 150, render_id: 'r2', quality_mode: 'cinematic_hollywood' },
       ]
       if (q.t === 'profiles') return [{ id: 'u1', email: 'cliente@exemplo.com' }]
-      if (q.t === 'events' && eq('name') === 'compose_submission_claim') return [{ created_at: 'x', session_id: null, user_id: 'u1', metadata: { render_id: 'r1', generation_id: 'g1', narration: 'In January 1919…' } }, { created_at: 'x', session_id: null, user_id: 'u1', metadata: { render_id: 'r2', generation_id: 'g2', narration: 'Pompeii…' } }]
+      // Os claims dos dois filmes vêm DEPOIS de 1.000 eventos do mesmo usuário.
+      // O falso banco aplica o mesmo teto por resposta do PostgREST, inclusive sem range.
+      if (q.t === 'events' && eq('name') === 'compose_submission_claim') return [
+        ...Array.from({ length: 1000 }, (_, id) => ({ id, created_at: 'x', session_id: null, user_id: 'u1', metadata: {} })),
+        { id: 1000, created_at: 'x', session_id: null, user_id: 'u1', metadata: { render_id: 'r1', generation_id: 'g1', narration: 'In January 1919…' } },
+        { id: 1001, created_at: 'x', session_id: null, user_id: 'u1', metadata: { render_id: 'r2', generation_id: 'g2', narration: 'Pompeii…' } },
+      ]
       if (q.t === 'events' && eq('name') === L.JUIZ_STILL_RESUMO_EVENTO) {
         const ses = q.f.find((x) => x[0] === 'in' && x[1] === 'session_id')?.[2] ?? []
-        return ses.includes('g1') ? [{ created_at: 'y', session_id: 'g1', user_id: 'u1', metadata: resumoGravado }] : []
+        return ses.includes('g1') ? [{ id: 2000, created_at: 'y', session_id: 'g1', user_id: 'u1', metadata: resumoGravado }] : []
       }
       return []
     }
     const admin = {
       from(t) {
-        const q = { t, f: [] }
+        const q = { t, f: [], o: [], faixa: null, limite: null }
         const b = {
           select() { return b }, eq(k, x) { q.f.push(['eq', k, x]); return b }, neq(k, x) { q.f.push(['neq', k, x]); return b }, gte() { return b }, in(k, x) { q.f.push(['in', k, x]); return b },
-          order() { return b }, limit() { return b }, insert() { return Promise.resolve({ error: null }) },
-          then(res, rej) { consultas.push(q); return Promise.resolve({ data: tabela(q), error: null }).then(res, rej) },
+          order(k, op) { q.o.push([k, op.ascending]); return b }, range(de, ate) { q.faixa = [de, ate]; return b }, limit(n) { q.limite = n; return b }, insert() { return Promise.resolve({ error: null }) },
+          then(res, rej) {
+            consultas.push(q)
+            const ordenadas = tabela(q).sort((a, b) => { for (const [k, asc] of q.o) { if (a[k] !== b[k]) return (a[k] < b[k] ? -1 : 1) * (asc ? 1 : -1) } return 0 })
+            const [de, ate] = q.faixa ?? [0, (q.limite ?? 1000) - 1]
+            return Promise.resolve({ data: ordenadas.slice(de, Math.min(ate + 1, de + 1000)), error: null }).then(res, rej)
+          },
         }
         return b
       },
     }
-    const rows = await A.listFastCoherence(admin, { hours: 48, maxCompute: 0 })
+    const rows = await A.listFastCoherence(admin, { hours: 48, maxCompute: 0 }, readAll)
     const s25 = rows.find((r) => r.video_id === 'v1')
     const k3 = rows.find((r) => r.video_id === 'v2')
+    v('aba: wrapper real lê os claims após a linha 1.000 sem perder generation_id ou narração', s25?.generation_id === 'g1' && s25.narration === 'In January 1919…' && k3?.generation_id === 'g2' && consultas.some((q) => q.f.some((x) => x[1] === 'name' && x[2] === 'compose_submission_claim') && q.faixa?.[0] === 1000))
+    v('aba: cada página de eventos tem range e desempate id; ordem descendente do juiz é preservada', consultas.filter((q) => q.t === 'events').every((q) => q.faixa !== null && q.o.at(-1)?.[0] === 'id' && q.o.at(-1)?.[1] === true) && consultas.some((q) => q.f.some((x) => x[1] === 'name' && x[2] === L.JUIZ_STILL_RESUMO_EVENTO) && q.o[0]?.[0] === 'created_at' && q.o[0]?.[1] === false))
     v('aba: o leitor busca juiz_still_resumo pelo generation_id de cada filme (session_id)', consultas.some((q) => q.t === 'events' && q.f.some((x) => x[0] === 'eq' && x[1] === 'name' && x[2] === L.JUIZ_STILL_RESUMO_EVENTO) && q.f.some((x) => x[0] === 'in' && x[1] === 'session_id' && x[2].includes('g1') && x[2].includes('g2'))))
     v('aba: o filme do Seedance 2.5 traz o juiz (3 julgadas, 2 recusadas, 2 refeitas, motivos, custo); o do Kling 3 vem sem (null)', s25 && s25.juiz_still && s25.juiz_still.julgadas === 3 && s25.juiz_still.recusadas === 2 && s25.juiz_still.regeradas === 2 && s25.juiz_still.motivos.length === 2 && s25.juiz_still.custo_usd > 0.03 && k3 && k3.juiz_still === null)
     // a linha do quadro, renderizada de verdade (as funções da página, de corDaNota até a página)
@@ -495,6 +510,8 @@ const mutants = [
   ['T8 a estrela vira alvo do juiz', ROTA, " && inNarratorWorld && !estrelaHollywood[idx] && anchors.environmentUrl", ' && inNarratorWorld && anchors.environmentUrl'],
   ['A1 a linha da aba perde o juiz', ADMIN, '      juiz_still: gen ? juizByGen.get(gen) ?? null : null,', '      juiz_still: null,'],
   ['A2 a aba lê o evento errado', ADMIN, ".eq('name', JUIZ_STILL_RESUMO_EVENTO)", ".eq('name', 'juiz_still_x')"],
+  ['A3 o wrapper para na primeira página e esconde o juiz', LEITURA, 'if (data.length < POSTGREST_PAGE_SIZE) return', 'if (true) return'],
+  ['A4 o wrapper perde a ordem estável', LEITURA, 'for (const key of keys) query = query.order(key, { ascending: true })', 'for (const key of keys) void key'],
   ['P1 a linha não mostra o juiz', PAGINA, '        {r.juiz_still && <JuizDaFoto j={r.juiz_still} />}\n', ''],
   ['P2 o selo ao lado da nota some', PAGINA, '        {r.juiz_still && (\n          <div data-kineo="juiz-still-selo"', '        {false && r.juiz_still && (\n          <div data-kineo="juiz-still-selo"'],
 ]
