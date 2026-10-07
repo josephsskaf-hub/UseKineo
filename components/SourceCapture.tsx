@@ -16,6 +16,7 @@
 import { useEffect } from 'react'
 import { captureSourceOnce, trackEvent } from '@/lib/analytics'
 import { captureRefOnce } from '@/lib/referral'
+import { paidClickCookieWrite } from '@/lib/growth/paidClickAttribution' // KINEO-ANUNCIO-MOTOR-2026-10-07
 import {
   acquisitionSource,
   internalSurfaceLabel,
@@ -67,6 +68,16 @@ export default function SourceCapture() {
     // homepage. Capture ?ref= globally so the code survives signup/OAuth and
     // ReferralAutoTrigger can attribute the new account after authentication.
     captureRefOnce()
+
+    // KINEO-ANUNCIO-MOTOR-2026-10-07 — o ÚLTIMO clique pago (gclid/gbraid/wbraid ou utm_medium pago) vai para um cookie
+    // de 90 dias que a rota de checkout copia para os eventos de checkout e o webhook para o payment_success — inclusive
+    // na compra sem login. Sem sinal pago na URL nada é escrito: visita orgânica nunca apaga o clique (ver o módulo).
+    try {
+      const paidClickWrite = paidClickCookieWrite(window.location.search, Date.now(), window.location.protocol === 'https:')
+      if (paidClickWrite) document.cookie = paidClickWrite
+    } catch {
+      // Atribuição nunca pode quebrar a página.
+    }
 
     // One anonymous landing anchor per browser tab. The shared session_id in
     // trackEvent connects this entry route to later signup/generation/checkout

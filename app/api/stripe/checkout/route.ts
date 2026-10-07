@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers' // KINEO-ANUNCIO-MOTOR-2026-10-07 — o clique pago dos eventos de checkout
 import { createClient } from '@/lib/supabase/server'
+import { PAID_CLICK_COOKIE, paidClickEventMetadata, parsePaidClick } from '@/lib/growth/paidClickAttribution' // KINEO-ANUNCIO-MOTOR-2026-10-07
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { STUDIO50_CODE, STUDIO50_COUPON_ID, STUDIO50_DURATION, STUDIO50_PERCENT, STUDIO50_REPEATING_MONTHS, STUDIO50_TIER } from '@/lib/offers/studio50'
@@ -270,6 +272,17 @@ function isMissingStripeCustomer(error: unknown): boolean {
   return stripeError?.param === 'customer' || /no such customer/i.test(stripeError?.message ?? '')
 }
 
+// KINEO-ANUNCIO-MOTOR-2026-10-07 — o clique pago (anúncio) que o SourceCapture guardou no cookie deste navegador, como
+// chaves paid_* prontas para o evento. Só atribuição: nunca entra na sessão da Stripe, no preço nem na idempotência, e
+// qualquer falha (cookie ausente, adulterado, velho, fora do escopo da requisição) devolve {} — o evento sai como antes.
+function paidClickMetadataFromRequest(): ReturnType<typeof paidClickEventMetadata> {
+  try {
+    return paidClickEventMetadata(parsePaidClick(cookies().get(PAID_CLICK_COOKIE)?.value, Date.now()))
+  } catch {
+    return {}
+  }
+}
+
 // KINEO-RECOVERY-2026-07-15 — checkout telemetry is written server-side so
 // the immediate navigation to Stripe cannot cancel it. This also records the
 // anonymous auth wall, which client-only click tracking could never see.
@@ -308,7 +321,10 @@ async function recordCheckoutEvent(
       user_id: userId,
       path: '/api/stripe/checkout',
       session_id: sessionId ?? null,
-      metadata,
+      // KINEO-ANUNCIO-MOTOR-2026-10-07 — + o último clique pago deste navegador (cookie do SourceCapture, saneado em
+      // lib/growth/paidClickAttribution.ts). Sem anúncio = nenhuma chave nova. É daqui que o webhook copia para o
+      // payment_success: logado ou convidado, a compra passa a dizer se veio de anúncio.
+      metadata: { ...metadata, ...paidClickMetadataFromRequest() },
     }
     // Stripe idempotency can return the same Checkout Session to two racing
     // requests. Give checkout_started a deterministic UUID so analytics also

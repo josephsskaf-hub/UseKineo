@@ -66,8 +66,18 @@ const runtimeFiles = ['app', 'components', 'lib'].flatMap((dir) =>
 const labelOwners = runtimeFiles.filter((file) => source(file).includes('AW-18156258081/SXGYCK_VlrEcEKGGytFD'))
 equal(labelOwners, ['lib/growth/googleAdsSignupConversion.ts'], 'the signup Ads label has one runtime owner')
 
-const purchase = source('app/checkout/success/page.tsx')
-ok(purchase.includes('currency: purchaseCurrency'), 'paid conversion keeps the actual checkout currency')
-ok(!purchase.includes('GOOGLE_ADS_SIGNUP_CONVERSION'), 'paid conversion never reuses the assigned signup value')
+// REANCORADO 07/10/2026 (KINEO-ANUNCIO-MOTOR-2026-10-07). Este bloco estava VERMELHO em origin/main 5ca07684: a
+// conversão de compra saiu de app/checkout/success/page.tsx (a âncora `currency: purchaseCurrency` não existe mais)
+// para lib/growth/checkoutPurchasePixels.ts, disparada só depois de /api/stripe/checkout/verify confirmar a sessão
+// (observeCheckoutPurchase). A intenção é a MESMA — a compra reporta o valor e a moeda REAIS do checkout e nunca o valor
+// atribuído do cadastro — e ficou mais estrita: o rótulo da compra tem um único dono e a página de sucesso continua
+// ligando o observador.
+const purchasePage = source('app/checkout/success/page.tsx')
+const purchasePixels = source('lib/growth/checkoutPurchasePixels.ts')
+ok(/send_to: 'AW-18156258081\/NL4bCKXEwa4cEKGGytFD',\s*value: purchase\.value, currency: purchase\.currency, transaction_id: purchase\.sessionId,/.test(purchasePixels), 'paid conversion keeps the actual checkout value and currency')
+ok(!purchasePixels.includes('GOOGLE_ADS_SIGNUP_CONVERSION') && !purchasePage.includes('GOOGLE_ADS_SIGNUP_CONVERSION'), 'paid conversion never reuses the assigned signup value')
+ok(/return observeCheckoutPurchase\(\{\s*sessionId,/.test(purchasePage), 'success page still wires the verified purchase observer')
+const purchaseLabelOwners = runtimeFiles.filter((file) => source(file).includes('AW-18156258081/NL4bCKXEwa4cEKGGytFD'))
+equal(purchaseLabelOwners, ['lib/growth/checkoutPurchasePixels.ts'], 'the purchase Ads label has one runtime owner')
 
 console.log('\n' + checks + '/' + checks + ' Google Ads signup conversion-truth checks passed')
