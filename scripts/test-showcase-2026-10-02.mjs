@@ -108,9 +108,32 @@ function telemetry(overrides = {}) {
   assert.ok(!/utm_source=|user_id:|email:/.test(src))
   assert.ok(src.includes('showcase_discovery_version: SHOWCASE_DISCOVERY_VERSION'))
 }
+// KINEO-VISIBILIDADE-CHATGPT-2026-10-06 — HUB_PAGES read from its source by AST (the module imports catalogs with live
+// switches, so it is not executed here); the object literal is plain data.
+function hubPagesAtSource(overrides = {}) {
+  const file = 'lib/seo/citableHubPages.ts'
+  const sf = ts.createSourceFile(file, overrides[file] ?? read(file), ts.ScriptTarget.ES2022, true)
+  let literal = null
+  for (const statement of sf.statements) if (ts.isVariableStatement(statement)) for (const d of statement.declarationList.declarations) if (d.name.getText(sf) === 'HUB_PAGES') literal = d.initializer
+  assert.ok(literal, 'HUB_PAGES must exist in ' + file)
+  while (ts.isAsExpression(literal) || ts.isParenthesizedExpression(literal)) literal = literal.expression
+  assert.ok(ts.isObjectLiteralExpression(literal), 'HUB_PAGES must stay a plain object literal')
+  return new Function(`return (${literal.getText(sf)})`)()
+}
 function discovery(overrides = {}) {
   const src = overrides['app/sitemap.ts'] ?? read('app/sitemap.ts')
   const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText
+  // 07/10 (re-anchored): the ChatGPT-visibility round 1 (fcf5dd10) made the sitemap map Object.values(HUB_PAGES), and
+  // without it this run died with "Cannot convert undefined or null to object". The fixture now carries HUB_PAGES
+  // COMPLETE, exactly as lib/seo/citableHubPages.ts exports it — locked to the source, so an entry added, removed or
+  // renamed there turns this red until the fixture follows — and the run below REQUIRES every hub page and the monthly
+  // AI Video Index exactly once, with the switch on and off.
+  const HUB_PAGES = {
+    oneplace: { path: '/seedance-kling-veo-in-one-place', label: 'Seedance, Kling and Veo in one place' },
+    faceless: { path: '/faceless-youtube-shorts-generator', label: 'AI faceless YouTube Shorts generator' },
+    brand: { path: '/kineo-vs-kineo-studio', label: 'Kineo vs kineo.studio (not the same company)' },
+  }
+  assert.deepEqual(hubPagesAtSource(overrides), HUB_PAGES, 'Fixture HUB_PAGES must equal lib/seo/citableHubPages.ts')
   // Execute the actual sitemap with inert catalog fixtures: no Next server or network.
   const run = enabled => {
     const mod = { exports: {} }
@@ -128,6 +151,8 @@ function discovery(overrides = {}) {
       // KINEO-INDICE-VIDEO-IA-2026-10-06 — the sitemap imports the monthly index path and headline (inert here; the real
       // entry is exercised by test-indice-video-ia-2026-10-06).
       AI_VIDEO_INDEX_PATH: '/ai-video-index', AI_VIDEO_INDEX_HEADLINE: { measuredAt: '2026-10-07T01:53:15Z' },
+      // The round-1 hub pages (locked above) and their review date as the source exports it.
+      HUB_PAGES, HUB_REVIEWED_ISO: '2026-10-06',
     }
     new Function('exports', 'require', 'module', js)(mod.exports, () => fixtures, mod)
     return mod.exports.default()
@@ -138,6 +163,9 @@ function discovery(overrides = {}) {
   assert.equal(entry[0].lastModified.toISOString(), '2026-10-01T00:00:00.000Z')
   assert.equal(off.some(item => item.url === url), false, 'Disabled page must leave the sitemap')
   assert.deepEqual(on.filter(item => item.url !== url), off, 'Showcase switch must not alter other routes')
+  for (const p of [...Object.values(HUB_PAGES).map(h => h.path), '/ai-video-index']) {
+    for (const list of [on, off]) assert.equal(list.filter(item => item.url === `https://www.usekineo.com${p}`).length, 1, `Sitemap must keep one entry for ${p}`)
+  }
 }
 check('approved assets, honest badges, local previews and product destinations', () => catalog())
 check('all authored copy in the 16 site languages', () => copy())
@@ -162,4 +190,8 @@ check('M14 sitemap ignores kill switch turns red', () => mutate('app/sitemap.ts'
 check('M15 wrong canonical host turns red', () => mutate('app/sitemap.ts', 'url: `${BASE}/showcase`', "url: 'https://usekineo.com/showcase'", discovery))
 check('M16 stale portfolio review date turns red', () => mutate('app/sitemap.ts', "new Date('2026-10-01T00:00:00.000Z')", "new Date('2026-07-01T00:00:00.000Z')", discovery))
 check('M17 discovery marker missing turns red', () => mutate('components/showcase/ShowcaseTelemetry.tsx', 'showcase_discovery_version: SHOWCASE_DISCOVERY_VERSION,', '', telemetry))
-console.log(`${count} checks passed, including 17 live mutations. Offline: no keys, database or renders.`)
+// 07/10 (re-anchored): the hub-page fixture is locked to its source and the documented discovery entries are required.
+check('M18 hub page dropped at the source turns red', () => mutate('lib/seo/citableHubPages.ts', "  brand: { path: '/kineo-vs-kineo-studio', label: 'Kineo vs kineo.studio (not the same company)' },\n", '', discovery))
+check('M19 sitemap missing one hub page turns red', () => mutate('app/sitemap.ts', '...Object.values(HUB_PAGES).map(({ path }) => ({', '...Object.values(HUB_PAGES).filter(({ path }) => path !== HUB_PAGES.faceless.path).map(({ path }) => ({', discovery))
+check('M20 sitemap missing the monthly AI Video Index turns red', () => mutate('app/sitemap.ts', 'url: `${BASE}${AI_VIDEO_INDEX_PATH}`,', 'url: `${BASE}/ai-video-index-old`,', discovery))
+console.log(`${count} checks passed, including 20 live mutations. Offline: no keys, database or renders.`)
