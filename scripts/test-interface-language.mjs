@@ -92,7 +92,12 @@ const retiredNavigationLinks=new Set(['/scripts','/viral-now'])
 // 30/09 (KINEO-CLAUDE-1CLIQUE, brief do fundador): the footer link now lands on the connect panel with its source.
 // 01/10: founder-requested /showcase entry follows its code switch. Keep the exact
 // multiset assertion; the showcase guardian mutates removal of this new link.
-const addedNavigationLinks=['/claude-connector?src=footer#connect', ...(pure('lib/showcaseTelemetry.ts').SHOWCASE_PUBLIC ? ['/showcase'] : [])]
-equal(links(footerAfter),[...links(footerBefore).map(h=>h==='/business-video-ads'?'/ads':h).filter(h=>!retiredNavigationLinks.has(h)&&!(avatarOffCatalogue&&h==='/ai-avatar')),...segmentLinks,...addedNavigationLinks].sort(),'footer preserves all destinations except documented navigation removals and off-catalogue Avatar, with direct Ads, derived segment doors and the documented Claude connector addition')
+// 07/10 (re-anchored; KINEO-VISIBILIDADE-CHATGPT-2026-10-06 + KINEO-INDICE-VIDEO-IA-2026-10-06): four more documented
+// ADDITIONS — the three citable pages of ChatGPT-visibility round 1 (fcf5dd10: one place for Seedance/Kling/Veo, faceless
+// Shorts, the brand page against kineo.studio) and the monthly AI Video Index. Typed on purpose, one per page: the exact
+// multiset below still fails on any other missing or extra link, and dropping (or duplicating) one of these four fails it.
+const citablePageLinks=['/seedance-kling-veo-in-one-place','/faceless-youtube-shorts-generator','/kineo-vs-kineo-studio','/ai-video-index']
+const addedNavigationLinks=['/claude-connector?src=footer#connect', ...(pure('lib/showcaseTelemetry.ts').SHOWCASE_PUBLIC ? ['/showcase'] : []), ...citablePageLinks]
+equal(links(footerAfter),[...links(footerBefore).map(h=>h==='/business-video-ads'?'/ads':h).filter(h=>!retiredNavigationLinks.has(h)&&!(avatarOffCatalogue&&h==='/ai-avatar')),...segmentLinks,...addedNavigationLinks].sort(),'footer preserves all destinations except documented navigation removals and off-catalogue Avatar, with direct Ads, derived segment doors and the documented Claude connector addition, plus the four documented citable pages')
 equal((footerAfter.match(/<details /g)||[]).length,4,'four footer navigation groups')
 console.log(`PASS ${checks} locale and workspace checks; no network, database, email or generation`)

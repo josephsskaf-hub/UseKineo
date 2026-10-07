@@ -208,6 +208,9 @@ export default function Seedance25Page() {
           <Link href="/examples" style={{ color: '#86868b', textDecoration: 'none' }}>Real examples</Link>
           {' · '}
           <Link href="/pricing" style={{ color: '#86868b', textDecoration: 'none' }}>Pricing</Link>
+          {' · '}
+          {/* KINEO-INDICE-VIDEO-IA-2026-10-06 — o índice mensal com tempo e custo medidos de cada motor (link discreto). */}
+          <Link href="/ai-video-index" style={{ color: '#86868b', textDecoration: 'none' }}>Real cost and render time</Link>
         </nav>
       </div>
 

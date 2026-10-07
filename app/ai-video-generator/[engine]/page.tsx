@@ -87,7 +87,7 @@ export function generateMetadata({ params }: { params: { engine: string } }): Me
     description,
     // KINEO-MOTORES-16-LINGUAS-2026-09-21 — hreflang das 14 versões nas 3 páginas que têm tradução.
     alternates: { canonical: url, ...((LOCALIZED_ENGINE_SLUGS as readonly string[]).includes(params.engine) ? { languages: engineAlternates(BASE, params.engine as LocalizedEngineSlug) } : {}) },
-    openGraph: { title, description, url, type: 'website' },
+    openGraph: { title, description, url, siteName: 'Kineo (usekineo.com)', type: 'website' },
     twitter: { card: 'summary_large_image', title, description },
   }
 }
@@ -436,6 +436,9 @@ export default async function EnginePage({ params }: { params: { engine: string 
             <Link href="/free-ai-shorts-generator" style={{ color: '#86868b', textDecoration: 'none' }}>Free AI Shorts generator</Link>
             {' · '}
             <Link href="/best-ai-shorts-generators" style={{ color: '#86868b', textDecoration: 'none' }}>Best AI Shorts generators</Link>
+            {' · '}
+            {/* KINEO-INDICE-VIDEO-IA-2026-10-06 — o índice mensal com tempo e custo medidos de cada motor (link discreto). */}
+            <Link href="/ai-video-index" style={{ color: '#86868b', textDecoration: 'none' }}>Real cost and render time</Link>
           </div>
         </nav>
       </div>

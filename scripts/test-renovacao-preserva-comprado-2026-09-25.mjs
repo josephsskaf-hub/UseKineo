@@ -44,8 +44,13 @@ checa('webhook: o evento subscription_invoice_paid registra o que sobreviveu', W
 const CRON = rd('app/api/cron/annual-credit-refill/route.ts')
 checa('recarga anual: lê o saldo e grava pela regra', CRON.includes(".select('id, email, plan, stripe_subscription_id, video_credits')") && CRON.includes('const renovacao = renewalBalance(profile.video_credits, credits)') && CRON.includes('.update({ video_credits: renovacao.balance, is_pro: true, plan: tier') && !/update\(\{ video_credits: credits, is_pro: true/.test(CRON))
 const PP = rd('lib/paypal.ts')
-checa('PayPal: renovação lê o saldo e grava pela regra', PP.includes("const { data: atual } = await admin.from('profiles').select('video_credits').eq('id', userId).maybeSingle()") && PP.includes('.update({ video_credits: renovacao.balance, cinematic_tokens:') && !/update\(\{ video_credits: credits, cinematic_tokens: tier === 'pro' \? 1 : 0, is_pro: true, plan: tier \}\)/.test(PP))
-checa('os três importam a mesma fonte', [WH, CRON, PP].every((s) => s.includes("from '@/lib/credits/renewalBalance'")))
+// Reancorado 07/10 (Codex 2, pagamentos alternativos): a renovação do PayPal virou UM update conferido
+// (updatePaymentProfile) que lê o saldo do MESMO snapshot que grava. A regra é a mesma; muda a escrita.
+// Linhas inteiras (não prefixo): renovação = renewalBalance; ativação repetida da MESMA assinatura = renewalBalance;
+// e nenhuma gravação crua da cota do plano por cima do saldo.
+const PPL = PP.split('\n').map((l) => l.trim())
+checa('PayPal: renovação lê o saldo e grava pela regra', PPL.includes('video_credits: renewalBalance(profile.video_credits, PAYPAL_PLAN_CREDITS[tier]).balance,') && PPL.includes('? renewalBalance(profile.video_credits, PAYPAL_PLAN_CREDITS[tier]).balance') && !/video_credits: (credits|PAYPAL_PLAN_CREDITS\[tier\]),/.test(PP))
+checa('os três importam a mesma fonte', [WH, CRON].every((s) => s.includes("from '@/lib/credits/renewalBalance'")) && PPL.some((l) => l.startsWith("import { renewalBalance } from './credits/renewalBalance'")))
 // primeira cobrança / mudança de plano continuam somando (não passam pela regra): nada a provar aqui além de não terem sido tocadas
 checa('a primeira compra continua sendo SOMA (grant.ts intacto)', rd('lib/payments/grant.ts').includes('.update({ video_credits: after, has_paid: true })'))
 

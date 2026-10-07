@@ -125,9 +125,25 @@ const semGaleriaDaCasa = (body) => {
   assert.equal((body.match(/<ScriptToSeedanceBridge /g) ?? []).length, 1, 'uma ponte só')
   assert.ok(!current.includes('kineo1_bridge') && !current.includes('seedanceBridge.map'), 'a ponte antiga abaixo da dobra saiu')
 }
+// KINEO-INDICE-VIDEO-IA-2026-10-06 — reancorado com motivo (fundador 06/10: "vai índice"): a página de motor ganhou UM
+// link discreto "Real cost and render time" para o /ai-video-index, no fim da linha de links do cluster. A normalização
+// desconta SÓ estas 3 linhas exatas (separador, comentário, Link) e EXIGE que existam uma vez, logo depois do link
+// "Best AI Shorts generators"; todo o resto do corpo segue travado na base 560b5e2f. O conteúdo novo (página, link,
+// números) é provado, com mutantes, por scripts/test-indice-video-ia-2026-10-06.mjs.
+const INDICE_ANCORA = "            <Link href=\"/best-ai-shorts-generators\" style={{ color: '#86868b', textDecoration: 'none' }}>Best AI Shorts generators</Link>"
+const INDICE_LINHAS = [
+  "            {' · '}",
+  '            {/* KINEO-INDICE-VIDEO-IA-2026-10-06 — o índice mensal com tempo e custo medidos de cada motor (link discreto). */}',
+  "            <Link href=\"/ai-video-index\" style={{ color: '#86868b', textDecoration: 'none' }}>Real cost and render time</Link>",
+]
+const semIndiceVideoIa = (body) => {
+  const bloco = '\n' + [INDICE_ANCORA, ...INDICE_LINHAS].join('\n') + '\n'
+  assert.equal(body.split(bloco).length - 1, 1, 'o link do índice existe uma vez, logo depois de "Best AI Shorts generators" (a normalização tem sujeito)')
+  return body.replace(bloco, '\n' + INDICE_ANCORA + '\n')
+}
 assert.notEqual(pageBody(current), pageBody(previous), 'a galeria da casa e a ponte existem na página atual')
 assert.equal(edicoesMotoresGeo(current), 11, 'as 11 edições da camada citável existem (a normalização tem sujeito)')
-assert.equal(semGaleriaDaCasa(semMotoresGeoFonte(pageBody(current))), pageBody(previous))
+assert.equal(semGaleriaDaCasa(semMotoresGeoFonte(semIndiceVideoIa(pageBody(current)))), pageBody(previous))
 console.log('PASS: actual metadata, canonical URLs, pause policy and credit coverage for ' + ENGINE_SLUGS.length + ' engine pages; visible page locked outside approved gallery, bridge and G3 additions')
 
 // Exercise the hub's actual metadata object, not a copied expected object.

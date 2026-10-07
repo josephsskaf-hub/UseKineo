@@ -7,6 +7,7 @@ import { offlineModules, renderToStaticMarkup } from './gpt24h-offline-support.m
 // (TAREFA 12) são descontados dos DOIS lados pela normalização única; a hierarquia do hero e o resto da página seguem
 // travados. O conteúdo novo é provado por scripts/test-motores-geo-2026-10-06.mjs.
 import { semMotoresGeoHtml } from './test-support/motores-geo-2026-10-06.mjs'
+import { edicoesIndiceHtml, semIndiceHtml } from './test-support/indice-video-ia-2026-10-06.mjs' // KINEO-INDICE-VIDEO-IA-2026-10-06
 
 // Actual server-page rendering, offline boundaries; no visits or analytics writes.
 const path = 'app/ai-video-generator/[engine]/page.tsx'
@@ -24,7 +25,11 @@ const hero = html => html.match(/<section\b[\s\S]*?<\/section>/)?.[0]
 let tested = 0
 for (const engine of served) {
   const old = semMotoresGeoHtml(renderToStaticMarkup(await before(path).default({ params: { engine } })))
-  const current = semMotoresGeoHtml(renderToStaticMarkup(await after(path).default({ params: { engine } })))
+  // KINEO-INDICE-VIDEO-IA-2026-10-06 — reancorado com motivo: o HTML atual desconta SÓ o link discreto "Real cost and render
+  // time" (/ai-video-index; scripts/test-support/indice-video-ia-2026-10-06.mjs), exigido uma vez por página.
+  const renderAtual = renderToStaticMarkup(await after(path).default({ params: { engine } }))
+  assert.equal(edicoesIndiceHtml(renderAtual), 1, engine + ': index link exactly once (the normalization has a subject)')
+  const current = semMotoresGeoHtml(semIndiceHtml(renderAtual))
   //30/09: founder increased acquisition work; Veo adopts the same actions.
   // Its entire non-action content remains byte-locked, as do all other pages.
   if (engine !== 'seedance' && engine !== 'veo') assert.equal(current, old, engine + ': entire rendered page unchanged')

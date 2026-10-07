@@ -63,6 +63,11 @@ export const viewport: Viewport = {
 // page increases relevance score → better Ad Rank → higher CTR.
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.usekineo.com'),
+  // KINEO-MARCA-2026-10-06 — <meta name="application-name">: a marca presa ao domínio
+  // (lib/brandIdentity.ts BRAND_WITH_DOMAIN), herdada por toda página. Os títulos das
+  // páginas que trazem tráfego do ChatGPT ficam intactos; a desambiguação vai aqui,
+  // no og:site_name e no schema.
+  applicationName: 'Kineo (usekineo.com)',
   // KINEO-BRAND-SERP-2026-07-29 — reescrito para INTENÇÃO DE MARCA.
   //
   // O QUE OS DADOS DIZEM (Search Console, 28 dias encerrando 27/07):
@@ -123,7 +128,9 @@ export const metadata: Metadata = {
     description:
       `Launch a repeatable AI Shorts show with the same face, voice and style. ${ft(OFFER, 'Try up to 3 watermarked Fast videos every 24h, no card; paid plans unlock clean MP4s.', OFFER.copy.headline)}`,
     url: 'https://www.usekineo.com',
-    siteName: 'Kineo',
+    // KINEO-MARCA-2026-10-06 — og:site_name com o domínio (era 'Kineo'): o ChatGPT
+    // confundia a Kineo com o kineo.studio. O og:title acima fica como estava.
+    siteName: 'Kineo (usekineo.com)',
     images: [
       {
         url: 'https://www.usekineo.com/og-card.png?v=claro-1001b',

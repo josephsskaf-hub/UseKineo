@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { root, source, offlineModules, renderToStaticMarkup, checks } from './gpt24h-offline-support.mjs'
 import { engineFixture } from './gpt24h-engine-fixture.mjs'
+import { edicoesIndiceHtml, semIndiceHtml } from './test-support/indice-video-ia-2026-10-06.mjs' // KINEO-INDICE-VIDEO-IA-2026-10-06
 const { check, finish } = checks()
 const pagePath = 'app/ai-video-generator/[engine]/page.tsx'
 const proofPath = 'lib/growth/paidEngineProof.ts'
@@ -32,7 +33,11 @@ const after = readFileSync(resolve(root,pagePath),'utf8')
 const bridge = s => s.slice(s.indexOf('{/* KINEO-PONTE-ACIMA'), s.indexOf('{/* KINEO-GALERIA-DA-CASA')).replace(/\r\n/g,'\n')
 check('bridge and Kineo 1 starter untouched', bridge(before) === bridge(after))
 const beforeLoad = engineFixture({[pagePath]:before})
-check('Kineo 1 renders identically', renderToStaticMarkup(await beforeLoad(pagePath).default({params:{engine:'kineo-1'}})) === renderToStaticMarkup(await load(pagePath).default({params:{engine:'kineo-1'}})))
+// KINEO-INDICE-VIDEO-IA-2026-10-06 — reancorado com motivo: a página de motor ganhou UM link discreto "Real cost and render
+// time" (/ai-video-index). O HTML atual desconta SÓ ele (scripts/test-support/indice-video-ia-2026-10-06.mjs) e o exige uma vez.
+const kineo1Atual = renderToStaticMarkup(await load(pagePath).default({params:{engine:'kineo-1'}}))
+check('Kineo 1 has the index link exactly once (the normalization has a subject)', edicoesIndiceHtml(kineo1Atual) === 1)
+check('Kineo 1 renders identically', renderToStaticMarkup(await beforeLoad(pagePath).default({params:{engine:'kineo-1'}})) === semIndiceHtml(kineo1Atual))
 check('unknown engine / Kineo 1 not offered paid block', paidEngineBudget('kineo-1') === null && paidEngineBudget('unknown') === null)
 const jsx = source('components/PaidEngineBudget.tsx')
 check('no typed commercial numbers', !/\$\d|\b\d+\s*(credits|films|seconds|USD|\/month)|1080p/.test(jsx))

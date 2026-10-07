@@ -39,10 +39,11 @@ export function verifyHottok(header: string | null): boolean {
 
 // Events that mean "money received → grant credits".
 export const HOTMART_APPROVED_EVENTS = new Set(['PURCHASE_APPROVED', 'PURCHASE_COMPLETE'])
-// Events that mean "reverse → revoke" (handled best-effort; logged for now).
+// Terminal events block future approval for the same purchase transaction.
 export const HOTMART_REVERSED_EVENTS = new Set(['PURCHASE_REFUNDED', 'PURCHASE_CHARGEBACK', 'PURCHASE_CANCELED'])
 
 export interface HotmartEvent {
+  id?: string
   event?: string
   data?: {
     buyer?: { email?: string; name?: string }

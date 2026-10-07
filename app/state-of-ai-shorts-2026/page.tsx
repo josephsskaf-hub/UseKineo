@@ -99,7 +99,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title,
     description,
     alternates: { canonical: CANONICAL },
-    openGraph: { title, description, url: CANONICAL, type: 'article' },
+    openGraph: { title, description, url: CANONICAL, siteName: 'Kineo (usekineo.com)', type: 'article' },
     twitter: { card: 'summary_large_image', title: 'State of AI Shorts 2026', description },
   }
 }

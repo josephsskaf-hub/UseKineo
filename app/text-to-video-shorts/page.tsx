@@ -71,6 +71,7 @@ export const metadata: Metadata = {
     description:
       'Paste text and generate a finished faceless Short: script, AI voiceover, visuals, captions, and MP4 export.',
     url: `${BASE}/text-to-video-shorts`,
+    siteName: 'Kineo (usekineo.com)', // KINEO-MARCA-2026-10-06
     type: 'website',
     images: [{ url: FEATURED_EXAMPLE.posterPath, width: 360, height: 640 }],
     videos: [{ url: FEATURED_EXAMPLE.videoPath, width: 360, height: 640, type: 'video/mp4' }],

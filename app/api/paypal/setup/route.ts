@@ -11,7 +11,7 @@ import {
   ensurePlan,
   getPaypalConfig,
   setPaypalConfig,
-} from '@/lib/paypal'
+} from '../../../../lib/paypal'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -32,6 +32,10 @@ export const maxDuration = 60
 
 const WEBHOOK_EVENTS = [
   'PAYMENT.CAPTURE.COMPLETED',
+  'PAYMENT.CAPTURE.REFUNDED',
+  'PAYMENT.CAPTURE.REVERSED',
+  'PAYMENT.SALE.REFUNDED',
+  'PAYMENT.SALE.REVERSED',
   'PAYMENT.SALE.COMPLETED',
   'BILLING.SUBSCRIPTION.ACTIVATED',
   'BILLING.SUBSCRIPTION.CANCELLED',
@@ -53,7 +57,7 @@ export async function GET(req: NextRequest) {
   // a key while no webhook is configured yet, so it can be triggered right after
   // deploy. Once the webhook exists, subsequent runs require CRON_SECRET. First-run
   // only creates OUR own PayPal products/plans/webhook and is fully idempotent.
-  const existingWebhook = await getPaypalConfig(admin, 'webhook_id')
+  const existingWebhook = process.env.PAYPAL_WEBHOOK_ID || await getPaypalConfig(admin, 'webhook_id')
   const keyOk = !!process.env.CRON_SECRET && key === process.env.CRON_SECRET
   if (existingWebhook && !keyOk) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
@@ -64,7 +68,7 @@ export async function GET(req: NextRequest) {
   try {
     // 1) Webhook FIRST — the critical piece (it credits users after a payment).
     // Created before plans so a plan hiccup can never block it. Idempotent.
-    let webhookId = await getPaypalConfig(admin, 'webhook_id')
+    let webhookId = existingWebhook
     if (!webhookId) {
       const webhookUrl = `${appUrl}/api/paypal/webhook`
       const list = await paypalFetch('/v1/notifications/webhooks')
@@ -85,7 +89,18 @@ export async function GET(req: NextRequest) {
       }
       await setPaypalConfig(admin, 'webhook_id', webhookId)
     }
-    summary.webhook_id = webhookId
+    // Existing registrations also need reversal events. This code only runs
+    // on the authorized setup route; no setup/API mutation is run by tests.
+    // https://developer.paypal.com/api/webhooks/v1/webhooks-update
+    const effectiveWebhookId = process.env.PAYPAL_WEBHOOK_ID || webhookId
+    const currentWebhook = await paypalFetch(`/v1/notifications/webhooks/${encodeURIComponent(effectiveWebhookId)}`)
+    const currentEvents = (currentWebhook?.event_types ?? []) as Array<{ name: string }>
+    const eventNames = [...new Set([...currentEvents.map((event) => event.name), ...WEBHOOK_EVENTS])]
+    await paypalFetch(`/v1/notifications/webhooks/${encodeURIComponent(effectiveWebhookId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify([{ op: 'replace', path: '/event_types', value: eventNames.map((name) => ({ name })) }]),
+    })
+    summary.webhook_id = effectiveWebhookId
 
     // 2) Plans — RESILIENT: each in its own try so one failing plan never blocks
     // the others or the webhook. Products are auto-created inside ensurePlan.

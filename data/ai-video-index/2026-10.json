@@ -1,0 +1,141 @@
+{
+    "schema": "kineo-ai-video-index/2",
+    "window": {
+        "end": "2026-10-07T00:00:00Z",
+        "days": 30,
+        "start": "2026-09-07T00:00:00Z"
+    },
+    "edition": "2026-10",
+    "engines": [
+        {
+            "house": null,
+            "engine": "Seedance 1.5",
+            "customers": {
+                "coherence": {
+                    "mean": 75.6,
+                    "offPct": 14.7,
+                    "sample": "100+"
+                },
+                "reliability": {
+                    "pct": 98.2,
+                    "sample": "100+",
+                    "unknownPct": 0.0
+                },
+                "minutesToFilm": {
+                    "p90": 16.2,
+                    "median": 5.9,
+                    "sample": "100+"
+                },
+                "durationSeconds": {
+                    "median": 43.0,
+                    "sample": "100+"
+                }
+            },
+            "windowNote": null,
+            "qualityMode": "cinematic_ai"
+        },
+        {
+            "house": {
+                "minutesToFilm": {
+                    "p90": 13.8,
+                    "median": 7.7,
+                    "sample": "<10"
+                },
+                "durationSeconds": {
+                    "median": 62.0,
+                    "sample": "<10"
+                }
+            },
+            "engine": "Kling 2.5",
+            "customers": null,
+            "windowNote": null,
+            "qualityMode": "cinematic_kling"
+        },
+        {
+            "house": {
+                "minutesToFilm": {
+                    "p90": 16.8,
+                    "median": 6.3,
+                    "sample": "<10"
+                },
+                "durationSeconds": {
+                    "median": 63.0,
+                    "sample": "<10"
+                }
+            },
+            "engine": "Veo 3.1",
+            "customers": null,
+            "windowNote": null,
+            "qualityMode": "cinematic_veo"
+        },
+        {
+            "house": {
+                "minutesToFilm": {
+                    "p90": 11.0,
+                    "median": 7.4,
+                    "sample": "<10"
+                },
+                "durationSeconds": {
+                    "median": 53.0,
+                    "sample": "<10"
+                }
+            },
+            "engine": "Kling 3",
+            "customers": null,
+            "windowNote": null,
+            "qualityMode": "cinematic_hollywood"
+        },
+        {
+            "house": {
+                "minutesToFilm": {
+                    "p90": 10.2,
+                    "median": 7.4,
+                    "sample": "<10"
+                },
+                "durationSeconds": {
+                    "median": 41.0,
+                    "sample": "<10"
+                }
+            },
+            "engine": "MiniMax H3",
+            "customers": null,
+            "windowNote": "Paused for new films from 2026-09-15 to 2026-09-22.",
+            "qualityMode": "cinematic_h3"
+        },
+        {
+            "house": {
+                "minutesToFilm": {
+                    "p90": 18.9,
+                    "median": 16.8,
+                    "sample": "<10"
+                },
+                "durationSeconds": {
+                    "median": 44.5,
+                    "sample": "<10"
+                }
+            },
+            "engine": "Seedance 2.5",
+            "customers": null,
+            "windowNote": "House-only until 2026-09-15, paused until 2026-10-06, then reopened for paid plans only.",
+            "qualityMode": "cinematic_s25"
+        },
+        {
+            "house": {
+                "minutesToFilm": {
+                    "p90": 4.8,
+                    "median": 4.8,
+                    "sample": "<10"
+                },
+                "durationSeconds": {
+                    "median": 40.0,
+                    "sample": "<10"
+                }
+            },
+            "engine": "Omni Flash",
+            "customers": null,
+            "windowNote": "Paused for maintenance since 2026-09-15.",
+            "qualityMode": "cinematic_omni"
+        }
+    ],
+    "measuredAt": "2026-10-07T03:05:06Z"
+}

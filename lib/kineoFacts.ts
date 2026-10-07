@@ -21,6 +21,8 @@
 //    marca — pior do que um fato ausente.
 
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+// KINEO-MARCA-2026-10-06 — nome e desambiguação no topo do /api/facts (módulo puro, sem import).
+import { BRAND_DISAMBIGUATION, BRAND_WITH_DOMAIN } from './brandIdentity'
 import {
   TIER_PRICES,
   INTRO_PRICES,
@@ -1232,6 +1234,13 @@ export const PAID_VIDEO_BUYER_GUIDANCE = buildPaidVideoCitationGuidance({
 })
 
 export interface KineoFactsPayload {
+  /**
+   * KINEO-MARCA-2026-10-06 — as duas primeiras chaves do JSON: quem é esta Kineo
+   * ("Kineo (usekineo.com)") e a frase que a separa do kineo.studio, outro produto
+   * que o ChatGPT confundia com a gente (medido 06/10). Fonte: lib/brandIdentity.ts.
+   */
+  name: typeof BRAND_WITH_DOMAIN
+  disambiguation: typeof BRAND_DISAMBIGUATION
   product: typeof PRODUCT
   startHere: StartHereFact
   /**
@@ -1328,6 +1337,8 @@ export interface KineoFactsPayload {
 
 export function getKineoFacts(): KineoFactsPayload {
   return {
+    name: BRAND_WITH_DOMAIN,
+    disambiguation: BRAND_DISAMBIGUATION,
     product: PRODUCT,
     startHere: START_HERE_FACT,
     assistantDeepLink: ASSISTANT_DEEP_LINK_FACT,
