@@ -1,8 +1,10 @@
+import { createHmac, timingSafeEqual } from 'node:crypto'
+
 // Mercado Pago integration (Brazilian payments: Pix, boleto, BR cards in BRL).
 // Runs ALONGSIDE Stripe — Brazilians pay here in Real, everyone else keeps
 // Stripe in USD. Uses the REST API directly (no SDK dependency).
 //
-// Env: MP_ACCESS_TOKEN (server-side secret, from the user's Mercado Pago account).
+// Env: MP_ACCESS_TOKEN and MP_WEBHOOK_SECRET (server-side, never exposed).
 //
 // Flow: checkout route creates a Checkout Pro "preference" -> redirect the buyer
 // to init_point -> they pay (Pix/card/boleto) -> Mercado Pago calls our webhook
@@ -22,7 +24,7 @@ export const MP_PACKS: Record<string, { credits: number; brl: number; title: str
 }
 
 export function mpConfigured(): boolean {
-  return !!process.env.MP_ACCESS_TOKEN
+  return !!process.env.MP_ACCESS_TOKEN && !!process.env.MP_WEBHOOK_SECRET
 }
 
 /** Create a Checkout Pro preference and return its init_point (the payment URL). */
@@ -33,7 +35,7 @@ export async function createMpPreference(args: {
   appUrl: string
 }): Promise<{ initPoint: string } | { error: string }> {
   const token = process.env.MP_ACCESS_TOKEN
-  if (!token) return { error: 'Mercado Pago não configurado (MP_ACCESS_TOKEN ausente).' }
+  if (!token || !mpConfigured()) return { error: 'Mercado Pago não configurado (MP_ACCESS_TOKEN/MP_WEBHOOK_SECRET ausente).' }
   const pack = MP_PACKS[args.pack]
   if (!pack) return { error: 'Pacote inválido.' }
 
@@ -72,31 +74,41 @@ export async function createMpPreference(args: {
   }
 }
 
-/** Fetch a payment by id to verify status + read the external_reference. */
+// Official manifest: URL data.id (lowercase), request ID and timestamp.
+// https://www.mercadopago.com.br/developers/en/docs/checkout-pro-preferences/additional-content/notifications/webhooks
+export function verifyMpWebhook(headers: Headers, params: URLSearchParams): boolean {
+  const secret = process.env.MP_WEBHOOK_SECRET
+  const signature = headers.get('x-signature')
+  const requestId = headers.get('x-request-id')
+  const id = params.get('data.id')?.toLowerCase()
+  if (!secret || !signature || !requestId || !id) return false
+  const parts = signature.split(',').map((part) => part.trim().split('='))
+  const timestamps = parts.filter(([key]) => key === 'ts')
+  const signatures = parts.filter(([key]) => key === 'v1')
+  if (timestamps.length !== 1 || signatures.length !== 1) return false
+  const ts = timestamps[0][1], v1 = signatures[0][1]
+  if (!/^\d+$/.test(ts ?? '') || !/^[a-f0-9]{64}$/i.test(v1 ?? '')) return false
+  const manifest = 'id:' + id + ';request-id:' + requestId + ';ts:' + ts + ';'
+  const expected = createHmac('sha256', secret).update(manifest).digest()
+  return timingSafeEqual(expected, Buffer.from(v1, 'hex'))
+}
+
+/** Only the authenticated provider API decides the payment state and owner. */
 export async function getMpPayment(paymentId: string): Promise<{
-  status: string
-  externalReference: string | null
-  amount: number | null
-} | null> {
+  status: string; externalReference: string | null; amount: number | null; currency: string | null
+}> {
   const token = process.env.MP_ACCESS_TOKEN
-  if (!token) return null
+  if (!token) throw new Error('mp_access_token_missing')
+  let res: Response
   try {
-    const res = await fetch(`${MP_API}/v1/payments/${encodeURIComponent(paymentId)}`, {
-      headers: { Authorization: `Bearer ${token}` },
+    res = await fetch(MP_API + '/v1/payments/' + encodeURIComponent(paymentId), {
+      headers: { Authorization: 'Bearer ' + token }, cache: 'no-store',
     })
-    if (!res.ok) return null
-    const data = await res.json().catch(() => null) as {
-      status?: string
-      external_reference?: string
-      transaction_amount?: number
-    } | null
-    if (!data) return null
-    return {
-      status: data.status ?? 'unknown',
-      externalReference: data.external_reference ?? null,
-      amount: typeof data.transaction_amount === 'number' ? data.transaction_amount : null,
-    }
-  } catch {
-    return null
-  }
+  } catch { throw new Error('mp_payment_lookup_unavailable') }
+  if (!res.ok) throw new Error('mp_payment_lookup_failed')
+  const data = await res.json()
+  if (String(data.id).toLowerCase() !== paymentId.toLowerCase() || !data.status) throw new Error('mp_payment_identity_mismatch')
+  return { status: Number(data.transaction_amount_refunded ?? 0) > 0 ? 'refunded' : data.status, externalReference: data.external_reference ?? null,
+    amount: typeof data.transaction_amount === 'number' ? data.transaction_amount : null,
+    currency: data.currency_id ?? null }
 }

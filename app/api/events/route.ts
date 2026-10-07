@@ -20,6 +20,10 @@ import { businessAdsStamp } from '@/lib/growth/businessAdsAttribution'
 export const dynamic = 'force-dynamic'
 
 const SERVER_ONLY_EVENTS = new Set([
+  'alternative_payment_grant',
+  'alternative_payment_processed',
+  'alternative_payment_reversed',
+  'payment_webhook_failed',
   'mrr_ready_film_claimed',
   'mrr_ready_film_sent',
   'video_published_v1',
