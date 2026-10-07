@@ -171,8 +171,8 @@ export function paisDoRequest(h: { get(name: string): string | null } | null | u
 //   (b) REGION_PASS_OFFER_LIVE — o passe avulso (?pack=starter) na moeda local, na parede e logo depois do filme grátis
 //       (lib/regionPass.ts, app/api/region-pass, components/RegionPassOffer.tsx).
 // false = o comportamento de hoje, byte a byte (scripts/test-saida-regiao-2026-10-07.mjs prova executando).
-export const REGION_FREE_FILM_LIVE = false
-export const REGION_PASS_OFFER_LIVE = false
+export const REGION_FREE_FILM_LIVE = true
+export const REGION_PASS_OFFER_LIVE = true
 
 /** O filme grátis de região é o MESMO filme da cota semanal (lib/freeWeeklyFilm.ts FREE_WEEKLY_FILM_QUALITY/SECONDS). */
 export const REGION_FREE_FILM_QUALITY = 'cinematic_ai' as const
