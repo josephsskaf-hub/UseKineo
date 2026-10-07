@@ -225,6 +225,9 @@ const SERVER_ONLY_EVENTS = new Set([
   'guest_sessions_revoked',
   'guest_account_ready_email_sent',
   'guest_account_ready_email_failed',
+  // KINEO-CUPOM-CONVIDADO-2026-10-07 — o webhook mede o desconto de boas-vindas que caiu numa conta que já pagou;
+  // forjado pelo navegador, inventaria reuso que não houve.
+  'guest_welcome_promo_reused',
   // FIX-REVISAO-2 (KINEO-FAL-SALDO-ALERTA / PLANO-B-OPENAI / CENA-CLASSICA / KINEO1-IMAGEM-V2 — 2026-09-28) — os nove
   // nomes que as levas de 28/09 escrevem SÓ no servidor (writeServerEvent ou insert com a service role). Fora desta
   // lista, a 2ª revisão executou este POST anônimo com {event_name: fal_balance_exhausted, metadata: {alerted: true,

@@ -99,3 +99,107 @@ interruptor.
   `password_scramble_error` quando falha) e `session_reentered` (link/Google) dizem se a senha foi trocada e se a
   sessão da dona voltou.
 - `guest_account_ready_email_sent` / `guest_account_ready_email_failed`.
+
+## 07/10 — cupom de boas-vindas
+
+**Status:** branch `codex/cupom-convidado-0710` sobre a main 469164bc. Commit 1 com o interruptor
+`GUEST_WELCOME_PROMO_LIVE` DESLIGADO (o site se comporta exatamente como hoje: 33 pedidos e compras executados na base e
+na branch deram o mesmo transcrito, byte a byte); commit 2 só vira o interruptor para LIGADO. Nada foi publicado.
+
+### A decisão
+
+Fundador, 07/10: **"vai para cupom"**. A oferta de boas-vindas da home (modal "Your first month is 20% off", links
+`/api/stripe/checkout?tier=basic|pro&billing=monthly&promo=WELCOME20&checkout_origin=welcome20_modal`, evento com
+`public_promo_kind = welcome_first_month_20`) também compra sem conta: o visitante vai direto à Stripe com os mesmos 20%
+do 1º mês do caminho com login.
+
+### Por quê
+
+A compra sem login de 06/10 não alcançava essa oferta: a régua mandava todo `?promo=` para o cadastro (conferido em
+produção em 07/10). Em 30 dias, **32 sessões anônimas — cerca de 30% das que tentaram comprar sem conta — chegaram ao
+"entre primeiro" por essa oferta.**
+
+### Como o caminho com login aplica o WELCOME20 (lido em 07/10; nada disso mudou)
+
+- Código promocional `WELCOME20` → cupom `KINEO_WELCOME20` (20%, `once` = só o 1º mês), criado pela própria rota na
+  primeira vez (desde 25/08). Constantes em `lib/growth/publicPromoTruth.ts`.
+- Recorte: Creator ou Studio, mensal. Fora disso a rota recusa com a mensagem de desconto não verificado.
+- Antes de abrir a sessão, `resolvePromisedPublicPromo` confere o código ativo, sem validade vencida nem limite esgotado,
+  **sem** restrição de primeira compra, valor mínimo, moeda ou cliente, e o cupom exato (20%, `once`).
+- "Um desconto de boas-vindas por cliente" não tem checagem no servidor (nem `has_paid`, nem uso anterior). O que existe
+  é o modal sumir para assinante pagante (`/api/me/plan`, no navegador) e a rota recusar uma 2ª assinatura ativa.
+
+### O que a Stripe diz (documentação oficial, lida em 07/10/2026)
+
+[docs.stripe.com/payments/checkout/discounts](https://docs.stripe.com/payments/checkout/discounts?payment-ui=stripe-hosted),
+seção "Limit by first-time order": sem `customer` na sessão, a compra **é considerada primeira transação**, e códigos
+restritos a primeira compra continuam aceitos em sessões que não criam cliente. Na referência da API
+([promotion_codes/create](https://docs.stripe.com/api/promotion_codes/create), `restrictions.first_time_transaction`) o
+teste é sobre o objeto Customer ("Customers without any successful payments or invoices"), nunca sobre o e-mail. A compra
+de convidado não manda `customer` (a Stripe cria um Customer novo a cada compra), então **a restrição nativa não impede o
+mesmo e-mail de usar o desconto de novo**. E a verificação do caminho com login recusa um WELCOME20 com essa restrição
+(`first_transaction_restricted`): ligá-la quebraria a oferta para quem tem conta. Nenhum cupom ou código novo foi criado.
+
+**Nada a criar no painel da Stripe:** o código WELCOME20 já existe em produção e passa na verificação — em 30 dias (até
+07/10), 10 sessões do caminho com login saíram com o desconto aplicado, a última em 01/10 23:32 UTC, e nenhuma falhou na
+verificação (consulta só de leitura em `events`). Se um dia o código sumir, o convidado volta ao cadastro e o motivo
+aparece em `guest_checkout_fallback` (`not_found_or_inactive`).
+
+### O desenho
+
+1. **Régua** (`guestCheckoutFallbackReason`, `lib/growth/guestCheckout.ts`): só a oferta de boas-vindas passa, e só com o
+   interruptor ligado. Outros cupons, recuperação de checkout, 1º mês com desconto, trial, Plan Fit, volta da marca
+   d'água e robô continuam no cadastro.
+2. **Rota** (`buildGuestSubscriptionAndRedirect`, `app/api/stripe/checkout/route.ts`): o mesmo recorte (Creator/Studio
+   mensal) e a mesma verificação do caminho com login, só lendo a Stripe. A sessão sai com o desconto (`discounts`), o
+   carimbo `public_promo_state = applied` na sessão e na assinatura, o valor do 1º mês na volta e o cupom na página de
+   desistência — o mesmo que o caminho com login faz.
+3. **Nunca pior que hoje:** código ausente ou arquivado, cupom diferente do prometido, Stripe fora do ar ou recusando a
+   sessão → o visitante cai no cadastro de hoje (mesmo redirect, mesmo `checkout_auth_required`) e o motivo vai em
+   `guest_checkout_fallback` (`welcome_promo_unavailable` + `public_promo_failure_reason`, ou `stripe_session_failed`).
+   Nunca uma sessão a preço cheio no lugar da prometida.
+4. **Webhook:** o mesmo plano e os mesmos créditos do caminho com login com o desconto (plano cheio; o desconto é só no
+   dinheiro). `payment_success` e `guest_account_created`/`guest_account_matched` da compra de convidado registram a oferta
+   (`guest_welcome_promo = true`, `public_promo_kind`, `public_promo_first_charge_minor`).
+5. **Monitoramento do risco:** compra de convidado com o desconto numa conta que **já tinha pago** (`has_paid` antes desta
+   compra) grava `guest_welcome_promo_reused` (id determinístico; falha ao gravar = 500 e a Stripe reenvia antes de
+   conceder) e avisa o fundador por e-mail (1× por sessão, padrão do `guest_conflict`). O plano é concedido normalmente.
+
+### Risco aceito
+
+| Risco | O que acontece |
+|---|---|
+| Quem já pagou antes volta como convidado e leva 20% de novo no 1º mês | Aceito pelo fundador em 07/10 (é 20% de UM mês). O plano entra; `guest_welcome_promo_reused` + aviso contam cada caso. |
+| A mesma pessoa usa outro e-mail | Invisível para a casa (para a Stripe e para nós é um cliente novo). Aceito pelo mesmo motivo. |
+| Reentrega do webhook depois do grant acusar "reuso" de quem comprou pela 1ª vez | Não acontece: se o perfil já aponta para ESTA assinatura, o `has_paid` é desta compra e não conta. |
+| "Já usou o WELCOME20" sem nunca ter pago | Não existe na prática: toda compra concluída com o desconto passa pelo grant, que grava `has_paid = true`, e nada no código o volta a `false`. |
+
+### O interruptor
+
+`export const GUEST_WELCOME_PROMO_LIVE` em `lib/growth/guestCheckout.ts` — um lugar só; só a rota de checkout o lê (o
+guardião falha se aparecer outro). Desligar = trocar para `false` e publicar pelo caminho de sempre: o link do modal volta a
+pedir cadastro. O webhook não olha o interruptor: compra feita com ele ligado é entregue e medida mesmo depois.
+
+### Como medir
+
+- `checkout_guest_started` com `public_promo_applied = true` → `payment_success` com `guest_welcome_promo = true`, por
+  pessoa.
+- `guest_checkout_fallback` com `guest_fallback = 'welcome_promo_unavailable'`, por `public_promo_failure_reason`
+  (`not_found_or_inactive` = o código WELCOME20 sumiu ou foi arquivado na Stripe).
+- `guest_welcome_promo_reused` (e o aviso por e-mail): se repetir, reavaliar o risco.
+
+### Provas
+
+- Guardião `scripts/test-compra-sem-login-2026-10-06.mjs` (código real com Stripe, banco e Auth falsos): Stripe direto
+  com o mesmo desconto do caminho com login (comparado campo a campo), recorte igual ao do logado em todos os planos ×
+  períodos, outros cupons no cadastro, 8 falhas da Stripe = resposta de hoje, mesmo grant, reuso registrado e avisado 1×,
+  interruptor desligado = hoje byte a byte; cada regra com mutante cuja aplicação é provada.
+- Diferencial contra a base 469164bc (uso único, fora do repositório): 33 pedidos e compras com relógio e aleatoriedade
+  fixos deram o mesmo transcrito byte a byte com o interruptor desligado; com ele ligado, só os 6 pedidos anônimos com
+  WELCOME20 mudaram.
+
+### O que só um pagamento real prova
+
+A Stripe aceitando `discounts` com o código numa sessão de assinatura sem `customer`; o valor cobrado com 20% em dólar e
+em real (o arredondamento é da Stripe); a 2ª mensalidade a preço cheio; o `total_details.amount_discount` real no
+webhook; e o aviso chegando ao e-mail do fundador.

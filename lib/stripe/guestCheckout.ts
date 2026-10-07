@@ -29,9 +29,17 @@ import {
   buildGuestCheckoutSuccessUrl,
   guestPurchaseConflict,
   guestReadyEmailClaimId,
+  guestWelcomePromoReuse,
   normalizeGuestEmail,
   type GuestConflictReason,
+  type GuestWelcomePromoReuse,
 } from '@/lib/growth/guestCheckout'
+// KINEO-CUPOM-CONVIDADO-2026-10-07 — a oferta de boas-vindas sem conta usa o MESMO contrato do caminho logado.
+import {
+  publicPromoTruthMetadata,
+  type LoadedPublicPromoCandidate,
+  type PromisedPublicPromoKind,
+} from '@/lib/growth/publicPromoTruth'
 import {
   planSettlementAmountMinor,
   resolveSettlementCurrency,
@@ -139,18 +147,42 @@ export type GuestSessionInput = {
   affiliateClickId: string | null
   rewardfulReferral: string | null
   autopilotPriceId: string | null
+  /** KINEO-CUPOM-CONVIDADO-2026-10-07 — oferta de boas-vindas JÁ verificada pela rota; ausente = compra sem desconto. */
+  welcomePromo?: GuestWelcomePromoApplied | null
+}
+
+/** O desconto de boas-vindas confirmado na Stripe pela MESMA verificação do caminho logado (resolvePromisedPublicPromo). */
+export type GuestWelcomePromoApplied = {
+  kind: PromisedPublicPromoKind
+  /** O código como veio no ?promo= (o cancel_url do caminho logado repete o mesmo texto). */
+  requestedCode: string
+  /** O promo_… que a verificação confirmou. */
+  promotionCodeId: string
+  /** O 1º mês que o caminho logado põe na volta (publicPromoFirstChargeMinor sobre o preço de lista). */
+  firstChargeMinor: number
 }
 
 /**
  * O caminho logado, menos o que só existe com conta: sem `customer` (a Stripe cria um e coleta o e-mail), sem
  * supabase_user_id (o webhook descobre o dono), sem trial/Plan Fit/cupom/1º mês (a rota manda esses para o cadastro).
  * Campos iguais aos do logado, na mesma ordem, para a comparação do guardião ser direta.
+ * Exceção (KINEO-CUPOM-CONVIDADO-2026-10-07): a oferta de boas-vindas, quando a rota já a confirmou na Stripe.
  */
 export function buildGuestSubscriptionSessionParams(input: GuestSessionInput): {
   params: Stripe.Checkout.SessionCreateParams
   affiliateSystem: GuestAffiliateSystem
 } {
   const isAnnual = input.billing === 'annual'
+  // KINEO-CUPOM-CONVIDADO-2026-10-07 — espelho de markPromisedPublicPromoApplied (caminho logado): o carimbo 'applied'
+  // na sessão E na assinatura, o 1º mês na volta, o código no cancel_url e o desconto em `discounts` — com o campo
+  // manual de cupom desligado, porque a Stripe não aceita os dois juntos. Sem a oferta, o objeto sai idêntico ao de antes.
+  const welcome = input.welcomePromo ?? null
+  const welcomeMetadata: Record<string, string> = welcome
+    ? {
+        ...publicPromoTruthMetadata(welcome.kind, 'applied'),
+        public_promo_first_charge_minor: String(welcome.firstChargeMinor),
+      }
+    : {}
   // Mesma precedência do caminho logado (PUSH #68): atribuição própria vence a Rewardful. Sem conta, "própria" só
   // pode nascer de código + prova de clique (attributeAffiliateForUser exige os dois para uma conta nova).
   const affiliateSystem: GuestAffiliateSystem = input.affiliateCode && input.affiliateClickId
@@ -209,11 +241,11 @@ export function buildGuestSubscriptionSessionParams(input: GuestSessionInput): {
       appUrl: input.appUrl,
       tier: input.tier,
       currency: input.chargeCurrency,
-      amount: input.chargeAmount,
+      amount: welcome ? welcome.firstChargeMinor : input.chargeAmount,
     }),
-    // Mesmo formato do cancel_url logado; os pedaços de trial/promo/marca d'água/Plan Fit não existem aqui porque
-    // essas compras nunca viram convidado (guestCheckoutFallbackReason).
-    cancel_url: `${input.appUrl}/checkout/cancelled?tier=${input.tier}&billing=${input.billing}&currency=${input.listCurrency}&settle=${input.chargeCurrency}&region=${input.region}${input.introRequested ? '&intro=1' : ''}${intentCampaignParam}`,
+    // Mesmo formato do cancel_url logado; os pedaços de trial/marca d'água/Plan Fit não existem aqui porque essas
+    // compras nunca viram convidado (guestCheckoutFallbackReason). O de promo só existe para a oferta de boas-vindas.
+    cancel_url: `${input.appUrl}/checkout/cancelled?tier=${input.tier}&billing=${input.billing}&currency=${input.listCurrency}&settle=${input.chargeCurrency}&region=${input.region}${input.introRequested ? '&intro=1' : ''}${welcome ? `&promo=${encodeURIComponent(welcome.requestedCode)}` : ''}${intentCampaignParam}`,
     metadata: {
       billing: input.billing,
       settlement_currency: input.chargeCurrency,
@@ -224,14 +256,16 @@ export function buildGuestSubscriptionSessionParams(input: GuestSessionInput): {
       ...(input.affiliateCode ? { [GUEST_CHECKOUT_AFFILIATE_CODE_KEY]: input.affiliateCode } : {}),
       ...(input.affiliateClickId ? { [GUEST_CHECKOUT_AFFILIATE_CLICK_KEY]: input.affiliateClickId } : {}),
       ...sharedMetadata,
+      ...welcomeMetadata,
     },
     subscription_data: {
-      metadata: { ...sharedMetadata },
+      metadata: { ...sharedMetadata, ...welcomeMetadata },
     },
     // Igual ao logado sem desconto aplicado: campo manual de cupom ligado, e a sessão recuperável também aceita.
-    allow_promotion_codes: true,
+    // Com a oferta de boas-vindas (igual ao logado com desconto): `discounts` e nenhum campo manual, nem na recuperação.
+    ...(welcome ? { discounts: [{ promotion_code: welcome.promotionCodeId }] } : { allow_promotion_codes: true }),
     after_expiration: {
-      recovery: { enabled: true, allow_promotion_codes: true },
+      recovery: { enabled: true, allow_promotion_codes: welcome === null },
     },
     expires_at: input.expiresAt,
     ...(affiliateSystem === 'rewardful' && input.rewardfulReferral
@@ -260,11 +294,89 @@ export function guestCheckoutIdempotencyKey(
     subscription_metadata: params.subscription_data?.metadata ?? null,
     client_reference_id: params.client_reference_id ?? null,
     allow_promotion_codes: params.allow_promotion_codes ?? false,
+    // KINEO-CUPOM-CONVIDADO-2026-10-07 — o desconto entra na assinatura da chave só quando existe: as chaves das
+    // compras sem desconto (todas as de hoje) continuam exatamente as mesmas.
+    ...(params.discounts ? { discounts: params.discounts } : {}),
     after_expiration: params.after_expiration,
     expires_at: params.expires_at,
     window: input.window,
   })
   return `kineo-guest-sub-v1:${createHash('sha256').update(signature).digest('hex')}`
+}
+
+// ─── Oferta de boas-vindas sem conta (KINEO-CUPOM-CONVIDADO-2026-10-07) ────────────────────────────────────────────
+/** Sessão de convidado não tem `customer`: um código restrito a um cliente nunca vale aqui (customer_mismatch). */
+const GUEST_WITHOUT_CUSTOMER = ''
+
+/**
+ * O MESMO retrato que o caminho logado monta antes de aplicar o desconto prometido (o loader de
+ * resolvePromisedPublicPromo em app/api/stripe/checkout/route.ts): o código ativo pelo texto pedido e o cupom por trás
+ * dele. SÓ LEITURA: o convidado nunca cria cupom nem código na Stripe (o caminho logado auto-provisiona desde 25/08);
+ * se o código não estiver lá, a verificação recusa e o visitante volta ao cadastro, onde o caminho logado segue igual.
+ */
+export async function loadGuestWelcomePromoCandidate(
+  stripeClient: Pick<Stripe, 'promotionCodes' | 'coupons'>,
+  input: { kind: PromisedPublicPromoKind; code: string; nowMs: number },
+): Promise<LoadedPublicPromoCandidate | null> {
+  const pc = (await stripeClient.promotionCodes.list({ code: input.code, active: true, limit: 1 })).data[0]
+  if (!pc) return null
+  const restrictedCustomerId = typeof pc.customer === 'string'
+    ? pc.customer
+    : pc.customer?.id ?? null
+  const coupon = typeof pc.coupon === 'string'
+    ? await stripeClient.coupons.retrieve(pc.coupon)
+    : pc.coupon
+  // Mesma leitura do logado: um cupom apagado volta com `deleted: true` na mesma forma.
+  const couponDeleted = (coupon as { deleted?: boolean }).deleted === true
+  return {
+    kind: input.kind,
+    promotionCodeId: pc.id,
+    promotionCode: pc.code,
+    promotionActive: pc.active,
+    promotionExpiresAtSeconds: pc.expires_at,
+    promotionMaxRedemptions: pc.max_redemptions,
+    promotionTimesRedeemed: pc.times_redeemed,
+    promotionFirstTimeTransaction: pc.restrictions.first_time_transaction,
+    promotionMinimumAmount: pc.restrictions.minimum_amount,
+    promotionMinimumAmountCurrency: pc.restrictions.minimum_amount_currency,
+    promotionCurrencyOptionCodes: Object.keys(pc.restrictions.currency_options ?? {}),
+    restrictedCustomerId,
+    currentCustomerId: GUEST_WITHOUT_CUSTOMER,
+    couponId: coupon.id ?? null,
+    couponDeleted,
+    couponValid: couponDeleted ? false : coupon.valid,
+    couponPercentOff: couponDeleted ? null : coupon.percent_off,
+    couponAmountOff: couponDeleted ? null : coupon.amount_off,
+    couponDuration: couponDeleted ? null : coupon.duration,
+    couponRedeemBySeconds: couponDeleted ? null : coupon.redeem_by,
+    couponCurrencyOptionCodes: couponDeleted ? [] : Object.keys(coupon.currency_options ?? {}),
+    couponProductIds: couponDeleted ? [] : coupon.applies_to?.products ?? [],
+    nowMs: input.nowMs,
+  }
+}
+
+/** O carimbo exato que a rota grava na sessão e na assinatura quando o desconto de boas-vindas foi aplicado. */
+const GUEST_WELCOME_APPLIED_STAMP = publicPromoTruthMetadata('welcome_first_month_20', 'applied')
+
+/** A sessão de convidado levou o desconto de boas-vindas (o carimbo 'applied' inteiro, não só o nome da oferta). */
+export function guestWelcomePromoApplied(metadata: { [key: string]: string } | null | undefined): boolean {
+  return Object.entries(GUEST_WELCOME_APPLIED_STAMP).every(([key, value]) => metadata?.[key] === value)
+}
+
+/**
+ * O que os eventos do webhook registram da oferta de boas-vindas. Vazio para compra sem o desconto: as linhas de hoje
+ * (payment_success, guest_account_created/matched) não mudam de forma.
+ */
+export function guestWelcomePromoEventMetadata(
+  metadata: { [key: string]: string } | null | undefined,
+): Record<string, string | number | boolean | null> {
+  if (!guestWelcomePromoApplied(metadata)) return {}
+  const firstCharge = Number(metadata?.public_promo_first_charge_minor)
+  return {
+    ...GUEST_WELCOME_APPLIED_STAMP,
+    public_promo_first_charge_minor: Number.isInteger(firstCharge) && firstCharge > 0 ? firstCharge : null,
+    guest_welcome_promo: true,
+  }
 }
 
 // ─── O dono da compra (webhook) ─────────────────────────────────────────────────────────────────────────────────────
@@ -308,6 +420,10 @@ export type GuestCheckoutOwner = {
   createdAt: string | null
   conflict: GuestConflictReason | null
   affiliate: { attempted: boolean; ok: boolean; reason: string | null }
+  /** KINEO-CUPOM-CONVIDADO-2026-10-07 — a compra levou o desconto de boas-vindas (carimbo 'applied' na sessão). */
+  welcomePromo: boolean
+  /** 'paid_before' = desconto de boas-vindas numa conta que JÁ tinha pago: o webhook grava o evento e avisa o fundador. */
+  welcomePromoReuse: GuestWelcomePromoReuse | null
 }
 
 export interface GuestOwnerDeps {
@@ -443,6 +559,11 @@ export async function resolveGuestCheckoutOwner(
 
   // 3. Conta que já tinha plano ativo vindo de OUTRA assinatura: o caminho logado teria recusado antes de cobrar.
   const conflict = bornFromThisSession ? null : guestPurchaseConflict(profile, subscriptionId)
+  // 3b. KINEO-CUPOM-CONVIDADO-2026-10-07 — desconto de boas-vindas numa conta que JÁ pagou: MEDIDO (evento + aviso no
+  //     webhook), nunca bloqueado — a pessoa pagou o que a tela prometeu e o risco foi aceito (20% de UM mês). Lido do
+  //     perfil de ANTES do grant (o mesmo que decide o conflito).
+  const welcomePromoApplied = guestWelcomePromoApplied(session.metadata)
+  const welcomePromoReuse = guestWelcomePromoReuse({ welcomePromoApplied, bornFromThisSession, profile, subscriptionId })
 
   // 4. Dono carimbado na Stripe. Customer e Assinatura são OBRIGATÓRIOS (renovação/updated/deleted e a própria
   //    checagem de identidade do Path B leem de lá); divergência é corrupção → lança e nunca adota.
@@ -509,6 +630,10 @@ export async function resolveGuestCheckoutOwner(
       affiliate_ok: affiliate.ok,
       affiliate_reason: affiliate.reason,
       conflict,
+      // Só na compra com o desconto de boas-vindas (as linhas sem desconto não mudam de forma).
+      ...(welcomePromoApplied
+        ? { ...guestWelcomePromoEventMetadata(session.metadata), welcome_promo_reuse: welcomePromoReuse }
+        : {}),
     },
   })
 
@@ -520,6 +645,8 @@ export async function resolveGuestCheckoutOwner(
     createdAt: authUser.created_at,
     conflict,
     affiliate,
+    welcomePromo: welcomePromoApplied,
+    welcomePromoReuse,
   }
 }
 

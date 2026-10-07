@@ -102,10 +102,13 @@ import {
 import {
   deterministicEventUuid,
   guestOwnerDepsFor,
+  guestWelcomePromoEventMetadata,
   resolveGuestCheckoutOwner,
   sendGuestAccountReadyEmailOnce,
   type GuestCheckoutOwner,
 } from '@/lib/stripe/guestCheckout'
+// KINEO-CUPOM-CONVIDADO-2026-10-07 — o percentual da oferta de boas-vindas no aviso ao fundador (fonte única).
+import { WELCOME20_PERCENT_OFF } from '@/lib/growth/publicPromoTruth'
 
 // KINEO-PILOT-99-2026-07-26 — fallback por valor para o piloto de $99, QUALIFICADO
 // POR MOEDA. Sem a moeda isto seria um bug de caixa: topup40 em INR custa 49900 e
@@ -856,7 +859,8 @@ async function recordPaymentSuccess(
         ? session.payment_link
         : session.payment_link?.id ?? null,
       // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — só na compra de convidado (as outras linhas não mudam de forma).
-      ...(isGuestCheckoutSession(session) ? { guest_checkout: true, guest_checkout_version: GUEST_CHECKOUT_VERSION } : {}),
+      // KINEO-CUPOM-CONVIDADO-2026-10-07 — e, nela, o desconto de boas-vindas quando houve (sem ele, nada muda).
+      ...(isGuestCheckoutSession(session) ? { guest_checkout: true, guest_checkout_version: GUEST_CHECKOUT_VERSION, ...guestWelcomePromoEventMetadata(session.metadata) } : {}),
     },
   }
 
@@ -1751,6 +1755,52 @@ export async function POST(req: NextRequest) {
             await recordPaymentSuccess(supabase, event.id, session)
           } catch (trackingError) {
             console.error('[stripe webhook] guest payment_success tracking threw:', trackingError)
+          }
+
+          // ═══ KINEO-CUPOM-CONVIDADO-2026-10-07 — desconto de boas-vindas numa conta que JÁ tinha pago ═══════════════
+          // Sem conta, ninguém pôde checar "um desconto de boas-vindas por cliente" antes de cobrar, e a Stripe não checa
+          // por e-mail (sessão sem `customer` conta como primeira transação: docs.stripe.com/payments/checkout/discounts).
+          // Risco aceito pelo fundador em 07/10 (20% de UM mês): aqui ele vira fato, no padrão do guest_conflict — evento
+          // com dono e id determinístico (reentrega não duplica; falha de gravação = 500 e a Stripe reenvia, antes do
+          // grant) e aviso ao fundador 1×/sessão. O grant segue igual: a pessoa pagou o que a tela prometeu.
+          if (guestOwner.welcomePromoReuse) {
+            const { error: reuseEventError } = await supabase.from('events').insert({
+              id: deterministicEventUuid(GUEST_CHECKOUT_EVENTS.welcomePromoReused, session.id),
+              name: GUEST_CHECKOUT_EVENTS.welcomePromoReused,
+              user_id: guestOwner.userId,
+              path: '/api/stripe/webhook',
+              metadata: {
+                source: 'stripe_webhook',
+                version: GUEST_CHECKOUT_VERSION,
+                stripe_session_id: session.id,
+                stripe_subscription_id: typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? null,
+                reuse_reason: guestOwner.welcomePromoReuse,
+                conflict: guestOwner.conflict,
+                tier: session.metadata?.tier ?? null,
+                amount_total: session.amount_total ?? null,
+                amount_discount: session.total_details?.amount_discount ?? null,
+                currency: session.currency ?? null,
+                ...guestWelcomePromoEventMetadata(session.metadata),
+              },
+            })
+            if (reuseEventError && reuseEventError.code !== '23505') {
+              throw new RetryableCheckoutAnalyticsError(`Guest welcome promo reuse not recorded (${session.id}): ${reuseEventError.message}`)
+            }
+            await alertFounderOnce({
+              kind: 'guest_welcome_promo_reused',
+              stripeSessionId: session.id,
+              subject: '[Kineo] Desconto de boas-vindas usado por conta que já pagou (compra sem login)',
+              text:
+                `Sessão ${session.id} pagou ${paidAmountLabel(session.amount_total, session.currency)} (${session.metadata?.tier ?? 'plano'}) ` +
+                `com o desconto de boas-vindas (${WELCOME20_PERCENT_OFF}% do 1º mês; desconto de ` +
+                `${paidAmountLabel(session.total_details?.amount_discount, session.currency)}) num e-mail cuja conta JÁ tinha pago antes ` +
+                `(${guestOwner.welcomePromoReuse}). ` +
+                (guestOwner.conflict
+                  ? `A conta tem plano ativo (${guestOwner.conflict}): nada foi concedido — ver o aviso de conflito desta sessão. `
+                  : 'O plano foi concedido normalmente (o mesmo grant do caminho logado). ') +
+                'Risco aceito em 07/10 (o desconto é de um mês): nada a fazer, salvo se repetir — o evento ' +
+                `${GUEST_CHECKOUT_EVENTS.welcomePromoReused} conta os casos. user_id=${guestOwner.userId}`,
+            })
           }
 
           // O e-mail já tinha plano ativo vindo de OUTRA assinatura. O caminho logado teria recusado antes de cobrar

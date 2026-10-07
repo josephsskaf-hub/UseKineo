@@ -90,7 +90,11 @@ import {
   GUEST_CHECKOUT_NONCE_COOKIE,
   GUEST_CHECKOUT_NONCE_MAX_AGE_SECONDS,
   GUEST_CHECKOUT_VERSION,
+  // KINEO-CUPOM-CONVIDADO-2026-10-07 — o interruptor da oferta de boas-vindas sem conta e o recorte dela (Creator/Studio
+  // mensal, o mesmo do caminho logado).
+  GUEST_WELCOME_PROMO_LIVE,
   guestCheckoutFallbackReason,
+  guestWelcomePromoShapeOk,
   type GuestCheckoutFailureReason,
 } from '@/lib/growth/guestCheckout'
 import {
@@ -98,8 +102,10 @@ import {
   guestCheckoutIdempotencyKey,
   guestNonceHash,
   guestSettlement,
+  loadGuestWelcomePromoCandidate,
   mintGuestNonce,
   readGuestNonce,
+  type GuestWelcomePromoApplied,
 } from '@/lib/stripe/guestCheckout'
 import { readCheckoutProfileWithRetry } from '@/lib/stripe/checkoutProfileRead'
 import { checkoutIntentMetadata } from '@/lib/growth/checkoutIntent'
@@ -130,6 +136,7 @@ import {
   promisedPublicPromoKind,
   resolvePromisedPublicPromo,
   WELCOME20_COUPON_ID,
+  type PromisedPublicPromoKind,
   type PublicPromoFailureReason,
 } from '@/lib/growth/publicPromoTruth'
 import { canPurchaseCreditTopup } from '@/lib/growth/topupEligibility'
@@ -1170,6 +1177,10 @@ async function buildAndRedirect(
       returnToWatermark,
       checkoutRecovery,
       promoRequested: rawPromo.length > 0,
+      // KINEO-CUPOM-CONVIDADO-2026-10-07 — o único cupom que pode nascer sem conta: a oferta de boas-vindas (WELCOME20, a
+      // mesma promessa que promisedPublicPromoKind reconhece no caminho logado), e só com o interruptor ligado.
+      welcomePromoLive: GUEST_WELCOME_PROMO_LIVE,
+      welcomePromo: promisedPublicPromo === 'welcome_first_month_20',
       introDiscount: intro && !isAnnual && (tier === 'starter' || tier === 'basic') && introDiscountMinor(tier, currency, region) > 0,
       botSuspected: isLikelyBotUserAgent(req.headers.get('user-agent')),
     })
@@ -1194,6 +1205,10 @@ async function buildAndRedirect(
           browserSessionId,
           checkoutMetadata,
           checkoutValueContext,
+          // Só chega aqui com cupom quando a régua liberou a oferta de boas-vindas; sem cupom, null (a compra de sempre).
+          welcomePromo: promisedPublicPromo && requestedPromo
+            ? { kind: promisedPublicPromo, requestedCode: requestedPromo }
+            : null,
         })
         if (guest.ok) return guest.response
         guestFailure = guest.failure
@@ -2584,11 +2599,40 @@ async function buildGuestSubscriptionAndRedirect(
     browserSessionId: string | null
     checkoutMetadata: Record<string, unknown>
     checkoutValueContext: ReturnType<typeof buildCheckoutValueContext>
+    /** KINEO-CUPOM-CONVIDADO-2026-10-07 — a oferta de boas-vindas liberada pela régua; null = compra sem cupom. */
+    welcomePromo: { kind: PromisedPublicPromoKind; requestedCode: string } | null
   },
 ): Promise<
   | { ok: true; response: NextResponse }
   | { ok: false; failure: { reason: GuestCheckoutFailureReason; detail: Record<string, unknown> } }
 > {
+  // ═══ KINEO-CUPOM-CONVIDADO-2026-10-07 — o desconto de boas-vindas, confirmado ANTES de abrir a sessão ═══════════
+  // A MESMA verificação do caminho logado (resolvePromisedPublicPromo: código WELCOME20 ativo, cupom KINEO_WELCOME20 de
+  // 20% "once", sem restrição de cliente, valor mínimo ou moeda) e o MESMO recorte (Creator/Studio, mensal). Só leitura
+  // na Stripe. Qualquer recusa = { ok: false } com o motivo no formato do logado → quem chama devolve o visitante ao
+  // cadastro (nunca pior que hoje: de lá, o caminho logado faz exatamente o que já fazia com este link).
+  let welcome: GuestWelcomePromoApplied | null = null
+  if (ctx.welcomePromo) {
+    const offer = ctx.welcomePromo
+    if (!guestWelcomePromoShapeOk({ tier: ctx.tier, isAnnual: ctx.isAnnual })) {
+      return { ok: false, failure: { reason: 'welcome_promo_unavailable', detail: publicPromoTruthMetadata(offer.kind, 'failed', 'invalid_checkout_shape') } }
+    }
+    const resolution = await resolvePromisedPublicPromo(
+      offer.kind,
+      ctx.unitAmount,
+      () => loadGuestWelcomePromoCandidate(stripe, { kind: offer.kind, code: offer.requestedCode, nowMs: Date.now() }),
+    )
+    if (resolution.status === 'rejected') {
+      return { ok: false, failure: { reason: 'welcome_promo_unavailable', detail: publicPromoTruthMetadata(offer.kind, 'failed', resolution.reason) } }
+    }
+    welcome = {
+      kind: offer.kind,
+      requestedCode: offer.requestedCode,
+      promotionCodeId: resolution.promotionCodeId,
+      firstChargeMinor: resolution.firstChargeMinor,
+    }
+  }
+
   const plan = TIERS[ctx.tier]
   const settlement = guestSettlement({
     tier: ctx.tier,
@@ -2646,6 +2690,7 @@ async function buildGuestSubscriptionAndRedirect(
     affiliateClickId,
     rewardfulReferral,
     autopilotPriceId,
+    welcomePromo: welcome,
   })
 
   const guestMetadata: Record<string, unknown> = {
@@ -2658,19 +2703,29 @@ async function buildGuestSubscriptionAndRedirect(
     guest_checkout_version: GUEST_CHECKOUT_VERSION,
     affiliate_system: affiliateSystem,
     affiliate_code_present: Boolean(affiliateCode),
+    // Com o desconto de boas-vindas, o funil diz o mesmo que o caminho logado diz depois de criar a sessão ('applied' +
+    // o 1º mês). Sem ele, nenhuma chave muda.
+    ...(welcome
+      ? { ...publicPromoTruthMetadata(welcome.kind, 'applied'), public_promo_first_charge_minor: welcome.firstChargeMinor }
+      : {}),
   }
 
   let session: Stripe.Checkout.Session
   try {
-    session = await stripe.checkout.sessions.create(params, {
-      idempotencyKey: guestCheckoutIdempotencyKey(params, {
-        nonceHash,
-        window: checkoutWindow,
-        unitAmount: ctx.unitAmount,
-        listCurrency: ctx.currency,
-        introRequested: ctx.intro,
+    // A mesma última trava do caminho logado: oferta prometida e não verificada nunca vira sessão (sem oferta, só cria).
+    session = await createCheckoutWithPublicPromoTruth(
+      welcome?.kind ?? null,
+      welcome !== null,
+      () => stripe.checkout.sessions.create(params, {
+        idempotencyKey: guestCheckoutIdempotencyKey(params, {
+          nonceHash,
+          window: checkoutWindow,
+          unitAmount: ctx.unitAmount,
+          listCurrency: ctx.currency,
+          introRequested: ctx.intro,
+        }),
       }),
-    })
+    )
   } catch (sessionErr) {
     // Nunca pior que hoje: quem chama devolve o visitante ao cadastro (o caminho de hoje). Sem a mensagem crua da
     // Stripe no evento (pode ecoar e-mail ou ids); só tipo, código e status.
@@ -2686,7 +2741,7 @@ async function buildGuestSubscriptionAndRedirect(
     ...guestMetadata,
     intro_applied: false,
     private_offer_applied: false,
-    public_promo_applied: false,
+    public_promo_applied: welcome !== null,
     stripe_session_id: session.id,
     checkout_session_window_hours: RECURRING_CHECKOUT_WINDOW_HOURS,
     checkout_session_window_version: RECURRING_CHECKOUT_WINDOW_VERSION,

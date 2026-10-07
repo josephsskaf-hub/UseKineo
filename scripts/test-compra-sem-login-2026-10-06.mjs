@@ -17,9 +17,21 @@
 //     prova; o login de uso único não dispara e não reabre depois; leva 3: na mesma hora a senha vira uma aleatória
 //     forte (admin + religar a sessão da prova; na recuperação, pela própria sessão), e falha da troca não desfaz nada;
 //   · E-MAIL "SUA CONTA ESTÁ PRONTA" — 1 por sessão Stripe, só conta nova, sem preço, link de uso único e com validade.
+// Leva 4 (07/10, KINEO-CUPOM-CONVIDADO-2026-10-07 — "vai para cupom"): a OFERTA DE BOAS-VINDAS (modal da home,
+// ?promo=WELCOME20) compra sem conta, com o interruptor GUEST_WELCOME_PROMO_LIVE:
+//   · o visitante com WELCOME20 vai à Stripe com o MESMO desconto do caminho logado (executado na mesma caixa e
+//     comparado campo a campo), e o recorte Creator/Studio mensal concorda com o logado em todos os planos × períodos;
+//   · qualquer outro cupom, recuperação e robô continuam no cadastro;
+//   · a Stripe sem o código, com o cupom diferente do prometido, fora do ar ou recusando a sessão = a resposta de hoje
+//     + guest_checkout_fallback com o motivo (nunca uma compra a preço cheio no lugar da prometida);
+//   · o webhook concede o MESMO grant do logado com o desconto e registra a oferta no evento; desconto numa conta que
+//     JÁ pagou grava guest_welcome_promo_reused (1×, sem falso reuso na reentrega) e avisa o fundador (1×);
+//   · interruptor desligado = hoje byte a byte (as respostas exatas de hoje e o diferencial contra a régua de hoje).
 // Banco, Stripe, Auth e Resend são falsos em memória. Depois, MUTANTES em memória: cada regra é quebrada por uma troca
-// de texto cuja aplicação é provada (âncora única, texto novo presente) e o cenário que a guarda tem de ficar vermelho.
-// Funciona com o interruptor em false (commit 1) e em true (commit 2): os cenários forçam o valor que precisam.
+// de texto cuja aplicação é provada (âncora única, texto novo presente, âncora ausente depois) e o cenário que a guarda
+// tem de ficar vermelho.
+// Funciona com o interruptor em false (commit 1) e em true (commit 2): os cenários forçam o valor que precisam (vale
+// para os dois interruptores, GUEST_CHECKOUT_LIVE e GUEST_WELCOME_PROMO_LIVE).
 //
 // Rodar: node scripts/test-compra-sem-login-2026-10-06.mjs
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
@@ -86,7 +98,10 @@ function transpile(rel, src) {
   return transpiled.get(key)
 }
 
-/** Troca de texto com prova de aplicação: a âncora existe UMA vez e o texto novo aparece no fonte transformado. */
+/**
+ * Troca de texto com prova de aplicação: a âncora existe UMA vez, o texto novo aparece no fonte transformado e a âncora
+ * deixou de existir (leva 4: uma remoção, com `to` vazio, também prova que removeu).
+ */
 function replaceOnce(from, to, label) {
   return {
     label,
@@ -95,6 +110,7 @@ function replaceOnce(from, to, label) {
       if (count !== 1) throw new Error(`mutante "${label}" sem âncora única (${count})`)
       const out = src.split(from).join(to)
       if (to && !out.includes(to)) throw new Error(`mutante "${label}" não aplicou`)
+      if (!to.includes(from) && out.includes(from)) throw new Error(`mutante "${label}": a âncora continua no fonte`)
       return out
     },
   }
@@ -108,6 +124,19 @@ function switchTo(value) {
       const hits = src.match(re) ?? []
       if (hits.length !== 1) throw new Error(`interruptor não encontrado exatamente 1 vez (${hits.length})`)
       return src.replace(re, `export const GUEST_CHECKOUT_LIVE = ${value}`)
+    },
+  }
+}
+/** KINEO-CUPOM-CONVIDADO-2026-10-07 — o interruptor da oferta de boas-vindas sem conta (o cenário força o valor). */
+function welcomeSwitchTo(value) {
+  return {
+    label: `GUEST_WELCOME_PROMO_LIVE=${value}`,
+    allowNoop: true,
+    apply(src) {
+      const re = /export const GUEST_WELCOME_PROMO_LIVE = (?:true|false)\b/g
+      const hits = src.match(re) ?? []
+      if (hits.length !== 1) throw new Error(`interruptor da oferta de boas-vindas não encontrado exatamente 1 vez (${hits.length})`)
+      return src.replace(re, `export const GUEST_WELCOME_PROMO_LIVE = ${value}`)
     },
   }
 }
@@ -191,8 +220,9 @@ function makeDb() {
     checkout_abandoned: ['stripe_session_id'],
   }
   const failures = []
-  const takeFailure = (table, op) => {
-    const i = failures.findIndex((f) => f.table === table && f.op === op && f.remaining > 0)
+  // Leva 4: `match` (opcional) escolhe QUAL escrita falha — ex.: só o insert de um evento com aquele nome.
+  const takeFailure = (table, op, payload) => {
+    const i = failures.findIndex((f) => f.table === table && f.op === op && f.remaining > 0 && (!f.match || f.match(payload)))
     if (i < 0) return null
     failures[i].remaining--
     return failures[i].error
@@ -231,7 +261,7 @@ function makeDb() {
       return { data, error: null }
     }
     run() {
-      const injected = takeFailure(this.table, this.op)
+      const injected = takeFailure(this.table, this.op, this.payload)
       if (injected) return { data: null, error: injected, count: null }
       const rows = T(this.table)
       if (this.op === 'insert') {
@@ -280,7 +310,7 @@ function makeDb() {
     T,
     failures,
     takeFailure,
-    fail(table, op, error, times = 1) { failures.push({ table, op, error, remaining: times }) },
+    fail(table, op, error, times = 1, match = null) { failures.push({ table, op, error, remaining: times, match }) },
     from: (t) => new Query(t),
     rows: (t) => T(t),
     auth: {
@@ -465,14 +495,46 @@ function makeStripe() {
   const calls = []
   // Falhas injetadas no próximo checkout.sessions.create: { kind: 'throw', error } | { kind: 'no_url' } | { kind: 'url_getter_throws' }.
   const createFailures = []
+  // Leva 4 (KINEO-CUPOM-CONVIDADO-2026-10-07): cupons e códigos promocionais de verdade no falso. O código guarda o id do
+  // cupom; a listagem devolve o cupom expandido (como a API 2024-06-20). Falhas injetadas na próxima listagem: Error.
+  const coupons = new Map()
+  const promos = []
+  const promoListFailures = []
   const missing = (what) => Object.assign(new Error(`No such ${what}`), { code: 'resource_missing', statusCode: 404, type: 'StripeInvalidRequestError' })
   const strip = (s) => { const out = clone(s); delete out._params; return out }
+  const expandPromo = (p) => clone({ ...p, coupon: coupons.has(p.coupon) ? coupons.get(p.coupon) : p.coupon })
+  /** O que a Stripe faz com `discounts` ao criar a sessão: recusa o par com o campo manual, código ausente/inativo ou de outro cliente. */
+  const discountFor = (params, amount) => {
+    const list = params.discounts ?? []
+    if (!list.length) return 0
+    if (params.allow_promotion_codes) {
+      throw Object.assign(new Error('You may only specify one of these parameters: allow_promotion_codes, discounts.'), { type: 'StripeInvalidRequestError', code: 'parameters_exclusive', statusCode: 400 })
+    }
+    if (list.length > 1) throw Object.assign(new Error('Checkout Sessions support up to one coupon or promotion code.'), { type: 'StripeInvalidRequestError', code: 'parameter_invalid', statusCode: 400 })
+    const d = list[0]
+    let coupon = null
+    if (d.promotion_code) {
+      const promo = promos.find((p) => p.id === d.promotion_code)
+      if (!promo) throw missing('promotion_code')
+      if (!promo.active) throw Object.assign(new Error('This promotion code is not active.'), { type: 'StripeInvalidRequestError', code: 'promotion_code_invalid', statusCode: 400 })
+      if (promo.customer && promo.customer !== params.customer) throw Object.assign(new Error('This promotion code cannot be redeemed by this customer.'), { type: 'StripeInvalidRequestError', code: 'promotion_code_customer_not_eligible', statusCode: 400 })
+      coupon = coupons.get(promo.coupon) ?? null
+    } else if (d.coupon) {
+      coupon = coupons.get(d.coupon) ?? null
+    }
+    if (!coupon || coupon.valid === false) throw missing('coupon')
+    if (typeof coupon.percent_off === 'number') return Math.round(amount * coupon.percent_off / 100)
+    return Math.min(amount, coupon.amount_off ?? 0)
+  }
   return {
     calls,
     createFailures,
     sessionStore: sessions,
     customerStore: customers,
     subscriptionStore: subscriptions,
+    couponStore: coupons,
+    promoStore: promos,
+    promoListFailures,
     checkout: {
       sessions: {
         async create(params, opts = {}) {
@@ -493,13 +555,14 @@ function makeStripe() {
           const id = `cs_test_${nextId('')}`
           const items = params.line_items ?? []
           const amount = items.reduce((sum, li) => sum + (li.price_data?.unit_amount ?? 0) * (li.quantity ?? 1), 0)
+          const amountDiscount = discountFor(params, amount)
           const session = {
             id, object: 'checkout.session', livemode: false, url: `https://checkout.stripe.com/c/pay/${id}`,
             mode: params.mode, status: 'open', payment_status: 'unpaid', customer: params.customer ?? null,
             customer_email: params.customer_email ?? null, customer_details: null, subscription: null,
-            amount_total: amount, currency: items[0]?.price_data?.currency ?? 'usd',
+            amount_total: amount - amountDiscount, currency: items[0]?.price_data?.currency ?? 'usd',
             client_reference_id: params.client_reference_id ?? null, metadata: { ...(params.metadata ?? {}) },
-            total_details: { amount_discount: 0 }, payment_link: null, after_expiration: null, _params: clone(params),
+            total_details: { amount_discount: amountDiscount }, payment_link: null, after_expiration: null, _params: clone(params),
           }
           sessions.set(id, session)
           if (opts.idempotencyKey) idem.set(opts.idempotencyKey, { id, params: clone(params) })
@@ -563,8 +626,46 @@ function makeStripe() {
       },
       async list({ customer }) { return { data: [...subscriptions.values()].filter((s) => s.customer === customer).map(clone) } },
     },
-    promotionCodes: { async list() { return { data: [] } }, async create() { return {} } },
-    coupons: { async retrieve() { throw missing('coupon') }, async create(p) { return p } },
+    promotionCodes: {
+      async list(params = {}) {
+        calls.push({ op: 'promotionCodes.list', params: clone(params) })
+        const injected = promoListFailures.shift()
+        if (injected) throw injected
+        const code = String(params.code ?? '').toUpperCase()
+        const hits = promos.filter((p) => (!params.code || p.code.toUpperCase() === code) && (params.active === undefined || p.active === params.active))
+        return { data: hits.slice(0, params.limit ?? 10).map(expandPromo) }
+      },
+      async create(params) {
+        calls.push({ op: 'promotionCodes.create', params: clone(params) })
+        if (promos.some((p) => p.active && !p.customer && p.code.toUpperCase() === String(params.code).toUpperCase())) {
+          throw Object.assign(new Error('An active promotion code with this code already exists.'), { type: 'StripeInvalidRequestError', statusCode: 400 })
+        }
+        const promo = { id: nextId('promo_'), object: 'promotion_code', code: params.code, coupon: params.coupon, active: true, customer: params.customer ?? null, expires_at: null, max_redemptions: null, times_redeemed: 0, restrictions: { first_time_transaction: false, minimum_amount: null, minimum_amount_currency: null, currency_options: {} } }
+        promos.push(promo)
+        return expandPromo(promo)
+      },
+    },
+    coupons: {
+      async retrieve(id) {
+        calls.push({ op: 'coupons.retrieve', id })
+        if (!coupons.has(id)) throw missing('coupon')
+        return clone(coupons.get(id))
+      },
+      async create(params) {
+        calls.push({ op: 'coupons.create', params: clone(params) })
+        const coupon = { id: params.id ?? nextId('coupon_'), object: 'coupon', valid: true, percent_off: params.percent_off ?? null, amount_off: params.amount_off ?? null, currency: params.currency ?? null, duration: params.duration ?? 'once', redeem_by: null, applies_to: null, currency_options: null, name: params.name ?? null }
+        coupons.set(coupon.id, coupon)
+        return clone(coupon)
+      },
+    },
+    /** A oferta de boas-vindas como existe em produção desde 25/08 (cupom KINEO_WELCOME20 + código WELCOME20, sem restrição). */
+    seedWelcome({ coupon: couponOver = {}, promo: promoOver = {} } = {}) {
+      const coupon = { id: 'KINEO_WELCOME20', object: 'coupon', valid: true, percent_off: 20, amount_off: null, currency: null, duration: 'once', redeem_by: null, applies_to: null, currency_options: null, name: '20% off first month (welcome)', ...couponOver }
+      coupons.set(coupon.id, coupon)
+      const promo = { id: nextId('promo_'), object: 'promotion_code', code: 'WELCOME20', coupon: coupon.id, active: true, customer: null, expires_at: null, max_redemptions: null, times_redeemed: 0, restrictions: { first_time_transaction: false, minimum_amount: null, minimum_amount_currency: null, currency_options: {} }, ...promoOver }
+      promos.push(promo)
+      return promo
+    },
     webhooks: {
       constructEvent(body, sig, secret) {
         if (!sig || !secret) throw new Error('No signatures found matching the expected signature for payload')
@@ -614,7 +715,7 @@ function newBrowser(cookies = {}) { return { cookies: { ...cookies }, userId: nu
 // O cookies() do Next é por requisição; aqui também: cada pedido carrega o SEU navegador (vale para pedidos simultâneos).
 const requestBrowser = new AsyncLocalStorage()
 
-function makeEnv({ live = true, transforms = {} } = {}) {
+function makeEnv({ live = true, welcomeLive = false, transforms = {} } = {}) {
   const db = makeDb()
   const stripe = makeStripe()
   const state = { browser: newBrowser() }
@@ -670,7 +771,7 @@ function makeEnv({ live = true, transforms = {} } = {}) {
       finalizeAffiliateSignupAttribution: async () => ({ attempted: false, clearCookies: false, outcome: 'no_code' }),
     },
   }
-  const all = { ...transforms, [PURE]: [switchTo(live), ...(transforms[PURE] ?? [])] }
+  const all = { ...transforms, [PURE]: [switchTo(live), welcomeSwitchTo(welcomeLive), ...(transforms[PURE] ?? [])] }
   const world = makeWorld({ stubs, transforms: all, globals: { process: { env: { ...ENV } }, console: quietConsole, fetch: fakeFetch } })
   return {
     db, stripe, state, world, fetchCalls, fetchFailures, founderAlerts, logs,
@@ -1508,6 +1609,394 @@ async function sLoggedUnchanged() {
   return JSON.stringify(shots[0]) === JSON.stringify(shots[1]) ? [] : ['logado: o interruptor mudou o caminho de quem já tem conta']
 }
 
+// ═══ LEVA 4 — KINEO-CUPOM-CONVIDADO-2026-10-07: a oferta de boas-vindas sem conta ═════════════════════════════════════
+/** O link EXATO dos cartões do modal "Your first month is 20% off" (components/WelcomeOfferModal.tsx). */
+const welcomeQuery = (tier, billing = 'monthly') => `tier=${tier}&billing=${billing}&promo=WELCOME20&checkout_origin=welcome20_modal`
+const WELCOME_KIND = 'welcome_first_month_20'
+const mark = (env) => ({ events: env.db.rows('events').length, calls: env.stripe.calls.length })
+/** Escritas de cupom/código na Stripe: o convidado só LÊ (o caminho logado é quem auto-provisiona). */
+const promoWrites = (env, from = 0) => env.stripe.calls.slice(from).filter((c) => c.op === 'coupons.create' || c.op === 'promotionCodes.create')
+/** Tudo o que o visitante e o funil veem de um pedido: resposta, cookies, eventos (sem id/hora do banco falso) e chamadas à Stripe. */
+function transcript(env, res, browser, from) {
+  return JSON.stringify({
+    status: res.status,
+    location: location(res),
+    body: res.jsonBody ?? null,
+    setCookies: res.cookieJar ?? [],
+    browserCookies: Object.keys(browser.cookies).sort(),
+    events: env.db.rows('events').slice(from.events).map(({ name, user_id, session_id, path, metadata }) => ({ name, user_id, session_id, path, metadata })),
+    stripe: env.stripe.calls.slice(from.calls),
+  })
+}
+
+/** Interruptor DESLIGADO: o link do modal é exatamente o de hoje — cadastro, nenhuma chamada à Stripe, os mesmos eventos. */
+async function sWelcomeSwitchOff(env) {
+  const p = []
+  env.stripe.seedWelcome() // o código existe na Stripe: o único motivo do cadastro tem de ser o interruptor
+  // A régua de HOJE (antes desta leva: todo cupom vai ao cadastro) no mesmo fonte — o diferencial byte a byte.
+  const today = makeEnv({
+    live: true,
+    welcomeLive: false,
+    transforms: { [PURE]: [replaceOnce("  if (input.promoRequested && !guestWelcomePromoReleased(input)) return 'promo'\n", "  if (input.promoRequested) return 'promo'\n", 'régua de hoje')] },
+  })
+  today.stripe.seedWelcome()
+  for (const tier of ['basic', 'pro']) {
+    const query = welcomeQuery(tier)
+    const browser = newBrowser({ kineo_event_session_id: `sess_welcome_off_${tier}` })
+    const before = mark(env)
+    const res = await checkoutGet(env, browser, query, { referer: `${ORIGIN}/` })
+    const resume = `/api/stripe/checkout?${query}&resumed=1`
+    if (res.status !== 307 || location(res) !== `${ORIGIN}/signup?reason=checkout&redirect=${encodeURIComponent(resume)}`) p.push(`${tier}: redirect mudou (${res.status} ${location(res)})`)
+    if (env.stripe.calls.length !== before.calls) p.push(`${tier}: chamou a Stripe (${JSON.stringify(env.stripe.calls.slice(before.calls).map((c) => c.op))})`)
+    if (Object.keys(browser.cookies).some((k) => k !== 'kineo_event_session_id') || (res.cookieJar ?? []).length) p.push(`${tier}: gravou cookie`)
+    const fresh = env.db.rows('events').slice(before.events)
+    const names = fresh.map((e) => e.name)
+    if (JSON.stringify(names) !== JSON.stringify(['checkout_attempted', 'guest_checkout_fallback', 'checkout_auth_required'])) p.push(`${tier}: eventos ${JSON.stringify(names)}`)
+    const [attempted, fallback, required] = fresh
+    if (JSON.stringify(required?.metadata) !== JSON.stringify(attempted?.metadata)) p.push(`${tier}: checkout_auth_required não leva a MESMA metadata`)
+    if (JSON.stringify(fallback?.metadata) !== JSON.stringify({ ...attempted?.metadata, guest_fallback: 'promo' })) p.push(`${tier}: guest_checkout_fallback não é o de hoje (${JSON.stringify(fallback?.metadata)})`)
+    if (attempted?.metadata?.public_promo_kind !== WELCOME_KIND || attempted?.metadata?.public_promo_state !== 'requested') p.push(`${tier}: a promessa saiu do checkout_attempted`)
+    if (fresh.some((e) => e.user_id !== null || e.session_id !== `sess_welcome_off_${tier}`)) p.push(`${tier}: dono/sessão dos eventos mudou`)
+    const tb = newBrowser({ kineo_event_session_id: `sess_welcome_off_${tier}` })
+    const tbefore = mark(today)
+    const tres = await checkoutGet(today, tb, query, { referer: `${ORIGIN}/` })
+    const mine = transcript(env, res, browser, before)
+    const ref = transcript(today, tres, tb, tbefore)
+    if (mine !== ref) p.push(`${tier}: difere da régua de hoje byte a byte\n      agora: ${mine}\n      hoje:  ${ref}`)
+  }
+  return p
+}
+
+/** Visitante com WELCOME20: Stripe direto, com o MESMO desconto do caminho logado (executado na mesma caixa). */
+async function sWelcomeGuest(env) {
+  const p = []
+  const promo = env.stripe.seedWelcome()
+  for (const tier of ['basic', 'pro']) {
+    const browser = newBrowser({ kineo_event_session_id: `sess_welcome_${tier}` })
+    const before = mark(env)
+    const res = await checkoutGet(env, browser, welcomeQuery(tier), { referer: `${ORIGIN}/` })
+    const sid = sessionIdFromLocation(res)
+    if (res.status !== 307 || !sid || !location(res).startsWith('https://checkout.stripe.com/')) {
+      p.push(`${tier}: não foi à Stripe (${res.status} ${location(res)} ${JSON.stringify(env.db.events('guest_checkout_fallback').slice(-1).map((e) => e.metadata?.guest_fallback))})`)
+      continue
+    }
+    const params = lastCreate(env)?.params ?? {}
+    const list = env.pricing.monthlyPriceMinor(tier, 'usd', 'standard')
+    const firstMonth = Math.round(list * 0.8)
+    if (JSON.stringify(params.discounts) !== JSON.stringify([{ promotion_code: promo.id }])) p.push(`${tier}: sessão sem o desconto de boas-vindas (${JSON.stringify(params.discounts)})`)
+    if ('allow_promotion_codes' in params) p.push(`${tier}: campo manual de cupom junto com o desconto`)
+    if (JSON.stringify(params.after_expiration) !== JSON.stringify({ recovery: { enabled: true, allow_promotion_codes: false } })) p.push(`${tier}: a sessão recuperada aceitaria outro cupom (${JSON.stringify(params.after_expiration)})`)
+    if ('customer' in params || 'customer_email' in params || params.metadata?.supabase_user_id || params.subscription_data?.metadata?.supabase_user_id) p.push(`${tier}: convidado com dono inventado`)
+    for (const [where, meta] of [['sessão', params.metadata], ['assinatura', params.subscription_data?.metadata]]) {
+      if (meta?.kineo_guest !== '1') p.push(`${tier}: ${where} sem kineo_guest=1`)
+      if (meta?.public_promo_kind !== WELCOME_KIND || meta?.public_promo_state !== 'applied' || meta?.public_promo_truth_version !== 'public_promo_truth_v1' || meta?.public_promo_first_charge_minor !== String(firstMonth)) p.push(`${tier}: ${where} sem o carimbo da oferta (${JSON.stringify(meta)})`)
+    }
+    const li = params.line_items?.[0]?.price_data
+    if (li?.unit_amount !== list || li?.currency !== 'usd') p.push(`${tier}: o preço da linha mudou (o desconto é da Stripe, não da linha): ${JSON.stringify(li)}`)
+    if (params.success_url !== `${ORIGIN}/checkout/guest?currency=usd&amount=${firstMonth}&session_id={CHECKOUT_SESSION_ID}`) p.push(`${tier}: success_url ${params.success_url}`)
+    if (!String(params.cancel_url).includes('&promo=WELCOME20')) p.push(`${tier}: cancel_url sem o cupom (${params.cancel_url})`)
+    const stored = env.stripe.sessionStore.get(sid)
+    if (stored?.total_details?.amount_discount !== list - firstMonth || stored?.amount_total !== firstMonth) p.push(`${tier}: a Stripe não cobraria os 20% (${stored?.amount_total}/${stored?.total_details?.amount_discount})`)
+    const fresh = env.db.rows('events').slice(before.events)
+    const names = fresh.map((e) => e.name)
+    if (JSON.stringify(names) !== JSON.stringify(['checkout_attempted', 'checkout_started', 'checkout_guest_started'])) p.push(`${tier}: eventos ${JSON.stringify(names)}`)
+    for (const e of fresh.filter((x) => x.name !== 'checkout_attempted')) {
+      const m = e.metadata ?? {}
+      if (m.public_promo_applied !== true || m.public_promo_state !== 'applied' || m.public_promo_kind !== WELCOME_KIND || m.public_promo_first_charge_minor !== firstMonth || m.guest_checkout !== true || m.stripe_session_id !== sid) p.push(`${tier}: ${e.name} sem a oferta aplicada (${JSON.stringify(m)})`)
+    }
+    if (!(res.cookieJar ?? []).some((c) => c.name === 'kineo_guest_checkout')) p.push(`${tier}: sem o segredo do navegador`)
+    if (promoWrites(env, before.calls).length) p.push(`${tier}: o convidado criou cupom/código na Stripe (deve só ler)`)
+    // 2º clique do mesmo navegador: a mesma sessão, nenhuma compra a mais no funil.
+    const again = await checkoutGet(env, browser, welcomeQuery(tier), { referer: `${ORIGIN}/` })
+    if (sessionIdFromLocation(again) !== sid || env.db.events('checkout_guest_started').filter((e) => e.metadata?.stripe_session_id === sid).length !== 1) p.push(`${tier}: 2º clique abriu outra sessão/contou outra compra`)
+    // Paridade com o caminho LOGADO no mesmo link (mesma Stripe falsa, mesmo código).
+    const logged = await loggedPurchase(env, { email: `logado-${tier}@exemplo.com`, query: welcomeQuery(tier) })
+    const mine = lastCreate(env)?.params
+    if (!logged.sessionId || !mine) { p.push(`${tier}: o caminho logado não abriu a sessão de referência (${location(logged.res)})`); continue }
+    for (const k of ['line_items', 'discounts', 'cancel_url', 'allow_promotion_codes', 'after_expiration', 'mode']) {
+      if (JSON.stringify(params[k]) !== JSON.stringify(mine[k])) p.push(`${tier}: ${k} difere do logado (${JSON.stringify(params[k])} vs ${JSON.stringify(mine[k])})`)
+    }
+    if (JSON.stringify(params.custom_text?.submit) !== JSON.stringify(mine.custom_text?.submit)) p.push(`${tier}: texto do botão de pagar difere do logado`)
+    const sorted = (o, keys) => JSON.stringify(Object.entries(omit(o, keys)).sort())
+    if (sorted(params.metadata, GUEST_KEYS) !== sorted(mine.metadata, OWNER_KEYS)) p.push(`${tier}: metadata da sessão difere do logado (${sorted(params.metadata, GUEST_KEYS)} vs ${sorted(mine.metadata, OWNER_KEYS)})`)
+    if (sorted(params.subscription_data?.metadata, GUEST_KEYS) !== sorted(mine.subscription_data?.metadata, OWNER_KEYS)) p.push(`${tier}: metadata da assinatura difere do logado`)
+    const fakeId = 'cs_test_abcdefghij0123456789'
+    const guestBack = env.pure.guestSuccessDestination(new URL(params.success_url.replace('{CHECKOUT_SESSION_ID}', fakeId)).searchParams)
+    const loggedBack = mine.success_url.replace('{CHECKOUT_SESSION_ID}', fakeId).replace(ORIGIN, '')
+    if (guestBack !== loggedBack) p.push(`${tier}: depois do login, outro /checkout/success (${guestBack} vs ${loggedBack})`)
+  }
+  return p
+}
+
+/** O recorte da oferta (Creator/Studio, mensal) é o MESMO nos dois caminhos: todos os planos × períodos. */
+async function sWelcomeShapeParity(env) {
+  const p = []
+  const promo = env.stripe.seedWelcome()
+  const withWelcome = (params) => JSON.stringify(params?.discounts) === JSON.stringify([{ promotion_code: promo.id }])
+  let n = 0
+  for (const tier of ['starter', 'basic', 'pro', 'autopilot', 'autopilot_lite']) {
+    for (const billing of ['monthly', 'annual']) {
+      const query = welcomeQuery(tier, billing)
+      const before = mark(env)
+      const guestRes = await checkoutGet(env, newBrowser(), query)
+      const guestOpened = location(guestRes).startsWith('https://checkout.stripe.com/')
+      const guestDiscount = guestOpened && withWelcome(lastCreate(env)?.params)
+      const fb = env.db.rows('events').slice(before.events).find((e) => e.name === 'guest_checkout_fallback')
+      const logged = await loggedPurchase(env, { email: `recorte-${++n}@exemplo.com`, query })
+      const loggedDiscount = Boolean(logged.sessionId) && withWelcome(lastCreate(env)?.params)
+      if (guestDiscount !== loggedDiscount) p.push(`${tier}/${billing}: convidado ${guestDiscount ? 'com' : 'sem'} o desconto, logado ${loggedDiscount ? 'com' : 'sem'}`)
+      if (guestOpened && !guestDiscount) p.push(`${tier}/${billing}: convidado foi à Stripe SEM o desconto prometido`)
+      if (!loggedDiscount && (guestOpened || fb?.metadata?.guest_fallback !== 'welcome_promo_unavailable' || fb?.metadata?.public_promo_failure_reason !== 'invalid_checkout_shape')) p.push(`${tier}/${billing}: fora do recorte sem o desvio certo (${location(guestRes)} ${fb?.metadata?.guest_fallback}/${fb?.metadata?.public_promo_failure_reason})`)
+    }
+  }
+  return p
+}
+
+/** Outros cupons, recuperação, marca d'água e robô continuam no cadastro, com o motivo; nenhuma sessão, nenhuma escrita na Stripe. */
+async function sWelcomeOtherPromos(env) {
+  const p = []
+  env.stripe.seedWelcome()
+  const cases = [
+    { query: 'tier=basic&billing=monthly&promo=FIRST50', reason: 'promo' },
+    { query: 'tier=pro&billing=monthly&promo=STUDIO50', reason: 'promo' },
+    { query: 'tier=basic&billing=monthly&promo=CREATOR20', reason: 'promo' },
+    { query: 'tier=basic&billing=monthly&promo=KINEO5-ABCDEFGH', reason: 'promo' },
+    { query: 'tier=basic&billing=monthly&promo=WELCOME20X', reason: 'promo' },
+    { query: 'tier=basic&billing=monthly&promo=WELCOME%2020', reason: 'promo' },
+    { query: `${welcomeQuery('basic')}&recovery=1`, reason: 'checkout_recovery' },
+    { query: `${welcomeQuery('pro')}&return=wm`, reason: 'watermark_return' },
+    { query: welcomeQuery('basic'), reason: 'bot_suspected', ua: 'curl/8.4.0' },
+    { query: welcomeQuery('starter'), reason: 'welcome_promo_unavailable', failure: 'invalid_checkout_shape' },
+    { query: welcomeQuery('basic', 'annual'), reason: 'welcome_promo_unavailable', failure: 'invalid_checkout_shape' },
+  ]
+  for (const c of cases) {
+    const before = mark(env)
+    const res = await checkoutGet(env, newBrowser(), c.query, { ua: c.ua ?? UA })
+    const label = `${c.query}${c.ua ? ` (${c.ua})` : ''}`
+    if (env.stripe.calls.slice(before.calls).some((x) => x.op === 'checkout.sessions.create')) p.push(`${label}: abriu sessão de convidado`)
+    if (promoWrites(env, before.calls).length) p.push(`${label}: escreveu cupom/código na Stripe`)
+    if (!location(res).startsWith(`${ORIGIN}/signup?reason=checkout&redirect=`)) p.push(`${label}: não voltou ao cadastro (${location(res)})`)
+    const fresh = env.db.rows('events').slice(before.events)
+    const attempted = fresh.find((e) => e.name === 'checkout_attempted')
+    const required = fresh.find((e) => e.name === 'checkout_auth_required')
+    const fallback = fresh.find((e) => e.name === 'guest_checkout_fallback')
+    if (fallback?.metadata?.guest_fallback !== c.reason) p.push(`${label}: motivo ${fallback?.metadata?.guest_fallback}, esperava ${c.reason}`)
+    if (c.failure && (fallback?.metadata?.public_promo_failure_reason !== c.failure || fallback?.metadata?.public_promo_state !== 'failed')) p.push(`${label}: sem o motivo da oferta (${JSON.stringify(fallback?.metadata)})`)
+    if (!required || JSON.stringify(required.metadata) !== JSON.stringify(attempted?.metadata)) p.push(`${label}: checkout_auth_required mudou de forma`)
+  }
+  return p
+}
+
+/** A Stripe não confirma o desconto: a resposta de HOJE (cadastro) + guest_checkout_fallback com o motivo — nunca a preço cheio. */
+async function sWelcomeStripeFailure(env) {
+  const p = []
+  const query = welcomeQuery('basic')
+  const today = makeEnv({ live: true, welcomeLive: false })
+  today.stripe.seedWelcome()
+  const todayRes = await checkoutGet(today, newBrowser({ kineo_event_session_id: 'sess_cupomfail1' }), query)
+  const todayRequired = today.db.events('checkout_auth_required')[0]
+  if (!todayRequired || !location(todayRes).includes('/signup?')) return ['falha do cupom: a referência de hoje não foi o cadastro (referência quebrada)']
+  const restrictions = (o) => ({ first_time_transaction: false, minimum_amount: null, minimum_amount_currency: null, currency_options: {}, ...o })
+  const cases = [
+    { name: 'código ausente na Stripe', setup: () => {}, failure: 'not_found_or_inactive' },
+    { name: 'código arquivado', setup: (s) => s.seedWelcome({ promo: { active: false } }), failure: 'not_found_or_inactive' },
+    { name: 'cupom de outro valor', setup: (s) => s.seedWelcome({ coupon: { percent_off: 30 } }), failure: 'percent_mismatch' },
+    { name: 'cupom de outra duração', setup: (s) => s.seedWelcome({ coupon: { duration: 'forever' } }), failure: 'duration_mismatch' },
+    { name: 'código só para primeira compra', setup: (s) => s.seedWelcome({ promo: { restrictions: restrictions({ first_time_transaction: true }) } }), failure: 'first_transaction_restricted' },
+    { name: 'código de um cliente só', setup: (s) => s.seedWelcome({ promo: { customer: 'cus_dono_unico' } }), failure: 'customer_mismatch' },
+    { name: 'consulta à Stripe caiu', setup: (s) => { s.seedWelcome(); s.promoListFailures.push(Object.assign(new Error('Stripe API unavailable'), { type: 'StripeConnectionError' })) }, failure: 'verification_failed' },
+    {
+      name: 'Stripe recusa a sessão com o desconto',
+      setup: (s) => { s.seedWelcome(); s.createFailures.push({ kind: 'throw', error: Object.assign(new Error('This promotion code cannot be redeemed.'), { type: 'StripeInvalidRequestError', code: 'promotion_code_invalid', statusCode: 400 }) }) },
+      reason: 'stripe_session_failed',
+      triedCreate: true,
+    },
+  ]
+  for (const c of cases) {
+    env.stripe.promoStore.length = 0
+    env.stripe.couponStore.clear()
+    env.stripe.promoListFailures.length = 0
+    env.stripe.createFailures.length = 0
+    c.setup(env.stripe)
+    const browser = newBrowser({ kineo_event_session_id: 'sess_cupomfail1' })
+    const before = mark(env)
+    const res = await checkoutGet(env, browser, query)
+    env.stripe.createFailures.length = 0
+    env.stripe.promoListFailures.length = 0
+    const tried = env.stripe.calls.slice(before.calls).filter((x) => x.op === 'checkout.sessions.create')
+    if (tried.length !== (c.triedCreate ? 1 : 0)) p.push(`${c.name}: ${tried.length} sessão(ões) tentada(s)`)
+    if (tried.some((x) => !x.params?.discounts)) p.push(`${c.name}: tentou sessão SEM o desconto prometido (preço cheio no lugar da oferta)`)
+    if (promoWrites(env, before.calls).length) p.push(`${c.name}: o convidado escreveu cupom/código na Stripe`)
+    if (res.status !== todayRes.status || location(res) !== location(todayRes)) p.push(`${c.name}: resposta difere de hoje (${res.status} ${location(res)})`)
+    if (Object.keys(browser.cookies).some((k) => k !== 'kineo_event_session_id')) p.push(`${c.name}: gravou cookie sem sessão aberta`)
+    const fresh = env.db.rows('events').slice(before.events)
+    const names = fresh.map((e) => e.name)
+    if (JSON.stringify(names) !== JSON.stringify(['checkout_attempted', 'guest_checkout_fallback', 'checkout_auth_required'])) p.push(`${c.name}: eventos ${JSON.stringify(names)}`)
+    const required = fresh.find((e) => e.name === 'checkout_auth_required')
+    if (JSON.stringify(required?.metadata) !== JSON.stringify(todayRequired.metadata) || required?.session_id !== todayRequired.session_id || required?.user_id !== null) p.push(`${c.name}: checkout_auth_required não é o de hoje`)
+    const fb = fresh.find((e) => e.name === 'guest_checkout_fallback')
+    const reason = c.reason ?? 'welcome_promo_unavailable'
+    if (fb?.metadata?.guest_fallback !== reason) p.push(`${c.name}: motivo ${fb?.metadata?.guest_fallback}, esperava ${reason}`)
+    if (c.failure && (fb?.metadata?.public_promo_failure_reason !== c.failure || fb?.metadata?.public_promo_state !== 'failed' || fb?.metadata?.public_promo_kind !== WELCOME_KIND)) p.push(`${c.name}: sem o motivo exato da oferta (${JSON.stringify(fb?.metadata)})`)
+  }
+  // Stripe de pé de novo: o clique seguinte vai à Stripe com o desconto.
+  env.stripe.promoStore.length = 0
+  env.stripe.couponStore.clear()
+  const healed = env.stripe.seedWelcome()
+  const ok = await checkoutGet(env, newBrowser(), query)
+  if (!sessionIdFromLocation(ok) || JSON.stringify(lastCreate(env)?.params?.discounts) !== JSON.stringify([{ promotion_code: healed.id }])) p.push('falha do cupom: com a Stripe de pé, o clique seguinte não abriu a sessão com o desconto')
+  return p
+}
+
+/** O webhook concede o MESMO grant do caminho logado com o desconto e registra a oferta nos eventos do convidado. */
+async function sWelcomeGrant(env) {
+  const p = []
+  env.stripe.seedWelcome()
+  for (const tier of ['basic', 'pro']) {
+    const loggedEmail = `logado-grant-${tier}@exemplo.com`
+    const logged = await loggedPurchase(env, { email: loggedEmail, query: welcomeQuery(tier) })
+    if (!logged.sessionId) { p.push(`${tier}: o caminho logado não abriu a sessão de referência`); continue }
+    const lsnap = env.stripe.pay(logged.sessionId, { email: loggedEmail })
+    const lres = await deliver(env, 'checkout.session.completed', lsnap)
+    const email = `convidado-grant-${tier}@exemplo.com`
+    const buy = await guestPurchase(env, { email, query: welcomeQuery(tier) })
+    if (lres.res.status !== 200 || buy.delivered?.res.status !== 200) { p.push(`${tier}: webhook ${lres.res.status}/${buy.delivered?.res.status}`); continue }
+    if (!(buy.snapshot.total_details?.amount_discount > 0) || lsnap.total_details?.amount_discount !== buy.snapshot.total_details?.amount_discount || lsnap.amount_total !== buy.snapshot.amount_total) p.push(`${tier}: o valor cobrado difere do logado (${lsnap.amount_total} vs ${buy.snapshot.amount_total})`)
+    const user = env.db.auth.users.find((u) => u.email === email)
+    const a = env.db.profile(logged.user.id)
+    const b = env.db.profile(user?.id)
+    for (const k of ['plan', 'is_pro', 'has_paid', 'video_credits', 'cinematic_tokens', 'trial_status']) {
+      if (JSON.stringify(a?.[k]) !== JSON.stringify(b?.[k])) p.push(`${tier}: ${k} logado=${a?.[k]} convidado=${b?.[k]}`)
+    }
+    if (b?.plan !== tier || b?.video_credits !== env.pricing.TIER_CREDITS[tier]) p.push(`${tier}: não é o plano cheio (${b?.plan} ${b?.video_credits})`)
+    const [pa, pb] = [logged.sessionId, buy.sessionId].map((id) => env.db.events('payment_success').find((e) => e.metadata?.stripe_session_id === id))
+    if (pa?.metadata?.credits_granted !== pb?.metadata?.credits_granted || pb?.metadata?.credits_granted !== env.pricing.TIER_CREDITS[tier]) p.push(`${tier}: credits_granted difere (${pa?.metadata?.credits_granted} vs ${pb?.metadata?.credits_granted})`)
+    const m = pb?.metadata ?? {}
+    const firstMonth = Math.round(env.pricing.monthlyPriceMinor(tier, 'usd', 'standard') * 0.8)
+    if (pb?.user_id !== user?.id || m.guest_checkout !== true || m.guest_welcome_promo !== true || m.public_promo_kind !== WELCOME_KIND || m.public_promo_state !== 'applied' || m.public_promo_first_charge_minor !== firstMonth || m.amount_total !== firstMonth) p.push(`${tier}: payment_success do convidado sem a oferta (${JSON.stringify(m)})`)
+    if ('guest_welcome_promo' in (pa?.metadata ?? {}) || 'guest_checkout' in (pa?.metadata ?? {})) p.push(`${tier}: o payment_success do LOGADO mudou de forma`)
+    const created = env.db.events('guest_account_created').find((e) => e.metadata?.stripe_session_id === buy.sessionId)
+    if (created?.metadata?.public_promo_kind !== WELCOME_KIND || created?.metadata?.guest_welcome_promo !== true || created?.metadata?.welcome_promo_reuse !== null) p.push(`${tier}: guest_account_created sem a oferta (${JSON.stringify(created?.metadata)})`)
+  }
+  if (env.db.events('guest_welcome_promo_reused').length !== 0 || env.founderAlerts.some((x) => x.kind === 'guest_welcome_promo_reused')) p.push('conta nova acusada de reuso')
+  return p
+}
+
+/** Desconto de boas-vindas numa conta que JÁ pagou: o mesmo grant, guest_welcome_promo_reused 1× e aviso ao fundador 1×. */
+async function sWelcomeReuse(env) {
+  const p = []
+  env.stripe.seedWelcome()
+  const reused = () => env.db.events('guest_welcome_promo_reused')
+  const sentFor = (sid) => env.founderAlerts.filter((a) => a.kind === 'guest_welcome_promo_reused' && a.stripeSessionId === sid && a.outcome === 'sent')
+  // (a) Ex-assinante (pagou antes e cancelou): o plano entra e o reuso vira fato.
+  const back = env.db.seedUser({ email: 'voltou@exemplo.com', profile: { has_paid: true, plan: 'free', is_pro: false, stripe_subscription_id: 'sub_cancelada', stripe_customer_id: 'cus_antigo', video_credits: 3 } })
+  const buy = await guestPurchase(env, { email: 'voltou@exemplo.com', query: welcomeQuery('basic') })
+  if (buy.delivered?.res.status !== 200) return [`reuso: webhook ${buy.delivered?.res.status} ${JSON.stringify(env.logs.slice(-3))}`]
+  const prof = env.db.profile(back.id)
+  if (prof?.plan !== 'basic' || prof?.video_credits !== 3 + env.pricing.TIER_CREDITS.basic) p.push(`reuso: o grant mudou (${prof?.plan} ${prof?.video_credits}) — a pessoa pagou o que a tela prometeu`)
+  const ev = reused()
+  if (ev.length !== 1 || ev[0].user_id !== back.id || ev[0].metadata?.reuse_reason !== 'paid_before' || ev[0].metadata?.stripe_session_id !== buy.sessionId || ev[0].metadata?.conflict !== null || ev[0].metadata?.public_promo_kind !== WELCOME_KIND || !(ev[0].metadata?.amount_discount > 0)) p.push(`reuso: evento ${JSON.stringify(ev.map((e) => ({ user: e.user_id, ...e.metadata })))}`)
+  if (sentFor(buy.sessionId).length !== 1 || !String(sentFor(buy.sessionId)[0]?.text).includes(back.id)) p.push(`reuso: aviso ao fundador ${JSON.stringify(env.founderAlerts.map((a) => `${a.kind}:${a.outcome}`))}`)
+  const matched = env.db.events('guest_account_matched').find((e) => e.metadata?.stripe_session_id === buy.sessionId)
+  if (matched?.metadata?.welcome_promo_reuse !== 'paid_before') p.push('reuso: guest_account_matched sem o reuso')
+  // Reentrega (o mesmo evento e um evento novo): nada duplica e o crédito não dobra.
+  await deliver(env, 'checkout.session.completed', buy.snapshot, buy.delivered.eventId)
+  await deliver(env, 'checkout.session.completed', buy.snapshot)
+  if (reused().length !== 1 || sentFor(buy.sessionId).length !== 1 || env.founderAlerts.filter((a) => a.kind === 'guest_welcome_promo_reused' && a.stripeSessionId === buy.sessionId && a.outcome !== 'duplicate').length !== 1 || env.db.profile(back.id)?.video_credits !== 3 + env.pricing.TIER_CREDITS.basic) p.push('reuso: reentrega duplicou evento/aviso/crédito')
+  // (b) Conta antiga que NUNCA pagou: primeira vez — sem reuso, inclusive na reentrega DEPOIS do grant (has_paid já true).
+  const fresh = env.db.seedUser({ email: 'nunca.pagou@exemplo.com', profile: { video_credits: 5 } })
+  const first = await guestPurchase(env, { email: 'nunca.pagou@exemplo.com', query: welcomeQuery('pro') })
+  if (first.delivered?.res.status !== 200 || env.db.profile(fresh.id)?.plan !== 'pro') p.push('primeira vez: compra não entregue')
+  await deliver(env, 'checkout.session.completed', first.snapshot)
+  if (reused().some((e) => e.user_id === fresh.id) || sentFor(first.sessionId).length !== 0) p.push('primeira vez: acusada de reuso (a reentrega leu o has_paid DESTA compra)')
+  // (c) Conta que já pagou comprando SEM o desconto: não é reuso.
+  const plain = env.db.seedUser({ email: 'pagou.sem.cupom@exemplo.com', profile: { has_paid: true, plan: 'free', is_pro: false } })
+  const noPromo = await guestPurchase(env, { email: 'pagou.sem.cupom@exemplo.com', query: 'tier=basic&billing=monthly' })
+  if (noPromo.delivered?.res.status !== 200 || reused().some((e) => e.user_id === plain.id)) p.push('sem cupom: acusada de reuso')
+  // (d) Assinante ATIVO com o desconto: conflito (nada concedido) E reuso, cada um com o seu aviso.
+  const active = env.db.seedUser({ email: 'ativo@exemplo.com', profile: { has_paid: true, is_pro: true, plan: 'pro', stripe_subscription_id: 'sub_ativa', stripe_customer_id: 'cus_ativo', video_credits: 50 } })
+  const both = await guestPurchase(env, { email: 'ativo@exemplo.com', query: welcomeQuery('basic') })
+  if (both.delivered?.res.status !== 200) p.push(`conflito+reuso: webhook ${both.delivered?.res.status}`)
+  const bothEv = reused().find((e) => e.user_id === active.id)
+  if (!bothEv || bothEv.metadata?.conflict !== 'active_stripe_plan') p.push('conflito+reuso: sem o evento de reuso com o conflito')
+  if (env.db.profile(active.id)?.plan !== 'pro' || env.db.profile(active.id)?.video_credits !== 50) p.push('conflito+reuso: o perfil foi mexido')
+  if (!env.founderAlerts.some((a) => a.kind === 'guest_conflict' && a.stripeSessionId === both.sessionId) || sentFor(both.sessionId).length !== 1) p.push('conflito+reuso: falta um dos avisos')
+  // (e) O banco recusa o evento: 500 (a Stripe reenvia) ANTES do grant; o reenvio grava 1× e avisa 1×.
+  const retry = env.db.seedUser({ email: 'banco.caiu@exemplo.com', profile: { has_paid: true, plan: 'free', is_pro: false, video_credits: 0 } })
+  env.db.fail('events', 'insert', { code: '08006', message: 'connection failure' }, 1, (rows) => Array.isArray(rows) && rows.some((r) => r.name === 'guest_welcome_promo_reused'))
+  const failed = await guestPurchase(env, { email: 'banco.caiu@exemplo.com', query: welcomeQuery('basic') })
+  if (failed.delivered?.res.status !== 500) p.push(`banco caiu: webhook ${failed.delivered?.res.status}, esperava 500 (o reuso não pode sumir calado)`)
+  if (env.db.profile(retry.id)?.plan !== 'free') p.push('banco caiu: concedeu antes de registrar o reuso')
+  const again = await deliver(env, 'checkout.session.completed', failed.snapshot, failed.delivered.eventId)
+  if (again.res.status !== 200 || env.db.profile(retry.id)?.plan !== 'basic' || reused().filter((e) => e.user_id === retry.id).length !== 1 || sentFor(failed.sessionId).length !== 1) p.push(`banco caiu: o reenvio não entregou/gravou/avisou 1× (${again.res.status})`)
+  return p
+}
+
+/** As regras puras da oferta sem conta (os mutantes do módulo puro e do carimbo têm de ficar vermelhos aqui). */
+async function sWelcomePureRules(env) {
+  const P = env.pure
+  const S = env.server
+  const p = []
+  const base = { live: true, isGet: true, resumed: false, wantsTrial: false, planFit: false, returnToWatermark: false, checkoutRecovery: false, promoRequested: true, welcomePromoLive: true, welcomePromo: true, introDiscount: false, botSuspected: false }
+  const r = (o) => P.guestCheckoutFallbackReason({ ...base, ...o })
+  if (r({}) !== null) p.push('pura: a oferta de boas-vindas com o interruptor ligado não compra sem conta')
+  if (r({ welcomePromoLive: false }) !== 'promo') p.push('pura: interruptor desligado deixou a oferta passar')
+  if (r({ welcomePromo: false }) !== 'promo') p.push('pura: outro cupom passou')
+  if (r({ live: false }) !== 'switch_off') p.push('pura: a oferta passou com a compra sem login desligada')
+  if (r({ isGet: false }) !== 'not_navigation') p.push('pura: POST com a oferta virou convidado')
+  for (const [k, reason] of [['checkoutRecovery', 'checkout_recovery'], ['returnToWatermark', 'watermark_return'], ['planFit', 'plan_fit'], ['wantsTrial', 'card_trial'], ['resumed', 'resumed_after_signup'], ['introDiscount', 'intro_discount'], ['botSuspected', 'bot_suspected']]) {
+    if (r({ [k]: true }) !== reason) p.push(`pura: a oferta furou o motivo ${reason}`)
+  }
+  for (const [tier, annual, ok] of [['basic', false, true], ['pro', false, true], ['starter', false, false], ['autopilot', false, false], ['autopilot_lite', false, false], ['basic', true, false], ['pro', true, false]]) {
+    if (P.guestWelcomePromoShapeOk({ tier, isAnnual: annual }) !== ok) p.push(`pura: recorte ${tier}/${annual ? 'anual' : 'mensal'} = ${!ok}`)
+  }
+  const reuse = (o) => P.guestWelcomePromoReuse({ welcomePromoApplied: true, bornFromThisSession: false, profile: { has_paid: true, stripe_subscription_id: 'sub_velha' }, subscriptionId: 'sub_nova', ...o })
+  if (reuse({}) !== 'paid_before') p.push('pura: conta que já pagou não é reuso')
+  if (reuse({ welcomePromoApplied: false }) !== null) p.push('pura: compra sem o desconto virou reuso')
+  if (reuse({ bornFromThisSession: true }) !== null) p.push('pura: conta nascida desta compra virou reuso')
+  if (reuse({ profile: { has_paid: false, stripe_subscription_id: null } }) !== null) p.push('pura: conta que nunca pagou virou reuso')
+  if (reuse({ profile: { has_paid: true, stripe_subscription_id: 'sub_nova' } }) !== null) p.push('pura: a reentrega depois do grant (has_paid desta compra) virou reuso')
+  if (reuse({ profile: null }) !== null) p.push('pura: sem perfil virou reuso')
+  // O carimbo inteiro conta, nunca só o nome da oferta.
+  const stamp = { public_promo_truth_version: 'public_promo_truth_v1', public_promo_kind: WELCOME_KIND, public_promo_state: 'applied', public_promo_first_charge_minor: '2392' }
+  if (!S.guestWelcomePromoApplied(stamp)) p.push('carimbo: a sessão com a oferta aplicada não foi reconhecida')
+  for (const [k, v] of [['public_promo_state', 'requested'], ['public_promo_state', 'failed'], ['public_promo_kind', 'outra_oferta'], ['public_promo_truth_version', 'v0']]) {
+    if (S.guestWelcomePromoApplied({ ...stamp, [k]: v })) p.push(`carimbo: ${k}=${v} contou como oferta aplicada`)
+  }
+  if (S.guestWelcomePromoApplied({ public_promo_kind: WELCOME_KIND }) || S.guestWelcomePromoApplied(null)) p.push('carimbo: o nome da oferta sozinho contou como aplicada')
+  if (JSON.stringify(S.guestWelcomePromoEventMetadata({ kineo_guest: '1' })) !== '{}') p.push('carimbo: compra sem o desconto ganhou chaves no evento')
+  const em = S.guestWelcomePromoEventMetadata(stamp)
+  if (em.guest_welcome_promo !== true || em.public_promo_first_charge_minor !== 2392 || em.public_promo_kind !== WELCOME_KIND) p.push(`carimbo: evento sem a oferta (${JSON.stringify(em)})`)
+  return p
+}
+
+/** O caminho LOGADO com o link do modal não muda com o interruptor da oferta (mesma sessão, mesmos parâmetros). */
+async function sWelcomeLoggedUnchanged() {
+  const shots = []
+  for (const welcomeLive of [false, true]) {
+    const env = makeEnv({ live: true, welcomeLive })
+    const promo = env.stripe.seedWelcome()
+    const logged = await loggedPurchase(env, { email: 'igual.boas.vindas@exemplo.com', query: welcomeQuery('basic') })
+    const params = clone(lastCreate(env)?.params ?? null)
+    shots.push({
+      status: logged.res.status,
+      params: params && {
+        ...params,
+        customer: 'cus_x',
+        metadata: omit(params.metadata, OWNER_KEYS),
+        subscription_data: { ...params.subscription_data, metadata: omit(params.subscription_data?.metadata, OWNER_KEYS) },
+        expires_at: 0,
+        discounts: (params.discounts ?? []).map((d) => ({ ...d, promotion_code: d.promotion_code === promo.id ? 'promo_x' : d.promotion_code })),
+      },
+      events: env.db.rows('events').map((e) => e.name),
+      calls: env.stripe.calls.map((c) => c.op),
+      cookies: Object.keys(logged.browser.cookies).sort(),
+    })
+  }
+  if (!shots[0].params?.discounts?.length) return ['logado: a referência não aplicou o desconto (cenário quebrado)']
+  return JSON.stringify(shots[0]) === JSON.stringify(shots[1]) ? [] : ['logado: o interruptor da oferta mudou o caminho de quem já tem conta']
+}
+
 // ═══ EXECUÇÃO ═════════════════════════════════════════════════════════════════════════════════════════════════════════
 async function run(name, scenario, opts) {
   try {
@@ -1540,6 +2029,14 @@ async function run(name, scenario, opts) {
   const consumers = files.filter((f) => f !== PURE && /\bGUEST_CHECKOUT_LIVE\b/.test(read(f)))
   for (const f of consumers) check(/import \{[^}]*\bGUEST_CHECKOUT_LIVE\b[^}]*\} from '@\/lib\/growth\/guestCheckout'/.test(read(f)), `${f} lê o interruptor da fonte única`)
   for (const f of [CHECKOUT, 'app/pricing/PricingClient.tsx', 'app/KineoLanding.tsx', 'app/ads/page.tsx', 'app/ads/AdsPaywall.tsx']) check(consumers.includes(f), `${f} obedece ao interruptor`)
+  // Leva 4 — o interruptor da oferta de boas-vindas sem conta: um lugar só, lido só pela rota de checkout (o webhook NÃO
+  // olha interruptor de propósito: uma compra feita com ele ligado é entregue e medida mesmo que alguém o desligue).
+  check((pure.match(/^export const GUEST_WELCOME_PROMO_LIVE = (?:true|false)$/gm) ?? []).length === 1, 'interruptor único: GUEST_WELCOME_PROMO_LIVE é um booleano literal, declarado uma vez')
+  const welcomeDeclares = files.filter((f) => /export const GUEST_WELCOME_PROMO_LIVE\b/.test(read(f)))
+  check(welcomeDeclares.length === 1 && welcomeDeclares[0] === PURE, `o interruptor da oferta de boas-vindas mora num lugar só (${welcomeDeclares.join(', ')})`)
+  const welcomeConsumers = files.filter((f) => f !== PURE && /\bGUEST_WELCOME_PROMO_LIVE\b/.test(read(f)))
+  check(welcomeConsumers.length === 1 && welcomeConsumers[0] === CHECKOUT, `só a rota de checkout lê o interruptor da oferta (${welcomeConsumers.join(', ')})`)
+  check(/import \{[^}]*\bGUEST_WELCOME_PROMO_LIVE\b[^}]*\} from '@\/lib\/growth\/guestCheckout'/.test(read(CHECKOUT)), 'a rota de checkout lê o interruptor da oferta da fonte única')
   const clientFiles = files.filter((f) => /^\s*['"]use client['"]/.test(read(f)))
   check(clientFiles.length > 50, `varredura de 'use client' com denominador real (${clientFiles.length})`)
   check(clientFiles.every((f) => !read(f).includes("'@/lib/stripe/guestCheckout'")), 'nenhum componente de cliente importa o lado servidor (node:crypto quebraria o build)')
@@ -1673,6 +2170,25 @@ async function run(name, scenario, opts) {
   const p1 = b({}).params
   const key = (o = {}) => S.guestCheckoutIdempotencyKey(p1, { nonceHash: 'a'.repeat(64), window: 7, unitAmount: 2990, listCurrency: 'usd', introRequested: false, ...o })
   check(key() === key() && key() !== key({ nonceHash: 'b'.repeat(64) }) && key() !== key({ window: 8 }), 'idempotência: mesmo navegador + mesma janela = mesma sessão')
+  // Leva 4 — a oferta de boas-vindas nos parâmetros: ausente = o objeto de antes; presente = o espelho do logado.
+  check(JSON.stringify(b({})) === JSON.stringify(b({ welcomePromo: null })), 'sem a oferta de boas-vindas, os parâmetros são exatamente os de antes (null = ausente)')
+  check(p1.allow_promotion_codes === true && p1.after_expiration.recovery.allow_promotion_codes === true && !('discounts' in p1), 'compra sem cupom: campo manual ligado e nenhum desconto (como hoje)')
+  {
+    const w = b({ welcomePromo: { kind: 'welcome_first_month_20', requestedCode: 'WELCOME20', promotionCodeId: 'promo_x', firstChargeMinor: 2392 } }).params
+    check(JSON.stringify(w.discounts) === '[{"promotion_code":"promo_x"}]' && !('allow_promotion_codes' in w) && w.after_expiration.recovery.allow_promotion_codes === false, 'oferta de boas-vindas: o desconto no lugar do campo manual (a Stripe não aceita os dois)')
+    check(w.metadata.public_promo_state === 'applied' && w.subscription_data.metadata.public_promo_state === 'applied' && w.metadata.public_promo_first_charge_minor === '2392' && w.subscription_data.metadata.public_promo_first_charge_minor === '2392', 'oferta de boas-vindas: o carimbo na sessão e na assinatura')
+    check(w.success_url.includes('amount=2392') && w.cancel_url.includes('&promo=WELCOME20'), 'oferta de boas-vindas: o 1º mês na volta e o cupom na desistência')
+    const kw = (params) => S.guestCheckoutIdempotencyKey(params, { nonceHash: 'a'.repeat(64), window: 7, unitAmount: 2990, listCurrency: 'usd', introRequested: false })
+    const wNoDiscount = { ...w }
+    delete wNoDiscount.discounts
+    check(kw(w) !== kw(wNoDiscount), 'idempotência: o desconto entra na chave (sessão com e sem desconto nunca se confundem)')
+    const fakeStripe = makeStripe()
+    const seeded = fakeStripe.seedWelcome()
+    const cand = await S.loadGuestWelcomePromoCandidate(fakeStripe, { kind: 'welcome_first_month_20', code: 'WELCOME20', nowMs: Date.now() })
+    check(cand?.promotionCodeId === seeded.id && cand?.couponId === 'KINEO_WELCOME20' && cand?.couponPercentOff === 20 && cand?.couponDuration === 'once' && cand?.currentCustomerId === '' && cand?.restrictedCustomerId === null && cand?.promotionFirstTimeTransaction === false, 'leitura da oferta: o mesmo retrato do logado, sem cliente')
+    check(fakeStripe.calls.every((c) => c.op === 'promotionCodes.list' || c.op === 'coupons.retrieve'), 'leitura da oferta: só leitura na Stripe')
+    check(await S.loadGuestWelcomePromoCandidate(makeStripe(), { kind: 'welcome_first_month_20', code: 'WELCOME20', nowMs: Date.now() }) === null, 'leitura da oferta: código ausente = null (a verificação recusa)')
+  }
   // Resolver com dependências falsas: os caminhos que o webhook não exercita com facilidade.
   const deps = (over = {}) => ({
     findProfilesByEmail: async () => ({ rows: [], error: null }),
@@ -1766,6 +2282,15 @@ const SCENARIOS = [
   ['tomada de conta: Google pela /auth/callback', sCallbackRevokes, { live: true }],
   ['tomada de conta: regras puras', sPureRevocationRules, { live: true }],
   ['tomada de conta: troca da senha falha, a derrubada segue', sScrambleFails, { live: true }],
+  // ── leva 4: a oferta de boas-vindas sem conta (KINEO-CUPOM-CONVIDADO-2026-10-07) ──
+  ['oferta de boas-vindas: interruptor desligado = hoje byte a byte', sWelcomeSwitchOff, { live: true, welcomeLive: false }],
+  ['oferta de boas-vindas: Stripe direto com o desconto do logado', sWelcomeGuest, { live: true, welcomeLive: true }],
+  ['oferta de boas-vindas: o recorte concorda com o logado (planos × períodos)', sWelcomeShapeParity, { live: true, welcomeLive: true }],
+  ['oferta de boas-vindas: outros cupons, recuperação e robô continuam no cadastro', sWelcomeOtherPromos, { live: true, welcomeLive: true }],
+  ['oferta de boas-vindas: Stripe sem o desconto = hoje + guest_checkout_fallback', sWelcomeStripeFailure, { live: true, welcomeLive: true }],
+  ['oferta de boas-vindas: o mesmo grant do logado, oferta registrada no evento', sWelcomeGrant, { live: true, welcomeLive: true }],
+  ['oferta de boas-vindas: reuso grava guest_welcome_promo_reused e avisa o fundador', sWelcomeReuse, { live: true, welcomeLive: true }],
+  ['oferta de boas-vindas: regras puras e carimbo', sWelcomePureRules, { live: true, welcomeLive: true }],
 ]
 for (const [name, scenario, opts] of SCENARIOS) {
   const problems = await run(name, scenario, opts)
@@ -1777,11 +2302,17 @@ for (const [name, scenario, opts] of SCENARIOS) {
   if (problems.length === 0) check(true, 'caminho logado idêntico com o interruptor ligado e desligado')
   else for (const problem of problems) check(false, problem)
 }
+{
+  const problems = await sWelcomeLoggedUnchanged().catch((e) => [`logado (oferta): lançou ${e?.message}`])
+  if (problems.length === 0) check(true, 'caminho logado com o link do modal idêntico com o interruptor da oferta ligado e desligado')
+  else for (const problem of problems) check(false, problem)
+}
 
 // ── 6. Mutantes em memória: cada regra quebrada tem de deixar o seu cenário vermelho ─────────────────────────────────
 const MUTANTS = [
   ['puro: interruptor ignorado', { [PURE]: [replaceOnce("  if (input.live !== true) return 'switch_off'\n", '', 'sem gate do interruptor')] }, sSwitchOff, false],
-  ['puro: cupom vira convidado', { [PURE]: [replaceOnce("  if (input.promoRequested) return 'promo'\n", '', 'sem desvio de cupom')] }, sFallbacks, true],
+  // Leva 4: a âncora acompanhou a linha (agora com a exceção da oferta de boas-vindas); a intenção é a mesma.
+  ['puro: cupom vira convidado', { [PURE]: [replaceOnce("  if (input.promoRequested && !guestWelcomePromoReleased(input)) return 'promo'\n", '', 'sem desvio de cupom')] }, sFallbacks, true],
   ['puro: robô vira convidado', { [PURE]: [replaceOnce("  if (input.botSuspected) return 'bot_suspected'\n", '', 'sem desvio de robô')] }, sFallbacks, true],
   ['puro: conta existente loga sozinha', { [PURE]: [replaceOnce("  if (input.owner.bornFromThisSession !== true) return { state: 'check_email', reason: 'existing_account' }\n", '', 'sem trava de conta existente')] }, sExistingAccount, true],
   ['puro: sem prova do navegador', { [PURE]: [replaceOnce("  if (input.browserProof !== true) return { state: 'check_email', reason: 'other_browser' }\n", '', 'sem prova do navegador')] }, sOtherBrowserEmail, true],
@@ -1835,15 +2366,38 @@ const MUTANTS = [
   ['link do e-mail pronto: entra 2×', { [LINK]: [replaceOnce("    const { error: claimError } = await admin.from('stripe_events').insert({ id: readyClaim })\n    if (claimError) return failure // 23505 = já usado; outro erro = não arrisca um 2º uso\n", '', 'sem uso único')] }, sReadyEmail, true],
   ['token do e-mail: assinatura ignorada', { [GUARD]: [replaceOnce("  if (given.length !== expected.length || !timingSafeEqual(given, expected)) return { ok: false, reason: 'bad_signature' }\n", '', 'sem assinatura')] }, sReadyEmail, true],
   ['token do e-mail: validade ignorada', { [GUARD]: [replaceOnce("  if (expiresAtSeconds <= input.nowSeconds) return { ok: false, reason: 'expired' }\n", '', 'sem validade')] }, sReadyEmail, true],
+  // ── leva 4: a oferta de boas-vindas sem conta (5º campo = GUEST_WELCOME_PROMO_LIVE do cenário) ──
+  // interruptor desligado = hoje byte a byte
+  ['puro: oferta ignora o interruptor', { [PURE]: [replaceOnce('  return input.welcomePromoLive === true && input.welcomePromo === true\n', '  return input.welcomePromo === true\n', 'sem o interruptor da oferta')] }, sWelcomeSwitchOff, true, false],
+  ['checkout: interruptor da oferta forçado na rota', { [CHECKOUT]: [replaceOnce('      welcomePromoLive: GUEST_WELCOME_PROMO_LIVE,\n', '      welcomePromoLive: true,\n', 'interruptor da oferta forçado')] }, sWelcomeSwitchOff, true, false],
+  // outro cupom continua no cadastro
+  ['checkout: qualquer cupom conta como boas-vindas', { [CHECKOUT]: [replaceOnce("      welcomePromo: promisedPublicPromo === 'welcome_first_month_20',\n", '      welcomePromo: rawPromo.length > 0,\n', 'todo cupom liberado')] }, sWelcomeOtherPromos, true, true],
+  ['checkout: recorte Creator/Studio mensal ignorado', { [CHECKOUT]: [replaceOnce('    if (!guestWelcomePromoShapeOk({ tier: ctx.tier, isAnnual: ctx.isAnnual })) {\n', '    if (false) {\n', 'sem o recorte')] }, sWelcomeShapeParity, true, true],
+  // falha da Stripe volta ao cadastro (nunca a preço cheio)
+  ['checkout: oferta recusada vira compra a preço cheio', { [CHECKOUT]: [replaceOnce("    if (resolution.status === 'rejected') {\n      return { ok: false, failure: { reason: 'welcome_promo_unavailable', detail: publicPromoTruthMetadata(offer.kind, 'failed', resolution.reason) } }\n    }\n    welcome = {\n", "    if (resolution.status === 'rejected') {\n      welcome = null\n    } else welcome = {\n", 'recusa segue sem desconto')] }, sWelcomeStripeFailure, true, true],
+  // visitante com WELCOME20 vai à Stripe com o desconto
+  ['servidor: sessão sem o desconto', { [SERVER]: [replaceOnce('    ...(welcome ? { discounts: [{ promotion_code: welcome.promotionCodeId }] } : { allow_promotion_codes: true }),\n', '    ...(welcome ? {} : { allow_promotion_codes: true }),\n', 'sem discounts')] }, sWelcomeGuest, true, true],
+  ['servidor: desconto junto com o campo manual', { [SERVER]: [replaceOnce('    ...(welcome ? { discounts: [{ promotion_code: welcome.promotionCodeId }] } : { allow_promotion_codes: true }),\n', '    ...(welcome ? { discounts: [{ promotion_code: welcome.promotionCodeId }] } : {}),\n    allow_promotion_codes: true,\n', 'discounts + campo manual')] }, sWelcomeGuest, true, true],
+  // o webhook concede o mesmo grant e registra a oferta
+  ['servidor: sessão sem o carimbo da oferta', { [SERVER]: [replaceOnce('      ...sharedMetadata,\n      ...welcomeMetadata,\n    },\n', '      ...sharedMetadata,\n    },\n', 'sem carimbo na sessão')] }, sWelcomeGrant, true, true],
+  ['servidor: 1º mês com crédito de intro', { [SERVER]: [replaceOnce('        public_promo_first_charge_minor: String(welcome.firstChargeMinor),\n      }\n    : {}\n', "        public_promo_first_charge_minor: String(welcome.firstChargeMinor),\n        intro: '1',\n        intro_credits: '10',\n      }\n    : {}\n", 'grant de intro')] }, sWelcomeGrant, true, true],
+  ['webhook: payment_success sem a oferta', { [WEBHOOK]: [replaceOnce('guest_checkout_version: GUEST_CHECKOUT_VERSION, ...guestWelcomePromoEventMetadata(session.metadata) } : {}),', 'guest_checkout_version: GUEST_CHECKOUT_VERSION } : {}),', 'evento sem a oferta')] }, sWelcomeGrant, true, true],
+  // reuso grava guest_welcome_promo_reused e dispara o aviso
+  ['puro: reuso ignora has_paid', { [PURE]: [replaceOnce("  if (profile.has_paid === true) return 'paid_before'\n", '', 'sem has_paid')] }, sWelcomeReuse, true, true],
+  ['puro: reentrega vira falso reuso', { [PURE]: [replaceOnce('  if (profile.stripe_subscription_id && input.subscriptionId && profile.stripe_subscription_id === input.subscriptionId) return null\n', '', 'sem a trava da reentrega')] }, sWelcomeReuse, true, true],
+  ['servidor: carimbo parcial conta como oferta', { [SERVER]: [replaceOnce('  return Object.entries(GUEST_WELCOME_APPLIED_STAMP).every(([key, value]) => metadata?.[key] === value)\n', '  return Object.entries(GUEST_WELCOME_APPLIED_STAMP).some(([key, value]) => metadata?.[key] === value)\n', 'carimbo parcial')] }, sWelcomePureRules, true, true],
+  ['webhook: reuso sem o evento', { [WEBHOOK]: [replaceOnce("            const { error: reuseEventError } = await supabase.from('events').insert({\n", "            const { error: reuseEventError } = await supabase.from('events_descartado').insert({\n", 'evento em outra tabela')] }, sWelcomeReuse, true, true],
+  ['webhook: reuso sem o aviso', { [WEBHOOK]: [replaceOnce("            await alertFounderOnce({\n              kind: 'guest_welcome_promo_reused',\n", "            void ({\n              kind: 'guest_welcome_promo_reused',\n", 'sem aviso')] }, sWelcomeReuse, true, true],
+  ['webhook: falha ao gravar o reuso passa calada', { [WEBHOOK]: [replaceOnce('              throw new RetryableCheckoutAnalyticsError(`Guest welcome promo reuse not recorded', '              console.error(`Guest welcome promo reuse not recorded', 'falha engolida')] }, sWelcomeReuse, true, true],
 ]
-for (const [name, transforms, scenario, live] of MUTANTS) {
+for (const [name, transforms, scenario, live, welcomeLive = false] of MUTANTS) {
   let problems
   let applied = []
   try {
-    const env = makeEnv({ live, transforms })
+    const env = makeEnv({ live, welcomeLive, transforms })
     // Força a carga do módulo mutado ANTES do cenário, para a prova de aplicação existir mesmo se o cenário morrer cedo.
     for (const rel of Object.keys(transforms)) env.world.load(rel)
-    applied = env.world.applied.filter((a) => !a.includes('GUEST_CHECKOUT_LIVE='))
+    applied = env.world.applied.filter((a) => !a.includes('GUEST_CHECKOUT_LIVE=') && !a.includes('GUEST_WELCOME_PROMO_LIVE='))
     problems = await scenario(env)
   } catch (error) {
     problems = [`lançou: ${error instanceof Error ? error.message : String(error)}`]

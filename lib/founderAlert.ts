@@ -32,7 +32,9 @@ export const FOUNDER_ALERT_EVENT = 'founder_order_alerted' as const
 export const FOUNDER_ALERT_TIMEOUT_MS = 3000
 // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — 'guest_conflict': compra sem login com um e-mail que já tinha plano ativo (o
 // webhook não concede nada e o fundador decide reembolso/troca; ver app/api/stripe/webhook/route.ts).
-export type FounderAlertKind = 'dfy_order' | 'ads_pass' | 'dfy_brief' | 'guest_conflict'
+// KINEO-CUPOM-CONVIDADO-2026-10-07 — 'guest_welcome_promo_reused': compra sem login com o desconto de boas-vindas num
+// e-mail cuja conta já tinha pago (risco aceito; o grant segue igual e o aviso só mede).
+export type FounderAlertKind = 'dfy_order' | 'ads_pass' | 'dfy_brief' | 'guest_conflict' | 'guest_welcome_promo_reused'
 export type FounderAlertOutcome = 'sent' | 'failed' | 'timeout' | 'duplicate' | 'error'
 
 /** Origem pública do site: a mesma URL que a página /business-video-ads declara (fonte única, sem domínio redigitado). */

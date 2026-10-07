@@ -13,6 +13,7 @@
 //      afiliados era exatamente o cookie não chegar ao webhook) e kineo_guest=1. Preço, moeda e oferta saem das MESMAS
 //      funções do caminho logado (lib/stripe/guestCheckout.ts). Tudo que depende de saber QUEM compra (trial de cartão,
 //      Plan Fit, volta da marca d'água, retomada, cupom e 1º mês com desconto) continua no caminho de hoje: cadastro antes.
+//      Exceção (07/10, com interruptor próprio): a oferta de boas-vindas — ver KINEO-CUPOM-CONVIDADO-2026-10-07 abaixo.
 //   2. Webhook: acha a conta pelo e-mail; se não existe, cria (admin) e aplica o MESMO grant do caminho logado
 //      (o mesmo bloco Path B), idempotente pela sessão Stripe. Erro = 500 para a Stripe reenviar.
 //   3. /checkout/guest: conta NOVA nascida desta compra → login de uso único, só no navegador que abriu o checkout,
@@ -35,6 +36,23 @@
 // "Sign up & continue". O webhook e a página de acesso NÃO olham o interruptor de propósito: uma sessão paga
 // enquanto ele estava ligado precisa ser entregue mesmo que alguém o desligue no meio da janela de 24 h.
 export const GUEST_CHECKOUT_LIVE = true
+
+// ═══ KINEO-CUPOM-CONVIDADO-2026-10-07 — A OFERTA DE BOAS-VINDAS TAMBÉM COMPRA SEM CONTA ════════════════════════════
+// POR QUÊ (fundador 07/10: "vai para cupom"). O modal "Your first month is 20% off" (components/WelcomeOfferModal.tsx,
+// ?promo=WELCOME20, public_promo_kind = welcome_first_month_20) era o único caminho de compra da home que ainda
+// mandava o visitante sem conta para o /signup: a régua abaixo devolvia 'promo' para QUALQUER cupom. Em 30 dias, 32
+// sessões anônimas (~30% das que tentaram comprar sem conta) chegaram por essa oferta.
+// O DESENHO: só o desconto de boas-vindas passa, e com a MESMA verificação do caminho logado (resolvePromisedPublicPromo
+// em lib/growth/publicPromoTruth.ts: código WELCOME20 ativo, cupom KINEO_WELCOME20 de 20% "once", sem restrição) e o
+// MESMO recorte (Creator/Studio, mensal). Qualquer outro cupom, recuperação, intro, trial e Plan Fit continuam no
+// cadastro. Se a Stripe não confirmar o desconto, o visitante volta ao cadastro (nunca pior que hoje).
+// O RISCO ACEITO: "um desconto de boas-vindas por cliente" não tem como ser checado antes de pagar sem conta, e a
+// Stripe não checa por e-mail (sessão sem `customer` conta como primeira transação). O webhook mede: compra de
+// convidado com o desconto numa conta que JÁ pagou grava guest_welcome_promo_reused e avisa o fundador.
+// Decisão e números: docs/DECISAO-COMPRA-SEM-LOGIN-2026-10-06.md, seção "07/10 — cupom de boas-vindas".
+//
+// INTERRUPTOR ÚNICO desta exceção. false = hoje: todo ?promo= (WELCOME20 inclusive) cai no cadastro, byte a byte.
+export const GUEST_WELCOME_PROMO_LIVE = false
 
 export const GUEST_CHECKOUT_VERSION = 'guest_checkout_v1' as const
 
@@ -109,6 +127,8 @@ export const GUEST_CHECKOUT_EVENTS = {
   sessionsRevoked: 'guest_sessions_revoked',
   readyEmailSent: 'guest_account_ready_email_sent',
   readyEmailFailed: 'guest_account_ready_email_failed',
+  /** Compra de convidado com o desconto de boas-vindas numa conta que JÁ tinha pago (risco aceito em 07/10, medido). */
+  welcomePromoReused: 'guest_welcome_promo_reused',
 } as const
 
 // ─── Quem pode comprar sem conta ─────────────────────────────────────────────────────────────────────────────────────
@@ -130,6 +150,8 @@ export type GuestCheckoutFallbackReason =
  * do dono), volta da marca d'água (o render do dono), retomada (a sessão salva do dono), cupom/1º mês (restrição por
  * cliente e "1 intro por cliente"). Robô: um scanner de link não pode cunhar sessão de pagamento (ver
  * isSpeculativeRequest/recordBotSuspicion na rota) — para ele fica exatamente a resposta de hoje.
+ * KINEO-CUPOM-CONVIDADO-2026-10-07 — a única exceção de cupom é a oferta de boas-vindas (welcomePromo), e só com
+ * GUEST_WELCOME_PROMO_LIVE (welcomePromoLive); todos os outros motivos continuam valendo para ela.
  */
 export function guestCheckoutFallbackReason(input: {
   live: boolean
@@ -140,6 +162,10 @@ export function guestCheckoutFallbackReason(input: {
   returnToWatermark: boolean
   checkoutRecovery: boolean
   promoRequested: boolean
+  /** GUEST_WELCOME_PROMO_LIVE, passado pela rota (os cenários do guardião forçam o valor que precisam). */
+  welcomePromoLive: boolean
+  /** O ?promo= é EXATAMENTE a oferta de boas-vindas (WELCOME20 → welcome_first_month_20) e nada mais. */
+  welcomePromo: boolean
   introDiscount: boolean
   botSuspected: boolean
 }): GuestCheckoutFallbackReason | null {
@@ -150,18 +176,65 @@ export function guestCheckoutFallbackReason(input: {
   if (input.planFit) return 'plan_fit'
   if (input.returnToWatermark) return 'watermark_return'
   if (input.checkoutRecovery) return 'checkout_recovery'
-  if (input.promoRequested) return 'promo'
+  if (input.promoRequested && !guestWelcomePromoReleased(input)) return 'promo'
   if (input.introDiscount) return 'intro_discount'
   if (input.botSuspected) return 'bot_suspected'
   return null
+}
+
+/** O único cupom que compra sem conta: a oferta de boas-vindas, com o interruptor ligado. Todo o resto é 'promo'. */
+function guestWelcomePromoReleased(input: { welcomePromoLive?: boolean; welcomePromo?: boolean }): boolean {
+  return input.welcomePromoLive === true && input.welcomePromo === true
+}
+
+/**
+ * O recorte da oferta de boas-vindas: Creator ('basic') ou Studio ('pro'), mensal — o MESMO gate do caminho logado
+ * (KINEO-WELCOME20-2026-08-25 em app/api/stripe/checkout/route.ts). Fora dele o caminho logado recusa o desconto; o
+ * convidado volta ao cadastro (e de lá cai na MESMA recusa de hoje). O guardião executa os dois caminhos em todos os
+ * planos × períodos e exige que concordem.
+ */
+export function guestWelcomePromoShapeOk(input: { tier: string; isAnnual: boolean }): boolean {
+  return (input.tier === 'basic' || input.tier === 'pro') && input.isAnnual !== true
 }
 
 /**
  * Falha ao abrir a sessão de convidado (exceção ou 4xx da Stripe, ou sessão sem URL). A regra é "nunca pior que hoje":
  * o visitante volta ao caminho de hoje (cadastro antes, mesmo redirect, mesmo checkout_auth_required) e o motivo vai
  * num evento guest_checkout_fallback — nunca uma tela de erro que hoje não existiria.
+ * 'welcome_promo_unavailable' = o desconto de boas-vindas não pôde ser confirmado na Stripe (código ausente/inativo,
+ * cupom diferente do prometido, consulta que falhou, plano fora do recorte): o motivo exato vai junto, no formato do
+ * caminho logado (public_promo_state 'failed' + public_promo_failure_reason).
  */
-export type GuestCheckoutFailureReason = 'stripe_session_failed' | 'stripe_session_without_url' | 'guest_session_threw'
+export type GuestCheckoutFailureReason =
+  | 'stripe_session_failed'
+  | 'stripe_session_without_url'
+  | 'guest_session_threw'
+  | 'welcome_promo_unavailable'
+
+/**
+ * Compra de convidado com o desconto de boas-vindas numa conta que JÁ tinha pago: 'paid_before'. null = primeira vez
+ * (conta nascida desta compra, ou conta antiga que nunca pagou) ou compra sem o desconto.
+ * "Já usou o WELCOME20" está contido em "já pagou": toda compra concluída com o desconto passa pelo grant do webhook,
+ * que grava has_paid=true — e nada no código volta has_paid para false.
+ * Reentrega do webhook DEPOIS do grant: o perfil já aponta para ESTA assinatura, então o has_paid é desta compra e
+ * não conta (sem isto, toda reentrega de uma 1ª compra legítima viraria um falso "reuso").
+ */
+export type GuestWelcomePromoReuse = 'paid_before'
+
+export function guestWelcomePromoReuse(input: {
+  welcomePromoApplied: boolean
+  bornFromThisSession: boolean
+  profile: { has_paid?: boolean | null; stripe_subscription_id?: string | null } | null | undefined
+  subscriptionId: string | null | undefined
+}): GuestWelcomePromoReuse | null {
+  if (input.welcomePromoApplied !== true) return null
+  if (input.bornFromThisSession) return null
+  const profile = input.profile
+  if (!profile) return null
+  if (profile.stripe_subscription_id && input.subscriptionId && profile.stripe_subscription_id === input.subscriptionId) return null
+  if (profile.has_paid === true) return 'paid_before'
+  return null
+}
 
 /** A tela só promete "sem cadastro" quando o servidor vai mesmo abrir a Stripe sem conta (mesma régua, lado cliente). */
 export function guestCheckoutCoversPlanClick(input: {
