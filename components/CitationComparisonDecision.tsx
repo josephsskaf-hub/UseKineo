@@ -5,10 +5,17 @@ import {
   COMPARISON_CAMPAIGN, COMPARISON_REVIEW_DATE, COMPARISON_PROVIDERS,
   type ComparisonFact,
 } from '@/lib/growth/citationComparisonSnapshot'
+// KINEO-VISIBILIDADE-CHATGPT-2026-10-06 — a tag interna "[CONFIRMAR]" (português) saía crua na página em inglês que o ChatGPT
+// lê, inclusive na linha da PRÓPRIA Kineo. Na tela vira "Not confirmed"; o dado no snapshot segue marcado igual. A duração da
+// Kineo deixa de ser "não confirmada": vem da régua que o Studio aplica (lib/durationByEngine.ts).
+import { supportedDurationsFor } from '@/lib/durationByEngine'
+
+const UNCONFIRMED_LABEL = 'Not confirmed'
+const KINEO_MAX_SECONDS = Math.max(...supportedDurationsFor('seedance'))
 
 function SourcedFact({ fact }: { fact: ComparisonFact }) {
   return <>
-    {fact.text.split(/(\[CONFIRMAR\])/).map((part, index) => part === '[CONFIRMAR]' ? <span className="kc-unknown" key={index}>{part}</span> : part)}
+    {fact.text.split(/(\[CONFIRMAR\])/).map((part, index) => part === '[CONFIRMAR]' ? <span className="kc-unknown" key={index}>{UNCONFIRMED_LABEL}</span> : part)}
     <span className="kc-source"><br />{fact.sources.map((source, index) => <span key={source.url}>{index > 0 ? ' · ' : ''}<a href={source.url} rel="noopener noreferrer">{source.label}</a> ({source.checkedOn})</span>)}</span>
   </>
 }
@@ -21,13 +28,13 @@ export default function CitationComparisonDecision() {
   return <section className="kc-section" aria-labelledby="comparison-heading" data-comparison-version={COMPARISON_CAMPAIGN}>
     <h2 id="comparison-heading">Compare the workflow and its limits</h2>
     <p>Start with the material you have: a script, an existing recording or an avatar presentation. The same monthly fee can buy different workflows and allowances; this table does not rank one tool as best for every task.</p>
-    <p className="kc-source">Provider sources checked {COMPARISON_REVIEW_DATE}. Prices below use monthly billing in USD, not annual-plan equivalents. [CONFIRMAR] identifies an unverified limit or conflicting source, not a missing feature. Brazilian Kineo customers pay in reais.</p>
+    <p className="kc-source">Provider sources checked {COMPARISON_REVIEW_DATE}. Prices below use monthly billing in USD, not annual-plan equivalents. {UNCONFIRMED_LABEL} marks an unverified limit or conflicting source, not a missing feature. Brazilian Kineo customers pay in reais.</p>
     <div className="kc-table-scroll" role="region" aria-label="Video tool comparison, scroll horizontally for all columns" tabIndex={0}>
       <table className="kc-table">
         <caption>Kineo and four alternatives · sources and limits checked {COMPARISON_REVIEW_DATE}</caption>
         <thead><tr><th scope="col">Tool / workflow</th><th scope="col">Monthly entry price</th><th scope="col">Free trial</th><th scope="col">Engines</th><th scope="col">Maximum duration</th><th scope="col">Watermark</th></tr></thead>
         <tbody>
-          <tr><th scope="row">Kineo<small>Text to a finished narrated video</small><small><Link href="/llms.txt">Public fact sheet</Link> ({COMPARISON_REVIEW_DATE})</small></th><td>{CITATION_PLANS[0].price}<div className="kc-source">{CITATION_PLANS[0].name} · <Link href="/pricing">Current plans</Link></div></td><td>{CITATION_TRIAL}</td><td>Seedance 1.5 generated scenes (the trial pays for a 15-second one); further engines available subject to sufficient credits</td><td><span className="kc-unknown">[CONFIRMAR]</span><br />A {CITATION_REFERENCE_SECONDS}-second cost reference is not a maximum duration.</td><td>{CITATION_WATERMARK}</td></tr>
+          <tr><th scope="row">Kineo<small>Text to a finished narrated video</small><small><Link href="/llms.txt">Public fact sheet</Link> ({COMPARISON_REVIEW_DATE})</small></th><td>{CITATION_PLANS[0].price}<div className="kc-source">{CITATION_PLANS[0].name} · <Link href="/pricing">Current plans</Link></div></td><td>{CITATION_TRIAL}</td><td>Seedance 1.5 generated scenes (the trial pays for a 15-second one); further engines available subject to sufficient credits</td><td>Up to {KINEO_MAX_SECONDS} seconds per video on Seedance 1.5<br />A {CITATION_REFERENCE_SECONDS}-second cost reference is used for prices.</td><td>{CITATION_WATERMARK}</td></tr>
           {COMPARISON_PROVIDERS.map((provider) => <tr key={provider.name}>
             <th scope="row">{provider.name}<small><SourcedFact fact={provider.workflow} /></small></th>
             {(['price', 'trial', 'engines', 'duration', 'watermark'] as const).map((field) => <td key={field}><SourcedFact fact={provider[field]} /></td>)}

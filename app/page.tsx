@@ -7,6 +7,7 @@ import type { ResumeStripData } from '@/lib/resumeStrip'
 import { getEngineHero, getTrending } from '@/lib/engineWall'
 import { homeReferralBridgeSource } from '@/lib/growth/homeReferralBridge'
 import { BRAND_ALIASES, BRAND_NAME, BRAND_URL } from '@/lib/brandIdentity'
+import { BRAND_DISAMBIGUATION } from '@/lib/brandIdentity' // KINEO-VISIBILIDADE-CHATGPT-2026-10-06
 // KINEO-SEO-FAQ-SO-ONDE-VISIVEL-2026-09-07 — o FAQPage de 13 perguntas só é
 // servido aqui, a única página onde as 13 são texto visível (KineoLanding
 // #faq). Antes saía do layout em 187 páginas; ver components/StructuredData.tsx.
@@ -55,6 +56,7 @@ const BRAND_JSON_LD = {
       '@id': `${BRAND_URL}/#org`,
       name: BRAND_NAME,
       alternateName: BRAND_ALIASES,
+      disambiguatingDescription: BRAND_DISAMBIGUATION,
       url: BRAND_URL,
       logo: 'https://www.usekineo.com/apple-touch-icon.png',
     },

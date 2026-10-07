@@ -3,6 +3,7 @@ import { VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, PAUSED_ENGINES_COPY, K
 import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
 import { CHECKOUT_CURRENCY_DISCLOSURE, formatResultCount, videosPerMonth } from '@/lib/marketingPrice'
 import { BRAND_ALIASES, BRAND_NAME, BRAND_URL } from '@/lib/brandIdentity'
+import { BRAND_DISAMBIGUATION } from '@/lib/brandIdentity' // KINEO-VISIBILIDADE-CHATGPT-2026-10-06 — kineo.studio é outra empresa
 import { ASSISTANT_DEEP_LINK_FACT } from '@/lib/kineoFacts'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -92,6 +93,7 @@ const organizationSchema = {
   // schema — the one /pricing actually serves — declared only ShortsForgeAI.
   // One canonical alias list now keeps every indexed page on the same entity.
   alternateName: BRAND_ALIASES,
+  disambiguatingDescription: BRAND_DISAMBIGUATION,
   url: BRAND_URL,
   logo: 'https://www.usekineo.com/icon-512.png',
 }
@@ -101,6 +103,7 @@ const softwareApplicationSchema = {
   '@type': 'SoftwareApplication',
   name: BRAND_NAME,
   alternateName: BRAND_ALIASES,
+  disambiguatingDescription: BRAND_DISAMBIGUATION,
   url: BRAND_URL,
   applicationCategory: 'MultimediaApplication',
   applicationSubCategory: 'AI Video Generator',

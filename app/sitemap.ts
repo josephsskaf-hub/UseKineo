@@ -9,6 +9,7 @@ import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy
 // KINEO-ENGINE-SEO-2026-08-15 — cluster por MOTOR (hub + 5 páginas).
 import { ENGINE_SLUGS, isIndexableEngineSlug } from '@/lib/growth/enginePageCatalog'
 import { ENGINE_GEO_REVIEWED_ISO } from '@/lib/seo/engineCitation' // KINEO-MOTORES-GEO-2026-10-06
+import { HUB_PAGES, HUB_REVIEWED_ISO } from '@/lib/seo/citableHubPages' // KINEO-VISIBILIDADE-CHATGPT-2026-10-06
 // PROJETO 1 — GOOGLE (17/09): 100 páginas de intenção + hub (lib/seo/intentPages.ts).
 import { INTENT_HUB_PATH, INTENT_SLUGS, intentPagePath } from '@/lib/seo/intentPages'
 import { CITATION_ANSWER_LINKS, CITATION_REVIEW_DATE } from '@/lib/growth/citationAnswers'
@@ -391,5 +392,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly' as const,
       priority: 0.8,
     },
+    // KINEO-VISIBILIDADE-CHATGPT-2026-10-06 — as páginas citáveis da rodada 1 (preço por vídeo em tabela, data e FAQ) e a
+    // página que separa a marca da kineo.studio; data própria = dia da revisão dos preços e das fontes de terceiros.
+    ...Object.values(HUB_PAGES).map(({ path }) => ({
+      url: `${BASE}${path}`,
+      lastModified: new Date(`${HUB_REVIEWED_ISO}T12:00:00.000Z`),
+      changeFrequency: 'weekly' as const,
+      priority: path === HUB_PAGES.brand.path ? 0.6 : 0.9,
+    })),
   ]
 }

@@ -95,6 +95,10 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       { href: '/facts', label: 'Kineo facts & numbers (citable)' },
       { href: '/free-ai-shorts-generator', label: 'Free AI Shorts generator' },
       { href: '/faceless-video-generator', label: 'Faceless video generator' },
+      // KINEO-VISIBILIDADE-CHATGPT-2026-10-06 — as páginas citáveis (preço por vídeo, data, FAQ) nascem com link de todo rodapé.
+      { href: '/faceless-youtube-shorts-generator', label: 'AI faceless YouTube Shorts generator' },
+      { href: '/seedance-kling-veo-in-one-place', label: 'Seedance, Kling and Veo in one place' },
+      { href: '/kineo-vs-kineo-studio', label: 'Kineo vs kineo.studio' },
       { href: '/youtube-shorts-from-topic', label: 'YouTube Shorts from a topic' },
       { href: '/text-to-video-shorts', label: 'Text to video Shorts' },
       // KINEO-CHATGPT-INTENT-2026-08-10 — o rodapé é o que impede a página de

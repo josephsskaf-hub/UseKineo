@@ -38,6 +38,8 @@ import {
 } from '@/lib/kineoFacts'
 import { ANSWER_ENGINE_CREATION_ROUTER } from '@/lib/growth/answerEngineCreationRouter'
 import { CITATION_PAID_VIDEO_ANSWER } from '@/lib/growth/citationAnswers'
+import { BRAND_DISAMBIGUATION, BRAND_DISAMBIGUATION_PATH } from '@/lib/brandIdentity' // KINEO-VISIBILIDADE-CHATGPT-2026-10-06
+import { HUB_PAGES } from '@/lib/seo/citableHubPages' // KINEO-VISIBILIDADE-CHATGPT-2026-10-06
 // KINEO-LLMS-PAGINAS-CITADAS-2026-09-07 — módulo puro (só constantes, nenhum
 // import): é a MESMA derivação que lib/kineoFacts.ts usa para ENGINE_FACTS[].url,
 // então o path do motor nunca é digitado aqui.
@@ -310,9 +312,11 @@ function buildLlmsTxt(): string {
         .join('\n')}`,
   ).join('\n')
 
-  return `# Kineo
+  return `# Kineo (usekineo.com)
 
 > ${PRODUCT.oneLiner}
+
+${/* KINEO-VISIBILIDADE-CHATGPT-2026-10-06 — rodada 1: "What is Kineo AI video maker?" voltou descrevendo a kineo.studio. */ ''}Not the same company as Kineo Studio (kineo.studio): ${BRAND_DISAMBIGUATION} Details: ${BASE}${BRAND_DISAMBIGUATION_PATH}
 
 ${/* KINEO-AEO-FACTS-DATES-2026-08-08 — "Last verified:" sem sujeito cobria o
      arquivo INTEIRO aos olhos de quem lê, quando na verdade é só a data em que
@@ -391,6 +395,10 @@ ${/* KINEO-AEO-TRIAL-2026-08-07 — o TÍTULO também é copy, e num arquivo lid
 - ${CARD_ENTRY_ONLY ? `A card is required: the $1 trial (7 days of Creator, 80 credits, then ${formatCheckoutMoney('usd', TIER_PRICES.basic.usd)}/month) is the only way in. There is no free tier.` : 'No credit card required.'}
 - ${PRODUCT.watermarkPolicy} Free renders can still be watched, downloaded and shared.
 ${trialAccessLines}
+
+## Price-per-video answer pages (reviewed 2026-10-06)
+
+${Object.values(HUB_PAGES).map((p) => `- [${p.label}](${BASE}${p.path})`).join('\n')}
 
 ## Pricing
 
