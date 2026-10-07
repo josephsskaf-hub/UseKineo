@@ -165,11 +165,11 @@ async function loadMetrics(): Promise<Metrics | null> {
   // A cura é a mesma da casa: fetchAllRows pagina de 1.000 em 1.000, com
   // ORDER BY id estável (consertado em 28/08 no próprio helper).
   const [profilesR, videosR, debitsR, abandR, clicksR, eventsR, courtesyR] = await Promise.all([
-    fetchAllRows<ProfileRow>(admin, 'profiles', 'id, email, plan, created_at, utm_source, stripe_subscription_id, video_credits'),
-    fetchAllRows<VideoRow>(admin, 'videos', 'user_id, created_at, status, credits_used'),
-    fetchAllRows<{ user_id: string | null; refunded_at: string | null }>(admin, 'credit_debits', 'user_id, refunded_at'),
-    fetchAllRows<{ user_id: string | null }>(admin, 'checkout_abandoned', 'user_id'),
-    fetchAllRows<{ user_id: string | null; event: string | null }>(admin, 'click_events', 'user_id, event'),
+    fetchAllRows<ProfileRow>(admin, 'profiles', 'id, email, plan, created_at, utm_source, stripe_subscription_id, video_credits', undefined, '/admin/overview'),
+    fetchAllRows<VideoRow>(admin, 'videos', 'user_id, created_at, status, credits_used', undefined, '/admin/overview'),
+    fetchAllRows<{ user_id: string | null; refunded_at: string | null }>(admin, 'credit_debits', 'user_id, refunded_at', undefined, '/admin/overview'),
+    fetchAllRows<{ user_id: string | null }>(admin, 'checkout_abandoned', 'user_id', undefined, '/admin/overview'),
+    fetchAllRows<{ user_id: string | null; event: string | null }>(admin, 'click_events', 'user_id, event', undefined, '/admin/overview'),
     fetchAllRows<EventRow>(admin, 'events', 'id, name, user_id, created_at, metadata', {
       column: 'name',
       values: [
@@ -187,8 +187,8 @@ async function loadMetrics(): Promise<Metrics | null> {
         'pro_checkout_clicked',
         'starter_pack_checkout_clicked',
       ],
-    }),
-    loadActiveCourtesyGrants(admin),
+    }, '/admin/overview'),
+    loadActiveCourtesyGrants(admin, '/admin/overview'),
   ])
   const profilesQ = { data: maskCourtesyPlans(profilesR, courtesyR), error: null }
   const videosQ = { data: videosR }

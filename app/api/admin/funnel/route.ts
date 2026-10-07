@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // Admin Funnel API — real-data growth dashboard.
 //
 // Everything here is computed from live tables plus verified Stripe state:
@@ -13,7 +14,7 @@
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
+import { createClient as createServiceClient, type User } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { INTERNAL_ACCOUNTS_LABEL, isInternalEmail } from '@/lib/internalAccounts'
 import { acquisitionSource, hasCorrectableSelfReferral } from '@/lib/acquisitionSource'
@@ -452,17 +453,22 @@ export async function GET(req: Request) {
     const cohortCutoff = days === 'all' ? 0 : now - Number(days) * 24 * 60 * 60 * 1000
 
     // ── auth.users (all-time growth counters) ──────────────────────────────
-    const { data: authData } = await admin.auth.admin.listUsers({ perPage: 1000 })
-    const rawAuthUsers = authData?.users ?? []
+    const rawAuthUsers: User[] = []
+    for (let page = 1; ; page++) {
+      const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 })
+      if (error) throw error
+      const batch = data?.users ?? []
+      rawAuthUsers.push(...batch)
+      if (batch.length < 1000) break
+    }
 
     // ── profiles (plans + cohort) ──────────────────────────────────────────
     let allProfiles: ProfileRow[] = []
     let profilesAvailable = false
     try {
-      const { data: profs, error: profilesError } = await admin
+      const { data: profs, error: profilesError } = await readAll(() => admin
         .from('profiles')
-        .select('id,email,created_at,is_pro,plan,stripe_subscription_id,stripe_customer_id,video_credits,utm_source,signup_utm_source,signup_utm_medium,signup_utm_campaign,signup_referrer,signup_country,referred_by,referral_reward_granted,referral_count')
-        .limit(5000)
+        .select('id,email,created_at,is_pro,plan,stripe_subscription_id,stripe_customer_id,video_credits,utm_source,signup_utm_source,signup_utm_medium,signup_utm_campaign,signup_referrer,signup_country,referred_by,referral_reward_granted,referral_count'), { route: '/api/admin/funnel', table: 'profiles' })
       if (!profilesError && Array.isArray(profs)) {
         allProfiles = profs as ProfileRow[]
         profilesAvailable = true
@@ -491,16 +497,17 @@ export async function GET(req: Request) {
     // whether people saw and completed the form.
     let b2bLeadInbox: NonNullable<FunnelData['b2bLeadInbox']> = { total: 0, leads: [] }
     try {
-      let leadQuery = admin
-        .from('leads')
-        .select('email,magnet,created_at')
-        .eq('source', B2B_LEAD_SOURCE)
-        .order('created_at', { ascending: false })
-        .limit(100)
-      if (days !== 'all') {
-        leadQuery = leadQuery.gte('created_at', new Date(cohortCutoff).toISOString())
-      }
-      const { data: leadRows, error: leadError } = await leadQuery
+      const { data: leadRows, error: leadError } = await readAll(() => {
+        let query = admin
+          .from('leads')
+          .select('email,magnet,created_at')
+          .eq('source', B2B_LEAD_SOURCE)
+          .order('created_at', { ascending: false })
+        if (days !== 'all') {
+          query = query.gte('created_at', new Date(cohortCutoff).toISOString())
+        }
+        return query
+      }, { route: '/api/admin/funnel', table: 'leads' })
       if (!leadError && Array.isArray(leadRows)) {
         const externalLeads = leadRows.filter((row) => !isInternalEmail(row.email))
         b2bLeadInbox = {
@@ -534,10 +541,9 @@ export async function GET(req: Request) {
     let allVideos: VideoRow[] = []
     let videosAvailable = false
     try {
-      const { data: vids, error: videosError } = await admin
+      const { data: vids, error: videosError } = await readAll(() => admin
         .from('videos')
-        .select('user_id,status,quality_mode,topic,niche,created_at')
-        .limit(5000)
+        .select('user_id,status,quality_mode,topic,niche,created_at'), { route: '/api/admin/funnel', table: 'videos' })
       if (!videosError && Array.isArray(vids)) {
         videosAvailable = true
         allVideos = (vids as VideoRow[]).filter((row) => Boolean(row.user_id && externalKnownUserIds.has(row.user_id)))
@@ -555,7 +561,7 @@ export async function GET(req: Request) {
     let allAbandoned: Array<{ user_id: string | null; expired_at: string | null; tier: string | null }> = []
     let clickEventsAvailable = false
     try {
-      const { data, error } = await admin.from('click_events').select('user_id,created_at,plan').limit(5000)
+      const { data, error } = await readAll(() => admin.from('click_events').select('user_id,created_at,plan'), { route: '/api/admin/funnel', table: 'click_events' })
       if (!error && Array.isArray(data)) {
         clickEventsAvailable = true
         // Legacy one-time Starter Pack clicks had plan=null. Current recurring
@@ -567,7 +573,7 @@ export async function GET(req: Request) {
       }
     } catch { /* ignore */ }
     try {
-      const { data } = await admin.from('checkout_abandoned').select('user_id,expired_at,tier').limit(5000)
+      const { data } = await readAll(() => admin.from('checkout_abandoned').select('user_id,expired_at,tier'), { route: '/api/admin/funnel', table: 'checkout_abandoned' })
       if (Array.isArray(data)) {
         allAbandoned = (data as typeof allAbandoned).filter((row) =>
           (!row.user_id || !internalUserIds.has(row.user_id)) &&
@@ -656,15 +662,16 @@ export async function GET(req: Request) {
         }))
         for (const row of countResults) eventCounts.set(row.name, row.count)
 
-        let identityQuery = admin
-          .from('events')
-          .select('name,user_id,created_at,session_id,metadata')
-          .in('name', identityEventNames)
-          .order('created_at', { ascending: false })
-          .limit(5000)
-        if (periodIso) identityQuery = identityQuery.gte('created_at', periodIso)
-        if (externalEventFilter) identityQuery = identityQuery.or(externalEventFilter)
-        const identities = await identityQuery
+        const identities = await readAll(() => {
+          let query = admin
+            .from('events')
+            .select('name,user_id,created_at,session_id,metadata')
+            .in('name', identityEventNames)
+            .order('created_at', { ascending: false })
+          if (periodIso) query = query.gte('created_at', periodIso)
+          if (externalEventFilter) query = query.or(externalEventFilter)
+          return query
+        }, { route: '/api/admin/funnel', table: 'events' })
         if (!identities.error && Array.isArray(identities.data)) {
           eventRows = (identities.data as unknown as EventRow[])
             .filter((row) => !row.user_id || !internalUserIds.has(row.user_id))
@@ -672,70 +679,73 @@ export async function GET(req: Request) {
           identityEventsAvailable = true
         }
 
-        let postVideoQuery = admin
-          .from('events')
-          .select('name,user_id,created_at,session_id,metadata,path')
-          .in('name', [
-            'post_video_offer_viewed', 'post_video_clean_export_clicked',
-            'trial_post_video_offer_viewed', 'trial_post_video_offer_clicked',
-            'trial_balance_bridge_viewed', 'trial_balance_bridge_clicked',
-            'video_generation_completed',
-            'video_downloaded',
-            'checkout_started', 'payment_success',
-          ])
-          .order('created_at', { ascending: false })
-          .limit(5000)
-        if (periodIso) postVideoQuery = postVideoQuery.gte('created_at', periodIso)
-        if (externalEventFilter) postVideoQuery = postVideoQuery.or(externalEventFilter)
-        const postVideoEvents = await postVideoQuery
+        const postVideoEvents = await readAll(() => {
+          let query = admin
+            .from('events')
+            .select('name,user_id,created_at,session_id,metadata,path')
+            .in('name', [
+              'post_video_offer_viewed', 'post_video_clean_export_clicked',
+              'trial_post_video_offer_viewed', 'trial_post_video_offer_clicked',
+              'trial_balance_bridge_viewed', 'trial_balance_bridge_clicked',
+              'video_generation_completed',
+              'video_downloaded',
+              'checkout_started', 'payment_success',
+            ])
+            .order('created_at', { ascending: false })
+          if (periodIso) query = query.gte('created_at', periodIso)
+          if (externalEventFilter) query = query.or(externalEventFilter)
+          return query
+        }, { route: '/api/admin/funnel', table: 'events' })
         if (!postVideoEvents.error && Array.isArray(postVideoEvents.data)) {
           postVideoEventRows = (postVideoEvents.data as unknown as EventRow[])
             .filter((row) => !row.user_id || !internalUserIds.has(row.user_id))
         }
 
-        let organicQuery = admin
-          .from('events')
-          .select('name,user_id,created_at,session_id,metadata,path')
-          .in('name', [
-            'landing_session_started', 'organic_handoff_opened', 'organic_cta_clicked', 'organic_topic_submitted',
-            'organic_signup_handoff_viewed', 'organic_signup_method_selected', 'organic_signup_completed',
-            'viral_now_viewed', 'viral_now_topic_clicked',
-            'video_share_prompt_viewed', 'video_share_clicked', 'video_shared',
-            'video_share_channel_opened', 'video_share_cancelled',
-            'public_video_cta_clicked', 'public_video_remix_arrived',
-            'public_video_remix_script_generated', 'public_video_remix_signup_clicked',
-          ])
-          .order('created_at', { ascending: false })
-          .limit(5000)
-        if (periodIso) organicQuery = organicQuery.gte('created_at', periodIso)
-        if (externalEventFilter) organicQuery = organicQuery.or(externalEventFilter)
-        const organicEvents = await organicQuery
+        const organicEvents = await readAll(() => {
+          let query = admin
+            .from('events')
+            .select('name,user_id,created_at,session_id,metadata,path')
+            .in('name', [
+              'landing_session_started', 'organic_handoff_opened', 'organic_cta_clicked', 'organic_topic_submitted',
+              'organic_signup_handoff_viewed', 'organic_signup_method_selected', 'organic_signup_completed',
+              'viral_now_viewed', 'viral_now_topic_clicked',
+              'video_share_prompt_viewed', 'video_share_clicked', 'video_shared',
+              'video_share_channel_opened', 'video_share_cancelled',
+              'public_video_cta_clicked', 'public_video_remix_arrived',
+              'public_video_remix_script_generated', 'public_video_remix_signup_clicked',
+            ])
+            .order('created_at', { ascending: false })
+          if (periodIso) query = query.gte('created_at', periodIso)
+          if (externalEventFilter) query = query.or(externalEventFilter)
+          return query
+        }, { route: '/api/admin/funnel', table: 'events' })
         if (!organicEvents.error && Array.isArray(organicEvents.data)) {
           organicEventRows = (organicEvents.data as unknown as EventRow[])
             .filter((row) => !row.user_id || !internalUserIds.has(row.user_id))
         }
 
-        let retentionQuery = admin
-          .from('events')
-          .select('name,user_id,created_at,session_id,metadata,path')
-          .in('name', [
-            'series_continue_clicked', 'series_continuation_landed',
-            'generate_started', 'generate_completed',
-            'chatgpt_welcome_banner_shown', 'chatgpt_quickstart_selected', 'chatgpt_quickstart_studio_ready',
-            'checkout_started', 'payment_success',
-            'viral_onboarding_viewed', 'viral_onboarding_primary_clicked',
-            'viral_onboarding_goal_selected', 'viral_onboarding_skipped', 'first_video_started_from_viral_onboarding',
-            'first_video_generation_dispatched_from_viral_onboarding',
-            'first_video_generation_completed_from_viral_onboarding',
-            'first_video_generation_failed_from_viral_onboarding',
-            'history_repeat_offer_viewed', 'history_repeat_offer_clicked',
-            'history_first_video_offer_viewed', 'history_first_video_offer_clicked',
-          ])
-          .order('created_at', { ascending: false })
-          .limit(5000)
-        if (periodIso) retentionQuery = retentionQuery.gte('created_at', periodIso)
-        if (externalEventFilter) retentionQuery = retentionQuery.or(externalEventFilter)
-        const retentionEvents = await retentionQuery
+        const retentionEvents = await readAll(() => {
+          let query = admin
+            .from('events')
+            .select('name,user_id,created_at,session_id,metadata,path')
+            .in('name', [
+              'series_continue_clicked', 'series_continuation_landed',
+              'generate_started', 'generate_completed',
+              'chatgpt_welcome_banner_shown', 'chatgpt_quickstart_selected', 'chatgpt_quickstart_studio_ready',
+              'checkout_started', 'payment_success',
+              'viral_onboarding_viewed', 'viral_onboarding_primary_clicked',
+              'viral_onboarding_goal_selected', 'viral_onboarding_skipped', 'first_video_started_from_viral_onboarding',
+              'first_video_generation_dispatched_from_viral_onboarding',
+              'first_video_generation_completed_from_viral_onboarding',
+              'first_video_generation_failed_from_viral_onboarding',
+              'history_repeat_offer_viewed', 'history_repeat_offer_clicked',
+              'history_first_video_offer_viewed', 'history_first_video_offer_clicked',
+            ])
+            .order('created_at', { ascending: false })
+          if (periodIso) query = query.gte('created_at', periodIso)
+          if (externalEventFilter) query = query.or(externalEventFilter)
+          return query
+        }, { route: '/api/admin/funnel', table: 'events' })
         if (!retentionEvents.error && Array.isArray(retentionEvents.data)) {
           retentionEventRows = (retentionEvents.data as unknown as EventRow[])
             .filter((row) => !row.user_id || !internalUserIds.has(row.user_id))

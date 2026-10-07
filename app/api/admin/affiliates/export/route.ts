@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // Admin — export all affiliate commissions as CSV.
 // GET, admin-gated, service-role. Joins each commission to its affiliate's
 // code + email and streams a downloadable CSV. Amounts are converted from
@@ -77,11 +78,11 @@ export async function GET() {
 
     // Build an affiliate_id → { code, email } lookup, then the commissions.
     const [{ data: affiliates }, { data: commissions }] = await Promise.all([
-      admin.from('affiliates').select('id, code, email'),
-      admin
+      readAll(() => admin.from('affiliates').select('id, code, email'), { route: '/api/admin/affiliates/export', table: 'affiliates' }),
+      readAll(() => admin
         .from('affiliate_commissions')
         .select('created_at, affiliate_id, type, provider, amount_gross, commission_amount, currency, status')
-        .order('created_at', { ascending: false }),
+        .order('created_at', { ascending: false }), { route: '/api/admin/affiliates/export', table: 'affiliate_commissions' }),
     ])
 
     const affMap = new Map<string, { code: string | null; email: string | null }>()

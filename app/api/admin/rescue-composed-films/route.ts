@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // KINEO-RESGATE-FILME-MONTADO-2026-09-02 — sprint-assinaturas #18
 //
 // O QUE ISTO CONSERTA (medido 02/09, 14 dias, so externos):
@@ -68,25 +69,23 @@ export async function GET(req: NextRequest) {
     const since = new Date(Date.now() - days * 86_400_000).toISOString()
 
     // 1) estornos "nunca entregue" na janela (lote pequeno: ~2-3/dia).
-    const { data: refunds, error: rErr } = await admin
+    const { data: refunds, error: rErr } = await readAll(() => admin
       .from('events')
       .select('user_id, session_id, created_at, metadata')
       .eq('name', 'credits_refunded')
       .eq('metadata->>reason', REFUND_REASON)
       .gte('created_at', since)
-      .order('created_at', { ascending: false })
-      .limit(500)
+      .order('created_at', { ascending: false }), { route: '/api/admin/rescue-composed-films', table: 'events' })
     if (rErr) throw rErr
     const gens = (refunds ?? []).filter((r) => r.session_id).map((r) => String(r.session_id))
     if (gens.length === 0) return NextResponse.json({ dry_run: !confirm, days, candidates: [], summary: {} })
 
     // 2) claims de compose que chegaram a 'done' com render_id para essas geracoes.
-    const { data: claims, error: cErr } = await admin
+    const { data: claims, error: cErr } = await readAll(() => admin
       .from('events')
       .select('user_id, session_id, created_at, metadata')
       .eq('name', 'compose_submission_claim')
-      .in('session_id', gens)
-      .limit(1000)
+      .in('session_id', gens), { route: '/api/admin/rescue-composed-films', table: 'events' })
     if (cErr) throw cErr
 
     const refundByGen = new Map((refunds ?? []).map((r) => [String(r.session_id), r]))
@@ -115,12 +114,12 @@ export async function GET(req: NextRequest) {
 
     // 3) e-mail (para excluir internos) + linhas ja persistidas.
     const userIds = Array.from(new Set(candidates.map((c) => c.user_id)))
-    const { data: profiles } = await admin.from('profiles').select('id, email').in('id', userIds)
+    const { data: profiles } = await readAll(() => admin.from('profiles').select('id, email').in('id', userIds), { route: '/api/admin/rescue-composed-films', table: 'profiles' })
     const emailById = new Map((profiles ?? []).map((p) => [String(p.id), String(p.email ?? '')]))
-    const { data: existing } = await admin
+    const { data: existing } = await readAll(() => admin
       .from('videos')
       .select('render_id')
-      .in('render_id', candidates.map((c) => c.render_id))
+      .in('render_id', candidates.map((c) => c.render_id)), { route: '/api/admin/rescue-composed-films', table: 'videos' })
     const persisted = new Set((existing ?? []).map((v) => String(v.render_id)))
 
     // 4) Creatomate: o arquivo ainda existe? (GET de status; sem custo)

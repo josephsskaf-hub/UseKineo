@@ -168,15 +168,12 @@ async function loadAbuse(): Promise<AbuseData | null> {
   if (!admin) return null
 
   const [profiles, fingerprints, events] = await Promise.all([
-    fetchAllRows<TrialProfileRow>(
-      admin,
-      'profiles',
-      'id, email, created_at, trial_status, trial_variant, trial_credits_granted, trial_credits_used, trial_ends_at, trial_extended',
+    fetchAllRows<TrialProfileRow>(admin, 'profiles', 'id, email, created_at, trial_status, trial_variant, trial_credits_granted, trial_credits_used, trial_ends_at, trial_extended', undefined, '/admin/trial-abuse'
     ),
     // fetchAllRows já degrada para [] quando a query falha (loga um warn). Se a
     // migração ainda não rodou neste ambiente, o painel abre vazio em vez de
     // 500 — mas a linha "table missing" abaixo diz isso em voz alta.
-    fetchAllRows<FingerprintRow>(admin, TRIAL_FINGERPRINT_TABLE, 'fingerprint_hash, outcome, created_at'),
+    fetchAllRows<FingerprintRow>(admin, TRIAL_FINGERPRINT_TABLE, 'fingerprint_hash, outcome, created_at', undefined, '/admin/trial-abuse'),
     // `trial_cap_refunded` entra aqui (KINEO-AB-CENSORING-2026-08-11) porque é
     // o único registro de que uma conta passou por um churn no meio do trial.
     // `metadata` vem junto de propósito: hoje o evento SÓ é escrito no ramo
@@ -186,7 +183,7 @@ async function loadAbuse(): Promise<AbuseData | null> {
     fetchAllRows<EventRow>(admin, 'events', 'name, created_at, user_id, metadata', {
       column: 'name',
       values: ['trial_blocked_fingerprint', 'trial_fingerprint_check_failed', 'trial_cap_refunded'],
-    }),
+    }, '/admin/trial-abuse'),
   ])
 
   // Contas que voltaram do rebaixamento por estorno de falha de fornecedor.
@@ -228,7 +225,7 @@ async function loadAbuse(): Promise<AbuseData | null> {
   const videos = await fetchAllRows<{ user_id: string | null }>(admin, 'videos', 'user_id', {
     column: 'status',
     values: ['completed'],
-  })
+  }, '/admin/trial-abuse')
   const activatedUserIds = new Set<string>()
   for (const v of videos) if (v.user_id) activatedUserIds.add(v.user_id)
 

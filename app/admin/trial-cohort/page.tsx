@@ -178,10 +178,7 @@ async function loadCohort(): Promise<CohortData | null> {
   const admin = serviceClient()
   if (!admin) return null
 
-  const profiles = await fetchAllRows<TrialProfileRow>(
-    admin,
-    'profiles',
-    'id, email, trial_status, trial_ends_at, trial_credits_used, trial_credits_granted, trial_variant, signup_country, last_country, signup_utm_source, utm_source, created_at',
+  const profiles = await fetchAllRows<TrialProfileRow>(admin, 'profiles', 'id, email, trial_status, trial_ends_at, trial_credits_used, trial_credits_granted, trial_variant, signup_country, last_country, signup_utm_source, utm_source, created_at', undefined, '/admin/trial-cohort'
   )
   const trials = profiles.filter((p) => (p.trial_status ?? '').toLowerCase() === 'active')
   if (trials.length === 0) {
@@ -206,8 +203,8 @@ async function loadCohort(): Promise<CohortData | null> {
   // Scoping BOTH reads to the cohort keeps this page cheap: ~5k event rows and
   // a few hundred videos, instead of the 46k-row events table.
   const [videos, events] = await Promise.all([
-    fetchAllRows<{ user_id: string | null }>(admin, 'videos', 'user_id', { column: 'user_id', values: ids }),
-    fetchAllRows<EventRow>(admin, 'events', 'user_id, name, created_at', { column: 'user_id', values: ids }),
+    fetchAllRows<{ user_id: string | null }>(admin, 'videos', 'user_id', { column: 'user_id', values: ids }, '/admin/trial-cohort'),
+    fetchAllRows<EventRow>(admin, 'events', 'user_id, name, created_at', { column: 'user_id', values: ids }, '/admin/trial-cohort'),
   ])
 
   const videoCount = new Map<string, number>()

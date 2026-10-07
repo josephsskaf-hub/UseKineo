@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // KINEO-FLUXO-NOVO-2026-09-25 — /admin/ads: o que está esperando GENTE, com o relógio da promessa.
 //
 // POR QUÊ. Express/Pro prometem entrega em horas contadas (DFY_TIERS) e o Studio Ads promete revisão humana do
@@ -132,11 +133,11 @@ export default async function AdminAdsPage() {
   const emails = new Map<string, string>()
   const videos = new Map<string, string>()
   if (userIds.length) {
-    const { data } = await admin.from('profiles').select('id, email').in('id', userIds)
+    const { data } = await readAll(() => admin.from('profiles').select('id, email').in('id', userIds), { route: '/admin/ads', table: 'profiles' })
     for (const p of (data ?? []) as { id: string; email: string | null }[]) if (p.email) emails.set(p.id, p.email)
   }
   if (videoIds.length) {
-    const { data } = await admin.from('videos').select('id, video_url').in('id', videoIds)
+    const { data } = await readAll(() => admin.from('videos').select('id, video_url').in('id', videoIds), { route: '/admin/ads', table: 'videos' })
     for (const v of (data ?? []) as { id: string; video_url: string | null }[]) if (v.video_url) videos.set(v.id, v.video_url)
   }
   const lateDfy = orders.filter((o) => o.late).length

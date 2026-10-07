@@ -114,7 +114,7 @@ export async function GET() {
     const admin = serviceClient()
     if (!admin) return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
 
-    const courtesyByUser = new Map((await loadActiveCourtesyGrants(admin)).map((g) => [g.user_id, g]))
+    const courtesyByUser = new Map((await loadActiveCourtesyGrants(admin, '/api/admin/people')).map((g) => [g.user_id, g]))
     const [profiles, debits, payEvents, videoRows, imageRows, audioRows, animateRows] = await Promise.all([
       fetchAllRows<{
         id: string
@@ -129,38 +129,30 @@ export async function GET() {
         stripe_subscription_id: string | null
         paddle_subscription_id: string | null
         paypal_subscription_id: string | null
-      }>(admin, 'profiles', 'id, email, name, plan, has_paid, video_credits, created_at, signup_country, last_country, stripe_subscription_id, paddle_subscription_id, paypal_subscription_id'),
+      }>(admin, 'profiles', 'id, email, name, plan, has_paid, video_credits, created_at, signup_country, last_country, stripe_subscription_id, paddle_subscription_id, paypal_subscription_id', undefined, '/api/admin/people'),
       fetchAllRows<{
         user_id: string | null
         render_id: string | null
         amount: number | null
         created_at: string | null
         refunded_at: string | null
-      }>(admin, 'credit_debits', 'user_id, render_id, amount, created_at, refunded_at'),
-      fetchAllRows<{ user_id: string | null; created_at: string | null }>(
-        admin,
-        'events',
-        'user_id, created_at',
-        { column: 'name', values: ['payment_success'] },
+      }>(admin, 'credit_debits', 'user_id, render_id, amount, created_at, refunded_at', undefined, '/api/admin/people'),
+      fetchAllRows<{ user_id: string | null; created_at: string | null }>(admin, 'events', 'user_id, created_at', { column: 'name', values: ['payment_success'] }, '/api/admin/people'
       ),
       // #295 — o lado ENTREGUE da conta. Uma leitura por produto, todas via
       // fetchAllRows (que pagina) — nunca `.limit()` cru: a lição do
       // truncamento silencioso do PostgREST em ~1.000 linhas custou uma
       // campanha inteira em 22/08, e `videos` já passa de 1.300 linhas.
-      fetchAllRows<{ user_id: string | null }>(admin, 'videos', 'user_id'),
-      fetchAllRows<{ user_id: string | null }>(admin, 'images', 'user_id'),
-      fetchAllRows<{ user_id: string | null }>(admin, 'audios', 'user_id'),
+      fetchAllRows<{ user_id: string | null }>(admin, 'videos', 'user_id', undefined, '/api/admin/people'),
+      fetchAllRows<{ user_id: string | null }>(admin, 'images', 'user_id', undefined, '/api/admin/people'),
+      fetchAllRows<{ user_id: string | null }>(admin, 'audios', 'user_id', undefined, '/api/admin/people'),
       // Animação não tem tabela própria. O nome antigo permanece no histórico;
       // novos polls usam `animate_client_poll_observed`, separado da autoridade
       // financeira `animate_job_settled`, que agora é exclusiva do servidor.
       // Por isso conta-se `session_id` DISTINTO, não linhas — contar linhas
       // aqui publicaria "1.801 animações" e destruiria a credibilidade do
       // painel inteiro.
-      fetchAllRows<{ user_id: string | null; session_id: string | null; metadata: { outcome?: string } | null }>(
-        admin,
-        'events',
-        'user_id, session_id, metadata',
-        { column: 'name', values: ['animate_job_settled', 'animate_client_poll_observed'] },
+      fetchAllRows<{ user_id: string | null; session_id: string | null; metadata: { outcome?: string } | null }>(admin, 'events', 'user_id, session_id, metadata', { column: 'name', values: ['animate_job_settled', 'animate_client_poll_observed'] }, '/api/admin/people'
       ),
     ])
 

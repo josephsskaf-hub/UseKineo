@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // KINEO-ADMIN-LIVE-2026-08-19 — pedido do fundador: "quero ver quantas pessoas
 // passaram no site em 7 dias, nas últimas 24h, e QUEM está online AGORA, com
 // e-mail e nome do lado e se testou algo — pra eu mandar e-mail e fechar a
@@ -153,7 +154,7 @@ export async function GET() {
         p_exact_emails: INTERNAL_EXACT_EMAILS,
         p_like_patterns: INTERNAL_LIKE_PATTERNS,
       }),
-      admin.from('events').select('user_id, session_id, name, path, created_at, is_bot:metadata->>is_bot').gte('created_at', iso(ONLINE)).order('created_at', { ascending: false }).limit(3000),
+      readAll(() => admin.from('events').select('user_id, session_id, name, path, created_at, is_bot:metadata->>is_bot').gte('created_at', iso(ONLINE)).order('created_at', { ascending: false }), { route: '/api/admin/live', table: 'events' }),
     ])
 
     type Counters = {
@@ -219,14 +220,14 @@ export async function GET() {
       // claims acima; FOTO e ÁUDIO vêm das próprias tabelas — cada linha é
       // uma geração cobrada, com o motor no campo `model`.
       const dayIso = new Date(now - 24 * 60 * 60 * 1000).toISOString()
-      const imagesPromise = admin
-        .from('images').select('user_id, model').in('user_id', ids).gte('created_at', dayIso).limit(2000)
-      const audiosPromise = admin
-        .from('audios').select('user_id, model').in('user_id', ids).gte('created_at', dayIso).limit(2000)
+      const imagesPromise = readAll(() => admin
+        .from('images').select('user_id, model').in('user_id', ids).gte('created_at', dayIso), { route: '/api/admin/live', table: 'images' })
+      const audiosPromise = readAll(() => admin
+        .from('audios').select('user_id, model').in('user_id', ids).gte('created_at', dayIso), { route: '/api/admin/live', table: 'audios' })
       // KINEO-LEDGER-2026-08-25 — as três fontes do razão, TODAS all-time
       // (o saldo é acumulado desde o cadastro; janela de 24h aqui mentiria).
-      const grantsPromise = admin
-        .from('events').select('user_id, metadata').eq('name', 'admin_credits_granted').in('user_id', ids).limit(2000)
+      const grantsPromise = readAll(() => admin
+        .from('events').select('user_id, metadata').eq('name', 'admin_credits_granted').in('user_id', ids), { route: '/api/admin/live', table: 'events' })
       // KINEO-LEDGER-V2-2026-08-25 (auditoria das últimas 10 pessoas ativas):
       // 5 de 10 contas apareciam com "furo" — saldo 0 com gastos mínimos. O
       // destino era o REVERSE TRIAL: trial_downgraded zera o saldo e grava
@@ -234,18 +235,18 @@ export async function GET() {
       // Não é dinheiro sumido, é design — mas sem este termo a equação acusava
       // "sem origem" em metade das linhas e o painel gritava furo onde havia
       // expiração. O termo "expirado" fecha os livros.
-      const revokesPromise = admin
-        .from('events').select('user_id, metadata').eq('name', 'trial_downgraded').in('user_id', ids).limit(2000)
-      const purchasesPromise = admin
-        .from('events').select('user_id, metadata').eq('name', 'bulk_purchase_completed').in('user_id', ids).limit(500)
+      const revokesPromise = readAll(() => admin
+        .from('events').select('user_id, metadata').eq('name', 'trial_downgraded').in('user_id', ids), { route: '/api/admin/live', table: 'events' })
+      const purchasesPromise = readAll(() => admin
+        .from('events').select('user_id, metadata').eq('name', 'bulk_purchase_completed').in('user_id', ids), { route: '/api/admin/live', table: 'events' })
       // KINEO-RAZAO-ASSINATURA-2026-09-16 (fundador: "os pagantes estão com crédito sem origem… quero que mostre que
       // compraram e qual plano"). A ASSINATURA nunca entrou no razão: só o pacote avulso. sassygoodsell (Starter,
       // 16/09) aparecia "+60 sem origem". Fonte: payment_success (tier → TIER_CREDITS) e subscription_invoice_paid
       // (credits_granted, renovação). Termo próprio: "+ 60 Starter assinou 16/09".
-      const subsPromise = admin
-        .from('events').select('user_id, name, created_at, metadata').in('name', ['payment_success', 'subscription_invoice_paid', 'checkout_payment_failed']).in('user_id', ids).limit(1000) // KINEO-RAZAO-ASSINANTE: + renovação recusada
-      const debitsPromise = admin
-        .from('credit_debits').select('user_id, amount, refunded_at, render_id, created_at').in('user_id', ids).limit(4000)
+      const subsPromise = readAll(() => admin
+        .from('events').select('user_id, name, created_at, metadata').in('name', ['payment_success', 'subscription_invoice_paid', 'checkout_payment_failed']).in('user_id', ids), { route: '/api/admin/live', table: 'events' }) // KINEO-RAZAO-ASSINANTE: + renovação recusada
+      const debitsPromise = readAll(() => admin
+        .from('credit_debits').select('user_id, amount, refunded_at, render_id, created_at').in('user_id', ids), { route: '/api/admin/live', table: 'credit_debits' })
       // KINEO-ENTREGAS-TOTAIS-2026-08-28 — a coluna "VIDEOS (TOTAL)" só
       // contava a tabela `videos`. Animate, Images e Audio NÃO criam linha
       // lá, então quem usou esses produtos aparecia como "entrou e não fez
@@ -260,18 +261,18 @@ export async function GET() {
       // O histórico segue poluído (jobs com até 139 duplicatas), então a
       // contagem precisa do metadata para deduplicar por billing_reference e
       // ignorar estorno — igual ao /admin/people (#295), que já fazia isso.
-      const animateDelivPromise = admin
-        .from('events').select('user_id, metadata').eq('name', 'animate_job_settled').in('user_id', ids).limit(1000)
+      const animateDelivPromise = readAll(() => admin
+        .from('events').select('user_id, metadata').eq('name', 'animate_job_settled').in('user_id', ids), { route: '/api/admin/live', table: 'events' })
       const [profRes, vidRes, animateDelivRes] = await Promise.all([
-        admin.from('profiles')
+        readAll(() => admin.from('profiles')
           .select('id, email, name, plan, has_paid, video_credits, trial_credits_used, trial_credits_granted, signup_country, last_country, signup_utm_source, created_at')
-          .in('id', ids),
-        admin.from('videos').select('user_id').in('user_id', ids).limit(2000),
+          .in('id', ids), { route: '/api/admin/live', table: 'profiles' }),
+        readAll(() => admin.from('videos').select('user_id').in('user_id', ids), { route: '/api/admin/live', table: 'videos' }),
         animateDelivPromise,
       ])
       // KINEO-PAINEL-MONTANDO-2026-09-19 — entregues nas 24 h por pessoa+motor: a linha de gasto passa a dizer
       // "2 pedidos (1 pronto · 1 montando)" em vez de "2 vídeos", que contradizia o total=1 enquanto o resgate montava.
-      const { data: vids24 } = await admin.from('videos').select('user_id, quality_mode').in('user_id', ids).gte('created_at', new Date(now - 24 * 60 * 60 * 1000).toISOString()).limit(2000)
+      const { data: vids24 } = await readAll(() => admin.from('videos').select('user_id, quality_mode').in('user_id', ids).gte('created_at', new Date(now - 24 * 60 * 60 * 1000).toISOString()), { route: '/api/admin/live', table: 'videos' })
       const delivered24 = new Map<string, number>()
       for (const v of vids24 ?? []) { const k = `${(v as { user_id?: string }).user_id}|${(v as { quality_mode?: string }).quality_mode ?? '?'}`; delivered24.set(k, (delivered24.get(k) ?? 0) + 1) }
       const [imagesRes, audiosRes, grantsRes, purchasesRes, debitsRes, revokesRes, subsRes] = await Promise.all([imagesPromise, audiosPromise, grantsPromise, purchasesPromise, debitsPromise, revokesPromise, subsPromise])
@@ -426,8 +427,8 @@ export async function GET() {
         const renderIds = dayDebits.map((d) => d.render_id).filter(Boolean)
         const jobQuality = new Map<string, string>()
         if (renderIds.length > 0) {
-          const { data: jobs } = await admin
-            .from('render_jobs').select('render_id, quality').in('render_id', renderIds).limit(2000)
+          const { data: jobs } = await readAll(() => admin
+            .from('render_jobs').select('render_id, quality').in('render_id', renderIds), { route: '/api/admin/live', table: 'render_jobs', key: 'render_id' })
           for (const j of jobs ?? []) {
             const rid = (j as { render_id?: string }).render_id
             const q = (j as { quality?: string }).quality
@@ -439,8 +440,8 @@ export async function GET() {
         // (billing_reference = esse mesmo id). Sem isto todo Seedance/Veo/Kling aparecia como "?".
         const cinematicRefs = renderIds.filter((r) => String(r).startsWith('cinematic-'))
         if (cinematicRefs.length > 0) {
-          const { data: disp } = await admin
-            .from('events').select('metadata').eq('name', 'cinematic_dispatch_result').in('metadata->>billing_reference', cinematicRefs).limit(2000)
+          const { data: disp } = await readAll(() => admin
+            .from('events').select('metadata').eq('name', 'cinematic_dispatch_result').in('metadata->>billing_reference', cinematicRefs), { route: '/api/admin/live', table: 'events' })
           for (const e of disp ?? []) {
             const md = ((e as { metadata?: Record<string, unknown> }).metadata ?? {}) as Record<string, unknown>
             const ref = typeof md.billing_reference === 'string' ? md.billing_reference : null

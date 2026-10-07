@@ -120,10 +120,9 @@ export async function GET() {
     try {
       // KINEO-ADMIN-1000-2026-09-01 — select sem paginacao = 1000 linhas em
       // silencio (db.max_rows). fetchAllRows percorre em paginas ordenadas.
-      const profs = await fetchAllRows<{ id: string; plan: string | null; stripe_customer_id: string | null; video_credits: number | null }>(
-        admin, 'profiles', 'id, plan, stripe_customer_id, video_credits',
+      const profs = await fetchAllRows<{ id: string; plan: string | null; stripe_customer_id: string | null; video_credits: number | null }>(admin, 'profiles', 'id, plan, stripe_customer_id, video_credits', undefined, '/api/admin/overview'
       )
-      for (const p of maskCourtesyPlans(profs, await loadActiveCourtesyGrants(admin))) {
+      for (const p of maskCourtesyPlans(profs, await loadActiveCourtesyGrants(admin, '/api/admin/overview'))) {
         if (excludedIds.has(p.id)) continue // #417 — skip test/founder accounts
         planById.set(p.id, (p.plan ?? 'free').toLowerCase())
         hasStripeById.set(p.id, !!p.stripe_customer_id)
@@ -131,6 +130,7 @@ export async function GET() {
       }
     } catch (e) {
       console.warn('[admin/overview] profiles query failed:', e)
+      throw e // incomplete reads must not become zero-valued metrics
     }
 
     // ── videos (totals + first video per user for the activation funnel) ──
@@ -160,7 +160,7 @@ export async function GET() {
         topic: string | null
         quality_mode: string | null
         credits_used: number | null
-      }>(admin, 'videos', 'user_id, created_at, title, topic, quality_mode, credits_used')
+      }>(admin, 'videos', 'user_id, created_at, title, topic, quality_mode, credits_used', undefined, '/api/admin/overview')
       for (const v of vids) {
         if (v.user_id && excludedIds.has(v.user_id)) continue
         videosTotal += 1
@@ -195,6 +195,7 @@ export async function GET() {
       }
     } catch (e) {
       console.warn('[admin/overview] videos count failed:', e)
+      throw e // incomplete reads must not become zero-valued metrics
     }
 
     // ── Activation funnel (Push #426) ─────────────────────────────────────
@@ -235,10 +236,11 @@ export async function GET() {
       const paidEvents = await fetchAllRows<PaidAmountEvent>(admin, 'events', 'id, user_id, name, created_at, metadata', {
         column: 'name',
         values: [...MRR_PAID_EVENT_NAMES],
-      })
+      }, '/api/admin/overview')
       paidByUser = paidMonthlyUsdByUser(paidEvents)
     } catch (e) {
-      console.warn('[admin/overview] paid events query failed (MRR falls back to table, labelled):', e)
+      console.warn('[admin/overview] paid events query failed:', e)
+      throw e // incomplete reads must not become zero-valued metrics
     }
 
     let payingByPlan: Record<string, number> = {}

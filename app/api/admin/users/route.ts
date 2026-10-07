@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // Push #065 — Admin Users List API.
 // Server-only endpoint that joins auth.users (via service role) with
 // public.videos and public.profiles to produce a sanitised list of
@@ -8,7 +9,7 @@
 // KINEO-ADMIN-HQ-2026-08-03 — two production bugs fixed + Admin HQ summary:
 //   1. listUsers was a single { perPage: 500 } call → everyone past user
 //      #500 (~875 in prod) silently vanished. Now paginates until a short
-//      page (hard cap 4000).
+//      page.
 //   2. "paid" was `p === 'pro' || p === 'basic'` → starter/creator/studio/
 //      autopilot customers showed as "free" AND as checkout_abandoned.
 //      Now PAID_PLANS covers every value the Stripe webhook/checkout writes.
@@ -113,11 +114,10 @@ export async function GET() {
 
     // KINEO-ADMIN-HQ-2026-08-03 — paginate auth.users. The old single
     // { perPage: 500 } call dropped everyone past #500. Loop until a short
-    // page; MAX_USERS is a safety valve against an infinite loop.
+    // page; failure aborts rather than presenting a partial list as complete.
     const PER_PAGE = 500
-    const MAX_USERS = 4000
     const authUsers: User[] = []
-    for (let page = 1; authUsers.length < MAX_USERS; page++) {
+    for (let page = 1; ; page++) {
       const { data: authData, error: authErr } = await admin.auth.admin.listUsers({
         page,
         perPage: PER_PAGE,
@@ -130,7 +130,7 @@ export async function GET() {
             { status: 500 }
           )
         }
-        break // keep the pages we already have
+        throw authErr // a partial user list must not become a complete total
       }
       const batch = authData?.users ?? []
       authUsers.push(...batch)
@@ -149,14 +149,14 @@ export async function GET() {
       new Date().toISOString().slice(0, 10) + 'T00:00:00.000Z'
     ).getTime()
 
-    // Per-user video aggregates. Single round-trip — we collapse client-side.
+    // Per-user video aggregates. Every page is read before collapsing client-side.
     const videoCounts = new Map<string, number>()
     const lastVideoAt = new Map<string, string>()
     let videosToday = 0
     try {
-      const { data: vids, error: vErr } = await admin
+      const { data: vids, error: vErr } = await readAll(() => admin
         .from('videos')
-        .select('user_id, created_at')
+        .select('user_id, created_at'), { route: '/api/admin/users', table: 'videos' })
       if (!vErr && Array.isArray(vids)) {
         for (const row of vids as Array<{ user_id: string | null; created_at: string | null }>) {
           if (!row.user_id) continue
@@ -175,21 +175,21 @@ export async function GET() {
         }
       }
     } catch (e) {
-      // videos table missing — leave maps empty
+      // A missing page/table leaves the dashboard unavailable, not silently zero.
       console.warn('[admin/users] videos query failed:', e)
+      throw e // incomplete reads must not become zero-valued metrics
     }
 
     // KINEO-ADMIN-DOWNLOADS-2026-07-10 — per-user download + unlock-click
-    // aggregates from public.events. Best-effort: a failure leaves the maps
-    // empty (columns show 0), never breaks the page.
+    // aggregates from public.events. A failed page aborts the metric response.
     const downloadCounts = new Map<string, number>()
     const unlockClicks = new Map<string, number>()
     let downloadsToday = 0
     try {
-      const { data: evts, error: eErr } = await admin
+      const { data: evts, error: eErr } = await readAll(() => admin
         .from('events')
         .select('user_id, name, created_at')
-        .in('name', ['video_downloaded', 'starter_pack_checkout_clicked'])
+        .in('name', ['video_downloaded', 'starter_pack_checkout_clicked']), { route: '/api/admin/users', table: 'events' })
       if (!eErr && Array.isArray(evts)) {
         for (const row of evts as Array<{
           user_id: string | null
@@ -213,6 +213,7 @@ export async function GET() {
       }
     } catch (e) {
       console.warn('[admin/users] events query failed:', e)
+      throw e // incomplete reads must not become zero-valued metrics
     }
 
     // Profile metadata (credits + plan + stripe_customer_id). Probe gracefully.
@@ -222,9 +223,16 @@ export async function GET() {
     const ips = new Map<string, string | null>()
     const countries = new Map<string, string | null>()
     try {
-      const { data: profs, error: pErr } = await admin
+      const { data: profs, error: pErr } = await readAll(() => admin
         .from('profiles')
-        .select('id, video_credits, plan, is_pro, stripe_customer_id, last_ip, last_country')
+        .select('id, video_credits, plan, is_pro, stripe_customer_id, last_ip, last_country'), { route: '/api/admin/users', table: 'profiles' })
+        .catch((error: unknown) => {
+          const message = error instanceof Error ? error.message : String(error)
+          // Only absent optional columns justify the legacy projection. A failed
+          // page or unavailable database must not turn paid profiles into free.
+          if (!/column\b.*does not exist|could not find.*column/i.test(message)) throw error
+          return { data: null, error: { message } }
+        })
       if (!pErr && Array.isArray(profs)) {
         for (const row of profs as Array<{
           id: string
@@ -245,9 +253,9 @@ export async function GET() {
         }
       } else if (pErr) {
         // Retry without optional columns if they're missing
-        const { data: profsBasic } = await admin
+        const { data: profsBasic } = await readAll(() => admin
           .from('profiles')
-          .select('id, is_pro')
+          .select('id, is_pro'), { route: '/api/admin/users', table: 'profiles' })
         if (Array.isArray(profsBasic)) {
           for (const row of profsBasic as Array<{ id: string; is_pro: boolean | null }>) {
             credits.set(row.id, null)
@@ -257,10 +265,11 @@ export async function GET() {
       }
     } catch (e) {
       console.warn('[admin/users] profiles query failed:', e)
+      throw e // incomplete reads must not become zero-valued metrics
     }
     // KINEO-CORTESIA-2026-10-03 — cortesia do admin (creator_trial/studio_trial) aparece com o plano real de antes:
     // fora de is_paid e do placar de pagantes.
-    for (const p of maskCourtesyPlans([...plans].map(([id, plan]) => ({ id, plan })), await loadActiveCourtesyGrants(admin))) {
+    for (const p of maskCourtesyPlans([...plans].map(([id, plan]) => ({ id, plan })), await loadActiveCourtesyGrants(admin, '/api/admin/users'))) {
       plans.set(p.id, p.plan ?? null)
     }
 

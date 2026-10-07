@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // KINEO-BROLL-GC-2026-08-13 — coletor de lixo do bucket `broll`, admin-gated.
 //
 // ─────────────────────────────────────────────────────────────────────────────
@@ -202,23 +203,17 @@ async function listVaultObjects(admin: SupabaseClient): Promise<VaultObject[]> {
  */
 async function loadIndexedPaths(admin: SupabaseClient): Promise<Set<string>> {
   const set = new Set<string>()
-  for (let from = 0; from < MAX_PAGES * PAGE; from += PAGE) {
-    const { data, error } = await admin
-      .from('clip_vault')
-      .select('storage_url')
-      .range(from, from + PAGE - 1)
-    // Invariante 4: falha de leitura do índice ABORTA. Um Set vazio por erro
-    // transformaria "não sei" em "apague tudo".
-    if (error) throw new Error(`leitura de clip_vault falhou @${from}: ${error.message}`)
-    if (!data || data.length === 0) break
-    for (const row of data as Array<{ storage_url: string | null }>) {
-      const url = row.storage_url
-      if (!url) continue
-      const idx = url.indexOf(`/${BUCKET}/`)
-      if (idx === -1) continue
-      set.add(url.slice(idx + BUCKET.length + 2))
-    }
-    if (data.length < PAGE) break
+  // A leitura completa e ordenada é obrigatória: um índice parcial faria o GC
+  // tratar objetos referenciados como órfãos. Qualquer erro aborta antes de apagar.
+  const { data } = await readAll(() => admin.from('clip_vault').select('storage_url'), {
+    route: '/api/admin/broll-gc', table: 'clip_vault',
+  })
+  for (const row of data ?? []) {
+    const url = row.storage_url
+    if (!url) continue
+    const idx = url.indexOf(`/${BUCKET}/`)
+    if (idx === -1) continue
+    set.add(url.slice(idx + BUCKET.length + 2))
   }
   return set
 }

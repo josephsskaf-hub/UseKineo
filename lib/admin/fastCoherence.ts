@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // KINEO-1-COERENCIA-2026-09-16 — leitura do painel: filmes com a nota de coerência.
 // R3 (fundador 16/09 noite: "aplicar em todos os motores… ter essa régua do meu olho"): TODOS os motores.
 //
@@ -111,7 +112,7 @@ export function evidenceFromDispatch(md: Record<string, unknown> | null | undefi
  */
 export async function listFastCoherence(
   admin: SupabaseClient,
-  opts: { hours?: number; limit?: number; userId?: string; engine?: string; maxCompute?: number; excludeEmails?: string[] },
+  opts: { route?: string; hours?: number; limit?: number; userId?: string; engine?: string; maxCompute?: number; excludeEmails?: string[] },
 ): Promise<FastCoherenceRow[]> {
   const hours = Math.max(1, Math.min(24 * 30, opts.hours ?? 48))
   const limit = Math.max(1, Math.min(300, opts.limit ?? 120))
@@ -137,21 +138,19 @@ export async function listFastCoherence(
   const [profs, claims, feedbacks] = await Promise.all([
     admin.from('profiles').select('id, email').in('id', userIds),
     renderIds.length
-      ? admin
+      ? readAll(() => admin
           .from('events')
           .select('created_at, session_id, user_id, metadata')
           .eq('name', 'compose_submission_claim')
           .in('user_id', userIds)
-          .gte('created_at', since)
-          .limit(1000)
+          .gte('created_at', since), { route: opts.route ?? '/admin/coerencia', table: 'events' })
       : Promise.resolve({ data: [] as EventRow[] }),
-    admin
+    readAll(() => admin
       .from('events')
       .select('created_at, session_id, user_id, metadata')
       .in('name', [FILM_FEEDBACK_EVENT, FILM_FEEDBACK_ASKED_EVENT])
       .in('session_id', videoIds)
-      .order('created_at', { ascending: true })
-      .limit(1000),
+      .order('created_at', { ascending: true }), { route: opts.route ?? '/admin/coerencia', table: 'events' }),
   ])
   const emailOf = new Map<string, string | null>()
   for (const p of (profs.data ?? []) as Array<{ id: string; email: string | null }>) emailOf.set(p.id, p.email)
@@ -175,16 +174,16 @@ export async function listFastCoherence(
   // Cadeia: compose → nascimento → recuperável → plano (voiceovers das cenas). O evento grava narration_source.
   const [plans, dispatches, scores, births, recoverables, aiClipsPending, aiClipsResult] = genIds.length
     ? await Promise.all([
-        admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', FAST_SCENE_PLAN_EVENT).in('session_id', genIds).limit(1000),
-        admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', 'cinematic_dispatch_result').in('metadata->>generation_id', genIds).order('created_at', { ascending: false }).limit(1000),
-        admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', FAST_COHERENCE_EVENT).in('session_id', genIds).limit(1000),
-        admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', 'cinematic_submission_claim').in('session_id', genIds).limit(1000),
-        admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', 'fast_compose_recoverable').in('session_id', genIds).limit(1000),
+        readAll(() => admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', FAST_SCENE_PLAN_EVENT).in('session_id', genIds), { route: opts.route ?? '/admin/coerencia', table: 'events' }),
+        readAll(() => admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', 'cinematic_dispatch_result').in('metadata->>generation_id', genIds).order('created_at', { ascending: false }), { route: opts.route ?? '/admin/coerencia', table: 'events' }),
+        readAll(() => admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', FAST_COHERENCE_EVENT).in('session_id', genIds), { route: opts.route ?? '/admin/coerencia', table: 'events' }),
+        readAll(() => admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', 'cinematic_submission_claim').in('session_id', genIds), { route: opts.route ?? '/admin/coerencia', table: 'events' }),
+        readAll(() => admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', 'fast_compose_recoverable').in('session_id', genIds), { route: opts.route ?? '/admin/coerencia', table: 'events' }),
         // KINEO-JUIZ-VE-OS-CLIPES-2026-09-21 — o plano do Kineo 1 descreve o STOCK; os clipes Seedance que entraram no
         // lugar (fast_ai_clips_pending/result) eram invisíveis ao juiz, e "com clipes IA" media visual 46 contra 56 sem
         // — comparação cega. Agora a cena com clipe pronto é julgada pelo prompt do clipe, com fonte 'aiVideo'.
-        admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', 'fast_ai_clips_pending').in('session_id', genIds).limit(1000),
-        admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', 'fast_ai_clips_result').in('session_id', genIds).limit(1000),
+        readAll(() => admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', 'fast_ai_clips_pending').in('session_id', genIds), { route: opts.route ?? '/admin/coerencia', table: 'events' }),
+        readAll(() => admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', 'fast_ai_clips_result').in('session_id', genIds), { route: opts.route ?? '/admin/coerencia', table: 'events' }),
       ])
     : [{ data: [] as EventRow[] }, { data: [] as EventRow[] }, { data: [] as EventRow[] }, { data: [] as EventRow[] }, { data: [] as EventRow[] }, { data: [] as EventRow[] }, { data: [] as EventRow[] }]
   const birthByGen = new Map<string, EventRow>()
@@ -243,7 +242,7 @@ export async function listFastCoherence(
   // (um evento por filme, session_id = generation_id; o mais recente vence — retentativa do mesmo filme regrava). Falha aberta:
   // erro de leitura = a linha sai sem o juiz, a nota continua.
   const juizRes = genIds.length // KINEO-JUIZ-STILL-2026-10-06
-    ? await admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', JUIZ_STILL_RESUMO_EVENTO).in('session_id', genIds).order('created_at', { ascending: false }).limit(1000)
+    ? await readAll(() => admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', JUIZ_STILL_RESUMO_EVENTO).in('session_id', genIds).order('created_at', { ascending: false }), { route: opts.route ?? '/admin/coerencia', table: 'events' })
     : { data: [] as EventRow[] }
   const juizByGen = new Map<string, JuizStillPainel>() // KINEO-JUIZ-STILL-2026-10-06
   for (const j of ((juizRes.data ?? []) as EventRow[])) {

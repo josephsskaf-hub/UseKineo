@@ -100,23 +100,16 @@ async function loadPaying(): Promise<PayingData | null> {
   if (!admin) return null
 
   const [profilesRaw, videos, payEvents, courtesy] = await Promise.all([
-    fetchAllRows<ProfileRow>(
-      admin,
-      'profiles',
-      'id, email, name, plan, created_at, plan_expires_at, signup_country, video_credits, stripe_subscription_id, billing_provider',
+    fetchAllRows<ProfileRow>(admin, 'profiles', 'id, email, name, plan, created_at, plan_expires_at, signup_country, video_credits, stripe_subscription_id, billing_provider', undefined, '/admin/paying'
     ),
-    fetchAllRows<{ user_id: string | null; created_at: string | null }>(admin, 'videos', 'user_id, created_at'),
+    fetchAllRows<{ user_id: string | null; created_at: string | null }>(admin, 'videos', 'user_id, created_at', undefined, '/admin/paying'),
     // events.payment_success is the only per-user payment timestamp we store;
     // Stripe would need one API call per customer to beat it.
     // KINEO-MRR-PRECO-PAGO-2026-09-28 — e a metadata (amount/currency/tier) das faturas e do
     // checkout é o que diz quanto cada um PAGA; a tabela de hoje não sabe responder isso.
-    fetchAllRows<PaidAmountEvent & { created_at: string | null }>(
-      admin,
-      'events',
-      'id, user_id, name, created_at, metadata',
-      { column: 'name', values: [...MRR_PAID_EVENT_NAMES] },
+    fetchAllRows<PaidAmountEvent & { created_at: string | null }>(admin, 'events', 'id, user_id, name, created_at, metadata', { column: 'name', values: [...MRR_PAID_EVENT_NAMES] }, '/admin/paying'
     ),
-    loadActiveCourtesyGrants(admin),
+    loadActiveCourtesyGrants(admin, '/admin/paying'),
   ])
   const profiles = maskCourtesyPlans(profilesRaw, courtesy)
   const paidByUser = paidMonthlyUsdByUser(payEvents)

@@ -227,18 +227,15 @@ export async function computeCeoData(): Promise<CeoData | null> {
   if (!admin) return null
 
   const [profilesRaw, videos, paidEvents, courtesy] = await Promise.all([
-    fetchAllRows<ProfileRow>(
-      admin,
-      'profiles',
-      'id, email, plan, created_at, stripe_customer_id, stripe_subscription_id, video_credits, has_paid',
+    fetchAllRows<ProfileRow>(admin, 'profiles', 'id, email, plan, created_at, stripe_customer_id, stripe_subscription_id, video_credits, has_paid', undefined, '/api/admin/ceo'
     ),
-    fetchAllRows<VideoRow>(admin, 'videos', 'user_id, created_at'),
+    fetchAllRows<VideoRow>(admin, 'videos', 'user_id, created_at', undefined, '/api/admin/ceo'),
     // KINEO-MRR-PRECO-PAGO-2026-09-28 — os eventos com valor pago de assinatura (checkout + faturas).
     fetchAllRows<PaidAmountEvent>(admin, 'events', 'id, user_id, name, created_at, metadata', {
       column: 'name',
       values: [...MRR_PAID_EVENT_NAMES],
-    }),
-    loadActiveCourtesyGrants(admin),
+    }, '/api/admin/ceo'),
+    loadActiveCourtesyGrants(admin, '/api/admin/ceo'),
   ])
   const profiles = maskCourtesyPlans(profilesRaw, courtesy)
   if (profiles.length === 0) return null
@@ -387,8 +384,7 @@ export async function computeCeoData(): Promise<CeoData | null> {
   // mais rápido de queimar domínio em spam.
   //
   // `checkout_started` é o fato: só o clique do cliente o emite.
-  const checkoutEvents = await fetchAllRows<{ user_id: string | null }>(
-    admin, 'events', 'id, user_id', { column: 'name', values: ['checkout_started'] },
+  const checkoutEvents = await fetchAllRows<{ user_id: string | null }>(admin, 'events', 'id, user_id', { column: 'name', values: ['checkout_started'] }, '/api/admin/ceo'
   )
   const reachedIds = new Set(
     checkoutEvents.map((e) => e.user_id).filter((id): id is string => !!id && externalIds.has(id)),

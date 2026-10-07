@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // ═══════════════════════════════════════════════════════════════════════════
 // KINEO-GRACA-NAO-CUROU-2026-09-07 — "QUEM A GRAÇA DEIXOU PARA TRÁS?"
 // ═══════════════════════════════════════════════════════════════════════════
@@ -116,16 +117,14 @@ export async function GET(req: NextRequest) {
   const confirm = req.nextUrl.searchParams.get('confirm') === 'APPLY'
 
   // ── Coorte: pagou, está free, e o perfil ainda reconhece uma assinatura ──
-  // Cabe numa página: são 13 pagantes na vida inteira. Se um dia passar de
-  // 1000 a regra anti-truncamento (fetchAllRows) entra aqui.
-  const { data: coorte, error: coorteErr } = await admin
+  // A coorte cresce: leia todas as páginas antes de decidir quem reconciliar.
+  const { data: coorte, error: coorteErr } = await readAll(() => admin
     .from('profiles')
     .select('id, email, plan, is_pro, has_paid, stripe_subscription_id')
     .eq('has_paid', true)
     .eq('plan', 'free')
     .not('stripe_subscription_id', 'is', null)
-    .order('created_at', { ascending: true })
-    .limit(1000)
+    .order('created_at', { ascending: true }), { route: '/api/admin/reconcile-dunning', table: 'profiles' })
   if (coorteErr) {
     return NextResponse.json({ error: coorteErr.message }, { status: 500 })
   }

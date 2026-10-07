@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // ═══════════════════════════════════════════════════════════════════════════
 // KINEO-TRIAL-ROI-2026-08-19 — /admin/trial-roi: O TRIAL SE PAGA?
 // ═══════════════════════════════════════════════════════════════════════════
@@ -91,29 +92,18 @@ export default async function TrialRoiPage() {
   // REFRESHES da mesma página. Esta é a tela que responde "o trial se paga?"
   // — e o Custo por Cliente (CAC) dela flutuava por sorteio do planner,
   // sempre errando para o lado otimista (custo de fornecedor subestimado).
-  // Agora: paginação ordenada por id até esgotar, com teto de segurança.
+  // Agora: paginação ordenada por id até esgotar; erro nunca vira total parcial.
   const sinceIso = new Date(Date.now() - 45 * 864e5).toISOString()
-  const claims: ClaimRow[] = []
-  for (let from = 0; from < 60_000; from += 1000) {
-    const { data: page, error: pageErr } = await admin
-      .from('events')
-      .select('id, user_id, metadata, created_at')
-      .eq('name', 'compose_submission_claim')
-      .gte('created_at', sinceIso)
-      .order('id', { ascending: true })
-      .range(from, from + 999)
-    if (pageErr) {
-      console.error('[trial-roi] claims page failed:', pageErr.message)
-      break
-    }
-    if (!page || page.length === 0) break
-    claims.push(...(page as unknown as ClaimRow[]))
-    if (page.length < 1000) break
-  }
+  const { data: claimsData } = await readAll(() => admin
+    .from('events')
+    .select('id, user_id, metadata, created_at')
+    .eq('name', 'compose_submission_claim')
+    .gte('created_at', sinceIso), { route: '/admin/trial-roi', table: 'events' })
+  const claims = (claimsData ?? []) as ClaimRow[]
 
   const ids = [...new Set(claims.map((c) => c.user_id).filter(Boolean))] as string[]
   const { data: profiles } = ids.length
-    ? await admin.from('profiles').select('id, email, plan, has_paid, created_at').in('id', ids)
+    ? await readAll(() => admin.from('profiles').select('id, email, plan, has_paid, created_at').in('id', ids), { route: '/admin/trial-roi', table: 'profiles' })
     : { data: [] as ProfRow[] }
 
   const profById = new Map<string, ProfRow>()

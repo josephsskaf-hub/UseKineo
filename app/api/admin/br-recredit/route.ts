@@ -1,3 +1,4 @@
+import { readAll } from '@/lib/supabase/readAll'
 // KINEO-BRASIL-VOLTA-2026-10-03 — recrédito das contas BR que nasceram 'region_paid_only' entre 29/09 e a volta do
 // Brasil à lista (regra pura em lib/brRecredit.ts).
 // GET                    → DRY-RUN: lista (ids curtos, sem e-mail) de quem seria recreditado, créditos e custo estimado.
@@ -28,11 +29,11 @@ export const runtime = 'nodejs'
 async function candidates() {
   const db = serviceClient()
   if (!db) return { error: 'Service unavailable' as const }
-  const ev = await db.from('events').select('user_id, metadata').eq('name', TRIAL_REGION_EXCLUDED_EVENT).gte('created_at', BR_RECREDIT_SINCE_ISO).eq('metadata->>country', 'BR').limit(2000)
+  const ev = await readAll(() => db.from('events').select('user_id, metadata').eq('name', TRIAL_REGION_EXCLUDED_EVENT).gte('created_at', BR_RECREDIT_SINCE_ISO).eq('metadata->>country', 'BR'), { route: '/api/admin/br-recredit', table: 'events' })
   if (ev.error) return { error: ev.error.message }
   const ids = Array.from(new Set((ev.data ?? []).map((r) => (r as { user_id?: string | null }).user_id).filter((x): x is string => typeof x === 'string')))
   if (ids.length === 0) return { db, list: [] as BrRecreditProfile[] }
-  const prof = await db.from('profiles').select('id, trial_status, has_paid, plan, video_credits, created_at').in('id', ids.slice(0, 1000))
+  const prof = await readAll(() => db.from('profiles').select('id, trial_status, has_paid, plan, video_credits, created_at').in('id', ids), { route: '/api/admin/br-recredit', table: 'profiles' })
   if (prof.error) return { error: prof.error.message }
   const list = ((prof.data ?? []) as BrRecreditProfile[]).filter((p) => brRecreditEligible(p, 'BR'))
   return { db, list }

@@ -46,11 +46,11 @@ export async function GET() {
     }
 
     const [affiliates, clicks, referrals, commissions] = await Promise.all([
-      fetchAllRows<DashAffiliateRow>(admin, 'affiliates', 'id, name, email, code, status, commission_rate, coupon_code, created_at'),
+      fetchAllRows<DashAffiliateRow>(admin, 'affiliates', 'id, name, email, code, status, commission_rate, coupon_code, created_at', undefined, '/api/admin/affiliates'),
       // landing_path é o campo canônico do destino (affiliateDestinationBucket(row.landing_path) na conta pura).
-      fetchAllRows<DashClickRow>(admin, 'affiliate_clicks', 'affiliate_id, landing_path, referrer, ip_hash, created_at'),
-      fetchAllRows<DashReferralRow>(admin, 'affiliate_referrals', 'affiliate_id, email, status, first_touch_at, converted_at'),
-      fetchAllRows<DashCommissionRow>(admin, 'affiliate_commissions', 'affiliate_id, amount_gross, commission_amount, currency, status, created_at'),
+      fetchAllRows<DashClickRow>(admin, 'affiliate_clicks', 'affiliate_id, landing_path, referrer, ip_hash, created_at', undefined, '/api/admin/affiliates'),
+      fetchAllRows<DashReferralRow>(admin, 'affiliate_referrals', 'affiliate_id, email, status, first_touch_at, converted_at', undefined, '/api/admin/affiliates'),
+      fetchAllRows<DashCommissionRow>(admin, 'affiliate_commissions', 'affiliate_id, amount_gross, commission_amount, currency, status, created_at', undefined, '/api/admin/affiliates'),
     ])
 
     const dashboard = buildAffiliateDashboard({
