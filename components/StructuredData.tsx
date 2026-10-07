@@ -4,6 +4,7 @@ import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
 import { CHECKOUT_CURRENCY_DISCLOSURE, formatResultCount, videosPerMonth } from '@/lib/marketingPrice'
 import { BRAND_ALIASES, BRAND_NAME, BRAND_URL } from '@/lib/brandIdentity'
 import { BRAND_DISAMBIGUATION } from '@/lib/brandIdentity' // KINEO-VISIBILIDADE-CHATGPT-2026-10-06 — kineo.studio é outra empresa
+import { BRAND_SAME_AS } from '@/lib/brandIdentity' // KINEO-MARCA-2026-10-06 — sameAs só com perfil nosso
 import { ASSISTANT_DEEP_LINK_FACT } from '@/lib/kineoFacts'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -96,6 +97,8 @@ const organizationSchema = {
   disambiguatingDescription: BRAND_DISAMBIGUATION,
   url: BRAND_URL,
   logo: 'https://www.usekineo.com/icon-512.png',
+  // KINEO-MARCA-2026-10-06 — perfis que são da Kineo (usekineo.com): hoje só o TAAFT. O Product Hunt é da kineo.studio.
+  sameAs: BRAND_SAME_AS,
 }
 
 const softwareApplicationSchema = {

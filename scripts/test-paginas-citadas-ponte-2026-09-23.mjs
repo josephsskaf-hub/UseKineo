@@ -117,8 +117,18 @@ const currentDescriptions = {
   'app/free-ai-shorts-generator/page.tsx': [`\`Create faceless Shorts with script, AI voiceover, visuals and captions. Trial: \${OFFER.copy.planLimitLine}. Compare films and plans before you choose.\``, "'Use Kineo as a free AI Shorts generator. Type one idea and create a faceless YouTube Short with script, AI voiceover, visuals, captions, and MP4 export. No card for the Fast test.'"],
   'app/text-to-video-shorts/page.tsx': [`\`Turn a topic or script into a narrated vertical Short with visuals and captions. Trial: \${OFFER.copy.planLimitLine}. Compare films and plans before you choose.\``, "'Turn text, a topic, or a script into a finished faceless YouTube Short with AI voiceover, vertical visuals, captions, and MP4 export. Try Fast free with no card.'"],
 }
+// KINEO-MARCA-2026-10-06 — reancorado com motivo (fundador, "vai marca"): nas 3 páginas a desambiguação Kineo (usekineo.com) ×
+// kineo.studio vai no og:site_name, com título/H1/JSON-LD intactos. Só o trecho exato abaixo é descontado (e é EXIGIDO uma vez);
+// todo o resto do bloco de metadata segue travado na base. Prova completa: scripts/test-marca-kineo-2026-10-06.mjs.
+const MARCA_OG = {
+  'app/free-ai-shorts-generator/page.tsx': ["\n    siteName: 'Kineo (usekineo.com)', // KINEO-MARCA-2026-10-06", ''],
+  'app/text-to-video-shorts/page.tsx': ["\n    siteName: 'Kineo (usekineo.com)', // KINEO-MARCA-2026-10-06", ''],
+  'app/state-of-ai-shorts-2026/page.tsx': ["url: CANONICAL, siteName: 'Kineo (usekineo.com)', type: 'article'", "url: CANONICAL, type: 'article'"],
+}
 for (const f of ['app/free-ai-shorts-generator/page.tsx', 'app/text-to-video-shorts/page.tsx', 'app/state-of-ai-shorts-2026/page.tsx']) {
-  const cur = read(f), base = atBase(f)
+  const [marcaNovo, marcaBase] = MARCA_OG[f]
+  check(read(f).split(marcaNovo).length === 2, `${f}: og:site_name com o domínio existe uma vez (KINEO-MARCA-2026-10-06)`)
+  const cur = read(f).replace(marcaNovo, marcaBase), base = atBase(f)
   check(h1Of(cur) !== null && h1Of(cur) === h1Of(base), `${f}: <h1> igual à base`)
   const approvedDescription = currentDescriptions[f]
   let normalizedMeta = approvedDescription ? metaBlock(cur)?.replace(approvedDescription[0], approvedDescription[1]) : metaBlock(cur)

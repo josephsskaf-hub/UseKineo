@@ -57,11 +57,17 @@ const S25_GSP_NOVO = [
   "  return ENGINE_SLUGS.filter((engine) => engine !== S25_PAGE_SLUG).map((engine) => ({ engine }))",
 ].join('\n')
 const S25_GSP_BASE = '  return ENGINE_SLUGS.map((engine) => ({ engine }))'
+// KINEO-MARCA-2026-10-06 — reancorado com motivo (fundador, "vai marca"): a desambiguação Kineo (usekineo.com) × kineo.studio
+// vai no og:site_name desta página, com o título intacto. O trecho exato tem de existir uma vez; desfeito em memória, o resto
+// do arquivo segue byte a byte igual ao cdb154e2. Prova completa: scripts/test-marca-kineo-2026-10-06.mjs.
+const MARCA_OG_NOVO = "    openGraph: { title, description, url, siteName: 'Kineo (usekineo.com)', type: 'website' },"
+const MARCA_OG_BASE = "    openGraph: { title, description, url, type: 'website' },"
 {
   const atual = source('app/ai-video-generator/[engine]/page.tsx').replace(/\r\n/g,'\n')
   const umaVez = (s, x) => s.split(x).length === 2
   check('S24-01 (S25-ABRE) os dois trechos do slug do 2.5 existem uma vez, inteiros', umaVez(atual, S25_IMPORT) && umaVez(atual, S25_GSP_NOVO))
-  check('S24-01 preserves the entire separately tested Veo engine page', semMotoresGeoFonte(atual.replace(S25_IMPORT, '').replace(S25_GSP_NOVO, S25_GSP_BASE)).trim()===execFileSync('git',['show','cdb154e2:app/ai-video-generator/[engine]/page.tsx'],{cwd:root,encoding:'utf8'}).replace(/\r\n/g,'\n').trim())
+  check('S24-01 (MARCA) o og:site_name com o domínio existe uma vez, inteiro', umaVez(atual, MARCA_OG_NOVO))
+  check('S24-01 preserves the entire separately tested Veo engine page', semMotoresGeoFonte(atual.replace(S25_IMPORT, '').replace(S25_GSP_NOVO, S25_GSP_BASE).replace(MARCA_OG_NOVO, MARCA_OG_BASE)).trim()===execFileSync('git',['show','cdb154e2:app/ai-video-generator/[engine]/page.tsx'],{cwd:root,encoding:'utf8'}).replace(/\r\n/g,'\n').trim())
 }
 check('owner permanent Kineo1 redirect retained', source('next.config.js').includes("{ source: '/ai-video-generator/kineo-1', destination: '/ai-video-generator/seedance', statusCode: 301 }"))
 check('server-only curation selection', !source('components/ScriptToSeedanceBridge.tsx').includes("@/lib/publicExamples"))

@@ -28,3 +28,11 @@ export const OTHER_KINEO_DOMAIN = 'kineo.studio' as const
 export const BRAND_DISAMBIGUATION =
   'Kineo (usekineo.com, formerly ShortsForgeAI) is an AI short-form video generator that turns a topic or script into a finished narrated vertical video. It is not affiliated with Kineo Studio (kineo.studio), a different company.' as const
 export const BRAND_DISAMBIGUATION_PATH = '/kineo-vs-kineo-studio' as const
+
+/**
+ * KINEO-MARCA-2026-10-06 — schema.org `sameAs` do Organization: só perfis que são NOSSOS e que o código já cita. Hoje é
+ * só a ficha do There's An AI For That (dona = conta do fundador; a mesma de KINEO_OWN_PROFILES em
+ * lib/seo/citableHubPages.ts). producthunt.com/products/kineo é da Kineo Studio (kineo.studio) e nunca entra aqui.
+ * Fica neste módulo puro (sem import) para o schema global e o da home lerem a mesma lista.
+ */
+export const BRAND_SAME_AS = ['https://theresanaiforthat.com/ai/kineo/'] as const

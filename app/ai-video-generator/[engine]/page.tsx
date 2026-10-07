@@ -87,7 +87,7 @@ export function generateMetadata({ params }: { params: { engine: string } }): Me
     description,
     // KINEO-MOTORES-16-LINGUAS-2026-09-21 — hreflang das 14 versões nas 3 páginas que têm tradução.
     alternates: { canonical: url, ...((LOCALIZED_ENGINE_SLUGS as readonly string[]).includes(params.engine) ? { languages: engineAlternates(BASE, params.engine as LocalizedEngineSlug) } : {}) },
-    openGraph: { title, description, url, type: 'website' },
+    openGraph: { title, description, url, siteName: 'Kineo (usekineo.com)', type: 'website' },
     twitter: { card: 'summary_large_image', title, description },
   }
 }

@@ -78,6 +78,7 @@ export const metadata: Metadata = {
     description:
       'Type one idea and create a faceless Short with script, AI voiceover, visuals, captions, and MP4 export.',
     url: `${BASE}/free-ai-shorts-generator`,
+    siteName: 'Kineo (usekineo.com)', // KINEO-MARCA-2026-10-06
     type: 'website',
     images: [{ url: FEATURED_EXAMPLE.posterPath, width: 360, height: 640 }],
     videos: [{ url: FEATURED_EXAMPLE.videoPath, width: 360, height: 640, type: 'video/mp4' }],

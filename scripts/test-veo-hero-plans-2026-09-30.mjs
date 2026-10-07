@@ -35,7 +35,12 @@ for(const engine of served){
   assert.equal(links[1][2],'Create your account');count++
   assert.ok(hero(old).includes(`href="${expected}"`));count++
  }
- assert.equal(JSON.stringify(after(file).generateMetadata({params:{engine}})),JSON.stringify(before(file).generateMetadata({params:{engine}})),'all canonical metadata preserved');count++
+ // KINEO-MARCA-2026-10-06 — reancorado com motivo (fundador, "vai marca"): a desambiguação Kineo (usekineo.com) × kineo.studio
+ // vai no og:site_name desta página, com o título intacto. Só essa chave nova é descontada, e ela é EXIGIDA com o valor exato;
+ // todo o resto do metadata segue travado na base. Prova completa: scripts/test-marca-kineo-2026-10-06.mjs.
+ const metaNow=after(file).generateMetadata({params:{engine}}),{siteName:marcaSiteName,...ogNow}=metaNow.openGraph
+ assert.equal(marcaSiteName,'Kineo (usekineo.com)',engine+': og:site_name carries the domain');count++
+ assert.equal(JSON.stringify({...metaNow,openGraph:ogNow}),JSON.stringify(before(file).generateMetadata({params:{engine}})),'all canonical metadata preserved');count++
 }
 const events=[],load=offlineModules({mocks:{'lib/analytics.ts':{trackEvent:(...args)=>events.push(args)}}})
 const signupHref=load('lib/growth/engineLandingIntent.ts').buildEngineLandingSignupHref({engine:'veo',campaign:'seo_engine_veo'})
