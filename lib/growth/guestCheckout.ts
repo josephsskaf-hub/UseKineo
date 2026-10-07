@@ -52,7 +52,7 @@ export const GUEST_CHECKOUT_LIVE = true
 // Decisão e números: docs/DECISAO-COMPRA-SEM-LOGIN-2026-10-06.md, seção "07/10 — cupom de boas-vindas".
 //
 // INTERRUPTOR ÚNICO desta exceção. false = hoje: todo ?promo= (WELCOME20 inclusive) cai no cadastro, byte a byte.
-export const GUEST_WELCOME_PROMO_LIVE = false
+export const GUEST_WELCOME_PROMO_LIVE = true
 
 export const GUEST_CHECKOUT_VERSION = 'guest_checkout_v1' as const
 
