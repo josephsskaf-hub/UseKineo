@@ -125,6 +125,9 @@ function discovery(overrides = {}) {
       adsSegmentPath: s => `/ads/${s}`, adsComparisonPath: s => `/ads/compare/${s}`,
       // New independent cluster; its real entries are exercised by test-clips-effect-pages-2026-10-06.
       effectSitemapEntries: () => [{ url: 'https://www.usekineo.com/effects/melt' }],
+      // KINEO-INDICE-VIDEO-IA-2026-10-06 — the sitemap imports the monthly index path and headline (inert here; the real
+      // entry is exercised by test-indice-video-ia-2026-10-06).
+      AI_VIDEO_INDEX_PATH: '/ai-video-index', AI_VIDEO_INDEX_HEADLINE: { measuredAt: '2026-10-07T01:53:15Z' },
     }
     new Function('exports', 'require', 'module', js)(mod.exports, () => fixtures, mod)
     return mod.exports.default()

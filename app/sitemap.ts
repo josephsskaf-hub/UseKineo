@@ -21,6 +21,10 @@ import { ADS_SEGMENT_SLUGS, ADS_SEGMENTS_UPDATED, adsSegmentPath } from '@/lib/g
 import { ADS_COMPARISONS, adsComparisonPath } from '@/lib/growth/adsComparisons'
 import { SHOWCASE_PUBLIC } from '@/lib/showcaseTelemetry'
 import { effectSitemapEntries } from '@/lib/clips/clipEffectPages'
+// KINEO-INDICE-VIDEO-IA-2026-10-06 — o Kineo AI Video Index mensal; lastmod = a leitura da edição vigente (manchete
+// em espelho TS travado contra o JSON: os guardiões que executam o sitemap só carregam .ts de lib/).
+import { AI_VIDEO_INDEX_PATH } from '@/lib/seo/aiVideoIndex'
+import { AI_VIDEO_INDEX_HEADLINE } from '@/lib/seo/aiVideoIndexHeadline'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -400,5 +404,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'weekly' as const,
       priority: path === HUB_PAGES.brand.path ? 0.6 : 0.9,
     })),
+    // KINEO-INDICE-VIDEO-IA-2026-10-06 — página de dado original (irmã da /state-of-ai-shorts-2026); a data é a da leitura da
+    // edição, então o lastmod só muda quando sai edição nova. Guardião: test-indice-video-ia-2026-10-06.
+    {
+      url: `${BASE}${AI_VIDEO_INDEX_PATH}`,
+      lastModified: new Date(AI_VIDEO_INDEX_HEADLINE.measuredAt),
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    },
   ]
 }

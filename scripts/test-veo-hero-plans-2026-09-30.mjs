@@ -6,6 +6,7 @@ import {offlineModules,renderToStaticMarkup,source} from './gpt24h-offline-suppo
 // KINEO-MOTORES-GEO-2026-10-06 — reancorado com motivo: a camada citável da TAREFA 12 (2 blocos novos + 6 textos) é
 // descontada dos DOIS lados pela normalização única; o caminho de compra do Veo e o resto seguem travados.
 import {semMotoresGeoHtml} from './test-support/motores-geo-2026-10-06.mjs'
+import {edicoesIndiceHtml,semIndiceHtml} from './test-support/indice-video-ia-2026-10-06.mjs' // KINEO-INDICE-VIDEO-IA-2026-10-06
 const file='app/ai-video-generator/[engine]/page.tsx',base=execFileSync('git',['show','7dbd47c1:'+file],{encoding:'utf8'})
 const mutant=process.argv.includes('--mutant')
 const before=engineFixture({[file]:base}),after=engineFixture(mutant?{'components/SeedanceHeroActions.tsx':source('components/SeedanceHeroActions.tsx').replace('href="/pricing"','href="/signup"')}:{})
@@ -18,7 +19,11 @@ let count=0
 const allSlugs=after('lib/growth/enginePageCatalog.ts').ENGINE_SLUGS,served=(await after(file).generateStaticParams()).map(p=>p.engine),leftEngine=allSlugs.filter(s=>!served.includes(s))
 assert.ok(leftEngine.every(s=>s==='seedance-2-5')&&(leftEngine.length===0||existsSync(new URL('../app/ai-video-generator/seedance-2-5/page.tsx',import.meta.url))),'only the Seedance 2.5 slug left [engine], to its own route: '+leftEngine);count++
 for(const engine of served){
- const old=semMotoresGeoHtml(renderToStaticMarkup(await before(file).default({params:{engine}}))),html=semMotoresGeoHtml(renderToStaticMarkup(await after(file).default({params:{engine}})))
+ // KINEO-INDICE-VIDEO-IA-2026-10-06 — reancorado com motivo: o HTML atual desconta SÓ o link discreto "Real cost and render
+ // time" (/ai-video-index; scripts/test-support/indice-video-ia-2026-10-06.mjs), exigido uma vez por página.
+ const renderAtual=renderToStaticMarkup(await after(file).default({params:{engine}}))
+ assert.equal(edicoesIndiceHtml(renderAtual),1,engine+': index link exactly once (the normalization has a subject)');count++
+ const old=semMotoresGeoHtml(renderToStaticMarkup(await before(file).default({params:{engine}}))),html=semMotoresGeoHtml(semIndiceHtml(renderAtual))
  if(engine!=='veo'){
   // A mutated shared component affects Seedance as well; the mutant below
   // is evaluated against the Veo purchase path, not an incidental sibling.

@@ -99,6 +99,8 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       { href: '/faceless-youtube-shorts-generator', label: 'AI faceless YouTube Shorts generator' },
       { href: '/seedance-kling-veo-in-one-place', label: 'Seedance, Kling and Veo in one place' },
       { href: '/kineo-vs-kineo-studio', label: 'Kineo vs kineo.studio' },
+      // KINEO-INDICE-VIDEO-IA-2026-10-06 — o índice mensal (dado original) entra no mesmo bloco de páginas citáveis.
+      { href: '/ai-video-index', label: 'AI Video Index (render time per engine)' },
       { href: '/youtube-shorts-from-topic', label: 'YouTube Shorts from a topic' },
       { href: '/text-to-video-shorts', label: 'Text to video Shorts' },
       // KINEO-CHATGPT-INTENT-2026-08-10 — o rodapé é o que impede a página de
