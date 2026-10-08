@@ -21,11 +21,14 @@
 // (afiliado, origem, marcador de intro) e carimba as chaves de sistema do checkout anual (supabase_user_id, tier,
 // plan_credits, price_region) + o selo annual_switch_* desta ferramenta.
 //
-// CRÉDITOS: os de hoje ficam (nada é concedido na troca; a fatura da troca chega ao webhook como
-// billing_reason='subscription_update' e sai ANTES do grant de renovação). Os mensais seguem pela recarga anual a
-// partir do mês seguinte à troca. Se a recarga anual daria MENOS créditos por mês do que a renovação mensal dá hoje
-// (ex.: Studio a US$ 39,90 → 300 hoje, 180 pela escada legada do anual de US$ 287), a troca é BLOQUEADA: "same
-// credits as today" é parte da promessa.
+// CRÉDITOS (correção da sessão CEO, 07/10): o ano pago começa NA TROCA (âncora 'now') e o resto do mês mensal volta em
+// dinheiro (rateio). Por isso a troca concede a cota do 1º mês do ano na hora, pela régua da renovação
+// (lib/credits/renewalBalance: a cota reinicia, o comprado acima de uma cota sobrevive) — na rota, numa escrita só com
+// o registro. A fatura da troca chega ao webhook como billing_reason='subscription_update' e sai ANTES do grant de
+// renovação (sem dobrar); o cron da recarga anual solta os meses 1..11 (+1 a +11 meses); o 12º é a próxima fatura
+// anual: 12 cotas por ano pago. Se a recarga anual daria MENOS créditos por mês do que a renovação mensal dá hoje (ex.:
+// Studio a US$ 39,90 → 300 hoje, 180 pela escada legada do anual de US$ 287), a troca é BLOQUEADA: "same credits as
+// today" é parte da promessa.
 import {
   ANNUAL_REFUND_DAYS,
   type CheckoutTier,

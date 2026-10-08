@@ -38,8 +38,12 @@ esperado na resposta). A ferramenta cobra o que o e-mail prometeu, nem mais, nem
 - Metadata: preserva tudo o que o checkout mensal original gravou (afiliado, origem, marcador de intro) e carimba as
   chaves de sistema da anual do checkout — `supabase_user_id`, `tier`, `plan_credits`, `price_region` — mais o selo
   `annual_switch_version / annual_switch_offer / annual_switch_from_monthly_minor / annual_switch_annual_minor`.
-- No banco: o perfil fica no mesmo plano (os **créditos não mudam**) e nasce o evento `plan_switched_to_annual` (id fixo
-  por assinatura: uma troca por assinatura, para sempre) com mensal, anual, crédito, valor cobrado e id da fatura.
+- No banco, nesta ordem: nasce o evento `plan_switched_to_annual` (o razão; id fixo por assinatura: uma troca por
+  assinatura, para sempre) com mensal, anual, crédito do mês, valor cobrado e id da fatura; e, **só com o razão
+  gravado**, o perfil recebe numa escrita só o plano e a **cota do 1º mês do ano pago** pela regra da renovação
+  (`renewalBalance`: a cota do plano reinicia; crédito comprado acima de uma cota sobrevive). Por quê: o ano começa na
+  troca e o resto do mês mensal volta em dinheiro (rateio) — sem essa cota a pessoa ficaria um mês sem crédito novo
+  depois de pagar o ano. O evento guarda `credits_before`, `credits_after`, `credits_carried` e `credits_granted`.
 
 ## Passo a passo (uma pessoa por vez)
 
@@ -62,6 +66,8 @@ await (await fetch('/api/admin/switch-to-annual', {
 - `ready_to_send: true` e `blockers: []`;
 - `subscription.monthly_usd` = o mensal citado no e-mail daquela pessoa; `offer.expected_annual_usd` = o anual do e-mail;
 - `credits.perMonthToday` = `credits.perMonthAfter` ("same credits as today");
+- `credits.balanceBefore` → `credits.balanceAfter`: o saldo de hoje e o saldo logo depois da troca (a cota do plano,
+  mais o que a pessoa comprou acima de uma cota — `credits.balanceCarried`). O SEND relê o saldo na hora de conceder;
 - `preview.proration_credit` = o crédito do mês já pago (maior que US$ 0 se ainda há dias no mês dela);
 - `preview.charged_now` ≈ anual − crédito. **Se não bater com essa conta, pare e chame a sessão CEO.**
 - `metadata_to_write` tem `tier`, `supabase_user_id` = o `userId`, `plan_credits` e o selo `annual_switch_*`.
@@ -79,8 +85,11 @@ await (await fetch('/api/admin/switch-to-annual', {
 **4. CONFERIR o SEND:** `switched: true`, `charged_now.label` (o que o cartão pagou hoje), `invoice.invoiceId`,
 `invoice.billingReason` = `subscription_update` (se vier outro valor, avise a sessão CEO: o webhook poderia tratar a
 fatura como renovação), `profile_updated: true`, `ledger_written: true`, `refund_until`, `first_refill_at` e
-`customer_reply_en` (a resposta ao cliente já com o valor real). Se `profile_updated` ou `ledger_written` vier `false`
-(o banco caiu depois da cobrança), rode o mesmo SEND de novo: ele só completa o perfil e o evento, sem cobrar outra vez.
+`customer_reply_en` (a resposta ao cliente já com o valor real), `credits_granted: true` e `credits_before` →
+`credits_after`. Se `ledger_written`, `profile_updated` ou `credits_granted` vier `false` (o banco caiu depois da
+cobrança), rode o mesmo SEND de novo: ele completa o evento e a cota do mês **uma vez**, sem cobrar outra vez. Se a
+resposta disser que a cota está pendente e o saldo mudou (`credits_grant_pending: true` + aviso), a ferramenta não
+concede para não dobrar: confira o saldo e, se faltou, conceda à mão em `/admin/people` (+ créditos).
 
 **5. RESPONDER** ao cliente — rascunho na thread do e-mail dele (modelo abaixo; o `customer_reply_en` do SEND já vem
 com o valor preenchido).
@@ -110,7 +119,8 @@ A promessa é reembolso integral em até 14 dias da troca (o SEND devolve `refun
 2. **Cancelar assinatura → Imediatamente.** Se o diálogo oferecer reembolso, escolha **último pagamento** (o valor
    integral cobrado na troca). Se não oferecer: **Pagamentos** → a cobrança da troca → **Reembolsar** → valor total.
 3. O cancelamento chega ao nosso webhook (`customer.subscription.deleted`) e o perfil volta a `free`. Os créditos que a
-   pessoa tem não são retirados.
+   pessoa tem não são retirados automaticamente — inclusive a cota concedida na troca (`credits_after` no evento);
+   tirar ou não é decisão do fundador (`/admin/people`, + créditos com valor negativo e motivo).
 4. Se a pessoa quiser continuar no **mensal**, ela assina de novo pelo `/pricing` (o checkout aceita porque a anterior foi
    cancelada). Não reative a anual nem troque o preço à mão no painel: a recarga anual e o webhook dependem da metadata.
 
@@ -125,12 +135,13 @@ A promessa é reembolso integral em até 14 dias da troca (o SEND devolve `refun
 
 ## O que acontece depois, sem ninguém fazer nada
 
+- **Mês 1 do ano pago = na troca:** a rota concede a cota do plano na hora (regra da renovação, uma vez por assinatura).
 - A fatura da troca chega ao webhook como `billing_reason = 'subscription_update'`: ele grava
-  `subscription_update_invoice_paid` e **não concede crédito** (a pessoa já recebeu o mês corrente na última renovação
-  mensal).
-- O cron `annual-credit-refill` solta os créditos do plano **um mês depois da troca** e todo mês (meses 1 a 11); no 12º
-  a renovação anual chega pelo webhook. A data da recarga passa a ser o dia do mês da troca (troca em 8/10 → 8/11,
-  8/12…); o saldo da última renovação mensal cobre o intervalo.
+  `subscription_update_invoice_paid` e **não concede crédito** (a cota do mês já veio na troca — nada em dobro).
+- **Meses 2 a 12 = cron:** o `annual-credit-refill` solta a cota em +1, +2 … +11 meses da troca (os índices 1 a 11 dele),
+  uma vez cada. Conta fechada no guardião: 1 (troca) + 11 (cron) = **12 cotas no ano pago**. Em +12 meses chega a
+  fatura anual seguinte (`subscription_cycle`) e o webhook concede a 1ª cota do ano novo — o ciclo se repete. A data da
+  recarga passa a ser o dia do mês da troca (troca em 8/10 → 8/11, 8/12 … 8/9).
 - Lacuna conhecida (não bloqueia): o painel de MRR lê a última fatura de mensalidade; até a renovação anual ele mostra o
   mensal antigo, e na renovação anual a fatura herdaria "mensal" do checkout original. O evento
   `plan_switched_to_annual` tem tudo para o conserto (`annual_minor`, `stripe_subscription_id`).

@@ -8,15 +8,19 @@
 //   R2 · a regra do valor é a dos e-mails de 05/10 (9,90→71 · 12,90→93 · 15,92→115 · 19,90→143 · 29→209, ao dólar mais
 //        próximo) e 1 dólar acima ou abaixo é recusado (422) sem prévia nem troca;
 //   R3 · o SEND faz UM update do item com price_data anual (interval 'year'), proration 'always_invoice', âncora 'now'
-//        e payment_behavior 'error_if_incomplete', com chave de idempotência;
+//        e payment_behavior 'error_if_incomplete', com chave de idempotência; e concede a cota do 1º mês do ano pago
+//        pela régua da renovação (saldo = renewalBalance(antes, cota): a cota reinicia, o comprado acima sobrevive);
 //   R4 · a metadata fica igual à do checkout anual: as chaves de sistema do checkout logado e os valores do builder
 //        (lib/stripe/guestCheckout.ts executado com billing 'annual'), sem perder nada da metadata original — e uma
 //        assinatura antiga SEM tier/dono passa a ser reconhecida pelo cron e pelo webhook depois da troca;
-//   R5 · a segunda execução não cobra de novo (nem chama a Stripe); dois cliques simultâneos aplicam UMA troca; razão
-//        perdido depois da troca é completado sem cobrar;
+//   R5 · a segunda execução não cobra nem concede de novo (nem chama a Stripe); dois cliques simultâneos aplicam UMA
+//        troca e UMA cota; razão que não gravou é completado (com a cota, uma vez) sem cobrar; perfil que não gravou
+//        deixa a cota pendente e o SEND seguinte a concede só se o saldo ainda é o de antes; marca que não gravou não
+//        vira concessão em dobro;
 //   R6 · conta não-admin (e anônimo) recebe 403, sem Stripe e sem escrita;
 //   R7 · o webhook da fatura da troca (billing_reason 'subscription_update') não concede crédito em dobro; o cron solta
-//        os mesmos créditos de hoje um mês depois (uma vez) e a renovação anual do ano seguinte concede uma vez;
+//        os meses 1..11 (+1 a +11 meses), uma vez cada — com a cota da troca, 12 cotas no ano pago — e a renovação
+//        anual do ano seguinte concede uma vez;
 //   +   · cartão recusado = 402 e nada gravado (nem na Stripe nem no banco); bloqueios (cupom, conta interna, créditos
 //        que mudariam, teste, anual do checkout, BRL) recusam o SEND; o nome do evento é só do servidor no sink.
 // Depois, MUTANTES em memória: cada regra é quebrada por uma troca de texto com PROVA DE APLICAÇÃO (âncora única, texto
@@ -488,7 +492,8 @@ const SUB = 'sub_TROCA01'
 const ITEM = 'si_TROCA01'
 const CUS = 'cus_TROCA01'
 const PROD = 'prod_TROCA01'
-const CREDITS_NOW = 37
+/** O saldo do fixture no dia da troca (o 1º SIM tinha 2). A troca concede a cota do Starter (60) pela régua da renovação. */
+const CREDITS_NOW = 2
 /** A metadata que o checkout mensal da casa grava (subscription_data.metadata), com afiliado e marcador de intro. */
 const CHECKOUT_MONTHLY_METADATA = (tier, planCredits) => ({
   supabase_user_id: USER,
@@ -666,6 +671,7 @@ async function sEnsaio() {
   if (b.subscription?.monthly_minor !== 990 || b.subscription?.interval !== 'month' || b.subscription?.tier !== 'starter') p.push(`relatório sem plano/mensal/intervalo: ${JSON.stringify(b.subscription)}`)
   if (b.offer?.requested_annual_usd !== 71 || b.offer?.expected_annual_usd !== 71) p.push(`relatório sem o anual pedido/esperado: ${JSON.stringify(b.offer)}`)
   if (b.credits?.perMonthToday !== 60 || b.credits?.perMonthAfter !== 60) p.push(`relatório de créditos errado: ${JSON.stringify(b.credits)}`)
+  if (b.credits?.balanceBefore !== CREDITS_NOW || b.credits?.balanceAfter !== 60 || b.credits?.balanceCarried !== 0) p.push(`ensaio não mostra o saldo antes/depois da troca: ${JSON.stringify(b.credits)}`)
   const meta = b.metadata_to_write ?? {}
   if (meta.tier !== 'starter' || meta.supabase_user_id !== USER || meta.plan_credits !== '60' || meta.annual_switch_annual_minor !== '7100') p.push(`metadata do ensaio errada: ${JSON.stringify(meta)}`)
   if (JSON.stringify(b.send_with) !== JSON.stringify({ userId: USER, annualAmountUsd: 71, confirm: 'SEND' })) p.push(`send_with errado: ${JSON.stringify(b.send_with)}`)
@@ -697,7 +703,9 @@ async function sSend() {
   const sub = env.stripe.subs.get(SUB)
   if (sub.items.data[0].price.recurring.interval !== 'year' || sub.items.data[0].price.unit_amount !== 7100) p.push('a assinatura na Stripe não ficou anual de 7100')
   const prof = env.db.profile(USER)
-  if (prof.video_credits !== CREDITS_NOW) p.push(`créditos mudaram na troca: ${CREDITS_NOW} → ${prof.video_credits}`)
+  const want = env.balance.renewalBalance(CREDITS_NOW, 60).balance
+  if (want !== 60) p.push(`a régua da renovação mudou: renewalBalance(${CREDITS_NOW}, 60) = ${want}`)
+  if (prof.video_credits !== want) p.push(`a troca não concedeu a cota do mês pela régua da renovação: ${CREDITS_NOW} → ${prof.video_credits} (esperava ${want})`)
   if (prof.plan !== 'starter' || prof.is_pro !== true || prof.has_paid !== true || prof.stripe_subscription_id !== SUB || prof.stripe_customer_id !== CUS) p.push(`perfil errado depois da troca: ${JSON.stringify(prof)}`)
   const ev = env.db.events('plan_switched_to_annual')
   if (ev.length !== 1) p.push(`${ev.length} eventos plan_switched_to_annual`)
@@ -709,9 +717,17 @@ async function sSend() {
   if (m.annual_minor !== 7100 || m.monthly_minor !== 990 || m.proration_credit_minor !== credit || m.amount_charged_minor !== 7100 - credit) p.push(`razão com valores errados: ${JSON.stringify(m)}`)
   if (!invoiceId || m.stripe_invoice_id !== invoiceId || m.invoice_billing_reason !== 'subscription_update') p.push(`razão sem a fatura da troca (${m.stripe_invoice_id} / ${invoiceId})`)
   if (m.refund_until !== new RealDate(T0 + 14 * DAY).toISOString()) p.push(`prazo do reembolso errado: ${m.refund_until}`)
+  if (m.credits_before !== CREDITS_NOW || m.credits_after !== 60 || m.credits_carried !== 0 || m.credits_quota !== 60 || m.credits_granted !== true) p.push(`razão sem os números da concessão: ${JSON.stringify({ antes: m.credits_before, depois: m.credits_after, sobra: m.credits_carried, cota: m.credits_quota, concedido: m.credits_granted })}`)
+  if (b.credits_before !== CREDITS_NOW || b.credits_after !== 60 || b.credits_carried !== 0 || b.credits_granted !== true) p.push(`resposta sem os números da concessão: ${JSON.stringify({ antes: b.credits_before, depois: b.credits_after, concedido: b.credits_granted })}`)
   if (b.charged_now?.minor !== 7100 - credit || b.invoice?.prorationCreditMinor !== credit) p.push(`resposta sem o cobrado/crédito: ${JSON.stringify(b.charged_now)} ${b.invoice?.prorationCreditMinor}`)
   const reply = String(b.customer_reply_en ?? '')
   if (!reply.includes(`$${((7100 - credit) / 100).toFixed(2)}`) || !/annual plan/.test(reply) || !/credited what you already paid/.test(reply) || !/full refund within 14 days/.test(reply)) p.push(`resposta ao cliente incompleta: ${reply}`)
+  // o comprado acima de uma cota sobrevive (régua da renovação): 150 com cota 60 = 60 + 90
+  const env2 = makeEnv()
+  seed(env2, { credits: 150 })
+  const r2 = await callRoute(env2, SEND71)
+  const e2 = env2.db.events('plan_switched_to_annual')[0]?.metadata ?? {}
+  if (r2.status !== 200 || env2.db.profile(USER).video_credits !== 150 || e2.credits_carried !== 90 || e2.credits_after !== 150) p.push(`comprado acima da cota não sobreviveu: ${env2.db.profile(USER).video_credits} ${JSON.stringify({ sobra: e2.credits_carried, depois: e2.credits_after })}`)
   return p
 }
 
@@ -779,51 +795,99 @@ async function sMetadata() {
   return p
 }
 
-/** R5: a 2ª execução não cobra nem chama a Stripe; razão perdido é completado sem cobrar; o ensaio depois diz "já trocada". */
+/** R5: a 2ª execução não cobra, não chama a Stripe e não concede de novo (mesmo com o saldo gasto no meio); o ensaio diz "já trocada". */
 async function sDuasVezes() {
   const p = []
   const env = makeEnv()
   seed(env)
   const first = await callRoute(env, SEND71)
   if (first.status !== 200 || first.body?.switched !== true) return [`1º SEND: ${first.status}`]
+  if (env.db.profile(USER).video_credits !== 60) p.push(`1º SEND não concedeu a cota: ${env.db.profile(USER).video_credits}`)
+  env.db.profile(USER).video_credits = 45 // a pessoa usou 15 créditos depois da troca
   const callsAfter = env.stripe.calls.length
   const snap = snapshot(env)
   const second = await callRoute(env, SEND71)
   if (second.status !== 200 || second.body?.already_switched !== true || second.body?.source !== 'ledger') p.push(`2º SEND: ${second.status} ${JSON.stringify(second.body)}`)
   if (env.stripe.calls.length !== callsAfter) p.push(`2º SEND chamou a Stripe: ${env.stripe.calls.slice(callsAfter).map((c) => c.op).join(', ')}`)
   if (snapshot(env) !== snap) p.push('2º SEND gravou algo')
+  if (env.db.profile(USER).video_credits !== 45) p.push(`2º SEND concedeu de novo: 45 → ${env.db.profile(USER).video_credits}`)
   const dry = await callRoute(env, DRY71)
   if (dry.status !== 200 || dry.body?.already_switched !== true) p.push(`ensaio depois da troca não diz "já trocada": ${dry.status}`)
-  // a Stripe trocou, mas o razão se perdeu (banco caiu depois da cobrança): o SEND só completa, sem update
-  env.db.tables.events = env.db.T('events').filter((e) => e.name !== 'plan_switched_to_annual')
-  const updatesBefore = env.stripe.ops('subscriptions.update').length
-  const invoicesBefore = env.stripe.invoiceMap.size
-  const third = await callRoute(env, SEND71)
-  if (third.status !== 200 || third.body?.already_switched !== true || third.body?.source !== 'stripe' || third.body?.completed_record !== true) p.push(`SEND com razão perdido: ${third.status} ${JSON.stringify(third.body)}`)
-  if (env.stripe.ops('subscriptions.update').length !== updatesBefore || env.stripe.invoiceMap.size !== invoicesBefore) p.push('SEND com razão perdido trocou/cobrou de novo')
-  const ev = env.db.events('plan_switched_to_annual')
-  if (ev.length !== 1 || ev[0].id !== ledgerIdFor(SUB) || ev[0].metadata?.completed_after_partial_failure !== true || ev[0].metadata?.amount_charged_minor !== 7100 - expectedCredit(990)) p.push(`razão não foi completado direito: ${JSON.stringify(ev)}`)
-  if (env.db.profile(USER).video_credits !== CREDITS_NOW) p.push('completar o razão mexeu nos créditos')
   return p
 }
 
-/** R5: o banco cai DEPOIS que a Stripe trocou — a resposta avisa, e o SEND seguinte completa perfil e razão sem cobrar. */
+/** R5: o RAZÃO não grava depois da cobrança — nada é concedido; o SEND seguinte completa razão e cota UMA vez, sem cobrar. */
+async function sRazaoNaoGravou() {
+  const p = []
+  const env = makeEnv()
+  seed(env)
+  env.db.failOnce('events', 'insert')
+  const first = await callRoute(env, SEND71)
+  if (first.status !== 200 || first.body?.switched !== true || first.body?.ledger_written !== false || first.body?.credits_granted !== false || !(first.body?.warnings ?? []).length) p.push(`razão caído: a resposta não avisou (${first.status} ${JSON.stringify({ razao: first.body?.ledger_written, concedido: first.body?.credits_granted })})`)
+  if (env.db.profile(USER).video_credits !== CREDITS_NOW) p.push(`sem razão gravado houve concessão: ${CREDITS_NOW} → ${env.db.profile(USER).video_credits}`)
+  if (env.db.events('plan_switched_to_annual').length) p.push('razão apareceu apesar da falha injetada')
+  const updates = env.stripe.ops('subscriptions.update').length
+  const invoices = env.stripe.invoiceMap.size
+  const second = await callRoute(env, SEND71)
+  if (second.status !== 200 || second.body?.already_switched !== true || second.body?.source !== 'stripe' || second.body?.completed_record !== true || second.body?.credits_granted !== true) p.push(`2º SEND não completou: ${second.status} ${JSON.stringify(second.body)}`)
+  if (env.stripe.ops('subscriptions.update').length !== updates || env.stripe.invoiceMap.size !== invoices) p.push('2º SEND trocou/cobrou de novo')
+  if (env.db.profile(USER).video_credits !== 60) p.push(`2º SEND não concedeu a cota uma vez: ${env.db.profile(USER).video_credits}`)
+  const ev = env.db.events('plan_switched_to_annual')
+  if (ev.length !== 1 || ev[0].id !== ledgerIdFor(SUB) || ev[0].metadata?.completed_after_partial_failure !== true || ev[0].metadata?.amount_charged_minor !== 7100 - expectedCredit(990) || ev[0].metadata?.credits_granted !== true || ev[0].metadata?.credits_before !== CREDITS_NOW) p.push(`razão completado errado: ${JSON.stringify(ev.map((e) => e.metadata))}`)
+  env.db.profile(USER).video_credits = 30
+  const third = await callRoute(env, SEND71)
+  if (third.status !== 200 || third.body?.source !== 'ledger' || env.db.profile(USER).video_credits !== 30) p.push(`3º SEND concedeu de novo: ${env.db.profile(USER).video_credits}`)
+  return p
+}
+
+/** R5: o PERFIL não grava depois da cobrança — a cota fica pendente no razão; o SEND seguinte concede UMA vez (saldo ainda é o de antes). */
 async function sBancoCaiDepois() {
   const p = []
   const env = makeEnv()
   seed(env, { plan: 'creator', tier: 'basic', monthlyMinor: 1990 })
   env.db.failOnce('profiles', 'update')
   const first = await callRoute(env, { userId: USER, annualAmountUsd: 143, confirm: 'SEND' })
-  if (first.status !== 200 || first.body?.switched !== true || first.body?.profile_updated !== false || first.body?.ledger_written !== false || !(first.body?.warnings ?? []).length) p.push(`banco caiu: a resposta não avisou (${first.status} ${JSON.stringify({ p: first.body?.profile_updated, l: first.body?.ledger_written })})`)
-  if (env.db.events('plan_switched_to_annual').length) p.push('razão gravado com o perfil sem gravar (razão presente tem de querer dizer "tudo registrado")')
-  if (env.db.profile(USER).plan !== 'creator') p.push('o perfil mudou apesar da falha injetada')
+  if (first.status !== 200 || first.body?.switched !== true || first.body?.profile_updated !== false || first.body?.ledger_written !== true || first.body?.credits_granted !== false || !(first.body?.warnings ?? []).length) p.push(`perfil caído: a resposta não avisou (${first.status} ${JSON.stringify({ perfil: first.body?.profile_updated, razao: first.body?.ledger_written, concedido: first.body?.credits_granted })})`)
+  const ev1 = env.db.events('plan_switched_to_annual')
+  if (ev1.length !== 1 || ev1[0].metadata?.credits_granted !== false || ev1[0].metadata?.credits_before !== CREDITS_NOW || ev1[0].metadata?.credits_after !== 150) p.push(`a cota não ficou pendente no razão: ${JSON.stringify(ev1.map((e) => e.metadata))}`)
+  if (env.db.profile(USER).plan !== 'creator' || env.db.profile(USER).video_credits !== CREDITS_NOW) p.push('o perfil mudou apesar da falha injetada')
   const updates = env.stripe.ops('subscriptions.update').length
   const second = await callRoute(env, { userId: USER, annualAmountUsd: 143, confirm: 'SEND' })
-  if (second.status !== 200 || second.body?.completed_record !== true || second.body?.profile_updated !== true || second.body?.ledger_written !== true) p.push(`2º SEND não completou: ${second.status} ${JSON.stringify(second.body)}`)
+  if (second.status !== 200 || second.body?.already_switched !== true || second.body?.source !== 'ledger' || second.body?.credits_granted !== true || second.body?.credits_grant_pending !== false) p.push(`2º SEND não terminou a cota pendente: ${second.status} ${JSON.stringify(second.body)}`)
   if (env.stripe.ops('subscriptions.update').length !== updates) p.push('2º SEND chamou a troca de novo')
-  if (env.db.profile(USER).plan !== 'basic' || env.db.profile(USER).video_credits !== CREDITS_NOW) p.push(`perfil depois de completar: ${JSON.stringify(env.db.profile(USER))}`)
+  const prof = env.db.profile(USER)
+  if (prof.plan !== 'basic' || prof.video_credits !== 150) p.push(`perfil depois de terminar: ${JSON.stringify(prof)}`)
   const ev = env.db.events('plan_switched_to_annual')
-  if (ev.length !== 1 || ev[0].metadata?.annual_minor !== 14300 || ev[0].metadata?.monthly_minor !== 1990) p.push(`razão completado errado: ${JSON.stringify(ev.map((e) => e.metadata))}`)
+  if (ev.length !== 1 || ev[0].metadata?.credits_granted !== true || ev[0].metadata?.annual_minor !== 14300 || ev[0].metadata?.monthly_minor !== 1990) p.push(`razão terminado errado: ${JSON.stringify(ev.map((e) => e.metadata))}`)
+  prof.video_credits = 70
+  const third = await callRoute(env, { userId: USER, annualAmountUsd: 143, confirm: 'SEND' })
+  if (third.status !== 200 || env.db.profile(USER).video_credits !== 70) p.push(`3º SEND concedeu de novo: ${env.db.profile(USER).video_credits}`)
+  return p
+}
+
+/** R5: a cota foi concedida mas a MARCA do razão não gravou — o SEND seguinte confere pelo saldo e não concede de novo. */
+async function sMarcaCaiDepois() {
+  const p = []
+  // (a) a pessoa usou créditos depois da troca: saldo ≠ antes e ≠ depois → ambíguo → nada concedido, aviso
+  const env = makeEnv()
+  seed(env)
+  env.db.failOnce('events', 'update')
+  const first = await callRoute(env, SEND71)
+  if (first.status !== 200 || first.body?.credits_granted !== true || !(first.body?.warnings ?? []).length) p.push(`marca caída: ${first.status} ${JSON.stringify({ concedido: first.body?.credits_granted, avisos: first.body?.warnings })}`)
+  if (env.db.profile(USER).video_credits !== 60) p.push(`a cota não foi concedida: ${env.db.profile(USER).video_credits}`)
+  if (env.db.events('plan_switched_to_annual')[0]?.metadata?.credits_granted !== false) p.push('a marca deveria ter ficado pendente (falha injetada)')
+  env.db.profile(USER).video_credits = 45
+  const second = await callRoute(env, SEND71)
+  if (second.status !== 200 || second.body?.credits_granted !== false || !(second.body?.warnings ?? []).length) p.push(`2º SEND com saldo gasto: ${second.status} ${JSON.stringify({ concedido: second.body?.credits_granted })}`)
+  if (env.db.profile(USER).video_credits !== 45) p.push(`2º SEND concedeu em dobro: 45 → ${env.db.profile(USER).video_credits}`)
+  // (b) a pessoa não usou nada: saldo = o de depois → só completa a marca, sem conceder
+  const envB = makeEnv()
+  seed(envB)
+  envB.db.failOnce('events', 'update')
+  await callRoute(envB, SEND71)
+  const secondB = await callRoute(envB, SEND71)
+  if (secondB.status !== 200 || secondB.body?.credits_granted !== true || envB.db.profile(USER).video_credits !== 60) p.push(`2º SEND com saldo intacto: ${secondB.status} ${envB.db.profile(USER).video_credits}`)
+  if (envB.db.events('plan_switched_to_annual')[0]?.metadata?.credits_granted !== true) p.push('a marca não foi completada')
   return p
 }
 
@@ -839,7 +903,7 @@ async function sSimultaneos() {
   const ups = env.stripe.ops('subscriptions.update')
   if (!ups.length || !ups.every((u) => typeof u.idempotencyKey === 'string' && u.idempotencyKey === ups[0].idempotencyKey)) p.push('os updates dos dois cliques não levam a MESMA chave de idempotência')
   if (env.db.events('plan_switched_to_annual').length !== 1) p.push(`dois cliques: ${env.db.events('plan_switched_to_annual').length} razões`)
-  if (env.db.profile(USER).video_credits !== CREDITS_NOW) p.push('dois cliques mexeram nos créditos')
+  if (env.db.profile(USER).video_credits !== 60) p.push(`dois cliques: saldo ${env.db.profile(USER).video_credits}, esperava a cota uma vez (60)`)
   return p
 }
 
@@ -852,6 +916,8 @@ async function sWebhookERecarga() {
   if (r.status !== 200) return [`SEND: ${r.status}`]
   const sub = env.stripe.subs.get(SUB)
   const inv = env.stripe.invoiceMap.get(sub.latest_invoice)
+  if (env.db.profile(USER).video_credits !== 60) p.push(`a troca não concedeu a cota do mês: ${env.db.profile(USER).video_credits}`)
+  env.db.profile(USER).video_credits = 41 // a pessoa usou 19 depois da troca: uma 2ª concessão apareceria no saldo
   for (const label of ['fatura da troca', 'reentrega da fatura da troca']) {
     const w = await deliver(env, 'invoice.payment_succeeded', inv)
     if (w.status !== 200) p.push(`${label}: webhook ${w.status}`)
@@ -859,7 +925,7 @@ async function sWebhookERecarga() {
   const s = await deliver(env, 'customer.subscription.updated', env.stripe.subs.get(SUB))
   if (s.status !== 200) p.push(`subscription.updated: webhook ${s.status}`)
   const prof = env.db.profile(USER)
-  if (prof.video_credits !== CREDITS_NOW) p.push(`webhook da fatura da troca concedeu crédito: ${CREDITS_NOW} → ${prof.video_credits}`)
+  if (prof.video_credits !== 41) p.push(`webhook da fatura da troca concedeu crédito em dobro: 41 → ${prof.video_credits}`)
   if (prof.plan !== 'starter' || prof.is_pro !== true) p.push(`webhook mudou o plano: ${prof.plan}/${prof.is_pro}`)
   if (env.db.events('subscription_invoice_paid').length) p.push('a fatura da troca virou subscription_invoice_paid (renovação)')
   if (env.db.events('subscription_update_invoice_paid').length !== 2) p.push(`subscription_update_invoice_paid = ${env.db.events('subscription_update_invoice_paid').length}, esperava 2 (uma por entrega)`)
@@ -867,15 +933,27 @@ async function sWebhookERecarga() {
   // recarga anual: nada antes de 1 mês; no mês 1, os 60 de hoje (SET pela régua da renovação), uma vez
   clock.now = T0 + 20 * DAY
   const early = await runCron(env)
-  if ((early.body?.granted ?? []).length || env.db.profile(USER).video_credits !== CREDITS_NOW) p.push(`recarga antes de 1 mês: ${JSON.stringify(early.body?.granted)}`)
+  if ((early.body?.granted ?? []).length || env.db.profile(USER).video_credits !== 41) p.push(`recarga antes de 1 mês: ${JSON.stringify(early.body?.granted)}`)
   clock.now = addMonthsMs(T0, 1) + 60 * 60 * 1000
   const m1 = await runCron(env)
   const g1 = m1.body?.granted ?? []
-  const want = env.balance.renewalBalance(CREDITS_NOW, 60).balance
+  const want = env.balance.renewalBalance(41, 60).balance
   if (g1.length !== 1 || g1[0].month !== 1 || g1[0].credits !== 60) p.push(`recarga do mês 1: ${JSON.stringify(g1)}`)
   if (env.db.profile(USER).video_credits !== want) p.push(`saldo depois da recarga do mês 1: ${env.db.profile(USER).video_credits}, esperava ${want}`)
   const again = await runCron(env)
   if ((again.body?.granted ?? []).length) p.push('a recarga do mês 1 saiu duas vezes')
+  // 12 cotas por ano pago: a da troca (mês 0) + o cron nos meses 1..11 (+1 a +11 meses); o mês 12 já é a próxima fatura
+  const months = [1]
+  for (let k = 2; k <= 11; k++) {
+    clock.now = addMonthsMs(T0, k) + 60 * 60 * 1000
+    const run = await runCron(env)
+    for (const g of run.body?.granted ?? []) if (g.subscription === SUB) months.push(g.month)
+  }
+  clock.now = addMonthsMs(T0, 12) - 60 * 60 * 1000
+  const last = await runCron(env)
+  for (const g of last.body?.granted ?? []) if (g.subscription === SUB) months.push(g.month)
+  if (months.join(',') !== '1,2,3,4,5,6,7,8,9,10,11') p.push(`o cron não soltou os meses 1..11 uma vez cada dentro do ano pago: ${months.join(',')}`)
+  if (1 + months.length !== 12) p.push(`cotas no ano pago: ${1 + months.length}, esperava 12 (a da troca + 11 do cron)`)
   // renovação anual do ano seguinte (subscription_cycle de 7100): concede o plano uma vez
   clock.now = addMonthsMs(T0, 12) + 60 * 60 * 1000
   sub.current_period_start = Math.floor(addMonthsMs(T0, 12) / 1000)
@@ -958,6 +1036,7 @@ function sEstatico() {
   for (const [needle, why] of [
     ["confirm: 'SEND'", 'o SEND'], ['annualAmountUsd', 'o corpo'], ['Reembolsar', 'o estorno'], ['14 dias', 'o prazo'],
     ["Done — you're now on the annual plan", 'a resposta ao cliente'], ['US$ 209', 'a tabela dos valores'],
+    ['12 cotas no ano pago', 'a conta das cotas (troca + 11 do cron)'], ['credits.balanceAfter', 'o saldo depois da troca no ensaio'],
   ]) if (!doc.includes(needle)) p.push(`doc sem ${why} (${needle})`)
   return p
 }
@@ -971,7 +1050,9 @@ const SCENARIOS = {
   send: () => sSend(),
   metadata: () => sMetadata(),
   duasVezes: () => sDuasVezes(),
+  razaoNaoGravou: () => sRazaoNaoGravou(),
   bancoCaiDepois: () => sBancoCaiDepois(),
+  marcaCaiDepois: () => sMarcaCaiDepois(),
   simultaneos: () => sSimultaneos(),
   webhookERecarga: () => sWebhookERecarga(),
   cartaoRecusado: () => sCartaoRecusado(),
@@ -1010,13 +1091,16 @@ const MUTANTS = [
   ['R4 metadata sem tier', { [LIB]: [replaceOnce('    tier: input.tier,\n', '', 'sem o carimbo de tier')] }, 'metadata'],
   ['R4 metadata sem dono', { [LIB]: [replaceOnce('    supabase_user_id: input.userId,\n', '', 'sem o carimbo do dono')] }, 'metadata'],
   ['R5 sem o razão (2ª execução relê a Stripe)', { [ROUTE]: [replaceOnce('  if (ledger) {\n', '  if (false) {\n', 'sem a checagem do razão')] }, 'duasVezes'],
-  ['R5 sem o selo (razão perdido não é completado)', { [ROUTE]: [replaceOnce("  if (interval === 'year' && hasAnnualSwitchStamp(metadata)) {\n", '  if (false) {\n', 'sem o caminho de completar')] }, 'duasVezes'],
-  ['R5 razão gravado com o perfil caído', { [ROUTE]: [replaceOnce('    return { profile_updated: false, ledger_written: false, warnings }\n', '', 'segue para o razão sem perfil')] }, 'bancoCaiDepois'],
+  ['R5 sem o selo (razão perdido não é completado)', { [ROUTE]: [replaceOnce("  if (interval === 'year' && hasAnnualSwitchStamp(metadata)) {\n", '  if (false) {\n', 'sem o caminho de completar')] }, 'razaoNaoGravou'],
+  ['R5 concede sem razão gravado', { [ROUTE]: [replaceOnce('sem cobrar outra vez.`)\n    return { ledger_written: false, profile_updated: false, credits_granted: false, ...none, warnings }\n  }\n  const patch = profilePatchFor(input)\n', 'sem cobrar outra vez.`)\n  }\n  const patch = profilePatchFor(input)\n', 'segue para a concessão sem razão')] }, 'razaoNaoGravou'],
+  ['R5 retomada concede em dobro (sem compare-and-set)', { [ROUTE]: [replaceOnce(".update(patch).eq('id', input.userId).eq('video_credits', before).select('id')", ".update(patch).eq('id', input.userId).select('id')", 'retomada sem CAS')] }, 'marcaCaiDepois'],
+  ['R5 perfil caído vira concessão perdida', { [ROUTE]: [replaceOnce('  const pending = record.credits_granted === false\n', '  const pending = false\n', 'sem retomar a cota pendente')] }, 'bancoCaiDepois'],
   ['R5 sem chave de idempotência', { [ROUTE]: [replaceOnce('    }, { idempotencyKey: annualSwitchIdempotencyKey(subscriptionId, item!.id, annualMinor, nowMs) })\n', '    })\n', 'update sem idempotencyKey')] }, 'simultaneos'],
   ['R6 não-admin passa', { [ROUTE]: [replaceOnce('  if (!user || !isAdminEmail(user.email)) return', '  if (!user) return', 'portão só de login')] }, 'naoAdmin'],
   ['R7 webhook trata a troca como renovação', { [WEBHOOK]: [replaceOnce("        if (billingReason === 'subscription_update') {\n", "        if (billingReason === 'subscription_update' && false) {\n", 'sem a saída de subscription_update')] }, 'webhookERecarga'],
   ['cartão recusado troca mesmo assim', { [ROUTE]: [replaceOnce("      payment_behavior: 'error_if_incomplete',\n", "      payment_behavior: 'allow_incomplete',\n", 'allow_incomplete')] }, 'cartaoRecusado'],
-  ['a troca mexe nos créditos', { [ROUTE]: [replaceOnce('  const patch: Record<string, unknown> = { is_pro: true, has_paid: true, stripe_subscription_id: input.subscriptionId }\n', '  const patch: Record<string, unknown> = { is_pro: true, has_paid: true, stripe_subscription_id: input.subscriptionId, video_credits: 60 }\n', 'patch com video_credits')] }, 'send'],
+  ['a troca esquece de conceder a cota do mês', { [ROUTE]: [replaceOnce('  if (grant) patch.video_credits = grant.balance\n', '', 'perfil sem a cota')] }, 'send'],
+  ['a troca concede somando em vez da régua da renovação', { [ROUTE]: [replaceOnce('  if (grant) patch.video_credits = grant.balance\n', '  if (grant) patch.video_credits = before + (input.quota ?? 0)\n', 'cota somada')] }, 'send'],
   ['créditos que mudariam passam', { [LIB]: [replaceOnce('  if (f.credits && !f.credits.same) {\n', '  if (false) {\n', 'sem o bloqueio de créditos')] }, 'bloqueios'],
   ['cupom passa', { [LIB]: [replaceOnce('  if (f.discountCount > 0) add(', '  if (false) add(', 'sem o bloqueio de cupom')] }, 'bloqueios'],
 ]

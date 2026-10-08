@@ -15,10 +15,15 @@
 //   · confirm='SEND': troca o ITEM da assinatura para price_data anual (o mesmo jeito do change-plan, sem Price de
 //     painel; o Product é o do item atual), proration 'always_invoice' + billing_cycle_anchor 'now' (cobra AGORA o ano
 //     novo menos o mês já pago) e payment_behavior 'error_if_incomplete' (cartão recusado = a Stripe não troca nada
-//     e devolve 402). Depois grava o perfil (plano, sem tocar nos créditos) e o evento plan_switched_to_annual.
-//   · idempotente: o razão tem id determinístico por assinatura (2ª execução responde "já trocada" sem chamar a
-//     Stripe); se o razão faltar mas a assinatura já estiver anual com o selo desta ferramenta, o SEND só completa o
-//     registro, sem cobrar; e a chamada de troca leva chave de idempotência da Stripe (janela de 10 min).
+//     e devolve 402). Depois grava o evento plan_switched_to_annual (o razão) e, só com o razão gravado, o perfil:
+//     plano, ids e a COTA DO MÊS DA TROCA pela régua da renovação (renewalBalance: a cota reinicia, o comprado acima
+//     de uma cota sobrevive). O ano pago começa na troca e o resto do mês mensal volta em dinheiro (rateio): sem esta
+//     cota a pessoa passaria o 1º mês do ano sem crédito novo (o cron só solta os meses 1..11, a partir de +1 mês).
+//   · idempotente: o razão tem id determinístico por assinatura e nasce ANTES da concessão (sem razão, nada é
+//     concedido; com razão, no máximo uma vez). A 2ª execução responde "já trocada" sem chamar a Stripe; concessão que
+//     ficou pendente é refeita só se o saldo ainda é o de antes (compare-and-set). Se o razão faltar mas a assinatura
+//     já estiver anual com o selo desta ferramenta, o SEND só completa o registro, sem cobrar; e a chamada de troca
+//     leva chave de idempotência da Stripe (janela de 10 min).
 //   · falha da Stripe = nada gravado e erro claro (tipo, código, motivo da recusa).
 //
 // SEM CRON DE PROPÓSITO: cada execução cobra o cartão de um cliente e exige o "vai" do fundador para AQUELA pessoa.
@@ -28,6 +33,7 @@ import type Stripe from 'stripe'
 import { createClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe'
 import { isInternalEmail } from '@/lib/internalAccounts'
+import { renewalBalance } from '@/lib/credits/renewalBalance'
 import { isAdminEmail, serviceClient } from '../_shared/db'
 import {
   ANNUAL_SWITCH_EVENT,
@@ -113,14 +119,23 @@ export async function POST(req: Request) {
   const { data: ledger, error: ledgerError } = await admin.from('events').select('id, created_at, metadata').eq('id', ledgerId).maybeSingle()
   if (ledgerError) return NextResponse.json({ error: 'ledger_read_failed', detail: ledgerError.message, nothing_written: true }, { status: 500 })
   if (ledger) {
+    const record = (ledger.metadata ?? {}) as Record<string, unknown>
+    // A concessão do mês da troca ficou pendente (o perfil não gravou, ou a marca não gravou): o SEND termina — e só
+    // concede se o saldo ainda for o de antes. O ensaio só conta.
+    const pending = record.credits_granted === false
+    const finished = pending && send
+      ? await finishPendingGrant({ admin, userId, ledgerId, record, customerId: profile.stripe_customer_id ?? null, subscriptionId })
+      : null
     return NextResponse.json({
       ok: true,
       mode,
       already_switched: true,
       source: 'ledger',
       switched_at: ledger.created_at ?? null,
-      record: ledger.metadata ?? null,
+      record,
       nothing_charged_now: true,
+      credits_grant_pending: pending && !finished?.credits_granted,
+      ...(finished ?? {}),
     })
   }
 
@@ -159,8 +174,12 @@ export async function POST(req: Request) {
     }
     const tier = tierPick.tier
     const switchedAt = typeof sub.current_period_start === 'number' ? sub.current_period_start * 1000 : Date.now()
+    // A cota decidida na troca está no selo (plan_credits = recarga anual por mês). Razão ausente quer dizer que a
+    // concessão NÃO aconteceu (ela só roda depois do razão gravado), então completar concede — uma vez.
+    const stampedQuota = Number(metadata.plan_credits)
     const repair = await recordSwitch({
       admin, userId, ledgerId, tier, customerId, subscriptionId,
+      quota: Number.isInteger(stampedQuota) && stampedQuota > 0 ? stampedQuota : null,
       eventMetadata: {
         source: 'admin_switch_to_annual',
         version: ANNUAL_SWITCH_VERSION,
@@ -178,7 +197,6 @@ export async function POST(req: Request) {
         invoice_status: summary?.status ?? null,
         proration_credit_minor: summary?.prorationCreditMinor ?? null,
         amount_charged_minor: summary ? summary.amountPaidMinor : null,
-        credits_balance_untouched: Number(profile.video_credits ?? 0),
         refund_until: annualSwitchRefundUntil(switchedAt),
         switched_by: user.email ?? 'admin',
       },
@@ -221,6 +239,12 @@ export async function POST(req: Request) {
     credits,
   })
   if (!productId) blockers.push({ code: 'product_unknown', message: 'O item não tem Product na Stripe para o preço anual.' })
+  // O que a troca faz com o saldo (regra da renovação): o ensaio mostra; o SEND relê o saldo na hora de conceder.
+  const balanceNow = Number(profile.video_credits ?? 0)
+  const grantPreview = credits ? renewalBalance(balanceNow, credits.perMonthAfter) : null
+  const creditsReport = credits && grantPreview
+    ? { ...credits, balanceBefore: balanceNow, balanceAfter: grantPreview.balance, balanceCarried: grantPreview.carried }
+    : credits
 
   const report = {
     person: { user_id: userId, plan: profile.plan ?? null, credits_now: Number(profile.video_credits ?? 0) },
@@ -238,7 +262,7 @@ export async function POST(req: Request) {
       cancel_at_period_end: sub.cancel_at_period_end === true,
     },
     offer: { rule: ANNUAL_SWITCH_RULE, requested_annual_usd: body.annualAmountUsd ?? null, expected_annual_usd: expectedUsd },
-    credits,
+    credits: creditsReport,
   }
 
   if (blockers.length > 0) {
@@ -340,6 +364,7 @@ export async function POST(req: Request) {
   const chargedMinor = summary ? summary.amountPaidMinor : 0
   const recorded = await recordSwitch({
     admin, userId, ledgerId, tier, customerId, subscriptionId,
+    quota: switchCredits.perMonthAfter,
     eventMetadata: {
       source: 'admin_switch_to_annual',
       version: ANNUAL_SWITCH_VERSION,
@@ -357,7 +382,6 @@ export async function POST(req: Request) {
       proration_credit_minor: summary?.prorationCreditMinor ?? null,
       amount_charged_minor: chargedMinor,
       credits_per_month: switchCredits.perMonthAfter,
-      credits_balance_untouched: Number(profile.video_credits ?? 0),
       period_start: new Date(periodStartMs).toISOString(),
       first_refill_at: annualSwitchFirstRefillAt(periodStartMs),
       refund_until: annualSwitchRefundUntil(nowMs),
@@ -375,7 +399,6 @@ export async function POST(req: Request) {
     charged_now: { minor: chargedMinor, label: usdLabel(chargedMinor) },
     invoice: summary,
     credits: switchCredits,
-    credits_balance_untouched: Number(profile.video_credits ?? 0),
     metadata_written: newMetadata,
     refund_until: annualSwitchRefundUntil(nowMs),
     first_refill_at: annualSwitchFirstRefillAt(periodStartMs),
@@ -384,10 +407,30 @@ export async function POST(req: Request) {
   })
 }
 
+type SwitchRecordResult = {
+  ledger_written: boolean
+  profile_updated: boolean
+  credits_granted: boolean
+  credits_before: number | null
+  credits_after: number | null
+  credits_carried: number | null
+  warnings: string[]
+}
+
+/** Plano e ids da assinatura anual no perfil (o mesmo que o checkout grava), sem os créditos. */
+function profilePatchFor(input: { tier: string | null; customerId: string | null; subscriptionId: string }): Record<string, unknown> {
+  const patch: Record<string, unknown> = { is_pro: true, has_paid: true, stripe_subscription_id: input.subscriptionId }
+  if (input.tier) patch.plan = input.tier
+  if (input.customerId) patch.stripe_customer_id = input.customerId
+  return patch
+}
+
 /**
- * Depois que a Stripe trocou: perfil (plano e ids, NUNCA os créditos) e, só com o perfil gravado, o razão com id
- * determinístico — razão presente quer dizer "tudo registrado". Falha aqui não desfaz a cobrança: volta na resposta, e o
- * próximo SEND completa pelo selo da assinatura (caminho "já anual com o selo"), sem chamar a troca de novo.
+ * Depois que a Stripe trocou, nesta ordem: (1) o saldo lido na hora; (2) o RAZÃO (id determinístico, a "reserva" da
+ * concessão: se outro pedido já o gravou, este não concede nada); (3) UMA escrita no perfil com plano, ids e a cota do
+ * mês da troca pela régua da renovação; (4) a marca credits_granted no razão. Sem razão gravado não há concessão —
+ * é isso que deixa o caminho "completar o registro" conceder sem risco de dobrar. Falha aqui não desfaz a cobrança:
+ * volta na resposta, e o próximo SEND termina o que faltou, sem chamar a troca de novo.
  */
 async function recordSwitch(input: {
   admin: NonNullable<ReturnType<typeof serviceClient>>
@@ -396,16 +439,26 @@ async function recordSwitch(input: {
   tier: string | null
   customerId: string | null
   subscriptionId: string
+  /** Créditos por mês do plano anual (a recarga do cron); null = não dá para conceder (o razão diz). */
+  quota: number | null
   eventMetadata: Record<string, unknown>
-}): Promise<{ profile_updated: boolean; ledger_written: boolean; warnings: string[] }> {
+}): Promise<SwitchRecordResult> {
   const warnings: string[] = []
-  const patch: Record<string, unknown> = { is_pro: true, has_paid: true, stripe_subscription_id: input.subscriptionId }
-  if (input.tier) patch.plan = input.tier
-  if (input.customerId) patch.stripe_customer_id = input.customerId
-  const { error: profileError } = await input.admin.from('profiles').update(patch).eq('id', input.userId)
-  if (profileError) {
-    warnings.push(`perfil e razão não gravados (${profileError.message}); a Stripe JÁ trocou. Rode o SEND de novo: ele só completa o registro, sem cobrar outra vez.`)
-    return { profile_updated: false, ledger_written: false, warnings }
+  const none = { credits_before: null, credits_after: null, credits_carried: null }
+  const { data: fresh, error: readError } = await input.admin.from('profiles').select('video_credits').eq('id', input.userId).maybeSingle()
+  if (readError || !fresh) {
+    warnings.push(`saldo não lido (${readError?.message ?? 'perfil sumiu'}); a Stripe JÁ trocou. Rode o SEND de novo: ele só completa o registro, sem cobrar outra vez.`)
+    return { ledger_written: false, profile_updated: false, credits_granted: false, ...none, warnings }
+  }
+  const before = Number(fresh.video_credits ?? 0)
+  const grant = input.quota !== null ? renewalBalance(before, input.quota) : null
+  const ledgerMetadata: Record<string, unknown> = {
+    ...input.eventMetadata,
+    credits_quota: input.quota,
+    credits_before: before,
+    credits_after: grant ? grant.balance : before,
+    credits_carried: grant ? grant.carried : 0,
+    credits_granted: false,
   }
   const { error: ledgerError } = await input.admin.from('events').insert({
     id: input.ledgerId,
@@ -413,9 +466,63 @@ async function recordSwitch(input: {
     user_id: input.userId,
     path: ROUTE_PATH,
     session_id: null,
-    metadata: input.eventMetadata,
+    metadata: ledgerMetadata,
   })
-  const ledgerWritten = !ledgerError || ledgerError.code === '23505'
-  if (!ledgerWritten) warnings.push(`razão não gravado (${ledgerError?.message}); rode o SEND de novo para completar — não cobra outra vez.`)
-  return { profile_updated: !profileError, ledger_written: ledgerWritten, warnings }
+  if (ledgerError) {
+    if (ledgerError.code === '23505') {
+      warnings.push('outro pedido gravou o razão desta troca primeiro; a concessão do mês é dele (nada concedido aqui).')
+      return { ledger_written: true, profile_updated: false, credits_granted: false, ...none, warnings }
+    }
+    warnings.push(`razão não gravado (${ledgerError.message}); nada foi concedido. A Stripe JÁ trocou: rode o SEND de novo — ele completa o registro e a cota do mês, sem cobrar outra vez.`)
+    return { ledger_written: false, profile_updated: false, credits_granted: false, ...none, warnings }
+  }
+  const patch = profilePatchFor(input)
+  if (grant) patch.video_credits = grant.balance
+  const { data: updated, error: profileError } = await input.admin.from('profiles').update(patch).eq('id', input.userId).select('id').maybeSingle()
+  if (profileError || !updated) {
+    warnings.push(`perfil não gravado (${profileError?.message ?? 'perfil sumiu'}); a cota do mês ficou pendente no razão. Rode o SEND de novo: ele concede só se o saldo ainda for ${before}.`)
+    return { ledger_written: true, profile_updated: false, credits_granted: false, credits_before: before, credits_after: grant ? grant.balance : before, credits_carried: grant ? grant.carried : 0, warnings }
+  }
+  const granted = grant !== null
+  if (!granted) warnings.push('sem a cota do plano no selo da assinatura: o saldo não foi tocado; confira em /admin/people.')
+  const { error: markError } = await input.admin.from('events').update({ metadata: { ...ledgerMetadata, credits_granted: granted, credits_granted_at: new Date().toISOString() } }).eq('id', input.ledgerId)
+  if (markError) warnings.push(`a cota foi concedida, mas a marca no razão não gravou (${markError.message}); o próximo SEND confere pelo saldo e não concede de novo.`)
+  return { ledger_written: true, profile_updated: true, credits_granted: granted, credits_before: before, credits_after: grant ? grant.balance : before, credits_carried: grant ? grant.carried : 0, warnings }
+}
+
+/**
+ * Razão com credits_granted=false: a escrita do perfil falhou (nada concedido) OU a marca falhou depois de conceder.
+ * Compare-and-set no saldo de ANTES: só concede se ninguém concedeu; se o saldo já é o de depois, só marca. Saldo
+ * diferente dos dois = ambíguo (concedeu e a pessoa gastou, ou o saldo mudou por outro motivo) → não concede, avisa.
+ */
+async function finishPendingGrant(input: {
+  admin: NonNullable<ReturnType<typeof serviceClient>>
+  userId: string
+  ledgerId: string
+  record: Record<string, unknown>
+  customerId: string | null
+  subscriptionId: string
+}): Promise<{ credits_granted: boolean; warnings: string[] }> {
+  const before = input.record.credits_before
+  const after = input.record.credits_after
+  if (typeof before !== 'number' || typeof after !== 'number' || input.record.credits_quota === null) {
+    return { credits_granted: false, warnings: ['o razão não tem os números da concessão; confira o saldo em /admin/people.'] }
+  }
+  const patch = profilePatchFor({ tier: typeof input.record.tier === 'string' ? input.record.tier : null, customerId: input.customerId, subscriptionId: input.subscriptionId })
+  patch.video_credits = after
+  const { data: rows, error } = await input.admin.from('profiles').update(patch).eq('id', input.userId).eq('video_credits', before).select('id')
+  if (error) return { credits_granted: false, warnings: [`perfil não gravado (${error.message}); rode o SEND de novo.`] }
+  let granted = Array.isArray(rows) && rows.length > 0
+  if (!granted) {
+    const { data: now } = await input.admin.from('profiles').select('video_credits').eq('id', input.userId).maybeSingle()
+    granted = Number(now?.video_credits) === after
+    if (!granted) {
+      return {
+        credits_granted: false,
+        warnings: [`a cota do mês da troca está pendente e o saldo mudou (era ${before}, a troca levaria a ${after}, hoje ${now?.video_credits ?? '?'}): nada concedido para não dobrar — confira e conceda à mão em /admin/people se faltou.`],
+      }
+    }
+  }
+  await input.admin.from('events').update({ metadata: { ...input.record, credits_granted: true, credits_granted_at: new Date().toISOString(), credits_granted_on_retry: true } }).eq('id', input.ledgerId)
+  return { credits_granted: true, warnings: [] }
 }
