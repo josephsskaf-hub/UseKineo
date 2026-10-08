@@ -29,20 +29,37 @@
 // anual: 12 cotas por ano pago. Se a recarga anual daria MENOS créditos por mês do que a renovação mensal dá hoje (ex.:
 // Studio a US$ 39,90 → 300 hoje, 180 pela escada legada do anual de US$ 287), a troca é BLOQUEADA: "same credits as
 // today" é parte da promessa.
+//
+// KINEO-ANUAL-2o-MES-2026-10-08 — DUAS OFERTAS, UMA TROCA. O fundador decidiu (08/10) que o mensal fica e que a casa
+// oferece o anual no 2º mês da assinatura, com 30% (MONTH2_ANNUAL_OFFER: mensal VIGENTE do plano → o anual do site,
+// ANNUAL_PRICES; mensal legado → mensal × 12 × 0,7 ao dólar mais próximo — KINEO-ANUAL-2o-MES-COERENCIA-2026-10-08).
+// A oferta de 40% acima continua valendo como está (rota do admin, quem recebeu o e-mail até 11/10). O registro
+// ANNUAL_SWITCH_OFFER_RULES diz o valor de cada oferta; todo o resto (bloqueios, créditos, metadata, razão, Stripe) é o
+// MESMO para as duas — a troca em si mora em lib/billing/annualSwitchCore.ts. A oferta do 2º mês exige, além dos
+// bloqueios de sempre, UMA renovação paga e assinatura fora do teste (month2SwitchBlockers, mais abaixo).
 import {
+  ANNUAL_PRICES,
   ANNUAL_REFUND_DAYS,
+  TIER_PRICES,
   type CheckoutTier,
 } from '@/lib/checkoutPricing'
 import { addUtcMonths, annualRefillCredits, annualTierFromMetadata } from '@/lib/billing/annualRefill'
 import { renewalCreditsForInvoice } from '@/lib/settlementCurrency'
+import { isInternalEmail } from '@/lib/internalAccounts'
+import { MONTH2_ANNUAL_OFFER, MONTH2_ANNUAL_PERCENT_OFF } from './month2AnnualOffer'
 
 export const ANNUAL_SWITCH_VERSION = 'annual_switch_v1' as const
 /** Razão em `events` (id determinístico por assinatura → uma troca por assinatura, para sempre). */
 export const ANNUAL_SWITCH_EVENT = 'plan_switched_to_annual' as const
 /** A oferta de 05/10 que esta ferramenta cumpre. */
 export const ANNUAL_SWITCH_OFFER = 'first_subscribers_annual_40_2026_10_05' as const
+/** O desconto da oferta de 05/10 (a conta inteira da regra mora em offerAnnualUsd: × 72 ÷ 1000). */
+export const ANNUAL_SWITCH_PERCENT_OFF = 40
 /** A frase da regra, como aparece no ensaio e no evento. */
 export const ANNUAL_SWITCH_RULE = 'round(monthly x 12 x 0.6) to the nearest dollar, half up' as const
+/** A regra da oferta do 2º mês (o fator sai do desconto: 30% → 0.7). */
+export const MONTH2_ANNUAL_RULE = `current plan price → the site annual price (ANNUAL_PRICES); legacy price → round(monthly x 12 x ${(100 - MONTH2_ANNUAL_PERCENT_OFF) / 100}) to the nearest dollar, half up`
+export { MONTH2_ANNUAL_OFFER }
 /** Janela da chave de idempotência da Stripe: dois cliques na mesma janela viram UMA chamada. */
 export const ANNUAL_SWITCH_IDEMPOTENCY_WINDOW_MS = 10 * 60 * 1000
 
@@ -71,18 +88,65 @@ export function offerAnnualUsd(monthlyMinor: number | null | undefined): number 
   return Math.floor((monthlyMinor * 72 + 500) / 1000)
 }
 
+/**
+ * KINEO-ANUAL-2o-MES-2026-10-08 — anual da oferta do 2º mês, em dólares inteiros.
+ * KINEO-ANUAL-2o-MES-COERENCIA-2026-10-08 — o MESMO plano não tem dois preços anuais (coerência é a prioridade nº 1 do
+ * fundador): quem paga o mensal VIGENTE do plano (TIER_PRICES: 12,90 / 29,90 / 54,90) recebe o anual do SITE
+ * (ANNUAL_PRICES: 108 / 250 / 460 — lido da tabela, nunca digitado). Quem paga um mensal LEGADO (9,90, 15,92, 19,90,
+ * 29…) recebe mensal × 12 × (100 − 30) ÷ 10000, ao mais próximo com meio para cima (+5000 antes da divisão; conta
+ * inteira). Os valores conferidos pelo guardião: 9,90 → 83 · 12,90 → 108 · 15,92 → 134 · 19,90 → 167 · 29 → 244 ·
+ * 29,90 → 250 · 54,90 → 460. Anual do site que não é dólar inteiro = null: a troca cobra dólares inteiros, então a
+ * oferta FECHA para esse plano (falha fechada) — o guardião acusa no mesmo dia.
+ */
+export function month2OfferAnnualUsd(monthlyMinor: number | null | undefined, tier?: CheckoutTier | null): number | null {
+  if (typeof monthlyMinor !== 'number' || !Number.isInteger(monthlyMinor) || monthlyMinor <= 0) return null
+  if (tier && monthlyMinor === TIER_PRICES[tier]?.usd) {
+    const site = ANNUAL_PRICES[tier]?.usd
+    return typeof site === 'number' && Number.isInteger(site) && site > 0 && site % 100 === 0 ? site / 100 : null
+  }
+  return Math.floor((monthlyMinor * 12 * (100 - MONTH2_ANNUAL_PERCENT_OFF) + 5000) / 10000)
+}
+
+export type AnnualSwitchOfferId = typeof ANNUAL_SWITCH_OFFER | typeof MONTH2_ANNUAL_OFFER
+
+export type AnnualSwitchOfferRule = {
+  id: AnnualSwitchOfferId
+  percentOff: number
+  /** A frase da regra (ensaio, evento, doc). */
+  rule: string
+  /** Anual em dólares inteiros para o mensal de hoje e o plano (null = mensal inválido). */
+  annualUsd: (monthlyMinor: number | null | undefined, tier?: CheckoutTier | null) => number | null
+}
+
+/** As ofertas que a troca sabe cumprir. A troca é a mesma; só o valor muda. */
+export const ANNUAL_SWITCH_OFFER_RULES: Record<AnnualSwitchOfferId, AnnualSwitchOfferRule> = {
+  [ANNUAL_SWITCH_OFFER]: { id: ANNUAL_SWITCH_OFFER, percentOff: ANNUAL_SWITCH_PERCENT_OFF, rule: ANNUAL_SWITCH_RULE, annualUsd: offerAnnualUsd },
+  [MONTH2_ANNUAL_OFFER]: { id: MONTH2_ANNUAL_OFFER, percentOff: MONTH2_ANNUAL_PERCENT_OFF, rule: MONTH2_ANNUAL_RULE, annualUsd: month2OfferAnnualUsd },
+}
+
+/** Anual (dólares inteiros) que `offer` promete para este mensal e este plano. */
+export function annualUsdForOffer(offer: AnnualSwitchOfferId, monthlyMinor: number | null | undefined, tier?: CheckoutTier | null): number | null {
+  const rule = ANNUAL_SWITCH_OFFER_RULES[offer]
+  return rule ? rule.annualUsd(monthlyMinor, tier) : null
+}
+
 export type AnnualAmountCheck =
   | { ok: true; annualUsd: number; annualMinor: number; expectedUsd: number }
   | { ok: false; reason: 'invalid_amount' | 'monthly_unknown' | 'mismatch'; expectedUsd: number | null; requested: unknown }
 
-/** O valor pedido tem de ser EXATAMENTE o que o e-mail prometeu para este mensal. */
-export function checkAnnualAmount(monthlyMinor: number | null | undefined, requested: unknown): AnnualAmountCheck {
-  const expectedUsd = offerAnnualUsd(monthlyMinor)
+/** O valor pedido tem de ser EXATAMENTE o que a oferta promete para este mensal (o e-mail no admin; a prévia na tela). */
+export function checkAnnualAmountForOffer(offer: AnnualSwitchOfferId, monthlyMinor: number | null | undefined, requested: unknown, tier?: CheckoutTier | null): AnnualAmountCheck {
+  const expectedUsd = annualUsdForOffer(offer, monthlyMinor, tier)
   const n = typeof requested === 'number' ? requested : typeof requested === 'string' && requested.trim() ? Number(requested) : NaN
   if (!Number.isInteger(n) || n <= 0) return { ok: false, reason: 'invalid_amount', expectedUsd, requested }
   if (expectedUsd === null) return { ok: false, reason: 'monthly_unknown', expectedUsd, requested }
   if (n !== expectedUsd) return { ok: false, reason: 'mismatch', expectedUsd, requested }
   return { ok: true, annualUsd: n, annualMinor: n * 100, expectedUsd }
+}
+
+/** O valor pedido tem de ser EXATAMENTE o que o e-mail de 05/10 prometeu para este mensal. */
+export function checkAnnualAmount(monthlyMinor: number | null | undefined, requested: unknown): AnnualAmountCheck {
+  return checkAnnualAmountForOffer(ANNUAL_SWITCH_OFFER, monthlyMinor, requested)
 }
 
 // ─── plano ────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -147,6 +211,8 @@ export function annualSwitchMetadata(input: {
   planCredits: number
   monthlyMinor: number
   annualMinor: number
+  /** A oferta cumprida (selo `annual_switch_offer`). Sem ela, a de 05/10 (a rota do admin). */
+  offer?: AnnualSwitchOfferId
 }): Record<string, string> {
   const existing = input.existing ?? {}
   return {
@@ -156,7 +222,7 @@ export function annualSwitchMetadata(input: {
     plan_credits: String(input.planCredits),
     price_region: existing.price_region || 'standard',
     annual_switch_version: ANNUAL_SWITCH_VERSION,
-    annual_switch_offer: ANNUAL_SWITCH_OFFER,
+    annual_switch_offer: input.offer ?? ANNUAL_SWITCH_OFFER,
     annual_switch_from_monthly_minor: String(input.monthlyMinor),
     annual_switch_annual_minor: String(input.annualMinor),
   }
@@ -204,10 +270,10 @@ export function annualSwitchBlockers(f: AnnualSwitchFacts): AnnualSwitchBlocker[
   if (f.quantity !== null && f.quantity !== 1) add('quantity', `Quantidade ${f.quantity} no item; o checkout da casa usa 1.`)
   if (f.interval === 'year') add('already_annual', 'A assinatura já é anual sem o selo desta ferramenta (comprada no checkout ou trocada à mão). Nada a trocar.')
   else if (f.interval !== 'month' || f.intervalCount !== 1) add('not_monthly', `Intervalo "${f.interval ?? '?'}"×${f.intervalCount ?? '?'}: a troca parte de uma mensalidade simples.`)
-  if (f.currency !== 'usd') add('currency_not_usd', `A assinatura cobra em ${String(f.currency ?? '?').toUpperCase()}; a oferta de 05/10 é em dólar.`)
+  if (f.currency !== 'usd') add('currency_not_usd', `A assinatura cobra em ${String(f.currency ?? '?').toUpperCase()}; a troca para o anual é em dólar (BRL fica para depois).`)
   if (f.interval === 'month' && (f.monthlyMinor === null || f.monthlyMinor <= 0)) add('monthly_unknown', 'Sem valor mensal na Stripe para aplicar a regra.')
   if (f.collectionMethod !== 'charge_automatically') add('collection_method', 'A assinatura não cobra o cartão automaticamente; a troca precisa cobrar agora.')
-  if (f.discountCount > 0) add('subscription_has_discount', 'Há cupom ativo na assinatura: ele cairia por cima do anual (que já tem os 40%). Remova o cupom na Stripe e rode o ensaio de novo.')
+  if (f.discountCount > 0) add('subscription_has_discount', 'Há cupom ativo na assinatura: ele cairia por cima do anual (que já embute o desconto da oferta). Remova o cupom na Stripe e rode o ensaio de novo.')
   if (f.cancelAtPeriodEnd || f.cancelAt !== null) add('cancel_scheduled', 'A assinatura tem cancelamento agendado; confirme com a pessoa antes de trocar.')
   if (f.hasSchedule) add('subscription_schedule', 'A assinatura está presa a um Subscription Schedule; troca manual no painel.')
   if (f.paused) add('collection_paused', 'A cobrança está pausada na Stripe.')
@@ -216,6 +282,105 @@ export function annualSwitchBlockers(f: AnnualSwitchFacts): AnnualSwitchBlocker[
   if (f.tierProblem === 'tier_without_annual') add('tier_without_annual', 'Este plano não tem anual (só Starter, Creator e Studio).')
   if (f.credits && !f.credits.same) {
     add('credits_would_change', `A recarga anual daria ${f.credits.perMonthAfter} créditos/mês; a renovação mensal dá ${f.credits.perMonthToday} hoje. A promessa é "same credits as today".`)
+  }
+  return b
+}
+
+// ─── a oferta do 2º mês: só depois da 1ª renovação paga (KINEO-ANUAL-2o-MES-2026-10-08) ─────────────────────────────
+
+/** Quantas renovações pagas a oferta do 2º mês exige: pagou o 1º mês E a 1ª renovação → está no 2º mês ou depois. */
+export const MONTH2_REQUIRED_RENEWALS = 1
+
+/**
+ * O que o PERFIL já responde, sem Stripe: quem nunca seria elegível (sem assinatura Stripe, PayPal, conta interna, em
+ * teste, plano fora da escada) não custa uma chamada à Stripe na tela nem no cron. null = segue para a Stripe, que decide
+ * o resto (os mesmos bloqueios da troca + a renovação paga). É só um atalho: o núcleo confere tudo de novo na troca.
+ */
+export function month2ProfileBlocker(profile: {
+  plan?: string | null
+  email?: string | null
+  stripe_subscription_id?: string | null
+  paypal_subscription_id?: string | null
+} | null | undefined): string | null {
+  if (!profile) return 'no_profile'
+  if (!profile.stripe_subscription_id) return profile.paypal_subscription_id ? 'paypal_subscription' : 'no_stripe_subscription'
+  if (isInternalEmail(profile.email)) return 'internal_account'
+  const plan = String(profile.plan ?? '').trim().toLowerCase()
+  if (plan.endsWith('_trial')) return 'in_trial'
+  if (!tierFromProfilePlan(plan)) return 'tier_without_annual'
+  return null
+}
+
+/** O que stripe.invoices.list devolve, reduzido ao que a regra lê. */
+export type RenewalInvoiceFacts = {
+  id?: string | null
+  billing_reason?: string | null
+  status?: string | null
+  amount_paid?: number | null
+  created?: number | null
+  status_transitions?: { paid_at?: number | null } | null
+}
+
+export type PaidRenewals = {
+  /** Renovações pagas: faturas de ciclo pagas, sem a conversão do teste. */
+  count: number
+  /** Quando a 1ª renovação foi paga (ms) — a entrada no 2º mês. */
+  firstPaidAtMs: number | null
+  /** Quando a renovação mais recente foi paga (ms). */
+  lastPaidAtMs: number | null
+  /** Faturas de ciclo pagas, antes de descontar a conversão do teste. */
+  cyclePaid: number
+  /** A 1ª fatura de ciclo foi a conversão do teste (o 1º mês pago), não uma renovação. */
+  trialConversion: boolean
+}
+
+/**
+ * Renovações pagas de uma assinatura mensal. Conta só `billing_reason = 'subscription_cycle'` paga e com valor: o 1º mês
+ * do checkout é 'subscription_create' e a fatura de troca de plano é 'subscription_update' — nenhuma das duas é renovação.
+ * Assinatura que nasceu em teste (o de US$ 1, `trial_end` preenchido): a 1ª fatura de ciclo é a CONVERSÃO — o 1º mês
+ * pago —, então ela sai da conta (o mesmo raciocínio do aviso de cobrança recusada: has_paid segura a porta do teste).
+ */
+export function paidRenewals(invoices: RenewalInvoiceFacts[] | null | undefined, trialEndSec: number | null | undefined): PaidRenewals {
+  const paidAt = (i: RenewalInvoiceFacts): number => {
+    const at = typeof i.status_transitions?.paid_at === 'number' ? i.status_transitions.paid_at : typeof i.created === 'number' ? i.created : 0
+    return at * 1000
+  }
+  const cycles = (invoices ?? [])
+    .filter((i) => Boolean(i) && i.status === 'paid' && i.billing_reason === 'subscription_cycle' && typeof i.amount_paid === 'number' && i.amount_paid > 0)
+    .map(paidAt)
+    .sort((a, b) => a - b)
+  const trialConversion = typeof trialEndSec === 'number' && trialEndSec > 0 && cycles.length > 0
+  const renewals = trialConversion ? cycles.slice(1) : cycles
+  return {
+    count: renewals.length,
+    firstPaidAtMs: renewals.length ? renewals[0] : null,
+    lastPaidAtMs: renewals.length ? renewals[renewals.length - 1] : null,
+    cyclePaid: cycles.length,
+    trialConversion,
+  }
+}
+
+/**
+ * O que a oferta do 2º mês exige ALÉM dos bloqueios de sempre (annualSwitchBlockers: ativa, mensal, USD, sem cupom, sem
+ * cancelamento agendado, não interna…): fora do teste e com a 1ª renovação paga. Faturas que não deu para ler = bloqueio
+ * (falha fechada: sem prova da renovação, a oferta não aparece nem cobra).
+ */
+export function month2SwitchBlockers(input: {
+  status: string | null
+  trialEndSec: number | null
+  nowMs: number
+  renewals: PaidRenewals | null
+}): AnnualSwitchBlocker[] {
+  const b: AnnualSwitchBlocker[] = []
+  const trialRunning = input.status === 'trialing' || (typeof input.trialEndSec === 'number' && input.trialEndSec * 1000 > input.nowMs)
+  if (trialRunning) b.push({ code: 'in_trial', message: 'A assinatura ainda está no teste; a oferta do 2º mês só vale depois da 1ª renovação paga.' })
+  if (!input.renewals) {
+    b.push({ code: 'renewals_unknown', message: 'Não deu para ler as faturas pagas na Stripe; sem a prova da renovação a oferta não vale (falha fechada).' })
+  } else if (input.renewals.count < MONTH2_REQUIRED_RENEWALS) {
+    b.push({
+      code: 'no_renewal_yet',
+      message: `Ainda não pagou nenhuma renovação (faturas de ciclo pagas: ${input.renewals.cyclePaid}${input.renewals.trialConversion ? ', a 1ª foi a conversão do teste' : ''}); a oferta é do 2º mês em diante.`,
+    })
   }
   return b
 }

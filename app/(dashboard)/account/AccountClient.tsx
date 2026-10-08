@@ -23,6 +23,9 @@ import { creditCostFor } from '@/lib/credits/engineCost'
 import { videosPerMonth } from '@/lib/marketingPrice'
 import { formatPlanFilmCapacity, planFilmLanguageMetadata } from '@/lib/growth/planFilmLanguage'
 import { trackEvent } from '@/lib/analytics'
+// KINEO-ANUAL-2o-MES-2026-10-08 — a oferta do anual (30%) no 2º mês: a peça pergunta ao servidor se a assinatura é
+// elegível e só pinta com o interruptor MONTH2_ANNUAL_OFFER_LIVE ligado (lib/billing/month2AnnualOffer.ts).
+import Month2AnnualOffer from '@/components/billing/Month2AnnualOffer'
 
 interface AccountClientProps {
   email: string
@@ -454,6 +457,8 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
         {/* ── Billing tab (Settings v3 — absorbed the old Manage tab) ── */}
         {activeTab === 'billing' && (
           <div className="flex flex-col gap-4">
+            {/* KINEO-ANUAL-2o-MES-2026-10-08 — só assinante pago monta a peça (ela ainda pergunta ao servidor). */}
+            {tier !== 'free' && <Month2AnnualOffer variant="card" surface="account_billing" />}
             <div
               className="acc-card rounded-2xl p-6"
               style={{ background: 'rgba(11,17,32,0.85)', border: '1px solid rgba(255,255,255,.07)', backdropFilter: 'blur(12px)' }}

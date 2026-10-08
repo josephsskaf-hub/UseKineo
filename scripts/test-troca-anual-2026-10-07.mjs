@@ -55,6 +55,9 @@ function check(cond, label) {
 
 const ROUTE = 'app/api/admin/switch-to-annual/route.ts'
 const LIB = 'lib/billing/annualSwitch.ts'
+// KINEO-ANUAL-NUCLEO-2026-10-08 — a troca (passos 4 a 10) saiu da rota para o núcleo único, compartilhado com o
+// autoatendimento da oferta do 2º mês. A rota continua sendo executada inteira aqui; os mutantes da regra apontam para o núcleo.
+const CORE = 'lib/billing/annualSwitchCore.ts'
 const WEBHOOK = 'app/api/stripe/webhook/route.ts'
 const CRON = 'app/api/cron/annual-credit-refill/route.ts'
 const CHECKOUT = 'app/api/stripe/checkout/route.ts'
@@ -1049,7 +1052,7 @@ function sEstatico() {
   if (!/^export async function POST\(/m.test(route) || /^export (async )?function (GET|PUT|DELETE|PATCH)\b/m.test(route)) p.push('rota precisa ser só POST')
   if (read(VERCEL).includes('switch-to-annual')) p.push('a troca virou cron no vercel.json (cada execução cobra um cliente: só com o "vai")')
   const email = /[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}/i
-  for (const f of [ROUTE, LIB, DOC]) if (email.test(read(f))) p.push(`e-mail literal em ${f} (sem PII: o userId vem na chamada)`)
+  for (const f of [ROUTE, LIB, CORE, DOC]) if (email.test(read(f))) p.push(`e-mail literal em ${f} (sem PII: o userId vem na chamada)`)
   const doc = read(DOC)
   for (const [needle, why] of [
     ["confirm: 'SEND'", 'o SEND'], ['annualAmountUsd', 'o corpo'], ['Reembolsar', 'o estorno'], ['14 dias', 'o prazo'],
@@ -1140,29 +1143,29 @@ check(sEstatico().length === 0, 'estático: sink, rota, vercel.json, sem e-mail 
 const MUTANTS = [
   ['R1 ensaio vira SEND', { [ROUTE]: [replaceOnce("const send = body.confirm === 'SEND'", 'const send = true', 'ensaio = SEND')] }, 'ensaio'],
   ['R2 regra arredonda para baixo', { [LIB]: [replaceOnce('return Math.floor((monthlyMinor * 72 + 500) / 1000)', 'return Math.floor((monthlyMinor * 72) / 1000)', 'piso em vez de mais próximo')] }, 'regraPura'],
-  ['R2 rota não recusa valor fora da regra', { [ROUTE]: [replaceOnce('  if (!rule.ok) {\n', '  if (false) {\n', 'sem a recusa 422')] }, 'regraRota'],
-  ['R3 update mensal em vez de anual', { [ROUTE]: [replaceOnce("recurring: { interval: 'year' as const }", "recurring: { interval: 'month' as const }", 'intervalo month')] }, 'send'],
-  ['R3 sem always_invoice', { [ROUTE]: [replaceOnce("const PRORATION = 'always_invoice' as const", "const PRORATION = 'create_prorations' as const", 'create_prorations')] }, 'send'],
-  ['R3 sem âncora now', { [ROUTE]: [replaceOnce("      billing_cycle_anchor: 'now',\n      payment_behavior:", '      payment_behavior:', 'sem billing_cycle_anchor no update')] }, 'send'],
+  ['R2 rota não recusa valor fora da regra', { [CORE]: [replaceOnce('  if (!rule.ok) {\n', '  if (false) {\n', 'sem a recusa 422')] }, 'regraRota'],
+  ['R3 update mensal em vez de anual', { [CORE]: [replaceOnce("recurring: { interval: 'year' as const }", "recurring: { interval: 'month' as const }", 'intervalo month')] }, 'send'],
+  ['R3 sem always_invoice', { [CORE]: [replaceOnce("const PRORATION = 'always_invoice' as const", "const PRORATION = 'create_prorations' as const", 'create_prorations')] }, 'send'],
+  ['R3 sem âncora now', { [CORE]: [replaceOnce("      billing_cycle_anchor: 'now',\n      payment_behavior:", '      payment_behavior:', 'sem billing_cycle_anchor no update')] }, 'send'],
   ['R4 metadata perde o checkout original', { [LIB]: [replaceOnce('    ...existing,\n', '', 'sem o spread da metadata original')] }, 'metadata'],
   ['R4 metadata sem tier', { [LIB]: [replaceOnce('    tier: input.tier,\n', '', 'sem o carimbo de tier')] }, 'metadata'],
   ['R4 metadata sem dono', { [LIB]: [replaceOnce('    supabase_user_id: input.userId,\n', '', 'sem o carimbo do dono')] }, 'metadata'],
-  ['R5 sem o razão (2ª execução relê a Stripe)', { [ROUTE]: [replaceOnce('  if (ledger) {\n', '  if (false) {\n', 'sem a checagem do razão')] }, 'duasVezes'],
-  ['R5 sem o selo (razão perdido não é completado)', { [ROUTE]: [replaceOnce("  if (interval === 'year' && hasAnnualSwitchStamp(metadata)) {\n", '  if (false) {\n', 'sem o caminho de completar')] }, 'razaoNaoGravou'],
-  ['R5 concede sem razão gravado', { [ROUTE]: [replaceOnce('sem cobrar outra vez.`)\n    return { ledger_written: false, profile_updated: false, credits_granted: false, ...none, warnings }\n  }\n  const patch = profilePatchFor(input)\n', 'sem cobrar outra vez.`)\n  }\n  const patch = profilePatchFor(input)\n', 'segue para a concessão sem razão')] }, 'razaoNaoGravou'],
-  ['R5 retomada concede em dobro (sem compare-and-set)', { [ROUTE]: [replaceOnce(".update(patch).eq('id', input.userId).eq('video_credits', before).select('id')", ".update(patch).eq('id', input.userId).select('id')", 'retomada sem CAS')] }, 'marcaCaiDepois'],
-  ['R5 perfil caído vira concessão perdida', { [ROUTE]: [replaceOnce('  const pending = record.credits_granted === false\n', '  const pending = false\n', 'sem retomar a cota pendente')] }, 'bancoCaiDepois'],
-  ['R5 sem chave de idempotência', { [ROUTE]: [replaceOnce('    }, { idempotencyKey: annualSwitchIdempotencyKey(subscriptionId, item!.id, annualMinor, nowMs) })\n', '    })\n', 'update sem idempotencyKey')] }, 'simultaneos'],
+  ['R5 sem o razão (2ª execução relê a Stripe)', { [CORE]: [replaceOnce('  if (ledger) {\n', '  if (false) {\n', 'sem a checagem do razão')] }, 'duasVezes'],
+  ['R5 sem o selo (razão perdido não é completado)', { [CORE]: [replaceOnce("  if (interval === 'year' && hasAnnualSwitchStamp(metadata)) {\n", '  if (false) {\n', 'sem o caminho de completar')] }, 'razaoNaoGravou'],
+  ['R5 concede sem razão gravado', { [CORE]: [replaceOnce('sem cobrar outra vez.`)\n    return { ledger_written: false, profile_updated: false, credits_granted: false, ...none, warnings }\n  }\n  const patch = profilePatchFor(input)\n', 'sem cobrar outra vez.`)\n  }\n  const patch = profilePatchFor(input)\n', 'segue para a concessão sem razão')] }, 'razaoNaoGravou'],
+  ['R5 retomada concede em dobro (sem compare-and-set)', { [CORE]: [replaceOnce(".update(patch).eq('id', input.userId).eq('video_credits', before).select('id')", ".update(patch).eq('id', input.userId).select('id')", 'retomada sem CAS')] }, 'marcaCaiDepois'],
+  ['R5 perfil caído vira concessão perdida', { [CORE]: [replaceOnce('  const pending = record.credits_granted === false\n', '  const pending = false\n', 'sem retomar a cota pendente')] }, 'bancoCaiDepois'],
+  ['R5 sem chave de idempotência', { [CORE]: [replaceOnce('    }, { idempotencyKey: annualSwitchIdempotencyKey(subscriptionId, item!.id, annualMinor, nowMs) })\n', '    })\n', 'update sem idempotencyKey')] }, 'simultaneos'],
   ['R6 não-admin passa', { [ROUTE]: [replaceOnce('  if (!user || !isAdminEmail(user.email)) return', '  if (!user) return', 'portão só de login')] }, 'naoAdmin'],
   ['R7 webhook trata a troca como renovação', { [WEBHOOK]: [replaceOnce("        if (billingReason === 'subscription_update') {\n", "        if (billingReason === 'subscription_update' && false) {\n", 'sem a saída de subscription_update')] }, 'webhookERecarga'],
-  ['cartão recusado troca mesmo assim', { [ROUTE]: [replaceOnce("      payment_behavior: 'error_if_incomplete',\n", "      payment_behavior: 'allow_incomplete',\n", 'allow_incomplete')] }, 'cartaoRecusado'],
-  ['a troca esquece de conceder a cota do mês', { [ROUTE]: [replaceOnce('  if (grant) patch.video_credits = grant.balance\n', '', 'perfil sem a cota')] }, 'send'],
-  ['a troca concede somando em vez da régua da renovação', { [ROUTE]: [replaceOnce('  if (grant) patch.video_credits = grant.balance\n', '  if (grant) patch.video_credits = before + (input.quota ?? 0)\n', 'cota somada')] }, 'send'],
+  ['cartão recusado troca mesmo assim', { [CORE]: [replaceOnce("      payment_behavior: 'error_if_incomplete',\n", "      payment_behavior: 'allow_incomplete',\n", 'allow_incomplete')] }, 'cartaoRecusado'],
+  ['a troca esquece de conceder a cota do mês', { [CORE]: [replaceOnce('  if (grant) patch.video_credits = grant.balance\n', '', 'perfil sem a cota')] }, 'send'],
+  ['a troca concede somando em vez da régua da renovação', { [CORE]: [replaceOnce('  if (grant) patch.video_credits = grant.balance\n', '  if (grant) patch.video_credits = before + (input.quota ?? 0)\n', 'cota somada')] }, 'send'],
   ['créditos que mudariam passam', { [LIB]: [replaceOnce('  if (f.credits && !f.credits.same) {\n', '  if (false) {\n', 'sem o bloqueio de créditos')] }, 'bloqueios'],
   ['cupom passa', { [LIB]: [replaceOnce('  if (f.discountCount > 0) add(', '  if (false) add(', 'sem o bloqueio de cupom')] }, 'bloqueios'],
-  ['R8 anual no Product do item mensal (arquivado na Stripe real)', { [ROUTE]: [replaceOnce("product: houseProduct.id, unit_amount: annualMinor", "product: productId!, unit_amount: annualMinor", 'Product do item')] }, 'ensaio'],
-  ['R8 Product da casa sem id fixo', { [ROUTE]: [replaceOnce('    { id, name: HOUSE_PRODUCT_NAMES', '    { name: HOUSE_PRODUCT_NAMES', 'create sem id')] }, 'ensaio'],
-  ['R8 Product da casa arquivado passa', { [ROUTE]: [replaceOnce('    if (found.active) return { id, created: false }\n    return { inactive: true, id }\n', '    return { id, created: false }\n', 'arquivado aceito')] }, 'produtoDaCasa'],
+  ['R8 anual no Product do item mensal (arquivado na Stripe real)', { [CORE]: [replaceOnce("product: houseProduct.id, unit_amount: annualMinor", "product: productId!, unit_amount: annualMinor", 'Product do item')] }, 'ensaio'],
+  ['R8 Product da casa sem id fixo', { [CORE]: [replaceOnce('    { id, name: HOUSE_PRODUCT_NAMES', '    { name: HOUSE_PRODUCT_NAMES', 'create sem id')] }, 'ensaio'],
+  ['R8 Product da casa arquivado passa', { [CORE]: [replaceOnce('    if (found.active) return { id, created: false }\n    return { inactive: true, id }\n', '    return { id, created: false }\n', 'arquivado aceito')] }, 'produtoDaCasa'],
 ]
 let killed = 0
 for (const [label, transforms, scenario] of MUTANTS) {

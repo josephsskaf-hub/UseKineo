@@ -78,6 +78,7 @@ import { KINEO1_35S_CREDITS, adsPassLive } from '@/lib/ads/offer'
 import { ADS_MODELS } from '@/lib/ads/models'
 import { formatCheckoutMoney, getTierPrice } from '@/lib/checkoutPricing'
 import SubscriberUpgradeNudge from '@/components/billing/SubscriberUpgradeNudge' // KINEO-ASSINANTE-SOBE-2026-10-06 — clipe sem crédito: o assinante sobe de plano ou recarrega
+import Month2AnnualOffer from '@/components/billing/Month2AnnualOffer' // KINEO-ANUAL-2o-MES-2026-10-08 — aviso dispensável do anual (30%) para quem está no 2º mês
 
 // A chave do card → a Quality que o biller entende. Uma fonte só para os dois
 // (tela e cobrança) evita a classe de bug que este arquivo já teve: custo em
@@ -882,6 +883,8 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
 
       <h1><UiLabel>Studio</UiLabel></h1>
       <p className="sub"><UiLabel>Pick an engine, write your idea, then generate.</UiLabel></p>
+      {/* KINEO-ANUAL-2o-MES-2026-10-08 — só pinta para assinante elegível com a oferta ligada (o servidor decide). */}
+      <Month2AnnualOffer variant="notice" surface="studio" />
 
       <nav className="studio-modes" aria-label={t('Video mode', 'Modo de vídeo')}>
         <button type="button" aria-pressed={scriptMode !== 'clip'} onClick={() => { if (scriptMode === 'clip') setScriptMode('ai') }}><UiLabel>Film</UiLabel></button>
