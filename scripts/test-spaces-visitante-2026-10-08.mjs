@@ -4,7 +4,7 @@
 //      clique da visita (o canal do fundador no Instagram manda gente para /spaces?utm_source=instagram&...).
 //      lib/spaces/visitorRedirect.ts é EXECUTADO: redirect fixo, só parâmetros da lista passam, valor saneado.
 //   B. A página chama o helper para quem NÃO tem usuário, e o 404 continua só para logado sem permissão.
-//   C. /ai-faceless-video-generator (URL da ficha do SaaSHub, que virou "Discontinued" pelo 404) responde 301 para
+//   C. /ai-faceless-video-generator (URL da ficha do SaaSHub, que virou "Discontinued" pelo 404) responde 301 (numa rota) para
 //      /faceless-video-generator, que existe.
 // Lê os arquivos reais (readFileSync + transpile; nada de import com alias '@/'). CRLF normalizado na leitura.
 
@@ -92,14 +92,18 @@ check(!/!user \|\|/.test(page), 'B5 o 404 não pega mais o visitante sem login')
 check(!/export (const|function) (?!metadata|dynamic|default)/.test(page.replace(/export default/g, '')),
   'B6 a página não exporta nada além do que o Next aceita')
 
-// ── C. o 301 da URL da ficha do SaaSHub ─────────────────────────────────────────────────────────────────────────────
-const cfg = read('next.config.js')
-check(
-  /\{ source: '\/ai-faceless-video-generator', destination: '\/faceless-video-generator', permanent: true \}/.test(cfg),
-  'C1 /ai-faceless-video-generator → /faceless-video-generator (301)',
-)
-check(existsSync(join(root, 'app/faceless-video-generator/page.tsx')), 'C2 o destino do 301 existe como página')
-check(!existsSync(join(root, 'app/ai-faceless-video-generator')), 'C3 a origem não é uma página (o redirect não fica escondido)')
+// ── C. o 301 da URL da ficha do SaaSHub (numa rota: o next.config.js é congelado pelo guardião crítico do CI) ────────
+const routeRel = 'app/ai-faceless-video-generator/route.ts'
+const route = existsSync(join(root, routeRel)) ? read(routeRel) : ''
+check(/^const DESTINATION = '\/faceless-video-generator'$/m.test(route), 'C1 a rota aponta para /faceless-video-generator')
+check(/return NextResponse\.redirect\(url, 301\)/.test(route), 'C2 o redirect é 301 (permanente), não 302/307')
+check(/url\.search = req\.nextUrl\.search/.test(route), 'C3 a query (UTM da ficha) atravessa o 301')
+check(/^export function GET\(req: NextRequest\) \{\n  return permanentRedirect\(req\)\n\}$/m.test(route)
+  && /^export function HEAD\(req: NextRequest\) \{\n  return permanentRedirect\(req\)\n\}$/m.test(route),
+  'C4 GET e HEAD respondem o 301 (robô de diretório costuma checar com HEAD)')
+check(existsSync(join(root, 'app/faceless-video-generator/page.tsx')), 'C5 o destino do 301 existe como página')
+check(!existsSync(join(root, 'app/ai-faceless-video-generator/page.tsx')), 'C6 a origem não tem página (só o redirect)')
+check(!/ai-faceless-video-generator/.test(read('next.config.js')), 'C7 o next.config.js congelado não foi tocado')
 
 if (failures.length) {
   console.error(`FALHOU ${failures.length} de ${passed + failures.length}:`)
