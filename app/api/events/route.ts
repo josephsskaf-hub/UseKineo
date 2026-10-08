@@ -219,6 +219,10 @@ const SERVER_ONLY_EVENTS = new Set([
   // assinatura) e `renewal_ignored_non_access` o pagamento de renovação descartado; forjá-los mentiria no placar.
   'subscription_ended',
   'renewal_ignored_non_access',
+  // KINEO-TROCA-ANUAL-2026-10-07 — escrito SÓ por /api/admin/switch-to-annual depois que a Stripe trocou a assinatura
+  // para o anual (id determinístico por assinatura = o razão que impede cobrar duas vezes). Forjado pelo navegador,
+  // inventaria uma troca anual — e uma receita — que não existiu.
+  'plan_switched_to_annual',
   // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — escritos SÓ no servidor (rota de checkout, webhook, /api/stripe/checkout/
   // guest-access e /auth/guest-link). São o funil da compra sem login (sessão aberta → conta criada/achada → login de
   // uso único usado/recusado → e-mail de entrada) e o conflito com plano ativo; nomes em lib/growth/guestCheckout.ts
