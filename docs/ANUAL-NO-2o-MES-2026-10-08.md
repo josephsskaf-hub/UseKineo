@@ -27,7 +27,7 @@ assinatura cobra hoje na Stripe. Oferta `month2_annual_30_2026_10_08`. Os valore
 | US$ 29,90 (Creator) | US$ 251 | 150 |
 | US$ 54,90 (Studio) | US$ 461 | 300 |
 
-Atenção a dois centavos de coerência: o anual do SITE (publicado em 08/10, 4c23af74) usa preço limpo — US$ 108 / 250 /
+Um detalhe de coerência com o site: o anual do SITE (publicado em 08/10, 4c23af74) usa preço limpo — US$ 108 / 250 /
 460. Para o Creator de US$ 29,90 e o Studio de US$ 54,90 a regra do 2º mês dá US$ 251 e US$ 461 (um dólar acima do
 site). É o que a decisão pediu (mensal × 12 × 0,7); se o fundador preferir casar com o site, a troca é no registro
 `ANNUAL_SWITCH_OFFER_RULES` (lib/billing/annualSwitch.ts) e na tabela do guardião.
