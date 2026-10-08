@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers' // KINEO-ANUNCIO-MOTOR-2026-10-07 — o clique pago dos eventos de checkout
 import { createClient } from '@/lib/supabase/server'
 import { PAID_CLICK_COOKIE, paidClickEventMetadata, parsePaidClick } from '@/lib/growth/paidClickAttribution' // KINEO-ANUNCIO-MOTOR-2026-10-07
+import { headers as requestHeaders } from 'next/headers' // KINEO-CHECKOUT-HONESTO-2026-10-07 — quem abriu o pagamento (só telemetria)
+import { clientIp, hashIp } from '@/lib/requestIdentity' // KINEO-CHECKOUT-HONESTO-2026-10-07 — o MESMO ip_hash do sink /api/events
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { STUDIO50_CODE, STUDIO50_COUPON_ID, STUDIO50_DURATION, STUDIO50_PERCENT, STUDIO50_REPEATING_MONTHS, STUDIO50_TIER } from '@/lib/offers/studio50'
@@ -283,6 +285,51 @@ function paidClickMetadataFromRequest(): ReturnType<typeof paidClickEventMetadat
   }
 }
 
+// ═══ KINEO-CHECKOUT-HONESTO-2026-10-07 — QUEM ABRIU O PAGAMENTO (só telemetria) ═══════════════════════════════════════
+// O fundador viu "9 checkouts" no admin e 1–2 na Stripe. Desde a compra sem login (06/10 ~22:47 UTC) todo clique num
+// plano abre uma sessão na Stripe — gente, robô que segue link, teste da casa — e o evento do servidor não tinha como
+// separar um do outro: 6 dos 8 checkout_started de convidado desde a ligada vieram sem session_id (o pedido não trazia
+// o cookie kineo_event_session_id) e nenhum evento daqui trazia IP ou classe de navegador. O carimbo grava, no writer
+// único (recordCheckoutEvent), em TODO evento de checkout:
+//   · session_id — o mesmo cookie de sempre; quem chamou sem a sessão recebe a do cookie (as chamadas de hoje já passam
+//                  a sessão; isto fecha a porta para a próxima);
+//   · ip_hash    — hashIp(clientIp()) de lib/requestIdentity, a MESMA função do sink /api/events (IP cru nunca);
+//   · ua_class   — 'browser' | 'bot' | 'unknown': os dois ramos de recordBotSuspicion (UA que casa = bot; UA ausente =
+//                  unknown, porque proxy corporativo também apaga o UA — nunca somados num número só);
+//   · prefetch   — a régua de isSpeculativeRequest (Sec-Purpose / Purpose: prefetch…).
+// NUNCA entra na resposta, no redirect, nos cookies nem nos parâmetros da Stripe: o guardião
+// scripts/test-checkout-honesto-2026-10-07.mjs roda a rota com e sem o carimbo e compara a resposta byte a byte.
+// Leitura que falha (fora do pedido, cabeçalho ilegível) = nada carimbado; o evento sai como antes.
+// Quem lê: lib/admin/checkoutHonesto.ts (o card "Pagamento · 24h" do /admin).
+function checkoutUaClass(ua: string | null): 'browser' | 'bot' | 'unknown' {
+  const trimmed = (ua ?? '').trim()
+  if (!trimmed) return 'unknown'
+  return isLikelyBotUserAgent(trimmed) ? 'bot' : 'browser'
+}
+
+function stampCheckoutOrigin(eventRow: Record<string, unknown>): void {
+  if (eventRow.session_id === null || eventRow.session_id === undefined) {
+    try {
+      const raw = cookies().get('kineo_event_session_id')?.value ?? ''
+      if (/^[A-Za-z0-9_-]{8,64}$/.test(raw)) eventRow.session_id = raw
+    } catch {
+      // fora do pedido: a coluna fica como veio
+    }
+  }
+  try {
+    const h = requestHeaders()
+    eventRow.metadata = {
+      ...(eventRow.metadata as Record<string, unknown>),
+      ip_hash: hashIp(clientIp(h)),
+      ua_class: checkoutUaClass(h.get('user-agent')),
+      prefetch: isSpeculativeRequest({ headers: h }),
+    }
+  } catch {
+    // sem os cabeçalhos do pedido: o evento sai como antes
+  }
+}
+// ═══ FIM KINEO-CHECKOUT-HONESTO-2026-10-07 ═══════════════════════════════════════════════════════════════════════════
+
 // KINEO-RECOVERY-2026-07-15 — checkout telemetry is written server-side so
 // the immediate navigation to Stripe cannot cancel it. This also records the
 // anonymous auth wall, which client-only click tracking could never see.
@@ -326,6 +373,7 @@ async function recordCheckoutEvent(
       // payment_success: logado ou convidado, a compra passa a dizer se veio de anúncio.
       metadata: { ...metadata, ...paidClickMetadataFromRequest() },
     }
+    stampCheckoutOrigin(eventRow) // KINEO-CHECKOUT-HONESTO-2026-10-07 — sessão, ip_hash, ua_class e prefetch (só telemetria)
     // Stripe idempotency can return the same Checkout Session to two racing
     // requests. Give checkout_started a deterministic UUID so analytics also
     // remain idempotent instead of counting the same session twice.
@@ -484,7 +532,7 @@ async function resolveCustomAffiliateBeforeSubscription(
 // sessions for tiers nobody clicked. A genuine click is always a top-level
 // navigation (Sec-Fetch-Mode: navigate), so we only block requests that
 // explicitly announce themselves as speculative.
-function isSpeculativeRequest(req: NextRequest): boolean {
+function isSpeculativeRequest(req: { headers: { get(name: string): string | null } }): boolean { // KINEO-CHECKOUT-HONESTO-2026-10-07 — tipo estrutural: o carimbo passa só os cabeçalhos
   const h = req.headers
   const secPurpose = (h.get('sec-purpose') ?? '').toLowerCase()
   if (secPurpose.includes('prefetch') || secPurpose.includes('prerender')) return true

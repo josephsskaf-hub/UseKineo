@@ -21,6 +21,7 @@ import { isAdminEmail, serviceClient } from '../_shared/db'
 import { INTERNAL_EXACT_EMAILS, INTERNAL_LIKE_PATTERNS, isInternalEmail } from '@/lib/internalAccounts'
 import { isPayingPlan, isTrialPlan } from '../_shared/mrr'
 import { TIER_CREDITS, type CheckoutPlanTier } from '@/lib/checkoutPricing' // KINEO-RAZAO-ASSINATURA-2026-09-16
+import { carregarCheckoutHonesto, type CheckoutHonestoComCartao } from '@/lib/admin/checkoutHonesto' // KINEO-CHECKOUT-HONESTO-2026-10-07
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -105,7 +106,11 @@ export interface LiveData {
   signups_7d: number
   signups_24h: number
   videos_24h: number
+  /** TODO checkout_started das últimas 24h (RPC). Não é mais o número da tela: a tela mostra checkout_honesto. */
   checkouts_24h: number
+  /** KINEO-CHECKOUT-HONESTO-2026-10-07 — o mesmo período em três linhas (pessoa · robô/rajada · pagou) + o texto da
+   *  tela; null = a leitura falhou e o card diz isso, nunca um número inventado. */
+  checkout_honesto: CheckoutHonestoComCartao | null
   online_now: number
   online: LiveVisitor[]
   generated_at: string
@@ -149,6 +154,14 @@ export async function GET() {
     // chamada só. A lista de contas internas continua morando SÓ em
     // lib/internalAccounts.ts e viaja por parâmetro — duplicá-la em SQL seria
     // criar o segundo 150 que a casa já caçou uma vez.
+    // KINEO-CHECKOUT-HONESTO-2026-10-07 — o "Checkouts 24h" da RPC conta TODO checkout_started: desde a compra sem
+    // login (06/10) isso inclui robô seguindo link e teste da casa como convidado ("9 checkouts" no admin, 1–2 na
+    // Stripe). A tela passa a mostrar três linhas — pagamento aberto por pessoa · aberto por robô ou rajada · pagou —
+    // de lib/admin/checkoutHonesto.ts. Corre junto com a RPC; se a leitura falhar, o card diz que não leu.
+    const checkoutHonestoPromise = carregarCheckoutHonesto(admin, readAll, now).catch((e: unknown) => {
+      console.warn('[admin/live] checkout honesto falhou:', e instanceof Error ? e.message : String(e))
+      return null
+    })
     const [counters, evOnline] = await Promise.all([
       admin.rpc('admin_live_counters', {
         p_exact_emails: INTERNAL_EXACT_EMAILS,
@@ -705,6 +718,7 @@ export async function GET() {
       signups_24h: num(c.signups_24h),
       videos_24h: num(c.videos_24h),
       checkouts_24h: num(c.checkouts_24h),
+      checkout_honesto: await checkoutHonestoPromise, // KINEO-CHECKOUT-HONESTO-2026-10-07
       online_now: online.length,
       online,
       generated_at: new Date().toISOString(),

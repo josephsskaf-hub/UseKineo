@@ -36,6 +36,46 @@ function heatColor(heat: number): string {
   return heat === 3 ? '#FF8787' : heat === 2 ? '#FFBF58' : '#9AA3B2'
 }
 
+// ═══ KINEO-CHECKOUT-HONESTO-2026-10-07 — "Pagamento · 24h" em três linhas ═══════════════════════════════════════════
+// O fundador viu "9 checkouts" aqui e 1–2 na Stripe: o número único contava TODO checkout_started, e desde a compra sem
+// login isso inclui robô seguindo link e teste da casa. O card só DESENHA o que o servidor calculou e escreveu
+// (lib/admin/checkoutHonesto.ts → /api/admin/live): pessoa · robô ou rajada · pagou, a conta que fecha e os avisos.
+const LINHA_COR: Record<string, string> = { pessoas: '#FFBF58', robo: '#9AA3B2', pagou: '#5FD4A4' }
+
+export function CheckoutHonestoCard({ loaded, value, cardStyle }: {
+  loaded: boolean
+  value: LiveData['checkout_honesto']
+  cardStyle: React.CSSProperties
+}) {
+  return (
+    <div className="px-3 py-2.5" style={{ ...cardStyle, gridColumn: 'span 2' }} title={value?.cartao.regra}>
+      <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--muted2)' }}>Pagamento · 24h</div>
+      {!value && (
+        <div className="font-black" style={{ fontSize: '1.25rem', color: '#FFBF58' }}>
+          —{loaded && <span className="ml-2 text-[10px] font-normal" style={{ color: 'var(--muted2)' }}>não deu para ler agora</span>}
+        </div>
+      )}
+      {value && (
+        <>
+          {value.cartao.linhas.map((l) => (
+            <div key={l.chave} className="flex items-baseline gap-2" style={{ lineHeight: 1.35 }}>
+              <span className="font-black" style={{ fontSize: l.chave === 'pessoas' ? '1.25rem' : '1rem', color: LINHA_COR[l.chave] ?? 'var(--text)', minWidth: 28 }}>
+                {l.valor.toLocaleString('pt-BR')}
+              </span>
+              <span style={{ fontSize: '0.78rem', color: 'var(--text)' }}>{l.rotulo}</span>
+              {l.detalhe && <span style={{ fontSize: '0.68rem', color: 'var(--muted2)' }}>· {l.detalhe}</span>}
+            </div>
+          ))}
+          <div className="mt-1" style={{ fontSize: '0.66rem', color: 'var(--muted2)' }}>{value.cartao.conta}</div>
+          {value.cartao.avisos.map((a) => (
+            <div key={a} style={{ fontSize: '0.66rem', color: '#FFBF58' }}>{a}</div>
+          ))}
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function LiveNowPanel() {
   const [data, setData] = useState<LiveData | null>(null)
   const [err, setErr] = useState(false)
@@ -71,7 +111,8 @@ export default function LiveNowPanel() {
           ['Visitors 24h', data?.visitors_24h, 'var(--text)'],
           ['Signups 24h', data?.signups_24h, '#8DB4FF'],
           ['Videos 24h', data?.videos_24h, '#C4B5FD'],
-          ['Checkouts 24h', data?.checkouts_24h, '#FFBF58'],
+          // KINEO-CHECKOUT-HONESTO-2026-10-07 — o 'Checkouts 24h' (um número só) saiu daqui: virou o card de três
+          // linhas logo abaixo (CheckoutHonestoCard).
           ['🟢 Online now', data?.online_now, '#5FD4A4'],
         ].map(([label, value, color]) => (
           <div key={label as string} className="px-3 py-2.5" style={CARD}>
@@ -81,6 +122,7 @@ export default function LiveNowPanel() {
             </div>
           </div>
         ))}
+        <CheckoutHonestoCard loaded={data !== null} value={data?.checkout_honesto ?? null} cardStyle={CARD} />
       </div>
 
       {/* Lista de quem está online: mais quente primeiro */}
