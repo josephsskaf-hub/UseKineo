@@ -79,7 +79,8 @@ await (await fetch('/api/admin/switch-to-annual', {
 **4. CONFERIR o SEND:** `switched: true`, `charged_now.label` (o que o cartão pagou hoje), `invoice.invoiceId`,
 `invoice.billingReason` = `subscription_update` (se vier outro valor, avise a sessão CEO: o webhook poderia tratar a
 fatura como renovação), `profile_updated: true`, `ledger_written: true`, `refund_until`, `first_refill_at` e
-`customer_reply_en` (a resposta ao cliente já com o valor real).
+`customer_reply_en` (a resposta ao cliente já com o valor real). Se `profile_updated` ou `ledger_written` vier `false`
+(o banco caiu depois da cobrança), rode o mesmo SEND de novo: ele só completa o perfil e o evento, sem cobrar outra vez.
 
 **5. RESPONDER** ao cliente — rascunho na thread do e-mail dele (modelo abaixo; o `customer_reply_en` do SEND já vem
 com o valor preenchido).

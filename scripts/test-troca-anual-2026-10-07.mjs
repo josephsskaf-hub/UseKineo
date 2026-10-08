@@ -190,6 +190,8 @@ function makeDb() {
     if (parts.length > 1) v = v && typeof v === 'object' ? v[parts[1]] : undefined
     return v === undefined ? null : v
   }
+  /** Falha injetada: a próxima operação `op` em `table` devolve erro (o banco caiu naquele instante). */
+  const failures = []
   class Query {
     constructor(table) { this.table = table; this.op = 'select'; this.filters = []; this.wantRows = false; this.mode = null; this.lim = null; this.head = false }
     select(_cols, opts) { if (this.op === 'select') { if (opts?.head) this.head = true } else this.wantRows = true; return this }
@@ -217,6 +219,8 @@ function makeDb() {
       return { data, error: null }
     }
     run() {
+      const fi = failures.findIndex((f) => f.table === this.table && f.op === this.op)
+      if (fi >= 0) return { data: null, error: failures.splice(fi, 1)[0].error, count: null }
       const rows = T(this.table)
       if (this.op === 'insert') {
         const keys = UNIQUE[this.table] ?? []
@@ -250,6 +254,7 @@ function makeDb() {
   return {
     tables,
     T,
+    failOnce(table, op) { failures.push({ table, op, error: { code: '08006', message: 'connection failure (injetada pelo guardião)' } }) },
     from: (t) => new Query(t),
     profile(id) { return T('profiles').find((p) => p.id === id) ?? null },
     events(name) { return T('events').filter((e) => e.name === name) },
@@ -802,6 +807,26 @@ async function sDuasVezes() {
   return p
 }
 
+/** R5: o banco cai DEPOIS que a Stripe trocou — a resposta avisa, e o SEND seguinte completa perfil e razão sem cobrar. */
+async function sBancoCaiDepois() {
+  const p = []
+  const env = makeEnv()
+  seed(env, { plan: 'creator', tier: 'basic', monthlyMinor: 1990 })
+  env.db.failOnce('profiles', 'update')
+  const first = await callRoute(env, { userId: USER, annualAmountUsd: 143, confirm: 'SEND' })
+  if (first.status !== 200 || first.body?.switched !== true || first.body?.profile_updated !== false || first.body?.ledger_written !== false || !(first.body?.warnings ?? []).length) p.push(`banco caiu: a resposta não avisou (${first.status} ${JSON.stringify({ p: first.body?.profile_updated, l: first.body?.ledger_written })})`)
+  if (env.db.events('plan_switched_to_annual').length) p.push('razão gravado com o perfil sem gravar (razão presente tem de querer dizer "tudo registrado")')
+  if (env.db.profile(USER).plan !== 'creator') p.push('o perfil mudou apesar da falha injetada')
+  const updates = env.stripe.ops('subscriptions.update').length
+  const second = await callRoute(env, { userId: USER, annualAmountUsd: 143, confirm: 'SEND' })
+  if (second.status !== 200 || second.body?.completed_record !== true || second.body?.profile_updated !== true || second.body?.ledger_written !== true) p.push(`2º SEND não completou: ${second.status} ${JSON.stringify(second.body)}`)
+  if (env.stripe.ops('subscriptions.update').length !== updates) p.push('2º SEND chamou a troca de novo')
+  if (env.db.profile(USER).plan !== 'basic' || env.db.profile(USER).video_credits !== CREDITS_NOW) p.push(`perfil depois de completar: ${JSON.stringify(env.db.profile(USER))}`)
+  const ev = env.db.events('plan_switched_to_annual')
+  if (ev.length !== 1 || ev[0].metadata?.annual_minor !== 14300 || ev[0].metadata?.monthly_minor !== 1990) p.push(`razão completado errado: ${JSON.stringify(ev.map((e) => e.metadata))}`)
+  return p
+}
+
 /** R5: dois cliques simultâneos (mesma janela) = UMA troca aplicada na Stripe e um razão. */
 async function sSimultaneos() {
   const p = []
@@ -946,6 +971,7 @@ const SCENARIOS = {
   send: () => sSend(),
   metadata: () => sMetadata(),
   duasVezes: () => sDuasVezes(),
+  bancoCaiDepois: () => sBancoCaiDepois(),
   simultaneos: () => sSimultaneos(),
   webhookERecarga: () => sWebhookERecarga(),
   cartaoRecusado: () => sCartaoRecusado(),
@@ -985,6 +1011,7 @@ const MUTANTS = [
   ['R4 metadata sem dono', { [LIB]: [replaceOnce('    supabase_user_id: input.userId,\n', '', 'sem o carimbo do dono')] }, 'metadata'],
   ['R5 sem o razão (2ª execução relê a Stripe)', { [ROUTE]: [replaceOnce('  if (ledger) {\n', '  if (false) {\n', 'sem a checagem do razão')] }, 'duasVezes'],
   ['R5 sem o selo (razão perdido não é completado)', { [ROUTE]: [replaceOnce("  if (interval === 'year' && hasAnnualSwitchStamp(metadata)) {\n", '  if (false) {\n', 'sem o caminho de completar')] }, 'duasVezes'],
+  ['R5 razão gravado com o perfil caído', { [ROUTE]: [replaceOnce('    return { profile_updated: false, ledger_written: false, warnings }\n', '', 'segue para o razão sem perfil')] }, 'bancoCaiDepois'],
   ['R5 sem chave de idempotência', { [ROUTE]: [replaceOnce('    }, { idempotencyKey: annualSwitchIdempotencyKey(subscriptionId, item!.id, annualMinor, nowMs) })\n', '    })\n', 'update sem idempotencyKey')] }, 'simultaneos'],
   ['R6 não-admin passa', { [ROUTE]: [replaceOnce('  if (!user || !isAdminEmail(user.email)) return', '  if (!user) return', 'portão só de login')] }, 'naoAdmin'],
   ['R7 webhook trata a troca como renovação', { [WEBHOOK]: [replaceOnce("        if (billingReason === 'subscription_update') {\n", "        if (billingReason === 'subscription_update' && false) {\n", 'sem a saída de subscription_update')] }, 'webhookERecarga'],

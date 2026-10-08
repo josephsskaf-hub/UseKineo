@@ -385,8 +385,9 @@ export async function POST(req: Request) {
 }
 
 /**
- * Depois que a Stripe trocou: perfil (plano e ids, NUNCA os créditos) e o razão com id determinístico. Falha aqui não
- * desfaz a cobrança — é devolvida na resposta, e a próxima execução completa (o selo na assinatura reconhece a troca).
+ * Depois que a Stripe trocou: perfil (plano e ids, NUNCA os créditos) e, só com o perfil gravado, o razão com id
+ * determinístico — razão presente quer dizer "tudo registrado". Falha aqui não desfaz a cobrança: volta na resposta, e o
+ * próximo SEND completa pelo selo da assinatura (caminho "já anual com o selo"), sem chamar a troca de novo.
  */
 async function recordSwitch(input: {
   admin: NonNullable<ReturnType<typeof serviceClient>>
@@ -402,7 +403,10 @@ async function recordSwitch(input: {
   if (input.tier) patch.plan = input.tier
   if (input.customerId) patch.stripe_customer_id = input.customerId
   const { error: profileError } = await input.admin.from('profiles').update(patch).eq('id', input.userId)
-  if (profileError) warnings.push(`perfil não atualizado (${profileError.message}); rode o SEND de novo para completar — não cobra outra vez.`)
+  if (profileError) {
+    warnings.push(`perfil e razão não gravados (${profileError.message}); a Stripe JÁ trocou. Rode o SEND de novo: ele só completa o registro, sem cobrar outra vez.`)
+    return { profile_updated: false, ledger_written: false, warnings }
+  }
   const { error: ledgerError } = await input.admin.from('events').insert({
     id: input.ledgerId,
     name: ANNUAL_SWITCH_EVENT,
