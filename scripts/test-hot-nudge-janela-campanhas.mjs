@@ -16,6 +16,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { createHash } from 'node:crypto'
 import ts from 'typescript'
 import { compileOffline, memoryDb } from './test-support/truncamento-dedupe-offline.mjs'
 
@@ -150,6 +151,18 @@ async function executeRoute(source, dbOptions = {}) {
     '@/lib/lifecycle/suppression': { loadLifecycleSuppression: async () => ({ isSuppressed: () => false, suppressedCount: 0, degraded: false }) },
     '@/lib/momentumTopic': { pickMomentumTopic: () => null },
     '@/lib/checkoutPricing': { CARD_TRIAL_THEN_LABEL: 'FIXTURE/mo' },
+    // KINEO-RESGATE-PAGAMENTO-2026-10-08 — a oferta de boas-vindas: os dois módulos PUROS rodam de verdade (não
+    // importam nada); do lado servidor só o id determinístico (sha256 real) e a consulta à Stripe, que aqui diz "não
+    // achei o código" — a sessão destes cenários nem é assinatura, então a oferta não entra no que este guardião mede.
+    '@/lib/growth/publicPromoTruth': compileOffline(readFileSync(join(raiz, 'lib/growth/publicPromoTruth.ts'), 'utf8')),
+    '@/lib/growth/guestCheckout': compileOffline(readFileSync(join(raiz, 'lib/growth/guestCheckout.ts'), 'utf8')),
+    '@/lib/stripe/guestCheckout': {
+      deterministicEventUuid: (name, key) => {
+        const hex = createHash('sha256').update(`${name}:${key}`).digest('hex').slice(0, 32)
+        return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+      },
+      loadGuestWelcomePromoCandidate: async () => null,
+    },
   }, {
     Date: Clock,
     process: { env: { RESEND_API_KEY: 'OFFLINE', STRIPE_SECRET_KEY: 'OFFLINE', NEXT_PUBLIC_SUPABASE_URL: 'https://fixture.invalid', SUPABASE_SERVICE_ROLE_KEY: 'OFFLINE' } },

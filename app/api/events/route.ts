@@ -300,6 +300,11 @@ const SERVER_ONLY_EVENTS = new Set([
   // navegador pudesse cunhá-los, a porcentagem de respostas com a Kineo mentiria.
   'geo_citation_check',
   'geo_citation_summary',
+  // KINEO-RESGATE-PAGAMENTO-2026-10-08 — escritos SÓ por /api/admin/send-checkout-hot-nudge: a carta quente do checkout
+  // e o pulo dela (com o motivo). O carimbo de envio decide quem não recebe de novo; o pulo é a medida de quem ficou de
+  // fora. Se o navegador pudesse cunhá-los, uma pessoa se calaria sozinha e o placar de pulos viraria ficção.
+  'checkout_hot_nudge_emailed_v1',
+  'checkout_hot_nudge_skipped_v1',
 ])
 
 export async function POST(req: NextRequest) {

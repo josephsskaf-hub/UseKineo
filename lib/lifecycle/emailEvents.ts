@@ -47,6 +47,11 @@ export const LIFECYCLE_EMAIL_EVENT_NAMES = [
   'season_letter_emailed_v1',
   'next_episode_wall_emailed_v1',
   'checkout_recovery_emailed_v1',
+  // KINEO-RESGATE-PAGAMENTO-2026-10-08 — a carta QUENTE do checkout (admin/send-checkout-hot-nudge, 30 min depois do
+  // clique de comprar). Nasceu em 07/09 FORA desta lista e ficou invisivel para a supressao de 24h: em 30 dias, 8 das
+  // 45 pessoas que a receberam levaram outra carta nossa nas 24 h seguintes (uma "segunda tentativa de $1" 6 minutos
+  // depois). O carimbo de PULO dela (checkout_hot_nudge_skipped_v1) NAO entra: pulo nao e envio (regra do cabecalho).
+  'checkout_hot_nudge_emailed_v1',
   // KINEO-CARTA-DA-RECUSA-2026-09-07 — a carta de cartao recusado. Entra aqui
   // no MESMO commit em que nasce: sem este nome a supressao de 24h nao a ve, e
   // a pessoa recusada leva duas cartas nossas com minutos de diferenca.
