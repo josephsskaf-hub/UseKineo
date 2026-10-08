@@ -295,6 +295,11 @@ const SERVER_ONLY_EVENTS = new Set([
   // KINEO-HOME-CLIPS-FIRST-2026-10-05 — escrito SÓ por /api/home-variant (variante recalculada no servidor pelo user_id ou
   // pelo cookie httpOnly kineo_vid). É o denominador do A/B da home: se o navegador pudesse cunhá-lo, o placar mentiria.
   'home_variant_exposed',
+  // KINEO-GEO-CITACAO-SEMANAL-2026-10-08 — escritos SÓ por /api/cron/geo-citation-monitor (1 por pergunta + o resumo da
+  // rodada, que também é a trava de 1 rodada por semana). São a medição semanal de quanto o ChatGPT cita a Kineo: se o
+  // navegador pudesse cunhá-los, a porcentagem de respostas com a Kineo mentiria.
+  'geo_citation_check',
+  'geo_citation_summary',
 ])
 
 export async function POST(req: NextRequest) {
