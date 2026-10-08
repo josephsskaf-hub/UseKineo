@@ -222,7 +222,11 @@ const SERVER_ONLY_EVENTS = new Set([
   // KINEO-TROCA-ANUAL-2026-10-07 — escrito SÓ por /api/admin/switch-to-annual depois que a Stripe trocou a assinatura
   // para o anual (id determinístico por assinatura = o razão que impede cobrar duas vezes). Forjado pelo navegador,
   // inventaria uma troca anual — e uma receita — que não existiu.
+  // KINEO-ANUAL-2o-MES-2026-10-08 — o mesmo razão agora também nasce no autoatendimento (/api/stripe/switch-to-annual).
   'plan_switched_to_annual',
+  // KINEO-ANUAL-2o-MES-2026-10-08 — escrito SÓ por /api/cron/send-month2-annual-offer: o carimbo (id fixo por assinatura)
+  // de "a oferta do anual saiu por e-mail". Está na lista canônica da supressão: forjado, calaria as cartas da casa.
+  'month2_annual_offer_sent',
   // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — escritos SÓ no servidor (rota de checkout, webhook, /api/stripe/checkout/
   // guest-access e /auth/guest-link). São o funil da compra sem login (sessão aberta → conta criada/achada → login de
   // uso único usado/recusado → e-mail de entrada) e o conflito com plano ativo; nomes em lib/growth/guestCheckout.ts

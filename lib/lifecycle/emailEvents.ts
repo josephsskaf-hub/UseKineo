@@ -109,6 +109,9 @@ export const LIFECYCLE_EMAIL_EVENT_NAMES = [
   'renewal_payment_failed_email_sent',
   // KINEO-STUDIO50-2026-09-22 — carta 'Studio a 50%' para quem chegou ao checkout e não pagou (admin/send-studio50).
   'studio50_sent',
+  // KINEO-ANUAL-2o-MES-2026-10-08 — oferta do anual (30%) para quem pagou a 1ª renovação (cron/send-month2-annual-offer).
+  // Entra aqui no MESMO commit em que nasce: sem este nome, a pessoa leva outra carta nossa no mesmo dia da oferta.
+  'month2_annual_offer_sent',
 ] as const
 
 export type LifecycleEmailEventName = (typeof LIFECYCLE_EMAIL_EVENT_NAMES)[number]
