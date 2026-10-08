@@ -68,8 +68,9 @@ equal(telemetryKeys, ['billing', 'placement', 'tier', 'version'], 'telemetry emi
 const checkoutPricing = read('lib/checkoutPricing.ts')
 // KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: escada 13/30/55 do fundador (28/09); anual = 10× o mensal novo.
 // KINEO-ANUAL-40OFF-2026-10-05 — re-ancorado: anual = 12 × mensal × 0,60, arredondado limpo (fundador 04-05/10).
-ok(checkoutPricing.includes("starter: { usd: 9290 }"), 'Starter annual total remains canonical (40% off: 12 × $12.90 × 0.6 ≈ $92.90)')
-ok(checkoutPricing.includes("basic: { usd: 21500 }"), 'Creator annual total remains canonical (40% off ≈ $215)')
-ok(checkoutPricing.includes("pro: { usd: 39500 }"), 'Studio annual total remains canonical (40% off ≈ $395)')
+// KINEO-ANUAL-30-2026-10-08 — re-ancorado: anual = 12 × mensal × 0,70, arredondado limpo (fundador 08/10: "deixa 30%").
+ok(checkoutPricing.includes("starter: { usd: 10800 }"), 'Starter annual total remains canonical (30% off: 12 × $12.90 × 0.7 ≈ $108)')
+ok(checkoutPricing.includes("basic: { usd: 25000 }"), 'Creator annual total remains canonical (30% off ≈ $250)')
+ok(checkoutPricing.includes("pro: { usd: 46000 }"), 'Studio annual total remains canonical (30% off ≈ $460)')
 
 console.log(`pricing mobile sticky billing truth: ${checks}/${checks} checks passed`)

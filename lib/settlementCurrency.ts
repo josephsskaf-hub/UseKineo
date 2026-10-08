@@ -11,7 +11,8 @@
 // ao clicar, o checkout abre na moeda do país; só os meios de pagamento da
 // região aparecem (Pix nunca para americano) — e isso a Stripe faz sozinha
 // quando a sessão nasce em BRL. Tabela FIXA em reais (aprovada: R$ 49,90 ·
-// 99,90 · 199,90; anual 10× até 05/10, 40% off desde KINEO-ANUAL-40OFF-2026-10-05), não câmbio do dia — e revista uma vez por mês.
+// 99,90 · 199,90; anual 10× até 05/10, 40% off desde KINEO-ANUAL-40OFF-2026-10-05, 30% off desde KINEO-ANUAL-30-2026-10-08),
+// não câmbio do dia — e revista uma vez por mês.
 // KINEO-PRECO-V8-A-2026-09-28 — a tabela acompanha a escada 13/30/55 pela
 // MESMA fórmula da casa (usdToBrlMinor): R$ 64,90 · 149,90 · 274,90; anual 10×.
 // A tabela V5 (49,90 · 99,90 · 199,90) fica como piso do grant legado abaixo.
@@ -57,7 +58,8 @@ export const BRL_HOUSE_RATE_NEXT_REVIEW = '2026-10-09'
  * USD (centavos) → BRL (centavos), terminando em ,90 como toda etiqueta da casa.
  *   990 → 4990 · 1990 → 9990 · 3990 → 19990 · 490 → 2490 · 1990 (top-up) → 9990
  *   V8-A (28/09): 1290 → 6490 · 2990 → 14990 · 5490 → 27490
- *   (o ANUAL de plano NÃO passa por aqui: ele vem da tabela, 12 × mensal × 0,60 até ,90 — KINEO-ANUAL-40OFF-2026-10-05)
+ *   (o ANUAL de plano NÃO passa por aqui: ele vem da tabela, 12 × mensal × 0,70 até ,90 — KINEO-ANUAL-30-2026-10-08;
+ *   era 0,60 desde KINEO-ANUAL-40OFF-2026-10-05)
  * Piso R$ 1,90 para nunca gerar zero nem negativo.
  */
 export function usdToBrlMinor(usdMinor: number): number {
@@ -72,16 +74,20 @@ export const BRL_PLAN_PRICES_MINOR: Record<CheckoutTier, { monthly: number; annu
   // KINEO-ANUAL-40OFF-2026-10-05 — anual = 12 × mensal × 0,60 (40% off), arredondado para cima até terminar em ,90
   // (a mesma etiqueta de usdToBrlMinor): 6490×7,2 = 46728 → R$ 467,90 · 14990×7,2 = 107928 → R$ 1.079,90 ·
   // 27490×7,2 = 197928 → R$ 1.979,90. Era 10× o mensal (64900 / 149900 / 274900).
-  starter: { monthly: 6490, annual: 46790 },
-  basic: { monthly: 14990, annual: 107990 },
-  pro: { monthly: 27490, annual: 197990 },
+  // KINEO-ANUAL-30-2026-10-08 — decisão do fundador (08/10): 30% off. anual = 12 × mensal × 0,70, mesma regra de
+  // arredondamento (para cima até ,90): 6490×8,4 = 54516 → R$ 545,90 · 14990×8,4 = 125916 → R$ 1.259,90 ·
+  // 27490×8,4 = 230916 → R$ 2.309,90 (R$ 45,49 / 104,99 / 192,49 por mês). Era 46790 / 107990 / 197990 (40% off).
+  starter: { monthly: 6490, annual: 54590 },
+  basic: { monthly: 14990, annual: 125990 },
+  pro: { monthly: 27490, annual: 230990 },
 }
 
-/** KINEO-ANUAL-40OFF-2026-10-05 — fração paga no anual (1 − 40%). Espelho de ANNUAL_DISCOUNT_PERCENT em
- *  lib/checkoutPricing.ts, sem import (o guardião executa este módulo com checkoutPricing stubado). */
-export const BRL_ANNUAL_PAID_FRACTION = 0.6
+/** KINEO-ANUAL-30-2026-10-08 — fração paga no anual (1 − 30%; era 0,6 = 1 − 40% desde KINEO-ANUAL-40OFF-2026-10-05).
+ *  Espelho de ANNUAL_DISCOUNT_PERCENT em lib/checkoutPricing.ts, sem import (o guardião executa este módulo com
+ *  checkoutPricing stubado). */
+export const BRL_ANNUAL_PAID_FRACTION = 0.7
 
-/** Anual em reais a partir do mensal em reais: 12 × mensal × 0,60, para cima até ,90. */
+/** Anual em reais a partir do mensal em reais: 12 × mensal × 0,70, para cima até ,90. */
 export function brlAnnualFromMonthly(monthlyMinor: number): number {
   const raw = Math.max(0, Math.round(monthlyMinor)) * 12 * BRL_ANNUAL_PAID_FRACTION
   return Math.max(190, Math.ceil(raw / 100) * 100 - 10)
@@ -150,7 +156,7 @@ export function settlementNote(brlMinor: number, currency: SettlementCurrency, p
   return per === 'once' ? `Charged in BRL: ${label}` : `Charged in BRL: ${label}/${per}`
 }
 
-/** Preço de plano na moeda de liquidação: em BRL vem da TABELA (anual = 12 × mensal × 0,60 em reais, não a fórmula sobre o anual em USD). */
+/** Preço de plano na moeda de liquidação: em BRL vem da TABELA (anual = 12 × mensal × 0,70 em reais, não a fórmula sobre o anual em USD). */
 export function planSettlementAmountMinor(
   tier: CheckoutTier | 'autopilot_lite',
   billing: 'monthly' | 'annual',
@@ -163,7 +169,7 @@ export function planSettlementAmountMinor(
   return BRL_PLAN_PRICES_MINOR[tier][billing]
 }
 
-/** Invariantes: mensal em BRL é exatamente o que a fórmula dá; anual é 12 × mensal × 0,60 até ,90 (40% off). */
+/** Invariantes: mensal em BRL é exatamente o que a fórmula dá; anual é 12 × mensal × 0,70 até ,90 (30% off). */
 export function checkSettlementInvariants(usdMonthlyPrices: Record<CheckoutTier, number>): string[] {
   const problems: string[] = []
   for (const tier of Object.keys(BRL_PLAN_PRICES_MINOR) as CheckoutTier[]) {
@@ -172,7 +178,7 @@ export function checkSettlementInvariants(usdMonthlyPrices: Record<CheckoutTier,
       problems.push(tier + ': BRL mensal ' + BRL_PLAN_PRICES_MINOR[tier].monthly + ' != formula ' + expectMonthly)
     }
     if (BRL_PLAN_PRICES_MINOR[tier].annual !== brlAnnualFromMonthly(BRL_PLAN_PRICES_MINOR[tier].monthly)) {
-      problems.push(tier + ': BRL anual nao e 12x o mensal com 40% off')
+      problems.push(tier + ': BRL anual nao e 12x o mensal com ' + Math.round((1 - BRL_ANNUAL_PAID_FRACTION) * 100) + '% off')
     }
   }
   return problems

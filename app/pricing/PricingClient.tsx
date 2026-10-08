@@ -471,6 +471,8 @@ export default function PricingClient({ initialBilling = 'annual', characterLimi
   const [showStickyCta, setShowStickyCta] = useState<boolean>(false)
 
   // #381 — monthly vs annual billing toggle. KINEO-ANUAL-40OFF-2026-10-05: annual = 40% off 12 monthly payments.
+  // KINEO-ANUAL-30-2026-10-08 (fundador): annual = 30% off — o selo, o "≈ $X/mo" e o total leem ANNUAL_DISCOUNT_PERCENT
+  // e getAnnualPrice; nenhum número do anual é digitado nesta página.
   // KINEO-MRR-1-ANUAL-2026-09-16 (fundador: "vai"): a página ABRE no anual — é o padrão de InVideo, Pictory,
   // Fliki e Higgsfield (10 meses pelo preço de 12) e o Creator é onde 51 de 91 pessoas pararam no checkout em
   // 30 dias. O mensal continua a um clique, com o mesmo preço de sempre; nenhum número mudou.

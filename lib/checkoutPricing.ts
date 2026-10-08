@@ -207,14 +207,25 @@ export const ANNUAL_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number
   // $215,28 → $215 · $658,80 × 0,6 = $395,28 → $395. Os créditos continuam
   // chegando MÊS A MÊS (webhook concede o mês 0; cron annual-credit-refill, os
   // meses 1..11). Reembolso: integral em 14 dias, depois nenhum (ANNUAL_REFUND_DAYS).
-  // O invariante (8) confere que cada linha fica a ±0,5 ponto de ANNUAL_DISCOUNT_PERCENT.
-  starter: { usd: 9290 },
-  basic: { usd: 21500 },
-  pro: { usd: 39500 },
+  // ═══ KINEO-ANUAL-30-2026-10-08 — ANUAL = 12 × MENSAL × 0,70 (30% OFF) ═══
+  // Decisão de preço do fundador (08/10 ~01h BRT): "os próximos clientes a gente só dá
+  // 30%... inclusive no site deixa 30%". Preço limpo a ±0,5 ponto de 30%:
+  // $154,80 × 0,7 = $108,36 → $108 ($9,00/mês, 30,2%) · $358,80 × 0,7 = $251,16 → $250
+  // (30,3%) · $658,80 × 0,7 = $461,16 → $460 (30,2%). Recarga mês a mês e reembolso de
+  // 14 dias seguem iguais. Os 40% JÁ OFERECIDOS por e-mail (05/10 aos primeiros
+  // assinantes; 07/10 aos 6 que estão cancelando, válidos até 11/10) continuam valendo
+  // pela ferramenta de troca (lib/billing/annualSwitch.ts: mensal × 12 × 0,6), que NÃO
+  // lê esta tabela. Quem já pagou o anual de 40% (9290/21500/39500) segue com o grant
+  // que comprou: LEGACY_ANNUAL_40OFF_PRICES_USD é o degrau legado dele na recarga anual.
+  // O invariante (8b) confere que cada linha fica a ±0,5 ponto de ANNUAL_DISCOUNT_PERCENT.
+  starter: { usd: 10800 },
+  basic: { usd: 25000 },
+  pro: { usd: 46000 },
 }
 
-/** KINEO-ANUAL-40OFF-2026-10-05 — o desconto do anual sobre 12 mensalidades. A copy ("save 40%") lê daqui. */
-export const ANNUAL_DISCOUNT_PERCENT = 40
+/** KINEO-ANUAL-30-2026-10-08 — o desconto do anual sobre 12 mensalidades (40 de 05/10 a 08/10; 30 desde 08/10,
+ *  decisão do fundador). A copy ("save 30%") lê daqui — nunca digita o número. */
+export const ANNUAL_DISCOUNT_PERCENT = 30
 /** KINEO-ANUAL-40OFF-2026-10-05 — reembolso do anual: integral dentro deste prazo, nenhum depois (fundador 05/10). */
 export const ANNUAL_REFUND_DAYS = 14
 /** Frase única da política de reembolso do anual — pricing, FAQ e termos leem daqui. */
@@ -226,7 +237,7 @@ export function annualSavingsPercent(tier: CheckoutTier): number {
   return twelve > 0 ? Math.round((1 - ANNUAL_PRICES[tier].usd / twelve) * 100) : 0
 }
 
-/** "≈ $7.74/mo" — o anual dividido por 12, em USD, com centavos. */
+/** "≈ $9.00/mo" — o anual dividido por 12, em USD, com centavos (KINEO-ANUAL-30-2026-10-08: $9.00 / $20.83 / $38.33). */
 export function annualPerMonthLabel(tier: CheckoutTier): string {
   return `$${(ANNUAL_PRICES[tier].usd / 1200).toFixed(2)}`
 }
@@ -539,14 +550,31 @@ export const LEGACY_TIER_CREDITS_V5: Record<CheckoutPlanTier, number> = {
   autopilot_lite: 160,
 }
 
-/** Grant de quem paga MENOS que o vigente, pelo valor da fatura em USD (mensal, ou anual = 10× o piso V5). */
+/** KINEO-ANUAL-30-2026-10-08 — o anual de 40% off (checkout de 05/10 a 08/10: $92,90 / $215 / $395; troca por e-mail
+ *  a partir do mensal V8-A: $93 / $215 / $395) comprou o grant de 60/150/300. Com o anual vigente em $108 / $250 / $460,
+ *  toda fatura dessas fica ABAIXO do vigente e cai na escada legada da recarga anual: sem este degrau, o Studio de $395
+ *  (abaixo do piso V5 anual, $399) leria como V6 (180) — e a ferramenta de troca recusaria o Studio de $54,90 com
+ *  "credits_would_change", quebrando a oferta de 40% que segue valendo. */
+export const LEGACY_ANNUAL_40OFF_PRICES_USD: Record<CheckoutTier, number> = {
+  starter: 9290,
+  basic: 21500,
+  pro: 39500,
+}
+
+/** Grant de quem paga MENOS que o vigente, pelo valor da fatura em USD (mensal; ou anual = o menor entre 10× o piso V5 e o
+ *  anual de 40% off). */
 export function legacyCreditsForUsd(tier: CheckoutPlanTier, amountPaidMinor: number, billing: 'monthly' | 'annual' = 'monthly'): number {
   if (tier === 'starter' || tier === 'basic' || tier === 'pro') {
     // ⚠ KINEO-ANUAL-40OFF-2026-10-05 — o anual vigente do Studio (40% off, $395) ficou ABAIXO deste piso ($399).
     // HOJE é inofensivo: annualRefillCredits só chama esta régua para fatura MENOR que o anual vigente, e quem paga
     // $395 recebe o grant vigente (300). Mas no dia em que o anual SUBIR, um assinante de $395 leria como "V6" (180):
     // quem reprecificar o anual tem de acrescentar o anual 40% off como degrau legado aqui.
-    const floorV5 = LEGACY_V5_PRICES_USD[tier] * (billing === 'annual' ? 10 : 1)
+    // KINEO-ANUAL-30-2026-10-08 — o dia chegou: o anual subiu para 30% off ($460) e o degrau entrou. O piso do anual é o
+    // MENOR entre os dois preços que compraram 60/150/300 (V5 10× e o anual 40% off); abaixo dele, V6. Quem reprecificar
+    // o anual de novo acrescenta aqui o degrau do anual que sai.
+    const floorV5 = billing === 'annual'
+      ? Math.min(LEGACY_V5_PRICES_USD[tier] * 10, LEGACY_ANNUAL_40OFF_PRICES_USD[tier])
+      : LEGACY_V5_PRICES_USD[tier]
     if (amountPaidMinor >= floorV5) return LEGACY_TIER_CREDITS_V5[tier]
   }
   return LEGACY_TIER_CREDITS_V6[tier]
@@ -1111,6 +1139,7 @@ export function checkPricingInvariants(): string[] {
   }
   // (8b) KINEO-ANUAL-40OFF-2026-10-05 — o anual é 12 × mensal × (1 − 40%), arredondado para preço limpo. Mais de
   //      0,5 ponto de distância do desconto anunciado = a etiqueta "save 40%" mente para um lado ou para o outro.
+  //      KINEO-ANUAL-30-2026-10-08 — a régua é ANNUAL_DISCOUNT_PERCENT (30 desde 08/10): 12 × mensal × 0,70.
   for (const tier of Object.keys(TIER_PRICES) as CheckoutTier[]) {
     const exact = (1 - ANNUAL_PRICES[tier].usd / (TIER_PRICES[tier].usd * 12)) * 100
     if (Math.abs(exact - ANNUAL_DISCOUNT_PERCENT) > 0.5) {

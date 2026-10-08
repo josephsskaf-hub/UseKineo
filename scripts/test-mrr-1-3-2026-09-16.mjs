@@ -22,7 +22,8 @@ const cp = rd('lib/checkoutPricing.ts')
 // (campanha mensal abre mensal); a entrada comum continua no anual pelo padrão da prop.
 checa('a página abre no anual (padrão da prop; campanha mensal pode abrir mensal — A1)', pc.includes("initialBilling = 'annual'") && pc.includes("useState<PricingPlanChoiceBilling>(initialBilling)"))
 // KINEO-ANUAL-40OFF-2026-10-05 — o selo do botão anual virou "SAVE {ANNUAL_DISCOUNT_PERCENT}%" (anual = 40% off).
-checa('o mensal continua a um clique e o selo "SAVE 40%" segue no botão', pc.includes("onClick={() => setBilling('monthly')}") && pc.includes('SAVE {ANNUAL_DISCOUNT_PERCENT}%') && !pc.includes('2 MONTHS FREE'))
+// KINEO-ANUAL-30-2026-10-08 — o selo segue lendo a constante; o número dela virou 30 (fundador 08/10).
+checa('o mensal continua a um clique e o selo "SAVE {ANNUAL_DISCOUNT_PERCENT}%" (30%) segue no botão', pc.includes("onClick={() => setBilling('monthly')}") && pc.includes('SAVE {ANNUAL_DISCOUNT_PERCENT}%') && !pc.includes('2 MONTHS FREE'))
 // KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: a alavanca (1) não mudou preço em 16/09; em 28/09 o fundador subiu a
 // escada para 1290/2990/5490 (anual 12900/29900/54900). A promessa desta linha é a do anual = 10× o mensal — provada
 // pelos números lidos da fonte, não por literal solto.
@@ -31,7 +32,9 @@ checa('o mensal continua a um clique e o selo "SAVE 40%" segue no botão', pc.in
   const anualLido = Object.fromEntries(['starter', 'basic', 'pro'].map((t) => [t, Number((cp.slice(cp.indexOf('export const ANNUAL_PRICES')).match(new RegExp(`${t}: \\{ usd: (\\d+) \\}`)) || [])[1])]))
   // KINEO-ANUAL-40OFF-2026-10-05 — re-ancorado: o anual passou de 10× para 12 × mensal × 0,60 (fundador 04-05/10),
   // arredondado limpo: 9290/21500/39500 (lido da fonte; o desconto real fica a ±0,5 ponto de 40%).
-  checa('a alavanca (1) não muda o mensal: 1290/2990/5490 (V8-A) e anual = 40% off lido da fonte (9290/21500/39500)', /starter: \{ usd: 1290 \},\n  basic: \{ usd: 2990 \},\n  pro: \{ usd: 5490 \},/.test(cp) && ['starter', 'basic', 'pro'].every((t) => Math.abs((1 - anualLido[t] / (mensal[t] * 12)) * 100 - 40) <= 0.5) && anualLido.starter === 9290 && anualLido.basic === 21500 && anualLido.pro === 39500)
+  // KINEO-ANUAL-30-2026-10-08 — re-ancorado com a decisão do fundador (08/10): 12 × mensal × 0,70, arredondado limpo:
+  // 10800/25000/46000 (lido da fonte; o desconto real fica a ±0,5 ponto de 30%).
+  checa('a alavanca (1) não muda o mensal: 1290/2990/5490 (V8-A) e anual = 30% off lido da fonte (10800/25000/46000)', /starter: \{ usd: 1290 \},\n  basic: \{ usd: 2990 \},\n  pro: \{ usd: 5490 \},/.test(cp) && ['starter', 'basic', 'pro'].every((t) => Math.abs((1 - anualLido[t] / (mensal[t] * 12)) * 100 - 30) <= 0.5) && anualLido.starter === 10800 && anualLido.basic === 25000 && anualLido.pro === 46000)
 }
 checa('o checkout recebe billing=annual só quando o toggle está no anual (autopilot nunca); mensal vai explícito (A1)', pc.includes("const billingParam = billing === 'annual' && !isAutopilotFamily ? '&billing=annual' : '&billing=monthly'") && pc.includes("const isAutopilotFamily = tier === 'autopilot' || tier === 'autopilot_lite'"))
 

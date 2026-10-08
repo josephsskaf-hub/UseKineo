@@ -4,6 +4,9 @@
 //   2. Passe avulso: pack:starter = US$ 4,99 por 35 créditos = exatamente 1 filme Seedance 1.5 de 60 s; o starter290
 //      (dormente) anuncia 35 s; ads_pass segue 60 s; o passe aparece na parede de crédito do Studio para quem não assina.
 //   3. Anual = 12 × mensal × 0,60 (40% off), créditos mês a mês, reembolso integral em 14 dias e depois nenhum.
+//      KINEO-ANUAL-30-2026-10-08 — re-ancorado: o fundador baixou o anual para 30% off (12 × mensal × 0,70 →
+//      10800/25000/46000; BRL 54590/125990/230990). Quem pagou o anual de 40% (9290/21500/39500) segue com 60/150/300
+//      pelo degrau legado; a ferramenta de troca (oferta de 40% por e-mail) não muda. Crédito, reembolso e recarga iguais.
 //
 // Como prova (readFileSync + transpileModule, sem alias @/ resolvido por bundler, sem rede, sem banco): EXECUTA
 // lib/credits/engineCost.ts, lib/checkoutPricing.ts, lib/settlementCurrency.ts, lib/freeWeeklyFilm.ts,
@@ -74,18 +77,21 @@ function bateria(over = {}) {
   t(`pior caso do passe positivo (líquido ${net.toFixed(2)} vs COGS ${CP.worstCaseCogsUsd(CP.PACK_CREDITS.starter).toFixed(2)})`, net - CP.worstCaseCogsUsd(CP.PACK_CREDITS.starter) > 0)
   t('passe em BRL = R$ 24,90 pela fórmula da casa', SC.settlementAmountMinor(CP.PACK_PRICE_MINOR.usd, 'brl') === 2490)
 
-  // 3. Anual 40% off
+  // 3. Anual — KINEO-ANUAL-30-2026-10-08: 30% off (era 40% de 05/10 a 08/10)
   const M = { starter: 1290, basic: 2990, pro: 5490 }
-  const A = { starter: 9290, basic: 21500, pro: 39500 }
+  const A = { starter: 10800, basic: 25000, pro: 46000 }
+  const A40 = { starter: 9290, basic: 21500, pro: 39500 } // o anual de 40% off já vendido: degrau legado, mesmo grant
+  const B = { starter: 54590, basic: 125990, pro: 230990 }
   for (const tier of ['starter', 'basic', 'pro']) {
     const exato = (1 - CP.ANNUAL_PRICES[tier].usd / (CP.TIER_PRICES[tier].usd * 12)) * 100
-    t(`anual ${tier} = ${A[tier]} (12 × ${M[tier]} × 0,60 arredondado; desconto real ${exato.toFixed(2)}%)`, CP.TIER_PRICES[tier].usd === M[tier] && CP.ANNUAL_PRICES[tier].usd === A[tier] && Math.abs(exato - 40) <= 0.5 && CP.annualSavingsPercent(tier) === 40)
-    t(`anual BRL ${tier} = 12 × mensal BRL × 0,60 até ,90`, SC.BRL_PLAN_PRICES_MINOR[tier].annual === SC.brlAnnualFromMonthly(SC.BRL_PLAN_PRICES_MINOR[tier].monthly) && SC.BRL_PLAN_PRICES_MINOR[tier].annual < SC.BRL_PLAN_PRICES_MINOR[tier].monthly * 12 * 0.61)
+    t(`anual ${tier} = ${A[tier]} (12 × ${M[tier]} × 0,70 arredondado; desconto real ${exato.toFixed(2)}%)`, CP.TIER_PRICES[tier].usd === M[tier] && CP.ANNUAL_PRICES[tier].usd === A[tier] && Math.abs(exato - 30) <= 0.5 && CP.annualSavingsPercent(tier) === 30)
+    t(`anual BRL ${tier} = ${B[tier]} = 12 × mensal BRL × 0,70 até ,90`, SC.BRL_PLAN_PRICES_MINOR[tier].annual === B[tier] && SC.BRL_PLAN_PRICES_MINOR[tier].annual === SC.brlAnnualFromMonthly(SC.BRL_PLAN_PRICES_MINOR[tier].monthly) && SC.BRL_PLAN_PRICES_MINOR[tier].annual < SC.BRL_PLAN_PRICES_MINOR[tier].monthly * 12 * 0.71)
+    t(`anual de 40% off já pago (${A40[tier]}) fica abaixo do vigente e mantém o grant de ${CP.TIER_CREDITS[tier]} (degrau legado)`, CP.LEGACY_ANNUAL_40OFF_PRICES_USD[tier] === A40[tier] && A40[tier] < A[tier] && AR.annualRefillCredits(tier, A40[tier], 'usd') === CP.TIER_CREDITS[tier])
   }
-  t('ANNUAL_DISCOUNT_PERCENT = 40 e ANNUAL_REFUND_DAYS = 14', CP.ANNUAL_DISCOUNT_PERCENT === 40 && CP.ANNUAL_REFUND_DAYS === 14)
+  t('ANNUAL_DISCOUNT_PERCENT = 30, fração BRL = 0,70 e ANNUAL_REFUND_DAYS = 14', CP.ANNUAL_DISCOUNT_PERCENT === 30 && SC.BRL_ANNUAL_PAID_FRACTION === 0.7 && CP.ANNUAL_REFUND_DAYS === 14)
   t('política do anual: integral em 14 dias, depois nada', CP.ANNUAL_REFUND_POLICY === 'Annual plans are refundable in full within 14 days of purchase; after that, no refund.')
-  t('"≈ $X/mo" do anual: 7.74 / 17.92 / 32.92', CP.annualPerMonthLabel('starter') === '$7.74' && CP.annualPerMonthLabel('basic') === '$17.92' && CP.annualPerMonthLabel('pro') === '$32.92')
-  t('anual comprado hoje recebe o grant vigente mês a mês (recarga do cron: 60/150/300)', AR.annualRefillCredits('starter', 9290, 'usd') === 60 && AR.annualRefillCredits('basic', 21500, 'usd') === 150 && AR.annualRefillCredits('pro', 39500, 'usd') === 300 && AR.ANNUAL_REFILL_MAX_MONTH === 11)
+  t('"≈ $X/mo" do anual: 9.00 / 20.83 / 38.33', CP.annualPerMonthLabel('starter') === '$9.00' && CP.annualPerMonthLabel('basic') === '$20.83' && CP.annualPerMonthLabel('pro') === '$38.33')
+  t('anual comprado hoje recebe o grant vigente mês a mês (recarga do cron: 60/150/300)', AR.annualRefillCredits('starter', 10800, 'usd') === 60 && AR.annualRefillCredits('basic', 25000, 'usd') === 150 && AR.annualRefillCredits('pro', 46000, 'usd') === 300 && AR.ANNUAL_REFILL_MAX_MONTH === 11)
 
   // invariantes
   const inv = CP.checkPricingInvariants()
@@ -132,10 +138,12 @@ checa('checkout: PACK290_PRICES lê PACK290_PRICE_MINOR', /const PACK290_PRICES:
 checa('checkout: anual por getAnnualPrice em price_data com recurring.interval', /\? getAnnualPrice\(tier, currency, region\)/.test(ROTA) && /recurring: \{ interval \}/.test(ROTA))
 checa('checkout: descrição do passe diz "one 60-second Seedance film" e a do 290, 35 s (derivadas)', ROTA.includes('one ${PACK_ADVERTISED_SECONDS.starter}-second Seedance film. No subscription.') && ROTA.includes('one ${PACK_ADVERTISED_SECONDS.starter290}-second Seedance film.'))
 checa('webhook: fallback por valor 499 → PACK_CREDITS.starter e 490 legado → 30', /else if \(amount === PACK_PRICE_MINOR\.usd\) creditsToAdd = PACK_CREDITS\.starter/.test(WH) && /else if \(amount === LEGACY_PACK_STARTER_PRICE_MINOR_490\) creditsToAdd = LEGACY_PACK_STARTER_CREDITS_490/.test(WH))
-checa('PayPal: pack lê PACK_PRICE_MINOR (sem "4.90" digitado), retorno com amount da fonte, planos v3', /usd: usd\(PACK_PRICE_MINOR\.usd\)/.test(PP) && !/usd: '4\.90'/.test(PP) && /const PLAN_VERSION = 'v3'/.test(PP) && /amount=\$\{PACK_PRICE_MINOR\.usd\}/.test(PPR))
-checa('Studio Ads: 499 e anuais novos ocupados; 12900/54900 saíram', (() => { const arr = ((OFFER.match(/ONE_TIME_USD_MINOR_OCCUPIED: readonly number\[\] = \[([^\]]*)\]/) || [])[1] || '').split(',').map((x) => Number(x.trim())); return [499, 490, 9290, 21500, 39500].every((n) => arr.includes(n)) && ![12900, 54900].some((n) => arr.includes(n)) })())
+// KINEO-ANUAL-30-2026-10-08 — re-ancorado: o anual mudou de preço de novo, os planos PayPal sobem para v4 (um v3 anual já
+// criado cobraria o de 40% para sempre) e os anuais ocupados do Studio Ads passam a 10800/25000/46000.
+checa('PayPal: pack lê PACK_PRICE_MINOR (sem "4.90" digitado), retorno com amount da fonte, planos v4', /usd: usd\(PACK_PRICE_MINOR\.usd\)/.test(PP) && !/usd: '4\.90'/.test(PP) && /const PLAN_VERSION = 'v4'/.test(PP) && /amount=\$\{PACK_PRICE_MINOR\.usd\}/.test(PPR))
+checa('Studio Ads: 499 e anuais novos (30% off) ocupados; 12900/54900 e os de 40% (9290/21500/39500) saíram', (() => { const arr = ((OFFER.match(/ONE_TIME_USD_MINOR_OCCUPIED: readonly number\[\] = \[([^\]]*)\]/) || [])[1] || '').split(',').map((x) => Number(x.trim())); return [499, 490, 10800, 25000, 46000].every((n) => arr.includes(n)) && ![12900, 54900, 9290, 21500, 39500].some((n) => arr.includes(n)) })())
 checa('pricing: selo "SAVE {ANNUAL_DISCOUNT_PERCENT}%" no lugar de "2 MONTHS FREE"', PRICING.includes('SAVE {ANNUAL_DISCOUNT_PERCENT}%') && !PRICING.includes('2 MONTHS FREE'))
-checa('pricing: card anual "≈ $X" + "/mo, billed $Y yearly · save 40%"', PRICING.includes('`≈ ${annualPrices[p.tier as PaidTier].perMonth}`') && PRICING.includes("`/mo, billed ${displayCurrency ? annualPrices[p.tier as PaidTier].total : '—'} yearly · save ${ANNUAL_DISCOUNT_PERCENT}%`"))
+checa('pricing: card anual "≈ $X" + "/mo, billed $Y yearly · save {ANNUAL_DISCOUNT_PERCENT}%" (30% desde 08/10)', PRICING.includes('`≈ ${annualPrices[p.tier as PaidTier].perMonth}`') && PRICING.includes("`/mo, billed ${displayCurrency ? annualPrices[p.tier as PaidTier].total : '—'} yearly · save ${ANNUAL_DISCOUNT_PERCENT}%`"))
 checa('pricing: política do anual junto ao seletor, no FAQ e na caixa de garantia (3×)', (PRICING.match(/ANNUAL_REFUND_POLICY/g) || []).length >= 4 && PRICING.includes('data-testid="annual-refund-policy"'))
 checa('termos: política do anual da fonte única', TERMS.includes("import { ANNUAL_REFUND_POLICY } from '@/lib/checkoutPricing'") && TERMS.includes('{ANNUAL_REFUND_POLICY}'))
 checa('llms.txt / kineoFacts: anual com desconto e política; nada de "2 months free"', LLMS.includes('save ${plan.annualSavingsPercent}%') && LLMS.includes('${PRODUCT.annualRefundPolicy}') && FACTS.includes('annualRefundPolicy: ANNUAL_REFUND_POLICY') && !/2 months free/i.test(LLMS + FACTS))
@@ -154,8 +162,13 @@ const MUTANTES = [
   ['passe volta a US$ 4,90', muta('lib/checkoutPricing.ts', CPSRC, '{ usd: 499 }', '{ usd: 490 }')],
   ['passe volta a 30 créditos', muta('lib/checkoutPricing.ts', CPSRC, '  starter: 35,\n', '  starter: 30,\n')],
   ['starter290 volta a anunciar 60 s', muta('lib/checkoutPricing.ts', CPSRC, '  starter290: 35,\n  ads_pass: 60,', '  starter290: 60,\n  ads_pass: 60,')],
-  ['anual do Creator volta a 10× (29900)', muta('lib/checkoutPricing.ts', CPSRC, 'basic: { usd: 21500 }', 'basic: { usd: 29900 }')],
-  ['anual BRL do Starter volta a 10×', muta('lib/settlementCurrency.ts', SCSRC, 'annual: 46790', 'annual: 64900')],
+  // KINEO-ANUAL-30-2026-10-08 — os alvos do anual apontam para os números novos; quatro mutantes novos da decisão de 08/10.
+  ['anual do Creator volta a 10× (29900)', muta('lib/checkoutPricing.ts', CPSRC, 'basic: { usd: 25000 }', 'basic: { usd: 29900 }')],
+  ['anual do Studio volta aos 40% off (39500)', muta('lib/checkoutPricing.ts', CPSRC, 'pro: { usd: 46000 }', 'pro: { usd: 39500 }')],
+  ['ANNUAL_DISCOUNT_PERCENT volta a 40', muta('lib/checkoutPricing.ts', CPSRC, 'export const ANNUAL_DISCOUNT_PERCENT = 30', 'export const ANNUAL_DISCOUNT_PERCENT = 40')],
+  ['o degrau legado do anual de 40% some (Studio de $395 cairia para 180)', muta('lib/checkoutPricing.ts', CPSRC, 'Math.min(LEGACY_V5_PRICES_USD[tier] * 10, LEGACY_ANNUAL_40OFF_PRICES_USD[tier])', 'LEGACY_V5_PRICES_USD[tier] * 10')],
+  ['anual BRL do Starter volta a 10×', muta('lib/settlementCurrency.ts', SCSRC, 'annual: 54590', 'annual: 64900')],
+  ['fração BRL do anual volta a 0,6', muta('lib/settlementCurrency.ts', SCSRC, 'export const BRL_ANNUAL_PAID_FRACTION = 0.7', 'export const BRL_ANNUAL_PAID_FRACTION = 0.6')],
   ['reembolso do anual vira 30 dias', muta('lib/checkoutPricing.ts', CPSRC, 'ANNUAL_REFUND_DAYS = 14', 'ANNUAL_REFUND_DAYS = 30')],
   ['checkout anual volta a dizer 7 dias', muta('lib/growth/checkoutValueContext.ts', CVSRC, 'within 14 days of purchase', 'within 7 days of purchase')],
 ]
@@ -167,4 +180,4 @@ for (const [nome, over] of MUTANTES) {
 
 console.log(`\n  verificações: ${ok + falhas.length} · falhas: ${falhas.length}`)
 if (falhas.length) { for (const x of falhas) console.log('  ✗ ' + x); process.exit(1) }
-console.log('OK — Pacote 2: Seedance 35 cr · passe US$ 4,99/35 cr (1 filme de 60 s) · anual 40% off com reembolso em 14 dias')
+console.log('OK — Pacote 2: Seedance 35 cr · passe US$ 4,99/35 cr (1 filme de 60 s) · anual 30% off (desde 08/10; 40% já vendido mantém o grant) com reembolso em 14 dias')

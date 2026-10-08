@@ -82,7 +82,10 @@ export const PAYPAL_PACK = {
 // PAYPAL_ENABLED sempre foi false), e o tierFromPlanId lê os dois formatos.
 // KINEO-ANUAL-40OFF-2026-10-05 — v2 → v3: o anual mudou de preço (40% off) e o plano PayPal v2 anual, se já
 // foi criado, cobraria o preço antigo para sempre. O /api/paypal/setup cria os v3 com o preço vigente.
-const PLAN_VERSION = 'v3'
+// KINEO-ANUAL-30-2026-10-08 — v3 → v4, mesmo motivo: o anual passou a 30% off ($108 / $250 / $460) e um plano v3
+// anual já criado cobraria o de 40% ($92,90 / $215 / $395) para sempre. ensurePlan (checkout e setup) cria os v4 na
+// primeira chamada; assinaturas v3 existentes seguem mapeadas (tierFromPlanId ignora o sufixo de versão).
+const PLAN_VERSION = 'v4'
 
 export function paypalAdminClient() {
   return createSupabaseAdmin(
