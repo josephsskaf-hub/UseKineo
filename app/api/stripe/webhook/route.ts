@@ -867,7 +867,7 @@ async function recordPaymentSuccess(
       // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — só na compra de convidado (as outras linhas não mudam de forma).
       // KINEO-CUPOM-CONVIDADO-2026-10-07 — e, nela, o desconto de boas-vindas quando houve (sem ele, nada muda).
       ...(isGuestCheckoutSession(session) ? { guest_checkout: true, guest_checkout_version: GUEST_CHECKOUT_VERSION, ...guestWelcomePromoEventMetadata(session.metadata) } : {}),
-      // KINEO-ANUNCIO-MOTOR-2026-10-07 — o clique pago (paid_utm_* + gclid|gbraid|wbraid) copiado do checkout_started;
+      // KINEO-ANUNCIO-MOTOR-2026-10-07 — o clique pago (paid_utm_* + gclid|gbraid|wbraid|msclkid) copiado do checkout_started;
       // compra sem anúncio = nenhuma chave nova. É o que a leitura do teste de anúncio por motor soma por grupo.
       ...paidClickMetadata,
     },

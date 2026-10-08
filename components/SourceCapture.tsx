@@ -69,7 +69,7 @@ export default function SourceCapture() {
     // ReferralAutoTrigger can attribute the new account after authentication.
     captureRefOnce()
 
-    // KINEO-ANUNCIO-MOTOR-2026-10-07 — o ÚLTIMO clique pago (gclid/gbraid/wbraid ou utm_medium pago) vai para um cookie
+    // KINEO-ANUNCIO-MOTOR-2026-10-07 — o ÚLTIMO clique pago (gclid/gbraid/wbraid/msclkid ou utm_medium pago) vai para um cookie
     // de 90 dias que a rota de checkout copia para os eventos de checkout e o webhook para o payment_success — inclusive
     // na compra sem login. Sem sinal pago na URL nada é escrito: visita orgânica nunca apaga o clique (ver o módulo).
     try {

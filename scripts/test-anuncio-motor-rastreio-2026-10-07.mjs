@@ -5,8 +5,8 @@
 //
 // O QUE ELE PROVA, lendo os arquivos REAIS (readFileSync + transpile; nada de import com alias '@/', que não roda aqui):
 //   A. lib/growth/paidClickAttribution.ts, EXECUTADO: só sinal pago vira clique (visita orgânica nunca apaga um clique
-//      pago); gclid > gbraid > wbraid; saneamento de formato fechado; idade máxima de 90 dias; folga de relógio; o cookie
-//      (Path, Max-Age, SameSite, Secure só em https); as chaves paid_* exatas; a cópia do evento re-saneada.
+//      pago); gclid > gbraid > wbraid > msclkid; saneamento de formato fechado; idade máxima de 90 dias; folga de relógio;
+//      o cookie (Path, Max-Age, SameSite, Secure só em https); as chaves paid_* exatas; a cópia do evento re-saneada.
 //   B. components/SourceCapture.tsx (todo pouso) escreve o cookie só quando o módulo devolve uma linha.
 //   C. app/api/stripe/checkout/route.ts põe o clique em TODO evento de checkout pelo writer único (recordCheckoutEvent),
 //      lendo o cookie pela constante — e o checkout_started do CONVIDADO passa por esse mesmo writer.
@@ -15,6 +15,9 @@
 //   E. A conversão de compra do Google Ads segue de pé: tag AW no layout, rótulo de compra com UM dono, valor e moeda
 //      reais, o observador ligado no /checkout/success — e o convidado volta por esse mesmo /checkout/success (é lá que o
 //      pixel dispara), com o dono carimbado na sessão da Stripe para a verificação aceitar.
+//   F. KINEO-MSCLKID-2026-10-08 — o clique do Microsoft Ads (Bing): o msclkid é capturado no pouso (com ou sem UTM), vai
+//      no cookie, volta inteiro no checkout, sai nas chaves paid_* dos eventos de checkout e é copiado para o
+//      payment_success (convidado incluído); adulterado não passa; o gclid continua vencendo quando os dois aparecem.
 // A prova de ponta a ponta (rota + webhook executados com cookie de verdade) mora no cenário "clique pago do anúncio" de
 // scripts/test-compra-sem-login-2026-10-06.mjs, que já tem o mundo falso da Stripe e do banco.
 //
@@ -75,7 +78,7 @@ const adClick = {
 
 same(P.PAID_CLICK_COOKIE, 'kineo_paid_click', 'A1. nome do cookie')
 same(P.PAID_CLICK_MAX_AGE_SECONDS, 90 * 24 * 60 * 60, 'A2. o cookie vive 90 dias')
-same([...P.PAID_CLICK_ID_TYPES], ['gclid', 'gbraid', 'wbraid'], 'A3. identificadores e precedência')
+same([...P.PAID_CLICK_ID_TYPES], ['gclid', 'gbraid', 'wbraid', 'msclkid'], 'A3. identificadores e precedência')
 same(P.paidClickFromSearch(AD, NOW), adClick, 'A4. o clique do anúncio sai inteiro (utm + palavra-chave + gclid + hora)')
 same(
   P.paidClickFromSearch('?utm_source=google&utm_medium=cpc&utm_campaign=motor-veo&gbraid=0AAAAAoTESTgbraid', NOW),
@@ -236,6 +239,47 @@ same(
 )
 check(/^\s*await deps\.updateCheckoutSessionMetadata\(sessionId, \{ supabase_user_id: userId \}\)$/m.test(read('lib/stripe/guestCheckout.ts')), 'E7. o webhook carimba o dono na sessão da Stripe (a verificação do pixel aceita o convidado)')
 check(/session\.metadata\?\.supabase_user_id !== userId/.test(read('lib/growth/verifiedCheckoutPurchase.ts')), 'E8. o pixel só dispara para o dono verificado da sessão')
+
+// ═══ F. O clique do Microsoft Ads (msclkid) — KINEO-MSCLKID-2026-10-08 ═════════════════════════════════════════════════
+// O Microsoft acrescenta ?msclkid=<GUID de 32 caracteres> a todo clique (auto-tagging). A URL abaixo é a de um anúncio do
+// pacote microsoft-ads-motores-0810 (UTMs do Bing + sufixo utm_term={keyword}) com o msclkid colado pelo Microsoft.
+const MSCLKID = '9f86d081884c4d0ea2f1b3c4d5e6f708'
+const BING_AD = `?utm_source=bing&utm_medium=cpc&utm_campaign=motores_0810&utm_content=g1-seedance-2-5&utm_term=seedance%202.5%20app&msclkid=${MSCLKID}`
+const bingClick = {
+  source: 'bing', medium: 'cpc', campaign: 'motores_0810', term: 'seedance 2.5 app',
+  idType: 'msclkid', id: MSCLKID, atMs: NOW,
+}
+check([...P.PAID_CLICK_ID_TYPES].includes('msclkid'), 'F1. msclkid é um identificador de clique pago')
+same(P.paidClickFromSearch(BING_AD, NOW), bingClick, 'F2. o clique do Bing sai inteiro (utm + palavra-chave + msclkid + hora)')
+same(
+  P.paidClickFromSearch(`?msclkid=${MSCLKID}`, NOW),
+  { source: null, medium: null, campaign: null, term: null, idType: 'msclkid', id: MSCLKID, atMs: NOW },
+  'F3. msclkid sozinho (sem UTM) já é clique pago',
+)
+same(P.paidClickFromSearch(`?msclkid=${MSCLKID}&gclid=${GCLID}`, NOW)?.idType, 'gclid', 'F4. com os dois na URL, o gclid continua vencendo (a ordem do Google não mudou)')
+same(P.paidClickFromSearch('?utm_source=bing&utm_medium=cpc&msclkid=abc%22onload%3Dx%20y', NOW)?.id, null, 'F5. msclkid fora do formato nunca é gravado (o clique pago fica sem id)')
+same(P.paidClickFromSearch('?msclkid=abc', NOW), null, 'F6. msclkid curto demais, sozinho, não é clique')
+const bingWrite = P.paidClickCookieWrite(BING_AD, NOW, true)
+check(typeof bingWrite === 'string' && bingWrite.startsWith('kineo_paid_click=') && bingWrite.endsWith('; Path=/; Max-Age=7776000; SameSite=Lax; Secure'), `F7. o pouso do Bing escreve o MESMO cookie de 90 dias (${bingWrite})`)
+const bingValue = typeof bingWrite === 'string' ? bingWrite.slice('kineo_paid_click='.length, bingWrite.indexOf(';')) : ''
+same(P.parsePaidClick(bingValue, NOW + DAY), bingClick, 'F8. o cookie do Bing volta inteiro na rota de checkout (msclkid incluído)')
+same(P.parsePaidClick(decodeURIComponent(bingValue), NOW + DAY), bingClick, 'F9. também decodificado (como o Next entrega)')
+same(P.parsePaidClick(bingValue, NOW + 90 * DAY + 1000), null, 'F10. e vence em 90 dias, igual ao do Google')
+const bingMeta = P.paidClickEventMetadata(bingClick)
+same(bingMeta, {
+  paid_click_version: 'paid_click_v1',
+  paid_utm_source: 'bing',
+  paid_utm_medium: 'cpc',
+  paid_utm_campaign: 'motores_0810',
+  paid_utm_term: 'seedance 2.5 app',
+  paid_click_id_type: 'msclkid',
+  paid_click_id: MSCLKID,
+  paid_click_at: new Date(NOW).toISOString(),
+}, 'F11. os eventos de checkout levam o msclkid nas MESMAS chaves paid_* (nenhuma chave nova)')
+same(P.paidClickMetadataFromEvent({ tier: 'basic', stripe_session_id: 'cs_test_bing', guest_checkout: true, ...bingMeta }), bingMeta, 'F12. o webhook copia o msclkid do checkout_started para o payment_success (convidado incluído)')
+same(P.parsePaidClick(JSON.stringify({ ...JSON.parse(P.serializePaidClick(bingClick)), i: 'x y' }), NOW), null, 'F13. cookie com msclkid adulterado é recusado')
+same(P.paidClickMetadataFromEvent({ ...bingMeta, paid_click_id: 'x y' }), {}, 'F14. checkout_started com msclkid adulterado não é copiado')
+same(P.paidClickMetadataFromEvent({ ...bingMeta, paid_click_id_type: 'msclkid_v2' }), {}, 'F15. tipo de identificador inventado continua recusado')
 
 const total = passed + failures.length
 if (failures.length > 0) {

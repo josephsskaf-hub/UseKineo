@@ -64,6 +64,7 @@ const PURE = 'lib/growth/guestCheckout.ts'
 const SERVER = 'lib/stripe/guestCheckout.ts'
 const CHECKOUT = 'app/api/stripe/checkout/route.ts'
 const WEBHOOK = 'app/api/stripe/webhook/route.ts'
+const PAID_CLICK = 'lib/growth/paidClickAttribution.ts' // KINEO-MSCLKID-2026-10-08 — alvo do mutante do msclkid
 const ACCESS = 'app/api/stripe/checkout/guest-access/route.ts'
 const LINK = 'app/auth/guest-link/route.ts'
 const SINK = 'app/api/events/route.ts'
@@ -2001,7 +2002,8 @@ async function sWelcomeLoggedUnchanged() {
 // Rota e webhook REAIS: o cookie kineo_paid_click (escrito pelo SourceCapture, lib/growth/paidClickAttribution.ts) tem
 // de aparecer no checkout_started, no checkout_guest_started e no payment_success — do convidado e do logado —, nunca na
 // sessão da Stripe; sem cookie (ou com cookie adulterado) nenhuma chave nova. Guardião próprio do módulo e das âncoras:
-// scripts/test-anuncio-motor-rastreio-2026-10-07.mjs.
+// scripts/test-anuncio-motor-rastreio-2026-10-07.mjs. KINEO-MSCLKID-2026-10-08: o clique do Microsoft Ads (msclkid) faz o
+// mesmo caminho na compra sem login (bloco 2b) e tem mutante próprio no módulo.
 async function sPaidClick(env) {
   const p = []
   const atSec = Math.floor(Date.now() / 1000) - 3600
@@ -2036,6 +2038,27 @@ async function sPaidClick(env) {
     if (paidOf(ofSession('checkout_started', loggedSession)?.metadata) !== expected) p.push('anúncio: checkout_started do logado sem o clique pago')
     const loggedPaid = ofSession('payment_success', loggedSession)
     if (loggedPaid?.user_id !== user.id || paidOf(loggedPaid?.metadata) !== expected) p.push('anúncio: payment_success do logado sem o clique pago')
+  }
+  // 2b. KINEO-MSCLKID-2026-10-08 — convidado que clicou no anúncio do Microsoft Ads (Bing): o msclkid faz o MESMO caminho
+  //     do gclid (cookie → checkout_started/checkout_guest_started → payment_success) e também nunca entra na Stripe.
+  const MSCLKID = '9f86d081884c4d0ea2f1b3c4d5e6f708'
+  const bingCookie = encodeURIComponent(JSON.stringify({ v: 1, s: 'bing', m: 'cpc', c: 'motores_0810', t: 'seedance 2.5 app', k: 'msclkid', i: MSCLKID, a: atSec }))
+  const bingExpected = JSON.stringify({
+    paid_click_version: 'paid_click_v1', paid_utm_source: 'bing', paid_utm_medium: 'cpc', paid_utm_campaign: 'motores_0810',
+    paid_utm_term: 'seedance 2.5 app', paid_click_id_type: 'msclkid', paid_click_id: MSCLKID, paid_click_at: new Date(atSec * 1000).toISOString(),
+  })
+  const bing = await guestPurchase(env, { browser: newBrowser({ kineo_event_session_id: 'sess_anuncio_b1', kineo_paid_click: bingCookie }), email: 'anuncio.bing@exemplo.com' })
+  if (!bing.sessionId) {
+    p.push('bing: GET do convidado não abriu sessão')
+  } else {
+    if (bing.delivered?.res.status !== 200) p.push(`bing: webhook do convidado ${bing.delivered?.res.status}`)
+    if (paidOf(ofSession('checkout_started', bing.sessionId)?.metadata) !== bingExpected) p.push(`bing: checkout_started do convidado sem o msclkid (${paidOf(ofSession('checkout_started', bing.sessionId)?.metadata)})`)
+    if (paidOf(ofSession('checkout_guest_started', bing.sessionId)?.metadata) !== bingExpected) p.push('bing: checkout_guest_started sem o msclkid')
+    const bingPaid = ofSession('payment_success', bing.sessionId)
+    if (!bingPaid?.user_id) p.push('bing: payment_success do convidado ausente/sem dono')
+    if (paidOf(bingPaid?.metadata) !== bingExpected) p.push(`bing: payment_success do convidado sem o msclkid (${paidOf(bingPaid?.metadata)})`)
+    const bingStripeSide = JSON.stringify([env.stripe.sessionStore.get(bing.sessionId)?.metadata ?? {}, lastCreate(env)?.params ?? {}])
+    if (/paid_|msclkid|motores_0810/.test(bingStripeSide)) p.push('bing: o clique pago vazou para a sessão da Stripe')
   }
   // 3. Sem anúncio e com cookie adulterado: o evento sai como antes, sem chave paid_*.
   for (const [label, jar] of [['sem cookie', {}], ['cookie adulterado', { kineo_paid_click: encodeURIComponent('{"v":1,"k":"gclid","i":"x y","a":1}') }]]) {
@@ -2444,6 +2467,8 @@ const MUTANTS = [
   // KINEO-ANUNCIO-MOTOR-2026-10-07 — sem a cópia em qualquer uma das duas pontas, a compra perde a origem paga.
   ['rota: eventos de checkout sem o clique pago', { [CHECKOUT]: [replaceOnce('      metadata: { ...metadata, ...paidClickMetadataFromRequest() },\n', '      metadata,\n', 'eventRow sem o clique')] }, sPaidClick, true],
   ['webhook: payment_success sem o clique pago', { [WEBHOOK]: [replaceOnce('      ...paidClickMetadata,\n', '', 'payment_success sem o clique')] }, sPaidClick, true],
+  // KINEO-MSCLKID-2026-10-08 — o módulo sem o msclkid: o clique do Bing chega ao pagamento sem identificador.
+  ['módulo: clique pago sem o msclkid', { [PAID_CLICK]: [replaceOnce("export const PAID_CLICK_ID_TYPES = ['gclid', 'gbraid', 'wbraid', 'msclkid'] as const\n", "export const PAID_CLICK_ID_TYPES = ['gclid', 'gbraid', 'wbraid'] as const\n", 'sem msclkid')] }, sPaidClick, true],
 ]
 for (const [name, transforms, scenario, live, welcomeLive = false] of MUTANTS) {
   let problems
