@@ -269,6 +269,7 @@ function makeDb() {
 function makeStripe() {
   const subs = new Map()
   const invoices = new Map()
+  const products = new Map()
   const calls = []
   const idem = new Map()
   const state = { cardDeclined: false }
@@ -349,6 +350,7 @@ function makeStripe() {
   return {
     subs,
     invoiceMap: invoices,
+    productMap: products,
     calls,
     state,
     ops: (op) => calls.filter((c) => c.op === op),
@@ -397,7 +399,19 @@ function makeStripe() {
     },
     products: {
       async search(params) { calls.push({ op: 'products.search', params: clone(params) }); return { data: [] } },
-      async create(params) { calls.push({ op: 'products.create', params: clone(params) }); return { id: nextId('prod_') } },
+      async retrieve(id) {
+        calls.push({ op: 'products.retrieve', id })
+        if (!products.has(id)) throw missing('product', id)
+        return clone(products.get(id))
+      },
+      async create(params, opts) {
+        calls.push({ op: 'products.create', params: clone(params), idempotencyKey: opts?.idempotencyKey ?? null })
+        const id = params.id ?? nextId('prod_')
+        if (products.has(id)) throw stripeError('StripeInvalidRequestError', 'resource_already_exists', `Product already exists: '${id}'`, 400)
+        const created = { id, object: 'product', active: true, name: params.name, metadata: clone(params.metadata ?? {}) }
+        products.set(id, created)
+        return clone(created)
+      },
     },
     customers: {
       async retrieve(id) { calls.push({ op: 'customers.retrieve', id }); return { id, object: 'customer', email: null, metadata: {} } },
@@ -492,6 +506,8 @@ const SUB = 'sub_TROCA01'
 const ITEM = 'si_TROCA01'
 const CUS = 'cus_TROCA01'
 const PROD = 'prod_TROCA01'
+// O Product do item mensal (PROD) nasce arquivado no checkout real; o anual vai para o Product da casa (id fixo).
+const HOUSE = 'kineo_plan_starter'
 /** O saldo do fixture no dia da troca (o 1º SIM tinha 2). A troca concede a cota do Starter (60) pela régua da renovação. */
 const CREDITS_NOW = 2
 /** A metadata que o checkout mensal da casa grava (subscription_data.metadata), com afiliado e marcador de intro. */
@@ -656,14 +672,15 @@ async function sEnsaio() {
   if (r.status !== 200 || b.mode !== 'dry_run' || b.ready_to_send !== true) p.push(`ensaio: ${r.status} ${b.mode} ready=${b.ready_to_send} ${JSON.stringify(b.blockers ?? b.error)}`)
   const ops = env.stripe.calls.map((c) => c.op)
   if (env.stripe.ops('subscriptions.update').length) p.push('ensaio chamou subscriptions.update')
-  if (env.stripe.ops('products.create').length) p.push('ensaio criou Product na Stripe')
-  if (ops.join(',') !== 'subscriptions.retrieve,invoices.createPreview') p.push(`ensaio fez chamadas inesperadas à Stripe: ${ops.join(', ')}`)
+  const pcs = env.stripe.ops('products.create')
+  if (pcs.length !== 1 || pcs[0].params?.id !== HOUSE || pcs[0].params?.metadata?.kineo_tier !== 'starter' || !String(pcs[0].idempotencyKey ?? '').includes(HOUSE)) p.push(`ensaio não criou (uma vez, id fixo, idempotência) o Product da casa: ${JSON.stringify(pcs.map((c) => [c.params?.id, c.idempotencyKey]))}`)
+  if (ops.join(',') !== 'subscriptions.retrieve,products.retrieve,products.create,invoices.createPreview') p.push(`ensaio fez chamadas inesperadas à Stripe: ${ops.join(', ')}`)
   if (snapshot(env) !== before) p.push('ensaio gravou algo (banco ou Stripe)')
   const pv = env.stripe.ops('invoices.createPreview')[0]?.params
   const det = pv?.subscription_details
   const it = det?.items?.[0]
   if (pv?.subscription !== SUB || it?.id !== ITEM) p.push('prévia não é da assinatura/item da pessoa')
-  if (it?.price_data?.recurring?.interval !== 'year' || it?.price_data?.unit_amount !== 7100 || it?.price_data?.currency !== 'usd' || it?.price_data?.product !== PROD) p.push(`prévia com price_data errado: ${JSON.stringify(it?.price_data)}`)
+  if (it?.price_data?.recurring?.interval !== 'year' || it?.price_data?.unit_amount !== 7100 || it?.price_data?.currency !== 'usd' || it?.price_data?.product !== HOUSE) p.push(`prévia com price_data errado: ${JSON.stringify(it?.price_data)}`)
   if (det?.proration_behavior !== 'always_invoice' || det?.billing_cycle_anchor !== 'now') p.push(`prévia sem always_invoice/âncora now: ${det?.proration_behavior}/${det?.billing_cycle_anchor}`)
   const credit = expectedCredit(990)
   if (b.preview?.prorationCreditMinor !== credit) p.push(`crédito do mês ${b.preview?.prorationCreditMinor} ≠ ${credit}`)
@@ -693,8 +710,9 @@ async function sSend() {
   const it = u.params?.items?.[0] ?? {}
   if (u.id !== SUB || it.id !== ITEM || it.quantity !== 1) p.push('update não é do item da pessoa (ou quantidade ≠ 1)')
   if (it.price_data?.recurring?.interval !== 'year') p.push(`update com intervalo ${it.price_data?.recurring?.interval}, esperava year`)
-  if (it.price_data?.unit_amount !== 7100 || it.price_data?.currency !== 'usd' || it.price_data?.product !== PROD) p.push(`update com price_data errado: ${JSON.stringify(it.price_data)}`)
+  if (it.price_data?.unit_amount !== 7100 || it.price_data?.currency !== 'usd' || it.price_data?.product !== HOUSE) p.push(`update com price_data errado: ${JSON.stringify(it.price_data)}`)
   if (it.price !== undefined) p.push('update usou Price de painel em vez de price_data')
+  if (env.stripe.ops('products.create').length !== 1) p.push(`ensaio + SEND criaram ${env.stripe.ops('products.create').length} Products (esperava 1, reaproveitado)`)
   if (u.params?.proration_behavior !== 'always_invoice') p.push(`update com proration ${u.params?.proration_behavior}, esperava always_invoice`)
   if (u.params?.billing_cycle_anchor !== 'now') p.push('update sem billing_cycle_anchor now (não cobraria agora)')
   if (u.params?.payment_behavior !== 'error_if_incomplete') p.push(`update com payment_behavior ${u.params?.payment_behavior}`)
@@ -1042,6 +1060,44 @@ function sEstatico() {
 }
 
 // ═══ execução: base verde ═══════════════════════════════════════════════════════════════════════════════════════════
+/** R8 (08/10, 1ª troca real): o Product do item mensal nasce arquivado no checkout e a Stripe recusa price_data nele.
+ *  O anual usa o Product da casa (id fixo kineo_plan_<tier>): reaproveita se ativo, cria uma vez se faltar, recusa se arquivado. */
+async function sProdutoDaCasa() {
+  const p = []
+  {
+    const env = makeEnv()
+    seed(env)
+    env.stripe.productMap.set(HOUSE, { id: HOUSE, object: 'product', active: true, name: 'Kineo Starter', metadata: { kineo_tier: 'starter' } })
+    const r = await callRoute(env, DRY71)
+    if (r.status !== 200 || r.body?.ready_to_send !== true) p.push(`casa ativa: ensaio ${r.status} ${JSON.stringify(r.body?.error ?? r.body?.blockers)}`)
+    if (env.stripe.ops('products.create').length) p.push('casa ativa: criou outro Product')
+    const it = env.stripe.ops('invoices.createPreview')[0]?.params?.subscription_details?.items?.[0]
+    if (it?.price_data?.product !== HOUSE) p.push(`casa ativa: prévia no Product ${it?.price_data?.product}, esperava ${HOUSE}`)
+    if (r.body?.product?.id !== HOUSE || r.body?.product?.created_now !== false || r.body?.product?.monthly_item_product !== PROD) p.push(`casa ativa: ensaio não mostra o Product: ${JSON.stringify(r.body?.product)}`)
+  }
+  {
+    const env = makeEnv()
+    seed(env)
+    env.stripe.productMap.set(HOUSE, { id: HOUSE, object: 'product', active: false, name: 'Kineo Starter', metadata: { kineo_tier: 'starter' } })
+    const before = snapshot(env)
+    const r = await callRoute(env, SEND71)
+    if (r.status !== 409 || r.body?.error !== 'house_product_inactive') p.push(`casa arquivada: ${r.status} ${r.body?.error}, esperava 409 house_product_inactive`)
+    if (env.stripe.ops('subscriptions.update').length || env.stripe.ops('invoices.createPreview').length || env.stripe.ops('products.create').length) p.push('casa arquivada: chamou prévia, update ou create')
+    if (snapshot(env) !== before) p.push('casa arquivada: gravou algo')
+  }
+  {
+    const env = makeEnv()
+    seed(env)
+    const r = await callRoute(env, SEND71)
+    if (r.status !== 200 || r.body?.switched !== true) p.push(`SEND sem ensaio: ${r.status} ${JSON.stringify(r.body?.error ?? r.body?.blockers)}`)
+    const pcs = env.stripe.ops('products.create')
+    if (pcs.length !== 1 || pcs[0].params?.id !== HOUSE) p.push(`SEND sem ensaio: ${pcs.length} creates (${pcs.map((c) => c.params?.id).join(',')})`)
+    const it = env.stripe.ops('subscriptions.update')[0]?.params?.items?.[0]
+    if (it?.price_data?.product !== HOUSE) p.push(`SEND sem ensaio: update no Product ${it?.price_data?.product}`)
+  }
+  return p
+}
+
 const SCENARIOS = {
   regraPura: () => sRegraPura(makeEnv()),
   regraRota: () => sRegraRota(),
@@ -1057,6 +1113,7 @@ const SCENARIOS = {
   webhookERecarga: () => sWebhookERecarga(),
   cartaoRecusado: () => sCartaoRecusado(),
   bloqueios: () => sBloqueios(),
+  produtoDaCasa: () => sProdutoDaCasa(),
 }
 /** Roda um cenário com (ou sem) mutante; exceção conta como problema, nunca derruba o guardião. */
 async function run(name, transforms = null) {
@@ -1103,6 +1160,9 @@ const MUTANTS = [
   ['a troca concede somando em vez da régua da renovação', { [ROUTE]: [replaceOnce('  if (grant) patch.video_credits = grant.balance\n', '  if (grant) patch.video_credits = before + (input.quota ?? 0)\n', 'cota somada')] }, 'send'],
   ['créditos que mudariam passam', { [LIB]: [replaceOnce('  if (f.credits && !f.credits.same) {\n', '  if (false) {\n', 'sem o bloqueio de créditos')] }, 'bloqueios'],
   ['cupom passa', { [LIB]: [replaceOnce('  if (f.discountCount > 0) add(', '  if (false) add(', 'sem o bloqueio de cupom')] }, 'bloqueios'],
+  ['R8 anual no Product do item mensal (arquivado na Stripe real)', { [ROUTE]: [replaceOnce("product: houseProduct.id, unit_amount: annualMinor", "product: productId!, unit_amount: annualMinor", 'Product do item')] }, 'ensaio'],
+  ['R8 Product da casa sem id fixo', { [ROUTE]: [replaceOnce('    { id, name: HOUSE_PRODUCT_NAMES', '    { name: HOUSE_PRODUCT_NAMES', 'create sem id')] }, 'ensaio'],
+  ['R8 Product da casa arquivado passa', { [ROUTE]: [replaceOnce('    if (found.active) return { id, created: false }\n    return { inactive: true, id }\n', '    return { id, created: false }\n', 'arquivado aceito')] }, 'produtoDaCasa'],
 ]
 let killed = 0
 for (const [label, transforms, scenario] of MUTANTS) {

@@ -85,6 +85,41 @@ function stripeErrorShape(e: unknown) {
 const idOf = (v: unknown): string | null =>
   typeof v === 'string' ? v : v && typeof v === 'object' && typeof (v as { id?: unknown }).id === 'string' ? (v as { id: string }).id : null
 
+// ── KINEO-TROCA-ANUAL-PRODUTO-DA-CASA-2026-10-08 ─────────────────────────────────────────────────────────────────────
+// 1ª troca real (Rick, 08/10 ~00h30 BRT): a prévia da Stripe recusou com "The product prod_… is marked as inactive, and
+// thus no new subscriptions can be created to any plans of this product". O checkout cria o Product do item mensal com
+// product_data e esse Product não aceita preço novo. Na atualização de item a Stripe só aceita price_data com `product`
+// (id), então o anual nasce no Product DA CASA para o plano, com id FIXO (kineo_plan_<tier>, metadata kineo_tier — o
+// mesmo que o change-plan acha pela busca). Busca por id (sem o atraso do índice de busca da Stripe); criado UMA vez se
+// faltar (id fixo + chave de idempotência). O ensaio pode criá-lo: é catálogo, sem preço e sem cobrança. Product da casa
+// arquivado = recusa (409): reativar é decisão de quem cuida do catálogo, não desta rota.
+const HOUSE_PRODUCT_PREFIX = 'kineo_plan_'
+const HOUSE_PRODUCT_NAMES: Record<string, string> = { starter: 'Kineo Starter', basic: 'Kineo Creator', pro: 'Kineo Studio' }
+type HouseProduct = { id: string; created: boolean }
+
+async function houseProductFor(tier: string): Promise<HouseProduct | { inactive: true; id: string }> {
+  const id = `${HOUSE_PRODUCT_PREFIX}${tier}`
+  try {
+    const found = await stripe.products.retrieve(id)
+    if (found.active) return { id, created: false }
+    return { inactive: true, id }
+  } catch (e) {
+    if ((e as { code?: unknown })?.code !== 'resource_missing') throw e
+  }
+  try {
+    await stripe.products.create(
+      { id, name: HOUSE_PRODUCT_NAMES[tier] ?? `Kineo ${tier}`, metadata: { kineo_tier: tier, kineo_source: 'switch-to-annual' } },
+      { idempotencyKey: `kineo-house-product-v1:${id}` },
+    )
+  } catch (e) {
+    // Dois cliques juntos: o outro pedido criou primeiro (mesmo id fixo) — reler e usar o que já existe.
+    const again = await stripe.products.retrieve(id).catch(() => null)
+    if (again?.active) return { id, created: false }
+    throw e
+  }
+  return { id, created: true }
+}
+
 export async function POST(req: Request) {
   // ── 1. só admin ──────────────────────────────────────────────────────────────────────────────────────────────────
   const supabase = createClient()
@@ -289,9 +324,27 @@ export async function POST(req: Request) {
   const annualMinor = rule.annualMinor
   const switchCredits = credits!
   const newMetadata = annualSwitchMetadata({ existing: metadata, userId, tier, planCredits: switchCredits.perMonthAfter, monthlyMinor: monthlyMinor!, annualMinor })
+  // O anual nasce no Product da casa (KINEO-TROCA-ANUAL-PRODUTO-DA-CASA-2026-10-08), nunca no Product do item mensal.
+  let houseProduct: HouseProduct
+  try {
+    const hp = await houseProductFor(tier)
+    if ('inactive' in hp) {
+      return NextResponse.json({
+        error: 'house_product_inactive',
+        mode,
+        product: hp.id,
+        hint: 'O Product da casa deste plano está arquivado na Stripe. Reative-o no catálogo de produtos e rode o ensaio de novo.',
+        ...report,
+        nothing_written: true,
+      }, { status: 409 })
+    }
+    houseProduct = hp
+  } catch (e) {
+    return NextResponse.json({ error: 'stripe_product_failed', mode, stripe: stripeErrorShape(e), ...report, nothing_written: true }, { status: 502 })
+  }
   const annualItem = {
     id: item!.id,
-    price_data: { currency: 'usd', product: productId!, unit_amount: annualMinor, recurring: { interval: 'year' as const } },
+    price_data: { currency: 'usd', product: houseProduct.id, unit_amount: annualMinor, recurring: { interval: 'year' as const } },
     quantity: 1,
   }
   const PRORATION = 'always_invoice' as const
@@ -316,6 +369,7 @@ export async function POST(req: Request) {
       blockers: [],
       ...report,
       annual: { usd: rule.annualUsd, minor: annualMinor, label: usdLabel(annualMinor) },
+      product: { id: houseProduct.id, created_now: houseProduct.created, monthly_item_product: productId },
       preview: summary && {
         ...summary,
         proration_credit: usdLabel(summary.prorationCreditMinor),

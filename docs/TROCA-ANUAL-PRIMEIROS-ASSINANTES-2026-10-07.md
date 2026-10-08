@@ -133,6 +133,15 @@ A promessa é reembolso integral em até 14 dias da troca (o SEND devolve `refun
 `$X` = `charged_now.label` do SEND (o anual menos o crédito do mês). O SEND devolve este texto pronto em
 `customer_reply_en`.
 
+## O Product do preço anual (08/10, primeira troca real)
+
+O ensaio do Rick devolveu 502: a Stripe recusou criar preço no Product do item mensal ("marked as inactive") — o
+checkout cria esse Product com `product_data` e ele não aceita preço novo. Desde 08/10 o anual nasce no **Product da
+casa** do plano, com id fixo `kineo_plan_<tier>` (Kineo Starter / Kineo Creator / Kineo Studio, metadata `kineo_tier`):
+reaproveitado se ativo, criado uma única vez se faltar (o ensaio pode criá-lo — é catálogo, sem preço nem cobrança) e,
+se estiver arquivado, a rota recusa com 409 `house_product_inactive` (reative no catálogo e rode o ensaio de novo).
+O ensaio mostra `product.id`, `product.created_now` e o Product do item mensal.
+
 ## O que acontece depois, sem ninguém fazer nada
 
 - **Mês 1 do ano pago = na troca:** a rota concede a cota do plano na hora (regra da renovação, uma vez por assinatura).
