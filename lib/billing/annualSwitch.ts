@@ -31,13 +31,16 @@
 // today" é parte da promessa.
 //
 // KINEO-ANUAL-2o-MES-2026-10-08 — DUAS OFERTAS, UMA TROCA. O fundador decidiu (08/10) que o mensal fica e que a casa
-// oferece o anual no 2º mês da assinatura, com 30% (MONTH2_ANNUAL_OFFER, regra mensal × 12 × 0,7 ao dólar mais próximo).
+// oferece o anual no 2º mês da assinatura, com 30% (MONTH2_ANNUAL_OFFER: mensal VIGENTE do plano → o anual do site,
+// ANNUAL_PRICES; mensal legado → mensal × 12 × 0,7 ao dólar mais próximo — KINEO-ANUAL-2o-MES-COERENCIA-2026-10-08).
 // A oferta de 40% acima continua valendo como está (rota do admin, quem recebeu o e-mail até 11/10). O registro
 // ANNUAL_SWITCH_OFFER_RULES diz o valor de cada oferta; todo o resto (bloqueios, créditos, metadata, razão, Stripe) é o
 // MESMO para as duas — a troca em si mora em lib/billing/annualSwitchCore.ts. A oferta do 2º mês exige, além dos
 // bloqueios de sempre, UMA renovação paga e assinatura fora do teste (month2SwitchBlockers, mais abaixo).
 import {
+  ANNUAL_PRICES,
   ANNUAL_REFUND_DAYS,
+  TIER_PRICES,
   type CheckoutTier,
 } from '@/lib/checkoutPricing'
 import { addUtcMonths, annualRefillCredits, annualTierFromMetadata } from '@/lib/billing/annualRefill'
@@ -54,8 +57,8 @@ export const ANNUAL_SWITCH_OFFER = 'first_subscribers_annual_40_2026_10_05' as c
 export const ANNUAL_SWITCH_PERCENT_OFF = 40
 /** A frase da regra, como aparece no ensaio e no evento. */
 export const ANNUAL_SWITCH_RULE = 'round(monthly x 12 x 0.6) to the nearest dollar, half up' as const
-/** A regra da oferta do 2º mês (derivada do desconto: 30% → 0.7). */
-export const MONTH2_ANNUAL_RULE = `round(monthly x 12 x ${(100 - MONTH2_ANNUAL_PERCENT_OFF) / 100}) to the nearest dollar, half up`
+/** A regra da oferta do 2º mês (o fator sai do desconto: 30% → 0.7). */
+export const MONTH2_ANNUAL_RULE = `current plan price → the site annual price (ANNUAL_PRICES); legacy price → round(monthly x 12 x ${(100 - MONTH2_ANNUAL_PERCENT_OFF) / 100}) to the nearest dollar, half up`
 export { MONTH2_ANNUAL_OFFER }
 /** Janela da chave de idempotência da Stripe: dois cliques na mesma janela viram UMA chamada. */
 export const ANNUAL_SWITCH_IDEMPOTENCY_WINDOW_MS = 10 * 60 * 1000
@@ -86,12 +89,21 @@ export function offerAnnualUsd(monthlyMinor: number | null | undefined): number 
 }
 
 /**
- * KINEO-ANUAL-2o-MES-2026-10-08 — anual da oferta do 2º mês, em dólares inteiros: mensal (centavos) × 12 × (100 − 30)
- * ÷ 10000, ao mais próximo com meio para cima (+5000 antes da divisão; conta inteira, sem ponto flutuante). Os valores
- * conferidos pelo guardião: 9,90 → 83 · 12,90 → 108 · 15,92 → 134 · 19,90 → 167 · 29 → 244 · 29,90 → 251 · 54,90 → 461.
+ * KINEO-ANUAL-2o-MES-2026-10-08 — anual da oferta do 2º mês, em dólares inteiros.
+ * KINEO-ANUAL-2o-MES-COERENCIA-2026-10-08 — o MESMO plano não tem dois preços anuais (coerência é a prioridade nº 1 do
+ * fundador): quem paga o mensal VIGENTE do plano (TIER_PRICES: 12,90 / 29,90 / 54,90) recebe o anual do SITE
+ * (ANNUAL_PRICES: 108 / 250 / 460 — lido da tabela, nunca digitado). Quem paga um mensal LEGADO (9,90, 15,92, 19,90,
+ * 29…) recebe mensal × 12 × (100 − 30) ÷ 10000, ao mais próximo com meio para cima (+5000 antes da divisão; conta
+ * inteira). Os valores conferidos pelo guardião: 9,90 → 83 · 12,90 → 108 · 15,92 → 134 · 19,90 → 167 · 29 → 244 ·
+ * 29,90 → 250 · 54,90 → 460. Anual do site que não é dólar inteiro = null: a troca cobra dólares inteiros, então a
+ * oferta FECHA para esse plano (falha fechada) — o guardião acusa no mesmo dia.
  */
-export function month2OfferAnnualUsd(monthlyMinor: number | null | undefined): number | null {
+export function month2OfferAnnualUsd(monthlyMinor: number | null | undefined, tier?: CheckoutTier | null): number | null {
   if (typeof monthlyMinor !== 'number' || !Number.isInteger(monthlyMinor) || monthlyMinor <= 0) return null
+  if (tier && monthlyMinor === TIER_PRICES[tier]?.usd) {
+    const site = ANNUAL_PRICES[tier]?.usd
+    return typeof site === 'number' && Number.isInteger(site) && site > 0 && site % 100 === 0 ? site / 100 : null
+  }
   return Math.floor((monthlyMinor * 12 * (100 - MONTH2_ANNUAL_PERCENT_OFF) + 5000) / 10000)
 }
 
@@ -102,8 +114,8 @@ export type AnnualSwitchOfferRule = {
   percentOff: number
   /** A frase da regra (ensaio, evento, doc). */
   rule: string
-  /** Anual em dólares inteiros para o mensal de hoje (null = mensal inválido). */
-  annualUsd: (monthlyMinor: number | null | undefined) => number | null
+  /** Anual em dólares inteiros para o mensal de hoje e o plano (null = mensal inválido). */
+  annualUsd: (monthlyMinor: number | null | undefined, tier?: CheckoutTier | null) => number | null
 }
 
 /** As ofertas que a troca sabe cumprir. A troca é a mesma; só o valor muda. */
@@ -112,10 +124,10 @@ export const ANNUAL_SWITCH_OFFER_RULES: Record<AnnualSwitchOfferId, AnnualSwitch
   [MONTH2_ANNUAL_OFFER]: { id: MONTH2_ANNUAL_OFFER, percentOff: MONTH2_ANNUAL_PERCENT_OFF, rule: MONTH2_ANNUAL_RULE, annualUsd: month2OfferAnnualUsd },
 }
 
-/** Anual (dólares inteiros) que `offer` promete para este mensal. */
-export function annualUsdForOffer(offer: AnnualSwitchOfferId, monthlyMinor: number | null | undefined): number | null {
+/** Anual (dólares inteiros) que `offer` promete para este mensal e este plano. */
+export function annualUsdForOffer(offer: AnnualSwitchOfferId, monthlyMinor: number | null | undefined, tier?: CheckoutTier | null): number | null {
   const rule = ANNUAL_SWITCH_OFFER_RULES[offer]
-  return rule ? rule.annualUsd(monthlyMinor) : null
+  return rule ? rule.annualUsd(monthlyMinor, tier) : null
 }
 
 export type AnnualAmountCheck =
@@ -123,8 +135,8 @@ export type AnnualAmountCheck =
   | { ok: false; reason: 'invalid_amount' | 'monthly_unknown' | 'mismatch'; expectedUsd: number | null; requested: unknown }
 
 /** O valor pedido tem de ser EXATAMENTE o que a oferta promete para este mensal (o e-mail no admin; a prévia na tela). */
-export function checkAnnualAmountForOffer(offer: AnnualSwitchOfferId, monthlyMinor: number | null | undefined, requested: unknown): AnnualAmountCheck {
-  const expectedUsd = annualUsdForOffer(offer, monthlyMinor)
+export function checkAnnualAmountForOffer(offer: AnnualSwitchOfferId, monthlyMinor: number | null | undefined, requested: unknown, tier?: CheckoutTier | null): AnnualAmountCheck {
+  const expectedUsd = annualUsdForOffer(offer, monthlyMinor, tier)
   const n = typeof requested === 'number' ? requested : typeof requested === 'string' && requested.trim() ? Number(requested) : NaN
   if (!Number.isInteger(n) || n <= 0) return { ok: false, reason: 'invalid_amount', expectedUsd, requested }
   if (expectedUsd === null) return { ok: false, reason: 'monthly_unknown', expectedUsd, requested }

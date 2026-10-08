@@ -197,7 +197,8 @@ function switchFacts(profile: AnnualSwitchProfile, sub: Stripe.Subscription, off
   const ownerFromMeta = typeof metadata.supabase_user_id === 'string' ? metadata.supabase_user_id.trim() : ''
   const ownerMatches = (ownerFromMeta === '' || ownerFromMeta === userId) &&
     (!profile.stripe_customer_id || !customerId || profile.stripe_customer_id === customerId)
-  const expectedUsd = annualUsdForOffer(offer, monthlyMinor)
+  // KINEO-ANUAL-2o-MES-COERENCIA-2026-10-08 — o plano entra na regra: mensal vigente = o anual do site.
+  const expectedUsd = annualUsdForOffer(offer, monthlyMinor, tierPick.tier)
   const credits = tierPick.tier && monthlyMinor && expectedUsd && currency
     ? annualSwitchCredits(tierPick.tier, monthlyMinor, expectedUsd * 100, currency)
     : null
@@ -522,7 +523,7 @@ export async function runAnnualSwitch(input: AnnualSwitchRunInput): Promise<Annu
   const requested = input.amountOptionalOnDryRun && !send && (input.requestedAnnualUsd === undefined || input.requestedAnnualUsd === null)
     ? expectedUsd
     : input.requestedAnnualUsd
-  const rule = checkAnnualAmountForOffer(input.offer, monthlyMinor, requested)
+  const rule = checkAnnualAmountForOffer(input.offer, monthlyMinor, requested, tierPick.tier)
   if (!rule.ok) {
     return {
       kind: 'amount_mismatch',

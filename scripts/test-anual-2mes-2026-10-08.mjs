@@ -5,9 +5,10 @@
 // troca, a rota do admin (para provar que as duas falam do mesmo razão), as regras puras e a peça React (renderizada com
 // o tradutor real das 16 línguas), contra uma Stripe FALSA (assinatura, faturas pagas, prévia, troca com idempotência,
 // recusa de cartão), um banco FALSO em memória e um Resend FALSO. Prova:
-//   R1 · regra 0,7 ao dólar mais próximo: 9,90→83 · 12,90→108 · 15,92→134 · 19,90→167 · 29→244 · 29,90→251 · 54,90→461,
-//        e em todos esses pares a recarga anual dá os MESMOS créditos que a renovação mensal (a troca não é bloqueada);
-//        a regra de 40% do admin continua a mesma (9,90→71);
+//   R1 · regra: o MESMO plano nunca tem dois preços anuais — mensal VIGENTE (TIER_PRICES) = o anual do site
+//        (ANNUAL_PRICES, lido da tabela real); mensal legado = × 12 × 0,7 ao dólar mais próximo: 9,90→83 · 12,90→108 ·
+//        15,92→134 · 19,90→167 · 29→244 · 29,90→250 · 54,90→460, e em todos esses pares a recarga anual dá os MESMOS
+//        créditos que a renovação mensal (a troca não é bloqueada); a regra de 40% do admin continua a mesma (9,90→71);
 //   R2 · renovações pagas: o 1º mês (subscription_create) não conta, a conversão do teste não conta, troca de plano não
 //        conta — só o 2º mês em diante é elegível;
 //   R3 · elegibilidade: mensal ativa em USD com 1 renovação paga = elegível; sem renovação, conversão do teste, em teste,
@@ -610,18 +611,20 @@ const expectedCredit = (monthlyMinor) => {
 const stripeOps = (env) => env.stripe.calls.map((c) => c.op)
 
 // ═══ cenários (cada um devolve a lista de problemas; vazio = verde) ═════════════════════════════════════════════════════
-// [mensal em centavos, plano, anual a 30%] — os valores que o fundador mandou conferir.
+// [mensal em centavos, plano, anual a 30%] — os valores que o fundador mandou conferir (08/10). Mensal VIGENTE do plano
+// (12,90 / 29,90 / 54,90) = o anual do site (108 / 250 / 460); legado = × 12 × 0,7. Se TIER_PRICES ou ANNUAL_PRICES
+// mudarem, esta tabela e a do doc mudam no MESMO commit (o bloco derivado em sRegra acompanha sozinho).
 const MONTH2_CASES = [
   [990, 'starter', 83],
   [1290, 'starter', 108],
   [1592, 'basic', 134],
   [1990, 'basic', 167],
   [2900, 'pro', 244],
-  [2990, 'basic', 251],
-  [5490, 'pro', 461],
+  [2990, 'basic', 250],
+  [5490, 'pro', 460],
 ]
 
-/** R1: a regra 0,7 e os créditos iguais; a regra de 40% intacta. */
+/** R1: anual do site no mensal vigente, 0,7 no legado, créditos iguais; a regra de 40% intacta. */
 async function sRegra() {
   const p = []
   const env = makeEnv()
@@ -630,14 +633,25 @@ async function sRegra() {
   if (O.MONTH2_ANNUAL_PERCENT_OFF !== 30) p.push(`desconto da oferta = ${O.MONTH2_ANNUAL_PERCENT_OFF}%, a decisão do fundador é 30%`)
   if (O.MONTH2_ANNUAL_OFFER !== 'month2_annual_30_2026_10_08') p.push(`id da oferta mudou: ${O.MONTH2_ANNUAL_OFFER}`)
   for (const [m, tier, want] of MONTH2_CASES) {
-    const got = L.month2OfferAnnualUsd(m)
-    if (got !== want) p.push(`regra: ${m}¢/mês → ${got}, esperava ${want}`)
-    if (L.annualUsdForOffer(L.MONTH2_ANNUAL_OFFER, m) !== want) p.push(`registro da oferta: ${m}¢ → ${L.annualUsdForOffer(L.MONTH2_ANNUAL_OFFER, m)}`)
-    if (!L.checkAnnualAmountForOffer(L.MONTH2_ANNUAL_OFFER, m, want).ok) p.push(`regra: ${want} recusado para ${m}¢`)
-    if (L.checkAnnualAmountForOffer(L.MONTH2_ANNUAL_OFFER, m, want + 1).ok || L.checkAnnualAmountForOffer(L.MONTH2_ANNUAL_OFFER, m, want - 1).ok) p.push(`regra: ±1 dólar aceito para ${m}¢`)
+    const got = L.month2OfferAnnualUsd(m, tier)
+    if (got !== want) p.push(`regra: ${m}¢/mês (${tier}) → ${got}, esperava ${want}`)
+    if (L.annualUsdForOffer(L.MONTH2_ANNUAL_OFFER, m, tier) !== want) p.push(`registro da oferta: ${m}¢ → ${L.annualUsdForOffer(L.MONTH2_ANNUAL_OFFER, m, tier)}`)
+    if (!L.checkAnnualAmountForOffer(L.MONTH2_ANNUAL_OFFER, m, want, tier).ok) p.push(`regra: ${want} recusado para ${m}¢`)
+    if (L.checkAnnualAmountForOffer(L.MONTH2_ANNUAL_OFFER, m, want + 1, tier).ok || L.checkAnnualAmountForOffer(L.MONTH2_ANNUAL_OFFER, m, want - 1, tier).ok) p.push(`regra: ±1 dólar aceito para ${m}¢`)
     const c = L.annualSwitchCredits(tier, m, want * 100, 'usd')
     if (!c.same) p.push(`créditos mudariam em ${m}¢ (${tier}): hoje ${c.perMonthToday}, anual ${c.perMonthAfter} — a troca seria bloqueada`)
   }
+  // Derivado das tabelas REAIS (lib/checkoutPricing.ts): mensal vigente → exatamente o anual do site, em dólar inteiro.
+  const P = env.world.load('lib/checkoutPricing.ts')
+  for (const tier of ['starter', 'basic', 'pro']) {
+    const monthly = P.TIER_PRICES[tier].usd
+    const site = P.ANNUAL_PRICES[tier].usd
+    if (site % 100 !== 0) p.push(`o anual do site de ${tier} (${site}¢) não é dólar inteiro: a oferta do 2º mês FECHA para esse plano — decida o arredondamento`)
+    if (L.month2OfferAnnualUsd(monthly, tier) * 100 !== site) p.push(`${tier}: o mensal vigente (${monthly}¢) teria anual ${L.month2OfferAnnualUsd(monthly, tier)} no 2º mês e ${site / 100} no site — dois preços anuais para o mesmo plano`)
+    if (L.month2OfferAnnualUsd(monthly + 100, tier) !== Math.floor(((monthly + 100) * 840 + 5000) / 10000)) p.push(`${tier}: mensal legado (${monthly + 100}¢) não segue × 12 × 0,7`)
+  }
+  // Sem o plano, a regra é a do legado — é o PLANO que garante a coerência (a rota passa o plano; ver precoVigente).
+  if (L.month2OfferAnnualUsd(2990) !== 251) p.push('sem o plano, a regra devia ser a do legado (× 12 × 0,7)')
   if (L.offerAnnualUsd(990) !== 71 || L.checkAnnualAmount(990, 71).ok !== true || L.checkAnnualAmount(990, 83).ok !== false) p.push('a regra de 40% do admin mudou (9,90 → 71)')
   if (L.ANNUAL_SWITCH_OFFER_RULES[L.MONTH2_ANNUAL_OFFER]?.percentOff !== 30 || !/x 0\.7\)/.test(L.ANNUAL_SWITCH_OFFER_RULES[L.MONTH2_ANNUAL_OFFER]?.rule ?? '')) p.push(`frase da regra: ${L.ANNUAL_SWITCH_OFFER_RULES[L.MONTH2_ANNUAL_OFFER]?.rule}`)
   if (L.month2OfferAnnualUsd(0) !== null || L.month2OfferAnnualUsd(-990) !== null || L.month2OfferAnnualUsd(9.9) !== null) p.push('regra aceita mensal inválido')
@@ -859,6 +873,30 @@ async function sPropria() {
   const s = await post(env, { confirm: 'SEND', annualAmountUsd: 83, surface: '<script>' })
   if (s.status !== 200 || env.db.events('plan_switched_to_annual')[0]?.metadata?.surface !== null) p.push(`superfície fora da lista no razão: ${JSON.stringify(env.db.events('plan_switched_to_annual')[0]?.metadata?.surface)}`)
   if (env.stripe.subs.get(OTHER_SUB).items.data[0].price.recurring.interval !== 'month') p.push('a assinatura da OUTRA pessoa foi trocada')
+  return p
+}
+
+/** R1 pela rota: o Creator no mensal VIGENTE (29,90) vê, ensaia e troca pelo anual do SITE (250), nunca 251. */
+async function sPrecoVigente() {
+  const p = []
+  const env = makeEnv()
+  seed(env, { monthlyMinor: 2990, tier: 'basic', planCredits: 150 })
+  const site = env.world.load('lib/checkoutPricing.ts').ANNUAL_PRICES.basic.usd
+  const g = await getStatus(env)
+  if (g.status !== 200 || g.body?.eligible !== true || g.body?.annualMinor !== site || g.body?.monthlyMinor !== 2990 || g.body?.creditsPerMonth !== 150) p.push(`GET do Creator vigente: ${JSON.stringify(g.body)} (esperava anual ${site})`)
+  const dry = await post(env, {})
+  if (dry.status !== 200 || dry.body?.preview?.annualMinor !== site || dry.body?.confirm_with?.annualAmountUsd !== site / 100) p.push(`ensaio do Creator vigente: ${dry.status} ${JSON.stringify(dry.body)}`)
+  const it = env.stripe.ops('invoices.createPreview')[0]?.params?.subscription_details?.items?.[0]
+  if (it?.price_data?.unit_amount !== site || it?.price_data?.product !== 'kineo_plan_basic') p.push(`prévia na Stripe: ${JSON.stringify(it?.price_data)}`)
+  const before = snapshot(env)
+  const wrong = await post(env, { confirm: 'SEND', annualAmountUsd: 251 })
+  if (wrong.status !== 409 || wrong.body?.error !== 'price_changed' || wrong.body?.expected_annual_usd !== site / 100) p.push(`SEND com 251 (a conta 0,7) devia ser recusado: ${wrong.status} ${JSON.stringify(wrong.body)}`)
+  if (env.stripe.ops('subscriptions.update').length || snapshot(env) !== before) p.push('SEND com 251 cobrou ou gravou')
+  const ok = await post(env, { confirm: 'SEND', annualAmountUsd: site / 100 })
+  const u = env.stripe.ops('subscriptions.update')[0]
+  if (ok.status !== 200 || ok.body?.switched !== true || u?.params?.items?.[0]?.price_data?.unit_amount !== site) p.push(`SEND com o anual do site: ${ok.status} ${JSON.stringify(ok.body)} (${u?.params?.items?.[0]?.price_data?.unit_amount})`)
+  const m = env.db.events('plan_switched_to_annual')[0]?.metadata ?? {}
+  if (m.annual_minor !== site || m.monthly_minor !== 2990 || m.credits_granted !== true || env.db.profile(USER).video_credits !== 150) p.push(`razão/perfil do Creator vigente: ${JSON.stringify({ anual: m.annual_minor, cota: m.credits_granted, saldo: env.db.profile(USER).video_credits })}`)
   return p
 }
 
@@ -1132,7 +1170,7 @@ function sEstrutura() {
   if (!existsSync(join(root, DOC))) p.push('doc ausente')
   else {
     const doc = read(DOC)
-    for (const needle of ['MONTH2_ANNUAL_OFFER_LIVE', 'month2_annual_30_2026_10_08', '/api/stripe/switch-to-annual', '/api/cron/send-month2-annual-offer', 'confirm=SEND', 'vercel.json', 'plan_switched_to_annual', 'month2_annual_offer_sent', 'US$ 83', 'US$ 461', 'Como medir', 'Como ligar']) {
+    for (const needle of ['MONTH2_ANNUAL_OFFER_LIVE', 'month2_annual_30_2026_10_08', '/api/stripe/switch-to-annual', '/api/cron/send-month2-annual-offer', 'confirm=SEND', 'vercel.json', 'plan_switched_to_annual', 'month2_annual_offer_sent', 'US$ 83', 'US$ 250', 'US$ 460', 'ANNUAL_PRICES', 'Como medir', 'Como ligar']) {
       if (!doc.includes(needle)) p.push(`doc sem "${needle}"`)
     }
   }
@@ -1145,6 +1183,7 @@ const SCENARIOS = {
   statusElegivel: sStatusElegivel,
   elegibilidade: sElegibilidade,
   ensaio: sEnsaio,
+  precoVigente: sPrecoVigente,
   troca: sTroca,
   trocaBordas: sTrocaBordas,
   propria: sPropria,
@@ -1198,6 +1237,8 @@ const MUTANTS = [
   ['M17 GET lê com a oferta desligada', { [SELF]: [replaceOnce("  if (!MONTH2_ANNUAL_OFFER_LIVE) return NextResponse.json(closedStatus(['offer_not_live'], false))\n", '', 'GET sem interruptor')] }, 'desligado'],
   ['M18 POST cobra com a oferta desligada', { [SELF]: [replaceOnce("  if (!MONTH2_ANNUAL_OFFER_LIVE) return NextResponse.json({ error: 'offer_not_live', nothing_written: true }, { status: 404 })\n", '', 'POST sem interruptor')] }, 'desligado'],
   ['M19 a peça pinta sem a renovação confirmada pelo servidor', { [OFFER]: [replaceOnce('  if (!s || s.live !== true || s.eligible !== true) return false\n', '  if (!s || s.live !== true) return false\n', 'sem eligible')] }, 'tela'],
+  ['M27 o mensal vigente volta a pagar 251/461 (dois preços anuais para o mesmo plano)', { [LIB]: [replaceOnce('  if (tier && monthlyMinor === TIER_PRICES[tier]?.usd) {\n', '  if (false && tier && monthlyMinor === TIER_PRICES[tier]?.usd) {\n', 'sem o anual do site')] }, 'regra'],
+  ['M28 o núcleo calcula o anual sem o plano', { [CORE]: [replaceOnce('  const expectedUsd = annualUsdForOffer(offer, monthlyMinor, tierPick.tier)\n', '  const expectedUsd = annualUsdForOffer(offer, monthlyMinor)\n', 'núcleo sem o plano')] }, 'precoVigente'],
   ['M20 aviso dispensado volta', { [OFFER]: [replaceOnce("  if (input.variant === 'notice' && input.dismissed) return false\n", '', 'dispensa ignorada')] }, 'tela'],
 ]
 const TEXT_MUTANTS = [
@@ -1246,4 +1287,4 @@ if (failed.length) {
   for (const f of failed) console.log('  ✗ ' + f)
   process.exit(1)
 }
-console.log('OK — anual no 2º mês: regra 0,7, renovação paga, ensaio sem escrita, troca única pelo núcleo, só a própria assinatura, interruptor desligado, e-mail 1× por assinatura, 16 línguas')
+console.log('OK — anual no 2º mês: anual do site no mensal vigente e 0,7 no legado, renovação paga, ensaio sem escrita, troca única pelo núcleo, só a própria assinatura, interruptor desligado, e-mail 1× por assinatura, 16 línguas')

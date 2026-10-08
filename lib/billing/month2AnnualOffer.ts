@@ -8,7 +8,8 @@
 // ESTE MÓDULO É PURO E SEM IMPORT (a tela, as rotas e o guardião o carregam cru): o interruptor, o id da oferta, o
 // desconto, os nomes de evento e as frases da tela (chaves de lib/ui/refinementCopy.json nas 16 línguas). O que a oferta
 // FAZ mora em outros lugares, e é a MESMA troca do admin (uma regra só):
-//   · regra do valor (mensal × 12 × 0,7 ao dólar mais próximo) e elegibilidade do 2º mês → lib/billing/annualSwitch.ts;
+//   · regra do valor (mensal VIGENTE do plano → o anual do site, ANNUAL_PRICES; mensal legado → mensal × 12 × 0,7 ao
+//     dólar mais próximo) e elegibilidade do 2º mês → lib/billing/annualSwitch.ts;
 //   · a troca na Stripe (Product da casa, rateio, idempotência, razão, cota do mês) → lib/billing/annualSwitchCore.ts;
 //   · autoatendimento (GET estado / POST ensaio e troca) → app/api/stripe/switch-to-annual/route.ts;
 //   · e-mail do 2º mês (cron, ensaio por padrão) → app/api/cron/send-month2-annual-offer/route.ts;

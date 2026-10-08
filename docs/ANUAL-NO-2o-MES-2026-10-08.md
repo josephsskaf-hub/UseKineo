@@ -14,23 +14,28 @@ resposta de produto a esse vazamento.
 
 ### A regra do valor
 
-anual = mensal de hoje × 12 × 0,7, **arredondado ao dólar mais próximo** (meio para cima), sobre o `unit_amount` que a
-assinatura cobra hoje na Stripe. Oferta `month2_annual_30_2026_10_08`. Os valores conferidos pelo guardião:
+Oferta `month2_annual_30_2026_10_08`, sobre o `unit_amount` que a assinatura cobra hoje na Stripe. **O mesmo plano
+nunca tem dois preços anuais** (coerência é a prioridade nº 1 do fundador — regra de 08/10, KINEO-ANUAL-2o-MES-COERENCIA):
 
-| mensal hoje | anual no 2º mês | créditos/mês (iguais aos de hoje) |
-|---|---|---|
-| US$ 9,90 (Starter antigo) | US$ 83 | 60 |
-| US$ 12,90 (Starter) | US$ 108 | 60 |
-| US$ 15,92 (Creator com desconto) | US$ 134 | 150 |
-| US$ 19,90 (Creator antigo) | US$ 167 | 150 |
-| US$ 29,00 (Studio antigo) | US$ 244 | 180 |
-| US$ 29,90 (Creator) | US$ 251 | 150 |
-| US$ 54,90 (Studio) | US$ 461 | 300 |
+- quem paga o **mensal vigente** do plano (`TIER_PRICES`: US$ 12,90 / 29,90 / 54,90) recebe **o anual do site**
+  (`ANNUAL_PRICES`: US$ 108 / 250 / 460, lido da tabela — nunca digitado). Se o site mudar o anual, a oferta muda junto;
+- quem paga um **mensal legado** (preço antigo, regional ou com desconto: 9,90, 15,92, 19,90, 29…) recebe mensal × 12 ×
+  0,7, **arredondado ao dólar mais próximo** (meio para cima).
 
-Um detalhe de coerência com o site: o anual do SITE (publicado em 08/10, 4c23af74) usa preço limpo — US$ 108 / 250 /
-460. Para o Creator de US$ 29,90 e o Studio de US$ 54,90 a regra do 2º mês dá US$ 251 e US$ 461 (um dólar acima do
-site). É o que a decisão pediu (mensal × 12 × 0,7); se o fundador preferir casar com o site, a troca é no registro
-`ANNUAL_SWITCH_OFFER_RULES` (lib/billing/annualSwitch.ts) e na tabela do guardião.
+Os valores conferidos pelo guardião:
+
+| mensal hoje | anual no 2º mês | de onde vem | créditos/mês (iguais aos de hoje) |
+|---|---|---|---|
+| US$ 9,90 (Starter antigo) | US$ 83 | × 12 × 0,7 | 60 |
+| US$ 12,90 (Starter) | US$ 108 | anual do site | 60 |
+| US$ 15,92 (Creator com desconto) | US$ 134 | × 12 × 0,7 | 150 |
+| US$ 19,90 (Creator antigo) | US$ 167 | × 12 × 0,7 | 150 |
+| US$ 29,00 (Studio antigo) | US$ 244 | × 12 × 0,7 | 180 |
+| US$ 29,90 (Creator) | US$ 250 | anual do site | 150 |
+| US$ 54,90 (Studio) | US$ 460 | anual do site | 300 |
+
+Se um dia o anual do site tiver centavos, a oferta do 2º mês FECHA para esse plano (a troca cobra dólares inteiros) e o
+guardião fica vermelho no mesmo dia — quem mudar o preço decide o arredondamento antes de publicar.
 
 A oferta de **40%** dos primeiros assinantes (e-mail de 05/10, e a retenção de 07/10, válida até 11/10) **continua como
 está**, pela rota do admin (`/api/admin/switch-to-annual`, mensal × 12 × 0,6). As duas ofertas usam a **mesma** troca

@@ -1,8 +1,9 @@
 // ═══ KINEO-ANUAL-2o-MES-2026-10-08 — autoatendimento: o assinante troca o PRÓPRIO mensal pelo anual, com 30% ═══════
 //
 // Decisão do fundador (08/10 ~01h BRT): "É o mensal e no segundo mês a gente tenta trocar pro anual. Com desconto de
-// 30%." O mensal continua sendo a porta; quem já pagou a 1ª renovação (está no 2º mês ou depois) vê o anual a mensal ×
-// 12 × 0,7 ao dólar mais próximo. O e-mail do 2º mês (app/api/cron/send-month2-annual-offer) e a peça da tela
+// 30%." O mensal continua sendo a porta; quem já pagou a 1ª renovação (está no 2º mês ou depois) vê o anual: no mensal
+// VIGENTE do plano, o anual do site (ANNUAL_PRICES — o mesmo plano nunca tem dois preços anuais); num mensal legado, mensal
+// × 12 × 0,7 ao dólar mais próximo. O e-mail do 2º mês (app/api/cron/send-month2-annual-offer) e a peça da tela
 // (components/billing/Month2AnnualOffer.tsx) trazem a pessoa até aqui.
 //
 //   GET  → o estado para a tela (Month2AnnualStatus): live, eligible e os números da oferta. Só leitura. Visitante,
