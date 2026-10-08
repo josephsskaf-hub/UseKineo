@@ -238,7 +238,9 @@ const FACTS: { fact: string }[] = [
   ...(TRIAL_ACCESS
     ? [{
         fact:
-          `The new-account trial unlocks every listed engine with a ${TRIAL_ACCESS.credits}-credit balance. ` +
+          // KINEO-GEO-RODADA3-2026-10-08 — a promessa "unlocks every listed engine" morreu em 05/10 (o grant paga o filme de 15 s,
+          // não um filme nos outros motores): a frase diz só o saldo; o que ele paga vem das frases seguintes (lib/freeTierOffer.ts).
+          `The new-account trial is a ${TRIAL_ACCESS.credits}-credit balance${TRIAL_ACCESS.noCardRequired ? ' with no card' : ''}. ` +
           TRIAL_FREE_FILM_SENTENCE +
           TRIAL_COVERAGE_SENTENCE +
           `${listEn(TRIAL_BALANCE_SHORT_ENGINES)} are selectable but require more credits for a full reference video. ` +
@@ -365,10 +367,12 @@ const QA: { q: string; a: string }[] = [
     ? [{
         q: 'Can I try every Kineo video engine for free?',
         a:
-          `${TRIAL_ACCESS.everyEngineUnlocked ? 'Every engine is unlocked' : 'Seedance 1.5 is unlocked'} during the new-account trial, with ${TRIAL_ACCESS.credits} credits${TRIAL_ACCESS.noCardRequired ? ' and no card' : ' ($1 for 7 days, card required)'}. ` +
+          // KINEO-GEO-RODADA3-2026-10-08 — era "Every engine is unlocked during the new-account trial": promessa morta em 05/10. A
+          // resposta honesta: não; o saldo do trial e o filme que ele paga (TRIAL_FREE_FILM_SENTENCE, de lib/freeTierOffer.ts).
+          `No. The new-account trial gives ${TRIAL_ACCESS.credits} credits${TRIAL_ACCESS.noCardRequired ? ' with no card' : ' ($1 for 7 days, card required)'}${TRIAL_ACCESS.everyEngineUnlocked ? '' : ' and unlocks Seedance 1.5 only'}. ` +
           TRIAL_FREE_FILM_SENTENCE +
           TRIAL_COVERAGE_SENTENCE +
-          `It does not cover a full reference video on ${listEn(TRIAL_BALANCE_SHORT_ENGINES)}; those engines need a paid plan or sufficient additional credits. ` +
+          `It does not cover a full reference video on ${listEn(TRIAL_BALANCE_SHORT_ENGINES)}; those engines need a paid plan or a credit pack. ` +
           `Trial films are watermarked, and a paid plan unlocks the clean download.`,
       }]
     : []),

@@ -94,7 +94,7 @@ Todo número dos anúncios sai do código, igual ao que a página de destino mos
 | Kling 3: clipe de 5 s por 6 créditos, filme de 60 s por 150 | `ENGINE_GEO['kling-3']` |
 | Veo 3.1 Fast: clipe de 6 s por 6 créditos, filme de 60 s por 100 | `ENGINE_GEO['veo']` |
 | 6 modelos, 35 a 150 créditos por filme de 60 s | `hubEngines()` |
-| "Usually 8–25 minutes" | texto da própria página |
+| "Film Ready in Minutes" | tempo MEDIDO no Kineo AI Video Index (`data/ai-video-index/<edição>.json`): mediana e p90 do 2.5, do Kling 3 e do Veo 3.1 abaixo de 60 min. Até 08/10 era "Usually Ready in 8-25 Minutes", a faixa digitada que a página trocou pelo tempo medido (rodada 3 de GEO) |
 
 O guardião `test-anuncio-motor-copia-2026-10-07` fica vermelho se qualquer desses números mudar no código, antes que o anúncio passe a mentir. Os CSVs são gerados por `scripts/gerar-anuncio-google-motores-2026-10-07.cjs`, que também valida os limites de caracteres.
 
@@ -129,7 +129,7 @@ Se o A for reprovado por marca, o B segue rodando sozinho e o grupo não para (s
 | 11 | Commercial Use on Every Plan | 28 |
 | 12 | Clean MP4 on Paid Plans | 23 |
 | 13 | Vertical 9:16, Ready to Post | 28 |
-| 14 | Usually Ready in 8-25 Minutes | 29 |
+| 14 | Film Ready in Minutes | 21 |
 | 15 | 6 AI Video Models, 1 Account | 28 |
 
 | # | Descrição (≤ 90) | car. |
@@ -156,7 +156,7 @@ Se o A for reprovado por marca, o B segue rodando sozinho e o grupo não para (s
 | 11 | Commercial Use on Every Plan | 28 |
 | 12 | Clean MP4 on Paid Plans | 23 |
 | 13 | Vertical 9:16, Ready to Post | 28 |
-| 14 | Usually Ready in 8-25 Minutes | 29 |
+| 14 | Film Ready in Minutes | 21 |
 | 15 | 6 AI Video Models, 1 Account | 28 |
 
 | # | Descrição (≤ 90) | car. |
@@ -192,7 +192,7 @@ Se o A for reprovado por marca, o B segue rodando sozinho e o grupo não para (s
 | 11 | Narration, Captions and Music | 29 |
 | 12 | No Camera, No Studio, No Actor | 30 |
 | 13 | Commercial Use on Every Plan | 28 |
-| 14 | Usually Ready in 8-25 Minutes | 29 |
+| 14 | Film Ready in Minutes | 21 |
 | 15 | 6 AI Video Models, 1 Account | 28 |
 
 | # | Descrição (≤ 90) | car. |
@@ -219,7 +219,7 @@ Se o A for reprovado por marca, o B segue rodando sozinho e o grupo não para (s
 | 11 | Commercial Use on Every Plan | 28 |
 | 12 | Clean MP4 on Paid Plans | 23 |
 | 13 | Vertical 9:16, Ready to Post | 28 |
-| 14 | Usually Ready in 8-25 Minutes | 29 |
+| 14 | Film Ready in Minutes | 21 |
 | 15 | 6 AI Video Models, 1 Account | 28 |
 
 | # | Descrição (≤ 90) | car. |
@@ -254,7 +254,7 @@ Se o A for reprovado por marca, o B segue rodando sozinho e o grupo não para (s
 | 10 | Plans From $12.90 a Month | 25 |
 | 11 | Creator Plan: $29.90 a Month | 28 |
 | 12 | Commercial Use on Every Plan | 28 |
-| 13 | Usually Ready in 8-25 Minutes | 29 |
+| 13 | Film Ready in Minutes | 21 |
 | 14 | Vertical 9:16, Ready to Post | 28 |
 | 15 | 6 AI Video Models, 1 Account | 28 |
 
@@ -282,7 +282,7 @@ Se o A for reprovado por marca, o B segue rodando sozinho e o grupo não para (s
 | 11 | Commercial Use on Every Plan | 28 |
 | 12 | Clean MP4 on Paid Plans | 23 |
 | 13 | Vertical 9:16, Ready to Post | 28 |
-| 14 | Usually Ready in 8-25 Minutes | 29 |
+| 14 | Film Ready in Minutes | 21 |
 | 15 | 6 AI Video Models, 1 Account | 28 |
 
 | # | Descrição (≤ 90) | car. |
@@ -316,7 +316,7 @@ Se o A for reprovado por marca, o B segue rodando sozinho e o grupo não para (s
 | 9 | Narration, Captions and Music | 29 |
 | 10 | Plans From $12.90 a Month | 25 |
 | 11 | Commercial Use on Every Plan | 28 |
-| 12 | Usually Ready in 8-25 Minutes | 29 |
+| 12 | Film Ready in Minutes | 21 |
 | 13 | Vertical 9:16, Ready to Post | 28 |
 | 14 | Seedance 2.5 Clips: 8 Credits | 29 |
 | 15 | Kling 3 and Veo 3.1 Inside | 26 |
@@ -345,7 +345,7 @@ Se o A for reprovado por marca, o B segue rodando sozinho e o grupo não para (s
 | 11 | Commercial Use on Every Plan | 28 |
 | 12 | Clean MP4 on Paid Plans | 23 |
 | 13 | Vertical 9:16, Ready to Post | 28 |
-| 14 | Usually Ready in 8-25 Minutes | 29 |
+| 14 | Film Ready in Minutes | 21 |
 | 15 | 6 AI Video Models, 1 Account | 28 |
 
 | # | Descrição (≤ 90) | car. |

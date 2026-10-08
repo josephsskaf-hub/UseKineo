@@ -16,7 +16,38 @@ const ALL_LOCALIZED_ENGINE_SLUGS = ['kineo-1', 'seedance', 'veo'] as const
 export type LocalizedEngineSlug = (typeof ALL_LOCALIZED_ENGINE_SLUGS)[number]
 export const LOCALIZED_ENGINE_SLUGS: readonly LocalizedEngineSlug[] = ALL_LOCALIZED_ENGINE_SLUGS.filter((slug) => slug !== 'kineo-1')
 
-type Facts = { engine: string; credits: number; trial: number }
+// KINEO-GEO-RODADA3-2026-10-08 — `medianMinutes`/`indicative`: o tempo MEDIDO do motor no Kineo AI Video Index (a página monta
+// com lib/seo/measuredRenderTime.ts; este módulo segue SEM import). Ausente = a FAQ não cita tempo nenhum (era uma faixa digitada).
+type Facts = { engine: string; credits: number; trial: number; medianMinutes?: number | null; indicative?: boolean }
+const DECIMAL_COMMA: readonly string[] = ['fr', 'de', 'it', 'nl', 'pl', 'tr', 'ru', 'uk', 'id', 'vi']
+/** A mediana medida, escrita no separador decimal da língua; null = sem medida. */
+function medianaMedida(f: Facts, code: string): string | null {
+  const m = f.medianMinutes
+  if (typeof m !== 'number' || !Number.isFinite(m) || m <= 0) return null
+  const txt = Number.isInteger(m) ? String(m) : m.toFixed(1)
+  return DECIMAL_COMMA.includes(code) ? txt.replace('.', ',') : txt
+}
+/** O trecho de tempo de cada língua: " — <mediana medida> (<fonte>)", ou '' sem medida. */
+const TEMPO_MEDIDO: Record<string, (m: string, indicativo: boolean) => string> = {
+  fr: (m, i) => ` — temps médian mesuré : ${m} minutes (${i ? 'rendus de test Kineo, indicatif' : 'rendus de clients'})`,
+  de: (m, i) => ` – gemessener Median: ${m} Minuten (${i ? 'Kineo-Testrenderings, indikativ' : 'Kundenrenderings'})`,
+  it: (m, i) => ` — tempo mediano misurato: ${m} minuti (${i ? 'render di prova Kineo, indicativo' : 'render dei clienti'})`,
+  nl: (m, i) => ` — gemeten mediaan: ${m} minuten (${i ? 'Kineo-testrenders, indicatief' : 'renders van klanten'})`,
+  pl: (m, i) => ` — zmierzona mediana: ${m} min (${i ? 'testowe rendery Kineo, orientacyjnie' : 'rendery klientów'})`,
+  tr: (m, i) => ` — ölçülen medyan süre: ${m} dakika (${i ? 'Kineo test renderları, gösterge niteliğinde' : 'müşteri renderları'})`,
+  ru: (m, i) => ` — измеренная медиана: ${m} мин (${i ? 'тестовые рендеры Kineo, ориентировочно' : 'рендеры клиентов'})`,
+  uk: (m, i) => ` — виміряна медіана: ${m} хв (${i ? 'тестові рендери Kineo, орієнтовно' : 'рендери клієнтів'})`,
+  ar: (m, i) => `، والوسيط المُقاس ${m} دقيقة (${i ? 'عمليات عرض تجريبية لدى Kineo، إرشادي' : 'عمليات عرض العملاء'})`,
+  ur: (m, i) => `؛ ناپا گیا میڈین وقت ${m} منٹ (${i ? 'Kineo کے ٹیسٹ رینڈرز، اندازاً' : 'صارفین کے رینڈرز'})`,
+  hi: (m, i) => `; मापा गया मीडियन समय ${m} मिनट (${i ? 'Kineo के टेस्ट रेंडर, सांकेतिक' : 'ग्राहकों के रेंडर'})`,
+  id: (m, i) => ` — median terukur: ${m} menit (${i ? 'render uji Kineo, indikatif' : 'render pelanggan'})`,
+  vi: (m, i) => ` — thời gian trung vị đo được: ${m} phút (${i ? 'bản render thử của Kineo, mang tính tham khảo' : 'bản render của khách hàng'})`,
+}
+function tempoMedido(f: Facts, code: string): string {
+  const m = medianaMedida(f, code)
+  const frase = TEMPO_MEDIDO[code]
+  return m && frase ? frase(m, Boolean(f.indicative)) : ''
+}
 
 // KINEO-MOTORES-GEO-2026-10-06 — o trial (TRIAL_CREDITS_SHOWN) só é concedido nos países do filme grátis
 // (lib/freeFilmPolicy.ts, política 'pais_rico'); as 26 páginas traduzidas prometiam os créditos ao mundo inteiro. Espelho SEM
@@ -65,7 +96,7 @@ export const ENGINE_LANGS: Record<FreeShortsLang['code'], EngineLang> = {
     faq: (f) => [
       { q: `La vidéo sort-elle en français avec ${f.engine} ?`, a: 'Oui. Script, voix neurale et sous-titres sortent en français — la langue est présélectionnée depuis cette page.' },
       { q: `Combien coûte une vidéo ${f.engine} ?`, a: `${f.credits} crédits par vidéo de 60 s. L’essai gratuit donne ${f.trial} crédits sans carte${PAIS(' (dans les pays éligibles)')}${f.covers ? ', ce qui couvre une vidéo complète avec filigrane' : `, ce qui ne couvre pas une vidéo ${f.engine} : le premier film vient avec Starter (${f.starter})`}. Les plans payants débloquent le MP4 sans filigrane.` },
-      { q: 'Faut-il savoir monter ou apparaître à l’écran ?', a: 'Non. Format faceless : l’IA écrit, narre, choisit ou génère les scènes et sous-titre. Vous tapez le sujet et téléchargez la vidéo, en général en 8 à 25 minutes.' },
+      { q: 'Faut-il savoir monter ou apparaître à l’écran ?', a: `Non. Format faceless : l’IA écrit, narre, choisit ou génère les scènes et sous-titre. Vous tapez le sujet et téléchargez la vidéo${tempoMedido(f, 'fr')}.` },
     ],
   },
   de: {
@@ -88,7 +119,7 @@ export const ENGINE_LANGS: Record<FreeShortsLang['code'], EngineLang> = {
     faq: (f) => [
       { q: `Kommt das Video mit ${f.engine} auf Deutsch heraus?`, a: 'Ja. Skript, neuronale Stimme und Untertitel sind auf Deutsch — die Sprache ist von dieser Seite aus vorausgewählt.' },
       { q: `Was kostet ein ${f.engine}-Video?`, a: `${f.credits} Credits pro 60-Sekunden-Video. Der Gratis-Test gibt ${f.trial} Credits ohne Karte${PAIS(' (in unterstützten Ländern)')}${f.covers ? ' — das reicht für ein komplettes Video mit Wasserzeichen' : ` — das reicht nicht für ein ${f.engine}-Video: der erste Film kommt mit Starter (${f.starter})`}. Bezahlte Pläne schalten das MP4 ohne Wasserzeichen frei.` },
-      { q: 'Muss ich schneiden können oder vor die Kamera?', a: 'Nein. Faceless-Format: die KI schreibt, spricht, wählt oder generiert Szenen und untertitelt. Du tippst das Thema und lädst das Video herunter, meist in 8–25 Minuten.' },
+      { q: 'Muss ich schneiden können oder vor die Kamera?', a: `Nein. Faceless-Format: die KI schreibt, spricht, wählt oder generiert Szenen und untertitelt. Du tippst das Thema und lädst das Video herunter${tempoMedido(f, 'de')}.` },
     ],
   },
   it: {
@@ -111,7 +142,7 @@ export const ENGINE_LANGS: Record<FreeShortsLang['code'], EngineLang> = {
     faq: (f) => [
       { q: `Il video con ${f.engine} esce in italiano?`, a: 'Sì. Copione, voce neurale e sottotitoli escono in italiano — la lingua è preselezionata da questa pagina.' },
       { q: `Quanto costa un video ${f.engine}?`, a: `${f.credits} crediti per video da 60 s. La prova gratuita dà ${f.trial} crediti senza carta${PAIS(' (nei paesi supportati)')}${f.covers ? ', che coprono un video completo con filigrana' : `, che non coprono un video ${f.engine}: il primo film arriva con Starter (${f.starter})`}. I piani a pagamento sbloccano l’MP4 senza filigrana.` },
-      { q: 'Devo saper montare o apparire?', a: 'No. Formato faceless: l’IA scrive, narra, sceglie o genera le scene e sottotitola. Tu scrivi il tema e scarichi il video, di solito in 8–25 minuti.' },
+      { q: 'Devo saper montare o apparire?', a: `No. Formato faceless: l’IA scrive, narra, sceglie o genera le scene e sottotitola. Tu scrivi il tema e scarichi il video${tempoMedido(f, 'it')}.` },
     ],
   },
   nl: {
@@ -134,7 +165,7 @@ export const ENGINE_LANGS: Record<FreeShortsLang['code'], EngineLang> = {
     faq: (f) => [
       { q: `Komt de video met ${f.engine} in het Nederlands?`, a: 'Ja. Script, neurale stem en ondertitels komen in het Nederlands — de taal is vanaf deze pagina al geselecteerd.' },
       { q: `Wat kost een ${f.engine}-video?`, a: `${f.credits} credits per video van 60 s. De gratis proef geeft ${f.trial} credits zonder kaart${PAIS(' (in ondersteunde landen)')}${f.covers ? ', genoeg voor een complete video met watermerk' : `, niet genoeg voor een ${f.engine}-video: de eerste film komt met Starter (${f.starter})`}. Betaalde plannen ontgrendelen de MP4 zonder watermerk.` },
-      { q: 'Moet ik kunnen monteren of in beeld komen?', a: 'Nee. Faceless-formaat: de AI schrijft, spreekt in, kiest of genereert scènes en ondertitelt. Jij typt het onderwerp en downloadt de video, meestal binnen 8–25 minuten.' },
+      { q: 'Moet ik kunnen monteren of in beeld komen?', a: `Nee. Faceless-formaat: de AI schrijft, spreekt in, kiest of genereert scènes en ondertitelt. Jij typt het onderwerp en downloadt de video${tempoMedido(f, 'nl')}.` },
     ],
   },
   pl: {
@@ -157,7 +188,7 @@ export const ENGINE_LANGS: Record<FreeShortsLang['code'], EngineLang> = {
     faq: (f) => [
       { q: `Czy wideo z ${f.engine} wychodzi po polsku?`, a: 'Tak. Scenariusz, głos neuronowy i napisy są po polsku — język jest wybrany z tej strony.' },
       { q: `Ile kosztuje wideo ${f.engine}?`, a: `${f.credits} kredytów za wideo 60 s. Darmowy okres próbny daje ${f.trial} kredytów bez karty${PAIS(' (w obsługiwanych krajach)')}${f.covers ? ' — to wystarcza na całe wideo ze znakiem wodnym' : ` — to za mało na wideo ${f.engine}: pierwszy film przychodzi ze Starterem (${f.starter})`}. Płatne plany odblokowują MP4 bez znaku wodnego.` },
-      { q: 'Muszę umieć montować albo pokazywać twarz?', a: 'Nie. Format faceless: AI pisze, czyta, dobiera lub generuje sceny i dodaje napisy. Ty wpisujesz temat i pobierasz wideo, zwykle w 8–25 minut.' },
+      { q: 'Muszę umieć montować albo pokazywać twarz?', a: `Nie. Format faceless: AI pisze, czyta, dobiera lub generuje sceny i dodaje napisy. Ty wpisujesz temat i pobierasz wideo${tempoMedido(f, 'pl')}.` },
     ],
   },
   tr: {
@@ -180,7 +211,7 @@ export const ENGINE_LANGS: Record<FreeShortsLang['code'], EngineLang> = {
     faq: (f) => [
       { q: `${f.engine} ile video Türkçe mi çıkıyor?`, a: 'Evet. Senaryo, nöral ses ve altyazılar Türkçe çıkar — dil bu sayfadan seçili gelir.' },
       { q: `Bir ${f.engine} videosu kaça?`, a: `60 sn video başına ${f.credits} kredi. Ücretsiz deneme kartsız ${f.trial} kredi verir${PAIS(' (desteklenen ülkelerde)')}${f.covers ? '; filigranlı eksiksiz bir videoya yeter' : `; bir ${f.engine} videosuna yetmez: ilk film Starter ile gelir (${f.starter})`}. Ücretli planlar filigransız MP4’ü açar.` },
-      { q: 'Kurgu bilmem ya da kamera karşısına geçmem gerekir mi?', a: 'Hayır. Yüzsüz format: yapay zekâ yazar, seslendirir, sahneleri seçer ya da üretir ve altyazı ekler. Konuyu yazar, videoyu genelde 8–25 dakikada indirirsiniz.' },
+      { q: 'Kurgu bilmem ya da kamera karşısına geçmem gerekir mi?', a: `Hayır. Yüzsüz format: yapay zekâ yazar, seslendirir, sahneleri seçer ya da üretir ve altyazı ekler. Konuyu yazar ve videoyu indirirsiniz${tempoMedido(f, 'tr')}.` },
     ],
   },
   ru: {
@@ -203,7 +234,7 @@ export const ENGINE_LANGS: Record<FreeShortsLang['code'], EngineLang> = {
     faq: (f) => [
       { q: `Видео с ${f.engine} будет на русском?`, a: 'Да. Сценарий, нейросетевой голос и субтитры — на русском; язык выбран при переходе с этой страницы.' },
       { q: `Сколько стоит видео ${f.engine}?`, a: `${f.credits} кредитов за видео 60 с. Пробный период даёт ${f.trial} кредитов без карты${PAIS(' (в поддерживаемых странах)')}${f.covers ? ' — хватает на полное видео с водяным знаком' : ` — на видео ${f.engine} не хватает: первый фильм приходит со Starter (${f.starter})`}. Платные планы открывают MP4 без водяного знака.` },
-      { q: 'Нужно уметь монтировать или появляться в кадре?', a: 'Нет. Формат faceless: ИИ пишет, озвучивает, подбирает или генерирует сцены и добавляет субтитры. Вы вводите тему и скачиваете видео, обычно за 8–25 минут.' },
+      { q: 'Нужно уметь монтировать или появляться в кадре?', a: `Нет. Формат faceless: ИИ пишет, озвучивает, подбирает или генерирует сцены и добавляет субтитры. Вы вводите тему и скачиваете видео${tempoMedido(f, 'ru')}.` },
     ],
   },
   uk: {
@@ -226,7 +257,7 @@ export const ENGINE_LANGS: Record<FreeShortsLang['code'], EngineLang> = {
     faq: (f) => [
       { q: `Відео з ${f.engine} буде українською?`, a: 'Так. Сценарій, нейромережевий голос і субтитри — українською; мову вибрано при переході з цієї сторінки.' },
       { q: `Скільки коштує відео ${f.engine}?`, a: `${f.credits} кредитів за відео 60 с. Пробний період дає ${f.trial} кредитів без картки${PAIS(' (у підтримуваних країнах)')}${f.covers ? ' — вистачає на повне відео з водяним знаком' : ` — на відео ${f.engine} не вистачає: перший фільм приходить зі Starter (${f.starter})`}. Платні плани відкривають MP4 без водяного знака.` },
-      { q: 'Потрібно вміти монтувати чи з’являтися в кадрі?', a: 'Ні. Формат faceless: ШІ пише, озвучує, добирає або генерує сцени й додає субтитри. Ви вводите тему і завантажуєте відео, зазвичай за 8–25 хвилин.' },
+      { q: 'Потрібно вміти монтувати чи з’являтися в кадрі?', a: `Ні. Формат faceless: ШІ пише, озвучує, добирає або генерує сцени й додає субтитри. Ви вводите тему і завантажуєте відео${tempoMedido(f, 'uk')}.` },
     ],
   },
   ar: {
@@ -249,7 +280,7 @@ export const ENGINE_LANGS: Record<FreeShortsLang['code'], EngineLang> = {
     faq: (f) => [
       { q: `هل يخرج الفيديو بالعربية مع ${f.engine}؟`, a: 'نعم. النص والصوت العصبي والترجمة تخرج بالعربية — واللغة محددة مسبقًا عند القدوم من هذه الصفحة.' },
       { q: `كم يكلّف فيديو ${f.engine}؟`, a: `${f.credits} رصيدًا لكل فيديو 60 ثانية. تمنح التجربة المجانية ${f.trial} أرصدة بدون بطاقة${PAIS(' (في الدول المدعومة)')}${f.covers ? '، وهي تكفي لفيديو كامل بعلامة مائية' : `، وهي لا تكفي لفيديو ${f.engine}: أول فيلم يأتي مع Starter (${f.starter})`}. الخطط المدفوعة تفتح ملف MP4 بلا علامة مائية.` },
-      { q: 'هل أحتاج إلى معرفة المونتاج أو الظهور أمام الكاميرا؟', a: 'لا. أسلوب faceless: يكتب الذكاء الاصطناعي ويعلّق صوتيًا ويختار المشاهد أو يولّدها ويضيف الترجمة. تكتب الموضوع وتنزّل الفيديو، عادةً خلال 8 إلى 25 دقيقة.' },
+      { q: 'هل أحتاج إلى معرفة المونتاج أو الظهور أمام الكاميرا؟', a: `لا. أسلوب faceless: يكتب الذكاء الاصطناعي ويعلّق صوتيًا ويختار المشاهد أو يولّدها ويضيف الترجمة. تكتب الموضوع وتنزّل الفيديو${tempoMedido(f, 'ar')}.` },
     ],
   },
   ur: {
@@ -272,7 +303,7 @@ export const ENGINE_LANGS: Record<FreeShortsLang['code'], EngineLang> = {
     faq: (f) => [
       { q: `کیا ${f.engine} سے ویڈیو اردو میں بنتی ہے؟`, a: 'جی ہاں۔ اسکرپٹ، نیورل آواز اور سب ٹائٹلز اردو میں — زبان اس صفحے سے پہلے سے منتخب ہوتی ہے۔' },
       { q: `${f.engine} ویڈیو کی قیمت کیا ہے؟`, a: `60 سیکنڈ کی ویڈیو کے ${f.credits} کریڈٹ۔ مفت آزمائش بغیر کارڈ ${f.trial} کریڈٹ دیتی ہے${PAIS(' (معاون ممالک میں)')}${f.covers ? '، جو واٹر مارک والی مکمل ویڈیو کے لیے کافی ہے' : `، جو ${f.engine} ویڈیو کے لیے کافی نہیں: پہلی فلم Starter کے ساتھ آتی ہے (${f.starter})`}۔ ادا شدہ پلان بغیر واٹر مارک MP4 کھولتے ہیں۔` },
-      { q: 'کیا مجھے ایڈیٹنگ آنی چاہیے یا کیمرے پر آنا ہوگا؟', a: 'نہیں۔ faceless طرز: AI لکھتا، بولتا، مناظر چنتا یا بناتا اور سب ٹائٹلز لگاتا ہے۔ آپ موضوع لکھیں اور ویڈیو ڈاؤن لوڈ کریں، عموماً 8 سے 25 منٹ میں۔' },
+      { q: 'کیا مجھے ایڈیٹنگ آنی چاہیے یا کیمرے پر آنا ہوگا؟', a: `نہیں۔ faceless طرز: AI لکھتا، بولتا، مناظر چنتا یا بناتا اور سب ٹائٹلز لگاتا ہے۔ آپ موضوع لکھیں اور ویڈیو ڈاؤن لوڈ کریں${tempoMedido(f, 'ur')}۔` },
     ],
   },
   hi: {
@@ -295,7 +326,7 @@ export const ENGINE_LANGS: Record<FreeShortsLang['code'], EngineLang> = {
     faq: (f) => [
       { q: `क्या ${f.engine} से वीडियो हिंदी में बनता है?`, a: 'हाँ। स्क्रिप्ट, न्यूरल आवाज़ और सबटाइटल हिंदी में — इस पेज से आने पर भाषा पहले से चुनी होती है।' },
       { q: `${f.engine} वीडियो की कीमत क्या है?`, a: `60 सेकंड के वीडियो के ${f.credits} क्रेडिट। मुफ़्त ट्रायल बिना कार्ड ${f.trial} क्रेडिट देता है${PAIS(' (समर्थित देशों में)')}${f.covers ? ', जो वॉटरमार्क वाले एक पूरे वीडियो के लिए काफ़ी है' : `, जो ${f.engine} वीडियो के लिए काफ़ी नहीं: पहली फ़िल्म Starter के साथ आती है (${f.starter})`}। पेड प्लान बिना वॉटरमार्क MP4 खोलते हैं।` },
-      { q: 'क्या मुझे एडिटिंग आनी चाहिए या कैमरे पर आना होगा?', a: 'नहीं। faceless फ़ॉर्मेट: AI लिखता, बोलता, सीन चुनता या बनाता और सबटाइटल जोड़ता है। आप विषय लिखें और वीडियो डाउनलोड करें, आमतौर पर 8 से 25 मिनट में।' },
+      { q: 'क्या मुझे एडिटिंग आनी चाहिए या कैमरे पर आना होगा?', a: `नहीं। faceless फ़ॉर्मेट: AI लिखता, बोलता, सीन चुनता या बनाता और सबटाइटल जोड़ता है। आप विषय लिखें और वीडियो डाउनलोड करें${tempoMedido(f, 'hi')}।` },
     ],
   },
   id: {
@@ -318,7 +349,7 @@ export const ENGINE_LANGS: Record<FreeShortsLang['code'], EngineLang> = {
     faq: (f) => [
       { q: `Apakah video dengan ${f.engine} keluar dalam bahasa Indonesia?`, a: 'Ya. Naskah, suara neural, dan subtitel dalam bahasa Indonesia — bahasanya sudah terpilih dari halaman ini.' },
       { q: `Berapa biaya satu video ${f.engine}?`, a: `${f.credits} kredit per video 60 detik. Uji coba gratis memberi ${f.trial} kredit tanpa kartu${PAIS(' (di negara yang didukung)')}${f.covers ? ', cukup untuk satu video lengkap dengan watermark' : `, tidak cukup untuk video ${f.engine}: film pertama datang bersama Starter (${f.starter})`}. Paket berbayar membuka MP4 tanpa watermark.` },
-      { q: 'Harus bisa mengedit atau tampil di kamera?', a: 'Tidak. Format faceless: AI menulis, mengisi suara, memilih atau menghasilkan adegan, dan menambahkan subtitel. Anda mengetik topik dan mengunduh video, biasanya 8–25 menit.' },
+      { q: 'Harus bisa mengedit atau tampil di kamera?', a: `Tidak. Format faceless: AI menulis, mengisi suara, memilih atau menghasilkan adegan, dan menambahkan subtitel. Anda mengetik topik dan mengunduh video${tempoMedido(f, 'id')}.` },
     ],
   },
   vi: {
@@ -341,7 +372,7 @@ export const ENGINE_LANGS: Record<FreeShortsLang['code'], EngineLang> = {
     faq: (f) => [
       { q: `Video với ${f.engine} có ra tiếng Việt không?`, a: 'Có. Kịch bản, giọng nơ-ron và phụ đề đều tiếng Việt — ngôn ngữ đã được chọn sẵn từ trang này.' },
       { q: `Một video ${f.engine} giá bao nhiêu?`, a: `${f.credits} tín dụng cho mỗi video 60 giây. Dùng thử miễn phí cho ${f.trial} tín dụng không cần thẻ${PAIS(' (ở các quốc gia được hỗ trợ)')}${f.covers ? ', đủ cho một video hoàn chỉnh có watermark' : `, không đủ cho video ${f.engine}: phim đầu tiên đi kèm Starter (${f.starter})`}. Gói trả phí mở khóa MP4 không watermark.` },
-      { q: 'Tôi có cần biết dựng phim hay lộ mặt không?', a: 'Không. Định dạng faceless: AI viết, đọc, chọn hoặc tạo cảnh và thêm phụ đề. Bạn gõ chủ đề và tải video, thường trong 8–25 phút.' },
+      { q: 'Tôi có cần biết dựng phim hay lộ mặt không?', a: `Không. Định dạng faceless: AI viết, đọc, chọn hoặc tạo cảnh và thêm phụ đề. Bạn gõ chủ đề và tải video${tempoMedido(f, 'vi')}.` },
     ],
   },
 }

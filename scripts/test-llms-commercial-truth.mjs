@@ -39,7 +39,11 @@ async function verify(reverseTrialEnabled) {
   assert.equal(policy.CARD_ENTRY_ONLY, false, 'This regression covers the approved free-entry policy')
   if (reverseTrialEnabled) {
   assert.ok(free.includes(`${policy.FREE_ENTRY_CREDITS} free credits`), 'Trial follows canonical credits')
-  assert.match(free, /every engine.*unlocked/i)
+  // REANCORADO KINEO-GEO-RODADA3-2026-10-08 (com motivo): "every engine is unlocked" era a promessa do trial de 09/09, morta
+  // em 05/10 (o saldo do trial paga o filme grátis de 15 s, não um filme nos outros motores). A seção diz o que o saldo paga;
+  // a frase velha não volta (prova com mutante: scripts/test-geo-rodada3-2026-10-08.mjs, R10 / M27).
+  assert.doesNotMatch(free, /every engine.*unlocked/i)
+  assert.match(free, /Trial engine access: the trial balance pays for the free film below; a full film on any other engine needs a paid plan or a credit pack/)
   assert.match(free, /Access does not mean the balance covers a full video\./)
   } else {
   assert.ok(free.includes(`Up to ${facts.FREE_TIER.videosPer24h} ${facts.FREE_TIER.engine} videos every 24 hours`), 'Legacy flag state remains unchanged')

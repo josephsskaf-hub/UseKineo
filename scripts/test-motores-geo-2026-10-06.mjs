@@ -16,6 +16,8 @@
 //   (7) MENTIRAS CORRIGIDAS — sem "3–7 minutes" nem "unlocked on every account" nas páginas citáveis, nenhum "free" nos
 //       títulos, Veo sem "native audio" no catálogo que a IA lê, tier derivado (Kling 3 = Creator, H3 = Starter); nas 26
 //       páginas traduzidas, 8–25 min e o trial com a cláusula do país (espelho conferido contra GRANT_COUNTRY_CLAUSE);
+//       REANCORADO KINEO-GEO-RODADA3-2026-10-08: a faixa digitada 8–25 min saiu; o tempo honesto é a mediana MEDIDA do motor
+//       no Kineo AI Video Index (JSON da edição), nas páginas em inglês e nas traduzidas;
 //   (8) PING PREPARADO — scripts/indexnow-ping-2026-10-06.mjs: ensaio por padrão, chave da casa, escolhe pelo lastmod
 //       desta revisão (executado aqui contra o sitemap gerado, sem rede).
 // Cada regra tem um mutante em memória (22) que precisa ficar VERMELHO pelo motivo certo, e 2 controles (a fonte muda:
@@ -96,7 +98,21 @@ async function problemas(rep = {}) {
   const tiers = [['starter', 'Starter'], ['basic', 'Creator'], ['pro', 'Studio']]
   const creator = { usd: pricing.TIER_PRICES.basic.usd, cr: pricing.TIER_CREDITS.basic }
   const usdOf = (credits) => Math.round((credits * creator.usd) / creator.cr)
-  const minutos = `${geoLib.ENGINE_GEO_FILM_MINUTES.min}–${geoLib.ENGINE_GEO_FILM_MINUTES.max} minutes`
+  // REANCORADO KINEO-GEO-RODADA3-2026-10-08 (com motivo): a faixa digitada "Usually 8–25 minutes" (ENGINE_GEO_FILM_MINUTES)
+  // saiu da camada citável; o tempo de entrega passou a ser o MEDIDO no Kineo AI Video Index. Lido AQUI direto do JSON
+  // versionado da edição que o espelho lib/seo/aiVideoIndexTimes.ts declara (data/ai-video-index/<edição>.json): renders de
+  // cliente quando a edição os tem, senão os de teste da casa (indicativos). A prova completa (p90, FAQ, llms.txt, traduzidas,
+  // mutantes) é scripts/test-geo-rodada3-2026-10-08.mjs; aqui segue o princípio desta revisão: nada de "3–7", nada de faixa
+  // digitada, e o tempo medido do motor na página.
+  const espelhoIndice = rep['lib/seo/aiVideoIndexTimes.ts'] ?? rd('lib/seo/aiVideoIndexTimes.ts')
+  const edicaoIndice = (espelhoIndice.match(/edition: '(\d{4}-\d{2})'/) ?? [])[1]
+  const indice = edicaoIndice ? JSON.parse(rd(`data/ai-video-index/${edicaoIndice}.json`)) : { engines: [] }
+  if (!edicaoIndice) p.push('índice: espelho lib/seo/aiVideoIndexTimes.ts sem a edição')
+  const medido = (quality) => {
+    const reg = indice.engines.find((x) => x.qualityMode === quality)
+    const t = reg?.customers?.minutesToFilm ?? reg?.house?.minutesToFilm
+    return t ? { m: Number.isInteger(t.median) ? String(t.median) : t.median.toFixed(1), indicativo: !reg.customers, mediana: t.median } : null
+  }
   const visivel = (param) => !launch.enginePaused(param) && (param !== 's25' || launch.S25_PUBLIC)
   const indexaveis = cat.ENGINE_SLUGS.filter((s) => visivel(cat.ENGINES[s].param))
   const fora = cat.ENGINE_SLUGS.filter((s) => !indexaveis.includes(s))
@@ -220,7 +236,9 @@ async function problemas(rep = {}) {
     if (ctasPagina.length < 2 || ctasPagina.some((m) => unesc(m[1]) !== hrefEsperado || m[2] !== rotulo)) p.push(`${slug}: CTAs "Make a … video" da página fora do destino com campanha`)
     // mentiras corrigidas
     if (t.includes('3–7 minutes')) p.push(`${slug}: ainda promete 3–7 minutes`)
-    if (!t.includes(`Usually ${minutos} for a narrated video`)) p.push(`${slug}: tempo de entrega honesto ausente`)
+    // REANCORADO KINEO-GEO-RODADA3-2026-10-08 — o tempo honesto agora é o medido (ver a régua acima); a faixa digitada não volta.
+    const tempoMedido = medido(quality)
+    if (/(^|[^0-9])8\s*–\s*25 minutes/.test(t) || !tempoMedido || !t.includes(`Median ${tempoMedido.m} min from request to finished film`)) p.push(`${slug}: tempo de entrega honesto ausente`)
     if (/unlocked on every account/.test(t)) p.push(`${slug}: ainda diz "unlocked on every account"`)
     // KINEO-S25-ABRE-2026-10-06 — motor só de plano pago: a nota diz isso e NUNCA oferece o trial como porta.
     if (soPago) {
@@ -247,14 +265,18 @@ async function problemas(rep = {}) {
   const fx = { engine: 'Veo 3.1', credits: cost.creditCostForDuration('cinematic_veo', true, 60), trial: trial.TRIAL_CREDITS_SHOWN }
   for (const code of EL.ENGINE_LANG_CODES) {
     const Lg = EL.ENGINE_LANGS[code]
-    const faqs = Lg.faq({ ...fx, covers: false, starter: 'X' })
+    const veoMedido = medido('cinematic_veo') // REANCORADO KINEO-GEO-RODADA3-2026-10-08 — a página passa a mediana medida do motor
+    const faqs = Lg.faq({ ...fx, covers: false, starter: 'X', ...(veoMedido ? { medianMinutes: veoMedido.mediana, indicative: veoMedido.indicativo } : {}) })
     const trialTextos = [Lg.description(fx), Lg.cost({ ...fx, covers: false, starter: 'X' }), faqs[1].a]
     const clausula = CLAUSULA_PAIS[code]
     if (!clausula) p.push(`${code}: língua sem cláusula de país conhecida pelo guardião`)
     else if (restrito && !trialTextos.every((s) => s.includes(clausula))) p.push(`${code}: trial prometido sem a cláusula do país`)
     else if (!restrito && trialTextos.some((s) => s.includes(clausula))) p.push(`${code}: cláusula do país com a política "todos"`)
     const tempo = faqs[2].a
-    if (/(^|[^0-9])3\s*(–|à|إلى|سے|से)\s*7([^0-9]|$)/.test(tempo) || !/(^|[^0-9])8\s*(–|à|إلى|سے|से)\s*25([^0-9]|$)/.test(tempo)) p.push(`${code}: tempo de entrega ainda é 3–7 min (ou sem 8–25)`)
+    // REANCORADO KINEO-GEO-RODADA3-2026-10-08 (com motivo): a faixa "8–25" saiu das 13 línguas; no lugar, a mediana MEDIDA do
+    // motor (ponto ou vírgula, conforme a língua). Segue vermelho se voltar o "3–7" (M22) ou uma faixa digitada.
+    if (/(^|[^0-9])3\s*(–|à|إلى|سے|से)\s*7([^0-9]|$)/.test(tempo)) p.push(`${code}: tempo de entrega ainda é 3–7 min`)
+    else if (/(^|[^0-9])8\s*(–|à|إلى|سے|से)\s*25([^0-9]|$)/.test(tempo) || !veoMedido || !(tempo.includes(veoMedido.m) || tempo.includes(veoMedido.m.replace('.', ',')))) p.push(`${code}: tempo de entrega sem a mediana medida (ou com a faixa digitada)`)
   }
 
   // (3) motor fora: sem camada citável, página sem bloco novo e sem "unlocked on every account"
@@ -285,7 +307,14 @@ async function problemas(rep = {}) {
   // desta revisão; a prova da rodada 2 é scripts/test-geo-rodada2-2026-10-08.mjs.
   const rodada2 = new Date(`${load('lib/seo/houseFilmIdeas.ts').GEO_RODADA2_REVIEWED_ISO}T12:00:00.000Z`).getTime()
   if (!(rodada2 > lastmodGeo)) p.push('rodada 2: data da revisão não é posterior a esta')
-  const lastmodEsperado = (slug) => (slug === 'seedance' ? rodada2 : lastmodGeo)
+  // REANCORADO KINEO-GEO-RODADA3-2026-10-08 (com motivo): a rodada 3 de GEO (sessão CEO 08/10) trocou de verdade o tempo de
+  // entrega de TODA página de motor indexável e das traduzidas (faixa digitada → tempo medido do Kineo AI Video Index) e revisou
+  // /seedance-vs-veo-vs-kling (resposta direta + tabela medida). Essas páginas passam a ter o lastmod real da rodada 3
+  // (GEO_RODADA3_LAST_MODIFIED_ISO, lib/seo/geoRodada3.ts); a do Seedance 1.5 segue com o da rodada 2 (mesmo dia). O hub,
+  // /models-pricing e /kineo-vs-higgsfield não mudaram e seguem exigindo a data desta revisão. Prova: test-geo-rodada3-2026-10-08.
+  const rodada3 = new Date(load('lib/seo/geoRodada3.ts').GEO_RODADA3_LAST_MODIFIED_ISO).getTime()
+  if (!(rodada3 > lastmodGeo)) p.push('rodada 3: data da revisão não é posterior a esta')
+  const lastmodEsperado = (slug) => (slug === 'seedance' ? rodada2 : rodada3)
   for (const slug of indexaveis) {
     const ent = sm.filter((x) => x.url === `${BASE}/ai-video-generator/${slug}`)
     if (ent.length !== 1) p.push(`sitemap: ${slug} aparece ${ent.length}×`)
@@ -296,11 +325,12 @@ async function problemas(rep = {}) {
   for (const slug of langs.LOCALIZED_ENGINE_SLUGS) for (const code of langs.ENGINE_LANG_CODES) {
     const u = `${BASE}/ai-video-generator/${slug}/${code}`
     const ent = sm.find((x) => x.url === u)
-    if (indexaveis.includes(slug) && (!ent || new Date(ent.lastModified).getTime() !== lastmodGeo)) p.push(`sitemap: ${u} ausente ou sem o lastmod da revisão`)
+    if (indexaveis.includes(slug) && (!ent || new Date(ent.lastModified).getTime() !== rodada3)) p.push(`sitemap: ${u} ausente ou sem o lastmod da revisão`) // REANCORADO KINEO-GEO-RODADA3-2026-10-08
   }
   for (const path of ['/ai-video-generator', '/models-pricing', '/kineo-vs-higgsfield', '/seedance-vs-veo-vs-kling']) {
     const ent = sm.find((x) => x.url === `${BASE}${path}`)
-    if (!ent || new Date(ent.lastModified).getTime() !== lastmodGeo) p.push(`sitemap: ${path} sem o lastmod da revisão`)
+    const quando = path === '/seedance-vs-veo-vs-kling' ? rodada3 : lastmodGeo // REANCORADO KINEO-GEO-RODADA3-2026-10-08 (a comparação foi revisada)
+    if (!ent || new Date(ent.lastModified).getTime() !== quando) p.push(`sitemap: ${path} sem o lastmod da revisão`)
   }
   const cluster = sm.find((x) => x.url === `${BASE}/pricing`)
   if (!cluster || new Date(cluster.lastModified).getTime() === lastmodGeo) p.push('sitemap: re-datou página que esta revisão não tocou (/pricing)')
@@ -377,14 +407,13 @@ ok(edicoesMotoresGeo(rd(PAGE)) === 11, 'as 11 edições da página que os guardi
   const langs = fx('lib/seo/enginePageLangs.ts')
   // REANCORADO KINEO-GEO-RODADA2-2026-10-08 (com motivo): a página do Seedance 1.5 foi revisada de novo em 08/10 (lastmod da
   // rodada 2), então o ping DESTA revisão (lastmod = 06/10) corretamente não a escolhe mais; o ping da rodada 2 é outro.
-  const deveTer = [
-    `${BASE}/ai-video-generator`,
-    ...cat.INDEXABLE_ENGINE_SLUGS.filter((slug) => slug !== 'seedance').map((slug) => `${BASE}/ai-video-generator/${slug}`),
-    ...langs.LOCALIZED_ENGINE_SLUGS.filter((s) => cat.INDEXABLE_ENGINE_SLUGS.includes(s)).flatMap((slug) => langs.ENGINE_LANG_CODES.map((code) => `${BASE}/ai-video-generator/${slug}/${code}`)),
-    `${BASE}/models-pricing`, `${BASE}/kineo-vs-higgsfield`, `${BASE}/seedance-vs-veo-vs-kling`,
-  ].sort()
+  // REANCORADO KINEO-GEO-RODADA3-2026-10-08 (com motivo): a rodada 3 re-datou (lastmod real de 08/10) as páginas de motor
+  // indexáveis, as traduzidas e /seedance-vs-veo-vs-kling — o ping DESTA revisão (lastmod = 06/10) corretamente não as escolhe
+  // mais; o ping da rodada 3 é scripts/indexnow-ping-geo-rodada3-2026-10-08.mjs. Ficam o hub e as 2 comparações não tocadas
+  // (a igualdade EXATA abaixo segue provando que nenhuma página de motor, pausada ou não, entra neste ping).
+  const deveTer = [`${BASE}/ai-video-generator`, `${BASE}/models-pricing`, `${BASE}/kineo-vs-higgsfield`].sort()
   const veio = [...(saida?.urlList ?? [])].sort()
-  ok(saida?.mode === 'ensaio-offline' && JSON.stringify(veio) === JSON.stringify(deveTer), `(8) ping offline escolhe EXATAMENTE as ${deveTer.length} URLs desta revisão (hub, motores indexáveis, traduzidas, 3 comparações) — nada de motor pausado nem de página de outra sessão [veio ${veio.length}]`)
+  ok(saida?.mode === 'ensaio-offline' && JSON.stringify(veio) === JSON.stringify(deveTer), `(8) ping offline escolhe EXATAMENTE as ${deveTer.length} URLs desta revisão que a rodada 3 não re-datou (hub e 2 comparações) — nada de motor pausado nem de página de outra sessão [veio ${veio.length}]`)
 }
 
 // ── mutantes: cada regra quebrada fica VERMELHA; controles (a fonte muda) ficam VERDES ──
@@ -435,7 +464,8 @@ const mutantes = [
   ['M11 CTA do card sem cadastro (vai direto ao Studio)', troca(PAGE, '        {geo && <EnginePriceCard geo={geo} ctaHref={signupUrl} campaign={campaign} />}', '        {geo && <EnginePriceCard geo={geo} ctaHref={studioUrl} campaign={campaign} />}')],
   ['M12 campanha errada nos CTAs', troca(PAGE, '  const campaign = `seo_engine_${params.engine}`', "  const campaign = 'seo_engine'")],
   ['M13 resposta deixa de ser a 1ª frase depois do H1', troca(PAGE, '          {geo && <EngineAnswerLead geo={geo} />}\n          {!enginePaused(e.param) && <PaidEngineBudget slug={params.engine} />}\n', '          {!enginePaused(e.param) && <PaidEngineBudget slug={params.engine} />}\n          {geo && <EngineAnswerLead geo={geo} />}\n')],
-  ['M14 volta o "3–7 minutes"', troca(GEO, '    turnaround: `Usually ${minutes} for a narrated video — it varies with length and provider queues`,', "    turnaround: '3–7 minutes from idea to download',")],
+  // REANCORADO KINEO-GEO-RODADA3-2026-10-08: M14 e M22 ancoram nas linhas do tempo medido (a faixa digitada saiu).
+  ['M14 volta o "3–7 minutes"', troca(GEO, '    turnaround: turnaroundLine(measured), // KINEO-GEO-RODADA3-2026-10-08 — era a faixa digitada da rodada 1\n', "    turnaround: '3–7 minutes from idea to download',\n")],
   ['M15 volta o "unlocked on every account"', troca(PAGE, '  const tierNote = geo ? geo.accessNote : enginePaused(e.param) ? pausedAccessNote(e.name, enginePaused(e.param)!) : e.tier', '  const tierNote = e.tier')],
   ['M16 sitemap re-data com a data antiga', troca(SITEMAP, ': engineGeoRevised.has(r.path) ? ENGINE_GEO_LAST_MODIFIED : LAST_MODIFIED,', ': LAST_MODIFIED,')],
   ['M17 preço direto inventado (Runway com crédito/s digitado)', troca(GEO, '    clipUsdCents: Math.round((q.creditsPerSecond * seconds * q.plan.usdCentsMonthly) / q.plan.creditsMonthly),', '    clipUsdCents: Math.round((10 * seconds * q.plan.usdCentsMonthly) / q.plan.creditsMonthly),')],
@@ -443,7 +473,7 @@ const mutantes = [
   ['M19 tier volta a ser digitado (Kling 3 = Studio)', troca(CATALOG, "    tier: tierFor('cinematic_hollywood'),", "    tier: 'Studio',")],
   ['M20 frase da marca some do CTA', troca('components/EngineCitationAnswer.tsx', '>{ENGINE_GEO_BRAND_LINE}</p>', '>Start free today.</p>')],
   ['M21 espelho do país desligado (trial volta a valer "para todos" nas traduzidas)', troca('lib/seo/enginePageLangs.ts', 'export const TRIAL_ONLY_IN_SUPPORTED_COUNTRIES = true', 'export const TRIAL_ONLY_IN_SUPPORTED_COUNTRIES = false')],
-  ['M22 tradução volta a prometer 3–7 minutos', troca('lib/seo/enginePageLangs.ts', 'lädst das Video herunter, meist in 8–25 Minuten.', 'lädst das Video herunter, meist in 3–7 Minuten.')],
+  ['M22 tradução volta a prometer 3–7 minutos', troca('lib/seo/enginePageLangs.ts', "lädst das Video herunter${tempoMedido(f, 'de')}.", 'lädst das Video herunter, meist in 3–7 Minuten.')],
   // KINEO-S25-CLIPES-2026-10-06 — rodam com o interruptor do clipe forçado em memória (independem do valor no arquivo)
   ['M23 a frase "clips from … (paid plans)" some (clipe do 2.5 ligado)', troca(GEO, '  const clipFromLine = clipeAVenda && access.paidPlansOnly\n', '  const clipFromLine = null && clipeAVenda && access.paidPlansOnly\n', clipS25Com(true))],
   ['M24 a camada citável vende o clipe do 2.5 com o interruptor desligado', troca(CATALOG, "clipOnSale: param !== 's25' || clipS25Visible(null) }", 'clipOnSale: true }', clipS25Com(false))],

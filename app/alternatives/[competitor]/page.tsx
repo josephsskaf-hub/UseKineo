@@ -29,6 +29,14 @@ import { STARTER_MO, STARTER_MONTH } from '@/lib/marketingPrice'
 import { isEnterpriseAlternativeCompetitor } from '@/lib/growth/enterpriseAlternativeBusinessPath'
 import EnterpriseAlternativeBusinessPath from './EnterpriseAlternativeBusinessPath'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
+// KINEO-GEO-RODADA3-2026-10-08 — o tempo de entrega sai do Kineo AI Video Index (mediana medida do motor-manchete, com p90 e
+// fonte); a faixa de minutos e a mediana velha do Kineo 1 saíram de todas as páginas de alternativa.
+import { PRODUCT_TIME } from '@/lib/seo/measuredRenderTime'
+// KINEO-GEO-RODADA3-2026-10-08 — as perguntas (b) "Kineo vs InVideo AI" e (c) "Kineo vs CapCut AI video" da rodada 3 de GEO: a
+// resposta direta vira o parágrafo logo depois do H1, e a seção traz a tabela com os números MEDIDOS da Kineo (os do índice), os
+// preços públicos do concorrente com link e data, filmes da casa e duas entradas de FAQ (visíveis e no FAQPage).
+import GeoRodada3Section from '@/components/GeoRodada3Sections'
+import { capcutAnswer, invideoAnswer } from '@/lib/seo/geoRodada3Answers'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -64,7 +72,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'OpusClip',
     h1: 'The OpusClip Alternative That Builds the Whole Short From One Idea',
     intro:
-      'OpusClip is great at one thing: chopping a long video you already filmed into clips. But if you don’t have footage — if you want a finished, faceless Short from just an idea — that’s a different tool. Kineo writes the script, records the voiceover, finds the footage and renders a ready-to-post 9:16 Short usually in 3–7 minutes. No upload, no camera, no editing.',
+      `OpusClip is great at one thing: chopping a long video you already filmed into clips. But if you don’t have footage — if you want a finished, faceless Short from just an idea — that’s a different tool. Kineo writes the script, records the voiceover, finds the footage and renders a ready-to-post 9:16 Short ${PRODUCT_TIME.inMedian}. No upload, no camera, no editing.`,
     theyDo: 'OpusClip repurposes long-form video you already have into short clips.',
     pickThem:
       'Pick OpusClip if you already record long videos or podcasts and just want them auto-clipped. Pick Kineo if you want to create faceless Shorts from scratch without filming anything.',
@@ -85,7 +93,7 @@ export const COMPETITORS: Record<string, Competitor> = {
       },
       {
         q: 'Can I make faceless Shorts without filming anything?',
-        a: 'Yes. Kineo is built for faceless creators: you type a topic and get a finished vertical Short usually in 3–7 minutes. You never appear on camera and never need source footage.',
+        a: `Yes. Kineo is built for faceless creators: you type a topic and get a finished vertical Short ${PRODUCT_TIME.inMedian}. You never appear on camera and never need source footage.`,
       },
       {
         q: 'How much does Kineo cost?',
@@ -97,7 +105,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'InVideo AI',
     h1: 'A Free InVideo AI Alternative for Faceless Shorts',
     intro:
-      `Kineo starts free (${TRIAL_CREDITS_SHOWN} credits — ${TRIAL_FIRST_FILM_PHRASE}, no card); InVideo AI has its own free tier. The useful difference is the workflow: InVideo is a broad video creator, while Kineo is built specifically for faceless 9:16 Shorts. One idea becomes a hook-driven script, voiceover, footage and captions, usually in 3–7 minutes. ${ft(OFFER, 'Kineo free access includes up to 3 watermarked Fast videos every 24 hours.', `Kineo starts with ${TRIAL_GRANT_CREDITS_COPY} free credits, ${TRIAL_FIRST_FILM_PHRASE}; trial films are watermarked.`)}`,
+      `Kineo starts free (${TRIAL_CREDITS_SHOWN} credits — ${TRIAL_FIRST_FILM_PHRASE}, no card); InVideo AI has its own free tier. The useful difference is the workflow: InVideo is a broad video creator, while Kineo is built specifically for faceless 9:16 Shorts. One idea becomes a hook-driven script, voiceover, footage and captions, ${PRODUCT_TIME.inMedian}. ${ft(OFFER, 'Kineo free access includes up to 3 watermarked Fast videos every 24 hours.', `Kineo starts with ${TRIAL_GRANT_CREDITS_COPY} free credits, ${TRIAL_FIRST_FILM_PHRASE}; trial films are watermarked.`)}`,
     theyDo: 'InVideo AI is a broad, general-purpose AI video maker for many formats.',
     pickThem:
       'Pick InVideo if you need long-form, horizontal, or many different video formats from one tool. Pick Kineo if your whole game is posting faceless Shorts daily and you want them optimized for retention out of the box.',
@@ -120,7 +128,7 @@ export const COMPETITORS: Record<string, Competitor> = {
       },
       {
         q: 'What is the best InVideo alternative for faceless YouTube Shorts?',
-        a: `Kineo is purpose-built for faceless short-form: it writes a hook-driven script, voices it, finds footage and renders a 9:16 Short from one idea usually in 3–7 minutes, starting at ${STARTER_MONTH}.`,
+        a: `Kineo is purpose-built for faceless short-form: it writes a hook-driven script, voices it, finds footage and renders a 9:16 Short from one idea ${PRODUCT_TIME.inMedian}, starting at ${STARTER_MONTH}.`,
       },
       {
         q: 'Is Kineo cheaper than InVideo?',
@@ -136,7 +144,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'Submagic',
     h1: 'The Submagic Alternative That Makes the Whole Video, Not Just the Captions',
     intro:
-      'Submagic adds animated captions and B-roll to a video you already have. Kineo makes the entire video for you — it writes the script, records the AI voiceover, finds the footage AND adds the captions, from a single idea, usually in 3–7 minutes. If you don’t have a video to caption yet, this is the tool that creates one.',
+      `Submagic adds animated captions and B-roll to a video you already have. Kineo makes the entire video for you — it writes the script, records the AI voiceover, finds the footage AND adds the captions, from a single idea, ${PRODUCT_TIME.inMedian}. If you don’t have a video to caption yet, this is the tool that creates one.`,
     theyDo: 'Submagic adds captions and effects to videos you already recorded.',
     pickThem:
       'Pick Submagic if you already have finished videos and only need polished captions. Pick Kineo if you need the whole faceless Short created from scratch.',
@@ -161,7 +169,7 @@ export const COMPETITORS: Record<string, Competitor> = {
       },
       {
         q: 'How fast is it?',
-        a: 'Usually 3–7 minutes from idea to a downloadable, ready-to-post Short (4.2-minute median, 6.6-minute p90, measured). Your first one is free.',
+        a: `${PRODUCT_TIME.answer} Your first one is free.`,
       },
     ],
   },
@@ -210,7 +218,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'Pika',
     h1: 'The Pika Alternative That Builds the Whole Faceless Short From One Idea',
     intro:
-      'Pika is a generative AI video tool — you prompt it and it produces short, animated or cinematic clips (typically 5–10 seconds) from text or an image, with creative effects like morphing and motion control. It is built for generating individual scenes, not for assembling a complete, narrated, captioned short. Kineo takes one idea and produces the entire faceless YouTube Short — script, AI voice, footage, and captions — usually in 3–7 minutes.',
+      `Pika is a generative AI video tool — you prompt it and it produces short, animated or cinematic clips (typically 5–10 seconds) from text or an image, with creative effects like morphing and motion control. It is built for generating individual scenes, not for assembling a complete, narrated, captioned short. Kineo takes one idea and produces the entire faceless YouTube Short — script, AI voice, footage, and captions — ${PRODUCT_TIME.inMedian}.`,
     theyDo: 'Pika focuses on generating short, eye-catching AI video clips and effects from a text or image prompt.',
     pickThem: 'Pick Pika when you want to generate a striking standalone AI clip or visual effect to drop into a larger edit; pick Kineo when you want the whole faceless Short finished end to end.',
     rows: [
@@ -224,7 +232,7 @@ export const COMPETITORS: Record<string, Competitor> = {
       { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'Paid plans' },
     ],
     faq: [
-      { q: 'What is the best Pika alternative for faceless YouTube Shorts?', a: 'Kineo is the strongest Pika alternative for full faceless Shorts, because it does not just generate a clip — it writes the script, adds the AI voice, pulls the footage, and burns in captions to deliver a finished vertical Short usually in 3–7 minutes.' },
+      { q: 'What is the best Pika alternative for faceless YouTube Shorts?', a: `Kineo is the strongest Pika alternative for full faceless Shorts, because it does not just generate a clip — it writes the script, adds the AI voice, pulls the footage, and burns in captions to deliver a finished vertical Short ${PRODUCT_TIME.inMedian}.` },
       { q: 'Can Pika make a complete YouTube Short with voiceover and captions?', a: 'Not on its own — Pika generates short AI clips, and you would still need to add a script, narration, and captions yourself. Kineo handles that entire pipeline automatically from a single idea.' },
       { q: 'Is Kineo cheaper than Pika?', a: `Kineo starts at ${STARTER_MO} and turns one idea into a complete faceless Short. Pika prices change, so check their site, but the bigger difference is scope: Pika gives you clips, Kineo gives you the whole video.` },
     ],
@@ -233,7 +241,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'Fliki',
     h1: 'The Fliki Alternative That Turns One Idea Into a Finished Faceless Short',
     intro:
-      'Fliki is a text-to-video platform with a huge AI voice library (2,500+ voices, 80+ languages) that turns scripts, blog posts, or prompts into videos with voiceover, stock visuals, and captions. It is powerful and multilingual, but it is built around a script you bring and an editor you work in. Kineo is built for one thing — taking a single idea and producing a finished faceless YouTube Short, script and all, usually in 3–7 minutes.',
+      `Fliki is a text-to-video platform with a huge AI voice library (2,500+ voices, 80+ languages) that turns scripts, blog posts, or prompts into videos with voiceover, stock visuals, and captions. It is powerful and multilingual, but it is built around a script you bring and an editor you work in. Kineo is built for one thing — taking a single idea and producing a finished faceless YouTube Short, script and all, ${PRODUCT_TIME.inMedian}.`,
     theyDo: 'Fliki turns scripts and blog posts into videos using the largest AI voice and language library in the category.',
     pickThem: 'Pick Fliki when you need many languages, voice cloning, or fine control over a script you already have; pick Kineo when you want to go from raw idea to a finished Short with no scripting or editing.',
     rows: [
@@ -247,7 +255,7 @@ export const COMPETITORS: Record<string, Competitor> = {
       { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'Paid plans' },
     ],
     faq: [
-      { q: 'What is the best Fliki alternative for faceless YouTube Shorts?', a: 'Kineo is a great Fliki alternative when you want a finished Short without writing the script yourself — it generates the script, AI voice, footage, and captions from a single idea usually in 3–7 minutes.' },
+      { q: 'What is the best Fliki alternative for faceless YouTube Shorts?', a: `Kineo is a great Fliki alternative when you want a finished Short without writing the script yourself — it generates the script, AI voice, footage, and captions from a single idea ${PRODUCT_TIME.inMedian}.` },
       { q: 'Does Kineo write the script like Fliki, or do I bring my own?', a: 'Fliki expects you to bring a script, blog post, or prompt to shape. Kineo writes the script for you from just an idea, so you never start with a blank page.' },
       { q: 'Should I use Fliki or Kineo for faceless content?', a: `Choose Fliki if you need many languages, accents, or voice cloning. Choose Kineo if you mainly publish English faceless Shorts and want the whole video built automatically for ${STARTER_MO}.` },
     ],
@@ -256,7 +264,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'Revid',
     h1: 'The Revid Alternative That Builds the Whole Faceless Short From One Idea',
     intro:
-      'Revid.ai is a faceless-video platform that turns a script, prompt, or URL into a short with AI voice, captions, and B-roll, plus dozens of visual styles and templates. It is a close competitor in the faceless niche, but workflows tend to run longer and lean on you to paste in or guide the content. Kineo is tuned to take one idea and deliver a finished faceless YouTube Short usually in 3–7 minutes.',
+      `Revid.ai is a faceless-video platform that turns a script, prompt, or URL into a short with AI voice, captions, and B-roll, plus dozens of visual styles and templates. It is a close competitor in the faceless niche, but workflows tend to run longer and lean on you to paste in or guide the content. Kineo is tuned to take one idea and deliver a finished faceless YouTube Short ${PRODUCT_TIME.inMedian}.`,
     theyDo: 'Revid turns scripts, prompts, or URLs into faceless short and long-form videos with a large library of visual styles.',
     pickThem: 'Pick Revid if you want lots of visual-style presets and templates and do not mind a longer per-video workflow; pick Kineo when speed from idea to finished Short matters most.',
     rows: [
@@ -270,8 +278,8 @@ export const COMPETITORS: Record<string, Competitor> = {
       { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'Paid plans' },
     ],
     faq: [
-      { q: 'What is the best Revid alternative for faceless YouTube Shorts?', a: 'Kineo is a strong Revid alternative when speed is the priority — it turns a single idea into a finished faceless Short (script, AI voice, footage, captions) usually in 3–7 minutes, without pasting in a script or URL first.' },
-      { q: 'Is Kineo faster than Revid for making a Short?', a: 'Kineo is built for one-step delivery: a finished video from a single idea, usually in 3–7 minutes (4.2-minute median across measured renders). Revid starts from a script or URL you supply, so the comparison depends on whether you already have that script. We publish our render times at usekineo.com/state-of-ai-shorts-2026; Revid does not publish theirs, so we make no claim about which is faster end to end. Revid does offer more visual-style presets.' },
+      { q: 'What is the best Revid alternative for faceless YouTube Shorts?', a: `Kineo is a strong Revid alternative when speed is the priority — it turns a single idea into a finished faceless Short (script, AI voice, footage, captions) ${PRODUCT_TIME.inMedian}, without pasting in a script or URL first.` },
+      { q: 'Is Kineo faster than Revid for making a Short?', a: `Kineo is built for one-step delivery: a finished video from a single idea, ${PRODUCT_TIME.inMedian}. Revid starts from a script or URL you supply, so the comparison depends on whether you already have that script. Kineo publishes its render times every month in the Kineo AI Video Index (usekineo.com/ai-video-index); Revid does not publish its own, so we make no claim about which is faster end to end. Revid does offer more visual-style presets.` },
       { q: 'Revid vs Kineo — which is better for a faceless channel?', a: `Both make faceless Shorts. Pick Revid for its larger library of styles and templates; pick Kineo for the fastest idea-to-finished-Short flow at ${STARTER_MO}.` },
     ],
   },
@@ -279,7 +287,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'Crayo',
     h1: 'The Crayo Alternative That Builds the Whole Faceless Short From One Idea',
     intro:
-      'Crayo.ai is built for faceless short-form at scale, with polished niche templates like Reddit-story, fake-texts, and split-screen, turning a prompt or YouTube link into a clip with voiceover, subtitles, and music. It shines for those specific viral formats. Kineo is broader and idea-first: give it one idea and it writes the script and produces a finished faceless YouTube Short usually in 3–7 minutes.',
+      `Crayo.ai is built for faceless short-form at scale, with polished niche templates like Reddit-story, fake-texts, and split-screen, turning a prompt or YouTube link into a clip with voiceover, subtitles, and music. It shines for those specific viral formats. Kineo is broader and idea-first: give it one idea and it writes the script and produces a finished faceless YouTube Short ${PRODUCT_TIME.inMedian}.`,
     theyDo: 'Crayo specializes in high-volume faceless clips built around viral templates like Reddit-story, fake-texts, and split-screen.',
     pickThem: 'Pick Crayo if your channel lives on Reddit-story, fake-text, or split-screen formats; pick Kineo when you want an idea turned into a complete, narrated faceless Short without picking a template.',
     rows: [
@@ -293,7 +301,7 @@ export const COMPETITORS: Record<string, Competitor> = {
       { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'Paid plans' },
     ],
     faq: [
-      { q: 'What is the best Crayo alternative for faceless YouTube Shorts?', a: 'Kineo is a solid Crayo alternative when you want narrated, footage-driven Shorts from a single idea rather than template-driven formats — it writes the script, adds AI voice and footage, and captions it usually in 3–7 minutes.' },
+      { q: 'What is the best Crayo alternative for faceless YouTube Shorts?', a: `Kineo is a solid Crayo alternative when you want narrated, footage-driven Shorts from a single idea rather than template-driven formats — it writes the script, adds AI voice and footage, and captions it ${PRODUCT_TIME.inMedian}.` },
       { q: 'Crayo vs Kineo — which should I use?', a: 'Use Crayo if your channel relies on Reddit-story, fake-texts, or split-screen templates. Use Kineo if you want any idea turned into a complete faceless Short without choosing a template.' },
       { q: 'Does Kineo do faceless Shorts like Crayo?', a: `Yes — Kineo produces fully faceless Shorts with AI voice, footage, and captions, starting at ${STARTER_MO}. The difference is approach: Kineo is idea-first and footage-driven, Crayo is template-first.` },
     ],
@@ -302,7 +310,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'AutoShorts',
     h1: 'The AutoShorts Alternative With Better Scripts — and Real Proof',
     intro:
-      `AutoShorts also generates faceless videos on autopilot. Kineo focuses on a viral hook structure (hook → micro-rewards → payoff) and matches footage to each line — from one idea, usually in 3–7 minutes. Starter is ${STARTER_MONTH}, with a 7-day money-back guarantee${ft(OFFER, '; free access includes up to 3 watermarked Fast videos every 24 hours with no card.', '. ' + OFFER.copy.sentence)}`,
+      `AutoShorts also generates faceless videos on autopilot. Kineo focuses on a viral hook structure (hook → micro-rewards → payoff) and matches footage to each line — from one idea, ${PRODUCT_TIME.inMedian}. Starter is ${STARTER_MONTH}, with a 7-day money-back guarantee${ft(OFFER, '; free access includes up to 3 watermarked Fast videos every 24 hours with no card.', '. ' + OFFER.copy.sentence)}`,
     theyDo: 'AutoShorts auto-generates and can auto-post faceless videos on a schedule.',
     pickThem:
       'Pick AutoShorts if hands-off scheduled auto-posting is all you want. Pick Kineo if you care about the script and footage actually being good — and want it cheaper.',
@@ -326,7 +334,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'Klap',
     h1: 'The Klap Alternative That Creates the Short From Scratch',
     intro:
-      `Klap turns a long video you already have into short clips. Kineo starts from the opposite end: you give it a topic and it writes the script, records the voiceover, finds the footage and captions it into a finished 9:16 Short — no source video, no camera — usually in 3–7 minutes from ${STARTER_MO}.`,
+      `Klap turns a long video you already have into short clips. Kineo starts from the opposite end: you give it a topic and it writes the script, records the voiceover, finds the footage and captions it into a finished 9:16 Short — no source video, no camera — ${PRODUCT_TIME.inMedian} from ${STARTER_MO}.`,
     theyDo: 'Klap repurposes existing long-form video into short vertical clips.',
     pickThem:
       'Pick Klap if you already film long videos and just want them auto-clipped. Pick Kineo if you want faceless Shorts created from just an idea.',
@@ -375,7 +383,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'CapCut',
     h1: 'The CapCut Alternative That Builds the Whole Faceless Short Automatically',
     intro:
-      'CapCut is a full video editor with templates, effects, auto-captions, AI avatars, and a growing set of AI generation tools — incredibly capable, but it is fundamentally a hands-on editor where you assemble and refine the video. Kineo removes the editing entirely: from one idea it generates the script, AI voice, footage, and captions and hands you a finished faceless YouTube Short usually in 3–7 minutes.',
+      `CapCut is a full video editor with templates, effects, auto-captions, AI avatars, and a growing set of AI generation tools — incredibly capable, but it is fundamentally a hands-on editor where you assemble and refine the video. Kineo removes the editing entirely: from one idea it generates the script, AI voice, footage, and captions and hands you a finished faceless YouTube Short ${PRODUCT_TIME.inMedian}.`,
     theyDo: 'CapCut is a powerful template-and-timeline video editor with AI tools layered on top for manual short-form creation.',
     pickThem: 'Pick CapCut when you want full manual control to edit, polish, and customize every detail; pick Kineo when you want a finished faceless Short with zero editing.',
     rows: [
@@ -389,7 +397,7 @@ export const COMPETITORS: Record<string, Competitor> = {
       { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'Free + paid plans' },
     ],
     faq: [
-      { q: 'What is the best CapCut alternative for faceless YouTube Shorts?', a: 'Kineo is the best CapCut alternative for hands-off faceless Shorts — instead of editing in a timeline, you give it one idea and it returns a finished Short with script, AI voice, footage, and captions usually in 3–7 minutes.' },
+      { q: 'What is the best CapCut alternative for faceless YouTube Shorts?', a: `Kineo is the best CapCut alternative for hands-off faceless Shorts — instead of editing in a timeline, you give it one idea and it returns a finished Short with script, AI voice, footage, and captions ${PRODUCT_TIME.inMedian}.` },
       { q: 'Can CapCut make a faceless Short automatically like Kineo?', a: 'CapCut has AI tools, but it is still an editor — you assemble and refine the video yourself. Kineo builds the entire faceless Short for you from a single idea, with no editing.' },
       { q: 'Should I use CapCut or Kineo?', a: `Use CapCut when you want full manual control and detailed editing (and its free tier). Use Kineo when you want speed and automation — a complete faceless Short from one idea for ${STARTER_MO}.` },
     ],
@@ -399,7 +407,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'Pictory',
     h1: 'The Pictory Alternative That Builds the Whole Short From One Idea',
     intro:
-      'Pictory turns long-form written content — blog posts, articles, scripts — and long videos into summarized short videos with stock visuals, AI voiceover, and auto-captions. It is mature and great for repurposing content you already have, but it expects you to bring that content and work in its editor. Kineo is idea-first: you give it one idea and it writes the script and returns a finished faceless 9:16 Short usually in 3–7 minutes, with no article or source video needed.',
+      `Pictory turns long-form written content — blog posts, articles, scripts — and long videos into summarized short videos with stock visuals, AI voiceover, and auto-captions. It is mature and great for repurposing content you already have, but it expects you to bring that content and work in its editor. Kineo is idea-first: you give it one idea and it writes the script and returns a finished faceless 9:16 Short ${PRODUCT_TIME.inMedian}, with no article or source video needed.`,
     theyDo: 'Pictory summarizes blog posts, articles, scripts, and long videos into shorter videos with stock visuals and AI voiceover.',
     pickThem: 'Pick Pictory if you have blogs, articles, or long videos to convert and want a mature editor with a big stock library; pick Kineo when you want a finished faceless Short from a single idea with no scripting or editing.',
     rows: [
@@ -413,7 +421,7 @@ export const COMPETITORS: Record<string, Competitor> = {
       { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'Paid plans' },
     ],
     faq: [
-      { q: 'What is the best Pictory alternative for faceless YouTube Shorts?', a: 'Kineo is a strong Pictory alternative when you want a finished Short without bringing your own content — it writes the script, adds the AI voice, pulls the footage, and burns in captions to deliver a faceless 9:16 Short from a single idea usually in 3–7 minutes.' },
+      { q: 'What is the best Pictory alternative for faceless YouTube Shorts?', a: `Kineo is a strong Pictory alternative when you want a finished Short without bringing your own content — it writes the script, adds the AI voice, pulls the footage, and burns in captions to deliver a faceless 9:16 Short from a single idea ${PRODUCT_TIME.inMedian}.` },
       { q: 'Does Kineo need a blog post or video like Pictory?', a: 'No. Pictory is built to repurpose written content or long videos you already have. Kineo starts from just an idea — it writes the script for you, so you never need an article or source video.' },
       { q: 'Should I use Pictory or Kineo?', a: `Choose Pictory if you have blogs, articles, or long videos to convert and want a mature editor with a big stock library. Choose Kineo if you want a finished faceless Short from one idea with no scripting or editing, from ${STARTER_MO}.` },
     ],
@@ -423,7 +431,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'VEED',
     h1: 'The VEED Alternative That Builds the Whole Short — No Editor to Learn',
     intro:
-      'VEED is a powerful browser-based video editor with AI tools — auto-subtitles, screen recording, a stock library and a full timeline. It is built for people who want to sit down and edit. Kineo removes the editor entirely: you give it one idea and it writes the script, records the AI voiceover, finds the footage and captions it into a finished faceless 9:16 Short usually in 3–7 minutes. No timeline, no camera, nothing to assemble.',
+      `VEED is a powerful browser-based video editor with AI tools — auto-subtitles, screen recording, a stock library and a full timeline. It is built for people who want to sit down and edit. Kineo removes the editor entirely: you give it one idea and it writes the script, records the AI voiceover, finds the footage and captions it into a finished faceless 9:16 Short ${PRODUCT_TIME.inMedian}. No timeline, no camera, nothing to assemble.`,
     theyDo: 'VEED is a browser-based video editor with AI helpers, auto-subtitles and screen recording — you assemble and refine the video on a timeline.',
     pickThem:
       'Pick VEED if you want hands-on control to edit, trim and brand a video on a timeline (and its screen recorder). Pick Kineo if you want a finished faceless Short from one idea with zero editing.',
@@ -438,7 +446,7 @@ export const COMPETITORS: Record<string, Competitor> = {
       { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'Free + paid plans' },
     ],
     faq: [
-      { q: 'What is the best VEED alternative for faceless YouTube Shorts?', a: 'Kineo is the best VEED alternative for hands-off faceless Shorts — instead of editing on a timeline, you give it one idea and it returns a finished 9:16 Short with script, AI voice, footage and captions usually in 3–7 minutes.' },
+      { q: 'What is the best VEED alternative for faceless YouTube Shorts?', a: `Kineo is the best VEED alternative for hands-off faceless Shorts — instead of editing on a timeline, you give it one idea and it returns a finished 9:16 Short with script, AI voice, footage and captions ${PRODUCT_TIME.inMedian}.` },
       { q: 'Can VEED make a Short automatically like Kineo?', a: 'VEED has AI helpers, but it is fundamentally an editor — you still assemble and refine the video yourself. Kineo builds the entire faceless Short for you from a single idea, with no editing.' },
       { q: 'Should I use VEED or Kineo?', a: `Use VEED when you want full manual control, screen recording and detailed editing. Use Kineo when you want a complete faceless Short generated from one idea${ft(OFFER, ', with up to 3 watermarked Fast videos every 24h and no card.', '. ' + OFFER.copy.sentence)}` },
     ],
@@ -447,7 +455,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'Vizard',
     h1: 'The Vizard Alternative That Creates the Short From Scratch',
     intro:
-      'Vizard uses AI to turn a long video you already have — a podcast, webinar or talking-head recording — into short clips, with highlight detection, captions and viral scores. It is excellent at repurposing. But if you are faceless and starting from just an idea, there is no long video to clip. Kineo builds the whole Short from a topic: it writes the script, records the AI voiceover, finds footage matched to each line and captions it, usually in 3–7 minutes.',
+      `Vizard uses AI to turn a long video you already have — a podcast, webinar or talking-head recording — into short clips, with highlight detection, captions and viral scores. It is excellent at repurposing. But if you are faceless and starting from just an idea, there is no long video to clip. Kineo builds the whole Short from a topic: it writes the script, records the AI voiceover, finds footage matched to each line and captions it, ${PRODUCT_TIME.inMedian}.`,
     theyDo: 'Vizard repurposes long videos (podcasts, webinars, interviews) into short vertical clips using AI highlight detection.',
     pickThem:
       'Pick Vizard if you already record long videos and want the best moments auto-clipped and captioned. Pick Kineo if you want a faceless Short created from just an idea, with no source video.',
@@ -472,7 +480,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'Descript',
     h1: 'The Descript Alternative That Generates the Whole Short — Nothing to Record',
     intro:
-      'Descript is a text-based video and podcast editor: it transcribes your recording so you can edit the video by editing the words, clone your voice with Overdub, and remove filler words. It is brilliant for podcasters and talking-head creators polishing footage they already recorded. Kineo is for when you have no recording at all — just an idea. It writes the script, voices it with AI, finds the footage and captions it into a faceless 9:16 Short usually in 3–7 minutes.',
+      `Descript is a text-based video and podcast editor: it transcribes your recording so you can edit the video by editing the words, clone your voice with Overdub, and remove filler words. It is brilliant for podcasters and talking-head creators polishing footage they already recorded. Kineo is for when you have no recording at all — just an idea. It writes the script, voices it with AI, finds the footage and captions it into a faceless 9:16 Short ${PRODUCT_TIME.inMedian}.`,
     theyDo: 'Descript is a text-based editor for podcasts and talking-head video — you record, it transcribes, and you edit by editing the transcript.',
     pickThem:
       'Pick Descript if you record podcasts or talking-head video and want to edit by editing text, clone your own voice, or strip filler words. Pick Kineo if you want a faceless Short generated from one idea, with nothing to record.',
@@ -488,7 +496,7 @@ export const COMPETITORS: Record<string, Competitor> = {
       { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'Free + paid plans' },
     ],
     faq: [
-      { q: 'What is the best Descript alternative for faceless YouTube Shorts?', a: 'Kineo is a strong Descript alternative when you have nothing recorded — it writes the script, adds an AI voice, pulls footage and burns in captions to deliver a faceless 9:16 Short from one idea usually in 3–7 minutes, with no transcript to edit.' },
+      { q: 'What is the best Descript alternative for faceless YouTube Shorts?', a: `Kineo is a strong Descript alternative when you have nothing recorded — it writes the script, adds an AI voice, pulls footage and burns in captions to deliver a faceless 9:16 Short from one idea ${PRODUCT_TIME.inMedian}, with no transcript to edit.` },
       { q: 'Does Kineo need a recording like Descript?', a: 'No. Descript edits audio or video you already recorded by editing its transcript. Kineo starts from just an idea and generates the voiceover for you, so you never record anything.' },
       { q: 'Should I use Descript or Kineo?', a: `Use Descript if you record podcasts or talking-head video and want text-based editing and voice cloning. Use Kineo if you want a finished faceless Short from a single idea with no recording or editing, from ${STARTER_MO}.` },
     ],
@@ -529,7 +537,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'Canva',
     h1: 'The Canva Alternative That Builds the Whole Short — No Template to Edit',
     intro:
-      'Canva is an all-in-one design suite with a video editor, Magic Studio AI tools, thousands of templates and a huge asset library. It is fantastic when you want to design and edit something yourself. Kineo removes the design work entirely: from one idea it writes the script, records the AI voiceover, finds footage and captions it into a finished faceless 9:16 Short usually in 3–7 minutes — no template to pick, no canvas to arrange.',
+      `Canva is an all-in-one design suite with a video editor, Magic Studio AI tools, thousands of templates and a huge asset library. It is fantastic when you want to design and edit something yourself. Kineo removes the design work entirely: from one idea it writes the script, records the AI voiceover, finds footage and captions it into a finished faceless 9:16 Short ${PRODUCT_TIME.inMedian} — no template to pick, no canvas to arrange.`,
     theyDo: 'Canva is a template-and-design editor with AI tools — you pick a template and assemble the video yourself.',
     pickThem:
       'Pick Canva when you want to design and customize a video by hand with templates, brand kits and a big asset library (and its free tier). Pick Kineo when you want a finished faceless Short generated from one idea with no design work.',
@@ -544,7 +552,7 @@ export const COMPETITORS: Record<string, Competitor> = {
       { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'Free + paid plans' },
     ],
     faq: [
-      { q: 'What is the best Canva alternative for faceless YouTube Shorts?', a: 'Kineo is the best Canva alternative for hands-off faceless Shorts — instead of picking a template and arranging it, you give it one idea and it returns a finished 9:16 Short with script, AI voice, footage and captions usually in 3–7 minutes.' },
+      { q: 'What is the best Canva alternative for faceless YouTube Shorts?', a: `Kineo is the best Canva alternative for hands-off faceless Shorts — instead of picking a template and arranging it, you give it one idea and it returns a finished 9:16 Short with script, AI voice, footage and captions ${PRODUCT_TIME.inMedian}.` },
       { q: 'Can Canva make a Short automatically like Kineo?', a: 'Canva has AI tools, but it is still a design editor — you choose a template and assemble the video yourself. Kineo builds the entire faceless Short for you from a single idea, with no design work.' },
       { q: 'Should I use Canva or Kineo?', a: `Use Canva when you want full creative control to design and brand a video by hand (and its free tier). Use Kineo when you want a complete faceless Short generated from one idea${ft(OFFER, ', with up to 3 watermarked Fast videos every 24h and no card.', '. ' + OFFER.copy.sentence)}` },
     ],
@@ -553,7 +561,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'Kapwing',
     h1: 'The Kapwing Alternative That Generates the Whole Short — No Editor to Open',
     intro:
-      'Kapwing is a popular browser-based video editor with AI helpers — auto-subtitles, a text-to-video tool, a stock library and a collaborative timeline. It is built for editing in the browser. Kineo removes the editor: you give it one idea and it writes the script, records the AI voiceover, finds footage matched to each line and captions it into a finished faceless 9:16 Short usually in 3–7 minutes. No timeline, no camera, nothing to assemble.',
+      `Kapwing is a popular browser-based video editor with AI helpers — auto-subtitles, a text-to-video tool, a stock library and a collaborative timeline. It is built for editing in the browser. Kineo removes the editor: you give it one idea and it writes the script, records the AI voiceover, finds footage matched to each line and captions it into a finished faceless 9:16 Short ${PRODUCT_TIME.inMedian}. No timeline, no camera, nothing to assemble.`,
     theyDo: 'Kapwing is a browser-based, collaborative video editor with AI helpers and a timeline you edit on.',
     pickThem:
       'Pick Kapwing if you want hands-on control to edit, subtitle and collaborate on a video in the browser (and its free tier). Pick Kineo if you want a finished faceless Short generated from one idea with zero editing.',
@@ -568,7 +576,7 @@ export const COMPETITORS: Record<string, Competitor> = {
       { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'Free + paid plans' },
     ],
     faq: [
-      { q: 'What is the best Kapwing alternative for faceless YouTube Shorts?', a: 'Kineo is the best Kapwing alternative for hands-off faceless Shorts — instead of editing on a timeline, you give it one idea and it returns a finished 9:16 Short with script, AI voice, footage and captions usually in 3–7 minutes.' },
+      { q: 'What is the best Kapwing alternative for faceless YouTube Shorts?', a: `Kineo is the best Kapwing alternative for hands-off faceless Shorts — instead of editing on a timeline, you give it one idea and it returns a finished 9:16 Short with script, AI voice, footage and captions ${PRODUCT_TIME.inMedian}.` },
       { q: 'Can Kapwing make a Short automatically like Kineo?', a: 'Kapwing has AI helpers and a text-to-video tool, but it is fundamentally an editor — you still assemble and refine the video yourself. Kineo builds the entire faceless Short for you from a single idea, with no editing.' },
       { q: 'Should I use Kapwing or Kineo?', a: `Use Kapwing when you want to edit, subtitle and collaborate on a video in the browser (and its free tier). Use Kineo when you want a complete faceless Short generated from one idea${ft(OFFER, ', with up to 3 watermarked Fast videos every 24h and no card.', '. ' + OFFER.copy.sentence)}` },
     ],
@@ -579,7 +587,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'Runway',
     h1: 'The Runway Alternative That Builds the Whole Faceless Short From One Idea',
     intro:
-      'Runway (RunwayML) is a leading generative AI video model — you prompt it and it generates short, high-fidelity AI video clips, with tools for camera control, motion brushes and video-to-video effects. It is built for generating raw creative footage and VFX, not for assembling a complete narrated, captioned Short. Kineo takes one idea and produces the entire faceless YouTube Short — script, AI voice, footage, and captions — usually in 3–7 minutes.',
+      `Runway (RunwayML) is a leading generative AI video model — you prompt it and it generates short, high-fidelity AI video clips, with tools for camera control, motion brushes and video-to-video effects. It is built for generating raw creative footage and VFX, not for assembling a complete narrated, captioned Short. Kineo takes one idea and produces the entire faceless YouTube Short — script, AI voice, footage, and captions — ${PRODUCT_TIME.inMedian}.`,
     theyDo: 'Runway focuses on generating AI video clips and creative effects from a text or image prompt, aimed at filmmakers and VFX/creative work.',
     pickThem:
       'Pick Runway when you want to generate a striking standalone AI clip or visual effect for a larger creative or VFX project; pick Kineo when you want the whole faceless Short finished end to end.',
@@ -594,7 +602,7 @@ export const COMPETITORS: Record<string, Competitor> = {
       { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'Paid plans' },
     ],
     faq: [
-      { q: 'What is the best Runway (RunwayML) alternative for faceless YouTube Shorts?', a: 'Kineo is the strongest Runway alternative for full faceless Shorts, because it does not just generate a clip — it writes the script, adds the AI voice, pulls the footage, and burns in captions to deliver a finished vertical Short usually in 3–7 minutes.' },
+      { q: 'What is the best Runway (RunwayML) alternative for faceless YouTube Shorts?', a: `Kineo is the strongest Runway alternative for full faceless Shorts, because it does not just generate a clip — it writes the script, adds the AI voice, pulls the footage, and burns in captions to deliver a finished vertical Short ${PRODUCT_TIME.inMedian}.` },
       { q: 'Can Runway make a complete YouTube Short with voiceover and captions?', a: 'Not on its own — Runway generates AI video clips, and you would still need to add a script, narration, and captions yourself, typically in a separate editor. Kineo handles that entire pipeline automatically from a single idea.' },
       { q: 'Is Kineo cheaper than Runway?', a: `Kineo starts at ${STARTER_MO} and turns one idea into a complete faceless Short. Runway prices change, so check their site, but the bigger difference is scope: Runway gives you AI-generated clips for creative/VFX work, Kineo gives you the whole finished Short.` },
     ],
@@ -659,7 +667,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'SendShort',
     h1: 'The SendShort Alternative for a Focused Idea-to-Short Workflow',
     intro:
-      'SendShort is a broad short-form suite: it can repurpose long videos and YouTube links, add captions and translations, create faceless videos and AI-avatar content, schedule posts, and run automated series. Kineo is narrower on purpose: give it one topic and it writes the script, records the AI voiceover, matches visuals and captions it into a finished 9:16 Short usually in 3–7 minutes. Pick breadth or a focused per-video workflow.',
+      `SendShort is a broad short-form suite: it can repurpose long videos and YouTube links, add captions and translations, create faceless videos and AI-avatar content, schedule posts, and run automated series. Kineo is narrower on purpose: give it one topic and it writes the script, records the AI voiceover, matches visuals and captions it into a finished 9:16 Short ${PRODUCT_TIME.inMedian}. Pick breadth or a focused per-video workflow.`,
     theyDo: 'SendShort combines long-video re-clipping, captions, translation, faceless generation, AI avatars, scheduling and automated series.',
     pickThem:
       'Pick SendShort if you want long-video re-clipping, faceless generation and scheduling in one broad suite. Pick Kineo if you want a focused workflow that turns one chosen topic into one reviewable finished Short.',
@@ -675,7 +683,7 @@ export const COMPETITORS: Record<string, Competitor> = {
       { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'Paid plans' },
     ],
     faq: [
-      { q: 'What is the best SendShort alternative for a simple idea-to-video workflow?', a: 'Kineo is a strong SendShort alternative when you want one focused path: type a topic and receive a finished 9:16 Short with script, AI voice, matched visuals and captions, usually in 3–7 minutes.' },
+      { q: 'What is the best SendShort alternative for a simple idea-to-video workflow?', a: `Kineo is a strong SendShort alternative when you want one focused path: type a topic and receive a finished 9:16 Short with script, AI voice, matched visuals and captions, ${PRODUCT_TIME.inMedian}.` },
       { q: 'Does Kineo need a long video or YouTube link?', a: 'No. Kineo starts from a topic or your own script. SendShort can also generate faceless content, but its broader product additionally covers long-video re-clipping, AI avatars, translations, scheduling and automated series.' },
       { q: 'Should I use SendShort or Kineo?', a: `Use SendShort if you want re-clipping and several short-form workflows in one suite. Use Kineo if you want a narrower topic-to-finished-Short workflow where you choose and review each video, from ${STARTER_MO}.` },
     ],
@@ -688,7 +696,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'StoryShort',
     h1: 'A StoryShort Alternative for Creators Who Want Per-Video Control',
     intro:
-      `StoryShort creates faceless videos from a prompt or script with AI-generated visuals, voiceover, captions and music, and it can run recurring series that publish automatically. Kineo focuses on the video in front of you: choose one topic, select the engine and duration, review the result, and download a finished 9:16 Short usually in 3–7 minutes, from ${STARTER_MO}.`,
+      `StoryShort creates faceless videos from a prompt or script with AI-generated visuals, voiceover, captions and music, and it can run recurring series that publish automatically. Kineo focuses on the video in front of you: choose one topic, select the engine and duration, review the result, and download a finished 9:16 Short ${PRODUCT_TIME.inMedian}, from ${STARTER_MO}.`,
     theyDo: 'StoryShort generates faceless short- and long-form videos with AI visuals and can automate recurring series and publishing.',
     pickThem:
       'Pick StoryShort if AI-generated visual styles, longer videos and automated publishing are central to your workflow. Pick Kineo if you want to direct and review each Short individually across several video engines.',
@@ -703,7 +711,7 @@ export const COMPETITORS: Record<string, Competitor> = {
       { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'Credit-based paid plans' },
     ],
     faq: [
-      { q: 'What is a StoryShort alternative for faceless YouTube Shorts?', a: 'Kineo is an alternative for creators who want to choose and review every Short. It turns one topic into a finished 9:16 video with a script, AI voice, matched visuals and captions, usually in 3–7 minutes.' },
+      { q: 'What is a StoryShort alternative for faceless YouTube Shorts?', a: `Kineo is an alternative for creators who want to choose and review every Short. It turns one topic into a finished 9:16 video with a script, AI voice, matched visuals and captions, ${PRODUCT_TIME.inMedian}.` },
       { q: 'What is the main difference between StoryShort and Kineo?', a: 'StoryShort emphasizes generated visual styles, longer formats and recurring series that can publish automatically. Kineo emphasizes a focused per-video workflow with multiple selectable video engines and a finished Short you review before posting.' },
       { q: 'Can both tools make a video from only an idea?', a: `Yes. Both can start from a prompt and produce a complete faceless video. Kineo Starter begins at ${STARTER_MONTH}${ft(OFFER, '; free access includes up to 3 watermarked Fast videos every 24 hours with no card.', '. ' + OFFER.copy.sentence)}` },
     ],
@@ -712,7 +720,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'ShortsPilot',
     h1: 'A ShortsPilot Alternative for Choosing Every Topic Yourself',
     intro:
-      `ShortsPilot is a niche-first faceless channel autopilot: choose a niche and it writes, voices, edits and publishes Shorts to YouTube and TikTok. Kineo is topic-first: choose exactly what the next video is about, select the engine and duration, and receive one reviewable finished Short usually in 3–7 minutes, from ${STARTER_MO}.`,
+      `ShortsPilot is a niche-first faceless channel autopilot: choose a niche and it writes, voices, edits and publishes Shorts to YouTube and TikTok. Kineo is topic-first: choose exactly what the next video is about, select the engine and duration, and receive one reviewable finished Short ${PRODUCT_TIME.inMedian}, from ${STARTER_MO}.`,
     theyDo: 'ShortsPilot runs niche-based faceless channels by generating and publishing short-form videos on autopilot.',
     pickThem:
       'Pick ShortsPilot if scheduled, hands-off channel operation is the priority. Pick Kineo if you want to choose every topic, control the generation engine and approve each finished video before it goes out.',
@@ -727,7 +735,7 @@ export const COMPETITORS: Record<string, Competitor> = {
       { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'Paid plans' },
     ],
     faq: [
-      { q: 'What is a ShortsPilot alternative with more per-video control?', a: 'Kineo is an alternative when you want to choose every topic and review every output. It turns one topic into a finished 9:16 Short with script, AI voice, matched visuals and captions, usually in 3–7 minutes.' },
+      { q: 'What is a ShortsPilot alternative with more per-video control?', a: `Kineo is an alternative when you want to choose every topic and review every output. It turns one topic into a finished 9:16 Short with script, AI voice, matched visuals and captions, ${PRODUCT_TIME.inMedian}.` },
       { q: 'What is the main difference between ShortsPilot and Kineo?', a: 'ShortsPilot is centered on niche-based channel automation and scheduled publishing. Kineo is centered on producing one deliberately chosen, reviewable Short at a time across several video engines.' },
       { q: 'Can both tools make faceless Shorts without filming?', a: `Yes. Both generate scripts, voices and visuals without a camera. Kineo starts at ${STARTER_MONTH}${ft(OFFER, '; free access includes up to 3 watermarked Fast videos every 24 hours with no card.', '. ' + OFFER.copy.sentence)}` },
     ],
@@ -736,7 +744,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'Luma Dream Machine',
     h1: 'The Luma Dream Machine Alternative That Builds the Whole Faceless Short From One Idea',
     intro:
-      'Luma Dream Machine (Ray3) is a generative AI video model — you prompt it and it produces short, photorealistic or cinematic clips from text or an image, with fast sampling and HDR rendering. It is built for generating individual AI video clips, not for assembling a complete narrated, captioned Short. Kineo takes one idea and produces the entire faceless YouTube Short — script, AI voice, footage, and captions — usually in 3–7 minutes.',
+      `Luma Dream Machine (Ray3) is a generative AI video model — you prompt it and it produces short, photorealistic or cinematic clips from text or an image, with fast sampling and HDR rendering. It is built for generating individual AI video clips, not for assembling a complete narrated, captioned Short. Kineo takes one idea and produces the entire faceless YouTube Short — script, AI voice, footage, and captions — ${PRODUCT_TIME.inMedian}.`,
     theyDo: 'Luma Dream Machine focuses on generating short, photorealistic AI video clips from a text or image prompt.',
     pickThem:
       'Pick Luma Dream Machine when you want to generate a striking standalone AI clip to drop into a larger edit; pick Kineo when you want the whole faceless Short finished end to end.',
@@ -751,7 +759,7 @@ export const COMPETITORS: Record<string, Competitor> = {
       { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'From $9.99/mo' },
     ],
     faq: [
-      { q: 'What is the best Luma Dream Machine alternative for faceless YouTube Shorts?', a: 'Kineo is the strongest Luma Dream Machine alternative for full faceless Shorts, because it does not just generate a clip — it writes the script, adds the AI voice, pulls the footage, and burns in captions to deliver a finished vertical Short usually in 3–7 minutes.' },
+      { q: 'What is the best Luma Dream Machine alternative for faceless YouTube Shorts?', a: `Kineo is the strongest Luma Dream Machine alternative for full faceless Shorts, because it does not just generate a clip — it writes the script, adds the AI voice, pulls the footage, and burns in captions to deliver a finished vertical Short ${PRODUCT_TIME.inMedian}.` },
       { q: 'Can Luma Dream Machine make a complete YouTube Short with voiceover and captions?', a: 'Not on its own — Luma generates short AI video clips, and you would still need to add a script, narration, and captions yourself in a separate editor. Kineo handles that entire pipeline automatically from a single idea.' },
       { q: 'Is Kineo cheaper than Luma Dream Machine?', a: `Kineo starts at ${STARTER_MO} and turns one idea into a complete faceless Short. Luma’s paid plans start lower at $9.99/mo, but the scope is different: Luma gives you raw AI clips, Kineo gives you the whole finished Short.` },
     ],
@@ -765,7 +773,7 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'BigMotion AI',
     h1: 'The BigMotion AI Alternative With Better Scripts at a Lower Price',
     intro:
-      `BigMotion AI generates faceless videos on autopilot — AI script, voiceover, captions and music — and publishes them on a schedule. Kineo focuses on the individual video: a hook structure with footage matched to each line, turned into a finished 9:16 Short usually in 3–7 minutes. Starter is ${STARTER_MONTH}${ft(OFFER, '; free access includes up to 3 watermarked Fast videos every 24 hours with no card.', '. ' + OFFER.copy.sentence)}`,
+      `BigMotion AI generates faceless videos on autopilot — AI script, voiceover, captions and music — and publishes them on a schedule. Kineo focuses on the individual video: a hook structure with footage matched to each line, turned into a finished 9:16 Short ${PRODUCT_TIME.inMedian}. Starter is ${STARTER_MONTH}${ft(OFFER, '; free access includes up to 3 watermarked Fast videos every 24 hours with no card.', '. ' + OFFER.copy.sentence)}`,
     theyDo: 'BigMotion AI auto-generates faceless videos and publishes them to YouTube, TikTok and Instagram Reels on autopilot.',
     pickThem:
       'Pick BigMotion if hands-off scheduled auto-posting across platforms is your main goal and you will review the output. Pick Kineo if you care about the script and footage actually being good — and want it cheaper per month.',
@@ -789,10 +797,10 @@ export const COMPETITORS: Record<string, Competitor> = {
     name: 'Faceless.so',
     h1: 'The Faceless.so Alternative That Nails Each Short, Not Just the Schedule',
     intro:
-      `Faceless.so is a faceless-video autopilot that generates series and schedules them across social platforms. Kineo is built for the individual video: one idea in, a finished faceless 9:16 Short out usually in 3–7 minutes — hook-driven script, AI voiceover, matched footage and captions. Starter is ${STARTER_MONTH}${ft(OFFER, '; free access includes up to 3 watermarked Fast videos every 24 hours with no card.', '. ' + OFFER.copy.sentence)}`,
+      `Faceless.so is a faceless-video autopilot that generates series and schedules them across social platforms. Kineo is built for the individual video: one idea in, a finished faceless 9:16 Short out ${PRODUCT_TIME.inMedian} — hook-driven script, AI voiceover, matched footage and captions. Starter is ${STARTER_MONTH}${ft(OFFER, '; free access includes up to 3 watermarked Fast videos every 24 hours with no card.', '. ' + OFFER.copy.sentence)}`,
     theyDo: 'Faceless.so auto-generates faceless video series (with Veo 3.1 AI visuals) from prompts, Reddit or blogs and auto-schedules them across multiple platforms.',
     pickThem:
-      'Pick Faceless.so if you want a hands-off series pumping out scheduled videos across many platforms, or Reddit/blog-sourced content on autopilot. Pick Kineo if you want each Short crafted from a single idea with a viral hook structure — and to see the finished video usually in 3–7 minutes.',
+      `Pick Faceless.so if you want a hands-off series pumping out scheduled videos across many platforms, or Reddit/blog-sourced content on autopilot. Pick Kineo if you want each Short crafted from a single idea with a viral hook structure — and to see the finished video ${PRODUCT_TIME.inMedian}.`,
     rows: [
       { feature: 'Creates the full faceless Short from just an idea', sfa: true, them: true },
       { feature: 'Viral hook structure baked into the script', sfa: true, them: false },
@@ -805,16 +813,16 @@ export const COMPETITORS: Record<string, Competitor> = {
       { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'From ~$20/mo' },
     ],
     faq: [
-      { q: 'What is the best Faceless.so alternative for faceless YouTube Shorts?', a: `Kineo is a strong Faceless.so alternative when per-video quality matters more than scheduled volume — it turns one idea into a finished faceless Short with a hook-driven script, AI voice, matched footage and captions usually in 3–7 minutes, from ${STARTER_MO}.` },
-      { q: 'Faceless.so vs Kineo — what is the real difference?', a: 'Faceless.so is a series autopilot: it generates and auto-schedules batches of videos across platforms, with Veo 3.1 AI visuals. Kineo is idea-first: you type one topic and get one finished, ready-to-post Short usually in 3–7 minutes, so you control what goes out.' },
-      { q: 'Is Faceless.so the same as Faceless.video?', a: 'No — they are different products. Faceless.so is the Veo 3.1-powered multi-platform autopilot; Faceless.video is a separate daily auto-posting channel tool. Kineo compares to both as the idea-first option that finishes a single Short usually in 3–7 minutes.' },
+      { q: 'What is the best Faceless.so alternative for faceless YouTube Shorts?', a: `Kineo is a strong Faceless.so alternative when per-video quality matters more than scheduled volume — it turns one idea into a finished faceless Short with a hook-driven script, AI voice, matched footage and captions ${PRODUCT_TIME.inMedian}, from ${STARTER_MO}.` },
+      { q: 'Faceless.so vs Kineo — what is the real difference?', a: `Faceless.so is a series autopilot: it generates and auto-schedules batches of videos across platforms, with Veo 3.1 AI visuals. Kineo is idea-first: you type one topic and get one finished, ready-to-post Short ${PRODUCT_TIME.inMedian}, so you control what goes out.` },
+      { q: 'Is Faceless.so the same as Faceless.video?', a: `No — they are different products. Faceless.so is the Veo 3.1-powered multi-platform autopilot; Faceless.video is a separate daily auto-posting channel tool. Kineo compares to both as the idea-first option that finishes a single Short ${PRODUCT_TIME.inMedian}.` },
     ],
   },
   'faceless-video': {
     name: 'Faceless.video',
     h1: 'The Faceless.video Alternative That Puts You in Control of Every Short',
     intro:
-      `Faceless.video runs a faceless channel for you: pick a niche, and it creates videos — script, AI voiceover, music, captions and AI visuals — and auto-posts them to TikTok, YouTube Shorts and Instagram Reels on a set schedule (up to twice a day), with plans from $15 to $45/mo per series. It is genuinely hands-off, but users report repetitive content and occasional visual glitches across batches. Kineo takes the opposite bet: one idea, one hook-driven script, one finished 9:16 Short usually in 3–7 minutes — so you approve every video before it goes out, from ${STARTER_MO}.`,
+      `Faceless.video runs a faceless channel for you: pick a niche, and it creates videos — script, AI voiceover, music, captions and AI visuals — and auto-posts them to TikTok, YouTube Shorts and Instagram Reels on a set schedule (up to twice a day), with plans from $15 to $45/mo per series. It is genuinely hands-off, but users report repetitive content and occasional visual glitches across batches. Kineo takes the opposite bet: one idea, one hook-driven script, one finished 9:16 Short ${PRODUCT_TIME.inMedian} — so you approve every video before it goes out, from ${STARTER_MO}.`,
     theyDo: 'Faceless.video auto-creates and auto-posts faceless videos to TikTok, YouTube Shorts and Instagram Reels on a recurring schedule.',
     pickThem:
       'Pick Faceless.video if you want a channel that posts itself on a schedule and you accept batch-generated content. Pick Kineo if you want to choose each topic, get a hook-driven script, and review the finished Short before posting — for less per month.',
@@ -829,9 +837,9 @@ export const COMPETITORS: Record<string, Competitor> = {
       { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'From $15/mo per series' },
     ],
     faq: [
-      { q: 'What is a Faceless.video alternative for individual YouTube Shorts?', a: `Kineo is an option when you want control over each video — it turns one idea into a finished faceless Short with a hook-driven script, AI voice, matched footage and captions usually in 3–7 minutes. Starter is ${STARTER_MONTH}${ft(OFFER, '; free access includes up to 3 watermarked Fast videos every 24 hours with no card.', '. ' + OFFER.copy.sentence)}` },
+      { q: 'What is a Faceless.video alternative for individual YouTube Shorts?', a: `Kineo is an option when you want control over each video — it turns one idea into a finished faceless Short with a hook-driven script, AI voice, matched footage and captions ${PRODUCT_TIME.inMedian}. Starter is ${STARTER_MONTH}${ft(OFFER, '; free access includes up to 3 watermarked Fast videos every 24 hours with no card.', '. ' + OFFER.copy.sentence)}` },
       { q: 'Why do auto-posted faceless videos sometimes underperform?', a: 'Batch-generated autopilot content tends to repeat itself, and users of scheduling tools report repetitive scripts and visual glitches slipping through. Kineo generates one Short per idea with a hook-first script and matched footage, and you review it before posting.' },
-      { q: 'Faceless.video vs Kineo — which should I use?', a: `Use Faceless.video if a self-posting channel on a fixed schedule (its plans run $15–$45/mo per series) is what you want. Use Kineo if you want to pick every topic and get a finished, ready-to-post Short usually in 3–7 minutes for ${STARTER_MO}.` },
+      { q: 'Faceless.video vs Kineo — which should I use?', a: `Use Faceless.video if a self-posting channel on a fixed schedule (its plans run $15–$45/mo per series) is what you want. Use Kineo if you want to pick every topic and get a finished, ready-to-post Short ${PRODUCT_TIME.inMedian} for ${STARTER_MO}.` },
     ],
   },
 }
@@ -1030,14 +1038,17 @@ export default function AlternativePage({ params }: { params: { competitor: stri
     ? '#try-quso-alternative-topic'
     : buildBlankStudioSignupHref({ campaign })
   const heroCtaUrl = isQuso ? '#try-quso-alternative-topic' : signupUrl
+  // KINEO-GEO-RODADA3-2026-10-08 — InVideo e CapCut: a resposta da rodada 3 (null nos outros concorrentes).
+  const r3 = isInVideo ? invideoAnswer() : params.competitor === 'capcut' ? capcutAnswer() : null
+  const faqs = [...(r3 ? r3.faq : []), ...c.faq.map((f) => ({ q: currentKineoOffer(f.q), a: currentKineoOffer(f.a) }))]
 
   const faqJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: c.faq.map((f) => ({
+    mainEntity: faqs.map((f) => ({
       '@type': 'Question',
-      name: currentKineoOffer(f.q),
-      acceptedAnswer: { '@type': 'Answer', text: currentKineoOffer(f.a) },
+      name: f.q,
+      acceptedAnswer: { '@type': 'Answer', text: f.a },
     })),
   }
   const breadcrumbJsonLd = isQuso ? {
@@ -1078,7 +1089,7 @@ export default function AlternativePage({ params }: { params: { competitor: stri
             {c.h1}
           </h1>
           <p style={{ fontSize: '1.02rem', color: '#86868b', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 660 }}>
-            {currentKineoOffer(c.intro)}
+            {r3 ? r3.lead : currentKineoOffer(c.intro)}
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 22 }}>
             <OrganicCtaLink
@@ -1106,6 +1117,8 @@ export default function AlternativePage({ params }: { params: { competitor: stri
         </section>
 
         {isInVideo && <InVideoFreeDecision signupUrl={signupUrl} campaign={campaign} />}
+
+        {r3 ? <GeoRodada3Section answer={r3} /> : null}
 
         {isSynthesia && <SynthesiaDecision />}
 
@@ -1173,10 +1186,10 @@ export default function AlternativePage({ params }: { params: { competitor: stri
         <section style={{ marginTop: 44 }}>
           <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 18px' }}>Questions, answered</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {c.faq.map((f) => (
+            {faqs.map((f) => (
               <div key={f.q} style={{ ...CARD, borderRadius: 12, padding: '16px 18px' }}>
-                <div style={{ fontWeight: 800, marginBottom: 6, fontSize: '0.95rem' }}>{currentKineoOffer(f.q)}</div>
-                <p style={{ margin: 0, color: '#86868b', lineHeight: 1.6, fontSize: '0.9rem' }}>{currentKineoOffer(f.a)}</p>
+                <div style={{ fontWeight: 800, marginBottom: 6, fontSize: '0.95rem' }}>{f.q}</div>
+                <p style={{ margin: 0, color: '#86868b', lineHeight: 1.6, fontSize: '0.9rem' }}>{f.a}</p>
               </div>
             ))}
           </div>

@@ -158,6 +158,11 @@ function discovery(overrides = {}) {
       // properties of undefined (reading 'measuredAt')". Inert here: the real entries are exercised by
       // test-geo-rodada2-2026-10-08, and the run below REQUIRES the study page exactly once, with the switch on and off.
       GEO_RODADA2_REVIEWED_ISO: '2026-10-08', NICHE_HOUSE_FILM_SLUGS: [], STATE_HEADLINE: { measuredAt: '2026-10-08T04:30:51Z' },
+      // KINEO-GEO-RODADA3-2026-10-08 (re-anchored 08/10) — the sitemap imports the round-3 review stamp, its static pages and the
+      // /alternatives pages it re-dated (lib/seo/geoRodada3.ts); without them this run died spreading an undefined list. Inert
+      // here: the real entries are exercised by test-geo-rodada3-2026-10-08, and the run below still REQUIRES every hub page,
+      // the index and the study exactly once, with the switch on and off.
+      GEO_RODADA3_LAST_MODIFIED_ISO: '2026-10-08T18:00:00.000Z', GEO_RODADA3_STATIC_PATHS: [], GEO_RODADA3_ALTERNATIVE_SLUGS: [],
     }
     new Function('exports', 'require', 'module', js)(mod.exports, () => fixtures, mod)
     return mod.exports.default()

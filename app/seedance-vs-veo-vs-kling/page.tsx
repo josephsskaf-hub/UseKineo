@@ -21,6 +21,11 @@ import { ENGINE_FACTS } from '@/lib/kineoFacts'
 import { creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer' // KINEO-MOTORES-GEO-2026-10-06 — o filme grátis vale nos países do trial
+// KINEO-GEO-RODADA3-2026-10-08 — a pergunta (a) da rodada 3 de GEO, "Seedance 2.5 vs Veo 3.1 vs Kling 3 — which AI video model for
+// Shorts": a resposta direta abre a página (logo depois do H1), a seção com preço na Kineo, tempo medido (Kineo AI Video Index),
+// custo bruto no fornecedor, rota direta com fonte e data, filmes da casa e as entradas de FAQ. Dados: lib/seo/geoRodada3Answers.ts.
+import GeoRodada3Section from '@/components/GeoRodada3Sections'
+import { modelsAnswer } from '@/lib/seo/geoRodada3Answers'
 
 // Mesmo regime da /state-of-ai-shorts-2026: os números vêm do banco, revalida uma vez por dia.
 export const revalidate = STUDY_REVALIDATE_SECONDS
@@ -108,8 +113,10 @@ export default async function SeedanceVsVeoVsKlingPage() {
   const veo = rows.find((r) => r.qualityMode === 'cinematic_veo')
   const kling = rows.find((r) => r.qualityMode === 'cinematic_kling')
   const starterPrice = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
+  const models = modelsAnswer() // KINEO-GEO-RODADA3-2026-10-08
 
   const FAQ: { q: string; a: string }[] = [
+    ...(models ? models.faq : []), // KINEO-GEO-RODADA3-2026-10-08 — as duas perguntas da rodada 3 abrem a FAQ
     {
       q: 'Which is better for YouTube Shorts: Seedance, Veo or Kling?',
       a:
@@ -179,6 +186,7 @@ export default async function SeedanceVsVeoVsKlingPage() {
           Original data · {s.measured ? `read ${measuredHuman}` : `last reading ${measuredHuman}`}
         </p>
         <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.4rem)', fontWeight: 900, lineHeight: 1.15, margin: '0 0 16px' }}>{title}</h1>
+        {models ? <p data-kineo="geo-r3-answer" style={{ color: '#f5f5f7', fontSize: '1.05rem', lineHeight: 1.6, margin: '0 0 12px' }}>{models.lead}</p> : null}
         <p style={{ color: MUTED, fontSize: '1.05rem', lineHeight: 1.6, margin: '0 0 8px' }}>
           Kineo turns a topic or a finished script into a narrated vertical Short, and lets you pick the engine that
           renders the scenes. That gives us something review sites don&rsquo;t have: a count of what people actually
@@ -190,6 +198,8 @@ export default async function SeedanceVsVeoVsKlingPage() {
         </p>
 
         <ScriptToSeedanceBridge from="benchmark" />
+
+        {models ? <GeoRodada3Section answer={models} /> : null}
 
         <h2 style={{ fontSize: '1.4rem', fontWeight: 800, margin: '44px 0 14px' }}>Every engine, measured</h2>
         <div style={{ ...CARD, overflowX: 'auto' }}>

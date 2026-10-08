@@ -26,6 +26,8 @@ import {
   KINEO_ALTERNATIVES_SIGNUP_HREF,
 } from '@/lib/growth/alternativeJobChooser'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
+// KINEO-GEO-RODADA3-2026-10-08 — o tempo de entrega sai do Kineo AI Video Index (mediana medida), não de uma faixa digitada.
+import { PRODUCT_TIME } from '@/lib/seo/measuredRenderTime'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -66,7 +68,7 @@ export default function AlternativesIndexPage() {
             Kineo alternatives — compare us to other AI video tools
           </h1>
           <p style={{ fontSize: '1.02rem', color: '#86868b', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 660 }}>
-            Kineo turns a single topic or idea into a finished, faceless YouTube Short — script, AI voiceover, matched footage and captions — usually in 3–7 minutes. It’s not a re-clipper. Pick a tool below to see an honest, feature-by-feature comparison, including when the other tool is actually the better fit.
+            Kineo turns a single topic or idea into a finished, faceless YouTube Short — script, AI voiceover, matched footage and captions — {PRODUCT_TIME.inMedian}. It’s not a re-clipper. Pick a tool below to see an honest, feature-by-feature comparison, including when the other tool is actually the better fit.
           </p>
           <OrganicCtaLink
             href={signupUrl}

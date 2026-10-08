@@ -9,7 +9,9 @@ import { ENGINE_LANDING_LABELS, type EngineLandingParam } from '@/lib/growth/eng
 // KINEO-MOTORES-GEO-2026-10-06 — a camada citável das páginas de motor (resposta, tabela de preço, comparação direta).
 import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
 import type { Quality } from '@/lib/credits/engineCost'
-import { buildEngineCitation, dayMonthYear, ENGINE_GEO_FILM_MINUTES, type CitationPlan, type EngineCitation } from '@/lib/seo/engineCitation'
+import { buildEngineCitation, dayMonthYear, type CitationPlan, type EngineCitation } from '@/lib/seo/engineCitation'
+// KINEO-GEO-RODADA3-2026-10-08 — o tempo das cenas geradas sai do Kineo AI Video Index (era uma faixa digitada).
+import { generatedScenesTimeClause, measuredTimeFor } from '@/lib/seo/measuredRenderTime'
 import { OPEN_ACCESS, type CitationAccess } from '@/lib/seo/engineCitation' // KINEO-S25-ABRE-2026-10-06
 import { s25PageCopy } from '@/lib/growth/s25EnginePage' // KINEO-S25-ABRE-2026-10-06 — módulo puro (só imports relativos)
 // KINEO-GEO-RODADA2-2026-10-08 — o "é grátis?" e o "1.5 × 2.5" da página do Seedance (módulo puro, números da fonte).
@@ -152,7 +154,7 @@ export const ENGINES: Record<string, Engine> = {
     intro:
       `Seedance 1.5 Pro (ByteDance) is the workhorse generative engine inside Kineo: instead of matching stock footage to your script, it generates every scene from the script itself. You still type one idea — Kineo writes the beats, prompts Seedance scene by scene, voices it, captions it and returns a finished vertical Short. ${SEEDANCE_COST} credits per 60-second video; the ${TRIAL_CREDITS_SHOWN}-credit free trial pays for ${TRIAL_SEEDANCE15_FILMS === 1 ? 'one' : TRIAL_SEEDANCE15_FILMS} ${FREE_FILM_LABEL}, and longer Seedance films come with Starter.`,
     bestFor: 'Anything that does not exist on a stock site: an abandoned island, a burning crater, a 1922 expedition. Mystery, history and “weird facts” channels live here.',
-    tradeoff: `Generated scenes take longer to render than stock footage (usually ${ENGINE_GEO_FILM_MINUTES.min}–${ENGINE_GEO_FILM_MINUTES.max} minutes), and a 60-second film costs more credits than a short one.`,
+    tradeoff: `Generated scenes take longer to render than stock footage (${generatedScenesTimeClause(measuredTimeFor('cinematic_ai'))}), and a 60-second film costs more credits than a short one.`,
     faq: [
       ...geoFaq(SEEDANCE_GEO), // KINEO-MOTORES-GEO-2026-10-06 — onde usar + quanto custa
       // KINEO-GEO-RODADA2-2026-10-08 — a mesma pergunta, com a resposta de quem ganha o quê (inclui o filme de região, 07/10).

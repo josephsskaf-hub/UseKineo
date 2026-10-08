@@ -14,6 +14,9 @@ import Link from 'next/link'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import type { HouseFilm } from '@/lib/seo/houseFilmIdeas'
 import { freeFilmShortLine, seedanceFreeFacts } from '@/lib/seo/seedanceAnswer'
+// KINEO-GEO-RODADA3-2026-10-08 — "Make one like this" (rodada 3, item 4): o Studio com a ideia real do filme, no motor que o
+// renderizou e no modo IA, sem disparar render; mede pelo placement e pelo utm_content house_film_remix.
+import { HOUSE_FILM_REMIX_LABEL, HOUSE_FILM_REMIX_PLACEMENT, houseFilmRemixHref } from '@/lib/seo/geoRodada3'
 
 const CARD: CSSProperties = { background: 'rgba(11,17,32,0.85)', border: '1px solid rgba(255,255,255,0.08)' }
 
@@ -50,6 +53,14 @@ export default function NicheHouseFilm({ film, nicheLabel, ctaHref, source, stat
             style={{ display: 'inline-block', background: '#2997ff', color: '#000', fontWeight: 900, padding: '13px 22px', borderRadius: 12, textDecoration: 'none', fontSize: '0.98rem' }}
           >
             Make a {nicheLabel} Short from this idea →
+          </OrganicCtaLink>
+          <OrganicCtaLink
+            href={houseFilmRemixHref(film, source)}
+            source={source}
+            placement={HOUSE_FILM_REMIX_PLACEMENT}
+            style={{ display: 'inline-block', marginLeft: 10, border: '1px solid rgba(255,255,255,0.28)', color: '#f5f5f7', fontWeight: 800, padding: '12px 18px', borderRadius: 12, textDecoration: 'none', fontSize: '0.95rem' }}
+          >
+            {HOUSE_FILM_REMIX_LABEL}
           </OrganicCtaLink>
           <p style={{ color: '#CBD5E1', fontSize: '0.85rem', lineHeight: 1.6, margin: '12px 0 0' }}>
             The idea opens in the Studio, where you can change it before you press Generate.{freeLine ? ` ${freeLine}` : ''}

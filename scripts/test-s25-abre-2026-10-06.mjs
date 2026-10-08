@@ -37,6 +37,15 @@ const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }
+// REANCORADO KINEO-GEO-RODADA3-2026-10-08 — a mediana MEDIDA de um motor no Kineo AI Video Index, lida do JSON da edição
+// (clientes quando a edição os tem, senão a casa), escrita como a página escreve (1 casa decimal; inteiro sem casa).
+const medianaMedidaDo = (quality) => {
+  const ed = (read('lib/seo/aiVideoIndexTimes.ts').match(/edition: '(\d{4}-\d{2})'/) ?? [])[1]
+  if (!ed) return null
+  const reg = JSON.parse(read(`data/ai-video-index/${ed}.json`)).engines.find((x) => x.qualityMode === quality)
+  const t = reg?.customers?.minutesToFilm ?? reg?.house?.minutesToFilm
+  return t ? (Number.isInteger(t.median) ? String(t.median) : t.median.toFixed(1)) : null
+}
 
 const LAUNCH = 'lib/engineLaunch.ts'
 const ACCESS = 'lib/s25Access.ts'
@@ -344,7 +353,11 @@ async function problems(over = {}) {
     const ctas = [...texto.matchAll(/<a href="([^"]+)"[^>]*>(Make a [^<]+ →)<\/a>/g)]
     if (ctas.length < 2 || ctas.some((m) => m[1] !== ctaCadastro || m[2] !== 'Make a Seedance 2.5 video on a paid plan →')) p.push('CTAs do 2.5 fora do cadastro com a campanha (ou sem "on a paid plan")')
     if (!texto.includes('href="/pricing?intent_campaign=seo_engine_seedance-2-5#plans"')) p.push('página sem o caminho dos planos com a campanha da página')
-    if (!texto.includes('Usually 8–25 minutes for a narrated video')) p.push('página sem o tempo honesto de entrega')
+    // REANCORADO KINEO-GEO-RODADA3-2026-10-08 (com motivo): a faixa digitada "Usually 8–25 minutes" saiu de toda página de motor;
+    // o tempo honesto agora é o MEDIDO do Seedance 2.5 no Kineo AI Video Index (o JSON da edição que lib/seo/aiVideoIndexTimes.ts
+    // declara; renders de teste da casa, indicativos). Prova completa: scripts/test-geo-rodada3-2026-10-08.mjs.
+    const s25Medido = medianaMedidaDo('cinematic_s25')
+    if (/8–25 minutes/.test(texto) || !s25Medido || !texto.includes(`Median ${s25Medido} min from request to finished film`)) p.push('página sem o tempo honesto de entrega')
     const pikaSecao = texto.match(/<section[^>]*data-kineo="s25-vs-pika"[\s\S]*?<\/section>/)?.[0] ?? ''
     if (/Standard/.test(pikaSecao)) p.push('Pika com o nome antigo do plano ("Standard")')
     // resolução por palavra inteira: o CSS da camada citável (max-width:720px) não é promessa de resolução

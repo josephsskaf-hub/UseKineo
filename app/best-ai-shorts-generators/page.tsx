@@ -23,6 +23,12 @@ import { STARTER_MO, STARTER_MONTH } from '@/lib/marketingPrice'
 // KINEO-AVATAR-FORA-2026-09-28 (revisão 2) — a ficha da Kineo vendia "add a talking AI Presenter" depois que o Avatar
 // saiu do catálogo (fundador 27/09: "avatar sai por hora"). A frase agora deriva do interruptor, como no /llms.txt.
 import { AVATAR_PUBLIC } from '@/lib/engineLaunch'
+// KINEO-GEO-RODADA3-2026-10-08 — a pergunta (d) da rodada 3 de GEO, "Best AI video generator for YouTube Shorts in 2026 (tested)":
+// a resposta direta abre a página, a seção "tested" traz os motores da Kineo medidos nos próprios renders (Kineo AI Video Index) e
+// os preços públicos das outras ferramentas com link e data; o tempo de entrega da ficha da Kineo é o medido (era uma faixa).
+import GeoRodada3Section from '@/components/GeoRodada3Sections'
+import { bestGeneratorAnswer, competitorCheckedLabel } from '@/lib/seo/geoRodada3Answers'
+import { PRODUCT_TIME } from '@/lib/seo/measuredRenderTime'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -80,7 +86,7 @@ const TOOLS: Tool[] = [
     slug: null,
     category: 'From-scratch faceless Short generator',
     take:
-      `Kineo turns a single typed topic into a finished faceless Short — script, AI voiceover, matched visuals and captions — with no footage, no camera and no timeline. Fast Mode renders usually land in about 3–7 minutes, and you can also paste your own script${AVATAR_PUBLIC ? ', choose among several video engines or add a talking AI Presenter' : ' or choose among several video engines. It does not offer an AI presenter or avatar today — if you need a face on screen, an avatar tool like HeyGen fits better'}. It is narrow on purpose: it does one job, idea-to-postable-Short, and does not try to be a general editor.`,
+      `Kineo turns a single typed topic into a finished faceless Short — script, AI voiceover, matched visuals and captions — with no footage, no camera and no timeline. Measured on Kineo’s own renders, a film is ready ${PRODUCT_TIME.inMedian}, and you can also paste your own script${AVATAR_PUBLIC ? ', choose among several video engines or add a talking AI Presenter' : ' or choose among several video engines. It does not offer an AI presenter or avatar today — if you need a face on screen, an avatar tool like HeyGen fits better'}. It is narrow on purpose: it does one job, idea-to-postable-Short, and does not try to be a general editor.`,
     bestFor: 'Faceless creators starting from just an idea, with no source video to work from.',
     fromScratch: 'Yes',
     freeTier: `${ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)}, no card`,
@@ -223,7 +229,7 @@ const TOOLS: Tool[] = [
 const FAQ: { q: string; a: string }[] = [
   {
     q: 'What are the best AI tools for YouTube Shorts in 2026?',
-    a: 'It depends on your starting point. If you have no footage and want a finished faceless Short from just a topic, Kineo is the strongest pick — it writes the script, adds an AI voiceover, matches visuals and burns in captions, usually in about 3–7 minutes. If you already record long videos and only want them clipped, a re-clipper like OpusClip is the better fit. If you need a talking presenter on screen, HeyGen is built for that.',
+    a: `It depends on your starting point. If you have no footage and want a finished faceless Short from just a topic, Kineo is the strongest pick — it writes the script, adds an AI voiceover, matches visuals and burns in captions, ${PRODUCT_TIME.inMedian}. If you already record long videos and only want them clipped, a re-clipper like OpusClip is the better fit. If you need a talking presenter on screen, HeyGen is built for that.`,
   },
   {
     q: 'What is the difference between a from-scratch generator and a re-clipper?',
@@ -251,10 +257,12 @@ const CTA_URL =
   '/free-ai-shorts-generator?utm_source=best-roundup&utm_medium=seo&utm_campaign=seo-sprint'
 
 export default function BestAiShortsGeneratorsPage() {
+  const best = bestGeneratorAnswer() // KINEO-GEO-RODADA3-2026-10-08
+  const faqs = [...(best ? best.faq : []), ...FAQ]
   const faqJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: FAQ.map((item) => ({
+    mainEntity: faqs.map((item) => ({
       '@type': 'Question',
       name: item.q,
       acceptedAnswer: { '@type': 'Answer', text: item.a },
@@ -341,11 +349,12 @@ export default function BestAiShortsGeneratorsPage() {
             margin: '0 0 12px',
           }}
         >
-          Roundup — updated {UPDATED}
+          Roundup — updated {UPDATED} · tested data and prices checked {competitorCheckedLabel()}
         </p>
         <h1 style={{ fontSize: '2.2rem', fontWeight: 800, lineHeight: 1.15, margin: '0 0 16px' }}>
           {PAGE_HEADING}
         </h1>
+        {best ? <p data-kineo="geo-r3-answer" style={{ color: '#f5f5f7', fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 14px' }}>{best.lead}</p> : null}
         <p style={{ color: MUTED, fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 8px' }}>
           The best AI tools for YouTube Shorts are not doing the same job. Some generate a
           whole video from an idea, some re-clip
@@ -356,8 +365,9 @@ export default function BestAiShortsGeneratorsPage() {
         </p>
         <p style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.6, margin: '0 0 40px' }}>
           No paid placements and no invented star ratings. Positioning reflects each tool&rsquo;s
-          real public category as of {UPDATED}. We only quote Kineo&rsquo;s own exact prices;
-          competitor prices change, so verify those on their sites.
+          real public category as of {UPDATED}. Kineo&rsquo;s prices come from its own pricing source; the
+          other tools&rsquo; prices in the tested section were read on their official pages on{' '}
+          {competitorCheckedLabel()} and change, so verify them before you buy.
         </p>
 
         {/* SEARCH-INTENT-ROUNDUP-2026-08-28 — Search Console showed that this
@@ -391,6 +401,8 @@ export default function BestAiShortsGeneratorsPage() {
             ))}
           </div>
         </section>
+
+        {best ? <GeoRodada3Section answer={best} /> : null}
 
         {/* How to choose */}
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 12px' }}>
@@ -586,7 +598,7 @@ export default function BestAiShortsGeneratorsPage() {
             Many tools here assume you already have something — a long video to clip, a script to
             narrate, a clip to caption, or an avatar to render. Kineo starts from nothing but a
             topic and hands you a finished, ready-to-post 9:16 Short: hook-first script, AI
-            voiceover, matched visuals and captions, usually in about 3–7 minutes. Test
+            voiceover, matched visuals and captions, {PRODUCT_TIME.inMedian}. Test
             it free — {ft(OFFER, 'up to 3 watermarked Fast videos every 24 hours, no credit card.', `every new account${GRANT_COUNTRY_CLAUSE} gets ${TRIAL_GRANT_CREDITS_COPY} free credits — ${TRIAL_FIRST_FILM_PHRASE}, no card — films come out watermarked until you upgrade.`)}
           </p>
           {/* KINEO-STARTER-EM-ARTIGO-2026-08-15 — aqui havia um `<a href={CTA_URL}>`
@@ -628,7 +640,7 @@ export default function BestAiShortsGeneratorsPage() {
           Frequently asked questions
         </h2>
         <div style={{ display: 'grid', gap: 10, margin: '0 0 48px' }}>
-          {FAQ.map((item, i) => (
+          {faqs.map((item, i) => (
             <section key={i} style={{ ...CARD, padding: '16px 18px' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 8px' }}>{item.q}</h3>
               <p style={{ color: '#d2d2d7', lineHeight: 1.55, fontSize: '0.95rem', margin: 0 }}>
@@ -681,8 +693,8 @@ export default function BestAiShortsGeneratorsPage() {
 
         <p style={{ color: MUTED, fontSize: '0.85rem', lineHeight: 1.6 }}>
           Positioning on this page reflects each tool&rsquo;s public product category as of{' '}
-          {UPDATED}. Only Kineo&rsquo;s prices are quoted exactly; verify competitor pricing and
-          features on their official sites, as they change over time.
+          {UPDATED}. Competitor prices in the tested section were read on their official pages on{' '}
+          {competitorCheckedLabel()}; verify pricing and features on their official sites, as they change over time.
         </p>
       </div>
     </main>

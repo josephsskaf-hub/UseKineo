@@ -19,6 +19,8 @@ import { ENGINES } from '@/lib/growth/enginePageCatalog'
 import { enginePaused } from '@/lib/engineLaunch'
 import { FREE_SHORTS_LANG_BY_CODE } from '@/lib/seo/freeShortsGeneratorLangs'
 import { ENGINE_LANGS, ENGINE_LANG_CODES, LOCALIZED_ENGINE_SLUGS, engineAlternates, type LocalizedEngineSlug } from '@/lib/seo/enginePageLangs'
+// KINEO-GEO-RODADA3-2026-10-08 — a FAQ do tempo cita a mediana MEDIDA do motor no Kineo AI Video Index (era uma faixa digitada).
+import { measuredLangFacts } from '@/lib/seo/measuredRenderTime'
 
 const BASE = 'https://www.usekineo.com'
 const CARD = { background: '#161618', border: '1px solid #2a2a2d' }
@@ -62,7 +64,7 @@ export default async function EngineLangPage({ params }: { params: { engine: str
   const renders = await getEngineRenders(e.qualityMode, 8)
   const house = renders.length > 0 ? [] : getHouseEngineExamples(e.qualityMode, 6) // KINEO-GALERIA-DA-CASA-2026-09-21
   const campaign = `seo_engine_${slug}_${P.code}` // prefixo seo_ = atribuição orgânica
-  const faq = L.faq({ ...facts, covers, starter })
+  const faq = L.faq({ ...facts, covers, starter, ...measuredLangFacts(e.qualityMode) })
   const faqJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',

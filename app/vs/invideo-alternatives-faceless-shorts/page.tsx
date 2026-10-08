@@ -6,7 +6,7 @@ import { COMPARISON_REVIEW_DATE } from '@/lib/growth/citationComparisonSnapshot'
 // com preço por vídeo em tabela e data; esta página, que é a nossa resposta para ela, comparava quatro alternativas e não
 // mostrava o próprio InVideo. Entra a linha de base do InVideo (invideo.io/pricing, lido em 06/10) e o preço por Short da
 // Kineo por motor (ENGINE_GEO). Não se estima preço por vídeo do InVideo: a página dele não publica crédito por vídeo.
-import { money, usd } from '@/lib/seo/engineCitation'
+import { dayMonthYear, money, usd } from '@/lib/seo/engineCitation'
 import { HUB_REVIEWED_DAY, INVIDEO_FACTS, hubEngines, hubPlans } from '@/lib/seo/citableHubPages'
 
 export const dynamic = 'force-static'
@@ -35,7 +35,8 @@ function InVideoBaseline() {
     <section className="kc-section" aria-labelledby="invideo-baseline-heading" data-kineo="invideo-baseline">
       <h2 id="invideo-baseline-heading">InVideo AI and Kineo: price per Short</h2>
       <p>
-        {`InVideo AI (checked ${HUB_REVIEWED_DAY}): ${iv.starter.plan} from ${iv.starter.perSeatMonthBilledYearly}/seat/month billed yearly with ${iv.starter.credits} credits (${iv.starter.models}); ${iv.plus.plan} from ${iv.plus.perSeatMonthBilledYearly}/seat/month billed yearly with ${iv.plus.credits} credits (${iv.plus.models}). ${iv.perVideoNote} `}
+        {/* KINEO-GEO-RODADA3-2026-10-08 — os planos da InVideo relidos em 08/10 (Basic/Pro/Ultra, preço por assento no mensal). */}
+        {`InVideo AI (checked ${dayMonthYear(iv.checkedOn)}): ${iv.basic.plan} ${iv.basic.perSeatMonthly}/seat/month on monthly billing with ${iv.basic.credits} credits (${iv.basic.models}); ${iv.pro.plan} ${iv.pro.perSeatMonthly}/seat/month with ${iv.pro.credits} credits (${iv.pro.models}); ${iv.annualNote}. ${iv.perVideoNote} `}
         <a href={iv.url} rel="nofollow noopener noreferrer">InVideo pricing</a>
       </p>
       <p>

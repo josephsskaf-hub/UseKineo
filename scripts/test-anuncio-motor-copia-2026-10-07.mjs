@@ -178,11 +178,20 @@ say('35 to 150 credits', Math.min(...film60) === 35 && Math.max(...film60) === 1
 say('6 AI Video Models', engines.length === 6, 'o hub tem 6 modelos')
 say('Six', engines.length === 6, 'o hub tem 6 modelos')
 say('6 Video Models', engines.length === 6, 'o hub tem 6 modelos')
-say('8-25 Minutes', /8–25 minutes/.test(S25?.turnaround ?? ''), 'prazo = "Usually 8–25 minutes" da página')
+// REANCORADO KINEO-GEO-RODADA3-2026-10-08 (com motivo): a página de destino trocou a faixa digitada "Usually 8–25 minutes" pelo
+// tempo MEDIDO do Kineo AI Video Index (rodada 3 de GEO, 08/10); a manchete "Usually Ready in 8-25 Minutes" perdeu o lastro e
+// saiu. No lugar, "Film Ready in Minutes", conferida contra o MESMO JSON do índice (a edição que lib/seo/aiVideoIndexTimes.ts
+// declara): mediana e p90 de cada motor dos anúncios (2.5, Kling 3, Veo 3.1) abaixo de 60 min. Faixa de minutos digitada não volta.
+const edicaoIndice = (read('lib/seo/aiVideoIndexTimes.ts').match(/edition: '(\d{4}-\d{2})'/) ?? [])[1]
+const indice = edicaoIndice ? JSON.parse(read(`data/ai-video-index/${edicaoIndice}.json`)) : { engines: [] }
+const tempoMedido = (q) => { const r = indice.engines.find((x) => x.qualityMode === q); return r?.customers?.minutesToFilm ?? r?.house?.minutesToFilm ?? null }
+const emMinutos = ['cinematic_s25', 'cinematic_hollywood', 'cinematic_veo'].every((q) => { const t = tempoMedido(q); return Boolean(t) && t.median < 60 && t.p90 < 60 })
+say('Film Ready in Minutes', emMinutos, 'prazo = minutos MEDIDOS no índice (mediana e p90 < 60 min no 2.5, Kling 3 e Veo 3.1)')
+check(!/\d+\s*[-–]\s*\d+\s*Minutes/i.test(copy.join(' ')), 'nenhuma faixa de minutos digitada na cópia (o tempo é o medido do índice)')
 say('Veo 3.1 Fast', /Veo 3\.1 Fast/.test(VEO?.answerLead ?? ''), 'a página diz que roda o Veo 3.1 Fast')
 say('Seedance 2.5 runs on paid plans', S25?.paidPlansOnly === true, 'o 2.5 é só de plano pago')
 // As frases-chave TÊM de estar na cópia (senão as checagens acima passariam por ausência).
-for (const text of ['Seedance 2.5 Clips: 8 Credits', '35-Second Film: 88 Credits', 'Kling 3 Clips: 6 Credits', 'Veo 3.1 Clips: 6 Credits', '60-Second Film: 100 Credits', '60-Second Film: 150 Credits', '35 to 150 credits', '6 AI Video Models', '8-25 Minutes', 'Veo 3.1 Fast', 'for 60 credits']) {
+for (const text of ['Seedance 2.5 Clips: 8 Credits', '35-Second Film: 88 Credits', 'Kling 3 Clips: 6 Credits', 'Veo 3.1 Clips: 6 Credits', '60-Second Film: 100 Credits', '60-Second Film: 150 Credits', '35 to 150 credits', '6 AI Video Models', 'Film Ready in Minutes', 'Veo 3.1 Fast', 'for 60 credits']) {
   check(has(text), `a cópia afirma "${text}" (checado contra o código acima)`)
 }
 // Todo "<n> credits" e todo "<n>-second" da cópia é um número que o código produz hoje — inclusive os que ninguém previu.

@@ -16,6 +16,9 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import type { EngineCitation } from '@/lib/seo/engineCitation'
 import { seedanceGalleryFilms } from '@/lib/seo/houseFilmIdeas'
 import { SEEDANCE_CAMPAIGN, seedanceFreeAnswer, seedanceFreeFacts, seedanceStudioSignupHref, seedanceVs25 } from '@/lib/seo/seedanceAnswer'
+// KINEO-GEO-RODADA3-2026-10-08 — "Make one like this" embaixo de cada filme da casa (rodada 3, item 4): abre o Studio com a ideia
+// real do filme, no motor que o renderizou, sem disparar render; mede pelo placement e pelo utm_content house_film_remix.
+import { HOUSE_FILM_REMIX_LABEL, HOUSE_FILM_REMIX_PLACEMENT, houseFilmRemixHref } from '@/lib/seo/geoRodada3'
 
 const CARD: CSSProperties = { background: '#161618', border: '1px solid #2a2a2d' }
 const MUTED = '#86868b'
@@ -103,6 +106,14 @@ export default function SeedanceAnswerSections({ geo, s25, exclude = [] }: { geo
                   style={{ margin: 'auto 10px 10px', color: '#2997ff', fontWeight: 800, fontSize: '0.8rem', textDecoration: 'none' }}
                 >
                   Start from this idea →
+                </OrganicCtaLink>
+                <OrganicCtaLink
+                  href={houseFilmRemixHref(f, SEEDANCE_CAMPAIGN)}
+                  source={SEEDANCE_CAMPAIGN}
+                  placement={HOUSE_FILM_REMIX_PLACEMENT}
+                  style={{ margin: '0 10px 10px', display: 'block', textAlign: 'center', background: '#f5f5f7', color: '#000', fontWeight: 900, fontSize: '0.8rem', padding: '8px 10px', borderRadius: 980, textDecoration: 'none' }}
+                >
+                  {HOUSE_FILM_REMIX_LABEL}
                 </OrganicCtaLink>
               </div>
             ))}

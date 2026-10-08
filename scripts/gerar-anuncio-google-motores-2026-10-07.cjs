@@ -16,7 +16,7 @@ const PRICES = ['$12.90', '$29.90', '$54.90']
 const SAFE_SHARED = [
   'Finished Films, Not Just Clips', 'One Sentence to a Full Video', 'Narration, Captions and Music',
   'Plans From $12.90 a Month', 'Creator Plan: $29.90 a Month', 'Commercial Use on Every Plan',
-  'Clean MP4 on Paid Plans', 'Vertical 9:16, Ready to Post', 'Usually Ready in 8-25 Minutes',
+  'Clean MP4 on Paid Plans', 'Vertical 9:16, Ready to Post', 'Film Ready in Minutes', // KINEO-GEO-RODADA3-2026-10-08 — era "Usually Ready in 8-25 Minutes": a página trocou a faixa pelo tempo medido
   '6 AI Video Models, 1 Account',
 ]
 const groups = [
@@ -26,7 +26,7 @@ const groups = [
     phrase: ['seedance 2.5 app', 'seedance 2.5 online', 'use seedance 2.5', 'seedance 2.5 video generator', 'seedance 2.5 price', 'seedance 2.5 subscription', 'where to use seedance 2.5', 'seedance 2.5 image to video'],
     a: {
       path: ['Seedance-2-5', 'Online'],
-      h: ['Seedance 2.5 Online', 'Use Seedance 2.5 Today', 'Seedance 2.5 Video Generator', 'Seedance 2.5 Clips: 8 Credits', 'Finished Films, Not Just Clips', 'Narration, Captions and Music', 'One Sentence to a Full Video', 'Plans From $12.90 a Month', '60-Second Film: 150 Credits', '35-Second Film: 88 Credits', 'Commercial Use on Every Plan', 'Clean MP4 on Paid Plans', 'Vertical 9:16, Ready to Post', 'Usually Ready in 8-25 Minutes', '6 AI Video Models, 1 Account'],
+      h: ['Seedance 2.5 Online', 'Use Seedance 2.5 Today', 'Seedance 2.5 Video Generator', 'Seedance 2.5 Clips: 8 Credits', 'Finished Films, Not Just Clips', 'Narration, Captions and Music', 'One Sentence to a Full Video', 'Plans From $12.90 a Month', '60-Second Film: 150 Credits', '35-Second Film: 88 Credits', 'Commercial Use on Every Plan', 'Clean MP4 on Paid Plans', 'Vertical 9:16, Ready to Post', 'Film Ready in Minutes', '6 AI Video Models, 1 Account'],
       d: ['Type one sentence. Kineo directs Seedance 2.5 scenes, voiceover, captions and music.', 'A 5-second Seedance 2.5 clip costs 8 credits. A finished 60-second film costs 150.', 'Seedance 2.5 runs on paid plans. Creator: $29.90/month for 150 credits.', 'No editing: script, scenes, narration and captions arrive as one vertical MP4.'],
     },
     b: {
@@ -41,7 +41,7 @@ const groups = [
     phrase: ['kling 3 app', 'kling 3.0 online', 'use kling 3', 'kling 3 video generator', 'kling 3 price', 'kling 3 lip sync', 'kling 3 ai video', 'where to use kling 3'],
     a: {
       path: ['Kling-3', 'Online'],
-      h: ['Kling 3 Online', 'Use Kling 3 Today', 'Kling 3 Video Generator', 'Kling 3 With Lip Sync', 'Kling 3 Clips: 6 Credits', 'Characters Speak On Camera', 'Native Voice and Lip Sync', 'Finished Films, Not Just Clips', '60-Second Film: 150 Credits', 'Plans From $12.90 a Month', 'Narration, Captions and Music', 'No Camera, No Studio, No Actor', 'Commercial Use on Every Plan', 'Usually Ready in 8-25 Minutes', '6 AI Video Models, 1 Account'],
+      h: ['Kling 3 Online', 'Use Kling 3 Today', 'Kling 3 Video Generator', 'Kling 3 With Lip Sync', 'Kling 3 Clips: 6 Credits', 'Characters Speak On Camera', 'Native Voice and Lip Sync', 'Finished Films, Not Just Clips', '60-Second Film: 150 Credits', 'Plans From $12.90 a Month', 'Narration, Captions and Music', 'No Camera, No Studio, No Actor', 'Commercial Use on Every Plan', 'Film Ready in Minutes', '6 AI Video Models, 1 Account'],
       d: ['Kling 3 inside Kineo: talking characters with native voice and lip sync, fully edited.', 'A 5-second Kling 3 clip costs 6 credits. A finished 60-second film costs 150 credits.', 'Type one sentence. Kineo writes the script, routes scenes to Kling 3 and edits the film.', 'Plans from $12.90/month. Creator ($29.90, 150 credits) covers a 60-second Kling 3 film.'],
     },
     b: {
@@ -56,7 +56,7 @@ const groups = [
     phrase: ['veo 3.1 app', 'veo 3.1 online', 'use veo 3.1', 'veo 3.1 video generator', 'veo 3.1 price', 'where to use veo 3.1', 'veo 3.1 text to video', 'veo 3.1 fast video'],
     a: {
       path: ['Veo-3-1', 'Online'],
-      h: ['Veo 3.1 Online', 'Use Veo 3.1 Fast Today', 'Veo 3.1 Video Generator', 'Veo 3.1 Fast, Fully Edited', 'Veo 3.1 Clips: 6 Credits', '60-Second Film: 100 Credits', 'Finished Films, Not Just Clips', 'Narration, Captions and Music', 'One Sentence to a Full Video', 'Plans From $12.90 a Month', 'Creator Plan: $29.90 a Month', 'Commercial Use on Every Plan', 'Usually Ready in 8-25 Minutes', 'Vertical 9:16, Ready to Post', '6 AI Video Models, 1 Account'],
+      h: ['Veo 3.1 Online', 'Use Veo 3.1 Fast Today', 'Veo 3.1 Video Generator', 'Veo 3.1 Fast, Fully Edited', 'Veo 3.1 Clips: 6 Credits', '60-Second Film: 100 Credits', 'Finished Films, Not Just Clips', 'Narration, Captions and Music', 'One Sentence to a Full Video', 'Plans From $12.90 a Month', 'Creator Plan: $29.90 a Month', 'Commercial Use on Every Plan', 'Film Ready in Minutes', 'Vertical 9:16, Ready to Post', '6 AI Video Models, 1 Account'],
       d: ['Kineo runs Veo 3.1 Fast and turns one sentence into a narrated, captioned vertical film.', 'A 6-second Veo 3.1 clip costs 6 credits. A finished 60-second film costs 100 credits.', 'No raw clips to stitch: script, scenes, voiceover, captions and music in one MP4.', 'Plans from $12.90/month. Creator ($29.90, 150 credits) covers a 60-second Veo 3.1 film.'],
     },
     b: {
@@ -71,7 +71,7 @@ const groups = [
     phrase: ['kling vs veo', 'seedance vs kling', 'veo vs seedance', 'kling and veo in one app', 'seedance kling veo', 'multi model ai video generator', 'ai video generator all models', 'higgsfield alternative'],
     a: {
       path: ['All-Models', 'One-App'],
-      h: ['Seedance, Kling and Veo', 'Kling, Veo, Seedance in 1 App', 'Compare Kling, Veo, Seedance', 'One Account, 6 Video Models', 'One Credit Balance for All', 'Pick the Model Per Video', 'Price Per Finished Video', 'Finished Films, Not Just Clips', 'Narration, Captions and Music', 'Plans From $12.90 a Month', 'Commercial Use on Every Plan', 'Usually Ready in 8-25 Minutes', 'Vertical 9:16, Ready to Post', 'Seedance 2.5 Clips: 8 Credits', 'Kling 3 and Veo 3.1 Inside'],
+      h: ['Seedance, Kling and Veo', 'Kling, Veo, Seedance in 1 App', 'Compare Kling, Veo, Seedance', 'One Account, 6 Video Models', 'One Credit Balance for All', 'Pick the Model Per Video', 'Price Per Finished Video', 'Finished Films, Not Just Clips', 'Narration, Captions and Music', 'Plans From $12.90 a Month', 'Commercial Use on Every Plan', 'Film Ready in Minutes', 'Vertical 9:16, Ready to Post', 'Seedance 2.5 Clips: 8 Credits', 'Kling 3 and Veo 3.1 Inside'],
       d: ['Seedance 1.5, Seedance 2.5, Kling 2.5, Kling 3, Veo 3.1 and MiniMax H3 in one account.', 'One credit balance: a finished 60-second video costs 35 to 150 credits by model.', 'Type one sentence. Kineo writes, renders, narrates and edits the film for you.', 'Plans from $12.90/month for 60 credits. Commercial use on every plan.'],
     },
     b: {

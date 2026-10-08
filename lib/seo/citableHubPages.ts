@@ -102,14 +102,22 @@ export function directRaw60Cents(r: { clipUsdCents: number; seconds: number }): 
 
 // ─── Fatos de terceiros, lidos em página oficial (URL + data). Mudam: a página mostra a data. ──────────────────────
 
-/** invideo.io/pricing lido em 06/10/2026. Só o que a página mostra; o crédito por vídeo NÃO é publicado lá. */
+/**
+ * invideo.io/pricing RELIDO em 08/10/2026 (KINEO-GEO-RODADA3-2026-10-08): a página trocou os planos desde a leitura de 06/10
+ * (Starter/Plus/Max → Basic/Pro/Ultra). Só o que a página mostra: preço por assento no plano MENSAL, créditos por mês, quais
+ * modelos cada plano tem e o desconto anunciado do anual; o crédito por vídeo NÃO é publicado lá. O grátis vem da central de
+ * ajuda oficial (artigo atualizado em 28/07/2026): plano sem cartão, créditos limitados, renovados toda segunda.
+ */
 export const INVIDEO_FACTS = {
   url: 'https://invideo.io/pricing/',
-  checkedOn: HUB_REVIEWED_ISO,
-  starter: { plan: 'Starter', perSeatMonthBilledYearly: '$20', credits: 400, models: 'Seedance 2.0 Fast and Mini only — no Seedance 2.5' },
-  plus: { plan: 'Plus', perSeatMonthBilledYearly: '$36', credits: 2000, models: 'all models, including Seedance 2.5' },
-  max: { plan: 'Max', perSeatMonthBilledYearly: '$75', credits: 5000, models: 'all models' },
+  checkedOn: '2026-10-08',
+  basic: { plan: 'Basic', perSeatMonthly: '$9', credits: 190, models: 'Seedance 2.0 Fast and Mini only — no Seedance 2.5' },
+  pro: { plan: 'Pro', perSeatMonthly: '$30', credits: 1000, models: 'Seedance 2.5 at 1080p and Seedance 2.0 at 4K' },
+  ultra: { plan: 'Ultra', perSeatMonthly: '$80', credits: 3000, models: 'Seedance 2.5 at 1080p and Seedance 2.0 at 4K' },
+  annualNote: 'annual billing is advertised at 50% off',
   perVideoNote: 'InVideo prices in credits per seat; its pricing page does not publish how many credits one finished video uses, so we do not estimate a price per video for it.',
+  freeUrl: 'https://help.invideo.io/en/articles/9380226-can-i-use-invideo-ai-for-free',
+  freeNote: 'a no-card free plan with limited credits that reset every Monday (help center article updated 28 July 2026)',
 } as const
 
 /** kenerateai.com lido em 06/10/2026 (a resposta que ganhou a pergunta 13 da rodada 1). */

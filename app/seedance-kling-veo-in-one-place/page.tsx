@@ -8,7 +8,7 @@ import CitableHubShell, { HUB_CARD, HUB_LINK, HUB_MUTED, HUB_PRIMARY, HUB_SECOND
 import { BRAND_WITH_DOMAIN, BRAND_DISAMBIGUATION_PATH } from '@/lib/brandIdentity'
 import { buildEngineLandingSignupHref } from '@/lib/growth/engineLandingIntent'
 import { FREE_FILM_LABEL, GRANT_COUNTRY_CLAUSE, TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
-import { money, usd } from '@/lib/seo/engineCitation'
+import { dayMonthYear, money, usd } from '@/lib/seo/engineCitation'
 import {
   BASE,
   HUB_PAGES,
@@ -166,7 +166,8 @@ export default function SeedanceKlingVeoInOnePlacePage() {
           <article style={{ ...HUB_CARD, borderRadius: 14, padding: 16 }}>
             <h3 style={{ margin: '0 0 6px', fontSize: '1rem' }}>InVideo AI</h3>
             <p style={{ margin: 0, color: HUB_MUTED, lineHeight: 1.55, fontSize: '0.9rem' }}>
-              {`${INVIDEO_FACTS.starter.plan} from ${INVIDEO_FACTS.starter.perSeatMonthBilledYearly}/seat/month billed yearly (${INVIDEO_FACTS.starter.models}); ${INVIDEO_FACTS.plus.plan} from ${INVIDEO_FACTS.plus.perSeatMonthBilledYearly}/seat/month billed yearly (${INVIDEO_FACTS.plus.models}). `}
+              {/* KINEO-GEO-RODADA3-2026-10-08 — planos relidos em 08/10 (a InVideo trocou Starter/Plus/Max por Basic/Pro/Ultra). */}
+              {`${INVIDEO_FACTS.basic.plan} ${INVIDEO_FACTS.basic.perSeatMonthly}/seat/month on monthly billing (${INVIDEO_FACTS.basic.models}); ${INVIDEO_FACTS.pro.plan} ${INVIDEO_FACTS.pro.perSeatMonthly}/seat/month (${INVIDEO_FACTS.pro.models}); ${INVIDEO_FACTS.annualNote} — checked ${dayMonthYear(INVIDEO_FACTS.checkedOn)}. `}
               <a href={INVIDEO_FACTS.url} target="_blank" rel="nofollow noopener noreferrer" style={HUB_LINK}>InVideo pricing</a>
             </p>
           </article>

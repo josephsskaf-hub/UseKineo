@@ -29,6 +29,9 @@ import { AI_VIDEO_INDEX_HEADLINE } from '@/lib/seo/aiVideoIndexHeadline'
 // "State of AI Shorts" (manchete em espelho TS: os guardiões que executam o sitemap só carregam .ts de lib/).
 import { GEO_RODADA2_REVIEWED_ISO, NICHE_HOUSE_FILM_SLUGS } from '@/lib/seo/houseFilmIdeas'
 import { STATE_HEADLINE } from '@/lib/seo/stateOfAiShortsHeadline'
+// KINEO-GEO-RODADA3-2026-10-08 — rodada 3 de GEO: as 4 respostas (modelos, InVideo, CapCut, melhor gerador), o tempo medido
+// nas páginas de motor (14 línguas) e no /alternatives, e o timer de roteiro. Módulo sem import em tempo de execução.
+import { GEO_RODADA3_ALTERNATIVE_SLUGS, GEO_RODADA3_LAST_MODIFIED_ISO, GEO_RODADA3_STATIC_PATHS } from '@/lib/seo/geoRodada3'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -88,6 +91,9 @@ const ENGINE_GEO_REVISED_PAGES = ['/ai-video-generator', '/models-pricing', '/ki
 // a página do Seedance 1.5 (o grátis e para quem, 1.5 × 2.5, filmes reais), os nichos com filme real da casa
 // (NICHE_HOUSE_FILM_SLUGS) e o estudo, que leva a data da leitura da edição vigente (muda sozinha a cada edição nova).
 const GEO_RODADA2_LAST_MODIFIED = new Date(`${GEO_RODADA2_REVIEWED_ISO}T12:00:00.000Z`)
+// KINEO-GEO-RODADA3-2026-10-08 — as páginas que SÓ a rodada 3 mudou levam a data real dela (carimbo posterior ao da rodada 2, no
+// mesmo dia); as que a rodada 2 já carimbou hoje (Seedance 1.5, nichos com filme) seguem com o carimbo dela.
+const GEO_RODADA3_LAST_MODIFIED = new Date(GEO_RODADA3_LAST_MODIFIED_ISO)
 const STATE_STUDY_PATH = '/state-of-ai-shorts-2026'
 const STATE_STUDY_LAST_MODIFIED = new Date(STATE_HEADLINE.measuredAt)
 
@@ -298,11 +304,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // Derivada de ENGINE_SLUGS, como as linhas acima: há guardiões que executam este sitemap com o catálogo simulado só com
   // ENGINE_SLUGS (sem isIndexableEngineSlug) — a função só é chamada para um slug que existe.
   const geoRodada2Revised = new Set(ENGINE_SLUGS.filter((slug) => slug === 'seedance' && isIndexableEngineSlug(slug)).map((slug) => `/ai-video-generator/${slug}`))
+  // KINEO-GEO-RODADA3-2026-10-08 — o tempo medido entrou em toda página de motor indexável e nas traduzidas (a do Seedance 1.5 fica
+  // com o carimbo da rodada 2, decidido acima), mais as páginas estáticas da rodada. Mesma derivação de ENGINE_SLUGS das linhas acima.
+  const geoRodada3Revised = new Set([
+    ...GEO_RODADA3_STATIC_PATHS,
+    ...ENGINE_SLUGS.filter((slug) => isIndexableEngineSlug(slug)).map((slug) => `/ai-video-generator/${slug}`),
+    ...LOCALIZED_ENGINE_SLUGS.flatMap((slug) => ENGINE_LANG_CODES.map((lang) => `/ai-video-generator/${slug}/${lang}`)),
+  ])
   const staticEntries = routes.filter((r) => !engineNoIndex.some((p) => r.path === p || r.path.startsWith(`${p}/`))).map((r) => ({
     url: `${BASE}${r.path}`,
     lastModified: r.path === '/ads' ? ADS_DOOR_LAST_MODIFIED
       : ['/business-video-ads', '/sora-alternative', '/omni-flash-vs-sora'].includes(r.path)
-      ? new Date('2026-09-24T13:51:19.000Z') : geoRodada2Revised.has(r.path) ? GEO_RODADA2_LAST_MODIFIED : r.path === STATE_STUDY_PATH ? STATE_STUDY_LAST_MODIFIED : engineGeoRevised.has(r.path) ? ENGINE_GEO_LAST_MODIFIED : LAST_MODIFIED,
+      ? new Date('2026-09-24T13:51:19.000Z') : geoRodada2Revised.has(r.path) ? GEO_RODADA2_LAST_MODIFIED : geoRodada3Revised.has(r.path) ? GEO_RODADA3_LAST_MODIFIED : r.path === STATE_STUDY_PATH ? STATE_STUDY_LAST_MODIFIED : engineGeoRevised.has(r.path) ? ENGINE_GEO_LAST_MODIFIED : LAST_MODIFIED,
     changeFrequency: r.freq,
     priority: r.priority,
   }))
@@ -316,7 +329,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // #482 — comparison / "X alternative" SEO pages (/alternatives/[competitor]).
   const altEntries = COMPETITOR_SLUGS.map((slug) => ({
     url: `${BASE}/alternatives/${slug}`,
-    lastModified: slug === 'quso' ? '2026-07-21' : LAST_MODIFIED,
+    lastModified: slug === 'quso' ? '2026-07-21' : GEO_RODADA3_ALTERNATIVE_SLUGS.includes(slug) ? GEO_RODADA3_LAST_MODIFIED : LAST_MODIFIED, // KINEO-GEO-RODADA3-2026-10-08
     changeFrequency: 'weekly' as const,
     priority: 0.8,
   }))
@@ -398,7 +411,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // date; adding them does not re-date the unrelated acquisition cluster.
     ...CITATION_ANSWER_LINKS.map(({ path }) => ({
       url: `${BASE}${path}`,
-      lastModified: CITATION_REVIEW_DATE,
+      lastModified: GEO_RODADA3_STATIC_PATHS.includes(path) ? GEO_RODADA3_LAST_MODIFIED : CITATION_REVIEW_DATE, // KINEO-GEO-RODADA3-2026-10-08
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     })),
@@ -414,7 +427,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // página que separa a marca da kineo.studio; data própria = dia da revisão dos preços e das fontes de terceiros.
     ...Object.values(HUB_PAGES).map(({ path }) => ({
       url: `${BASE}${path}`,
-      lastModified: new Date(`${HUB_REVIEWED_ISO}T12:00:00.000Z`),
+      lastModified: GEO_RODADA3_STATIC_PATHS.includes(path) ? GEO_RODADA3_LAST_MODIFIED : new Date(`${HUB_REVIEWED_ISO}T12:00:00.000Z`), // KINEO-GEO-RODADA3-2026-10-08
       changeFrequency: 'weekly' as const,
       priority: path === HUB_PAGES.brand.path ? 0.6 : 0.9,
     })),

@@ -1,7 +1,13 @@
+// KINEO-GEO-RODADA3-2026-10-08 — o "Shorts script timer" (rodada 3 de GEO, item 3): a ferramenta grátis que já existia,
+// estendida para medir por FAMÍLIA DE MOTOR com o passo que cada motor de fato aplica (lib/growth/scriptTimerEngines.ts) e
+// mostrar quantas palavras cabem em 35, 60 e 90 s. A FAQ e o FAQPage JSON-LD saem das MESMAS funções da ferramenta (nenhum
+// número de régua digitado nesta página); a primeira pergunta é a que o ChatGPT recebe: "How many words is a 60-second
+// YouTube Short?".
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 import ScriptTimerClient from './ScriptTimerClient'
+import { scriptTimerRulerFacts } from '@/lib/growth/scriptTimerEngines'
 
 const BASE = 'https://www.usekineo.com'
 
@@ -11,35 +17,49 @@ export const metadata: Metadata = {
   metadataBase: new URL(BASE),
   title: 'YouTube Shorts Script Timer & Word Counter — Free | Kineo',
   description:
-    'Paste a YouTube Shorts script to estimate spoken duration, see the exact word gap for 35 or 60 seconds, and ignore production directions. Free, browser-based and no signup.',
+    'Paste a YouTube Shorts script to count the spoken words, estimate the seconds on each AI video engine family and see how many words fit in 35, 60 or 90 seconds. Free, in your browser, no signup.',
   alternates: { canonical: `${BASE}/youtube-shorts-script-timer` },
   openGraph: {
     title: 'Free YouTube Shorts Script Timer',
-    description: 'See whether your actual narration fills 35 or 60 seconds before you generate a video.',
+    description: 'How many words is a 60-second Short? Count your narration and see the estimate per AI video engine before you generate.',
     url: `${BASE}/youtube-shorts-script-timer`,
     type: 'website',
     images: [{ url: '/og-card.png', width: 1200, height: 630, alt: 'Kineo YouTube Shorts script timer' }],
   },
 }
 
-const FAQ = [
-  {
-    q: 'How many words fit in a 60-second YouTube Short?',
-    a: 'At the Kineo planning rate of 2.3 spoken words per second, 60 seconds is about 138 words. The tool treats 132 words as the safe minimum because brief natural pauses still belong in the finished video.',
-  },
-  {
-    q: 'Does the timer count HOOK, PAYOFF or visual directions?',
-    a: 'No. It uses Kineo’s narration parser to remove structural headings, metadata and bracketed directions such as [Pexels: ocean]. The result is based on what the voice should actually say, not every word in the document.',
-  },
-  {
-    q: 'Is this an exact audio measurement?',
-    a: 'No. It is a planning estimate. The selected voice, punctuation, emphasis and delivery can change the final measured audio length.',
-  },
-  {
-    q: 'How long can a YouTube Short be?',
-    a: 'YouTube currently classifies square or vertical uploads of up to three minutes as Shorts. This calculator focuses on Kineo’s 35- and 60-second production slots.',
-  },
-] as const
+function faqEntries(): { q: string; a: string }[] {
+  const r = scriptTimerRulerFacts()
+  return [
+    {
+      q: 'How many words is a 60-second YouTube Short?',
+      a:
+        `About ${r.mystery.words60} to ${r.documentary.words60} spoken words — it depends on the voice that reads it (estimate). ` +
+        `On Kineo, ${r.hollywood.engines.join(', ')} are timed at ${r.hollywood.wordsPerSecond} words per second (about ${r.hollywood.words60} words for 60 seconds), ` +
+        `and ${r.classicEngines.join(', ')} at the pace of the narrator voice the script gets: ${r.mystery.wordsPerSecond} words per second for the ${r.mystery.persona} voice of English mystery scripts (about ${r.mystery.words60} words) ` +
+        `and ${r.documentary.wordsPerSecond} for the ${r.documentary.persona} voice that fact scripts and most Portuguese scripts get (about ${r.documentary.words60} words). ` +
+        `Below ${r.floorPercent}% of the length the film comes out shorter: at ${r.hollywood.wordsPerSecond} words per second the floor for 60 seconds is ${r.hollywood.minimum60} words.`,
+    },
+    {
+      q: 'Does the timer count HOOK, PAYOFF or visual directions?',
+      a: 'No. It uses Kineo’s narration parser to remove structural headings, metadata and bracketed directions such as [Pexels: ocean]. The result is based on what the voice should actually say, not every word in the document.',
+    },
+    {
+      q: 'Why do Kineo tools give different words-per-second numbers?',
+      a:
+        `Kineo’s ChatGPT and Claude connectors describe a looser planning pace for ${r.classicEngines.join(', ')} (${r.connectorPace} words per second). ` +
+        'The render itself times the script with the measured pace of the narrator voice it will use — that is what this timer shows, and every number here is an estimate, not an audio measurement.',
+    },
+    {
+      q: 'What happens if my script is longer than the target?',
+      a: `Running a little past the target is fine — a story that finishes beats a story that is cut. Much longer than the target, the narration gets condensed to fit, so the timer suggests the next length (${r.durations.join(' → ')} seconds) or a trim.`,
+    },
+    {
+      q: 'Is this free, and does it spend credits?',
+      a: 'Yes, it is free, and no. The timer runs entirely in your browser: no account, no AI call and no credits. “Make this film” only opens the Kineo Studio with your script filled in — nothing renders until you press Generate.',
+    },
+  ]
+}
 
 const PAGE_CSS = `
   .timer-page{min-height:100vh;background:#000;color:#f5f5f7;font-family:var(--font-sans),Arial,sans-serif}
@@ -80,6 +100,14 @@ const PAGE_CSS = `
   .timer-metrics article{padding:13px 10px;border:1px solid #252c37;border-radius:11px;background:#070a0f;text-align:center}
   .timer-metrics strong{display:block;font-size:1.08rem;font-variant-numeric:tabular-nums}
   .timer-metrics span{display:block;margin-top:4px;color:#737e8e;font-size:.63rem;line-height:1.25}
+  .timer-families{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+  .timer-family{padding:14px;border:1px solid #252c37;border-radius:12px;background:#070a0f;min-width:0}
+  .timer-family h3{margin:6px 0 0;font-size:1.3rem;font-variant-numeric:tabular-nums}
+  .timer-family h3 small{color:#737e8e;font-size:.68rem;font-weight:700;margin-left:4px}
+  .timer-family-voice{margin:5px 0 0;color:#8f9aaa;font-size:.72rem;line-height:1.45}
+  .timer-capacity{width:100%;margin-top:9px;border-collapse:collapse;font-size:.74rem;font-variant-numeric:tabular-nums}
+  .timer-capacity th,.timer-capacity td{padding:5px 4px;border-top:1px solid #1d2430;text-align:left}
+  .timer-capacity thead th{border-top:0;color:#737e8e;font-weight:800}
   .timer-spoken{margin-top:12px;border:1px solid #252c37;border-radius:12px;background:#070a0f;padding:12px 14px}
   .timer-spoken summary{cursor:pointer;color:#9ecfff;font-size:.76rem;font-weight:850}
   .timer-spoken p{margin:11px 0 0;color:#aeb8c6;font-size:.78rem;line-height:1.55;max-height:150px;overflow:auto}
@@ -91,17 +119,20 @@ const PAGE_CSS = `
   .timer-method{display:grid;grid-template-columns:.85fr 1.15fr;gap:30px;padding:28px;border:1px solid rgba(255,255,255,.09);border-radius:20px;background:#070a0f}
   .timer-method h2,.timer-faq h2{margin:9px 0 0;font-size:clamp(1.45rem,3vw,2.15rem);letter-spacing:-.035em}
   .timer-method p:not(.timer-eyebrow){margin:0;color:#9aa5b4;line-height:1.65}
+  .timer-method a,.timer-links a{color:#7cc0ff}
   .timer-faq article{border-top:1px solid #232934;padding:16px 0}
   .timer-faq article:first-of-type{margin-top:14px}
   .timer-faq h3{margin:0;font-size:.95rem}
   .timer-faq article p{margin:7px 0 0;color:#8f9aaa;font-size:.87rem;line-height:1.58}
   .timer-source{margin:13px 0 0;color:#6f7b8c;font-size:.72rem}.timer-source a{color:#7cc0ff}
+  .timer-links{margin:28px 0 0;color:#6f7b8c;font-size:.82rem;line-height:1.9}
   .timer-logo:focus-visible,.timer-all:focus-visible,button:focus-visible,.timer-next>a:focus-visible,summary:focus-visible{outline:3px solid #fff;outline-offset:3px}
   @media(max-width:820px){.timer-tool,.timer-method{grid-template-columns:1fr}.timer-metrics{grid-template-columns:1fr 1fr}}
-  @media(max-width:560px){.timer-shell{width:min(100% - 28px,1120px);padding-bottom:50px}.timer-hero{margin:52px auto 28px;text-align:left}.timer-editor,.timer-result{padding:19px}.timer-target-row,.timer-next{align-items:flex-start;flex-direction:column}.timer-next>a{max-width:none;width:100%;box-sizing:border-box}.timer-verdict{grid-template-columns:1fr}.timer-editor textarea{min-height:250px}.timer-method{padding:21px}}
+  @media(max-width:560px){.timer-shell{width:min(100% - 28px,1120px);padding-bottom:50px}.timer-hero{margin:52px auto 28px;text-align:left}.timer-editor,.timer-result{padding:19px}.timer-target-row,.timer-next{align-items:flex-start;flex-direction:column}.timer-next>a{max-width:none;width:100%;box-sizing:border-box}.timer-verdict{grid-template-columns:1fr}.timer-editor textarea{min-height:250px}.timer-method{padding:21px}.timer-families{grid-template-columns:1fr}}
 `
 
 export default function YouTubeShortsScriptTimerPage() {
+  const FAQ = faqEntries()
   const faqJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -119,13 +150,13 @@ export default function YouTubeShortsScriptTimerPage() {
     applicationCategory: 'MultimediaApplication',
     operatingSystem: 'Any web browser',
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-    description: 'A browser-based timer for estimating the spoken duration of a YouTube Shorts script.',
+    description: 'A browser-based timer that counts the spoken words of a YouTube Shorts script and estimates its length on each AI video engine family.',
   }
 
   return (
     <main className="timer-page">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(appJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(appJsonLd).replace(/</g, '\\u003c') }} />
       <div className="timer-shell">
         <nav className="timer-nav" aria-label="Primary">
           <Link href="/" className="timer-logo">Kineo</Link>
@@ -133,9 +164,9 @@ export default function YouTubeShortsScriptTimerPage() {
         </nav>
 
         <header className="timer-hero">
-          <p className="timer-eyebrow">Free script timer · no signup</p>
-          <h1>Will your script actually fill the Short?</h1>
-          <p>Paste the complete draft. This timer counts the narration viewers will hear — not HOOK labels, visual prompts or editing notes — and shows the exact word gap before you generate.</p>
+          <p className="timer-eyebrow">Free Shorts script timer · no signup</p>
+          <h1>How long will your Short be?</h1>
+          <p>Paste the script. The timer counts the words the voice will actually say — not HOOK labels, visual prompts or notes — and estimates the seconds on each AI video engine family, with the words that fit in 35, 60 and 90 seconds.</p>
         </header>
 
         <ScriptTimerClient />
@@ -143,9 +174,15 @@ export default function YouTubeShortsScriptTimerPage() {
         <section className="timer-method" aria-labelledby="timer-method-title">
           <div>
             <p className="timer-eyebrow">Why this timer is different</p>
-            <h2 id="timer-method-title">It reads a production script like a voiceover engine.</h2>
+            <h2 id="timer-method-title">It times a script the way each engine does.</h2>
           </div>
-          <p>Most word counters divide every word on the page by a generic speaking speed. This one first removes structural labels, bracketed shot directions and production metadata with the same narration parser Kineo uses for verbatim scripts. The estimate is still a plan, not an audio measurement — but it is based on the words that are meant to be spoken.</p>
+          <p>
+            Most word counters divide every word on the page by one generic speaking speed. This one first removes structural labels,
+            bracketed shot directions and production metadata with the narration parser Kineo uses for verbatim scripts, then applies the
+            pace each engine family really uses before it renders: the Kineo narrator voice your script would get on Seedance 1.5, Kling 2.5
+            and Veo 3.1, and the engine-voice pace on Kling 3, MiniMax H3 and Seedance 2.5. The numbers are estimates, not audio measurements.
+            How long the render itself takes is measured separately, every month, in the <Link href="/ai-video-index">Kineo AI Video Index</Link>.
+          </p>
         </section>
 
         <section className="timer-faq" aria-labelledby="timer-faq-title">
@@ -158,6 +195,10 @@ export default function YouTubeShortsScriptTimerPage() {
           ))}
           <p className="timer-source">Platform duration source: <a href="https://support.google.com/youtube/answer/15424877?hl=en" rel="noreferrer">YouTube Help — three-minute Shorts</a>, checked August 28, 2026.</p>
         </section>
+
+        <p className="timer-links">
+          Engines: <Link href="/ai-video-generator/seedance">Seedance 1.5</Link> · <Link href="/ai-video-generator/veo">Veo 3.1</Link> · <Link href="/ai-video-generator/kling-3">Kling 3</Link> · <Link href="/seedance-vs-veo-vs-kling">Seedance vs Veo vs Kling</Link> · <Link href="/pricing">Pricing</Link> · <Link href="/studio">Open the Studio</Link>
+        </p>
       </div>
       <Footer showStats={false} />
       <style dangerouslySetInnerHTML={{ __html: PAGE_CSS }} />

@@ -24,6 +24,8 @@ import { MARKET_QUOTES, quotePlanListsModel, type MarketQuote } from '../clips/c
 import { creditCostForDuration, type Quality } from '../credits/engineCost'
 import { supportedDurationsFor } from '../durationByEngine'
 import { clipSecondsForTarget } from '../pricingTwoProducts'
+// KINEO-GEO-RODADA3-2026-10-08 — o tempo de entrega sai do Kineo AI Video Index (espelho TS da edição vigente), por motor.
+import { measuredTimeFor, measuredTimeSentence, stepThreeLine, turnaroundLine } from './measuredRenderTime'
 
 /** Marca desta mudança (os guardiões alheios reancorados procuram por ela). */
 export const ENGINE_GEO_MARK = 'KINEO-MOTORES-GEO-2026-10-06'
@@ -34,11 +36,10 @@ export const ENGINE_GEO_REVIEWED_ISO = '2026-10-06'
 export const ENGINE_GEO_BRAND_LINE = 'Type one sentence. Get a finished 60-second video — voice, captions and music included — in minutes.'
 /** Fato de apoio permitido. Nunca dizer que o vídeo "se qualifica" para monetização. */
 export const ENGINE_GEO_REWARDS_LINE = "60 seconds+ is the length TikTok's Creator Rewards pays for."
-/**
- * Tempo honesto de um filme narrado num motor de cena gerada (sessão CEO 06/10: "filme de motor premium leva 8–25
- * min"). Faixa, nunca tempo exato: a página antiga dizia "3–7 minutes" em TODO motor — verdade só para o Kineo 1.
- */
-export const ENGINE_GEO_FILM_MINUTES = { min: 8, max: 25 } as const
+// KINEO-GEO-RODADA3-2026-10-08 — o tempo de entrega deixou de ser a faixa de minutos digitada aqui (sessão CEO 06/10) e
+// passou a ser o MEDIDO por motor no Kineo AI Video Index (lib/seo/measuredRenderTime.ts → espelho da edição vigente):
+// mediana e p90 do pedido ao filme pronto, com a fonte dita ("customer renders" ou "Kineo internal test renders,
+// indicative"). Sessão CEO 08/10: "troque pelos números medidos, da mesma fonte que o índice usa, sem inventar".
 /** O alvo do clipe na tabela (a duração REAL sai de clipSecondsForTarget: o Veo entrega 6 s, nunca "5 s"). */
 export const ENGINE_GEO_CLIP_TARGET = 5
 /** As durações de filme da tabela (norte da casa: 35 / 60). */
@@ -316,7 +317,7 @@ export function buildEngineCitation(input: {
 
   const name = input.name
   const t = input.trial
-  const minutes = `${ENGINE_GEO_FILM_MINUTES.min}–${ENGINE_GEO_FILM_MINUTES.max} minutes`
+  const measured = measuredTimeFor(quality) // KINEO-GEO-RODADA3-2026-10-08 — o tempo medido deste motor (null = o índice não mede)
   const smallestSentence = smallestPlanFor60
     ? `The smallest plan that covers one 60-second ${name} video is ${smallestPlanFor60.label} at ${usd(smallestPlanFor60.usdCents)}/month.`
     : `No single monthly plan covers a 60-second ${name} video on its own.`
@@ -355,8 +356,8 @@ export function buildEngineCitation(input: {
   const faqWhereCost = {
     q: `Where can I use ${name} online, and what does a ${name} video cost?`,
     a: clipeAVenda
-      ? `In Kineo Studio at usekineo.com/studio${profile.modelLine}${pagoFaq}: a ${clip.seconds}-second ${name} clip costs ${clip.credits} credits, and a finished narrated video with voice, captions and music costs ${film35.credits} credits for 35 seconds or ${film60.credits} credits for 60 seconds — about ${usd(clip.usdCents)}, ${usd(film35.usdCents)} and ${usd(film60.usdCents)} at the ${reference.label} plan’s credit price (${usd(reference.usdCents)} for ${reference.credits} credits). ${smallestSentence} A narrated video usually takes ${minutes}.`
-      : `In Kineo Studio at usekineo.com/studio${profile.modelLine}${pagoFaq}: a finished narrated video with voice, captions and music costs ${film35.credits} credits for 35 seconds or ${film60.credits} credits for 60 seconds — about ${usd(film35.usdCents)} and ${usd(film60.usdCents)} at the ${reference.label} plan’s credit price (${usd(reference.usdCents)} for ${reference.credits} credits). ${smallestSentence} A narrated video usually takes ${minutes}.`,
+      ? `In Kineo Studio at usekineo.com/studio${profile.modelLine}${pagoFaq}: a ${clip.seconds}-second ${name} clip costs ${clip.credits} credits, and a finished narrated video with voice, captions and music costs ${film35.credits} credits for 35 seconds or ${film60.credits} credits for 60 seconds — about ${usd(clip.usdCents)}, ${usd(film35.usdCents)} and ${usd(film60.usdCents)} at the ${reference.label} plan’s credit price (${usd(reference.usdCents)} for ${reference.credits} credits). ${smallestSentence} ${measuredTimeSentence(measured)}`
+      : `In Kineo Studio at usekineo.com/studio${profile.modelLine}${pagoFaq}: a finished narrated video with voice, captions and music costs ${film35.credits} credits for 35 seconds or ${film60.credits} credits for 60 seconds — about ${usd(film35.usdCents)} and ${usd(film60.usdCents)} at the ${reference.label} plan’s credit price (${usd(reference.usdCents)} for ${reference.credits} credits). ${smallestSentence} ${measuredTimeSentence(measured)}`,
   }
   const faqDirect = priced.length
     ? {
@@ -386,8 +387,8 @@ export function buildEngineCitation(input: {
     answerLead,
     planLine,
     accessNote: access.paidPlansOnly ? `${name} is on paid plans — the free trial does not include it. ${clipFromLine ? `${clipFromLine}. ` : ''}${smallestMonthlySentence}` : `${trialSentence} ${smallestMonthlySentence}`,
-    turnaround: `Usually ${minutes} for a narrated video — it varies with length and provider queues`,
-    howStep3: `A vertical 9:16 MP4, usually ${minutes} later, ready for YouTube Shorts, TikTok and Reels.`,
+    turnaround: turnaroundLine(measured), // KINEO-GEO-RODADA3-2026-10-08 — era a faixa digitada da rodada 1
+    howStep3: stepThreeLine(measured), // KINEO-GEO-RODADA3-2026-10-08 — era a faixa digitada da rodada 1
     costsNote: `Credit costs read from Kineo’s single pricing source (${monthYear(ENGINE_GEO_REVIEWED_ISO)}). Engines and costs may change.`,
     finalLine: `${ENGINE_GEO_BRAND_LINE} ${ENGINE_GEO_REWARDS_LINE}`,
     ctaLabel: access.paidPlansOnly ? `Make a ${name} video on a paid plan →` : `Make a ${name} video →`,
