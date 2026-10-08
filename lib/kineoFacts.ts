@@ -191,7 +191,8 @@ export interface PlanFact {
   /** Preço anual à vista, quando existe. */
   annualUsd: string | null
   annualUsdCents: number | null
-  /** KINEO-ANUAL-40OFF-2026-10-05 — anual ÷ 12, formatado ("≈ $7.74/mo"), e o desconto real contra 12 mensalidades. */
+  /** KINEO-ANUAL-40OFF-2026-10-05 — anual ÷ 12, formatado ("≈ $9.00/mo" desde KINEO-ANUAL-30-2026-10-08), e o desconto
+   *  real contra 12 mensalidades (30). */
   annualPerMonthUsd: string | null
   annualSavingsPercent: number | null
   /** Créditos liberados a cada mês de cobrança. */
@@ -807,7 +808,8 @@ export const PRODUCT = {
   creditsRollOver: false,
   // fonte: app/pricing/PricingClient.tsx:59.
   moneyBackGuaranteeDays: 7,
-  // KINEO-ANUAL-40OFF-2026-10-05 — o anual é 40% off sobre 12 mensalidades, com reembolso integral em 14 dias.
+  // KINEO-ANUAL-40OFF-2026-10-05 — o anual é X% off sobre 12 mensalidades, com reembolso integral em 14 dias.
+  // KINEO-ANUAL-30-2026-10-08 — X = ANNUAL_DISCOUNT_PERCENT (30 desde 08/10; foi 40 de 05/10 a 08/10).
   billing: `Monthly, or annual at ${ANNUAL_DISCOUNT_PERCENT}% off 12 monthly payments; cancel anytime`,
   annualRefundPolicy: ANNUAL_REFUND_POLICY,
   // fonte: lib/checkoutPricing.ts (CURRENCY_DISPLAY). Derivado da mesma tabela

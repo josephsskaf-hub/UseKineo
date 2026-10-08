@@ -47,14 +47,16 @@ const m = roda(libSrc)
 // a tabela em reais — KINEO-PRECO-V8-A-2026-09-28: reancorada com motivo (escada 13/30/55 do fundador, 28/09; a tabela V5
 // de 09/09 — R$ 49,90/99,90/199,90 — virou o piso do grant legado, LEGACY_V5_BRL_PLAN_PRICES_MINOR).
 // KINEO-ANUAL-40OFF-2026-10-05 — o anual em reais virou 12 × mensal × 0,60 até ,90 (era 10×): 467,90 / 1.079,90 / 1.979,90.
-checa('Starter R$ 64,90 · anual R$ 467,90', m.BRL_PLAN_PRICES_MINOR.starter.monthly === 6490 && m.BRL_PLAN_PRICES_MINOR.starter.annual === 46790)
-checa('Creator R$ 149,90 · anual R$ 1.079,90', m.BRL_PLAN_PRICES_MINOR.basic.monthly === 14990 && m.BRL_PLAN_PRICES_MINOR.basic.annual === 107990)
-checa('Studio R$ 274,90 · anual R$ 1.979,90', m.BRL_PLAN_PRICES_MINOR.pro.monthly === 27490 && m.BRL_PLAN_PRICES_MINOR.pro.annual === 197990)
+// KINEO-ANUAL-30-2026-10-08 — reancorado com a decisão do fundador (30% off): 12 × mensal × 0,70 até ,90 = 545,90 / 1.259,90 / 2.309,90.
+checa('Starter R$ 64,90 · anual R$ 545,90', m.BRL_PLAN_PRICES_MINOR.starter.monthly === 6490 && m.BRL_PLAN_PRICES_MINOR.starter.annual === 54590)
+checa('Creator R$ 149,90 · anual R$ 1.259,90', m.BRL_PLAN_PRICES_MINOR.basic.monthly === 14990 && m.BRL_PLAN_PRICES_MINOR.basic.annual === 125990)
+checa('Studio R$ 274,90 · anual R$ 2.309,90', m.BRL_PLAN_PRICES_MINOR.pro.monthly === 27490 && m.BRL_PLAN_PRICES_MINOR.pro.annual === 230990)
+checa('fração paga no anual em reais = 0,70 (espelho de ANNUAL_DISCOUNT_PERCENT = 30)', m.BRL_ANNUAL_PAID_FRACTION === 0.7)
 checa('piso legado V5 em reais: R$ 49,90 · 99,90 · 199,90', m.LEGACY_V5_BRL_PLAN_PRICES_MINOR.starter === 4990 && m.LEGACY_V5_BRL_PLAN_PRICES_MINOR.basic === 9990 && m.LEGACY_V5_BRL_PLAN_PRICES_MINOR.pro === 19990)
 checa('a tabela é exatamente o que a fórmula da casa dá sobre $12,90/$29,90/$54,90 (invariante vazio)', m.checkSettlementInvariants({ starter: 1290, basic: 2990, pro: 5490 }).length === 0)
 checa('o invariante ACUSA uma tabela torta', m.checkSettlementInvariants({ starter: 1490, basic: 2990, pro: 5490 }).length === 1)
 checa('fórmula: termina em ,90 e nunca abaixo de R$ 1,90', m.usdToBrlMinor(490) === 2490 && m.usdToBrlMinor(1990) === 9990 && m.usdToBrlMinor(0) === 190 && m.usdToBrlMinor(1) === 190)
-checa('plano: anual em BRL vem da TABELA (12 × mensal × 0,60 até ,90), não da fórmula sobre o anual em USD', m.planSettlementAmountMinor('starter', 'annual', 'brl', 9290) === 46790 && m.usdToBrlMinor(9290) !== 46790)
+checa('plano: anual em BRL vem da TABELA (12 × mensal × 0,70 até ,90), não da fórmula sobre o anual em USD', m.planSettlementAmountMinor('starter', 'annual', 'brl', 10800) === 54590 && m.usdToBrlMinor(10800) !== 54590)
 checa('plano em USD: devolve o próprio preço de lista', m.planSettlementAmountMinor('pro', 'monthly', 'usd', 5490) === 5490 && m.settlementAmountMinor(2990, 'usd') === 2990)
 
 // a decisão

@@ -29,6 +29,7 @@ export function pricingBillingHandoff(input: { billing?: unknown; promo?: unknow
   // continua abrindo no anual.
   // KINEO-ANUAL-40OFF-2026-10-05 — volta a abrir no ANUAL (fundador, Pacote 2: "anual pré-selecionado"). O motivo de
   // 23/09 morreu: desde 24/09 o anual recebe crédito MÊS A MÊS (cron annual-credit-refill), e agora ele é 40% off.
+  // KINEO-ANUAL-30-2026-10-08 — o desconto do anual caiu para 30% (fundador); a página continua abrindo no anual.
   // As promos mensais (FIRST50/COMEBACK50) e `?billing=monthly` explícito continuam abrindo no mensal.
   return {
     initialBilling: monthlyPromo ? 'monthly' : requestedBilling ?? 'annual',

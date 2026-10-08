@@ -38,15 +38,21 @@ const ANNUAL = tabelaUsd('ANNUAL_PRICES')
 // sobre as tabelas lidas do arquivo — não uma cópia da regra escrita aqui.
 const LEGACY_V5 = tabelaNum('LEGACY_TIER_CREDITS_V5')
 const V5_PRICES = tabelaNum('LEGACY_V5_PRICES_USD')
+// KINEO-ANUAL-30-2026-10-08 — reancorado com motivo: o anual vigente subiu para 30% off (10800/25000/46000) e a escada
+// ganhou o degrau do anual de 40% off (LEGACY_ANNUAL_40OFF_PRICES_USD = 9290/21500/39500, vendido de 05/10 a 08/10 e
+// pela troca por e-mail). A tabela é lida do arquivo real e injetada na função real transpilada, como as outras.
+const ANNUAL40 = tabelaNum('LEGACY_ANNUAL_40OFF_PRICES_USD')
 const legacyCreditsForUsd = (() => {
   const i = pricing.indexOf('export function legacyCreditsForUsd')
   const fn = pricing.slice(i, pricing.indexOf('\n}', i) + 2)
   const exp = {}
-  vm.runInNewContext(ts.transpileModule(fn, { compilerOptions: { module: 1, target: 9 } }).outputText, { exports: exp, LEGACY_V5_PRICES_USD: V5_PRICES, LEGACY_TIER_CREDITS_V5: LEGACY_V5, LEGACY_TIER_CREDITS_V6: LEGACY })
+  vm.runInNewContext(ts.transpileModule(fn, { compilerOptions: { module: 1, target: 9 } }).outputText, { exports: exp, Math, LEGACY_V5_PRICES_USD: V5_PRICES, LEGACY_ANNUAL_40OFF_PRICES_USD: ANNUAL40, LEGACY_TIER_CREDITS_V5: LEGACY_V5, LEGACY_TIER_CREDITS_V6: LEGACY })
   return exp.legacyCreditsForUsd
 })()
-checa('tabelas lidas do arquivo real (TIER_CREDITS, LEGACY V6, LEGACY V5 + piso V5, ANNUAL_PRICES com starter/basic/pro) e a escada real transpilada',
-  ['starter', 'basic', 'pro'].every((t) => TIER_CREDITS[t] > 0 && LEGACY[t] > 0 && LEGACY_V5[t] > 0 && V5_PRICES[t] > 0 && ANNUAL[t]?.usd > 0) && typeof legacyCreditsForUsd === 'function')
+checa('tabelas lidas do arquivo real (TIER_CREDITS, LEGACY V6, LEGACY V5 + piso V5, anual 40% off legado, ANNUAL_PRICES com starter/basic/pro) e a escada real transpilada',
+  ['starter', 'basic', 'pro'].every((t) => TIER_CREDITS[t] > 0 && LEGACY[t] > 0 && LEGACY_V5[t] > 0 && V5_PRICES[t] > 0 && ANNUAL40[t] > 0 && ANNUAL[t]?.usd > 0) && typeof legacyCreditsForUsd === 'function')
+checa('o degrau legado do anual de 40% off guarda EXATAMENTE os valores vendidos de 05/10 a 08/10 (9290 / 21500 / 39500)',
+  ANNUAL40.starter === 9290 && ANNUAL40.basic === 21500 && ANNUAL40.pro === 39500)
 
 // ── módulo puro, transpilado e executado com as tabelas injetadas no lugar do import ──
 const src = rd('lib/billing/annualRefill.ts')
@@ -85,10 +91,15 @@ checa('anual pago ao preço vigente → grant vigente do plano', ['starter', 'ba
 // Studio ficaram ABAIXO do anual V5 (9900/39900). Para eles não existe mais a faixa "abaixo do vigente e acima do piso
 // V5": quem pagou o V5 pagou ≥ o vigente e recebe o grant vigente (que é o mesmo 60/300). A faixa só existe no Creator
 // ($199 ≤ x < $215). Os três degraus continuam provados na função real, cada um onde ele existe.
-checa('anual pago abaixo do vigente mas no piso V5 ou acima (Creator: 21400 ≥ 19900) → grant V5 (150 — o que esse valor comprou)', ['basic'].every((t) => V5_PRICES[t] * 10 <= ANNUAL[t].usd - 100 && lib.annualRefillCredits(t, ANNUAL[t].usd - 100, 'usd') === LEGACY_V5[t]))
+// KINEO-ANUAL-30-2026-10-08 — re-ancorado: com o anual vigente em 30% off (10800/25000/46000), a faixa "abaixo do vigente
+// e no piso ou acima" volta a existir nos TRÊS planos; o piso do anual é o menor entre o V5 10× e o anual de 40% off.
+const PISO_ANUAL = (t) => Math.min(V5_PRICES[t] * 10, ANNUAL40[t])
+checa('anual pago abaixo do vigente mas no piso legado ou acima (vigente − $1) → grant V5 (60/150/300 — o que esse valor comprou)', ['starter', 'basic', 'pro'].every((t) => PISO_ANUAL(t) <= ANNUAL[t].usd - 100 && lib.annualRefillCredits(t, ANNUAL[t].usd - 100, 'usd') === LEGACY_V5[t]))
 checa('anual pago EXATAMENTE no anual V5 (9900/19900/39900, assinante de antes de 28/09) → mantém 60/150/300', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, V5_PRICES[t] * 10, 'usd') === LEGACY_V5[t]))
-checa('anual pago abaixo do piso V5 E do vigente (assinante V6) → grant V6 (60/150/180)', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, Math.min(V5_PRICES[t] * 10, ANNUAL[t].usd) - 100, 'usd') === LEGACY[t]))
-checa('Studio que pagou o anual V6 ($290) → 180; Studio no anual 40% off ($395) → 300', lib.annualRefillCredits('pro', 29000, 'usd') === LEGACY.pro && lib.annualRefillCredits('pro', ANNUAL.pro.usd, 'usd') === TIER_CREDITS.pro)
+checa('anual pago abaixo do piso legado E do vigente (assinante V6) → grant V6 (60/150/180)', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, Math.min(PISO_ANUAL(t), ANNUAL[t].usd) - 100, 'usd') === LEGACY[t]))
+checa('anual de 40% off (9290/21500/39500), agora ABAIXO do vigente → mantém 60/150/300 (sem o degrau o Studio de $395 cairia para 180)', ['starter', 'basic', 'pro'].every((t) => ANNUAL40[t] < ANNUAL[t].usd && lib.annualRefillCredits(t, ANNUAL40[t], 'usd') === LEGACY_V5[t]) && lib.annualRefillCredits('pro', 39500, 'usd') === 300)
+checa('troca por e-mail a 40% a partir do mensal V8-A ($93 / $215 / $395) → mesmos 60/150/300 de hoje', lib.annualRefillCredits('starter', 9300, 'usd') === 60 && lib.annualRefillCredits('basic', 21500, 'usd') === 150 && lib.annualRefillCredits('pro', 39500, 'usd') === 300)
+checa('Studio que pagou o anual V6 ($290) → 180; Studio no anual vigente de 30% off ($460) → 300', lib.annualRefillCredits('pro', 29000, 'usd') === LEGACY.pro && lib.annualRefillCredits('pro', ANNUAL.pro.usd, 'usd') === TIER_CREDITS.pro && ANNUAL.pro.usd === 46000)
 checa('fatura em BRL não tem legado a honrar → grant vigente', lib.annualRefillCredits('pro', 1, 'brl') === TIER_CREDITS.pro)
 checa('valor ausente → grant vigente', lib.annualRefillCredits('starter', null, 'usd') === TIER_CREDITS.starter)
 checa('só starter/basic/pro têm anual', lib.annualTierFromMetadata('pro') === 'pro' && lib.annualTierFromMetadata('autopilot') === null && lib.annualTierFromMetadata(undefined) === null)
