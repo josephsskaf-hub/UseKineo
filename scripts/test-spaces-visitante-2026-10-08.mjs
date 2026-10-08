@@ -6,6 +6,8 @@
 //   B. A página chama o helper para quem NÃO tem usuário, e o 404 continua só para logado sem permissão.
 //   C. /ai-faceless-video-generator (URL da ficha do SaaSHub, que virou "Discontinued" pelo 404) responde 301 (numa rota) para
 //      /faceless-video-generator, que existe.
+//   D. O /signup que recebe o visitante do Spaces fala de Spaces (não de "AI Short"), em português quando o navegador é
+//      português: lib/growth/signupProductDestinationPreview.ts EXECUTADO com as dependências reais transpiladas.
 // Lê os arquivos reais (readFileSync + transpile; nada de import com alias '@/'). CRLF normalizado na leitura.
 
 import { readFileSync, existsSync } from 'node:fs'
@@ -104,6 +106,49 @@ check(/^export function GET\(req: NextRequest\) \{\n  return permanentRedirect\(
 check(existsSync(join(root, 'app/faceless-video-generator/page.tsx')), 'C5 o destino do 301 existe como página')
 check(!existsSync(join(root, 'app/ai-faceless-video-generator/page.tsx')), 'C6 a origem não tem página (só o redirect)')
 check(!/ai-faceless-video-generator/.test(read('next.config.js')), 'C7 o next.config.js congelado não foi tocado')
+
+// ── D. o /signup do visitante do Spaces fala de Spaces (e em português para navegador português) ─────────────────────
+function executeWith(rel, deps) {
+  const output = ts.transpileModule(read(rel), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+    fileName: join(root, rel),
+  }).outputText
+  const module = { exports: {} }
+  new Function('require', 'module', 'exports', output)(
+    (id) => { if (Object.hasOwn(deps, id)) return deps[id]; throw new Error(`${rel} importou ${id} inesperado`) },
+    module,
+    module.exports,
+  )
+  return module.exports
+}
+const destino = executeWith('lib/growth/signupProductDestinationPreview.ts', {
+  '@/lib/authRedirect': executeWith('lib/authRedirect.ts', {}),
+  '@/lib/growth/productSurfaceIntent': executeWith('lib/growth/productSurfaceIntent.ts', {}),
+  '@/lib/growth/engineLandingIntent': executeWith('lib/growth/engineLandingIntent.ts', {}),
+})
+const build = destino.buildSignupProductDestinationPreview
+const redirectDoVisitante = parse(href({ utm_source: 'instagram', utm_campaign: 'canal_joseph' })).searchParams.get('redirect')
+const en = build(redirectDoVisitante)
+const pt = build(redirectDoVisitante, { portuguese: true })
+check(en?.surface === 'spaces' && en.heading === 'Spaces is next' && en.destinationLabel === 'Kineo Spaces',
+  'D1 o redirect que o /spaces gera é reconhecido no cadastro como destino Spaces (inglês)')
+check(en?.subtitle === undefined, 'D2 em inglês fica a frase genérica de destino salvo (sem subtítulo próprio)')
+check(pt?.surface === 'spaces' && pt.heading === 'O Spaces abre em seguida' && pt.eyebrow === 'Destino salvo'
+  && pt.subtitle === 'Crie sua conta grátis e continue de onde parou.', 'D3 navegador português: título, selo e subtítulo em português')
+check(/Nada é gerado antes de você enviar\.$/.test(pt?.description ?? '') && /Nothing is generated until you submit\.$/.test(en?.description ?? ''),
+  'D4 a promessa é só a verdade: nada é gerado antes do envio')
+check(build('/spaces?foo=1') === null && build('/spaces?redirect=/admin') === null, 'D5 contrato fechado: /spaces com chave estranha não vira promessa')
+const img = build('/images', { portuguese: true })
+check(img?.surface === 'images' && img.heading === 'Your AI Image Studio is next' && img.subtitle === undefined,
+  'D6 os outros destinos não mudam (o português é só do Spaces)')
+const signupPage = read('app/(auth)/signup/page.tsx')
+check(/^\s*const portuguese = typeof navigator !== 'undefined' && \/\^pt\\b\/i\.test\(navigator\.language \|\| ''\)$/m.test(signupPage),
+  'D7 o idioma vem do navegador, lido só no cliente')
+check(signupPage.includes("buildSignupProductDestinationPreview(params.get('redirect'), { portuguese })"), 'D8 a página passa o idioma ao montar o destino')
+check(signupPage.includes("? savedProductDestination.subtitle ?? 'Create a free account and continue to the product you chose.'"),
+  'D9 o subtítulo do destino entra no lugar da frase genérica quando existe')
+check(/const \[authSearch, setAuthSearch\] = useState\(''\)/.test(signupPage),
+  'D10 o destino só é montado depois da montagem (authSearch nasce vazio): sem diferença de hidratação')
 
 if (failures.length) {
   console.error(`FALHOU ${failures.length} de ${passed + failures.length}:`)

@@ -330,7 +330,10 @@ export default function SignupPage() {
   const savedProductDestination = useMemo(() => {
     if (isCheckoutResume) return null
     const params = new URLSearchParams(authSearch)
-    return buildSignupProductDestinationPreview(params.get('redirect'))
+    // KINEO-SPACES-VISITANTE-2026-10-08 — só depois da montagem (authSearch nasce '' no servidor), então ler o idioma do
+    // navegador aqui não gera diferença de hidratação. Hoje só o destino Spaces tem texto em português.
+    const portuguese = typeof navigator !== 'undefined' && /^pt\b/i.test(navigator.language || '')
+    return buildSignupProductDestinationPreview(params.get('redirect'), { portuguese })
   }, [authSearch, isCheckoutResume])
   const loginParams = new URLSearchParams({ redirect: activationRedirect })
   if (isCheckoutResume) loginParams.set('reason', 'checkout')
@@ -666,7 +669,7 @@ export default function SignupPage() {
                       ? `${bulkCheckoutContext.priceLabel} USD one time · no subscription. Create your account and continue without choosing the pack again.`
                       : trialPromise?.sentence ?? checkoutChoice?.continuity ?? 'Your selected plan is saved. Continue securely below.'
                     : savedProductDestination
-                      ? 'Create a free account and continue to the product you chose.'
+                      ? savedProductDestination.subtitle ?? 'Create a free account and continue to the product you chose.'
                       : savedCreation
                         ? 'Create a free account and continue without starting over.'
                         : ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}

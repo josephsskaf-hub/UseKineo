@@ -143,7 +143,9 @@ for (const raw of rejected) {
 
 const signup = source('app/(auth)/signup/page.tsx')
 ok(signup.includes("import { buildSignupProductDestinationPreview } from '@/lib/growth/signupProductDestinationPreview'"), 'real signup imports destination proof')
-ok(signup.includes("buildSignupProductDestinationPreview(params.get('redirect'))"), 'real signup derives proof from the validated redirect field')
+// KINEO-SPACES-VISITANTE-2026-10-08 — reancorado com motivo: a chamada ganhou o 2º argumento { portuguese } (texto do
+// destino Spaces em português); o campo validado continua sendo o redirect, e o 2º argumento é só esse, fechado.
+ok(/buildSignupProductDestinationPreview\(params\.get\('redirect'\)(?:, \{ portuguese \})?\)/.test(signup), 'real signup derives proof from the validated redirect field')
 ok(signup.includes('if (isCheckoutResume) return null'), 'checkout resume suppresses product proof')
 ok(signup.indexOf("? 'Create your account to continue'") < signup.indexOf(': savedProductDestination'), 'checkout heading keeps first priority')
 ok(signup.indexOf(': savedProductDestination') < signup.indexOf(': savedCreation'), 'product destination is named before generic creation copy')
